@@ -804,4 +804,132 @@ const gens = [
     verify: (p) => { const stop = p.A / p.B, u = Math.sqrt(p.A); return stop / (u / 2); } },
 ];
 
+
+// ---------- Level 5 round (v5): top-rank additions ----------
+const v5 = (id, type, format, sub, o) => ({ id, type, level: 5, format, exams: ['jee-adv'], sub, ...o });
+Object.assign(groups, {
+  v5m1: { title: 'Distance, not displacement',
+    list1: [r`A. $v = 8 - 4t$`, r`B. $v = 2t - 4$`, r`C. $v = 6 - 3t$`, r`D. $v = 3t^2 - 12$`],
+    list2: ['p. 8 m', 'q. 12 m', 'r. 16 m', 's. 48 m'] },
+  v5m2: { title: 'Scaling of braking distance',
+    list1: ['A. Initial speed doubled, same deceleration', 'B. Initial speed doubled and deceleration doubled', 'C. Same speed, deceleration doubled', 'D. Initial speed tripled and deceleration tripled'],
+    list2: ['p. $\\tfrac12$ times', 'q. 2 times', 'r. 3 times', 's. 4 times'] },
+  v5p1: { title: 'A cubic position function',
+    passage: r`<p>A particle moves along the $x$-axis with $x = 2t^3 - 18t^2 + 54t - 20$ (SI units).</p>` },
+});
+items.push(
+  v5('msl-v501', 'msq', 'multi', 'relative motion', {
+    q: r`Ball $A$ is thrown vertically upward from the ground at $20\ \mathrm{m\,s^{-1}}$ at $t = 0$. Ball $B$ is thrown vertically upward from the same point with the same speed at $t = 2$ s. Take $g = 10\ \mathrm{m\,s^{-2}}$ and ignore air. Which statements are correct?`,
+    options: ['They meet at $t = 3$ s', 'When they meet, $A$ is moving down and $B$ is moving up', 'They meet at a height of $20$ m', r`While both are in the air, the velocity of $B$ relative to $A$ is constant at $20\ \mathrm{m\,s^{-1}}$ upward`], answer: [0, 1, 3],
+    sol: r`Equal heights: $20t - 5t^2 = 20(t-2) - 5(t-2)^2$. The right side is $40t - 5t^2 - 60$, so $20t = 40t - 60$ and $t = 3$ s (A true). The height is $60 - 45 = 15$ m (C false: $20$ m is the top of $A$'s path, reached at $t = 2$ s). Velocities at $t = 3$: $v_A = 20 - 30 = -10$ (down) and $v_B = 20 - 10 = +10$ (up) (B true). Relative velocity $v_B - v_A = [20 - 10(t-2)] - [20 - 10t] = 20\ \mathrm{m\,s^{-1}}$, constant because both have the same acceleration (D true; $A$ lands at $t = 4$ s).`,
+    trap: 'The maximum height of one ball is not the meeting height.' }),
+  v5('msl-v502', 'msq', 'multi', 'acceleration-time graph', {
+    q: r`A particle starts from rest. Its acceleration is $+2\ \mathrm{m\,s^{-2}}$ from $t = 0$ to $3$ s, zero from $3$ to $5$ s, $-3\ \mathrm{m\,s^{-2}}$ from $5$ to $7$ s, and zero after that. Which statements are correct?`,
+    options: [r`The greatest speed is $6\ \mathrm{m\,s^{-1}}$`, 'The particle comes to rest at $t = 7$ s and stays at rest', 'The total distance travelled is $27$ m', r`The average velocity over $0$ to $7$ s is $4\ \mathrm{m\,s^{-1}}$`], answer: [0, 1, 2],
+    sol: r`Speed at $3$ s: $2\times3 = 6$; unchanged to $5$ s; then $6 - 3\times2 = 0$ at $7$ s (A, B true), and zero acceleration afterwards keeps it at rest. Distances: $0$-$3$ s: $\tfrac12\cdot2\cdot9 = 9$ m; $3$-$5$ s: $6\times2 = 12$ m; $5$-$7$ s: $6\times2 - \tfrac12\cdot3\cdot4 = 6$ m. Total $27$ m (C true). Average velocity $= 27/7 = 3.86\ \mathrm{m\,s^{-1}}$, not $4$ (D false).`,
+    trap: 'The area under the velocity-time graph divided by $7$ s is $3.86$, not the "nice" $4$.' }),
+  v5('msl-v503', 'msq', 'multi', 'variable acceleration', {
+    q: r`A particle starts at $x = 0$ with velocity $v_0>0$ and moves so that $v = v_0 - \alpha x$ with $\alpha>0$. Which statements are correct?`,
+    options: [r`Its acceleration is $a = -\alpha v$`, r`It never goes beyond $x = v_0/\alpha$`, r`It reaches $x = v_0/\alpha$ in a finite time`, r`When $x = v_0/(2\alpha)$ its speed is $v_0/\sqrt2$`], answer: [0, 1],
+    sol: r`$a = v\,dv/dx = v(-\alpha) = -\alpha v$ (A true). Solving $dx/dt = v_0 - \alpha x$ gives $x = \dfrac{v_0}{\alpha}(1 - e^{-\alpha t})$, which approaches $v_0/\alpha$ but never reaches it, so B is true and C is false (the time is infinite). At $x = v_0/(2\alpha)$: $v = v_0 - v_0/2 = v_0/2$, not $v_0/\sqrt2$ (D false; $v_0/\sqrt2$ would belong to $v^2 = v_0^2 - \ldots$).`,
+    trap: 'A speed that falls linearly with distance gives an exponential decay in time, so the stopping point is approached but never reached.' }),
+  v5('msl-v504', 'nat', 'integer', 'relative motion', {
+    q: r`Car $A$ moves at $30\ \mathrm{m\,s^{-1}}$ directly behind car $B$, which moves at $10\ \mathrm{m\,s^{-1}}$. At $t = 0$ the driver of $B$ brakes at $2\ \mathrm{m\,s^{-2}}$ until $B$ stops. The driver of $A$ reacts after $0.5$ s and then brakes at $6\ \mathrm{m\,s^{-2}}$ until $A$ stops. Find the smallest initial gap (in m) for which they do not collide.`,
+    answer: 65, tol: 0, unit: 'm', calc: () => (30 * 0.5 + 30 ** 2 / (2 * 6)) - 10 ** 2 / (2 * 2),
+    sol: r`Car $B$ stops at $t = 10/2 = 5$ s after $10^2/(2\times2) = 25$ m. For $A$: speed $v_A = 30 - 6(t - 0.5) = 33 - 6t$. Speeds would be equal at $33 - 6t = 10 - 2t$, i.e. $t = 5.75$ s, which is after $B$ has stopped, so that condition is not usable. At $t = 5$ s, $v_A = 3\ \mathrm{m\,s^{-1}} > 0$: $A$ still closes in on the stopped $B$ until it stops itself. $A$ travels $30\times0.5 + 30^2/(2\times6) = 15 + 75 = 90$ m. The gap needed is $90 - 25 = 65$ m.`,
+    trap: 'Setting the speeds equal assumes B is still moving; B stops first, so compare the final stopping positions.' }),
+  v5('msl-v505', 'nat', 'integer', 'free fall', {
+    q: r`A balloon rises at a constant $10\ \mathrm{m\,s^{-1}}$. When it is $75$ m above the ground a stone is released from it. Take $g = 10\ \mathrm{m\,s^{-2}}$. Find the distance between the balloon and the stone at the instant the stone hits the ground, in m.`,
+    answer: 125, tol: 0, unit: 'm', calc: () => 75 + 10 * 5,
+    sol: r`The stone starts with $10\ \mathrm{m\,s^{-1}}$ upward. Height $y = 75 + 10t - 5t^2 = 0$ gives $t^2 - 2t - 15 = 0$, so $t = 5$ s. In that time the balloon rises $10\times5 = 50$ m to $125$ m above the ground. The stone is on the ground, so the separation is $125$ m.`,
+    trap: 'The stone is not "dropped from rest": it leaves with the balloon\'s upward velocity.' }),
+  v5('msl-v506', 'nat', 'integer', 'two-stage motion', {
+    q: r`A train must go between two stations $1050$ m apart. It can accelerate at $2\ \mathrm{m\,s^{-2}}$ and brake at $4\ \mathrm{m\,s^{-2}}$, and may not exceed $20\ \mathrm{m\,s^{-1}}$. Find the shortest possible time in s.`,
+    answer: 60, tol: 0, unit: 's', calc: () => 20 / 2 + 20 / 4 + (1050 - 20 ** 2 / 4 - 20 ** 2 / 8) / 20,
+    sol: r`Without the limit the peak speed would satisfy $v^2/4 + v^2/8 = 1050$, $v = 52.9\ \mathrm{m\,s^{-1}}$, which is above the limit. So the train accelerates to $20$, cruises, then brakes. Acceleration: $20/2 = 10$ s and $20^2/(2\times2) = 100$ m. Braking: $20/4 = 5$ s and $20^2/(2\times4) = 50$ m. Cruise distance $= 1050 - 150 = 900$ m, taking $900/20 = 45$ s. Total $= 10 + 45 + 5 = 60$ s.`,
+    trap: 'Check first whether the speed limit is reached at all.' }),
+  v5('msl-v507', 'nat', 'numeric', 'variable acceleration', {
+    q: r`A particle on the $x$-axis has acceleration $a = 6t - 12$ (SI). At $t = 0$ it is at the origin with velocity $+9\ \mathrm{m\,s^{-1}}$. Find the <b>distance</b> it travels in the first $2.5$ s, in m (3 decimals).`,
+    answer: 7.375, tol: 0.005, unit: 'm', calc: () => { const x = (t) => t ** 3 - 6 * t * t + 9 * t; return (x(1) - x(0)) + (x(1) - x(2.5)); },
+    sol: r`$v = 9 + 3t^2 - 12t = 3(t-1)(t-3)$ and $x = t^3 - 6t^2 + 9t$. The velocity is positive until $t = 1$ s and negative from $1$ to $3$ s, so the particle turns at $t = 1$. $x(1) = 4$ m, $x(2.5) = 15.625 - 37.5 + 22.5 = 0.625$ m. Distance $= (4 - 0) + (4 - 0.625) = 7.375$ m (the displacement is only $0.625$ m).`,
+    trap: 'Splitting the path at the turning point $t = 1$ s is the whole question; integrating $v$ straight through gives the displacement.' }),
+  v5('msl-v508', 'nat', 'numeric', 'relative motion', {
+    q: r`A lift starts from rest and accelerates upward at $2\ \mathrm{m\,s^{-2}}$. At $t = 2$ s a bolt comes loose from the ceiling, which is $2.5$ m above the floor. Take $g = 10\ \mathrm{m\,s^{-2}}$. Find the net displacement of the bolt, relative to the ground, from its release until it hits the floor (upward positive), in m (2 decimals).`,
+    answer: 0.5, tol: 0.01, unit: 'm', calc: () => { const t = Math.sqrt(2 * 2.5 / 12); return 4 * t - 5 * t * t; },
+    sol: r`At release the lift (and the bolt) move up at $2\times2 = 4\ \mathrm{m\,s^{-1}}$. Relative to the lift the bolt starts at rest and has acceleration $10 + 2 = 12\ \mathrm{m\,s^{-2}}$ downward, so $2.5 = \tfrac12(12)t^2$ and $t = \sqrt{5/12} = 0.645$ s. Relative to the ground the bolt moves with initial velocity $+4$ and acceleration $-10$: $s = 4t - 5t^2 = 2.582 - 2.083 = +0.499$ m. It actually moves slightly <i>up</i> before the floor comes to meet it.`,
+    trap: 'Using $g$ alone for the fall time gives $0.707$ s; the floor rises to meet the bolt, so the relative acceleration is $g + a$.' }),
+  v5('msl-v509', 'mcq', 'single', 'average speed', {
+    q: r`A car travels the first half of a straight route at $30\ \mathrm{m\,s^{-1}}$. For the second half of the route it moves for equal durations at $20\ \mathrm{m\,s^{-1}}$ and at $60\ \mathrm{m\,s^{-1}}$. Its average speed for the whole route is`,
+    options: [r`$35\ \mathrm{m\,s^{-1}}$`, r`$34.3\ \mathrm{m\,s^{-1}}$`, r`$36.7\ \mathrm{m\,s^{-1}}$`, r`$30\ \mathrm{m\,s^{-1}}$`], answer: 1,
+    sol: r`Equal durations on the second half give an average of $(20 + 60)/2 = 40\ \mathrm{m\,s^{-1}}$ for that half. The two halves cover equal distances $d$, so the average speed is $\dfrac{2d}{d/30 + d/40} = \dfrac{2}{1/30 + 1/40} = \dfrac{2\times120}{7} = 34.3\ \mathrm{m\,s^{-1}}$. The wrong options are the arithmetic mean of 30 and 40 ($35$), the mean of the three speeds ($36.7$) and the harmonic mean of the three speeds ($30$).`,
+    trap: 'Equal times use the arithmetic mean; equal distances use the harmonic mean. Here both appear.' }),
+  { id: 'msl-v510', type: 'mcq', level: 5, format: 'match', exams: ['jee-adv'], sub: 'distance and displacement', group: 'v5m1',
+    q: r`A particle moves on a line with each velocity $v$ (SI) in List I. Match each with the <b>distance</b> it covers from $t = 0$ to $t = 4$ s in List II.`,
+    options: ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-r, B-q, C-p, D-s'], answer: 2,
+    sol: r`A: $x = 8t - 2t^2$, turning at $t = 2$ ($x = 8$), back to $0$ at $t=4$: distance $8 + 8 = 16$ m (r). B: $x = t^2 - 4t$, $x(2) = -4$, $x(4) = 0$: $4 + 4 = 8$ m (p). C: $x = 6t - 1.5t^2$, $x(2) = 6$, $x(4) = 0$: $6 + 6 = 12$ m (q). D: $x = t^3 - 12t$, turning at $t = 2$ ($x = -16$), then to $x(4) = 16$: $16 + 32 = 48$ m (s), although the displacement is only $16$ m. So A-r, B-p, C-q, D-s.`,
+    trap: 'D has the same displacement as the answer to A; only the distance separates them.' },
+  { id: 'msl-v511', type: 'mcq', level: 5, format: 'match', exams: ['jee-adv'], sub: 'stopping distance', group: 'v5m2',
+    q: r`A vehicle brakes to rest with constant deceleration. Match each change in List I with the factor by which the braking distance changes in List II.`,
+    options: ['A-s, B-q, C-p, D-r', 'A-s, B-p, C-q, D-r', 'A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p'], answer: 0,
+    sol: r`Braking distance $s = v^2/(2a)$. A: $v\to2v$: $4$ times (s). B: $4/2 = 2$ times (q). C: $a\to2a$: $\tfrac12$ times (p). D: $9/3 = 3$ times (r). So A-s, B-q, C-p, D-r.`,
+    trap: 'Speed enters squared, deceleration only to the first power.' },
+  { id: 'msl-v512', type: 'mcq', level: 5, format: 'passage', exams: ['jee-adv'], sub: 'turning points', group: 'v5p1',
+    q: 'At $t = 3$ s the particle',
+    options: ['reverses its direction of motion', 'is momentarily at rest and then keeps moving in the same direction', 'comes to rest and stays at rest', 'has its greatest speed'], answer: 1,
+    sol: r`$v = 6t^2 - 36t + 54 = 6(t - 3)^2$, which is zero at $t = 3$ s but never negative. Also $a = 12t - 36 = 0$ there. So the particle stops for an instant (with zero acceleration, a point of inflection of $x(t)$) and then moves on in the same direction. It reverses only if $v$ changes sign.`,
+    trap: '$v = 0$ does not by itself mean a turning point; the sign of $v$ must change.' },
+  { id: 'msl-v513', type: 'nat', level: 5, format: 'passage', exams: ['jee-adv'], sub: 'distance travelled', group: 'v5p1',
+    q: 'Find the distance travelled between $t = 0$ and $t = 6$ s, in m.',
+    answer: 108, tol: 0, unit: 'm', calc: () => { const x = (t) => 2 * t ** 3 - 18 * t * t + 54 * t - 20; return x(6) - x(0); },
+    sol: r`Since $v = 6(t-3)^2\ge0$, the particle never reverses, so distance equals displacement: $x(6) - x(0) = (432 - 648 + 324 - 20) - (-20) = 88 + 20 = 108$ m.` },
+  { id: 'msl-v514', type: 'mcq', level: 5, format: 'assertion', exams: ['jee-adv'], sub: 'free fall',
+    q: `<b>Assertion (A):</b> A ball thrown vertically upward with speed $u$ from the top of a tower and a second ball thrown vertically downward with speed $u$ from the same point reach the ground with the same speed.<br><b>Reason (R):</b> Both balls take the same time to reach the ground.`,
+    options: AOPT, answer: 2,
+    sol: r`A is true: the upward ball returns to the top of the tower moving down at speed $u$, after which its motion is identical to the downward ball's, so the final speeds agree (also from $v^2 = u^2 + 2gh$ for both). R is false: the upward ball spends an extra $2u/g$ in its up-and-down trip, so it takes longer.`,
+    trap: 'Equal speeds do not mean equal times.' },
+  { id: 'msl-v515', type: 'mcq', level: 5, format: 'statements', exams: ['jee-adv'], sub: 'average speed and velocity',
+    q: `<b>Statement I:</b> If the velocity-time graph of a particle on a line is a straight segment, its average speed over that interval is always the mean of its initial and final speeds.<br><b>Statement II:</b> For motion with constant acceleration, the average velocity over an interval equals the mean of the initial and final velocities.`,
+    options: SOPT, answer: 3,
+    sol: r`II is true: the $v$-$t$ graph is a straight line and the displacement is the area of a trapezoid, so the average velocity is $(u+v)/2$. I is false when the velocity changes sign: if $v$ goes uniformly from $-4$ to $+4\ \mathrm{m\,s^{-1}}$ in $4$ s, the distance is $4 + 4 = 8$ m and the average speed is $2\ \mathrm{m\,s^{-1}}$, while the mean of the initial and final speeds is $4$.`,
+    trap: 'The mean-of-ends rule holds for velocity, not for speed, once the sign changes.' },
+);
+
+
+// templates (level 5)
+gens.push(
+  { id: 'msl-v5g1', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'relative motion',
+    make(rng) {
+      const vA = choose(rng, [25, 30, 35, 40]), vB = choose(rng, [10, 15, 20]), tr = choose(rng, [0.4, 0.5, 0.6, 0.8]), a = choose(rng, [4, 5, 6]);
+      const dv = vA - vB, answer = dv * tr + dv * dv / (2 * a);
+      return { vA, vB, tr, a, answer: +answer.toFixed(3), tol: Math.max(0.1, answer * 0.005), unit: 'm',
+        q: `Car $A$ moves at ${vA} m/s directly behind car $B$, which moves at a steady ${vB} m/s. The driver of $A$ sees a hazard, reacts after ${tr} s and then brakes at ${a} m/s$^2$ until the speeds are equal. Find the smallest initial gap (in m) that avoids a collision.`,
+        sol: `Relative speed $= ${vA} - ${vB} = ${dv}$ m/s. During the reaction time the gap closes by $${dv}\\times${tr} = ${fmt(dv * tr, 4)}$ m. Braking then removes the relative speed at ${a} m/s$^2$, closing a further $${dv}^2/(2\\times${a}) = ${fmt(dv * dv / (2 * a), 4)}$ m. Gap $= ${fmt(answer, 4)}$ m.`,
+        trap: 'Work in the frame of $B$: only the relative speed matters, not the speed of $A$ alone.' };
+    },
+    verify: (p) => { const tau = (p.vA - p.vB) / p.a; const xA = p.vA * p.tr + p.vA * tau - 0.5 * p.a * tau * tau; const xB = p.vB * (p.tr + tau); return xA - xB; } },
+  { id: 'msl-v5g2', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'two-stage motion',
+    make(rng) {
+      const a1 = choose(rng, [1, 2, 2.5]), a2 = choose(rng, [2, 4, 5]), vm = choose(rng, [15, 20, 25]), k = choose(rng, [20, 30, 40, 50]);
+      const d = vm * vm / (2 * a1) + vm * vm / (2 * a2) + vm * k, answer = vm / a1 + vm / a2 + k;
+      return { a1, a2, vm, k, d, answer: +answer.toFixed(3), tol: Math.max(0.05, answer * 0.005), unit: 's',
+        q: `A train must go between two stations ${d} m apart. It can accelerate at ${a1} m/s$^2$ and brake at ${a2} m/s$^2$ and may not exceed ${vm} m/s. Find the shortest possible time in s.`,
+        sol: `Acceleration takes ${fmt(vm / a1, 4)} s over ${fmt(vm * vm / (2 * a1), 4)} m and braking takes ${fmt(vm / a2, 4)} s over ${fmt(vm * vm / (2 * a2), 4)} m. The cruise distance is ${fmt(vm * k, 4)} m, taking ${k} s at ${vm} m/s. Total $= ${fmt(answer, 4)}$ s (the speed limit is reached, since the unlimited peak speed would be higher).`,
+        trap: 'Check that the limit is actually reached before cruising.' };
+    },
+    verify: (p) => p.d / p.vm + p.vm / (2 * p.a1) + p.vm / (2 * p.a2) },
+  { id: 'msl-v5g3', type: 'mcq', level: 5, exams: ['jee-adv'], sub: 'free fall',
+    make(rng) {
+      const n = choose(rng, [4, 5, 6]), u = choose(rng, [5, 10, 15]), h = 5 * n * n - u * n;
+      const down = (-u + Math.sqrt(u * u + 20 * h)) / 10, drop = Math.sqrt(h / 5);
+      const f = (x) => `${fmt(x, 3)} s`;
+      const { options, answer } = shuffleOpts(rng, f(n), [f(drop), f(down), f(u / 10 + drop)]);
+      return { n, u, h, options, answer,
+        q: `A balloon rises at a steady ${u} m/s. When it is ${h} m above the ground a stone is released from it. Take $g = 10\\ \\mathrm{m\\,s^{-2}}$. The stone reaches the ground after`,
+        sol: `The stone leaves with ${u} m/s upward: $y = ${h} + ${u}t - 5t^2 = 0$, so $t = ${n}$ s. Dropping it from rest would take ${f(drop)}, and throwing it down at ${u} m/s would take ${f(down)}.`,
+        trap: 'The stone shares the balloon\'s upward velocity at the moment of release.' };
+    },
+    verify: (p) => { const H = p.h + p.u * p.u / 20; const t = p.u / 10 + Math.sqrt(H / 5); return p.options.indexOf(`${fmt(t, 3)} s`); } },
+);
+
+
 export default { topic: 'motion-straight-line', groups, items, gens };

@@ -813,4 +813,141 @@ const gens = [
     verify: (p) => { let v = 0; const n = 100000, m0 = 1, m1 = 1 / p.ratio; for (let i = 0; i < n; i++) { const m = m0 + (m1 - m0) * (i + 0.5) / n; v += p.u * (m0 - m1) / n / m; } return v; } },
 ];
 
-export default { topic: 'centre-of-mass-collisions', groups, items, gens };
+
+// ================= Level 5 round (top-rank additions, ids <prefix>-v5NN / -v5gN) =================
+const v5 = (o) => ({ level: 5, exams: ['jee-adv'], ...o });
+const v5s = (id, sub, q, correct, wrongs, pos, sol, trap) => { const options = [...wrongs]; options.splice(pos, 0, correct); return v5({ id, type: 'mcq', format: 'single', sub, q, options, answer: pos, sol, trap }); };
+const v5n = (id, sub, q, val, dp, tol, unit, sol, trap) => { const answer = +val.toFixed(dp); return v5({ id, type: 'nat', format: tol === 0 ? 'integer' : 'numeric', sub, q, answer, tol, unit, calc: () => answer, sol, trap }); };
+const v5m = (id, sub, q, options, answer, sol, trap) => v5({ id, type: 'msq', format: 'multi', sub, q, options, answer, sol, trap });
+const v5a = (id, sub, A, R, answer, sol, trap) => v5({ id, type: 'mcq', format: 'assertion', sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AOPT, answer, sol, trap });
+const v5t = (id, sub, I, II, answer, sol, trap) => v5({ id, type: 'mcq', format: 'statements', sub, q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SOPT, answer, sol, trap });
+const v5mat = (id, sub, group, q, correct, wrongs, pos, sol, trap) => { const options = [...wrongs]; options.splice(pos, 0, correct); return v5({ id, type: 'mcq', format: 'match', sub, group, q, options, answer: pos, sol, trap }); };
+const v5p = (id, sub, group, q, val, dp, tol, unit, sol, trap) => { const answer = +val.toFixed(dp); return v5({ id, type: 'nat', format: 'passage', sub, group, q, answer, tol, unit, calc: () => answer, sol, trap }); };
+const v5S = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const v5groups = {
+  v5m1: { title: 'Variable mass and bouncing: dimensionless numbers',
+    list1: ['A. A rocket in free space burns until its mass is $1/e$ of its initial mass: (speed gained) / (exhaust speed)', 'B. A conveyor belt at constant speed receives falling sand: (motor power) / (rate of increase of the sand\'s kinetic energy)', 'C. A chain falls from rest onto a table: (force on the table) / (weight of the part already on the table)', 'D. A ball bounces with $e = 1/2$: (height of the 2nd rebound) / (height of the 1st rebound)'],
+    list2: ['p. 3', 'q. 2', 'r. 1', 's. 1/4', 't. 4'] },
+  v5m2: { title: 'A ball dropped on the floor, coefficient of restitution $e$',
+    list1: ['A. Ratio of successive rebound heights', 'B. Ratio of successive times between bounces', 'C. Fraction of kinetic energy lost at each bounce', 'D. Total distance travelled until it stops, divided by the drop height $h$'],
+    list2: [r`p. $e$`, r`q. $e^2$`, r`r. $1 - e^2$`, r`s. $\dfrac{1+e^2}{1-e^2}$`, r`t. $\dfrac{1+e}{1-e}$`] },
+  v5p1: { title: 'A block, a block and a wall',
+    passage: r`<p>On a smooth horizontal track, block A (1.0 kg) moving at $12\ \mathrm{m\,s^{-1}}$ to the right hits block B (2.0 kg), which is at rest at $x = 0$. A fixed vertical wall stands at $x = 8.0$ m, to the right of B. All collisions (A with B, B with the wall) are perfectly elastic. Take the first A-B collision at $x = 0$ and $t = 0$.</p>` },
+};
+
+const v5items = [];
+{
+  const e0 = Math.E;
+  // 01: chain on table
+  v5items.push(v5m('cm-v501', 'variable mass', r`A uniform chain of mass $M$ and length $L$ hangs vertically with its lower end just touching a table. It is released from rest and the links that reach the table stay at rest there. Which statements are correct?`, [
+    r`When length $x$ has landed, the force from the table is $3(Mx/L)g$, three times the weight of the part already on the table`,
+    r`The greatest force from the table is $3Mg$, just before the last link lands`,
+    r`The total mechanical energy dissipated in the whole process is $MgL/4$`,
+    r`The part of the chain still in the air falls with constant speed`,
+  ], [0, 1],
+  r`Idea: the part still in the air is in free fall (nothing pulls on it, it is slack), so when length $x$ has landed its speed is $v = \sqrt{2gx}$. The table must support the weight of the landed part and stop the momentum arriving at rate $\lambda v^2$.<br>$N = \lambda gx + \lambda v^2 = \lambda gx + 2\lambda gx = 3\lambda gx = 3(Mx/L)g$ (option 1 true). At $x \to L$ this is $3Mg$ (option 2 true).<br>Energy: the centre of mass drops by $L/2$, so $MgL/2$ of potential energy is lost and finally all of it is dissipated, not $MgL/4$ (option 3 false). The falling part speeds up with $g$ (option 4 false).<br>Answer: 1 and 2.`,
+  r`Besides its own weight the table feels the momentum flow $\lambda v^2$, which is twice the weight of the landed part.`));
+  // 02: three-ball chain statements
+  v5items.push(v5m('cm-v502', 'collisions', r`Balls of masses $m_1$, $m_2$, $m_3$ lie in that order on a smooth straight track. $m_1$ moves with speed $u$ and hits $m_2$ elastically head-on; $m_2$ then hits $m_3$, also elastically. Only these two collisions matter. Which statements are correct?`, [
+    r`For fixed $m_1$ and $m_3$, the final speed of $m_3$ is greatest when $m_2 = \sqrt{m_1m_3}$`,
+    r`When $m_2 = \sqrt{m_1m_3}$ the final speed of $m_3$ is $\dfrac{4m_1}{(\sqrt{m_1}+\sqrt{m_3})^2}\,u$`,
+    r`The final speed of $m_3$ can never exceed $2u$, whatever the masses`,
+    r`When $m_2 = \sqrt{m_1m_3}$ the ball $m_2$ is always left at rest after the second collision`,
+  ], [0, 1],
+  r`Idea: elastic head-on, target at rest: $v_2 = \dfrac{2m_1}{m_1+m_2}u$, then $v_3 = \dfrac{2m_2}{m_2+m_3}v_2$, so $v_3 = \dfrac{4m_1m_2}{(m_1+m_2)(m_2+m_3)}u$.<br>Option 1: maximise over $m_2$: the denominator $(m_1+m_2)(m_2+m_3)/m_2 = m_1+m_3+m_2+m_1m_3/m_2$ is least when $m_2 = \sqrt{m_1m_3}$ (AM-GM). True.<br>Option 2: substituting gives $v_3 = \dfrac{4m_1}{(\sqrt{m_1}+\sqrt{m_3})^2}u$. True.<br>Option 3 is false: with $m_1 = 16m_3$ it gives $v_3 = \dfrac{4\times16}{(4+1)^2}u = 2.56u$, and as $m_3/m_1 \to 0$ it tends to $4u$.<br>Option 4 is false: after the second collision $m_2$ has speed $\dfrac{m_2-m_3}{m_2+m_3}v_2$, which is zero only if $m_2 = m_3$ (that is, $m_1 = m_2 = m_3$).<br>Answer: 1 and 2.`,
+  r`A light target can be hit faster by a chain of two collisions than by one, but the best middle mass is the geometric mean, not the arithmetic mean.`));
+  // 03: oblique bounce with friction
+  v5items.push(v5m('cm-v503', 'impulse', r`A small ball (treated as a particle, with no spin) hits a rough horizontal floor with velocity components $v_x$ along the floor and $v_y$ towards it. The coefficient of restitution is $e$ and the coefficient of friction is $\mu$; the friction impulse is $\mu$ times the normal impulse while the ball slides. Which statements are correct?`, [
+    r`The horizontal momentum of the ball is conserved because the floor's force on it is vertical`,
+    r`The vertical component after the bounce is $ev_y$`,
+    r`If $v_x > \mu(1+e)v_y$, the horizontal component decreases by exactly $\mu(1+e)v_y$`,
+    r`If $v_x \le \mu(1+e)v_y$, the ball leaves with no horizontal velocity`,
+  ], [1, 2, 3],
+  r`Idea: the normal impulse $J_N = m(1+e)v_y$ reverses and reduces the vertical velocity, and the friction impulse $\mu J_N$ acts along the floor, opposite to the sliding.<br>Option 1 false: the floor also exerts friction along the floor, so $p_x$ changes.<br>Option 2 true: the normal component is multiplied by $-e$ (Newton's law of restitution).<br>Option 3 true: $\Delta v_x = -\mu J_N/m = -\mu(1+e)v_y$, as long as this is less than $v_x$.<br>Option 4 true: friction can only reduce the sliding speed to zero (a particle with no spin cannot reverse), so if $\mu(1+e)v_y \ge v_x$ the sliding stops and the ball leaves straight up.<br>Answer: 2, 3 and 4.`,
+  r`Friction acts for the same short contact time as the normal force, so its impulse is $\mu$ times the normal impulse $m(1+e)v_y$, not $\mu m v_y$.`));
+  // 04: three-ball integer
+  v5items.push(v5n('cm-v504', 'collisions', r`Three balls of masses 1 kg, $m$ and 16 kg lie in that order along a smooth straight track. The 1 kg ball is shot at $50\ \mathrm{m\,s^{-1}}$ towards the middle ball, which then hits the 16 kg ball. All collisions are elastic. The mass $m$ is chosen to give the 16 kg ball the greatest possible speed. Find that speed in $\mathrm{m\,s^{-1}}$.`, (() => { const m1 = 1, m3 = 16, u = 50; const m2 = Math.sqrt(m1 * m3); const v2 = 2 * m1 / (m1 + m2) * u; return 2 * m2 / (m2 + m3) * v2; })(), 0, 0, 'm s<sup>-1</sup>',
+  r`Idea: for elastic head-on hits on a stationary ball, $v_2 = \dfrac{2m_1}{m_1+m_2}u$ and $v_3 = \dfrac{2m_2}{m_2+m_3}v_2$. The product is greatest for $m = \sqrt{m_1m_3}$ (geometric mean).<br>$m = \sqrt{1\times16} = 4$ kg.<br>$v_2 = \dfrac{2\times1}{1+4}\times50 = 20\ \mathrm{m\,s^{-1}}$, then $v_3 = \dfrac{2\times4}{4+16}\times20 = 8\ \mathrm{m\,s^{-1}}$.<br>(After the first hit the 1 kg ball moves back at $30\ \mathrm{m\,s^{-1}}$ and the 4 kg ball rebounds at $12\ \mathrm{m\,s^{-1}}$, so there are no further collisions.) Direct hit on the 16 kg ball would give only $\dfrac{2}{17}\times50 = 5.9\ \mathrm{m\,s^{-1}}$.<br>Answer: 8.`,
+  r`You must first find the best $m$ (4 kg): the arithmetic mean 8.5 kg gives a much smaller speed.`));
+  // 05: rod struck, particle stops
+  v5items.push(v5n('cm-v505', 'collisions', r`A particle of mass $m$ moving at speed $u$ strikes, at right angles and elastically, a free uniform rod of mass $M$ and length $L$ lying on a smooth horizontal table, at a point $L/4$ from the centre of the rod. The particle is brought completely to rest by the collision. Find $100M/m$.`, (() => { const f = 0.25; return 100 * (1 + 12 * f * f); })(), 0, 0, '',
+  r`Idea: three conditions: linear momentum, angular momentum about the centre, and energy (elastic). Let the rod get $V$ and $\omega$, with $I = ML^2/12$ and $x = L/4$.<br>Momentum: $mu = MV$, so $V = mu/M$.<br>Angular momentum about the rod's centre: $mux = I\omega$, so $\omega = \dfrac{12mux}{ML^2}$.<br>Energy: $\tfrac12mu^2 = \tfrac12MV^2 + \tfrac12I\omega^2$. Substituting: $mu^2 = \dfrac{m^2u^2}{M} + \dfrac{12m^2u^2x^2}{ML^2}$, so $1 = \dfrac{m}{M}\left(1 + \dfrac{12x^2}{L^2}\right)$.<br>With $x = L/4$: $\dfrac{M}{m} = 1 + \dfrac{12}{16} = 1.75$, so $100M/m = 175$.<br>Answer: 175.`,
+  r`Two conservation laws are not enough: the rod can rotate, so angular momentum and its energy $\tfrac12I\omega^2$ must be included.`));
+  // 06: raindrop
+  v5items.push(v5n('cm-v506', 'variable mass', r`A spherical raindrop starts from a negligible size and falls from rest through still mist. It sweeps up every droplet in the cylinder of mist in its path (the mist droplets are at rest, with uniform density $\rho_m$; the drop's own density is $\rho$). Ignore air drag and buoyancy. The drop's acceleration turns out to be constant and equal to $g/n$. Find $n$.`, 7, 0, 0, '',
+  r`Idea: use $F = d(mv)/dt$ (the swept droplets arrive at rest), and find how the mass grows with distance fallen.<br>In falling a distance $dx$ the drop sweeps a volume $\pi r^2dx$ of mist: $dm = \rho_m\pi r^2dx$. Also $m = \tfrac43\pi r^3\rho$ gives $dm = 4\pi r^2\rho\,dr$. Equating: $dr = \dfrac{\rho_m}{4\rho}dx$, so $r \propto x$ and $m = kx^3$.<br>Equation of motion: $\dfrac{d(mv)}{dt} = mg$, so $v\dfrac{dm}{dt} + m\dfrac{dv}{dt} = mg$. With $\dfrac{dm}{dt} = 3kx^2v$: $3kx^2v^2 + kx^3a = kx^3g$, i.e. $\dfrac{3v^2}{x} + a = g$.<br>For constant $a$ from rest, $v^2 = 2ax$. Then $6a + a = g$, so $a = g/7$.<br>Answer: 7.`,
+  r`If you forget that the mass grows as $x^3$ (radius grows with distance) and treat dm/dt as constant, you get nonsense; and $a = g$ would ignore the accretion.`));
+  // 07: oblique bounce with friction
+  v5items.push(v5n('cm-v507', 'impulse', r`A small ball hits a rough horizontal floor at $10\ \mathrm{m\,s^{-1}}$, making $37^\circ$ with the floor ($\sin37^\circ = 0.6$), so $v_x = 8$ and $v_y = 6\ \mathrm{m\,s^{-1}}$. The coefficient of restitution is $0.50$ and the coefficient of friction is $0.40$. Treat the ball as a particle (no spin) that slides throughout the contact. Find its speed just after the bounce, in $\mathrm{m\,s^{-1}}$ (2 decimals).`, (() => { const vx = 8 - 0.4 * 1.5 * 6, vy = 0.5 * 6; return Math.hypot(vx, vy); })(), 2, 0.02, 'm s<sup>-1</sup>',
+  r`Idea: normal direction: $v_y' = ev_y = 0.50\times6 = 3\ \mathrm{m\,s^{-1}}$. The normal impulse is $J_N = m(1+e)v_y = 9m$.<br>Friction impulse $\mu J_N = 0.40\times9m = 3.6m$ along the floor, opposing the motion, so $v_x' = 8 - 3.6 = 4.4\ \mathrm{m\,s^{-1}}$ (still positive, so the ball slid all the time).<br>Speed $= \sqrt{4.4^2 + 3^2} = \sqrt{28.36} = 5.33\ \mathrm{m\,s^{-1}}$.<br>Answer: 5.33.`,
+  r`Using $\mu mv_y$ for the friction impulse (instead of $\mu m(1+e)v_y$) gives 5.37 instead of 5.33, and ignoring friction gives 6.`));
+  // 08: cart losing sand
+  v5items.push(v5n('cm-v508', 'variable mass', r`A cart (cart and sand together 100 kg) is pulled from rest along smooth level ground by a constant horizontal force of 20 N. Sand leaks out through a hole in the floor at a steady 2.0 kg s$^{-1}$ and falls vertically, leaving the cart with the cart's own horizontal velocity. Find the speed of the cart after 25 s, in $\mathrm{m\,s^{-1}}$ (2 decimals).`, (20 / 2) * Math.log(100 / 50), 2, 0.02, 'm s<sup>-1</sup>',
+  r`Idea: the leaking sand carries away exactly its share of the horizontal momentum ($dm\cdot v$), so it exerts no thrust: the cart obeys $M\dfrac{dv}{dt} = F$ with $M = M_0 - \mu t$ (not $d(Mv)/dt = F$).<br>$dv = \dfrac{F\,dt}{M_0 - \mu t}$, so $v = \dfrac{F}{\mu}\ln\dfrac{M_0}{M_0 - \mu t}$.<br>At 25 s: $M = 100 - 2\times25 = 50$ kg, so $v = \dfrac{20}{2}\ln2 = 10\times0.693 = 6.93\ \mathrm{m\,s^{-1}}$.<br>(Using $Mv = Ft$ wrongly would give $500/50 = 10\ \mathrm{m\,s^{-1}}$.)<br>Answer: 6.93.`,
+  r`The sand leaves with the cart's velocity, so $d(Mv)/dt$ is not equal to the force; the correct law is $M\,dv/dt = F$.`));
+  // 09: match variable mass
+  v5items.push(v5mat('cm-v509', 'variable mass', 'v5m1', r`Match each situation in List I with the value of the stated ratio in List II.`, 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-t, B-q, C-p, D-s'], 2,
+  r`A: rocket equation $v = u\ln(m_0/m) = u\ln e = u$, ratio 1 (r).<br>B: the motor must give the sand momentum at rate $F = v\,dm/dt$, so power $= Fv = v^2dm/dt$. The sand's kinetic energy grows at $\tfrac12v^2dm/dt$. Ratio 2 (q); the other half is lost in slipping.<br>C: from the chain problem, force on the table $= 3\lambda gx$ and the landed weight is $\lambda gx$: ratio 3 (p).<br>D: rebound heights go as $e^2$, so with $e = 1/2$ the ratio is $1/4$ (s).<br>Answer: A-r, B-q, C-p, D-s.`,
+  r`Half of the motor's energy goes into the sand's kinetic energy, the rest is lost as heat: the ratio is 2, not 1.`));
+  // 10: match bouncing ball
+  v5items.push(v5mat('cm-v510', 'coefficient of restitution', 'v5m2', r`A ball is dropped from height $h$ onto a floor and bounces repeatedly with coefficient of restitution $e$ ($0 < e < 1$). Match each item in List I with its expression in List II.`, 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-r, D-t', 'A-q, B-p, C-s, D-r'], 3,
+  r`Idea: speeds after each bounce are multiplied by $e$.<br>A: height $\propto v^2$, so successive heights go as $e^2$ (q).<br>B: time of flight $\propto v$, so successive times go as $e$ (p).<br>C: kinetic energy $\propto v^2$: the fraction lost is $1 - e^2$ (r).<br>D: distance $= h + 2he^2 + 2he^4 + \cdots = h + \dfrac{2he^2}{1-e^2} = h\dfrac{1+e^2}{1-e^2}$ (s). (Option t, $(1+e)/(1-e)$, is the total time in units of the first fall time.)<br>Answer: A-q, B-p, C-r, D-s.`,
+  r`Heights and distances use $e^2$, times use $e$: the total time has $(1+e)/(1-e)$ but the total distance has $(1+e^2)/(1-e^2)$.`));
+  // 11-12: passage
+  v5items.push(v5p('cm-v511', 'collisions', 'v5p1', r`Find the distance from the wall at which A and B collide for the second time, in m.`, (() => { const vA = (1 - 2) / 3 * 12, vB = 2 / 3 * 12; const tw = 8 / vB; const t = (8 + vB * tw) / (vB + vA); return 8 - vA * t; })(), 0, 0, 'm',
+  r`Idea: use the elastic collision formulae, then follow positions.<br>First collision: $v_A = \dfrac{1-2}{1+2}\times12 = -4\ \mathrm{m\,s^{-1}}$ (A rebounds), $v_B = \dfrac{2\times1}{3}\times12 = +8\ \mathrm{m\,s^{-1}}$.<br>B reaches the wall at $t = 8/8 = 1$ s and rebounds with $-8\ \mathrm{m\,s^{-1}}$. At that moment A is at $x = -4$ m.<br>For $t > 1$: $x_B = 8 - 8(t-1)$, $x_A = -4t$. They meet when $16 - 8t = -4t$, so $t = 4$ s, at $x = -16$ m.<br>Distance from the wall: $8 - (-16) = 24$ m.<br>Answer: 24.`,
+  r`The rebounding B moves at 8 against A's 4, so it catches A after 3 more seconds: measure the distance from the wall, not from the origin.`));
+  v5items.push(v5p('cm-v512', 'collisions', 'v5p1', r`Find the speed of A just after the second A-B collision, in $\mathrm{m\,s^{-1}}$ (2 decimals).`, (() => { const mA = 1, mB = 2, vA = -4, vB = -8; return Math.abs(((mA - mB) * vA + 2 * mB * vB) / (mA + mB)); })(), 2, 0.02, 'm s<sup>-1</sup>',
+  r`Just before the second collision both blocks move left: A at $-4$ and B (behind it, faster) at $-8\ \mathrm{m\,s^{-1}}$.<br>For an elastic collision, $v_A' = \dfrac{(m_A - m_B)v_A + 2m_Bv_B}{m_A + m_B} = \dfrac{(1-2)(-4) + 2\times2\times(-8)}{3} = \dfrac{4 - 32}{3} = -9.33\ \mathrm{m\,s^{-1}}$.<br>(And $v_B' = \dfrac{(2-1)(-8) + 2\times1\times(-4)}{3} = -5.33$; A now moves away faster, so there is no third collision.)<br>Speed of A $= 9.33\ \mathrm{m\,s^{-1}}$.<br>Answer: 9.33.`,
+  r`Use the velocities just before the second collision ($-4$ and $-8$), not the original 12 and 0.`));
+  // 13: assertion
+  v5items.push(v5a('cm-v513', 'variable mass', r`A cart moving freely on smooth horizontal ground keeps a constant speed while sand leaks vertically out of a hole in its floor, although the cart's mass is decreasing.`, r`The sand leaves with the same horizontal velocity as the cart, so it exerts no horizontal force (no thrust) on the cart.`, 0,
+  r`Idea: a thrust term appears in the equation of motion only when the matter that leaves has a velocity relative to the body.<br>Here the relative horizontal velocity of the escaping sand is zero, so there is no thrust and no external horizontal force: $M\dfrac{dv}{dt} = 0$, so $v$ is constant. A is true.<br>R states exactly this reason. Answer: Both true and R explains A.`,
+  r`The cart's momentum falls (mass falls at constant speed) but momentum is not conserved for the cart alone: the sand takes its share away.`));
+  // 14: statements
+  v5items.push(v5t('cm-v514', 'coefficient of restitution', r`In a collision between two bodies the loss of kinetic energy has the same value in every inertial frame.`, r`The kinetic energy of the two bodies in the centre-of-mass frame is the same before and after a collision.`, 2,
+  r`Idea: the loss is $\Delta K = \tfrac12\mu v_{rel}^2(1 - e^2)$, with $\mu$ the reduced mass and $v_{rel}$ the relative speed before the collision. Both $\mu$ and $v_{rel}$ are the same in every inertial frame, so the loss is frame independent: Statement I is true.<br>The kinetic energy in the centre-of-mass frame is $\tfrac12\mu v_{rel}^2$ before the collision and $\tfrac12\mu e^2v_{rel}^2$ after it, so it changes unless $e = 1$: Statement II is false. (That is the part of the energy that can be lost; the kinetic energy of the centre of mass is never changed.)<br>Answer: Statement I true, Statement II false.`,
+  r`Total kinetic energy depends on the frame, but its loss does not.`));
+  // 15: single, Atwood and balance
+  v5items.push(v5s('cm-v515', 'motion of centre of mass', r`Masses of 3 kg and 1 kg hang from the two ends of a light string passing over a smooth light pulley, which is hung from a spring balance fixed to the ceiling. The masses are released and move freely. The balance reads (in kg, taking its reading as force divided by $g$)`, '3 kg', ['4 kg', '2 kg', '1.5 kg'], 1,
+  r`Idea: apply Newton's second law to the centre of mass of the two masses.<br>The accelerations are $a = \dfrac{(3-1)g}{4} = g/2$, with 3 kg going down and 1 kg going up. The centre-of-mass acceleration is $a_{cm} = \dfrac{3(g/2) - 1(g/2)}{4} = \dfrac{g}{4}$ downward.<br>Take the two masses, the string and the light pulley as one system: the only external forces are gravity $4g$ (down) and the balance's pull $S$ (up). So $4g - S = 4a_{cm} = g$, giving $S = 3g$.<br>Check with the tension: $T = \dfrac{2m_1m_2}{m_1+m_2}g = 1.5g$, and the pulley carries $2T = 3g$. The balance reads 3 kg.<br>Answer: 3 kg.`,
+  r`The balance does not read the total weight (4 kg) because the heavier mass is accelerating downward.`));
+}
+
+const v5gens = [
+  { id: 'cm-v5g1', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'collisions',
+    make(rng) {
+      const m1 = choose(rng, [1, 2, 3, 4]), k = choose(rng, [2, 3, 4]), u = choose(rng, [20, 30, 40, 50, 60]);
+      const m2 = m1 * k, m3 = m1 * k * k;
+      const v3 = 4 * u / (1 + k) ** 2;
+      return { m1, m2, m3, k, u, v3, answer: +v3.toFixed(2), tol: 0.02, unit: 'm/s',
+        q: `Balls of masses ${m1} kg, $m$ and ${m3} kg lie in that order on a smooth straight track. The ${m1} kg ball is shot at ${u} m/s towards the middle ball, which then hits the ${m3} kg ball; all collisions are elastic. $m$ is chosen to give the ${m3} kg ball the greatest possible speed. Find that speed in m/s (2 decimals).`,
+        sol: `The best middle mass is the geometric mean $m = \\sqrt{${m1}\\times${m3}} = ${m2}$ kg. Then $v_2 = \\dfrac{2\\times${m1}}{${m1}+${m2}}\\times${u} = ${v5S(2 * m1 / (m1 + m2) * u, 4)}$ m/s and $v_3 = \\dfrac{2\\times${m2}}{${m2}+${m3}}\\times v_2 = ${v5S(v3, 4)}$ m/s.`,
+        trap: 'The best middle mass is the geometric mean, not the arithmetic mean.' };
+    },
+    verify: (p) => { let best = 0; for (let m = 0.05; m < 200; m += 0.05) { const v2 = 2 * p.m1 / (p.m1 + m) * p.u; const v3 = 2 * m / (m + p.m3) * v2; if (v3 > best) best = v3; } return best; } },
+  { id: 'cm-v5g2', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'collisions',
+    make(rng) {
+      const f = choose(rng, [0.1, 0.2, 0.25, 0.3, 0.4]);
+      const ans = 100 * (1 + 12 * f * f);
+      return { f, answer: Math.round(ans), tol: 0,
+        q: `A particle of mass $m$ strikes, at right angles and elastically, a free uniform rod of mass $M$ and length $L$ lying on a smooth table, at a point ${f}$L$ from the centre of the rod. The particle is brought completely to rest. Find $100M/m$ (a whole number).`,
+        sol: `Momentum: $mu = MV$. Angular momentum about the centre: $mu(${f}L) = \\dfrac{ML^2}{12}\\omega$. Energy: $mu^2 = MV^2 + \\dfrac{ML^2}{12}\\omega^2$. Eliminating $V$ and $\\omega$: $\\dfrac{M}{m} = 1 + 12\\left(\\dfrac{x}{L}\\right)^2 = 1 + 12\\times${f}^2 = ${v5S(1 + 12 * f * f, 4)}$. So $100M/m = ${Math.round(ans)}$.`,
+        trap: 'Momentum and energy alone are not enough: include the rod\'s rotation.' };
+    },
+    verify: (p) => { let lo = 0.01, hi = 100; const vp = (rho) => { const x = p.f; const J = 2 / (1 + (1 / rho) * (1 + 12 * x * x)); return 1 - J; }; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (vp(mid) > 0) lo = mid; else hi = mid; } return 100 * (lo + hi) / 2; } },
+  { id: 'cm-v5g3', type: 'mcq', level: 5, exams: ['jee-adv'], sub: 'motion of centre of mass',
+    make(rng) {
+      const pairs = [[3, 1], [5, 3], [4, 2], [6, 2], [7, 5], [8, 4], [5, 1], [9, 3]];
+      const [m1, m2] = choose(rng, pairs);
+      const R = 4 * m1 * m2 / (m1 + m2);
+      const { options, answer } = numOpts(rng, R, [m1 + m2, 2 * m1 * m2 / (m1 + m2), m1 - m2], 'kg', 3);
+      return { m1, m2, R, options, answer,
+        q: `Masses of ${m1} kg and ${m2} kg hang from the ends of a light string over a smooth light pulley that is hung from a spring balance fixed to the ceiling. The masses are released and move freely. The balance reads (force divided by $g$)`,
+        sol: `$a = \\dfrac{(${m1}-${m2})g}{${m1 + m2}}$. The centre of mass accelerates down with $a_{cm} = \\left(\\dfrac{${m1}-${m2}}{${m1}+${m2}}\\right)^2g$, so $S = (${m1 + m2})g(1 - a_{cm}/g) = ${fmt(R, 4)}g$. The balance reads ${fmt(R, 3)} kg, which is $2T/g$ with $T = \\dfrac{2m_1m_2}{m_1+m_2}g$.`,
+        trap: 'The balance reads less than the total mass because the heavier mass accelerates downward.' };
+    },
+    verify: (p) => { const a = (p.m1 - p.m2) / (p.m1 + p.m2); const T = p.m1 * (1 - a); const R = 2 * T; return p.options.indexOf(`${fmt(R, 3)} kg`); } },
+];
+
+export default { topic: 'centre-of-mass-collisions', groups: { ...groups, ...v5groups }, items: [...items, ...v5items], gens: [...gens, ...v5gens] };

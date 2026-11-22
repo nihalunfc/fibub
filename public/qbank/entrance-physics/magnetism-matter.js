@@ -802,4 +802,144 @@ const gens = [
     },
     verify: (p) => Math.acos(-p.Ur / Math.hypot(p.Ur, p.Tr)) / D },
 ];
-export default { topic: 'magnetism-matter', groups, items, gens };
+
+// ================= Level 5 round (top-rank additions, ids <prefix>-v5NN / -v5gN) =================
+const v5 = (o) => ({ level: 5, exams: ['jee-adv'], ...o });
+const v5s = (id, sub, q, correct, wrongs, pos, sol, trap) => { const options = [...wrongs]; options.splice(pos, 0, correct); return v5({ id, type: 'mcq', format: 'single', sub, q, options, answer: pos, sol, trap }); };
+const v5n = (id, sub, q, val, dp, tol, unit, sol, trap) => { const answer = +val.toFixed(dp); return v5({ id, type: 'nat', format: tol === 0 ? 'integer' : 'numeric', sub, q, answer, tol, unit, calc: () => answer, sol, trap }); };
+const v5m = (id, sub, q, options, answer, sol, trap) => v5({ id, type: 'msq', format: 'multi', sub, q, options, answer, sol, trap });
+const v5a = (id, sub, A, R, answer, sol, trap) => v5({ id, type: 'mcq', format: 'assertion', sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AOPT, answer, sol, trap });
+const v5t = (id, sub, I, II, answer, sol, trap) => v5({ id, type: 'mcq', format: 'statements', sub, q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SOPT, answer, sol, trap });
+const v5mat = (id, sub, group, q, correct, wrongs, pos, sol, trap) => { const options = [...wrongs]; options.splice(pos, 0, correct); return v5({ id, type: 'mcq', format: 'match', sub, group, q, options, answer: pos, sol, trap }); };
+const v5p = (id, sub, group, q, val, dp, tol, unit, sol, trap) => { const answer = +val.toFixed(dp); return v5({ id, type: 'nat', format: 'passage', sub, group, q, answer, tol, unit, calc: () => answer, sol, trap }); };
+const v5groups = {
+  v5m1: { title: 'Bohr orbits and magnetism',
+    list1: ['A. Orbital magnetic moment $\\mu$ of the electron', 'B. Equivalent current $I$ of the orbiting electron', 'C. Field at the nucleus due to that current', 'D. Ratio $\\mu/L$ of moment to angular momentum'],
+    list2: [r`p. $n^{0}$`, r`q. $n^{1}$`, r`r. $n^{-3}$`, r`s. $n^{-5}$`, r`t. $n^{2}$`] },
+  v5m2: { title: 'A magnet in a uniform field',
+    list1: ['A. Work done by the field as the magnet turns from $\\theta = 180^\\circ$ to $\\theta = 60^\\circ$', 'B. Work an outside agent must do to turn the magnet slowly from $\\theta = 0$ to $90^\\circ$', 'C. Torque on the magnet at $\\theta = 30^\\circ$', 'D. Greatest kinetic energy gained when it is released from rest at $\\theta = 60^\\circ$'],
+    list2: [r`p. $0.10\ \mathrm{N\,m}$`, r`q. $0.20\ \mathrm{J}$`, r`r. $0.30\ \mathrm{J}$`, r`s. $0.40\ \mathrm{J}$`, r`t. $0.10\ \mathrm{J}$`] },
+  v5p1: { title: 'A compass beside a magnet',
+    passage: r`<p>A short bar magnet of moment $2.4\ \mathrm{A\,m^2}$ is fixed on a table with its axis along the east-west line and its N pole towards the east. A tiny compass needle (its moment is far too small to disturb the magnet) is pivoted on the table 0.20 m due north of the magnet's centre. At the place the horizontal component of the Earth's field is $3.0\times10^{-5}$ T. The needle turns only in the horizontal plane. Use $\mu_0/4\pi = 10^{-7}$ SI.</p>` },
+};
+
+const v5items = [];
+{
+  const kk = 1e-7;
+  // 01: boundary conditions
+  v5items.push(v5m('mm-v501', 'magnetic materials', r`A piece of soft iron ($\mu_r$ very large) is magnetised and no free (conduction) currents flow anywhere. At a plane boundary between the iron and the air, which statements are correct?`, [
+    r`The component of $\vec B$ normal to the boundary is the same on both sides`,
+    r`The component of $\vec B$ tangential to the boundary is the same on both sides`,
+    r`The component of $\vec H$ tangential to the boundary is the same on both sides`,
+    r`For $\mu_r = 1000$, a field line that meets the boundary at $45^\circ$ to the normal inside the iron leaves into the air at less than $0.1^\circ$ to the normal`,
+  ], [0, 2, 3],
+  r`Idea: with no free current, $\nabla\cdot\vec B = 0$ makes $B_\perp$ continuous, and Ampere's law makes $H_\parallel$ continuous. $B$ and $H$ are tied by $B = \mu H$ inside each medium.<br>Option 1 (normal $B$): true. Option 3 (tangential $H$): true. Option 2 (tangential $B$) is false: $B_\parallel = \mu H_\parallel$ jumps by the factor $\mu_r$.<br>Option 4: $\tan\theta = B_\parallel/B_\perp = \mu H_\parallel/B_\perp$, so $\tan\theta_{\rm air}/\tan\theta_{\rm iron} = \mu_0/\mu = 1/\mu_r$. With $\tan45^\circ = 1$: $\tan\theta_{\rm air} = 10^{-3}$, so $\theta_{\rm air} \approx 0.057^\circ < 0.1^\circ$. True. (This is why field lines leave an iron pole almost perpendicular to its face.)<br>Answer: 1, 3 and 4.`,
+  r`$B$ and $H$ behave differently at a boundary: $B$'s normal part and $H$'s tangential part are the continuous ones.`));
+  // 02: long rod and thin disc
+  v5items.push(v5m('mm-v502', 'magnetisation', r`A permanent magnet has uniform magnetisation $M$ (magnetic moment per unit volume) and carries no free currents. Which statements are correct?`, [
+    r`At the middle of a long thin rod magnetised along its length, $B \approx \mu_0 M$ and $H \approx 0$`,
+    r`At the centre of a thin flat disc magnetised perpendicular to its faces, $B \approx 0$ and $H \approx -M$`,
+    r`At the middle of the long rod, $B = \mu_0 M/2$, as at the end of a solenoid`,
+    r`The bound (equivalent) surface current per unit length on the curved surface of the rod has magnitude $M$`,
+  ], [0, 1, 3],
+  r`Idea: a uniformly magnetised body behaves like a surface current of $K = M$ (A m$^{-1}$) running round its side surface, and $H = B/\mu_0 - M$.<br>Option 1: the long rod is a long solenoid with $nI \to M$, so $B \approx \mu_0 M$ at the middle and $H = B/\mu_0 - M \approx 0$. True.<br>Option 2: a thin disc is a loop of current $K\,t$ with $t \ll R$: $B$ at the centre is $\mu_0 M t/2R \approx 0$, so $H = 0 - M = -M$. True. (This is the demagnetising field of a flat plate.)<br>Option 3: $\mu_0M/2$ holds at the <b>end</b> of a long solenoid, not at its middle. False.<br>Option 4: bound current per unit length $= M$. True.<br>Answer: 1, 2 and 4.`,
+  r`The end of a long solenoid has half the field of its middle: do not mix them up.`));
+  // 03: dipole field geometry
+  v5items.push(v5m('mm-v503', 'dipole field', r`A short magnet of moment $M$ lies along the $x$-axis. At a point at distance $r$ in a direction making angle $\theta$ with the axis, let $B_0 = \dfrac{\mu_0 M}{4\pi r^3}$. Which statements are correct?`, [
+    r`At $\theta = 45^\circ$ the field has magnitude $\sqrt2\,B_0$, the geometric mean of its axial value $2B_0$ and equatorial value $B_0$`,
+    r`At $\theta = 45^\circ$ the field has magnitude $\sqrt{5/2}\,B_0$`,
+    r`At $\theta = 45^\circ$ the field makes an angle $\tan^{-1}3$ with the axis`,
+    r`There is a direction, $\theta = \cos^{-1}(1/\sqrt3)$, in which the field is exactly perpendicular to the axis`,
+  ], [1, 2, 3],
+  r`Idea: resolve the dipole field into $B_x = B_0(3\cos^2\theta - 1)$ and $B_y = B_0\cdot3\sin\theta\cos\theta$, so $|B| = B_0\sqrt{1+3\cos^2\theta}$.<br>At $45^\circ$: $B_x = 0.5B_0$, $B_y = 1.5B_0$. Then $|B| = B_0\sqrt{0.25+2.25} = \sqrt{2.5}\,B_0 = 1.58B_0$ (option 2 true, option 1 false: $\sqrt2 = 1.41$), and $\tan\alpha = B_y/B_x = 3$ (option 3 true).<br>$B_x = 0$ needs $\cos^2\theta = 1/3$, i.e. $\theta = 54.7^\circ$, where the field points along $y$ (option 4 true).<br>Answer: 2, 3 and 4.`,
+  r`The field magnitude is not the geometric mean of the axial and equatorial values, and its direction is not along the radius vector.`));
+  // 04: wire + Earth's field with dip
+  v5items.push(v5n('mm-v504', 'Earth magnetism', r`At a place in the northern hemisphere the Earth's total field is $50\ \mu$T and the angle of dip $\delta$ has $\tan\delta = 3/4$. A long straight vertical wire carries $10$ A upwards. Find the magnitude of the resultant magnetic field at a point 5.0 cm due west of the wire, in $\mu$T. (Take $\mu_0/4\pi = 10^{-7}$ SI.)`, (() => { const B = 50, Bh = B * 0.8, Bv = B * 0.6; const Bw = 2 * kk * 10 / 0.05 * 1e6; return Math.hypot(Bh - Bw, Bv); })(), 1, 0, '$\\mu$T',
+  r`Idea: the Earth's field has a horizontal part $B_h$ (north) and a vertical part $B_v$ (down). A vertical wire's field is purely horizontal, so it can only change the horizontal part.<br>With $\tan\delta = 3/4$: $\cos\delta = 0.8$, $\sin\delta = 0.6$, so $B_h = 40\ \mu$T and $B_v = 30\ \mu$T.<br>Wire: $B_w = \dfrac{\mu_0 I}{2\pi r} = \dfrac{2\times10^{-7}\times10}{0.05} = 40\ \mu$T. For an upward current the field circulates anticlockwise seen from above; at the west point it points south, opposite to $B_h$.<br>Horizontal resultant: $40 - 40 = 0$. Only $B_v$ remains: $30\ \mu$T.<br>Answer: 30.`,
+  r`This is the "neutral point" for a horizontal compass, but the total field there is not zero: the vertical component is untouched.`));
+  // 05: magnetic circuit
+  v5items.push(v5n('mm-v505', 'magnetic circuit', r`A closed ring of soft iron (mean iron path 1.00 m, constant cross-section, $\mu_r = 250$) has a narrow saw-cut (air gap) 1.00 mm wide and carries a winding. Ignore leakage and fringing of the field. What percentage of the total ampere-turns $NI$ is used up in sending the field through the iron, and not through the gap?`, (() => { const li = 1, mur = 250, lg = 1e-3; return 100 * (li / mur) / (li / mur + lg); })(), 0, 0, '%',
+  r`Idea: the same flux passes round the ring, so $B$ is the same in iron and gap (same cross-section, no leakage). Ampere's law for the circuit: $NI = H_{\rm iron}l_{\rm iron} + H_{\rm gap}l_{\rm gap}$ with $H_{\rm iron} = B/\mu_0\mu_r$ and $H_{\rm gap} = B/\mu_0$.<br>So $NI = \dfrac{B}{\mu_0}\left(\dfrac{l_{\rm iron}}{\mu_r} + l_{\rm gap}\right) = \dfrac{B}{\mu_0}(4\ \mathrm{mm} + 1\ \mathrm{mm})$.<br>The iron's share is $4/5 = 80\%$.<br>Answer: 80.`,
+  r`A thin gap costs far more ampere-turns per millimetre than iron does: the 1 mm gap equals 250 mm of iron here. People guess the iron takes almost nothing.`));
+  // 06: small magnet on equatorial line
+  v5items.push(v5n('mm-v506', 'dipole in a field', r`A short magnet of moment $3.0\ \mathrm{A\,m^2}$ is fixed at the origin with its axis along the $x$-axis. A tiny compass magnet of moment $0.010\ \mathrm{A\,m^2}$ and moment of inertia $3.0\times10^{-8}\ \mathrm{kg\,m^2}$ is pivoted at the point $(0,\ 0.10\ \mathrm{m})$ and can turn in the $xy$-plane. Ignore the Earth's field. Find the angular frequency of its small oscillations about its stable position, in rad s$^{-1}$. (Take $\mu_0/4\pi = 10^{-7}$ SI.)`, (() => { const B = kk * 3 / 0.1 ** 3; return Math.sqrt(0.01 * B / 3e-8); })(), 0, 0, 'rad s<sup>-1</sup>',
+  r`Idea: a small magnet in a field $B$ oscillates with $\omega = \sqrt{mB/I}$, so we need the field of the big magnet at the pivot.<br>The point is on the <b>equatorial</b> line (perpendicular to the axis), so $B = \dfrac{\mu_0}{4\pi}\dfrac{M}{r^3} = \dfrac{10^{-7}\times3.0}{(0.10)^3} = 3.0\times10^{-4}$ T (not the axial formula with the factor 2).<br>$\omega = \sqrt{\dfrac{0.010\times3.0\times10^{-4}}{3.0\times10^{-8}}} = \sqrt{100} = 10$ rad s$^{-1}$. (The stable position has the tiny magnet pointing opposite to $M$, along the local field.)<br>Answer: 10.`,
+  r`Using the axial formula (field $6\times10^{-4}$ T) gives 14: the point is on the equatorial line.`));
+  // 07: sum and difference
+  v5items.push(v5n('mm-v507', 'combination of magnets', r`Two bar magnets of moments $M_1 > M_2$ are used one after the other in a vibration magnetometer in the Earth's horizontal field, side by side as one pair with the same total moment of inertia. With their moments parallel the pair oscillates with period 3.0 s; with the moments antiparallel (one reversed) the period is 4.0 s. Find $M_1/M_2$ (2 decimals).`, (16 / 9 + 1) / (16 / 9 - 1), 2, 0.02, '',
+  r`Idea: $T = 2\pi\sqrt{I/(M_{\rm net}B_h)}$, so $M_{\rm net}\propto 1/T^2$ for the same $I$ and $B_h$.<br>Parallel: $M_1 + M_2 \propto 1/3^2 = 1/9$. Antiparallel: $M_1 - M_2 \propto 1/4^2 = 1/16$.<br>$\dfrac{M_1}{M_2} = \dfrac{1/9 + 1/16}{1/9 - 1/16} = \dfrac{16 + 9}{16 - 9} = \dfrac{25}{7} = 3.57$.<br>Answer: 3.57.`,
+  r`The shorter period belongs to the larger net moment (parallel). Swapping them gives 7/25 or a ratio below 1.`));
+  // 08: saturation of iron
+  v5items.push(v5n('mm-v508', 'saturation magnetisation', r`At saturation every iron atom contributes a magnetic moment of $2.2\,\mu_B$ along the field ($\mu_B = 9.274\times10^{-24}\ \mathrm{A\,m^2}$). Iron has density $7870\ \mathrm{kg\,m^{-3}}$ and molar mass $55.85\ \mathrm{g\,mol^{-1}}$ ($N_A = 6.022\times10^{23}$). Find the saturation magnetisation in units of $10^6\ \mathrm{A\,m^{-1}}$ (2 decimals).`, 7870 / 0.05585 * 6.022e23 * 2.2 * 9.274e-24 / 1e6, 2, 0.02, '$10^6$ A m<sup>-1</sup>',
+  r`Idea: magnetisation = (atoms per unit volume) $\times$ (moment per atom).<br>Atoms per m$^3$: $n = \dfrac{7870}{0.05585}\times6.022\times10^{23} = 8.49\times10^{28}$.<br>$M_s = n\times2.2\times9.274\times10^{-24} = 8.49\times10^{28}\times2.04\times10^{-23} = 1.73\times10^6\ \mathrm{A\,m^{-1}}$.<br>(So $\mu_0 M_s \approx 2.2$ T, the familiar saturation flux density of iron.)<br>Answer: 1.73.`,
+  r`Use the molar mass in kg per mole ($0.05585$), not grams, or the answer is wrong by a factor 1000.`));
+  // 09: Bohr scaling match
+  v5items.push(v5mat('mm-v509', 'orbital moment', 'v5m1', r`In the Bohr model the electron in the $n$th orbit has $r \propto n^2$ and $v \propto 1/n$. Match each quantity in List I with its variation with $n$ in List II.`, 'A-q, B-r, C-s, D-p', ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-t, B-r, C-s, D-p'], 1,
+  r`Idea: build each quantity from $r\propto n^2$ and $v\propto n^{-1}$.<br>Period $T = 2\pi r/v \propto n^3$, so the current $I = e/T \propto n^{-3}$ (B-r).<br>$\mu = I\pi r^2 \propto n^{-3}\cdot n^4 = n$ (A-q). Equivalently $\mu = \tfrac12 evr \propto n^{-1}\cdot n^2 = n$.<br>$B_{\rm nucleus} = \dfrac{\mu_0 I}{2r} \propto n^{-3}/n^2 = n^{-5}$ (C-s).<br>$\mu/L = e/2m$ for every orbit, independent of $n$: $n^0$ (D-p).<br>Answer: A-q, B-r, C-s, D-p.`,
+  r`The field at the nucleus falls much faster than the current: a loop of larger radius has a weaker field at its centre.`));
+  // 10: energy and torque match
+  v5items.push(v5mat('mm-v510', 'dipole in a field', 'v5m2', r`A magnet of moment $0.40\ \mathrm{A\,m^2}$ is in a uniform field of $0.50$ T, so $MB = 0.20$ J. Here $\theta$ is the angle between the moment and the field. Match each item in List I with its value in List II.`, 'A-r, B-q, C-p, D-t', ['A-q, B-r, C-p, D-t', 'A-r, B-q, C-t, D-p', 'A-s, B-q, C-p, D-t'], 3,
+  r`Idea: $U = -MB\cos\theta$ and $\tau = MB\sin\theta$.<br>A: $U(180^\circ) = +0.20$ J, $U(60^\circ) = -0.10$ J. Work by the field $= U_i - U_f = 0.20 + 0.10 = 0.30$ J (r).<br>B: slowly turning from $0$ to $90^\circ$: work by the agent $= U(90^\circ) - U(0) = 0 - (-0.20) = 0.20$ J (q).<br>C: $\tau = 0.20\sin30^\circ = 0.10$ N m (p). It is a torque, not an energy: not option t.<br>D: the greatest kinetic energy is at $\theta = 0$: $U(60^\circ) - U(0) = -0.10 + 0.20 = 0.10$ J (t).<br>Answer: A-r, B-q, C-p, D-t.`,
+  r`Options p and t have the same number but different units (N m against J): the torque is not an energy.`));
+  // 11-12: passage
+  v5items.push(v5p('mm-v511', 'Earth magnetism', 'v5p1', r`Find the angle by which the needle is deflected from the magnetic north, in degrees.`, (() => { const Bm = kk * 2.4 / 0.2 ** 3; return Math.atan(Bm / 3e-5) * 180 / Math.PI; })(), 0, 0, '°',
+  r`The needle is on the equatorial line of the magnet (the line through the centre at right angles to its axis). There $B_m = \dfrac{\mu_0}{4\pi}\dfrac{M}{d^3} = \dfrac{10^{-7}\times2.4}{(0.20)^3} = 3.0\times10^{-5}$ T, directed opposite to the moment, i.e. towards the west.<br>The Earth's horizontal field is $3.0\times10^{-5}$ T towards the north. Equal and perpendicular fields: $\tan\theta = B_m/B_h = 1$, so $\theta = 45^\circ$ (towards the west).<br>Answer: 45.`,
+  r`The axial formula (a factor 2) would give $63^\circ$: the needle sits on the equatorial line.`));
+  v5items.push(v5p('mm-v512', 'oscillation and field', 'v5p1', r`The needle is now nudged slightly and oscillates about its new rest position. Find (its frequency with the magnet in place) / (its frequency with the magnet removed, in the Earth's field alone), to 2 decimals.`, Math.pow(Math.SQRT2, 0.5), 2, 0.01, '',
+  r`A compass needle oscillates with $f = \dfrac{1}{2\pi}\sqrt{\dfrac{mB}{I}}$, so $f \propto \sqrt{B_{\rm resultant}}$.<br>With the magnet: $B_{\rm res} = \sqrt{B_h^2 + B_m^2} = \sqrt2B_h$ (from the previous part).<br>$\dfrac{f'}{f} = \sqrt{\sqrt2} = 2^{1/4} = 1.19$.<br>Answer: 1.19.`,
+  r`Frequency goes as the square root of the field: the answer is $2^{1/4}$, not $\sqrt2$.`));
+  // 13: assertion
+  v5items.push(v5a('mm-v513', 'bar magnet cut', r`A uniform bar magnet is cut into two equal halves by a plane perpendicular to its length. When one half oscillates about its centre in the same horizontal field, its period is half that of the original magnet.`, r`Cutting the magnet halves both its magnetic moment and its moment of inertia, so $T = 2\pi\sqrt{I/MB}$ stays the same.`, 2,
+  r`Idea: $T = 2\pi\sqrt{I/(MB)}$ for the magnet turning in a horizontal plane about its centre.<br>Each half has the same pole strength but half the length, so $M' = M/2$. For a rod about its centre $I = mL^2/12$; with $m' = m/2$ and $L' = L/2$: $I' = \dfrac{(m/2)(L/2)^2}{12} = \dfrac{I}{8}$ (not $I/2$).<br>$T' = 2\pi\sqrt{\dfrac{I/8}{(M/2)B}} = T\sqrt{\dfrac14} = \dfrac{T}{2}$. So A is true.<br>R is false: $I$ becomes one eighth, not half. Answer: A is true but R is false.`,
+  r`The moment of inertia falls as the length cubed, much faster than the moment.`));
+  // 14: statements
+  v5items.push(v5t('mm-v514', 'magnetising field', r`In a soft iron ring with a narrow air gap cut in it, the magnetic flux density $B$ in the gap is nearly the same as in the iron.`, r`In the same ring the magnetising field $H$ in the gap is also nearly the same as in the iron.`, 2,
+  r`Idea: the flux is continuous round the ring, so $B$ (normal to the gap faces) is the same in iron and gap: Statement I is true.<br>But $B = \mu H$, so $H_{\rm gap}/H_{\rm iron} = \mu/\mu_0 = \mu_r$, which is hundreds or thousands. $H$ in the gap is much larger than in the iron: Statement II is false.<br>Answer: Statement I true, Statement II false.`,
+  r`Continuity belongs to $B$ (normal part), not to $H$.`));
+  // 15: single
+  v5items.push(v5s('mm-v515', 'orbital moment', r`A proton and an $\alpha$-particle ($q = 2e$, $m \approx 4m_p$) have the same kinetic energy and move in circles in the same uniform magnetic field. The ratio $\mu_\alpha/\mu_p$ of the magnetic moments of their orbital motions is`, '1', ['1/2', '2', '4'], 2,
+  r`Idea: a charge $q$ circling with speed $v$ at radius $r$ has $\mu = IA = \dfrac{qv}{2\pi r}\pi r^2 = \tfrac12qvr$. In a field, $r = mv/qB$, so $\mu = \dfrac{mv^2}{2B} = \dfrac{K}{B}$: the moment depends only on the kinetic energy and the field, not on the charge or mass.<br>Same $K$ and same $B$ give the same moment: ratio 1.<br>Check: $v_\alpha = v_p/2$, $q_\alpha = 2q_p$, and $r_\alpha = \dfrac{m_\alpha v_\alpha}{q_\alpha B} = \dfrac{4m_p\cdot v_p/2}{2q_pB} = r_p$. So $\mu_\alpha/\mu_p = 2\times\tfrac12\times1 = 1$.<br>Answer: 1.`,
+  r`Choosing 2 (double charge) or 1/2 (charge-to-mass ratio) forgets that $v$ and $r$ also change: the moment is $K/B$.`));
+}
+
+const v5gens = [
+  { id: 'mm-v5g1', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'magnetic circuit',
+    make(rng) {
+      const li = choose(rng, [0.4, 0.5, 0.6, 0.8, 1.0]), mur = choose(rng, [200, 400, 500, 800, 1000]), lg = choose(rng, [0.5, 1, 1.5, 2]), NI = choose(rng, [800, 1000, 1200, 1500, 2000]);
+      const B = 4e-7 * Math.PI * NI / (li / mur + lg * 1e-3);
+      return { li, mur, lg, NI, answer: +B.toFixed(3), tol: 0.01 * B + 0.002, unit: 'T',
+        q: `A closed soft iron ring has a mean iron path of ${li} m and relative permeability ${mur}. It has a narrow air gap of ${lg} mm and its winding gives $NI = ${NI}$ ampere-turns. Ignoring leakage and fringing, find the flux density in the gap in tesla (3 decimals). Take $\\mu_0 = 4\\pi\\times10^{-7}$.`,
+        sol: `The same $B$ is in iron and gap, and $NI = \\dfrac{B}{\\mu_0}\\left(\\dfrac{l_i}{\\mu_r} + l_g\\right)$. The iron is equivalent to $${li}/${mur} = ${S(li / mur * 1000, 3)}$ mm of air, so $B = \\dfrac{4\\pi\\times10^{-7}\\times${NI}}{${S(li / mur * 1000 + lg, 4)}\\times10^{-3}} = ${S(B, 4)}$ T.`,
+        trap: 'Using the whole ring as air, or ignoring the iron entirely, are the two usual errors: the iron adds $l/\\mu_r$ to the gap.' };
+    },
+    verify: (p) => { let lo = 0, hi = 100; const f = (B) => (B / (4e-7 * Math.PI)) * (p.li / p.mur) + (B / (4e-7 * Math.PI)) * p.lg * 1e-3 - p.NI; for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (f(m) > 0) hi = m; else lo = m; } return (lo + hi) / 2; } },
+  { id: 'mm-v5g2', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'combination of magnets',
+    make(rng) {
+      const T1 = choose(rng, [2, 3, 4, 5]); const T2 = T1 + choose(rng, [1, 2, 3]);
+      const ratio = (T2 * T2 + T1 * T1) / (T2 * T2 - T1 * T1);
+      return { T1, T2, answer: +ratio.toFixed(2), tol: 0.02,
+        q: `Two bar magnets of moments $M_1 > M_2$ with the same total moment of inertia are used as a pair in a vibration magnetometer. With their moments parallel the period is ${T1}.0 s; with them antiparallel it is ${T2}.0 s. Find $M_1/M_2$ (2 decimals).`,
+        sol: `$M_{\\rm net}\\propto 1/T^2$. So $M_1+M_2\\propto 1/${T1 * T1}$ and $M_1-M_2\\propto 1/${T2 * T2}$. Then $\\dfrac{M_1}{M_2} = \\dfrac{${T2 * T2}+${T1 * T1}}{${T2 * T2}-${T1 * T1}} = ${S(ratio, 4)}$.`,
+        trap: 'The parallel (sum) arrangement has the shorter period.' };
+    },
+    verify: (p) => { const s = 1 / p.T1 ** 2, d = 1 / p.T2 ** 2; const M1 = (s + d) / 2, M2 = (s - d) / 2; return M1 / M2; } },
+  { id: 'mm-v5g3', type: 'mcq', level: 5, exams: ['jee-adv'], sub: 'orbital moment',
+    make(rng) {
+      const P = { 'a proton': [1, 1], 'a deuteron': [1, 2], 'an $\\alpha$-particle': [2, 4], 'a triply charged ion of mass number 7': [3, 7] };
+      const names = Object.keys(P); const a = choose(rng, names); let b = choose(rng, names); if (b === a) b = names[(names.indexOf(a) + 1) % names.length];
+      const cond = choose(rng, ['kinetic energy', 'speed', 'momentum']);
+      const [qa, ma] = P[a], [qb, mb] = P[b];
+      const Ka = cond === 'kinetic energy' ? 1 : cond === 'speed' ? ma : 1 / ma, Kb = cond === 'kinetic energy' ? 1 : cond === 'speed' ? mb : 1 / mb;
+      const ratio = Ka / Kb; // mu_a/mu_b = K_a/K_b in the same field
+      const f = (x) => { for (const [n, d] of [[1, 1], [1, 2], [2, 1], [1, 4], [4, 1], [7, 4], [4, 7], [7, 2], [2, 7], [7, 1], [1, 7], [3, 7], [7, 3], [7, 8], [8, 7]]) if (Math.abs(x - n / d) < 1e-9) return d === 1 ? `${n}` : `${n}/${d}`; return fmt(x, 3); };
+      const wrongs = [ratio * qa / qb, ratio * qb / qa, ratio * ma / mb, qa / qb, ratio * 2, ratio / 2, ratio * 4, ratio / 4, 1, 2, 0.5, 4].map(f);
+      const { options, answer } = shuffleOpts(rng, f(ratio), wrongs);
+      return { a, b, cond, qa, ma, qb, mb, ratio, options, answer,
+        q: `${a[0].toUpperCase() + a.slice(1)} and ${b} have the same ${cond} and move in circles in the same uniform magnetic field. Find $\\mu_1/\\mu_2$, the ratio of the magnetic moments of their orbital motions (first over second).`,
+        sol: `For a charge circling in a field, $\\mu = \\tfrac12qvr$ and $r = mv/qB$, so $\\mu = \\dfrac{mv^2}{2B} = \\dfrac{K}{B}$: the moment is just the kinetic energy over $B$. With the same ${cond}: $K_1/K_2 = ${f(ratio)}$ (using $K = \\tfrac12mv^2$ = $p^2/2m$ as needed).`,
+        trap: 'The moment is $K/B$, so charge and mass matter only through the kinetic energy.' };
+    },
+    verify: (p) => { const q1 = p.qa, m1 = p.ma, q2 = p.qb, m2 = p.mb; const sp = p.cond === 'speed' ? [1, 1] : p.cond === 'kinetic energy' ? [Math.sqrt(1 / m1), Math.sqrt(1 / m2)] : [1 / m1, 1 / m2]; const mu = (q, m, v) => 0.5 * q * v * (m * v / q); const r = mu(q1, m1, sp[0]) / mu(q2, m2, sp[1]); const f = (x) => { for (const [n, d] of [[1, 1], [1, 2], [2, 1], [1, 4], [4, 1], [7, 4], [4, 7], [7, 2], [2, 7], [7, 1], [1, 7], [3, 7], [7, 3], [7, 8], [8, 7]]) if (Math.abs(x - n / d) < 1e-9) return d === 1 ? `${n}` : `${n}/${d}`; return fmt(x, 3); }; return p.options.indexOf(f(r)); } },
+];
+
+export default { topic: 'magnetism-matter', groups: { ...groups, ...v5groups }, items: [...items, ...v5items], gens: [...gens, ...v5gens] };

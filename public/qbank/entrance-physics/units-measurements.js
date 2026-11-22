@@ -761,4 +761,140 @@ const gens = [
     verify: (p) => 100 * p.da / p.a + 100 * (p.db + p.dc) / (p.b - p.c) },
 ];
 
+
+// ---------- Level 5 round (v5): top-rank additions ----------
+const v5 = (id, type, format, sub, q, o) => ({ id, type, level: 5, format, exams: ['jee-adv'], sub, q, ...o });
+Object.assign(groups, {
+  v5m1: { title: 'Electromagnetic dimensions',
+    list1: ['A. Magnetic flux', 'B. Inductance', 'C. Permittivity of free space $\\epsilon_0$', 'D. Magnetic field $B$'],
+    list2: [r`p. $[MT^{-2}A^{-1}]$`, r`q. $[ML^{2}T^{-2}A^{-1}]$`, r`r. $[ML^{2}T^{-2}A^{-2}]$`, r`s. $[M^{-1}L^{-3}T^{4}A^{2}]$`] },
+  v5m2: { title: 'Constants in combination',
+    list1: [r`A. $h/e$`, r`B. $h/e^{2}$`, r`C. $e\hbar/m_e$`, r`D. $h\nu/e$`],
+    list2: ['p. potential difference', 'q. electrical resistance', 'r. magnetic flux', 's. magnetic dipole moment'] },
+  v5p1: { title: 'Resonance tube with end correction',
+    passage: r`<p>In a resonance-tube experiment a tuning fork of frequency $512$ Hz gives the first resonance at an air-column length $l_1 = 17.0$ cm and the second at $l_2 = 52.0$ cm. Each length is read to $\pm0.1$ cm and the frequency is taken as exact. The speed of sound is found from $v = 2f(l_2 - l_1)$.</p>` },
+});
+items.push(
+  v5('um-v501', 'msq', 'multi', 'dimensional analysis',
+    r`Which of the following have the dimensions of speed? ($E$ = electric field, $B$ = magnetic field, $T$ = tension in a string, $\mu$ = mass per unit length, $\sigma$ = surface tension, $\rho$ = density, $r$ = radius)`,
+    { options: [r`$1/\sqrt{\mu_0\epsilon_0}$`, r`$E/B$`, r`$\sqrt{T/\mu}$`, r`$\sqrt{\sigma r/\rho}$`], answer: [0, 1, 2],
+      sol: r`$\mu_0\epsilon_0$ has dimensions $T^2L^{-2}$, so A is a speed. From $F = qE$ and $F = qvB$, $E/B$ has the dimensions of $v$ (B true). $T/\mu = [MLT^{-2}]/[ML^{-1}] = [L^2T^{-2}]$, so $\sqrt{T/\mu}$ is a speed (C true). For D, $\sigma r/\rho = [MT^{-2}][L]/[ML^{-3}] = [L^{4}T^{-2}]$, whose root is $[L^2T^{-1}]$, not a speed. (The speed-like combination is $\sqrt{\sigma/(\rho r)}$.)`,
+      trap: 'Moving $r$ to the wrong side of $\\sigma/\\rho$ gives $L^2T^{-1}$, a diffusion-like quantity.' }),
+  v5('um-v502', 'msq', 'multi', 'errors',
+    r`Two lengths are measured as $x = 20\pm1$ cm and $y = 5\pm1$ cm. Using maximum-error rules, which statements about $z = \dfrac{xy}{x-y}$ are correct?`,
+    { options: [r`$z \approx 6.7$ cm`, r`The relative error in $xy$ is $25\%$`, r`The relative error in $x-y$ is about $13.3\%$`, r`The relative error in $z$ is $25\% - 13.3\% = 11.7\%$`], answer: [0, 1, 2],
+      sol: r`$z = 100/15 = 6.67$ cm (A true). For the product $xy$: $1/20 + 1/5 = 0.05 + 0.20 = 25\%$ (B true). For the difference, absolute errors add: $x - y = 15\pm2$, so $2/15 = 13.3\%$ (C true). In $z = xy/(x-y)$ the relative errors of the numerator and the denominator both add: $25\% + 13.3\% = 38.3\%$, not their difference (D false).`,
+      trap: 'In a quotient the relative errors add, they never subtract.' }),
+  v5('um-v503', 'msq', 'multi', 'vernier callipers',
+    r`A vernier has $1\ \mathrm{MSD} = 0.5$ mm and $10$ VSD $= 9$ MSD. With the jaws closed its zero lies to the <b>left</b> of the main-scale zero and the 4th vernier division coincides with a main-scale division. On a rod, the vernier zero lies just beyond the 14th main-scale division (so the main-scale reading is $7.0$ mm) and the 6th vernier division coincides. Which statements are correct?`,
+    { options: [r`The least count is $0.05$ mm`, r`$1\ \mathrm{VSD} = 0.45$ mm`, r`The zero error is $-0.20$ mm`, r`The corrected length of the rod is $7.60$ mm`], answer: [0, 1, 3],
+      sol: r`$1\ \mathrm{VSD} = \tfrac{9}{10}\times0.5 = 0.45$ mm (B true), so the least count is $0.5 - 0.45 = 0.05$ mm (A true). With the zero to the left of the main zero, the error is negative and equals $-(10-4)\times0.05 = -0.30$ mm, not $-0.20$ mm (C false). The observed reading is $7.0 + 6\times0.05 = 7.30$ mm. Corrected $=$ observed $-$ (zero error) $= 7.30 + 0.30 = 7.60$ mm (D true).`,
+      trap: 'For a negative zero error the coinciding division $n$ gives $-(N-n)\\times$ LC, not $-n\\times$ LC.' }),
+  v5('um-v504', 'nat', 'integer', 'dimensional analysis',
+    r`The power radiated by an accelerated charge $q$ with acceleration $a$ depends only on $q$, $a$, $\epsilon_0$ and $c$: $P\propto q^{x}a^{y}\epsilon_0^{z}c^{w}$. Using the base dimensions $M$, $L$, $T$ and current $A$, find $x + y - z - w$.`,
+    { answer: 8, tol: 0, calc: () => { const x = 2, y = 2, z = -1, w = -3; return x + y - z - w; },
+      sol: r`$[q] = AT$, $[a] = LT^{-2}$, $[\epsilon_0] = M^{-1}L^{-3}T^{4}A^{2}$, $[c] = LT^{-1}$, $[P] = ML^2T^{-3}$. Current: $x + 2z = 0$. Mass: $-z = 1$, so $z = -1$ and $x = 2$. Length: $y - 3z + w = 2$, so $y + w = -1$. Time: $x - 2y + 4z - w = -3$, so $-2y - w = -1$. Adding the last two, $-y = -2$: $y = 2$, $w = -3$. Then $x + y - z - w = 2 + 2 + 1 + 3 = 8$. (This is the Larmor formula $P = q^2a^2/(6\pi\epsilon_0c^3)$ apart from the number.)`,
+      trap: 'The current dimension $A$ must be tracked, or $x$ is left undetermined.' }),
+  v5('um-v505', 'nat', 'integer', 'screw gauge',
+    r`A screw gauge has pitch $0.5$ mm and $50$ divisions on the circular scale. With the studs touching, the <b>46th</b> division lies against the reference line (the zero is below the line). A wire is then placed and the main scale shows $3.0$ mm with the 32nd circular division against the reference line. Find the corrected diameter in units of $0.01$ mm.`,
+    { answer: 336, tol: 0, calc: () => 3.0 / 0.01 + 32 + (50 - 46),
+      sol: r`Least count $= 0.5/50 = 0.01$ mm. When the zero lies below the reference line the error is negative: $-(50-46)\times0.01 = -0.04$ mm. Observed diameter $= 3.0 + 32\times0.01 = 3.32$ mm. Corrected $= 3.32 - (-0.04) = 3.36$ mm, which is $336$ units of $0.01$ mm.`,
+      trap: 'A negative zero error is added, not subtracted: $3.28$ mm (328) is the common wrong answer.' }),
+  v5('um-v506', 'nat', 'numeric', 'errors',
+    r`In a lens experiment $u = 30.0\pm0.5$ cm and $v = 60.0\pm1.0$ cm (magnitudes), and $f$ is found from $\dfrac1f = \dfrac1u + \dfrac1v$. Find the maximum absolute error $\Delta f$ in cm (2 decimals).`,
+    { answer: 0.33, tol: 0.01, unit: 'cm', calc: () => { const u = 30, v = 60, f = u * v / (u + v); return f * f * (0.5 / u ** 2 + 1 / v ** 2); },
+      sol: r`$f = uv/(u+v) = 20$ cm. Differentiate $1/f = 1/u + 1/v$: $\Delta f/f^2 = \Delta u/u^2 + \Delta v/v^2$. So $\Delta f = 400\left(\dfrac{0.5}{900} + \dfrac{1.0}{3600}\right) = 400(5.56\times10^{-4} + 2.78\times10^{-4}) = 0.33$ cm.`,
+      trap: 'Adding $\\Delta u/u + \\Delta v/v$ (giving $0.67$ cm) is wrong: the errors enter $1/f$ with weights $1/u^2$ and $1/v^2$.' }),
+  v5('um-v507', 'mcq', 'single', 'dimensional analysis',
+    r`Three of the four quantities below have the dimensions of electrical resistance. Which one does <b>not</b>? ($L$ inductance, $C$ capacitance, $c$ speed of light)`,
+    { options: [r`$\sqrt{L/C}$`, r`$\mu_0 c$`, r`$\mu_0/\epsilon_0$`, r`$1/(\epsilon_0 c)$`], answer: 2,
+      sol: r`$\sqrt{L/C}$: $L = (\text{volt}\cdot\text{s})/\text{A}$ and $C = (\text{A}\cdot\text{s})/\text{volt}$, so $L/C = \text{volt}^2/\text{A}^2 = R^2$ and A is a resistance. $\mu_0 c$ (B) and $1/(\epsilon_0c) = \mu_0c$ (D) both equal $\sqrt{\mu_0/\epsilon_0}$, which is about $377\ \Omega$. But $\mu_0/\epsilon_0 = (\mu_0c)^2$ has the dimensions of resistance squared (C), so C is the odd one out.`,
+      trap: 'The square root is the whole point: $\\sqrt{\\mu_0/\\epsilon_0}$ is a resistance, $\\mu_0/\\epsilon_0$ is not.' }),
+  v5('um-v508', 'mcq', 'assertion', 'dimensional analysis',
+    r`The expression $\ln x$ is not allowed in an equation if $x$ has dimensions, yet $\ln x_2 - \ln x_1$ is allowed when $x_1$ and $x_2$ have the same dimensions.`,
+    { q: `<b>Assertion (A):</b> The expression $\\ln x$ should not appear on its own in a physical equation when $x$ has dimensions, yet $\\ln x_2 - \\ln x_1$ is acceptable when $x_1$ and $x_2$ have the same dimensions.<br><b>Reason (R):</b> $\\ln x_2 - \\ln x_1 = \\ln(x_2/x_1)$ and the ratio $x_2/x_1$ is dimensionless.`,
+      options: AOPT, answer: 0,
+      sol: r`A function such as a logarithm, an exponential or a sine needs a dimensionless argument. A lone $\ln x$ with dimensional $x$ is not meaningful, but the difference of two logarithms equals the logarithm of a ratio, which is dimensionless. So A is true and R is exactly why.`,
+      trap: 'The constant "$\\ln$ of the unit" cancels in a difference, so differences of logarithms are unit-independent.' }),
+  v5('um-v509', 'mcq', 'statements', 'errors',
+    r`.`,
+    { q: `<b>Statement I:</b> A micrometer with a zero error of $+0.02$ mm causes a larger percentage error in a $0.5$ mm wire than in a $5$ mm wire.<br><b>Statement II:</b> Averaging $N$ readings divides this zero error by $\\sqrt N$.`,
+      options: SOPT, answer: 2,
+      sol: r`I is true: the same $0.02$ mm is $4\%$ of $0.5$ mm but only $0.4\%$ of $5$ mm. II is false: a zero error is systematic, so it is the same in every reading and averaging does not reduce it at all. Averaging reduces only random scatter, by about $\sqrt N$.`,
+      trap: 'The $1/\\sqrt N$ rule applies to random errors only.' }),
+  v5('um-v510', 'mcq', 'statements', 'dimensional analysis',
+    r`.`,
+    { q: `Consider the pairs below.<br>(1) Stress and energy per unit volume have the same dimensions.<br>(2) Impulse and momentum have the same dimensions.<br>(3) Magnetic flux and magnetic field have the same dimensions.<br>(4) Torque and angular momentum have the same dimensions.<br>How many of these statements are correct?`,
+      options: ['Only one', 'Only two', 'Only three', 'All four'], answer: 1,
+      sol: r`(1) Both are $[ML^{-1}T^{-2}]$: true. (2) Impulse $=$ force $\times$ time $=[MLT^{-1}]$, the same as momentum: true. (3) Flux $=BA$ has an extra factor $L^2$: false. (4) Torque is $[ML^2T^{-2}]$ and angular momentum is $[ML^2T^{-1}]$: false. So two are correct.`,
+      trap: 'Torque and angular momentum differ by one power of time.' }),
+  v5('um-v511', 'nat', 'numeric', 'errors', 'Find the speed of sound from these data, in m/s (1 decimal).',
+    { group: 'v5p1', format: 'passage', unit: 'm/s', answer: 358.4, tol: 0.1, calc: () => 2 * 512 * (0.52 - 0.17),
+      sol: r`$v = 2f(l_2 - l_1) = 2\times512\times(0.520 - 0.170) = 2\times512\times0.350 = 358.4$ m/s.`,
+      trap: 'The end correction cancels in the difference $l_2 - l_1$, so it does not need to be known.' }),
+  v5('um-v512', 'nat', 'numeric', 'errors', 'Find the maximum percentage error in $v$ (2 decimals).',
+    { group: 'v5p1', format: 'passage', unit: '%', answer: 0.57, tol: 0.01, calc: () => 0.2 / 35 * 100,
+      sol: r`The quantity is the difference $l_2 - l_1 = 35.0$ cm, whose absolute errors add: $0.1 + 0.1 = 0.2$ cm. The relative error is $0.2/35.0 = 0.571\%$. The frequency is exact, so this is also the percentage error in $v$.`,
+      trap: 'Using each length\'s own relative error and adding them (giving $0.1/17 + 0.1/52 = 0.78\\%$) is wrong because the data enter as a difference.' }),
+  v5('um-v513', 'nat', 'integer', 'errors', 'Find the end correction of the tube in mm.',
+    { group: 'v5p1', format: 'passage', unit: 'mm', answer: 5, tol: 0, calc: () => (52 - 3 * 17) / 2 * 10,
+      sol: r`With end correction $e$: $l_1 + e = \lambda/4$ and $l_2 + e = 3\lambda/4$. Subtracting, $\lambda/2 = l_2 - l_1 = 35.0$ cm, so $\lambda/4 = 17.5$ cm. Then $e = 17.5 - 17.0 = 0.5$ cm $= 5$ mm. (Also $e = (l_2 - 3l_1)/2$.)` }),
+  { id: 'um-v514', type: 'mcq', level: 5, format: 'match', exams: ['jee-adv'], sub: 'dimensional analysis', group: 'v5m1',
+    q: r`Match each quantity in List I with its dimensional formula in List II (base dimensions $M$, $L$, $T$ and current $A$).`,
+    options: ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-s, B-r, C-q, D-p'], answer: 1,
+    sol: r`Flux $=BA$: $[MT^{-2}A^{-1}][L^2] = [ML^2T^{-2}A^{-1}]$ (q). Inductance $L = $ volt $\cdot$ s/A, and volt $=[ML^2T^{-3}A^{-1}]$, so $L = [ML^2T^{-2}A^{-2}]$ (r). $\epsilon_0 = q^2/(Fr^2)$ gives $[A^2T^2]/[MLT^{-2}\,L^2] = [M^{-1}L^{-3}T^{4}A^{2}]$ (s). From $F = qvB$: $B = [MLT^{-2}]/([AT][LT^{-1}]) = [MT^{-2}A^{-1}]$ (p). So A-q, B-r, C-s, D-p.`,
+    trap: 'Flux differs from field by a factor of area; inductance differs from flux by one more $A^{-1}$.' },
+  { id: 'um-v515', type: 'mcq', level: 5, format: 'match', exams: ['jee-adv'], sub: 'dimensional analysis', group: 'v5m2',
+    q: r`Match each combination of fundamental constants in List I with the quantity it has the dimensions of in List II.`,
+    options: ['A-r, B-s, C-q, D-p', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s', 'A-r, B-q, C-s, D-p'], answer: 3,
+    sol: r`$[h] = ML^2T^{-1}$ and $[e] = AT$. $h/e = [ML^2T^{-2}A^{-1}]$, magnetic flux (r). $h/e^2 = [ML^2T^{-3}A^{-2}]$, resistance (q). $e\hbar/m_e = [AT][ML^2T^{-1}]/[M] = [AL^2]$, a magnetic dipole moment (s) (the Bohr magneton). $h\nu/e$ is energy per unit charge, a potential difference (p). So A-r, B-q, C-s, D-p.`,
+    trap: '$h/e$ is the flux quantum scale and $h/e^2$ the von Klitzing resistance scale: the extra $e$ moves it from flux to resistance.' },
+);
+
+
+// templates (level 5)
+const V5D = { L_: [1, 2, -2, -2], C_: [-1, -2, 4, 2], e0: [-1, -3, 4, 2], m0: [1, 1, -2, -2], c_: [0, 1, -1, 0], h_: [1, 2, -1, 0], e_: [0, 0, 1, 1] };
+const V5N = { R: [1, 2, -3, -2], V: [1, 2, -3, -1], flux: [1, 2, -2, -1], B: [1, 0, -2, -1], speed: [0, 1, -1, 0], time: [0, 0, 1, 0], mu: [0, 2, 0, 1] };
+const V5L = { R: 'resistance', V: 'potential difference', flux: 'magnetic flux', B: 'magnetic field', speed: 'speed', time: 'time', mu: 'magnetic dipole moment' };
+const V5C = [
+  [String.raw`$\sqrt{L/C}$`, { L_: 0.5, C_: -0.5 }, 'R'], [String.raw`$\mu_0 c$`, { m0: 1, c_: 1 }, 'R'], [String.raw`$h/e$`, { h_: 1, e_: -1 }, 'flux'],
+  [String.raw`$h/e^2$`, { h_: 1, e_: -2 }, 'R'], [String.raw`$1/\sqrt{\mu_0\epsilon_0}$`, { m0: -0.5, e0: -0.5 }, 'speed'], [String.raw`$\sqrt{LC}$`, { L_: 0.5, C_: 0.5 }, 'time'],
+];
+gens.push(
+  { id: 'um-v5g1', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'errors',
+    make(rng) {
+      const u = pick(rng, 20, 40, 5), v = pick(rng, 40, 80, 10), du = pick(rng, 0.2, 0.5, 0.1), dv = pick(rng, 0.5, 1, 0.5);
+      const f = u * v / (u + v), answer = f * f * (du / (u * u) + dv / (v * v));
+      return { u, v, du, dv, answer: +answer.toFixed(3), tol: Math.max(0.01, answer * 0.02), unit: 'cm',
+        q: `In a lens experiment $u = ${u}\\pm${du}$ cm and $v = ${v}\\pm${dv}$ cm (magnitudes), and $f$ comes from $1/f = 1/u + 1/v$. Find the maximum absolute error in $f$, in cm (2 decimals).`,
+        sol: `$f = uv/(u+v) = ${fmt(f, 4)}$ cm. From $1/f = 1/u + 1/v$: $\\Delta f/f^2 = \\Delta u/u^2 + \\Delta v/v^2$. So $\\Delta f = ${fmt(f * f, 4)}\\left(\\dfrac{${du}}{${u * u}} + \\dfrac{${dv}}{${v * v}}\\right) = ${fmt(answer, 3)}$ cm.`,
+        trap: 'The errors enter with weights $1/u^2$ and $1/v^2$; adding $\\Delta u/u + \\Delta v/v$ to $f$ is wrong.' };
+    },
+    verify: (p) => (p.v ** 2 * p.du + p.u ** 2 * p.dv) / (p.u + p.v) ** 2 },
+  { id: 'um-v5g2', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'unit conversion',
+    make(rng) {
+      const M0 = pick(rng, 2, 5, 1), V0 = pick(rng, 2, 5, 1), T0 = pick(rng, 0.2, 0.8, 0.2), P = choose(rng, [500, 800, 1000, 1500, 2000]);
+      const unitPower = M0 * V0 * V0 / T0, answer = P / unitPower;
+      return { M0, V0, T0, P, answer: +answer.toFixed(3), tol: Math.max(0.01, answer * 0.005),
+        q: `A system of units takes the unit of mass as ${M0} kg, the unit of velocity as ${V0} m/s and the unit of time as ${fmt(T0, 2)} s. Express a power of ${P} W in this system (3 significant figures).`,
+        sol: `Unit of energy $= MV^2 = ${M0}\\times${V0}^2 = ${M0 * V0 * V0}$ J. Unit of power $=$ energy/time $= ${M0 * V0 * V0}/${fmt(T0, 2)} = ${fmt(unitPower, 4)}$ W. So $${P}\\ \\mathrm{W} = ${P}/${fmt(unitPower, 4)} = ${fmt(answer, 4)}$ units.`,
+        trap: 'Power is energy per unit time: the unit of time must be divided out as well, not just mass and velocity.' };
+    },
+    verify: (p) => { const F0 = p.M0 * p.V0 / p.T0; return p.P / (F0 * p.V0); } },
+  { id: 'um-v5g3', type: 'mcq', level: 5, exams: ['jee-adv'], sub: 'dimensional analysis',
+    make(rng) {
+      const i = int(rng, 0, V5C.length - 1);
+      const [expr, ex, key] = V5C[i];
+      const vec = [0, 0, 0, 0]; for (const k in ex) for (let j = 0; j < 4; j++) vec[j] += ex[k] * V5D[k][j];
+      const wrongs = Object.keys(V5N).filter((k) => k !== key).sort(() => rng() - 0.5).slice(0, 3).map((k) => V5L[k]);
+      const { options, answer } = shuffleOpts(rng, V5L[key], wrongs);
+      return { i, vec, options, answer,
+        q: `In SI, $L$ is inductance, $C$ capacitance, $\\mu_0$ and $\\epsilon_0$ the vacuum constants, $c$ the speed of light, $h$ Planck's constant and $e$ the electron charge. The expression ${expr} has the dimensions of`,
+        sol: `Write each factor in $M,L,T,A$ and combine the powers. The result is $[M^{${vec[0]}}L^{${vec[1]}}T^{${vec[2]}}A^{${vec[3]}}]$, which is that of ${V5L[key]}. The other options have different dimensional formulae.`,
+        trap: 'Track the current dimension $A$ as well; two quantities can agree in $M$, $L$, $T$ and still differ.' };
+    },
+    verify: (p) => { const hit = Object.keys(V5N).find((k) => V5N[k].every((x, j) => Math.abs(x - p.vec[j]) < 1e-9)); return p.options.indexOf(V5L[hit]); } },
+);
+
+
 export default { topic: 'units-measurements', groups, items, gens };

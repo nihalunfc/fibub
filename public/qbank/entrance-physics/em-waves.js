@@ -803,4 +803,131 @@ const gens = [
     },
     verify: (p) => p.options.indexOf(fmt((1 + p.R1) / (1 + p.R2), 3)) },
 ];
+
+// ---------- Level 5 round (v5): top-rank additions ----------
+const v5 = (id, type, format, sub, o) => ({ id, type, level: 5, format, exams: ['jee-adv'], sub, ...o });
+Object.assign(groups, {
+  v5m1: { title: 'Force of light on a flat surface',
+    list1: ['A. Perfect absorber, light falls normally', 'B. Perfect mirror, light falls normally', 'C. Perfect absorber, angle of incidence $60^\\circ$', 'D. Perfect mirror, angle of incidence $30^\\circ$'],
+    list2: [r`p. $\dfrac{3IA}{2c}$`, r`q. $\dfrac{IA}{c}$`, r`r. $\dfrac{IA}{2c}$`, r`s. $\dfrac{2IA}{c}$`] },
+  v5m2: { title: 'Direction of energy flow',
+    list1: ['A. At the rim of a circular-plate capacitor that is being charged', 'B. At the rim of the same capacitor while it discharges', r`C. A wave with $\vec E = E_0\hat y\sin(kx-\omega t)$`, r`D. A wave with $\vec E = E_0\hat z\sin(kx+\omega t)$`],
+    list2: ['p. radially outward from the axis', 'q. along $-x$', 'r. radially inward towards the axis', 's. along $+x$'] },
+  v5p1: { title: 'Sea water between plates',
+    passage: r`<p>A slab of sea water fills the gap between two large parallel plates, and the electric field in it is $E = E_0\sin\omega t$. Treat the water as having a constant relative permittivity $\epsilon_r = 80$ and conductivity $\sigma = 4.0\ \mathrm{S\,m^{-1}}$ at all the frequencies in this problem. Take $\epsilon_0 = 8.85\times10^{-12}$ SI. The conduction current density is $J_c = \sigma E$ and the displacement current density is $J_d = \epsilon_r\epsilon_0\,\partial E/\partial t$.</p>` },
+});
+items.push(
+  v5('ew-v501', 'msq', 'multi', 'plane wave', {
+    q: r`A plane electromagnetic wave in vacuum has $\vec E = E_0(\hat x + \hat y)\sin(kz - \omega t)$. Which statements are correct?`,
+    options: ['It travels along $+z$', r`$\vec B$ points along the direction of $(\hat y - \hat x)$`, r`The amplitude of the electric field vector is $E_0$`, r`Its intensity is $\epsilon_0cE_0^2$`], answer: [0, 1, 3],
+    sol: r`The phase $kz - \omega t$ means motion along $+z$ (A true). $\vec B$ is along $\hat k\times\hat E$: $\hat z\times(\hat x + \hat y) = \hat y - \hat x$ (B true). The vector $E_0(\hat x + \hat y)$ has magnitude $\sqrt2E_0$, so the amplitude is $\sqrt2E_0$, not $E_0$ (C false). The intensity is $\tfrac12\epsilon_0c(\sqrt2E_0)^2 = \epsilon_0cE_0^2$ (D true).`,
+    trap: 'The amplitude of a vector wave is the length of its vector, not the coefficient of one component.' }),
+  v5('ew-v502', 'msq', 'multi', 'Poynting vector', {
+    q: r`A long cylindrical resistor of radius $a$ and length $\ell$ carries a steady current $I$, with total resistance $R$. Which statements are correct?`,
+    options: ['At its curved surface the Poynting vector points radially inward', r`Its magnitude there is $\dfrac{I^2R}{2\pi a\ell}$`, 'The Poynting vector is zero at the surface because $\\vec E$ lies along the wire', 'The total power flowing in through the curved surface is $I^2R$'], answer: [0, 1, 3],
+    sol: r`Inside the wire $\vec E$ is along the current (say $+z$) and, just outside, the same tangential $\vec E$ exists. $\vec B$ circles the wire (direction $\hat\phi$ for current along $+z$). $\vec S = \vec E\times\vec B/\mu_0 \propto \hat z\times\hat\phi = -\hat r$: inward (A true). Magnitude: $E = V/\ell = IR/\ell$ and $B = \mu_0I/(2\pi a)$, so $S = EB/\mu_0 = \dfrac{IR}{\ell}\cdot\dfrac{I}{2\pi a} = \dfrac{I^2R}{2\pi a\ell}$ (B true). $\vec E$ and $\vec B$ are perpendicular, so the cross product is not zero (C false). Multiply by the surface area $2\pi a\ell$: the inflow is $I^2R$, exactly the heating (D true).`,
+    trap: 'The energy of a resistor does not travel down the wire; it flows in from the surrounding field.' }),
+  v5('ew-v503', 'msq', 'multi', 'displacement current', {
+    q: r`A parallel-plate capacitor with circular plates is completely filled with a dielectric of constant $K>1$ and is charged by a conduction current $I$ in the wires. Which statements are correct?`,
+    options: [r`The total current density between the plates (displacement plus polarisation) is $I/(\pi R^2)$`, r`The term $\epsilon_0\,d\Phi_E/dt$ taken with the vacuum $\epsilon_0$ equals $I/K$`, r`At $r<R$ from the axis, $B = \dfrac{\mu_0Ir}{2\pi R^2}$ whatever the value of $K$`, 'The electric field between the plates is the same as it would be with no dielectric and the same charge'], answer: [0, 1, 2],
+    sol: r`Charge on the plates changes at the rate $I$, and the Maxwell current in the gap must be continuous with the wire current: $I$ through the whole cross-section, i.e. $I/(\pi R^2)$ per unit area (A true). With the dielectric, $E = \sigma/(K\epsilon_0)$, so $\epsilon_0\,d\Phi_E/dt = \epsilon_0A\,\dot\sigma/(K\epsilon_0) = I/K$; the rest, $I(1 - 1/K)$, is polarisation current (B true). Using $\oint\vec H\cdot d\vec l = I_{\text{enclosed}}$ with $I_{\text{enc}} = Ir^2/R^2$ (the displacement flux $\dot\Phi_D$), $B = \mu_0H$ gives $\mu_0Ir/(2\pi R^2)$, independent of $K$ (C true). The dielectric reduces $E$ to $\sigma/(K\epsilon_0)$ (D false).`,
+    trap: 'The vacuum term $\\epsilon_0\\dot\\Phi_E$ is only a fraction of the current that the dielectric carries.' }),
+  v5('ew-v504', 'nat', 'integer', 'radiation pressure', {
+    q: r`A thin, perfectly reflecting horizontal sheet has a mass of $0.2\ \mathrm{kg}$ per square metre. Light of uniform intensity $I$ travelling vertically upward falls normally on it from below, and the sheet just floats (weight balanced by the radiation force). Take $g = 10\ \mathrm{m\,s^{-2}}$ and $c = 3\times10^8\ \mathrm{m\,s^{-1}}$. Find $I$ in units of $10^{8}\ \mathrm{W\,m^{-2}}$.`,
+    answer: 3, tol: 0, calc: () => 0.2 * 10 * 3e8 / 2 / 1e8,
+    sol: r`For a perfect mirror at normal incidence the pressure is $2I/c$. The weight per unit area is $0.2\times10 = 2\ \mathrm{N\,m^{-2}}$. So $2I/c = 2$ and $I = c = 3\times10^{8}\ \mathrm{W\,m^{-2}}$, which is $3$ units.`,
+    trap: 'Using $I/c$ (a perfect absorber) would give $6$.' }),
+  v5('ew-v505', 'nat', 'integer', 'EM waves in a medium', {
+    q: r`A plane wave of electric amplitude $300\ \mathrm{V\,m^{-1}}$ in vacuum enters a non-magnetic medium of refractive index $4$. Assume the whole intensity is transmitted (no reflection). Find the amplitude of the magnetic field in the medium, in nT. Take $c = 3\times10^{8}\ \mathrm{m\,s^{-1}}$.`,
+    answer: 2000, tol: 0, unit: 'nT', calc: () => 4 * (300 / Math.sqrt(4)) / 3e8 * 1e9,
+    sol: r`Intensity is $\tfrac12\epsilon_0cnE^2$ in a non-magnetic medium. Equal intensity gives $nE'^2 = E_0^2$, so $E' = E_0/\sqrt n = 150\ \mathrm{V\,m^{-1}}$. In the medium $E'/B' = c/n$, so $B' = nE'/c = 4\times150/(3\times10^8) = 2\times10^{-6}$ T $= 2000$ nT.`,
+    trap: 'Keeping $E$ unchanged gives $4000$ nT, keeping $B$ unchanged gives $1000$ nT: neither is conserved.' }),
+  v5('ew-v506', 'nat', 'integer', 'intensity and field', {
+    q: r`A laser pulse of energy $3.0$ J lasts $1.0$ ns and is spread uniformly over a circular spot of radius $1.0$ mm. Treat it as a plane wave of constant intensity. Taking $\epsilon_0 = 8.85\times10^{-12}\ \mathrm{SI}$ and $c = 3\times10^{8}\ \mathrm{m\,s^{-1}}$, find the amplitude of its electric field in $\mathrm{MV\,m^{-1}}$ (nearest whole number).`,
+    answer: 848, tol: 0, unit: 'MV/m', calc: () => Math.round(Math.sqrt(2 * (3 / (1e-9 * Math.PI * 1e-6)) / (8.85e-12 * 3e8)) / 1e6),
+    sol: r`Intensity $I = \dfrac{\text{energy}}{\text{time}\times\text{area}} = \dfrac{3.0}{10^{-9}\times\pi\times10^{-6}} = 9.55\times10^{14}\ \mathrm{W\,m^{-2}}$. With $I = \tfrac12\epsilon_0cE_0^2$: $E_0 = \sqrt{\dfrac{2I}{\epsilon_0c}} = \sqrt{\dfrac{2\times9.55\times10^{14}}{8.85\times10^{-12}\times3\times10^{8}}} = 8.48\times10^{8}\ \mathrm{V\,m^{-1}}$, i.e. $848\ \mathrm{MV\,m^{-1}}$.`,
+    trap: 'Dropping the factor $\\tfrac12$ gives $600$; using the full duration instead of 1 ns fails by a factor of $10^{9}$ in $I$.' }),
+  v5('ew-v507', 'nat', 'numeric', 'Poynting vector', {
+    q: r`A nichrome wire of radius $0.50$ mm and length $1.0$ m has a resistance of $1.4\ \Omega$ and carries a steady $2.0$ A. Find the magnitude of the Poynting vector at its surface in $\mathrm{kW\,m^{-2}}$ (2 decimals).`,
+    answer: 1.78, tol: 0.01, unit: 'kW/m²', calc: () => 4 * 1.4 / (2 * Math.PI * 5e-4 * 1) / 1000,
+    sol: r`The power dissipated is $I^2R = 4\times1.4 = 5.6$ W. It all enters through the curved surface of area $2\pi a\ell = 2\pi\times0.5\times10^{-3}\times1.0 = 3.14\times10^{-3}\ \mathrm{m^2}$. So $S = 5.6/(3.14\times10^{-3}) = 1.78\times10^{3}\ \mathrm{W\,m^{-2}} = 1.78\ \mathrm{kW\,m^{-2}}$. Check with fields: $E = IR/\ell = 2.8$ V/m, $B = \mu_0I/(2\pi a) = 8\times10^{-4}$ T, and $EB/\mu_0 = 1.78\times10^{3}$.`,
+    trap: 'Using the area of the cross-section instead of the curved surface is a factor of $2\\ell/a$ off.' }),
+  { id: 'ew-v508', type: 'mcq', level: 5, format: 'match', exams: ['jee-adv'], sub: 'radiation force', group: 'v5m1',
+    q: r`A beam of intensity $I$ falls on a flat surface of area $A$. Match each case in List I with the magnitude of the total force on the surface in List II. (Angles of incidence are measured from the normal; the mirror reflects specularly.)`,
+    options: ['A-q, B-s, C-r, D-p', 'A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'], answer: 0,
+    sol: r`A: $IA/c$ (q). B: $2IA/c$ (s). C: an absorber takes up the momentum arriving per second, $IA\cos\theta/c = IA/(2c)$ for $\theta=60^\circ$ (r). D: a mirror gives a force along the normal of magnitude $2IA\cos^2\theta/c = 2IA(3/4)/c = 3IA/(2c)$ for $\theta = 30^\circ$ (p). So A-q, B-s, C-r, D-p.`,
+    trap: 'An oblique mirror gets $\\cos^2\\theta$ (one $\\cos$ from the area, one from the normal momentum change); an oblique absorber gets only one $\\cos\\theta$.' },
+  { id: 'ew-v509', type: 'mcq', level: 5, format: 'match', exams: ['jee-adv'], sub: 'Poynting vector', group: 'v5m2',
+    q: r`Match each situation in List I with the direction of the Poynting vector in List II.`,
+    options: ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q'], answer: 3,
+    sol: r`A charging capacitor: $E$ along the axis grows, so $\vec B$ circulates in the right-hand sense about the displacement current and $\vec E\times\vec B$ points inward: radially inward (r). While discharging, $dE/dt$ reverses, $\vec B$ reverses and the flow is outward (p). C: $kx - \omega t$ is a wave moving along $+x$ (s). D: $kx + \omega t$ moves along $-x$ (q). So A-r, B-p, C-s, D-q.`,
+    trap: 'The direction of $\\vec B$ in the gap follows $dE/dt$, not $E$.' },
+  { id: 'ew-v510', type: 'nat', level: 5, format: 'passage', exams: ['jee-adv'], sub: 'conduction and displacement current', group: 'v5p1',
+    q: 'At what frequency (in MHz) are the peak conduction and displacement current densities equal?',
+    answer: 899, tol: 1, unit: 'MHz', calc: () => 4 / (2 * Math.PI * 8.85e-12 * 80) / 1e6,
+    sol: r`Peak $J_c = \sigma E_0$ and peak $J_d = \epsilon_r\epsilon_0\omega E_0$. Equal when $\omega = \sigma/(\epsilon_r\epsilon_0)$, so $f = \dfrac{\sigma}{2\pi\epsilon_r\epsilon_0} = \dfrac{4.0}{2\pi\times80\times8.85\times10^{-12}} = 8.99\times10^{8}$ Hz $\approx 899$ MHz.`,
+    trap: 'Use $f = \\omega/2\\pi$; stopping at $\\omega$ gives $5650$ MHz.' },
+  { id: 'ew-v511', type: 'nat', level: 5, format: 'passage', exams: ['jee-adv'], sub: 'conduction and displacement current', group: 'v5p1',
+    q: 'At $1$ kHz, find the ratio (peak conduction current density)/(peak displacement current density) in units of $10^5$ (2 decimals).',
+    answer: 8.99, tol: 0.02, calc: () => 4 / (80 * 8.85e-12 * 2 * Math.PI * 1e3) / 1e5,
+    sol: r`The ratio is $\sigma/(\epsilon_r\epsilon_0\omega)$ with $\omega = 2\pi\times10^3 = 6.28\times10^3\ \mathrm{s^{-1}}$: $\dfrac{4.0}{80\times8.85\times10^{-12}\times6.28\times10^{3}} = 8.99\times10^{5}$. At $1$ kHz sea water behaves almost purely as a conductor.` },
+  { id: 'ew-v512', type: 'mcq', level: 5, format: 'passage', exams: ['jee-adv'], sub: 'conduction and displacement current', group: 'v5p1',
+    q: 'Compared with the conduction current density, the displacement current density in the water',
+    options: ['is in phase with it', r`leads it by $90^\circ$`, r`lags it by $90^\circ$`, r`is $180^\circ$ out of phase with it`], answer: 1,
+    sol: r`$J_c = \sigma E_0\sin\omega t$ is in phase with $E$. $J_d = \epsilon_r\epsilon_0\,\partial E/\partial t = \epsilon_r\epsilon_0\omega E_0\cos\omega t$, which is $\sin(\omega t + 90^\circ)$, so it leads by $90^\circ$. The other options mix up the sign of the derivative.`,
+    trap: 'A derivative of a sine is a cosine: ahead of it by a quarter cycle, not behind.' },
+  { id: 'ew-v513', type: 'mcq', level: 5, format: 'assertion', exams: ['jee-adv'], sub: 'EM wave and charges',
+    q: `<b>Assertion (A):</b> Even for a charge moving at a speed close to $c$, the magnetic force of an EM wave on it is negligible compared with the electric force, because $B_0 = E_0/c$ is tiny.<br><b>Reason (R):</b> For a plane EM wave in vacuum, $B_0 = E_0/c$.`,
+    options: AOPT, answer: 3,
+    sol: r`R is true. A is false: the magnetic force is $qvB_0 = q(v/c)E_0$, which is comparable with the electric force $qE_0$ when $v$ is close to $c$. It is negligible only for $v\ll c$. The small size of $B_0$ in SI units reflects the units, not the strength of the effect.`,
+    trap: 'Compare $vB$ with $E$, not $B$ with $E$: the ratio is $v/c$.' },
+  { id: 'ew-v514', type: 'mcq', level: 5, format: 'statements', exams: ['jee-adv'], sub: 'EM waves in a medium',
+    q: `<b>Statement I:</b> A plane wave of the same electric amplitude $E_0$ has an intensity $n$ times larger in a non-magnetic medium of refractive index $n$ than in vacuum.<br><b>Statement II:</b> For the same $E_0$, the total energy density of the wave is the same in the medium as in vacuum.`,
+    options: SOPT, answer: 2,
+    sol: r`In the medium $I = \tfrac12\epsilon_0cnE_0^2$, which is $n$ times the vacuum value (I true). The energy density is $u = \tfrac12\epsilon E_0^2$ (electric and magnetic halves equal, averaged), with $\epsilon = n^2\epsilon_0$, so it is $n^2$ times larger (II false). The intensity is $u\times(c/n)$, which gives the factor $n$.`,
+    trap: 'Intensity $=$ energy density $\\times$ speed, and the speed drops by $n$ while the energy density rises by $n^2$.' },
+  { id: 'ew-v515', type: 'mcq', level: 5, format: 'statements', exams: ['jee-adv'], sub: 'Maxwell\'s equations',
+    q: `Consider the following.<br>(1) No displacement current flows between the plates of a capacitor that holds a steady charge.<br>(2) In a plane wave in vacuum, at every point and instant the electric and magnetic energy densities are equal.<br>(3) The Poynting vector of a plane wave averages to zero over one cycle.<br>(4) Radio waves travel faster than X-rays in vacuum.<br>How many of these statements are correct?`,
+    options: ['Only one', 'Only two', 'Only three', 'All four'], answer: 1,
+    sol: r`(1) True: the field is constant, so $\partial E/\partial t = 0$. (2) True: $\epsilon_0E^2/2 = B^2/(2\mu_0)$ because $E = cB$ at every instant. (3) False: $\vec E\times\vec B$ always points along the propagation direction, so its average is $I>0$. (4) False: all EM waves travel at $c$ in vacuum. Two are correct.`,
+    trap: 'The wave oscillates in $E$ and $B$, but $\\vec S$ never changes sign.' },
+);
+
+
+// templates (level 5)
+gens.push(
+  { id: 'ew-v5g1', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'radiation pressure',
+    make(rng) {
+      const sg = choose(rng, [0.05, 0.1, 0.2, 0.5]), mirror = choose(rng, [true, false]), k = mirror ? 2 : 1;
+      const I = sg * 9.8 * 3e8 / k / 1e6;
+      return { sg, k, answer: +I.toFixed(2), tol: Math.max(0.05, I * 0.005), unit: 'MW/m²',
+        q: `A thin, perfectly ${mirror ? 'reflecting' : 'absorbing'} horizontal sheet has a mass of ${sg} kg per square metre. Light travelling vertically upward falls normally on it from below with uniform intensity $I$, and the sheet just floats. Take $g = 9.8\\ \\mathrm{m\\,s^{-2}}$ and $c = 3\\times10^8\\ \\mathrm{m\\,s^{-1}}$. Find $I$ in $\\mathrm{MW\\,m^{-2}}$.`,
+        sol: `The radiation pressure on a perfectly ${mirror ? 'reflecting sheet is $2I/c$' : 'absorbing sheet is $I/c$'}. Weight per unit area $= ${sg}\\times9.8 = ${fmt(sg * 9.8, 4)}\\ \\mathrm{N\\,m^{-2}}$. So $I = ${fmt(sg * 9.8, 4)}\\times c/${k} = ${fmt(I, 4)}\\ \\mathrm{MW\\,m^{-2}}$.`,
+        trap: 'A mirror reverses the momentum, so it needs only half the intensity that an absorber needs.' };
+    },
+    verify: (p) => { const A = 1, m = p.sg * A; const F = m * 9.8; return F * 3e8 / (p.k * A) / 1e6; } },
+  { id: 'ew-v5g2', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'Poynting vector in a wire',
+    make(rng) {
+      const I = pick(rng, 1, 5, 0.5), R = pick(rng, 0.5, 3, 0.5), a = pick(rng, 0.2, 1, 0.1), l = pick(rng, 0.5, 2, 0.5);
+      const S = I * I * R / (2 * Math.PI * a * 1e-3 * l);
+      return { I, R, a, l, answer: +(S / 1000).toFixed(3), tol: Math.max(0.01, S / 1000 * 0.01), unit: 'kW/m²',
+        q: `A resistance wire of radius ${a} mm and length ${l} m has a resistance of ${R} Ω and carries a steady ${I} A. Find the magnitude of the Poynting vector at its surface in $\\mathrm{kW\\,m^{-2}}$ (2 decimals).`,
+        sol: `Heat produced $= I^2R = ${fmt(I * I * R, 4)}$ W, entering through the curved surface of area $2\\pi a\\ell = ${fmt(2 * Math.PI * a * 1e-3 * l, 4)}\\ \\mathrm{m^2}$. So $S = ${fmt(I * I * R, 4)}/${fmt(2 * Math.PI * a * 1e-3 * l, 4)} = ${fmt(S / 1000, 4)}\\ \\mathrm{kW\\,m^{-2}}$ (the same as $EB/\\mu_0$ with $E = IR/\\ell$ and $B = \\mu_0I/2\\pi a$).`,
+        trap: 'The energy enters through the side of the wire, not the cross-section.' };
+    },
+    verify: (p) => { const mu = 4e-7 * Math.PI; const E = p.I * p.R / p.l, B = mu * p.I / (2 * Math.PI * p.a * 1e-3); return E * B / mu / 1000; } },
+  { id: 'ew-v5g3', type: 'mcq', level: 5, exams: ['jee-adv'], sub: 'displacement current in a dielectric',
+    make(rng) {
+      const K = choose(rng, [3, 4, 5, 6]), I = choose(rng, [2, 3, 4, 5]);
+      const f = (x) => `${fmt(x, 3)} A`;
+      const { options, answer } = shuffleOpts(rng, f(I / K), [f(I), f(I * K), f(I * (1 - 1 / K))]);
+      return { K, I, options, answer,
+        q: `A parallel-plate capacitor completely filled with a dielectric of constant ${K} is charged by a steady conduction current of ${I} A in the wires. The quantity $\\epsilon_0\\,d\\Phi_E/dt$ (with the vacuum $\\epsilon_0$) over the plate area equals`,
+        sol: `With the dielectric, $E = \\sigma/(K\\epsilon_0)$, so $\\epsilon_0\\,d\\Phi_E/dt = (dQ/dt)/K = ${I}/${K} = ${fmt(I / K, 3)}$ A. The remaining ${f(I * (1 - 1 / K))} is the polarisation current of the bound charges. The sum is the full ${I} A.`,
+        trap: 'Only $\\epsilon\\,d\\Phi_E/dt$ with $\\epsilon = K\\epsilon_0$ equals the whole charging current.' };
+    },
+    verify: (p) => p.options.indexOf(`${fmt(p.I / p.K, 3)} A`) },
+);
+
+
 export default { topic: 'em-waves', groups, items, gens };
