@@ -1,0 +1,44 @@
+---
+// SIM for 8.3: the Pareto curve of the course shop's 32 products (revenue from orders.csv, Jan 2025 to
+// Jun 2026), against a made-up shop whose concentration you choose. Slide k to read off the share.
+---
+<figure class="cs-fig mlf" data-pareto>
+  <span class="cs-figtag">Try it: how concentrated are sales?</span>
+  <canvas aria-label="Pareto curve: share of revenue against share of products, with the even-sales diagonal"></canvas>
+  <div class="mlf-ctl">
+    <label>Top products: <output data-v="k"></output><input type="range" name="k" min="1" max="32" step="1" value="6" /></label>
+    <label>Made-up shop, concentration: <output data-v="s"></output><input type="range" name="s" min="0" max="2" step="0.1" value="1.2" /></label>
+  </div>
+  <div class="mlf-read"><div><span>course shop: top products make</span><b data-shop></b></div><div><span>made-up shop: top products make</span><b data-fake></b></div></div>
+  <figcaption>Sort the products from best to worst seller and add up their share of revenue as you go. The solid line is the course shop (real totals from orders.csv); the dashed line is a made-up shop where the i-th product sells in proportion to 1/i<sup>s</sup>. At concentration 0 every product sells the same and the curve is the diagonal; the higher it goes, the more a few products dominate. The shaded band is class A, the products that make the first 80 %.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  const SHOP = [28096, 22815, 16342, 13079, 11950, 11638, 9513, 8858, 8208, 7995, 7839, 7170, 7003, 6674, 6115, 5963, 5652, 4642, 4492, 4147, 3574, 3339, 2936, 2827, 2740, 2679, 2375, 1988, 1744, 1660, 1652, 967];
+  const cum = (xs: number[]) => { const t = xs.reduce((a, b) => a + b, 0); let c = 0; return [0, ...xs.map((x) => (c += x) / t)]; };
+  const put = (fig: HTMLElement, key: string, t: string) => { const el = fig.querySelector(`[data-${key}]`); if (el) el.textContent = t; };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pareto]')) {
+    const cv = fig.querySelector('canvas')!, n = SHOP.length, shop = cum(SHOP);
+    const p = new Plot(cv, { x: [0, 100], y: [0, 100], h: 280, xLabel: 'share of products (%)', yLabel: 'share of revenue (%)' });
+    const K = slider(fig, 'k', () => draw(), (v) => `${v} of ${n}`);
+    const S = slider(fig, 's', () => draw(), (v) => fmt(v, 1));
+    function draw() {
+      const k = K(), fake = cum(Array.from({ length: n }, (_, i) => Math.pow(i + 1, -S())));
+      const a = shop.findIndex((v) => v >= 0.8);
+      p.begin();
+      p.rect(0, 0, (100 * a) / n, 100, { fill: p.pal.accent, alpha: 0.08 });
+      p.line(0, 80, 100, 80, { color: p.pal.grid, width: 1, dash: [4, 4] });
+      p.line(0, 0, 100, 100, { color: p.pal.muted, width: 1, dash: [2, 4] });
+      p.path(fake.map((v, i) => [(100 * i) / n, 100 * v] as [number, number]), { color: p.pal.accent2, width: 2, dash: [6, 4] });
+      p.path(shop.map((v, i) => [(100 * i) / n, 100 * v] as [number, number]), { color: p.pal.accent, width: 2.5 });
+      const x = (100 * k) / n;
+      p.line(x, 0, x, 100 * shop[k], { color: p.pal.ink, width: 1, alpha: 0.5 });
+      p.dot(x, 100 * shop[k], { r: 5, color: p.pal.accent }); p.dot(x, 100 * fake[k], { r: 4, color: p.pal.accent2, shape: 'square' });
+      p.text((100 * a) / n, 4, `A = top ${a}`, { align: 'right', dx: -4, size: 11, color: p.pal.muted });
+      p.end();
+      put(fig, 'shop', `${k} (${fmt((100 * k) / n, 0)} % of products) make ${fmt(100 * shop[k], 1)} % of revenue`);
+      put(fig, 'fake', `${fmt(100 * fake[k], 1)} % of revenue`);
+    }
+    live(cv, draw);
+  }
+</script>

@@ -15,6 +15,7 @@ await py.loadPackage(['pandas'], { messageCallback: () => {} });
 const runner = readFileSync(`${root}src/lib/py/worker.ts`, 'utf8').match(/String\.raw`([\s\S]*?)`;/)[1];
 py.runPython(runner);
 for (const f of readdirSync(data)) py.FS.writeFile(f, readFileSync(data + f));
+py.FS.writeFile('checkout-test.csv', readFileSync(`${root}public/data/courses/statistics/checkout-test.csv`));
 const run = py.globals.get('_run');
 
 let n = 0, bad = 0;
