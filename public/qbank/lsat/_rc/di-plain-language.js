@@ -1,0 +1,31 @@
+// LSAT RC passage (law): plain-language consumer contracts. Original, written for fibub.
+import { rc } from './h.js';
+const it = rc('p3');
+export default {
+  group: 'p3',
+  passage: { title: 'Passage: the case for plain-language contracts', passage: `<p>Consumer contracts, the terms a person accepts when opening a bank account, renting a car or signing up for a phone plan, are famously hard to read. They are long, written in dense legal vocabulary and arranged in a way that buries important terms among routine ones. Studies of consumer behaviour consistently find that almost no one reads them in full. The law nonetheless treats a person who signs, or clicks "I agree," as bound by every term.</p>
+<p>Defenders of traditional drafting offer two justifications. First, legal terms have settled meanings, established by years of court decisions; replacing them with everyday words, which are vaguer, would create uncertainty and lead to more disputes. Second, since consumers do not read contracts anyway, the style in which they are written makes little practical difference.</p>
+<p>Neither argument withstands close examination. The first overstates both the precision of legal language and the vagueness of ordinary English. Many traditional phrases survive not because they have a fixed meaning but because drafters copy them from older documents; some, such as pairs of near-synonyms, add length without adding meaning. Where a technical term really is needed, a plain-language contract can use it and explain it. Several jurisdictions that require consumer contracts to be written in plain language have not reported any increase in litigation as a result.</p>
+<p>The second argument mistakes an effect for a cause. Consumers may skip contracts precisely because they know the documents will be impenetrable. When terms are short and clearly arranged, at least some readers check the provisions that matter most to them, such as fees, cancellation rights and automatic renewals. And readership by individual consumers is not the only benefit. Clear contracts are easier for consumer advocates and journalists to compare, and when a company’s unfavourable terms can be understood at a glance, competitors have a reason to advertise better ones.</p>
+<p>None of this requires abandoning the principle that a person is bound by what they sign. It requires only that the law take seriously the condition that makes the principle fair: that the terms could, with reasonable effort, actually have been understood.</p>` },
+  items: [
+    it('lsat-rdi-301', 3, 'detail', 'According to the passage, defenders of traditional drafting argue that',
+      ['legal terms have settled meanings established by court decisions', 'consumers read contracts carefully before signing', 'plain-language contracts are cheaper to write', 'consumer contracts are usually short', 'courts refuse to enforce contracts no one has read'],
+      '<p>Paragraph 2 gives two arguments; {A} is the first. {B} contradicts their second argument, which assumes consumers do not read.</p>'),
+    it('lsat-rdi-302', 3, 'detail', 'The passage cites the experience of jurisdictions that require plain-language contracts as evidence that',
+      ['plain language has not led to more litigation', 'consumers now read every contract in full', 'legal terms are never needed', 'companies have stopped using automatic renewals', 'courts prefer traditional drafting'],
+      '<p>Paragraph 3: they "have not reported any increase in litigation as a result", answering the worry that plain words cause more disputes. {A}.</p>'),
+    it('lsat-rdi-303', 4, 'inference', 'In saying that the second argument "mistakes an effect for a cause," the author means that',
+      ['consumers’ failure to read contracts may result from the contracts being impenetrable rather than being a fixed fact that makes style irrelevant', 'courts have caused consumers to stop reading', 'plain language causes consumers to stop reading', 'consumers who read contracts cause companies to change them', 'the cause of long contracts is that consumers demand them'],
+      '<p>Defenders treat non-reading as a given; the author says people skip contracts "precisely because they know the documents will be impenetrable". The style partly causes the non-reading. {A}.</p>'),
+    it('lsat-rdi-304', 4, 'inference', 'The author would most likely agree with which one of the following?',
+      ['Clear contract terms can benefit consumers even when most individual consumers do not read them.', 'Technical legal terms should never appear in consumer contracts.', 'People should not be bound by contracts they have not read.', 'Pairs of near-synonyms make contracts more precise.', 'Journalists are more careful readers than consumers.'],
+      '<p>Paragraph 4: advocates, journalists and competitors benefit from clear terms. {A}. {B} contradicts "a plain-language contract can use it and explain it"; {C} contradicts the last paragraph.</p>'),
+    it('lsat-rdi-305', 5, 'function', 'The final paragraph functions primarily to',
+      ['clarify that the author’s proposal keeps the rule that signers are bound, while insisting on the condition that makes that rule fair', 'introduce a new objection to plain-language contracts', 'summarise the defenders’ position', 'argue that consumer contracts should be abolished', 'give a further example of a confusing contract'],
+      '<p>"None of this requires abandoning the principle ... It requires only that the law take seriously the condition that makes the principle fair." {A}.</p>'),
+    it('lsat-rdi-306', 5, 'strengthen', 'Which one of the following, if true, would most strengthen the author’s response to the second argument?',
+      ['When a lender shortened its contract and moved fees to the first page, the share of customers who looked at the fee section rose markedly.', 'Most consumer contracts are written by lawyers.', 'Some consumers prefer contracts that use legal vocabulary.', 'Courts in many jurisdictions apply the same rules to all contracts.', 'Long contracts take more time to print.'],
+      '<p>The author claims clearer terms lead at least some readers to check what matters. {A} shows exactly that effect.</p>'),
+  ],
+};

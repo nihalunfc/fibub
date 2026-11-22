@@ -1,0 +1,39 @@
+---
+// Data Vault: two hubs (business keys), the link between them (relationship) and a satellite hanging off
+// the customer hub (descriptive history). Columns as in the data-vault lesson's live SQL.
+type T = { name: string; kind: 'hub' | 'link' | 'sat'; cols: string[]; note: string };
+const tables: T[] = [
+  { name: 'hub_customer', kind: 'hub', cols: ['customer_hk', 'customer_bk', 'load_date', 'record_source'], note: 'one row per customer number' },
+  { name: 'link_order', kind: 'link', cols: ['link_order_hk', 'order_hk', 'customer_hk', 'load_date', 'record_source'], note: 'one row per order–customer pair' },
+  { name: 'hub_order', kind: 'hub', cols: ['order_hk', 'order_bk', 'load_date', 'record_source'], note: 'one row per order number' },
+  { name: 'sat_customer', kind: 'sat', cols: ['customer_hk', 'load_date', 'hash_diff', 'email, city, province, tier', 'record_source'], note: 'a new row for every change' },
+];
+const label = { hub: 'Hub', link: 'Link', sat: 'Satellite' };
+---
+<figure class="cs-fig dv">
+  <div class="dv-grid">
+    {tables.map((t) => (
+      <div class={`dv-t dv-${t.kind}`}>
+        <span class="dv-kind">{label[t.kind]}</span>
+        <strong>{t.name}</strong>
+        <ul>{t.cols.map((c) => <li>{c}</li>)}</ul>
+        <span class="dv-note">{t.note}</span>
+      </div>
+    ))}
+  </div>
+  <figcaption>Hubs hold only business keys, links hold only relationships between hubs, and satellites hold the descriptions with their history. Everything joins on hash keys, and every table is insert-only.</figcaption>
+</figure>
+<style is:inline>
+.dv-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+.dv-t { border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); font-size: 13px; }
+.dv-t strong { display: block; font-size: 14px; margin: 2px 0 4px; overflow-wrap: anywhere; }
+.dv-t ul { margin: 0; padding-left: 16px; }
+.dv-t li { color: var(--ink); }
+.dv-kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.dv-note { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.dv-hub { border-color: var(--accent); }
+.dv-hub .dv-kind { color: var(--accent); }
+.dv-link { border-style: dashed; border-color: var(--ink); }
+.dv-sat { border-color: var(--good); }
+.dv-sat .dv-kind { color: var(--good); }
+</style>

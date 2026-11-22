@@ -1,0 +1,22 @@
+---
+// The order SQL is written in vs the order it runs in.
+const written = ['SELECT', 'FROM', 'JOIN', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'];
+const runs: [string, string][] = [['FROM / JOIN', 'get the rows and glue tables together'], ['WHERE', 'keep only rows that pass'], ['GROUP BY', 'gather rows into groups'], ['HAVING', 'keep only groups that pass'], ['SELECT', 'pick and work out the columns'], ['DISTINCT', 'drop copies'], ['ORDER BY', 'sort'], ['LIMIT', 'keep the first few']];
+---
+<figure class="qo">
+  <div class="qo-cols">
+    <div><h4>The order you write</h4><ol>{written.map((w) => <li><code>{w}</code></li>)}</ol></div>
+    <div><h4>The order SQL runs it</h4><ol class="qo-run">{runs.map(([w, d]) => <li><code>{w}</code> <span>{d}</span></li>)}</ol></div>
+  </div>
+  <figcaption>SQL reads FROM first and SELECT almost last. That is why a column alias made in SELECT can't be used in WHERE: WHERE has already run.</figcaption>
+</figure>
+<style is:inline>
+.qo { margin: 20px 0; }
+.qo-cols { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.qo-cols > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface); }
+.qo h4 { margin: 0 0 6px; font-size: 15px; }
+.qo ol { margin: 0; padding-left: 22px; }
+.qo li { padding: 2px 0; }
+.qo-run li span { color: var(--muted); font-size: 13.5px; }
+.qo figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>

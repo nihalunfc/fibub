@@ -182,6 +182,15 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
       for (const it of out) used.add(it.id);
       return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: sec.count - out.length };
     }
+    // passages: N draws N whole shared-passage sets (every question of each passage, in its own order) instead of
+    // single questions, as on the LSAT Reading Comprehension section. The count is then whatever those passages hold.
+    if (sec.passages) {
+      const sets = new Map();
+      for (const it of pool) if (it.group && fits(it)) { const key = `${it.topic}/${it.group}`; if (!sets.has(key)) sets.set(key, []); sets.get(key).push(it); }
+      const out = shuffle([...sets.values()], r).slice(0, sec.passages).flat();
+      for (const it of out) used.add(it.id);
+      return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: 0 };
+    }
     const lists = shuffle([...byTopic.values()], r);
     const out = [];
     let k = 0, empty = 0;
@@ -235,8 +244,8 @@ export const PATTERNS = {
   'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', only: { section: 'lr' }, sections: [
     { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
   ] },
-  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (5 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
-    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 22, anyLevel: true },
+  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (4 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
+    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 27, passages: 4, anyLevel: true },
   ] },
   // CUET (UG): every test is 50 compulsory MCQs in 60 minutes, +5/−1 (NTA bulletin, checked 2026-11-22). The two
   // sections only mix easier and harder questions; every question is worth 5 marks (marksMap).
@@ -288,6 +297,24 @@ export const PATTERNS = {
     { name: 'Data Sufficiency, graphs and two-part questions', type: 'mcq', marks: 2, count: 14 },
     { name: 'Select-all questions (tables and multi-source)', type: 'msq', marks: 2, count: 4 },
   ], marksMap: { 1: 1, 2: 1 } },
+  // GRE (shorter test since Sept 2023): Verbal 12 q / 18 min + 15 q / 23 min; Quant 12 q / 21 min + 15 q / 26 min.
+  // Section 1 of each draws on the GRE-only formats (gre-quant, gre-verbal banks), section 2 on the shared banks
+  // (grad-quant, grad-verbal). Every question counts one mark; the real test adapts section 2, these do not.
+  'gre-verbal-1': { name: 'GRE-style Verbal section 1 (not adaptive)', minutes: 18, scheme: 'gre', sections: [
+    { name: 'Text Completion, one blank', type: 'mcq', marks: 1, count: 5, anyLevel: true },
+    { name: 'Text Completion (two or three blanks) and Sentence Equivalence', type: 'msq', marks: 1, count: 7, anyLevel: true },
+  ] },
+  'gre-verbal-2': { name: 'GRE-style Verbal section 2 (not adaptive)', minutes: 23, scheme: 'gre', sections: [
+    { name: 'Reading passages and arguments', type: 'mcq', marks: 1, count: 15, anyLevel: true },
+  ] },
+  'gre-quant-1': { name: 'GRE-style Quant section 1 (not adaptive)', minutes: 21, scheme: 'gre', sections: [
+    { name: 'Quantitative Comparison and multiple choice', type: 'mcq', marks: 1, count: 7, anyLevel: true, repeat: true },
+    { name: 'Numeric entry (type your answer)', type: 'nat', marks: 1, count: 3, anyLevel: true, repeat: true },
+    { name: 'Select all that apply', type: 'msq', marks: 1, count: 2, anyLevel: true, repeat: true },
+  ] },
+  'gre-quant-2': { name: 'GRE-style Quant section 2 (not adaptive)', minutes: 26, scheme: 'gre', sections: [
+    { name: 'Arithmetic, algebra, word problems and data', type: 'mcq', marks: 1, count: 15, anyLevel: true, repeat: true },
+  ] },
 };
 
 /** Counts for a bank: fixed items and templates by type and level. */

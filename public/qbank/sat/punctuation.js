@@ -23,5 +23,13 @@ export default {
       ['did not fully understand', ', did not fully understand', 'did not fully understand,', '— did not fully understand'], '<p>"The engineers who designed the first suspension bridges in the region" is the subject; "did not fully understand" is its verb. No punctuation goes between a subject and its verb, however long the subject is.</p>'),
     it('sat-pu-008', 4, 'restrictive clause', '______ the summer reading list receive a certificate at the start of the school year.',
       ['Students who complete', 'Students, who complete', 'Students; who complete', 'Students: who complete'], '<p>"Who complete the summer reading list" tells you <i>which</i> students receive the certificate. It is essential, so no commas set it off: <b>no punctuation</b>.</p>'),
+    it('sat-pu-101', 2, 'apostrophes', 'The ______ roots spread almost as wide as its branches, holding the soil in place on the steep bank.',
+      ["oak's", 'oaks', "oaks'", 'oak'], '<p>"Its branches" shows one tree, and the roots belong to it: <b>oak\'s</b>.</p>'),
+    it('sat-pu-102', 3, 'commas with extra information', 'Marie Tharp, a geologist and ______ helped produce some of the first detailed maps of the Atlantic Ocean floor.',
+      ['mapmaker,', 'mapmaker', 'mapmaker;', 'mapmaker—'], '<p>"A geologist and mapmaker" is extra information about Tharp. It opens with a comma, so it must close with a comma too: <b>mapmaker,</b>. A dash would not match the opening comma, and a semicolon would split the sentence.</p>', 'Closing an aside with a different mark from the one that opened it.'),
+    it('sat-pu-103', 3, 'colon before a list', 'The survival kit contained three essential ______ a water filter, a fire starter and a reflective blanket.',
+      ['items:', 'items', 'items;', 'items, such as:'], '<p>A complete sentence introducing a list takes a colon: <b>items:</b>. A semicolon must join two complete sentences, and "such as:" puts a colon after an incomplete phrase.</p>'),
+    it('sat-pu-104', 4, 'no comma between subject and verb', 'The team of engineers who designed the new solar ______ a prize at the national science fair.',
+      ['panel won', 'panel, won', 'panel; won', 'panel: won'], '<p>"The team of engineers who designed the new solar panel" is the subject and "won" is its verb. Nothing should separate a subject from its verb: <b>panel won</b>.</p>'),
   ],
 };

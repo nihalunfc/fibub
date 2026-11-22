@@ -1,0 +1,37 @@
+---
+// An SCD type 2 timeline: one customer, three row versions, each valid for a half-open date range.
+const versions = [
+  { key: 1, city: 'Toronto', tier: 'Bronze', from: '2023-05-10', to: '2025-03-01', current: false, w: 52 },
+  { key: 2, city: 'Ottawa', tier: 'Bronze', from: '2025-03-01', to: '2025-09-15', current: false, w: 18 },
+  { key: 3, city: 'Ottawa', tier: 'Gold', from: '2025-09-15', to: '9999-12-31', current: true, w: 30 },
+];
+---
+<figure class="sct">
+  <div class="sct-bar" role="img" aria-label="Three versions of Asha's customer row along a timeline">
+    {versions.map((v) => <div class={`sct-seg${v.current ? ' sct-cur' : ''}`} style={`flex-grow:${v.w}`}><b>key {v.key}</b><span>{v.city} · {v.tier}</span></div>)}
+  </div>
+  <div class="sct-events">
+    <span>10 May 2023: joins</span><span>1 Mar 2025: moves to Ottawa</span><span>15 Sep 2025: Gold</span>
+  </div>
+  <div class="sct-wrap">
+    <table>
+      <thead><tr><th>customer_key</th><th>customer_id</th><th>city</th><th>tier</th><th>valid_from</th><th>valid_to</th><th>is_current</th></tr></thead>
+      <tbody>{versions.map((v) => <tr class={v.current ? 'sct-cur' : ''}><td>{v.key}</td><td>1</td><td>{v.city}</td><td>{v.tier}</td><td>{v.from}</td><td>{v.to}</td><td>{v.current ? 1 : 0}</td></tr>)}</tbody>
+    </table>
+  </div>
+  <figcaption>Each change closes the open row (its valid_to becomes the change date) and adds a new row with a new surrogate key. The ranges touch but never overlap: a day d belongs to the row with valid_from ≤ d &lt; valid_to. 9999-12-31 means "still true".</figcaption>
+</figure>
+<style is:inline>
+.sct { margin: 20px 0; }
+.sct-bar { display: flex; gap: 3px; }
+.sct-seg { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--surface); font-size: 13px; overflow: hidden; }
+.sct-seg b { display: block; }
+.sct-seg span { color: var(--muted); font-size: 12px; }
+.sct-seg.sct-cur { border: 2px solid var(--accent); background: var(--accent-soft); }
+.sct-events { display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; font-size: 12px; color: var(--muted); }
+.sct-wrap { overflow-x: auto; }
+.sct table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.sct th, .sct td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.sct tr.sct-cur td { background: var(--accent-soft); }
+.sct figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>

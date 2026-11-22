@@ -1,0 +1,31 @@
+// LSAT RC passage (social science): defaults and retirement saving. Original, written for fibub.
+import { rc } from './h.js';
+const it = rc('p2');
+export default {
+  group: 'p2',
+  passage: { title: 'Passage: the power of the default option', passage: `<p>Standard economic theory assumes that people choose the option that best serves their interests, given what they know. On this assumption, the way a choice is presented should matter little: whether a retirement savings plan requires employees to sign up or enrols them automatically unless they decline, an employee who wants to save will save and one who does not will not. The default, the outcome that occurs if a person does nothing, should be a mere formality.</p>
+<p>Evidence from workplace pension plans contradicts this prediction sharply. When some employers switched from requiring workers to opt in to enrolling them automatically, with the freedom to opt out at any time, participation among new employees rose dramatically, in some studies from well under half to more than four in five. Nothing about the plans’ costs or benefits had changed. Only the default had.</p>
+<p>Several explanations have been offered. Choosing a savings rate and investment mix takes effort and can be confusing, and people tend to postpone tasks whose rewards lie far in the future. A default also carries an implied recommendation: employees may reason that the employer chose it because it suits most people. And for many people, simply staying with the status quo feels safer than making an active change.</p>
+<p>The finding has been widely embraced by policymakers, and automatic enrolment has spread in several countries. But it has a less comfortable side. The same inertia that keeps employees enrolled also keeps them at whatever contribution rate and investment the default specifies. In some early programmes, the default rate was low, and many workers who would have chosen to save more on their own stayed at the low figure for years. A default, in other words, does not merely nudge people toward saving; it shapes how much they save and where the money goes. Designing one is therefore not a neutral administrative task but a decision with large consequences for people who may never notice it was made.</p>
+<p>This does not argue against defaults, which are unavoidable: every plan must specify what happens to those who do nothing. It argues for choosing them with the same care as any other policy, and for revisiting them as evidence accumulates.</p>` },
+  items: [
+    it('lsat-rsf-201', 3, 'function of a paragraph', 'The first paragraph functions primarily to',
+      ['state a theoretical prediction that the rest of the passage shows to be mistaken in an important case', 'present the author’s main conclusion', 'describe the results of studies of pension plans', 'explain why defaults are unavoidable', 'argue that employees should be required to opt in'],
+      '<p>P1 sets out standard theory’s prediction that defaults "should be a mere formality"; P2 says the evidence "contradicts this prediction sharply". {A}.</p>'),
+    it('lsat-rsf-202', 3, 'function', 'The sentence "Only the default had." serves mainly to',
+      ['emphasise that the rise in participation cannot be explained by changes in the plans’ costs or benefits', 'suggest that employers changed the plans’ benefits', 'introduce an objection to automatic enrolment', 'show that participation fell after the change', 'summarise the explanations given in the third paragraph'],
+      '<p>It follows "Nothing about the plans’ costs or benefits had changed", isolating the default as the cause. {A}.</p>'),
+    it('lsat-rsf-203', 4, 'organisation', 'Which one of the following best describes the organisation of the passage?',
+      ['A prediction is stated, evidence against it is given, explanations are offered, a drawback is noted, and a recommendation follows.', 'Two policies are compared and the first is found superior.', 'A problem is described and several solutions are rejected.', 'A theory is defended against a series of objections.', 'A historical narrative is followed by a prediction about future policy.'],
+      '<p>P1 prediction; P2 evidence; P3 explanations; P4 the "less comfortable side"; P5 recommendation. {A}.</p>'),
+    it('lsat-rsf-204', 4, 'detail', 'Which one of the following is NOT offered in the passage as an explanation of the effect of defaults?',
+      ['Employees distrust their employers’ recommendations.', 'Choosing a savings plan takes effort and can be confusing.', 'People postpone tasks whose rewards are far in the future.', 'A default carries an implied recommendation.', 'Staying with the status quo feels safer.'],
+      '<p>Paragraph 3 gives the other four. {A} is the opposite of the implied-recommendation explanation, which assumes employees trust the employer’s choice.</p>', 'Not noticing the EXCEPT/NOT wording.'),
+    it('lsat-rsf-205', 5, 'function', 'The author mentions early programmes with a low default rate primarily in order to',
+      ['illustrate how inertia can hold people at a default that is worse than what they would have chosen', 'show that automatic enrolment does not raise participation', 'argue that defaults should be abolished', 'explain why standard economic theory is correct', 'suggest that employees prefer low contribution rates'],
+      '<p>The example shows many workers "who would have chosen to save more on their own stayed at the low figure for years", the "less comfortable side". {A}. {C} is denied in the last paragraph.</p>'),
+    it('lsat-rsf-206', 5, 'inference', 'The author would most likely agree with which one of the following?',
+      ['The people who design a default bear responsibility for its effects on those who never actively choose.', 'Automatic enrolment should be replaced by required opt-in.', 'Most employees carefully review their default contribution rate.', 'The choice of default rarely matters once employees are enrolled.', 'Policymakers have been too slow to adopt automatic enrolment.'],
+      '<p>Designing a default "is not a neutral administrative task but a decision with large consequences for people who may never notice it was made". {A}.</p>'),
+  ],
+};

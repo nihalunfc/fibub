@@ -1,0 +1,48 @@
+---
+// The three kinds of fact table on one timeline: transaction (a row per event), periodic snapshot
+// (a row per period, whatever happened) and accumulating snapshot (a row per thing, updated at each milestone).
+const days = 14, x0 = 20, x1 = 390, dx = (x1 - x0) / days;
+const X = (d: number) => x0 + d * dx;
+const events = [0.6, 1.2, 1.5, 4.3, 6.1, 6.4, 6.8, 9.2, 12.5, 13.1];
+const bars: [number, number | null, number][] = [[0.6, 9.2, 0], [1.5, null, 1], [6.1, 12.5, 2]];
+---
+<figure class="ftt">
+  <svg viewBox="0 0 400 300" role="img" aria-labelledby="ftt-t">
+    <title id="ftt-t">Three fact table types on a two-week timeline</title>
+    <text x="20" y="16" class="ftt-h">Transaction: one row per event</text>
+    <path class="ftt-ax" d={`M${x0},50H${x1}`} />
+    {events.map((e) => <circle class="ftt-dot" cx={X(e)} cy="50" r="5" />)}
+    <text x="20" y="76" class="ftt-s">Rows only when something happens (sparse).</text>
+
+    <text x="20" y="110" class="ftt-h">Periodic snapshot: one row per day</text>
+    <path class="ftt-ax" d={`M${x0},140H${x1}`} />
+    {Array.from({ length: days }, (_, d) => <rect class={events.some((e) => Math.floor(e) === d) ? 'ftt-sq' : 'ftt-sq ftt-zero'} x={X(d) + 3} y="132" width={dx - 6} height="16" rx="2" />)}
+    <text x="20" y="166" class="ftt-s">A row every day, even quiet ones (hollow = zero sales).</text>
+
+    <text x="20" y="200" class="ftt-h">Accumulating snapshot: one row per order line</text>
+    {bars.map(([a, b, i]) => (
+      <g>
+        <path class={b === null ? 'ftt-bar ftt-open' : 'ftt-bar'} d={`M${X(a)},${220 + i * 18}H${b === null ? x1 : X(b)}`} />
+        <circle class="ftt-dot" cx={X(a)} cy={220 + i * 18} r="5" />
+        {b !== null && <rect class="ftt-ms" x={X(b) - 5} y={215 + i * 18} width="10" height="10" />}
+      </g>
+    ))}
+    <text x="20" y="288" class="ftt-s">Ordered (●), returned (■); the row is updated at each step.</text>
+  </svg>
+  <figcaption>The same two weeks of Northbay sales stored three ways. Dots are sales; squares are returns; the open-ended bar is an order line not returned yet.</figcaption>
+</figure>
+<style is:inline>
+.ftt { margin: 20px 0; }
+.ftt svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+.ftt text { fill: var(--ink); font-family: inherit; }
+.ftt-h { font-size: 13px; font-weight: 700; }
+.ftt-s { font-size: 11.5px; fill: var(--muted) !important; }
+.ftt-ax { stroke: var(--line); stroke-width: 1.5; }
+.ftt-dot { fill: var(--accent); }
+.ftt-sq { fill: var(--accent); }
+.ftt-zero { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
+.ftt-bar { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; opacity: 0.55; }
+.ftt-open { stroke-dasharray: 6 5; }
+.ftt-ms { fill: var(--warn); }
+.ftt figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>

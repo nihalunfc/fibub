@@ -66,7 +66,9 @@ export default defineConfig({
   })],
   // Links between tool guides: the first mention of another tool's name links to it (src/lib/autolink.mjs).
   // Maths in the ML foundations lessons becomes MathML at build time (src/lib/mathml.mjs).
-  markdown: { remarkPlugins: [remarkMathml, remarkPycells], rehypePlugins: [autolinkTools] },
+  // SQL in the SQL and data modelling courses is left plain: the page turns it into live editors
+  // (src/scripts/sqllab.ts), and plain code keeps the lesson pages small.
+  markdown: { remarkPlugins: [remarkMathml, remarkPycells], rehypePlugins: [autolinkTools], syntaxHighlight: { type: 'shiki', excludeLangs: ['math', 'sql'] } },
   // CSS goes in shared files the browser keeps between pages (only very small sheets are inlined).
   build: { format: 'directory', inlineStylesheets: 'auto' },
   // Never inline scripts: the CSP (public/_headers) allows only script files from this site. Small

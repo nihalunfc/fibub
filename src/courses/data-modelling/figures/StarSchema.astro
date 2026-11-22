@@ -1,0 +1,57 @@
+---
+// The Northbay sales star: one fact table in the middle, one dimension table on each side.
+type Box = { name: string; x: number; y: number; w: number; cols: [string, 'pk' | 'fk' | 'm' | 'a'][]; fact?: boolean };
+const boxes: Box[] = [
+  { name: 'dim_date', x: 140, y: 4, w: 120, cols: [['date_key', 'pk'], ['full_date', 'a'], ['year, month', 'a'], ['day_name', 'a'], ['is_weekend', 'a']] },
+  { name: 'dim_customer', x: 2, y: 150, w: 104, cols: [['customer_key', 'pk'], ['full_name', 'a'], ['city', 'a'], ['loyalty_tier', 'a']] },
+  { name: 'fact_sales', x: 140, y: 136, w: 120, fact: true, cols: [['date_key', 'fk'], ['product_key', 'fk'], ['store_key', 'fk'], ['customer_key', 'fk'], ['order_id', 'a'], ['quantity', 'm'], ['sales_amount', 'm'], ['cost_amount', 'm']] },
+  { name: 'dim_product', x: 294, y: 150, w: 104, cols: [['product_key', 'pk'], ['product_name', 'a'], ['brand', 'a'], ['category', 'a'], ['department', 'a']] },
+  { name: 'dim_store', x: 140, y: 320, w: 120, cols: [['store_key', 'pk'], ['store_name', 'a'], ['city', 'a'], ['region', 'a']] },
+];
+const h = (b: Box) => 24 + 13 * b.cols.length;
+// One end at the dimension (a single bar: exactly one), crow's foot at the fact (many).
+function link(x1: number, y1: number, x2: number, y2: number) {
+  const dx = Math.sign(x2 - x1), dy = Math.sign(y2 - y1), nx = -dy, ny = dx;
+  const bar = (t: number) => `M${x1 + dx * t + nx * 6},${y1 + dy * t + ny * 6}L${x1 + dx * t - nx * 6},${y1 + dy * t - ny * 6}`;
+  const a = { x: x2 - dx * 12, y: y2 - dy * 12 };
+  const crow = `M${a.x},${a.y}L${x2 + nx * 7},${y2 + ny * 7}M${a.x},${a.y}L${x2},${y2}M${a.x},${a.y}L${x2 - nx * 7},${y2 - ny * 7}`;
+  return `M${x1},${y1}L${x2},${y2}${bar(7)}${bar(12)}${crow}`;
+}
+const [dd, dc, f, dp, ds] = boxes;
+const links = [
+  link(200, dd.y + h(dd), 200, f.y),
+  link(dc.x + dc.w, 190, f.x, 190),
+  link(dp.x, 190, f.x + f.w, 190),
+  link(200, ds.y, 200, f.y + h(f)),
+];
+---
+<figure class="sts">
+  <svg viewBox="0 0 400 400" role="img" aria-labelledby="sts-t">
+    <title id="sts-t">Star schema: fact_sales in the middle joined to dim_date, dim_product, dim_store and dim_customer</title>
+    {links.map((d) => <path class="sts-l" d={d} />)}
+    {boxes.map((b) => (
+      <g class={b.fact ? 'sts-b sts-f' : 'sts-b'}>
+        <rect x={b.x} y={b.y} width={b.w} height={h(b)} rx="6" />
+        <path d={`M${b.x},${b.y + 18}h${b.w}`} />
+        <text x={b.x + 7} y={b.y + 13} class="sts-n">{b.name}</text>
+        {b.cols.map(([t, k], i) => <text x={b.x + 7} y={b.y + 31 + 13 * i} class={`sts-${k}`}>{t}{k === 'fk' ? ' (FK)' : ''}</text>)}
+      </g>
+    ))}
+  </svg>
+  <figcaption>The Northbay sales star. The fact table in the middle holds the numbers (<strong>bold</strong>) and one foreign key (FK) per dimension; each dimension has its own key (underlined) and holds the words you filter and group by. Every line is one dimension row to many fact rows.</figcaption>
+</figure>
+<style is:inline>
+.sts { margin: 20px 0; }
+.sts svg { display: block; width: 100%; max-width: 480px; height: auto; margin: 0 auto; }
+.sts-l { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.sts-b rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+.sts-f rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.sts-b path { stroke: var(--line); }
+.sts text { fill: var(--ink); font-family: inherit; font-size: 10px; }
+.sts .sts-n { font-size: 12px; font-weight: 700; }
+.sts .sts-pk { font-weight: 700; text-decoration: underline; }
+.sts .sts-fk { font-style: italic; }
+.sts .sts-m { font-weight: 700; }
+.sts .sts-a { fill: var(--muted); }
+.sts figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>
