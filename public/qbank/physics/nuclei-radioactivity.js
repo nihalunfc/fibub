@@ -21,6 +21,7 @@ const bePerA = (Z, A, M) => (Z * MH + (A - Z) * MN - M) * U / A;
 
 import * as Q5 from '../_util.js';
 import more2 from './nuclei-radioactivity.more2.gen.js';
+import r4 from './nuclei-radioactivity.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -272,6 +273,7 @@ export default {
       sol: 'For odd $A$ the nuclei lie on one parabola and successive beta decays slide down to a single minimum: usually one stable isobar. For even $A$ beta decay hops between the two parabolas. An even-even nucleus near the bottom may lie below both its odd-odd neighbours, so it cannot beta decay even if another even-even isobar two steps away is lower still. That allows two stable isobars, such as ${}^{40}$Ar and ${}^{40}$Ca, with ${}^{40}$K between them decaying both ways.',
       trap: 'Single beta decays change $Z$ by one, so an even-even nucleus is "trapped" if both neighbours are heavier, even when it is not the absolute minimum.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -416,5 +418,6 @@ export default {
           trap: 'The formula works whichever half-life is longer, since both the logarithm and the denominator change sign together.' };
       },
       verify: (p) => { const l1 = Math.LN2 / p.T1, l2 = Math.LN2 / p.T2; return Math.log(l2 / l1) / (l2 - l1); } },
+    ...r4.gens,
   ],
 };
