@@ -16,9 +16,16 @@ quiz:
     choices: ['Every group differs from every other', 'At least one group mean differs from the others; follow-up tests say which', 'The largest group is best']
     ans: 1
     why: 'The F-test is an overall test. Post-hoc comparisons (with a multiple-testing correction) identify which pairs differ.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 7.5 Comparing many means with ANOVA https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook of Statistical Methods, 7.4.3 Are the means equal? https://www.itl.nist.gov/div898/handbook/prc/section4/prc43.htm'
 ---
 
 **Module 6 · about 25 minutes · school maths.** You'll be able to run and read a one-way ANOVA, explain the F ratio, and follow up with corrected pairwise comparisons.
+
+<div class="bigidea">ANOVA asks whether group means differ more than the scatter inside each group would explain, by comparing between-group and within-group variation.</div>
+
+**In everyday terms:** three classes take the same test. If the class averages differ by a few marks but pupils within each class range from 20 to 90, the class makes little difference. If every class is tightly bunched and the averages are far apart, the class matters.
 
 ## 1. One question for many groups
 
@@ -60,6 +67,35 @@ with `$k$` groups and `$N$` values in total. If the null (all means equal) is tr
 - **Planned contrasts:** if you decided in advance to compare each new layout with the current one, test only those.
 
 **Assumptions:** independent observations; roughly normal within groups (less important with larger groups); similar spreads. With very different spreads use **Welch's ANOVA**; with skewed small samples, the **Kruskal-Wallis** rank test (Lesson 6.7).
+
+<div class="meaning">
+
+<dl>
+<dt>SS between</dt><dd>How far each group mean is from the grand mean, weighted by group size.</dd>
+<dt>SS within</dt><dd>How far values are from their own group mean.</dd>
+<dt>F = MS between ÷ MS within</dt><dd>Signal (differences between groups) over noise (scatter inside groups), each divided by its df.</dd>
+<dt>Physical meaning</dt><dd>All the variation in the data is split into two piles: the part explained by which group a store is in, and the part left over. F asks whether the first pile is bigger than chance would make it.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A significant F tells you which groups differ."** It says at least one mean differs. Follow up with planned comparisons or Tukey's test to find which, and correct for the number of comparisons (Lesson 6.8).
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> Units sold under three shelf placements, 6 stores each. Means 5, 9 and 10; grand mean 8.</div>
+<div class="step"><b>Between groups.</b> 6 × ((5 − 8)² + (9 − 8)² + (10 − 8)²) = 6 × 14 = 84, with 2 df: MS = 42.</div>
+<div class="step"><b>Within groups.</b> Squared gaps of each store from its own group mean: 16 + 24 + 28 = 68, with 15 df: MS ≈ 4.53.</div>
+<div class="step"><b>F.</b> 42 ÷ 4.53 ≈ 9.26.</div>
+<div class="step"><b>Read.</b> p ≈ 0.002: placement matters, and explains about half the variation (η² ≈ 0.55). Follow-ups show eye level is below both others.</div>
+</div>
+
+<div class="problem" data-problem="anova-f"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -105,3 +141,12 @@ At least one placement differs, and placement explains about half the variation.
 **Try it on your own data:** the [[yield-trial-anova]] tool runs one- and two-way ANOVA with post-hoc comparisons, and the [[regression-workbench]] handles groups as categorical predictors.
 
 **New words:** *ANOVA*, *sum of squares*, *mean square*, *F ratio*, *η² (eta squared)*, *post-hoc test*, *Tukey's HSD*, *Kruskal-Wallis*.
+
+<div class="keypoints">
+
+- ANOVA compares 3 or more means in one test, avoiding many t-tests.
+- F = (between-group variance) ÷ (within-group variance).
+- A large F means group means differ more than scatter explains.
+- Follow a significant F with corrected pairwise comparisons.
+
+</div>

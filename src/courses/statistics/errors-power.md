@@ -16,9 +16,16 @@ quiz:
     choices: ['Raising α from 0.05 to 0.10', 'More people per group, or less noisy measurements', 'Stopping the test early when it looks good']
     ans: 1
     why: 'More data and less noise shrink the standard error. Raising α buys power with more false alarms, and stopping early inflates false alarms (Lesson 7.4).'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 7.4 Power calculations for a difference of means https://www.openintro.org/book/os/'
+  - 'Cohen, J. (1992), A Power Primer, Psychological Bulletin 112(1), 155-159 https://doi.org/10.1037/0033-2909.112.1.155'
 ---
 
 **Module 6 · about 25 minutes · school maths.** You'll be able to name the two kinds of test error, explain power and what sets it, and see why underpowered studies mislead.
+
+<div class="bigidea">A test can raise a false alarm or miss a real effect; power is the chance it catches an effect of the size you care about.</div>
+
+**In everyday terms:** a metal detector on a beach. Set it too sensitive and it beeps at bottle caps (type I errors). Set it too dull, or sweep too fast, and you walk past the gold ring (type II errors). Power is how often it beeps when a ring is really there.
 
 ## 1. Two ways to be wrong
 
@@ -53,6 +60,36 @@ With low power:
 - You'll usually miss real effects, and "not significant" gets misread as "no effect".
 - When you *do* get significance, the estimate is usually **exaggerated**: only lucky, oversized results cross the line (the "winner's curse"). A test with 20 % power that finds +8 % lift may be looking at a true +3 %.
 - A larger share of your "wins" are false positives (Bayes again, Lesson 2.2: if few ideas truly work and power is low, most significant results are flukes).
+
+<div class="meaning">
+
+<dl>
+<dt>Type I error (α)</dt><dd>Calling an effect real when there is none: a false alarm.</dd>
+<dt>Type II error (β)</dt><dd>Missing an effect that is real.</dd>
+<dt>Power = 1 − β</dt><dd>Chance of detecting an effect of a given size.</dd>
+<dt>What raises power</dt><dd>Bigger effect, bigger sample, less noise, larger α.</dd>
+<dt>Physical meaning</dt><dd>An underpowered test is a coin toss dressed as science: even when the change works, it will usually say "no difference", and when it does say "win" the effect looks bigger than it really is.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"We found no significant effect, so the feature does nothing."** With 23 % power, a feature that works exactly as hoped is missed 3 times in 4. Check the power before reading anything into a null result.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The goal.</b> Orders average $60 (SD $30). A widget is worth it only for +$3 or more.</div>
+<div class="step"><b>Effect in SDs.</b> d = 3 ÷ 30 = 0.1.</div>
+<div class="step"><b>The plan.</b> 300 orders per group. SE of the difference = 30 × √(2/300) ≈ 2.45.</div>
+<div class="step"><b>Signal over noise.</b> 3 ÷ 2.45 ≈ 1.22 SEs, short of the 1.96 needed.</div>
+<div class="step"><b>Power.</b> Φ(1.22 − 1.96) = Φ(−0.74) ≈ 23 %. You need about 1,600 per group for 80 %.</div>
+</div>
+
+<div class="problem" data-problem="power-two-means"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -99,3 +136,12 @@ n \text{ per group} = \frac{2\,(1.96 + 0.84)^2\,\sigma^2}{\delta^2} \approx \fra
 **Try it on your own data:** the [[sample-size]] calculator plans n for a chosen power, and the [[hypothesis-tests]] tool reports power for a finished test.
 
 **New words:** *type I error*, *type II error*, *false positive*, *false negative*, *power*, *β*, *minimum detectable effect*, *winner's curse*.
+
+<div class="keypoints">
+
+- α = false-alarm rate; β = miss rate; power = 1 − β.
+- Power grows with effect size, sample size and lower noise.
+- Plan for 80 % power at the smallest effect worth acting on.
+- Low power makes both misses and exaggerated "wins" more likely.
+
+</div>
