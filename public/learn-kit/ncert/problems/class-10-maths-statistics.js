@@ -79,7 +79,7 @@ export default {
       const k = [5, 8, 0, 9, 4], x = marks(0, 20, 5), f = [5, 8, 14, 9, 4], N = 40, M = +(f.reduce((s, v, i) => s + v * x[i], 0) / N).toFixed(2);
       return { k, M, p: 14, q: `<p>The mean of this data is ${M}. Find the missing frequency p.</p>${tbl(0, 20, f, 2)}`, answer: 14, unit: '', tol: 0.01, abs: 0.1, hint: 'Σfx ÷ Σf = mean.', solution: steps('Set up Σfx ÷ Σf = mean and solve for p.', `p = <b>14</b>.`) };
     },
-    verify(p) { const x = marks(0, 20, 5); const A = p.k.reduce((s, v, i) => s + v * x[i], 0), S = p.k.reduce((s, v) => s + v, 0); return (p.M * S - A) / (50 - p.M); },
+    verify(p) { const x = marks(0, 20, 5); const A = p.k.reduce((s, v, i) => s + v * x[i], 0), S = p.k.reduce((s, v) => s + v, 0); return Math.round((p.M * S - A) / (50 - p.M)); }, // the mean is shown to 2 decimals, so round to the whole frequency
   },
   'c10m-stat-empirical': {
     title: 'mode from mean and median',
