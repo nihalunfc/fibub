@@ -5,6 +5,7 @@
 // Original questions for fibub. Bragg's law, indexing and the basic cubic rules are in x-ray-diffraction.
 import { pick, int, choose, shuffle, mcqOptions, round } from '../_util.js';
 import more from './structure-factor.more.gen.js';
+import more2 from './structure-factor.more2.gen.js';
 
 const PI = Math.PI, D = PI / 180;
 const bar = (n) => (n < 0 ? `\\bar{${-n}}` : `${n}`);
@@ -272,6 +273,7 @@ export default {
       answer: 20, tol: 0, calc: () => 10 + 2 * (-3 * Math.cos(PI) + 2 * Math.cos(2 * PI)),
       sol: 'Pairing $\\pm h$: $a\\rho(x) = F_0 + 2\\sum_{h>0}F_h\\cos(2\\pi hx/a)$. At $x = a/2$: $\\cos\\pi = -1$, $\\cos2\\pi = 1$, so $a\\rho = 10 + 2(3 + 2) = 20$. At $x = 0$ it is $10 + 2(-3 + 2) = 8$. The atom sits at the cell centre; the signs (phases) of $F$ decide where, which intensities alone could not tell.',
       trap: 'Forgetting the factor 2 from the $\\pm h$ pairs gives 15.' },
+    ...more2,
   ],
 
   gens: [
