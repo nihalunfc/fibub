@@ -1086,4 +1086,99 @@ export default {
     },
     verify: (p) => 90 - Math.atan(p.n1 / p.n2) * 180 / Math.PI,
   },
+  // ---- 4.3 Conductors and images ----
+  'image-force': {
+    title: 'force from an image charge',
+    make(r) {
+      const q = int(r, 1, 9), d = int(r, 2, 20), k = 8.988e9;
+      const answer = k * (q * 1e-9) ** 2 / (2 * d / 100) ** 2 * 1e6;
+      return {
+        q: `<p>A charge of ${q} nC is held ${d} cm above a very large grounded metal plate. Find the force on it, in μN.</p>`,
+        answer, unit: 'μN', tol: 0.01,
+        hint: 'Replace the plate by an image charge −q at the same distance below the surface. The force is the Coulomb pull between q and its image.',
+        solution: steps(`Image: −${q} nC, ${d} cm below the plate; separation 2d = ${(2 * d / 100).toFixed(2)} m.`, `F = kq²/(2d)² = (8.99×10⁹)(${q}×10⁻⁹)²/(${(2 * d / 100).toFixed(2)})².`, `= <b>${answer.toPrecision(3)} μN</b>, towards the plate.`),
+        qq: q, d,
+      };
+    },
+    verify: (p) => 8.988e9 * (p.qq * 1e-9) ** 2 / (2 * p.d / 100) ** 2 * 1e6,
+  },
+  // ---- 4.4 Dielectrics and capacitors ----
+  'slab-capacitance': {
+    title: 'capacitor with a dielectric slab',
+    make(r) {
+      const d = int(r, 3, 10), t = int(r, 1, d - 1), k = [2, 3, 4, 5, 6][int(r, 0, 4)], A = int(r, 1, 10);
+      const answer = 8.854e-12 * A * 1e-2 / ((d - t + t / k) * 1e-3) * 1e12;
+      return {
+        q: `<p>Plates of area ${A}×10⁻² m² are ${d} mm apart. A slab ${t} mm thick, of dielectric constant ${k}, lies flat in the gap. Find the capacitance in pF.</p>`,
+        answer, unit: 'pF', tol: 0.01,
+        hint: 'The slab and the remaining air gap are two capacitors in series. Equivalently, the slab counts as if its thickness were divided by κ.',
+        solution: steps(`Effective gap = (d − t) + t/κ = ${d - t} + ${(t / k).toFixed(3)} = ${(d - t + t / k).toFixed(3)} mm.`, `C = ε₀A / (effective gap) = (8.854×10⁻¹²)(${A}×10⁻²)/(${(d - t + t / k).toFixed(3)}×10⁻³).`, `= <b>${answer.toPrecision(3)} pF</b>.`),
+        A, d, t, k,
+      };
+    },
+    verify: (p) => 8.854e-12 * p.A * 1e-2 / ((p.d - p.t + p.t / p.k) * 1e-3) * 1e12,
+  },
+  // ---- 4.6 Magnetic materials ----
+  'gap-electromagnet': {
+    title: 'field in an electromagnet gap',
+    make(r) {
+      const mur = [500, 1000, 2000, 5000][int(r, 0, 3)], l = int(r, 2, 10) / 10, g = int(r, 1, 6) / 2, N = int(r, 1, 10) * 100, I = int(r, 1, 6) / 2;
+      const mu0 = 1.25663706e-6, answer = mu0 * N * I / (l / mur + g / 1000);
+      return {
+        q: `<p>An iron core (μ<sub>r</sub> = ${mur}) has a mean path of ${l} m and an air gap of ${g} mm. A ${N}-turn coil carries ${I} A. Ignoring fringing, find B in the gap, in tesla.</p>`,
+        answer, unit: 'T', tol: 0.01,
+        hint: 'Use Ampère\'s law for H round the core: H<sub>iron</sub> l + H<sub>gap</sub> g = NI, with the same B in iron and gap (B = μ₀μ<sub>r</sub>H in iron, μ₀H in the gap).',
+        solution: steps(`(B/μ₀)(l/μ<sub>r</sub> + g) = NI = ${N * I} A-turns.`, `l/μ<sub>r</sub> = ${(l / mur).toExponential(3)} m, g = ${g / 1000} m: the gap dominates.`, `B = μ₀NI/(l/μ<sub>r</sub> + g) = <b>${answer.toPrecision(3)} T</b>.`),
+        mur, l, g, N, I,
+      };
+    },
+    verify: (p) => 1.25663706e-6 * p.N * p.I / (p.l / p.mur + p.g / 1000),
+  },
+  // ---- 4.8 DC transients and AC circuits ----
+  'rc-charge-time': {
+    title: 'time for a capacitor to charge',
+    make(r) {
+      const R = [1, 2.2, 4.7, 10, 22, 47][int(r, 0, 5)], Cu = [1, 2.2, 4.7, 10, 22, 47, 100][int(r, 0, 6)], pct = [50, 63, 75, 90, 95, 99][int(r, 0, 5)];
+      const tau = R * Cu, answer = -tau * Math.log(1 - pct / 100); // ms
+      return {
+        q: `<p>A ${Cu} μF capacitor charges from zero through a ${R} kΩ resistor from a battery. How long, in ms, until its voltage reaches ${pct}% of the battery voltage?</p>`,
+        answer, unit: 'ms', tol: 0.01,
+        hint: 'V = V₀(1 − e<sup>−t/τ</sup>) with τ = RC. Set V/V₀ to the fraction and solve for t with a natural log.',
+        solution: steps(`τ = RC = ${R} kΩ × ${Cu} μF = ${tau.toPrecision(4)} ms.`, `1 − e<sup>−t/τ</sup> = ${pct / 100} ⇒ t = τ ln(1/(1 − ${pct / 100})) = ${tau.toPrecision(4)} × ${(-Math.log(1 - pct / 100)).toFixed(4)}.`, `t = <b>${answer.toPrecision(3)} ms</b>.`),
+        tau, pct,
+      };
+    },
+    verify: (p) => -p.tau * Math.log(1 - p.pct / 100),
+  },
+  'lcr-current': {
+    title: 'current in a series LCR circuit',
+    make(r) {
+      const R = int(r, 1, 10) * 10, L = [0.05, 0.1, 0.2, 0.5][int(r, 0, 3)], Cu = [10, 22, 47, 100][int(r, 0, 3)], f = [50, 60, 100, 200][int(r, 0, 3)], V = [100, 110, 200, 230][int(r, 0, 3)];
+      const w = 2 * Math.PI * f, XL = w * L, XC = 1 / (w * Cu * 1e-6), Z = Math.hypot(R, XL - XC), answer = V / Z;
+      return {
+        q: `<p>A ${R} Ω resistor, a ${L} H inductor and a ${Cu} μF capacitor are in series across a ${V} V rms, ${f} Hz supply. Find the rms current, in A.</p>`,
+        answer, unit: 'A', tol: 0.01,
+        hint: 'Find X<sub>L</sub> = ωL and X<sub>C</sub> = 1/(ωC) with ω = 2πf, then Z = √(R² + (X<sub>L</sub> − X<sub>C</sub>)²) and I = V/Z.',
+        solution: steps(`ω = 2π(${f}) = ${w.toFixed(1)} rad/s; X<sub>L</sub> = ${XL.toFixed(2)} Ω, X<sub>C</sub> = ${XC.toFixed(2)} Ω.`, `Z = √(${R}² + (${(XL - XC).toFixed(2)})²) = ${Z.toFixed(2)} Ω.`, `I = ${V}/${Z.toFixed(2)} = <b>${answer.toPrecision(3)} A</b>, ${XL > XC ? 'lagging' : 'leading'} the voltage by ${(Math.abs(Math.atan((XL - XC) / R)) * 180 / Math.PI).toFixed(1)}°.`),
+        R, L, Cu, f, V,
+      };
+    },
+    verify: (p) => { const w = 2 * Math.PI * p.f; return p.V / Math.hypot(p.R, w * p.L - 1 / (w * p.Cu * 1e-6)); },
+  },
+  // ---- 4.9 Maxwell's equations and EM waves ----
+  'laser-field': {
+    title: 'electric field in a laser beam',
+    make(r) {
+      const P = [0.5, 1, 2, 5, 10, 100][int(r, 0, 5)], d = [0.5, 1, 1.5, 2, 3][int(r, 0, 4)];
+      const c = 2.99792458e8, e0 = 8.8541878128e-12, I = P * 1e-3 / (Math.PI * (d / 2e3) ** 2), answer = Math.sqrt(2 * I / (c * e0));
+      return {
+        q: `<p>A ${P} mW laser beam has a uniform circular cross-section ${d} mm across. Find the amplitude of its electric field, in V/m.</p>`,
+        answer, unit: 'V/m', tol: 0.01,
+        hint: 'Intensity I = P/(πr²) with r half the diameter. Then I = ½cε₀E₀², so E₀ = √(2I/(cε₀)).',
+        solution: steps(`I = ${P}×10⁻³ / (π × (${d / 2}×10⁻³)²) = ${I.toPrecision(4)} W/m².`, `E₀ = √(2I/(cε₀)) = √(${(2 * I).toPrecision(4)} / ${(c * e0).toExponential(4)}).`, `E₀ = <b>${answer.toPrecision(3)} V/m</b>; B₀ = E₀/c = ${(answer / c * 1e6).toPrecision(3)} μT.`),
+        I,
+      };
+    },
+    verify: (p) => Math.sqrt(2 * p.I / (2.99792458e8 * 8.8541878128e-12)),
+  },
 };

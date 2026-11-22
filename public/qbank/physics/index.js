@@ -44,8 +44,13 @@ export default {
     { id: 'em', name: 'Electricity and magnetism', topics: [
       { id: 'electrostatics-gauss', name: 'Electric fields and Gauss\'s law' },
       { id: 'potential-energy', name: 'Potential and electrostatic energy' },
+      { id: 'conductors-images', name: 'Conductors, Laplace\'s equation and images' },
+      { id: 'dielectrics', name: 'Dielectrics and capacitors' },
       { id: 'magnetostatics', name: 'Magnetic fields: Biot-Savart and Ampère' },
+      { id: 'magnetic-materials', name: 'Magnetic materials: B, H and M' },
       { id: 'induction', name: 'Electromagnetic induction and inductance' },
+      { id: 'circuits', name: 'DC transients and AC circuits' },
+      { id: 'maxwell-em-waves', name: 'Maxwell\'s equations and electromagnetic waves' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
