@@ -1,4 +1,4 @@
-// Helpers for the NCERT Class 10 Science question files: build items with the correct option placed in a spread
+// Helpers for the NCERT question files (any class and subject): build items with the correct option placed in a spread
 // of positions (A to D used evenly), plus assertion-reason options. Used by every chapter file in this bank.
 export const AR = [
   'Both A and R are true, and R is the correct explanation of A.',
