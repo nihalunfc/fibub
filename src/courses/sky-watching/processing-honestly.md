@@ -70,6 +70,10 @@ y_\text{gamma} = x'^{1/\gamma}, \qquad y_\text{asinh} = \frac{\operatorname{asin
 **Try it:** with `$\beta = 40$`, a value of 0.01 becomes `$\operatorname{asinh}(0.4)/\operatorname{asinh}(40) = 0.390/4.382 = 0.089$`: nine times brighter on screen.
 </details>
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<figure class="fig" data-fig="@astro-ccd-steps"><figcaption>Subtracting bias and dark removes the offset and hot pixels. Dividing by the flat removes vignetting and dust shadows. After both, equal stars read equal counts anywhere on the chip, and the real signal stands above a flat sky.</figcaption></figure>
+
 ## 3. Where colour comes from
 
 - **Broadband RGB:** red, green and blue filters (or a colour sensor) give roughly natural colour after **colour calibration**, which can use stars of known colour.

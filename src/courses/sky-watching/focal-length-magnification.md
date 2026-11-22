@@ -78,6 +78,10 @@ The second form shows that the exit pupil depends only on the eyepiece and the f
 **Try it:** a 200 mm f/6 (1,200 mm) Dobsonian: lowest useful power `$200/7 \approx 29\times$` (a 41 mm eyepiece); highest `$400\times$` (a 3 mm eyepiece).
 </details>
 
+Slide the aperture and the eyepiece, and watch the star field and the limiting magnitude.
+
+<figure class="fig" data-fig="@astro-light-gather"><figcaption>The aperture sets how faint you can see (light grows with area, so doubling the diameter gives 4 times the light and about 1.5 magnitudes deeper). The eyepiece only sets the magnification, the true field and the exit pupil: a higher power does not show fainter stars.</figcaption></figure>
+
 ## 3. A starter set of eyepieces
 
 Aim for exit pupils of roughly **5 mm** (wide views, finding), **2 to 3 mm** (most galaxies and clusters), **1 mm** (planets, double stars, planetary nebulae) and **0.5 to 0.7 mm** (the Moon and planets on the best nights). On an f/5 telescope that means eyepieces of about 25 mm, 12 mm, 5 mm and 3 mm; on an f/10 telescope, twice those focal lengths.

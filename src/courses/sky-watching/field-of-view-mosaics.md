@@ -73,6 +73,10 @@ and the same for the height. `$\lceil x \rceil$` means "round up".
 **Try it:** a 3.2° × 1° target with a 1.34° × 0.9° field and 15% overlap: across `$1 + \lceil 1.86/1.14 \rceil = 3$`; up `$1 + \lceil 0.1/0.765 \rceil = 2$`: a 3 × 2 mosaic.
 </details>
 
+Pick a sky object and a hand measure, then change your arm length.
+
+<figure class="fig" data-fig="@astro-angular-size"><figcaption>Compare the object's angular size with the hand ruler: a pinky is about 1°, three fingers 5°, a fist 10°, an open hand 20°. The ruler depends on your arm, so calibrate it once on stars with known separation.</figcaption></figure>
+
 ## 3. Worked example
 
 *Imaging the Andromeda Galaxy (about 3.2° × 1°) with a 1,000 mm telescope and an APS-C camera.*

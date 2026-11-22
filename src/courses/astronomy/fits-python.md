@@ -79,6 +79,10 @@ Open a FITS image the way a researcher does:
 **Pixel to sky** (simple tangent-plane WCS): offset in degrees `$\approx (x - x_\text{ref})\times\text{CDELT1}$`.
 </details>
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<figure class="fig" data-fig="@astro-ccd-steps"><figcaption>Subtracting bias and dark removes the offset and hot pixels. Dividing by the flat removes vignetting and dust shadows. After both, equal stars read equal counts anywhere on the chip, and the real signal stands above a flat sky.</figcaption></figure>
+
 ## 3. What it means physically
 
 Each number in the image is a count of electrons freed by photons in one pixel during the exposure (plus noise and offsets you calibrate away; [Sky watching 6.3](/learn/courses/sky-watching/calibration-frames/)). The header is the lab notebook that travels with the data: without the exposure time, filter and date, the numbers can't be turned into brightness or compared with anyone else's.

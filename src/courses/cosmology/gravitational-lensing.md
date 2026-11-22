@@ -56,6 +56,10 @@ When source, lens and observer line up perfectly, the light is bent equally roun
 
 Real lenses are not single points, so astronomers also see **arcs**, crosses of four images ("Einstein crosses") and partial rings.
 
+Slide the impact parameter b, switch between one ray and a fan, and set the radius for the escape speed readout.
+
+<figure class="fig" data-fig="@astro-black-hole-rays"><figcaption>Light is bent more the closer it passes: far away it is bent a little, near 3 GM/c² it can go round the photon sphere, and below b ≈ 5.2 GM/c² it is captured. The escape speed equals the speed of light at the event horizon, r = 2 GM/c².</figcaption></figure>
+
 ## 3. Three kinds of lensing
 
 - **Strong lensing:** clear multiple images, rings and arcs. The first example, found in 1979, was a "twin quasar": two images of one quasar, 6 arcseconds apart, split by a galaxy in between. Galaxy clusters make spectacular arcs, and they **magnify** galaxies behind them, letting telescopes such as Hubble and JWST see galaxies that would otherwise be too faint.

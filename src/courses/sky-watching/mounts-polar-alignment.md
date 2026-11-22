@@ -35,6 +35,10 @@ Astronomers say the mount is more important than the telescope, especially for p
 
 **Equatorial (EQ)** mounts tilt one axis, the **polar axis** or RA axis, to point at the celestial pole. A star's daily path is then a circle about that axis (Lesson 1.2), so one motor turning once per sidereal day keeps it centred with no field rotation. The other axis sets declination. The **German equatorial mount (GEM)** with a counterweight is the most common design for imaging.
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 3. Polar alignment
 
 To align an EQ mount:

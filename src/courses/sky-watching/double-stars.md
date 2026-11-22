@@ -42,6 +42,10 @@ Things to notice:
 - Shrink the separation below the dashed Dawson circle and the pair merges in this aperture, however much you magnify.
 - PA increases anticlockwise on an un-mirrored view with north up and east left.
 
+Pick a sky object and a hand measure, then change your arm length.
+
+<figure class="fig" data-fig="@astro-angular-size"><figcaption>Compare the object's angular size with the hand ruler: a pinky is about 1°, three fingers 5°, a fist 10°, an open hand 20°. The ruler depends on your arm, so calibrate it once on stars with known separation.</figcaption></figure>
+
 ## 3. Optical doubles and binaries
 
 Some pairs only line up by chance: an **optical double**, two stars at very different distances. Most close pairs, though, are **binaries**: stars orbiting their common centre of mass. Over decades their PA and separation change. A long run of measurements traces the orbit as an ellipse on the sky.

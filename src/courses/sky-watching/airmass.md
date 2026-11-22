@@ -74,6 +74,10 @@ where `$m_0$` is the magnitude above the atmosphere and `$k$` is the **extinctio
 **Measuring k:** observe one star at several airmasses during the night and plot `$m$` against `$X$`. The slope is `$k$` and the intercept at `$X = 0$` is `$m_0$`. This is the Bouguer (or Langley) plot.
 </details>
 
+Choose a target, your latitude and the date. The orange curve is the target's altitude; darker bands mean a darker sky.
+
+<figure class="fig" data-fig="@astro-night-altitude"><figcaption>The best time is when the target is high (low airmass) and the Sun is more than 18° below the horizon. Change the date by a month and see the target shift about two hours earlier.</figcaption></figure>
+
 ## 3. Worked example
 
 *Made-up numbers.* You measure a star at magnitude 7.32 at altitude 60° and 7.58 at altitude 25°.

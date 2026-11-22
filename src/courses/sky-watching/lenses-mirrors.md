@@ -70,6 +70,10 @@ Watch starlight come to a focus:
 **Try it:** a 1,000 mm lens focused on a tree 20 m away: `$1/v = 1/1000 - 1/20000$`, so `$v = 1052.6$` mm. The image is 52.6 mm behind the star focus, which is why the focuser needs extra travel for daytime targets.
 </details>
 
+Slide the aperture and the eyepiece, and watch the star field and the limiting magnitude.
+
+<figure class="fig" data-fig="@astro-light-gather"><figcaption>The aperture sets how faint you can see (light grows with area, so doubling the diameter gives 4 times the light and about 1.5 magnitudes deeper). The eyepiece only sets the magnification, the true field and the exit pupil: a higher power does not show fainter stars.</figcaption></figure>
+
 ## 3. Lenses versus mirrors
 
 **Lenses** split colours slightly, because glass bends blue light more than red (**chromatic aberration**). Pairs or triplets of different glasses (achromats, apochromats) correct most of it. A lens can only be held at its edge, and a big one sags; the largest refractor ever used for research is 1.02 m across (Yerkes Observatory, 1897).
