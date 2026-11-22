@@ -3,6 +3,7 @@
 // pendulum separatrix, damping, Liouville's theorem, Lyapunov functions, limit cycles (van der Pol, Hopf),
 // Bendixson and Poincaré-Bendixson, index theory, bifurcations and population models. Original questions for fibub.
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
+import more from './phase-space-stability.more.gen.js';
 
 const TD = 'For $\\dot{\\vec x} = A\\vec x$ in the plane, with $\\tau = \\mathrm{tr}\\,A$ and $\\Delta = \\det A$: the eigenvalues are $\\lambda = \\tfrac12\\left(\\tau \\pm\\sqrt{\\tau^2 - 4\\Delta}\\right)$.';
 const classify = (t, D) => {
@@ -321,5 +322,6 @@ export default {
           sol: `Nodes, spirals and centres have index $+1$, saddles $-1$, and the index of the curve is the sum: $${N} + ${F} + ${Cn} - ${S} = ${answer}$. A periodic orbit must have index $+1$, so ${answer === 1 ? 'it could be one (the index allows it; it does not guarantee it)' : 'it cannot be a periodic orbit'}.` };
       },
       verify: (p) => p.N + p.F + p.Cn - p.S },
+    ...more,
   ],
 };

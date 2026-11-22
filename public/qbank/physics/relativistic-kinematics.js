@@ -3,6 +3,7 @@
 // aberration, hyperbolic motion and rockets. Lorentz transformations, time dilation and E = mc^2 are in the JAM topic
 // special-relativity. Metric signature (+, -, -, -). Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './relativistic-kinematics.more.gen.js';
 
 const M = { p: 938.27, n: 939.57, pi: 139.57, pi0: 134.98, mu: 105.66, e: 0.511, K: 493.68, K0: 497.61, L: 1115.68, eta: 547.86 };
 const DEG = Math.PI / 180;
@@ -338,5 +339,6 @@ export default {
         return { q: `With signature $(+, -, -, -)$, the four-vector $(${v.join(', ')})$ is`, ...o,
           sol: `$A\\cdot A = ${v[0]}^2 - ${v[1]}^2 - ${v[2]}^2 - ${v[3]}^2 = ${n}$, which is ${n > 0 ? 'positive: timelike' : n === 0 ? 'zero: null' : 'negative: spacelike'}. The sign of $A\\cdot A$ is the same in every frame.` };
       } },
+    ...more,
   ],
 };

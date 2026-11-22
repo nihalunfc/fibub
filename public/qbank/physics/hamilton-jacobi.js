@@ -5,6 +5,7 @@
 // (one full cycle), so the angle w advances by 1 per cycle and ν = ∂H/∂J is the frequency in cycles per second.
 // Original questions for fibub.
 import { int, pick, choose, mcqOptions, round, C } from '../_util.js';
+import more from './hamilton-jacobi.more.gen.js';
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const JDEF = 'Take the action variable as $J = \\oint p\\,dq$ over one cycle.';
@@ -332,5 +333,6 @@ export default {
           sol: `$|E| \\propto J^{-2}$; the semi-major axis $a = k/2|E| \\propto J^2$; the period $1/\\nu = (\\partial E/\\partial J)^{-1} \\propto J^3$ (Kepler's third law, $T \\propto a^{3/2}$). Factor: ${f}^{${ask === 'T' ? 3 : ask === 'E' ? -2 : 2}} = ${answer}$.` };
       },
       verify: (p) => { const a = p.f ** 2; return p.ask === 'a' ? a : p.ask === 'E' ? 1 / a : a ** 1.5; } },
+    ...more,
   ],
 };

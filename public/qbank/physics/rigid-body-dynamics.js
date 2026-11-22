@@ -4,6 +4,7 @@
 // Rolling and simple fixed-axis rotation are in the JAM topics rigid-body-rotation and moment-of-inertia.
 // Convention: I_ij = sum m (r^2 delta_ij - x_i x_j), so products of inertia carry a minus sign. Original questions.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './rigid-body-dynamics.more.gen.js';
 
 const g = 9.8;
 const DEG = Math.PI / 180;
@@ -325,5 +326,6 @@ export default {
           trap: 'This space-frame rate uses the transverse moment $I_1$, not $I_3$.' };
       },
       verify: (p) => p.Lv / p.I1 },
+    ...more,
   ],
 };

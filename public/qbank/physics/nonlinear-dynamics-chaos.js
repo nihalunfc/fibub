@@ -3,6 +3,7 @@
 // predictability, the Lorenz system, the Hénon map, strange attractors and fractal dimensions (similarity, box
 // counting, Kaplan-Yorke), Poincaré sections, KAM and the route to Hamiltonian chaos. Original questions for fibub.
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
+import more from './nonlinear-dynamics-chaos.more.gen.js';
 
 const LOG = 'The logistic map is $x_{n+1} = rx_n(1 - x_n)$, with $0 \\leq x \\leq 1$ and $0 < r \\leq 4$.';
 const LYA = 'For a one-dimensional map the Lyapunov exponent is $\\lambda = \\lim_{n\\to\\infty}\\dfrac1n\\sum_{i=0}^{n-1}\\ln|f\'(x_i)|$.';
@@ -315,5 +316,6 @@ export default {
           sol: `For $1 < r < 3$ the orbit converges to $x^* = 1 - 1/r$, where $|f'(x^*)| = |2 - r| = ${round(Math.abs(2 - rr), 4)}$. The average of $\\ln|f'|$ is then $\\ln${round(Math.abs(2 - rr), 4)} = ${answer}$: negative, so not chaotic.` };
       },
       verify: (p) => { let x = 0.3, s = 0; for (let i = 0; i < 3000; i++) x = p.rr * x * (1 - x); for (let i = 0; i < 2000; i++) { s += Math.log(Math.abs(p.rr * (1 - 2 * x))); x = p.rr * x * (1 - x); } return s / 2000; } },
+    ...more,
   ],
 };
