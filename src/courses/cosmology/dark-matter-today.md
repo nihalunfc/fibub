@@ -6,15 +6,15 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "Roughly what fraction of all matter is dark matter?"
-    choices: ["About 85%", "About 50%", "About 5%"]
+    choices: ["About 85%","About 50%","About 5%"]
     ans: 0
     why: "Ω_c ≈ 0.26 and Ω_b ≈ 0.05, so dark matter is 0.26 ÷ 0.31 ≈ 84% of all matter, and about 26% of everything in the universe."
   - q: "Which of these do we NOT yet know about dark matter?"
-    choices: ["What particle (or object) it is made of, and its mass", "How much of it there is", "Whether it is made of atoms"]
+    choices: ["What particle (or object) it is made of, and its mass","How much of it there is","Whether it is made of atoms"]
     ans: 0
     why: "We know the amount to about 1% and that it is not atoms. The particle and its mass, uncertain over 90 powers of ten, are the big unknowns."
   - q: "How is dark matter different from dark energy?"
-    choices: ["Dark matter clumps and pulls things together; dark energy is smooth and speeds up the expansion", "They are the same thing", "Dark energy is a kind of dark matter that glows"]
+    choices: ["Dark matter clumps and pulls things together; dark energy is smooth and speeds up the expansion","They are the same thing","Dark energy is a kind of dark matter that glows"]
     ans: 0
     why: "Dark matter gathers into halos round galaxies and clusters and attracts like ordinary matter. Dark energy (Module 9) fills space evenly and makes the expansion accelerate."
 sources:

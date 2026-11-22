@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "What causes the CMB dipole?"
-    choices: ["Our own motion through the CMB, which Doppler shifts the light ahead of us to slightly higher temperature", "A hot region near the edge of the universe", "The Milky Way's own microwave glow"]
-    ans: 0
+    choices: ["A hot region near the edge of the universe","Our own motion through the CMB, which Doppler shifts the light ahead of us to slightly higher temperature","The Milky Way's own microwave glow"]
+    ans: 1
     why: "Moving towards a source blueshifts it. Light ahead looks warmer by T × v/c and light behind cooler by the same amount."
   - q: "The dipole is 3.36 mK on a 2.7255 K background. How fast is the Sun moving relative to the CMB?"
-    choices: ["About 3.4 km/s", "About 370 km/s", "About 30,000 km/s"]
+    choices: ["About 3.4 km/s","About 370 km/s","About 30,000 km/s"]
     ans: 1
     why: "v = c × ΔT/T = 299,792 km/s × 0.00336 ÷ 2.7255 ≈ 370 km/s."
   - q: "Does the CMB's rest frame break Einstein's relativity?"
-    choices: ["Yes: it is an absolute frame of rest", "Yes: it lets us measure absolute time", "No: it is just the frame of the stuff in the universe, like the air's frame for sound; the laws of physics are the same in every frame"]
-    ans: 2
+    choices: ["Yes: it is an absolute frame of rest","No: it is just the frame of the stuff in the universe, like the air's frame for sound; the laws of physics are the same in every frame","Yes: it lets us measure absolute time"]
+    ans: 1
     why: "Relativity says no frame has different laws, not that the universe's contents cannot be at rest in some frame. Measuring your speed through the CMB is like measuring your speed through the air."
 sources:
   - "Planck Collaboration (2020), Planck 2018 results. I. Overview and the cosmological legacy of Planck, A&A 641, A1 https://doi.org/10.1051/0004-6361/201833880"

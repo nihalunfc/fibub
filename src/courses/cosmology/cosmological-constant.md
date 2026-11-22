@@ -6,15 +6,15 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "If the universe doubles in size, what happens to the cosmological constant's energy in one cubic metre?"
-    choices: ["Nothing: it stays exactly the same", "It falls 8 times, like matter", "It doubles"]
+    choices: ["Nothing: it stays exactly the same","It falls 8 times, like matter","It doubles"]
     ans: 0
     why: "Λ is a property of space itself, so every cubic metre has the same amount, at every time. Only the total in a growing region rises."
   - q: "Why must a cosmological constant have negative pressure, p = −ρc²?"
-    choices: ["A growing box keeps the same density, so its energy rises, and that energy must come from work done stretching it, which needs a pull (tension)", "Because Einstein chose it that way", "Because it is made of antimatter"]
+    choices: ["A growing box keeps the same density, so its energy rises, and that energy must come from work done stretching it, which needs a pull (tension)","Because Einstein chose it that way","Because it is made of antimatter"]
     ans: 0
     why: "Energy bookkeeping dE = −p dV with E = ρc²V and ρ constant gives p = −ρc². Like a stretched spring, it pulls back, and in general relativity that tension makes gravity push."
   - q: "Roughly how dense is the cosmological constant?"
-    choices: ["About 6 × 10⁻²⁷ kg/m³, a few hydrogen atoms' worth per cubic metre", "About 1 kg/m³, like air", "Exactly zero"]
+    choices: ["About 6 × 10⁻²⁷ kg/m³, a few hydrogen atoms' worth per cubic metre","About 1 kg/m³, like air","Exactly zero"]
     ans: 0
     why: "It is about 69% of the critical density. Far too little to notice in a lab or the Solar System, but there is so much space that it dominates the universe."
 sources:

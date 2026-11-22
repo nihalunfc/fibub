@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: What was the great strength of Babylonian astronomy?
-    choices: ['Centuries of careful written records that let them predict the sky', 'A correct picture of the Solar System', 'The first telescope']
-    ans: 0
+    choices: ["A correct picture of the Solar System","The first telescope","Centuries of careful written records that let them predict the sky"]
+    ans: 2
     why: Babylonian scribes logged the Moon and planets for centuries on clay tablets and found repeating cycles, such as the 18-year eclipse cycle, without needing a physical model.
   - q: What did Aryabhata (499 CE) propose?
-    choices: ['The Earth turns once a day, so the stars only seem to move', 'The Sun goes round the Earth on an epicycle', 'The universe is expanding']
-    ans: 0
+    choices: ["The Sun goes round the Earth on an epicycle","The Earth turns once a day, so the stars only seem to move","The universe is expanding"]
+    ans: 1
     why: He compared the turning sky to the bank seen from a moving boat. The stars stand still; we turn.
   - q: What does the Tusi couple do?
-    choices: ['Two turning circles make a point move in a straight line', 'It measures the size of the Earth', 'It predicts eclipses']
-    ans: 0
+    choices: ["It measures the size of the Earth","Two turning circles make a point move in a straight line","It predicts eclipses"]
+    ans: 1
     why: A small circle rolling inside one twice its size carries a point back and forth along a straight line. Copernicus used the same device.
 sources:
   - 'Encyclopaedia Britannica: Cosmology (astronomy), history of cosmological ideas https://www.britannica.com/science/cosmology-astronomy'

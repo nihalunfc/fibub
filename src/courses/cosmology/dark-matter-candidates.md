@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "Why can ordinary neutrinos not be most of the dark matter?"
-    choices: ["They are too light and moved too fast early on, which would have smeared out galaxy-sized lumps", "They do not exist", "They give off too much light"]
-    ans: 0
+    choices: ["They do not exist","They are too light and moved too fast early on, which would have smeared out galaxy-sized lumps","They give off too much light"]
+    ans: 1
     why: "Neutrinos are hot dark matter: racing at nearly light speed, they stream out of small lumps. Their masses are also too small; they make up at most about 1% of the dark matter."
   - q: "What did the MACHO and EROS microlensing surveys find?"
-    choices: ["Far too few dark compact objects to make up the Milky Way's halo", "That the halo is made of brown dwarfs", "That dark matter is axions"]
+    choices: ["Far too few dark compact objects to make up the Milky Way's halo","That the halo is made of brown dwarfs","That dark matter is axions"]
     ans: 0
     why: "Watching millions of stars for years, they saw very few of the brief brightenings that dim stars and planets in the halo would cause: at most a small fraction of the halo, over a wide range of masses."
   - q: "What is the 'WIMP miracle'?"
-    choices: ["A particle about as heavy as an atom's nucleus, interacting about as weakly as neutrinos, would be left over in just the right amount", "WIMPs were found at the LHC", "WIMPs can travel faster than light"]
-    ans: 0
+    choices: ["WIMPs were found at the LHC","WIMPs can travel faster than light","A particle about as heavy as an atom's nucleus, interacting about as weakly as neutrinos, would be left over in just the right amount"]
+    ans: 2
     why: "In the hot early universe such particles were made and destroyed in pairs. When the universe cooled, the survivors' density comes out close to the measured dark matter density, if the interaction strength is about that of the weak force."
 sources:
   - "G. Bertone, D. Hooper and J. Silk (2005), Particle dark matter: evidence, candidates and constraints, Physics Reports 405, 279 https://doi.org/10.1016/j.physrep.2004.08.031"

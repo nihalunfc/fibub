@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: What was strange about Mercury's orbit before Einstein?
-    choices: ['Its ellipse turned 43 arcseconds per century more than Newton''s gravity predicted', 'It went round the wrong way', 'It had no ellipse at all']
-    ans: 0
+    choices: ["It went round the wrong way","It had no ellipse at all","Its ellipse turned 43 arcseconds per century more than Newton's gravity predicted"]
+    ans: 2
     why: Pulls from the other planets explained most of the turning, but 43 arcseconds per century were left over. General relativity gives exactly that.
   - q: What did the 1919 eclipse expeditions measure?
-    choices: ['Starlight passing the Sun bent by about 1.75 arcseconds', 'The Sun''s temperature', 'The speed of light']
+    choices: ["Starlight passing the Sun bent by about 1.75 arcseconds","The Sun's temperature","The speed of light"]
     ans: 0
     why: Stars near the eclipsed Sun appeared shifted outwards by about Einstein's predicted amount, twice what a Newton-style calculation gives.
   - q: Why would GPS fail without relativity?
-    choices: ['Satellite clocks gain about 38 microseconds a day, which would add about 11 km of error a day', 'Radio waves cannot cross space', 'Satellites move too slowly']
-    ans: 0
+    choices: ["Radio waves cannot cross space","Satellite clocks gain about 38 microseconds a day, which would add about 11 km of error a day","Satellites move too slowly"]
+    ans: 1
     why: Being higher up makes satellite clocks run fast, and moving makes them run a little slow. The net gain is about 38 µs a day, and light goes about 11 km in that time.
 sources:
   - 'F. W. Dyson, A. S. Eddington and C. Davidson (1920), A determination of the deflection of light by the Sun''s gravitational field, Philosophical Transactions of the Royal Society A 220, 291 https://doi.org/10.1098/rsta.1920.0009'

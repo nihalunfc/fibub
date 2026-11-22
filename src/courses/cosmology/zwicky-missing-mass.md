@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "What did Zwicky measure in the Coma cluster in 1933?"
-    choices: ["How fast its galaxies move, from their redshifts", "The temperature of its hot gas", "Its distance, with Cepheid stars"]
+    choices: ["How fast its galaxies move, from their redshifts","The temperature of its hot gas","Its distance, with Cepheid stars"]
     ans: 0
     why: "He used the redshifts of a handful of Coma galaxies. Their speeds differed by about a thousand km/s or more, far too much for the gravity of the visible galaxies to hold them."
   - q: "The virial theorem links which two things in a cluster that has settled down?"
-    choices: ["The energy of motion of its galaxies and their gravitational energy", "Its brightness and its colour", "Its age and its distance"]
-    ans: 0
+    choices: ["Its brightness and its colour","Its age and its distance","The energy of motion of its galaxies and their gravitational energy"]
+    ans: 2
     why: "For a settled group of orbiting bodies, twice the energy of motion plus the (negative) gravitational energy is zero on average. Measure the speeds and the size, and you get the mass."
   - q: "Zwicky's mass-to-light ratio was too big partly because Hubble's expansion rate was about 8 times too high. Did the missing mass go away once that was fixed?"
-    choices: ["No: corrected, clusters still hold far more mass than their stars and gas", "Yes: there is no missing mass in clusters", "Nobody has checked since 1933"]
-    ans: 0
+    choices: ["Yes: there is no missing mass in clusters","Nobody has checked since 1933","No: corrected, clusters still hold far more mass than their stars and gas"]
+    ans: 2
     why: "With today's H0 his ratio drops about 8-fold, but it is still many times what stars give. X-ray gas found later adds several times the stars, and still most of the mass is dark."
 sources:
   - "F. Zwicky (1933), Die Rotverschiebung von extragalaktischen Nebeln, Helvetica Physica Acta 6, 110 https://ui.adsabs.harvard.edu/abs/1933AcHPh...6..110Z"

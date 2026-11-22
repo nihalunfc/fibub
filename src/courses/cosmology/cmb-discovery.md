@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "What did Penzias and Wilson actually measure?"
-    choices: ["A picture of the early universe", "About 3.5 K more radio noise than they could explain, the same in every direction", "A radio signal from a distant galaxy"]
-    ans: 1
+    choices: ["About 3.5 K more radio noise than they could explain, the same in every direction","A picture of the early universe","A radio signal from a distant galaxy"]
+    ans: 0
     why: "At 7.35 cm wavelength their horn measured 6.7 K of noise looking straight up; the air, the antenna and the ground explained only about 3.2 K. The 3.5 K left over came from every direction, day and night."
   - q: "Why was the CMB a blow to the Steady State theory?"
-    choices: ["It showed that stars are older than the universe", "It proved that the universe has an edge", "A universe that never changes has no hot, dense past to leave a glow filling all of space"]
-    ans: 2
+    choices: ["It showed that stars are older than the universe","A universe that never changes has no hot, dense past to leave a glow filling all of space","It proved that the universe has an edge"]
+    ans: 1
     why: "A sea of cool radiation, the same everywhere, is just what a hot dense beginning leaves behind after expansion stretches it. A steady, unchanging universe gives no natural way to make it."
   - q: "The CMB set off at about 3,000 K and is 2.7 K today. By how much has the universe stretched since?"
-    choices: ["About 1,100 times", "About 30 times", "About 1 million times"]
-    ans: 0
+    choices: ["About 30 times","About 1,100 times","About 1 million times"]
+    ans: 1
     why: "Temperature falls as 1/a, so 1 + z = 3,000 ÷ 2.7255 ≈ 1,100. Every wavelength has been stretched by the same factor."
 sources:
   - "A. A. Penzias and R. W. Wilson (1965), A measurement of excess antenna temperature at 4080 Mc/s, ApJ 142, 419 https://doi.org/10.1086/148307"

@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "What do the DESI 2025 results combined with the CMB and supernovae suggest?"
-    choices: ["w0 above −1 and wa below 0: dark energy that may be weakening today", "Dark energy is exactly a cosmological constant, proven", "Dark energy does not exist"]
+    choices: ["w0 above −1 and wa below 0: dark energy that may be weakening today","Dark energy is exactly a cosmological constant, proven","Dark energy does not exist"]
     ans: 0
     why: "The best fits sit away from (−1, 0) by about 2.8 to 4.2 sigma, depending on which supernova sample is used. A hint that needs more data."
   - q: "What does DESI measure to learn about dark energy?"
-    choices: ["The baryon acoustic oscillation ruler in maps of millions of galaxies and quasars, giving distances and expansion rates at many redshifts", "The temperature of the CMB", "The brightness of nearby stars"]
-    ans: 0
+    choices: ["The temperature of the CMB","The brightness of nearby stars","The baryon acoustic oscillation ruler in maps of millions of galaxies and quasars, giving distances and expansion rates at many redshifts"]
+    ans: 2
     why: "The ruler, about 490 million light-years long today, is seen at different redshifts; its apparent size gives the expansion history."
   - q: "Why do physicists call the DESI result a hint and not a discovery?"
-    choices: ["It is below the usual 5 sigma standard, and its strength depends on which supernova sample is used", "Because DESI is a small telescope", "Because nobody has checked the data"]
-    ans: 0
+    choices: ["Because DESI is a small telescope","It is below the usual 5 sigma standard, and its strength depends on which supernova sample is used","Because nobody has checked the data"]
+    ans: 1
     why: "3 to 4 sigma results have faded before. A signal that changes with the choice of supernovae could partly come from how those samples are calibrated."
 sources:
   - "DESI Collaboration (2024), DESI 2024 VI: cosmological constraints from the measurements of baryon acoustic oscillations, arXiv:2404.03002 https://arxiv.org/abs/2404.03002"

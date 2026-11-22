@@ -6,16 +6,16 @@ minutes: 17
 updated: 2026-11-22
 quiz:
   - q: "What does the CMB measure most directly about ordinary matter?"
-    choices: ["Its percentage of the critical density, Ω_b", "Its physical density, written Ω_b h² = 0.0224", "The number of stars"]
-    ans: 1
+    choices: ["Its percentage of the critical density, Ω_b","The number of stars","Its physical density, written Ω_b h² = 0.0224"]
+    ans: 2
     why: "The sound waves feel the actual density of atoms, which is proportional to Ω_b h². Turning it into a percentage needs H0 too."
   - q: "Why does the CMB's value of H0 depend on the model?"
-    choices: ["Because the CMB is too faint", "Because H0 cannot be measured at all", "The CMB measures the sound-horizon angle very precisely; turning that into H0 needs the physics of the sound horizon and of the expansion since, as given by ΛCDM"]
+    choices: ["Because the CMB is too faint","Because H0 cannot be measured at all","The CMB measures the sound-horizon angle very precisely; turning that into H0 needs the physics of the sound horizon and of the expansion since, as given by ΛCDM"]
     ans: 2
     why: "It is an inference: assume the standard model, fit the six numbers, and H0 = 67.4 ± 0.5 follows. Local measurements give about 73, the Hubble tension of Lesson 12.2."
   - q: "Planck finds n_s = 0.965, a little below 1. What does that mean?"
-    choices: ["The first ripples were slightly stronger on large scales than on small ones, as simple inflation models predict", "The universe is 96.5% dark", "Space is slightly curved"]
-    ans: 0
+    choices: ["The universe is 96.5% dark","The first ripples were slightly stronger on large scales than on small ones, as simple inflation models predict","Space is slightly curved"]
+    ans: 1
     why: "n_s = 1 would mean equal strength on every scale. Just below 1 is a small tilt towards large scales, one of inflation's predictions (Module 11)."
 sources:
   - "Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, A&A 641, A6 https://doi.org/10.1051/0004-6361/201833910"

@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "What did the 1998 teams actually measure that pointed to acceleration?"
-    choices: ["Distant Type Ia supernovae looked fainter than a slowing universe predicts, so they are farther away", "Distant galaxies were moving faster than light", "The cosmic microwave background was cooler than expected"]
-    ans: 0
+    choices: ["Distant galaxies were moving faster than light","The cosmic microwave background was cooler than expected","Distant Type Ia supernovae looked fainter than a slowing universe predicts, so they are farther away"]
+    ans: 2
     why: "About 0.25 magnitudes fainter than a low-density slowing universe allows, which means about 12% farther. Light from them travelled farther because the expansion has sped up."
   - q: "How did the teams find supernovae in distant galaxies on a schedule?"
-    choices: ["They pictured the same thousands of galaxies twice, about three weeks apart, and subtracted the pictures", "They waited for alerts from amateur astronomers", "They used gravitational wave detectors"]
-    ans: 0
+    choices: ["They waited for alerts from amateur astronomers","They pictured the same thousands of galaxies twice, about three weeks apart, and subtracted the pictures","They used gravitational wave detectors"]
+    ans: 1
     why: "A new point of light shows up in the difference picture. Follow-up time on big telescopes was booked in advance, so the supernovae could be measured near their peak."
   - q: "Why could dust not explain the faint supernovae?"
-    choices: ["Dust reddens light, which was not seen, and supernovae beyond redshift 1 turned out brighter again, as a slowing-then-speeding universe predicts", "There is no dust in other galaxies", "Dust makes things brighter"]
-    ans: 0
+    choices: ["There is no dust in other galaxies","Dust reddens light, which was not seen, and supernovae beyond redshift 1 turned out brighter again, as a slowing-then-speeding universe predicts","Dust makes things brighter"]
+    ans: 1
     why: "Ordinary dust dims blue light more than red. And dust would keep dimming more with distance, while the most distant supernovae came back up: the sign of an earlier slowing era."
 sources:
   - "A. G. Riess et al. (1998), Observational evidence from supernovae for an accelerating universe and a cosmological constant, AJ 116, 1009 https://doi.org/10.1086/300499"

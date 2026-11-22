@@ -6,15 +6,15 @@ minutes: 18
 updated: 2026-11-22
 quiz:
   - q: "What made the sound waves in the early universe ring?"
-    choices: ["Gravity pulled the light-and-atom fluid into dark matter wells, and the pressure of the light pushed it back out", "Explosions of the first stars", "Electrons orbiting atoms"]
+    choices: ["Gravity pulled the light-and-atom fluid into dark matter wells, and the pressure of the light pushed it back out","Explosions of the first stars","Electrons orbiting atoms"]
     ans: 0
     why: "Gravity and pressure take turns, like a mass bouncing on a spring. Squeezed fluid is hotter, stretched fluid cooler."
   - q: "The first peak sits at ℓ ≈ 220, spots about 1° across. What does its position mainly tell us?"
-    choices: ["The temperature of the CMB", "That space is flat: in curved space the same sound horizon would look bigger or smaller", "The age of the Sun"]
+    choices: ["The temperature of the CMB","That space is flat: in curved space the same sound horizon would look bigger or smaller","The age of the Sun"]
     ans: 1
     why: "The physical size of the sound horizon is known from physics. How big it looks depends on the geometry of space between us and it, and the measured size matches flat space."
   - q: "Why are the odd-numbered peaks (1st, 3rd) boosted compared with the even ones when there are more atoms?"
-    choices: ["Atoms are hotter than light", "Atoms block the light", "Atoms add weight to the fluid, so it falls deeper into the wells: squeezes get stronger, stretches weaker"]
+    choices: ["Atoms are hotter than light","Atoms block the light","Atoms add weight to the fluid, so it falls deeper into the wells: squeezes get stronger, stretches weaker"]
     ans: 2
     why: "Like a heavier ball on a spring hanging lower, the baryon-loaded fluid oscillates about a deeper balance point. The odd peaks are squeezes, the even ones stretches."
 sources:

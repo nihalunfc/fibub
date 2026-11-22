@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "With H0 = 70 km/s per Mpc, how fast does a galaxy 100 Mpc away move away?"
-    choices: ["7,000 km/s", "700 km/s", "70 km/s"]
-    ans: 0
+    choices: ["700 km/s","7,000 km/s","70 km/s"]
+    ans: 1
     why: "v = H0 × d = 70 × 100 = 7,000 km/s."
   - q: "Why was Hubble's 1929 value of about 500 km/s per Mpc so far from today's 70?"
-    choices: ["His distances were too small, because the Cepheid calibration of the time was wrong", "The universe was expanding faster in 1929", "He mixed up kilometres and miles"]
+    choices: ["His distances were too small, because the Cepheid calibration of the time was wrong","The universe was expanding faster in 1929","He mixed up kilometres and miles"]
     ans: 0
     why: "Two kinds of Cepheid were mixed up, and some bright gas clouds were taken for stars. Correct the distances (about 7 times bigger) and the slope drops to near 70."
   - q: "What is the Hubble tension?"
-    choices: ["Two careful ways of measuring H0 disagree: about 67 from the early universe and about 73 from the distance ladder", "A strain on the Hubble Space Telescope", "The pull of gravity between galaxies"]
-    ans: 0
+    choices: ["A strain on the Hubble Space Telescope","Two careful ways of measuring H0 disagree: about 67 from the early universe and about 73 from the distance ladder","The pull of gravity between galaxies"]
+    ans: 1
     why: "Both methods have small error bars, so the gap may hint at new physics, or at a hidden error. It is one of today's open questions."
 sources:
   - "E. Hubble (1929), A relation between distance and radial velocity among extra-galactic nebulae, PNAS 15, 168 https://doi.org/10.1073/pnas.15.3.168"

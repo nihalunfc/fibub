@@ -6,15 +6,15 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: What is an Einstein ring?
-    choices: ['The ring-shaped image of a background source lined up exactly behind a lens', 'A ring of stars around a black hole', 'Saturn''s rings seen through a telescope']
-    ans: 0
+    choices: ["A ring of stars around a black hole","Saturn's rings seen through a telescope","The ring-shaped image of a background source lined up exactly behind a lens"]
+    ans: 2
     why: When source, lens and observer line up, light bends round every side of the lens equally and the image spreads into a ring.
   - q: Why is gravitational lensing so useful for cosmology?
-    choices: ['It measures all the mass of a lens, including dark matter', 'It makes galaxies hotter', 'It speeds up light']
-    ans: 0
+    choices: ["It makes galaxies hotter","It measures all the mass of a lens, including dark matter","It speeds up light"]
+    ans: 1
     why: Lensing depends only on mass, whether it shines or not. Lensing maps show far more mass than the visible stars and gas.
   - q: What was the first gravitational lens found, in 1979?
-    choices: ['A "twin" quasar, one quasar seen twice', 'The Andromeda galaxy', 'The Moon']
+    choices: ["A \"twin\" quasar, one quasar seen twice","The Andromeda galaxy","The Moon"]
     ans: 0
     why: Two quasar images 6 arcseconds apart had identical spectra. A galaxy between them and us was splitting one quasar's light into two.
 sources:

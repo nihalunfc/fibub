@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: What does 10⁹ mean?
-    choices: ['A 1 followed by 9 zeros: one billion', '10 × 9 = 90', 'Nine tens added together']
-    ans: 0
+    choices: ["10 × 9 = 90","Nine tens added together","A 1 followed by 9 zeros: one billion"]
+    ans: 2
     why: The small raised number counts how many times you multiply by 10. 10⁹ = 1,000,000,000.
   - q: About how many Earths would fit side by side across the Sun?
-    choices: ['About 109', 'About 10', 'About 1,000,000']
+    choices: ["About 109","About 10","About 1,000,000"]
     ans: 0
     why: The Sun is about 1.39 million km across and the Earth about 12,742 km, so the ratio is about 109. (By volume, about 1.3 million Earths would fit inside.)
   - q: Roughly how wide is the observable universe?
-    choices: ['About 93 billion light-years', 'About 13.8 billion light-years', 'About 100,000 light-years']
-    ans: 0
+    choices: ["About 13.8 billion light-years","About 100,000 light-years","About 93 billion light-years"]
+    ans: 2
     why: 'Light has travelled for 13.8 billion years, but space has stretched meanwhile, so the most distant regions we see are now about 46 billion light-years away in every direction: 93 billion across. Lesson 5.9 explains why.'
 sources:
   - 'C. and R. Eames (1977), Powers of Ten (film), Eames Office, the classic zoom that inspired this lesson'

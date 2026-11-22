@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: Why did Eratosthenes need sunlight to arrive in parallel rays?
-    choices: ['So the shadow angle at Alexandria equals the angle between the towns at the Earth''s centre', 'So the shadows are darker', 'So noon happens at the same time everywhere']
-    ans: 0
+    choices: ["So the shadows are darker","So the shadow angle at Alexandria equals the angle between the towns at the Earth's centre","So noon happens at the same time everywhere"]
+    ans: 1
     why: Because the Sun is very far away, its rays are parallel. Then the shadow angle in one town, relative to a town where the Sun is overhead, is the same as the angle between the towns seen from the Earth's centre.
   - q: If the noon shadow angle were 9° instead of 7.2°, with the same 800 km between towns, how big would the Earth be?
-    choices: ['32,000 km around', '40,000 km around', '50,000 km around']
-    ans: 0
+    choices: ["40,000 km around","32,000 km around","50,000 km around"]
+    ans: 1
     why: 9° is 1/40 of a circle, so the circumference would be 40 × 800 km = 32,000 km.
   - q: Why did Aristarchus get the Sun's distance wrong by a factor of 20?
-    choices: ['The angle at half moon is so close to 90° that a tiny measuring error makes a huge difference', 'He used the wrong Moon', 'Shadows were longer in ancient times']
-    ans: 0
+    choices: ["He used the wrong Moon","The angle at half moon is so close to 90° that a tiny measuring error makes a huge difference","Shadows were longer in ancient times"]
+    ans: 1
     why: The ratio is 1 ÷ cos(angle). Near 90° the cosine changes very fast, so 87° gives 19 and 89.85° gives about 390.
 sources:
   - 'Cleomedes, On the Circular Motions of the Celestial Bodies (about 1st century CE), the surviving account of Eratosthenes'' method'

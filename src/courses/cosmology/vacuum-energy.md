@@ -6,15 +6,15 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "Why would vacuum energy act like a cosmological constant?"
-    choices: ["Empty space looks the same to every moving observer, which forces its pressure to be −ρc², so w = −1", "Because it is made of dark matter", "Because it slowly decays"]
-    ans: 0
+    choices: ["Because it is made of dark matter","Empty space looks the same to every moving observer, which forces its pressure to be −ρc², so w = −1","Because it slowly decays"]
+    ans: 1
     why: "Only an energy with p = −ρc² looks identical whichever way you move through it. That is exactly Λ's equation of state."
   - q: "Roughly how far off is the simplest quantum estimate of the vacuum energy?"
-    choices: ["About 120 orders of magnitude too big with a Planck-energy cut-off, still about 60 with a TeV cut-off", "About a factor of 2", "It matches perfectly"]
-    ans: 0
+    choices: ["About a factor of 2","It matches perfectly","About 120 orders of magnitude too big with a Planck-energy cut-off, still about 60 with a TeV cut-off"]
+    ans: 2
     why: "The estimate grows as the cut-off energy to the 4th power. Even the lowest cut-off that particle physics allows leaves an enormous gap."
   - q: "What did Steven Weinberg argue in 1987?"
-    choices: ["If the vacuum energy were much bigger than about a few hundred times the matter density, galaxies could not form, so observers can only find a small value", "That the vacuum energy must be exactly zero", "That dark energy is made of neutrinos"]
+    choices: ["If the vacuum energy were much bigger than about a few hundred times the matter density, galaxies could not form, so observers can only find a small value","That the vacuum energy must be exactly zero","That dark energy is made of neutrinos"]
     ans: 0
     why: "This anthropic bound predicted a small but non-zero value a decade before the 1998 measurement. Whether it is the right explanation is still argued."
 sources:

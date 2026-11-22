@@ -6,15 +6,15 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "What polarised the CMB?"
-    choices: ["Scattering off free electrons that saw a little more light from one direction than from the direction at right angles (a quadrupole)", "Magnetic fields in the Milky Way", "The CMB satellites' own filters"]
-    ans: 0
+    choices: ["Magnetic fields in the Milky Way","The CMB satellites' own filters","Scattering off free electrons that saw a little more light from one direction than from the direction at right angles (a quadrupole)"]
+    ans: 2
     why: "Thomson scattering of light that is uneven in a quadrupole pattern leaves the scattered light partly linearly polarised. It happened during last scattering, and again after reionisation."
   - q: "Which of these can make B-mode polarisation?"
-    choices: ["Only the sound waves", "Gravitational lensing of E-modes, and gravitational waves from the very early universe", "The CMB dipole"]
-    ans: 1
+    choices: ["Gravitational lensing of E-modes, and gravitational waves from the very early universe","Only the sound waves","The CMB dipole"]
+    ans: 0
     why: "Density (sound) waves make only E-modes. Lensing twists some E into B (detected in 2013); primordial gravitational waves would make B-modes too, but have not been found (Lesson 11.4)."
   - q: "Planck measured an optical depth τ = 0.054. What does it mean?"
-    choices: ["The CMB is 5.4% polarised", "The universe is 5.4% atoms", "About 5% of CMB photons were scattered again by electrons freed when the first stars re-ionised the universe"]
+    choices: ["The CMB is 5.4% polarised","The universe is 5.4% atoms","About 5% of CMB photons were scattered again by electrons freed when the first stars re-ionised the universe"]
     ans: 2
     why: "The fraction scattered is 1 − e^(−τ) ≈ 5.3%. It sets when reionisation happened: around redshift 7 to 8."
 sources:

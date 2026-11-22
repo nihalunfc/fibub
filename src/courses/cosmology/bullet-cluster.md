@@ -6,15 +6,15 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "In the Bullet Cluster, where is most of the ordinary (atomic) matter?"
-    choices: ["In the hot X-ray gas, left behind in the middle", "In the stars of the galaxies", "In black holes"]
-    ans: 0
+    choices: ["In the stars of the galaxies","In black holes","In the hot X-ray gas, left behind in the middle"]
+    ans: 2
     why: "In clusters the hot gas outweighs the stars several times over. When the clusters collided, the gas clouds hit each other and were slowed, while the galaxies sailed on."
   - q: "What do the lensing maps of the Bullet Cluster show?"
-    choices: ["The mass is centred on the galaxies, well away from most of the atoms in the gas", "The mass is centred on the hot gas", "There is no lensing at all"]
-    ans: 0
+    choices: ["The mass is centred on the hot gas","There is no lensing at all","The mass is centred on the galaxies, well away from most of the atoms in the gas"]
+    ans: 2
     why: "Clowe and colleagues found the two lensing peaks offset from the X-ray gas at 8 standard deviations. Something heavy, which passes through freely, went with the galaxies."
   - q: "What does the Bullet Cluster tell us about how dark matter behaves?"
-    choices: ["It barely collides with itself or with ordinary matter", "It is made of hot gas", "It glows in X-rays"]
+    choices: ["It barely collides with itself or with ordinary matter","It is made of hot gas","It glows in X-rays"]
     ans: 0
     why: "The dark matter clumps passed through each other almost untouched. That limits how much dark matter particles can scatter off each other: less than about 1 cm² per gram."
 sources:

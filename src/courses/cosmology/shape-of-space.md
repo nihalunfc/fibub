@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "On the surface of a ball, the angles of a large triangle add up to:"
-    choices: ["More than 180°", "Exactly 180°", "Less than 180°"]
-    ans: 0
+    choices: ["Exactly 180°","Less than 180°","More than 180°"]
+    ans: 2
     why: "On a closed surface the sides bulge outwards. A triangle from the North Pole to two points on the equator can have three right angles: 270°."
   - q: "How did cosmologists measure the shape of the universe?"
-    choices: ["From the apparent size of hot and cold spots in the cosmic microwave background", "By sending a spacecraft around the universe", "By counting stars"]
-    ans: 0
+    choices: ["By sending a spacecraft around the universe","From the apparent size of hot and cold spots in the cosmic microwave background","By counting stars"]
+    ans: 1
     why: "Their true size is known from physics. In a closed universe they would look bigger than about 1 degree, in an open one smaller. They look about 1 degree: flat."
   - q: "Does a flat universe have to be infinite?"
-    choices: ["Not necessarily: it could be finite if it wraps round, like a video game screen", "Yes, always", "No, it must be small"]
-    ans: 0
+    choices: ["Yes, always","Not necessarily: it could be finite if it wraps round, like a video game screen","No, it must be small"]
+    ans: 1
     why: "Curvature is local geometry. A flat space could still connect back on itself on very large scales. Searches have found no sign of this so far."
 sources:
   - "P. de Bernardis et al. (2000), A flat universe from high-resolution maps of the cosmic microwave background radiation, Nature 404, 955 https://doi.org/10.1038/35010035"

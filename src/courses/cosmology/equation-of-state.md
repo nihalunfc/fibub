@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "What value of w does a cosmological constant have?"
-    choices: ["Exactly −1, at all times", "0, like matter", "1/3, like light"]
-    ans: 0
+    choices: ["0, like matter","1/3, like light","Exactly −1, at all times"]
+    ans: 2
     why: "Its pressure is p = −ρc², so w = p/(ρc²) = −1, and its density never changes."
   - q: "Which kinds of stuff can make the expansion speed up?"
-    choices: ["Anything with w below −1/3", "Anything with positive pressure", "Only matter"]
-    ans: 0
+    choices: ["Anything with positive pressure","Only matter","Anything with w below −1/3"]
+    ans: 2
     why: "Gravity's source is ρ(1 + 3w). It turns negative, a push, only when w < −1/3."
   - q: "In the description w(a) = w0 + wa(1 − a), what does wa measure?"
-    choices: ["How much w has changed since the universe was young", "Today's value of w", "The amount of dark energy"]
-    ans: 0
+    choices: ["Today's value of w","The amount of dark energy","How much w has changed since the universe was young"]
+    ans: 2
     why: "w0 is today's value; wa is how different it was when the universe was much smaller (at a = 0, w = w0 + wa)."
 sources:
   - "M. Chevallier and D. Polarski (2001), Accelerating universes with scaling dark matter, International Journal of Modern Physics D 10, 213 https://doi.org/10.1142/S0218271801000822"

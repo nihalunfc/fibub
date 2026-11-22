@@ -6,15 +6,15 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "Why could lumps of ordinary matter not grow before recombination?"
-    choices: ["The atoms' nuclei and electrons were tied to light, whose pressure pushed back against clumping", "Gravity did not work yet", "There were no atoms at all, only dark matter"]
+    choices: ["The atoms' nuclei and electrons were tied to light, whose pressure pushed back against clumping","Gravity did not work yet","There were no atoms at all, only dark matter"]
     ans: 0
     why: "Until about 380,000 years, light kept bouncing off the free electrons. The light and matter moved as one fluid with a huge pressure, so lumps bounced as sound waves instead of growing."
   - q: "According to Planck, how much more dark matter than ordinary matter is there?"
-    choices: ["About 5.4 times", "About the same amount", "About 100 times"]
-    ans: 0
+    choices: ["About the same amount","About 100 times","About 5.4 times"]
+    ans: 2
     why: "Ω_c h² ≈ 0.120 and Ω_b h² ≈ 0.0224, and 0.120 ÷ 0.0224 ≈ 5.4. Dark matter is about 84% of all matter."
   - q: "Two independent methods give the amount of ordinary matter. Which ones?"
-    choices: ["The CMB peaks and the amount of deuterium made in Big Bang nucleosynthesis", "Counting stars and counting planets", "Rotation curves and the Bullet Cluster"]
+    choices: ["The CMB peaks and the amount of deuterium made in Big Bang nucleosynthesis","Counting stars and counting planets","Rotation curves and the Bullet Cluster"]
     ans: 0
     why: "Both say atoms are only about 5% of the critical density, far less than the total matter (31%). So dark matter cannot be made of atoms."
 sources:

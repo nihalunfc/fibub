@@ -6,16 +6,16 @@ minutes: 12
 updated: 2026-11-22
 quiz:
   - q: Inside a closed lift, you drop a ball and it falls to the floor. Can you tell if you are on Earth or in a rocket speeding up at 9.8 m/s²?
-    choices: ['No, no experiment inside the lift can tell', 'Yes, the ball falls faster in the rocket', 'Yes, the ball floats in the rocket']
+    choices: ["No, no experiment inside the lift can tell","Yes, the ball falls faster in the rocket","Yes, the ball floats in the rocket"]
     ans: 0
     why: That is the equivalence principle. Locally, the effects of gravity and of steady acceleration are the same.
   - q: Why do astronauts float in the space station, about 400 km up?
-    choices: ['They and the station are falling round the Earth together', 'There is no gravity at that height', 'The station is shielded from gravity']
-    ans: 0
+    choices: ["There is no gravity at that height","They and the station are falling round the Earth together","The station is shielded from gravity"]
+    ans: 1
     why: Gravity up there is still about 90% as strong as on the ground. The station and everyone in it are in free fall, so nothing presses on anything.
   - q: What did Einstein conclude about light from the equivalence principle?
-    choices: ['Gravity must bend light', 'Light has no energy', 'Light speeds up when it falls sideways']
-    ans: 0
+    choices: ["Light has no energy","Light speeds up when it falls sideways","Gravity must bend light"]
+    ans: 2
     why: In a speeding-up lift a beam crossing it curves downward. If gravity is the same as acceleration, light must curve in gravity too.
 sources:
   - 'A. Einstein (1907), Über das Relativitätsprinzip und die aus demselben gezogenen Folgerungen, Jahrbuch der Radioaktivität und Elektronik 4, 411'

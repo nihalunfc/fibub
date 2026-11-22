@@ -6,15 +6,15 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "How far away, today, is the edge of the observable universe?"
-    choices: ["About 46 billion light-years", "Exactly 13.8 billion light-years", "About 93 billion light-years"]
+    choices: ["About 46 billion light-years","Exactly 13.8 billion light-years","About 93 billion light-years"]
     ans: 0
     why: "Light has travelled for 13.8 billion years, but the space it crossed kept stretching, so its starting point is now about 46 billion light-years away (93 billion is the diameter)."
   - q: "Can we see galaxies that are receding faster than light today?"
-    choices: ["Yes: many galaxies beyond the Hubble distance are visible, because their old light got to us", "No, never", "Only with radio telescopes"]
-    ans: 0
+    choices: ["No, never","Only with radio telescopes","Yes: many galaxies beyond the Hubble distance are visible, because their old light got to us"]
+    ans: 2
     why: "Receding faster than light today does not stop light they sent long ago from reaching us."
   - q: "What is the cosmic event horizon?"
-    choices: ["The distance beyond which light sent today will never reach us, because the expansion is speeding up", "The edge of a black hole", "The edge of the Milky Way"]
+    choices: ["The distance beyond which light sent today will never reach us, because the expansion is speeding up","The edge of a black hole","The edge of the Milky Way"]
     ans: 0
     why: "About 16.6 billion light-years away now. Galaxies beyond it are cut off from us forever, a result of dark energy."
 sources:

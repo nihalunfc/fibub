@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: Why is it called a "ladder"?
-    choices: ['Each method is calibrated using distances from the method below it', 'Because telescopes are stacked on top of each other', 'Because the distances go up in equal steps']
-    ans: 0
+    choices: ["Because telescopes are stacked on top of each other","Each method is calibrated using distances from the method below it","Because the distances go up in equal steps"]
+    ans: 1
     why: Parallax calibrates Cepheids, Cepheids calibrate supernovae, and so on. Each rung rests on the one beneath.
   - q: Three rungs have errors of 1%, 1% and 3%. Roughly what is the total?
-    choices: ['About 3.3%', '5%', '1%']
+    choices: ["About 3.3%","5%","1%"]
     ans: 0
     why: Independent errors add in quadrature, √(1 + 1 + 9) ≈ 3.3%. The biggest error dominates.
   - q: Why does a 1% error in distances matter to cosmology?
-    choices: ['It becomes about a 1% error in the expansion rate and the age of the universe', 'It does not matter at all', 'It changes the speed of light']
-    ans: 0
+    choices: ["It does not matter at all","It changes the speed of light","It becomes about a 1% error in the expansion rate and the age of the universe"]
+    ans: 2
     why: The Hubble constant is speed divided by distance, so every percent of distance error passes straight into it, and into the age worked out from it.
 sources:
   - 'Gaia Collaboration (2023), Gaia Data Release 3: summary of the content and survey properties, A&A 674, A1 https://doi.org/10.1051/0004-6361/202243940'

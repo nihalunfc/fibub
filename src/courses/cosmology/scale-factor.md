@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "If the scale factor was a = 0.25 when some light set out, what is its redshift?"
-    choices: ["z = 3", "z = 0.25", "z = 4"]
-    ans: 0
+    choices: ["z = 0.25","z = 3","z = 4"]
+    ans: 1
     why: "1 + z = 1 / a = 4, so z = 3. Every distance was a quarter of today's."
   - q: "What is a comoving distance?"
-    choices: ["A distance on a map that stretches with the universe, equal to today's distance", "The distance light has travelled", "The size of a galaxy"]
+    choices: ["A distance on a map that stretches with the universe, equal to today's distance","The distance light has travelled","The size of a galaxy"]
     ans: 0
     why: "Galaxies keep the same map (comoving) positions; the real distance at any time is a × the map distance."
   - q: "What does the Hubble rate H = ȧ/a measure?"
-    choices: ["The fraction by which distances grow per unit time", "The size of the universe", "The speed of the Milky Way"]
-    ans: 0
+    choices: ["The size of the universe","The fraction by which distances grow per unit time","The speed of the Milky Way"]
+    ans: 1
     why: "ȧ is how fast a grows, and dividing by a turns it into a percentage-style rate, the same for every distance."
 sources:
   - "D. W. Hogg (1999), Distance measures in cosmology https://arxiv.org/abs/astro-ph/9905116"

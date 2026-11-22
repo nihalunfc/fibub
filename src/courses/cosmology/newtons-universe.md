@@ -6,15 +6,15 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: The Moon is about 60 Earth radii from the Earth's centre. How much weaker is Earth's gravity there?
-    choices: ['3,600 times weaker', '60 times weaker', '120 times weaker']
-    ans: 0
+    choices: ["60 times weaker","3,600 times weaker","120 times weaker"]
+    ans: 1
     why: Gravity weakens as 1/distance², and 60² = 3,600.
   - q: What did Richard Bentley ask Newton in 1692?
-    choices: ['If every star pulls on every other, why haven''t they all fallen together?', 'Why is the sky blue?', 'How far away is the Sun?']
-    ans: 0
+    choices: ["Why is the sky blue?","How far away is the Sun?","If every star pulls on every other, why haven't they all fallen together?"]
+    ans: 2
     why: An evenly spread, still universe held together only by attraction is unstable. Newton argued an infinite universe might balance, but that balance is knife-edge.
   - q: In the simulation, what happens if the stars start moving apart fast enough?
-    choices: ['Gravity slows them but cannot stop them, so they keep spreading', 'They stop and stay still forever', 'They collapse faster']
+    choices: ["Gravity slows them but cannot stop them, so they keep spreading","They stop and stay still forever","They collapse faster"]
     ans: 0
     why: Like a ball thrown faster than escape speed, an expanding cloud can outrun its own gravity. This is the seed of the expanding universe in Module 4.
 sources:

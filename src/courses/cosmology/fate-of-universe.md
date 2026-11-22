@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "If dark energy is a cosmological constant, how does the universe end?"
-    choices: ["A Big Freeze: it expands for ever, and stars burn out until everything is cold and dark", "A Big Crunch in 20 billion years", "A Big Rip"]
+    choices: ["A Big Freeze: it expands for ever, and stars burn out until everything is cold and dark","A Big Crunch in 20 billion years","A Big Rip"]
     ans: 0
     why: "Λ never thins, so expansion continues exponentially for ever. Not a sudden end, but a slow fading called heat death."
   - q: "What kind of dark energy would cause a Big Rip?"
-    choices: ["Phantom dark energy, with w below −1, which grows denser as space grows", "Any dark energy with w = −1", "Dark matter"]
-    ans: 0
+    choices: ["Any dark energy with w = −1","Phantom dark energy, with w below −1, which grows denser as space grows","Dark matter"]
+    ans: 1
     why: "Its density and the expansion rate climb without limit, reaching infinite size in a finite time and tearing apart galaxies, then stars, planets and atoms."
   - q: "Could the universe still end in a Big Crunch?"
-    choices: ["Only if dark energy decays and turns negative, or something like it; nothing measured points that way now", "Yes, it certainly will", "No, never under any physics"]
-    ans: 0
+    choices: ["Yes, it certainly will","No, never under any physics","Only if dark energy decays and turns negative, or something like it; nothing measured points that way now"]
+    ans: 2
     why: "Our flat universe with positive dark energy keeps growing. A crunch needs the push to turn into a pull, which a few speculative models allow."
 sources:
   - "R. R. Caldwell, M. Kamionkowski and N. N. Weinberg (2003), Phantom energy: dark energy with w < −1 causes a cosmic doomsday, Physical Review Letters 91, 071301 https://doi.org/10.1103/PhysRevLett.91.071301"

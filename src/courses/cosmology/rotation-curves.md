@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "If all of a galaxy's mass were in its bright middle, how would orbital speeds change far out?"
-    choices: ["They would fall, as 1 over the square root of the distance, like the planets", "They would stay the same", "They would rise"]
-    ans: 0
+    choices: ["They would stay the same","They would fall, as 1 over the square root of the distance, like the planets","They would rise"]
+    ans: 1
     why: "Outside the mass, v = √(GM/r): four times farther out, half the speed. That is how the planets move round the Sun."
   - q: "A galaxy's rotation curve stays flat at 200 km/s from 10 kpc out to 40 kpc. How does the mass inside 40 kpc compare with the mass inside 10 kpc?"
-    choices: ["About 4 times bigger", "The same", "Half as big"]
-    ans: 0
+    choices: ["The same","About 4 times bigger","Half as big"]
+    ans: 1
     why: "M = v²r/G. With v the same, the mass inside grows in step with r: four times the radius, four times the mass, though there is little light out there."
   - q: "Why did radio telescopes matter so much for rotation curves?"
-    choices: ["Cold hydrogen gas, seen in the 21 cm line, reaches far beyond the visible stars", "Radio waves travel faster than light", "Radio telescopes can see dark matter directly"]
-    ans: 0
+    choices: ["Radio waves travel faster than light","Cold hydrogen gas, seen in the 21 cm line, reaches far beyond the visible stars","Radio telescopes can see dark matter directly"]
+    ans: 1
     why: "The hydrogen gas disc extends two or more times beyond the stars, so its Doppler shifts track orbits where there is almost no starlight, and they stay fast."
 sources:
   - "V. C. Rubin and W. K. Ford (1970), Rotation of the Andromeda nebula from a spectroscopic survey of emission regions, ApJ 159, 379 https://doi.org/10.1086/150317"

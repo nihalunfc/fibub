@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "Why are direct detection experiments built deep underground?"
-    choices: ["Rock blocks cosmic rays, whose particles would swamp the rare dark matter signals", "Dark matter only exists underground", "It is warmer down there"]
-    ans: 0
+    choices: ["Dark matter only exists underground","It is warmer down there","Rock blocks cosmic rays, whose particles would swamp the rare dark matter signals"]
+    ans: 2
     why: "Cosmic ray particles hit the surface constantly. A kilometre or more of rock stops almost all of them, while dark matter passes straight through the rock."
   - q: "What does a direct detection experiment like LZ look for?"
-    choices: ["The tiny flash and electric charge from a xenon nucleus kicked by a passing dark matter particle", "Dark matter glowing in the dark", "Gamma rays from the centre of the Galaxy"]
-    ans: 0
+    choices: ["Dark matter glowing in the dark","Gamma rays from the centre of the Galaxy","The tiny flash and electric charge from a xenon nucleus kicked by a passing dark matter particle"]
+    ans: 2
     why: "A WIMP bumping a nucleus gives it a few to tens of keV. The recoiling nucleus makes a flash of light and frees some electrons, which the detector records."
   - q: "As of 2025, has any experiment confirmed a detection of dark matter particles?"
-    choices: ["No: there are hints and claims, but no confirmed detection", "Yes, at the LHC in 2012", "Yes, by the LZ experiment"]
-    ans: 0
+    choices: ["Yes, at the LHC in 2012","No: there are hints and claims, but no confirmed detection","Yes, by the LZ experiment"]
+    ans: 1
     why: "The LHC found the Higgs boson in 2012, not dark matter. LZ, XENONnT and PandaX have set ever tighter limits. Claims such as DAMA's yearly signal and the galactic centre gamma-ray excess are not confirmed."
 sources:
   - "LZ Collaboration (2024), Dark matter search results from 4.2 tonne-years of exposure of the LUX-ZEPLIN (LZ) experiment, arXiv:2410.17036 https://arxiv.org/abs/2410.17036"

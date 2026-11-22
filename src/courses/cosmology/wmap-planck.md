@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "Why did WMAP and Planck observe the sky at several frequencies?"
-    choices: ["To separate the CMB, which has the same blackbody temperature at every frequency, from the Milky Way's glow, which does not", "To see different times in the universe's history", "To take colour photographs"]
-    ans: 0
+    choices: ["To see different times in the universe's history","To take colour photographs","To separate the CMB, which has the same blackbody temperature at every frequency, from the Milky Way's glow, which does not"]
+    ans: 2
     why: "The Milky Way's dust and radio glow change strongly with frequency; the CMB does not. Comparing bands lets them subtract the foreground."
   - q: "Roughly how sharp was Planck's view, at its best?"
-    choices: ["About 7°", "About 5 arcminutes, a sixth of the full Moon", "About 1 arcsecond"]
-    ans: 1
+    choices: ["About 7°","About 1 arcsecond","About 5 arcminutes, a sixth of the full Moon"]
+    ans: 2
     why: "Planck's best beam was about 5 arcminutes (0.08°), compared with WMAP's 13 arcminutes and COBE's 7°."
   - q: "Why did both satellites orbit the L2 point, 1.5 million km from Earth?"
-    choices: ["To be closer to the CMB", "To escape the solar wind", "Sun, Earth and Moon all stay behind them, so the telescope can look away from their heat and glow while it scans the sky"]
-    ans: 2
+    choices: ["Sun, Earth and Moon all stay behind them, so the telescope can look away from their heat and glow while it scans the sky","To be closer to the CMB","To escape the solar wind"]
+    ans: 0
     why: "From L2 the Sun, Earth and Moon are always on the same side, so a sunshield keeps the instruments cold and dark while they spin and map the whole sky."
 sources:
   - "C. L. Bennett et al. (2003), First-year Wilkinson Microwave Anisotropy Probe (WMAP) observations: preliminary maps and basic results, ApJS 148, 1 https://doi.org/10.1086/377253"

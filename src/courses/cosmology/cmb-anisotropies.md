@@ -6,15 +6,15 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "How big are the CMB's temperature ripples?"
-    choices: ["About 1 part in 100: a few hundredths of a kelvin", "About 1 part in 100,000: tens of millionths of a kelvin", "About 1 part in a billion"]
-    ans: 1
+    choices: ["About 1 part in 100: a few hundredths of a kelvin","About 1 part in a billion","About 1 part in 100,000: tens of millionths of a kelvin"]
+    ans: 2
     why: "Typical ripples are tens of microkelvin on 2.7255 K, about 1 part in 100,000. COBE found them in 1992."
   - q: "On the largest scales, why does a region that was slightly denser look slightly colder?"
-    choices: ["Light climbing out of its deeper gravity well loses energy (the Sachs-Wolfe effect)", "Dense regions are made of colder gas", "Dense regions block the light"]
+    choices: ["Light climbing out of its deeper gravity well loses energy (the Sachs-Wolfe effect)","Dense regions are made of colder gas","Dense regions block the light"]
     ans: 0
     why: "The region is a little hotter to start with, but its light loses more energy climbing out of the well. The climb wins: ΔT/T = Φ/(3c²), with Φ negative in a well."
   - q: "What does the multipole ℓ in the power spectrum stand for?"
-    choices: ["The temperature of a spot", "The number of the satellite", "The size of the ripple on the sky, roughly 180° divided by ℓ"]
+    choices: ["The temperature of a spot","The number of the satellite","The size of the ripple on the sky, roughly 180° divided by ℓ"]
     ans: 2
     why: "The power spectrum sorts the ripples by size, like a graphic equaliser sorting music by pitch. ℓ = 2 is the biggest pattern; ℓ = 200 means spots about 1° across."
 sources:

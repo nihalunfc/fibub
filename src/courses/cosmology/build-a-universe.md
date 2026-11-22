@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "In the simulator, what happens if you give a universe lots of matter and no dark energy?"
-    choices: ["It expands, stops and collapses in a Big Crunch", "It speeds up forever", "It never had a Big Bang"]
+    choices: ["It expands, stops and collapses in a Big Crunch","It speeds up forever","It never had a Big Bang"]
     ans: 0
     why: "With more than the critical amount of matter and nothing to push, gravity wins in the end."
   - q: "What can make a universe have no Big Bang in the simulator?"
-    choices: ["A lot of dark energy compared with matter, so that in the past it bounced from a smallest size", "No matter at all and no dark energy", "A small Hubble constant"]
-    ans: 0
+    choices: ["No matter at all and no dark energy","A small Hubble constant","A lot of dark energy compared with matter, so that in the past it bounced from a smallest size"]
+    ans: 2
     why: "If dark energy is strong enough, running time backwards, the expansion turns round before the universe gets small. Our measured mix rules this out."
   - q: "For our measured ingredients, which pair of facts is right?"
-    choices: ["Flat, about 13.8 billion years old, and expanding forever faster and faster", "Closed and heading for a Big Crunch", "Open and slowing down"]
-    ans: 0
+    choices: ["Closed and heading for a Big Crunch","Flat, about 13.8 billion years old, and expanding forever faster and faster","Open and slowing down"]
+    ans: 1
     why: "Ωm ≈ 0.31 and ΩΛ ≈ 0.69 add to 1 (flat), give 13.8 billion years with H0 = 67.7, and q0 ≈ −0.53 (speeding up)."
 sources:
   - "Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, A&A 641, A6 https://doi.org/10.1051/0004-6361/201833910"

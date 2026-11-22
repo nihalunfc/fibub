@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "Why does a perfect blackbody spectrum point to a hot, dense past?"
-    choices: ["Only matter and light that have traded energy back and forth for a long time, in a dense fog, settle into a blackbody", "Because all light is blackbody light", "Because the CMB comes from stars"]
-    ans: 0
+    choices: ["Because all light is blackbody light","Only matter and light that have traded energy back and forth for a long time, in a dense fog, settle into a blackbody","Because the CMB comes from stars"]
+    ans: 1
     why: "A blackbody is the signature of thermal equilibrium. Today's thin, transparent universe cannot make one; a dense, opaque early universe made it naturally."
   - q: "What happens to a blackbody spectrum when the universe expands by a factor of 2?"
-    choices: ["It becomes a distorted, non-blackbody curve", "It stays a blackbody, at half the temperature", "It stays a blackbody at the same temperature but fainter"]
+    choices: ["It becomes a distorted, non-blackbody curve","It stays a blackbody, at half the temperature","It stays a blackbody at the same temperature but fainter"]
     ans: 1
     why: "Every photon's frequency halves and their number per volume drops by 8, which is exactly a blackbody at half the temperature."
   - q: "The CMB's brightness per unit frequency peaks at 160.2 GHz. Why is its Wien peak wavelength 1.06 mm and not c ÷ 160.2 GHz = 1.87 mm?"
-    choices: ["Because the CMB is not quite a blackbody", "Because of the Doppler effect", "Because peaks per unit wavelength and per unit frequency fall in different places: both are correct"]
-    ans: 2
+    choices: ["Because the CMB is not quite a blackbody","Because peaks per unit wavelength and per unit frequency fall in different places: both are correct","Because of the Doppler effect"]
+    ans: 1
     why: "Spreading the same light over equal steps of wavelength or of frequency gives curves of different shape, with peaks at different places. Neither is wrong; just say which one you mean."
 sources:
   - "J. C. Mather et al. (1990), A preliminary measurement of the cosmic microwave background spectrum by the Cosmic Background Explorer (COBE) satellite, ApJ 354, L37 https://doi.org/10.1086/185717"

@@ -6,15 +6,15 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "In MOND, when does gravity differ from Newton's law?"
-    choices: ["When the pull is weaker than about a0 = 1.2 × 10⁻¹⁰ m/s², as far out in galaxies", "Only near black holes", "Only on Earth"]
-    ans: 0
+    choices: ["Only near black holes","When the pull is weaker than about a0 = 1.2 × 10⁻¹⁰ m/s², as far out in galaxies","Only on Earth"]
+    ans: 1
     why: "Below a0, MOND's pull is about √(g_N a0), stronger than Newton's g_N. In the Solar System pulls are far above a0, so MOND and Newton agree there."
   - q: "What does MOND predict for the flat speed of a galaxy with visible mass M?"
-    choices: ["v⁴ = G M a0: the baryonic Tully-Fisher relation", "v = 0", "v grows forever with distance"]
-    ans: 0
+    choices: ["v = 0","v grows forever with distance","v⁴ = G M a0: the baryonic Tully-Fisher relation"]
+    ans: 2
     why: "Setting v²/r = √(G M a0)/r gives v⁴ = G M a0, independent of r: flat curves, and mass ∝ v⁴, which galaxies follow closely."
   - q: "Which observation is hardest for MOND without any unseen matter?"
-    choices: ["Galaxy clusters and the Bullet Cluster, plus the CMB peaks", "Rotation curves of spiral galaxies", "The orbits of the planets"]
+    choices: ["Galaxy clusters and the Bullet Cluster, plus the CMB peaks","Rotation curves of spiral galaxies","The orbits of the planets"]
     ans: 0
     why: "Even with MOND, clusters need about twice the mass we see, and the Bullet Cluster's mass is offset from its gas. The CMB's high third peak needs something that acts like dark matter."
 sources:

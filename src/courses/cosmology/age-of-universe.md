@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "What is the Hubble time?"
-    choices: ["1/H0: the age the universe would have if galaxies had always moved at today's speeds", "The time light takes to cross the Milky Way", "The age of the Hubble telescope"]
+    choices: ["1/H0: the age the universe would have if galaxies had always moved at today's speeds","The time light takes to cross the Milky Way","The age of the Hubble telescope"]
     ans: 0
     why: "Distance ÷ speed is the same for every galaxy, 1/H0, about 14 billion years for H0 = 70."
   - q: "In the 1990s, why did some measurements suggest a universe younger than its oldest stars?"
-    choices: ["A high H0 combined with a universe of matter only, slowed by gravity, gives an age of only 8 to 10 billion years", "The stars were measured wrongly by a factor of ten", "The universe was shrinking"]
-    ans: 0
+    choices: ["The stars were measured wrongly by a factor of ten","The universe was shrinking","A high H0 combined with a universe of matter only, slowed by gravity, gives an age of only 8 to 10 billion years"]
+    ans: 2
     why: "Matter-only universes are 2/3 of 1/H0 old. With H0 near 70 to 80 that is 8 to 9 billion years, less than the 12 or more of the oldest stars. Dark energy fixed it."
   - q: "The standard model gives 13.8 billion years. How does that compare with the Hubble time for H0 = 67.7?"
-    choices: ["Very close: early slowing and later speeding up almost cancel", "It is exactly half", "It is ten times bigger"]
-    ans: 0
+    choices: ["It is exactly half","It is ten times bigger","Very close: early slowing and later speeding up almost cancel"]
+    ans: 2
     why: "1/H0 is 14.4 billion years. The expansion slowed for the first 7 to 8 billion years, then sped up, and the two effects nearly balance."
 sources:
   - "Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, A&A 641, A6 https://doi.org/10.1051/0004-6361/201833910"

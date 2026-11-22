@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: What is the event horizon of a black hole?
-    choices: ['The boundary from inside which nothing, not even light, can get out', 'The solid surface of the black hole', 'The ring of hot gas around it']
-    ans: 0
+    choices: ["The solid surface of the black hole","The ring of hot gas around it","The boundary from inside which nothing, not even light, can get out"]
+    ans: 2
     why: It is not a surface. It is a one-way boundary in spacetime; from inside it, every path leads further in.
   - q: If the Sun were replaced by a black hole of the same mass, what would happen to Earth's orbit?
-    choices: ['Nothing: Earth would orbit just as before', 'Earth would be sucked in', 'Earth would fly off into space']
+    choices: ["Nothing: Earth would orbit just as before","Earth would be sucked in","Earth would fly off into space"]
     ans: 0
     why: Far from it, a black hole pulls exactly like any other object of the same mass. It would get very cold and dark, though.
   - q: How did astronomers weigh the black hole at the centre of the Milky Way?
-    choices: ['By tracking stars orbiting it for decades', 'By measuring its brightness', 'By sending a spacecraft']
-    ans: 0
+    choices: ["By measuring its brightness","By tracking stars orbiting it for decades","By sending a spacecraft"]
+    ans: 1
     why: Stars such as S2 race round an invisible point in years. Their orbits give a mass of about 4.3 million Suns packed into a tiny space.
 sources:
   - 'Event Horizon Telescope Collaboration (2019), First M87 Event Horizon Telescope results. I. The shadow of the supermassive black hole, ApJ Letters 875, L1 https://doi.org/10.3847/2041-8213/ab0ec7'

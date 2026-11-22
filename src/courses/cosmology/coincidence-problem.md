@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "When were the densities of matter and dark energy equal?"
-    choices: ["At redshift about 0.3, roughly 3.6 billion years ago", "At the Big Bang", "They have always been equal"]
+    choices: ["At redshift about 0.3, roughly 3.6 billion years ago","At the Big Bang","They have always been equal"]
     ans: 0
     why: "Solving Ωm(1 + z)³ = ΩΛ with 0.31 and 0.69 gives 1 + z = 1.31. Very recent in cosmic terms."
   - q: "Why did the speeding up begin before matter and dark energy were equal?"
-    choices: ["Matter's pull counts ρ, but Λ's push counts 2ρ, so the push wins once matter is down to twice Λ's density", "Because light pushed first", "It did not; they happened at the same time"]
+    choices: ["Matter's pull counts ρ, but Λ's push counts 2ρ, so the push wins once matter is down to twice Λ's density","Because light pushed first","It did not; they happened at the same time"]
     ans: 0
     why: "Gravity's source is ρ + 3p/c²: matter gives ρm, Λ gives −2ρΛ. The switch is at ρm = 2ρΛ, z ≈ 0.65, about 6 billion years ago."
   - q: "Which of these is a proposed answer to the coincidence problem?"
-    choices: ["Observers can only exist after billions of years of star and planet formation, which happens to be around now (a selection effect)", "Dark energy switched on 6 billion years ago", "Matter stopped thinning out"]
-    ans: 0
+    choices: ["Dark energy switched on 6 billion years ago","Matter stopped thinning out","Observers can only exist after billions of years of star and planet formation, which happens to be around now (a selection effect)"]
+    ans: 2
     why: "Other ideas include tracker fields that follow matter and then take over. None is settled. Dark energy did not switch on: it was always there, just outweighed."
 sources:
   - "I. Zlatev, L. Wang and P. J. Steinhardt (1999), Quintessence, cosmic coincidence, and the cosmological constant, Physical Review Letters 82, 896 https://doi.org/10.1103/PhysRevLett.82.896"
