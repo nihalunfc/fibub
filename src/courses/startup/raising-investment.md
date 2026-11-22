@@ -41,6 +41,20 @@ Investors give money for a share of the company. **Pre-money valuation** is what
 
 Raise ₹2 crore at ₹8 crore pre-money: the investor owns 2 ÷ 10 = 20 %.
 
+Watch the founders' share fall round by round, then compare it with what the stake is worth.
+
+<div class="steps" data-fig="@biz-dilution-steps">
+
+<div class="step">Two founders hold the shares, 60% and 40%.</div>
+
+<div class="step">An option pool of 10% is created before the investor arrives. Only the existing holders are diluted.</div>
+
+<div class="step">Seed round: $1M buys 20% of the company, and the price per share is set.</div>
+
+<div class="step">Series A: $5M for 25%. Founder A holds less than a third, but the stake is worth much more.</div>
+
+</div>
+
 ## 2. The instruments
 
 - **Priced round:** investors buy preferred shares at a set price per share, with a term sheet, shareholder agreement and board rights. Standard from Series A; sometimes seed.
@@ -50,6 +64,14 @@ Raise ₹2 crore at ₹8 crore pre-money: the investor owns 2 ÷ 10 = 20 %.
 <!--fig:safe-convert-->
 
 > **Key idea:** A SAFE feels like free money but it is dilution you have already sold. Keep a running total of all SAFEs and model them in your cap table (Lesson 6.6).
+
+Try it: change the cash you have and the monthly costs, then see the month the money runs out.
+
+<figure class="fig" data-fig="@biz-runway-burn"><figcaption>Notice that a cut in costs buys months in a way you can count.</figcaption></figure>
+
+Press Play to watch monthly recurring revenue grow while some customers leave every month.
+
+<figure class="fig" data-fig="@biz-mrr-churn"><figcaption>Notice the ceiling: with flat new sales, revenue can never pass new sales divided by churn.</figcaption></figure>
 
 ## 3. Securities law: every share sale is regulated
 

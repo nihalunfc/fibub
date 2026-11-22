@@ -47,6 +47,10 @@ The caveat "includes a new store" changes the story from "29 % growth" to "14 % 
 **Principle:** confidence is part of the message. "Probably" and "certainly" lead to different decisions, so don't leave the reader to guess which you meant.
 </details>
 
+Try it: change the number of people surveyed and run new surveys.
+
+<figure class="fig" data-fig="@biz-sampling-error"><figcaption>Notice that bigger samples shrink the error bars, but only slowly.</figcaption></figure>
+
 ## 4. Worked example
 
 *Draft claim:* "The new store will bring in $36k next year."

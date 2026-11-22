@@ -33,6 +33,10 @@ Every business question is about time: this month, last year, year to date, the 
 - **Sort columns**: Month sorted by MonthNo, Weekday sorted by a weekday number.
 - **Relationships** from Date[Date] to the date column of every fact table.
 
+Try it: pick a time function and move the month, and see which months are selected.
+
+<figure class="fig" data-fig="@biz-time-intel"><figcaption>Notice that YTD restarts every January and that last year's version is blank in the first year.</figcaption></figure>
+
 ## 3. Build it with DAX
 
 **Modeling > New table**, then:

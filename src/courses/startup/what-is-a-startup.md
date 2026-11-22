@@ -42,6 +42,10 @@ Neither is better. A startup aims for a big outcome and most fail; a small busin
 
 > **Key idea:** "Startup" describes the growth plan, not the product. An online shop can be a small business; a factory making a new kind of battery can be a startup.
 
+Press Play to watch monthly recurring revenue grow while some customers leave every month.
+
+<figure class="fig" data-fig="@biz-mrr-churn"><figcaption>Notice the ceiling: with flat new sales, revenue can never pass new sales divided by churn.</figcaption></figure>
+
 ## 2. Why the difference matters legally
 
 Your growth plan decides three things early:

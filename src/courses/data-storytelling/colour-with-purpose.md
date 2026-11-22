@@ -51,6 +51,10 @@ Now try the four colour schemes on the same chart. Pick **Grey plus one colour**
 **Physical meaning:** your visual system scans for what is different. A red car in a grey car park is found instantly; a red car in a car park of every colour takes a search.
 </details>
 
+Try it: flip between a colour for every line and grey with one highlighted.
+
+<figure class="fig" data-fig="@biz-highlight-colour"><figcaption>Notice where your eye goes first in each version.</figcaption></figure>
+
 ## 4. Worked example
 
 *A slide about Electronics' Christmas peak* shows four category lines in four bright colours. The reader has to match colours to a legend, then work out which line matters. Fix: Electronics in blue, the other three in light grey, title "Electronics jumps every November and December", with "Electronics" in the same blue. Now the point arrives before the reader has read the axis.

@@ -50,6 +50,22 @@ Most charts have titles like "Sales by Store". The reader then has to work out t
 **Analogy:** a newspaper. "Storm closes 40 schools" is a headline; "Weather report" is not. You'd read the first.
 </details>
 
+Add annotations one layer at a time.
+
+<div class="steps" data-fig="@biz-annotation-steps">
+
+<div class="step">The default chart: a vague title, a legend and gridlines.</div>
+
+<div class="step">A title that states the finding.</div>
+
+<div class="step">Direct labels instead of a legend, and no gridlines.</div>
+
+<div class="step">The promotion marked on the chart.</div>
+
+<div class="step">The gap between this year and last year, shaded and quantified.</div>
+
+</div>
+
 ## 4. Try it
 
 Write an action title for this chart. Press **Check** for feedback, then compare with the sample.

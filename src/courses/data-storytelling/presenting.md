@@ -39,6 +39,20 @@ For many analysts, presenting is where the work becomes visible to the people wh
 4. **Prepare backup:** appendix slides for the three questions you expect.
 5. **Check every number** on the slides against the source. One wrong number undermines all the others.
 
+Step through a dashboard from the top block to the bottom.
+
+<div class="steps" data-fig="@biz-dashboard-arc">
+
+<div class="step">Headline: what happened?</div>
+
+<div class="step">Trend: better or worse?</div>
+
+<div class="step">Breakdown: where is it coming from?</div>
+
+<div class="step">Action: what do we do?</div>
+
+</div>
+
 ## 4. During
 
 1. **Open with the answer and the ask:** "I'm going to recommend we report like-for-like growth monthly. Here's why."

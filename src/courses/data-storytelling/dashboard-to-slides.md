@@ -49,6 +49,22 @@ The last step is a slide: title, subtitle, one chart, one note.
 **Analogy:** chapters in a book. Each has one job, and the chapter titles alone give you the plot.
 </details>
 
+Add annotations one layer at a time.
+
+<div class="steps" data-fig="@biz-annotation-steps">
+
+<div class="step">The default chart: a vague title, a legend and gridlines.</div>
+
+<div class="step">A title that states the finding.</div>
+
+<div class="step">Direct labels instead of a legend, and no gridlines.</div>
+
+<div class="step">The promotion marked on the chart.</div>
+
+<div class="step">The gap between this year and last year, shaded and quantified.</div>
+
+</div>
+
 ## 4. Worked example
 
 *Northbay's 2025 dashboard has 4 pages and 18 visuals.* The deck for the regional manager:

@@ -51,6 +51,10 @@ When you want to compare shapes, small multiples work better than one tangled ch
 **Analogy:** a train timetable (table: find your train) vs a route map (picture: see how lines connect). Both are useful; neither replaces the other.
 </details>
 
+Try it: switch from one crowded chart to small panels, then change the scale.
+
+<figure class="fig" data-fig="@biz-small-multiples"><figcaption>Notice that shared scales are fair, and separate scales show shape but hide size.</figcaption></figure>
+
 ## 4. Worked example
 
 *Four categories' monthly sales in one line chart:* four lines cross each other and the reader has to match colours to a legend. *As small multiples:* four panels, same scale. In seconds you see Outdoor peaks in summer, Electronics jumps at Christmas, Home is steady and Grocery is flat and small. That's a stocking decision made easy.

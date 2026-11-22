@@ -39,6 +39,22 @@ Go to the last step of this chart: one circled point, one note, and labels at th
 - **Annotate events:** "New store opened", "Price rise", "Snowstorm closures". One short line, near the point, in a muted or highlight colour.
 - **Source and notes:** a small line under the chart: "Source: Northbay sales system. 2025 includes Forks Market from March."
 
+Add annotations one layer at a time.
+
+<div class="steps" data-fig="@biz-annotation-steps">
+
+<div class="step">The default chart: a vague title, a legend and gridlines.</div>
+
+<div class="step">A title that states the finding.</div>
+
+<div class="step">Direct labels instead of a legend, and no gridlines.</div>
+
+<div class="step">The promotion marked on the chart.</div>
+
+<div class="step">The gap between this year and last year, shaded and quantified.</div>
+
+</div>
+
 ## 4. Formatting numbers
 
 1. **Round:** $78k, not $78,295.37, on charts. Keep exact values for tables.

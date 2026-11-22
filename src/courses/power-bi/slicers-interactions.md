@@ -34,6 +34,20 @@ Interactivity is what makes Power BI more than a printed report. Badly set up, i
 
 Every selection becomes part of each visual's filter context (Lesson 5.1).
 
+Follow the filters from the slicers down to the rows that the measure adds up.
+
+<div class="steps" data-fig="@biz-filter-steps">
+
+<div class="step">No filter: every row counts and the total is $870.</div>
+
+<div class="step">Store = Rideau: the slicer filters the Store table, and the filter flows to Sales. Only Rideau rows remain.</div>
+
+<div class="step">Category = Home as well: both filters apply together, so only Rideau AND Home rows remain.</div>
+
+<div class="step">The measure SUM(Sales[Amount]) adds the amounts of the rows left. Now change the slicers yourself.</div>
+
+</div>
+
 ## 3. Cross-filtering and highlighting
 
 Click a bar and other visuals on the page react: by default they **highlight** (show the selected part darker) or **filter**. Select a visual, then **Format > Edit interactions**: icons appear on the other visuals to choose **Filter**, **Highlight** or **None**. Typical choices: the card row should filter; a "total company" chart should ignore clicks (None).

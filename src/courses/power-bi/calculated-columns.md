@@ -35,6 +35,10 @@ Beginners make everything a calculated column because it feels like Excel. Model
 | Can go on a slicer, axis or rows | yes | no |
 | Good for | attributes to group or filter by | numbers that must respect filters: totals, ratios, time comparisons |
 
+Try it: press Play in column mode, then switch to Measure and use the Store slicer.
+
+<figure class="fig" data-fig="@biz-row-vs-filter"><figcaption>Notice that a column is worked out row by row and stored, and a measure is worked out for whatever the filters leave.</figcaption></figure>
+
 ## 3. Try a column
 
 A calculated column has a current row, so it can use the row's columns directly:

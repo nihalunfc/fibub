@@ -46,6 +46,10 @@ The idea and the first months of work are worth little next to the five to ten y
 </div>
 
 
+Try it: move the cliff and the months worked, or press Play, and see how many shares are vested if someone leaves then.
+
+<figure class="fig" data-fig="@biz-vesting"><figcaption>Notice that before the cliff the vested amount is zero, then a block arrives at once.</figcaption></figure>
+
 ## 2. What counts
 
 - **Commitment:** full-time now versus part-time or "when we raise".
