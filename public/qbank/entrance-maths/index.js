@@ -32,6 +32,14 @@ export default {
         {
           "id": "quadratic-equations",
           "name": "Quadratic equations and inequalities"
+        },
+        {
+          "id": "permutations-combinations",
+          "name": "Permutations and combinations"
+        },
+        {
+          "id": "binomial-theorem",
+          "name": "Binomial theorem"
         }
       ]
     }

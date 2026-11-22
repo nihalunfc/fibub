@@ -33,6 +33,14 @@ export default {
         {
           "id": "laws-of-motion",
           "name": "Laws of motion and friction"
+        },
+        {
+          "id": "work-energy-power",
+          "name": "Work, energy and power"
+        },
+        {
+          "id": "centre-of-mass-collisions",
+          "name": "Centre of mass, momentum and collisions"
         }
       ]
     }

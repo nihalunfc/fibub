@@ -16,7 +16,7 @@ const banks = await Promise.all(subjects.map(async (s) => ({ s, bank: `entrance-
 const written = banks.reduce((a, b) => a + Object.values(b.topics).reduce((x, c) => x + c.items, 0), 0);
 const tmpl = banks.reduce((a, b) => a + Object.values(b.topics).reduce((x, c) => x + c.gens, 0), 0);
 const chapters = banks.reduce((a, b) => a + Object.values(b.topics).filter((c) => n(c) > 0).length, 0);
-const title = `${examName} practice questions with solutions`;
+const title = `${examName} practice questions`;
 const desc = `Free ${examName} practice: original questions for every chapter, from warm-up to top-rank level, in every exam format, each with a full worked solution. No sign-up.`;
 const ld = coursePageLd(course, 'Practice questions', desc, 'practice');
 ---

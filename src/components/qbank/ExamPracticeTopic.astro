@@ -6,10 +6,12 @@ import QBankStatic from './QBankStatic.astro';
 import type { CourseSyllabus } from '../../courses/types';
 import { coursePageLd } from '../../lib/seo';
 import '../../styles/course.css';
-interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { id: string; name: string }; unit: string; count: number; lesson?: { slug: string; title: string }; mock?: boolean }
-const { course, bank, exam, topic, unit, count, lesson, mock = true } = Astro.props;
+interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { id: string; name: string }; unit: string; count: number; lesson?: { slug: string; title: string }; mock?: boolean; label?: string }
+const { course, bank, exam, topic, unit, count, lesson, mock = true, label = course.name } = Astro.props;
 const base = `/learn/courses/${course.id}`;
-const title = `${topic.name}: ${course.name} questions`;
+// Search titles stay within 60 characters with " | fibub": the first that fits, shortest exam label last.
+const short = topic.name.split(':')[0];
+const title = [`${topic.name}: ${label} questions`, `${short}: ${label} questions`, `${short}: ${label}`, `${short} questions`, short].find((t) => t.length <= 52) ?? short.slice(0, 52);
 const desc = `${count} original ${course.name} practice questions on ${topic.name.toLowerCase()} (${unit.toLowerCase()}), from warm-up to top-rank level, with full worked solutions. Free, no sign-up.`;
 const ld = coursePageLd(course, `Practice: ${topic.name}`, desc.slice(0, 160), `practice/${topic.id}`);
 ---

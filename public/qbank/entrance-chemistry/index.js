@@ -33,6 +33,14 @@ export default {
         {
           "id": "chemical-bonding",
           "name": "Chemical bonding and molecular structure"
+        },
+        {
+          "id": "chemical-thermodynamics",
+          "name": "Chemical thermodynamics"
+        },
+        {
+          "id": "chemical-equilibrium",
+          "name": "Chemical equilibrium"
         }
       ]
     }

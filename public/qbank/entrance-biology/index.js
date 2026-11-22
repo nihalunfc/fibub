@@ -22,6 +22,14 @@ export default {
           "name": "Plant kingdom"
         },
         {
+          "id": "animal-kingdom",
+          "name": "Animal kingdom"
+        },
+        {
+          "id": "plant-morphology",
+          "name": "Morphology of flowering plants"
+        },
+        {
           "id": "cell",
           "name": "Cell: the unit of life"
         },
