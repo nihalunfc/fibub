@@ -1,9 +1,35 @@
 ---
-import LearnPage from '../../components/LearnPage.astro';
-import { COURSES } from '../../data/curricula';
-const cards = COURSES.map((c) => ({ name: c.name, text: c.text, href: c.status === 'live' ? c.href : undefined, live: c.status === 'live' }));
+// Every course in one place, with a filter by category (radio chips: works with no script).
+import Base from '../../layouts/Base.astro';
+import CourseCard from '../../components/learn/CourseCard.astro';
+import LearnMore from '../../components/learn/LearnMore.astro';
+import { courseCards } from '../../lib/learn';
+import { COURSE_CATS } from '../../data/curricula';
+import { collectionLd } from '../../lib/seo';
+import '../../styles/area.css';
+import '../../styles/learn.css';
+const cards = await courseCards();
+const n = (cat?: string) => cards.filter((c) => c.status === 'live' && (!cat || c.cat === cat)).length;
+const css = COURSE_CATS.map((k) => `.lh-f:has(#f-${k.id}:checked) .lc:not([data-cat="${k.id}"]){display:none}`).join('');
+const title = 'Learn: Courses';
+const desc = 'Every free fibub course: statistics, machine learning, Offline AI, home skills such as tyres, hand tools, carpentry and wall fixings, and science courses. No sign-up.';
 ---
-<LearnPage title="Learn: Courses" description="Free courses: machine learning from a straight line to an LLM, Offline AI (run AI models on your own computer), home skills such as changing a tyre, fixing a puncture, hand tools, light carpentry and wall fixings, plus coding, AI, space and science."
-  lead="Free courses with no sign-up. New: From a straight line to an LLM, how machines learn from data, with simulations and the maths worked by hand. Then Offline AI, a long course on running AI models on your own computer. Plus home skills: tyres and punctures, hand tools, light carpentry, wall fixings and how machines work. More topics are on the way."
-  cardsTitle="Courses" cards={cards}
-  toolsTitle="Tools the courses will use" tools={['small-model-trainer', 'regression-workbench', 'sky-tonight', 'plot-maker', 'sql-playground', 'budget-calculator', 'tree-carbon', 'sample-size']} />
+<Base title={title} docTitle="Free online courses, no sign-up | fibub" description={desc} ld={collectionLd('Courses', desc, '/learn/courses/', [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Courses', url: '/learn/courses/' }])}>
+  <style is:inline set:html={css}></style>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / Courses</div>
+  <div class="lh-head">
+    <h1>Courses</h1>
+    <p class="lead">{n()} free courses with no sign-up. Pick a topic to narrow the list.</p>
+  </div>
+  <section class="lh-cont" data-continue hidden aria-label="Continue where you left off"><h2>Continue where you left off</h2><ul></ul></section>
+  <div class="lh-f">
+    <div class="lh-tabs" role="radiogroup" aria-label="Topic">
+      <input type="radio" name="cat" id="f-all" value="all" data-hash checked /><label for="f-all">All <small>{n()}</small></label>
+      {COURSE_CATS.map((k) => <><input type="radio" name="cat" id={`f-${k.id}`} value={k.id} data-hash /><label for={`f-${k.id}`}>{k.short} <small>{n(k.id)}</small></label></>)}
+    </div>
+    <div class="lh-grid lh-anim">{cards.map((c, i) => <CourseCard c={c} i={i} />)}</div>
+  </div>
+  <p class="lh-sub" style="margin-top:14px">Looking for school subjects? <a href="/learn/school/">Class 8 to 12, chapter by chapter</a>.</p>
+  <LearnMore here="courses" />
+</Base>
+<script>import '../../scripts/learn';</script>

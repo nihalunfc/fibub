@@ -1,0 +1,15 @@
+---
+// Under a course or lesson: the other courses in the same Learn category, so the next thing is one tap away.
+import { COURSES, COURSE_CATS } from '../../data/curricula';
+interface Props { id: string }
+const c = COURSES.find((x) => x.id === Astro.props.id);
+const k = c && COURSE_CATS.find((x) => x.id === c.cat);
+const others = c ? COURSES.filter((x) => x.cat === c.cat && x.id !== c.id && x.status === 'live' && x.href) : [];
+---
+{k && (
+  <nav class="lh-more" aria-label={`More in ${k.name}`}>
+    <span>More in <a href={k.href} style="border:0;padding:0;color:var(--accent);font-weight:600">{k.name}</a>:</span>
+    {others.map((o) => <a href={o.href}>{o.name}</a>)}
+    <a href="/learn/courses/">All courses</a>
+  </nav>
+)}

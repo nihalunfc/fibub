@@ -15,7 +15,7 @@ export default async ({ page, check, BASE }) => {
   check(r.ok(), `learn class-10: first chapter tool opens (${first})`);
   check(await page.locator('#science-11 .lc-tools a[href="/science/circuit-simulator/"]').count() === 1, 'learn class-10: electricity chapter links the circuit simulator');
   await page.goto(`${BASE}/learn/school/`);
-  check(await page.locator('a.ar-card[href="/learn/class-12/"]').count() === 1, 'learn school: a card per class links to its page');
+  check(await page.locator('a.lk[href="/learn/class-12/"]').count() === 1, 'learn school: a card per class links to its page');
   await page.goto(`${BASE}/science/circuit-simulator/`);
   const syl = await page.locator('nav[aria-label="In the school syllabus"] a').allInnerTexts();
   check(syl.some((t) => t === 'Class 10 Science, chapter 11: Electricity'), `tool page: lists where it is in the school syllabus (${syl.length})`);

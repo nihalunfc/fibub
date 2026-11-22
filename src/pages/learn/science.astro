@@ -1,0 +1,21 @@
+---
+import LearnHub from '../../components/learn/LearnHub.astro';
+import { SUBJECTS, SECTIONS } from '../../site';
+import { allTools } from '../../lib/tools';
+// Science subjects with live tools, as links into the Tools area (/science/<subject>/).
+const all = await allTools();
+const subOf = new Map((SECTIONS.science ?? []).map((x) => [x.id, x.subject]));
+const n = (s: string) => all.filter((t) => t.data.shelf === 'science' && t.data.status === 'live' && subOf.get(t.data.section ?? '') === s).length;
+const subjects = (SUBJECTS.science ?? []).map((s) => ({ ...s, n: n(s.id) })).filter((s) => s.n > 0);
+---
+<LearnHub cat="science" docTitle="Free science and space courses and labs | fibub"
+  description="Free science learning: astronomy and space courses, virtual experiments, and hands-on science tools by subject, from physics and chemistry to ecology. No sign-up."
+  lead="Science you can try for yourself: courses on space and how scientists work, virtual experiments, and hundreds of science tools by subject."
+  tools={['sky-tonight', 'telescope-calculator', 'cosmology-calculator', 'redshift-calculator', 'blackbody-calculator', 'uncertainty-calculator']} toolsTitle="Tools to try">
+  <div class="lh-sec"><h2>Virtual experiments</h2><a href="/learn/experiments/">Open the labs →</a></div>
+  <p class="lh-sub">Set up a school practical, take readings, plot them and check the result.</p>
+  {subjects.length > 0 && <>
+    <div class="lh-sec"><h2>Science tools by subject</h2><a href="/science/">All science →</a></div>
+    <div class="lh-rail">{subjects.map((s) => <a class="lk" href={`/science/${s.id}/`}><strong>{s.name}</strong><small>{s.n} tools · {s.blurb}</small></a>)}</div>
+  </>}
+</LearnHub>

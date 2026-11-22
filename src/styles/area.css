@@ -22,3 +22,13 @@ a.ar-card:hover { border-color: var(--accent); }
   .al-meta { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
   .al p { margin: 4px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
 
+
+@media (max-width: 640px) {
+  .ar-head { padding-left: 10px; margin: 2px 0 14px; border-left-width: 3px; }
+  .ar-cards { gap: 8px; }
+  .ar-card { padding: 12px 14px; gap: 4px; }
+  .ar-card h2, .ar-card h3 { font-size: 16px; }
+  .ar-card p { font-size: 14px; line-height: 1.45; }
+  .ar-h { margin: 22px 0 8px; }
+  .ar-note { margin-top: 12px; }
+}

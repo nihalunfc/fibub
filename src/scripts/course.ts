@@ -1,7 +1,8 @@
 // Progress for the long text courses (src/courses/). Kept only in the learner's browser:
 // sessionStorage (this tab) by default, localStorage when they tick "Remember my progress on this device".
 // They can download it as a JSON file and load it back on another device. Nothing is sent anywhere.
-type Progress = { v: 1; course: string; done: Record<string, string>; quiz: Record<string, [number, number]> };
+// `last` is the lesson open most recently ([slug, label, date]), for "Continue where you left off" on the Learn pages.
+type Progress = { v: 1; course: string; done: Record<string, string>; quiz: Record<string, [number, number]>; last?: [string, string, string] };
 
 // The lesson list is open beside the text on computers and folded at the top on phones.
 const side = document.querySelector<HTMLDetailsElement>('.cs-side');
@@ -85,6 +86,11 @@ if (root) {
         prog.quiz[lessonSlug] = [right, qs.length]; save();
       }
     }));
+  }
+  // Remember this lesson as the place to pick up from (kept with the progress, in the same storage).
+  if (lessonSlug) {
+    const label = (root.querySelector('.cs-kicker')?.textContent?.match(/Lesson ([\d.]+)/)?.[1] ?? '') + ' ' + (root.querySelector('h1')?.textContent ?? '');
+    prog.last = [lessonSlug, label.trim(), today()]; save();
   }
   paint();
 }
