@@ -25,6 +25,14 @@ export default {
         {
           "id": "motion-straight-line",
           "name": "Motion in a straight line"
+        },
+        {
+          "id": "motion-plane",
+          "name": "Vectors and motion in a plane"
+        },
+        {
+          "id": "laws-of-motion",
+          "name": "Laws of motion and friction"
         }
       ]
     }

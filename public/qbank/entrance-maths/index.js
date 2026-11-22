@@ -22,6 +22,14 @@ export default {
           "name": "Sets, relations and functions"
         },
         {
+          "id": "trigonometry",
+          "name": "Trigonometric functions and identities"
+        },
+        {
+          "id": "complex-numbers",
+          "name": "Complex numbers"
+        },
+        {
           "id": "quadratic-equations",
           "name": "Quadratic equations and inequalities"
         }

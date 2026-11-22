@@ -25,6 +25,14 @@ export default {
         {
           "id": "atomic-structure",
           "name": "Structure of the atom"
+        },
+        {
+          "id": "periodic-table",
+          "name": "Classification of elements and periodicity"
+        },
+        {
+          "id": "chemical-bonding",
+          "name": "Chemical bonding and molecular structure"
         }
       ]
     }
