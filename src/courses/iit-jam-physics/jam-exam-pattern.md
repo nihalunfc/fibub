@@ -97,7 +97,7 @@ A few habits that save marks:
 - **Read the last line first.** Many JAM questions describe a set-up at length and ask for one small thing: units, a ratio, a sign.
 - **Use the virtual calculator sparingly.** It is slow to click. Keep numbers in powers of ten in your head and use the calculator only for the final digits.
 - **Write the NAT answer in the form asked.** "To two decimal places" and units such as `$10^{-3}$` or MeV are part of the question.
-- **One check per answer.** A quick dimension check or limiting case (lesson 8.2) catches most slips in seconds.
+- **One check per answer.** A quick dimension check or limiting case ([lesson 8.2](/learn/courses/iit-jam-physics/problem-solving-tricks/)) catches most slips in seconds.
 
 ## 4. How to use fibub to prepare
 
