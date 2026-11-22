@@ -2,7 +2,7 @@
 title: Running it on your office network
 summary: Turn one machine into a private AI service for a home or office, with logins, encrypted connections, safe remote access and backups. Includes mini project 7.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Open WebUI documentation: users, roles and groups (official page), https://docs.openwebui.com'
   - 'Caddy web server: automatic HTTPS and reverse proxy (official page), https://caddyserver.com/docs/'
@@ -25,6 +25,8 @@ quiz:
 
 **Module 15 · about 30 minutes · read first: 5.5, 9.5 and 11.1.** You'll be able to share one local AI with a household or team, safely. This is mini project 7.
 
+<div class="bigidea">Put a front end with logins in front of the engine, let only that front end reach the engine, and bring remote staff in through a VPN, never through an open port.</div>
+
 ## 1. Why this matters
 
 A model on one desk helps one person. The same model, reachable from every laptop in the office with each person's own login and history, is a private ChatGPT for the whole team. Getting there is mostly ordinary network housekeeping, and skipping it is how private data leaks.
@@ -39,6 +41,16 @@ laptops and phones ──(office Wi-Fi or VPN)──> front end (Open WebUI, por
 ```
 
 Three layers: the **engine** runs the model; the **front end** gives people logins, chats and document upload; the **network** decides who can reach what.
+
+Follow one question from a laptop to the model and back, in the firm from section 5:
+
+<div class="steps">
+<div class="step"><p><b>The laptop.</b> Priya, a junior, opens <code>https://ai.office.lan</code> on the office Wi-Fi. Her browser connects to port 443 on the server's fixed address, 192.168.1.50.</p></div>
+<div class="step"><p><b>Encryption.</b> Caddy answers on port 443 with HTTPS, so her password and question cross the Wi-Fi scrambled. It passes the request to Open WebUI on the same machine.</p></div>
+<div class="step"><p><b>Login and groups.</b> Open WebUI checks who she is. Her group may use the 12B model, not the 27B one, and she sees only her own chats.</p></div>
+<div class="step"><p><b>The engine.</b> Open WebUI sends the question to Ollama on <code>127.0.0.1:11434</code>. That address answers only programs on the same machine, so no laptop can reach Ollama directly.</p></div>
+<div class="step"><p><b>Back, and kept.</b> The answer returns the same way. The chat is saved in Open WebUI's data folder, which a nightly script copies to the office NAS. A colleague at home takes the same path, after first joining through the WireGuard VPN.</p></div>
+</div>
 
 ## 3. Step by step
 
@@ -67,6 +79,26 @@ At home you can skip HTTPS and the firewall if the AI machine and devices sit on
 **Try it:** Which has the larger exposure: Open WebUI with logins on the office network, or Ollama with no login on the office network? (Ollama: same reach, but no login, so anyone on the Wi-Fi can use it and see what it is sent.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>reach</dt><dd>how many devices or places can connect to a port: one machine (127.0.0.1), the office network, or the whole internet</dd>
+<dt>access</dt><dd>what someone gets once connected: nothing without a login, or everything if there is no login</dd>
+<dt>exposure</dt><dd>reach × access: how much harm an open door could do</dd>
+<dt>VPN</dt><dd>an encrypted tunnel that puts a remote laptop on the office network, so nothing has to face the internet</dd>
+<dt>Physical meaning</dt><dd>A shop. Customers use the front counter, where staff check who they are. The stockroom has a staff-only door that opens only from inside. Leaving the stockroom door open to the street, even "just for a minute", is how things go missing.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="office-network-backup"></div>
+
+<div class="myth">
+
+**"It is only on the office Wi-Fi, so it does not need logins."** Anyone on that Wi-Fi can reach it: visitors on a shared password, a contractor's laptop, or one infected device. Without logins they can use the model and read whatever is sent to it. Logins also keep colleagues' chats apart, which matters for salaries, HR and client files.
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* Patel and Co., a 9-person accounting firm, has a 64 GB Mac mini in the server cupboard. Ollama listens on 127.0.0.1 only. Open WebUI runs on the same Mac behind Caddy at `https://ai.office.lan`. Partners see a 27B model; juniors see a 12B one for speed. Two staff working from home connect through the office WireGuard VPN. A nightly script copies Open WebUI's data folder to the office NAS. Total extra cost: an afternoon of set-up.
@@ -94,3 +126,13 @@ At home you can skip HTTPS and the firewall if the AI machine and devices sit on
 </details>
 
 **New words:** *DHCP reservation*, *reverse proxy*, *HTTPS*, *firewall*, *VPN*, *least access*.
+
+<div class="keypoints">
+
+- Three layers: the engine runs the model, the front end (Open WebUI) gives logins and chats, the network decides who reaches what.
+- Keep the engine on 127.0.0.1 when the front end is on the same machine, so its login-free port is unreachable.
+- Use HTTPS (Caddy), turn off open sign-up, give each person an account, and use groups for model access.
+- Remote staff come in through a VPN; never forward the server's port on the router to the internet.
+- Back up the front end's data folder nightly (accounts, chats, uploads, settings) and test a restore; models can be downloaded again.
+
+</div>

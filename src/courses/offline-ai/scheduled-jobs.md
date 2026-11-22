@@ -3,7 +3,7 @@ title: 'Scheduled jobs: summaries and reports overnight'
 seoTitle: Run local AI jobs overnight on a schedule | Offline AI
 summary: Write a script that summarises the day's new files into a dated report, then have Windows Task Scheduler, cron or launchd run it every night. Includes logging, wake-up and failure checks.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Microsoft, schtasks create, https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-create'
   - 'crontab(5) manual page, https://man7.org/linux/man-pages/man5/crontab.5.html'
@@ -25,9 +25,11 @@ quiz:
 
 **Module 13 · about 30 minutes · read first: 11.3.** You'll be able to run a local AI job every night and find a report waiting each morning. This lesson is **mini project 5: Nightly report bot**.
 
+<div class="bigidea">A scheduled job is a script your computer starts by itself at a set time, so a local model can work through the night and leave a report for the morning.</div>
+
 ## 1. Why this matters
 
-The most valuable automation is the kind you forget about. A local model can read yesterday's notes, emails or logs every night, with no usage cap and nothing uploaded, and have a summary ready before you sit down.
+The best automation is the kind you forget about. A local model can read yesterday's notes, emails or logs every night, with no usage cap and nothing uploaded, and have a summary ready before you sit down. It is like a night-shift worker who never asks for overtime: you just have to leave the door unlocked (the computer awake) and the instructions on the desk (the script).
 
 ## 2. The nightly script
 
@@ -79,6 +81,16 @@ print("wrote", report)
 
 Test it by hand first: `python nightly.py`. To read PDFs, Word files and emails too, import `read_any` from Lesson 12.6 and loop over all files instead of `*.txt`.
 
+What happens at 6 AM, with made-up but typical numbers:
+
+<div class="steps">
+<div class="step"><p><b>06:00, the scheduler fires.</b> Task Scheduler, cron or launchd starts <code>nightly.py</code> with the Python from your virtual environment. Nobody is watching.</p></div>
+<div class="step"><p><b>Pick the files.</b> The script skips anything older than 24 hours. Today 45 new emails are waiting in <code>inbox</code>.</p></div>
+<div class="step"><p><b>One file.</b> About 3,000 tokens to read at 300 tokens a second (10 s), then about 60 tokens of JSON to write at 20 a second (3 s): 13 seconds.</p></div>
+<div class="step"><p><b>All files.</b> 45 × 13 s = 585 seconds, just under 10 minutes. The job is done by 06:10.</p></div>
+<div class="step"><p><b>Report and log.</b> <code>reports/2026-11-20.md</code> is written, and anything the script printed (including errors) is added to <code>nightly.log</code>, so you can see what happened while you slept.</p></div>
+</div>
+
 ## 3. Run it every night
 
 Use the full path to the Python inside your virtual environment, so the job finds the libraries.
@@ -113,6 +125,26 @@ Ollama must be running: the desktop app starts it at login on Windows and Mac, a
 **Try it:** 60 files, each 3,000 prompt tokens at 300 tok/s plus 60 output tokens at 20 tok/s. Total? (60 × (10 + 3) = 780 s, 13 minutes.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>items</dt><dd>how many files the job handles tonight</dd>
+<dt>prompt tokens ÷ prefill speed</dt><dd>seconds the model spends reading one file</dd>
+<dt>output tokens ÷ decode speed</dt><dd>seconds it spends writing the summary for that file</dd>
+<dt>window</dt><dd>the time between the job starting and when you need the report</dd>
+<dt>Physical meaning</dt><dd>A night-shift baker whose oven bakes a fixed number of trays an hour. If orders double, start earlier, use a faster oven (a faster card or smaller model), or bake fewer trays (only new files, each cut to a maximum length).</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="scheduled-jobs-window"></div>
+
+<div class="myth">
+
+**"Once it is scheduled, it will run."** A scheduler cannot start a job on a computer that is asleep, switched off or out of battery, and it may start in a different folder from the one you tested in. Set the machine to stay awake or wake for the task, use full paths, and read the log after the first few nights.
+
+</div>
+
 ## 4. Worked example
 
 *Made-up numbers.* A property manager saves tenant emails as text files into `inbox` during the day, about 45 a day. At 6 AM the laptop wakes, `nightly.py` runs Gemma 4 E4B for 9 minutes, and `reports/2026-11-20.md` lists 7 items marked **Action** with deadlines at the top of her morning. The log shows one failure in a month: the laptop was unplugged and the battery was flat.
@@ -138,3 +170,13 @@ Ollama must be running: the desktop app starts it at login on Windows and Mac, a
 </details>
 
 **New words:** *scheduled job* / *cron job* / *scheduled task* (a program the computer starts at set times), *batch job* (work done on many items at once, unattended), *log file* (where a program writes what it did and any errors).
+
+<div class="keypoints">
+
+- Write the job as a script, test it by hand, then let Task Scheduler (Windows), cron (Linux, Mac) or launchd (Mac) start it.
+- Use the full path to your virtual environment's Python, and send all output to a log file.
+- Job time ≈ items × (prompt tokens ÷ prefill speed + output tokens ÷ decode speed); it must fit in the night's window.
+- Sleep is the most common reason a job did not run: set the computer to stay awake or wake for the task.
+- Cap each file's length so one huge file cannot eat the whole night.
+
+</div>

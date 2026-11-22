@@ -1,0 +1,52 @@
+---
+// 11.4: can I send this marketing message? Pick the country and how you got the contact; see whether consent rules allow it and what the message must include.
+---
+<figure class="cs-fig su-fig" data-em>
+  <span class="cs-figtag">Try it: can I send this marketing email?</span>
+  <div class="su-row">
+    <label>Country of the person<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>How you got the contact<select name="how">
+      <option value="opt">They ticked a box to get your emails</option>
+      <option value="buy">They bought from you in the last 2 years</option>
+      <option value="ask">They asked a question 4 months ago</option>
+      <option value="card">They gave you a business card at an event</option>
+      <option value="pub">Address published on their company website</option>
+      <option value="list">You bought a list</option>
+    </select></label>
+    <label>Channel<select name="ch"><option value="mail">Email</option><option value="sms">SMS or WhatsApp</option></select></label>
+  </div>
+  <div class="su-card" data-card><strong data-v></strong><div data-why></div></div>
+  <p class="su-say" data-must></p>
+  <figcaption>As of November 2026. Canada: CASL (express or implied consent; implied lasts 2 years after a purchase, 6 months after an inquiry). USA: CAN-SPAM for email (no prior consent, but honest headers, a postal address and an opt-out honoured within 10 business days); the TCPA needs prior written consent for marketing texts. India: TRAI’s commercial communication rules (DLT registration, consent templates, DND) for SMS and calls, and the DPDP Act for personal data. Not legal advice.</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  type R = [0 | 1 | 2, string];
+  const RULE: Record<CC, Record<string, R>> = {
+    ca: { opt: [2, 'Express consent: the best kind, and it does not expire until they unsubscribe.'], buy: [2, 'Implied consent from an existing business relationship, for 2 years after the purchase. Ask for express consent before it runs out.'], ask: [2, 'Implied consent from an inquiry lasts 6 months, so you have about 2 months left.'], card: [1, 'Only if your message is relevant to their job. A business card is "conspicuous publication" only in a narrow sense; safer to ask first.'], pub: [1, 'Allowed only if the address is published without a "no spam" note and your message relates to their role.'], list: [0, 'No: bought lists give you no consent under CASL. Fines reach C$10 million per violation for a business.'] },
+    us: { opt: [2, 'Fine. Keep proof of the sign-up.'], buy: [2, 'Allowed: CAN-SPAM does not need prior consent for email.'], ask: [2, 'Allowed for email.'], card: [2, 'Allowed for email.'], pub: [2, 'Allowed for email, but cold email to addresses you scraped harms your sender reputation and may break platform rules.'], list: [1, 'Legal for email under CAN-SPAM, but bought lists bounce, get you blocklisted and often break your email platform’s terms.'] },
+    in: { opt: [2, 'Fine, and record the consent: the DPDP Act expects clear, specific consent you can prove and that is as easy to withdraw.'], buy: [1, 'Email: usually acceptable to existing customers with an easy unsubscribe; record the purpose you collected the address for.'], ask: [1, 'Only about what they asked, unless they agreed to marketing.'], card: [1, 'Risky: the person shared it for a conversation, not for marketing. Ask first.'], pub: [1, 'Risky under the DPDP Act: personal data made public by the person can be used, but marketing beyond why they published it is a grey area.'], list: [0, 'No: you have no consent for that purpose, and buying personal data invites DPDP penalties.'] },
+  };
+  const SMS: Record<CC, R> = {
+    in: [1, 'Marketing SMS must go through a telecom operator’s DLT system with a registered header and template, and cannot reach numbers on the DND registry without consent.'],
+    ca: [1, 'Texts are commercial electronic messages under CASL: the same consent rules as email.'],
+    us: [0, 'Marketing texts need prior express written consent under the TCPA, whatever how you got the number. Fines are $500 to $1,500 per text.'],
+  };
+  const MUST: Record<CC, string> = {
+    in: 'Every message: who you are, why they are getting it, and a one-step way to opt out; honour it quickly.',
+    ca: 'Every message: your business name, a mailing address plus phone, email or web address, and an unsubscribe that works for 60 days and is honoured within 10 business days.',
+    us: 'Every email: honest From and subject lines, a valid postal address, a clear opt-out honoured within 10 business days, and a label if it is an ad.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-em]')) {
+    const cc = followCountry(fig, draw); fig.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), how = (fig.querySelector('[name=how]') as HTMLSelectElement).value, ch = (fig.querySelector('[name=ch]') as HTMLSelectElement).value;
+      let [v, why] = RULE[c][how];
+      if (ch === 'sms') { const s = SMS[c]; if (how === 'list') v = 0; else if (how !== 'opt') v = Math.min(v, s[0]) as 0 | 1 | 2; why = `${s[1]} ${how === 'opt' && c === 'us' ? 'A ticked box that says texts are included counts, if it is in writing and clear.' : ''}`; }
+      const card = fig.querySelector('[data-card]')!; card.className = `su-card ${v === 2 ? 'good' : v === 1 ? 'warn' : 'bad'}`;
+      fig.querySelector('[data-v]')!.textContent = v === 2 ? 'Yes, you can send it' : v === 1 ? 'Careful: only in some cases' : 'No, do not send it';
+      fig.querySelector('[data-why]')!.textContent = why;
+      fig.querySelector('[data-must]')!.textContent = MUST[c];
+    }
+  }
+</script>

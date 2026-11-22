@@ -149,7 +149,9 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
   const used = new Set();
   const sections = pattern.sections.map((sec) => {
     // anyLevel: take every level (marks per question stay sec.marks); exams like the SAT and LSAT give every question one mark.
-    const mk = (it) => sec.anyLevel || marksOf(it) === sec.marks;
+    // only: { facet: value } keeps a section to part of a bank (e.g. the SAT Math test uses only section: 'math').
+    const only = sec.only || pattern.only;
+    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
     const fits = (it) => it.type === sec.type && mk(it) && !used.has(it.id) && it.type !== 'open';
     // round-robin over topics so one topic cannot fill a section
     const byTopic = new Map();
@@ -192,12 +194,25 @@ export const PATTERNS = {
   ] },
   // SAT Math, both modules together (44 questions in 70 minutes; about three quarters multiple choice). The real test
   // adapts its second module; this practice paper does not.
-  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', sections: [
+  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', only: { section: 'math' }, sections: [
     { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33, anyLevel: true, repeat: true },
     { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11, anyLevel: true, repeat: true },
   ] },
-  'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', sections: [
+  'sat-rw': { name: 'SAT Reading and Writing practice (both modules, not adaptive)', minutes: 64, scheme: 'sat', only: { section: 'rw' }, sections: [
+    { name: 'Reading and Writing', type: 'mcq', marks: 1, count: 54, anyLevel: true, repeat: true },
+  ] },
+  'sat-rw-module': { name: 'SAT Reading and Writing, one module (not adaptive)', minutes: 32, scheme: 'sat', only: { section: 'rw' }, sections: [
+    { name: 'Reading and Writing', type: 'mcq', marks: 1, count: 27, anyLevel: true, repeat: true },
+  ] },
+  'sat-math-module': { name: 'SAT Math, one module (not adaptive)', minutes: 35, scheme: 'sat', only: { section: 'math' }, sections: [
+    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 17, anyLevel: true, repeat: true },
+    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 5, anyLevel: true, repeat: true },
+  ] },
+  'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', only: { section: 'lr' }, sections: [
     { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
+  ] },
+  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (5 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
+    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 22, anyLevel: true },
   ] },
   // CUET (UG): every test is 50 compulsory MCQs in 60 minutes, +5/−1 (NTA bulletin, checked 2026-11-22). The two
   // sections only mix easier and harder questions; every question is worth 5 marks (marksMap).
@@ -209,6 +224,19 @@ export const PATTERNS = {
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
   ], marksMap: { 1: 3.5, 2: 5 } },
+  'gmat-quant': { name: 'GMAT-style Quantitative Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 8 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 13 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-verbal': { name: 'GMAT-style Verbal Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 7 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 16 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-di': { name: 'GMAT-style Data Insights (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Standard questions', type: 'mcq', marks: 1, count: 2 },
+    { name: 'Data Sufficiency, graphs and two-part questions', type: 'mcq', marks: 2, count: 14 },
+    { name: 'Select-all questions (tables and multi-source)', type: 'msq', marks: 2, count: 4 },
+  ], marksMap: { 1: 1, 2: 1 } },
 };
 
 /** Counts for a bank: fixed items and templates by type and level. */

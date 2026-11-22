@@ -2,7 +2,7 @@
 title: Writers, creators and translators
 summary: Writers, video makers, designers and translators use local models for drafts, editing, subtitles, translation and images, keeping unpublished work and client texts private, with care for originality and credit.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'USA: Copyright Office, "Copyright and Artificial Intelligence, Part 2: Copyrightability", January 2025, https://www.copyright.gov/ai/'
   - 'whisper.cpp (offline speech to text and subtitles), https://github.com/ggml-org/whisper.cpp'
@@ -24,6 +24,8 @@ quiz:
 
 **Module 18 · about 20 minutes · read first: 13.4 and 13.6.** You'll be able to plan a private AI workshop for creative and language work.
 
+<div class="bigidea">Writers, translators and video makers can use a local model for drafts, edits, subtitles and images while unpublished and client work stays on their own machine, as long as their own creative work and checking stay at the centre.</div>
+
 ## 1. Why this sector
 
 Unpublished manuscripts, scripts, client translations and brand work are valuable and often confidential. Creators also use AI in long sessions that burn through cloud limits. A local setup keeps work private and has no cap.
@@ -42,6 +44,16 @@ Unpublished manuscripts, scripts, client translations and brand work are valuabl
 - **Licences:** check image models' licences for commercial use.
 - **Quality:** small models translate common pairs well and rare pairs poorly; test on your own past work (Lesson 17.1).
 
+A translator's **NDA** (non-disclosure agreement) is a promise not to share the client's text; a local model lets you keep it. A **glossary** is your list of agreed translations for key terms.
+
+<div class="steps">
+<div class="step"><p><b>The job.</b> Ravi translates insurance documents from English to Malayalam and Tamil under client NDAs. Nothing may be uploaded.</p></div>
+<div class="step"><p><b>The glossary goes first.</b> His file of agreed terms ("deductible", "rider", "claim") is put in front of every request, so the model uses the client's words every time.</p></div>
+<div class="step"><p><b>The model drafts.</b> A local model on his laptop writes a first draft, paragraph by paragraph.</p></div>
+<div class="step"><p><b>Ravi edits every sentence.</b> He fixes meaning, tone and the odd wrong term. The judgment, and the responsibility, stay his.</p></div>
+<div class="step"><p><b>The result.</b> His output rises from 2,500 to 4,000 words a day, and no client document leaves his laptop.</p></div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -53,6 +65,25 @@ Unpublished manuscripts, scripts, client translations and brand work are valuabl
 
 **Try it:** a 4,000-word job at 400, 8 hours by hand, or 2 hours AI draft plus 3 hours editing? (50 an hour against 80 an hour, if quality holds.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>fee</dt><dd>what the client pays for the job, the same with or without AI</dd>
+<dt>drafting hours</dt><dd>your time preparing the request, the glossary and the draft</dd>
+<dt>editing hours</dt><dd>your time checking and fixing every sentence; never skipped</dd>
+<dt>Physical meaning</dt><dd>The fee is fixed by the job, so every hour the model saves you raises what each of your hours earns. If the draft is poor and editing takes longer than writing would, the rate falls instead: test on your own past work first.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="creators-rate"></div>
+
+<div class="myth">
+
+**"If I pressed generate, the work is mine."** Ownership rules focus on human authorship: your choices, arrangement and rewriting (Lesson 17.7). Purely generated text or images may not be protected at all. Do real creative work on the result, and follow your client's and publisher's disclosure rules.
+
+</div>
 
 ## 4. Worked scenario
 
@@ -73,3 +104,12 @@ Unpublished manuscripts, scripts, client translations and brand work are valuabl
 </details>
 
 **New words:** *NDA*, *glossary*, *subtitles*, *disclosure*.
+
+<div class="keypoints">
+
+- Local models keep unpublished and client work private and have no usage cap.
+- Good uses: outlines and edits, first-draft translation with a glossary, transcripts and subtitles, image ideas.
+- Effective rate = fee ÷ (drafting + editing hours): it rises only if quality holds after your edit.
+- Ownership needs real human creative work; check originality, licences and disclosure rules.
+
+</div>

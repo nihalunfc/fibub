@@ -16,9 +16,16 @@ quiz:
     choices: ["df.groupby('store_id')['qty'].transform('sum')", "df.groupby('store_id')['qty'].sum()", "df['qty'].cumsum()"]
     ans: 0
     why: 'transform keeps every row, like a window function.'
+sources:
+  - 'pandas documentation, User Guide: Comparison with SQL https://pandas.pydata.org/docs/getting_started/comparison/comparison_with_sql.html'
+  - 'pandas documentation, User Guide: Comparison with spreadsheets https://pandas.pydata.org/docs/getting_started/comparison/comparison_with_spreadsheets.html'
 ---
 
 **Module 8 · about 20 minutes · uses Modules 2 to 6.** You'll be able to move between SQL, Excel, DAX and pandas without relearning the ideas.
+
+<div class="bigidea">SQL, Excel, DAX and pandas share the same few ideas: filter, group, summarise, join, reshape. Learn the mapping once and you can move between them.</div>
+
+**In everyday terms:** the same recipe written in four languages: "boil water" is the same step whatever the words.
 
 ## 1. SQL to pandas
 
@@ -91,6 +98,36 @@ by_prov['share_of_all_%'] = (by_prov['revenue'] / revenue(orders) * 100).round(1
 by_prov.round(2)
 ```
 
+<div class="meaning">
+
+<dl>
+<dt>WHERE / filter</dt><dd>df[cond] or df.query(...).</dd>
+<dt>GROUP BY + SUM / pivot / SUMMARIZE</dt><dd>groupby(...).agg(...) or pivot_table.</dd>
+<dt>HAVING</dt><dd>A filter after the groupby.</dd>
+<dt>JOIN / XLOOKUP / RELATED</dt><dd>merge or map.</dd>
+<dt>Physical meaning</dt><dd>The order of steps matters the same way everywhere: WHERE filters rows before grouping, HAVING filters groups after. Swap them and you answer a different question.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"pandas does things differently, so I have to relearn analysis."** The thinking is identical; only the syntax changes. Write the SQL in a comment, then translate it line by line.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The SQL.</b> <code>SELECT store, SUM(qty) AS units FROM orders WHERE price > 5 GROUP BY store HAVING SUM(qty) > 3</code></div>
+<div class="step"><b>WHERE.</b> <code>orders[orders.price > 5]</code></div>
+<div class="step"><b>GROUP BY + SUM.</b> <code>.groupby('store', as_index=False).agg(units=('qty', 'sum'))</code></div>
+<div class="step"><b>HAVING.</b> <code>.query('units > 3')</code></div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>store</th><th>units</th></tr><tr><td>S01</td><td>7</td></tr><tr><td>WEB</td><td>5</td></tr></table> Same answer as the database.</div>
+</div>
+
+<div class="problem" data-problem="pd-having-count"></div>
+
 ## 4. Your turn
 
 ```python exercise data=orders.csv
@@ -139,3 +176,12 @@ A window function keeps every row: that is transform, not sum.
 </details>
 
 **New words:** *window function*, *transform*, *SUMIFS*, *measure*, *filter context*.
+
+<div class="keypoints">
+
+- WHERE = filter rows; HAVING = filter after groupby.
+- GROUP BY / pivot / SUMMARIZE = groupby().agg() or pivot_table.
+- JOIN / XLOOKUP / RELATED = merge or map.
+- Translate step by step, keeping the order.
+
+</div>

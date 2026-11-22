@@ -2,10 +2,11 @@
 title: Small business, retail, hotels and logistics
 summary: Shops, restaurants, hotels and delivery firms use local AI for customer replies, product text, schedules and paperwork with no monthly per-seat bill. Includes mini project 9, a reply drafter that answers from your own FAQ.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Ollama OpenAI-compatible API (official page), https://docs.ollama.com/openai'
   - 'Lessons 10.2 (system prompts), 11.2 (calling a model from Python) and 16.6 (budgets) of this course'
+  - 'Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks" (answering from supplied text), 2020, https://arxiv.org/abs/2005.11401'
 quiz:
   - q: Why give the model your FAQ text instead of letting it answer from memory?
     choices: ['So it answers with your real prices, hours and policies instead of guessing', 'It makes the model bigger', 'It is required by law']
@@ -22,6 +23,8 @@ quiz:
 ---
 
 **Module 18 · about 25 minutes · read first: 10.2 and 11.2.** You'll be able to set up AI help for a small business, and you'll build mini project 9.
+
+<div class="bigidea">One local machine, often a computer the business already owns, can draft replies and paperwork for every member of staff from the business's own facts, with no per-seat fee and customer details kept private.</div>
 
 ## 1. Why this sector
 
@@ -65,6 +68,16 @@ for msg in ["Are you open on Sunday?", "Do you deliver to Hamilton?", "Can I pay
 
 Test with three questions: one in the FAQ, one partly covered, one not covered. The third should say a person will reply, not invent an answer. If it invents, strengthen the system prompt (Lesson 10.5).
 
+It works like a new staff member with a laminated card of answers at the till:
+
+<div class="steps">
+<div class="step"><p><b>The card.</b> The whole FAQ (about 1,500 tokens for two pages) goes into the system prompt, with the rule "use only the facts below".</p></div>
+<div class="step"><p><b>A covered question.</b> "Are you open on Sunday?" The FAQ says "closed Sunday", so the draft says so, warmly and briefly.</p></div>
+<div class="step"><p><b>A partly covered one.</b> "Do you deliver to Hamilton?" The FAQ says "within 20 km". The draft gives the rule and, if the distance is not in the facts, says a staff member will confirm.</p></div>
+<div class="step"><p><b>Not covered.</b> "Can I pay with crypto?" Payment methods are not in the FAQ, so the draft says a staff member will reply soon. It does not guess.</p></div>
+<div class="step"><p><b>A person sends.</b> Staff read each draft, fix anything odd and press send. The model never sends on its own.</p></div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -76,6 +89,27 @@ Test with three questions: one in the FAQ, one partly covered, one not covered. 
 
 **Try it:** a 1,500-token FAQ, 200-token message, 300-token reply, 8,192-token context? (2,000 tokens: plenty of room.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>FAQ tokens</dt><dd>the size of your facts file in tokens (about 650 per page of English)</dd>
+<dt>message + reply</dt><dd>the customer's message and the draft the model writes</dd>
+<dt>context length</dt><dd>how many tokens the model can hold at once (Lesson 3.3)</dd>
+<dt>Physical meaning</dt><dd>If the whole card fits on the desk, the model can read all of it every time, so it never needs to search. A business's FAQ is usually a few pages, far below even a modest context, which is why this simple design works.</dd>
+</dl>
+
+</div>
+
+The money is in staff time:
+
+<div class="problem" data-problem="small-business-handling"></div>
+
+<div class="myth">
+
+**"The model already knows my business."** It knows nothing about your prices, hours or policies. Without your facts it will guess, confidently and often wrongly. Give it the FAQ every time, tell it to say "a staff member will reply" when the answer is not there, and have a person check before sending.
+
+</div>
 
 ## 4. Worked scenario
 
@@ -96,3 +130,12 @@ Test with three questions: one in the FAQ, one partly covered, one not covered. 
 </details>
 
 **New words:** *FAQ*, *draft-only*, *per-seat cost*.
+
+<div class="keypoints">
+
+- One local machine serves all staff with no per-seat fee, and customer details stay on it.
+- Give the model your own facts (an FAQ file) and the rule to use only those facts.
+- A short FAQ fits in the context window, so no search system is needed.
+- Draft only: a person checks and sends every reply.
+
+</div>

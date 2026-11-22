@@ -3,7 +3,7 @@ title: Vector databases you can run locally
 seoTitle: Local vector database for offline RAG | Offline AI
 summary: Store your chunks and their embeddings on your own disk. Build the index with plain Python and SQLite, then learn when Chroma, LanceDB, sqlite-vec or DuckDB are worth adding.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'SQLite (public domain), https://sqlite.org'
   - 'Chroma, open-source vector database (Apache 2.0), https://docs.trychroma.com'
@@ -27,13 +27,25 @@ quiz:
 
 **Module 12 · about 30 minutes · read first: 12.3.** You'll be able to build and save a searchable index of a folder of documents, all offline.
 
+<div class="bigidea">A vector database is just a saved table of chunks, where they came from, and their numbers, so each question needs a quick lookup instead of re-reading every file.</div>
+
 ## 1. Why this matters
 
 Embedding a thousand pages takes minutes. You do it once, save the result, and every question afterwards only needs a quick lookup. Where you save it is the "vector database". For personal and small-office use, it can be one file.
 
 ## 2. What a vector store keeps
 
-One row per chunk: the **text**, where it came from (**file**, **page**), and its **vector**. Searching means: embed the question, compare it with every stored vector, return the closest rows.
+One row per chunk: the **text**, where it came from (**file**, **page**), and its **vector** (the list of numbers from Lesson 12.2). Searching means: embed the question, compare it with every stored vector, return the closest rows.
+
+It is like a library card catalogue. Making the cards takes an afternoon. After that, finding a book takes seconds, and each card says which shelf it is on.
+
+<div class="steps">
+<div class="step"><p><b>Read a file.</b> The builder opens <code>docs/handbook.pdf</code>. The reader gives back pages: page 12 says "Staff get 20 days of paid vacation a year..."</p></div>
+<div class="step"><p><b>Cut and embed.</b> Page 12 is cut into 2 chunks of up to 300 words. EmbeddingGemma turns each chunk into 768 numbers.</p></div>
+<div class="step"><p><b>Save the rows.</b> Each chunk becomes one row: file <code>docs/handbook.pdf</code>, page 12, the text, and its 768 numbers packed into 768 × 4 = 3,072 bytes.</p></div>
+<div class="step"><p><b>Repeat for every file.</b> A folder of 10,000 chunks makes a table of 10,000 rows; the vectors take 10,000 × 3,072 bytes ≈ 31 MB, in one file, <code>index.db</code>.</p></div>
+<div class="step"><p><b>Search later.</b> A question is embedded once and compared with all 10,000 vectors: 10,000 × 768 ≈ 7.7 million multiply-adds, about a millisecond on a laptop. The closest rows, with their file and page, come back.</p></div>
+</div>
 
 ## 3. The index builder
 
@@ -100,12 +112,38 @@ All of these are open source and run with no server and no internet.
 
 **Principle:** exact search compares the question with every vector; approximate search (HNSW, IVF) compares with a smart shortlist.
 
-**Equation:** exact search work ≈ N × d multiply-adds. N = 100,000 chunks, d = 768: about 77 million, a few milliseconds on a laptop. Memory = N × d × 4 bytes ≈ 307 MB.
+**Equation:** for `$N$` chunks with `$d$` numbers each,
+
+```math
+\text{search work} \approx N \times d \ \text{multiply-adds}, \qquad \text{memory} = N \times d \times 4 \ \text{bytes}
+```
+
+N = 100,000 chunks, d = 768: about 77 million multiply-adds, a few milliseconds on a laptop. Memory ≈ 307 MB.
 
 **Analogy:** finding the nearest café. Exact: measure the distance to every café in the country. Approximate: jump to your city, then your neighbourhood, then check the few cafés nearby. Much faster, and almost always the same answer. Where it breaks: it is worth it only when N is in the millions; below that, the shortcut costs more to build than it saves.
 
 **Try it:** 20,000 chunks × 768 numbers × 4 bytes. How many MB? (About 61 MB.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>N</dt><dd>the number of chunks stored, one row each</dd>
+<dt>d</dt><dd>how many numbers are in each vector (768 for EmbeddingGemma)</dd>
+<dt>4 bytes</dt><dd>the space one 32-bit number takes on disk and in memory</dd>
+<dt>exact vs approximate search</dt><dd>exact compares the question with every row; approximate (HNSW) checks a smart shortlist and very occasionally misses the best match</dd>
+<dt>Physical meaning</dt><dd>The index is a card catalogue for your files. Tens of thousands of cards fit in a file smaller than a few photos, and checking every card takes less time than a blink, so most homes and small offices never need anything fancier.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="vector-databases-size"></div>
+
+<div class="myth">
+
+**"RAG needs a special vector database server."** For personal and small-office use, a SQLite file and NumPy are plenty: they compare against 100,000 vectors in milliseconds, with no server and no internet. Add Chroma, LanceDB, sqlite-vec or DuckDB when you reach millions of chunks or need filters and frequent updates.
+
+</div>
 
 ## 5. Worked example
 
@@ -126,3 +164,13 @@ All of these are open source and run with no server and no internet.
 </details>
 
 **New words:** *vector store* / *vector database* (a store of vectors plus their text), *index* (the saved, searchable collection), *HNSW* (a common fast, approximate search structure).
+
+<div class="keypoints">
+
+- A vector store keeps one row per chunk: text, file, page and vector.
+- Build the index once, save it (one SQLite file is enough), and every question after that is a quick lookup.
+- Memory = N × d × 4 bytes: 10,000 chunks of 768 numbers is about 31 MB.
+- Exact search over a few hundred thousand vectors takes milliseconds; approximate indexes (HNSW) pay off only at millions.
+- Storing file and page next to each vector is what makes citations possible.
+
+</div>

@@ -29,6 +29,8 @@ sources:
 
 **Module 4 · about 17 minutes · Canada.** You'll be able to register a business name or incorporate a corporation in Canada, and set up its records properly.
 
+<div class="bigidea">In Canada you choose federal or provincial incorporation, file articles online, and from day one keep a minute book with by-laws, registers and the record of individuals with significant control.</div>
+
 <div class="cc" data-cc="in">
 
 **Reading for India?** see [registering a company or LLP](/learn/courses/startup/india-company-llp/).
@@ -104,9 +106,30 @@ Minute book contents
 
 > **Key idea:** "Individuals with significant control" are people who own or control 25 % or more of the shares or votes, or otherwise control the corporation. Federal corporations file this information with Corporations Canada too.
 
+<div class="meaning">
+
+<dl>
+<dt>Articles of incorporation</dt><dd>the document that creates the corporation</dd>
+<dt>By-laws</dt><dd>the corporation’s internal rules</dd>
+<dt>Minute book</dt><dd>the binder of resolutions, registers and records</dd>
+<dt>Individuals with significant control</dt><dd>people holding or controlling 25 % or more</dd>
+<dt>Share structure</dt><dd>the classes of shares and their rights</dd>
+<dt>What it means for you</dt><dd>Decide share classes and directors first, incorporate online, then set up the minute book and the significant-control register the same week.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="canada-incorporation-isc"></div>
+
 ## 5. Worked example
 
 *Made-up founders.* Tom and Aisha (Calgary) incorporate federally as "Northlight Robotics Inc.": NUANS report, Articles online with unlimited common shares and transfer restrictions, $200 fee, certificate the same afternoon. They register extra-provincially in Alberta, issue 500,000 shares each at $0.0001, appoint Aisha CEO and Tom CTO, set a 31 December year-end, file their ISC information, and get the BN with RC and RT accounts.
+
+<div class="myth">
+
+**"Once the certificate arrives, the paperwork is done."** The corporation still needs by-laws, organisational resolutions, issued shares, registers and a Business Number, and must keep its minute book current every year.
+
+</div>
 
 ## 6. Practice
 
@@ -121,6 +144,16 @@ Minute book contents
 2. Any three: federal or provincial, name or number, registered office, directors, share structure, transfer restrictions.
 3. A record of individuals with significant control (25 % or more of shares or votes, or control in fact), kept by the corporation and, for federal corporations, filed with Corporations Canada.
 </details>
+
+<div class="keypoints">
+
+- Federal: name protected nationally, about C$200 online, 25 % resident Canadian directors.
+- Provincial: one province’s law; Ontario C$300 online.
+- Decide share classes, directors, registered office and year-end first.
+- Keep a minute book with by-laws, resolutions, registers and share certificates.
+- Federal corporations file their individuals with significant control with Corporations Canada.
+
+</div>
 
 **Next:** [Canada: Business Number and CRA accounts](/learn/courses/startup/canada-business-number/).
 

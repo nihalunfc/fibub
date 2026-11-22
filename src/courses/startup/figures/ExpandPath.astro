@@ -1,0 +1,42 @@
+---
+// 12.4: from your home country to a new one, at your stage: the usual way in, what to register, and the tax trap to watch.
+---
+<figure class="cs-fig su-fig" data-xp>
+  <span class="cs-figtag">Try it: how do I expand to another country?</span>
+  <div class="su-row">
+    <label>From<select name="from"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>To<select name="to"><option value="us">USA</option><option value="ca">Canada</option><option value="in">India</option></select></label>
+    <label>Stage<select name="st"><option value="sell">Selling from home</option><option value="hire">First person there</option><option value="base">Office, team or raising there</option></select></label>
+  </div>
+  <div class="su-card on"><strong data-h></strong><div data-d></div><div class="su-fine" data-x></div></div>
+  <figcaption>A simplified guide as of November 2026. Tax treaties between India, Canada and the USA decide where profits are taxed; a “permanent establishment” (a fixed place or a person signing deals for you) can make you taxable in the other country. Check with an accountant in both countries before you hire or open an office.</figcaption>
+</figure>
+<script>
+  import { getCountry } from './su';
+  const NAME: Record<string, string> = { in: 'India', ca: 'Canada', us: 'the USA' };
+  const SELL: Record<string, string> = {
+    us: 'Register for sales tax in each state where you pass economic nexus (usually $100,000 of sales; Lesson 7.4). No US company needed yet.',
+    ca: 'Digital services and online sales to Canadian consumers above C$30,000 a year need simplified GST/HST registration as a non-resident.',
+    in: 'Digital services to Indian consumers need GST registration (OIDAR rules) from the first rupee; goods need an importer of record.',
+  };
+  const HIRE = 'Hire through an employer of record (EOR), which employs the person for you for a monthly fee, or a genuine contractor (Lesson 9.1). Watch that they do not sign contracts for you, which can create a permanent establishment.';
+  const BASE: Record<string, string> = {
+    us: 'Form a Delaware C corporation. Founders raising from US investors often “flip”: the US company becomes the parent and owns the home company. In India a flip needs RBI and FEMA approvals and can trigger capital gains tax; plan it with an adviser.',
+    ca: 'Form a Canadian subsidiary (federal or provincial), or register the foreign company extra-provincially in each province where you have staff or an office. Canadian-controlled status (CCPC) brings the small business tax rate and SR&ED refunds, but not if a foreign company controls it.',
+    in: 'Form an Indian private limited subsidiary under the automatic FDI route (most sectors), with at least one resident director. Report the investment to RBI on FIRMS within 30 days, and price services between the companies at arm’s length (transfer pricing).',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-xp]')) {
+    const sel = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!;
+    function draw() {
+      let f = sel('from').value, t = sel('to').value;
+      if (f === t) { t = ['us', 'ca', 'in'].find((x) => x !== f)!; sel('to').value = t; }
+      const st = sel('st').value;
+      fig.querySelector('[data-h]')!.textContent = `${NAME[f].replace('the ', '')} to ${NAME[t]}: ${st === 'sell' ? 'sell remotely' : st === 'hire' ? 'employer of record or contractor' : 'set up a local company'}`;
+      fig.querySelector('[data-d]')!.textContent = st === 'sell' ? SELL[t] : st === 'hire' ? HIRE : BASE[t];
+      fig.querySelector('[data-x]')!.textContent = f === 'in' ? 'From India: money sent abroad for an overseas company is Overseas Direct Investment under FEMA, done through your bank (AD bank) with Form ODI.' : f === 'ca' ? 'From Canada: report foreign affiliates on Form T1134 each year, and foreign property over C$100,000 on T1135.' : 'From the USA: a foreign subsidiary means Form 5471 each year and the GILTI rules on its profits; penalties for missing 5471 start at $10,000.';
+    }
+    fig.addEventListener('change', draw);
+    const cc = getCountry(); if (['in', 'ca', 'us'].includes(cc)) sel('from').value = cc;
+    draw();
+  }
+</script>

@@ -2,7 +2,7 @@
 title: New or used, import or local, warranty and tax
 summary: How to buy AI hardware without regret. New against used, buying locally against importing, warranties, taxes and a checklist for second-hand graphics cards.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Canada GST/HST rates by province: Canada Revenue Agency (official source), https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses/charge-collect-which-rate.html'
   - 'UK VAT rates: GOV.UK (official source), https://www.gov.uk/vat-rates'
@@ -26,9 +26,11 @@ quiz:
 
 **Module 5 · about 20 minutes · read first: 5.2 and 5.3.** You'll be able to work out the real price of a machine in your country and buy used parts safely.
 
+<div class="bigidea">The price on the sticker is rarely what a machine really costs you; add tax, duty, shipping, fees and the risk of it failing, then compare.</div>
+
 ## 1. Why this matters
 
-The sticker price is rarely what you pay. Taxes, duties, shipping and the cost of a failure can add a fifth or more. A careful buyer saves that, and avoids the worst outcome: an expensive part that dies after the return window.
+The sticker price is rarely what you pay. Taxes, duties, shipping and the cost of a failure can add a fifth or more. A careful buyer saves that, and avoids the worst outcome: an expensive part that dies just after the return window. Think of a cheap flight with paid bags, a paid seat and paid food: it can cost more than the honest fare.
 
 ## 2. Tax in the four countries (check the official source)
 
@@ -43,6 +45,40 @@ Students may get education prices on Macs (in Canada, CA$1,109 against CA$1,249 
 
 Importing can look cheaper, but add: import duty and tax at the border, shipping, currency fees, a different plug, and a warranty that may only work in the country of sale. Unless the saving is large after all of these, buy locally from a shop with clear returns.
 
+Here is one import, built up piece by piece. The exchange rate is an example; use today's rate.
+
+<div class="steps" data-fig="buying-smart-landed">
+<div class="step"><b>The sticker.</b> A card for US$700 on an American website. At an example rate of £0.80 to the dollar, that is £560. It looks far cheaper than £640 locally.</div>
+<div class="step"><b>Shipping.</b> Courier to the UK: £40. Now £600.</div>
+<div class="step"><b>Import VAT.</b> 20% on the card plus shipping: £120. Now £720.</div>
+<div class="step"><b>Bank fee.</b> A 2% foreign-card fee on £560 is about £11. Landed price: about £731.</div>
+<div class="step"><b>Compare.</b> The local shop's £640 includes VAT and a UK warranty. The import costs about £90 more, and a fault means posting it back to the USA.</div>
+</div>
+
+```math
+\text{landed price} = \text{sticker} + \text{tax} + \text{duty} + \text{shipping} + \text{fees} + (\text{chance of failure} \times \text{replacement cost})
+```
+
+<div class="problem" data-problem="buying-smart-landed"></div>
+
+<div class="meaning">
+
+<dl>
+<dt>Sticker</dt><dd>The price shown in the shop or on the website.</dd>
+<dt>Tax and duty</dt><dd>Sales tax, GST or VAT, and any import duty charged at the border.</dd>
+<dt>Fees</dt><dd>Shipping, courier handling and the bank's foreign-currency fee.</dd>
+<dt>Chance of failure × replacement cost</dt><dd>The risk you carry yourself when there is no warranty, as an average cost.</dd>
+<dt>Physical meaning</dt><dd>The landed price is what actually leaves your bank account by the time the part works on your desk, plus a fair allowance for the day it might stop working with nobody to send it back to.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The lowest sticker price is the cheapest deal."** Only if nothing is added. A US price excludes sales tax; an import adds VAT, shipping and fees; a used card has no warranty. Compare landed prices, and value the warranty.
+
+</div>
+
 ## 4. New or used?
 
 New gives warranty and returns. Used gives more memory per money (the used RTX 3090 is the classic, Lesson 5.3). Used checklist:
@@ -52,6 +88,8 @@ New gives warranty and returns. Used gives more memory per money (the used RTX 3
 3. Watch temperature (it should settle, not climb past the maker's limit), listen to the fans, look for screen glitches or crashes.
 4. Check the memory size in the system (Task Manager or `nvidia-smi`).
 5. Ask for the receipt; check if any maker's warranty is left.
+
+<div class="problem" data-problem="buying-smart-expected"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -67,7 +105,7 @@ New gives warranty and returns. Used gives more memory per money (the used RTX 3
 
 ## 5. Worked example
 
-*Made-up numbers.* Hamza in Manchester sees a card for US$700 on an American site and £640 locally. Adding shipping (£40), import VAT (20%) and a card fee, the import costs about £720 with no UK warranty. He buys locally.
+*Made-up numbers.* Hamza in Manchester sees a card for US$700 on an American site and £640 locally. Adding shipping (£40), import VAT (20%) and a card fee, the import costs about £730 with no UK warranty. He buys locally.
 
 ## 6. Practice
 
@@ -84,3 +122,12 @@ New gives warranty and returns. Used gives more memory per money (the used RTX 3
 </details>
 
 **New words:** *landed price*, *GST/HST*, *VAT*, *import duty*, *buyer protection*.
+
+<div class="keypoints">
+
+- Prices include tax in India and the UK, but not in Canada or the USA: check the official tax source.
+- Landed price = sticker + tax + duty + shipping + fees, plus the risk of failure when there is no warranty.
+- Imports often lose their saving to VAT, shipping and fees, and the warranty may not travel.
+- Test a used card under a 15-minute load and check its memory size before you pay.
+
+</div>

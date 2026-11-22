@@ -2,10 +2,11 @@
 title: Your computer as an AI server
 summary: Every local engine can answer programs at a local address. Learn the addresses, test one with a single command, and see why the OpenAI-style format matters.
 minutes: 20
-updated: 2026-11-18
+updated: 2026-11-22
 sources:
   - 'Ollama API and OpenAI compatibility, https://docs.ollama.com'
   - 'llama.cpp server, https://github.com/ggml-org/llama.cpp'
+  - 'LM Studio developer docs: local server and OpenAI-compatible endpoints, https://lmstudio.ai/docs'
 quiz:
   - q: Which address does Ollama answer on by default?
     choices: ['http://localhost:11434', 'https://ollama.com/api', 'http://localhost:80']
@@ -23,6 +24,8 @@ quiz:
 
 **Module 11 · about 20 minutes · read first: 9.2 or 9.3.** You'll be able to find your engine's local address and test it with one command.
 
+<div class="bigidea">Your AI engine waits at a local address on your own computer, and any program that sends it a request in the agreed format gets an answer back, without anything leaving the machine.</div>
+
 ## 1. Why this matters
 
 Chatting is the start. The real power comes when your own programs send work to the model: a script that summarises 200 files, a spreadsheet macro, a nightly report. They all reach the model the same way, through a local address.
@@ -36,7 +39,7 @@ Chatting is the start. The real power comes when your own programs send work to 
 | llama.cpp `llama-server` | `http://localhost:8080` (or your `--port`) | `http://localhost:8080/v1` |
 | MLX `mlx_lm.server` | `http://localhost:8080` (or your `--port`) | `http://localhost:8080/v1` |
 
-**localhost** means "this computer". Nothing leaves it.
+**localhost** means "this computer". The number after the colon is the **port**, like a door number on the same building: each program listens behind its own door. Nothing sent to localhost leaves your computer.
 
 ## 3. Test it with one command
 
@@ -54,6 +57,13 @@ Invoke-RestMethod http://localhost:11434/api/chat -Method Post -ContentType "app
 
 You get back a block of JSON with the answer inside `message.content`. That block is all any program needs.
 
+<div class="steps" data-fig="local-ai-server-request">
+<div class="step"><p><b>Build the request.</b> Your script writes a small block of JSON: which model, the messages, and <code>"stream": false</code>.</p></div>
+<div class="step"><p><b>Send it to the local address.</b> It posts that JSON to <code>http://localhost:11434/api/chat</code>. The request travels from one program to another inside the same computer; no network cable is needed.</p></div>
+<div class="step"><p><b>The engine runs the model.</b> Ollama reads the tokens, writes the answer one token at a time, and stops at the end marker.</p></div>
+<div class="step"><p><b>The reply comes back.</b> Ollama sends JSON back to the script. The words are in <code>message.content</code>: "Hello there, nice day!". The script prints it, saves it or puts it in a spreadsheet.</p></div>
+</div>
+
 ## 4. The shape of a request
 
 Every chat request, local or cloud, has the same three parts:
@@ -64,17 +74,43 @@ Every chat request, local or cloud, has the same three parts:
 
 The **OpenAI-style** format (the routes under `/v1`) is the same idea with slightly different names. It is a common format, not a connection to OpenAI: code written for it works with every engine above and with many cloud services. Lesson 11.4 uses that to switch between local and cloud by changing one setting.
 
+<div class="myth">
+
+**"Using the OpenAI-style address sends my data to OpenAI."** No. "OpenAI-style" only describes the shape of the request, like a standard envelope size. The address decides where it goes, and `localhost` is your own computer.
+
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
 **Principle:** a server is a function your programs call by address.
 
-**Equation:** answer = f(model, messages, options), where f runs on localhost.
+**Equation:** answer = f(model, messages, options), where f runs on localhost. The model keeps no memory between requests, so request k carries everything so far:
+
+```math
+\text{tokens in request } k = S + (k-1)(u + a) + u
+```
+
+for a system prompt of `$S$` tokens, user messages of `$u$` tokens and replies of `$a$` tokens.
 
 **Analogy:** a vending machine in your own kitchen. Every caller presses the same buttons (the request format) and gets a result out of the same slot; nobody needs to know how it works inside.
 
 **Try it:** a script sends 3 messages (system, user, assistant) plus one new user message. How many messages are in the request? (4. The model sees the whole conversation every time, Lesson 3.3.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>localhost</dt><dd>the name every computer uses for itself; requests to it never leave the machine</dd>
+<dt>port (11434, 1234, 8080)</dt><dd>the door number a program listens behind, so several servers can share one computer</dd>
+<dt>endpoint (/api/chat, /v1)</dt><dd>one address on the server that does one job, such as chatting</dd>
+<dt>model, messages, options</dt><dd>the three parts of every request: which model, the conversation so far, and the settings</dd>
+<dt>Physical meaning</dt><dd>Your computer now has an AI desk with its own door number. Any program in the building can slide a note under the door in the agreed format and get a written answer back, and the whole exchange stays inside your walls.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="local-ai-server-resend"></div>
 
 ## 5. Worked example
 
@@ -94,4 +130,14 @@ The **OpenAI-style** format (the routes under `/v1`) is the same idea with sligh
 3. `http://localhost:1234/v1`.
 </details>
 
-**New words:** *API* (the agreed way programs talk to a service), *endpoint* or *route* (one address on the server, such as /api/chat), *JSON* (the text format for structured data), *role* (system, user or assistant).
+**New words:** *API* (the agreed way programs talk to a service), *endpoint* or *route* (one address on the server, such as /api/chat), *JSON* (the text format for structured data), *role* (system, user or assistant), *port* (the door number a server listens on).
+
+<div class="keypoints">
+
+- Every local engine answers programs at a local address: Ollama on `localhost:11434`, LM Studio on 1234, llama.cpp and MLX on 8080 by default.
+- localhost means this computer; by default other machines cannot reach it and nothing leaves.
+- A request has three parts: model, messages (with roles) and options; the answer comes back as JSON in `message.content`.
+- The OpenAI-style format under `/v1` is a shared shape, not a link to OpenAI, so one program can talk to any engine.
+- The model keeps no memory between requests: each one re-sends the whole conversation.
+
+</div>

@@ -28,6 +28,8 @@ sources:
 
 **Module 6 · about 13 minutes.** You'll choose the payment methods your customers expect at the lowest cost, and handle refunds and disputes properly.
 
+<div class="bigidea">Offer the ways your customers already pay, know what each costs you, and prevent chargebacks with clear prices, a recognisable statement name and quick refunds.</div>
+
 ## 1. What customers expect
 
 <div class="cc" data-cc="in">
@@ -71,9 +73,30 @@ Setting up online payments
 - **India:** money from abroad arrives through your bank or a licensed cross-border aggregator; keep the FIRC or e-FIRA for each receipt (it supports GST zero-rating of exports).
 - **Canada and USA:** multi-currency accounts avoid repeated conversion fees; card providers charge extra (often 1 to 2 %) for foreign cards and currency conversion.
 
+<div class="meaning">
+
+<dl>
+<dt>Payment gateway / processor</dt><dd>the service that takes card or wallet payments</dd>
+<dt>MDR</dt><dd>merchant discount rate: the percentage fee per payment</dd>
+<dt>Chargeback</dt><dd>a customer’s bank reversing a payment</dd>
+<dt>UPI AutoPay / pre-authorised debit / ACH</dt><dd>bank-to-bank recurring payments</dd>
+<dt>Settlement</dt><dd>when the processor pays your bank</dd>
+<dt>What it means for you</dt><dd>Pick processors your customers trust, compare the real fee on your average payment, and refund fast to avoid chargebacks.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="taking-payments-fees"></div>
+
 ## 4. Worked example
 
 *Made-up founder.* Ravi bills 120 pharmacies ₹1,770 each (₹1,500 + GST) monthly. Card and wallet collection through a gateway at 2 % plus GST on the fee costs about ₹5,000 a month; switching to UPI AutoPay mandates for most clients brings it near zero. He keeps the gateway for clients who prefer cards.
+
+<div class="myth">
+
+**"Card fees are too small to matter."** A 2.9 % plus 30-cent fee is over 5 % on a $10 sale and can be a quarter of your margin. Bank transfers, UPI or ACH for regular customers can save a lot.
+
+</div>
 
 ## 5. Practice
 
@@ -88,6 +111,16 @@ Setting up online payments
 2. Unclear statement names, slow refunds, unclear policies, fraud.
 3. Pre-authorised debit (PAD), or cards on file.
 </details>
+
+<div class="keypoints">
+
+- India: UPI (no MDR on most UPI payments), cards and wallets through a gateway.
+- Canada: Interac e-Transfer and debit, cards, pre-authorised debit.
+- USA: cards, ACH, digital wallets.
+- Compare fees on your typical payment size and include fixed per-payment fees.
+- Clear policies, a recognisable statement name and fast refunds prevent chargebacks.
+
+</div>
 
 **Next:** [Bookkeeping basics](/learn/courses/startup/bookkeeping/). The [[invoice-maker]] makes invoices with payment details.
 

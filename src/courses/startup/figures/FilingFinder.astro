@@ -1,0 +1,43 @@
+---
+// 12.1: pick a country and structure; see the yearly filings that keep the business in good standing, when they are due and what a late filing costs.
+---
+<figure class="cs-fig su-fig" data-ff>
+  <span class="cs-figtag">Try it: my yearly filings</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Structure<select name="st"><option value="co">Company or corporation</option><option value="llp">LLP or LLC</option><option value="sp">Sole proprietor</option></select></label>
+  </div>
+  <table class="su-t" data-t></table>
+  <p class="su-say" data-say></p>
+  <figcaption>For a business with a March (India) or December (Canada, USA) year-end, as of November 2026. Dates move when the year-end differs or a deadline falls on a holiday, and governments extend them some years. Sources: MCA, Income Tax India, Corporations Canada, CRA, Ontario Business Registry, IRS, Delaware Division of Corporations, California Franchise Tax Board.</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  type Row = [string, string, string];
+  const F: Record<CC, Record<string, [Row[], string]>> = {
+    in: {
+      co: [[['Board meetings (4 a year) and AGM', 'AGM by 30 September', 'Fines on the company and directors'], ['Financial statements, audited (AOC-4)', 'Within 30 days of the AGM', '₹100 a day, no cap'], ['Annual return (MGT-7 or MGT-7A)', 'Within 60 days of the AGM', '₹100 a day, no cap'], ['Income tax return (ITR-6) and tax audit if needed', '31 October', 'Interest at 1 % a month, ₹5,000 fee, loss carry-forward lost'], ['Return of deposits (DPT-3)', '30 June', 'Late fees'], ['Director KYC (DIR-3 KYC)', 'On the cycle MCA sets', '₹5,000 per director, DIN deactivated']], 'A private company files these every year even with zero sales. Missing two years running can get the company struck off and directors disqualified for 5 years.'],
+      llp: [[['Statement of account and solvency (Form 8)', '30 October', '₹100 a day'], ['Annual return (Form 11)', '30 May', '₹100 a day'], ['Income tax return (ITR-5)', '31 July, or 31 October if audited', 'Interest and late fee']], 'LLPs file less than companies, and need an audit only above ₹40 lakh turnover or ₹25 lakh contribution.'],
+      sp: [[['Income tax return (ITR-3 or ITR-4)', '31 July, or 31 October with tax audit', 'Interest and up to ₹5,000 fee'], ['GST annual return (GSTR-9), if registered and over ₹2 crore', '31 December', 'Late fee per day'], ['Renew shop and trade licences', 'As each state sets', 'Fines']], 'A sole proprietor has no company filings: the business is you, so your own tax return carries it.'],
+    },
+    ca: {
+      co: [[['Federal annual return (Corporations Canada)', 'Within 60 days after the incorporation anniversary', 'Dissolution after a year of missed returns'], ['Provincial annual return (for example Ontario, through the Ontario Business Registry)', 'Within 6 months after the tax year-end', 'Possible cancellation'], ['T2 corporation income tax return', '6 months after year-end (30 June)', '5 % of tax owing plus 1 % a month'], ['Corporate tax balance', '2 or 3 months after year-end', 'Interest'], ['T4 and T5 slips (salary, dividends)', 'Last day of February', 'Penalties per slip'], ['Annual shareholder resolutions and registers (including individuals with significant control)', 'Every year', 'Fines on directors']], 'Federal annual returns cost $12 online. Keep the minute book and the register of individuals with significant control current.'],
+      llp: [[['Partnership information return (T5013), if required', 'March 31 for individual partners', 'Penalties'], ['Each partner’s own T1 return', 'June 15 (balance due April 30)', '5 % plus 1 % a month'], ['Renew provincial registration', 'Every 5 years in Ontario', 'Name lapses']], 'Canada has no LLC; most small partnerships do not file T5013 unless they are large or have corporate partners.'],
+      sp: [[['T1 return with form T2125', 'June 15 (tax due April 30)', '5 % plus 1 % a month'], ['GST/HST return, if registered', 'Annual filers: June 15', 'Penalty and interest'], ['Renew business name registration', 'Every 5 years in Ontario', 'Name lapses']], 'A sole proprietor’s tax is due on April 30 even though the return can wait until June 15.'],
+    },
+    us: {
+      co: [[['Form 1120 (C corp) or 1120-S (S corp)', 'April 15 (C corp) or March 15 (S corp)', 'Late filing penalties per month'], ['State annual report and franchise tax (for example Delaware)', 'Delaware: March 1', 'Delaware: $200 penalty plus interest; loss of good standing'], ['Registered agent renewal', 'Yearly', 'Missed legal notices'], ['W-2 and 1099-NEC', 'January 31', 'Penalties per form'], ['Board and shareholder minutes', 'Yearly', 'Weakens the liability shield']], 'Delaware corporations pay at least $175 franchise tax (or $400 under the assumed par value method) plus a $50 report fee. Most domestic companies no longer file a BOI report with FinCEN since its March 2025 rule.'],
+      llp: [[['Form 1065 (multi-member LLC) or Schedule C (single-member)', 'March 15 or April 15', 'Penalty per member per month'], ['State annual report or LLC tax', 'Delaware LLC: $300 by June 1; California: $800 a year', 'Loss of good standing'], ['K-1 to each member', 'March 15', 'Penalties']], 'Single-member LLCs are disregarded for income tax, but still owe state LLC fees and reports.'],
+      sp: [[['Form 1040 with Schedule C and SE', 'April 15', 'Penalty and interest'], ['Quarterly estimated tax', 'April 15, June 15, September 15, January 15', 'Underpayment penalty'], ['Renew local business licence and DBA', 'As your city and state set', 'Fines']], 'Sole proprietors pay self-employment tax (15.3 %) through their own return.'],
+    },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ff]')) {
+    const cc = followCountry(fig, draw); fig.addEventListener('change', draw);
+    function draw() {
+      const st = (fig.querySelector('[name=st]') as HTMLSelectElement).value, [rows, say] = F[cc()][st];
+      const t = fig.querySelector('[data-t]')!; t.innerHTML = '<thead><tr><th>Filing</th><th>Due</th><th>If late</th></tr></thead><tbody></tbody>';
+      rows.forEach((r) => { const tr = document.createElement('tr'); r.forEach((c) => { const td = document.createElement('td'); td.textContent = c; tr.append(td); }); t.querySelector('tbody')!.append(tr); });
+      fig.querySelector('[data-say]')!.textContent = say;
+    }
+  }
+</script>

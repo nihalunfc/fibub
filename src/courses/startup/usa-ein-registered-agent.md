@@ -27,6 +27,8 @@ sources:
 
 **Module 4 · about 14 minutes · USA.** You'll get your EIN, choose a registered agent and know when your company must register in another state.
 
+<div class="bigidea">The EIN is your business’s free federal tax number; a registered agent receives legal papers in each state where you are registered; and payroll, sales tax and company registration each have their own test for other states.</div>
+
 ## 1. The EIN
 
 The **Employer Identification Number** is the business's federal tax ID: nine digits like 12-3456789. Despite the name, you need one even with no employees if you are a corporation, a multi-member LLC, or you want a business bank account (banks ask for it).
@@ -61,9 +63,30 @@ If the company does business in a state other than the one it was formed in, it 
 - **State payroll withholding** and **state unemployment insurance (SUI)** accounts before the first pay day in each state where employees work (Module 9).
 - **State income or franchise tax** accounts, opened by registering with the state's revenue department.
 
+<div class="meaning">
+
+<dl>
+<dt>EIN</dt><dd>employer identification number from the IRS, free online</dd>
+<dt>CP 575</dt><dd>the IRS letter confirming your EIN</dd>
+<dt>Registered agent</dt><dd>the in-state person who accepts legal papers</dd>
+<dt>Foreign qualification</dt><dd>registering in another state where you do business</dd>
+<dt>State tax account</dt><dd>a state number for payroll withholding, unemployment insurance or sales tax</dd>
+<dt>What it means for you</dt><dd>Get the EIN free at irs.gov, keep the CP 575, appoint an agent in each state you register in, and check the three separate tests before hiring or selling in a new state.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="usa-ein-registered-agent-agents"></div>
+
 ## 5. Worked example
 
 *Made-up founders.* Clinivo Inc. (Delaware, founders in California) gets its EIN online in 15 minutes and saves the CP 575. Its Delaware registered agent costs $125 a year; in California the company is its own agent at its office. When Clinivo hires an engineer in Austin, Texas, it registers with the Texas Workforce Commission for unemployment tax (Texas has no state income tax withholding) and, on its lawyer's advice, qualifies in Texas as a foreign corporation.
+
+<div class="myth">
+
+**"I have to pay a company to get an EIN."** The IRS gives EINs free, online in minutes. Sites that charge are agents filling in the same free form.
+
+</div>
 
 ## 6. Practice
 
@@ -78,6 +101,16 @@ If the company does business in a state other than the one it was formed in, it 
 2. Formal delivery of legal papers, such as a lawsuit, to the company through its registered agent.
 3. Usually not for company law; but Ohio sales tax may apply once you pass its economic nexus threshold.
 </details>
+
+<div class="keypoints">
+
+- EIN: free at irs.gov; save the CP 575 letter.
+- A registered agent must have an address in the state and be there in business hours.
+- Company registration, payroll and sales tax are three different tests in each state.
+- A remote employee usually means payroll registration in their state.
+- Open state withholding, unemployment and sales tax accounts as needed.
+
+</div>
 
 **Next:** [Address, domain and the records to keep](/learn/courses/startup/address-domain-records/).
 

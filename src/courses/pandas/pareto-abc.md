@@ -16,9 +16,16 @@ quiz:
     choices: ['So the product that crosses 80 % still counts as A', 'It is faster', 'To skip the first product']
     ans: 0
     why: 'With shift, the item that takes you from 79 % to 81 % is in class A.'
+sources:
+  - 'Juran, J. M. (1951), Quality Control Handbook, McGraw-Hill (the Pareto principle)'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 8 · about 15 minutes · uses Lessons 4.1 and 4.5.** You'll be able to rank items by contribution and split them into A, B and C classes.
+
+<div class="bigidea">Rank items by contribution, add up their shares from the top, and you see how few items make most of the result. A, B and C classes turn that into who gets attention first.</div>
+
+**In everyday terms:** a wardrobe: you wear a handful of favourite clothes most days. Those few deserve the front of the rail; the rest can go further back.
 
 ## 1. Cumulative share
 
@@ -61,6 +68,36 @@ by.groupby('class', observed=True)['revenue'].agg(['size', 'sum']).assign(share=
 <!--fig:pareto-curve-->
 
 The curve rises fast and then flattens. The more it bows towards the top left, the more concentrated sales are. A straight diagonal would mean every product sells the same.
+
+<div class="meaning">
+
+<dl>
+<dt>sort_values(ascending=False)</dt><dd>Biggest contributors first.</dd>
+<dt>cumsum() / sum()</dt><dd>Cumulative share: how much the top items make together.</dd>
+<dt>A / B / C</dt><dd>Up to 80 %, 80-95 %, the rest (common cut-offs; pick your own).</dd>
+<dt>Shift the share by one</dt><dd>So the item that crosses 80 % still counts as A.</dd>
+<dt>Physical meaning</dt><dd>The cumulative share curve rises steeply and then flattens. Its steepness says how concentrated the business is: 20 % of items making 80 % is a common pattern, not a law.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"It is always 80/20."** Concentration varies: in the course shop, 17 of 32 products make 80 %. Measure it; do not assume it.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Revenue by product, sorted.</b> <table class="lk-tbl"><tr><th>product</th><th>revenue</th></tr><tr><td>P1</td><td>50</td></tr><tr><td>P2</td><td>25</td></tr><tr><td>P3</td><td>15</td></tr><tr><td>P4</td><td>6</td></tr><tr><td>P5</td><td>4</td></tr></table></div>
+<div class="step"><b>Share.</b> Total 100: 50 %, 25 %, 15 %, 6 %, 4 %.</div>
+<div class="step"><b>Cumulative.</b> 50, 75, 90, 96, 100 %.</div>
+<div class="step"><b>Classes, using the share before each item.</b> Before P1 0 %, P2 50 %, P3 75 % → A; P4 starts at 90 % → B; P5 starts at 96 % → C.</div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>product</th><th>cum %</th><th>class</th></tr><tr><td>P1</td><td>50</td><td>A</td></tr><tr><td>P2</td><td>75</td><td>A</td></tr><tr><td>P3</td><td>90</td><td><mark>A</mark></td></tr><tr><td>P4</td><td>96</td><td>B</td></tr><tr><td>P5</td><td>100</td><td>C</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-abc-count"></div>
 
 ## 4. Your turn
 
@@ -116,3 +153,12 @@ The bigger the gap between the curve and the diagonal, the more concentrated the
 
 
 **New words:** *Pareto principle*, *cumulative share*, *ABC analysis*, *Lorenz curve*, *concentration*.
+
+<div class="keypoints">
+
+- Sort by contribution, then cumsum ÷ sum.
+- Classify on the share before each item, so the crossing item is A.
+- Cut-offs like 80/95 are choices; state them.
+- Measure concentration; do not assume 80/20.
+
+</div>
