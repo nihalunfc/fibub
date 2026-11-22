@@ -5,6 +5,7 @@ import SoonList from '../../components/SoonList.astro';
 import { SHELVES, SECTIONS, SUBJECTS, COUNTRIES } from '../../site';
 import { allTools, bySection, bySubject } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
+import CountStrip from '../../components/CountStrip.astro';
 export function getStaticPaths() {
   return SHELVES.map((s) => ({ params: { shelf: s.id }, props: { shelf: s } }));
 }
@@ -17,11 +18,19 @@ const hasSections = (SECTIONS[shelf.id] ?? []).length > 0;
 const groups = bySection(shelf.id, live);
 // Science: a grid of subjects, each with its sections; the tools are one click away on the subject's page.
 const subjects = SUBJECTS[shelf.id] ? bySubject(shelf.id, live) : null;
+// The shelf in numbers (worked out from the tool files at build time).
+const nums = [
+  { value: live.length, label: 'tools' },
+  { value: subjects?.length ?? 0, label: 'subjects' },
+  { value: hasSections ? groups.filter((g) => g.id !== 'other').length : 0, label: 'sections' },
+  { value: soon.length, label: 'coming soon' },
+].filter((c) => c.value > 0);
 ---
 <Base title={`${shelf.name} tools`} docTitle={`Free ${shelf.name.toLowerCase()} tools and calculators | fibub`} description={desc} ld={collectionLd(`${shelf.name} tools`, desc, `/${shelf.id}/`, [{ name: 'Home', url: '/' }, { name: shelf.name, url: `/${shelf.id}/` }])} shelf={shelf.id}>
   <div class="crumbs"><a href="/">Home</a> / {shelf.name}</div>
   <h1>{shelf.name} tools</h1>
   <p class="lead">{shelf.blurb} Free, with no sign-up.</p>
+  <CountStrip counts={nums} label={`${shelf.name} tools in numbers`} />
   {shelf.id === 'vehicles' && (
     <nav class="cty" aria-label="Vehicle tools by country">
       <b>Pick your country</b>

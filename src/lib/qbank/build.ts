@@ -15,13 +15,13 @@ export async function bankTopic(bank: string, topic: string): Promise<QTopicFile
 /** Counts per topic and in total: written items by type and level, and templates. */
 export async function bankCounts(bank: string) {
   const idx = await bankIndex(bank);
-  const topics: Record<string, { items: number; gens: number; byType: Record<string, number>; byLevel: Record<number, number>; exams: Record<string, number> }> = {};
+  const topics: Record<string, { items: number; gens: number; byType: Record<string, number>; byLevel: Record<number, number>; exams: Record<string, number>; gensByExam: Record<string, number> }> = {};
   for (const u of idx.units) for (const t of u.topics) {
     const f = await bankTopic(bank, t.id).catch(() => null);
-    const c = { items: 0, gens: 0, byType: {} as Record<string, number>, byLevel: {} as Record<number, number>, exams: {} as Record<string, number> };
+    const c = { items: 0, gens: 0, byType: {} as Record<string, number>, byLevel: {} as Record<number, number>, exams: {} as Record<string, number>, gensByExam: {} as Record<string, number> };
     if (f) {
-      for (const it of f.items) { c.items++; c.byType[it.type] = (c.byType[it.type] ?? 0) + 1; c.byLevel[it.level] = (c.byLevel[it.level] ?? 0) + 1; for (const e of it.exams ?? []) c.exams[e] = (c.exams[e] ?? 0) + 1; }
-      for (const g of topicGens(f)) { c.gens++; for (const e of g.exams ?? []) c.exams[e] = (c.exams[e] ?? 0) + 1; }
+      for (const it of f.items ?? []) { c.items++; c.byType[it.type] = (c.byType[it.type] ?? 0) + 1; c.byLevel[it.level] = (c.byLevel[it.level] ?? 0) + 1; for (const e of it.exams ?? []) c.exams[e] = (c.exams[e] ?? 0) + 1; }
+      for (const g of topicGens(f)) { c.gens++; for (const e of g.exams ?? []) { c.exams[e] = (c.exams[e] ?? 0) + 1; c.gensByExam[e] = (c.gensByExam[e] ?? 0) + 1; } }
     }
     topics[t.id] = c;
   }

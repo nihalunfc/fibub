@@ -2,6 +2,11 @@
 // Public usage statistics, built from the daily anonymous totals in data/stats/.
 import Base from '../layouts/Base.astro';
 import PaperStats from '../components/PaperStats.astro';
+import CountStrip from '../components/CountStrip.astro';
+import { siteHeadline } from '../lib/headline';
+import { questionTotals } from '../lib/qtotals';
+const headline = await siteHeadline();
+const qt = await questionTotals();
 
 type Row = { tool: string; type: string; size: string; device: string; os: string; browser: string; country: string; outcome: string; saved?: number; count: number };
 const files = import.meta.glob<{ date: string; rows: Row[] }>('../../data/stats/*.json', { eager: true, import: 'default' });
@@ -32,7 +37,17 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   <h1>Usage statistics</h1>
   <p class="lead">Anonymous totals of how fibub's tools are used. We count uses, never people: no IP addresses, no visitor IDs, no file names and never your files. <a href="/privacy/">How this works</a>.</p>
 
-  <nav class="jump" aria-label="On this page"><a href="#live">Live counts</a><a href="#papers">Research papers checked</a>{total > 0 && <a href="#files">Files processed</a>}<a href="#views">Page view files</a></nav>
+  <nav class="jump" aria-label="On this page"><a href="#content">Content</a><a href="#live">Live counts</a><a href="#papers">Research papers checked</a>{total > 0 && <a href="#files">Files processed</a>}<a href="#views">Page view files</a></nav>
+
+  <h2 id="content">fibub in numbers</h2>
+  <p class="note">Counted from the site's own files on every build: live tools, live courses, written lessons, figures and simulations inside lessons, and the question banks. Templates make new numbers every time they are opened but count once.</p>
+  <CountStrip counts={headline.counts} exams={headline.exams} label="fibub in numbers" />
+  <details class="qb-banks"><summary>Questions by bank ({qt.banks} banks)</summary>
+    <table><thead><tr><th>Bank</th><th>Written questions</th><th>Templates</th></tr></thead>
+      <tbody>{Object.entries(qt.byBank).sort((a, b) => b[1].items - a[1].items).map(([b, n]) => <tr><td>{b}</td><td>{n.items.toLocaleString('en')}</td><td>{n.gens.toLocaleString('en')}</td></tr>)}</tbody>
+      <tfoot><tr><th>All banks</th><th>{qt.items.toLocaleString('en')}</th><th>{qt.gens.toLocaleString('en')}</th></tr></tfoot>
+    </table>
+  </details>
 
   <section class="views-note" id="views">
     <h2>Page views</h2>

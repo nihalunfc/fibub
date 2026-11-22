@@ -9,6 +9,8 @@ import { courseCards, cardsIn } from '../../lib/learn';
 import { COURSE_CATS, type CourseCat } from '../../data/curricula';
 import { allTools, toolUrl } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
+import { hubHeadline } from '../../lib/headline';
+import CountStrip from '../CountStrip.astro';
 import '../../styles/area.css';
 import '../../styles/learn.css';
 interface Props { cat: CourseCat; lead: string; docTitle: string; description: string; tools?: string[]; toolsTitle?: string }
@@ -18,6 +20,7 @@ const cs = cardsIn(await courseCards(), cat);
 const live = cs.filter((c) => c.status === 'live'), soon = cs.filter((c) => c.status !== 'live');
 const all = await allTools();
 const tools = ids.map((id) => all.find((t) => t.id === id && t.data.status === 'live')).filter((t) => !!t);
+const nums = await hubHeadline(cat);
 const crumbs = [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: k.name, url: k.href }];
 ---
 <Base title={`Learn: ${k.name}`} docTitle={docTitle} description={description} ld={collectionLd(k.name, description, k.href, crumbs)}>
@@ -26,6 +29,7 @@ const crumbs = [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, {
     <h1>{k.name}</h1>
     <p class="lead">{lead}</p>
   </div>
+  <CountStrip counts={nums.counts} exams={nums.exams} label={`${k.name} in numbers`} />
   <section class="lh-cont" data-continue hidden aria-label="Continue where you left off"><h2>Continue where you left off</h2><ul></ul></section>
   {live.length > 0 && <>
     <div class="lh-sec"><h2>Courses <small class="lh-sub">({live.length})</small></h2></div>
