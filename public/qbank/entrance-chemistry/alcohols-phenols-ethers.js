@@ -488,9 +488,227 @@ const GENS = [
     }, verify: (p) => p.options.indexOf(p.right) },
 ];
 
+// ---------- expansion block (fibub, 2026-11-22): added after the original items; ids continue the numbering ----------
+const rd = (x, d = 2) => +x.toFixed(d);
+const tlr = (a, f = 0.01, m = 0.002) => Math.max(m, Math.abs(a) * f);
+const MQ = 'Match List I with List II and choose the correct code.';
+const mtc = (level, sub, gid, title, l1, l2, right, wrongs, sol, trap) => { GRP[gid] = { title, list1: l1.map(F), list2: l2.map(F) }; return mat(level, sub, gid, MQ, right, wrongs, sol, trap); };
+const XN = [];
+const A = (...x) => XN.push(...x);
+
+// ---- match the lists (8) ----
+A(mtc(3, 'reactions of phenol', 'px1', 'Match the reagent with the main product from phenol',
+  ['A. Br2 in water', 'B. dilute HNO3 at 298 K', 'C. conc. HNO3 with conc. H2SO4', 'D. CHCl3 and aqueous NaOH, then H+'],
+  ['p. 2,4,6-tribromophenol', 'q. a mixture of o- and p-nitrophenol', 'r. 2,4,6-trinitrophenol', 's. 2-hydroxybenzaldehyde'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+  '<p>Bromine water: all three activated positions are brominated (p). Dilute nitric acid at room temperature: mono-nitration, ortho and para (q). Concentrated nitric acid with sulphuric acid: all three positions, picric acid (r). Reimer&ndash;Tiemann reaction: ortho-formylation gives salicylaldehyde (s).</p>', 'Dilute and concentrated nitric acid give different products.'));
+A(mtc(5, 'tests', 'px2', 'Match the reagent with what it is used to show',
+  ['A. Lucas reagent (anhydrous ZnCl2 in conc. HCl)', 'B. Neutral FeCl3 solution', 'C. I2 with NaOH', 'D. Aqueous NaHCO3'],
+  ['p. Tells primary, secondary and tertiary alcohols apart', 'q. Shows a phenolic OH (violet colour)', 'r. Shows the CH3CH(OH)&ndash; group', 's. Separates carboxylic acids from phenols'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>Lucas reagent gives turbidity at different speeds with 3&deg;, 2&deg; and 1&deg; alcohols (p). Neutral FeCl<sub>3</sub> gives violet, blue or green colours with phenols (q). I<sub>2</sub>/NaOH oxidises CH<sub>3</sub>CH(OH)R to CH<sub>3</sub>COR and gives yellow iodoform (r). Carboxylic acids liberate CO<sub>2</sub> from NaHCO<sub>3</sub> but phenols do not (s).</p>', 'Phenols are weaker acids than carbonic acid.'));
+A(mtc(4, 'oxidation of alcohols', 'px3', 'Match the alcohol and reagent with the product',
+  ['A. propan-1-ol with PCC in CH2Cl2', 'B. propan-1-ol with hot acidified KMnO4', 'C. propan-2-ol with CrO3', 'D. methanol vapour over Cu at 573 K'],
+  ['p. propanal', 'q. propanoic acid', 'r. propanone', 's. methanal'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+  '<p>PCC stops at the aldehyde (p). Hot acidified permanganate takes a primary alcohol all the way to the acid (q). A secondary alcohol gives a ketone (r). Copper at 573 K dehydrogenates methanol to methanal (s).</p>', 'PCC does not over-oxidise.'));
+A(mtc(5, 'cleavage of ethers by HI', 'px4', 'Match the ether with the products on reaction with HI',
+  ['A. C6H5OCH3', 'B. (CH3)3COCH3', 'C. CH3OC2H5 (excess HI, heat)', 'D. C6H5OC6H5'],
+  ['p. phenol and CH3I', 'q. (CH3)3CI and CH3OH', 'r. CH3I and C2H5I', 's. no reaction'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-r, C-q, D-s', 'A-p, B-q, C-s, D-r'],
+  '<p>Aryl alkyl ether: the phenyl C&ndash;O bond is too strong to break, so the alkyl iodide and phenol form (p). A tertiary alkyl methyl ether cleaves at the tertiary carbon by SN1 (q). With excess HI, a dialkyl ether gives two alkyl iodides (r). A diaryl ether is not cleaved (s).</p>', 'In aryl alkyl ethers it is always the alkyl carbon that is attacked.'));
+A(mtc(2, 'industrial preparation', 'px5', 'Match the compound with a method of making it',
+  ['A. Methanol', 'B. Phenol', 'C. Ethanol (traditional)', 'D. Ethanol (modern industrial)'],
+  ['p. CO + 2H2 over ZnO&ndash;Cr2O3 at high pressure', 'q. Cumene hydroperoxide treated with dilute acid', 'r. Zymase on glucose', 's. Dow process with NaOH at 623 K', 't. Hydration of ethene with a phosphoric acid catalyst'],
+  'A-p, B-q, C-r, D-t', ['A-p, B-s, C-r, D-t', 'A-q, B-p, C-r, D-t', 'A-p, B-q, C-t, D-r'],
+  '<p>Methanol: water gas (CO + H<sub>2</sub>) over ZnO&ndash;Cr<sub>2</sub>O<sub>3</sub> (p). Phenol: cumene process, which also gives propanone (q; the Dow process, s, is an older route and is the distractor). Traditional ethanol: fermentation of glucose by zymase (r). Modern ethanol: hydration of ethene (t).</p>'));
+A(mtc(4, 'epoxide reactions', 'px6', 'Match the reagent with the product from ethylene oxide (oxirane)',
+  ['A. H2O with H+', 'B. CH3MgBr, then H3O+', 'C. NH3', 'D. HCl'],
+  ['p. ethane-1,2-diol', 'q. propan-1-ol', 'r. 2-aminoethanol', 's. 2-chloroethanol'],
+  'A-p, B-q, C-r, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r'],
+  '<p>The strained ring opens at a C&ndash;O bond. Water gives the glycol (p). CH<sub>3</sub>MgBr adds CH<sub>3</sub> to a ring carbon: CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>OH, propan-1-ol (q), two carbons more than the Grignard reagent. Ammonia gives the amino alcohol (r). HCl gives the chlorohydrin (s).</p>', 'A Grignard reagent adds two carbons (CH2CH2) when it opens ethylene oxide.'));
+A(mtc(3, 'dehydration conditions', 'px7', 'Match the conditions with the main product from ethanol',
+  ['A. conc. H2SO4, 443 K', 'B. conc. H2SO4, 413 K, excess ethanol', 'C. conc. H2SO4, 273&ndash;283 K', 'D. ethanoic acid with a little conc. H2SO4, warm'],
+  ['p. ethene', 'q. ethoxyethane', 'r. ethyl hydrogensulphate', 's. ethyl ethanoate'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+  '<p>Above 440 K elimination wins: ethene (p). At about 413 K with excess alcohol, two molecules join: diethyl ether (q). In the cold, only the ester of sulphuric acid forms (r). With ethanoic acid, esterification (s).</p>', 'Temperature decides between ether and alkene.'));
+A(mtc(4, 'Grignard syntheses', 'px8', 'Match the carbonyl or epoxide with the product after CH3MgBr and then H3O+',
+  ['A. HCHO', 'B. CH3CHO', 'C. (CH3)2CO', 'D. ethylene oxide'],
+  ['p. ethanol', 'q. propan-2-ol', 'r. 2-methylpropan-2-ol', 's. propan-1-ol'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>Methanal gives a primary alcohol with one more carbon: ethanol (p). Ethanal gives a secondary alcohol: propan-2-ol (q). A ketone gives a tertiary alcohol: 2-methylpropan-2-ol (r). Ethylene oxide gives a primary alcohol with two more carbons: propan-1-ol (s).</p>'));
+
+// ---- multi (10) ----
+A(msq(4, 'acidity and solubility', 'Which of these dissolve in aqueous NaOH but do not dissolve with effervescence in aqueous NaHCO3?', ['phenol', 'p-cresol', 'benzoic acid', 'picric acid'], [0, 1],
+  '<p>Phenol (pK<sub>a</sub> 10) and p-cresol (about 10.2) are weaker acids than H<sub>2</sub>CO<sub>3</sub> (pK<sub>a</sub> 6.4), so NaHCO<sub>3</sub> does not convert them to salts; NaOH does. Benzoic acid (4.2) and picric acid (0.4) are stronger than H<sub>2</sub>CO<sub>3</sub>, so they react with NaHCO<sub>3</sub> and give CO<sub>2</sub>.</p>', 'Picric acid is called an acid for a reason: it is as strong as a mineral acid.'));
+A(msq(4, 'oxidation of primary alcohols', 'Which of these convert propan-1-ol mainly into propanal?', ['pyridinium chlorochromate (PCC)', 'copper at 573 K (dehydrogenation)', 'acidified K2Cr2O7 (excess, heat)', 'alkaline KMnO4, then H+'].map(F), [0, 1],
+  '<p>PCC and catalytic dehydrogenation stop at the aldehyde. Hot acidified dichromate and permanganate oxidise on to propanoic acid.</p>'));
+A(msq(5, 'preparation of phenol', 'Which routes give phenol?', ['cumene hydroperoxide with dilute acid', 'chlorobenzene with NaOH at 623 K and 300 atm, then H+', 'benzenediazonium chloride warmed with water', 'toluene with KMnO4'], [0, 1, 2],
+  '<p>The cumene process, the Dow process and hydrolysis of a diazonium salt all give phenol. Toluene with KMnO<sub>4</sub> gives benzoic acid.</p>'));
+A(msq(4, 'ethers cleaved by HI', 'Which ethers give a phenol and an alkyl iodide on cleavage with HI?', ['C6H5OCH3', 'C6H5OC2H5', 'C6H5OC6H5', 'CH3OCH3'].map(F), [0, 1],
+  '<p>Anisole and phenetole: the alkyl&ndash;O bond breaks, so phenol and CH<sub>3</sub>I or C<sub>2</sub>H<sub>5</sub>I form. Diphenyl ether is not cleaved. Dimethyl ether gives only methanol and iodomethane (no phenol).</p>'));
+A(msq(3, 'glycerol', 'Which statements about glycerol are correct?', ['It is a trihydric alcohol', 'Heating with KHSO4 gives acrolein', 'Periodic acid cleaves it to methanal and methanoic acid', 'It is a solid at room temperature'], [0, 1, 2],
+  '<p>Glycerol, propane-1,2,3-triol, has three OH groups. KHSO<sub>4</sub> dehydrates it twice to propenal (acrolein, an irritant). HIO<sub>4</sub> cleaves the two adjacent C&ndash;C bonds, giving two moles of HCHO and one of HCOOH. It is a viscous liquid, not a solid.</p>'));
+A(msq(4, 'iodoform test', 'Which of these alcohols give a yellow precipitate with I2 and NaOH?', ['ethanol', 'propan-1-ol', 'butan-2-ol', '2-methylpropan-2-ol'], [0, 2],
+  '<p>The test needs the CH<sub>3</sub>CH(OH)&ndash; group (or CH<sub>3</sub>CO&ndash; after oxidation). Ethanol and butan-2-ol have it. Propan-1-ol and 2-methylpropan-2-ol do not.</p>', 'Ethanol is the only primary alcohol that responds.'));
+A(msq(5, 'dehydration of alcohols', 'Dehydration of which alcohols (conc. H2SO4, 443 K) gives a major alkene that shows cis&ndash;trans isomerism?', ['butan-2-ol', 'propan-2-ol', 'pentan-3-ol', '2-methylbutan-2-ol'], [0, 2],
+  '<p>Butan-2-ol gives but-2-ene (cis and trans) as the major (Zaitsev) product. Pentan-3-ol gives pent-2-ene (cis and trans). Propan-2-ol gives propene (no geometrical isomers). 2-Methylbutan-2-ol gives 2-methylbut-2-ene, in which one carbon has two identical methyl groups.</p>', 'Zaitsev product does not mean it always has cis-trans forms.'));
+A(msq(4, 'Kolbe&ndash;Schmitt chemistry', 'Which routes give salicylic acid or its immediate derivative?', ['sodium phenoxide, CO<sub>2</sub> at 400 K and 4&ndash;7 atm, then H<sup>+</sup>', 'phenol with CHCl<sub>3</sub> and NaOH, then H<sup>+</sup>', 'oxidation of salicylaldehyde with Tollens&rsquo; reagent, then H<sup>+</sup>', 'phenol with methanal in the presence of acid'], [0, 2],
+  '<p>Kolbe&ndash;Schmitt carboxylation (A) gives salicylic acid. Salicylaldehyde is oxidised by Tollens&rsquo; reagent to the acid (C). The Reimer&ndash;Tiemann reaction stops at the aldehyde (B). Phenol with methanal gives Bakelite (D).</p>'));
+A(msq(5, 'opening of epoxides', 'Which statements about the ring opening of unsymmetrical epoxides such as propylene oxide are correct?', ['With CH<sub>3</sub>O<sup>-</sup>, attack is at the less substituted carbon', 'With CH<sub>3</sub>OH and a trace of acid, attack is mainly at the more substituted carbon', 'Cyclohexene oxide with aqueous acid gives trans-cyclohexane-1,2-diol', 'Ethylene oxide is less strained than oxetane'], [0, 1, 2],
+  '<p>Strong nucleophiles attack the less hindered carbon (SN2). In acid the protonated epoxide has partial carbocation character at the more substituted carbon, which is attacked. Backside attack gives the trans diol. A three-membered ring is more strained than a four-membered one, so D is wrong.</p>'));
+A(msq(4, 'hydration of 1-butene', 'Which statements about the conversion of but-1-ene into alcohols are correct?', ['Dilute H<sub>2</sub>SO<sub>4</sub> and water give butan-2-ol', 'BH<sub>3</sub> followed by H<sub>2</sub>O<sub>2</sub>/OH<sup>-</sup> gives butan-1-ol', 'Hg(OAc)<sub>2</sub>/H<sub>2</sub>O then NaBH<sub>4</sub> gives butan-1-ol', 'Hydroboration involves syn addition of H and B'], [0, 1, 3],
+  '<p>Acid hydration and oxymercuration&ndash;demercuration are Markovnikov, giving butan-2-ol (so C is false). Hydroboration&ndash;oxidation is anti-Markovnikov giving butan-1-ol, and boron and hydrogen add to the same face (syn).</p>'));
+
+// ---- integer (10) ----
+A(nat(3, 'isomers of C4H10O', 'The total number of structural isomers (alcohols and ethers) of C4H10O is', 7, 0, '', '<p>Alcohols: butan-1-ol, butan-2-ol, 2-methylpropan-1-ol, 2-methylpropan-2-ol = 4.</p><p>Ethers: methoxypropane, 2-methoxypropane (isopropyl methyl ether), ethoxyethane = 3.</p><p>Total <b>7</b>.</p>', '', () => 4 + 3));
+A(nat(4, 'isomeric phenols', 'The number of isomeric phenols of formula C8H10O (aromatic, with the OH on the ring) is', 9, 0, '', '<p>Ethylphenols: ortho, meta, para = 3.</p><p>Dimethylphenols (xylenols): 2,3-, 2,4-, 2,5-, 2,6-, 3,4- and 3,5- = 6.</p><p>Total 3 + 6 = <b>9</b>.</p>', 'Check each xylenol for repeats: 2,6 and 2,4 are different compounds.', () => 3 + 6));
+A(nat(5, 'periodic acid cleavage', 'How many moles of HIO4 are consumed by one mole of HOCH2CH(OH)CH(OH)CH2OH (erythritol, butane-1,2,3,4-tetrol)?', 3, 0, 'mol', '<p>HIO<sub>4</sub> cleaves each C&ndash;C bond that links two carbons bearing OH. Three C&ndash;C bonds are between OH-bearing carbons, and each cleavage consumes one HIO<sub>4</sub>.</p><p>Answer <b>3</b> mol. (Products: 2 HCHO and 2 HCOOH.)</p>', 'Count the C&ndash;C bonds between carbons that carry OH.', () => 3));
+A(nat(3, 'Zerewitinoff determination', 'One mole of glycerol is treated with excess CH3MgBr. How many moles of methane are evolved?', 3, 0, 'mol', '<p>Each O&ndash;H hydrogen reacts with CH<sub>3</sub>MgBr to give CH<sub>4</sub>. Glycerol has three OH groups.</p><p>Answer <b>3 mol</b>.</p>', '', () => 3));
+A(nat(4, 'stereoisomers of diols', 'The number of stereoisomers of butane-2,3-diol is', 3, 0, '', '<p>It has two stereocentres (C2 and C3) that carry the same four groups, so the molecule is symmetric.</p><p>The isomers are (R,R), (S,S) and the meso (R,S) form: <b>3</b>.</p>', 'The meso form makes the number 3, not 4.', () => 3));
+A(nat(5, 'stereoisomers of a triol', 'The number of stereoisomers of pentane-2,3,4-triol is', 4, 0, '', '<p>C2 and C4 are stereocentres and equivalent by symmetry; C3 is a pseudoasymmetric centre.</p><p>The stereoisomers are two meso forms and one pair of enantiomers: 2 + 2 = <b>4</b>.</p>', 'It has three stereocentres but fewer than 2<sup>3</sup> = 8 isomers because of the symmetry.', () => 2 + 2));
+A(nat(4, 'hydrolysis of aspirin', 'How many moles of NaOH are consumed in completely hydrolysing and neutralising one mole of aspirin (2-ethanoyloxybenzoic acid)?', 3, 0, 'mol', '<p>One mole of NaOH neutralises the COOH. One mole hydrolyses the ester to ethanoate (taking up the acetyl group) and the phenol it releases is acidic enough to react with one more mole of NaOH.</p><p>Total = 1 + 1 + 1 = <b>3 mol</b>.</p>', 'Both the ester hydrolysis and the new phenolic OH use up base.', () => 1 + 1 + 1));
+A(nat(3, 'sigma bonds in phenol', 'The number of sigma bonds in one molecule of phenol, C6H5OH, is', 13, 0, '', '<p>Ring C&ndash;C: 6; ring C&ndash;H: 5; C&ndash;O: 1; O&ndash;H: 1.</p><p>6 + 5 + 1 + 1 = <b>13</b>.</p>', 'The three C=C double bonds add pi bonds, not extra sigma bonds.', () => 6 + 5 + 1 + 1));
+A(nat(4, 'ethers from a mixture', 'Methanol, ethanol, propan-1-ol and butan-1-ol are heated together with conc. H2SO4 at 413 K. The number of different ethers (symmetrical and unsymmetrical) formed is', 10, 0, '', '<p>With n different primary alcohols the number of ethers is n(n + 1)/2: n symmetrical plus n(n &minus; 1)/2 mixed.</p><p>n = 4: 4 &times; 5/2 = <b>10</b>.</p>', 'Remember the symmetrical ethers too.', () => 4 * 5 / 2));
+A(nat(5, 'pinacolone', 'The pinacol&ndash;pinacolone rearrangement of (CH3)2C(OH)C(OH)(CH3)2 gives (CH3)3C&ndash;CO&ndash;CH3. The number of methyl groups in pinacolone is', 4, 0, '', '<p>Pinacolone is 3,3-dimethylbutan-2-one: the tert-butyl group has 3 methyls and the CH<sub>3</sub>&ndash;CO group has 1.</p><p>3 + 1 = <b>4</b>.</p>', 'The migrating group is a methyl; the count of methyls is unchanged from the 4 in pinacol.', () => 3 + 1));
+
+// ---- numeric (7) ----
+A(nat(5, 'Zeisel method', 'Anisole, 0.216 g (C6H5OCH3, 108 g mol<sup>-1</sup>), is boiled with excess HI and the CH3I formed is passed into excess AgNO3 solution. The mass of AgI (235 g mol<sup>-1</sup>) obtained, in grams, is', 0.47, 0.005, 'g', '<p>C<sub>6</sub>H<sub>5</sub>OCH<sub>3</sub> + HI &rarr; C<sub>6</sub>H<sub>5</sub>OH + CH<sub>3</sub>I; CH<sub>3</sub>I + AgNO<sub>3</sub> + H<sub>2</sub>O &rarr; AgI + CH<sub>3</sub>OH + HNO<sub>3</sub>.</p><p>Moles of anisole = 0.216/108 = 0.00200. One AgI per OCH<sub>3</sub>: 0.00200 mol, so mass = 0.00200 &times; 235 = <b>0.470 g</b>.</p>', 'One AgI per methoxy group.', () => 0.216 / 108 * 235));
+A(nat(3, 'composition', 'The percentage by mass of the methoxy group, &ndash;OCH3 (31 g mol<sup>-1</sup>), in anisole (108 g mol<sup>-1</sup>) is', 28.7, 0.2, '%', '<p>Mass fraction = 31/108 = 0.2870.</p><p>Percentage = <b>28.7 %</b>.</p>', '', () => 31 / 108 * 100));
+A(nat(4, 'pH of a phenol solution', 'Phenol has pK<sub>a</sub> = 10.0. The pH of a 0.10 M aqueous solution, using [H<sup>+</sup>] = &radic;(K<sub>a</sub>C), is', 5.5, 0.02, '', '<p>K<sub>a</sub> = 10<sup>-10</sup>. [H<sup>+</sup>] = &radic;(10<sup>-10</sup> &times; 0.10) = &radic;(10<sup>-11</sup>) = 3.16 &times; 10<sup>-6</sup> M.</p><p>pH = <b>5.50</b>. (Equivalently pH = &frac12;(pK<sub>a</sub> &minus; log C) = &frac12;(10 + 1).)</p>', 'A weak acid: use the square-root formula, not [H+] = C.', () => 0.5 * (10 - Math.log10(0.1))));
+A(nat(3, 'dehydration yield', 'Ethanol, 23 g (46 g mol<sup>-1</sup>), is dehydrated to ethene with conc. H<sub>2</sub>SO<sub>4</sub> at 443 K in 80 % yield. Volume of ethene at STP in litres is', 8.96, 0.05, 'L', '<p>Moles of ethanol = 23/46 = 0.50. One mole of ethene per mole of alcohol: 0.50 mol at 100 %.</p><p>At 80 %: 0.50 &times; 0.80 &times; 22.4 = <b>8.96 L</b>.</p>', '', () => 23 / 46 * 0.8 * 22.4));
+A(nat(4, 'aspirin yield', 'Salicylic acid, 13.8 g (138 g mol<sup>-1</sup>), is acetylated with excess ethanoic anhydride to aspirin (180 g mol<sup>-1</sup>) in 75 % yield. Mass of aspirin in grams is', 13.5, 0.1, 'g', '<p>Moles of salicylic acid = 13.8/138 = 0.100. At 100 %: 0.100 &times; 180 = 18.0 g.</p><p>At 75 %: 18.0 &times; 0.75 = <b>13.5 g</b>.</p>', '', () => 13.8 / 138 * 180 * 0.75));
+A(nat(5, 'esterification equilibrium', 'Ethanoic acid (1 mol) and ethanol (2 mol) are mixed and reach equilibrium: CH<sub>3</sub>COOH + C<sub>2</sub>H<sub>5</sub>OH &rlarr; CH<sub>3</sub>COOC<sub>2</sub>H<sub>5</sub> + H<sub>2</sub>O, with K<sub>c</sub> = 4. How many moles of ester are present at equilibrium?', 0.845, 0.005, 'mol', '<p>Let x mol of ester form. K<sub>c</sub> = x<sup>2</sup>/[(1 &minus; x)(2 &minus; x)] = 4 (the volume cancels).</p><p>x<sup>2</sup> = 4(2 &minus; 3x + x<sup>2</sup>) &rarr; 3x<sup>2</sup> &minus; 12x + 8 = 0 &rarr; x = [12 &minus; &radic;(144 &minus; 96)]/6 = (12 &minus; 6.928)/6 = <b>0.845 mol</b>. (The other root, 3.15, is more than the acid available.)</p>', 'Pick the root that is smaller than the amount of limiting reagent.', () => (12 - Math.sqrt(48)) / 6));
+A(nat(3, 'alcohol content', 'A spirit contains 40 % ethanol by volume (density of ethanol 0.79 g mL<sup>-1</sup>, M = 46). Moles of ethanol in 100 mL of the spirit is', 0.687, 0.005, 'mol', '<p>Volume of ethanol = 40 mL. Mass = 40 &times; 0.79 = 31.6 g.</p><p>Moles = 31.6/46 = <b>0.687 mol</b>.</p>', '', () => 40 * 0.79 / 46));
+
+// ---- passages (2 x 3) ----
+GRP.px9 = { title: 'A neutral aromatic compound A', passage: F('<p>Compound A, C7H8O, does not react with sodium metal and does not dissolve in aqueous NaOH. Boiling A with excess concentrated HI gives a phenol B and an alkyl iodide C. B gives a violet colour with neutral FeCl3.</p>') };
+A(P(3, 'identifying anisole', 'px9', 'Compound A is', 'methoxybenzene', ['phenylmethanol', '2-methylphenol', '4-methylphenol'], '<p>No reaction with Na and no solubility in NaOH rules out any OH group, so phenylmethanol and the cresols are out. Cleavage by HI to phenol and an alkyl iodide fits an aryl alkyl ether: C<sub>6</sub>H<sub>5</sub>OCH<sub>3</sub> + HI &rarr; C<sub>6</sub>H<sub>5</sub>OH + CH<sub>3</sub>I.</p>'));
+A(P(4, 'electrophilic substitution of anisole', 'px9', 'Bromination of A in ethanoic acid gives mainly', '1-bromo-4-methoxybenzene', ['1-bromo-3-methoxybenzene', '2,4,6-tribromomethoxybenzene (exclusively)', 'bromomethylbenzene'], '<p>The &minus;OCH<sub>3</sub> group is a strong ortho/para activator by +R. The para product dominates (less steric crowding), with some ortho. No Lewis acid is needed, and in ethanoic acid the reaction stops mainly at mono-substitution.</p>'));
+A(PN(4, 'Zeisel on anisole', 'px9', 'Mass of CH3I (142 g mol<sup>-1</sup>) formed, in grams, when 1.08 g of A reacts completely with excess HI is', 1.42, 0.01, 'g', '<p>Moles of A = 1.08/108 = 0.0100. One CH<sub>3</sub>I per A: 0.0100 mol.</p><p>Mass = 0.0100 &times; 142 = <b>1.42 g</b>.</p>', '', () => 1.08 / 108 * 142));
+GRP.px10 = { title: 'An optically active alcohol X', passage: F('<p>Compound X, C4H10O, is optically active. It gives turbidity with Lucas reagent at room temperature after about five minutes. Dehydration of X with conc. H2SO4 at 443 K gives alkenes. Oxidation of X with PCC gives Z, which gives a yellow precipitate with iodine and NaOH.</p>') };
+A(P(4, 'identifying a secondary alcohol', 'px10', 'Compound Z is', 'butanone', ['butanal', 'butanoic acid', 'propanone'], '<p>X is butan-2-ol, the only chiral C<sub>4</sub>H<sub>10</sub>O alcohol; its Lucas response at about five minutes shows a secondary alcohol. PCC oxidises it to butanone, CH<sub>3</sub>COCH<sub>2</sub>CH<sub>3</sub>, which has the CH<sub>3</sub>CO&ndash; group needed for the iodoform test.</p>'));
+A(PN(5, 'alkenes from dehydration', 'px10', 'How many different alkenes (counting cis and trans separately) can X form on dehydration?', 3, 0, '', '<p>Loss of H from C1 gives but-1-ene. Loss of H from C3 gives but-2-ene, which exists as cis and trans.</p><p>1 + 2 = <b>3</b>.</p>', '', () => 1 + 2));
+A(P(5, 'Lucas test of the isomers', 'px10', 'Among the four isomeric C<sub>4</sub>H<sub>10</sub>O alcohols, the fastest response to Lucas reagent (turbidity at once) is shown by', '2-methylpropan-2-ol', ['butan-1-ol', 'butan-2-ol', '2-methylpropan-1-ol'], '<p>Reaction goes by a carbocation (SN1). Tertiary &gt; secondary &gt; primary. 2-Methylpropan-2-ol gives the t-butyl cation and shows turbidity immediately. Butan-2-ol takes about 5 minutes. The two primary alcohols show no turbidity at room temperature.</p>'));
+
+// ---- assertion (5) ----
+A(asr(4, 'anisole', 'Anisole undergoes electrophilic substitution faster than benzene.', 'The methoxy group donates electron density into the ring by resonance (+R).', 0,
+  '<p>The oxygen lone pair conjugates with the ring and raises its electron density at the ortho and para positions. This outweighs the &minus;I effect, so the ring is activated. R explains A.</p>'));
+A(asr(3, 'steam volatility', 'o-Nitrophenol is steam volatile but p-nitrophenol is not.', 'o-Nitrophenol has intermolecular hydrogen bonding while p-nitrophenol has intramolecular hydrogen bonding.', 2,
+  '<p>A is true. R is false and reversed: o-nitrophenol has <i>intra</i>molecular hydrogen bonding (so it behaves like a small molecule and is volatile) while p-nitrophenol has <i>inter</i>molecular hydrogen bonding (association, so it is less volatile).</p>'));
+A(asr(4, 'nitration of phenol', 'Phenol on nitration with conc. HNO<sub>3</sub> and conc. H<sub>2</sub>SO<sub>4</sub> gives mainly a mono-nitrophenol.', 'The OH group activates the ring towards electrophilic substitution.', 3,
+  '<p>R is true, and because of it A is false: the activated ring is nitrated at all three activated positions, giving picric acid (2,4,6-trinitrophenol). Mono-nitration is obtained only with dilute HNO<sub>3</sub> at low temperature.</p>'));
+A(asr(5, 'cleavage of aryl alkyl ethers', 'Anisole reacts with HI to give phenol and iodomethane, not iodobenzene and methanol.', 'HI is a strong acid.', 1,
+  '<p>A is true: the phenyl C&ndash;O bond (sp<sup>2</sup>, partial double bond character) does not break, and iodide attacks the methyl group of the protonated ether (SN2). R is also true, and the acid is needed to protonate oxygen, but its strength does not decide <i>which</i> bond is cleaved. R does not explain A.</p>'));
+A(asr(2, 'methanol', 'Methanol is poisonous.', 'In the body methanol is oxidised to methanal and methanoic acid, which damage the optic nerve and other tissues.', 0,
+  '<p>Methanol itself is not the main toxin; its metabolites are. So R is the correct explanation of A.</p>'));
+
+// ---- statements (6) ----
+A(stm(3, 'Kolbe&ndash;Schmitt', 'Sodium phenoxide, heated with CO<sub>2</sub> under pressure and then acidified, gives salicylic acid.', 'This reaction is called the Reimer&ndash;Tiemann reaction.', 1,
+  '<p>I is correct (the Kolbe&ndash;Schmitt reaction). II is wrong: Reimer&ndash;Tiemann uses CHCl<sub>3</sub> and NaOH and gives salicylaldehyde.</p>'));
+A(stm(4, 'ethers', 'Ethers are less reactive than alcohols towards most reagents.', 'Ethers have no O&ndash;H bond and the C&ndash;O&ndash;C unit is not easily broken.', 0,
+  '<p>Without the acidic O&ndash;H bond, ethers do not react with Na, and the C&ndash;O bond is cleaved only by strong acids such as HI. Both statements are correct.</p>'));
+A(stm(4, 'cumene process', 'The cumene process gives phenol and ethanal.', 'Cumene hydroperoxide is made by oxidising toluene.', 3,
+  '<p>The cumene process gives phenol and <i>propanone</i> (acetone). Cumene hydroperoxide comes from the air oxidation of <i>cumene</i> (isopropylbenzene), not toluene. Both statements are wrong.</p>'));
+A(stm(3, 'acidity', 'Phenol is less acidic than ethanol.', 'The phenoxide ion is stabilised by delocalisation of its negative charge into the ring.', 2,
+  '<p>Phenol (pK<sub>a</sub> 10) is a stronger acid than ethanol (16), so I is wrong. II is correct, and it is the reason.</p>'));
+A(cnt(4, 'counting correct statements', 'How many of these are correct? (i) Phenol turns neutral FeCl<sub>3</sub> violet. (ii) Phenol liberates CO<sub>2</sub> from aqueous NaHCO<sub>3</sub>. (iii) Williamson synthesis using a tertiary alkyl halide gives mainly an alkene. (iv) Ethers are cleaved by cold dilute NaOH. (v) Methanol over Cu at 573 K gives methanal.', ['2', '3', '4', '5'], 1,
+  '<p>(i) True. (ii) False: phenol is weaker than carbonic acid. (iii) True: the alkoxide acts as a base (E2). (iv) False: ethers are inert to alkali. (v) True: dehydrogenation.</p><p>Three are correct.</p>'));
+A(cnt(5, 'counting correct statements', 'How many are correct? (i) m-Nitrophenol is more acidic than m-cresol. (ii) o-Nitrophenol is more soluble in water than p-nitrophenol. (iii) 2,4,6-Trinitrophenol is a stronger acid than ethanoic acid. (iv) PCC oxidises primary alcohols to carboxylic acids. (v) tert-Butyl alcohol has a higher boiling point than butan-1-ol.', ['1', '2', '3', '4'], 1,
+  '<p>(i) True: the nitro group stabilises the anion. (ii) False: p-nitrophenol H-bonds with water; o-nitrophenol is held by intramolecular H-bonding and is less soluble. (iii) True: pK<sub>a</sub> 0.4 against 4.8. (iv) False: PCC stops at the aldehyde. (v) False: branching lowers the boiling point (356 K against 390 K).</p><p>Two are correct: i and iii.</p>'));
+
+// ---- single answer (11) ----
+A(mk(3, 'absolute alcohol', 'Absolute (100 %) ethanol cannot be obtained by simply distilling rectified spirit because', 'ethanol and water form an azeotrope containing about 95.6 % ethanol', ['ethanol decomposes on heating', 'ethanol reacts with water to form a hydrate', 'the boiling point of ethanol is lower than that of water by only 1 K'], '<p>A mixture of 95.6 % ethanol and 4.4 % water boils as if it were a pure liquid (azeotrope), so distillation cannot go past this composition. Benzene or CaO is added to remove the last water.</p>'));
+A(mk(2, 'denatured alcohol', 'Denatured alcohol is', 'ethanol made unfit to drink by adding methanol, pyridine or a dye', ['pure methanol', 'ethanol with its water removed', 'ethanol that has fermented again'], '<p>Industrial ethanol is made poisonous or bad-tasting by adding denaturants so that it cannot be drunk, which also avoids drinks tax.</p>'));
+A(mk(2, 'tests', 'Which reagent distinguishes phenol from ethanol?', 'neutral FeCl<sub>3</sub> solution', ['sodium metal', 'acidified K<sub>2</sub>Cr<sub>2</sub>O<sub>7</sub>', 'ethanoic acid with H<sub>2</sub>SO<sub>4</sub>'], '<p>Phenol gives a violet colour with neutral ferric chloride; ethanol does not. Both give hydrogen with sodium; ethanol turns dichromate green but phenol is also oxidised, and both form esters.</p>'));
+A(mk(2, 'oxidation', 'Cyclohexanol is oxidised by pyridinium chlorochromate (PCC) to', 'cyclohexanone', ['cyclohexane', 'hexanedioic acid', 'cyclohexene'], '<p>A secondary alcohol is oxidised to a ketone. PCC is mild and does not break the ring.</p>'));
+A(mk(2, 'Williamson synthesis', 'Sodium phenoxide reacts with bromoethane. The product is', 'ethoxybenzene (phenetole)', ['phenylethanol', 'ethylphenol', 'phenyl ethanoate'], '<p>This is a Williamson ether synthesis: C<sub>6</sub>H<sub>5</sub>ONa + C<sub>2</sub>H<sub>5</sub>Br &rarr; C<sub>6</sub>H<sub>5</sub>OC<sub>2</sub>H<sub>5</sub> + NaBr.</p>'));
+A(mk(3, 'Friedel&ndash;Crafts on anisole', 'Anisole reacts with CH<sub>3</sub>COCl and anhydrous AlCl<sub>3</sub>. The major product is', '4-methoxyacetophenone (1-(4-methoxyphenyl)ethanone)', ['2,4,6-triethanoylanisole', 'methyl phenyl ketone only (the OCH<sub>3</sub> is lost)', '3-methoxyacetophenone'], '<p>Friedel&ndash;Crafts acylation of an activated ring goes ortho/para; the para product is the major one because it is less crowded. The ketone group deactivates the ring, so only one acyl group enters.</p>', 'Acylation, unlike alkylation, stops after one group.'));
+A(mk(3, 'azo coupling', 'Phenol reacts with benzenediazonium chloride in a mildly alkaline solution to give', '4-hydroxyazobenzene (an orange dye)', ['azobenzene', '2,4,6-tribromophenol', 'diphenyl ether'], '<p>The phenoxide ion attacks the diazonium cation at the para position (azo coupling): C<sub>6</sub>H<sub>5</sub>N=N&ndash;C<sub>6</sub>H<sub>4</sub>OH, an orange azo dye.</p>'));
+A(mk(3, 'structure of ethers', 'The C&ndash;O&ndash;C bond angle in dimethyl ether (about 111.7&deg;) is larger than the tetrahedral angle (109.5&deg;) because of', 'repulsion between the two bulky alkyl groups', ['repulsion between the two lone pairs on oxygen', 'sp hybridisation of oxygen', 'the very high electronegativity of oxygen'], '<p>The two alkyl groups crowd each other and widen the angle. The lone pairs, being closer to oxygen, would instead squeeze the angle (as in water, 104.5&deg;).</p>'));
+A(mk(2, 'Bakelite', 'Bakelite is formed from', 'phenol and methanal', ['phenol and ethanal', 'benzene and methanal', 'aniline and propanone'], '<p>Phenol condenses with methanal (formaldehyde) in the presence of acid or base to give a cross-linked thermosetting polymer, Bakelite.</p>'));
+A(mk(4, 'nitration of an aryl ether', 'Ethoxybenzene (phenetole) is treated with dilute nitric acid. The major product is', '1-ethoxy-4-nitrobenzene', ['1-ethoxy-3-nitrobenzene', '1,3,5-trinitro-2-ethoxybenzene', 'nitroethane'], '<p>The alkoxy group is an ortho/para director, and the para isomer is the major product (with some ortho). With dilute acid, mono-nitration is the result.</p>'));
+A(mk(4, 'glycerol', 'Glycerol heated with oxalic acid at about 383 K gives mainly', 'methanoic acid', ['propenal (acrolein)', 'allyl alcohol', 'oxalic acid diester only'], '<p>Glycerol forms a mono-oxalate, which loses CO<sub>2</sub> to give glyceryl monoformate. Hydrolysis then gives formic acid. At about 533 K the intermediate instead gives allyl alcohol. Acrolein comes from heating with KHSO<sub>4</sub> or P<sub>2</sub>O<sub>5</sub>.</p>', 'The temperature selects the product.'));
+
+// ---- extra templates ----
+const NEWG = [
+  { id: 'ap-g16', type: 'nat', level: 3, exams: EXN[3], sub: 'Zeisel estimation',
+    make(rng) {
+      const C = choose(rng, [['anisole', 108, 1], ['1,4-dimethoxybenzene', 138, 2], ['4-methylanisole', 122, 1], ['1,2-dimethoxybenzene', 138, 2]]); const m = choose(rng, [0.1, 0.2, 0.25, 0.5]); const ans = m / C[1] * C[2] * 235;
+      return { q: `${m} g of ${C[0]} (${C[1]} g mol<sup>-1</sup>) is heated with excess HI and all the CH<sub>3</sub>I is converted to AgI (235 g mol<sup>-1</sup>) by AgNO<sub>3</sub>. Mass of AgI in grams is`, answer: rd(ans, 3), tol: tlr(ans, 0.01, 0.002), unit: 'g', m, M: C[1], k: C[2],
+        sol: `<p>Moles of ${C[0]} = ${m}/${C[1]} = ${rd(m / C[1], 5)}. It has ${C[2]} methoxy group${C[2] > 1 ? 's' : ''}, each giving one AgI.</p><p>Mass of AgI = ${rd(m / C[1], 5)} &times; ${C[2]} &times; 235 = <b>${rd(ans, 3)} g</b>.</p>`, trap: 'One AgI for each OCH3 group.' };
+    }, verify: (p) => p.k * p.m * 235 / p.M },
+  { id: 'ap-g17', type: 'nat', level: 3, exams: EXN[3], sub: 'pH of a weak acid',
+    make(rng) {
+      const A = choose(rng, [['phenol', 10, [0.1, 0.05, 0.2]], ['p-nitrophenol', 7.15, [0.01, 0.02, 0.05]], ['m-cresol', 10.1, [0.1, 0.2]]]); const C = choose(rng, A[2]); const pH = 0.5 * (A[1] - Math.log10(C));
+      return { q: `${A[0][0].toUpperCase()}${A[0].slice(1)} has pK<sub>a</sub> = ${A[1]}. Using [H<sup>+</sup>] = &radic;(K<sub>a</sub>C), find the pH of its ${C} M aqueous solution.`, answer: rd(pH, 2), tol: 0.03, pKa: A[1], C,
+        sol: `<p>[H<sup>+</sup>] = &radic;(10<sup>&minus;${A[1]}</sup> &times; ${C}).</p><p>pH = &frac12;(pK<sub>a</sub> &minus; log C) = &frac12;(${A[1]} &minus; (${rd(Math.log10(C), 3)})) = <b>${rd(pH, 2)}</b>.</p>`, trap: 'For a weak acid, pH is half of (pKa + p of the concentration).' };
+    }, verify: (p) => -Math.log10(Math.sqrt(10 ** -p.pKa * p.C)) },
+  { id: 'ap-g18', type: 'nat', level: 4, exams: EXN[4], sub: 'esterification equilibrium',
+    make(rng) {
+      const b = choose(rng, [1, 2, 3]); const Kc = choose(rng, [4, 4, 9]); const a = 1;
+      // x^2 = Kc (a-x)(b-x)
+      const A2 = 1 - Kc, B2 = Kc * (a + b), C2 = -Kc * a * b; let x;
+      if (Math.abs(A2) < 1e-12) x = -C2 / B2; else { const d = Math.sqrt(B2 * B2 - 4 * A2 * C2); const r1 = (-B2 + d) / (2 * A2), r2 = (-B2 - d) / (2 * A2); x = [r1, r2].filter((v) => v > 0 && v < a)[0]; }
+      return { q: `${a} mol of ethanoic acid and ${b} mol of ethanol are mixed with a little acid catalyst and reach equilibrium: acid + alcohol &rlarr; ester + water, K<sub>c</sub> = ${Kc}. Moles of ester at equilibrium is`, answer: rd(x, 3), tol: 0.005, unit: 'mol', a, b, Kc,
+        sol: `<p>Let x mol of ester form. K<sub>c</sub> = x<sup>2</sup>/[(${a} &minus; x)(${b} &minus; x)] = ${Kc} (volume cancels).</p><p>${Kc === 1 ? '' : `(1 &minus; ${Kc})x<sup>2</sup> + ${Kc * (a + b)}x &minus; ${Kc * a * b} = 0`}. The root between 0 and ${a} is x = <b>${rd(x, 3)} mol</b>.</p>`, trap: 'Discard the root larger than the amount of acid.' };
+    }, verify: (p) => { let lo = 0, hi = p.a; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (mid * mid / ((p.a - mid) * (p.b - mid)) < p.Kc) lo = mid; else hi = mid; } return (lo + hi) / 2; } },
+  { id: 'ap-g19', type: 'nat', level: 3, exams: EXN[3], sub: 'aspirin yield',
+    make(rng) {
+      const m = choose(rng, [6.9, 13.8, 20.7, 27.6]); const y = choose(rng, [60, 70, 75, 80, 90]); const ans = m / 138 * 180 * y / 100;
+      return { q: `${m} g of salicylic acid (138 g mol<sup>-1</sup>) is acetylated with excess ethanoic anhydride to give aspirin (180 g mol<sup>-1</sup>). If the yield is ${y} %, the mass of aspirin in grams is`, answer: rd(ans, 2), tol: tlr(ans, 0.01, 0.02), unit: 'g', m, y,
+        sol: `<p>Moles of salicylic acid = ${m}/138 = ${rd(m / 138, 4)}; one aspirin per salicylic acid.</p><p>Mass = ${rd(m / 138, 4)} &times; 180 &times; ${y}/100 = <b>${rd(ans, 2)} g</b>.</p>` };
+    }, verify: (p) => p.m * 180 * p.y / 13800 },
+  { id: 'ap-g20', type: 'mcq', level: 3, exams: EX[3], sub: 'products of oxidation',
+    make(rng) {
+      const T = [['propan-1-ol', 'PCC in CH<sub>2</sub>Cl<sub>2</sub>', 'propanal'], ['propan-1-ol', 'hot acidified K<sub>2</sub>Cr<sub>2</sub>O<sub>7</sub> (excess)', 'propanoic acid'], ['propan-2-ol', 'CrO<sub>3</sub>', 'propanone'], ['butan-2-ol', 'acidified K<sub>2</sub>Cr<sub>2</sub>O<sub>7</sub>', 'butanone'], ['ethanol', 'PCC in CH<sub>2</sub>Cl<sub>2</sub>', 'ethanal'], ['ethanol', 'alkaline KMnO<sub>4</sub>, then H<sup>+</sup>', 'ethanoic acid'], ['cyclohexanol', 'CrO<sub>3</sub>', 'cyclohexanone'], ['methanol', 'Cu at 573 K', 'methanal'], ['pentan-1-ol', 'PCC in CH<sub>2</sub>Cl<sub>2</sub>', 'pentanal'], ['butan-1-ol', 'acidified KMnO<sub>4</sub>, heat', 'butanoic acid']];
+      const t = choose(rng, T); const pool = [...new Set(T.map((x) => x[2]))].filter((x) => x !== t[2]); const ws = [];
+      while (ws.length < 3) ws.push(pool.splice(int(rng, 0, pool.length - 1), 1)[0]);
+      const o = shuffleOpts(rng, t[2], ws);
+      return { q: `The main product when ${t[0]} is treated with ${t[1]} is`, options: o.options, answer: o.answer, right: t[2],
+        sol: `<p>Primary alcohols give aldehydes with mild reagents (PCC, Cu at 573 K) and carboxylic acids with strong oxidants (acidified dichromate or permanganate, heat). Secondary alcohols give ketones. Here the answer is <b>${t[2]}</b>.</p>`, trap: 'PCC stops at the aldehyde; strong oxidants go on to the acid.' };
+    }, verify: (p) => p.options.indexOf(p.right) },
+  { id: 'ap-g21', type: 'mcq', level: 4, exams: EXN[4], sub: 'number of stereoisomers',
+    make(rng) {
+      const T = [['butane-2,3-diol', 3, 'two identical stereocentres give (R,R), (S,S) and a meso form'], ['pentane-2,3-diol', 4, 'two different stereocentres give 2<sup>2</sup> = 4'], ['butan-2-ol', 2, 'one stereocentre gives two enantiomers'], ['2-methylbutan-1-ol', 2, 'C2 has H, CH<sub>3</sub>, C<sub>2</sub>H<sub>5</sub> and CH<sub>2</sub>OH: one stereocentre'], ['pentane-2,4-diol', 3, 'two identical stereocentres give (R,R), (S,S) and a meso form'], ['3-methylpentan-2-ol', 4, 'C2 and C3 are both stereocentres and are different'], ['2-methylpropan-1-ol', 1, 'there is no stereocentre'], ['propane-1,2-diol', 2, 'C2 is the only stereocentre']];
+      const t = choose(rng, T); const o = shuffleOpts(rng, String(t[1]), ['1', '2', '3', '4', '5', '6'].filter((x) => x !== String(t[1])).slice(0, 3));
+      return { q: `The number of stereoisomers of ${t[0]} is`, options: o.options, answer: o.answer, right: String(t[1]), sol: `<p>${t[0][0].toUpperCase()}${t[0].slice(1)}: ${t[2]}.</p><p>Answer <b>${t[1]}</b>.</p>`, trap: 'A symmetric molecule with two like stereocentres has a meso form.' };
+    }, verify: (p) => p.options.indexOf(p.right) },
+  { id: 'ap-g22', type: 'mcq', level: 3, exams: EX[3], sub: 'best Williamson route',
+    make(rng) {
+      const T = [['tert-butyl methyl ether', 'sodium tert-butoxide and iodomethane', ['sodium methoxide and 2-bromo-2-methylpropane', 'sodium methoxide and 1-bromo-2-methylpropane', 'tert-butanol and sodium bromide']], ['ethyl isopropyl ether', 'sodium propan-2-oxide and bromoethane', ['sodium ethoxide and 2-bromopropane', 'sodium ethoxide and 2-propanol', 'ethanol and sodium 2-bromopropane']], ['methoxybenzene (anisole)', 'sodium phenoxide and iodomethane', ['sodium methoxide and bromobenzene', 'sodium methoxide and chlorobenzene', 'phenol and methanol with NaOH']], ['ethyl tert-butyl ether', 'sodium tert-butoxide and bromoethane', ['sodium ethoxide and 2-bromo-2-methylpropane', 'sodium ethoxide and tert-butanol', 'ethanol with 2-methylpropene and NaOH']]];
+      const t = choose(rng, T);
+      const o = shuffleOpts(rng, t[1], t[2]);
+      return { q: `The best Williamson route to ${t[0]} is`, options: o.options, answer: o.answer, right: t[1], sol: `<p>The Williamson synthesis is an SN2 reaction, so the halide must be methyl or primary (and never aryl or tertiary); the bulky or aryl part goes on the alkoxide. The best route is <b>${t[1]}</b>.</p>`, trap: 'A tertiary halide gives an alkene; an aryl halide does not react.' };
+    }, verify: (p) => p.options.indexOf(p.right) },
+  { id: 'ap-g23', type: 'nat', level: 3, exams: EXN[3], sub: 'methane from active hydrogens',
+    make(rng) {
+      const C = choose(rng, [['glycerol', 92, 3], ['ethylene glycol', 62, 2], ['phenol', 94, 1], ['salicylic acid', 138, 2], ['propan-2-ol', 60, 1], ['butane-1,4-diol', 90, 2]]); const m = choose(rng, [4.6, 6.2, 9.2, 9.4, 13.8]); const ans = m / C[1] * C[2] * 22.4;
+      return { q: `${m} g of ${C[0]} (${C[1]} g mol<sup>-1</sup>) is treated with excess CH<sub>3</sub>MgBr. What volume of methane, measured at STP in litres, is evolved? (Count only the acidic O&ndash;H hydrogens.)`, answer: rd(ans, 2), tol: tlr(ans, 0.01, 0.03), unit: 'L', m, M: C[1], k: C[2],
+        sol: `<p>${C[0][0].toUpperCase()}${C[0].slice(1)} has ${C[2]} acidic O&ndash;H hydrogen${C[2] > 1 ? 's' : ''}, each liberating one CH<sub>4</sub>.</p><p>Moles of CH<sub>4</sub> = ${m}/${C[1]} &times; ${C[2]} = ${rd(m / C[1] * C[2], 4)}. Volume = ${rd(m / C[1] * C[2], 4)} &times; 22.4 = <b>${rd(ans, 2)} L</b>.</p>`, trap: 'Count the OH of a carboxylic acid group as well.' };
+    }, verify: (p) => p.m / p.M * p.k * 22400 / 1000 },
+  { id: 'ap-g24', type: 'nat', level: 4, exams: EXN[4], sub: 'ether from alcohol dehydration',
+    make(rng) {
+      const A = choose(rng, [['ethanol', 46, 'ethoxyethane', 74], ['methanol', 32, 'methoxymethane', 46], ['propan-1-ol', 60, '1-propoxypropane', 102], ['butan-1-ol', 74, '1-butoxybutane', 130]]); const m = choose(rng, [9.2, 18.4, 23, 46]); const y = choose(rng, [60, 70, 80, 90]);
+      const ans = m / A[1] / 2 * A[3] * y / 100;
+      return { q: `${m} g of ${A[0]} (${A[1]} g mol<sup>-1</sup>) is heated with conc. H<sub>2</sub>SO<sub>4</sub> at 413 K to give ${A[2]} (${A[3]} g mol<sup>-1</sup>) and water in ${y} % yield. Mass of ${A[2]} in grams is`, answer: rd(ans, 2), tol: tlr(ans, 0.01, 0.03), unit: 'g', m, M: A[1], Me: A[3], y,
+        sol: `<p>2ROH &rarr; ROR + H<sub>2</sub>O: two moles of alcohol give one mole of ether.</p><p>Moles of alcohol = ${m}/${A[1]} = ${rd(m / A[1], 4)}; moles of ether at 100 % = ${rd(m / A[1] / 2, 4)}.</p><p>Mass = ${rd(m / A[1] / 2, 4)} &times; ${A[3]} &times; ${y}/100 = <b>${rd(ans, 2)} g</b>.</p>`, trap: 'Two alcohol molecules per ether.' };
+    }, verify: (p) => p.m * p.Me * p.y / (2 * p.M * 100) },
+  { id: 'ap-g25', type: 'mcq', level: 4, exams: EXN[4], sub: 'cleavage by HI',
+    make(rng) {
+      const T = [['C6H5OCH3', 'phenol and iodomethane'], ['C6H5OC2H5', 'phenol and iodoethane'], ['(CH3)3COCH3', '2-iodo-2-methylpropane and methanol'], ['CH3CH2OCH2CH3 (excess HI)', 'two moles of iodoethane'], ['CH3OCH(CH3)2 (HI, cold)', 'iodomethane and propan-2-ol'], ['C6H5OC6H5', 'no reaction']];
+      const t = choose(rng, T); const pool = [...new Set(T.map((x) => x[1]))].filter((x) => x !== t[1]); const ws = [];
+      while (ws.length < 3) ws.push(pool.splice(int(rng, 0, pool.length - 1), 1)[0]);
+      const o = shuffleOpts(rng, t[1], ws);
+      return { q: `The products of the reaction of ${F(t[0])} with HI are`, options: o.options, answer: o.answer, right: t[1], sol: `<p>The halide goes onto the carbon that is more accessible by SN2 (methyl, primary or secondary), or onto a tertiary carbon by SN1. The aryl C&ndash;O bond is never broken. For this ether: <b>${t[1]}</b>.</p>`, trap: 'Aryl alkyl ethers give a phenol, never an aryl halide.' };
+    }, verify: (p) => p.options.indexOf(p.right) },
+];
+GENS.push(...NEWG);
+
+
 export default {
   topic: 'alcohols-phenols-ethers',
   groups: clean(GRP),
-  items: clean([...NOMEN, ...CLASS, ...PREP, ...ALC, ...PHENOL, ...ACID, ...PHYSP, ...ETHER, ...MATCH, ...PASS, ...ASR, ...STM, ...CNT, ...MULTI, ...NUM, ...MIXEDF]),
+  items: clean([...NOMEN, ...CLASS, ...PREP, ...ALC, ...PHENOL, ...ACID, ...PHYSP, ...ETHER, ...MATCH, ...PASS, ...ASR, ...STM, ...CNT, ...MULTI, ...NUM, ...MIXEDF, ...XN]),
   gens: GENS,
 };

@@ -611,4 +611,326 @@ items.push(
     r`The ship's hull encloses a lot of air, so its total mass divided by the volume it displaces when floating is below $1000\ \mathrm{kg\,m^{-3}}$.`),
 );
 
+// ---------- expansion block: more hard items, matches, multi-correct, passages and templates ----------
+{
+const XR = String.raw;
+const XEXB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv', 'neet'], 5: ['jee-adv'] };
+let xk = 182; let xc = 0;
+const xid = () => `fl-${String(++xk).padStart(3, '0')}`;
+const XPOS = [2, 0, 3, 1, 1, 3, 0, 2];
+const xex = (level, type, sub) => (type === 'mcq' && level <= 3 && ((s)=>false)(sub) ? [...XEXB[level], 'cuet'] : XEXB[level]);
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type, sub), sub, ...o });
+const xm = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xi = (level, sub, q, value, sol, o = {}) => {
+  const answer = Math.round(value); if (Math.abs(value - answer) > 1e-6) throw new Error('not an integer: ' + value + ' ' + q.slice(0, 60));
+  return xb(level, sub, { type: 'nat', format: 'integer', q, answer, tol: 0, calc: () => answer, sol, ...o });
+};
+const xn = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return xb(level, sub, { type: 'nat', format: 'numeric', q, answer, tol, calc: () => answer, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XA = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XA, answer, sol, ...o });
+const XS = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XS, answer, sol, ...o });
+const xmatch = (level, sub, group, q, correct, sol, o = {}) => {
+  const L = correct.split(', ').map((s) => s.split('-')); const rs = L.map((x) => x[1]);
+  const mk = (p) => L.map((x, i) => `${x[0]}-${p[i]}`).join(', ');
+  const swaps = [[0, 1], [2, 3], [1, 2], [0, 3], [0, 2], [1, 3]]; const wr = [];
+  for (let t = 0; t < 6 && wr.length < 3; t++) { const [i, j] = swaps[(t + xc) % 6]; const p = [...rs]; [p[i], p[j]] = [p[j], p[i]]; const s = mk(p); if (s !== correct && !wr.includes(s)) wr.push(s); }
+  if (wr.length < 3) throw new Error('match options');
+  const pos = XPOS[xc++ % 8]; const options = [...wr]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xp = (extra) => (level, sub, group, q, ...rest) => extra(level, sub, q, ...rest);
+const XG = (n, level, type, sub, make, verify) => ({ id: `fl-g${n}`, type, level, exams: xex(level, type, sub), sub, make, verify });
+const f3 = (v) => fmt(v, 3);
+const sg = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XPY = (o) => ({ format: 'passage', ...o });
+const XPI = Math.PI; const XG0 = 9.8;
+Object.assign(groups, {
+  xm1: { title: 'Units and quantities in fluids',
+    list1: ['A. Coefficient of viscosity', 'B. Surface tension', 'C. Reynolds number', 'D. Volume flow rate'],
+    list2: [r`p. $\mathrm{Pa\,s}$`, r`q. $\mathrm{N\,m^{-1}}$`, r`r. no unit (dimensionless)`, r`s. $\mathrm{m^3\,s^{-1}}$`] },
+  xm2: { title: 'Principles and their uses',
+    list1: ['A. Pascal\'s law', 'B. Archimedes\' principle', 'C. Bernoulli\'s principle', 'D. Stokes\' law'],
+    list2: [r`p. hydraulic jack`, r`q. hydrometer`, r`r. lift on an aerofoil`, r`s. terminal speed of a raindrop`] },
+  xm3: { title: 'A tank of height H filled with water; a small hole at depth h below the surface',
+    list1: ['A. Speed of efflux', 'B. Time of fall of the jet to the ground', 'C. Horizontal range', 'D. Depth of the hole for the greatest range'],
+    list2: [r`p. $\sqrt{2gh}$`, r`q. $\sqrt{\dfrac{2(H-h)}{g}}$`, r`r. $2\sqrt{h(H-h)}$`, r`s. $\dfrac H2$`] },
+  xm4: { title: 'Liquid in a container accelerating horizontally with acceleration a',
+    list1: ['A. Slope of the free surface', 'B. Pressure difference between two points at the bottom a distance $L$ apart (along $a$)', 'C. Pressure at depth $h$ (vertical) below the surface', 'D. Free surface when $a = 0$'],
+    list2: [r`p. $\tan\theta = \dfrac ag$`, r`q. $\rho aL$`, r`r. $P_0+\rho gh$`, r`s. horizontal`] },
+  xm5: { title: 'Soap bubbles and drops (surface tension T, radius r)',
+    list1: ['A. Excess pressure in a liquid drop', 'B. Excess pressure in a soap bubble in air', 'C. Surface energy of a soap bubble', 'D. Surface energy of a soap film of area $A$ (two sides)'],
+    list2: [r`p. $\dfrac{2T}{r}$`, r`q. $\dfrac{4T}{r}$`, r`r. $8\pi r^2T$`, r`s. $2AT$`] },
+  xm6: { title: 'Capillary tube of radius r, liquid of density rho and surface tension T',
+    list1: ['A. Rise of water (contact angle $0^\\circ$)', 'B. Fall of mercury (contact angle $\\theta>90^\\circ$)', 'C. Rise when the radius is halved', 'D. Rise when a tube is tilted'],
+    list2: [r`p. $\dfrac{2T}{\rho gr}$`, r`q. $-\dfrac{2T\left|\cos\theta\right|}{\rho gr}$`, r`r. doubles`, r`s. the vertical height is unchanged; the length along the tube increases`] },
+  xm7: { title: 'Viscous flow',
+    list1: ['A. Viscous force on a plate', 'B. Stokes\' drag on a small sphere', 'C. Poiseuille\'s volume flow rate', 'D. Reynolds number'],
+    list2: [r`p. $\eta A\dfrac{dv}{dx}$`, r`q. $6\pi\eta rv$`, r`r. $\dfrac{\pi pr^4}{8\eta l}$`, r`s. $\dfrac{\rho vd}{\eta}$`] },
+  xm8: { title: 'Bernoulli and continuity',
+    list1: ['A. $A_1v_1 = A_2v_2$', 'B. $P+\\tfrac12\\rho v^2+\\rho gh = $ constant', 'C. Pressure in a narrow part of a horizontal pipe', 'D. Speed in a wide part'],
+    list2: [r`p. continuity (incompressible)`, r`q. energy conservation per unit volume`, r`r. lower than in the wide part`, r`s. lower than in the narrow part`] },
+  xp1: { title: 'Draining a tank',
+    passage: r`<p>A cylindrical tank of cross-section $0.50\ \mathrm{m^2}$ contains water to a depth of 1.8 m. A small hole of area $2.0\ \mathrm{cm^2}$ is opened at the bottom. Take $g = 9.8\ \mathrm{m\,s^{-2}}$ and ignore viscosity.</p>` },
+  xp2: { title: 'A capillary tube',
+    passage: r`<p>A clean glass tube of inner radius 0.40 mm is dipped vertically in water ($T = 0.072$ N/m, density $1000\ \mathrm{kg\,m^{-3}}$, contact angle $0^\circ$). Atmospheric pressure is $P_0$. Take $g = 9.8\ \mathrm{m\,s^{-2}}$.</p>` },
+});
+
+// ---------- L2 ----------
+items.push(
+  xm(2, 'pressure and depth', XR`The gauge pressure at a depth of 10 m in fresh water is about ($g = 9.8$)`, '98 kPa', ['9.8 kPa', '1.0 MPa', '980 kPa'],
+    XR`$P = \rho gh = 1000\times9.8\times10 = 9.8\times10^{4}$ Pa $=98$ kPa.`),
+  xm(2, 'hydraulic machines', XR`A hydraulic press has pistons of area 2 cm$^2$ and 200 cm$^2$. A force of 50 N on the small piston gives a force on the large piston of`, '5000 N', ['500 N', '0.5 N', '10000 N'],
+    XR`Pressure is transmitted equally: $\dfrac{F_2}{A_2} = \dfrac{F_1}{A_1}$, $F_2 = 50\times\dfrac{200}{2} = 5000$ N.`),
+  xi(2, 'floating', XR`A block of density $900\ \mathrm{kg\,m^{-3}}$ floats in water. The percentage of its volume that is submerged is`, 900 / 1000 * 100,
+    XR`Floating: weight $=$ buoyant force, $\rho_bVg = \rho_wV_sg$, so $\dfrac{V_s}{V} = \dfrac{900}{1000} = 90\%$.`, { unit: '%' }),
+  xa(2, 'fluid at rest', XR`A fluid at rest exerts a force on a surface that is always normal to the surface.`, XR`A fluid at rest cannot sustain a shear stress.`, 0,
+    XR`Any tangential component of force would produce shear, and a fluid at rest cannot resist shear: it would flow. So the force is normal. R explains A.`),
+  xt(2, 'equation of continuity', XR`Water flows faster in the narrow part of a pipe than in the wide part.`, XR`For steady incompressible flow, $Av$ is the same at every cross-section.`, 0,
+    XR`$A_1v_1 = A_2v_2$, so a smaller area gives a larger speed. Both are true.`),
+  xm(2, 'Stokes\' law', XR`Two spheres of the same material fall through the same viscous liquid, with radii $r$ and $2r$. Their terminal speeds are in the ratio`, '1 : 4', ['1 : 2', '1 : 8', '1 : 16'],
+    XR`$v_t = \dfrac{2r^2(\rho-\sigma)g}{9\eta}\propto r^2$. Radii $r : 2r$ give speeds $1 : 4$.`),
+  xmatch(2, 'units', 'xm1', XR`Match each quantity in List I with its SI unit or form in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$\eta$: Pa s (p). $T$: N m$^{-1}$ (q). Reynolds number is a ratio of like quantities, so dimensionless (r). Volume flow rate: m$^3$ s$^{-1}$ (s).`),
+);
+
+// ---------- L3 ----------
+items.push(
+  xn(3, 'Torricelli\'s theorem', XR`Water leaves a small hole 5.0 m below the free surface of a large tank. Find the speed of efflux, in m/s ($g = 9.8$).`, Math.sqrt(2 * 9.8 * 5), 0.05, 2,
+    XR`$v = \sqrt{2gh} = \sqrt{2\times9.8\times5.0} = 9.90$ m/s.`, { unit: 'm/s' }),
+  xn(3, 'capillary rise', XR`Water rises in a glass tube of radius 0.50 mm. Find the rise, in cm ($T = 0.072$ N/m, contact angle $0^\circ$, $g = 9.8$).`, 2 * 0.072 / (1000 * 9.8 * 0.5e-3) * 100, 0.03, 2,
+    XR`$h = \dfrac{2T\cos\theta}{\rho gr} = \dfrac{2\times0.072}{1000\times9.8\times0.5\times10^{-3}} = 0.0294$ m $=2.94$ cm.`, { unit: 'cm' }),
+  xm(3, 'excess pressure', XR`The excess pressure inside a soap bubble of radius 2.0 cm and $T = 0.030$ N/m is`, '6.0 Pa', ['3.0 Pa', '12 Pa', '1.5 Pa'],
+    XR`A soap bubble has two surfaces: $\Delta P = \dfrac{4T}{r} = \dfrac{4\times0.030}{0.020} = 6.0$ Pa. (A liquid drop would be $\dfrac{2T}{r} = 3.0$ Pa.)`, { trap: 'A bubble has two surfaces.' }),
+  xn(3, 'work done on a bubble', XR`Find the work done in blowing a soap bubble of radius 1.0 cm, in units of $10^{-5}$ J ($T = 0.030$ N/m).`, 8 * XPI * 1e-4 * 0.03 / 1e-5, 0.03, 2,
+    XR`Surface area gained $= 2\times4\pi r^2$ (two surfaces). $W = T\Delta A = 8\pi r^2T = 8\pi\times10^{-4}\times0.030 = 7.54\times10^{-5}$ J.`, { unit: '×10⁻⁵ J' }),
+  xm(3, 'floating', XR`An iceberg of density $920\ \mathrm{kg\,m^{-3}}$ floats in sea water of density $1030\ \mathrm{kg\,m^{-3}}$. The fraction of its volume above water is about`, '10.7%', ['89.3%', '8.0%', '12.5%'],
+    XR`Submerged fraction $=\dfrac{920}{1030} = 0.893$. Above water: $1-0.893 = 0.107$, i.e. 10.7%.`),
+  xa(3, 'lift', XR`The curved upper surface of an aircraft wing helps to produce lift.`, XR`Air moves faster over the upper surface, which lowers the pressure there.`, 0,
+    XR`By Bernoulli's principle higher speed means lower pressure, giving a net upward force from the pressure difference. R explains A.`),
+  xt(3, 'viscosity and temperature', XR`The viscosity of a liquid decreases as its temperature rises.`, XR`The viscosity of a gas increases as its temperature rises.`, 0,
+    XR`In liquids, warmth weakens the attraction between molecules, so viscosity falls. In gases, faster molecules carry more momentum between layers, so viscosity rises. Both are true.`),
+  xt(3, 'capillarity', XR`Water rises and mercury is depressed in a glass capillary tube.`, XR`The angle of contact is acute for water and glass and obtuse for mercury and glass.`, 0,
+    XR`Acute contact angle: the meniscus is concave and the liquid rises. Obtuse: convex, so the liquid falls. Both are true.`),
+  xmatch(3, 'principles', 'xm2', XR`Match each principle in List I with an application in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Pascal's law: hydraulic jack (p). Archimedes: hydrometer (q). Bernoulli: aerofoil lift (r). Stokes: raindrop's terminal speed (s).`),
+  xmatch(3, 'viscosity', 'xm7', XR`Match each item in List I with its formula in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Newton's law of viscosity: $F = \eta A\dfrac{dv}{dx}$ (p). Stokes: $6\pi\eta rv$ (q). Poiseuille: $\dfrac{\pi pr^4}{8\eta l}$ (r). Reynolds number $\dfrac{\rho vd}{\eta}$ (s).`),
+  xi(3, 'hydraulic machines', XR`A hydraulic lift has pistons of area 1 cm$^2$ and 100 cm$^2$. When the large piston rises by 1 cm, the small piston moves down through how many cm?`, 100,
+    XR`The liquid is incompressible: $A_1d_1 = A_2d_2$, so $d_1 = \dfrac{100}{1}\times1 = 100$ cm. The force is magnified 100 times, but the work is the same.`, { unit: 'cm', trap: 'Force is gained at the cost of distance.' }),
+  xn(3, 'Stokes\' law', XR`A steel ball of radius 1.0 mm ($\rho = 7800\ \mathrm{kg\,m^{-3}}$) falls through oil ($\rho = 900\ \mathrm{kg\,m^{-3}}$, $\eta = 0.50$ Pa s). Find its terminal speed, in cm/s ($g = 9.8$).`, 2 * 1e-6 * (7800 - 900) * 9.8 / (9 * 0.5) * 100, 0.05, 2,
+    XR`$v_t = \dfrac{2r^2(\rho-\sigma)g}{9\eta} = \dfrac{2\times10^{-6}\times6900\times9.8}{9\times0.5} = 0.0301$ m/s $=3.0$ cm/s.`, { unit: 'cm/s' }),
+  xm(3, 'Bernoulli\'s principle', XR`Water flows steadily through a horizontal pipe, at 2.0 m/s where the area is 4.0 cm$^2$ and through a narrow part of area 1.0 cm$^2$. The pressure in the wide part exceeds that in the narrow part by`, '30 kPa', ['3.0 kPa', '15 kPa', '60 kPa'],
+    XR`Continuity: $v_2 = 2.0\times4 = 8.0$ m/s. Bernoulli (horizontal): $P_1-P_2 = \tfrac12\rho(v_2^2-v_1^2) = \tfrac12\times1000\times(64-4) = 30000$ Pa.`),
+  xi(3, 'pressure and depth', XR`Taking $g = 10\ \mathrm{m\,s^{-2}}$ and 1 atm $=10^{5}$ Pa, the total pressure at a depth of 20 m in a lake, in atmospheres, is`, 1 + 1000 * 10 * 20 / 1e5,
+    XR`Gauge pressure $=\rho gh = 1000\times10\times20 = 2\times10^{5}$ Pa $=2$ atm. Total $=1+2 = 3$ atm.`, { unit: 'atm' }),
+  xi(3, 'soap film', XR`A soap film is stretched on a frame with a sliding wire 5.0 cm long ($T = 0.040$ N/m). The force needed to hold the wire, in mN, is`, 2 * 0.04 * 0.05 * 1e3,
+    XR`The film has two surfaces: $F = 2Tl = 2\times0.040\times0.050 = 4.0\times10^{-3}$ N $=4$ mN.`, { unit: 'mN', trap: 'Two surfaces.' }),
+  xi(3, 'viscosity', XR`A drop of radius $r$ falls in a viscous liquid at terminal speed $v$. A drop of radius $2r$ of the same liquid falls at $nv$. Find $n$.`, 4,
+    XR`$v_t\propto r^2$, so doubling $r$ gives $4v$.`),
+);
+
+// ---------- L4 ----------
+items.push(
+  xi(4, 'force on a dam', XR`A vertical dam wall 10 m wide holds water 6.0 m deep. Taking $g = 10\ \mathrm{m\,s^{-2}}$, the total force on the wall is $n\times10^{5}$ N. Find $n$.`, 0.5 * 1000 * 10 * 10 * 36 / 1e5,
+    XR`The pressure rises linearly from 0 at the surface to $\rho gH$ at the bottom, so the average pressure is $\tfrac12\rho gH$. $F = \tfrac12\rho gH\times(wH) = \tfrac12\times1000\times10\times6\times(10\times6) = 1.8\times10^{6}$ N $=18\times10^{5}$ N.`, { trap: 'Do not use the bottom pressure for the whole wall.' }),
+  xi(4, 'range of efflux', XR`A tank 10 m high is full of water. A hole 2.0 m below the free surface gives a jet. The horizontal range on the ground, in m, is`, 2 * Math.sqrt(2 * 8),
+    XR`Speed $v = \sqrt{2gh}$ with $h = 2$. Fall height $= 10-2 = 8$ m, time $t=\sqrt{\dfrac{2\times8}{g}}$. Range $= vt = 2\sqrt{h(H-h)} = 2\sqrt{2\times8} = 8$ m (independent of $g$).`, { unit: 'm' }),
+  xi(4, 'continuity of a falling jet', XR`Water leaves a tap with speed 2 m/s through an area of 3 cm$^2$. At 0.25 m below the tap the jet's cross-section, in cm$^2$, is ($g = 10$)`, 3 * 2 / Math.sqrt(4 + 2 * 10 * 0.25),
+    XR`$v^2 = v_0^2+2gh = 4+5 = 9$, so $v = 3$ m/s. $Av = $ const: $A = \dfrac{3\times2}{3} = 2$ cm$^2$.`, { unit: 'cm²' }),
+  xi(4, 'Poiseuille\'s equation', XR`Two pipes of equal length are joined in series, with radii $r$ and $r/2$. The same volume flows per second through both. Find the ratio of the pressure drop in the narrow pipe to that in the wide one.`, 16,
+    XR`Poiseuille: $Q = \dfrac{\pi\Delta Pr^4}{8\eta l}$, so $\Delta P\propto\dfrac{1}{r^4}$ at equal $Q$ and $l$. Ratio $=\left(\dfrac{r}{r/2}\right)^4 = 16$.`),
+  xi(4, 'Reynolds number', XR`Water ($\rho = 1000\ \mathrm{kg\,m^{-3}}$, $\eta = 1.0\times10^{-3}$ Pa s) flows in a pipe of diameter 2.0 cm. Flow becomes turbulent for a Reynolds number above about 2000. The critical speed, in cm/s, is`, 2000 * 1e-3 / (1000 * 0.02) * 100,
+    XR`$Re = \dfrac{\rho vd}{\eta}$, so $v = \dfrac{Re\,\eta}{\rho d} = \dfrac{2000\times10^{-3}}{1000\times0.02} = 0.10$ m/s $=10$ cm/s.`, { unit: 'cm/s' }),
+  xi(4, 'floating in layers', XR`A cube of density $900\ \mathrm{kg\,m^{-3}}$ floats at the boundary between oil ($800\ \mathrm{kg\,m^{-3}}$, above) and water ($1000\ \mathrm{kg\,m^{-3}}$, below), with the top face under the oil. The percentage of its volume that is in the water is`, (900 - 800) / (1000 - 800) * 100,
+    XR`Let $x$ be the fraction in water. Weight $=$ buoyancy: $900 = 1000x+800(1-x)$, so $100 = 200x$, $x = 0.5$: 50%.`, { unit: '%' }),
+  xi(4, 'capillary tube inclined', XR`Water rises 6.0 cm (vertical height) in a vertical capillary. The tube is tilted $60^\circ$ from the vertical. The length of water in the tube, in cm, is`, 6 / Math.cos(XPI / 3),
+    XR`The vertical height of the column stays 6.0 cm. Along the tube, the length is $\dfrac{h}{\cos60^\circ} = \dfrac{6.0}{0.5} = 12$ cm.`, { unit: 'cm', trap: 'The vertical rise does not change on tilting.' }),
+  xi(4, 'rotating liquid', XR`A cylindrical vessel of radius 0.20 m rotates about its vertical axis at 10 rad/s, with water inside. The water at the wall is higher than at the axis by $n$ cm ($g=10$). Find $n$.`, 100 * 0.04 / (2 * 10) * 100,
+    XR`Surface: $h = \dfrac{\omega^2r^2}{2g}$. $\dfrac{100\times0.04}{2\times10} = 0.20$ m $=20$ cm.`),
+  xi(4, 'accelerating container', XR`A tank 1.2 m long, full of water, is accelerated horizontally at $5\ \mathrm{m\,s^{-2}}$ ($g=10$). The free surface is higher at the rear end than the front end by $n$ cm. Find $n$.`, 5 / 10 * 1.2 * 100,
+    XR`The free surface tilts with $\tan\theta = \dfrac ag = 0.5$. Height difference over length 1.2 m: $0.5\times1.2 = 0.60$ m $=60$ cm.`, { unit: 'cm' }),
+  xn(4, 'Venturi meter', XR`A venturi meter has a pipe area of 20 cm$^2$ and a throat of 5.0 cm$^2$. A mercury manometer ($\rho = 13600\ \mathrm{kg\,m^{-3}}$) joined across the throat and the pipe shows 10 cm difference, with water ($\rho = 1000$) in the pipe. Find the volume flow rate, in litre/s ($g = 9.8$).`, 20e-4 * Math.sqrt(2 * (13600 - 1000) * 9.8 * 0.1 / (1000 * ((20 / 5) ** 2 - 1))) * 1e3, 0.03, 2,
+    XR`$\Delta P = (13600-1000)\times9.8\times0.10 = 12350$ Pa. $v_1 = \sqrt{\dfrac{2\Delta P}{\rho\left((A_1/A_2)^2-1\right)}} = \sqrt{\dfrac{24700}{1000\times15}} = 1.283$ m/s. $Q = A_1v_1 = 20\times10^{-4}\times1.283 = 2.57\times10^{-3}$ m$^3$/s $=2.57$ L/s.`, { unit: 'L/s' }),
+  xn(4, 'splitting a drop', XR`A water drop of radius 1.0 cm is split into 1000 equal drops. Find the work done against surface tension, in units of $10^{-4}$ J ($T = 0.072$ N/m).`, 0.072 * 4 * XPI * (1000 * 1e-6 - 1e-4) / 1e-4, 0.05, 2,
+    XR`Small drop radius $r = \dfrac{R}{10} = 1$ mm. Area change $= 4\pi(1000r^2-R^2) = 4\pi(1000\times10^{-6}-10^{-4}) = 1.131\times10^{-2}$ m$^2$. $W = T\Delta A = 0.072\times1.131\times10^{-2} = 8.14\times10^{-4}$ J.`, { unit: '×10⁻⁴ J' }),
+  xs(4, 'floating', XR`Choose the correct statements about a body floating in a liquid.`,
+    [XR`It displaces a weight of liquid equal to its own weight.`, XR`The buoyant force acts at the centre of buoyancy.`, XR`The density of the body is less than that of the liquid (if it floats with part above the surface).`, XR`The buoyant force is greater than the weight of the body.`],
+    [0, 1, 2],
+    XR`In equilibrium buoyancy equals weight (D false). The buoyancy acts at the centre of mass of the displaced liquid. If part of the body is above the surface, the displaced volume is less than the body's volume, so $\rho_b<\rho_l$.`),
+  xs(4, 'Bernoulli\'s principle', XR`Bernoulli's equation $P+\tfrac12\rho v^2+\rho gh = $ constant applies to flow that is`,
+    [XR`steady`, XR`incompressible`, XR`non-viscous`, XR`turbulent`],
+    [0, 1, 2],
+    XR`The derivation assumes steady, incompressible, non-viscous flow along a streamline. Turbulence breaks the steady streamline assumption (D false).`),
+  xs(4, 'surface tension', XR`Choose the correct statements about surface tension.`,
+    [XR`It tends to minimise the surface area of a liquid.`, XR`It decreases as the temperature rises.`, XR`Its SI unit is N/m.`, XR`It increases when detergent is added to water.`],
+    [0, 1, 2],
+    XR`Detergent lowers the surface tension of water (D false). Surface tension falls with temperature and is zero at the critical temperature.`),
+  xs(4, 'viscosity', XR`Choose the correct statements about viscosity.`,
+    [XR`The viscous force opposes the relative motion of fluid layers.`, XR`The force on a layer is $\eta A\,dv/dx$.`, XR`The viscosity of a liquid decreases when it is heated.`, XR`Viscous forces act only in turbulent flow.`],
+    [0, 1, 2],
+    XR`Viscosity is present in all flow of real fluids, laminar flow included (D false).`),
+  xs(4, 'capillarity', XR`Choose the correct statements about capillary action.`,
+    [XR`The rise of liquid in a narrow tube is inversely proportional to the radius.`, XR`The rise depends on the angle of contact.`, XR`Mercury is depressed in a glass tube.`, XR`The rise does not depend on the density of the liquid.`],
+    [0, 1, 2],
+    XR`$h = \dfrac{2T\cos\theta}{\rho gr}$: $\propto\dfrac1r$, depends on $\cos\theta$ and on $\rho$ (D false). Mercury has $\theta>90^\circ$, so it is depressed.`),
+  xa(4, 'blowing on paper', XR`A strip of paper rises when we blow horizontally over its upper side.`, XR`The pressure is lower where the air moves faster.`, 0,
+    XR`Bernoulli's principle: faster air above gives lower pressure than the still air below, so there is a net upward force. R explains A.`),
+  xa(4, 'terminal speed', XR`Two spheres of the same radius but different masses have the same terminal speed in a viscous liquid.`, XR`The terminal speed of a sphere depends only on its radius and the viscosity of the liquid.`, 1,
+    XR`$v_t = \dfrac{2r^2(\rho-\sigma)g}{9\eta}$ depends on the density of the sphere and of the liquid too. Spheres of different mass but the same radius have different densities and different $v_t$. A is false, and R is false.`),
+  xt(4, 'hydrostatic pressure', XR`The pressure at the bottom of a vessel of liquid depends on the depth and not on the shape of the vessel.`, XR`The force on the base of a vessel can be greater or less than the weight of the liquid it holds.`, 0,
+    XR`$P = \rho gh$ whatever the shape (the hydrostatic paradox), and the force on the base $= \rho ghA$ can exceed the weight (vessel widening upward) or be less (vessel narrowing). Both true.`),
+  xt(4, 'viscosity and temperature', XR`The viscosity of a gas decreases as the temperature rises.`, XR`The viscosity of a liquid decreases as the temperature rises.`, 3,
+    XR`Gas viscosity rises with temperature (Statement I false). Liquid viscosity falls (Statement II true).`),
+  xm(4, 'Archimedes\' principle', XR`A metal block hangs from a spring balance and reads 20 N in air and 15 N when wholly in water. Its relative density is`, '4', ['3', '5', '1.33'],
+    XR`Buoyant force $= 20-15 = 5$ N $=\rho_wVg$. Weight $=\rho_bVg = 20$ N. Relative density $=\dfrac{20}{5} = 4$.`),
+  xmatch(4, 'efflux', 'xm3', XR`Match each quantity in List I with the expression in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$v = \sqrt{2gh}$ (p). Fall height $H-h$, so $t = \sqrt{\dfrac{2(H-h)}{g}}$ (q). Range $= vt = 2\sqrt{h(H-h)}$ (r). Maximised when $h = H/2$ (s).`),
+  xmatch(4, 'accelerating containers', 'xm4', XR`Match each item in List I with the result in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Free surface slope $\tan\theta = a/g$ (p). Horizontal pressure difference $\rho aL$ (q). Vertical pressure $P_0+\rho gh$ (r). At rest the surface is horizontal (s).`),
+  xmatch(4, 'excess pressure', 'xm5', XR`Match each item in List I with List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Drop: one surface, $\dfrac{2T}{r}$ (p). Bubble: two surfaces, $\dfrac{4T}{r}$ (q). Surface energy of a bubble: $2\times4\pi r^2T = 8\pi r^2T$ (r). A film of area $A$ has two sides, so its surface energy is $2AT$ (s).`),
+  xmatch(4, 'continuity and Bernoulli', 'xm8', XR`Match each item in List I with the matching item in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$A_1v_1=A_2v_2$ is continuity (p). The Bernoulli equation is energy conservation per unit volume (q). Pressure in a narrow horizontal section is lower than in the wide section (r). The speed in the wide section is lower than in the narrow section (s).`),
+);
+
+// ---------- L5 ----------
+items.push(
+  xs(5, 'accelerating container', XR`A tank of water accelerates horizontally with constant acceleration $a$. Choose the correct statements.`,
+    [XR`The free surface is a plane at angle $\theta$ with $\tan\theta = a/g$ to the horizontal.`, XR`At the bottom, the pressure rises linearly towards the rear end.`, XR`Surfaces of equal pressure are parallel to the free surface.`, XR`The free surface stays horizontal.`],
+    [0, 1, 2],
+    XR`In the tank's frame there is an effective gravity $\vec g-\vec a$, tilted by $\tan\theta = a/g$. Surfaces of constant pressure are perpendicular to it and parallel to the free surface. The pressure at the bottom varies linearly: $\Delta P = \rho aL$. The surface is not horizontal (D false).`),
+  xs(5, 'rotating liquid', XR`Water in a cylindrical vessel rotates steadily about its vertical axis. Choose the correct statements.`,
+    [XR`The free surface is a paraboloid.`, XR`The height of the surface above its lowest point is $\dfrac{\omega^2r^2}{2g}$.`, XR`At a given horizontal level the pressure increases with $r$.`, XR`The lowest point of the surface is at the wall.`],
+    [0, 1, 2],
+    XR`In the rotating frame the centrifugal force gives $dP = \rho\omega^2r\,dr-\rho g\,dz$, so surfaces of constant pressure are $z = \dfrac{\omega^2r^2}{2g}$ + constant: paraboloids. The lowest point is on the axis (D false).`),
+  xs(5, 'oscillation of a floating body', XR`A cuboid floats upright in a liquid and is pushed down slightly and released. Choose the correct statements.`,
+    [XR`It performs simple harmonic motion (for small displacement, ignoring drag).`, XR`The period is $2\pi\sqrt{\dfrac{\rho_bL}{\rho_lg}}$ for height $L$ and density $\rho_b$.`, XR`The period depends on the value of $g$.`, XR`The period depends on the amplitude.`],
+    [0, 1, 2],
+    XR`The restoring force is $\rho_lAgx$, so $k = \rho_lAg$ and $T = 2\pi\sqrt{\dfrac{m}{k}} = 2\pi\sqrt{\dfrac{\rho_bAL}{\rho_lAg}}$. SHM periods do not depend on amplitude (D false).`),
+  xs(5, 'efflux', XR`A tall tank of height $H$ is filled with water and has small holes at different heights. Choose the correct statements.`,
+    [XR`The speed of efflux at depth $h$ is $\sqrt{2gh}$.`, XR`The horizontal range on the ground is greatest for a hole at depth $H/2$.`, XR`Holes at depths $h$ and $H-h$ give the same range.`, XR`The range is proportional to the depth of the hole.`],
+    [0, 1, 2],
+    XR`Range $=2\sqrt{h(H-h)}$: symmetric in $h\leftrightarrow H-h$, maximum $=H$ at $h = H/2$. It is not proportional to $h$ (D false).`),
+  xs(5, 'soap bubbles', XR`Choose the correct statements about soap bubbles and drops.`,
+    [XR`The excess pressure in a soap bubble in air is $4T/r$.`, XR`If two bubbles of different sizes are connected by a tube, the smaller one shrinks and the larger grows.`, XR`The excess pressure in a liquid drop is $2T/r$.`, XR`The excess pressure in a bubble does not depend on its radius.`],
+    [0, 1, 2],
+    XR`The smaller bubble has the higher internal pressure, so air flows from it into the larger one. $\Delta P\propto\dfrac1r$ (D false).`),
+  xm(5, 'melting ice', XR`A piece of ice floats in a glass filled to the brim with water. When the ice melts, the water`, 'does not overflow, and the level is unchanged', ['overflows', 'level falls below the brim', 'overflows only if the ice is large'],
+    XR`The floating ice displaces water equal to its weight. When it melts it becomes water of the same weight, which exactly fills the volume that was displaced. No change.`),
+  xm(5, 'boat and stone', XR`A stone lies in a boat floating in a pond. The stone is thrown into the pond (it sinks). The pond's water level`, 'falls', ['rises', 'is unchanged', 'rises, then falls'],
+    XR`In the boat the stone's weight is supported by buoyancy: it displaces a volume of water of weight equal to the stone's weight, which is larger than the stone's volume (stone denser than water). In the pond it displaces only its own volume. The total displaced volume decreases, so the level falls.`),
+  xm(5, 'buoyancy in an accelerating lift', XR`A block floats in water in a beaker in a lift that accelerates upward. The fraction of the block submerged`, 'stays the same', ['increases', 'decreases', 'becomes 1'],
+    XR`In the lift both the block's weight and the buoyancy are scaled by $(g+a)$: $\rho_bV(g+a) = \rho_wV_s(g+a)$. The ratio $V_s/V = \rho_b/\rho_w$ is unchanged.`),
+  xa(5, 'ice melting', XR`When a floating piece of ice melts, the water level in the glass does not change.`, XR`The ice displaces its own weight of water, and the melted ice has the same volume as the displaced water.`, 0,
+    XR`Floating ice displaces a mass of water equal to its own mass. The melted ice is the same mass of water, so occupies the same volume. R explains A.`),
+  xa(5, 'boat and stone', XR`When a stone is thrown from a floating boat into the pond, the water level of the pond falls.`, XR`In the boat the stone displaces water equal to its weight; in the water it displaces only its own volume.`, 0,
+    XR`Because the stone is denser than water, the volume of water whose weight equals the stone's weight is larger than the stone's own volume. So the displaced volume shrinks when the stone enters the water, and the level falls. R explains A.`),
+  xt(5, 'ship in a river', XR`A ship floats lower in river water than in sea water.`, XR`River water has a lower density, so a greater volume of it must be displaced to support the same weight.`, 0,
+    XR`Weight $=\rho Vg$ for the displaced volume. Lower $\rho$ needs larger $V$: the ship sinks lower. Both true.`),
+  xmatch(5, 'capillary tube', 'xm6', XR`Match each case in List I with the result in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Water: $h = \dfrac{2T}{\rho gr}$ (p). Mercury: depressed by $\dfrac{2T|\cos\theta|}{\rho gr}$ (q). Halving $r$ doubles $h$ (r). Tilting a tube leaves the vertical rise unchanged, so the length along the tube increases (s).`),
+  xmatch(5, 'viscous flow', 'xm7', XR`Match each item in List I with its formula in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$F = \eta A\dfrac{dv}{dx}$ (p). Stokes' drag $6\pi\eta rv$ (q). Poiseuille $Q = \dfrac{\pi pr^4}{8\eta l}$ (r). Reynolds number $\dfrac{\rho vd}{\eta}$ (s).`),
+  xn(5, 'time to empty a tank', XR`A tank of cross-section $1.0\ \mathrm{m^2}$ holds water 2.0 m deep. A hole of area $1.0\ \mathrm{cm^2}$ is opened in its bottom. Find the time to empty the tank, in seconds ($g = 9.8$).`, 1e4 * Math.sqrt(2 * 2 / 9.8), 30, 0,
+    XR`$-A\dfrac{dh}{dt} = a\sqrt{2gh}$. Integrating: $t = \dfrac Aa\sqrt{\dfrac{2H}{g}} = \dfrac{1.0}{10^{-4}}\sqrt{\dfrac{2\times2.0}{9.8}} = 10^{4}\times0.639 = 6390$ s (about 1.8 h).`, { unit: 's', trap: 'The outflow slows as the level drops, so $t\\ne H/\\sqrt{2gH}\\times A/a$ with constant speed.' }),
+  xn(5, 'capillary rise', XR`Water of $T = 0.072$ N/m and contact angle $30^\circ$ rises in a tube of radius 0.40 mm. Find the rise, in cm ($g=9.8$).`, 2 * 0.072 * Math.cos(XPI / 6) / (1000 * 9.8 * 0.4e-3) * 100, 0.04, 2,
+    XR`$h = \dfrac{2T\cos\theta}{\rho gr} = \dfrac{2\times0.072\times0.866}{1000\times9.8\times0.4\times10^{-3}} = 0.0318$ m $=3.18$ cm.`, { unit: 'cm' }),
+);
+
+// ---------- passages ----------
+items.push(
+  xn(3, 'Torricelli\'s theorem', XR`Find the speed of the water leaving the hole at the start, in m/s.`, Math.sqrt(2 * 9.8 * 1.8), 0.03, 2,
+    XR`$v = \sqrt{2gh} = \sqrt{2\times9.8\times1.8} = 5.94$ m/s (the tank is wide, so the surface speed is negligible).`, XPY({ group: 'xp1', unit: 'm/s' })),
+  xn(3, 'volume flow rate', XR`Find the initial volume flow rate through the hole, in litre/s.`, 2e-4 * Math.sqrt(2 * 9.8 * 1.8) * 1e3, 0.01, 3,
+    XR`$Q = av = 2.0\times10^{-4}\times5.94 = 1.19\times10^{-3}$ m$^3$/s $=1.19$ L/s.`, XPY({ group: 'xp1', unit: 'L/s' })),
+  xn(5, 'emptying a tank', XR`Find the time taken for the depth to fall from 1.8 m to 0.45 m, in seconds.`, 0.5 / 2e-4 * Math.sqrt(2 / 9.8) * (Math.sqrt(1.8) - Math.sqrt(0.45)), 8, 0,
+    XR`$t = \dfrac Aa\sqrt{\dfrac2g}\left(\sqrt{H_1}-\sqrt{H_2}\right) = \dfrac{0.50}{2.0\times10^{-4}}\times0.4518\times(1.3416-0.6708) = 2500\times0.4518\times0.6708 = 758$ s.`, XPY({ group: 'xp1', unit: 's' })),
+  xn(3, 'capillary rise', XR`Find the height to which water rises in the tube, in cm.`, 2 * 0.072 / (1000 * 9.8 * 0.4e-3) * 100, 0.04, 2,
+    XR`$h = \dfrac{2T}{\rho gr} = \dfrac{2\times0.072}{1000\times9.8\times0.4\times10^{-3}} = 0.0367$ m $=3.67$ cm.`, XPY({ group: 'xp2', unit: 'cm' })),
+  xi(4, 'excess pressure', XR`The pressure just below the curved water surface in the tube is $P_0$ minus $n$ Pa. Find $n$.`, 2 * 0.072 / 0.4e-3,
+    XR`Across a concave meniscus the pressure on the concave side (air) is higher by $\dfrac{2T}{r} = \dfrac{2\times0.072}{0.4\times10^{-3}} = 360$ Pa. So just below the meniscus the pressure is $P_0-360$ Pa. (This also equals $\rho gh = 1000\times9.8\times0.0367 = 360$ Pa, the hydrostatic pressure of the column.)`, XPY({ group: 'xp2', unit: 'Pa' })),
+  xn(5, 'capillary tube inclined', XR`The tube is tilted $60^\circ$ from the vertical. Find the length of the water column along the tube, in cm.`, 2 * 0.072 / (1000 * 9.8 * 0.4e-3) * 100 / Math.cos(XPI / 3), 0.08, 2,
+    XR`The vertical height stays $3.67$ cm. Length along the tube $=\dfrac{3.67}{\cos60^\circ} = 7.34$ cm.`, XPY({ group: 'xp2', unit: 'cm', trap: 'The vertical rise stays 3.67 cm.' })),
+);
+
+// ---------- templates ----------
+gens.push(
+  XG(26, 3, 'mcq', 'floating', (rng) => {
+    const rb = pick(rng, 400, 950, 50); const rl = choose(rng, [1000, 1030, 1200, 800, 13600].filter((x) => x > rb));
+    const f = rb / rl * 100; const o = numOpts(rng, f, [rl / rb * 10, 100 - f, (rb / rl) ** 2 * 100], '%', 3);
+    return { rb, rl, q: XR`A block of density ${rb} $\mathrm{kg\,m^{-3}}$ floats in a liquid of density ${rl} $\mathrm{kg\,m^{-3}}$. The percentage of its volume that is submerged is`, options: o.options, answer: o.answer, sol: XR`Weight $=$ buoyancy: $\rho_bVg = \rho_lV_sg$, so $\dfrac{V_s}{V} = \dfrac{${rb}}{${rl}} = ${f3(f)}\%$.`, trap: 'The part above is $1-\\rho_b/\\rho_l$.' };
+  }, (p) => p.options.findIndex((o) => o === `${f3(p.rb / p.rl * 100)} %`)),
+  XG(27, 4, 'nat', 'emptying a tank', (rng) => {
+    const A = choose(rng, [0.5, 1, 2]); const a = choose(rng, [1, 2, 4]) * 1e-4; const H1 = choose(rng, [1, 2, 3, 4]); const H2 = H1 * choose(rng, [0.25, 0.04, 0.0625, 0.01]);
+    const t = A / a * Math.sqrt(2 / XG0) * (Math.sqrt(H1) - Math.sqrt(H2));
+    return { A, a, H1, H2, q: XR`A tank of cross-section ${A} m$^2$ has a hole of area ${a * 1e4} cm$^2$ in its base. The water level falls from ${H1} m to ${f3(H2)} m. Find the time taken, in seconds ($g=9.8$).`, answer: +t.toFixed(1), tol: Math.max(1, t * 0.01), unit: 's',
+      sol: XR`$t = \dfrac Aa\sqrt{\dfrac2g}\left(\sqrt{H_1}-\sqrt{H_2}\right) = ${f3(A / a)}\times${f3(Math.sqrt(2 / XG0))}\times(${f3(Math.sqrt(H1))}-${f3(Math.sqrt(H2))}) = ${f3(t)}$ s.` };
+  }, (p) => { let h = p.H1, t = 0; const dt = 0.02; while (h > p.H2) { const dh = p.a / p.A * Math.sqrt(2 * XG0 * h) * dt; t += dt; h -= dh; } return t; }),
+  XG(28, 4, 'nat', 'Venturi meter', (rng) => {
+    const A1 = choose(rng, [10, 20, 40]) * 1e-4; const rr = choose(rng, [2, 3, 4]); const A2 = A1 / (rr * rr / 1); const hm = choose(rng, [5, 10, 15, 20]) / 100;
+    const dP = (13600 - 1000) * XG0 * hm;
+    const R = A1 / A2; const v1c = Math.sqrt(2 * dP / (1000 * (R * R - 1))); const Q = A1 * v1c * 1e3;
+    return { A1, A2, hm, q: XR`A venturi meter has a main pipe of area ${A1 * 1e4} cm$^2$ and a throat of area ${f3(A2 * 1e4)} cm$^2$. A mercury manometer ($13600\ \mathrm{kg\,m^{-3}}$) across them reads a difference of ${hm * 100} cm, and water flows in the pipe. Find the volume flow rate, in litre/s ($g=9.8$).`, answer: +Q.toFixed(3), tol: Math.max(0.02, Q * 0.01), unit: 'L/s',
+      sol: XR`$\Delta P = (13600-1000)\times9.8\times${hm} = ${f3(dP)}$ Pa. $v_1 = \sqrt{\dfrac{2\Delta P}{\rho\left((A_1/A_2)^2-1\right)}} = ${f3(v1c)}$ m/s. $Q = A_1v_1 = ${f3(Q)}$ L/s.` };
+  }, (p) => { const dP = 12600 * XG0 * p.hm; const R = p.A1 / p.A2; const v1 = Math.sqrt(2 * dP / 1000 / (R * R - 1)); const v2 = v1 * R; return p.A2 * v2 * 1e3; }),
+  XG(29, 4, 'nat', 'force on a wall', (rng) => {
+    const w = choose(rng, [5, 10, 20]); const H = choose(rng, [2, 3, 4, 6, 8]);
+    const F = 0.5 * 1000 * XG0 * w * H * H;
+    return { w, H, q: XR`A vertical wall ${w} m wide holds back water ${H} m deep. Find the total force of the water on the wall, in units of $10^{5}$ N ($g=9.8$).`, answer: +(F / 1e5).toFixed(3), tol: Math.max(0.01, F / 1e5 * 0.005), unit: '×10⁵ N',
+      sol: XR`The average pressure is $\tfrac12\rho gH$ and the area is $wH$. $F = \tfrac12\rho gwH^2 = 0.5\times1000\times9.8\times${w}\times${H}^2 = ${f3(F / 1e5)}\times10^{5}$ N.` };
+  }, (p) => { let s = 0; const n = 20000; for (let i = 0; i < n; i++) { const y = (i + 0.5) / n * p.H; s += 1000 * XG0 * y * p.w * (p.H / n); } return s / 1e5; }),
+  XG(30, 4, 'nat', 'capillary rise', (rng) => {
+    const r = choose(rng, [0.2, 0.25, 0.4, 0.5, 0.8]) * 1e-3; const th = choose(rng, [0, 20, 30, 45]); const tilt = choose(rng, [0, 30, 45, 60]);
+    const h = 2 * 0.072 * Math.cos(th * XPI / 180) / (1000 * XG0 * r) * 100; const L = h / Math.cos(tilt * XPI / 180);
+    return { r, th, tilt, q: XR`Water ($T = 0.072$ N/m) rises in a glass tube of radius ${r * 1e3} mm with a contact angle of ${th}°. The tube is tilted at ${tilt}° from the vertical. Find the length of the water column along the tube, in cm ($g=9.8$).`, answer: +L.toFixed(3), tol: Math.max(0.01, L * 0.01), unit: 'cm',
+      sol: XR`Vertical rise $h = \dfrac{2T\cos\theta}{\rho gr} = ${f3(h)}$ cm. Along the tube $L = \dfrac{h}{\cos${tilt}^\circ} = ${f3(L)}$ cm.` };
+  }, (p) => { const P = 2 * 0.072 * Math.cos(p.th * XPI / 180) / p.r; const h = P / (1000 * XG0); return h / Math.cos(p.tilt * XPI / 180) * 100; }),
+  XG(31, 3, 'mcq', 'Stokes\' law', (rng) => {
+    const v = int(rng, 0, 2); const k = choose(rng, [2, 3, 0.5]);
+    const T = [{ t: `radius is made ${k} times larger`, f: k * k }, { t: `the viscosity of the liquid is made ${k} times larger`, f: 1 / k }, { t: `the radius is made ${k} times larger and the viscosity ${k} times larger`, f: k * k / k }][v];
+    const o = numOpts(rng, T.f, [k, 1 / (k * k), k * k * k, Math.sqrt(k), T.f * k], '', 3);
+    return { v, k, q: XR`A small sphere falls at terminal speed in a viscous liquid. The terminal speed becomes how many times its old value if ${T.t}?`, options: o.options, answer: o.answer, sol: XR`$v_t = \dfrac{2r^2(\rho-\sigma)g}{9\eta}\propto\dfrac{r^2}{\eta}$. The factor is $${f3(T.f)}$.`, trap: 'The terminal speed varies as $r^2$, not $r$.' };
+  }, (p) => { const f = [p.k * p.k, 1 / p.k, p.k][p.v]; return p.options.findIndex((o) => o === f3(f)); }),
+  XG(32, 4, 'nat', 'merging drops', (rng) => {
+    const n = choose(rng, [8, 27, 64, 125, 1000]); const r = choose(rng, [0.5, 1, 2]) * 1e-3; const T = 0.072;
+    const R = r * Math.cbrt(n); const E = T * 4 * XPI * (n * r * r - R * R);
+    return { n, r, q: XR`${n} identical water drops of radius ${r * 1e3} mm merge into one big drop. Find the energy released, in units of $10^{-6}$ J ($T = 0.072$ N/m; assume it all comes from the surface energy).`, answer: +(E / 1e-6).toFixed(3), tol: Math.max(0.02, E / 1e-6 * 0.01), unit: '×10⁻⁶ J',
+      sol: XR`Volume is conserved: $R = r\sqrt[3]{${n}} = ${f3(R * 1e3)}$ mm. Energy released $= T\cdot4\pi(nr^2-R^2) = ${f3(E / 1e-6)}\times10^{-6}$ J.` };
+  }, (p) => { const R = Math.cbrt(p.n * p.r ** 3); return 0.072 * (p.n * 4 * XPI * p.r ** 2 - 4 * XPI * R * R) / 1e-6; }),
+  XG(33, 5, 'nat', 'accelerating container', (rng) => {
+    const L = choose(rng, [0.6, 1, 1.5, 2]); const a = choose(rng, [1, 2, 4, 5]); const rho = choose(rng, [1000, 800, 13600]);
+    const dP = rho * a * L;
+    return { L, a, rho, q: XR`A tank of length ${L} m, full of a liquid of density ${rho} $\mathrm{kg\,m^{-3}}$, accelerates horizontally at ${a} m/s$^2$. Find the difference in pressure between the rear and front bottom corners, in Pa.`, answer: +dP.toFixed(2), tol: Math.max(0.5, dP * 0.005), unit: 'Pa',
+      sol: XR`$\Delta P = \rho aL = ${rho}\times${a}\times${L} = ${f3(dP)}$ Pa (higher at the rear). It does not depend on $g$ or on the depth.` };
+  }, (p) => { const th = Math.atan(p.a / XG0); return p.rho * XG0 * Math.tan(th) * p.L; }),
+  XG(34, 5, 'nat', 'rotating liquid', (rng) => {
+    const w = choose(rng, [5, 8, 10, 12]); const R = choose(rng, [0.1, 0.15, 0.2, 0.25]);
+    const h = w * w * R * R / (2 * XG0) * 100;
+    return { w, R, q: XR`A cylindrical vessel of radius ${R} m with water rotates about its vertical axis at ${w} rad/s. How much higher is the water at the wall than on the axis, in cm ($g=9.8$)?`, answer: +h.toFixed(3), tol: Math.max(0.02, h * 0.005), unit: 'cm',
+      sol: XR`$h = \dfrac{\omega^2R^2}{2g} = \dfrac{${w}^2\times${R}^2}{2\times9.8} = ${f3(h / 100)}$ m $=${f3(h)}$ cm.` };
+  }, (p) => { let z = 0; const n = 20000; for (let i = 0; i < n; i++) { const r = (i + 0.5) / n * p.R; z += p.w * p.w * r / XG0 * (p.R / n); } return z * 100; }),
+  XG(35, 4, 'mcq', 'Bernoulli\'s principle', (rng) => {
+    const v1 = choose(rng, [1, 2, 3]); const k = choose(rng, [2, 3, 4]); const v2 = v1 * k;
+    const dP = 0.5 * 1000 * (v2 * v2 - v1 * v1);
+    const o = numOpts(rng, dP / 1000, [0.5 * 1000 * (v2 - v1) ** 2 / 1000, 0.5 * 1000 * v2 * v2 / 1000, 1000 * (v2 * v2 - v1 * v1) / 1000], 'kPa', 3);
+    return { v1, v2, q: XR`Water flows through a horizontal pipe at ${v1} m/s in the wide part and ${v2} m/s in the narrow part. The pressure in the wide part exceeds that in the narrow part by`, options: o.options, answer: o.answer, sol: XR`$\Delta P = \tfrac12\rho(v_2^2-v_1^2) = \tfrac12\times1000\times(${v2 * v2}-${v1 * v1}) = ${f3(dP)}$ Pa $=${f3(dP / 1000)}$ kPa.`, trap: 'Square each speed before subtracting.' };
+  }, (p) => p.options.findIndex((o) => o === `${f3(0.5 * (p.v2 * p.v2 - p.v1 * p.v1))} kPa`)),
+  XG(36, 5, 'nat', 'oscillation of a floating body', (rng) => {
+    const rb = choose(rng, [400, 500, 600, 800]); const L = choose(rng, [0.1, 0.2, 0.3, 0.4]); const rl = 1000;
+    const T = 2 * XPI * Math.sqrt(rb * L / (rl * XG0));
+    return { rb, L, q: XR`A uniform cuboid of height ${L} m and density ${rb} $\mathrm{kg\,m^{-3}}$ floats upright in water. It is pushed down slightly and released. Find the period of its small oscillations, in s ($g=9.8$; ignore drag).`, answer: +T.toFixed(4), tol: Math.max(0.003, T * 0.005), unit: 's',
+      sol: XR`Restoring force $=\rho_wAgx$; mass $=\rho_bAL$. $T = 2\pi\sqrt{\dfrac{\rho_bL}{\rho_wg}} = 2\pi\sqrt{\dfrac{${rb}\times${L}}{1000\times9.8}} = ${f3(T)}$ s.` };
+  }, (p) => { const A = 0.01; const m = p.rb * A * p.L; const k = 1000 * A * XG0; return 2 * XPI / Math.sqrt(k / m); }),
+);
+
+}
+
 export default { topic: 'fluids', groups, items, gens };

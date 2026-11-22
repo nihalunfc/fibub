@@ -682,4 +682,358 @@ const gens = [
   }, (p) => p.options.findIndex((o) => o === (p.dn === 1 ? r`$\dfrac{q}{\varepsilon_0}$` : r`$\dfrac{q}{${p.dn}\varepsilon_0}$`))),
 ];
 
+// ---------- expansion block: more hard items, matches, multi-correct, passages and templates ----------
+{
+const XR = String.raw;
+const XEXB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv', 'neet'], 5: ['jee-adv'] };
+let xk = 162; let xc = 0;
+const xid = () => `ef-${String(++xk).padStart(3, '0')}`;
+const XPOS = [2, 0, 3, 1, 1, 3, 0, 2];
+const xex = (level, type, sub) => (type === 'mcq' && level <= 3 && ((s)=>true)(sub) ? [...XEXB[level], 'cuet'] : XEXB[level]);
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type, sub), sub, ...o });
+const xm = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xi = (level, sub, q, value, sol, o = {}) => {
+  const answer = Math.round(value); if (Math.abs(value - answer) > 1e-6) throw new Error('not an integer: ' + value + ' ' + q.slice(0, 60));
+  return xb(level, sub, { type: 'nat', format: 'integer', q, answer, tol: 0, calc: () => answer, sol, ...o });
+};
+const xn = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return xb(level, sub, { type: 'nat', format: 'numeric', q, answer, tol, calc: () => answer, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XA = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XA, answer, sol, ...o });
+const XS = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XS, answer, sol, ...o });
+const xmatch = (level, sub, group, q, correct, sol, o = {}) => {
+  const L = correct.split(', ').map((s) => s.split('-')); const rs = L.map((x) => x[1]);
+  const mk = (p) => L.map((x, i) => `${x[0]}-${p[i]}`).join(', ');
+  const swaps = [[0, 1], [2, 3], [1, 2], [0, 3], [0, 2], [1, 3]]; const wr = [];
+  for (let t = 0; t < 6 && wr.length < 3; t++) { const [i, j] = swaps[(t + xc) % 6]; const p = [...rs]; [p[i], p[j]] = [p[j], p[i]]; const s = mk(p); if (s !== correct && !wr.includes(s)) wr.push(s); }
+  if (wr.length < 3) throw new Error('match options');
+  const pos = XPOS[xc++ % 8]; const options = [...wr]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xp = (extra) => (level, sub, group, q, ...rest) => extra(level, sub, q, ...rest);
+const XG = (n, level, type, sub, make, verify) => ({ id: `ef-g${n}`, type, level, exams: xex(level, type, sub), sub, make, verify });
+const f3 = (v) => fmt(v, 3);
+const sg = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XPY = (o) => ({ format: 'passage', ...o });
+const XK = 9e9; const XE0 = 8.85e-12; const XQE = 1.6e-19;
+Object.assign(groups, {
+  xm1: { title: 'A charged ring (charge Q, radius R) on its axis',
+    list1: ['A. Field at the centre', 'B. Field at a distance $x\\gg R$', 'C. The largest field on the axis', 'D. The distance from the centre where that largest field occurs'],
+    list2: [r`p. $0$`, r`q. $\dfrac{kQ}{x^2}$`, r`r. $\dfrac{2kQ}{3\sqrt3\,R^2}$`, r`s. $\dfrac{R}{\sqrt2}$`] },
+  xm2: { title: 'A dipole of moment p in a uniform field E (U = 0 at 90 degrees)',
+    list1: ['A. Potential energy at $\\theta = 0^\\circ$', 'B. Potential energy at $\\theta = 90^\\circ$', 'C. Potential energy at $\\theta = 180^\\circ$', 'D. Work done by an external agent to turn it from $0^\\circ$ to $180^\\circ$'],
+    list2: [r`p. $0$`, r`q. $+pE$`, r`r. $-pE$`, r`s. $2pE$`] },
+  xm3: { title: 'Long uniformly charged solid cylinder (volume density rho, radius R)',
+    list1: ['A. Field at distance $r<R$ from the axis', 'B. Field at distance $r>R$', 'C. Field at the surface $r=R$', 'D. Field on the axis'],
+    list2: [r`p. $\dfrac{\rho R}{2\varepsilon_0}$`, r`q. $0$`, r`r. $\dfrac{\rho r}{2\varepsilon_0}$`, r`s. $\dfrac{\rho R^2}{2\varepsilon_0 r}$`] },
+  xm4: { title: 'Electron (charge -e, mass m) enters a region of width L with speed v perpendicular to a uniform field E',
+    list1: ['A. Time spent in the field', 'B. Acceleration', 'C. Sideways deflection on leaving', 'D. Tangent of the angle of deviation on leaving'],
+    list2: [r`p. $\dfrac{eEL^2}{2mv^2}$`, r`q. $\dfrac{L}{v}$`, r`r. $\dfrac{eEL}{mv^2}$`, r`s. $\dfrac{eE}{m}$`] },
+  xm5: { title: 'Two equal charges +q at (+a, 0) and (-a, 0); field on the y axis at (0, y)',
+    list1: ['A. Field at the origin', 'B. Field at $(0,y)$', 'C. The value of $y$ where the field is largest', 'D. The largest value of the field'],
+    list2: [r`p. $\dfrac{a}{\sqrt2}$`, r`q. $0$`, r`r. $\dfrac{4kq}{3\sqrt3\,a^2}$`, r`s. $\dfrac{2kq\,y}{(a^2+y^2)^{3/2}}$`] },
+  xm6: { title: 'Point charge +Q at the centre of a neutral thick conducting spherical shell (inner radius a, outer radius b)',
+    list1: ['A. Induced charge on the inner surface', 'B. Charge on the outer surface', 'C. Field inside the metal ($a<r<b$)', 'D. Field outside ($r>b$)'],
+    list2: [r`p. $0$`, r`q. $-Q$`, r`r. $+Q$`, r`s. $\dfrac{kQ}{r^2}$`] },
+  xm7: { title: 'Field of a short dipole at distance r, at angle theta from its axis',
+    list1: ['A. $\\theta = 0^\\circ$', 'B. $\\theta = 90^\\circ$', 'C. $\\theta = 60^\\circ$', 'D. $\\theta = 45^\\circ$'],
+    list2: [r`p. $E = \dfrac{kp}{r^3}$`, r`q. $E = \dfrac{2kp}{r^3}$`, r`r. $E = \dfrac{\sqrt7}{2}\dfrac{kp}{r^3}$`, r`s. $E = \sqrt{\dfrac52}\,\dfrac{kp}{r^3}$`] },
+  xm8: { title: 'Two large parallel non-conducting sheets of uniform charge density',
+    list1: ['A. Sheets $+\\sigma$ and $-\\sigma$: field between them', 'B. Sheets $+\\sigma$ and $-\\sigma$: field outside', 'C. Sheets $+\\sigma$ and $+2\\sigma$: field between them', 'D. Sheets $+\\sigma$ and $+2\\sigma$: field outside'],
+    list2: [r`p. $0$`, r`q. $\dfrac{\sigma}{\varepsilon_0}$`, r`r. $\dfrac{\sigma}{2\varepsilon_0}$`, r`s. $\dfrac{3\sigma}{2\varepsilon_0}$`] },
+  xp1: { title: 'A sphere with a charge density that falls with radius',
+    passage: r`<p>A non-conducting sphere of radius $R$ has a charge density that depends on the distance $r$ from its centre as $\rho(r) = \rho_0\left(1 - \dfrac{r}{R}\right)$ for $r\le R$ and zero outside. Here $\rho_0 = 3.0\times10^{-6}\ \mathrm{C\,m^{-3}}$ and $R = 0.5$ m. Take $\varepsilon_0 = 8.85\times10^{-12}$ SI.</p>` },
+  xp2: { title: 'Field of a finite rod',
+    passage: r`<p>A thin rod 0.6 m long carries a uniform charge of $2\ \mu\mathrm{C}$ per metre. The point P lies on the perpendicular bisector of the rod, 0.4 m from it. Take $\dfrac{1}{4\pi\varepsilon_0} = 9\times10^{9}$ SI.</p>` },
+});
+
+// ---------- L2 ----------
+items.push(
+  xm(2, 'charge sharing', XR`Two identical small metal spheres carry $+6\ \mu$C and $-2\ \mu$C. They touch, are separated, and are put back at the original distance. The force between them is now`,
+    XR`$\tfrac13$ of the original, and repulsive`, [XR`$\tfrac13$ of the original, and attractive`, XR`$3$ times the original, and repulsive`, XR`the same size as before, but repulsive`],
+    XR`Before: product of charges $= 6\times(-2) = -12$, attractive. After touching, the net charge $+4\ \mu$C is shared equally: $+2\ \mu$C each, product $+4$, repulsive. Force $\propto$ product (same distance), so the new force is $4/12 = \tfrac13$ of the old one, and it has changed from attraction to repulsion.`,
+    { trap: 'Do not forget the sign change: unlike charges attract, but after sharing both are positive.' }),
+  xm(2, 'superposition', XR`Charges $+q$ and $-q$ are $d$ apart. The magnitude of the electric field at the midpoint of the line joining them is`,
+    XR`$\dfrac{8kq}{d^2}$`, [XR`$\dfrac{4kq}{d^2}$`, XR`$0$`, XR`$\dfrac{2kq}{d^2}$`],
+    XR`Each charge is $d/2$ from the midpoint, so each gives $\dfrac{kq}{(d/2)^2} = \dfrac{4kq}{d^2}$. The field of $+q$ points away from it, towards $-q$; the field of $-q$ points towards $-q$ too. The two fields point the same way and add: $\dfrac{8kq}{d^2}$.`,
+    { trap: 'Fields of equal and opposite charges cancel only on the equatorial line, not on the axis between them.' }),
+  xm(2, "Gauss's law", XR`A point charge $q$ sits at the centre of the circular base of a hollow hemisphere (so the charge is on the flat face). The flux through the curved surface is`,
+    XR`$\dfrac{q}{2\varepsilon_0}$`, [XR`$\dfrac{q}{\varepsilon_0}$`, XR`$0$`, XR`$\dfrac{q}{4\varepsilon_0}$`],
+    XR`Add a second identical hemisphere to make a full sphere with the charge at its centre: total flux $\dfrac{q}{\varepsilon_0}$. By symmetry each hemisphere's curved surface gets half: $\dfrac{q}{2\varepsilon_0}$. The flat face carries no flux because the field lies in its plane.`),
+  xi(2, 'quantisation', XR`A body loses $3.2\times10^{-6}$ C of charge by losing electrons. The number of electrons lost is $n\times10^{13}$. Find $n$ ($e = 1.6\times10^{-19}$ C).`, 3.2e-6 / 1.6e-19 / 1e13,
+    XR`$N = \dfrac{q}{e} = \dfrac{3.2\times10^{-6}}{1.6\times10^{-19}} = 2\times10^{13}$, so $n = 2$.`),
+  xa(2, 'field lines', XR`Two electric field lines can never cross each other.`, XR`At a point of crossing the field would have two different directions at the same instant.`, 0,
+    XR`A field line's tangent gives the direction of the field at that point. At a point where lines cross there would be two tangents, so two field directions at one point, which is impossible for one net field. A is true and R explains it.`),
+  xt(2, 'field lines', XR`A positive charge released from rest in any electric field always keeps moving along the field line it started on.`, XR`The tangent to a field line gives the direction of the force on a positive charge at that point.`, 3,
+    XR`Statement II is true. Statement I is false: the force is along the tangent only at the instant, but the charge has inertia. If the line curves, the charge's velocity points along the earlier tangent and it leaves the line. Only in a straight line field (uniform field, or a radial field of a point charge) does it follow the line exactly.`,
+    { trap: 'Force direction is along the field line; the path is not, unless the line is straight.' }),
+);
+
+// ---------- L3 ----------
+items.push(
+  xm(3, 'field of charges', XR`Charges $+q, +q, -q, -q$ are fixed at the corners A, B, C, D (taken in order round the square) of a square of side $a$. The field at the centre of the square has magnitude`,
+    XR`$\dfrac{4\sqrt2\,kq}{a^2}$`, [XR`$\dfrac{8kq}{a^2}$`, XR`$0$`, XR`$\dfrac{2\sqrt2\,kq}{a^2}$`],
+    XR`Distance from each corner to the centre is $a/\sqrt2$, so each charge gives $\dfrac{kq}{a^2/2} = \dfrac{2kq}{a^2}$. Take A at the origin, B along $x$, D along $y$. Positive charges at A and B push away from them, negative charges at C and D pull towards them. Components along $x$ cancel (A's against B's, C's against D's). Along $y$, all four push or pull towards the DC side, each contributing $\dfrac{2kq}{a^2}\cos45^\circ = \dfrac{\sqrt2kq}{a^2}$. Total $= \dfrac{4\sqrt2\,kq}{a^2}$.`,
+    { trap: 'The four fields do not all add: only their components along one side direction do.' }),
+  xn(3, 'field of charges', XR`Three equal charges of $2\ \mu$C are at the corners of an equilateral triangle of side 10 cm. Find the force on any one of them, in N ($\dfrac{1}{4\pi\varepsilon_0} = 9\times10^{9}$ SI).`, Math.sqrt(3) * XK * 4e-12 / 0.01, 0.02, 2,
+    XR`Each of the other two charges pushes with $F_0 = \dfrac{kq^2}{a^2} = \dfrac{9\times10^{9}\times4\times10^{-12}}{0.01} = 3.6$ N. The two forces are $60^\circ$ apart, so the resultant is $2F_0\cos30^\circ = \sqrt3F_0 = 6.24$ N, directed away from the centroid.`,
+    { unit: 'N', trap: 'The angle between the two forces is 60 degrees, so the resultant is $\\sqrt3F_0$, not $2F_0$.' }),
+  xm(3, 'electric flux', XR`A point charge $q$ is placed at one corner of a cube. The flux through one of the three faces that do NOT touch that corner is`,
+    XR`$\dfrac{q}{24\varepsilon_0}$`, [XR`$\dfrac{q}{8\varepsilon_0}$`, XR`$\dfrac{q}{6\varepsilon_0}$`, XR`$\dfrac{q}{12\varepsilon_0}$`],
+    XR`Eight identical cubes meeting at the corner would enclose the charge, so the cube gets $\dfrac{q}{8\varepsilon_0}$ in all. The three faces meeting at the corner lie in planes containing the charge, so the field is parallel to them: zero flux. The other three faces are equivalent and share the flux: each gets $\dfrac{1}{3}\times\dfrac{q}{8\varepsilon_0} = \dfrac{q}{24\varepsilon_0}$.`,
+    { trap: 'Faces that touch the charge get no flux at all.' }),
+  xi(3, 'dipole in a field', XR`A dipole of moment $2\times10^{-8}$ C m is placed in a uniform field of $5\times10^{4}$ N/C at $30^\circ$ to the field. The torque on it is $n\times10^{-4}$ N m. Find $n$.`, 2e-8 * 5e4 * Math.sin(Math.PI / 6) / 1e-4,
+    XR`$\tau = pE\sin\theta = 2\times10^{-8}\times5\times10^{4}\times0.5 = 5\times10^{-4}$ N m, so $n = 5$.`),
+  xa(3, 'conductors', XR`The field just outside the surface of a charged conductor is $\sigma/\varepsilon_0$, twice the field $\sigma/2\varepsilon_0$ of a non-conducting sheet with the same $\sigma$.`, XR`Near the surface, the local patch gives $\sigma/2\varepsilon_0$ on each side; the rest of the charges add $\sigma/2\varepsilon_0$ outside and cancel it inside, where the field must be zero.`, 0,
+    XR`Inside the metal the total field is zero, so the other charges must give $\sigma/2\varepsilon_0$ in the direction that cancels the patch's field there. The same contribution points the same way outside, so outside we get $\sigma/2\varepsilon_0 + \sigma/2\varepsilon_0 = \sigma/\varepsilon_0$. R correctly explains A.`),
+  xt(3, "Gauss's law", XR`The net flux through a closed surface can be zero even though the field is not zero at any point of the surface.`, XR`The flux through a closed surface equals $q_{\mathrm{enclosed}}/\varepsilon_0$.`, 0,
+    XR`Take a neutral dipole inside a sphere: enclosed charge is zero, so net flux is zero, but the field on the surface is not zero anywhere. Statement I is true; Statement II is Gauss's law and is true.`),
+  xm(3, 'charges on threads', XR`Two small identical spheres of density $1800\ \mathrm{kg\,m^{-3}}$ hang from a common point on threads. In air they make some angle. When immersed in a liquid of density $800\ \mathrm{kg\,m^{-3}}$ the angle is the same. The dielectric constant of the liquid is`,
+    f3(1800 / (1800 - 800)), [f3(1800 / 800), f3(1800 / (1800 + 800)), f3((1800 - 800) / 1800)],
+    XR`Same angle means the ratio (electric force)/(effective weight) is unchanged. In air: $F = \dfrac{kq^2}{x^2}$ and weight $= mg$. In the liquid: $F' = \dfrac{F}{K}$ and apparent weight $= mg\left(1-\dfrac{\sigma}{\rho}\right)$. So $\dfrac{F}{mg} = \dfrac{F/K}{mg(1-\sigma/\rho)}$, giving $K = \dfrac{1}{1-\sigma/\rho} = \dfrac{\rho}{\rho-\sigma} = \dfrac{1800}{1000} = 1.8$.`,
+    { trap: 'Both the electric force and the weight change in the liquid.' }),
+  xmatch(3, 'rings', 'xm1', XR`Match each item in List I with the result in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`By symmetry the field at the centre of a ring is zero (p). Far away the ring looks like a point charge: $\dfrac{kQ}{x^2}$ (q). On the axis $E = \dfrac{kQx}{(R^2+x^2)^{3/2}}$; it is largest at $x = R/\sqrt2$ (s), where $E_{max} = \dfrac{kQ(R/\sqrt2)}{(1.5R^2)^{3/2}} = \dfrac{2kQ}{3\sqrt3R^2}$ (r). So A-p, B-q, C-r, D-s.`),
+  xmatch(3, 'dipole in a field', 'xm2', XR`Match each quantity in List I with its value in List II.`, 'A-r, B-p, C-q, D-s',
+    XR`$U = -pE\cos\theta$: at $0^\circ$ it is $-pE$ (r), at $90^\circ$ it is $0$ (p), at $180^\circ$ it is $+pE$ (q). Work to turn from $0^\circ$ to $180^\circ$ is $U_{180}-U_0 = 2pE$ (s). So A-r, B-p, C-q, D-s.`),
+  xmatch(3, 'conductors', 'xm6', XR`Match each item in List I with the answer in List II.`, 'A-q, B-r, C-p, D-s',
+    XR`Field inside the metal is zero (p), so the inner surface must carry $-Q$ (q) to cancel the enclosed $+Q$. The shell is neutral, so $+Q$ appears on the outer surface (r). Outside, a Gaussian sphere encloses $+Q$ in all (inner $-Q$, outer $+Q$, point $+Q$ gives $+Q$ net), so $E = kQ/r^2$ (s). So A-q, B-r, C-p, D-s.`),
+  xi(3, 'equilibrium of charges', XR`Charges $+8\ \mu$C each are fixed at $x=0$ and $x=d$. A charge $Q$ is placed at the midpoint so that all three charges are in equilibrium. Find $|Q|$ in $\mu$C.`, 8 / 4,
+    XR`For the middle charge the forces cancel by symmetry. For the charge at $x=0$: repulsion from the other $+8$ is $\dfrac{k\,8\cdot8}{d^2}$ (away), attraction to $Q$ is $\dfrac{k\,8|Q|}{(d/2)^2} = \dfrac{4k\,8|Q|}{d^2}$ (towards). Equal: $8 = 4|Q|$, so $|Q| = 2\ \mu$C, and $Q$ must be negative.`,
+    { unit: 'µC', trap: 'The middle charge is $d/2$ from the others, which gives the factor 4.' }),
+  xi(3, 'oil drop', XR`An oil drop of mass $1.6\times10^{-15}$ kg floats at rest in a downward field of $1.0\times10^{5}$ N/C. Taking $g = 10\ \mathrm{m\,s^{-2}}$ and $e = 1.6\times10^{-19}$ C, how many excess electrons does it carry?`, 1.6e-15 * 10 / (1.6e-19 * 1e5),
+    XR`The drop must carry negative charge so the force is upward. $neE = mg \Rightarrow n = \dfrac{mg}{eE} = \dfrac{1.6\times10^{-15}\times10}{1.6\times10^{-19}\times10^{5}} = 1000$.`),
+  xi(3, 'charge sharing', XR`Three identical conducting spheres A, B and C are far apart. A carries $16\ \mu$C; B and C are neutral. A touches B and is separated. Then B touches C and is separated. Finally C touches A. Find the final charge on A in $\mu$C.`, ((16 / 2) + (16 / 2 / 2)) / 2,
+    XR`A and B share: $8,\ 8$. B and C share: $B = C = 4$. C and A share: $\dfrac{4+8}{2} = 6$ each. So A ends with $6\ \mu$C.`),
+  xi(3, 'mixed', XR`The ratio of the electric force to the gravitational force between an electron and a proton does not depend on their distance and is of the order $10^{n}$. Find the whole number $n$ (the integer part of $\log_{10}$ of the ratio). ($e=1.6\times10^{-19}$ C, $m_e=9.1\times10^{-31}$ kg, $m_p=1.67\times10^{-27}$ kg, $G=6.67\times10^{-11}$ SI)`, Math.floor(Math.log10(XK * XQE * XQE / (6.67e-11 * 9.1e-31 * 1.67e-27))),
+    XR`Both forces fall as $1/r^2$, so the ratio is $\dfrac{ke^2}{Gm_em_p} = \dfrac{9\times10^{9}\times2.56\times10^{-38}}{6.67\times10^{-11}\times1.52\times10^{-57}} \approx 2.3\times10^{39}$. $\log_{10} = 39.36$, so the ratio is of order $10^{39}$ and $n = 39$.`,
+    { trap: 'The ratio is independent of the separation.' }),
+);
+
+// ---------- L4 ----------
+items.push(
+  xs(4, 'conductors', XR`A point charge $+Q$ is placed off-centre inside the cavity of an uncharged spherical conducting shell. Choose the correct statements.`,
+    [XR`The charge on the inner surface of the shell is $-Q$ in all.`, XR`The charge on the inner surface is spread uniformly.`, XR`The charge on the outer surface is $+Q$, spread uniformly.`, XR`Outside the shell the field is $kQ/r^2$, with $r$ measured from the centre of the shell.`],
+    [0, 2, 3],
+    XR`The field in the metal is zero, so the enclosed charge ($Q$ plus the inner-surface charge) is zero: inner surface holds $-Q$ (true). Because the point charge is off-centre, the inner charge is crowded nearest to it, not uniform (false). The outer surface must hold $+Q$; the metal screens the outside from the cavity, so the outer charge feels only itself and spreads uniformly (true), and outside the field is the same as for $+Q$ at the centre (true).`,
+    { trap: 'Inside the cavity the pattern depends on position; outside it does not.' }),
+  xs(4, 'dipole in a field', XR`An electric dipole is placed in a uniform electric field, making an angle $\theta$ with it. Choose the correct statements.`,
+    [XR`The net force on it is zero.`, XR`The torque on it has magnitude $pE\sin\theta$.`, XR`$\theta = 0^\circ$ is a position of stable equilibrium.`, XR`The potential energy is least at $\theta = 180^\circ$.`],
+    [0, 1, 2],
+    XR`In a uniform field the two charges feel equal and opposite forces, so net force is zero (true) but there is a torque $pE\sin\theta$ (true). Energy $U=-pE\cos\theta$ is least at $0^\circ$, which is stable (true). At $180^\circ$ it is greatest, an unstable equilibrium (false).`),
+  xs(4, 'dipole in a field', XR`A dipole is in a non-uniform field $\vec E = E(x)\,\hat\imath$ with $dE/dx>0$. Choose the correct statements.`,
+    [XR`With $\vec p$ along $+x$ the net force is towards $+x$.`, XR`With $\vec p$ along $-x$ the net force is towards $-x$.`, XR`With $\vec p$ along $+y$ the net force is zero.`, XR`A dipole is always pulled towards the region of weaker field.`],
+    [0, 1, 2],
+    XR`The force is $\vec F = (\vec p\cdot\nabla)\vec E$. For $\vec p = p\hat\imath$: $F_x = p\,dE/dx>0$, towards $+x$ (true). For $\vec p = -p\hat\imath$: $F_x = -p\,dE/dx<0$, towards $-x$ (true). For $\vec p = p\hat\jmath$: $F = p\,\partial E/\partial y = 0$ because $E$ depends only on $x$ (true). A dipole is not always pulled to weaker fields: an aligned one goes to the stronger region (false).`,
+    { trap: 'Aligned dipoles move to stronger fields; anti-aligned ones move to weaker.' }),
+);
+
+items.push(
+  xs(4, 'field of charges', XR`Which statements about the field of a very long straight line charge of uniform density $\lambda$ are correct?`,
+    [XR`At distance $r$ the field is $\dfrac{\lambda}{2\pi\varepsilon_0r}$.`, XR`The field is radial.`, XR`The field does not depend on the length of the Gaussian cylinder chosen.`, XR`The field falls as $1/r^2$.`],
+    [0, 1, 2],
+    XR`Gauss's law on a coaxial cylinder of radius $r$ and length $l$: $E\,2\pi rl = \lambda l/\varepsilon_0$, so $E = \dfrac{\lambda}{2\pi\varepsilon_0r}$. The $l$ cancels (C true). By symmetry the field is radial (B true). It falls as $1/r$, not $1/r^2$ (D false).`),
+  xmatch(4, 'cylinders', 'xm3', XR`Match each case in List I with the field in List II.`, 'A-r, B-s, C-p, D-q',
+    XR`Gaussian cylinder of radius $r<R$ and length $l$: enclosed charge $\rho\pi r^2l$, so $E\,2\pi rl = \dfrac{\rho\pi r^2l}{\varepsilon_0}$ and $E = \dfrac{\rho r}{2\varepsilon_0}$ (A-r). For $r>R$: $E = \dfrac{\rho R^2}{2\varepsilon_0r}$ (B-s). At $r=R$ both give $\dfrac{\rho R}{2\varepsilon_0}$ (C-p). On the axis $r=0$ so $E=0$ (D-q).`),
+  xmatch(4, 'charged particles in a field', 'xm4', XR`Match each quantity in List I with its expression in List II.`, 'A-q, B-s, C-p, D-r',
+    XR`Horizontal speed stays $v$, so $t = L/v$ (A-q). Acceleration $a = eE/m$ (B-s). Deflection $y = \tfrac12at^2 = \dfrac{eEL^2}{2mv^2}$ (C-p). $\tan\theta = v_y/v = at/v = \dfrac{eEL}{mv^2}$ (D-r).`),
+  xmatch(4, 'electric dipole', 'xm7', XR`The magnitude of the field of a short dipole at angle $\theta$ is $E = \dfrac{kp}{r^3}\sqrt{1+3\cos^2\theta}$. Match each angle in List I with the field in List II.`, 'A-q, B-p, C-r, D-s',
+    XR`$\theta=0^\circ$: $\sqrt{1+3} = 2$ (q). $90^\circ$: $\sqrt1 = 1$ (p). $60^\circ$: $\cos^2 = \tfrac14$, $\sqrt{1+\tfrac34} = \dfrac{\sqrt7}{2}$ (r). $45^\circ$: $\cos^2=\tfrac12$, $\sqrt{1+\tfrac32} = \sqrt{\tfrac52}$ (s).`),
+  xn(4, 'charges on threads', XR`Two identical balls of mass 2 g, each with charge 20 nC, hang from the same point by threads 0.50 m long. Find the distance between them in equilibrium, in cm ($g=9.8$, $\dfrac{1}{4\pi\varepsilon_0}=9\times10^{9}$ SI; the angle is small).`, 100 * Math.cbrt(2 * XK * (20e-9) ** 2 * 0.5 / (2e-3 * 9.8)), 0.1, 2,
+    XR`Each ball: $T\cos\theta = mg$, $T\sin\theta = \dfrac{kq^2}{x^2}$, so $\dfrac{kq^2}{x^2} = mg\tan\theta\approx mg\dfrac{x}{2l}$. Then $x^3 = \dfrac{2kq^2l}{mg} = \dfrac{2\times9\times10^{9}\times4\times10^{-16}\times0.5}{0.002\times9.8} = 1.84\times10^{-4}$ m$^3$, so $x = 0.0568$ m $= 5.68$ cm. Check: $x/2l = 0.057$, small.`,
+    { unit: 'cm', trap: 'The thread makes angle $\\theta$ with the vertical, and $\\tan\\theta\\approx x/2l$, not $x/l$.' }),
+  xn(4, 'discs and sheets', XR`A thin disc of radius 0.10 m carries a uniform charge of $2\ \mu\mathrm{C\,m^{-2}}$. Find the field at a point on its axis 0.20 m from the centre, in N/C ($\varepsilon_0 = 8.85\times10^{-12}$ SI).`, 2e-6 / (2 * XE0) * (1 - 0.2 / Math.sqrt(0.2 ** 2 + 0.1 ** 2)), 120, 0,
+    XR`On the axis, $E = \dfrac{\sigma}{2\varepsilon_0}\left(1 - \dfrac{x}{\sqrt{x^2+R^2}}\right)$. $\dfrac{\sigma}{2\varepsilon_0} = \dfrac{2\times10^{-6}}{1.77\times10^{-11}} = 1.13\times10^{5}$ N/C. $\dfrac{x}{\sqrt{x^2+R^2}} = \dfrac{0.2}{0.2236} = 0.8944$. $E = 1.13\times10^{5}\times0.1056 = 1.19\times10^{4}$ N/C.`,
+    { unit: 'N/C' }),
+  xn(4, 'charge in a field', XR`A small ball of mass 2 g and charge $+10\ \mu$C rests on a smooth plane inclined at $37^\circ$, held in place by a horizontal field. Find the field in N/C ($g=9.8$, $\tan37^\circ = 0.7536$).`, 2e-3 * 9.8 * Math.tan(37 * Math.PI / 180) / 10e-6, 15, 0,
+    XR`Forces along the incline: $mg\sin\theta$ down the slope, $qE\cos\theta$ up the slope (field horizontal, pushing into the slope). Balance: $qE\cos\theta = mg\sin\theta$, so $E = \dfrac{mg\tan\theta}{q} = \dfrac{0.002\times9.8\times0.7536}{10^{-5}} = 1477$ N/C.`,
+    { unit: 'N/C', trap: 'A horizontal force has component $F\\cos\\theta$ along the incline, not $F\\sin\\theta$.' }),
+  xn(4, 'line charge', XR`A very long thin rod carries $3\ \mu\mathrm{C\,m^{-1}}$ and extends from the foot O of a perpendicular to infinity in one direction only (a semi-infinite rod, starting at O). Find the magnitude of the field at a point P at distance 0.20 m from O, on the perpendicular at O, in units of $10^5$ N/C ($\dfrac{1}{4\pi\varepsilon_0}=9\times10^{9}$ SI).`, Math.SQRT2 * XK * 3e-6 / 0.2 / 1e5, 0.01, 3,
+    XR`For a semi-infinite rod, the field at P has two components of equal size: along the rod and perpendicular to it, each $\dfrac{k\lambda}{d}$ (the perpendicular one is half of the infinite-rod value $\dfrac{2k\lambda}{d}$). $\dfrac{k\lambda}{d} = \dfrac{9\times10^{9}\times3\times10^{-6}}{0.2} = 1.35\times10^{5}$ N/C. Magnitude $=\sqrt2\times1.35\times10^{5} = 1.909\times10^{5}$ N/C, at $45^\circ$ to the rod.`,
+    { unit: '×10⁵ N/C', trap: 'Do not use the infinite-rod value $2k\\lambda/d$; the rod is only half as long, and it also gives a component along itself.' }),
+  xi(4, 'electric flux', XR`In a region the field is $\vec E = 500x\,\hat\imath$ N/C ($x$ in metres). A cube of side 0.2 m has one corner at the origin and edges along the positive axes. The net outward flux through the cube, in N m$^2$/C, is`, 500 * 0.2 ** 3,
+    XR`Only the two faces perpendicular to $x$ contribute. At $x=0$: $E=0$, flux 0. At $x=0.2$: $E = 100$ N/C, flux $= 100\times0.04 = 4$ N m$^2$/C outward. The faces parallel to the field give zero. Net flux $=4$.`,
+    { unit: 'N m²/C' }),
+  xi(4, 'non-uniform charge', XR`A solid non-conducting sphere of radius $R$ has volume charge density $\rho = \rho_0\,r/R$. Let $E_R$ be the field at the surface and $E_h$ the field at $r = R/2$. Find $E_R/E_h$.`, (1) / (1 / 4),
+    XR`Charge inside radius $r$: $q(r) = \int_0^r\rho_0\dfrac{r'}{R}\,4\pi r'^2\,dr' = \dfrac{\pi\rho_0r^4}{R}$. Gauss: $E = \dfrac{q}{4\pi\varepsilon_0r^2} = \dfrac{\rho_0r^2}{4\varepsilon_0R}$. So $E\propto r^2$ and $E_R/E_h = \left(\dfrac{R}{R/2}\right)^2 = 4$.`,
+    { trap: 'For a uniform sphere $E\\propto r$ inside, which would give 2.' }),
+  xi(4, 'discs and sheets', XR`The field at a point on the axis of a uniformly charged disc of radius $R$, at distance $\tfrac43R$ from its centre, is $\dfrac{\sigma}{n\varepsilon_0}$. Find $n$.`, 10,
+    XR`$E = \dfrac{\sigma}{2\varepsilon_0}\left(1-\dfrac{x}{\sqrt{x^2+R^2}}\right)$ with $x=\tfrac43R$: $\sqrt{x^2+R^2} = R\sqrt{\tfrac{16}{9}+1} = \tfrac53R$. $\dfrac{x}{\sqrt{\ }} = \tfrac45$. $E = \dfrac{\sigma}{2\varepsilon_0}\times\tfrac15 = \dfrac{\sigma}{10\varepsilon_0}$, so $n=10$.`),
+  xm(4, 'discs and sheets', XR`A very large uniformly charged non-conducting sheet (density $\sigma$) has a circular hole of radius $R$. The field on the axis of the hole, at distance $x$ from its centre, is`,
+    XR`$\dfrac{\sigma x}{2\varepsilon_0\sqrt{x^2+R^2}}$`, [XR`$\dfrac{\sigma}{2\varepsilon_0}\left(1-\dfrac{x}{\sqrt{x^2+R^2}}\right)$`, XR`$\dfrac{\sigma}{2\varepsilon_0}$`, XR`$\dfrac{\sigma R}{2\varepsilon_0\sqrt{x^2+R^2}}$`],
+    XR`Superposition: full sheet $\dfrac{\sigma}{2\varepsilon_0}$ plus a disc of density $-\sigma$, which gives $-\dfrac{\sigma}{2\varepsilon_0}\left(1-\dfrac{x}{\sqrt{x^2+R^2}}\right)$. Sum $= \dfrac{\sigma}{2\varepsilon_0}\dfrac{x}{\sqrt{x^2+R^2}}$. Check: $x\to0$ gives 0 (symmetry), $x\to\infty$ gives the full-sheet value.`,
+    { trap: 'Option A is the field of the disc alone.' }),
+  xa(4, 'electric flux', XR`When a charge outside a closed surface is moved, the net flux through the surface does not change, though the field at points of the surface does.`, XR`The net flux depends only on the charge enclosed.`, 0,
+    XR`Moving an outside charge changes $\vec E$ at every surface point, but the flux entering equals the flux leaving for that charge, so the net contribution stays zero. Net flux $= q_{in}/\varepsilon_0$ depends only on enclosed charge, which explains A.`),
+  xa(4, 'conductors', XR`When two charged conducting spheres of different radii are joined by a long wire, the smaller sphere ends up with the larger surface charge density.`, XR`After joining, the two spheres carry equal charges.`, 2,
+    XR`After joining they reach the same potential: $\dfrac{kq_1}{r_1} = \dfrac{kq_2}{r_2}$, so $q\propto r$, not equal. Then $\sigma = \dfrac{q}{4\pi r^2}\propto\dfrac{1}{r}$: the smaller sphere has the larger $\sigma$. A is true, R is false.`),
+  xt(4, "Gauss's law", XR`Gauss's law gives the flux through a closed surface as $q_{in}/\varepsilon_0$ only if the charge is distributed symmetrically.`, XR`Gauss's law is valid for any closed surface and any charge distribution.`, 3,
+    XR`Gauss's law is always true (Statement II). Symmetry is needed only to use it to find $E$ easily, not for the flux relation itself, so Statement I is false.`),
+  xm(4, 'electric field', XR`For a charged conductor of surface density $\sigma$, the electric field just outside it and the force per unit area on its surface charge are, respectively`,
+    XR`$\dfrac{\sigma}{\varepsilon_0}$ and $\dfrac{\sigma^2}{2\varepsilon_0}$`, [XR`$\dfrac{\sigma}{2\varepsilon_0}$ and $\dfrac{\sigma^2}{2\varepsilon_0}$`, XR`$\dfrac{\sigma}{\varepsilon_0}$ and $\dfrac{\sigma^2}{\varepsilon_0}$`, XR`$\dfrac{\sigma}{2\varepsilon_0}$ and $\dfrac{\sigma^2}{\varepsilon_0}$`],
+    XR`Just outside: $\sigma/\varepsilon_0$. A surface charge element feels only the field of the other charges, which is the average of inside (0) and outside ($\sigma/\varepsilon_0$), i.e. $\sigma/2\varepsilon_0$. Force per unit area $= \sigma\times\dfrac{\sigma}{2\varepsilon_0} = \dfrac{\sigma^2}{2\varepsilon_0}$.`,
+    { trap: 'The charge does not feel its own field.' }),
+);
+
+// ---------- L5 ----------
+items.push(
+  xs(5, 'Gauss\'s law', XR`$S$ is a closed surface. Choose the correct conclusions.`,
+    [XR`If $\vec E = 0$ at every point of $S$, the net charge inside is zero.`, XR`If the net charge inside is zero, $\vec E = 0$ at every point of $S$.`, XR`If the net flux through $S$ is zero, the net charge inside is zero.`, XR`If the net charge inside is zero, $\vec E=0$ at every point inside $S$.`],
+    [0, 2],
+    XR`Zero field everywhere on $S$ gives zero flux, so by Gauss's law $q_{in}=0$ (A true). Zero flux gives $q_{in}=0$ (C true). The converse of A fails: a neutral dipole inside gives non-zero field on $S$ (B false) and inside (D false).`,
+    { trap: 'Gauss\'s law links net flux to net enclosed charge, not field at points to charge.' }),
+  xs(5, 'cavity in a charged body', XR`A uniformly charged non-conducting sphere (density $\rho>0$, centre O) has a spherical cavity with centre C, with $\overrightarrow{OC} = \vec d$. Choose the correct statements.`,
+    [XR`The field inside the cavity is uniform.`, XR`It points along $\overrightarrow{OC}$.`, XR`Its magnitude changes with position in the cavity.`, XR`Its magnitude is $\dfrac{\rho d}{3\varepsilon_0}$.`],
+    [0, 1, 3],
+    XR`Treat the body as a full sphere of density $\rho$ plus a sphere of density $-\rho$ in the cavity. At a point with position $\vec r$ from O and $\vec r'$ from C: $\vec E = \dfrac{\rho\vec r}{3\varepsilon_0} - \dfrac{\rho\vec r'}{3\varepsilon_0} = \dfrac{\rho(\vec r-\vec r')}{3\varepsilon_0} = \dfrac{\rho\vec d}{3\varepsilon_0}$: uniform, along $\overrightarrow{OC}$, magnitude $\dfrac{\rho d}{3\varepsilon_0}$.`),
+  xs(5, 'equilibrium of charges', XR`Charges $+4q$ and $-q$ are fixed a distance $d$ apart. Choose the correct statements about points on the line through them where the field is zero.`,
+    [XR`There is exactly one such point.`, XR`It lies between the two charges.`, XR`It lies at distance $d$ from $-q$, on the side away from $+4q$.`, XR`There is another such point on the perpendicular bisector.`],
+    [0, 2],
+    XR`Between the charges the two fields point the same way, so no zero there (B false). Beyond $-q$, at distance $x$ from it: $\dfrac{k4q}{(x+d)^2} = \dfrac{kq}{x^2}$ gives $x+d = 2x$, $x=d$ (A, C true). Beyond $+4q$ the larger charge is nearer, so the fields cannot balance. On the bisector the two fields cannot cancel because the perpendicular components are unequal (D false).`),
+  xs(5, 'conductors', XR`A thin conducting spherical shell of radius $R$ carries a charge $Q$. Choose the correct statements.`,
+    [XR`The field everywhere inside is zero.`, XR`The field just outside the surface is $\dfrac{\sigma}{\varepsilon_0}$ with $\sigma = \dfrac{Q}{4\pi R^2}$.`, XR`The outward force per unit area on the shell is $\dfrac{\sigma^2}{2\varepsilon_0}$.`, XR`The field just outside is $\dfrac{\sigma}{2\varepsilon_0}$.`],
+    [0, 1, 2],
+    XR`Inside a closed conducting shell with no charge inside the field is zero (A). Just outside, $E = \dfrac{kQ}{R^2} = \dfrac{\sigma}{\varepsilon_0}$ (B true, D false). The surface charge feels the average field $\dfrac{\sigma}{2\varepsilon_0}$, so the pressure is $\dfrac{\sigma^2}{2\varepsilon_0}$ (C true).`),
+  xs(5, 'rings', XR`A ring of charge $+Q$ and radius $R$ lies in the $yz$ plane with its centre at the origin. Choose the correct statements about the field on the $x$ axis.`,
+    [XR`It is zero at the centre.`, XR`For $|x|\ll R$ it is nearly proportional to $x$.`, XR`It is largest at $|x| = R/\sqrt2$.`, XR`It decreases steadily as $|x|$ increases from zero.`],
+    [0, 1, 2],
+    XR`$E_x = \dfrac{kQx}{(R^2+x^2)^{3/2}}$. At $x=0$ it is 0 (A). For small $x$, $E\approx\dfrac{kQx}{R^3}$ (B). Setting $dE/dx = 0$ gives $x = R/\sqrt2$ (C). It first rises, then falls, so D is false.`),
+  xs(5, 'charged particles in a field', XR`An electron is projected with speed $v_0$ perpendicular to a uniform field between large plates (field $E$). Choose the correct statements.`,
+    [XR`Its path is a parabola.`, XR`Its gain in kinetic energy is $eEy$ where $y$ is its sideways displacement.`, XR`The time it takes to cross plates of length $L$ does not depend on $E$.`, XR`Its velocity component along the initial direction changes.`],
+    [0, 1, 2],
+    XR`Uniform sideways acceleration with constant forward velocity gives a parabola (A). Work done $=F\,y = eEy$ (B). Forward speed stays $v_0$, so $t = L/v_0$ whatever $E$ is (C true, D false).`),
+  xm(5, 'cavity in a charged body', XR`The field at the centre of the flat base of a uniformly charged thin hemispherical shell (surface density $\sigma$) is`,
+    XR`$\dfrac{\sigma}{4\varepsilon_0}$`, [XR`$\dfrac{\sigma}{2\varepsilon_0}$`, XR`$\dfrac{\sigma}{\varepsilon_0}$`, XR`$\dfrac{\sigma}{8\varepsilon_0}$`],
+    XR`A ring of the shell at polar angle $\theta$ (from the axis) has area $2\pi R^2\sin\theta\,d\theta$ and gives an axial field $dE = \dfrac{k\sigma\,2\pi R^2\sin\theta\,d\theta}{R^2}\cos\theta$. Integrate $\theta$ from 0 to $\pi/2$: $E = 2\pi k\sigma\times\tfrac12 = \pi k\sigma = \dfrac{\sigma}{4\varepsilon_0}$.`,
+    { trap: 'Components perpendicular to the axis cancel; only $\\cos\\theta$ survives.' }),
+  xm(5, 'cavity in a charged body', XR`A solid hemisphere of uniform volume density $\rho$ and radius $R$ is given. The field at the centre of its flat face is`,
+    XR`$\dfrac{\rho R}{4\varepsilon_0}$`, [XR`$\dfrac{\rho R}{2\varepsilon_0}$`, XR`$\dfrac{\rho R}{8\varepsilon_0}$`, XR`$\dfrac{\rho R}{3\varepsilon_0}$`],
+    XR`Cut the hemisphere into thin hemispherical shells of radius $r$ and thickness $dr$, with surface density $\sigma = \rho\,dr$. Each gives $\dfrac{\sigma}{4\varepsilon_0} = \dfrac{\rho\,dr}{4\varepsilon_0}$ at the centre, all in the same direction. Integrate from $0$ to $R$: $\dfrac{\rho R}{4\varepsilon_0}$.`),
+  xm(5, 'conductors', XR`An uncharged conducting sphere is placed in a uniform field $E_0$. The largest magnitude of the induced surface charge density is`,
+    XR`$3\varepsilon_0E_0$`, [XR`$\varepsilon_0E_0$`, XR`$2\varepsilon_0E_0$`, XR`$\dfrac{3}{2}\varepsilon_0E_0$`],
+    XR`The induced charge on a conducting sphere is $\sigma = 3\varepsilon_0E_0\cos\theta$ (the field outside near the poles is enhanced to $3E_0$, and $E = \sigma/\varepsilon_0$ at a conductor's surface). Largest value at $\theta=0$ or $\pi$: $3\varepsilon_0E_0$.`,
+    { trap: 'The surface field is $3E_0$, not $E_0$, so $\\sigma$ is three times $\\varepsilon_0E_0$.' }),
+  xm(5, 'forces on conductors', XR`A conducting sphere of radius $R$ carries charge $Q$. It is cut along a plane through the centre into two halves. The force needed to hold the two halves together is`,
+    XR`$\dfrac{Q^2}{32\pi\varepsilon_0R^2}$`, [XR`$\dfrac{Q^2}{16\pi\varepsilon_0R^2}$`, XR`$\dfrac{Q^2}{8\pi\varepsilon_0R^2}$`, XR`$\dfrac{Q^2}{64\pi\varepsilon_0R^2}$`],
+    XR`Outward pressure $P = \dfrac{\sigma^2}{2\varepsilon_0}$ with $\sigma = \dfrac{Q}{4\pi R^2}$. The net force on a hemisphere equals $P$ times the projected area $\pi R^2$: $F = \dfrac{Q^2}{16\pi^2R^4\cdot2\varepsilon_0}\pi R^2 = \dfrac{Q^2}{32\pi\varepsilon_0R^2}$.`,
+    { trap: 'Use the projected area $\\pi R^2$, not the curved area.' }),
+  xa(5, 'forces on conductors', XR`The force per unit area on the surface of a charged conductor is $\sigma^2/\varepsilon_0$.`, XR`The field just outside a conductor is $\sigma/\varepsilon_0$ and the force on charge $\sigma$ per unit area is $\sigma E$.`, 3,
+    XR`A is false: the surface charge does not feel its own field, only the average field across the surface, $\sigma/2\varepsilon_0$, so the force per unit area is $\sigma^2/2\varepsilon_0$. R is true as a statement ($E_{out}=\sigma/\varepsilon_0$, and force $=\sigma E$ is the naive step that gives the wrong A).`),
+  xt(5, 'equilibrium', XR`A positive test charge placed at the midpoint between two fixed equal positive charges is in stable equilibrium for all small displacements.`, XR`A charge cannot be in stable electrostatic equilibrium in the field of other fixed charges alone (Earnshaw's theorem).`, 3,
+    XR`Displaced along the line joining them, the test charge is pushed back. Displaced perpendicular to the line, the net field points away from the midpoint, so it is pushed further away: unstable. Statement I is false. Earnshaw's theorem (no stable equilibrium in a charge-free region from electrostatic forces alone) is true.`),
+  xa(5, 'field lines', XR`Field lines that start on a positive charge may end on a distant negative charge, but cannot form closed loops in an electrostatic field.`, XR`The work done by an electrostatic field around a closed loop is zero.`, 0,
+    XR`A closed field line would make the circulation $\oint\vec E\cdot d\vec l\neq0$ around it (field along the line everywhere), contradicting the conservative nature of electrostatic force (work around a closed path is zero). R is true and explains A.`),
+);
+
+
+items.push(
+  xi(4, 'electric flux', XR`A hollow hemispherical bowl of radius 0.10 m has its axis parallel to a uniform field of 300 N/C. The magnitude of the flux through its curved surface is $n\pi$ N m$^2$/C. Find $n$.`, 300 * 0.1 ** 2,
+    XR`Close the bowl with its flat circular face: no charge is enclosed, so the net flux is zero. Hence the curved surface carries the same flux (in magnitude) as the flat face: $E\pi R^2 = 300\times\pi\times0.01 = 3\pi$. So $n=3$.`, { trap: 'Do not integrate over the curved area; use the flat face.' }),
+  xm(3, 'electric dipole', XR`A short dipole of moment $p$ points along the $x$ axis. A point charge $q$ is placed on the $x$ axis at distance $r$ from the dipole (far larger than its length). The force on the point charge has magnitude`,
+    XR`$\dfrac{2kpq}{r^3}$`, [XR`$\dfrac{kpq}{r^3}$`, XR`$\dfrac{kpq}{r^2}$`, XR`$\dfrac{4kpq}{r^3}$`],
+    XR`On the axis the dipole's field is $\dfrac{2kp}{r^3}$, so $F = qE = \dfrac{2kpq}{r^3}$. (On the equatorial line it would be $\dfrac{kpq}{r^3}$.)`, { trap: 'Axis field is twice the equatorial field.' }),
+  xi(4, 'dipole oscillation', XR`A dipole of moment $4\times10^{-8}$ C m and moment of inertia $2\times10^{-6}$ kg m$^2$ is released from rest at $60^\circ$ to a uniform field of $5\times10^{3}$ N/C. Its angular speed on passing through the field direction, in rad/s, is`, Math.sqrt(2 * 4e-8 * 5e3 * (1 - Math.cos(Math.PI / 3)) / 2e-6),
+    XR`Energy: $\tfrac12I\omega^2 = pE(\cos0^\circ-\cos60^\circ) = 4\times10^{-8}\times5\times10^{3}\times0.5 = 10^{-4}$ J. $\omega = \sqrt{\dfrac{2\times10^{-4}}{2\times10^{-6}}} = 10$ rad/s.`, { unit: 'rad/s' }),
+);
+
+// ---------- passages ----------
+items.push(
+  xm(4, 'non-uniform charge', XR`Find the total charge on the sphere, in $\mu$C.`,
+    f3(Math.PI * 3e-6 * 0.5 ** 3 / 3 * 1e6) + ' µC', [f3(4 * Math.PI * 3e-6 * 0.5 ** 3 / 3 * 1e6) + ' µC', f3(Math.PI * 3e-6 * 0.5 ** 3 * 1e6) + ' µC', f3(Math.PI * 3e-6 * 0.5 ** 3 / 12 * 1e6) + ' µC'],
+    XR`$Q = \int_0^R\rho_0\left(1-\dfrac rR\right)4\pi r^2dr = 4\pi\rho_0R^3\left(\dfrac13-\dfrac14\right) = \dfrac{\pi\rho_0R^3}{3} = \dfrac{\pi\times3\times10^{-6}\times0.125}{3} = 0.393\ \mu\mathrm{C}$.`, XPY({ group: 'xp1' })),
+  xn(4, 'non-uniform charge', XR`Find the field at the surface of the sphere ($r=R$), in N/C.`, 3e-6 * 0.5 / (12 * XE0), 15, 0,
+    XR`Outside or at the surface, $E = \dfrac{Q}{4\pi\varepsilon_0R^2} = \dfrac{\pi\rho_0R^3/3}{4\pi\varepsilon_0R^2} = \dfrac{\rho_0R}{12\varepsilon_0} = \dfrac{3\times10^{-6}\times0.5}{12\times8.85\times10^{-12}} = 1.41\times10^{4}$ N/C.`, XPY({ group: 'xp1', unit: 'N/C' })),
+  xn(5, 'non-uniform charge', XR`The field inside the sphere is largest at some $r_m$. Find that largest field, in N/C.`, 3e-6 * 0.5 / (9 * XE0), 15, 0,
+    XR`Inside, $q(r) = 4\pi\rho_0\left(\dfrac{r^3}{3}-\dfrac{r^4}{4R}\right)$, so $E = \dfrac{\rho_0}{\varepsilon_0}\left(\dfrac r3-\dfrac{r^2}{4R}\right)$. $dE/dr = 0$ gives $\dfrac13-\dfrac{r}{2R}=0$, $r_m = \dfrac{2R}{3}$. Then $E_m = \dfrac{\rho_0R}{\varepsilon_0}\left(\dfrac29-\dfrac19\right) = \dfrac{\rho_0R}{9\varepsilon_0} = \dfrac{3\times10^{-6}\times0.5}{9\times8.85\times10^{-12}} = 1.88\times10^{4}$ N/C. This is larger than the surface value $\dfrac{\rho_0R}{12\varepsilon_0}$.`, XPY({ group: 'xp1', unit: 'N/C', trap: 'The largest field is inside, not at the surface.' })),
+  xn(4, 'line charge', XR`Find the field at P, in units of $10^{4}$ N/C.`, 2 * XK * 2e-6 * 0.3 / (0.4 * Math.sqrt(0.09 + 0.16)) / 1e4, 0.05, 2,
+    XR`For a rod of length $2a$ ($a=0.3$ m), at distance $d$ on the bisector, $E = \dfrac{2k\lambda\sin\alpha}{d}$ with $\sin\alpha = \dfrac{a}{\sqrt{a^2+d^2}} = \dfrac{0.3}{0.5} = 0.6$. $E = \dfrac{2\times9\times10^{9}\times2\times10^{-6}\times0.6}{0.4} = 5.4\times10^{4}$ N/C, perpendicular to the rod.`, XPY({ group: 'xp2', unit: '×10⁴ N/C' })),
+  xn(4, 'line charge', XR`A charge of $-1\ \mu$C is placed at P. Find the magnitude of the force on it, in mN.`, 1e-6 * 5.4e4 * 1e3, 0.5, 1,
+    XR`$F = |q|E = 10^{-6}\times5.4\times10^{4} = 0.054$ N $= 54$ mN, directed towards the rod.`, XPY({ group: 'xp2', unit: 'mN' })),
+  xm(5, 'line charge', XR`The field at P is what fraction of the field the same line density would give at the same distance if the rod were infinitely long?`,
+    '0.6', ['0.5', '0.75', '0.8'],
+    XR`Infinite rod: $\dfrac{2k\lambda}{d} = \dfrac{2\times9\times10^{9}\times2\times10^{-6}}{0.4} = 9\times10^{4}$ N/C. Ratio $= \dfrac{5.4\times10^{4}}{9\times10^{4}} = 0.6 = \sin\alpha$.`, XPY({ group: 'xp2' })),
+);
+
+// ---------- templates ----------
+gens.push(
+  XG(28, 3, 'mcq', 'charge sharing', (rng) => {
+    const a = pick(rng, 4, 12, 2); const b = pick(rng, 1, 3, 1); const ratio = ((a - b) / 2) ** 2 / (a * b);
+    const o = numOpts(rng, ratio, [((a + b) / 2) ** 2 / (a * b), (a - b) ** 2 / (a * b), ratio * 2], '', 3);
+    return { a, b, q: XR`Two identical small metal spheres carry $+${a}\ \mu$C and $-${b}\ \mu$C. They are touched together and then returned to the original separation. The new force is how many times the old force (in magnitude)?`, options: o.options, answer: o.answer,
+      sol: XR`After touching, each has $\dfrac{${a}-${b}}{2} = ${(a - b) / 2}\ \mu$C. New force $\propto${sg(((a - b) / 2) ** 2)}$, old force $\propto ${a * b}$. Ratio $= ${f3(ratio)}$. (Using $|q_1|+|q_2|$ instead of the algebraic sum is the usual error.)`, trap: 'Add the charges with their signs before sharing.' };
+  }, (p) => p.options.findIndex((o) => o === f3((((p.a - p.b) / 2) ** 2) / (p.a * p.b)))),
+  XG(29, 4, 'nat', 'charges on threads', (rng) => {
+    const qn = pick(rng, 10, 30, 5); const l = choose(rng, [0.4, 0.5, 0.6, 0.8]); const m = choose(rng, [1, 2, 3]);
+    const x = Math.cbrt(2 * XK * (qn * 1e-9) ** 2 * l / (m * 1e-3 * 9.8)) * 100;
+    return { qn, l, m, q: XR`Two identical balls of mass ${m} g and charge ${qn} nC hang from one point by threads ${l} m long. Find the distance between them in equilibrium, in cm ($g=9.8$; the angle is small; $\dfrac{1}{4\pi\varepsilon_0}=9\times10^{9}$ SI).`, answer: +x.toFixed(2), tol: Math.max(0.02, x * 0.01), unit: 'cm',
+      sol: XR`$\dfrac{kq^2}{x^2} = mg\tan\theta \approx mg\dfrac{x}{2l}$, so $x^3 = \dfrac{2kq^2l}{mg} = \dfrac{2\times9\times10^{9}\times(${qn}\times10^{-9})^2\times${l}}{${m}\times10^{-3}\times9.8} = ${sg((x / 100) ** 3)}\ \mathrm{m^3}$, so $x = ${f3(x)}$ cm.` };
+  }, (p) => {
+    const F = (th) => XK * (p.qn * 1e-9) ** 2 / (2 * p.l * Math.sin(th)) ** 2 - p.m * 1e-3 * 9.8 * Math.tan(th);
+    let a = 1e-4, b = 1.2; for (let i = 0; i < 100; i++) { const mid = (a + b) / 2; if (F(mid) > 0) a = mid; else b = mid; }
+    return 2 * p.l * Math.sin(a) * 100; }),
+  XG(30, 4, 'nat', 'discs and sheets', (rng) => {
+    const R = choose(rng, [0.05, 0.1, 0.2]); const f = choose(rng, [0.5, 1, 1.5, 2]); const x = +(R * f).toFixed(3); const s = pick(rng, 1, 5);
+    const E = s * 1e-6 / (2 * XE0) * (1 - x / Math.sqrt(x * x + R * R));
+    return { R, x, s, q: XR`A thin disc of radius ${R} m carries $${s}\ \mu\mathrm{C\,m^{-2}}$ uniformly. Find the field on its axis at ${x} m from the centre, in $10^{4}$ N/C ($\varepsilon_0=8.85\times10^{-12}$ SI).`, answer: +(E / 1e4).toFixed(3), tol: Math.max(0.01, E / 1e4 * 0.01), unit: '×10⁴ N/C',
+      sol: XR`$E = \dfrac{\sigma}{2\varepsilon_0}\left(1-\dfrac{x}{\sqrt{x^2+R^2}}\right)$. $\dfrac{\sigma}{2\varepsilon_0} = ${sg(s * 1e-6 / (2 * XE0))}$ N/C and $\dfrac{x}{\sqrt{x^2+R^2}} = ${sg(x / Math.sqrt(x * x + R * R), 4)}$. $E = ${f3(E / 1e4)}\times10^{4}$ N/C.` };
+  }, (p) => { let sum = 0; const N = 20000; for (let i = 0; i < N; i++) { const r = (i + 0.5) / N * p.R; const dq = p.s * 1e-6 * 2 * Math.PI * r * (p.R / N); sum += XK * dq * p.x / Math.pow(r * r + p.x * p.x, 1.5); } return sum / 1e4; }),
+  XG(31, 4, 'nat', 'line charge', (rng) => {
+    const a = choose(rng, [0.2, 0.3, 0.4]); const d = choose(rng, [0.2, 0.3, 0.4, 0.6]); const lam = pick(rng, 1, 5);
+    const E = 2 * XK * lam * 1e-6 * a / (d * Math.sqrt(a * a + d * d));
+    return { a, d, lam, q: XR`A thin rod of length ${2 * a} m carries a uniform charge of $${lam}\ \mu\mathrm{C\,m^{-1}}$. Find the field at a point on its perpendicular bisector ${d} m from the rod, in $10^{4}$ N/C ($\dfrac{1}{4\pi\varepsilon_0}=9\times10^{9}$ SI).`, answer: +(E / 1e4).toFixed(3), tol: Math.max(0.01, E / 1e4 * 0.01), unit: '×10⁴ N/C',
+      sol: XR`With half-length $a=${a}$ m and distance $d=${d}$ m, $E = \dfrac{2k\lambda a}{d\sqrt{a^2+d^2}} = \dfrac{2\times9\times10^{9}\times${lam}\times10^{-6}\times${a}}{${d}\times${f3(Math.sqrt(a * a + d * d))}} = ${f3(E / 1e4)}\times10^{4}$ N/C.` };
+  }, (p) => { let sum = 0; const N = 20000; for (let i = 0; i < N; i++) { const y = -p.a + (i + 0.5) / N * 2 * p.a; const dq = p.lam * 1e-6 * 2 * p.a / N; sum += XK * dq * p.d / Math.pow(y * y + p.d * p.d, 1.5); } return sum / 1e4; }),
+  XG(32, 4, 'nat', 'non-uniform charge', (rng) => {
+    const R = choose(rng, [0.1, 0.2, 0.5]); const rho = pick(rng, 1, 9); const fr = choose(rng, [0.4, 0.5, 0.6, 0.8, 1.5, 2]);
+    const r = +(R * fr).toFixed(3); const Q = (rr) => Math.PI * rho * 1e-6 * Math.min(rr, R) ** 4 / R;
+    const E = Q(r) / (4 * Math.PI * XE0 * r * r);
+    return { R, rho, r, q: XR`A non-conducting sphere of radius ${R} m has volume charge density $\rho = \rho_0\,r/R$ with $\rho_0 = ${rho}\ \mu\mathrm{C\,m^{-3}}$ for $r\le R$. Find the field at ${r} m from the centre, in N/C ($\varepsilon_0=8.85\times10^{-12}$ SI).`, answer: +E.toFixed(2), tol: Math.max(0.02, E * 0.01), unit: 'N/C',
+      sol: r <= R ? XR`Inside: $q(r) = \dfrac{\pi\rho_0r^4}{R}$, so $E = \dfrac{\rho_0r^2}{4\varepsilon_0R} = ${f3(E)}$ N/C.` : XR`Outside the sphere the whole charge $Q = \pi\rho_0R^3$ acts as a point charge: $E = \dfrac{\rho_0R^3}{4\varepsilon_0r^2} = ${f3(E)}$ N/C.` };
+  }, (p) => { const n = 4000; let q = 0; const rr = Math.min(p.r, p.R); for (let i = 0; i < n; i++) { const s = (i + 0.5) / n * rr; q += p.rho * 1e-6 * (s / p.R) * 4 * Math.PI * s * s * (rr / n); } return q / (4 * Math.PI * XE0 * p.r * p.r); }),
+  XG(33, 4, 'mcq', 'electric flux', (rng) => {
+    const v = int(rng, 0, 3);
+    const T = [
+      { t: 'one of the three faces that touch that corner', f: '0', d: 'those faces lie in planes through the charge, so the field is parallel to them' },
+      { t: 'one of the three faces that do not touch that corner', f: XR`$\dfrac{q}{24\varepsilon_0}$`, d: 'the cube gets $q/8\\varepsilon_0$, the three touching faces get none, and the other three share it equally' },
+      { t: 'the three faces that do not touch that corner, together', f: XR`$\dfrac{q}{8\varepsilon_0}$`, d: 'they carry all of the cube\'s flux $q/8\\varepsilon_0$' },
+      { t: 'the whole cube', f: XR`$\dfrac{q}{8\varepsilon_0}$`, d: 'eight such cubes would enclose the charge, and each gets one eighth of $q/\\varepsilon_0$' },
+    ][v];
+    const pool = ['0', XR`$\dfrac{q}{24\varepsilon_0}$`, XR`$\dfrac{q}{8\varepsilon_0}$`, XR`$\dfrac{q}{6\varepsilon_0}$`, XR`$\dfrac{q}{\varepsilon_0}$`, XR`$\dfrac{q}{4\varepsilon_0}$`].filter((x) => x !== T.f);
+    const wr = []; while (wr.length < 3) wr.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    const o = shuffleOpts(rng, T.f, wr);
+    return { v, qs: T.f, q: XR`A point charge $q$ is placed at one corner of a cube. The electric flux through ${T.t} is`, options: o.options, answer: o.answer, sol: XR`The flux is ${T.f} because ${T.d}.`, trap: 'Faces that touch the charge get zero flux.' };
+  }, (p) => p.options.indexOf(p.qs)),
+  XG(34, 3, 'nat', 'dipole in a field', (rng) => {
+    const p0 = pick(rng, 2, 9); const E = pick(rng, 2, 8) * 1e3; const th = choose(rng, [0, 30, 60, 120, 150, 180]);
+    const U = -p0 * 1e-8 * E * Math.cos(th * Math.PI / 180);
+    return { p0, E, th, q: XR`A dipole of moment $${p0}\times10^{-8}$ C m is in a uniform field of $${E}$ N/C, with its axis at $${th}^\circ$ to the field. Find its potential energy in $\mu$J (zero at $90^\circ$; give the sign).`, answer: +(U * 1e6).toFixed(3), tol: Math.max(0.01, Math.abs(U * 1e6) * 0.01), unit: 'µJ',
+      sol: XR`$U = -pE\cos\theta = -${p0}\times10^{-8}\times${E}\times\cos${th}^\circ = ${f3(U * 1e6)}\ \mu\mathrm{J}$.` };
+  }, (p) => -p.p0 * 1e-8 * p.E * Math.cos(p.th * Math.PI / 180) * 1e6),
+  XG(35, 4, 'nat', 'charge in a field', (rng) => {
+    const m = choose(rng, [1, 2, 4]); const qq = pick(rng, 5, 20, 5); const sig = pick(rng, 10, 50, 10);
+    const th = Math.atan(qq * 1e-6 * sig * 1e-6 / (2 * XE0 * m * 1e-3 * 9.8)) * 180 / Math.PI;
+    return { m, qq, sig, q: XR`A ball of mass ${m} g and charge $+${qq}\ \mu$C hangs from a light thread attached to a large vertical non-conducting sheet carrying $+${sig}\ \mu\mathrm{C\,m^{-2}}$. Find the angle of the thread with the vertical, in degrees ($g=9.8$, $\varepsilon_0=8.85\times10^{-12}$ SI).`, answer: +th.toFixed(1), tol: 0.2, unit: '°',
+      sol: XR`Sheet field $E=\dfrac{\sigma}{2\varepsilon_0} = ${sg(sig * 1e-6 / (2 * XE0))}$ N/C. $\tan\theta = \dfrac{qE}{mg} = ${sg(qq * 1e-6 * sig * 1e-6 / (2 * XE0) / (m * 1e-3 * 9.8))}$, so $\theta = ${f3(th)}^\circ$.` };
+  }, (p) => Math.atan((p.qq * 1e-6) * (p.sig * 1e-6 / (2 * XE0)) / (p.m * 1e-3 * 9.8)) * 180 / Math.PI),
+  XG(36, 3, 'nat', 'forces on conductors', (rng) => {
+    const E = pick(rng, 1, 9) * 1e5; const P = 0.5 * XE0 * E * E;
+    return { E, q: XR`The field just outside a charged conductor is $${E / 1e5}\times10^{5}$ N/C. Find the outward electrostatic pressure on its surface, in N/m$^2$ ($\varepsilon_0=8.85\times10^{-12}$ SI).`, answer: +P.toFixed(4), tol: Math.max(0.0005, P * 0.01), unit: 'N/m²',
+      sol: XR`$\sigma=\varepsilon_0E$ and the pressure is $\dfrac{\sigma^2}{2\varepsilon_0} = \tfrac12\varepsilon_0E^2 = 0.5\times8.85\times10^{-12}\times(${E / 1e5}\times10^{5})^2 = ${f3(P)}$ N/m$^2$.` };
+  }, (p) => { const s = XE0 * p.E; return s * s / (2 * XE0); }),
+  XG(37, 4, 'nat', 'cavity in a charged body', (rng) => {
+    const s = pick(rng, 1, 9); const E = s * 1e-6 / (4 * XE0);
+    return { s, q: XR`The field at the centre of the flat face of a thin uniformly charged hemispherical shell is needed. The shell carries $${s}\ \mu\mathrm{C\,m^{-2}}$. Find the field, in $10^{4}$ N/C ($\varepsilon_0=8.85\times10^{-12}$ SI).`, answer: +(E / 1e4).toFixed(3), tol: Math.max(0.01, E / 1e4 * 0.01), unit: '×10⁴ N/C',
+      sol: XR`$E = \dfrac{\sigma}{4\varepsilon_0} = \dfrac{${s}\times10^{-6}}{4\times8.85\times10^{-12}} = ${f3(E / 1e4)}\times10^{4}$ N/C.` };
+  }, (p) => { let sum = 0; const N = 20000; for (let i = 0; i < N; i++) { const th = (i + 0.5) / N * Math.PI / 2; sum += XK * p.s * 1e-6 * 2 * Math.PI * Math.sin(th) * Math.cos(th) * (Math.PI / 2 / N); } return sum / 1e4; }),
+);
+
+}
+
 export default { topic: 'electric-charges-fields', groups, items, gens };
