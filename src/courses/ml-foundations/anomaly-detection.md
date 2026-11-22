@@ -51,6 +51,10 @@ Both look at one column at a time. Many anomalies are only odd in **combination*
 <div class="step"><p><b>Set the cut.</b> The fraud team can check 50 alerts a day, so the 50 highest scores of the day get a look. This one makes the list.</p></div>
 </div>
 
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
+
 ## 3. Across all columns
 
 - **Distance to neighbours:** score each row by its mean distance to its `$k$` nearest neighbours (Lesson 4.7). Lonely points score high. Works in any number of columns, after scaling.
@@ -58,6 +62,10 @@ Both look at one column at a time. Many anomalies are only odd in **combination*
 - **Reconstruction error:** squash the data with PCA (Lesson 8.4) or an autoencoder (a neural network that compresses and rebuilds), then rebuild it. Rows the compression can't rebuild well are unusual.
 
 <!--fig:anomaly-->
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. Choosing the threshold
 

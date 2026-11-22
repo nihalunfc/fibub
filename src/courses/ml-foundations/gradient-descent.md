@@ -34,6 +34,10 @@ Least squares has a neat formula, but almost nothing else does. Think of finding
 
 For a line `$\hat y = wx + b$`, every pair `$(w, b)$` gives a mean squared error. Plot the error for every pair and you get a surface: a bowl, lowest at the least-squares line. Training is walking to the bottom of the bowl.
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. The gradient of the mean squared error
 
 The loss is `$L(w, b) = \frac{1}{n} \sum_i (w x_i + b - y_i)^2$`. By the chain rule (Lesson 1.5):

@@ -48,6 +48,10 @@ Most cleaning happens before counting:
 
 **Everyday picture:** a shopping receipt. It lists how many of each item you bought, but not the order you picked them off the shelves.
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. TF-IDF: weight the words that tell documents apart
 
 Raw counts favour words like "the", which are everywhere and tell you nothing. **TF-IDF** (term frequency times inverse document frequency) multiplies each count by a weight. The weight is large for rare words and zero for words found in every document.
@@ -106,6 +110,10 @@ Libraries add small tweaks (adding 1 inside the logarithm, dividing each row by 
 
 **Try it:** 10 documents; "refund" is in 2 of them and appears 3 times in one. Its TF-IDF there? (`$3 \times \ln(10/2) = 3 \times 1.609 = 4.83$`.)
 </details>
+
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
 
 ## 4. Worked example
 

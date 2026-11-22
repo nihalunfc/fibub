@@ -39,6 +39,10 @@ Think of hiring cashiers for a shop. The first few cut the queue a lot. After a 
 
 The elbow is easy to explain, but it is often soft: on real data the curve may bend gently, and two people will point at different `$k$`.
 
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
+
 ## 3. The silhouette
 
 The silhouette asks each point: are you closer to your own group than to the next-nearest group? For each point:
@@ -78,6 +82,10 @@ Rough guide for the average silhouette: above 0.7 strong structure, 0.5 to 0.7 r
 </dl>
 
 </div>
+
+Try it: press New start a few times with random starts, then with k-means++, then Run 30 starts for each.
+
+<figure class="fig" data-fig="@ai-kmeans-init"><figcaption>k-means only finds a nearby good answer, so a bad start can strand two centres in one blob. Spreading the starting centres out (k-means++) and trying several starts both help.</figcaption></figure>
 
 ## 4. The question numbers can't answer
 

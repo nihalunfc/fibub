@@ -39,6 +39,10 @@ Reading a file is harmless. Writing, deleting, sending and running code are not.
 | **Write** | save a file, add a row, move a file | Ask a human first, or only allow new files in an output folder |
 | **Run or send** | shell commands, running code, sending email | Avoid. If you must, ask every time and run in a sandbox (Lesson 13.8) |
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. A write tool with approval
 
 Add this to `agent.py` from Lesson 13.1 and include it in `TOOLS`:

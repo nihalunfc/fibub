@@ -39,6 +39,10 @@ quiz:
 
 It is the difference between a gym that lets you in three times a week, a pay-per-visit pool, and a bicycle you own: ride it as much as your legs (the machine's speed) allow.
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Your numbers
 
 Enter your own use and prices. The example numbers are made up; real cloud prices are on each provider's pricing page, and your electricity price is on your bill.

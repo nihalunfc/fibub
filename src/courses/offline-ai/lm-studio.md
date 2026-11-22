@@ -42,6 +42,10 @@ A desktop app such as **LM Studio** (free, on Windows, macOS and Linux) bundles 
 
 Other apps do the same job in a similar way. The steps below are general so they still make sense when the screens change.
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Step by step
 
 1. **Check your memory.** Windows: Settings, System, About, "Installed RAM". Mac: Apple menu, About This Mac. Write it down.
@@ -100,6 +104,10 @@ Download sizes are from the Ollama library listing read on 16 November 2026; fil
 </div>
 
 <div class="problem" data-problem="lm-studio-memory"></div>
+
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
 
 ## 4. Reading the numbers the app shows
 

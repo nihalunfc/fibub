@@ -39,9 +39,17 @@ People go wrong in both directions. Some believe local models are toys; others t
 
 Research groups that track **benchmarks** (standard tests given to every model) have found that open models tend to reach a given score several months to about a year after the best closed models. The home-sized ones sit a little further back.
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Where the gap is small
 
 Summaries, drafting and rewriting, translation between major languages, sorting and pulling facts out of text, answering from your own documents with search (Module 12), everyday coding help, and chat. For these, a good 12B to 30B model is often hard to tell apart from a cloud model in a blind test.
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 4. Where the gap is large
 

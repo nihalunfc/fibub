@@ -61,6 +61,10 @@ The average bill over all training examples is the model's **log-loss**. Trainin
 
 <div class="problem" data-problem="log-loss-mean"></div>
 
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
+
 ## 3. The gradient: error times input
 
 To walk downhill we need the slope (gradient) of the loss for each weight. With `$p_i = \sigma(z_i)$` and `$z_i = \mathbf{w} \cdot \mathbf{x}_i + b$`, use the chain rule in three links: loss → `$p$` → `$z$` → `$w_j$`.
@@ -116,6 +120,10 @@ which is the mean log-loss. Same best weights either way.
 
 **Try it:** two examples: a yes with `$p = 0.8$` and a no with `$p = 0.3$`. Mean log-loss? (`$(-\ln 0.8 - \ln 0.7)/2 = (0.223 + 0.357)/2 = 0.29$`.)
 </details>
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. Worked example
 

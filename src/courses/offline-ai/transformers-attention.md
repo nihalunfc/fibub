@@ -55,6 +55,10 @@ Here it is with small made-up numbers. To keep it short, "it" looks at just thre
 <div class="step"><p><b>Keep the labels and notes.</b> The engine stores each word's key and value (the <b>KV cache</b>), so the next word can compare against them without working them out again.</p></div>
 </div>
 
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
+
 ## 3. The stack
 
 A **transformer** stacks this, layer upon layer (often 30 to 90 layers). After each attention step, a small calculation (the **feed-forward** part, where most parameters live) works on each token. Early layers handle grammar, later ones meaning and reasoning. At the top, the last token's result becomes the scores for the next token (Lesson 2.1).

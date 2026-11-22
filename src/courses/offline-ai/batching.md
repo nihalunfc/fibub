@@ -45,6 +45,10 @@ It is like a bus. Driving the route costs about the same with one passenger or f
 
 The gain shrinks as the batch grows: each answer also has its own KV cache (Lesson 8.4) to read, and at some point the chip's arithmetic, not memory, becomes the bottleneck. Real engines often get 3 to 6 times the total output from a batch of 8, and more from bigger batches on data-centre cards.
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Continuous batching
 
 Old-style batching waited for, say, eight requests, ran them together and made everyone wait for the longest answer. **Continuous batching** (from the Orca paper, now in vLLM, SGLang, llama.cpp's server and others) adds and removes requests at every step. A short answer leaves as soon as it is done and a new question takes its seat. Memory for the KV caches is handed out in small pages (vLLM's PagedAttention) so many conversations fit without waste.

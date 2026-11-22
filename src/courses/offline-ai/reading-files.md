@@ -78,6 +78,10 @@ def read_any(path):
 
 Each spreadsheet row becomes a line like `item: printer, cost: 400`, so the column names travel with the values. Emails keep sender, date and subject at the top, which helps both search and citations. Save emails from your mail program as `.eml` files (most programs can export or drag them to a folder).
 
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
+
 ## 3. Scans need OCR
 
 A scanned PDF contains pictures of pages, so `extract_text` returns nothing. It is like a photo of a letter: you can see the words, but a computer sees only coloured dots. **OCR** (optical character recognition) reads the letters from the picture. The dependable offline route is **OCRmyPDF**, which uses Tesseract and adds an invisible text layer to the PDF:
@@ -89,6 +93,10 @@ ocrmypdf --skip-text scanned.pdf scanned-ocr.pdf
 `--skip-text` leaves pages that already have text alone. Install it from your system's package manager (Linux, or Homebrew on Mac) or follow the Windows steps in its documentation; add language packs such as `hin` or `mal` for Hindi or Malayalam pages, and pass `-l eng+hin`. Run it over the scans once, then index the new files.
 
 For photos of receipts, handwritten notes or messy layouts, a vision model can do better than OCR (Lesson 13.5), at the cost of speed.
+
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
 
 ## 4. Tables, slides and the rest
 
@@ -132,6 +140,10 @@ For photos of receipts, handwritten notes or messy layouts, a vision model can d
 **"It's a PDF, so the computer can read it."** A PDF is only a container. Some hold real text; scanned ones hold pictures of pages, which give back nothing until OCR adds a text layer. If a file gives no chunks, print `read_any(path)` and look.
 
 </div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 5. Worked example
 

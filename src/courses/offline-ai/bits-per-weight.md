@@ -56,6 +56,10 @@ Take a block whose largest weight is 1.0 and follow the weight **0.30** as the b
 <div class="step"><p><b>2 bits.</b> Only −1, 0, 1 (step 1.0). 0.30 → 0 → <b>0</b>. The weight is gone completely. Do that to millions of weights and the model starts to make real mistakes.</p></div>
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. How quality loss is measured
 
 - **Perplexity:** how surprised the model is by real text. A score of 10 means it is, on average, as unsure as if it were choosing between 10 equally likely next tokens. Lower is better; quantised copies score a little higher.

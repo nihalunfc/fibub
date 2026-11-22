@@ -96,6 +96,10 @@ so with `$\sigma = 30$`, no model can average much under 24.
 
 </div>
 
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
+
 ## 3. Worked example
 
 The simulation at its starting settings: 150 training days, daily noise ±30, 100 test days.

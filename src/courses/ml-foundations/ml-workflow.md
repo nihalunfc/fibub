@@ -43,6 +43,10 @@ Building the model is only one step of eight, rather like cooking is only one st
 7. **Use.** A model that sits in a notebook does nothing. It might feed a dashboard, a weekly list or a button in an app.
 8. **Monitor.** The world changes, the data **drifts**, and accuracy slips. Check it over time, retrain on fresh data, and sometimes go back to step 1.
 
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
 ## 3. Baselines: the bar to beat
 
 A **baseline** is the answer you'd give with no model at all:

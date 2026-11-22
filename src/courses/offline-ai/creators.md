@@ -37,6 +37,10 @@ Unpublished manuscripts, scripts, client translations and brand work are valuabl
 - **Video makers and podcasters:** transcripts and subtitles (whisper.cpp), show notes, chapter titles.
 - **Designers:** image ideas and mood boards with local image models (Lesson 13.6).
 
+Try it: press Generate from noise, then raise Guess error and generate again.
+
+<figure class="fig" data-fig="@ai-diffusion-denoise"><figcaption>An image model starts from pure noise and repeatedly guesses and removes noise. Better guesses and more steps give a cleaner picture; poor guesses leave artefacts.</figcaption></figure>
+
 ## 3. Care points
 
 - **Originality:** check that output does not copy existing text; do your own creative work on it.

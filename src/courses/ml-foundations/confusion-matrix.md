@@ -52,6 +52,10 @@ A true positive is the alarm going off in a real fire. A false positive is the a
 
 <!--fig:threshold-->
 
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
+
 ## 3. The scores
 
 | Score | Formula | Question it answers |
@@ -109,6 +113,10 @@ The harmonic mean is dragged down by the smaller value, so F1 is high only when 
 
 **Try it:** TP = 40, FP = 10, FN = 40, TN = 910. Find accuracy, precision, recall and F1. (Accuracy 950/1000 = 95 %; precision 40/50 = 0.8; recall 40/80 = 0.5; F1 = 2(0.8)(0.5)/1.3 ≈ 0.62.)
 </details>
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. Worked example
 

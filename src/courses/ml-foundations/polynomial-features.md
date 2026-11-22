@@ -53,6 +53,10 @@ Try degree 1, then 3, then 12. Degree 3 follows the curve well. Degree 12 thread
 
 **Practical note:** powers of big numbers explode (100¹⁰ is 10²⁰), which ruins the arithmetic. Scale x to roughly −1 to 1 before taking powers, as the simulation does.
 
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
+
 ## 3. Other useful features
 
 | Feature | Made from | Catches |
