@@ -72,6 +72,14 @@ export default {
         {
           "id": "chemical-kinetics",
           "name": "Chemical kinetics"
+        },
+        {
+          "id": "d-f-block",
+          "name": "d- and f-block elements"
+        },
+        {
+          "id": "coordination-compounds",
+          "name": "Coordination compounds"
         }
       ]
     }
