@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './bonding.more.gen.js';
 import more2 from './bonding.more2.gen.js';
+import r4 from './bonding.r4.gen.js';
 
 const KE = C.e / (4 * Math.PI * C.eps0) * 1e10;        // e^2/(4 pi eps0) in eV Å (14.40)
 const KEJ = C.e ** 2 / (4 * Math.PI * C.eps0);          // in J m
@@ -260,6 +261,7 @@ export default {
       sol: 'Full: $14.45^2/24.26 = 208.8/24.26 = 8.61\\varepsilon$. Ratio $= 8.61/6 = 1.43$. The farther neighbours (6 at $\\sqrt2R$, 24 at $\\sqrt3R$, ...) add attraction through the slowly decaying $r^{-6}$ tail, and also pull the crystal slightly tighter ($R_0 = 1.09\\sigma$ instead of $1.12\\sigma$). The $r^{-12}$ sum is almost all nearest neighbours ($A_{12} = 12.13 \\approx 12$).',
       trap: 'Expecting the farther neighbours to matter little: $A_6 = 14.45$ is 20% above 12.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -389,5 +391,6 @@ export default {
       },
       verify: (p) => Math.sqrt(72 * p.e / 1000 * C.e / (2 ** (1 / 3) * (p.s * 1e-10) ** 2) / (p.M / 2 * C.u)) / (2 * Math.PI) / 1e12 },
     ...more,
+    ...r4.gens,
   ],
 };

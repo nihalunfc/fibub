@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './quantum-hall.more.gen.js';
 import more2 from './quantum-hall.more2.gen.js';
+import r4 from './quantum-hall.r4.gen.js';
 
 const R = String.raw;
 const H = C.h, E = C.e, HBAR = C.hbar, ME = C.me;
@@ -235,6 +236,7 @@ export default {
       sol: R`Each transverse mode below the Fermi energy carries current $(2e/h)\,e V$ (velocity times 1D density of states is $2/h$ per unit energy, spin included, independent of energy). Widening opens modes one at a time: steps of $2e^2/h$ at $B = 0$. With no scattering inside, the length does not matter; the resistance $h/2e^2$ per mode comes from the contacts.`,
       trap: 'The steps are seen at zero field (van Wees and Wharam, 1988); a field only modifies them.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'qhe-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'filling factor',
@@ -358,5 +360,6 @@ export default {
       },
       verify: (p) => { const Ec = E / (2 * p.Caf * 1e-18) * 1000; return p.mode === 'E' ? Ec : Ec / 1000 / 8.617333e-5 / 10; } },
     ...more,
+    ...r4.gens,
   ],
 };

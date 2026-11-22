@@ -12,6 +12,7 @@ const compE = (E, th) => E / (1 + (E / MC2) * (1 - Math.cos(th * DEG)));   // sc
 
 import * as Q5 from '../_util.js';
 import more2 from './photons.more2.gen.js';
+import r4 from './photons.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -253,6 +254,7 @@ export default {
       sol: 'Write $1/E\' = 1/E + (1 - \\cos\\theta)/m_ec^2$. At $90^\\circ$: $1/255 = 1/E + 1/m_ec^2$. At $180^\\circ$: $1/170 = 1/E + 2/m_ec^2$. Subtract: $1/m_ec^2 = 1/170 - 1/255$, so $1/E = 2/255 - 1/170 = 0.0078431 - 0.0058824 = 0.0019608$ and $E = 510$ keV. The same subtraction gives $m_ec^2 = 1/0.0019608 = 510$ keV, a check on the data: the true value is $511$ keV, so the photons had $E \\approx m_ec^2$.',
       trap: 'Work with reciprocals of energy: $1/E\'$ is linear in $1 - \\cos\\theta$, energies themselves are not.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -387,5 +389,6 @@ export default {
           trap: 'The Compton edge is always below the photopeak at the full energy $E$.' };
       },
       verify: (p) => p.E * (2 * p.E / MC2) / (1 + 2 * p.E / MC2) },
+    ...r4.gens,
   ],
 };
