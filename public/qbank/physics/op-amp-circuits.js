@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './op-amp-circuits.more.gen.js';
 import more2 from './op-amp-circuits.more2.gen.js';
 import r4 from './op-amp-circuits.r4.gen.js';
+import r5 from './op-amp-circuits.r5.gen.js';
 
 const G = ['gate', 'net'];
 const VT = 0.025852;
@@ -226,6 +227,7 @@ export default {
       trap: 'Assuming the duty cycle scales linearly with threshold (25%).' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'oc-g01', type: 'nat', level: 3, exams: G, sub: 'Schmitt trigger',
@@ -359,5 +361,6 @@ export default {
       verify: (p) => -p.Z * p.R1 / p.R2 },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
