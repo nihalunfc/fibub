@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './raman.more.gen.js';
+import more2 from './raman.more2.gen.js';
 
 const C2 = 1.438777;   // hc/k, cm K
 const IB = 16.8576;    // I (u Å^2) = IB / B (cm^-1)
@@ -222,6 +223,7 @@ export default {
       options: ['$\\omega_p + \\omega_s$', '$\\omega_p - \\omega_v$', '$2\\omega_p - \\omega_s$', '$2\\omega_s - \\omega_p$'], answer: 2,
       sol: 'The beat between pump and Stokes drives the vibration coherently; a second pump photon scatters off it to $\\omega_p + \\omega_v = 2\\omega_p - \\omega_s$. The signal is a laser-like beam on the anti-Stokes side, free of fluorescence (which is red-shifted).',
       trap: '$2\\omega_s - \\omega_p$ is the coherent Stokes (CSRS) signal.' },
+    ...more2,
   ],
 
   gens: [

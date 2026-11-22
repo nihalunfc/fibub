@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './vibrational-spectra.more.gen.js';
+import more2 from './vibrational-spectra.more2.gen.js';
 
 const U = 1.66053907e-27;     // kg
 const CCM = 2.99792458e10;    // cm/s
@@ -229,6 +230,7 @@ export default {
       options: ['the rotation of the molecule', 'both mechanical anharmonicity (non-parabolic potential) and electrical anharmonicity (dipole moment non-linear in $r$)', 'the nuclear spin', 'collisions only'], answer: 1,
       sol: 'With $\\mu(r) = \\mu_0 + \\mu_1x + \\mu_2x^2 + \\dots$, the $\\mu_2x^2$ term connects $v$ to $v \\pm 2$ even for harmonic wavefunctions (electrical anharmonicity). An anharmonic potential mixes the wavefunctions so $\\langle v\\pm2|x|v\\rangle \\ne 0$ (mechanical anharmonicity). Both contribute.',
       trap: 'A purely harmonic molecule with a linear dipole function would show only the fundamental.' },
+    ...more2,
   ],
 
   gens: [

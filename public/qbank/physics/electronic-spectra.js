@@ -6,6 +6,7 @@
 // Original questions for CSIR NET (and GATE) practice (fibub). Pure vibrational and rotational spectra have their own topics.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './electronic-spectra.more.gen.js';
+import more2 from './electronic-spectra.more2.gen.js';
 
 const HBAR = 1.054571817e-34, U = 1.66053906660e-27, CCM = 2.99792458e10, C2 = 1.438777, EV = 8065.544;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -226,6 +227,7 @@ export default {
       options: ['a single narrower peak', 'a series of sharp lines', 'no absorption at all', 'two maxima with a minimum between them'], answer: 3,
       sol: 'At each $R$, the vertical transition reaches energy $U\'(R) - E\'\'$; for a steep, nearly linear $U\'$, energy is linear in $R$, so the spectrum copies $|\\psi(R)|^2$. The $v\'\' = 1$ function has one node, so the continuum has two humps with a dip between them (a single broad hump for $v\'\' = 0$).',
       trap: 'Bound-free spectra are continua; their structure comes from the nodes of the initial vibrational function.' },
+    ...more2,
   ],
   gens: [
     { id: 'els-g01', type: 'nat', level: 3, exams: ['net'], sub: 'Franck-Condon factors',
