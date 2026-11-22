@@ -277,4 +277,83 @@ export default {
     },
     verify: (p) => p.F * p.R / (p.B * p.B * p.L * p.L),
   },
+  // ---- module 5: kinetic theory and thermodynamics ----
+  'gas-speeds': {
+    title: 'molecular speeds in a gas',
+    make(r) {
+      const [gas, M] = [['helium', 4], ['nitrogen', 28], ['oxygen', 32], ['argon', 40], ['neon', 20]][int(r, 0, 4)];
+      const T = int(r, 10, 60) * 10, [kind, k, f] = [['most probable', 2, '√(2RT/M)'], ['mean', 8 / Math.PI, '√(8RT/πM)'], ['rms', 3, '√(3RT/M)']][int(r, 0, 2)];
+      const answer = Math.sqrt(k * 8.314 * T / (M / 1000));
+      return {
+        q: `<p>Find the ${kind} speed of ${gas} molecules (M = ${M} g/mol) at ${T} K, in m/s. Take R = 8.314 J mol⁻¹ K⁻¹.</p>`,
+        answer, unit: 'm/s', tol: 0.01,
+        hint: 'Three speeds, three numbers under the root: 2 for the most probable, 8/π for the mean, 3 for the rms. Put M in kg/mol.',
+        solution: steps(`The ${kind} speed is ${f}.`, `M = ${M / 1000} kg/mol, so RT/M = 8.314 × ${T} / ${M / 1000} = ${(8.314 * T / (M / 1000)).toFixed(0)} m²/s².`, `Multiply by ${k === 3 ? '3' : k === 2 ? '2' : '8/π = 2.546'} and take the square root: <b>${answer.toFixed(1)}</b> m/s.`),
+        k, M, T,
+      };
+    },
+    verify: (p) => Math.sqrt(p.k * 8.314 * p.T / (p.M / 1000)),
+  },
+  'isothermal-adiabatic-work': {
+    title: 'work in an isothermal or adiabatic expansion',
+    make(r) {
+      const n = int(r, 1, 3), T = int(r, 30, 50) * 10, k = [2, 3, 4][int(r, 0, 2)], adia = r() < 0.5;
+      const g = 5 / 3, answer = adia ? n * 1.5 * 8.314 * T * (1 - Math.pow(k, 1 - g)) : n * 8.314 * T * Math.log(k);
+      return {
+        q: `<p>${n} mol of a monatomic ideal gas at ${T} K expands reversibly to ${k} times its volume, ${adia ? 'adiabatically' : 'at constant temperature'}. Find the work done by the gas in joules.</p>`,
+        answer, unit: 'J', tol: 0.005,
+        hint: adia ? 'No heat flows, so W = −ΔU = nC<sub>V</sub>(T₁ − T₂). Find T₂ from TV<sup>γ−1</sup> = constant with γ = 5/3.' : 'At constant T, P = nRT/V changes as the gas expands, so W = ∫P dV = nRT ln(V₂/V₁).',
+        solution: adia
+          ? steps(`T₂ = T₁(V₁/V₂)<sup>γ−1</sup> = ${T} × ${k}<sup>−2/3</sup> = ${(T * Math.pow(k, -2 / 3)).toFixed(1)} K.`, `W = nC<sub>V</sub>(T₁ − T₂) = ${n} × 1.5 × 8.314 × ${(T - T * Math.pow(k, -2 / 3)).toFixed(1)}.`, `W = <b>${answer.toFixed(0)}</b> J, less than the isothermal value ${(n * 8.314 * T * Math.log(k)).toFixed(0)} J because the gas cools as it expands.`)
+          : steps(`W = nRT ln(V₂/V₁) = ${n} × 8.314 × ${T} × ln ${k}.`, `ln ${k} = ${Math.log(k).toFixed(4)}.`, `W = <b>${answer.toFixed(0)}</b> J. ΔU = 0, so the gas absorbs exactly this much heat.`),
+        n, T, k, adia,
+      };
+    },
+    verify: (p) => (p.adia ? p.n * 1.5 * 8.314 * p.T * (1 - Math.pow(p.k, -2 / 3)) : p.n * 8.314 * p.T * Math.log(p.k)),
+  },
+  'carnot-fridge': {
+    title: 'power for an ideal refrigerator',
+    make(r) {
+      const Tc = int(r, 240, 280), Th = Tc + int(r, 20, 60), Qc = int(r, 2, 20) * 50;
+      const answer = Qc * (Th - Tc) / Tc;
+      return {
+        q: `<p>A reversible refrigerator removes heat at ${Qc} W from a cold box at ${Tc} K and rejects heat to a room at ${Th} K. What electrical power does it need, in watts?</p>`,
+        answer, unit: 'W', tol: 0.005,
+        hint: 'For a reversible machine the entropy taken from the cold side equals the entropy given to the hot side: Q<sub>c</sub>/T<sub>c</sub> = Q<sub>h</sub>/T<sub>h</sub>. The work is the difference of the heats.',
+        solution: steps(`COP = T<sub>c</sub>/(T<sub>h</sub> − T<sub>c</sub>) = ${Tc}/${Th - Tc} = ${(Tc / (Th - Tc)).toFixed(3)}.`, `Power = Q<sub>c</sub>/COP = ${Qc} × ${Th - Tc}/${Tc}.`, `Power = <b>${answer.toFixed(1)}</b> W, and the room receives ${(Qc + answer).toFixed(1)} W.`),
+        Qc, Tc, Th,
+      };
+    },
+    verify: (p) => p.Qc * p.Th / p.Tc - p.Qc,
+  },
+  'entropy-two-blocks': {
+    title: 'entropy made when two blocks reach the same temperature',
+    make(r) {
+      const C = int(r, 2, 9) * 100, T1 = int(r, 35, 60) * 10, T2 = int(r, 15, 30) * 10, Tf = (T1 + T2) / 2;
+      const answer = C * Math.log(Tf / T1) + C * Math.log(Tf / T2);
+      return {
+        q: `<p>Two blocks, each of heat capacity ${C} J/K, at ${T1} K and ${T2} K, touch inside an insulating box until they reach the same temperature. Find the total entropy change in J/K.</p>`,
+        answer, unit: 'J/K', tol: 0.005,
+        hint: 'Find the common final temperature from energy conservation first. Then add ∫C dT/T = C ln(T<sub>f</sub>/T<sub>i</sub>) for each block.',
+        solution: steps(`Equal heat capacities, so T<sub>f</sub> = (${T1} + ${T2})/2 = ${Tf} K.`, `Hot block: ${C} ln(${Tf}/${T1}) = ${(C * Math.log(Tf / T1)).toFixed(2)} J/K. Cold block: ${C} ln(${Tf}/${T2}) = +${(C * Math.log(Tf / T2)).toFixed(2)} J/K.`, `Total = <b>${answer.toFixed(2)}</b> J/K, positive: heat flowing across a temperature difference always makes entropy.`),
+        C, T1, T2,
+      };
+    },
+    verify: (p) => p.C * Math.log(((p.T1 + p.T2) / 2) ** 2 / (p.T1 * p.T2)),
+  },
+  'vdw-free-expansion': {
+    title: 'cooling of a van der Waals gas in a free expansion',
+    make(r) {
+      const a = int(r, 10, 50) / 100, V1 = int(r, 1, 4) / 2, k = [2, 3, 4][int(r, 0, 2)], cv = [1.5, 2.5][int(r, 0, 1)];
+      const answer = (a / (cv * 8.314)) * (1 / (k * V1 * 1e-3) - 1 / (V1 * 1e-3));
+      return {
+        q: `<p>One mole of a van der Waals gas (a = ${a} Pa m⁶ mol⁻², C<sub>V</sub> = ${cv}R) expands freely into vacuum inside an insulated container, from ${V1} L to ${k * V1} L. Find its temperature change in kelvin.</p>`,
+        answer, unit: 'K', tol: 0.005,
+        hint: 'Nothing goes in or out, so U stays the same. For a van der Waals gas U = C<sub>V</sub>T − a/V per mole.',
+        solution: steps(`U constant: C<sub>V</sub>ΔT = a(1/V₂ − 1/V₁).`, `1/V₂ − 1/V₁ = 1/${(k * V1 * 1e-3).toFixed(4)} − 1/${(V1 * 1e-3).toFixed(4)} = ${(1 / (k * V1 * 1e-3) - 1 / (V1 * 1e-3)).toFixed(1)} m⁻³.`, `ΔT = ${a} × that / ${(cv * 8.314).toFixed(3)} = <b>${answer.toFixed(3)}</b> K. The gas cools: separating attracting molecules costs kinetic energy.`),
+        a, V1, k, cv,
+      };
+    },
+    verify: (p) => -(p.a * (1 - 1 / p.k)) / (p.V1 * 1e-3 * p.cv * 8.314),
+  },
 };

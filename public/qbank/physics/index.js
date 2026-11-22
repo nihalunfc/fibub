@@ -32,5 +32,11 @@ export default {
       { id: 'magnetostatics', name: 'Magnetic fields: Biot-Savart and Ampère' },
       { id: 'induction', name: 'Electromagnetic induction and inductance' },
     ] },
+    { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
+      { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
+      { id: 'first-law', name: 'The first law: work, heat and processes' },
+      { id: 'second-law-entropy', name: 'The second law, engines and entropy' },
+      { id: 'thermodynamic-potentials', name: 'Thermodynamic potentials and Maxwell relations' },
+    ] },
   ],
 };
