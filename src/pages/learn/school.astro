@@ -8,6 +8,7 @@ import { CURRICULA, INDIA_NCERT_BOARDS } from '../../data/curricula';
 import { SECTIONS } from '../../site';
 import { allTools, toolUrl } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
+import { NCERT_COURSES } from '../../courses/ncert';
 import '../../styles/area.css';
 import '../../styles/learn.css';
 const all = await allTools();
@@ -50,6 +51,7 @@ const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by 
             <div class="lh-grid lh-k2 lh-anim">
               {c.tiles.map((t, i) => <a class="lk" href={t.href} style={`--i:${i}`}><strong>{t.name}</strong><small>{t.subjects}</small><small>{t.chapters} {c.unit ?? 'chapter'}s · {t.tools} tools</small></a>)}
             </div>
+            {c.id === 'ncert' && NCERT_COURSES.length > 0 && <p class="lh-note"><strong>Study notes, chapter by chapter</strong> (animations, tools built in, practice questions): {NCERT_COURSES.map((k, i) => <>{i > 0 && ' · '}<a href={`/learn/courses/${k.id}/`}>{k.name}</a></>)}</p>}
             <details class="lh-about"><summary>About this syllabus</summary><p class="ar-note">{c.note}</p></details>
           </section>
         ))}

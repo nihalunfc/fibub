@@ -10,7 +10,7 @@
 // A formula temml cannot read fails the build, with the lesson and the formula in the message.
 import temml from 'temml';
 
-const COURSES = ['/src/courses/ml-foundations/', '/src/courses/statistics/', '/src/courses/power-bi/', '/src/courses/data-storytelling/', '/src/courses/astronomy/', '/src/courses/sky-watching/', '/src/courses/pandas/', '/src/courses/cosmology/', '/src/courses/iit-jam-physics/', '/src/courses/gate-physics/', '/src/courses/csir-net-physics/', '/src/courses/sat/', '/src/courses/lsat/', '/src/courses/startup/', '/src/courses/cuet/', '/src/courses/etl/', '/src/courses/data-at-scale/', '/src/courses/offline-ai/', '/src/courses/gmat/', '/src/courses/gre/', '/src/courses/engineering-entrance/', '/src/courses/medical-entrance/'];
+const COURSES = ['/src/courses/ml-foundations/', '/src/courses/statistics/', '/src/courses/power-bi/', '/src/courses/data-storytelling/', '/src/courses/astronomy/', '/src/courses/sky-watching/', '/src/courses/pandas/', '/src/courses/cosmology/', '/src/courses/iit-jam-physics/', '/src/courses/gate-physics/', '/src/courses/csir-net-physics/', '/src/courses/sat/', '/src/courses/lsat/', '/src/courses/startup/', '/src/courses/cuet/', '/src/courses/etl/', '/src/courses/data-at-scale/', '/src/courses/offline-ai/', '/src/courses/gmat/', '/src/courses/gre/', '/src/courses/engineering-entrance/', '/src/courses/medical-entrance/', '/src/courses/ncert-'];
 
 const render = (tex, display, where) => {
   try {
@@ -27,6 +27,9 @@ function walk(node, file) {
       node.children[i] = { type: 'html', value: render(c.value.slice(1, -1), false, file) };
     } else if (c.type === 'code' && c.lang === 'math') {
       node.children[i] = { type: 'html', value: `<div class="cs-math">${render(c.value, true, file)}</div>` };
+    } else if (c.type === 'html' && file.includes('/src/courses/ncert-') && c.value.includes('`$')) {
+      // NCERT courses: maths written as `$...$` inside a one-line HTML block (a box, a <dd>, a one-line <details>).
+      c.value = c.value.replace(/`\$([^`$][^`]*?)\$`/g, (_, tex) => render(tex, false, file));
     } else walk(c, file);
   });
 }

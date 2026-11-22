@@ -1,0 +1,57 @@
+// Class 10 Science, Chapter 5 Life Processes: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('lp');
+const r2 = (x) => Math.round(x * 100) / 100;
+
+export default {
+  topic: 'life-processes', name: 'Life Processes', n: 5,
+  items: [
+    m.mcq(1, 'nutrition', '<p>Organisms that make their own food from simple inorganic substances are called:</p>', 'autotrophs', ['heterotrophs', 'parasites', 'saprotrophs'], '<p>Autotrophs (green plants, some bacteria) make food by photosynthesis or chemosynthesis.</p>'),
+    m.mcq(1, 'nutrition', '<p>Which of these is a parasite?</p>', 'Cuscuta (amarbel)', ['Spirogyra', 'Bread mould on bread', 'Mushroom on dead wood'], '<p>Cuscuta lives on a host plant and takes its food. Mould and mushroom are saprotrophs.</p>'),
+    m.mcq(2, 'photosynthesis', '<p>During photosynthesis, the oxygen released comes from:</p>', 'the splitting of water', ['carbon dioxide', 'glucose', 'chlorophyll'], '<p>Light energy splits water: oxygen is released, and hydrogen reduces CO₂.</p>', { trap: 'The oxygen does not come from CO₂.' }),
+    m.mcq(2, 'photosynthesis', '<p>The exchange of gases and water vapour in a leaf takes place through:</p>', 'stomata', ['veins', 'cuticle', 'root hairs'], '<p>Stomata are tiny pores controlled by guard cells.</p>'),
+    m.mcq(2, 'photosynthesis', '<p>Stomata close when guard cells:</p>', 'lose water and become flaccid', ['absorb water and swell', 'make more chlorophyll', 'get more light'], '<p>Swollen guard cells open the pore; limp ones close it.</p>'),
+    m.mcq(2, 'photosynthesis', '<p>Which is NOT needed for photosynthesis?</p>', 'oxygen', ['carbon dioxide', 'water', 'chlorophyll and light'], '<p>Oxygen is a product, not a raw material.</p>'),
+    m.mcq(2, 'digestion', '<p>The enzyme in saliva that starts the digestion of starch is:</p>', 'salivary amylase', ['pepsin', 'lipase', 'trypsin'], '<p>It breaks starch into sugar (maltose).</p>'),
+    m.mcq(2, 'digestion', '<p>The role of hydrochloric acid in the stomach is to:</p>', 'make the medium acidic for pepsin and kill germs', ['digest fats', 'absorb water', 'emulsify fats'], '<p>The acid provides the right pH for pepsin and destroys bacteria in food.</p>'),
+    m.mcq(2, 'digestion', '<p>Bile, made in the liver, helps digestion by:</p>', 'breaking large fat globules into small droplets (emulsification)', ['digesting proteins', 'digesting starch', 'absorbing glucose'], '<p>Bile is alkaline and emulsifies fats, giving lipase a bigger surface to act on.</p>'),
+    m.mcq(2, 'digestion', '<p>Digested food is absorbed mainly in the:</p>', 'small intestine, through villi', ['stomach', 'large intestine', 'oesophagus'], '<p>The small intestine is long and lined with villi that increase the surface area.</p>'),
+    m.mcq(1, 'respiration', '<p>The energy currency of the cell is:</p>', 'ATP', ['DNA', 'glucose only', 'starch'], '<p>ATP (adenosine triphosphate) releases energy when its end phosphate is broken off.</p>'),
+    m.mcq(2, 'respiration', '<p>The end products of anaerobic respiration in yeast are:</p>', 'ethanol and carbon dioxide', ['lactic acid', 'carbon dioxide and water', 'glucose and oxygen'], '<p>Fermentation: glucose → ethanol + CO₂ + energy.</p>'),
+    m.mcq(2, 'respiration', '<p>Muscle cramps after sprinting are caused by the build-up of:</p>', 'lactic acid', ['ethanol', 'carbon dioxide only', 'glucose'], '<p>Without enough oxygen, pyruvate is converted to lactic acid.</p>'),
+    m.mcq(2, 'respiration', '<p>The first step of respiration, glucose to pyruvate, takes place in the:</p>', 'cytoplasm', ['mitochondria', 'nucleus', 'chloroplast'], '<p>This step does not need oxygen and is common to all respiration.</p>'),
+    m.mcq(2, 'breathing', '<p>When we breathe in:</p>', 'the diaphragm flattens and the ribs move up and out', ['the diaphragm moves up', 'the ribs move down', 'the lungs push air in actively'], '<p>The chest volume increases, pressure falls, and air flows in.</p>'),
+    m.mcq(2, 'breathing', '<p>Why are the alveoli well suited for gas exchange?</p>', 'they have a very large surface area and thin walls rich in blood capillaries', ['they have thick walls', 'they contain no blood vessels', 'they are few in number'], '<p>About 300 million alveoli give a huge surface area for diffusion.</p>'),
+    m.mcq(2, 'breathing', '<p>Haemoglobin is found in:</p>', 'red blood cells', ['white blood cells', 'plasma', 'platelets'], '<p>It carries oxygen from the lungs to the tissues.</p>'),
+    m.mcq(2, 'circulation', '<p>Which chamber of the heart pumps oxygenated blood to the whole body?</p>', 'left ventricle', ['right ventricle', 'left atrium', 'right atrium'], '<p>The left ventricle has the thickest wall because it pumps to the whole body.</p>'),
+    m.mcq(2, 'circulation', '<p>Which blood vessel carries blood from the lungs to the heart?</p>', 'pulmonary vein', ['pulmonary artery', 'vena cava', 'aorta'], '<p>It carries oxygen-rich blood into the left atrium.</p>', { trap: 'Veins usually carry deoxygenated blood, but the pulmonary vein is the exception.' }),
+    m.mcq(2, 'circulation', '<p>Valves in the veins and the heart:</p>', 'prevent the backflow of blood', ['increase the pressure', 'carry oxygen', 'produce blood cells'], '<p>One-way valves keep blood moving forward.</p>'),
+    m.mcq(2, 'plants', '<p>Water and minerals are carried upward in a plant by the:</p>', 'xylem', ['phloem', 'cambium', 'cuticle'], '<p>Xylem is dead, hollow tubes; transpiration pull draws water up.</p>'),
+    m.mcq(2, 'plants', '<p>Translocation of sugar from leaves to other parts occurs in the:</p>', 'phloem', ['xylem', 'stomata', 'root hair'], '<p>Phloem moves food, using ATP energy, in both directions.</p>'),
+    m.mcq(2, 'excretion', '<p>The basic filtering unit of the kidney is the:</p>', 'nephron', ['neuron', 'alveolus', 'villus'], '<p>Each kidney has about a million nephrons.</p>'),
+    m.mcq(3, 'excretion', '<p>In an artificial kidney (haemodialysis) the dialysis fluid has no:</p>', 'nitrogenous waste, so urea moves out of the blood', ['glucose, so sugar is removed', 'water, so blood dries', 'salt, so salt is lost'], '<p>Urea diffuses out of the blood into the fluid, which has the same glucose and salt levels as blood.</p>'),
+    m.ar(2, 'photosynthesis', 'Plants release oxygen during the day.', 'Photosynthesis uses CO₂ and water and gives out oxygen.', 0, '<p>Both true; R explains A.</p>'),
+    m.ar(3, 'respiration', 'Anaerobic respiration releases less energy than aerobic respiration.', 'In anaerobic respiration glucose is only partly broken down.', 0, '<p>Both true; the incomplete breakdown leaves energy in the products (ethanol or lactic acid).</p>'),
+    m.ar(3, 'circulation', 'The walls of the ventricles are thicker than those of the atria.', 'Ventricles receive blood from the body.', 2, '<p>A is true. R is false: atria receive blood; ventricles pump it out, so they need thicker walls.</p>'),
+    m.nat(2, 'breathing', '<p>A person breathes 15 times a minute and each breath moves 0.5 L of air. How many litres of air in one minute?</p>', () => 15 * 0.5, 0.01, '<p>15 × 0.5 = 7.5 L/min.</p>', { unit: 'L' }),
+    m.nat(2, 'circulation', '<p>The heart beats 72 times a minute with a stroke volume of 70 mL. What is the cardiac output in L/min?</p>', () => (72 * 70) / 1000, 0.01, '<p>72 × 70 = 5040 mL ≈ 5.04 L/min.</p>', { unit: 'L/min' }),
+    m.nat(3, 'excretion', '<p>If 180 L of fluid is filtered in a day and 1.5 L of urine is made, what percentage of the filtrate is reabsorbed? (Give to one decimal place.)</p>', () => ((180 - 1.5) / 180) * 100, 0.01, '<p>(180 − 1.5)/180 × 100 = 99.2%.</p>', { unit: '%' }),
+    m.msq(2, 'digestion', '<p>Which of these are digestive enzymes? (Choose all that apply.)</p>', ['amylase', 'lipase', 'pepsin', 'haemoglobin'], [0, 1, 2], '<p>Haemoglobin carries oxygen; it is not an enzyme.</p>'),
+    m.msq(2, 'plants', '<p>Which factors increase the rate of transpiration? (Choose all that apply.)</p>', ['bright sunlight', 'strong wind', 'high humidity', 'high temperature'], [0, 1, 3], '<p>High humidity slows evaporation because the air is already moist.</p>'),
+  ],
+  gens: [
+    { id: 'lp-g01', type: 'nat', level: 2, exams: ['board'], sub: 'breathing',
+      make(rng) { const b = pick(rng, 12, 24), v = choose(rng, [400, 450, 500, 550]); return { b, v, q: `<p>A person breathes ${b} times a minute, moving ${v} mL of air per breath. How many litres of air is that in one minute?</p>`, answer: r2((b * v) / 1000), tol: 0.01, unit: 'L', sol: `<p>${b} × ${v} mL = ${b * v} mL = ${r2(b * v / 1000)} L.</p>` }; },
+      verify: (p) => r2((p.v / 1000) * p.b) },
+    { id: 'lp-g02', type: 'nat', level: 2, exams: ['board'], sub: 'circulation',
+      make(rng) { const h = pick(rng, 55, 120, 5), s = pick(rng, 60, 90, 5); return { h, s, q: `<p>Heart rate ${h} per minute, stroke volume ${s} mL. Find the cardiac output in L/min.</p>`, answer: r2((h * s) / 1000), tol: 0.01, unit: 'L/min', sol: `<p>${h} × ${s} = ${h * s} mL/min = ${r2(h * s / 1000)} L/min.</p>` }; },
+      verify: (p) => r2(p.s * p.h / 1000) },
+    { id: 'lp-g03', type: 'nat', level: 3, exams: ['board'], sub: 'respiration',
+      make(rng) { const N = pick(rng, 60, 600, 30); return { N, q: `<p>A cell needs ${N} units of ATP. Aerobic respiration gives 30 ATP per glucose, anaerobic gives 2. How many more glucose molecules (same units) are needed anaerobically?</p>`, answer: r2(N / 2 - N / 30), tol: 0.01, sol: `<p>${N}/2 − ${N}/30 = ${r2(N / 2 - N / 30)}.</p>` }; },
+      verify: (p) => r2((p.N / 30) * 14) },
+    { id: 'lp-g04', type: 'nat', level: 3, exams: ['board'], sub: 'photosynthesis',
+      make(rng) { const d = pick(rng, 10, 30, 5), k = choose(rng, [2, 3, 4]), b = pick(rng, 36, 144, 36); return { d, k, b, q: `<p>A water plant gives ${b} bubbles/min with a lamp at ${d} cm. The lamp is moved to ${d * k} cm. If photosynthesis is proportional to intensity (1/d²), how many bubbles/min now?</p>`, answer: r2(b / (k * k)), tol: 0.02, sol: `<p>Intensity falls by ${k}² = ${k * k}: ${b}/${k * k} = ${r2(b / (k * k))}.</p>` }; },
+      verify: (p) => r2(p.b * (p.d * p.d) / ((p.d * p.k) * (p.d * p.k))) },
+  ],
+};
