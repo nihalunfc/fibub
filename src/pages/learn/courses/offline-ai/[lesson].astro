@@ -9,5 +9,7 @@ export async function getStaticPaths() {
   return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
 }
 const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+import '../../../../styles/math.css';
+import '../../../../styles/lesson-kit.css';
 ---
 <LessonPage course={OFFLINE_AI} entry={entry} slug={slug} live={live} figures={FIGURES} />
