@@ -16,9 +16,16 @@ quiz:
     choices: ['Never', 'When samples are large, because the means are close to normal by the central limit theorem', 'Only with exactly 30 values']
     ans: 1
     why: 'The t-test is about means. With hundreds of values per group, sample means are close to normal even when the raw data is skewed.'
+sources:
+  - 'Hollander, M., Wolfe, D. A. and Chicken, E. (2014), Nonparametric Statistical Methods, 3rd edition, Wiley'
+  - 'Mann, H. B. and Whitney, D. R. (1947), On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other, Annals of Mathematical Statistics 18(1), 50-60 https://doi.org/10.1214/aoms/1177730491'
 ---
 
 **Module 6 · about 20 minutes · no new maths.** You'll be able to choose a rank test, explain how it handles outliers, and say what it tests.
+
+<div class="bigidea">Rank tests replace each value with its place in the line-up, so a single huge value counts only as "the biggest" and cannot swamp the result.</div>
+
+**In everyday terms:** judging a race by finishing order instead of times. If one runner stops for a picnic, their time is ridiculous but their place is simply "last". The ranking still says who was generally faster.
 
 ## 1. Why ranks
 
@@ -48,6 +55,36 @@ Rank tests don't test means. Mann-Whitney tests whether values in one group tend
 - **Ordinal data** (ratings 1 to 5, satisfaction levels): rank test; means of ratings are debatable.
 - **Large samples and you care about the mean** (revenue per visitor, where totals matter): t-test or bootstrap. The mean is what drives revenue, and the CLT protects you.
 - Rank tests lose only a little power when the data really is normal (about 5 %), so they're a safe choice when unsure.
+
+<div class="meaning">
+
+<dl>
+<dt>Rank</dt><dd>Position after sorting all values together: 1 for the smallest.</dd>
+<dt>Mann-Whitney U</dt><dd>For two groups: counts how often a value from one group beats a value from the other.</dd>
+<dt>Wilcoxon signed-rank</dt><dd>For paired data: ranks the sizes of the differences.</dd>
+<dt>Kruskal-Wallis</dt><dd>For three or more groups: the rank version of ANOVA.</dd>
+<dt>Physical meaning</dt><dd>U ÷ (n₁ × n₂) is the probability that a random member of one group beats a random member of the other: a plain-language effect size managers understand.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Rank tests compare medians."** Strictly they compare whole distributions: whether one group tends to have larger values. They line up with medians only when the two groups have the same shape.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> Minutes on a help page: A = 3, 5, 9; B = 6, 10, 12, 40.</div>
+<div class="step"><b>Pool and rank.</b> 3(1), 5(2), 6(3), 9(4), 10(5), 12(6), 40(7). The 40 is simply rank 7.</div>
+<div class="step"><b>Add A's ranks.</b> 1 + 2 + 4 = 7.</div>
+<div class="step"><b>U.</b> U_A = 7 − 3 × 4 ÷ 2 = 1. Of the 12 A-B pairs, A wins only 1.</div>
+<div class="step"><b>Read.</b> A random B beats a random A 11 times in 12 (92 %). Exact p ≈ 0.11 with samples this small.</div>
+</div>
+
+<div class="problem" data-problem="mann-whitney-u"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -86,3 +123,12 @@ Rank tests don't test means. Mann-Whitney tests whether values in one group tend
 **Try it on your own data:** the [[hypothesis-tests]] tool includes Mann-Whitney, Wilcoxon and Kruskal-Wallis, and the [[bootstrap-permutation]] tool offers permutation tests that also avoid the normal assumption.
 
 **New words:** *non-parametric test*, *rank*, *Mann-Whitney U*, *Wilcoxon signed-rank*, *Kruskal-Wallis*, *probability of superiority*, *ordinal data*.
+
+<div class="keypoints">
+
+- Rank tests work on order, so outliers and skew lose their grip.
+- Two groups: Mann-Whitney U; paired: Wilcoxon signed-rank; 3+ groups: Kruskal-Wallis.
+- U ÷ (n₁n₂) = probability a random value from one group beats the other.
+- Use them for small or skewed samples; with large normal-ish data t-tests are slightly more powerful.
+
+</div>

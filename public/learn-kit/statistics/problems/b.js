@@ -156,4 +156,156 @@ export default {
     },
     verify: (p) => { let k = 1; while (1.96 * p.s / Math.sqrt(k) > p.E) k++; return k; },
   },
+
+  // ---------- Module 6 ----------
+  'test-t-stat': {
+    title: 'the test statistic for a supplier\'s claim',
+    make(r) {
+      const claim = pick(r, 250, 1000, 50), nn = [16, 25, 36, 49, 64, 100][pick(r, 0, 5)], s = pick(r, 3, 12), d = pick(r, -4, 4, 0.1) || -2;
+      const xbar = +(claim + d).toFixed(1), se = s / Math.sqrt(nn), answer = (xbar - claim) / se;
+      return {
+        q: `<p>A supplier claims packs weigh <b>${claim} g</b> on average. You weigh ${nn} packs: mean <b>${xbar} g</b>, SD <b>${s} g</b>. What is the test statistic t = (x̄ − claim) ÷ SE?</p>`,
+        answer, unit: '', tol: 0.003, abs: 0.005,
+        hint: 'SE = SD ÷ √n. Then the gap between your mean and the claim, divided by SE.',
+        solution: steps(`SE = ${s} ÷ √${nn} = ${n(se)}.`, `t = (${xbar} − ${claim}) ÷ ${n(se)} = <b>${n(answer)}</b>.`,
+          Math.abs(answer) > 2 ? 'More than about 2 SEs from the claim: evidence against it at the 5 % level.' : 'Within about 2 SEs: the data are compatible with the claim.'),
+        claim, xbar, s, nn,
+      };
+    },
+    verify: (p) => (p.xbar - p.claim) * Math.sqrt(p.nn) / p.s,
+  },
+  'p-value-two-sided': {
+    title: 'two-sided p-value from a z-score',
+    make(r) {
+      const z = pick(r, 0.5, 3.5, 0.05), answer = 2 * (1 - phi(z));
+      return {
+        q: `<p>A conversion test gives z = <b>${n(z)}</b>. What is the two-sided p-value? Give a decimal.</p>`,
+        answer, unit: '', tol: 0.01, abs: 0.0002,
+        hint: 'Find the area beyond z in one tail of the standard normal, then double it for "either direction".',
+        solution: steps(`Area above ${n(z)}: ${n(1 - phi(z), 4)}.`, `Two-sided: × 2 = <b>${n(answer)}</b>.`, answer < 0.05 ? 'Below 0.05.' : 'Not below 0.05.'),
+        z,
+      };
+    },
+    verify: (p) => { let s = 0, N = 20000, h = 12 / N; for (let i = 0; i < N; i++) { const x = p.z + (i + 0.5) * h; s += Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI) * h; } return 2 * s; },
+  },
+  'welch-t': {
+    title: 'Welch t for two baskets',
+    make(r) {
+      const m1 = pick(r, 30, 50, 0.1), m2 = m1 + pick(r, 0.5, 6, 0.1), s1 = pick(r, 15, 30), s2 = pick(r, 15, 30), n1 = pick(r, 100, 600, 50), n2 = pick(r, 100, 600, 50);
+      const se = Math.sqrt(s1 * s1 / n1 + s2 * s2 / n2), answer = (m2 - m1) / se;
+      return {
+        q: `<p>Mobile baskets: mean $${n(m1, 4)}, SD $${s1}, n = ${n1}. Desktop: mean $${n(m2, 4)}, SD $${s2}, n = ${n2}. What is Welch's t for desktop − mobile?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'SE = √(s₁²/n₁ + s₂²/n₂). t = (difference in means) ÷ SE.',
+        solution: steps(`${s1}²/${n1} = ${n(s1 * s1 / n1)}; ${s2}²/${n2} = ${n(s2 * s2 / n2)}.`, `SE = √(${n(s1 * s1 / n1)} + ${n(s2 * s2 / n2)}) = ${n(se)}.`, `t = ${n(m2 - m1)} ÷ ${n(se)} = <b>${n(answer)}</b>.`),
+        m1, m2, s1, s2, n1, n2,
+      };
+    },
+    verify: (p) => (p.m2 - p.m1) / Math.hypot(p.s1 / Math.sqrt(p.n1), p.s2 / Math.sqrt(p.n2)),
+  },
+  'power-two-means': {
+    title: 'power of a planned test',
+    make(r) {
+      const s = pick(r, 20, 50, 5), d = pick(r, 2, 8), nn = pick(r, 200, 2000, 100);
+      const se = s * Math.sqrt(2 / nn), answer = phi(d / se - 1.96);
+      return {
+        q: `<p>Orders average about $60 with SD <b>$${s}</b>. A change is worth it if it lifts the average by <b>$${d}</b>. You plan <b>${nn}</b> orders per group and a two-sided test at 5 %. If the lift is exactly $${d}, what is the power? Give a decimal.</p>`,
+        answer, unit: '', tol: 0.01, abs: 0.002,
+        hint: 'SE of the difference = SD × √(2/n). Power ≈ Φ(lift ÷ SE − 1.96).',
+        solution: steps(`SE = ${s} × √(2/${nn}) = ${n(se)}.`, `Lift in SEs: ${d} ÷ ${n(se)} = ${n(d / se)}.`, `Power ≈ Φ(${n(d / se)} − 1.96) = Φ(${n(d / se - 1.96)}) = <b>${n(answer)}</b>.`,
+          answer < 0.8 ? 'Below 80 %: the test would often miss a real lift of this size.' : 'At least 80 %: a sensible plan.'),
+        s, d, nn,
+      };
+    },
+    verify: (p) => { // simulate the decision rule with the exact normal distribution of the observed difference
+      const se = p.s * Math.sqrt(2 / p.nn); let s = 0, N = 20000, lo = 1.96 * se, h = (p.d + 12 * se - lo) / N;
+      for (let i = 0; i < N; i++) { const x = lo + (i + 0.5) * h; s += Math.exp(-(((x - p.d) / se) ** 2) / 2) / (se * Math.sqrt(2 * Math.PI)) * h; } return s;
+    },
+  },
+  'chi-square-2x2': {
+    title: 'chi-square for a 2 × 2 table',
+    make(r) {
+      const a = pick(r, 40, 150, 5), b = pick(r, 20, 100, 5), c = pick(r, 40, 150, 5), d = pick(r, 20, 100, 5);
+      const O = [[a, b], [c, d]], R = [a + b, c + d], C = [a + c, b + d], N = a + b + c + d;
+      let x = 0; const parts = [];
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const E = (R[i] * C[j]) / N; const t = (O[i][j] - E) ** 2 / E; x += t; parts.push(n(t, 3)); }
+      return {
+        q: `<p>Renewals by plan:</p>${table(['', 'Renewed', 'Left'], [['Basic', a, b], ['Pro', c, d]])}<p>What is the chi-square statistic for "plan and renewal are unrelated"?</p>`,
+        answer: x, unit: '', tol: 0.005, abs: 0.002,
+        hint: 'Expected = row total × column total ÷ grand total for each cell; then add (O − E)² ÷ E over the four cells.',
+        solution: steps(`Row totals ${R.join(', ')}; column totals ${C.join(', ')}; grand total ${N}.`, `Cell terms (O − E)²/E: ${parts.join(', ')}.`, `χ² = <b>${n(x)}</b> with 1 df${x > 3.84 ? ': above 3.84, so p < 0.05.' : ': below 3.84, so p > 0.05.'}`),
+        a, b, c, d,
+      };
+    },
+    verify: (p) => { const N = p.a + p.b + p.c + p.d; return N * (p.a * p.d - p.b * p.c) ** 2 / ((p.a + p.b) * (p.c + p.d) * (p.a + p.c) * (p.b + p.d)); },
+  },
+  'anova-f': {
+    title: 'the F ratio for three groups',
+    make(r) {
+      const g = [0, 1, 2].map(() => { const c = pick(r, 4, 14); return Array.from({ length: 4 }, () => c + pick(r, -3, 3)); });
+      const all = g.flat(), gm = mean(all), ms = g.map(mean);
+      const ssb = sum(ms.map((m) => 4 * (m - gm) ** 2)), ssw = sum(g.map((x, i) => sum(x.map((v) => (v - ms[i]) ** 2)))) || 1;
+      if (ssw === 1 && !sum(g.map((x, i) => sum(x.map((v) => (v - ms[i]) ** 2))))) g[0][0] += 1;
+      const ms2 = g.map(mean), gm2 = mean(g.flat()), B = sum(ms2.map((m) => 4 * (m - gm2) ** 2)), W = sum(g.map((x, i) => sum(x.map((v) => (v - ms2[i]) ** 2))));
+      const answer = (B / 2) / (W / 9);
+      return {
+        q: `<p>Weekly units under three shelf placements, 4 stores each:</p>${table(['Placement', 'Stores'], [['A', g[0].join(', ')], ['B', g[1].join(', ')], ['C', g[2].join(', ')]])}<p>What is the ANOVA F ratio?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'SS between = Σ 4 × (group mean − grand mean)², df 2. SS within = squared gaps from each group\'s own mean, df 9. F = (SSB/2) ÷ (SSW/9).',
+        solution: steps(`Group means ${ms2.map((m) => n(m)).join(', ')}; grand mean ${n(gm2)}.`, `SS between = ${n(B)}; MS = ${n(B / 2)}.`, `SS within = ${n(W)}; MS = ${n(W / 9)}.`, `F = <b>${n(answer)}</b>${answer > 4.26 ? ' (above 4.26, the 5 % cut-off for 2 and 9 df).' : ' (below 4.26: not clear at 5 %).'}`),
+        g,
+      };
+    },
+    verify: (p) => { // total SS minus within SS gives between SS
+      const all = p.g.flat(), gm = mean(all), tot = sum(all.map((v) => (v - gm) ** 2)), W = sum(p.g.map((x) => { const m = mean(x); return sum(x.map((v) => (v - m) ** 2)); }));
+      return ((tot - W) / 2) / (W / 9);
+    },
+  },
+  'mann-whitney-u': {
+    title: 'how often does B beat A?',
+    make(r) {
+      const used = new Set(), draw = () => { let v = pick(r, 1, 60); while (used.has(v)) v++; used.add(v); return v; }; // distinct values, no ties
+      const A = Array.from({ length: pick(r, 3, 5) }, draw), B = Array.from({ length: pick(r, 3, 5) }, draw);
+      let u = 0; for (const b of B) for (const a of A) if (b > a) u++;
+      return {
+        q: `<p>Minutes on a help page. Group A: <b>${A.join(', ')}</b>. Group B: <b>${B.join(', ')}</b>. Of all A-B pairs, in how many is the B value larger? (That count is Mann-Whitney U for B.)</p>`,
+        answer: u, unit: 'pairs', tol: 0, abs: 0.01,
+        hint: `There are ${A.length} × ${B.length} = ${A.length * B.length} pairs. For each B value, count the A values below it.`,
+        solution: steps(...B.map((b) => `${b} beats ${A.filter((a) => b > a).length} of the A values.`), `U = <b>${u}</b> of ${A.length * B.length} pairs: a random B beats a random A ${n((100 * u) / (A.length * B.length))} % of the time.`),
+        A, B,
+      };
+    },
+    verify: (p) => { // rank-sum route: U_B = R_B − n_B(n_B + 1)/2
+      const all = [...p.A.map((v) => [v, 0]), ...p.B.map((v) => [v, 1])].sort((x, y) => x[0] - y[0]);
+      const RB = all.reduce((s, x, i) => s + (x[1] ? i + 1 : 0), 0); return RB - (p.B.length * (p.B.length + 1)) / 2;
+    },
+  },
+  'family-wise': {
+    title: 'chance of at least one false win',
+    make(r) {
+      const k = pick(r, 2, 30), a = [0.05, 0.1, 0.01][pick(r, 0, 2)], answer = 1 - (1 - a) ** k;
+      return {
+        q: `<p>You test <b>${k}</b> independent segments, each at α = <b>${a}</b>, and in truth none of them has any effect. What is the chance that at least one comes out "significant"? Give a decimal.</p>`,
+        answer, unit: '', tol: 0.003,
+        hint: 'Chance a single test stays quiet: 1 − α. All of them stay quiet: (1 − α)^k. At least one false win: 1 minus that.',
+        solution: steps(`All ${k} quiet: (1 − ${a})^${k} = ${n((1 - a) ** k, 4)}.`, `At least one false win: 1 − ${n((1 - a) ** k, 4)} = <b>${n(answer)}</b>.`, `Bonferroni would test each at ${a} ÷ ${k} = ${n(a / k, 3)}.`),
+        k, a,
+      };
+    },
+    verify: (p) => { let q = 0; for (let j = 1; j <= p.k; j++) { let c = 1; for (let i = 1; i <= j; i++) c = c * (p.k - j + i) / i; q += c * p.a ** j * (1 - p.a) ** (p.k - j); } return q; },
+  },
+  'cohens-d': {
+    title: 'effect size in standard deviations',
+    make(r) {
+      const s = pick(r, 10, 60, 5), d = pick(r, 0.2, 8, 0.05), answer = d / s;
+      return {
+        q: `<p>A new search lifts average weekly spend by <b>$${n(d)}</b>. Spend per user has an SD of <b>$${s}</b>. What is Cohen's d?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'd = difference ÷ SD.',
+        solution: steps(`d = ${n(d)} ÷ ${s} = <b>${n(answer)}</b>.`, answer < 0.2 ? 'Below 0.2: a small effect per person, which can still be valuable across many users.' : answer < 0.5 ? 'Around small to medium.' : 'Medium or larger.'),
+        s, d,
+      };
+    },
+    verify: (p) => p.d * (1 / p.s),
+  },
 };

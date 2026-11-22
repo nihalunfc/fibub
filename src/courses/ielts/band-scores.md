@@ -1,7 +1,7 @@
 ---
 title: 'Band scores: how your marks become a band'
 seoTitle: 'IELTS band score calculator and raw score chart'
-summary: 'How IELTS band scores work: what each band from 0 to 9 means, how raw Listening and Reading scores turn into bands, how Writing and Speaking are marked, and how the overall band is rounded.'
+summary: 'How IELTS band scores work: what bands 0 to 9 mean, raw Listening and Reading scores to bands, how Writing and Speaking are marked, and overall band rounding.'
 minutes: 15
 updated: 2026-11-22
 quiz:

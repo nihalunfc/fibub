@@ -16,9 +16,16 @@ quiz:
     choices: ['Nothing', 'A range (prediction interval), such as 1,050 to 1,350, so planners know how much buffer to keep', 'More decimal places']
     ans: 1
     why: 'A single number hides the uncertainty that drives stock and staffing decisions.'
+sources:
+  - 'Hyndman, R. J. and Athanasopoulos, G. (2021), Forecasting: Principles and Practice, 3rd edition, OTexts, Chapters 5 and 8 https://otexts.com/fpp3/'
+  - 'Makridakis, S., Spiliotis, E. and Assimakopoulos, V. (2018), The M4 Competition: Results, findings, conclusion and way forward, International Journal of Forecasting 34(4), 802-808 https://doi.org/10.1016/j.ijforecast.2018.06.001'
 ---
 
 **Module 8 · about 25 minutes · school maths.** You'll be able to build and score simple forecasts, choose between them on held-out data, and give a forecast with a range.
+
+<div class="bigidea">Start every forecast from a naive baseline, score methods on recent data you held back, and always give a range, not just a number.</div>
+
+**In everyday terms:** "tomorrow's weather will be like today's" is right surprisingly often. Any fancy forecast has to beat that simple guess on real past days before you trust it.
 
 ## 1. Four simple methods
 
@@ -44,6 +51,36 @@ A point forecast will be wrong; the question is by how much. A simple honest ran
 ## 4. When simple isn't enough
 
 Several seasonal cycles (hour and weekday and year), holidays, promotions, prices and weather as drivers: these call for regression with calendar features, Holt-Winters, ARIMA-type models or forecasting libraries. Even then, report the baseline beside the model.
+
+<div class="meaning">
+
+<dl>
+<dt>Naive forecast</dt><dd>Next value = last value.</dd>
+<dt>Seasonal naive</dt><dd>Next value = same period last season.</dd>
+<dt>Exponential smoothing</dt><dd>New forecast = α × latest value + (1 − α) × old forecast.</dd>
+<dt>MAE</dt><dd>Mean absolute error: the average size of the misses, in the data's units.</dd>
+<dt>Physical meaning</dt><dd>A forecast error is the part of tomorrow the past could not see. Its size on held-out weeks is the honest width of your forecast range.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The model fits past data well, so it will forecast well."** Fitting the past is easy; forecasting is tested only on data the model has not seen. Hold out the latest weeks and score every method on them.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Hold out.</b> Keep the last 4 weeks back; forecast each from the weeks before it.</div>
+<div class="step"><b>Naive.</b> Use last week's orders as the forecast. Note each miss.</div>
+<div class="step"><b>Smoothing α = 0.3.</b> Forecast = 0.3 × latest + 0.7 × previous forecast. Note each miss.</div>
+<div class="step"><b>Score.</b> Average absolute miss (MAE) for each method; lowest wins.</div>
+<div class="step"><b>Range.</b> Next week = winner's forecast ± about 2 × the SD of its misses.</div>
+</div>
+
+<div class="problem" data-problem="smoothing-step"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -100,3 +137,12 @@ Unrolled, the weight on data `$j$` periods old is `$\alpha(1-\alpha)^j$`: α = 0
 **Try it on your own data:** the [[time-series-analyser]] tool fits ARIMA forecasts with 80 % and 95 % ranges to your own series; [[regression-workbench]] fits trends with calendar dummy columns.
 
 **New words:** *naive forecast*, *seasonal naive*, *exponential smoothing*, *holdout*, *rolling origin*, *MAE*, *MAPE*, *RMSE*, *prediction interval*.
+
+<div class="keypoints">
+
+- Always compare with naive and seasonal-naive baselines.
+- Score methods on held-out recent data (MAE, MAPE).
+- Exponential smoothing: forecast = α × latest + (1 − α) × previous forecast.
+- Give a range from the size of past errors.
+
+</div>

@@ -16,9 +16,16 @@ quiz:
     choices: ['Ignore it', 'Combine small categories or use Fisher''s exact test', 'Multiply all counts by 10']
     ans: 1
     why: 'The chi-square approximation is poor with small expected counts. Merging sparse categories or an exact test fixes it. Inflating counts is not allowed.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Chapter 6.3-6.4 Chi-square tests https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook of Statistical Methods, 1.3.5.15 Chi-Square Goodness-of-Fit Test https://www.itl.nist.gov/div898/handbook/eda/section3/eda35f.htm'
 ---
 
 **Module 6 · about 25 minutes · school maths.** You'll be able to run chi-square goodness-of-fit and independence tests, check their small-count rule, and report the strength of the relationship.
+
+<div class="bigidea">Chi-square compares the counts you see with the counts you would expect if the categories were unrelated, and adds up the squared surprises.</div>
+
+**In everyday terms:** a bag of sweets is meant to be one third each of red, green and yellow. You count yours. Chi-square measures how far your counts are from a fair third each, allowing for the fact that a small bag never splits perfectly.
 
 ## 1. Tests for counts
 
@@ -63,6 +70,36 @@ Edit the counts and watch the expected (outlined) bars and the χ² change. Make
 **Small counts:** the χ² approximation needs expected counts of at least about 5 in every cell. If not, combine sparse categories or use **Fisher's exact test** (for 2 × 2 tables).
 
 A significant result says the columns are related, not **how**. Look at which cells have the largest `$(O-E)^2/E$` contributions, or at row percentages, to describe it.
+
+<div class="meaning">
+
+<dl>
+<dt>Observed O</dt><dd>The counts in each cell of your table.</dd>
+<dt>Expected E</dt><dd>Row total × column total ÷ grand total: the count if there were no link.</dd>
+<dt>χ² = Σ (O − E)² ÷ E</dt><dd>The total squared surprise, scaled by what was expected.</dd>
+<dt>df = (rows − 1)(cols − 1)</dt><dd>How many cells are free to vary once totals are fixed.</dd>
+<dt>Physical meaning</dt><dd>Dividing by E makes a gap of 10 matter more in a cell expecting 20 than in one expecting 2,000. A big χ² means the mix of one category really changes across the other.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Chi-square tells you which plan is different."** It only says the table as a whole is unlikely under "no link". Look at the cells with the biggest (O − E)²/E, or the standardised residuals, to see where the difference is.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The table.</b> Renewals by plan: Basic 120 of 200, Plus 90 of 130, Pro 70 of 90. Overall 280 of 420 = 2/3.</div>
+<div class="step"><b>Expected.</b> If plan did not matter, each would renew 2/3: 133.3, 86.7, 60 renewals; 66.7, 43.3, 30 leavers.</div>
+<div class="step"><b>Surprise per cell.</b> (O − E)²/E: 1.33, 0.13, 1.67, 2.67, 0.26, 3.33.</div>
+<div class="step"><b>Add.</b> χ² ≈ 9.4 with (2 − 1)(3 − 1) = 2 df.</div>
+<div class="step"><b>Read.</b> p ≈ 0.009: renewal depends on plan. The biggest surprises are Basic leaving more and Pro leaving less.</div>
+</div>
+
+<div class="problem" data-problem="chi-square-2x2"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -110,3 +147,12 @@ Report: "Renewal differs by plan (χ² = 9.4, df = 2, p = 0.009): 60 % on Basic,
 **Try it on your own data:** [[crosstab-chi-square]] builds the table from a CSV and runs the test with Cramér's V; the [[hypothesis-tests]] tool does goodness of fit from pasted counts.
 
 **New words:** *chi-square test*, *goodness of fit*, *contingency table*, *expected count*, *test of independence*, *Cramér's V*, *Fisher's exact test*.
+
+<div class="keypoints">
+
+- Expected count = row total × column total ÷ grand total.
+- χ² = sum of (O − E)² ÷ E over all cells; df = (r − 1)(c − 1).
+- Needs counts (not percentages) and expected counts of about 5 or more.
+- A significant χ² says there is a link; look at the cells to see where.
+
+</div>

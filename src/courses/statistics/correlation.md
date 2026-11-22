@@ -16,9 +16,16 @@ quiz:
     choices: ['Ice cream causes drowning', 'A hidden cause (hot weather) drives both', 'Coincidence']
     ans: 1
     why: 'A confounder can create a correlation between two things that do not affect each other (ML foundations Lesson 2.3).'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 8.1 Fitting a line, residuals, and correlation https://www.openintro.org/book/os/'
+  - 'Anscombe, F. J. (1973), Graphs in Statistical Analysis, The American Statistician 27(1), 17-21 https://doi.org/10.1080/00031305.1973.10478966'
 ---
 
 **Module 8 · about 20 minutes · school maths.** You'll be able to compute and test a correlation, choose Pearson or Spearman, and explain why correlation alone doesn't show cause.
+
+<div class="bigidea">Correlation measures how closely two numbers move together on a straight line, from −1 to +1, and says nothing on its own about cause.</div>
+
+**In everyday terms:** ice-cream sales and sunburn rise and fall together, but ice cream does not cause sunburn. Summer causes both. Correlation spots the dance; it does not say who leads.
 
 ## 1. Pearson's r
 
@@ -48,6 +55,35 @@ Two warnings:
 <!--fig:hidden-cause-->
 
 A **confounder** drives both variables. Here hot days raise both ice cream sales and swimming accidents. Show only days in one temperature band and the correlation mostly vanishes. Other explanations for a correlation: reverse cause (busier stores hire more staff, not the other way round), selection (only successful products survive into your data), and chance across many comparisons. Experiments (Module 7) are the clean way to show cause.
+
+<div class="meaning">
+
+<dl>
+<dt>Pearson r</dt><dd>Average product of z-scores: how well a straight line fits, from −1 to +1.</dd>
+<dt>r²</dt><dd>Share of the variation in one variable lined up with the other.</dd>
+<dt>Spearman ρ</dt><dd>Pearson on the ranks: any steady up-or-down trend, robust to outliers.</dd>
+<dt>Physical meaning</dt><dd>r compares each point's position with the averages. Points in the "both above" and "both below" corners push r up; points in the mixed corners push it down. One extreme point sitting far out in a corner can create or hide a correlation on its own.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"r = 0 means the variables are unrelated."** r only measures straight-line patterns. A U-shape (sales highest at medium prices) can have r near 0 and a very strong relationship. Always plot first.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> 50 stores: staff hours per week and satisfaction score.</div>
+<div class="step"><b>Plot.</b> A loose upward cloud, plus one big flagship store top right.</div>
+<div class="step"><b>Pearson.</b> r = 0.30, p = 0.034, CI 0.02 to 0.53.</div>
+<div class="step"><b>Check the flagship.</b> Without it, r = 0.22. Spearman (all stores): 0.24.</div>
+<div class="step"><b>Report.</b> A weak positive link, not proof that more hours raise scores: bigger, busier stores differ in other ways.</div>
+</div>
+
+<div class="problem" data-problem="pearson-r"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -91,3 +127,12 @@ r = \frac{\sum (x_i - \bar x)(y_i - \bar y)}{\sqrt{\sum (x_i - \bar x)^2 \sum (y
 **Try it on your own data:** the [[csv-profiler]] tool shows correlations between the numeric columns of a file; [[regression-workbench]] fits the line and gives r with a scatter plot; [[bootstrap-permutation]] puts an interval on any statistic, including Spearman's ρ.
 
 **New words:** *Pearson's r*, *Spearman's rank correlation*, *r²*, *Fisher's z*, *confounder*, *reverse causation*.
+
+<div class="keypoints">
+
+- Plot first; r measures straight-line association only.
+- r ranges from −1 to +1; r² is the share of variation lined up.
+- Spearman uses ranks and resists outliers.
+- Correlation is not causation: look for confounders and use experiments when you can.
+
+</div>

@@ -26,6 +26,8 @@ ok('jam mcq negative', Q.score('jam', { type: 'mcq', answer: 1, level: 3 }, 0).m
 ok('jam msq no negative', Q.score('jam', { type: 'msq', answer: [1], level: 3 }, [0]).marks === 0);
 ok('jee-adv msq partial', Q.score('jee-adv', { type: 'msq', answer: [0, 1, 2], level: 3 }, [0, 1]).marks === 2);
 ok('rng repeatable', Q.rng(42)() === Q.rng(42)());
+ok('text maxWords', !Q.check({ type: 'text', answer: ['old bridge'], maxWords: 2 }, 'the old bridge').right && Q.check({ type: 'text', answer: ['old bridge'], maxWords: 2 }, 'Old Bridge').right);
+ok('open is not scored', Q.check({ type: 'open' }, 'anything').unscored === true);
 
 // ---- banks ----
 const root = new URL('../public/qbank/', import.meta.url);
@@ -57,6 +59,15 @@ const checkItem = (it, where, groups = {}) => {
   if (it.type === 'text') ok(`${where}: text answers`, Array.isArray(it.answer) && it.answer.length > 0);
   for (const k of ['q', 'sol', 'trap']) texOk(it[k], `${where}.${k}`);
   (opts ?? []).forEach((o, i) => texOk(o, `${where}.options[${i}]`));
+  // listening scripts (group or item `audio`) and open writing/speaking tasks
+  const audioOk = (a, w) => ok(`${w}: audio is a list of { who, text } lines`, Array.isArray(a) && a.length > 0 && a.every((l) => typeof l.text === 'string' && l.text.trim() && (l.who == null || /^[A-DN]$/.test(l.who))));
+  if (it.audio) audioOk(it.audio, where);
+  if (it.group && groups[it.group]?.audio) audioOk(groups[it.group].audio, `${where} group ${it.group}`);
+  if (it.type === 'open') {
+    ok(`${where}: open has a model answer or checklist`, typeof it.model === 'string' || (Array.isArray(it.checklist) && it.checklist.length > 0));
+    if (it.timers) ok(`${where}: open timers are seconds or a word target`, Object.values(it.timers).every((v) => Number.isFinite(v) && v > 0));
+  }
+  if (it.type === 'text' && it.maxWords) ok(`${where}: every accepted answer fits maxWords ${it.maxWords}`, it.answer.every((a) => String(a).trim().split(/\s+/).length <= it.maxWords));
   const str = JSON.stringify(it);
   ok(`${where}: no NaN/undefined text`, !/\bNaN\b|undefined|Infinity/.test(str));
 };

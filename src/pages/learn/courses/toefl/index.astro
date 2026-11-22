@@ -1,0 +1,21 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { TOEFL } from '../../../../courses/toefl/syllabus';
+import '../../../../styles/lesson-kit.css';
+import '../../../../styles/english-kit.css';
+---
+<CourseHome course={TOEFL}>
+  <section class="cs-builds">
+    <h2>Learn it alone, step by step</h2>
+    <p>This course is built so you never need a tutor. Go through it in order; each lesson ends with a quiz, and your progress is kept in this browser.</p>
+    <ul>
+      <li><strong>Written for the new test.</strong> Since 21 January 2026 the TOEFL iBT is shorter, adaptive and scored from 1 to 6. Every lesson teaches the tasks as they are now, not the old format.</li>
+      <li><strong>Listen for real.</strong> Conversations, announcements and short lectures are read aloud by your device's own voices, with a slower speed for learning, an exam mode that plays once, and a transcript after you answer.</li>
+      <li><strong>Build the exact skills.</strong> Word-building drills for Complete the Words, sentence builders with word chips for Build a Sentence, timed writing with a live word count, and a speaking timer you can record yourself with (the recording stays on your device).</li>
+      <li><strong>See what a band 5 or 6 looks like.</strong> Model answers with notes on why they score well, and checklists for checking your own work.</li>
+      <li><strong>Hundreds of original questions.</strong> Every lesson has a drill with instant marking, the reason for every answer and a New questions button.</li>
+      <li><strong>Know your numbers.</strong> A calculator shows how section bands make your overall band, and a planner builds your week-by-week plan.</li>
+    </ul>
+    <p class="cs-small">fibub is not part of ETS or TOEFL. Every question and recording script here is original. Moving to Canada? See the free <a href="/learn/courses/celpip/">CELPIP preparation course</a>. Need IELTS instead? Try the free <a href="/learn/courses/ielts/">IELTS preparation course</a>.</p>
+  </section>
+</CourseHome>

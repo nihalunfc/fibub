@@ -16,9 +16,16 @@ quiz:
     choices: ['A bigger gap, less spread within groups, or more data', 'More spread within groups', 'Smaller samples']
     ans: 0
     why: 'Bigger signal (gap) or smaller noise (SE, which falls with less spread and more data) both raise t.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Chapter 7 Inference for numerical data https://www.openintro.org/book/os/'
+  - 'Delacre, M., Lakens, D. and Leys, C. (2017), Why Psychologists Should by Default Use Welch''s t-test Instead of Student''s t-test, International Review of Social Psychology 30(1) https://doi.org/10.5334/irsp.82'
 ---
 
 **Module 6 · about 30 minutes · school maths.** You'll be able to choose between one-sample, two-sample and paired t-tests, compute each by hand, and run them in a spreadsheet or Python.
+
+<div class="bigidea">A t-test asks whether a difference in means is big compared with how much means wobble: difference ÷ standard error.</div>
+
+**In everyday terms:** two runners' average lap times differ by 2 seconds. If their laps usually vary by 10 seconds, 2 seconds could be luck; if they vary by 0.5 seconds, it is a real gap. The t-test measures the gap in units of that wobble.
 
 ## 1. Three questions, three tests
 
@@ -63,6 +70,35 @@ Pairing is powerful because big stores and small stores both cancel out: only th
 - **Independent** units (customers, stores), not repeated rows of the same customer.
 - **Roughly normal means**: by the CLT this holds for moderate n; for small n, the data shouldn't be wildly skewed. With heavy skew and small n, use a rank test (Lesson 6.7) or the bootstrap.
 - For paired tests, the *differences* are what need to behave.
+
+<div class="meaning">
+
+<dl>
+<dt>One-sample t</dt><dd>(x̄ − target) ÷ (s/√n): is the mean different from a fixed number?</dd>
+<dt>Welch two-sample t</dt><dd>(x̄₂ − x̄₁) ÷ √(s₁²/n₁ + s₂²/n₂): do two separate groups differ?</dd>
+<dt>Paired t</dt><dd>Work out each unit's own difference, then a one-sample t on those differences.</dd>
+<dt>Physical meaning</dt><dd>Pairing removes the differences between units (big stores, small stores) so only the change is left. That is why a before-and-after on the same stores can find effects that two separate groups would hide in the noise.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Use the equal-variance t-test by default."** Groups rarely have the same spread. Welch's version does not assume it and loses almost nothing when spreads are equal, so it is the safe default.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Two groups.</b> Mobile baskets $38.50 (SD $22, n 400); desktop $42.10 (SD $25, n 350).</div>
+<div class="step"><b>Each wobble squared.</b> 22²/400 = 1.21; 25²/350 ≈ 1.786.</div>
+<div class="step"><b>SE of the difference.</b> √(1.21 + 1.786) ≈ 1.73.</div>
+<div class="step"><b>t.</b> (42.10 − 38.50) ÷ 1.73 ≈ 2.08.</div>
+<div class="step"><b>Read it.</b> p ≈ 0.038; 95 % CI $0.21 to $6.99. Desktop baskets are higher, by somewhere between a little and a lot.</div>
+</div>
+
+<div class="problem" data-problem="welch-t"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -118,3 +154,12 @@ A two-sample test on the same numbers would find nothing (store sizes range from
 **Try it on your own data:** the [[hypothesis-tests]] tool runs all three t-tests from pasted numbers or a CSV, and the [[regression-workbench]] handles more than two groups or extra variables.
 
 **New words:** *one-sample t-test*, *two-sample t-test*, *Welch's t-test*, *pooled t-test*, *paired t-test*, *degrees of freedom*.
+
+<div class="keypoints">
+
+- t = difference ÷ SE of the difference.
+- One-sample: against a target. Welch: two independent groups. Paired: same units twice.
+- Use Welch by default; pair whenever the same units are measured twice.
+- Large samples make t close to z; small samples need the t table.
+
+</div>

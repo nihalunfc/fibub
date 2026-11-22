@@ -1,7 +1,7 @@
 ---
 title: 'A study plan that fits your weeks'
 seoTitle: 'IELTS study plan: 4, 8 or 12 weeks, self study'
-summary: 'Build a realistic IELTS study plan for 4, 8 or 12 weeks: how many hours you need, how to split them between the four skills, a daily routine, and how to learn from mistakes without a teacher.'
+summary: 'Build a realistic IELTS study plan for 4, 8 or 12 weeks: hours needed, how to split the four skills, a daily routine, and learning from mistakes alone.'
 minutes: 14
 updated: 2026-11-22
 quiz:

@@ -1,0 +1,32 @@
+---
+// IELTS practice room: the whole IELTS bank (public/qbank/ielts/) with filters for skill, part, question type,
+// module and level. Listening is read aloud by the browser; nothing is recorded, saved on a server or sent anywhere.
+import Base from '../../../../../layouts/Base.astro';
+import QBank from '../../../../../components/qbank/QBank.astro';
+import { IELTS } from '../../../../../courses/ielts/syllabus';
+import { bankCounts } from '../../../../../lib/qbank/build';
+import { coursePageLd } from '../../../../../lib/seo';
+import '../../../../../styles/course.css';
+const { idx, topics } = await bankCounts('ielts');
+const written = Object.values(topics).reduce((s, c) => s + c.items, 0);
+const tmpl = Object.values(topics).reduce((s, c) => s + c.gens, 0);
+const title = 'IELTS practice questions: Listening, Reading, Writing, Speaking';
+const desc = 'Free IELTS practice with answers: listening read aloud in your browser, Academic and General Training reading passages, writing tasks and speaking cue cards. Original questions, no sign-up.';
+const ld = coursePageLd(IELTS, 'Practice room', desc, 'practice');
+---
+<Base title={title} docTitle="IELTS practice questions with answers | fibub" description={desc} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/ielts/">IELTS preparation</a> / Practice room</div>
+  <div class="cs-main cs-wide">
+    <h1>IELTS practice room</h1>
+    <p class="lead">Every question in the IELTS course in one place. Pick a skill and a question type, or practise everything from easy to hard. Each answer comes with an explanation, and the trap that catches most people.</p>
+    <p class="cs-meta">So far: {written} written questions and {tmpl} templates that make a new question every time (so the name, number and date drills never run out), across {Object.keys(topics).length} topics. New sets are added with every part of the course. All questions are original, written for fibub, and not taken from any official test.</p>
+    <h2>How listening works here</h2>
+    <p>Recordings are read aloud by your own device's English voices, so nothing is downloaded and nothing is sent anywhere. Choose British, American, Australian or mixed voices if your device has them, and tick <b>Test conditions</b> to hear each recording once, as in the real test. The transcript opens after you answer.</p>
+    <h2>By skill</h2>
+    {idx.units.map((u) => <section class="cs-modcard"><h4>{u.name}</h4><ul>{u.topics.map((t) => <li>{t.name} <span class="cs-small">({topics[t.id]?.items ?? 0} questions{topics[t.id]?.gens ? `, ${topics[t.id].gens} endless templates` : ''})</span></li>)}</ul></section>)}
+    <h2>Practise</h2>
+    <p class="cs-small">Questions that share a passage or a recording are shown together, as a set. Tick "Remember my progress" if you want solved questions to move to the end next time; it stays in this browser only.</p>
+    <QBank bank="ielts" mode="practice" />
+    <p><a href="/learn/courses/ielts/">← Back to the IELTS course</a></p>
+  </div>
+</Base>
