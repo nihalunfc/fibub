@@ -41,9 +41,6 @@ if (root) {
     root!.querySelectorAll('[data-prog-count]').forEach((e) => (e.textContent = String(n)));
     root!.querySelectorAll<HTMLElement>('[data-prog-bar]').forEach((e) => (e.style.width = `${total ? Math.min(100, (100 * n) / total) : 0}%`));
     root!.querySelectorAll<HTMLInputElement>('[data-prog-remember]').forEach((r) => (r.checked = remember));
-    // The save reminder shows while there is progress that lives only in this tab.
-    const has = Object.keys(prog.done).length + Object.keys(prog.quiz).length > 0;
-    root!.querySelectorAll<HTMLElement>('[data-save-nudge]').forEach((e) => (e.hidden = remember || !has));
     const btn = root!.querySelector<HTMLButtonElement>('[data-mark-done]');
     if (btn && lessonSlug) { const d = !!prog.done[lessonSlug]; btn.textContent = d ? '✓ Done (tap to undo)' : 'Mark this lesson as done'; btn.classList.toggle('is-done', d); }
   }
@@ -58,28 +55,12 @@ if (root) {
     prog = empty(); try { localStorage.removeItem(KEY); sessionStorage.removeItem(KEY); } catch { /* */ }
     remember = false; paint(); msg('Progress cleared from this browser.');
   });
-  let downloaded = '';
   root.querySelectorAll('[data-prog-download]').forEach((b) => b.addEventListener('click', () => {
-    downloaded = JSON.stringify(prog.done) + JSON.stringify(prog.quiz);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(prog, null, 2)], { type: 'application/json' }));
     a.download = `fibub-${id}-progress-${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }));
 
-  // Closing the tab loses progress that is not remembered or downloaded, so ask first (nihal, 2026-11-22).
-  // Moving between pages of the site in the same tab keeps it (sessionStorage), so links don't ask.
-  let leavingInSite = false;
-  document.addEventListener('click', (e) => {
-    const a = (e.target as HTMLElement).closest?.('a[href]') as HTMLAnchorElement | null;
-    if (a && a.origin === location.origin && !a.target && !a.download) leavingInSite = true;
-  }, true);
-  addEventListener('pageshow', () => (leavingInSite = false));
-  addEventListener('beforeunload', (e) => {
-    const has = Object.keys(prog.done).length + Object.keys(prog.quiz).length > 0;
-    const saved = remember || downloaded === JSON.stringify(prog.done) + JSON.stringify(prog.quiz);
-    if (!has || saved || leavingInSite) return;
-    e.preventDefault(); e.returnValue = ''; // the browser shows its own "Leave site?" box
-  });
   root.querySelector<HTMLInputElement>('[data-prog-upload]')?.addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
     const p = parse(await f.text());
