@@ -1,0 +1,14 @@
+---
+// A question bank block (shared engine, src/scripts/qbank.ts). Format: /mnt/project-files/qbank/spec.md.
+// mode: practice | mock | list. Leave out topics to use the whole bank. Other props are fixed filters.
+import '../../styles/qbank.css';
+import '../../styles/math.css';
+interface Props { bank: string; topics?: string[]; mode?: 'practice' | 'mock' | 'list'; exam?: string; type?: string; level?: number[]; n?: number; pattern?: string; minutes?: number; facets?: Record<string, string> }
+const p = Astro.props;
+---
+<div class="qbank" data-bank={p.bank} data-topics={p.topics?.join(',')} data-mode={p.mode ?? 'practice'} data-exam={p.exam} data-type={p.type}
+  data-level={p.level?.join(',')} data-n={p.n} data-pattern={p.pattern} data-minutes={p.minutes}
+  data-facets={p.facets ? Object.entries(p.facets).map(([k, v]) => `${k}=${v}`).join(',') : undefined}>
+  <p class="qb-wait">Loading questions… (they need JavaScript; nothing you type is sent anywhere)</p>
+</div>
+<script>import '../../scripts/qbank';</script>
