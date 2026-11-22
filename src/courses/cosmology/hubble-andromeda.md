@@ -12,7 +12,7 @@ quiz:
   - q: A Cepheid with a longer period is...
     choices: ['more powerful', 'less powerful', 'the same power, just slower']
     ans: 0
-    why: Leavitt's law: the longer the period, the more luminous the Cepheid.
+    why: 'Leavitt''s law: the longer the period, the more luminous the Cepheid.'
   - q: Why was Hubble's 1925 distance to Andromeda (about 900,000 light-years) too small?
     choices: ['The calibration of Cepheids was off: there are two types, and he used the wrong one''s brightness', 'Andromeda has moved away since then', 'His telescope was out of focus']
     ans: 0

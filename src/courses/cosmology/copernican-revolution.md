@@ -16,7 +16,7 @@ quiz:
   - q: What does the Copernican principle say?
     choices: ['We do not live in a special or central place in the universe', 'The Sun is the centre of the universe', 'Planets move in perfect circles']
     ans: 0
-    why: Copernicus moved the Earth away from the centre. Modern cosmology generalises this: our view of the universe should be typical.
+    why: 'Copernicus moved the Earth away from the centre. Modern cosmology generalises this: our view of the universe should be typical.'
 sources:
   - 'N. Copernicus (1543), De revolutionibus orbium coelestium'
   - 'G. Galileo (1610), Sidereus Nuncius; letters on the phases of Venus (1610-1613)'

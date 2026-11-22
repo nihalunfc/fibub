@@ -2,6 +2,7 @@
 // values, every live problem (its numbers and its own answer), and that every figure and problem named in a
 // lesson exists. Run: node tests/cosmo.mjs (part of npm test).
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import yaml from 'js-yaml';
 const P = await import('../public/learn-kit/cosmology/phys.js');
 const PROBLEMS = (await import('../public/learn-kit/cosmology/problems.js')).default;
 
@@ -66,6 +67,8 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
   const md = readFileSync(new URL(f, dir), 'utf8');
   for (const m of md.matchAll(/data-fig="([a-z0-9-]+)"/g)) ok(`${f}: figure ${m[1]} exists`, existsSync(new URL(m[1] + '.js', figDir)));
   for (const m of md.matchAll(/data-problem="([a-z0-9-]+)"/g)) ok(`${f}: problem ${m[1]} exists`, !!PROBLEMS[m[1]]);
+  let fm = null; try { fm = yaml.load(md.split('\n---\n')[0].replace(/^---\n/, '')); } catch (e) { console.log(String(e).split('\n')[0]); }
+  ok(`${f}: front matter is valid YAML with a 3-question quiz`, fm?.quiz?.length === 3 && fm.seoTitle.length <= 60);
   ok(`${f}: has key points`, md.includes('class="keypoints"'));
   ok(`${f}: has a figure or animation`, /data-fig="/.test(md));
   ok(`${f}: has a live problem`, /data-problem="/.test(md));

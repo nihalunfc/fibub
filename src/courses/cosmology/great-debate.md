@@ -16,7 +16,7 @@ quiz:
   - q: What settled the Great Debate?
     choices: ['Hubble measured Cepheid stars in Andromeda and showed it is far outside the Milky Way', 'A vote at a conference', 'Photographs of the Milky Way from space']
     ans: 0
-    why: In 1923-25 Hubble found Cepheids in Andromeda. Their period told him their true brightness, and their faintness put them hundreds of thousands of light-years away (today: 2.5 million).
+    why: 'In 1923-25 Hubble found Cepheids in Andromeda. Their period told him their true brightness, and their faintness put them hundreds of thousands of light-years away (today: 2.5 million).'
 sources:
   - 'H. Shapley and H. D. Curtis (1921), The Scale of the Universe, Bulletin of the National Research Council 2, 171'
   - 'E. P. Hubble (1925), Cepheids in spiral nebulae, Publications of the American Astronomical Society 5, 261'

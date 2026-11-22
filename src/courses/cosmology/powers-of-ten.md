@@ -16,7 +16,7 @@ quiz:
   - q: Roughly how wide is the observable universe?
     choices: ['About 93 billion light-years', 'About 13.8 billion light-years', 'About 100,000 light-years']
     ans: 0
-    why: Light has travelled for 13.8 billion years, but space has stretched meanwhile, so the most distant regions we see are now about 46 billion light-years away in every direction: 93 billion across. Lesson 5.9 explains why.
+    why: 'Light has travelled for 13.8 billion years, but space has stretched meanwhile, so the most distant regions we see are now about 46 billion light-years away in every direction: 93 billion across. Lesson 5.9 explains why.'
 sources:
   - 'C. and R. Eames (1977), Powers of Ten (film), Eames Office, the classic zoom that inspired this lesson'
   - 'NASA Planetary Fact Sheets (sizes of the Sun, Earth, Jupiter, orbits) https://nssdc.gsfc.nasa.gov/planetary/factsheet/'
