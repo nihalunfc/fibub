@@ -1,0 +1,36 @@
+---
+// 3.2: two or three partners share profit by agreement, but in a general partnership each one can be chased for ALL the debt.
+---
+<figure class="cs-fig su-fig" data-pt>
+  <span class="cs-figtag">Try it: profit shares and who pays the debt</span>
+  <div class="su-row">
+    <label>Partner A share, %<input type="number" name="a" min="0" max="100" value="50" /></label>
+    <label>Partner B share, %<input type="number" name="b" min="0" max="100" value="30" /></label>
+    <label>Partner C share, %<output data-c></output></label>
+    <label>Profit this year<input type="number" name="profit" min="0" step="any" value="1200000" /></label>
+    <label>Unpaid debt if it fails<input type="number" name="debt" min="0" step="any" value="900000" /></label>
+    <label>Type<select name="t"><option value="gp">General partnership</option><option value="llp">LLP</option></select></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Profit follows the shares you agree in writing (without an agreement, many laws split it equally). Debt is different: in a general partnership a creditor can collect the whole debt from whichever partner has money, who must then chase the others. In an LLP, partners are not personally liable for the firm's debts (with exceptions for their own wrongdoing).</figcaption>
+</figure>
+<script>
+  import { num } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pt]')) {
+    const bars = fig.querySelector('[data-bars]')!;
+    function draw() {
+      const a = Math.max(0, Math.min(100, num(fig, 'a'))), b = Math.max(0, Math.min(100 - a, num(fig, 'b'))), c = 100 - a - b;
+      fig.querySelector('[data-c]')!.textContent = `${c} %`;
+      const P = num(fig, 'profit'), D = num(fig, 'debt'), t = fig.querySelector<HTMLSelectElement>('[name=t]')!.value;
+      const max = Math.max(P, D) || 1, f = (x: number) => Math.round(x).toLocaleString('en');
+      bars.innerHTML = '';
+      [['A', a], ['B', b], ['C', c]].forEach(([n, s]) => {
+        const share = (P * (s as number)) / 100, risk = t === 'gp' ? D : 0;
+        bars.insertAdjacentHTML('beforeend', `<div><span>${n}: profit</span><span class="t"><i class="g" style="width:${(share / max) * 100}%"></i></span><b>${f(share)}</b></div><div><span>${n}: can be chased for</span><span class="t"><i class="w" style="width:${(risk / max) * 100}%"></i></span><b>${f(risk)}</b></div>`);
+      });
+      fig.querySelector('[data-say]')!.textContent = t === 'gp' ? `Partner C gets only ${c} % of the profit, yet can be asked to pay all ${f(D)} of the debt.` : 'LLP: each partner’s risk is limited to what they put in; the firm’s debts stay with the firm.';
+    }
+    fig.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

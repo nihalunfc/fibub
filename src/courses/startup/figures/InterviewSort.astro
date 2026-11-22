@@ -1,0 +1,29 @@
+---
+// 2.2: good or bad customer interview question? Based on the "ask about their life, not your idea" rule.
+---
+<figure class="cs-fig su-fig" data-iv>
+  <span class="cs-figtag">Try it: good question or bad question?</span>
+  <div data-qs></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Good questions ask about the past and about money and time already spent. Bad ones ask for opinions about the future or about your idea, because people are polite and their guesses are poor.</figcaption>
+</figure>
+<script>
+  const Q: [string, boolean, string][] = [
+    ['Would you use an app that does this?', false, 'Asks for a guess about the future. Almost everyone says yes to be nice.'],
+    ['When did this last happen to you? Walk me through it.', true, 'A real recent story shows how big the problem is and what they did.'],
+    ['How much would you pay for it?', false, 'People guess low or high at random. Ask what they pay now instead.'],
+    ['What do you use today to deal with it, and what does it cost?', true, 'Shows the current workaround and its price: your real competitor.'],
+    ['Don’t you think this is a great idea?', false, 'A leading question. You will only hear what you want.'],
+    ['What else have you tried? Why did you stop?', true, 'Shows what failed and why, which shapes what you build.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-iv]')) {
+    const box = fig.querySelector('[data-qs]')!, say = fig.querySelector('[data-say]')!; let r = 0, d = 0;
+    for (const [q, good, why] of Q) {
+      const el = document.createElement('div'); el.className = 'su-card'; el.style.marginBottom = '6px';
+      el.innerHTML = '<strong></strong><div class="su-opts"><button type="button" data-g="1">Good</button><button type="button" data-g="0">Bad</button></div><div class="su-fine" hidden></div>';
+      el.querySelector('strong')!.textContent = `“${q}”`; const f = el.querySelector<HTMLElement>('.su-fine')!; f.textContent = why;
+      el.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.onclick = () => { if (el.dataset.done) return; el.dataset.done = '1'; d++; const ok = (b.dataset.g === '1') === good; if (ok) r++; b.classList.add(ok ? 'right' : 'wrong'); el.classList.add(ok ? 'good' : 'bad'); f.hidden = false; say.textContent = `${r} of ${d} right`; });
+      box.append(el);
+    }
+  }
+</script>

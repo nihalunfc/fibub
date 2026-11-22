@@ -1,0 +1,37 @@
+---
+// 1.1: sort six real-looking businesses into "startup" (built to grow fast and repeat at scale) or "small business".
+---
+<figure class="cs-fig su-fig" data-sos>
+  <span class="cs-figtag">Try it: startup or small business?</span>
+  <p class="su-say" style="margin-top:0">Tap a business, then choose. There is no shame in either: most successful companies are small businesses.</p>
+  <div data-items></div>
+  <p class="su-say" data-say></p>
+  <figcaption>The test is not "online" or "tech". It is whether the plan is to repeat the same thing for many more customers without costs growing at the same pace, usually with outside money to get there fast.</figcaption>
+</figure>
+<script>
+  const ITEMS: [string, 's' | 'b', string][] = [
+    ['A bakery with one shop in Kochi', 'b', 'Small business: it grows by opening shops one at a time, and that is a fine, profitable plan.'],
+    ['An app that lets any clinic in Canada book patients online, sold monthly', 's', 'Startup: the same software serves clinic 10 or clinic 10,000 at almost no extra cost.'],
+    ['A freelance web designer in Texas', 'b', 'Small business (a solo service): income grows with the hours worked.'],
+    ['A marketplace matching truck owners with loads across India', 's', 'Startup: each new truck and shipper makes the network more useful, and it can spread city to city.'],
+    ['A plumbing company with 6 vans in Ontario', 'b', 'Small business: steady and local; growth means more vans and plumbers.'],
+    ['A lab kit that tests soil in 10 minutes, sold to farms worldwide', 's', 'Startup: a new product aimed at a big market, built once and sold many times, often funded by investors.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sos]')) {
+    const box = fig.querySelector('[data-items]')!, say = fig.querySelector('[data-say]')!;
+    let right = 0, done = 0;
+    ITEMS.forEach(([name, ans, why]) => {
+      const row = document.createElement('div'); row.className = 'su-card'; row.style.marginBottom = '6px';
+      row.innerHTML = `<strong></strong><div class="su-opts"><button type="button" data-a="s">Startup</button><button type="button" data-a="b">Small business</button></div><div class="su-fine" hidden></div>`;
+      row.querySelector('strong')!.textContent = name;
+      const fine = row.querySelector<HTMLElement>('.su-fine')!; fine.textContent = why;
+      row.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.onclick = () => {
+        if (row.dataset.done) return; row.dataset.done = '1'; done++;
+        const ok = b.dataset.a === ans; if (ok) right++;
+        b.classList.add(ok ? 'right' : 'wrong'); row.classList.add(ok ? 'good' : 'bad'); fine.hidden = false;
+        say.textContent = `${right} of ${done} right${done === ITEMS.length ? '. Done!' : ''}`;
+      });
+      box.append(row);
+    });
+  }
+</script>

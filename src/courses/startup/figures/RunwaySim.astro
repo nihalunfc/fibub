@@ -1,0 +1,50 @@
+---
+// 2.5: cash over the next 36 months: starting cash, monthly costs, first-month revenue and growth.
+---
+<figure class="cs-fig su-fig" data-rw>
+  <span class="cs-figtag">Simulation: how long does the money last?</span>
+  <canvas aria-label="Line chart of cash in the bank over 36 months, with revenue and costs"></canvas>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada (C$)</option><option value="us">USA ($)</option></select></label>
+    <label>Cash in the bank now<input type="number" name="cash" min="0" step="any" value="1000000" /></label>
+    <label>Fixed costs per month<input type="number" name="fixed" min="0" step="any" value="80000" /></label>
+    <label>Revenue in month 1<input type="number" name="rev" min="0" step="any" value="10000" /></label>
+    <label>Revenue growth per month, %<input type="number" name="g" min="-20" max="50" step="1" value="10" /></label>
+    <label>Variable cost, % of revenue<input type="number" name="vc" min="0" max="100" step="1" value="30" /></label>
+  </div>
+  <div class="su-out"><div><span>Runway</span><b data-run></b></div><div><span>Break-even month</span><b data-be></b></div><div><span>Lowest cash</span><b data-low></b></div></div>
+  <figcaption>Runway is how many months until the bank balance hits zero. Break-even is the first month revenue left after variable costs covers fixed costs. Most founders plan to raise money or cut costs with at least 6 months of runway left, because raising takes months.</figcaption>
+</figure>
+<script>
+  import { Plot, live } from '../../ml-foundations/figures/kit';
+  import { followCountry, money, num, put } from './fmt';
+  const DEF = { in: [1000000, 80000, 10000], ca: [40000, 4000, 500], us: [40000, 4000, 500] } as const;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-rw]')) {
+    const cv = fig.querySelector('canvas')!; let touched = false;
+    const p = new Plot(cv, { x: [0, 36], y: [0, 1], h: 240, xLabel: 'month' }); p.L = 66;
+    fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', () => { touched = true; draw(); }));
+    const cc = followCountry(fig, (c) => { if (!touched) (['cash', 'fixed', 'rev'] as const).forEach((k, i) => (fig.querySelector<HTMLInputElement>(`[name=${k}]`)!.value = String(DEF[c][i]))); draw(); });
+    function draw() {
+      const c = cc(); let cash = num(fig, 'cash'); const fixed = num(fig, 'fixed'), g = num(fig, 'g') / 100, vc = num(fig, 'vc') / 100; let rev = num(fig, 'rev');
+      const pts: [number, number][] = [[0, cash]], rv: [number, number][] = [], cost: [number, number][] = [];
+      let run = -1, be = -1, low = cash;
+      for (let m = 1; m <= 36; m++) {
+        const net = rev * (1 - vc) - fixed; cash += net; pts.push([m, cash]); rv.push([m, rev]); cost.push([m, fixed + rev * vc]);
+        if (cash < 0 && run < 0) run = m - 1 + (cash - net === 0 ? 0 : (cash - net) / -net); if (net >= 0 && be < 0) be = m; low = Math.min(low, cash); rev *= 1 + g;
+      }
+      const all = [...pts, ...rv, ...cost].map((q) => q[1]); const hi = Math.max(...all), lo = Math.min(0, ...all);
+      p.o.y = [lo, hi * 1.08 || 1];
+      p.begin();
+      if (lo < 0) p.rect(0, lo, 36, -lo, { fill: p.pal.accent2, alpha: 0.08 });
+      p.line(0, 0, 36, 0, { color: p.pal.muted, width: 1 });
+      p.path(cost, { color: p.pal.accent2, width: 1.5, dash: [5, 4] }); p.path(rv, { color: p.pal.accent, width: 1.5, dash: [2, 3] });
+      p.path(pts, { color: p.pal.accent, width: 3 });
+      p.text(36, pts[36][1], 'cash ', { align: 'right', base: 'bottom', color: p.pal.accent, bold: true });
+      p.text(1, cost[0][1], ' costs', { base: 'bottom', color: p.pal.accent2 });
+      if (run >= 0) p.dot(run, 0, { r: 6, color: p.pal.accent2 });
+      p.end();
+      put(fig, 'run', run < 0 ? 'more than 36 months' : `${run.toFixed(1)} months`); put(fig, 'be', be < 0 ? 'not within 36 months' : `month ${be}`); put(fig, 'low', money(c, low));
+    }
+    live(cv, draw);
+  }
+</script>

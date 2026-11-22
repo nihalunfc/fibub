@@ -1,0 +1,54 @@
+---
+// 4.1: type a name; see the full legal name for each structure, the common rule problems, and where to search.
+// The checks are simple text rules (restricted words, suffixes, length), not a real name search.
+---
+<figure class="cs-fig su-fig" data-nc>
+  <span class="cs-figtag">Try it: check a business name</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Your name idea<input type="text" name="n" value="Bright Path Learning" maxlength="80" autocomplete="off" /></label>
+  </div>
+  <div class="su-cards" data-out></div>
+  <div class="su-card"><strong>Search before you file</strong><div data-search></div></div>
+  <figcaption>These are quick text checks only. A name can pass them and still be refused because it is too close to an existing company or trademark, so always run the official search (and a trademark search, Lesson 11.2) before you print anything.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  const RESTRICTED: Record<string, string[]> = {
+    in: ['bank', 'insurance', 'stock exchange', 'reserve', 'government', 'national', 'india', 'bharat', 'republic', 'federal', 'board', 'commission', 'authority', 'undertaking', 'ministry', 'state'],
+    ca: ['bank', 'trust', 'insurance', 'credit union', 'royal', 'government', 'canada', 'university', 'engineering', 'architect', 'cooperative', 'co-op'],
+    us: ['bank', 'trust', 'insurance', 'federal', 'national', 'united states', 'reserve', 'fbi', 'cia', 'treasury', 'university', 'college', 'attorney', 'engineer'],
+  };
+  const SUFFIX: Record<string, [string, string][]> = {
+    in: [['Private limited company', ' Private Limited'], ['One Person Company', ' (OPC) Private Limited'], ['LLP', ' LLP']],
+    ca: [['Corporation', ' Inc.'], ['Corporation (other endings allowed)', ' Ltd. / Corp. / Limited'], ['Sole proprietorship', ' (no ending; register the name provincially)']],
+    us: [['LLC', ' LLC'], ['Corporation', ' Inc.'], ['Sole proprietorship', ' (file a DBA for this name)']],
+  };
+  const SEARCH: Record<string, string> = {
+    in: 'MCA "Check company or LLP name" on mca.gov.in, then reserve it with RUN or SPICe+ Part A; IP India trademark search on ipindia.gov.in; domain search.',
+    ca: 'Federal: a NUANS report and Corporations Canada’s name search; provincial: your province’s registry search (Ontario Business Registry); CIPO’s Canadian Trademarks Database; domain search.',
+    us: 'Your state Secretary of State business entity search (each state is separate); USPTO trademark search; domain search.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-nc]')) {
+    const inp = fig.querySelector<HTMLInputElement>('[name=n]')!;
+    const cc = followCountry(fig, () => draw());
+    function draw() {
+      const c = cc(), raw = inp.value.trim().replace(/\s+/g, ' '), low = ` ${raw.toLowerCase()} `;
+      const issues: [string, 'good' | 'bad' | 'on'][] = [];
+      const hits = RESTRICTED[c].filter((w) => low.includes(` ${w} `) || low.includes(` ${w}s `));
+      if (!raw) issues.push(['Type a name to check it.', 'on']);
+      else {
+        issues.push(hits.length ? [`Restricted word: "${hits.join('", "')}". Usually needs approval from a regulator or is refused.`, 'bad'] : ['No common restricted words found.', 'good']);
+        if (/\b(ltd|limited|inc|llc|llp|corp|corporation|incorporated|private)\b\.?/i.test(raw)) issues.push(['Leave the legal ending off here; it is added for you below.', 'on']);
+        if (raw.split(' ').length < 2 && c !== 'us') issues.push([c === 'in' ? 'One-word names are often refused in India unless the word is coined and distinctive; add a descriptive word.' : 'A one-word name may be too close to others; Canadian registries prefer a distinctive word plus a descriptive word.', 'on']);
+        if (/^(the )?(best|quality|premium|professional|smart|digital|global|united|first) [a-z]+$/i.test(raw)) issues.push(['Made only of common words: likely refused as not distinctive. Add a coined or personal word.', 'bad']);
+        if (raw.length > 50) issues.push(['Long names are hard to fit on forms, domains and bank cheques.', 'on']);
+      }
+      const box = fig.querySelector('[data-out]')!; box.innerHTML = '';
+      for (const [t, k] of issues) { const d = document.createElement('div'); d.className = `su-card ${k}`; d.textContent = t; box.append(d); }
+      if (raw) for (const [label, end] of SUFFIX[c]) { const d = document.createElement('div'); d.className = 'su-card'; d.innerHTML = '<strong></strong><span></span>'; d.querySelector('strong')!.textContent = label; d.querySelector('span')!.textContent = end.startsWith(' (') ? `${raw}${end}` : `${raw}${end}`; box.append(d); }
+      fig.querySelector('[data-search]')!.textContent = SEARCH[c];
+    }
+    inp.addEventListener('input', draw);
+  }
+</script>

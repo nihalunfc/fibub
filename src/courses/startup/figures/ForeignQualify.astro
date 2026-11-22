@@ -1,0 +1,29 @@
+---
+// 4.7: do I need to register my LLC or corporation in another state? Typical "doing business" tests.
+---
+<figure class="cs-fig su-fig" data-fq>
+  <span class="cs-figtag">Try it: do I need to register in another state?</span>
+  <p class="su-q">In that other state, does your business have...</p>
+  <div class="su-opts" data-k>
+    <button type="button" data-w="3" aria-pressed="false">An office, shop or warehouse</button>
+    <button type="button" data-w="3" aria-pressed="false">Employees working there (including remote staff)</button>
+    <button type="button" data-w="2" aria-pressed="false">A founder living and working there</button>
+    <button type="button" data-w="1" aria-pressed="false">Regular in-person sales visits</button>
+    <button type="button" data-w="0" aria-pressed="false">Only online customers</button>
+    <button type="button" data-w="0" aria-pressed="false">A bank account or a one-off meeting</button>
+  </div>
+  <div class="su-card" data-res><strong></strong><span></span></div>
+  <figcaption>Each state defines "transacting business" in its own law, and most list activities that do not count (holding meetings, bank accounts, selling through the mail or online, one isolated deal). Remote employees are the trap startups fall into most: they usually mean registering for payroll there, and often foreign qualification too.</figcaption>
+</figure>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fq]')) {
+    const res = fig.querySelector<HTMLElement>('[data-res]')!;
+    function draw() {
+      const w = Math.max(0, ...[...fig.querySelectorAll<HTMLButtonElement>('[data-k] button[aria-pressed=true]')].map((b) => Number(b.dataset.w)));
+      const [t, d, k] = w >= 2 ? ['Yes, most likely', 'Register as a foreign LLC or corporation there (a certificate of authority), appoint a registered agent in that state, and register for its payroll and income taxes.', 'bad'] : w === 1 ? ['Maybe', 'Regular in-person activity can count. Check that state’s list of activities that are not "transacting business", or ask a lawyer.', 'on'] : ['Usually not for company law', 'Online sales and isolated activities don’t usually require foreign qualification. Sales tax is a separate test: economic nexus can still apply (Lesson 7.4).', 'good'];
+      res.className = `su-card ${k}`; res.querySelector('strong')!.textContent = t; res.querySelector('span')!.textContent = d;
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-k] button').forEach((b) => b.onclick = () => { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); draw(); });
+    draw();
+  }
+</script>

@@ -1,0 +1,32 @@
+---
+// 2.6: a one-page plan you fill in on the page and download as a text file. Nothing is saved or sent.
+---
+<figure class="cs-fig su-fig" data-lc>
+  <span class="cs-figtag">Fill it in: your one-page plan</span>
+  <div class="su-row" data-boxes></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn" data-dl>Download my plan (.txt)</button><button type="button" class="btn secondary" data-ex>Fill with the example</button><button type="button" class="btn secondary" data-clr>Clear</button></div>
+  <p class="su-fine">What you type stays on this page only: it is not saved or sent anywhere, so download it before you leave.</p>
+  <figcaption>Nine boxes, one page. If a box is hard to fill, that is the part of the idea to test next.</figcaption>
+</figure>
+<script>
+  import { download } from './su';
+  const B: [string, string, string][] = [
+    ['problem', 'Problem: the top 1 to 3 problems', 'Small clinics lose 15 % of bookings to no-shows; reminders are done by hand.'],
+    ['customer', 'Customers: who has it most', 'Dental and physio clinics with 1 to 5 chairs.'],
+    ['value', 'Promise: one sentence on why you', 'Cut no-shows in half in a week, with no new hardware.'],
+    ['solution', 'Solution: the smallest thing that works', 'SMS and WhatsApp reminders with one-tap rebooking.'],
+    ['channels', 'Channels: how customers find you', 'Clinic software marketplaces, dental associations, direct visits.'],
+    ['revenue', 'Revenue: price and how you charge', 'Monthly subscription per clinic.'],
+    ['costs', 'Costs: the big monthly costs', 'SMS fees, hosting, one salesperson, accountant.'],
+    ['metric', 'Key number: the one you track', 'Paying clinics retained after 3 months.'],
+    ['edge', 'Unfair advantage: hard to copy', 'Founder worked 6 years as a clinic manager.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lc]')) {
+    const box = fig.querySelector('[data-boxes]')!;
+    for (const [k, l] of B) { const lab = document.createElement('label'); lab.textContent = l; const t = document.createElement('textarea'); t.name = k; t.rows = 3; lab.append(t); box.append(lab); }
+    const ta = (k: string) => fig.querySelector<HTMLTextAreaElement>(`textarea[name=${k}]`)!;
+    fig.querySelector<HTMLButtonElement>('[data-ex]')!.onclick = () => B.forEach(([k, , ex]) => (ta(k).value = ex));
+    fig.querySelector<HTMLButtonElement>('[data-clr]')!.onclick = () => B.forEach(([k]) => (ta(k).value = ''));
+    fig.querySelector<HTMLButtonElement>('[data-dl]')!.onclick = () => download('one-page-plan.txt', `My one-page business plan\n=========================\nMade with fibub.com/learn/courses/startup/one-page-plan/ on ${new Date().toISOString().slice(0, 10)}\n\n${B.map(([k, l]) => `${l.split(':')[0].toUpperCase()}\n${ta(k).value.trim() || '(not filled in yet)'}\n`).join('\n')}`);
+  }
+</script>
