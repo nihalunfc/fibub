@@ -53,6 +53,28 @@ near('comoving distance z=1, Om 0.3, H0 70 (Mpc)', P.comovingMpc(1, { H0: 70, Om
 near('luminosity distance z=1 (Mpc)', P.luminosityMpc(1, { H0: 70, Om: 0.3, OL: 0.7 }), 6607, 0.005);
 near('lookback to z=1 (Gyr)', P.lookbackGyr(1, { H0: 70, Om: 0.3, OL: 0.7 }), 7.72, 0.01);
 near('empty universe age = tH', P.ageGyr(0, { H0: 70, Om: 0, OL: 0 }), P.hubbleTimeGyr(70), 0.005);
+// Module 5: the expansion history, horizons and the closed-form flat age
+{
+  const GLY = (mpc) => (mpc * P.MPC) / P.LY / 1e9;
+  const hist = (p, o) => P.scaleHistory(p, o);
+  const startT = (h) => h[0].t;
+  near('scaleHistory: Einstein-de Sitter starts 2/3 tH ago', -startT(hist({ H0: 70, Om: 1, OL: 0 })), (2 / 3) * P.hubbleTimeGyr(70), 0.005);
+  near('scaleHistory: Planck-like starts 13.8 Gyr ago', -startT(hist(P.PLANCK18)), P.ageGyr(0, P.PLANCK18), 0.005);
+  const closed = hist({ H0: 70, Om: 2, OL: 0 }, { tFuture: 100 });
+  const top = closed.reduce((m, q) => (q.a > m.a ? q : m));
+  near('closed Om=2 turns around at a = 2', top.a, 2, 0.002);
+  near('closed Om=2 turns around 43.9 Gyr after the start', top.t - startT(closed), (Math.PI / 2) * 2 * P.hubbleTimeGyr(70), 0.01);
+  ok('closed Om=2 recollapses', closed[closed.length - 1].a < 0.01);
+  const ds = hist({ H0: 70, Om: 0, OL: 1 }, { tPast: 5, tFuture: 5 });
+  near('de Sitter grows by e every Hubble time', ds.find((q) => q.t >= P.hubbleTimeGyr(70) * 0.25).a, Math.exp(0.25), 0.01);
+  near('flat closed-form age = integrated age', P.flatAgeGyr(70, 0.3), P.ageGyr(0, { H0: 70, Om: 0.3, OL: 0.7 }), 1e-4);
+  near('q0 for Om 0.3, OL 0.7', P.q0({ Om: 0.3, OL: 0.7 }), -0.55, 1e-9);
+  near('matter-radiation equality z (Planck-like ~3400)', P.zEquality(P.PLANCK18), 3400, 0.01);
+  near('particle horizon ~46 Gly', GLY(P.particleHorizonMpc(P.PLANCK18)), 46.2, 0.01);
+  near('event horizon ~16.6 Gly', GLY(P.eventHorizonMpc(P.PLANCK18)), 16.6, 0.01);
+  const om = P.omegasAt(1, P.PLANCK18);
+  near('omegas add to 1', om.r + om.m + om.L + om.k, 1, 1e-9);
+}
 near('CMB temperature at z=1100 (K)', P.cmbTemp(1100), 2999, 0.001);
 
 // Live problems: each makes numbers, has an answer, and its pieces are filled in.

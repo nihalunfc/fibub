@@ -638,4 +638,181 @@ export default {
     },
     verify: (p) => 100 / Math.sqrt(p.N),
   },
+  // ---------- Module 5 ----------
+  'scale-from-z': {
+    title: 'how far apart were they then?',
+    make(r) {
+      const z = pick(r, 0.5, 9, 0.5), d = pick(r, 100, 900, 50);
+      const a = 1 / (1 + z), answer = d * a;
+      return {
+        q: `<p>Two galaxy clusters are ${d} Mpc apart today. Light we see now from a gas cloud left it at redshift z = ${z}. How far apart, in Mpc, were the two clusters at that time? (Assume they simply moved with the expansion.)</p>`,
+        answer, unit: 'Mpc', tol: 0.01,
+        hint: 'The scale factor then was a = 1 / (1 + z). Every distance between far-apart things was a times today\'s.',
+        solution: steps(
+          `a = 1 ÷ (1 + ${z}) = ${n(a, 4)}.`,
+          `Distance then = a × today's = ${n(a, 4)} × ${d} = <b>${n(answer)} Mpc</b>.`),
+        z, d,
+      };
+    },
+    verify: (p) => p.d / (1 + p.z),
+  },
+  'friedmann-rate': {
+    title: 'expansion rate from density',
+    make(r) {
+      const atoms = pick(r, 2, 12, 0.5), rho = atoms * P.M_P;
+      const H = Math.sqrt((8 * Math.PI * P.G * rho) / 3), answer = (H * P.MPC) / 1000;
+      return {
+        q: `<p>A flat universe contains, on average, ${atoms} hydrogen atoms per cubic metre (one atom: 1.673 × 10<sup>−27</sup> kg). The Friedmann equation for a flat universe is H² = 8πGρ / 3. What is H, in km/s per Mpc? (G = 6.674 × 10<sup>−11</sup>; 1 Mpc = 3.086 × 10<sup>22</sup> m.)</p>`,
+        answer, unit: 'km/s/Mpc', tol: 0.01,
+        hint: 'Find ρ in kg/m³, then H in 1/s from the square root. Multiply by the metres in a Mpc and divide by 1,000 to get km/s per Mpc.',
+        solution: steps(
+          `ρ = ${atoms} × 1.673 × 10<sup>−27</sup> = ${n(rho)} kg/m³.`,
+          `H = √(8π × 6.674 × 10<sup>−11</sup> × ${n(rho)} ÷ 3) = ${n(H)} per second.`,
+          `× 3.086 × 10<sup>22</sup> m ÷ 1,000 = <b>${n(answer)} km/s per Mpc</b>. A few atoms per cubic metre are enough to set the whole universe's expansion rate.`),
+        atoms,
+      };
+    },
+    verify: (p) => Math.sqrt((8 * Math.PI * 6.6743e-11 * p.atoms * 1.67262192e-27) / 3) * 3.0857e22 / 1000,
+  },
+  'critical-density': {
+    title: 'atoms per cubic metre to make the universe flat',
+    make(r) {
+      const H0 = pick(r, 55, 85, 1), rc = P.criticalDensity(H0), answer = rc / P.M_P;
+      return {
+        q: `<p>The critical density is ρ<sub>c</sub> = 3H₀² / (8πG). For H₀ = ${H0} km/s per Mpc, how many hydrogen atoms per cubic metre is that? (1 Mpc = 3.086 × 10<sup>19</sup> km; G = 6.674 × 10<sup>−11</sup>; one atom 1.673 × 10<sup>−27</sup> kg.)</p>`,
+        answer, unit: 'atoms per m³', tol: 0.01,
+        hint: 'First turn H₀ into "per second": divide by 3.086 × 10¹⁹ (km in a Mpc). Then use the formula and divide by the mass of one atom.',
+        solution: steps(
+          `H₀ = ${H0} ÷ 3.086 × 10<sup>19</sup> = ${n((H0 * 1000) / P.MPC)} per second.`,
+          `ρ<sub>c</sub> = 3 × (${n((H0 * 1000) / P.MPC)})² ÷ (8π × 6.674 × 10<sup>−11</sup>) = ${n(rc)} kg/m³.`,
+          `÷ 1.673 × 10<sup>−27</sup> kg = <b>${n(answer)} atoms per m³</b>.`),
+        H0,
+      };
+    },
+    verify: (p) => (9.204e-27 * (p.H0 / 70) ** 2) / 1.67262e-27, // 9.204 × 10⁻²⁷ kg/m³ at H0 = 70
+  },
+  'triangle-sum': {
+    title: 'angles of a triangle on a curved world',
+    make(r) {
+      const R = pick(r, 1000, 7000, 500), A = pick(r, 0.5, 8, 0.5) * 1e6;
+      const answer = 180 + (A / (R * R)) * (180 / Math.PI);
+      return {
+        q: `<p>On a ball of radius R, the angles of a triangle add up to 180° plus (area ÷ R²) radians. On a round world of radius ${R.toLocaleString('en-CA')} km, a triangle encloses ${n(A)} km². What do its angles add up to, in degrees?</p>`,
+        answer, unit: '°', tol: 0.002,
+        hint: 'Work out area ÷ R², which is in radians, then turn it into degrees (× 180 ÷ π) and add 180°.',
+        solution: steps(
+          `Area ÷ R² = ${n(A)} ÷ ${n(R * R)} = ${n(A / (R * R))} radians.`,
+          `In degrees: × 57.30 = ${n((A / (R * R)) * 57.2958)}°.`,
+          `Angle sum = 180° + ${n((A / (R * R)) * 57.2958)}° = <b>${n(answer, 5)}°</b>. The bigger the triangle compared with the world, the bigger the excess: that is how you could detect curved space.`),
+        R, A,
+      };
+    },
+    verify: (p) => 180 + (p.A / (p.R * p.R)) * 57.29578,
+  },
+  'equality': {
+    title: 'when did matter take over from light?',
+    make(r) {
+      const Om = pick(r, 0.28, 0.34, 0.01), Or = pick(r, 8.5, 9.5, 0.1) * 1e-5;
+      const answer = Om / Or - 1;
+      return {
+        q: `<p>Today matter makes up Ω<sub>m</sub> = ${Om} of the critical density and radiation Ω<sub>r</sub> = ${n(Or * 1e5, 2)} × 10<sup>−5</sup>. Radiation thins as 1/a⁴ and matter as 1/a³, so they were equal when a = Ω<sub>r</sub> / Ω<sub>m</sub>. What redshift is that?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Find a at equality, then use 1 + z = 1 / a.',
+        solution: steps(
+          `a = ${n(Or)} ÷ ${Om} = ${n(Or / Om)}.`,
+          `1 + z = 1 ÷ a = ${n(Om / Or, 4)}, so z = <b>${n(answer, 4)}</b>.`,
+          'About 50,000 years after the Big Bang. Before then, light ruled the expansion; after, matter did.'),
+        Om, Or,
+      };
+    },
+    verify: (p) => p.Om / p.Or - 1,
+  },
+  'q-zero': {
+    title: 'speeding up or slowing down?',
+    make(r) {
+      const Om = pick(r, 0.1, 1.5, 0.05), OL = pick(r, 0, 1.2, 0.05);
+      const answer = Om / 2 - OL;
+      return {
+        q: `<p>A universe has Ω<sub>m</sub> = ${Om} (matter) and Ω<sub>Λ</sub> = ${OL} (dark energy). Its deceleration parameter is q₀ = Ω<sub>m</sub>/2 − Ω<sub>Λ</sub>. What is q₀? (Negative means the expansion is speeding up.)</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Halve the matter, then take away the dark energy.',
+        solution: steps(
+          `Ω<sub>m</sub>/2 = ${n(Om / 2)}.`,
+          `q₀ = ${n(Om / 2)} − ${OL} = <b>${n(answer)}</b>: the expansion is ${answer < 0 ? 'speeding up' : answer > 0 ? 'slowing down' : 'coasting'}.`),
+        Om, OL,
+      };
+    },
+    verify: (p) => p.Om / 2 - p.OL,
+  },
+  'de-sitter-doubling': {
+    title: 'how fast does a dark-energy universe double?',
+    make(r) {
+      const H0 = pick(r, 60, 80, 1), OL = pick(r, 0.6, 0.8, 0.01);
+      const Hinf = H0 * Math.sqrt(OL), answer = Math.LN2 * (977.79 / Hinf);
+      return {
+        q: `<p>Far in the future only dark energy matters, and the expansion rate settles at H = H₀ √Ω<sub>Λ</sub>. Then the universe grows like a savings account at a fixed interest rate: it doubles every ln 2 ÷ H. With H₀ = ${H0} km/s/Mpc and Ω<sub>Λ</sub> = ${OL}, what is the doubling time in billion years? (1 ÷ (1 km/s/Mpc) = 977.8 billion years.)</p>`,
+        answer, unit: 'billion years', tol: 0.01,
+        hint: 'Find H, turn 1/H into billions of years with 977.8 ÷ H, then multiply by ln 2 ≈ 0.693.',
+        solution: steps(
+          `H = ${H0} × √${OL} = ${n(Hinf)} km/s/Mpc.`,
+          `1 / H = 977.8 ÷ ${n(Hinf)} = ${n(977.79 / Hinf)} billion years.`,
+          `Doubling time = 0.693 × ${n(977.79 / Hinf)} = <b>${n(answer)} billion years</b>.`),
+        H0, OL,
+      };
+    },
+    verify: (p) => 0.693147 * 977.79 / (p.H0 * Math.sqrt(p.OL)),
+  },
+  'luminosity-distance': {
+    title: 'how far does its faintness say it is?',
+    make(r) {
+      const z = pick(r, 0.2, 3, 0.1), dc = Math.round(P.comovingMpc(z, P.PLANCK18) / 10) * 10;
+      const answer = (1 + z) * dc;
+      return {
+        q: `<p>A supernova at redshift z = ${z} is now ${dc.toLocaleString('en-CA')} Mpc away (comoving distance). Its light is dimmed both by distance and by the stretching of each photon and of the time between photons, so the inverse square law works with the luminosity distance d<sub>L</sub> = (1 + z) × comoving distance. What is d<sub>L</sub> in Mpc?</p>`,
+        answer, unit: 'Mpc', tol: 0.01,
+        hint: 'Multiply the comoving distance by 1 + z.',
+        solution: steps(
+          `1 + z = ${n(1 + z)}.`,
+          `d<sub>L</sub> = ${n(1 + z)} × ${dc.toLocaleString('en-CA')} = <b>${n(answer)} Mpc</b>: the supernova looks as faint as one this far away in a static universe would.`),
+        z, dc,
+      };
+    },
+    verify: (p) => (1 + p.z) * p.dc,
+  },
+  'hubble-sphere': {
+    title: 'where do galaxies recede at the speed of light?',
+    make(r) {
+      const H0 = pick(r, 60, 80, 1), mpc = 299792.458 / H0, answer = (mpc * P.MPC) / P.LY / 1e9;
+      return {
+        q: `<p>By Hubble's law, a galaxy at distance c / H₀ recedes at exactly the speed of light (299,792 km/s). For H₀ = ${H0} km/s per Mpc, how far is that, in billions of light-years? (1 Mpc = 3.262 million light-years.)</p>`,
+        answer, unit: 'billion ly', tol: 0.01,
+        hint: 'Divide the speed of light by H₀ to get Mpc, then convert to billions of light-years.',
+        solution: steps(
+          `c / H₀ = 299,792 ÷ ${H0} = ${n(mpc)} Mpc.`,
+          `× 3.262 million ly = ${n(mpc * 3.2616)} million ly = <b>${n(answer)} billion light-years</b>.`,
+          'Galaxies beyond this are moving away faster than light today, yet we can still see many of them: their old light was sent when they were inside our reach.'),
+        H0,
+      };
+    },
+    verify: (p) => (299792.458 / p.H0) * 3.26156e-3,
+  },
+  'flat-age': {
+    title: 'the age of a universe you build',
+    make(r) {
+      const Om = pick(r, 0.2, 0.5, 0.01), H0 = pick(r, 60, 80, 1);
+      const answer = P.flatAgeGyr(H0, Om), OL = 1 - Om;
+      return {
+        q: `<p>A flat universe has Ω<sub>m</sub> = ${Om}, Ω<sub>Λ</sub> = ${n(OL, 3)} and H₀ = ${H0} km/s/Mpc. Its age has an exact formula: t = (2 ÷ (3√Ω<sub>Λ</sub>)) × asinh(√(Ω<sub>Λ</sub> / Ω<sub>m</sub>)) × (977.8 ÷ H₀) billion years. How old is it? (asinh x = ln(x + √(x² + 1)).)</p>`,
+        answer, unit: 'billion years', tol: 0.01,
+        hint: 'Work it in pieces: √(ΩΛ/Ωm), its asinh, then the factor 2/(3√ΩΛ), then the Hubble time 977.8/H₀.',
+        solution: steps(
+          `√(${n(OL, 3)} ÷ ${Om}) = ${n(Math.sqrt(OL / Om), 4)}; asinh of that = ${n(Math.asinh(Math.sqrt(OL / Om)), 4)}.`,
+          `2 ÷ (3 × √${n(OL, 3)}) = ${n(2 / (3 * Math.sqrt(OL)), 4)}.`,
+          `Hubble time: 977.8 ÷ ${H0} = ${n(977.79 / H0, 4)} billion years.`,
+          `Age = ${n(2 / (3 * Math.sqrt(OL)), 4)} × ${n(Math.asinh(Math.sqrt(OL / Om)), 4)} × ${n(977.79 / H0, 4)} = <b>${n(answer)} billion years</b>.`),
+        Om, H0,
+      };
+    },
+    verify: (p) => P.ageGyr(0, { H0: p.H0, Om: p.Om, OL: 1 - p.Om }),
+  },
 };
