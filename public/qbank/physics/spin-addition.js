@@ -7,6 +7,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './spin-addition.more.gen.js';
 import more2 from './spin-addition.more2.gen.js';
 import r4 from './spin-addition.r4.gen.js';
+import r5 from './spin-addition.r5.gen.js';
 
 const half = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
 const ls = (l, j) => (j * (j + 1) - l * (l + 1) - 0.75) / 2;            // <L·S>/ħ² for s = 1/2
@@ -206,6 +207,7 @@ export default {
       sol: '$J_z = J_{1z} + J_{2z}$ forces $m = m_1 + m_2$. The coupled and product bases span the same space, so the dimensions match. The stretched state has only one product state with $m = j_1 + j_2$. For $j_1 = j_2 = j$ the exchange sign is $(-1)^{2j - J}$, so half the multiplets (alternately) are antisymmetric, such as the singlet of two spin-$\\tfrac12$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'qsa-g01', type: 'nat', level: 1, exams: ['gate', 'net', 'jam'], sub: 'addition rules',
@@ -329,5 +331,6 @@ export default {
       verify: (p) => { const P = cgUp(p.l, p.j, p.m), sz = (P - 0.5); return p.what === 'Sz' ? sz : p.m - sz; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
