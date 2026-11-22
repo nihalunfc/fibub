@@ -16,9 +16,16 @@ quiz:
     choices: ['3 %', '0.02 %', '2 %']
     ans: 1
     why: 'For independent events, P(A and B) = P(A) × P(B) = 0.01 × 0.02 = 0.0002 = 0.02 %.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Chapter 3 Probability https://www.openintro.org/book/os/'
+  - 'Blitzstein, J. and Hwang, J. (2019), Introduction to Probability, 2nd edition, CRC Press, Chapters 1-2 https://projects.iq.harvard.edu/stat110'
 ---
 
 **Module 2 · about 20 minutes · school maths.** You'll be able to use the complement, addition and multiplication rules, tell when events are independent, and compute a conditional probability.
+
+<div class="bigidea">A probability is a share of all the possible cases, so every rule of probability is just careful counting.</div>
+
+**In everyday terms:** picture 100 customers standing in a hall. "The chance a customer used a coupon" is how many of the 100 did. "The chance a coupon user returned the item" means: send everyone else out of the hall, then count again.
 
 ## 1. Probability is counting
 
@@ -70,6 +77,37 @@ Two events are **independent** when knowing one tells you nothing about the othe
 
 Lift above 1 means the items go together.
 
+<div class="meaning">
+
+<dl>
+<dt>P(A)</dt><dd>Share of all cases where A happens, from 0 (never) to 1 (always).</dd>
+<dt>P(not A) = 1 − P(A)</dt><dd>The complement: everything that is not A.</dd>
+<dt>P(A or B) = P(A) + P(B) − P(A and B)</dt><dd>Add, but take away the overlap you counted twice.</dd>
+<dt>P(A | B)</dt><dd>"A given B": the share of the B cases that are also A. The bar means "only look at B".</dd>
+<dt>Independent</dt><dd>Knowing B tells you nothing about A: P(A | B) = P(A).</dd>
+<dt>Physical meaning</dt><dd>Conditioning is zooming in. P(returned | discount) zooms in on discounted orders only and asks what share of that smaller crowd came back.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"P(A | B) and P(B | A) are the same thing."** The share of discounted orders that were returned (90 of 600 = 15 %) is not the share of returned orders that had a discount (90 of 150 = 60 %). Always ask: out of which group?
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The table.</b> 2,000 orders: 600 used a discount, 150 were returned, and 90 did both.</div>
+<div class="step"><b>Complement.</b> P(kept) = 1 − 150/2,000 = 1 − 0.075 = 0.925.</div>
+<div class="step"><b>Or.</b> P(discount or returned) = 600/2,000 + 150/2,000 − 90/2,000 = 660/2,000 = 0.33. The 90 would be counted twice without the subtraction.</div>
+<div class="step"><b>Given.</b> Zoom in on the 600 discounted orders: 90 were returned, so P(returned | discount) = 0.15.</div>
+<div class="step"><b>Compare.</b> Without a discount: 60 of 1,400 ≈ 0.043. Discounted orders come back about 3.5 times as often, so the two are not independent.</div>
+</div>
+
+<div class="problem" data-problem="probability-given"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -114,3 +152,13 @@ Whether discounts *cause* returns is a different question (Lesson 8.3); the tabl
 **Try it on your own data:** the [[probability-tree]] draws "and" and "given" as branches, the [[sample-space]] builder counts outcomes for dice and cards, and [[crosstab-chi-square]] builds a table like the one above from a CSV.
 
 **New words:** *probability*, *complement*, *mutually exclusive*, *conditional probability*, *independent*, *lift*.
+
+<div class="keypoints">
+
+- Probability = favourable cases ÷ all cases; a two-way table of counts makes every rule visible.
+- Complement: P(not A) = 1 − P(A).
+- Or: add, then subtract the overlap.
+- Given: divide by the size of the group you are looking inside; P(A | B) ≠ P(B | A).
+- Independent events: P(A and B) = P(A) × P(B).
+
+</div>

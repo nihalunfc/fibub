@@ -16,9 +16,16 @@ quiz:
     choices: ['No, it needs to be 40 times bigger', 'Yes, nearly: precision depends on the sample size, not the population size, unless the sample is a big share of the population', 'Only if the country is homogeneous']
     ans: 1
     why: 'The standard error depends on n, not on N. A spoonful of well-stirred soup tells you the taste whether the pot holds 1 litre or 40.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 1.3 Sampling principles and strategies https://www.openintro.org/book/os/'
+  - 'Lohr, S. L. (2021), Sampling: Design and Analysis, 3rd edition, CRC Press, Chapter 1'
 ---
 
 **Module 4 · about 20 minutes · school maths.** You'll be able to tell populations from samples and parameters from statistics, explain random sampling, and describe sampling variation.
+
+<div class="bigidea">You measure a sample to learn about a population, and a random sample of a thousand can describe millions, give or take a known wobble.</div>
+
+**In everyday terms:** to check a pot of soup you taste one spoonful, not the whole pot. It works if you stir first (random sampling). A spoon from the unstirred top tells you about the top only.
 
 ## 1. The words
 
@@ -47,6 +54,35 @@ Each random sample gives a different answer. That spread of answers is **samplin
 
 1. Bigger samples scatter less, but only with the **square root** of the size (Lesson 4.4).
 2. The size of the **population** hardly matters. What matters is the size of the sample and that it is random.
+
+<div class="meaning">
+
+<dl>
+<dt>Population</dt><dd>Everyone you want to know about: all 800,000 members, all future visitors.</dd>
+<dt>Sample</dt><dd>The ones you actually measured.</dd>
+<dt>Parameter (p, μ)</dt><dd>The true number for the population. Usually unknown.</dd>
+<dt>Statistic (p̂, x̄)</dt><dd>The same number worked out from the sample. Known, but wobbly.</dd>
+<dt>Physical meaning</dt><dd>Every sample is a different spoonful, so every statistic lands a bit off the truth. How much it wobbles depends on the size of the spoon (n), almost not at all on the size of the pot.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A sample must be a big share of the population to be useful."** A random sample of 1,000 gives about ±3 points whether the population is 50,000 or 50 million. What matters is how many you sample and how randomly, not what share.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The survey.</b> 2,000 of 800,000 loyalty members are emailed at random; 400 reply; 62 % of them want same-day delivery.</div>
+<div class="step"><b>Name the parts.</b> Population: 800,000 members. Parameter: the true share p. Sample: 400 replies. Statistic: p̂ = 0.62.</div>
+<div class="step"><b>Size of the wobble.</b> √(0.62 × 0.38 ÷ 400) ≈ 0.024, about ±2.4 points for a typical sample.</div>
+<div class="step"><b>The catch.</b> Only 20 % replied. If repliers differ from the rest, the error could be much bigger than the formula says (Lesson 4.2).</div>
+</div>
+
+<div class="problem" data-problem="sampling-wobble"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -84,3 +120,12 @@ Each random sample gives a different answer. That spread of answers is **samplin
 **Try it on your own data:** the [[sample-size]] calculator says how many to sample for a chosen margin of error, and the [[sample-chopper]] splits a list into random groups.
 
 **New words:** *population*, *sample*, *parameter*, *statistic*, *estimate*, *simple random sample*, *stratified sample*, *sampling variation*, *sampling distribution*.
+
+<div class="keypoints">
+
+- Population = who you care about; sample = who you measured.
+- Parameters describe the population; statistics describe the sample and estimate parameters.
+- Random sampling makes the error predictable: about √(p(1 − p)/n) for a share.
+- Population size barely matters; sample size and randomness do.
+
+</div>

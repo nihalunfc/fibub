@@ -1,0 +1,18 @@
+---
+import ExamPracticeTopic from '../../../../../components/qbank/ExamPracticeTopic.astro';
+import { NET_PHYSICS, NET_BANK } from '../../../../../courses/csir-net-physics/syllabus';
+import { bankCounts } from '../../../../../lib/qbank/build';
+import { courseLessons } from '../../../../../lib/course';
+import { flatLessons } from '../../../../../courses/types';
+export async function getStaticPaths() {
+  const { idx, topics } = await bankCounts(NET_BANK.bank);
+  const live = await courseLessons(NET_PHYSICS);
+  const lessons = flatLessons(NET_PHYSICS).filter((l) => live.has(l.slug));
+  return idx.units.flatMap((u) => u.topics.filter((t) => (topics[t.id]?.exams['net'] ?? 0) > 0).map((t) => ({
+    params: { topic: t.id },
+    props: { topic: t, unit: u.name, count: topics[t.id].exams['net'], lesson: lessons.find((l) => l.slug === t.id) },
+  })));
+}
+const { topic, unit, count, lesson } = Astro.props as any;
+---
+<ExamPracticeTopic course={NET_PHYSICS} {...NET_BANK} topic={topic} unit={unit} count={count} lesson={lesson} />

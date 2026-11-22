@@ -16,9 +16,16 @@ quiz:
     choices: ['For medians', 'With very small samples, or for extremes like the maximum, which a resample can never exceed', 'When the data is not normal']
     ans: 1
     why: 'A resample can only contain values you saw, so tiny samples and the largest values are poorly covered. Non-normal data is exactly where it helps.'
+sources:
+  - 'Efron, B. and Tibshirani, R. J. (1993), An Introduction to the Bootstrap, Chapman and Hall/CRC'
+  - 'Cetinkaya-Rundel, M. and Hardin, J. (2021), Introduction to Modern Statistics, OpenIntro, Chapter 12 Confidence intervals with bootstrapping https://openintro-ims.netlify.app/foundations-bootstrapping.html'
 ---
 
 **Module 4 · about 20 minutes · no new maths.** You'll be able to explain and run a bootstrap, read a percentile interval, and know when to trust it.
+
+<div class="bigidea">When there is no formula for the uncertainty, resample your own data with replacement many times and see how much the answer moves.</div>
+
+**In everyday terms:** you cannot go back and survey new customers, so you pretend your 20 customers are the whole world and draw new crowds of 20 from them, allowing repeats. How much the median changes from crowd to crowd is how unsure you should be.
 
 ## 1. No formula? Resample
 
@@ -51,6 +58,35 @@ Try the median, then the mean, then the 90th percentile. The P90's interval is w
 - **Extremes** (minimum, maximum): a resample can never exceed the observed max.
 - **Dependent data:** resample the independent units (customers, stores, days), not rows. If one customer has 50 orders, resample customers with all their orders (a "cluster bootstrap").
 - **Use a seed** (`random_state`) so others can repeat your numbers.
+
+<div class="meaning">
+
+<dl>
+<dt>Resample with replacement</dt><dd>Draw n values from your n, putting each back, so some appear twice and some not at all.</dd>
+<dt>Bootstrap statistic</dt><dd>The median (or any statistic) of one resample.</dd>
+<dt>Percentile interval</dt><dd>The middle 95 % of thousands of bootstrap statistics: from the 2.5th to the 97.5th percentile.</dd>
+<dt>Physical meaning</dt><dd>Your sample is the best picture you have of the population. Resampling it mimics "what if I had drawn a different sample?", so the scatter of the results stands in for the real sampling wobble.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The bootstrap creates new data."** It only reuses what you have. With 8 values or a sample that missed rare big customers, the bootstrap cannot know what it never saw, and its intervals come out too narrow.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> 20 order values, median $32.</div>
+<div class="step"><b>One resample.</b> Draw 20 values from the 20, with replacement: the $140 order might appear twice, the $12 one not at all. Its median: maybe $29.</div>
+<div class="step"><b>Repeat.</b> Do it 5,000 times and keep each median.</div>
+<div class="step"><b>Sort.</b> The 2.5th percentile of the 5,000 medians is about $24.5, the 97.5th about $43.</div>
+<div class="step"><b>Report.</b> "Median order $32 (95 % bootstrap interval about $25 to $43, n = 20)."</div>
+</div>
+
+<div class="problem" data-problem="bootstrap-count"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -90,3 +126,12 @@ Try the median, then the mean, then the 90th percentile. The P90's interval is w
 **Try it on your own data:** the [[bootstrap-permutation]] tool runs percentile and BCa bootstrap intervals for a mean, median, SD or difference, seeded so results repeat. The ML course uses bootstrap samples to build random forests ([bagging](/learn/courses/ml-foundations/bagging-bootstrap/)).
 
 **New words:** *bootstrap*, *resample*, *with replacement*, *percentile interval*, *bootstrap standard error*, *cluster bootstrap*.
+
+<div class="keypoints">
+
+- Resample your data with replacement, recompute the statistic, repeat thousands of times.
+- The middle 95 % of the results is a percentile bootstrap interval.
+- Works for medians, percentiles, ratios and skewed revenue, where formulas are awkward.
+- It needs a reasonable sample and independent rows; it cannot invent rare values you never saw.
+
+</div>

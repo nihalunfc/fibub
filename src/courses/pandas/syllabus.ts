@@ -8,6 +8,7 @@ import type { CourseSyllabus } from '../types';
 
 export const PANDAS: CourseSyllabus = {
   id: 'pandas',
+  kit: true,
   name: 'Python pandas for analysis',
   title: 'Python pandas for analysis: clean, group, join and reshape data',
   text: 'Learn pandas by doing: real Python runs in the page, so every example can be edited and run, and every exercise checks your answer. Cleaning, filtering, grouping, joins, reshaping, dates and the analyses employers ask for, ending with a retail analysis notebook for your portfolio.',
