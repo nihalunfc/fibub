@@ -50,6 +50,10 @@ Faced with stress, organisms can:
 
 <div class="problem" data-problem="pop-rate"></div>
 
+Slide the number of children per woman and the life expectancy to see the shape of the pyramid.
+
+<figure class="fig" data-fig="@bio-age-pyramid"><figcaption>A wide base means a growing population; the three bands (pre-reproductive, reproductive, post-reproductive) show how it will change.</figcaption></figure>
+
 ## 3. Population growth
 
 Four processes change N: **natality** (B, births) and **immigration** (I) add; **mortality** (D, deaths) and **emigration** (E) remove.
@@ -103,6 +107,10 @@ Four processes change N: **natality** (B, births) and **immigration** (I) add; *
 <dt>Physical meaning</dt><dd>Exponential growth is a bank balance with fixed interest; logistic growth is the same balance with a bank that pays less interest the fuller your account gets.</dd>
 </dl>
 </div>
+
+Slide the three rates and press play: follow the dot round the loop on the right.
+
+<figure class="fig" data-fig="@bio-lotka-volterra"><figcaption>Prey rise, then predators rise after them, then prey fall, then predators: a delayed cycle that repeats around an equilibrium.</figcaption></figure>
 
 <div class="keypoints">
 

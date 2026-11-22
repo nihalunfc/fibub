@@ -95,6 +95,10 @@ PGRs are small molecules of varied chemistry: indole compounds (IAA), adenine de
 </dl>
 </div>
 
+Shine light from one side, then cover or cut off the tip, and watch where the auxin goes and which way the shoot bends.
+
+<figure class="fig" data-fig="@bio-auxin-phototropism"><figcaption>Light from the left sends auxin to the right (shaded) side, which grows faster, so the shoot curves toward the light; a covered tip cannot detect light and a cut tip makes no auxin.</figcaption></figure>
+
 <div class="keypoints">
 
 - Growth is irreversible; plant growth is open because of meristems; measure cells, size, length, area or weight.

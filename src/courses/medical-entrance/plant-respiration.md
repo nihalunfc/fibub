@@ -56,6 +56,10 @@ Net gain is only the **2 ATP** of glycolysis; less than 7% of the energy in gluc
 
 </div>
 
+Change the temperature and the sugar concentration and watch the CO₂ bubbles speed up and slow down.
+
+<figure class="fig" data-fig="@bio-yeast-fermentation"><figcaption>Fermentation (anaerobic) still gives 2 ATP per glucose; the rate follows an enzyme curve, with an optimum and then denaturation.</figcaption></figure>
+
 ## 3. Aerobic respiration in the mitochondrion
 
 **Link reaction** (matrix). Pyruvic acid + CoA + NAD⁺ → **acetyl CoA** + CO₂ + NADH, by the **pyruvate dehydrogenase** complex (needs Mg²⁺). Per glucose: 2 NADH, 2 CO₂.
@@ -65,6 +69,10 @@ Net gain is only the **2 ATP** of glycolysis; less than 7% of the energy in gluc
 Per turn: **3 NADH, 1 FADH₂, 1 GTP (ATP), 2 CO₂**. One glucose turns the cycle **twice**.
 
 **Electron transport system** (inner mitochondrial membrane). NADH hands electrons to **complex I** (NADH dehydrogenase); FADH₂ from succinate enters at **complex II**. Electrons pass to **ubiquinone**, then **complex III** (cytochrome bc₁), the small mobile protein **cytochrome c**, and **complex IV** (cytochrome c oxidase, with cytochromes a and a₃ and two copper centres). **Oxygen** is the final acceptor and becomes water. Pumped protons flow back through **complex V, ATP synthase**: F₀ forms the channel in the membrane and F₁, the knob, makes ATP. This is **oxidative phosphorylation**. Oxygen's job is only at the very end, yet without it the whole chain stops.
+
+Press each poison in turn and see which steps stop and why: the proton gradient links the chain to ATP synthase.
+
+<figure class="fig" data-fig="@bio-etc-chain"><figcaption>Notice that blocking complex IV stops ATP making even though ATP synthase itself is fine, and that an uncoupler makes the chain run faster while ATP falls.</figcaption></figure>
 
 ## 4. The ATP balance sheet
 

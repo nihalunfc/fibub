@@ -85,6 +85,10 @@ Water then leaves the collecting duct into this salty medulla, so the kidney can
 
 </div>
 
+Change the ADH level and compare the water leaving the collecting duct and the urine concentration.
+
+<figure class="fig" data-fig="@bio-countercurrent"><figcaption>The ascending limb pumps salt out and the descending limb loses water, building the gradient (300 to 1200 mOsm/L). ADH makes the collecting duct leaky to water, so urine can become concentrated.</figcaption></figure>
+
 ## 5. Regulation
 
 - **ADH (vasopressin):** when the body loses fluid, **osmoreceptors** stimulate the hypothalamus, and the **neurohypophysis** releases ADH. It makes the late parts of the tubule take back water, preventing **diuresis** (much urine). Plenty of fluid switches it off. ADH also narrows blood vessels and raises blood pressure.
