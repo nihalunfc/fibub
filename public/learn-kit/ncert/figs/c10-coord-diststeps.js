@@ -1,7 +1,7 @@
 // Class 10 Coordinate Geometry (step player): deriving the distance formula for A(1, 2) and B(7, 6).
 // Drop a horizontal line from A and a vertical one from B to meet at C: a right angle at C. AC = x2 - x1, BC = y2 - y1,
 // then Pythagoras gives AB^2 = 6^2 + 4^2 = 52, so AB = sqrt(52) = 2 sqrt(13).
-import { canvas, text, title, line, dot, arrow, row, slider, button, choice, readout, loop } from '../../kit.js';
+import { canvas, text, title, line, dot, arrow, row, slider, button, choice, readout, loop, touchGuard } from '../../kit.js';
 
 const fm = (v) => String(+(+v).toFixed(2));
 /** Equal-scale view: data x0..x1, y0..y1 fitted under the title. */
@@ -26,7 +26,8 @@ function grid(ctx, V, col, every = 1) {
 }
 /** Make points draggable. getV() gives the current view, pts are {x,y} objects, snap rounds to whole numbers. */
 function drag(cv, getV, pts, { snap = true, onmove, only } = {}) {
-  let k = -1; cv.c.style.touchAction = 'none';
+  let k = -1;
+  touchGuard(cv.c, (x, y) => { const V = getV(); return pts.some((p, i) => (!only || only.includes(i)) && (V.X(p.x) - x) ** 2 + (V.Y(p.y) - y) ** 2 < 28 * 28); });
   const pos = (e) => { const r = cv.c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   cv.c.addEventListener('pointerdown', (e) => {
     const V = getV(), [x, y] = pos(e); let best = 28 * 28; k = -1;

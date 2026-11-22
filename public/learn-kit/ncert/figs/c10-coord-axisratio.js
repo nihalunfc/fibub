@@ -1,7 +1,7 @@
 // Class 10 Coordinate Geometry: in what ratio does an axis divide AB? Where AB crosses the x-axis, y = 0. By the section formula
 // 0 = (k y2 + y1)/(k + 1), so k = -y1/y2: the ratio is |y1| : |y2| (the heights of A and B above and below the axis).
 // If A and B are on the same side the line meets the axis outside the segment, so the axis does not divide AB internally.
-import { canvas, text, title, line, dot, arrow, row, slider, button, choice, readout, loop } from '../../kit.js';
+import { canvas, text, title, line, dot, arrow, row, slider, button, choice, readout, loop, touchGuard } from '../../kit.js';
 
 const fm = (v) => String(+(+v).toFixed(2));
 /** Equal-scale view: data x0..x1, y0..y1 fitted under the title. */
@@ -26,7 +26,8 @@ function grid(ctx, V, col, every = 1) {
 }
 /** Make points draggable. getV() gives the current view, pts are {x,y} objects, snap rounds to whole numbers. */
 function drag(cv, getV, pts, { snap = true, onmove, only } = {}) {
-  let k = -1; cv.c.style.touchAction = 'none';
+  let k = -1;
+  touchGuard(cv.c, (x, y) => { const V = getV(); return pts.some((p, i) => (!only || only.includes(i)) && (V.X(p.x) - x) ** 2 + (V.Y(p.y) - y) ** 2 < 28 * 28); });
   const pos = (e) => { const r = cv.c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   cv.c.addEventListener('pointerdown', (e) => {
     const V = getV(), [x, y] = pos(e); let best = 28 * 28; k = -1;

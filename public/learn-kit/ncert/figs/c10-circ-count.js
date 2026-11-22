@@ -1,6 +1,6 @@
 // Class 10 Circles: how many tangents can be drawn from a point P? Inside the circle: none (every line through P cuts the circle
 // twice). On the circle: exactly one. Outside: exactly two. Drag P, or use the slider for its distance from the centre.
-import { canvas, text, title, line, dot, row, slider, readout, loop } from '../../kit.js';
+import { canvas, text, title, line, dot, row, slider, readout, loop, touchGuard } from '../../kit.js';
 
 export default function (host) {
   let d = 2, ang = 0.6, dir = -1;
@@ -12,7 +12,7 @@ export default function (host) {
   const out = readout(host); let G = {};
   const kind = () => (Math.abs(d - 1) < 0.03 ? 1 : d < 1 ? 0 : 2);
   function say() { const k = kind(); out.innerHTML = k === 0 ? 'P is <b>inside</b> the circle: <b>0 tangents</b>. Any line through P cuts the circle in two points.' : k === 1 ? 'P is <b>on</b> the circle: exactly <b>1 tangent</b>, at P itself.' : `P is <b>outside</b>: exactly <b>2 tangents</b>. Each has length √(OP² − r²) = <b>${Math.sqrt(d * d - 1).toFixed(2)} r</b>.`; cv.redraw(); }
-  cv.c.style.touchAction = 'none'; let on = false;
+  let on = false; touchGuard(cv.c, (x, y) => Math.hypot(x - G.px, y - G.py) < 24);
   const mv = (e) => { const r = cv.c.getBoundingClientRect(), x = e.clientX - r.left - G.cx, y = e.clientY - r.top - G.cy; d = Math.min(3, Math.hypot(x, y) / G.R); if (Math.abs(d - 1) < 0.05) d = 1; ang = Math.atan2(y, x); anim.pause(); s.set(d); say(); };
   cv.c.addEventListener('pointerdown', (e) => { const r = cv.c.getBoundingClientRect(); if (Math.hypot(e.clientX - r.left - G.px, e.clientY - r.top - G.py) < 34) { on = true; cv.c.setPointerCapture(e.pointerId); e.preventDefault(); } });
   cv.c.addEventListener('pointermove', (e) => on && mv(e));

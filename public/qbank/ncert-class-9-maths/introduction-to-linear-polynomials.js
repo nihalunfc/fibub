@@ -1,0 +1,66 @@
+// Class 9 Maths, Chapter 2 Introduction to Linear Polynomials: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('lp');
+const sg = (v) => String(v).replace('-', '−');
+const lin = (a, b) => `${a === 1 ? '' : a === -1 ? '−' : sg(a)}x ${b < 0 ? '−' : '+'} ${Math.abs(b)}`;
+const nz = (r, a, b) => { const v = pick(r, a, b); return v || b; };
+
+export default {
+  topic: 'introduction-to-linear-polynomials', name: 'Introduction to Linear Polynomials', n: 2,
+  items: [
+    m.mcq(1, 'polynomial', '<p>Which of these is a polynomial in $x$?</p>', '$5x^3 - x + 2$', ['$\\dfrac{5}{x} + 2$', '$\\sqrt{x} + 2$', '$x^{-2} + x$'], '<p>Only the first has whole-number powers (3, 1, 0) of x.</p>'),
+    m.mcq(1, 'polynomial', '<p>The number 9, seen as a polynomial, is called:</p>', 'a constant polynomial', ['a linear polynomial', 'a quadratic polynomial', 'not a polynomial'], '<p>9 = 9x⁰, a polynomial of degree 0.</p>'),
+    m.mcq(1, 'degree', '<p>The degree of $7 - 3x + 2x^2$ is:</p>', '2', ['3', '7', '1'], '<p>The highest power of x is 2.</p>', { trap: 'The order of writing does not matter: look for the highest power.' }),
+    m.mcq(1, 'degree', '<p>A polynomial of degree 1 is called:</p>', 'linear', ['constant', 'quadratic', 'cubic'], '<p>Degree 1 is linear.</p>'),
+    m.mcq(2, 'degree', '<p>The degree of the polynomial $x^4 \\cdot 0 + 3x + 1$ (that is, $0x^4 + 3x + 1$) is:</p>', '1', ['4', '3', '0'], '<p>The x⁴ term has coefficient 0, so it vanishes. The highest power left is 1.</p>', { trap: 'A zero coefficient does not count towards the degree.' }),
+    m.mcq(1, 'value', '<p>If $p(x) = 3x + 4$, then $p(2)$ is:</p>', '10', ['9', '6', '14'], '<p>3(2) + 4 = 10.</p>'),
+    m.mcq(2, 'value', '<p>If $p(x) = 5 - 2x$, then $p(-3)$ is:</p>', '11', ['−1', '−11', '1'], '<p>5 − 2(−3) = 5 + 6 = 11.</p>', { trap: 'Two minus signs make a plus.' }),
+    m.mcq(2, 'value', '<p>For $p(x) = ax + 3$ with $p(2) = 11$, the value of $a$ is:</p>', '4', ['3', '5', '7'], '<p>2a + 3 = 11, so a = 4.</p>'),
+    m.mcq(1, 'zero', '<p>The zero of $x - 7$ is:</p>', '7', ['−7', '0', '1/7'], '<p>x − 7 = 0 gives x = 7.</p>'),
+    m.mcq(2, 'zero', '<p>The zero of $2x + 9$ is:</p>', '$-\\dfrac{9}{2}$', ['$\\dfrac{9}{2}$', '9', '−9'], '<p>2x = −9, so x = −9/2.</p>', { trap: 'The zero of ax + b is −b/a.' }),
+    m.mcq(2, 'zero', '<p>If $x = 4$ is a zero of $3x - k$, then $k$ is:</p>', '12', ['−12', '4', '3/4'], '<p>3(4) − k = 0, so k = 12.</p>'),
+    m.mcq(3, 'zero', '<p>A linear polynomial $ax + b$ (with $a \\neq 0$) has how many zeros?</p>', 'exactly one', ['none', 'two', 'infinitely many'], '<p>x = −b/a is the only solution of ax + b = 0.</p>'),
+    m.mcq(1, 'graph', '<p>The graph of a linear polynomial is a:</p>', 'straight line', ['parabola', 'circle', 'point'], '<p>That is why it is called linear.</p>'),
+    m.mcq(2, 'graph', '<p>The line $y = 5x - 3$ cuts the y-axis at:</p>', '$(0, -3)$', ['$(0, 5)$', '$(-3, 0)$', '$(3/5, 0)$'], '<p>Put x = 0: y = −3.</p>'),
+    m.mcq(2, 'graph', '<p>The line $y = 2x - 6$ meets the x-axis at:</p>', '$(3, 0)$', ['$(0, 3)$', '$(-3, 0)$', '$(0, -6)$'], '<p>Put y = 0: 2x = 6, so x = 3.</p>', { trap: 'x-axis means y = 0; y-axis means x = 0.' }),
+    m.mcq(2, 'graph', '<p>Which point lies on the line $y = 3x + 1$?</p>', '$(2, 7)$', ['$(2, 6)$', '$(1, 5)$', '$(0, 3)$'], '<p>3(2) + 1 = 7.</p>'),
+    m.mcq(2, 'slope', '<p>In the line $y = -4x + 9$ the slope is:</p>', '−4', ['9', '4', '−9'], '<p>The coefficient of x is the slope; the line falls as x increases.</p>'),
+    m.mcq(3, 'slope', '<p>The line through $(0, 2)$ and $(3, 11)$ has slope:</p>', '3', ['9', '2', '1/3'], '<p>(11 − 2)/(3 − 0) = 3.</p>'),
+    m.mcq(3, 'slope', '<p>Which line is parallel to $y = 2x + 5$ (same slope)?</p>', '$y = 2x - 1$', ['$y = 5x + 2$', '$y = -2x + 5$', '$y = x + 5$'], '<p>Parallel lines have equal slopes: both have a = 2.</p>'),
+    m.mcq(3, 'application', '<p>A cab fare is $F = 14x + 40$ rupees for $x$ km. For ₹180 the distance is:</p>', '10 km', ['13 km', '9 km', '12.86 km'], '<p>14x + 40 = 180 gives 14x = 140 and x = 10.</p>'),
+    m.ar(2, 'polynomial', '$\\dfrac{1}{x} + 3$ is not a polynomial.', 'In a polynomial the powers of $x$ must be whole numbers.', 0, '<p>1/x = x⁻¹ has power −1, so it is not a polynomial. Both true, R explains A.</p>'),
+    m.ar(2, 'zero', 'The zero of $5x + 10$ is $-2$.', 'The zero of $ax + b$ is $\\dfrac{b}{a}$.', 2, '<p>A is true (5(−2) + 10 = 0). R is false: it is −b/a.</p>'),
+    m.ar(3, 'degree', 'The polynomial $0x^2 + 4x + 1$ has degree 2.', 'The degree is the highest power of $x$ in the polynomial.', 3, '<p>A is false: the x² term has coefficient 0, so the degree is 1. R is true as a statement (of terms that are present).</p>'),
+    m.ar(3, 'graph', 'The line $y = 3x + 6$ cuts the x-axis at $x = -2$.', 'The zero of the polynomial $3x + 6$ is where its graph meets the x-axis.', 0, '<p>3x + 6 = 0 gives x = −2, so A is true, and R explains it.</p>'),
+    m.nat(1, 'value', '<p>Find $p(5)$ for $p(x) = 2x - 3$.</p>', () => 7, 0, '<p>2(5) − 3 = 7.</p>'),
+    m.nat(2, 'zero', '<p>Find the zero of $6x - 15$ as a decimal.</p>', () => 2.5, 0.001, '<p>6x = 15, so x = 2.5.</p>'),
+    m.nat(2, 'slope', '<p>Find the slope of the line through $(1, 4)$ and $(5, -4)$.</p>', () => -2, 0, '<p>(−4 − 4)/(5 − 1) = −2.</p>'),
+    m.nat(3, 'application', '<p>A plan costs ₹100 plus ₹3 per unit, and another ₹40 plus ₹5 per unit. For how many units do they cost the same?</p>', () => 30, 0, '<p>100 + 3x = 40 + 5x gives 60 = 2x, so x = 30.</p>'),
+    m.msq(2, 'polynomial', '<p>Which of these are polynomials in $x$? (Choose all that apply.)</p>', ['$4x - 9$', '$x^2 + \\sqrt{3}$', '$\\dfrac{2}{x^2}$', '$7$'], [0, 1, 3], '<p>√3 is just a number, so x² + √3 is a polynomial. 2/x² has x in the denominator (power −2), so it is not.</p>'),
+    m.msq(3, 'graph', '<p>The line $y = 2x + 4$. Which are true?</p>', ['It cuts the y-axis at (0, 4).', 'Its zero is −2.', 'Its slope is 4.', 'It passes through (1, 6).'], [0, 1, 3], '<p>b = 4. Zero: 2x + 4 = 0, x = −2. The slope is 2 (not 4). At x = 1, y = 6.</p>'),
+  ],
+  gens: [
+    { id: 'lp-g01', type: 'nat', level: 1, exams: ['board'], sub: 'value',
+      make(rng) { const a = nz(rng, -7, 7), b = pick(rng, -9, 9), x = pick(rng, -6, 6); return { a, b, x, q: `<p>If p(x) = ${lin(a, b)}, find p(${sg(x)}).</p>`, answer: a * x + b, tol: 0, sol: `<p>p(${sg(x)}) = ${sg(a)}(${sg(x)}) ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${sg(a * x + b)}.</p>` }; },
+      verify: (p) => p.a * p.x + p.b },
+    { id: 'lp-g02', type: 'nat', level: 2, exams: ['board'], sub: 'zero',
+      make(rng) { const a = nz(rng, -6, 6), z = pick(rng, -8, 8), b = -a * z; return { a, b, z, q: `<p>Find the zero of ${lin(a, b)}.</p>`, answer: z, tol: 0, sol: `<p>${sg(a)}x = ${sg(-b)}, so x = ${sg(z)}.</p>` }; },
+      verify: (p) => -p.b / p.a },
+    { id: 'lp-g03', type: 'nat', level: 2, exams: ['board'], sub: 'zero',
+      make(rng) { const a = nz(rng, -6, 6), z = pick(rng, -6, 6); return { a, z, q: `<p>Find k so that x = ${sg(z)} is a zero of ${sg(a)}x + k.</p>`, answer: -a * z, tol: 0, sol: `<p>${sg(a)}(${sg(z)}) + k = 0, so k = ${sg(-a * z)}.</p>` }; },
+      verify: (p) => 0 - p.a * p.z },
+    { id: 'lp-g04', type: 'nat', level: 2, exams: ['board'], sub: 'slope',
+      make(rng) { const a = nz(rng, -5, 5), b = pick(rng, -6, 6), x1 = pick(rng, -4, 1), x2 = x1 + pick(rng, 2, 5); return { a, b, x1, x2, q: `<p>A line passes through (${sg(x1)}, ${sg(a * x1 + b)}) and (${sg(x2)}, ${sg(a * x2 + b)}). Find its slope.</p>`, answer: a, tol: 0, sol: `<p>Slope = (${sg(a * x2 + b)} − (${sg(a * x1 + b)}))/(${sg(x2)} − (${sg(x1)})) = ${sg(a)}.</p>` }; },
+      verify: (p) => ((p.a * p.x2 + p.b) - (p.a * p.x1 + p.b)) / (p.x2 - p.x1) },
+    { id: 'lp-g05', type: 'nat', level: 2, exams: ['board'], sub: 'graph',
+      make(rng) { const a = nz(rng, -5, 5), b = pick(rng, -9, 9); return { a, b, q: `<p>At which y-value does the line y = ${lin(a, b)} cut the y-axis?</p>`, answer: b, tol: 0, sol: `<p>Put x = 0: y = ${sg(b)}.</p>` }; },
+      verify: (p) => p.a * 0 + p.b },
+    { id: 'lp-g06', type: 'nat', level: 3, exams: ['board'], sub: 'application',
+      make(rng) { const f = choose(rng, [20, 30, 40, 50, 60]), r = choose(rng, [8, 10, 12, 15]), km = pick(rng, 3, 25); return { f, r, km, tot: f + r * km, q: `<p>A taxi charges ₹${f} plus ₹${r} per km. A passenger paid ₹${f + r * km}. How many km did she travel?</p>`, answer: km, tol: 0, sol: `<p>${r}x + ${f} = ${f + r * km}, so x = ${km}.</p>` }; },
+      verify: (p) => (p.tot - p.f) / p.r },
+    { id: 'lp-g07', type: 'nat', level: 3, exams: ['board'], sub: 'application',
+      make(rng) { const x = pick(rng, 10, 60, 5), ra = pick(rng, 1, 4), rb = ra + pick(rng, 1, 4), fa = pick(rng, 60, 200, 10) + (rb - ra) * x, fb = fa - (rb - ra) * x; return { fa, fb, ra, rb, x, q: `<p>Plan A: ₹${fa} + ₹${ra} per unit. Plan B: ₹${fb} + ₹${rb} per unit. For how many units do they cost the same?</p>`, answer: x, tol: 0, sol: `<p>${fa} + ${ra}x = ${fb} + ${rb}x gives ${fa - fb} = ${rb - ra}x, so x = ${x}.</p>` }; },
+      verify: (p) => (p.fa - p.fb) / (p.rb - p.ra) },
+  ],
+};
