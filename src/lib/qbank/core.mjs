@@ -237,6 +237,24 @@ export const PATTERNS = {
     { name: 'Data Sufficiency, graphs and two-part questions', type: 'mcq', marks: 2, count: 14 },
     { name: 'Select-all questions (tables and multi-source)', type: 'msq', marks: 2, count: 4 },
   ], marksMap: { 1: 1, 2: 1 } },
+  // GRE (shorter test since Sept 2023): Verbal 12 q / 18 min + 15 q / 23 min; Quant 12 q / 21 min + 15 q / 26 min.
+  // Section 1 of each draws on the GRE-only formats (gre-quant, gre-verbal banks), section 2 on the shared banks
+  // (grad-quant, grad-verbal). Every question counts one mark; the real test adapts section 2, these do not.
+  'gre-verbal-1': { name: 'GRE-style Verbal section 1 (not adaptive)', minutes: 18, scheme: 'gre', sections: [
+    { name: 'Text Completion, one blank', type: 'mcq', marks: 1, count: 5, anyLevel: true },
+    { name: 'Text Completion (two or three blanks) and Sentence Equivalence', type: 'msq', marks: 1, count: 7, anyLevel: true },
+  ] },
+  'gre-verbal-2': { name: 'GRE-style Verbal section 2 (not adaptive)', minutes: 23, scheme: 'gre', sections: [
+    { name: 'Reading passages and arguments', type: 'mcq', marks: 1, count: 15, anyLevel: true },
+  ] },
+  'gre-quant-1': { name: 'GRE-style Quant section 1 (not adaptive)', minutes: 21, scheme: 'gre', sections: [
+    { name: 'Quantitative Comparison and multiple choice', type: 'mcq', marks: 1, count: 7, anyLevel: true, repeat: true },
+    { name: 'Numeric entry (type your answer)', type: 'nat', marks: 1, count: 3, anyLevel: true, repeat: true },
+    { name: 'Select all that apply', type: 'msq', marks: 1, count: 2, anyLevel: true, repeat: true },
+  ] },
+  'gre-quant-2': { name: 'GRE-style Quant section 2 (not adaptive)', minutes: 26, scheme: 'gre', sections: [
+    { name: 'Arithmetic, algebra, word problems and data', type: 'mcq', marks: 1, count: 15, anyLevel: true, repeat: true },
+  ] },
 };
 
 /** Counts for a bank: fixed items and templates by type and level. */
