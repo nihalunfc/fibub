@@ -337,7 +337,7 @@ export default {
     { id: 'mw-g04', type: 'mcq', level: 2, exams: ['jam'], sub: 'accelerated particles',
       make(r) {
         const ps = [['a proton', 1, 1], ['a deuteron', 2, 1], ['an alpha particle', 4, 2], ['a triton', 3, 1], ['a doubly charged lithium-6 ion', 6, 2]];
-        let a = choose(r, ps), b = choose(r, ps); while (b === a) b = choose(r, ps);
+        let a = choose(r, ps), b = choose(r, ps); if (b === a) b = ps[(ps.indexOf(a) + 1) % ps.length];
         const ratio = Math.sqrt((b[1] * b[2]) / (a[1] * a[2]));
         const show = (v) => `$${round(v, 3)}$`;
         const o = mcqOptions(r, ratio, [1 / ratio, Math.sqrt(b[1] / a[1]), b[1] / a[1], ratio * ratio], show);
