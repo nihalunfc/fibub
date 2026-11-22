@@ -35,7 +35,15 @@ export default {
       { id: 'theme-science', name: 'Theme: science' },
     ] },
     { id: 'grammar', name: 'Grammar', topics: [
-      // Left empty on purpose: the IELTS thread fills this unit with its grammar topics.
+      { id: 'tenses', name: 'Tenses' },
+      { id: 'complex-sentences', name: 'Complex sentences: relative and subordinate clauses' },
+      { id: 'conditionals', name: 'Conditionals' },
+      { id: 'passive', name: 'The passive' },
+      { id: 'articles', name: 'Articles: a, an, the and none' },
+      { id: 'punctuation', name: 'Punctuation' },
+      { id: 'agreement', name: 'Subject-verb agreement and countable nouns' },
+      { id: 'prepositions', name: 'Prepositions' },
+      { id: 'common-errors', name: 'Common errors: find and fix' },
     ] },
   ],
 };
