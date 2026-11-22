@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './electronic-spectra.more.gen.js';
 import more2 from './electronic-spectra.more2.gen.js';
 import r4 from './electronic-spectra.r4.gen.js';
+import r5 from './electronic-spectra.r5.gen.js';
 
 const HBAR = 1.054571817e-34, U = 1.66053906660e-27, CCM = 2.99792458e10, C2 = 1.438777, EV = 8065.544;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -230,6 +231,7 @@ export default {
       trap: 'Bound-free spectra are continua; their structure comes from the nodes of the initial vibrational function.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'els-g01', type: 'nat', level: 3, exams: ['net'], sub: 'Franck-Condon factors',
@@ -391,5 +393,6 @@ export default {
       verify: (p) => { const L = (m) => (p.B1 + p.B2) * m + (p.B1 - p.B2) * m * m; return p.br === 'R' ? L(p.JJ + 1) : p.br === 'P' ? L(-p.JJ) : L(1) - L(-1); } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
