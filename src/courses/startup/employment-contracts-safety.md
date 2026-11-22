@@ -157,7 +157,7 @@ A clean exit
 
 </div>
 
-**Next:** Module 10, on co-founders and equity, comes in the next part of the course (see the [course home](/learn/courses/startup/)). Compare offers with the [[job-offer-compare]] tool.
+**Next:** Module 10 starts with [The co-founder agreement](/learn/courses/startup/co-founder-agreement/). Compare offers with the [[job-offer-compare]] tool.
 
 **New words:** *appointment letter*, *probation*, *notice*, *reasonable notice*, *at-will*, *non-compete*, *IP assignment*, *POSH*, *OSHA*.
 

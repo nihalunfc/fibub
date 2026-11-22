@@ -1,0 +1,46 @@
+---
+// 11.5: tick what your website or app does; get the legal pages it needs, what each must say, and a downloadable to-do list.
+---
+<figure class="cs-fig su-fig" data-lp>
+  <span class="cs-figtag">Try it: which legal pages does my site need?</span>
+  <div class="su-row">
+    <label>Main market<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+  </div>
+  <div data-qs></div>
+  <ol data-out style="padding-left:20px;margin:10px 0"></ol>
+  <button type="button" class="btn secondary" data-dl>Download my list</button>
+  <figcaption>A plain-language summary as of November 2026: India’s IT Rules 2021, Consumer Protection (E-Commerce) Rules 2020, Companies Act website disclosures and DPDP Act; Canada’s PIPEDA, Quebec Law 25, CASL and AODA; US FTC rules, state privacy laws (such as California’s CCPA/CPRA), COPPA and the ADA; and the EU GDPR if you target people in the EU. Have a lawyer review pages for a regulated product.</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  import { download } from './su';
+  const Q: [string, string][] = [['data', 'Collects names, emails or any personal data (even a contact form)'], ['sell', 'Sells products or services online'], ['sub', 'Has subscriptions or free trials that renew'], ['ship', 'Ships physical goods'], ['cookie', 'Uses analytics, ad pixels or non-essential cookies'], ['ugc', 'Lets users post content or create accounts'], ['kids', 'May be used by children under 13 (or under 18 in India)'], ['eu', 'Targets people in the EU or UK']];
+  type P = [string, (on: Set<string>, c: CC) => boolean, (c: CC) => string];
+  const PAGES: P[] = [
+    ['About and contact', () => true, (c) => c === 'in' ? 'Company name, CIN, registered office address, email and phone (Companies Act requires these on a company website).' : c === 'ca' ? 'Legal name, address and a way to reach you; Quebec and other provinces expect these for online sales.' : 'Legal name, a contact email and address; required for online sellers by many state laws and the FTC.'],
+    ['Privacy policy', (on) => on.has('data') || on.has('cookie') || on.has('sell'), (c) => (c === 'in' ? 'What you collect, why, who you share it with, how long you keep it, how to withdraw consent, and a grievance or contact officer (DPDP Act and IT Rules).' : c === 'ca' ? 'Purposes, consent, retention, and the name of the person accountable for privacy (PIPEDA); Quebec Law 25 also needs a published privacy officer and plain-language policy.' : 'What you collect, sale or sharing of data, opt-out links ("Do Not Sell or Share" in California and other states above their thresholds), and how to contact you.')],
+    ['Terms of service', (on) => on.has('sell') || on.has('ugc') || on.has('sub'), () => 'What you provide, acceptable use, payment, limits of liability, governing law and disputes, and how terms change.'],
+    ['Refund, return and cancellation policy', (on) => on.has('sell') || on.has('sub'), (c) => c === 'in' ? 'Required for e-commerce sellers: return, refund, exchange and cancellation terms, with timelines.' : c === 'ca' ? 'Shown before purchase; provincial internet agreement rules give buyers cancellation rights if key terms are missing.' : 'Posted clearly; some states (such as California and New York) require a posted refund policy or default rights.'],
+    ['Auto-renewal and trial terms', (on) => on.has('sub'), (c) => c === 'us' ? 'Price, renewal date, how to cancel online as easily as you signed up, and express consent before charging (ROSCA and state auto-renewal laws).' : 'Clear renewal price and date, a reminder before renewal, and a simple way to cancel.'],
+    ['Shipping and delivery policy', (on) => on.has('ship'), (c) => c === 'in' ? 'Delivery times, charges and country of origin for each product (E-Commerce Rules and Legal Metrology).' : 'Delivery times and costs; the US FTC mail order rule expects you to ship when promised or offer a refund.'],
+    ['Cookie notice and choices', (on, c) => on.has('cookie') && (on.has('eu') || c !== 'us'), (c) => c === 'ca' ? 'Tell people what tracks them; Quebec requires tracking tech to be off by default.' : 'A banner to accept or refuse non-essential cookies before they load (GDPR and ePrivacy if you target the EU).'],
+    ['Grievance officer and complaint process', (on, c) => c === 'in' && (on.has('sell') || on.has('ugc')), () => 'Name, contact and a commitment to acknowledge complaints within 48 hours and resolve within one month (E-Commerce Rules; IT Rules for user content).'],
+    ['Content rules and takedown process', (on) => on.has('ugc'), (c) => c === 'us' ? 'Community rules and a DMCA agent registered with the US Copyright Office to keep safe harbour.' : 'Community rules and how to report illegal or infringing content, with response times.'],
+    ['Children’s privacy notice', (on) => on.has('kids'), (c) => c === 'in' ? 'Verifiable consent of a parent for anyone under 18; no tracking or targeted ads at children (DPDP Act).' : c === 'us' ? 'Verifiable parental consent before collecting data from under-13s (COPPA); fines exceed $50,000 per violation.' : 'Get a parent’s consent for children (about under 13); keep collection to the minimum.'],
+    ['Accessibility statement', (on, c) => c !== 'in' || on.has('sell'), (c) => c === 'ca' ? 'Ontario businesses with 50+ staff must meet WCAG 2.0 AA (AODA); state how to ask for help.' : c === 'us' ? 'Courts apply the ADA to websites: aim for WCAG 2.1 AA and give a contact for accessibility problems.' : 'Aim for WCAG 2.1 AA; the Rights of Persons with Disabilities Act pushes accessible digital services.'],
+    ['GDPR and UK GDPR notice', (on) => on.has('eu'), () => 'Lawful basis for each use, data subject rights, international transfers, and an EU/UK representative if you have no office there.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lp]')) {
+    const qs = fig.querySelector('[data-qs]')!, out = fig.querySelector('[data-out]')!;
+    qs.innerHTML = Q.map(([k, t]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-weight:500;font-size:14.5px;margin:5px 0"><input type="checkbox" data-k="${k}" ${k === 'data' || k === 'sell' ? 'checked' : ''} style="margin-top:3px"> <span>${t}</span></label>`).join('');
+    let list: [string, string][] = [];
+    const cc = followCountry(fig, draw); qs.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), on = new Set([...qs.querySelectorAll<HTMLInputElement>('input:checked')].map((i) => i.dataset.k!));
+      list = PAGES.filter(([, need]) => need(on, c)).map(([t, , d]) => [t, d(c)]);
+      out.innerHTML = '';
+      list.forEach(([t, d]) => { const li = document.createElement('li'); li.style.margin = '5px 0'; li.innerHTML = '<b></b><div class="su-fine"></div>'; li.querySelector('b')!.textContent = t; li.querySelector('div')!.textContent = d; out.append(li); });
+    }
+    fig.querySelector<HTMLButtonElement>('[data-dl]')!.onclick = () => download('website-legal-pages.txt', `Website legal pages (${({ in: 'India', ca: 'Canada', us: 'USA' })[cc()]})\nFrom fibub.com/learn/courses/startup/website-legal-pages/ (${new Date().toISOString().slice(0, 10)})\nNot legal advice: check each page with the official source or a lawyer.\n\n${list.map(([t, d], i) => `[ ] ${i + 1}. ${t}\n    ${d}`).join('\n')}\n`);
+  }
+</script>

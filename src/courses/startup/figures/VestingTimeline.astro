@@ -1,0 +1,42 @@
+---
+// 10.3: vesting with a cliff. Drag "leaves after" to see how many shares a founder or employee keeps.
+---
+<figure class="cs-fig su-fig" data-vt>
+  <span class="cs-figtag">Animation: vesting and the cliff</span>
+  <div class="su-row">
+    <label>Shares granted<input type="number" name="n" min="1" step="1" value="1000000" /></label>
+    <label>Vesting period (months)<input type="number" name="p" min="1" step="1" value="48" /></label>
+    <label>Cliff (months)<input type="number" name="c" min="0" step="1" value="12" /></label>
+    <label>Leaves after: <b data-mv></b><input type="range" name="m" min="0" max="60" step="1" value="18" /></label>
+  </div>
+  <svg viewBox="0 0 340 120" role="img" aria-label="Shares vested over time" data-svg style="width:100%;height:auto"></svg>
+  <div class="su-out"><div><span>Vested (keeps)</span><b data-v></b></div><div><span>Unvested (company can buy back)</span><b data-u></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Standard startup vesting: nothing vests until the cliff, then the cliff’s share vests at once, then a slice every month. Acceleration clauses can vest more if the company is sold (single trigger) or if the person is also let go after a sale (double trigger).</figcaption>
+</figure>
+<script>
+  import { num } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-vt]')) {
+    const svg = fig.querySelector('[data-svg]')!;
+    function draw() {
+      const n = num(fig, 'n'), p = Math.max(1, num(fig, 'p')), c = Math.min(num(fig, 'c'), p), m = num(fig, 'm');
+      (fig.querySelector('[name=m]') as HTMLInputElement).max = String(p + 12);
+      fig.querySelector('[data-mv]')!.textContent = `${m} months`;
+      const vest = (t: number) => (t < c ? 0 : Math.min(1, Math.floor(t) / p));
+      const X = (t: number) => 30 + (t / (p + 12)) * 300, Y = (f: number) => 100 - f * 85;
+      let d = `M${X(0)},${Y(0)}`; for (let t = 1; t <= p + 12; t++) d += ` L${X(t)},${Y(vest(t - 1))} L${X(t)},${Y(vest(t))}`;
+      const f = vest(m);
+      svg.innerHTML = `<line x1="30" y1="100" x2="330" y2="100" stroke="currentColor" opacity=".4"/><line x1="30" y1="15" x2="30" y2="100" stroke="currentColor" opacity=".4"/>
+        <text x="2" y="19" font-size="9">100%</text><text x="2" y="103" font-size="9">0</text>
+        ${c ? `<line x1="${X(c)}" y1="12" x2="${X(c)}" y2="100" stroke="var(--warn)" stroke-dasharray="3 3"/><text x="${X(c) + 3}" y="12" font-size="9">cliff</text>` : ''}
+        <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="${X(m)}" y1="10" x2="${X(m)}" y2="100" stroke="var(--bad)" stroke-width="1.5"/><circle cx="${X(m)}" cy="${Y(f)}" r="4" fill="var(--bad)"/>
+        <text x="${Math.min(X(m) + 4, 290)}" y="${Math.max(Y(f) - 6, 24)}" font-size="9">leaves</text>
+        <text x="30" y="115" font-size="9">0</text><text x="${X(p) - 10}" y="115" font-size="9">${p} mo</text>`;
+      fig.querySelector('[data-v]')!.textContent = `${Math.round(n * f).toLocaleString('en')} (${(f * 100).toFixed(1)} %)`;
+      fig.querySelector('[data-u]')!.textContent = Math.round(n * (1 - f)).toLocaleString('en');
+      fig.querySelector('[data-say]')!.textContent = m < c ? `Leaving before the ${c}-month cliff: nothing vests. The cliff protects the company from someone who leaves early with a big stake.` : f >= 1 ? 'Fully vested: all shares are theirs.' : `${Math.floor(m)} of ${p} months served: ${(f * 100).toFixed(1)} % vested. The rest returns to the company to give to whoever takes over the work.`;
+    }
+    fig.addEventListener('input', draw); draw();
+  }
+</script>
