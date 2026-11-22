@@ -9,6 +9,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const deg = Math.PI / 180;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'geometrical-optics',
   items: [
@@ -205,6 +224,61 @@ export default {
       sol: 'Each drop sends light back most strongly at its angle of minimum deviation: about $42^\\circ$ (red) and $40^\\circ$ (violet) from the antisolar point for one internal reflection, so red is outside. The secondary bow (about $51^\\circ$) comes from two internal reflections, which reverses the colours.' },
   ],
   gens: [
+    { id: 'gop-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'images',
+      make(r) {
+        const el = Q5.choose(r, ['a concave mirror', 'a thin convex lens', 'a thin concave lens', 'a convex mirror']);
+        const zone = Q5.int(r, 0, 2), conv = el === 'a concave mirror' || el === 'a thin convex lens';
+        const where = ['farther than $2f$ from it', 'between $f$ and $2f$ from it', 'closer than $f$ to it'][zone];
+        const kinds = ['real, inverted and diminished', 'real, inverted and magnified', 'virtual, erect and magnified', 'virtual, erect and diminished'];
+        const right = conv ? kinds[zone] : kinds[3];
+        const o = Q5.mcqOptions(r, right, kinds.filter((k) => k !== right));
+        return { q: `A small object stands on the axis of ${el} (focal length of size $f$), ${where}. Its image is`, ...o,
+          sol: conv ? `For a converging element: beyond $2f$ the image is real, inverted, between $f$ and $2f$ on the other side, and smaller; between $f$ and $2f$ it is real, inverted, beyond $2f$ and larger; inside $f$ the rays still diverge after the element, so the image is virtual, erect and larger. Here: ${right}.`
+            : 'A diverging element (concave lens or convex mirror) always forms a virtual, erect, diminished image of a real object, between the element and its focus, wherever the object is.',
+          trap: 'For a concave lens or convex mirror the distance does not matter: the image is always virtual, erect and smaller.' };
+      } },
+    { id: 'gop-t22', type: 'nat', level: 2, exams: ['jam'], sub: 'thin lenses', unit: 'cm',
+      make(r) {
+        const f = Q5.int(r, 5, 30), [m, ms] = Q5.choose(r, [[0.5, '1/2'], [2, '2'], [3, '3'], [4, '4'], [1.5, '1.5'], [0.25, '1/4']]);
+        const u = f * (1 + 1 / m);
+        return { q: `A thin convex lens of focal length $${f}$ cm forms a real image $${ms}$ times the size of the object. The object is ______ cm from the lens (to two decimal places).`,
+          answer: Q5.round(u, 2), tol: 0.01, f, m,
+          sol: `A real image is inverted: $v/u = ${ms}$ in size, with $v = ${ms}\\,u$ (distances measured as positive on their own sides). The lens equation $\\dfrac1u + \\dfrac1v = \\dfrac1f$ gives $\\dfrac1u\\left(1 + \\dfrac1{${ms}}\\right) = \\dfrac1{${f}}$, so $u = f(1 + 1/m) = ${Q5.round(u, 2)}$ cm.`,
+          trap: 'Magnification is $v/u$, so a magnified real image needs the object between $f$ and $2f$.' };
+      },
+      verify: (p) => { const v = p.f * (1 + p.m); return v / p.m; } },
+    { id: 'gop-t23', type: 'msq', level: 3, exams: ['jam'], sub: 'lensmaker', format: 'statements',
+      make(r) {
+        const F = Q5.int(r, 10, 30), nm = Q5.choose(r, [1.2, 1.33, 1.5, 1.6, 1.75]);
+        const ratio = 0.5 / (1.5 / nm - 1), fl = F * ratio;
+        const T = ['Its power is smaller in size than in air.'], Fa = ['Its focal length is the same as in air.'];
+        if (nm < 1.5) { T.push('It still converges light.', `Its focal length is $${Q5.round(fl, 1)}$ cm.`); Fa.push('It now diverges light.', `Its focal length is $${Q5.round(F / ratio, 1)}$ cm.`, 'It has no focusing effect at all.'); }
+        else if (nm > 1.5) { T.push('It now diverges light.', `Its focal length is $${Q5.round(fl, 1)}$ cm (a diverging lens).`); Fa.push('It still converges light.', `Its focal length is $+${Q5.round(-fl, 1)}$ cm (a converging lens).`, 'It has no focusing effect at all.'); }
+        else { T.push('It has no focusing effect at all.', 'Light crosses the glass surfaces without bending.'); Fa.push('It still converges light.', 'It now diverges light.', `Its focal length is $${2 * F}$ cm.`); }
+        const o = q5msq(r, T, Fa);
+        return { q: `A thin symmetric biconvex glass lens ($n = 1.5$) has focal length $${F}$ cm in air. It is put into a liquid of refractive index $${nm}$. Which statements are correct?`, ...o,
+          sol: `Lensmaker: $\\dfrac1f = \\left(\\dfrac{n_g}{n_m} - 1\\right)\\left(\\dfrac1{R_1} - \\dfrac1{R_2}\\right)$. In air the bracket is $0.5$; in the liquid it is $1.5/${nm} - 1 = ${Q5.round(1.5 / nm - 1, 4)}$. ${nm === 1.5 ? 'It is zero: the lens is invisible to the light.' : `So $f_{\\rm liq} = ${F}\\times\\dfrac{0.5}{${Q5.round(1.5 / nm - 1, 4)}} = ${Q5.round(fl, 1)}$ cm${nm > 1.5 ? ', negative: the lens diverges because the liquid is optically denser than the glass' : ''}.`} The size of the bracket is below $0.5$ for any liquid with $n > 1$, so the power always shrinks.`,
+          trap: 'A convex lens in a denser liquid behaves as a diverging lens.' };
+      } },
+    { id: 'gop-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'lens combinations', format: 'units',
+      make(r) {
+        const P1 = Q5.choose(r, [2, 4, 5, 2.5, 10]); let P2 = Q5.choose(r, [-1, -2, -4, -1.25, -5]); if (P1 + P2 === 0) P2 -= 1;
+        const f = 100 / (P1 + P2), s = (x) => `$${Q5.round(x, 2)}$ cm`;
+        const o = Q5.mcqOptions(r, f, [-f, 100 * (1 / P1 + 1 / P2), (P1 + P2), 100 / (P1 - P2)], s);
+        return { q: `Thin lenses of power $+${P1}$ D and $${P2}$ D are placed in contact. The focal length of the combination is`, ...o,
+          sol: `Powers in contact add: $P = ${P1} + (${P2}) = ${P1 + P2}$ D. A dioptre is m$^{-1}$, so $f = 1/P = ${Q5.round(1 / (P1 + P2), 4)}$ m $= ${Q5.round(f, 2)}$ cm${f < 0 ? ' (negative: the pair diverges)' : ''}.`,
+          trap: 'Add powers, not focal lengths; and $1$ D $= 1$ m$^{-1}$, so $f$ in cm is $100/P$.' };
+      } },
+    { id: 'gop-t25', type: 'nat', level: 2, exams: ['jam'], sub: 'apparent depth', unit: 'cm',
+      make(r) {
+        const d1 = Q5.int(r, 4, 20), d2 = Q5.int(r, 4, 20), [n1, s1] = Q5.choose(r, [[4 / 3, '4/3'], [1.25, '1.25'], [1.36, '1.36']]), [n2, s2] = Q5.choose(r, [[1.5, '1.5'], [1.6, '1.6'], [1.44, '1.44']]);
+        const app = d1 / n1 + d2 / n2;
+        return { q: `A tank holds a layer of liquid A ($n = ${s1}$), $${d1}$ cm deep, floating on a layer of liquid B ($n = ${s2}$), $${d2}$ cm deep. Seen from straight above, a coin on the bottom appears to be ______ cm below the top surface (to two decimal places).`,
+          answer: Q5.round(app, 2), tol: 0.02, d1, d2, n1, n2,
+          sol: `Near the normal each layer shows its thickness divided by its index, and the layers add: $\\dfrac{${d1}}{${s1}} + \\dfrac{${d2}}{${s2}} = ${Q5.round(d1 / n1, 3)} + ${Q5.round(d2 / n2, 3)} = ${Q5.round(app, 2)}$ cm.`,
+          trap: 'Do not use one average index for the whole depth; each layer is divided by its own index.' };
+      },
+      verify: (p) => (p.d1 + p.d2) - p.d1 * (1 - 1 / p.n1) - p.d2 * (1 - 1 / p.n2) },
     { id: 'gop-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'apparent depth',
       make(r) {
         const d = pick(r, 0.5, 5, 0.1), [n, tex] = choose(r, [[4 / 3, '4/3'], [1.5, '1.5'], [1.33, '1.33'], [1.6, '1.6']]);

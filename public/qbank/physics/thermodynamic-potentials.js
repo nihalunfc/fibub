@@ -13,6 +13,25 @@ const MAXWELL = {
 };
 const WRONG = ['$\\left(\\frac{\\partial S}{\\partial V}\\right)_T = -\\left(\\frac{\\partial P}{\\partial T}\\right)_V$', '$\\left(\\frac{\\partial S}{\\partial P}\\right)_T = \\left(\\frac{\\partial V}{\\partial T}\\right)_P$', '$\\left(\\frac{\\partial T}{\\partial V}\\right)_S = \\left(\\frac{\\partial P}{\\partial S}\\right)_V$'];
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'thermodynamic-potentials',
   items: [
@@ -200,6 +219,56 @@ export default {
       sol: 'A: scaling $U, V, N$ by $\\lambda$ scales $(NVU)^{1/3}$ by $\\lambda$. $1/T = \\partial S/\\partial U = S/(3U)$ and $P/T = \\partial S/\\partial V = S/(3V)$; dividing gives $P = U/V$ (B). From $1/T = \\tfrac{c}{3}(NV)^{1/3}U^{-2/3}$: $U = (cT/3)^{3/2}(NV)^{1/2}$, so $C_V = dU/dT \\propto T^{1/2}$ (C), which grows with $T$ (D false).' },
   ],
   gens: [
+    { id: 'tpot-t21', type: 'mcq', level: 2, exams: ['jam', 'gate'], sub: 'equilibrium',
+      make(r) {
+        const names = ['the Helmholtz free energy $F$', 'the Gibbs free energy $G$', 'the internal energy $U$', 'the enthalpy $H$'];
+        const [vars, c] = Q5.choose(r, [['temperature and volume', 0], ['temperature and pressure', 1], ['entropy and volume', 2], ['entropy and pressure', 3]]);
+        const o = Q5.mcqOptions(r, names[c], names.filter((x, i) => i !== c));
+        return { q: `A system is held at fixed ${vars} (and fixed amounts of each substance). At equilibrium, which quantity is at a minimum?`, ...o,
+          sol: 'Each potential is minimised at fixed values of its own natural variables: $U(S, V)$, $H(S, P)$, $F(T, V)$, $G(T, P)$. Chemistry and phase changes at fixed $T$ and $P$ are therefore governed by $G$; a gas in a rigid box in a heat bath by $F$.',
+          trap: 'Match the fixed variables to the natural variables in the differential, e.g. $dF = -S\\,dT - P\\,dV$.' };
+      } },
+    { id: 'tpot-t22', type: 'msq', level: 2, exams: ['jam', 'gate'], sub: 'potentials', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['$dF = -S\\,dT - P\\,dV$', '$dG = -S\\,dT + V\\,dP$', '$dH = T\\,dS + V\\,dP$', '$G = H - TS$', '$F = U - TS$'];
+        const F = ['$dF = -S\\,dT + P\\,dV$', '$dG = S\\,dT + V\\,dP$', '$dH = T\\,dS - V\\,dP$', '$G = U - TS$', '$H = U - PV$'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `For a simple fluid with $dU = T\\,dS - P\\,dV$, which of these relations are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'Legendre transforms: $H = U + PV$ gives $dH = T\\,dS + V\\,dP$; $F = U - TS$ gives $dF = -S\\,dT - P\\,dV$; $G = H - TS = U + PV - TS$ gives $dG = -S\\,dT + V\\,dP$. Each transform swaps one pair of variables and flips the sign of that term.',
+          trap: 'Signs: $-S\\,dT$ appears in both $dF$ and $dG$; $+V\\,dP$ in both $dH$ and $dG$.' };
+      } },
+    { id: 'tpot-t23', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'Legendre transforms',
+      make(r) {
+        const d = (f, x, y) => `$\\left(\\dfrac{\\partial ${f}}{\\partial ${x}}\\right)_{${y}}$`;
+        const G = { '-S': [d('F', 'T', 'V'), d('G', 'T', 'P')], '-P': [d('F', 'V', 'T'), d('U', 'V', 'S')], V: [d('G', 'P', 'T'), d('H', 'P', 'S')], T: [d('U', 'S', 'V'), d('H', 'S', 'P')] };
+        const key = Q5.choose(r, Object.keys(G));
+        const others = Object.keys(G).filter((k) => k !== key).flatMap((k) => G[k]);
+        const o = Q5.mcqOptions(r, Q5.choose(r, G[key]), Q5.shuffle(r, others));
+        return { q: `For a simple fluid, which partial derivative equals $${key}$?`, ...o,
+          sol: 'Read the derivatives off the differentials: $dU = T\\,dS - P\\,dV$, $dH = T\\,dS + V\\,dP$, $dF = -S\\,dT - P\\,dV$, $dG = -S\\,dT + V\\,dP$. So $T = (\\partial U/\\partial S)_V = (\\partial H/\\partial S)_P$, $-P = (\\partial U/\\partial V)_S = (\\partial F/\\partial V)_T$, $V = (\\partial H/\\partial P)_S = (\\partial G/\\partial P)_T$, $-S = (\\partial F/\\partial T)_V = (\\partial G/\\partial T)_P$.',
+          trap: 'A derivative of a potential is simple only with respect to its own natural variables, holding the other natural variable fixed.' };
+      } },
+    { id: 'tpot-t24', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'chemical potential', unit: 'K',
+      make(r) {
+        const L = Q5.int(r, 20, 45), T = Q5.int(r, 250, 400), dP = Q5.pick(r, 0.5, 5, 0.5);
+        const dT = 8.314 * T * T * dP * 1e3 / (L * 1e3 * 101.3e3);
+        return { q: `A liquid boils at $${T}$ K under $101.3$ kPa, with molar latent heat $${L}$ kJ/mol. Treating the vapour as an ideal gas and neglecting the liquid's volume, the Clausius-Clapeyron equation gives a rise in boiling point of ______ K for a pressure rise of $${dP}$ kPa (to three decimal places, to first order).`,
+          answer: Q5.round(dT, 3), tol: Math.max(0.002, Q5.round(0.002 * dT, 4)), L, T, dP,
+          sol: `$\\dfrac{dP}{dT} = \\dfrac{L}{T\\,\\Delta v}$ with $\\Delta v \\approx v_{\\rm gas} = RT/P$, so $\\dfrac{dT}{dP} = \\dfrac{RT^2}{LP}$ and $\\Delta T \\approx \\dfrac{8.314\\times${T}^2\\times${dP * 1000}}{${L * 1000}\\times101300} = ${Q5.round(dT, 3)}$ K.`,
+          trap: 'Keep units consistent: latent heat in J/mol, pressures in Pa.' };
+      },
+      verify: (p) => { const dv = 8.314 * p.T / 101.3e3; return p.T * dv / (p.L * 1e3) * p.dP * 1e3; } },
+    { id: 'tpot-t25', type: 'nat', level: 4, exams: ['gate', 'net'], sub: 'Joule-Thomson', unit: 'K/bar',
+      make(r) {
+        const a = Q5.pick(r, 0.1, 0.5, 0.01), b = Q5.pick(r, 2, 5, 0.1), T = Q5.int(r, 20, 40) * 10, [nm, cp] = Q5.choose(r, [['monatomic', 2.5], ['diatomic', 3.5]]);
+        const mu = (2 * a / (8.314 * T) - b * 1e-5) / (cp * 8.314) * 1e5;
+        return { q: `A ${nm} van der Waals gas has $a = ${a}$ Pa m$^6$ mol$^{-2}$ and $b = ${b}\\times10^{-5}$ m$^3$ mol$^{-1}$, with $C_P = ${cp}R$. In the low-pressure limit its Joule-Thomson coefficient at $${T}$ K is ______ K/bar (to three decimal places; negative means it warms on throttling; $R = 8.314$ SI).`,
+          answer: Q5.round(mu, 3), tol: 0.002, a, b, T, cp,
+          sol: `$\\mu_{JT} = \\dfrac1{C_P}\\left[T\\left(\\dfrac{\\partial V}{\\partial T}\\right)_P - V\\right]$. At low pressure the van der Waals volume is $V \\approx RT/P + b - a/RT$, so $T(\\partial V/\\partial T)_P - V = 2a/RT - b$. Hence $\\mu_{JT} = \\dfrac{2a/RT - b}{C_P} = \\dfrac{${Q5.fmt(2 * a / (8.314 * T), 4)} - ${b}\\times10^{-5}}{${cp}\\times8.314}$ K/Pa $= ${Q5.round(mu, 3)}$ K/bar.`,
+          trap: 'Attraction ($a$) cools the gas on throttling, the finite size ($b$) warms it; the sign flips at $T = 2a/Rb$.' };
+      },
+      verify: (p) => { const R = 8.314, a = p.a, b = p.b * 1e-5, P = 1; const vol = (T) => { let V = R * T / P; for (let i = 0; i < 40; i++) { const f = (P + a / V ** 2) * (V - b) - R * T, d = P + a / V ** 2 - 2 * a * (V - b) / V ** 3; V -= f / d; } return V; }; const h = 0.01, dVdT = (vol(p.T + h) - vol(p.T - h)) / (2 * h); return (p.T * dVdT - vol(p.T)) / (p.cp * R) * 1e5; } },
     { id: 'tpot-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'ideal gas',
       make(r) {
         const n = pick(r, 0.5, 3, 0.5), T = int(r, 25, 60) * 10, P1 = choose(r, [1, 2, 5]), k = choose(r, [2, 3, 4, 5, 10]), down = r() < 0.4;

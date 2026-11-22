@@ -7,6 +7,25 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 const K = 1 / (4 * Math.PI * C.eps0);
 const e0 = C.eps0;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'dielectrics',
   items: [
@@ -219,6 +238,58 @@ export default {
       trap: 'Multiplying the vacuum answer by an average $\\kappa$; the field must be integrated with $\\kappa(r)$ inside.' },
   ],
   gens: [
+    { id: 'die-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'battery connected or isolated', format: 'comparison',
+      make(r) {
+        const K = Q5.int(r, 2, 6), conn = r() < 0.5, w = Q5.int(r, 0, 3);
+        const names = ['the charge on the plates', 'the potential difference between the plates', 'the electric field between the plates', 'the stored energy'];
+        const fac = conn ? ['K', '1', '1', 'K'][w] : ['1', '1/K', '1/K', '1/K'][w];
+        const show = (f) => (f === 'K' ? `$${K}$ times its old value` : f === '1/K' ? `$1/${K}$ of its old value` : f === 'K2' ? `$${K * K}$ times its old value` : 'unchanged');
+        const o = Q5.mcqOptions(r, show(fac), ['K', '1/K', '1', 'K2'].filter((f) => f !== fac).map(show));
+        return { q: `A parallel-plate capacitor is charged by a battery and ${conn ? 'stays connected to it' : 'then disconnected from it'}. A slab of dielectric constant $${K}$ is slid in to fill the gap completely. Afterwards ${names[w]} is`, ...o,
+          sol: conn ? `Connected: $V$ is held fixed. $C$ becomes $${K}C$, so $Q = CV$ grows $${K}$ times; $E = V/d$ is unchanged; $U = \\tfrac12CV^2$ grows $${K}$ times (the battery supplies the extra).`
+            : `Isolated: $Q$ is fixed. $C$ becomes $${K}C$, so $V = Q/C$ falls to $1/${K}$, $E = V/d$ falls to $1/${K}$ (bound charge on the slab partly cancels the free charge), and $U = Q^2/2C$ falls to $1/${K}$ (the field pulls the slab in and does work).`,
+          trap: 'First ask what is held fixed: $V$ (battery connected) or $Q$ (isolated).' };
+      } },
+    { id: 'die-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'boundary conditions', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['The normal component of $\\vec D$ is continuous across the boundary.', 'The tangential component of $\\vec E$ is continuous across the boundary.', 'Field lines bend so that $\\tan\\theta_1/\\tan\\theta_2 = \\varepsilon_1/\\varepsilon_2$ (angles from the normal).',
+          'Bound (polarisation) charge appears on the boundary.', 'The normal component of $\\vec E$ jumps across the boundary.'];
+        const F = ['The normal component of $\\vec E$ is continuous across the boundary.', 'The tangential component of $\\vec D$ is continuous across the boundary.', 'Field lines cross the boundary without bending.',
+          'Field lines bend so that $\\sin\\theta_1/\\sin\\theta_2 = \\varepsilon_1/\\varepsilon_2$.', 'No charge of any kind can sit on the boundary.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `An electrostatic field crosses the flat boundary between two linear dielectrics of permittivities $\\varepsilon_1 \\ne \\varepsilon_2$, with no free charge on the boundary. Which statements are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'With no free surface charge, Gauss law for $\\vec D$ on a pillbox gives $D_{1n} = D_{2n}$, so $\\varepsilon_1E_{1n} = \\varepsilon_2E_{2n}$: $E_n$ jumps. Curl $\\vec E = 0$ on a thin loop gives $E_{1t} = E_{2t}$, so $D_t$ jumps. Dividing: $\\tan\\theta_1/\\tan\\theta_2 = (E_t/E_{1n})/(E_t/E_{2n}) = \\varepsilon_1/\\varepsilon_2$. The jump in $E_n$ is caused by bound charge $\\sigma_b = \\varepsilon_0(E_{2n} - E_{1n})$ on the boundary.',
+          trap: '$\\vec D$ keeps its normal part, $\\vec E$ keeps its tangential part; and the law is about tangents, not sines.' };
+      } },
+    { id: 'die-t23', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'boundary conditions', unit: 'degrees',
+      make(r) {
+        const e1 = Q5.int(r, 1, 4), e2 = Q5.int(r, 2, 9), t1 = Q5.int(r, 10, 70);
+        const t2 = Math.atan(e2 / e1 * Math.tan(t1 * Math.PI / 180)) * 180 / Math.PI;
+        return { q: `An electric field in a dielectric with $\\varepsilon_r = ${e1}$ meets a flat boundary with a dielectric of $\\varepsilon_r = ${e2}$ (no free charge on the boundary), making $${t1}^\\circ$ with the normal. In the second dielectric the field makes ______ degrees with the normal (to two decimal places).`,
+          answer: Q5.round(t2, 2), tol: 0.02, e1, e2, t1,
+          sol: `$E_t$ is continuous and $\\varepsilon E_n$ is continuous, so $\\tan\\theta_2 = \\dfrac{\\varepsilon_2}{\\varepsilon_1}\\tan\\theta_1 = \\dfrac{${e2}}{${e1}}\\tan${t1}^\\circ = ${Q5.round(e2 / e1 * Math.tan(t1 * Math.PI / 180), 4)}$, so $\\theta_2 = ${Q5.round(t2, 2)}^\\circ$.`,
+          trap: 'In the medium of larger permittivity the field bends away from the normal.' };
+      },
+      verify: (p) => { const t = p.t1 * Math.PI / 180, Et = Math.sin(t), En2 = p.e1 * Math.cos(t) / p.e2; return Math.atan2(Et, En2) * 180 / Math.PI; } },
+    { id: 'die-t24', type: 'mcq', level: 3, exams: ['jam'], sub: 'slabs and layers', format: 'comparison',
+      make(r) {
+        const K = Q5.int(r, 2, 8);
+        const o = Q5.mcqOptions(r, q5frac((1 + K) ** 2, 4 * K), [q5frac(4 * K, (1 + K) ** 2), q5frac(1 + K, 2), q5frac(2 * K, 1 + K), q5frac(1 + K, 2 * K)], (s) => `$${s}$`);
+        return { q: `Two identical parallel-plate capacitors are each half filled with a dielectric of constant $${K}$. In P the slab fills the left half of the plate area through the whole gap; in Q the slab covers the whole area but fills half the gap. The ratio $C_P/C_Q$ is`, ...o,
+          sol: `P is two capacitors in parallel: $C_P = \\tfrac12C_0 + \\tfrac12${K}C_0 = \\tfrac{1 + ${K}}{2}C_0$. Q is two in series, each $2C_0$ and $2\\cdot${K}C_0$: $C_Q = \\dfrac{2\\cdot${K}}{1 + ${K}}C_0$. Ratio $= \\dfrac{(1 + ${K})^2}{4\\cdot${K}} = ${q5frac((1 + K) ** 2, 4 * K)}$, larger than 1 for any $K \\ne 1$.`,
+          trap: 'Side by side means parallel (add $C$); layers mean series (add $1/C$).' };
+      } },
+    { id: 'die-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'energy', unit: 'μJ',
+      make(r) {
+        const C0 = Q5.int(r, 1, 20) * 10, V0 = Q5.int(r, 2, 30) * 10, K = Q5.choose(r, [2, 3, 4, 5, 2.5]);
+        const U0 = 0.5 * C0 * 1e-12 * V0 * V0 * 1e6, W = U0 * (1 - 1 / K);
+        return { q: `A $${C0}$ pF air capacitor is charged to $${V0}$ V and disconnected. A slab of dielectric constant $${K}$ is then pulled into the gap by the field until it fills it. The work done by the field on the slab is ______ $\\mu$J (to four decimal places).`,
+          answer: Q5.round(W, 4), tol: Math.max(0.0001, Q5.round(W * 0.001, 5)), C0, V0, K,
+          sol: `The charge stays $Q = C_0V_0$. The energy falls from $U_0 = \\tfrac12C_0V_0^2 = ${Q5.round(U0, 4)}\\ \\mu$J to $U_0/${K}$. The lost energy is the work done on the slab: $U_0(1 - 1/${K}) = ${Q5.round(W, 4)}\\ \\mu$J.`,
+          trap: 'With the battery disconnected, energy falls; with it connected, energy rises (the battery does work).' };
+      },
+      verify: (p) => { const C = p.C0 * 1e-12, Q = C * p.V0; return (Q * Q / (2 * C) - Q * Q / (2 * p.K * C)) * 1e6; } },
     { id: 'die-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'parallel plate', unit: 'pF',
       make(r) {
         const A = int(r, 1, 50), d = pick(r, 0.5, 5, 0.5), k = choose(r, [1, 2, 2.2, 3, 4, 5, 6.5, 10]); // A in 10^-3 m^2, d in mm

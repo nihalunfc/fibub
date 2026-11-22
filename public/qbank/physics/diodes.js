@@ -9,6 +9,25 @@ const EPS_SI = 11.7 * C.eps0;
 // operating point of a resistor R (ohm) + diode (Is, n) on a supply Vs, solved by iteration
 const opPoint = (Vs, R, Is, n = 1) => { let V = 0.6; for (let i = 0; i < 200; i++) V = n * VT * Math.log((Vs - V) / R / Is + 1); return (Vs - V) / R; };
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'diodes',
   items: [
@@ -239,6 +258,59 @@ export default {
   ],
 
   gens: [
+    { id: 'dio-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'bias',
+      make(r) {
+        const E = Q5.int(r, 3, 15), R1 = Q5.int(r, 1, 10), R2 = Q5.int(r, 1, 10), first = r() < 0.5;
+        const Rf = first ? R1 : R2, Rb = first ? R2 : R1, I = (E - 0.7) / Rf;
+        const s = (x) => `$${Q5.round(x, 2)}$ mA`;
+        const o = Q5.mcqOptions(r, I, [E / Rf, (E - 0.7) / (R1 + R2), (E - 0.7) / R1 + (E - 0.7) / R2, (E - 0.7) / Rb], s);
+        return { q: `A $${E}$ V battery has two branches connected across it. Branch 1: a silicon diode in series with $${R1}$ k$\\Omega$; branch 2: another silicon diode in series with $${R2}$ k$\\Omega$. The diode in branch ${first ? 1 : 2} points from the positive terminal towards the negative one; the other diode points the opposite way. Taking $0.7$ V across a conducting diode and no reverse current, the battery current is`, ...o,
+          sol: `Only the forward-biased diode conducts. Branch ${first ? 1 : 2}: $I = (${E} - 0.7)/${Rf}$ k$\\Omega = ${Q5.round(I, 2)}$ mA. The reverse-biased branch carries nothing, so the battery supplies $${Q5.round(I, 2)}$ mA.`,
+          trap: 'A reverse-biased diode removes its whole branch; and do not forget the $0.7$ V drop.' };
+      } },
+    { id: 'dio-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'rectifiers', format: 'statements',
+      make(r) {
+        const f = Q5.choose(r, [50, 60]), Vm = Q5.int(r, 5, 30), c = Q5.int(r, 0, 2);
+        const name = ['half-wave rectifier', 'centre-tapped full-wave rectifier', 'bridge rectifier'][c];
+        const nd = [1, 2, 4][c], rf = c ? 2 * f : f, piv = c === 1 ? 2 * Vm : Vm, eff = c ? 81.2 : 40.6;
+        const T = [`It uses $${nd}$ diode${nd > 1 ? 's' : ''}.`, `The output ripple has frequency $${rf}$ Hz.`, `Each diode must withstand a peak inverse voltage of about $${piv}$ V.`, `Its largest possible efficiency (resistive load) is about $${eff}\\%$.`];
+        const F = [`It uses $${nd === 4 ? 2 : nd * 2}$ diodes.`, `The output ripple has frequency $${c ? f : 2 * f}$ Hz.`, `Each diode must withstand a peak inverse voltage of about $${c === 1 ? Vm : 2 * Vm}$ V.`, `Its largest possible efficiency (resistive load) is about $${c ? 40.6 : 81.2}\\%$.`];
+        const o = q5msq(r, T, F);
+        return { q: `A ${name} with ideal diodes is fed from $${f}$ Hz mains through a transformer whose ${c === 1 ? 'each half-winding' : 'secondary'} gives a peak of $${Vm}$ V. Which statements are correct?`, ...o,
+          sol: `Half-wave: 1 diode, one pulse per cycle ($f$), PIV $V_m$, efficiency up to $40.6\\%$. Centre-tap: 2 diodes, two pulses per cycle ($2f$); a blocking diode sees its own half-winding plus the other half: PIV $2V_m$; efficiency up to $81.2\\%$. Bridge: 4 diodes, $2f$, PIV $V_m$ (two diodes share the reverse voltage of the whole secondary), $81.2\\%$.`,
+          trap: 'The centre-tapped circuit needs diodes rated for twice the peak; the bridge does not.' };
+      } },
+    { id: 'dio-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'Zener regulator', unit: 'Ω',
+      make(r) {
+        const Vin = Q5.int(r, 12, 24), Vz = Q5.choose(r, [5.1, 6.2, 9.1]), Rs = Q5.int(r, 10, 47) * 10, Iz = Q5.int(r, 1, 5);
+        const Is = (Vin - Vz) / Rs * 1000, RL = Vz / ((Is - Iz) / 1000);
+        return { q: `A Zener regulator has a $${Vin}$ V supply, a $${Rs}\\ \\Omega$ series resistor and a $${Vz}$ V Zener diode that needs at least $${Iz}$ mA to stay in breakdown. The smallest load resistance that still lets it regulate is ______ $\\Omega$ (to one decimal place).`,
+          answer: Q5.round(RL, 1), tol: Math.max(0.1, Q5.round(0.001 * RL, 2)), Vin, Vz, Rs, Iz,
+          sol: `While regulating, the series current is fixed: $I_s = (${Vin} - ${Vz})/${Rs} = ${Q5.round(Is, 3)}$ mA. The load can take at most $I_s - I_{Z,\\min} = ${Q5.round(Is - Iz, 3)}$ mA, so $R_{L,\\min} = ${Vz}\\ \\text{V}/${Q5.round(Is - Iz, 3)}$ mA $= ${Q5.round(RL, 1)}\\ \\Omega$.`,
+          trap: 'A smaller load resistance draws more current; the limit is reached when the Zener is left with its minimum current.' };
+      },
+      verify: (p) => p.Vz * p.Rs / (p.Vin - p.Vz - p.Iz * 1e-3 * p.Rs) },
+    { id: 'dio-t24', type: 'mcq', level: 1, exams: ['jam'], sub: 'bias', format: 'graph',
+      make(r) {
+        const names = ['a germanium diode', 'a silicon diode', 'a red LED', 'a $5.1$ V Zener diode'];
+        const desc = ['forward current stays tiny until about $0.2$-$0.3$ V and then rises steeply', 'forward current stays tiny until about $0.6$-$0.7$ V and then rises steeply', 'forward current stays tiny until about $1.8$ V and then rises steeply, and the device glows', 'forward behaviour is ordinary, but in reverse the current suddenly becomes large at about $-5.1$ V and the voltage then hardly changes'];
+        const c = Q5.int(r, 0, 3);
+        const o = Q5.mcqOptions(r, names[c], names.filter((x, i) => i !== c));
+        return { q: `On the I-V curve of a two-terminal device, the ${desc[c]}. The device is most likely`, ...o,
+          sol: 'The knee voltage grows with the band gap: germanium ($E_g \\approx 0.67$ eV) about 0.3 V, silicon (1.1 eV) about 0.7 V, a red LED (GaAsP, about 1.9 eV) about 1.8 V. A Zener diode is heavily doped so that it breaks down sharply at a set reverse voltage and holds it there.',
+          trap: 'An LED\'s turn-on voltage is close to its photon energy in eV.' };
+      } },
+    { id: 'dio-t25', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'load line', unit: 'mA',
+      make(r) {
+        const E = Q5.int(r, 2, 12), R = Q5.pick(r, 0.5, 10, 0.5), Is = 1e-14, VT = 0.02585;
+        let V = 0.7; for (let i = 0; i < 60; i++) V = VT * Math.log((E - V) / (R * 1000 * Is) + 1);
+        const I = (E - V) / R;
+        return { q: `A $${E}$ V battery drives a diode ($I = I_s(e^{V/V_T} - 1)$, $I_s = 10^{-14}$ A, $V_T = 25.85$ mV) forward-biased through a $${R}$ k$\\Omega$ resistor. Solving the diode equation with the load line exactly, the current is ______ mA (to three decimal places).`,
+          answer: Q5.round(I, 3), tol: 0.002, E, R,
+          sol: `Load line: $I = (${E} - V)/${R}$ k$\\Omega$. Iterate $V = V_T\\ln(I/I_s + 1)$: starting from $V = 0.7$ V the voltage settles at $V = ${Q5.round(V, 4)}$ V, so $I = (${E} - ${Q5.round(V, 4)})/${R} = ${Q5.round(I, 3)}$ mA. The iteration converges fast because $V$ depends only logarithmically on $I$.`,
+          trap: 'Assuming exactly 0.7 V gives a close but not exact answer; the true drop depends on the current.' };
+      },
+      verify: (p) => { const Is = 1e-14, VT = 0.02585, f = (I) => p.E - I * p.R * 1000 - VT * Math.log(I / Is + 1); let lo = 0, hi = p.E / (p.R * 1000); for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; } return lo * 1000; } },
     { id: 'dio-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'built-in potential',
       make(r) {
         const [mat, ni, niTex] = choose(r, [['silicon', 1e10, '10^{10}'], ['silicon', 1.5e10, '1.5\\times10^{10}'], ['germanium', 2.4e13, '2.4\\times10^{13}'], ['GaAs', 2.1e6, '2.1\\times10^{6}']]);

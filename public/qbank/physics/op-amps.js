@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const par = (a, b) => (a * b) / (a + b);
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'op-amps',
   items: [
@@ -251,6 +270,64 @@ export default {
   ],
 
   gens: [
+    { id: 'opa-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'integrator',
+      make(r) {
+        const names = ['an integrator', 'a differentiator', 'an inverting amplifier', 'a voltage follower', 'a comparator', 'a Schmitt trigger'];
+        const desc = ['the input feeds the inverting input through a resistor, and a capacitor connects the output back to the inverting input; the non-inverting input is grounded',
+          'the input feeds the inverting input through a capacitor, and a resistor connects the output back to the inverting input; the non-inverting input is grounded',
+          'the input feeds the inverting input through a resistor $R_1$, and a resistor $R_2$ connects the output back to the inverting input; the non-inverting input is grounded',
+          'the output is wired straight to the inverting input, and the signal goes to the non-inverting input',
+          'there is no feedback at all; the signal goes to one input and a fixed reference voltage to the other',
+          'the signal goes to the inverting input, and a resistor divider feeds part of the output back to the non-inverting input'];
+        const c = Q5.int(r, 0, 5);
+        const o = Q5.mcqOptions(r, names[c], Q5.shuffle(r, names.filter((x, i) => i !== c)));
+        return { q: `In an op-amp circuit, ${desc[c]}. The circuit is`, ...o,
+          sol: 'Negative feedback through a capacitor: $v_o = -\\frac{1}{RC}\\int v_i\\,dt$ (integrator); input capacitor with feedback resistor: $v_o = -RC\\,dv_i/dt$ (differentiator); two resistors: gain $-R_2/R_1$; output to the inverting input with the signal on the other: unity-gain follower. No feedback: the huge open-loop gain slams the output to a rail, comparing two voltages. Positive feedback to the non-inverting input gives two thresholds (hysteresis): a Schmitt trigger.',
+          trap: 'Feedback to the non-inverting input is positive feedback: no virtual short, but a switching circuit.' };
+      } },
+    { id: 'opa-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'ideal op-amp', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['With negative feedback and the output not saturated, the two input voltages are (nearly) equal.', 'An ideal op-amp draws no current into its inputs.', 'Without feedback, a small difference between the inputs drives the output into saturation.',
+          'The inverting input is a virtual ground only when the non-inverting input is grounded.', 'An ideal op-amp has zero output resistance.'];
+        const F = ['The two inputs stay at equal voltages even with positive feedback.', 'The input current equals the output current.', 'The inverting input is a virtual ground in every op-amp circuit.',
+          'An ideal op-amp has infinite output resistance.', 'The output can exceed the supply voltages if the gain is large enough.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about ideal op-amps are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'Ideal: infinite open-loop gain and input resistance, zero output resistance. With negative feedback the output settles where $v_+ \\approx v_-$ (virtual short); if $v_+$ is grounded, $v_-$ is a virtual ground. With positive feedback or none, the output runs to a rail, which it can never exceed. No current enters the inputs; the output current comes from the supplies.',
+          trap: 'The virtual short is a consequence of negative feedback, not a property of the op-amp alone.' };
+      } },
+    { id: 'opa-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'inverting', unit: 'V',
+      make(r) {
+        const R1 = Q5.int(r, 1, 10), Rf = R1 * Q5.int(r, 2, 10), R3 = Q5.int(r, 1, 10), R2 = R3 * Q5.int(r, 1, 10), vin = Q5.pick(r, 0.01, 0.1, 0.01) * (r() < 0.5 ? -1 : 1);
+        const v1 = -Rf / R1 * vin, vo = v1 * (1 + R2 / R3);
+        return { q: `An inverting amplifier ($R_1 = ${R1}$ k$\\Omega$, $R_f = ${Rf}$ k$\\Omega$) feeds a non-inverting amplifier ($R_3 = ${R3}$ k$\\Omega$ to ground, $R_2 = ${R2}$ k$\\Omega$ feedback). Both op-amps are ideal with $\\pm15$ V supplies. For a DC input of $${Q5.round(vin, 2)}$ V, the final output is ______ V (to three decimal places).`,
+          answer: Q5.round(vo, 3), tol: 0.002, R1, Rf, R2, R3, vin,
+          sol: `Stage 1: $v_1 = -\\dfrac{R_f}{R_1}v_{in} = -${Rf / R1}\\times(${Q5.round(vin, 2)}) = ${Q5.round(v1, 3)}$ V. Stage 2: $v_o = \\left(1 + \\dfrac{R_2}{R_3}\\right)v_1 = ${1 + R2 / R3}\\times(${Q5.round(v1, 3)}) = ${Q5.round(vo, 3)}$ V, within the supply rails, so neither stage saturates.`,
+          trap: 'Keep the sign from the inverting stage; the non-inverting stage has gain $1 + R_2/R_3$, not $R_2/R_3$.' };
+      },
+      verify: (p) => -(p.Rf / p.R1) * ((p.R3 + p.R2) / p.R3) * p.vin },
+    { id: 'opa-t24', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'active filter', format: 'limiting case',
+      make(r) {
+        const c = Q5.int(r, 0, 3), hi = r() < 0.5;
+        const circ = ['an ideal integrator (input $R$, feedback $C$)', 'an ideal differentiator (input $C$, feedback $R$)', 'a first-order active low-pass filter (input $R_1$, feedback $R_2$ in parallel with $C$)', 'a first-order active high-pass filter (input $R_1$ in series with $C$, feedback $R_2$)'][c];
+        const opts = ['tends to zero', 'tends to $R_2/R_1$', 'grows without limit (in practice until the op-amp saturates or runs out of bandwidth)', 'equals 1'];
+        const ans = [[2, 0], [0, 2], [1, 0], [0, 1]][c][hi ? 1 : 0];
+        const o = Q5.mcqOptions(r, opts[ans], opts.filter((x, i) => i !== ans));
+        return { q: `For ${circ}, the size of the voltage gain at ${hi ? 'very high' : 'very low'} frequency`, ...o,
+          sol: `Use the impedances $Z_C = 1/j\\omega C$, which is huge at low $\\omega$ and tiny at high $\\omega$; the gain is $-Z_f/Z_{in}$. Integrator: $1/\\omega RC$ (huge at low, zero at high). Differentiator: $\\omega RC$ (zero at low, huge at high). Low-pass: $R_2\\parallel C$ is $R_2$ at low $\\omega$, giving $R_2/R_1$, and shorts at high $\\omega$, giving 0. High-pass: the series $C$ blocks at low $\\omega$ (gain 0) and vanishes at high $\\omega$ (gain $R_2/R_1$).`,
+          trap: 'Treat a capacitor as an open circuit at DC and a short at very high frequency.' };
+      } },
+    { id: 'opa-t25', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'instrumentation', unit: 'kΩ',
+      make(r) {
+        const R = Q5.int(r, 10, 50), k = Q5.choose(r, [1, 2, 5]), G = k * Q5.int(r, 5, 100);
+        const RG = 2 * R / (G / k - 1);
+        return { q: `A three-op-amp instrumentation amplifier has gain $G = \\left(1 + \\dfrac{2R}{R_G}\\right)\\dfrac{R_3}{R_2}$, with $R = ${R}$ k$\\Omega$ in its input stage and $R_3/R_2 = ${k}$ in its difference stage. For an overall gain of $${G}$, the gain resistor $R_G$ must be ______ k$\\Omega$ (to three decimal places).`,
+          answer: Q5.round(RG, 3), tol: Math.max(0.002, Q5.round(0.001 * RG, 4)), R, k, G,
+          sol: `$1 + \\dfrac{2R}{R_G} = \\dfrac{G}{R_3/R_2} = ${G / k}$, so $R_G = \\dfrac{2R}{${G / k} - 1} = \\dfrac{${2 * R}}{${G / k - 1}} = ${Q5.round(RG, 3)}$ k$\\Omega$.`,
+          trap: 'Divide out the difference-stage gain first; then only the first stage depends on $R_G$.' };
+      },
+      verify: (p) => { const g = (x) => (1 + 2 * p.R / x) * p.k - p.G; let lo = 1e-6, hi = 1e6; for (let i = 0; i < 200; i++) { const m = Math.sqrt(lo * hi); if (g(m) > 0) lo = m; else hi = m; } return Math.sqrt(lo * hi); } },
     { id: 'opa-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'inverting', unit: 'V',
       make(r) {
         const Rin = choose(r, [1, 2, 4.7, 5, 10, 20]), k = choose(r, [2, 3, 4, 5, 10]), Rf = round(Rin * k, 2);

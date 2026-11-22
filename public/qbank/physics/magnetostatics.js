@@ -6,6 +6,25 @@ import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 const MU = C.mu0;
 const ALPHA_M = 6.6446573357e-27, DEUT_M = 3.3435837724e-27;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'magnetostatics',
   items: [
@@ -197,6 +216,61 @@ export default {
       sol: '$B = \\dfrac{\\mu_0Jd}{2} = \\dfrac{(4\\pi\\times10^{-7})(10^6)(0.002)}{2} \\approx 1.26\\times10^{-3}$ T, the same everywhere in the hole, perpendicular to both $\\vec J$ and $\\vec d$.' },
   ],
   gens: [
+    { id: 'mag-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'ampere', format: 'graph',
+      make(r) {
+        const names = ['a long straight wire of radius $R$ carrying a current spread uniformly over its cross-section', 'a long thin-walled tube of radius $R$ carrying a current along its length', 'a long tightly wound solenoid of radius $R$',
+          'a large flat sheet carrying a uniform surface current', 'a long coaxial cable (radii $a < b$) with equal and opposite currents in its two conductors'];
+        const desc = ['rises in proportion to $r$ up to $r = R$ and then falls as $1/r$', 'is zero for $r < R$ and falls as $1/r$ for $r > R$', 'is uniform for $r < R$ and (nearly) zero for $r > R$',
+          'has the same size at every distance from a plane and reverses direction across the plane', 'falls as $1/r$ between $r = a$ and $r = b$ and is zero beyond the outer conductor'];
+        const c = Q5.int(r, 0, 4);
+        const o = Q5.mcqOptions(r, names[c], Q5.shuffle(r, names.filter((x, i) => i !== c)));
+        return { q: `A graph of the magnetic field magnitude $B$ against distance $r$ (from an axis or from a plane) ${desc[c]}. The current distribution is most likely`, ...o,
+          sol: 'Ampere\'s law with the matching loop: solid wire, $B = \\mu_0Ir/2\\pi R^2$ inside (enclosed current $\\propto r^2$) and $\\mu_0I/2\\pi r$ outside; tube, no enclosed current inside so $B = 0$; solenoid, $B = \\mu_0nI$ inside and almost nothing outside; current sheet, $B = \\mu_0K/2$ on each side in opposite directions; coax, $\\mu_0I/2\\pi r$ between the conductors and zero outside, where the net enclosed current is zero.',
+          trap: 'Ampere\'s law uses only the current enclosed by the loop; outside a coax that is zero.' };
+      } },
+    { id: 'mag-t22', type: 'nat', level: 3, exams: ['jam'], sub: 'biot-savart: wires', unit: 'μT',
+      make(r) {
+        const R = Q5.int(r, 2, 10), I = Q5.int(r, 1, 20);
+        const B = 4e-7 * Math.PI * I / (4 * R / 100) * (1 + 2 / Math.PI) * 1e6;
+        return { q: `A long wire is bent into a hairpin: two long straight parallel legs joined by a semicircle of radius $${R}$ cm. It carries $${I}$ A. The magnetic field at the centre of the semicircle is ______ $\\mu$T (to two decimal places; $\\mu_0 = 4\\pi\\times10^{-7}$ SI).`,
+          answer: Q5.round(B, 2), tol: Math.max(0.01, Q5.round(0.002 * B, 3)), R, I,
+          sol: `The semicircle gives half a loop: $\\mu_0I/4R$. Each straight leg is semi-infinite, ending level with the centre at perpendicular distance $R$: $\\mu_0I/4\\pi R$ each. All three point the same way (the current circulates the same way round the centre). $B = \\dfrac{\\mu_0I}{4R}\\left(1 + \\dfrac2\\pi\\right) = ${Q5.round(B, 2)}\\ \\mu$T.`,
+          trap: 'A semi-infinite wire gives half the field of an infinite one at a point level with its end.' };
+      },
+      verify: (p) => { const mu = 4e-7 * Math.PI, R = p.R / 100, n = 2000; let arc = 0, leg = 0; for (let i = 0; i < n; i++) { arc += mu * p.I / (4 * Math.PI * R * R) * R * (Math.PI / n); const ph = (i + 0.5) / n * Math.PI / 2; leg += mu * p.I / (4 * Math.PI * R) * Math.cos(ph) * (Math.PI / 2 / n); } return (arc + 2 * leg) * 1e6; } },
+    { id: 'mag-t23', type: 'msq', level: 2, exams: ['jam'], sub: 'charged particle motion', format: 'statements',
+      make(r) {
+        const B = Q5.pick(r, 0.1, 2, 0.1), yes = r() < 0.5;
+        const T = Q5.fmt(2 * Math.PI * 1.6726e-27 / (1.602e-19 * B), 3);
+        const Tt = [`Its period of revolution is about $${T}$ s, whatever its speed (non-relativistic).`, 'Its kinetic energy stays constant.', 'The radius of its circle is proportional to its momentum.', 'If its velocity has a part along the field, it moves on a helix.', 'A proton moving exactly along the field feels no force.'];
+        const Ff = ['Its period of revolution grows with its speed (non-relativistic).', 'The magnetic force does work on it, changing its speed.', 'The radius of its circle is proportional to the square of its speed.', `Its period of revolution is about $${Q5.fmt(2 * Math.PI * 1.6726e-27 / (1.602e-19 * B) / (2 * Math.PI), 3)}$ s.`, 'A proton moving exactly along the field moves on a circle.'];
+        const o = yes ? q5msq(r, Tt, Ff) : q5msq(r, Ff, Tt);
+        return { q: `A proton moves in a uniform magnetic field of $${B}$ T (no electric field). Which statements are ${yes ? 'correct' : '<b>NOT</b> correct'}? ($m_p = 1.67\\times10^{-27}$ kg, $e = 1.60\\times10^{-19}$ C.)`, ...o,
+          sol: `$\\vec F = q\\vec v\\times\\vec B$ is perpendicular to $\\vec v$, so it does no work: speed and kinetic energy stay constant. Across the field: $qvB = mv^2/r$, so $r = mv/qB = p/qB$, and $T = 2\\pi r/v = 2\\pi m/qB = ${T}$ s, independent of speed ($m/qB$ alone is $1/\\omega$, not the period). A velocity part along $\\vec B$ is unaffected, giving a helix; motion exactly along $\\vec B$ feels no force.`,
+          trap: 'The cyclotron period does not depend on speed: faster particles move on bigger circles.' };
+      } },
+    { id: 'mag-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'basics', format: 'units',
+      make(r) {
+        const [what, ok, bad] = Q5.choose(r, [
+          ['the permeability of free space $\\mu_0$', ['N A$^{-2}$', 'T m A$^{-1}$', 'H m$^{-1}$', 'kg m s$^{-2}$ A$^{-2}$'], ['N A$^{-1}$', 'T A m$^{-1}$', 'H m', 'kg m s$^{-1}$ A$^{-2}$']],
+          ['magnetic field $B$', ['T', 'N A$^{-1}$ m$^{-1}$', 'Wb m$^{-2}$', 'kg s$^{-2}$ A$^{-1}$'], ['N A m$^{-1}$', 'Wb m$^{2}$', 'kg s$^{-1}$ A$^{-1}$', 'A m$^{-1}$']],
+          ['magnetic dipole moment', ['A m$^2$', 'J T$^{-1}$'], ['A m$^{-2}$', 'J T', 'T m$^{2}$', 'Wb A']],
+          ['magnetic flux', ['Wb', 'T m$^2$', 'V s'], ['T m$^{-2}$', 'V s$^{-1}$', 'A m$^2$', 'H A$^{-1}$']]]);
+        const o = q5odd(r, ok, bad);
+        return { q: `Which of these is a correct SI unit for ${what}?`, ...o,
+          sol: `Start from defining equations: $F = ILB$ gives T $=$ N A$^{-1}$ m$^{-1}$ $=$ kg s$^{-2}$ A$^{-1}$; flux $\\Phi = BA$ in Wb $=$ T m$^2$, and Faraday's law makes it V s; $B = \\mu_0 I/2\\pi r$ gives $\\mu_0$ in T m A$^{-1}$ $=$ N A$^{-2}$ $=$ H m$^{-1}$; torque $\\tau = mB$ gives $m$ in J T$^{-1}$ $=$ A m$^2$. Correct units for ${what}: ${ok.join(', ')}.`,
+          trap: 'Rebuild units from one equation you trust rather than remembering them.' };
+      } },
+    { id: 'mag-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'charged particle motion', unit: 'cm',
+      make(r) {
+        const E = Q5.int(r, 5, 50), B1 = Q5.pick(r, 0.1, 0.5, 0.05), B2 = Q5.pick(r, 0.1, 0.8, 0.05), A = Q5.int(r, 1, 40);
+        const v = E * 1e3 / B1, rr = A * 1.6605e-27 * v / (1.602e-19 * B2) * 100;
+        return { q: `Singly charged ions of mass number $${A}$ pass undeflected through crossed fields $E = ${E}$ kV/m and $B = ${B1}$ T, then enter a region with only a magnetic field of $${B2}$ T perpendicular to their motion. The radius of their path there is ______ cm (to three significant figures; $u = 1.6605\\times10^{-27}$ kg, $e = 1.602\\times10^{-19}$ C).`,
+          answer: +rr.toPrecision(3), tol: +(0.006 * rr).toPrecision(2), E, B1, B2, A,
+          sol: `Undeflected: $qE = qvB_1$, so $v = E/B_1 = ${Q5.fmt(v, 4)}$ m/s. Then $r = \\dfrac{mv}{qB_2} = \\dfrac{${A}\\times1.6605\\times10^{-27}\\times${Q5.fmt(v, 4)}}{1.602\\times10^{-19}\\times${B2}} = ${+rr.toPrecision(3)}$ cm.`,
+          trap: 'The selector fixes the speed $E/B_1$; the radius uses the second field $B_2$.' };
+      },
+      verify: (p) => { const m = p.A * 1.6605e-27, q = 1.602e-19; return (m / q) * (p.E * 1e3) / (p.B1 * p.B2) * 100; } },
     { id: 'mag-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'biot-savart: wires', unit: '$\\mu$T',
       make(r) {
         const I = int(r, 1, 30), s = int(r, 1, 25);

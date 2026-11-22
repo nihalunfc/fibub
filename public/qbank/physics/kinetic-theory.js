@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 // error function (Abramowitz-Stegun 7.1.26 is too rough for checks; use the series, fine for |x| < 3)
 const erf = (x) => { let s = 0, t = x, n = 0; while (Math.abs(t) > 1e-16 && n < 200) { s += t / (2 * n + 1); n++; t *= -x * x / n; } return (2 / Math.sqrt(Math.PI)) * s; };
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'kinetic-theory',
   items: [
@@ -217,6 +236,55 @@ export default {
       trap: 'C sounds natural but contradicts equilibrium at one temperature: temperature measures mean kinetic energy.' },
   ],
   gens: [
+    { id: 'kth-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'Maxwell speeds', format: 'comparison',
+      make(r) {
+        const gas = Q5.choose(r, [['helium', 4], ['nitrogen', 28], ['argon', 40], ['oxygen', 32]]), T = Q5.int(r, 20, 120) * 5;
+        const sp = { rms: ['v_{\\rm rms}', Math.sqrt(3)], avg: ['\\bar v', Math.sqrt(8 / Math.PI)], mp: ['v_{\\rm mp}', Math.SQRT2] };
+        const [a, b] = Q5.choose(r, [['rms', 'mp'], ['rms', 'avg'], ['avg', 'mp'], ['mp', 'rms'], ['avg', 'rms'], ['mp', 'avg']]);
+        const val = sp[a][1] / sp[b][1], s = (x) => `$${Q5.round(x, 3)}$`;
+        const o = Q5.mcqOptions(r, val, [1 / val, 1.5, Math.sqrt(3), 1.225, 1.085, 1.128, 0.886].filter((x) => Math.abs(x - val) > 0.002), s);
+        return { q: `For ${gas[0]} ($M = ${gas[1]}$ g/mol) at $${T}$ K, the ratio $${sp[a][0]}/${sp[b][0]}$ is`, ...o,
+          sol: `$v_{\\rm rms} = \\sqrt{3k_BT/m}$, $\\bar v = \\sqrt{8k_BT/\\pi m}$, $v_{\\rm mp} = \\sqrt{2k_BT/m}$. In any ratio $k_BT/m$ cancels, so the gas and temperature do not matter: the ratio is $\\sqrt3 : \\sqrt{8/\\pi} : \\sqrt2$ taken pairwise, here $${Q5.round(val, 3)}$.`,
+          trap: 'The gas and the temperature are distractors; and $v_{\\rm mp} < \\bar v < v_{\\rm rms}$ always.' };
+      } },
+    { id: 'kth-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'equipartition', format: 'statements',
+      make(r) {
+        const [name, f] = Q5.choose(r, [['a monatomic ideal gas', 3], ['a diatomic ideal gas with rotation but no vibration', 5], ['a diatomic ideal gas with vibration fully excited', 7], ['an ideal gas of rigid non-linear polyatomic molecules', 6]]);
+        const T = [`$C_V = ${f / 2}R$ per mole.`, `$\\gamma = C_P/C_V = ${q5frac(f + 2, f)}$.`, '$C_P - C_V = R$ per mole.', `The internal energy of one mole at temperature $T$ is $${f / 2}RT$.`];
+        const F = [`$C_V = ${(f + 2) / 2}R$ per mole.`, `$\\gamma = C_P/C_V = ${q5frac(f, f + 2)}$.`, `$C_P - C_V = ${f / 2}R$ per mole.`, `The internal energy of one mole at temperature $T$ is $${(f + 2) / 2}RT$.`];
+        const o = q5msq(r, T, F);
+        return { q: `For ${name}, using the equipartition theorem, which statements are correct?`, ...o,
+          sol: `Count quadratic energy terms per molecule: $f = ${f}$ (${f === 3 ? '3 translational' : f === 5 ? '3 translational + 2 rotational' : f === 7 ? '3 translational + 2 rotational + 2 vibrational (kinetic and potential)' : '3 translational + 3 rotational'}). Each gives $\\tfrac12k_BT$, so $U = \\tfrac{${f}}{2}RT$ per mole, $C_V = ${f / 2}R$, $C_P = C_V + R = ${(f + 2) / 2}R$ (Mayer's relation holds for every ideal gas) and $\\gamma = (f + 2)/f = ${q5frac(f + 2, f)}$.`,
+          trap: 'A vibration counts twice (kinetic and potential energy); a linear molecule has only two rotations.' };
+      } },
+    { id: 'kth-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'equipartition',
+      make(r) {
+        const n1 = Q5.int(r, 1, 5), n2 = Q5.int(r, 1, 5);
+        const Cv = (1.5 * n1 + 2.5 * n2) / (n1 + n2), g = 1 + 1 / Cv;
+        return { q: `A mixture contains $${n1}$ mol of a monatomic ideal gas and $${n2}$ mol of a diatomic ideal gas (rigid molecules). The ratio $\\gamma = C_P/C_V$ for the mixture is ______ (to three decimal places).`,
+          answer: Q5.round(g, 3), tol: 0.001, n1, n2,
+          sol: `Heat capacities add mole by mole: $C_V = \\dfrac{${n1}\\times\\tfrac32R + ${n2}\\times\\tfrac52R}{${n1 + n2}} = ${Q5.round(Cv, 4)}R$ per mole, and $C_P = C_V + R$. So $\\gamma = 1 + R/C_V = ${Q5.round(g, 3)}$.`,
+          trap: 'Do not average the two values of $\\gamma$; average the heat capacities.' };
+      },
+      verify: (p) => { const Cp = p.n1 * 2.5 + p.n2 * 3.5, Cv = p.n1 * 1.5 + p.n2 * 2.5; return Cp / Cv; } },
+    { id: 'kth-t24', type: 'mcq', level: 3, exams: ['jam'], sub: 'Maxwell speeds', format: 'graph',
+      make(r) {
+        const k = Q5.int(r, 2, 4), same = r() < 0.5;
+        const o = Q5.mcqOptions(r, `$${same ? k * k : `1/${k * k}`}$`, [`$${k}$`, `$1/${k}$`, `$${same ? `1/${k * k}` : k * k}$`]);
+        return { q: `Two Maxwell speed-distribution curves are drawn on one graph. Curve A peaks at a speed $${k}$ times that of curve B. ${same ? 'Both curves are for the same gas. The ratio $T_A/T_B$ of their temperatures is' : 'Both gases are at the same temperature. The ratio $m_A/m_B$ of their molecular masses is'}`, ...o,
+          sol: `The peak is at $v_{\\rm mp} = \\sqrt{2k_BT/m}$. ${same ? `For one gas, $v_{\\rm mp} \\propto \\sqrt T$, so $T_A/T_B = ${k}^2 = ${k * k}$.` : `At one temperature, $v_{\\rm mp} \\propto 1/\\sqrt m$, so $m_A/m_B = 1/${k}^2 = 1/${k * k}$.`} (Curve A is also lower and broader, since the area under each curve is 1.)`,
+          trap: 'The peak speed goes as a square root, so the factor is squared.' };
+      } },
+    { id: 'kth-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'mean free path', unit: 'Pa',
+      make(r) {
+        const lam = Q5.pick(r, 0.5, 50, 0.5), d = Q5.pick(r, 2, 4, 0.1), T = Q5.int(r, 200, 500);
+        const p = 1.380649e-23 * T / (Math.SQRT2 * Math.PI * (d * 1e-10) ** 2 * lam * 1e-6);
+        return { q: `In a gas of molecules of diameter $${d}$ Å at $${T}$ K, the mean free path is $${lam}\\ \\mu$m. Using $\\lambda = 1/(\\sqrt2\\,\\pi d^2 n)$, the pressure is ______ Pa (to three significant figures; $k_B = 1.381\\times10^{-23}$ J/K).`,
+          answer: +p.toPrecision(3), tol: +(0.006 * p).toPrecision(2), lam, d, T,
+          sol: `$p = nk_BT$ with $n = 1/(\\sqrt2\\pi d^2\\lambda)$: $p = \\dfrac{k_BT}{\\sqrt2\\pi d^2\\lambda} = \\dfrac{1.381\\times10^{-23}\\times${T}}{\\sqrt2\\pi(${d}\\times10^{-10})^2\\times${lam}\\times10^{-6}} = ${+p.toPrecision(3)}$ Pa.`,
+          trap: 'The diameter is squared; convert Å and $\\mu$m to metres first.' };
+      },
+      verify: (p) => { const n = 1 / (Math.SQRT2 * Math.PI * (p.d * 1e-10) ** 2 * (p.lam * 1e-6)); return n * 1.380649e-23 * p.T; } },
     { id: 'kth-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'Maxwell speeds',
       make(r) {
         const [gas, M] = choose(r, [['helium', 4], ['neon', 20], ['nitrogen', 28], ['oxygen', 32], ['argon', 40], ['carbon dioxide', 44], ['hydrogen', 2]]);

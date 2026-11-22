@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const TAU = 2 * Math.PI;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'simple-harmonic-motion',
   items: [
@@ -233,6 +252,65 @@ export default {
       trap: 'C forgets that $\\pi x_0p_0$ already contains the factor 2 from $x_0p_0 = 2E/\\omega$.' },
   ],
   gens: [
+    { id: 'shm-t21', type: 'msq', level: 2, exams: ['jam'], sub: 'kinematics', format: 'statements',
+      make(r) {
+        const A = Q5.int(r, 2, 10), w = Q5.int(r, 2, 9), yes = r() < 0.5;
+        const T = [`The maximum speed is $${A * w}$ cm/s.`, `The maximum acceleration is $${A * w * w}$ cm/s$^2$.`, `The period is $2\\pi/${w}$ s.`,
+          `At $x = ${A / 2}$ cm the speed is $${A * w}\\sqrt3/2$ cm/s.`, `The kinetic and potential energies are equal at $x = ${A}/\\sqrt2$ cm.`, 'The acceleration is zero at the mean position.'];
+        const F = [`The maximum speed is $${A * w * w}$ cm/s.`, `The maximum acceleration is $${A * w}$ cm/s$^2$.`, `The period is $${2 * w}\\pi$ s.`,
+          `At $x = ${A / 2}$ cm the speed is $${A * w / 2}$ cm/s.`, `The kinetic and potential energies are equal at $x = ${A / 2}$ cm.`, 'The acceleration is largest at the mean position.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `A particle moves along a line with $x = ${A}\\sin(${w}t)$ ($x$ in cm, $t$ in s). Which of these statements are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: `Here $A = ${A}$ cm and $\\omega = ${w}$ rad/s. $v_{\\max} = A\\omega = ${A * w}$ cm/s and $a_{\\max} = A\\omega^2 = ${A * w * w}$ cm/s$^2$; $T = 2\\pi/\\omega = 2\\pi/${w}$ s. The speed is $v = \\omega\\sqrt{A^2 - x^2}$, so at $x = A/2$ it is $\\tfrac{\\sqrt3}{2}A\\omega$. KE = PE when $\\tfrac12kx^2 = \\tfrac12\\cdot\\tfrac12kA^2$, that is at $x = A/\\sqrt2$. $a = -\\omega^2x$ is zero at $x = 0$ and largest at the turning points. Compare each statement with these facts.`,
+          trap: 'At half the amplitude the speed is not half the maximum: it is $\\sqrt3/2$ of it.' };
+      } },
+    { id: 'shm-t22', type: 'mcq', level: 3, exams: ['jam'], sub: 'spring-mass',
+      make(r) {
+        const M = Q5.int(r, 1, 6), m = Q5.int(r, 1, 5), mean = r() < 0.5;
+        const s = `$A\\sqrt{${M}/${M + m}}$`, u = '$A$', l = `$A\\cdot ${M}/${M + m}$`, h = `$A\\sqrt{${M + m}/${M}}$`;
+        const o = Q5.mcqOptions(r, mean ? s : u, mean ? [u, l, h] : [s, l, h]);
+        return { q: `A block of mass $${M}$ kg oscillates with amplitude $A$ on a horizontal spring on a smooth floor. As the block passes its ${mean ? 'mean position' : 'extreme position'}, a lump of putty of mass $${m}$ kg is dropped vertically onto it and sticks. The new amplitude is`, ...o,
+          sol: mean ? `At the mean position the block has its full speed $v = A\\omega$. The putty brings no horizontal momentum, so $Mv = (M + m)v'$ and $v' = \\dfrac{M}{M+m}A\\omega$. The new angular frequency is $\\omega' = \\omega\\sqrt{M/(M+m)}$. The mean position does not move, so $A' = v'/\\omega' = A\\sqrt{${M}/${M + m}}$.`
+            : `At the extreme position the block is momentarily at rest. The putty adds no horizontal momentum, so the combined block is still at rest at $x = A$: that point stays a turning point and $A' = A$. Only the period grows, by $\\sqrt{${M + m}/${M}}$.`,
+          trap: 'Momentum (not kinetic energy) is conserved when the putty sticks; at the extreme there is no speed to share at all.' };
+      } },
+    { id: 'shm-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'kinematics', unit: 'cm',
+      make(r) {
+        const A = Q5.int(r, 6, 15), w = Q5.int(r, 2, 6), x1 = Q5.int(r, 1, A - 4), x2 = Q5.int(r, x1 + 2, A - 1);
+        const v1 = Q5.round(w * Math.sqrt(A * A - x1 * x1), 2), v2 = Q5.round(w * Math.sqrt(A * A - x2 * x2), 2);
+        const om2 = (v1 * v1 - v2 * v2) / (x2 * x2 - x1 * x1), amp = Math.sqrt(x1 * x1 + v1 * v1 / om2);
+        return { q: `A particle in SHM has speed $${v1}$ cm/s when it is $${x1}$ cm from the mean position and $${v2}$ cm/s when it is $${x2}$ cm from it. Its amplitude is ______ cm (to two decimal places).`,
+          answer: Q5.round(amp, 2), tol: 0.03, v1, v2, x1, x2,
+          sol: `Use $v^2 = \\omega^2(A^2 - x^2)$ at both points. Subtracting, $v_1^2 - v_2^2 = \\omega^2(x_2^2 - x_1^2)$, so $\\omega^2 = \\dfrac{${v1}^2 - ${v2}^2}{${x2}^2 - ${x1}^2} = ${Q5.round(om2, 3)}$ s$^{-2}$. Then $A^2 = x_1^2 + v_1^2/\\omega^2$ gives $A = ${Q5.round(amp, 2)}$ cm.`,
+          trap: 'Two unknowns ($\\omega$ and $A$) need both data points; eliminate $\\omega$ first.' };
+      },
+      verify: (p) => Math.sqrt((p.v1 ** 2 * p.x2 ** 2 - p.v2 ** 2 * p.x1 ** 2) / (p.v1 ** 2 - p.v2 ** 2)) },
+    { id: 'shm-t24', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'other oscillators', format: 'dimensions',
+      make(r) {
+        const n = Q5.choose(r, [2, 3, 4, 5]);
+        const f = (x) => (Number.isInteger(x) ? String(x) : `${x < 0 ? '-' : ''}${Math.abs(2 * x)}/2`);
+        const show = (x) => `$T \\propto A^{${f(x)}}$`;
+        const o = Q5.mcqOptions(r, (1 - n) / 2, [(n - 1) / 2, 1 - n, 0.5, -(n + 1) / 2, 1], show);
+        return { q: `A particle of mass $m$ moves under the restoring force $F = -k\\,x\\,|x|^{${n - 1}}$ (so $|F| = k|x|^{${n}}$). Using only dimensional analysis, how does the period depend on the amplitude $A$?`, ...o,
+          sol: `$[k] = [F]/[x^{${n}}] = \\mathrm{M\\,L^{${1 - n}}\\,T^{-2}}$. Write $T = m^a k^b A^c$. Mass: $a + b = 0$; time: $-2b = 1$, so $b = -\\tfrac12$, $a = \\tfrac12$; length: $(1-${n})b + c = 0$, so $c = (1 - ${n})/2$. Hence $T \\propto A^{${f((1 - n) / 2)}}$: only the linear force ($n = 1$) gives a period independent of amplitude.`,
+          trap: 'Isochronism (period independent of amplitude) is special to the linear force $F = -kx$.' };
+      } },
+    { id: 'shm-t25', type: 'msq', level: 2, exams: ['jam'], sub: 'phase', format: 'graph',
+      make(r) {
+        const qd = Q5.int(r, 0, 3);
+        const desc = ['positive and increasing', 'positive and decreasing', 'negative and becoming more negative', 'negative and moving back towards zero'][qd];
+        const vPos = qd === 0 || qd === 3, aPos = qd >= 2, inward = qd === 1 || qd === 3;
+        const pairs = [
+          ['The velocity is positive.', 'The velocity is negative.'], ['The acceleration is positive.', 'The acceleration is negative.'],
+          ['The kinetic energy is increasing.', 'The kinetic energy is decreasing.'], ['The velocity and acceleration point the same way.', 'The velocity and acceleration point opposite ways.'],
+          ['The particle is moving towards the mean position.', 'The particle is moving away from the mean position.']];
+        const truth = [vPos, aPos, inward, inward, inward];
+        const T = pairs.map((p, i) => (truth[i] ? p[0] : p[1])), F = pairs.map((p, i) => (truth[i] ? p[1] : p[0]));
+        const o = q5msq(r, T, F);
+        return { q: `The displacement-time graph of a particle in SHM is a sine curve about $x = 0$. At a certain instant the graph shows the displacement to be ${desc}. Which statements about that instant are correct?`, ...o,
+          sol: `The slope of the $x$-$t$ graph is the velocity: it is ${vPos ? 'positive' : 'negative'} here. In SHM $a = -\\omega^2 x$, so the acceleration has the opposite sign to $x$: ${aPos ? 'positive' : 'negative'}. The particle is moving ${inward ? 'towards' : 'away from'} the mean position, so its speed (and kinetic energy) is ${inward ? 'increasing' : 'decreasing'}, and $v$ and $a$ point ${inward ? 'the same way' : 'opposite ways'}.`,
+          trap: 'The sign of the acceleration follows the displacement (opposite to it), not the velocity.' };
+      } },
     { id: 'shm-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'spring-mass',
       make(r) {
         const m = pick(r, 0.1, 2, 0.1), k = choose(r, [20, 40, 50, 80, 100, 160, 200, 250, 400]);

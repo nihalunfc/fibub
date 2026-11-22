@@ -5,6 +5,25 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 
 const K = 1 / (4 * Math.PI * C.eps0); // Coulomb constant, 8.988e9 N m^2 C^-2
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'electrostatics-gauss',
   items: [
@@ -214,6 +233,66 @@ export default {
       trap: 'Using the whole sphere\'s charge $\\tfrac43\\pi R^3\\rho$ instead of the part inside $R/2$.' },
   ],
   gens: [
+    { id: 'esg-t21', type: 'msq', level: 2, exams: ['jam'], sub: 'gauss law', format: 'statements',
+      make(r) {
+        const q = Q5.int(r, 1, 9), Qo = Q5.int(r, 1, 9), yes = r() < 0.5;
+        const fl = Q5.round(q * 1e-9 / 8.854e-12, 1);
+        const T = [`The total flux out of $S$ is about $${fl}$ N m$^2$/C.`, 'The outside charge adds nothing to the total flux through $S$.', 'The field at points on $S$ depends on the outside charge as well.',
+          'The total flux stays the same if $S$ is reshaped, as long as it still encloses only the inside charge.', 'Gauss law holds for $S$ even though $S$ has no symmetry.'];
+        const F = [`The total flux out of $S$ is about $${Q5.round(q * 8.99, 1)}$ N m$^2$/C.`, 'The outside charge changes the total flux through $S$.', 'Because the total flux is fixed, the field on $S$ does not depend on the outside charge.',
+          'Gauss law cannot be used for $S$ because $S$ has no symmetry.', `The total flux out of $S$ is about $${Q5.round((q + Qo) * 1e-9 / 8.854e-12, 1)}$ N m$^2$/C.`];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `An irregular closed surface $S$ encloses a point charge of $+${q}$ nC. A second charge of $+${Qo}$ nC sits outside $S$. Which statements are ${yes ? 'correct' : '<b>NOT</b> correct'}? ($\\varepsilon_0 = 8.854\\times10^{-12}$ C$^2$ N$^{-1}$ m$^{-2}$.)`, ...o,
+          sol: `Gauss: $\\oint\\vec E\\cdot d\\vec A = q_{\\rm enc}/\\varepsilon_0 = ${q}\\times10^{-9}/8.854\\times10^{-12} = ${fl}$ N m$^2$/C, for any closed surface. Field lines from the outside charge enter and leave $S$, so they add zero net flux, but they do change $\\vec E$ at each point of $S$. Gauss law always holds; symmetry is only needed to use it to find $\\vec E$. ($kq = ${Q5.round(q * 8.99, 1)}$ is missing the factor $4\\pi$.)`,
+          trap: 'A fixed total flux says nothing about the field at each point of the surface.' };
+      } },
+    { id: 'esg-t22', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'limiting cases', format: 'limiting case',
+      make(r) {
+        const [obj, lim, right, wr, why] = Q5.choose(r, [
+          ['a thin ring of radius $R$ carrying charge $Q$', 'on its axis, at a distance $z \\gg R$ from its centre', '$kQ/z^2$', ['$kQ/R^2$', '$kQ/z$', '$0$'], '$E = kQz/(z^2 + R^2)^{3/2} \\to kQ/z^2$: from far away the ring looks like a point charge.'],
+          ['a thin ring of radius $R$ carrying charge $Q$', 'at its centre', '$0$', ['$kQ/R^2$', '$2kQ/R^2$', '$kQ/(2R^2)$'], '$E = kQz/(z^2 + R^2)^{3/2} \\to 0$ at $z = 0$: the pulls of opposite bits of the ring cancel.'],
+          ['a flat disc of radius $R$ with uniform surface charge $\\sigma$ (total $Q$)', 'on its axis, at a height $z \\ll R$ above its centre', '$\\sigma/2\\varepsilon_0$', ['$\\sigma/\\varepsilon_0$', '$0$', '$kQ/z^2$'], '$E = \\dfrac{\\sigma}{2\\varepsilon_0}\\left(1 - \\dfrac{z}{\\sqrt{z^2 + R^2}}\\right) \\to \\sigma/2\\varepsilon_0$: close up the disc looks like an infinite sheet.'],
+          ['a flat disc of radius $R$ with uniform surface charge $\\sigma$ (total $Q$)', 'on its axis, at a height $z \\gg R$', '$kQ/z^2$', ['$\\sigma/2\\varepsilon_0$', '$kQ/z$', '$kQ/R^2$'], 'Expanding $1 - z/\\sqrt{z^2 + R^2} \\approx R^2/2z^2$ gives $E \\approx \\sigma R^2/(4\\varepsilon_0 z^2) = kQ/z^2$: a point charge.'],
+          ['a straight rod of length $2L$ with charge $\\lambda$ per unit length (total $Q$)', 'on its perpendicular bisector, at a distance $z \\ll L$', '$2k\\lambda/z$', ['$k\\lambda/z$', '$kQ/z^2$', '$k\\lambda/z^2$'], '$E = \\dfrac{2k\\lambda L}{z\\sqrt{z^2 + L^2}} \\to 2k\\lambda/z$: close up the rod looks infinitely long.'],
+          ['a straight rod of length $2L$ with charge $\\lambda$ per unit length (total $Q$)', 'on its perpendicular bisector, at a distance $z \\gg L$', '$kQ/z^2$', ['$2k\\lambda/z$', '$kQ/z$', '$kQ/L^2$'], '$E = \\dfrac{2k\\lambda L}{z\\sqrt{z^2 + L^2}} \\to 2k\\lambda L/z^2 = kQ/z^2$: a point charge.']]);
+        const o = Q5.mcqOptions(r, right, wr);
+        return { q: `The electric field of ${obj}, ${lim}, is approximately ($k = 1/4\\pi\\varepsilon_0$)`, ...o, sol: why,
+          trap: 'Check limits: far away every finite charge looks like a point; very close, a surface looks like an infinite sheet and a rod like an infinite line.' };
+      } },
+    { id: 'esg-t23', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'gauss law: spheres', unit: 'N/C',
+      make(r) {
+        const Q = Q5.int(r, 1, 9), R = Q5.int(r, 5, 20), f = Q5.pick(r, 0.2, 0.9, 0.1);
+        const E = 8.99e9 * Q * 1e-9 * (f * R / 100) ** 2 / (R / 100) ** 4;
+        return { q: `A ball of radius $${R}$ cm holds a total charge of $${Q}$ nC, spread with density proportional to the distance from the centre ($\\rho = \\rho_0 r/R$). The field at $${Q5.round(f * R, 1)}$ cm from the centre is ______ N/C (to three significant figures; $k = 8.99\\times10^9$ N m$^2$/C$^2$).`,
+          answer: +E.toPrecision(3), tol: +(0.006 * E).toPrecision(2), Q, R, f,
+          sol: `Charge within radius $r$: $q(r) = \\int_0^r \\rho_0\\dfrac{s}{R}4\\pi s^2ds = \\pi\\rho_0 r^4/R$. The whole ball: $Q = \\pi\\rho_0R^3$, so $q(r) = Q\\,r^4/R^4$. Gauss: $E = kq(r)/r^2 = kQr^2/R^4 = 8.99\\times10^9\\times${Q}\\times10^{-9}\\times\\dfrac{${Q5.round(f * R / 100, 4)}^2}{${R / 100}^4} = ${+E.toPrecision(3)}$ N/C.`,
+          trap: 'Inside a non-uniform ball the field does not grow linearly with $r$; work out the enclosed charge first.' };
+      },
+      verify: (p) => { const R = p.R / 100, rr = p.f * R, n = 200; let s = 0, tot = 0; const rho = (x) => x * 4 * Math.PI * x * x; for (let i = 0; i < n; i++) { const x = (i + 0.5) / n; s += rho(x * rr) * rr / n; tot += rho(x * R) * R / n; } return 8.99e9 * p.Q * 1e-9 * (s / tot) / (rr * rr); } },
+    { id: 'esg-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'gauss law', format: 'graph',
+      make(r) {
+        const names = ['a uniformly charged solid insulating sphere of radius $R$', 'a thin uniformly charged spherical shell of radius $R$', 'a long uniformly charged thin straight wire', 'a large uniformly charged flat sheet', 'a long uniformly charged solid insulating cylinder of radius $R$'];
+        const desc = ['rises in proportion to $r$ up to $r = R$, then falls as $1/r^2$', 'is zero up to $r = R$, jumps to its largest value there, then falls as $1/r^2$', 'falls as $1/r$ at every distance $r$ from a line', 'has the same size at every distance $r$ from a plane, pointing away from the plane on both sides', 'rises in proportion to $r$ up to $r = R$, then falls as $1/r$'];
+        const c = Q5.int(r, 0, 4);
+        const o = Q5.mcqOptions(r, names[c], Q5.shuffle(r, names.filter((x, i) => i !== c)));
+        return { q: `A graph of the electric field magnitude $E$ against distance $r$ (from a centre, an axis or a plane) ${desc[c]}. The charge distribution is most likely`, ...o,
+          sol: 'Gauss law with the matching surface: sphere, $E = kQr/R^3$ inside (enclosed charge $\\propto r^3$) and $kQ/r^2$ outside; shell, no enclosed charge inside so $E = 0$, then $kQ/r^2$; line, $E = \\lambda/(2\\pi\\varepsilon_0 r)$; sheet, $E = \\sigma/2\\varepsilon_0$ at any distance; solid cylinder, $E = \\rho r/2\\varepsilon_0$ inside and $\\lambda/(2\\pi\\varepsilon_0 r)$ outside.',
+          trap: '$1/r^2$ outside means spherical symmetry; $1/r$ means a line or cylinder; a constant means a plane.' };
+      } },
+    { id: 'esg-t25', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'flux', unit: 'N m²/C',
+      make(r) {
+        const q = Q5.int(r, 1, 9), c = Q5.int(r, 0, 2);
+        const frac = [1 / 24, 4 * Math.asin(0.2) / (4 * Math.PI), 1 / 6][c];
+        const where = ['at one corner of a cube. The flux through one of the three faces that do not touch that corner', 'at the centre of one face of a cube. The flux through the opposite face', 'at the centre of a cube. The flux through one face'][c];
+        const F = q * 1e-9 / 8.854e-12 * frac;
+        return { q: `A point charge of $${q}$ nC sits ${where} is ______ N m$^2$/C (to two decimal places; $\\varepsilon_0 = 8.854\\times10^{-12}$ SI).${c === 1 ? ' (The square of side $a$ at distance $d$ from a point on its centre line subtends $4\\sin^{-1}\\dfrac{a^2}{a^2 + 4d^2}$.)' : ''}`,
+          answer: Q5.round(F, 2), tol: Math.max(0.01, Q5.round(0.002 * F, 3)), qc: q, c,
+          sol: [`Put 8 equal cubes round the corner: the charge is then at the centre of a cube of twice the size, whose 24 outer small faces share the flux $q/\\varepsilon_0$ equally. Each far face gets $q/24\\varepsilon_0 = ${Q5.round(F, 2)}$ N m$^2$/C.`,
+            `The opposite face is a square of side $a$ at distance $d = a$, so it subtends $\\Omega = 4\\sin^{-1}(1/5) = ${Q5.round(4 * Math.asin(0.2), 4)}$ sr. Flux $= \\dfrac{q}{\\varepsilon_0}\\cdot\\dfrac{\\Omega}{4\\pi} = ${Q5.round(F, 2)}$ N m$^2$/C.`,
+            `By symmetry the six faces share $q/\\varepsilon_0$: each gets $q/6\\varepsilon_0 = ${Q5.round(F, 2)}$ N m$^2$/C.`][c],
+          trap: 'Use symmetry (or the solid angle) to share the total $q/\\varepsilon_0$; the flux through a face is not $q/\\varepsilon_0$ divided by the number of faces unless the charge is at the centre.' };
+      },
+      verify: (p) => { const P = [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0.5, 0.5]][p.c], n = 300; let s = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const y = (i + 0.5) / n - P[1], z = (j + 0.5) / n - P[2], d = 1 - P[0]; s += d / Math.pow(d * d + y * y + z * z, 1.5) / (n * n); } return p.qc * 1e-9 / 8.854e-12 * s / (4 * Math.PI); } },
     { id: 'esg-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'coulomb and superposition', unit: 'N/C',
       make(r) {
         const q = int(r, 1, 9), d = int(r, 2, 20); // nC, cm
