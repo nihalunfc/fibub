@@ -326,4 +326,168 @@ export default {
     },
     verify: (p) => p.big / p.small,
   },
+  // ---------- Module 3: Einstein ----------
+  'michelson-arm': {
+    title: 'time light down an arm and back',
+    make(r) {
+      const L = pick(r, 3, 30, 1);
+      const answer = 2 * L / P.C * 1e9;
+      return {
+        q: `<p>In a Michelson-style experiment, light runs along an arm ${L} m long, hits a mirror and comes back. How long does the round trip take, in <b>nanoseconds</b> (billionths of a second)? Use c = 3.00 × 10<sup>8</sup> m/s.</p>`,
+        answer, unit: 'ns', tol: 0.01,
+        hint: 'Time = distance ÷ speed. The light goes there and back, so the distance is 2 × the arm.',
+        solution: steps(
+          `Distance: 2 × ${L} m = ${2 * L} m.`,
+          `Time: ${2 * L} ÷ 299,792,458 = ${n(2 * L / P.C)} s = <b>${n(answer)} ns</b>.`,
+          'Michelson and Morley compared two such arms at right angles, to a tiny fraction of a wavelength. Turning the apparatus never changed the timing: light\'s speed did not depend on Earth\'s motion.'),
+        L,
+      };
+    },
+    verify: (p) => 2 * p.L / 299792458 * 1e9,
+  },
+  'twin-clock': {
+    title: 'how much does the traveller age?',
+    make(r) {
+      const b = pick(r, 0.5, 0.99, 0.01), T = pick(r, 5, 40, 1);
+      const g = P.gamma(b), answer = T / g;
+      return {
+        q: `<p>A spaceship travels at ${b} times the speed of light. On Earth, ${T} years pass during the trip. How many years pass on the ship's clock?</p>`,
+        answer, unit: 'years', tol: 0.01,
+        hint: 'Work out γ = 1 ÷ √(1 − v²/c²), then divide Earth\'s time by γ.',
+        solution: steps(
+          `v/c = ${b}, so v²/c² = ${n(b * b, 4)} and 1 − v²/c² = ${n(1 - b * b, 4)}.`,
+          `γ = 1 ÷ √${n(1 - b * b, 4)} = ${n(g, 4)}.`,
+          `Ship time = ${T} ÷ ${n(g, 4)} = <b>${n(answer)} years</b>. The traveller comes home younger than those who stayed.`),
+        b, T,
+      };
+    },
+    verify: (p) => p.T * Math.sqrt(1 - p.b * p.b),
+  },
+  'mc2-energy': {
+    title: 'energy locked in a little mass',
+    make(r) {
+      const g = pick(r, 0.1, 5, 0.1);
+      const answer = (g / 1000) * P.C * P.C;
+      return {
+        q: `<p>If ${g} grams of mass were turned completely into energy, how many joules would that be? (For scale, a 100-watt bulb uses 100 joules each second.)</p>`,
+        answer, unit: 'J', tol: 0.01,
+        hint: 'E = mc², with m in kilograms and c = 3.00 × 10⁸ m/s.',
+        solution: steps(
+          `m = ${g} g = ${n(g / 1000)} kg.`,
+          `c² = (2.998 × 10<sup>8</sup>)² ≈ 8.99 × 10<sup>16</sup> m²/s².`,
+          `E = ${n(g / 1000)} × 8.99 × 10<sup>16</sup> = <b>${n(answer)} J</b>: enough to run a 100-watt bulb for about ${n(answer / 100 / P.YEAR)} years.`),
+        g,
+      };
+    },
+    verify: (p) => p.g * 1e-3 * 299792458 ** 2,
+  },
+  'lift-light-drop': {
+    title: 'how far does light fall across a lift?',
+    make(r) {
+      const L = pick(r, 2, 6, 0.5);
+      const t = L / P.C, answer = 0.5 * 9.81 * t * t;
+      return {
+        q: `<p>A beam of light crosses a lift ${L} m wide while the lift accelerates upwards at 9.81 m/s² (like gravity). By the equivalence principle, light "falls" like a ball. How far does it drop while crossing, in metres?</p>`,
+        answer, unit: 'm', tol: 0.02,
+        hint: 'Time to cross: t = width ÷ c. Distance fallen: ½ g t².',
+        solution: steps(
+          `t = ${L} ÷ 2.998 × 10<sup>8</sup> = ${n(t)} s.`,
+          `drop = ½ × 9.81 × (${n(t)})² = <b>${n(answer)} m</b>.`,
+          'That is far smaller than an atomic nucleus, which is why nobody sees light bend in a lift. Near the Sun, over millions of kilometres, the bend is big enough to measure.'),
+        L,
+      };
+    },
+    verify: (p) => 4.905 * (p.L / 299792458) ** 2,
+  },
+  'tower-clock': {
+    title: 'clocks run faster upstairs',
+    make(r) {
+      const h = pick(r, 10, 800, 10);
+      const answer = P.gravShift(h) * P.YEAR * 1e9;
+      return {
+        q: `<p>One clock sits on the ground and an identical clock sits ${h} m higher, at the top of a tower. Near Earth, the higher clock runs faster by a fraction g h / c². How many <b>nanoseconds</b> does it gain in one year? (g = 9.81 m/s², one year = 3.156 × 10<sup>7</sup> s.)</p>`,
+        answer, unit: 'ns', tol: 0.02,
+        hint: 'Fraction = 9.81 × height ÷ c². Multiply by the seconds in a year, then by 10⁹ for nanoseconds.',
+        solution: steps(
+          `g h / c² = 9.81 × ${h} ÷ 8.988 × 10<sup>16</sup> = ${n(P.gravShift(h))}.`,
+          `Gain per year: ${n(P.gravShift(h))} × 3.156 × 10<sup>7</sup> s = ${n(P.gravShift(h) * P.YEAR)} s = <b>${n(answer)} ns</b>.`,
+          'Tiny, but modern atomic clocks can see the difference when one is lifted by just 30 centimetres.'),
+        h,
+      };
+    },
+    verify: (p) => 9.81 * p.h / 299792458 ** 2 * 365.25 * 86400 * 1e9,
+  },
+  'gps-error': {
+    title: 'what if GPS ignored Einstein?',
+    make(r) {
+      const us = pick(r, 30, 45, 1);
+      const answer = P.C * us * 1e-6 / 1000;
+      return {
+        q: `<p>Satellite clocks in GPS gain about ${us} microseconds a day compared with clocks on the ground (mostly because they are higher up, minus a little because they are moving). Your phone works out distance from light travel time. If nobody corrected this, how many <b>kilometres</b> of error would build up in one day?</p>`,
+        answer, unit: 'km', tol: 0.01,
+        hint: 'Distance error = speed of light × time error. 1 microsecond = 10⁻⁶ s.',
+        solution: steps(
+          `Time error: ${us} µs = ${n(us * 1e-6)} s.`,
+          `Distance error: 2.998 × 10<sup>8</sup> m/s × ${n(us * 1e-6)} s = ${n(P.C * us * 1e-6)} m = <b>${n(answer)} km</b>.`,
+          'Maps would drift by kilometres every day. GPS satellite clocks are tuned slightly slow before launch to cancel it.'),
+        us,
+      };
+    },
+    verify: (p) => 299792.458 * p.us * 1e-6,
+  },
+  'schwarzschild': {
+    title: 'how big is a black hole?',
+    make(r) {
+      const opts = [[1, 'the Sun (if it were squeezed)'], [10, 'a typical stellar black hole'], [36, 'one of the first pair LIGO heard'], [4.3e6, 'Sagittarius A*, at the centre of the Milky Way'], [6.5e9, 'M87*, the first black hole imaged']];
+      const [m, name] = opts[Math.floor(r() * opts.length)];
+      const answer = P.schwarzschild(m * P.M_SUN) / 1000;
+      return {
+        q: `<p>The event horizon of a non-spinning black hole has radius r = 2GM / c². What is r, in <b>kilometres</b>, for ${name}, with a mass of ${n(m)} Suns? (One Sun = 1.989 × 10<sup>30</sup> kg, G = 6.674 × 10<sup>−11</sup>.)</p>`,
+        answer, unit: 'km', tol: 0.01,
+        hint: 'For one Sun, r ≈ 2.95 km. The radius grows in proportion to the mass.',
+        solution: steps(
+          `M = ${n(m)} × 1.989 × 10<sup>30</sup> = ${n(m * P.M_SUN)} kg.`,
+          `r = 2 × 6.674 × 10<sup>−11</sup> × ${n(m * P.M_SUN)} ÷ (2.998 × 10<sup>8</sup>)² = ${n(answer * 1000)} m.`,
+          `So r ≈ <b>${n(answer)} km</b>. Shortcut: about 2.95 km per Sun of mass.`),
+        m,
+      };
+    },
+    verify: (p) => 2.953 * p.m,
+  },
+  'light-bend': {
+    title: 'how much does a star bend light?',
+    make(r) {
+      const m = pick(r, 0.5, 10, 0.5), R = pick(r, 0.5, 8, 0.5);
+      const answer = P.deflectionArcsec(m * P.M_SUN, R * P.R_SUN);
+      return {
+        q: `<p>Light grazing the edge of the Sun is bent by 1.75 arcseconds. The bend is 4GM / (c² b): it grows with the mass M and shrinks with the distance b of closest approach. A star has ${m} times the Sun's mass and ${R} times its radius. How many arcseconds is light grazing its edge bent?</p>`,
+        answer, unit: 'arcsec', tol: 0.01,
+        hint: 'Scale the Sun\'s 1.75″ by (mass ratio) ÷ (radius ratio).',
+        solution: steps(
+          `Mass ratio ÷ radius ratio = ${m} ÷ ${R} = ${n(m / R, 4)}.`,
+          `Bend ≈ 1.75″ × ${n(m / R, 4)} = <b>${n(answer)}″</b>.`,
+          'Even for a heavy star the bend is tiny. A whole galaxy or cluster bends light enough to make arcs and rings.'),
+        m, R,
+      };
+    },
+    verify: (p) => 1.7512 * p.m / p.R,
+  },
+  'ligo-strain': {
+    title: 'how much does LIGO\'s arm stretch?',
+    make(r) {
+      const k = pick(r, 0.5, 5, 0.5);
+      const h = k * 1e-21, answer = h * 4000;
+      return {
+        q: `<p>A gravitational wave with strain h = ${k} × 10<sup>−21</sup> passes through LIGO. Strain is the fractional change in length. LIGO's arms are 4 km long. By how many metres does an arm change?</p>`,
+        answer, unit: 'm', tol: 0.01,
+        hint: 'Change in length = strain × length, with the length in metres.',
+        solution: steps(
+          `Length: 4 km = 4,000 m.`,
+          `Change: ${k} × 10<sup>−21</sup> × 4,000 = <b>${n(answer)} m</b>.`,
+          `A proton is about 1.7 × 10<sup>−15</sup> m across, so this is about ${n(1.7e-15 / answer)} times smaller than a proton.`),
+        k,
+      };
+    },
+    verify: (p) => p.k * 4e-18,
+  },
 };
