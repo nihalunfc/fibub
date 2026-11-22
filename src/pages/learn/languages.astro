@@ -1,13 +1,32 @@
 ---
-import LearnPage from '../../components/LearnPage.astro';
-const cards = [
-  { name: 'Letters and scripts', text: 'Learn the letters of a new script, trace them and test yourself.' },
-  { name: 'Words and flash cards', text: 'Make your own word lists and practise them with flash cards and quick quizzes.' },
-  { name: 'Listening', text: "Hear words and sentences read aloud by your device's own voices, slowly or at normal speed." },
-  { name: 'Speaking and spelling', text: 'Say or type what you hear and see how close you were.' },
-  { name: 'Grammar drills', text: 'Short practice for word order, tenses and forms.' },
-];
+// Languages: the English courses that are live (IELTS, CELPIP, TOEFL; they live in Exam prep too), then the
+// language tools still to come, as one short list.
+import Base from '../../layouts/Base.astro';
+import CourseCard from '../../components/learn/CourseCard.astro';
+import LearnMore from '../../components/learn/LearnMore.astro';
+import { courseCards, ENGLISH } from '../../lib/learn';
+import { collectionLd } from '../../lib/seo';
+import '../../styles/area.css';
+import '../../styles/learn.css';
+const english = (await courseCards()).filter((c) => ENGLISH.includes(c.id) && c.status === 'live');
+const soon = ['Letters and scripts: learn a new alphabet, trace it and test yourself', 'Word lists and flash cards', "Listening with your device's own voices, slow or normal speed", 'Speaking and spelling practice', 'Grammar drills'];
+const desc = 'Free English courses for IELTS, CELPIP and TOEFL with vocabulary, practice questions and timed tests, plus language practice tools on the way. No sign-up.';
 ---
-<LearnPage here="languages" title="Learn: Languages" description="Free language learning tools: scripts, word lists, flash cards, listening and speaking practice. Runs in your browser, no sign-up."
-  lead="Tools to learn and practise languages. Your word lists and progress stay on your device."
-  cardsTitle="Planned tools" cards={cards} />
+<Base title="Learn: Languages" docTitle="Free English and language learning | fibub" description={desc} ld={collectionLd('Languages', desc, '/learn/languages/', [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Languages', url: '/learn/languages/' }])}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / Languages</div>
+  <div class="lh-head">
+    <h1>Languages</h1>
+    <p class="lead">Learn and practise English for study, work and migration. Your progress stays on your device.</p>
+  </div>
+  <section class="lh-cont" data-continue hidden aria-label="Continue where you left off"><h2>Continue where you left off</h2><ul></ul></section>
+  {english.length > 0 && <>
+    <div class="lh-sec"><h2>English <small class="lh-sub">({english.length})</small></h2><a href="/learn/exam-prep/">All exam prep →</a></div>
+    <div class="lh-grid lh-anim">{english.map((c, i) => <CourseCard c={c} i={i} />)}</div>
+  </>}
+  <details class="lh-all lh-soon">
+    <summary>Coming soon: tools for other languages ({soon.length})</summary>
+    <ul>{soon.map((s) => <li>{s}</li>)}</ul>
+  </details>
+  <LearnMore here="languages" />
+</Base>
+<script>import '../../scripts/learn';</script>

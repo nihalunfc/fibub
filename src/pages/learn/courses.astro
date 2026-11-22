@@ -10,9 +10,12 @@ import '../../styles/area.css';
 import '../../styles/learn.css';
 const cards = await courseCards();
 const n = (cat?: string) => cards.filter((c) => c.status === 'live' && (!cat || c.cat === cat)).length;
-const css = COURSE_CATS.map((k) => `.lh-f:has(#f-${k.id}:checked) .lc:not([data-cat="${k.id}"]){display:none}`).join('');
+// One section per category (nihal, 2026-11-22: organised, not one mixed list); the chips show one section.
+const sections = COURSE_CATS.map((k) => ({ ...k, live: cards.filter((c) => c.cat === k.id && c.status === 'live') })).filter((k) => k.live.length);
+const soon = cards.filter((c) => c.status !== 'live');
+const css = COURSE_CATS.map((k) => `.lh-f:has(#f-${k.id}:checked) [data-sec]:not([data-sec="${k.id}"]){display:none}`).join('');
 const title = 'Learn: Courses';
-const desc = 'Every free fibub course: statistics, machine learning, Offline AI, home skills such as tyres, hand tools, carpentry and wall fixings, and science courses. No sign-up.';
+const desc = 'Every free fibub course by topic: SQL, Power BI, statistics, pandas and machine learning; astronomy and cosmology; SAT, GRE, IELTS and physics exams; startups and home skills. No sign-up.';
 ---
 <Base title={title} docTitle="Free online courses, no sign-up | fibub" description={desc} ld={collectionLd('Courses', desc, '/learn/courses/', [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Courses', url: '/learn/courses/' }])}>
   <style is:inline set:html={css}></style>
@@ -27,8 +30,14 @@ const desc = 'Every free fibub course: statistics, machine learning, Offline AI,
       <input type="radio" name="cat" id="f-all" value="all" data-hash checked /><label for="f-all">All <small>{n()}</small></label>
       {COURSE_CATS.map((k) => <><input type="radio" name="cat" id={`f-${k.id}`} value={k.id} data-hash /><label for={`f-${k.id}`}>{k.short} <small>{n(k.id)}</small></label></>)}
     </div>
-    <div class="lh-grid lh-anim">{cards.map((c, i) => <CourseCard c={c} i={i} />)}</div>
+    {sections.map((k) => (
+      <section data-sec={k.id} aria-label={k.name}>
+        <div class="lh-sec"><h2>{k.name} <small class="lh-sub">({k.live.length})</small></h2><a href={k.href}>Open hub →</a></div>
+        <div class="lh-grid lh-compact lh-anim">{k.live.map((c, i) => <CourseCard c={c} i={i} />)}</div>
+      </section>
+    ))}
   </div>
+  {soon.length > 0 && <details class="lh-all lh-soon"><summary>Coming soon ({soon.length})</summary><ul>{soon.map((c) => <li><strong>{c.name}</strong>: {c.text}</li>)}</ul></details>}
   <p class="lh-sub" style="margin-top:14px">Looking for school subjects? <a href="/learn/school/">Class 8 to 12, chapter by chapter</a>.</p>
   <LearnMore here="courses" />
 </Base>

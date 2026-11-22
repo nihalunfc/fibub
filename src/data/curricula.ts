@@ -83,7 +83,6 @@ export const COURSES: Course[] = [
   ...SKILL_COURSES.map((c) => ({ id: c.id, name: c.name, text: c.text, status: 'live' as const, href: `/learn/courses/${c.id}/`, cat: 'life' as const })),
   // Long text courses (src/courses/<id>/), pages at /learn/courses/<id>/.
   { id: 'offline-ai', name: 'Offline AI', text: 'Run AI models on your own laptop or desktop with no internet and no monthly limit: tokens, hardware, setup, Python workflows and costs.', status: 'live', href: '/learn/courses/offline-ai/', cat: 'data-ai' },
-  { id: 'coding-data', name: 'Coding and data', text: 'Start with simple steps, then sort, count and draw charts from real-looking data.', status: 'planned', cat: 'data-ai' },
   // How AI works (nihal, 2026-11-21): filled by the ML foundations course (src/courses/ml-foundations/).
   { id: 'ml-foundations', name: 'From a straight line to an LLM', text: 'How machines learn from data: regression, decision trees, random forests, neural networks and what an LLM is, with simulations and the maths worked by hand.', status: 'live', href: '/learn/courses/ml-foundations/', cat: 'data-ai' },
   // Analyst courses (nihal, 2026-11-22): src/courses/statistics/ and src/courses/pandas/.
