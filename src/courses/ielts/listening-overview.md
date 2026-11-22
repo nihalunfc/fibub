@@ -38,6 +38,11 @@ sources:
 
 For each part, the recording first tells you which questions to look at and gives you about 30 seconds to read them. Then you hear the recording once. Parts 1 to 3 may have a short pause half way to look ahead; Part 4 does not. On paper you get 10 minutes at the end to copy your answers onto the answer sheet; on computer you type as you go and get 2 minutes to check.
 
+
+Pick a paper and press Play: the clock runs one minute per second.
+
+<figure class="fig" data-fig="@lang-reading-pacer"><figcaption>Notice which part you should be on at each minute. If you are behind at a checkpoint, skip and come back.</figcaption></figure>
+
 ## 3. Word limits
 
 Every completion task tells you the maximum, such as **ONE WORD ONLY**, **NO MORE THAN TWO WORDS** or **ONE WORD AND/OR A NUMBER**.

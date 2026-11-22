@@ -44,6 +44,11 @@ sources:
 <div class="step"><p><b>Contrast or conclusion.</b> "Having said that, online neighbourhood groups have made it easier to ask for help, so in some ways it's changing rather than disappearing."</p></div>
 </div>
 
+
+Tap a word on the left, then the word it usually goes with on the right.
+
+<figure class="fig" data-fig="@lang-collocation-match"><figcaption>Notice that these pairs are fixed by habit, not logic, so learn them as whole chunks.</figcaption></figure>
+
 ## 3. Sample answers
 
 **Should schools make community service compulsory?**

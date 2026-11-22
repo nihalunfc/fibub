@@ -45,6 +45,11 @@ It is common in Parts 2 and 3: features of places, opinions about items, people 
 <div class="step"><p><b>Cross out used options</b> if each can be used only once. It makes the last ones quicker.</p></div>
 </div>
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 3. The traps
 
 - **Two options for one item**: speakers discuss two ideas about the survey and reject one.

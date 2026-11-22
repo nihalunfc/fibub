@@ -36,6 +36,11 @@ sources:
 
 Write the times on the question paper before you start (or note them at the top of the screen) so that you check your watch at 17 and 37 minutes.
 
+
+Pick a paper and press Play: the clock runs one minute per second.
+
+<figure class="fig" data-fig="@lang-reading-pacer"><figcaption>Notice which part you should be on at each minute. If you are behind at a checkpoint, skip and come back.</figcaption></figure>
+
 ## 2. Inside a passage
 
 <div class="steps">

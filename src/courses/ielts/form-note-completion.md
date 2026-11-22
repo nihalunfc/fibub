@@ -47,6 +47,11 @@ All are marked the same way: one mark if the word is right, correctly spelled, w
 <div class="step"><p><b>After: check grammar and spelling.</b> Plural or singular? Does the sentence read correctly with your word? Is it within the limit?</p></div>
 </div>
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 3. Worked example: a table
 
 > | Tour | Starts at | Length | Price |

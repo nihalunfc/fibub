@@ -39,6 +39,11 @@ The examiner checks your name and ID, then asks about your home, work or studies
 
 About 20 seconds. Natural, personal, complete.
 
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
+
 ## 3. Watch the tense
 
 Part 1 questions use different tenses on purpose. Answer in the same one:

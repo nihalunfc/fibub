@@ -40,6 +40,11 @@ sources:
 
 Don't force all of them in. Use the ones that fit your ideas.
 
+
+Switch between Version A and Version B of the same paragraph.
+
+<figure class="fig" data-fig="@lang-sentence-rhythm"><figcaption>Notice that Version B mixes short and long sentences and three types, which is what a range of structures looks like.</figcaption></figure>
+
 ## 2. Errors that cost most
 
 | Error | Wrong | Right |
@@ -51,6 +56,11 @@ Don't force all of them in. Use the ones that fit your ideas.
 | Uncountables | advices, informations, researches | advice, information, research |
 | Word form | It is benefit for students. | It is beneficial to students. |
 | Fragment | Because it is cheaper. | People choose it because it is cheaper. |
+
+
+Pick a tense and watch it drawn on a timeline from past to future.
+
+<figure class="fig" data-fig="@lang-tense-timeline"><figcaption>Notice that the perfect tenses all connect two times, while the simple tenses name just one.</figcaption></figure>
 
 ## 3. A five-minute check
 

@@ -61,6 +61,11 @@ In conclusion, although free public transport may encourage some people to stop 
 
 **Why about 7:** a **clear position in the introduction** and the conclusion. Each body paragraph has **one main idea, explained** (why cost matters, who benefits, what follows). Linking is varied and fewer (However, as a result, For this reason). Vocabulary is more precise (traffic congestion, commuters, on low incomes, unreliable). A few sentences could be more concise, and the example is fairly general.
 
+
+Switch between Version A and Version B of the same paragraph.
+
+<figure class="fig" data-fig="@lang-sentence-rhythm"><figcaption>Notice that Version B mixes short and long sentences and three types, which is what a range of structures looks like.</figcaption></figure>
+
 ## 3. About band 8
 
 <div class="meaning">

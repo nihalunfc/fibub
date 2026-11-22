@@ -36,6 +36,11 @@ The screen shows a short situation and a list of points, usually **three**, that
 - **Typing:** you type into a box. There is **no spell check**.
 - **Reader:** the task tells you who you are writing to: a company, a manager, a neighbour, a friend. That reader decides your tone (the next lesson covers tone in detail).
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 2. What it really tests
 
 Task 1 tests whether you can use written English to **get something done** in everyday Canadian life: complain, request, thank, apologize, invite, explain. Raters use the four areas from the last lesson:

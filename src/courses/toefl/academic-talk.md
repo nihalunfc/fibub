@@ -48,6 +48,11 @@ Academic talks test whether you can learn from a lecture in English: catch the t
 
 Everyday analogy: a lecture is like a guided museum tour. The guide says what this room is about, points to one object, explains why it matters, and says what to take away. You do not need to know art history to follow; you need to follow the guide.
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 3. Five common structures
 
 Most short talks use one of these. Spotting it in the first twenty seconds tells you what notes to take.

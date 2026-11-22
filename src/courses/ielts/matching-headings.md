@@ -38,6 +38,11 @@ You get a list of headings (i, ii, iii...) and a passage with lettered paragraph
 <div class="step"><p><b>Cross it off</b> and move to the next paragraph. Leave the hardest paragraph to last, when fewer headings remain.</p></div>
 </div>
 
+
+Try matching: read each one-line summary and tap the heading that gives its main idea.
+
+<figure class="fig" data-fig="@lang-heading-match"><figcaption>Notice that a shared word is not enough. The heading must match what the whole paragraph is about.</figcaption></figure>
+
 ## 3. Worked example
 
 Headings: **i** A fashion that may cause harm · **ii** Why cities seemed safe for bees · **iii** The many kinds of bee · **iv** How honey is made · **v** Competition for food · **vi** The risk of illness spreading · **vii** Flowers matter more than hives · **viii** First steps by local authorities

@@ -36,6 +36,17 @@ ETS does not publish the exact time or a word limit for this task on the pages w
 
 You do not need special knowledge of the subject. Every question can be answered from everyday experience and common sense.
 
+Step through a body paragraph and watch each move (Point, Explain, Example, Link) add one sentence.
+
+<div class="steps" data-fig="@lang-peel-steps">
+<div class="step"><p><strong>Point.</strong> Open with one sentence that states the idea of the paragraph.</p></div>
+<div class="step"><p><strong>Explain.</strong> Say why it is true or how it works, in one or two sentences.</p></div>
+<div class="step"><p><strong>Example.</strong> Give one specific example that proves the point.</p></div>
+<div class="step"><p><strong>Link.</strong> Close by tying the paragraph back to the question.</p></div>
+</div>
+
+Notice that the Point and the Link say nearly the same thing; the Explain and Example in between do the proving.
+
 ## 2. What it really tests
 
 1. **Answering the question.** Your position on exactly what the professor asked.
@@ -45,6 +56,11 @@ You do not need special knowledge of the subject. Every question can be answered
 5. **Language use.** Accurate grammar and a range of academic but natural vocabulary.
 
 An everyday picture: imagine joining friends who are debating where to eat. If you only say "I agree with Sam", nobody learns anything. If you say "I agree with Sam, and the new place also has a student discount on weekdays", you have moved the decision forward. Your post should do the second thing.
+
+
+Test your linking words: tap the job each card does. A wrong tap tells you why.
+
+<figure class="fig" data-fig="@lang-linkers-sort"><figcaption>Notice that linking words work in families (adding, contrast, cause, result, example). Pick one from each family and you already sound organised.</figcaption></figure>
 
 ## 3. The method: five steps in about ten minutes
 

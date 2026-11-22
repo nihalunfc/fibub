@@ -40,6 +40,11 @@ Think of it like a fire drill. Nobody learns anything new during a fire drill, b
 - Phone in another room. A kitchen timer or the timers on this page, nothing else.
 - Spell check off. The writing pad on this site has none, just like the test.
 
+
+Slide the speed and press Play to watch the highlighter move at that pace.
+
+<figure class="fig" data-fig="@lang-reading-speed"><figcaption>Notice how long a full passage takes at your speed, and why the timed papers need skimming and scanning.</figcaption></figure>
+
 ## 2. The schedule, section by section
 
 Use this table as your mock. Each row is one part, with the lesson that teaches it and the drill set to use. Open the lesson pages in order, scroll to the practice, and take only the first round of each drill so you do not see the same item twice in one mock.

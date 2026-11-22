@@ -45,6 +45,11 @@ Task 4, **Making Predictions**, shows you **the same picture as Task 3**. This t
 - **Listenability:** future forms used correctly and with variety (will, be going to, might, is likely to, if... will), plus linking words for cause and effect.
 - **Task Fulfillment:** talk about the **future**, not a second description; cover several people or areas; use most of the 60 seconds.
 
+
+Pick a tense and watch it drawn on a timeline from past to future.
+
+<figure class="fig" data-fig="@lang-tense-timeline"><figcaption>Notice that the perfect tenses all connect two times, while the simple tenses name just one.</figcaption></figure>
+
 ## 3. The method: Clue, Prediction, Reason
 
 <div class="steps">

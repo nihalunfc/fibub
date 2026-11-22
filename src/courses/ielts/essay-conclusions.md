@@ -41,6 +41,11 @@ sources:
 - **Problem / solution:** *In conclusion, traffic congestion harms both health and productivity, but better public transport and congestion charges could greatly reduce it.*
 - **Two-part:** *To conclude, more people work from home mainly because of technology, and I see this as a positive trend overall.*
 
+
+Try building the essay yourself: tap the pieces in the order they appear, then press Check. Switch the essay type to see how the middle changes.
+
+<figure class="fig" data-fig="@lang-essay-builder"><figcaption>Notice that every type has an introduction first and a conclusion last; only the body paragraphs change.</figcaption></figure>
+
 ## 3. Avoid
 
 - **New ideas or examples.**

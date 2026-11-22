@@ -45,6 +45,11 @@ Task 2, **Talking about a Personal Experience**, asks you to describe something 
 - **Listenability:** past tenses used correctly, clear time words (at first, then, suddenly, in the end), steady rhythm.
 - **Task Fulfillment:** the story matches the question (a time **you** helped, not a time someone helped you), and covers feelings or importance when asked.
 
+
+Pick a tense and watch it drawn on a timeline from past to future.
+
+<figure class="fig" data-fig="@lang-tense-timeline"><figcaption>Notice that the perfect tenses all connect two times, while the simple tenses name just one.</figcaption></figure>
+
 ## 3. The structure: W-E-E-F
 
 **W**hen and where, **E**vent, **E**nd, **F**eelings (or what you learned).

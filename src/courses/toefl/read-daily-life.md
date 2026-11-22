@@ -41,6 +41,11 @@ The texts are things like:
 
 The language is everyday English, not academic. The challenge is not difficult words. It is reading precisely: noticing a changed time, an exception, a condition, or who must do what.
 
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
+
 ## 2. What it really tests
 
 These questions test whether you can use a text the way you would in real life. If a notice says the laundry room reopens at 3:00, can you plan your afternoon? If an email gives two choices and a deadline, do you know what happens if you do nothing?

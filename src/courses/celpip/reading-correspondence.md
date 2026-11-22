@@ -35,6 +35,11 @@ After those questions, you see a **reply** to the message, written by the person
 
 The part has its own timer (the test screen shows the exact time). You can move up and down between questions until the timer ends, so you can answer in any order.
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 2. What it really tests
 
 Part 1 tests the reading you do in daily life: understanding why someone is writing, what has happened to them, what they plan to do, what they ask you to do, and how they feel. The topics are ordinary: a move, a new job, a broken car, a family event, a change of plans at work.

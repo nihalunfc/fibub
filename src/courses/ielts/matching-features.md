@@ -46,6 +46,11 @@ Some features may not be used at all; some may be used twice. The statements are
 <div class="step"><p><b>4. Check the near-misses.</b> Where two people seem to fit, go back and read both places word by word.</p></div>
 </div>
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 3. Worked example
 
 A short text:

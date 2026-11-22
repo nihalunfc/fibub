@@ -38,6 +38,11 @@ sources:
 
 You type both answers. The test screen shows the exact time left. Treat each task as finished when its time ends: plan to complete and check Task 1 inside its own 27 minutes.
 
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
+
 ## 2. What timing really affects
 
 Running out of time usually hurts **Task Fulfillment** (a missing point, a missing conclusion, too few words) and **Readability** (no time to catch errors). Both are avoidable with a plan.

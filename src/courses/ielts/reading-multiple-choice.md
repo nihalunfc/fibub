@@ -44,6 +44,11 @@ Detail questions follow the order of the passage. Global questions usually come 
 <div class="step"><p><b>4. Prove the others wrong.</b> For each other option, find the reason: contradicted, not mentioned, or about something else. If you cannot find a reason, reread.</p></div>
 </div>
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 3. Why wrong options are wrong
 
 Writers of tests build distractors in a few standard ways. Learn the families:

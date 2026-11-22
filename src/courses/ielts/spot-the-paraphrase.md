@@ -36,6 +36,11 @@ sources:
 <div class="step"><p><b>6. Whole-sentence restructuring.</b> Text: "Despite its cost, the scheme proved popular." Question: "The scheme was popular <i>although</i> it was expensive." Clauses swap places and linking words change.</p></div>
 </div>
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 2. Worked example
 
 Text (from "Bees on the rooftops"): *"Early studies found that city honey bees often survived the winter at least as well as rural ones."*

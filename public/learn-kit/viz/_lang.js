@@ -92,3 +92,51 @@ export function tapOrder(host, { parts, notes = [], seed = 2, sep = ' ', intro =
   }
   out.textContent = intro; draw();
 }
+
+/** Draw wrapped text inside a canvas; `style(word, i)` may return { color, weight } for one word. Returns the y of the line after the last. */
+export function wrap(ctx, s, x, y, maxW, lh, { color, size = 14, style } = {}) {
+  const words = s.split(' ');
+  let cx = x, i = 0;
+  for (const w of words) {
+    ctx.font = `500 ${size}px system-ui`;
+    const st = (style && style(w, i)) || {};
+    ctx.font = `${st.weight || 500} ${size}px system-ui`;
+    const wd = ctx.measureText(w + ' ').width;
+    if (cx + wd - ctx.measureText(' ').width > x + maxW && cx > x) { cx = x; y += lh; }
+    if (st.bg) { ctx.fillStyle = st.bg; ctx.fillRect(cx - 2, y - size * 0.8, wd, size * 1.5); }
+    ctx.fillStyle = st.color || color; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(w, cx, y);
+    cx += wd; i++;
+  }
+  return y + lh;
+}
+
+/**
+ * Pair matching: tap an item on the left, then its partner on the right. Correct pairs are joined by a line on the canvas.
+ * left[i] belongs with right[i]; the right side is shown shuffled. why[i] is a one-line reason shown when matched.
+ */
+export function pairMatch(host, { left, right, why = [], heading, intro = 'Tap one on the left, then its partner on the right.', seed = 6 }) {
+  const order = shuffle(right.map((_, i) => i), seed), done = new Set();
+  let sel = -1, wrong = -1;
+  const cv = canvas(host, { aspect: 0.2 * left.length + 0.25, max: 60 + left.length * 38, min: 70 + left.length * 34, label: heading });
+  const lb = box(host, 'display:flex;flex-wrap:wrap;gap:2px;'), rb = box(host, 'display:flex;flex-wrap:wrap;gap:2px;margin-top:6px;');
+  const out = readout(host);
+  const lc = left.map((t, i) => chip(lb, t, () => { if (!done.has(i)) { sel = i; wrong = -1; paint(); } }));
+  const rc = order.map((j) => chip(rb, right[j], () => {
+    if (sel < 0) { out.textContent = 'Pick one on the left first.'; return; }
+    if (j === sel) { done.add(sel); out.textContent = 'Yes. ' + (why[sel] || ''); sel = -1; } else { wrong = j; out.textContent = `"${left[sel]}" does not go with "${right[j]}". Try another.`; }
+    paint();
+  }));
+  const rowOf = (i, n, H, y0) => y0 + (i + 0.5) * (H - y0 - 8) / n;
+  cv.draw = (ctx, W, H, col) => {
+    const y0 = title(ctx, heading + ` (${done.size}/${left.length})`, col) + 2;
+    left.forEach((t, i) => {
+      const y = rowOf(i, left.length, H, y0), j = i, ry = rowOf(order.indexOf(j), left.length, H, y0);
+      text(ctx, t, 10, y, { color: done.has(i) ? col.good : sel === i ? col.s[5] : col.ink, size: 12.5, weight: sel === i ? 800 : 600, fit: false });
+      if (done.has(i)) { ctx.strokeStyle = col.good; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(W * 0.36, y); ctx.bezierCurveTo(W * 0.5, y, W * 0.5, ry, W * 0.62, ry); ctx.stroke(); }
+    });
+    order.forEach((j, k) => { const y = rowOf(k, left.length, H, y0); text(ctx, right[j], W * 0.64, y, { color: done.has(j) ? col.good : wrong === j ? col.bad : col.ink, size: 12.5, weight: 500, fit: false }); });
+  };
+  const paint = () => { lc.forEach((c, i) => { c.style.opacity = done.has(i) ? 0.35 : 1; c.style.outline = sel === i ? '2px solid var(--accent, #06c)' : 'none'; }); rc.forEach((c, k) => { c.style.opacity = done.has(order[k]) ? 0.35 : 1; }); if (done.size === left.length) out.textContent = 'All matched!'; cv.redraw(); };
+  out.textContent = intro; paint();
+}

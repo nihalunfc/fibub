@@ -40,6 +40,11 @@ sources:
 <div class="step"><p><b>5. Same words, different meaning.</b> An option repeats exact words from the recording but changes the meaning. The correct option usually paraphrases.</p></div>
 </div>
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 3. The method
 
 1. **Read the question stem first** and underline its key idea: who? reason? problem? most? first?

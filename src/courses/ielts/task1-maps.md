@@ -51,6 +51,11 @@ Use the 2000 / Today switch above the map to compare the two views yourself.
 
 Note **"X was replaced by Y"** (the new thing comes after "by") and **"X made way for Y"** (same order).
 
+
+Slide Swap to turn an active sentence into a passive one, then change the tense.
+
+<figure class="fig" data-fig="@lang-voice-machine"><figcaption>Notice that the receiver moves to the front, the verb becomes be plus past participle, and only the form of "be" shows the tense.</figcaption></figure>
+
 ## 3. Location language
 
 - **Compass:** in the north, to the south of the river, in the north-east corner.

@@ -33,11 +33,21 @@ Grammar and sentence structure, and spelling and punctuation, are part of **Read
 
 Because you type with **no spell check**, spelling mistakes stay on the screen unless you catch them.
 
+
+Pick a tense and watch it drawn on a timeline from past to future.
+
+<figure class="fig" data-fig="@lang-tense-timeline"><figcaption>Notice that the perfect tenses all connect two times, while the simple tenses name just one.</figcaption></figure>
+
 ## 2. What really costs marks
 
 Not all errors are equal. Raters notice errors that are **frequent** (the same mistake in many sentences) and errors that **block meaning**. One missing article is small. A wrong verb tense in every sentence, or sentences that never end, makes the whole answer feel weaker.
 
 **Everyday analogy.** Grammar errors are like potholes on a road. One small pothole, and you drive on. A pothole every few metres, and the whole trip feels bumpy, even if the scenery (your ideas) is beautiful. Fill the most common holes first.
+
+
+Slide Swap to turn an active sentence into a passive one, then change the tense.
+
+<figure class="fig" data-fig="@lang-voice-machine"><figcaption>Notice that the receiver moves to the front, the verb becomes be plus past participle, and only the form of "be" shows the tense.</figcaption></figure>
 
 ## 3. The eight costly mistakes
 

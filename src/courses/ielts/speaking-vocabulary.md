@@ -38,9 +38,19 @@ Make a short list for each common topic: home, work, study, travel, food, techno
 
 The Vocabulary module has themed practice for every topic.
 
+
+Tap a word on the left, then the word it usually goes with on the right.
+
+<figure class="fig" data-fig="@lang-collocation-match"><figcaption>Notice that these pairs are fixed by habit, not logic, so learn them as whole chunks.</figcaption></figure>
+
 ## 2. Phrasal verbs and spoken collocations
 
 Spoken English uses many: *catch up with friends, look after my nephew, put off my homework, take up a hobby, run out of time, make a decision, have a go, take a break*. They sound natural in Speaking (more than in essays).
+
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
 
 ## 3. Idioms: few, right, natural
 

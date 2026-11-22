@@ -36,6 +36,11 @@ CELPIP rates **Vocabulary** on *word choice, suitable use, range, precision and 
 - **Range:** do you use different words, or the same few again and again?
 - **Accuracy:** is each word used with the right meaning and form? *Sensitive*, not *sensible*, to noise.
 
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
+
 ## 2. What it really rewards
 
 Raters are not counting long words. They are asking: **could I picture exactly what this writer means?** Compare:
@@ -46,6 +51,11 @@ Raters are not counting long words. They are asking: **could I picture exactly w
 The second sentence uses ordinary words, but each one is exact. That is precision.
 
 **Everyday analogy.** Vocabulary is like a toolbox. With only a hammer, everything becomes a nail: *good, bad, nice, thing, problem*. A good writer carries a screwdriver, a wrench and pliers too, and, just as important, knows which tool fits which job. A fancy tool you do not know how to use can break the job.
+
+
+Tap a word on the left, then the word it usually goes with on the right.
+
+<figure class="fig" data-fig="@lang-collocation-match"><figcaption>Notice that these pairs are fixed by habit, not logic, so learn them as whole chunks.</figcaption></figure>
 
 ## 3. The method: spot, upgrade, check
 

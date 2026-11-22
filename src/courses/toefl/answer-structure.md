@@ -35,6 +35,17 @@ A fixed frame solves both. You never wonder "what next?", because the next step 
 
 We practise with **5 to 15 seconds of preparation and 45 seconds of speaking**. These are fibub's practice times; the test screen shows the real ones.
 
+Step through a body paragraph and watch each move (Point, Explain, Example, Link) add one sentence.
+
+<div class="steps" data-fig="@lang-peel-steps">
+<div class="step"><p><strong>Point.</strong> Open with one sentence that states the idea of the paragraph.</p></div>
+<div class="step"><p><strong>Explain.</strong> Say why it is true or how it works, in one or two sentences.</p></div>
+<div class="step"><p><strong>Example.</strong> Give one specific example that proves the point.</p></div>
+<div class="step"><p><strong>Link.</strong> Close by tying the paragraph back to the question.</p></div>
+</div>
+
+Notice that the Point and the Link say nearly the same thing; the Explain and Example in between do the proving.
+
 ## 2. The frame: Point, Reason, Example, Point
 
 | Step | What it does | Typical length | Starter |

@@ -36,6 +36,11 @@ Part 3, **Listening for Information**, plays one recording of about two minutes,
 
 The recording plays **once**, and the questions come after it. There are four options per question.
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 2. What it really tests
 
 Part 3 tests whether you can pick out and hold **factual information**: what is allowed, what it costs, how long something takes, what you need to bring, what happens if you break a rule, and what order things happen in. It is the most "list-like" listening part.
