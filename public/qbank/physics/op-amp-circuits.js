@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './op-amp-circuits.more.gen.js';
 import more2 from './op-amp-circuits.more2.gen.js';
+import r4 from './op-amp-circuits.r4.gen.js';
 
 const G = ['gate', 'net'];
 const VT = 0.025852;
@@ -224,6 +225,7 @@ export default {
       sol: '$\\sin\\theta > 0.5$ for $30^\\circ < \\theta < 150^\\circ$: 120° out of 360°, so one third, 33.3%. Raising the threshold narrows the pulses: a crude pulse-width modulator.',
       trap: 'Assuming the duty cycle scales linearly with threshold (25%).' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'oc-g01', type: 'nat', level: 3, exams: G, sub: 'Schmitt trigger',
@@ -356,5 +358,6 @@ export default {
       },
       verify: (p) => -p.Z * p.R1 / p.R2 },
     ...more,
+    ...r4.gens,
   ],
 };
