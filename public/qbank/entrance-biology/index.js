@@ -69,6 +69,14 @@ export default {
         {
           "id": "locomotion",
           "name": "Locomotion and movement"
+        },
+        {
+          "id": "neural-control",
+          "name": "Neural control and coordination"
+        },
+        {
+          "id": "chemical-coordination",
+          "name": "Chemical coordination: hormones"
         }
       ]
     },
