@@ -1,0 +1,14 @@
+// Test-day judgement (lesson 1.4). Original situations by fibub.
+export default {
+  title: 'test-day situations',
+  items: [
+    { id: 'td-01', type: 'mcq', q: 'During the sound check your headset crackles.', options: ['Raise your hand and tell staff before the test starts', 'Ignore it and hope it gets better', 'Take the headset off for Listening', 'Turn the volume to maximum'], answer: 0, sol: 'Problems are easy to fix before the test starts and hard to fix after. Tell staff straight away.' },
+    { id: 'td-02', type: 'mcq', q: 'In Listening Part 3 you missed one answer completely.', options: ['Guess, then focus fully on the next question', 'Leave it blank', 'Ask staff to replay it', 'Spend a minute thinking about it'], answer: 0, sol: 'There is no penalty for a wrong answer, and dwelling on it costs you the next question. Guess and move on.' },
+    { id: 'td-03', type: 'mcq', q: 'Your booking says "Ana Maria Lopez" but your passport says "Ana-María López Ruiz".', options: ['Contact CELPIP before test day to fix the booking', 'Bring a utility bill as well', 'Do nothing; it is close enough', 'Use a nickname'], answer: 0, sol: 'Names must match your ID. Fix the booking in advance; on the day it may be too late.' },
+    { id: 'td-04', type: 'mcq', q: 'The person next to you starts speaking while you are still in Writing.', options: ['Keep writing; the noise is normal', 'Ask them to be quiet', 'Stop until they finish', 'Move seats'], answer: 0, sol: 'People reach Speaking at different times. It is normal; your own clock keeps running.' },
+    { id: 'td-05', type: 'mcq', q: 'In Speaking, you finish your answer with 15 seconds left.', options: ['Add a detail or an example, or sum up, until time ends', 'Stay silent and wait', 'Say "I am finished" and stop', 'Start the next task early'], answer: 0, sol: 'Use the time: add an example or a short summary. Silence wastes a chance to show more English.' },
+    { id: 'td-06', type: 'mcq', q: 'Which of these may you take into the test room?', options: ['Your ID', 'Your phone, switched off', 'A bottle of water', 'Your own notebook'], answer: 0, sol: 'Only your ID. Everything else goes in a locker.' },
+    { id: 'td-07', type: 'mcq', q: 'The night before the test, the best plan is…', options: ['Light review, ID by the door, a good sleep', 'A full mock test late at night', 'Learning 200 new words', 'Staying up to watch English films'], answer: 0, sol: 'Rest matters more than one more evening of study. Your skills are built over weeks, not one night.' },
+    { id: 'td-08', type: 'mcq', q: 'You realise in Writing Task 1 that you have 2 minutes left and 140 words.', options: ['Finish your closing lines and quickly check for errors', 'Delete the email and start again', 'Add a long new paragraph', 'Leave it unfinished'], answer: 0, sol: 'A complete, polite email just under the range is better than an unfinished one. Close it, then fix any obvious errors.' },
+  ],
+};
