@@ -25,7 +25,7 @@ export default function (host) {
     const F = faces(), lo = n * Math.min(...F), hi = n * Math.max(...F), mu = n * mean1(), sd = sd1() * Math.sqrt(n);
     const dens = (x) => Math.exp(-0.5 * ((x - mu) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
     const top = Math.max(1e-9, ...[...hist.values()].map((c) => c / (rolls || 1)), dens(mu)) * 1.12;
-    const A = axes(ctx, w, h, col, { x: [lo - 1, hi + 1], y: [0, top], l: 36, b: 38, t: 22, r: 10, xlabel: 'sum of the dice', fy: (v) => f2(v * 100, 0) + '%', grid: false });
+    const A = axes(ctx, w, h, col, { x: [lo - 1, hi + 1], y: [0, top], l: 36, b: 38, t: 22, r: 10, xlabel: 'sum of the dice', xt: Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).filter((v, i, a) => a.length < 12 || i % Math.ceil(a.length / 8) === 0), fy: (v) => f2(v * 100, 0) + '%', grid: false });
     const bw = Math.max(1, (A.R - A.L) / (hi - lo + 2) - 1);
     hist.forEach((c, k) => { ctx.fillStyle = col.s[0]; ctx.globalAlpha = 0.8; ctx.fillRect(A.X(k) - bw / 2, A.Y(c / rolls), bw, A.Y(0) - A.Y(c / rolls)); ctx.globalAlpha = 1; });
     ctx.beginPath(); for (let i = 0; i <= 160; i++) { const x = lo - 1 + ((hi - lo + 2) * i) / 160; i ? ctx.lineTo(A.X(x), A.Y(dens(x))) : ctx.moveTo(A.X(x), A.Y(dens(x))); } ctx.strokeStyle = col.s[1]; ctx.lineWidth = 2.5; ctx.stroke();

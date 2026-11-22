@@ -48,6 +48,10 @@ sources:
 \text{Median} = l + \frac{\frac n2 - C}{f}\times h
 ```
 
+Drag the dots along the number line, or press 'Add an outlier'.
+
+<figure class="fig" data-fig="@math-stats-drag"><figcaption>Notice that the mean is pulled hard by one far dot, the median hardly moves, and the standard deviation band widens as the dots spread.</figcaption></figure>
+
 with l the lower boundary of that class, C the cumulative frequency before it, f its frequency and h its width.
 
 **Mode.** The most frequent value. For grouped data, in the class with the highest frequency f₁ (with f₀ and f₂ the frequencies of the classes before and after):

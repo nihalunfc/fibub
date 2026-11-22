@@ -102,6 +102,10 @@ For data `$(x_i, y_i \pm \sigma_i)$` with exact `$x$`, the most probable line `$
 \chi^2 = \sum_i \left(\frac{y_i - a - bx_i}{\sigma_i}\right)^2
 ```
 
+Drag the points, press 'Add outlier' and watch the line and the squares.
+
+<figure class="fig" data-fig="@math-regress-fit"><figcaption>Notice that the fitted line makes the total of the pink squares smallest, that one far point drags the line towards it, and that r tells how straight the cloud is.</figcaption></figure>
+
 Setting `$\partial\chi^2/\partial a = \partial\chi^2/\partial b = 0$` with equal errors gives, with `$\Delta = N\sum x^2 - (\sum x)^2$`:
 
 ```math

@@ -34,6 +34,10 @@ f is **continuous at x = a** when three things agree:
 \lim_{x \to a^-} f(x) = \lim_{x \to a^+} f(x) = f(a)
 ```
 
+Make the ε band narrower and find a δ that keeps the graph inside it; then switch to the jump.
+
+<figure class="fig" data-fig="@math-epsilon-delta"><figcaption>Notice that a smaller ε needs a smaller δ, and that for the jump no δ works once ε is small, which is exactly why that limit does not exist.</figcaption></figure>
+
 That is: the left-hand limit (LHL), the right-hand limit (RHL) and the actual value are equal. There are three ways to fail:
 
 | Type | What goes wrong | Example at x = 0 |
@@ -55,6 +59,10 @@ The derivative is the limit of the chord slope:
 ```math
 f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}
 ```
+
+Drag the point and press Play to shrink h and watch the secant turn into the tangent.
+
+<figure class="fig" data-fig="@math-secant-tangent"><figcaption>Notice that the lower graph of secant slope against h flattens onto f′(x) as h → 0, and that |x| at 0 has two different one-sided slopes.</figcaption></figure>
 
 <div class="meaning">
 <dl>

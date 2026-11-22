@@ -32,4 +32,5 @@ export default function (host) {
     text(ctx, 'orange: latest tangent · pink: next guess', A.L + 6, A.T + 10, { color: col.muted, size: 10 });
   };
   re();
+  return { step(i) { it = Math.max(0, Math.min(6, i)); re(); } };
 }

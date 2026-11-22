@@ -49,6 +49,10 @@ Lower-order terms never change the type: the telegraph equation `$u_{tt} + \gamm
 \frac{T'}{\kappa T} = \frac{X''}{X} = -k^2
 ```
 
+Choose a starting pattern and press Play; try insulated ends and the sine modes.
+
+<figure class="fig" data-fig="@math-heat-rod"><figcaption>Notice that sharp features fade fastest, that a sine mode keeps its shape and just shrinks as e^(−Dk²t), and that insulated ends keep the total heat.</figcaption></figure>
+
 Each side depends on a different variable, so both equal a constant. A zero or positive constant gives only `$X \equiv 0$` with two zero ends, so it must be negative. Then `$X = \sin kx$` with `$\sin kL = 0$`, i.e. `$k_n = n\pi/L$`, and `$T = e^{-\kappa k_n^2t}$`:
 
 ```math
@@ -112,6 +116,10 @@ A harmonic function equals its average over any circle inside its domain, so it 
 ## 5. Polar, cylindrical and spherical coordinates
 
 **Polar (2D).** `$u = R(r)\Theta(\theta)$` gives `$\Theta = \cos m\theta, \sin m\theta$` (integer `$m$` for a single-valued answer) and `$R = r^m, r^{-m}$` (or `$1, \ln r$` for `$m = 0$`). Inside a disc of radius `$a$` with `$u(a, \theta) = \sum(a_m\cos m\theta + b_m\sin m\theta)$`, each harmonic simply picks up `$(r/a)^m$`. **Worked example:** `$u(a, \theta) = 8\cos2\theta$` gives `$u = 8(r/a)^2\cos2\theta$`, so `$u(a/2, 0) = 2$`.
+
+Choose m and n, then press Play to see the drum vibrate in that mode.
+
+<figure class="fig" data-fig="@math-bessel-drum"><figcaption>Notice that the colours swap between up and down, that the nodal lines (circles and diameters) never move, and that the rim is always still because kR is a zero of J_m.</figcaption></figure>
 
 **Cylindrical.** With `$Z = e^{\pm kz}$` the radial equation is Bessel's equation of order `$m$` in `$kr$`: solutions `$J_m(kr)$` (regular on the axis) and `$Y_m(kr)$`. The Helmholtz equation and a drumhead give the same radial functions with the zeros of `$J_m$` setting the allowed `$k$` ([lesson 1.6](/learn/courses/gate-physics/special-functions/)).
 

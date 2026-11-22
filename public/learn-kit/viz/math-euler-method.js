@@ -35,4 +35,5 @@ export default function (host) {
     text(ctx, 'blue exact · orange Euler steps · grey = slope field', A.L + 6, A.T + 10, { color: col.muted, size: 10 });
   };
   re();
+  return { step(i) { shown = Math.max(0, i); re(); } };
 }

@@ -43,6 +43,15 @@ The **order** `$p$` means `$|e_{n+1}| \approx C|e_n|^p$`. For Newton, expanding 
 e_{n+1} \approx \frac{f''(r)}{2f'(r)}\,e_n^2
 ```
 
+Step through, then drag the start x₀ and try a different equation.
+
+<div class="steps" data-fig="@math-newton-steps">
+<div class="step"><p><b>A first guess.</b> Pick x₀ and draw the tangent to the curve at that x.</p></div>
+<div class="step"><p><b>The next guess.</b> The tangent meets the x-axis at x₁, which is usually closer to the root.</p></div>
+<div class="step"><p><b>Repeat.</b> Draw the tangent at x₁; it meets the axis at x₂, closer still.</p></div>
+<div class="step"><p><b>Fast.</b> After a few rounds the guesses agree to many digits: the error roughly squares each time.</p></div>
+</div>
+
 so the number of correct digits roughly doubles each step. Bisection needs `$n > \log_2(L/\epsilon)$` steps to shrink a bracket of length `$L$` below `$\epsilon$`: about 3.3 steps per decimal digit, but it never fails.
 
 **Worked example.** `$\sqrt2$` from `$f = x^2 - 2$`, `$x_0 = 1$`: Newton's step is `$x_{n+1} = \tfrac12(x_n + 2/x_n)$`, giving `$1.5$`, `$1.41667$`, `$1.4142157$`. Errors: `$0.086$`, `$0.0025$`, `$2\times10^{-6}$`: squared each time.
@@ -100,6 +109,15 @@ For `$y' = f(x, y)$` with step `$h$`:
 | explicit Euler | `$y_{n+1} = y_n + hf(x_n, y_n)$` | `$O(h^2)$` | `$O(h)$` |
 | Heun / RK2 | `$k_1 = f(x_n, y_n)$`, `$k_2 = f(x_n + h, y_n + hk_1)$`, `$y_{n+1} = y_n + \tfrac h2(k_1 + k_2)$` | `$O(h^3)$` | `$O(h^2)$` |
 | classical RK4 | four slopes, weights 1, 2, 2, 1 over 6 | `$O(h^5)$` | `$O(h^4)$` |
+
+Step through the zig-zag, then shrink the step size h.
+
+<div class="steps" data-fig="@math-euler-method">
+<div class="step"><p><b>Start.</b> The curve must pass through the starting point; the slope there is f(x₀, y₀).</p></div>
+<div class="step"><p><b>One step.</b> Walk along that slope for a width h to the point (x₁, y₁).</p></div>
+<div class="step"><p><b>Next step.</b> Read the new slope at (x₁, y₁) and walk again.</p></div>
+<div class="step"><p><b>The whole path.</b> A chain of short straight pieces that follows the exact curve; smaller h gives a closer fit.</p></div>
+</div>
 
 **Worked example.** `$y' = y$`, `$y(0) = 1$`, one step `$h = 0.1$`. Euler: `$1.1$`. Heun: `$1 + 0.05(1 + 1.1) = 1.105$`. RK4: `$1.1051708$`. Exact: `$e^{0.1} = 1.1051709$`.
 

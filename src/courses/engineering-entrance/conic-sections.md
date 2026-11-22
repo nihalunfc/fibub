@@ -45,6 +45,10 @@ PS = e \cdot PM
 
 <figure class="fig" data-fig="conic-focus"><figcaption>One focus S and one directrix. Change e and the same rule draws an ellipse, a parabola or a hyperbola. Move P and check that PS/PM stays equal to e.</figcaption></figure>
 
+Tilt the cutting plane with the slider and drag the picture to turn it.
+
+<figure class="fig" data-fig="@math-cone-slice"><figcaption>Notice the circle, ellipse, parabola and hyperbola appear in turn as the plane tilts, and the eccentricity passes through 0, below 1, exactly 1 and above 1.</figcaption></figure>
+
 ## 2. The parabola y² = 4ax
 
 | Feature | Value |
@@ -127,6 +131,10 @@ The latus rectum is again 2b²/a, and the parametric point is (a sec θ, b tan �
 | Focal property | PS = PM | PS₁ + PS₂ = 2a | \|PS₁ − PS₂\| = 2a |
 
 **Worked example.** Find the equation of the ellipse with foci (±3, 0) and eccentricity 1/2. ae = 3 gives a = 6, and b² = a²(1 − e²) = 36 × 3/4 = 27. So **x²/36 + y²/27 = 1**.
+
+Press Play and watch a ray leave a focus and bounce off each curve.
+
+<figure class="fig" data-fig="@math-conic-reflect"><figcaption>Notice that in the ellipse the ray always goes on to the other focus, in the parabola it leaves parallel to the axis, and in the hyperbola it looks as if it came from the other focus.</figcaption></figure>
 
 <div class="keypoints">
 

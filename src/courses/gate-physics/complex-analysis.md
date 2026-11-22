@@ -37,6 +37,10 @@ sources:
 \frac{\partial u}{\partial x} = \frac{\partial v}{\partial y}, \qquad \frac{\partial u}{\partial y} = -\frac{\partial v}{\partial x}, \qquad f'(z) = u_x + iv_x
 ```
 
+Drag z₁ and z₂ on the Argand plane and press Animate to watch multiplication turn and stretch.
+
+<figure class="fig" data-fig="@math-complex-mult"><figcaption>Notice that |z₁z₂| = |z₁||z₂| and arg(z₁z₂) = arg z₁ + arg z₂: multiplying by z₂ rotates by its argument and scales by its modulus.</figcaption></figure>
+
 With continuous partial derivatives, CR is also sufficient. In polar form `$z = re^{i\theta}$`: `$u_r = \tfrac1r v_\theta$`, `$v_r = -\tfrac1r u_\theta$` (an angle is not a length, hence the `$1/r$`).
 
 `$f$` is **analytic** at a point if it is differentiable in a whole neighbourhood of it, and **entire** if analytic everywhere: polynomials, `$e^z$`, `$\sin z$`, `$\cos z$` and their sums, products and compositions. A quick test: anything that genuinely depends on `$\bar z$` fails. `$\bar z$` itself fails CR everywhere (`$u_x = 1$`, `$v_y = -1$`); `$\lvert z\rvert^2 = z\bar z$` satisfies CR only at `$z = 0$`, so it is differentiable there but analytic nowhere. A non-constant real-valued function is never analytic.
@@ -150,6 +154,10 @@ For `$f$` analytic inside `$C$` except for poles, and with no zeros or poles on 
 ```math
 \frac{1}{2\pi i}\oint_C\frac{f'(z)}{f(z)}\,dz = N - P
 ```
+
+Move and resize the loop in the z-plane, and press Play to follow a point round both pictures.
+
+<figure class="fig" data-fig="@math-winding"><figcaption>Notice that the image curve winds round the origin once for each zero inside the loop and backwards once for each pole inside: winding = Z − P.</figcaption></figure>
 
 (zeros minus poles inside, with multiplicity). For `$f = \frac{z^2 + 1}{z^3(z - 3)}$` on `$\lvert z\rvert = 2$`: `$N = 2$`, `$P = 3$`, so the answer is `$-1$`.
 

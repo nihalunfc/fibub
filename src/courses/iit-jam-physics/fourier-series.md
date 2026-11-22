@@ -36,6 +36,10 @@ A function with period `$2\pi$` can be written as
 f(x) = \frac{a_0}{2} + \sum_{n=1}^{\infty}\left(a_n\cos nx + b_n\sin nx\right)
 ```
 
+Press Play, then add terms with the slider and switch between the square, sawtooth and triangle waves.
+
+<figure class="fig" data-fig="@math-fourier-build"><figcaption>Notice that each term is one rotating arm, that the square wave needs only odd harmonics, and that the overshoot near a jump (Gibbs) stays at about 9% however many terms you add.</figcaption></figure>
+
 Each term repeats every `$2\pi$` (and also at shorter intervals), so the sum does too. The term `$n = 1$` is the **fundamental**; `$n = 2, 3, \dots$` are the **harmonics**. A guitar note, the voltage out of a rectifier, a square clock pulse: all of them are sums like this. Choose a wave below and add harmonics one at a time.
 
 <figure class="fig" data-fig="fourier-gibbs"><figcaption>A handful of terms already gives the shape. Near a jump, the partial sums overshoot by about 9% of the jump however many terms you keep (Gibbs). The triangle wave has no jumps and converges smoothly.</figcaption></figure>

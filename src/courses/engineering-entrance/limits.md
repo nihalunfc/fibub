@@ -30,6 +30,10 @@ sources:
 
 We write `$\lim_{x\to a} f(x) = L$` when f(x) can be made as close to L as we like by taking x close enough to a, from either side, without x ever being equal to a.
 
+Make the ε band narrower and find a δ that keeps the graph inside it; then switch to the jump.
+
+<figure class="fig" data-fig="@math-epsilon-delta"><figcaption>Notice that a smaller ε needs a smaller δ, and that for the jump no δ works once ε is small, which is exactly why that limit does not exist.</figcaption></figure>
+
 <div class="meaning">
 <dl>
 <dt>x → a</dt><dd>x gets closer and closer to a, but never equals it</dd>

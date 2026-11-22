@@ -52,6 +52,10 @@ P(A \cup B) = P(A) + P(B) - P(A \cap B), \qquad P(A') = 1 - P(A)
 
 Subtracting `$P(A \cap B)$` removes the outcomes counted twice. For three events, add the singles, subtract the pairs and add back the triple. **Mutually exclusive** events cannot happen together, so `$P(A \cap B) = 0$`.
 
+Click regions of the Venn diagram, or choose an operation, and watch which part is shaded and how many items it holds.
+
+<figure class="fig" data-fig="@math-venn"><figcaption>Notice that A ∪ B counts the overlap once, so n(A ∪ B) = n(A) + n(B) − n(A ∩ B), and that A′ and A − B are different shaded areas.</figcaption></figure>
+
 The complement is the quickest route for "at least one": P(at least one six in n throws) = `$1 - (5/6)^n$`.
 
 Useful pieces: P(only A) = P(A) − P(A ∩ B); P(exactly one of A, B) = P(A) + P(B) − 2P(A ∩ B); P(neither) = 1 − P(A ∪ B).
@@ -82,6 +86,10 @@ Suppose the sample space splits into causes E₁, E₂, …, Eₙ that do not ov
 P(A) = \sum_i P(E_i)\,P(A \mid E_i), \qquad P(E_k \mid A) = \frac{P(E_k)\,P(A \mid E_k)}{\sum_i P(E_i)\,P(A \mid E_i)}
 ```
 
+Slide the prevalence, sensitivity and false-alarm rate and count the circled dots that really have the condition.
+
+<figure class="fig" data-fig="@math-bayes-dots"><figcaption>Notice that when the condition is rare most positives are false alarms, so P(condition | positive) can be small even for a good test.</figcaption></figure>
+
 <div class="meaning">
 <dl>
 <dt>E₁, …, Eₙ</dt><dd>the causes (which bag, which machine, which test result); exactly one of them happens</dd>
@@ -103,6 +111,10 @@ A **random variable** X gives a number to each outcome (number of heads, money w
 ```math
 \mu = E(X) = \sum p_i x_i, \qquad \operatorname{Var}(X) = \sum p_i x_i^2 - \mu^2
 ```
+
+Pick a die, choose how many to add and press 'Roll 500 sets' or Play.
+
+<figure class="fig" data-fig="@math-clt-dice"><figcaption>Notice that one die gives a flat heap, but sums of a few dice (even loaded ones) look like the bell curve, centred on n × mean with spread σ√n.</figcaption></figure>
 
 The mean is the long-run average value; the variance measures the spread around it, and the standard deviation is its square root. Rules: E(aX + b) = aE(X) + b and Var(aX + b) = a²Var(X) (adding a constant does not change spread).
 

@@ -33,6 +33,10 @@ sources:
 
 For events `$A$` and `$B$`: `$P(A\cup B) = P(A) + P(B) - P(A\cap B)$` and `$P(A\cap B) = P(A|B)P(B)$`. They are **independent** if `$P(A\cap B) = P(A)P(B)$`, i.e. `$P(A|B) = P(A)$`. Mutually exclusive events (`$P(A\cap B) = 0$`) are the opposite of independent: if one happens, the other cannot.
 
+Slide the prevalence, sensitivity and false-alarm rate and count the circled dots that really have the condition.
+
+<figure class="fig" data-fig="@math-bayes-dots"><figcaption>Notice that when the condition is rare most positives are false alarms, so P(condition | positive) can be small even for a good test.</figcaption></figure>
+
 **Bayes' theorem** turns `$P(\text{data}|\text{cause})$` into `$P(\text{cause}|\text{data})$`:
 
 ```math
@@ -97,6 +101,10 @@ A walker takes `$N$` independent steps of length `$L$`, right with probability `
 ```math
 \langle x\rangle = NL(2p - 1), \qquad \sigma_x = 2L\sqrt{Np(1 - p)}
 ```
+
+Pick a die, choose how many to add and press 'Roll 500 sets' or Play.
+
+<figure class="fig" data-fig="@math-clt-dice"><figcaption>Notice that one die gives a flat heap, but sums of a few dice (even loaded ones) look like the bell curve, centred on n × mean with spread σ√n.</figcaption></figure>
 
 For a fair walk, `$\langle x\rangle = 0$` but `$x_{\text{rms}} = L\sqrt N$`: 100 steps of 1 m spread only 10 m. With `$N = t/\Delta t$` this is diffusion, `$\langle x^2\rangle = 2Dt$`, and the distribution of `$x$` becomes the heat kernel of [lesson 1.8](/learn/courses/gate-physics/delta-greens-functions/).
 
