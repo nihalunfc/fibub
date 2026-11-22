@@ -73,9 +73,7 @@ sources:
 
 ## 3. Practice
 
-Practice for this chapter comes from the trigonometry set while the dedicated inverse-trig questions are being written.
-
-<div class="qbank" data-bank="entrance-maths" data-topics="trigonometry" data-level="1,2,3" data-n="10" data-mode="practice" data-type="mcq"></div>
+<div class="qbank" data-bank="entrance-maths" data-topics="inverse-trig" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>
 
 <div class="keypoints">
 

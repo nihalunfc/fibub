@@ -68,7 +68,9 @@ sources:
 
 ## 3. Practice
 
-Linear programming questions are best practised with the live problem above: each new problem gives a fresh region and objective. Do it until you get five right in a row, then move on.
+Do the live problem above until you get five right in a row, then try the question set.
+
+<div class="qbank" data-bank="entrance-maths" data-topics="linear-programming" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>
 
 <div class="keypoints">
 
