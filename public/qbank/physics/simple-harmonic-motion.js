@@ -8,6 +8,7 @@ const TAU = 2 * Math.PI;
 
 import * as Q5 from '../_util.js';
 import more2 from './simple-harmonic-motion.more2.gen.js';
+import r4 from './simple-harmonic-motion.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -252,6 +253,7 @@ export default {
       sol: 'The orbit is an ellipse with semi-axes $x_0 = \\sqrt{2E/(m\\omega^2)}$ and $p_0 = \\sqrt{2mE}$. Area $= \\pi x_0p_0 = \\pi\\cdot2E/\\omega = 2\\pi E/\\omega$ (A true, B and C false). Setting $2\\pi E/\\omega = nh$ gives $E = nh\\omega/(2\\pi) = n\\hbar\\omega$ (D), the old quantum rule (the exact answer adds $\\tfrac12\\hbar\\omega$).',
       trap: 'C forgets that $\\pi x_0p_0$ already contains the factor 2 from $x_0p_0 = 2E/\\omega$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'shm-t21', type: 'msq', level: 2, exams: ['jam'], sub: 'kinematics', format: 'statements',
@@ -399,5 +401,6 @@ export default {
           trap: 'Forgetting the parallel-axis term $d^2$, or using $I = mL^2/3$ (which is only for the end).' };
       },
       verify: (p) => 2 * Math.PI * Math.sqrt((p.L ** 2 / 12 + p.d ** 2) / (9.8 * p.d)) },
+    ...r4.gens,
   ],
 };
