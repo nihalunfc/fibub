@@ -76,7 +76,7 @@ Two consequences you must know:
 
 ## 3. The Laue picture and the Ewald sphere
 
-The same condition, seen in reciprocal space (lesson 7.1, section 6): an incident wave `$\vec k$` scatters elastically into `$\vec k'$` with `$|\vec k'| = |\vec k| = 2\pi/\lambda$`, and the scattered waves from all lattice points add in step only when
+The same condition, seen in reciprocal space ([lesson 7.1](/learn/courses/iit-jam-physics/crystal-structure/), section 6): an incident wave `$\vec k$` scatters elastically into `$\vec k'$` with `$|\vec k'| = |\vec k| = 2\pi/\lambda$`, and the scattered waves from all lattice points add in step only when
 
 ```math
 \vec k' - \vec k = \vec G \qquad\text{(Laue condition)}

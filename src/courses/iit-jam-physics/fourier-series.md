@@ -121,7 +121,7 @@ Each harmonic carries half its amplitude squared (the average of `$\sin^2$` is `
 
 ## 5. The complex form and driven systems
 
-With Euler's formula (lesson 1.9) the series becomes tidier:
+With Euler's formula ([lesson 1.9](/learn/courses/iit-jam-physics/complex-numbers/)) the series becomes tidier:
 
 ```math
 f(x) = \sum_{n=-\infty}^{\infty}c_ne^{inx}, \qquad c_n = \frac{1}{2\pi}\int_{-\pi}^{\pi}f(x)e^{-inx}\,dx, \qquad c_{\pm n} = \tfrac12(a_n\mp ib_n)

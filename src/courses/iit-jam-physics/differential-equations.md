@@ -84,7 +84,7 @@ Its two roots decide everything:
 | real, equal `$m$` | `$(A + Bx)e^{mx}$` | the borderline case |
 | complex `$\alpha \pm i\beta$` | `$e^{\alpha x}(A\cos\beta x + B\sin\beta x)$` | oscillation at `$\beta$`, growing or decaying at rate `$\alpha$` |
 
-The complex case is where Euler's formula (lesson 1.9) earns its place: `$e^{(\alpha + i\beta)x} = e^{\alpha x}(\cos\beta x + i\sin\beta x)$`, and the real and imaginary parts are both real solutions.
+The complex case is where Euler's formula ([lesson 1.9](/learn/courses/iit-jam-physics/complex-numbers/)) earns its place: `$e^{(\alpha + i\beta)x} = e^{\alpha x}(\cos\beta x + i\sin\beta x)$`, and the real and imaginary parts are both real solutions.
 
 <div class="meaning">
 
@@ -168,7 +168,7 @@ an exponential no longer fits, but a **power** does: try `$y = x^m$` to get `$m(
 
 **Worked example.** `$x^2y'' - 2xy' + 2y = 0$`: `$m(m-1) - 2m + 2 = m^2 - 3m + 2 = 0$`, so `$m = 1, 2$` and `$y = Ax + Bx^2$`. These equations appear in physics whenever a problem has no preferred length scale, such as Laplace's equation in spherical coordinates.
 
-**One step further.** A system of linear equations like `$\dot x = 3x + y$`, `$\dot y = x + 3y$` is solved the same way, with the exponents now the eigenvalues of the matrix (lesson 1.8): here 4 and 2.
+**One step further.** A system of linear equations like `$\dot x = 3x + y$`, `$\dot y = x + 3y$` is solved the same way, with the exponents now the eigenvalues of the matrix ([lesson 1.8](/learn/courses/iit-jam-physics/matrices/)): here 4 and 2.
 
 <div class="keypoints">
 

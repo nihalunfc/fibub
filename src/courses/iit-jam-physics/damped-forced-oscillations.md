@@ -164,7 +164,7 @@ A series LCR circuit with an AC source obeys `$L\ddot q + R\dot q + q/C = \mathc
 
 **Worked example.** `$L = 20$` mH, `$C = 2\ \mu$`F, `$R = 5\ \Omega$`: `$\omega_0 = 1/\sqrt{4\times10^{-8}} = 5000$` rad/s and `$Q = \tfrac15\sqrt{10^4} = 20$`.
 
-The [Forced oscillations](/learn/forced-oscillations/) tool lets you watch the transient die and the steady state take over, and [LCR phasors](/learn/lcr-phasors/) shows the electrical version as rotating arrows. When two oscillators are joined, energy sloshes between them: try the [Coupled oscillators](/science/coupled-oscillators/) simulation before lesson 3.3.
+The [Forced oscillations](/learn/forced-oscillations/) tool lets you watch the transient die and the steady state take over, and [LCR phasors](/learn/lcr-phasors/) shows the electrical version as rotating arrows. When two oscillators are joined, energy sloshes between them: try the [Coupled oscillators](/science/coupled-oscillators/) simulation before [lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/).
 
 **Dry friction is different.** A block sliding on a rough floor feels a force of fixed size `$\mu mg$`. Each half-swing is then SHM about a shifted centre, and the amplitude falls by the same **amount**, `$4\mu mg/k$`, every cycle (linear decay), until a turning point lands where the spring cannot beat static friction. Equal *ratios* mean viscous damping; equal *differences* mean dry friction.
 
@@ -185,4 +185,4 @@ They start easy and climb to top-rank level. More on the [damped and forced osci
 
 <div class="qbank" data-bank="physics" data-topics="damped-forced-oscillations" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 3.3 adds oscillations together (beats, Lissajous figures and coupled oscillators), and lesson 3.4 lets the oscillation travel as a wave. In electronics, resonance reappears in filters and oscillator circuits, which the [GATE Physics course](/learn/courses/gate-physics/) covers in its electronics module.
+**Next:** [lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/) adds oscillations together (beats, Lissajous figures and coupled oscillators), and [lesson 3.4](/learn/courses/iit-jam-physics/waves/) lets the oscillation travel as a wave. In electronics, resonance reappears in filters and oscillator circuits, which the [GATE Physics course](/learn/courses/gate-physics/) covers in its electronics module.

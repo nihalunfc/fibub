@@ -30,7 +30,7 @@ sources:
 
 ## 1. From coupled masses to the wave equation
 
-In lesson 3.3 a chain of masses joined by springs had normal modes. Make the masses smaller and closer, keeping the mass per unit length `$\mu$` and the tension `$T$` fixed, and the chain becomes a string. Newton's law for a short piece of string at small slope gives the **one-dimensional wave equation**:
+In [lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/) a chain of masses joined by springs had normal modes. Make the masses smaller and closer, keeping the mass per unit length `$\mu$` and the tension `$T$` fixed, and the chain becomes a string. Newton's law for a short piece of string at small slope gives the **one-dimensional wave equation**:
 
 ```math
 \frac{\partial^2y}{\partial x^2} = \frac{1}{v^2}\frac{\partial^2y}{\partial t^2}, \qquad v = \sqrt{\frac{T}{\mu}}
@@ -136,7 +136,7 @@ So far every wavelength travelled at the same speed. In most media it does not: 
 v_p = \frac{\omega}{k}\ \ (\text{phase velocity}), \qquad v_g = \frac{d\omega}{dk} = v_p - \lambda\frac{dv_p}{d\lambda}\ \ (\text{group velocity})
 ```
 
-To see why, add two waves with nearby `$k$` and `$\omega$`. As with beats (lesson 3.3) you get a fast carrier inside a slow envelope: `$2A\cos\left(\frac{\Delta k}{2}x - \frac{\Delta\omega}{2}t\right)\cos(\bar kx - \bar\omega t)$`. The carrier crests move at `$\bar\omega/\bar k = v_p$`; the envelope moves at `$\Delta\omega/\Delta k \to d\omega/dk = v_g$`. Energy and information travel with the envelope.
+To see why, add two waves with nearby `$k$` and `$\omega$`. As with beats ([lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/)) you get a fast carrier inside a slow envelope: `$2A\cos\left(\frac{\Delta k}{2}x - \frac{\Delta\omega}{2}t\right)\cos(\bar kx - \bar\omega t)$`. The carrier crests move at `$\bar\omega/\bar k = v_p$`; the envelope moves at `$\Delta\omega/\Delta k \to d\omega/dk = v_g$`. Energy and information travel with the envelope.
 
 <figure class="fig" data-fig="group-phase"><figcaption>The red dot rides a crest, the blue dot the top of a group. With no dispersion they move together; on deep water the groups move at half the crest speed; for ripples they move faster.</figcaption></figure>
 

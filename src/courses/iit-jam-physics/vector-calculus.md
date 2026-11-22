@@ -174,4 +174,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="vector-calculus" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 1.6 turns these local ideas into the big integral theorems of Gauss, Stokes and Green, which you will use all through electromagnetism. Going on to GATE? The [GATE Physics course](/learn/courses/gate-physics/) builds on this with tensors and curvilinear coordinates in general.
+**Next:** [lesson 1.6](/learn/courses/iit-jam-physics/integral-theorems/) turns these local ideas into the big integral theorems of Gauss, Stokes and Green, which you will use all through electromagnetism. Going on to GATE? The [GATE Physics course](/learn/courses/gate-physics/) builds on this with tensors and curvilinear coordinates in general.

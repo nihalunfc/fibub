@@ -133,7 +133,7 @@ Q_{\text{enc}}(r) = \int_0^r \rho(r')\,4\pi r'^2\,dr'
 
 ## 6. The differential form
 
-Apply the divergence theorem (lesson 1.6) to a tiny volume and Gauss's law becomes a statement at each point:
+Apply the divergence theorem ([lesson 1.6](/learn/courses/iit-jam-physics/integral-theorems/)) to a tiny volume and Gauss's law becomes a statement at each point:
 
 ```math
 \nabla\cdot\vec E = \frac{\rho}{\epsilon_0}, \qquad \nabla\times\vec E = 0 \ \ (\text{electrostatics})

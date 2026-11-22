@@ -138,7 +138,7 @@ A slab partly inside a capacitor is pulled in by the fringing field at the edge.
 
 **Worked example.** Plates 10 cm wide, gap 2.0 mm, 200 V, `$\kappa = 3$`: `$F = \dfrac{(8.854\times10^{-12})(2)(0.10)(200)^2}{2(2\times10^{-3})} = 17.7\ \mu$`N.
 
-**Leaky capacitors.** Fill any capacitor with material of permittivity `$\epsilon$` and small conductivity `$\sigma$`: the charge leaks with time constant `$RC = \epsilon/\sigma$`, whatever the shape (lesson 4.8 does RC circuits in full).
+**Leaky capacitors.** Fill any capacitor with material of permittivity `$\epsilon$` and small conductivity `$\sigma$`: the charge leaks with time constant `$RC = \epsilon/\sigma$`, whatever the shape ([lesson 4.8](/learn/courses/iit-jam-physics/circuits/) does RC circuits in full).
 
 <div class="keypoints">
 

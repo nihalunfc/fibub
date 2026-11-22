@@ -77,7 +77,7 @@ The single most useful formula in mathematical physics:
 e^{i\theta} = \cos\theta + i\sin\theta
 ```
 
-You can see why from the Taylor series (lesson 1.1): put `$x = i\theta$` in `$e^x = 1 + x + x^2/2! + \dots$` and collect the real terms (`$1 - \theta^2/2! + \dots = \cos\theta$`) and the imaginary ones (`$\theta - \theta^3/3! + \dots = \sin\theta$`). So every complex number can be written
+You can see why from the Taylor series ([lesson 1.1](/learn/courses/iit-jam-physics/calculus-and-series/)): put `$x = i\theta$` in `$e^x = 1 + x + x^2/2! + \dots$` and collect the real terms (`$1 - \theta^2/2! + \dots = \cos\theta$`) and the imaginary ones (`$\theta - \theta^3/3! + \dots = \sin\theta$`). So every complex number can be written
 
 ```math
 z = r\,e^{i\theta}
@@ -166,7 +166,7 @@ which is a real number. Rules you may *not* carry over from real numbers: `$\ope
 Any oscillation `$A\cos(\omega t + \phi)$` is the real part of `$Ae^{i\phi}e^{i\omega t}$`. The time factor `$e^{i\omega t}$` is shared, so all you need to keep is the **phasor** `$Ae^{i\phi}$`. Then:
 
 - **Adding oscillations** of the same frequency is adding arrows. `$2\cos\omega t + 2\cos(\omega t + \pi/3)$` has phasor `$2 + 2e^{i\pi/3} = 3 + i\sqrt3$`, amplitude `$\sqrt{12} = 2\sqrt3$`. In general `$A = \sqrt{A_1^2 + A_2^2 + 2A_1A_2\cos\phi}$`, the formula behind interference.
-- **Differentiating** is multiplying by `$i\omega$`, so a differential equation becomes algebra. This is exactly how the forced oscillator of lesson 1.7 is solved.
+- **Differentiating** is multiplying by `$i\omega$`, so a differential equation becomes algebra. This is exactly how the forced oscillator of [lesson 1.7](/learn/courses/iit-jam-physics/differential-equations/) is solved.
 - **AC circuits:** resistors, inductors and capacitors have impedances `$R$`, `$i\omega L$` and `$1/(i\omega C)$`, and they combine like resistors. For `$Z = 3 + 4i\ \Omega$` the size of the current is set by `$|Z| = 5\ \Omega$` and it lags the voltage by `$\arg Z = \tan^{-1}(4/3) = 53.13^\circ$`.
 
 Try it in fibub's [circuit simulator](/science/circuit-simulator/), and see sums of many turning arrows in the [Fourier visualiser](/science/fourier-visualiser/).
@@ -188,4 +188,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="complex-numbers" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 1.8, matrices and eigenvalues](/learn/courses/iit-jam-physics/matrices/). **Next:** lesson 1.10, Fourier series, where Euler's formula writes any periodic signal as a sum of turning arrows. For GATE and CSIR NET, continue with [analytic functions and Cauchy's theorem](/learn/courses/gate-physics/) in the GATE Physics course.
+**Before this:** [lesson 1.8, matrices and eigenvalues](/learn/courses/iit-jam-physics/matrices/). **Next:** [lesson 1.10](/learn/courses/iit-jam-physics/fourier-series/), Fourier series, where Euler's formula writes any periodic signal as a sum of turning arrows. For GATE and CSIR NET, continue with [analytic functions and Cauchy's theorem](/learn/courses/gate-physics/) in the GATE Physics course.

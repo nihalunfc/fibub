@@ -131,7 +131,7 @@ When you change variables from `$(x, y)$` to `$(u, v)$`, small areas stretch by 
 \frac{\partial(x, y)}{\partial(u, v)} = \begin{vmatrix} \partial x/\partial u & \partial x/\partial v \\ \partial y/\partial u & \partial y/\partial v \end{vmatrix}, \qquad dx\,dy = \left|\frac{\partial(x, y)}{\partial(u, v)}\right|du\,dv
 ```
 
-For polar coordinates it is `$r$`; for spherical coordinates `$r^2\sin\theta$`. Two facts save time: the Jacobian of the inverse map is the reciprocal, `$\dfrac{\partial(u, v)}{\partial(x, y)} = 1\Big/\dfrac{\partial(x, y)}{\partial(u, v)}$`, and Jacobians chain like fractions. Lesson 1.3 puts them to work in integrals.
+For polar coordinates it is `$r$`; for spherical coordinates `$r^2\sin\theta$`. Two facts save time: the Jacobian of the inverse map is the reciprocal, `$\dfrac{\partial(u, v)}{\partial(x, y)} = 1\Big/\dfrac{\partial(x, y)}{\partial(u, v)}$`, and Jacobians chain like fractions. [Lesson 1.3](/learn/courses/iit-jam-physics/multiple-integrals/) puts them to work in integrals.
 
 **Worked example.** For `$u = xy$`, `$v = y/x$`: `$\dfrac{\partial(u, v)}{\partial(x, y)} = \begin{vmatrix} y & x \\ -y/x^2 & 1/x \end{vmatrix} = \dfrac{2y}{x} = 2v$`, so `$dx\,dy = du\,dv/(2v)$`.
 

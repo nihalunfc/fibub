@@ -36,7 +36,7 @@ Write the field of a wave going along `$z$` as two perpendicular components:
 E_x = E_{0x}\cos(kz - \omega t), \qquad E_y = E_{0y}\cos(kz - \omega t + \delta)
 ```
 
-At a fixed point the tip of the field traces a Lissajous figure of equal frequencies (lesson 3.3):
+At a fixed point the tip of the field traces a Lissajous figure of equal frequencies ([lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/)):
 
 - `$\delta = 0$` or `$\pi$`: a line: **linearly polarised** light;
 - `$\delta = \pm\pi/2$` with `$E_{0x} = E_{0y}$`: a circle: **circularly polarised**;

@@ -91,7 +91,7 @@ v = 2f(l_2 - l_1), \qquad e = \frac{l_2 - 3l_1}{2}
 
 ## 4. Beats and tuning forks
 
-Two sounds of frequencies `$f_1$` and `$f_2$` give `$|f_1 - f_2|$` beats per second (lesson 3.3). The classic puzzle: a 512 Hz fork and an unknown give 4 beats; with wax on the unknown, 6 beats. The unknown was 508 or 516 Hz. **Wax lowers** a fork's frequency (more mass) and **filing raises** it. Lowering 516 would bring it closer to 512 and reduce the beats; the beats grew, so it was **508 Hz**.
+Two sounds of frequencies `$f_1$` and `$f_2$` give `$|f_1 - f_2|$` beats per second ([lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/)). The classic puzzle: a 512 Hz fork and an unknown give 4 beats; with wax on the unknown, 6 beats. The unknown was 508 or 516 Hz. **Wax lowers** a fork's frequency (more mass) and **filing raises** it. Lowering 516 would bring it closer to 512 and reduce the beats; the beats grew, so it was **508 Hz**.
 
 ## 5. The Doppler effect for sound
 

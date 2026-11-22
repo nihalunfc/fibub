@@ -78,7 +78,7 @@ Hollow out a conductor. Two cases:
 
 ## 3. Laplace's equation and what it forbids
 
-In any region with no charge, the potential obeys Laplace's equation (lesson 4.2 derived Poisson's equation `$\nabla^2V = -\rho/\epsilon_0$`):
+In any region with no charge, the potential obeys Laplace's equation ([lesson 4.2](/learn/courses/iit-jam-physics/potential-energy/) derived Poisson's equation `$\nabla^2V = -\rho/\epsilon_0$`):
 
 ```math
 \nabla^2V = \frac{\partial^2V}{\partial x^2} + \frac{\partial^2V}{\partial y^2} + \frac{\partial^2V}{\partial z^2} = 0

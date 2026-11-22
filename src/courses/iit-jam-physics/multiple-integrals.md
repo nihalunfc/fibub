@@ -60,7 +60,7 @@ Sometimes the inner integral cannot be done as written, but the other order is e
 
 ## 3. Curved coordinates and their elements
 
-The patch `$dA$` is only `$dx\,dy$` in Cartesian coordinates. In other coordinates, find the patch's edge lengths and multiply them (this is the Jacobian of lesson 1.2). Switch between the three systems below and move `$r$` and `$\theta$`.
+The patch `$dA$` is only `$dx\,dy$` in Cartesian coordinates. In other coordinates, find the patch's edge lengths and multiply them (this is the Jacobian of [lesson 1.2](/learn/courses/iit-jam-physics/partial-derivatives/)). Switch between the three systems below and move `$r$` and `$\theta$`.
 
 <figure class="fig" data-fig="volume-elements"><figcaption>Each edge is a small step in one coordinate times how far that step moves you. The product is the element. In spherical coordinates the cells shrink near the poles because circles of latitude do.</figcaption></figure>
 
@@ -98,7 +98,7 @@ In spherical coordinates `$\theta$` runs from `$0$` to `$\pi$` (pole to pole) an
 
 ## 4. The Gaussian integral, at last
 
-Lesson 1.1 used `$\int_{-\infty}^{\infty}e^{-x^2}dx = \sqrt\pi$`. Here is why. Call the integral `$I$` and square it:
+[Lesson 1.1](/learn/courses/iit-jam-physics/calculus-and-series/) used `$\int_{-\infty}^{\infty}e^{-x^2}dx = \sqrt\pi$`. Here is why. Call the integral `$I$` and square it:
 
 <div class="steps">
 <div class="step"><p><b>Square it.</b> I² = ∫e<sup>−x²</sup>dx · ∫e<sup>−y²</sup>dy = ∬ e<sup>−(x²+y²)</sup> dx dy over the whole plane.</p></div>

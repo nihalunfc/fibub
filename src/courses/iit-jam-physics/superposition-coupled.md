@@ -69,7 +69,7 @@ A\cos\omega_1t + A\cos\omega_2t = \underbrace{2A\cos\left(\frac{\omega_1 - \omeg
 
 You hear the average pitch, swelling and fading. The envelope cosine has frequency `$|f_1 - f_2|/2$`, but loudness depends on the size of the envelope, not its sign, so it peaks twice per envelope cycle: the **beat frequency is `$|f_1 - f_2|$`**.
 
-**Worked example.** `$x = a\sin(100\pi t) + a\sin(104\pi t)$`: frequencies 50 Hz and 52 Hz, so 2 beats per second, 20 beats in 10 s. Musicians tune by turning a peg until the beats slow down and stop. The [Beats lab](/learn/beats-lab/) lets you hear this, and lesson 3.5 uses beats to find unknown frequencies.
+**Worked example.** `$x = a\sin(100\pi t) + a\sin(104\pi t)$`: frequencies 50 Hz and 52 Hz, so 2 beats per second, 20 beats in 10 s. Musicians tune by turning a peg until the beats slow down and stop. The [Beats lab](/learn/beats-lab/) lets you hear this, and [lesson 3.5](/learn/courses/iit-jam-physics/sound-doppler/) uses beats to find unknown frequencies.
 
 ## 4. Perpendicular SHMs: Lissajous figures
 
@@ -155,7 +155,7 @@ The same method works for any number of masses: write `$m\ddot{\mathbf x} = -K\m
 | `$N$` beads on a string, fixed ends | `$\omega_n = 2\omega_0\sin\dfrac{n\pi}{2(N + 1)}$` |
 | `$N$` masses in a closed ring | `$\omega_n = 2\omega_0\lvert\sin(n\pi/N)\rvert$`, including `$0$` and repeated values |
 
-**Worked example.** Three equal masses between walls on four springs: the matrix `$\omega_0^2\begin{pmatrix}2&-1&0\\-1&2&-1\\0&-1&2\end{pmatrix}$` has eigenvalues `$(2 - \sqrt2)\omega_0^2$`, `$2\omega_0^2$`, `$(2 + \sqrt2)\omega_0^2$`. The middle mode, `$(1, 0, -1)$`, keeps the centre mass still. As `$N$` grows, the chain's modes become the standing waves of a continuous string: that is the bridge to lesson 3.4. The [GATE Physics course](/learn/courses/gate-physics/) treats general small oscillations with the Lagrangian method.
+**Worked example.** Three equal masses between walls on four springs: the matrix `$\omega_0^2\begin{pmatrix}2&-1&0\\-1&2&-1\\0&-1&2\end{pmatrix}$` has eigenvalues `$(2 - \sqrt2)\omega_0^2$`, `$2\omega_0^2$`, `$(2 + \sqrt2)\omega_0^2$`. The middle mode, `$(1, 0, -1)$`, keeps the centre mass still. As `$N$` grows, the chain's modes become the standing waves of a continuous string: that is the bridge to [lesson 3.4](/learn/courses/iit-jam-physics/waves/). The [GATE Physics course](/learn/courses/gate-physics/) treats general small oscillations with the Lagrangian method.
 
 The same mathematics appears in electric circuits: two LC loops sharing a capacitor `$C_c$` have modes at `$1/\sqrt{LC}$` and `$\sqrt{1/LC + 2/LC_c}$`, with `$1/C_c$` playing the role of the spring.
 

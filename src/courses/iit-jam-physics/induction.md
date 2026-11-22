@@ -163,4 +163,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="induction" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 4.8 builds on inductance for DC transients and AC circuits, and lesson 4.9 adds the displacement current to complete Maxwell's equations. The fields that change here were made by the currents of [magnetic fields: Biot-Savart and Ampère](/learn/courses/iit-jam-physics/magnetostatics/). For potentials, gauges and electromagnetic waves at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** [lesson 4.8](/learn/courses/iit-jam-physics/circuits/) builds on inductance for DC transients and AC circuits, and [lesson 4.9](/learn/courses/iit-jam-physics/maxwell-em-waves/) adds the displacement current to complete Maxwell's equations. The fields that change here were made by the currents of [magnetic fields: Biot-Savart and Ampère](/learn/courses/iit-jam-physics/magnetostatics/). For potentials, gauges and electromagnetic waves at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).

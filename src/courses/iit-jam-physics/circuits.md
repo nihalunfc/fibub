@@ -62,7 +62,7 @@ At `$t = 0^+$` the current is zero and the whole `$V_0$` sits across the inducto
 
 Connect a charged capacitor across an inductor. `$L\ddot q + q/C = 0$`: simple harmonic motion with `$\omega_0 = 1/\sqrt{LC}$`. Energy sloshes between `$\tfrac12q^2/C$` and `$\tfrac12LI^2$` (each oscillating at `$2\omega_0$`), so `$I_{\max} = V_0\sqrt{C/L}$`. A 4 µF capacitor at 50 V into 1 mH gives `$I_{\max} = 3.16$` A.
 
-Add resistance: `$L\ddot q + R\dot q + q/C = 0$`, the damped oscillator of lesson 3.2 with `$\gamma = R/2L$`:
+Add resistance: `$L\ddot q + R\dot q + q/C = 0$`, the damped oscillator of [lesson 3.2](/learn/courses/iit-jam-physics/damped-forced-oscillations/) with `$\gamma = R/2L$`:
 
 | Condition | Behaviour |
 |---|---|

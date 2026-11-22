@@ -157,7 +157,7 @@ So `$\int_0^\infty x^3e^{-x}dx = 3! = 6$` and `$\int_0^\infty\sqrt x\,e^{-x}dx =
 \int_{-\infty}^{\infty}x^2e^{-ax^2}dx = \frac{1}{2a}\sqrt{\frac\pi a}
 ```
 
-**Worked example.** Find `$\int_0^\infty x^2e^{-x^2}dx$`. The full-line integral with `$a = 1$` is `$\sqrt\pi/2$`; the integrand is even, so half of it is `$\sqrt\pi/4\approx0.443$`. These integrals give the Maxwell speed distribution and the ground state of the harmonic oscillator. Lesson 1.3 shows where `$\sqrt{\pi/a}$` comes from.
+**Worked example.** Find `$\int_0^\infty x^2e^{-x^2}dx$`. The full-line integral with `$a = 1$` is `$\sqrt\pi/2$`; the integrand is even, so half of it is `$\sqrt\pi/4\approx0.443$`. These integrals give the Maxwell speed distribution and the ground state of the harmonic oscillator. [Lesson 1.3](/learn/courses/iit-jam-physics/multiple-integrals/) shows where `$\sqrt{\pi/a}$` comes from.
 
 <div class="keypoints">
 

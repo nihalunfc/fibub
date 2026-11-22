@@ -38,7 +38,7 @@ In one dimension you have used this theorem since Class 12:
 
 Read it in words: **the total of a derivative over a region equals the function on the region's edge.** The "edge" of the interval is just its two end points, with a plus sign at the end and a minus sign at the start.
 
-The three integral theorems are the same sentence in higher dimensions. The derivative becomes divergence or curl (lesson 1.5), and the edge becomes a closed surface or a closed curve.
+The three integral theorems are the same sentence in higher dimensions. The derivative becomes divergence or curl ([lesson 1.5](/learn/courses/iit-jam-physics/vector-calculus/)), and the edge becomes a closed surface or a closed curve.
 
 | Theorem | Inside | Edge | Statement |
 |---|---|---|---|
@@ -50,7 +50,7 @@ Keep this table in your head and half of every JAM question on the topic is alre
 
 ## 2. The divergence theorem: sources inside, flux outside
 
-Divergence is the net outflow per unit volume from a tiny box (lesson 1.5). Stack many tiny boxes to fill a big volume. Where two boxes touch, whatever leaves one enters its neighbour, so those inner faces cancel. Only the faces on the outside survive, and their total is the flux through the outer surface.
+Divergence is the net outflow per unit volume from a tiny box ([lesson 1.5](/learn/courses/iit-jam-physics/vector-calculus/)). Stack many tiny boxes to fill a big volume. Where two boxes touch, whatever leaves one enters its neighbour, so those inner faces cancel. Only the faces on the outside survive, and their total is the flux through the outer surface.
 
 ```math
 \iiint_V \nabla\cdot\vec F\,dV = \oint_S \vec F\cdot d\vec a \qquad (d\vec a \text{ points outward})
@@ -185,4 +185,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="integral-theorems" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 1.5, gradient, divergence and curl](/learn/courses/iit-jam-physics/vector-calculus/). **Next:** lesson 1.7, differential equations. You will use these theorems all through electromagnetism: Gauss's law, Ampère's law and Faraday's law are exactly these three statements applied to E and B. Going on to GATE or CSIR NET? The [GATE Physics course](/learn/courses/gate-physics/) uses them with the Dirac delta and Green's functions.
+**Before this:** [lesson 1.5, gradient, divergence and curl](/learn/courses/iit-jam-physics/vector-calculus/). **Next:** [lesson 1.7](/learn/courses/iit-jam-physics/differential-equations/), differential equations. You will use these theorems all through electromagnetism: Gauss's law, Ampère's law and Faraday's law are exactly these three statements applied to E and B. Going on to GATE or CSIR NET? The [GATE Physics course](/learn/courses/gate-physics/) uses them with the Dirac delta and Green's functions.

@@ -77,7 +77,7 @@ and the same for `$\vec B$`. Maxwell computed this speed from electrical measure
 
 Reading the direction: `$\cos(kz - \omega t)$` travels along `$+z$`, `$\cos(kz + \omega t)$` along `$-z$`. Then get `$\vec B$` from `$\hat B = \hat k\times\hat E$`. Example: `$\vec B = B_0\cos(kx + \omega t)\hat z$` travels along `$-x$`, so `$\vec E = -cB_0\cos(kx + \omega t)\hat y$`.
 
-**Polarisation** is the direction of `$\vec E$`. Equal `$x$` and `$y$` components in phase: linear at `$45^\circ$`. Equal components `$90^\circ$` apart: circular, `$\vec E$` turning at constant length. Unequal: elliptical. (Lesson 3.9 covers polarisers and wave plates.)
+**Polarisation** is the direction of `$\vec E$`. Equal `$x$` and `$y$` components in phase: linear at `$45^\circ$`. Equal components `$90^\circ$` apart: circular, `$\vec E$` turning at constant length. Unequal: elliptical. ([Lesson 3.9](/learn/courses/iit-jam-physics/polarisation/) covers polarisers and wave plates.)
 
 <figure class="fig" data-fig="em-wave"><figcaption>A plane wave travelling to the right: E (vertical) and B (at right angles) oscillate together, and the Poynting vector S points forward, pulsing at twice the frequency. With circular polarisation E turns at constant length and S is steady.</figcaption></figure>
 

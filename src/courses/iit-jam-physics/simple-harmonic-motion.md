@@ -179,7 +179,7 @@ Two SHMs along the same line with the same `$\omega$` add to a single SHM with t
 A^2 = A_1^2 + A_2^2 + 2A_1A_2\cos(\phi_2 - \phi_1)
 ```
 
-**Worked example.** `$x_1 = 2\sin\omega t$` and `$x_2 = 2\sin(\omega t + 2\pi/3)$`: `$A^2 = 4 + 4 + 8\cos120^\circ = 4$`, so `$A = 2$`. Two equal motions `$120^\circ$` apart add up to one of the same size. (Different frequencies, beats and Lissajous figures come in lesson 3.3.)
+**Worked example.** `$x_1 = 2\sin\omega t$` and `$x_2 = 2\sin(\omega t + 2\pi/3)$`: `$A^2 = 4 + 4 + 8\cos120^\circ = 4$`, so `$A = 2$`. Two equal motions `$120^\circ$` apart add up to one of the same size. (Different frequencies, beats and Lissajous figures come in [lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/).)
 
 ## 8. When SHM stops being exact
 
