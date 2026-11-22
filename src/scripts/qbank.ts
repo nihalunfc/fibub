@@ -467,8 +467,10 @@ async function list(root: HTMLElement) {
 // ---------- mock test ----------
 async function mock(root: HTMLElement) {
   const d = root.dataset;
-  const bank = d.bank!;
-  const idx = await loadIndex(bank);
+  // data-bank may list several banks (an entrance paper takes Physics, Chemistry and Maths); items carry __bank.
+  const banks = d.bank!.split(',').map((b) => b.trim());
+  const idxs = await Promise.all(banks.map((b) => loadIndex(b)));
+  const idx = { units: idxs.flatMap((i) => i.units) };
   const pat = (PATTERNS as any)[d.pattern || 'jam'];
   const scheme = SCHEMES[pat.scheme as keyof typeof SCHEMES];
   const mins = Number(d.minutes || pat.minutes);
@@ -485,7 +487,14 @@ async function mock(root: HTMLElement) {
   root.append(intro);
   start.addEventListener('click', async () => {
     start.disabled = true; start.textContent = 'Drawing a paper…';
-    const { items, gens } = await loadTopics(bank, topics);
+    const items: Item[] = [], gens: Item[] = [];
+    await Promise.all(banks.map(async (b, i) => {
+      const mine = banks.length === 1 ? topics : idxs[i].units.flatMap((u) => u.topics.map((t) => t.id));
+      const got = await loadTopics(b, mine);
+      for (const it of got.items) (it as any).__bank = b;
+      for (const g of got.gens) (g as any).__bank = b;
+      items.push(...got.items); gens.push(...got.gens);
+    }));
     const ex = d.exam || pat.scheme;
     const pool = items.filter((i) => !i.exams || i.exams.includes(ex));
     const gpool = gens.filter((g) => !g.exams || g.exams.includes(ex));

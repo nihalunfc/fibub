@@ -160,7 +160,11 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
     // topics: keep a section to these topics; skipTopics (pattern-wide) keeps them out of every other section.
     const skip = sec.topics ? [] : pattern.skipTopics || [];
     const tp = (it) => (!sec.topics || sec.topics.includes(it.topic)) && !skip.includes(it.topic);
-    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && tp(it) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
+    // bank: in a paper drawn from several banks (items carry __bank), keep the section to one bank (e.g. JEE Main's
+    // Physics part); levels and formats keep it to exam depth and answer style (e.g. integer answers only).
+    const fromBank = (it) => !sec.bank || it.__bank === sec.bank;
+    const depth = (it) => (!sec.levels || sec.levels.includes(it.level)) && (!sec.formats || sec.formats.includes(it.format));
+    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && tp(it) && fromBank(it) && depth(it) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
     const fits = (it) => it.type === sec.type && mk(it) && !used.has(it.id) && it.type !== 'open';
     // round-robin over topics so one topic cannot fill a section
     const byTopic = new Map();
@@ -213,6 +217,27 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
 
 /** Exam patterns used by the mock-test page. Counts follow the published exam patterns (types and marks only). */
 export const PATTERNS = {
+  // Plus Two entrance tests: one paper from several banks (the page passes data-bank="a,b,c"); each section names its
+  // bank. Counts follow the 2025-26 notices (types and marks only); every question is worth the exam's 4 marks.
+  'jee-main': { name: 'JEE Main Paper 1 (B.E./B.Tech.)', minutes: 180, scheme: 'jee-main', sections: [
+    ...['physics', 'chemistry', 'maths'].flatMap((b) => [
+      { name: `${b[0].toUpperCase() + b.slice(1)}: multiple choice`, bank: `entrance-${b}`, type: 'mcq', marks: 4, count: 20, anyLevel: true, levels: [2, 3, 4] },
+      { name: `${b[0].toUpperCase() + b.slice(1)}: numerical answer`, bank: `entrance-${b}`, type: 'nat', marks: 4, count: 5, anyLevel: true, levels: [2, 3, 4], formats: ['integer'] },
+    ]),
+  ] },
+  neet: { name: 'NEET (UG)', minutes: 180, scheme: 'neet', sections: [
+    { name: 'Physics', bank: 'entrance-physics', type: 'mcq', marks: 4, count: 45, anyLevel: true, levels: [1, 2, 3, 4] },
+    { name: 'Chemistry', bank: 'entrance-chemistry', type: 'mcq', marks: 4, count: 45, anyLevel: true, levels: [1, 2, 3, 4] },
+    { name: 'Biology', bank: 'entrance-biology', type: 'mcq', marks: 4, count: 90, anyLevel: true, levels: [1, 2, 3, 4] },
+  ] },
+  keam: { name: 'KEAM engineering', minutes: 180, scheme: 'keam', sections: [
+    { name: 'Physics', bank: 'entrance-physics', type: 'mcq', marks: 4, count: 45, anyLevel: true, levels: [1, 2, 3] },
+    { name: 'Chemistry', bank: 'entrance-chemistry', type: 'mcq', marks: 4, count: 30, anyLevel: true, levels: [1, 2, 3] },
+    { name: 'Maths', bank: 'entrance-maths', type: 'mcq', marks: 4, count: 75, anyLevel: true, levels: [1, 2, 3] },
+  ] },
+  comedk: { name: 'COMEDK UGET', minutes: 180, scheme: 'none', sections: [
+    ...['physics', 'chemistry', 'maths'].map((b) => ({ name: b[0].toUpperCase() + b.slice(1), bank: `entrance-${b}`, type: 'mcq', marks: 1, count: 60, anyLevel: true, levels: [1, 2, 3] })),
+  ] },
   jam: { name: 'IIT JAM Physics', minutes: 180, scheme: 'jam', sections: [
     { name: 'Section A: MCQ, 1 mark', type: 'mcq', marks: 1, count: 10 },
     { name: 'Section A: MCQ, 2 marks', type: 'mcq', marks: 2, count: 20 },
