@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './central-force-scattering.more.gen.js';
 import more2 from './central-force-scattering.more2.gen.js';
 import r4 from './central-force-scattering.r4.gen.js';
+import r5 from './central-force-scattering.r5.gen.js';
 
 const KE = 1.44; // e^2/(4 pi eps0) in MeV fm
 const DEG = Math.PI / 180;
@@ -200,6 +201,7 @@ export default {
       sol: 'A and B: $d\\sigma/d\\Omega = \\dfrac{b}{\\sin\\Theta}|db/d\\Theta|$ blows up when $|db/d\\Theta| \\to \\infty$ (rainbow) or when $\\sin\\Theta \\to 0$ with $b \\neq 0$ (glory), though the integrals stay finite. C: beyond the range nothing is deflected, so $\\sigma \\le \\pi R^2$. D: the Yukawa force is never exactly zero, so classically every $b$ gives some deflection and the total diverges (quantum mechanics makes it finite).' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'cfs-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Rutherford scattering',
@@ -344,5 +346,6 @@ export default {
       verify: (p) => 4 * Math.cos(p.tl * DEG) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

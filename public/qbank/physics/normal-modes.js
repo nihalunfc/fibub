@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './normal-modes.more.gen.js';
 import more2 from './normal-modes.more2.gen.js';
 import r4 from './normal-modes.r4.gen.js';
+import r5 from './normal-modes.r5.gen.js';
 
 const g = 9.8;
 
@@ -198,6 +199,7 @@ export default {
       sol: 'Non-linear: $3N - 6$, so H₂O has 3. Linear: $3N - 5$ (only two rotations move atoms), so CO₂ has 4 and a diatomic has $6 - 5 = 1$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'nm-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'eigenvalue problem',
@@ -323,5 +325,6 @@ export default {
       verify: (p) => 2 * p.w0 * Math.abs(Math.sin(Math.PI * p.j / p.N)) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
