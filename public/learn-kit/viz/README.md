@@ -30,3 +30,4 @@ science courses).
 ## Catalogue
 See `catalogue/*.md` (one file per subject group).
 - Before committing, run `node scripts/viz-check.mjs . <names> --shots <dir>` (mounts each figure at 375 px light and 900 px dark, presses every control, fails on errors or sideways scroll) and look at the screenshots.
+- Dragging on phones: never set `touchAction = 'none'` on a whole canvas (the page could not scroll past it). Use kit `touchGuard(canvas, (x, y) => nearAHandle)` so only touches on a handle are kept.

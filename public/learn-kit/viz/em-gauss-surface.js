@@ -1,12 +1,11 @@
 // Gauss's law with a surface you can resize. Drag the charges in or out of the sphere (side view) and change its
 // radius. The flux through the sphere is worked out numerically by adding E·dA over 7000 patches of the surface, and
 // compared with Q_enclosed/ε0. Charges outside add field lines in on one side and out on the other: zero net flux.
-import { canvas, text, row, slider, readout, dot, fmt } from '../kit.js';
+import { canvas, text, row, slider, readout, dot, fmt, touchGuard } from '../kit.js';
 
 export default function (host) {
   let R = 1, Q = [{ x: -0.35, y: 0.2, q: 3 }, { x: 0.5, y: -0.3, q: -2 }, { x: 1.7, y: 0.4, q: 2 }], drag = -1;
   const cv = canvas(host, { aspect: 0.7, max: 380, min: 270, label: 'A sphere around charges and the flux through it' });
-  cv.c.style.touchAction = 'none';
   const ctl = row(host);
   slider(ctl, { label: 'Sphere radius', min: 0.3, max: 2.4, value: R, step: 0.02, fmt: (v) => v.toFixed(2), oninput: (v) => { R = v; upd(); } });
   const out = readout(host);
@@ -15,6 +14,7 @@ export default function (host) {
   cv.c.addEventListener('pointerdown', (e) => { const [x, y] = pos(e); drag = -1; let b = 0.35; Q.forEach((c, i) => { const d = Math.hypot(c.x - x, c.y - y); if (d < b) { b = d; drag = i; } }); if (drag >= 0) cv.c.setPointerCapture(e.pointerId); });
   cv.c.addEventListener('pointermove', (e) => { if (drag < 0) return; const [x, y] = pos(e); Q[drag].x = Math.max(-2.5, Math.min(2.5, x)); Q[drag].y = Math.max(-1.5, Math.min(1.5, y)); upd(); });
   cv.c.addEventListener('pointerup', () => { drag = -1; });
+  touchGuard(cv.c, (px, py) => { const x = (px - cv.w / 2) / sc(), y = -(py - cv.h / 2) / sc(); return Q.some((c) => Math.hypot(c.x - x, c.y - y) < 0.35); });
   const flux = () => { // charges lie in the plane z = 0; Φ·ε0 = Σ q ∮ (d·n)/(4π d³) dA over the sphere
     let s = 0; const NT = 50, NP = 100;
     for (let i = 0; i < NT; i++) { const th = (i + 0.5) / NT * Math.PI, st = Math.sin(th), ct = Math.cos(th);

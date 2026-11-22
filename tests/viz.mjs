@@ -20,6 +20,7 @@ for (const f of files) {
   ok(`viz/${f}: starts with a comment that says what it shows`, /^\/\/ \S/.test(src));
   if (!f.startsWith('_')) ok(`viz/${f}: has a default export`, /export default (async )?function/.test(src));
   for (const m of src.matchAll(/^import .* from '([^']+)'/gm)) ok(`viz/${f}: imports only the kit or viz helpers (${m[1]})`, /^(\.\.\/kit\.js|\.\/_[a-z0-9-]+\.js)$/.test(m[1]));
+  ok(`viz/${f}: does not block page scroll with touch-action none (use kit touchGuard)`, !/touchAction\s*=\s*['"]none|touch-action:\s*none/.test(src));
   ok(`viz/${f}: no fetch or outside URL`, !/fetch\(|https?:\/\/(?!www\.w3\.org)/.test(src));
   const r = spawnSync(process.execPath, ['--check', fileURLToPath(new URL(f, vizDir))], { encoding: 'utf8' });
   ok(`viz/${f}: valid JavaScript ${r.stderr.split('\n').slice(0, 5).join(' ')}`, r.status === 0);

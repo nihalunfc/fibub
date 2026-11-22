@@ -2,7 +2,7 @@
 // charge, and switch field lines, equipotential lines and arrows on or off. Move the pointer over the picture to read
 // the potential V and field E at that point. Lines start on + charges and end on - charges, never cross, and
 // equipotentials always cut them at right angles.
-import { canvas, text, row, button, choice, readout, dot, arrow, fmt } from '../kit.js';
+import { canvas, text, row, button, choice, readout, dot, arrow, fmt, touchGuard } from '../kit.js';
 
 const PRESETS = {
   dipole: [[-0.25, 0, 2], [0.25, 0, -2]], same: [[-0.25, 0, 2], [0.25, 0, 2]], two1: [[-0.25, 0, 4], [0.25, 0, -2]],
@@ -12,7 +12,6 @@ const LEVELS = [-8, -5, -3, -2, -1, -0.5, 0.5, 1, 2, 3, 5, 8];
 export default function (host) {
   let Q = PRESETS.dipole.map((c) => [...c]), show = { lines: true, eq: true, arrows: false }, drag = -1, probe = null;
   const cv = canvas(host, { aspect: 0.75, max: 400, min: 280, label: 'Electric field lines and equipotentials of draggable point charges' });
-  cv.c.style.touchAction = 'none';
   const c1 = row(host), c2 = row(host);
   choice(c1, 'Charges', [['dipole', '+ −'], ['same', '+ +'], ['two1', '+2 −1'], ['three', 'three'], ['one', 'single']], 'dipole', (v) => { Q = PRESETS[v].map((c) => [...c]); cv.redraw(); upd(); });
   button(c2, 'Add +', () => { Q.push([(Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.3, 2]); cv.redraw(); upd(); });
@@ -23,6 +22,7 @@ export default function (host) {
   const S = () => Math.min(cv.w, cv.h * 1.2); // pixels per model unit ×1 (model x in [-0.5,0.5])
   const toPx = (c) => [cv.w / 2 + c[0] * S() * 1.7, cv.h / 2 - c[1] * S() * 1.7];
   const field = (px, py) => { let ex = 0, ey = 0, v = 0; for (const c of Q) { const [cx, cy] = toPx(c), dx = (px - cx) / (S() * 0.5), dy = (py - cy) / (S() * 0.5), r2 = dx * dx + dy * dy + 1e-4, r = Math.sqrt(r2); ex += c[2] * dx / (r2 * r); ey += c[2] * dy / (r2 * r); v += c[2] / r; } return [ex, ey, v]; };
+  touchGuard(cv.c, (x, y) => Q.some((c) => { const [cx, cy] = toPx(c); return Math.hypot(cx - x, cy - y) < 22; }));
   const pos = (e) => { const b = cv.c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
   cv.c.addEventListener('pointerdown', (e) => { const [x, y] = pos(e); drag = -1; let best = 22; Q.forEach((c, i) => { const [cx, cy] = toPx(c), d = Math.hypot(cx - x, cy - y); if (d < best) { best = d; drag = i; } }); if (drag >= 0) cv.c.setPointerCapture(e.pointerId); });
   cv.c.addEventListener('pointermove', (e) => { const [x, y] = pos(e); probe = [x, y]; if (drag >= 0) { Q[drag][0] = Math.max(-0.5, Math.min(0.5, (x - cv.w / 2) / (S() * 1.7))); Q[drag][1] = Math.max(-0.4, Math.min(0.4, -(y - cv.h / 2) / (S() * 1.7))); } cv.redraw(); upd(); });
