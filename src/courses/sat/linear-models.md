@@ -87,6 +87,12 @@ Once you have the model, questions ask for the value at some time ("how much is 
 - When two models are equal, or when one passes the other.
 - Predict a value, or the input that gives a value.
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="linear-models" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - A linear model is value = start + rate × input.

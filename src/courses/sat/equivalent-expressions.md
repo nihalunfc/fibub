@@ -92,6 +92,12 @@ For "which expression is equivalent to ...?", put a simple number like x = 2 int
 - Use a pattern: "a + b = 9 and a − b = 3, what is a² − b²?" → 27.
 - Factor to find a common factor or to simplify a fraction (Lesson 3.5).
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="equivalent-expressions" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - Expanding: every term times every term (the area model); collect like terms.

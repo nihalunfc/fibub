@@ -84,6 +84,12 @@ Pick a parent graph and slide it. Watch which way the minus sign moves it.
 
 </div>
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="functions" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - f(a) = b means input a, output b: the point (a, b) on the graph.

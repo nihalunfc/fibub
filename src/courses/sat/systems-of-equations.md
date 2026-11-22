@@ -98,6 +98,12 @@ Name the two unknowns, then write one equation for each fact. Usually one fact c
 
 </div>
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="systems-of-equations" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - The solution of a system is the point where the two lines cross.

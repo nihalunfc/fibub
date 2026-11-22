@@ -108,8 +108,8 @@ export default {
       options: ['3', '−3', '18', '6'], answer: 0,
       sol: '<p>Expand: 6<i>x</i> − 6<i>k</i> = 6<i>x</i> − 18. The sides are identical when 6<i>k</i> = 18, so <i>k</i> = <b>3</b>. Any other <i>k</i> gives no solution.</p>' },
     { id: 'sat-le-005', type: 'nat', level: 3, exams: ['sat'], sub: 'word problem', facets: F,
-      q: '<p>A school spent $1,680 on new chairs and tables. Each table cost $90 and each chair cost $30. The school bought 4 times as many chairs as tables. How many tables did it buy?</p>', answer: 8, tol: 0,
-      sol: '<p>Let <i>t</i> be the number of tables, so there are 4<i>t</i> chairs. Cost: 90<i>t</i> + 30(4<i>t</i>) = 1,680, so 210<i>t</i> = 1,680 and <i>t</i> = <b>8</b>. Check: 8 tables ($720) and 32 chairs ($960) make $1,680.</p>',
+      q: '<p>A school spent &#36;1,680 on new chairs and tables. Each table cost &#36;90 and each chair cost &#36;30. The school bought 4 times as many chairs as tables. How many tables did it buy?</p>', answer: 8, tol: 0,
+      sol: '<p>Let <i>t</i> be the number of tables, so there are 4<i>t</i> chairs. Cost: 90<i>t</i> + 30(4<i>t</i>) = 1,680, so 210<i>t</i> = 1,680 and <i>t</i> = <b>8</b>. Check: 8 tables (&#36;720) and 32 chairs (&#36;960) make &#36;1,680.</p>',
       trap: 'Letting t stand for chairs and answering with the number of chairs (32).' },
   ],
 };

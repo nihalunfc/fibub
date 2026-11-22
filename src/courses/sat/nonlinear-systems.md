@@ -69,6 +69,12 @@ x² + y² = 25 with y = 3: substitute, x² = 16, x = ±4. Circles are covered fu
 
 </div>
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="nonlinear-systems" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - Set the two expressions for y equal, move everything to one side, and solve the quadratic.

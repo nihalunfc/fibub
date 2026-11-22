@@ -84,6 +84,12 @@ A rational expression is a fraction with polynomials. Simplify by factoring and 
 
 </div>
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="polynomials-rational" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - Factored form shows the zeros: (x − a) gives the zero x = a.

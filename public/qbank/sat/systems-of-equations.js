@@ -71,7 +71,7 @@ export default {
       q: '<p>A farm has only chickens and goats. The animals have 50 heads and 140 legs in total. How many goats are on the farm?</p>', answer: 20, tol: 0,
       sol: '<p><i>c</i> + <i>g</i> = 50 and 2<i>c</i> + 4<i>g</i> = 140. Double the first: 2<i>c</i> + 2<i>g</i> = 100. Subtract: 2<i>g</i> = 40, so <i>g</i> = <b>20</b> (and 30 chickens).</p>' },
     { id: 'sat-sy-003', type: 'mcq', level: 3, exams: ['sat'], sub: 'model', facets: F,
-      q: '<p>A gym charges a $40 joining fee and $25 a month. A second gym charges no joining fee and $33 a month. Which system can be used to find the number of months <i>m</i> after which the total costs <i>C</i> are equal?</p>',
+      q: '<p>A gym charges a &#36;40 joining fee and &#36;25 a month. A second gym charges no joining fee and &#36;33 a month. Which system can be used to find the number of months <i>m</i> after which the total costs <i>C</i> are equal?</p>',
       options: ['<i>C</i> = 40 + 25<i>m</i> and <i>C</i> = 33<i>m</i>', '<i>C</i> = 25 + 40<i>m</i> and <i>C</i> = 33<i>m</i>', '<i>C</i> = 40<i>m</i> + 25 and <i>C</i> = 33 + <i>m</i>', '<i>C</i> = 65<i>m</i> and <i>C</i> = 33<i>m</i>'], answer: 0,
       sol: '<p>The fee is paid once (a constant), the monthly price is multiplied by <i>m</i>. Setting 40 + 25<i>m</i> = 33<i>m</i> gives <i>m</i> = 5 months.</p>' },
   ],

@@ -85,6 +85,12 @@ A **system** of inequalities is the overlap of two shaded regions. To check whet
 - Which point satisfies a system of inequalities (test each option).
 - Read an inequality from a graph: slope, intercept, shading side and solid or dashed.
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="linear-inequalities" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - Solve like an equation; flip the sign when you multiply or divide by a negative.

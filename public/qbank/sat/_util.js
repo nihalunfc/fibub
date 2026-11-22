@@ -49,7 +49,7 @@ export const quad = (a, b, c, x = 'x') => {
     return (i === 0 ? (k < 0 ? '−' : '') : k < 0 ? ' − ' : ' + ') + mag + s;
   }).join('') || '0';
 };
-/** Dollars: $1,250 or $12.50. */
-export const usd = (x) => '$' + (Math.abs(x - Math.round(x)) < 1e-9 ? Math.round(x).toLocaleString('en-US') : x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+/** Dollars: &#36;1,250 or &#36;12.50. */
+export const usd = (x) => '&#36;' + (Math.abs(x - Math.round(x)) < 1e-9 ? Math.round(x).toLocaleString('en-US') : x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 /** A numbered solution. */
 export const steps = (...ls) => '<ol>' + ls.map((l) => `<li>${l}</li>`).join('') + '</ol>';

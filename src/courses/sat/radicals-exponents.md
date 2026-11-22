@@ -86,6 +86,12 @@ Get the root alone, square both sides, solve, and <b>check</b>. Squaring can add
 
 </div>
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="radicals-exponents" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - Multiply powers: add exponents; divide: subtract; power of a power: multiply.

@@ -93,6 +93,12 @@ P = 1,000(1.03)<sup>4t</sup> with t in years means 1.03 is applied 4 times a yea
 - Value after t steps, or the number of doublings or half-lives.
 - Which equivalent form shows the rate per month, per quarter, or per 10 years?
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="exponential-functions" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - y = a·bᵗ: a is the start, b is the multiplier per step; b = 1 + r grows, b = 1 − r decays.

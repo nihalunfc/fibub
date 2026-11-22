@@ -96,6 +96,12 @@ From a **table**, work out the slope from any two rows, but watch the step size:
 - Which equation matches a graph: check the sign of the slope (up or down) and where it crosses the y-axis.
 - Parallel or perpendicular slopes, or a line shifted up or down (adding k to the whole function moves it up k).
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="linear-functions" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - y = mx + b: m is the change per step (rise ÷ run), b is the value at x = 0.

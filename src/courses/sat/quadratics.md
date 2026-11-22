@@ -102,6 +102,12 @@ h = −16t² + 64t + 5 gives a ball's height in feet after t seconds. The top of
 
 </div>
 
+## Practice set
+
+Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.
+
+<div class="qbank" data-bank="sat" data-topics="quadratics" data-exam="sat" data-n="10"></div>
+
 <div class="keypoints">
 
 - Standard form shows the y-intercept, factored form the zeros, vertex form the vertex.

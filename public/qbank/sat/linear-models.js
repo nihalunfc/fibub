@@ -46,7 +46,7 @@ export default {
   ],
   items: [
     { id: 'sat-lm-001', type: 'mcq', level: 2, exams: ['sat'], sub: 'build', facets: F,
-      q: '<p>A taxi charges $3.50 to start a ride and $1.80 for each mile. Which function gives the cost <i>C</i>, in dollars, of a ride of <i>m</i> miles?</p>',
+      q: '<p>A taxi charges &#36;3.50 to start a ride and &#36;1.80 for each mile. Which function gives the cost <i>C</i>, in dollars, of a ride of <i>m</i> miles?</p>',
       options: ['<i>C</i>(<i>m</i>) = 1.80<i>m</i> + 3.50', '<i>C</i>(<i>m</i>) = 3.50<i>m</i> + 1.80', '<i>C</i>(<i>m</i>) = 5.30<i>m</i>', '<i>C</i>(<i>m</i>) = 1.80(<i>m</i> + 3.50)'], answer: 0,
       sol: '<p>The start charge is paid once: + 3.50. Each mile adds 1.80: 1.80<i>m</i>. The last option would multiply the start charge by 1.80 too.</p>' },
     { id: 'sat-lm-002', type: 'nat', level: 3, exams: ['sat'], sub: 'two points', facets: F,

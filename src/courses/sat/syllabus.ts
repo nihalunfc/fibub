@@ -18,6 +18,10 @@ export const SAT: CourseSyllabus = {
   audience: 'For high school students taking the SAT (Grade 9 to 12) and anyone applying to US colleges. Start anywhere: each lesson begins from the basics.',
   updated: '2026-11-22',
   kit: true,
+  extras: [
+    { href: '/learn/courses/sat/practice/', label: 'Practice questions, by topic' },
+    { href: '/learn/courses/sat/mock-test/', label: 'Timed Math practice test' },
+  ],
   footnote: 'SAT is a trademark of the College Board, which is not involved with and does not endorse fibub. Every question here is original. Test details were checked on the College Board\'s website on 22 November 2026; check the official source before test day.',
   parts: [
     { name: 'Part A: The digital SAT', modules: [
@@ -93,3 +97,6 @@ export const SAT: CourseSyllabus = {
     ] },
   ],
 };
+
+/** The SAT question bank (public/qbank/sat/) as used by the practice and mock-test pages. */
+export const SAT_BANK = { bank: 'sat', exam: 'sat', pattern: 'sat-math' };
