@@ -1,0 +1,71 @@
+---
+// SQL glossary: the main terms from the lessons, A to Z, with other names and a link to the lesson that explains it.
+// Data in src/courses/sql/glossary.ts. A filter box narrows the list in the browser; nothing is stored.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { SQL_COURSE } from '../../../../courses/sql/syllabus';
+import { GLOSSARY } from '../../../../courses/sql/glossary';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+const live = new Set((await courseLessons(SQL_COURSE)).keys());
+const num = new Map(flatLessons(SQL_COURSE).map((l) => [l.slug, l]));
+const terms = [...GLOSSARY].sort((a, b) => a[0].localeCompare(b[0], 'en', { sensitivity: 'base' }));
+const letters = [...new Set(terms.map((t) => t[0][0].toUpperCase()))];
+const id = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+---
+<Base title="SQL glossary: SQL terms explained in plain English" description={`${terms.length} SQL terms in plain English, from SELECT and joins to window functions and CTEs, each with its other names and the lesson that explains it.`}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/sql/">SQL for analysts</a> / Glossary</div>
+  <div class="cs-layout">
+    <CourseSidebar course={SQL_COURSE} live={live} />
+    <div class="cs-main gl">
+      <h1>SQL glossary</h1>
+      <p class="lead">{terms.length} words from the course, in plain English. "Also called" lists the other names you will meet in SQL Server, PostgreSQL, Power BI and job ads. Each term links to the lesson that explains it.</p>
+      <label class="gl-find">Find a term<input type="search" placeholder="For example: join, NULL, window" data-find /></label>
+      <p class="gl-az" aria-label="Jump to a letter">{letters.map((l) => <a href={`#letter-${l}`}>{l}</a>)}</p>
+      <p class="gl-none" hidden data-none>No term matches. Try a shorter word.</p>
+      {letters.map((l) => (
+        <section data-letter>
+          <h2 id={`letter-${l}`}>{l}</h2>
+          <dl>
+            {terms.filter((t) => t[0][0].toUpperCase() === l).map(([term, aka, meaning, slug]) => (
+              <div class="gl-item" id={id(term)}>
+                <dt>{term}</dt>
+                <dd>{aka && <span class="gl-aka">Also called: {aka}.</span>} {meaning} <a href={`/learn/courses/sql/${slug}/`}>Lesson {num.get(slug)?.n}</a></dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/sql/cheat-sheet/">SQL cheat sheet</a> and the <a href="/learn/courses/sql/sandbox/">SQL sandbox</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .gl-find { display: grid; gap: 4px; font-weight: 600; max-width: 420px; margin: 8px 0 12px; }
+  .gl-find input { font: inherit; font-weight: 400; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .gl-az { display: flex; flex-wrap: wrap; gap: 4px 10px; font-weight: 700; }
+  .gl dl { margin: 0; }
+  .gl-item { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .gl dt { font-weight: 700; }
+  .gl dd { margin: 2px 0 0; line-height: 1.55; }
+  .gl-aka { color: var(--muted); }
+</style>
+<script>
+  const box = document.querySelector<HTMLInputElement>('[data-find]')!;
+  box.addEventListener('input', () => {
+    const q = box.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll<HTMLElement>('[data-letter]').forEach((sec) => {
+      let n = 0;
+      sec.querySelectorAll<HTMLElement>('.gl-item').forEach((it) => {
+        const ok = !q || it.textContent!.toLowerCase().includes(q);
+        it.hidden = !ok;
+        if (ok) n++;
+      });
+      sec.hidden = n === 0;
+      shown += n;
+    });
+    document.querySelector<HTMLElement>('[data-none]')!.hidden = shown > 0;
+  });
+</script>

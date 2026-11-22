@@ -157,6 +157,8 @@ This short version keeps the test order and the real writing and speaking timing
 
 <figure class="fig" data-fig="speak" data-prep="30" data-speak="90" data-task="<p><b>Task 7: Expressing Opinions.</b> Some people think towns should ban cars from their main street on weekends to make space for markets and people on foot. Do you agree or disagree? Explain your reasons.</p>"><figcaption>Mini mock S7: 30 seconds to prepare, 90 to speak.</figcaption></figure>
 
+**Full timed sections.** When the mini mock feels comfortable, take a full section under time: the [Listening practice test](/learn/courses/celpip/listening-test/) and the [Reading practice test](/learn/courses/celpip/reading-test/) draw a new paper from the [practice room](/learn/courses/celpip/practice/) every time, keep each recording and passage whole, run a timer, and show your score, your weakest parts and every explanation at the end. Do Writing and Speaking with the pads and timers in section 5.
+
 ## 6. Review: where the real learning happens
 
 Spend at least as long reviewing as you spent on the mock. For each wrong or unsure answer, write one line: the part, what you chose, and **why** it was wrong. Use short reason labels so patterns jump out:

@@ -1,0 +1,16 @@
+---
+import LessonPage from '../../../../components/course/LessonPage.astro';
+import { SQL_COURSE } from '../../../../courses/sql/syllabus';
+import { FIGURES } from '../../../../courses/sql/figures';
+import { courseLessons, type LessonEntry } from '../../../../lib/course';
+import '../../../../styles/runner.css';
+import '../../../../styles/tableviz.css';
+export async function getStaticPaths() {
+  const written = await courseLessons(SQL_COURSE);
+  const live = new Set(written.keys());
+  return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
+}
+const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+---
+<LessonPage course={SQL_COURSE} entry={entry} slug={slug} live={live} figures={FIGURES} />
+<script>import '../../../../scripts/sqllab';</script>

@@ -1,0 +1,49 @@
+/* Shared table-animation engine (src/lib/tableviz/render.ts): SQL, data modelling, Power BI and pandas courses. */
+.tv { --tv-g0: #dbeafe; --tv-g1: #fde68a; --tv-g2: #bbf7d0; --tv-g3: #fbcfe8; --tv-g4: #ddd6fe; --tv-g5: #fed7aa; --tv-g6: #a5f3fc; --tv-g7: #e5e7eb;
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 18px 0; background: var(--surface); font-size: 14px; }
+html[data-theme=dark] .tv { --tv-g0: #1e3a5f; --tv-g1: #4a3b0a; --tv-g2: #14432a; --tv-g3: #4f1a3a; --tv-g4: #33265e; --tv-g5: #4d2a0c; --tv-g6: #0d3f47; --tv-g7: #2a2a2a; }
+html.red-mode .tv { --tv-g0: #2a0000; --tv-g1: #3a0000; --tv-g2: #1d0000; --tv-g3: #4a0000; --tv-g4: #240000; --tv-g5: #330000; --tv-g6: #420000; --tv-g7: #160000; }
+.tv-title { font-weight: 700; margin-bottom: 6px; }
+.tv-warn { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 13.5px; }
+.tv-chips { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tv-chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.tv-chip.seen { border-color: var(--accent); }
+.tv-chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tv-note { margin: 4px 0 10px; font-weight: 600; }
+.tv-sub { min-height: 1.5em; margin: 8px 0; color: var(--muted); }
+.tv-stage { overflow: hidden; }
+.tv-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tv-pair, .tv-stack { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.tv-stack { flex-direction: column; }
+.tv-plus { font-size: 20px; color: var(--muted); align-self: center; }
+.tv-arrow { color: var(--muted); font-size: 15px; align-self: center; }
+@media (max-width: 640px) { .tv-row { flex-direction: column; align-items: stretch; } .tv-arrow.tv-plain { font-size: 0; } .tv-arrow.tv-plain::before { content: '↓'; font-size: 18px; } }
+.tv-t { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; min-width: 0; transition: opacity .3s; }
+.tv-t.tv-out { border-color: var(--accent); }
+.tv-t.tv-later { opacity: .15; }
+.tv-cap { display: flex; justify-content: space-between; gap: 10px; padding: 5px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.tv-n, .tv-more { color: var(--muted); font-size: 12.5px; }
+.tv-more { padding: 4px 8px; }
+.tv-scroll { overflow-x: auto; }
+.tv table { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tv th, .tv td { padding: 3px 8px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.tv th { font-weight: 650; font-size: 12.5px; }
+.tv td.tv-num { text-align: right; }
+.tv td.tv-null { color: var(--muted); font-style: italic; }
+.tv tr { transition: background-color .35s, opacity .35s, transform .45s ease; }
+.tv tr.tv-hid { display: none; }
+.tv .tv-g0 { background: var(--tv-g0); } .tv .tv-g1 { background: var(--tv-g1); } .tv .tv-g2 { background: var(--tv-g2); } .tv .tv-g3 { background: var(--tv-g3); }
+.tv .tv-g4 { background: var(--tv-g4); } .tv .tv-g5 { background: var(--tv-g5); } .tv .tv-g6 { background: var(--tv-g6); } .tv .tv-g7 { background: var(--tv-g7); }
+.tv tr.tv-keep { background: var(--good-soft); } .tv tr.tv-keep td:first-child { box-shadow: inset 3px 0 var(--good); }
+.tv tr.tv-drop { opacity: .4; text-decoration: line-through; } .tv tr.tv-drop td:first-child { box-shadow: inset 3px 0 var(--bad); }
+.tv tr.tv-miss, .tv tr.tv-dim, .tv .tv-fade { opacity: .35; }
+.tv tr.tv-cur { outline: 2px solid var(--ink); outline-offset: -2px; }
+.tv tr.tv-frame td { box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent); }
+.tv .tv-key { font-weight: 700; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.tv .tv-new { color: var(--accent); font-weight: 700; }
+.tv td.tv-cur { outline: 2px solid var(--ink); outline-offset: -2px; }
+.tv-total { margin-top: 6px; font-weight: 700; }
+.tv-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tv-ctl .btn { padding: 8px 14px; font-size: 14px; }
+.tv-where { color: var(--muted); font-size: 13px; margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .tv tr, .tv-t { transition: none; } }

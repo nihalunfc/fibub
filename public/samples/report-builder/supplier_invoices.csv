@@ -1,0 +1,600 @@
+Invoice Date,Site,Cost Centre,Supplier,Category,Amount
+2026/07/27,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,927.42"
+2026/07/27,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,085.02"
+2026/07/27,North Site,Rooms Division,Power Utility Co,Commissions,"6,371.66"
+2026/07/27,North Site,Rooms Division,Telecom Services,Laundry,"1,835.19"
+2026/07/27,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,460.74"
+2026/07/27,North Site,Maintenance,Gas Utility Co,Repairs,"1,683.23"
+2026/07/27,North Site,Maintenance,Online Ads Network,Repairs,"1,042.07"
+2026/07/27,North Site,Admin & General,Hardware Trade Supply,Card Fees,"1,731.70"
+2026/07/27,North Site,Admin & General,Insurance Group,Telecom,432.88
+2026/07/27,North Site,Admin & General,Linen Service Co,Management Salaries & Benefits,"8,665.94"
+2026/07/27,North Site,Admin & General,Payment Services Ltd,Insurance,"2,027.22"
+2026/07/27,North Site,Admin & General,Water Authority,Property Tax,"2,262.34"
+2026/07/27,North Site,Sales & Marketing,Life Benefits Co,Advertising,"2,906.96"
+2026/07/27,North Site,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,196.44"
+2026/07/27,North Site,Utilities,Travel Listings Co,Electricity,"1,834.24"
+2026/07/27,Summit Tower Htl,Utilities,Booking Fees Co,Gas,919.61
+2026/07/27,North Site,Utilities,Wholesale Foods Ltd,Water,655.12
+2026/07/27,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,885.16"
+2026/07/27,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,263.22"
+2026/07/27,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"7,476.32"
+2026/07/27,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"1,920.01"
+2026/07/27,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,684.76"
+2026/07/27,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"2,013.37"
+2026/07/27,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,"1,153.57"
+2026/07/27,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"2,172.07"
+2026/07/27,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,596.87
+2026/07/27,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"11,569.93"
+2026/07/27,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,430.30"
+2026/07/27,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"2,770.98"
+2026/07/27,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"2,673.78"
+2026/07/27,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,325.18"
+2026/07/27,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"2,238.01"
+2026/07/27,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,075.96"
+2026/07/27,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,719.56
+2026/07/27,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,914.41
+2026/07/27,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,300.08
+2026/07/27,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"3,811.20"
+2026/07/27,Riverside Suites,Rooms Division,Telecom Services,Laundry,"1,195.12"
+2026/07/27,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,908.17
+2026/07/27,Riverside Suites,Maintenance,Gas Utility Co,Repairs,907.75
+2026/07/27,Riverside Suites,Maintenance,Online Ads Network,Repairs,442.15
+2026/07/27,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,921.00
+2026/07/27,Riverside Suites,Admin & General,Insurance Group,Telecom,281.49
+2026/07/27,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,372.34"
+2026/07/27,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,"1,037.30"
+2026/07/27,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,121.51"
+2026/07/27,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,095.92"
+2026/07/27,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,585.51
+2026/07/27,Riverside Suites,Utilities,Travel Listings Co,Electricity,"1,208.02"
+2026/07/27,Riverside Suites,Utilities,Booking Fees Co,Gas,484.13
+2026/07/27,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,335.33
+2026/07/27,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,"1,249.51"
+2026/07/27,Harbour Lights Hotel,Food and Beverage,Valley Drinks Co,Beverage Cost,297.47
+2026/07/27,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,290.45"
+2026/07/27,Harbour Lights Hotel,Rooms Division,Telecom Services,Laundry,690.94
+2026/07/27,Harbour Lights Hotel,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,754.41
+2026/07/27,Harbour Lights Hotel,Maintenance,Gas Utility Co,Repairs,627.99
+2026/07/27,Harbour Lights Hotel,Maintenance,Online Ads Network,Repairs,390.20
+2026/07/27,Harbour Lights Hotel,Admin & General,Hardware Trade Supply,Card Fees,585.74
+2026/07/27,Harbour Lights Hotel,Admin & General,Insurance Group,Telecom,200.75
+2026/07/27,Harbour Lights Hotel,Admin & General,Linen Service Co,Management Salaries & Benefits,"3,285.96"
+2026/07/27,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,862.50
+2026/07/27,Harbour Lights Hotel,Admin & General,Water Authority,Property Tax,988.15
+2026/07/27,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,885.55
+2026/07/27,Harbour Lights Hotel,Sales & Marketing,Heating and Cooling Ltd,Advertising,418.67
+2026/07/27,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,781.33
+2026/07/27,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,425.98
+2026/07/27,Harbour Lights Hotel,Utilities,Wholesale Foods Ltd,Water,237.60
+2026/07/27,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,320.22
+2026/07/27,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,91.01
+2026/07/27,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,448.78"
+2026/07/27,Parkview Inn,Rooms Division,Telecom Services,Laundry,424.55
+2026/07/27,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,353.75
+2026/07/27,Parkview Inn,Maintenance,Gas Utility Co,Repairs,393.21
+2026/07/27,Parkview Inn,Maintenance,Online Ads Network,Repairs,233.32
+2026/07/27,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,409.00
+2026/07/27,Parkview Inn,Admin & General,Insurance Group,Telecom,107.87
+2026/07/27,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"2,386.05"
+2026/07/27,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,493.34
+2026/07/27,Parkview Inn,Admin & General,Water Authority,Property Tax,582.35
+2026/07/27,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,563.46
+2026/07/27,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,239.39
+2026/07/27,Parkview Inn,Utilities,Travel Listings Co,Electricity,479.57
+2026/07/27,Parkview Inn,Utilities,Booking Fees Co,Gas,207.18
+2026/07/27,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,141.75
+2026/07/28,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"4,057.96"
+2026/07/28,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,010.77"
+2026/07/28,North Site,Rooms Division,Power Utility Co,Commissions,"6,926.35"
+2026/07/28,Summit Tower Htl,Rooms Division,Telecom Services,Laundry,"2,193.49"
+2026/07/28,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"2,053.04"
+2026/07/28,North Site,Maintenance,Gas Utility Co,Repairs,"1,805.20"
+2026/07/28,Summit Tower Htl,Maintenance,Online Ads Network,Repairs,"1,095.93"
+2026/07/28,North Site,Admin & General,Hardware Trade Supply,Card Fees,"1,813.65"
+2026/07/28,North Site,Admin & General,Insurance Group,Telecom,588.90
+2026/07/28,North Site,Admin & General,Linen Service Co,Management Salaries & Benefits,"10,101.55"
+2026/07/28,North Site,Admin & General,Payment Services Ltd,Insurance,"2,482.08"
+2026/07/28,North Site,Admin & General,Water Authority,Property Tax,"2,350.10"
+2026/07/28,North Site,Sales & Marketing,Life Benefits Co,Advertising,"2,837.18"
+2026/07/28,Summit Tower Htl,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,200.43"
+2026/07/28,North Site,Utilities,Travel Listings Co,Electricity,"2,325.04"
+2026/07/28,North Site,Utilities,Booking Fees Co,Gas,"1,094.18"
+2026/07/28,North Site,Utilities,Wholesale Foods Ltd,Water,716.76
+2026/07/28,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,789.44"
+2026/07/28,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,103.89"
+2026/07/28,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"5,246.54"
+2026/07/28,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"1,887.23"
+2026/07/28,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,849.14"
+2026/07/28,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"1,754.64"
+2026/07/28,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,"1,119.30"
+2026/07/28,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"1,639.49"
+2026/07/28,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,496.28
+2026/07/28,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"9,788.67"
+2026/07/28,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,019.89"
+2026/07/28,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"2,834.80"
+2026/07/28,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"2,746.07"
+2026/07/28,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,140.08"
+2026/07/28,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"1,871.21"
+2026/07/28,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,048.62"
+2026/07/28,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,671.69
+2026/07/28,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,955.55
+2026/07/28,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,236.35
+2026/07/28,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"3,659.72"
+2026/07/28,Riverside Suites,Rooms Division,Telecom Services,Laundry,919.46
+2026/07/28,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,813.57
+2026/07/28,Riverside Suites,Maintenance,Gas Utility Co,Repairs,699.65
+2026/07/28,Riverside Suites,Maintenance,Online Ads Network,Repairs,518.38
+2026/07/28,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,731.21
+2026/07/28,Riverside Suites,Admin & General,Insurance Group,Telecom,233.23
+2026/07/28,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"5,345.17"
+2026/07/28,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,879.93
+2026/07/28,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,251.64"
+2026/07/28,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,342.33"
+2026/07/28,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,500.68
+2026/07/28,Riverside Suites,Utilities,Travel Listings Co,Electricity,996.74
+2026/07/28,Riverside Suites,Utilities,Booking Fees Co,Gas,424.37
+2026/07/28,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,286.37
+2026/07/28,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,905.02
+2026/07/28,Harbour Lights Hotel,Food and Beverage,Valley Drinks Co,Beverage Cost,293.65
+2026/07/28,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,655.22"
+2026/07/28,Harbour Lights Hotel,Rooms Division,Telecom Services,Laundry,679.76
+2026/07/28,Harbour Lights Hotel,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,695.84
+2026/07/28,Harbour Lights Hotel,Maintenance,Gas Utility Co,Repairs,551.03
+2026/07/28,Harbour Lights Hotel,Maintenance,Online Ads Network,Repairs,392.66
+2026/07/28,Harbour Lights Hotel,Admin & General,Hardware Trade Supply,Card Fees,611.79
+2026/07/28,Harbour Lights Hotel,Admin & General,Insurance Group,Telecom,183.29
+2026/07/28,Harbour Lights Hotel,Admin & General,Linen Service Co,Management Salaries & Benefits,"3,686.87"
+2026/07/28,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,831.29
+2026/07/28,Harbour Lights Hotel,Admin & General,Water Authority,Property Tax,"1,036.33"
+2026/07/28,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,860.70
+2026/07/28,Harbour Lights Hotel,Sales & Marketing,Heating and Cooling Ltd,Advertising,463.16
+2026/07/28,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,800.83
+2026/07/28,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,317.84
+2026/07/28,Harbour Lights Hotel,Utilities,Wholesale Foods Ltd,Water,238.83
+2026/07/28,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,311.04
+2026/07/28,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,105.44
+2026/07/28,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,258.47"
+2026/07/28,Parkview Inn,Rooms Division,Telecom Services,Laundry,483.71
+2026/07/28,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,395.66
+2026/07/28,Parkview Inn,Maintenance,Gas Utility Co,Repairs,390.48
+2026/07/28,Parkview Inn,Maintenance,Online Ads Network,Repairs,197.43
+2026/07/28,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,388.19
+2026/07/28,Parkview Inn,Admin & General,Insurance Group,Telecom,103.50
+2026/07/28,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"1,853.98"
+2026/07/28,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,461.71
+2026/07/28,Parkview Inn,Admin & General,Water Authority,Property Tax,473.08
+2026/07/28,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,500.29
+2026/07/28,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,241.74
+2026/07/28,Parkview Inn,Utilities,Travel Listings Co,Electricity,459.11
+2026/07/28,Parkview Inn,Utilities,Booking Fees Co,Gas,220.49
+2026/07/28,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,151.66
+2026/07/29,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,710.45"
+2026/07/29,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,931.13
+2026/07/29,North Site,Rooms Division,Power Utility Co,Commissions,"5,720.22"
+2026/07/29,North Site,Rooms Division,Telecom Services,Laundry,"2,105.49"
+2026/07/29,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,669.46"
+2026/07/29,North Site,Maintenance,Gas Utility Co,Repairs,"1,605.35"
+2026/07/29,North Site,Maintenance,Online Ads Network,Repairs,971.49
+2026/07/29,North Site,Admin & General,Hardware Trade Supply,Card Fees,"1,973.94"
+2026/07/29,North Site,Admin & General,Insurance Group,Telecom,454.86
+2026/07/29,North Site,Admin & General,Linen Service Co,Management Salaries & Benefits,"9,013.53"
+2026/07/29,North Site,Admin & General,Payment Services Ltd,Insurance,"1,931.17"
+2026/07/29,North Site,Admin & General,Water Authority,Property Tax,"2,900.64"
+2026/07/29,North Site,Sales & Marketing,Life Benefits Co,Advertising,"2,845.71"
+2026/07/29,North Site,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,285.83"
+2026/07/29,North Site,Utilities,Travel Listings Co,Electricity,"1,887.58"
+2026/07/29,North Site,Utilities,Booking Fees Co,Gas,"1,173.34"
+2026/07/29,North Site,Utilities,Wholesale Foods Ltd,Water,706.43
+2026/07/29,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"4,034.08"
+2026/07/29,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,048.82"
+2026/07/29,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"5,921.08"
+2026/07/29,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"2,337.73"
+2026/07/29,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,897.20"
+2026/07/29,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"1,793.18"
+2026/07/29,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,"1,238.34"
+2026/07/29,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"2,232.38"
+2026/07/29,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,622.47
+2026/07/29,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"10,667.20"
+2026/07/29,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,568.94"
+2026/07/29,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"2,438.82"
+2026/07/29,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"2,850.01"
+2026/07/29,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,334.20"
+2026/07/29,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"2,430.27"
+2026/07/29,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,257.11"
+2026/07/29,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,835.94
+2026/07/29,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,905.22
+2026/07/29,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,266.94
+2026/07/29,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"3,614.98"
+2026/07/29,Riverside Suites,Rooms Division,Telecom Services,Laundry,"1,112.29"
+2026/07/29,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,956.61
+2026/07/29,Riverside Suites,Maintenance,Gas Utility Co,Repairs,776.62
+2026/07/29,Riverside Suites,Maintenance,Online Ads Network,Repairs,478.35
+2026/07/29,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,784.27
+2026/07/29,Riverside Suites,Admin & General,Insurance Group,Telecom,262.75
+2026/07/29,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"5,426.26"
+2026/07/29,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,920.90
+2026/07/29,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,067.93"
+2026/07/29,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,142.69"
+2026/07/29,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,624.22
+2026/07/29,Riverside Suites,Utilities,Travel Listings Co,Electricity,"1,034.16"
+2026/07/29,Riverside Suites,Utilities,Booking Fees Co,Gas,495.38
+2026/07/29,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,344.45
+2026/07/29,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,941.42
+2026/07/29,Harbour Lights Hotel,Food and Beverage,Valley Drinks Co,Beverage Cost,291.83
+2026/07/29,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,279.53"
+2026/07/29,Harbour Lights Hotel,Rooms Division,Telecom Services,Laundry,845.21
+2026/07/29,Harbour Lights Hotel,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,598.50
+2026/07/29,Harbour Lights Hotel,Maintenance,Gas Utility Co,Repairs,693.70
+2026/07/29,Harbour Lights Hotel,Maintenance,Online Ads Network,Repairs,415.02
+2026/07/29,Harbour Lights Hotel,Admin & General,Hardware Trade Supply,Card Fees,694.80
+2026/07/29,Harbour Lights Hotel,Admin & General,Insurance Group,Telecom,158.77
+2026/07/29,Harbour Lights Hotel,Admin & General,Linen Service Co,Management Salaries & Benefits,"3,911.80"
+2026/07/29,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,850.12
+2026/07/29,Harbour Lights Hotel,Admin & General,Water Authority,Property Tax,793.94
+2026/07/29,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,955.72
+2026/07/29,Harbour Lights Hotel,Sales & Marketing,Heating and Cooling Ltd,Advertising,534.17
+2026/07/29,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,890.82
+2026/07/29,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,339.69
+2026/07/29,Harbour Lights Hotel,Utilities,Wholesale Foods Ltd,Water,240.01
+2026/07/29,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,416.41
+2026/07/29,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,95.72
+2026/07/29,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,437.17"
+2026/07/29,Parkview Inn,Rooms Division,Telecom Services,Laundry,417.05
+2026/07/29,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,388.21
+2026/07/29,Parkview Inn,Maintenance,Gas Utility Co,Repairs,385.62
+2026/07/29,Parkview Inn,Maintenance,Online Ads Network,Repairs,217.10
+2026/07/29,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,341.92
+2026/07/29,Parkview Inn,Admin & General,Insurance Group,Telecom,106.85
+2026/07/29,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"2,393.11"
+2026/07/29,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,404.95
+2026/07/29,Parkview Inn,Admin & General,Water Authority,Property Tax,452.99
+2026/07/29,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,555.99
+2026/07/29,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,287.13
+2026/07/29,Parkview Inn,Utilities,Travel Listings Co,Electricity,441.80
+2026/07/29,Parkview Inn,Utilities,Booking Fees Co,Gas,226.13
+2026/07/29,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,139.79
+2026/07/30,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,045.14"
+2026/07/30,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,891.43
+2026/07/30,North Site,Rooms Division,Power Utility Co,Commissions,"5,757.05"
+2026/07/30,North Site,Rooms Division,Telecom Services,Laundry,"1,879.96"
+2026/07/30,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,486.56"
+2026/07/30,North Site,Maintenance,Gas Utility Co,Repairs,"1,525.62"
+2026/07/30,North Site,Maintenance,Online Ads Network,Repairs,"1,020.37"
+2026/07/30,North Site,Admin & General,Hardware Trade Supply,Card Fees,"1,651.93"
+2026/07/30,North Site,Admin & General,Insurance Group,Telecom,518.85
+2026/07/30,Summit Tower Htl,Admin & General,Linen Service Co,Management Salaries & Benefits,"9,041.12"
+2026/07/30,Summit Tower Htl,Admin & General,Payment Services Ltd,Insurance,"2,330.64"
+2026/07/30,North Site,Admin & General,Water Authority,Property Tax,"2,714.10"
+2026/07/30,North Site,Sales & Marketing,Life Benefits Co,Advertising,"2,285.62"
+2026/07/30,Summit Tower Htl,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,301.03"
+2026/07/30,North Site,Utilities,Travel Listings Co,Electricity,"2,398.36"
+2026/07/30,North Site,Utilities,Booking Fees Co,Gas,"1,103.32"
+2026/07/30,North Site,Utilities,Wholesale Foods Ltd,Water,650.02
+2026/07/30,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,777.40"
+2026/07/30,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,213.09"
+2026/07/30,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"5,815.60"
+2026/07/30,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"2,163.39"
+2026/07/30,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,632.75"
+2026/07/30,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"1,928.44"
+2026/07/30,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,"1,187.58"
+2026/07/30,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"1,832.59"
+2026/07/30,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,606.84
+2026/07/30,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"12,249.45"
+2026/07/30,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,104.82"
+2026/07/30,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"2,770.97"
+2026/07/30,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"2,529.42"
+2026/07/30,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,391.11"
+2026/07/30,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"2,089.11"
+2026/07/30,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,231.69"
+2026/07/30,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,742.71
+2026/07/30,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,894.54
+2026/07/30,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,304.69
+2026/07/30,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"3,053.84"
+2026/07/30,Riverside Suites,Rooms Division,Telecom Services,Laundry,"1,098.39"
+2026/07/30,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,844.17
+2026/07/30,Riverside Suites,Maintenance,Gas Utility Co,Repairs,749.71
+2026/07/30,Riverside Suites,Maintenance,Online Ads Network,Repairs,525.18
+2026/07/30,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,"1,009.15"
+2026/07/30,Riverside Suites,Admin & General,Insurance Group,Telecom,276.52
+2026/07/30,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,629.29"
+2026/07/30,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,"1,059.42"
+2026/07/30,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,193.27"
+2026/07/30,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,382.39"
+2026/07/30,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,689.71
+2026/07/30,Riverside Suites,Utilities,Travel Listings Co,Electricity,"1,091.75"
+2026/07/30,Riverside Suites,Utilities,Booking Fees Co,Gas,501.91
+2026/07/30,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,280.15
+2026/07/30,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,914.40
+2026/07/30,Harbour Lights Hotel,Food and Beverage,Valley Drinks Co,Beverage Cost,317.63
+2026/07/30,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,146.21"
+2026/07/30,Harbour Lights Hotel,Rooms Division,Telecom Services,Laundry,785.50
+2026/07/30,Harbour Lights Htl,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,689.04
+2026/07/30,Harbour Lights Hotel,Maintenance,Gas Utility Co,Repairs,567.39
+2026/07/30,Harbour Lights Hotel,Maintenance,Online Ads Network,Repairs,364.85
+2026/07/30,Harbour Lights Hotel,Admin & General,Hardware Trade Supply,Card Fees,679.35
+2026/07/30,Harbour Lights Hotel,Admin & General,Insurance Group,Telecom,165.98
+2026/07/30,Harbour Lights Hotel,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,204.46"
+2026/07/30,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,791.76
+2026/07/30,Harbour Lights Hotel,Admin & General,Water Authority,Property Tax,951.49
+2026/07/30,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,915.50
+2026/07/30,Harbour Lights Hotel,Sales & Marketing,Heating and Cooling Ltd,Advertising,406.30
+2026/07/30,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,902.74
+2026/07/30,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,323.88
+2026/07/30,Harbour Lights Hotel,Utilities,Wholesale Foods Ltd,Water,278.65
+2026/07/30,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,369.70
+2026/07/30,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,92.94
+2026/07/30,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,457.16"
+2026/07/30,Parkview Inn,Rooms Division,Telecom Services,Laundry,443.48
+2026/07/30,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,473.87
+2026/07/30,Parkview Inn,Maintenance,Gas Utility Co,Repairs,348.48
+2026/07/30,Parkview Inn,Maintenance,Online Ads Network,Repairs,217.41
+2026/07/30,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,407.09
+2026/07/30,Parkview Inn,Admin & General,Insurance Group,Telecom,105.56
+2026/07/30,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"2,205.02"
+2026/07/30,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,400.20
+2026/07/30,Parkview Inn,Admin & General,Water Authority,Property Tax,559.32
+2026/07/30,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,487.77
+2026/07/30,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,318.58
+2026/07/30,Parkview Inn,Utilities,Travel Listings Co,Electricity,467.09
+2026/07/30,Parkview Inn,Utilities,Booking Fees Co,Gas,233.26
+2026/07/30,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,145.16
+2026/07/31,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,748.30"
+2026/07/31,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,944.89
+2026/07/31,North Site,Rooms Division,Power Utility Co,Commissions,"8,093.52"
+2026/07/31,North Site,Rooms Division,Telecom Services,Laundry,"2,454.60"
+2026/07/31,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,966.18"
+2026/07/31,North Site,Maintenance,Gas Utility Co,Repairs,"1,763.38"
+2026/07/31,North Site,Maintenance,Online Ads Network,Repairs,"1,305.08"
+2026/07/31,Summit Tower Htl,Admin & General,Hardware Trade Supply,Card Fees,"2,142.11"
+2026/07/31,North Site,Admin & General,Insurance Group,Telecom,568.12
+2026/07/31,North Site,Admin & General,Linen Service Co,Management Salaries & Benefits,"13,439.77"
+2026/07/31,North Site,Admin & General,Payment Services Ltd,Insurance,"2,241.46"
+2026/07/31,North Site,Admin & General,Water Authority,Property Tax,"2,707.12"
+2026/07/31,North Site,Sales & Marketing,Life Benefits Co,Advertising,"2,828.45"
+2026/07/31,Summit Tower Htl,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,551.07"
+2026/07/31,North Site,Utilities,Travel Listings Co,Electricity,"2,179.46"
+2026/07/31,Summit Tower Htl,Utilities,Booking Fees Co,Gas,"1,138.96"
+2026/07/31,North Site,Utilities,Wholesale Foods Ltd,Water,688.96
+2026/07/31,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"4,532.08"
+2026/07/31,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,292.49"
+2026/07/31,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"7,843.10"
+2026/07/31,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"2,493.53"
+2026/07/31,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,995.53"
+2026/07/31,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"2,222.31"
+2026/07/31,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,"1,266.40"
+2026/07/31,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"2,120.45"
+2026/07/31,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,517.95
+2026/07/31,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"10,136.83"
+2026/07/31,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,826.32"
+2026/07/31,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"3,077.46"
+2026/07/31,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"3,382.08"
+2026/07/31,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,581.44"
+2026/07/31,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"2,484.50"
+2026/07/31,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,283.10"
+2026/07/31,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,720.38
+2026/07/31,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,933.65
+2026/07/31,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,264.84
+2026/07/31,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"3,421.77"
+2026/07/31,Riverside Suites,Rooms Division,Telecom Services,Laundry,"1,218.91"
+2026/07/31,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,986.69
+2026/07/31,Riverside Suites,Maintenance,Gas Utility Co,Repairs,776.43
+2026/07/31,Riverside Suites,Maintenance,Online Ads Network,Repairs,576.43
+2026/07/31,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,999.51
+2026/07/31,Riverside Suites,Admin & General,Insurance Group,Telecom,303.04
+2026/07/31,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,739.19"
+2026/07/31,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,953.39
+2026/07/31,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,156.62"
+2026/07/31,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,286.96"
+2026/07/31,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,765.45
+2026/07/31,Riverside Suites,Utilities,Travel Listings Co,Electricity,"1,002.54"
+2026/07/31,Riverside Suites,Utilities,Booking Fees Co,Gas,511.57
+2026/07/31,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,400.79
+2026/07/31,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,905.55
+2026/07/31,Harbour Lights Hotel,Food and Beverage,Valley Drinks Co,Beverage Cost,343.36
+2026/07/31,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,798.06"
+2026/07/31,Harbour Lights Hotel,Rooms Division,Telecom Services,Laundry,891.11
+2026/07/31,Harbour Lights Htl,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,815.00
+2026/07/31,Harbour Lights Htl,Maintenance,Gas Utility Co,Repairs,729.24
+2026/07/31,Harbour Lights Hotel,Maintenance,Online Ads Network,Repairs,407.70
+2026/07/31,Harbour Lights Hotel,Admin & General,Hardware Trade Supply,Card Fees,728.14
+2026/07/31,Harbour Lights Hotel,Admin & General,Insurance Group,Telecom,210.25
+2026/07/31,Harbour Lights Hotel,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,405.19"
+2026/07/31,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,761.67
+2026/07/31,Harbour Lights Hotel,Admin & General,Water Authority,Property Tax,"1,098.94"
+2026/07/31,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,950.64
+2026/07/31,Harbour Lights Hotel,Sales & Marketing,Heating and Cooling Ltd,Advertising,509.77
+2026/07/31,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,933.90
+2026/07/31,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,370.86
+2026/07/31,Harbour Lights Hotel,Utilities,Wholesale Foods Ltd,Water,276.86
+2026/07/31,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,393.62
+2026/07/31,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,112.83
+2026/07/31,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,573.51"
+2026/07/31,Parkview Inn,Rooms Division,Telecom Services,Laundry,524.57
+2026/07/31,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,488.61
+2026/07/31,Parkview Inn,Maintenance,Gas Utility Co,Repairs,401.32
+2026/07/31,Parkview Inn,Maintenance,Online Ads Network,Repairs,246.71
+2026/07/31,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,423.73
+2026/07/31,Parkview Inn,Admin & General,Insurance Group,Telecom,105.08
+2026/07/31,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"2,314.04"
+2026/07/31,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,487.38
+2026/07/31,Parkview Inn,Admin & General,Water Authority,Property Tax,608.84
+2026/07/31,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,615.66
+2026/07/31,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,319.99
+2026/07/31,Parkview Inn,Utilities,Travel Listings Co,Electricity,578.99
+2026/07/31,Parkview Inn,Utilities,Booking Fees Co,Gas,274.45
+2026/07/31,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,149.34
+2026/08/01,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,532.62"
+2026/08/01,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,204.72"
+2026/08/01,North Site,Rooms Division,Power Utility Co,Commissions,"8,193.85"
+2026/08/01,Summit Tower Htl,Rooms Division,Telecom Services,Laundry,"2,251.20"
+2026/08/01,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"2,136.38"
+2026/08/01,North Site,Maintenance,Gas Utility Co,Repairs,"2,051.89"
+2026/08/01,North Site,Maintenance,Online Ads Network,Repairs,"1,391.21"
+2026/08/01,North Site,Admin & General,Hardware Trade Supply,Card Fees,"2,226.83"
+2026/08/01,North Site,Admin & General,Insurance Group,Telecom,678.28
+2026/08/01,North Site,Admin & General,Linen Service Co,Management Salaries & Benefits,"13,962.33"
+2026/08/01,North Site,Admin & General,Payment Services Ltd,Insurance,"2,840.15"
+2026/08/01,North Site,Admin & General,Water Authority,Property Tax,"2,712.94"
+2026/08/01,North Site,Sales & Marketing,Life Benefits Co,Advertising,"3,491.00"
+2026/08/01,North Site,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,708.40"
+2026/08/01,North Site,Utilities,Travel Listings Co,Electricity,"2,329.78"
+2026/08/01,North Site,Utilities,Booking Fees Co,Gas,"1,069.74"
+2026/08/01,North Site,Utilities,Wholesale Foods Ltd,Water,695.67
+2026/08/01,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,778.74"
+2026/08/01,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,237.82"
+2026/08/01,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"6,087.17"
+2026/08/01,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"2,610.60"
+2026/08/01,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,878.42"
+2026/08/01,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"1,823.24"
+2026/08/01,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,"1,346.87"
+2026/08/01,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"2,387.07"
+2026/08/01,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,577.54
+2026/08/01,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"10,345.44"
+2026/08/01,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,831.47"
+2026/08/01,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"2,919.46"
+2026/08/01,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"2,847.03"
+2026/08/01,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,383.45"
+2026/08/01,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"2,437.95"
+2026/08/01,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,224.75"
+2026/08/01,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,722.02
+2026/08/01,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,"1,003.16"
+2026/08/01,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,317.66
+2026/08/01,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"3,514.01"
+2026/08/01,Riverside Suites,Rooms Division,Telecom Services,Laundry,"1,234.27"
+2026/08/01,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,018.25"
+2026/08/01,Riverside Suites,Maintenance,Gas Utility Co,Repairs,802.02
+2026/08/01,Riverside Suites,Maintenance,Online Ads Network,Repairs,489.21
+2026/08/01,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,937.41
+2026/08/01,Riverside Suites,Admin & General,Insurance Group,Telecom,292.03
+2026/08/01,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,994.97"
+2026/08/01,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,"1,078.43"
+2026/08/01,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,207.24"
+2026/08/01,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,336.10"
+2026/08/01,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,715.29
+2026/08/01,Riverside Suites,Utilities,Travel Listings Co,Electricity,928.93
+2026/08/01,Riverside Suites,Utilities,Booking Fees Co,Gas,558.27
+2026/08/01,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,355.74
+2026/08/01,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,934.16
+2026/08/01,Harbour Lights Htl,Food and Beverage,Valley Drinks Co,Beverage Cost,344.17
+2026/08/01,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,978.70"
+2026/08/01,Harbour Lights Htl,Rooms Division,Telecom Services,Laundry,818.99
+2026/08/01,Harbour Lights Htl,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,742.65
+2026/08/01,Harbour Lights Hotel,Maintenance,Gas Utility Co,Repairs,600.23
+2026/08/01,Harbour Lights Hotel,Maintenance,Online Ads Network,Repairs,355.34
+2026/08/01,Harbour Lights Htl,Admin & General,Hardware Trade Supply,Card Fees,800.54
+2026/08/01,Harbour Lights Htl,Admin & General,Insurance Group,Telecom,229.63
+2026/08/01,Harbour Lights Htl,Admin & General,Linen Service Co,Management Salaries & Benefits,"3,768.82"
+2026/08/01,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,786.98
+2026/08/01,Harbour Lights Htl,Admin & General,Water Authority,Property Tax,"1,095.43"
+2026/08/01,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,"1,104.58"
+2026/08/01,Harbour Lights Htl,Sales & Marketing,Heating and Cooling Ltd,Advertising,523.44
+2026/08/01,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,928.75
+2026/08/01,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,396.42
+2026/08/01,Harbour Lights Hotel,Utilities,Wholesale Foods Ltd,Water,260.41
+2026/08/01,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,343.47
+2026/08/01,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,108.15
+2026/08/01,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,444.24"
+2026/08/01,Parkview Inn,Rooms Division,Telecom Services,Laundry,538.06
+2026/08/01,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,508.48
+2026/08/01,Parkview Inn,Maintenance,Gas Utility Co,Repairs,336.19
+2026/08/01,Parkview Inn,Maintenance,Online Ads Network,Repairs,262.82
+2026/08/01,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,453.18
+2026/08/01,Parkview Inn,Admin & General,Insurance Group,Telecom,106.30
+2026/08/01,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"2,101.61"
+2026/08/01,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,459.31
+2026/08/01,Parkview Inn,Admin & General,Water Authority,Property Tax,536.88
+2026/08/01,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,618.25
+2026/08/01,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,277.04
+2026/08/01,Parkview Inn,Utilities,Travel Listings Co,Electricity,523.35
+2026/08/01,Parkview Inn,Utilities,Booking Fees Co,Gas,226.52
+2026/08/01,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,138.05
+2026/08/02,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,568.48"
+2026/08/02,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,"1,027.29"
+2026/08/02,North Site,Rooms Division,Power Utility Co,Commissions,"5,057.56"
+2026/08/02,North Site,Rooms Division,Telecom Services,Laundry,"2,240.47"
+2026/08/02,North Site,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,784.88"
+2026/08/02,North Site,Maintenance,Gas Utility Co,Repairs,"1,562.90"
+2026/08/02,North Site,Maintenance,Online Ads Network,Repairs,899.76
+2026/08/02,North Site,Admin & General,Hardware Trade Supply,Card Fees,"1,765.75"
+2026/08/02,North Site,Admin & General,Insurance Group,Telecom,545.55
+2026/08/02,North Site,Admin & General,Linen Service Co,Management Salaries & Benefits,"11,040.93"
+2026/08/02,North Site,Admin & General,Payment Services Ltd,Insurance,"2,029.11"
+2026/08/02,North Site,Admin & General,Water Authority,Property Tax,"2,383.46"
+2026/08/02,North Site,Sales & Marketing,Life Benefits Co,Advertising,"2,735.64"
+2026/08/02,North Site,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,113.41"
+2026/08/02,North Site,Utilities,Travel Listings Co,Electricity,"2,365.89"
+2026/08/02,North Site,Utilities,Booking Fees Co,Gas,968.08
+2026/08/02,Summit Tower Htl,Utilities,Wholesale Foods Ltd,Water,626.95
+2026/08/02,Grand Terrace Resort,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,682.13"
+2026/08/02,Grand Terrace Resort,Food and Beverage,Valley Drinks Co,Beverage Cost,999.42
+2026/08/02,Grand Terrace Resort,Rooms Division,Power Utility Co,Commissions,"6,377.39"
+2026/08/02,Grand Terrace Resort,Rooms Division,Telecom Services,Laundry,"1,956.82"
+2026/08/02,Grand Terrace Resort,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,"1,713.48"
+2026/08/02,Grand Terrace Resort,Maintenance,Gas Utility Co,Repairs,"1,542.46"
+2026/08/02,Grand Terrace Resort,Maintenance,Online Ads Network,Repairs,947.15
+2026/08/02,Grand Terrace Resort,Admin & General,Hardware Trade Supply,Card Fees,"1,610.73"
+2026/08/02,Grand Terrace Resort,Admin & General,Insurance Group,Telecom,504.02
+2026/08/02,Grand Terrace Resort,Admin & General,Linen Service Co,Management Salaries & Benefits,"10,516.43"
+2026/08/02,Grand Terrace Resort,Admin & General,Payment Services Ltd,Insurance,"2,042.65"
+2026/08/02,Grand Terrace Resort,Admin & General,Water Authority,Property Tax,"2,539.98"
+2026/08/02,Grand Terrace Resort,Sales & Marketing,Life Benefits Co,Advertising,"2,172.60"
+2026/08/02,Grand Terrace Resort,Sales & Marketing,Heating and Cooling Ltd,Advertising,"1,075.67"
+2026/08/02,Grand Terrace Resort,Utilities,Travel Listings Co,Electricity,"1,754.34"
+2026/08/02,Grand Terrace Resort,Utilities,Booking Fees Co,Gas,"1,078.93"
+2026/08/02,Grand Terrace Resort,Utilities,Wholesale Foods Ltd,Water,636.08
+2026/08/02,Riverside Suites,Food and Beverage,Wholesale Foods Ltd,Food Cost,781.66
+2026/08/02,Riverside Suites,Food and Beverage,Valley Drinks Co,Beverage Cost,261.78
+2026/08/02,Riverside Suites,Rooms Division,Power Utility Co,Commissions,"2,811.65"
+2026/08/02,Riverside Suites,Rooms Division,Telecom Services,Laundry,"1,149.15"
+2026/08/02,Riverside Suites,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,781.36
+2026/08/02,Riverside Suites,Maintenance,Gas Utility Co,Repairs,772.11
+2026/08/02,Riverside Suites,Maintenance,Online Ads Network,Repairs,493.35
+2026/08/02,Riverside Suites,Admin & General,Hardware Trade Supply,Card Fees,835.53
+2026/08/02,Riverside Suites,Admin & General,Insurance Group,Telecom,252.50
+2026/08/02,Riverside Suites,Admin & General,Linen Service Co,Management Salaries & Benefits,"4,724.68"
+2026/08/02,Riverside Suites,Admin & General,Payment Services Ltd,Insurance,"1,097.61"
+2026/08/02,Riverside Suites,Admin & General,Water Authority,Property Tax,"1,333.95"
+2026/08/02,Riverside Suites,Sales & Marketing,Life Benefits Co,Advertising,"1,138.65"
+2026/08/02,Riverside Suites,Sales & Marketing,Heating and Cooling Ltd,Advertising,624.61
+2026/08/02,Riverside Suites,Utilities,Travel Listings Co,Electricity,870.05
+2026/08/02,Riverside Suites,Utilities,Booking Fees Co,Gas,527.97
+2026/08/02,Riverside Suites,Utilities,Wholesale Foods Ltd,Water,337.26
+2026/08/02,Harbour Lights Hotel,Food and Beverage,Wholesale Foods Ltd,Food Cost,"1,009.78"
+2026/08/02,Harbour Lights Hotel,Food and Beverage,Valley Drinks Co,Beverage Cost,289.51
+2026/08/02,Harbour Lights Hotel,Rooms Division,Power Utility Co,Commissions,"2,669.78"
+2026/08/02,Harbour Lights Hotel,Rooms Division,Telecom Services,Laundry,689.00
+2026/08/02,Harbour Lights Hotel,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,580.38
+2026/08/02,Harbour Lights Hotel,Maintenance,Gas Utility Co,Repairs,571.72
+2026/08/02,Harbour Lights Htl,Maintenance,Online Ads Network,Repairs,309.88
+2026/08/02,Harbour Lights Hotel,Admin & General,Hardware Trade Supply,Card Fees,684.18
+2026/08/02,Harbour Lights Hotel,Admin & General,Insurance Group,Telecom,189.92
+2026/08/02,Harbour Lights Hotel,Admin & General,Linen Service Co,Management Salaries & Benefits,"3,659.28"
+2026/08/02,Harbour Lights Hotel,Admin & General,Payment Services Ltd,Insurance,658.78
+2026/08/02,Harbour Lights Hotel,Admin & General,Water Authority,Property Tax,914.30
+2026/08/02,Harbour Lights Hotel,Sales & Marketing,Life Benefits Co,Advertising,934.40
+2026/08/02,Harbour Lights Hotel,Sales & Marketing,Heating and Cooling Ltd,Advertising,495.19
+2026/08/02,Harbour Lights Hotel,Utilities,Travel Listings Co,Electricity,825.54
+2026/08/02,Harbour Lights Hotel,Utilities,Booking Fees Co,Gas,373.78
+2026/08/02,Harbour Lights Htl,Utilities,Wholesale Foods Ltd,Water,217.17
+2026/08/02,Parkview Inn,Food and Beverage,Wholesale Foods Ltd,Food Cost,346.20
+2026/08/02,Parkview Inn,Food and Beverage,Valley Drinks Co,Beverage Cost,95.62
+2026/08/02,Parkview Inn,Rooms Division,Power Utility Co,Commissions,"1,335.11"
+2026/08/02,Parkview Inn,Rooms Division,Telecom Services,Laundry,476.53
+2026/08/02,Parkview Inn,Rooms Division,Cleaning Chemicals Ltd,Guest Supplies,454.35
+2026/08/02,Parkview Inn,Maintenance,Gas Utility Co,Repairs,392.79
+2026/08/02,Parkview Inn,Maintenance,Online Ads Network,Repairs,194.60
+2026/08/02,Parkview Inn,Admin & General,Hardware Trade Supply,Card Fees,438.05
+2026/08/02,Parkview Inn,Admin & General,Insurance Group,Telecom,101.43
+2026/08/02,Parkview Inn,Admin & General,Linen Service Co,Management Salaries & Benefits,"1,957.55"
+2026/08/02,Parkview Inn,Admin & General,Payment Services Ltd,Insurance,368.23
+2026/08/02,Parkview Inn,Admin & General,Water Authority,Property Tax,451.68
+2026/08/02,Parkview Inn,Sales & Marketing,Life Benefits Co,Advertising,570.19
+2026/08/02,Parkview Inn,Sales & Marketing,Heating and Cooling Ltd,Advertising,283.31
+2026/08/02,Parkview Inn,Utilities,Travel Listings Co,Electricity,469.48
+2026/08/02,Parkview Inn,Utilities,Booking Fees Co,Gas,196.84
+2026/08/02,Parkview Inn,Utilities,Wholesale Foods Ltd,Water,122.08
+2026/08/03,North Site,Food and Beverage,Wholesale Foods Ltd,Food Cost,"3,689.65"
+2026/08/03,North Site,Food and Beverage,Valley Drinks Co,Beverage Cost,839.58
+2026/08/03,Summit Tower Htl,Rooms Division,Power Utility Co,Commissions,"5,958.46"
+2026/08/03,North Site,Rooms Division,Telecom Services,Laundry,"1,968.85"

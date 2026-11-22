@@ -1,0 +1,31 @@
+---
+// Partition pruning and column choice: a fact table drawn as 12 monthly partitions × 6 columns. A query for
+// December that names 2 columns reads only the highlighted cells.
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const cols = ['order_id', 'order_date', 'store', 'customer', 'product', 'sales'];
+const used = new Set(['order_date', 'sales']);
+---
+<figure class="cs-fig pp">
+  <p class="pp-q"><code>SELECT order_date, SUM(sales) … WHERE order_date BETWEEN '2025-12-01' AND '2025-12-31'</code></p>
+  <div class="pp-scroll">
+    <table class="pp-grid" aria-label="Twelve monthly partitions by six columns; only December's order_date and sales cells are read">
+      <thead><tr><th></th>{cols.map((c) => <th scope="col" class={used.has(c) ? 'pp-used' : ''}>{c}</th>)}</tr></thead>
+      <tbody>
+        {months.map((m) => (
+          <tr><th scope="row" class={m === 'Dec' ? 'pp-used' : ''}>{m}</th>{cols.map((c) => <td class={m === 'Dec' && used.has(c) ? 'pp-read' : ''}></td>)}</tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <figcaption>Partitioning by month lets the warehouse skip 11 of 12 partitions (rows); columnar storage lets it skip 4 of 6 columns. Together the query reads 2 of 72 blocks. Filter the partition column with a plain range, or the skipping can't happen.</figcaption>
+</figure>
+<style is:inline>
+.pp-q { margin: 0 0 8px; font-size: 12.5px; overflow-wrap: anywhere; }
+.pp-scroll { overflow-x: auto; }
+.pp-grid { border-collapse: separate; border-spacing: 3px; font-size: 11px; margin: 0 auto; }
+.pp-grid th { font-weight: 600; color: var(--muted); padding: 0 2px; text-align: center; }
+.pp-grid thead th { writing-mode: vertical-rl; transform: rotate(180deg); height: 70px; text-align: left; }
+.pp-grid th.pp-used { color: var(--ink); font-weight: 700; }
+.pp-grid td { width: 30px; height: 12px; background: var(--line); border-radius: 2px; }
+.pp-grid td.pp-read { background: var(--accent); }
+</style>

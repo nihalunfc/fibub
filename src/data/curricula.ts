@@ -95,6 +95,9 @@ export const COURSES: Course[] = [
   // Power BI and DAX, Data storytelling (nihal, 2026-11-22): the BI courses (src/courses/power-bi/, src/courses/data-storytelling/).
   { id: 'power-bi', name: 'Power BI and DAX', text: 'Clean data in Power Query, model a star schema, write DAX measures and time intelligence, and build a dashboard, with DAX you can type and run in every lesson.', status: 'live', href: '/learn/courses/power-bi/', cat: 'data-ai' },
   { id: 'data-storytelling', name: 'Data storytelling', text: 'Pick the right chart, cut the clutter, design KPI cards and present numbers so managers act, with charts you can change and writing practice in every lesson.', status: 'live', href: '/learn/courses/data-storytelling/', cat: 'data-ai' },
+  // SQL for analysts and Data modelling (nihal, 2026-11-22): src/courses/sql/, src/courses/data-modelling/.
+  { id: 'sql', name: 'SQL for analysts', text: 'Learn SQL by typing it: live editors on a store database, answer checks, and step-by-step pictures of joins, GROUP BY and window functions.', status: 'live', href: '/learn/courses/sql/', cat: 'data-ai' },
+  { id: 'data-modelling', name: 'Data modelling and warehousing', text: 'Star schemas, facts and dimensions, slowly changing dimensions, Data Vault and the lakehouse, with live SQL to build a warehouse yourself.', status: 'live', href: '/learn/courses/data-modelling/', cat: 'data-ai' },
   // Space and the sky (nihal, 2026-11-22): replaced by two courses that never repeat each other or the
   // cosmology course: Sky watching (src/courses/sky-watching/) and Astronomy (src/courses/astronomy/).
   { id: 'sky-watching', name: 'Sky watching', text: 'Amateur astronomy from your own eyes to binoculars, telescopes and astrophotography: how the sky moves, finding anything, dark skies, what to observe and taking honest astrophotos.', status: 'live', href: '/learn/courses/sky-watching/', cat: 'science' },

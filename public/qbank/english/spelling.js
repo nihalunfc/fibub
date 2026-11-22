@@ -1,0 +1,83 @@
+// English bank: spelling (words learners often misspell in writing tasks and listening answers).
+// US spelling is the default; where UK/Canadian spelling differs (colour, centre, travelled) both are accepted.
+// Original items written for fibub. mcq options are written correct-first and placed by ROT so the
+// answer letters spread over A-D. Append new items at the end with new ids; never reuse an id.
+const EX = ['ielts', 'celpip', 'toefl'];
+const F = { skill: 'vocabulary' };
+const ROT = [3, 1, 0, 2, 0, 2, 3, 1, 1, 0, 2, 3];
+let n = 0;
+const m = (id, level, q, opts, sol, sub) => { const k = ROT[n++ % ROT.length]; const o = opts.slice(1); o.splice(k, 0, opts[0]); return { id, type: 'mcq', level, exams: EX, facets: F, sub, q, options: o, answer: k, sol }; };
+const t = (id, level, q, answer, sol, sub) => ({ id, type: 'text', level, exams: EX, facets: F, sub, q, answer: [].concat(answer), maxWords: 1, sol });
+const fix = (id, level, wrong, answer, sol, sub) => t(id, level, `This word is spelled wrongly: <b>${wrong}</b>. Type it correctly.`, answer, sol, sub);
+
+export default {
+  topic: 'spelling',
+  items: [
+    m('sp-001', 1, 'Which spelling is correct?', ['receive', 'recieve', 'receeve', 'resieve'], '<b>i before e except after c</b>: rec<b>ei</b>ve.', 'ie / ei'),
+    m('sp-002', 1, 'Which spelling is correct?', ['believe', 'beleive', 'belive', 'beleave'], 'No c before it, so <b>ie</b>: bel<b>ie</b>ve.', 'ie / ei'),
+    m('sp-003', 1, 'Which spelling is correct?', ['friend', 'freind', 'frend', 'friende'], 'Fr<b>ie</b>nd. Tip: a friend to the <b>end</b>.', 'ie / ei'),
+    m('sp-004', 1, 'Which spelling is correct?', ['because', 'becuase', 'becouse', 'beacause'], 'Be-<b>cau</b>-se. Tip: Big Elephants Can Always Understand Small Elephants.', 'common words'),
+    m('sp-005', 1, 'Which spelling is correct?', ['Wednesday', 'Wensday', 'Wednsday', 'Wendesday'], 'W<b>ed</b>-<b>nes</b>-day: the first d is silent.', 'common words'),
+    m('sp-006', 1, 'Which spelling is correct?', ['February', 'Febuary', 'Februery', 'Febrary'], 'Feb-<b>ru</b>-ary: many people forget the first r.', 'common words'),
+    m('sp-007', 1, 'Which spelling is correct?', ['different', 'diffrent', 'diferent', 'differant'], 'Dif-<b>fer</b>-ent: double f, and -ent at the end.', 'common words'),
+    m('sp-008', 1, 'Which spelling is correct?', ['beautiful', 'beatiful', 'beautifull', 'beutiful'], 'B-<b>eau</b>-tiful, and -ful has one l.', 'common words'),
+    m('sp-009', 2, 'Which spelling is correct?', ['accommodation', 'accomodation', 'acommodation', 'accommadation'], 'Double c <b>and</b> double m: a<b>cc</b>o<b>mm</b>odation.', 'double letters'),
+    m('sp-010', 2, 'Which spelling is correct?', ['necessary', 'neccessary', 'necesary', 'neccesary'], 'One c, two s: ne<b>c</b>e<b>ss</b>ary. Tip: one collar, two sleeves.', 'double letters'),
+    m('sp-011', 2, 'Which spelling is correct?', ['government', 'goverment', 'govenment', 'governmant'], 'Gover<b>n</b>ment: govern + ment.', 'silent letters'),
+    m('sp-012', 2, 'Which spelling is correct?', ['environment', 'enviroment', 'enviornment', 'envirnment'], 'Environ + ment: envi<b>ron</b>ment.', 'silent letters'),
+    m('sp-013', 2, 'Which spelling is correct?', ['address', 'adress', 'addres', 'adddress'], 'Double d and double s: a<b>dd</b>re<b>ss</b>.', 'double letters'),
+    m('sp-014', 2, 'Which spelling is correct?', ['tomorrow', 'tommorow', 'tomorow', 'tommorrow'], 'One m, two r: to<b>m</b>o<b>rr</b>ow.', 'double letters'),
+    m('sp-015', 2, 'Which spelling is correct?', ['restaurant', 'restaraunt', 'resturant', 'restaurent'], 'Rest-<b>au</b>-rant.', 'common words'),
+    m('sp-016', 2, 'Which spelling is correct?', ['business', 'buisness', 'busness', 'bussiness'], 'Bus-<b>i</b>-ness: busy + ness, y changes to i.', 'common words'),
+    m('sp-017', 2, 'Which spelling is correct?', ['separate', 'seperate', 'separete', 'seprate'], 'Sep-<b>a</b>-rate. Tip: there is <b>a rat</b> in separate.', 'common words'),
+    m('sp-018', 2, 'Which spelling is correct?', ['definitely', 'definately', 'definitly', 'defenitely'], 'Defin<b>ite</b>ly: finite is inside it.', 'common words'),
+    m('sp-019', 3, 'Which spelling is correct?', ['committee', 'commitee', 'comittee', 'committe'], 'Double m, double t, double e: co<b>mm</b>i<b>tt</b>e<b>e</b>.', 'double letters'),
+    m('sp-020', 3, 'Which spelling is correct?', ['embarrass', 'embarass', 'embaras', 'emmbarrass'], 'Double r and double s: emba<b>rr</b>a<b>ss</b>.', 'double letters'),
+    m('sp-021', 3, 'Which spelling is correct?', ['occurrence', 'occurence', 'ocurrence', 'occurrance'], 'Double c, double r, and -ence: o<b>cc</b>u<b>rr</b>ence.', 'double letters'),
+    m('sp-022', 3, 'Which spelling is correct?', ['successful', 'succesful', 'sucessful', 'successfull'], 'Double c, double s, one l: su<b>cc</b>e<b>ss</b>fu<b>l</b>.', 'double letters'),
+    m('sp-023', 3, 'Which spelling is correct?', ['independent', 'independant', 'indipendent', 'independint'], 'Independ<b>ent</b>: all the vowels after d are e.', '-ent / -ant'),
+    m('sp-024', 3, 'Which spelling is correct?', ['appearance', 'appearence', 'apearance', 'appearanse'], 'Appear + <b>ance</b>.', '-ence / -ance'),
+    m('sp-025', 3, 'Which spelling is correct?', ['maintenance', 'maintainance', 'maintenence', 'mantenance'], 'The verb is <i>maintain</i> but the noun drops the i: maint<b>e</b>n<b>a</b>nce.', '-ence / -ance'),
+    m('sp-026', 3, 'Which spelling is correct?', ['argument', 'arguement', 'argumant', 'arguemant'], 'Argue drops its final e: arg<b>u</b>ment.', 'dropping e'),
+    m('sp-027', 3, 'Which spelling is correct?', ['achievement', 'acheivement', 'achievment', 'acheivment'], 'Ach<b>ie</b>ve + ment (keep the e).', 'ie / ei'),
+    m('sp-028', 3, 'Which spelling is correct?', ['knowledge', 'knowlege', 'nowledge', 'knowledg'], 'Silent k and the d before g: <b>k</b>nowle<b>d</b>ge.', 'silent letters'),
+    m('sp-029', 4, 'Which spelling is correct?', ['conscientious', 'consciencious', 'concientious', 'conscientous'], 'Consc<b>i</b>ent<b>ious</b>: think <i>science</i> + -tious.', 'hard words'),
+    m('sp-030', 4, 'Which spelling is correct?', ['millennium', 'millenium', 'milennium', 'millenneum'], 'Double l and double n: mi<b>ll</b>e<b>nn</b>ium.', 'double letters'),
+    m('sp-031', 4, 'Which spelling is correct?', ['questionnaire', 'questionaire', 'questionnare', 'questionnair'], 'Double n: questio<b>nn</b>aire.', 'double letters'),
+    m('sp-032', 4, 'Which spelling is correct?', ['privilege', 'priviledge', 'privelege', 'privilige'], 'Priv<b>i</b>l<b>e</b>ge: no d.', 'hard words'),
+    m('sp-033', 4, 'Which spelling is correct?', ['occasionally', 'ocasionally', 'occassionally', 'occasionaly'], 'Double c, one s, double l: o<b>cc</b>a<b>s</b>iona<b>ll</b>y.', 'double letters'),
+    m('sp-034', 4, 'Which spelling is correct?', ['pronunciation', 'pronounciation', 'pronunsiation', 'pronuncation'], 'The verb is <i>pronounce</i>, but the noun is pron<b>un</b>ciation (no o).', 'hard words'),
+    m('sp-035', 4, 'Which spelling is correct?', ['guarantee', 'garantee', 'guarentee', 'garuntee'], '<b>Gua</b>rantee: silent u after g.', 'silent letters'),
+    m('sp-036', 5, 'Which spelling is correct?', ['entrepreneur', 'entreprenuer', 'enterpreneur', 'entrepeneur'], 'Entre-pre-n<b>eur</b>: a French word.', 'hard words'),
+    m('sp-037', 5, 'Which spelling is correct?', ['bureaucracy', 'beaurocracy', 'bureacracy', 'burocracy'], 'B<b>ureau</b> + cracy.', 'hard words'),
+    m('sp-038', 5, 'Which spelling is correct?', ['supersede', 'supercede', 'superseed', 'supersead'], 'Super<b>sede</b>: the only common English verb ending in -sede.', 'hard words'),
+    m('sp-039', 5, 'Which spelling is correct?', ['liaison', 'liason', 'liasion', 'laison'], 'L<b>iai</b>son: i on both sides of the a.', 'hard words'),
+    m('sp-040', 5, 'Which spelling is correct?', ['idiosyncrasy', 'idiosyncracy', 'ideosyncrasy', 'idiosincrasy'], 'Idiosyncra<b>sy</b> ends in -sy, not -cy like democracy.', 'hard words'),
+    m('sp-041', 2, 'In US spelling, which is correct?', ['color', 'colour', 'coller', 'collor'], 'US: <b>color</b>. UK and Canada: <i>colour</i>. Use one style all through a text.', 'US / UK'),
+    m('sp-042', 3, 'In UK and Canadian spelling, which is correct?', ['centre', 'center', 'centr', 'sentre'], 'UK and Canada: <b>centre</b>. US: <i>center</i>.', 'US / UK'),
+    m('sp-043', 3, 'In US spelling, which is correct?', ['traveled', 'travelled', 'travled', 'traveld'], 'US: <b>traveled</b> (one l). UK and Canada: <i>travelled</i>.', 'US / UK'),
+    m('sp-044', 3, 'Which word is spelled correctly in <b>both</b> US and UK English?', ['necessary', 'organisation', 'analyze', 'programme'], '<b>Necessary</b> is the same everywhere. <i>Organisation, programme</i> are UK; <i>analyze</i> is US.', 'US / UK'),
+    fix('sp-045', 1, 'wich', ['which'], '<b>Which</b>: wh at the start, like what and where.', 'common words'),
+    fix('sp-046', 1, 'untill', ['until'], '<b>Until</b> has one l (but <i>till</i> has two).', 'common words'),
+    fix('sp-047', 1, 'writting', ['writing'], 'Write drops the e and does not double the t: <b>writing</b>. (But <i>written</i> has tt.)', 'adding -ing'),
+    fix('sp-048', 1, 'stoped', ['stopped'], 'Short vowel + one consonant: double it. stop → <b>stopped</b>.', 'adding -ed'),
+    fix('sp-049', 2, 'begining', ['beginning'], 'The stress is on -gin, so double the n: <b>beginning</b>.', 'adding -ing'),
+    fix('sp-050', 2, 'truely', ['truly'], 'True drops the e: <b>truly</b>.', 'dropping e'),
+    fix('sp-051', 2, 'familys', ['families'], 'Consonant + y → <b>-ies</b>: families.', 'plurals'),
+    fix('sp-052', 2, 'recomend', ['recommend'], 'One c, two m: re<b>c</b>o<b>mm</b>end.', 'double letters'),
+    fix('sp-053', 2, 'oppertunity', ['opportunity'], 'O-<b>pp</b>-<b>or</b>-tunity: double p, then or.', 'common words'),
+    fix('sp-054', 3, 'occured', ['occurred'], 'Stress on -cur, so double the r: occu<b>rr</b>ed.', 'adding -ed'),
+    fix('sp-055', 3, 'refered', ['referred'], 'Stress on -fer, so double the r: refe<b>rr</b>ed. (But <i>reference</i> has one r.)', 'adding -ed'),
+    fix('sp-056', 3, 'colleage', ['colleague'], 'Co<b>ll</b>ea<b>gue</b>: double l, ends in -gue.', 'hard words'),
+    fix('sp-057', 3, 'temperture', ['temperature'], 'Tem-<b>per-a</b>-ture: four parts.', 'common words'),
+    fix('sp-058', 3, 'calender', ['calendar'], 'Calend<b>ar</b> ends in -ar.', 'common words'),
+    fix('sp-059', 4, 'rythm', ['rhythm'], 'R<b>h</b>ythm: rh at the start, no vowel letters except y.', 'hard words'),
+    fix('sp-060', 4, 'accidentaly', ['accidentally'], 'Accidental + ly: <b>accidentally</b>.', 'adding -ly'),
+    fix('sp-061', 4, 'existance', ['existence'], 'Exist<b>ence</b> ends in -ence.', '-ence / -ance'),
+    fix('sp-062', 4, 'harrass', ['harass'], 'One r, two s: ha<b>r</b>a<b>ss</b>. (Compare <i>embarrass</i>, with rr.)', 'double letters'),
+    fix('sp-063', 5, 'mischievious', ['mischievous'], 'Three syllables: mis-chie-<b>vous</b>. There is no i before -ous.', 'hard words'),
+    fix('sp-064', 5, 'acquaintence', ['acquaintance'], 'A<b>cq</b>uaint<b>ance</b>: cq, and -ance.', 'hard words'),
+    fix('sp-065', 5, 'threshhold', ['threshold'], 'Thres<b>h</b>old has only one h in the middle.', 'hard words'),
+    fix('sp-066', 2, 'organiseation', ['organization', 'organisation'], 'Organize drops its e: <b>organization</b> (UK also <i>organisation</i>).', 'US / UK'),
+  ],
+};

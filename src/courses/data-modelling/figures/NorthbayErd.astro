@@ -1,0 +1,84 @@
+---
+// Northbay's source (OLTP) tables as an entity-relationship diagram in crow's-foot notation.
+// Each line's ends show how many rows on that side can match one row on the other side.
+type Kind = 'one' | 'zone' | 'many' | 'zmany';
+const W = 104, X = [4, 148, 292], Y = [8, 120, 232, 344];
+type Line = [string, 'pk' | 'fk' | 'pkfk'];
+const boxes: Record<string, { c: number; r: number; cols: Line[] }> = {
+  regions: { c: 0, r: 0, cols: [['region_id', 'pk']] },
+  customers: { c: 1, r: 0, cols: [['customer_id', 'pk']] },
+  stores: { c: 0, r: 1, cols: [['store_id', 'pk'], ['region_id', 'fk']] },
+  orders: { c: 1, r: 1, cols: [['order_id', 'pk'], ['customer_id', 'fk'], ['store_id', 'fk'], ['promo_id', 'fk']] },
+  promotions: { c: 2, r: 1, cols: [['promo_id', 'pk']] },
+  order_items: { c: 1, r: 2, cols: [['order_id', 'pkfk'], ['product_id', 'pkfk']] },
+  returns: { c: 2, r: 2, cols: [['return_id', 'pk'], ['order_id', 'fk'], ['product_id', 'fk']] },
+  categories: { c: 0, r: 3, cols: [['category_id', 'pk']] },
+  products: { c: 1, r: 3, cols: [['product_id', 'pk'], ['category_id', 'fk']] },
+};
+const hOf = (n: string) => 24 + 13 * boxes[n].cols.length;
+const bx = (n: string) => ({ x: X[boxes[n].c], y: Y[boxes[n].r] });
+// Point on a box edge, and the outward direction.
+function edge(n: string, side: 't' | 'b' | 'l' | 'r') {
+  const { x, y } = bx(n);
+  if (side === 't') return { x: x + W / 2, y, dx: 0, dy: -1 };
+  if (side === 'b') return { x: x + W / 2, y: y + hOf(n), dx: 0, dy: 1 };
+  if (side === 'l') return { x, y: y + 26, dx: -1, dy: 0 };
+  return { x: x + W, y: y + 26, dx: 1, dy: 0 };
+}
+// The symbol at one end of a line: bars, circle and crow's foot.
+function end(p: { x: number; y: number; dx: number; dy: number }, k: Kind) {
+  const nx = -p.dy, ny = p.dx; const at = (t: number) => ({ x: p.x + p.dx * t, y: p.y + p.dy * t });
+  const bar = (t: number) => { const a = at(t); return `M${a.x + nx * 6},${a.y + ny * 6}L${a.x - nx * 6},${a.y - ny * 6}`; };
+  const crow = () => { const a = at(12); return `M${a.x},${a.y}L${p.x + nx * 7},${p.y + ny * 7}M${a.x},${a.y}L${p.x},${p.y}M${a.x},${a.y}L${p.x - nx * 7},${p.y - ny * 7}`; };
+  let d = '', circ: { x: number; y: number } | null = null;
+  if (k === 'one') d = bar(7) + bar(12);
+  if (k === 'zone') { d = bar(7); circ = at(17); }
+  if (k === 'many') d = crow() + bar(17);
+  if (k === 'zmany') { d = crow(); circ = at(18); }
+  return { d, circ };
+}
+const links: [string, 't' | 'b' | 'l' | 'r', Kind, string, 't' | 'b' | 'l' | 'r', Kind][] = [
+  ['regions', 'b', 'zone', 'stores', 't', 'many'],
+  ['customers', 'b', 'zone', 'orders', 't', 'zmany'],
+  ['stores', 'r', 'one', 'orders', 'l', 'zmany'],
+  ['promotions', 'l', 'zone', 'orders', 'r', 'zmany'],
+  ['orders', 'b', 'one', 'order_items', 't', 'many'],
+  ['order_items', 'r', 'one', 'returns', 'l', 'zmany'],
+  ['products', 't', 'one', 'order_items', 'b', 'zmany'],
+  ['categories', 'r', 'one', 'products', 'l', 'many'],
+];
+const drawn = links.map(([a, sa, ka, b, sb, kb]) => { const p = edge(a, sa), q = edge(b, sb); return { line: `M${p.x},${p.y}L${q.x},${q.y}`, ea: end(p, ka), eb: end(q, kb) }; });
+const legend: [Kind, string][] = [['one', 'exactly one'], ['zone', 'zero or one'], ['many', 'one or many'], ['zmany', 'zero or many']];
+const lg = legend.map(([k, label], i) => { const x = 10 + (i % 2) * 196, y = 410 + Math.floor(i / 2) * 22; const p = { x: x + 40, y, dx: -1, dy: 0 }; return { x, y, label, e: end(p, k), line: `M${x},${y}L${x + 40},${y}` }; });
+---
+<figure class="erd">
+  <svg viewBox="0 0 400 446" role="img" aria-labelledby="erd-t">
+    <title id="erd-t">Entity-relationship diagram of Northbay's tables in crow's-foot notation</title>
+    {drawn.map((l) => (<g class="erd-l"><path d={l.line} /><path d={l.ea.d} /><path d={l.eb.d} />{l.ea.circ && <circle cx={l.ea.circ.x} cy={l.ea.circ.y} r="4" />}{l.eb.circ && <circle cx={l.eb.circ.x} cy={l.eb.circ.y} r="4" />}</g>))}
+    {Object.entries(boxes).map(([n, b]) => (
+      <g class="erd-b">
+        <rect x={X[b.c]} y={Y[b.r]} width={W} height={hOf(n)} rx="6" />
+        <path d={`M${X[b.c]},${Y[b.r] + 18}h${W}`} />
+        <text x={X[b.c] + 7} y={Y[b.r] + 13} class="erd-n">{n}</text>
+        {b.cols.map(([t, k], i) => <text x={X[b.c] + 7} y={Y[b.r] + 31 + 13 * i} class={`erd-${k}`}>{t}{k !== 'fk' ? ' (PK)' : ''}</text>)}
+      </g>
+    ))}
+    {lg.map((l) => (<g class="erd-l"><path d={l.line} /><path d={l.e.d} />{l.e.circ && <circle cx={l.e.circ.x} cy={l.e.circ.y} r="4" />}<text x={l.x + 50} y={l.y + 4} class="erd-lg">{l.label}</text></g>))}
+  </svg>
+  <figcaption>Northbay's source tables. In each box, <strong>bold (PK)</strong> marks the primary key and <em>italic</em> a foreign key; order_items' key is the pair order_id + product_id, and both also point at other tables. Read a line from one table to the other: one order has one or many order lines; one customer has zero or many orders, and an order has zero or one customer (guests have none).</figcaption>
+</figure>
+<style is:inline>
+.erd { margin: 20px 0; }
+.erd svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+.erd-l path { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.erd-l circle { stroke: var(--ink); stroke-width: 1.4; fill: var(--bg); }
+.erd-b rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+.erd-b path { stroke: var(--line); stroke-width: 1; }
+.erd text { fill: var(--ink); font-family: inherit; }
+.erd-n { font-size: 12px; font-weight: 700; }
+.erd-pk { font-size: 10px; font-weight: 700; }
+.erd-fk { font-size: 10px; font-style: italic; }
+.erd-pkfk { font-size: 10px; font-weight: 700; font-style: italic; }
+.erd-lg { font-size: 11.5px; }
+.erd figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>

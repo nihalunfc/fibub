@@ -1,0 +1,36 @@
+/* Shared look for the small-business planning tools (overbooking, group quote, pricing, staffing, forecast, peak energy). Builds on astro.css. */
+.biz-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 10px; margin: 0; }
+.biz-k { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); min-width: 0; }
+.biz-k > span { display: block; font-size: 13px; color: var(--muted); }
+.biz-k > b { display: block; font-size: clamp(18px, 4.6vw, 24px); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.biz-k > small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.biz-k.good > b { color: var(--good); } .biz-k.bad > b { color: var(--bad); } .biz-k.warn > b { color: var(--warn); }
+.biz-take { margin: 12px 0 0; font-size: 15px; line-height: 1.55; }
+.biz-take:empty { display: none; }
+.biz-warn { margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 14px; }
+.biz-warn:empty { display: none; }
+.biz-bad { background: var(--bad-soft); color: var(--bad); }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.biz-tbl input:not([type=checkbox]) { padding: 6px 8px !important; font-size: 14px; min-width: 72px; }
+.biz-tbl input.w-date { min-width: 132px; }
+.biz-tbl input.w-wide { min-width: 170px; }
+.biz-tbl td, .biz-tbl th { white-space: nowrap; }
+.biz-tbl tr.sel td { background: var(--good-soft); }
+.biz-tbl tfoot td { font-weight: 700; }
+.biz-x { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 18px; line-height: 1; cursor: pointer; }
+.biz-sub { margin: 14px 0 6px; font-size: 15px; }
+.biz-paste summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.biz-paste textarea { margin-top: 8px; }
+.biz-bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; min-width: 70px; }
+.biz-bar > i { display: block; height: 100%; background: var(--accent); }
+.biz-svg { width: 100%; height: auto; display: block; }
+.biz-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+.biz-card-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; justify-content: space-between; }
+.biz-card-head h2 { margin: 0 0 10px; }
+.biz-fine { font-size: 13px; color: var(--muted); margin: 0; }
+.biz-verdict { display: inline-block; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: 16px; }
+.biz-verdict.Accept { background: var(--good-soft); color: var(--good); }
+.biz-verdict.Negotiate { background: var(--warn-soft); color: var(--warn); }
+.biz-verdict.Decline { background: var(--bad-soft); color: var(--bad); }
+.biz-keep { border-top: 1px solid var(--line); padding-top: 12px; }
+@media print { .biz-noprint { display: none !important; } }

@@ -1,0 +1,272 @@
+---
+// #T1066 Peak-energy savings estimator: what an Ontario business could save on the Global Adjustment by cutting power in the
+// province's five peak hours. Maths in src/lib/biz/peak-energy.ts. Runs in the browser; nothing is sent anywhere.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+---
+<div class="tool-ui ax es">
+  <div class="ax-card">
+    <h2>1. Your power use</h2>
+    <p class="ax-help" style="margin-top:0">Peak demand is the most power (kW) you draw at one time. It is on your electricity bill or in your utility's online portal.</p>
+    <div class="ax-grid">
+      <label>Business name <input data-k="name" /></label>
+      <label>Average monthly peak demand, kW <input data-k="avgPeak" inputmode="decimal" /></label>
+      <label>Your demand in the province's peak hours, kW <input data-k="peakHourKW" inputmode="decimal" /></label>
+      <label>Use the monthly profile below
+        <select data-k="useProfile"><option value="yes">Yes</option><option value="no">No, use the average above</option></select>
+      </label>
+    </div>
+    <p class="ax-help">The peak hours are usually on hot summer afternoons, so your summer peak is a good first guess. <a href="#" class="es-summer">Use my highest June to September peak</a>.</p>
+    <p class="biz-warn es-hwarn"></p>
+    <details class="biz-paste"><summary>Monthly profile (optional, makes the eligibility check more accurate)</summary>
+      <div class="ax-scroll"><table class="biz-tbl es-prof"><thead><tr><th>Month</th><th class="r">Peak demand, kW</th><th class="r">Energy, kWh</th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small es-prof-clear">Clear the profile</button></div>
+    </details>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. What you could turn down in a peak hour</h2>
+    <p class="ax-help" style="margin-top:0">List the equipment you could pause or reduce for a few hours. For each, give its normal load and the share you could cut.</p>
+    <p class="biz-warn es-eqwarn"></p>
+    <div class="ax-scroll"><table class="biz-tbl es-eq"><thead><tr><th>Equipment</th><th class="r">Load, kW</th><th class="r">Can cut, %</th><th class="r">kW cut</th><th>What staff do</th><th></th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small es-add">Add equipment</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. How well you will respond</h2>
+    <div class="ax-grid">
+      <label>Peak hours you expect to catch, % <input data-k="reliability" inputmode="decimal" /></label>
+      <label>Alert days you will act on a year <input data-k="alerts" inputmode="decimal" /></label>
+      <label>Hours you reduce load on each alert day <input data-k="hours" inputmode="decimal" /></label>
+      <label>One-off setup cost (CAD) <input data-k="setup" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help es-rel"></p>
+    <p class="ax-help">Nobody knows exactly which hours will be the peaks, so you act on every alert day and catch some of them. More alert days means more chances but more pre-cooling or shifting cost.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Assumptions</h2>
+    <p class="ax-help" style="margin-top:0">Starting values for recent years. <b>They are assumptions: check them with your utility or an energy adviser</b>, because Global Adjustment costs change every year and the province reviews the rules.</p>
+    <div class="ax-grid">
+      <label>GA cost per kW of peak share, per year (CAD) <input data-k="gaPerKw" inputmode="decimal" /></label>
+      <label>Peak hours that set the charge <input data-k="peaks" inputmode="numeric" /></label>
+      <label>Class A threshold, kW <input data-k="upper" inputmode="decimal" /></label>
+      <label>Lower opt-in threshold, kW <input data-k="lower" inputmode="decimal" /></label>
+      <label>Class B GA rate (CAD per kWh) <input data-k="classB" inputmode="decimal" /></label>
+      <label>Extra energy used to pre-cool or shift, % <input data-k="rebound" inputmode="decimal" /></label>
+      <label>Energy price (CAD per kWh) <input data-k="price" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Source: the Global Adjustment and the Industrial Conservation Initiative are set by the Government of Ontario and published by the IESO and the Ontario Energy Board (ieso.ca, oeb.ca). The starting values were entered on 2026-11-22 from earlier published rules and were not checked live: <b>check the official source</b> before you rely on any figure.</p>
+  </div>
+
+  <div class="ax-card es-res" aria-live="polite">
+    <h2 class="es-title">Your estimate</h2>
+    <p class="ax-help es-sub" style="margin-top:0"></p>
+    <div class="biz-kpis es-kpis"></div>
+    <p class="biz-take es-take"></p>
+    <p class="biz-warn es-rwarn"></p>
+    <h3 class="biz-sub">Where the saving comes from</h3>
+    <div class="ax-scroll"><table class="biz-tbl es-contrib"></table></div>
+    <h3 class="biz-sub">Class A or Class B?</h3>
+    <div class="ax-scroll"><table class="biz-tbl es-class"></table></div>
+    <p class="ax-help es-class-note"></p>
+    <h3 class="biz-sub">If you catch fewer or more peaks</h3>
+    <div class="ax-scroll"><table class="biz-tbl es-sens"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small es-csv">Download (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>5. Alert-day checklist</h2>
+    <p class="ax-help" style="margin-top:0">A plan for the day of an alert, built from your equipment list. Tick steps as you do them.</p>
+    <div class="es-playbook"></div>
+    <p class="ax-help es-pb-note"></p>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="es-keep" /> Remember my numbers on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your numbers stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small es-clear">Clear saved numbers</button><button type="button" class="btn secondary small es-reset">Back to the example</button></div>
+  </div>
+  <p class="biz-fine">An estimate for Ontario only, using rates that change each year. It is not a quote or advice. Ask your utility before you opt in to Class A.</p>
+</div>
+
+<style is:inline>
+  .es .es-eq input:not(.w-num):not(.w-pct) { min-width: 180px; }
+  .es .es-pb { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .es .es-pb > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .es .es-pb h3 { margin: 0; font-size: 15px; }
+  .es .es-pb .when { font-size: 12px; color: var(--muted); }
+  .es .es-pb label { display: flex; flex-direction: row; gap: 8px; align-items: flex-start; margin-top: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .es .es-pb label.done span { color: var(--muted); text-decoration: line-through; }
+  .es .es-pb small { display: block; color: var(--muted); font-size: 12.5px; }
+</style>
+
+<script>
+  import { estimate, type PeakIn, type Equip } from '../../lib/biz/peak-energy';
+  import { esc, toCSV, downloadText, keeper } from '../../lib/biz/common';
+  import { money, num } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.es')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  type S = { name: string; avgPeak: string; peakHourKW: string; useProfile: string; profile: { kw: string; kwh: string }[]; equip: { name: string; kw: string; pct: string; how: string }[];
+    reliability: string; alerts: string; hours: string; setup: string; gaPerKw: string; peaks: string; upper: string; lower: string; classB: string; rebound: string; price: string; playbook: Record<string, boolean> };
+  const fresh = (): S => ({
+    name: 'Example building', avgPeak: '1050', peakHourKW: '1240', useProfile: 'yes',
+    profile: [[985, 528000], [960, 482000], [945, 503000], [930, 489000], [1015, 561000], [1170, 638000], [1290, 721000], [1275, 716000], [1145, 618000], [995, 541000], [950, 502000], [990, 532000]].map(([k, e]) => ({ kw: String(k), kwh: String(e) })),
+    equip: [
+      { name: 'Chillers and cooling plant', kw: '420', pct: '30', how: 'Pre-cool 3 hours ahead, then raise set points 1 to 2 degrees in public areas; reset chilled water' },
+      { name: 'Batch machinery or laundry', kw: '95', pct: '90', how: 'Run it in the morning and pause from 3 pm to 8 pm' },
+      { name: 'EV chargers', kw: '66', pct: '100', how: 'Pause or slow charging 4 pm to 8 pm and tell customers' },
+      { name: 'Water and space heating', kw: '40', pct: '100', how: 'Heat in the morning; the water holds its temperature for a few hours' },
+      { name: 'Ovens and kitchen prep', kw: '85', pct: '25', how: 'Batch-cook before 3 pm and keep only service equipment on' },
+      { name: 'Other (signage, pumps, ice machines)', kw: '60', pct: '35', how: 'Switch off decorative loads and non-essential pumps; make ice early' },
+    ],
+    reliability: '80', alerts: '12', hours: '4', setup: '18000', gaPerKw: '450', peaks: '5', upper: '1000', lower: '500', classB: '0.07', rebound: '15', price: '0.11', playbook: {},
+  });
+  let st = fresh();
+  const $ = (v: number, d = 0) => money(v, 'CAD', d);
+  const kw = (v: number) => Math.round(v).toLocaleString() + ' kW';
+  const val = (s: string | number) => (String(s).trim() === '' ? '' : num(String(s)));
+  const keep = keeper('fibub-peak-energy-v1', q('.es-keep'), q('.es-clear'), () => st, (v) => { st = Object.assign(fresh(), v); });
+
+  const input = (): PeakIn => ({
+    avgPeak: val(st.avgPeak), peakHourKW: val(st.peakHourKW), useProfile: st.useProfile === 'yes', profile: st.profile.map((p) => ({ kw: val(p.kw), kwh: val(p.kwh) })),
+    equip: st.equip.map((e): Equip => ({ name: e.name, kw: val(e.kw), pct: val(e.pct), how: e.how })),
+    reliability: val(st.reliability), alerts: val(st.alerts), hours: val(st.hours), setup: val(st.setup), gaPerKw: val(st.gaPerKw), peaks: val(st.peaks), upper: val(st.upper), lower: val(st.lower), classB: val(st.classB), rebound: val(st.rebound), price: val(st.price),
+  });
+
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    profRows(); eqRows(); run();
+  }
+  root.addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.k) { (st as any)[el.dataset.k] = el.value; keep(); run(); } });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLSelectElement; if (el.dataset.k && el.tagName === 'SELECT') { (st as any)[el.dataset.k] = el.value; keep(); run(); } });
+  q('.es-reset').addEventListener('click', () => { st = fresh(); keep(); bind(); });
+  q('.es-summer').addEventListener('click', (e) => {
+    e.preventDefault();
+    const s = [5, 6, 7, 8].map((i) => val(st.profile[i].kw)).filter((v): v is number => v !== '');
+    if (!s.length) { q('.es-hwarn').textContent = 'Enter June to September in the monthly profile first.'; return; }
+    st.peakHourKW = String(Math.max(...s)); keep(); bind();
+  });
+
+  function profRows() {
+    q('.es-prof tbody').innerHTML = st.profile.map((p, i) => `<tr><td><b>${MON[i]}</b></td><td class="r"><input inputmode="decimal" value="${esc(p.kw)}" data-pi="${i}" data-f="kw" aria-label="${MON[i]} peak kW" style="width:100px;text-align:right"></td><td class="r"><input inputmode="decimal" value="${esc(p.kwh)}" data-pi="${i}" data-f="kwh" aria-label="${MON[i]} kWh" style="width:120px;text-align:right"></td></tr>`).join('');
+  }
+  q('.es-prof').addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.pi == null) return; (st.profile[+el.dataset.pi] as any)[el.dataset.f!] = el.value; keep(); run(); });
+  q('.es-prof-clear').addEventListener('click', () => { st.profile = MON.map(() => ({ kw: '', kwh: '' })); st.useProfile = 'no'; keep(); bind(); });
+  function eqRows() {
+    q('.es-eq tbody').innerHTML = st.equip.map((e, i) => `<tr><td><input value="${esc(e.name)}" data-ei="${i}" data-f="name" aria-label="Equipment name"></td><td class="r"><input class="w-num" inputmode="decimal" value="${esc(e.kw)}" data-ei="${i}" data-f="kw" aria-label="Load kW" style="width:84px;text-align:right"></td><td class="r"><input class="w-pct" inputmode="decimal" value="${esc(e.pct)}" data-ei="${i}" data-f="pct" aria-label="Percent you can cut" style="width:84px;text-align:right"></td><td class="r" data-cut="${i}"></td><td><input class="w-wide" value="${esc(e.how)}" data-ei="${i}" data-f="how" aria-label="What staff do" placeholder="What staff do" style="min-width:240px"></td><td><button type="button" class="biz-x" data-edel="${i}" aria-label="Remove">&times;</button></td></tr>`).join('');
+  }
+  q('.es-eq').addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.ei == null) return; (st.equip[+el.dataset.ei] as any)[el.dataset.f!] = el.value; keep(); run(el.dataset.f === 'name' || el.dataset.f === 'how'); });
+  q('.es-eq').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-edel]'); if (!b) return; st.equip.splice(+b.dataset.edel!, 1); keep(); eqRows(); run(); });
+  q('.es-add').addEventListener('click', () => { st.equip.push({ name: 'New equipment', kw: '20', pct: '50', how: '' }); keep(); eqRows(); run(); });
+
+  let R: ReturnType<typeof estimate>;
+  function run(skipPlaybook = false) {
+    R = estimate(input());
+    R.eq.forEach((e) => { const c = q(`[data-cut="${e.i}"]`); if (c) c.textContent = kw(e.cut); });
+    q('.es-eq tfoot').innerHTML = `<tr><td>Total</td><td class="r">${kw(R.loadSum)}</td><td class="r">${R.loadSum ? Math.round((R.cutRaw / R.loadSum) * 100) + '%' : '-'}</td><td class="r">${kw(R.cutRaw)}</td><td class="ax-help">${R.peakHr ? Math.round((R.cutRaw / R.peakHr) * 100) + '% of your peak-hour demand' : ''}</td><td></td></tr>`;
+    q('.es-eqwarn').textContent = st.equip.length ? '' : 'Add at least one piece of equipment you could turn down during a peak hour.';
+    const pk = R.prof.map((p) => p.kw).filter((v): v is number => v != null), pe = R.prof.map((p) => p.kwh).filter((v): v is number => v != null);
+    q('.es-prof tfoot').innerHTML = `<tr><td>Average / total</td><td class="r">${pk.length ? kw(pk.reduce((s, v) => s + v, 0) / pk.length) : '-'}</td><td class="r">${pe.length ? Math.round(pe.reduce((s, v) => s + v, 0)).toLocaleString() + ' kWh' : '-'}</td></tr>`;
+    q('.es-rel').textContent = `You expect to catch ${Math.round(R.rel * 100)}% of the peaks: ${R.caught.toFixed(1)} of ${R.N} hours.`;
+    q('.es-hwarn').textContent = R.warns.filter((w) => /profile|peak hours is missing/.test(w)).join(' ');
+    q('.es-rwarn').textContent = R.warns.filter((w) => !/profile|peak hours is missing/.test(w)).join(' ');
+    q('.es-title').textContent = `${st.name || 'Your business'}: peak-hour savings`;
+    q('.es-sub').textContent = `Average peak ${kw(R.avg)}, ${kw(R.peakHr)} in the province's peak hours, cutting ${kw(R.cut)} on ${R.caught.toFixed(1)} of ${R.N} peaks.`;
+    const bad = R.elig.cls === 'bad';
+    const pbk = R.setup <= 0 ? 'No setup cost' : R.payback == null ? 'Never' : R.payback < 1 ? `${Math.max(1, Math.round(R.payback * 12))} month${Math.max(1, Math.round(R.payback * 12)) === 1 ? '' : 's'}` : `${R.payback.toFixed(1)} years`;
+    q('.es-kpis').innerHTML = ([
+      [R.elig.cls, 'Class A eligibility', R.elig.short, `Average monthly peak ${kw(R.avg)}`],
+      ['', 'kW cut during a peak', kw(R.cut), R.peakHr ? `${Math.round((R.cut / R.peakHr) * 100)}% of your ${kw(R.peakHr)} peak-hour demand` : ''],
+      ['', 'Yearly GA saving (Class A)', $(R.saving), bad ? 'Only if you were on Class A' : `${$(R.perPeak)} for each peak hour caught`],
+      bad ? ['bad', 'Saving you can get today', $(0), 'On Class B, GA is charged per kWh, not by peak hours'] : ['', 'Net of pre-cooling cost', $(R.net), `Pre-cooling and shifting costs ${$(R.precool)} a year`],
+      bad ? ['', 'Simple payback', 'Not applicable', 'No GA saving while on Class B'] : ['', 'Simple payback', pbk, R.setup > 0 ? `On a ${$(R.setup)} setup cost` : ''],
+    ] as string[][]).map(([c, l, v, s]) => `<div class="biz-k ${c}"><span>${l}</span><b>${v}</b><small>${s}</small></div>`).join('');
+    let t = `<strong>What this means:</strong> ${esc(R.elig.text)} `;
+    if (bad) t += `If you grow above ${kw(R.lower)}, or the rules change, cutting ${kw(R.cut)} in the peak hours would be worth about ${$(R.saving)} a year.`;
+    else {
+      t += `Cutting <b>${kw(R.cut)}</b> in the peak hours and catching ${R.caught.toFixed(1)} of ${R.N} would lower next year's GA by about <b>${$(R.saving)}</b>, or <b>${$(R.net)}</b> after the extra energy for pre-cooling. `;
+      const top = R.eq.slice().sort((a, b) => b.cut - a.cut)[0];
+      if (top && R.cutRaw > 0) t += `${esc(top.name)} gives the most (${Math.round((top.cut / R.cutRaw) * 100)}% of the cut). `;
+      if (R.rel < 1) t += `Catching every peak would add another ${$(R.perPeak * (R.N - R.caught))}. `;
+      t += R.classA1 < R.classB ? `Class A would cost ${$(R.classB - R.classA1)} less than staying on Class B.` : `<b>Careful:</b> at these figures Class A would cost ${$(R.classA1 - R.classB)} <i>more</i> than Class B. Only opt in if you can cut more at peak times.`;
+    }
+    q('.es-take').innerHTML = t;
+    const rows = R.eq.filter((e) => e.kw > 0 || e.cut > 0), capF = R.cutRaw > 0 ? R.cut / R.cutRaw : 0;
+    q('.es-contrib').innerHTML = '<thead><tr><th>Equipment</th><th class="r">kW cut</th><th>Share</th><th class="r">Yearly saving</th></tr></thead><tbody>' +
+      (rows.length ? rows.map((e) => { const share = R.cutRaw ? e.cut / R.cutRaw : 0; return `<tr><td>${esc(e.name)}</td><td class="r">${kw(e.cut * capF)}</td><td><div class="biz-bar"><i style="width:${(share * 100).toFixed(1)}%"></i></div> <small class="ax-help">${Math.round(share * 100)}%</small></td><td class="r">${$(R.saving * share)}</td></tr>`; }).join('') : '<tr><td colspan="4" class="ax-help">No equipment entered yet.</td></tr>') +
+      `</tbody><tfoot><tr><td>Total</td><td class="r">${kw(R.cut)}</td><td></td><td class="r">${$(R.saving)}</td></tr></tfoot>`;
+    q('.es-class').innerHTML = `<thead><tr><th>Option</th><th class="r">GA per year</th></tr></thead><tbody>
+      <tr><td>Class B (per kWh, ${Math.round(R.kwh).toLocaleString()} kWh${R.kwhEstimated ? ' estimated' : ''})</td><td class="r">${$(R.classB)}</td></tr>
+      <tr><td>Class A, doing nothing at peak times</td><td class="r">${$(R.classA0)}</td></tr>
+      <tr><td>Class A, with your peak plan</td><td class="r"><b>${$(R.classA1)}</b></td></tr>
+      <tr><td>Class A with plan, against Class B</td><td class="r"><span class="${R.classA1 <= R.classB ? 'pos' : 'neg'}">${R.classA1 <= R.classB ? 'saves ' : 'costs '}${$(Math.abs(R.classB - R.classA1))}</span></td></tr></tbody>`;
+    q('.es-class-note').textContent = bad ? 'Shown for reference: at this size you are on Class B.' : 'Class A only pays off for a business that reliably cuts load in the peak hours. Check both figures with your utility before opting in.';
+    q('.es-sens').innerHTML = '<thead><tr><th>Peak hours caught</th><th class="r">Yearly saving</th><th class="r">Net of pre-cooling</th></tr></thead><tbody>' +
+      R.sens.map((v, k) => `<tr class="${k === Math.round(R.caught) ? 'sel' : ''}"><td>${k} of ${R.N}</td><td class="r">${$(v)}</td><td class="r">${$(v - R.precool)}</td></tr>`).join('') + '</tbody>';
+    if (!skipPlaybook) playbook();
+  }
+
+  function playbook() {
+    const has = (re: RegExp) => R.eq.some((e) => re.test(e.name) && e.cut > 0);
+    const cut = (re: RegExp) => { const e = R.eq.filter((x) => re.test(x.name) && x.cut > 0); return e.length ? kw(e.reduce((s, x) => s + x.cut, 0)) : ''; };
+    const CH = /chill|cool|hvac|air|refriger/i, LA = /laund|batch|machin|process/i, EV = /\bev\b|charg/i, PO = /pool|spa|heat|water/i, KI = /kitchen|oven|food|cook/i;
+    type Item = [string, string, string] | null;
+    const cols: { title: string; when: string; items: Item[] }[] = [
+      { title: 'The day before', when: 'The alert arrives', items: [
+        ['b1', 'Confirm the alert and name one person in charge for tomorrow afternoon.', ''],
+        ['b2', 'Check tomorrow for events, deliveries or busy periods that need full cooling or full power.', ''],
+        has(LA) ? ['b3', 'Plan batch machinery or laundry to start early and finish by 2 pm.', cut(LA)] : null,
+        ['b4', 'Tell staff and customers what to expect (reduced charging, warmer rooms).', ''],
+      ] },
+      { title: 'Three hours before', when: 'About 1 pm to 4 pm', items: [
+        has(CH) ? ['p1', 'Pre-cool: lower set points 1 to 2 degrees and run cooling at full output.', cut(CH)] : null,
+        has(PO) ? ['p2', 'Top up water and space heating, then set heaters to off from 4 pm.', cut(PO)] : null,
+        has(KI) ? ['p3', 'Finish batch cooking and oven runs before 3:30 pm.', cut(KI)] : null,
+        ['p4', 'Make ice and pre-chill walk-in coolers.', ''],
+        ['p5', 'Close blinds on sunny sides and in empty rooms.', ''],
+      ] },
+      { title: 'During the alert', when: 'Usually 4 pm to 7 pm', items: [
+        has(CH) ? ['d1', 'Raise cooling set points 1 to 2 degrees in common areas and stage off one chiller if the load allows.', cut(CH)] : null,
+        has(LA) ? ['d2', 'No batch machinery or laundry running.', cut(LA)] : null,
+        has(EV) ? ['d3', 'Pause or slow the EV chargers.', cut(EV)] : null,
+        ['d4', 'Switch off decorative lighting, signage and spare lifts where safe.', cut(/other|fountain|sign|light/i)],
+        ['d5', 'Set empty spaces to setback mode.', ''],
+        ['d6', 'Read the main meter at 4 pm and 6 pm and note the kW.', ''],
+      ] },
+      { title: 'After the alert', when: 'From about 8 pm', items: [
+        ['a1', 'Bring systems back one at a time; a big restart can make a new spike.', ''],
+        ['a2', 'Restart laundry, machinery and EV charging after 8 pm.', ''],
+        ['a3', 'Log what you did, the kW reached and any complaints.', ''],
+        ['a4', "After the season, compare your load in the official peak hours with this plan.", ''],
+      ] },
+    ];
+    let total = 0, done = 0;
+    q('.es-playbook').innerHTML = '<div class="es-pb">' + cols.map((c) => `<div><div class="when">${c.when}</div><h3>${c.title}</h3>` + c.items.filter((x): x is [string, string, string] => !!x).map(([id, txt, k]) => {
+      total++; const on = !!st.playbook[id]; if (on) done++;
+      return `<label class="${on ? 'done' : ''}"><input type="checkbox" data-pb="${id}"${on ? ' checked' : ''}><span>${txt}${k ? `<small>Worth about ${k}</small>` : ''}</span></label>`;
+    }).join('') + '</div>').join('') + '</div>';
+    q('.es-pb-note').textContent = `${done} of ${total} steps ticked. Also ask your utility about transmission charges, which in many areas follow similar peak hours, so the same actions can save more.`;
+  }
+  q('.es-playbook').addEventListener('change', (e) => {
+    const cb = e.target as HTMLInputElement; if (!cb.dataset.pb) return;
+    if (cb.checked) st.playbook[cb.dataset.pb] = true; else delete st.playbook[cb.dataset.pb];
+    keep(); playbook();
+  });
+
+  q('.es-csv').addEventListener('click', () => {
+    const capF = R.cutRaw > 0 ? R.cut / R.cutRaw : 0;
+    const rows: unknown[][] = [['Peak-energy savings estimate', st.name], ['Average monthly peak (kW)', Math.round(R.avg)], ['Demand in the peak hours (kW)', Math.round(R.peakHr)], ['Eligibility', R.elig.short], ['kW cut during a peak', Math.round(R.cut)], ['Peak hours caught (expected)', +R.caught.toFixed(2), 'of', R.N],
+      ['Yearly GA saving under Class A (CAD)', Math.round(R.saving)], ['Pre-cooling cost (CAD)', Math.round(R.precool)], ['Net yearly saving (CAD)', Math.round(R.net)], ['Setup cost (CAD)', R.setup], ['Payback (years)', R.payback == null ? '' : +R.payback.toFixed(2)],
+      ['GA per year, Class B (CAD)', Math.round(R.classB)], ['GA per year, Class A with plan (CAD)', Math.round(R.classA1)], [],
+      ['Equipment', 'Load (kW)', '% you can cut', 'kW cut', 'Yearly saving (CAD)', 'What staff do'],
+      ...R.eq.map((e) => [e.name, e.kw, e.pct, Math.round(e.cut * capF), Math.round(R.cutRaw ? (R.saving * e.cut) / R.cutRaw : 0), st.equip[e.i].how || '']), [],
+      ['Peak hours caught', 'Yearly saving (CAD)', 'Net of pre-cooling (CAD)'], ...R.sens.map((v, k) => [k, Math.round(v), Math.round(v - R.precool)]), [],
+      ['Assumptions (check with your utility)'], ['GA cost per kW (CAD)', st.gaPerKw], ['Peak hours', st.peaks], ['Class A threshold (kW)', st.upper], ['Lower opt-in threshold (kW)', st.lower], ['Class B GA rate (CAD per kWh)', st.classB], ['Pre-cooling extra energy (%)', st.rebound], ['Energy price (CAD per kWh)', st.price]];
+    downloadText('peak-energy-savings.csv', toCSV(rows));
+  });
+
+  bind();
+</script>
