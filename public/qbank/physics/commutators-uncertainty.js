@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './commutators-uncertainty.more.gen.js';
+import more2 from './commutators-uncertainty.more2.gen.js';
 
 const H_EVFS = 4.135667696; // h in eV fs
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
@@ -201,6 +202,7 @@ export default {
       answer: 0.681, tol: 0.003, calc: () => (3 / 16) * Math.cbrt(48),
       sol: 'Let $u = \\sigma^2$: $\\langle H\\rangle = \\dfrac{\\hbar^2}{8mu} + 3\\lambda u^2$. Setting the derivative to zero: $\\dfrac{\\hbar^2}{8mu^2} = 6\\lambda u$, so $u^3 = \\dfrac{\\hbar^2}{48m\\lambda}$, and then $3\\lambda u^2 = \\dfrac{\\hbar^2}{16mu}$. So $E = \\dfrac{3\\hbar^2}{16mu} = \\dfrac{3}{16}(48)^{1/3}\\left(\\dfrac{\\hbar^4\\lambda}{m^2}\\right)^{1/3} = 0.681\\left(\\dfrac{\\hbar^4\\lambda}{m^2}\\right)^{1/3}$. (The exact value is $0.668$; any trial state gives an upper bound.)',
       trap: 'Using $\\langle x^4\\rangle = \\sigma^4$ instead of $3\\sigma^4$ for a Gaussian.' },
+    ...more2,
   ],
   gens: [
     { id: 'qcu-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'functions of x and p',
