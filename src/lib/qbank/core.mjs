@@ -199,6 +199,12 @@ export const PATTERNS = {
   'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', sections: [
     { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
   ] },
+  // CUET (UG): every test is 50 compulsory MCQs in 60 minutes, +5/−1 (NTA bulletin, checked 2026-11-22). The two
+  // sections only mix easier and harder questions; every question is worth 5 marks (marksMap).
+  cuet: { name: 'CUET (UG) test', minutes: 60, scheme: 'cuet', sections: [
+    { name: 'Standard questions', type: 'mcq', marks: 1, count: 30 },
+    { name: 'Harder questions', type: 'mcq', marks: 2, count: 20 },
+  ], marksMap: { 1: 5, 2: 5 } },
   net: { name: 'CSIR NET Physical Sciences (Parts B and C)', minutes: 150, scheme: 'net', sections: [
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
