@@ -151,17 +151,14 @@ export default {
       { id: 'bonding', name: 'Bonding in solids' },
       { id: 'phonons', name: 'Lattice vibrations and phonons' },
       { id: 'heat-capacity', name: 'Heat capacity: Einstein and Debye' },
-<<<<<<< HEAD
       { id: 'free-electron-model', name: 'The free electron model' },
       { id: 'band-theory', name: 'Band theory' },
       { id: 'semiconductors-hall', name: 'Semiconductors, Landau levels and the Hall effect' },
       { id: 'magnetism', name: 'Dia-, para-, ferro- and antiferromagnetism' },
       { id: 'superconductivity', name: 'Superconductivity' },
-=======
       { id: 'defects-dislocations', name: 'Defects and dislocations' },
       { id: 'dielectric-optical', name: 'Dielectric and optical properties of solids' },
       { id: 'quantum-hall', name: 'The quantum Hall effect and low-dimensional systems' },
->>>>>>> worktree-agent-af1865214a63bff06
     ] },
     { id: 'electronics', name: 'Electronics', topics: [
       { id: 'transistors', name: 'Transistors and amplifiers' },
@@ -183,7 +180,6 @@ export default {
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
       { id: 'nuclear-reactions', name: 'Nuclear reactions, fission and fusion' },
-<<<<<<< HEAD
       { id: 'nuclear-properties', name: 'Nuclear size, spin and moments' },
       { id: 'binding-energy-semf', name: 'Binding energy and the semi-empirical mass formula' },
       { id: 'shell-model', name: 'The nuclear shell model' },
@@ -191,14 +187,12 @@ export default {
       { id: 'nuclear-reactions-gate', name: 'Nuclear reactions and Q values (GATE)' },
       { id: 'particles-quarks', name: 'Elementary particles and quarks' },
       { id: 'conservation-laws', name: 'Conservation laws and symmetries' },
-    ] },
-    { id: 'aptitude', name: 'General aptitude (NET Part A)', topics: [
-      { id: 'part-a-aptitude', name: 'Part A: series, percentages, data, geometry, puzzles, graphs and estimation' },
-=======
       { id: 'deuteron-nuclear-force', name: 'The deuteron and the nuclear force' },
       { id: 'collective-model', name: 'The collective model and nuclear deformation' },
       { id: 'quark-model', name: 'Isospin, strangeness and the quark model' },
->>>>>>> worktree-agent-af1865214a63bff06
+    ] },
+    { id: 'aptitude', name: 'General aptitude (NET Part A)', topics: [
+      { id: 'part-a-aptitude', name: 'Part A: series, percentages, data, geometry, puzzles, graphs and estimation' },
     ] },
   ],
 };
