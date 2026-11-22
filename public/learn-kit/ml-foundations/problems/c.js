@@ -185,4 +185,166 @@ export default {
     },
     verify: (p) => (10 + p.w * p.x + 0.5 * p.it) - (10 + p.w * p.km + 0.5 * p.it),
   },
+  // ---------- Module 8: finding structure without labels ----------
+  'k-means-step': {
+    title: 'one round of k-means on a line',
+    make(r) {
+      const low = [pick(r, 1, 2), pick(r, 3, 5), pick(r, 4, 7)];
+      const high = [pick(r, 12, 14), pick(r, 14, 17), pick(r, 16, 20)];
+      const pts = [...low, ...high];
+      const c1 = pick(r, 1, 3), c2 = c1 + one(r, [3, 5, 7]);
+      const mid = (c1 + c2) / 2;
+      const g1 = pts.filter((x) => x < mid), g2 = pts.filter((x) => x > mid);
+      const answer = mean(g2);
+      return {
+        q: `<p>A bakery delivers to six cafés at these distances along one road (km): <b>${pts.join(', ')}</b>. It wants 2 delivery vans, so it runs k-means with k = 2. The two centres start at <b>${c1} km</b> and <b>${c2} km</b>. After one assign step and one update step, where is centre 2?</p>`,
+        answer, unit: 'km', tol: 0.005,
+        hint: `Give each café to the nearer centre (the border is halfway, at ${mid} km). Then move each centre to the average of its cafés.`,
+        solution: steps(
+          `Halfway between ${c1} and ${c2} is ${mid}. Cafés below go to centre 1: ${g1.join(', ')}. Cafés above go to centre 2: ${g2.join(', ')}.`,
+          `Centre 1 moves to (${g1.join(' + ')}) ÷ ${g1.length} = ${n(mean(g1), 4)} km.`,
+          `Centre 2 moves to (${g2.join(' + ')}) ÷ ${g2.length} = <b>${n(answer, 4)} km</b>.`,
+          g1.length === 3 ? 'The next assign step changes nothing, so k-means has already finished.' : 'Now run the assign step again with the new centres, and keep going until no café switches.'),
+        pts, c1, c2,
+      };
+    },
+    verify: (p) => { const mid = (p.c1 + p.c2) / 2, tot = p.pts.reduce((a, v) => a + v, 0), g1 = p.pts.filter((x) => x < mid); return (tot - g1.reduce((a, v) => a + v, 0)) / (p.pts.length - g1.length); },
+  },
+  'k-means-inertia': {
+    title: 'inertia of one cluster',
+    make(r) {
+      const cx = pick(r, 2, 8), cy = pick(r, 3, 9);
+      const off = one(r, [[[1, 2], [-2, 0], [1, -2]], [[2, 1], [-1, -1], [-1, 0]], [[0, 2], [3, -1], [-3, -1]], [[1, 1], [1, -2], [-2, 1]]]);
+      const pts = off.map(([a, b]) => [cx + a, cy + b]);
+      const answer = off.reduce((s, [a, b]) => s + a * a + b * b, 0);
+      return {
+        q: `<p>A cluster of three shoppers, by (visits per month, spend in $10s): <b>${pts.map((p) => `(${p.join(', ')})`).join(', ')}</b>. Find the centre of the cluster, then its inertia: the total squared distance from each shopper to the centre.</p>`,
+        answer, unit: '', tol: 0.001,
+        hint: 'The centre is the average of the x values and the average of the y values. For each point, square the x gap and the y gap and add them. Then add up the three points.',
+        solution: steps(
+          `Centre: x = (${pts.map((p) => p[0]).join(' + ')}) ÷ 3 = ${cx}; y = (${pts.map((p) => p[1]).join(' + ')}) ÷ 3 = ${cy}.`,
+          ...pts.map((p, i) => `Point ${i + 1}: (${p[0]} − ${cx})² + (${p[1]} − ${cy})² = ${off[i][0] ** 2} + ${off[i][1] ** 2} = ${off[i][0] ** 2 + off[i][1] ** 2}.`),
+          `Inertia: <b>${answer}</b>. k-means tries to make the sum of this over all clusters as small as possible.`),
+        pts,
+      };
+    },
+    verify: (p) => { const mx = mean(p.pts.map((q) => q[0])), my = mean(p.pts.map((q) => q[1])); return p.pts.reduce((s, [x, y]) => s + x * x + y * y, 0) - 3 * (mx * mx + my * my); },
+  },
+  'choosing-k-silhouette': {
+    title: 'silhouette of one customer',
+    make(r) {
+      const own = [pick(r, 1, 3, 0.5), pick(r, 1.5, 3.5, 0.5), pick(r, 2, 4, 0.5)];
+      const o1 = [pick(r, 4, 7, 0.5), pick(r, 5, 8, 0.5), pick(r, 5, 9, 0.5)];
+      const o2 = [pick(r, 6, 10, 0.5), pick(r, 7, 11, 0.5), pick(r, 8, 12, 0.5)];
+      const a = mean(own), b = Math.min(mean(o1), mean(o2));
+      const answer = (b - a) / Math.max(a, b);
+      return {
+        q: `<p>After clustering shoppers into 3 segments, take one shopper. Distances to the other members of her own segment: <b>${own.join(', ')}</b>. To the members of segment 2: <b>${o1.join(', ')}</b>. To the members of segment 3: <b>${o2.join(', ')}</b>. What is her silhouette s = (b − a) ÷ max(a, b)?</p>`,
+        answer, unit: '', tol: 0.01, abs: 0.002,
+        hint: 'a is the average distance to her own segment. b is the average distance to the nearest other segment: work out both other averages and keep the smaller.',
+        solution: steps(
+          `a = (${own.join(' + ')}) ÷ 3 = ${n(a, 4)}.`,
+          `Segment 2 average: ${n(mean(o1), 4)}. Segment 3 average: ${n(mean(o2), 4)}. The nearer one gives b = ${n(b, 4)}.`,
+          `s = (${n(b, 4)} − ${n(a, 4)}) ÷ ${n(Math.max(a, b), 4)} = <b>${n(answer, 3)}</b>. ${answer > 0.5 ? 'She sits snugly in her own segment.' : answer > 0.25 ? 'She belongs to her segment, but not by much.' : 'She is close to the border.'}`),
+        own, o1, o2,
+      };
+    },
+    verify: (p) => { const a = mean(p.own), b = Math.min(mean(p.o1), mean(p.o2)); return a < b ? 1 - a / b : b / a - 1; },
+  },
+  'hierarchical-clustering-linkage': {
+    title: 'distance between two clusters',
+    make(r) {
+      const kind = one(r, ['single', 'complete', 'average']);
+      const A = [pick(r, 8, 12), pick(r, 12, 16)];
+      const B = [pick(r, 28, 31), pick(r, 31, 34), pick(r, 34, 40)];
+      const ds = A.flatMap((x) => B.map((y) => y - x));
+      const answer = kind === 'single' ? Math.min(...ds) : kind === 'complete' ? Math.max(...ds) : mean(ds);
+      return {
+        q: `<p>Shops by weekly sales (in $1,000s). Cluster 1: <b>${A.join(', ')}</b>. Cluster 2: <b>${B.join(', ')}</b>. Using <b>${kind} linkage</b>, how far apart are the two clusters?</p>`,
+        answer, unit: '($1,000s)', tol: 0.005,
+        hint: kind === 'single' ? 'Single linkage uses the closest pair: one shop from each cluster.' : kind === 'complete' ? 'Complete linkage uses the farthest pair: one shop from each cluster.' : 'Average linkage averages the distance over every pair: 2 × 3 = 6 pairs.',
+        solution: steps(
+          `All 6 pair distances: ${ds.join(', ')}.`,
+          kind === 'single' ? `The closest pair is ${Math.min(...ds)} apart.` : kind === 'complete' ? `The farthest pair is ${Math.max(...ds)} apart.` : `Their average: ${ds.reduce((a, v) => a + v, 0)} ÷ 6 = ${n(mean(ds), 4)}.`,
+          `So the ${kind}-linkage distance is <b>${n(answer, 4)}</b>. In a dendrogram the two clusters would join at this height.`),
+        kind, A, B,
+      };
+    },
+    verify: (p) => p.kind === 'single' ? Math.min(...p.B) - Math.max(...p.A) : p.kind === 'complete' ? Math.max(...p.B) - Math.min(...p.A) : mean(p.B) - mean(p.A),
+  },
+  'pca-variance-share': {
+    title: 'how much a 2D picture keeps',
+    make(r) {
+      const l4 = pick(r, 0.1, 0.2, 0.1), l3 = pick(r, 0.3, 0.5, 0.1), l2 = pick(r, 0.6, 1, 0.1);
+      const l1 = +(4 - l2 - l3 - l4).toFixed(1); // scaled columns: the variances add up to 4
+      const tot = l1 + l2 + l3 + l4;
+      const answer = (100 * (l1 + l2)) / tot;
+      return {
+        q: `<p>A shop survey has 4 scaled questions. PCA finds components with variances (eigenvalues) <b>${l1}, ${l2}, ${l3}</b> and <b>${l4}</b>. What percentage of the total variance does a 2D plot on PC1 and PC2 keep?</p>`,
+        answer, unit: '%', tol: 0.005,
+        hint: 'Each eigenvalue is the spread kept by that component. Add the first two and divide by the sum of all four.',
+        solution: steps(
+          `Total variance: ${l1} + ${l2} + ${l3} + ${l4} = ${n(tot, 4)}.`,
+          `PC1 + PC2: ${l1} + ${l2} = ${n(l1 + l2, 4)}.`,
+          `Share: ${n(l1 + l2, 4)} ÷ ${n(tot, 4)} = <b>${n(answer, 3)} %</b>. ${answer >= 80 ? 'A 2D scatter is a faithful picture.' : 'A 2D scatter loses a fair amount: look at PC3 too.'}`),
+        l: [l1, l2, l3, l4],
+      };
+    },
+    verify: (p) => 100 - (100 * (p.l[2] + p.l[3])) / p.l.reduce((a, v) => a + v, 0),
+  },
+  'pca-project': {
+    title: 'a point\'s score on the first component',
+    make(r) {
+      const mx = pick(r, 3, 6), my = pick(r, 4, 8), x = mx + pick(r, -3, 4), y = my + pick(r, -3, 4);
+      const answer = 0.6 * (x - mx) + 0.8 * (y - my);
+      return {
+        q: `<p>Two scaled columns, "screen rating" and "speed rating", have means ${mx} and ${my}. PCA says the first component points along <b>u = (0.6, 0.8)</b>. A customer rated the phone <b>(${x}, ${y})</b>. What is this customer's PC1 score?</p>`,
+        answer, unit: '', tol: 0.005, abs: 0.01,
+        hint: 'Centre the point first (subtract the means). Then take the dot product with u: multiply matching parts and add.',
+        solution: steps(
+          `Centred point: (${x} − ${mx}, ${y} − ${my}) = (${x - mx}, ${y - my}).`,
+          `Dot product: 0.6 × ${x - mx} + 0.8 × ${y - my} = ${n(0.6 * (x - mx), 3)} + ${n(0.8 * (y - my), 3)} = <b>${n(answer, 3)}</b>.`,
+          'This one number is where the customer lands on the PC1 axis: positive means more satisfied than average on both together.'),
+        mx, my, x, y,
+      };
+    },
+    verify: (p) => (3 * (p.x - p.mx) + 4 * (p.y - p.my)) / 5,
+  },
+  'anomaly-detection-z': {
+    title: 'is this payment unusual?',
+    make(r) {
+      const m = pick(r, 40, 120, 5), s = pick(r, 8, 25), x = Math.round(m + s * pick(r, 1.5, 4.5, 0.1));
+      const answer = (x - m) / s;
+      return {
+        q: `<p>A customer's card payments average <b>$${m}</b> with a standard deviation of <b>$${s}</b>. A new payment is <b>$${x}</b>. What is its z-score?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'z = (value − mean) ÷ standard deviation: how many "typical wobbles" away from normal the payment is.',
+        solution: steps(
+          `Distance from the mean: ${x} − ${m} = ${x - m}.`,
+          `Divide by the standard deviation: ${x - m} ÷ ${s} = <b>${n(answer, 3)}</b>.`,
+          answer > 3 ? 'Beyond 3, so a |z| > 3 rule flags it for a second look.' : 'Below 3, so a |z| > 3 rule lets it through.'),
+        m, s, x,
+      };
+    },
+    verify: (p) => p.x / p.s - p.m / p.s,
+  },
+  'anomaly-detection-false-alarms': {
+    title: 'false alarms from a z-score rule',
+    make(r) {
+      const t = one(r, [2, 2.5, 3]), N = pick(r, 20, 200, 10) * 1000;
+      const tail = { 2: 0.0455003, 2.5: 0.0124193, 3: 0.0026998 }[t];
+      const answer = N * tail;
+      return {
+        q: `<p>A factory logs <b>${N.toLocaleString('en-CA')}</b> sensor readings a month, all perfectly normal (bell-shaped, nothing wrong). An alarm fires whenever |z| > <b>${t}</b>. About how many false alarms a month?</p>`,
+        answer, unit: 'alarms', tol: 0.01,
+        hint: `Under a normal curve, the share of values more than ${t} standard deviations from the mean (either side) is ${t === 2 ? 'about 4.55 %' : t === 2.5 ? 'about 1.24 %' : 'about 0.27 %'}.`,
+        solution: steps(
+          `Share beyond ±${t}: ${n(100 * tail, 3)} %.`,
+          `${N.toLocaleString('en-CA')} × ${n(tail, 3)} = <b>${n(answer, 3)} false alarms</b>.`,
+          'Nothing was wrong at all. On big data, pick the threshold by how many alerts people can check, not by habit.'),
+        t, N,
+      };
+    },
+    verify: (p) => { const f = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI); let s = 0; const h = p.t / 2000; for (let i = 0; i <= 2000; i++) s += (i === 0 || i === 2000 ? 1 : i % 2 ? 4 : 2) * f(i * h); return p.N * (1 - 2 * (s * h / 3)); },
+  },
 };
