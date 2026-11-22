@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './lasers.more.gen.js';
 import more2 from './lasers.more2.gen.js';
 import r4 from './lasers.r4.gen.js';
+import r5 from './lasers.r5.gen.js';
 
 const H = 6.62607015e-34, CL = 2.99792458e8, KB = 1.380649e-23, U = 1.66053907e-27;
 const C2 = 1.438777e-2;   // hc/k in m K
@@ -226,6 +227,7 @@ export default {
       trap: 'Stimulated emission works at any frequency; it is the competition with spontaneous decay that hurts.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -376,5 +378,6 @@ export default {
       verify: (p) => { const tau = 2 * p.L / (CL * Math.log(1 / (p.R1 * p.R2))); return p.mode === 'tau' ? tau * 1e9 : 2 * Math.PI * (CL / (p.lam * 1e-9)) * tau / 1e6; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
