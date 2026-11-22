@@ -1,4 +1,33 @@
 // Chapter problems for the NCERT study courses, one file per chapter (made by scripts/ncert-index.mjs; do not edit).
+import p_class_10_maths_areas_related_to_circles from './class-10-maths-areas-related-to-circles.js';
+import p_class_10_maths_arithmetic_progressions from './class-10-maths-arithmetic-progressions.js';
+import p_class_10_maths_circles from './class-10-maths-circles.js';
+import p_class_10_maths_coordinate_geometry from './class-10-maths-coordinate-geometry.js';
+import p_class_10_maths_introduction_to_trigonometry from './class-10-maths-introduction-to-trigonometry.js';
+import p_class_10_maths_pair_of_linear_equations from './class-10-maths-pair-of-linear-equations.js';
+import p_class_10_maths_polynomials from './class-10-maths-polynomials.js';
+import p_class_10_maths_probability from './class-10-maths-probability.js';
+import p_class_10_maths_quadratic_equations from './class-10-maths-quadratic-equations.js';
+import p_class_10_maths_real_numbers from './class-10-maths-real-numbers.js';
+import p_class_10_maths_some_applications_of_trigonometry from './class-10-maths-some-applications-of-trigonometry.js';
+import p_class_10_maths_statistics from './class-10-maths-statistics.js';
+import p_class_10_maths_surface_areas_and_volumes from './class-10-maths-surface-areas-and-volumes.js';
+import p_class_10_maths_triangles from './class-10-maths-triangles.js';
+import p_class_10_science_acids_bases_and_salts from './class-10-science-acids-bases-and-salts.js';
+import p_class_10_science_carbon_and_its_compounds from './class-10-science-carbon-and-its-compounds.js';
+import p_class_10_science_chemical_reactions_and_equations from './class-10-science-chemical-reactions-and-equations.js';
+import p_class_10_science_control_and_coordination from './class-10-science-control-and-coordination.js';
 import p_class_10_science_electricity from './class-10-science-electricity.js';
+import p_class_10_science_heredity from './class-10-science-heredity.js';
+import p_class_10_science_how_organisms_reproduce from './class-10-science-how-organisms-reproduce.js';
+import p_class_10_science_human_eye_colourful_world from './class-10-science-human-eye-colourful-world.js';
+import p_class_10_science_life_processes from './class-10-science-life-processes.js';
+import p_class_10_science_light_reflection_refraction from './class-10-science-light-reflection-refraction.js';
+import p_class_10_science_magnetic_effects_of_current from './class-10-science-magnetic-effects-of-current.js';
+import p_class_10_science_metals_and_non_metals from './class-10-science-metals-and-non-metals.js';
+import p_class_10_science_our_environment from './class-10-science-our-environment.js';
+import p_class_9_science_atomic_foundations_of_matter from './class-9-science-atomic-foundations-of-matter.js';
+import p_class_9_science_journey_inside_the_atom from './class-9-science-journey-inside-the-atom.js';
+import p_class_9_science_work_energy_and_simple_machines from './class-9-science-work-energy-and-simple-machines.js';
 
-export default { ...p_class_10_science_electricity };
+export default { ...p_class_10_maths_areas_related_to_circles, ...p_class_10_maths_arithmetic_progressions, ...p_class_10_maths_circles, ...p_class_10_maths_coordinate_geometry, ...p_class_10_maths_introduction_to_trigonometry, ...p_class_10_maths_pair_of_linear_equations, ...p_class_10_maths_polynomials, ...p_class_10_maths_probability, ...p_class_10_maths_quadratic_equations, ...p_class_10_maths_real_numbers, ...p_class_10_maths_some_applications_of_trigonometry, ...p_class_10_maths_statistics, ...p_class_10_maths_surface_areas_and_volumes, ...p_class_10_maths_triangles, ...p_class_10_science_acids_bases_and_salts, ...p_class_10_science_carbon_and_its_compounds, ...p_class_10_science_chemical_reactions_and_equations, ...p_class_10_science_control_and_coordination, ...p_class_10_science_electricity, ...p_class_10_science_heredity, ...p_class_10_science_how_organisms_reproduce, ...p_class_10_science_human_eye_colourful_world, ...p_class_10_science_life_processes, ...p_class_10_science_light_reflection_refraction, ...p_class_10_science_magnetic_effects_of_current, ...p_class_10_science_metals_and_non_metals, ...p_class_10_science_our_environment, ...p_class_9_science_atomic_foundations_of_matter, ...p_class_9_science_journey_inside_the_atom, ...p_class_9_science_work_energy_and_simple_machines };
