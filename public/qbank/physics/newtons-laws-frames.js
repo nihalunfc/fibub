@@ -2,6 +2,7 @@
 // centrifugal and Coriolis forces). Original questions for IIT JAM, GATE and CSIR NET practice (fibub).
 // Levels: 1 warm-up ... 5 top rank. Unless a question says otherwise, g = 9.8 m/s².
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './newtons-laws-frames.more.gen.js';
 
 const D = Math.PI / 180;
 const OMEGA = 7.29e-5; // Earth's rotation rate, rad/s
@@ -328,5 +329,6 @@ export default {
           trap: 'Taking $N = mg\\cos\\theta$ as if the wedge were fixed.' };
       },
       verify: (p) => { const s = Math.sin(p.th * D), c = Math.cos(p.th * D); return p.m * 9.8 * s * c / (p.M + p.m * s * s); } },
+    ...more,
   ],
 };

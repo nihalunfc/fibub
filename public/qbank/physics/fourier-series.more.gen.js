@@ -71,7 +71,7 @@ export default [
         9: '$f(x) = e^{\\cos x}$ (smooth everywhere)',
       };
       const k = choose(r, [1, 2, 3, 9]);
-      const ask = k === 9 ? 'fall off faster than any power of $1/n$' : `fall off like $1/n^{${k}}$ for large $n$`;
+      const ask = k === 9 ? 'fall off faster than any power of $1/n$' : `fall off like $${k === 1 ? '1/n' : `1/n^{${k}}`}$ for large $n$`;
       const o = mcqOptions(r, L[k], shuffle(r, Object.keys(L).filter((x) => +x !== k).map((x) => L[x])));
       return { q: `For which of these $2\\pi$-periodic functions do the Fourier coefficients ${ask}?`, ...o,
         sol: 'Each extra degree of smoothness gains one power of $1/n$ (integrate by parts once more before a jump appears). A jump in $f$ gives $1/n$ (sawtooth: $b_n = 2(-1)^{n+1}/n$); a jump in $f\'$ (a corner) gives $1/n^2$ (triangle: $a_n = -4/(\\pi n^2)$ for odd $n$); a jump in $f\'\'$ gives $1/n^3$ ($b_n = 8/(\\pi n^3)$ for odd $n$ for the extended $x(\\pi - x)$); a function smooth everywhere has coefficients that fall faster than any power.',
