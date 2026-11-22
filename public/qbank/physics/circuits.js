@@ -4,6 +4,25 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'circuits',
   items: [
@@ -214,6 +233,60 @@ export default {
       trap: 'Matching $|Z_L| = |Z_s| = 50\\ \\Omega$ with a pure resistor gives less: $P = 100^2\\times50/((80)^2+40^2) = 62.5$ W.' },
   ],
   gens: [
+    { id: 'cir-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'rl transients', format: 'limiting case',
+      make(r) {
+        const E = Q5.int(r, 6, 24), R1 = Q5.int(r, 2, 20), R2 = Q5.int(r, 2, 20), ind = r() < 0.5, late = r() < 0.5;
+        const a = E / R1, b = E / (R1 + R2), right = (ind !== late) ? b : a;
+        const s = (v) => `$${Q5.round(v, 3)}$ A`;
+        const o = Q5.mcqOptions(r, right, [right === a ? b : a, 0, E / R2, E * (R1 + R2) / (R1 * R2)], s);
+        return { q: `A $${E}$ V battery (no internal resistance) is switched on to a $${R1}\\ \\Omega$ resistor in series with a parallel pair: a $${R2}\\ \\Omega$ resistor and ${ind ? 'an ideal inductor' : 'an uncharged capacitor'}. The current drawn from the battery ${late ? 'a long time after' : 'just after'} the switch is closed is`, ...o,
+          sol: ind ? `An inductor keeps its current at first (zero), so just after closing it acts as an open switch: $I = E/(R_1 + R_2) = ${Q5.round(b, 3)}$ A. Long after, it is a plain wire that shorts out $R_2$: $I = E/R_1 = ${Q5.round(a, 3)}$ A.`
+            : `An uncharged capacitor keeps its voltage at first (zero), so just after closing it acts as a wire that shorts out $R_2$: $I = E/R_1 = ${Q5.round(a, 3)}$ A. Long after, it is fully charged and carries no current: $I = E/(R_1 + R_2) = ${Q5.round(b, 3)}$ A.`,
+          trap: 'At switch-on an inductor looks open and a capacitor looks shorted; at steady DC it is the other way round.' };
+      } },
+    { id: 'cir-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'resonance', format: 'statements',
+      make(r) {
+        const c = Q5.int(r, 0, 2);
+        const L = [
+          [['The circuit behaves capacitively.', 'The current leads the source voltage.', 'The impedance is larger than $R$.', 'Raising the frequency a little would increase the current.'], ['The circuit behaves inductively.', 'The current lags the source voltage.', 'The impedance equals $R$.', 'The power factor is 1.']],
+          [['The current is in phase with the source voltage.', 'The impedance equals $R$.', 'The voltages across $L$ and $C$ are equal in size and opposite in phase.', 'The power factor is 1.'], ['The current leads the source voltage.', 'The current lags the source voltage.', 'The voltage across the inductor is zero.', 'The impedance is zero.']],
+          [['The circuit behaves inductively.', 'The current lags the source voltage.', 'The impedance is larger than $R$.', 'Raising the frequency a little would decrease the current.'], ['The circuit behaves capacitively.', 'The current leads the source voltage.', 'The impedance equals $R$.', 'The power factor is 1.']]][c];
+        const o = q5msq(r, L[0], L[1]);
+        return { q: `A series LCR circuit is driven by an AC source at a frequency ${['below', 'equal to', 'above'][c]} its resonant frequency. Which statements are correct?`, ...o,
+          sol: `$Z = \\sqrt{R^2 + (X_L - X_C)^2}$ with $X_L = \\omega L$ rising and $X_C = 1/\\omega C$ falling with frequency. ${['Below resonance $X_C > X_L$: the net reactance is capacitive, the current leads, $Z > R$, and moving towards resonance (raising $f$) increases the current.', 'At resonance $X_L = X_C$: they cancel, $Z = R$ (its minimum, not zero), the current is in phase, $\\cos\\phi = 1$, and $V_L = V_C$ in size but opposite in phase (each can be much larger than the source voltage).', 'Above resonance $X_L > X_C$: inductive, the current lags, $Z > R$, and moving away from resonance (raising $f$) decreases the current.'][c]}`,
+          trap: 'At resonance the impedance is $R$, not zero, and the voltage across $L$ alone is not zero.' };
+      } },
+    { id: 'cir-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'rms', unit: 'V',
+      make(r) {
+        const V1 = Q5.int(r, 1, 20), V2 = -Q5.int(r, 0, 20), f = Q5.pick(r, 0.1, 0.9, 0.05);
+        const rms = Math.sqrt(f * V1 * V1 + (1 - f) * V2 * V2);
+        return { q: `A voltage repeats every period: it is $+${V1}$ V for a fraction $${f}$ of each period and $${V2}$ V for the rest. Its rms value is ______ V (to two decimal places).`,
+          answer: Q5.round(rms, 2), tol: 0.01, V1, V2, f,
+          sol: `rms $= \\sqrt{\\langle V^2\\rangle} = \\sqrt{${f}\\times${V1}^2 + ${Q5.round(1 - f, 2)}\\times(${V2})^2} = ${Q5.round(rms, 2)}$ V.`,
+          trap: 'Square first, then average, then take the root; the sign of a level does not matter once squared.' };
+      },
+      verify: (p) => { const n = 10000; let s = 0; for (let i = 0; i < n; i++) { const v = (i + 0.5) / n < p.f ? p.V1 : p.V2; s += v * v; } return Math.sqrt(s / n); } },
+    { id: 'cir-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'impedance', format: 'graph',
+      make(r) {
+        const names = ['a resistor and capacitor in series', 'a resistor and inductor in series', 'a resistor, inductor and capacitor in series', 'a resistor alone', 'an inductor and capacitor in parallel (ideal)'];
+        const desc = ['falls from very large values at low frequency towards $R$ at high frequency', 'rises from $R$ at low frequency and keeps growing in proportion to frequency at high frequency', 'is large at low and high frequencies with a single minimum equal to $R$ at one frequency', 'is the same at every frequency', 'is small at low and high frequencies and grows without limit at one frequency'];
+        const c = Q5.int(r, 0, 4);
+        const o = Q5.mcqOptions(r, names[c], Q5.shuffle(r, names.filter((x, i) => i !== c)));
+        return { q: `A graph of the impedance of a two-terminal network against frequency ${desc[c]}. The network is most likely`, ...o,
+          sol: 'RC series: $Z = \\sqrt{R^2 + 1/\\omega^2C^2}$, huge at low $\\omega$, tends to $R$. RL series: $\\sqrt{R^2 + \\omega^2L^2}$, from $R$ up, about $\\omega L$ at high $\\omega$. LCR series: minimum $R$ at $\\omega_0 = 1/\\sqrt{LC}$. A resistor: flat. Ideal parallel LC: $Z = \\omega L/|1 - \\omega^2LC|$, zero at both ends and infinite at $\\omega_0$ (the tank circuit).',
+          trap: 'Series LCR has a minimum at resonance; parallel LC has a maximum.' };
+      } },
+    { id: 'cir-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'power', unit: 'H',
+      make(r) {
+        const R = Q5.int(r, 5, 50), Lh = Q5.pick(r, 0.02, 0.5, 0.01), f = Q5.choose(r, [50, 60]), V = Q5.choose(r, [120, 230]);
+        const I = Q5.round(V / Math.sqrt(R * R + (2 * Math.PI * f * Lh) ** 2), 4), P = Q5.round(I * I * R, 2);
+        const Lc = Math.sqrt((V / I) ** 2 - (P / (I * I)) ** 2) / (2 * Math.PI * f);
+        return { q: `A coil connected to a $${V}$ V rms, $${f}$ Hz supply draws $${I}$ A rms and takes $${P}$ W. Its inductance is ______ H (to three decimal places).`,
+          answer: Q5.round(Lc, 3), tol: 0.002, V, f, I, P,
+          sol: `$Z = V/I = ${Q5.round(V / I, 3)}\\ \\Omega$. Only the resistance takes power: $R = P/I^2 = ${Q5.round(P / (I * I), 3)}\\ \\Omega$. $X_L = \\sqrt{Z^2 - R^2} = ${Q5.round(Lc * 2 * Math.PI * f, 3)}\\ \\Omega$, so $L = X_L/2\\pi f = ${Q5.round(Lc, 3)}$ H.`,
+          trap: 'Power is $I^2R$, not $VI$: the coil\'s reactance takes no average power.' };
+      },
+      verify: (p) => { const cosf = p.P / (p.V * p.I), R = p.P / (p.I * p.I), X = R * Math.tan(Math.acos(cosf)); return X / (2 * Math.PI * p.f); } },
     { id: 'cir-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'rc transients', unit: 'ms',
       make(r) {
         const R = choose(r, [1, 2.2, 4.7, 10, 22, 47, 100]), Cu = choose(r, [1, 2.2, 4.7, 10, 22, 47, 100]); // kOhm, uF

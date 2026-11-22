@@ -4,6 +4,25 @@
 // of chains and rings for GATE and NET. Original questions for IIT JAM, GATE and CSIR NET practice (fibub).
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'superposition-coupled',
   items: [
@@ -213,6 +232,57 @@ export default {
       trap: 'Mixing up the time between lines on the same diagonal ($2\\pi/\\varepsilon$) with the time between the two diagonals ($\\pi/\\varepsilon$).' },
   ],
   gens: [
+    { id: 'spc-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'adding SHMs', unit: 'cm',
+      make(r) {
+        const N = Q5.int(r, 3, 6), ph = Q5.choose(r, [30, 45, 60, 90, 120]), a = Q5.int(r, 1, 5);
+        const R = Math.abs(a * Math.sin(N * ph * Math.PI / 360) / Math.sin(ph * Math.PI / 360));
+        return { q: `$${N}$ SHMs along the same line, each of amplitude $${a}$ cm and the same frequency, are added. Each is ahead of the one before it in phase by $${ph}^\\circ$. The amplitude of the resultant motion is ______ cm (to two decimal places).`,
+          answer: Q5.round(R, 2), tol: 0.01, N, ph, a,
+          sol: `The phasors form part of a regular polygon. The resultant of $N$ equal phasors with step $\\phi$ is $a\\,\\dfrac{\\sin(N\\phi/2)}{\\sin(\\phi/2)}$ in size: $${a}\\times\\dfrac{|\\sin(${N * ph / 2}^\\circ)|}{\\sin(${ph / 2}^\\circ)} = ${Q5.round(R, 2)}$ cm.${Q5.round(R, 2) === 0 ? ' The phasors close into a full polygon, so the motions cancel.' : ''}`,
+          trap: 'Amplitudes add as phasors, not as numbers: $N a$ only when the phase step is zero.' };
+      },
+      verify: (p) => { let x = 0, y = 0; for (let j = 0; j < p.N; j++) { x += p.a * Math.cos(j * p.ph * Math.PI / 180); y += p.a * Math.sin(j * p.ph * Math.PI / 180); } return Math.hypot(x, y); } },
+    { id: 'spc-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'coupled pendulums', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['In the in-phase (symmetric) mode the coupling spring never stretches.', 'The out-of-phase mode has the higher frequency.', 'The in-phase mode has the same frequency as one uncoupled pendulum.',
+          'If one bob alone is pulled aside and released, the energy passes back and forth between the bobs.', 'The normal-mode frequencies do not depend on how the motion is started.'];
+        const F = ['The in-phase mode has the higher frequency.', 'In the in-phase mode the coupling spring is stretched most.', 'A stiffer coupling spring makes the energy exchange between the bobs slower.',
+          'The out-of-phase mode has the same frequency as one uncoupled pendulum.', 'Any motion of the two bobs repeats with the period of the in-phase mode.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Two identical simple pendulums are joined at their bobs by a light spring. Which statements about small oscillations are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'Modes: in phase, $\\omega_1 = \\sqrt{g/L}$ (the spring keeps its length, so it is as if absent); out of phase, $\\omega_2 = \\sqrt{g/L + 2k/m}$ (higher). A general motion is a mix of the two; starting one bob alone gives beats, with the energy swapping in a time $\\pi/(\\omega_2 - \\omega_1)$, which shortens as $k$ grows. The mode frequencies are fixed by the system; the mixture depends on the start, and a mixture is periodic only when $\\omega_2/\\omega_1$ is rational.',
+          trap: 'The spring sets the gap between the two mode frequencies, so a stiffer spring means faster energy exchange.' };
+      } },
+    { id: 'spc-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'coupled pendulums', unit: 'N/m',
+      make(r) {
+        const m = Q5.pick(r, 0.1, 1, 0.05), fs = Q5.pick(r, 0.5, 1.5, 0.01), fa = Q5.round(fs + Q5.pick(r, 0.05, 0.6, 0.01), 2);
+        const k = m * (4 * Math.PI ** 2) * (fa * fa - fs * fs) / 2;
+        return { q: `Two identical pendulums with bobs of mass $${m}$ kg are coupled by a light spring between the bobs. Their normal modes are measured at $${fs}$ Hz (in phase) and $${fa}$ Hz (out of phase). The spring constant is ______ N/m (to three decimal places).`,
+          answer: Q5.round(k, 3), tol: Math.max(0.002, Q5.round(0.005 * k, 4)), m, fs, fa,
+          sol: `$\\omega_s^2 = g/L$ and $\\omega_a^2 = g/L + 2k/m$, so $k = \\tfrac{m}{2}(\\omega_a^2 - \\omega_s^2) = 2\\pi^2 m(f_a^2 - f_s^2) = 2\\pi^2\\times${m}\\times(${fa}^2 - ${fs}^2) = ${Q5.round(k, 3)}$ N/m.`,
+          trap: 'Each bob feels the spring stretch twice the bob displacement in the out-of-phase mode: hence $2k/m$.' };
+      },
+      verify: (p) => { const ws = 2 * Math.PI * p.fs, wa = 2 * Math.PI * p.fa; const gL = ws * ws; return (wa * wa - gL) * p.m / 2; } },
+    { id: 'spc-t24', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'normal modes', format: 'comparison',
+      make(r) {
+        const c = Q5.int(r, 1, 6);
+        const sq = (n) => { const s = Math.round(Math.sqrt(n)); return s * s === n ? `$${s}$` : `$\\sqrt{${n}}$`; };
+        const o = Q5.mcqOptions(r, sq(1 + 2 * c), [sq(1 + c), sq(2 * c), `$${1 + 2 * c}$`, sq(2 + c), `$${c + 1}$`, sq(4 * c + 1)]);
+        return { q: `Two equal masses $m$ slide on a smooth line between two walls: wall, spring $k$, mass, spring $${c === 1 ? '' : c}k$, mass, spring $k$, wall. The ratio of the higher normal-mode frequency to the lower one is`, ...o,
+          sol: `In the in-phase mode the middle spring keeps its length: $\\omega_1 = \\sqrt{k/m}$. In the out-of-phase mode the middle spring stretches by $2x$, so each mass feels $-kx - 2(${c}k)x$: $\\omega_2 = \\sqrt{(1 + ${2 * c})k/m}$. Ratio $= \\sqrt{${1 + 2 * c}}$.`,
+          trap: 'In the out-of-phase mode the middle spring stretches by twice each displacement.' };
+      } },
+    { id: 'spc-t25', type: 'nat', level: 2, exams: ['jam'], sub: 'lissajous', unit: 'degrees',
+      make(r) {
+        const B = Q5.int(r, 2, 10), Y = Q5.pick(r, 0.5, B - 0.5, 0.5);
+        const phi = Math.asin(Y / B) * 180 / Math.PI;
+        return { q: `A spot moves with $x = A\\sin\\omega t$ and $y = ${B}\\sin(\\omega t + \\phi)$ (cm), with $0 < \\phi < 90^\\circ$, and traces an ellipse. The ellipse cuts the $y$ axis at $y = \\pm${Y}$ cm. The phase difference $\\phi$ is ______ degrees (to one decimal place).`,
+          answer: Q5.round(phi, 1), tol: 0.1, B, Y,
+          sol: `On the $y$ axis $x = 0$, so $\\sin\\omega t = 0$ and $\\omega t = 0$ or $\\pi$; then $y = \\pm${B}\\sin\\phi$. So $\\sin\\phi = ${Y}/${B}$ and $\\phi = ${Q5.round(phi, 1)}^\\circ$.`,
+          trap: 'The crossing height is $B\\sin\\phi$, not $B\\cos\\phi$: at $\\phi = 0$ the figure is a line through the origin.' };
+      },
+      verify: (p) => Math.acos(Math.sqrt(1 - (p.Y / p.B) ** 2)) * 180 / Math.PI },
     { id: 'spc-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'adding SHMs',
       make(r) {
         const A1 = int(r, 2, 9), A2 = int(r, 2, 9), [ph, tex] = choose(r, [[0, '0'], [Math.PI / 3, '\\pi/3'], [Math.PI / 2, '\\pi/2'], [2 * Math.PI / 3, '2\\pi/3'], [Math.PI / 4, '\\pi/4']]);

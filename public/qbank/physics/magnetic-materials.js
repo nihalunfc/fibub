@@ -7,6 +7,25 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 const mu0 = C.mu0;
 const muB = C.e * C.hbar / (2 * C.me); // 9.274e-24 J/T
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'magnetic-materials',
   items: [
@@ -217,6 +236,60 @@ export default {
       trap: 'Assuming $B$ just outside equals $B$ inside everywhere. Only the normal component is continuous; at the equator the field is tangential and it jumps.' },
   ],
   gens: [
+    { id: 'mgm-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'kinds of magnetism',
+      make(r) {
+        const names = ['diamagnetic', 'paramagnetic', 'ferromagnetic', 'antiferromagnetic', 'a superconductor (perfect diamagnet)'];
+        const desc = ['a small negative susceptibility, about $-10^{-5}$, that hardly changes with temperature', 'a small positive susceptibility that varies as $1/T$', 'a susceptibility of order $10^{3}$ that depends on the field, with hysteresis, below a critical temperature',
+          'a small positive susceptibility that rises as the sample is warmed up to a critical temperature and falls above it', 'a susceptibility of exactly $-1$ below a critical temperature'];
+        const c = Q5.int(r, 0, 4);
+        const o = Q5.mcqOptions(r, names[c], Q5.shuffle(r, names.filter((x, i) => i !== c)));
+        return { q: `A material shows ${desc[c]}. It is best described as`, ...o,
+          sol: 'Diamagnetism: induced moments oppose the field, $\\chi \\sim -10^{-5}$, nearly temperature independent. Paramagnetism: permanent moments partly aligned against thermal disorder, Curie law $\\chi = C/T$. Ferromagnetism: exchange aligns moments in domains, huge field-dependent $\\chi$ with hysteresis below $T_C$. Antiferromagnetism: neighbouring moments antiparallel; $\\chi$ peaks at the Néel temperature. A superconductor expels the field (Meissner effect): $B = 0$ inside, $\\chi = -1$.',
+          trap: 'A susceptibility that peaks at a temperature signals antiferromagnetism; a $1/T$ fall signals paramagnetism.' };
+      } },
+    { id: 'mgm-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'bound currents', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['A uniformly magnetised body has no bound volume current.', 'The bound surface current density is $\\vec K_b = \\vec M\\times\\hat n$.', 'Across a boundary with no free surface current, the tangential component of $\\vec H$ is continuous.',
+          'Across any boundary, the normal component of $\\vec B$ is continuous.', 'The bound volume current density is $\\vec J_b = \\nabla\\times\\vec M$.'];
+        const F = ['A uniformly magnetised body has a bound volume current $\\vec J_b = \\vec M$.', 'The bound surface current density is $\\vec K_b = \\vec M\\cdot\\hat n$.', 'Across any boundary the normal component of $\\vec H$ is continuous.',
+          'Across any boundary the tangential component of $\\vec B$ is continuous.', 'The bound volume current density is $\\vec J_b = \\nabla\\cdot\\vec M$.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about magnetised matter are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'A magnetisation $\\vec M$ is equivalent to bound currents $\\vec J_b = \\nabla\\times\\vec M$ (zero when $\\vec M$ is uniform) and $\\vec K_b = \\vec M\\times\\hat n$ on the surface. $\\nabla\\cdot\\vec B = 0$ always, so $B_n$ is continuous. $\\nabla\\times\\vec H = \\vec J_f$, so $H_t$ is continuous where there is no free surface current. $H_n$ and $B_t$ jump when $\\vec M$ changes across the boundary.',
+          trap: 'Bound currents come from the curl of $\\vec M$ (and its cross product with the normal), never the divergence or dot product.' };
+      } },
+    { id: 'mgm-t23', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'bound currents', unit: 'mT',
+      make(r) {
+        const a = Q5.int(r, 1, 4), L = Q5.int(r, 8, 20), m = Q5.pick(r, 0.05, 2, 0.05);
+        const M = m / (Math.PI * (a / 1000) ** 2 * (L / 100)), B = 4e-7 * Math.PI * M / 2 * 1000;
+        return { q: `A thin iron rod, $${L}$ cm long and $${a}$ mm in radius, is magnetised uniformly along its length and has magnetic moment $${m}$ A m$^2$. The field $B$ at the centre of one end face is about ______ mT (to two decimal places; treat the rod as very long).`,
+          answer: Q5.round(B, 2), tol: Math.max(0.01, Q5.round(0.005 * B, 3)), a, L, m,
+          sol: `$M = m/V = ${m}/(\\pi\\times(${a / 1000})^2\\times${L / 100}) = ${Q5.fmt(M, 4)}$ A/m. The rod is equivalent to a surface current $K_b = M$ round its side: a solenoid. At the centre of an end of a long solenoid $B = \\mu_0K/2 = \\mu_0M/2 = ${Q5.round(B, 2)}$ mT.`,
+          trap: 'At the end of a long solenoid the field is half the value deep inside.' };
+      },
+      verify: (p) => { const R = p.a / 1000, L = p.L / 100, K = p.m / (Math.PI * R * R * L); return 4e-7 * Math.PI * K / 2 * L / Math.sqrt(L * L + R * R) * 1000; } },
+    { id: 'mgm-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'hysteresis',
+      make(r) {
+        const good = ['A transformer core should have a narrow hysteresis loop (low coercivity).', 'A permanent magnet should have high coercivity and high remanence.', 'The area of the B-H loop is the energy lost as heat per unit volume per cycle.',
+          'Soft iron is preferred for electromagnet cores because it loses its magnetisation easily.', 'Heating a ferromagnet above its Curie temperature makes it paramagnetic.'];
+        const bad = ['A transformer core should have a wide hysteresis loop.', 'A permanent magnet should have low coercivity.', 'The area of the B-H loop is the energy stored in the core.', 'Soft iron is preferred for permanent magnets.', 'Heating a ferromagnet above its Curie temperature makes it diamagnetic.'];
+        const not = r() < 0.5;
+        const o = not ? q5odd(r, bad, good) : q5odd(r, good, bad);
+        return { q: `Which ${not ? 'one statement is <b>NOT</b> correct' : 'one statement is correct'}?`, ...o,
+          sol: 'Cores that are cycled (transformers, electromagnets) need soft materials: narrow loops, low coercivity, little heat loss per cycle (loss per unit volume per cycle $= \\oint H\\,dB$, the loop area). Permanent magnets need hard materials: large remanence (strong when the field is removed) and large coercivity (hard to demagnetise). Above $T_C$ the exchange order is lost and the material becomes paramagnetic.',
+          trap: 'Loop area is energy lost every cycle, not stored.' };
+      } },
+    { id: 'mgm-t25', type: 'nat', level: 4, exams: ['jam', 'gate', 'net'], sub: 'curie law',
+      make(r) {
+        const n = Q5.int(r, 1, 9), k = Q5.int(r, 1, 7), T = Q5.int(r, 5, 40) * 10;
+        const mu = k * 9.274e-24, chi = 1.25664e-6 * n * 1e27 * mu * mu / (3 * 1.380649e-23 * T);
+        return { q: `A paramagnet has $${n}\\times10^{27}$ independent classical moments per m$^3$, each of size $${k}\\,\\mu_B$, at $${T}$ K. In the low-field (Langevin) limit its susceptibility is $\\chi = x\\times10^{-4}$, where $x$ is ______ (to three significant figures; $\\mu_B = 9.274\\times10^{-24}$ J/T, $\\mu_0 = 1.25664\\times10^{-6}$ SI, $k_B = 1.381\\times10^{-23}$ J/K).`,
+          answer: +(chi * 1e4).toPrecision(3), tol: +(0.006 * chi * 1e4).toPrecision(2), n, k, T,
+          sol: `For small $x = \\mu B/k_BT$, the Langevin function is $L(x) \\approx x/3$, so $M = n\\mu L(x) = \\dfrac{n\\mu^2}{3k_BT}B$ and, with $B \\approx \\mu_0H$, $\\chi = \\dfrac{\\mu_0n\\mu^2}{3k_BT}$. Here $\\mu = ${k}\\times9.274\\times10^{-24} = ${Q5.fmt(mu, 4)}$ J/T, giving $\\chi = ${Q5.fmt(chi, 3)}$.`,
+          trap: 'The moment enters squared: once to align, once to count the magnetisation.' };
+      },
+      verify: (p) => { const mu = p.k * 9.274e-24, H = 1e5, Bf = 1.25664e-6 * H, x = mu * Bf / (1.380649e-23 * p.T); const L = 1 / Math.tanh(x) - 1 / x; return p.n * 1e27 * mu * L / H * 1e4; } },
     { id: 'mgm-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'H and B', unit: 'mT',
       make(r) {
         const H = int(r, 1, 20) * 100, M = int(r, -20, 40) * 100;

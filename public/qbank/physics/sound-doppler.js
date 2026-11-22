@@ -5,6 +5,25 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub).
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'sound-doppler',
   items: [
@@ -205,6 +224,62 @@ export default {
       trap: 'Using the heap spacing as a whole wavelength halves the frequency.' },
   ],
   gens: [
+    { id: 'sdp-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'pipes', format: 'comparison',
+      make(r) {
+        const m = Q5.int(r, 0, 3), n = Q5.int(r, 0, 3);
+        const ov = (j) => (j === 0 ? 'fundamental' : `${['', 'first', 'second', 'third'][j]} overtone`);
+        const o = Q5.mcqOptions(r, q5frac(2 * (n + 1), 2 * m + 1), [q5frac(n + 1, 2 * m + 1), q5frac(2 * m + 1, 2 * (n + 1)), q5frac(4 * (n + 1), 2 * m + 1), q5frac(n + 1, 2 * (2 * m + 1))], (s) => `$${s}$`);
+        return { q: `The ${ov(m)} of a pipe closed at one end (length $L_c$) has the same frequency as the ${ov(n)} of a pipe open at both ends (length $L_o$). Ignoring end corrections, $L_o/L_c$ is`, ...o,
+          sol: `A closed pipe sounds only odd harmonics: its ${ov(m)} is $(2\\cdot${m} + 1)\\dfrac{v}{4L_c} = \\dfrac{${2 * m + 1}v}{4L_c}$. An open pipe sounds all harmonics: its ${ov(n)} is $(${n} + 1)\\dfrac{v}{2L_o} = \\dfrac{${n + 1}v}{2L_o}$. Setting them equal: $\\dfrac{L_o}{L_c} = \\dfrac{2\\times${n + 1}}{${2 * m + 1}} = ${q5frac(2 * (n + 1), 2 * m + 1)}$.`,
+          trap: 'The $k$-th overtone of a closed pipe is the $(2k+1)$-th harmonic, because the even harmonics are missing.' };
+      } },
+    { id: 'sdp-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'doppler', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['At the same speed (below the speed of sound), a source moving towards a still listener raises the pitch more than a listener moving towards a still source.',
+          'The wavelength in the air is shortened only when the source moves.', 'A steady wind blowing from source to listener, both at rest, does not change the frequency heard.',
+          'A source moving away from a still listener sounds lower in pitch.', 'If source and listener move with the same velocity through still air, the pitch heard is unchanged.'];
+        const F = ['A source moving towards a listener and a listener moving towards a source at the same speed give exactly the same frequency.',
+          'A listener moving towards the source shortens the wavelength in the air.', 'A steady wind blowing from source to listener, both at rest, raises the pitch heard.',
+          'The pitch of a source approaching at constant speed along the line to the listener keeps rising as it gets closer.', 'The Doppler shift grows as the distance between source and listener shrinks.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Sound travels in air (no wind unless stated). Which statements about the Doppler effect are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: '$f\' = f\\,\\dfrac{v + u_L}{v - u_S}$ (speeds positive when towards the other). Source only: $f/(1 - u/v)$; listener only: $f(1 + u/v)$; the first is larger since $1/(1-x) > 1 + x$. A moving source crowds the waves (shorter $\\lambda$ in air); a moving listener only meets them faster. Wind moves the whole pattern but the number of crests reaching a still listener per second still equals the number sent, so $f$ is unchanged. The formula has speeds, not distances, so at constant velocity along the line the pitch is steady (it drops suddenly as the source passes). Equal velocities give $(v - u)/(v - u) = 1$.',
+          trap: 'Source and listener motion are not symmetric for sound, because the air is a preferred frame.' };
+      } },
+    { id: 'sdp-t23', type: 'nat', level: 2, exams: ['jam'], sub: 'decibels', unit: 'm',
+      make(r) {
+        const r1 = Q5.int(r, 2, 20), dL = Q5.int(r, 3, 30);
+        const r2 = r1 * 10 ** (dL / 20);
+        return { q: `A small source sends sound out equally in all directions with no echoes. At $${r1}$ m the sound level is $L$ dB. The level is $${dL}$ dB lower at a distance of ______ m (to two decimal places).`,
+          answer: Q5.round(r2, 2), tol: Math.max(0.01, Q5.round(0.002 * r2, 3)), r1, dL,
+          sol: `$I \\propto 1/r^2$, so $\\Delta L = 10\\log_{10}(I_1/I_2) = 20\\log_{10}(r_2/r_1)$. Hence $r_2 = r_1\\times10^{\\Delta L/20} = ${r1}\\times10^{${dL}/20} = ${Q5.round(r2, 2)}$ m.`,
+          trap: 'Distance enters as $20\\log$, not $10\\log$, because intensity goes as $1/r^2$: 6 dB per doubling of distance.' };
+      },
+      verify: (p) => p.r1 * Math.sqrt(10 ** (p.dL / 10)) },
+    { id: 'sdp-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'pressure waves', format: 'graph',
+      make(r) {
+        const c = Q5.int(r, 0, 2);
+        const where = ['the displacement is zero', 'the displacement is at its maximum', 'the displacement is zero and the graph of displacement against $x$ is rising (positive slope)'][c];
+        const right = ['the largest (a compression or a rarefaction)', 'the normal (undisturbed) pressure', 'a rarefaction: the pressure is at its lowest'][c];
+        const wr = [['the normal (undisturbed) pressure', 'half of its largest change', 'the normal pressure, because the air layers there are at rest'],
+          ['the largest (a compression or a rarefaction)', 'a compression: the pressure is at its highest', 'a rarefaction: the pressure is at its lowest'],
+          ['a compression: the pressure is at its highest', 'the normal (undisturbed) pressure', 'half of its largest change']][c];
+        const o = Q5.mcqOptions(r, right, wr);
+        return { q: `A sound wave travels along $x$. A graph of the air displacement $s$ against $x$ at one instant is a sine curve. At a point where ${where}, the pressure is`, ...o,
+          sol: `The excess pressure is $\\Delta p = -B\\,\\partial s/\\partial x$: it follows the slope of the displacement graph, a quarter wavelength out of step with $s$. Where $s = 0$ the slope is steepest, so $|\\Delta p|$ is largest; where $s$ is at a peak the slope is zero, so the pressure is normal. A positive slope means the layers spread apart ($\\Delta p < 0$): a rarefaction.`,
+          trap: 'Pressure is largest where the displacement is zero, not where it is largest.' };
+      } },
+    { id: 'sdp-t25', type: 'nat', level: 2, exams: ['jam'], sub: 'speed of sound', unit: 'Hz',
+      make(r) {
+        const f1 = Q5.int(r, 200, 600), t1 = Q5.int(r, 0, 15), t2 = Q5.int(r, 20, 45);
+        const f2 = f1 * Math.sqrt((t2 + 273) / (t1 + 273));
+        return { q: `An organ pipe closed at one end sounds $${f1}$ Hz at $${t1}\\,^\\circ$C. Ignoring the expansion of the pipe, it sounds ______ Hz at $${t2}\\,^\\circ$C (to one decimal place; take $0\\,^\\circ$C $= 273$ K).`,
+          answer: Q5.round(f2, 1), tol: 0.15, f1, t1, t2,
+          sol: `The length fixes the wavelength, so $f \\propto v \\propto \\sqrt T$. $f_2 = ${f1}\\sqrt{${t2 + 273}/${t1 + 273}} = ${Q5.round(f2, 1)}$ Hz.`,
+          trap: 'Use kelvin in the square root, not degrees Celsius.' };
+      },
+      verify: (p) => { const v = (t) => 331 * Math.sqrt((t + 273) / 273); const L = v(p.t1) / (4 * p.f1); return v(p.t2) / (4 * L); } },
     { id: 'sdp-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'pipes',
       make(r) {
         const L = pick(r, 0.2, 2, 0.05), closed = r() < 0.5, v = choose(r, [330, 340, 343, 350]), n = closed ? choose(r, [1, 3, 5]) : int(r, 1, 4);
