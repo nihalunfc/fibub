@@ -1,0 +1,78 @@
+---
+// SIM for 2.1: pick the question you want the chart to answer; see the chart that answers it best, drawn from the
+// Northbay data, and the chart people often reach for instead, with why it is worse.
+---
+<figure class="cs-fig ds" data-chooser>
+  <span class="cs-figtag">Try it: choose the chart from the question</span>
+  <div class="ds-pick" role="group" aria-label="What should the chart show?">
+    <button type="button" data-q="compare" aria-pressed="true">Compare items</button>
+    <button type="button" data-q="trend" aria-pressed="false">Change over time</button>
+    <button type="button" data-q="target" aria-pressed="false">Actual vs target</button>
+    <button type="button" data-q="part" aria-pressed="false">Part of a whole</button>
+    <button type="button" data-q="spread" aria-pressed="false">Spread of values</button>
+    <button type="button" data-q="relation" aria-pressed="false">Two measures together</button>
+  </div>
+  <p class="ds-q" data-ask></p>
+  <div class="ds-two">
+    <div class="ds-card ds-good"><p class="ds-cardhead">Use: <span data-goodname></span></p><div data-good></div><p class="ds-why" data-goodwhy></p></div>
+    <div class="ds-card ds-bad"><p class="ds-cardhead">Not: <span data-badname></span></p><div data-bad></div><p class="ds-why" data-badwhy></p></div>
+  </div>
+  <figcaption>Start from the question, not from the chart menu. The data is Northbay Goods, the made-up shop from the Power BI course.</figcaption>
+</figure>
+<script>
+  import { bar, line, pie, scatter, stacked, PAL, GREY, k } from './charts';
+  import * as D from './data';
+  type C = { ask: string; good: [string, () => string, string]; bad: [string, () => string, string] };
+  const prods = D.PRODUCTS;
+  const CH: Record<string, C> = {
+    compare: {
+      ask: 'Which store sold the most in 2025?',
+      good: ['sorted bar chart', () => bar({ labels: D.STORES, values: D.STORE_2025, horizontal: true, sort: true, dataLabels: true, axis: false }), 'Lengths from a common baseline are the easiest thing for eyes to compare. Sorted, the ranking reads top to bottom, and horizontal bars leave room for the names.'],
+      bad: ['pie chart', () => pie({ labels: D.STORES, values: D.STORE_2025, h: 200 }), 'Can you tell Rideau from Harbour Front? Angles and areas are hard to compare, and the legend makes you look back and forth.'],
+    },
+    trend: {
+      ask: 'How did monthly sales move through 2024 and 2025?',
+      good: ['line chart', () => line({ labels: [...D.MONTHS.map((m) => m + ' 24'), ...D.MONTHS.map((m) => m + ' 25')], series: [{ name: 'Sales', values: [...D.SALES_2024, ...D.SALES_2025] }], every: 6, note: { s: 0, i: 13, text: 'Feb 2025 dip' } }), 'A line shows the shape: the rise each November and December, the growth into 2025, and the odd dip in February 2025.'],
+      bad: ['24 columns in rainbow colours', () => bar({ labels: [...D.MONTHS, ...D.MONTHS].map((m) => m[0]), values: [...D.SALES_2024, ...D.SALES_2025], colors: 'rainbow', grid: true }), 'Colours that mean nothing make you look for a meaning. Many columns also hide the shape a single line shows at a glance.'],
+    },
+    target: {
+      ask: 'Did each store beat its 2025 target?',
+      good: ['bars with a target mark (bullet chart)', () => bar({ labels: D.STORES, values: D.STORE_2025, target: D.STORE_TARGET_2025, horizontal: true, dataLabels: true, axis: false, colors: D.STORE_2025.map((v, i) => (v >= D.STORE_TARGET_2025[i] ? PAL[0] : PAL[1])) }), 'The black tick is the target. Blue bars pass it; the orange one (Forks Market) is just short. One look answers the question.'],
+      bad: ['two gauges per store', () => gauges(), 'Gauges take lots of space for one number each, and comparing needles across five dials is slow. They also need a lot of ink for little information.'],
+    },
+    part: {
+      ask: 'What share of 2025 sales came from each category?',
+      good: ['one stacked bar (or a short sorted bar chart)', () => stacked({ labels: ['2025'], series: D.CATS.map((c, i) => ({ name: c, values: [D.CAT_2025[i]] })), percent: true, h: 92 }) + bar({ labels: D.CATS, values: D.CAT_2025.map((v) => v / D.sum(D.CAT_2025)), horizontal: true, dataLabels: true, axis: false, fmt: (n) => `${Math.round(n * 100)}%`, h: 140 }), 'A single 100 % bar shows "parts of one whole". For more than three parts, a sorted bar chart with percentages is easier to read.'],
+      bad: ['3D exploded pie', () => pie({ labels: D.CATS, values: D.CAT_2025, labelsOn: true, h: 200 }).replace('<svg', '<svg style="transform: perspective(400px) rotateX(48deg); transform-origin: 50% 70%"'), 'Tilting a pie makes the front slices look bigger than they are. Never use 3D for flat data.'],
+    },
+    spread: {
+      ask: 'How big is a typical sales line? Are there many large ones?',
+      good: ['histogram', () => bar({ labels: D.LINE_BINS, values: D.LINE_COUNTS, rotate: true, h: 240, dataLabels: true, axis: false, fmt: (n) => String(n), label: 'Histogram of sales line amounts' }), 'Most lines are under $50; a few are over $200. The average ($64) sits to the right of the most common value, pulled up by the big lines.'],
+      bad: ['one average card', () => `<div class="ds-kpi"><span>Average sales line</span><b>$63.58</b></div>`, 'One number hides the shape. Two very different shops can have the same average.'],
+    },
+    relation: {
+      ask: 'Do pricier products sell fewer units?',
+      good: ['scatter plot', () => scatter({ points: prods.map((p) => ({ x: p[2], y: p[3] / 2, label: p[2] >= 50 || p[3] < 800 ? p[0] : undefined, c: PAL[D.CATS.indexOf(p[1])] })), xLabel: 'Unit price ($)', yLabel: 'Units a year', fx: (n) => '$' + n, fy: (n) => String(n) }), 'Each dot is a product. There is no clear slope: price doesn\'t predict units here. The odd one out, the Snow shovel, sells only in winter.'],
+      bad: ['two lines on two axes', () => line({ labels: prods.map((p) => p[0].slice(0, 3)), series: [{ name: 'Price', values: prods.map((p) => p[2] * 20) }, { name: 'Units', values: prods.map((p) => p[3]), color: PAL[1] }], legend: 'box', every: 1, fmt: () => '' }), 'A dual axis lets you make any two lines cross wherever you like by changing the scales. Lines also suggest an order between products that doesn\'t exist.'],
+    },
+  };
+  function gauges() {
+    return `<div class="ds-gauges">${D.STORES.map((s, i) => {
+      const f = Math.min(D.STORE_2025[i] / D.STORE_TARGET_2025[i] / 1.2, 1), a = Math.PI * (1 - f);
+      return `<svg viewBox="0 0 100 64" role="img" aria-label="${s} gauge"><path d="M10 54 A40 40 0 0 1 90 54" fill="none" stroke="${GREY}" stroke-width="10"/><line x1="50" y1="54" x2="${(50 + 36 * Math.cos(a)).toFixed(1)}" y2="${(54 - 36 * Math.sin(a)).toFixed(1)}" stroke="var(--ink)" stroke-width="3"/><text x="50" y="63" font-size="9" text-anchor="middle" fill="var(--muted)">${s}</text></svg>`;
+    }).join('')}</div>`;
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-chooser]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const show = (id: string) => {
+      const c = CH[id];
+      q('[data-ask]').textContent = `Question: ${c.ask}`;
+      q('[data-goodname]').textContent = c.good[0]; q('[data-good]').innerHTML = c.good[1](); q('[data-goodwhy]').textContent = c.good[2];
+      q('[data-badname]').textContent = c.bad[0]; q('[data-bad]').innerHTML = c.bad[1](); q('[data-badwhy]').textContent = c.bad[2];
+      fig.querySelectorAll('[data-q]').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.q === id)));
+    };
+    fig.querySelectorAll<HTMLElement>('[data-q]').forEach((b) => b.addEventListener('click', () => show(b.dataset.q!)));
+    show('compare');
+  }
+  void k;
+</script>

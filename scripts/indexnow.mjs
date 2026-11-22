@@ -4,7 +4,7 @@
 // Google does not use IndexNow; it reads the sitemap.
 //
 // Usage: node scripts/indexnow.mjs <base-sha> <head-sha>   (run by .github/workflows/indexnow.yml)
-//        node scripts/indexnow.mjs --all                    (every live tool, article and hub page)
+//        node scripts/indexnow.mjs --all                    (every live tool, article, course lesson and hub page)
 //        add --dry to print the list without sending it.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -26,7 +26,8 @@ function toolUrl(id) {
 }
 
 let changed;
-if (all) changed = [...readdirSync('src/tools').map((id) => `src/tools/${id}/guide.md`), ...readdirSync('src/blog', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/blog/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/blog/${d.name}/${f}`))];
+const courseFiles = () => existsSync('src/courses') ? readdirSync('src/courses', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/courses/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/courses/${d.name}/${f}`)) : [];
+if (all) changed = [...courseFiles(), ...readdirSync('src/tools').map((id) => `src/tools/${id}/guide.md`), ...readdirSync('src/blog', { withFileTypes: true }).filter((d) => d.isDirectory()).flatMap((d) => readdirSync(`src/blog/${d.name}`).filter((f) => f.endsWith('.md')).map((f) => `src/blog/${d.name}/${f}`))];
 else changed = execFileSync('git', ['diff', '--name-only', base, head], { encoding: 'utf8' }).split('\n').filter(Boolean);
 
 const urls = new Set();
@@ -45,6 +46,14 @@ for (const f of changed) {
   urls.add(`${SITE}/blog/${m[1]}/${m[2]}/`); kinds.add(m[1]);
 }
 if (kinds.size) { urls.add(`${SITE}/blog/`); for (const k of kinds) urls.add(`${SITE}/blog/${k}/`); }
+// Course lessons (src/courses/<course>/<slug>.md) go out too, with their course home and the Courses page.
+const courses = new Set();
+for (const f of changed) {
+  const m = f.match(/^src\/courses\/([a-z0-9-]+)\/([a-z0-9-]+)\.md$/);
+  if (!m || !existsSync(f)) continue;
+  urls.add(`${SITE}/learn/courses/${m[1]}/${m[2]}/`); courses.add(m[1]);
+}
+if (courses.size) { urls.add(`${SITE}/learn/courses/`); for (const c of courses) urls.add(`${SITE}/learn/courses/${c}/`); }
 if (shelves.size) { urls.add(`${SITE}/`); for (const s of shelves) urls.add(`${SITE}/${s}/`); }
 const list = [...urls].slice(0, 10000);
 console.log(`${list.length} changed page(s)${list.length ? ':\n' + list.join('\n') : ''}`);

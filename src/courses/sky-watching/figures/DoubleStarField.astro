@@ -1,0 +1,40 @@
+---
+// SIM for 5.3: a double star in the eyepiece with its separation and position angle (measured from north
+// through east), and the telescope's Dawson limit drawn as a circle.
+---
+<figure class="cs-fig mlf" data-double>
+  <span class="cs-figtag">Try it: read separation and position angle</span>
+  <canvas aria-label="A double star with north and east marked, the position angle arc and the resolution limit circle"></canvas>
+  <div class="mlf-ctl">
+    <label>Separation <output data-v="s"></output><input type="range" name="s" min="0.5" max="10" step="0.1" value="4"></label>
+    <label>Position angle <output data-v="pa"></output><input type="range" name="pa" min="0" max="359" step="1" value="60"></label>
+    <label>Aperture <output data-v="d"></output><input type="range" name="d" min="50" max="300" step="10" value="100"></label>
+  </div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>The bright primary is in the centre. North is up and east is to the left, as the sky looks with no mirror in the way. Position angle (PA) is measured from north through east (anticlockwise here). The dashed circle is Dawson's limit for your aperture: companions inside it can't be split, even in perfect air. Made-up pair.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { dawson } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-double]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const p = new Plot(cv, { x: [-12, 12], y: [-12, 12], h: 280, bare: true, equal: true });
+    const draw = () => {
+      const s = gs(), pa = gpa(), D = gd(), t = (pa * Math.PI) / 180, X = -s * Math.sin(t), Y = s * Math.cos(t), dl = dawson(D);
+      p.begin(); const c = p.ctx, R = Math.min(p.px(11.5) - p.px(0), p.py(-11.5) - p.py(0));
+      c.fillStyle = p.pal.red ? p.pal.night : '#0c1220'; c.beginPath(); c.arc(p.px(0), p.py(0), R, 0, 6.283); c.fill();
+      const wh = p.pal.red ? p.pal.ink : '#ffffff', mu = p.pal.red ? p.pal.muted : '#9aa3b5';
+      p.arrow(0, 0, 0, 10, { color: mu, width: 1 }); p.text(0, 10.3, 'N', { color: wh, align: 'center', base: 'bottom', bold: true });
+      p.arrow(0, 0, -10, 0, { color: mu, width: 1 }); p.text(-10.4, 0, 'E', { color: wh, align: 'right', bold: true });
+      p.path(Array.from({ length: 61 }, (_, i) => [dl * Math.cos(i / 60 * 6.283), dl * Math.sin(i / 60 * 6.283)] as [number, number]), { color: p.pal.accent2, width: 1.2, dash: [3, 3] });
+      const arc: [number, number][] = []; for (let i = 0; i <= 40; i++) { const a = (i / 40) * t; arc.push([-3 * Math.sin(a), 3 * Math.cos(a)]); }
+      if (pa > 0) p.path(arc, { color: p.pal.accent2, width: 2 });
+      p.line(0, 0, X, Y, { color: mu, width: 1, dash: [2, 3] });
+      p.dot(0, 0, { r: 6, color: wh }); p.dot(X, Y, { r: 3.5, color: p.pal.red ? p.pal.ink : '#9ec5ff' });
+      p.end();
+      say.textContent = `Separation ${fmt(s, 1)}″ at PA ${pa}°: the companion lies ${['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(pa / 45) % 8]} of the primary. ${s > dl ? `A ${D} mm telescope can split it in steady air (Dawson limit ${fmt(dl, 2)}″).` : `Closer than the ${fmt(dl, 2)}″ Dawson limit of a ${D} mm telescope: it will look like one star.`}`;
+    };
+    const gs = slider(fig, 's', () => go(), (v) => `${fmt(v, 1)}″`), gpa = slider(fig, 'pa', () => go(), (v) => `${v}°`), gd = slider(fig, 'd', () => go(), (v) => `${v} mm`);
+    const go = live(cv, draw);
+  }
+</script>

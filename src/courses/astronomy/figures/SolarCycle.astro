@@ -1,0 +1,50 @@
+---
+// SIM for 8.6: a made-up 60-year sunspot record with cycles of varying strength. Slide a model's period and start
+// until it lines up; the score is the typical miss between model and record.
+---
+<figure class="cs-fig mlf" data-solarcycle>
+  <span class="cs-figtag">Try it: fit the solar cycle</span>
+  <canvas aria-label="A made-up monthly sunspot number record with a model curve over it"></canvas>
+  <div class="mlf-ctl">
+    <label>Cycle length <output data-v="P"></output><input type="range" name="P" min="8" max="14" step="0.05" value="9.5"></label>
+    <label>First cycle starts <output data-v="t0"></output><input type="range" name="t0" min="-4" max="4" step="0.05" value="2"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>typical miss (RMS)</span><b data-rms></b></div>
+    <div><span>best you can do here</span><b data-best></b></div>
+  </div>
+  <figcaption>The grey record is simulated, not real data; it has a hidden cycle length near 11 years and cycles that rise fast and fade slowly, like the real ones. The model has one height for every cycle, so even the best fit misses the strong and weak cycles. Real monthly counts since 1749 are free from SILSO (Royal Observatory of Belgium) to try in the solar cycle fitter.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const shape = (s: number) => (s <= 0 ? 0 : (s / 0.36) ** 2 * Math.exp(2 * (1 - s / 0.36)));
+  const R = rng(11), TRUE_P = 10.9 + R() * 0.4, TRUE_T0 = -1.2;
+  const amps = Array.from({ length: 8 }, () => 70 + R() * 150);
+  const t: number[] = [], y: number[] = [];
+  for (let m = 0; m < 60 * 12; m++) {
+    const tt = m / 12; let v = 0;
+    for (let c = 0; c < 8; c++) v += amps[c] * shape((tt - TRUE_T0 - (c - 1) * TRUE_P) / TRUE_P);
+    v = Math.max(0, v + (R() + R() + R() - 1.5) * (6 + 0.35 * Math.sqrt(v) * 4));
+    t.push(tt); y.push(v);
+  }
+  const meanAmp = amps.reduce((a, b) => a + b, 0) / amps.length;
+  const model = (tt: number, P: number, t0: number) => { let v = 0; for (let c = -1; c < 9; c++) v += meanAmp * shape((tt - t0 - c * P) / P); return v; };
+  const rms = (P: number, t0: number) => { let s = 0; for (let i = 0; i < t.length; i += 3) s += (y[i] - model(t[i], P, t0)) ** 2; return Math.sqrt(s / (t.length / 3)); };
+  let best = Infinity;
+  for (let P = 8; P <= 14; P += 0.05) for (let t0 = -4; t0 <= 4; t0 += 0.1) best = Math.min(best, rms(P, t0));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-solarcycle]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 60], y: [0, 300], h: 250, xLabel: 'years', yLabel: 'sunspot number' });
+    const draw = () => {
+      const P = gP(), t0 = gt0();
+      p.begin();
+      p.path(t.map((tt, i) => [tt, y[i]] as [number, number]), { color: p.pal.muted, width: 1, alpha: 0.7 });
+      p.fn((x) => model(x, P, t0), { color: p.pal.accent2, width: 2.5 });
+      p.end();
+      q('[data-rms]').textContent = fmt(rms(P, t0), 0); q('[data-best]').textContent = fmt(best, 0);
+    };
+    const gP = slider(fig, 'P', () => go(), (v) => `${fmt(v, 2)} years`), gt0 = slider(fig, 't0', () => go(), (v) => `year ${fmt(v, 1)}`);
+    const go = live(cv, draw);
+  }
+</script>

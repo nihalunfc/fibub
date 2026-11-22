@@ -4,16 +4,20 @@ import Base from '../../../layouts/Base.astro';
 import ToolCard from '../../../components/ToolCard.astro';
 import { allTools } from '../../../lib/tools';
 import { SKILL_COURSES, type SkillCourse } from '../../../data/skill-courses';
+import CourseSiblings from '../../../components/learn/CourseSiblings.astro';
 import '../../../styles/area.css';
+import { courseLd } from '../../../lib/seo';
+import '../../../styles/learn.css';
 export function getStaticPaths() { return SKILL_COURSES.map((c) => ({ params: { course: c.id }, props: { c } })); }
 const { c } = Astro.props as { c: SkillCourse };
 const all = await allTools();
 const live = (id: string) => all.find((t) => t.id === id && t.data.status === 'live');
 const lessons = c.lessons.map(live).filter((t) => !!t);
 const tools = c.tools.map(live).filter((t) => !!t);
+const ld = courseLd({ id: c.id, name: c.name, title: c.name, text: c.text }, lessons.map((t) => ({ name: t!.data.name, url: `/learn/${t!.id}/` })));
 ---
-<Base title={`${c.name}: free course`} description={c.text}>
-  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / {c.name}</div>
+<Base title={`${c.name}: free course`} description={c.text} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/life-skills/">Life &amp; business</a> / {c.name}</div>
   <div class="ar-head">
     <h1>{c.name}</h1>
     <p class="lead">{c.text}</p>
@@ -27,6 +31,7 @@ const tools = c.tools.map(live).filter((t) => !!t);
     <h2 class="ar-h">Tools for this course</h2>
     <div class="grid">{tools.map((t) => <ToolCard tool={t!} />)}</div>
   </>}
+  <CourseSiblings id={c.id} />
   <p class="ar-note">Each lesson has pictures for every step, a tick list you can print, something to try, and a short quiz. The lessons teach the basics: always follow the maker's instructions for your own car, tools and fixings, and call a professional when the lesson says so. Like every fibub page, it runs in your browser: no sign-up, nothing about you is saved.</p>
 </Base>
 <style>

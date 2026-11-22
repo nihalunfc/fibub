@@ -1,0 +1,34 @@
+/* Runnable Python cells in course lessons (src/lib/pycells.mjs + src/scripts/pycells.ts). Plain and
+   phone first: the editor and tables scroll inside their own box, never the page. */
+.py { border: 1px solid var(--line); border-radius: 10px; margin: 18px 0; background: var(--bg); overflow: hidden; }
+.py-head { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.py-tag { font-weight: 600; color: var(--accent); }
+.py[data-kind='exercise'] { border-color: var(--accent); }
+.py-files { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.py-code { display: block; width: 100%; box-sizing: border-box; border: 0; margin: 0; padding: 10px 12px; resize: none; overflow-y: hidden;
+  font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 4; white-space: pre; overflow-x: auto; color: var(--ink); background: var(--accent-soft, transparent); }
+.py-code:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.py-btns { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.py-btns .btn { min-height: 36px; }
+.py.is-busy [data-run] { background: var(--ink); }
+.py-out:empty { display: none; }
+.py-out { padding: 8px 12px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.py-text { margin: 4px 0; font: 13.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; }
+.py-tablewrap { overflow-x: auto; max-height: 420px; overflow-y: auto; margin: 6px 0 2px; }
+.py-table { border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.py-table th, .py-table td { border-bottom: 1px solid var(--line); padding: 3px 10px 3px 6px; text-align: left; white-space: nowrap; }
+.py-table thead th { position: sticky; top: 0; background: var(--bg); border-bottom: 2px solid var(--ink); }
+.py-table .py-ix { color: var(--muted); font-weight: 600; }
+.py-table .py-num { text-align: right; }
+.py-table .py-na { color: var(--muted); font-style: italic; }
+.py-shape, .py-quiet { margin: 4px 0; color: var(--muted); font-size: 12.5px; }
+.py-err { margin: 6px 0; padding: 8px 10px; border-left: 3px solid #b3261e; background: color-mix(in srgb, #b3261e 8%, transparent); overflow-wrap: anywhere; }
+.py-err code { display: block; margin-top: 4px; font-size: 13px; white-space: pre-wrap; }
+.py-ok { margin: 6px 0; color: #146c34; font-weight: 600; }
+.py-no { margin: 6px 0; color: #8a5300; font-weight: 600; }
+.py-hint { margin: 6px 0; }
+html[data-theme='dark'] .py-ok { color: #74d391; }
+html[data-theme='dark'] .py-no { color: #f0b45a; }
+html[data-theme='dark'] .py-err { border-left-color: #f28b82; }
+html.red-mode .py-ok, html.red-mode .py-no { color: #a30000; }
+html.red-mode .py-err { border-left-color: #c00000; background: transparent; }

@@ -1,0 +1,35 @@
+---
+// The Northbay Goods model as Power BI's model view draws it: the Sales fact table in the middle, the
+// dimension tables around it, 1-to-many relationships with the filter direction arrows.
+const T = [
+  { id: 'Product', x: 10, y: 10, cols: ['ProductKey 🔑', 'Product', 'Category', 'UnitPrice', 'UnitCost'] },
+  { id: 'Store', x: 470, y: 10, cols: ['StoreKey 🔑', 'Store', 'City', 'Region', 'OpenDate'] },
+  { id: 'Sales', x: 240, y: 110, cols: ['OrderLine', 'Date', 'StoreKey', 'ProductKey', 'Quantity', 'UnitPrice', 'UnitCost', 'Amount'], fact: true },
+  { id: 'Date', x: 10, y: 228, cols: ['Date 🔑', 'Year', 'Quarter', 'MonthNo', 'Month', 'YearMonth', 'Day', 'Weekday'] },
+  { id: 'Targets', x: 470, y: 270, cols: ['YearMonth', 'StoreKey', 'Target'] },
+];
+const W = 200, rowH = 18, head = 26;
+const h = (t: (typeof T)[number]) => head + t.cols.length * rowH + 6;
+const get = (id: string) => T.find((t) => t.id === id)!;
+// [from (one side), to (many side), y offset on each]
+const L: [string, string][] = [['Product', 'Sales'], ['Store', 'Sales'], ['Date', 'Sales'], ['Store', 'Targets']];
+const mid = (t: (typeof T)[number]) => [t.x + W / 2, t.y + h(t) / 2];
+---
+<figure class="cs-fig pbi">
+  <span class="cs-figtag">The Northbay Goods model</span>
+  <svg viewBox="0 0 680 420" role="img" aria-label="Star schema: Sales in the middle, related to Product, Store and Date; Targets related to Store. Filters flow from the one side to the many side.">
+    {L.map(([a, b]) => { const [x1, y1] = mid(get(a)), [x2, y2] = mid(get(b)); const mx = (x1 + x2) / 2, my = (y1 + y2) / 2; const ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI; return <g>
+      <line class="lna" x1={x1} y1={y1} x2={x2} y2={y2} />
+      <polygon class="fa" points="-7,-6 7,0 -7,6" transform={`translate(${mx} ${my}) rotate(${ang})`} />
+    </g>; })}
+    {T.map((t) => <g>
+      <rect class={t.fact ? 'acc' : 'box'} x={t.x} y={t.y} width={W} height={h(t)} rx="8" />
+      <text class="b" x={t.x + 10} y={t.y + 18}>{t.id}{t.fact ? ' (fact)' : ''}</text>
+      {t.cols.map((c, i) => <text x={t.x + 12} y={t.y + head + 13 + i * rowH}>{c}</text>)}
+    </g>)}
+    {L.map(([a, b]) => { const A = get(a), B = get(b); const [x1, y1] = mid(A), [x2, y2] = mid(B); const f = (k: number) => [x1 + (x2 - x1) * k, y1 + (y2 - y1) * k]; const [ax, ay] = f(0.36), [bx, by] = f(0.7); return <g><text class="b" x={ax} y={ay - 6}>1</text><text class="b" x={bx} y={by - 6}>*</text></g>; })}
+    <text class="mu" x="232" y="400">Arrows: the way filters flow (one side → many side). 🔑 key column.</text>
+    <text class="wm" x="672" y="416" text-anchor="end">fibub.com</text>
+  </svg>
+  <figcaption>Each Sales row is one order line. Product, Store and Date describe it. A filter on Product[Category] flows along the arrow to Sales, so a measure on Sales sees only that category. Targets are monthly per store, so they relate to Store but not to the daily Date table (Lesson 6.4 shows how to bring them together).</figcaption>
+</figure>

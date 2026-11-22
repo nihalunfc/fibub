@@ -8,6 +8,7 @@ import { ML_FOUNDATIONS } from '../../../../courses/ml-foundations/syllabus';
 import { courseLessons } from '../../../../lib/course';
 import { flatLessons } from '../../../../courses/types';
 import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
 const live = new Set((await courseLessons(ML_FOUNDATIONS)).keys());
 const num = new Map(flatLessons(ML_FOUNDATIONS).map((l) => [l.slug, l.n]));
 const tex = (t: string) => temml.renderToString(t, { displayMode: true, throwOnError: true, annotate: false });
@@ -75,7 +76,7 @@ const SECTIONS: { h: string; rows: F[] }[] = [
   ] },
 ];
 ---
-<Base title="Machine learning cheat sheet: every key formula" description="The key formulas of machine learning on one free page, from the straight line and least squares to Gini impurity, backpropagation, softmax and attention, each with a one-line meaning and the lesson that explains it.">
+<Base title="Machine learning cheat sheet: every key formula" description="The key formulas of machine learning on one free page, from the straight line and least squares to Gini impurity, backpropagation, softmax and attention, each with a one-line meaning and the lesson that explains it." ld={coursePageLd(ML_FOUNDATIONS, 'Cheat sheet', '', 'cheat-sheet')}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/ml-foundations/">From a straight line to an LLM</a> / Cheat sheet</div>
   <div class="cs-layout">
     <CourseSidebar course={ML_FOUNDATIONS} live={live} />

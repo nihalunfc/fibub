@@ -1,0 +1,40 @@
+---
+// SIM for 3.1: the dark adaptation curve: cones adapt in a few minutes, rods take 20-30 minutes and go much
+// further. A flash of white light starts the clock again; dim red light barely does.
+---
+<figure class="cs-fig mlf" data-dark>
+  <span class="cs-figtag">Try it: sit in the dark</span>
+  <canvas aria-label="Dark adaptation curve: sensitivity rising quickly for the first few minutes, then a second, larger rise after about 8 minutes"></canvas>
+  <div class="mlf-ctl">
+    <label>Minutes in the dark <output data-v="t"></output><input type="range" name="t" min="0" max="40" step="0.5" value="5"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-white>Glance at a white phone screen</button><button type="button" class="btn secondary" data-red>Read a chart by dim red light</button></div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>The shape is the classic two-branch curve: cones (colour vision, centre of the eye) level off after about 5 to 8 minutes; rods (no colour, away from the centre) keep improving for 20 to 40 minutes and end up thousands of times more sensitive. The scale is schematic, not measured data. Rods hardly respond to deep red light, which is why astronomers use dim red torches.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  const cone = (t: number) => 1.3 * (1 - Math.exp(-t / 2));
+  const rod = (t: number) => (t < 6 ? -1 : 4 * (1 - Math.exp(-(t - 6) / 8)) - 0.2);
+  const sens = (t: number) => Math.max(cone(t), rod(t));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-dark]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!, inp = fig.querySelector<HTMLInputElement>('input[name=t]')!;
+    const p = new Plot(cv, { x: [0, 40], y: [0, 4.2], h: 250, xLabel: 'minutes in the dark', yLabel: 'log sensitivity' });
+    const draw = () => {
+      const t = gt(), s = sens(t);
+      p.begin();
+      p.fn(cone, { color: p.pal.muted, width: 1.5, dash: [5, 4] }); p.fn((x) => (x < 6 ? NaN : rod(x)), { color: p.pal.muted, width: 1.5, dash: [5, 4], from: 6.5 });
+      p.fn(sens, { color: p.pal.accent, width: 3 });
+      p.dot(t, s, { r: 7, color: p.pal.accent2 });
+      p.text(2.5, 1.55, 'cones', { size: 11, color: p.pal.muted }).text(28, 3.95, 'rods', { size: 11, color: p.pal.muted });
+      p.end();
+      const times = 10 ** s;
+      say.textContent = `About ${fmt(times, 0)} times more sensitive than when you stepped outside${t < 8 ? '. Your rods have barely started.' : t < 25 ? '. Rods are taking over: faint fuzzy objects start to appear.' : '. Near full dark adaptation: the Milky Way shows its structure.'}`;
+    };
+    const gt = slider(fig, 't', () => go(), (v) => `${v} min`);
+    const go = live(cv, draw);
+    const set = (v: number) => { inp.value = String(v); inp.dispatchEvent(new Event('input')); };
+    fig.querySelector('[data-white]')!.addEventListener('click', () => set(0));
+    fig.querySelector('[data-red]')!.addEventListener('click', () => set(Math.max(0, +inp.value - 1)));
+  }
+</script>

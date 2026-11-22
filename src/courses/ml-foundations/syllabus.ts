@@ -11,6 +11,7 @@ import type { CourseSyllabus } from '../types';
 
 export const ML_FOUNDATIONS: CourseSyllabus = {
   id: 'ml-foundations',
+  kit: true,
   name: 'ML foundations',
   title: 'From a straight line to an LLM: data analytics and machine learning foundations',
   text: 'How machines learn from data, from drawing the best straight line to what a large language model really is. Linear and logistic regression, decision trees, random forests, boosting, clustering, neural networks and transformers, each with pictures, simulations you can play with and the maths worked by hand.',

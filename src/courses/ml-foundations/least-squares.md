@@ -3,7 +3,7 @@ title: 'Least squares: why we square the errors'
 seoTitle: 'Least squares regression explained, with the derivation'
 summary: 'The best line is the one that makes the sum of squared errors smallest. Drag points and watch the squares, then derive the slope and intercept formulas step by step with calculus.'
 minutes: 30
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: Why are the errors squared rather than just added?
     choices: ['Positive and negative errors would cancel, and squares are easy to minimise with calculus', 'Squaring makes the errors smaller', 'There is no reason']
@@ -17,13 +17,19 @@ quiz:
     choices: ['The origin (0, 0)', 'The point of means (x̄, ȳ)', 'The first data point']
     ans: 1
     why: From c = ȳ − m x̄, putting x = x̄ into the line gives ŷ = ȳ.
+sources:
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapter 3 (linear regression) https://www.statlearning.com/'
+  - 'Hastie, T., Tibshirani, R. and Friedman, J. (2009), The Elements of Statistical Learning, 2nd ed., Springer, Chapter 3 (linear methods for regression) https://hastie.su.domains/ElemStatLearn/'
+  - 'Stigler, S. M. (1986), The History of Statistics: The Measurement of Uncertainty before 1900, Harvard University Press, Chapter 1 (Legendre, Gauss and least squares)'
 ---
 
 **Module 3 · about 30 minutes · read first: 1.5, 3.1.** You'll be able to explain why least squares uses squared errors, derive the formulas for the best slope and intercept, and fit a line to small data by hand.
 
+<div class="bigidea">The best line is the one whose squared misses add up to the least, and calculus finds it exactly: it passes through the point of means with slope "how x and y move together ÷ how much x moves".</div>
+
 ## 1. Why this matters
 
-"The best line" needs a definition before a computer can find it. Least squares, invented around 1805 by Legendre and Gauss to work out the orbits of planets and comets, is the definition almost everyone uses. Its loss, the mean squared error, comes back in neural networks, and the idea of "write the error as a function, then find its minimum" runs through the whole course.
+"The best line" needs a definition before a computer can find it. Think of a referee: before a match can be won, someone must agree what counts as a goal. Least squares, invented around 1805 by Legendre and Gauss to work out the orbits of planets and comets, is the definition almost everyone uses. Its loss, the mean squared error, comes back in neural networks, and the idea of "write the error as a function, then find its minimum" runs through the whole course.
 
 ## 2. Choosing what "best" means
 
@@ -36,6 +42,16 @@ Each point has a **residual** `$e_i = y_i - \hat y_i$`: positive if the point is
 <!--fig:least-squares-->
 
 Try dragging one point far away. Its square grows with the distance *squared*, so least squares bends the line a long way to reduce it. That is the price of squaring: sensitivity to outliers (Lesson 2.4).
+
+Watch least squares judge three lines through the same three points:
+
+<div class="steps" data-fig="least-squares-residuals">
+<div class="step"><b>The data.</b> Three days of an ice-cream van: (1, 2), (2, 4), (3, 5). The means are x̄ = 2 and ȳ = 3.67.</div>
+<div class="step"><b>A flat line at the mean.</b> Predict 3.67 every day. The misses are −1.67, 0.33 and 1.33; their squares add to 4.67. This is the "no model" baseline.</div>
+<div class="step"><b>Try ŷ = 2x.</b> Predictions 2, 4, 6. Misses 0, 0 and −1: sum of squares 1.00. Much better.</div>
+<div class="step"><b>The least-squares line, ŷ = 1.5x + 0.67.</b> Predictions 2.17, 3.67, 5.17. Misses −0.17, 0.33, −0.17: sum of squares 0.17. No other straight line does better.</div>
+<div class="step"><b>A built-in check.</b> The best line passes through the point of means (2, 3.67), and its misses add to exactly zero.</div>
+</div>
 
 ## 3. Deriving the best line
 
@@ -53,7 +69,7 @@ At the bottom of the bowl, the slope in every direction is zero (Lesson 1.5). So
 \frac{\partial S}{\partial c} = -2 \sum_i (y_i - m x_i - c) = 0 \;\Rightarrow\; \sum_i y_i - m \sum_i x_i - n c = 0 \;\Rightarrow\; c = \bar{y} - m \bar{x}
 ```
 
-So the best line always passes through the point of means `$(\bar x, \bar y)$`.
+So the best line always passes through the point of means `$(\bar x, \bar y)$`, the "centre of gravity" of the data.
 
 **Step 2, the slope.** Put `$c = \bar y - m \bar x$` into the second condition:
 
@@ -87,6 +103,19 @@ The second form links the slope to the correlation `$r$` of Lesson 2.3: the slop
 **Try it:** for (1, 2), (2, 4), (3, 5), find `$m$` and `$c$`. (`$\bar x = 2$`, `$\bar y = 11/3$`; top = 3, bottom = 2, so `$m = 1.5$`; `$c = 11/3 - 3 = 2/3$`: `$\hat y = 1.5x + 0.67$`.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>eᵢ = yᵢ − ŷᵢ</dt><dd>The residual: how far point i is above (+) or below (−) the line.</dd>
+<dt>S = Σ eᵢ²</dt><dd>The sum of squared errors: the score least squares makes as small as possible.</dd>
+<dt>Σ(x − x̄)(y − ȳ)</dt><dd>How x and y move together (n times their covariance).</dd>
+<dt>Σ(x − x̄)²</dt><dd>How much x moves on its own (n times its variance).</dd>
+<dt>c = ȳ − m x̄</dt><dd>The intercept that makes the line pass through the point of means.</dd>
+<dt>Physical meaning</dt><dd>Hang a stiff rod among the points and tie each point to it with a spring that pulls harder the more it is stretched. The rod settles where all the pulls balance: that resting place is the least-squares line. One point far away stretches its spring a lot and drags the rod towards it, which is why outliers matter so much.</dd>
+</dl>
+
+</div>
+
 ## 4. Worked example
 
 *Made-up numbers.* Five flats:
@@ -102,6 +131,14 @@ The second form links the slope to the correlation `$r$` of Lesson 2.3: the slop
 - Slope `$m = 8000 / 2600 \approx 3.08$` ($000 per m²). Intercept `$c = 350 - 3.08 \times 80 \approx 103.8$`.
 
 So price ≈ 3.08 × size + 104, in $000. A 90 m² flat: about 3.08 × 90 + 104 ≈ **$381,000**.
+
+<div class="problem" data-problem="least-squares-slope"></div>
+
+<div class="myth">
+
+**"Least squares finds the line that goes through the most points."** It may go through none of them. It balances the misses of all points at once, and squaring means it cares far more about one big miss than several small ones. If you want a line that one wild point can't drag around, you need a different loss, such as least absolute deviations.
+
+</div>
 
 ## 5. Practice
 
@@ -120,3 +157,12 @@ So price ≈ 3.08 × size + 104, in $000. A 90 m² flat: about 3.08 × 90 + 104 
 **Try it on your own data:** the [[scatter-best-fit]] tool draws the least-squares line through your own points and shows the working.
 
 **New words:** *least squares*, *sum of squared errors*, *point of means*, *least absolute deviations*.
+
+<div class="keypoints">
+
+- The residual is the gap between a point and the line; least squares makes the sum of squared residuals smallest.
+- Squaring keeps every miss positive and gives a smooth bowl with one bottom, but makes the line sensitive to outliers.
+- Best slope m = Σ(x − x̄)(y − ȳ) ÷ Σ(x − x̄)²; intercept c = ȳ − m x̄.
+- The least-squares line passes through the point of means and its residuals add to zero.
+
+</div>

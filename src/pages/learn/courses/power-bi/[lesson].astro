@@ -1,0 +1,15 @@
+---
+import LessonPage from '../../../../components/course/LessonPage.astro';
+import { POWER_BI } from '../../../../courses/power-bi/syllabus';
+import { FIGURES } from '../../../../courses/power-bi/figures';
+import { courseLessons, type LessonEntry } from '../../../../lib/course';
+import '../../../../styles/math.css';
+import '../../../../courses/power-bi/figures/figs.css';
+export async function getStaticPaths() {
+  const written = await courseLessons(POWER_BI);
+  const live = new Set(written.keys());
+  return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
+}
+const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+---
+<LessonPage course={POWER_BI} entry={entry} slug={slug} live={live} figures={FIGURES} />

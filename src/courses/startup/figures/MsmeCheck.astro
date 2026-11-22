@@ -1,0 +1,35 @@
+---
+// 4.3: MSME class from investment and turnover (limits from 1 April 2025), and a DPIIT startup recognition check.
+---
+<figure class="cs-fig su-fig" data-ms>
+  <span class="cs-figtag">Try it: MSME class and Startup India eligibility</span>
+  <div class="su-row">
+    <label>Investment in plant, machinery or equipment (₹ crore)<input type="number" name="inv" min="0" step="0.1" value="0.5" /></label>
+    <label>Turnover last year (₹ crore)<input type="number" name="to" min="0" step="0.1" value="2" /></label>
+    <label>Entity type<select name="ent"><option value="pvt">Private limited company</option><option value="llp">LLP</option><option value="firm">Registered partnership firm</option><option value="opc">One Person Company</option><option value="prop">Proprietorship</option></select></label>
+    <label>Years since incorporation<input type="number" name="age" min="0" max="40" step="1" value="1" /></label>
+    <label>Formed by splitting or restructuring an existing business?<select name="split"><option value="0">No</option><option value="1">Yes</option></select></label>
+  </div>
+  <div class="su-out"><div><span>Udyam (MSME) class</span><b data-cls></b></div><div><span>DPIIT startup recognition</span><b data-dp></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>MSME limits (both tests must be met; the higher class applies if either is exceeded) as revised from 1 April 2025: micro up to ₹2.5 crore investment and ₹10 crore turnover; small up to ₹25 crore and ₹100 crore; medium up to ₹125 crore and ₹500 crore. Exports are left out of turnover. DPIIT also checks your description of innovation or scalability, which this cannot judge.</figcaption>
+</figure>
+<script>
+  import { num, put } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ms]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!.value;
+    function draw() {
+      const inv = num(fig, 'inv'), to = num(fig, 'to');
+      const cls = inv <= 2.5 && to <= 10 ? 'Micro' : inv <= 25 && to <= 100 ? 'Small' : inv <= 125 && to <= 500 ? 'Medium' : 'Not an MSME';
+      put(fig, 'cls', cls);
+      const why: string[] = [];
+      if (!['pvt', 'llp', 'firm'].includes(v('ent'))) why.push(v('ent') === 'opc' ? 'an OPC is not on the list (convert to a private limited company)' : 'a proprietorship cannot be recognised');
+      if (num(fig, 'age') > 10) why.push('it is more than 10 years old');
+      if (to >= 100) why.push('turnover is ₹100 crore or more');
+      if (v('split') === '1') why.push('it was formed by splitting or reconstructing an existing business');
+      put(fig, 'dp', why.length ? 'Not eligible' : 'Likely eligible');
+      put(fig, 'say', why.length ? `DPIIT: not eligible because ${why.join('; ')}.` : `DPIIT: meets the basic tests. Apply free on startupindia.gov.in with a short write-up of how the business innovates or scales. ${cls !== 'Not an MSME' ? 'Udyam registration is free too and can be done the same day.' : ''}`);
+    }
+    fig.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

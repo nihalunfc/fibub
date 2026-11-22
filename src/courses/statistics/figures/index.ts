@@ -33,6 +33,22 @@ import AnovaSim from './AnovaSim.astro';
 import RankTest from './RankTest.astro';
 import MultipleTests from './MultipleTests.astro';
 import EffectSize from './EffectSize.astro';
+// Modules 7-8
+import ABFlow from './ABFlow.astro';
+import MetricTree from './MetricTree.astro';
+import ABPlanner from './ABPlanner.astro';
+import PeekingSim from './PeekingSim.astro';
+import ABReadout from './ABReadout.astro';
+import SRMCheck from './SRMCheck.astro';
+import BayesAB from './BayesAB.astro';
+import NoveltySim from './NoveltySim.astro';
+import SlopeCI from './SlopeCI.astro';
+import SimpsonBars from './SimpsonBars.astro';
+import TSDecompose from './TSDecompose.astro';
+import ForecastCompare from './ForecastCompare.astro';
+import ControlChart from './ControlChart.astro';
+import CorrelationSlider from '../../ml-foundations/figures/CorrelationSlider.astro';
+import HiddenCause from '../../ml-foundations/figures/HiddenCause.astro';
 import MeanMedian from '../../ml-foundations/figures/MeanMedian.astro';
 import SamplingHistogram from '../../ml-foundations/figures/SamplingHistogram.astro';
 
@@ -70,4 +86,19 @@ export const FIGURES: Record<string, any> = {
   'rank-test': RankTest,
   'multiple-tests': MultipleTests,
   'effect-size': EffectSize,
+  'ab-flow': ABFlow,
+  'metric-tree': MetricTree,
+  'ab-planner': ABPlanner,
+  'peeking-sim': PeekingSim,
+  'ab-readout': ABReadout,
+  'srm-check': SRMCheck,
+  'bayes-ab': BayesAB,
+  'novelty-sim': NoveltySim,
+  'correlation-slider': CorrelationSlider,
+  'hidden-cause': HiddenCause,
+  'slope-ci': SlopeCI,
+  'simpson-bars': SimpsonBars,
+  'ts-decompose': TSDecompose,
+  'forecast-compare': ForecastCompare,
+  'control-chart': ControlChart,
 };

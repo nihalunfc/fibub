@@ -1,0 +1,56 @@
+---
+// 5.1: pick a business type; see the usual licences and permits in India, Canada or the USA, and who issues them.
+---
+<figure class="cs-fig su-fig" data-lf>
+  <span class="cs-figtag">Finder: which licences does my business need?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Business<select name="b">
+      <option value="cafe">Café, restaurant or cloud kitchen</option>
+      <option value="homefood">Home bakery or packaged food</option>
+      <option value="shop">Retail shop</option>
+      <option value="ecom">Online store selling goods</option>
+      <option value="saas">Software, app or SaaS</option>
+      <option value="consult">Consulting, design or freelancing</option>
+      <option value="salon">Salon or beauty services</option>
+      <option value="tutor">Tutoring or childcare</option>
+      <option value="make">Small manufacturing</option>
+      <option value="trade">Import or export trading</option>
+    </select></label>
+  </div>
+  <div class="su-cards" data-out></div>
+  <p class="su-fine" data-tool></p>
+  <figcaption>The usual list for a typical business, not a complete legal list: your city, state or province, and details (alcohol, staff numbers, signage, waste) can add more. Use the official finder named under the list before you open.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  type L = [string, string];
+  const ALL: Record<string, L[]> = {
+    in: [['Registration', 'Company/LLP with the MCA, or proprietorship on PAN'], ['GST', 'When over the threshold, or for interstate or marketplace sales (Lesson 7.2)'], ['Udyam', 'Free MSME registration, optional but useful']],
+    ca: [['Registration', 'Business name or corporation (province or Corporations Canada)'], ['GST/HST', 'Once over $30,000 in four quarters (Lesson 7.3)'], ['Municipal business licence', 'Many cities licence specific business types; check yours']],
+    us: [['Formation or DBA', 'LLC/corporation with the state, or a DBA'], ['EIN', 'Free from the IRS'], ['Local business licence', 'City or county general business licence where required']],
+  };
+  const X: Record<string, Record<string, L[]>> = {
+    cafe: { in: [['FSSAI licence', 'State or central licence by turnover (Lesson 5.2)'], ['Shops and Establishments', 'State labour department'], ['Trade licence', 'Municipal corporation'], ['Fire NOC', 'Fire department, depending on size and seating'], ['Eating house licence', 'Police licence in some cities'], ['Liquor licence', 'State excise, only if serving alcohol']], ca: [['Food premises approval', 'Local public health unit inspection before opening'], ['Food handler certificate', 'At least one certified food handler on site (provincial rule)'], ['Building, fire and sign permits', 'City'], ['Liquor licence', 'Provincial regulator (AGCO in Ontario), only if serving alcohol']], us: [['Food service permit', 'County or city health department, with inspection'], ['Food manager certification', 'Required in many states'], ['Certificate of occupancy, fire, sign permits', 'City'], ['Seller’s permit', 'State sales tax registration'], ['Liquor licence', 'State alcohol control board plus local approval']] },
+    homefood: { in: [['FSSAI basic registration', 'Turnover up to ₹12 lakh; state licence above'], ['Packaging and labelling', 'FSSAI labelling and Legal Metrology rules for pre-packed food']], ca: [['Home-based food rules', 'Local public health; Ontario allows many low-risk home foods with notification'], ['SFC licence', 'CFIA Safe Food for Canadians licence only if selling across provinces or importing/exporting'], ['Labelling', 'Food and Drugs Act labelling for pre-packaged food']], us: [['Cottage food rules', 'State law lists which home foods you may sell and how much'], ['FDA food facility registration', 'Only for facilities making food for wider wholesale; most cottage producers are exempt'], ['Labels', 'Cottage food label wording required by your state']] },
+    shop: { in: [['Shops and Establishments', 'State labour department'], ['Trade licence', 'Municipal corporation'], ['Legal Metrology', 'For weighing scales and packaged goods'], ['Signboard permission', 'Some municipalities']], ca: [['Zoning and building permits', 'City'], ['Sign permit', 'City'], ['PST registration', 'BC, Saskatchewan, Manitoba; QST in Quebec']], us: [['Seller’s permit', 'State sales tax'], ['Certificate of occupancy', 'City building department'], ['Sign permit', 'City']] },
+    ecom: { in: [['E-commerce rules', 'Seller details, returns and grievance officer (Lesson 5.4)'], ['Legal Metrology declarations', 'MRP, net quantity, origin on listings and packs'], ['GST', 'Often needed from the first marketplace sale']], ca: [['Consumer protection disclosures', 'Provincial internet agreement rules'], ['CASL', 'Consent before marketing emails'], ['Labelling', 'Consumer Packaging and Labelling Act, bilingual labels']], us: [['Sales tax permits', 'Your state, then states where you reach economic nexus'], ['FTC rules', 'Shipping times, reviews, auto-renewals'], ['Product safety', 'CPSC rules for children’s products and others']] },
+    saas: { in: [['Shops and Establishments', 'For your office, if you have one'], ['Privacy compliance', 'DPDP Act (Lesson 11.4)']], ca: [['Privacy compliance', 'PIPEDA, Quebec Law 25'], ['Usually no special licence', 'Software needs no sector licence unless it handles money, health or similar regulated work']], us: [['Privacy compliance', 'State privacy laws, COPPA for children'], ['Usually no special licence', 'Unless money transmission, health data (HIPAA), lending or other regulated activity']] },
+    consult: { in: [['Professional tax', 'In states that levy it'], ['Professional body membership', 'Only regulated professions (CA, lawyers, architects)']], ca: [['Professional licence', 'Only regulated professions (engineering, accounting, law)'], ['Home business permit', 'Some cities']], us: [['Professional licence', 'Only regulated professions (CPA, engineer, lawyer)'], ['Home occupation permit', 'Some cities']] },
+    salon: { in: [['Shops and Establishments', 'State'], ['Trade licence', 'Municipal'], ['Health trade licence', 'Some municipalities']], ca: [['Personal service setting inspection', 'Public health unit'], ['Business licence', 'City']], us: [['Cosmetology establishment licence', 'State board of cosmetology'], ['Individual cosmetology licences', 'For each stylist']] },
+    tutor: { in: [['Coaching centre rules', 'State guidelines for coaching centres (registration, safety, age limits)'], ['Shops and Establishments', 'If you have premises']], ca: [['Licensed child care', 'Province, if caring for more children than the unlicensed limit'], ['Vulnerable sector police check', 'Often expected for anyone working with children']], us: [['Child care licence', 'State, above home-care limits'], ['Background checks', 'Required for child care staff']] },
+    make: { in: [['Factory licence', 'Under factory law above worker thresholds'], ['Pollution control consent', 'State Pollution Control Board (consent to establish and operate)'], ['BIS certification', 'For products under quality control orders']], ca: [['Zoning for industrial use', 'City'], ['Environmental approvals', 'Province, for emissions or waste'], ['Product standards', 'CSA or other certification for electrical products']], us: [['Zoning and building permits', 'City'], ['Environmental permits', 'State environmental agency or EPA'], ['Product certification', 'UL or FCC for electrical or radio products']] },
+    trade: { in: [['IEC (Importer Exporter Code)', 'DGFT, online (Lesson 5.5)'], ['AD code with your bank', 'Registered at the port for exports'], ['LUT', 'To export without paying IGST']], ca: [['RM import-export account', 'CRA Business Number'], ['CARM registration', 'CBSA Assessment and Revenue Management portal'], ['Permits for controlled goods', 'Food (CFIA), plants, some electronics']], us: [['Importer number', 'Your EIN with CBP (Form 5106)'], ['Customs bond', 'For formal entries'], ['Agency rules', 'FDA, USDA, FCC, CPSC for regulated products']] },
+  };
+  const FIND: Record<string, string> = { in: 'Official help: your state single-window portal and the National Single Window System (nsws.gov.in).', ca: 'Official finder: BizPaL (bizpal-perle.ca) lists permits by city and business type.', us: 'Official help: SBA licences and permits guide (sba.gov) and your city or county business portal.' };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lf]')) {
+    const b = fig.querySelector<HTMLSelectElement>('[name=b]')!;
+    const cc = followCountry(fig, () => draw());
+    function draw() {
+      const c = cc(), out = fig.querySelector('[data-out]')!; out.innerHTML = '';
+      [...X[b.value][c].map((x) => [x, true] as const), ...ALL[c].map((x) => [x, false] as const)].forEach(([[t, d], special]) => { const e = document.createElement('div'); e.className = `su-card${special ? ' on' : ''}`; e.innerHTML = '<strong></strong><span></span>'; e.querySelector('strong')!.textContent = t; e.querySelector('span')!.textContent = d; out.append(e); });
+      fig.querySelector('[data-tool]')!.textContent = FIND[c];
+    }
+    b.addEventListener('input', draw);
+  }
+</script>

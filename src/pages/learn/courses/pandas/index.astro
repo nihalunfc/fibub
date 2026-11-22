@@ -1,0 +1,17 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { PANDAS } from '../../../../courses/pandas/syllabus';
+---
+<CourseHome course={PANDAS}>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Load and explore any table</strong>: CSV and Excel files, a first look with head, info and describe, and picking out the rows and columns you need.</li>
+      <li><strong>Clean messy exports</strong>: missing values, duplicates, wrong types, untidy text and mixed date formats, with checks that prove the data is right.</li>
+      <li><strong>Summarise and combine</strong>: groupby, pivot tables, joins between tables, and reshaping between wide and long.</li>
+      <li><strong>Work with dates</strong>: weekly and monthly totals, rolling averages and year-over-year growth.</li>
+      <li><strong>Do the analyses employers ask for</strong>: KPI tables, Pareto, RFM segments, cohort retention and A/B tests.</li>
+    </ul>
+    <p>Real Python runs in this page: every example can be changed and run, and every exercise has <strong>Run</strong>, <strong>Check</strong>, <strong>Hint</strong> and <strong>Show answer</strong>, with no sign-up and nothing to install. The first run downloads Python once (about 20 MB); after that it works offline. You finish with a <strong>retail analysis notebook</strong> for your GitHub portfolio. The statistics behind the analyses are in <a href="/learn/courses/statistics/">Statistics for analysts</a>.</p>
+  </section>
+</CourseHome>

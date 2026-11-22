@@ -1,0 +1,38 @@
+---
+// SIM for 8.3: Simpson's paradox. Two stores' conversion by device; B wins on both devices but can lose
+// overall when most of its traffic comes from the device that converts worse.
+---
+<figure class="cs-fig mlf" data-simpson>
+  <span class="cs-figtag">Try it: win both, lose overall</span>
+  <canvas aria-label="Bars of conversion for versions A and B on phones, on computers and overall"></canvas>
+  <div class="mlf-ctl">
+    <label>Share of A's visitors on phones: <output data-v="ma"></output><input type="range" name="ma" min="0.1" max="0.9" step="0.05" value="0.3" /></label>
+    <label>Share of B's visitors on phones: <output data-v="mb"></output><input type="range" name="mb" min="0.1" max="0.9" step="0.05" value="0.8" /></label>
+  </div>
+  <div class="mlf-read"><div><span>phones A / B</span><b data-ph></b></div><div><span>computers A / B</span><b data-pc></b></div><div><span>overall A / B</span><b data-all></b></div></div>
+  <figcaption>On phones, A converts 2.0 % and B 2.4 %; on computers, A 6.0 % and B 6.6 %. B is better on both. But if most of B's visitors are on phones (which convert worse everywhere), B's overall rate can fall below A's. Set both shares equal, as a randomised test would, and the paradox disappears. Made-up numbers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct } from './skit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-simpson]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0, 9], y: [0, 0.08], h: 240, yLabel: 'conversion', noXTicks: true });
+    const MA = slider(fig, 'ma', () => draw(), (v) => pct(v, 0)), MB = slider(fig, 'mb', () => draw(), (v) => pct(v, 0));
+    const rate = { a: [0.02, 0.06], b: [0.024, 0.066] };
+    function draw() {
+      const oa = MA() * rate.a[0] + (1 - MA()) * rate.a[1], ob = MB() * rate.b[0] + (1 - MB()) * rate.b[1];
+      const groups: [string, number, number][] = [['phones', rate.a[0], rate.b[0]], ['computers', rate.a[1], rate.b[1]], ['overall', oa, ob]];
+      p.begin();
+      groups.forEach(([name, a, b], g) => {
+        const x = 0.5 + g * 3;
+        p.rect(x, 0, 0.9, a, { fill: p.pal.accent, alpha: 0.85 }); p.rect(x + 1, 0, 0.9, b, { fill: p.pal.accent2, alpha: 0.85 });
+        p.text(x + 0.45, a, 'A', { align: 'center', base: 'bottom', dy: -2, size: 11 }); p.text(x + 1.45, b, 'B', { align: 'center', base: 'bottom', dy: -2, size: 11 });
+        p.text(x + 0.95, 0, name, { align: 'center', base: 'top', dy: 4, color: p.pal.muted, size: 11 });
+      });
+      p.end();
+      put(fig, 'ph', `${pct(rate.a[0])} / ${pct(rate.b[0])}`); put(fig, 'pc', `${pct(rate.a[1])} / ${pct(rate.b[1])}`);
+      put(fig, 'all', `${pct(oa, 2)} / ${pct(ob, 2)} ${ob < oa ? '(A "wins")' : '(B wins)'}`);
+    }
+    live(cv, draw);
+  }
+</script>

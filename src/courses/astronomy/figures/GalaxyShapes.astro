@@ -1,0 +1,44 @@
+---
+// SIM for 10.2: draw a galaxy from a few knobs: how big the bulge is, how tightly the arms wind, whether it has a
+// bar, and how flattened it is. The label follows Hubble's classes. Procedural, not a photograph.
+---
+<figure class="cs-fig mlf" data-galshape>
+  <span class="cs-figtag">Try it: make a galaxy</span>
+  <canvas aria-label="A drawn galaxy that changes shape with the controls"></canvas>
+  <div class="mlf-ctl">
+    <label>Bulge size <output data-v="b"></output><input type="range" name="b" min="0" max="1" step="0.01" value="0.35"></label>
+    <label>Arm winding <output data-v="w"></output><input type="range" name="w" min="0.1" max="0.6" step="0.01" value="0.25"></label>
+    <label>Bar length <output data-v="bar"></output><input type="range" name="bar" min="0" max="1" step="0.01" value="0"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>Hubble class (roughly)</span><b data-cls></b></div>
+    <div><span>colour</span><b data-col></b></div>
+  </div>
+  <figcaption>Bulge size 1 with no disc makes an elliptical; a big bulge with tightly wound arms is an Sa; a small bulge with loose arms is an Sc; a bar turns S into SB. Ellipticals and bulges are mostly old, reddish stars; spiral arms glow blue-white with young stars. Real galaxies are messier and many are irregular.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-galshape]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.2, 1.2], y: [-1, 1], h: 280, bare: true, equal: true });
+    const draw = () => {
+      const b = gb(), w = gw(), bar = gbar(), R = rng(3);
+      p.begin();
+      const nB = Math.round(500 + 1500 * b), nD = Math.round(1800 * (1 - b));
+      for (let k = 0; k < nB; k++) { const r = Math.abs(R() + R() + R() - 1.5) * (0.25 + 0.6 * b) * (b > 0.95 ? 1.6 : 1), a = R() * 2 * Math.PI; p.dot(r * Math.cos(a), r * 0.75 * Math.sin(a), { r: 1.1, color: p.pal.warn, alpha: 0.5 }); }
+      for (let k = 0; k < nD; k++) {
+        const arm = R() < 0.5 ? 0 : Math.PI, r = 0.1 + R() * 0.85, r0 = 0.08 + 0.4 * bar;
+        let x: number, y: number;
+        if (r < r0) { x = (R() - 0.5) * 2 * r0; y = (R() - 0.5) * 0.08; }
+        else { const a = arm + Math.log(r / r0) / Math.tan(w * 1.5) + (R() - 0.5) * 0.45; x = r * Math.cos(a); y = r * Math.sin(a); }
+        p.dot(x, y * 0.75, { r: 1.1, color: p.pal.accent, alpha: 0.55 });
+      }
+      p.end();
+      const cls = b > 0.95 ? 'E (elliptical)' : `${bar > 0.15 ? 'SB' : 'S'}${b > 0.5 || w < 0.2 ? 'a' : b > 0.25 || w < 0.35 ? 'b' : 'c'}`;
+      q('[data-cls]').textContent = cls; q('[data-col]').textContent = b > 0.95 ? 'yellow-red, old stars' : b > 0.5 ? 'mostly yellowish' : 'blue-white arms, yellow centre';
+    };
+    const gb = slider(fig, 'b', () => go()), gw = slider(fig, 'w', () => go(), (v) => (v < 0.2 ? 'tight' : v < 0.35 ? 'medium' : 'loose')), gbar = slider(fig, 'bar', () => go(), (v) => (v < 0.15 ? 'none' : fmt(v)));
+    const go = live(cv, draw);
+  }
+</script>

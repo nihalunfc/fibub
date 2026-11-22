@@ -83,3 +83,24 @@ a[aria-current="page"].done::after { color: inherit; }
 .cs-modcard h4 { margin: 0 0 6px; font-size: 16.5px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .cs-modcard ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 15px; }
 .cs-modcard a { text-decoration: none; }
+
+/* Phones (nihal, 2026-11-22): less scrolling. Smaller headings, tighter gaps and boxes in every course. */
+@media (max-width: 600px) {
+  .cs-lesson h1, .cs-main > h1 { font-size: 24px; margin-bottom: 6px; }
+  .cs-lesson .lead, .cs-main > .lead { font-size: 15.5px; margin-bottom: 12px; }
+  .cs-kicker { font-size: 13px; margin-bottom: 4px; }
+  .cs-body { font-size: 16px; line-height: 1.55; }
+  .cs-body h2 { font-size: 19px; margin: 24px 0 6px; }
+  .cs-body h3 { font-size: 16.5px; margin: 18px 0 6px; }
+  .cs-body p, .cs-body ul, .cs-body ol { margin: 0 0 10px; }
+  .cs-body details, .cs-fig { margin: 14px 0; padding: 10px; }
+  .cs-quiz { margin-top: 24px; }
+  .cs-side > summary { padding: 8px 12px; }
+  .cs-q { padding: 10px 12px; margin-bottom: 8px; }
+  .cs-end { margin: 20px 0 8px; }
+  .cs-prog { padding: 10px 12px; margin: 14px 0; }
+}
+
+/* Save reminder under each lesson while progress lives only in this tab (src/scripts/course.ts). */
+.cs-nudge { border: 1px solid var(--line); border-left: 4px solid var(--warn, #b45309); border-radius: 8px; padding: 10px 12px; margin: 12px 0; display: grid; gap: 8px; justify-items: start; }
+.cs-nudge p { margin: 0; }

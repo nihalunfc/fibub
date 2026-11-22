@@ -1,44 +1,72 @@
 ---
-import LearnPage from '../../components/LearnPage.astro';
-import { CLASSES } from '../../data/ncert';
+// School (nihal, 2026-11-22): one tab per curriculum (NCERT, Kerala, Canada, USA, UK) with a compact tile per
+// class or grade, then the Learn tools by school subject, also as tabs. Radio chips, so it works with no script;
+// /learn/school/#canada opens the Canada tab.
+import Base from '../../layouts/Base.astro';
+import LearnMore from '../../components/learn/LearnMore.astro';
 import { CURRICULA } from '../../data/curricula';
 import { SECTIONS } from '../../site';
 import { allTools, toolUrl } from '../../lib/tools';
+import { collectionLd } from '../../lib/seo';
+import '../../styles/area.css';
+import '../../styles/learn.css';
 const all = await allTools();
 const live = new Set(all.filter((t) => t.data.status === 'live').map((t) => t.id));
-const cards = CLASSES.map((k) => {
-  const n = new Set(k.subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.tools.filter((id) => live.has(id))))).size;
-  const chapters = k.subjects.reduce((a, s) => a + s.chapters.length, 0);
-  return { name: k.name, href: `/learn/${k.id}/`, live: true, text: `${k.blurb} ${chapters} chapters, ${n} tools so far.`, items: k.subjects.map((s) => `${s.name}${s.book ? ` (${s.book})` : ''}: ${s.chapters.length} chapters`) };
-});
-// The Learn shelf's own tools, by school subject, as a short list of names (hundreds are planned, and full cards
-// would push this page past the 120 KB limit; the class pages show each chapter's tools).
-// Other countries' curricula (Canada first), as one list of grade links each.
-const others = CURRICULA.filter((c) => c.status === 'live' && c.id !== 'ncert').map((c) => ({
-  name: c.name, grades: c.grades,
-  links: c.classes.map((k) => ({ name: k.name, href: `/learn/${k.id}/`, blurb: k.blurb })),
+const curricula = CURRICULA.filter((c) => c.status === 'live').map((cur) => ({
+  ...cur,
+  tiles: cur.classes.map((k) => {
+    const tools = new Set(k.subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.tools.filter((id) => live.has(id))))).size;
+    const chapters = k.subjects.reduce((a, s) => a + s.chapters.length, 0);
+    return { name: k.name, href: `/learn/${k.id}/`, subjects: k.subjects.map((s) => s.name).join(', '), chapters, tools };
+  }),
 }));
-const groups = (SECTIONS.learn ?? []).map((sec) => ({ ...sec, tools: all.filter((t) => t.data.shelf === 'learn' && t.data.status === 'live' && t.data.section === sec.id) })).filter((g) => g.tools.length);
+// One tab per country (nihal, 2026-11-22: a single India tab holding NCERT and every state board), each
+// curriculum a block inside it. A new state board joins the India tab by having country 'India'.
+const slug = (x: string) => x.toLowerCase().replace(/[^a-z]+/g, '-');
+const countries = [...new Set(curricula.map((c) => c.country))].map((name) => ({ id: slug(name), name, curricula: curricula.filter((c) => c.country === name) }));
+const groups = (SECTIONS.learn ?? []).filter((sec) => sec.id !== 'home-skills').map((sec) => ({ ...sec, tools: all.filter((t) => t.data.shelf === 'learn' && t.data.status === 'live' && t.data.section === sec.id) })).filter((g) => g.tools.length);
+const css = countries.map((c) => `.lh-cur:has(#c-${c.id}:checked) [data-panel]:not([data-panel="${c.id}"]){display:none}`).join('')
+  + groups.map((g) => `.lh-sub-t:has(#s-${g.id}:checked) [data-group]:not([data-group="${g.id}"]){display:none}`).join('');
+const title = 'Learn: School';
+const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by chapter: NCERT and CBSE, Kerala SCERT, Canada (Ontario), the USA and the UK. Free, in your browser.';
 ---
-<LearnPage title="Learn: Class 8 to 12" description="Interactive science and maths tools for Class 8 to 12, chapter by chapter, following the NCERT topics. Free, in your browser."
-  lead="Pick your class to see every chapter with tools to try. Each tool lets you change the numbers and watch what happens, and many have a level switch so one tool serves several classes."
-  cardsTitle="Classes" cards={cards}>
-  {others.map((o) => (
-    <section id={o.name.toLowerCase().replace(/[^a-z]+/g, '-')}>
-      <h2 class="ar-h">{o.name}: {o.grades}</h2>
-      <ul class="ls-list">{o.links.map((l) => <li><a href={l.href}>{l.name}</a> <small>{l.blurb}</small></li>)}</ul>
-    </section>
-  ))}
-  {groups.map((g) => (
-    <section id={g.id}>
-      <h2 class="ar-h">{g.name}</h2>
-      <ul class="ls-list">{g.tools.map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a> <small>#{t.data.code}</small></li>)}</ul>
-    </section>
-  ))}
-</LearnPage>
-
-<style is:inline>
-  .ls-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 18px; }
-  .ls-list li { padding: 6px 0; border-bottom: 1px solid var(--line); }
-  .ls-list small { color: var(--muted); }
-</style>
+<Base title={title} docTitle="Class 8 to 12 science and maths tools by chapter | fibub" description={desc} ld={collectionLd('School', desc, '/learn/school/', [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'School', url: '/learn/school/' }])}>
+  <style is:inline set:html={css}></style>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / School</div>
+  <div class="lh-head">
+    <h1>School, Class 8 to 12</h1>
+    <p class="lead">Pick your syllabus, then your class, to see every chapter with tools to try: change a number and watch what happens.</p>
+  </div>
+  <div class="lh-cur">
+    <div class="lh-tabs" role="radiogroup" aria-label="Country">
+      {countries.map((c, i) => <><input type="radio" name="cur" id={`c-${c.id}`} value={c.id} data-hash checked={i === 0} /><label for={`c-${c.id}`}>{c.name}</label></>)}
+    </div>
+    {countries.map((co) => (
+      <div data-panel={co.id}>
+        {co.curricula.map((c) => (
+          <section id={c.id} class="lh-curblock" aria-label={c.name}>
+            {co.curricula.length > 1 && <h2 class="lh-curh">{c.name} <small>{c.grades}</small></h2>}
+            <div class="lh-grid lh-k2 lh-anim">
+              {c.tiles.map((t, i) => <a class="lk" href={t.href} style={`--i:${i}`}><strong>{t.name}</strong><small>{t.subjects}</small><small>{t.chapters} {c.unit ?? 'chapter'}s · {t.tools} tools</small></a>)}
+            </div>
+            <details class="lh-about"><summary>About this syllabus</summary><p class="ar-note">{c.note}</p></details>
+          </section>
+        ))}
+      </div>
+    ))}
+  </div>
+  {groups.length > 0 && <>
+    <div class="lh-sec"><h2>Activities by subject</h2></div>
+    <div class="lh-sub-t">
+      <div class="lh-tabs" role="radiogroup" aria-label="Subject">
+        {groups.map((g, i) => <><input type="radio" name="subj" id={`s-${g.id}`} value={g.id} checked={i === 0} /><label for={`s-${g.id}`}>{g.name} <small>{g.tools.length}</small></label></>)}
+      </div>
+      {groups.map((g) => <div data-group={g.id}>
+        <ul class="lh-chips">{g.tools.slice(0, 18).map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a></li>)}</ul>
+        {g.tools.length > 18 && <details class="lh-all"><summary>Show all {g.tools.length}</summary><ul class="lh-chips">{g.tools.slice(18).map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a></li>)}</ul></details>}
+      </div>)}
+    </div>
+  </>}
+  <LearnMore here="school" />
+</Base>
+<script>import '../../scripts/learn';</script>

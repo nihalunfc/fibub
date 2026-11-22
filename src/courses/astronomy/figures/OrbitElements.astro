@@ -1,0 +1,60 @@
+---
+// SIM for 8.3: the six orbital elements in a 3D view. Tilt (i), the node (Ω) and the argument of perihelion (ω)
+// turn a flat ellipse in space; the part below the ecliptic is dashed.
+---
+<figure class="cs-fig mlf" data-elements>
+  <span class="cs-figtag">Try it: turn the orbit in space</span>
+  <canvas aria-label="A tilted orbit drawn over the ecliptic plane with its line of nodes and perihelion"></canvas>
+  <div class="mlf-ctl">
+    <label>Inclination i <output data-v="i"></output><input type="range" name="i" min="0" max="90" step="1" value="30"></label>
+    <label>Ascending node Ω <output data-v="node"></output><input type="range" name="node" min="0" max="360" step="1" value="40"></label>
+    <label>Argument of perihelion ω <output data-v="w"></output><input type="range" name="w" min="0" max="360" step="1" value="60"></label>
+    <label>Eccentricity e <output data-v="e"></output><input type="range" name="e" min="0" max="0.8" step="0.01" value="0.4"></label>
+    <label>Turn the view <output data-v="view"></output><input type="range" name="view" min="0" max="360" step="1" value="20"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>perihelion height above ecliptic</span><b data-z></b></div>
+    <div><span>highest point of the orbit</span><b data-zmax></b></div>
+  </div>
+  <figcaption>The grey disc is the ecliptic, Earth's orbital plane, with the arrow pointing to the vernal equinox, where Ω is counted from. The orbit crosses the disc at the two nodes; it rises through the ascending node (filled circle). ω is the angle from that node to the perihelion (dot), measured in the orbit's own plane. a and e set size and shape; the sixth element says where the body is at a chosen date.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { toEclipticXYZ } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-elements]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-2.2, 2.2], y: [-1.4, 1.4], h: 290, bare: true, equal: true });
+    const d = Math.PI / 180, tilt = 65 * d;
+    const draw = () => {
+      const i = gi(), node = gn(), w = gw(), e = ge(), view = gview() * d;
+      const proj = ([X, Y, Z]: number[]): [number, number] => { const x = X * Math.cos(view) - Y * Math.sin(view), y = X * Math.sin(view) + Y * Math.cos(view); return [x, y * Math.cos(tilt) + Z * Math.sin(tilt)]; };
+      p.begin();
+      const disc: [number, number][] = [];
+      for (let k = 0; k <= 90; k++) disc.push(proj([1.9 * Math.cos((k / 90) * 2 * Math.PI), 1.9 * Math.sin((k / 90) * 2 * Math.PI), 0]));
+      p.poly(disc, { fill: p.pal.muted, alpha: 0.12, color: p.pal.grid, width: 1 });
+      const o0 = proj([0, 0, 0]), ar = proj([1.9, 0, 0]);
+      p.arrow(o0[0], o0[1], ar[0], ar[1], { color: p.pal.muted, width: 1.2 }); p.text(ar[0], ar[1], 'equinox', { dx: 6, size: 11, color: p.pal.muted });
+      const pt = (nu: number) => { const r = (1 - e * e) / (1 + e * Math.cos(nu)); return toEclipticXYZ(r * Math.cos(nu), r * Math.sin(nu), i, node, w); };
+      let seg: [number, number][] = [], below = false, zmax = -9;
+      const flush = () => { if (seg.length > 1) p.path(seg, { color: p.pal.accent2, width: 2.5, dash: below ? [5, 5] : undefined, alpha: below ? 0.6 : 1 }); };
+      for (let k = 0; k <= 240; k++) {
+        const P = pt((k / 240) * 2 * Math.PI); zmax = Math.max(zmax, P[2]);
+        const b = P[2] < -1e-9;
+        if (k && b !== below) { seg.push(proj(P)); flush(); seg = []; }
+        below = b; seg.push(proj(P));
+      }
+      flush();
+      const nA = pt(-w * d), nD = pt(Math.PI - w * d), a = proj(nA), b = proj(nD);
+      p.line(a[0], a[1], b[0], b[1], { color: p.pal.ink, width: 1, dash: [2, 3] });
+      p.dot(a[0], a[1], { r: 5, color: p.pal.ink }); p.dot(b[0], b[1], { r: 5, color: p.pal.ink, shape: 'ring' });
+      const peri = pt(0), pp = proj(peri);
+      p.dot(pp[0], pp[1], { r: 6, color: p.pal.accent2 }); p.text(pp[0], pp[1], 'perihelion', { dx: 8, size: 11, color: p.pal.muted });
+      p.dot(o0[0], o0[1], { r: 6, color: p.pal.warn });
+      p.end();
+      q('[data-z]').textContent = `${fmt(peri[2], 2)} a`; q('[data-zmax]').textContent = `${fmt(zmax, 2)} a`;
+    };
+    const deg = (v: number) => `${fmt(v, 0)}°`;
+    const gi = slider(fig, 'i', () => go(), deg), gn = slider(fig, 'node', () => go(), deg), gw = slider(fig, 'w', () => go(), deg), ge = slider(fig, 'e', () => go()), gview = slider(fig, 'view', () => go(), deg);
+    const go = live(cv, draw);
+  }
+</script>

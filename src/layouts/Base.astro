@@ -19,8 +19,8 @@ const liveTools = tools.filter((t) => t.data.status === 'live');
 const menus = SHELVES.map((s) => ({ shelf: s, hasSubjects: !!SUBJECTS[s.id], count: liveTools.filter((t) => t.data.shelf === s.id).length }));
 // `title` names the page; `docTitle`, when given, is the exact <title> for search results (see src/lib/seo.ts).
 // `ld` is the page's structured data (JSON-LD) for search engines.
-interface Props { title: string; docTitle?: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string; ld?: object[] }
-const { title, docTitle, description: rawDescription = SITE.description, shelf, noindex = false, image = '/og/home.png', tool, ld } = Astro.props;
+interface Props { title: string; docTitle?: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string; ld?: object[]; ogType?: 'website' | 'article' }
+const { title, docTitle, description: rawDescription = SITE.description, shelf, noindex = false, image = '/og/home.png', tool, ld, ogType = 'website' } = Astro.props;
 const description = metaDescription(rawDescription);
 const pagePath = Astro.url.pathname;
 const ldAuto = ld?.length || noindex || pagePath === '/' ? ld : pageLd(title, description, pagePath);
@@ -48,7 +48,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="fibub" />
     <meta property="og:image" content={imageUrl} />
     <meta property="og:image:width" content="1200" />

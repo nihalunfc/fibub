@@ -1,0 +1,138 @@
+/* The Learn area (nihal, 2026-11-22): category tiles, course cards, swipe rails on phones, tabs, and the
+   "Continue where you left off" strip. Phone first; motion only when the visitor hasn't asked for less. */
+.lh-head { margin: 0 0 14px; }
+.lh-head h1 { margin-bottom: 4px; }
+.lh-head .lead { margin: 0; }
+
+/* Category tiles: 2 across on phones, 3 on tablets, 6 on computers. */
+.lh-hubs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 6px; }
+@media (min-width: 640px) { .lh-hubs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } }
+@media (min-width: 1000px) { .lh-hubs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 639px) { .lh-hub:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+.lh-hub { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 1px; align-items: center; padding: 9px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0; transition: border-color .15s, transform .15s; }
+.lh-hub:hover, .lh-hub:focus-visible { border-color: var(--accent); }
+.lh-hub.on { border-color: var(--accent); background: var(--accent-soft); }
+.lh-hub .lh-ico { grid-row: span 2; }
+.lh-hub strong { font-size: 14.5px; line-height: 1.2; }
+.lh-hub small { color: var(--muted); font-size: 12.5px; line-height: 1.3; }
+.lh-hub .lh-blurb { grid-column: 1 / -1; margin-top: 4px; display: none; color: var(--muted); font-size: 13px; line-height: 1.4; }
+@media (min-width: 640px) { .lh-hub .lh-blurb { display: block; } .lh-hub { padding: 12px 14px; } }
+.lh-ico { width: clamp(26px, 6vw, 34px); height: clamp(26px, 6vw, 34px); color: var(--accent); flex: none; }
+.lh-ico svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* Section heading with a "See all" link on the same line. */
+.lh-sec { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 26px 0 8px; }
+.lh-sec h2 { margin: 0; }
+.lh-sec a { flex: none; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.lh-sec a:hover { text-decoration: underline; }
+.lh-sub { margin: -4px 0 8px; color: var(--muted); font-size: 14px; }
+@media (max-width: 640px) { .lh-sec { margin: 20px 0 6px; } }
+
+/* A rail: swipe sideways on phones (less scrolling down), a grid on bigger screens. */
+.lh-rail { display: grid; grid-auto-flow: column; grid-auto-columns: min(78%, 290px); gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; margin: 0 -16px; padding: 2px 16px 10px; scroll-padding: 0 16px; scrollbar-width: thin; }
+.lh-rail > * { scroll-snap-align: start; }
+@media (min-width: 720px) { .lh-rail { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); overflow: visible; margin: 0; padding: 0; gap: 10px; } }
+.lh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 8px; }
+@media (min-width: 640px) { .lh-grid { gap: 10px; } }
+
+/* Course card. */
+.lc { position: relative; display: flex; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0; transition: border-color .15s, transform .2s; }
+a.lc:hover, a.lc:focus-visible { border-color: var(--accent); }
+.lc .lh-ico { width: 30px; height: 30px; margin-top: 2px; }
+.lc-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.lc-b strong { font-size: 15.5px; line-height: 1.3; }
+.lc-m { font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.lc-t { font-size: 13.5px; line-height: 1.45; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc.soon { opacity: .72; border-style: dashed; }
+.lc.soon .lc-m { color: var(--muted); }
+.lc-p { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.lc-p[hidden] { display: none; }
+.lc-p i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .6s ease; }
+
+/* Continue where you left off (only shown when this browser has progress). */
+.lh-cont { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 12px; background: var(--accent-soft); }
+.lh-cont[hidden] { display: none; }
+.lh-cont h2 { font-size: 14px; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); }
+.lh-cont ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lh-cont a { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--ink); text-decoration: none; font-weight: 600; }
+.lh-cont a:hover span { text-decoration: underline; }
+.lh-cont small { color: var(--muted); font-weight: 400; }
+
+/* Tabs and filters: plain radio buttons styled as chips, so they work with no script. */
+.lh-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 -16px 10px; padding: 2px 16px 4px; scrollbar-width: none; }
+.lh-tabs::-webkit-scrollbar { display: none; }
+@media (min-width: 720px) { .lh-tabs { flex-wrap: wrap; overflow: visible; margin: 0 0 12px; padding: 0; } }
+.lh-tabs input { position: absolute; opacity: 0; pointer-events: none; }
+.lh-tabs label { flex: none; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s; }
+.lh-tabs label:hover { border-color: var(--accent); }
+.lh-tabs input:checked + label { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lh-tabs input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lh-tabs small { font-weight: 400; opacity: .8; }
+
+/* Class tiles on the School page; a country tab with several syllabuses gets a small heading per syllabus. */
+.lh-curh { font-size: 16px; margin: 16px 0 8px; }
+.lh-curh small { color: var(--muted); font-weight: 400; font-size: 13px; }
+.lh-curblock:first-child .lh-curh { margin-top: 4px; }
+.lk { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0; }
+.lk:hover { border-color: var(--accent); }
+.lk strong { font-size: 15px; }
+.lk small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.lh-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.lh-chips a { display: inline-block; padding: 5px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); text-decoration: none; font-weight: 600; font-size: 13.5px; }
+.lh-chips a:hover { text-decoration: underline; }
+
+@media (max-width: 639px) { .lh-k2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lh-about summary, .lh-all summary { cursor: pointer; font-size: 13.5px; color: var(--accent); font-weight: 600; margin: 8px 0 0; }
+.lh-about .ar-note { margin-top: 6px; }
+.lh-all .lh-chips { margin-top: 8px; }
+
+/* "Explore more" links between hubs at the foot of each Learn page. */
+.lh-more { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.lh-more span { color: var(--muted); margin-right: 4px; }
+.lh-more a { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); text-decoration: none; }
+.lh-more a:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Motion, sized to the screen: short distances and quick on phones, a little more room on computers.
+   Nothing moves for visitors who ask their device for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .lh-anim > * { animation: lh-rise .34s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(min(var(--i, 0), 10) * 35ms); }
+  @keyframes lh-rise { from { opacity: 0; transform: translateY(clamp(6px, 1.6vw, 16px)); } }
+  @media (min-width: 720px) { .lh-anim > * { animation-duration: .45s; } }
+  @media (hover: hover) { a.lc:hover, .lh-hub:hover, .lk:hover { transform: translateY(-2px); } }
+  /* Phone rails: cards ease in as they slide into view sideways. */
+  @supports (animation-timeline: view()) {
+    @media (max-width: 719px) {
+      .lh-rail > * { animation: lh-slide linear both; animation-timeline: view(inline); animation-range: entry 0% entry 70%; }
+      @keyframes lh-slide { from { opacity: .35; transform: scale(.94); } }
+    }
+  }
+  /* Category icons: each one plays its little animation twice when the page opens, and again on hover. */
+  .lh-ico .a-bar { transform-box: fill-box; transform-origin: bottom; animation: a-bar 1.2s ease-in-out 2; }
+  .lh-ico .a-bar:nth-child(2) { animation-delay: .15s; } .lh-ico .a-bar:nth-child(3) { animation-delay: .3s; }
+  @keyframes a-bar { 50% { transform: scaleY(.45); } }
+  .lh-ico .a-orbit { transform-origin: 12px 12px; animation: a-spin 2.4s linear 2; }
+  @keyframes a-spin { to { transform: rotate(360deg); } }
+  .lh-ico .a-rock { transform-origin: 12px 12px; animation: a-rock 1.1s ease-in-out 2; }
+  @keyframes a-rock { 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+  .lh-ico .a-page { transform-box: fill-box; transform-origin: left; animation: a-page 1.6s ease-in-out 2; }
+  @keyframes a-page { 50% { transform: scaleX(-1); } }
+  .lh-ico .a-bub { animation: a-bub 1.4s ease-in 2; }
+  @keyframes a-bub { from { transform: translateY(3px); opacity: 0; } 60% { opacity: 1; } to { transform: translateY(-5px); opacity: 0; } }
+  .lh-ico .a-dot { animation: a-dot 1s ease-in-out 3; }
+  .lh-ico .a-dot:nth-child(2) { animation-delay: .15s; } .lh-ico .a-dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes a-dot { 50% { transform: translateY(-2px); opacity: .3; } }
+  @media (hover: hover) {
+    a:hover .lh-ico .a-bar, a:hover .lh-ico .a-orbit, a:hover .lh-ico .a-rock, a:hover .lh-ico .a-page, a:hover .lh-ico .a-bub, a:hover .lh-ico .a-dot { animation-iteration-count: infinite; }
+  }
+}
+
+/* Course pages: the "Start / Continue" button on a course home, and the bar that offers to keep progress. */
+.cs-go { margin: 4px 0 14px; max-width: 100%; white-space: normal; text-align: left; }
+.cs-go[hidden] { display: none; }
+.cs-keep { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tb-h, 64px) + var(--sub-h, 0px) + env(safe-area-inset-bottom, 0px) + 8px); z-index: 40; width: min(560px, calc(100% - 24px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); font-size: 14.5px; }
+.cs-keep[hidden] { display: none; }
+.cs-keep p { margin: 0; flex: 1 1 220px; line-height: 1.4; }
+.cs-keep div { display: flex; gap: 8px; align-items: center; }
+.cs-keep .btn { padding: 8px 14px; font-size: 14.5px; }
+.cs-keep-x { border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; padding: 8px; }
+@media (prefers-reduced-motion: no-preference) { .cs-keep:not([hidden]) { animation: lh-rise .3s ease both; } }

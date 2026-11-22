@@ -1,0 +1,28 @@
+---
+// DIAGRAM for 11.8: the parts of a research paper, in the order to read them. Tap a part to see what to look for.
+---
+<figure class="cs-fig mlf" data-paper>
+  <span class="cs-figtag">Try it: read a paper in three passes</span>
+  <div class="mlf-btns" data-btns></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>A typical astronomy paper's sections. Most readers go abstract, figures, conclusions first, then decide whether to read the methods in detail. Numbers show a sensible reading order.</figcaption>
+</figure>
+<script>
+  const PARTS: [string, string][] = [
+    ['1 Abstract', 'One paragraph: the question, what they did, the main result with its uncertainty. Ask: what is the single claim?'],
+    ['2 Figures', 'Read every caption. The key plot usually shows the main result; check the axes, units and error bars before trusting the shape.'],
+    ['3 Conclusions', 'The claims in plain words, often numbered. Compare with the abstract: are they the same strength?'],
+    ['4 Introduction', 'Why it matters and what was known. The references here are your reading list for the field.'],
+    ['5 Data', 'Which telescope, instrument, survey or archive; how much data; dates. Could you get the same data? Many papers give archive IDs.'],
+    ['6 Methods', 'How raw data became numbers: calibration, fitting, models, assumptions. This is where errors hide.'],
+    ['7 Results', 'The measurements with uncertainties, often in tables. Check the error bars and how many objects are behind each number.'],
+    ['8 Discussion', 'What else could explain it, how it compares with earlier work, what is still uncertain. Good papers argue against themselves here.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-paper]')) {
+    const box = fig.querySelector<HTMLElement>('[data-btns]')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const btns = PARTS.map(([name], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary'; b.textContent = name; b.setAttribute('aria-pressed', String(i === 0)); box.append(b); return b; });
+    const pick = (k: number) => { btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === k))); say.textContent = PARTS[k][1]; };
+    btns.forEach((b, i) => b.addEventListener('click', () => pick(i)));
+    pick(0);
+  }
+</script>

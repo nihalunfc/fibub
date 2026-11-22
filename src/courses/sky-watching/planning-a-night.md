@@ -1,0 +1,100 @@
+---
+title: "Planning a night: Sun, Moon and twilight"
+summary: "A good night needs the Sun well below the horizon, the Moon out of the way, clear steady air and targets high in the sky. Learn the three kinds of twilight and a simple checklist for planning a session."
+minutes: 25
+updated: 2026-11-22
+quiz:
+  - q: "When does astronomical twilight end?"
+    choices: ["When the Sun sets", "When the Sun is 6° below the horizon", "When the Sun is 18° below the horizon"]
+    ans: 2
+    why: "Below −18° the Sun adds no measurable light to the sky: full night."
+  - q: "You want to photograph a faint galaxy. Which Moon phase is best?"
+    choices: ["Full Moon", "First quarter, after moonset", "New Moon"]
+    ans: 2
+    why: "Around new Moon the sky is darkest all night. After a first-quarter moonset is also good, but only for part of the night."
+  - q: "At 55° N in late June, how much full darkness is there?"
+    choices: ["None", "About 4 hours", "About 8 hours"]
+    ans: 0
+    why: "The Sun never gets 18° below the horizon, so astronomical twilight lasts all night."
+sources:
+  - "Twilight definitions (civil −6°, nautical −12°, astronomical −18°): US Naval Observatory, aa.usno.navy.mil"
+---
+
+**Module 3 · about 25 minutes · uses Lessons 1.3 and 1.4.** You'll be able to name the three twilights, find how long true darkness lasts on any date and latitude, and plan an observing session that puts each target at its best.
+
+## 1. Why this matters
+
+Clear nights are precious. Good planning means you don't spend the darkest hours on the Moon, or chase a galaxy that is sinking into the town's glow. This lesson ties together everything in Part A into a habit observers use before every session.
+
+## 2. Three twilights
+
+After sunset the sky darkens gradually because sunlight still reaches the upper atmosphere. Twilight is split by how far the Sun's centre is below the horizon:
+
+| Sun's altitude | Name | What you notice |
+|---|---|---|
+| 0° to −6° | **Civil twilight** | Bright enough to read outside; Venus and the brightest stars appear |
+| −6° to −12° | **Nautical twilight** | The horizon fades out; most constellations visible |
+| −12° to −18° | **Astronomical twilight** | Looks dark, but faint galaxies and nebulae are still washed out |
+| below −18° | **Night** | The Sun adds nothing; the sky is as dark as it gets |
+
+<!--fig:twilight-bands-->
+
+Things to notice:
+
+- At 43° N, full darkness lasts about 8.7 hours at the equinox but only about 4 hours at the June solstice.
+- North of about 48.6° N, there is a stretch around the June solstice with no full darkness at all.
+- Near the equator, twilight is short: the Sun drops almost straight down.
+
+<details class="maths" open>
+<summary>Maths and principle</summary>
+
+**Principle:** use Lesson 1.2's hour-angle formula with a target altitude `$h_0$` below the horizon instead of 0°.
+
+**Equation:** the Sun reaches altitude `$h_0$` at hour angle `$H$` where
+
+```math
+\cos H = \frac{\sin h_0 - \sin\varphi\,\sin\delta_\odot}{\cos\varphi\,\cos\delta_\odot}
+```
+
+Full darkness lasts `$24 - 2H/15$` hours, with `$h_0 = -18^\circ$`. If `$\cos H < -1$` the Sun never climbs to `$h_0$` (polar night); if `$\cos H > 1$` it never sinks to `$h_0$` (no full darkness).
+
+**No full darkness when** the Sun's lowest altitude `$-(90^\circ - \varphi - \delta_\odot)$` is above −18°, that is `$\varphi > 72^\circ - \delta_\odot$`: at the June solstice, latitudes above about 48.6°.
+</details>
+
+## 3. A planning checklist
+
+1. **Weather:** clear sky forecast, cloud maps, and wind (wind shakes telescopes and worsens seeing).
+2. **Sun:** when does astronomical twilight end and begin?
+3. **Moon:** phase, rise and set times. Plan faint targets for when the Moon is down.
+4. **Targets:** list them with the time each crosses the meridian (highest, lowest airmass). Observe each within a couple of hours of that, starting with the ones setting first in the west.
+5. **Gear and comfort:** cool the telescope for 30 to 60 minutes, dress warmly, bring a red torch and a log (Lesson 5.7).
+
+## 4. Worked example
+
+*Toronto (43.7° N), equinox (`$\delta_\odot = 0$`).*
+
+```math
+\cos H = \frac{\sin(-18^\circ) - 0}{\cos 43.7^\circ} = \frac{-0.309}{0.723} = -0.427, \qquad H = 115.3^\circ = 7.69 \text{ h}
+```
+
+Astronomical dawn is at solar time `$12 - 7.69 = 4.31$` h (about 04:19) and dusk at `$12 + 7.69 = 19.69$` h (about 19:41). Full darkness lasts `$24 - 2 \times 7.69 = 8.6$` hours. With a full Moon that night, you would rather wait a week: the last-quarter Moon rises around midnight, giving dark evening hours.
+
+Clock times differ from solar times because of time zones (Toronto is about 17 minutes behind its zone's central longitude) and the equation of time (up to ±16 minutes); planning tools handle both.
+
+## 5. Practice
+
+1. At what solar time does nautical twilight end at the equator on the equinox?
+2. Why is a new Moon week in winter ideal for deep-sky observing in Canada?
+3. Your target crosses the meridian at 02:00. When should you observe it?
+
+<details>
+<summary>Answers</summary>
+
+1. At the equator on the equinox the Sun sets straight down at 15° per hour, so −12° comes 48 minutes after sunset: about 18:48 solar time.
+2. Long nights (more hours of full darkness) and no Moon.
+3. Around 02:00, within a couple of hours either side, when it is highest and the airmass lowest.
+</details>
+
+**Try it on the real sky:** get twilight, Moon and darkness times for your town with the [[dark-sky-calendar]], build a timed target list with the [[observing-session]] planner, and see what is up right now with [[sky-tonight]].
+
+**New words:** *civil, nautical and astronomical twilight*, *transit time*, *equation of time*.

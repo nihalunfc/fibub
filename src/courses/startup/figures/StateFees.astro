@@ -1,0 +1,29 @@
+---
+// 4.6: forming an LLC or corporation in a few common states: filing fee, yearly cost and the catch to watch for.
+---
+<figure class="cs-fig su-fig" data-sf>
+  <span class="cs-figtag">Compare: what forming costs in common states</span>
+  <div class="su-row">
+    <label>State<select name="st"><option value="de">Delaware</option><option value="ca">California</option><option value="tx">Texas</option><option value="fl">Florida</option><option value="ny">New York</option><option value="wy">Wyoming</option></select></label>
+    <label>Entity<select name="ent"><option value="llc">LLC</option><option value="corp">Corporation</option></select></label>
+  </div>
+  <div class="su-out"><div><span>To form (state filing fee)</span><b data-f></b></div><div><span>Every year after</span><b data-y></b></div></div>
+  <p class="su-say" data-say></p>
+  <p class="su-fine">Approximate state fees for online filing in 2026, before registered agent and optional service fees. States change fees: check the Secretary of State fee schedule before filing.</p>
+  <figcaption>The filing fee is the small part. Yearly taxes and reports cost more over time, and forming outside your home state means paying your home state too.</figcaption>
+</figure>
+<script>
+  const S: Record<string, { llc: [string, string]; corp: [string, string]; note: string }> = {
+    de: { llc: ['$110', '$300 annual tax'], corp: ['from about $110', '$50 report + franchise tax from $175'], note: 'Choose Delaware for a venture-backed C corp. Calculate franchise tax by both methods: the default notice can show tens of thousands of dollars for startups with millions of authorised shares.' },
+    ca: { llc: ['$70', '$800 minimum franchise tax + $20 statement every 2 years'], corp: ['$100', '$800 minimum franchise tax + $25 yearly statement'], note: 'California charges the $800 minimum each year even with no profit, and also applies it to out-of-state LLCs doing business in California.' },
+    tx: { llc: ['$300', 'Franchise tax report and Public Information Report; no tax due below the revenue threshold (about $2.47 million)'], corp: ['$300', 'Same franchise tax reports'], note: 'Texas has no personal income tax, but the franchise (margin) tax report is still due every year, even when no tax is owed.' },
+    fl: { llc: ['$125', '$138.75 annual report'], corp: ['$70', '$150 annual report'], note: 'File the annual report between 1 January and 1 May; a late fee of $400 applies after that.' },
+    ny: { llc: ['$200', '$9 biennial statement'], corp: ['$125', '$9 biennial statement + state franchise tax (minimum $25)'], note: 'New York LLCs must publish a notice in two newspapers for six weeks within 120 days, which can cost $1,000 or more in New York City counties.' },
+    wy: { llc: ['$100', 'Annual report license tax from $60'], corp: ['$100', 'Annual report license tax from $60'], note: 'Cheap and private, but if you live and work in another state you will also register and pay tax there.' },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sf]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!.value;
+    function draw() { const s = S[v('st')], [f, y] = s[v('ent') as 'llc' | 'corp']; fig.querySelector('[data-f]')!.textContent = f; fig.querySelector('[data-y]')!.textContent = y; fig.querySelector('[data-say]')!.textContent = s.note; }
+    fig.querySelectorAll('select').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

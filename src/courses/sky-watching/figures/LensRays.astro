@@ -1,0 +1,51 @@
+---
+// SIM for 4.1: rays from a distant star meet at the focal point of a lens or a concave mirror; rays from a nearer
+// object focus further out. Switch between lens and mirror.
+---
+<figure class="cs-fig mlf" data-lens>
+  <span class="cs-figtag">Try it: bring the object closer</span>
+  <canvas aria-label="Ray diagram for a lens or a concave mirror forming an image"></canvas>
+  <div class="mlf-ctl">
+    <label>Object distance (right end = a star) <output data-v="u"></output><input type="range" name="u" min="1.2" max="4.2" step="0.05" value="4.2"></label>
+    <label>Optic <select name="kind"><option value="lens">Lens (refractor)</option><option value="mirror">Concave mirror (reflector)</option></select></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>image distance</span><b data-v2></b></div>
+    <div><span>image size vs object</span><b data-m></b></div>
+  </div>
+  <figcaption>Focal length f is set to 1. Three standard rays leave the tip of the object: one parallel to the axis (bends through the focus), one through the centre (goes straight on, or bounces back symmetrically from a mirror) and one through the focus (leaves parallel). For a star, the object is so far away that its rays arrive parallel and meet exactly at the focus: that is where the eyepiece or camera goes.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { imageDistance } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lens]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const p = new Plot(cv, { x: [-4.2, 4.2], y: [-1.6, 1.6], h: 240, bare: true });
+    const draw = () => {
+      const raw = gu(), star = raw > 4.01, u = star ? Infinity : raw, mirror = sel.value === 'mirror';
+      const fx = mirror ? -1 : 1, end = mirror ? -4.2 : 4.2, h = 0.8;
+      p.begin();
+      p.line(-4.2, 0, 4.2, 0, { color: p.pal.line, width: 1 });
+      if (mirror) p.path(Array.from({ length: 31 }, (_, k) => { const y = -1.4 + (k / 30) * 2.8; return [0.1 * y * y, y] as [number, number]; }), { color: p.pal.ink, width: 3 });
+      else { const c = p.ctx; c.save(); c.strokeStyle = p.pal.accent; c.lineWidth = 2; c.beginPath(); c.ellipse(p.px(0), p.py(0), 7, p.py(-1.4) - p.py(0), 0, 0, 6.283); c.stroke(); c.restore(); }
+      p.dot(fx, 0, { r: 4, color: p.pal.accent2 }); p.text(fx, 0, 'F', { dy: 12, align: 'center', color: p.pal.accent2 });
+      if (star) {
+        for (const y0 of [1.1, 0.5, -0.4, -1.0]) { p.line(-4.2, y0, 0, y0, { color: p.pal.accent, width: 1.5 }); p.line(0, y0, fx, 0, { color: p.pal.accent, width: 1.5 }); }
+        p.dot(fx, 0, { r: 6, color: p.pal.bad }); p.text(-4.1, 1.45, 'starlight arrives in parallel rays', { size: 10.5, color: p.pal.muted });
+      } else {
+        const ux = -u, v = imageDistance(1, u), ix = mirror ? -v : v, ih = -h * v / u;
+        p.arrow(ux, 0, ux, h, { color: p.pal.ink, width: 2.5 }); p.text(ux, h, 'object', { dy: -10, align: 'center', size: 11 });
+        p.line(ux, h, 0, h, { color: p.pal.accent, width: 1.5 }); p.line(0, h, end, h - (h * end) / fx, { color: p.pal.accent, width: 1.5 });
+        p.line(ux, h, 0, 0, { color: p.pal.accent2, width: 1.5 }); p.line(0, 0, end, ((mirror ? -1 : 1) * h * end) / ux, { color: p.pal.accent2, width: 1.5 });
+        if (Math.abs(ix) <= 4.2) p.arrow(ix, 0, ix, Math.max(-1.55, Math.min(1.55, ih)), { color: p.pal.bad, width: 2.5 });
+        p.text(-4.1, 1.45, mirror ? 'light reflects back to the left' : 'light passes left to right', { size: 10.5, color: p.pal.muted });
+      }
+      p.end();
+      const v = imageDistance(1, u);
+      q('[data-v2]').textContent = star ? '1 f: at the focus' : `${fmt(v, 2)} f from the ${mirror ? 'mirror' : 'lens'}`;
+      q('[data-m]').textContent = star ? 'a point' : `${fmt(v / u, 2)} × (upside down)`;
+    };
+    const gu = slider(fig, 'u', () => go(), (v) => (v > 4.01 ? 'a star (very far)' : `${fmt(v, 2)} f`)); sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

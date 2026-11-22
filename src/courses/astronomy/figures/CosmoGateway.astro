@@ -1,0 +1,30 @@
+---
+// DIAGRAM for 10.3: the big questions beyond our galaxy, each with a one-line answer and where the cosmology course
+// takes it further. Tap a question.
+---
+<figure class="cs-fig mlf" data-gateway>
+  <span class="cs-figtag">Try it: pick a big question</span>
+  <div class="mlf-btns" data-btns></div>
+  <p class="mlf-say" data-say></p>
+  <p data-go style="margin:6px 0 0"></p>
+  <figcaption>Each question is a whole module of the cosmology course. What you learned here (light, orbits, parallax, Cepheids, galaxies) is exactly the toolkit those modules use.</figcaption>
+</figure>
+<script>
+  const Q: [string, string, string][] = [
+    ['How far away are galaxies?', 'Cepheids (Lesson 3.5) reach the nearest galaxies; exploding white dwarfs and galaxy "rulers" carry the scale out to billions of light-years. Each method is checked against the one before.', 'The cosmic distance ladder'],
+    ['What holds galaxies together?', 'Stars at a galaxy\'s edge orbit too fast for the matter we can see (Lesson 2.2 does the sum). Something unseen adds gravity: dark matter, about five times more than normal matter.', 'Dark matter'],
+    ['Is the universe changing?', 'Galaxies\' spectral lines (Lesson 1.4) are stretched to the red, more the further away they are: space itself is expanding.', 'Discovering expansion'],
+    ['What came first?', 'Run the expansion backwards and the universe was hot and dense. Its afterglow still fills the sky as microwaves at 2.7 K, a blackbody (Lesson 1.2) stretched a thousandfold.', 'The cosmic microwave background'],
+    ['How did galaxies form?', 'Tiny ripples in the early universe grew under gravity into a web of dark matter, and gas fell in to make the first stars and galaxies.', 'From smooth to lumpy'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-gateway]')) {
+    const box = fig.querySelector<HTMLElement>('[data-btns]')!, say = fig.querySelector<HTMLElement>('[data-say]')!, go = fig.querySelector<HTMLElement>('[data-go]')!;
+    const btns = Q.map(([q], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary'; b.textContent = q; b.setAttribute('aria-pressed', String(i === 0)); box.append(b); return b; });
+    const pick = (k: number) => {
+      btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === k))); say.textContent = Q[k][1];
+      const a = document.createElement('a'); a.href = '/learn/courses/cosmology/'; a.textContent = `Go deeper: ${Q[k][2]}, in the cosmology course`; go.replaceChildren(a);
+    };
+    btns.forEach((b, i) => b.addEventListener('click', () => pick(i)));
+    pick(0);
+  }
+</script>

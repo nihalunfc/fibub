@@ -1,0 +1,8 @@
+store_id,store,province,size,opened
+S01,Harbourview,Ontario,large,2015-04-01
+S02,Maple Ridge,Ontario,medium,2017-09-15
+S03,Cedar Falls,Ontario,small,2019-03-01
+S04,Pine Lake,Quebec,medium,2018-06-01
+S05,Riverside,British Columbia,large,2016-11-01
+S06,Elm Grove,Alberta,small,2021-02-01
+WEB,Online,All,online,2020-05-01

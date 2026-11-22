@@ -1,0 +1,40 @@
+---
+// SIM for 7.4: a star's absorption lines shift red when it moves away and blue when it comes towards us.
+// Compares the lab spectrum with the star's, and works out the speed from the shift.
+---
+<figure class="cs-fig mlf" data-doppler>
+  <span class="cs-figtag">Try it: move the star</span>
+  <canvas aria-label="A laboratory spectrum and a star's spectrum with lines shifted by its motion"></canvas>
+  <div class="mlf-ctl"><label>Radial velocity <output data-v="v"></output><input type="range" name="v" min="-3000" max="3000" step="10" value="600"></label></div>
+  <div class="mlf-read">
+    <div><span>H-alpha moves to</span><b data-ha></b></div>
+    <div><span>shift Δλ</span><b data-dl></b></div>
+    <div><span>redshift z</span><b data-z></b></div>
+  </div>
+  <figcaption>Top: hydrogen and sodium lines measured in a lab. Bottom: the same lines in a moving star. Positive velocity means moving away (redshift); negative means approaching (blueshift). Velocities here are exaggerated so you can see the shift; most stars move at tens of km/s, galaxies at hundreds to thousands.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { shifted, C } from '../../../lib/astrocourse/physics';
+  const LINES = [434.0, 486.1, 589.0, 589.6, 656.3];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-doppler]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [420, 680], y: [0, 10], h: 210, xLabel: 'wavelength (nm)', noYTicks: true });
+    const draw = () => {
+      const v = gv() * 1e3;
+      p.begin();
+      for (const [y0, sh] of [[5.6, false], [1, true]] as [number, boolean][]) {
+        for (let l = 420; l < 680; l += 1) p.rect(l, y0, 1.05, 3.4, { fill: p.pal.red ? p.pal.ink : `hsl(${Math.max(0, 270 - ((l - 400) / 300) * 270)},80%,55%)`, alpha: 0.85 });
+        for (const L of LINES) { const x = sh ? shifted(L, v) : L; if (x > 420 && x < 680) p.rect(x - 0.6, y0, 1.2, 3.4, { fill: '#000000' }); }
+      }
+      p.text(422, 9.6, 'lab', { size: 11, color: p.pal.muted }).text(422, 4.9, 'star', { size: 11, color: p.pal.muted });
+      for (const L of LINES) p.line(L, 4.4, shifted(L, v), 4.4, { color: p.pal.accent2, width: 2 });
+      p.end();
+      const ha = shifted(656.3, v);
+      q('[data-ha]').textContent = `${fmt(ha, 2)} nm`; q('[data-dl]').textContent = `${ha > 656.3 ? '+' : ''}${fmt(ha - 656.3, 2)} nm`; q('[data-z]').textContent = fmt((ha - 656.3) / 656.3, 4);
+      void C;
+    };
+    const gv = slider(fig, 'v', () => go(), (x) => `${x > 0 ? '+' : ''}${x} km/s`);
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,41 @@
+---
+// SIM for 2.5: the north celestial pole traces a circle of radius 23.4° round the ecliptic pole every
+// ~25,800 years. Slide through the centuries and see which star is the pole star.
+---
+<figure class="cs-fig mlf" data-prec>
+  <span class="cs-figtag">Try it: travel through time</span>
+  <canvas aria-label="The northern sky around the ecliptic pole, with the circle traced by the celestial pole and the pole's place in the chosen year"></canvas>
+  <div class="mlf-ctl">
+    <label>Year <output data-v="yr"></output><input type="range" name="yr" min="-12000" max="14000" step="100" value="2000"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>nearest bright star to the pole</span><b data-near></b></div>
+    <div><span>how far from the pole</span><b data-sep></b></div>
+  </div>
+  <figcaption>The view is centred on the ecliptic pole in Draco. The dashed circle is the path of the north celestial pole; the dot is where it points in the chosen year. Around 2700 BC, when the pyramids of Giza were built, Thuban was the pole star; Polaris is closest in about 2100 AD; Vega takes over around 14,000 AD. Simple model: it ignores the stars' own slow motions and small changes in Earth's tilt.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { toEcliptic, poleAt, separation, OBLIQUITY } from '../../../lib/astrocourse/sky';
+  import { STARS, LINES, star } from '../../../lib/astrocourse/stars';
+  const XY = (ra: number, dec: number): [number, number] => { const { lam, beta } = toEcliptic(ra, dec), r = 90 - beta, a = (lam * Math.PI) / 180; return [r * Math.cos(a), r * Math.sin(a)]; };
+  const north = STARS.filter(([, , dec]) => dec > 25);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-prec]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-50, 50], y: [-50, 50], h: 320, bare: true, equal: true });
+    const draw = () => {
+      const yr = gy(), P = poleAt(yr), PP = XY(P.ra, P.dec);
+      p.begin();
+      p.path(Array.from({ length: 121 }, (_, k) => [OBLIQUITY * Math.cos(k / 120 * 6.283), OBLIQUITY * Math.sin(k / 120 * 6.283)] as [number, number]), { color: p.pal.accent2, width: 1.5, dash: [5, 4] });
+      p.dot(0, 0, { shape: 'cross', r: 5, color: p.pal.muted }); p.text(0, 0, 'ecliptic pole', { dx: 7, dy: 9, size: 10.5, color: p.pal.muted });
+      for (const [a, b] of LINES) { const A = star(a), B = star(b); if (A[2] > 25 && B[2] > 25) { const u = XY(A[1], A[2]), v = XY(B[1], B[2]); p.line(u[0], u[1], v[0], v[1], { color: p.pal.muted, width: 1, alpha: 0.6 }); } }
+      for (const [nm, ra, dec, m] of north) { const [x, y] = XY(ra, dec); if (Math.hypot(x, y) > 48) continue; p.dot(x, y, { r: Math.max(1.6, 4.4 - m), color: p.pal.ink }); if (['Polaris', 'Vega', 'Thuban', 'Deneb', 'Kochab', 'Dubhe', 'Capella'].includes(nm)) p.text(x, y, nm, { dx: 6, size: 11, color: p.pal.muted }); }
+      p.dot(PP[0], PP[1], { r: 7, color: p.pal.accent2 });
+      p.end();
+      let best = north[0], bs = 999; for (const s of north) { const d = separation(P.ra, P.dec, s[1], s[2]); if (d < bs && s[3] < 3.8) { bs = d; best = s; } }
+      q('[data-near]').textContent = best[0]; q('[data-sep]').textContent = `${fmt(bs, 1)}°`;
+    };
+    const gy = slider(fig, 'yr', () => go(), (v) => (v < 0 ? `${-v} BC` : `${v} AD`));
+    const go = live(cv, draw);
+  }
+</script>

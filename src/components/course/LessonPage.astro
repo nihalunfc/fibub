@@ -3,8 +3,12 @@
 import Base from '../../layouts/Base.astro';
 import CourseSidebar from './CourseSidebar.astro';
 import LessonQuiz from './LessonQuiz.astro';
+import CourseSiblings from '../learn/CourseSiblings.astro';
+import { COURSES, COURSE_CATS } from '../../data/curricula';
+import '../../styles/learn.css';
 import { splitFigures, type LessonEntry } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
+import { lessonLd } from '../../lib/seo';
 import '../../styles/course.css';
 interface Props { course: CourseSyllabus; entry: LessonEntry; slug: string; live: Set<string>; figures: Record<string, any> }
 const { course, entry, slug, live, figures } = Astro.props;
@@ -16,32 +20,43 @@ const prev = liveAll[li - 1], next = liveAll[li + 1];
 const parts = splitFigures(entry.rendered?.html ?? '');
 for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${slug}: unknown figure ${p.fig}`);
 const d = entry.data;
+const kitV = course.kit ? Date.now().toString(36) : '';
+const cat = COURSE_CATS.find((k) => k.id === COURSES.find((c) => c.id === course.id)?.cat);
 const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
+const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
 ---
-<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary}>
-  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
-  <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug}>
+<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / {cat ? <a href={cat.href}>{cat.short}</a> : <a href="/learn/courses/">Courses</a>} / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
+  <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.id}/` : undefined}>
     <CourseSidebar course={course} live={live} current={slug} />
     <article class="cs-main cs-lesson">
       <p class="cs-kicker">Module {me.module.n}: {me.module.name} · Lesson {me.n} · about {d.minutes} min</p>
       <h1>{d.title}</h1>
       <p class="lead">{d.summary}</p>
+      {course.kit && <p class="cs-kitbar"><button type="button" class="lk-btn" data-action="summary-sheet">⤓ Summary sheet (PDF)</button><span>Key points, meanings and formulas on one page: choose "Save as PDF" in the print box.</span></p>}
       <div class="cs-body">
-        {parts.map((p) => { if (p.fig) { const F = figures[p.fig]; return <F />; } return <Fragment set:html={p.html} />; })}
+        {parts.map((p) => { if (p.fig) { const F = figures[p.fig]; return <F arg={p.arg} />; } return <Fragment set:html={p.html} />; })}
       </div>
       <LessonQuiz quiz={d.quiz} />
       {d.sources.length > 0 && <section class="cs-sources"><h2>Sources</h2><ul>{d.sources.map((s) => <li set:html={s.replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" rel="noopener">$1</a>')} />)}</ul></section>}
       <div class="cs-end">
         <button type="button" class="btn" data-mark-done>Mark this lesson as done</button>
-        <p class="cs-small">Your ticks stay in this browser. Save them as a file on the <a href={`/learn/courses/${course.id}/#progress`}>course home</a>.</p>
+        <div class="cs-nudge" data-save-nudge hidden role="note">
+          <p><strong>Save your progress.</strong> Your ticks and quiz scores are kept only in this tab, so closing it loses them.</p>
+          <label class="cs-check"><input type="checkbox" data-prog-remember /> Remember my progress on this device</label>
+          <button type="button" class="btn secondary" data-prog-download>Download progress file</button>
+        </div>
+        <p class="cs-small">Your ticks stay in this browser, never on a server. Load a saved file on the <a href={`/learn/courses/${course.id}/#progress`}>course home</a>.</p>
       </div>
       <nav class="cs-pn" aria-label="Previous and next lesson">
         {prev ? <a href={`/learn/courses/${course.id}/${prev.slug}/`}>← {prev.n} {prev.title}</a> : <span />}
         {next ? <a class="cs-next" href={`/learn/courses/${course.id}/${next.slug}/`}>{next.n} {next.title} →</a> : <a class="cs-next" href={`/learn/courses/${course.id}/`}>Course home →</a>}
       </nav>
+      <CourseSiblings id={course.id} />
       <p class="cs-small">Updated {d.updated.toISOString().slice(0, 10)}. {course.footnote ?? 'Prices and model names change fast: check the official source before you buy.'}</p>
     </article>
   </div>
 </Base>
 <script>import '../../scripts/course';</script>
+{course.kit && <script type="module" is:inline src={`/learn-kit/lesson-kit.js?v=${kitV}`}></script>}

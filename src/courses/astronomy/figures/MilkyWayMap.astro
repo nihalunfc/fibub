@@ -1,0 +1,43 @@
+---
+// FIGURE for 10.1: a sketch of the Milky Way from above and from the side, with the Sun's place. Not a real map:
+// a drawn spiral with the sizes rounded from current estimates.
+---
+<figure class="cs-fig mlf" data-mwmap>
+  <span class="cs-figtag">Try it: turn the Galaxy</span>
+  <canvas aria-label="A sketch of the Milky Way seen from above or edge-on, with the Sun marked"></canvas>
+  <div class="mlf-ctl">
+    <label>Tilt <output data-v="tilt"></output><input type="range" name="tilt" min="0" max="90" step="1" value="20"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>disc diameter</span><b>about 100,000 ly (30 kpc)</b></div>
+    <div><span>Sun to centre</span><b>about 26,000 ly (8 kpc)</b></div>
+    <div><span>one trip round for the Sun</span><b>about 230 million years</b></div>
+  </div>
+  <figcaption>A drawing, not a photograph: nobody has seen the Milky Way from outside. Tilt to 90° to see it edge-on, as we do from inside: a thin disc with a central bulge. That edge-on view is the band of the Milky Way across a dark sky (Sky watching lesson 3.2). The dashed ellipse is the Sun's orbit.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const R = rng(5), stars: [number, number, number][] = [];
+  for (let k = 0; k < 2600; k++) {
+    const u = R();
+    if (u < 0.25) { const r = Math.abs((R() + R() + R() - 1.5)) * 2.2, a = R() * 2 * Math.PI; stars.push([r * Math.cos(a), r * 0.6 * Math.sin(a), (R() - 0.5) * 1.6]); }
+    else { const arm = Math.floor(R() * 4), r = 1.5 + R() * 13.5, a = arm * (Math.PI / 2) + Math.log(r / 1.5) / 0.22 + (R() - 0.5) * 0.5; stars.push([r * Math.cos(a), r * Math.sin(a), (R() - 0.5) * 0.6]); }
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-mwmap]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [-16, 16], y: [-12, 12], h: 300, bare: true, equal: true });
+    const draw = () => {
+      const t = (gt() * Math.PI) / 180, ct = Math.cos(t), st = Math.sin(t);
+      p.begin();
+      for (const [x, y, z] of stars) p.dot(x, y * ct + z * st, { r: 1.1, color: p.pal.muted, alpha: 0.55 });
+      const orb: [number, number][] = []; for (let k = 0; k <= 90; k++) { const a = (k / 90) * 2 * Math.PI; orb.push([8.2 * Math.cos(a), 8.2 * Math.sin(a) * ct]); }
+      p.path(orb, { color: p.pal.accent2, width: 1, dash: [4, 4] });
+      p.dot(0, -8.2 * ct, { r: 5, color: p.pal.warn }); p.text(0, -8.2 * ct, 'Sun', { dx: 8, size: 11, color: p.pal.ink });
+      p.dot(0, 0, { r: 3, color: p.pal.ink, shape: 'cross' });
+      p.end();
+    };
+    const gt = slider(fig, 'tilt', () => go(), (v) => `${fmt(v, 0)}°`);
+    const go = live(cv, draw);
+  }
+</script>

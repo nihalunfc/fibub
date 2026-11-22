@@ -3,7 +3,7 @@ title: 'Derivatives and the gradient: which way is downhill'
 seoTitle: 'Derivatives and the gradient, for machine learning'
 summary: 'The derivative is the slope of a curve at one point. Step against it and you go downhill. That single rule, gradient descent, is how almost every model learns. Roll a ball down a curve and change the step size.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'For f(x) = x², what is the slope (derivative) at x = 3?'
     choices: ['3', '6', '9']
@@ -17,17 +17,23 @@ quiz:
     choices: ['Training is slow but safe', 'Steps overshoot the bottom and can bounce or fly away', 'Nothing changes']
     ans: 1
     why: Each step is rate × slope. Too big and you jump right over the valley, sometimes landing higher than before.
+sources:
+  - 'Goodfellow, I., Bengio, Y. and Courville, A. (2016), Deep Learning, MIT Press, Section 4.3 (gradient-based optimisation) https://www.deeplearningbook.org/'
+  - 'Strang, G. (2019), Linear Algebra and Learning from Data, Wellesley-Cambridge Press, Part VI (optimisation and gradient descent)'
+  - 'Cauchy, A.-L. (1847), Méthode générale pour la résolution des systèmes d''équations simultanées, Comptes rendus de l''Académie des sciences 25, 536-538 (the first description of gradient descent)'
 ---
 
 **Module 1 · about 25 minutes · read first: 1.3.** You'll be able to explain what a derivative is, work out simple ones, say what a gradient is, and run gradient descent by hand.
 
+<div class="bigidea">The derivative tells you which way is uphill and how steep it is; step the other way, again and again, and you walk down to the smallest error.</div>
+
 ## 1. Why this matters
 
-Training a model means making its error as small as possible. The error depends on the parameters, so it is a function, and making a function small means finding the bottom of its curve. The derivative tells you which way is downhill from wherever you stand. Linear regression (Lesson 3.3), logistic regression, neural networks and language models are all trained by walking downhill this way.
+Training a model means making its error as small as possible. The error depends on the parameters (the dials), so you can draw it as a curve or a landscape. Making the error small means finding the bottom of a valley. The derivative tells you which way is downhill from wherever you stand. Linear regression (Lesson 3.3), logistic regression, neural networks and language models are all trained by walking downhill this way.
 
 ## 2. The derivative is a slope at one point
 
-A curve like `$f(x) = x^2$` has no single slope: it is gentle near 0 and steep further out. The **derivative** `$f'(x)$` is the slope of the curve at one point, the slope of the straight line that just touches it there (the **tangent**).
+A curve like `$f(x) = x^2$` has no single slope: it is gentle near 0 and steep further out. The **derivative** `$f'(x)$` (say "f prime of x") is the slope of the curve at one point. Picture a ruler laid so it just touches the curve at that point without cutting it: that is the **tangent**, and its slope is the derivative. On a road, it is the steepness right under your wheels, not the average over the whole hill.
 
 You can estimate it with two points very close together:
 
@@ -61,7 +67,18 @@ Here is the idea that trains models. Stand at some `$x$`. Look at the slope. If 
 x_{\text{new}} = x - \eta \, f'(x)
 ```
 
-`$\eta$` (the Greek letter eta) is the **learning rate**, the step size. Try it:
+`$\eta$` (the Greek letter eta) is the **learning rate**, the step size. Here is one small walk, three steps long, on the curve `$f(x) = (x - 2)^2 + 1$`, whose bottom is at `$x = 2$`. Its slope is `$f'(x) = 2(x - 2)$`, and we use rate 0.25:
+
+<div class="steps" data-fig="derivatives-gradient-steps">
+<div class="step"><b>Start at x = 0.</b> The slope there is 2 × (0 − 2) = −4: the curve falls to the right. Step: x − 0.25 × (−4) = 0 + 1 = <b>1</b>. The error drops from 5 to 2.</div>
+<div class="step"><b>At x = 1.</b> Slope 2 × (1 − 2) = −2, gentler now. Step: 1 + 0.25 × 2 = <b>1.5</b>. Error 2 → 1.25.</div>
+<div class="step"><b>At x = 1.5.</b> Slope −1. Step: 1.5 + 0.25 = <b>1.75</b>. Error 1.25 → 1.0625.</div>
+<div class="step"><b>The pattern.</b> Each step halves the gap to the bottom (2 → 1 → 0.5 → 0.25). Steps shrink by themselves, because the slope shrinks near the bottom. No one has to tell the ball to slow down.</div>
+</div>
+
+<div class="problem" data-problem="derivatives-gradient-step"></div>
+
+Now try it with your own rate and curve:
 
 <!--fig:downhill-->
 
@@ -71,6 +88,12 @@ Experiments worth doing:
 - **Rate 0.95:** each step jumps across the valley and back, zig-zagging slowly in.
 - **Rate 1.05:** each jump lands higher than the last, and the ball flies off. Too large a learning rate makes training blow up.
 - **Bumpy curve, start at the right:** the ball settles in the right-hand valley, though the left one is deeper. Gradient descent finds *a* bottom, not always *the* lowest one.
+
+<div class="myth">
+
+**"Gradient descent always finds the lowest point."** It only feels the ground under its feet, so it stops in the first valley it rolls into, a **local minimum**. For the bowl-shaped errors of linear and logistic regression there is only one valley, so that is fine. For neural networks there are many, and in practice the valleys it finds are usually good enough, but there is no guarantee of the very lowest.
+
+</div>
 
 ## 5. Many parameters: the gradient
 
@@ -87,6 +110,18 @@ The gradient is a vector (Lesson 1.4) that points uphill, the steepest way up. G
 ```
 
 A language model does exactly this with billions of parameters at every training step.
+
+<div class="meaning">
+
+<dl>
+<dt>f′(x)</dt><dd>The slope of the curve right at x: how fast the error changes if you nudge x a tiny bit.</dd>
+<dt>∇f (gradient)</dt><dd>The list of slopes, one per parameter. Together they point straight uphill.</dd>
+<dt>η (learning rate)</dt><dd>How big a step to take. Too small is slow; too big overshoots.</dd>
+<dt>x − η f′(x)</dt><dd>The new setting: the old one, moved a little against the slope.</dd>
+<dt>Physical meaning</dt><dd>A walker in thick fog on a hillside. They can't see the valley, but they can feel which way the ground tilts under their feet. They take a step downhill, feel again, and repeat. Steep ground gives long strides; nearly flat ground near the bottom gives tiny shuffles. That is all "training" is.</dd>
+</dl>
+
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -131,3 +166,13 @@ Setting the derivative to zero gets there in one go: `$-40(p - 7) = 0$` gives `$
 **Try it yourself:** plot `$f(x)$` and the derivative you worked out, such as `x^2` and `2*x`, together in the [[function-grapher]], and check that the second is zero exactly where the first bottoms out.
 
 **New words:** *derivative*, *tangent*, *chain rule*, *learning rate*, *gradient descent*, *partial derivative*, *gradient*, *local minimum* (a valley that isn't the lowest).
+
+<div class="keypoints">
+
+- The derivative is the slope of a curve at one point: rise over a tiny run.
+- Gradient descent: new x = x − η × slope. Step against the slope and the error goes down.
+- The learning rate η sets the step size; too large and training bounces or blows up.
+- With many parameters the slopes form the gradient, a vector that points uphill; descent steps the opposite way.
+- Gradient descent finds a valley, not always the lowest one.
+
+</div>

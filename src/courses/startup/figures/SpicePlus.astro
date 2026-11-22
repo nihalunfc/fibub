@@ -1,0 +1,34 @@
+---
+// 4.2: one SPICe+ filing on the MCA portal, many registrations out. Tap Play to watch the outputs appear.
+---
+<figure class="cs-fig su-fig" data-sp>
+  <span class="cs-figtag">Animation: one SPICe+ filing, many registrations</span>
+  <div class="su-cards" style="grid-template-columns:1fr">
+    <div class="su-card on"><strong>You file (on mca.gov.in)</strong>SPICe+ Part A (name) and Part B (incorporation), e-MoA (INC-33), e-AoA (INC-34), AGILE-PRO-S, with digital signatures (DSC) of every director and subscriber</div>
+  </div>
+  <div class="su-cards" data-outs></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-play>Play</button><button type="button" class="btn secondary" data-all>Show all</button></div>
+  <figcaption>The Registrar of Companies checks the forms (often in a few working days if nothing is queried) and issues the certificate of incorporation with the CIN. The PAN and TAN come with it. Bank account, EPFO and ESIC numbers follow through the AGILE-PRO-S links; GST is optional at this stage.</figcaption>
+</figure>
+<script>
+  const OUT: [string, string][] = [
+    ['Name approval', 'Reserved for 20 days through Part A (or the separate RUN service)'],
+    ['DIN', 'Director Identification Number for up to three new directors'],
+    ['CIN and certificate', 'Corporate Identity Number on the Certificate of Incorporation'],
+    ['PAN', 'The company’s tax ID, printed on the certificate'],
+    ['TAN', 'Needed to deduct tax at source (TDS) on salaries, rent and fees'],
+    ['EPFO and ESIC', 'Provident fund and state insurance registration numbers, used once you have staff'],
+    ['Bank account', 'A current account opened with a partner bank through AGILE-PRO-S'],
+    ['Professional tax', 'In states such as Maharashtra and Karnataka, where linked'],
+    ['GSTIN (optional)', 'GST registration if you ask for it now; otherwise apply on gst.gov.in later'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sp]')) {
+    const box = fig.querySelector('[data-outs]')!; let t = 0;
+    OUT.forEach(([n, d]) => { const c = document.createElement('div'); c.className = 'su-card good'; c.innerHTML = '<strong></strong><span></span>'; c.querySelector('strong')!.textContent = n; c.querySelector('span')!.textContent = d; box.append(c); });
+    const cards = [...box.children] as HTMLElement[];
+    const show = (k: number) => cards.forEach((c, i) => { c.style.transition = 'opacity .4s, transform .4s'; c.style.opacity = i < k ? '1' : '.12'; c.style.transform = i < k ? 'none' : 'translateY(6px)'; });
+    show(OUT.length);
+    fig.querySelector<HTMLButtonElement>('[data-play]')!.onclick = () => { clearInterval(t); let k = 0; show(0); t = window.setInterval(() => { show(++k); if (k >= OUT.length) clearInterval(t); }, 550); };
+    fig.querySelector<HTMLButtonElement>('[data-all]')!.onclick = () => { clearInterval(t); show(OUT.length); };
+  }
+</script>

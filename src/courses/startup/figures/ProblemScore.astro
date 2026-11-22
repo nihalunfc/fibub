@@ -1,0 +1,37 @@
+---
+// 2.1: score a problem on five things that predict whether people will pay to have it solved.
+---
+<figure class="cs-fig su-fig" data-ps>
+  <span class="cs-figtag">Try it: score your problem</span>
+  <div class="su-row">
+    <label>How painful is it? <output data-v="pain"></output><input type="range" name="pain" min="1" max="5" value="3" /></label>
+    <label>How often does it happen? <output data-v="freq"></output><input type="range" name="freq" min="1" max="5" value="3" /></label>
+    <label>Do people already pay for a fix? <output data-v="pay"></output><input type="range" name="pay" min="1" max="5" value="2" /></label>
+    <label>How many people have it? <output data-v="reach"></output><input type="range" name="reach" min="1" max="5" value="3" /></label>
+    <label>Can you reach them? <output data-v="access"></output><input type="range" name="access" min="1" max="5" value="2" /></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>"Already paying for a fix" counts double: money spent on a bad workaround (spreadsheets, an agent, a weekly trip) is the best proof a problem is real. A low score is not a "no"; it tells you which question to research next.</figcaption>
+</figure>
+<script>
+  const W = { pain: 1, freq: 1, pay: 2, reach: 1, access: 1 } as const;
+  const WORD = ['', 'very low', 'low', 'medium', 'high', 'very high'];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ps]')) {
+    const bars = fig.querySelector('[data-bars]')!;
+    bars.innerHTML = '<div><span>Score</span><span class="t"><i></i></span><b></b></div>';
+    function draw() {
+      let s = 0, max = 0, low: string[] = [];
+      for (const k of Object.keys(W) as (keyof typeof W)[]) {
+        const el = fig.querySelector<HTMLInputElement>(`[name=${k}]`)!, v = Number(el.value);
+        fig.querySelector(`[data-v=${k}]`)!.textContent = WORD[v]; s += v * W[k]; max += 5 * W[k];
+        if (v <= 2) low.push(el.parentElement!.firstChild!.textContent!.trim().replace('?', '').toLowerCase());
+      }
+      const f = s / max, i = bars.querySelector('i')!;
+      i.style.width = `${f * 100}%`; i.className = f >= 0.7 ? 'g' : f < 0.5 ? 'w' : '';
+      bars.querySelector('b')!.textContent = `${Math.round(f * 100)} / 100`;
+      fig.querySelector('[data-say]')!.textContent = f >= 0.7 ? 'Strong: worth testing with real customers now.' : f >= 0.5 ? `Promising. Weak spots to check: ${low.join(', ') || 'none'}.` : `Weak so far. Before building anything, find out: ${low.join(', ')}.`;
+    }
+    fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

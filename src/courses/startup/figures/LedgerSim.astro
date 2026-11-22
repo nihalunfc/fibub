@@ -1,0 +1,34 @@
+---
+// 6.3: tap business events; see cash, profit and the tax you hold for the government change. Shows why cash is not profit.
+---
+<figure class="cs-fig su-fig" data-lg>
+  <span class="cs-figtag">Simulation: a month of bookkeeping</span>
+  <div class="su-row"><label>Country<select name="cc"><option value="in">India (₹, GST 18 %)</option><option value="ca">Canada (C$, HST 13 %)</option><option value="us">USA ($, sales tax 7 %)</option></select></label></div>
+  <div class="su-opts" data-ev></div>
+  <div class="su-out"><div><span>Cash in bank</span><b data-cash></b></div><div><span>Profit so far</span><b data-profit></b></div><div><span>Tax you hold for the government</span><b data-tax></b></div><div><span>Customers owe you</span><b data-ar></b></div><div><span>Equipment (asset)</span><b data-asset></b></div></div>
+  <ol class="su-fine" data-log style="margin:8px 0 0;padding-left:18px"></ol>
+  <div style="display:flex;gap:8px"><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <figcaption>Each event changes at least two things, which is the idea behind double-entry bookkeeping: money always comes from somewhere and goes somewhere. A laptop is an asset, not an expense of the month (it is depreciated over its life). Sales tax you collect sits in your bank but belongs to the government, so it is never profit.</figcaption>
+</figure>
+<script>
+  import { followCountry, money } from './fmt';
+  const R = { in: [0.18, 10000], ca: [0.13, 500], us: [0.07, 500] } as const;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lg]')) {
+    let S = { cash: 0, profit: 0, tax: 0, ar: 0, asset: 0 }; const log = fig.querySelector('[data-log]')!;
+    const cc = followCountry(fig, () => reset());
+    const EV: [string, () => string][] = [
+      ['Owner puts money in', () => { const u = R[cc()][1] * 10; S.cash += u; return `Owner invests ${money(cc(), u)}: cash up, profit unchanged (it is capital, not income).`; }],
+      ['Cash sale', () => { const [t, u] = R[cc()]; const tx = u * t; S.cash += u + tx; S.profit += u; S.tax += tx; return `Sale of ${money(cc(), u)} plus ${money(cc(), tx)} tax: cash up by both, profit up only by the sale.`; }],
+      ['Invoice sent (paid later)', () => { const [t, u] = R[cc()]; S.ar += u * (1 + t); S.profit += u; S.tax += u * t; return `Invoice for ${money(cc(), u)} + tax: profit up now, cash not yet.`; }],
+      ['Customer pays invoice', () => { if (S.ar <= 0) return 'No unpaid invoices.'; const p = S.ar; S.cash += p; S.ar = 0; return `Customer pays ${money(cc(), p)}: cash up, profit unchanged (already counted).`; }],
+      ['Pay rent', () => { const u = R[cc()][1] * 0.6; S.cash -= u; S.profit -= u; return `Rent ${money(cc(), u)}: cash and profit both down.`; }],
+      ['Buy a laptop', () => { const u = R[cc()][1] * 1.5; S.cash -= u; S.asset += u; return `Laptop ${money(cc(), u)}: cash down, an asset up; profit falls only as it is depreciated.`; }],
+      ['Pay sales tax to government', () => { const p = S.tax; S.cash -= p; S.tax = 0; return `Remit ${money(cc(), p)} of tax: cash down, profit unchanged.`; }],
+    ];
+    const box = fig.querySelector('[data-ev]')!;
+    EV.forEach(([t, f]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.onclick = () => { const li = document.createElement('li'); li.textContent = f(); log.prepend(li); while (log.children.length > 5) log.lastChild!.remove(); draw(); }; box.append(b); });
+    function draw() { const c = cc(); (Object.keys(S) as (keyof typeof S)[]).forEach((k) => { fig.querySelector(`[data-${k}]`)!.textContent = money(c, S[k]); }); }
+    function reset() { S = { cash: 0, profit: 0, tax: 0, ar: 0, asset: 0 }; log.innerHTML = ''; draw(); }
+    fig.querySelector<HTMLButtonElement>('[data-reset]')!.onclick = reset;
+  }
+</script>

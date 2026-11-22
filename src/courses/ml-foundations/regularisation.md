@@ -3,7 +3,7 @@ title: 'Regularisation: ridge and lasso'
 seoTitle: 'Ridge and lasso regression: regularisation explained'
 summary: 'Add a penalty for large weights to the error, and an over-flexible model calms down. Ridge shrinks every weight; lasso sets some to exactly zero and so picks features. Turn up the penalty and watch the weights and the test error.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'What does ridge regression add to the squared error?'
     choices: ['λ times the sum of squared weights', 'λ times the number of rows', 'Nothing']
@@ -17,13 +17,20 @@ quiz:
     choices: ['Pick the value with the lowest training error', 'Pick the value with the lowest validation (or cross-validation) error', 'Always use λ = 1']
     ans: 1
     why: Training error is always lowest at λ = 0. Only held-out data shows where the penalty helps.
+sources:
+  - 'Hoerl, A. E. and Kennard, R. W. (1970), Ridge Regression: Biased Estimation for Nonorthogonal Problems, Technometrics 12(1), 55-67 https://doi.org/10.1080/00401706.1970.10488634'
+  - 'Tibshirani, R. (1996), Regression Shrinkage and Selection via the Lasso, Journal of the Royal Statistical Society Series B 58(1), 267-288'
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Section 6.2 (shrinkage methods) https://www.statlearning.com/'
+  - 'scikit-learn user guide: Linear models (Ridge, Lasso, ElasticNet) https://scikit-learn.org/stable/modules/linear_model.html'
 ---
 
 **Module 3 · about 25 minutes · read first: 3.4, 3.7.** You'll be able to write the ridge and lasso losses, explain why a penalty reduces overfitting, say how lasso selects features, and choose the penalty strength.
 
+<div class="bigidea">Regularisation charges the model a fee for large weights, so it only uses big weights when the data really pays for them, and overfits much less.</div>
+
 ## 1. Why this matters
 
-An overfitting model usually has **huge weights** that pull against each other to thread every training point. Regularisation adds a cost for large weights, so the model only uses big weights when the data really demands them. It is one of the most used tools in practice: in regression, in logistic regression, and in neural networks, where the same idea is called **weight decay**.
+An overfitting model usually has **huge weights** that pull against each other to thread every training point. Regularisation adds a cost for large weights, so the model only uses big weights when the data really demands them. Think of a household budget with a tax on spending: you still buy what you truly need, but the impulse buys disappear. It is one of the most used tools in practice: in regression, in logistic regression, and in neural networks, where the same idea is called **weight decay**.
 
 ## 2. The penalised loss
 
@@ -54,6 +61,18 @@ Instead of minimising only the squared error, minimise error plus a penalty:
 
 **Elastic net** mixes both penalties, and is a sensible default when you aren't sure.
 
+Here is ridge and lasso acting on one weight, step by step. A single standardised feature has Σx² = s = 10, and plain least squares gives it weight 4:
+
+<div class="steps">
+<div class="step"><b>No penalty (λ = 0).</b> The weight stays 4: plain least squares.</div>
+<div class="step"><b>Ridge, λ = 10.</b> Ridge scales the weight by s ÷ (s + λ) = 10 ÷ 20 = 0.5. New weight 2. Smaller, but never exactly zero, however big λ gets.</div>
+<div class="step"><b>Lasso, λ′ = 3.</b> Lasso subtracts instead: 4 − 3 = 1. The weight shrinks by a fixed amount.</div>
+<div class="step"><b>Lasso, λ′ = 5.</b> 4 − 5 would be −1, but lasso clips at zero: the weight becomes exactly 0. The feature is dropped from the model.</div>
+<div class="step"><b>The lesson.</b> Ridge turns every dial down a bit. Lasso switches the weakest dials off. That is why lasso also selects features.</div>
+</div>
+
+<div class="problem" data-problem="regularisation-ridge"></div>
+
 ## 4. Why lasso gives exact zeros
 
 Picture just two weights. The squared error makes oval rings around the least-squares answer. The penalty limits how far from zero the weights may go: for ridge, inside a circle (`$w_1^2 + w_2^2 \le t$`); for lasso, inside a diamond (`$|w_1| + |w_2| \le t$`). The answer is where the smallest error ring touches the shape. A circle is round, so the touching point is usually somewhere on its curve, with both weights non-zero. A diamond has sharp corners on the axes, and the rings very often touch a corner first, where one weight is exactly zero.
@@ -77,6 +96,26 @@ For one standardised feature, ridge simply scales the least-squares weight: `$w_
 
 **Try it:** least-squares weight 4, `$s = 10$`. Ridge with `$\lambda = 10$`? Lasso with `$\lambda' = 3$`, then `$\lambda' = 5$`? (Ridge: `$4 \times 10/20 = 2$`. Lasso: `$4 - 3 = 1$`, then `$\max(0, -1) = 0$`.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>λ (lambda)</dt><dd>The price per unit of weight: 0 means no penalty, very large means every weight is crushed towards zero.</dd>
+<dt>Σ wⱼ² (ridge, L2)</dt><dd>The sum of squared weights: big weights cost a lot, small ones almost nothing.</dd>
+<dt>Σ |wⱼ| (lasso, L1)</dt><dd>The sum of weight sizes: every unit costs the same, so tiny weights aren't worth keeping.</dd>
+<dt>Bias w₀</dt><dd>Never penalised: moving the whole prediction up or down doesn't make the model wigglier.</dd>
+<dt>Physical meaning</dt><dd>Huge weights that pull against each other are how an overfitting model threads every noisy point. A penalty is a referee who says "prove you need that": a weight survives only if it cuts the error by more than it costs. What remains is a calmer model that changes less from one sample to the next.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Regularisation makes the model fit worse, so it must make it worse."** It makes the fit on the training data slightly worse, on purpose. In return the weights stop chasing noise, so the error on new data usually drops, sometimes a lot (in the worked example, validation R² rises from 0.41 to 0.74). Pick λ by cross-validation, not by training error, which always prefers λ = 0.
+
+</div>
+
+<div class="problem" data-problem="regularisation-lasso"></div>
 
 ## 5. Worked example
 
@@ -107,3 +146,12 @@ Lasso does slightly better and also tells the team which 11 features carry the s
 **Try it on your own data:** fit a high-degree polynomial in the [[regression-workbench]] and compare its R² with a simpler fit. The overfitting you see there is what a penalty tames.
 
 **New words:** *regularisation*, *penalty*, *λ (lambda)*, *ridge (L2)*, *lasso (L1)*, *elastic net*, *weight decay*, *feature selection*.
+
+<div class="keypoints">
+
+- Regularisation minimises error plus a penalty on the weights; λ sets how strong the penalty is.
+- Ridge (L2) shrinks all weights smoothly; lasso (L1) shrinks and sets the weakest exactly to zero, selecting features.
+- Scale the features first, never penalise the bias, and choose λ by cross-validation.
+- A little extra training error buys much steadier weights and usually a lower test error.
+
+</div>

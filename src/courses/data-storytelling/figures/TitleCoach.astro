@@ -1,0 +1,91 @@
+---
+// PRACTICE for Modules 1, 3 and 5: type a chart title, a big idea or a summary for the chart shown, press Check,
+// and get plain feedback on what makes it work (a number, a point of view, short, names the thing). Nothing is
+// stored or sent; the checks are simple rules run in the browser, and a sample answer is there to compare with.
+const { arg = 'title-stores' } = Astro.props as { arg?: string };
+---
+<figure class="cs-fig ds" data-coach={arg}>
+  <span class="cs-figtag">Practice: write it yourself</span>
+  <p class="ds-task" data-task></p>
+  <div class="ds-chartbox" data-chart></div>
+  <label class="ds-edlabel"><span class="visually-hidden">Your answer</span><textarea class="ds-ed" rows="3" spellcheck="true" data-ed></textarea></label>
+  <div class="ds-nav">
+    <button type="button" class="btn primary" data-check>Check</button>
+    <button type="button" class="btn" data-show>Show a sample answer</button>
+  </div>
+  <ul class="ds-checks" data-out aria-live="polite"></ul>
+  <p class="ds-sample" data-sample hidden></p>
+</figure>
+<script>
+  import { bar, line, PAL, GREY } from './charts';
+  import * as D from './data';
+  type R = [label: string, test: (s: string) => boolean, fix: string];
+  const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+  const hasNum = (s: string) => /\d/.test(s);
+  const VERB = /\b(beat|beats|missed?|miss|grew|grow|grows|fell|fall|falls|rose|rise|rises|dropp?ed|drops?|jump(ed|s)?|led|leads?|lag(ged|s)?|ahead|behind|above|below|than|only|most|least|biggest|smallest|doubled|halved|up|down|best|worst|close|short|over|under|nearly|almost|still|again)\b/i;
+  const NAMEONLY = /^(sum of|total|sales|amount|revenue|count of|average)\b[^.]*\bby\b/i;
+  const ASK = /\b(recommend|propose|suggest|should|need|ask|approve|decide|let'?s|plan to|we will|i'd like|request)\b/i;
+  const P: Record<string, { task: string; chart: () => string; rules: R[]; sample: string; min?: number }> = {
+    'title-stores': {
+      task: 'Write a title for this chart that tells the reader the point, not just what the data is. (The black tick is each store\'s 2025 target.)',
+      chart: () => bar({ labels: D.STORES, values: D.STORE_2025, target: D.STORE_TARGET_2025, horizontal: true, dataLabels: true, axis: false, highlight: [2] }),
+      rules: [
+        ['Says something, not just "Sales by Store"', (s) => !NAMEONLY.test(s) && VERB.test(s), 'Use a word that makes a claim: beat, missed, led, ahead of, only, most...'],
+        ['Has a number', hasNum, 'A number makes the claim checkable: "$78k", "9 % over target".'],
+        ['Names what it is about', (s) => /queen|falls|rideau|harbour|forks|store|target/i.test(s), 'Name the store or the target the chart is about.'],
+        ['Short: 15 words or fewer', (s) => words(s) <= 15 && words(s) >= 4, 'Titles are read in a glance. Cut to one line.'],
+      ],
+      sample: 'Rideau beat its 2025 target by 12 %, the most of any store.',
+    },
+    'title-trend': {
+      task: 'Write an action title for this chart of monthly sales. What should a manager notice?',
+      chart: () => line({ labels: D.MONTHS, legend: 'direct', series: [{ name: '2025', values: D.SALES_2025, color: PAL[0], width: 3 }, { name: '2024', values: D.SALES_2024, color: GREY, width: 2 }] }),
+      rules: [
+        ['Says something, not just "Sales by Month"', (s) => !NAMEONLY.test(s) && VERB.test(s), 'Make a claim: grew, fell, only, every month...'],
+        ['Has a number', hasNum, 'Add the size of the change: "29 %", "$262k".'],
+        ['Names the time or the month', (s) => /20\d\d|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|month|year|season|christmas|holiday/i.test(s), 'Say when: "every month but February", "in 2025".'],
+        ['Short: 15 words or fewer', (s) => words(s) <= 15 && words(s) >= 4, 'Cut it to one line.'],
+      ],
+      sample: 'Sales beat 2024 in every month except February, ending the year 29 % up.',
+    },
+    'big-idea': {
+      task: 'Write the big idea of a talk to the regional manager about 2025, in one sentence: what happened, and what you want them to do about it. Use the chart.',
+      chart: () => bar({ labels: D.STORES, values: D.STORE_2025.map((v, i) => (D.STORE_2024[i] ? v / D.STORE_2024[i] - 1 : 0)), horizontal: true, dataLabels: true, axis: false, fmt: (n) => (n ? `+${Math.round(n * 100)}%` : 'new'), highlight: [2, 1], label: 'Growth on 2024 by store: Queen Street +16 %, Falls Centre +9 %, Rideau +19 %, Harbour Front +14 %, Forks Market new' }),
+      rules: [
+        ['Has a number', hasNum, 'Put the key number in: "+19 %", "$262k".'],
+        ['Says what you want done', (s) => ASK.test(s), 'Add the ask: "we recommend...", "we should...", "please approve...".'],
+        ['Gives a reason (because, so, which)', (s) => /\b(because|so|which|since|as|thanks to|driven by)\b/i.test(s), 'Link the finding to the ask with "so" or "because".'],
+        ['One sentence, 35 words or fewer', (s) => words(s) <= 35 && (s.match(/[.!?](\s|$)/g) ?? []).length <= 1, 'A big idea fits in one breath.'],
+      ],
+      sample: 'Rideau grew fastest in 2025 (+19 %) while Falls Centre grew slowest (+9 %), so we recommend finding out what Rideau does differently and trying it in Falls Centre next spring.',
+    },
+    bluf: {
+      task: 'Your manager has 30 seconds. Write the first two sentences of an email about February 2025: the answer first, then what you need.',
+      chart: () => line({ labels: D.MONTHS, legend: 'direct', series: [{ name: '2025', values: D.SALES_2025, color: PAL[0], width: 3 }, { name: 'Target', values: D.TARGET_2025, color: 'var(--ink)', dash: true, width: 1.5 }], note: { s: 0, i: 1, text: 'Feb 13.4k' } }),
+      rules: [
+        ['Starts with the finding (number in the first sentence)', (s) => hasNum(s.split(/[.!?](\s|$)/)[0] ?? ''), 'Lead with the result: "February sales were $13.4k, 8 % under target."'],
+        ['Says what you need from them', (s) => ASK.test(s), 'End with the ask or the next step: "I suggest...", "Can we...".'],
+        ['No warm-up opening', (s) => !/^(hi|hello|dear|i hope|i wanted|just|as you know|following)/i.test(s.trim()), 'Skip "I hope you are well": the greeting can go above, the first line is the answer.'],
+        ['Short: 50 words or fewer', (s) => words(s) <= 50 && words(s) >= 8, 'Two sentences. Details go below or in the attachment.'],
+      ],
+      sample: 'February sales were $13.4k, 8 % under target and the only month in 2025 below last year. I suggest we check what was different in February (weather, stock, staffing) before changing the March plan; can I have 15 minutes on Thursday?',
+    },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-coach]')) {
+    const p = P[fig.dataset.coach!] ?? P['title-stores'];
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const ed = q('[data-ed]') as HTMLTextAreaElement;
+    q('[data-task]').textContent = p.task;
+    q('[data-chart]').innerHTML = p.chart();
+    q('[data-sample]').textContent = 'Sample: ' + p.sample;
+    q('[data-check]').addEventListener('click', () => {
+      const s = ed.value.trim(), out = q('[data-out]');
+      if (!s) { out.innerHTML = '<li class="no">Type your answer in the box first.</li>'; return; }
+      const res = p.rules.map(([label, test, fix]) => ({ ok: test(s), label, fix }));
+      const n = res.filter((r) => r.ok).length;
+      out.innerHTML = res.map((r) => `<li class="${r.ok ? 'ok' : 'no'}"><span aria-hidden="true">${r.ok ? '✓' : '○'}</span> ${r.label}${r.ok ? '' : `<br><span class="ds-muted">${r.fix}</span>`}</li>`).join('') +
+        `<li class="sum">${n === res.length ? 'All four. Compare with the sample answer: there is more than one good answer.' : `${n} of ${res.length}. Edit and check again.`}</li>`;
+    });
+    q('[data-show]').addEventListener('click', () => { q('[data-sample]').hidden = false; });
+  }
+</script>

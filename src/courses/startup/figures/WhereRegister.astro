@@ -1,0 +1,28 @@
+---
+// 3.6: federal or provincial (Canada), Delaware or home state (USA), and which state's registrar (India).
+---
+<figure class="cs-fig su-fig" data-wr>
+  <span class="cs-figtag">Guided chooser: where should it be registered?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Where will you operate?<select name="where"><option value="one">One state or province</option><option value="many">Several, or the whole country</option></select></label>
+    <label>Raising venture capital?<select name="vc"><option value="0">No</option><option value="1">Yes</option></select></label>
+  </div>
+  <div class="su-card good" style="margin-top:8px"><strong data-t></strong><div data-d></div><div class="su-fine" data-f></div></div>
+  <figcaption>Fees are examples checked in November 2026 on the official fee pages linked in the lesson; they change, so check before you file.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  function pick(cc: string, many: boolean, vc: boolean): [string, string, string] {
+    if (cc === 'in') return ['The state where your office is', 'Indian companies and LLPs are registered under central law with the Ministry of Corporate Affairs, but the registered office decides which Registrar of Companies (ROC) looks after you and which state’s stamp duty you pay. You can do business anywhere in India from one registration.', many ? 'Operating in several states? GST is registered state by state (Lesson 7.2), and each workplace may need that state’s shop licence.' : 'Pick a registered office you can prove with a rent agreement or utility bill and a no-objection letter from the owner.'];
+    if (cc === 'ca') return many || vc ? ['Federal (Corporations Canada)', 'A federal corporation can use its name across Canada and is well known to investors. You still register as an extra-provincial corporation in each province where you carry on business.', 'Example fees: $200 to incorporate online plus a NUANS name search; $12 a year for the annual return. Federal law requires at least 25 % of directors to be resident Canadians.'] : ['Your province', 'If you will work in one province, a provincial corporation is simpler and you deal with one registry. Ontario, British Columbia, Alberta and Quebec no longer require resident Canadian directors.', 'Example: Ontario charges $300 to incorporate online through the Ontario Business Registry; the annual return is free.'];
+    if (vc) return ['Delaware (C corporation)', 'Investors and their lawyers know Delaware law and its business court well, and standard financing documents assume it. You then register as a foreign corporation in the state where you actually work, and pay both.', 'Delaware example: annual report $50 plus franchise tax from $175 a year (more with many authorised shares and the wrong calculation method; Lesson 12.1).'];
+    return ['Your home state', 'Without venture capital, register where you live and work. Registering in Delaware or Wyoming as well usually means paying two states’ fees and filing two annual reports, for little benefit.', many ? 'Selling into other states does not mean registering there; physically operating there (staff, office, warehouse) usually does (Lesson 4.7).' : 'Check your state’s yearly report fee and any franchise tax before you file.'];
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-wr]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!.value;
+    const cc = followCountry(fig, () => draw());
+    function draw() { const [t, d, f] = pick(cc(), v('where') === 'many', v('vc') === '1'); fig.querySelector('[data-t]')!.textContent = t; fig.querySelector('[data-d]')!.textContent = d; fig.querySelector('[data-f]')!.textContent = f; }
+    fig.querySelectorAll('select').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

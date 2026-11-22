@@ -1,0 +1,39 @@
+---
+// SIM for 4.2: compare the light-collecting area of an aperture with the dark-adapted eye, and the faintest
+// stars each can show.
+---
+<figure class="cs-fig mlf" data-grasp>
+  <span class="cs-figtag">Try it: grow the aperture</span>
+  <canvas aria-label="Circles comparing the area of a telescope's aperture with the eye's pupil, and a plot of limiting magnitude against aperture"></canvas>
+  <div class="mlf-ctl">
+    <label>Aperture <output data-v="d"></output><input type="range" name="d" min="7" max="500" step="1" value="150"></label>
+    <label>Your naked-eye limit <output data-v="n"></output><input type="range" name="n" min="4" max="7" step="0.1" value="6"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>light collected vs your eye</span><b data-g></b></div>
+    <div><span>faintest stars, roughly</span><b data-l></b></div>
+  </div>
+  <figcaption>Left: the aperture (outer circle) and a 7 mm dark-adapted pupil (dot) to scale, as far as the box allows. Right: the rough limiting magnitude against aperture for your sky. Each doubling of aperture collects 4 times the light and adds 1.5 magnitudes. Real limits also depend on magnification, optics and experience.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { lightGrasp, scopeLimit } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-grasp]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 520], y: [3, 18], h: 240, xLabel: 'aperture (mm)', yLabel: 'limiting mag' });
+    const draw = () => {
+      const D = gd(), n = gn();
+      p.begin();
+      p.fn((x) => scopeLimit(Math.max(7, x), n), { color: p.pal.accent, width: 2.5, from: 7 });
+      p.dot(D, scopeLimit(D, n), { r: 6, color: p.pal.accent2 });
+      const c = p.ctx, cx = p.L + 50, cy = p.T + 50, R = 42, r = Math.max(1.5, (R * 7) / D);
+      c.fillStyle = p.pal.bg; c.fillRect(cx - R - 4, cy - R - 4, 2 * R + 8, 2 * R + 8);
+      c.strokeStyle = p.pal.accent2; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R, 0, 6.283); c.stroke();
+      c.fillStyle = p.pal.ink; c.beginPath(); c.arc(cx, cy, r, 0, 6.283); c.fill();
+      p.end();
+      q('[data-g]').textContent = `${fmt(lightGrasp(D), 0)} ×`; q('[data-l]').textContent = `magnitude ${fmt(scopeLimit(D, n), 1)}`;
+    };
+    const gd = slider(fig, 'd', () => go(), (v) => `${v} mm`), gn = slider(fig, 'n', () => go(), (v) => fmt(v, 1));
+    const go = live(cv, draw);
+  }
+</script>

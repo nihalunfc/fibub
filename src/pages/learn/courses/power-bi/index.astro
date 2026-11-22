@@ -1,0 +1,17 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { POWER_BI } from '../../../../courses/power-bi/syllabus';
+---
+<CourseHome course={POWER_BI}>
+  <p class="cs-meta"><strong>Try it now:</strong> <a href="/learn/courses/power-bi/playground/">DAX playground</a> (write and run DAX on the Northbay model, no install) · <a href="/learn/courses/power-bi/meet-northbay/">download the course data</a> · <a href="/learn/courses/power-bi/cheat-sheet/">DAX cheat sheet</a> · <a href="/learn/courses/power-bi/glossary/">glossary</a> · <a href="/learn/courses/power-bi/interview-questions/">interview questions</a></p>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Turn messy files into a clean model</strong> with Power Query, then shape it into a star schema with a proper date table.</li>
+      <li><strong>Write the DAX that interviews ask for</strong>: measures, SUMX and row context, CALCULATE and filter context, ALL and percent of total, ranking, year to date, last year and rolling averages.</li>
+      <li><strong>See what every formula does</strong>: press "Show me what happened" under any result to watch the filters flow through the relationships, rows get kept or dropped, and values add up, one step at a time.</li>
+      <li><strong>Build a dashboard you can show employers</strong>: the capstone is a Northbay sales report you build yourself in Power BI Desktop, with a write-up for your portfolio.</li>
+    </ul>
+    <p>Every lesson has a short explanation, a picture of the idea, DAX you can type and run with instant checks, practice questions and a 3-question quiz. Pair it with <a href="/learn/courses/data-storytelling/">Data storytelling</a> for the design side, and with <a href="/learn/courses/ml-foundations/">From a straight line to an LLM</a> if you want the maths of prediction.</p>
+  </section>
+</CourseHome>

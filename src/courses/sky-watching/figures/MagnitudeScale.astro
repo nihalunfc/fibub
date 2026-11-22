@@ -1,0 +1,42 @@
+---
+// SIM for 1.7: two stars by magnitude; the brightness ratio is 100^(Δm/5). A log strip below places familiar
+// objects on the same scale.
+---
+<figure class="cs-fig mlf" data-mags>
+  <span class="cs-figtag">Try it: compare two stars</span>
+  <div class="mlf-ctl">
+    <label>Star A magnitude <output data-v="a"></output><input type="range" name="a" min="-2" max="10" step="0.1" value="1"></label>
+    <label>Star B magnitude <output data-v="b"></output><input type="range" name="b" min="-2" max="10" step="0.1" value="6"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>difference</span><b data-dm></b></div>
+    <div><span>brighter star gives</span><b data-ratio></b></div>
+    <div><span>both together</span><b data-sum></b></div>
+  </div>
+  <canvas aria-label="A magnitude scale from the Sun to the faintest galaxies seen by space telescopes, with the two chosen stars marked"></canvas>
+  <figcaption>Lower numbers are brighter, and each step of 1 magnitude is about 2.512 times in light. The strip runs from the Sun (−26.7) to the faintest objects in the deepest space-telescope images (about +31). Reference values: Sun, full Moon, Venus at its brightest and Sirius from NASA fact sheets and the Yale Bright Star Catalogue; the naked-eye limit is for a dark site.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { fluxRatio, combinedMag } from '../../../lib/astrocourse/sky';
+  const REF: [string, number][] = [['Sun', -26.7], ['full Moon', -12.7], ['Venus', -4.6], ['eye limit', 6.5], ['20 cm scope', 14], ['big observatory', 25], ['space telescope', 31]];
+  const big = (r: number) => (r < 1e4 ? fmt(r, r < 10 ? 2 : 0) : `${(r / 10 ** Math.floor(Math.log10(r))).toFixed(1)} × 10^${Math.floor(Math.log10(r))}`);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-mags]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-30, 34], y: [-1, 1], h: 150, noYTicks: true, xLabel: 'magnitude (brighter ←)' });
+    const draw = () => {
+      const a = ga(), b = gb(), dm = Math.abs(a - b);
+      p.begin();
+      p.line(-30, 0, 34, 0, { color: p.pal.line, width: 6 });
+      REF.forEach(([n, m], i) => { p.dot(m, 0, { r: 4, color: p.pal.muted }); p.text(m, 0, n, { align: i === REF.length - 1 ? 'right' : i === 0 ? 'left' : 'center', dx: i === 0 ? -6 : i === REF.length - 1 ? 6 : 0, size: 10.5, dy: i % 2 ? 16 : -16, color: p.pal.muted }); });
+      p.dot(a, 0, { r: 7, color: p.pal.accent }); p.dot(b, 0, { r: 7, color: p.pal.accent2, shape: 'square' });
+      p.text(a, 0.75, 'A', { align: 'center', bold: true, color: p.pal.accent }).text(b, -0.75, 'B', { align: 'center', bold: true, color: p.pal.accent2 });
+      p.end();
+      q('[data-dm]').textContent = `${fmt(dm, 1)} mag`;
+      q('[data-ratio]').textContent = dm < 0.05 ? 'the same light' : `${big(fluxRatio(dm))} × the light`;
+      q('[data-sum]').textContent = `magnitude ${fmt(combinedMag(a, b), 2)}`;
+    };
+    const ga = slider(fig, 'a', () => go(), (v) => fmt(v, 1)), gb = slider(fig, 'b', () => go(), (v) => fmt(v, 1));
+    const go = live(cv, draw);
+  }
+</script>

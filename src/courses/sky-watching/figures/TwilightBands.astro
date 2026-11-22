@@ -1,0 +1,45 @@
+---
+// SIM for 3.4: the Sun's altitude from noon to noon, with day, civil, nautical and astronomical twilight and full
+// darkness shaded, for any latitude and date.
+---
+<figure class="cs-fig mlf" data-twilight>
+  <span class="cs-figtag">Try it: when is it truly dark?</span>
+  <canvas aria-label="The Sun's altitude from noon to the next noon, with day, twilight and night bands"></canvas>
+  <div class="mlf-ctl">
+    <label>Latitude <output data-v="lat"></output><input type="range" name="lat" min="-60" max="70" step="1" value="43"></label>
+    <label>Day of the year <output data-v="day"></output><input type="range" name="day" min="1" max="365" step="1" value="172"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>full darkness (Sun below −18°)</span><b data-dark></b></div>
+    <div><span>astronomical dusk</span><b data-dusk></b></div>
+    <div><span>astronomical dawn</span><b data-dawn></b></div>
+  </div>
+  <figcaption>Bands from top: day, civil twilight (Sun 0° to 6° below the horizon), nautical (6° to 12°), astronomical (12° to 18°) and full night. Faint galaxies and nebulae need full night; the Moon and planets don't. Times are local solar time; your clock can differ by up to an hour or more because of time zones and daylight saving.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { sunDec, sunAltAt, darkHours, hourAtAlt } from '../../../lib/astrocourse/sky';
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateOf = (n: number) => { const d = new Date(Date.UTC(2026, 0, n)); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`; };
+  const clock = (h: number) => { const m = Math.round(((h % 24) + 24) % 24 * 60) % 1440; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-twilight]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [12, 36], y: [-60, 75], h: 270, xLabel: 'solar time (h, noon to noon)', yLabel: 'Sun altitude (°)' });
+    const draw = () => {
+      const lat = gl(), dec = sunDec(gn());
+      p.begin();
+      p.rect(12, 0, 24, 75, { fill: p.pal.day, alpha: 0.8 });
+      p.rect(12, -6, 24, 6, { fill: p.pal.twilight, alpha: 0.35 }); p.rect(12, -12, 24, 6, { fill: p.pal.twilight, alpha: 0.6 });
+      p.rect(12, -18, 24, 6, { fill: p.pal.twilight, alpha: 0.9 }); p.rect(12, -60, 24, 42, { fill: p.pal.night, alpha: 0.9 });
+      p.fn((t) => sunAltAt(t % 24, dec, lat), { color: p.pal.accent2, width: 3 });
+      for (const [y, t] of [[-3, 'civil'], [-9, 'nautical'], [-15, 'astronomical']] as [number, string][]) p.text(12.3, y, t, { size: 10.5, color: '#ffffff' });
+      p.text(12.3, -40, 'night', { size: 10.5, color: '#ffffff' });
+      p.end();
+      const dh = darkHours(dec, lat), h = hourAtAlt(-18, dec, lat);
+      q('[data-dark]').textContent = dh >= 24 ? 'all day (polar night)' : dh <= 0 ? 'none: twilight all night' : `${fmt(dh, 1)} h`;
+      q('[data-dusk]').textContent = Number.isNaN(h) ? '–' : clock(24 - h); q('[data-dawn]').textContent = Number.isNaN(h) ? '–' : clock(h);
+    };
+    const gl = slider(fig, 'lat', () => go(), (v) => `${Math.abs(v)}° ${v >= 0 ? 'N' : 'S'}`), gn = slider(fig, 'day', () => go(), dateOf);
+    const go = live(cv, draw);
+  }
+</script>

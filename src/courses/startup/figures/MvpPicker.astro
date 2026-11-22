@@ -1,0 +1,34 @@
+---
+// 2.3: pick what you need to learn; see which kind of MVP tests it fastest and cheapest.
+---
+<figure class="cs-fig su-fig" data-mvp>
+  <span class="cs-figtag">Try it: which MVP fits?</span>
+  <p class="su-q">What do you most need to find out?</p>
+  <div class="su-opts" data-goal>
+    <button type="button" data-g="want" aria-pressed="true">Do people want it?</button>
+    <button type="button" data-g="pay" aria-pressed="false">Will they pay?</button>
+    <button type="button" data-g="work" aria-pressed="false">Can we deliver it?</button>
+    <button type="button" data-g="use" aria-pressed="false">Will they keep using it?</button>
+  </div>
+  <div class="su-cards" data-cards></div>
+  <figcaption>Each card shows a rough cost and time for one founder. The best MVP is the cheapest one that answers your biggest question; you can always build more once the answer is yes.</figcaption>
+</figure>
+<script>
+  const M: [string, string, string, string, string[]][] = [
+    ['Landing page', 'A page that describes the product with a sign-up or "pre-order" button.', 'Very low', '1 to 3 days', ['want']],
+    ['Pre-sale', 'Take real deposits or orders before it exists (refund if you don’t ship).', 'Low', '1 to 2 weeks', ['pay', 'want']],
+    ['Concierge', 'Do the service by hand for a few customers, with no software.', 'Low', '1 to 4 weeks', ['work', 'pay', 'use']],
+    ['Wizard of Oz', 'Customers see a product; behind it, you do the work manually.', 'Medium', '2 to 6 weeks', ['use', 'work']],
+    ['Clickable prototype', 'A design people can tap through, built in a design tool.', 'Low', '1 to 2 weeks', ['want', 'use']],
+    ['Single-feature product', 'Real software that does one job well.', 'Medium to high', '1 to 3 months', ['use', 'work', 'pay']],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-mvp]')) {
+    const cards = fig.querySelector('[data-cards]')!;
+    function draw(g: string) {
+      cards.innerHTML = '';
+      M.forEach(([n, d, c, t, gs]) => { const el = document.createElement('div'); const best = gs[0] === g, fits = gs.includes(g); el.className = `su-card${best ? ' good' : fits ? ' on' : ''}`; el.innerHTML = `<strong></strong><div></div><div class="su-fine"></div>`; el.querySelector('strong')!.textContent = `${n}${best ? ' (best fit)' : ''}`; el.children[1].textContent = d; el.children[2].textContent = `Cost: ${c} · Time: ${t}`; if (!fits) el.style.opacity = '.55'; cards.append(el); });
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-goal] button').forEach((b) => b.onclick = () => { fig.querySelectorAll('[data-goal] button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(b.dataset.g!); });
+    draw('want');
+  }
+</script>

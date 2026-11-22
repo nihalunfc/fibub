@@ -8,13 +8,14 @@ import { GLOSSARY } from '../../../../courses/ml-foundations/glossary';
 import { courseLessons } from '../../../../lib/course';
 import { flatLessons } from '../../../../courses/types';
 import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
 const live = new Set((await courseLessons(ML_FOUNDATIONS)).keys());
 const num = new Map(flatLessons(ML_FOUNDATIONS).map((l) => [l.slug, l]));
 const terms = [...GLOSSARY].sort((a, b) => a[0].localeCompare(b[0], 'en', { sensitivity: 'base' }));
 const letters = [...new Set(terms.map((t) => t[0][0].toUpperCase()))];
 const id = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 ---
-<Base title="Machine learning glossary: ML and AI terms explained" description={`${terms.length} machine learning terms from the free course From a straight line to an LLM, from regression and random forests to attention and RAG, each in plain English with its other names and the lesson that explains it.`}>
+<Base title="Machine learning glossary: ML and AI terms explained" description={`${terms.length} machine learning terms from the free course From a straight line to an LLM, from regression and random forests to attention and RAG, each in plain English with its other names and the lesson that explains it.`} ld={coursePageLd(ML_FOUNDATIONS, 'Glossary', '', 'glossary')}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/ml-foundations/">From a straight line to an LLM</a> / Glossary</div>
   <div class="cs-layout">
     <CourseSidebar course={ML_FOUNDATIONS} live={live} />

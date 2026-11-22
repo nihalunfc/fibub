@@ -1,0 +1,30 @@
+---
+// SIM for 2.5: drag where the value axis starts and watch a small rise look huge. Shows the "lie factor":
+// how much bigger the change looks than it really is.
+---
+<figure class="cs-fig ds" data-axis>
+  <span class="cs-figtag">Try it: where should the axis start?</span>
+  <p class="ds-title">Falls Centre sales, 2024 vs 2025</p>
+  <div class="ds-chartbox" data-chart></div>
+  <label class="ds-slider">Axis starts at <b data-min></b><input type="range" min="0" max="52000" step="1000" value="0" data-range /></label>
+  <p class="ds-step" data-say aria-live="polite"></p>
+  <figcaption>The real rise is 8.7 %. Bars encode size by length, so a bar chart's axis must start at zero. A line chart may zoom in, as long as the axis is labelled.</figcaption>
+</figure>
+<script>
+  import { bar, PAL, k } from './charts';
+  const a = 53199, b = 57838, real = b / a - 1;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-axis]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const r = q('[data-range]') as HTMLInputElement;
+    const show = () => {
+      const m = +r.value, looks = (b - m) / (a - m) - 1, lie = looks / real;
+      q('[data-chart]').innerHTML = bar({ labels: ['2024', '2025'], values: [a, b], yMin: m, yMax: 60000, dataLabels: true, colors: [PAL[4], PAL[0]], h: 220, fmt: k });
+      q('[data-min]').textContent = m ? `$${k(m)}` : 'zero';
+      q('[data-say]').innerHTML = m === 0
+        ? `The 2025 bar is <b>${(real * 100).toFixed(1)} % taller</b>, the same as the real rise. Honest.`
+        : `The 2025 bar now looks <b>${(looks * 100).toFixed(0)} % taller</b>, but sales rose only ${(real * 100).toFixed(1)} %. The chart exaggerates the change <b>${lie.toFixed(1)} times</b>. The red mark on the axis warns that it doesn't start at zero, but most readers won't notice.`;
+    };
+    r.addEventListener('input', show);
+    show();
+  }
+</script>

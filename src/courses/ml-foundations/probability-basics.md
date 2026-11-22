@@ -3,7 +3,7 @@ title: Probability, mean, variance and the normal curve
 seoTitle: 'Probability, mean, variance and the normal curve'
 summary: 'The few ideas from statistics that machine learning uses all the time: probability, the mean, variance and standard deviation, and the bell-shaped normal curve. Draw samples and watch the averages settle.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'The values 2, 4, 4, 4, 5, 5, 7, 9 have mean 5. What is their population variance?'
     choices: ['2', '4', '5']
@@ -17,17 +17,23 @@ quiz:
     choices: ['Because large samples have no outliers', 'Because random highs and lows cancel out more and more (the law of large numbers)', 'Because the true mean changes']
     ans: 1
     why: The spread of the sample mean shrinks like σ ÷ √n, so with 100 times more data it wobbles 10 times less.
+sources:
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapters 2 and 3 https://www.statlearning.com/'
+  - 'Goodfellow, I., Bengio, Y. and Courville, A. (2016), Deep Learning, MIT Press, Chapter 3 (probability and information theory) https://www.deeplearningbook.org/'
+  - 'Freedman, D., Pisani, R. and Purves, R. (2007), Statistics, 4th ed., W. W. Norton, Chapters 4, 5 and 16 to 17 (average, standard deviation, normal curve, law of averages)'
 ---
 
 **Module 1 · about 25 minutes · school maths.** You'll be able to compute a mean, variance and standard deviation, read a normal curve, and say why bigger samples give steadier answers.
 
+<div class="bigidea">Data is noisy, so we describe it by its centre (the mean) and its spread (the standard deviation), and averages of many values are far steadier than single values.</div>
+
 ## 1. Why this matters
 
-Data is noisy. The same student doesn't get the same mark twice, and two flats of the same size sell for different prices. Models live with this noise by working with **probabilities** and **averages**. Logistic regression outputs a probability (Module 4), naive Bayes multiplies probabilities (Lesson 4.8), regression errors are measured with squared gaps like variance (Lesson 3.2), and a language model's output is a probability for every possible next word (Lesson 10.3).
+Data is noisy. The same student doesn't get the same mark twice, and two flats of the same size sell for different prices. Models cope with this wobble by working with **probabilities** (how likely) and **averages** (what is typical). Logistic regression outputs a probability (Module 4), naive Bayes multiplies probabilities (Lesson 4.8), regression errors are measured with squared gaps like variance (Lesson 3.2), and a language model's output is a probability for every possible next word (Lesson 10.3).
 
 ## 2. Probability
 
-A **probability** is a number from 0 (impossible) to 1 (certain) that says how likely something is. A fair coin lands heads with probability 0.5. Some rules:
+A **probability** is a number from 0 (impossible) to 1 (certain) that says how likely something is. A fair coin lands heads with probability 0.5: in the long run, about half of all tosses. A weather app's "30 % chance of rain" is 0.3. Some rules:
 
 - The probabilities of all possible outcomes add up to 1.
 - `$P(\text{not } A) = 1 - P(A)$`.
@@ -46,6 +52,8 @@ The **median** is the middle value once they are sorted. Lesson 2.2 shows when e
 
 ## 4. The spread: variance and standard deviation
 
+Think of two bus routes that both take 30 minutes on average. On one, the bus is always within a minute or two. On the other, it can take 15 minutes or 50. The average is the same; the **spread** is very different, and it is the spread that makes you late.
+
 Two classes can both average 60 % while one has every mark between 55 and 65 and the other runs from 20 to 100. The **variance** measures spread as the average squared distance from the mean:
 
 ```math
@@ -53,6 +61,18 @@ Two classes can both average 60 % while one has every mark between 55 and 65 and
 ```
 
 Squaring makes every gap positive and counts big gaps much more than small ones. Because squaring also squares the units (marks²), we take the square root to get the **standard deviation** `$\sigma$`, back in the original units: "a typical distance from the mean".
+
+Here it is step by step, with five delivery times:
+
+<div class="steps">
+<div class="step"><b>The data.</b> Five deliveries took 20, 24, 25, 27 and 34 minutes.</div>
+<div class="step"><b>The mean.</b> Add them and divide by 5: 130 ÷ 5 = 26 minutes.</div>
+<div class="step"><b>The gaps.</b> Each value minus 26: −6, −2, −1, +1, +8. They always add to zero, which is why we square them next.</div>
+<div class="step"><b>Square and average.</b> 36, 4, 1, 1, 64 add to 106. Divide by 5: the variance is 21.2 (in minutes²).</div>
+<div class="step"><b>Back to minutes.</b> √21.2 ≈ 4.6. The standard deviation says a typical delivery is about 4.6 minutes from the average.</div>
+</div>
+
+<div class="problem" data-problem="probability-basics-sd"></div>
 
 When the values are a **sample** used to estimate a bigger population, divide by `$n - 1$` instead of `$n$` (this is written `$s$`). It corrects a small bias: a sample's own mean sits closer to its values than the true mean does. For large `$n$` the difference is tiny.
 
@@ -70,6 +90,12 @@ The curve is a **density**: the area under it between two values is the probabil
 
 Draw 1 value at a time, then 1,000. Small samples look nothing like the curve, and their mean can be well off. Large samples match it closely. This is the **law of large numbers**, and it is why models need plenty of data.
 
+<div class="myth">
+
+**"After five heads in a row, tails is due."** No. A fair coin has no memory: the next toss is still 50-50. The law of large numbers does not "even things out" by pushing back against a streak. It works because a streak of five becomes a tiny part of the total once you have thousands of tosses. This mistake has a name, the gambler's fallacy.
+
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -85,6 +111,20 @@ Draw 1 value at a time, then 1,000. Small samples look nothing like the curve, a
 
 **Try it:** with `$\sigma = 10$`, what is the standard error of the mean for 25 values? For 2,500? (`$10/5 = 2$`; `$10/50 = 0.2$`. A hundred times the data, a tenth of the wobble.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>x̄ (mean)</dt><dd>The balance point of the values: add them up and divide by how many there are.</dd>
+<dt>σ² (variance)</dt><dd>The average squared distance from the mean. Big gaps count much more than small ones.</dd>
+<dt>σ (standard deviation)</dt><dd>The square root of the variance, back in the original units: a typical distance from the mean.</dd>
+<dt>σ / √n (standard error)</dt><dd>How much an average of n values wobbles from sample to sample.</dd>
+<dt>Physical meaning</dt><dd>The mean tells you where things usually land; the standard deviation tells you how far off they can land. A delivery firm promising "26 minutes" lives or dies by the 5-minute standard deviation, and a pollster asking 1,000 people instead of 10 gets an answer ten times steadier.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="probability-basics-se"></div>
 
 ## 6. Worked example
 
@@ -114,3 +154,12 @@ If delivery times are roughly normal with mean 26 and σ ≈ 5, about 95 % of de
 **Try it on your own data:** the [[distribution-explorer]] draws normal and other curves and shades any probability you ask for.
 
 **New words:** *probability*, *independent*, *conditional probability*, *mean*, *median*, *variance*, *standard deviation*, *normal distribution*, *density*, *standard error*, *law of large numbers*.
+
+<div class="keypoints">
+
+- A probability runs from 0 (impossible) to 1 (certain); all outcomes add to 1.
+- The mean is the centre; the variance is the average squared gap from it; the standard deviation is its square root, in the original units.
+- For a normal curve, about 68 %, 95 % and 99.7 % of values lie within 1, 2 and 3 standard deviations of the mean.
+- An average of n values wobbles like σ ÷ √n, so more data gives steadier answers.
+
+</div>

@@ -1,0 +1,30 @@
+---
+// 6.1: the documents a bank usually asks for to open a business account, by country and structure; tick and download.
+---
+<figure class="cs-fig su-fig" data-ad>
+  <span class="cs-figtag">Checklist: what the bank will ask for</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Structure<select name="s"><option value="sole">Sole proprietor</option><option value="part">Partnership or LLP</option><option value="co">Company, corporation or LLC</option></select></label>
+  </div>
+  <ul data-list style="list-style:none;padding-left:2px;margin:8px 0"></ul>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn secondary" data-dl>Download this list</button></div>
+  <figcaption>Banks set their own lists under their country's know-your-customer (KYC) and anti-money-laundering rules, so ask yours before you visit. Every owner with 25 % or more (10 % at some banks) is usually identified too.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  import { download } from './su';
+  const L: Record<string, Record<string, string[]>> = {
+    in: { sole: ['PAN and Aadhaar of the proprietor', 'Two proofs of the business in its name: GST certificate, Udyam certificate, Shops and Establishments registration, trade licence or similar', 'Address proof of the business', 'Photographs'], part: ['Partnership deed or LLP agreement; LLP incorporation certificate', 'PAN of the firm or LLP', 'KYC (PAN, Aadhaar) of each partner or designated partner', 'Authority letter or resolution naming who operates the account', 'Registered office proof'], co: ['Certificate of incorporation (with CIN), MoA and AoA', 'Company PAN', 'Board resolution to open the account and name signatories', 'KYC of directors, signatories and beneficial owners', 'Registered office proof (or open it through SPICe+ AGILE-PRO-S)'] },
+    ca: { sole: ['Government photo ID', 'Business name registration (Master Business Licence in Ontario) if you use a trade name', 'Business Number (if you have one)', 'Proof of address'], part: ['Partnership registration', 'Partnership agreement', 'ID for each partner and signing officer', 'Business Number'], co: ['Certificate and Articles of Incorporation', 'Corporate profile or registry search', 'Directors’ resolution naming signing officers', 'ID of signing officers and of anyone owning 25 % or more', 'Business Number'] },
+    us: { sole: ['Government photo ID', 'SSN or EIN', 'DBA certificate if using a business name', 'Business licence if your city requires one'], part: ['Partnership agreement or LLC operating agreement', 'EIN confirmation letter (CP 575)', 'Filed formation documents', 'ID of each owner with 25 % or more and of a controlling person'], co: ['Filed articles of organization or certificate of incorporation', 'EIN confirmation letter (CP 575)', 'Operating agreement or bylaws, and a resolution naming signers', 'ID of each owner with 25 % or more and of a controlling person', 'Certificate of good standing if formed in another state'] },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ad]')) {
+    const s = fig.querySelector<HTMLSelectElement>('[name=s]')!, ul = fig.querySelector('[data-list]')!;
+    const cc = followCountry(fig, () => draw());
+    const items = () => L[cc()][s.value];
+    function draw() { ul.innerHTML = ''; items().forEach((t) => { const li = document.createElement('li'); li.innerHTML = '<label style="display:flex;gap:8px;font-weight:500"><input type="checkbox" style="width:18px;height:18px;flex:none;margin-top:3px"><span></span></label>'; li.querySelector('span')!.textContent = t; ul.append(li); }); }
+    s.addEventListener('input', draw);
+    fig.querySelector<HTMLButtonElement>('[data-dl]')!.onclick = () => download('business-bank-account-documents.txt', `Documents for a business bank account\nFrom fibub.com/learn/courses/startup/business-bank-account/ (${new Date().toISOString().slice(0, 10)})\nAsk your bank for its own list.\n\n${[...ul.querySelectorAll('li')].map((li) => `[${li.querySelector('input')!.checked ? 'x' : ' '}] ${li.textContent!.trim()}`).join('\n')}\n`);
+  }
+</script>

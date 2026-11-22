@@ -1,0 +1,51 @@
+---
+// SIM for 6.6: a camera's field of view drawn over the sizes of famous targets, and how many mosaic panels
+// you'd need to cover the biggest ones.
+---
+<figure class="cs-fig mlf" data-fov>
+  <span class="cs-figtag">Try it: will it fit?</span>
+  <canvas aria-label="A camera frame drawn to scale over outlines of the Moon, the Andromeda Galaxy and other targets"></canvas>
+  <div class="mlf-ctl">
+    <label>Focal length <output data-v="F"></output><input type="range" name="F" min="100" max="2500" step="10" value="500"></label>
+    <label>Sensor <select name="s">
+      <option value="23.5,15.6">APS-C (23.5 × 15.6 mm)</option>
+      <option value="36,24">Full frame (36 × 24 mm)</option>
+      <option value="13.2,8.8">1-inch type (13.2 × 8.8 mm)</option>
+      <option value="7.4,5">Small planetary camera (7.4 × 5 mm)</option>
+    </select></label>
+    <label>Target <select name="t">
+      <option value="3.2,1.0,Andromeda Galaxy M31">Andromeda Galaxy M31 (about 3.2° × 1°)</option>
+      <option value="0.52,0.52,Full Moon">Full Moon (0.52°)</option>
+      <option value="1.1,1.1,Orion Nebula M42">Orion Nebula M42 (about 1.1°)</option>
+      <option value="0.35,0.2,Whirlpool Galaxy M51">Whirlpool Galaxy M51 (about 0.35° × 0.2°)</option>
+      <option value="2.5,2.5,Pleiades M45">Pleiades M45 (about 2°, with nebulosity 2.5°)</option>
+    </select></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>field of view</span><b data-f></b></div>
+    <div><span>mosaic needed (15 % overlap)</span><b data-m></b></div>
+  </div>
+  <figcaption>The target is drawn as an ellipse of its rough size; the rectangle is one frame from your camera. Sizes are approximate visual extents from the Messier catalogue and NASA; long exposures can show more. If the target doesn't fit, a mosaic of overlapping frames covers it.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { fieldDeg, mosaicPanels } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fov]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, ss = fig.querySelector<HTMLSelectElement>('[name=s]')!, st = fig.querySelector<HTMLSelectElement>('[name=t]')!;
+    const draw = () => {
+      const F = gF(), [sw, sh] = ss.value.split(',').map(Number), [tw, th, tn] = st.value.split(','), w = +tw, h = +th;
+      const fw = fieldDeg(sw, F), fh = fieldDeg(sh, F), span = Math.max(w, fw) * 1.25;
+      const p = new Plot(cv, { x: [-span / 2, span / 2], y: [-span / 3, span / 3], h: 230, bare: true, equal: true });
+      p.begin(); const c = p.ctx;
+      c.fillStyle = p.pal.red ? p.pal.night : '#0c1220'; c.fillRect(0, 0, p.W, p.H);
+      c.save(); c.fillStyle = p.pal.red ? p.pal.line : '#46506a'; c.beginPath(); c.ellipse(p.px(0), p.py(0), (p.px(w / 2) - p.px(0)), (p.py(0) - p.py(h / 2)), -0.6, 0, 6.283); c.fill(); c.restore();
+      p.text(0, 0, tn, { align: 'center', size: 11, color: '#ffffff' });
+      p.rect(-fw / 2, -fh / 2, fw, fh, { color: p.pal.red ? p.pal.ink : '#f0b45a', width: 2 });
+      c.save(); c.globalAlpha = 0.5; c.fillStyle = '#ffffff'; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('fibub.com', p.W - 8, p.H - 8); c.restore();
+      const m = mosaicPanels(w, h, fw, fh);
+      q('[data-f]').textContent = `${fmt(fw, 2)}° × ${fmt(fh, 2)}°`; q('[data-m]').textContent = m.cols * m.rows === 1 ? 'none: fits in one frame' : `${m.cols} × ${m.rows} panels`;
+    };
+    const gF = slider(fig, 'F', () => go(), (v) => `${v} mm`); ss.addEventListener('change', () => go()); st.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>
