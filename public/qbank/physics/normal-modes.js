@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './normal-modes.more.gen.js';
 import more2 from './normal-modes.more2.gen.js';
+import r4 from './normal-modes.r4.gen.js';
 
 const g = 9.8;
 
@@ -196,6 +197,7 @@ export default {
       options: ['H₂O has 3 vibrational normal modes', 'CO₂ has 4 vibrational normal modes', 'A linear molecule of $N$ atoms has $3N - 5$ vibrational modes', 'A diatomic molecule has 2 vibrational modes'], answer: [0, 1, 2],
       sol: 'Non-linear: $3N - 6$, so H₂O has 3. Linear: $3N - 5$ (only two rotations move atoms), so CO₂ has 4 and a diatomic has $6 - 5 = 1$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'nm-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'eigenvalue problem',
@@ -320,5 +322,6 @@ export default {
       },
       verify: (p) => 2 * p.w0 * Math.abs(Math.sin(Math.PI * p.j / p.N)) },
     ...more,
+    ...r4.gens,
   ],
 };
