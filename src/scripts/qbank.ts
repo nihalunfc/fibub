@@ -9,7 +9,7 @@ type Item = Record<string, any>;
 type Index = { id: string; name: string; exams?: Record<string, string>; facets?: Record<string, { label: string; values: Record<string, string> }>; units: { id: string; name: string; topics: { id: string; name: string }[] }[] };
 
 const LEVELS: Record<number, string> = { 1: 'Warm-up', 2: 'Standard', 3: 'Exam level', 4: 'Hard', 5: 'Top rank' };
-const TYPES: Record<string, string> = { mcq: 'One answer (MCQ)', msq: 'One or more answers (MSQ)', nat: 'Type the number (NAT)', text: 'Type the answer', open: 'Write or speak' };
+const TYPES: Record<string, string> = { mcq: 'One answer (MCQ)', msq: 'One or more answers (MSQ)', nat: 'Type the number (NAT)', text: 'Type the answer', order: 'Put the words in order', open: 'Write or speak' };
 
 // ---------- maths: $...$ and $$...$$ become MathML (temml, loaded only when a question has maths) ----------
 let temmlP: Promise<any> | null = null;
@@ -215,6 +215,23 @@ export const RENDER: Record<string, Renderer> = {
     },
     read: (host) => host.querySelector<HTMLInputElement>('input')?.value ?? '',
   },
+  order: {
+    // Word chips: tap a chip to move it into the answer line, tap it again to send it back.
+    draw(it, host) {
+      const built = h('div', { class: 'qb-built', 'aria-label': 'Your sentence' });
+      const pool = h('div', { class: 'qb-pool' });
+      const chips = [...(it.options ?? [])].sort(() => Math.random() - 0.5).map((w: string) => {
+        const b = h('button', { type: 'button', class: 'qb-chip' }, w);
+        b.addEventListener('click', () => (b.parentNode === pool ? built : pool).append(b));
+        pool.append(b);
+        return b;
+      });
+      const clear = h('button', { type: 'button', class: 'qb-clear' }, 'Clear');
+      clear.addEventListener('click', () => chips.forEach((c) => pool.append(c)));
+      host.append(built, pool, clear);
+    },
+    read: (host) => [...host.querySelectorAll('.qb-built .qb-chip')].map((c) => c.textContent ?? ''),
+  },
   open: {
     draw(it, host) { openTools(it, host); },
     read: () => null,
@@ -233,6 +250,7 @@ const answerText = async (it: Item) => {
   if (it.type === 'msq') return `Answer: ${(it.answer as number[]).map((i) => String.fromCharCode(65 + i)).join(', ')}`;
   if (it.type === 'nat') return `Answer: ${+Number(it.answer).toPrecision(6)}${it.unit ? ' ' + it.unit : ''}${it.tol ? ` (accepted ${+(it.answer - it.tol).toPrecision(6)} to ${+(it.answer + it.tol).toPrecision(6)})` : ''}`;
   if (it.type === 'text') return `Accepted: ${(it.answer ?? []).join(' / ')}`;
+  if (it.type === 'order') return `Answer: ${(it.answer ?? [])[0] ?? ''}`;
   return '';
 };
 

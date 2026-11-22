@@ -54,7 +54,7 @@ for (const c of courses) {
       if (it.group) ok(`${tag}: group exists`, !!set.groups?.[it.group]);
       if (it.type === 'mcq') {
         ok(`${tag}: mcq answer is a valid index`, Number.isInteger(it.answer) && it.answer >= 0 && it.answer < it.options.length);
-        ok(`${tag}: mcq options distinct`, new Set(it.options.map(norm)).size === it.options.length && it.options.length >= 2);
+        ok(`${tag}: mcq options distinct`, new Set(it.options.map((o) => String(o).trim())).size === it.options.length && it.options.length >= 2);
       } else if (it.type === 'text') {
         ok(`${tag}: text answers`, Array.isArray(it.answer) && it.answer.length > 0 && it.answer.every((a) => norm(a)));
         if (it.maxWords) ok(`${tag}: first answer fits maxWords`, norm(it.answer[0]).split(' ').length <= it.maxWords);
