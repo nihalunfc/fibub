@@ -7,6 +7,7 @@ import ToolMap from '../components/ToolMap.astro';
 import { allTools } from '../lib/tools';
 import { allArticles, KINDS, kindOf } from '../lib/blog';
 import { siteGraph } from '../lib/sitegraph';
+import { COURSES } from '../data/curricula';
 const tools = await allTools();
 const articles = await allArticles();
 const { nodes, links, size } = siteGraph(tools, articles, 760);
@@ -34,9 +35,10 @@ const under = (id: string) => nodes.filter((n) => n.parent === id);
 const groups = [
   { title: 'Main pages', links: [['/', 'Home'], ['/tools/', 'All tools'], ['/learn/', 'Learn'], ['/blog/', 'Blog'], ['/stats/', 'Usage stats'], ['/changes/', 'Change log']] },
   { title: 'Learn', links: [['/learn/', 'Learn overview'], ...under('learn').map((n) => [n.url, n.name])] },
+  { title: 'Courses', links: [['/learn/courses/', 'All courses'], ...COURSES.filter((c) => c.status === 'live' && c.href).map((c) => [c.href!, c.name])] },
   ...under('tools').map((s) => ({ title: `${s.name} (${s.count} tools)`, links: [[s.url, `All ${s.name.toLowerCase()} tools`], ...under(s.id).map((n) => [n.url, `${n.name} (${n.count})`])] })),
   { title: 'Blog', links: [['/blog/', 'Latest'], ...KINDS.map((k) => [`/blog/${k.id}/`, `${k.name} (${articles.filter((a) => kindOf(a) === k.id).length})`]), ['/changes/', 'Change log']] },
-  { title: 'About the site', links: [['/about/', 'About'], ['/privacy/', 'Privacy'], ['/terms/', 'Terms'], ['/contact/', 'Contact'], ['/sitemap-index.xml', 'XML sitemap (for search engines)']] },
+  { title: 'About the site', links: [['/about/', 'About'], ['/privacy/', 'Privacy'], ['/terms/', 'Terms'], ['/contact/', 'Contact'], ['/sitemap-index.xml', 'XML sitemap (for search engines)'], ['https://nihalsulaiman.com/', "The developer's portfolio (nihalsulaiman.com)"]] },
 ] as { title: string; links: [string, string][] }[];
 ---
 <Base title="Site map" description={`Every part of fibub and how it links together: ${live.length} free tools, ${articles.length} blog articles, shelves, subjects and Learn, as a network chart and lists.`}>

@@ -5,6 +5,7 @@ import CourseSidebar from './CourseSidebar.astro';
 import LessonQuiz from './LessonQuiz.astro';
 import { splitFigures, type LessonEntry } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
+import { lessonLd } from '../../lib/seo';
 import '../../styles/course.css';
 interface Props { course: CourseSyllabus; entry: LessonEntry; slug: string; live: Set<string>; figures: Record<string, any> }
 const { course, entry, slug, live, figures } = Astro.props;
@@ -18,8 +19,9 @@ for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${s
 const d = entry.data;
 const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
+const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
 ---
-<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary}>
+<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article">
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
   <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug}>
     <CourseSidebar course={course} live={live} current={slug} />
