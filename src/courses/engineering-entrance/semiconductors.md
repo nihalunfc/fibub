@@ -38,6 +38,10 @@ In a solid, the energy levels of the atoms spread into **bands**. The highest fi
 
 When an electron jumps to the conduction band, it leaves behind a **hole**, an empty place in a bond that behaves like a positive charge. In a field, neighbouring electrons hop into the hole, so the hole drifts along with the field.
 
+Move the gap and the temperature in the next picture. Notice that a wide gap leaves almost nothing in the conduction band, while a zero gap (a metal) is always full of free electrons.
+
+<figure class="fig" data-fig="@sx-band-fill"><figcaption>Electrons (dots) are lifted across the gap by heat; each one leaves a hole (ring). Try Ge, Si and diamond at 300 K, then heat the diamond: the carriers grow exponentially, but the gap is too big to matter. Shine a photon too weak to cross the gap and see it pass through.</figcaption></figure>
+
 ## 2. Intrinsic and extrinsic semiconductors
 
 In pure (**intrinsic**) silicon, every freed electron leaves a hole: n_e = n_h = n_i. At 300 K, n_i for silicon is about 1.5 × 10¹⁶ m⁻³, tiny compared with about 5 × 10²⁸ atoms per m³.
@@ -80,6 +84,16 @@ Join p-type and n-type material. Electrons diffuse from n to p and holes from p 
 - **Forward bias** (p to +, n to −): the barrier drops, the depletion layer narrows, and once the applied voltage passes the knee (about 0.7 V for Si) the current rises steeply.
 - **Reverse bias:** the barrier rises, the layer widens, and only a tiny current of minority carriers flows (microamperes), until **breakdown** at a large reverse voltage.
 
+Watch the junction form, step by step, then use the bias slider in the last step to see the barrier and the depletion layer change.
+
+<div class="steps" data-fig="@sx-pn-junction">
+<div class="step"><b>Two separate pieces.</b> p-type has many holes (rings), n-type has many electrons (dots). Both are neutral.</div>
+<div class="step"><b>Diffusion.</b> Holes drift into n and electrons into p, because each has far more of them on its own side.</div>
+<div class="step"><b>Depletion.</b> The carriers that crossed leave bare charged atoms behind: negative in p, positive in n.</div>
+<div class="step"><b>Equilibrium.</b> The charged layers make a field that opposes diffusion. The barrier is the built-in voltage, about 0.7 V in silicon.</div>
+<div class="step"><b>Bias.</b> Forward bias lowers the barrier and narrows the layer; reverse bias raises and widens it. Move the bias slider.</div>
+</div>
+
 In circuits, treat an ideal diode as a closed switch when forward biased and an open switch when reverse biased. Check each diode's direction first.
 
 ## 4. Rectifiers
@@ -95,6 +109,14 @@ A **half-wave** rectifier (one diode) passes only one half of each cycle: averag
 - **Photodiode:** reverse biased; light frees extra carriers, so the reverse current rises with light intensity. Light must have hν > E_g.
 - **Solar cell:** no bias; light makes an emf across the junction. Its I-V curve lies in the fourth quadrant. Best band gap about 1.5 eV to match sunlight.
 
+Try the Zener regulator below: raise the ripple and the output barely moves, until the load is so heavy that the Zener runs out of current. 
+
+<figure class="fig" data-fig="@sx-zener-regulator"><figcaption>The grey line is the wobbling input, the blue line the regulated output; the dot on the I-V curve shows how much current the Zener carries. Lower the load resistance until the output sags: that is the end of regulation.</figcaption></figure>
+
+What sets an LED's colour? The size of the band gap. Pick an LED type or drag the gap yourself.
+
+<figure class="fig" data-fig="@sx-led-gap"><figcaption>Slide the band gap: λ = 1240/E<sub>g</sub> nm. Each flash is one electron-hole pair recombining and giving out one photon. Blue needs a wide gap, infrared a narrow one.</figcaption></figure>
+
 <div class="problem" data-problem="sc-zener"></div>
 
 ## 6. Logic gates
@@ -109,6 +131,10 @@ A **half-wave** rectifier (one diode) passes only one half of each cycle: averag
 | XOR | `$A\bar B + \bar AB$` | 1 if the inputs differ |
 
 NAND and NOR are **universal gates**: any circuit can be built from either alone. NOT from NAND: join both inputs. AND from NAND: NAND followed by NOT. **De Morgan's theorems** simplify circuits: `$\overline{A + B} = \bar A\cdot\bar B$` and `$\overline{A\cdot B} = \bar A + \bar B$`.
+
+Gates can do arithmetic. Switch the inputs of the half and full adder and follow the 1s through the wires.
+
+<figure class="fig" data-fig="@sx-adders"><figcaption>A half adder is an XOR (sum) and an AND (carry). Chain full adders and you can add whole numbers: the carry ripples from bit to bit.</figcaption></figure>
 
 **Worked example (level 3).** Two NOT gates feed a NAND gate, with inputs A and B. Output = `$\overline{\bar A\cdot\bar B} = A + B$` (De Morgan): the circuit is an **OR gate**.
 

@@ -44,6 +44,10 @@ There are two p-n junctions: base-emitter (BE) and base-collector (BC). In the n
 
 Here is what happens inside an npn transistor biased for amplification, with the BE junction forward biased and the BC junction reverse biased:
 
+See what the carriers do in an NPN transistor: most of the emitter electrons run through the thin base into the collector.
+
+<figure class="fig" data-fig="@sx-bjt-carriers"><figcaption>V<sub>BE</sub> sets the injection of electrons, and I<sub>C</sub> grows exponentially with it. Only the few electrons that recombine in the base make up I<sub>B</sub>; the ratio I<sub>C</sub>/I<sub>B</sub> is β. Move β to change how thin the base is.</figcaption></figure>
+
 <div class="steps">
 <div class="step"><p><b>Injection.</b> The forward-biased BE junction lets the heavily doped emitter push a flood of electrons into the base. (Holes from the base also cross into the emitter, but the base is lightly doped, so they are few.)</p></div>
 <div class="step"><p><b>Diffusion across a thin base.</b> In the p-type base the electrons are minority carriers. They spread out by diffusion. The base is so thin, and has so few holes, that only about 1 in 100 of them meets a hole and recombines.</p></div>
@@ -141,6 +145,10 @@ If β is only about 100, treat the divider as its Thevenin equivalent (`$V_{th}$
 ## 6. The transistor as a small-signal amplifier
 
 Around the Q-point a small signal sees a simple linear model. Because `$I_C = I_Se^{V_{BE}/V_T}$` (with `$V_T = kT/e \approx 25$` mV at room temperature), a small change in `$V_{BE}$` changes `$I_C$` at the rate
+
+Put a signal on the base of a common-emitter stage: set the Q-point, then grow the input until the output clips.
+
+<figure class="fig" data-fig="@sx-amp-clip"><figcaption>The output is upside down and larger by −g<sub>m</sub>R<sub>C</sub>. Bias near the middle of the load line for the biggest clean swing; bias too low and the top is squashed, too high and the bottom saturates.</figcaption></figure>
 
 ```math
 g_m = \frac{\partial I_C}{\partial V_{BE}} = \frac{I_C}{V_T}, \qquad r_e = \frac{V_T}{I_E} \approx \frac{1}{g_m}, \qquad r_\pi = \frac{\beta}{g_m} = (\beta + 1)r_e

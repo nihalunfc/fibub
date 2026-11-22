@@ -42,6 +42,10 @@ A **primitive cell** holds exactly one lattice point; its volume `$V_c = |\vec a
 
 The symmetric primitive cell is the **Wigner-Seitz cell**: all points closer to one lattice point than to any other. It is built by drawing the perpendicular bisector planes to the neighbours and keeping the innermost region, so it has the full symmetry of the lattice. For sc it is a cube, for bcc a truncated octahedron, for fcc a rhombic dodecahedron.
 
+Turn the common 3D cells in the next picture to connect the lattice vectors with the real structures.
+
+<figure class="fig" data-fig="@sx-cell-3d"><figcaption>Simple, body-centred and face-centred cubic, hcp, diamond and rock salt. Counting the atoms per cell is how you find the basis.</figcaption></figure>
+
 ## 2. The reciprocal lattice
 
 Ask which plane waves `$e^{i\vec G\cdot\vec r}$` have the period of the lattice. We need `$e^{i\vec G\cdot(\vec r + \vec R)} = e^{i\vec G\cdot\vec r}$` for every `$\vec R$`, so
@@ -85,6 +89,10 @@ Three facts follow at once and are worth memorising:
 </div>
 
 **Worked example (non-cubic spacing).** A tetragonal crystal has `$a = 4.0$` Å and `$c = 6.0$` Å. Its reciprocal axes are orthogonal with lengths `$2\pi/a, 2\pi/a, 2\pi/c$`, so `$|\vec G_{101}|^2 = (2\pi)^2(1/a^2 + 1/c^2)$` and `$1/d^2 = 1/16 + 1/36 = 0.0903$` Å⁻², `$d_{101} = 3.33$` Å. For hexagonal axes the same method gives `$1/d^2 = \tfrac43(h^2 + hk + k^2)/a^2 + l^2/c^2$`; the angle between two plane normals is the angle between their `$\vec G$`s, never between the bare index triples (unless the crystal is cubic).
+
+The reciprocal lattice is what an X-ray sees. Rotate the crystal against the Ewald circle and watch reflections appear whenever a point lies on it.
+
+<figure class="fig" data-fig="@sx-ewald"><figcaption>Reflections happen when a reciprocal-lattice point lies on the Ewald circle (a sphere in 3D) of radius 1/λ. Try the square, rectangular and hexagonal lattices.</figcaption></figure>
 
 ## 3. Reciprocal lattices you must know
 
