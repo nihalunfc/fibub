@@ -10,5 +10,11 @@ export default {
     { id: 'math', name: 'Mathematical methods', topics: [
       { id: 'vector-calculus', name: 'Vectors and vector calculus' },
     ] },
+    { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
+      { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
+      { id: 'work-energy-collisions', name: 'Work, energy, momentum and collisions' },
+      { id: 'central-forces', name: 'Central forces, orbits and Kepler\'s laws' },
+      { id: 'moment-of-inertia', name: 'Moment of inertia and the axis theorems' },
+    ] },
   ],
 };
