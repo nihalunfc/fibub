@@ -69,6 +69,9 @@ export default {
       { id: 'ls-jj-coupling', name: 'Many-electron atoms: LS and jj coupling' },
       { id: 'zeeman-stark', name: 'Zeeman and Stark effects' },
       { id: 'rotational-spectra', name: 'Rotational spectra' },
+      { id: 'vibrational-spectra', name: 'Vibrational spectra' },
+      { id: 'raman', name: 'Raman spectroscopy' },
+      { id: 'lasers', name: 'Einstein coefficients and lasers' },
     ] },
     { id: 'solid-state', name: 'Solid state physics and devices', topics: [
       { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
