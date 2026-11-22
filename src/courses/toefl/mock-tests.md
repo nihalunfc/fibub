@@ -160,6 +160,8 @@ The mini mock keeps the order and the practice times, with fewer items. Do it in
 
 <figure class="fig" data-fig="speak" data-prep="3" data-speak="45" data-task="<p><b>Interview question:</b> Some people say online courses will replace most classroom teaching in the future. What do you think, and why?</p>"><figcaption>Mini mock S2: a second interview question.</figcaption></figure>
 
+**Full timed sections.** When the mini mock feels comfortable, take a full section under time: the [Listening practice test](/learn/courses/toefl/listening-test/) and the [Reading practice test](/learn/courses/toefl/reading-test/) draw a new paper from the [practice room](/learn/courses/toefl/practice/) every time, keep each recording and passage whole, run a timer, and show your score, your weakest parts and every explanation at the end. Do Writing and Speaking with the pads and timers in section 5.
+
 ## 6. Review: where you actually improve
 
 Spend at least as long reviewing as you spent on the mock. For every wrong or guessed item, write one line with a short reason label, then count the labels:
