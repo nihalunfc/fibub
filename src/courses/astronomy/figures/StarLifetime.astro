@@ -1,0 +1,39 @@
+---
+// SIM for 9.3: heavy stars burn far faster. Lifetime from fuel (∝ M) over burn rate (∝ L), with a rough
+// mass-luminosity relation. Pick a mass to read its power, colour and lifetime.
+---
+<figure class="cs-fig mlf" data-lifetime>
+  <span class="cs-figtag">Try it: pick a star's mass</span>
+  <canvas aria-label="Main-sequence lifetime against star mass on log-log axes"></canvas>
+  <div class="mlf-ctl">
+    <label>Mass <output data-v="m"></output><input type="range" name="m" min="-1" max="1.7" step="0.01" value="0"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>luminosity (rough)</span><b data-L></b></div>
+    <div><span>surface temperature (rough)</span><b data-temp></b></div>
+    <div><span>time on the main sequence</span><b data-life></b></div>
+  </div>
+  <figcaption>Both axes are logarithmic. The curve is a rough rule (lifetime = 10 billion years × M/L in solar units), good to a factor of two or so; real models are more detailed. The dashed line is the age of the universe, 13.8 billion years: no star lighter than about 0.9 Suns has yet run out of hydrogen.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { massLuminosity, msLifetime, msTemp } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lifetime]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1, 1.7], y: [5.5, 13], h: 260, xLabel: 'log₁₀ mass (Suns)', yLabel: 'log₁₀ lifetime (years)' });
+    const draw = () => {
+      const lm = gm(), m = 10 ** lm;
+      p.begin();
+      p.line(-1, Math.log10(1.38e10), 1.7, Math.log10(1.38e10), { color: p.pal.accent2, width: 1.2, dash: [4, 4] });
+      p.fn((x) => Math.log10(msLifetime(10 ** x)), { color: p.pal.accent, width: 2.5 });
+      p.dot(lm, Math.log10(msLifetime(m)), { r: 7, color: p.pal.accent2 });
+      p.dot(0, 10, { r: 3, color: p.pal.muted }); p.text(0, 10, 'Sun', { dx: 6, dy: -8, size: 11, color: p.pal.muted });
+      p.end();
+      const L = massLuminosity(m), t = msLifetime(m);
+      q('[data-L]').textContent = `${fmt(L, L < 1 ? 3 : 0)} L☉`; q('[data-temp]').textContent = `${fmt(Math.round(msTemp(m) / 100) * 100, 0)} K`;
+      q('[data-life]').textContent = t >= 1e9 ? `${fmt(t / 1e9, 1)} billion years` : `${fmt(t / 1e6, 0)} million years`;
+    };
+    const gm = slider(fig, 'm', () => go(), (v) => `${fmt(10 ** v, 10 ** v < 1 ? 2 : 1)} Suns`);
+    const go = live(cv, draw);
+  }
+</script>

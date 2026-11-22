@@ -1,0 +1,44 @@
+---
+// SIM for 9.6: what's left when a star dies. Pick the dead core's mass: white dwarf, neutron star or black hole,
+// its size against Earth and a city, and how dense it is.
+---
+<figure class="cs-fig mlf" data-remnants>
+  <span class="cs-figtag">Try it: crush a star's core</span>
+  <canvas aria-label="Size of a white dwarf, neutron star or black hole of the chosen mass, compared with Earth"></canvas>
+  <div class="mlf-ctl">
+    <label>Mass of the dead core <output data-v="m"></output><input type="range" name="m" min="0.4" max="20" step="0.05" value="0.6"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>it becomes</span><b data-kind></b></div>
+    <div><span>radius</span><b data-r></b></div>
+    <div><span>one teaspoon (5 mL) weighs</span><b data-tsp></b></div>
+  </div>
+  <figcaption>Rough sizes: a white dwarf follows R ≈ 0.0126 R☉ × M^(−1/3) × √(1 − (M/1.44)^(4/3)) (heavier ones are smaller, shrinking fast near the limit) up to the Chandrasekhar limit of about 1.4 Suns; neutron stars are about 12 km across the board, up to about 2 to 3 Suns; beyond that only a black hole, whose size is the Schwarzschild radius 2GM/c². The scale switches when the object shrinks: the grey reference is Earth, then a 25 km city.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { MSUN, RSUN, schwarzschild, density } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-remnants]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-2.2, 2.2], y: [-1.1, 1.1], h: 240, bare: true, equal: true });
+    const draw = () => {
+      const m = gm(), M = m * MSUN;
+      const kind = m <= 1.4 ? 0 : m <= 2.5 ? 1 : 2;
+      const R = kind === 0 ? 0.0126 * RSUN * m ** (-1 / 3) * Math.sqrt(Math.max(0.05, 1 - (m / 1.44) ** (4 / 3))) : kind === 1 ? 12e3 : schwarzschild(M);
+      const ref = kind === 0 ? 6.371e6 : 12.5e3, refName = kind === 0 ? 'Earth' : '25 km city', scale = 1 / Math.max(R, ref);
+      p.begin();
+      const circ = (r: number, x: number, s: { fill?: string; color: string; alpha?: number }) => { const pts: [number, number][] = []; for (let k = 0; k <= 90; k++) pts.push([x + r * Math.cos((k / 90) * 2 * Math.PI), r * Math.sin((k / 90) * 2 * Math.PI)]); p.poly(pts, { fill: s.fill, alpha: s.alpha ?? 1, color: s.color, width: 1.5 }); };
+      circ(ref * scale, -1.1, { fill: p.pal.muted, alpha: 0.25, color: p.pal.muted });
+      circ(R * scale, 1.1, kind === 2 ? { fill: p.pal.ink, color: p.pal.ink } : { fill: kind === 0 ? p.pal.accent : p.pal.accent2, alpha: 0.6, color: kind === 0 ? p.pal.accent : p.pal.accent2 });
+      p.text(-1.1, -1.05, refName, { align: 'center', size: 11, color: p.pal.muted });
+      p.text(1.1, -1.05, ['white dwarf', 'neutron star', 'black hole (event horizon)'][kind], { align: 'center', size: 11, color: p.pal.muted });
+      p.end();
+      q('[data-kind]').textContent = ['a white dwarf', 'a neutron star', 'a black hole'][kind];
+      q('[data-r]').textContent = R > 1e5 ? `${fmt(R / 1000, 0)} km (${fmt(R / 6.371e6, 2)} Earths)` : `${fmt(R / 1000, 1)} km`;
+      const tsp = density(M, R) * 5e-6;
+      q('[data-tsp]').textContent = kind === 2 ? 'no surface to scoop' : tsp > 1e9 ? `${fmt(tsp / 1e12, 1)} billion tonnes` : `${fmt(tsp / 1000, 0)} tonnes`;
+    };
+    const gm = slider(fig, 'm', () => go(), (v) => `${fmt(v, 2)} Suns`);
+    const go = live(cv, draw);
+  }
+</script>

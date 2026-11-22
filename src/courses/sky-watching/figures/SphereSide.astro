@@ -1,0 +1,55 @@
+---
+// SIM for 1.1: the celestial sphere seen side-on. The pole stands at your latitude above the north horizon;
+// a star's daily path is a circle parallel to the celestial equator, and the horizon cuts it.
+---
+<figure class="cs-fig mlf" data-sphere>
+  <span class="cs-figtag">Try it: move your latitude and pick a star</span>
+  <canvas aria-label="Side view of the celestial sphere with the horizon, the celestial pole, the celestial equator and one star's daily path"></canvas>
+  <div class="mlf-ctl">
+    <label>Your latitude <output data-v="lat"></output><input type="range" name="lat" min="-90" max="90" step="1" value="43"></label>
+    <label>Star's declination <output data-v="dec"></output><input type="range" name="dec" min="-90" max="90" step="1" value="20"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>pole's altitude</span><b data-pole></b></div>
+    <div><span>star at its highest</span><b data-hi></b></div>
+    <div><span>star at its lowest</span><b data-lo></b></div>
+    <div><span>the star</span><b data-vis></b></div>
+  </div>
+  <figcaption>North is on the left. The thick line is your horizon; you can only see the half of the sphere above it. The solid part of the star's path is above the horizon, the dashed part below. At the North Pole (90°) the pole is overhead and stars circle the horizon; on the equator (0°) the poles sit on the horizon and every star is up for 12 hours.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider } from '../../ml-foundations/figures/kit';
+  import { transitAlt, visibility } from '../../../lib/astrocourse/sky';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sphere]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.35, 1.35], y: [-1.15, 1.15], h: 300, bare: true, equal: true });
+    const deg = (v: number) => `${v}°`;
+    const draw = () => {
+      const lat = gl(), dec = gd(), L = (lat * Math.PI) / 180, d = (dec * Math.PI) / 180;
+      const P: [number, number] = [-Math.cos(L), Math.sin(L)], E: [number, number] = [Math.sin(L), Math.cos(L)];
+      p.begin(); const c = p.ctx;
+      const circ: [number, number][] = []; for (let i = 0; i <= 120; i++) { const a = (i / 120) * 2 * Math.PI; circ.push([Math.cos(a), Math.sin(a)]); }
+      p.poly(circ.filter(([, y]) => y <= 0).concat([[-1, 0]]), { fill: p.pal.muted, alpha: 0.12 });
+      p.path(circ, { color: p.pal.line, width: 1.5 });
+      p.line(-1.25, 0, 1.25, 0, { color: p.pal.ink, width: 3 });
+      p.text(-1.25, -0.08, 'N', { bold: true }).text(1.25, -0.08, 'S', { bold: true, align: 'right' });
+      p.line(-P[0] * 1.15, -P[1] * 1.15, P[0] * 1.15, P[1] * 1.15, { color: p.pal.muted, width: 1.5, dash: [4, 4] });
+      p.dot(P[0], P[1], { r: 6, color: p.pal.accent2 }); p.text(P[0], P[1], 'north celestial pole', { dx: 8, dy: -10, size: 11, color: p.pal.accent2, align: P[0] < -0.3 ? 'left' : 'center' });
+      p.line(-E[0], -E[1], E[0], E[1], { color: p.pal.accent2, width: 1.5, dash: [8, 4] });
+      p.text(E[0], E[1], 'celestial equator', { dx: -4, dy: -10, size: 11, color: p.pal.accent2, align: 'right' });
+      const C: [number, number] = [Math.sin(d) * P[0], Math.sin(d) * P[1]], h = Math.cos(d);
+      const a: [number, number] = [C[0] - h * E[0], C[1] - h * E[1]], b: [number, number] = [C[0] + h * E[0], C[1] + h * E[1]];
+      p.line(a[0], a[1], b[0], b[1], { color: p.pal.accent, width: 2, dash: [5, 4] });
+      c.save(); c.beginPath(); c.rect(0, 0, p.W, p.py(0)); c.clip(); p.line(a[0], a[1], b[0], b[1], { color: p.pal.accent, width: 4 }); c.restore();
+      const top = b[1] > a[1] ? b : a; p.dot(top[0], top[1], { r: 6, color: p.pal.accent }); p.text(top[0], top[1], 'star', { dx: 8, color: p.pal.accent });
+      p.dot(0, 0, { r: 4, color: p.pal.ink }); p.text(0, 0, 'you', { dy: 12, align: 'center', size: 11 });
+      p.end();
+      const hi = transitAlt(dec, lat), lo = -90 + Math.abs(lat + dec);
+      q('[data-pole]').textContent = `${Math.abs(lat)}° above ${lat >= 0 ? 'north' : 'south'}`;
+      q('[data-hi]').textContent = `${hi.toFixed(0)}°`; q('[data-lo]').textContent = `${lo.toFixed(0)}°`;
+      q('[data-vis]').textContent = visibility(dec, lat);
+    };
+    const gl = slider(fig, 'lat', () => go(), deg), gd = slider(fig, 'dec', () => go(), deg);
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,62 @@
+---
+// SIM for 9.4: two stars circle their centre of mass. The heavier star moves less. Below, both stars' radial
+// velocities as seen from Earth (looking along the plane of the orbit): the speeds' ratio gives the mass ratio.
+---
+<figure class="cs-fig mlf" data-binary>
+  <span class="cs-figtag">Try it: weigh a pair of stars</span>
+  <canvas data-top aria-label="Two stars orbiting their shared centre of mass"></canvas>
+  <canvas data-low aria-label="Radial velocity curves of the two stars over one orbit"></canvas>
+  <div class="mlf-ctl">
+    <label>Mass of star A <output data-v="mA"></output><input type="range" name="mA" min="0.3" max="5" step="0.05" value="2"></label>
+    <label>Mass of star B <output data-v="mB"></output><input type="range" name="mB" min="0.3" max="5" step="0.05" value="1"></label>
+    <label>Separation a <output data-v="a"></output><input type="range" name="a" min="0.05" max="2" step="0.01" value="0.2"></label>
+    <label>Time <output data-v="t"></output><input type="range" name="t" min="0" max="1" step="0.005" value="0"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-play>Play</button></div>
+  <div class="mlf-read">
+    <div><span>period P = √(a³/(M_A+M_B))</span><b data-P></b></div>
+    <div><span>top speeds A, B</span><b data-K></b></div>
+    <div><span>speed ratio = mass ratio B/A</span><b data-q></b></div>
+  </div>
+  <figcaption>Circular orbits seen exactly edge-on, so the full orbital speed shows up as radial velocity. Earth is far away towards the bottom of the top panel. Positive velocity means moving away (redshift). Real orbits are tilted by an unknown angle, which hides part of the speed unless the stars also eclipse each other.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { AU } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-binary]')) {
+    const top = fig.querySelector<HTMLCanvasElement>('[data-top]')!, low = fig.querySelector<HTMLCanvasElement>('[data-low]')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const pt = new Plot(top, { x: [-1.1, 1.1], y: [-0.7, 0.7], h: 180, bare: true, equal: true });
+    const draw = () => {
+      const mA = gA(), mB = gB(), a = ga(), t = gt(), M = mA + mB, P = Math.sqrt(a ** 3 / M);
+      const v = (2 * Math.PI * a * AU) / (P * 3.15576e7) / 1000, KA = (v * mB) / M, KB = (v * mA) / M;
+      const rA = mB / M, rB = mA / M, th = 2 * Math.PI * t;
+      pt.begin();
+      for (const [r, c] of [[rA, pt.pal.accent], [rB, pt.pal.accent2]] as [number, string][]) { const ring: [number, number][] = []; for (let k = 0; k <= 80; k++) ring.push([r * Math.cos((k / 80) * 2 * Math.PI), r * 0.6 * Math.sin((k / 80) * 2 * Math.PI)]); pt.path(ring, { color: c, width: 1, alpha: 0.5 }); }
+      pt.dot(0, 0, { r: 3, color: pt.pal.muted, shape: 'cross' });
+      pt.dot(rA * Math.cos(th), rA * 0.6 * Math.sin(th), { r: 4 + 3 * Math.sqrt(mA), color: pt.pal.accent });
+      pt.dot(-rB * Math.cos(th), -rB * 0.6 * Math.sin(th), { r: 4 + 3 * Math.sqrt(mB), color: pt.pal.accent2 });
+      pt.text(0, -0.62, '↓ to Earth', { align: 'center', size: 11, color: pt.pal.muted });
+      pt.end();
+      const vmax = Math.max(KA, KB) * 1.2;
+      const pl = new Plot(low, { x: [0, 1], y: [-vmax, vmax], h: 170, xLabel: 'fraction of the orbit', yLabel: 'radial velocity (km/s)' });
+      pl.begin();
+      // Moving away from Earth (Earth at the bottom) means moving up: velocity = +K cos θ for A.
+      pl.fn((x) => KA * Math.cos(2 * Math.PI * x), { color: pl.pal.accent, width: 2.5 });
+      pl.fn((x) => -KB * Math.cos(2 * Math.PI * x), { color: pl.pal.accent2, width: 2.5 });
+      pl.line(t, -vmax, t, vmax, { color: pl.pal.muted, width: 1, dash: [3, 3] });
+      pl.end();
+      q('[data-P]').textContent = P < 1 ? `${fmt(P * 365.25, 1)} days` : `${fmt(P, 2)} years`;
+      q('[data-K]').textContent = `${fmt(KA, 1)}, ${fmt(KB, 1)} km/s`; q('[data-q]').textContent = fmt(KA / KB, 2);
+    };
+    const gA = slider(fig, 'mA', () => go(), (v) => `${fmt(v, 2)} Suns`), gB = slider(fig, 'mB', () => go(), (v) => `${fmt(v, 2)} Suns`), ga = slider(fig, 'a', () => go(), (v) => `${fmt(v, 2)} AU`), gt = slider(fig, 't', () => go(), (v) => `${fmt(v * 100, 0)}%`);
+    const go = () => { draw(); };
+    live(top, draw); live(low, draw);
+    let timer = 0;
+    const btn = q('[data-play]') as HTMLButtonElement, inp = fig.querySelector<HTMLInputElement>('input[name=t]')!;
+    btn.addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = 0; btn.textContent = 'Play'; return; }
+      btn.textContent = 'Pause';
+      timer = window.setInterval(() => { inp.value = String((+inp.value + 0.005) % 1); inp.dispatchEvent(new Event('input')); }, 40);
+    });
+  }
+</script>

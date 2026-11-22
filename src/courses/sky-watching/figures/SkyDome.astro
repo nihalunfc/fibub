@@ -1,0 +1,32 @@
+---
+// SIM for 1.6: an all-sky star chart for any latitude and sidereal time, with the brightest stars and a few
+// constellation figures. Shows how to hold and read a planisphere.
+---
+<figure class="cs-fig mlf" data-dome>
+  <span class="cs-figtag">Try it: turn the sky</span>
+  <canvas aria-label="An all-sky chart with the horizon as the outer circle and the zenith in the middle, showing bright stars and constellation figures"></canvas>
+  <div class="mlf-ctl">
+    <label>Latitude <output data-v="lat"></output><input type="range" name="lat" min="-60" max="70" step="1" value="43"></label>
+    <label>Sidereal time <output data-v="lst"></output><input type="range" name="lst" min="0" max="24" step="0.25" value="6"></label>
+  </div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>Hold the chart over your head with N towards north: east is then on the left. The edge is the horizon, the middle is straight up, and the faint rings are 30° and 60° high. Sidereal time 6 h is a January evening at about 9 pm; add 2 hours for each month later. Shown: the Big Dipper, Cassiopeia, Orion, the Summer Triangle, Castor and Pollux, and the Southern Cross. Star positions from the Yale Bright Star Catalogue.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider } from '../../ml-foundations/figures/kit';
+  import { chartFrame, chartStars } from './chart';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-dome]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const p = new Plot(cv, { x: [-1.15, 1.15], y: [-1.15, 1.15], h: 340, bare: true, equal: true });
+    const draw = () => {
+      p.begin(); chartFrame(p);
+      const up = chartStars(p, gs(), gl());
+      p.end();
+      const groups = [['Big Dipper', 'Dubhe'], ['Cassiopeia', 'Schedar'], ['Orion', 'Betelgeuse'], ['Summer Triangle', 'Vega'], ['Southern Cross', 'Acrux']];
+      const seen = groups.filter(([, s]) => up.includes(s)).map(([g]) => g);
+      say.textContent = `${up.length} of these bright stars are up. ${seen.length ? 'Look for: ' + seen.join(', ') + '.' : ''}`;
+    };
+    const gl = slider(fig, 'lat', () => go(), (v) => `${Math.abs(v)}° ${v >= 0 ? 'N' : 'S'}`), gs = slider(fig, 'lst', () => go(), (v) => `${Math.floor(v)} h ${String(Math.round((v % 1) * 60)).padStart(2, '0')} m`);
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,35 @@
+---
+// SIM for 5.5: turn a count of meteors into a zenithal hourly rate, correcting for sky darkness, radiant height
+// and cloud, the way the International Meteor Organization does.
+---
+<figure class="cs-fig mlf" data-zhr>
+  <span class="cs-figtag">Try it: correct your count</span>
+  <div class="mlf-ctl">
+    <label>Meteors counted <output data-v="n"></output><input type="range" name="n" min="1" max="150" step="1" value="40"></label>
+    <label>Hours watched <output data-v="t"></output><input type="range" name="t" min="0.5" max="4" step="0.25" value="1"></label>
+    <label>Faintest star you can see <output data-v="lm"></output><input type="range" name="lm" min="4" max="7" step="0.1" value="5.8"></label>
+    <label>Radiant altitude <output data-v="h"></output><input type="range" name="h" min="5" max="90" step="1" value="45"></label>
+    <label>Sky hidden by cloud or trees <output data-v="k"></output><input type="range" name="k" min="0" max="0.5" step="0.05" value="0"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>your hourly rate</span><b data-hr></b></div>
+    <div><span>zenithal hourly rate (ZHR)</span><b data-z></b></div>
+  </div>
+  <canvas aria-label="How the correction factor grows as the radiant gets lower"></canvas>
+  <figcaption>The ZHR is the number one observer would see in an hour under a perfect sky (limiting magnitude 6.5) with the radiant overhead. Population index r = 2.5 is typical (each magnitude fainter has 2.5 times more meteors); it differs between showers. The curve shows the radiant-height correction, 1 ÷ sin(altitude). Below about 20° the correction becomes unreliable.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { zhr } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-zhr]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 90], y: [0, 6], h: 180, xLabel: 'radiant altitude (°)', yLabel: 'factor' });
+    const draw = () => {
+      const n = gn(), t = gt(), lm = glm(), h = gh(), k = gk();
+      p.begin(); p.fn((x) => 1 / Math.sin((x * Math.PI) / 180), { color: p.pal.accent, width: 2.5, from: 9.6 }); p.dot(h, 1 / Math.sin((h * Math.PI) / 180), { r: 6, color: p.pal.accent2 }); p.end();
+      q('[data-hr]').textContent = `${fmt(n / t, 0)} per hour`; q('[data-z]').textContent = fmt(zhr(n, t, lm, h, 2.5, k), 0);
+    };
+    const gn = slider(fig, 'n', () => go(), (v) => `${v}`), gt = slider(fig, 't', () => go(), (v) => `${v} h`), glm = slider(fig, 'lm', () => go(), (v) => fmt(v, 1)), gh = slider(fig, 'h', () => go(), (v) => `${v}°`), gk = slider(fig, 'k', () => go(), (v) => `${Math.round(v * 100)} %`);
+    const go = live(cv, draw);
+  }
+</script>

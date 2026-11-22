@@ -1,0 +1,43 @@
+---
+// DIA for 7.1: the electromagnetic spectrum from gamma rays to radio on a log wavelength axis, with how much
+// of each band reaches the ground. Tap a band for what it shows and where we observe it from.
+---
+<figure class="cs-fig mlf" data-spectrum>
+  <span class="cs-figtag">Picture: the spectrum and the atmosphere's windows (tap a band)</span>
+  <canvas aria-label="The electromagnetic spectrum on a wavelength scale with a curve showing how much of each band gets through the atmosphere"></canvas>
+  <div class="mlf-btns" data-bands></div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>The shaded curve is a simplified sketch of how opaque the atmosphere is (top = blocked, bottom = clear) at each wavelength; the real curve has many narrow features. The two big windows are visible light (with a little near-infrared and ultraviolet) and radio from about 1 cm to 10 m. Everything else is observed from mountain tops, balloons, aircraft or space.</figcaption>
+</figure>
+<script>
+  import { Plot, live } from '../../ml-foundations/figures/kit';
+  // [name, log10 λ from, to (metres), where observed, what it shows]
+  const B: [string, number, number, string, string][] = [
+    ['Gamma', -14, -11, 'space only', 'the most violent events: gamma-ray bursts, matter falling into black holes, radioactive decay in supernova debris'],
+    ['X-ray', -11, -8, 'space only', 'gas at millions of degrees: galaxy clusters, the Sun\'s corona, gas heated around neutron stars and black holes'],
+    ['UV', -8, -6.4, 'mostly space (ozone blocks below about 300 nm)', 'hot young stars, white dwarfs, the Sun\'s chromosphere'],
+    ['Visible', -6.4, -6.15, 'ground', 'stars, the light our eyes evolved for; 400 to 700 nm'],
+    ['Infrared', -6.15, -3, 'some windows from high, dry sites; mostly space', 'cool stars, dust, star-forming clouds, and very distant galaxies whose light is stretched by the expansion of the universe'],
+    ['Microwave', -3, -1.5, 'high, dry sites and space', 'the cosmic microwave background, cold molecular gas'],
+    ['Radio', -1.5, 2, 'ground (from about 1 cm to 10 m)', 'neutral hydrogen (21 cm), pulsars, jets from black holes, the cold universe'],
+  ];
+  // Simplified opacity (1 = blocked) against log10 λ.
+  const op = (x: number) => x < -6.5 ? 1 : x < -6.4 ? 1 - (x + 6.5) * 9 : x < -5.7 ? 0.08 : x < -5.4 ? 0.4 : x < -5.3 ? 0.25 : x < -4.7 ? 0.75 : x < -3 ? 0.97 : x < -2.3 ? 0.6 : x < -2 ? 0.25 : x < 1 ? 0.05 : x < 1.3 ? 0.05 + (x - 1) * 3 : 1;
+  const sig = (x: number) => { const v = Number(x.toPrecision(2)); return v >= 1 ? v.toLocaleString('en') : String(v); };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-spectrum]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!, box = fig.querySelector<HTMLElement>('[data-bands]')!;
+    const p = new Plot(cv, { x: [-14, 2], y: [-0.5, 1.15], h: 210, noYTicks: true, xLabel: 'log₁₀ wavelength (m)' });
+    let sel = 3;
+    const draw = () => {
+      p.begin();
+      const pts: [number, number][] = [[-14, 0]]; for (let x = -14; x <= 2; x += 0.02) pts.push([x, op(x)]); pts.push([2, 0]);
+      p.poly(pts, { fill: p.pal.muted, alpha: 0.35 }); p.path(pts.slice(1, -1), { color: p.pal.muted, width: 1.5 });
+      B.forEach(([n, a, b], i) => { p.rect(a, -0.45, b - a, 0.3, { fill: i === sel ? p.pal.accent2 : p.pal.accent, alpha: i === sel ? 0.9 : 0.35 }); if (i === sel || (b - a > 2 && Math.abs(i - sel) > 1)) p.text((a + b) / 2, -0.3, n, { align: 'center', size: 10.5, bold: i === sel }); });
+      p.text(-13.8, 1.08, 'blocked by the air', { size: 10.5, color: p.pal.muted }).text(-13.8, 0.1, 'reaches the ground', { size: 10.5, color: p.pal.muted });
+      p.end();
+      const [n, a, b, w, s] = B[sel]; say.innerHTML = ''; const st = document.createElement('strong'); st.textContent = `${n} (${sig(10 ** a * 1e9)} to ${sig(10 ** b * 1e9)} nm): `; say.append(st, `${s}. Observed from: ${w}.`);
+    };
+    B.forEach(([n], i) => { const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn secondary'; bt.textContent = n; bt.addEventListener('click', () => { sel = i; box.querySelectorAll('button').forEach((x, k) => x.setAttribute('aria-pressed', String(k === i))); go(); }); box.append(bt); });
+    const go = live(cv, draw);
+  }
+</script>

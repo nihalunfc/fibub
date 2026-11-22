@@ -1,0 +1,42 @@
+---
+// SIM for 5.2: the same total light spread over a bigger area looks fainter per square arcsecond. Compare a
+// galaxy's surface brightness with the sky's.
+---
+<figure class="cs-fig mlf" data-sb>
+  <span class="cs-figtag">Try it: spread the light out</span>
+  <canvas aria-label="A fuzzy galaxy against the sky background, fading as it gets bigger or the sky gets brighter"></canvas>
+  <div class="mlf-ctl">
+    <label>Total magnitude <output data-v="m"></output><input type="range" name="m" min="4" max="13" step="0.1" value="9"></label>
+    <label>Size (arcminutes) <output data-v="a"></output><input type="range" name="a" min="1" max="60" step="1" value="10"></label>
+    <label>Sky brightness (mag/arcsec²) <output data-v="sky"></output><input type="range" name="sky" min="17" max="22" step="0.1" value="21"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>average surface brightness</span><b data-sbv></b></div>
+    <div><span>compared with the sky</span><b data-c></b></div>
+  </div>
+  <figcaption>The galaxy is drawn as a round glow; its brightness per square arcsecond is the total magnitude spread over its area. When it is fainter than the sky itself it is hard to see by eye, however bright its total magnitude sounds. Made-up object. Real galaxies are brighter in the core than this average.</figcaption>
+</figure>
+<script>
+  import { live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { surfaceBrightness } from '../../../lib/astrocourse/optics';
+  import { pagePalette } from '../../../lib/report';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sb]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const m = gm(), a = ga(), sky = gsky(), sb = surfaceBrightness(m, a, a), red = pagePalette().red;
+      const n = 120, ctx = cv.getContext('2d')!; cv.width = n; cv.height = n; cv.style.height = Math.min(300, cv.clientWidth || 300) + 'px'; cv.style.maxWidth = '300px'; cv.style.margin = '0 auto';
+      const img = ctx.createImageData(n, n), skyF = 10 ** (-0.4 * (sky - 17)), galF = 10 ** (-0.4 * (sb - 17)), R = (a / 60) * n * 0.9;
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const rr = Math.hypot(i - n / 2, j - n / 2) / Math.max(1, R / 2), g = Math.exp(-rr * rr * 1.2) * galF * 2.2;
+        const v = Math.min(1, Math.sqrt((skyF + g) / 1.2)), b = 255 * v, k = (j * n + i) * 4;
+        img.data[k] = red ? b : b * 0.95; img.data[k + 1] = red ? 0 : b * 0.96; img.data[k + 2] = red ? 0 : b; img.data[k + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffffff'; ctx.font = '7px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('fibub.com', n - 3, n - 3); ctx.globalAlpha = 1;
+      q('[data-sbv]').textContent = `${fmt(sb, 1)} mag/arcsec²`;
+      const d = sky - sb; q('[data-c]').textContent = d > 0 ? `${fmt(10 ** (0.4 * d), 1)} × brighter than the sky` : `${fmt(10 ** (-0.4 * d), 1)} × fainter than the sky`;
+    };
+    const gm = slider(fig, 'm', () => go(), (v) => fmt(v, 1)), ga = slider(fig, 'a', () => go(), (v) => `${v}′`), gsky = slider(fig, 'sky', () => go(), (v) => fmt(v, 1));
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,45 @@
+---
+// SIM for 11.6: a cone search in a made-up catalogue. Set the radius and a magnitude limit; see which sources are
+// returned and the ADQL query an archive would run.
+---
+<figure class="cs-fig mlf" data-cone>
+  <span class="cs-figtag">Try it: query an archive</span>
+  <canvas aria-label="A patch of sky with catalogue sources and a search circle"></canvas>
+  <div class="mlf-ctl">
+    <label>Search radius <output data-v="r"></output><input type="range" name="r" min="0.5" max="10" step="0.1" value="3"></label>
+    <label>Fainter limit (magnitude) <output data-v="m"></output><input type="range" name="m" min="8" max="20" step="0.1" value="15"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>rows returned</span><b data-n></b></div>
+    <div><span>brightest returned</span><b data-b></b></div>
+  </div>
+  <pre class="mlf-say" data-q style="font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+  <figcaption>A made-up catalogue of 1,500 sources in a 24 × 24 arcminute patch centred at RA 83.82°, Dec −5.39°. Fainter stars are far more numerous, so the row count climbs fast as the limit gets fainter. The query uses ADQL, the SQL-like language of the Virtual Observatory, in the style used by archives such as Gaia's; table and column names differ between archives.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const R = rng(31), SRC: [number, number, number][] = [];
+  for (let k = 0; k < 1500; k++) SRC.push([(R() - 0.5) * 24, (R() - 0.5) * 24, 20 - 2.5 * Math.log10(1 + R() * 9999) * 0.85]);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cone]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-12, 12], y: [-12, 12], h: 300, bare: true, equal: true });
+    const draw = () => {
+      const r = gr(), lim = gm();
+      p.begin();
+      let n = 0, best = 99;
+      for (const [x, y, m] of SRC) {
+        const inside = Math.hypot(x, y) <= r && m <= lim, sz = Math.max(0.8, (21 - m) * 0.45);
+        if (inside) { n++; best = Math.min(best, m); }
+        p.dot(x, y, { r: sz, color: inside ? p.pal.accent2 : p.pal.muted, alpha: inside ? 0.95 : 0.4 });
+      }
+      const ring: [number, number][] = []; for (let k = 0; k <= 80; k++) ring.push([r * Math.cos((k / 80) * 2 * Math.PI), r * Math.sin((k / 80) * 2 * Math.PI)]);
+      p.path(ring, { color: p.pal.accent, width: 2 });
+      p.end();
+      q('[data-n]').textContent = String(n); q('[data-b]').textContent = n ? `magnitude ${fmt(best, 1)}` : '–';
+      q('[data-q]').textContent = `SELECT source_id, ra, dec, phot_g_mean_mag\nFROM catalogue.sources\nWHERE 1 = CONTAINS(POINT(ra, dec),\n               CIRCLE(83.82, -5.39, ${fmt(r / 60, 4)}))\n  AND phot_g_mean_mag < ${fmt(lim, 1)}`;
+    };
+    const gr = slider(fig, 'r', () => go(), (v) => `${fmt(v, 1)}′`), gm = slider(fig, 'm', () => go(), (v) => fmt(v, 1));
+    const go = live(cv, draw);
+  }
+</script>

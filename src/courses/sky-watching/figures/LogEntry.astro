@@ -1,0 +1,26 @@
+---
+// SIM for 5.7: build one observing log entry in the standard form. Nothing is saved; copy it into your own log.
+---
+<figure class="cs-fig mlf" data-logentry>
+  <span class="cs-figtag">Try it: write one log entry</span>
+  <div class="mlf-ctl">
+    <label>Object <input type="text" name="obj" value="M13 (globular cluster, Hercules)"></label>
+    <label>Date and time (UT) <input type="text" name="ut" value="2026-07-14 02:35 UT"></label>
+    <label>Instrument and power <input type="text" name="ins" value="200 mm Dobsonian, 25 mm eyepiece, 48×"></label>
+    <label>Seeing (1 to 5, 5 best) <input type="range" name="see" min="1" max="5" step="1" value="3"></label>
+    <label>Transparency or limiting magnitude <input type="text" name="tr" value="limiting magnitude 5.8"></label>
+    <label>What you saw <input type="text" name="what" value="Bright round glow, edges resolve into stars with averted vision"></label>
+  </div>
+  <pre class="mlf-log" data-out aria-live="polite"></pre>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-copy>Copy entry</button></div>
+  <figcaption>The habit that turns looking into science: always note the time in UT, the place, the instrument and magnification, the conditions and what you actually saw (not what the photos show). Nothing you type here is saved or sent anywhere. For a log that keeps your entries in your own browser, use the observing log tool linked below.</figcaption>
+</figure>
+<style is:inline>.mlf-log { white-space: pre-wrap; font: 13.5px ui-monospace, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 10px 0 4px; }</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-logentry]')) {
+    const out = fig.querySelector<HTMLElement>('[data-out]')!, v = (n: string) => fig.querySelector<HTMLInputElement>(`[name=${n}]`)!.value;
+    const run = () => { out.textContent = `${v('ut')}\nObject: ${v('obj')}\nInstrument: ${v('ins')}\nSeeing: ${v('see')}/5   Transparency: ${v('tr')}\nNotes: ${v('what')}`; };
+    fig.querySelectorAll('input').forEach((i) => i.addEventListener('input', run)); run();
+    fig.querySelector('[data-copy]')!.addEventListener('click', () => { navigator.clipboard?.writeText(out.textContent || ''); });
+  }
+</script>

@@ -1,0 +1,38 @@
+---
+// SIM for 6.2: signal-to-noise against exposure time for a faint star, with shot noise from the star and the
+// sky and read noise from the camera. SNR grows as the square root of time once the sky dominates.
+---
+<figure class="cs-fig mlf" data-snr>
+  <span class="cs-figtag">Try it: longer exposures, darker skies</span>
+  <canvas aria-label="Signal-to-noise ratio growing with exposure time for dark and bright skies"></canvas>
+  <div class="mlf-ctl">
+    <label>Star signal <output data-v="s"></output><input type="range" name="s" min="1" max="200" step="1" value="20"></label>
+    <label>Sky signal under the star <output data-v="b"></output><input type="range" name="b" min="0" max="400" step="5" value="60"></label>
+    <label>Read noise per frame <output data-v="r"></output><input type="range" name="r" min="0" max="15" step="0.5" value="3"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>SNR after 60 s</span><b data-60></b></div>
+    <div><span>time to reach SNR 50</span><b data-t></b></div>
+  </div>
+  <figcaption>Signals in photo-electrons per second (e⁻/s), summed over the pixels the star covers (assumed 20). Faint line: the same star with no sky glow at all. Shot noise is the square root of the number of photons, from both the star and the sky, so a bright sky costs SNR even though you subtract its level. Made-up camera and star.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { snr } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-snr]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 600], y: [0, 120], h: 250, xLabel: 'exposure (s)', yLabel: 'SNR' });
+    const draw = () => {
+      const S = gs(), B = gb(), R = gr();
+      p.begin();
+      p.fn((t) => snr(S, 0, t, R, 20), { color: p.pal.muted, width: 1.2, dash: [4, 4], from: 0.5 });
+      p.fn((t) => snr(S, B, t, R, 20), { color: p.pal.accent, width: 2.5, from: 0.5 });
+      p.line(0, 50, 600, 50, { color: p.pal.accent2, width: 1, dash: [3, 3] });
+      p.end();
+      let t = 0.5; while (t < 1e5 && snr(S, B, t, R, 20) < 50) t *= 1.05;
+      q('[data-60]').textContent = fmt(snr(S, B, 60, R, 20), 1); q('[data-t]').textContent = t >= 1e5 ? 'over a day' : t < 120 ? `${fmt(t, 0)} s` : `${fmt(t / 60, 1)} min`;
+    };
+    const gs = slider(fig, 's', () => go(), (v) => `${v} e⁻/s`), gb = slider(fig, 'b', () => go(), (v) => `${v} e⁻/s`), gr = slider(fig, 'r', () => go(), (v) => `${v} e⁻`);
+    const go = live(cv, draw);
+  }
+</script>

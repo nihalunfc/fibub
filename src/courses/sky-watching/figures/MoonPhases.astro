@@ -1,0 +1,53 @@
+---
+// SIM for 1.4: the Moon's orbit seen from above the north pole (sunlight from the right) and how the Moon
+// looks from Earth on that day. Half the Moon is always lit; the phase is how much of that half faces us.
+---
+<figure class="cs-fig mlf" data-moon>
+  <span class="cs-figtag">Try it: move through one lunar month</span>
+  <canvas aria-label="Left: the Moon's orbit around Earth seen from above with sunlight from the right. Right: the Moon as seen from Earth."></canvas>
+  <div class="mlf-ctl">
+    <label>Days since new Moon <output data-v="day"></output><input type="range" name="day" min="0" max="29.5" step="0.25" value="7.4"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>phase</span><b data-name></b></div>
+    <div><span>disc lit</span><b data-lit></b></div>
+    <div><span>rises about</span><b data-rise></b></div>
+  </div>
+  <figcaption>Left: above Earth's north pole, with the Sun far off to the right. The Moon's lit half always faces the Sun. Right: what you see from the Northern Hemisphere (from the Southern, turn it upside down). The rise time is rough: the Moon rises about 50 minutes later each day.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { litFraction, SYNODIC_MONTH } from '../../../lib/astrocourse/sky';
+  const NAMES = ['New Moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full Moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-moon]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-2.3, 2.5], y: [-1.2, 1.2], h: 250, bare: true, equal: true });
+    const draw = () => {
+      const day = gd(), ph = (day / SYNODIC_MONTH) * 360, a = (ph * Math.PI) / 180;
+      p.begin(); const c = p.ctx, lit = p.pal.red ? p.pal.ink : '#e9e4d0', dark = p.pal.red ? '#1a0000' : '#3a3f4a';
+      for (let i = 0; i < 4; i++) p.arrow(-2.25, 0.9 - i * 0.6, -2.0, 0.9 - i * 0.6, { color: p.pal.accent2, width: 1.5 });
+      p.text(-2.25, 1.15, 'sunlight ←', { size: 11, color: p.pal.accent2 });
+      const ox = -0.75, R = 0.85; const ring: [number, number][] = []; for (let i = 0; i <= 80; i++) ring.push([ox + R * Math.cos(i / 80 * 6.283), R * Math.sin(i / 80 * 6.283)]);
+      p.path(ring, { color: p.pal.line, width: 1, dash: [3, 4] });
+      p.dot(ox, 0, { r: 12, color: p.pal.accent }); p.text(ox, 0, 'Earth', { dy: 22, align: 'center', size: 11 });
+      // The Moon in orbit: angle measured from the Sun direction (right is new Moon... sunlight comes from the right, so new Moon sits on the right).
+      const mx = ox + R * Math.cos(a), my = R * Math.sin(a), X = p.px(mx), Y = p.py(my), r = 9;
+      c.fillStyle = dark; c.beginPath(); c.arc(X, Y, r, 0, 6.283); c.fill();
+      c.fillStyle = lit; c.beginPath(); c.arc(X, Y, r, -Math.PI / 2, Math.PI / 2); c.fill();
+      // Seen from Earth: a disc on the right with the terminator ellipse.
+      const DX = p.px(1.6), DY = p.py(0), DR = Math.min(70, (p.px(2.4) - p.px(0.8)) / 2), k = litFraction(ph), wax = ph < 180;
+      c.fillStyle = dark; c.beginPath(); c.arc(DX, DY, DR, 0, 6.283); c.fill();
+      c.fillStyle = lit; c.beginPath();
+      c.arc(DX, DY, DR, -Math.PI / 2, Math.PI / 2, !wax);
+      c.ellipse(DX, DY, DR * Math.abs(1 - 2 * k), DR, 0, Math.PI / 2, -Math.PI / 2, k > 0.5 ? !wax : wax);
+      c.fill();
+      p.text(1.6, -1.12, 'seen from Earth', { align: 'center', size: 11, color: p.pal.muted });
+      p.end();
+      q('[data-name]').textContent = NAMES[Math.round(ph / 45) % 8];
+      q('[data-lit]').textContent = `${fmt(k * 100, 0)} %`;
+      const mins = Math.round(((6 + (day / SYNODIC_MONTH) * 24) % 24) * 6) * 10 % 1440; q('[data-rise]').textContent = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+    };
+    const gd = slider(fig, 'day', () => go(), (v) => `${v} d`);
+    const go = live(cv, draw);
+  }
+</script>

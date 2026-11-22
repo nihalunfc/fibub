@@ -1,0 +1,52 @@
+---
+// SIM for 8.2: Newton's cannon. Fire sideways from a tall mountain and watch the path change from a fall,
+// to an ellipse, to a circle at 7.9 km/s, to an escape at 11.2 km/s. Paths are exact conics from v and r.
+---
+<figure class="cs-fig mlf" data-cannon>
+  <span class="cs-figtag">Try it: fire faster</span>
+  <canvas aria-label="Earth with the path of a ball fired sideways from a mountain top"></canvas>
+  <div class="mlf-ctl">
+    <label>Launch speed <output data-v="v"></output><input type="range" name="v" min="2" max="12" step="0.05" value="6"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>what happens</span><b data-what></b></div>
+    <div><span>circular speed √(GM/r)</span><b data-vc></b></div>
+    <div><span>escape speed √(2GM/r)</span><b data-ve></b></div>
+    <div><span>furthest from centre</span><b data-far></b></div>
+  </div>
+  <figcaption>The cannon sits on a pretend mountain 300 km high, above the air, so nothing slows the ball. Each path is worked out from Newton's gravity alone: below 7.7 km/s the ball curves down and lands, at the circular speed it falls round forever, and at √2 times that it never comes back.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { GM_EARTH, R_EARTH, circularSpeed, escapeSpeed } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cannon]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-2.6, 2.6], y: [-2.9, 1.6], h: 300, bare: true, equal: true });
+    const r0 = R_EARTH + 3e5, vc = circularSpeed(GM_EARTH, r0), ve = escapeSpeed(GM_EARTH, r0);
+    const draw = () => {
+      const v = gv() * 1000, P = (r0 * r0 * v * v) / GM_EARTH, e = Math.abs(1 - (r0 * v * v) / GM_EARTH), nu0 = v >= vc ? 0 : Math.PI;
+      p.begin();
+      const earth: [number, number][] = [];
+      for (let k = 0; k <= 90; k++) earth.push([Math.cos((k / 90) * 2 * Math.PI), Math.sin((k / 90) * 2 * Math.PI)]);
+      p.poly(earth, { fill: p.pal.accent, alpha: 0.25, color: p.pal.accent, width: 1.5 });
+      const path: [number, number][] = []; let landed = false, far = 0;
+      for (let k = 0; k <= 720; k++) {
+        const th = (k / 720) * 2 * Math.PI, den = 1 + e * Math.cos(th + nu0);
+        if (den <= 0.02) break;
+        const r = P / den; if (r < R_EARTH) { landed = true; break; }
+        far = Math.max(far, r);
+        const rr = r / R_EARTH; path.push([rr * Math.sin(-th) * -1, rr * Math.cos(th)]);
+        if (rr > 6) break;
+      }
+      p.path(path, { color: p.pal.accent2, width: 2.5 });
+      p.line(0, 1, 0, r0 / R_EARTH, { color: p.pal.ink, width: 3 });
+      p.dot(0, r0 / R_EARTH, { r: 4, color: p.pal.ink });
+      p.end();
+      q('[data-what]').textContent = landed ? 'falls back to Earth' : v >= ve ? 'escapes for good' : Math.abs(v - vc) < 60 ? 'circular orbit' : 'elliptical orbit';
+      q('[data-vc]').textContent = `${fmt(vc / 1000, 2)} km/s`; q('[data-ve]').textContent = `${fmt(ve / 1000, 2)} km/s`;
+      q('[data-far]').textContent = v >= ve ? 'no limit' : `${fmt(Math.max(far, r0) / 1000, 0)} km`;
+    };
+    const gv = slider(fig, 'v', () => go(), (v) => `${fmt(v, 2)} km/s`);
+    const go = live(cv, draw);
+  }
+</script>

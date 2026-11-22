@@ -1,0 +1,44 @@
+---
+// SIM for 6.1: a star's blur laid on the camera's pixel grid. Image scale from pixel size and focal length;
+// a star should span about 2 to 3 pixels across its FWHM.
+---
+<figure class="cs-fig mlf" data-sampling>
+  <span class="cs-figtag">Try it: match the camera to the telescope</span>
+  <canvas aria-label="A star image drawn on the camera's pixel grid, sharp or blocky depending on the image scale"></canvas>
+  <div class="mlf-ctl">
+    <label>Pixel size <output data-v="px"></output><input type="range" name="px" min="2" max="9" step="0.1" value="3.8"></label>
+    <label>Focal length <output data-v="F"></output><input type="range" name="F" min="100" max="2500" step="10" value="600"></label>
+    <label>Seeing (star FWHM) <output data-v="see"></output><input type="range" name="see" min="1" max="5" step="0.1" value="2.5"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>image scale</span><b data-sc></b></div>
+    <div><span>pixels across the star</span><b data-n></b></div>
+    <div><span>sampling</span><b data-v2></b></div>
+  </div>
+  <figcaption>Each square is one pixel; its brightness is the starlight falling on it. Under about 1.5 pixels across the FWHM the star turns into a blocky square (undersampled: detail lost); over about 4 the light is spread thin and each pixel gets little signal (oversampled: fainter, noisier for the same exposure). The 2 to 3 pixel rule of thumb comes from the Nyquist sampling idea.</figcaption>
+</figure>
+<script>
+  import { live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { imageScale } from '../../../lib/astrocourse/optics';
+  import { pagePalette } from '../../../lib/report';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sampling]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const px = gpx(), F = gF(), see = gsee(), sc = imageScale(px, F), n = see / sc, red = pagePalette().red;
+      const box = 14; // arcsec shown across
+      const N = Math.max(2, Math.round(box / sc)), size = Math.min(300, cv.clientWidth || 300), ctx = cv.getContext('2d')!;
+      cv.width = N; cv.height = N; cv.style.height = size + 'px'; cv.style.maxWidth = size + 'px'; cv.style.margin = '0 auto'; cv.style.imageRendering = 'pixelated';
+      const img = ctx.createImageData(N, N), sg = see / 2.355, off = (N * sc) / 2;
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        let v = 0; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { const x = (i + (a + 0.5) / 3) * sc - off - 0.37 * sc, y = (j + (b + 0.5) / 3) * sc - off + 0.21 * sc; v += Math.exp(-(x * x + y * y) / (2 * sg * sg)); }
+        const L = Math.min(255, (v / 9) * 255 * Math.min(4, (sc / 1.2) ** 2) * 0.9), k = (j * N + i) * 4;
+        img.data[k] = L; img.data[k + 1] = red ? 0 : L; img.data[k + 2] = red ? 0 : L; img.data[k + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      q('[data-sc]').textContent = `${fmt(sc, 2)}″ per pixel`; q('[data-n]').textContent = fmt(n, 1);
+      q('[data-v2]').textContent = n < 1.5 ? 'undersampled' : n > 4 ? 'oversampled' : 'about right';
+    };
+    const gpx = slider(fig, 'px', () => go(), (v) => `${fmt(v, 1)} µm`), gF = slider(fig, 'F', () => go(), (v) => `${v} mm`), gsee = slider(fig, 'see', () => go(), (v) => `${fmt(v, 1)}″`);
+    const go = live(cv, draw);
+  }
+</script>
