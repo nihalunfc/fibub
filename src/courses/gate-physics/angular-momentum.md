@@ -170,4 +170,4 @@ They start easy and climb to top-rank level. More on the [angular momentum pract
 
 <div class="qbank" data-bank="physics" data-topics="angular-momentum" data-exam="gate" data-n="10"></div>
 
-**Next:** the hydrogen atom combines these angular functions with a radial equation. Back to the [GATE Physics course](/learn/courses/gate-physics/) for the rest of module 4.
+**Next:** [lesson 4.6](/learn/courses/gate-physics/hydrogen-atom/), the hydrogen atom, combines these angular functions with a radial equation. Back to the [GATE Physics course](/learn/courses/gate-physics/) for the rest of module 4.

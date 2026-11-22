@@ -87,6 +87,114 @@ export default {
     },
     verify: (p) => Math.sqrt((p.l * (p.l + 1) - p.m ** 2) / 2),
   },
+  // ---- 4.6 to 4.11 quantum mechanics (hydrogen atom to identical particles) ----
+  'hyd-inside': {
+    title: 'probability of finding the 1s electron inside a sphere',
+    make(r) {
+      const R = [0.25, 0.5, 0.75, 1, 1.5, 2, 3][int(r, 0, 6)];
+      const x = 2 * R, answer = 1 - Math.exp(-x) * (1 + x + x * x / 2);
+      return {
+        q: `<p>A hydrogen atom is in its ground state, ψ = (πa₀³)<sup>−1/2</sup> e<sup>−r/a₀</sup>. Find the probability that the electron is closer to the nucleus than ${R} a₀.</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'The probability in a shell is |ψ|² 4πr² dr = (4r²/a₀³) e^(−2r/a₀) dr. Substitute x = 2r/a₀ and use ∫₀ˣ t² e^(−t) dt = 2 − e^(−x)(x² + 2x + 2).',
+        solution: steps(`P = ∫₀^R (4r²/a₀³) e^(−2r/a₀) dr = ½ ∫₀^${x} t² e^(−t) dt with t = 2r/a₀.`, `½[2 − e^(−${x})(${x * x} + ${2 * x} + 2)] = 1 − e^(−${x})(1 + ${x} + ${x * x / 2}).`, `P = <b>${answer.toFixed(4)}</b>${R === 1 ? ': less than a third, although a₀ is the most probable radius' : ''}.`),
+        R,
+      };
+    },
+    verify(p) { let s = 0; const N = 20000, h = p.R / N; for (let i = 0; i < N; i++) { const r = (i + 0.5) * h; s += 4 * r * r * Math.exp(-2 * r) * h; } return s; },
+  },
+  'cg-spin-up': {
+    title: 'a Clebsch-Gordan probability for l plus spin ½',
+    make(r) {
+      const l = int(r, 1, 3), up = r() < 0.5, j = up ? l + 0.5 : l - 0.5, m = int(r, 0, 2 * j) - j;
+      const answer = (up ? l + m + 0.5 : l - m + 0.5) / (2 * l + 1);
+      const h = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
+      return {
+        q: `<p>An electron with l = ${l} is in the coupled state |j = ${h(j)}, m = ${h(m)}⟩. Find the probability that a measurement of S<sub>z</sub> gives +ħ/2.</p>`,
+        answer, unit: '', tol: 0.005, abs: 0.002,
+        hint: 'For j = l + ½: |j, m⟩ = √[(l + m + ½)/(2l + 1)] |m − ½, ↑⟩ + √[(l − m + ½)/(2l + 1)] |m + ½, ↓⟩. For j = l − ½ the two weights swap. Or use the projection theorem: ⟨S_z⟩ = m⟨S·J⟩/j(j+1), and P(↑) = ½ + ⟨S_z⟩/ħ.',
+        solution: steps(`j = l ${up ? '+' : '−'} ½, so P(↑) = (l ${up ? '+' : '−'} m + ½)/(2l + 1) = ${(up ? l + m + 0.5 : l - m + 0.5)}/${2 * l + 1}.`, `Check: S·J = ½[j(j+1) + ¾ − l(l+1)]ħ² = ${((j * (j + 1) + 0.75 - l * (l + 1)) / 2).toFixed(3)}ħ², so ⟨S_z⟩ = m·${((j * (j + 1) + 0.75 - l * (l + 1)) / 2).toFixed(3)}/${(j * (j + 1)).toFixed(3)} ħ = ${(answer - 0.5).toFixed(4)}ħ.`, `P(↑) = ½ + ⟨S_z⟩/ħ = <b>${answer.toFixed(4)}</b>.`),
+        l, j, m,
+      };
+    },
+    verify: (p) => 0.5 + p.m * (p.j * (p.j + 1) + 0.75 - p.l * (p.l + 1)) / (2 * p.j * (p.j + 1)),
+  },
+  'pt-three-level': {
+    title: 'second-order shift against the exact answer',
+    make(r) {
+      const e2 = int(r, 2, 5), e3 = e2 + int(r, 2, 5), v2 = [0.2, 0.3, 0.4, 0.5][int(r, 0, 3)], v3 = [0.3, 0.5, 0.8][int(r, 0, 2)];
+      const answer = -(v2 * v2 / e2 + v3 * v3 / e3);
+      return {
+        q: `<p>H₀ = diag(0, ${e2}, ${e3}) meV. A perturbation has zero diagonal elements, H′₁₂ = ${v2} meV, H′₁₃ = ${v3} meV and H′₂₃ = 0. Find the second-order shift of the lowest level in meV.</p>`,
+        answer, unit: 'meV', tol: 0.005,
+        hint: 'E₁⁽²⁾ = Σ |H′ₘ₁|² / (E₁ − Eₘ) over m ≠ 1. For the ground state every denominator is negative.',
+        solution: steps(`E₁⁽²⁾ = ${v2}²/(0 − ${e2}) + ${v3}²/(0 − ${e3}).`, `= −${(v2 * v2 / e2).toFixed(4)} − ${(v3 * v3 / e3).toFixed(4)} = <b>${answer.toFixed(4)} meV</b>.`, 'The exact lowest eigenvalue of the 3×3 matrix agrees to within the fourth-order terms, which are small (here a per cent or two) when H′ is much smaller than the level spacings.'),
+        e2, e3, v2, v3,
+      };
+    },
+    verify(p) { // exact lowest eigenvalue with the perturbation scaled by λ = 0.001, divided by λ²: the second-order coefficient
+      const lam = 1e-3, a = (lam * p.v2) ** 2, b = (lam * p.v3) ** 2;
+      let E = 0; for (let k = 0; k < 50; k++) { const f = E - a / (E - p.e2) - b / (E - p.e3), d = 1 + a / (E - p.e2) ** 2 + b / (E - p.e3) ** 2; E -= f / d; }
+      return E / (lam * lam);
+    },
+  },
+  'wkb-barrier': {
+    title: 'WKB tunnelling through a triangular barrier',
+    make(r) {
+      const V0 = [1, 2, 3, 4][int(r, 0, 3)], L = [0.5, 1, 1.5, 2][int(r, 0, 3)];
+      const answer = (4 / 3) * 5.1232 * Math.sqrt(V0) * L; // 2∫κ dx for V − E falling linearly from V0 to 0 over L
+      return {
+        q: `<p>An electron meets a barrier whose height above its energy falls linearly from ${V0} eV to 0 over ${L} nm. Find the WKB exponent 2∫κ dx (so that T ≈ e<sup>−exponent</sup>). Use √(2m<sub>e</sub>·1 eV)/ħ = 5.123 nm⁻¹.</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'κ(x) = √(2m(V − E))/ħ = 5.123 √(ΔV(x)/eV) nm⁻¹ with ΔV = V₀(1 − x/L). The integral of √(1 − x/L) from 0 to L is 2L/3.',
+        solution: steps(`κ(x) = 5.123 √${V0} √(1 − x/L) nm⁻¹.`, `∫₀ᴸ √(1 − x/L) dx = 2L/3, so 2∫κ dx = 2 × 5.123 √${V0} × 2(${L})/3.`, `Exponent = <b>${answer.toFixed(3)}</b>, T ≈ ${Math.exp(-answer).toExponential(2)}. A rectangular barrier of the same peak and width would give ${(2 * 5.1232 * Math.sqrt(V0) * L).toFixed(2)}.`),
+        V0, L,
+      };
+    },
+    verify(p) { let s = 0; const N = 20000, h = p.L / N; for (let i = 0; i < N; i++) { const x = (i + 0.5) * h; s += 5.1232 * Math.sqrt(p.V0 * (1 - x / p.L)) * h; } return 2 * s; },
+  },
+  'rabi-detuned': {
+    title: 'a detuned Rabi pulse',
+    make(r) {
+      const O = int(r, 1, 4), D = int(r, 0, 4), t = [0.1, 0.15, 0.2, 0.25, 0.4][int(r, 0, 4)];
+      const W = Math.sqrt(O * O + D * D), answer = (O * O / (W * W)) * Math.sin(Math.PI * W * t) ** 2;
+      return {
+        q: `<p>A two-level atom starts in its lower state and is driven with Rabi frequency Ω = 2π × ${O} MHz at detuning Δ = 2π × ${D} MHz. Find the probability of the upper state after ${t} µs.</p>`,
+        answer, unit: '', tol: 0.005, abs: 0.002,
+        hint: 'P(t) = (Ω²/W²) sin²(Wt/2) with W = √(Ω² + Δ²). With everything written as 2π × (MHz), Wt/2 = π × (W in MHz) × (t in µs).',
+        solution: steps(`W = 2π × √(${O * O} + ${D * D}) MHz = 2π × ${(W).toFixed(3)} MHz.`, `Wt/2 = π × ${W.toFixed(3)} × ${t} = ${(Math.PI * W * t).toFixed(4)} rad.`, `P = (${O * O}/${(W * W).toFixed(0)}) × sin²(${(Math.PI * W * t).toFixed(4)}) = <b>${answer.toFixed(4)}</b>.`),
+        O, D, t,
+      };
+    },
+    verify(p) { // integrate the rotating-frame Schrödinger equation with RK4 (units: MHz and µs, ħ = 1)
+      const w = 2 * Math.PI, Om = w * p.O, De = w * p.D, n = 4000, h = p.t / n;
+      let a = [1, 0], b = [0, 0]; // complex amplitudes [re, im]
+      const der = (A, B) => { const ha = [-De / 2 * A[0] + Om / 2 * B[0], -De / 2 * A[1] + Om / 2 * B[1]], hb = [Om / 2 * A[0] + De / 2 * B[0], Om / 2 * A[1] + De / 2 * B[1]]; return [[ha[1], -ha[0]], [hb[1], -hb[0]]]; };
+      for (let i = 0; i < n; i++) {
+        const k1 = der(a, b), a2 = [a[0] + h / 2 * k1[0][0], a[1] + h / 2 * k1[0][1]], b2 = [b[0] + h / 2 * k1[1][0], b[1] + h / 2 * k1[1][1]];
+        const k2 = der(a2, b2), a3 = [a[0] + h / 2 * k2[0][0], a[1] + h / 2 * k2[0][1]], b3 = [b[0] + h / 2 * k2[1][0], b[1] + h / 2 * k2[1][1]];
+        const k3 = der(a3, b3), a4 = [a[0] + h * k3[0][0], a[1] + h * k3[0][1]], b4 = [b[0] + h * k3[1][0], b[1] + h * k3[1][1]];
+        const k4 = der(a4, b4);
+        for (const c of [0, 1]) { a[c] += h / 6 * (k1[0][c] + 2 * k2[0][c] + 2 * k3[0][c] + k4[0][c]); b[c] += h / 6 * (k1[1][c] + 2 * k2[1][c] + 2 * k3[1][c] + k4[1][c]); }
+      }
+      return b[0] ** 2 + b[1] ** 2;
+    },
+  },
+  'fermi-fill': {
+    title: 'filling a well with electrons',
+    make(r) {
+      const N = int(r, 2, 11), well = r() < 0.5;
+      let E = 0; for (let k = 0; k < N; k++) { const n = Math.floor(k / 2); E += well ? (n + 1) ** 2 : n + 0.5; }
+      return {
+        q: `<p>${N} non-interacting electrons are placed in a 1D ${well ? 'infinite square well (levels n²E₁)' : 'harmonic oscillator (levels (n + ½)ħω)'}. Find the ground-state energy in units of ${well ? 'E₁' : 'ħω'}.</p>`,
+        answer: E, unit: well ? 'E₁' : 'ħω', tol: 0.001,
+        hint: 'Electrons are fermions with two spin states, so each spatial level holds two of them (spin up and spin down). Fill from the bottom.',
+        solution: steps(`Levels filled: ${Math.floor(N / 2)} full level${Math.floor(N / 2) === 1 ? '' : 's'}${N % 2 ? ' and one electron in the next' : ''}.`, `E = ${Array.from({ length: N }, (_, k) => (well ? (Math.floor(k / 2) + 1) ** 2 : Math.floor(k / 2) + 0.5)).join(' + ')}.`, `E = <b>${E} ${well ? 'E₁' : 'ħω'}</b>. Spinless fermions would need one level each; bosons would all sit in the lowest level.`),
+        N, well,
+      };
+    },
+    verify(p) { const lv = []; for (let n = 0; n < 20; n++) { const e = p.well ? (n + 1) ** 2 : n + 0.5; lv.push(e, e); } lv.sort((a, b) => a - b); return lv.slice(0, p.N).reduce((s, x) => s + x, 0); },
+  },
   // ---- 1.1 Linear vector spaces (gate-math writer) ----
   'lvs-expectation': {
     title: 'an expectation value in Dirac notation',
