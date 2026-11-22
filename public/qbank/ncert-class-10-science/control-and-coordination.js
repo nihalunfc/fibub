@@ -1,0 +1,56 @@
+// Class 10 Science, Chapter 6 Control and Coordination: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('co');
+const r2 = (x) => Math.round(x * 100) / 100;
+
+export default {
+  topic: 'control-and-coordination', name: 'Control and Coordination', n: 6,
+  items: [
+    m.mcq(1, 'nervous', '<p>The structural and functional unit of the nervous system is the:</p>', 'neuron', ['nephron', 'alveolus', 'villus'], '<p>A neuron (nerve cell) carries signals as electrical impulses.</p>'),
+    m.mcq(1, 'nervous', '<p>The part of a neuron that receives information is the:</p>', 'dendrite', ['axon', 'myelin sheath', 'synapse'], '<p>Dendrites pick up the signal; the axon carries it away.</p>'),
+    m.mcq(2, 'nervous', '<p>The gap between two neurons is called a:</p>', 'synapse', ['dendrite', 'axon', 'receptor'], '<p>A chemical crosses the synapse to pass the signal on.</p>'),
+    m.mcq(2, 'nervous', '<p>The correct order of the path of a nerve impulse in a neuron is:</p>', 'dendrite → cell body → axon → axon end', ['axon → cell body → dendrite', 'cell body → dendrite → axon', 'axon end → axon → dendrite'], '<p>Impulses move from the dendrite end to the axon end, in one direction only.</p>'),
+    m.mcq(2, 'reflex', '<p>A reflex action:</p>', 'is a quick, automatic response that does not wait for the brain', ['always needs a decision by the brain', 'only occurs in plants', 'is slower than a voluntary action'], '<p>The reflex arc goes through the spinal cord, which saves time.</p>'),
+    m.mcq(2, 'reflex', '<p>The correct order in a reflex arc is:</p>', 'receptor → sensory neuron → spinal cord → motor neuron → effector', ['receptor → motor neuron → spinal cord → sensory neuron → effector', 'effector → spinal cord → receptor', 'brain → spinal cord → muscle only'], '<p>Sensory neurons bring the signal in; motor neurons take it out to the effector.</p>'),
+    m.mcq(2, 'reflex', '<p>Which of these is a reflex action?</p>', 'pulling your hand away from a hot object', ['writing a letter', 'riding a bicycle', 'deciding to eat a sandwich'], '<p>The others are voluntary actions controlled by the brain.</p>'),
+    m.mcq(2, 'brain', '<p>The part of the brain that controls balance and posture is the:</p>', 'cerebellum', ['cerebrum', 'medulla', 'hypothalamus'], '<p>The cerebellum coordinates movement and balance.</p>'),
+    m.mcq(2, 'brain', '<p>The medulla controls:</p>', 'involuntary actions such as heartbeat and breathing', ['thinking and memory', 'balance', 'sight'], '<p>The medulla is in the hindbrain.</p>'),
+    m.mcq(2, 'brain', '<p>The main thinking part of the brain is the:</p>', 'cerebrum (in the forebrain)', ['cerebellum', 'pons', 'spinal cord'], '<p>The cerebrum handles thinking, memory and voluntary movement.</p>'),
+    m.mcq(3, 'brain', '<p>The brain is protected by the skull and also by:</p>', 'cerebrospinal fluid in a fluid-filled balloon (the meninges)', ['air sacs', 'the diaphragm', 'the pericardium only'], '<p>The fluid cushions the brain against shock.</p>'),
+    m.mcq(1, 'plants', '<p>The growth of a plant shoot toward light is:</p>', 'positive phototropism', ['negative phototropism', 'geotropism', 'hydrotropism'], '<p>The shoot grows toward the light source.</p>'),
+    m.mcq(2, 'plants', '<p>Roots grow downward in response to gravity. This is:</p>', 'positive geotropism', ['negative geotropism', 'phototropism', 'thigmotropism'], '<p>Roots move toward gravity.</p>'),
+    m.mcq(2, 'plants', '<p>Tendrils of a pea plant coil around a support because of:</p>', 'faster growth on the side away from the support (thigmotropism)', ['phototropism', 'the loss of water', 'hydrotropism'], '<p>Touch changes the distribution of growth.</p>'),
+    m.mcq(2, 'plants', '<p>Which plant hormone helps cells to grow longer and is made at the shoot tip?</p>', 'auxin', ['cytokinin', 'abscisic acid', 'ethylene'], '<p>Auxin collects on the shaded side and elongates cells there.</p>'),
+    m.mcq(2, 'plants', '<p>Which plant hormone promotes cell division?</p>', 'cytokinin', ['gibberellin', 'ethylene', 'abscisic acid'], '<p>Cytokinins are abundant in fruits and seeds.</p>'),
+    m.mcq(2, 'plants', '<p>The hormone that causes wilting of leaves and closing of stomata is:</p>', 'abscisic acid', ['auxin', 'gibberellin', 'cytokinin'], '<p>ABA inhibits growth.</p>'),
+    m.mcq(2, 'plants', '<p>The leaves of the “touch-me-not” plant fold when touched because:</p>', 'cells lose water and shrink (a change in cell shape), not because of growth', ['the plant grows quickly', 'a hormone is released into the soil', 'the leaf dies'], '<p>The movement is fast and does not involve growth; water moves out of the cells.</p>'),
+    m.mcq(2, 'hormones', '<p>Iodine is needed to make:</p>', 'thyroxine', ['insulin', 'adrenaline', 'growth hormone'], '<p>Lack of iodine causes goitre.</p>'),
+    m.mcq(2, 'hormones', '<p>Insulin is secreted by the:</p>', 'pancreas', ['liver', 'thyroid', 'pituitary'], '<p>Insulin lowers blood sugar.</p>'),
+    m.mcq(2, 'hormones', '<p>The “emergency hormone” that increases heartbeat and breathing is:</p>', 'adrenaline', ['insulin', 'thyroxine', 'growth hormone'], '<p>From the adrenal glands.</p>'),
+    m.mcq(3, 'hormones', '<p>A person is very short as an adult, with normal body proportions. A lack of which hormone in childhood is the likely cause?</p>', 'growth hormone', ['insulin', 'thyroxine only', 'adrenaline'], '<p>Growth hormone from the pituitary controls growth.</p>'),
+    m.mcq(2, 'hormones', '<p>Rising blood sugar triggers the release of insulin; insulin lowers blood sugar. This is an example of:</p>', 'feedback (negative feedback)', ['a reflex arc', 'phototropism', 'a synapse'], '<p>The effect of the hormone switches off its own release.</p>'),
+    m.ar(2, 'nervous', 'Nerve impulses travel in only one direction in a neuron.', 'The axon end releases a chemical, but the dendrite does not.', 0, '<p>Both true; the chemical release at the end only passes the signal forward.</p>'),
+    m.ar(3, 'plants', 'Shoots bend toward light.', 'Auxin collects on the lighted side, making those cells grow longer.', 2, '<p>A is true; R is false. Auxin collects on the shaded side.</p>'),
+    m.ar(3, 'hormones', 'Iodised salt is recommended to prevent goitre.', 'Iodine is needed to make thyroxine.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'nervous', '<p>A nerve impulse travels at 100 m/s along a nerve 1.5 m long. How many milliseconds does it take?</p>', () => (1.5 / 100) * 1000, 0.01, '<p>1.5/100 = 0.015 s = 15 ms.</p>', { unit: 'ms' }),
+    m.nat(3, 'nervous', '<p>A ruler falls 20 cm before it is caught. Reaction time in ms? (g = 9.8 m/s²)</p>', () => Math.sqrt((2 * 0.2) / 9.8) * 1000, 0.02, '<p>t = √(2 × 0.2/9.8) = 0.202 s = 202 ms.</p>', { unit: 'ms' }),
+    m.nat(2, 'hormones', '<p>Iodised salt has 15 mg of iodine per kg. How many µg of iodine are in 8 g of it?</p>', () => 15 * 8, 0, '<p>15 mg/kg = 15 µg/g; × 8 g = 120 µg.</p>', { unit: 'µg' }),
+    m.msq(2, 'hormones', '<p>Which of these are hormones? (Choose all that apply.)</p>', ['insulin', 'thyroxine', 'adrenaline', 'amylase'], [0, 1, 2], '<p>Amylase is a digestive enzyme.</p>'),
+    m.msq(2, 'plants', '<p>Which are plant growth movements (tropisms)? (Choose all that apply.)</p>', ['phototropism', 'geotropism', 'hydrotropism', 'peristalsis'], [0, 1, 2], '<p>Peristalsis is the squeezing movement of the gut.</p>'),
+  ],
+  gens: [
+    { id: 'co-g01', type: 'nat', level: 2, exams: ['board'], sub: 'nervous',
+      make(rng) { const d = pick(rng, 0.5, 1.8, 0.1), v = pick(rng, 50, 120, 10); return { d, v, q: `<p>An impulse travels ${d} m along a nerve at ${v} m/s. How long does it take, in ms?</p>`, answer: r2((d / v) * 1000), tol: 0.01, unit: 'ms', sol: `<p>${d} ÷ ${v} = ${r2(d / v)} s = ${r2(d / v * 1000)} ms.</p>` }; },
+      verify: (p) => r2(p.d / (p.v / 1000)) },
+    { id: 'co-g02', type: 'nat', level: 3, exams: ['board'], sub: 'nervous',
+      make(rng) { const d = pick(rng, 8, 30, 1); return { d, q: `<p>A ruler is caught after falling ${d} cm. Find the reaction time in ms (g = 9.8 m/s²).</p>`, answer: r2(Math.sqrt((2 * d / 100) / 9.8) * 1000), tol: 0.02, unit: 'ms', sol: `<p>t = √(2d/g) = √(2 × ${d / 100} / 9.8) s = ${r2(Math.sqrt((2 * d / 100) / 9.8) * 1000)} ms.</p>` }; },
+      verify: (p) => r2((Math.sqrt(2 * 9.8 * (p.d / 100)) / 9.8) * 1000) },
+    { id: 'co-g03', type: 'nat', level: 2, exams: ['board'], sub: 'hormones',
+      make(rng) { const g = pick(rng, 70, 180, 5); return { g, q: `<p>A blood glucose reading is ${g} mg/dL. Convert it to mmol/L (glucose 180.16 g/mol).</p>`, answer: r2((g * 10) / 180.16), tol: 0.02, unit: 'mmol/L', sol: `<p>${g} mg/dL = ${g * 10} mg/L; ÷ 180.16 = ${r2(g * 10 / 180.16)} mmol/L.</p>` }; },
+      verify: (p) => r2(p.g / 18.016) },
+    { id: 'co-g04', type: 'nat', level: 3, exams: ['board'], sub: 'hormones',
+      make(rng) { const m2 = pick(rng, 3, 12, 1), ppm = choose(rng, [15, 20, 30]); return { m2, ppm, q: `<p>Salt with ${ppm} mg iodine per kg is eaten at ${m2} g a day. How many µg of iodine?</p>`, answer: ppm * m2, tol: 0.01, unit: 'µg', sol: `<p>${ppm} µg per g × ${m2} g = ${ppm * m2} µg.</p>` }; },
+      verify: (p) => (p.m2 / 1000) * p.ppm * 1000 },
+  ],
+};
