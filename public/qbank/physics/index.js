@@ -89,6 +89,8 @@ export default {
       { id: 'photon-phonon-gases', name: 'Photon and phonon gases, Bose-Einstein condensation' },
       { id: 'fermi-gas', name: 'The degenerate Fermi gas' },
       { id: 'phase-transitions', name: 'Phase transitions and critical phenomena' },
+      { id: 'fluctuations-brownian', name: 'Fluctuations, diffusion and Brownian motion (NET)' },
+      { id: 'ising-landau', name: 'The Ising model and Landau theory (NET)' },
     ] },
     { id: 'modern', name: 'Modern physics', topics: [
       { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
