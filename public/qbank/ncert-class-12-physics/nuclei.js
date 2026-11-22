@@ -1,0 +1,53 @@
+// Class 12 Physics, Chapter 13 Nuclei: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('nu');
+
+export default {
+  topic: 'nuclei', name: 'Nuclei', n: 13,
+  items: [
+    m.mcq(1, 'size', '<p>Two nuclei have mass numbers in the ratio 8 : 27. The ratio of their nuclear radii is:</p>', '2 : 3', ['8 : 27', '4 : 9', '3 : 2'], '<p>R ∝ A<sup>1/3</sup>, so R₁/R₂ = (8/27)<sup>1/3</sup> = 2/3.</p>', { trap: 'Using A instead of its cube root.' }),
+    m.mcq(2, 'size', '<p>The density of nuclear matter:</p>', 'is nearly the same for all nuclei', ['is larger for heavier nuclei', 'is larger for lighter nuclei', 'is zero for hydrogen'], '<p>R ∝ A<sup>1/3</sup> means volume ∝ A. Mass ∝ A as well, so the density (about 2.3 × 10<sup>17</sup> kg/m³) does not depend on A.</p>'),
+    m.mcq(1, 'size', '<p>Nuclides with the same mass number but different atomic numbers are called:</p>', 'isobars', ['isotopes', 'isotones', 'isomers'], '<p>Same A: isobars. Same Z: isotopes. Same N: isotones.</p>'),
+    m.mcq(2, 'size', '<p>Which pair are isotopes?</p>', '¹²₆C and ¹⁴₆C', ['¹⁴₆C and ¹⁴₇N', '¹⁴₇N and ¹⁶₈O', '³H and ³He'], '<p>Isotopes have the same Z (here 6) and different A. ¹⁴C and ¹⁴N are isobars; ³H and ³He are isobars too.</p>'),
+    m.mcq(2, 'energy', '<p>The mass of a nucleus is always:</p>', 'less than the sum of the masses of its separate nucleons', ['equal to the sum of the masses of its nucleons', 'more than the sum of the masses of its nucleons', 'equal to the mass number in kg'], '<p>The difference is the mass defect, which appears as the binding energy by E = Δm c².</p>'),
+    m.mcq(2, 'energy', '<p>1 atomic mass unit is equivalent to about:</p>', '931.5 MeV', ['9.315 MeV', '93.15 MeV', '1.6 MeV'], '<p>1 u = 1.66 × 10⁻²⁷ kg, and E = mc² gives 1.49 × 10⁻¹⁰ J = 931.5 MeV.</p>'),
+    m.mcq(2, 'energy', '<p>The binding energy per nucleon is largest, about 8.8 MeV, for nuclei near:</p>', 'mass number 56 (iron)', ['mass number 4', 'mass number 100 only', 'mass number 238'], '<p>The curve peaks near Fe-56 and Ni-62. These are the most stable nuclei.</p>'),
+    m.mcq(3, 'energy', '<p>A nucleus of mass 20 u has a mass defect of 0.2 u. Its binding energy per nucleon is about:</p>', '9.3 MeV', ['186 MeV', '0.93 MeV', '18.6 MeV'], '<p>E = 0.2 × 931.5 = 186.3 MeV. Per nucleon: 186.3/20 = 9.3 MeV.</p>'),
+    m.mcq(2, 'force', '<p>Which statement about the nuclear force is correct?</p>', 'It is short-ranged and does not depend on whether the nucleons are protons or neutrons', ['It acts only between protons', 'It falls as 1/r² like gravity', 'It is repulsive at all distances above 1 fm'], '<p>It acts over a few fm, is about equally strong between p-p, n-n and p-n, and is attractive beyond about 0.8 fm.</p>'),
+    m.mcq(3, 'force', '<p>The graph of the potential energy of two nucleons against separation has its minimum at about:</p>', '0.8 fm', ['8 fm', '0.08 fm', '80 fm'], '<p>The well bottom is near 0.8 fm: closer than that the force is repulsive, farther out it is attractive and weakens quickly.</p>'),
+    m.mcq(2, 'decay', '<p>In alpha decay, the mass number and atomic number of the nucleus change by:</p>', 'A − 4, Z − 2', ['A − 2, Z − 4', 'A − 4, Z − 4', 'A same, Z − 2'], '<p>An alpha particle is ⁴₂He.</p>'),
+    m.mcq(2, 'decay', '<p>In β⁻ decay a nucleus ends up with:</p>', 'the same A and Z + 1', ['A − 1 and the same Z', 'the same A and Z − 1', 'A + 1 and Z + 1'], '<p>A neutron changes into a proton, an electron (the β⁻) and an antineutrino.</p>'),
+    m.mcq(2, 'decay', '<p>Gamma rays are:</p>', 'high-energy photons from nuclei', ['fast electrons from nuclei', 'helium nuclei', 'neutrons'], '<p>γ rays are electromagnetic radiation emitted when an excited nucleus drops to a lower level. They carry no charge, and A and Z do not change.</p>'),
+    m.mcq(3, 'decay', '<p>²³⁸₉₂U decays by 2 α and 2 β⁻ emissions. The final nucleus is:</p>', '²³⁰₉₀Th', ['²³⁰₈₈Ra', '²³⁴₉₀Th', '²³⁰₉₄Pu'], '<p>A: 238 − 8 = 230. Z: 92 − 4 + 2 = 90, which is thorium.</p>'),
+    m.mcq(2, 'law', '<p>After 3 half-lives the fraction of a radioactive sample that has NOT decayed is:</p>', '1/8', ['1/3', '3/8', '7/8'], '<p>(½)³ = 1/8. The decayed fraction is 7/8.</p>', { trap: 'Mixing up the fraction left with the fraction decayed.' }),
+    m.mcq(2, 'law', '<p>The mean life τ of a radioactive nucleus is related to its half-life T by:</p>', 'τ = T/0.693', ['τ = 0.693 T', 'τ = T/2', 'τ = 2T'], '<p>T = 0.693/λ and τ = 1/λ, so τ = T/0.693 = 1.44 T.</p>'),
+    m.mcq(2, 'law', '<p>The activity of a radioactive source is measured in becquerel. 1 Bq equals:</p>', '1 decay per second', ['1 decay per minute', '3.7 × 10¹⁰ decays per second', '1 MeV of energy'], '<p>The curie (3.7 × 10¹⁰ Bq) is the older unit.</p>'),
+    m.mcq(3, 'law', '<p>A sample has an activity of 800 Bq. After 6 hours the activity is 100 Bq. Its half-life is:</p>', '2 hours', ['3 hours', '1 hour', '6 hours'], '<p>800 → 100 is a factor 8 = 2³, so 3 half-lives in 6 h, and T = 2 h.</p>'),
+    m.mcq(2, 'fission', '<p>In a nuclear reactor the moderator is used to:</p>', 'slow down fast neutrons', ['absorb neutrons completely', 'speed up neutrons', 'cool the fuel'], '<p>Slow (thermal) neutrons are far more likely to cause fission of U-235. Heavy water and graphite are moderators; control rods absorb neutrons.</p>'),
+    m.mcq(2, 'fission', '<p>In a fission reactor a steady chain reaction needs a multiplication factor k equal to:</p>', '1', ['0', 'less than 1', 'much greater than 1'], '<p>k < 1 dies out, k = 1 is controlled and steady, k > 1 grows (and k ≫ 1 is a bomb).</p>'),
+    m.mcq(2, 'fusion', '<p>The energy of the Sun comes from:</p>', 'fusion of hydrogen into helium', ['fission of uranium', 'burning of coal-like fuel', 'radioactive decay of iron'], '<p>Four protons end up as a helium nucleus, releasing about 26.7 MeV.</p>'),
+    m.mcq(3, 'fusion', '<p>Why must fusion take place at very high temperature?</p>', 'to give the nuclei enough energy to overcome their Coulomb repulsion', ['to break the nuclei into nucleons first', 'to make the nuclear force stronger', 'to make the nuclei heavier'], '<p>Two positive nuclei repel each other; only at several million kelvin do they get close enough for the short-range nuclear force to take over.</p>'),
+    m.ar(2, 'energy', 'The binding energy per nucleon of iron is higher than that of uranium.', 'Iron is a more tightly bound nucleus because its mass number is much smaller.', 2, '<p>A is true (8.8 vs 7.6 MeV). R is false as stated: tightness is about the energy per nucleon, not just a smaller A. Light nuclei like helium-4 are also lower than iron.</p>'),
+    m.ar(3, 'fusion', 'Fusion of two light nuclei releases energy.', 'The binding energy per nucleon of the product nucleus is greater than that of the original nuclei.', 0, '<p>Both true and R explains A: moving up the left side of the binding energy curve means more binding, so energy is released.</p>'),
+    m.ar(3, 'law', 'A radioactive sample never decays completely in a finite time according to the decay law.', 'The number of nuclei falls exponentially with time.', 0, '<p>N = N₀e^(−λt) never reaches exactly zero for finite t. The exponential form explains it.</p>'),
+    m.nat(2, 'energy', '<p>The mass defect of a nucleus is 0.03 u. Find the binding energy in MeV (1 u = 931.5 MeV).</p>', () => 0.03 * 931.5, 0.01, '<p>E = 0.03 × 931.5 = 27.9 MeV.</p>', { unit: 'MeV' }),
+    m.nat(3, 'law', '<p>The half-life of a sample is 4 hours. What percentage of it is left after 10 hours?</p>', () => 100 * 0.5 ** 2.5, 0.02, '<p>10/4 = 2.5 half-lives, (½)^2.5 = 0.177, so 17.7 %.</p>', { unit: '%' }),
+    m.nat(3, 'size', '<p>Taking R₀ = 1.2 fm, find the radius of a nucleus of mass number 125 in fm.</p>', () => 1.2 * 5, 0.01, '<p>R = 1.2 × 125<sup>1/3</sup> = 1.2 × 5 = 6 fm.</p>', { unit: 'fm' }),
+    m.msq(3, 'decay', '<p>Which of these are conserved in every radioactive decay? (Choose all that apply.)</p>', ['Charge', 'Number of nucleons', 'Total energy and momentum', 'Number of protons'], [0, 1, 2], '<p>Charge, nucleon number, energy and momentum are conserved. The proton number is not: in β decay a neutron turns into a proton.</p>'),
+  ],
+  gens: [
+    { id: 'nu-g01', type: 'nat', level: 2, exams: ['board'], sub: 'law',
+      make(rng) { const T = choose(rng, [2, 3, 4, 6, 8]), k = pick(rng, 1, 5, 1); const t = T * k; return { T, k, q: `<p>A radioactive element has a half-life of ${T} days. What fraction of a sample remains after ${t} days? (Give a decimal.)</p>`, answer: +(0.5 ** k).toPrecision(6), tol: 0.01, unit: '', sol: `<p>${t}/${T} = ${k} half-lives, so the fraction is (½)<sup>${k}</sup> = ${(0.5 ** k).toPrecision(3)}.</p>` }; },
+      verify: (p) => Math.exp(-Math.LN2 * (p.T * p.k) / p.T) },
+    { id: 'nu-g02', type: 'nat', level: 2, exams: ['board'], sub: 'energy',
+      make(rng) { const dm = pick(rng, 0.01, 0.2, 0.01); return { dm, q: `<p>The mass defect of a nucleus is ${dm} u. Find its binding energy in MeV.</p>`, answer: +(dm * 931.5).toPrecision(6), tol: 0.01, unit: 'MeV', sol: `<p>E = ${dm} × 931.5 = ${(dm * 931.5).toFixed(1)} MeV.</p>` }; },
+      verify: (p) => p.dm * 1.66054e-27 * (2.99792458e8) ** 2 / 1.602177e-13 },
+    { id: 'nu-g03', type: 'nat', level: 2, exams: ['board'], sub: 'size',
+      make(rng) { const k = choose(rng, [2, 3, 4, 5, 6]), A = k ** 3; return { A, k, q: `<p>Using R = 1.2 A<sup>1/3</sup> fm, find the radius of a nucleus with A = ${A}, in fm.</p>`, answer: +(1.2 * k).toPrecision(3), tol: 0.01, unit: 'fm', sol: `<p>A<sup>1/3</sup> = ${k}, so R = 1.2 × ${k} = ${(1.2 * k).toFixed(1)} fm.</p>` }; },
+      verify: (p) => 1.2 * Math.pow(p.A, 1 / 3) },
+    { id: 'nu-g04', type: 'nat', level: 3, exams: ['board'], sub: 'decay',
+      make(rng) { const a = pick(rng, 1, 5, 1), b = pick(rng, 0, 4, 1); return { a, b, q: `<p>A nucleus of ²³⁸₉₂U emits ${a} α-particle${a > 1 ? 's' : ''} and ${b} β⁻ particle${b === 1 ? '' : 's'}. What is the mass number of the nucleus left?</p>`, answer: 238 - 4 * a, tol: 0, unit: '', sol: `<p>Only α emission changes A: 238 − 4×${a} = ${238 - 4 * a}. β⁻ emission leaves A unchanged.</p>` }; },
+      verify: (p) => { let A = 238; for (let i = 0; i < p.a; i++) A -= 4; return A; } },
+  ],
+};
