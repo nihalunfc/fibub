@@ -16,6 +16,25 @@ const STRUCT = {
   diamond: { name: 'diamond cubic', n: 8, nn: S3 / 4, cn: 4 },
 };
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'crystal-structure',
   items: [
@@ -256,6 +275,57 @@ export default {
   ],
 
   gens: [
+    { id: 'cry-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'cubic cells',
+      make(r) {
+        const st = ['simple cubic', 'body-centred cubic', 'face-centred cubic', 'diamond cubic'], c = Q5.int(r, 0, 3);
+        const [what, vals] = Q5.choose(r, [['number of atoms in the conventional cubic cell', ['1', '2', '4', '8']], ['coordination number (nearest neighbours of each atom)', ['6', '8', '12', '4']], ['packing fraction (hard spheres touching)', ['0.52', '0.68', '0.74', '0.34']]]);
+        const o = Q5.mcqOptions(r, `$${vals[c]}$`, vals.filter((v, i) => i !== c).map((v) => `$${v}$`));
+        return { q: `For the ${st[c]} structure of identical atoms, the ${what} is`, ...o,
+          sol: 'Atoms per conventional cell: sc 1 (8 corners $\\times\\tfrac18$), bcc 2, fcc 4 ($+6\\times\\tfrac12$), diamond 8 (fcc plus 4 inside). Coordination: 6, 8, 12, 4. Packing fraction: $\\pi/6 = 0.52$, $\\sqrt3\\pi/8 = 0.68$, $\\sqrt2\\pi/6 = 0.74$, $\\sqrt3\\pi/16 = 0.34$.',
+          trap: 'Diamond has 8 atoms per cell but only 4 neighbours: it is a very open structure.' };
+      } },
+    { id: 'cry-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'interplanar spacing', format: 'statements',
+      make(r) {
+        const a = Q5.pick(r, 3, 6, 0.1), R = (x) => Q5.round(x, 3);
+        const T = [`$d_{110} = ${R(a / Math.SQRT2)}$ Å.`, `$d_{111} = ${R(a / Math.sqrt(3))}$ Å.`, 'The direction $[hkl]$ is perpendicular to the planes $(hkl)$.', 'The $(200)$ planes are half as far apart as the $(100)$ planes.', 'The planes $(hkl)$ and $(\\bar h\\bar k\\bar l)$ are parallel.'];
+        const F = [`$d_{110} = ${R(a * Math.SQRT2)}$ Å.`, `$d_{111} = ${R(a / 3)}$ Å.`, 'The $(200)$ planes are twice as far apart as the $(100)$ planes.', 'A plane parallel to the $c$ axis has Miller index $l = \\infty$.', 'The direction $[hkl]$ always lies within the planes $(hkl)$.'];
+        const o = q5msq(r, T, F);
+        return { q: `A cubic crystal has lattice constant $a = ${a}$ Å. Which statements are correct?`, ...o,
+          sol: `In a cubic lattice $d_{hkl} = a/\\sqrt{h^2 + k^2 + l^2}$: $d_{110} = a/\\sqrt2 = ${R(a / Math.SQRT2)}$ Å, $d_{111} = a/\\sqrt3 = ${R(a / Math.sqrt(3))}$ Å, $d_{200} = a/2$. The normal to $(hkl)$ is along $[hkl]$ (cubic only). $(\\bar h\\bar k\\bar l)$ is the same set of planes seen from the other side. A plane parallel to an axis meets it at infinity, and the index is the reciprocal: $0$.`,
+          trap: 'Miller indices are reciprocals of intercepts, so "parallel to an axis" gives 0, not infinity.' };
+      } },
+    { id: 'cry-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'density', unit: 'Å',
+      make(r) {
+        const fcc = r() < 0.5, M = Q5.int(r, 20, 200), rho = Q5.pick(r, 1, 20, 0.1), n = fcc ? 4 : 2;
+        const a = Math.cbrt(n * M / (rho * 6.022e23)) * 1e8, rad = fcc ? a * Math.SQRT2 / 4 : a * Math.sqrt(3) / 4;
+        return { q: `An element of molar mass $${M}$ g/mol crystallises in the ${fcc ? 'face' : 'body'}-centred cubic structure with density $${rho}$ g/cm$^3$. Treating the atoms as touching hard spheres, the atomic radius is ______ Å (to three decimal places; $N_A = 6.022\\times10^{23}$).`,
+          answer: Q5.round(rad, 3), tol: 0.003, fcc, M, rho,
+          sol: `$\\rho = \\dfrac{nM}{N_Aa^3}$ with $n = ${n}$, so $a = \\left(\\dfrac{${n}\\times${M}}{${rho}\\times6.022\\times10^{23}}\\right)^{1/3}$ cm $= ${Q5.round(a, 3)}$ Å. Atoms touch along the ${fcc ? 'face diagonal: $4r = \\sqrt2a$' : 'body diagonal: $4r = \\sqrt3a$'}, so $r = ${Q5.round(rad, 3)}$ Å.`,
+          trap: fcc ? 'In fcc the atoms touch along the face diagonal, not the cube edge.' : 'In bcc the atoms touch along the body diagonal, not the cube edge.' };
+      },
+      verify: (p) => { const n = p.fcc ? 4 : 2, PF = p.fcc ? Math.PI * Math.SQRT2 / 6 : Math.PI * Math.sqrt(3) / 8, a3 = n * p.M / (p.rho * 6.022e23) * 1e24; return Math.cbrt(PF * a3 * 3 / (4 * Math.PI * n)); } },
+    { id: 'cry-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'Miller indices',
+      make(r) {
+        const h = Q5.int(r, 0, 3), k = Q5.int(r, 0, 3), l = h + k === 0 ? Q5.int(r, 1, 3) : Q5.int(r, 0, 3);
+        const ic = (n) => (n === 0 ? '\\infty\\,' : n === 1 ? '1' : q5frac(1, n)), dr = (n) => String(n);
+        const tri = (f, x, y, z) => `$${f(x)}a,\\ ${f(y)}b,\\ ${f(z)}c$`;
+        const o = Q5.mcqOptions(r, tri(ic, h, k, l), [tri(dr, h, k, l), tri(ic, l, k, h), tri(ic, k, h, l), tri((n) => (n === 0 ? '0' : n === 1 ? '1' : q5frac(1, n)), h, k, l), tri(ic, h + 1, k + 1, l + 1), tri(dr, h + 1, k + 1, l + 1), tri(ic, h + 2, k + 2, l + 2)]);
+        return { q: `A plane in a crystal has Miller indices $(${h}${k}${l})$. It cuts the $a$, $b$ and $c$ axes at (taking the plane of the family nearest the origin that does not pass through it)`, ...o,
+          sol: `Miller indices are the reciprocals of the intercepts (in units of $a$, $b$, $c$), cleared of fractions. Going back: intercepts $1/${h}$, $1/${k}$, $1/${l}$, where $1/0$ means the plane never meets that axis (it is parallel to it): ${tri(ic, h, k, l)}.`,
+          trap: 'A zero index means the plane is parallel to that axis (intercept at infinity), not that it passes through the origin.' };
+      } },
+    { id: 'cry-t25', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'planar density',
+      make(r) {
+        const st = Q5.int(r, 0, 2), names = ['simple cubic', 'body-centred cubic', 'face-centred cubic'];
+        const D = [{ 100: 1, 110: 1 / Math.SQRT2, 111: 1 / Math.sqrt(3) }, { 100: 1, 110: Math.SQRT2, 111: 1 / Math.sqrt(3) }, { 100: 2, 110: Math.SQRT2, 111: 4 / Math.sqrt(3) }][st];
+        const [p1, p2] = Q5.choose(r, [['100', '110'], ['110', '100'], ['111', '100'], ['100', '111'], ['110', '111'], ['111', '110']]);
+        const ratio = D[p1] / D[p2];
+        return { q: `In a ${names[st]} crystal of one kind of atom, the number of atoms per unit area on a $(${p1})$ plane divided by that on a $(${p2})$ plane is ______ (to three decimal places).`,
+          answer: Q5.round(ratio, 3), tol: 0.002, st, p1, p2,
+          sol: `Count atoms in each plane of the cubic cell and divide by its area (in units of $1/a^2$). ${['sc: $(100)$ $1$, $(110)$ $1/\\sqrt2$, $(111)$ $1/\\sqrt3$', 'bcc: $(100)$ $1$ (the body centre is not in the face), $(110)$ $2/\\sqrt2 = \\sqrt2$ (corners plus body centre in a $a\\times\\sqrt2a$ rectangle), $(111)$ $\\tfrac12$ atom in an area $\\tfrac{\\sqrt3}{2}a^2$, i.e. $1/\\sqrt3$', 'fcc: $(100)$ $2$, $(110)$ $2/\\sqrt2 = \\sqrt2$, $(111)$ $2$ atoms in an area $\\tfrac{\\sqrt3}{2}a^2$, i.e. $4/\\sqrt3$'][st]}. Ratio $= ${Q5.round(ratio, 3)}$. (Check: density $= n\\,d$, atoms per volume times the true spacing of lattice planes.)`,
+          trap: 'The most densely packed planes are the most widely spaced: $(110)$ in bcc, $(111)$ in fcc.' };
+      },
+      verify: (p) => { const n = [1, 2, 4][p.st]; const ok = (h, k, l) => (p.st === 0 ? true : p.st === 1 ? (h + k + l) % 2 === 0 : (h % 2 === k % 2 && k % 2 === l % 2)); const dens = (s) => { const [h, k, l] = s.split('').map(Number); let m = 1; while (!ok(m * h, m * k, m * l)) m++; return n / (m * Math.sqrt(h * h + k * k + l * l)); }; return dens(p.p1) / dens(p.p2); } },
     { id: 'cry-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'interplanar spacing',
       make(r) {
         const a = pick(r, 2.8, 6.2, 0.01);
