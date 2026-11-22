@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './potentials-gauges.more.gen.js';
 import more2 from './potentials-gauges.more2.gen.js';
+import r4 from './potentials-gauges.r4.gen.js';
 
 const MU0 = 1.25663706212e-6, C0 = 2.99792458e8, H = 6.62607015e-34, E = 1.602176634e-19, PI = Math.PI;
 
@@ -199,6 +200,7 @@ export default {
       answer: 12, tol: 0.01, calc: () => 2 * 3 * 2,
       sol: '$\\vec E = -\\partial_t\\vec A = -2\\beta t\\,\\hat z$, of magnitude $2\\times3.0\\times2.0 = 12$ V/m, and $\\vec B = \\nabla\\times\\vec A = 0$ (no space dependence). A uniform electric field growing in time can come entirely from $\\vec A$.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -334,5 +336,6 @@ export default {
       },
       verify: (p) => E * (p.gauge === 'symmetric' ? 0.5 * p.B * p.s / 100 : p.B * Math.abs(p.y)) * 1e22 },
     ...more,
+    ...r4.gens,
   ],
 };

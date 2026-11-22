@@ -6,6 +6,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './probability.more.gen.js';
 import more2 from './probability.more2.gen.js';
+import r4 from './probability.r4.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const binom = (n, k) => (k < 0 || k > n ? 0 : Math.round(fact(n) / (fact(k) * fact(n - k))));
@@ -237,6 +238,7 @@ export default {
       sol: 'Maximise $-\\int p\\ln p$ with Lagrange multipliers for $\\int p = 1$, $\\int xp$ and $\\int x^2p$: $\\ln p = $ a quadratic in $x$, so $p$ is Gaussian. This is the same reasoning that gives the Boltzmann distribution (fixed mean energy) and the Maxwell velocity distribution.',
       trap: 'The uniform distribution maximises entropy on a bounded interval with no other constraint.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'prb-g01', type: 'nat', level: 2, exams: ['gate', 'net', 'jam'], sub: 'binomial distribution',
@@ -366,5 +368,6 @@ export default {
       },
       verify: (p) => integ((t) => Math.exp(-t / p.tau) / p.tau, p.t1, p.t2, 20000) },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -7,6 +7,7 @@
 import { int, pick, choose, mcqOptions, round, C } from '../_util.js';
 import more from './hamilton-jacobi.more.gen.js';
 import more2 from './hamilton-jacobi.more2.gen.js';
+import r4 from './hamilton-jacobi.r4.gen.js';
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const JDEF = 'Take the action variable as $J = \\oint p\\,dq$ over one cycle.';
@@ -196,6 +197,7 @@ export default {
       sol: 'With $E = J\\omega/2\\pi$ and $E = \\tfrac12m\\omega^2A^2$: $A^2 = \\dfrac{2E}{m\\omega^2} = \\dfrac{J}{\\pi m\\omega}$. With the other convention ($J\' = J/2\\pi$, angle $\\theta = 2\\pi w$), $A = \\sqrt{2J\'/m\\omega}$, the form often quoted in books.',
       trap: 'The factors of $2\\pi$ depend on whether the action is $\\oint p\\,dq$ or $\\oint p\\,dq/2\\pi$; check the convention first.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'hjt-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'action-angle variables',
@@ -336,5 +338,6 @@ export default {
       },
       verify: (p) => { const a = p.f ** 2; return p.ask === 'a' ? a : p.ask === 'E' ? 1 / a : a ** 1.5; } },
     ...more,
+    ...r4.gens,
   ],
 };

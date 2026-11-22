@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './rotational-spectra.more.gen.js';
 import more2 from './rotational-spectra.more2.gen.js';
+import r4 from './rotational-spectra.r4.gen.js';
 
 const IB = 16.8576;           // I (amu Å^2) = IB / B (cm^-1)
 const C2 = 1.438777;          // hc/k in cm K
@@ -232,6 +233,7 @@ export default {
       sol: 'In all four the reduced mass is close to the H mass (0.957, 0.980, 0.995, 1.000 u), so $B \\propto 1/(\\mu r^2)$ is set mainly by $r$. HF has the shortest bond and smallest $\\mu$: $B = 20.6$ cm$^{-1}$, versus 10.6, 8.5 and 6.4 cm$^{-1}$.',
       trap: 'The heavy halogen hardly matters for $\\mu$; the bond length decides.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -368,5 +370,6 @@ export default {
           trap: 'The $K$ term carries $A - B$, not $A$.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

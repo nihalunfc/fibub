@@ -7,6 +7,7 @@
 import { int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './hydrogen-atom.more.gen.js';
 import more2 from './hydrogen-atom.more2.gen.js';
+import r4 from './hydrogen-atom.r4.gen.js';
 
 const L = ['s', 'p', 'd', 'f', 'g', 'h'];
 const rAvg = (n, l) => (3 * n * n - l * (l + 1)) / 2;            // <r> in units of a/Z
@@ -212,6 +213,7 @@ export default {
       sol: 'The $\\beta/r^2$ term adds to the centrifugal term: $l(l+1) \\to l(l+1) + 2m_e\\beta/\\hbar^2 \\equiv s(s+1)$. For $l = 0$: $s(s+1) = 2$, so $s = 1$. The radial equation is then hydrogen\'s with $l$ replaced by $s$, so $E = -13.6/(n_r + s + 1)^2$ eV. Ground state $n_r = 0$: $E = -13.6/4 = -3.40$ eV.',
       trap: 'Treating $\\beta/r^2$ as a small perturbation: it is not small, but it is exactly solvable.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'qhy-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'expectation values',
@@ -331,5 +333,6 @@ export default {
           sol: `$\\langle r^{-2}\\rangle = \\dfrac{${Z}^2}{${n}^3(${l} + \\tfrac12)a_0^2} = \\dfrac{${2 * num}}{${den}a_0^2}$ (simplify the fraction). Unlike $\\langle 1/r\\rangle = Z/n^2a_0$, it depends on $l$, which is why fine structure lifts the $l$ degeneracy.` };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

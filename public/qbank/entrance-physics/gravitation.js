@@ -472,4 +472,311 @@ const gens = [
     verify: (p) => { const Mm = p.M * 1e30; const dd = p.d * 1e11; const dU = G * Mm * Mm * (2 / dd - 1 / dd); return Math.sqrt(dU / Mm) / 1000; } },
 ];
 
+{ // ===== extension block (added 2026-11-22): harder items, new formats and templates =====
+const r = String.raw;
+const CUET = false; const PFX = 'gr'; const GN = 15;
+const F = (x, s = 3) => String(+Number(x).toPrecision(s));
+const XEB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xe = (l, type) => (CUET && type === 'mcq' && l <= 3 ? [...XEB[l], 'cuet'] : XEB[l]);
+let xk = 0; let xc = 0;
+const xb = (l, sub, o) => ({ id: `${PFX}-x${String(++xk).padStart(3, '0')}`, level: l, sub, ...o, exams: xe(l, o.type) });
+const m = (l, sub, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o }); };
+const n = (l, sub, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol, ...o }); };
+const s = (l, sub, q, options, answer, sol, o = {}) => xb(l, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const AO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const a = (l, sub, A, R, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AO, answer, sol, ...o });
+const SO = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const t = (l, sub, I, II, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SO, answer, sol, ...o });
+// "how many of these are correct": list = 4 statements, k = how many are correct (1-4)
+const cn = (l, sub, q, list, k, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((x, i) => `(${['i', 'ii', 'iii', 'iv'][i]}) ${x}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: k - 1, sol, ...o });
+// match item: letters = correct List II letter for A, B, C, D, e.g. ['q','r','p','s']
+const mt = (l, sub, group, letters, sol, o = {}) => {
+  const code = (L) => L.map((x, i) => `${'ABCD'[i]}-${x}`).join(', ');
+  const right = code(letters); const wr = [];
+  for (const [i, j] of [[0, 1], [1, 2], [2, 3], [0, 3], [0, 2], [1, 3]]) { const L = [...letters]; [L[i], L[j]] = [L[j], L[i]]; const c = code(L); if (c !== right && !wr.includes(c)) wr.push(c); }
+  const pos = (xc++ * 3 + 2) % 4; const options = wr.slice(0, 3); options.splice(pos, 0, right);
+  return xb(l, sub, { type: 'mcq', format: 'match', q: 'Match the entries of List I with List II and choose the correct code.', group, options, answer: pos, sol, ...o });
+};
+const pn = (l, sub, group, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: 'passage', group, q, answer, tol, calc: () => answer, sol, ...o }); };
+const pm = (l, sub, group, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'passage', group, q, options, answer: pos, sol, ...o }); };
+let xg = GN;
+const gx = (l, type, sub, make, verify) => ({ id: `${PFX}-g${String(++xg).padStart(2, '0')}`, type, level: l, exams: xe(l, type), sub, make, verify });
+const NG = {};
+const Gc = 6.67e-11; const gE = 9.8; const RE_ = 6.4e6;
+Object.assign(groups, {
+  xg1: { title: 'Planets compared with the Earth ($g$ = surface gravity of the Earth)',
+    list1: [r`A. Mass $4M$, radius $2R$`, r`B. Mass $M$, radius $2R$`, r`C. Mass $M/2$, radius $R$`, r`D. Mass $16M$, radius $2R$`],
+    list2: [r`p. $g/4$`, r`q. $g$`, r`r. $2g$`, r`s. $4g$`, r`t. $g/2$`] },
+  xg2: { title: 'Time periods of circular orbits around the Earth',
+    list1: ['A. Orbit just above the Earth\'s surface', 'B. Geostationary orbit', 'C. Orbit of radius $4R$ ($R$ = Earth\'s radius)', 'D. The Moon\'s orbit'],
+    list2: ['p. About 1.4 hours', 'q. 24 hours', 'r. About 27 days', 's. About 11 hours'] },
+  xg3: { title: 'A thin uniform spherical shell of mass $M$ and radius $R$',
+    list1: ['A. Field at a point inside', 'B. Field at a distance $r > R$', 'C. Potential at a point inside', 'D. Potential at a distance $r > R$'],
+    list2: [r`p. $0$`, r`q. $-\dfrac{GM}{R}$`, r`r. $\dfrac{GM}{r^2}$`, r`s. $-\dfrac{GM}{r}$`] },
+  xg4: { title: 'Two stars of mass $M$ each, a distance $d$ apart, orbiting their common centre',
+    list1: ['A. Orbital speed of each star', 'B. Period', 'C. Total energy of the pair', 'D. Angular speed'],
+    list2: [r`p. $-\dfrac{GM^2}{2d}$`, r`q. $\sqrt{\dfrac{2GM}{d^3}}$`, r`r. $\sqrt{\dfrac{GM}{2d}}$`, r`s. $2\pi\sqrt{\dfrac{d^3}{2GM}}$`] },
+  xg5: { title: 'A satellite of mass $m$ in a circular orbit of radius $r$ about a planet of mass $M$',
+    list1: ['A. Kinetic energy', 'B. Potential energy', 'C. Total energy', 'D. Energy needed to move it to a circular orbit of radius $2r$'],
+    list2: [r`p. $-\dfrac{GMm}{r}$`, r`q. $\dfrac{GMm}{4r}$`, r`r. $\dfrac{GMm}{2r}$`, r`s. $-\dfrac{GMm}{2r}$`] },
+  xg6: { title: 'Free fall and launching (Earth, $R = 6400$ km, $g = 9.8\\ \\mathrm{m\\,s^{-2}}$, no air)',
+    list1: ['A. Speed on reaching the surface when dropped from a very great distance', 'B. Speed on reaching the surface when dropped from rest at height $R$', 'C. Speed on reaching the surface when dropped from rest at height $3R$', 'D. Height reached above the surface by a body fired up at $\\sqrt{gR}$'],
+    list2: ['p. 7.9 km/s', 'q. 9.7 km/s', 'r. 11.2 km/s', 's. 6400 km'] },
+  xg7: { title: 'Speeds near the Earth ($R = 6400$ km, $g = 9.8\\ \\mathrm{m\\,s^{-2}}$)',
+    list1: ['A. Escape speed from the surface', 'B. Orbital speed just above the surface', 'C. Orbital speed at a height $R$ above the surface', 'D. Orbital speed at a height $3R$ above the surface'],
+    list2: ['p. 3.96 km/s', 'q. 5.60 km/s', 'r. 7.92 km/s', 's. 11.2 km/s'] },
+  xg8: { title: 'An elliptical orbit whose aphelion distance is three times the perihelion distance $r_p$',
+    list1: ['A. Speed at perihelion divided by speed at aphelion', 'B. Semi-major axis', 'C. Eccentricity', 'D. Kinetic energy at perihelion divided by that at aphelion'],
+    list2: ['p. 9', 'q. 3', r`r. $2r_p$`, r`s. $\tfrac12$`] },
+  xgp1: { title: 'A close pair of stars',
+    passage: r`<p>Two identical stars, each of mass $4\times10^{30}$ kg, move in circles about their common centre of mass. The distance between them is always $1.0\times10^{11}$ m. Take $G = 6.67\times10^{-11}\ \mathrm{N\,m^2\,kg^{-2}}$.</p>` },
+  xgp2: { title: 'A tunnel through the Earth',
+    passage: r`<p>A narrow, smooth tunnel is bored along a diameter of the Earth, which is taken as a uniform sphere of radius 6400 km with $g = 9.8\ \mathrm{m\,s^{-2}}$ at the surface. A ball is dropped into it from rest at one end. Ignore air and rotation.</p>` },
+});
+
+items.push(
+  // ---------- Level 2 ----------
+  m(2, 'variation of g with height', r`A 80 kg man would weigh how much at a height equal to the Earth's radius above its surface ($g = 9.8\ \mathrm{m\,s^{-2}}$ at the surface)?`, '196 N', ['392 N', '98 N', '784 N'],
+    r`At height $h = R$ the distance from the centre is $2R$, so $g' = g/4$. Weight $= 80\times9.8/4 = 196$ N. The mass stays 80 kg.`),
+  n(2, 'satellites', r`Find the time period (in minutes, 1 decimal) of a satellite orbiting just above the Earth's surface ($R = 6400$ km, $g = 9.8\ \mathrm{m\,s^{-2}}$).`, () => 2 * Math.PI * Math.sqrt(6.4e6 / 9.8) / 60, 0.2, 1,
+    r`Near the surface, $\dfrac{mv^2}{R} = mg$, so $v = \sqrt{gR}$ and $T = \dfrac{2\pi R}{v} = 2\pi\sqrt{\dfrac Rg} = 2\pi\sqrt{\dfrac{6.4\times10^6}{9.8}} = 5077$ s $= 84.6$ min.`, { unit: 'min' }),
+  m(2, 'Kepler\'s third law', r`A planet orbits a star at 4 times the distance of another planet. Its period is`, '8 times as long', ['4 times as long', '16 times as long', '2 times as long'],
+    r`$T^2\propto r^3$, so $T\propto r^{3/2} = 4^{3/2} = 8$.`),
+  n(2, 'variation of g with depth', r`Find $g$ (in $\mathrm{m\,s^{-2}}$, 2 decimals) at a depth of one-quarter of the Earth's radius, taking the Earth as uniform with $g = 9.8$ at the surface.`, () => 9.8 * 0.75, 0.01, 2,
+    r`Inside a uniform sphere $g' = g\left(1 - \dfrac dR\right) = 9.8\times\tfrac34 = 7.35\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  m(2, 'escape speed', r`The escape speed of a rocket from the Earth's surface does NOT depend on`, 'the mass of the rocket', ['the mass of the Earth', 'the radius of the Earth', r`the value of $G$`],
+    r`$v_e = \sqrt{2GM/R}$ contains $G$, $M$ and $R$ of the Earth. The rocket's mass cancels: both its kinetic energy and its potential energy are proportional to it.`),
+  m(2, 'gravitational field', r`A uniform thin ring has mass $M$. The gravitational force on a small mass placed at its centre is`, 'zero', [r`$GMm/a^2$ towards the centre, where $a$ is the radius`, r`$GMm/a^2$ away from the centre`, r`$GMm/2a^2$`],
+    r`Each small element of the ring is balanced by the diametrically opposite element, so the pulls cancel. The field is zero at the centre.`),
+  n(2, 'mass of the Earth', r`Find the mass of the Earth (in units of $10^{24}$ kg, 2 decimals) from $g = 9.8$, $R = 6.4\times10^6$ m and $G = 6.67\times10^{-11}$ SI.`, () => 9.8 * 6.4e6 ** 2 / 6.67e-11 / 1e24, 0.02, 2,
+    r`$g = GM/R^2 \Rightarrow M = gR^2/G = \dfrac{9.8\times(6.4\times10^6)^2}{6.67\times10^{-11}} = 6.02\times10^{24}$ kg.`, { unit: '10²⁴ kg' }),
+  n(2, 'weightlessness', r`A body of mass 160 kg is taken to a height $3R$ above the Earth's surface. What is its weight there in kgf (kilogram-weight)?`, () => 160 / 16, 0, 0,
+    r`Distance from the centre is $4R$, so $g' = g/16$. Weight $= 160/16 = 10$ kgf.`, { unit: 'kgf' }),
+  n(2, 'escape speed', r`How many times is the kinetic energy needed to escape from the surface greater than the kinetic energy of a satellite orbiting just above the surface?`, () => 2, 0, 0,
+    r`$v_e^2 = 2gR$ and $v_o^2 = gR$, so $\tfrac12mv_e^2\big/\tfrac12mv_o^2 = 2$.`),
+  // ---------- Level 3 ----------
+  m(3, 'variation of g with latitude', r`If the Earth spun faster until an object at the equator became weightless, the length of the day would be nearly ($R = 6400$ km, $g = 9.8$)`, '1.4 h', ['4.0 h', '6.0 h', '12 h'],
+    r`Weightless means $\omega^2R = g$, so $\omega = \sqrt{g/R}$ and $T = 2\pi\sqrt{R/g} = 5077$ s $= 1.41$ h. This equals the period of a satellite just above the surface.`),
+  n(3, 'gravitational field', r`Two point masses of 4 kg and 9 kg are 1 m apart. At what distance (in m) from the 4 kg mass, on the line joining them, is the gravitational field zero?`, () => 2 / 5, 0.005, 3,
+    r`Let the point be $x$ from the 4 kg mass: $\dfrac{4}{x^2} = \dfrac{9}{(1-x)^2} \Rightarrow \dfrac{1-x}{x} = \dfrac32 \Rightarrow x = 0.4$ m.`, { unit: 'm', trap: 'The point is nearer the smaller mass.' }),
+  m(3, 'gravitational self-energy', r`Three equal masses $m$ sit at the corners of an equilateral triangle of side $a$. Their gravitational potential energy is`, r`$-\dfrac{3Gm^2}{a}$`, [r`$-\dfrac{Gm^2}{a}$`, r`$-\dfrac{3Gm^2}{2a}$`, r`$-\dfrac{6Gm^2}{a}$`],
+    r`There are three pairs, each at distance $a$: $U = 3\times\left(-\dfrac{Gm^2}{a}\right) = -\dfrac{3Gm^2}{a}$. Counting each pair twice would give $-6Gm^2/a$.`),
+  m(3, 'satellite energy', r`A satellite in a low circular orbit loses energy slowly through air drag. It`, 'moves to a lower orbit and its speed increases', ['moves to a lower orbit and its speed decreases', 'stays at the same radius with a lower speed', 'moves to a higher orbit'],
+    r`$E = -\dfrac{GMm}{2r}$ falls (becomes more negative), so $r$ decreases. $v = \sqrt{GM/r}$ then increases. Gravity does positive work as the satellite spirals in, which more than makes up for the loss to drag.`, { trap: 'Losing energy speeds it up.' }),
+  n(3, 'surface gravity of planets', r`A planet has a density 0.8 times that of the Earth and a radius 1.5 times the Earth's. Find $g$ on it (in $\mathrm{m\,s^{-2}}$, 2 decimals; Earth's $g = 9.8$).`, () => 9.8 * 0.8 * 1.5, 0.01, 2,
+    r`$g = \dfrac{GM}{R^2} = \dfrac{4}{3}\pi G\rho R\propto\rho R$. $g' = 9.8\times0.8\times1.5 = 11.76\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  n(3, 'satellites', r`Find the orbital radius (in thousands of km, 1 decimal) of a satellite that has a period of 24 h, using $g = 9.8$ and $R = 6400$ km.`, () => Math.cbrt(9.8 * 6.4e6 ** 2 * 86400 ** 2 / (4 * Math.PI ** 2)) / 1e6, 0.1, 1,
+    r`$\dfrac{GMm}{r^2} = m\omega^2r$ with $GM = gR^2$: $r^3 = \dfrac{gR^2T^2}{4\pi^2} = \dfrac{9.8\times(6.4\times10^6)^2\times(86400)^2}{4\pi^2} = 7.59\times10^{22}$ m$^3$. $r = 4.23\times10^7$ m $= 42.3$ thousand km.`, { unit: '10³ km' }),
+  n(3, 'gravitational potential', r`Find the gravitational potential at the Earth's surface (in MJ/kg, 2 decimals; value negative; $g = 9.8$, $R = 6400$ km).`, () => -9.8 * 6.4e6 / 1e6, 0.05, 2,
+    r`$V = -\dfrac{GM}{R} = -gR = -9.8\times6.4\times10^6 = -6.27\times10^7\ \mathrm{J\,kg^{-1}} = -62.72$ MJ/kg.`, { unit: 'MJ/kg' }),
+  n(3, 'gravitational potential energy', r`How much work (in GJ, 2 decimals) is needed to raise a 100 kg satellite from the Earth's surface to a height $R$ above it? ($g=9.8$, $R=6400$ km)`, () => 100 * 9.8 * 6.4e6 / 2 / 1e9, 0.01, 2,
+    r`$\Delta U = GMm\left(\dfrac1R - \dfrac1{2R}\right) = \dfrac{GMm}{2R} = \dfrac{mgR}{2} = \dfrac{100\times9.8\times6.4\times10^6}2 = 3.14\times10^9$ J.`, { unit: 'GJ', trap: '$mgh$ would give twice this value.' }),
+  n(3, 'orbital speed', r`Find the orbital speed (in km/s, 2 decimals) of a satellite at a height $3R$ above the Earth's surface ($g=9.8$, $R=6400$ km).`, () => Math.sqrt(9.8 * 6.4e6 / 4) / 1000, 0.01, 2,
+    r`The orbit radius is $4R$. $v = \sqrt{GM/4R} = \tfrac12\sqrt{gR} = \tfrac12\times7.92 = 3.96$ km/s.`, { unit: 'km/s' }),
+  n(3, 'Kepler\'s third law', r`An asteroid orbits the Sun with a mean distance of 4 AU. What is its period in Earth years?`, () => Math.pow(4, 1.5), 0, 0,
+    r`$T^2\propto a^3$ with $T$ in years and $a$ in AU: $T = 4^{3/2} = 8$ years.`, { unit: 'years' }),
+  n(3, 'Kepler\'s third law', r`A body takes 125 years to go round the Sun. Find its mean distance from the Sun (in AU).`, () => Math.pow(125, 2 / 3), 0, 0,
+    r`$a^3 = T^2 = 15625$, so $a = 25$ AU.`, { unit: 'AU' }),
+  n(3, 'orbital speed', r`Two satellites orbit the Earth at radii in the ratio $1:4$. Find the ratio of their speeds $v_1/v_2$.`, () => Math.sqrt(4), 0, 0,
+    r`$v\propto r^{-1/2}$, so $v_1/v_2 = \sqrt{r_2/r_1} = \sqrt4 = 2$.`),
+  n(3, 'satellites', r`A satellite around a planet has a period 27 times that of a satellite orbiting just above the planet's surface. How many planet radii from the centre is its orbit?`, () => Math.pow(27, 2 / 3), 0, 0,
+    r`$T^2\propto r^3$, so $r = R\times27^{2/3} = 9R$.`, { unit: 'R' }),
+  n(3, 'variation of g with depth', r`At what depth (in km) below the Earth's surface is $g$ equal to 60% of its surface value? Take a uniform Earth with $R = 6400$ km.`, () => 0.4 * 6400, 0, 0,
+    r`$g' = g(1 - d/R) = 0.6g \Rightarrow d = 0.4R = 2560$ km.`, { unit: 'km' }),
+  n(3, 'mixed: projectile', r`A ball is thrown vertically up at $10\ \mathrm{m\,s^{-1}}$ on the Moon, where $g = 1.62\ \mathrm{m\,s^{-2}}$. How long (in s, 2 decimals) is it in the air?`, () => 2 * 10 / 1.62, 0.01, 2,
+    r`$t = 2u/g = 20/1.62 = 12.35$ s. (On the Earth the same throw would take about 2.04 s.)`, { unit: 's' }),
+  m(3, 'tunnel through the Earth', r`A ball is dropped into a smooth tunnel through the centre of the Earth, taken as uniform. The time for one full oscillation is nearly`, '84.6 minutes', ['42.3 minutes', '169 minutes', '24 hours'],
+    r`Inside, $a = -\dfrac gRx$ gives SHM with $T = 2\pi\sqrt{R/g} = 84.6$ min, the same as the period of a satellite just above the surface. The ball takes half of that, 42.3 min, to cross to the other end.`, { trap: 'One crossing is half a period.' }),
+  t(3, 'variation of g with latitude', 'A body weighs slightly less at the equator than at the poles.', 'The Earth\'s rotation reduces the effective $g$ at the equator, and the equatorial radius is larger.', 0,
+    r`Both are true. At the equator $g_{eff} = g - \omega^2R$, and the larger equatorial radius also makes the true pull a little smaller. Both effects point the same way.`),
+  t(3, 'Kepler\'s second law', 'A planet moves fastest when it is nearest the Sun.', 'At that point the area swept out per second is the largest.', 2,
+    r`I is true: $L = mvr$ is constant, so $v$ is greatest where $r$ is least. II is false: the area swept per second, $\dfrac L{2m}$, is the same everywhere.`),
+  cn(3, 'concepts', 'How many of the following are correct?', ['The total energy of a satellite in a bound orbit is negative.', 'A planet in a circular orbit has a constant speed.', 'The escape speed from the Earth depends on the mass of the projectile.', 'The gravitational field inside a thin hollow spherical shell is zero.'], 3,
+    r`(i) True: $E = -GMm/2r$. (ii) True: with the Sun's pull perpendicular to the velocity the speed does not change. (iii) False: the projectile's mass cancels. (iv) True. Three are correct.`),
+  a(3, 'weightlessness', 'An astronaut in a satellite orbiting the Earth feels weightless.', 'There is no gravity at the height of the satellite.', 2,
+    r`A is true: both the astronaut and the satellite are in free fall, so there is no contact force. R is false: gravity at that height is still large (about 90% of $g$ at 400 km).`, { trap: 'Weightlessness is free fall, not absence of gravity.' }),
+  mt(3, 'surface gravity of planets', 'xg1', ['q', 'p', 't', 's'], r`$g\propto M/R^2$. A: $4/4 = 1\to g$ (q). B: $1/4\to g/4$ (p). C: $\tfrac12/1\to g/2$ (t). D: $16/4 = 4\to 4g$ (s). The entry $2g$ is not used.`),
+  mt(3, 'satellites', 'xg2', ['p', 'q', 's', 'r'], r`Near the surface $T = 2\pi\sqrt{R/g}\approx1.4$ h (p). Geostationary: 24 h (q). Radius $4R$: $T = 1.4\text{ h}\times4^{3/2} = 11.3$ h (s). The Moon: 27.3 days (r).`),
+  mt(3, 'gravitational field of a shell', 'xg3', ['p', 'r', 'q', 's'], r`Inside a shell the field is 0 (p) and the potential is constant, equal to its surface value $-GM/R$ (q). Outside, the shell acts as if all its mass were at the centre: field $GM/r^2$ (r), potential $-GM/r$ (s).`),
+  mt(3, 'orbital speed', 'xg7', ['s', 'r', 'q', 'p'], r`$v_e = \sqrt{2gR} = 11.2$ km/s (s). $v_o = \sqrt{gR} = 7.92$ km/s (r). At $r = 2R$: $\sqrt{gR/2} = 5.60$ (q). At $r = 4R$: $\sqrt{gR/4} = 3.96$ (p).`),
+  // ---------- Level 4 ----------
+  n(4, 'field in a cavity', r`A uniform planet of radius $R$ has surface gravity $12\ \mathrm{m\,s^{-2}}$. A spherical cavity inside has its centre $0.4R$ from the planet's centre. Find the gravitational field (in $\mathrm{m\,s^{-2}}$) at any point inside the cavity.`, () => 12 * 0.4, 0.01, 2,
+    r`Superposition: a full sphere minus a sphere of the same density filling the cavity. Inside a uniform sphere $\vec g = -\tfrac43\pi G\rho\,\vec r$. The difference of the two fields is $-\tfrac43\pi G\rho(\vec r - \vec r') = -\tfrac43\pi G\rho\,\vec d$, which has the constant size $\tfrac43\pi G\rho d = g\dfrac dR = 12\times0.4 = 4.8\ \mathrm{m\,s^{-2}}$ and does not depend on where in the cavity you are.`, { unit: 'm/s²', trap: 'The field in the cavity is uniform and depends only on the offset $d$.' }),
+  n(4, 'gravitational self-energy', r`Four masses of 2 kg each sit at the corners of a square of side 0.5 m. Find their gravitational potential energy (in units of $10^{-9}$ J, 2 decimals, negative). $G = 6.67\times10^{-11}$.`, () => -(6.67e-11 * 4 / 0.5) * (4 + Math.SQRT2) / 1e-9, 0.01, 2,
+    r`Four sides at distance $a$ and two diagonals at $a\sqrt2$: $U = -\dfrac{Gm^2}{a}\left(4 + \dfrac{2}{\sqrt2}\right) = -\dfrac{Gm^2}{a}(4+\sqrt2)$. With $\dfrac{Gm^2}{a} = \dfrac{6.67\times10^{-11}\times4}{0.5} = 5.336\times10^{-10}$: $U = -2.89\times10^{-9}$ J.`, { trap: 'Do not forget the two diagonal pairs.' }),
+  n(4, 'field of a ring', r`The gravitational field of a uniform ring of radius $a = 0.5$ m, on its axis at distance $x$ from the centre, is largest at what $x$ (in m, 3 decimals)?`, () => 0.5 / Math.SQRT2, 0.001, 3,
+    r`$g(x)\propto\dfrac{x}{(a^2+x^2)^{3/2}}$. Setting the derivative to zero: $(a^2+x^2) - 3x^2 = 0$, so $x = \dfrac a{\sqrt2} = 0.354$ m.`, { unit: 'm' }),
+  n(4, 'satellite energy', r`How much energy (in GJ, 2 decimals) is needed to move a 100 kg satellite from a circular orbit of radius $2R$ to one of radius $4R$ (about the Earth, $g=9.8$, $R=6400$ km)?`, () => 100 * 9.8 * 6.4e6 / 8 / 1e9, 0.01, 2,
+    r`$E = -\dfrac{GMm}{2r} = -\dfrac{mgR^2}{2r}$. $\Delta E = \dfrac{mgR^2}2\left(\dfrac1{2R}-\dfrac1{4R}\right) = \dfrac{mgR}{8} = \dfrac{100\times9.8\times6.4\times10^6}{8} = 7.84\times10^8$ J.`, { unit: 'GJ' }),
+  n(4, 'projectile', r`A rocket is fired vertically from the Earth's surface at $6\ \mathrm{km\,s^{-1}}$ with engines off after launch. Find the greatest height (in km) above the surface. Take $g = 9.8$, $R = 6400$ km, and allow for the change of $g$ with height.`, () => (6.4e6 / (1 - 6000 ** 2 / (2 * 9.8 * 6.4e6)) - 6.4e6) / 1e3, 5, 0,
+    r`Energy: $\tfrac12v^2 - \dfrac{GM}{R} = -\dfrac{GM}{r}$ with $GM = gR^2$. $\dfrac1r = \dfrac1R\left(1 - \dfrac{v^2}{2gR}\right) = \dfrac1R(1 - 0.287)$. $r = 8.98\times10^6$ m, so $h = r - R = 2576$ km. (The constant-$g$ answer $v^2/2g = 1837$ km is much too small.)`, { unit: 'km', trap: 'At this height $g$ is no longer constant.' }),
+  n(4, 'satellite energy', r`Two stars of masses $M$ and $4M$ move in circles about their centre of mass. Find the ratio of the speed of the lighter to that of the heavier.`, () => 4, 0, 0,
+    r`The same gravitational force acts on each and no external force acts, so the centre of mass stays fixed and $Mv_1 = 4Mv_2$. $v_1/v_2 = 4$. (Equivalently the radii are in the ratio $4:1$ and they share the same $\omega$.)`),
+  n(4, 'satellites', r`A satellite's orbit just above a planet of mean density $5500\ \mathrm{kg\,m^{-3}}$ has what period (in minutes, 1 decimal)? $G = 6.67\times10^{-11}$.`, () => Math.sqrt(3 * Math.PI / (6.67e-11 * 5500)) / 60, 0.3, 1,
+    r`$\dfrac{GM}{R^2} = \dfrac{4\pi^2R}{T^2}$ with $M = \tfrac43\pi R^3\rho$ gives $T = \sqrt{\dfrac{3\pi}{G\rho}} = \sqrt{\dfrac{9.425}{6.67\times10^{-11}\times5500}} = 5069$ s $= 84.5$ min. It depends only on the density, not on the planet's size.`, { unit: 'min' }),
+  n(4, 'mixed: circular motion', r`Because of the Earth's rotation ($\omega = 7.27\times10^{-5}\ \mathrm{rad\,s^{-1}}$), by what percentage (3 decimals) is the apparent weight of a body at the equator less than its true weight? ($g=9.8$, $R=6400$ km)`, () => (7.27e-5 ** 2 * 6.4e6 / 9.8) * 100, 0.005, 3,
+    r`Apparent weight $= m(g - \omega^2R)$. $\omega^2R = (7.27\times10^{-5})^2\times6.4\times10^6 = 0.0338\ \mathrm{m\,s^{-2}}$, and $0.0338/9.8 = 0.345\%$.`, { unit: '%' }),
+  m(4, 'tunnel through the Earth', r`A ball is released from rest at the Earth's surface into a smooth tunnel along a diameter (uniform Earth, no air). Which statement is correct?`, r`It passes the centre at $\sqrt{gR}$ and its acceleration there is zero.`, [r`It passes the centre at $\sqrt{2gR}$ and its acceleration there is $g$.`, r`It passes the centre at $\sqrt{gR}$ and its acceleration there is $g/2$.`, r`It stops at the centre because gravity vanishes there.`],
+    r`The force $F = -\dfrac{mg}{R}x$ gives SHM with amplitude $R$ and $\omega = \sqrt{g/R}$. At the centre the speed is the maximum, $\omega R = \sqrt{gR}$, and $a = 0$. Energy check: $\tfrac12v^2 = \tfrac12gR$ since the potential rises from $-\tfrac32gR$ at the centre to $-gR$ at the surface. The ball does not stop; it overshoots.`),
+  m(4, 'non-uniform sphere', r`A sphere of radius $R$ has density $\rho = \rho_0\left(1 - \dfrac rR\right)$. Inside it, the gravitational field is greatest at $r$ equal to`, r`$\dfrac{2R}{3}$`, [r`$\dfrac R2$`, r`$R$`, r`$\dfrac{3R}{4}$`],
+    r`$M(r) = 4\pi\rho_0\left(\dfrac{r^3}{3} - \dfrac{r^4}{4R}\right)$, so $g(r) = \dfrac{GM(r)}{r^2} = 4\pi G\rho_0\left(\dfrac r3 - \dfrac{r^2}{4R}\right)$. $\dfrac{dg}{dr} = 0$: $\dfrac13 - \dfrac{r}{2R} = 0 \Rightarrow r = \dfrac{2R}{3}$.`, { trap: 'For a uniform sphere the maximum is at the surface; here the density drops outward.' }),
+  s(4, 'satellite energy', r`For a satellite in a circular orbit about a planet, which of the following are correct?`,
+    ['Its total energy is positive.', 'Its kinetic energy equals the magnitude of its total energy.', 'Its potential energy is twice its total energy.', r`Its speed varies as $r^{-1/2}$.`], [1, 2, 3],
+    r`$K = \dfrac{GMm}{2r}$, $U = -\dfrac{GMm}{r}$, $E = -\dfrac{GMm}{2r}$. So E is negative (A false), $K = |E|$ (B true), $U = 2E$ (C true), and $v = \sqrt{GM/r}$ (D true).`),
+  s(4, 'Kepler\'s laws', r`A planet moves in an elliptical orbit about the Sun. Which statements are correct?`,
+    ['Its speed is greatest at perihelion.', 'The area swept out per unit time is constant.', 'Its total energy is larger at perihelion than at aphelion.', 'Its angular momentum about the Sun is constant.'], [0, 1, 3],
+    r`Speed is greatest at the nearest point (A true). Areal speed $= L/2m$ is constant (B true). The total energy $-GMm/2a$ is the same at every point (C false); at perihelion the kinetic energy is larger but the potential energy is lower by the same amount. $L$ is conserved because gravity is central (D true).`),
+  s(4, 'variation of g with latitude', r`Considering the Earth's rotation, which statements are correct?`,
+    ['The effective $g$ is least at the equator.', 'The effective $g$ is greatest at the poles.', 'At the poles the rotation has no effect on the weight.', r`At the equator the effective $g$ is $g + \omega^2R$.`], [0, 1, 2],
+    r`At latitude $\lambda$, $g' \approx g - \omega^2R\cos^2\lambda$. At the equator ($\lambda=0$) this is $g - \omega^2R$, the least value (A true, D false). At the poles $\cos\lambda = 0$, so no reduction (B and C true).`),
+  s(4, 'weightlessness', r`Inside a satellite orbiting the Earth, which of these are true?`,
+    ['A pendulum clock stops working.', 'A spring balance reads zero when a body is hung from it.', 'The satellite and its contents feel no gravitational pull.', 'There is no buoyant force on an object placed in water.'], [0, 1, 3],
+    r`All objects are in free fall, so the effective gravity is zero: a pendulum has no restoring force (A true); a hanging body does not stretch the spring (B true); buoyancy needs a pressure increase with depth, which needs weight (D true). Gravity does still act (C false): it is what keeps them in orbit.`),
+  s(4, 'gravitational potential', r`For a uniform solid sphere of mass $M$ and radius $R$, which are correct?`,
+    ['The potential at its centre is zero.', r`The potential at its centre is $-\dfrac{3GM}{2R}$.`, 'The field at its centre is zero.', r`Inside, the field is proportional to the distance from the centre.`], [1, 2, 3],
+    r`Inside, $g = \dfrac{GMr}{R^3}$ (D true), zero at the centre (C true). The potential is $V = -\dfrac{GM}{2R^3}(3R^2 - r^2)$, which is $-\dfrac{3GM}{2R}$ at the centre (B true, A false).`),
+  a(4, 'orbital speed', 'The orbital speed of a satellite does not depend on the satellite\'s own mass.', r`In $v = \sqrt{GM/r}$, $M$ is the mass of the planet, and the satellite's mass cancels from the equation of motion.`, 0,
+    r`$\dfrac{mv^2}{r} = \dfrac{GMm}{r^2}$: $m$ cancels. So A is true and R explains it.`),
+  a(4, 'escape speed', 'The escape speed from the Moon is much smaller than from the Earth.', r`The escape speed varies as $\sqrt{M/R}$, and the Moon's $M/R$ is much smaller than the Earth's.`, 0,
+    r`$M_m/M_e = 1/81$ and $R_m/R_e\approx0.27$, so $M/R$ is about $0.045$ of the Earth's, and $v_e = 11.2\times\sqrt{0.045}\approx2.4$ km/s. Both true, and R explains A.`),
+  a(4, 'gravitational potential', 'The gravitational potential at every point inside a thin uniform spherical shell is zero.', 'The gravitational field inside a thin uniform spherical shell is zero.', 3,
+    r`A is false: the field being zero means the potential is constant, equal to its surface value $-GM/R$, not zero. R is true.`, { trap: 'Zero field does not mean zero potential.' }),
+  t(4, 'satellites', 'A geostationary satellite can be placed above any city.', 'A geostationary orbit must lie in the equatorial plane.', 3,
+    r`I is false: only points on the equator can be directly below it (the orbit's plane must contain the Earth's centre, and a stationary orbit needs the same sense and period as the Earth's rotation, which forces the equatorial plane). II is true.`),
+  cn(4, 'Kepler\'s laws', 'How many of the following are correct?', ['The second law holds for any central force.', 'The third law ($T^2\\propto a^3$) holds for any central force.', 'The Moon\'s acceleration towards the Earth is about $g/3600$.', 'The weight of a 5 kg body at the centre of the Earth is $5g$.'], 2,
+    r`(i) True: it needs only constant angular momentum. (ii) False: $T^2\propto a^3$ needs an inverse-square force. (iii) True: the Moon is 60 Earth radii away, and $1/60^2 = 1/3600$. (iv) False: at the centre $g = 0$. Two are correct.`),
+  mt(4, 'binary stars', 'xg4', ['r', 's', 'p', 'q'], r`Each moves on a circle of radius $d/2$: $\dfrac{GM^2}{d^2} = \dfrac{Mv^2}{d/2}$, so $v = \sqrt{GM/2d}$ (r). $T = \dfrac{2\pi(d/2)}{v} = 2\pi\sqrt{\dfrac{d^3}{2GM}}$ (s). Total energy: kinetic $= 2\cdot\tfrac12Mv^2 = \dfrac{GM^2}{2d}$, potential $-\dfrac{GM^2}{d}$; sum $-\dfrac{GM^2}{2d}$ (p). $\omega = v/(d/2) = \sqrt{2GM/d^3}$ (q).`),
+  mt(4, 'satellite energy', 'xg5', ['r', 'p', 's', 'q'], r`$K = \dfrac{GMm}{2r}$ (r). $U = -\dfrac{GMm}{r}$ (p). $E = -\dfrac{GMm}{2r}$ (s). At $2r$: $E' = -\dfrac{GMm}{4r}$. Required $E' - E = \dfrac{GMm}{4r}$ (q).`),
+  mt(4, 'elliptical orbits', 'xg8', ['q', 'r', 's', 'p'], r`$v_pr_p = v_ar_a$ with $r_a = 3r_p$: $v_p/v_a = 3$ (q). $a = \dfrac{r_p+3r_p}2 = 2r_p$ (r). $e = \dfrac{r_a-r_p}{r_a+r_p} = \tfrac12$ (s). KE ratio $= (v_p/v_a)^2 = 9$ (p).`),
+  // ---------- Level 5 ----------
+  n(5, 'orbit change', r`A satellite is in a circular orbit of radius 7000 km. A short burn along its motion raises its speed to 1.2 times the circular speed. The new orbit is an ellipse with the burn point at perigee. Find the apogee distance from the Earth's centre (in km).`, () => 7000 * 1.44 / (2 - 1.44), 5, 0,
+    r`At perigee $v_p = 1.2v_0$ with $v_0^2 = GM/r_0$. Let $x = r_a/r_0$. Angular momentum: $v_a = 1.2v_0/x$. Energy: $\tfrac12(1.44)v_0^2 - v_0^2 = \tfrac12\dfrac{1.44v_0^2}{x^2} - \dfrac{v_0^2}{x}$. This reduces to $0.28x^2 - x + 0.72 = 0$, whose roots are $x = 1$ (the burn point) and $x = 0.72/0.28 = 2.571$. $r_a = 2.571\times7000 = 18\,000$ km.`, { unit: 'km', trap: 'One root is the starting point itself.' }),
+  n(5, 'gravitational self-energy', r`Two particles of mass 2 kg each are released from rest 2 m apart in empty space. What is the speed of each (in micrometres per second, 2 decimals) when they are 1 m apart? $G = 6.67\times10^{-11}$.`, () => Math.sqrt(6.67e-11 * 2 * 0.5) * 1e6, 0.02, 2,
+    r`Energy: $2\times\tfrac12mv^2 = Gm^2\left(\dfrac11 - \dfrac12\right) \Rightarrow v^2 = \dfrac{Gm}{2} = 6.67\times10^{-11}$. $v = 8.17\times10^{-6}\ \mathrm{m\,s^{-1}} = 8.17\ \mu\mathrm{m\,s^{-1}}$.`, { unit: 'μm/s' }),
+  n(5, 'non-uniform sphere', r`A sphere of radius $R$ has density $\rho = \rho_0(1 - r/R)$. Find the ratio $g(R/2)/g(R)$ of the gravitational field at half the radius to that at the surface (2 decimals).`, () => (1 / 6 - 1 / 16) / (1 / 3 - 1 / 4), 0.01, 2,
+    r`$g(r) = 4\pi G\rho_0\left(\dfrac r3 - \dfrac{r^2}{4R}\right)$. At $r = R/2$: $R\left(\dfrac16 - \dfrac1{16}\right) = \dfrac{5R}{48}$. At $r = R$: $R\left(\dfrac13-\dfrac14\right) = \dfrac R{12}$. Ratio $= \dfrac{5/48}{1/12} = \dfrac54 = 1.25$.`, { trap: 'A uniform sphere would give $\\tfrac12$; the field is larger inside here.' }),
+  n(5, 'binary stars', r`Two stars of masses $m_1 = 2M$ and $m_2 = M$ are held at rest a distance $d$ apart, then released. Find the ratio $v_1/v_2$ of their speeds when they have approached to $d/2$.`, () => 0.5, 0.001, 3,
+    r`Linear momentum is conserved: $2Mv_1 = Mv_2$, so $v_1/v_2 = \tfrac12$ (this does not depend on the separation).`, { trap: 'The question needs only momentum, not energy.' }),
+  m(5, 'orbit change', r`A satellite in a circular orbit has its speed suddenly increased by a small amount along its direction of motion. Its new orbit is`, 'an ellipse with the point of the burn as the perigee', ['a circle of larger radius', 'an ellipse with the point of the burn as the apogee', 'a circle of the same radius, but with a longer period'],
+    r`At the burn point the satellite's speed exceeds the circular speed for that radius, and its velocity is perpendicular to the radius. That is the nearest point of the new ellipse (perigee), the speed is the greatest there. The orbit rises on the other side of the Earth. A circle needs a different speed at every radius, so a speed change at one point cannot give a larger circle.`, { trap: 'Speeding up does not mean it moves to a faster, lower orbit.' }),
+  s(5, 'binary stars', r`Two stars of unequal masses move in circular orbits about their common centre of mass, under their mutual gravity only. Which statements are correct?`,
+    ['Both stars have the same angular velocity.', 'The lighter star moves in the larger circle.', 'Both stars have the same orbital speed.', 'The ratio of their kinetic energies is the inverse of the ratio of their masses.'], [0, 1, 3],
+    r`The line joining them turns as one, so $\omega$ is equal (A true). $m_1r_1 = m_2r_2$, so the lighter star has the larger $r$ (B true) and hence the larger speed $v = \omega r$ (C false). $K = \tfrac12m\omega^2r^2\propto m\cdot\dfrac1{m^2} = \dfrac1m$ (D true).`),
+  s(5, 'escape speed', r`Which statements about escape from the Earth's surface are correct (ignore air and rotation)?`,
+    ['The escape speed is the same for every direction of launch (that does not hit the ground).', 'The escape speed is larger for a heavier body.', 'The escape speed from a height is smaller than from the surface.', 'A body launched at the escape speed follows a parabolic path.'], [0, 2, 3],
+    r`Energy conservation gives $\tfrac12mv^2 = GMm/r$ whatever the direction (A true). The mass cancels (B false). A larger $r$ means a smaller required speed (C true). With $E = 0$ the path is a parabola (D true).`),
+  s(5, 'orbit change', r`A satellite in a circular orbit is given a small forward kick along its velocity by a thruster. Which statements are correct?`,
+    ['Its total energy decreases.', 'The new orbit is an ellipse with the kick point as perigee.', 'At the new apogee its speed is greater than the original circular speed.', 'Its period increases.'], [1, 3],
+    r`The kick adds kinetic energy, so the total energy increases (A false). The burn point becomes the perigee (B true). The semi-major axis is larger than before, so by $T^2\\propto a^3$ the period increases (D true). At the new apogee the satellite is farther out and slower than it was at the burn point, so its speed is below the original circular speed (C false).`),
+  s(5, 'tunnel through the Earth', r`A ball is dropped into a smooth tunnel along a diameter of a uniform Earth. Which of these are correct?`,
+    ['The motion is simple harmonic.', r`Its speed at the centre is $\sqrt{gR}$.`, r`Its acceleration at the centre is $g/2$.`, 'It takes about 42 minutes to reach the other end.'], [0, 1, 3],
+    r`$a = -\dfrac gRx$ gives SHM (A true) with $\omega = \sqrt{g/R}$, so $v_{max} = \omega R = \sqrt{gR}$ (B true). At the centre $a = 0$ (C false). The crossing takes $T/2 = \pi\sqrt{R/g} = 42.3$ min (D true).`),
+  s(5, 'gravitational field', r`For a uniform solid sphere of mass $M$ and radius $R$, which of these are correct?`,
+    ['The field is greatest at the centre.', r`The field at a distance $r < R$ is $\dfrac{GMr}{R^3}$.`, r`The potential energy of a mass $m$ at $r<R$ is $-\dfrac{GMm(3R^2 - r^2)}{2R^3}$.`, 'The field is greatest at the surface.'], [1, 2, 3],
+    r`$g(r) = \dfrac{GMr}{R^3}$ inside, rising from zero at the centre to $GM/R^2$ at the surface, and then falling as $1/r^2$, so the maximum is at the surface (A false, D true). The potential energy follows by integrating the field (C true).`),
+  a(5, 'satellite energy', 'The total energy of a satellite in a bound circular orbit is negative.', 'The kinetic energy of the satellite is half the magnitude of its potential energy.', 0,
+    r`$K = \dfrac{GMm}{2r}$ and $|U| = \dfrac{GMm}{r}$, so $K = \tfrac12|U|$ and $E = K + U = -K$. R is true and it directly gives the negative sign of $E$.`),
+  cn(5, 'concepts', 'How many of the following are correct?', ['A satellite near the Earth\'s surface has $T = 2\\pi\\sqrt{R/g}$.', 'The time to cross the Earth along a tunnel through its centre equals half that period.', 'A planet\'s areal speed is the same at all points of its orbit.', 'The kinetic energy of a satellite in a circular orbit is double the magnitude of its total energy.'], 3,
+    r`(i) True. (ii) True: SHM with the same $T$, crossing takes $T/2$. (iii) True: $L/2m$. (iv) False: the kinetic energy equals the magnitude of the total energy. Three are correct.`),
+  mt(5, 'free fall', 'xg6', ['r', 'p', 'q', 's'], r`From infinity: $\tfrac12v^2 = gR \Rightarrow v = \sqrt{2gR} = 11.2$ km/s (r). From $r = 2R$: $\tfrac12v^2 = gR^2\left(\dfrac1R - \dfrac1{2R}\right) = \tfrac12gR$, $v = \sqrt{gR} = 7.92$ (p). From $r = 4R$: $\tfrac12v^2 = gR\left(1 - \tfrac14\right)$, $v = \sqrt{1.5\,gR} = 9.70$ (q). Fired at $\sqrt{gR}$: $\tfrac12gR = gR^2\left(\dfrac1R - \dfrac1r\right) \Rightarrow r = 2R$, height $R = 6400$ km (s).`),
+);
+
+items.push(
+  pn(4, 'binary stars', 'xgp1', r`Find the orbital speed of each star (in km/s, 2 decimals).`, () => Math.sqrt(6.67e-11 * 4e30 / (2 * 1e11)) / 1000, 0.05, 2,
+    r`Each moves on a circle of radius $d/2 = 5\times10^{10}$ m. $\dfrac{GM^2}{d^2} = \dfrac{Mv^2}{d/2} \Rightarrow v = \sqrt{\dfrac{GM}{2d}} = \sqrt{\dfrac{6.67\times10^{-11}\times4\times10^{30}}{2\times10^{11}}} = 3.65\times10^4\ \mathrm{m\,s^{-1}}$.`, { unit: 'km/s' }),
+  pn(4, 'binary stars', 'xgp1', r`Find the period of revolution (in days, 1 decimal).`, () => Math.PI * 1e11 / Math.sqrt(6.67e-11 * 4e30 / 2e11) / 86400, 0.2, 1,
+    r`$T = \dfrac{2\pi(d/2)}{v} = \dfrac{\pi\times10^{11}}{3.652\times10^4} = 8.60\times10^6$ s $= 99.6$ days.`, { unit: 'days' }),
+  pn(5, 'binary stars', 'xgp1', r`Find the total mechanical energy of the pair (in units of $10^{39}$ J, 2 decimals, negative).`, () => -6.67e-11 * 16e60 / 2e11 / 1e39, 0.01, 2,
+    r`$E = -\dfrac{GM^2}{2d} = -\dfrac{6.67\times10^{-11}\times(4\times10^{30})^2}{2\times10^{11}} = -5.34\times10^{39}$ J.`, { unit: '10³⁹ J' }),
+  pn(3, 'tunnel through the Earth', 'xgp2', r`Find the acceleration of the ball when it is halfway to the centre, at $R/2$ from it (in $\mathrm{m\,s^{-2}}$, 1 decimal).`, () => 9.8 / 2, 0.05, 2,
+    r`Inside a uniform sphere $g(r) = g\dfrac rR$. At $r = R/2$: $4.9\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  pn(4, 'tunnel through the Earth', 'xgp2', r`Find the speed of the ball as it passes the centre (in km/s, 2 decimals).`, () => Math.sqrt(9.8 * 6.4e6) / 1000, 0.01, 2,
+    r`Energy: the potential at the centre is $-\tfrac32gR$ and at the surface $-gR$. $\tfrac12v^2 = \tfrac12gR$, $v = \sqrt{gR} = \sqrt{6.272\times10^7} = 7.92$ km/s.`, { unit: 'km/s' }),
+  pn(4, 'tunnel through the Earth', 'xgp2', r`How long (in minutes, 1 decimal) does the ball take to reach the other end?`, () => Math.PI * Math.sqrt(6.4e6 / 9.8) / 60, 0.1, 1,
+    r`SHM with $\omega = \sqrt{g/R}$. A trip across is half a period: $t = \pi\sqrt{R/g} = \pi\times808.1 = 2539$ s $= 42.3$ min.`, { unit: 'min' }),
+);
+
+items.push(
+  n(4, 'satellite energy', r`A satellite is moved to a new circular orbit in which its kinetic energy is one-ninth of its original value. The new orbital radius is $n$ times the original. Find $n$.`, () => 9, 0, 0,
+    r`$K = \dfrac{GMm}{2r}\propto\dfrac1r$. For $K$ to fall to $\tfrac19$, $r$ must grow 9 times: $n = 9$.`),
+  n(3, 'satellite energy', r`The energy needed to take a satellite in a circular orbit of radius $r$ to infinity is $E$. If its orbital radius were 3 times larger, the energy needed would be $E/k$. Find $k$.`, () => 3, 0, 0,
+    r`The energy needed is $|E_{total}| = \dfrac{GMm}{2r}\propto\dfrac1r$. With $r\to3r$ it becomes $E/3$, so $k = 3$.`),
+  n(3, 'orbital speed', r`A satellite's speed is $1/\sqrt5$ of the speed of a satellite orbiting just above the Earth's surface. Its orbital radius is how many Earth radii?`, () => 5, 0, 0,
+    r`$v\propto r^{-1/2}$, so $r = 5R$.`, { unit: 'R' }),
+  n(5, 'non-uniform sphere', r`A sphere of radius $R$ has density $\rho_0(1 - r/R)$. Its mass is $1/n$ of the mass of a uniform sphere of the same radius and density $\rho_0$. Find $n$.`, () => 1 / ((1 / 3 - 1 / 4) * 3), 0, 0,
+    r`$M = \int_0^R4\pi r^2\rho_0\left(1-\dfrac rR\right)dr = 4\pi\rho_0\left(\dfrac{R^3}3 - \dfrac{R^3}4\right) = \dfrac{\pi\rho_0R^3}{3}$. A uniform sphere has $\dfrac{4\pi\rho_0R^3}3$. The ratio is $\tfrac14$, so $n = 4$.`),
+);
+
+gens.push(
+  gx(2, 'nat', 'variation of g with height', (rng) => {
+    const k = pick(rng, 0.25, 3, 0.25); const w = pick(rng, 40, 90, 5);
+    const W = w * 9.8 / (1 + k) ** 2;
+    return { k, w, q: `A ${w} kg body is raised to a height of ${k} Earth radii above the surface. What is its weight there (in N, 1 decimal, $g=9.8$ at the surface)?`, answer: +W.toFixed(1), tol: 0.2, unit: 'N',
+      sol: `Distance from the centre $= (1+${k})R$, so $g' = \\dfrac{g}{(1+${k})^2}$. $W = ${w}\\times9.8/${+((1 + k) ** 2).toFixed(4)} = ${W.toFixed(1)}$ N.` };
+  }, (p) => { const GM = 9.8 * 6.4e6 ** 2; const r = 6.4e6 * (1 + p.k); return p.w * GM / (r * r); }),
+  gx(3, 'nat', 'escape speed', (rng) => {
+    const mr = pick(rng, 0.5, 8, 0.5); const rr = pick(rng, 0.5, 2, 0.5);
+    const v = 11.2 * Math.sqrt(mr / rr);
+    return { mr, rr, q: `A planet has ${mr} times the Earth's mass and ${rr} times its radius. Find its escape speed (in km/s, 1 decimal; Earth's is 11.2 km/s).`, answer: +v.toFixed(1), tol: 0.1, unit: 'km/s',
+      sol: `$v_e = \\sqrt{2GM/R}\\propto\\sqrt{M/R}$. $v_e = 11.2\\times\\sqrt{${mr}/${rr}} = ${v.toFixed(1)}$ km/s.` };
+  }, (p) => { const gp = 9.8 * p.mr / p.rr ** 2; const Rp = 6.4e6 * p.rr; return Math.sqrt(2 * gp * Rp) / 1000 * (11.2 / (Math.sqrt(2 * 9.8 * 6.4e6) / 1000)); }),
+  gx(3, 'mcq', 'orbital speed', (rng) => {
+    const k = choose(rng, [4, 9, 16, 25]); const root = Math.sqrt(k);
+    const ans = `${'its speed becomes 1/' + root + ' of the original, and the period becomes ' + (k * root) + ' times'}`;
+    const o = shuffleOpts(rng, ans, [`its speed becomes 1/${k} of the original, and the period becomes ${k} times`, `its speed becomes ${root} times the original, and the period becomes ${root} times`, `its speed becomes 1/${root} of the original, and the period becomes ${k} times`]);
+    return { k, opts: o.options, ans, q: `A satellite's orbital radius is made ${k} times larger. Choose the correct statement.`, options: o.options, answer: o.answer,
+      sol: `$v\\propto r^{-1/2}$ gives $v\\to v/\\sqrt{${k}} = v/${root}$. $T\\propto r^{3/2}$ gives $T\\to${k}^{3/2}T = ${k * root}T$.`, trap: 'Check the powers: $-1/2$ for speed, $3/2$ for period.' };
+  }, (p) => p.opts.indexOf(p.ans)),
+  gx(4, 'nat', 'satellite energy', (rng) => {
+    const m1 = pick(rng, 50, 500, 50); const a = int(rng, 1, 3) + 1; const b = a + int(rng, 1, 3);
+    const E = m1 * 9.8 * 6.4e6 / 2 * (1 / a - 1 / b) / 1e9;
+    return { m1, a, b, q: `How much energy (in GJ, 3 decimals) must be given to a ${m1} kg satellite to move it from a circular orbit of radius ${a}R to one of radius ${b}R about the Earth ($g=9.8$, $R=6400$ km)?`, answer: +E.toFixed(3), tol: 0.005, unit: 'GJ',
+      sol: `$E = -\\dfrac{GMm}{2r}$ with $GM = gR^2$. $\\Delta E = \\dfrac{mgR}{2}\\left(\\dfrac1{${a}} - \\dfrac1{${b}}\\right) = ${E.toFixed(3)}$ GJ.` };
+  }, (p) => { const GM = 9.8 * 6.4e6 ** 2; const e = (r) => -GM * p.m1 / (2 * r); return (e(p.b * 6.4e6) - e(p.a * 6.4e6)) / 1e9; }),
+  gx(4, 'nat', 'Kepler\'s third law', (rng) => {
+    const T1 = pick(rng, 2, 12, 1); const r1 = pick(rng, 4, 10, 1) * 1000; const k = choose(rng, [2, 3, 4, 5]);
+    const T2 = T1 * Math.pow(k, 1.5);
+    return { T1, r1, k, q: `A moon orbits its planet in ${T1} days at a mean distance of ${r1} km. A second moon is ${k} times farther. Find its period (in days, 1 decimal).`, answer: +T2.toFixed(1), tol: 0.1, unit: 'days',
+      sol: `$T^2\\propto r^3$, so $T_2 = T_1\\,${k}^{3/2} = ${T1}\\times${+Math.pow(k, 1.5).toFixed(3)} = ${T2.toFixed(1)}$ days.` };
+  }, (p) => Math.sqrt(p.T1 ** 2 * (p.k * p.r1) ** 3 / p.r1 ** 3)),
+  gx(4, 'nat', 'projectile', (rng) => {
+    const v = pick(rng, 3, 9, 0.5) * 1000;
+    const h = (6.4e6 / (1 - v * v / (2 * 9.8 * 6.4e6)) - 6.4e6) / 1e3;
+    return { v, q: `A projectile is fired vertically from the Earth's surface at ${v / 1000} km/s. Find the greatest height it reaches (in km, nearest 10), allowing for the change of $g$ ($g=9.8$, $R=6400$ km).`, answer: Math.round(h / 10) * 10, tol: 10, unit: 'km',
+      sol: `$\\dfrac1r = \\dfrac1R\\left(1 - \\dfrac{v^2}{2gR}\\right)$. With $v^2/2gR = ${(v * v / (2 * 9.8 * 6.4e6)).toFixed(4)}$: $r = ${(6.4e6 / (1 - v * v / (2 * 9.8 * 6.4e6)) / 1e3).toFixed(0)}$ km. $h = r - R \\approx ${h.toFixed(0)}$ km.` };
+  }, (p) => { const GM = 9.8 * 6.4e6 ** 2; const E = 0.5 * p.v ** 2 - GM / 6.4e6; return Math.round((-GM / E - 6.4e6) / 1e4) * 10; }),
+  gx(3, 'nat', 'gravitational field', (rng) => {
+    const a = pick(rng, 1, 9, 1); const b = pick(rng, 1, 9, 1); const d = pick(rng, 1, 5, 1);
+    const x = d * Math.sqrt(a) / (Math.sqrt(a) + Math.sqrt(b));
+    return { a, b, d, q: `Two point masses of ${a} kg and ${b} kg are ${d} m apart. At what distance from the ${a} kg mass, on the line between them, is the gravitational field zero (in m, 3 decimals)?`, answer: +x.toFixed(3), tol: 0.002, unit: 'm',
+      sol: `$\\dfrac{${a}}{x^2} = \\dfrac{${b}}{(${d}-x)^2} \\Rightarrow \\dfrac{${d}-x}{x} = \\sqrt{${b}/${a}}$. $x = ${d}\\sqrt{${a}}/(\\sqrt{${a}}+\\sqrt{${b}}) = ${x.toFixed(3)}$ m.` };
+  }, (p) => { let lo = 0; let hi = p.d; for (let i = 0; i < 80; i++) { const x = (lo + hi) / 2; if (p.a / (x * x) > p.b / ((p.d - x) ** 2)) lo = x; else hi = x; } return (lo + hi) / 2; }),
+  gx(5, 'nat', 'orbit change', (rng) => {
+    const f = pick(rng, 1.05, 1.35, 0.05); const r0 = pick(rng, 6600, 9000, 200);
+    const ra = r0 * f * f / (2 - f * f);
+    return { f, r0, q: `A satellite in a circular orbit of radius ${r0} km gets a short burn along its motion that raises its speed to ${f} times the circular speed. Find the apogee distance from the Earth's centre (in km, nearest km).`, answer: Math.round(ra), tol: 1, unit: 'km',
+      sol: `With $x = r_a/r_0$: $L$ gives $v_a = fv_0/x$ and energy gives $\\dfrac{f^2}{2} - 1 = \\dfrac{f^2}{2x^2} - \\dfrac1x$. The non-trivial root is $x = \\dfrac{f^2}{2-f^2} = ${(f * f / (2 - f * f)).toFixed(4)}$. $r_a = ${Math.round(ra)}$ km.` };
+  }, (p) => { const GM = 1; const v0 = Math.sqrt(GM / p.r0); const vp = p.f * v0; const E = 0.5 * vp * vp - GM / p.r0; const L = vp * p.r0; let lo = p.r0 * 1.0001; let hi = p.r0 * 1000; const fn = (r) => 0.5 * (L / r) ** 2 - GM / r - E; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (fn(mid) < 0) lo = mid; else hi = mid; } return Math.round((lo + hi) / 2); }),
+  gx(4, 'nat', 'binary stars', (rng) => {
+    const M1 = pick(rng, 1, 6, 1); const M2 = pick(rng, 1, 6, 1); const d = pick(rng, 1, 5, 1);
+    const T = 2 * Math.PI * Math.sqrt((d * 1e11) ** 3 / (6.67e-11 * (M1 + M2) * 1e30)) / 86400;
+    return { M1, M2, d, q: `Two stars of masses ${M1} and ${M2} (in units of $10^{30}$ kg) are always ${d} × 10<sup>11</sup> m apart and move in circles about their centre of mass. Find the period (in days, 1 decimal; $G = 6.67\\times10^{-11}$).`, answer: +T.toFixed(1), tol: 0.2, unit: 'days',
+      sol: `$T = 2\\pi\\sqrt{\\dfrac{d^3}{G(M_1+M_2)}} = 2\\pi\\sqrt{\\dfrac{(${d}\\times10^{11})^3}{6.67\\times10^{-11}\\times${M1 + M2}\\times10^{30}}} = ${T.toFixed(1)}$ days.` };
+  }, (p) => { const G = 6.67e-11; const m1 = p.M1 * 1e30; const m2 = p.M2 * 1e30; const d = p.d * 1e11; const r1 = d * m2 / (m1 + m2); const w2 = G * m2 / (d * d * r1); return 2 * Math.PI / Math.sqrt(w2) / 86400; }),
+  gx(3, 'mcq', 'variation of g', (rng) => {
+    const kind = choose(rng, ['height', 'depth']); const f = choose(rng, [1, 2, 3]);
+    const fr = (u, v) => (u === 1 ? `g/${v}` : `${u}g/${v}`);
+    let right; let wrong; let q;
+    if (kind === 'height') { right = [1, (1 + f) ** 2]; wrong = [[1, 1 + f], [f, f + 1], [1, f], [1, 2 * (1 + f)]]; q = `At a height of ${f}R above the Earth's surface, the acceleration due to gravity is`; } else { right = [f + 1 - 1, f + 1]; wrong = [[1, (f + 1) ** 2], [1, f + 1], [f + 2, f + 1 + 1], [1, f + 2]]; q = `At a depth of R/${f + 1} below the surface (uniform Earth), the acceleration due to gravity is`; }
+    const val = right[0] / right[1];
+    const w2 = wrong.filter((x) => Math.abs(x[0] / x[1] - val) > 1e-9 && x[0] / x[1] < 1).filter((x, i, a) => a.findIndex((y) => Math.abs(y[0] / y[1] - x[0] / x[1]) < 1e-9) === i);
+    while (w2.length < 3) w2.push([1, 7 + w2.length]);
+    const o = shuffleOpts(rng, fr(...right), w2.slice(0, 3).map((x) => fr(...x)));
+    return { val, opts: o.options, q, options: o.options, answer: o.answer,
+      sol: kind === 'height' ? `$g' = g\\dfrac{R^2}{(R+h)^2} = \\dfrac{g}{${(1 + f) ** 2}}$.` : `$g' = g\\left(1-\\dfrac dR\\right) = g\\left(1-\\dfrac1{${f + 1}}\\right) = ${fr(...right)}$.`, trap: 'Height uses the square law; depth is linear.' };
+  }, (p) => { const ev = (t) => { const m2 = t.match(/^(\d+)?g\/(\d+)$/); return (m2[1] ? +m2[1] : 1) / +m2[2]; }; return p.opts.findIndex((x) => Math.abs(ev(x) - p.val) < 1e-9); }),
+);
+
+}
+
 export default { topic: 'gravitation', groups, items, gens };

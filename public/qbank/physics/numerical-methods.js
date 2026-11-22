@@ -5,6 +5,7 @@
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
 import more from './numerical-methods.more.gen.js';
 import more2 from './numerical-methods.more2.gen.js';
+import r4 from './numerical-methods.r4.gen.js';
 
 const trap = (f, a, b, n) => { const h = (b - a) / n; let s = (f(a) + f(b)) / 2; for (let i = 1; i < n; i++) s += f(a + i * h); return s * h; };
 const simp = (f, a, b, n) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
@@ -193,6 +194,7 @@ export default {
       options: ['underestimates by $0.0167$', 'is exact', 'overestimates by $1.067$', 'overestimates by $0.267$'], answer: 3,
       sol: '$f^{(4)} = 24$, so $E = I - S = -\\dfrac{2\\times1\\times24}{180} = -0.267$: $S$ is larger than $I$ by $0.267$. Directly: $S = 20/3 = 6.667$ and $I = 6.4$. (With $h = 0.5$ the error would be $16$ times smaller, $0.0167$.)' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'num-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Newton-Raphson',
@@ -346,5 +348,6 @@ export default {
       },
       verify: (p) => { let x = p.x0; for (let i = 0; i < p.N; i++) x = p.kind === 'sqrt' ? (x + p.c) ** 0.5 : p.a * x + p.b; return x; } },
     ...more,
+    ...r4.gens,
   ],
 };

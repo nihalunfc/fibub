@@ -5,6 +5,7 @@
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
 import more from './phase-space-stability.more.gen.js';
 import more2 from './phase-space-stability.more2.gen.js';
+import r4 from './phase-space-stability.r4.gen.js';
 
 const TD = 'For $\\dot{\\vec x} = A\\vec x$ in the plane, with $\\tau = \\mathrm{tr}\\,A$ and $\\Delta = \\det A$: the eigenvalues are $\\lambda = \\tfrac12\\left(\\tau \\pm\\sqrt{\\tau^2 - 4\\Delta}\\right)$.';
 const classify = (t, D) => {
@@ -198,6 +199,7 @@ export default {
       answer: 0.0432, tol: 0.001, calc: () => Math.exp(-Math.PI),
       sol: 'Eigenvalues $\\lambda = -1\\pm2i$, so $x = Ae^{-t}\\cos(2t + \\phi)$. Successive maxima are one damped period $2\\pi/2 = \\pi$ apart, so their ratio is $e^{-\\pi} \\approx 0.0432$. The logarithmic decrement is $\\pi$; in phase space the spiral shrinks by this factor per turn.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'pss-g01', type: 'mcq', level: 2, exams: ['gate', 'net'], sub: 'classification',
@@ -325,5 +327,6 @@ export default {
       },
       verify: (p) => p.N + p.F + p.Cn - p.S },
     ...more,
+    ...r4.gens,
   ],
 };

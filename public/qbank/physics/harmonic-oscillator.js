@@ -5,6 +5,7 @@
 import { int, choose, round } from '../_util.js';
 import more from './harmonic-oscillator.more.gen.js';
 import more2 from './harmonic-oscillator.more2.gen.js';
+import r4 from './harmonic-oscillator.r4.gen.js';
 
 const HBM = 0.0762; // hbar^2 / m_e in eV nm^2
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
@@ -199,6 +200,7 @@ export default {
       options: ['$|\\alpha\\rangle = D(\\alpha)|0\\rangle$ is the coherent state with $a|\\alpha\\rangle = \\alpha|\\alpha\\rangle$.', '$D(\\alpha)$ is unitary.', '$|\\alpha\\rangle$ is an eigenstate of $a^\\dagger$ with eigenvalue $\\alpha^*$.', '$|\\langle\\beta|\\alpha\\rangle|^2 = e^{-|\\alpha - \\beta|^2}$.'], answer: [0, 1, 3],
       sol: 'The exponent is anti-Hermitian, so $D$ is unitary. BCH gives $D^\\dagger aD = a + \\alpha$, so $aD|0\\rangle = D(a + \\alpha)|0\\rangle = \\alpha D|0\\rangle$. $\\langle\\alpha|a^\\dagger = \\alpha^*\\langle\\alpha|$ (a left eigenvector), but $|\\alpha\\rangle$ is not a right eigenvector of $a^\\dagger$. From the Poisson expansion, $\\langle\\beta|\\alpha\\rangle = e^{-|\\alpha|^2/2 - |\\beta|^2/2 + \\beta^*\\alpha}$, whose modulus squared is $e^{-|\\alpha - \\beta|^2}$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'qho-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'matrix elements',
@@ -280,5 +282,6 @@ export default {
       },
       verify: (p) => Math.exp(-p.f) },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -309,6 +309,176 @@ const items = [
     r`Energy per cycle $= 240\times2.5\times10^{-3} = 0.6$ J. Power $= 0.6\times50 = 30$ W.`, { unit: 'W' }),
   pas(4, 'hysteresis loss', 'p3', r`By how many degrees would the core (mass 20 kg, specific heat $450\ \mathrm{J\,kg^{-1}K^{-1}}$) warm up in 10 minutes if all the loss stays as heat (1 decimal)?`, 30 * 600 / (20 * 450), 0.05, 1,
     r`Heat $= 30\times600 = 18000$ J. $\Delta T = \dfrac{Q}{mc} = \dfrac{18000}{20\times450} = 2.0\ ^\circ$C.`, { unit: '°C' }),
+
+  // ================= Added 2026-11-22: harder and more varied questions =================
+  // ---------- Level 2 ----------
+  mcq(2, 'dia-, para-, ferro-', r`Which of the following is <b>paramagnetic</b> at room temperature?`, 'aluminium', ['copper', 'bismuth', 'gold'],
+    r`Aluminium has atoms with unpaired electrons and is weakly attracted by a magnet (paramagnetic). Copper, bismuth and gold are diamagnetic.`),
+  mcq(2, 'susceptibility', r`The magnetic susceptibility $\chi$ of a material has`, 'no unit', [r`the unit $\mathrm{A\,m^{-1}}$`, r`the unit T`, r`the unit $\mathrm{T\,m\,A^{-1}}$`],
+    r`$\chi = M/H$ and $M$ and $H$ are both in $\mathrm{A\,m^{-1}}$, so $\chi$ is a pure number. The units $\mathrm{T\,m\,A^{-1}}$ belong to permeability $\mu$.`),
+  nat(2, 'torque on a magnet', r`A bar magnet of length 10 cm and pole strength 20 A m makes $30^\circ$ with a uniform field of 0.3 T. Find the torque on it (in N m, 2 decimals).`, 2 * 0.3 * 0.5, 0.005, 2,
+    r`Magnetic moment $M = m\times2l = 20\times0.10 = 2\ \mathrm{A\,m^2}$. Torque $\tau = MB\sin\theta = 2\times0.3\times\sin30^\circ = 0.30$ N m.`, { unit: 'N m' }),
+  mcq(2, 'potential energy', r`A magnet of moment $M$ is placed in a field $B$. Its potential energy in the position of stable equilibrium is`, r`$-MB$`, [r`$+MB$`, '$0$', r`$-MB/2$`],
+    r`$U = -MB\cos\theta$. Stable equilibrium is at $\theta = 0$ (moment along the field), so $U = -MB$, the lowest value. $+MB$ is the unstable position ($\theta = 180^\circ$).`),
+  mcq(2, "Earth's magnetism", r`The angle between the geographic meridian and the magnetic meridian at a place is called`, 'the angle of declination', ['the angle of dip', 'the angle of inclination', 'the angle of hysteresis'],
+    r`Declination is the angle between the two meridians (geographic and magnetic). Dip (inclination) is the angle of the total field with the horizontal.`),
+  mcq(2, 'field lines', r`Which of the following is <b>not</b> true of magnetic field lines?`, 'Two field lines can cross each other', ['They form continuous closed loops', 'The tangent at a point gives the direction of the field', 'Closer lines mean a stronger field'],
+    r`If two field lines crossed, the field would have two directions at the crossing point, which is impossible. The other three statements are true.`),
+
+  // ---------- Level 3 ----------
+  nat(3, "Earth's magnetism", r`At a place the horizontal component of the Earth's field is $2.0\times10^{-5}$ T and the total field is $4.0\times10^{-5}$ T. Find the angle of dip in degrees.`, Math.acos(2e-5 / 4e-5) * 180 / Math.PI, 0, 0,
+    r`$B_h = B\cos\delta$, so $\cos\delta = 2.0/4.0 = 0.5$ and $\delta = 60^\circ$.`, { unit: '°' }),
+  nat(3, 'dipole field', r`A short magnet of moment $2\ \mathrm{A\,m^2}$ has its centre 10 cm from point P. The line from the centre to P makes $60^\circ$ with the magnet's axis. Find the magnitude of the field at P (in $\mu$T, 1 decimal).`, K * 2 / 0.1 ** 3 * Math.sqrt(1 + 3 * 0.25) * 1e6, 0.5, 1,
+    r`$B = \dfrac{\mu_0}{4\pi}\dfrac{M}{r^3}\sqrt{1+3\cos^2\theta}$. $\dfrac{\mu_0M}{4\pi r^3} = 10^{-7}\times2/10^{-3} = 2\times10^{-4}$ T. With $\cos60^\circ = 0.5$: $\sqrt{1+0.75} = 1.323$. So $B = 2.65\times10^{-4}$ T $= 264.6\ \mu$T.`, { unit: 'μT', trap: 'The axial and equatorial formulae are only the two special cases ($\\theta = 0$ and $90^\\circ$).' }),
+  mcq(3, 'force between magnets', r`Two short bar magnets are placed coaxially, a distance $r$ apart ($r$ much larger than their lengths). The force between them varies as`, r`$1/r^{4}$`, [r`$1/r^{2}$`, r`$1/r^{3}$`, r`$1/r^{6}$`],
+    r`The field of a short magnet on its axis is $\propto1/r^3$. The force on the second magnet is $M\,dB/dr\propto 1/r^4$. Magnetic poles come in pairs, so there is no $1/r^2$ law between whole magnets.`, { trap: 'The $1/r^2$ law is for isolated poles, which do not exist.' }),
+  mcq(3, 'orbital moment', r`A thin ring of radius $R$ carries a charge $Q$ spread uniformly over it and rotates about its axis with angular speed $\omega$. Its magnetic moment is`, r`$\dfrac12Q\omega R^{2}$`, [r`$Q\omega R^{2}$`, r`$\dfrac14Q\omega R^{2}$`, r`$\dfrac{Q\omega}{2\pi R^2}$`],
+    r`The current is $I = Q/T = Q\omega/2\pi$ and the area is $\pi R^2$, so $M = IA = \dfrac{Q\omega}{2\pi}\pi R^2 = \dfrac12Q\omega R^2$.`),
+  nat(3, 'orbital moment', r`A ring of radius $0.2$ m carries a charge of $3\ \mu$C and spins at $50\ \mathrm{rad\,s^{-1}}$ about its axis. Find its magnetic moment (in $\mu\mathrm{A\,m^2}$, 1 decimal).`, 3e-6 * 50 * 0.04 / 2 * 1e6, 0.05, 1,
+    r`$M = \tfrac12Q\omega R^2 = \tfrac12\times3\times10^{-6}\times50\times0.04 = 3.0\times10^{-6}\ \mathrm{A\,m^2} = 3.0\ \mu\mathrm{A\,m^2}$.`, { unit: 'μA m²' }),
+  nat(3, 'work done in rotation', r`A magnet of moment $0.6\ \mathrm{A\,m^2}$ is initially at $60^\circ$ to a 0.4 T field. Find the work done in turning it to $180^\circ$ (in J, 2 decimals).`, 0.6 * 0.4 * (Math.cos(Math.PI / 3) - Math.cos(Math.PI)), 0.005, 2,
+    r`$W = U_f - U_i = -MB\cos180^\circ - (-MB\cos60^\circ) = MB(\cos60^\circ - \cos180^\circ) = 0.24\times(0.5+1) = 0.36$ J.`, { unit: 'J', trap: 'Starting from $60^\\circ$, not from $0^\\circ$.' }),
+  mcq(3, 'superconductors', r`A superconducting sphere is cooled below its critical temperature in a weak external magnetic field. The magnetic field inside the bulk of the superconductor is`, 'zero', [r`equal to the external field`, r`larger than the external field`, `half the external field`],
+    r`A superconductor expels the field from its interior (the Meissner effect). Inside it, $B = 0$, which corresponds to $\chi = -1$ and $\mu_r = 0$.`),
+  mcq(3, 'permanent magnets', r`Alnico is chosen for strong permanent magnets because it has`, 'high retentivity and high coercivity', ['low retentivity and low coercivity', 'high retentivity and low coercivity', 'low retentivity and high permeability'],
+    r`A permanent magnet must keep its magnetism (high retentivity) and resist being demagnetised (high coercivity). Low retentivity and low coercivity describes soft iron, used for electromagnets and transformers.`),
+  nat(3, 'solenoid with core', r`A long solenoid has 1200 turns per metre and is filled with an iron core of relative permeability 2000. What current gives a flux density of 1.0 T in the core? (Use $\mu_0 = 4\pi\times10^{-7}$; in A, 2 decimals.)`, 1 / (MU * 2000 * 1200), 0.005, 2,
+    r`$B = \mu_0\mu_r nI$, so $I = \dfrac{B}{\mu_0\mu_rn} = \dfrac{1.0}{4\pi\times10^{-7}\times2000\times1200} = 0.33$ A.`, { unit: 'A' }),
+  nat(3, "Earth's magnetism", r`At a place the horizontal component of the Earth's field is 0.20 G and the dip is $60^\circ$. Find the total field in microtesla ($1\ \mathrm{G} = 10^{-4}$ T).`, 0.2 / Math.cos(Math.PI / 3) * 100, 0, 0,
+    r`$B = B_h/\cos\delta = 0.20/0.5 = 0.40$ G $= 0.40\times10^{-4}$ T $= 40\ \mu$T.`, { unit: 'μT', trap: '$1\\ \\mathrm{G} = 100\\ \\mu\\mathrm{T}$.' }),
+  nat(3, 'Bohr magneton', r`In the Bohr model the orbital angular momentum of an electron in the $n$th orbit is $n\hbar$. In units of the Bohr magneton $\mu_B = e\hbar/2m$, find the orbital magnetic moment for $n = 3$.`, 3, 0, 0,
+    r`$\mu = \dfrac{e}{2m}L = \dfrac{e}{2m}n\hbar = n\mu_B = 3\mu_B$.`),
+  nat(3, 'magnetisation', r`A material of susceptibility $\chi = 500$ is placed in a magnetising field $H = 400\ \mathrm{A\,m^{-1}}$. Find its magnetisation in units of $10^{5}\ \mathrm{A\,m^{-1}}$.`, 500 * 400 / 1e5, 0, 0,
+    r`$M = \chi H = 500\times400 = 2\times10^{5}\ \mathrm{A\,m^{-1}}$, so the answer is 2.`),
+  asrt(3, 'field lines', r`Inside a bar magnet the magnetic field lines run from the S pole to the N pole.`, r`Magnetic field lines are continuous closed loops because isolated magnetic poles do not exist.`, 0,
+    r`Both are true and R explains A. Outside, the lines go from N to S. They cannot end on poles (no monopoles), so they continue inside from S back to N and close.`),
+  stm(3, 'diamagnetism', r`A diamagnetic atom has no permanent magnetic moment.`, r`In a diamagnetic material the induced moment is opposite to the applied field.`, 0,
+    r`In diamagnetic atoms all electron moments cancel, so there is no permanent moment (I true). The field changes the electron motion so that an opposing moment is induced (Lenz's law), making $\chi$ small and negative (II true).`),
+  mat(3, 'applications', 'm5', r`Match each material in List I with its use in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-s, B-q, C-r, D-p'],
+    r`Soft iron has low retentivity and coercivity, so it suits electromagnet and transformer cores (p). Steel and alnico keep their magnetism (q). Ferrites have high resistivity, so they suit high-frequency cores (r). A superconductor can float a magnet by the Meissner effect (s). So A-p, B-q, C-r, D-s.`),
+  mat(3, 'dipole field', 'm6', r`Let $B_0 = \dfrac{\mu_0}{4\pi}\dfrac{M}{d^3}$. Match each field of a short magnet in List I with its value in List II.`, 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-p, B-q, C-r, D-s'],
+    r`On the axis $B = 2B_0(d/x)^3$; on the equator $B = B_0(d/x)^3$. A: axis at $d$: $2B_0$ (r). B: equator at $d$: $B_0$ (q). C: axis at $2d$: $2B_0/8 = B_0/4$ (p). D: equator at $2d$: $B_0/8$ (s). So A-r, B-q, C-p, D-s.`),
+  pas(3, "Earth's magnetism", 'p4', r`Find the horizontal component $B_h$ of the Earth's field (in $\mu$T).`, 50 * 0.8, 0.5, 1,
+    r`$B_h = B\cos\delta = 50\times0.8 = 40\ \mu$T.`, { unit: 'μT' }),
+  pas(4, 'oscillation of a magnet', 'p4', r`Find the period of small oscillations of the magnet in a horizontal plane (in s, 2 decimals).`, 2 * Math.PI * Math.sqrt(1.5e-4 / (2.4 * 40e-6)), 0.02, 2,
+    r`In a horizontal plane only $B_h$ gives a restoring torque. $T = 2\pi\sqrt{\dfrac{I}{MB_h}} = 2\pi\sqrt{\dfrac{1.5\times10^{-4}}{2.4\times4.0\times10^{-5}}} = 2\pi\times1.25 = 7.85$ s.`, { unit: 's' }),
+  pasm(4, 'oscillation of a magnet', 'p4', r`The same magnet is now set oscillating in a vertical plane that contains the magnetic meridian. The ratio (new period)/(old period) is about`, '0.89', ['1.12', '0.80', '1.25'],
+    r`In the vertical plane within the meridian the restoring torque is due to the total field $B$, so $T' = 2\pi\sqrt{I/MB}$. $T'/T = \sqrt{B_h/B} = \sqrt{\cos\delta} = \sqrt{0.8} = 0.894$.`, { trap: 'The period gets shorter because the total field is larger than $B_h$.' }),
+
+  // ---------- Level 4 ----------
+  msq(4, 'dipole field', r`For a short bar magnet of moment $M$, at a point a distance $r$ from its centre on a line making angle $\theta$ with its axis, which statements are correct?`,
+    [r`$B = \dfrac{\mu_0M}{4\pi r^{3}}\sqrt{1+3\cos^{2}\theta}$`, r`The field at $\theta = 90^\circ$ is half that at $\theta = 0$ (same $r$)`, r`The angle $\alpha$ between $\vec B$ and the radial line satisfies $\tan\alpha = 2\tan\theta$`, r`The field falls off as $1/r^{3}$`], [0, 1, 3],
+    r`A is the standard result. B: $\theta = 0$ gives $2B_0$ and $\theta = 90^\circ$ gives $B_0$ (true). C is wrong: the correct relation is $\tan\alpha = \tfrac12\tan\theta$. D is true for any direction of a point dipole.`, { trap: 'The factor in $\\tan\\alpha = \\tfrac12\\tan\\theta$ is easily inverted.' }),
+  msq(4, 'dia-, para-, ferro-', r`Which of the following statements about magnetic materials are correct?`,
+    [r`The susceptibility of a paramagnet is proportional to $1/T$`, r`The susceptibility of a diamagnet changes strongly with temperature`, r`Above its Curie temperature a ferromagnet has $\chi\propto1/(T-T_c)$`, r`A diamagnetic rod aligns itself along the field in a uniform field`], [0, 2],
+    r`A is Curie's law. B is false: the induced diamagnetic moment is almost independent of $T$. C is the Curie-Weiss law. D is false: a diamagnetic rod sets itself perpendicular to the field (in a non-uniform field it also moves to the weaker region).`),
+  msq(4, "Earth's magnetism", r`Which statements about the Earth's magnetic field are correct?`,
+    [r`At the magnetic equator the dip is $0^\circ$ and $B_v = 0$`, r`At the magnetic poles $B_h = 0$`, r`$B_h$ is larger at the magnetic poles than at the equator`, r`The declination is zero at every place`], [0, 1],
+    r`At the equator the field is horizontal, so $\delta = 0$ and $B_v = 0$ (A). At the poles the field is vertical, so $B_h = B\cos90^\circ = 0$ (B). Hence $B_h$ is largest near the equator, not the poles (C false). Declination varies from place to place (D false).`),
+  msq(4, 'Curie law', r`A paramagnetic sample obeys Curie's law $M = CB/T$ at small $B/T$. Which statements are correct?`,
+    [r`At fixed $T$, $M$ increases linearly with $B$`, r`A graph of $1/\chi$ against $T$ is a straight line through the origin`, r`The law holds for any value of $B/T$`, r`The susceptibility does not depend on temperature`], [0, 1],
+    r`$\chi\propto1/T$, so $1/\chi\propto T$ is a straight line through the origin (B). For fixed $T$, $M\propto B$ (A). At large $B/T$ the magnetisation saturates and the law fails (C false). $\chi$ depends on $T$ (D false).`),
+  msq(4, 'hysteresis', r`In the $B$-$H$ loop of a ferromagnet, which statements are correct?`,
+    ['The area of the loop equals the energy dissipated per unit volume in one cycle', 'Retentivity is the value of $B$ left when $H$ is reduced to zero after saturation', 'Coercivity is the reverse $H$ needed to bring $B$ to zero', 'Soft iron has a larger coercivity than steel'], [0, 1, 2],
+    r`A, B and C are the definitions. Soft iron has a narrow loop (small coercivity) and steel a wide one, so D is false.`),
+  nat(4, 'torque on a magnet', r`A magnet in a uniform field feels a torque equal to half of the maximum possible torque. At which <b>acute</b> angle to the field is it, in degrees?`, 30, 0, 0,
+    r`$\tau = MB\sin\theta$ and $\tau_{max} = MB$. $\sin\theta = \tfrac12$ gives $\theta = 30^\circ$ (acute).`, { unit: '°' }),
+  nat(4, 'oscillation of a magnet', r`A magnet oscillates in the Earth's horizontal field. By what factor must the horizontal field be reduced (at the same place with the same magnet) to double the time period?`, 4, 0, 0,
+    r`$T = 2\pi\sqrt{I/MB}\propto1/\sqrt B$. For $T' = 2T$ we need $\sqrt{B/B'} = 2$, so $B' = B/4$: the field must be reduced by a factor of 4.`, { trap: 'The period varies as the inverse square root of the field.' }),
+  nat(4, 'hysteresis loss', r`The loop of a core encloses $8\ \mathrm{J\,m^{-3}}$ per cycle. The core has volume $0.01\ \mathrm{m^3}$ and is magnetised at 50 Hz. Find the heat produced in 1 minute (in J).`, 8 * 50 * 0.01 * 60, 0, 0,
+    r`Energy per cycle $= 8\times0.01 = 0.08$ J. Cycles in 60 s $= 50\times60 = 3000$. Heat $= 0.08\times3000 = 240$ J.`, { unit: 'J' }),
+  nat(4, 'potential energy', r`The potential energy of a magnet at $60^\circ$ to a uniform field is $-0.2$ J. Find the work needed to rotate it from this position to $180^\circ$ (in mJ).`, 600, 0, 0,
+    r`$U(60^\circ) = -MB\cos60^\circ = -0.2$ J, so $MB = 0.4$ J. $U(180^\circ) = +MB = 0.4$ J. Work $= 0.4 - (-0.2) = 0.6$ J $= 600$ mJ.`, { unit: 'mJ' }),
+  nat(4, 'force on a magnet', r`A small magnet of moment $2.0\ \mathrm{A\,m^2}$, aligned along a field that increases along its axis at $30\ \mathrm{T\,m^{-1}}$, is held in that field gradient. Find the net force on it in newton.`, 2 * 30, 0, 0,
+    r`The force on a dipole aligned with the field is $F = M\,\dfrac{dB}{dx} = 2.0\times30 = 60$ N. In a uniform field the net force would be zero.`, { unit: 'N' }),
+  nat(4, 'orbital moment', r`A uniformly charged disc of charge $4\ \mu$C and radius $0.1$ m spins at $200\ \mathrm{rad\,s^{-1}}$ about its axis. Find its magnetic moment in $\mu\mathrm{A\,m^2}$.`, 4e-6 * 200 * 0.01 / 4 * 1e6, 0, 0,
+    r`For a disc $M = \tfrac14Q\omega R^2 = \tfrac14\times4\times10^{-6}\times200\times0.01 = 2\times10^{-6}\ \mathrm{A\,m^2}$, i.e. 2 $\mu\mathrm{A\,m^2}$.`, { unit: 'μA m²', trap: 'The disc has factor $1/4$, the ring $1/2$.' }),
+  nat(4, 'dia-, para-, ferro-', r`How many of the following are diamagnetic? Bismuth, copper, gold, aluminium, sodium, lead.`, 4, 0, 0,
+    r`Bismuth, copper, gold and lead are diamagnetic. Aluminium and sodium are paramagnetic. So 4.`, { trap: 'Many metals are diamagnetic; the paramagnetic ones are like Al, Na, Pt.' }),
+  nat(4, 'Bohr magneton', r`A paramagnetic atom has a magnetic moment of $1.855\times10^{-23}\ \mathrm{A\,m^2}$. Express it in Bohr magnetons ($\mu_B = 9.274\times10^{-24}\ \mathrm{A\,m^2}$).`, 1.855e-23 / MUB, 0, 0,
+    r`$1.855\times10^{-23}/9.274\times10^{-24} = 2.00$, so $2\mu_B$.`),
+  nat(4, 'oscillation of a magnet', r`A magnet has a period of 2 s in the horizontal field of the Earth. A strong field of $3B_h$, directed along $B_h$, is added. What is the new period in s?`, 1, 0, 0,
+    r`The net field becomes $B_h + 3B_h = 4B_h$. $T\propto1/\sqrt B$, so $T' = T/\sqrt4 = 1$ s.`, { unit: 's' }),
+  nat(4, 'orbital moment', r`A solid non-conducting sphere of radius $0.2$ m carries charge $5\ \mu$C spread uniformly through its volume. It spins at $100\ \mathrm{rad\,s^{-1}}$ about a diameter. Find its magnetic moment in $\mu\mathrm{A\,m^2}$ ($M = \tfrac15Q\omega R^2$).`, 5e-6 * 100 * 0.04 / 5 * 1e6, 0, 0,
+    r`$M = \tfrac15Q\omega R^2 = \tfrac15\times5\times10^{-6}\times100\times0.04 = 4\times10^{-6}\ \mathrm{A\,m^2}$, i.e. 4 $\mu\mathrm{A\,m^2}$.`, { unit: 'μA m²' }),
+  nat(4, 'neutral point', r`The field of a short magnet on its axis at $20$ cm equals the field on its equatorial line at some distance $r'$. Find $r'$ in cm (2 decimals).`, 20 / Math.cbrt(2), 0.05, 2,
+    r`Axis: $B = 2KM/r^3$. Equator: $B = KM/r'^3$. Equating, $r'^3 = r^3/2$, so $r' = 20/2^{1/3} = 15.87$ cm.`, { unit: 'cm' }),
+  nat(4, 'combination of magnets', r`In an oscillation magnetometer two bar magnets, placed together with like poles together, oscillate with period $T_s = 3$ s. With unlike poles together the period is $T_d = 5$ s. Find the ratio $M_1/M_2$ of their moments (3 decimals).`, (25 + 9) / (25 - 9), 0.01, 3,
+    r`Sum: $T_s^2 = 4\pi^2I/((M_1+M_2)B)$. Difference: $T_d^2 = 4\pi^2I/((M_1-M_2)B)$. So $\dfrac{M_1+M_2}{M_1-M_2} = \dfrac{T_d^2}{T_s^2} = \dfrac{25}{9}$, and $\dfrac{M_1}{M_2} = \dfrac{T_d^2+T_s^2}{T_d^2-T_s^2} = \dfrac{34}{16} = 2.125$.`, { trap: 'The shorter period belongs to the arrangement with the larger net moment.' }),
+  nat(4, 'dipole field', r`Find the ratio of the field on the equatorial line at distance $r$ to the field on the axis at distance $3r$ (1 decimal).`, 27 / 2, 0.05, 1,
+    r`$B_{eq}(r) = KM/r^3$ and $B_{ax}(3r) = 2KM/(27r^3)$. The ratio is $\dfrac{1}{2/27} = 13.5$.`),
+  nat(4, 'Curie-Weiss law', r`A ferromagnet above its Curie temperature $T_c = 800$ K has $\chi = 2.0\times10^{-2}$ at 1000 K. Find $\chi$ at 900 K in units of $10^{-2}$.`, 2.0 * (1000 - 800) / (900 - 800), 0.05, 1,
+    r`$\chi = C/(T-T_c)$. At 1000 K: $C = 2.0\times10^{-2}\times200$. At 900 K: $\chi = C/100 = 4.0\times10^{-2}$.`),
+  asrt(4, 'diamagnetism', r`The susceptibility of a diamagnetic substance falls rapidly when it is heated.`, r`The diamagnetic moment is induced by the field and is almost independent of temperature.`, 3,
+    r`A is false: $\chi$ of a diamagnet is nearly temperature independent. R is true, and it is the reason A fails. So A false, R true.`),
+  asrt(4, 'diamagnetism', r`A diamagnetic material in a non-uniform field is pushed towards the region of weaker field.`, r`The moment induced in a diamagnetic material opposes the applied field.`, 0,
+    r`Both are true. The induced moment is opposite to $\vec B$, so the energy $U = -\vec M\cdot\vec B$ is positive and decreases as $B$ decreases. The material moves to weaker field, which is explained by R.`),
+  asrt(4, 'force between magnets', r`The force between two short coaxial magnets falls off as $1/r^{4}$.`, r`The field of a short magnet varies as $1/r^{3}$ and the force on the second magnet depends on the gradient of that field.`, 0,
+    r`Both true. $F = M\,dB/dr$ with $B\propto r^{-3}$ gives $F\propto r^{-4}$, so R explains A.`),
+  stm(4, 'combination of magnets', r`Two identical short magnets, each of moment $M$, are placed at the same point with their axes at right angles. The resultant moment is $2M$.`, r`Magnetic moments add as vectors.`, 3,
+    r`Statement II is true. The resultant of two equal perpendicular vectors is $\sqrt2M$, not $2M$, so Statement I is false.`),
+  stm(4, "Earth's magnetism", r`The Earth's field resembles that of a dipole at its centre, tilted by about $11^\circ$ from the rotation axis.`, r`The magnetic pole in the Earth's northern hemisphere behaves as the S pole of that dipole.`, 0,
+    r`Both are standard facts. The compass N pole points north because a magnetic S pole of the Earth-dipole lies near the geographic north.`),
+  cnt(4, 'magnetic materials', r`Consider these statements. How many are correct?`, [
+    r`A bar magnet's field lines are closed loops.`,
+    r`$\mu_r = 1 + \chi$ for every material.`,
+    r`A diamagnetic substance is repelled by a magnet.`,
+    r`A paramagnetic substance has $\chi<0$.`], 3,
+    r`(1) true. (2) true by definition of $\chi$ and $\mu_r$. (3) true. (4) false: a paramagnet has $\chi$ small and positive. Three are correct.`),
+  mat(4, 'rotating charge', 'm7', r`A charge $Q$ is spread uniformly over each body in List I, which spins with angular speed $\omega$ about its symmetry axis. Match each body with its magnetic moment in units of $Q\omega R^2$.`, 'A-p, B-q, C-s, D-r', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-p, B-s, C-q, D-r'],
+    r`Ring: $\tfrac12$ (p). Disc: $\tfrac14$ (q). Thin spherical shell (charge on the surface): $\tfrac13$ (s). Solid sphere (charge through the volume): $\tfrac15$ (r). So A-p, B-q, C-s, D-r.`),
+  mat(4, 'materials', 'm8', r`Match the type of material in List I with how its susceptibility behaves in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Diamagnet: $\chi$ negative and nearly independent of $T$ (p). Paramagnet: $\chi\propto1/T$ (q). Ferromagnet above $T_c$: $\chi\propto1/(T-T_c)$ (r). Superconductor: $\chi = -1$ (s). So A-p, B-q, C-r, D-s.`),
+  mat(4, 'dipole field', 'm9', r`For a short magnet, the field makes an angle $\alpha$ with the radial line from the centre to a point at angle $\theta$ from the axis, where $\tan\alpha = \tfrac12\tan\theta$. Match each position in List I with $\alpha$ in List II.`, 'A-p, B-s, C-r, D-q', ['A-p, B-q, C-r, D-s', 'A-s, B-p, C-r, D-q', 'A-p, B-s, C-q, D-r'],
+    r`A: $\theta = 0$: $\tan\alpha = 0$, $\alpha = 0$ (p). B: $\theta = 90^\circ$: $\tan\theta\to\infty$ so $\alpha = 90^\circ$ (s). C: $\tan\theta = 2$: $\tan\alpha = 1$, $\alpha = 45^\circ$ (r). D: $\tan\theta = 1$: $\tan\alpha = 0.5$, $\alpha = 26.6^\circ$ (q). So A-p, B-s, C-r, D-q.`),
+  mat(4, 'applications', 'm10', r`Match each instrument or device in List I with the relation it relies on in List II.`, 'A-q, B-r, C-p, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s'],
+    r`Deflection magnetometer: $B_{magnet} = B_h\tan\theta$ (q). Oscillation magnetometer: $T = 2\pi\sqrt{I/MB}$ (r). Dip circle: $\tan\delta = B_v/B_h$ (p). Electromagnet: $B = \mu_0\mu_rnI$ (s). So A-q, B-r, C-p, D-s.`),
+  mat(4, 'solenoid with core', 'm11', r`A long solenoid has $n$ turns per metre, current $I$ and a core of relative permeability $\mu_r$. Match each quantity in List I with its value in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$H = nI$ (p). $M = \chi H = (\mu_r-1)nI$ (q). $B = \mu_0\mu_rnI$ (r). $\mu = \mu_0\mu_r$ (s). So A-p, B-q, C-r, D-s.`),
+  mat(5, "Earth's magnetism", 'm12', r`Match each place or condition in List I with what holds there in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Magnetic equator: $\delta = 0$, $B_v = 0$ (p). Magnetic pole: $\delta = 90^\circ$ so $B_h = 0$ (q). Dip $45^\circ$: $\tan\delta = 1$ so $B_v = B_h$ (r). Dip $60^\circ$: $B_v = \sqrt3B_h$ (s). So A-p, B-q, C-r, D-s.`),
+  pas(3, "Curie's law", 'p5', r`Find the Curie constant $C$ in $M = CB/T$ (units: $\mathrm{A\,m^{-1}\,K\,T^{-1}}$).`, 1.2 * 300 / 0.3, 1, 0,
+    r`$C = MT/B = 1.2\times300/0.3 = 1200$.`),
+  pas(4, "Curie's law", 'p5', r`Find the magnetisation at 150 K in a field of 0.45 T (in $\mathrm{A\,m^{-1}}$, 1 decimal). Assume Curie's law holds.`, 1200 * 0.45 / 150, 0.05, 1,
+    r`$M = CB/T = 1200\times0.45/150 = 3.6\ \mathrm{A\,m^{-1}}$.`),
+  pasm(4, "Curie's law", 'p5', r`In a very strong field at 4 K the measured magnetisation stops rising and the law fails. The reason is that`, 'nearly all the atomic moments are already aligned (saturation)', ['the atoms lose their moments at low temperature', 'the sample becomes diamagnetic', 'the susceptibility becomes negative'],
+    r`Curie's law is valid only for small $B/T$. When $B/T$ is large, almost all dipoles are lined up and $M$ approaches the saturation value $nm$, however much $B$ is increased.`),
+
+  // ---------- Level 5 ----------
+  msq(5, 'superconductors', r`Which statements about a superconductor below its critical temperature are correct?`,
+    [r`The field inside its bulk is zero (Meissner effect)`, r`Its susceptibility is $\chi = -1$`, r`Its relative permeability is $\mu_r = 0$`, r`It expels the field only if the field was applied after cooling`], [0, 1, 2],
+    r`$B = \mu_0\mu_r H = 0$ gives $\mu_r = 0$ and $\chi = -1$. The Meissner effect expels the field whether it was applied before or after cooling; a mere perfect conductor would trap a field present before cooling, so D is false.`, { trap: 'A superconductor is more than a perfect conductor.' }),
+  msq(5, 'combination of magnets', r`Two identical bar magnets, each of moment $M$ and moment of inertia $I$ (about the common vertical axis), are glued together and oscillate in a horizontal field $B$ in different ways. Their individual period is $T = 2\pi\sqrt{I/MB}$. Which statements are correct?`,
+    [r`Glued side by side with moments in the same direction: period $T$`, r`Glued crossed at their centres at right angles: period $\sqrt2\,T$`, r`Glued with opposite moments: no restoring torque in a uniform field`, r`Glued crossed at their centres at right angles: period $2^{1/4}T$`], [0, 2, 3],
+    r`Side by side (same direction): moment $2M$, inertia $2I$, so the period is $T$ (A true). Crossed: net moment $\sqrt2M$ and inertia $2I$, so $T' = 2\pi\sqrt{2I/(\sqrt2MB)} = 2^{1/4}T$ (D true, B false). Opposite moments cancel, so there is no torque in a uniform field (C true).`),
+  msq(5, 'solenoid with core', r`A long solenoid with $n$ turns per metre carries current $I$ and has a core of relative permeability $\mu_r$. Which are correct?`,
+    [r`$H = nI$ whatever the core`, r`$B = \mu_0(H+M)$`, r`The increase in $B$ due to the core is $\mu_0M$`, r`$M = H/(\mu_r-1)$`], [0, 1, 2],
+    r`$H$ depends only on the free current (A). $B = \mu_0(H+M)$ (B). Without a core $B_0 = \mu_0H$, so the increase is $\mu_0M$ (C). $M = \chi H = (\mu_r-1)H$, not $H/(\mu_r-1)$ (D false).`),
+  msq(5, 'force on a magnet', r`Which statements about forces on magnetic materials are correct?`,
+    ['A magnet aligned with a field gradient feels a net force $M\\,\\partial B/\\partial x$', 'In a uniform field the net force on a magnet is zero', 'A diamagnetic body is pulled towards the region of stronger field', 'A paramagnetic body is pulled towards the region of stronger field'], [0, 1, 3],
+    r`A and B are standard. A paramagnet gets a moment along $\vec B$ and moves to stronger field (D true). A diamagnet gets an opposite moment and is pushed to weaker field (C false).`),
+  msq(5, 'orbital moment', r`An electron (charge $-e$, mass $m$) moves in a circular orbit of radius $r$ at speed $v$. Which statements are correct?`,
+    [r`The magnetic moment has magnitude $evr/2$`, r`The magnetic moment is $\dfrac{e}{2m}L$, with $L$ the orbital angular momentum`, r`The moment is antiparallel to $\vec L$`, r`A proton with the same $L$ has the same magnetic moment`], [0, 1, 2],
+    r`$I = ev/2\pi r$ and $A = \pi r^2$ give $M = evr/2 = (e/2m)L$. The electron is negative, so $\vec M$ is opposite to $\vec L$. For a proton, $m$ is about 1836 times larger, so for the same $L$ the moment is much smaller (D false).`),
+  msq(5, 'neutral point', r`A short bar magnet lies on a table in the magnetic meridian. Which statements about its neutral points are correct?`,
+    ['With its N pole pointing north the neutral points lie on the equatorial line', 'With its N pole pointing south they lie on the axis', 'The neutral points lie farther from the magnet when its N pole points south', 'At a neutral point the magnet\'s field is equal and opposite to the horizontal Earth field'], [0, 1, 2, 3],
+    r`N pointing north: the magnet's field on the equatorial line points south, opposing $B_h$ (north), at $r = (KM/B_h)^{1/3}$. N pointing south: on the axis the magnet's field points along its moment (south), opposing $B_h$ at $r = (2KM/B_h)^{1/3}$, which is $2^{1/3}$ times larger (C true). At each neutral point the two fields cancel (D true). All four are correct.`),
+  nat(5, 'apparent dip', r`A dip circle is used in two vertical planes at right angles to each other and gives apparent dips of $30^\circ$ and $60^\circ$. Find the true angle of dip in degrees (1 decimal).`, Math.atan(1 / Math.sqrt(1 / Math.tan(Math.PI / 6) ** 2 + 1 / Math.tan(Math.PI / 3) ** 2)) * 180 / Math.PI, 0.1, 1,
+    r`For a plane at angle $\varphi$ to the meridian, $\tan\delta' = \dfrac{B_v}{B_h\cos\varphi}$, so $\cot\delta' = \dfrac{B_h\cos\varphi}{B_v}$. For perpendicular planes the angles are $\varphi$ and $90^\circ-\varphi$, so $\cot^2\delta_1 + \cot^2\delta_2 = \cot^2\delta$. $\cot^230^\circ + \cot^260^\circ = 3 + \tfrac13 = \tfrac{10}{3}$. $\cot\delta = 1.826$ and $\delta = 28.7^\circ$.`, { unit: '°' }),
+  nat(5, 'dipole field', r`At what angle $\theta$ from the axis of a short magnet is the field magnitude equal to $\sqrt2$ times the equatorial value at the same distance? (in degrees, 1 decimal)`, Math.acos(Math.sqrt(1 / 3)) * 180 / Math.PI, 0.1, 1,
+    r`$B/B_{eq} = \sqrt{1+3\cos^2\theta} = \sqrt2$, so $\cos^2\theta = 1/3$ and $\theta = 54.7^\circ$.`, { unit: '°' }),
+  nat(5, 'force between magnets', r`Two short magnets, each of moment $2\ \mathrm{A\,m^2}$, lie coaxially with their centres $0.3$ m apart (unlike poles facing). The force between them is $F = \dfrac{3\mu_0M_1M_2}{2\pi r^4}$. Find $F$ in $\mu$N (nearest whole number).`, 3 * MU * 2 * 2 / (2 * Math.PI * 0.3 ** 4) * 1e6, 1, 0,
+    r`$F = \dfrac{3\times4\pi\times10^{-7}\times2\times2}{2\pi\times(0.3)^4} = \dfrac{6\times10^{-7}\times4}{8.1\times10^{-3}} = 2.96\times10^{-4}$ N $\approx296\ \mu$N.`, { unit: 'μN' }),
+  asrt(5, 'superconductors', r`A superconductor is not simply a perfect conductor.`, r`A perfect conductor cooled in a field keeps the field inside it, while a superconductor expels it.`, 0,
+    r`Both are true and R explains A. A perfect conductor only resists <i>changes</i> of flux (so a pre-existing flux stays trapped). A superconductor expels all flux (Meissner effect), which is an extra property.`),
+  asrt(5, 'hysteresis', r`The susceptibility of a ferromagnet is not a single constant.`, r`Its magnetisation saturates at large $H$ and also depends on the history of the sample.`, 0,
+    r`Both true. $\chi = M/H$ changes along the $B$-$H$ loop, so there is no single value; R gives the reason.`),
+  stm(5, 'bar magnet cut', r`A bar magnet is cut along its length into two identical thin magnets. The moment of each piece is half the original.`, r`The pole strength is proportional to the cross-sectional area, and the moment is $m\times$ length.`, 0,
+    r`The length is unchanged but the cross-section (and so pole strength) halves, so $M = m\times L$ halves (I true). II states exactly that rule, so it is true and explains I.`),
+  stm(5, 'orbital moment', r`For an electron in an atom the ratio $\mu/L$ of orbital magnetic moment to angular momentum is the same in every orbit.`, r`The ratio equals $e/2m$.`, 0,
+    r`$\mu = evr/2$ and $L = mvr$, so $\mu/L = e/2m$, independent of the orbit. Both true.`),
+  stm(5, 'oscillation of a magnet', r`A magnet oscillating in a vertical plane in the magnetic meridian has a shorter period than in a horizontal plane at the same place (dip not zero).`, r`In the vertical plane in the meridian the total field $B = B_h/\cos\delta$ provides the restoring torque.`, 0,
+    r`$T\propto1/\sqrt B$, and the total field exceeds $B_h$, so the period is shorter. Both true.`),
 ];
 const groups = {
   m1: { title: 'Types of magnetic material',
@@ -329,6 +499,34 @@ const groups = {
     passage: r`<p>A long solenoid has 1000 turns per metre and carries a current of 0.5 A. Its core is iron of relative permeability 800 (assume it does not saturate). Use $\mu_0 = 4\pi\times10^{-7}\ \mathrm{T\,m\,A^{-1}}$.</p>` },
   p3: { title: 'Energy loss in a core',
     passage: r`<p>The $B$-$H$ loop of a transformer core is drawn on graph paper on which 1 cm along $H$ represents $100\ \mathrm{A\,m^{-1}}$ and 1 cm along $B$ represents 0.2 T. The loop encloses an area of $12\ \mathrm{cm^2}$. The core has volume $2.5\times10^{-3}\ \mathrm{m^3}$ and is run at 50 Hz.</p>` },
+  m5: { title: 'Materials and uses',
+    list1: ['A. Soft iron', 'B. Steel or alnico', 'C. Ferrite', 'D. Superconductor'],
+    list2: ['p. Electromagnet and transformer cores', 'q. Permanent magnets', 'r. High-frequency cores (high resistivity)', 's. Floating a magnet (Meissner effect)'] },
+  m6: { title: 'Field of a short magnet',
+    list1: ['A. On the axis at distance $d$', 'B. On the equatorial line at $d$', 'C. On the axis at $2d$', 'D. On the equatorial line at $2d$'],
+    list2: [r`p. $B_0/4$`, r`q. $B_0$`, r`r. $2B_0$`, r`s. $B_0/8$`] },
+  m7: { title: 'Rotating charged bodies',
+    list1: ['A. Thin ring', 'B. Flat disc', 'C. Thin spherical shell', 'D. Solid sphere (charge through the volume)'],
+    list2: [r`p. $\tfrac12$`, r`q. $\tfrac14$`, r`r. $\tfrac15$`, r`s. $\tfrac13$`] },
+  m8: { title: 'Susceptibility behaviour',
+    list1: ['A. Diamagnet', 'B. Paramagnet', 'C. Ferromagnet above $T_c$', 'D. Superconductor'],
+    list2: [r`p. $\chi$ negative, nearly independent of $T$`, r`q. $\chi\propto1/T$`, r`r. $\chi\propto1/(T-T_c)$`, r`s. $\chi = -1$`] },
+  m9: { title: 'Direction of the dipole field',
+    list1: [r`A. $\theta = 0$`, r`B. $\theta = 90^\circ$`, r`C. $\tan\theta = 2$`, r`D. $\tan\theta = 1$`],
+    list2: [r`p. $\alpha = 0$`, r`q. $\alpha = 26.6^\circ$`, r`r. $\alpha = 45^\circ$`, r`s. $\alpha = 90^\circ$`] },
+  m10: { title: 'Instruments',
+    list1: ['A. Deflection magnetometer', 'B. Oscillation magnetometer', 'C. Dip circle', 'D. Electromagnet'],
+    list2: [r`p. $\tan\delta = B_v/B_h$`, r`q. $B = B_h\tan\theta$`, r`r. $T = 2\pi\sqrt{I/MB}$`, r`s. $B = \mu_0\mu_rnI$`] },
+  m11: { title: 'Solenoid with a core',
+    list1: ['A. $H$', 'B. $M$', 'C. $B$', 'D. $\\mu$'],
+    list2: [r`p. $nI$`, r`q. $(\mu_r-1)nI$`, r`r. $\mu_0\mu_rnI$`, r`s. $\mu_0\mu_r$`] },
+  m12: { title: "Earth's field at different places",
+    list1: ['A. Magnetic equator', 'B. Magnetic pole', r`C. Dip of $45^\circ$`, r`D. Dip of $60^\circ$`],
+    list2: [r`p. $\delta = 0$ and $B_v = 0$`, r`q. $B_h = 0$`, r`r. $B_v = B_h$`, r`s. $B_v = \sqrt3\,B_h$`] },
+  p4: { title: "A magnet in the Earth's field",
+    passage: r`<p>A short bar magnet of moment $2.4\ \mathrm{A\,m^2}$ and moment of inertia $1.5\times10^{-4}\ \mathrm{kg\,m^2}$ hangs from a thread and can turn in a horizontal plane. At the place the Earth's total magnetic field is $50\ \mu$T and the angle of dip is $37^\circ$ (take $\cos37^\circ = 0.8$).</p>` },
+  p5: { title: 'A paramagnetic salt',
+    passage: r`<p>A paramagnetic salt follows Curie's law $M = CB/T$. At 300 K in a field of 0.30 T its magnetisation is $1.2\ \mathrm{A\,m^{-1}}$.</p>` },
 };
 const poleAx = (M, r) => { const l = r * 1e-3; const m = M / (2 * l); return K * m * (1 / ((r - l) ** 2) - 1 / ((r + l) ** 2)); };
 const poleEq = (M, r) => { const l = r * 1e-3; const m = M / (2 * l); return K * m * 2 * l / Math.pow(r * r + l * l, 1.5); };
@@ -508,5 +706,100 @@ const gens = [
         sol: [`Ring: $I = qf$, $M = I\\pi R^2 = q\\omega R^2/2 = ${Q}\\times${S(w, 4)}\\times${R * R}/2 = ${S(Mv, 4)}$.`, `Disc: add up rings, $dM = \\tfrac12\\omega r^2\\,dq$ with $dq = q\\,2r\\,dr/R^2$. $M = q\\omega R^2/4 = ${S(Mv, 4)}$.`, `Shell: $M = \\int\\tfrac12\\omega r_\\perp^2dq = q\\omega R^2/3 = ${S(Mv, 4)}$.`][v] + ` (units of $10^{-6}\\ \\mathrm{A\\,m^2}$, since q is in $\\mu$C.)`, trap: 'The factor is 1/2, 1/4 or 1/3 depending on how the charge is spread.' };
     },
     verify: (p) => { const w = 2 * Math.PI * p.f; let M = 0; const n = 20000; if (p.v === 0) return p.Q * p.f * Math.PI * p.R * p.R; if (p.v === 1) { for (let i = 0; i < n; i++) { const r = (i + 0.5) / n * p.R; const dq = p.Q * 2 * r * (p.R / n) / (p.R * p.R); M += 0.5 * w * r * r * dq; } return M; } for (let i = 0; i < n; i++) { const t = (i + 0.5) / n * Math.PI; const dq = p.Q * Math.sin(t) * (Math.PI / n) / 2; const rp = p.R * Math.sin(t); M += 0.5 * w * rp * rp * dq; } return M; } },
+  // ---- added 2026-11-22 ----
+  { id: 'mm-g18', type: 'nat', level: 3, exams: exFor(3, 'nat'), sub: 'dipole field',
+    make(rng) {
+      const M = choose(rng, [0.5, 1, 1.5, 2, 3]), r = choose(rng, [0.1, 0.15, 0.2, 0.3]), th = choose(rng, [0, 30, 45, 60, 90]);
+      const val = K * M / r ** 3 * Math.sqrt(1 + 3 * Math.cos(th * D) ** 2) * 1e6;
+      return { M, r, th, answer: N(val, 3), tol: 0.01 * val + 0.01, unit: 'μT',
+        q: `A short magnet of moment ${M} $\\mathrm{A\\,m^2}$ has its centre ${S(r * 100)} cm from point P. The line from the centre to P makes $${th}^\\circ$ with the magnet's axis. Find the field at P (in $\\mu$T, 3 decimals).`,
+        sol: `$B = \\dfrac{\\mu_0}{4\\pi}\\dfrac{M}{r^3}\\sqrt{1+3\\cos^2\\theta} = 10^{-7}\\times\\dfrac{${M}}{${S(r)}^3}\\times\\sqrt{1+3\\cos^2${th}^\\circ} = ${S(K * M / r ** 3 * 1e6, 4)}\\ \\mu\\mathrm{T}\\times${S(Math.sqrt(1 + 3 * Math.cos(th * D) ** 2), 4)} = ${S(val, 4)}\\ \\mu$T.`,
+        trap: 'Special cases are only the axis (factor 2) and the equator (factor 1).' };
+    },
+    verify: (p) => Math.hypot(2 * K * p.M * Math.cos(p.th * D) / p.r ** 3, K * p.M * Math.sin(p.th * D) / p.r ** 3) * 1e6 },
+  { id: 'mm-g19', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'dipole field',
+    make(rng) {
+      const th = choose(rng, [20, 30, 40, 50, 60, 70, 75]);
+      const al = Math.atan(0.5 * Math.tan(th * D)) / D;
+      return { th, answer: N(al, 1), tol: 0.1, unit: '°',
+        q: `At a point whose line from the centre of a short magnet makes $${th}^\\circ$ with the axis, find the angle between the magnetic field and that radial line (in degrees, 1 decimal).`,
+        sol: `Radial component $B_r = 2B_0\\cos\\theta$ and tangential component $B_\\theta = B_0\\sin\\theta$. So $\\tan\\alpha = \\dfrac{B_\\theta}{B_r} = \\tfrac12\\tan${th}^\\circ = ${S(0.5 * Math.tan(th * D), 4)}$ and $\\alpha = ${S(al, 4)}^\\circ$.`,
+        trap: 'It is half of $\\tan\\theta$, not double.' };
+    },
+    verify: (p) => Math.atan2(Math.sin(p.th * D), 2 * Math.cos(p.th * D)) / D },
+  { id: 'mm-g20', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'combination of magnets',
+    make(rng) {
+      const Ts = choose(rng, [2, 3, 4]), Td = Ts + int(rng, 1, 4);
+      const ratio = (Td * Td + Ts * Ts) / (Td * Td - Ts * Ts);
+      return { Ts, Td, answer: N(ratio, 3), tol: 0.01 * ratio + 0.002,
+        q: `Two bar magnets are placed together on an oscillation magnetometer. With like poles together the time period is ${Ts} s, and with unlike poles together it is ${Td} s. Find the ratio of their magnetic moments $M_1/M_2$ (larger over smaller, 3 decimals).`,
+        sol: `$T^2\\propto\\dfrac{1}{M_{net}}$. So $M_1+M_2\\propto1/${Ts}^2$ and $M_1-M_2\\propto1/${Td}^2$. Then $\\dfrac{M_1}{M_2} = \\dfrac{${Td}^2+${Ts}^2}{${Td}^2-${Ts}^2} = \\dfrac{${Td * Td + Ts * Ts}}{${Td * Td - Ts * Ts}} = ${S(ratio, 4)}$.`,
+        trap: 'The shorter period goes with the sum of the moments.' };
+    },
+    verify: (p) => (1 / p.Ts ** 2 + 1 / p.Td ** 2) / (1 / p.Ts ** 2 - 1 / p.Td ** 2) },
+  { id: 'mm-g21', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'apparent dip',
+    make(rng) {
+      const dl = choose(rng, [30, 37, 45, 53, 60]), ph = choose(rng, [30, 45, 60]);
+      const ap = Math.atan(Math.tan(dl * D) / Math.cos(ph * D)) / D;
+      return { dl, ph, answer: N(ap, 1), tol: 0.1, unit: '°',
+        q: `The true angle of dip at a place is $${dl}^\\circ$. A dip circle is set in a vertical plane making $${ph}^\\circ$ with the magnetic meridian. What apparent dip does it read (in degrees, 1 decimal)?`,
+        sol: `In this plane the horizontal component along the circle is $B_h\\cos${ph}^\\circ$ and the vertical component is $B_v$. So $\\tan\\delta' = \\dfrac{B_v}{B_h\\cos\\varphi} = \\dfrac{\\tan${dl}^\\circ}{\\cos${ph}^\\circ} = ${S(Math.tan(dl * D) / Math.cos(ph * D), 4)}$, giving $\\delta' = ${S(ap, 4)}^\\circ$.`,
+        trap: 'Apparent dip is always larger than the true dip: the factor is $1/\\cos\\varphi$.' };
+    },
+    verify: (p) => Math.atan2(Math.sin(p.dl * D), Math.cos(p.dl * D) * Math.cos(p.ph * D)) / D },
+  { id: 'mm-g22', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'Curie-Weiss law',
+    make(rng) {
+      const Tc = choose(rng, [700, 800, 1000]), T1 = Tc + choose(rng, [100, 200, 300]), T2 = Tc + choose(rng, [50, 150, 400]), x1 = choose(rng, [1.5, 2, 2.4, 3]);
+      const x2 = x1 * (T1 - Tc) / (T2 - Tc);
+      return { Tc, T1, T2, x1, answer: N(x2, 3), tol: 0.01 * x2 + 0.002,
+        q: `A ferromagnet above its Curie temperature $T_c = ${Tc}$ K obeys $\\chi = C/(T-T_c)$. Its susceptibility at ${T1} K is $${x1}\\times10^{-2}$. Find $\\chi$ at ${T2} K in units of $10^{-2}$ (3 decimals).`,
+        sol: `$C = \\chi(T-T_c) = ${x1}\\times10^{-2}\\times${T1 - Tc} = ${S(x1 * (T1 - Tc), 4)}\\times10^{-2}$ K. At ${T2} K: $\\chi = C/(${T2}-${Tc}) = ${S(x1 * (T1 - Tc), 4)}/${T2 - Tc}\\times10^{-2} = ${S(x2, 4)}\\times10^{-2}$.`,
+        trap: 'Measure the temperature from $T_c$, not from zero.' };
+    },
+    verify: (p) => { const C = p.x1 * (p.T1 - p.Tc); return C / (p.T2 - p.Tc); } },
+  { id: 'mm-g23', type: 'nat', level: 5, exams: exFor(5, 'nat'), sub: 'force between magnets',
+    make(rng) {
+      const M1 = choose(rng, [1, 2, 3]), M2 = choose(rng, [1, 2, 4]), r = choose(rng, [0.2, 0.3, 0.4, 0.5]);
+      const F = 6 * K * M1 * M2 / r ** 4 * 1e6;
+      return { M1, M2, r, answer: N(F, 2), tol: 0.01 * F + 0.01, unit: 'μN',
+        q: `Two short magnets of moments ${M1} and ${M2} $\\mathrm{A\\,m^2}$ lie coaxially with their centres ${S(r)} m apart. The force between them is $F = \\dfrac{3\\mu_0M_1M_2}{2\\pi r^4}$. Find $F$ in $\\mu$N (2 decimals).`,
+        sol: `$\\dfrac{3\\mu_0}{2\\pi} = 6\\times10^{-7}$. $F = 6\\times10^{-7}\\times\\dfrac{${M1}\\times${M2}}{${S(r)}^4} = ${S(F * 1e-6, 4)}$ N $= ${S(F, 4)}\\ \\mu$N.`,
+        trap: 'The force falls as $r^{-4}$, so halving $r$ multiplies it by 16.' };
+    },
+    verify: (p) => 3 * (4 * Math.PI * 1e-7) * p.M1 * p.M2 / (2 * Math.PI * p.r ** 4) * 1e6 },
+  { id: 'mm-g24', type: 'mcq', level: 3, exams: exFor(3, 'mcq'), sub: 'dipole field',
+    make(rng) {
+      const a = choose(rng, [1, 2, 3]); let b = choose(rng, [1, 2, 3]); if (b === a) b = a === 3 ? 1 : a + 1;
+      const val = 2 * b ** 3 / a ** 3;
+      const { options, answer } = shuffleOpts(rng, fmt(val, 3), [fmt(b ** 3 / a ** 3, 3), fmt(2 * a ** 3 / b ** 3, 3), fmt(a ** 3 / (2 * b ** 3), 3)]);
+      return { a, b, options, answer, val,
+        q: `A short magnet produces a field $B_1$ on its axis at distance ${a}$d$ and a field $B_2$ on its equatorial line at distance ${b}$d$ from its centre. Find $B_1/B_2$.`,
+        sol: `$B_1 = \\dfrac{\\mu_0}{4\\pi}\\dfrac{2M}{(${a}d)^3}$ and $B_2 = \\dfrac{\\mu_0}{4\\pi}\\dfrac{M}{(${b}d)^3}$. So $\\dfrac{B_1}{B_2} = \\dfrac{2\\times${b}^3}{${a}^3} = ${fmt(val, 3)}$.`,
+        trap: 'The axial field has the extra factor 2; the larger distance gives the smaller field.' };
+    },
+    verify: (p) => p.options.indexOf(fmt((2 / p.a ** 3) / (1 / p.b ** 3), 3)) },
+  { id: 'mm-g25', type: 'mcq', level: 2, exams: exFor(2, 'mcq'), sub: 'dia-, para-, ferro-',
+    make(rng) {
+      const cases = [[-1.5e-5, 'a diamagnetic material'], [-9e-6, 'a diamagnetic material'], [2.3e-5, 'a paramagnetic material'], [1.2e-3, 'a paramagnetic material'], [800, 'a ferromagnetic material'], [3000, 'a ferromagnetic material'], [-1, 'a superconductor']];
+      const [chi, ans] = choose(rng, cases);
+      const all = ['a diamagnetic material', 'a paramagnetic material', 'a ferromagnetic material', 'a superconductor'];
+      const { options, answer } = shuffleOpts(rng, ans, all.filter((x) => x !== ans));
+      const txt = Math.abs(chi) < 0.01 ? `${S(chi * 1e5, 3)}\\times10^{-5}` : S(chi);
+      return { chi, ans, options, answer,
+        q: `A sample has susceptibility $\\chi = ${txt}$ at room temperature. It is most likely`,
+        sol: `Small negative $\\chi$ (about $-10^{-5}$): diamagnetic. Small positive $\\chi$ (about $10^{-5}$ to $10^{-3}$): paramagnetic. Large positive $\\chi$ (hundreds or more): ferromagnetic. $\\chi = -1$ exactly: a superconductor. This sample is ${ans}.` };
+    },
+    verify: (p) => p.options.indexOf(p.chi === -1 ? 'a superconductor' : p.chi < 0 ? 'a diamagnetic material' : p.chi > 100 ? 'a ferromagnetic material' : 'a paramagnetic material') },
+  { id: 'mm-g26', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'potential energy',
+    make(rng) {
+      const MB = choose(rng, [0.2, 0.4, 0.5, 0.8]), th = choose(rng, [30, 37, 45, 53, 60, 120, 135, 150]);
+      const U = -MB * Math.cos(th * D) * 1000, T = MB * Math.sin(th * D) * 1000;
+      const Ur = +U.toPrecision(4), Tr = +T.toPrecision(4);
+      return { MB, th, Ur, Tr, answer: th, tol: 0.5, unit: '°',
+        q: `A magnet in a uniform field has potential energy $U = ${S(Ur, 4)}$ mJ and feels a torque of $${S(Tr, 4)}$ mN m (taking $U = -\\vec M\\cdot\\vec B$). Find the angle between the magnet and the field in degrees (0 to 180).`,
+        sol: `$U = -MB\\cos\\theta$ and $\\tau = MB\\sin\\theta$. So $\\tan\\theta = \\dfrac{\\tau}{-U} = \\dfrac{${S(Tr, 4)}}{${S(-Ur, 4)}}$. The sign of $\\cos\\theta$ is the opposite of the sign of $U$: ${Ur > 0 ? '$U>0$, so $\\cos\\theta<0$ and $\\theta$ is obtuse' : '$U<0$, so $\\cos\\theta>0$ and $\\theta$ is acute'}. Also $MB = \\sqrt{U^2+\\tau^2} = ${S(Math.hypot(Ur, Tr), 4)}$ mJ, giving $\\theta = ${th}^\\circ$.`,
+        trap: 'Use both the sign of $U$ and $\\tan\\theta$ to choose between $\\theta$ and $180^\\circ-\\theta$.' };
+    },
+    verify: (p) => Math.acos(-p.Ur / Math.hypot(p.Ur, p.Tr)) / D },
 ];
 export default { topic: 'magnetism-matter', groups, items, gens };

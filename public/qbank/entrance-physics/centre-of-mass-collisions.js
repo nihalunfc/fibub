@@ -37,6 +37,19 @@ const SOPT = [
 const stm = (level, sub, I, II, answer, sol, o = {}) =>
   base(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SOPT, answer, sol, ...o });
 
+// extra helpers for the 2026-11-22 additions
+const mat = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = (c++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: nid(), type: 'mcq', level, format: 'match', exams: EX[level], sub, group, q, options, answer: pos, sol, ...o };
+};
+const pas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return { id: nid(), type: 'nat', level, format: 'passage', exams: EX[level], sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const pasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = (c++ * 3 + 2) % 4; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: nid(), type: 'mcq', level, format: 'passage', exams: EX[level], sub, group, q, options, answer: pos, sol, ...o };
+};
 const items = [
   // ---------- Level 1 ----------
   mcq(1, 'centre of mass', r`The centre of mass of two particles of equal mass lies`, 'at the midpoint of the line joining them', ['at the heavier particle', 'at either particle', 'at a point outside the line'],
@@ -295,6 +308,34 @@ const groups = {
     passage: r`<p>A 2 kg block moves at $6\ \mathrm{m\,s^{-1}}$ along a smooth table towards a 4 kg block at rest. A light spring of constant $300\ \mathrm{N\,m^{-1}}$ is fixed to the 4 kg block, facing the 2 kg block.</p>` },
   p3: { title: 'A ball bouncing on a hard floor',
     passage: r`<p>A ball is dropped from a height of 5 m onto a hard floor. The coefficient of restitution is 0.6. Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
+  m4: { title: 'Centres of mass of shapes',
+    list1: ['A. Uniform triangular plate', 'B. Hollow hemispherical shell', 'C. Solid hemisphere', 'D. Semicircular wire'],
+    list2: [r`p. $h/3$ from the base`, r`q. $R/2$ from the centre of the flat face`, r`r. $3R/8$ from the centre of the flat face`, r`s. $2R/\pi$ from the diameter`] },
+  m5: { title: 'Coefficient of restitution',
+    list1: ['A. Perfectly elastic collision', 'B. Perfectly inelastic collision', 'C. Ball rebounds to a quarter of its drop height', 'D. Ball rebounds to 0.36 of its drop height'],
+    list2: ['p. 0.6', 'q. 0.5', 'r. 1', 's. 0'] },
+  m6: { title: 'Reduced mass',
+    list1: ['A. 1 kg and 1 kg', 'B. 2 kg and 2 kg', 'C. 1 kg and 3 kg', 'D. 2 kg and 6 kg'],
+    list2: ['p. 0.5 kg', 'q. 0.75 kg', 'r. 1 kg', 's. 1.5 kg'] },
+  m7: { title: 'Elastic collision with a stationary ball',
+    list1: [r`A. $m_1 : m_2 = 3 : 1$`, r`B. $m_1 : m_2 = 1 : 1$`, r`C. $m_1 : m_2 = 1 : 3$`, r`D. $m_1 : m_2 = 1 : 9$`],
+    list2: [r`p. $0$`, r`q. $+0.5u$`, r`r. $-0.5u$`, r`s. $-0.8u$`] },
+  m8: { title: 'Rebound height and e',
+    list1: ['A. Rebounds to $0.81h$', 'B. Rebounds to $0.64h$', 'C. Rebounds to $0.49h$', 'D. Rebounds to $0.25h$'],
+    list2: ['p. 0.5', 'q. 0.7', 'r. 0.8', 's. 0.9'] },
+  m9: { title: 'Variable-mass and flow problems',
+    list1: [r`A. Rocket, $u = 1000\ \mathrm{m\,s^{-1}}$, mass falls by a factor $e$: gain in speed`, r`B. Rocket, $u = 1000\ \mathrm{m\,s^{-1}}$, burning $3\ \mathrm{kg\,s^{-1}}$: thrust`, r`C. Sand falls at $5\ \mathrm{kg\,s^{-1}}$ on a belt moving at $2\ \mathrm{m\,s^{-1}}$: extra force`, r`D. Water jet, $\rho = 1000$, $A = 10^{-3}\ \mathrm{m^2}$, $v = 3\ \mathrm{m\,s^{-1}}$, stopped by a wall: force`],
+    list2: [r`p. $1000\ \mathrm{m\,s^{-1}}$`, r`q. $3000$ N`, r`r. $10$ N`, r`s. $9$ N`] },
+  m10: { title: 'Centre of mass with a cavity',
+    list1: [r`A. Disc, hole of radius $R/2$ centred $R/2$ from the centre`, r`B. Sphere, cavity of radius $R/2$ centred $R/2$ from the centre`, r`C. Disc, hole of radius $R/3$ centred $2R/3$ from the centre`, r`D. Sphere, cavity of radius $R/3$ centred $2R/3$ from the centre`],
+    list2: [r`p. $R/6$`, r`q. $R/14$`, r`r. $R/12$`, r`s. $R/39$`] },
+  m11: { title: 'Final velocities',
+    list1: ['A. 2 kg at $3\\ \\mathrm{m\\,s^{-1}}$ sticks to a 1 kg block at rest: final velocity', 'B. 1 kg at $6\\ \\mathrm{m\\,s^{-1}}$ hits a 2 kg block at rest elastically: velocity of the 1 kg block', 'C. 1 kg at $6\\ \\mathrm{m\\,s^{-1}}$ hits a 1 kg block at rest elastically: velocity of the first block', 'D. 2 kg at $6\\ \\mathrm{m\\,s^{-1}}$ hits a 4 kg block at rest elastically: velocity of the 4 kg block'],
+    list2: [r`p. $2\ \mathrm{m\,s^{-1}}$`, r`q. $-2\ \mathrm{m\,s^{-1}}$`, r`r. $0$`, r`s. $4\ \mathrm{m\,s^{-1}}$`] },
+  p4: { title: 'A ball on an incline',
+    passage: r`<p>A small ball is dropped from a height of 1.25 m above a point on a smooth plane inclined at $30^\circ$ to the horizontal. The collision with the plane is perfectly elastic. Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
+  p5: { title: 'A rocket',
+    passage: r`<p>A rocket of initial mass 1000 kg burns fuel at $10\ \mathrm{kg\,s^{-1}}$, ejecting the exhaust at $2000\ \mathrm{m\,s^{-1}}$ relative to the rocket.</p>` },
 };
 
 items.push(
@@ -316,6 +357,168 @@ items.push(
     r`$h_1 = v^2/2g = 36/20 = 1.8$ m. (Or $e^2h = 0.36\times5 = 1.8$ m.)`, { group: 'p3', format: 'passage', unit: 'm' }),
   nat(4, 'coefficient of restitution', r`Find the time between the first and the second impact with the floor (in s).`, 1.2, 0.01,
     r`After the first impact the ball rises and falls back. Time $= 2v/g = 2\times6/10 = 1.2$ s.`, { group: 'p3', format: 'passage', unit: 's' }),
+);
+
+items.push(
+
+  // ================= Added 2026-11-22: harder and more varied questions =================
+  // ---------- Level 2 ----------
+  mcq(2, 'centre of mass of shapes', r`The centre of mass of a uniform triangular plate lies at a distance from its base equal to`, r`one-third of its height`, ['half of its height', 'one-quarter of its height', 'two-thirds of its height'],
+    r`The centre of mass of a triangular lamina is its centroid, the point where the medians meet. It is at one-third of the height from the base (two-thirds from the apex).`),
+  nat(2, 'impulse', r`A 0.5 kg ball hits a wall normally at $8\ \mathrm{m\,s^{-1}}$ and rebounds at $6\ \mathrm{m\,s^{-1}}$. Find the magnitude of the impulse on the ball in N s.`, 7, 0,
+    r`Take the incoming direction as positive: $\Delta p = 0.5(-6) - 0.5(8) = -7$. The magnitude of the impulse is $7\ \mathrm{N\,s}$.`, { unit: 'N s', calc: () => 0.5 * (6 + 8), trap: 'The velocity changes direction, so add the two speeds.' }),
+  mcq(2, 'collisions', r`A collision between two bodies is inelastic. Which of the following is still conserved if no external force acts?`, 'The total momentum', ['The total kinetic energy', 'The kinetic energy of each body', 'The speed of each body'],
+    r`Momentum is conserved in every collision of an isolated system. Kinetic energy is not conserved when the collision is inelastic.`),
+  nat(2, 'coefficient of restitution', r`A ball dropped from 1.6 m on a hard floor rebounds to 0.9 m. Find the coefficient of restitution (2 decimals).`, 0.75, 0.005,
+    r`$e = \sqrt{h'/h} = \sqrt{0.9/1.6} = \sqrt{0.5625} = 0.75$.`, { calc: () => Math.sqrt(0.9 / 1.6) }),
+  nat(2, 'inelastic collision', r`A 3 kg block moving at $+2\ \mathrm{m\,s^{-1}}$ and a 1 kg block moving at $-2\ \mathrm{m\,s^{-1}}$ collide head-on and stick together. Find their common velocity in $\mathrm{m\,s^{-1}}$.`, 1, 0,
+    r`$(3)(2) + (1)(-2) = (4)V$, so $V = 4/4 = +1\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => (3 * 2 - 1 * 2) / 4 }),
+  mcq(2, 'centre of mass', r`The centre of mass of the Earth–Moon system lies`, 'inside the Earth', ['at the centre of the Earth', 'halfway between the Earth and the Moon', 'at the centre of the Moon'],
+    r`The Earth is about 81 times as massive as the Moon, so the centre of mass is $d\times\dfrac{1}{82}$ from the Earth's centre, about 4700 km. This is inside the Earth (radius 6400 km) but not at its centre.`),
+
+  // ---------- Level 3 ----------
+  nat(3, 'centre of mass of shapes', r`A thin triangular plate has vertices at $(0,0)$, $(6,0)$ and $(0,9)$ (in cm). Find the distance of its centre of mass from the origin in cm (2 decimals).`, 3.61, 0.01,
+    r`The centroid is the average of the vertices: $\bar x = (0+6+0)/3 = 2$, $\bar y = (0+0+9)/3 = 3$. Distance $= \sqrt{4+9} = 3.61$ cm.`, { unit: 'cm', calc: () => Math.hypot(2, 3) }),
+  nat(3, 'centre of mass of shapes', r`A uniform quarter-circular plate has radius 12 cm. Find the distance of its centre of mass from either straight edge in cm (2 decimals). Use $4R/3\pi$.`, 5.09, 0.01,
+    r`The centre of mass of a quarter disc is $\dfrac{4R}{3\pi} = \dfrac{48}{9.425} = 5.09$ cm from each straight edge.`, { unit: 'cm', calc: () => 48 / (3 * Math.PI) }),
+  nat(3, 'centre of mass of shapes', r`Find the distance of the centre of mass of a thin uniform hemispherical <b>shell</b> of radius 20 cm from the centre of its flat face, in cm.`, 10, 0,
+    r`For a hollow hemispherical shell $\bar x = R/2 = 10$ cm. (A solid hemisphere has $3R/8$.)`, { unit: 'cm', calc: () => 20 / 2, trap: 'Shell: $R/2$; solid: $3R/8$.' }),
+  nat(3, 'centre of mass of shapes', r`A hollow cone (only the curved surface, no base) has height 18 cm. Find the distance of its centre of mass from the base in cm.`, 6, 0,
+    r`For a conical shell the centre of mass is at $h/3$ from the base (a solid cone has $h/4$). $18/3 = 6$ cm.`, { unit: 'cm', calc: () => 18 / 3 }),
+  nat(3, 'impulse', r`A bat applies a force that rises uniformly from 0 to 200 N in 0.015 s and then falls uniformly to 0 in 0.015 s. A 0.15 kg ball initially at rest receives all of this impulse. Find the speed it leaves with in $\mathrm{m\,s^{-1}}$.`, 20, 0,
+    r`Impulse $=$ area of the triangle $=\tfrac12\times0.03\times200 = 3\ \mathrm{N\,s}$. $v = J/m = 3/0.15 = 20\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => 0.5 * 0.03 * 200 / 0.15 }),
+  nat(3, 'impulse', r`A 0.16 kg ball hits a wall normally at $20\ \mathrm{m\,s^{-1}}$ and rebounds at $15\ \mathrm{m\,s^{-1}}$. The contact lasts 4 ms. Find the average force on the ball in N.`, 1400, 0,
+    r`$\Delta p = 0.16(15 + 20) = 5.6\ \mathrm{N\,s}$. $F_{avg} = \Delta p/\Delta t = 5.6/0.004 = 1400$ N.`, { unit: 'N', calc: () => 0.16 * 35 / 0.004 }),
+  nat(3, 'inelastic collision', r`A 2 kg block moving at $5\ \mathrm{m\,s^{-1}}$ hits a 3 kg block at rest and they stick together. Find the kinetic energy lost in J.`, 15, 0,
+    r`$V = 10/5 = 2\ \mathrm{m\,s^{-1}}$. $K_i = \tfrac12(2)(25) = 25$ J, $K_f = \tfrac12(5)(4) = 10$ J. Lost $= 15$ J. (Also $\tfrac12\mu u^2 = \tfrac12\times1.2\times25 = 15$ J.)`, { unit: 'J', calc: () => 25 - 10 }),
+  nat(3, 'elastic collision', r`A 2 kg block moving at $5\ \mathrm{m\,s^{-1}}$ makes a head-on elastic collision with a 3 kg block at rest. Find the speed of the 3 kg block afterwards in $\mathrm{m\,s^{-1}}$.`, 4, 0,
+    r`$v_2 = \dfrac{2m_1u}{m_1+m_2} = \dfrac{2\times2\times5}{5} = 4\ \mathrm{m\,s^{-1}}$. (The 2 kg block rebounds at $v_1 = \tfrac{2-3}{5}\times5 = -1\ \mathrm{m\,s^{-1}}$.)`, { unit: 'm/s', calc: () => 2 * 2 * 5 / 5 }),
+  nat(3, 'variable mass', r`A rocket ejects gas at $400\ \mathrm{m\,s^{-1}}$ relative to itself at a rate of $5\ \mathrm{kg\,s^{-1}}$. Find the thrust on the rocket in N.`, 2000, 0,
+    r`Thrust $= u\,\dfrac{dm}{dt} = 400\times5 = 2000$ N.`, { unit: 'N', calc: () => 400 * 5 }),
+  nat(3, 'motion of centre of mass', r`A 2 kg particle moves at $+3\ \mathrm{m\,s^{-1}}$ and a 4 kg particle moves at $-1\ \mathrm{m\,s^{-1}}$ along the same line. Find the velocity of their centre of mass in $\mathrm{m\,s^{-1}}$ (2 decimals).`, 0.33, 0.005,
+    r`$v_{cm} = \dfrac{(2)(3) + (4)(-1)}{6} = \dfrac{2}{6} = 0.33\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => 2 / 6 }),
+  nat(3, 'motion of centre of mass', r`A skater of mass 80 kg stands on frictionless ice and throws a 2 kg ball horizontally at $10\ \mathrm{m\,s^{-1}}$. Find his recoil speed in $\mathrm{m\,s^{-1}}$ (2 decimals).`, 0.25, 0.005,
+    r`Momentum: $0 = 2\times10 - 80V$, so $V = 20/80 = 0.25\ \mathrm{m\,s^{-1}}$ (opposite to the throw).`, { unit: 'm/s', calc: () => 20 / 80 }),
+  stm(3, 'motion of centre of mass', r`The centre of mass of a system moves as if all the mass were concentrated there and all external forces acted there.`, r`The internal forces between particles cancel in pairs (Newton's third law).`, 0,
+    r`Both true and II is the reason: summing $m_i\vec a_i = \vec F_i^{ext} + \sum\vec F_{ij}$ over all particles, the internal forces cancel, leaving $M\vec a_{cm} = \vec F^{ext}$.`),
+  asrt(3, 'explosion', r`In an explosion the kinetic energy of the fragments is greater than that of the original body.`, r`Stored chemical (or elastic) energy is converted into kinetic energy during the explosion.`, 0,
+    r`Both true and R explains A. Momentum is conserved but energy is released, so kinetic energy increases.`),
+  mat(3, 'centre of mass of shapes', 'm4', r`Match each uniform body in List I with the position of its centre of mass in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Triangular plate: $h/3$ from the base (p). Hemispherical shell: $R/2$ (q). Solid hemisphere: $3R/8$ (r). Semicircular wire: $2R/\pi$ (s). So A-p, B-q, C-r, D-s.`),
+  mat(3, 'coefficient of restitution', 'm5', r`Match each collision in List I with its coefficient of restitution in List II.`, 'A-r, B-s, C-q, D-p', ['A-s, B-r, C-q, D-p', 'A-r, B-s, C-p, D-q', 'A-q, B-s, C-r, D-p'],
+    r`Perfectly elastic: $e = 1$ (r). Perfectly inelastic: $e = 0$ (s). A ball rebounding to $h/4$: $e = \sqrt{1/4} = 0.5$ (q). A ball rebounding to $0.36h$: $e = 0.6$ (p). So A-r, B-s, C-q, D-p.`),
+  mat(3, 'elastic collision', 'm7', r`A ball of mass $m_1$ and speed $u$ hits a stationary ball of mass $m_2$ head-on and elastically. Match each case in List I with $v_1/u$ (the first ball's velocity after the collision, in units of $u$) in List II.`, 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-q, B-r, C-p, D-s'],
+    r`$v_1/u = \dfrac{m_1-m_2}{m_1+m_2}$. A: $3:1$ gives $\tfrac24 = \tfrac12$ (q). B: $1:1$ gives 0 (p). C: $1:3$ gives $-\tfrac12$ (r). D: $1:9$ gives $-\tfrac{8}{10} = -0.8$ (s). So A-q, B-p, C-r, D-s.`),
+  mat(3, 'coefficient of restitution', 'm8', r`A ball dropped from a height $h$ rebounds to the height in List I. Match with its coefficient of restitution in List II.`, 'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p', 'A-s, B-r, C-p, D-q'],
+    r`$e = \sqrt{h'/h}$. $0.81h$: $e = 0.9$ (s). $0.64h$: $e = 0.8$ (r). $0.49h$: $e = 0.7$ (q). $0.25h$: $e = 0.5$ (p). So A-s, B-r, C-q, D-p.`),
+  mat(3, 'collisions', 'm11', r`A block hits a block at rest. Match each case in List I with the requested final velocity in List II (in $\mathrm{m\,s^{-1}}$).`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`A: $(2)(3) = (3)V$, $V = 2$ (p). B: $v_1 = \tfrac{1-2}{3}(6) = -2$ (q). C: equal masses elastic, so the first stops: 0 (r). D: $v_2 = \tfrac{2\times2\times6}{6} = 4$ (s). So A-p, B-q, C-r, D-s.`),
+  pas(3, 'collisions', 'p4', r`Find the speed of the ball just before it hits the incline (in $\mathrm{m\,s^{-1}}$). Take $g = 10\ \mathrm{m\,s^{-2}}$.`, 5, 0, 0,
+    r`$v = \sqrt{2gh} = \sqrt{2\times10\times1.25} = 5\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  pas(3, 'rocket', 'p5', r`Find the thrust of the rocket in N.`, 20000, 0, 0,
+    r`Thrust $= u\,dm/dt = 2000\times10 = 20\,000$ N.`, { unit: 'N' }),
+
+  // ---------- Level 4 ----------
+  msq(4, 'collisions', r`Two bodies collide head-on. Which statements are correct?`,
+    ['The coefficient of restitution is the ratio of the speed of separation to the speed of approach', 'The total momentum is conserved if no external force acts', 'In an inelastic collision some kinetic energy is lost', 'For $0<e<1$ the bodies stick together'], [0, 1, 2],
+    r`A is the definition of $e$. B and C are standard. Bodies stick together only for $e = 0$ (D false); for $0<e<1$ they separate more slowly than they approached.`),
+  msq(4, 'centre of mass of shapes', r`Which of these centres of mass are correct? ($R$ is the radius, $h$ the height.)`,
+    [r`Hollow hemispherical shell: $R/2$ from the centre of its flat face`, r`Solid hemisphere: $3R/8$ from the centre of its flat face`, r`Semicircular uniform plate: $4R/3\pi$ from the straight edge`, r`Semicircular uniform wire: $4R/3\pi$ from the straight edge`], [0, 1, 2],
+    r`A, B and C are the standard results. For a semicircular <i>wire</i> the distance is $2R/\pi$ (D false).`),
+  msq(4, 'elastic collision', r`A ball of mass $m_1$ and speed $u$ hits a stationary ball of mass $m_2$ head-on and elastically. Which statements are correct?`,
+    [r`If $m_1 = m_2$ the balls exchange velocities`, r`If $m_1\ll m_2$ the first ball rebounds with almost its original speed`, r`If $m_1\gg m_2$ the second ball moves off at nearly $2u$`, r`The faster ball always loses all its kinetic energy`], [0, 1, 2],
+    r`$v_1 = \tfrac{m_1-m_2}{m_1+m_2}u$ and $v_2 = \tfrac{2m_1}{m_1+m_2}u$. For equal masses $v_1 = 0$, $v_2 = u$ (A). For $m_1\ll m_2$: $v_1\approx-u$ (B). For $m_1\gg m_2$: $v_2\approx2u$ (C). Only for equal masses does the incident ball stop (D false).`),
+  msq(4, 'explosion', r`A body of mass $M$ moving freely under gravity (no air resistance) explodes in mid-air into fragments. Which statements are correct?`,
+    ['The total momentum just after the explosion equals that just before it', 'The total kinetic energy increases', 'The centre of mass of the fragments continues along the original path until some fragment lands', 'The fragments all fly off horizontally'], [0, 1, 2],
+    r`The explosion forces are internal and huge, so momentum is conserved (A). Stored energy is released (B). The only external force is gravity, so the centre of mass follows the original parabola (C). The fragments go in different directions (D false).`),
+  nat(4, 'collisions', r`A 1 kg block moving at $6\ \mathrm{m\,s^{-1}}$ hits a 3 kg block at rest on a smooth table. A light spring of constant $300\ \mathrm{N\,m^{-1}}$ is fixed to the near face of the 3 kg block, so the 1 kg block compresses it. Find the maximum compression of the spring in m (2 decimals).`, 0.3, 0.005,
+    r`At the maximum compression the two blocks (and the spring's ends) move with a common velocity: $1\times6 = 4V$, $V = 1.5\ \mathrm{m\,s^{-1}}$. $K_i = 18$ J. $K_f = \tfrac12(4)(1.5)^2 = 4.5$ J. Spring energy $= 13.5 = \tfrac12(300)x^2$, so $x^2 = 0.09$ and $x = 0.30$ m.`, { unit: 'm', calc: () => Math.sqrt(2 * 13.5 / 300) }),
+  nat(4, 'collisions', r`Two blocks of mass 2 kg and 3 kg are joined by a light spring of constant $300\ \mathrm{N\,m^{-1}}$ on a smooth table. Find the angular frequency of their relative oscillation in $\mathrm{rad\,s^{-1}}$ (1 decimal).`, 15.8, 0.1,
+    r`The relative coordinate oscillates like a single body of reduced mass $\mu = \dfrac{2\times3}{5} = 1.2$ kg. $\omega = \sqrt{k/\mu} = \sqrt{300/1.2} = \sqrt{250} = 15.8\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s', calc: () => Math.sqrt(250), trap: 'Use the reduced mass, not either mass or their sum.' }),
+  nat(4, 'inelastic collision', r`A 2 kg block moving at $5\ \mathrm{m\,s^{-1}}$ and a 3 kg block moving at $2\ \mathrm{m\,s^{-1}}$ in the opposite direction collide and stick together. Find the kinetic energy lost in J (1 decimal).`, 29.4, 0.05,
+    r`Take the first block's direction as positive: $V = (10 - 6)/5 = 0.8\ \mathrm{m\,s^{-1}}$. $K_i = \tfrac12(2)(25) + \tfrac12(3)(4) = 31$ J. $K_f = \tfrac12(5)(0.64) = 1.6$ J. Lost $= 29.4$ J. (Also $\tfrac12\mu v_{rel}^2 = \tfrac12\times1.2\times49 = 29.4$ J.)`, { unit: 'J', calc: () => 31 - 1.6 }),
+  nat(4, 'coefficient of restitution', r`A ball hits a smooth floor with its velocity at $60^\circ$ to the normal. The coefficient of restitution is 0.5. Find the angle the velocity makes with the normal just after the bounce, in degrees (1 decimal).`, 73.9, 0.1,
+    r`The component parallel to the floor is unchanged: $v\sin60^\circ$. The normal component becomes $e\,v\cos60^\circ$. $\tan\phi' = \dfrac{\sin60^\circ}{0.5\cos60^\circ} = \dfrac{\tan60^\circ}{0.5} = 3.464$, so $\phi' = 73.9^\circ$.`, { unit: '°', trap: 'For $e<1$ the angle with the normal becomes larger.' }),
+  nat(4, 'coefficient of restitution', r`The same ball hits the floor at $10\ \mathrm{m\,s^{-1}}$ with its velocity at $60^\circ$ to the normal and $e = 0.5$. Find its speed just after the bounce in $\mathrm{m\,s^{-1}}$ (2 decimals).`, 9.01, 0.02,
+    r`Parallel component: $10\sin60^\circ = 8.66$. Normal component after: $0.5\times10\cos60^\circ = 2.5$. Speed $= \sqrt{8.66^2 + 2.5^2} = \sqrt{75 + 6.25} = 9.01\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(75 + 6.25) }),
+  nat(4, 'coefficient of restitution', r`A ball is dropped on a hard floor and bounces with $e = 0.8$. What percentage of its initial mechanical energy is left after the third bounce (1 decimal)?`, 26.2, 0.1,
+    r`Each bounce multiplies the speed by $e$ and the energy by $e^2$. After three bounces the energy is $e^6 = 0.8^6 = 0.262$, which is $26.2\%$.`, { unit: '%', calc: () => 0.8 ** 6 * 100 }),
+  nat(4, 'coefficient of restitution', r`A ball bouncing on a hard floor loses a fraction of its speed at each bounce, with $e = 0.5$. After how many bounces does its speed first fall below 1% of its speed on first impact?`, 7, 0,
+    r`After $n$ bounces the speed is $e^nv$. We need $0.5^n<0.01$: $0.5^6 = 0.0156$ is too large and $0.5^7 = 0.0078$ is less than 0.01. So $n = 7$.`),
+  nat(4, 'inelastic collision', r`A block of mass 2 kg collides with a stationary block of mass 3 kg and they stick together. What percentage of the initial kinetic energy is lost?`, 60, 0,
+    r`Fraction lost $=\dfrac{m_2}{m_1+m_2} = \dfrac{3}{5} = 60\%$ (when one body is at rest).`, { unit: '%', calc: () => 3 / 5 * 100 }),
+  nat(4, 'elastic collision', r`A 1 kg ball moving at $10\ \mathrm{m\,s^{-1}}$ hits a stationary 1000 kg block elastically and head-on. Find the magnitude of the impulse given to the block, to the nearest N s.`, 20, 0.5,
+    r`$v_2 = \dfrac{2m_1u}{m_1+m_2} = \dfrac{20}{1001} = 0.01998\ \mathrm{m\,s^{-1}}$. Impulse on the block $= 1000\times0.01998 = 19.98\approx20\ \mathrm{N\,s}$ (the ball's own change of momentum is about $2mu$).`, { unit: 'N s', calc: () => 1000 * 20 / 1001 }),
+  nat(4, 'centre of mass of shapes', r`A uniform disc of radius 12 cm has a circular hole of radius 6 cm whose centre is 6 cm from the centre of the disc. Find the distance of the centre of mass of the remaining plate from the centre of the disc in cm.`, 2, 0,
+    r`The hole has $\tfrac14$ of the disc's mass. Treat it as a negative mass: $\bar x = \dfrac{M(0) - \tfrac M4(6)}{M - \tfrac M4} = -\dfrac{1.5}{0.75} = -2$ cm. So the centre of mass is 2 cm from the centre, on the side away from the hole.`, { unit: 'cm', calc: () => 1.5 / 0.75 }),
+  nat(4, 'centre of mass of shapes', r`A uniform solid sphere of radius 28 cm has a spherical cavity of radius 14 cm whose centre is 14 cm from the centre of the sphere. Find the distance of the centre of mass of the remaining solid from the centre of the sphere in cm.`, 2, 0,
+    r`The cavity has $(1/2)^3 = 1/8$ of the sphere's mass. $\bar x = \dfrac{-\tfrac M8(14)}{M - \tfrac M8} = -\dfrac{1.75}{0.875} = -2$ cm, so 2 cm on the side away from the cavity.`, { unit: 'cm', calc: () => 1.75 / 0.875 }),
+  nat(4, 'centre of mass of shapes', r`A uniform square plate of side 12 cm has a square of side 6 cm cut away from one corner. With the opposite corner of the original square at the origin and the sides along the axes, find $\bar x + \bar y$ of the remaining plate in cm.`, 10, 0,
+    r`Put the origin at the corner opposite to the cut-away corner. Whole plate: mass $144k$ at $(6,6)$. Removed square: mass $36k$ at $(9,9)$. Remaining mass $108k$. $\bar x = \dfrac{144(6) - 36(9)}{108} = \dfrac{864 - 324}{108} = 5$ cm, and similarly $\bar y = 5$ cm. So $\bar x + \bar y = 10$ cm.`, { unit: 'cm', calc: () => 2 * (144 * 6 - 36 * 9) / 108 }),
+  nat(4, 'motion of centre of mass', r`A 50 kg man jumps horizontally off a 150 kg boat at rest on still water. He leaves at $6\ \mathrm{m\,s^{-1}}$ <b>relative to the boat</b>. Find the speed of the boat after he jumps, in $\mathrm{m\,s^{-1}}$.`, 1.5, 0.005,
+    r`Let the man's velocity relative to the water be $v$ and the boat's be $-V$. Momentum: $50v = 150V$. Relative speed: $v + V = 6$. Then $3V + V = 6$, so $V = 1.5\ \mathrm{m\,s^{-1}}$ (and $v = 4.5$).`, { unit: 'm/s', calc: () => 6 * 50 / 200, trap: 'The 6 m/s is relative to the boat, not the water.' }),
+  nat(4, 'collisions', r`Two identical balls and a wall: a ball moving at $v$ hits an identical stationary ball that lies between it and a wall. All collisions are perfectly elastic and head-on. Find the total number of collisions (ball-ball and ball-wall) that occur.`, 3, 0,
+    r`(1) The moving ball hits the stationary one and stops (they exchange velocities). (2) The second ball hits the wall and bounces back. (3) It meets the first ball again, which is at rest, and they exchange velocities: the first ball moves away and the second stops. No more collisions. Total $= 3$.`),
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'reduced mass', group: 'm6',
+    q: r`Two bodies of masses $m_1$ and $m_2$ have the reduced mass $\mu = m_1m_2/(m_1+m_2)$. Match each pair in List I with $\mu$ in List II (in kg).`,
+    options: ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-q, D-s', 'A-p, B-r, C-s, D-q', 'A-q, B-r, C-p, D-s'], answer: 0,
+    sol: r`A: $1\times1/2 = 0.5$ (p). B: $2\times2/4 = 1$ (r). C: $1\times3/4 = 0.75$ (q). D: $2\times6/8 = 1.5$ (s). So A-p, B-r, C-q, D-s.` },
+  mat(4, 'variable mass', 'm9', r`Match each situation in List I with the quantity asked in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`A: $\Delta v = u\ln(m_0/m) = 1000\ln e = 1000\ \mathrm{m\,s^{-1}}$ (p). B: thrust $= 1000\times3 = 3000$ N (q). C: extra force on a belt $= v\,dm/dt = 2\times5 = 10$ N (r). D: a water jet stopped by a wall: $F = \rho Av^2 = 1000\times10^{-3}\times9 = 9$ N (s). So A-p, B-q, C-r, D-s.`),
+  pasm(4, 'collisions', 'p4', r`The collision with the smooth incline of angle $30^\circ$ is perfectly elastic. The angle between the vertical and the velocity just after the collision is`, r`$60^\circ$`, [r`$30^\circ$`, r`$90^\circ$`, r`$0^\circ$`],
+    r`The velocity just before the impact is vertical. The normal reverses its component and the tangential component is unchanged. The incline is at $\theta = 30^\circ$ to the horizontal, so the normal is $30^\circ$ from the vertical. The velocity is turned by $2\times30^\circ = 60^\circ$ from the upward vertical.`, { trap: 'The reflection turns the velocity through $2\\theta$ from the vertical.' }),
+  pas(4, 'rocket', 'p5', r`Find the initial acceleration of the rocket (in $\mathrm{m\,s^{-2}}$) if it fires vertically upward from the ground. Take $g = 10\ \mathrm{m\,s^{-2}}$.`, 10, 0, 0,
+    r`$F_{net} = 20\,000 - 1000\times10 = 10\,000$ N, so $a = 10\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  pas(4, 'rocket', 'p5', r`In free space, with $u = 2000\ \mathrm{m\,s^{-1}}$, the rocket burns until its mass is halved. Find its gain in speed (nearest $\mathrm{m\,s^{-1}}$).`, 2000 * Math.log(2), 3, 0,
+    r`$\Delta v = u\ln(m_0/m) = 2000\ln2 = 1386\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  asrt(4, 'collisions', r`When a small ball bounces from a smooth floor with $e<1$, the angle between its velocity and the normal increases.`, r`The normal component of velocity is multiplied by $e$ and the tangential component is unchanged.`, 0,
+    r`Both true and R explains A: $\tan\phi' = \tan\phi/e>\tan\phi$.`),
+  asrt(4, 'centre of mass of shapes', r`The centre of mass of a uniform semicircular wire is farther from the straight diameter than that of a uniform semicircular plate of the same radius.`, r`The wire has distance $2R/\pi$ and the plate $4R/3\pi$ from the diameter.`, 0,
+    r`$2/\pi = 0.637$ and $4/3\pi = 0.424$, so the wire's centre of mass is farther. Both true and R gives the values.`),
+  stm(4, 'centre of mass', r`The centre of mass of an object may lie outside its material.`, r`The centre of mass of a uniform ring is at its centre.`, 0,
+    r`Both true: the ring's centre of mass is at the centre where there is no material, showing that it can lie outside the body.`),
+  stm(4, 'collisions', r`The kinetic energy of a system, as seen from the centre-of-mass frame, is always zero in a perfectly inelastic collision after the collision.`, r`In the centre-of-mass frame the total momentum is always zero.`, 0,
+    r`In the CM frame total momentum is zero (II true). After a perfectly inelastic collision the bodies stick together and move with the CM, so they are at rest in that frame and $K = 0$ (I true). The energy lost equals the kinetic energy that the system had in that frame.`),
+
+  // ---------- Level 5 ----------
+  msq(5, 'variable mass', r`A rocket ejects gas at a constant speed $u$ relative to itself in free space. Which statements are correct?`,
+    [r`The thrust is $u\,|dm/dt|$`, r`The gain in speed is $u\ln(m_0/m)$`, r`The momentum of the rocket plus exhaust is conserved`, r`With constant thrust, the acceleration decreases as fuel is burnt`], [0, 1, 2],
+    r`A, B and C are the standard results. As the mass decreases the same thrust gives a <i>larger</i> acceleration (D false).`),
+  msq(5, 'collisions', r`Two particles collide. $K_{cm}$ is their kinetic energy in the centre-of-mass frame. Which are correct?`,
+    ['The total momentum in the CM frame is zero', r`$K_{lab} = K_{cm} + \tfrac12Mv_{cm}^2$`, 'In a perfectly inelastic collision the kinetic energy lost equals $K_{cm}$', 'In an elastic collision each particle comes to rest in the CM frame'], [0, 1, 2],
+    r`The CM frame is defined by zero total momentum (A). The split of kinetic energy is König's theorem (B). After sticking, the bodies move with the CM, so $K_{cm}$ goes to zero, and the energy lost is $K_{cm}$ (C). In an elastic collision the speeds in the CM frame are unchanged, only the directions change (D false).`),
+  msq(5, 'collisions', r`A bullet of mass $m$ hits a block of mass $M$ hanging as a ballistic pendulum and stays in it. Which statements are correct?`,
+    ['The momentum of the bullet and block is conserved during the impact', 'The kinetic energy is conserved during the impact', 'After the impact the mechanical energy of the block with the bullet is conserved as it swings', r`The fraction of kinetic energy lost in the impact is $\dfrac{M}{M+m}$`], [0, 2, 3],
+    r`The impact is short and the string tension (vertical) gives no horizontal impulse, so momentum is conserved (A). It is perfectly inelastic, so kinetic energy is lost (B false); fraction lost $=M/(M+m)$ (D). During the swing only gravity does work, so mechanical energy is conserved (C).`),
+  msq(5, 'coefficient of restitution', r`A ball bounces off a smooth fixed wall. Which statements are correct?`,
+    ['The momentum component normal to the wall is reversed and multiplied by $e$', 'The component parallel to the wall is unchanged', 'For $e<1$ the speed after the bounce is smaller than before', 'The angle of reflection is always equal to the angle of incidence'], [0, 1, 2],
+    r`A and B define a smooth bounce. The kinetic energy drops when $e<1$, so the speed is smaller (C). The angle of reflection equals the angle of incidence only for $e = 1$ (D false).`),
+  msq(5, 'impulse', r`Which statements about impulse are correct?`,
+    ['Impulse is the area under a force-time graph', 'Impulse is a vector', 'Average force = impulse/contact time', 'Impulse equals the change in kinetic energy'], [0, 1, 2],
+    r`$\vec J = \int\vec F\,dt = \Delta\vec p$, a vector (A, B). $F_{avg} = J/\Delta t$ (C). Impulse is the change in <i>momentum</i>, not kinetic energy (D false).`),
+  msq(5, 'centre of mass', r`Which statements about the centre of mass of two particles are correct?`,
+    ['It lies on the line joining them', 'It is nearer to the heavier particle', 'It can lie at a point where there is no mass', 'If the particles repel each other, the centre of mass accelerates away'], [0, 1, 2],
+    r`$\vec r_{cm}$ is a weighted average on the line joining them, nearer the heavier (A, B), and in between the particles, in empty space (C). Internal forces do not accelerate the centre of mass (D false).`),
+  nat(5, 'collisions', r`A heavy block of mass $M = 100\,m$ moves towards a small block of mass $m$ that lies between it and a wall. All collisions are elastic and the blocks and wall are on a frictionless line. How many collisions occur in all (block-block and block-wall)?`, 31, 0,
+    r`In the plane of $(\sqrt M\,v_M,\ \sqrt m\,v_m)$ each collision is a reflection and the speeds' point turns through the angle $2\theta$, where $\tan\theta = \sqrt{m/M} = 0.1$. The collisions continue while the total turn $n\cdot2\theta$ is less than $2\pi$; the count is $\lceil\pi/\theta\rceil - 1$ with $\theta = \tan^{-1}0.1 = 0.0997$ rad. $\pi/\theta = 31.5$, so 31. (A direct simulation gives the same: 31 collisions.)`, { calc: () => Math.ceil(Math.PI / Math.atan(0.1)) - 1, trap: 'Equal masses give 3 collisions; each factor of 100 in mass ratio gives about 10 times more.' }),
+  nat(5, 'collisions', r`The same set-up as before, but now the heavy block is $M = 16m$. How many collisions occur in all?`, 12, 0,
+    r`$\tan\theta = \sqrt{m/M} = \tfrac14$, $\theta = 0.245$ rad, $\pi/\theta = 12.8$, so the number of collisions is $\lceil12.8\rceil - 1 = 12$.`, { calc: () => Math.ceil(Math.PI / Math.atan(0.25)) - 1 }),
+  nat(5, 'collisions in two dimensions', r`A ball of mass $2m$ moving at speed $u$ hits a stationary ball of mass $m$ in an elastic but <b>not head-on</b> collision. What is the largest angle (in degrees) by which the incident ball can be deflected from its original direction?`, 30, 0.1,
+    r`For $m_1>m_2$ the largest deflection of the incident ball satisfies $\sin\theta_{max} = m_2/m_1 = \tfrac12$, so $\theta_{max} = 30^\circ$. (If the incident ball were lighter, it could even rebound.)`, { unit: '°', calc: () => Math.asin(0.5) * 180 / Math.PI, trap: 'For equal masses the balls separate at $90^\circ$; a heavier incident ball is never deflected by more than $\\sin^{-1}(m_2/m_1)$.' }),
+  pas(5, 'collisions', 'p4', r`Find the distance along the incline between the first and second impacts, in m (1 decimal).`, 5, 0.05, 1,
+    r`Use axes along and perpendicular to the incline. The impact speed is 5 $\mathrm{m\,s^{-1}}$, so its components are: perpendicular $5\cos30^\circ = 4.33$ (reversed by the elastic bounce) and along the slope $5\sin30^\circ = 2.5$ (unchanged). The acceleration components are $g\cos30^\circ = 8.66$ perpendicular and $g\sin30^\circ = 5$ along the slope. Time of flight $= 2(4.33)/8.66 = 1$ s. Distance along the slope $= 2.5(1) + \tfrac12(5)(1)^2 = 5.0$ m. (General result: $8h\sin\theta = 8\times1.25\times0.5 = 5$ m.)`, { unit: 'm' }),
+  nat(5, 'centre of mass of shapes', r`A uniform disc of radius $R$ has a circular hole of radius $R/3$ whose centre is $2R/3$ from the centre of the disc. For $R = 36$ cm, find the distance of the centre of mass of the remaining plate from the centre of the disc in cm.`, 3, 0,
+    r`The hole has $(1/3)^2 = \tfrac19$ of the disc's mass. $\bar x = \dfrac{-\tfrac M9\times\tfrac{2R}{3}}{M - \tfrac M9} = -\dfrac{2R/27}{8/9} = -\dfrac{R}{12}$. For $R = 36$ cm the shift is 3 cm, away from the hole.`, { unit: 'cm', calc: () => 36 / 12 }),
+  mat(5, 'centre of mass of shapes', 'm10', r`In each case a uniform body of radius $R$ has a cavity (hole) whose centre lies on a radius. Match each case with the distance by which the centre of mass of the remainder is shifted from the centre of the body.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Shift $=\dfrac{m_hd}{M-m_h}$. A: disc, hole radius $R/2$ at $R/2$: mass fraction $\tfrac14$, shift $\dfrac{\tfrac14\cdot\tfrac R2}{\tfrac34} = \dfrac R6$ (p). B: sphere, cavity $R/2$ at $R/2$: fraction $\tfrac18$, shift $\dfrac{\tfrac18\cdot\tfrac R2}{\tfrac78} = \dfrac R{14}$ (q). C: disc, hole $R/3$ at $2R/3$: fraction $\tfrac19$, shift $\dfrac{\tfrac19\cdot\tfrac{2R}3}{\tfrac89} = \dfrac R{12}$ (r). D: sphere, cavity $R/3$ at $2R/3$: fraction $\tfrac1{27}$, shift $\dfrac{\tfrac1{27}\cdot\tfrac{2R}3}{\tfrac{26}{27}} = \dfrac R{39}$ (s). So A-p, B-q, C-r, D-s.`),
+  asrt(5, 'collisions', r`If a heavy block moving towards a light block placed between it and a wall (all collisions elastic) has 100 times the mass of the light one, the total number of collisions is 31.`, r`Each collision is a reflection in the plane of $(\sqrt M v_M,\sqrt m v_m)$, so the angle swept is a multiple of $2\tan^{-1}\sqrt{m/M}$.`, 0,
+    r`Both true and R explains A: the number of collisions is the largest $n$ for which the rotation fits within the allowed angle, which gives $\lceil\pi/\tan^{-1}(0.1)\rceil - 1 = 31$.`),
+  stm(5, 'collisions', r`After a perfectly inelastic head-on collision the two bodies are always at rest.`, r`After a perfectly inelastic collision the relative speed of the two bodies is zero.`, 3,
+    r`II is true: $e = 0$ means the speed of separation is zero (the bodies move together). I is false: they move with the velocity of the centre of mass, which is zero only if the total momentum was zero.`),
+  nat(4, 'impulse', r`A machine gun fires 600 bullets per minute, each of mass 25 g, at $400\ \mathrm{m\,s^{-1}}$. Find the average force needed to hold the gun in place in N.`, 100, 0,
+    r`Bullets per second $= 10$. Momentum given to the bullets per second $= 10\times0.025\times400 = 100\ \mathrm{N}$. The gun must be held with this average force.`, { unit: 'N', calc: () => 10 * 0.025 * 400 }),
+  nat(4, 'variable mass', r`Sand falls vertically at $4\ \mathrm{kg\,s^{-1}}$ on to a horizontal conveyor belt moving at a steady $3\ \mathrm{m\,s^{-1}}$. Find the power the motor must supply to keep the belt moving at this speed, in W.`, 36, 0,
+    r`The sand must be brought from 0 to $3\ \mathrm{m\,s^{-1}}$: force $F = v\,dm/dt = 3\times4 = 12$ N. Power $= Fv = 12\times3 = 36$ W. (Only half of this, 18 W, appears as kinetic energy of the sand; the other half is heat from slipping.)`, { unit: 'W', calc: () => 3 * 4 * 3, trap: 'Half the power is dissipated as heat; it is not just $\\tfrac12v^2\\,dm/dt$.' }),
 );
 
 // ---------- Number templates ----------
@@ -496,6 +699,118 @@ const gens = [
         sol: `K_final/K_initial = m₁/(m₁ + m₂) = ${m1}/${m1 + m2}, so the loss is m₂/(m₁ + m₂) = ${m2}/${m1 + m2} = ${fmt(f, 3)}%. The other options give the fraction that is left, or a guess of 50%.` };
     },
     verify: (p) => p.options.findIndex((o) => o === `${fmt(100 * p.m2 / (p.m1 + p.m2), 3)} %`) },
+  // ---- added 2026-11-22 ----
+  { id: 'cm-g18', type: 'nat', level: 3, exams: EX[3], sub: 'centre of mass of shapes',
+    make(rng) {
+      const a = int(rng, 3, 12), b = int(rng, 3, 12), x3 = int(rng, 0, 4), y3 = int(rng, 0, 4);
+      const verts = [[0, 0], [a, 0], [x3, b]];
+      const cx = verts.reduce((s, v) => s + v[0], 0) / 3, cy = verts.reduce((s, v) => s + v[1], 0) / 3;
+      const d = Math.hypot(cx, cy); const [ans, tol] = tl(d);
+      return { a, b, x3, verts, answer: ans, tol, unit: 'cm',
+        q: `A thin uniform triangular plate has its vertices at $(0,0)$, $(${a},0)$ and $(${x3},${b})$ (in cm). Find the distance of its centre of mass from the origin in cm (3 significant figures).`,
+        sol: `The centre of mass is the centroid, the mean of the vertices: $\\bar x = (0+${a}+${x3})/3 = ${fmt(cx, 4)}$ and $\\bar y = (0+0+${b})/3 = ${fmt(cy, 4)}$. Distance $= \\sqrt{\\bar x^2 + \\bar y^2} = ${fmt(d, 4)}$ cm.` };
+    },
+    verify: (p) => { const m = [1, 1, 1]; const x = p.verts.reduce((s, v, i) => s + m[i] * v[0], 0) / 3, y = p.verts.reduce((s, v, i) => s + m[i] * v[1], 0) / 3; return Math.hypot(x, y); } },
+  { id: 'cm-g19', type: 'nat', level: 4, exams: EX[4], sub: 'collisions',
+    make(rng) {
+      const m1 = choose(rng, [1, 2, 3]), m2 = choose(rng, [2, 3, 4, 6]), u = choose(rng, [3, 4, 5, 6]), k = choose(rng, [100, 200, 300, 500]);
+      const mu = m1 * m2 / (m1 + m2), x = u * Math.sqrt(mu / k);
+      return { m1, m2, u, k, answer: +x.toFixed(4), tol: Math.max(0.002, x * 0.01), unit: 'm',
+        q: `A ${m1} kg block moving at ${u} m/s hits a light spring (constant ${k} N/m) fixed to the near face of a ${m2} kg block at rest on a smooth table. Find the maximum compression of the spring in m (3 decimals).`,
+        sol: `At the maximum compression the blocks have a common velocity $V = ${m1}\\times${u}/${m1 + m2} = ${fmt(m1 * u / (m1 + m2), 4)}$ m/s. Energy lost from kinetic energy $=\\tfrac12\\mu u^2$ with $\\mu = ${fmt(mu, 4)}$ kg: $${fmt(0.5 * mu * u * u, 5)}$ J $=\\tfrac12(${k})x^2$, so $x = ${fmt(x, 4)}$ m.`,
+        trap: 'The kinetic energy does not all go into the spring: the blocks still move together.' };
+    },
+    verify: (p) => { const V = p.m1 * p.u / (p.m1 + p.m2); const E = 0.5 * p.m1 * p.u ** 2 - 0.5 * (p.m1 + p.m2) * V * V; return Math.sqrt(2 * E / p.k); } },
+  { id: 'cm-g20', type: 'nat', level: 4, exams: EX[4], sub: 'inelastic collision',
+    make(rng) {
+      const m1 = choose(rng, [1, 2, 3, 4]), m2 = choose(rng, [2, 3, 5, 6]), u1 = choose(rng, [3, 4, 5, 6]), u2 = choose(rng, [1, 2, 3]);
+      const V = (m1 * u1 - m2 * u2) / (m1 + m2), lost = 0.5 * m1 * u1 ** 2 + 0.5 * m2 * u2 ** 2 - 0.5 * (m1 + m2) * V * V;
+      return { m1, m2, u1, u2, answer: +lost.toFixed(3), tol: Math.max(0.01, lost * 0.005), unit: 'J',
+        q: `A ${m1} kg block moving at ${u1} m/s and a ${m2} kg block moving at ${u2} m/s in the opposite direction collide head-on and stick together. Find the kinetic energy lost in J.`,
+        sol: `Common velocity $V = (${m1}\\times${u1} - ${m2}\\times${u2})/${m1 + m2} = ${fmt(V, 4)}$ m/s. $K_i = ${fmt(0.5 * m1 * u1 ** 2 + 0.5 * m2 * u2 ** 2, 5)}$ J, $K_f = ${fmt(0.5 * (m1 + m2) * V * V, 5)}$ J. Lost $= ${fmt(lost, 5)}$ J. (Check: $\\tfrac12\\mu v_{rel}^2 = \\tfrac12(${fmt(m1 * m2 / (m1 + m2), 4)})(${u1 + u2})^2$.)`,
+        trap: 'The relative speed is the sum of the speeds when they approach each other.' };
+    },
+    verify: (p) => 0.5 * (p.m1 * p.m2 / (p.m1 + p.m2)) * (p.u1 + p.u2) ** 2 },
+  { id: 'cm-g21', type: 'nat', level: 5, exams: EX[5], sub: 'collisions',
+    make(rng) {
+      const h = choose(rng, [0.8, 1.25, 1.8, 3.2, 5]), th = choose(rng, [20, 25, 30, 37, 45]);
+      const T = th * Math.PI / 180, s = 8 * h * Math.sin(T);
+      return { h, th, answer: +s.toFixed(3), tol: Math.max(0.02, s * 0.01), unit: 'm',
+        q: `A ball is dropped from a height of ${h} m above a point on a smooth plane inclined at $${th}^\\circ$ to the horizontal. The collision is perfectly elastic. Find the distance along the incline between the first and second impacts in m (2 decimals). Take $g = 10\\ \\mathrm{m\\,s^{-2}}$.`,
+        sol: `Impact speed $v = \\sqrt{2gh} = ${fmt(Math.sqrt(20 * h), 4)}$ m/s, directed vertically downward. Resolve along the incline and perpendicular to it. Along the incline the speed component is $v\\sin\\theta$; perpendicular it is $v\\cos\\theta$ (reversed by the bounce). Time of flight $=2v\\cos\\theta/(g\\cos\\theta) = 2v/g = ${fmt(2 * Math.sqrt(20 * h) / 10, 4)}$ s. Distance $= v\\sin\\theta\\,t + \\tfrac12g\\sin\\theta\\,t^2 = 8h\\sin\\theta = ${fmt(s, 4)}$ m.`,
+        trap: 'The time of flight does not depend on the incline angle.' };
+    },
+    verify: (p) => { const T = p.th * Math.PI / 180, v = Math.sqrt(20 * p.h); const vp = v * Math.cos(T), vs = v * Math.sin(T), gp = 10 * Math.cos(T), gs = 10 * Math.sin(T); const t = 2 * vp / gp; return vs * t + 0.5 * gs * t * t; } },
+  { id: 'cm-g22', type: 'mcq', level: 3, exams: EX[3], sub: 'centre of mass of shapes',
+    make(rng) {
+      const shapes = [['a uniform solid hemisphere', 'from the centre of its flat face', (R) => 3 * R / 8], ['a thin hemispherical shell', 'from the centre of its flat face', (R) => R / 2], ['a uniform semicircular wire', 'from its diameter', (R) => 2 * R / Math.PI], ['a uniform semicircular plate', 'from its straight edge', (R) => 4 * R / (3 * Math.PI)]];
+      const i = int(rng, 0, 3), R = choose(rng, [10, 12, 16, 20, 24, 30]);
+      const f = (v) => `${fmt(v, 3)} cm`;
+      const wrongs = shapes.filter((_, j) => j !== i).map((s) => f(s[2](R)));
+      const { options, answer } = shuffleOpts(rng, f(shapes[i][2](R)), wrongs);
+      return { i, R, options, answer, shapes, f,
+        q: `Find the distance of the centre of mass of ${shapes[i][0]} of radius ${R} cm ${shapes[i][1]}.`,
+        sol: `Standard result: ${['$3R/8$', '$R/2$', '$2R/\\pi$', '$4R/3\\pi$'][i]}. With $R = ${R}$ cm this is ${f(shapes[i][2](R))}. The other options are the distances for the other three shapes.`,
+        trap: 'Solid hemisphere $3R/8$, shell $R/2$, wire $2R/\\pi$, plate $4R/3\\pi$: easy to swap.' };
+    },
+    verify: (p) => p.options.indexOf(p.f(p.shapes[p.i][2](p.R))) },
+  { id: 'cm-g23', type: 'nat', level: 4, exams: EX[4], sub: 'collisions',
+    make(rng) {
+      const m1 = choose(rng, [1, 2, 3, 4]), m2 = choose(rng, [1, 2, 3, 5, 6]), k = choose(rng, [100, 200, 300, 400, 600]);
+      const w = Math.sqrt(k * (1 / m1 + 1 / m2));
+      return { m1, m2, k, answer: +w.toFixed(3), tol: Math.max(0.02, w * 0.005), unit: 'rad/s',
+        q: `Two blocks of mass ${m1} kg and ${m2} kg are joined by a light spring of constant ${k} N/m and lie on a smooth table. Find the angular frequency of their relative oscillation in rad/s (1 decimal).`,
+        sol: `Each block satisfies $m_ia_i = \\mp kx$, where $x$ is the extension. The extension changes as $\\ddot x = -k(1/m_1 + 1/m_2)x$, so $\\omega^2 = k/\\mu$ with $\\mu = ${fmt(m1 * m2 / (m1 + m2), 4)}$ kg. $\\omega = \\sqrt{${k}/${fmt(m1 * m2 / (m1 + m2), 4)}} = ${fmt(w, 4)}$ rad/s.`,
+        trap: 'The motion is governed by the reduced mass.' };
+    },
+    verify: (p) => Math.sqrt(p.k / (p.m1 * p.m2 / (p.m1 + p.m2))) },
+  { id: 'cm-g24', type: 'nat', level: 5, exams: EX[5], sub: 'collisions',
+    make(rng) {
+      const r = choose(rng, [1, 4, 9, 16, 25, 100]);
+      let vM = -1, vm = 0, n = 0; const M = r, m = 1;
+      for (let it = 0; it < 100000; it++) {
+        if (vm > vM) { const v1 = ((m - M) * vm + 2 * M * vM) / (m + M), v2 = ((M - m) * vM + 2 * m * vm) / (m + M); vm = v1; vM = v2; n++; continue; }
+        if (vm < 0) { vm = -vm; n++; continue; }
+        break;
+      }
+      return { r, answer: n, tol: 0,
+        q: `A block of mass $M = ${r}m$ moves towards a block of mass $m$ that lies between it and a wall. All collisions (block-block and block-wall) are perfectly elastic and the motion is along a frictionless line. How many collisions occur in all?`,
+        sol: `Use the variables $x = \\sqrt{M}\\,v_M$ and $y = \\sqrt{m}\\,v_m$. Each collision of the two blocks is a reflection in the $(x,y)$ plane, each wall bounce is a reflection of $y\\to-y$, and together the pair turns the point by $2\\theta$ with $\\tan\\theta = \\sqrt{m/M} = ${fmt(1 / Math.sqrt(r), 4)}$. Collisions continue while the total turn fits within $\\pi$, giving $\\lceil\\pi/\\theta\\rceil - 1 = ${n}$.`,
+        trap: 'Heavier blocks give more collisions: ratio 100 gives 31, and each factor of 100 gives about 10 times more.' };
+    },
+    verify: (p) => Math.ceil(Math.PI / Math.atan(Math.sqrt(1 / p.r))) - 1 },
+  { id: 'cm-g25', type: 'nat', level: 3, exams: EX[3], sub: 'motion of centre of mass',
+    make(rng) {
+      const M = choose(rng, [40, 50, 60, 80, 100]), m = choose(rng, [1, 2, 4, 5]), v = choose(rng, [5, 8, 10, 12, 15]);
+      const V = m * v / M;
+      return { M, m, v, answer: +V.toFixed(4), tol: Math.max(0.002, V * 0.01), unit: 'm/s',
+        q: `A skater of mass ${M} kg stands on frictionless ice and throws a ${m} kg ball horizontally at ${v} m/s relative to the ice. Find his recoil speed in m/s (3 decimals).`,
+        sol: `Total momentum stays zero: $${m}\\times${v} = ${M}V$, so $V = ${fmt(m * v, 4)}/${M} = ${fmt(V, 4)}$ m/s, in the opposite direction.` };
+    },
+    verify: (p) => (p.m * p.v) / p.M },
+  { id: 'cm-g26', type: 'mcq', level: 3, exams: EX[3], sub: 'elastic collision',
+    make(rng) {
+      const m1 = choose(rng, [1, 2, 3, 4]), m2 = choose(rng, [1, 2, 3, 6]), u = choose(rng, [4, 6, 8, 10]);
+      const v1 = (m1 - m2) / (m1 + m2) * u;
+      const f = (v) => `${fmt(v, 3)} m/s`;
+      const cand = [(m1 - m2) / (m1 + m2) * u, -(m1 - m2) / (m1 + m2) * u, 2 * m1 / (m1 + m2) * u, u, m1 / (m1 + m2) * u, (m2 - m1) / (m1 + m2) * u * 2].map(f);
+      const wr = []; for (const c of cand.slice(1)) if (c !== f(v1) && !wr.includes(c)) wr.push(c);
+      const extra = [f(v1 + 1), f(v1 - 1.5), f(v1 + 2.5)]; for (const e of extra) if (wr.length < 3 && e !== f(v1) && !wr.includes(e)) wr.push(e);
+      const { options, answer } = shuffleOpts(rng, f(v1), wr.slice(0, 3));
+      return { m1, m2, u, options, answer, f,
+        q: `A ${m1} kg ball moving at ${u} m/s hits a stationary ${m2} kg ball head-on in a perfectly elastic collision. The velocity of the first ball just afterwards (taking its original direction as positive) is`,
+        sol: `$v_1 = \\dfrac{m_1-m_2}{m_1+m_2}u = \\dfrac{${m1}-${m2}}{${m1 + m2}}\\times${u} = ${fmt(v1, 4)}$ m/s. ${v1 < 0 ? 'It is negative, so the first ball rebounds.' : v1 === 0 ? 'It stops.' : 'It keeps moving forward.'}`, trap: 'Check the sign: a lighter ball hitting a heavier one rebounds.' };
+    },
+    verify: (p) => { const m1 = p.m1, m2 = p.m2, u = p.u; const vcm = m1 * u / (m1 + m2); const v1 = 2 * vcm - u; return p.options.indexOf(p.f(v1)); } },
+  { id: 'cm-g27', type: 'nat', level: 4, exams: EX[4], sub: 'variable mass',
+    make(rng) {
+      const u = choose(rng, [1500, 2000, 2500, 3000]), ratio = choose(rng, [2, 3, 4, 5, 10]);
+      const dv = u * Math.log(ratio);
+      return { u, ratio, answer: +dv.toFixed(2), tol: Math.max(1, dv * 0.003), unit: 'm/s',
+        q: `A rocket in free space ejects gas at ${u} m/s relative to itself. It starts from rest and burns fuel until its mass is ${ratio === 2 ? 'half' : `1/${ratio}`} of the initial mass. Find its final speed in m/s (nearest whole number).`,
+        sol: `$\\Delta v = u\\ln(m_0/m) = ${u}\\times\\ln${ratio} = ${u}\\times${fmt(Math.log(ratio), 4)} = ${fmt(dv, 5)}$ m/s.`, trap: 'The result is logarithmic: doubling the fuel does not double the speed.' };
+    },
+    verify: (p) => { let v = 0; const n = 100000, m0 = 1, m1 = 1 / p.ratio; for (let i = 0; i < n; i++) { const m = m0 + (m1 - m0) * (i + 0.5) / n; v += p.u * (m0 - m1) / n / m; } return v; } },
 ];
 
 export default { topic: 'centre-of-mass-collisions', groups, items, gens };

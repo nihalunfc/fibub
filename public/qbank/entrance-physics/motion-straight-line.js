@@ -37,6 +37,11 @@ const SOPT = [
 const stm = (level, sub, I, II, answer, sol, o = {}) =>
   base(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SOPT, answer, sol, ...o });
 
+// match item: the correct code goes to a rotating position (added with the 2026-11-22 extension)
+const mat = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = (c++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: nid(), type: 'mcq', level, format: 'match', exams: EX[level], sub, group, q, options, answer: pos, sol, ...o };
+};
 const items = [
   // ---------- Level 1 ----------
   mcq(1, 'distance and displacement', r`An athlete runs exactly one lap of a 400 m circular track in 80 s. Her average velocity for the lap is`, 'zero', [r`$5\ \mathrm{m\,s^{-1}}$`, r`$400\ \mathrm{m\,s^{-1}}$`, r`$0.2\ \mathrm{m\,s^{-1}}$`],
@@ -290,6 +295,183 @@ const items = [
     q: 'If the initial gap were only 90 m (and nothing else changed), what would happen?',
     options: ['Car A never catches B', 'The cars collide at t = 10 s', 'The cars collide at t = 13.2 s only', 'Car A catches B at about 6.8 s and, if it passes, B catches A again at about 13.2 s'],
     sol: r`Gap $= 90 + t^2 - 20t = 0$ gives $t = 10\pm\sqrt{10}$, i.e. 6.84 s and 13.16 s. $A$ reaches $B$ at 6.84 s and moves ahead; $B$ is accelerating and catches up again at 13.16 s.`, trap: 'A quadratic with two positive roots means two meetings.' },
+
+  // ================= Added 2026-11-22: harder and more varied questions =================
+  // ---------- Level 2 ----------
+  mcq(2, 'free fall', r`A body is released from rest and falls freely. The distances it covers in the 1st, 2nd and 3rd seconds are in the ratio`, '1 : 3 : 5', ['1 : 2 : 3', '1 : 4 : 9', '1 : 1 : 1'],
+    r`Distance in the $n$th second is $s_n = \tfrac12g(2n-1)$, so the ratio is $1:3:5$. The ratio $1:4:9$ is for the <i>total</i> distances after 1, 2 and 3 s.`, { trap: 'Total distance and distance in the $n$th second are different.' }),
+  nat(2, 'area under graph', r`The velocity of a body rises uniformly from 0 to $12\ \mathrm{m\,s^{-1}}$ in 4 s and then stays constant for 6 s. Find the total distance travelled in m.`, 96, 0,
+    r`First 4 s: area of a triangle $=\tfrac12\times4\times12 = 24$ m. Next 6 s: a rectangle $12\times6 = 72$ m. Total $= 96$ m.`, { unit: 'm', calc: () => 0.5 * 4 * 12 + 12 * 6 }),
+  nat(2, 'stopping distance', r`A car moving at $54\ \mathrm{km\,h^{-1}}$ is braked at a constant $3\ \mathrm{m\,s^{-2}}$. Find its stopping distance in m (1 decimal).`, 37.5, 0.05,
+    r`$54\ \mathrm{km\,h^{-1}} = 15\ \mathrm{m\,s^{-1}}$. $0 = u^2 - 2as$, so $s = 15^2/(2\times3) = 37.5$ m.`, { unit: 'm', calc: () => 15 ** 2 / 6 }),
+  mcq(2, 'graphs', r`Which statement about a <i>speed</i>–time graph is correct?`, 'It can never go below the time axis', ['Its slope gives the velocity', 'Its area gives the displacement', 'It must be a straight line'],
+    r`Speed is the magnitude of velocity and so cannot be negative, so the graph never goes below the axis. The area gives the distance (not displacement) and the slope gives the rate of change of speed (not velocity).`),
+  nat(2, 'nth second', r`A body has initial velocity $3\ \mathrm{m\,s^{-1}}$ and uniform acceleration $2\ \mathrm{m\,s^{-2}}$. Find the distance covered in the 4th second in m.`, 10, 0,
+    r`$s_n = u + a(n-\tfrac12) = 3 + 2\times3.5 = 10$ m.`, { unit: 'm', calc: () => 3 + 2 * 3.5 }),
+  mcq(2, 'graphs', r`Two bodies have straight-line $x$–$t$ graphs through the origin. The graph of $A$ is steeper than that of $B$. Then`, 'A moves with the greater speed', ['B moves with the greater speed', 'A has the greater acceleration', 'both have the same speed'],
+    r`The slope of an $x$–$t$ graph is the velocity. A straight line means constant velocity (zero acceleration) and a steeper line means a larger speed.`),
+
+  // ---------- Level 3 ----------
+  nat(3, 'relative motion', r`Stone $A$ is dropped from a tall tower. At the same instant stone $B$ is thrown vertically downward at $10\ \mathrm{m\,s^{-1}}$ from the same point. How far apart are they after 3 s (in m)? Neither has reached the ground.`, 30, 0,
+    r`Both have the same acceleration $g$, so the relative acceleration is zero. $B$ moves at a constant $10\ \mathrm{m\,s^{-1}}$ relative to $A$. After 3 s the gap is $10\times3 = 30$ m.`, { unit: 'm', calc: () => 10 * 3, trap: 'The separation grows linearly, not as $t^2$.' }),
+  nat(3, 'vertical throw', r`On the Moon ($g = 1.6\ \mathrm{m\,s^{-2}}$) an astronaut throws a ball straight up at $8\ \mathrm{m\,s^{-1}}$. Find the maximum height in m.`, 20, 0.05,
+    r`$h = \dfrac{u^2}{2g} = \dfrac{64}{3.2} = 20$ m.`, { unit: 'm', calc: () => 64 / 3.2 }),
+  nat(3, 'free fall', r`In a reaction-time test a ruler is released and caught after it has fallen 19.6 cm. Using $g = 9.8\ \mathrm{m\,s^{-2}}$, find the reaction time in milliseconds.`, 200, 0,
+    r`$h = \tfrac12gt^2$, so $t = \sqrt{2h/g} = \sqrt{2\times0.196/9.8} = 0.2$ s $= 200$ ms.`, { unit: 'ms', calc: () => Math.sqrt(2 * 0.196 / 9.8) * 1000 }),
+  nat(3, 'free fall', r`Water drops leave a tap at equal intervals. When the first drop reaches the floor 18 m below, the fourth drop is just leaving the tap. How far below the tap is the <b>second</b> drop at that instant (in m)?`, 8, 0,
+    r`The first drop has fallen for $3T$, the second for $2T$, the third for $T$ and the fourth for 0 (where $T$ is the interval). Distances $\propto t^2$: $18:\ 18\times\tfrac49:\ 18\times\tfrac19:\ 0$, i.e. 18, 8, 2, 0 m. The second drop is 8 m below the tap.`, { unit: 'm', calc: () => 18 * 4 / 9 }),
+  nat(3, 'equal intervals', r`A train starts from rest with uniform acceleration. Its first carriage takes 4 s to pass a signal post (the front of the train is at the post at $t = 0$). Find the time the <b>fourth</b> carriage alone takes to pass the post, in s (2 decimals). All carriages are equal.`, 1.07, 0.02,
+    r`Distance from the post $= $ (number of carriages)$\times L = \tfrac12at^2$, so $t\propto\sqrt n$. The first $n$ carriages pass in $4\sqrt n$ s. The fourth alone takes $4(\sqrt4-\sqrt3) = 4(2-1.732) = 1.07$ s.`, { unit: 's', calc: () => 4 * (2 - Math.sqrt(3)), trap: 'It is the difference of the times for 4 and for 3 carriages, not a quarter of the time.' }),
+  mcq(3, 'variable acceleration', r`A particle's speed is proportional to its distance from the origin: $v = kx$ ($k$ constant). Its acceleration is`, r`proportional to $x$ (and also to $v$)`, ['zero', 'constant but not zero', 'proportional to $1/x$'],
+    r`$a = v\dfrac{dv}{dx} = (kx)(k) = k^2x$. So $a\propto x$, and since $v = kx$ it is also $a = kv$: the motion speeds up exponentially.`),
+  mcq(3, 'equations of motion', r`For motion with constant acceleration, the instantaneous velocity at the <b>mid-instant</b> of a time interval is equal to`, 'the average velocity over that interval', ['half the average velocity', 'the average of the speeds only if $u=0$', 'the final velocity'],
+    r`With constant $a$, $v(t) = u + at$ is linear in $t$. At the middle of the interval its value is $u + a\tfrac{T}{2} = \dfrac{u+v}{2}$, which equals the average velocity.`),
+  nat(3, 'variable acceleration', r`The position of a particle is $x = 3t^2 - t^3$ (SI). Find its largest positive displacement from the origin for $t\ge0$ in m.`, 4, 0,
+    r`$v = 6t - 3t^2 = 0$ at $t = 0$ and $t = 2$ s. At $t = 2$: $x = 12 - 8 = 4$ m. (After $t = 2$ it moves back.)`, { unit: 'm', calc: () => 3 * 4 - 8 }),
+  nat(3, 'average speed', r`A particle moves as $x = t^2 - 4t$ (SI). Find its average <i>speed</i> from $t = 0$ to $t = 6$ s in $\mathrm{m\,s^{-1}}$ (2 decimals).`, 3.33, 0.01,
+    r`$v = 2t - 4$ is zero at $t = 2$ s, where $x = 4 - 8 = -4$ m. From $0$ to $2$ s it moves 4 m backwards. At $t = 6$, $x = 12$ m, so from $2$ to $6$ s it moves 16 m forward. Distance $= 20$ m. Average speed $= 20/6 = 3.33\ \mathrm{m\,s^{-1}}$ (the average velocity is $12/6 = 2$).`, { unit: 'm/s', calc: () => 20 / 6, trap: 'Average speed uses the total path, not the net displacement.' }),
+  nat(3, 'two-stage motion', r`A lift accelerates upward from rest at $1.5\ \mathrm{m\,s^{-2}}$ for 4 s, moves at constant speed for 5 s, and then brakes uniformly at $3\ \mathrm{m\,s^{-2}}$ to rest. Find the total height climbed in m.`, 48, 0,
+    r`Speed after 4 s: $v = 6\ \mathrm{m\,s^{-1}}$. Stage 1: $\tfrac12\times6\times4 = 12$ m. Stage 2: $6\times5 = 30$ m. Braking takes $6/3 = 2$ s and covers $\tfrac12\times6\times2 = 6$ m. Total $= 48$ m.`, { unit: 'm', calc: () => 12 + 30 + 6 }),
+  nat(3, 'dimensions', r`If $x = k\,a^{m}t^{n}$, where $x$ is length, $a$ is acceleration, $t$ is time and $k$ is a pure number, find $m + n$.`, 3, 0,
+    r`$[L] = [LT^{-2}]^m[T]^n = [L^mT^{n-2m}]$. So $m = 1$ and $n - 2m = 0$ gives $n = 2$. Then $m + n = 3$ (this is $x\propto at^2$).`, { calc: () => 3 }),
+  asrt(3, 'average speed', r`The average speed of a body over an interval can never be less than the magnitude of its average velocity.`, r`The distance travelled is never less than the magnitude of the displacement.`, 0,
+    r`Both are true and R explains A. Average speed $=$ distance$/t\ge|\text{displacement}|/t = |\vec v_{avg}|$.`),
+  asrt(3, 'free fall', r`A freely falling body has constant acceleration.`, r`The velocity of a freely falling body increases linearly with time.`, 1,
+    r`Both are true. R is a consequence of A, not an explanation of why the acceleration is constant (the constancy of $g$ comes from gravity near the Earth's surface). So A and R are true, but R does not explain A.`),
+  stm(3, 'graphs', r`A body's velocity can change sign while its acceleration stays constant.`, r`A ball thrown vertically up has constant acceleration $g$ downward, yet its velocity changes sign at the top.`, 0,
+    r`Both statements are true, and II is an example for I.`),
+  mat(3, 'graphs', 'm4', r`Match each $x$–$t$ graph in List I with the motion in List II.`, 'A-q, B-s, C-r, D-p', ['A-q, B-p, C-r, D-s', 'A-s, B-q, C-r, D-p', 'A-q, B-s, C-p, D-r'],
+    r`A straight line sloping up: constant positive velocity (q). A parabola opening upward: constant positive acceleration (s). A parabola opening downward: constant negative acceleration (r). A horizontal line: at rest (p). So A-q, B-s, C-r, D-p.`),
+  mat(3, 'area under graph', 'm7', r`Match each velocity–time graph in List I with the displacement in List II (positive direction only).`, 'A-p, B-r, C-s, D-q', ['A-r, B-p, C-s, D-q', 'A-p, B-s, C-r, D-q', 'A-p, B-r, C-q, D-s'],
+    r`A: triangle $\tfrac12\times4\times10 = 20$ m (p). B: rectangle $5\times6 = 30$ m (r). C: triangle $\tfrac12\times2\times10 = 10$ plus rectangle $10\times3 = 30$: 40 m (s). D: triangle $\tfrac12\times5\times10 = 25$ m (q). So A-p, B-r, C-s, D-q.`),
+  mat(3, 'basic quantities', 'm10', r`Match each state of motion along $+x$ in List I with the description in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Speed increases when $v$ and $a$ have the same sign and decreases when the signs are opposite. $v>0,a>0$: moving forward, speeding up (p). $v>0,a<0$: forward, slowing (q). $v<0,a<0$: backward, speeding up (r). $v<0,a>0$: backward, slowing (s). So A-p, B-q, C-r, D-s.`),
+  mat(3, 'free fall', 'm11', r`A stone is dropped from rest ($g = 10\ \mathrm{m\,s^{-2}}$). Match each quantity in List I with its value in List II.`, 'A-s, B-q, C-r, D-p', ['A-q, B-s, C-r, D-p', 'A-s, B-q, C-p, D-r', 'A-s, B-r, C-q, D-p'],
+    r`A: $\tfrac12(10)(3)^2 = 45$ m (s). B: third second $= 5\times5 = 25$ m (q). C: $v = gt = 30\ \mathrm{m\,s^{-1}}$ (r). D: $80 = 5t^2$ gives $t = 4$ s (p). So A-s, B-q, C-r, D-p.`),
+  { id: nid(), type: 'nat', level: 3, format: 'passage', exams: EX[3], sub: 'area under graph', group: 'p3',
+    q: 'Find the displacement of the particle from $t = 0$ to $t = 11$ s in m.', answer: 60, tol: 0, calc: () => 18 + 24 + 24 - 6,
+    sol: r`From 0 to 3 s: $\tfrac12\times3\times12 = 18$ m. From 3 to 5 s: $12\times2 = 24$ m. From 5 to 9 s the velocity falls from 12 to 0 (slope $-3$): $\tfrac12\times4\times12 = 24$ m. From 9 to 11 s it is negative, down to $-6$: $-\tfrac12\times2\times6 = -6$ m. Total $= 18+24+24-6 = 60$ m.` },
+  { id: nid(), type: 'nat', level: 4, format: 'passage', exams: EX[4], sub: 'area under graph', group: 'p3',
+    q: 'Find the total distance travelled from $t = 0$ to $t = 11$ s in m.', answer: 72, tol: 0, calc: () => 18 + 24 + 24 + 6,
+    sol: r`The line from 5 s to 11 s goes from $+12$ to $-6\ \mathrm{m\,s^{-1}}$ over 6 s (slope $-3$), so it crosses zero at $t = 9$ s. Moving forward: $18 + 24 + 24 = 66$ m (up to $t = 9$ s). Moving backward: $\tfrac12\times2\times6 = 6$ m. Distance $= 66 + 6 = 72$ m (the displacement is $66 - 6 = 60$ m).`, trap: 'Distance adds the backward area; displacement subtracts it.' },
+  { id: nid(), type: 'mcq', level: 3, format: 'passage', exams: EX[3], sub: 'area under graph', group: 'p3', answer: 1,
+    q: 'What is the acceleration of the particle at $t = 7$ s?',
+    options: [r`$+3\ \mathrm{m\,s^{-2}}$`, r`$-3\ \mathrm{m\,s^{-2}}$`, r`$-2\ \mathrm{m\,s^{-2}}$`, r`$0$`],
+    sol: r`Between 5 s and 11 s the velocity goes from $+12$ to $-6\ \mathrm{m\,s^{-1}}$ in 6 s, so $a = -18/6 = -3\ \mathrm{m\,s^{-2}}$ (the particle still moves forward at 7 s but is slowing down).`, trap: 'The velocity is still positive at 7 s; only the acceleration is negative.' },
+  mcq(3, 'vertical throw', r`A ball is thrown vertically up in the presence of air resistance. Compared with the time to rise, the time to fall back to the starting point is`, 'longer', ['shorter', 'the same', 'longer or shorter depending on the mass only'],
+    r`While rising, drag acts downward, so $a>g$. While falling, drag acts upward, so $a<g$. The distances are equal, so the fall takes longer (and the ball returns with less speed than it was thrown).`),
+
+  // ---------- Level 4 ----------
+  msq(4, 'vertical throw', r`A ball is thrown vertically upward in air. Air resistance is not negligible. Which statements are correct?`,
+    ['The time of ascent is less than the time of descent', 'The speed on returning to the starting point is less than the speed of projection', 'The maximum height is the same as in a vacuum', 'At the highest point the acceleration is $g$ downward'], [0, 1, 3],
+    r`Drag opposes the motion, so the rise is faster ($a>g$) and the fall slower ($a<g$): A true. Energy is lost to drag, so the speed on return is less (B true). The maximum height is smaller than in a vacuum (C false). At the top $v = 0$, so drag is zero and $a = g$ (D true).`),
+  msq(4, 'graphs', r`The velocity of a body falls uniformly from $+10\ \mathrm{m\,s^{-1}}$ at $t=0$ to $-10\ \mathrm{m\,s^{-1}}$ at $t = 5$ s. Which statements are correct?`,
+    [r`The acceleration is $-4\ \mathrm{m\,s^{-2}}$ throughout`, 'The body is momentarily at rest at $t = 2.5$ s', 'The displacement from 0 to 5 s is zero', 'The distance travelled from 0 to 5 s is 50 m'], [0, 1, 2],
+    r`$a = -20/5 = -4$ (A true). $v = 0$ at $t = 2.5$ s (B true). The areas of the two triangles cancel: $+\tfrac12\times2.5\times10 = 12.5$ and $-12.5$ (C true). The distance is $12.5+12.5 = 25$ m, not 50 (D false).`),
+  msq(4, 'relative motion', r`Body $A$ is dropped from a high tower at $t = 0$. Body $B$ is dropped from the same point at $t = 1$ s. Both are in free fall (no air). Which statements are correct?`,
+    ['The relative acceleration of the two bodies is zero', 'The distance between them stays constant', 'The distance between them increases linearly with time', 'The relative velocity is constant'], [0, 2, 3],
+    r`Both have acceleration $g$, so the relative acceleration is zero (A) and the relative velocity stays at $g\times1\ \mathrm{s}$ (D). The separation is $\tfrac12gt^2-\tfrac12g(t-1)^2 = gt - \tfrac12g$, which grows linearly (C), not constant (B false).`),
+  msq(4, 'variable acceleration', r`A particle has acceleration $a = -kv$ ($k>0$ constant) and initial velocity $v_0$. Which statements are correct?`,
+    [r`$v = v_0e^{-kt}$`, r`The particle comes to rest at a finite time`, r`The total distance travelled is $v_0/k$`, r`The velocity is a linear function of position: $v = v_0 - kx$`], [0, 2, 3],
+    r`$dv/dt = -kv$ gives $v = v_0e^{-kt}$ (A), which reaches zero only as $t\to\infty$ (B false). Writing $a = v\,dv/dx = -kv$ gives $dv/dx = -k$, so $v = v_0 - kx$ (D) and the stopping distance is $v_0/k$ (C).`),
+  nat(4, 'relative motion', r`Car $A$ moves at a constant $20\ \mathrm{m\,s^{-1}}$. Car $B$ starts from rest at the same point and instant with a constant acceleration $2\ \mathrm{m\,s^{-2}}$ in the same direction. Find the maximum separation before $B$ overtakes $A$, in m.`, 100, 0,
+    r`The separation is $20t - t^2$. It is greatest when the speeds are equal: $2t = 20$, $t = 10$ s, giving $200 - 100 = 100$ m. ($B$ overtakes at $t = 20$ s.)`, { unit: 'm', calc: () => 20 * 10 - 100 }),
+  nat(4, 'rocket', r`A rocket starts from rest and rises with a constant net upward acceleration of $20\ \mathrm{m\,s^{-2}}$ for 10 s until its fuel is used up. It then moves freely under gravity ($g = 10\ \mathrm{m\,s^{-2}}$). Find the maximum height reached, in m.`, 3000, 0,
+    r`Burn: $h_1 = \tfrac12\times20\times10^2 = 1000$ m and $v = 200\ \mathrm{m\,s^{-1}}$. Coasting: $h_2 = v^2/2g = 200^2/20 = 2000$ m. Total $= 3000$ m.`, { unit: 'm', calc: () => 1000 + 200 ** 2 / 20 }),
+  nat(4, 'vertical throw', r`Stone $A$ is thrown vertically up at $30\ \mathrm{m\,s^{-1}}$ from the ground. Stone $B$ is thrown with the same speed from the same point 2 s later. Take $g = 10\ \mathrm{m\,s^{-2}}$. At what height do they meet, in m?`, 40, 0,
+    r`$y_A = 30t - 5t^2$ and $y_B = 30(t-2) - 5(t-2)^2$. Setting equal: $30t - 5t^2 = 30t - 60 - 5t^2 + 20t - 20$, so $0 = 20t - 80$, $t = 4$ s. Height $= 30\times4 - 5\times16 = 40$ m.`, { unit: 'm', calc: () => 30 * 4 - 5 * 16 }),
+  nat(4, 'sound and free fall', r`A stone is dropped into a well and the splash is heard 3.15 s later. Take $g = 10\ \mathrm{m\,s^{-2}}$ and the speed of sound $300\ \mathrm{m\,s^{-1}}$. Find the depth of the well in m.`, 45, 0,
+    r`Let the fall time be $t$. Depth $h = 5t^2$ and the sound takes $h/300$. $t + 5t^2/300 = 3.15$, so $t^2 + 60t - 189 = 0$, giving $t = 3$ s (the other root is negative). $h = 5\times9 = 45$ m. Check: $3 + 45/300 = 3.15$ s.`, { unit: 'm', calc: () => 5 * 9, trap: 'Do not forget the time the sound takes to climb back up.' }),
+  nat(4, 'stopping distance', r`Two cars travel one behind the other at $30\ \mathrm{m\,s^{-1}}$. The front car brakes suddenly at $6\ \mathrm{m\,s^{-2}}$. The driver behind reacts after 0.6 s and then brakes at the same rate. What is the smallest initial gap (in m) that avoids a collision?`, 18, 0,
+    r`Each car, once braking, stops in $30^2/(2\times6) = 75$ m. The front car stops after 75 m. The rear car first moves $30\times0.6 = 18$ m at full speed and then 75 m while braking, 93 m in all. The gap shrinks by $93 - 75 = 18$ m, and it shrinks steadily until both have stopped. So the initial gap must be more than 18 m (at exactly 18 m the bumpers just touch).`, { unit: 'm', calc: () => 93 - 75, trap: 'The extra distance is simply speed $\\times$ reaction time, because both cars brake equally.' }),
+  nat(4, 'equations of motion', r`A body moves with constant acceleration. Its positions at $t = 1$, $2$ and $3$ s are $4$, $9$ and $16$ m. Find its velocity at $t = 2$ s in $\mathrm{m\,s^{-1}}$.`, 6, 0,
+    r`For constant acceleration the velocity at the middle of an interval equals the average velocity over it: $v(2) = \dfrac{x(3)-x(1)}{2} = \dfrac{16-4}{2} = 6\ \mathrm{m\,s^{-1}}$. (Check: the second difference $16-9-(9-4) = 2$ gives $a = 2$.)`, { unit: 'm/s', calc: () => (16 - 4) / 2 }),
+  nat(4, 'free fall', r`A stone is thrown vertically up at $10\ \mathrm{m\,s^{-1}}$ from the top of a 40 m tower. Find the speed with which it reaches the ground, in $\mathrm{m\,s^{-1}}$. Take $g = 10\ \mathrm{m\,s^{-2}}$.`, 30, 0,
+    r`Use $v^2 = u^2 + 2gh$ with $h = 40$ m measured downward: it comes down past the top with $10\ \mathrm{m\,s^{-1}}$, so $v^2 = 100 + 2\times10\times40 = 900$ and $v = 30\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(100 + 800) }),
+  nat(4, 'variable acceleration', r`A particle has $v = 8 - 2t$ (SI). Find the total distance travelled in the first 7 s, in m.`, 25, 0,
+    r`$v = 0$ at $t = 4$ s. From 0 to 4 s: $\tfrac12\times4\times8 = 16$ m forward. From 4 to 7 s: $v$ goes from 0 to $-6$: $\tfrac12\times3\times6 = 9$ m backward. Distance $= 16 + 9 = 25$ m (displacement $= 7$ m).`, { unit: 'm', calc: () => 16 + 9 }),
+  nat(4, 'equations of motion', r`A particle has constant acceleration $+4\ \mathrm{m\,s^{-2}}$ and initial velocity $-8\ \mathrm{m\,s^{-1}}$. Find the total distance travelled in the first 6 s, in m.`, 40, 0,
+    r`It stops when $-8 + 4t = 0$, i.e. $t = 2$ s, having moved $8^2/(2\times4) = 8$ m backward. In the remaining 4 s it moves forward $\tfrac12\times4\times16 = 32$ m (from rest). Distance $= 8 + 32 = 40$ m (displacement $= 24$ m).`, { unit: 'm', calc: () => 8 + 32 }),
+  nat(4, 'variable acceleration', r`A particle has velocity $v = t^2 - 4t + 3$ (SI). Find the total distance travelled from $t = 0$ to $t = 4$ s in m.`, 4, 0,
+    r`$v = (t-1)(t-3)$ changes sign at $t = 1$ and $t = 3$. $x = \dfrac{t^3}{3} - 2t^2 + 3t$. $x(1) = \tfrac43$, $x(3) = 0$, $x(4) = \tfrac43$. Distance $= \tfrac43 + \tfrac43 + \tfrac43 = 4$ m.`, { unit: 'm', calc: () => 4 }),
+  nat(4, 'relative motion', r`A student runs at $6\ \mathrm{m\,s^{-1}}$ to catch a bus. When she is 20 m behind it, the bus starts from rest with acceleration $1\ \mathrm{m\,s^{-2}}$. What is the smallest distance (in m) between her and the bus?`, 2, 0,
+    r`Gap $= 20 + \tfrac12t^2 - 6t$. Its minimum is at $t = 6$ s, giving $20 + 18 - 36 = 2$ m. She never catches the bus (the gap never reaches zero).`, { unit: 'm', calc: () => 20 + 18 - 36 }),
+  nat(4, 'variable acceleration', r`A particle's velocity is $v = t^2 - 6t + 8$ (SI). Find the total distance travelled from $t = 0$ to $t = 5$ s, in m (2 decimals).`, 9.33, 0.01,
+    r`$v = (t-2)(t-4)$. $x = \dfrac{t^3}{3} - 3t^2 + 8t$. $x(2) = 6.667$, $x(4) = 5.333$, $x(5) = 6.667$. Distance $= 6.667 + 1.333 + 1.333 = 9.33$ m.`, { unit: 'm', calc: () => 6.6667 + 1.3333 + 1.3333 }),
+  nat(4, 'vertical throw', r`Two stones are thrown vertically up from the ground at the same instant with speeds $30\ \mathrm{m\,s^{-1}}$ and $20\ \mathrm{m\,s^{-1}}$. Take $g = 9.8\ \mathrm{m\,s^{-2}}$. How far apart are they when the faster one is at its highest point, in m (1 decimal)?`, 30.6, 0.1,
+    r`Both have the same acceleration, so the separation is $(u_1-u_2)t$. The faster stone is at the top at $t = 30/9.8 = 3.06$ s. Separation $= 10\times3.06 = 30.6$ m.`, { unit: 'm', calc: () => 10 * 30 / 9.8 }),
+  nat(4, 'relative motion', r`The ceiling of a lift is 2.5 m above its floor. The lift is rising with an upward acceleration of $1.2\ \mathrm{m\,s^{-2}}$. A bolt falls from the ceiling. Find the time it takes to hit the floor in s (2 decimals). Take $g = 10\ \mathrm{m\,s^{-2}}$.`, 0.67, 0.01,
+    r`Relative to the lift the bolt has acceleration $g + a = 11.2\ \mathrm{m\,s^{-2}}$ downward (the bolt falls freely while the floor rises). $2.5 = \tfrac12(11.2)t^2$, so $t = \sqrt{5/11.2} = 0.67$ s.`, { unit: 's', calc: () => Math.sqrt(5 / 11.2), trap: 'Use the relative acceleration $g + a$, not $g$ alone.' }),
+  mcq(4, 'relative motion', r`The velocity of a body is positive and its acceleration is negative. The body is`, 'moving in the +x direction and slowing down', ['moving in the −x direction and speeding up', 'moving in the +x direction and speeding up', 'at rest'],
+    r`Speed decreases when $v$ and $a$ have opposite signs. Here $v>0$ (moving to $+x$) and $a<0$, so the body slows down.`),
+  mcq(4, 'concepts', r`How many of these statements are correct? (a) A body can have zero velocity and non-zero acceleration. (b) A body can have constant speed and non-zero acceleration in straight-line motion. (c) The slope of the $v$–$t$ graph is the acceleration. (d) The area under the $x$–$t$ graph is the velocity.`, 'Only two', ['Only one', 'Only three', 'All four'],
+    r`(a) true (top of a throw). (b) false: in a straight line, constant speed means constant velocity, hence zero acceleration. (c) true. (d) false: the area under $x$–$t$ has no physical meaning here; the slope gives velocity. So two are correct.`, { format: 'statements' }),
+  stm(4, 'free fall', r`A stone thrown up passes a point at height $h$ going up and again coming down with the same speed.`, r`The speed at a given height depends only on $v^2 = u^2 - 2gh$ and not on the direction of motion.`, 0,
+    r`Both are true: $v^2 = u^2 - 2gh$ gives the same $|v|$ at the same height, so II explains I.`),
+  stm(4, 'basic quantities', r`If the acceleration of a body is zero at an instant, its velocity must be zero at that instant.`, r`If the velocity of a body is zero at an instant, its acceleration must be zero at that instant.`, 1,
+    r`A body in uniform motion has $a = 0$ but $v\ne0$ (I false). A ball at the top of its flight has $v = 0$ but $a = g$ (II false). Both false.`),
+  asrt(4, 'vertical throw', r`A ball thrown upward in air takes more time to come down than to go up.`, r`While moving up, both gravity and air resistance act downward; while moving down, air resistance acts upward and opposes gravity.`, 0,
+    r`Both true and R explains A. On the way up $a = g + f/m$ (large), on the way down $a = g - f/m$ (small). The same distance is covered more slowly on the way down.`),
+  asrt(4, 'graphs', r`The area under a speed–time graph is always non-negative.`, r`Speed is the magnitude of the velocity and cannot be negative.`, 0,
+    r`Both true and R explains A: the graph never goes below the axis, so the area (the distance) cannot be negative.`),
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'vertical throw', group: 'm5',
+    q: r`A ball is thrown vertically upward at $30\ \mathrm{m\,s^{-1}}$ from the ground ($g = 10\ \mathrm{m\,s^{-2}}$). Match each item in List I with its value in List II.`,
+    options: ['A-p, B-q, C-r, D-s', 'A-p, B-s, C-r, D-q', 'A-s, B-q, C-r, D-p', 'A-r, B-q, C-p, D-s'], answer: 1,
+    sol: r`A: time to the top $= 30/10 = 3$ s (p). B: maximum height $= 900/20 = 45$ m (s). C: velocity at $t = 4$ s $= 30 - 40 = -10\ \mathrm{m\,s^{-1}}$ (r). D: speed at 25 m: $v^2 = 900 - 2\times10\times25 = 400$, so $20\ \mathrm{m\,s^{-1}}$ (q). So A-p, B-s, C-r, D-q.` },
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'variable acceleration', group: 'm6',
+    q: 'Match each position function in List I with the time (in List II) at which the particle is momentarily at rest.',
+    options: ['A-p, B-r, C-q, D-s', 'A-q, B-r, C-p, D-s', 'A-q, B-p, C-r, D-s', 'A-q, B-r, C-s, D-p'], answer: 1,
+    sol: r`A: $x = t^2-4t$, $v = 2t - 4 = 0$ at $t = 2$ (q). B: $x = t^2 - 6t$, $v = 0$ at $t = 3$ (r). C: $x = t^3 - 3t$, $v = 3t^2 - 3 = 0$ at $t = 1$ (p). D: $x = 2t^2 - 16t$, $v = 4t - 16 = 0$ at $t = 4$ (s). So A-q, B-r, C-p, D-s.` },
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'average velocity', group: 'm9',
+    q: 'Match each quantity in List I with its value in List II (SI units).',
+    options: ['A-r, B-s, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-s, B-r, C-q, D-p', 'A-r, B-q, C-s, D-p'], answer: 1,
+    sol: r`A: $x = t^2$, average velocity over 0 to 4 s $= 16/4 = 4$ (r). B: $v = 2t$ at $t = 4$: 8 (s). C: for $x = t^2-4t$ the particle goes to $-4$ at $t = 2$ and returns to 0 at $t = 4$: distance 8, average speed $8/4 = 2$ (q). D: its displacement is 0, so average velocity is 0 (p). So A-r, B-s, C-q, D-p.` },
+  { id: nid(), type: 'nat', level: 4, format: 'passage', exams: EX[4], sub: 'relative motion', group: 'p4',
+    q: 'At what time (in s, after the car passes the police car) does the police car catch the speeder?', answer: 9, tol: 0, calc: () => 9,
+    sol: r`Speeder: $x_s = 12t$. Police: $x_p = \tfrac12(6)(t-3)^2 = 3(t-3)^2$ for $t\ge3$. Setting equal: $12t = 3(t^2 - 6t + 9)$, i.e. $t^2 - 10t + 9 = 0$, so $t = 1$ or $9$ s. The root $t = 1$ s is before the police car starts (at $t = 3$ s), so $t = 9$ s.`, trap: 'The smaller root is not valid because the police car has not yet started.' },
+  { id: nid(), type: 'nat', level: 4, format: 'passage', exams: EX[4], sub: 'relative motion', group: 'p4',
+    q: 'Find the greatest distance by which the speeder is ahead of the police car, in m.', answer: 48, tol: 0, calc: () => 12 * 5 - 3 * 4,
+    sol: r`The gap is largest when the two speeds are equal: $6(t-3) = 12$, so $t = 5$ s. Gap $= 12\times5 - 3(5-3)^2 = 60 - 12 = 48$ m.` },
+  { id: nid(), type: 'mcq', level: 5, format: 'passage', exams: EX[5], sub: 'relative motion', group: 'p4', answer: 2,
+    q: 'What is the speed of the police car at the instant it catches the speeder?',
+    options: [r`$12\ \mathrm{m\,s^{-1}}$`, r`$24\ \mathrm{m\,s^{-1}}$`, r`$36\ \mathrm{m\,s^{-1}}$`, r`$54\ \mathrm{m\,s^{-1}}$`],
+    sol: r`The police car has been accelerating for $9 - 3 = 6$ s, so $v = 6\times6 = 36\ \mathrm{m\,s^{-1}}$, three times the speeder's speed. Check: the police car covers $\tfrac12\times6\times6^2 = 108$ m and the speeder $12\times9 = 108$ m.`, trap: 'The police car must be faster than the speeder at the moment it catches up.' },
+
+  // ---------- Level 5 ----------
+  msq(5, 'variable acceleration', r`A particle has $v = t^2 - 6t + 8$ (SI) for $0\le t\le5$ s. Which statements are correct?`,
+    ['It is momentarily at rest at $t = 2$ s and $t = 4$ s', 'Its direction of motion reverses twice', 'Its acceleration is zero at $t = 3$ s', 'The distance travelled in 0 to 5 s equals the magnitude of the displacement'], [0, 1, 2],
+    r`$v = (t-2)(t-4)$ is zero at 2 and 4 s, and it changes sign at both, so the direction reverses twice (A, B true). $a = 2t - 6 = 0$ at $t = 3$ (C true). The displacement is $x(5) = 6.67$ m but the distance is 9.33 m (D false).`),
+  msq(5, 'equations of motion', r`Which of the following are correct for motion along a straight line?`,
+    [r`$s_n = u + a(n-\tfrac12)$ for constant acceleration`, r`$v^2-u^2 = 2as$ holds only for constant acceleration`, r`Average velocity $=(u+v)/2$ for any motion`, r`For constant acceleration the velocity at the mid-instant equals the average velocity`], [0, 1, 3],
+    r`A, B and D are standard results valid for constant $a$. The average velocity equals $(u+v)/2$ only for constant acceleration, so C is false. (For $x = t^3$ from 0 to 2 s the average velocity is 4 but $(u+v)/2 = 6$.)`),
+  msq(5, 'relative motion', r`Body $A$ is thrown vertically up from the ground with speed $u$ at the instant body $B$ is dropped from rest from a height $H$ directly above it. Which statements are correct (no air)?`,
+    ['They meet after a time $H/u$, whatever the value of $g$', 'The relative acceleration is zero', 'The time of meeting depends on $g$', 'They meet in the air only if $H\\le2u^2/g$'], [0, 1, 3],
+    r`Both have acceleration $g$ downward, so relative to $B$, $A$ moves up uniformly at $u$ and closes the gap $H$ in $t = H/u$ (A, B true; C false). $A$ lands after $2u/g$, so the meeting is in the air only if $H/u\le2u/g$, i.e. $H\le2u^2/g$ (D true).`),
+  msq(5, 'graphs', r`A particle moves as $x = 4t - t^2$ (SI) for $0\le t\le4$ s. Which statements are correct?`,
+    ['Its velocity is zero at $t = 2$ s', 'It is back at the origin at $t = 4$ s', 'The distance travelled in 0 to 4 s is 8 m', 'Its acceleration is $+2\\ \\mathrm{m\\,s^{-2}}$'], [0, 1, 2],
+    r`$v = 4 - 2t = 0$ at $t = 2$ (A). $x(4) = 0$ (B). It goes to $x = 4$ m and returns: 8 m (C). $a = -2\ \mathrm{m\,s^{-2}}$, not $+2$ (D false).`),
+  msq(5, 'sign conventions', r`A ball is thrown up and returns to the point of projection. Take the upward direction as positive. Which statements are correct?`,
+    [r`The acceleration is $-g$ throughout the flight`, r`The velocity is negative on the way down`, r`The displacement from the starting point is positive while the ball is above it`, r`The speed is negative on the way down`], [0, 1, 2],
+    r`Gravity always points down: $a = -g$ (A). On the way down $v<0$ (B). Above the starting level the displacement is positive (C). Speed is a magnitude and never negative (D false).`),
+  msq(5, 'graphs', r`Which of these statements about graphs of motion in a straight line are correct?`,
+    [r`The area under $|v|$ against $t$ gives the distance travelled`, r`The slope of a $v$–$t$ graph gives the acceleration`, r`The area under an $a$–$t$ graph gives the change in velocity`, r`The area under an $x$–$t$ graph gives the velocity`], [0, 1, 2],
+    r`A, B and C are the standard relations. The slope (not the area) of an $x$–$t$ graph gives velocity (D false).`),
+  nat(5, 'bouncing ball', r`A ball is dropped from 20 m and bounces repeatedly. After each bounce its speed is halved (speed just after $=\tfrac12\times$ speed just before). Taking $g = 10\ \mathrm{m\,s^{-2}}$, find the total time until it comes to rest, in s.`, 6, 0,
+    r`The first fall takes $t_0 = \sqrt{2\times20/10} = 2$ s. After a bounce with speed $ev$ the flight (up and down) takes $2e\,t_0$, and the next bounce has $e^2$, and so on. Total time $= t_0 + 2t_0(e + e^2 + \dots) = t_0\left(1 + \dfrac{2e}{1-e}\right) = t_0\dfrac{1+e}{1-e} = 2\times\dfrac{1.5}{0.5} = 6$ s.`, { unit: 's', calc: () => 2 * (1.5 / 0.5), trap: 'The series for the time is geometric with ratio $e$, not $e^2$ (which is for the heights).' }),
+  nat(5, 'bouncing ball', r`For the same ball dropped from 20 m (speed halved after each bounce, $g = 10\ \mathrm{m\,s^{-2}}$), find the total distance travelled until it comes to rest, in m (1 decimal).`, 33.3, 0.1,
+    r`After a bounce with speed $ev$ it rises to $e^2h$. Total distance $= h + 2h(e^2 + e^4 + \dots) = h\dfrac{1+e^2}{1-e^2} = 20\times\dfrac{1.25}{0.75} = 33.3$ m.`, { unit: 'm', calc: () => 20 * 1.25 / 0.75 }),
+  nat(5, 'variable acceleration', r`A particle falling through a fluid has velocity $v = 40(1 - e^{-t/4})$ (SI, $t$ in s). Find the distance fallen in the first 8 s in m (1 decimal).`, 181.7, 0.2,
+    r`$x = \int_0^8 40(1-e^{-t/4})\,dt = 40\left[t + 4e^{-t/4}\right]_0^8 = 40\left[8 + 4e^{-2} - 4\right] = 40(4 + 0.5413) = 181.7$ m.`, { unit: 'm', calc: () => 40 * (8 - 4 * (1 - Math.exp(-2))) }),
+  nat(5, 'variable acceleration', r`A particle has $a = -0.5v$ (SI) and starts at $v_0 = 12\ \mathrm{m\,s^{-1}}$. Find the distance it travels in the first 4 s, in m (2 decimals).`, 20.75, 0.02,
+    r`$v = 12e^{-0.5t}$. $x = \int_0^4 12e^{-0.5t}dt = \dfrac{12}{0.5}(1 - e^{-2}) = 24\times0.8647 = 20.75$ m. (The total distance to rest would be $v_0/k = 24$ m.)`, { unit: 'm', calc: () => 24 * (1 - Math.exp(-2)) }),
+  mat(5, 'variable acceleration', 'm8', r`Match each law of acceleration in List I with the relation it leads to in List II. (Start from rest where appropriate; $k>0$.)`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`A: constant $a$ from rest: $v = at$, so $v\propto t$ (p). B: $a = -kv$: $v = v_0e^{-kt}$ (q). C: $a = -kx$: $v^2 + kx^2 = $ constant (r). D: constant $a$ from rest: $v^2 = 2ax$, so $v\propto\sqrt x$ (s). So A-p, B-q, C-r, D-s.`),
+  asrt(5, 'free fall', r`In a long fall from a great height without air, a body covers $\frac59$ of the total height in its last second only when it falls for 3 s.`, r`The distance in the last second of a fall of duration $T$ is $\tfrac12g(2T-1)$.`, 0,
+    r`With $g = 10$: $5(2T-1) = \tfrac59\times5T^2$ gives $9(2T-1) = 5T^2$, i.e. $5T^2 - 18T + 9 = 0$, so $T = 3$ s (the other root $0.6$ s is less than 1 s and impossible). The total height $= 45$ m and the last second covers 25 m $=\tfrac59\times45$. R is the formula used. Both true and R explains A.`),
+  stm(5, 'average speed', r`A car goes up a hill at $v_1$ and comes down at $v_2$ over the same road. Its average speed for the round trip is $(v_1+v_2)/2$.`, r`Average speed is the total distance divided by the total time.`, 3,
+    r`II is the definition (true). For equal distances the average speed is the harmonic mean $\dfrac{2v_1v_2}{v_1+v_2}$, not the arithmetic mean, so I is false.`),
+  nat(5, 'time-dependent acceleration', r`A particle starts from rest with acceleration $a = 6 - 2t$ (SI) for all $t\ge0$. Find the time at which it comes to rest again, in s.`, 6, 0,
+    r`$v = 6t - t^2 = t(6-t)$, which is zero again at $t = 6$ s.`, { unit: 's', calc: () => 6 }),
 ];
 
 const groups = {
@@ -306,6 +488,34 @@ const groups = {
     passage: r`<p>A car starts from rest. Its speed rises uniformly to $20\ \mathrm{m\,s^{-1}}$ in 10 s. It then moves at this constant speed for 20 s and finally slows down uniformly to rest in the last 10 s.</p>` },
   p2: { title: 'Two cars',
     passage: r`<p>Car $A$ moves along a straight road at a constant $20\ \mathrm{m\,s^{-1}}$. At $t=0$ it is 150 m behind a car $B$ that is at rest. At that instant $B$ starts moving in the same direction with a constant acceleration of $2\ \mathrm{m\,s^{-2}}$.</p>` },
+  m4: { title: 'Position-time graphs',
+    list1: ['A. A straight line sloping upward', 'B. A parabola opening upward', 'C. A parabola opening downward', 'D. A horizontal line'],
+    list2: ['p. The body is at rest', 'q. Constant positive velocity', 'r. Constant negative acceleration', 's. Constant positive acceleration'] },
+  m5: { title: 'A ball thrown upward',
+    list1: ['A. Time to reach the top', 'B. Maximum height', r`C. Velocity at $t = 4$ s (up is positive)`, 'D. Speed at a height of 25 m'],
+    list2: ['p. 3 s', r`q. $20\ \mathrm{m\,s^{-1}}$`, r`r. $-10\ \mathrm{m\,s^{-1}}$`, 's. 45 m'] },
+  m6: { title: 'Particle momentarily at rest',
+    list1: [r`A. $x = t^2 - 4t$`, r`B. $x = t^2 - 6t$`, r`C. $x = t^3 - 3t$`, r`D. $x = 2t^2 - 16t$`],
+    list2: ['p. 1 s', 'q. 2 s', 'r. 3 s', 's. 4 s'] },
+  m7: { title: 'Displacement from a velocity-time graph',
+    list1: [r`A. Velocity rises from 0 to $10\ \mathrm{m\,s^{-1}}$ in 4 s`, r`B. Constant $5\ \mathrm{m\,s^{-1}}$ for 6 s`, r`C. Rises from 0 to $10\ \mathrm{m\,s^{-1}}$ in 2 s, then constant for 3 s`, r`D. Falls from $10\ \mathrm{m\,s^{-1}}$ to 0 in 5 s`],
+    list2: ['p. 20 m', 'q. 25 m', 'r. 30 m', 's. 40 m'] },
+  m8: { title: 'Laws of acceleration',
+    list1: ['A. Constant acceleration from rest: speed against time', r`B. $a = -kv$: speed against time`, r`C. $a = -kx$: speed against position`, 'D. Constant acceleration from rest: speed against position'],
+    list2: [r`p. $v\propto t$`, r`q. $v = v_0e^{-kt}$`, r`r. $v^2 + kx^2 = $ constant`, r`s. $v\propto\sqrt{x}$`] },
+  m9: { title: 'Average and instantaneous values',
+    list1: [r`A. Average velocity for $x = t^2$, from 0 to 4 s`, r`B. Instantaneous velocity at $t = 4$ s for $x = t^2$`, r`C. Average speed for $x = t^2 - 4t$, from 0 to 4 s`, r`D. Average velocity for $x = t^2 - 4t$, from 0 to 4 s`],
+    list2: ['p. 0', 'q. 2', 'r. 4', 's. 8'] },
+  m10: { title: 'Signs of velocity and acceleration',
+    list1: [r`A. $v>0,\ a>0$`, r`B. $v>0,\ a<0$`, r`C. $v<0,\ a<0$`, r`D. $v<0,\ a>0$`],
+    list2: ['p. Moving forward and speeding up', 'q. Moving forward and slowing down', 'r. Moving backward and speeding up', 's. Moving backward and slowing down'] },
+  m11: { title: 'A stone dropped from rest',
+    list1: [r`A. Distance fallen in 3 s`, r`B. Distance fallen in the 3rd second`, r`C. Speed after 3 s`, r`D. Time to fall 80 m`],
+    list2: ['p. 4 s', 'q. 25 m', r`r. $30\ \mathrm{m\,s^{-1}}$`, 's. 45 m'] },
+  p3: { title: 'A velocity-time graph',
+    passage: r`<p>A particle moves along a straight line. Its velocity rises uniformly from 0 to $12\ \mathrm{m\,s^{-1}}$ between $t = 0$ and $t = 3$ s. It stays at $12\ \mathrm{m\,s^{-1}}$ until $t = 5$ s. Then the velocity falls uniformly, reaching $-6\ \mathrm{m\,s^{-1}}$ at $t = 11$ s.</p>` },
+  p4: { title: 'A police chase',
+    passage: r`<p>A car passes a stationary police car at a steady $12\ \mathrm{m\,s^{-1}}$. The police car starts to move 3 s later with a uniform acceleration of $6\ \mathrm{m\,s^{-2}}$ in the same direction, and keeps accelerating.</p>` },
 };
 
 // ---------- Number templates ----------
@@ -475,6 +685,123 @@ const gens = [
         sol: `v = ∫${kk}t dt = ${kk / 2}t². x = ∫${kk / 2}t² dt = ${kk / 6}t³. At t = ${t}: x = ${kk / 6}×${t ** 3} = ${answer} m.` };
     },
     verify: (p) => { let x = 0, v = 0; const n = 20000, dt = p.t / n; for (let i = 0; i < n; i++) { const tt = (i + 0.5) * dt; v += p.kk * tt * dt; x += v * dt; } return Math.round(x); } },
+  // ---- added 2026-11-22 ----
+  { id: 'msl-g17', type: 'nat', level: 4, exams: EX[4], sub: 'relative motion',
+    make(rng) {
+      const d = choose(rng, [2, 3, 4]), a = choose(rng, [2, 4, 5, 6]), v = choose(rng, [10, 12, 15, 20]);
+      const m = d + v / a, t = m + Math.sqrt(m * m - d * d);
+      return { d, a, v, answer: +t.toFixed(3), tol: Math.max(0.02, t * 0.005), unit: 's',
+        q: `A speeding car passes a stationary police car at a steady ${v} m/s. The police car starts ${d} s later and accelerates uniformly at ${a} m/s². How long after the speeder passes it (in s, 2 decimals) does the police car catch up? (It keeps accelerating.)`,
+        sol: `Speeder: $x = ${v}t$. Police: $x = \\tfrac12(${a})(t-${d})^2$ for $t>${d}$. Equal: $t^2 - ${fmt(2 * m, 4)}t + ${d * d} = 0$. The roots are $t = ${fmt(m, 4)}\\pm\\sqrt{${fmt(m * m, 5)}-${d * d}}$, and only the larger one is after the police car starts: $t = ${fmt(t, 4)}$ s.`,
+        trap: 'The smaller root comes before the police car has started.' };
+    },
+    verify: (p) => { let lo = p.d, hi = 200; const f = (t) => 0.5 * p.a * (t - p.d) ** 2 - p.v * t; const mid0 = p.d + p.v / p.a; lo = mid0; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (f(mid) > 0) hi = mid; else lo = mid; } return (lo + hi) / 2; } },
+  { id: 'msl-g18', type: 'nat', level: 5, exams: EX[5], sub: 'bouncing ball',
+    make(rng) {
+      const t0 = choose(rng, [1, 2, 3, 4]), e = choose(rng, [0.4, 0.5, 0.6, 0.8]), h = 5 * t0 * t0;
+      const T = t0 * (1 + e) / (1 - e);
+      return { t0, e, h, answer: +T.toFixed(3), tol: Math.max(0.02, T * 0.005), unit: 's',
+        q: `A ball is dropped from ${h} m. After every bounce its speed becomes ${e} times its speed just before the bounce. Take $g = 10\\ \\mathrm{m\\,s^{-2}}$. Find the total time until it stops bouncing (in s, 2 decimals).`,
+        sol: `First fall: $t_0 = \\sqrt{2h/g} = ${t0}$ s. After the $n$th bounce the flight (up and down) lasts $2e^n t_0$. Total $= t_0 + 2t_0(e + e^2 + \\dots) = t_0\\dfrac{1+e}{1-e} = ${t0}\\times\\dfrac{${fmt(1 + e, 3)}}{${fmt(1 - e, 3)}} = ${fmt(T, 4)}$ s.`,
+        trap: 'The times form a geometric series in $e$; the heights form one in $e^2$.' };
+    },
+    verify: (p) => { let T = p.t0; let ft = 2 * p.t0; for (let i = 0; i < 4000; i++) { ft *= p.e; T += ft; } return T; } },
+  { id: 'msl-g19', type: 'nat', level: 3, exams: EX[3], sub: 'relative motion',
+    make(rng) {
+      const u = choose(rng, [20, 25, 30, 40]), cap = 2 * u * u / 10, H = choose(rng, [20, 40, 60, 80, 100, 120].filter((x) => x <= cap));
+      const t = H / u, y = u * t - 5 * t * t;
+      return { u, H, answer: +y.toFixed(3), tol: Math.max(0.05, Math.abs(y) * 0.01), unit: 'm',
+        q: `A stone is dropped from a height of ${H} m. At the same instant another stone is thrown vertically up from the ground, directly below it, at ${u} m/s. Take $g = 10\\ \\mathrm{m\\,s^{-2}}$. At what height above the ground do they meet (in m)?`,
+        sol: `Both have acceleration $g$, so the relative speed is a constant $${u}$ m/s and they close the gap ${H} m in $t = ${H}/${u} = ${fmt(t, 4)}$ s. The thrown stone is then at $y = ut - \\tfrac12gt^2 = ${u}(${fmt(t, 4)}) - 5(${fmt(t, 4)})^2 = ${fmt(y, 4)}$ m.` };
+    },
+    verify: (p) => { const t = p.H / p.u; return p.H - 5 * t * t; } },
+  { id: 'msl-g20', type: 'mcq', level: 3, exams: EX[3], sub: 'basic quantities',
+    make(rng) {
+      const sv = choose(rng, [1, -1]), sa = choose(rng, [1, -1]);
+      const dir = sv > 0 ? 'in the +x direction' : 'in the -x direction';
+      const spd = sv * sa > 0 ? 'speeding up' : 'slowing down';
+      const ans = `moving ${dir} and ${spd}`;
+      const all = [];
+      for (const d of ['in the +x direction', 'in the -x direction']) for (const s of ['speeding up', 'slowing down']) all.push(`moving ${d} and ${s}`);
+      const { options, answer } = shuffleOpts(rng, ans, all.filter((x) => x !== ans));
+      return { sv, sa, options, answer,
+        q: `At an instant a body has velocity ${sv > 0 ? 'positive' : 'negative'} and acceleration ${sa > 0 ? 'positive' : 'negative'} along the $x$ axis. The body is`,
+        sol: `The sign of $v$ gives the direction of motion (${dir}). The speed increases when $v$ and $a$ have the same sign and decreases when the signs are opposite. Here they ${sv * sa > 0 ? 'agree' : 'differ'}, so the body is ${spd}.` };
+    },
+    verify: (p) => p.options.indexOf(`moving ${p.sv > 0 ? 'in the +x direction' : 'in the -x direction'} and ${p.sv * p.sa > 0 ? 'speeding up' : 'slowing down'}`) },
+  { id: 'msl-g21', type: 'nat', level: 4, exams: EX[4], sub: 'rocket',
+    make(rng) {
+      const a = choose(rng, [10, 15, 20, 25, 30]), tb = choose(rng, [5, 8, 10, 12]);
+      const H = 0.5 * a * tb * tb * (1 + a / 10);
+      return { a, tb, answer: +H.toFixed(2), tol: Math.max(1, H * 0.005), unit: 'm',
+        q: `A rocket rises from rest with a constant net upward acceleration of ${a} m/s² for ${tb} s, after which its engine stops and it moves freely under gravity. Take $g = 10\\ \\mathrm{m\\,s^{-2}}$. Find the maximum height it reaches in m.`,
+        sol: `Burn: $v = ${a}\\times${tb} = ${a * tb}$ m/s and $h_1 = \\tfrac12(${a})(${tb})^2 = ${fmt(0.5 * a * tb * tb, 5)}$ m. Coast: $h_2 = v^2/2g = ${fmt((a * tb) ** 2 / 20, 5)}$ m. Total $= ${fmt(H, 5)}$ m.`,
+        trap: 'The rocket keeps rising after the engine stops.' };
+    },
+    verify: (p) => { const v = p.a * p.tb; return 0.5 * v * p.tb + v * v / 20; } },
+  { id: 'msl-g22', type: 'nat', level: 4, exams: EX[4], sub: 'sound and free fall',
+    make(rng) {
+      const t1 = choose(rng, [2, 3, 4, 5]), vs = choose(rng, [300, 330, 340]);
+      const T = +(t1 + 5 * t1 * t1 / vs).toFixed(3);
+      const t = (-1 + Math.sqrt(1 + 20 * T / vs)) / (10 / vs), h = 5 * t * t;
+      return { t1, vs, T, answer: +h.toFixed(2), tol: Math.max(0.2, h * 0.01), unit: 'm',
+        q: `A stone is dropped into a well and the sound of the splash is heard ${T} s later. Take $g = 10\\ \\mathrm{m\\,s^{-2}}$ and the speed of sound ${vs} m/s. Find the depth of the well in m (nearest 0.1 m).`,
+        sol: `Let the fall take $t$. Depth $h = 5t^2$ and the sound takes $h/${vs}$. $t + 5t^2/${vs} = ${T}$. Solving, $t = ${fmt(t, 4)}$ s and $h = 5t^2 = ${fmt(h, 4)}$ m.`,
+        trap: 'The time includes the sound travelling up, so $h\\ne\\tfrac12gT^2$.' };
+    },
+    verify: (p) => { let lo = 0, hi = 10; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (m + 5 * m * m / p.vs > p.T) hi = m; else lo = m; } return 5 * ((lo + hi) / 2) ** 2; } },
+  { id: 'msl-g23', type: 'nat', level: 3, exams: EX[3], sub: 'area under graph',
+    make(rng) {
+      const v = choose(rng, [8, 10, 12, 15, 20]), t1 = choose(rng, [2, 4, 5]), t2 = choose(rng, [6, 8, 10]), t3 = choose(rng, [2, 3, 4]);
+      const d = v * (t1 / 2 + t2 + t3 / 2);
+      return { v, t1, t2, t3, answer: d, tol: Math.max(0.05, d * 0.005), unit: 'm',
+        q: `A train starts from rest, speeds up uniformly to ${v} m/s in ${t1} s, runs at that speed for ${t2} s and then brakes uniformly to rest in ${t3} s. Find the total distance in m.`,
+        sol: `Area of the trapezoid: $\\tfrac12(${t1})(${v}) + ${v}\\times${t2} + \\tfrac12(${t3})(${v}) = ${fmt(0.5 * t1 * v, 5)} + ${v * t2} + ${fmt(0.5 * t3 * v, 5)} = ${fmt(d, 5)}$ m.` };
+    },
+    verify: (p) => { const a1 = p.v / p.t1, a3 = p.v / p.t3; return 0.5 * a1 * p.t1 ** 2 + p.v * p.t2 + p.v * p.t3 - 0.5 * a3 * p.t3 ** 2; } },
+  { id: 'msl-g24', type: 'nat', level: 4, exams: EX[4], sub: 'variable acceleration',
+    make(rng) {
+      const a = choose(rng, [1, 2]), [r1, r2] = choose(rng, [[1, 2], [1, 3], [2, 3], [1, 4], [2, 4]]), T = r2 + 1;
+      const X = (t) => a * t ** 3 - 1.5 * a * (r1 + r2) * t ** 2 + 3 * a * r1 * r2 * t;
+      const dist = Math.abs(X(r1)) + Math.abs(X(r2) - X(r1)) + Math.abs(X(T) - X(r2));
+      return { a, r1, r2, T, answer: +dist.toFixed(3), tol: Math.max(0.02, dist * 0.005), unit: 'm',
+        q: `A particle's position is $x = ${a === 1 ? '' : a}t^3 - ${fmt(1.5 * a * (r1 + r2), 4)}t^2 + ${3 * a * r1 * r2}t$ (SI). Find the total distance it travels from $t = 0$ to $t = ${T}$ s in m.`,
+        sol: `$v = ${3 * a}t^2 - ${fmt(3 * a * (r1 + r2), 4)}t + ${3 * a * r1 * r2} = ${3 * a}(t-${r1})(t-${r2})$, which is zero at $t = ${r1}$ and $t = ${r2}$ s. $x(${r1}) = ${fmt(X(r1), 5)}$, $x(${r2}) = ${fmt(X(r2), 5)}$, $x(${T}) = ${fmt(X(T), 5)}$. Distance $= ${fmt(Math.abs(X(r1)), 5)} + ${fmt(Math.abs(X(r2) - X(r1)), 5)} + ${fmt(Math.abs(X(T) - X(r2)), 5)} = ${fmt(dist, 5)}$ m.`,
+        trap: 'Add the three pieces separately: the direction reverses at each zero of $v$.' };
+    },
+    verify: (p) => { const v = (t) => 3 * p.a * (t - p.r1) * (t - p.r2); let s = 0; const n = 20000, h = p.T / n; for (let i = 0; i < n; i++) s += Math.abs(v((i + 0.5) * h)) * h; return s; } },
+  { id: 'msl-g25', type: 'nat', level: 4, exams: EX[4], sub: 'equal intervals',
+    make(rng) {
+      const t1 = choose(rng, [3, 4, 5]), n = choose(rng, [3, 4, 5, 6]);
+      const tn = t1 * (Math.sqrt(n) - Math.sqrt(n - 1));
+      return { t1, n, answer: +tn.toFixed(3), tol: 0.02, unit: 's',
+        q: `A train starts from rest with uniform acceleration. The first carriage takes ${t1} s to pass a signal post (the engine's front is at the post at $t = 0$). All carriages are equal. Find the time the carriage number ${n} alone takes to pass the post, in s (2 decimals).`,
+        sol: `Distance $= m L = \\tfrac12at^2$ for the first $m$ carriages, so $t\\propto\\sqrt m$ and the first $m$ carriages take $${t1}\\sqrt m$ s. Carriage ${n} alone: $${t1}(\\sqrt{${n}} - \\sqrt{${n - 1}}) = ${fmt(tn, 4)}$ s.`,
+        trap: 'It is the difference of two times, not the total time divided by $n$.' };
+    },
+    verify: (p) => { const a = 2 / (p.t1 * p.t1); const tm = (m) => Math.sqrt(2 * m / a); return tm(p.n) - tm(p.n - 1); } },
+  { id: 'msl-g26', type: 'mcq', level: 3, exams: EX[3], sub: 'graphs',
+    make(rng) {
+      const cases = [
+        ['the area under an acceleration–time graph', 'the change in velocity'], ['the slope of a velocity–time graph', 'the acceleration'], ['the slope of a position–time graph', 'the velocity'],
+        ['the area under a velocity–time graph', 'the displacement'], ['the area under a speed–time graph', 'the distance travelled'], ['the slope of an acceleration–time graph', 'the jerk (rate of change of acceleration)'] ];
+      const i = int(rng, 0, cases.length - 1);
+      const pool = cases.map((c) => c[1]).filter((x) => x !== cases[i][1]);
+      const { options, answer } = shuffleOpts(rng, cases[i][1], pool.slice(0, 3));
+      return { i, options, answer, q: `In motion along a straight line, ${cases[i][0]} gives`,
+        sol: `${cases[i][0].charAt(0).toUpperCase() + cases[i][0].slice(1)} represents ${cases[i][1]}. The other options are quantities given by other graphs: slopes go one step "down" the chain position, velocity, acceleration, jerk, and areas go one step "up".`, trap: 'Slope differentiates, area integrates.' };
+    },
+    verify: (p) => p.options.indexOf(['the change in velocity', 'the acceleration', 'the velocity', 'the displacement', 'the distance travelled', 'the jerk (rate of change of acceleration)'][p.i]) },
+  { id: 'msl-g27', type: 'nat', level: 4, exams: EX[4], sub: 'variable acceleration',
+    make(rng) {
+      const A = choose(rng, [16, 25, 36, 64, 100]), B = choose(rng, [2, 4, 5, 8]);
+      const t = 2 * Math.sqrt(A) / B;
+      return { A, B, answer: +t.toFixed(3), tol: Math.max(0.01, t * 0.005), unit: 's',
+        q: `A particle moves along a line with $v^2 = ${A} - ${B}x$ (SI), starting at $x = 0$ with $v>0$. Find the time it takes to come to rest, in s (2 decimals).`,
+        sol: `Differentiate: $2v\\,dv/dt = -${B}\\,dx/dt = -${B}v$, so $a = -${fmt(B / 2, 3)}\\ \\mathrm{m\\,s^{-2}}$ (constant). Initial speed $u = \\sqrt{${A}} = ${fmt(Math.sqrt(A), 4)}$ m/s. Time to stop $= u/|a| = ${fmt(Math.sqrt(A), 4)}/${fmt(B / 2, 3)} = ${fmt(t, 4)}$ s.`,
+        trap: 'A relation $v^2 = A - Bx$ means constant acceleration $-B/2$.' };
+    },
+    verify: (p) => { const stop = p.A / p.B, u = Math.sqrt(p.A); return stop / (u / 2); } },
 ];
 
 export default { topic: 'motion-straight-line', groups, items, gens };

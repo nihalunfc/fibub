@@ -9,6 +9,7 @@ const e0 = C.eps0;
 
 import * as Q5 from '../_util.js';
 import more2 from './dielectrics.more2.gen.js';
+import r4 from './dielectrics.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -238,6 +239,7 @@ export default {
       sol: 'Gauss for $\\vec D$: $D = Q/(4\\pi r^2)$, so $E = \\dfrac{Q}{4\\pi\\epsilon_0\\kappa(r)r^2} = \\dfrac{Qa}{4\\pi\\epsilon_0r^3}$. $V = \\int_a^bE\\,dr = \\dfrac{Qa}{8\\pi\\epsilon_0}\\left(\\dfrac1{a^2} - \\dfrac1{b^2}\\right)$. So $C = \\dfrac{8\\pi\\epsilon_0ab^2}{b^2 - a^2} = \\dfrac{8\\pi(8.854\\times10^{-12})(0.02)(0.0016)}{0.0012} = 5.93$ pF.',
       trap: 'Multiplying the vacuum answer by an average $\\kappa$; the field must be integrated with $\\kappa(r)$ inside.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'die-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'battery connected or isolated', format: 'comparison',
@@ -373,5 +375,6 @@ export default {
           trap: 'Remember the outer sphere: not $4\\pi\\epsilon_0a$.' };
       },
       verify: (p) => 4 * Math.PI * e0 * p.k * (p.a / 100) * (p.b / 100) / ((p.b - p.a) / 100) * 1e12 },
+    ...r4.gens,
   ],
 };

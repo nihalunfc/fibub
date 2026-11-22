@@ -386,9 +386,260 @@ const gens = [
     }, verify: (p) => (p.y / p.pa) / (p.y / p.pa + (1 - p.y) / p.pb) },
 ];
 
+const XP = 'so', XCUET = true, GBASE = 23;
+// ===== expansion block (added) =====
+const XI = [], XGRP = {}, XGENS = []; let _xn = 0, _xc = 0;
+const XA4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XS4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const xex = (level, mcq) => level <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet', ...(XCUET && mcq ? ['cuet'] : [])] : level === 3 ? ['jee-main', 'neet', 'comedk', ...(XCUET && mcq ? ['cuet'] : [])] : level === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv'];
+const xid = () => `${XP}-x${String(++_xc).padStart(3, '0')}`;
+const xmk = (level, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_xn++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, ...(group ? { group } : {}), q, options, answer: pos, sol, ...(trap ? { trap } : {}) });
+};
+const xnat = (level, sub, q, answer, tol, unit, sol, trap, calc, format, group) => { XI.push({ id: xid(), type: 'nat', level, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: xex(level, false), sub, ...(group ? { group } : {}), q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(calc ? { calc } : {}) }); };
+const xmsq = (level, sub, q, options, answer, sol, trap) => { XI.push({ id: xid(), type: 'msq', level, format: 'multi', exams: ['jee-adv'], sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xmk2 = (level, sub, q, options, answer, sol, trap, format) => { XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xasr = (level, sub, A, R, answer, sol, trap) => xmk2(level, sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, XA4, answer, sol, trap, 'assertion');
+const xstm = (level, sub, s1, s2, answer, sol, trap) => xmk2(level, sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, XS4, answer, sol, trap, 'statements');
+const xmat = (level, sub, title, list1, list2, correct, wrongs, sol, trap) => {
+  const gid = `xm${String(Object.keys(XGRP).length + 1).padStart(2, '0')}`; XGRP[gid] = { title, list1, list2 };
+  xmk(level, sub, 'Match each entry of List I with the correct entry of List II.', correct, wrongs, sol, trap, 'match', gid);
+};
+const xpassage = (gid, title, passage) => { XGRP[gid] = { title, passage }; };
+const xgen = (g) => XGENS.push({ ...g, id: `${XP}-g${String(GBASE + XGENS.length + 1).padStart(2, '0')}`, exams: xex(g.level, g.type === 'mcq') });
+
+// ---------- matches ----------
+xmat(3, 'colligative properties', 'Colligative properties and their expressions (i = van\'t Hoff factor)', ['A. Relative lowering of vapour pressure', 'B. Elevation of boiling point', 'C. Depression of freezing point', 'D. Osmotic pressure'],
+  ['p. i K<sub>b</sub> m', 'q. iCRT', 'r. i K<sub>f</sub> m', 's. i n<sub>2</sub>/(n<sub>1</sub> + i n<sub>2</sub>)'],
+  'A-s, B-p, C-r, D-q', ['A-p, B-s, C-r, D-q', 'A-s, B-r, C-p, D-q', 'A-s, B-p, C-q, D-r'],
+  '<p>Relative lowering = (p&deg; - p)/p&deg; = mole fraction of solute particles = i n<sub>2</sub>/(n<sub>1</sub> + i n<sub>2</sub>) (s). &Delta;T<sub>b</sub> = iK<sub>b</sub>m (p). &Delta;T<sub>f</sub> = iK<sub>f</sub>m (r). &pi; = iCRT (q).</p>', 'Kb goes with boiling, Kf with freezing: swapped letters are the usual slip.');
+xmat(3, "Henry's law", "Real-life effect and the reason from Henry's law", ['A. A sealed soda bottle fizzes when opened', 'B. Divers get "the bends" on rising too fast', 'C. Climbers at high altitude feel weak', 'D. Warm pond water holds less dissolved oxygen'],
+  ['p. Solubility rises with the partial pressure of the gas', 'q. Extra N<sub>2</sub> dissolved at depth leaves the blood as bubbles when pressure drops', 'r. The low partial pressure of O<sub>2</sub> lowers its concentration in the blood', 's. K<sub>H</sub> increases with temperature'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>A: the gas was dissolved at high pressure (p); on opening, the pressure falls and the gas comes out. B: N<sub>2</sub> dissolves more at depth (high pressure); a quick ascent releases it as bubbles (q). C: p(O<sub>2</sub>) is low, so little O<sub>2</sub> dissolves in blood (r). D: higher T gives larger K<sub>H</sub>, so smaller solubility at the same pressure (s).</p>');
+xmat(5, "van't Hoff factor", "Value of i for (assume the stated change)", ['A. Benzoic acid fully dimerised in benzene', 'B. Glucose in water', 'C. Al<sub>2</sub>(SO<sub>4</sub>)<sub>3</sub> fully dissociated in water', 'D. AlCl<sub>3</sub> 60% dissociated in water'],
+  ['p. 0.5', 'q. 1', 'r. 2.8', 's. 5'],
+  'A-p, B-q, C-s, D-r', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-p, B-s, C-q, D-r'],
+  '<p>A: 2 molecules become 1 particle, i = 1/2 = 0.5 (p). B: no ions, i = 1 (q). C: 2Al<sup>3+</sup> + 3SO<sub>4</sub><sup>2-</sup> = 5 ions (s). D: AlCl<sub>3</sub> gives 4 ions, so i = 1 + (4 - 1)&alpha; = 1 + 3(0.6) = 2.8 (r).</p>');
+xmat(4, 'freezing point depression', 'Freezing-point depression &Delta;T<sub>f</sub> of 0.1 mol/kg aqueous solutions (K<sub>f</sub> = 1.86 K kg/mol, complete dissociation)', ['A. Urea', 'B. KCl', 'C. MgCl<sub>2</sub>', 'D. Al(NO<sub>3</sub>)<sub>3</sub>'],
+  ['p. 0.558 K', 'q. 0.186 K', 'r. 0.744 K', 's. 0.372 K'],
+  'A-q, B-s, C-p, D-r', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-q, B-p, C-s, D-r'],
+  '<p>&Delta;T<sub>f</sub> = i &times; 1.86 &times; 0.1 = 0.186i. Urea i = 1: 0.186 K (q). KCl i = 2: 0.372 K (s). MgCl<sub>2</sub> i = 3: 0.558 K (p). Al(NO<sub>3</sub>)<sub>3</sub> i = 4: 0.744 K (r).</p>');
+xmat(3, 'osmotic pressure ranking', 'Rank by osmotic pressure at the same temperature, 0.1 M each (complete dissociation)', ['A. NaCl', 'B. Glucose', 'C. Na<sub>2</sub>SO<sub>4</sub>', 'D. AlCl<sub>3</sub>'],
+  ['p. Highest', 'q. Second highest', 'r. Third highest', 's. Lowest'],
+  'A-r, B-s, C-q, D-p', ['A-q, B-s, C-r, D-p', 'A-r, B-p, C-q, D-s', 'A-s, B-r, C-q, D-p'],
+  '<p>&pi; is proportional to i for equal molarity. AlCl<sub>3</sub> i = 4 (highest, p); Na<sub>2</sub>SO<sub>4</sub> i = 3 (q); NaCl i = 2 (r); glucose i = 1 (lowest, s).</p>');
+xmat(5, 'vapour composition', 'Ideal liquid mixture of A (p&deg; = 100 mm Hg) and B (p&deg; = 50 mm Hg). Mole fraction of A in the VAPOUR when the liquid has', ['A. x<sub>A</sub> = 0.5', 'B. x<sub>A</sub> = 0.8', 'C. x<sub>A</sub> = 0.2', 'D. x<sub>A</sub> = 0.4'],
+  ['p. 0.33', 'q. 0.57', 'r. 0.67', 's. 0.89'],
+  'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-p, B-s, C-r, D-q'],
+  '<p>y<sub>A</sub> = x<sub>A</sub>p&deg;<sub>A</sub>/p<sub>total</sub>. x<sub>A</sub> = 0.5: p = 50 + 25 = 75, y = 50/75 = 0.67 (r). 0.8: p = 80 + 10 = 90, y = 0.89 (s). 0.2: p = 20 + 40 = 60, y = 0.33 (p). 0.4: p = 40 + 30 = 70, y = 0.57 (q).</p>', 'The vapour is always richer in the more volatile component A.');
+xmat(3, 'osmosis', 'Behaviour of a red blood cell (isotonic = 0.9% NaCl)', ['A. In 0.9% NaCl', 'B. In 0.1% NaCl', 'C. In 5% NaCl', 'D. Reverse osmosis through a membrane'],
+  ['p. Swells and may burst', 'q. Shrinks', 'r. No net change in size', 's. Pure solvent leaves the solution side'],
+  'A-r, B-p, C-q, D-s', ['A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s', 'A-r, B-p, C-s, D-q'],
+  '<p>0.9% is isotonic with the cell contents, no net flow (r). 0.1% is hypotonic, water enters, the cell swells (p). 5% is hypertonic, water leaves, the cell shrinks (q). In reverse osmosis a pressure larger than &pi; is applied to the solution, forcing pure solvent out through the membrane (s).</p>');
+xmat(3, 'molality', 'Molality of solutions in water (Na 23, O 16, H 1, C 12)', ['A. 20 g NaOH in 500 g water', 'B. 18 g glucose in 200 g water', 'C. 34.2 g sucrose in 250 g water', 'D. 6 g urea in 400 g water'],
+  ['p. 0.25 m', 'q. 0.40 m', 'r. 0.50 m', 's. 1.00 m'],
+  'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-q, B-r, C-s, D-p'],
+  '<p>A: 20/40 = 0.5 mol in 0.5 kg = 1.00 m (s). B: 18/180 = 0.1 mol in 0.2 kg = 0.50 m (r). C: sucrose 342 g/mol, 0.1 mol in 0.25 kg = 0.40 m (q). D: urea 60 g/mol, 0.1 mol in 0.4 kg = 0.25 m (p).</p>', 'Divide by kilograms of solvent, not of solution.');
+
+// ---------- msq ----------
+xmsq(4, 'positive deviation', 'A liquid mixture shows positive deviation from Raoult\'s law. Which statements are correct?',
+  ['&Delta;<sub>mix</sub>H is positive', '&Delta;<sub>mix</sub>V is positive', 'A-B attractions are weaker than A-A and B-B attractions', 'The total vapour pressure is lower than that predicted by Raoult\'s law'], [0, 1, 2],
+  '<p>Weak A-B attraction means that molecules escape more easily, so the vapour pressure is higher than Raoult\'s law predicts (last option false). Breaking stronger A-A and B-B bonds costs heat (&Delta;H &gt; 0) and the molecules pack less well (&Delta;V &gt; 0).</p>');
+xmsq(4, 'colligative properties', 'Which statements about colligative properties are correct?',
+  ['They depend on the number of solute particles and not on their nature', 'Relative lowering of vapour pressure is a colligative property', 'At fixed temperature, osmotic pressure is proportional to the molarity of a dilute solution', 'Equal molal solutions of NaCl and glucose have equal elevation of boiling point'], [0, 1, 2],
+  '<p>NaCl gives two particles per formula unit while glucose gives one, so the boiling-point elevation of NaCl (i = 2) is about double that of glucose. The first three are the definition and the standard results.</p>');
+xmsq(4, 'ideal solutions', 'Which statements are correct for an ideal binary solution?',
+  ['&Delta;<sub>mix</sub>H = 0', '&Delta;<sub>mix</sub>V = 0', 'Raoult\'s law holds over the entire range of composition', 'Ethanol and water form an ideal solution'], [0, 1, 2],
+  '<p>An ideal solution has A-B attractions equal to A-A and B-B, so no heat or volume change on mixing and Raoult\'s law at every composition (n-hexane + n-heptane, benzene + toluene). Ethanol and water form hydrogen bonds differently and show positive deviation, so they are not ideal.</p>');
+xmsq(4, "Henry's law", "Which statements about Henry's law (p = K<sub>H</sub> x) are correct?",
+  ['K<sub>H</sub> rises with temperature', 'A larger K<sub>H</sub> means lower solubility at the same pressure', 'At a given temperature the mole fraction of the dissolved gas is proportional to its partial pressure', 'K<sub>H</sub> has the same value for every gas in the same solvent'], [0, 1, 2],
+  '<p>Solution of a gas is exothermic, so solubility falls at higher temperature, i.e. K<sub>H</sub> rises. x = p/K<sub>H</sub>, so bigger K<sub>H</sub> means smaller x. K<sub>H</sub> is characteristic of each gas, solvent and temperature (e.g. O<sub>2</sub> and N<sub>2</sub> differ).</p>');
+xmsq(5, 'isotonic solutions', 'Assuming complete dissociation, which of these solutions is isotonic with 0.10 M glucose at the same temperature?',
+  ['0.05 M NaCl', '0.10 M urea', '0.033 M K<sub>2</sub>SO<sub>4</sub>', '0.05 M CaCl<sub>2</sub>'], [0, 1, 2],
+  '<p>Isotonic means equal iC. Glucose: 0.10. NaCl: 2 &times; 0.05 = 0.10 (yes). Urea: 0.10 (yes). K<sub>2</sub>SO<sub>4</sub>: 3 &times; 0.033 = 0.10 (yes). CaCl<sub>2</sub>: 3 &times; 0.05 = 0.15 (no).</p>');
+xmsq(4, 'abnormal molar mass', 'Which statements about abnormal molar masses are correct?',
+  ['Dissociation of the solute lowers the observed molar mass', 'Association of the solute raises the observed molar mass', 'i is greater than 1 when the solute dissociates', 'i is greater than 1 for ethanoic acid dissolved in benzene'], [0, 1, 2],
+  '<p>Observed molar mass = normal molar mass/i. Dissociation: more particles, i &gt; 1, lower molar mass. Association (dimerisation of ethanoic acid in benzene): fewer particles, i &lt; 1, higher molar mass. So the last statement is false.</p>');
+xmsq(4, 'osmosis', 'Which statements about osmosis are correct?',
+  ['A semipermeable membrane lets solvent molecules pass but not solute', 'Solvent flows from the dilute solution to the more concentrated one', 'A pressure greater than the osmotic pressure applied to the concentrated side reverses the flow', 'The osmotic pressure of a given solution is independent of temperature'], [0, 1, 2],
+  '<p>&pi; = CRT rises with T, so the last statement is false. The other three describe osmosis and reverse osmosis.</p>');
+xmsq(4, 'freezing point depression', 'Which statements about &Delta;T<sub>f</sub> = iK<sub>f</sub>m are correct?',
+  ['K<sub>f</sub> depends only on the solvent', 'Seawater freezes below 0 &deg;C', 'The unit of K<sub>f</sub> is K kg mol<sup>-1</sup>', 'K<sub>f</sub> depends on the nature of the solute'], [0, 1, 2],
+  '<p>K<sub>f</sub> = RT<sub>f</sub><sup>2</sup>M<sub>1</sub>/(1000 &Delta;H<sub>fus</sub>) involves only solvent properties. Dissolved salts depress the freezing point of seawater. A solute\'s identity matters only through i.</p>');
+xmsq(5, 'azeotropes', 'Which statements about azeotropes are correct?',
+  ['Simple fractional distillation cannot separate an azeotropic mixture into pure components', 'At the azeotropic composition the liquid and the vapour have the same composition', 'A minimum-boiling azeotrope arises from positive deviation', 'A maximum-boiling azeotrope arises from positive deviation'], [0, 1, 2],
+  '<p>Positive deviation raises the vapour pressure, giving a maximum in the vapour-pressure curve, a minimum in the boiling-point curve (e.g. ethanol-water, 95.6% ethanol). Negative deviation gives a maximum-boiling azeotrope (e.g. HNO<sub>3</sub>-water, 68% HNO<sub>3</sub>).</p>');
+xmsq(4, 'concentration terms', 'Which statements are correct?',
+  ['Molality does not change with temperature', 'Molarity changes with temperature', 'Mole fraction does not change with temperature', 'Molarity and molality are equal for every dilute solution in any solvent'], [0, 1, 2],
+  '<p>Molality and mole fraction use masses or moles, which do not change on heating; molarity uses volume, which does. For dilute aqueous solutions (density about 1 g/mL) M &asymp; m, but not for every solvent.</p>');
+xmsq(5, 'ideal mixture', 'A (p&deg; = 100 mm Hg) and B (p&deg; = 50 mm Hg) form an ideal solution. Which statements are correct?',
+  ['The vapour in equilibrium is richer in A than the liquid', 'The total vapour pressure of any mixture lies between 50 and 100 mm Hg', 'At x<sub>A</sub> = 0.5 the total vapour pressure is 75 mm Hg', 'At x<sub>A</sub> = 0.5 the vapour has y<sub>A</sub> = 0.5'], [0, 1, 2],
+  '<p>A is the more volatile component, so the vapour is richer in A. p = 50 + 50x<sub>A</sub>, from 50 to 100. At x<sub>A</sub> = 0.5, p = 75 mm Hg and y<sub>A</sub> = 50/75 = 0.67, not 0.5.</p>');
+xmsq(5, 'electrolyte and glucose', 'Equal volumes of 0.1 M NaCl (complete dissociation) and 0.1 M glucose are compared at 300 K. Which statements are correct?',
+  ['&pi;(NaCl) = 2&pi;(glucose)', 'The boiling point of the NaCl solution is higher', 'The vapour pressure of the NaCl solution is lower', 'Across a semipermeable membrane, water flows from the NaCl solution to the glucose solution'], [0, 1, 2],
+  '<p>NaCl gives 2 mol of particles per mole, so every colligative effect is about doubled. Water flows from the lower osmotic pressure (glucose) to the higher (NaCl), the opposite of the last statement.</p>');
+
+// ---------- integer ----------
+xnat(4, "van't Hoff factor", 'What is the van\'t Hoff factor of K<sub>4</sub>[Fe(CN)<sub>6</sub>] if it dissociates completely in water?', 5, 0, '',
+  '<p>K<sub>4</sub>[Fe(CN)<sub>6</sub>] &rarr; 4K<sup>+</sup> + [Fe(CN)<sub>6</sub>]<sup>4-</sup>. The complex ion stays whole, so there are 4 + 1 = <b>5</b> particles.</p>', 'Splitting the complex ion into Fe<sup>2+</sup> and 6CN<sup>-</sup> would give 11.', () => 4 + 1);
+xnat(4, 'colligative properties', 'How many of these 0.1 mol/kg aqueous solutions (complete dissociation) have a larger freezing-point depression than 0.1 mol/kg glucose: NaCl, urea, CaCl<sub>2</sub>, sucrose, K<sub>2</sub>SO<sub>4</sub>?', 3, 0, '',
+  '<p>&Delta;T<sub>f</sub> &prop; i. Glucose i = 1. NaCl (2), CaCl<sub>2</sub> (3) and K<sub>2</sub>SO<sub>4</sub> (3) are greater. Urea and sucrose are non-electrolytes with i = 1 (equal, not larger). Answer <b>3</b>.</p>', 'Equal is not larger.', () => [2, 1, 3, 1, 3].filter((i) => i > 1).length);
+xnat(4, 'vapour composition', 'Liquids A (p&deg; = 400 mm Hg) and B (p&deg; = 600 mm Hg) form an ideal solution. For x<sub>A</sub> = 0.5, what is the mole percent of A in the vapour?', 40, 0, '%',
+  '<p>p<sub>A</sub> = 0.5 &times; 400 = 200 mm Hg; p<sub>B</sub> = 0.5 &times; 600 = 300 mm Hg; total 500. y<sub>A</sub> = 200/500 = 0.40, i.e. <b>40%</b>.</p>', 'The vapour is richer in the more volatile B, so A is below 50%.', () => 100 * (0.5 * 400) / (0.5 * 400 + 0.5 * 600));
+xnat(4, 'elevation of boiling point', 'A 0.10 m solution of an electrolyte in water has &Delta;T<sub>b</sub> = 0.156 K (K<sub>b</sub> = 0.52 K kg/mol). How many particles does one formula unit produce, assuming complete dissociation?', 3, 0, '',
+  '<p>i = &Delta;T<sub>b</sub>/(K<sub>b</sub>m) = 0.156/(0.52 &times; 0.10) = <b>3</b>, such as CaCl<sub>2</sub> or Na<sub>2</sub>SO<sub>4</sub>.</p>', '', () => 0.156 / (0.52 * 0.10));
+xnat(5, 'degree of association', 'Benzoic acid (M = 122) dimerises in benzene. A solution shows an observed molar mass of 195.2. What is the percentage of association?', 75, 0, '%',
+  '<p>i = normal/observed = 122/195.2 = 0.625. For 2A &rarr; A<sub>2</sub>: i = 1 - &alpha;/2, so &alpha; = 2(1 - 0.625) = 0.75, i.e. <b>75%</b>.</p>', 'Using i = 1 - &alpha; (forgetting that the number of particles falls by &alpha;/2).', () => 100 * 2 * (1 - 122 / 195.2));
+xnat(4, 'degree of dissociation', 'A binary electrolyte AB has a van\'t Hoff factor of 1.8 in dilute aqueous solution. What is its percentage dissociation?', 80, 0, '%',
+  '<p>AB &rarr; A<sup>+</sup> + B<sup>-</sup>: i = 1 + &alpha;. So &alpha; = 0.8, i.e. <b>80%</b>.</p>', '', () => 100 * (1.8 - 1));
+xnat(4, 'molar mass from freezing point', '3.0 g of a solute X dissolved in 100 g of benzene lowers the freezing point by 1.28 K (K<sub>f</sub> = 5.12 K kg/mol). Find the molar mass of X in g/mol.', 120, 0, 'g/mol',
+  '<p>m = &Delta;T<sub>f</sub>/K<sub>f</sub> = 1.28/5.12 = 0.25 mol/kg. Moles = 0.25 &times; 0.100 = 0.025 mol. M = 3.0/0.025 = <b>120 g/mol</b>.</p>', 'Using 100 as kilograms of solvent.', () => 3.0 / ((1.28 / 5.12) * 0.1));
+xnat(5, 'molar mass from osmotic pressure', 'A 1.00 L solution with 18.0 g of a non-electrolyte has an osmotic pressure of 2.46 atm at 300 K (R = 0.082 L atm mol<sup>-1</sup> K<sup>-1</sup>). Find the molar mass in g/mol.', 180, 0, 'g/mol',
+  '<p>n = &pi;V/(RT) = 2.46 &times; 1.00/(0.082 &times; 300) = 0.100 mol. M = 18.0/0.100 = <b>180 g/mol</b>.</p>', '', () => 18.0 / (2.46 * 1.00 / (0.082 * 300)));
+xnat(5, 'ideal and non-ideal', 'How many of these pairs show positive deviation from Raoult\'s law: ethanol + cyclohexane, acetone + chloroform, benzene + toluene, carbon disulphide + acetone, phenol + aniline, nitric acid + water, ethanol + acetone?', 3, 0, '',
+  '<p>Positive deviation (weaker A-B attraction): ethanol + cyclohexane, carbon disulphide + acetone and ethanol + acetone. Negative deviation: acetone + chloroform, phenol + aniline and nitric acid + water. Benzene + toluene is nearly ideal. Answer <b>3</b>.</p>', 'Acetone + chloroform: the hydrogen bond between them gives negative deviation.', () => ['pos', 'neg', 'ideal', 'pos', 'neg', 'neg', 'pos'].filter((x) => x === 'pos').length);
+xnat(4, 'osmotic pressure with ions', 'Equal volumes of 0.1 M NaCl (complete dissociation) and 0.1 M glucose are at the same temperature. What is the ratio &pi;(NaCl)/&pi;(glucose)?', 2, 0, '',
+  '<p>&pi; = iCRT. NaCl: i = 2; glucose: i = 1; same C, R, T. Ratio = <b>2</b>.</p>', '', () => 2 * 0.1 / (1 * 0.1));
+xnat(4, "Raoult's law", 'Liquids A (p&deg; = 200 mm Hg) and B (p&deg; = 400 mm Hg) form an ideal solution. The total vapour pressure is 360 mm Hg. What is the mole percent of B in the liquid?', 80, 0, '%',
+  '<p>p = 200x<sub>A</sub> + 400x<sub>B</sub> = 200 + 200x<sub>B</sub> = 360, so x<sub>B</sub> = 0.80, i.e. <b>80%</b>.</p>', '', () => 100 * (360 - 200) / (400 - 200));
+
+// ---------- numeric ----------
+xnat(5, 'freezing point of an electrolyte', 'A 0.50 mol/kg K<sub>2</sub>SO<sub>4</sub> solution in water is 90% dissociated. Find &Delta;T<sub>f</sub> (K<sub>f</sub> = 1.86 K kg/mol).', 2.604, 0.02, 'K',
+  '<p>K<sub>2</sub>SO<sub>4</sub> gives 3 ions, so i = 1 + (3 - 1)&alpha; = 1 + 2(0.9) = 2.8. &Delta;T<sub>f</sub> = 2.8 &times; 1.86 &times; 0.50 = <b>2.60 K</b>.</p>', 'Using i = 3 (complete dissociation) gives 2.79 K.', () => (1 + 2 * 0.9) * 1.86 * 0.5);
+xnat(5, 'osmotic pressure of a polymer', '2.0 g of a polymer (M = 40 000 g/mol) is dissolved in 250 mL of solution at 27 &deg;C (R = 0.082 L atm/(mol K), 1 atm = 760 mm Hg). Find the osmotic pressure in mm Hg.', 3.74, 0.05, 'mm Hg',
+  '<p>n = 2.0/40 000 = 5.0 &times; 10<sup>-5</sup> mol; C = 5.0 &times; 10<sup>-5</sup>/0.250 = 2.0 &times; 10<sup>-4</sup> M. &pi; = CRT = 2.0 &times; 10<sup>-4</sup> &times; 0.082 &times; 300 = 4.92 &times; 10<sup>-3</sup> atm = <b>3.74 mm Hg</b>.</p>', 'This is why polymers are studied by osmometry: 3.7 mm Hg is easy to read, while the freezing point change would be about 4 &times; 10<sup>-4</sup> K.', () => 2.0 / 40000 / 0.25 * 0.082 * 300 * 760);
+xnat(4, 'molality from molarity', 'A 3.0 M aqueous solution of H<sub>2</sub>SO<sub>4</sub> (M = 98 g/mol) has density 1.18 g/mL. Find its molality in mol/kg.', 3.39, 0.02, 'mol/kg',
+  '<p>In 1 L: 3.0 mol = 294 g H<sub>2</sub>SO<sub>4</sub>; solution mass = 1180 g; water = 1180 - 294 = 886 g. m = 3.0/0.886 = <b>3.39 mol/kg</b>.</p>', 'Using 1 kg as the mass of the solvent.', () => 3.0 / ((1180 - 3.0 * 98) / 1000));
+xnat(5, 'solubility of a gas', 'A gas (M = 32 g/mol) has K<sub>H</sub> = 4.0 &times; 10<sup>4</sup> atm in water (p = K<sub>H</sub> x). At a partial pressure of 2.0 atm, how many mg of gas dissolve per kg of water? (1 kg water = 55.5 mol; treat the solution as dilute)', 88.8, 0.5, 'mg',
+  '<p>x = p/K<sub>H</sub> = 2.0/(4.0 &times; 10<sup>4</sup>) = 5.0 &times; 10<sup>-5</sup>. For a dilute solution n<sub>gas</sub> &asymp; x &times; 55.5 = 2.775 &times; 10<sup>-3</sup> mol. Mass = 2.775 &times; 10<sup>-3</sup> &times; 32 = 0.0888 g = <b>88.8 mg</b>.</p>', 'The mole fraction is not moles per litre.', () => 2.0 / 4.0e4 * 55.5 * 32 * 1000);
+xnat(5, 'freezing point of a mixture', '3.0 g of urea (M = 60) and 5.85 g of NaCl (M = 58.5, complete dissociation) are dissolved in 500 g of water. Find the freezing point in &deg;C (K<sub>f</sub> = 1.86 K kg/mol, pure water freezes at 0 &deg;C).', -0.93, 0.01, '&deg;C',
+  '<p>Urea: 0.05 mol, 1 particle each = 0.05. NaCl: 0.10 mol, 2 particles each = 0.20. Total particles = 0.25 mol in 0.500 kg = 0.50 mol/kg. &Delta;T<sub>f</sub> = 1.86 &times; 0.50 = 0.93 K, so the freezing point is <b>-0.93 &deg;C</b>.</p>', 'Add the particle counts of all solutes.', () => -1.86 * (3.0 / 60 + 2 * 5.85 / 58.5) / 0.5);
+xnat(4, 'vapour composition', '2 mol of A (p&deg; = 80 kPa) and 3 mol of B (p&deg; = 40 kPa) form an ideal solution. Find the mole fraction of A in the vapour.', 0.571, 0.005, '',
+  '<p>x<sub>A</sub> = 0.4, x<sub>B</sub> = 0.6. p<sub>A</sub> = 0.4 &times; 80 = 32 kPa; p<sub>B</sub> = 0.6 &times; 40 = 24 kPa; total 56 kPa. y<sub>A</sub> = 32/56 = <b>0.571</b>.</p>', 'Reporting the liquid fraction 0.4.', () => 0.4 * 80 / (0.4 * 80 + 0.6 * 40));
+xnat(5, 'osmotic pressure of a mixture', '100 mL of 0.10 M glucose is mixed with 400 mL of 0.050 M NaCl (complete dissociation). Find the osmotic pressure of the mixture at 300 K (R = 0.082 L atm/(mol K)), assuming volumes add.', 2.46, 0.02, 'atm',
+  '<p>Glucose particles: 0.100 &times; 0.10 = 0.010 mol. NaCl: 0.400 &times; 0.050 = 0.020 mol, giving 0.040 mol of ions. Total 0.050 mol in 0.500 L = 0.10 mol/L. &pi; = CRT = 0.10 &times; 0.082 &times; 300 = <b>2.46 atm</b>.</p>', 'Add particles, not moles of formula units.', () => (0.1 * 0.1 + 0.4 * 0.05 * 2) / 0.5 * 0.082 * 300);
+xnat(4, "Raoult's law lowering", '6.0 g of urea (M = 60) is dissolved in 180 g of water (M = 18). The vapour pressure of pure water is 23.8 mm Hg. Find the lowering of vapour pressure in mm Hg.', 0.236, 0.003, 'mm Hg',
+  '<p>n(urea) = 0.10 mol, n(water) = 10 mol. x(urea) = 0.10/10.10 = 0.0099. &Delta;p = p&deg;x(urea) = 23.8 &times; 0.0099 = <b>0.236 mm Hg</b>.</p>', 'Dividing by the moles of water only would also be close here but is wrong in principle.', () => 23.8 * 0.10 / (0.10 + 10));
+
+// ---------- passages ----------
+xpassage('xp1', 'An ideal mixture and a second distillation stage', '<p>Liquids A and B form an ideal solution at a given temperature. The pure vapour pressures are p&deg;<sub>A</sub> = 300 mm Hg and p&deg;<sub>B</sub> = 100 mm Hg. A liquid mixture has x<sub>A</sub> = 0.40. The vapour is removed, condensed completely, and then allowed to evaporate again in a second stage.</p>');
+xnat(3, 'ideal solutions', 'The total vapour pressure above the first liquid mixture (mm Hg) is', 180, 0, 'mm Hg',
+  '<p>p = x<sub>A</sub>p&deg;<sub>A</sub> + x<sub>B</sub>p&deg;<sub>B</sub> = 0.4 &times; 300 + 0.6 &times; 100 = 120 + 60 = <b>180 mm Hg</b>.</p>', '', () => 0.4 * 300 + 0.6 * 100, 'passage', 'xp1');
+xmk(4, 'vapour composition', 'The mole fraction of A in the first vapour is', '0.667', ['0.400', '0.333', '0.600'],
+  '<p>y<sub>A</sub> = p<sub>A</sub>/p = 120/180 = <b>0.667</b>. The vapour is richer in the more volatile component A.</p>', 'The mole fraction in vapour differs from that in the liquid.', 'passage', 'xp1');
+xnat(5, 'fractional distillation', 'The mole fraction of A in the vapour formed in the second stage (liquid with x<sub>A</sub> = 0.667) is', 0.857, 0.005, '',
+  '<p>For x<sub>A</sub> = 2/3: p<sub>A</sub> = 200, p<sub>B</sub> = (1/3)(100) = 33.3, total 233.3. y<sub>A</sub> = 200/233.3 = <b>0.857</b>. Each stage enriches A further: fractional distillation.</p>', '', () => { const x = 120 / 180; const pa = x * 300, pb = (1 - x) * 100; return pa / (pa + pb); }, 'passage', 'xp1');
+xpassage('xp2', 'Benzoic acid in benzene', '<p>2.44 g of benzoic acid (C<sub>6</sub>H<sub>5</sub>COOH, M = 122 g/mol) is dissolved in 50.0 g of benzene. The freezing point falls by 1.536 K (K<sub>f</sub> of benzene = 5.12 K kg/mol). The acid partly dimerises: 2A &rlhar; A<sub>2</sub>.</p>');
+xnat(4, 'abnormal molar mass', 'The observed (apparent) molar mass of benzoic acid in this solution, in g/mol, is', 162.7, 0.3, 'g/mol',
+  '<p>m = 1.536/5.12 = 0.300 mol/kg, so moles of particles = 0.300 &times; 0.0500 = 0.0150 mol. Observed M = 2.44/0.0150 = <b>162.7 g/mol</b>, higher than 122 because particles have combined.</p>', '', () => 2.44 / ((1.536 / 5.12) * 0.05), 'passage', 'xp2');
+xnat(5, 'degree of association', 'The percentage of benzoic acid present as dimer is', 50, 0, '%',
+  '<p>i = 122/162.7 = 0.75 (or 0.0150/0.0200 = 0.75, because 2.44/122 = 0.0200 mol was dissolved). For dimerisation i = 1 - &alpha;/2 so &alpha; = 2(1 - 0.75) = 0.5, i.e. <b>50%</b>.</p>', '', () => 100 * 2 * (1 - (0.015 / (2.44 / 122))), 'passage', 'xp2');
+xmk(4, 'abnormal molar mass', 'If the acid were fully dimerised (all A<sub>2</sub>), the freezing point depression would be', '1.02 K', ['2.05 K', '1.54 K', '0.51 K'],
+  '<p>0.0200 mol of acid gives 0.0100 mol of dimer particles in 0.0500 kg: m = 0.200 mol/kg. &Delta;T<sub>f</sub> = 5.12 &times; 0.200 = <b>1.02 K</b>. The actual 1.536 K lies between this and 2.05 K (no association), consistent with 50%.</p>', 'Full association halves the number of particles.', 'passage', 'xp2');
+
+// ---------- assertion / reason ----------
+xasr(2, "Henry's law", 'Fish in a warm pond can run short of oxygen.', 'K<sub>H</sub> of oxygen increases with temperature, so less oxygen dissolves.', 0,
+  '<p>Both true and R explains A. Dissolution of a gas in water is exothermic, so at higher temperature less dissolves, which is why warm water holds less O<sub>2</sub>.</p>');
+xasr(3, 'colligative properties', 'The boiling point of 0.1 M NaCl solution is higher than that of 0.1 M glucose solution.', 'NaCl gives two particles per formula unit in water, whereas glucose gives one.', 0,
+  '<p>Both true; R explains A. &Delta;T<sub>b</sub> = iK<sub>b</sub>m: i = 2 for NaCl, 1 for glucose.</p>');
+xasr(3, 'concentration terms', 'Molality is preferred over molarity in expressions for colligative properties.', 'Molality does not change with temperature, whereas molarity does.', 0,
+  '<p>Both true; R explains A. Molality uses mass of solvent, which is fixed, so it stays the same when the solution is heated or cooled.</p>');
+xasr(5, 'osmotic pressure', 'Osmotic pressure is preferred for finding the molar mass of polymers.', 'The osmotic pressure is large even for very dilute solutions, and it can be measured at room temperature.', 0,
+  '<p>Both true; R explains A. A polymer solution of 10<sup>-4</sup> M gives a measurable pressure of a few mm Hg, while the freezing and boiling point changes would be about 10<sup>-4</sup> K, too small to read.</p>');
+xasr(3, 'azeotropes', 'Ethanol cannot be made 100% pure from an ethanol-water mixture by simple fractional distillation.', 'Ethanol and water form a minimum-boiling azeotrope.', 0,
+  '<p>Both true. At 95.6% ethanol the liquid and vapour have the same composition, so distillation cannot go beyond it.</p>');
+xasr(2, 'vapour pressure lowering', 'Adding a non-volatile solute raises the vapour pressure of the solvent.', 'Solute particles occupy part of the surface, so fewer solvent molecules can escape.', 3,
+  '<p>A is false: the vapour pressure is lowered (Raoult\'s law). R is true and is the reason for the lowering.</p>');
+xasr(3, "van't Hoff factor", 'The van\'t Hoff factor of a solute that associates in the solvent is less than 1.', 'Association decreases the number of particles in solution.', 0,
+  '<p>Both true; R explains A. For 2A &rarr; A<sub>2</sub> the particle count falls to 1 - &alpha;/2 of the original.</p>');
+xasr(3, 'reverse osmosis', 'Reverse osmosis can be used to obtain fresh water from seawater.', 'A pressure larger than the osmotic pressure applied to the seawater side forces water through the membrane.', 0,
+  '<p>Both true; R explains A. The applied pressure must exceed &pi; of seawater (about 25 atm) so that the flow of solvent reverses.</p>');
+xasr(4, 'deviations from Raoult\'s law', 'A negative deviation from Raoult\'s law can lead to a maximum-boiling azeotrope.', 'Stronger A-B attractions make the vapour pressure lower than ideal, so the vapour pressure curve can pass through a minimum.', 0,
+  '<p>Both true; R explains A. A minimum in vapour pressure is a maximum in boiling point.</p>');
+
+// ---------- statements ----------
+xstm(2, 'concentration terms', 'The molarity of a solution changes with temperature.', 'The molality of a solution does not change with temperature.', 0, '<p>Both correct. Molarity depends on volume, which changes with temperature; molality depends only on masses.</p>');
+xstm(3, 'isotonic solutions', '0.1 M NaCl and 0.1 M Na<sub>2</sub>SO<sub>4</sub> are isotonic.', 'Isotonic solutions have the same osmotic pressure at the same temperature.', 2,
+  '<p>I is incorrect: NaCl has i = 2, Na<sub>2</sub>SO<sub>4</sub> has i = 3, so &pi; differs even at the same molarity. II is the definition.</p>');
+xstm(3, 'ideal solutions', 'For an ideal solution &Delta;<sub>mix</sub>H = 0.', 'For an ideal solution &Delta;<sub>mix</sub>V = 0.', 0, '<p>Both correct, because the A-B interactions equal the average of the A-A and B-B interactions.</p>');
+xstm(4, "van't Hoff factor", 'Benzoic acid has a van\'t Hoff factor below 1 in benzene.', 'Benzoic acid dissociates into ions in benzene.', 1,
+  '<p>I is correct: it forms hydrogen-bonded dimers in benzene (i &lt; 1). II is incorrect: benzene is non-polar and does not support ions; the acid associates, not dissociates.</p>');
+xstm(3, 'cryoscopic constant', 'K<sub>f</sub> depends on the nature of the solute.', 'K<sub>f</sub> depends only on the solvent.', 2, '<p>I is incorrect: K<sub>f</sub> = RT<sub>f</sub><sup>2</sup>M<sub>1</sub>/(1000 &Delta;H<sub>fus</sub>) uses only solvent data. II is correct.</p>');
+xstm(3, 'osmotic pressure', 'At constant concentration, the osmotic pressure of a solution is proportional to the absolute temperature.', '&pi; = CRT.', 0, '<p>Both correct: &pi; &prop; T, with &pi; = CRT as the working equation.</p>');
+xstm(4, 'azeotropes', 'Ethanol and water form a minimum-boiling azeotrope.', 'Ethanol and water show positive deviation from Raoult\'s law.', 0,
+  '<p>Both correct: positive deviation raises the vapour pressure, giving a lower boiling temperature than either component near 95.6% ethanol.</p>');
+
+// ---------- extra single answers ----------
+xmk(2, 'mole fraction', '36 g of water and 46 g of ethanol are mixed (H<sub>2</sub>O 18, C<sub>2</sub>H<sub>5</sub>OH 46). The mole fraction of water is', '0.667', ['0.500', '0.333', '0.783'],
+  '<p>Water 36/18 = 2 mol; ethanol 46/46 = 1 mol. x(water) = 2/(2 + 1) = <b>0.667</b>.</p>', '0.783 is the mass fraction.');
+xmk(4, 'molar mass by comparison', '10 g of solute X (M = 100) in 100 g of water gives the same freezing point depression as 12 g of non-electrolyte Y in 100 g of water. The molar mass of Y is', '120 g/mol', ['100 g/mol', '83.3 g/mol', '144 g/mol'],
+  '<p>Equal &Delta;T<sub>f</sub> in the same amount of the same solvent means equal moles of solute: 10/100 = 0.10 mol = 12/M<sub>Y</sub>, so M<sub>Y</sub> = <b>120 g/mol</b>. (X must also be a non-electrolyte for this to hold.)</p>');
+xmk(3, "Henry's law", 'A graph of the partial pressure of a gas (y-axis) against its mole fraction in solution (x-axis) at constant temperature is', 'a straight line through the origin with slope K<sub>H</sub>', ['a straight line through the origin with slope 1/K<sub>H</sub>', 'a curve rising and flattening', 'a straight line with a negative slope'],
+  '<p>p = K<sub>H</sub>x, which is of the form y = mx with slope K<sub>H</sub>. A graph of x against p would have slope 1/K<sub>H</sub>.</p>');
+xmk(3, 'freezing point', 'Which of these 0.1 mol/kg aqueous solutions has the highest freezing point (complete dissociation)?', 'Glucose', ['NaCl', 'MgCl<sub>2</sub>', 'K<sub>2</sub>SO<sub>4</sub>'],
+  '<p>The smaller the particle count, the smaller the depression &Delta;T<sub>f</sub> = iK<sub>f</sub>m, so the higher the freezing point. Glucose (i = 1) lowers it least; the others have i = 2 or 3.</p>', 'The highest freezing point means the least depression.');
+
+// ---------- templates ----------
+const _SOL = [['urea', 60, 1], ['glucose', 180, 1], ['NaCl', 58.5, 2], ['CaCl<sub>2</sub>', 111, 3], ['KCl', 74.5, 2], ['sucrose', 342, 1]];
+xgen({ type: 'nat', level: 4, sub: 'freezing point of a mixture',
+  make(rng) {
+    let s1, s2; do { s1 = choose(rng, _SOL); s2 = choose(rng, _SOL); } while (s1 === s2);
+    const n1 = choose(rng, [0.05, 0.1, 0.2]), n2 = choose(rng, [0.05, 0.1, 0.2]); const w = choose(rng, [250, 500, 1000]);
+    const part = n1 * s1[2] + n2 * s2[2]; const dT = 1.86 * part / (w / 1000);
+    return { q: `${fmt(n1 * s1[1], 4)} g of ${s1[0]} and ${fmt(n2 * s2[1], 4)} g of ${s2[0]} are dissolved in ${w} g of water (complete dissociation of salts; molar masses ${s1[0]} ${s1[1]}, ${s2[0]} ${s2[1]}). Find the freezing point in &deg;C (K<sub>f</sub> = 1.86 K kg/mol).`, answer: +(-dT).toFixed(3), tol: dT * 0.01 + 0.005, unit: '&deg;C', n1, n2, i1: s1[2], i2: s2[2], w,
+      sol: `<p>Moles: ${s1[0]} ${n1} mol &times; i = ${s1[2]} gives ${fmt(n1 * s1[2], 3)} mol of particles; ${s2[0]} ${n2} mol &times; ${s2[2]} gives ${fmt(n2 * s2[2], 3)}. Total ${fmt(part, 3)} mol in ${w / 1000} kg = ${fmt(part / (w / 1000), 3)} mol/kg.</p><p>&Delta;T<sub>f</sub> = 1.86 &times; ${fmt(part / (w / 1000), 3)} = ${fmt(dT, 3)} K, so the freezing point is <b>${fmt(-dT, 3)} &deg;C</b>.</p>` };
+  }, verify: (p) => -1.86 * ((p.n1 * p.i1 + p.n2 * p.i2) / (p.w / 1000)) });
+xgen({ type: 'nat', level: 4, sub: 'osmotic pressure of a mixture',
+  make(rng) {
+    const [a, ia] = choose(rng, [['glucose', 1], ['urea', 1], ['NaCl', 2], ['CaCl<sub>2</sub>', 3]]); const [b, ib] = choose(rng, [['sucrose', 1], ['KCl', 2], ['Na<sub>2</sub>SO<sub>4</sub>', 3]]);
+    const V1 = choose(rng, [100, 200, 300]), V2 = choose(rng, [200, 300, 400]); const c1 = choose(rng, [0.1, 0.2]), c2 = choose(rng, [0.05, 0.1, 0.2]); const T = choose(rng, [300, 310]);
+    const osm = (V1 * c1 * ia + V2 * c2 * ib) / (V1 + V2); const pi = osm * 0.082 * T;
+    return { q: `${V1} mL of ${c1} M ${a} and ${V2} mL of ${c2} M ${b} are mixed (complete dissociation; volumes add). Find the osmotic pressure at ${T} K (R = 0.082 L atm mol<sup>-1</sup> K<sup>-1</sup>).`, answer: +pi.toPrecision(4), tol: pi * 0.01, unit: 'atm', V1, V2, c1, c2, ia, ib, T,
+      sol: `<p>Particles: ${a}: ${V1}/1000 &times; ${c1} &times; ${ia} = ${fmt(V1 * c1 * ia / 1000, 4)} mol. ${b}: ${V2}/1000 &times; ${c2} &times; ${ib} = ${fmt(V2 * c2 * ib / 1000, 4)} mol.</p><p>Total volume ${(V1 + V2) / 1000} L, so total particle concentration = ${fmt(osm, 4)} mol/L. &pi; = CRT = ${fmt(osm, 4)} &times; 0.082 &times; ${T} = <b>${fmt(pi, 4)} atm</b>.</p>` };
+  }, verify: (p) => ((p.V1 / 1000) * p.c1 * p.ia + (p.V2 / 1000) * p.c2 * p.ib) / ((p.V1 + p.V2) / 1000) * 0.082 * p.T });
+xgen({ type: 'nat', level: 5, sub: 'degree of association',
+  make(rng) {
+    const [name, M, n] = choose(rng, [['ethanoic acid', 60, 2], ['benzoic acid', 122, 2], ['a carboxylic acid dimerising', 88, 2]]); const alpha = choose(rng, [0.4, 0.5, 0.6, 0.8]);
+    const i = 1 - alpha / 2; const Mobs = M / i;
+    return { q: `In benzene, ${name} (M = ${M} g/mol) shows an observed molar mass of ${fmt(Mobs, 4)} g/mol from freezing-point data. If it exists as monomer and dimer, what is the percentage of association?`, answer: alpha * 100, tol: 1, unit: '%', M, Mobs,
+      sol: `<p>i = normal M/observed M = ${M}/${fmt(Mobs, 4)} = ${fmt(i, 4)}. For 2A &rarr; A<sub>2</sub>, i = 1 - &alpha;/2.</p><p>&alpha; = 2(1 - ${fmt(i, 4)}) = ${fmt(2 * (1 - i), 3)}, i.e. <b>${alpha * 100}%</b>.</p>` };
+  }, verify: (p) => 100 * 2 * (1 - p.M / p.Mobs) });
+xgen({ type: 'nat', level: 4, sub: 'vapour composition',
+  make(rng) {
+    const pA = choose(rng, [300, 400, 600]), pB = choose(rng, [100, 150, 200]); const xA = choose(rng, [0.2, 0.25, 0.4, 0.5, 0.6, 0.75]);
+    const pt = xA * pA + (1 - xA) * pB; const y = xA * pA / pt;
+    return { q: `Liquids A (p&deg; = ${pA} mm Hg) and B (p&deg; = ${pB} mm Hg) form an ideal solution. The total vapour pressure above a mixture is ${fmt(pt, 4)} mm Hg. Find the mole fraction of A in the vapour.`, answer: +y.toFixed(3), tol: 0.004, pA, pB, pt,
+      sol: `<p>Total p = p&deg;<sub>B</sub> + x<sub>A</sub>(p&deg;<sub>A</sub> - p&deg;<sub>B</sub>): ${fmt(pt, 4)} = ${pB} + x<sub>A</sub>(${pA - pB}), so x<sub>A</sub> = ${fmt(xA, 3)}.</p><p>y<sub>A</sub> = x<sub>A</sub>p&deg;<sub>A</sub>/p = ${fmt(xA, 3)} &times; ${pA}/${fmt(pt, 4)} = <b>${fmt(y, 3)}</b>.</p>` };
+  }, verify: (p) => { const x = (p.pt - p.pB) / (p.pA - p.pB); return x * p.pA / p.pt; } });
+xgen({ type: 'nat', level: 4, sub: 'degree of dissociation',
+  make(rng) {
+    const alpha = choose(rng, [0.05, 0.1, 0.2, 0.25]); const m = choose(rng, [0.1, 0.2, 0.5]); const Kf = 1.86; const i = 1 + alpha; const dT = i * Kf * m;
+    return { q: `A weak monobasic acid HA (HA &rlhar; H<sup>+</sup> + A<sup>-</sup>) in water at ${m} mol/kg lowers the freezing point by ${fmt(dT, 4)} K (K<sub>f</sub> = 1.86 K kg/mol). What is its percentage dissociation?`, answer: alpha * 100, tol: 1, unit: '%', m, dT,
+      sol: `<p>i = &Delta;T<sub>f</sub>/(K<sub>f</sub>m) = ${fmt(dT, 4)}/(1.86 &times; ${m}) = ${fmt(i, 4)}. For HA &rarr; H<sup>+</sup> + A<sup>-</sup>, i = 1 + &alpha;, so &alpha; = ${fmt(i - 1, 3)}, i.e. <b>${alpha * 100}%</b>.</p>` };
+  }, verify: (p) => 100 * (p.dT / (1.86 * p.m) - 1) });
+xgen({ type: 'mcq', level: 3, sub: 'boiling point ranking',
+  make(rng) {
+    const pool = [['glucose', 1], ['NaCl', 2], ['K<sub>2</sub>SO<sub>4</sub>', 3], ['AlCl<sub>3</sub>', 4], ['urea', 1], ['MgCl<sub>2</sub>', 3], ['KNO<sub>3</sub>', 2]];
+    const pk = []; const cp = [...pool]; while (pk.length < 4) { const x = cp.splice(Math.floor(rng() * cp.length), 1)[0]; if (!pk.some((y) => y[1] === x[1])) pk.push(x); }
+    const best = pk.reduce((a, b) => (b[1] > a[1] ? b : a)); const o = shuffleOpts(rng, best[0], pk.filter((x) => x !== best).map((x) => x[0]));
+    return { q: `Four 0.1 mol/kg aqueous solutions (complete dissociation) are made: ${pk.map((x) => x[0]).join(', ')}. Which has the highest boiling point?`, options: o.options, answer: o.answer, pk, best,
+      sol: `<p>&Delta;T<sub>b</sub> = iK<sub>b</sub>m with the same m, so the largest i boils highest. i values: ${pk.map((x) => `${x[0]} = ${x[1]}`).join(', ')}.</p><p>Highest: <b>${best[0]}</b>.</p>`, trap: 'Same molality means only i matters.' };
+  }, verify: (p) => (p.options[p.answer] === p.best[0] ? p.answer : -1) });
+xgen({ type: 'mcq', level: 4, sub: 'deviation from Raoult\'s law',
+  make(rng) {
+    const pA = choose(rng, [100, 200]), pB = choose(rng, [50, 80]); const xA = choose(rng, [0.4, 0.5, 0.6]); const ideal = xA * pA + (1 - xA) * pB;
+    const kind = choose(rng, ['pos', 'neg', 'ideal']); const obs = kind === 'pos' ? ideal * 1.1 : kind === 'neg' ? ideal * 0.9 : ideal;
+    const T = { pos: 'positive deviation; &Delta;<sub>mix</sub>H &gt; 0', neg: 'negative deviation; &Delta;<sub>mix</sub>H &lt; 0', ideal: 'ideal behaviour; &Delta;<sub>mix</sub>H = 0' };
+    const o = shuffleOpts(rng, T[kind], [...Object.keys(T).filter((k) => k !== kind).map((k) => T[k]), kind === 'pos' ? 'positive deviation; &Delta;<sub>mix</sub>H &lt; 0' : 'negative deviation; &Delta;<sub>mix</sub>H &gt; 0']);
+    return { q: `A and B have p&deg;<sub>A</sub> = ${pA} and p&deg;<sub>B</sub> = ${pB} mm Hg. A mixture with x<sub>A</sub> = ${xA} has a measured total vapour pressure of ${fmt(obs, 4)} mm Hg. The mixture shows`, options: o.options, answer: o.answer, kind, T,
+      sol: `<p>Raoult\'s law predicts ${xA} &times; ${pA} + ${fmt(1 - xA, 3)} &times; ${pB} = ${fmt(ideal, 4)} mm Hg. The measured value is ${obs > ideal + 1e-9 ? 'higher (A-B attraction weaker: heat absorbed on mixing)' : obs < ideal - 1e-9 ? 'lower (A-B attraction stronger: heat released on mixing)' : 'equal'}.</p><p>Answer: <b>${T[kind]}</b>.</p>`, trap: 'Higher vapour pressure means weaker attractions, so heat is absorbed.' };
+  }, verify: (p) => p.options.indexOf(p.T[p.kind]) });
+
 export default {
   topic: 'solutions',
-  groups,
-  items: L.map((it, i) => ({ id: `so-${String(i + 1).padStart(3, '0')}`, ...it })),
-  gens,
+  groups: { ...groups, ...XGRP },
+  items: [...L.map((it, i) => ({ id: `so-${String(i + 1).padStart(3, '0')}`, ...it })), ...XI],
+  gens: [...gens, ...XGENS],
 };

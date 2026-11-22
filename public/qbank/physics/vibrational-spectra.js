@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './vibrational-spectra.more.gen.js';
 import more2 from './vibrational-spectra.more2.gen.js';
+import r4 from './vibrational-spectra.r4.gen.js';
 
 const U = 1.66053907e-27;     // kg
 const CCM = 2.99792458e10;    // cm/s
@@ -231,6 +232,7 @@ export default {
       sol: 'With $\\mu(r) = \\mu_0 + \\mu_1x + \\mu_2x^2 + \\dots$, the $\\mu_2x^2$ term connects $v$ to $v \\pm 2$ even for harmonic wavefunctions (electrical anharmonicity). An anharmonic potential mixes the wavefunctions so $\\langle v\\pm2|x|v\\rangle \\ne 0$ (mechanical anharmonicity). Both contribute.',
       trap: 'A purely harmonic molecule with a linear dipole function would show only the fundamental.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -382,5 +384,6 @@ export default {
       },
       verify: (p) => (p.ask === 'gap' ? 2 * (p.B0 + p.B1) : p.R0 - 2 * p.B1) },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -34,7 +34,7 @@ export const ENGINEERING_ENTRANCE: CourseSyllabus = {
   updated: '2026-11-22',
   kit: true,
   kitDir: 'entrance',
-  extras: [{ href: '/learn/courses/engineering-entrance/practice/', label: 'Practice questions, by chapter' }, { href: '/learn/courses/engineering-entrance/mock-test/', label: 'JEE Main mock test (timed)' }, { href: '/learn/courses/engineering-entrance/keam-mock/', label: 'KEAM mock test (timed)' }, { href: '/learn/courses/engineering-entrance/comedk-mock/', label: 'COMEDK mock test (timed)' }],
+  extras: [{ href: '/learn/courses/engineering-entrance/practice/', label: 'Practice questions, by chapter' }, { href: '/learn/courses/engineering-entrance/mock-test/', label: 'JEE Main mock test (timed)' }, { href: '/learn/courses/engineering-entrance/jee-advanced-mock/', label: 'JEE Advanced mock test (timed, partial marks)' }, { href: '/learn/courses/engineering-entrance/keam-mock/', label: 'KEAM mock test (timed)' }, { href: '/learn/courses/engineering-entrance/comedk-mock/', label: 'COMEDK mock test (timed)' }],
   footnote: 'Syllabus and exam patterns follow the official notices checked on 2026-11-22; they can change every year, so check the official exam website. All questions are original fibub work, not copied from past papers or books. Nothing you do here is sent anywhere.',
   parts: [
     { name: 'Part A: Start here', modules: [START] },

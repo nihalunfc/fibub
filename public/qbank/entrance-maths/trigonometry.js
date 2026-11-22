@@ -634,4 +634,319 @@ const gens = [
   },
 ];
 
+
+
+// ===== expansion begin =====
+const Px = (id, l, s, g, q, c, w, sol, tr, more = {}) => ({ ...P(id, l, s, g, q, c, w, sol, tr), ...more });
+const PIx = (id, l, s, g, q, a, sol, tr, more = {}) => ({ ...PI(id, l, s, g, q, a, sol, tr), ...more });
+const PNx = (id, l, s, g, q, a, t, sol, tr, more = {}) => ({ ...PN(id, l, s, g, q, a, t, sol, tr), ...more });
+// Expansion pass (2026-11-22): more L3-L5 items, new match/multi/passage items and templates. New ids tr-x001.. and tr-g15..
+const PIV = Math.PI, dg = (d) => (d * PIV) / 180;
+const sn = Math.sin, cs = Math.cos, tn = Math.tan;
+const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
+/** single-answer item whose key is checked numerically: truth() is the number; each option carries its own number */
+const MV = (id, lv, sub, q, truth, corr, wrongs, sol, trap) => {
+  const it = M(id, lv, sub, q, corr[0], wrongs.map((w) => w[0]), sol, trap);
+  const vals = wrongs.map((w) => w[1]); vals.splice(it.answer, 0, corr[1]);
+  it.calc = () => vals.findIndex((v) => near(v, truth(), 1e-7));
+  return it;
+};
+const XT = (id, lv, sub, q, rows, trap) => X(id, lv, sub, q, rows.map((r) => r[0]), rows.map((r, i) => (r[1] ? i : -1)).filter((i) => i >= 0),
+  '<p>' + rows.map((r) => `${r[1] ? '✓' : '✗'} ${r[2]}`).join(' ') + '</p>', trap);
+const sample = (f, a, b, n = 20000) => { let mx = -Infinity, mn = Infinity; for (let i = 0; i <= n; i++) { const v = f(a + (b - a) * i / n); if (v > mx) mx = v; if (v < mn) mn = v; } return { mx, mn }; };
+const isPer = (f, T) => [0.3, 1.1, 2.2, 4.4, 5.7].every((x) => near(f(x + T), f(x), 1e-9));
+const triExt = (f) => { let mx = -Infinity, mn = Infinity; const n = 400; for (let i = 1; i < n; i++) for (let j = 1; i + j < n; j++) { const A = PIV * i / n, B = PIV * j / n, C = PIV - A - B; const v = f(A, B, C); if (v > mx) mx = v; if (v < mn) mn = v; } return { mx, mn }; };
+const acuteExt = (f) => { let mx = -Infinity, mn = Infinity; const n = 400; for (let i = 1; i < n; i++) for (let j = 1; i + j < n; j++) { const A = PIV * i / n, B = PIV * j / n, C = PIV - A - B; if (A >= PIV / 2 || B >= PIV / 2 || C >= PIV / 2) continue; const v = f(A, B, C); if (v > mx) mx = v; if (v < mn) mn = v; } return { mx, mn }; };
+
+Object.assign(groups, {
+  mx1: { title: 'Exact values', passage: R`<p>Match each value in List I with its exact form in List II.</p>`,
+    list1: ['A. $\\sin15^\\circ$', 'B. $\\sin18^\\circ$', 'C. $\\sin54^\\circ$', 'D. $\\cos15^\\circ$'],
+    list2: ['p. $\\dfrac{\\sqrt6-\\sqrt2}4$', 'q. $\\dfrac{\\sqrt5-1}4$', 'r. $\\dfrac{\\sqrt5+1}4$', 's. $\\dfrac{\\sqrt6+\\sqrt2}4$'] },
+  mx2: { title: 'Periods', passage: R`<p>Match each function in List I with its (smallest positive) period in List II.</p>`,
+    list1: ['A. $|\\sin x|$', 'B. $\\sin\\dfrac x2$', 'C. $\\tan2x$', 'D. $\\sin3x+\\cos2x$'], list2: ['p. $\\dfrac\\pi2$', 'q. $\\pi$', 'r. $2\\pi$', 's. $4\\pi$'] },
+  mx3: { title: 'Products and sums of special angles', passage: R`<p>Match each expression in List I with its value in List II.</p>`,
+    list1: ['A. $\\cos20^\\circ\\cos40^\\circ\\cos80^\\circ$', 'B. $\\sin20^\\circ\\sin40^\\circ\\sin80^\\circ$', 'C. $\\tan20^\\circ\\tan40^\\circ\\tan80^\\circ$', 'D. $\\cos20^\\circ+\\cos100^\\circ+\\cos140^\\circ$'],
+    list2: ['p. $\\dfrac18$', 'q. $\\dfrac{\\sqrt3}8$', 'r. $\\sqrt3$', 's. $0$'] },
+  mx4: { title: 'Greatest values', passage: R`<p>Match each function in List I with its greatest value in List II.</p>`,
+    list1: ['A. $3\\sin x+4\\cos x$', 'B. $1+\\sin x\\cos x$', 'C. $\\sin^4x+\\cos^4x$', 'D. $\\cos^2x-\\sin x$'], list2: ['p. $\\dfrac54$', 'q. $\\dfrac32$', 'r. $5$', 's. $1$'] },
+  mx5: { title: 'Tangents of special angles', passage: R`<p>Match each value in List I with its exact form in List II.</p>`,
+    list1: ['A. $\\tan15^\\circ$', 'B. $\\tan75^\\circ$', 'C. $\\tan22.5^\\circ$', 'D. $\\tan67.5^\\circ$'], list2: ['p. $\\sqrt2-1$', 'q. $\\sqrt2+1$', 'r. $2-\\sqrt3$', 's. $2+\\sqrt3$', 't. $\\sqrt3-1$'] },
+  mx6: { title: 'Least values', passage: R`<p>Match each expression in List I with its least value in List II (over all allowed $x$).</p>`,
+    list1: ['A. $4\\sin^2x+9\\operatorname{cosec}^2x$', 'B. $\\tan^2x+\\cot^2x$', 'C. $\\sec^2x+\\operatorname{cosec}^2x$', 'D. $2\\sin x+\\operatorname{cosec}x$ for $0<x<\\pi$'], list2: ['p. $2$', 'q. $4$', 'r. $13$', 's. $2\\sqrt2$'] },
+  mx7: { title: 'Sums and products at multiples of π/7', passage: R`<p>Match each expression in List I with its value in List II.</p>`,
+    list1: ['A. $\\sum_{k=1}^{6}\\cos\\dfrac{2k\\pi}7$', 'B. $\\sum_{k=1}^{7}\\sin\\dfrac{2k\\pi}7$', 'C. $\\cos\\dfrac\\pi7\\cos\\dfrac{2\\pi}7\\cos\\dfrac{3\\pi}7$', 'D. $\\sum_{k=1}^{3}\\cos\\dfrac{2k\\pi}7$'],
+    list2: ['p. $-1$', 'q. $0$', 'r. $\\dfrac18$', 's. $-\\dfrac12$'] },
+  mx8: { title: 'Extreme values in a triangle', passage: R`<p>In a triangle $ABC$ (acute where stated) match each extreme value in List I with its number in List II.</p>`,
+    list1: ['A. Greatest value of $\\sin A+\\sin B+\\sin C$', 'B. Greatest value of $\\cos A+\\cos B+\\cos C$', 'C. Least value of $\\tan A+\\tan B+\\tan C$ (acute triangle)', 'D. Greatest value of $\\sin\\dfrac A2\\sin\\dfrac B2\\sin\\dfrac C2$'],
+    list2: ['p. $\\dfrac18$', 'q. $\\dfrac32$', 'r. $\\dfrac{3\\sqrt3}2$', 's. $3\\sqrt3$'] },
+  pz3: { title: 'Passage: a triangle with tan A = 1/2 and tan B = 1/3', passage: R`<p>In a triangle $ABC$, $\tan A=\dfrac12$ and $\tan B=\dfrac13$.</p>` },
+  pz4: { title: 'Passage: sin A = 3/5 and cos B = 5/13', passage: R`<p>In a triangle $ABC$ the angles $A$ and $B$ are acute, $\sin A=\dfrac35$ and $\cos B=\dfrac5{13}$. So $\cos A=\dfrac45$ and $\sin B=\dfrac{12}{13}$.</p>` },
+});
+
+// ----- L2 -----
+items.push(
+  MV('tr-x001', 2, 'arc and sector', R`A sector of a circle of radius 12 cm has angle $75^\circ$ at the centre. Its area is`, () => 0.5 * 144 * dg(75), [R`$30\pi\ \text{cm}^2$`, 30 * PIV], [[R`$60\pi\ \text{cm}^2$`, 60 * PIV], [R`$15\pi\ \text{cm}^2$`, 15 * PIV], [R`$72\pi\ \text{cm}^2$`, 72 * PIV]],
+    R`<p>Convert: $75^\circ=\dfrac{5\pi}{12}$. Area $=\dfrac12r^2\theta=\dfrac12\times144\times\dfrac{5\pi}{12}=30\pi$.</p>`, 'The formula $\\frac12r^2\\theta$ needs $\\theta$ in radians.'),
+  MV('tr-x002', 2, 'allied angles', R`The value of $\cos105^\circ$ is`, () => cs(dg(105)), [R`$-\dfrac{\sqrt6-\sqrt2}4$`, -(Math.sqrt(6) - Math.sqrt(2)) / 4], [[R`$\dfrac{\sqrt6-\sqrt2}4$`, (Math.sqrt(6) - Math.sqrt(2)) / 4], [R`$-\dfrac{\sqrt6+\sqrt2}4$`, -(Math.sqrt(6) + Math.sqrt(2)) / 4], [R`$\dfrac{\sqrt6+\sqrt2}4$`, (Math.sqrt(6) + Math.sqrt(2)) / 4]],
+    R`<p>$\cos105^\circ=\cos(90^\circ+15^\circ)=-\sin15^\circ=-\dfrac{\sqrt6-\sqrt2}4$.</p>`, 'Cosine is negative in the second quadrant, and $\\cos(90^\\circ+\\theta)=-\\sin\\theta$.'),
+  MV('tr-x003', 2, 'quadrants', R`If $\sin A=\dfrac5{13}$ and $A$ lies in the second quadrant, then $\tan A$ equals`, () => -5 / 12, [R`$-\dfrac5{12}$`, -5 / 12], [[R`$\dfrac5{12}$`, 5 / 12], [R`$-\dfrac{12}5$`, -12 / 5], [R`$-\dfrac5{13}$`, -5 / 13]],
+    R`<p>$\cos A=-\sqrt{1-\frac{25}{169}}=-\dfrac{12}{13}$ in the second quadrant. $\tan A=\dfrac{5/13}{-12/13}=-\dfrac5{12}$.</p>`, 'Choose the sign of $\\cos A$ from the quadrant.'),
+  I('tr-x004', 2, 'radian measure', R`Express $\dfrac{7\pi}{20}$ radians in degrees (give the number of degrees).`, 63,
+    R`<p>$\dfrac{7\pi}{20}\times\dfrac{180}{\pi}=7\times9=63$.</p>`, 'Multiply by $180/\\pi$.', { calc: () => Math.round(7 * PIV / 20 * 180 / PIV) }),
+  MV('tr-x005', 2, 'period', R`The period of $\cos^2 3x$ is`, () => PIV / 3, [R`$\dfrac\pi3$`, PIV / 3], [[R`$\dfrac{2\pi}3$`, 2 * PIV / 3], [R`$\dfrac\pi6$`, PIV / 6], [R`$\pi$`, PIV]],
+    R`<p>$\cos^23x=\dfrac{1+\cos6x}2$, and $\cos6x$ has period $\dfrac{2\pi}6=\dfrac\pi3$.</p>`, 'Squaring halves the period of $\\cos3x$.'),
+  MV('tr-x006', 2, 'quadrants', R`If $\tan\theta=\dfrac34$ and $\theta$ lies in the third quadrant, then $\sin\theta$ equals`, () => -3 / 5, [R`$-\dfrac35$`, -3 / 5], [[R`$\dfrac35$`, 3 / 5], [R`$-\dfrac45$`, -4 / 5], [R`$-\dfrac34$`, -3 / 4]],
+    R`<p>The hypotenuse of the 3-4-5 triangle is 5. In the third quadrant both $\sin\theta$ and $\cos\theta$ are negative, so $\sin\theta=-\dfrac35$.</p>`, 'The sign comes from the quadrant; the size from the triangle.'),
+);
+
+// ----- L3 -----
+const rootNeg = (() => { let c = 0; for (let k = 1; k <= 24; k++) if (sn(dg(15 * k)) < -1e-9) c++; return c; })();
+const cosSq12 = (() => { let s = 0; for (let k = 1; k <= 12; k++) s += cs(k * PIV / 12) ** 2; return Math.round(s); })();
+const intsIn = (() => { let c = 0; for (let v = -11; v <= 15; v++) c++; return c; })();
+items.push(
+  MV('tr-x007', 3, 'multiple angles', R`If $\tan\theta=\dfrac12$, then $\tan3\theta$ equals`, () => tn(3 * Math.atan(0.5)), [R`$\dfrac{11}2$`, 5.5], [[R`$\dfrac32$`, 1.5], [R`$\dfrac{11}{4}$`, 2.75], [R`$\dfrac{5}{2}$`, 2.5]],
+    R`<p>$\tan3\theta=\dfrac{3t-t^3}{1-3t^2}$ with $t=\dfrac12$: numerator $\dfrac32-\dfrac18=\dfrac{11}8$; denominator $1-\dfrac34=\dfrac14$. So $\tan3\theta=\dfrac{11}8\times4=\dfrac{11}2$.</p>`, 'Keep the denominator $1-3t^2$.'),
+  I('tr-x008', 3, 'sums of squares', R`Find $\sum_{k=1}^{12}\cos^2\dfrac{k\pi}{12}$.`, cosSq12,
+    R`<p>$\cos^2\alpha=\dfrac{1+\cos2\alpha}2$. The sum is $6+\dfrac12\sum_{k=1}^{12}\cos\dfrac{k\pi}6$. The cosines of the 12 equally spaced angles $\dfrac{k\pi}6$ ($k=1..12$) add up to 0. So the sum is 6.</p>`, 'Equally spaced cosines around the circle cancel.', { calc: () => cosSq12 }),
+  I('tr-x009', 3, 'clock angle', R`Find the angle in degrees between the hour hand and the minute hand of a clock at 3:20.`, 20,
+    R`<p>Minute hand: $20\times6=120^\circ$ from 12. Hour hand: $3\times30+20\times0.5=100^\circ$. The difference is $20^\circ$.</p>`, 'The hour hand has moved past the 3.', { calc: () => Math.abs(30 * 3 + 0.5 * 20 - 6 * 20) }),
+  MV('tr-x010', 3, 'period', R`The period of $f(x)=\sin\dfrac x3+\cos\dfrac x2$ is`, () => 12 * PIV, [R`$12\pi$`, 12 * PIV], [[R`$6\pi$`, 6 * PIV], [R`$4\pi$`, 4 * PIV], [R`$24\pi$`, 24 * PIV]],
+    R`<p>$\sin\dfrac x3$ has period $6\pi$ and $\cos\dfrac x2$ has period $4\pi$. The period of the sum is the LCM: $\operatorname{lcm}(6\pi,4\pi)=12\pi$.</p>`, 'Take the LCM, not the larger one.'),
+  I('tr-x011', 3, 'max and min', R`How many integers lie in the range of $f(x)=5\sin x+12\cos x+2$?`, intsIn,
+    R`<p>$5\sin x+12\cos x$ ranges over $[-13,13]$, so $f$ ranges over $[-11,15]$. The integers from $-11$ to $15$ number $27$.</p>`, 'Count both end values.', { calc: () => { const { mx, mn } = sample((x) => 5 * sn(x) + 12 * cs(x) + 2, 0, 2 * PIV); return Math.floor(mx + 1e-6) - Math.ceil(mn - 1e-6) + 1; } }),
+  MV('tr-x012', 3, 'identities', R`If $\sin\theta-\cos\theta=\dfrac13$, then $\sin2\theta$ equals`, () => 8 / 9, [R`$\dfrac89$`, 8 / 9], [[R`$\dfrac19$`, 1 / 9], [R`$\dfrac{10}9$`, 10 / 9], [R`$-\dfrac89$`, -8 / 9]],
+    R`<p>Square: $1-\sin2\theta=\dfrac19$, so $\sin2\theta=\dfrac89$.</p>`, 'Square both sides and use $\\sin^2+\\cos^2=1$.'),
+  I('tr-x013', 3, 'triangle identities', R`In a triangle $ABC$, $\cot A=2$ and $\cot B=3$. Find the angle $C$ in degrees.`, 135,
+    R`<p>In a triangle $\cot A\cot B+\cot B\cot C+\cot C\cot A=1$. So $6+5\cot C=1$ and $\cot C=-1$, giving $C=135^\circ$.</p>`, 'The angle must be obtuse because $\\cot C<0$.', { calc: () => Math.round(180 - (Math.atan(1 / 2) + Math.atan(1 / 3)) * 180 / PIV) }),
+  MV('tr-x014', 3, 'special angles', R`The value of $\cos54^\circ$ is`, () => cs(dg(54)), [R`$\dfrac{\sqrt{10-2\sqrt5}}4$`, Math.sqrt(10 - 2 * Math.sqrt(5)) / 4], [[R`$\dfrac{\sqrt5+1}4$`, (Math.sqrt(5) + 1) / 4], [R`$\dfrac{\sqrt{10+2\sqrt5}}4$`, Math.sqrt(10 + 2 * Math.sqrt(5)) / 4], [R`$\dfrac{\sqrt5-1}4$`, (Math.sqrt(5) - 1) / 4]],
+    R`<p>$\cos54^\circ=\sin36^\circ$. From $\cos36^\circ=\dfrac{\sqrt5+1}4$: $\sin^236^\circ=1-\dfrac{6+2\sqrt5}{16}=\dfrac{10-2\sqrt5}{16}$, so $\sin36^\circ=\dfrac{\sqrt{10-2\sqrt5}}4$.</p>`, '$\\frac{\\sqrt5+1}4$ is $\\cos36^\\circ$, not $\\cos54^\\circ$.'),
+  MV('tr-x015', 3, 'graphs', R`For $y=3\sin\left(2x+\dfrac\pi3\right)-1$, the sum of the greatest and the least values of $y$ is`, () => { const { mx, mn } = sample((x) => 3 * sn(2 * x + PIV / 3) - 1, 0, 2 * PIV); return mx + mn; }, [R`$-2$`, -2], [[R`$2$`, 2], [R`$0$`, 0], [R`$-4$`, -4]],
+    R`<p>Greatest $=3-1=2$, least $=-3-1=-4$. Sum $=-2$.</p>`, 'The shift $-1$ moves both extremes.'),
+  A('tr-x016', 3, 'tangent form', R`$\sin2A=\dfrac{2\tan A}{1+\tan^2A}$ for every real $A$.`, R`$\sin2A=2\sin A\cos A$ and $1+\tan^2A=\sec^2A$.`, 3,
+    R`<p>R is true, and dividing gives the formula wherever $\tan A$ exists. But at $A=\dfrac\pi2$, $\tan A$ is not defined while $\sin2A=0$. So A ("for every real $A$") is false.</p>`, '"Every real" fails where $\\tan A$ is not defined.'),
+  S('tr-x017', 3, 'signs in radians', R`$\sin4>0$ (angle in radians).`, R`$\cos4<0$ (angle in radians).`, 2,
+    R`<p>$4$ radians is between $\pi\approx3.14$ and $\dfrac{3\pi}2\approx4.71$, the third quadrant, where both sine and cosine are negative. So I is false, II is true.</p>`, 'Locate the angle between multiples of $\\pi/2\\approx1.57$.'),
+  MT('tr-x018', 3, 'exact values', 'mx1', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-r, C-q, D-s', 'A-s, B-q, C-r, D-p'],
+    R`<p>$\sin15^\circ=\dfrac{\sqrt6-\sqrt2}4$ (p); $\sin18^\circ=\dfrac{\sqrt5-1}4$ (q); $\sin54^\circ=\cos36^\circ=\dfrac{\sqrt5+1}4$ (r); $\cos15^\circ=\dfrac{\sqrt6+\sqrt2}4$ (s).</p>`, '$\\sin54^\\circ=\\cos36^\\circ$.'),
+  MT('tr-x019', 3, 'period', 'mx2', R`Match List I with List II.`, 'A-q, B-s, C-p, D-r', ['A-p, B-s, C-q, D-r', 'A-q, B-s, C-r, D-p', 'A-q, B-r, C-p, D-s'],
+    R`<p>$|\sin x|$: $\pi$ (q). $\sin\dfrac x2$: $4\pi$ (s). $\tan2x$: $\dfrac\pi2$ (p). $\sin3x$ has period $\dfrac{2\pi}3$ and $\cos2x$ has period $\pi$; LCM $=2\pi$ (r).</p>`, 'Take the LCM of the two periods.'),
+  Px('tr-x020', 3, 'compound angles', 'pz3', R`Find $\tan(A+B)$.`, '1', ['$\\dfrac56$', '$-1$', '$\\dfrac15$'],
+    R`<p>$\tan(A+B)=\dfrac{\frac12+\frac13}{1-\frac16}=\dfrac{5/6}{5/6}=1$.</p>`, 'The denominator is $1-\\tan A\\tan B$.'),
+  PIx('tr-x021', 3, 'triangle', 'pz3', R`Find the largest angle of the triangle in degrees.`, 135,
+    R`<p>$A+B=45^\circ$ since $\tan(A+B)=1$ with both acute and small. So $C=180^\circ-45^\circ=135^\circ$, the largest angle.</p>`, 'Subtract from $180^\\circ$.', { calc: () => Math.round(180 - (Math.atan(0.5) + Math.atan(1 / 3)) * 180 / PIV) }),
+  PNx('tr-x022', 3, 'triangle', 'pz3', R`Find $\sin A\sin B\sin C$ (as a decimal, 2 places).`, 0.1, 0.005,
+    R`<p>$\sin A=\dfrac1{\sqrt5}$, $\sin B=\dfrac1{\sqrt{10}}$, $\sin C=\sin135^\circ=\dfrac1{\sqrt2}$. Product $=\dfrac1{\sqrt{5\cdot10\cdot2}}=\dfrac1{10}=0.1$.</p>`, 'Use $\\sin\\theta=\\tan\\theta/\\sqrt{1+\\tan^2\\theta}$.', { calc: () => sn(Math.atan(0.5)) * sn(Math.atan(1 / 3)) * sn(dg(135)) }),
+);
+
+// ----- L4 -----
+const solCos = (() => { let c = 0; const f = (x) => cs(x) - x / 12; let prev = f(-12); for (let i = 1; i <= 240000; i++) { const x = -12 + 24 * i / 240000; const v = f(x); if (prev === 0 || prev * v < 0) c++; prev = v; } return c; })();
+const fit5 = (() => { // cos5θ = a c^5 + b c^3 + c1 c  -> solve by three angles
+  const rows = [0.3, 0.7, 1.1].map((t) => [cs(t) ** 5, cs(t) ** 3, cs(t), cs(5 * t)]);
+  const [r1, r2, r3] = rows; const det = (m) => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const A = [[r1[0], r1[1], r1[2]], [r2[0], r2[1], r2[2]], [r3[0], r3[1], r3[2]]]; const d = det(A);
+  const col = (k) => det(A.map((r, i) => r.map((v, j) => (j === k ? rows[i][3] : v))));
+  return [col(0) / d, col(1) / d, col(2) / d]; })();
+const prodSin7 = sn(PIV / 7) * sn(2 * PIV / 7) * sn(3 * PIV / 7);
+const sumSin9 = (() => { let s = 0; for (let k = 1; k <= 8; k++) s += sn(k * PIV / 9) ** 2; return s; })();
+items.push(
+  I('tr-x023', 4, 'identities', R`Find the value of $4(\sin^6x+\cos^6x)-6(\sin^4x+\cos^4x)+5$.`, 3,
+    R`<p>Let $p=\sin^2x\cos^2x$. $\sin^4x+\cos^4x=1-2p$ and $\sin^6x+\cos^6x=1-3p$. So the expression is $4(1-3p)-6(1-2p)+5=4-12p-6+12p+5=3$.</p>`, 'The terms in $p$ cancel.', { calc: () => { const x = 0.7; return Math.round(4 * (sn(x) ** 6 + cs(x) ** 6) - 6 * (sn(x) ** 4 + cs(x) ** 4) + 5); } }),
+  I('tr-x024', 4, 'products of cosines', R`Find $16\cos\dfrac\pi9\cos\dfrac{2\pi}9\cos\dfrac{3\pi}9\cos\dfrac{4\pi}9$.`, 1,
+    R`<p>$\cos\dfrac{3\pi}9=\cos60^\circ=\dfrac12$. Also $\cos20^\circ\cos40^\circ\cos80^\circ=\dfrac18$ (here $\cos80^\circ=\cos\dfrac{4\pi}9$). So the product is $16\times\dfrac12\times\dfrac18=1$.</p>`, '$4\\pi/9$ is $80^\\circ$.', { calc: () => Math.round(16 * cs(PIV / 9) * cs(2 * PIV / 9) * cs(3 * PIV / 9) * cs(4 * PIV / 9)) }),
+  I('tr-x025', 4, 'graphs', R`Find the number of real solutions of $\cos x=\dfrac x{12}$.`, solCos,
+    R`<p>The line $y=\dfrac x{12}$ stays within $[-1,1]$ only for $-12\le x\le12$, so all solutions lie there. On that stretch the cosine curve (period $2\pi\approx6.28$) makes nearly 4 full waves while the line rises very slowly from $-1$ to $1$. Checking the sign of $g(x)=\cos x-\dfrac x{12}$ along the interval, it changes sign exactly at the seven points $x\approx-10.0,\,-8.7,\,-4.3,\,-1.7,\,1.5,\,5.2,\,7.2$. So there are 7 solutions.</p>`, 'The line is slanted, so solutions exist only where $|x|\\le12$.', { calc: () => solCos }),
+  I('tr-x026', 4, 'multiple angles', R`If $\cos5\theta=a\cos^5\theta+b\cos^3\theta+c\cos\theta$ for all $\theta$, find $a^2+b^2+c^2$.`, 681,
+    R`<p>$\cos5\theta=16\cos^5\theta-20\cos^3\theta+5\cos\theta$ (Chebyshev polynomial $T_5$). So $a^2+b^2+c^2=256+400+25=681$.</p>`, 'Mind the sign of $b$; it is squared anyway.', { calc: () => Math.round(fit5[0] ** 2 + fit5[1] ** 2 + fit5[2] ** 2) }),
+  I('tr-x027', 4, 'products', R`Find $16\left(1+\cos\dfrac\pi8\right)\left(1+\cos\dfrac{3\pi}8\right)\left(1+\cos\dfrac{5\pi}8\right)\left(1+\cos\dfrac{7\pi}8\right)$.`, 2,
+    R`<p>$\left(1+\cos\dfrac\pi8\right)\left(1+\cos\dfrac{7\pi}8\right)=1-\cos^2\dfrac\pi8=\sin^2\dfrac\pi8$, and the other pair gives $\sin^2\dfrac{3\pi}8=\cos^2\dfrac\pi8$. The product is $\sin^2\dfrac\pi8\cos^2\dfrac\pi8=\left(\dfrac{\sin\frac\pi4}2\right)^2=\dfrac18$. Times 16 gives 2.</p>`, 'Pair $\\theta$ with $\\pi-\\theta$.', { calc: () => Math.round(16 * (1 + cs(PIV / 8)) * (1 + cs(3 * PIV / 8)) * (1 + cs(5 * PIV / 8)) * (1 + cs(7 * PIV / 8))) }),
+  I('tr-x028', 4, 'special angles', R`Find $\left(\cot70^\circ+4\cos70^\circ\right)^2$.`, 3,
+    R`<p>$\cot70^\circ+4\cos70^\circ=\dfrac{\cos70^\circ+4\sin70^\circ\cos70^\circ}{\sin70^\circ}=\dfrac{\sin20^\circ+2\sin40^\circ}{\cos20^\circ}$ (using $\cos70^\circ=\sin20^\circ$, $2\sin70^\circ\cos70^\circ=\sin140^\circ=\sin40^\circ$, $\sin70^\circ=\cos20^\circ$). Now $\sin20^\circ+\sin40^\circ=2\sin30^\circ\cos10^\circ=\cos10^\circ=\sin80^\circ$, so the numerator is $\sin80^\circ+\sin40^\circ=2\sin60^\circ\cos20^\circ=\sqrt3\cos20^\circ$. The value is $\sqrt3$, and its square is 3.</p>`, 'The value inside is $\\sqrt3$.', { calc: () => Math.round((1 / tn(dg(70)) + 4 * cs(dg(70))) ** 2) }),
+);
+items.push(
+  N('tr-x029', 4, 'sums', R`Find $\sin^2\dfrac\pi9+\sin^2\dfrac{2\pi}9+\cdots+\sin^2\dfrac{8\pi}9$ (as a decimal).`, 4.5, 0.001,
+    R`<p>$\sin^2\alpha=\dfrac{1-\cos2\alpha}2$. The sum is $4-\dfrac12\sum_{k=1}^{8}\cos\dfrac{2k\pi}9=4-\dfrac12(-1)=4.5$, because the nine equally spaced cosines add to 0 and the missing $k=9$ term is $\cos2\pi=1$.</p>`, 'The cosines for $k=1..8$ sum to $-1$.', { calc: () => sumSin9 }),
+  N('tr-x030', 4, 'max and min', R`Find the greatest value of $2\sin x+3\sin\left(x+\dfrac\pi3\right)$ to 3 decimal places.`, +Math.sqrt(19).toFixed(3), 0.001,
+    R`<p>$2\sin x+3\left(\dfrac12\sin x+\dfrac{\sqrt3}2\cos x\right)=3.5\sin x+\dfrac{3\sqrt3}2\cos x$. The greatest value is $\sqrt{3.5^2+\frac{27}4}=\sqrt{12.25+6.75}=\sqrt{19}\approx4.359$.</p>`, 'Expand $\\sin(x+\\pi/3)$ first.', { calc: () => sample((x) => 2 * sn(x) + 3 * sn(x + PIV / 3), 0, 2 * PIV, 200000).mx }),
+  N('tr-x031', 4, 'special angles', R`Find $\tan7.5^\circ$ to 3 decimal places.`, +tn(dg(7.5)).toFixed(3), 0.001,
+    R`<p>$\tan\dfrac\theta2=\dfrac{1-\cos\theta}{\sin\theta}$ with $\theta=15^\circ$: $\dfrac{1-0.9659}{0.2588}=0.1317\approx0.132$. (Exact value $\sqrt6-\sqrt3+\sqrt2-2$.)</p>`, 'Use the half-angle formula $\\tan\\frac\\theta2=\\frac{1-\\cos\\theta}{\\sin\\theta}$.', { calc: () => tn(dg(7.5)) }),
+  N('tr-x032', 4, 'products of sines', R`Find $\sin\dfrac\pi7\sin\dfrac{2\pi}7\sin\dfrac{3\pi}7$ to 3 decimal places.`, +prodSin7.toFixed(3), 0.001,
+    R`<p>The product of $\sin\dfrac{k\pi}7$ for $k=1..6$ is $\dfrac7{2^6}$. By symmetry $\sin\dfrac{(7-k)\pi}7=\sin\dfrac{k\pi}7$, so the square of our product is $\dfrac7{64}$ and the product is $\dfrac{\sqrt7}8\approx0.331$.</p>`, 'The product of all six sines is $7/64$; our three are the square root.', { calc: () => prodSin7 }),
+);
+const perOK = (f) => isPer(f, PIV);
+items.push(
+  XT('tr-x033', 4, 'period', R`Which of the following functions have period $\pi$?`, [
+    [R`$|\tan x|$`, perOK((x) => Math.abs(tn(x))), R`$\tan x$ already has period $\pi$.`],
+    [R`$\sin x+\sin2x$`, perOK((x) => sn(x) + sn(2 * x)), R`$\sin x$ has period $2\pi$, so the sum has period $2\pi$ (not $\pi$).`],
+    [R`$\cos^2x-\sin^2x$`, perOK((x) => cs(x) ** 2 - sn(x) ** 2), R`it is $\cos2x$, period $\pi$.`],
+    [R`$\sin\dfrac x2\cos\dfrac x2$`, perOK((x) => sn(x / 2) * cs(x / 2)), R`it is $\tfrac12\sin x$, period $2\pi$.`]], 'Rewrite each as a single trig function first.'),
+  XT('tr-x034', 4, 'max and min', R`Which of the following are correct?`, [
+    [R`The greatest value of $\sin^2x+\cos x$ is $\dfrac54$`, near(sample((x) => sn(x) ** 2 + cs(x), 0, 2 * PIV).mx, 1.25, 1e-6), R`$=1-\cos^2x+\cos x$, a quadratic in $\cos x$ with maximum $\dfrac54$ at $\cos x=\dfrac12$.`],
+    [R`The least value of $\sin^2x+\cos x$ is $-1$`, near(sample((x) => sn(x) ** 2 + cs(x), 0, 2 * PIV).mn, -1, 1e-6), R`at $\cos x=-1$: $0-1=-1$.`],
+    [R`The range of $\sin x\cos x$ is $[-1,1]$`, near(sample((x) => sn(x) * cs(x), 0, 2 * PIV).mx, 1, 1e-6), R`$\sin x\cos x=\frac12\sin2x$, range $\left[-\frac12,\frac12\right]$.`],
+    [R`The greatest value of $\sin^4x+\cos^4x$ is 1`, near(sample((x) => sn(x) ** 4 + cs(x) ** 4, 0, 2 * PIV).mx, 1, 1e-6), R`$=1-\frac12\sin^22x\le1$, equal to 1 at $x=0$.`]], 'Reduce to one function of one angle.'),
+  XT('tr-x035', 4, 'even and odd', R`Which of the following functions are even?`, [
+    [R`$x\sin x$`, near((1.3) * sn(1.3), (-1.3) * sn(-1.3)), R`odd × odd = even.`],
+    [R`$\sin x+\cos x$`, near(sn(1.3) + cs(1.3), sn(-1.3) + cs(-1.3)), R`neither: $f(-x)=-\sin x+\cos x$.`],
+    [R`$\dfrac{\sin x}x$ ($x\ne0$)`, near(sn(1.3) / 1.3, sn(-1.3) / -1.3), R`odd ÷ odd = even.`],
+    [R`$\tan x\sin x$`, near(tn(1.3) * sn(1.3), tn(-1.3) * sn(-1.3)), R`odd × odd = even.`]], 'Test $f(-x)$ against $f(x)$.'),
+  XT('tr-x036', 4, 'triangle identities', R`$A+B+C=\pi$. Which of the following are always true?`, [
+    [R`$\sin2A+\sin2B+\sin2C=4\sin A\sin B\sin C$`, [[0.4, 0.9], [1.0, 1.2]].every(([A, B]) => { const C = PIV - A - B; return near(sn(2 * A) + sn(2 * B) + sn(2 * C), 4 * sn(A) * sn(B) * sn(C)); }), R`standard identity.`],
+    [R`$\cos A+\cos B+\cos C=1+4\sin\dfrac A2\sin\dfrac B2\sin\dfrac C2$`, [[0.4, 0.9], [1.0, 1.2]].every(([A, B]) => { const C = PIV - A - B; return near(cs(A) + cs(B) + cs(C), 1 + 4 * sn(A / 2) * sn(B / 2) * sn(C / 2)); }), R`standard identity.`],
+    [R`$\tan\dfrac A2\tan\dfrac B2+\tan\dfrac B2\tan\dfrac C2+\tan\dfrac C2\tan\dfrac A2=1$`, [[0.4, 0.9], [1.0, 1.2]].every(([A, B]) => { const C = PIV - A - B; return near(tn(A / 2) * tn(B / 2) + tn(B / 2) * tn(C / 2) + tn(C / 2) * tn(A / 2), 1); }), R`since $\frac A2+\frac B2+\frac C2=\frac\pi2$.`],
+    [R`$\cos2A+\cos2B+\cos2C=1+4\cos A\cos B\cos C$`, [[0.4, 0.9], [1.0, 1.2]].every(([A, B]) => { const C = PIV - A - B; return near(cs(2 * A) + cs(2 * B) + cs(2 * C), 1 + 4 * cs(A) * cs(B) * cs(C)); }), R`the correct identity is $-1-4\cos A\cos B\cos C$.`]], 'Check a non-equilateral triangle.'),
+  XT('tr-x037', 4, 'special angles', R`Which of the following are correct?`, [
+    [R`$\sin18^\circ=\dfrac{\sqrt5-1}4$`, near(sn(dg(18)), (Math.sqrt(5) - 1) / 4), R`standard value.`],
+    [R`$\cos36^\circ=\dfrac{\sqrt5+1}4$`, near(cs(dg(36)), (Math.sqrt(5) + 1) / 4), R`standard value.`],
+    [R`$\tan15^\circ=2-\sqrt3$`, near(tn(dg(15)), 2 - Math.sqrt(3)), R`$\tan(45^\circ-30^\circ)$.`],
+    [R`$\cos72^\circ=\dfrac{\sqrt5+1}4$`, near(cs(dg(72)), (Math.sqrt(5) + 1) / 4), R`$\cos72^\circ=\dfrac{\sqrt5-1}4$; the value given is $\cos36^\circ$.`]], 'Do not swap $\\cos36^\\circ$ and $\\cos72^\\circ$.'),
+  A('tr-x038', 4, 'compound angles', R`The formula $\tan(A+B)=\dfrac{\tan A+\tan B}{1-\tan A\tan B}$ cannot be used when $A+B=\dfrac\pi2$.`, R`When $A+B=\dfrac\pi2$, $\cos(A+B)=0$, so $\tan(A+B)$ is not defined.`, 0,
+    R`<p>When $A+B=\dfrac\pi2$, $\tan A\tan B=1$ and the denominator is 0. This is consistent with $\tan\dfrac\pi2$ being not defined. R is true and gives the reason.</p>`, 'The denominator becomes 0.'),
+  A('tr-x039', 4, 'comparing values', R`$\cos1>\cos2$ (angles in radians).`, R`$\cos x$ is an increasing function on $[0,\pi]$.`, 2,
+    R`<p>$\cos1\approx0.54$ and $\cos2\approx-0.42$, so A is true. But $\cos x$ is decreasing on $[0,\pi]$, so R is false.</p>`, 'Cosine decreases from 1 to $-1$ on $[0,\pi]$.'),
+  A('tr-x040', 4, 'max and min', R`For all real $x$, $(\sin x+\cos x)^2\le2$.`, R`$\sin^2x+\cos^2x=1$.`, 1,
+    R`<p>$(\sin x+\cos x)^2=1+\sin2x\le2$, so A is true. R is also true but only gives the "1"; the bound comes from $\sin2x\le1$. R does not explain A.</p>`, 'R is a true fact, but not the reason.'),
+  base('tr-x041', 4, 'comparing values', { type: 'mcq', format: 'statements', q: R`<p>How many of the following are correct (angles in radians)?</p><ol><li>$\sin3<\sin2$</li><li>$\cos2<\cos3$</li><li>$\tan1>1$</li><li>$\sin1>\cos1$</li></ol>`, options: ['1', '2', '3', '4'], answer: [sn(3) < sn(2), cs(2) < cs(3), tn(1) > 1, sn(1) > cs(1)].filter(Boolean).length - 1,
+    sol: R`<p>$\sin3\approx0.14<\sin2\approx0.91$ true. $\cos2\approx-0.42$ and $\cos3\approx-0.99$, so $\cos2>\cos3$, (ii) false. $\tan1\approx1.56>1$ true. $\sin1\approx0.84>\cos1\approx0.54$ true. Three are correct.</p>`, trap: 'Cosine decreases on $[0,\\pi]$.' }),
+  S('tr-x042', 4, 'special angles', R`$\sin18^\circ\cos36^\circ=\dfrac14$.`, R`$\sin36^\circ\cos18^\circ=\dfrac14$.`, 1,
+    R`<p>I: $\dfrac{\sqrt5-1}4\cdot\dfrac{\sqrt5+1}4=\dfrac{4}{16}=\dfrac14$, true. II: $\sin36^\circ\cos18^\circ\approx0.5878\times0.9511=0.559$, false.</p>`, 'Multiply the exact forms.'),
+  MT('tr-x043', 4, 'products', 'mx3', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $\dfrac18$ (p). B: $\dfrac{\sqrt3}8$ (q). C: $\tan20^\circ\tan40^\circ\tan80^\circ=\tan60^\circ=\sqrt3$ (r). D: $\cos20^\circ+\cos100^\circ+\cos140^\circ=0$ (s), the three angles are $120^\circ$ apart.</p>`, 'Angles $120^\\circ$ apart have cosines that add to 0.'),
+  MT('tr-x044', 4, 'max and min', 'mx4', R`Match List I with List II.`, 'A-r, B-q, C-s, D-p', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-r, B-s, C-q, D-p'],
+    R`<p>A: $\sqrt{9+16}=5$ (r). B: $1+\frac12\sin2x\le\frac32$ (q). C: $1-\frac12\sin^22x\le1$ (s). D: $\cos^2x-\sin x=1-\sin^2x-\sin x$, greatest $\frac54$ at $\sin x=-\frac12$ (p).</p>`, 'Rewrite each in a single trig function.'),
+  MT('tr-x045', 4, 'special angles', 'mx5', R`Match List I with List II.`, 'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-r, B-s, C-p, D-t'],
+    R`<p>$\tan15^\circ=2-\sqrt3$ (r); $\tan75^\circ=2+\sqrt3$ (s); $\tan22.5^\circ=\sqrt2-1$ (p); $\tan67.5^\circ=\sqrt2+1$ (q).</p>`, '$\\tan(90^\\circ-\\theta)=\\cot\\theta=1/\\tan\\theta$.'),
+  MT('tr-x046', 4, 'max and min', 'mx6', R`Match List I with List II.`, 'A-r, B-p, C-q, D-s', ['A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s', 'A-r, B-p, C-s, D-q'],
+    R`<p>A: with $t=\sin^2x\in(0,1]$, $4t+\dfrac9t$ is decreasing for $t<1.5$, so the least value is at $t=1$: $13$ (r) (AM-GM gives 12 but cannot be reached). B: $\ge2$ (p). C: $\sec^2x+\operatorname{cosec}^2x=\dfrac4{\sin^22x}\ge4$ (q). D: AM-GM: $2\sin x+\dfrac1{\sin x}\ge2\sqrt2$ at $\sin x=\dfrac1{\sqrt2}$ (s).</p>`, 'AM-GM needs the equality case to be reachable.'),
+  Px('tr-x047', 4, 'compound angles', 'pz4', R`Find $\cos C$.`, '$\\dfrac{16}{65}$', ['$-\\dfrac{16}{65}$', '$\\dfrac{63}{65}$', '$\\dfrac{33}{65}$'],
+    R`<p>$\cos C=-\cos(A+B)=-(\cos A\cos B-\sin A\sin B)=-\left(\dfrac45\cdot\dfrac5{13}-\dfrac35\cdot\dfrac{12}{13}\right)=-\dfrac{20-36}{65}=\dfrac{16}{65}$.</p>`, 'In a triangle $C=\\pi-(A+B)$.'),
+  PNx('tr-x048', 4, 'compound angles', 'pz4', R`Find $\sin C$ (3 decimal places).`, 0.969, 0.001,
+    R`<p>$\sin C=\sin(A+B)=\dfrac35\cdot\dfrac5{13}+\dfrac45\cdot\dfrac{12}{13}=\dfrac{15+48}{65}=\dfrac{63}{65}=0.969$.</p>`, '$\\sin C=\\sin(A+B)$.', { calc: () => 63 / 65 }),
+  PIx('tr-x049', 4, 'multiple angles', 'pz4', R`Find $4225\sin2C$.`, 2016,
+    R`<p>$\sin2C=2\sin C\cos C=2\cdot\dfrac{63}{65}\cdot\dfrac{16}{65}=\dfrac{2016}{4225}$. So $4225\sin2C=2016$.</p>`, 'Use $\\sin C=63/65$ and $\\cos C=16/65$.', { calc: () => Math.round(4225 * 2 * (63 / 65) * (16 / 65)) }),
+);
+
+// ----- L5 -----
+const tan2sum = tn(dg(20)) ** 2 + tn(dg(40)) ** 2 + tn(dg(80)) ** 2;
+const ratCount = (() => { let c = 0; for (let k = 1; k <= 180; k++) { const v = cs(dg(k)); let ok = false; for (let d = 1; d <= 12; d++) if (Math.abs(v * d - Math.round(v * d)) < 1e-9) { ok = true; break; } if (ok) c++; } return c; })();
+const sq7 = 64 * prodCos7(); function prodCos7() { return (sn(PIV / 7) * sn(2 * PIV / 7) * sn(3 * PIV / 7)) ** 2; }
+items.push(
+  I('tr-x050', 5, 'roots of a cubic', R`Find $\tan^2\dfrac\pi9+\tan^2\dfrac{2\pi}9+\tan^2\dfrac{4\pi}9$.`, Math.round(tan2sum),
+    R`<p>$\tan3\theta=\sqrt3$ has the solutions $\theta=20^\circ,80^\circ,140^\circ$ (mod $180^\circ$), with tangents $\tan20^\circ$, $\tan80^\circ$ and $\tan140^\circ=-\tan40^\circ$. With $t=\tan\theta$: $\dfrac{3t-t^3}{1-3t^2}=\sqrt3$ gives $t^3-3\sqrt3t^2-3t+\sqrt3=0$. Sum of roots $=3\sqrt3$, sum of products two at a time $=-3$. So $\sum t^2=(3\sqrt3)^2-2(-3)=27+6=33$, and the squares of the three tangents are the same whatever their signs.</p>`, 'Use $\\sum t^2=(\\sum t)^2-2\\sum t_it_j$.', { calc: () => Math.round(tan2sum) }),
+  I('tr-x051', 5, 'products', R`Find $64\left(\sin\dfrac\pi7\sin\dfrac{2\pi}7\sin\dfrac{3\pi}7\right)^2$.`, Math.round(sq7),
+    R`<p>The product of $\sin\dfrac{k\pi}7$ for $k=1,\dots,6$ equals $\dfrac7{2^6}$. Since $\sin\dfrac{(7-k)\pi}7=\sin\dfrac{k\pi}7$, that product is $\left(\sin\dfrac\pi7\sin\dfrac{2\pi}7\sin\dfrac{3\pi}7\right)^2$. So $64\times\dfrac7{64}=7$.</p>`, 'The six sines pair up into three equal pairs.', { calc: () => Math.round(sq7) }),
+  I('tr-x052', 5, 'rational values', R`For how many integers $k$ with $1\le k\le180$ is $\cos k^\circ$ a rational number?`, ratCount,
+    R`<p>By Niven's theorem, the only rational values of $\cos$ at rational multiples of $\pi$ are $0,\pm\frac12,\pm1$. In $1..180$ degrees: $\cos60^\circ=\frac12$, $\cos90^\circ=0$, $\cos120^\circ=-\frac12$, $\cos180^\circ=-1$. So there are 4 values of $k$ ($60,90,120,180$).</p>`, 'Check that $\\cos0^\\circ$ is not in the range.', { calc: () => ratCount }),
+  I('tr-x053', 5, 'sums', R`Find $2\left(\cos\dfrac\pi9+\cos\dfrac{3\pi}9+\cos\dfrac{5\pi}9+\cos\dfrac{7\pi}9\right)$.`, 1,
+    R`<p>$\cos\dfrac{3\pi}9=\dfrac12$. $\cos100^\circ=-\cos80^\circ$ and $\cos140^\circ=-\cos40^\circ$. Also $\cos40^\circ+\cos80^\circ=2\cos60^\circ\cos20^\circ=\cos20^\circ$. So the bracket equals $\cos20^\circ+\dfrac12-\cos80^\circ-\cos40^\circ=\dfrac12$, and twice it is 1.</p>`, 'Combine $\\cos40^\\circ+\\cos80^\\circ$.', { calc: () => Math.round(2 * (cs(PIV / 9) + cs(3 * PIV / 9) + cs(5 * PIV / 9) + cs(7 * PIV / 9))) }),
+  N('tr-x054', 5, 'max and min', R`Find the least value of $\sin^8x+\cos^8x$ (as a decimal).`, 0.125, 0.001,
+    R`<p>Let $a=\sin^2x$, $b=\cos^2x$ with $a+b=1$. By the power-mean inequality $a^4+b^4\ge2\left(\dfrac{a+b}2\right)^4=\dfrac18$, with equality when $a=b=\dfrac12$ (e.g. $x=45^\circ$).</p>`, 'Equality at $\\sin^2x=\\cos^2x$.', { calc: () => sample((x) => sn(x) ** 8 + cs(x) ** 8, 0, PIV, 200000).mn }),
+  N('tr-x055', 5, 'triangle extremes', R`In a triangle $ABC$, find the greatest value of $\sin A\sin B\sin C$ to 3 decimal places.`, 0.65, 0.001,
+    R`<p>By AM-GM on logs (or Jensen's inequality for $\ln\sin$, which is concave), the product is greatest for the equilateral triangle: $\left(\dfrac{\sqrt3}2\right)^3=\dfrac{3\sqrt3}8\approx0.650$.</p>`, 'The equilateral triangle gives the maximum.', { calc: () => triExt((A, B, C) => sn(A) * sn(B) * sn(C)).mx }),
+);
+const ang = [[0.4, 0.9], [1.0, 1.2]];
+items.push(
+  XT('tr-x056', 5, 'sums at multiples of π/7', R`Which of the following are correct?`, [
+    [R`$\sum_{k=1}^{6}\cos\dfrac{2k\pi}7=-1$`, near((() => { let s = 0; for (let k = 1; k <= 6; k++) s += cs(2 * k * PIV / 7); return s; })(), -1), R`the 7 seventh-roots of unity add to 0 and $k=7$ contributes 1.`],
+    [R`$\cos\dfrac\pi7\cos\dfrac{2\pi}7\cos\dfrac{3\pi}7=\dfrac18$`, near(cs(PIV / 7) * cs(2 * PIV / 7) * cs(3 * PIV / 7), 1 / 8), R`from $\cos\frac\pi7\cos\frac{2\pi}7\cos\frac{4\pi}7=-\frac18$ and $\cos\frac{4\pi}7=-\cos\frac{3\pi}7$.`],
+    [R`$\sum_{k=1}^{6}\sin^2\dfrac{k\pi}7=\dfrac72$`, near((() => { let s = 0; for (let k = 1; k <= 6; k++) s += sn(k * PIV / 7) ** 2; return s; })(), 3.5), R`$\frac12\left(6-\sum\cos\frac{2k\pi}7\right)=\frac12(6+1)$.`],
+    [R`$\sum_{k=1}^{6}\cos\dfrac{k\pi}7=-1$`, near((() => { let s = 0; for (let k = 1; k <= 6; k++) s += cs(k * PIV / 7); return s; })(), -1), R`$\cos\frac{(7-k)\pi}7=-\cos\frac{k\pi}7$, so the sum is 0.`]], 'Pair $k$ with $7-k$.'),
+  XT('tr-x057', 5, 'triangle extremes', R`For a triangle $ABC$, which of the following are correct?`, [
+    [R`$\sin A+\sin B+\sin C\le\dfrac{3\sqrt3}2$`, near(triExt((A, B, C) => sn(A) + sn(B) + sn(C)).mx, 3 * Math.sqrt(3) / 2, 1e-4), R`greatest for the equilateral triangle.`],
+    [R`$\cos A+\cos B+\cos C\le\dfrac32$`, near(triExt((A, B, C) => cs(A) + cs(B) + cs(C)).mx, 1.5, 1e-4), R`equality at the equilateral triangle.`],
+    [R`If the triangle is acute, $\tan A+\tan B+\tan C\ge3\sqrt3$`, near(acuteExt((A, B, C) => tn(A) + tn(B) + tn(C)).mn, 3 * Math.sqrt(3), 2e-3), R`AM-GM with $\tan A+\tan B+\tan C=\tan A\tan B\tan C$.`],
+    [R`$\sin A+\sin B+\sin C\ge\dfrac{3\sqrt3}2$`, triExt((A, B, C) => sn(A) + sn(B) + sn(C)).mn >= 3 * Math.sqrt(3) / 2 - 1e-6, R`this is the reverse inequality, false (the sum can be close to 0).`]], 'The equilateral triangle gives the extreme value.'),
+  XT('tr-x058', 5, 'identities', R`Which of the following are identities for all $x$ where both sides are defined?`, [
+    [R`$\tan x\tan(60^\circ-x)\tan(60^\circ+x)=\tan3x$`, [0.2, 0.5, 0.9].every((x) => near(tn(x) * tn(PIV / 3 - x) * tn(PIV / 3 + x), tn(3 * x), 1e-9)), R`standard triplet identity.`],
+    [R`$\cos x\cos(60^\circ-x)\cos(60^\circ+x)=\dfrac14\cos3x$`, [0.2, 0.5, 0.9].every((x) => near(cs(x) * cs(PIV / 3 - x) * cs(PIV / 3 + x), cs(3 * x) / 4, 1e-9)), R`standard.`],
+    [R`$\sin x\sin(60^\circ-x)\sin(60^\circ+x)=\dfrac14\sin3x$`, [0.2, 0.5, 0.9].every((x) => near(sn(x) * sn(PIV / 3 - x) * sn(PIV / 3 + x), sn(3 * x) / 4, 1e-9)), R`standard.`],
+    [R`$\sin x\sin(60^\circ-x)\sin(60^\circ+x)=\dfrac12\sin3x$`, [0.2, 0.5, 0.9].every((x) => near(sn(x) * sn(PIV / 3 - x) * sn(PIV / 3 + x), sn(3 * x) / 2, 1e-9)), R`the factor is $\frac14$, not $\frac12$.`]], 'Check numerically at one value of $x$.'),
+  XT('tr-x059', 5, 'series of sines and cosines', R`Which of the following are correct?`, [
+    [R`$\sum_{k=1}^{9}\sin(20^\circ k)=\cot10^\circ$`, near((() => { let s = 0; for (let k = 1; k <= 9; k++) s += sn(dg(20 * k)); return s; })(), 1 / tn(dg(10)), 1e-9), R`$\dfrac{\sin90^\circ\sin100^\circ}{\sin10^\circ}=\dfrac{\cos10^\circ}{\sin10^\circ}$.`],
+    [R`$\sum_{k=1}^{12}\cos(30^\circ k)=1$`, near((() => { let s = 0; for (let k = 1; k <= 12; k++) s += cs(dg(30 * k)); return s; })(), 1, 1e-9), R`the 12 equally spaced angles add to 0, so the sum is 0, not 1.`],
+    [R`$\sum_{k=1}^{5}\sin(36^\circ k)=\cot18^\circ$`, near((() => { let s = 0; for (let k = 1; k <= 5; k++) s += sn(dg(36 * k)); return s; })(), 1 / tn(dg(18)), 1e-9), R`$\dfrac{\sin90^\circ\sin108^\circ}{\sin18^\circ}=\cot18^\circ$.`],
+    [R`$\sum_{k=1}^{17}\cos(10^\circ k)=0$`, near((() => { let s = 0; for (let k = 1; k <= 17; k++) s += cs(dg(10 * k)); return s; })(), 0, 1e-9), R`$\dfrac{\sin85^\circ\cos90^\circ}{\sin5^\circ}=0$.`]], 'Use $\\sum\\sin k\\theta=\\frac{\\sin(n\\theta/2)\\sin((n+1)\\theta/2)}{\\sin(\\theta/2)}$.'),
+  A('tr-x060', 5, 'products', R`$\tan20^\circ\tan40^\circ\tan80^\circ=\sqrt3$.`, R`$\tan x\tan(60^\circ-x)\tan(60^\circ+x)=\tan3x$.`, 0,
+    R`<p>Put $x=20^\circ$: $\tan20^\circ\tan40^\circ\tan80^\circ=\tan60^\circ=\sqrt3$. R is exactly the identity used.</p>`, 'Spot the pattern $x,\\ 60^\\circ-x,\\ 60^\\circ+x$.'),
+  S('tr-x061', 5, 'special angles', R`$\cos36^\circ-\cos72^\circ=\dfrac12$.`, R`$\cos36^\circ+\cos72^\circ=\dfrac{\sqrt5}2$.`, 0,
+    R`<p>$\cos36^\circ=\dfrac{\sqrt5+1}4$ and $\cos72^\circ=\dfrac{\sqrt5-1}4$. Difference $=\dfrac24=\dfrac12$; sum $=\dfrac{2\sqrt5}4=\dfrac{\sqrt5}2$. Both are true.</p>`, 'Use the exact forms.'),
+  MT('tr-x062', 5, 'sums at multiples of π/7', 'mx7', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $\sum_{k=1}^{6}\cos\frac{2k\pi}7=-1$ (p). B: $\sum_{k=1}^{7}\sin\frac{2k\pi}7=0$ by symmetry (q). C: $\dfrac18$ (r). D: the six cosines come in equal pairs, so $\sum_{k=1}^{3}\cos\frac{2k\pi}7=-\frac12$ (s).</p>`, 'Roots of unity add to 0.'),
+  MT('tr-x063', 5, 'triangle extremes', 'mx8', R`Match List I with List II.`, 'A-r, B-q, C-s, D-p', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-r, B-s, C-q, D-p'],
+    R`<p>All extremes occur for the equilateral triangle: A: $3\cdot\dfrac{\sqrt3}2=\dfrac{3\sqrt3}2$ (r). B: $3\cdot\dfrac12=\dfrac32$ (q). C: $3\tan60^\circ=3\sqrt3$ (s). D: $\left(\sin30^\circ\right)^3=\dfrac18$ (p).</p>`, 'Put $A=B=C=60^\\circ$.'),
+);
+
+items.push(
+  XT('tr-x064', 4, 'inequalities', R`For $0<x<\dfrac\pi2$, which of the following are true?`, [
+    [R`$\sin x<x$`, sample((x) => x - sn(x), 0.001, PIV / 2 - 0.001).mn > 0, R`the sine curve lies below the line $y=x$ for $x>0$.`],
+    [R`$\tan x>x$`, sample((x) => tn(x) - x, 0.001, PIV / 2 - 0.001).mn > 0, R`the tangent curve lies above $y=x$ on this interval.`],
+    [R`$\sin x>\dfrac{2x}\pi$`, sample((x) => sn(x) - 2 * x / PIV, 0.001, PIV / 2 - 0.001).mn > 0, R`$\sin x$ is concave on $[0,\frac\pi2]$, so it lies above the chord from $(0,0)$ to $\left(\frac\pi2,1\right)$.`],
+    [R`$\tan x<x$`, sample((x) => x - tn(x), 0.001, PIV / 2 - 0.001).mn > 0, R`the opposite of the true inequality $\tan x>x$.`]], 'Compare the graph with the line $y=x$ (and the chord).'),
+);
+
+// ----- new templates -----
+const Tf = (k) => (k === 1 ? R`$2\pi$` : R`$\dfrac{2\pi}{${k}}$`);
+const lcmN = (a, b) => (a * b) / gcd(a, b);
+const nOpts = (rng, correct, wrongs) => shuffleOpts(rng, correct, wrongs);
+gens.push(
+  { id: 'tr-g15', type: 'nat', format: 'integer', level: 2, exams: EXS[2], sub: 'clock angle',
+    make(rng) { const h = int(rng, 1, 11), m = 2 * int(rng, 0, 29); let a = Math.abs(30 * h + m / 2 - 6 * m); if (a > 180) a = 360 - a;
+      return { h, m, answer: a, tol: 0, q: `Find the angle in degrees (at most $180^\\circ$) between the hour hand and the minute hand of a clock at ${h}:${String(m).padStart(2, '0')}.`,
+        sol: R`<p>Minute hand: $${m}\times6=${6 * m}^\circ$. Hour hand: $${h}\times30+${m}\times0.5=${30 * h + m / 2}^\circ$. The difference is $${Math.abs(30 * h + m / 2 - 6 * m)}^\circ$${Math.abs(30 * h + m / 2 - 6 * m) > 180 ? R`, and the smaller angle is $360^\circ-${Math.abs(30 * h + m / 2 - 6 * m)}^\circ=${a}^\circ$` : ''}.</p>` }; },
+    verify(p) { const hand = ((p.h % 12) * 30 + p.m * 0.5) % 360, min = (p.m * 6) % 360; const d = Math.abs(hand - min); return Math.min(d, 360 - d); } },
+  { id: 'tr-g16', type: 'mcq', format: 'single', level: 3, exams: EXS[3], sub: 'compound angles',
+    make(rng) { for (;;) { const t1 = choose(rng, TRI), t2 = choose(rng, TRI); const [a1, b1, c1] = t1, [a2, b2, c2] = t2; if (t1 === t2) continue;
+        const vals = [[fr(b1 * b2 - a1 * a2, c1 * c2), (b1 * b2 - a1 * a2) / (c1 * c2)], [fr(b1 * b2 + a1 * a2, c1 * c2), (b1 * b2 + a1 * a2) / (c1 * c2)], [fr(a1 * b2 + b1 * a2, c1 * c2), (a1 * b2 + b1 * a2) / (c1 * c2)], [fr(-(b1 * b2 - a1 * a2), c1 * c2), -(b1 * b2 - a1 * a2) / (c1 * c2)]];
+        if (new Set(vals.map((v) => v[1].toFixed(9))).size < 4 || new Set(vals.map((v) => v[0])).size < 4) continue;
+        const map = {}; const o = nOpts(rng, `$${vals[0][0]}$`, vals.slice(1).map((v) => `$${v[0]}$`)); vals.forEach((v) => { map[`$${v[0]}$`] = v[1]; });
+        return { a1, c1, a2, c2, map, ...o, q: R`If $A$ and $B$ are acute, $\sin A=\dfrac{${a1}}{${c1}}$ and $\sin B=\dfrac{${a2}}{${c2}}$, then $\cos(A+B)$ equals`,
+          sol: R`<p>$\cos A=\dfrac{${b1}}{${c1}}$, $\cos B=\dfrac{${b2}}{${c2}}$. $\cos(A+B)=\cos A\cos B-\sin A\sin B=\dfrac{${b1 * b2}-${a1 * a2}}{${c1 * c2}}=${vals[0][0].replace(/\\frac/g, '\\dfrac')}$.</p>`, trap: 'The sign between the two products is minus for $\\cos(A+B)$.' }; } },
+    verify(p) { const v = Math.cos(Math.asin(p.a1 / p.c1) + Math.asin(p.a2 / p.c2)); return p.options.findIndex((o) => Math.abs(p.map[o] - v) < 1e-9); } },
+  { id: 'tr-g17', type: 'nat', format: 'numeric', level: 4, exams: EXS[4], sub: 'max and min',
+    make(rng) { const a = int(rng, 1, 5), b = int(rng, 1, 5), phi = choose(rng, [30, 60, 90, 120]); const answer = +Math.sqrt(a * a + b * b + 2 * a * b * Math.cos(dg(phi))).toFixed(3);
+      return { a, b, phi, answer, tol: 0.001, q: `Find the greatest value of $${a}\\sin x+${b}\\sin(x+${phi}^\\circ)$ to 3 decimal places.`,
+        sol: R`<p>The two sine waves add like vectors with angle $${phi}^\circ$ between them. The amplitude is $\sqrt{a^2+b^2+2ab\cos${phi}^\circ}=\sqrt{${a * a}+${b * b}+${2 * a * b}\times${+Math.cos(dg(phi)).toFixed(3)}}=${answer}$.</p>` }; },
+    verify(p) { let m = -Infinity; for (let i = 0; i <= 100000; i++) { const x = 2 * Math.PI * i / 100000; m = Math.max(m, p.a * Math.sin(x) + p.b * Math.sin(x + dg(p.phi))); } return m; } },
+  { id: 'tr-g18', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'sums',
+    make(rng) { const n = int(rng, 5, 14); const answer = n - 2;
+      return { n, answer, tol: 0, q: `Find $2\\sum_{k=1}^{${n - 1}}\\cos^2\\dfrac{k\\pi}{${n}}$.`,
+        sol: R`<p>$2\cos^2\alpha=1+\cos2\alpha$. The sum is $\sum_{k=1}^{${n - 1}}\left(1+\cos\dfrac{2k\pi}{${n}}\right)=${n - 1}+\sum_{k=1}^{${n - 1}}\cos\dfrac{2k\pi}{${n}}$. The $${n}$ equally spaced cosines ($k=1..${n}$) add to 0 and the $k=${n}$ term is 1, so the sum from 1 to ${n - 1} is $-1$. Total $=${n - 1}-1=${answer}$.</p>` }; },
+    verify(p) { let s = 0; for (let k = 1; k < p.n; k++) s += 2 * Math.cos(k * Math.PI / p.n) ** 2; return Math.round(s); } },
+  { id: 'tr-g19', type: 'nat', format: 'integer', level: 3, exams: EXS[3], sub: 'ratios',
+    make(rng) { const t = int(rng, 2, 4), c = int(rng, 1, 4), d = int(rng, 1, 4), a = int(rng, 1, 5), r = int(rng, 2, 5); const b = r * (c * t + d) - a * t;
+      const lin = (u, v, s1, s2) => `${u === 1 ? '' : u}\\${s1}\\theta${v < 0 ? '-' : '+'}${Math.abs(v) === 1 ? '' : Math.abs(v)}\\${s2}\\theta`;
+      return { t, a, b, c, d, answer: r, tol: 0, q: `If $\\tan\\theta=${t}$, find $\\dfrac{${lin(a, b, 'sin', 'cos')}}{${lin(c, d, 'sin', 'cos')}}$.`,
+        sol: R`<p>Divide the top and the bottom by $\cos\theta$: the value is $\dfrac{${a}t${b < 0 ? '-' : '+'}${Math.abs(b)}}{${c}t+${d}}$ with $t=${t}$: $\dfrac{${a * t + b}}{${c * t + d}}=${r}$.</p>` }; },
+    verify(p) { const th = Math.atan(p.t); return Math.round((p.a * Math.sin(th) + p.b * Math.cos(th)) / (p.c * Math.sin(th) + p.d * Math.cos(th))); } },
+  { id: 'tr-g20', type: 'mcq', format: 'single', level: 3, exams: EXS[3], sub: 'period',
+    make(rng) { let a, b; do { a = int(rng, 2, 9); b = int(rng, 2, 9); } while (a === b);
+      const g = gcd(a, b); const cands = [lcmN(a, b), a * b, a + b, Math.abs(a - b), 2 * g, g + 1].filter((k, i, arr) => k !== g && arr.indexOf(k) === i);
+      if (cands.length < 3) { cands.push(g * 3, g * 5, g * 7); }
+      const o = nOpts(rng, Tf(g), cands.slice(0, 3).map(Tf));
+      return { a, b, g, ...o, q: `The period of $f(x)=\\sin${a}x+\\cos${b}x$ is`,
+        sol: R`<p>$\sin${a}x$ has period $\dfrac{2\pi}{${a}}$ and $\cos${b}x$ has period $\dfrac{2\pi}{${b}}$. The common period is $\dfrac{2\pi}{\gcd(${a},${b})}=\dfrac{2\pi}{${g}}$.</p>`, trap: 'Use the gcd of the two multipliers, not their product.' }; },
+    verify(p) { const f = (x) => Math.sin(p.a * x) + Math.cos(p.b * x); const T = 2 * Math.PI / p.g; const ok = isPer(f, T) && [2, 3, 5, 7].every((q) => !isPer(f, T / q)); return ok ? p.answer : -1; } },
+  { id: 'tr-g21', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'triangle identities',
+    make(rng) { for (let tries = 0; tries < 500; tries++) { const a = int(rng, 2, 30), c = int(rng, 1, 4); if ((a * c + 1) % (a - c) || a <= c) continue; const b = (a * c + 1) / (a - c); if (b < 1 || b === a) continue;
+        return { a, b, c, answer: -c, tol: 0, q: `In a triangle $ABC$, $\\cot A=${a}$ and $\\cot B=${b}$. Find $\\cot C$.`,
+          sol: R`<p>In a triangle $\cot A\cot B+\cot B\cot C+\cot C\cot A=1$. So $${a * b}+${a + b}\cot C=1$, giving $\cot C=\dfrac{1-${a * b}}{${a + b}}=${-c}$.</p>` }; }
+      throw new Error('no instance'); },
+    verify(p) { const A = Math.atan(1 / p.a), B = Math.atan(1 / p.b), C = Math.PI - A - B; return Math.round(1 / Math.tan(C)); } },
+  { id: 'tr-g22', type: 'mcq', format: 'single', level: 4, exams: EXS[4], sub: 'multiple angles',
+    make(rng) { for (;;) { const [a, b, c] = choose(rng, TRI); const s = a / c; const n = 3 * a * c * c - 4 * a ** 3, d = c ** 3;
+        const vals = [[fr(n, d), s * 3 - 4 * s ** 3], [fr(3 * a * c - 4 * a * a, c * c), 3 * s - 4 * s * s], [fr(-n, d), -(3 * s - 4 * s ** 3)], [fr(3 * a * c * c + 4 * a ** 3, d), 3 * s + 4 * s ** 3]];
+        if (new Set(vals.map((v) => v[0])).size < 4 || new Set(vals.map((v) => v[1].toFixed(9))).size < 4) continue;
+        const map = {}; vals.forEach((v) => { map[`$${v[0]}$`] = v[1]; });
+        const o = nOpts(rng, `$${vals[0][0]}$`, vals.slice(1).map((v) => `$${v[0]}$`));
+        return { a, c, map, ...o, q: R`If $\sin\theta=\dfrac{${a}}{${c}}$, then $\sin3\theta$ equals`,
+          sol: R`<p>$\sin3\theta=3\sin\theta-4\sin^3\theta=\dfrac{${3 * a}}{${c}}-\dfrac{${4 * a ** 3}}{${c ** 3}}=\dfrac{${n}}{${d}}=${vals[0][0].replace(/\\frac/g, '\\dfrac')}$.</p>`, trap: 'Cube the sine in the second term.' }; } },
+    verify(p) { const v = Math.sin(3 * Math.asin(p.a / p.c)); return p.options.findIndex((o) => Math.abs(p.map[o] - v) < 1e-9); } },
+  { id: 'tr-g23', type: 'nat', format: 'integer', level: 5, exams: EXS[5], sub: 'multiple angles',
+    make(rng) { const n = int(rng, 3, 8); const T = [1, 2]; for (let i = 2; i <= n; i++) T.push(2 * 2 * T[i - 1] - T[i - 2]); const answer = T[n];
+      return { n, answer, tol: 0, q: `Write $\\cos${n}\\theta=T_{${n}}(\\cos\\theta)$, where $T_{${n}}$ is a polynomial. Find $T_{${n}}(2)$.`,
+        sol: R`<p>The polynomials satisfy $T_{k+1}(x)=2xT_k(x)-T_{k-1}(x)$ with $T_0=1$, $T_1=x$ (from $\cos(k+1)\theta+\cos(k-1)\theta=2\cos\theta\cos k\theta$). At $x=2$: $1,2,7,26,97,362,1351,5042,\dots$. So $T_{${n}}(2)=${answer}$.</p>` }; },
+    verify(p) { return Math.round(((2 + Math.sqrt(3)) ** p.n + (2 - Math.sqrt(3)) ** p.n) / 2); } },
+);
+
+// ===== expansion end =====
+
 export default { topic: 'trigonometry', groups, items, gens };

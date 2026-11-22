@@ -37,6 +37,19 @@ const SOPT = [
 const stm = (level, sub, I, II, answer, sol, o = {}) =>
   base(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SOPT, answer, sol, ...o });
 
+// extra helpers for the 2026-11-22 additions
+const mat = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = (c++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: nid(), type: 'mcq', level, format: 'match', exams: EX[level], sub, group, q, options, answer: pos, sol, ...o };
+};
+const pas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return { id: nid(), type: 'nat', level, format: 'passage', exams: EX[level], sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const pasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = (c++ * 3 + 2) % 4; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: nid(), type: 'mcq', level, format: 'passage', exams: EX[level], sub, group, q, options, answer: pos, sol, ...o };
+};
 const items = [
   // ---------- Level 1 ----------
   mcq(1, 'units', r`The SI unit of work is the`, 'joule (J)', ['watt (W)', 'newton (N)', 'pascal (Pa)'],
@@ -307,6 +320,34 @@ const groups = {
     passage: r`<p>A car of mass 1200 kg has an engine of constant power 36 kW. The total resistance on the level road is a constant 600 N.</p>` },
   p3: { title: 'A particle in a parabolic potential',
     passage: r`<p>A 2 kg particle moves along the $x$-axis with potential energy $U(x) = 4x^2 - 16x + 9$ joule ($x$ in metres). It is released from rest at $x = 0$.</p>` },
+  m5: { title: 'Work done in different cases',
+    list1: [r`A. Work by gravity on a 2 kg ball falling 5 m`, r`B. Work by gravity on a 1 kg ball thrown up through 3 m`, r`C. Work by friction on a 0.5 kg block sliding 4 m on a floor with $\mu = 0.5$`, r`D. Work by the normal force on a block sliding down a smooth incline`],
+    list2: ['p. +100 J', 'q. −30 J', 'r. −10 J', 's. 0'] },
+  m6: { title: 'Kinetic energy factors',
+    list1: ['A. The speed is doubled', 'B. The momentum is tripled', 'C. The speed is multiplied by 1.5', 'D. The speed is multiplied by 1.2'],
+    list2: [r`p. $\times1.44$`, r`q. $\times4$`, r`r. $\times2.25$`, r`s. $\times9$`] },
+  m7: { title: 'Equilibrium from the potential energy',
+    list1: [r`A. $U = (x-2)^2$`, r`B. $U = x^2 - 6x$`, r`C. $U = 2x^2 - 4x$`, r`D. $U = x^2 - 10x$`],
+    list2: ['p. x = 1 m', 'q. x = 2 m', 'r. x = 3 m', 's. x = 5 m'] },
+  m8: { title: 'Combinations of springs',
+    list1: ['A. Two springs side by side (parallel)', 'B. Two springs end to end (series)', 'C. Three springs end to end (series)', 'D. One spring cut into 4 equal parts (each part)'],
+    list2: ['p. 33.3', 'q. 50', 'r. 200', 's. 400'] },
+  m9: { title: 'Tension at the top of a vertical circle',
+    list1: [r`A. $u^2 = 5gR$`, r`B. $u^2 = 6gR$`, r`C. $u^2 = 7gR$`, r`D. $u^2 = 9gR$`],
+    list2: ['p. 0', 'q. mg', 'r. 2mg', 's. 4mg'] },
+  m10: { title: 'Variation with time',
+    list1: ['A. Kinetic energy under a constant force from rest', 'B. Speed under constant power from rest', 'C. Distance under constant power from rest', 'D. Power of a constant force acting on a body from rest'],
+    list2: [r`p. $t$`, r`q. $t^{1/2}$`, r`r. $t^{2}$`, r`s. $t^{3/2}$`] },
+  m11: { title: 'Sliding off a smooth hemisphere (R = 0.9 m)',
+    list1: [r`A. The value of $v^2$ when it leaves the surface`, 'B. The height of the leaving point above the base', 'C. The drop in height from the top to the leaving point', 'D. The speed when it leaves'],
+    list2: [r`p. 0.3 m`, r`q. 0.6 m`, r`r. $6\ \mathrm{m^2\,s^{-2}}$`, r`s. $2.45\ \mathrm{m\,s^{-1}}$`] },
+  m12: { title: 'Potential energy at equilibrium',
+    list1: [r`A. $U = 2x^2 - 8x$`, r`B. $U = -x^2 + 6x$`, r`C. $U = x^2 - 4x + 1$`, r`D. $U = -2x^2 + 4x$`],
+    list2: ['p. −3 J', 'q. 9 J', 'r. 2 J', 's. −8 J'] },
+  p4: { title: 'A block released from a height into a vertical loop',
+    passage: r`<p>A small block of mass 0.5 kg is released from rest at a height of 3 m above the lowest point of a smooth track. The track leads into a smooth vertical circular loop of radius 1 m. Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
+  p5: { title: 'A crane lifting a load',
+    passage: r`<p>A crane lifts a load of mass 200 kg vertically through 15 m. Most of the lift is at a steady $0.5\ \mathrm{m\,s^{-1}}$. Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
 };
 
 items.push(
@@ -330,6 +371,220 @@ items.push(
     r`$F = -dU/dx = -(8x - 16)$. At $x = 0$: $F = +16$ N (towards the equilibrium at $x = 2$).`, { group: 'p3', format: 'passage', unit: 'N' }),
   nat(4, 'potential energy curve', 'Find the greatest speed of the particle (in m/s).', 4, 0,
     r`Total energy $= U(0) = 9$ J. At the equilibrium $x = 2$: $U = 16 - 32 + 9 = -7$ J. So $K_{max} = 9 - (-7) = 16$ J $= \tfrac12\times2\times v^2$, giving $v = 4\ \mathrm{m\,s^{-1}}$. It oscillates between $x = 0$ and $x = 4$.`, { group: 'p3', format: 'passage', unit: 'm/s' }),
+);
+
+items.push(
+
+  // ================= Added 2026-11-22: harder and more varied questions =================
+  // ---------- Level 2 ----------
+  nat(2, 'power', r`A climber of mass 60 kg goes up a stairway 20 m high in 40 s. Find the average power she spends against gravity (in W, $g = 10\ \mathrm{m\,s^{-2}}$).`, 300, 0,
+    r`$P = mgh/t = 60\times10\times20/40 = 300$ W.`, { unit: 'W', calc: () => 60 * 10 * 20 / 40 }),
+  mcq(2, 'kinetic energy and momentum', r`The momentum of a body is doubled while its mass stays the same. Its kinetic energy becomes`, '4 times', ['2 times', '8 times', 'half'],
+    r`$K = p^2/(2m)$, so $K$ varies as the square of $p$. Doubling $p$ makes $K$ four times as large.`),
+  nat(2, 'work by constant force', r`A boy pulls a sled through 6 m with a rope tension of 50 N. The rope makes $37^\circ$ with the ground ($\cos37^\circ = 0.8$). Find the work done by the rope (in J).`, 240, 0,
+    r`$W = Fd\cos\theta = 50\times6\times0.8 = 240$ J.`, { unit: 'J', calc: () => 50 * 6 * 0.8 }),
+  mcq(2, 'work-energy theorem', r`A body moves up a rough incline at constant speed. The net work done on it is`, 'zero', ['positive', 'negative', 'equal to the work done by gravity alone'],
+    r`The speed is constant, so $\Delta K = 0$ and the net work is zero. The work of the pull is positive, that of gravity and friction is negative, and they add up to zero. The work of gravity alone is not zero.`),
+  nat(2, 'spring energy', r`A force of 8 N stretches a spring by 4 cm. Find the energy stored in the spring at this extension (in J).`, 0.16, 0.002,
+    r`$k = F/x = 8/0.04 = 200\ \mathrm{N\,m^{-1}}$. $U = \tfrac12kx^2 = \tfrac12\times200\times0.04^2 = 0.16$ J. Equivalently $U = \tfrac12Fx$.`, { unit: 'J', calc: () => 0.5 * 8 * 0.04 }),
+  mcq(2, 'units', r`The dimensions of power are`, r`$ML^2T^{-3}$`, [r`$ML^2T^{-2}$`, r`$MLT^{-2}$`, r`$ML^{2}T^{-1}$`],
+    r`Power is work divided by time. Work has dimensions $ML^2T^{-2}$, so power has $ML^2T^{-3}$.`),
+
+  // ---------- Level 3 ----------
+  nat(3, 'conservation of energy', r`A pendulum bob on a light string of length 0.9 m is released from rest with the string at $60^\circ$ to the vertical. Find its speed at the lowest point (in $\mathrm{m\,s^{-1}}$, $g = 10$).`, 3, 0,
+    r`The bob falls through $L(1-\cos60^\circ) = 0.9\times0.5 = 0.45$ m. $v = \sqrt{2gh} = \sqrt{2\times10\times0.45} = 3\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(2 * 10 * 0.9 * 0.5), trap: 'The fall is L(1 − cos θ), not L cos θ.' }),
+  nat(3, 'power', r`A lift cabin of mass 2000 kg rises at a steady $2\ \mathrm{m\,s^{-1}}$ against a constant frictional force of 4000 N. Find the power of the motor (in kW, $g = 10$).`, 48, 0,
+    r`At constant speed the pull equals weight plus friction: $20\,000 + 4000 = 24\,000$ N. $P = Fv = 24\,000\times2 = 48\,000$ W $= 48$ kW.`, { unit: 'kW', calc: () => (2000 * 10 + 4000) * 2 / 1000 }),
+  nat(3, 'work by variable force', r`A force $F = (4x + 2)$ N acts on a body along the $x$-axis ($x$ in m). Find the work done as the body moves from $x = 1$ m to $x = 3$ m (in J).`, 20, 0,
+    r`$W = \int_1^3 (4x+2)\,dx = \left[2x^2 + 2x\right]_1^3 = (18+6) - (2+2) = 20$ J.`, { unit: 'J', calc: () => (2 * 9 + 6) - (2 + 2) }),
+  mcq(3, 'kinetic energy', r`A constant net force acts on a body that starts from rest. The graph of its kinetic energy against the distance travelled is`, 'a straight line through the origin', ['a parabola opening upwards', 'a horizontal line', 'a hyperbola'],
+    r`By the work-energy theorem $K = Fx$ for a constant force from rest, so $K$ is proportional to $x$: a straight line through the origin. (Against time it would be a parabola, since $K\propto t^2$.)`, { trap: 'Against time the graph is a parabola; against distance it is a line.' }),
+  nat(3, 'conservation of energy', r`A ball is thrown vertically upward from the ground at $20\ \mathrm{m\,s^{-1}}$. At what height above the ground are its kinetic and potential energies equal (in m, $g = 10$)?`, 10, 0,
+    r`Total energy per unit mass $= \tfrac12(20)^2 = 200$ J/kg. When $K = U$, each is 100 J/kg, so $gh = 100$ and $h = 10$ m.`, { unit: 'm', calc: () => 200 / 2 / 10 }),
+  nat(3, 'springs', r`A toy gun has a spring of constant $500\ \mathrm{N\,m^{-1}}$ compressed by 4 cm. It fires a 20 g pellet vertically upward. Find the height the pellet rises above the point where it was released (in m, $g = 10$; the energy of the spring all goes into the pellet).`, 2, 0,
+    r`Spring energy $= \tfrac12\times500\times0.04^2 = 0.4$ J. This becomes $mgh$ above the release point: $h = 0.4/(0.02\times10) = 2$ m.`, { unit: 'm', calc: () => 0.5 * 500 * 0.0016 / (0.02 * 10) }),
+  nat(3, 'power', r`A jet of water leaves a nozzle at $5\ \mathrm{m\,s^{-1}}$ through an opening of area $4\times10^{-4}\ \mathrm{m^2}$. Find the kinetic energy carried by the jet each second (in W; density of water $1000\ \mathrm{kg\,m^{-3}}$).`, 25, 0,
+    r`Mass per second $= \rho Av = 1000\times4\times10^{-4}\times5 = 2$ kg/s. Power $= \tfrac12(2)(5)^2 = 25$ W.`, { unit: 'W', calc: () => 0.5 * 1000 * 4e-4 * 5 * 25 }),
+  mcq(3, 'work by friction', r`A block slides down a rough incline. The decrease in its mechanical energy equals`, 'the magnitude of the work done by friction', ['the work done by gravity', 'the work done by the normal force', 'the gain in its kinetic energy'],
+    r`$\Delta(K+U) = W_{\text{non-conservative}}$. Only friction does non-conservative work here (the normal force does none), so the mechanical energy falls by the magnitude of friction's work, which appears as heat.`),
+  nat(3, 'work-energy theorem', r`A 1200 kg car moving at 72 km/h is brought to rest in 40 m by a constant braking force. Find the braking force (in N).`, 6000, 0,
+    r`$72\ \mathrm{km\,h^{-1}} = 20\ \mathrm{m\,s^{-1}}$. $K = \tfrac12\times1200\times400 = 240\,000$ J. $F\times40 = 240\,000$, so $F = 6000$ N.`, { unit: 'N', calc: () => 0.5 * 1200 * 400 / 40, trap: 'Change km/h to m/s first.' }),
+  nat(3, 'potential energy curve', r`A particle moves in the potential energy $U(x) = (x^3 - 12x)$ joule ($x$ in m). Find the force on it at $x = 1$ m (in N, with sign along $+x$).`, 9, 0,
+    r`$F = -dU/dx = -(3x^2 - 12)$. At $x=1$: $F = -(3-12) = +9$ N, towards $+x$.`, { unit: 'N', calc: () => -(3 - 12) }),
+  nat(3, 'conservation of energy', r`A stone is thrown horizontally at $10\ \mathrm{m\,s^{-1}}$ from the top of a 20 m cliff. Find its speed when it reaches the ground (in $\mathrm{m\,s^{-1}}$, to 2 decimals; ignore air, $g=10$).`, 22.36, 0.01,
+    r`$\tfrac12v^2 = \tfrac12(10)^2 + gh = 50 + 200 = 250$, so $v = \sqrt{500} = 22.36\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(500) }),
+  nat(3, 'work by constant force', r`A 2 kg block at rest is lifted vertically by a steady 30 N force through 4 m. Find its kinetic energy at the end (in J, $g = 10$).`, 40, 0,
+    r`Net force $= 30 - 20 = 10$ N upward. Net work $= 10\times4 = 40$ J, which is the kinetic energy gained from rest.`, { unit: 'J', calc: () => (30 - 20) * 4, trap: 'The work of the 30 N force is 120 J, but gravity takes 80 J of it.' }),
+  nat(3, 'springs', r`Two springs of constants $200\ \mathrm{N\,m^{-1}}$ and $300\ \mathrm{N\,m^{-1}}$ are joined end to end (in series) and pulled by a force of 60 N. Find the total energy stored in them (in J).`, 15, 0,
+    r`In series $\dfrac1k = \dfrac1{200}+\dfrac1{300} = \dfrac{5}{600}$, so $k = 120\ \mathrm{N\,m^{-1}}$. $x = 60/120 = 0.5$ m and $U = \tfrac12\times120\times0.25 = 15$ J. (Check: $F^2/2k_1 + F^2/2k_2 = 9 + 6 = 15$ J.)`, { unit: 'J', calc: () => 60 * 60 / (2 * 200) + 60 * 60 / (2 * 300) }),
+  nat(3, 'kinetic energy and momentum', r`A 4 kg body has a momentum of $12\ \mathrm{kg\,m\,s^{-1}}$. Find its kinetic energy (in J).`, 18, 0,
+    r`$K = p^2/(2m) = 144/8 = 18$ J.`, { unit: 'J', calc: () => 144 / 8 }),
+  nat(3, 'conservation of energy', r`A ball is thrown at $20\ \mathrm{m\,s^{-1}}$ at $30^\circ$ above the horizontal from the ground. Find its speed when it is 8 m above the ground (in $\mathrm{m\,s^{-1}}$, 2 decimals; $g=10$, ignore air).`, 15.49, 0.02,
+    r`Only gravity acts, so $\tfrac12v^2 = \tfrac12(20)^2 - g(8) = 200 - 80 = 120$. $v = \sqrt{240} = 15.49\ \mathrm{m\,s^{-1}}$. The angle does not matter.`, { unit: 'm/s', calc: () => Math.sqrt(400 - 160) }),
+  nat(3, 'power', r`A force $\vec F = (3\hat i + 4\hat j)$ N acts on a particle moving with velocity $\vec v = (2\hat i - \hat j)\ \mathrm{m\,s^{-1}}$. Find the instantaneous power of the force (in W).`, 2, 0,
+    r`$P = \vec F\cdot\vec v = 3\times2 + 4\times(-1) = 6 - 4 = 2$ W.`, { unit: 'W', calc: () => 3 * 2 + 4 * -1 }),
+  asrt(3, 'kinetic energy and momentum', r`Two bodies with the same momentum but different masses have different kinetic energies.`, r`For a given momentum, kinetic energy is $p^2/2m$, which depends on the mass.`, 0,
+    r`$K = p^2/(2m)$. With $p$ fixed, the lighter body has the larger kinetic energy. Both true, and R explains A.`),
+  asrt(3, 'work-energy theorem', r`Two bodies with equal kinetic energy are stopped by equal constant retarding forces. They travel equal distances before stopping.`, r`The work done by the retarding force equals the kinetic energy lost, $Fd = K$.`, 0,
+    r`$Fd = K$, so $d = K/F$ is the same for both bodies, whatever their masses. Both true, and R explains A.`),
+  stm(3, 'work-energy theorem', r`The work-energy theorem holds in every inertial frame.`, r`The work done by a force and the kinetic energy of a body have the same values in all inertial frames.`, 2,
+    r`Statement I is true: in each inertial frame $W_{net} = \Delta K$ with that frame's values. Statement II is false: velocities and displacements differ between frames, so $K$ and $W$ have different values (only their relation stays the same).`),
+
+  // ---------- Level 4 ----------
+  nat(4, 'work-energy theorem', r`A 5 kg hammer moving at $4\ \mathrm{m\,s^{-1}}$ strikes a nail and drives it 2 cm into a block, coming to rest. Find the average resistive force on the hammer (in N). Ignore the weight of the hammer during the blow.`, 2000, 0,
+    r`$K = \tfrac12\times5\times16 = 40$ J. $F\times0.02 = 40$, so $F = 2000$ N.`, { unit: 'N', calc: () => 0.5 * 5 * 16 / 0.02 }),
+  nat(4, 'circular motion', r`A 2 kg block slides from rest down a smooth quarter-circular track of radius 1.2 m and reaches the lowest point. Find the normal force of the track on it there (in N, $g = 10$).`, 60, 0,
+    r`$v^2 = 2gR$. At the bottom $N - mg = mv^2/R = 2mg$, so $N = 3mg = 3\times2\times10 = 60$ N. The radius cancels out.`, { unit: 'N', calc: () => 3 * 2 * 10 }),
+  nat(4, 'power', r`A machine gun fires 20 bullets each second. Each bullet has mass 25 g and leaves the barrel at $400\ \mathrm{m\,s^{-1}}$. Find the power of the gun (in kW).`, 40, 0,
+    r`Kinetic energy of one bullet $= \tfrac12\times0.025\times400^2 = 2000$ J. Power $= 20\times2000 = 40\,000$ W $= 40$ kW.`, { unit: 'kW', calc: () => 20 * 0.5 * 0.025 * 400 * 400 / 1000 }),
+  nat(4, 'springs', r`A 1 kg block and a 3 kg block rest on a smooth table with a light spring ($k = 200\ \mathrm{N\,m^{-1}}$) compressed by 0.1 m between them (not attached). They are released. Find the speed of the 1 kg block after it leaves the spring (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, 1.22, 0.01,
+    r`Spring energy $= \tfrac12\times200\times0.01 = 1$ J. Momentum: $1\cdot v_1 = 3v_2$, so $v_1 = 3v_2$. Energy: $\tfrac12(1)(9v_2^2) + \tfrac12(3)v_2^2 = 6v_2^2 = 1$, so $v_2^2 = 1/6$ and $v_1^2 = 9/6 = 1.5$. $v_1 = 1.22\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(1.5), trap: 'The spring energy is shared between both blocks; the lighter one gets three quarters of it.' }),
+  nat(4, 'work by friction', r`A block slides from rest down a $37^\circ$ incline of height 3 m (length 5 m) and then onto a horizontal floor. The coefficient of kinetic friction is 0.5 on both. How far does it slide on the floor before it stops (in m)? Take $\sin37^\circ=0.6$, $\cos37^\circ=0.8$.`, 2, 0,
+    r`Friction on the incline: $\mu mg\cos37^\circ\times5 = 0.5\times0.8\times5\,mg = 2mg$. Energy: $mg(3) - 2mg = \mu mg\,d$, so $1 = 0.5\,d$ and $d = 2$ m.`, { unit: 'm', calc: () => (3 - 0.5 * 0.8 * 5) / 0.5 }),
+  nat(4, 'work by variable force', r`A 5 kg bucket is raised slowly from the bottom of a 20 m deep well by a uniform rope of mass 1 kg per metre (the whole rope hangs in the well at the start). Find the total work done in raising the bucket to the top (in J, $g = 10$).`, 3000, 0,
+    r`When the bucket has risen $x$ the load is the bucket $50$ N plus the rope still hanging, $10(20 - x)$ N. $W = \int_0^{20}\left[50 + 10(20-x)\right]dx = 1000 + 2000 = 3000$ J.`, { unit: 'J', calc: () => 50 * 20 + 10 * (400 - 200) }),
+  nat(4, 'springs', r`A 1 kg block on a rough floor ($\mu = 0.2$) is attached to a horizontal spring ($k = 100\ \mathrm{N\,m^{-1}}$). The spring is stretched by 0.2 m and the block is released. Find the speed of the block when it first passes the natural length of the spring (in $\mathrm{m\,s^{-1}}$, 2 decimals, $g = 10$).`, 1.79, 0.01,
+    r`Spring energy $= \tfrac12\times100\times0.04 = 2$ J. Friction ($\mu mg = 2$ N) over 0.2 m removes 0.4 J. So $\tfrac12v^2 = 1.6$ and $v = \sqrt{3.2} = 1.79\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(3.2) }),
+  nat(4, 'vertical circle', r`A 0.3 kg stone is whirled in a vertical circle on a light string and just keeps the string taut or more all the way round. Find the difference between the tension at the lowest point and at the highest point (in N, $g = 10$).`, 18, 0,
+    r`Bottom: $T_b - mg = mv_b^2/R$. Top: $T_t + mg = mv_t^2/R$. Energy: $v_b^2 = v_t^2 + 4gR$. Subtracting: $T_b - T_t = 2mg + 4mg = 6mg = 6\times0.3\times10 = 18$ N, whatever the speed.`, { unit: 'N', calc: () => 6 * 0.3 * 10 }),
+  nat(4, 'power', r`Water falls from a height of 50 m on to a turbine at the rate of 120 kg each second. The turbine and generator together are 80% efficient. Find the electrical power output (in kW, $g = 10$).`, 48, 0,
+    r`Power available $= 120\times10\times50 = 60\,000$ W. Output $= 0.8\times60\,000 = 48\,000$ W $= 48$ kW.`, { unit: 'kW', calc: () => 120 * 10 * 50 * 0.8 / 1000 }),
+  nat(4, 'work-energy theorem', r`A bullet moving at $200\ \mathrm{m\,s^{-1}}$ penetrates 9 cm into a wooden block, which resists with a constant force. At what speed must an identical bullet strike the block to penetrate 16 cm (in $\mathrm{m\,s^{-1}}$)?`, 266.7, 0.5,
+    r`$\tfrac12mv^2 = F\,d$, so $v^2\propto d$ and $v\propto\sqrt d$. $v = 200\sqrt{16/9} = 200\times\tfrac43 = 266.7\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => 200 * Math.sqrt(16 / 9), trap: 'Speed goes as the square root of the depth, not the depth itself.' }),
+  nat(4, 'conservation of energy', r`A 3 kg block on a rough horizontal table ($\mu = 0.2$) is tied by a light string over a smooth light pulley at the edge to a 2 kg block hanging freely. The system is released from rest. Find the speed when the hanging block has fallen 1 m (in $\mathrm{m\,s^{-1}}$, 2 decimals, $g=10$).`, 2.37, 0.01,
+    r`Work by gravity on the hanging block $= 2\times10\times1 = 20$ J. Friction on the table block $= 0.2\times3\times10\times1 = 6$ J. Net $= 14$ J $= \tfrac12(3+2)v^2$, so $v^2 = 5.6$ and $v = 2.37\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', calc: () => Math.sqrt(2 * 14 / 5) }),
+  nat(4, 'springs', r`A 1 kg block hangs at rest from a light vertical spring of constant $250\ \mathrm{N\,m^{-1}}$. It is pulled down a further 0.2 m and released. Find its kinetic energy as it passes the equilibrium position (in J).`, 5, 0,
+    r`Between these two positions gravity and the spring together act like a spring of constant $k$ about the equilibrium point, so the energy is $\tfrac12kA^2 = \tfrac12\times250\times0.04 = 5$ J. (Direct check: spring energy released $=\tfrac12 k[(x_0+0.2)^2 - x_0^2]$ with $x_0 = 0.04$ m, minus $mg(0.2)$, again 5 J.)`, { unit: 'J', calc: () => 0.5 * 250 * ((0.04 + 0.2) ** 2 - 0.04 ** 2) - 1 * 10 * 0.2 }),
+  nat(4, 'potential energy', r`A 4 kg block is pushed very slowly along the smooth inner surface of a hemispherical bowl of radius 0.5 m from the bottom to the point where the radius makes $60^\circ$ with the vertical. Find the work done by the pusher (in J, $g = 10$).`, 10, 0,
+    r`Slow motion, so the work done equals the gain in potential energy: $mgR(1-\cos60^\circ) = 4\times10\times0.5\times0.5 = 10$ J.`, { unit: 'J', calc: () => 4 * 10 * 0.5 * (1 - 0.5) }),
+  nat(4, 'power', r`A body of mass 2 kg is acted on by a constant power of 12 W from rest, with no other force along its line of motion. Find the distance it covers while its speed rises from 0 to $6\ \mathrm{m\,s^{-1}}$ (in m).`, 12, 0,
+    r`$Pt = \tfrac12mv^2$ gives $t = 36/12 = 3$ s. Also $v = \sqrt{2Pt/m} = \sqrt{12t}$, so $x = \int_0^3\sqrt{12t}\,dt = \sqrt{12}\cdot\tfrac23\cdot3^{3/2} = 12$ m. (General result: $x = mv^3/3P$.)`, { unit: 'm', calc: () => 2 * 216 / (3 * 12) }),
+  nat(4, 'work-energy theorem', r`A 0.2 kg ball is dropped from 5 m above soft sand and sinks 10 cm into it before stopping. Find the average resistive force of the sand (in N, $g=10$).`, 102, 0,
+    r`Total fall $= 5 + 0.1 = 5.1$ m, from rest to rest, so net work is zero: $mg(5.1) = F(0.1)$. $F = 0.2\times10\times5.1/0.1 = 102$ N.`, { unit: 'N', calc: () => 0.2 * 10 * 5.1 / 0.1, trap: 'Gravity also acts while the ball sinks into the sand.' }),
+  nat(4, 'vertical circle', r`A 0.5 kg bob on a 1 m string is released from the horizontal position. When the string becomes vertical it catches a nail 0.6 m below the pivot, so the bob continues on a smaller circle. Find the tension in the string just after it meets the nail (in N, $g=10$).`, 30, 0,
+    r`At the bottom $v^2 = 2gL = 20$. The new radius is $r = 1 - 0.6 = 0.4$ m. $T - mg = mv^2/r$, so $T = 5 + 0.5\times20/0.4 = 5 + 25 = 30$ N.`, { unit: 'N', calc: () => 0.5 * 10 + 0.5 * 20 / 0.4 }),
+  nat(4, 'potential energy curve', r`A 2 kg particle is in the potential energy $U(x) = [4(x-1)^2 - 3]$ joule ($x$ in m). It makes small oscillations about its equilibrium. Find the period (in s, 2 decimals).`, 3.14, 0.01,
+    r`Compare $U = \tfrac12k(x-1)^2 - 3$: $\tfrac12k = 4$, so $k = 8\ \mathrm{N\,m^{-1}}$. $T = 2\pi\sqrt{m/k} = 2\pi\sqrt{2/8} = \pi = 3.14$ s. (In fact the oscillations are exactly SHM here.)`, { unit: 's', calc: () => 2 * Math.PI * Math.sqrt(2 / 8) }),
+  nat(4, 'variable force', r`A non-linear spring exerts a restoring force of magnitude $F = (20x + 40x^2)$ N when stretched by $x$ metres. Find the work done in stretching it from $x = 0$ to $x = 0.5$ m (in J, 2 decimals).`, 4.17, 0.01,
+    r`$W = \int_0^{0.5}(20x + 40x^2)\,dx = \left[10x^2 + \tfrac{40}{3}x^3\right]_0^{0.5} = 2.5 + 1.667 = 4.17$ J.`, { unit: 'J', calc: () => 10 * 0.25 + 40 / 3 * 0.125 }),
+  nat(4, 'potential energy curve', r`A 2 kg particle moves along $x$ in the potential energy $U(x) = (3x^2 - 12x + 5)$ joule. At $x = 0$ it moves towards $+x$ with speed $6\ \mathrm{m\,s^{-1}}$. Find the largest value of $x$ it reaches (in m).`, 6, 0,
+    r`Total energy $= \tfrac12\times2\times36 + U(0) = 36 + 5 = 41$ J. At a turning point $U = 41$: $3x^2 - 12x - 36 = 0$, so $x^2 - 4x - 12 = 0$ and $x = 6$ or $-2$. Moving towards $+x$, the farthest point is $x = 6$ m.`, { unit: 'm', calc: () => (4 + Math.sqrt(16 + 48)) / 2 }),
+  mcq(4, 'springs', r`A spring of constant $k$ is cut into two pieces whose lengths are in the ratio $1:3$. The spring constant of the longer piece is`, r`$\dfrac{4k}{3}$`, [r`$\dfrac{3k}{4}$`, r`$4k$`, r`$3k$`],
+    r`The constant of a spring is inversely proportional to its length. The longer piece is $3/4$ of the original length, so its constant is $\dfrac43k$ (the shorter piece, $1/4$ of the length, has $4k$).`),
+  asrt(4, 'conservative forces', r`A satellite in a circular orbit has a constant kinetic energy.`, r`The gravitational force on the satellite is always perpendicular to its velocity, so it does no work on it.`, 0,
+    r`The speed is constant, so $K$ is constant. The force points to the centre while the velocity is along the tangent, so $W = \int\vec F\cdot d\vec s = 0$. Both true, and R explains A.`),
+  asrt(4, 'springs', r`The work done in compressing a spring by $x$ from its natural length equals the work done in stretching it by $x$.`, r`The energy stored in an ideal spring depends on the square of its displacement from the natural length.`, 0,
+    r`$U = \tfrac12kx^2$ is the same for $+x$ and $-x$. Both true, and R explains A.`),
+  asrt(4, 'potential energy curve', r`A particle can be in equilibrium at a point where its potential energy is a maximum.`, r`At every point of equilibrium the potential energy is a minimum.`, 2,
+    r`Equilibrium needs $F = -dU/dx = 0$, which holds at maxima and minima. At a maximum it is unstable but still an equilibrium, so A is true. R is false because it denies that.`),
+  stm(4, 'springs', r`When a spring of constant $k$ is cut into two equal parts, each part has a spring constant $2k$.`, r`When pulled by the same force $F$, each half stores half the energy stored in the original spring.`, 0,
+    r`Halving the length doubles the constant, so I is true. $U = F^2/2k$, so with $2k$ the energy is $F^2/4k$, half of the original: II is true.`),
+  stm(4, 'power', r`The power of a machine is the work it does per unit time.`, r`A machine rated at 2 kW does 2 kWh of work in every hour that it is switched on.`, 2,
+    r`I is the definition of power. II is false: 2 kW is the greatest (rated) power, and the machine does 2 kWh in an hour only if it works at that rating all the time.`),
+  stm(4, 'potential energy', r`The gravitational potential energy of a body can be negative.`, r`Only changes in potential energy have physical meaning, because the zero level is chosen by us.`, 0,
+    r`Below the chosen zero level (for example the floor of a room, or at a finite distance from the Earth with zero at infinity) $U$ is negative: I is true. $U$ is fixed only up to an additive constant, and only differences matter: II is true.`),
+  msq(4, 'power', r`A car of constant engine power $P$ moves on a level road against a constant resistance $f$. Which are correct?`,
+    ['Its top speed is $P/f$', 'Its acceleration is zero at the top speed', 'The driving force increases as the speed rises', 'It reaches the top speed in a finite time'],
+    [0, 1],
+    r`At top speed the driving force $P/v$ equals $f$, so $v_{max} = P/f$ and $a = 0$. The driving force $P/v$ falls as $v$ rises, so C is false. The acceleration shrinks to zero as the speed approaches $P/f$, so the car only approaches it and never reaches it in finite time: D is false.`),
+  msq(4, 'springs', r`A block on a smooth horizontal surface oscillates on a light spring between $x = -A$ and $x = +A$. Which are correct?`,
+    ['Its kinetic energy is greatest at the mean position', 'The sum of kinetic and spring energies is $\\tfrac12kA^2$ at every instant', 'The power of the spring force is greatest at the extreme positions', 'The work done by the spring force over one full oscillation is zero'],
+    [0, 1, 3],
+    r`Energy is conserved, with total $\tfrac12kA^2$; all of it is kinetic at the mean position. Power $=\vec F\cdot\vec v$ is zero at the extremes because the speed is zero, so C is false. Over a full cycle the kinetic energy returns to its start, so the net work is zero.`),
+  msq(4, 'conservative forces', r`Which of these force fields (with $x, y$ in metres) are conservative?`,
+    [r`$\vec F = 2xy\,\hat i + x^2\,\hat j$`, r`$\vec F = y\,\hat i - x\,\hat j$`, r`$\vec F = y^2\,\hat i + x^2\,\hat j$`, r`$\vec F = x^2\,\hat i + y^2\,\hat j$`],
+    [0, 3],
+    r`A field is conservative if $\partial F_y/\partial x = \partial F_x/\partial y$. A: $2x = 2x$ (yes, $U = -x^2y$). B: $-1 \ne 1$. C: $2x \ne 2y$. D: $0 = 0$ (yes).`),
+  msq(4, 'kinetic energy and momentum', r`Two bodies of masses $m$ and $4m$ have equal kinetic energy. Which are correct?`,
+    ['Their momenta are in the ratio $1:2$', 'Their speeds are in the ratio $2:1$', 'The heavier body has the greater momentum', 'Under equal constant retarding forces, the lighter body stops in the shorter distance'],
+    [0, 1, 2],
+    r`$p = \sqrt{2mK}$ gives $p_1:p_2 = 1:2$. $v = \sqrt{2K/m}$ gives $v_1:v_2 = 2:1$. The stopping distance is $K/F$, equal for both, so D is false.`),
+  msq(4, 'work by variable force', r`A body starts from rest at $x = 0$ and moves along $x$ under the force $F = (8 - 2x)$ N ($x$ in m). Which are correct?`,
+    ['The work done from $x = 0$ to $x = 4$ m is 16 J', 'The work done from $x = 4$ m to $x = 6$ m is $-4$ J', 'The net work from $x = 0$ to $x = 6$ m is 12 J', 'Its kinetic energy is greatest at $x = 6$ m'],
+    [0, 1, 2],
+    r`$W_{0\to4} = [8x - x^2]_0^4 = 16$ J. $W_{4\to6} = (48 - 36) - 16 = -4$ J. The net is $12$ J. The force changes sign at $x = 4$, where the kinetic energy is greatest, so D is false.`),
+  msq(4, 'conservation of energy', r`Three identical balls are thrown from the same height with the same speed: one upward, one downward and one horizontally. Ignore air. Which are correct?`,
+    ['All reach the ground with the same speed', 'All have the same change in kinetic energy by the time they reach the ground', 'All take the same time to reach the ground', 'The ball thrown upward takes the longest'],
+    [0, 1, 3],
+    r`Gravity is conservative and the starting energy and the drop are equal, so the final speeds (and kinetic energy changes) are equal. The times differ: the upward ball spends extra time rising and falling back, so it takes longest and the downward ball is quickest.`),
+  msq(4, 'power', r`A constant force $F$ acts on a body of mass $m$ that starts from rest. Which are correct?`,
+    ['The power at time $t$ is $F^2t/m$', 'The average power over the first $t$ seconds is $F^2t/2m$', 'The instantaneous power grows in proportion to $t$', 'The average power over the first $t$ seconds equals the instantaneous power at $t$'],
+    [0, 1, 2],
+    r`$v = Ft/m$, so $P = Fv = F^2t/m \propto t$. The average of a quantity growing linearly from 0 is half the final value: $F^2t/2m$. D is false.`),
+  stm(4, 'conservation of energy', r`A ball is thrown at an angle above the horizontal. Its kinetic energy at the highest point is zero.`, r`At the highest point the vertical component of the velocity is zero.`, 3,
+    r`Statement I is false: the horizontal component of velocity stays, so the ball still has kinetic energy $\tfrac12m(u\cos\theta)^2$ at the top. Statement II is true.`),
+  nat(4, 'conservation of energy', r`A block of mass 2 kg slides from rest down a smooth $30^\circ$ incline and hits a light spring ($k = 500\ \mathrm{N\,m^{-1}}$) fixed along the incline, 1 m from the block. Find the greatest compression of the spring (in m, 3 decimals; $g = 10$).`, 0.221, 0.002,
+    r`Gravity along the incline: $mg\sin30^\circ = 10$ N. Energy: $10(1 + x) = \tfrac12\times500\,x^2$, so $25x^2 - x - 1 = 0$ and $x = \dfrac{1+\sqrt{101}}{50} = 0.221$ m.`, { unit: 'm', calc: () => (1 + Math.sqrt(101)) / 50, trap: 'The block keeps falling while it compresses the spring.' }),
+
+  // ---------- Level 5 ----------
+  nat(5, 'vertical circle', r`A small block slides from rest down a smooth track into a vertical loop of radius 40 cm. At the top of the loop the track pushes on the block with a force equal to its weight. From what height above the bottom of the loop was it released (in cm)?`, 120, 0,
+    r`At the top $N + mg = mv^2/R$ with $N = mg$, so $v^2 = 2gR$. Energy: $gh = g(2R) + \tfrac12v^2 = 2gR + gR = 3gR$, so $h = 3R = 120$ cm.`, { unit: 'cm', calc: () => 3 * 40 }),
+  nat(5, 'work by friction', r`A 2 kg block moving at $4\ \mathrm{m\,s^{-1}}$ enters a rough surface where the coefficient of friction increases with distance as $\mu = 0.25x$ ($x$ in m from the edge). How far does it travel on the rough surface before stopping (in m, 2 decimals; $g = 10$)?`, 2.53, 0.02,
+    r`Friction $= \mu mg = 0.25x\,mg$. Work-energy: $\tfrac12mv^2 = \int_0^s 0.25x\,mg\,dx = 0.125\,mg\,s^2$. The mass cancels: $8 = 1.25\,s^2$, so $s^2 = 6.4$ and $s = 2.53$ m.`, { unit: 'm', calc: () => Math.sqrt(6.4) }),
+  mcq(5, 'vertical circle', r`A bob on a string of length $L$ is released from rest with the string horizontal. A nail is fixed at a distance $d$ vertically below the pivot, so that the bob swings round the nail when the string becomes vertical. The least value of $d/L$ for the bob to complete a full circle about the nail is`, '3/5', ['2/5', '1/2', '4/5'],
+    r`At the bottom $v^2 = 2gL$. The new radius is $r = L - d$, and completing the circle needs $v^2 \ge 5gr$. So $2gL \ge 5g(L-d)$, giving $d \ge 3L/5$. The least $d/L$ is $3/5$ (the radius is then $2L/5$).`, { trap: 'The condition is on the new radius L − d, not on d.' }),
+  mcq(5, 'concepts', r`How many of these are correct? (a) The work done by a force can be negative. (b) Kinetic energy can be negative. (c) The tension in a pendulum string does zero work on the bob. (d) The net work done on a body moving at constant speed along a curved path is zero. (e) Power is a vector.`, '3', ['2', '4', '5'],
+    r`(a) true: it is negative when the force opposes the displacement. (b) false: $\tfrac12mv^2\ge0$. (c) true: the tension is perpendicular to the velocity. (d) true: the speed is constant, so $\Delta K = 0$. (e) false: power is $\vec F\cdot\vec v$, a scalar. Three are correct.`),
+  mcq(5, 'kinetic energy', r`A particle of mass $m$ moves on a circle of radius $R$ with kinetic energy $K = ks^2$, where $s$ is the distance travelled along the circle and $k$ is a constant. The magnitude of the net force on it is`, r`$2ks\sqrt{1 + s^2/R^2}$`, [r`$2ks$`, r`$\dfrac{2ks^2}{R}$`, r`$2ks\left(1 + \dfrac{s^2}{R^2}\right)$`],
+    r`$v^2 = 2ks^2/m$, so $v = s\sqrt{2k/m}$. Tangential acceleration $a_t = v\,dv/ds = 2ks/m$, so $F_t = 2ks$. Radial acceleration $a_c = v^2/R$, so $F_c = 2ks^2/R$. The magnitude is $\sqrt{F_t^2 + F_c^2} = 2ks\sqrt{1 + s^2/R^2}$.`),
+  mcq(5, 'power', r`A constant power $P$ acts on a body of mass $m$ starting from rest (no other force along its path). The distance it covers in time $t$ is`, r`$\sqrt{\dfrac{8P}{9m}}\;t^{3/2}$`, [r`$\sqrt{\dfrac{2P}{m}}\;t^{3/2}$`, r`$\dfrac{P}{2m}\,t^{2}$`, r`$\sqrt{\dfrac{2P}{m}}\;t^{1/2}$`],
+    r`$v = \sqrt{2Pt/m}$, so $x = \int_0^t\sqrt{2P/m}\,t^{1/2}\,dt = \tfrac23\sqrt{2P/m}\,t^{3/2}$. Squaring the coefficient gives $\tfrac49\cdot\tfrac{2P}{m} = \tfrac{8P}{9m}$.`),
+  msq(5, 'circular motion', r`A small block starts from rest at the top of a smooth fixed sphere of radius $R$ and slides down. Which are correct?`,
+    [r`It leaves the surface when the radius to the block makes an angle $\theta$ with the vertical where $\cos\theta = 2/3$`, r`Its speed when it leaves the surface is $\sqrt{2gR/3}$`, r`The normal force is zero at the instant it leaves`, r`It leaves the surface after dropping a height $2R/3$ from the top`],
+    [0, 1, 2],
+    r`$v^2 = 2gR(1-\cos\theta)$ and it leaves when $mg\cos\theta = mv^2/R$ (normal force zero), giving $\cos\theta = 2/3$ and $v^2 = 2gR/3$. The drop from the top is $R(1-\cos\theta) = R/3$, not $2R/3$: D is false.`),
+  msq(5, 'potential energy curve', r`A particle moves in the potential energy $U(x) = \left(\dfrac{x^3}{3} - x\right)$ joule ($x$ in m). Which are correct?`,
+    ['$x = 1$ m is a position of stable equilibrium', '$x = -1$ m is a position of unstable equilibrium', 'The force at $x = 0$ is $+1$ N along $+x$', 'The potential energy at $x = 1$ m is $+2/3$ J'],
+    [0, 1, 2],
+    r`$F = -(x^2 - 1)$, zero at $x = \pm1$. $U'' = 2x$ is positive at $x=1$ (stable) and negative at $x=-1$ (unstable). $F(0) = +1$ N. $U(1) = \tfrac13 - 1 = -\tfrac23$ J, so D is false.`),
+  msq(5, 'conservative forces', r`A bead moves on a smooth horizontal circular wire of radius $R$ under a force of constant magnitude $F$ always along its velocity (tangent to the wire). Which are correct?`,
+    ['The work done by the force in one revolution is $2\\pi RF$', 'The force is non-conservative', 'The normal force of the wire does no work', 'The work done by the force in half a revolution is zero'],
+    [0, 1, 2],
+    r`The force is along every small displacement, so the work is $F\times$ path $= 2\pi RF$ per revolution, not zero over a closed path: non-conservative. The wire's push is radial, perpendicular to the motion. In half a revolution the work is $\pi RF$, so D is false.`),
+  msq(5, 'conservation of energy', r`Blocks of mass $m$ and $2m$ hang from the ends of a light string over a smooth light pulley and are released. When the heavier block has fallen a height $h$, which are correct?`,
+    [r`The speed is $\sqrt{2gh/3}$`, r`The acceleration is $g/3$`, r`The tension is $4mg/3$`, r`The mechanical energy of the heavier block alone is conserved`],
+    [0, 1, 2],
+    r`$a = (2m - m)g/3m = g/3$ and $v = \sqrt{2ah} = \sqrt{2gh/3}$. Tension: $T = m(g + a) = 4mg/3$. The tension does negative work on the heavier block, so its own mechanical energy falls: D is false. (Only the system's energy is conserved.)`),
+  asrt(5, 'work by friction', r`The work done by static friction on a rolling wheel (rolling without slipping on a fixed surface) is zero.`, r`The point of the wheel in contact with the surface is instantaneously at rest.`, 0,
+    r`Power of friction $=\vec f\cdot\vec v_{contact}$, and the contact point has zero velocity, so no work is done. Both true, and R explains A.`),
+  stm(5, 'conservation of energy', r`In an isolated system, the total energy is conserved even if friction acts inside it.`, r`The mechanical energy of a system is conserved whenever friction acts inside it.`, 2,
+    r`I is true: energy is not lost; mechanical energy turns into internal (thermal) energy. II is false: friction converts mechanical energy into heat, so the mechanical energy falls.`),
+  nat(5, 'work by variable force', r`A force $F = (20x + 40x^2)$ N (with $x$ in m) stretches a non-linear spring. Find the extra work needed to stretch it from $x = 0.5$ m to $x = 1$ m (in J, 2 decimals).`, 19.17, 0.02,
+    r`$W = \left[10x^2 + \tfrac{40}{3}x^3\right]_{0.5}^{1} = (10 + 13.333) - (2.5 + 1.667) = 19.17$ J.`, { unit: 'J', calc: () => (10 + 40 / 3) - (2.5 + 40 / 3 * 0.125) }),
+  nat(5, 'vertical circle', r`A 0.2 kg ball on a light string of length 0.8 m moves in a vertical circle. At the highest point its speed is $\sqrt{2gL}$ with $g = 10$ and $L$ the string length. Find the tension at the lowest point (in N).`, 14, 0,
+    r`At the top $v_t^2 = 2gL$, so $T_t + mg = m(2gL)/L = 2mg$ and $T_t = mg = 2$ N. At the bottom $v_b^2 = v_t^2 + 4gL = 6gL$, so $T_b - mg = 6mg$ and $T_b = 7mg = 14$ N. Check with $T_b - T_t = 6mg = 12$ N: $14 - 2 = 12$ N.`, { unit: 'N', calc: () => 7 * 0.2 * 10 }),
+
+  // ---------- Match the lists ----------
+  mat(3, 'work by constant force', 'm5', r`Match each case in List I with the work done in List II ($g = 10\ \mathrm{m\,s^{-2}}$).`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`A: $mgh = 2\times10\times5 = +100$ J (p). B: $-1\times10\times3 = -30$ J (q). C: friction $\mu mg\,d = 0.5\times0.5\times10\times4 = 10$ J, negative: $-10$ J (r). D: the normal force is perpendicular to the motion: 0 (s).`),
+  mat(3, 'kinetic energy', 'm6', r`The kinetic energy of a body is multiplied by the factor in List II when its speed or momentum changes as in List I (mass constant).`, 'A-q, B-s, C-r, D-p', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'],
+    r`$K\propto v^2\propto p^2$. Speed $\times2$: $\times4$ (q). Momentum $\times3$: $\times9$ (s). Speed $\times1.5$: $\times2.25$ (r). Speed $\times1.2$: $\times1.44$ (p).`),
+  mat(3, 'potential energy curve', 'm7', r`Match each potential energy $U(x)$ in List I with its position of equilibrium in List II.`, 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-p, B-r, C-q, D-s'],
+    r`Set $dU/dx = 0$. A: $2(x-2) = 0$, $x=2$ (q). B: $2x - 6 = 0$, $x = 3$ (r). C: $4x - 4 = 0$, $x = 1$ (p). D: $2x - 10 = 0$, $x = 5$ (s).`),
+  mat(4, 'springs', 'm8', r`Each spring has constant $100\ \mathrm{N\,m^{-1}}$. Match each arrangement in List I with its effective constant in List II (in $\mathrm{N\,m^{-1}}$).`, 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-r, B-p, C-q, D-s'],
+    r`Parallel: $100+100 = 200$ (r). Two in series: $100/2 = 50$ (q). Three in series: $100/3 = 33.3$ (p). A spring cut into 4 equal parts: each has $4\times100 = 400$ (s).`),
+  mat(4, 'vertical circle', 'm9', r`A ball of mass $m$ on a string of length $R$ passes the lowest point with $u^2$ as in List I. Match each with the tension at the highest point in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$v_{top}^2 = u^2 - 4gR$ and $T_{top} = mv_{top}^2/R - mg$. With $u^2 = kgR$: $T_{top} = (k-5)mg$. $k=5$: 0 (p). $k=6$: $mg$ (q). $k=7$: $2mg$ (r). $k=9$: $4mg$ (s).`),
+  mat(4, 'power', 'm10', r`Match each statement in List I with how the quantity varies with time $t$ in List II.`, 'A-r, B-q, C-s, D-p', ['A-r, B-q, C-p, D-s', 'A-p, B-q, C-s, D-r', 'A-q, B-r, C-s, D-p'],
+    r`A: $K = F^2t^2/2m \propto t^2$ (r). B: constant power gives $v = \sqrt{2Pt/m}\propto t^{1/2}$ (q). C: constant power gives $x\propto t^{3/2}$ (s). D: $P = Fv = F^2t/m\propto t$ (p).`),
+  mat(5, 'circular motion', 'm11', r`A block slides from rest from the top of a smooth hemisphere of radius $R = 0.9$ m ($g = 10\ \mathrm{m\,s^{-2}}$) and leaves the surface. Match each quantity in List I with its value in List II.`, 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-r, B-p, C-q, D-s'],
+    r`It leaves at $\cos\theta = 2/3$ with $v^2 = 2gR/3 = 6\ \mathrm{m^2\,s^{-2}}$ (A: r). Its height above the base is $2R/3 = 0.6$ m (B: q). The drop from the top is $R/3 = 0.3$ m (C: p). Speed $=\sqrt6 = 2.45\ \mathrm{m\,s^{-1}}$ (D: s).`),
+  mat(4, 'potential energy curve', 'm12', r`Match each potential energy $U(x)$ in List I with the value of $U$ at its equilibrium point in List II (in J).`, 'A-s, B-q, C-p, D-r', ['A-s, B-q, C-r, D-p', 'A-q, B-s, C-p, D-r', 'A-p, B-q, C-s, D-r'],
+    r`A: $x = 2$, $U = 8 - 16 = -8$ (s). B: $x = 3$, $U = -9 + 18 = 9$ (q). C: $x = 2$, $U = 4 - 8 + 1 = -3$ (p). D: $x = 1$, $U = -2 + 4 = 2$ (r).`),
+
+  // ---------- Passages ----------
+  pas(3, 'conservation of energy', 'p4', r`Find the speed of the block at the lowest point of the loop (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, Math.sqrt(60), 0.03, 2,
+    r`Smooth track: $v = \sqrt{2gh} = \sqrt{2\times10\times3} = \sqrt{60} = 7.75\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  pas(4, 'vertical circle', 'p4', r`Find the normal force of the track on the block at the top of the loop (in N).`, 5, 0, 0,
+    r`At the top the height is 2 m, so $v^2 = 2g(3-2) = 20$. $N + mg = mv^2/R$, so $N = 0.5\times20/1 - 5 = 5$ N.`, { unit: 'N' }),
+  pasm(5, 'vertical circle', 'p4', r`The block is now released from rest at a height of 2 m instead. What happens?`, 'It leaves the track at a point above the level of the centre of the loop', ['It reaches the top of the loop with zero speed and stops there', 'It completes the loop with a smaller speed at the top', 'It rises to the level of the centre and slides back down'],
+    r`To complete the loop it needs $h \ge 2.5R = 2.5$ m. At 2 m it has more energy than needed to reach the level of the centre (1 m), so it does not slide back. But it cannot reach the top, so the normal force drops to zero at some point above the centre and the block leaves the track and moves as a projectile.`, { trap: 'Reaching the height of the top does not mean reaching the top: the speed there must be at least √(gR).' }),
+  pas(3, 'power', 'p5', r`Find the power the crane must supply to the load while it rises at constant speed (in W, $g = 10$).`, 1000, 0, 0,
+    r`At constant speed the tension equals the weight: $200\times10 = 2000$ N. $P = Fv = 2000\times0.5 = 1000$ W.`, { unit: 'W' }),
+  pas(4, 'power', 'p5', r`The load starts from rest and speeds up uniformly to $0.5\ \mathrm{m\,s^{-1}}$ in 2 s. Find the power of the cable tension at the end of this acceleration (in W).`, 1025, 0, 0,
+    r`$a = 0.5/2 = 0.25\ \mathrm{m\,s^{-2}}$. $T = m(g + a) = 200\times10.25 = 2050$ N. $P = Tv = 2050\times0.5 = 1025$ W.`, { unit: 'W' }),
+  pas(3, 'power', 'p5', r`The motor is 80% efficient. Find the electrical energy it uses to raise the load by 15 m at constant speed (in kJ).`, 37.5, 0.05, 1,
+    r`Useful work $= 2000\times15 = 30\,000$ J. Energy drawn $= 30\,000/0.8 = 37\,500$ J $= 37.5$ kJ.`, { unit: 'kJ' }),
 );
 
 // ---------- Number templates ----------
@@ -520,6 +775,127 @@ const gens = [
         sol: `The water's mass is ρAH = ${1000 * A * H} kg and its centre of mass is H/2 = ${H / 2} m below the rim, so W = ρ g A H²/2 = 1000 × 10 × ${A} × ${H * H}/2 = ${W * 1000} J = ${W} kJ.` };
     },
     verify: (p) => { let s = 0; const n = 2000, dy = p.H / n; for (let i = 0; i < n; i++) s += 1000 * 10 * p.A * ((i + 0.5) * dy) * dy; return s / 1000; } },
+  // ---- added 2026-11-22 ----
+  { id: 'wep-g19', type: 'nat', level: 3, exams: EX[3], sub: 'conservation of energy',
+    make(rng) {
+      const L = choose(rng, [0.5, 0.8, 1, 1.2, 1.5, 2]), th = choose(rng, [37, 53, 60]);
+      const v = Math.sqrt(2 * 10 * L * (1 - COS[th])); const [a, t] = tl(v);
+      return { L, th, answer: a, tol: t, unit: 'm/s',
+        q: `A pendulum bob on a light string of length ${L} m is released from rest with the string at ${th}° to the vertical (cos ${th}° = ${COS[th]}). Find its speed at the lowest point (in m/s, g = 10 m/s²).`,
+        sol: `The bob falls through L(1 − cos θ) = ${L} × (1 − ${COS[th]}) = ${fmt(L * (1 - COS[th]), 4)} m. v = √(2gh) = √(2 × 10 × ${fmt(L * (1 - COS[th]), 4)}) = ${fmt(v, 4)} m/s.`,
+        trap: 'The fall is L(1 − cos θ), not L cos θ.' };
+    },
+    verify: (p) => Math.sqrt(2 * 10 * p.L * (1 - Math.sqrt(1 - SIN[p.th] ** 2))) },
+  { id: 'wep-g20', type: 'mcq', level: 3, exams: EX[3], sub: 'kinetic energy and momentum',
+    make(rng) {
+      const n = choose(rng, [2, 3, 4, 9]);
+      const { options, answer } = shuffleOpts(rng, `${n} : 1`, [`1 : ${n}`, `${n * n} : 1`, `1 : ${n * n}`]);
+      return { n, options, answer,
+        q: `Two bodies A and B have equal momentum. The mass of B is ${n} times the mass of A. The ratio of their kinetic energies K_A : K_B is`,
+        sol: `K = p²/(2m) with p equal, so K ∝ 1/m. K_A : K_B = m_B : m_A = ${n} : 1. The lighter body has the larger kinetic energy. ${n * n} : 1 comes from using K ∝ 1/m².`,
+        trap: 'Equal momentum, not equal speed: K goes as 1/m.' };
+    },
+    verify: (p) => { const mA = 1, mB = p.n, pp = 6; const r = (pp * pp / (2 * mA)) / (pp * pp / (2 * mB)); return p.options.indexOf(`${Math.round(r)} : 1`); } },
+  { id: 'wep-g21', type: 'nat', level: 4, exams: EX[4], sub: 'work by friction',
+    make(rng) {
+      const th = choose(rng, [30, 37, 45, 53]), mu = choose(rng, [0.1, 0.15, 0.2]), u = choose(rng, [4, 6, 8, 10]);
+      const s = SI2[th], c = CO2[th];
+      const v = u * Math.sqrt((s - mu * c) / (s + mu * c)); const [a, t] = tl(v);
+      return { th, mu, u, answer: a, tol: t, unit: 'm/s',
+        q: `A block is projected up a rough incline of angle ${th}° with μ = ${mu} at ${u} m/s and slides back to its starting point. Find its speed on returning (in m/s, g = 10 m/s²).`,
+        sol: `Going up: u² = 2g(sin θ + μ cos θ)d. Coming down: v² = 2g(sin θ − μ cos θ)d. So v = u √[(sin θ − μ cos θ)/(sin θ + μ cos θ)] = ${u} × √[(${fmt(s, 4)} − ${fmt(mu * c, 4)})/(${fmt(s, 4)} + ${fmt(mu * c, 4)})] = ${fmt(v, 4)} m/s.`,
+        trap: 'Friction acts both ways, so the return speed is less than u.' };
+    },
+    verify: (p) => { const s = SI2[p.th], c = CO2[p.th]; const d = p.u * p.u / (2 * 10 * (s + p.mu * c)); return Math.sqrt(p.u * p.u - 4 * p.mu * 10 * c * d); } },
+  { id: 'wep-g22', type: 'nat', level: 4, exams: EX[4], sub: 'power',
+    make(rng) {
+      const P = choose(rng, [60, 80]), m = choose(rng, [1000, 1200, 1500]), f = choose(rng, [500, 800, 1000]), v = choose(rng, [10, 15, 20]), s = choose(rng, [0.05, 0.1]);
+      const a = (P * 1000 / v - f - m * 10 * s) / m; const [aa, t] = tl(a);
+      return { P, m, f, v, s, answer: aa, tol: t, unit: 'm/s²',
+        q: `A ${m} kg car climbs a road of slope sin θ = ${s}. Its engine delivers a constant ${P} kW and the resistance is a constant ${f} N. Find its acceleration when its speed is ${v} m/s (in m/s², g = 10 m/s²).`,
+        sol: `Driving force = P/v = ${P * 1000}/${v} = ${fmt(P * 1000 / v, 5)} N. Down-slope pull = mg sin θ = ${fmt(m * 10 * s, 5)} N. Net = ${fmt(P * 1000 / v, 5)} − ${f} − ${fmt(m * 10 * s, 5)} = ${fmt(m * a, 5)} N, so a = ${fmt(a, 4)} m/s².`,
+        trap: 'Do not forget the component of weight along the slope.' };
+    },
+    verify: (p) => (p.P * 1000 - (p.f + p.m * 10 * p.s) * p.v) / (p.m * p.v) },
+  { id: 'wep-g23', type: 'mcq', level: 3, exams: EX[3], sub: 'springs',
+    make(rng) {
+      const n = choose(rng, [2, 3, 4, 5, 6]);
+      const { options, answer } = shuffleOpts(rng, `${n}k`, [`k/${n}`, `${n * n}k`, 'k']);
+      return { n, options, answer,
+        q: `A spring of constant k is cut into ${n} equal parts. The spring constant of each part is`,
+        sol: `The constant is inversely proportional to the length. Each part has 1/${n} of the length, so its constant is ${n}k. (The pieces joined in series would give back k.)`,
+        trap: 'A shorter spring is stiffer.' };
+    },
+    verify: (p) => p.options.indexOf(`${1 / (1 / p.n)}k`) },
+  { id: 'wep-g24', type: 'nat', level: 3, exams: EX[3], sub: 'work by variable force',
+    make(rng) {
+      const a = choose(rng, [2, 4, 6, 8]), b = choose(rng, [3, 6, 9]), X = choose(rng, [1, 2, 3]);
+      const W = a * X * X / 2 + b * X ** 3 / 3; const [aa, t] = tl(W);
+      return { a, b, X, answer: aa, tol: t, unit: 'J',
+        q: `A force F = (${a}x + ${b}x²) N acts on a body along the x-axis (x in m). Find the work done as it moves from x = 0 to x = ${X} m (in J).`,
+        sol: `W = ∫F dx = [${a / 2}x² + ${b / 3}x³] from 0 to ${X} = ${a / 2} × ${X * X} + ${b / 3} × ${X ** 3} = ${fmt(W, 4)} J.` };
+    },
+    verify: (p) => { const n = 2000, h = p.X / n; let s = 0; for (let i = 0; i < n; i++) { const x = (i + 0.5) * h; s += (p.a * x + p.b * x * x) * h; } return s; } },
+  { id: 'wep-g25', type: 'nat', level: 5, exams: EX[5], sub: 'springs',
+    make(rng) {
+      const m = choose(rng, [1, 2, 3]), th = choose(rng, [30, 37, 53]), d = choose(rng, [0.5, 1, 1.5]), kk = choose(rng, [200, 500, 800]);
+      const w = m * 10 * SI2[th], x = (w + Math.sqrt(w * w + 2 * kk * w * d)) / kk; const [a, t] = tl(x * 100);
+      return { m, th, d, kk, answer: a, tol: t, unit: 'cm',
+        q: `A ${m} kg block slides from rest down a smooth incline of angle ${th}° (sin ${th}° = ${SI2[th]}) and hits a light spring (k = ${kk} N/m) fixed along the incline, ${d} m from the block. Find the greatest compression of the spring (in cm, g = 10 m/s²).`,
+        sol: `Gravity along the incline: mg sin θ = ${fmt(w, 4)} N. The block falls d + x along the incline: ${fmt(w, 4)}(${d} + x) = ½ × ${kk} × x². So ${kk / 2}x² − ${fmt(w, 4)}x − ${fmt(w * d, 4)} = 0, giving x = ${fmt(x, 4)} m = ${fmt(x * 100, 4)} cm.`,
+        trap: 'The block keeps falling while it compresses the spring.' };
+    },
+    verify: (p) => { const w = p.m * 10 * SI2[p.th]; let lo = 0, hi = 5; const f = (x) => 0.5 * p.kk * x * x - w * (p.d + x); for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (f(mid) < 0) lo = mid; else hi = mid; } return lo * 100; } },
+  { id: 'wep-g26', type: 'nat', level: 4, exams: EX[4], sub: 'vertical circle',
+    make(rng) {
+      const L = choose(rng, [0.5, 1, 1.5, 2]), fr = choose(rng, [0.5, 0.6, 0.75]), m = choose(rng, [0.2, 0.5, 1]);
+      const d = +(fr * L).toFixed(4), r = +(L - d).toFixed(4);
+      const T = m * 10 * (1 + 2 * L / r); const [a, t] = tl(T);
+      return { L, d, r, m, answer: a, tol: t, unit: 'N',
+        q: `A ${m} kg bob on a string of length ${L} m is released from the horizontal position. When the string becomes vertical it meets a nail ${d} m below the pivot, so the bob moves on a smaller circle. Find the tension just after the string meets the nail (in N, g = 10 m/s²).`,
+        sol: `At the bottom v² = 2gL = ${fmt(20 * L, 4)}. The new radius is r = ${L} − ${d} = ${r} m. T − mg = mv²/r, so T = ${fmt(m * 10, 4)} + ${m} × ${fmt(20 * L, 4)} / ${r} = ${fmt(T, 4)} N.`,
+        trap: 'Use the new, smaller radius.' };
+    },
+    verify: (p) => { const v2 = 2 * 10 * p.L; return p.m * 10 + p.m * v2 / (p.L - p.d); } },
+  { id: 'wep-g27', type: 'nat', level: 4, exams: EX[4], sub: 'power',
+    make(rng) {
+      const m = choose(rng, [1, 2, 4, 5]), v = choose(rng, [3, 4, 5, 6]), P = choose(rng, [6, 12, 20, 30, 50]);
+      const x = m * v ** 3 / (3 * P); const [a, t] = tl(x);
+      return { m, v, P, answer: a, tol: t, unit: 'm',
+        q: `A ${m} kg body is acted on by a constant power of ${P} W from rest, with no other force along its line of motion. Find the distance it covers while its speed rises from 0 to ${v} m/s (in m).`,
+        sol: `Time: Pt = ½mv², so t = ${fmt(m * v * v / (2 * P), 4)} s. Speed v(t) = √(2Pt/m), so x = ∫v dt = (2/3)√(2P/m) t^{3/2}. This simplifies to x = mv³/(3P) = ${m} × ${v ** 3} / (3 × ${P}) = ${fmt(x, 4)} m.`,
+        trap: 'Constant power does not mean constant acceleration, so s = v²/2a fails.' };
+    },
+    verify: (p) => { const T = p.m * p.v * p.v / (2 * p.P), n = 40000, h = T / n; let s = 0; for (let i = 0; i < n; i++) s += Math.sqrt(2 * p.P * (i + 0.5) * h / p.m) * h; return s; } },
+  { id: 'wep-g28', type: 'mcq', level: 4, exams: EX[4], sub: 'potential energy curve',
+    make(rng) {
+      const q = choose(rng, [2, 3, 4, 5]);
+      const { options, answer } = shuffleOpts(rng, `x = ${q} m`, [`x = −${q} m`, `x = ${q * q} m`, `x = −${q * q} m`]);
+      return { q0: q, options, answer,
+        q: `A particle moves under the potential energy U(x) = (x³/3 − ${q * q}x) J (x in m). Its position of stable equilibrium is`,
+        sol: `F = −dU/dx = −(x² − ${q * q}), zero at x = ±${q}. U″ = 2x is positive at x = +${q} (a minimum, stable) and negative at x = −${q} (a maximum, unstable). The values ±${q * q} are not equilibrium points.`,
+        trap: 'Both roots are equilibria; only the minimum of U is stable.' };
+    },
+    verify: (p) => { const roots = [Math.sqrt(p.q0 * p.q0), -Math.sqrt(p.q0 * p.q0)]; const st = roots.find((r) => 2 * r > 0); return p.options.indexOf(`x = ${st} m`); } },
+  { id: 'wep-g29', type: 'nat', level: 5, exams: EX[5], sub: 'work by friction',
+    make(rng) {
+      const al = choose(rng, [0.1, 0.2, 0.25, 0.4]), u = choose(rng, [3, 4, 5, 6, 8]), m = choose(rng, [1, 2, 3]);
+      const s = u / Math.sqrt(10 * al); const [a, t] = tl(s);
+      return { al, u, m, answer: a, tol: t, unit: 'm',
+        q: `A ${m} kg block moving at ${u} m/s enters a rough surface where the coefficient of friction grows with distance x from the edge as μ = ${al}x. How far does it go before stopping (in m, g = 10 m/s²)?`,
+        sol: `Friction = ${al}x × mg. Work-energy: ½mu² = ∫₀ˢ ${al}x·mg dx = ½ × ${al} × m × 10 × s². The mass cancels: u² = ${fmt(al * 10, 4)}s², so s = ${u}/√${fmt(al * 10, 4)} = ${fmt(s, 4)} m.`,
+        trap: 'The friction force is not constant: integrate it.' };
+    },
+    verify: (p) => { const target = 0.5 * p.u * p.u; let lo = 0, hi = 20; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (p.al * 10 * mid * mid / 2 < target) lo = mid; else hi = mid; } return lo; } },
+  { id: 'wep-g30', type: 'nat', level: 4, exams: EX[4], sub: 'conservation of energy',
+    make(rng) {
+      const m1 = choose(rng, [2, 3, 4]), m2 = choose(rng, [2, 3, 5]), mu = choose(rng, [0.1, 0.2, 0.25]), h = choose(rng, [0.5, 1, 1.5, 2]);
+      const v = Math.sqrt(2 * (m2 - mu * m1) * 10 * h / (m1 + m2)); const [a, t] = tl(v);
+      return { m1, m2, mu, h, answer: a, tol: t, unit: 'm/s',
+        q: `A ${m1} kg block on a rough horizontal table (μ = ${mu}) is tied by a light string over a smooth light pulley at the table's edge to a ${m2} kg block hanging freely. The system is released from rest. Find the speed when the hanging block has fallen ${h} m (in m/s, g = 10 m/s²).`,
+        sol: `Net work = m₂gh − μm₁gh = ${fmt((m2 - mu * m1) * 10 * h, 5)} J. This equals ½(m₁ + m₂)v² = ½ × ${m1 + m2} × v². So v = √(2 × ${fmt((m2 - mu * m1) * 10 * h, 5)} / ${m1 + m2}) = ${fmt(v, 4)} m/s.` };
+    },
+    verify: (p) => { const acc = (p.m2 - p.mu * p.m1) * 10 / (p.m1 + p.m2); return Math.sqrt(2 * acc * p.h); } },
 ];
 
 export default { topic: 'work-energy-power', groups, items, gens };

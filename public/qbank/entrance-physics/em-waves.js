@@ -315,6 +315,181 @@ const items = [
     r`$\lambda = 2\pi/k = 2\pi/(1.257\times10^7) = 5.0\times10^{-7}$ m $= 500$ nm. Check: $c = f\lambda = 6\times10^{14}\times5\times10^{-7} = 3\times10^8$.`, { unit: 'nm' }),
   pasm(3, 'wave', 'p3', r`The wave belongs to which part of the spectrum?`, 'Visible light (green)', ['Infrared', 'Ultraviolet', 'Microwaves'],
     r`500 nm lies between 400 nm and 700 nm, so it is visible, and is green.`),
+
+  // ================= Added 2026-11-22: harder and more varied questions =================
+  // ---------- Level 2 ----------
+  mcq(2, 'history', r`Electromagnetic waves were first produced and detected in the laboratory by`, 'Heinrich Hertz', ['James Clerk Maxwell', 'Michael Faraday', 'Guglielmo Marconi'],
+    r`Maxwell predicted EM waves (1860s). Hertz produced and detected radio waves in 1887. Marconi later used them for communication. Faraday discovered induction.`),
+  mcq(2, 'direction of propagation', r`In an EM wave the electric field points along $+y$ and the magnetic field along $+z$. The wave travels along`, r`$+x$`, [r`$-x$`, r`$+y$`, r`$-z$`],
+    r`The direction of travel is the direction of $\vec E\times\vec B$. $\hat y\times\hat z = \hat x$, so the wave moves along $+x$.`),
+  nat(2, 'wavelength and frequency', r`A microwave has a wavelength of 3 cm in vacuum. Find its frequency in GHz. Use $c = 3\times10^{8}\ \mathrm{m\,s^{-1}}$.`, 3e8 / 0.03 / 1e9, 0, 0,
+    r`$f = c/\lambda = 3\times10^{8}/0.03 = 1.0\times10^{10}$ Hz $= 10$ GHz.`, { unit: 'GHz' }),
+  mcq(2, 'sources', r`Electromagnetic waves are produced by`, 'accelerated (or oscillating) charges', ['charges at rest', 'charges moving with constant velocity', 'neutral atoms at rest'],
+    r`A charge at rest gives only an electric field and a charge in uniform motion gives constant fields. Only accelerating charges radiate EM waves.`),
+  nat(2, 'photon energy', r`Find the energy of a photon of wavelength 400 nm in eV (use $hc = 1240$ eV nm, 1 decimal).`, 1240 / 400, 0.05, 1,
+    r`$E = hc/\lambda = 1240/400 = 3.1$ eV.`, { unit: 'eV' }),
+  mcq(2, 'uses of EM waves', r`Night-vision devices and thermal cameras work by detecting`, 'infrared radiation', ['ultraviolet radiation', 'X-rays', 'radio waves'],
+    r`Warm bodies emit infrared radiation. Cameras sensitive to it form an image even in darkness.`),
+
+  // ---------- Level 3 ----------
+  mcq(3, 'direction of propagation', r`An EM wave travels along $-z$ with its electric field along $+x$. Its magnetic field is along`, r`$-y$`, [r`$+y$`, r`$+z$`, r`$-x$`],
+    r`We need $\vec E\times\vec B$ along $-\hat z$. $\hat x\times(-\hat y) = -\hat z$, so $\vec B$ is along $-y$. (Using $+y$ would give $+z$.)`, { trap: 'Check the cross product, do not guess the sign.' }),
+  nat(3, 'point source', r`A point source radiates 200 W uniformly as EM waves. Find the amplitude of the electric field at 5 m from it (in $\mathrm{V\,m^{-1}}$, 1 decimal). Use $\epsilon_0 = 8.85\times10^{-12}$ and $c = 3\times10^{8}$.`, Math.sqrt(2 * (200 / (4 * Math.PI * 25)) / (E0P * C)), 0.2, 1,
+    r`$I = P/4\pi r^2 = 200/(4\pi\times25) = 0.637\ \mathrm{W\,m^{-2}}$. $I = \tfrac12\epsilon_0cE_0^2$, so $E_0 = \sqrt{2I/\epsilon_0c} = \sqrt{2\times0.637/(8.85\times10^{-12}\times3\times10^{8})} = 21.9\ \mathrm{V\,m^{-1}}$.`, { unit: 'V/m' }),
+  mcq(3, 'point source', r`A point source radiates EM waves uniformly. The electric field amplitude at distance $r$ is $E_0$. At distance $3r$ it is`, r`$E_0/3$`, [r`$E_0/9$`, r`$E_0/\sqrt3$`, r`$3E_0$`],
+    r`Intensity falls as $1/r^2$ and $I\propto E_0^2$. So $E_0\propto1/r$: at $3r$ the amplitude is $E_0/3$.`, { trap: 'The intensity falls as $1/r^2$ but the amplitude only as $1/r$.' }),
+  nat(3, 'displacement current', r`The circular plates of a capacitor have radius 4 cm. The electric field between them changes at $2\times10^{12}\ \mathrm{V\,m^{-1}s^{-1}}$. Find the displacement current (in A, 3 decimals).`, E0P * Math.PI * 0.04 ** 2 * 2e12, 0.002, 3,
+    r`$I_d = \epsilon_0\dfrac{d\Phi_E}{dt} = \epsilon_0\pi R^2\dfrac{dE}{dt} = 8.85\times10^{-12}\times\pi(0.04)^2\times2\times10^{12} = 0.089$ A.`, { unit: 'A' }),
+  nat(3, 'photons', r`Hydrogen gas in space emits radio waves of wavelength 21 cm. Find the energy of one photon in units of $10^{-25}$ J (2 decimals). Use $hc = 1.986\times10^{-25}$ J m.`, HC / 0.21 / 1e-25, 0.02, 2,
+    r`$E = hc/\lambda = 1.986\times10^{-25}/0.21 = 9.46\times10^{-25}$ J.`, { unit: '1e-25 J' }),
+  nat(3, 'antenna', r`An antenna that is a quarter of a wavelength long is to transmit at 100 MHz. Find its length in metres (2 decimals).`, 3e8 / 100e6 / 4, 0.005, 2,
+    r`$\lambda = c/f = 3\times10^{8}/10^{8} = 3$ m. Length $=\lambda/4 = 0.75$ m.`, { unit: 'm' }),
+  nat(3, 'laser beam', r`A laser pointer emits 5 mW in a beam of circular cross-section with radius 1 mm. Find the intensity in $\mathrm{W\,m^{-2}}$ (nearest integer).`, 5e-3 / (Math.PI * 1e-6), 1, 0,
+    r`$I = P/A = 5\times10^{-3}/(\pi\times10^{-6}) = 1.59\times10^{3}\ \mathrm{W\,m^{-2}}$.`, { unit: 'W/m²' }),
+  mcq(3, 'medium', r`A plane EM wave travels in a non-magnetic medium of refractive index $n$. The ratio $E_0/B_0$ of the amplitudes is`, r`$c/n$`, [r`$c$`, r`$nc$`, r`$c/n^2$`],
+    r`$E_0/B_0$ equals the wave speed in the medium, $v = c/n$ (for the wave in a medium of permittivity $\epsilon$ and permeability $\mu$, $v = 1/\sqrt{\mu\epsilon}$).`),
+  nat(3, 'LC oscillator', r`An LC circuit has $L = 2\ \mu$H and $C = 50$ pF. Find the wavelength of the EM wave it radiates (in m, 1 decimal). Use $c = 3\times10^{8}$.`, 3e8 * 2 * Math.PI * Math.sqrt(2e-6 * 50e-12), 0.2, 1,
+    r`$f = \dfrac{1}{2\pi\sqrt{LC}} = \dfrac{1}{2\pi\sqrt{10^{-16}}} = 1.59\times10^{7}$ Hz. $\lambda = c/f = 3\times10^{8}/1.59\times10^{7} = 18.8$ m.`, { unit: 'm' }),
+  nat(3, 'electromagnetic spectrum', r`How many of the following have a <b>shorter</b> wavelength than visible light? Radio waves, microwaves, ultraviolet, X-rays, infrared, gamma rays.`, 3, 0, 0,
+    r`Radio waves, microwaves and infrared are longer than visible. Ultraviolet, X-rays and gamma rays are shorter. So 3.`),
+  nat(3, 'Maxwell equations', r`How many of Maxwell's four equations contain a time derivative (a changing field) in their integral or differential form?`, 2, 0, 0,
+    r`Faraday's law has $-d\Phi_B/dt$ and the Ampere-Maxwell law has $\mu_0\epsilon_0\,d\Phi_E/dt$. The two Gauss's laws have no time derivatives. So 2.`),
+  nat(3, 'medium', r`In a non-magnetic medium of refractive index 2 the ratio $E_0/B_0$ of the amplitudes of an EM wave is $x\times10^{8}\ \mathrm{m\,s^{-1}}$. Find $x$.`, 3 / 2, 0.005, 3,
+    r`$E_0/B_0 = v = c/n = 3\times10^{8}/2 = 1.5\times10^{8}\ \mathrm{m\,s^{-1}}$, so $x = 1.5$.`),
+  asrt(3, 'speed of EM waves', r`The speed of light in vacuum does not depend on its frequency.`, r`In vacuum $c = 1/\sqrt{\mu_0\epsilon_0}$, and $\mu_0$ and $\epsilon_0$ are constants.`, 0,
+    r`Both true and R explains A. Since $c$ is fixed by the constants of vacuum, every EM wave in vacuum travels at the same speed.`),
+  stm(3, 'momentum of radiation', r`EM waves carry momentum.`, r`The momentum of radiation of energy $U$ is $U/c$.`, 0,
+    r`Radiation exerts pressure, so it carries momentum. For a wave $p = U/c$, which is the same as $p = hf/c$ for a photon. Both true.`),
+  stm(3, 'ionosphere', r`Short radio waves can be received beyond the horizon.`, r`The ionosphere reflects radio waves of frequency below a critical value.`, 0,
+    r`Waves in the short-wave band are reflected back to Earth by the ionosphere (sky wave propagation). Higher frequencies (such as microwaves and TV) pass through it. Both true and II is the explanation.`),
+  mat(3, 'frequency ranges', 'm5', r`Match each source of radiation with its approximate frequency.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`FM radio: about $10^{8}$ Hz (p). Microwave oven: $2.45\times10^{9}$ Hz $\approx10^{9}$ Hz (q). Visible light: about $5\times10^{14}$ Hz (r). Medical X-rays: about $10^{18}$ Hz (s). So A-p, B-q, C-r, D-s.`),
+  mat(3, 'applications', 'm6', r`Match each application in List I with the radiation it uses in List II.`, 'A-r, B-s, C-p, D-q', ['A-p, B-q, C-r, D-s', 'A-r, B-q, C-p, D-s', 'A-s, B-r, C-p, D-q'],
+    r`Aircraft radar uses microwaves (r). Sunburn is caused by ultraviolet (s). Seeing a fracture on a screen uses X-rays (p). Sterilising food and cancer therapy use gamma rays (q). So A-r, B-s, C-p, D-q.`),
+  mat(3, 'medium', 'm7', r`A plane EM wave of frequency $f_0$ and wavelength $\lambda_0$ in vacuum enters a non-magnetic medium of refractive index $n$. Match each quantity with its value in the medium.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-r, C-q, D-s', 'A-p, B-q, C-s, D-r'],
+    r`Speed $c/n$ (p). Wavelength $\lambda_0/n$ (q). Frequency stays $f_0$ (r). The electric and magnetic energy densities remain equal, ratio 1 (s). So A-p, B-q, C-r, D-s.`),
+  pas(3, 'laser beam', 'p4', r`Find the intensity of the beam in $\mathrm{kW\,m^{-2}}$ (2 decimals).`, 5e-3 / (Math.PI * 1e-6) / 1e3, 0.02, 2,
+    r`$I = P/(\pi r^2) = 5\times10^{-3}/(\pi\times10^{-6}) = 1.59\times10^{3}\ \mathrm{W\,m^{-2}} = 1.59\ \mathrm{kW\,m^{-2}}$.`, { unit: 'kW/m²' }),
+  pas(4, 'laser beam', 'p4', r`Find the amplitude of the electric field in the beam (in $\mathrm{V\,m^{-1}}$, nearest integer). Use $\epsilon_0 = 8.85\times10^{-12}$ and $c = 3\times10^{8}$.`, Math.sqrt(2 * (5e-3 / (Math.PI * 1e-6)) / (E0P * C)), 5, 0,
+    r`$I = \tfrac12\epsilon_0cE_0^2$, so $E_0 = \sqrt{2I/\epsilon_0c} = \sqrt{2\times1591.5/(8.85\times10^{-12}\times3\times10^{8})} = 1.09\times10^{3}\ \mathrm{V\,m^{-1}}$ (about 1095).`, { unit: 'V/m' }),
+  pas(4, 'photons', 'p4', r`Find the number of photons emitted per second, in units of $10^{16}$ (2 decimals). Use $hc = 1.986\times10^{-25}$ J m.`, 5e-3 * 600e-9 / HC / 1e16, 0.02, 2,
+    r`Energy of one photon $= hc/\lambda = 1.986\times10^{-25}/6\times10^{-7} = 3.31\times10^{-19}$ J. Photons per second $= P/E = 5\times10^{-3}/3.31\times10^{-19} = 1.51\times10^{16}$.`),
+
+  // ---------- Level 4 ----------
+  msq(4, 'EM waves', r`For a plane EM wave in vacuum, which statements are correct?`,
+    [r`$\vec E$ and $\vec B$ oscillate in phase`, r`$E = cB$ at every instant and every point`, r`Most of the wave's energy is carried by the electric field`, r`The average total energy density is $\tfrac12\epsilon_0E_0^2$`], [0, 1, 3],
+    r`In vacuum $E$ and $B$ reach their maxima together and $E = cB$ (A, B). The electric and magnetic energy densities are equal, so neither carries most (C false). Average electric energy density $=\tfrac14\epsilon_0E_0^2$, and the magnetic part is equal, so the total is $\tfrac12\epsilon_0E_0^2$ (D true).`),
+  msq(4, 'Maxwell equations', r`Which statements about Maxwell's equations are correct?`,
+    [r`$\oint\vec B\cdot d\vec A = 0$ shows that there are no magnetic monopoles`, r`$\oint\vec E\cdot d\vec l = -\dfrac{d\Phi_B}{dt}$ is Faraday's law`, r`$\oint\vec B\cdot d\vec l = \mu_0I + \mu_0\epsilon_0\dfrac{d\Phi_E}{dt}$ is the Ampere-Maxwell law`, r`$\oint\vec E\cdot d\vec A = q/\epsilon_0$ holds only for charges at rest`], [0, 1, 2],
+    r`A, B and C are the standard laws. Gauss's law for electricity is valid always, for moving or changing charges, so D is false.`),
+  msq(4, 'radiation pressure', r`A plane EM wave of intensity $I$ falls on a flat surface of area $A$. Which are correct?`,
+    [r`At normal incidence the pressure on a perfect reflector is twice that on a perfect absorber`, r`At normal incidence the pressure on a perfect absorber is $I/c$`, r`If the absorber is hit at angle $\theta$ to the normal, the force along the beam is $IA\cos\theta/c$`, r`The normal pressure on a perfect absorber is $I/c$ at every angle of incidence`], [0, 1, 2],
+    r`Normal incidence: absorber $I/c$, reflector $2I/c$ (A, B). Obliquely, the beam intensity through the area falls by $\cos\theta$, so the force is $IA\cos\theta/c$ (C), and its normal part gives pressure $I\cos^2\theta/c$, so D is false.`),
+  msq(4, 'photon energy', r`Which of the following statements are correct? (Use $E = hc/\lambda$, $hc = 1240$ eV nm.)`,
+    ['An ultraviolet photon has more energy than a visible-light photon', 'A photon of energy 1 eV lies in the infrared', 'All EM waves are made of photons of the same energy', 'X-ray photons have energies of the order of keV'], [0, 1, 3],
+    r`Higher frequency means higher energy (A). 1 eV corresponds to $\lambda = 1240$ nm, which is infrared (B). Photon energy $=hf$ depends on the frequency, so C is false. X-ray photons of about 0.1 nm have $E\approx12.4$ keV (D).`),
+  msq(4, 'plane wave', r`The electric field of a wave in vacuum is $\vec E = E_0\sin(kz-\omega t)\,\hat x$. Which statements are correct?`,
+    [r`The magnetic field is along $\hat y$`, r`$B_0 = E_0/c$`, r`The wave travels along $-z$`, r`$k = \omega/c$`], [0, 1, 3],
+    r`$\hat x\times\hat y = \hat z$ so $\vec B$ is along $\hat y$ (A). $B_0 = E_0/c$ (B). The phase $kz-\omega t$ means travel in the $+z$ direction (C false). $k = 2\pi/\lambda = \omega/c$ (D).`),
+  nat(4, 'Wien law', r`The Sun's surface at 5800 K radiates most strongly near the wavelength given by $\lambda_mT = 2.898\times10^{-3}$ m K. Find $\lambda_m$ in nm (nearest 10 nm).`, 2.898e-3 / 5800 * 1e9, 5, 0,
+    r`$\lambda_m = 2.898\times10^{-3}/5800 = 4.997\times10^{-7}$ m $\approx500$ nm, the green part of the visible spectrum.`, { unit: 'nm' }),
+  nat(4, 'photons', r`A 1 W source emits only light of wavelength 500 nm. Find the number of photons it emits per second, in units of $10^{18}$ (2 decimals). Use $hc = 1.986\times10^{-25}$ J m.`, 1 * 500e-9 / HC / 1e18, 0.02, 2,
+    r`Energy of one photon $= hc/\lambda = 1.986\times10^{-25}/5\times10^{-7} = 3.97\times10^{-19}$ J. Number per second $= 1/3.97\times10^{-19} = 2.52\times10^{18}$.`),
+  nat(4, 'radiation force', r`A 1 kW laser beam is reflected straight back by a perfect mirror. Find the force on the mirror in micronewtons (2 decimals). $c = 3\times10^{8}$.`, 2 * 1000 / 3e8 * 1e6, 0.02, 2,
+    r`Each photon's momentum changes from $p$ to $-p$, a change of $2p$. Force $= 2P/c = 2\times1000/3\times10^{8} = 6.67\times10^{-6}$ N $= 6.67\ \mu$N.`, { unit: 'μN', trap: 'Reflection doubles the force compared with absorption.' }),
+  nat(4, 'LC oscillator', r`A transmitter radiates at a wavelength of 250 m. A quarter-wave antenna is used. Find its length in metres (1 decimal).`, 250 / 4, 0.05, 1,
+    r`The antenna length is $\lambda/4 = 250/4 = 62.5$ m.`, { unit: 'm' }),
+  nat(4, 'radiation pressure', r`A 1 kW lamp radiates uniformly in all directions as EM waves. A perfectly absorbing surface faces it normally at 1 m. Find the radiation pressure on it in units of $10^{-7}$ Pa (2 decimals). $c = 3\times10^{8}$.`, 1000 / (4 * Math.PI) / 3e8 / 1e-7, 0.02, 2,
+    r`$I = P/4\pi r^2 = 1000/4\pi = 79.6\ \mathrm{W\,m^{-2}}$. Pressure $= I/c = 79.6/3\times10^{8} = 2.65\times10^{-7}$ Pa.`),
+  nat(4, 'radiation force', r`Light of intensity $600\ \mathrm{W\,m^{-2}}$ falls on a perfectly absorbing sphere of radius 5 cm. Find the force on it in nN (1 decimal). $c = 3\times10^{8}$.`, 600 * Math.PI * 0.05 ** 2 / 3e8 * 1e9, 0.1, 1,
+    r`The sphere intercepts light over its cross-section $\pi R^2$, not its whole surface. $F = I\pi R^2/c = 600\times\pi\times0.0025/3\times10^{8} = 1.57\times10^{-8}$ N $= 15.7$ nN.`, { unit: 'nN', trap: 'Use the cross-section $\\pi R^2$, not $4\\pi R^2$.' }),
+  nat(4, 'reflection at a surface', r`Light of intensity $1000\ \mathrm{W\,m^{-2}}$ falls normally on glass of refractive index 1.5. The fraction reflected is $\left(\dfrac{n-1}{n+1}\right)^2$. Find the reflected intensity in $\mathrm{W\,m^{-2}}$.`, 1000 * (0.5 / 2.5) ** 2, 0.5, 0,
+    r`Fraction $= (0.5/2.5)^2 = 0.04$. Reflected intensity $= 0.04\times1000 = 40\ \mathrm{W\,m^{-2}}$.`, { unit: 'W/m²' }),
+  nat(4, 'displacement current', r`The voltage across a parallel-plate capacitor ($C = 4\ \mu$F) rises at $5\times10^{5}\ \mathrm{V\,s^{-1}}$. Find the displacement current between its plates in A.`, 4e-6 * 5e5, 0, 0,
+    r`The displacement current equals the conduction current in the wires: $I_d = C\,dV/dt = 4\times10^{-6}\times5\times10^{5} = 2$ A.`, { unit: 'A' }),
+  nat(4, 'wavelength and frequency', r`How many wavelengths of light of wavelength 600 nm fit in a length of 1.2 mm?`, 1.2e-3 / 600e-9, 0, 0,
+    r`$N = 1.2\times10^{-3}/6\times10^{-7} = 2000$.`),
+  nat(4, 'magnetic field of displacement current', r`A circular parallel-plate capacitor of plate radius 6 cm carries a charging current of 1.5 A. Find the magnetic field between the plates at 3 cm from the axis, in $\mu$T (1 decimal).`, 2e-7 * 1.5 * 0.03 / 0.06 ** 2 * 1e6, 0.05, 1,
+    r`Inside the plates, the displacement current through a circle of radius $r$ is $I\,r^2/R^2$. $B\,2\pi r = \mu_0Ir^2/R^2$, so $B = \dfrac{\mu_0Ir}{2\pi R^2} = 2\times10^{-7}\times1.5\times0.03/0.0036 = 2.5\times10^{-6}$ T $= 2.5\ \mu$T.`, { unit: 'μT' }),
+  pas(3, 'displacement current', 'p5', r`Find the displacement current between the plates (in A, 1 decimal).`, 1.5, 0.05, 1,
+    r`For an ideal capacitor the displacement current equals the conduction current in the connecting wires: 1.5 A.`, { unit: 'A' }),
+  pas(4, 'magnetic field of displacement current', 'p5', r`Find $B$ at a distance 3 cm from the axis, between the plates (in $\mu$T, 1 decimal).`, 2e-7 * 1.5 * 0.03 / 0.06 ** 2 * 1e6, 0.05, 1,
+    r`$B = \dfrac{\mu_0Ir}{2\pi R^2} = 2\times10^{-7}\times1.5\times0.03/(0.06)^2 = 2.5\times10^{-6}$ T $= 2.5\ \mu$T.`, { unit: 'μT' }),
+  pasm(5, 'magnetic field of displacement current', 'p5', r`The field at 12 cm from the axis (outside the plates, in the same plane) is`, 'equal to the field at 3 cm, which is 2.5 μT', ['5.0 μT', '1.25 μT', 'zero, since there is no field outside the plates'],
+    r`Outside the plates the whole displacement current $I$ passes through the circle: $B = \mu_0I/2\pi r = 2\times10^{-7}\times1.5/0.12 = 2.5\times10^{-6}$ T. The field rises to a maximum at $r = R$ and then falls as $1/r$.`, { trap: 'Equal values at two different radii: inside it rises as $r$, outside it falls as $1/r$.' }),
+  asrt(4, 'displacement current', r`A displacement current exists between the plates of a charging capacitor, even in vacuum.`, r`A changing electric field produces a magnetic field.`, 0,
+    r`Both are true and R explains A. The displacement current $\epsilon_0\,d\Phi_E/dt$ is not a flow of charge but behaves like a current because the changing $\vec E$ gives the same magnetic field.`),
+  asrt(4, 'radiation pressure', r`Radiation pressure on a perfectly reflecting sphere (specular reflection) is twice that on a perfectly absorbing sphere of the same size.`, r`At normal incidence on a flat surface, reflection changes a photon's momentum twice as much as absorption does.`, 3,
+    r`R is true for a flat surface at normal incidence. But for a sphere the rays hit at different angles, and integrating the force over the sphere gives the same total force $I\pi R^2/c$ as for an absorbing sphere. So A is false and R is true.`, { trap: 'The doubling only applies to a flat mirror at normal incidence.' }),
+  stm(4, 'greenhouse effect', r`Microwave ovens use a frequency of 2.45 GHz because water molecules have a single sharp resonance at exactly that frequency.`, r`Microwaves heat food by making polar molecules such as water rotate.`, 3,
+    r`Statement I is a common myth: water absorbs broadly over a wide range, and 2.45 GHz is chosen because it penetrates food reasonably and is an allowed (ISM) band. Statement II is true. So I false, II true.`),
+  stm(4, 'Poynting vector', r`The Poynting vector $\vec S = \dfrac{1}{\mu_0}\vec E\times\vec B$ gives the direction of energy flow of an EM wave.`, r`For a plane wave in vacuum, $\vec S$ points along the direction of propagation.`, 0,
+    r`$\vec S$ is the energy flow per unit area per unit time. For $\vec E\perp\vec B$ in a plane wave, $\vec E\times\vec B$ points along the propagation direction. Both true.`),
+  cnt(4, 'EM waves', r`How many of the following statements are correct?`, [
+    r`Radio waves can pass through vacuum.`,
+    r`Gamma rays have a longer wavelength than microwaves.`,
+    r`UV radiation can cause sunburn.`,
+    r`Infrared radiation is deflected by a magnetic field.`], 2,
+    r`(1) true. (2) false: gamma rays are among the shortest. (3) true. (4) false: EM waves are neutral and are not deflected by fields. So two are correct.`),
+  mat(4, 'Maxwell equations', 'm8', r`Match each of Maxwell's equations in List I with the statement it expresses in List II.`, 'A-s, B-p, C-q, D-r', ['A-p, B-s, C-q, D-r', 'A-s, B-q, C-p, D-r', 'A-s, B-p, C-r, D-q'],
+    r`Gauss's law for electricity: charge is the source of $\vec E$ (s). Gauss's law for magnetism: no monopoles (p). Faraday's law: changing $\vec B$ produces $\vec E$ (q). Ampere-Maxwell law: changing $\vec E$ (and current) produces $\vec B$ (r). So A-s, B-p, C-q, D-r.`),
+  mat(4, 'radiation pressure', 'm9', r`Light of intensity $I$ falls on a surface. Match each case in List I with the force per unit area (normal to the surface) in List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`A: perfect absorber, normal: $I/c$ (p). B: perfect reflector, normal: $2I/c$ (q). C: a surface reflecting 50% normally: $(1+0.5)I/c = 1.5I/c$ (r). D: perfect absorber, incidence $60^\circ$: $I\cos^260^\circ/c = I/4c$ (s). So A-p, B-q, C-r, D-s.`),
+  mat(4, 'medium', 'm10', r`Match each non-magnetic medium in List I (with $\mu_r = 1$) with the refractive index in List II, using $n = \sqrt{\epsilon_r\mu_r}$.`, 'A-p, B-s, C-r, D-q', ['A-s, B-p, C-r, D-q', 'A-p, B-q, C-r, D-s', 'A-p, B-s, C-q, D-r'],
+    r`$n = \sqrt{\epsilon_r}$. A: $\epsilon_r = 4$ gives 2 (p). B: $\epsilon_r = 9$ gives 3 (s). C: $\epsilon_r = 1$ gives 1 (r). D: $\epsilon_r = 36$ gives 6 (q). So A-p, B-s, C-r, D-q.`),
+  mat(5, 'plane wave', 'm11', r`Each wave in List I travels in vacuum and has $\vec E$ as described. Match with the direction of $\vec B$ in List II. Here $kx\mp\omega t$ describes motion along $\pm x$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+    r`$\vec S\parallel\vec E\times\vec B$. A: moves $+x$, $\vec E\parallel\hat y$: $\hat y\times\hat z = \hat x$, so $\vec B\parallel+\hat z$ (p). B: moves $+x$, $\vec E\parallel\hat z$: $\hat z\times(-\hat y) = \hat x$, so $\vec B\parallel-\hat y$ (q). C: moves $-x$, $\vec E\parallel\hat y$: $\hat y\times(-\hat z) = -\hat x$, so $\vec B\parallel-\hat z$ (r). D: moves $-x$, $\vec E\parallel\hat z$: $\hat z\times\hat y = -\hat x$, so $\vec B\parallel+\hat y$ (s). So A-p, B-q, C-r, D-s.`),
+
+  // ---------- Level 5 ----------
+  msq(5, 'displacement current', r`A parallel-plate capacitor is charged through connecting wires. Which statements are correct?`,
+    ['A displacement current exists only where the electric field is changing', 'For an ideal capacitor it equals the conduction current in the wires', 'It produces a magnetic field in the same way as a conduction current', 'It exists only inside dielectric materials, not in vacuum'], [0, 1, 2],
+    r`$I_d = \epsilon_0\,d\Phi_E/dt$ is non-zero only where $\vec E$ changes (A). Continuity of current requires $I_d = I$ (B). It is a source of $\vec B$ in the Ampere-Maxwell law (C). It exists in vacuum too (D false).`),
+  msq(5, 'EM waves in a medium', r`A plane EM wave goes from vacuum into a non-magnetic medium of refractive index $n>1$. Which statements are correct?`,
+    ['The frequency is unchanged', r`The wavelength becomes $\lambda_0/n$`, r`$E_0/B_0 = c/n$`, 'The electric energy density becomes larger than the magnetic energy density'], [0, 1, 2],
+    r`Frequency is fixed by the source (A). $v = c/n$ so $\lambda = v/f = \lambda_0/n$ (B). $E_0/B_0 = v = c/n$ (C). Electric and magnetic energy densities stay equal because $\tfrac12\epsilon E^2 = \tfrac12B^2/\mu$ when $E = vB$ (D false).`),
+  msq(5, 'electromagnetic spectrum', r`Which statements about the EM spectrum are correct?`,
+    ['The wavelength ranges of X-rays and gamma rays overlap', 'Visible light covers roughly 400 nm to 700 nm', 'The ozone layer absorbs most of the Sun\'s harmful ultraviolet radiation', 'Microwave ovens use 2.45 GHz because it is the one exact resonant frequency of water'], [0, 1, 2],
+    r`A, B and C are standard facts. D is a myth: water absorbs over a broad range and 2.45 GHz is used for practical reasons.`),
+  msq(5, 'sources of EM waves', r`Which statements about the production of EM waves are correct?`,
+    ['An accelerating charge radiates EM waves', 'A charge moving at constant velocity does not radiate', 'An LC circuit with an antenna can produce EM waves', 'A static electric charge produces EM waves'], [0, 1, 2],
+    r`Only accelerated charges radiate. A uniformly moving charge has a steady field (in its own frame, a static one). An oscillating LC circuit involves accelerating charges and so, with an antenna, radiates. A static charge does not (D false).`),
+  msq(5, 'Poynting vector', r`A circular parallel-plate capacitor is being charged. Which statements about energy flow are correct?`,
+    ['The Poynting vector at the rim points radially inward', 'The power flowing in through the rim equals $dU/dt$, the rate at which the stored energy rises', 'While it is discharging, the Poynting vector at the rim points outward', 'There is no energy flux because no EM wave is present'], [0, 1, 2],
+    r`The field $E$ between the plates (axial) and the circulating $B$ (from $\epsilon_0\,dE/dt$) give $\vec S\propto\vec E\times\vec B$ pointing inward while charging, and outward while discharging. The total inflow is $dU/dt$. A flux exists in the fields although there is no travelling wave (D false).`),
+  nat(5, 'Poynting vector', r`The plates of a circular parallel-plate capacitor have radius 5 cm and separation 2 mm. The voltage rises at $10^{3}\ \mathrm{V\,s^{-1}}$ when it is 100 V. Find the rate at which energy is stored in its field, equal to the power flowing in through the rim, in $\mu$W (2 decimals). $\epsilon_0 = 8.85\times10^{-12}$.`, E0P * Math.PI * 0.05 ** 2 / 2e-3 * 100 * 1e3 * 1e6, 0.03, 2,
+    r`$C = \epsilon_0\pi R^2/d = 8.85\times10^{-12}\times\pi(0.05)^2/0.002 = 3.48\times10^{-11}$ F. $U = \tfrac12CV^2$, so $dU/dt = CV\,dV/dt = 3.48\times10^{-11}\times100\times10^{3} = 3.48\times10^{-6}$ W $= 3.48\ \mu$W. By the Poynting theorem this flows in radially through the rim.`, { unit: 'μW' }),
+  mcq(5, 'radiation pressure', r`A beam of intensity $I$ falls on a perfectly <b>reflecting</b> sphere of radius $R$ (specular reflection, geometric optics). The force on it is`, r`$\dfrac{I\pi R^{2}}{c}$, the same as for a perfectly absorbing sphere`, [r`$\dfrac{2I\pi R^{2}}{c}$`, r`$\dfrac{I\pi R^{2}}{2c}$`, r`$\dfrac{4I\pi R^{2}}{c}$`],
+    r`A ray hitting at incidence angle $\alpha$ is turned through $\pi-2\alpha$, so its momentum change along the beam is $p(1+\cos2\alpha) = 2p\cos^2\alpha$. The area of the ring at $\alpha$ is $2\pi R^2\sin\alpha\cos\alpha\,d\alpha$ (projected). So $F = \dfrac{I}{c}\int_0^{\pi/2}2\cos^2\alpha\cdot2\pi R^2\sin\alpha\cos\alpha\,d\alpha = \dfrac{I}{c}\,4\pi R^2\cdot\dfrac14 = \dfrac{I\pi R^2}{c}$. It is the same as for an absorbing sphere.`, { trap: 'The factor 2 for reflection is cancelled by the angles at which the rays hit a curved surface.' }),
+  asrt(5, 'Poynting vector', r`Energy flows into a charging capacitor through the space around its plates, not only through the wires.`, r`The Poynting vector $\vec E\times\vec B/\mu_0$ at the rim of the plates points radially inward.`, 0,
+    r`Both true and R explains A. The charging field $E$ and the circulating magnetic field around the changing $E$ give an inward Poynting vector, which carries the energy into the gap from the sides.`),
+  stm(5, 'wave in a medium', r`The ratio of the electric to the magnetic energy density in a plane EM wave in a non-magnetic medium is 1.`, r`In a medium $E = vB$ with $v = 1/\sqrt{\mu\epsilon}$.`, 0,
+    r`$u_E = \tfrac12\epsilon E^2$ and $u_B = B^2/2\mu = E^2/(2\mu v^2) = \tfrac12\epsilon E^2$ using $v^2 = 1/\mu\epsilon$. So they are equal: ratio 1. Both true and II explains I.`),
+
+  // ---------- Level 4: more whole-number answers and one more match ----------
+  nat(4, 'medium', r`Light of wavelength 600 nm in vacuum enters glass of refractive index 1.5. Find its wavelength in the glass in nm.`, 600 / 1.5, 0, 0,
+    r`$\lambda = \lambda_0/n = 600/1.5 = 400$ nm. The frequency does not change; the speed and the wavelength both drop by the factor $n$.`, { unit: 'nm' }),
+  nat(4, 'radiation pressure', r`Light falls on a perfectly absorbing surface at $60^\circ$ to the normal. The normal pressure is $1/x$ of the pressure for normal incidence of the same beam. Find $x$.`, 1 / Math.cos(Math.PI / 3) ** 2, 0, 0,
+    r`The beam's power through the surface falls by $\cos\theta$ and the normal component of its momentum by another $\cos\theta$, so $P = I\cos^2\theta/c$. $\cos^260^\circ = 1/4$, so $x = 4$.`, { trap: 'One factor of $\\cos\\theta$ gives the force along the beam, two give the normal pressure.' }),
+  nat(4, 'radiation force', r`A 3 W laser beam is reflected straight back by a plane mirror. Find the force on the mirror in nN. $c = 3\times10^{8}\ \mathrm{m\,s^{-1}}$.`, 2 * 3 / 3e8 * 1e9, 0, 0,
+    r`$F = 2P/c = 2\times3/3\times10^{8} = 2\times10^{-8}$ N $= 20$ nN.`, { unit: 'nN' }),
+  nat(4, 'Wien law', r`A hot filament has its strongest emission at 1449 nm. Use $\lambda_mT = 2.898\times10^{-3}$ m K to find its temperature in kelvin (nearest 10 K).`, 2.898e-3 / 1.449e-6, 10, 0,
+    r`$T = 2.898\times10^{-3}/1.449\times10^{-6} = 2000$ K.`, { unit: 'K' }),
+  nat(4, 'photon energy', r`X-ray photons have energy 12.4 keV. Find their wavelength in picometres ($hc = 1240$ eV nm, $1\ \mathrm{nm} = 1000$ pm).`, 1240 / 12400 * 1000, 0, 0,
+    r`$\lambda = hc/E = 1240\ \mathrm{eV\,nm}/12\,400\ \mathrm{eV} = 0.1$ nm $= 100$ pm.`, { unit: 'pm', trap: 'Keep keV and eV consistent.' }),
+  nat(4, 'intensity', r`By what factor must the intensity of a plane wave be increased to double the amplitude of its electric field?`, 4, 0, 0,
+    r`$I\propto E_0^2$. Doubling $E_0$ multiplies $I$ by $2^2 = 4$.`),
+  nat(4, 'medium', r`In a non-magnetic medium of refractive index 1.5, the ratio $E_0/B_0$ of an EM wave is $x\times10^{8}\ \mathrm{m\,s^{-1}}$. Find $x$.`, 3 / 1.5, 0, 0,
+    r`$E_0/B_0 = c/n = 3\times10^{8}/1.5 = 2\times10^{8}\ \mathrm{m\,s^{-1}}$, so $x = 2$.`),
+  nat(4, 'E and B amplitudes', r`An EM wave in vacuum has an electric field amplitude of 600 V m$^{-1}$. Find its magnetic field amplitude in $\mu$T. $c = 3\times10^{8}$.`, 600 / 3e8 * 1e6, 0, 0,
+    r`$B_0 = E_0/c = 600/3\times10^{8} = 2\times10^{-6}$ T $= 2\ \mu$T.`, { unit: 'μT' }),
+  nat(4, 'medium', r`A light wave of frequency $5\times10^{14}$ Hz travels in a medium of refractive index 2. Find its wavelength in the medium, in nm. $c = 3\times10^{8}$.`, 3e8 / 2 / 5e14 * 1e9, 0, 0,
+    r`$v = c/n = 1.5\times10^{8}\ \mathrm{m\,s^{-1}}$. $\lambda = v/f = 1.5\times10^{8}/5\times10^{14} = 3\times10^{-7}$ m $= 300$ nm.`, { unit: 'nm' }),
+  nat(4, 'point source', r`A point source radiates uniformly. The amplitude of its electric field at 2 m is $E_1$ and at 6 m is $E_2$. Find $E_1/E_2$.`, 6 / 2, 0, 0,
+    r`$E_0\propto\sqrt I\propto1/r$, so $E_1/E_2 = r_2/r_1 = 6/2 = 3$.`, { trap: 'The amplitude ratio is 3, the intensity ratio would be 9.' }),
+  nat(4, 'LC oscillator', r`A radio is to be tuned to a wavelength of 300 m using a capacitance of 100 pF. Find the inductance needed in $\mu$H (nearest integer). $c = 3\times10^{8}$.`, (300 / (2 * Math.PI * 3e8)) ** 2 / 100e-12 * 1e6, 1, 0,
+    r`$f = c/\lambda = 10^{6}$ Hz. $L = \dfrac{1}{4\pi^2f^2C} = \dfrac{1}{4\pi^2\times10^{12}\times10^{-10}} = 2.53\times10^{-4}$ H $\approx253\ \mu$H.`, { unit: 'μH' }),
+  mat(4, 'plane wave', 'm12', r`A plane EM wave in vacuum has electric field amplitude $E_0 = 300\ \mathrm{V\,m^{-1}}$. Match each quantity in List I with its value in List II. Use $\epsilon_0 = 8.85\times10^{-12}$, $c = 3\times10^{8}$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`A: $B_0 = E_0/c = 10^{-6}$ T $= 1.0\ \mu$T (p). B: $I = \tfrac12\epsilon_0cE_0^2 = 0.5\times8.85\times10^{-12}\times3\times10^{8}\times9\times10^{4} = 119.5\approx120\ \mathrm{W\,m^{-2}}$ (q). C: pressure on a perfect absorber $I/c = 4.0\times10^{-7}$ Pa (r). D: rms field $E_0/\sqrt2 = 212\ \mathrm{V\,m^{-1}}$ (s). So A-p, B-q, C-r, D-s.`),
 ];
 const REG = ['Radio waves', 'Microwaves', 'Infrared rays', 'Visible light', 'Ultraviolet rays', 'X-rays', 'Gamma rays'];
 const regOf = (lam) => (lam >= 0.1 ? 0 : lam >= 1e-3 ? 1 : lam >= 7e-7 ? 2 : lam >= 4e-7 ? 3 : lam >= 1e-9 ? 4 : lam >= 1e-12 ? 5 : 6);
@@ -337,6 +512,34 @@ const groups = {
     passage: r`<p>An air-filled parallel-plate capacitor of capacitance $5\ \mu$F is being charged so that the voltage across it rises at $8\times10^3\ \mathrm{V\,s^{-1}}$.</p>` },
   p3: { title: 'Reading a wave equation',
     passage: r`<p>A plane EM wave in vacuum has the electric field $E_y = 90\sin(1.257\times10^{7}x - 3.77\times10^{15}t)$ V m$^{-1}$, with $x$ in metres and $t$ in seconds.</p>` },
+  m5: { title: 'Frequencies',
+    list1: ['A. FM radio', 'B. Microwave oven', 'C. Visible light', 'D. Medical X-rays'],
+    list2: [r`p. $10^{8}$ Hz`, r`q. $10^{9}$ Hz`, r`r. $5\times10^{14}$ Hz`, r`s. $10^{18}$ Hz`] },
+  m6: { title: 'Applications',
+    list1: ['A. Aircraft radar', 'B. Sunburn', 'C. Seeing a fracture on a screen', 'D. Sterilising food, cancer therapy'],
+    list2: ['p. X-rays', 'q. Gamma rays', 'r. Microwaves', 's. Ultraviolet'] },
+  m7: { title: 'A wave entering a medium',
+    list1: ['A. Speed', 'B. Wavelength', 'C. Frequency', 'D. Ratio of electric to magnetic energy density'],
+    list2: [r`p. $c/n$`, r`q. $\lambda_0/n$`, r`r. $f_0$`, 's. 1'] },
+  m8: { title: "Maxwell's equations",
+    list1: [r`A. Gauss's law for electricity`, r`B. Gauss's law for magnetism`, r`C. Faraday's law`, r`D. Ampere-Maxwell law`],
+    list2: ['p. There are no magnetic monopoles', 'q. A changing magnetic field produces an electric field', 'r. A changing electric field (or a current) produces a magnetic field', 's. Electric charge is the source of the electric field'] },
+  m9: { title: 'Radiation pressure',
+    list1: ['A. Perfect absorber, normal incidence', 'B. Perfect reflector, normal incidence', 'C. Surface reflecting 50 % of the light, normal incidence', r`D. Perfect absorber, light at $60^\circ$ to the normal`],
+    list2: [r`p. $I/c$`, r`q. $2I/c$`, r`r. $1.5I/c$`, r`s. $I/4c$`] },
+  m10: { title: 'Refractive index from permittivity',
+    list1: [r`A. $\epsilon_r = 4$`, r`B. $\epsilon_r = 9$`, r`C. $\epsilon_r = 1$`, r`D. $\epsilon_r = 36$`],
+    list2: ['p. 2', 'q. 6', 'r. 1', 's. 3'] },
+  m11: { title: 'Directions in a plane wave',
+    list1: [r`A. Moves along $+x$, $\vec E$ along $+y$`, r`B. Moves along $+x$, $\vec E$ along $+z$`, r`C. Moves along $-x$, $\vec E$ along $+y$`, r`D. Moves along $-x$, $\vec E$ along $+z$`],
+    list2: [r`p. $\vec B$ along $+z$`, r`q. $\vec B$ along $-y$`, r`r. $\vec B$ along $-z$`, r`s. $\vec B$ along $+y$`] },
+  p4: { title: 'A laser pointer',
+    passage: r`<p>A laser pointer emits $5.0$ mW of light of wavelength 600 nm in a beam of circular cross-section of radius 1.0 mm (uniform intensity). Take $\epsilon_0 = 8.85\times10^{-12}$, $c = 3\times10^{8}\ \mathrm{m\,s^{-1}}$.</p>` },
+  p5: { title: 'A charging capacitor',
+    passage: r`<p>A parallel-plate capacitor has circular plates of radius $R = 6.0$ cm. It is being charged by a steady current of 1.5 A in the connecting wires. Use $\mu_0 = 4\pi\times10^{-7}$ T m A$^{-1}$.</p>` },
+  m12: { title: 'A plane wave with E0 = 300 V/m',
+    list1: ['A. Amplitude of $B$', 'B. Average intensity', 'C. Radiation pressure on a perfect absorber', 'D. Root-mean-square electric field'],
+    list2: [r`p. $1.0\ \mu$T`, r`q. $120\ \mathrm{W\,m^{-2}}$`, r`r. $4.0\times10^{-7}$ Pa`, r`s. $212\ \mathrm{V\,m^{-1}}$`] },
 };
 const gens = [
   { id: 'ew-g01', type: 'nat', level: 2, exams: exFor(2, 'nat'), sub: 'wavelength and frequency',
@@ -506,5 +709,98 @@ const gens = [
       return { L, Cc, ls, v, q: `A coil of $L = ${S(L * 1e6)}\\ \\mu$H is to be used in a circuit that radiates waves of wavelength ${ls} m. Find the capacitance needed (in pF, nearest integer). $c = 3\\times10^8$.`, answer: Math.round(Cc * 1e12), tol: 0.01 * Cc * 1e12 + 1, unit: 'pF', sol: `$\\lambda = 2\\pi c\\sqrt{LC}\\Rightarrow C = \\dfrac{\\lambda^2}{4\\pi^2c^2L} = \\dfrac{${S(ls * ls, 4)}}{4\\pi^2\\times9\\times10^{16}\\times${tx(L, 2)}} = ${S(Cx, 4)}$ pF.` };
     },
     verify: (p) => { if (p.v === 0) return 1 / (2 * Math.PI * Math.sqrt(p.L * p.Cc)) / 1e6; if (p.v === 1) { const w = 1 / Math.sqrt(p.L * p.Cc); return C / (w / (2 * Math.PI)); } return p.Cc * 1e12; } },
+  // ---- added 2026-11-22 ----
+  { id: 'ew-g19', type: 'nat', level: 3, exams: exFor(3, 'nat'), sub: 'point source',
+    make(rng) {
+      const P = choose(rng, [50, 100, 200, 500, 1000]), r = choose(rng, [2, 3, 4, 5, 10]);
+      const I = P / (4 * Math.PI * r * r), E0 = Math.sqrt(2 * I / (E0P * C));
+      return { P, r, answer: N(E0, 2), tol: 0.01 * E0 + 0.01, unit: 'V/m',
+        q: `A point source radiates ${P} W uniformly as EM waves. Find the electric field amplitude at ${r} m from it (in $\\mathrm{V\\,m^{-1}}$, 2 decimals). Use $\\epsilon_0 = 8.85\\times10^{-12}$ and $c = 3\\times10^{8}$.`,
+        sol: `$I = P/4\\pi r^2 = ${P}/(4\\pi\\times${r * r}) = ${S(I, 4)}\\ \\mathrm{W\\,m^{-2}}$. From $I = \\tfrac12\\epsilon_0cE_0^2$: $E_0 = \\sqrt{2I/\\epsilon_0c} = ${S(E0, 4)}\\ \\mathrm{V\\,m^{-1}}$.`,
+        trap: 'The 1/2 in $I = \\tfrac12\\epsilon_0cE_0^2$ comes from averaging $\\sin^2$.' };
+    },
+    verify: (p) => Math.sqrt(2 * 4e-7 * Math.PI * C * p.P / (4 * Math.PI * p.r * p.r)) },
+  { id: 'ew-g20', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'laser beam',
+    make(rng) {
+      const P = choose(rng, [2, 3, 5, 10]) * 1e-3, rad = choose(rng, [0.5, 1, 1.5, 2]) * 1e-3;
+      const I = P / (Math.PI * rad * rad), B0 = Math.sqrt(2 * I / (E0P * C)) / C * 1e6;
+      return { P, rad, answer: N(B0, 3), tol: 0.01 * B0 + 0.002, unit: 'μT',
+        q: `A laser emits ${S(P * 1e3)} mW in a beam of radius ${S(rad * 1e3)} mm (uniform intensity). Find the amplitude of the magnetic field in the beam (in $\\mu$T, 3 decimals). Use $\\epsilon_0 = 8.85\\times10^{-12}$ and $c = 3\\times10^{8}$.`,
+        sol: `$I = P/\\pi r^2 = ${S(I, 4)}\\ \\mathrm{W\\,m^{-2}}$. $E_0 = \\sqrt{2I/\\epsilon_0c} = ${S(Math.sqrt(2 * I / (E0P * C)), 4)}\\ \\mathrm{V\\,m^{-1}}$. $B_0 = E_0/c = ${S(B0, 4)}\\ \\mu$T.`,
+        trap: 'Convert mW and mm to W and m before squaring.' };
+    },
+    verify: (p) => Math.sqrt(2 * (4e-7 * Math.PI) * p.P / (Math.PI * p.rad * p.rad) / C) * 1e6 },
+  { id: 'ew-g21', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'photons',
+    make(rng) {
+      const P = choose(rng, [0.5, 1, 2, 5]), lam = choose(rng, [400, 500, 550, 600, 650]);
+      const n = P * lam * 1e-9 / HC / 1e18;
+      return { P, lam, answer: N(n, 3), tol: 0.01 * n + 0.002,
+        q: `A ${P} W source emits light of a single wavelength ${lam} nm. Find the number of photons emitted per second in units of $10^{18}$ (3 decimals). Use $hc = 1.986\\times10^{-25}$ J m.`,
+        sol: `Photon energy $= hc/\\lambda = 1.986\\times10^{-25}/(${lam}\\times10^{-9}) = ${S(HC / (lam * 1e-9), 4)}$ J. Number per second $= P/E = ${S(n, 4)}\\times10^{18}$.` };
+    },
+    verify: (p) => p.P / (6.626e-34 * C / (p.lam * 1e-9)) / 1e18 },
+  { id: 'ew-g22', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'radiation force',
+    make(rng) {
+      const P = choose(rng, [100, 500, 1000, 2000, 5000]), R = choose(rng, [0, 0.4, 0.5, 0.8, 1]);
+      const F = (1 + R) * P / C * 1e6;
+      return { P, R, answer: N(F, 3), tol: 0.01 * F + 0.002, unit: 'μN',
+        q: `A beam of power ${P} W falls normally on a flat surface that reflects ${S(R * 100)}% of the light and absorbs the rest. Find the force on the surface in $\\mu$N (3 decimals). $c = 3\\times10^{8}$.`,
+        sol: `Absorbed light gives momentum $p$ per photon, reflected light gives $2p$. The force is $F = (1-R)P/c + R\\cdot2P/c = (1+R)P/c = ${S(1 + R, 3)}\\times${P}/3\\times10^{8} = ${S(F, 4)}\\ \\mu$N.`,
+        trap: 'Reflection doubles the momentum transfer only for the reflected part.' };
+    },
+    verify: (p) => ((1 - p.R) * p.P / C + p.R * 2 * p.P / C) * 1e6 },
+  { id: 'ew-g23', type: 'nat', level: 3, exams: exFor(3, 'nat'), sub: 'LC oscillator and radio waves',
+    make(rng) {
+      const L = choose(rng, [1, 2, 4, 5, 10]) * 1e-6, Cc = choose(rng, [25, 50, 100, 200]) * 1e-12;
+      const lam = C * 2 * Math.PI * Math.sqrt(L * Cc);
+      return { L, Cc, answer: N(lam, 2), tol: 0.01 * lam + 0.02, unit: 'm',
+        q: `The tank circuit of a transmitter has $L = ${S(L * 1e6)}\\ \\mu$H and $C = ${S(Cc * 1e12)}$ pF. Find the wavelength of the EM wave it radiates (in m, 2 decimals). $c = 3\\times10^{8}\\ \\mathrm{m\\,s^{-1}}$.`,
+        sol: `$f = \\dfrac{1}{2\\pi\\sqrt{LC}} = ${S(1 / (2 * Math.PI * Math.sqrt(L * Cc)) / 1e6, 4)}$ MHz. $\\lambda = c/f = ${S(lam, 4)}$ m.` };
+    },
+    verify: (p) => C / (1 / (2 * Math.PI * Math.sqrt(p.L * p.Cc))) },
+  { id: 'ew-g24', type: 'mcq', level: 3, exams: exFor(3, 'mcq'), sub: 'direction of propagation',
+    make(rng) {
+      const ax = [['x', [1, 0, 0]], ['y', [0, 1, 0]], ['z', [0, 0, 1]]];
+      const i = int(rng, 0, 2); let j = int(rng, 0, 2); if (j === i) j = (j + 1) % 3;
+      const si = rng() < 0.5 ? 1 : -1, sj = rng() < 0.5 ? 1 : -1;
+      const a = ax[i][1].map((v) => v * si), b = ax[j][1].map((v) => v * sj);
+      const cr = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+      const nm = (v) => { const k = v.findIndex((t) => t !== 0); return `${v[k] > 0 ? '+' : '-'}${'xyz'[k]}`; };
+      const ans = nm(cr), neg = nm(cr.map((t) => -t)); const third = [0, 1, 2].filter((t) => t !== i && t !== j)[0];
+      const others = ['+x', '-x', '+y', '-y', '+z', '-z'].filter((t) => t !== ans && t !== neg);
+      const { options, answer } = shuffleOpts(rng, ans, [neg, others[0], others[2]].map((t) => t));
+      return { a, b, cr, nm, options, answer, q: `At an instant the electric field of an EM wave points along $${nm(a)}$ and its magnetic field along $${nm(b)}$. The wave is travelling along`,
+        sol: `The direction of travel is the direction of $\\vec E\\times\\vec B$. Here $\\vec E\\times\\vec B$ points along $${ans}$.`, trap: 'Use the right-hand rule for $\\vec E\\times\\vec B$; the opposite direction is the commonest wrong choice.' };
+    },
+    verify: (p) => { const c2 = [p.a[1] * p.b[2] - p.a[2] * p.b[1], p.a[2] * p.b[0] - p.a[0] * p.b[2], p.a[0] * p.b[1] - p.a[1] * p.b[0]]; return p.options.indexOf(p.nm(c2)); } },
+  { id: 'ew-g25', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'displacement current',
+    make(rng) {
+      const R = choose(rng, [2, 3, 4, 5, 6]) / 100, dE = choose(rng, [1, 2, 3, 5]) * 1e12;
+      const Id = E0P * Math.PI * R * R * dE * 1e3;
+      return { R, dE, answer: N(Id, 3), tol: 0.01 * Id + 0.002, unit: 'mA',
+        q: `The circular plates of a capacitor have radius ${S(R * 100)} cm and the electric field between them changes at $${S(dE / 1e12)}\\times10^{12}\\ \\mathrm{V\\,m^{-1}s^{-1}}$. Find the displacement current in mA (3 decimals). $\\epsilon_0 = 8.85\\times10^{-12}$.`,
+        sol: `$I_d = \\epsilon_0A\\,dE/dt = 8.85\\times10^{-12}\\times\\pi(${S(R)})^2\\times${S(dE / 1e12)}\\times10^{12} = ${S(Id / 1e3, 4)}$ A $= ${S(Id, 4)}$ mA.` };
+    },
+    verify: (p) => { const Cc = E0P * Math.PI * p.R * p.R / 1e-3; return Cc * (1e-3 * p.dE) * 1e3; } },
+  { id: 'ew-g26', type: 'nat', level: 4, exams: exFor(4, 'nat'), sub: 'magnetic field of displacement current',
+    make(rng) {
+      const R = choose(rng, [4, 5, 6, 8]) / 100, I = choose(rng, [0.5, 1, 1.5, 2, 3]), f = choose(rng, [0.25, 0.5, 0.75]);
+      const r = f * R, B = 2e-7 * I * r / R ** 2 * 1e6;
+      return { R, I, r, answer: N(B, 3), tol: 0.01 * B + 0.002, unit: 'μT',
+        q: `A circular parallel-plate capacitor of plate radius ${S(R * 100)} cm is charged by a current of ${I} A. Find the magnetic field between the plates at ${S(r * 100)} cm from the axis, in $\\mu$T (3 decimals).`,
+        sol: `The displacement current through a circle of radius $r$ is $I\\,r^2/R^2 = ${S(I * f * f, 4)}$ A. Then $B = \\dfrac{\\mu_0I_{enc}}{2\\pi r} = \\dfrac{2\\times10^{-7}\\times${S(I * f * f, 4)}}{${S(r)}} = ${S(B, 4)}\\ \\mu$T.`,
+        trap: 'Only the fraction $r^2/R^2$ of the displacement current is enclosed.' };
+    },
+    verify: (p) => 4e-7 * Math.PI * (p.I * p.r * p.r / (p.R * p.R)) / (2 * Math.PI * p.r) * 1e6 },
+  { id: 'ew-g27', type: 'mcq', level: 3, exams: exFor(3, 'mcq'), sub: 'radiation pressure',
+    make(rng) {
+      const R1 = choose(rng, [0, 0.5, 1]), R2 = choose(rng, [0.2, 0.6, 0.8]);
+      const val = (1 + R1) / (1 + R2);
+      const { options, answer } = shuffleOpts(rng, fmt(val, 3), [fmt(1 / val, 3), fmt((1 - R1) / (1 - R2), 3), fmt(R1 / R2 + 1, 3), fmt((1 + R1) * (1 + R2), 3)]);
+      return { R1, R2, options, answer, val,
+        q: `Two identical light beams fall normally on two surfaces. Surface 1 reflects ${S(R1 * 100)}% of the light (and absorbs the rest) and surface 2 reflects ${S(R2 * 100)}%. The ratio (force on 1)/(force on 2) is`,
+        sol: `Force $=(1+R)\\,I A/c$. So the ratio is $\\dfrac{1+${R1}}{1+${R2}} = ${fmt(val, 3)}$.`, trap: 'A perfect absorber has $R = 0$, giving a factor 1, and a perfect mirror has $R = 1$, giving 2.' };
+    },
+    verify: (p) => p.options.indexOf(fmt((1 + p.R1) / (1 + p.R2), 3)) },
 ];
 export default { topic: 'em-waves', groups, items, gens };
