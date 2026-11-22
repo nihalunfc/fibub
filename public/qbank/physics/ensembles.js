@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './ensembles.more.gen.js';
 import more2 from './ensembles.more2.gen.js';
+import r4 from './ensembles.r4.gen.js';
 
 const kB = 8.617333e-5; // eV/K
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
@@ -219,6 +220,7 @@ export default {
       options: ['$S(E)$ is largest at $E = N\\varepsilon/2$', 'The heat capacity in the microcanonical description is positive for $E < N\\varepsilon/2$', 'As $E \\to N\\varepsilon$ the temperature tends to $-0$ K', '$S(E)$ is symmetric about $E = N\\varepsilon/2$'], answer: [0, 1, 2, 3],
       sol: '$S/k = \\ln\\binom{N}{n}$ is symmetric about $n = N/2$ and peaks there. Below the peak $T > 0$ and $E(T) = N\\varepsilon/(e^{\\varepsilon/kT} + 1)$ rises with $T$, so $C > 0$. Near full excitation $\\partial S/\\partial E \\to -$ large, so $1/T \\to -$ large and $T \\to 0^-$, the hottest possible state. All four hold.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'ensm-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Boltzmann factor',
@@ -345,5 +347,6 @@ export default {
       },
       verify: (p) => 2 * p.L * 1e-9 * Math.sqrt(2 * C.me * p.E * C.e) / C.h },
     ...more,
+    ...r4.gens,
   ],
 };

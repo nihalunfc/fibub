@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './radioactive-decays.more.gen.js';
 import more2 from './radioactive-decays.more2.gen.js';
+import r4 from './radioactive-decays.r4.gen.js';
 
 const ALPHA = 1 / 137.036, MA = 3727.379, HBARC = 197.327, KE2 = 1.44, U = 931.494, HBAR_EVS = 6.582120e-16, CL = 2.99792458e8;
 const twoG = (Z, Q, R) => { const B = 2 * Z * KE2 / R, x = Q / B; return 2 * Math.sqrt(2 * MA * Q) / HBARC * (2 * Z * KE2 / Q) * (Math.acos(Math.sqrt(x)) - Math.sqrt(x * (1 - x))); };
@@ -239,6 +240,7 @@ export default {
       sol: 'Momentum sharing gives $T_\\alpha = Q(A - 4)/A$. Each final level gives a line. $Q_\\alpha > 0$ for most heavy nuclei, but with small $Q$ the half-life exceeds the age of the universe. The alpha energy (4 to 9 MeV) is far below the barrier (about 25 MeV): it escapes by tunnelling.',
       trap: 'If the alpha were above the barrier, decay would take about $10^{-21}$ s.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'rdk-g01', type: 'nat', level: 3, exams: ['gate', 'net'], sub: 'Weisskopf estimates',
@@ -365,5 +367,6 @@ export default {
       },
       verify: (p) => Math.PI * 2 * p.Z * ALPHA * Math.sqrt(2 * MA) * (1 / Math.sqrt(p.T1) - 1 / Math.sqrt(p.T2)) / Math.LN10 },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './elasticity.more.gen.js';
 import more2 from './elasticity.more2.gen.js';
+import r4 from './elasticity.r4.gen.js';
 
 const G0 = 9.8;
 const MATS = [
@@ -213,6 +214,7 @@ export default {
       sol: 'Volume strain $\\Delta V/V = p/K = 5.6\\times10^7/1.4\\times10^{11} = 4\\times10^{-4}$. Since $V \\propto r^3$, $\\Delta r/r = \\tfrac13\\Delta V/V = 1.33\\times10^{-4}$.',
       trap: 'The radius changes by a third of the volume fraction, not by the same fraction.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'ela-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'hooke law',
@@ -296,5 +298,6 @@ export default {
           trap: 'Area goes as the diameter squared.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

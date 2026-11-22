@@ -1,0 +1,55 @@
+// Class 9 Science (Exploration), Chapter 7 Work, Energy, and Simple Machines: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('we');
+const r2 = (x) => Math.round(x * 100) / 100;
+
+export default {
+  topic: 'work-energy-and-simple-machines', name: 'Work, Energy, and Simple Machines', n: 7,
+  items: [
+    m.mcq(1, 'work', '<p>The SI unit of work is the:</p>', 'joule', ['watt', 'newton', 'pascal'], '<p>Work = force × displacement, in newton metres. 1 N m = 1 joule (J).</p>'),
+    m.mcq(1, 'work', '<p>A porter carries a suitcase on his head along a level platform. The work done by the lifting force on the suitcase is:</p>', 'zero', ['positive', 'negative', 'equal to the weight of the suitcase'], '<p>The force on the suitcase is upward but the displacement is horizontal, so the angle is 90° and cos 90° = 0. W = 0.</p>', { trap: 'Feeling tired does not mean work was done on the object in the physics sense.' }),
+    m.mcq(2, 'work', '<p>A force of 10 N moves a block 4 m along the direction of the force. The work done is:</p>', '40 J', ['2.5 J', '14 J', '0.4 J'], '<p>W = F s = 10 × 4 = 40 J.</p>'),
+    m.mcq(2, 'work', '<p>Work done by friction on a sliding box is:</p>', 'negative', ['positive', 'zero', 'always equal to the push'], '<p>Friction acts opposite to the motion, so θ = 180° and cos θ = −1.</p>'),
+    m.mcq(1, 'kepe', '<p>The kinetic energy of a body is proportional to:</p>', 'the square of its speed', ['its speed', 'the cube of its speed', 'the inverse of its speed'], '<p>KE = ½ m v².</p>'),
+    m.mcq(2, 'kepe', '<p>A car doubles its speed. Its kinetic energy becomes:</p>', 'four times', ['two times', 'half', 'the same'], '<p>KE ∝ v². Doubling v multiplies KE by 2² = 4.</p>', { trap: 'Saying "double" instead of "four times".' }),
+    m.mcq(2, 'kepe', '<p>A 2 kg book is placed on a shelf 3 m high (g = 10 m/s²). Its potential energy is:</p>', '60 J', ['6 J', '20 J', '30 J'], '<p>PE = m g h = 2 × 10 × 3 = 60 J.</p>'),
+    m.mcq(2, 'kepe', '<p>A ball is thrown straight up. At the highest point:</p>', 'its KE is zero and its PE is greatest', ['its KE is greatest', 'both KE and PE are zero', 'its PE is zero'], '<p>At the top it stops for an instant: v = 0, so KE = 0, and all the energy is potential.</p>'),
+    m.mcq(2, 'conservation', '<p>A pendulum swings without friction. Its total mechanical energy:</p>', 'stays constant', ['keeps increasing', 'keeps decreasing', 'is zero at the lowest point'], '<p>KE and PE swap but their sum is constant when there is no friction.</p>'),
+    m.mcq(3, 'conservation', '<p>A real swing slowly stops. Where has its mechanical energy gone?</p>', 'into heat and sound in the air and the rope hinge', ['it has been destroyed', 'it has become more potential energy', 'it stays in the swing as kinetic energy'], '<p>Energy is never destroyed; friction and air drag turn it into heat and sound. The total energy of the whole system stays the same.</p>'),
+    m.mcq(1, 'power', '<p>Power is:</p>', 'the work done per second', ['force × distance', 'energy × time', 'force per unit area'], '<p>P = W/t, measured in watts (1 W = 1 J/s).</p>'),
+    m.mcq(2, 'power', '<p>1 kilowatt hour is the same as:</p>', '3.6 × 10⁶ J', ['3600 J', '1000 J', '3.6 × 10³ J'], '<p>1000 W × 3600 s = 3 600 000 J.</p>'),
+    m.mcq(2, 'power', '<p>Two boys climb the same stairs. Ravi takes 10 s and Sameer takes 20 s. Both weigh the same. Who has the greater power?</p>', 'Ravi', ['Sameer', 'both equal', 'Sameer, because he did more work'], '<p>The work (m g h) is the same, but Ravi does it in half the time, so his power is twice as large.</p>'),
+    m.mcq(1, 'machines', '<p>The mechanical advantage of a machine is:</p>', 'load ÷ effort', ['effort ÷ load', 'load × effort', 'work ÷ time'], '<p>MA = load/effort. If MA > 1 a small effort lifts a bigger load.</p>'),
+    m.mcq(2, 'machines', '<p>A pair of scissors and a wheelbarrow are examples of levers of which classes?</p>', 'class 1 and class 2', ['class 2 and class 3', 'class 3 and class 1', 'both class 3'], '<p>Scissors: fulcrum in the middle (class 1). Wheelbarrow: load in the middle (class 2).</p>'),
+    m.mcq(2, 'machines', '<p>A movable pulley is supported by 2 rope strands. In an ideal case, the effort needed for a 100 N load is:</p>', '50 N', ['100 N', '200 N', '25 N'], '<p>Effort = load / number of strands = 100/2 = 50 N (and the rope is pulled twice as far).</p>'),
+    m.mcq(3, 'machines', '<p>A machine can never give more work out than it takes in, because:</p>', 'energy cannot be created', ['friction is always zero', 'effort is always greater than load', 'work has no unit'], '<p>This is conservation of energy: a machine only changes the force and distance, with work out ≤ work in.</p>'),
+    m.ar(2, 'work', 'No work is done when you push hard against a wall.', 'Work needs a displacement of the object along the force.', 0, '<p>Both are true. The wall does not move, so s = 0 and W = 0. R explains A.</p>'),
+    m.ar(2, 'kepe', 'A speeding truck is more dangerous than a slow one of the same mass.', 'Kinetic energy is proportional to the square of the speed.', 0, '<p>Both true and R explains A: more speed gives much more KE to be absorbed in a crash.</p>'),
+    m.ar(3, 'machines', 'A long gentle ramp makes it easier to push a drum up.', 'A ramp reduces the work needed to lift the drum.', 2, '<p>A is true: the force is smaller. R is false: the work is the same (or more with friction); the ramp spreads it over a longer distance.</p>'),
+    m.ar(3, 'power', 'A 100 W bulb always uses more energy than a 40 W bulb.', 'Energy used = power × time.', 3, '<p>A is false: if the 40 W bulb stays on for much longer, it can use more. R is true.</p>'),
+    m.nat(1, 'work', '<p>A force of 25 N moves a cart 6 m in its own direction. Find the work done in joules.</p>', () => 25 * 6, 0, '<p>W = F s = 25 × 6 = 150 J.</p>', { unit: 'J' }),
+    m.nat(2, 'work', '<p>A boy pulls a toy with a string at 60° to the floor with a force of 20 N and moves it 5 m. Find the work done in joules.</p>', () => 20 * 5 * 0.5, 0.01, '<p>W = F s cos 60° = 20 × 5 × 0.5 = 50 J.</p>', { unit: 'J' }),
+    m.nat(2, 'kepe', '<p>A cricket ball of mass 0.16 kg moves at 25 m/s. Find its kinetic energy in joules.</p>', () => 0.5 * 0.16 * 25 * 25, 0.01, '<p>KE = ½ m v² = 0.5 × 0.16 × 625 = 50 J.</p>', { unit: 'J' }),
+    m.nat(3, 'conservation', '<p>A stone falls from rest through 20 m (g = 10 m/s²). Find its speed on reaching the ground in m/s.</p>', () => Math.sqrt(2 * 10 * 20), 0.01, '<p>m g h = ½ m v², so v = √(2 g h) = √400 = 20 m/s.</p>', { unit: 'm/s' }),
+    m.nat(2, 'power', '<p>A pump lifts 200 kg of water through 6 m in 20 s (g = 10 m/s²). Find its power in watts.</p>', () => (200 * 10 * 6) / 20, 0, '<p>W = m g h = 12 000 J; P = 12 000/20 = 600 W.</p>', { unit: 'W' }),
+    m.nat(2, 'power', '<p>A 1.5 kW geyser runs for 2 hours. How many units (kWh) of electricity does it use?</p>', () => 1.5 * 2, 0, '<p>E = 1.5 kW × 2 h = 3 kWh.</p>', { unit: 'kWh' }),
+    m.nat(2, 'machines', '<p>A load of 300 N is lifted with a lever. The load arm is 20 cm and the effort arm is 100 cm. Find the effort in newtons.</p>', () => (300 * 20) / 100, 0, '<p>E × 100 = 300 × 20, so E = 60 N (MA = 5).</p>', { unit: 'N' }),
+    m.msq(3, 'conservation', '<p>A roller-coaster car runs without friction. Which statements are true? (Choose all that apply.)</p>', ['KE is greatest at the lowest point.', 'PE is greatest at the highest point.', 'KE + PE changes from point to point.', 'At the highest point KE can be zero only if the car stops there.'], [0, 1, 3], '<p>With no friction KE + PE is constant, so the third statement is false. KE is largest where PE is smallest and vice versa.</p>'),
+    m.msq(3, 'machines', '<p>Which of these are class 3 levers (effort between fulcrum and load)? (Choose all that apply.)</p>', ['Tweezers', 'Fishing rod', 'Seesaw', 'Wheelbarrow'], [0, 1], '<p>Tweezers and a fishing rod have the effort in the middle. A seesaw is class 1 and a wheelbarrow is class 2.</p>'),
+  ],
+  gens: [
+    { id: 'we-g01', type: 'nat', level: 2, exams: ['board'], sub: 'kepe',
+      make(rng) { const mm = choose(rng, [0.5, 2, 4, 50, 1000]), v = pick(rng, 2, 30, 2); return { mm, v, q: `<p>A body of mass ${mm} kg moves at ${v} m/s. Find its kinetic energy in joules.</p>`, answer: 0.5 * mm * v * v, tol: 0.01, unit: 'J', sol: `<p>KE = ½ m v² = 0.5 × ${mm} × ${v}² = ${0.5 * mm * v * v} J.</p>` }; },
+      verify: (p) => (p.mm * p.v * p.v) / 2 },
+    { id: 'we-g02', type: 'nat', level: 2, exams: ['board'], sub: 'power',
+      make(rng) { const P = choose(rng, [60, 100, 500, 1000, 2000]), h = pick(rng, 2, 8); return { P, h, q: `<p>A ${P} W appliance is used for ${h} hours. How many units (kWh) of energy does it use?</p>`, answer: r2((P * h) / 1000), tol: 0.01, unit: 'kWh', sol: `<p>E = ${P / 1000} kW × ${h} h = ${r2((P * h) / 1000)} kWh.</p>` }; },
+      verify: (p) => r2((p.P / 1000) * p.h) },
+    { id: 'we-g03', type: 'nat', level: 3, exams: ['board'], sub: 'machines',
+      make(rng) { const L = pick(rng, 100, 600, 50), la = pick(rng, 10, 40, 10), ea = pick(rng, 50, 150, 10); return { L, la, ea, q: `<p>A lever has a load arm of ${la} cm and an effort arm of ${ea} cm. What effort (in N) lifts a ${L} N load, ignoring friction?</p>`, answer: r2((L * la) / ea), tol: 0.01, unit: 'N', sol: `<p>E × ${ea} = ${L} × ${la}, so E = ${r2((L * la) / ea)} N.</p>` }; },
+      verify: (p) => r2(p.L / (p.ea / p.la)) },
+    { id: 'we-g04', type: 'nat', level: 3, exams: ['board'], sub: 'conservation',
+      make(rng) { const h = pick(rng, 5, 80, 5); return { h, q: `<p>A ball is dropped from a height of ${h} m (g = 10 m/s², no air drag). Find its speed just before it hits the ground, in m/s (2 decimal places).</p>`, answer: r2(Math.sqrt(20 * h)), tol: 0.01, unit: 'm/s', sol: `<p>v = √(2 g h) = √(20 × ${h}) = ${r2(Math.sqrt(20 * h))} m/s.</p>` }; },
+      verify: (p) => r2(Math.sqrt(2 * 10 * p.h)) },
+  ],
+};

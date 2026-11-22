@@ -1,0 +1,19 @@
+---
+// A fibub tool shown inside a lesson (NCERT study courses): <!--fig:tool tool-id--> in the lesson's Markdown.
+// The tool's own interface runs right here, with a link to its full page (guide, FAQs, related tools).
+// The build fails on an unknown or unfinished tool, so a lesson can only embed live tools.
+import { getEntry } from 'astro:content';
+import { toolComponent } from '../../lib/tools';
+interface Props { arg?: string }
+const id = Astro.props.arg ?? '';
+const t = await getEntry('tools', id);
+if (!t || t.data.status !== 'live') throw new Error(`lesson tool "${id}" is not a live fibub tool`);
+const UI = toolComponent(id);
+const href = `/${t.data.shelf}/${t.id}/`;
+---
+<section class="tool-embed" aria-label={`Tool: ${t.data.name}`}>
+  <p class="te-head"><span class="lk-tag">Try it yourself</span> <a href={href}><strong>{t.data.name}</strong></a>{t.data.code && <small> #{t.data.code}</small>}</p>
+  <p class="te-sum">{t.data.summary}</p>
+  <div class="tool-ui"><UI /></div>
+  <p class="te-foot"><a href={href}>Open {t.data.name} on its own page</a> for the full guide and more options.</p>
+</section>

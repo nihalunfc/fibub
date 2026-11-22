@@ -664,4 +664,310 @@ const gens = [
     },
     verify: (p) => (p.v === 0 ? H * C0 / (p.V * QE) * 1e12 : p.V / 1e3) },
 ];
+// ---------- expansion block: more hard items, matches, multi-correct, passages and templates ----------
+{
+const XR = String.raw;
+const XEXB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv', 'neet'], 5: ['jee-adv'] };
+let xk = 153; let xc = 0;
+const xid = () => `dn-${String(++xk).padStart(3, '0')}`;
+const XPOS = [2, 0, 3, 1, 1, 3, 0, 2];
+const xex = (level, type, sub) => (type === 'mcq' && level <= 3 && ((s)=>true)(sub) ? [...XEXB[level], 'cuet'] : XEXB[level]);
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type, sub), sub, ...o });
+const xm = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xi = (level, sub, q, value, sol, o = {}) => {
+  const answer = Math.round(value); if (Math.abs(value - answer) > 1e-6) throw new Error('not an integer: ' + value + ' ' + q.slice(0, 60));
+  return xb(level, sub, { type: 'nat', format: 'integer', q, answer, tol: 0, calc: () => answer, sol, ...o });
+};
+const xn = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return xb(level, sub, { type: 'nat', format: 'numeric', q, answer, tol, calc: () => answer, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XA = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XA, answer, sol, ...o });
+const XS = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XS, answer, sol, ...o });
+const xmatch = (level, sub, group, q, correct, sol, o = {}) => {
+  const L = correct.split(', ').map((s) => s.split('-')); const rs = L.map((x) => x[1]);
+  const mk = (p) => L.map((x, i) => `${x[0]}-${p[i]}`).join(', ');
+  const swaps = [[0, 1], [2, 3], [1, 2], [0, 3], [0, 2], [1, 3]]; const wr = [];
+  for (let t = 0; t < 6 && wr.length < 3; t++) { const [i, j] = swaps[(t + xc) % 6]; const p = [...rs]; [p[i], p[j]] = [p[j], p[i]]; const s = mk(p); if (s !== correct && !wr.includes(s)) wr.push(s); }
+  if (wr.length < 3) throw new Error('match options');
+  const pos = XPOS[xc++ % 8]; const options = [...wr]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xp = (extra) => (level, sub, group, q, ...rest) => extra(level, sub, q, ...rest);
+const XG = (n, level, type, sub, make, verify) => ({ id: `dn-g${n}`, type, level, exams: xex(level, type, sub), sub, make, verify });
+const f3 = (v) => fmt(v, 3);
+const sg = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XPY = (o) => ({ format: 'passage', ...o });
+const XH = 6.63e-34; const XCL = 3e8; const XQE = 1.6e-19; const XME = 9.1e-31; const XMP = 1.67e-27; const XHC = 1240; const XE0 = 8.85e-12; const tx = (x) => { const e = Math.floor(Math.log10(Math.abs(x))); return `${+(x / 10 ** e).toPrecision(3)}\\times10^{${e}}`; }; const XPI = Math.PI;
+const HCN = XR`$hc = 1240$ eV nm`;
+Object.assign(groups, {
+  xm1: { title: 'Stopping potential against frequency (one metal, work function phi)',
+    list1: ['A. Slope of the straight line', 'B. Intercept on the frequency axis', 'C. Intercept on the potential axis (line extended)', 'D. Using a metal of larger work function'],
+    list2: [r`p. $\dfrac he$`, r`q. threshold frequency $f_0$`, r`r. $-\dfrac{\phi}{e}$`, r`s. a parallel line shifted to the right`] },
+  xm2: { title: 'de Broglie wavelength in different forms',
+    list1: ['A. Electron accelerated through $V$ volts', 'B. Particle of mass $m$ and kinetic energy $K$', 'C. Particle of momentum $p$', 'D. Gas atom of mass $m$ at temperature $T$ (rms speed)'],
+    list2: [r`p. $\dfrac{12.27}{\sqrt V}$ angstrom`, r`q. $\dfrac{h}{\sqrt{2mK}}$`, r`r. $\dfrac hp$`, r`s. $\dfrac{h}{\sqrt{3mk_BT}}$`] },
+  xm3: { title: 'Effect of changing the light (same metal, frequency above threshold)',
+    list1: ['A. Intensity doubled', 'B. Frequency increased', 'C. Wavelength decreased', 'D. Frequency made less than threshold'],
+    list2: [r`p. saturation current doubles; stopping potential unchanged`, r`q. stopping potential rises; maximum kinetic energy rises`, r`r. maximum kinetic energy rises (same as for frequency)`, r`s. no emission at any intensity`] },
+  xm4: { title: 'Momentum and force of light (beam power P, wavelength lambda)',
+    list1: ['A. Momentum of one photon', 'B. Force on a perfect absorber (normal incidence)', 'C. Force on a perfect reflector (normal incidence)', 'D. Pressure on a perfect absorber at intensity $I$'],
+    list2: [r`p. $\dfrac h\lambda$`, r`q. $\dfrac Pc$`, r`r. $\dfrac{2P}{c}$`, r`s. $\dfrac Ic$`] },
+  xm5: { title: 'Two metals A and B with work functions phi_A < phi_B, lit by the same light that ejects electrons from both',
+    list1: ['A. Maximum kinetic energy of the photoelectrons', 'B. Threshold frequency', 'C. Slope of the $V_0$ against $f$ graph', 'D. Work function'],
+    list2: [r`p. greater for A`, r`q. greater for B`, r`r. the same for both`, r`s. smaller for A`] },
+  xm6: { title: 'Matter waves',
+    list1: ['A. Electron accelerated through 100 V', 'B. Proton and electron with equal speeds', 'C. Doubling the speed of a particle', 'D. Doubling the mass at the same speed'],
+    list2: [r`p. $\lambda\approx0.123$ nm`, r`q. electron wavelength is larger by about 1836`, r`r. $\lambda$ halves`, r`s. $\lambda$ halves (same as for speed)`] },
+  xm7: { title: 'Photon and particle of the same wavelength (lambda)',
+    list1: ['A. Momentum', 'B. Energy of the photon', 'C. Kinetic energy of the (non-relativistic) particle', 'D. Speed of the photon'],
+    list2: [r`p. $\dfrac h\lambda$ for both`, r`q. $\dfrac{hc}{\lambda}$`, r`r. $\dfrac{h^2}{2m\lambda^2}$`, r`s. $c$`] },
+  xm8: { title: 'Photoelectric emission: statements and their physical cause',
+    list1: ['A. Maximum kinetic energy rises with frequency', 'B. No emission below threshold', 'C. Emission is instantaneous', 'D. Saturation current is proportional to intensity'],
+    list2: [r`p. $K_{\max} = hf - \phi$`, r`q. a photon cannot give an electron less than $\phi$`, r`r. one photon gives all its energy to one electron`, r`s. more photons per second free more electrons`] },
+  xp1: { title: 'A photocell',
+    passage: r`<p>Light of wavelength 400 nm and intensity $2.0\ \mathrm{W\,m^{-2}}$ falls on a metal plate of area $1.0\times10^{-4}\ \mathrm{m^2}$ with work function 2.3 eV. On average one electron is emitted for every 100 photons absorbed. Take $h = 6.63\times10^{-34}$ J s, $c = 3\times10^{8}$ m/s, $e = 1.6\times10^{-19}$ C.</p>` },
+  xp2: { title: 'Electron diffraction',
+    passage: r`<p>Electrons accelerated from rest through 100 V strike a crystal whose planes are 0.20 nm apart. Use $h = 6.63\times10^{-34}$ J s, $m_e = 9.1\times10^{-31}$ kg and $e = 1.6\times10^{-19}$ C.</p>` },
+});
+
+// ---------- L2 ----------
+items.push(
+  xm(2, 'photon energy in eV', XR`The energy of a photon of wavelength 620 nm is about (${HCN}).`, '2.0 eV', ['3.1 eV', '1.0 eV', '0.5 eV'],
+    XR`$E = \dfrac{hc}{\lambda} = \dfrac{1240\ \mathrm{eV\,nm}}{620\ \mathrm{nm}} = 2.0$ eV.`),
+  xm(2, 'stopping potential', XR`Light of photon energy 4.0 eV falls on a metal of work function 2.0 eV. The stopping potential is`, '2.0 V', ['4.0 V', '6.0 V', '1.0 V'],
+    XR`$eV_0 = K_{\max} = E-\phi = 4.0-2.0 = 2.0$ eV, so $V_0 = 2.0$ V.`),
+  xn(2, 'de Broglie', XR`An electron is accelerated from rest through 150 V. Find its de Broglie wavelength in angstrom ($1\ \text{Å} = 10^{-10}$ m).`, 12.27 / Math.sqrt(150), 0.02, 2,
+    XR`$\lambda = \dfrac{12.27}{\sqrt V}$ Å $=\dfrac{12.27}{\sqrt{150}} = 1.00$ Å.`, { unit: 'Å' }),
+  xa(2, 'time lag', XR`Photoelectric emission from a metal starts instantly when light of suitable frequency falls on it.`, XR`A photon gives all its energy to a single electron in one event.`, 0,
+    XR`The energy needed is delivered in one step by one photon, with no need to build up energy gradually, so there is no time lag. R explains A.`),
+  xt(2, 'photon', XR`A photon has zero rest mass.`, XR`A photon has momentum $h/\lambda$.`, 0,
+    XR`Both are true: $E = pc$ for a massless particle, so $p = \dfrac{E}{c} = \dfrac{h}{\lambda}$.`),
+  xm(2, 'intensity and photocurrent', XR`The intensity of light of a fixed frequency (above threshold) is doubled. The stopping potential and the saturation current change as`, 'stopping potential unchanged, saturation current doubled', ['stopping potential doubled, saturation current unchanged', 'both doubled', 'both unchanged'],
+    XR`$K_{\max}$ (hence $V_0$) depends only on frequency and the metal. The number of photons per second doubles, so twice as many electrons are emitted per second: the saturation current doubles.`),
+  xmatch(2, 'effects of changing the light', 'xm3', XR`Match each change in List I with its effect in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Intensity doubled: more electrons, same $K_{\max}$ (p). Higher frequency: larger $K_{\max}$ and $V_0$ (q). Shorter wavelength is higher frequency: $K_{\max}$ larger (r). Below threshold: nothing at any intensity (s).`),
+);
+
+// ---------- L3 ----------
+items.push(
+  xn(3, 'threshold wavelength', XR`The work function of a metal is 2.3 eV. Find its threshold wavelength, in nm (${HCN}).`, 1240 / 2.3, 1, 0,
+    XR`$\lambda_0 = \dfrac{hc}{\phi} = \dfrac{1240}{2.3} = 539$ nm.`, { unit: 'nm' }),
+  xi(3, 'stopping potential', XR`Light of wavelength 400 nm falls on a metal of work function 2.1 eV. The stopping potential in volts is (${HCN})`, 1240 / 400 - 2.1,
+    XR`Photon energy $=\dfrac{1240}{400} = 3.1$ eV. $eV_0 = 3.1-2.1 = 1.0$ eV, so $V_0 = 1$ V.`, { unit: 'V' }),
+  xm(3, 'photon momentum', XR`The momentum of a photon of wavelength 500 nm is ($h = 6.63\times10^{-34}$ J s)`, XR`$1.33\times10^{-27}$ kg m/s`, [XR`$4.0\times10^{-19}$ kg m/s`, XR`$1.33\times10^{-18}$ kg m/s`, XR`$3.3\times10^{-28}$ kg m/s`],
+    XR`$p = \dfrac h\lambda = \dfrac{6.63\times10^{-34}}{5\times10^{-7}} = 1.33\times10^{-27}$ kg m/s. ($4.0\times10^{-19}$ is the energy in joules, not the momentum.)`),
+  xi(3, 'photons per second', XR`A light source of wavelength 1.0 $\mu$m radiates 19.89 W. The number of photons emitted per second is $n\times10^{19}$. Find $n$ ($h = 6.63\times10^{-34}$ J s, $c = 3\times10^{8}$ m/s).`, 19.89 / (XH * XCL / 1e-6) / 1e19,
+    XR`Photon energy $= \dfrac{hc}{\lambda} = \dfrac{6.63\times10^{-34}\times3\times10^{8}}{10^{-6}} = 1.989\times10^{-19}$ J. Number per second $=\dfrac{19.89}{1.989\times10^{-19}} = 10^{20} = 10\times10^{19}$.`),
+  xm(3, 'de Broglie', XR`A proton and an alpha particle have the same kinetic energy. The ratio $\lambda_p/\lambda_\alpha$ is`, '2', ['1/2', '4', '$2\\sqrt2$'],
+    XR`$\lambda = \dfrac{h}{\sqrt{2mK}}\propto\dfrac{1}{\sqrt m}$ at equal $K$. $\dfrac{\lambda_p}{\lambda_\alpha} = \sqrt{\dfrac{m_\alpha}{m_p}} = \sqrt4 = 2$. (The charge does not enter when $K$ is the same.)`,
+    { trap: 'Equal potential difference would bring in the charge; equal kinetic energy does not.' }),
+  xa(3, 'stopping potential and intensity', XR`The stopping potential of a photoelectric cell does not change when the intensity of the light is raised.`, XR`The maximum kinetic energy of photoelectrons depends only on the frequency of the light and the metal.`, 0,
+    XR`$eV_0 = K_{\max} = hf-\phi$. Intensity changes only the number of photons, not the energy of each. R explains A.`),
+  xt(3, 'saturation', XR`The photoelectric current saturates when the anode is made sufficiently positive.`, XR`At saturation every emitted electron reaches the anode.`, 0,
+    XR`Raising the anode voltage collects more of the emitted electrons until all are collected; beyond that the current cannot rise. Both statements are true.`),
+  xt(3, 'de Broglie', XR`The de Broglie wavelength of a particle increases when its speed increases.`, XR`The de Broglie wavelength is $\lambda = \dfrac{h}{mv}$.`, 3,
+    XR`Statement II is true, and it shows $\lambda\propto\dfrac1v$: a faster particle has a shorter wavelength. Statement I is false.`),
+  xmatch(3, 'stopping potential and frequency', 'xm1', XR`Match each feature of the $V_0$ against $f$ graph in List I with List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$V_0 = \dfrac he f-\dfrac\phi e$: slope $\dfrac he$ (p), axis intercept $f_0=\dfrac{\phi}{h}$ (q), intercept on the potential axis $-\dfrac\phi e$ (r). A larger $\phi$ moves the intercept right but keeps the same slope (s).`),
+  xmatch(3, 'de Broglie', 'xm2', XR`Match each case in List I with the wavelength in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Electron through $V$ volts: $\dfrac{12.27}{\sqrt V}$ Å (p). From $K$: $\dfrac{h}{\sqrt{2mK}}$ (q). From momentum: $\dfrac hp$ (r). Gas atom with $\tfrac12mv^2_{\mathrm{rms}} = \tfrac32k_BT$: $v_{\mathrm{rms}} = \sqrt{3k_BT/m}$, $\lambda = \dfrac{h}{\sqrt{3mk_BT}}$ (s).`),
+  xn(3, 'speed of photoelectrons', XR`Photoelectrons are emitted with a maximum kinetic energy of 1.0 eV. Find their maximum speed, in units of $10^{5}$ m/s ($m_e=9.1\times10^{-31}$ kg, $e=1.6\times10^{-19}$ C).`, Math.sqrt(2 * XQE / XME) / 1e5, 0.03, 2,
+    XR`$v = \sqrt{\dfrac{2K}{m}} = \sqrt{\dfrac{2\times1.6\times10^{-19}}{9.1\times10^{-31}}} = 5.93\times10^{5}$ m/s.`, { unit: '×10⁵ m/s' }),
+  xm(3, 'radiation pressure', XR`Light of intensity $300\ \mathrm{W\,m^{-2}}$ falls normally on a perfectly reflecting surface. The pressure on it is`, XR`$2\times10^{-6}$ Pa`, [XR`$1\times10^{-6}$ Pa`, XR`$4\times10^{-6}$ Pa`, XR`$9\times10^{4}$ Pa`],
+    XR`For a reflector the pressure is $\dfrac{2I}{c} = \dfrac{2\times300}{3\times10^{8}} = 2\times10^{-6}$ Pa. (A perfect absorber would feel half of this.)`),
+  xn(3, 'electron wavelength', XR`Electrons of 54 eV are used in a diffraction experiment. Find their de Broglie wavelength in nm.`, 1.227 / Math.sqrt(54), 0.004, 3,
+    XR`$\lambda = \dfrac{1.227}{\sqrt V}$ nm $=\dfrac{1.227}{\sqrt{54}} = 0.167$ nm.`, { unit: 'nm' }),
+  xi(3, 'ratio of kinetic energies', XR`A metal has work function 2.0 eV. Photons of 3.0 eV are replaced by photons of 6.0 eV. The maximum kinetic energy increases by what factor?`, (6 - 2) / (3 - 2),
+    XR`$K_1 = 3.0-2.0 = 1.0$ eV; $K_2 = 6.0-2.0 = 4.0$ eV. The ratio is 4, not 2.`, { trap: 'Doubling the photon energy does not double $K_{\\max}$.' }),
+  xi(3, 'radiation force', XR`A laser beam of power 3.0 W is completely absorbed by a surface. The force on the surface is $n\times10^{-9}$ N. Find $n$ ($c = 3\times10^{8}$ m/s).`, 3.0 / 3e8 / 1e-9,
+    XR`For absorption $F = \dfrac Pc = \dfrac{3.0}{3\times10^{8}} = 10^{-8}$ N $= 10\times10^{-9}$ N.`),
+  xn(3, 'photon number', XR`Light of wavelength 500 nm and intensity $1.0\ \mathrm{W\,m^{-2}}$ falls on a surface. Find the number of photons striking each square metre per second, in units of $10^{18}$ ($h = 6.63\times10^{-34}$ J s, $c = 3\times10^{8}$ m/s).`, 1 / (XH * XCL / 500e-9) / 1e18, 0.02, 2,
+    XR`Photon energy $= \dfrac{hc}{\lambda} = 3.98\times10^{-19}$ J. Photons per square metre per second $= \dfrac{1.0}{3.98\times10^{-19}} = 2.51\times10^{18}$.`, { unit: '×10¹⁸' }),
+  xi(3, 'Bohr and de Broglie', XR`How many de Broglie wavelengths fit around the circumference of the electron's orbit in the fourth Bohr orbit?`, 4,
+    XR`Bohr's quantisation $mvr = \dfrac{nh}{2\pi}$ means $2\pi r = n\dfrac{h}{mv} = n\lambda$. For $n=4$, four wavelengths fit.`),
+  xi(3, 'classical time lag', XR`Classically, an atom of cross-section area $1\times10^{-20}\ \mathrm{m^2}$ absorbs light of intensity $1\ \mathrm{W\,m^{-2}}$. The time in seconds it would take to collect the 2.0 eV work function ($e = 1.6\times10^{-19}$ C) is`, 2.0 * 1.6e-19 / (1e-20 * 1),
+    XR`Power absorbed $=IA = 1\times10^{-20}$ W. Energy needed $=2.0\times1.6\times10^{-19} = 3.2\times10^{-19}$ J. $t = \dfrac{3.2\times10^{-19}}{10^{-20}} = 32$ s. Experiments show emission in less than $10^{-9}$ s: the wave picture fails.`, { unit: 's' }),
+);
+
+// ---------- L4 ----------
+items.push(
+  xi(4, 'stopping potential and frequency', XR`A metal has work function 2.0 eV. Photons of energy 4.0 eV give a stopping potential $V_1$ and photons of 3.0 eV give $V_2$. Find $V_1/V_2$.`, (4 - 2) / (3 - 2),
+    XR`$V_1 = 4.0-2.0 = 2.0$ V, $V_2 = 3.0-2.0 = 1.0$ V. Ratio $=2$, not $4/3$.`, { trap: 'The stopping potential is proportional to $hf-\\phi$, not to $f$.' }),
+  xi(4, 'accelerating potential', XR`A proton is accelerated through 200 V and an alpha particle through 100 V. Find $\lambda_p/\lambda_\alpha$.`, Math.sqrt(4 * 1.67e-27 / 1.67e-27),
+    XR`Kinetic energies: proton $e\times200 = 200$ eV; alpha $2e\times100 = 200$ eV. They are equal, so $\dfrac{\lambda_p}{\lambda_\alpha} = \sqrt{\dfrac{m_\alpha}{m_p}} = 2$.`),
+  xi(4, 'photocurrent', XR`A beam of 0.20 W of 4.0 eV photons falls on a metal. One electron is emitted for every 100 photons. The photocurrent at saturation is $n\ \mu$A. Find $n$ ($e = 1.6\times10^{-19}$ C).`, 0.2 / 4.0 * 0.01 * 1e6,
+    XR`Photons per second $=\dfrac{0.20}{4.0\times1.6\times10^{-19}}$. Electrons per second $= 0.01\times$ that. Current $= e\times$ electrons per second $= \dfrac{0.20}{4.0}\times0.01 = 5\times10^{-4}$ A $= 500\ \mu$A. (Power in watts divided by photon energy in volts gives amperes.)`),
+  xi(4, 'isolated sphere', XR`An isolated metal sphere of radius 9.0 cm is lit by light that gives photoelectrons of maximum energy 2.0 eV. After a long time it carries a charge of $n$ pC. Find $n$ ($\dfrac{1}{4\pi\varepsilon_0} = 9\times10^{9}$ SI).`, 0.09 * 2.0 / 9e9 / 1e-12,
+    XR`Electrons leave until the sphere's potential reaches the stopping value: $V = \dfrac{K_{\max}}{e} = 2.0$ V. $Q = 4\pi\varepsilon_0RV = \dfrac{0.09\times2.0}{9\times10^{9}} = 2\times10^{-11}$ C $= 20$ pC.`),
+  xi(4, 'work function from two wavelengths', XR`Light of wavelength $\lambda$ gives a stopping potential of 3.0 V and light of wavelength $2\lambda$ gives 0.5 V on the same metal. The work function, in eV, is`, 2 * (3.0 - 0.5) - 3.0,
+    XR`$eV_1 = \dfrac{hc}{\lambda}-\phi$ and $eV_2 = \dfrac{hc}{2\lambda}-\phi$. Subtract: $e(V_1-V_2) = \dfrac{hc}{2\lambda}$, so $\dfrac{hc}{\lambda} = 2e(V_1-V_2) = 5.0$ eV. Then $\phi = 5.0-3.0 = 2.0$ eV.`, { unit: 'eV' }),
+  xi(4, 'solar sail', XR`A perfectly reflecting sail of area $100\ \mathrm{m^2}$ faces sunlight of intensity $1500\ \mathrm{W\,m^{-2}}$ at normal incidence. The force on it is $n$ mN. Find $n$ ($c=3\times10^{8}$ m/s).`, 2 * 1500 * 100 / 3e8 / 1e-3,
+    XR`$F = \dfrac{2IA}{c} = \dfrac{2\times1500\times100}{3\times10^{8}} = 10^{-3}$ N $= 1$ mN.`, { unit: 'mN' }),
+  xn(4, 'photon and electron', XR`A photon and an electron have the same wavelength 0.10 nm. Find the ratio (photon energy)/(electron kinetic energy). ($hc = 12398$ eV Å, electron energy $=150.4/\lambda^2$ eV with $\lambda$ in Å.)`, (12398 / 1) / (150.4 / 1), 0.5, 1,
+    XR`Photon: $E = \dfrac{12398}{1.0} = 12398$ eV for $\lambda = 1$ Å. Electron: $K = \dfrac{150.4}{1.0^2} = 150.4$ eV. Ratio $= 82.4$. The photon is far more energetic.`, { trap: 'Equal wavelength means equal momentum, not equal energy.' }),
+  xn(4, 'electron diffraction', XR`Electrons are diffracted from a crystal whose planes are 0.20 nm apart. The first-order maximum appears at a glancing angle of $30^\circ$. Find the accelerating voltage, in volts.`, (1.227 / (2 * 0.2 * Math.sin(XPI / 6))) ** 2 / 1, 0.3, 1,
+    XR`Bragg: $2d\sin\theta = \lambda$, so $\lambda = 2\times0.20\times0.5 = 0.20$ nm. $\lambda = \dfrac{1.227}{\sqrt V}$ nm gives $V = \left(\dfrac{1.227}{0.20}\right)^2 = 37.6$ V.`, { unit: 'V' }),
+  xn(4, 'photoelectrons in a magnetic field', XR`Photoelectrons of maximum energy 2.0 eV enter a uniform field of $1.0\times10^{-4}$ T perpendicular to their velocity. The largest radius of their path, in cm ($m_e=9.1\times10^{-31}$ kg, $e = 1.6\times10^{-19}$ C), is`, Math.sqrt(2 * 2.0 * XQE * XME) / (XQE * 1e-4) * 100, 0.1, 2,
+    XR`$p = \sqrt{2mK} = \sqrt{2\times9.1\times10^{-31}\times3.2\times10^{-19}} = 7.63\times10^{-25}$ kg m/s. $r = \dfrac{p}{eB} = \dfrac{7.63\times10^{-25}}{1.6\times10^{-19}\times10^{-4}} = 0.0477$ m $=4.77$ cm.`, { unit: 'cm' }),
+  xs(4, 'photoelectric effect', XR`Choose the correct statements about the photoelectric effect.`,
+    [XR`The maximum kinetic energy of the electrons does not depend on the intensity.`, XR`Below the threshold frequency there is no emission, however intense the light.`, XR`Emission begins with no measurable delay.`, XR`The saturation current depends on the frequency but not on the intensity.`],
+    [0, 1, 2],
+    XR`Intensity sets the number of photons, so it sets the saturation current (D false). $K_{\max}$, the threshold and the lack of delay all follow from one photon giving energy to one electron.`),
+  xs(4, 'matter waves', XR`Choose the correct statements.`,
+    [XR`The de Broglie wavelength of a particle is $h/p$.`, XR`A particle at rest has an infinitely long de Broglie wavelength.`, XR`Electrons show diffraction.`, XR`The wavelength of a moving cricket ball is easily measured.`],
+    [0, 1, 2],
+    XR`$\lambda = \dfrac hp$ so $p=0$ gives $\lambda\to\infty$. Electron diffraction (Davisson-Germer) confirms the wave nature. A ball has $\lambda\sim10^{-34}$ m, far too small to measure (D false).`),
+  xs(4, 'photon', XR`Choose the correct statements about photons.`,
+    [XR`The energy of a photon is $hf$.`, XR`The rest mass of a photon is zero.`, XR`The momentum of a photon is $h/\lambda$.`, XR`Photons are deflected by an electric field.`],
+    [0, 1, 2],
+    XR`Photons carry no charge, so electric and magnetic fields do not deflect them (D false).`),
+  xs(4, 'K-f graph', XR`A graph of maximum kinetic energy of photoelectrons against the frequency of incident light is a straight line. Choose the correct statements.`,
+    [XR`Its slope is $h$.`, XR`The intercept on the frequency axis is the threshold frequency.`, XR`Its extension meets the energy axis at $-\phi$.`, XR`Its slope depends on the metal.`],
+    [0, 1, 2],
+    XR`$K_{\max} = hf-\phi$: slope $h$ (universal), $f$-intercept $\phi/h$, $K$-intercept $-\phi$. All metals give parallel lines (D false).`),
+  xs(4, 'radiation pressure', XR`A beam of light of power $P$ falls normally on a surface. Choose the correct statements.`,
+    [XR`The force on a perfect absorber is $P/c$.`, XR`The force on a perfect reflector is $2P/c$.`, XR`The pressure on a perfect absorber is $I/c$.`, XR`The force on a reflector equals the force on an absorber.`],
+    [0, 1, 2],
+    XR`An absorber takes the photons' momentum $P/c$ per second. A reflector reverses it, so the change is $2P/c$ (D false).`),
+  xa(4, 'work function', XR`The work function of a metal depends on the frequency of the light falling on it.`, XR`The work function is the least energy needed to take an electron out of the metal.`, 3,
+    XR`A is false: $\phi$ is a property of the metal (and its surface). R is true and is the definition.`),
+  xa(4, 'photoelectron energy', XR`Photoelectrons are emitted with kinetic energies from 0 up to a maximum.`, XR`Electrons at different depths lose different amounts of energy in collisions before reaching the surface.`, 0,
+    XR`Electrons freed near the surface carry $K_{\max}$; deeper ones lose energy on the way out. R explains the spread.`),
+  xt(4, 'intensity', XR`The stopping potential of a photocell at a given frequency does not depend on the intensity.`, XR`The saturation current of a photocell is proportional to the intensity of the light.`, 0,
+    XR`$V_0 = (hf-\phi)/e$ has no intensity. The saturation current counts electrons per second, which follows photons per second. Both are true.`),
+  xm(4, 'photoelectric effect', XR`The threshold wavelength of metal A is longer than that of metal B. Which statement is correct?`, 'A has the smaller work function', ['A has the larger work function', 'A has the larger threshold frequency', 'both have the same work function'],
+    XR`$\phi = \dfrac{hc}{\lambda_0}$: the longer $\lambda_0$, the smaller $\phi$ (and the smaller $f_0$).`),
+);
+
+// ---------- L5 ----------
+items.push(
+  xs(5, 'photoelectrons', XR`Photoelectrons of maximum energy $K$ enter a uniform magnetic field $B$ perpendicular to their velocities. Choose the correct statements.`,
+    [XR`The largest radius is $\dfrac{\sqrt{2mK}}{eB}$.`, XR`Slower electrons move in circles of smaller radius.`, XR`Electrons of different energies follow circles of different radii.`, XR`The radius depends on the intensity of the light.`],
+    [0, 1, 2],
+    XR`$r = \dfrac{mv}{eB} = \dfrac{\sqrt{2mK}}{eB}\propto\sqrt K$. Intensity changes the count, not the speeds (D false).`),
+  xs(5, 'photon absorption', XR`Choose the correct statements.`,
+    [XR`A free electron cannot completely absorb a photon.`, XR`In the photoelectric effect the lattice takes up some momentum.`, XR`A photon gives its energy to a single electron.`, XR`A photon shares its energy among many electrons.`],
+    [0, 1, 2],
+    XR`For a free electron, energy and momentum cannot both be conserved if it absorbs the photon completely. In a metal the lattice absorbs the leftover momentum. One photon, one electron (D false).`),
+  xs(5, 'two metals', XR`The same light ejects electrons from metals A and B with $\phi_A<\phi_B$. Choose the correct statements.`,
+    [XR`The maximum kinetic energy is greater for A.`, XR`The stopping potential is greater for A.`, XR`The threshold wavelength is longer for A.`, XR`The threshold frequency is smaller for B.`],
+    [0, 1, 2],
+    XR`$K_{\max} = hf-\phi$ is larger for the smaller $\phi$, so is $V_0$. $\lambda_0 = hc/\phi$ is longer for A. $f_0 = \phi/h$ is larger for B (D false).`),
+  xs(5, 'isolated body', XR`An isolated, initially neutral metal sphere is lit by light of a frequency that ejects electrons with maximum energy $K$. Choose the correct statements.`,
+    [XR`It becomes positively charged.`, XR`Its potential rises until it reaches $K/e$.`, XR`Its potential stops rising once emission stops.`, XR`Its potential rises without limit.`],
+    [0, 1, 2],
+    XR`Each electron leaving makes the sphere more positive. The sphere's potential retards later electrons. When $V = K/e$ even the fastest electron cannot escape, so the charging stops (D false).`),
+  xs(5, 'photon and electron', XR`A photon and a non-relativistic electron have the same wavelength. Choose the correct statements.`,
+    [XR`They have the same momentum.`, XR`The photon has more energy.`, XR`The electron's kinetic energy is $p^2/2m$.`, XR`They have the same speed.`],
+    [0, 1, 2],
+    XR`$p = h/\lambda$ for both. Photon: $E = pc$; electron: $K = p^2/2m = \dfrac{pv}{2}$, and $v<c$, so $E>K$. The photon moves at $c$, not at the electron's $v$ (D false).`),
+  xm(5, 'photon and electron', XR`The wavelength of a photon equals that of an electron of kinetic energy $K$. The photon energy is $E$. Then $E/K$ is proportional to`, XR`$\dfrac{1}{v}$ (the electron's speed)`, [XR`$v$`, XR`$v^2$`, XR`$\dfrac{1}{v^2}$`],
+    XR`Equal momentum $p$: $E = pc$ and $K = \dfrac p{2}v$ ($K = \dfrac{p^2}{2m}$, $p = mv$). So $\dfrac EK = \dfrac{2c}{v}\propto\dfrac1v$.`),
+  xm(5, 'matter waves', XR`The kinetic energy of a particle of wavelength $\lambda$ and mass $m$ is proportional to`, XR`$\dfrac{1}{m\lambda^2}$`, [XR`$\dfrac{1}{m\lambda}$`, XR`$\dfrac{m}{\lambda^2}$`, XR`$\dfrac{1}{\sqrt m\,\lambda}$`],
+    XR`$K = \dfrac{p^2}{2m} = \dfrac{h^2}{2m\lambda^2}$.`),
+  xa(5, 'heavy particles', XR`A heavy particle moving at the same speed as an electron has a much shorter de Broglie wavelength.`, XR`The de Broglie wavelength is $\lambda = h/mv$.`, 0,
+    XR`At equal $v$, $\lambda\propto\dfrac1m$. R explains A.`),
+  xt(5, 'free electron', XR`A free electron at rest cannot completely absorb a photon.`, XR`Energy and momentum cannot both be conserved if a free electron absorbs a photon completely.`, 0,
+    XR`Suppose it did. Momentum: $mv = E/c$. Energy (non-relativistic): $\tfrac12mv^2 = E$. Eliminating $E$: $\tfrac12mv^2 = mvc$, so $v = 2c$, which is impossible. So the two conservation laws cannot both hold, and the absorption cannot happen. Both statements are true.`),
+  xt(5, 'free electron', XR`A free electron at rest can completely absorb a photon.`, XR`Energy and momentum cannot both be conserved in that process.`, 3,
+    XR`Statement II is true (see the argument above). Statement I contradicts it, so it is false.`),
+  xmatch(5, 'photoelectric emission', 'xm8', XR`Match each feature in List I with its cause in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$K_{\max} = hf-\phi$ (p). Photon energy below $\phi$ cannot free an electron (q). One photon gives its energy to one electron at once: instantaneous (r). More photons per second free more electrons: saturation current $\propto$ intensity (s).`),
+  xmatch(5, 'light and momentum', 'xm4', XR`Match each item in List I with List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Photon momentum $h/\lambda$ (p). Absorber: $F = P/c$ (q). Reflector: $2P/c$ (r). Pressure on an absorber $= I/c$ (s).`),
+  xmatch(5, 'two metals', 'xm5', XR`Match each quantity in List I with the correct statement in List II.`, 'A-p, B-s, C-r, D-q',
+    XR`$K_{\max} = hf-\phi$ is greater for A, the metal with the smaller work function (p). $f_0 = \phi/h$ is smaller for A (s). The slope $h/e$ is the same for all metals (r). The work function is greater for B (q).`),
+  xmatch(5, 'matter waves', 'xm6', XR`Match each case in List I with the result in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`100 V electron: $12.27/10 = 1.227$ Å $=0.123$ nm (p). Same speed: $\lambda\propto1/m$, so the electron's is $\approx1836$ times the proton's (q). Doubling $v$ halves $\lambda$ (r). Doubling $m$ halves $\lambda$ (s).`),
+  xmatch(5, 'photon and particle', 'xm7', XR`A photon and a non-relativistic particle of mass $m$ have the same wavelength $\lambda$. Match each item in List I with List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Momentum is $h/\lambda$ for both (p). Photon energy $hc/\lambda$ (q). Particle kinetic energy $p^2/2m = \dfrac{h^2}{2m\lambda^2}$ (r). Photon speed $c$ (s).`),
+);
+
+// ---------- passages ----------
+items.push(
+  xn(3, 'photon energy', XR`Find the energy of one photon, in eV.`, XH * XCL / 400e-9 / XQE, 0.02, 2,
+    XR`$E = \dfrac{hc}{\lambda} = \dfrac{6.63\times10^{-34}\times3\times10^{8}}{400\times10^{-9}} = 4.97\times10^{-19}$ J $= 3.11$ eV.`, XPY({ group: 'xp1', unit: 'eV' })),
+  xn(4, 'stopping potential', XR`Find the stopping potential, in volts.`, XH * XCL / 400e-9 / XQE - 2.3, 0.02, 2,
+    XR`$eV_0 = 3.11-2.3 = 0.81$ eV, so $V_0 = 0.81$ V.`, XPY({ group: 'xp1', unit: 'V' })),
+  xn(5, 'photocurrent', XR`Find the saturation photocurrent, in $\mu$A.`, 2.0 * 1e-4 / (XH * XCL / 400e-9) * 0.01 * XQE * 1e6, 0.01, 3,
+    XR`Power on the plate $= IA = 2.0\times10^{-4}$ W. Photons per second $=\dfrac{2.0\times10^{-4}}{4.97\times10^{-19}} = 4.02\times10^{14}$. Electrons per second $=0.01\times4.02\times10^{14} = 4.02\times10^{12}$. $I = 4.02\times10^{12}\times1.6\times10^{-19} = 6.44\times10^{-7}$ A $= 0.644\ \mu$A.`, XPY({ group: 'xp1', unit: 'µA', trap: 'Only 1% of the photons produce an electron.' })),
+  xn(3, 'electron wavelength', XR`Find the de Broglie wavelength of the electrons, in nm.`, XH / Math.sqrt(2 * XME * 100 * XQE) * 1e9, 0.002, 4,
+    XR`$p = \sqrt{2meV} = \sqrt{2\times9.1\times10^{-31}\times1.6\times10^{-19}\times100} = 5.40\times10^{-24}$ kg m/s. $\lambda = \dfrac hp = \dfrac{6.63\times10^{-34}}{5.40\times10^{-24}} = 1.228\times10^{-10}$ m $=0.123$ nm.`, XPY({ group: 'xp2', unit: 'nm' })),
+  xn(4, 'electron momentum', XR`Find the momentum of the electrons, in units of $10^{-24}$ kg m/s.`, Math.sqrt(2 * XME * 100 * XQE) / 1e-24, 0.02, 2,
+    XR`$p = \sqrt{2meV} = 5.40\times10^{-24}$ kg m/s.`, XPY({ group: 'xp2', unit: '×10⁻²⁴ kg m/s' })),
+  xn(5, 'Bragg diffraction', XR`Find the glancing angle (in degrees) for the first-order maximum.`, Math.asin(XH / Math.sqrt(2 * XME * 100 * XQE) / (2 * 0.2e-9)) * 180 / XPI, 0.2, 1,
+    XR`Bragg: $2d\sin\theta = \lambda$. $\sin\theta = \dfrac{0.1228}{2\times0.20} = 0.307$, so $\theta = 17.9^\circ$.`, XPY({ group: 'xp2', unit: '°' })),
+);
+
+// ---------- templates ----------
+gens.push(
+  XG(27, 3, 'mcq', 'stopping potential', (rng) => {
+    const lam = choose(rng, [200, 250, 300, 310, 400, 500]); const phi = pick(rng, 1.5, 4.5, 0.1);
+    const E = 1240 / lam; const V = E - phi;
+    if (V <= 0.05) return { lam, phi, ok: 0, q: XR`Light of wavelength ${lam} nm falls on a metal of work function ${phi} eV (${HCN}). The stopping potential is`, options: ['0 (no emission)', f3(E + phi) + ' V', f3(E + phi + 1) + ' V', f3(Math.abs(V) + 0.5) + ' V'], answer: 0, sol: XR`Photon energy $= ${f3(E)}$ eV is less than $\phi$, so no electrons are emitted and there is no stopping potential to measure.`, trap: 'Check that the photon energy exceeds the work function first.' };
+    const o = numOpts(rng, V, [E, phi, E + phi], 'V', 3);
+    return { lam, phi, ok: 1, q: XR`Light of wavelength ${lam} nm falls on a metal of work function ${phi} eV (${HCN}). The stopping potential is`, options: o.options, answer: o.answer, sol: XR`Photon energy $=\dfrac{1240}{${lam}} = ${f3(E)}$ eV. $eV_0 = ${f3(E)}-${phi}$, so $V_0 = ${f3(V)}$ V.`, trap: 'Subtract the work function from the photon energy.' };
+  }, (p) => { const V = 1240 / p.lam - p.phi; return V <= 0.05 ? 0 : p.options.findIndex((o) => o === `${f3(V)} V`); }),
+  XG(28, 4, 'nat', 'photocurrent', (rng) => {
+    const P = choose(rng, [0.1, 0.2, 0.5, 1]); const lam = choose(rng, [250, 300, 400, 500]); const eta = choose(rng, [0.001, 0.005, 0.01, 0.02]);
+    const I = P / (1240 / lam) * eta * 1e6;
+    return { P, lam, eta, q: XR`A beam of ${P} W of light of wavelength ${lam} nm falls on a metal. A fraction ${eta} of the photons each release one electron, and all electrons are collected. Find the saturation current, in $\mu$A (${HCN}).`, answer: +I.toFixed(3), tol: Math.max(0.01, I * 0.01), unit: 'µA',
+      sol: XR`Photon energy $=\dfrac{1240}{${lam}} = ${f3(1240 / lam)}$ eV. Photons per second $=\dfrac{${P}}{${f3(1240 / lam)}\times1.6\times10^{-19}}$. Current $=\eta\,e\times$ that $= ${eta}\times\dfrac{${P}}{${f3(1240 / lam)}} = ${f3(I)}\ \mu$A.` };
+  }, (p) => { const N = p.P / (1240 / p.lam * 1.6e-19); return N * p.eta * 1.6e-19 * 1e6; }),
+  XG(29, 4, 'nat', 'photoelectrons in a magnetic field', (rng) => {
+    const K = choose(rng, [0.5, 1, 2, 3, 4]); const B = choose(rng, [0.5, 1, 2, 5]) * 1e-4;
+    const r = Math.sqrt(2 * XME * K * XQE) / (XQE * B) * 100;
+    return { K, B, q: XR`Photoelectrons of maximum kinetic energy ${K} eV enter a uniform field of $${B * 1e4}\times10^{-4}$ T perpendicular to their velocity. Find the largest radius of their path, in cm ($m_e = 9.1\times10^{-31}$ kg, $e = 1.6\times10^{-19}$ C).`, answer: +r.toFixed(3), tol: Math.max(0.02, r * 0.005), unit: 'cm',
+      sol: XR`$v = \sqrt{\dfrac{2K}{m}} = ${f3(Math.sqrt(2 * K * XQE / XME))}$ m/s. $r = \dfrac{mv}{eB} = ${f3(r)}$ cm.` };
+  }, (p) => { const v = Math.sqrt(2 * p.K * XQE / XME); return XME * v / (XQE * p.B) * 100; }),
+  XG(30, 3, 'mcq', 'comparing de Broglie wavelengths', (rng) => {
+    const v = int(rng, 0, 3); const w = choose(rng, [{ n: 'deuteron', m: 2, q: 1 }, { n: 'alpha particle', m: 4, q: 2 }]);
+    const cond = ['the same speed', 'the same kinetic energy', 'the same accelerating voltage', 'the same momentum'][v];
+    const ratio = [1 * 1 / w.m, 1 / Math.sqrt(w.m), 1 / Math.sqrt(w.m * w.q), 1][v];
+    const why = [XR`$\lambda = \dfrac{h}{mv}\propto\dfrac1m$`, XR`$\lambda = \dfrac{h}{\sqrt{2mK}}\propto\dfrac{1}{\sqrt m}$`, XR`$\lambda = \dfrac{h}{\sqrt{2mqV}}\propto\dfrac{1}{\sqrt{mq}}$`, XR`$\lambda = \dfrac hp$ is the same`][v];
+    const pool = [1 / w.m, 1 / Math.sqrt(w.m), 1 / Math.sqrt(w.m * w.q), 1, w.m, Math.sqrt(w.m), 1 / (w.m * w.q)];
+    const wr = []; for (const x of pool) { if (Math.abs(x - ratio) > 1e-9 && !wr.some((y) => Math.abs(y - x) < 1e-9)) wr.push(x); if (wr.length === 3) break; }
+    const o = numOpts(rng, ratio, wr, '', 3);
+    return { v, wm: w.m, wq: w.q, q: XR`A proton and a ${w.n} have ${cond}. The ratio of the ${w.n}'s de Broglie wavelength to the proton's is`, options: o.options, answer: o.answer, sol: XR`${why}. For the ${w.n} ($m=${w.m}m_p$, $q=${w.q}q_p$) the ratio is $${f3(ratio)}$.`, trap: 'Find which quantity is held equal.' };
+  }, (p) => { const ratio = [1 / p.wm, 1 / Math.sqrt(p.wm), 1 / Math.sqrt(p.wm * p.wq), 1][p.v]; return p.options.findIndex((o) => o === f3(ratio)); }),
+  XG(31, 4, 'nat', 'electron diffraction', (rng) => {
+    const d = choose(rng, [0.15, 0.2, 0.25, 0.3]); const n = choose(rng, [1, 2]); const th = choose(rng, [20, 30, 40, 60]);
+    const lam = 2 * d * Math.sin(th * XPI / 180) / n; const V = (1.227 / lam) ** 2;
+    return { d, n, th, q: XR`Electrons are diffracted from planes 0.${String(d * 100).padStart(2, '0')} nm apart. An order-${n} maximum is seen at a glancing angle of ${th}°. Find the accelerating voltage, in volts.`, answer: +V.toFixed(2), tol: Math.max(0.2, V * 0.01), unit: 'V',
+      sol: XR`Bragg: $n\lambda = 2d\sin\theta$, so $\lambda = \dfrac{2\times${d}\times\sin${th}^\circ}{${n}} = ${f3(lam)}$ nm. $V = \left(\dfrac{1.227}{\lambda}\right)^2 = ${f3(V)}$ V.` };
+  }, (p) => { const lam = 2 * p.d * Math.sin(p.th * XPI / 180) / p.n * 1e-9; const pm = XH / lam; return pm * pm / (2 * XME * XQE); }),
+  XG(32, 5, 'nat', 'charging of an isolated sphere', (rng) => {
+    const R = choose(rng, [0.03, 0.05, 0.09, 0.1]); const K = choose(rng, [1, 1.5, 2, 3]);
+    const Q = 4 * XPI * XE0 * R * K / 1e-12; const n = Q * 1e-12 / XQE;
+    return { R, K, q: XR`An isolated sphere of radius ${R * 100} cm is lit by light whose photoelectrons have maximum energy ${K} eV. What charge, in pC, does the sphere finally carry ($\varepsilon_0 = 8.85\times10^{-12}$ SI)?`, answer: +Q.toFixed(3), tol: Math.max(0.01, Q * 0.01), unit: 'pC',
+      sol: XR`The sphere charges until $V = K/e = ${K}$ V. $Q = 4\pi\varepsilon_0RV = ${f3(Q)}$ pC (about $${tx(n)}$ electrons lost).` };
+  }, (p) => p.R * p.K / 9e9 / 1e-12),
+  XG(33, 4, 'nat', 'ratio of kinetic energies', (rng) => {
+    const phi = pick(rng, 1.5, 3, 0.5); const E1 = +(phi + pick(rng, 0.5, 1.5, 0.5)).toFixed(2); const k = choose(rng, [1.5, 2, 3]); const E2 = E1 * k;
+    const r = (E2 - phi) / (E1 - phi);
+    return { phi, E1, E2, q: XR`A metal has work function ${phi} eV. When the photon energy is changed from ${E1} eV to ${f3(E2)} eV, by what factor does the maximum kinetic energy change?`, answer: +r.toFixed(3), tol: Math.max(0.01, r * 0.01),
+      sol: XR`$K_1 = ${E1}-${phi} = ${f3(E1 - phi)}$ eV; $K_2 = ${f3(E2)}-${phi} = ${f3(E2 - phi)}$ eV. Ratio $= ${f3(r)}$, not ${k}.`, trap: 'The factor on $K_{\\max}$ is not the factor on the photon energy.' };
+  }, (p) => (p.E2 - p.phi) / (p.E1 - p.phi)),
+  XG(34, 4, 'nat', 'retarding field', (rng) => {
+    const K = choose(rng, [1, 2, 3, 4]); const E = choose(rng, [50, 100, 200, 500]);
+    const d = K / E * 100;
+    return { K, E, q: XR`A photoelectron of kinetic energy ${K} eV leaves a plate perpendicular to it, into a uniform retarding field of ${E} V/m. How far does it travel before stopping, in cm?`, answer: +d.toFixed(3), tol: Math.max(0.01, d * 0.01), unit: 'cm',
+      sol: XR`Work done by the field $= eEd = K$, so $d = \dfrac{K\ \text{(in eV)}}{E\ \text{(in V/m)}} = \dfrac{${K}}{${E}} = ${f3(K / E)}$ m $= ${f3(d)}$ cm.` };
+  }, (p) => { const F = XQE * p.E; return p.K * XQE / F * 100; }),
+  XG(35, 4, 'mcq', 'photon number', (rng) => {
+    const l1 = choose(rng, [300, 400, 500]); const l2 = choose(rng, [600, 700, 800]);
+    const rat = l1 / l2; const o = numOpts(rng, rat, [l2 / l1, (l1 / l2) ** 2, 1], '', 3);
+    return { l1, l2, q: XR`Two sources of the same power emit light of wavelengths ${l1} nm and ${l2} nm. The ratio of the numbers of photons per second (first : second) is`, options: o.options, answer: o.answer, sol: XR`Photons per second $=\dfrac{P}{hc/\lambda}\propto\lambda$ at equal power. Ratio $=\dfrac{${l1}}{${l2}} = ${f3(rat)}$.`, trap: 'Longer wavelength means lower photon energy, hence more photons.' };
+  }, (p) => p.options.findIndex((o) => o === f3(p.l1 / p.l2))),
+);
+
+}
+
 export default { topic: 'dual-nature', groups, items, gens };

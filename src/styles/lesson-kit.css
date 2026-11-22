@@ -118,3 +118,13 @@ html.red-mode figure.photo img { filter: url(#red-night); }
 /* IELTS course figure tables (public/learn-kit/ielts/figs/) */
 .ie-raw, .ie-plan table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
 .ie-raw th, .ie-raw td, .ie-plan th, .ie-plan td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+
+/* A fibub tool inside a lesson (components/course/ToolEmbed.astro) */
+.tool-embed { margin: 24px 0; padding: 14px; border: 2px solid var(--accent-soft, var(--line)); border-radius: 14px; background: var(--surface); min-width: 0; }
+.tool-embed .te-head { margin: 0 0 2px; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.tool-embed .te-head .lk-tag { margin: 0; }
+.tool-embed .te-head small { color: var(--muted); }
+.tool-embed .te-sum { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+.tool-embed .tool-ui { min-width: 0; }
+.tool-embed .te-foot { margin: 10px 0 0; font-size: 13.5px; }
+@media (max-width: 640px) { .tool-embed { padding: 10px; margin: 18px -4px; } }

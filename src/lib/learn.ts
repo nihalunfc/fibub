@@ -61,7 +61,7 @@ export function learnHubs(cards: CourseCard[]) {
   const curricula = CURRICULA.filter((c) => c.status === 'live');
   return [
     { id: 'school', name: 'School', href: '/learn/school/', blurb: 'Class 8 to 12, chapter by chapter: NCERT, Kerala, Canada, USA and UK.', count: `${new Set(curricula.map((c) => c.country)).size} countries` },
-    ...COURSE_CATS.map((k) => ({ id: k.id, name: k.name, href: k.href, blurb: k.blurb, count: live(k.id).length ? `${live(k.id).length} courses · ${sum(live(k.id))} lessons` : 'Courses on the way' })),
+    ...COURSE_CATS.filter((k) => k.id !== 'school').map((k) => ({ id: k.id, name: k.name, href: k.href, blurb: k.blurb, count: live(k.id).length ? `${live(k.id).length} courses · ${sum(live(k.id))} lessons` : 'Courses on the way' })),
     { id: 'labs', name: 'Experiments', href: '/learn/experiments/', blurb: 'Virtual lab work: set up, take readings, plot and check.', count: `${EXPERIMENTS.reduce((s, g) => s + g.tools.length, 0)} virtual labs` },
     { id: 'languages', name: 'Languages', href: '/learn/languages/', blurb: 'English for IELTS, CELPIP and TOEFL, with vocabulary and practice.', count: `${cards.filter((c) => ENGLISH.includes(c.id) && c.status === 'live').length} English courses` },
   ];

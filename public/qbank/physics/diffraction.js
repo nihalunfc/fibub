@@ -8,6 +8,7 @@ const DEG = Math.PI / 180;
 
 import * as Q5 from '../_util.js';
 import more2 from './diffraction.more2.gen.js';
+import r4 from './diffraction.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -225,6 +226,7 @@ export default {
       sol: '$\\sin\\theta = m/5 < 1$ allows $m = 0, \\pm1, \\pm2, \\pm3, \\pm4$ ($m = \\pm5$ would be at $90^\\circ$, along the grating, and is not seen). Orders that are multiples of $d/a = 3$ are missing: $\\pm3$. That leaves $0, \\pm1, \\pm2, \\pm4$: $7$ maxima.',
       trap: 'Counting $m = \\pm5$ (grazing) or forgetting the missing orders.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'dfr-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'single slit', format: 'comparison',
@@ -367,5 +369,6 @@ export default {
           sol: `$a\\sin\\theta = m\\lambda$: $\\sin\\theta = ${m}\\times${lam / 1000}/${a} = ${round(s, 4)}$, so $\\theta = ${round(th, 1)}^\\circ$.`,
           trap: 'Using the half-integer rule, which belongs to two-slit minima, not single-slit minima.' };
       } },
+    ...r4.gens,
   ],
 };

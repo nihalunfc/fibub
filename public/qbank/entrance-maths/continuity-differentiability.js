@@ -954,4 +954,297 @@ const gens = [
   }),
 ];
 
-export default { topic: 'continuity-differentiability', groups, items: (() => { items.forEach((it, i) => { it.id = `cd-${String(i + 1).padStart(3, '0')}`; }); return items; })(), gens };
+items.forEach((it, i) => { it.id = `cd-${String(i + 1).padStart(3, '0')}`; });
+
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `cd-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id: `cd-${id}`, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const xsq = Math.sqrt, xsin = Math.sin, xcos = Math.cos, xtan = Math.tan, xexp = Math.exp, xln = Math.log, xPI = Math.PI;
+const xgcd = (a, b) => (b ? xgcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = xgcd(n, d); n /= g; d /= g; if (d < 0) { n = -n; d = -d; } return d === 1 ? `${n}` : n < 0 ? `-\\dfrac{${-n}}{${d}}` : `\\dfrac{${n}}{${d}}`; };
+const xsg = (v) => (v < 0 ? `-${-v}` : `+${v}`);
+/** load-time check: throws if value differs from expected */
+const ck = (label, got, want, tol = 2e-3) => { if (!(Math.abs(got - want) <= tol * Math.max(1, Math.abs(want)))) console.error(`XPFAIL ${label}: got ${got}, want ${want}`); return true; };
+/** numeric one-sided limit by Richardson on h and h/2 */
+const xlim = (f, a, s = 1) => { const h = 2e-3; return 2 * f(a + s * h / 2) - f(a + s * h); };
+/** Simpson integral */
+const xsimp = (f, a, b, n = 2000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+/** central derivative */
+const xd = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h);
+const XG = {};
+const XIT = [];
+const XGN = [];
+const xfl = Math.floor, xab = Math.abs, xat = Math.atan, xas = Math.asin;
+// ---- load-time checks ----
+ck('sin3x cos3x', xd((x) => xsin(3 * x) * xcos(3 * x), 0.3), 3 * xcos(1.8));
+ck('x^x at2', xd((x) => x ** x, 2), 6.772588722, 1e-4);
+ck('x^x second', (() => { const f = (x) => x ** x; return (f(2 + 1e-3) - 2 * f(2) + f(2 - 1e-3)) / 1e-6; })(), 13.46698950, 1e-3);
+ck('x^sinx at 2', xd((x) => x ** xsin(x), 2), 0.312141, 1e-3);
+ck('inv fn', (() => { const f = (x) => x + xexp(x); const y = f(1), h = 1e-5; const g = (t) => { let x = 0.5; for (let i = 0; i < 60; i++) x -= (f(x) - t) / (1 + xexp(x)); return x; }; return (g(y + h) - g(y - h)) / (2 * h); })(), 1 / (1 + xe_()), 1e-4);
+function xe_() { return Math.E; }
+ck('sin cos nondiff', kinkCount((x) => xab(xsin(x)) + xab(xcos(x)), 0.001, 2 * xPI - 0.001, 0.5), 3);
+ck('[x2] jumps', jumpCount((x) => xfl(x * x), 0.0001, 2.9999), 8);
+ck('kink cands', [-2, 1, 2, 5].filter((a) => { const f = (x) => (x * x - 4) * xab(x * x - 3 * x + 2) + xab(x - 5); return xab(DL(f, a) - DR(f, a)) > 1e-2; }).length, 2);
+ck('4 kinks', kinkCount((x) => xab(x) + xab(x - 1) + xab(x + 1) + xab(x - 0.5), -1.9, 1.9, 0.5), 4);
+ck('|x|+|x-1|', kinkCount((x) => xab(x) + xab(x - 1), -1.9, 1.9, 0.5), 2);
+ck('3 kinks', kinkCount((x) => xab(x) + xab(x - 1) + xab(x + 1), -1.9, 1.9, 0.5), 3);
+ck('y4', (() => { const f = (x) => 0.5 * xsin(2 * x); return 8 * xsin(2 * xPI / 12); })(), 4);
+ck('arcsin 2x/(1+x2) at 2', xd((x) => xas(2 * x / (1 + x * x)), 2) , -0.4, 1e-4);
+ck('half angle', 100 * xd((x) => xat((Math.sqrt(1 + x * x) - 1) / x), 1), 25, 1e-4);
+ck('F\'(1)', (() => { const F = (x) => xsimp((t) => xexp(t * t), x, x * x, 400); return xd(F, 1); })(), Math.E, 1e-3);
+ck('arcsin(2x sqrt) ', xd((x) => xas(2 * x * Math.sqrt(1 - x * x)), 0.9), -2 / Math.sqrt(1 - 0.81), 1e-3);
+ck('sqrt asin', xd((x) => xas(Math.sqrt(x)), 0.25), 2 / Math.sqrt(3), 1e-4);
+ck('x^ln x', xd((x) => x ** xln(x), Math.E), 2, 1e-4);
+ck('mvt x3', 3 * (13 / 3), 13);
+ck('rolle', (() => { const f = (x) => x ** 3 - 6 * x * x + 11 * x - 6; return f(1) + f(3); })(), 0);
+ck('inv x5', 1 / (5 + 3 + 1), 1 / 9);
+ck('x3+x inv', 1 / 4, 0.25);
+ck('rolle e^x', (() => { const f = (x) => xexp(x) * (xsin(x) - xcos(x)); return f(xPI / 4) + f(5 * xPI / 4) + xd(f, xPI); })(), 0, 1e-6);
+ck('diff const', (() => { const f = (x) => (x <= 1 ? x * x + 3 * x + 3 : 5 * x + 2); return xab(xd(f, 1 - 1e-4) - xd(f, 1 + 1e-4)) + xab(f(1 - 1e-9) - f(1 + 1e-9)); })(), 0, 1e-3);
+
+Object.assign(XG, {
+  xm1: { title: 'Match: Rolle and mean value theorems', passage: XR`<p>For each function in List I on the given interval, find the point $c$ promised by Rolle's theorem or the mean value theorem, and match it with List II.</p>`,
+    list1: [XR`A. $x^2-4x$ on $[0,4]$ (Rolle)`, XR`B. $x^3$ on $[0,2]$ (mean value)`, XR`C. $\ln x$ on $[1,e]$ (mean value)`, XR`D. $\sqrt x$ on $[1,9]$ (mean value)`],
+    list2: [XR`p. $4$`, XR`q. $2$`, XR`r. $e-1$`, XR`s. $\dfrac2{\sqrt3}$`] },
+  xm2: { title: 'Match: derivatives at x = 1', passage: XR`<p>Match each function in List I with the value of its derivative at $x=1$ from List II.</p>`,
+    list1: [XR`A. $x^x$`, XR`B. $xe^x$`, XR`C. $\ln(x^2+3)$`, XR`D. $\tan^{-1}(2x)$`],
+    list2: [XR`p. $\dfrac25$`, XR`q. $\dfrac12$`, XR`r. $1$`, XR`s. $2e$`] },
+  xm3: { title: 'Match: how each function behaves at x = 0', passage: XR`<p>Match each function in List I (with $f(0)=0$ where needed) with its behaviour at $x=0$ in List II.</p>`,
+    list1: [XR`A. $f(x)=|x|$`, XR`B. $f(x)=x|x|$`, XR`C. $f(x)=[x]$ (greatest integer)`, XR`D. $f(x)=x^2\sin\dfrac1x$ for $x\ne0$`],
+    list2: [XR`p. continuous but not differentiable`, XR`q. differentiable, but $f'$ is not continuous`, XR`r. not continuous`, XR`s. $f'$ is continuous, but $f''(0)$ does not exist`] },
+  xm4: { title: 'Match: second derivatives', passage: XR`<p>Match each function in List I with the value of $\dfrac{d^2y}{dx^2}$ at the given point, from List II.</p>`,
+    list1: [XR`A. $y=x^3$ at $x=1$`, XR`B. $y=e^{2x}$ at $x=0$`, XR`C. $y=x\ln x$ at $x=1$`, XR`D. $y=\sin2x$ at $x=\dfrac\pi4$`],
+    list2: [XR`p. $1$`, XR`q. $4$`, XR`r. $6$`, XR`s. $-4$`] },
+  xm5: { title: 'Match: points of non-differentiability', passage: XR`<p>Match each function in List I with the number of points of $\mathbb R$ at which it is not differentiable, from List II.</p>`,
+    list1: [XR`A. $|x|$`, XR`B. $|x|+|x-1|$`, XR`C. $|x|+|x-1|+|x+1|$`, XR`D. $|x|+|x-1|+|x+1|+\left|x-\dfrac12\right|$`],
+    list2: [XR`p. $3$`, XR`q. $4$`, XR`r. $1$`, XR`s. $2$`] },
+  xm6: { title: 'Match: a function joined smoothly', passage: XR`<p>$f(x)=x^2$ for $x\le2$ and $f(x)=ax+b$ for $x>2$. The function is differentiable at $x=2$. Match each quantity in List I with its value in List II.</p>`,
+    list1: [XR`A. $a$`, XR`B. $b$`, XR`C. $a+b$`, XR`D. $f(3)$`],
+    list2: [XR`p. $8$`, XR`q. $0$`, XR`r. $4$`, XR`s. $-4$`] },
+  xm7: { title: 'Match: which condition of Rolle fails', passage: XR`<p>Each function in List I is considered on $[-1,1]$. Match it with the first hypothesis of Rolle's theorem that fails (or none).</p>`,
+    list1: [XR`A. $f(x)=|x|$`, XR`B. $f(x)=x^3$`, XR`C. $f(x)=x^2-1$`, XR`D. $f(x)=\dfrac1{x^2}$`],
+    list2: [XR`p. not continuous on $[-1,1]$`, XR`q. not differentiable at some point of $(-1,1)$`, XR`r. $f(-1)\ne f(1)$`, XR`s. none fails: Rolle's theorem applies`] },
+  xm8: { title: 'Match: derivative of an inverse function', passage: XR`<p>Each $f$ in List I is one-to-one, and $g=f^{-1}$. Match each quantity with its value in List II.</p>`,
+    list1: [XR`A. $f(x)=x^3+x$: $g'(2)$`, XR`B. $f(x)=2x+\cos x$: $g'(1)$`, XR`C. $f(x)=x^3+3x$: $g'(4)$`, XR`D. $f(x)=x^5+x^3+x$: $g'(3)$`],
+    list2: [XR`p. $\dfrac16$`, XR`q. $\dfrac19$`, XR`r. $\dfrac12$`, XR`s. $\dfrac14$`] },
+  xp5: { title: 'Passage: Rolle for a cubic', passage: XR`<p>Let $f(x)=x^3-6x^2+11x-6$ on $[1,3]$. Note $f(1)=f(3)=0$, so Rolle's theorem applies. The points $c$ with $f'(c)=0$ are the numbers it promises.</p>` },
+  xp6: { title: 'Passage: a function made continuous', passage: XR`<p>Let $f(x)=\dfrac{e^{4x}-1-4x}{x^2}$ for $x\ne0$ and $f(0)=c$. The constant $c$ is chosen so that $f$ is continuous at $0$.</p>` },
+  xp7: { title: 'Passage: a table of values', passage: XR`<p>$f$ and $g$ are differentiable. Known values: $g(1)=2$, $g'(1)=-1$, $f(1)=2$, $f'(1)=3$, $f(2)=4$, $f'(2)=5$.</p>` },
+});
+
+XIT.push(
+  // ---- L2 ----
+  M(2, 'continuity at a point', XR`$f(x)=\dfrac{x^2-9}{x-3}$ for $x\ne3$ and $f(3)=k$ is continuous at $x=3$. Then $k=$`, '$6$', ['$3$', '$0$', '$9$'],
+    XR`<p>For $x\ne3$, $f(x)=x+3$. The limit at $3$ is $6$. Continuity needs $f(3)=6$.</p>`, 'Cancel the factor first, then take the limit.'),
+  M(2, 'chain rule', XR`$\dfrac{d}{dx}\big[\sin3x\cos3x\big]=$`, '$3\\cos6x$', ['$\\cos6x$', '$6\\cos6x$', '$-3\\cos6x$'],
+    XR`<p>$\sin3x\cos3x=\dfrac12\sin6x$. Differentiate: $\dfrac12\cdot6\cos6x=3\cos6x$.</p>`, 'Use the double-angle identity before differentiating.'),
+  M(2, 'standard derivatives', XR`If $y=e^{x^2+1}$ then $\dfrac{dy}{dx}$ at $x=1$ equals`, '$2e^2$', ['$e^2$', '$2e$', '$2xe^2$'],
+    XR`<p>$y'=2x\,e^{x^2+1}$. At $x=1$: $2\cdot e^{2}=2e^2$.</p>`, 'Do not forget the inner derivative 2x.'),
+  M(2, 'types of discontinuity', XR`The number of points in $[0,2\pi]$ where $\tan x$ is discontinuous is`, '$2$', ['$1$', '$3$', '$4$'],
+    XR`<p>$\tan x$ is not defined where $\cos x=0$: $x=\dfrac\pi2$ and $x=\dfrac{3\pi}2$ in this interval. So $2$ points.</p>`, 'The endpoints 0 and 2π are fine; tan is defined there.'),
+  A(2, 'differentiability', XR`$f(x)=|x|$ is continuous at $x=0$ but not differentiable at $x=0$.`, XR`At $x=0$ the left-hand derivative of $|x|$ is $-1$ and the right-hand derivative is $+1$.`, 0,
+    XR`<p>$|x|$ has no jump at 0, so it is continuous. The two one-sided derivatives are different, so the derivative does not exist. R is true and is the reason for A.</p>`, 'Continuity does not give differentiability.'),
+  // ---- L3 ----
+  M(3, 'derivative at a point', XR`If $f(x)=|x-2|+|x-5|$, then $f'(4)$ is`, '$0$', ['$2$', '$-2$', 'does not exist'],
+    XR`<p>For $2<x<5$: $|x-2|=x-2$ and $|x-5|=5-x$, so $f(x)=3$, a constant. $f'(4)=0$.</p>`, 'Between the kinks, the function is a straight piece: find which sign each bracket has.'),
+  M(3, 'inverse trigonometric', XR`If $y=\sin^{-1}\sqrt x$, then $\dfrac{dy}{dx}$ at $x=\dfrac14$ is`, XR`$\dfrac2{\sqrt3}$`, [XR`$\dfrac1{\sqrt3}$`, XR`$\dfrac4{\sqrt3}$`, XR`$\dfrac{\sqrt3}2$`],
+    XR`<p>$y'=\dfrac1{\sqrt{1-x}}\cdot\dfrac1{2\sqrt x}=\dfrac1{2\sqrt{x(1-x)}}$. At $x=\frac14$: $x(1-x)=\dfrac3{16}$, $\sqrt{\cdot}=\dfrac{\sqrt3}4$, so $y'=\dfrac1{2\cdot\sqrt3/4}=\dfrac2{\sqrt3}$.</p>`, 'Remember the factor 1/(2√x) from the inner square root.'),
+  M(3, 'logarithmic differentiation', XR`If $y=x^{\ln x}$ then $\dfrac{dy}{dx}$ at $x=e$ is`, '$2$', ['$1$', '$e$', '$2e$'],
+    XR`<p>$\ln y=(\ln x)^2$, so $\dfrac{y'}y=\dfrac{2\ln x}x$. At $x=e$: $y=e^{1}=e$ and $\dfrac{y'}y=\dfrac2e$. So $y'=e\cdot\dfrac2e=2$.</p>`, 'Evaluate y itself too: y(e) = e¹.'),
+  M(3, 'mixed', XR`$\dfrac{d}{dx}\int_0^{x^2}\sin t\,dt=$`, '$2x\\sin x^2$', ['$\\sin x^2$', '$-\\cos x^2$', '$2x\\cos x^2$'],
+    XR`<p>By the chain rule, the derivative of $\int_0^{u}\sin t\,dt$ is $\sin u\cdot\dfrac{du}{dx}$ with $u=x^2$. So $\sin(x^2)\cdot2x$.</p>`, 'The upper limit is x², so multiply by 2x.'),
+  S(3, 'continuity', XR`If $f$ is continuous at $a$ and $g$ is not, then $f+g$ is not continuous at $a$.`, XR`The sum of two functions that are not continuous at $a$ can be continuous at $a$.`, 0,
+    XR`<p>I: if $f+g$ were continuous, then $g=(f+g)-f$ would be too. Contradiction, so I is true. II: take $g$ any discontinuous function and $f=-g$: the sum is $0$, which is continuous. Both are true.</p>`, 'Think of f and −f.'),
+  A(3, 'continuity', XR`A continuous function $f$ on $[a,b]$ with $f(a)f(b)<0$ has a root in $(a,b)$.`, XR`A continuous function on $[a,b]$ takes every value between $f(a)$ and $f(b)$.`, 0,
+    XR`<p>R is the intermediate value property. Since $0$ lies between $f(a)$ and $f(b)$ (opposite signs), $f$ takes the value 0 inside the interval. A follows from R.</p>`, 'Continuity on the closed interval is the hidden hypothesis.'),
+  A(3, 'differentiability', XR`Every differentiable function is continuous.`, XR`Every continuous function is differentiable.`, 2,
+    XR`<p>A is true: differentiability at a point forces continuity there. R is false: $|x|$ is continuous at $0$ but not differentiable. So A true, R false.</p>`, 'The implication runs only one way.'),
+  I(3, 'finding constants', XR`$f(x)=\begin{cases}\dfrac{1-\cos ax}{x\sin x},&x\ne0\\[2mm]8,&x=0\end{cases}$ is continuous at $0$, with $a>0$ chosen suitably. Find $a^2$.`, 16,
+    XR`<p>$\dfrac{1-\cos ax}{x\sin x}\approx\dfrac{a^2x^2/2}{x^2}=\dfrac{a^2}2$. Continuity: $\dfrac{a^2}2=8$, so $a^2=16$.</p>`, 'The limit is a²/2, not a.', () => 16),
+  I(3, 'derivative as a limit', XR`If $f$ is differentiable with $f'(1)=2$, find $\displaystyle\lim_{h\to0}\dfrac{f(1+h^2)-f(1)}{h}$.`, 0,
+    XR`<p>$\dfrac{f(1+h^2)-f(1)}{h}=\dfrac{f(1+h^2)-f(1)}{h^2}\cdot h\to f'(1)\cdot0=0$.</p>`, 'The step in f is h², but the division is by h: an extra factor of h survives.', () => 0),
+  // ---- matches ----
+  MT(3, 'Rolle and mean value', 'xm1', 'A-q, B-s, C-r, D-p', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-p, B-s, C-r, D-q'],
+    XR`<p>A: $f'(c)=2c-4=0$, $c=2$ (q). B: $3c^2=\dfrac{8-0}2=4$, $c=\dfrac2{\sqrt3}$ (s). C: $\dfrac1c=\dfrac{1-0}{e-1}$, $c=e-1$ (r). D: $\dfrac1{2\sqrt c}=\dfrac{3-1}8=\dfrac14$, $\sqrt c=2$, $c=4$ (p).</p>`, 'The slope of the chord is (f(b) − f(a))/(b − a).'),
+  MT(3, 'derivative at a point', 'xm2', 'A-r, B-s, C-q, D-p', ['A-r, B-s, C-p, D-q', 'A-s, B-r, C-q, D-p', 'A-r, B-q, C-s, D-p'],
+    XR`<p>A: $x^x(\ln x+1)$ at $1$: $1\cdot1=1$ (r). B: $e^x(1+x)$ at $1$: $2e$ (s). C: $\dfrac{2x}{x^2+3}=\dfrac24=\dfrac12$ (q). D: $\dfrac2{1+4x^2}=\dfrac25$ (p).</p>`, 'In D the chain-rule factor is 2, and 4x² appears in the denominator.'),
+  MT(4, 'differentiability', 'xm3', 'A-p, B-s, C-r, D-q', ['A-p, B-s, C-q, D-r', 'A-s, B-p, C-r, D-q', 'A-p, B-q, C-r, D-s'],
+    XR`<p>A: kink, so (p). B: $x|x|$ has $f'(x)=2|x|$, continuous, but $f''$ jumps from $-2$ to $2$ at 0 (s). C: jump (r). D: $f'(0)=0$ but $f'(x)=2x\sin\frac1x-\cos\frac1x$ has no limit at 0 (q).</p>`, 'For B and D, check both f′(0) and the behaviour of f′ near 0.'),
+  MT(4, 'second derivative', 'xm4', 'A-r, B-q, C-p, D-s', ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-r, B-p, C-q, D-s'],
+    XR`<p>A: $6x=6$ (r). B: $4e^{2x}=4$ (q). C: $y'=\ln x+1$, $y''=\dfrac1x=1$ (p). D: $y''=-4\sin2x=-4\sin\dfrac\pi2=-4$ (s).</p>`, 'Each differentiation of sin 2x brings a factor 2.'),
+  MT(4, 'counting points of non-differentiability', 'xm5', 'A-r, B-s, C-p, D-q', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-p, C-s, D-q'],
+    XR`<p>Each $|x-a|$ has one kink at $a$, and kinks at different points cannot cancel (they add slopes). A: $1$ (r). B: $0,1$: $2$ (s). C: $0,1,-1$: $3$ (p). D: $0,1,-1,\frac12$: $4$ (q).</p>`, 'Count distinct kink points.'),
+  MT(4, 'finding constants', 'xm6', 'A-r, B-s, C-q, D-p', ['A-r, B-s, C-p, D-q', 'A-s, B-r, C-q, D-p', 'A-r, B-q, C-s, D-p'],
+    XR`<p>Differentiable at 2: slope match $a=2\cdot2=4$ (A: r). Continuity: $2a+b=4$, so $b=-4$ (B: s). $a+b=0$ (C: q). $f(3)=3a+b=12-4=8$ (D: p).</p>`, 'Use both conditions: equal slope and equal value at x = 2.'),
+  MT(5, 'Rolle\'s theorem', 'xm7', 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    XR`<p>A: $|x|$ is continuous with $f(-1)=f(1)=1$, but not differentiable at $0$ (q). B: smooth, but $f(-1)=-1\ne1=f(1)$ (r). C: continuous, differentiable and $f(-1)=f(1)=0$ (s). D: not defined at $0$, so not continuous on $[-1,1]$ (p).</p>`, 'Check the hypotheses in order: continuity first.'),
+  MT(5, 'derivative of an inverse function', 'xm8', 'A-s, B-r, C-p, D-q', ['A-s, B-r, C-q, D-p', 'A-r, B-s, C-p, D-q', 'A-s, B-p, C-r, D-q'],
+    XR`<p>$g'(y_0)=\dfrac1{f'(x_0)}$ where $f(x_0)=y_0$. A: $f(1)=2$, $f'(1)=4$: $\frac14$ (s). B: $f(0)=1$, $f'(0)=2$: $\frac12$ (r). C: $f(1)=4$, $f'(1)=6$: $\frac16$ (p). D: $f(1)=3$, $f'(1)=9$: $\frac19$ (q).</p>`, 'Find x₀ first by inspection; then take the reciprocal of f′(x₀).'),
+  // ---- L4 ----
+  M(4, 'inverse trigonometric', XR`For $\dfrac1{\sqrt2}<x<1$, $\dfrac{d}{dx}\sin^{-1}\left(2x\sqrt{1-x^2}\right)=$`, XR`$-\dfrac2{\sqrt{1-x^2}}$`, [XR`$\dfrac2{\sqrt{1-x^2}}$`, XR`$\dfrac1{\sqrt{1-x^2}}$`, '$2$'],
+    XR`<p>Put $x=\sin\theta$ with $\dfrac\pi4<\theta<\dfrac\pi2$. Then $2x\sqrt{1-x^2}=\sin2\theta$ and $2\theta\in\left(\dfrac\pi2,\pi\right)$, so $\sin^{-1}(\sin2\theta)=\pi-2\theta$. The function is $\pi-2\sin^{-1}x$, with derivative $-\dfrac2{\sqrt{1-x^2}}$.</p>`, 'The simplification 2θ works only for |x| < 1/√2; on this range it becomes π − 2θ.'),
+  M(4, 'mixed', XR`If $F(x)=\displaystyle\int_x^{x^2}e^{t^2}dt$, then $F'(1)=$`, '$e$', ['$2e$', '$0$', '$e^2$'],
+    XR`<p>$F'(x)=e^{x^4}\cdot2x-e^{x^2}\cdot1$. At $x=1$: $2e-e=e$.</p>`, 'Both limits depend on x: two terms with a minus sign.'),
+  I(4, 'counting points of non-differentiability', XR`Find the number of points in $(0,2\pi)$ at which $f(x)=|\sin x|+|\cos x|$ is not differentiable.`, 3,
+    XR`<p>Kinks occur where $\sin x=0$ or $\cos x=0$: in $(0,2\pi)$ these are $\dfrac\pi2,\pi,\dfrac{3\pi}2$ ($0$ and $2\pi$ are not inside). At each, one of the two terms changes slope by $\pm2$ and the other is smooth, so the sum has a kink. Answer: $3$.</p>`, 'The endpoints are excluded from the open interval.', () => 3),
+  I(4, 'counting points of non-differentiability', XR`Find the number of points where $f(x)=(x^2-4)\,|x^2-3x+2|+|x-5|$ is not differentiable.`, 2,
+    XR`<p>$|x^2-3x+2|=|x-1||x-2|$ has kinks at $1$ and $2$. The factor $x^2-4=(x-2)(x+2)$ vanishes at $x=2$, which removes the kink there (a smooth factor that is zero at the kink makes the product differentiable). At $x=1$ the factor is $-3\ne0$, so the kink stays. Also $|x-5|$ has a kink at $5$. Points: $1$ and $5$, so $2$.</p>`, 'A zero of the multiplier cancels the kink only if the zero is at the same point.', () => 2),
+  I(4, 'types of discontinuity', XR`Find the number of points of discontinuity of $f(x)=[x^2]$ in the interval $(0,3)$. Here $[\,\cdot\,]$ is the greatest integer function.`, 8,
+    XR`<p>$[x^2]$ jumps where $x^2$ passes an integer: $x^2=1,2,\dots,8$ with $x=\sqrt1,\sqrt2,\dots,\sqrt8$ all inside $(0,3)$. ($x^2=9$ is at $x=3$, outside.) So $8$ points.</p>`, 'x = 3 is not in the open interval, so x² = 9 does not count.', () => 8),
+  I(4, 'finding constants', XR`$f(x)=\begin{cases}x^2+3x+a,&x\le1\\bx+2,&x>1\end{cases}$ is differentiable at $x=1$. Find $10a+b$.`, 35,
+    XR`<p>Slopes: left $2x+3=5$ at $1$, right $b$. So $b=5$. Continuity: $1+3+a=b+2=7$, so $a=3$. Then $10a+b=30+5=35$.</p>`, 'Match slopes first, then use continuity to get the other constant.', () => 35),
+  I(4, 'derivatives of higher order', XR`If $y=\sin x\cos x$, find the value of $\dfrac{d^4y}{dx^4}$ at $x=\dfrac\pi{12}$.`, 4,
+    XR`<p>$y=\dfrac12\sin2x$. Each derivative multiplies by $2$, and four derivatives bring $\sin\to\sin$: $y^{(4)}=\dfrac12\cdot16\sin2x=8\sin2x$. At $x=\dfrac\pi{12}$: $8\sin\dfrac\pi6=8\cdot\dfrac12=4$.</p>`, 'Four derivatives of sin return to sin (not cos), with a factor 2⁴ = 16.', () => 8 * xsin(xPI / 6)),
+  I(4, 'derivative of an inverse function', XR`$f(x)=x^5+x^3+x$ and $g$ is its inverse function. Find $\dfrac1{g'(3)}$.`, 9,
+    XR`<p>$f(1)=3$, so $g(3)=1$. $\dfrac1{g'(3)}=f'(g(3))=f'(1)=5+3+1=9$.</p>`, 'g′(3) = 1/f′(1), not 1/f′(3).', () => 9),
+  I(4, 'mean value theorem', XR`The mean value theorem is applied to $f(x)=x^3$ on $[1,3]$ and gives the point $c$. Find $3c^2$.`, 13,
+    XR`<p>$f'(c)=3c^2=\dfrac{f(3)-f(1)}{3-1}=\dfrac{27-1}2=13$.</p>`, 'The question asks for 3c², which is the slope itself.', () => (27 - 1) / 2),
+  I(4, 'functional equations', XR`$f(x+y)=f(x)+f(y)+2xy$ for all real $x,y$, and $f'(0)=3$. Find $f(5)$.`, 40,
+    XR`<p>Put $x=y=0$: $f(0)=0$. Then $f'(x)=\lim\dfrac{f(x+h)-f(x)}h=\lim\dfrac{f(h)+2xh}h=f'(0)+2x=3+2x$. Integrating with $f(0)=0$: $f(x)=x^2+3x$. $f(5)=25+15=40$.</p>`, 'Use f(0) = 0 to fix the constant.', () => 25 + 15),
+  I(5, 'inverse trigonometric', XR`Let $y=\tan^{-1}\left(\dfrac{\sqrt{1+x^2}-1}x\right)$. Find $100\cdot\dfrac{dy}{dx}$ at $x=1$.`, 25,
+    XR`<p>Put $x=\tan\theta$: $\dfrac{\sqrt{1+x^2}-1}x=\dfrac{\sec\theta-1}{\tan\theta}=\dfrac{1-\cos\theta}{\sin\theta}=\tan\dfrac\theta2$. So $y=\dfrac12\tan^{-1}x$ and $y'=\dfrac1{2(1+x^2)}$. At $x=1$: $\dfrac14$. Times 100: $25$.</p>`, 'Substitute x = tan θ; the half-angle identity collapses the expression.', () => 100 * xd((x) => xat((Math.sqrt(1 + x * x) - 1) / x), 1)),
+  N(4, 'logarithmic differentiation', XR`If $y=x^x$, find $\dfrac{dy}{dx}$ at $x=2$ (2 decimal places).`, 6.77, 0.01,
+    XR`<p>$\ln y=x\ln x$, so $\dfrac{y'}y=\ln x+1$ and $y'=x^x(\ln x+1)$. At $x=2$: $4(\ln2+1)=4(1.6931)\approx6.77$.</p>`, 'Not x·x^(x−1); the exponent varies too.', () => 4 * (Math.log(2) + 1)),
+  N(5, 'second derivative', XR`If $y=x^x$, find $\dfrac{d^2y}{dx^2}$ at $x=2$ (2 decimal places).`, 13.47, 0.01,
+    XR`<p>$y'=y(\ln x+1)$. So $y''=y'(\ln x+1)+y\cdot\dfrac1x=y\left[(\ln x+1)^2+\dfrac1x\right]$. At $x=2$: $y=4$, $\ln2+1=1.6931$: $4\left[2.8667+0.5\right]=4(3.3667)\approx13.47$.</p>`, 'Differentiate y′ = y(ln x + 1) with the product rule; y itself changes too.', () => 4 * ((Math.log(2) + 1) ** 2 + 0.5)),
+  N(4, 'logarithmic differentiation', XR`If $y=x^{\sin x}$, find $\dfrac{dy}{dx}$ at $x=2$ (2 decimal places; use radians).`, 0.31, 0.01,
+    XR`<p>$\ln y=\sin x\ln x$, so $\dfrac{y'}y=\cos x\ln x+\dfrac{\sin x}x$. At $x=2$: $y=2^{\sin2}=2^{0.9093}=1.878$; $\dfrac{y'}y=(-0.4161)(0.6931)+\dfrac{0.9093}2=-0.2884+0.4546=0.1662$. $y'\approx1.878\times0.1662\approx0.31$.</p>`, 'Radians, not degrees; keep several decimals until the end.', () => 2 ** Math.sin(2) * (Math.cos(2) * Math.log(2) + Math.sin(2) / 2)),
+  N(4, 'mean value theorem', XR`The mean value theorem is applied to $f(x)=\ln x$ on $[1,4]$. Find $c$ (2 decimal places).`, 2.16, 0.01,
+    XR`<p>$\dfrac1c=\dfrac{\ln4-\ln1}{4-1}=\dfrac{\ln4}3$. So $c=\dfrac3{\ln4}=\dfrac3{1.3863}\approx2.16$, which lies in $(1,4)$.</p>`, 'Invert the slope: c = 1/f′(c) value.', () => 3 / Math.log(4)),
+  N(4, 'Rolle\'s theorem', XR`Rolle's theorem is applied to $f(x)=e^x(\sin x-\cos x)$ on $\left[\dfrac\pi4,\dfrac{5\pi}4\right]$. Find $c$ (2 decimal places).`, 3.14, 0.01,
+    XR`<p>$f\left(\dfrac\pi4\right)=0$ and $f\left(\dfrac{5\pi}4\right)=e^{5\pi/4}\left(-\dfrac1{\sqrt2}+\dfrac1{\sqrt2}\right)=0$. $f'(x)=e^x(\sin x-\cos x)+e^x(\cos x+\sin x)=2e^x\sin x$. It is zero where $\sin x=0$: $x=\pi$ in the interval. $c=\pi\approx3.14$.</p>`, 'e^x is never zero, so the zero of f′ is the zero of sin x.', () => Math.PI),
+  N(5, 'derivative of an inverse function', XR`$f(x)=x+e^x$ and $g=f^{-1}$. Find $g'(1+e)$ (2 decimal places).`, 0.27, 0.01,
+    XR`<p>$f(1)=1+e$, so $g(1+e)=1$. $g'(1+e)=\dfrac1{f'(1)}=\dfrac1{1+e}\approx\dfrac1{3.718}=0.27$.</p>`, 'Find x₀ with f(x₀) = 1 + e by inspection (x₀ = 1).', () => 1 / (1 + Math.E)),
+  N(5, 'inverse trigonometric', XR`Let $y=\sin^{-1}\left(\dfrac{2x}{1+x^2}\right)$. Find $\dfrac{dy}{dx}$ at $x=2$ (2 decimal places).`, -0.4, 0.01,
+    XR`<p>Put $x=\tan\theta$. Then $\dfrac{2x}{1+x^2}=\sin2\theta$. For $x=2$, $\theta=\tan^{-1}2\approx63.4^\circ>45^\circ$, so $2\theta\in\left(\dfrac\pi2,\pi\right)$ and $y=\pi-2\theta=\pi-2\tan^{-1}x$. $y'=-\dfrac2{1+x^2}=-\dfrac25=-0.40$.</p>`, 'For |x| > 1 the sign flips: the formula 2/(1 + x²) is only for |x| < 1.', () => -2 / 5),
+  X(4, 'differentiability', XR`Which of the following functions are differentiable at $x=0$?`, [XR`$f(x)=|x|^3$`, XR`$f(x)=|\sin x|$`, XR`$f(x)=x^{1/3}$`, XR`$f(x)=x^2\sin\dfrac1x$ for $x\ne0$, $f(0)=0$`], [0, 3],
+    XR`<p>A: $\dfrac{|h|^3}h=h|h|\to0$, yes. B: kink at 0, no. C: $\dfrac{h^{1/3}}h=h^{-2/3}\to\infty$, no (vertical tangent). D: $h\sin\frac1h\to0$, yes. So A and D.</p>`, 'A vertical tangent is not differentiability.'),
+  X(4, 'continuity at a point', XR`Which of the following functions are continuous at $x=0$?`, [XR`$x\sin\dfrac1x$ for $x\ne0$, with value $0$ at $0$`, XR`$\sin\dfrac1x$ for $x\ne0$, with value $0$ at $0$`, XR`$[x]+[-x]$ (greatest integer function)`, XR`$x\left[\dfrac1x\right]$ for $x\ne0$, with value $1$ at $0$`], [0, 3],
+    XR`<p>A: limit $0$, value $0$: continuous. B: oscillates: no. C: for small $x\ne0$ the sum is $-1$ but the value at $0$ is $0$: not continuous. D: $x[1/x]\to1$ and the value is $1$: continuous. So A and D.</p>`, 'Check the limit and the value separately.'),
+  X(4, 'Rolle\'s theorem', XR`For which of these does Rolle's theorem apply on the given interval?`, [XR`$x^2-5x+6$ on $[2,3]$`, XR`$|x|$ on $[-1,1]$`, XR`$\cos x$ on $\left[-\dfrac\pi2,\dfrac\pi2\right]$`, XR`$x^3$ on $[-1,1]$`], [0, 2],
+    XR`<p>A: polynomial, $f(2)=f(3)=0$: yes. B: not differentiable at 0: no. C: smooth and both end values are 0: yes. D: $f(-1)=-1\ne1$: no. So A and C.</p>`, 'All three hypotheses must hold.'),
+  X(4, 'differentiability', XR`Which functions are continuous but not differentiable at $x=1$?`, [XR`$|x-1|$`, XR`$(x-1)^{1/3}$`, XR`$(x-1)^2$`, XR`$[x]$`], [0, 1],
+    XR`<p>A: kink. B: continuous with vertical tangent, so not differentiable. C: differentiable. D: not continuous. So A and B.</p>`, 'Vertical tangents count as non-differentiable.'),
+  X(4, 'derivatives', XR`Which of these derivatives is correct?`, [XR`$\dfrac d{dx}x^{\sin x}=x^{\sin x}\left(\cos x\ln x+\dfrac{\sin x}x\right)$`, XR`$\dfrac d{dx}\left(\sin^{-1}x+\cos^{-1}x\right)=0$`, XR`$\dfrac d{dx}\ln|x|=\dfrac1{|x|}$`, XR`$\dfrac d{dx}2^x=2^x$`], [0, 1],
+    XR`<p>A: log differentiation, correct. B: the sum is the constant $\dfrac\pi2$, correct. C: the derivative of $\ln|x|$ is $\dfrac1x$, wrong. D: it is $2^x\ln2$, wrong.</p>`, 'ln|x| has derivative 1/x for both signs of x.'),
+  X(5, 'composite functions', XR`Here $[\,\cdot\,]$ is the greatest integer function. At which stated points is the function continuous?`, [XR`$[x^2]$ at $x=0$`, XR`$[x]^2$ at $x=0$`, XR`$\sin(\pi[x])$ at $x=1$`, XR`$[\sin x]$ at $x=\dfrac\pi2$`], [0, 2],
+    XR`<p>A: for small $|x|$, $0\le x^2<1$ so the value is $0$ both sides: continuous. B: for $x$ just below $0$, $[x]=-1$ and the square is $1$, but the value at $0$ is $0$: not continuous. C: $\sin(\pi n)=0$ for every integer $n$, so the function is the constant $0$: continuous. D: $[\sin x]=1$ at $\frac\pi2$ but is $0$ on both sides (since $\sin x<1$): not continuous. So A and C.</p>`, 'Inner discontinuities can disappear after composition.'),
+  X(5, 'differentiability', XR`Let $f(x)=|x-1|+|x-2|+|x-3|$. Which statements are true?`, [XR`$f$ is continuous on $\mathbb R$`, XR`$f$ is not differentiable at $x=2$`, XR`$f'(1.5)=-1$`, XR`$f'(2.5)=3$`], [0, 1, 2],
+    XR`<p>A: sum of continuous functions. B: the kink of $|x-2|$ is not cancelled: true. C: for $1<x<2$: $+1$ (from $|x-1|$), $-1$ and $-1$: total $-1$. D: for $2<x<3$: $+1,+1,-1$: $1$, not $3$. So A, B, C.</p>`, 'The derivative of each |x − a| is ±1, never more.'),
+  X(5, 'Rolle\'s theorem', XR`Consider $f(x)=x^{2/3}$ on $[-1,1]$. Which statements are true?`, [XR`$f$ is continuous on $[-1,1]$`, XR`$f$ is differentiable on $(-1,1)$`, XR`$f(-1)=f(1)$`, XR`There is $c\in(-1,1)$ with $f'(c)=0$`], [0, 2],
+    XR`<p>A: yes. B: no, $f'(x)=\dfrac2{3x^{1/3}}$ is not defined at $0$. C: both values are $1$. D: $f'(x)$ is never zero. So A and C. Rolle's theorem is not contradicted, because its middle hypothesis fails.</p>`, 'A failed hypothesis means the theorem is silent, not wrong.'),
+  X(5, 'higher derivatives', XR`$f(x)=x|x|$. Which statements are true?`, [XR`$f'(0)$ exists`, XR`$f'$ is continuous at $0$`, XR`$f''(0)$ exists`, XR`$f'(x)=2|x|$ for all $x$`], [0, 1, 3],
+    XR`<p>$f(x)=x^2$ for $x\ge0$ and $-x^2$ for $x<0$. $f'(x)=2|x|$ everywhere (including $f'(0)=0$): A, B, D true. $f'(x)=2|x|$ has a kink at $0$, so $f''(0)$ does not exist: C false.</p>`, 'The function is smoother than |x| but not infinitely smooth.'),
+  X(5, 'functional equations', XR`$f(x+y)=f(x)f(y)$ for all real $x,y$, $f(0)\ne0$ and $f'(0)=2$. Which statements are true?`, [XR`$f(0)=1$`, XR`$f'(x)=2f(x)$`, XR`$f(1)=e^2$`, XR`$f$ is not differentiable at $x=1$`], [0, 1, 2],
+    XR`<p>$f(0)=f(0)^2$ and $f(0)\ne0$ give $f(0)=1$. Then $f'(x)=f(x)\lim\dfrac{f(h)-1}h=2f(x)$. The solution with $f(0)=1$ is $f(x)=e^{2x}$, so $f(1)=e^2$ and $f$ is differentiable everywhere. So A, B, C.</p>`, 'The derivative at any point is a multiple of f(x) itself.'),
+  S(4, 'differentiability', XR`If $f$ is differentiable at $a$ and $f(a)\ne0$, then $|f|$ is differentiable at $a$.`, XR`If $f$ is differentiable at $a$, then $|f|$ is differentiable at $a$.`, 1,
+    XR`<p>I: near $a$, $f$ keeps its sign (by continuity), so $|f|=\pm f$ locally, which is differentiable. II is false: $f(x)=x$ at $a=0$ gives $|x|$, which is not differentiable.</p>`, 'The trouble only happens at zeros of f.'),
+  S(5, 'differentiability', XR`$f(x)=x^2\sin\dfrac1x$ ($x\ne0$), $f(0)=0$ is differentiable at $0$.`, XR`The derivative $f'$ of this function is continuous at $0$.`, 1,
+    XR`<p>I: $\dfrac{f(h)}h=h\sin\frac1h\to0$, true. II: for $x\ne0$, $f'(x)=2x\sin\frac1x-\cos\frac1x$, which oscillates near $0$ with no limit, so $f'$ is not continuous at $0$.</p>`, 'Differentiable does not mean continuously differentiable.'),
+  SC(4, 'mixed', [XR`$|x|^3$ is differentiable at $0$.`, XR`$[x]$ is continuous at every non-integer point.`, XR`$x^{1/3}$ is differentiable at $0$.`, XR`$|\sin x|$ is differentiable at $x=\pi$.`], '2', ['1', '3', '4'],
+    XR`<p>1: true ($f'(0)=0$). 2: true, $[x]$ is constant on each open unit interval. 3: false (vertical tangent). 4: false: $|\sin x|$ has a kink at $\pi$. Two are correct.</p>`, 'A kink at every zero of sin x.'),
+  SC(5, 'continuity and differentiability', [XR`There is a function continuous at exactly one point of $\mathbb R$.`, XR`A function can be differentiable at a point and discontinuous at points arbitrarily close to it.`, XR`If $f'$ exists everywhere on an interval, then $f'$ is continuous there.`, XR`If $f$ is differentiable at $a$ and $g$ is continuous but not differentiable at $a$, then $f+g$ is not differentiable at $a$.`], '3', ['1', '2', '4'],
+    XR`<p>1: $f(x)=x$ for rational $x$ and $0$ for irrational $x$ is continuous only at $0$: true. 2: $f(x)=x^2$ for rational $x$ and $0$ for irrational: differentiable at $0$ ($|f(h)/h|\le|h|$), discontinuous elsewhere: true. 3: false ($x^2\sin\frac1x$). 4: true, since $g=(f+g)-f$ would otherwise be differentiable. So three.</p>`, 'Statement 3 fails for x² sin(1/x).'),
+  A(4, 'Rolle\'s theorem', XR`Rolle's theorem does not apply to $f(x)=x^{2/3}$ on $[-1,1]$, although $f(-1)=f(1)$.`, XR`$f$ is not differentiable at $x=0\in(-1,1)$.`, 0,
+    XR`<p>Both are true. Rolle's theorem needs differentiability on the whole open interval; at $0$ the function has a cusp. So the theorem's conditions fail, and R is exactly why.</p>`, 'Equal end values are not enough.'),
+  A(4, 'logarithmic differentiation', XR`$\dfrac{d}{dx}x^x=x^x(1+\ln x)$.`, XR`$\dfrac d{dx}x^x=x\cdot x^{x-1}$ by the power rule.`, 2,
+    XR`<p>A is true (log differentiation). R is false: the power rule needs a constant exponent, but here the exponent is $x$.</p>`, 'Variable base and variable exponent: use logs.'),
+  // ---- passages ----
+  PI(3, 'Rolle\'s theorem', 'xp5', XR`How many values of $c$ in $(1,3)$ satisfy $f'(c)=0$?`, 2,
+    XR`<p>$f'(x)=3x^2-12x+11$. Discriminant $144-132=12>0$, so two roots: $x=\dfrac{12\pm\sqrt{12}}6=2\pm\dfrac1{\sqrt3}$. Both are in $(1,3)$ since $\dfrac1{\sqrt3}\approx0.577$. So $2$.</p>`, 'Rolle guarantees at least one, but here there are two.', () => 2),
+  PI(4, 'Rolle\'s theorem', 'xp5', XR`Find the sum of all such $c$.`, 4,
+    XR`<p>From $3c^2-12c+11=0$ the sum of roots is $\dfrac{12}3=4$.</p>`, 'Sum of the roots = −b/a.', () => 12 / 3),
+  PN(4, 'Rolle\'s theorem', 'xp5', XR`Find the product of all such $c$ (2 decimal places).`, 3.67, 0.01,
+    XR`<p>Product of the roots $=\dfrac{11}3\approx3.67$.</p>`, 'Product of the roots = c/a.', () => 11 / 3),
+  PI(3, 'finding constants', 'xp6', XR`Find $c$.`, 8,
+    XR`<p>$e^{4x}-1-4x\approx\dfrac{(4x)^2}2=8x^2$. So $\lim_{x\to0}f(x)=8$ and $c=8$.</p>`, 'Expand e^t − 1 − t as t²/2 with t = 4x.', () => 8),
+  PN(5, 'derivative as a limit', 'xp6', XR`With this $c$, find $f'(0)$ (2 decimal places).`, 10.67, 0.01,
+    XR`<p>$e^{4x}=1+4x+8x^2+\dfrac{32x^3}3+\cdots$, so $f(x)=8+\dfrac{32x}3+\cdots$. Then $\dfrac{f(x)-f(0)}x\to\dfrac{32}3\approx10.67$. So $f'(0)=\dfrac{32}3$.</p>`, 'Keep the next term of the series: the x³ term of e^{4x}.', () => 32 / 3),
+  PM(5, 'second derivative', 'xp6', XR`$f''(0)=$`, XR`$\dfrac{64}3$`, [XR`$\dfrac{32}3$`, '$8$', XR`$\dfrac{128}3$`],
+    XR`<p>$f(x)=8+\dfrac{32}3x+\dfrac{4^4}{24}x^2+\cdots$ (the next term of $e^{4x}$ is $\dfrac{(4x)^4}{24}=\dfrac{32x^4}3$, divided by $x^2$ gives $\dfrac{32}3x^2$). So the $x^2$ coefficient is $\dfrac{32}3$ and $f''(0)=2\cdot\dfrac{32}3=\dfrac{64}3$.</p>`, 'f″(0) is twice the x² coefficient.'),
+  PI(3, 'chain rule', 'xp7', XR`Find $\dfrac{d}{dx}f(g(x))$ at $x=1$.`, -5,
+    XR`<p>$f'(g(1))\cdot g'(1)=f'(2)\cdot(-1)=5\cdot(-1)=-5$.</p>`, 'Evaluate f′ at g(1) = 2, not at 1.', () => 5 * -1),
+  PI(4, 'product rule', 'xp7', XR`Find $\dfrac d{dx}\big[f(x)g(x)\big]$ at $x=1$.`, 4,
+    XR`<p>$f'g+fg'=3\cdot2+2\cdot(-1)=6-2=4$.</p>`, 'Product rule has a plus sign between the two terms.', () => 3 * 2 + 2 * -1),
+  PI(4, 'quotient rule', 'xp7', XR`Find $\dfrac d{dx}\left[\dfrac{f(x)}{g(x)}\right]$ at $x=1$.`, 2,
+    XR`<p>$\dfrac{f'g-fg'}{g^2}=\dfrac{3\cdot2-2\cdot(-1)}{4}=\dfrac84=2$.</p>`, 'Subtracting a negative term adds.', () => (3 * 2 - 2 * -1) / 4),
+);
+
+XGN.push(
+  GX('xg01', 3, 'nat', 'integer', 'finding constants', (rng) => {
+    const k = int(rng, 1, 3), p = int(rng, 1, 5), qq = int(rng, 1, 8);
+    const m = 2 * k + p, n = qq - k * k;
+    return { k, p, qq, answer: m + n, tol: 0, q: XR`$f(x)=\begin{cases}x^2+${p}x+${qq},&x\le${k}\\mx+n,&x>${k}\end{cases}$ is differentiable at $x=${k}$. Find $m+n$.`, sol: XR`<p>Left slope at $${k}$: $2(${k})+${p}=${m}$, so $m=${m}$. Continuity: $${k * k}+${p * k}+${qq}=${m}\cdot${k}+n$, so $n=${n}$. $m+n=${m + n}$.</p>` };
+  }, (p) => { const L = (x) => x * x + p.p * x + p.qq; const sl = xd(L, p.k); const mm = Math.round(sl); const nn = Math.round(L(p.k) - mm * p.k); return mm + nn; }),
+  GX('xg02', 3, 'mcq', 'single', 'derivative at a point', (rng) => {
+    const a = int(rng, 2, 5), b = int(rng, 1, 4);
+    const ans = a + b;
+    const { options, answer } = shuffleOpts(rng, `$${a + b}e^{${b}}$`, [`$${a}e^{${b}}$`, `$${a + b}$`, `$${a * b}e^{${b}}$`]);
+    return { a, b, options, answer, q: XR`If $y=x^{${a}}e^{${b}x}$, then $\dfrac{dy}{dx}$ at $x=1$ is`, sol: XR`<p>$y'=${a}x^{${a - 1}}e^{${b}x}+${b}x^{${a}}e^{${b}x}$ (product rule). At $x=1$: $(${a}+${b})e^{${b}}=${ans}e^{${b}}$.</p>` };
+  }, (p) => { const v = xd((x) => x ** p.a * xexp(p.b * x), 1); return Math.abs(v - (p.a + p.b) * xexp(p.b)) < 1e-3 * v ? p.answer : -1; }),
+  GX('xg03', 3, 'nat', 'integer', 'parametric derivatives', (rng) => {
+    const k = int(rng, 2, 9);
+    return { k, answer: 2 * k, tol: 0, q: XR`If $x=t^2$ and $y=${k}t^4$, find $\dfrac{d^2y}{dx^2}$.`, sol: XR`<p>$\dfrac{dy}{dx}=\dfrac{4\cdot${k}t^3}{2t}=${2 * k}t^2$. Then $\dfrac{d^2y}{dx^2}=\dfrac{d(${2 * k}t^2)/dt}{dx/dt}=\dfrac{${4 * k}t}{2t}=${2 * k}$. (Indeed $y=${k}x^2$.)</p>` };
+  }, (p) => { const xf = (t) => t * t, yf = (t) => p.k * t ** 4; return Math.round(pD2(xf, yf, 1.3)); }),
+  GX('xg04', 4, 'nat', 'numeric', 'logarithmic differentiation', (rng) => {
+    const a = int(rng, 2, 4);
+    const ans = a ** a * (Math.log(a) + 1);
+    return { a, answer: +ans.toFixed(2), tol: Math.max(0.01, +(ans * 0.002).toFixed(3)), q: XR`If $y=x^x$, find $\dfrac{dy}{dx}$ at $x=${a}$ (2 decimal places).`, sol: XR`<p>$y'=x^x(\ln x+1)$. At $x=${a}$: $${a ** a}(\ln${a}+1)=${a ** a}\times${(Math.log(a) + 1).toFixed(4)}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xd((x) => x ** x, p.a, 1e-5)),
+  GX('xg05', 4, 'mcq', 'single', 'mean value theorem', (rng) => {
+    const a = int(rng, 1, 3), b = a + int(rng, 2, 4);
+    const c2 = (a * a + a * b + b * b) / 3;
+    const { options, answer } = shuffleOpts(rng, `$${'\\sqrt{' + frac(a * a + a * b + b * b, 3) + '}'}$`, [`$${frac(a + b, 2)}$`, `$\\sqrt{${a * b}}$`, `$${'\\sqrt{' + frac(a * a + b * b, 2) + '}'}$`]);
+    return { a, b, c2, options, answer, q: XR`The mean value theorem is applied to $f(x)=x^3$ on $[${a},${b}]$. The value of $c$ is`, sol: XR`<p>$3c^2=\dfrac{${b ** 3}-${a ** 3}}{${b}-${a}}=${b * b + a * b + a * a}$. So $c^2=${frac(a * a + a * b + b * b, 3)}$ and $c=\sqrt{${frac(a * a + a * b + b * b, 3)}}\approx${Math.sqrt(c2).toFixed(2)}$.</p>` };
+  }, (p) => { const c = Math.sqrt(p.c2); const slope = (p.b ** 3 - p.a ** 3) / (p.b - p.a); return Math.abs(3 * c * c - slope) < 1e-9 ? p.answer : -1; }),
+  GX('xg06', 4, 'nat', 'integer', 'types of discontinuity', (rng) => {
+    const n = int(rng, 3, 7);
+    return { n, answer: n * n - 1, tol: 0, q: XR`Find the number of points of discontinuity of $f(x)=[x^2]$ in $(0,${n})$.`, sol: XR`<p>$[x^2]$ jumps whenever $x^2$ passes an integer: $x^2=1,2,\dots,${n * n - 1}$ (the value $${n * n}$ is at $x=${n}$, outside the interval). That is $${n * n - 1}$ points.</p>` };
+  }, (p) => jumpCount((x) => xfl(x * x), 1e-4, p.n - 1e-4)),
+  GX('xg07', 4, 'nat', 'numeric', 'derivative of an inverse function', (rng) => {
+    const k = int(rng, 1, 9);
+    const ans = 1 / (3 + k);
+    return { k, answer: +ans.toFixed(3), tol: 0.01, q: XR`$f(x)=x^3+${k}x$ is one-to-one and $g=f^{-1}$. Find $g'(${1 + k})$ (2 decimal places).`, sol: XR`<p>$f(1)=${1 + k}$, so $g(${1 + k})=1$. $g'(${1 + k})=\dfrac1{f'(1)}=\dfrac1{3+${k}}=${ans.toFixed(3)}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => { const f = (x) => x ** 3 + p.k * x; const g = (t) => { let x = 1; for (let i = 0; i < 80; i++) x -= (f(x) - t) / (3 * x * x + p.k); return x; }; const y = 1 + p.k, h = 1e-4; return (g(y + h) - g(y - h)) / (2 * h); }),
+  GX('xg08', 4, 'nat', 'integer', 'higher derivatives', (rng) => {
+    const a = int(rng, 2, 3), n = choose(rng, [3, 5]);
+    let fact = 1; for (let i = 2; i < n; i++) fact *= i;
+    const ans = fact * a ** n;
+    return { a, n, answer: ans, tol: 0, q: XR`If $y=\ln(1+${a}x)$, find $\dfrac{d^{${n}}y}{dx^{${n}}}$ at $x=0$.`, sol: XR`<p>$y'=${a}(1+${a}x)^{-1}$. Each further derivative multiplies by $-${a}$ and lowers the power: $y^{(${n})}=(-1)^{${n - 1}}(${n - 1})!\,${a}^{${n}}(1+${a}x)^{-${n}}$. At $x=0$: $${fact}\cdot${a ** n}=${ans}$ (the sign is $+$ since $${n - 1}$ is even).</p>` };
+  }, (p) => { let c = p.a, m = 1; for (let i = 2; i <= p.n; i++) { c *= -m * p.a; m++; } return c; }),
+  GX('xg09', 5, 'nat', 'integer', 'higher derivatives', (rng) => {
+    const k = int(rng, 2, 7);
+    return { k, answer: k, tol: 0, q: XR`$f(x)=x^{${k}}|x|$. What is the largest integer $n$ for which $f^{(n)}(0)$ exists?`, sol: XR`<p>$f(x)=x^{${k + 1}}$ for $x>0$ and $-x^{${k + 1}}$ for $x<0$. Differentiating $j$ times gives $\dfrac{${k + 1}!}{(${k + 1}-j)!}\,x^{${k + 1}-j}\,\mathrm{sgn}(x)$. At $j=${k}$ this is $${k + 1}!\,|x|$, which exists at $0$ (value 0) but has a kink there. So $f^{(${k})}(0)$ exists and $f^{(${k + 1})}(0)$ does not. Answer: $${k}$.</p>` };
+  }, (p) => { let m = p.k + 1, n = 0; for (let j = 0; ; j++) { if (m - j >= 2) n = j + 1; else break; } return n; }),
+  GX('xg10', 5, 'mcq', 'single', 'inverse trigonometric', (rng) => {
+    const a = int(rng, 2, 5);
+    const { options, answer } = shuffleOpts(rng, `$-\\dfrac2{${1 + a * a}}$`, [`$\\dfrac2{${1 + a * a}}$`, `$-\\dfrac2{${a * a - 1}}$`, `$\\dfrac2{${a * a - 1}}$`]);
+    return { a, options, answer, q: XR`If $y=\sin^{-1}\left(\dfrac{2x}{1+x^2}\right)$, then $\dfrac{dy}{dx}$ at $x=${a}$ is`, sol: XR`<p>Put $x=\tan\theta$: $y=\sin^{-1}(\sin2\theta)$. For $x=${a}>1$, $\theta>45^\circ$ so $2\theta\in\left(\dfrac\pi2,\pi\right)$ and $y=\pi-2\tan^{-1}x$. Then $y'=-\dfrac2{1+x^2}=-\dfrac2{${1 + a * a}}$.</p>` };
+  }, (p) => { const v = xd((x) => xas(2 * x / (1 + x * x)), p.a); return Math.abs(v + 2 / (1 + p.a * p.a)) < 1e-4 ? p.answer : -1; }),
+);
+
+Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
+}
+// ==XP-END
+export default { topic: 'continuity-differentiability', groups, items, gens };

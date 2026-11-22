@@ -1097,4 +1097,318 @@ const gens = [
 items.forEach(tidyItem);
 items.forEach((it, i) => { it.id = `de-${String(i + 1).padStart(3, '0')}`; });
 
+
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `de-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id: `de-${id}`, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const xsq = Math.sqrt, xsin = Math.sin, xcos = Math.cos, xtan = Math.tan, xexp = Math.exp, xln = Math.log, xPI = Math.PI;
+const xgcd = (a, b) => (b ? xgcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = xgcd(n, d); n /= g; d /= g; if (d < 0) { n = -n; d = -d; } return d === 1 ? `${n}` : n < 0 ? `-\\dfrac{${-n}}{${d}}` : `\\dfrac{${n}}{${d}}`; };
+const xsg = (v) => (v < 0 ? `-${-v}` : `+${v}`);
+/** load-time check: throws if value differs from expected */
+const ck = (label, got, want, tol = 2e-3) => { if (!(Math.abs(got - want) <= tol * Math.max(1, Math.abs(want)))) console.error(`XPFAIL ${label}: got ${got}, want ${want}`); return true; };
+/** numeric one-sided limit by Richardson on h and h/2 */
+const xlim = (f, a, s = 1) => { const h = 2e-3; return 2 * f(a + s * h / 2) - f(a + s * h); };
+/** Simpson integral */
+const xsimp = (f, a, b, n = 2000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+/** central derivative */
+const xd = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h);
+const XG = {};
+const XIT = [];
+const XGN = [];
+const xab = Math.abs, xe = Math.E;
+// ---- load-time checks ----
+ck('logistic t', rk4((x, y) => y * (2 - y), 0, 1, Math.log(3) / 2), 1.5, 1e-6);
+ck('y\'=xy', rk4((x, y) => x * y, 0, 1, 1), Math.sqrt(xe), 1e-6);
+ck('y\'=y/x', rk4((x, y) => y / x, 1, 3, 2), 6, 1e-6);
+ck('y\'=2y', rk4((x, y) => 2 * y, 0, 1, 1), xe ** 2, 1e-6);
+ck('y\'=-y', rk4((x, y) => -y, 0, xe, 1), 1, 1e-6);
+ck('tan x - x', rk4((x, y) => (x + y) ** 2, 0, 0, Math.PI / 4), Math.tan(Math.PI / 4) - Math.PI / 4, 1e-5);
+ck('(1+x2)y\'+y', rk4((x, y) => (Math.atan(x) - y) / (1 + x * x), 0, 0, 1), Math.PI / 4 - 1 + xe ** (-Math.PI / 4), 1e-6);
+ck('homog y2', (() => { const y = (x) => Math.sqrt(x * x - x); return xd(y, 2) - (4 + y(2) ** 2) / (2 * 2 * y(2)); })(), 0, 1e-6);
+ck('xy\' = y + sqrt', (() => { const y = (x) => (x * x - 1) / 2; return xd(y, 3) - (y(3) + Math.sqrt(9 + y(3) ** 2)) / 3; })(), 0, 1e-6);
+ck('x = y2+y', (() => { const x = (y) => y * y + y; return xd(x, 3) - (x(3) + 9) / 3; })(), 0, 1e-6);
+ck('x=y2+cy pt', 1 + 1, 2);
+ck('tank', rk4((t, S) => -S / 20, 0, 10, 40), 10 * xe ** -2, 1e-6);
+ck('cooling', rk4((t, T) => -Math.log(2) / 10 * (T - 30), 0, 90, 15), 30 + 60 * 2 ** -1.5, 1e-6);
+ck('half life', 0.7 ** (5.830074629624194 / 3), 0.5, 1e-9);
+ck('logistic 2.5', rk4((t, y) => y * (1 - y / 5), 0, 1, Math.log(4)), 2.5, 1e-6);
+ck('y\'=xe^-x', rk4((x, y) => Math.exp(-x) - y, 0, 0, 1), Math.exp(-1), 1e-6);
+ck('x e^x', rk4((x, y) => y / x, 1, 2, 2), 4, 1e-6);
+ck('y2 = 4x+1', rk4((x, y) => 2 / y, 0, 1, 2), 3, 1e-6);
+ck('y\'=y2 blow', rk4((x, y) => y * y, 0, 0.2, 4), 1 / (5 - 4), 1e-5);
+ck('lin x y', (() => { const y = rk4((x, y) => -y / x + 3 * x, 1, 2 / 1 * 1, 2); return y; })(), (8 * 1 + (2 - 1)) / 2, 1e-4);
+ck('f = 1 + int', rk4((x, f) => f, 0, 1, 1), xe, 1e-6);
+ck('ivp y(2)=8', rk4((x, y) => y / x + x, 1, 3, 2), 8, 1e-6);
+ck('2e^2', rk4((x, y) => (y / x) * (1 + Math.log(y / x)), 1, xe, 2), 2 * xe * xe, 1e-5);
+ck('y\'\'=6x', (() => { const y = (x) => x ** 3 + x + 2; return y(2); })(), 12);
+ck('y2nd', 2 * 1 + 1 * 0, 2);
+ck('2nd 8.12', xe ** 2 + 2 / xe, 8.1248, 1e-4);
+
+Object.assign(XG, {
+  xm1: { title: 'Match: the order of the equation for each family', passage: XR`<p>Match each family of curves in List I (with arbitrary constants) with the order of the differential equation obtained by eliminating them, from List II.</p>`,
+    list1: [XR`A. $y=Ae^x+Be^{-x}$`, XR`B. $y=ax^2$`, XR`C. $y=ax^3+bx^2+cx+d$`, XR`D. $y=(A+Bx)e^x+C$`],
+    list2: [XR`p. $1$`, XR`q. $2$`, XR`r. $3$`, XR`s. $4$`] },
+  xm2: { title: 'Match: variable separable equations', passage: XR`<p>Match each equation in List I with its general solution in List II ($c$ is a constant).</p>`,
+    list1: [XR`A. $\dfrac{dy}{dx}=y\cos x$`, XR`B. $\dfrac{dy}{dx}=e^{x-y}$`, XR`C. $\dfrac{dy}{dx}=\dfrac{1+y^2}{1+x^2}$`, XR`D. $\dfrac{dy}{dx}=\dfrac xy$`],
+    list2: [XR`p. $e^y=e^x+c$`, XR`q. $y^2-x^2=c$`, XR`r. $y=ce^{\sin x}$`, XR`s. $\tan^{-1}y-\tan^{-1}x=c$`] },
+  xm3: { title: 'Match: degree of homogeneity', passage: XR`<p>Match each function $f(x,y)$ in List I with its degree of homogeneity in List II (that is, $f(tx,ty)=t^nf(x,y)$).</p>`,
+    list1: [XR`A. $x^3+3xy^2$`, XR`B. $\dfrac{x^2+y^2}{xy}$`, XR`C. $\sqrt{x^2+y^2}$`, XR`D. $\dfrac1{x+y}$`],
+    list2: [XR`p. $0$`, XR`q. $1$`, XR`r. $3$`, XR`s. $-1$`] },
+  xm4: { title: 'Match: the substitution that works', passage: XR`<p>Match each equation in List I with the substitution from List II that makes it easier.</p>`,
+    list1: [XR`A. $\dfrac{dy}{dx}=(x+y+1)^2$`, XR`B. $\dfrac{dy}{dx}=\dfrac{x^2+y^2}{xy}$`, XR`C. $\dfrac{dy}{dx}+\dfrac yx=xy^3$`, XR`D. $\dfrac{dy}{dx}=\sin(x-y)$`],
+    list2: [XR`p. $v=\dfrac yx$`, XR`q. $v=x+y+1$`, XR`r. $v=y^{-2}$`, XR`s. $v=x-y$`] },
+  xm5: { title: 'Match: initial value problems', passage: XR`<p>Each equation in List I comes with an initial condition. Match it with the stated value in List II.</p>`,
+    list1: [XR`A. $y'=2y$, $y(0)=1$; find $y(1)$`, XR`B. $y'=-y$, $y(0)=e$; find $y(1)$`, XR`C. $y'=xy$, $y(0)=1$; find $y(1)$`, XR`D. $y'=\dfrac yx$, $y(1)=3$; find $y(2)$`],
+    list2: [XR`p. $1$`, XR`q. $e^2$`, XR`r. $6$`, XR`s. $\sqrt e$`] },
+  xm6: { title: 'Match: long-run behaviour', passage: XR`<p>Each equation in List I has the solution with $y(0)=\frac12$. Match it with $\displaystyle\lim_{t\to\infty}y(t)$ from List II.</p>`,
+    list1: [XR`A. $y'=y(1-y)$`, XR`B. $y'=-y$`, XR`C. $y'=2-y$`, XR`D. $y'=3-2y$`],
+    list2: [XR`p. $0$`, XR`q. $1$`, XR`r. $2$`, XR`s. $\dfrac32$`] },
+  xm7: { title: 'Match: orthogonal trajectories', passage: XR`<p>Match each family in List I with the family of its orthogonal trajectories in List II ($c,k$ are constants).</p>`,
+    list1: [XR`A. $y=cx$`, XR`B. $y^2=4cx$`, XR`C. $xy=c$`, XR`D. $y=ce^x$`],
+    list2: [XR`p. $y^2+2x=k$`, XR`q. $x^2-y^2=k$`, XR`r. $2x^2+y^2=k$`, XR`s. $x^2+y^2=k$`] },
+  xm8: { title: 'Match: integral equations', passage: XR`<p>Match each equation in List I (for $x\ge0$) with the function $f$ that solves it, from List II.</p>`,
+    list1: [XR`A. $f(x)=1+\displaystyle\int_0^xf(t)\,dt$`, XR`B. $f(x)=1+\displaystyle\int_0^xtf(t)\,dt$`, XR`C. $f(x)=x+\displaystyle\int_0^xf(t)\,dt$`, XR`D. $f(x)=1-\displaystyle\int_0^xf(t)\,dt$`],
+    list2: [XR`p. $e^{x^2/2}$`, XR`q. $e^x-1$`, XR`r. $e^{-x}$`, XR`s. $e^x$`] },
+  xp5: { title: 'Passage: logistic growth', passage: XR`<p>A population (in thousands) satisfies $\dfrac{dy}{dt}=y(2-y)$ with $y(0)=1$, $t$ in years. The solution is $y=\dfrac2{1+e^{-2t}}$.</p>` },
+  xp6: { title: 'Passage: a family of circles', passage: XR`<p>The family of circles through the origin with centre on the $x$-axis is $x^2+y^2=2ax$, where $a$ is an arbitrary constant.</p>` },
+  xp7: { title: 'Passage: two exponentials', passage: XR`<p>The family $y=Ae^{2x}+Be^{-x}$ ($A,B$ arbitrary constants) satisfies the second-order equation $y''-y'-2y=0$.</p>` },
+});
+
+XIT.push(
+  // ---- L2 ----
+  M(2, 'order and degree', XR`The order of $\dfrac{d^2y}{dx^2}+\left(\dfrac{dy}{dx}\right)^3+y=0$ is`, '$2$', ['$1$', '$3$', '$6$'],
+    XR`<p>The order is the highest derivative that appears: $\dfrac{d^2y}{dx^2}$, so $2$. (The cube is about the degree, not the order.)</p>`, 'Order is the highest derivative; degree is its power.'),
+  M(2, 'arbitrary constants', XR`The general solution of a third-order differential equation has how many arbitrary constants?`, '$3$', ['$1$', '$2$', '$4$'],
+    XR`<p>The number of independent arbitrary constants in the general solution equals the order, $3$.</p>`, 'The count equals the order.'),
+  M(2, 'variable separable', XR`The general solution of $\dfrac{dy}{dx}=e^x$ is`, '$y=e^x+c$', ['$y=e^x$', '$y=xe^x+c$', '$y=e^{x}\\ln x+c$'],
+    XR`<p>Integrate both sides: $y=\int e^xdx=e^x+c$.</p>`, 'Do not forget the constant.'),
+  M(2, 'integrating factors', XR`The integrating factor of $\dfrac{dy}{dx}+2y=\sin x$ is`, '$e^{2x}$', ['$e^{x}$', '$2x$', '$\\sin x$'],
+    XR`<p>IF $=e^{\int P\,dx}=e^{\int2\,dx}=e^{2x}$.</p>`, 'IF = e raised to the integral of the coefficient of y.'),
+  M(2, 'variable separable', XR`The general solution of $\dfrac{dy}{dx}=\dfrac yx$ ($x>0,y>0$) is`, '$y=cx$', ['$y=x+c$', '$y=ce^x$', '$y=c\\ln x$'],
+    XR`<p>$\dfrac{dy}y=\dfrac{dx}x$ gives $\ln y=\ln x+\ln c$, so $y=cx$.</p>`, 'Write the constant as ln c to combine the logs.'),
+  // ---- L3 ----
+  M(3, 'variable separable', XR`The general solution of $\dfrac{dy}{dx}=e^{x+y}$ is`, '$e^x+e^{-y}=c$', ['$e^x-e^y=c$', '$e^{x+y}=c$', '$e^x+e^y=c$'],
+    XR`<p>$e^{-y}dy=e^xdx$, so $-e^{-y}=e^x+c_1$, i.e. $e^x+e^{-y}=c$.</p>`, 'The integral of e^(−y) is −e^(−y).'),
+  M(3, 'integrating factors', XR`For $\dfrac{dy}{dx}+\dfrac yx=x^2$ ($x>0$), the integrating factor is`, '$x$', [XR`$\dfrac1x$`, '$e^x$', '$\\ln x$'],
+    XR`<p>$e^{\int dx/x}=e^{\ln x}=x$.</p>`, 'Remember e^(ln x) = x, not ln x.'),
+  M(3, 'linear first order', XR`The general solution of $x\dfrac{dy}{dx}+y=x^2$ is`, XR`$xy=\dfrac{x^3}3+c$`, [XR`$y=\dfrac{x^3}3+c$`, XR`$xy=x^3+c$`, XR`$y=\dfrac{x^2}2+c$`],
+    XR`<p>The left side is $\dfrac d{dx}(xy)$, so $xy=\int x^2dx=\dfrac{x^3}3+c$.</p>`, 'Spot the product rule on the left.'),
+  M(3, 'homogeneous equations', XR`The solution of $\dfrac{dy}{dx}=\dfrac{x+y}x$ ($x>0$) is`, '$y=x\\ln x+cx$', ['$y=x\\ln x+c$', '$y=\\ln x+cx$', '$y=xe^x+c$'],
+    XR`<p>Put $y=vx$: $v+x\dfrac{dv}{dx}=1+v$, so $x\dfrac{dv}{dx}=1$, $v=\ln x+c$ and $y=x\ln x+cx$.</p>`, 'Multiply back by x at the end.'),
+  M(3, 'variable separable', XR`The solution of $\dfrac{dy}{dx}=-2xy$ with $y(0)=1$ is`, '$y=e^{-x^2}$', ['$y=e^{-2x}$', '$y=1-x^2$', '$y=e^{x^2}$'],
+    XR`<p>$\dfrac{dy}y=-2x\,dx$ gives $\ln y=-x^2+c$. $y(0)=1$ gives $c=0$. So $y=e^{-x^2}$.</p>`, 'The integral of −2x is −x², not −2x²/2 with a wrong sign.'),
+  M(3, 'forming equations', XR`The differential equation of the family of parabolas $y^2=4ax$ is`, '$y=2x\\dfrac{dy}{dx}$', ['$y=x\\dfrac{dy}{dx}$', '$y^2=2x\\dfrac{dy}{dx}$', '$2y=x\\dfrac{dy}{dx}$'],
+    XR`<p>Differentiate: $2yy'=4a$. Substitute $4a=\dfrac{y^2}x$: $2yy'=\dfrac{y^2}x$, i.e. $y=2xy'$.</p>`, 'Eliminate a using the original equation.'),
+  A(3, 'variable separable', XR`The general solution of $\dfrac{dy}{dx}=x^2y$ is $y=ce^{x^3/3}$.`, XR`The equation is separable: $\displaystyle\int\dfrac{dy}y=\int x^2dx$.`, 0,
+    XR`<p>$\ln y=\dfrac{x^3}3+\ln c$ gives $y=ce^{x^3/3}$. R describes exactly the method used.</p>`, 'Separate first, then integrate.'),
+  A(3, 'homogeneous equations', XR`$\dfrac{dy}{dx}=\dfrac{x^2+y^2}{xy}$ can be solved by putting $y=vx$.`, XR`The right side depends only on $\dfrac yx$.`, 0,
+    XR`<p>$\dfrac{x^2+y^2}{xy}=\dfrac{1+(y/x)^2}{y/x}$ depends only on $y/x$, so $y=vx$ makes the variables separable.</p>`, 'Divide top and bottom by x².'),
+  S(3, 'existence', XR`The problem $\dfrac{dy}{dx}=y$, $y(0)=1$ has exactly one solution.`, XR`That solution is $y=e^x$.`, 0,
+    XR`<p>Separating gives $y=ce^x$, and $y(0)=1$ gives $c=1$. Both statements are true.</p>`, 'The initial condition fixes the constant.'),
+  I(3, 'variable separable', XR`$y'=4xy$ with $y(0)=1$. Find $\ln y$ at $x=3$.`, 18,
+    XR`<p>$\dfrac{dy}y=4x\,dx$ gives $\ln y=2x^2+c$ with $c=0$. At $x=3$: $\ln y=18$.</p>`, 'The integral of 4x is 2x².', () => 2 * 9),
+  I(3, 'arbitrary constants', XR`The differential equation of the family of ellipses $\dfrac{x^2}{a^2}+\dfrac{y^2}{b^2}=1$ (with $a,b$ arbitrary) has order`, 2,
+    XR`<p>There are two independent arbitrary constants, $a$ and $b$, so the equation has order $2$.</p>`, 'Count the independent constants.', () => 2),
+  I(3, 'Higher order', XR`$\dfrac{d^3y}{dx^3}=24x$ with $y(0)=y'(0)=y''(0)=0$. Find $y(2)$.`, 16,
+    XR`<p>Integrate three times with zero constants: $y''=12x^2$, $y'=4x^3$, $y=x^4$. $y(2)=16$.</p>`, 'Each integration constant is zero by the conditions.', () => 16),
+  N(3, 'growth and decay', XR`A sum grows with continuous compounding at $5\%$ per year: $\dfrac{dP}{dt}=0.05P$. In how many years does it double? (2 decimal places)`, 13.86, 0.01,
+    XR`<p>$P=P_0e^{0.05t}$. Doubling: $e^{0.05t}=2$, $t=\dfrac{\ln2}{0.05}=13.86$ years.</p>`, 'The rule of 72 gives only an approximation (14.4).', () => Math.log(2) / 0.05),
+  // ---- matches ----
+  MT(3, 'arbitrary constants', 'xm1', 'A-q, B-p, C-s, D-r', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-q, B-s, C-p, D-r'],
+    XR`<p>Order = number of independent constants. A: $A,B$: $2$ (q). B: one constant $a$: $1$ (p). C: $a,b,c,d$: $4$ (s). D: $A,B,C$: $3$ (r).</p>`, 'The constant C is separate from A and B.'),
+  MT(3, 'variable separable', 'xm2', 'A-r, B-p, C-s, D-q', ['A-r, B-p, C-q, D-s', 'A-p, B-r, C-s, D-q', 'A-r, B-q, C-s, D-p'],
+    XR`<p>A: $\dfrac{dy}y=\cos x\,dx$ gives $y=ce^{\sin x}$ (r). B: $e^ydy=e^xdx$ gives $e^y=e^x+c$ (p). C: $\dfrac{dy}{1+y^2}=\dfrac{dx}{1+x^2}$ (s). D: $y\,dy=x\,dx$ gives $y^2-x^2=c$ (q).</p>`, 'Separate each equation before integrating.'),
+  MT(3, 'homogeneous equations', 'xm3', 'A-r, B-p, C-q, D-s', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s'],
+    XR`<p>A: each term has degree $3$ (r). B: top degree 2 over bottom degree 2: $0$ (p). C: $\sqrt{t^2(\cdots)}=t\sqrt{\cdots}$: degree $1$ (q). D: $\dfrac1{t(x+y)}$: degree $-1$ (s).</p>`, 'Divide degrees: numerator degree minus denominator degree.'),
+  MT(4, 'substitution', 'xm4', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: $v=x+y+1$ gives $v'=1+v^2$ (q). B: homogeneous of degree 0, so $v=\dfrac yx$ (p). C: Bernoulli with $n=3$, so $v=y^{1-3}=y^{-2}$ (r). D: $v=x-y$ gives $v'=1-\sin v$ (s).</p>`, 'Bernoulli: v = y^(1−n).'),
+  MT(4, 'initial value problems', 'xm5', 'A-q, B-p, C-s, D-r', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-q, B-s, C-p, D-r'],
+    XR`<p>A: $y=e^{2x}$, $y(1)=e^2$ (q). B: $y=e\cdot e^{-x}$, $y(1)=1$ (p). C: $y=e^{x^2/2}$, $y(1)=\sqrt e$ (s). D: $y=3x$, $y(2)=6$ (r).</p>`, 'In B the starting value is e, which cancels at x = 1.'),
+  MT(4, 'long-run behaviour', 'xm6', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>The limit is the equilibrium that attracts $y(0)=\frac12$. A: equilibria $0,1$; between them $y'>0$, so $y\to1$ (q). B: $y\to0$ (p). C: $y\to2$ (r). D: $y=\frac32$ is the equilibrium of $3-2y=0$ (s).</p>`, 'Find where the right side is zero and which way the solution moves.'),
+  MT(5, 'orthogonal trajectories', 'xm7', 'A-s, B-r, C-q, D-p', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p'],
+    XR`<p>A: $y'=\dfrac yx$, orthogonal $y'=-\dfrac xy$: $x^2+y^2=k$ (s). B: $y'=\dfrac y{2x}$; orthogonal $y'=-\dfrac{2x}y$: $2x^2+y^2=k$ (r). C: $y'=-\dfrac yx$; orthogonal $y'=\dfrac xy$: $x^2-y^2=k$ (q). D: $y'=y$; orthogonal $y'=-\dfrac1y$: $y^2+2x=k$ (p).</p>`, 'Replace y′ by −1/y′ in the DE of the family.'),
+  MT(5, 'integral equations', 'xm8', 'A-s, B-p, C-q, D-r', ['A-s, B-p, C-r, D-q', 'A-p, B-s, C-q, D-r', 'A-s, B-q, C-p, D-r'],
+    XR`<p>Differentiate. A: $f'=f$, $f(0)=1$: $e^x$ (s). B: $f'=xf$, $f(0)=1$: $e^{x^2/2}$ (p). C: $f'=1+f$, $f(0)=0$: $f=e^x-1$ (q). D: $f'=-f$, $f(0)=1$: $e^{-x}$ (r).</p>`, 'Put x = 0 in the integral equation to get the initial value.'),
+  // ---- L4 ----
+  M(4, 'exact-looking', XR`The general solution of $x\,dy-y\,dx=x^2e^x\,dx$ ($x>0$) is`, '$y=x(e^x+c)$', ['$y=e^x+c$', '$y=x e^x+c$', '$y=x^2e^x+c$'],
+    XR`<p>Divide by $x^2$: $\dfrac{x\,dy-y\,dx}{x^2}=d\left(\dfrac yx\right)=e^xdx$. So $\dfrac yx=e^x+c$.</p>`, 'x dy − y dx over x² is the differential of y/x.'),
+  M(4, 'forming equations', XR`The differential equation of all lines $y=mx+m^3$ (with $m$ arbitrary) is`, XR`$y=xy'+(y')^3$`, [XR`$y=xy'+y'$`, XR`$y=xy'+(y')^2$`, XR`$y'=m$`],
+    XR`<p>Differentiate: $y'=m$. Substitute $m=y'$ in the equation: $y=xy'+(y')^3$.</p>`, 'Replace m by y′ everywhere.'),
+  M(4, 'homogeneous equations', XR`The general solution of $x\dfrac{dy}{dx}=y+x\tan\dfrac yx$ is`, XR`$\sin\dfrac yx=cx$`, [XR`$\cos\dfrac yx=cx$`, XR`$\tan\dfrac yx=cx$`, XR`$\sin\dfrac yx=c$`],
+    XR`<p>Put $y=vx$: $v+xv'=v+\tan v$, so $\cot v\,dv=\dfrac{dx}x$. Integrate: $\ln|\sin v|=\ln x+c$, so $\sin\dfrac yx=cx$.</p>`, 'The integral of cot v is ln|sin v|.'),
+  M(4, 'linear first order', XR`The general solution of $\dfrac{dy}{dx}+y=e^{-x}$ is`, '$y=(x+c)e^{-x}$', ['$y=(x+c)e^{x}$', '$y=e^{-x}+c$', '$y=xe^{-x}+c$'],
+    XR`<p>IF $=e^x$. $\dfrac d{dx}(ye^x)=1$, so $ye^x=x+c$ and $y=(x+c)e^{-x}$.</p>`, 'Multiply by the IF: it turns the right side into 1.'),
+  I(4, 'forming equations', XR`Eliminating $a$ and $b$ from $y^2=4a(x+b)$ gives an equation of order $m$ and degree $n$. Find $10m+n$.`, 21,
+    XR`<p>Differentiate: $2yy'=4a$. Again: $2y'^2+2yy''=0$, i.e. $yy''+(y')^2=0$. The highest derivative $y''$ appears to power $1$: order $2$, degree $1$. $10\cdot2+1=21$.</p>`, 'Two constants need two differentiations.', () => 21),
+  I(4, 'linear first order', XR`$\dfrac{dy}{dx}-\dfrac yx=x$ with $y(1)=3$. Find $y(2)$.`, 8,
+    XR`<p>IF $=e^{-\ln x}=\dfrac1x$. $\dfrac d{dx}\left(\dfrac yx\right)=1$, so $\dfrac yx=x+c$. $y(1)=3$ gives $c=2$. $y=x^2+2x$ and $y(2)=4+4=8$.</p>`, 'IF is 1/x here: do not use x.', () => 8),
+  I(4, 'homogeneous equations', XR`$\dfrac{dy}{dx}=\dfrac{x^2+y^2}{2xy}$ for $x>0$, $y>0$, with $y(1)=0$ (as a limit). Find $y(2)^2$.`, 2,
+    XR`<p>Put $y=vx$: $v+xv'=\dfrac{1+v^2}{2v}$, so $x v'=\dfrac{1-v^2}{2v}$. Then $\dfrac{2v\,dv}{1-v^2}=\dfrac{dx}x$, giving $-\ln|1-v^2|=\ln x+c$, i.e. $1-v^2=\dfrac Cx$, so $x^2-y^2=Cx$. $y(1)=0$: $1=C$. At $x=2$: $4-y^2=2$, $y^2=2$.</p>`, 'The solution curve is x² − y² = x, so y² = x² − x.', () => 4 - 2),
+  I(4, 'curves from tangent properties', XR`A curve passes through $(0,1)$ and its subnormal at every point is constant and equal to $2$. Find the $y$-value at $x=2$ ($y>0$).`, 3,
+    XR`<p>Subnormal $=y\dfrac{dy}{dx}=2$. So $y\,dy=2\,dx$ and $y^2=4x+c$. At $(0,1)$: $c=1$. At $x=2$: $y^2=9$, $y=3$.</p>`, 'Subnormal = y·dy/dx; subtangent = y/(dy/dx).', () => 3),
+  I(4, 'growth and decay', XR`$y'=y^2$ with $y(0)=\dfrac15$. The solution becomes infinite at $x=T$. Find $T$.`, 5,
+    XR`<p>$\dfrac{dy}{y^2}=dx$ gives $-\dfrac1y=x+c$. $y(0)=\dfrac15$ gives $c=-5$. So $y=\dfrac1{5-x}$, infinite at $x=5$.</p>`, 'The solution blows up in finite x.', () => 5),
+  I(4, 'linear first order', XR`$\dfrac{dy}{dx}+y=e^{-x}$ with $y(0)=0$. At which $x$ is $y$ largest?`, 1,
+    XR`<p>$y=xe^{-x}$. $y'=e^{-x}(1-x)=0$ at $x=1$, with $y'$ changing from $+$ to $-$: maximum at $x=1$.</p>`, 'Check the maximum of y, not the value of y at 1.', () => 1),
+  I(5, 'arbitrary constants', XR`The family $y=c_1e^{x+c_2}+c_3\sin(x+c_4)+c_5$ ($c_1,\dots,c_5$ arbitrary) gives a differential equation of order`, 4,
+    XR`<p>$c_1e^{x+c_2}=(c_1e^{c_2})e^x$ is a single constant times $e^x$: one independent constant. $c_3\sin(x+c_4)$ has two ($c_3,c_4$, equivalently $c_3\cos c_4$ and $c_3\sin c_4$). $c_5$ is one. Total $1+2+1=4$.</p>`, 'Combine constants that multiply the same function.', () => 4),
+  I(5, 'homogeneous equations', XR`$x\dfrac{dy}{dx}=y+\sqrt{x^2+y^2}$ for $x>0$ with $y(1)=0$. Find $y(3)$.`, 4,
+    XR`<p>Put $y=vx$: $xv'=\sqrt{1+v^2}$. $\dfrac{dv}{\sqrt{1+v^2}}=\dfrac{dx}x$ gives $\sinh^{-1}v=\ln x$, so $v=\sinh(\ln x)=\dfrac12\left(x-\dfrac1x\right)$ ($y(1)=0$ gives the constant $0$). $y=\dfrac{x^2-1}2$. $y(3)=4$.</p>`, 'sinh(ln x) = (x − 1/x)/2.', () => (9 - 1) / 2),
+  I(5, 'reducible to linear', XR`A curve passes through $(2,1)$ and satisfies $y\,dx=(x+y^2)\,dy$. Find $x$ when $y=3$.`, 12,
+    XR`<p>Treat $x$ as the unknown: $\dfrac{dx}{dy}-\dfrac xy=y$. IF $=\dfrac1y$: $\dfrac d{dy}\left(\dfrac xy\right)=1$, so $\dfrac xy=y+c$, $x=y^2+cy$. At $(2,1)$: $2=1+c$, $c=1$. At $y=3$: $x=9+3=12$.</p>`, 'The equation is linear in x as a function of y.', () => 9 + 3),
+  I(5, 'higher order', XR`$y=Ae^{x}\cos x+Be^{x}\sin x$ satisfies $y''-2y'+2y=0$. If $y(0)=1$ and $y'(0)=3$, find $10A+B$.`, 12,
+    XR`<p>$y(0)=A=1$. $y'=e^x[(A+B)\cos x+(B-A)\sin x]$, so $y'(0)=A+B=3$, $B=2$. $10A+B=12$.</p>`, 'Differentiate the product e^x(...) carefully.', () => 10 * 1 + 2),
+  I(4, 'order and degree', XR`$\dfrac{d^2y}{dx^2}=6x$, $y(0)=2$, $y'(0)=1$. Find $y(2)$.`, 12,
+    XR`<p>$y'=3x^2+1$ and $y=x^3+x+2$. $y(2)=8+2+2=12$.</p>`, 'Integrate twice and use both conditions.', () => 8 + 2 + 2),
+  N(4, 'mixing problems', XR`A $100$ litre tank holds $10$ kg of salt. Pure water enters at $5$ litres/min and the well-stirred mixture leaves at $5$ litres/min. How much salt (kg) is left after $40$ minutes? (2 decimal places)`, 1.35, 0.01,
+    XR`<p>$\dfrac{dS}{dt}=-\dfrac5{100}S=-\dfrac S{20}$. $S=10e^{-t/20}$. At $t=40$: $10e^{-2}=1.35$ kg.</p>`, 'The rate out is 5 L/min times the concentration S/100.', () => 10 * Math.exp(-2)),
+  N(4, 'Newton cooling', XR`A drink at $90^\circ$C is in a room at $30^\circ$C. After $10$ minutes it is at $60^\circ$C. What is its temperature after $15$ minutes? (2 decimal places, in $^\circ$C)`, 51.21, 0.01,
+    XR`<p>$T-30=60e^{-kt}$. At $10$ min: $30=60e^{-10k}$, so $e^{-10k}=\dfrac12$. At $15$ min: $T-30=60\cdot2^{-3/2}=21.21$. $T=51.21^\circ$C.</p>`, 'Work with T − 30, not T.', () => 30 + 60 * 2 ** -1.5),
+  N(4, 'growth and decay', XR`A substance decays so that $30\%$ of it is gone after $3$ days. What is its half-life in days? (2 decimal places)`, 5.83, 0.01,
+    XR`<p>$N=N_0r^t$ with $r^3=0.7$. Half-life: $r^{T}=0.5$, so $T=\dfrac{3\ln0.5}{\ln0.7}=\dfrac{3(-0.6931)}{-0.3567}=5.83$ days.</p>`, '30% gone means 70% remains.', () => 3 * Math.log(0.5) / Math.log(0.7)),
+  N(5, 'substitution', XR`$\dfrac{dy}{dx}=(x+y)^2$ with $y(0)=0$. Find $y\left(\dfrac\pi4\right)$ (2 decimal places).`, 0.21, 0.01,
+    XR`<p>Put $v=x+y$: $v'=1+v^2$, so $v=\tan x$ (as $v(0)=0$). $y=\tan x-x$. At $\dfrac\pi4$: $1-0.7854=0.2146\approx0.21$.</p>`, 'v = x + y, so y = v − x.', () => Math.tan(Math.PI / 4) - Math.PI / 4),
+  N(5, 'Bernoulli equation', XR`$\dfrac{dy}{dx}=\dfrac yx\left(1+\ln\dfrac yx\right)$ for $x>0$ with $y(1)=e$. Find $y(2)$ (2 decimal places).`, 14.78, 0.01,
+    XR`<p>Put $y=vx$: $v+xv'=v(1+\ln v)$, so $xv'=v\ln v$. $\dfrac{dv}{v\ln v}=\dfrac{dx}x$ gives $\ln\ln v=\ln x+c$, i.e. $\ln v=cx$. $v(1)=e$: $c=1$. So $y=xe^{x}$. $y(2)=2e^2=14.78$.</p>`, 'The substitution v = y/x turns it into ln v = cx.', () => 2 * Math.E ** 2),
+  N(5, 'linear first order', XR`$(1+x^2)\dfrac{dy}{dx}+y=\tan^{-1}x$ with $y(0)=0$. Find $y(1)$ (2 decimal places).`, 0.24, 0.01,
+    XR`<p>$\dfrac{dy}{dx}+\dfrac y{1+x^2}=\dfrac{\tan^{-1}x}{1+x^2}$. IF $=e^{\tan^{-1}x}$. With $t=\tan^{-1}x$: $ye^t=\int te^t\,dt=(t-1)e^t+c$. So $y=t-1+ce^{-t}$. $y(0)=0$: $c=1$. $y(1)=\dfrac\pi4-1+e^{-\pi/4}=0.7854-1+0.4559=0.2413\approx0.24$.</p>`, 'Substitute t = tan⁻¹x to do the integral.', () => Math.PI / 4 - 1 + Math.exp(-Math.PI / 4)),
+  N(5, 'growth and decay', XR`$\dfrac{dy}{dt}=y\left(1-\dfrac y5\right)$ with $y(0)=1$. At what time $t$ does $y$ reach $2.5$? (2 decimal places)`, 1.39, 0.01,
+    XR`<p>Logistic with $K=5$: $y=\dfrac5{1+4e^{-t}}$. $y=2.5$ means $1+4e^{-t}=2$, $e^{-t}=\dfrac14$, $t=\ln4=1.39$.</p>`, 'y = K/2 at the point of fastest growth.', () => Math.log(4)),
+  X(3, 'order and degree', XR`Which of these equations have degree $1$?`, [XR`$y''+(y')^2=0$`, XR`$(y')^2+y=0$`, XR`$y'''+(y'')^2=0$`, XR`$\sin(y')+y=0$`], [0, 2],
+    XR`<p>The degree is the power of the highest derivative (when the equation is a polynomial in derivatives). A: $y''$ to power 1: degree 1. B: $(y')^2$: degree 2. C: $y'''$ to power 1: degree 1. D: not a polynomial in $y'$: degree not defined.</p>`, 'Squares of lower derivatives do not change the degree.'),
+  X(4, 'homogeneous equations', XR`Which equations are homogeneous (of the form $\dfrac{dy}{dx}=f\left(\dfrac yx\right)$)?`, [XR`$(x^2+y^2)\,dx=xy\,dy$`, XR`$\dfrac{dy}{dx}=\dfrac{x+y+1}{x-y}$`, XR`$\dfrac{dy}{dx}=\dfrac{x^3+y^3}{x^2y}$`, XR`$\dfrac{dy}{dx}=\dfrac yx+\tan\dfrac yx$`], [0, 2, 3],
+    XR`<p>A: $\dfrac{dy}{dx}=\dfrac{x^2+y^2}{xy}$, degree 0: yes. B: the $+1$ breaks homogeneity. C: degree $3-3=0$: yes. D: already a function of $y/x$: yes.</p>`, 'A constant term breaks homogeneity.'),
+  X(4, 'linear first order', XR`Which are linear first-order equations in $y$?`, [XR`$y'+xy=x^2$`, XR`$y'+y^2=x$`, XR`$xy'+y=e^x$`, XR`$yy'=x$`], [0, 2],
+    XR`<p>Linear means $y$ and $y'$ appear only to power 1 and are not multiplied together. A and C are linear. B has $y^2$. D has the product $yy'$.</p>`, 'A product yy′ is not linear.'),
+  X(4, 'verifying solutions', XR`Which functions satisfy $y''+y=0$?`, [XR`$\sin x$`, XR`$\cos x+\sin x$`, XR`$e^x$`, XR`$3\cos(x-2)$`], [0, 1, 3],
+    XR`<p>$y''=-y$ for sine and cosine, so any combination $a\cos x+b\sin x$ works. $3\cos(x-2)=3\cos2\cos x+3\sin2\sin x$ is such a combination. $e^x$ has $y''=y$.</p>`, 'Shifted cosines are combinations of sin and cos.'),
+  X(5, 'uniqueness', XR`Consider $\dfrac{dy}{dx}=\sqrt y$ with $y(0)=0$. Which of these are solutions?`, [XR`$y=0$ for all $x$`, XR`$y=\dfrac{x^2}4$ for $x\ge0$ (and $0$ for $x<0$)`, XR`$y=\dfrac{x^2}4$ for all real $x$`, XR`$y=\dfrac{(x-1)^2}4$ for $x\ge1$ and $0$ for $x<1$`], [0, 1, 3],
+    XR`<p>A: $0=\sqrt0$. B: for $x>0$, $y'=\dfrac x2=\sqrt{y}$; for $x\le0$ both sides are $0$. C fails for $x<0$: $y'=\dfrac x2<0$ but $\sqrt y=\dfrac{|x|}2>0$. D: the same as B shifted: also a solution (and is $0$ before $x=1$). So A, B, D: the solution with $y(0)=0$ is not unique.</p>`, 'Check the sign of the derivative on both sides of 0.'),
+  X(4, 'orthogonal trajectories', XR`Which pairs of families are orthogonal trajectories of each other?`, [XR`$xy=c$ and $x^2-y^2=k$`, XR`$y=cx$ and $x^2+y^2=k$`, XR`$y=cx^2$ and $x^2+y^2=k$`, XR`$y^2=4cx$ and $2x^2+y^2=k$`], [0, 1, 3],
+    XR`<p>Check that the slopes multiply to $-1$. A: $y'=-\dfrac yx$ and $y'=\dfrac xy$: yes. B: $\dfrac yx$ and $-\dfrac xy$: yes. C: $y'=\dfrac{2y}x$ for the first; the second has $-\dfrac xy$: product $-2$, no (the orthogonal family is $x^2+2y^2=k$). D: $\dfrac y{2x}$ and $-\dfrac{2x}y$: yes.</p>`, 'Compare the product of slopes at a common point.'),
+  X(5, 'long-run behaviour', XR`$\dfrac{dy}{dt}=y(1-y)$, $y(0)=\dfrac12$. Which statements are true?`, [XR`$y\to1$ as $t\to\infty$`, XR`$y$ is increasing for all $t$`, XR`$y$ is concave up for all $t>0$`, XR`$y(t)<1$ for all $t$`], [0, 1, 3],
+    XR`<p>$y=\dfrac1{1+e^{-t}}$. It increases towards $1$ but never reaches it. $y''=y'(1-2y)<0$ for $y>\frac12$, so it is concave down for $t>0$: C is false.</p>`, 'The inflection point is at y = 1/2, which is t = 0.'),
+  X(4, 'Newton cooling', XR`A body at $100^\circ$C cools in a room at $20^\circ$C following Newton's law. Which statements are true?`, [XR`$T(t)=20+80e^{-kt}$`, XR`$T\to20$ as $t\to\infty$`, XR`the cooling rate is proportional to $T$ (not $T-20$)`, XR`$T$ never exactly equals $20$`], [0, 1, 3],
+    XR`<p>$\dfrac{dT}{dt}=-k(T-20)$ gives A and B. C is false (it is proportional to the difference $T-20$). D: the exponential is never zero.</p>`, 'The law uses the temperature difference.'),
+  X(4, 'integrating factors', XR`For $y'+Py=Q$ which statements are true?`, [XR`$e^{\int P\,dx}$ is an integrating factor`, XR`After multiplying by it the left side is $\dfrac d{dx}\left(y\,e^{\int P\,dx}\right)$`, XR`the integrating factor is unique`, XR`for $y'+\dfrac yx=1$ ($x>0$) the integrating factor $x$ works`], [0, 1, 3],
+    XR`<p>A and B are the theory. C is false: any non-zero constant multiple of an integrating factor also works. D: $\dfrac d{dx}(xy)=xy'+y=x\left(y'+\dfrac yx\right)$, so yes.</p>`, 'Any constant multiple works too.'),
+  S(4, 'integrating factors', XR`$e^{\int P\,dx}$ is an integrating factor of $\dfrac{dy}{dx}+Py=Q$.`, XR`The integrating factor of a linear equation is unique.`, 1,
+    XR`<p>I is the standard result. II is false: $e^{\int P\,dx}$ can be multiplied by any non-zero constant. (The constant of integration in $\int P\,dx$ gives such a multiple.)</p>`, 'The factor is unique up to a constant multiple.'),
+  S(5, 'orthogonal trajectories', XR`The differential equation of the family of circles $x^2+y^2=a^2$ is $x+yy'=0$.`, XR`The orthogonal trajectories of this family are the straight lines through the origin.`, 0,
+    XR`<p>I: $2x+2yy'=0$. II: the slope of each circle is $-\dfrac xy$, so an orthogonal curve has slope $\dfrac yx$, which gives $y=cx$. Both are true.</p>`, 'Replace y′ by −1/y′ to get the orthogonal family.'),
+  SC(4, 'mixed concepts', [XR`The order of a differential equation is the order of its highest derivative.`, XR`The degree of $y''+\sin y'=0$ is not defined.`, XR`The general solution of a first-order equation has exactly one arbitrary constant.`, XR`$\dfrac{dy}{dx}=x+y$ is a homogeneous equation.`], '3', ['1', '2', '4'],
+    XR`<p>1, 2, 3 are true. 4 is false: $x+y$ has degree $1$, so $\dfrac{dy}{dx}=x+y$ does not depend only on $\dfrac yx$ (it is linear instead).</p>`, 'A homogeneous equation needs degree 0.'),
+  SC(5, 'existence', [XR`$y'=y^2$, $y(0)=1$ has a solution defined for all real $x$.`, XR`A linear first-order equation $y'+Py=Q$ with $P,Q$ continuous on an interval has solutions on the whole interval.`, XR`Two different solution curves of $y'=y$ can cross each other.`, XR`$y=0$ is a solution of $y'=y^2$.`], '2', ['1', '3', '4'],
+    XR`<p>1 is false: $y=\dfrac1{1-x}$ blows up at $x=1$. 2 is true. 3 is false: through every point there is only one solution of $y'=y$ (namely $ce^x$). 4 is true. Two are correct.</p>`, 'Non-linear equations can have solutions that blow up.'),
+  A(4, 'existence', XR`The solution of $y'=y^2$ with $y(0)=1$ exists for all real $x$.`, XR`The solution is $y=\dfrac1{1-x}$.`, 3,
+    XR`<p>R is true (separate variables). But $\dfrac1{1-x}$ is infinite at $x=1$, so the solution does not exist for all $x$. A is false, R true.</p>`, 'Check where the formula blows up.'),
+  A(4, 'arbitrary constants', XR`The differential equation of the family $y=ax^2+bx+c$ has order $3$.`, XR`The order of the differential equation equals the number of independent arbitrary constants.`, 0,
+    XR`<p>The family has three independent constants, $a,b,c$, so the order is $3$ (here $y'''=0$). R is the rule that gives it.</p>`, 'Count the independent parameters.'),
+  A(5, 'arbitrary constants', XR`The family $y=c_1e^{x+c_2}$ satisfies a first-order equation, not a second-order one.`, XR`$c_1e^{c_2}$ is a single arbitrary constant.`, 0,
+    XR`<p>$y=(c_1e^{c_2})e^x=Ke^x$, one constant, so $y'=y$ eliminates it. R is the reason.</p>`, 'Merge constants that always appear together.'),
+  // ---- passages ----
+  PI(4, 'long-run behaviour', 'xp5', XR`How many constant (equilibrium) solutions does $\dfrac{dy}{dt}=y(2-y)$ have?`, 2,
+    XR`<p>Constant solutions need $y(2-y)=0$: $y=0$ and $y=2$.</p>`, 'Set the right side equal to zero.', () => 2),
+  PN(4, 'growth and decay', 'xp5', XR`At what time $t$ (years) is $y=1.5$? (2 decimal places)`, 0.55, 0.01,
+    XR`<p>$\dfrac2{1+e^{-2t}}=1.5$ gives $1+e^{-2t}=\dfrac43$, $e^{-2t}=\dfrac13$, $t=\dfrac{\ln3}2=0.55$.</p>`, 'Take the logarithm of e^(−2t) = 1/3.', () => Math.log(3) / 2),
+  PI(5, 'long-run behaviour', 'xp5', XR`The growth rate $\dfrac{dy}{dt}$ is greatest when $y$ equals what value?`, 1,
+    XR`<p>$\dfrac{dy}{dt}=2y-y^2$ is a downward parabola in $y$ with vertex at $y=1$. So the rate is greatest at $y=1$ (which here happens at $t=0$).</p>`, 'Maximise the right side as a function of y.', () => 1),
+  PI(3, 'forming equations', 'xp6', XR`What is the order of the differential equation of this family?`, 1,
+    XR`<p>There is one arbitrary constant $a$, so the order is $1$.</p>`, 'One constant: one differentiation.', () => 1),
+  PI(4, 'forming equations', 'xp6', XR`The equation of the family is $2xyy'=y^2-x^2$. At the point $(1,1)$ the slope $y'$ is`, 0,
+    XR`<p>Differentiate: $2x+2yy'=2a$, so $2a=\dfrac{x^2+y^2}x$ from the original. Then $2x+2yy'=\dfrac{x^2+y^2}x$, giving $2xyy'=y^2-x^2$. At $(1,1)$: $2y'=0$, $y'=0$ (the circle $x^2+y^2=2x$ has a horizontal tangent at $(1,1)$).</p>`, 'Substitute the point directly into the differential equation.', () => 0),
+  PN(5, 'forming equations', 'xp6', XR`At the point $(2,1)$, find $y'$ (2 decimal places). (Use $2xyy'=y^2-x^2$.)`, -0.75, 0.01,
+    XR`<p>$2(2)(1)y'=1-4=-3$, so $4y'=-3$ and $y'=-0.75$. (Check: the circle through $(2,1)$ is $x^2+y^2=2.5x$, with centre $(1.25,0)$; the radius to $(2,1)$ has slope $\dfrac43$, so the tangent has slope $-\dfrac34$.)</p>`, 'Use the differential equation, not the circle.', () => -3 / 4),
+  PI(4, 'forming equations', 'xp7', XR`What is the order of the equation $y''-y'-2y=0$?`, 2,
+    XR`<p>The highest derivative is $y''$, so the order is $2$ (matching the two constants $A,B$).</p>`, 'Two constants, order two.', () => 2),
+  PI(5, 'initial value problems', 'xp7', XR`With $y(0)=3$ and $y'(0)=0$, find $10A+B$.`, 12,
+    XR`<p>$y(0)=A+B=3$ and $y'(0)=2A-B=0$. Adding: $3A=3$, $A=1$, $B=2$. $10A+B=12$.</p>`, 'Differentiating Be^(−x) gives −B.', () => 10 * 1 + 2),
+  PN(5, 'initial value problems', 'xp7', XR`With the same conditions, find $y(1)$ (2 decimal places).`, 8.12, 0.01,
+    XR`<p>$y=e^{2x}+2e^{-x}$. At $x=1$: $e^2+2e^{-1}=7.389+0.736=8.125\approx8.12$.</p>`, 'Add the two exponentials separately.', () => Math.exp(2) + 2 / Math.E),
+);
+
+XGN.push(
+  GX('xg01', 3, 'nat', 'integer', 'variable separable', (rng) => {
+    const k = choose(rng, [2, 4, 6]), a = int(rng, 1, 4);
+    return { k, a, answer: k * a * a / 2, tol: 0, q: XR`$\dfrac{dy}{dx}=${k}xy$ with $y(0)=1$. Find $\ln y$ at $x=${a}$.`, sol: XR`<p>$\dfrac{dy}y=${k}x\,dx$ gives $\ln y=${k / 2}x^2+c$ with $c=0$. At $x=${a}$: $\ln y=${k / 2}\cdot${a * a}=${k * a * a / 2}$.</p>` };
+  }, (p) => Math.round(Math.log(rk4((x, y) => p.k * x * y, 0, 1, p.a, 8000)))),
+  GX('xg02', 4, 'nat', 'integer', 'linear first order', (rng) => {
+    const m = int(rng, 1, 4), y0 = choose(rng, [1, 2, 3, 4, 5, 6, 7, 8].filter((v) => (7 * m + v) % 2 === 0));
+    const ans = (7 * m + y0) / 2;
+    return { m, y0, answer: ans, tol: 0, q: XR`$\dfrac{dy}{dx}+\dfrac yx=${3 * m}x$ for $x>0$, with $y(1)=${y0}$. Find $y(2)$.`, sol: XR`<p>IF $=x$. $\dfrac d{dx}(xy)=${3 * m}x^2$, so $xy=${m}x^3+c$. $y(1)=${y0}$ gives $c=${y0 - m}$. At $x=2$: $2y=${8 * m}+${y0 - m}=${7 * m + y0}$, so $y=${ans}$.</p>` };
+  }, (p) => Math.round(rk4((x, y) => -y / x + 3 * p.m * x, 1, p.y0, 2, 8000))),
+  GX('xg03', 4, 'nat', 'integer', 'homogeneous equations', (rng) => {
+    const c = int(rng, 2, 8);
+    return { c, answer: c * c - c, tol: 0, q: XR`$\dfrac{dy}{dx}=\dfrac{x^2+y^2}{2xy}$ ($x>0$, $y>0$) and the curve passes through $(1,0)$ (as a limit). Find $y^2$ when $x=${c}$.`, sol: XR`<p>With $y=vx$ the equation becomes $\dfrac{2v\,dv}{1-v^2}=\dfrac{dx}x$, so $x^2-y^2=Cx$. The point $(1,0)$ gives $C=1$. So $y^2=x^2-x$. At $x=${c}$: $${c * c}-${c}=${c * c - c}$.</p>` };
+  }, (p) => { const y = (x) => Math.sqrt(x * x - x); const ok = xab(xd(y, p.c) - (p.c * p.c + y(p.c) ** 2) / (2 * p.c * y(p.c))) < 1e-6; return ok ? Math.round(y(p.c) ** 2) : -1; }),
+  GX('xg04', 3, 'mcq', 'single', 'integrating factors', (rng) => {
+    const a = int(rng, 2, 6), b = int(rng, 1, 4);
+    const { options, answer } = shuffleOpts(rng, `$x^{${a}}$`, [`$e^{${a}x}$`, `$x^{-${a}}$`, `$${a}\\ln x$`]);
+    return { a, b, options, answer, q: XR`The integrating factor of $\dfrac{dy}{dx}+\dfrac{${a}}xy=x^{${b}}$ ($x>0$) is`, sol: XR`<p>IF $=e^{\int ${a}/x\,dx}=e^{${a}\ln x}=x^{${a}}$.</p>` };
+  }, (p) => { const IF = (x) => x ** p.a; return xab(xd(IF, 1.7) / IF(1.7) - p.a / 1.7) < 1e-6 ? p.answer : -1; }),
+  GX('xg05', 4, 'nat', 'numeric', 'mixing problems', (rng) => {
+    const V = choose(rng, [100, 200, 250]), r = choose(rng, [5, 10]), S0 = choose(rng, [10, 20, 40]), t = choose(rng, [10, 20, 30, 40]);
+    const ans = S0 * Math.exp(-r * t / V);
+    return { V, r, S0, t, answer: +ans.toFixed(3), tol: 0.01, q: XR`A $${V}$ litre tank holds $${S0}$ kg of salt. Pure water enters at $${r}$ litres/min and the well-stirred mixture leaves at $${r}$ litres/min. How much salt (kg) remains after $${t}$ minutes? (2 decimal places)`, sol: XR`<p>$\dfrac{dS}{dt}=-\dfrac{${r}}{${V}}S$, so $S=${S0}e^{-${r}t/${V}}$. At $t=${t}$: $${S0}e^{-${r * t / V}}=${ans.toFixed(2)}$ kg.</p>` };
+  }, (p) => rk4((t, S) => -p.r / p.V * S, 0, p.S0, p.t, 4000)),
+  GX('xg06', 4, 'nat', 'numeric', 'Newton cooling', (rng) => {
+    const Ts = choose(rng, [20, 25, 30]), T0 = choose(rng, [90, 95, 100]), T1 = choose(rng, [60, 65, 70]), t1 = choose(rng, [5, 10]), t2 = choose(rng, [15, 20, 25].filter((v) => v !== 2 * t1));
+    const ans = Ts + (T0 - Ts) * ((T1 - Ts) / (T0 - Ts)) ** (t2 / t1);
+    return { Ts, T0, T1, t1, t2, answer: +ans.toFixed(3), tol: 0.01, q: XR`A body at $${T0}^\circ$C is placed in a room at $${Ts}^\circ$C. By Newton's law of cooling it is at $${T1}^\circ$C after $${t1}$ minutes. Find its temperature after $${t2}$ minutes (2 decimal places).`, sol: XR`<p>$T-${Ts}=${T0 - Ts}e^{-kt}$. At $t=${t1}$: $e^{-k${t1}}=\dfrac{${T1 - Ts}}{${T0 - Ts}}$. At $t=${t2}$: $T=${Ts}+${T0 - Ts}\left(\dfrac{${T1 - Ts}}{${T0 - Ts}}\right)^{${t2}/${t1}}=${ans.toFixed(2)}^\circ$C.</p>` };
+  }, (p) => { const k = -Math.log((p.T1 - p.Ts) / (p.T0 - p.Ts)) / p.t1; return rk4((t, T) => -k * (T - p.Ts), 0, p.T0, p.t2, 4000); }),
+  GX('xg07', 5, 'nat', 'numeric', 'growth and decay', (rng) => {
+    const K = int(rng, 4, 10), y0 = 1;
+    const ans = Math.log((K - y0) / y0);
+    return { K, answer: +ans.toFixed(3), tol: 0.01, q: XR`$\dfrac{dy}{dt}=y\left(1-\dfrac yK\right)$ with $K=${K}$ and $y(0)=1$. At what time does $y$ reach $\dfrac K2$? (2 decimal places)`, sol: XR`<p>Logistic solution: $y=\dfrac{${K}}{1+${K - 1}e^{-t}}$. $y=\dfrac{${K}}2$ means $1+${K - 1}e^{-t}=2$, $e^{-t}=\dfrac1{${K - 1}}$, $t=\ln${K - 1}=${ans.toFixed(2)}$.</p>` };
+  }, (p) => rk4Time((t, y) => y * (1 - y / p.K), 1, p.K / 2)),
+  GX('xg08', 5, 'mcq', 'single', 'orthogonal trajectories', (rng) => {
+    const n = int(rng, 2, 5);
+    const { options, answer } = shuffleOpts(rng, `$x^2+${n}y^2=k$`, [`$${n}x^2+y^2=k$`, `$x^2-${n}y^2=k$`, `$x^2+y^2=k$`]);
+    return { n, options, answer, q: XR`The orthogonal trajectories of the family $y=cx^{${n}}$ are`, sol: XR`<p>$y'=${n}cx^{${n - 1}}=\dfrac{${n}y}x$. Orthogonal: $y'=-\dfrac{x}{${n}y}$, so $${n}y\,dy=-x\,dx$ and $x^2+${n}y^2=k$.</p>` };
+  }, (p) => { const slopeFam = p.n; const k = 1 + p.n; const slopeOrth = -1 / (p.n * 1); return Math.abs(slopeFam * slopeOrth + 1) < 1e-9 && Math.abs(1 + p.n - k) < 1e-9 ? p.answer : -1; }),
+  GX('xg09', 4, 'nat', 'integer', 'initial value problems', (rng) => {
+    const pp = int(rng, 1, 3), qq = -int(rng, 1, 3), A = int(rng, 1, 4), B = int(rng, 1, 4);
+    const s = A + B, t = pp * A + qq * B;
+    return { pp, qq, A, B, answer: A, tol: 0, q: XR`$y=Ae^{${pp}x}+Be^{${qq}x}$ satisfies a second-order equation. If $y(0)=${s}$ and $y'(0)=${t}$, find $A$.`, sol: XR`<p>$y(0)=A+B=${s}$. $y'(0)=${pp}A${qq}B=${t}$. From the first, $B=${s}-A$: $${pp}A${qq}(${s}-A)=${t}$ gives $${pp - qq}A=${t - qq * s}$, so $A=${A}$.</p>` };
+  }, (p) => { const y = (x) => p.A * Math.exp(p.pp * x) + p.B * Math.exp(p.qq * x); const A = (xd(y, 0) - p.qq * y(0)) / (p.pp - p.qq); return Math.round(A); }),
+  GX('xg10', 3, 'nat', 'integer', 'arbitrary constants', (rng) => {
+    const cases = [
+      ['all circles with centre on the $x$-axis', 2], ['all circles through the origin', 2], ['all circles in the plane', 3], ['all straight lines in the plane that do not pass through the origin', 2],
+      ['all parabolas with axis parallel to the $y$-axis', 3], ['all circles of a fixed radius $r$ with centre anywhere', 2], ['all circles touching the $x$-axis', 2], ['all parabolas with vertex at the origin and axis along the $x$-axis', 1],
+    ];
+    const c = choose(rng, cases);
+    return { which: c[0], answer: c[1], tol: 0, q: XR`The differential equation of the family of ${c[0]} has order`, sol: XR`<p>The order equals the number of independent arbitrary constants in the family. For ${c[0]} there are $${c[1]}$ independent constants, so the order is $${c[1]}$.</p>` };
+  }, (p) => { const key = { 'all circles with centre on the $x$-axis': ['a', 'r'], 'all circles through the origin': ['g', 'f'], 'all circles in the plane': ['g', 'f', 'c'], 'all straight lines in the plane that do not pass through the origin': ['m', 'c'], 'all parabolas with axis parallel to the $y$-axis': ['a', 'b', 'c'], 'all circles of a fixed radius $r$ with centre anywhere': ['h', 'k'], 'all circles touching the $x$-axis': ['h', 'k'], 'all parabolas with vertex at the origin and axis along the $x$-axis': ['a'] }; return key[p.which].length; }),
+);
+XIT.push(
+  X(4, 'variable separable', XR`Which of these equations are variable separable?`, [XR`$\dfrac{dy}{dx}=x^2y$`, XR`$\dfrac{dy}{dx}=x+y$`, XR`$\dfrac{dy}{dx}=(1+y^2)(1+x)$`, XR`$\dfrac{dy}{dx}=\sin(x+y)$`], [0, 2],
+    XR`<p>Separable means the right side factors as $g(x)h(y)$. A: $x^2\cdot y$ yes. B: a sum, no. C: $(1+x)\cdot(1+y^2)$ yes. D: $\sin(x+y)$ does not factor into a function of $x$ times a function of $y$, no.</p>`, 'A sum of an x-part and a y-part is not separable.'),
+);
+
+Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
+}
+// ==XP-END
 export default { topic: 'differential-equations', groups, items, gens };

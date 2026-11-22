@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './em-waves-media.more.gen.js';
 import more2 from './em-waves-media.more2.gen.js';
+import r4 from './em-waves-media.r4.gen.js';
 
 const PC = 3.0857e16; // parsec in metres
 const KDM = (C.e * C.e) / (8 * Math.PI ** 2 * C.eps0 * C.me * C.c); // delay t = KDM * (column density) / f^2
@@ -251,6 +252,7 @@ export default {
       sol: '$r = \\dfrac{\\eta_c - \\eta_0}{\\eta_c + \\eta_0}$ with $\\eta_c = R_s(1 - i)$ (for $e^{-i\\omega t}$) and $R_s \\ll \\eta_0$. To first order $|r|^2 \\approx 1 - 4\\,\\text{Re}(\\eta_c)/\\eta_0 = 1 - 4R_s/\\eta_0$. With $R_s = 0.0261\\ \\Omega$: $1 - R = 4\\times0.0261/376.7 = 2.77\\times10^{-4}$. This is the Hagen-Rubens result $1 - R = 2\\sqrt{2\\omega\\epsilon_0/\\sigma}$.',
       trap: 'Only the real (resistive) part of the surface impedance absorbs.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -377,5 +379,6 @@ export default {
           trap: 'Skin depth falls with frequency; surface resistance and phase velocity grow.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

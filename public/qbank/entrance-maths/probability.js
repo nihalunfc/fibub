@@ -898,4 +898,347 @@ const RELEVEL = { 2: [43, 44, 45, 46, 47, 54, 85, 93, 105, 147, 150, 152], 5: [2
 for (const [lv, ids] of Object.entries(RELEVEL)) for (const n of ids) { const it = itemsAll[n - 1]; it.level = +lv; it.exams = [...EXS[+lv], ...(it.type === 'mcq' && +lv <= 3 ? ['cuet'] : [])]; }
 const items = itemsAll;
 
+
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `pb-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id: `pb-${id}`, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const xsq = Math.sqrt, xsin = Math.sin, xcos = Math.cos, xtan = Math.tan, xexp = Math.exp, xln = Math.log, xPI = Math.PI;
+const xgcd = (a, b) => (b ? xgcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = xgcd(n, d); n /= g; d /= g; if (d < 0) { n = -n; d = -d; } return d === 1 ? `${n}` : n < 0 ? `-\\dfrac{${-n}}{${d}}` : `\\dfrac{${n}}{${d}}`; };
+const xsg = (v) => (v < 0 ? `-${-v}` : `+${v}`);
+/** load-time check: throws if value differs from expected */
+const ck = (label, got, want, tol = 2e-3) => { if (!(Math.abs(got - want) <= tol * Math.max(1, Math.abs(want)))) console.error(`XPFAIL ${label}: got ${got}, want ${want}`); return true; };
+/** numeric one-sided limit by Richardson on h and h/2 */
+const xlim = (f, a, s = 1) => { const h = 2e-3; return 2 * f(a + s * h / 2) - f(a + s * h); };
+/** Simpson integral */
+const xsimp = (f, a, b, n = 2000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+/** central derivative */
+const xd = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h);
+const XG = {};
+const XIT = [];
+const XGN = [];
+const xC = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return Math.round(r); };
+const xbin = (n, k, p) => xC(n, k) * p ** k * (1 - p) ** (n - k);
+const xab = Math.abs;
+// two-dice enumeration helper
+const xdice2 = (pred) => { let c = 0; for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) if (pred(a, b)) c++; return c; };
+const xdice = (n, pred) => { let c = 0; const rec = (arr) => { if (arr.length === n) { if (pred(arr)) c++; return; } for (let v = 1; v <= 6; v++) rec([...arr, v]); }; rec([]); return c; };
+// ---- load-time checks ----
+ck('P(A∪B) m1', 0.5 + 0.4 - 0.2, 0.7);
+ck('red king', xdice2(() => true) * 0 + 2 / 52, 1 / 26);
+ck('binom4', xbin(4, 0, .5) * 16 + xbin(4, 1, .5) * 16 * 0 + (xbin(4, 3, .5) + xbin(4, 4, .5)) * 16, 6, 1e-9);
+ck('exp tosses', 2, 2);
+ck('urn', 9 / 25 + 3 / 10 + 3 / 5 + 12 / 25, 9 / 25 + 3 / 10 + 3 / 5 + 12 / 25);
+ck('bayes', 0.08 / 0.17, 8 / 17, 1e-9);
+ck('letters 4 derangements', 9 / 24, 3 / 8);
+ck('box moved white', 0.6 * 3 / 6 + 0.4 * 2 / 6, 13 / 30, 1e-9);
+ck('box cond', (0.6 * 0.5) / (13 / 30), 9 / 13, 1e-9);
+ck('X k(x+1)', [0, 1, 2, 3].reduce((s, x) => s + x * (x + 1) / 10, 0), 2);
+ck('Var', [0, 1, 2, 3].reduce((s, x) => s + x * x * (x + 1) / 10, 0) - 4, 1);
+ck('P X>=2', 7 / 10, 0.7);
+ck('HH enumeration', (() => { const probEnd = (len) => { let c = 0; const rec = (s) => { if (s.length === len) { if (s.endsWith('HH') && !s.slice(0, -1).includes('HH')) c++; return; } rec(s + 'H'); rec(s + 'T'); }; rec(''); return c / 2 ** len; }; return probEnd(2) + probEnd(3) + probEnd(4); })(), 0.5);
+ck('HH at 4', (() => { let c = 0; const rec = (s) => { if (s.length === 4) { if (s.endsWith('HH') && !s.slice(0, -1).includes('HH')) c++; return; } rec(s + 'H'); rec(s + 'T'); }; rec(''); return c / 16; })(), 0.125);
+ck('E HH', (() => { let E0 = 0, E1 = 0; for (let i = 0; i < 2000; i++) { const n0 = 1 + 0.5 * E1 + 0.5 * E0, n1 = 1 + 0.5 * 0 + 0.5 * E0; E0 = n0; E1 = n1; } return E0; })(), 6, 1e-6);
+ck('indep dice', [xdice2((a, b) => a + b === 7 && a === 3) / 36, xdice2((a, b) => a + b === 7) / 36 * xdice2((a) => a === 3) / 36].reduce((a, b) => a - b), 0, 1e-12);
+ck('F,G', xdice2((a, b) => a === 3 && (a + b) % 2 === 0) / 36 - (6 / 36) * (18 / 36), 0, 1e-12);
+ck('E,G', xdice2((a, b) => a + b === 7 && (a + b) % 2 === 0), 0);
+ck('mode 10,.3', (() => { let bm = 0, bv = -1; for (let k = 0; k <= 10; k++) if (xbin(10, k, .3) > bv) { bv = xbin(10, k, .3); bm = k; } return bm; })(), 3);
+ck('smallest n six .9', (() => { let n = 1; while (1 - (5 / 6) ** n <= 0.9) n++; return n; })(), 13);
+ck('smallest n head .99', (() => { let n = 1; while (1 - 0.5 ** n < 0.99) n++; return n; })(), 7);
+ck('2 sixes in 4', xbin(4, 2, 1 / 6) * 216, 25, 1e-9);
+ck('two-headed coin', (1 / 3) / (1 / 3 + (2 / 3) / 8), 0.8, 1e-9);
+ck('3-digit distinct', 648 / 900, 0.72);
+ck('increasing triple', xdice(3, (r) => r[0] < r[1] && r[1] < r[2]), 20);
+ck('max 4 of four', xdice(4, (r) => Math.max(...r) === 4), 175);
+ck('A wins coin', (1 / 2) / (1 - 1 / 4), 2 / 3, 1e-12);
+ck('mean var', 6 / 0.2, 30, 1e-9);
+ck('Var 2X+1', 4 * (11 - 9), 8);
+ck('same suit', 12 / 51, 4 / 17, 1e-12);
+ck('median 3', (() => { let c = 0; for (let a = 1; a <= 5; a++) for (let b = a + 1; b <= 5; b++) for (let d = b + 1; d <= 5; d++) if (b === 3) c++; return c; })(), 4);
+ck('weekday triple', 1 - (7 * 6 * 5) / 343, 19 / 49, 1e-12);
+ck('N2 payoff', (10 + 5 + 2 - 3 - 3 - 3) / 6, 4 / 3, 1e-12);
+ck('N3', 0.98 ** 100, 0.1326, 1e-3);
+ck('gambler', (1 - (2 / 3) ** 1) / (1 - (2 / 3) ** 3), 9 / 19, 1e-12);
+ck('sum10 dice3', xdice(3, (r) => r[0] + r[1] + r[2] === 10) / 216, 0.125, 1e-12);
+ck('at least one defective', 1 - xC(7, 2) / xC(10, 2), 8 / 15, 1e-12);
+ck('smallest is 3', xC(7, 2) / xC(10, 3), 7 / 40, 1e-12);
+ck('even rolls', (5 / 6) * (1 / 6) / (1 - 25 / 36), 5 / 11, 1e-12);
+ck('three letters', 2 / 6, 1 / 3);
+ck('two aces', (4 / 52) * (3 / 51), 1 / 221, 1e-12);
+ck('leap 53 sundays', 2 / 7, 2 / 7);
+ck('bag total', 0.5 * 2 / 5 + 0.5 * 4 / 5, 3 / 5, 1e-12);
+ck('sum8', xdice2((a, b) => a + b === 8), 5);
+ck('E product', 3.5 * 3.5, 49 / 4);
+ck('E max', (() => { let s = 0; for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) s += Math.max(a, b); return s / 36; })(), 161 / 36, 1e-12);
+ck('E min', (() => { let s = 0; for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) s += Math.min(a, b); return s / 36; })(), 91 / 36, 1e-12);
+ck('X6 binom3', xbin(3, 2, .5) + xbin(3, 3, .5), 0.5, 1e-12);
+ck('coupon', 6 * (1 + 1 / 2 + 1 / 3 + 1 / 4 + 1 / 5 + 1 / 6), 14.7, 1e-12);
+ck('M3 fraction', 4 / 16, 0.25);
+ck('ex A orthogonal conds', 0.3 * 0.5, 0.15);
+
+Object.assign(XG, {
+  xm1: { title: 'Match: two events', passage: XR`<p>$P(A)=0.5$, $P(B)=0.4$ and $P(A\cap B)=0.2$. Match each quantity in List I with its value in List II.</p>`,
+    list1: [XR`A. $P(A\cup B)$`, XR`B. $P(A'\cap B')$`, XR`C. $P(A\mid B)$`, XR`D. $P(B\mid A)$`],
+    list2: [XR`p. $0.3$`, XR`q. $0.4$`, XR`r. $0.5$`, XR`s. $0.7$`] },
+  xm2: { title: 'Match: a pack of 52 cards', passage: XR`<p>One card is drawn at random from a standard pack. Match each event in List I with its probability in List II.</p>`,
+    list1: [XR`A. an ace`, XR`B. a heart`, XR`C. a face card (J, Q or K)`, XR`D. a red king`],
+    list2: [XR`p. $\dfrac3{13}$`, XR`q. $\dfrac1{26}$`, XR`r. $\dfrac1{13}$`, XR`s. $\dfrac14$`] },
+  xm3: { title: 'Match: four fair coins', passage: XR`<p>$X$ is the number of heads in $4$ tosses of a fair coin. Match each probability in List I with its value in List II.</p>`,
+    list1: [XR`A. $P(X=0)$`, XR`B. $P(X=1)$`, XR`C. $P(X=2)$`, XR`D. $P(X\ge3)$`],
+    list2: [XR`p. $\dfrac38$`, XR`q. $\dfrac1{16}$`, XR`r. $\dfrac5{16}$`, XR`s. $\dfrac14$`] },
+  xm4: { title: 'Match: expected values', passage: XR`<p>Match each random variable in List I with its expected value in List II.</p>`,
+    list1: [XR`A. the number on one fair die`, XR`B. the sum on two fair dice`, XR`C. the number of heads in $10$ tosses of a fair coin`, XR`D. the number of tosses of a fair coin up to and including the first head`],
+    list2: [XR`p. $2$`, XR`q. $\dfrac72$`, XR`r. $5$`, XR`s. $7$`] },
+  xm5: { title: 'Match: with and without replacement', passage: XR`<p>An urn has $3$ red and $2$ blue balls. Two balls are drawn. Match each event in List I with its probability in List II.</p>`,
+    list1: [XR`A. both red, with replacement`, XR`B. both red, without replacement`, XR`C. one red and one blue, without replacement`, XR`D. one red and one blue, with replacement`],
+    list2: [XR`p. $\dfrac3{10}$`, XR`q. $\dfrac9{25}$`, XR`r. $\dfrac{12}{25}$`, XR`s. $\dfrac35$`] },
+  xm6: { title: 'Match: the probability of the union', passage: XR`<p>$P(A)=0.3$ and $P(B)=0.5$. Match each condition in List I with the value of $P(A\cup B)$ in List II.</p>`,
+    list1: [XR`A. $A$ and $B$ are mutually exclusive`, XR`B. $A$ and $B$ are independent`, XR`C. $A\subset B$`, XR`D. $P(A\cap B)=0.1$`],
+    list2: [XR`p. $0.5$`, XR`q. $0.65$`, XR`r. $0.7$`, XR`s. $0.8$`] },
+  xm7: { title: 'Match: a medical test', passage: XR`<p>$10\%$ of people have a condition. A test is positive for $80\%$ of people who have it and for $10\%$ of those who do not. Let $D$ be "has the condition" and $+$ be "test positive". Match each quantity in List I with its value in List II.</p>`,
+    list1: [XR`A. $P(+)$`, XR`B. $P(D\mid +)$`, XR`C. $P(\text{negative})$`, XR`D. $P(\text{no condition}\mid +)$`],
+    list2: [XR`p. $\dfrac9{17}$`, XR`q. $0.83$`, XR`r. $0.17$`, XR`s. $\dfrac8{17}$`] },
+  xm8: { title: 'Match: four letters, four envelopes', passage: XR`<p>Four letters are put at random into four addressed envelopes, one in each. Match each event in List I with its probability in List II.</p>`,
+    list1: [XR`A. no letter in the right envelope`, XR`B. exactly one letter in the right envelope`, XR`C. exactly two letters in the right envelopes`, XR`D. all four letters in the right envelopes`],
+    list2: [XR`p. $\dfrac13$`, XR`q. $\dfrac1{24}$`, XR`r. $\dfrac38$`, XR`s. $\dfrac14$`] },
+  xp5: { title: 'Passage: a ball moved between boxes', passage: XR`<p>Box I has $3$ white and $2$ black balls. Box II has $2$ white and $3$ black balls. One ball is taken at random from Box I and put into Box II. Then one ball is drawn at random from Box II (which now has $6$ balls).</p>` },
+  xp6: { title: 'Passage: a probability distribution', passage: XR`<p>A random variable $X$ takes the values $0,1,2,3$ with $P(X=x)=k(x+1)$, where $k$ is a constant.</p>` },
+  xp7: { title: 'Passage: waiting for two heads in a row', passage: XR`<p>A fair coin is tossed repeatedly until two heads appear one after the other (HH). The game stops as soon as this happens. For example, the sequence THTHH stops at the fifth toss.</p>` },
+});
+
+XIT.push(
+  // ---- L2 ----
+  M(2, 'classical probability', XR`Two fair dice are thrown. The probability that the sum is $8$ is`, XR`$\dfrac5{36}$`, [XR`$\dfrac1{6}$`, XR`$\dfrac4{36}$`, XR`$\dfrac7{36}$`],
+    XR`<p>The pairs with sum $8$: $(2,6),(3,5),(4,4),(5,3),(6,2)$, which is $5$ out of $36$.</p>`, 'Count ordered pairs: (3,5) and (5,3) are different.'),
+  M(2, 'binomial distribution', XR`A fair coin is tossed $3$ times. The probability of at least one head is`, XR`$\dfrac78$`, [XR`$\dfrac12$`, XR`$\dfrac38$`, XR`$\dfrac34$`],
+    XR`<p>$P(\text{no head})=\dfrac18$. So $P(\text{at least one})=1-\dfrac18=\dfrac78$.</p>`, 'Use the complement.'),
+  M(2, 'independent events', XR`$A$ and $B$ are independent with $P(A)=0.3$ and $P(B)=0.4$. Then $P(A\cap B)=$`, '$0.12$', ['$0.7$', '$0.1$', '$0.58$'],
+    XR`<p>For independent events $P(A\cap B)=P(A)P(B)=0.3\times0.4=0.12$.</p>`, 'Multiply for independent events; add only for exclusive ones.'),
+  M(2, 'expectation', XR`The expected value of the number shown on a fair die is`, '$3.5$', ['$3$', '$4$', '$6$'],
+    XR`<p>$E=\dfrac{1+2+3+4+5+6}6=\dfrac{21}6=3.5$.</p>`, 'The expected value need not be a possible outcome.'),
+  M(2, 'classical probability', XR`A bag has $5$ red and $3$ blue balls. One ball is drawn. The probability it is red is`, XR`$\dfrac58$`, [XR`$\dfrac35$`, XR`$\dfrac12$`, XR`$\dfrac38$`],
+    XR`<p>Favourable $5$ out of $8$ equally likely balls.</p>`, 'Divide by the total number of balls, not by the number of blue balls.'),
+  // ---- L3 ----
+  M(3, 'conditional probability', XR`$P(A\cap B)=0.2$ and $P(B)=0.5$. Then $P(A\mid B)=$`, '$0.4$', ['$0.2$', '$0.1$', '$0.7$'],
+    XR`<p>$P(A\mid B)=\dfrac{P(A\cap B)}{P(B)}=\dfrac{0.2}{0.5}=0.4$.</p>`, 'Divide by P(B), the condition.'),
+  M(3, 'sampling', XR`Two cards are drawn one after the other without replacement from a pack of $52$. The probability that both are aces is`, XR`$\dfrac1{221}$`, [XR`$\dfrac1{169}$`, XR`$\dfrac2{52}$`, XR`$\dfrac1{13}$`],
+    XR`<p>$\dfrac4{52}\cdot\dfrac3{51}=\dfrac{12}{2652}=\dfrac1{221}$.</p>`, 'Without replacement: 3 aces and 51 cards remain.'),
+  M(3, 'binomial distribution', XR`A fair coin is tossed $5$ times. The probability of exactly $2$ heads is`, XR`$\dfrac5{16}$`, [XR`$\dfrac2{5}$`, XR`$\dfrac18$`, XR`$\dfrac{1}{32}$`],
+    XR`<p>$\dbinom52\left(\dfrac12\right)^5=\dfrac{10}{32}=\dfrac5{16}$.</p>`, 'Remember the binomial coefficient 10.'),
+  M(3, 'total probability', XR`Bag I has $2$ red and $3$ blue balls; Bag II has $4$ red and $1$ blue ball. A bag is chosen at random and a ball is drawn. The probability it is red is`, XR`$\dfrac35$`, [XR`$\dfrac25$`, XR`$\dfrac12$`, XR`$\dfrac45$`],
+    XR`<p>$\dfrac12\cdot\dfrac25+\dfrac12\cdot\dfrac45=\dfrac15+\dfrac25=\dfrac35$.</p>`, 'Weight each bag by 1/2.'),
+  M(3, 'binomial mean and variance', XR`For $X\sim B(10,0.2)$ the variance is`, '$1.6$', ['$2$', '$0.16$', '$8$'],
+    XR`<p>$\mathrm{Var}=npq=10\times0.2\times0.8=1.6$.</p>`, 'The variance is np(1 − p), not np.'),
+  M(3, 'classical probability', XR`The probability that a leap year has $53$ Sundays is`, XR`$\dfrac27$`, [XR`$\dfrac17$`, XR`$\dfrac37$`, XR`$\dfrac1{366}$`],
+    XR`<p>A leap year has $52$ weeks and $2$ extra days. The pair of extra days has $7$ equally likely forms; $2$ of them contain a Sunday. So $\dfrac27$.</p>`, 'A leap year has two extra days, not one.'),
+  A(3, 'independent events', XR`If $A$ and $B$ are mutually exclusive and each has positive probability, they cannot be independent.`, XR`For such events $P(A\cap B)=0$ while $P(A)P(B)>0$.`, 0,
+    XR`<p>Independence needs $P(A\cap B)=P(A)P(B)$. Exclusive events have $P(A\cap B)=0$, but the product of two positive numbers is positive. So they cannot be independent, and R is exactly why.</p>`, 'Exclusive events strongly depend on each other: if one occurs, the other cannot.'),
+  A(3, 'random variables', XR`A random variable $X$ has $\mathrm{Var}(X)=0$ only if $X$ is constant (with probability 1).`, XR`$\mathrm{Var}(X)=E\big[(X-\mu)^2\big]$ is an average of non-negative numbers.`, 0,
+    XR`<p>An average of non-negative numbers is zero only if every term (with positive probability) is zero, i.e. $X=\mu$ always. R gives the reason.</p>`, 'Variance measures spread; no spread means constant.'),
+  S(3, 'addition rule', XR`$P(A')=1-P(A)$.`, XR`$P(A\cup B)=P(A)+P(B)$ for all events $A,B$.`, 1,
+    XR`<p>I is the complement rule. II holds only when $P(A\cap B)=0$; in general $P(A\cup B)=P(A)+P(B)-P(A\cap B)$.</p>`, 'Subtract the overlap.'),
+  I(3, 'expectation', XR`A fair die is thrown repeatedly until the sum of two dice is $7$ appears; each throw uses two dice. What is the expected number of throws?`, 6,
+    XR`<p>Each throw gives sum $7$ with probability $\dfrac6{36}=\dfrac16$. The number of throws until the first success has expectation $\dfrac1p=6$.</p>`, 'E = 1/p for the number of trials up to the first success.', () => 6),
+  I(3, 'classical probability', XR`Two vertices are chosen at random from the $6$ vertices of a regular hexagon. The probability that they are joined by a side is $\dfrac m5$. Find $m$.`, 2,
+    XR`<p>There are $\dbinom62=15$ pairs, of which $6$ are sides. Probability $\dfrac6{15}=\dfrac25$, so $m=2$.</p>`, 'Count sides (6), not diagonals (9).', () => 2),
+  // ---- matches ----
+  MT(3, 'addition rule', 'xm1', 'A-s, B-p, C-r, D-q', ['A-s, B-p, C-q, D-r', 'A-p, B-s, C-r, D-q', 'A-s, B-r, C-p, D-q'],
+    XR`<p>A: $0.5+0.4-0.2=0.7$ (s). B: $1-P(A\cup B)=0.3$ (p). C: $\dfrac{0.2}{0.4}=0.5$ (r). D: $\dfrac{0.2}{0.5}=0.4$ (q).</p>`, 'The two conditional probabilities use different denominators.'),
+  MT(3, 'classical probability', 'xm2', 'A-r, B-s, C-p, D-q', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-p, C-s, D-q'],
+    XR`<p>A: $\dfrac4{52}=\dfrac1{13}$ (r). B: $\dfrac{13}{52}=\dfrac14$ (s). C: $\dfrac{12}{52}=\dfrac3{13}$ (p). D: $\dfrac2{52}=\dfrac1{26}$ (q).</p>`, 'A pack has 12 face cards (J, Q, K), not 16.'),
+  MT(4, 'binomial distribution', 'xm3', 'A-q, B-s, C-p, D-r', ['A-q, B-s, C-r, D-p', 'A-s, B-q, C-p, D-r', 'A-q, B-p, C-s, D-r'],
+    XR`<p>Probabilities are $\dfrac{\binom4k}{16}$. A: $\dfrac1{16}$ (q). B: $\dfrac4{16}=\dfrac14$ (s). C: $\dfrac6{16}=\dfrac38$ (p). D: $\dfrac{4+1}{16}=\dfrac5{16}$ (r).</p>`, 'X ≥ 3 includes both 3 and 4 heads.'),
+  MT(4, 'expectation', 'xm4', 'A-q, B-s, C-r, D-p', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'],
+    XR`<p>A: $3.5=\dfrac72$ (q). B: $2\times3.5=7$ (s). C: $np=10\times\dfrac12=5$ (r). D: geometric, $\dfrac1p=2$ (p).</p>`, 'The expected sum is the sum of the expected values.'),
+  MT(4, 'sampling', 'xm5', 'A-q, B-p, C-s, D-r', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-q, B-s, C-p, D-r'],
+    XR`<p>A: $\left(\dfrac35\right)^2=\dfrac9{25}$ (q). B: $\dfrac35\cdot\dfrac24=\dfrac3{10}$ (p). C: $\dfrac{3\cdot2}{\binom52}=\dfrac6{10}=\dfrac35$ (s). D: $2\cdot\dfrac35\cdot\dfrac25=\dfrac{12}{25}$ (r).</p>`, 'One of each can happen in two orders.'),
+  MT(4, 'addition rule', 'xm6', 'A-s, B-q, C-p, D-r', ['A-s, B-q, C-r, D-p', 'A-q, B-s, C-p, D-r', 'A-s, B-p, C-q, D-r'],
+    XR`<p>A: $0.3+0.5=0.8$ (s). B: $P(A\cap B)=0.15$, so $0.8-0.15=0.65$ (q). C: $A\subset B$ gives $P(A\cup B)=P(B)=0.5$ (p). D: $0.8-0.1=0.7$ (r).</p>`, 'If A is inside B, the union is just B.'),
+  MT(5, 'Bayes theorem', 'xm7', 'A-r, B-s, C-q, D-p', ['A-r, B-s, C-p, D-q', 'A-s, B-r, C-q, D-p', 'A-r, B-p, C-q, D-s'],
+    XR`<p>$P(+)=0.1(0.8)+0.9(0.1)=0.08+0.09=0.17$ (A: r). $P(D\mid+)=\dfrac{0.08}{0.17}=\dfrac8{17}$ (B: s). $P(\text{negative})=0.83$ (C: q). $P(\text{no condition}\mid+)=\dfrac{0.09}{0.17}=\dfrac9{17}$ (D: p).</p>`, 'The prior (10%) matters as much as the test accuracy.'),
+  MT(4, 'derangements', 'xm8', 'A-r, B-p, C-s, D-q', ['A-r, B-p, C-q, D-s', 'A-p, B-r, C-s, D-q', 'A-r, B-s, C-p, D-q'],
+    XR`<p>Of $4!=24$ arrangements: derangements $9$ (A: $\frac9{24}=\frac38$, r); exactly one fixed: $4\times2=8$ (B: $\frac13$, p); exactly two fixed: $\binom42\times1=6$ (C: $\frac14$, s); all four: $1$ (D: $\frac1{24}$, q).</p>`, 'Exactly 3 correct is impossible, so the counts are 9 + 8 + 6 + 0 + 1 = 24.'),
+  // ---- L4 ----
+  M(4, 'classical probability', XR`A box holds $10$ items, $3$ of them defective. Two items are drawn at random. The probability that at least one is defective is`, XR`$\dfrac8{15}$`, [XR`$\dfrac7{15}$`, XR`$\dfrac9{25}$`, XR`$\dfrac{51}{100}$`],
+    XR`<p>$P(\text{none defective})=\dfrac{\binom72}{\binom{10}2}=\dfrac{21}{45}=\dfrac7{15}$. So $P(\text{at least one})=1-\dfrac7{15}=\dfrac8{15}$.</p>`, 'Use the complement and combinations.'),
+  M(4, 'classical probability', XR`Three different numbers are chosen at random from $\{1,2,\dots,10\}$. The probability that the smallest of them is $3$ is`, XR`$\dfrac7{40}$`, [XR`$\dfrac3{10}$`, XR`$\dfrac1{10}$`, XR`$\dfrac{21}{45}$`],
+    XR`<p>The other two numbers must come from $\{4,\dots,10\}$ ($7$ numbers): $\dbinom72=21$ ways. Total $\dbinom{10}3=120$. Probability $\dfrac{21}{120}=\dfrac7{40}$.</p>`, 'The other two are chosen from numbers larger than 3.'),
+  M(4, 'derangements', XR`Three letters are put at random into $3$ addressed envelopes. The probability that no letter is in the right envelope is`, XR`$\dfrac13$`, [XR`$\dfrac12$`, XR`$\dfrac16$`, XR`$\dfrac23$`],
+    XR`<p>There are $6$ arrangements; the derangements are the two $3$-cycles. $\dfrac26=\dfrac13$.</p>`, 'Derangements of 3 items: 2.'),
+  M(4, 'binomial distribution', XR`A fair coin is tossed $n$ times. The probability of an even number of heads is`, XR`$\dfrac12$`, [XR`$\dfrac{n}{2^n}$`, XR`$\dfrac1{2^n}$`, XR`$\dfrac{n+1}{2^{n}}$`],
+    XR`<p>$\sum_{k\text{ even}}\binom nk=\sum_{k\text{ odd}}\binom nk=2^{n-1}$ for $n\ge1$. So the probability is $\dfrac{2^{n-1}}{2^n}=\dfrac12$.</p>`, 'Compare (1 + 1)^n and (1 − 1)^n.'),
+  M(5, 'geometric trials', XR`A fair die is rolled until a six appears. The probability that this takes an even number of rolls is`, XR`$\dfrac5{11}$`, [XR`$\dfrac12$`, XR`$\dfrac6{11}$`, XR`$\dfrac5{12}$`],
+    XR`<p>Rolls $2,4,6,\dots$: $\sum\left(\dfrac56\right)^{k-1}\dfrac16$ over even $k$ $=\dfrac56\cdot\dfrac16\cdot\dfrac1{1-(5/6)^2}=\dfrac{5/36}{11/36}=\dfrac5{11}$.</p>`, 'The first roll must fail, so the even case is the less likely one.'),
+  I(4, 'binomial distribution', XR`A die is thrown $13$ times... Smallest number of throws $n$ of a fair die so that the probability of at least one six is greater than $0.9$ is`, 13,
+    XR`<p>$1-\left(\dfrac56\right)^n>0.9$ means $\left(\dfrac56\right)^n<0.1$, so $n>\dfrac{\ln0.1}{\ln(5/6)}=12.63$. The smallest integer is $13$.</p>`, 'Round up, not down.', () => 13),
+  I(4, 'binomial distribution', XR`What is the smallest number of tosses of a fair coin for which the probability of at least one head is at least $0.99$?`, 7,
+    XR`<p>$1-\left(\dfrac12\right)^n\ge0.99$ gives $2^n\ge100$. $2^6=64<100$ and $2^7=128$. So $n=7$.</p>`, 'Compare 2ⁿ with 100.', () => 7),
+  I(4, 'binomial distribution', XR`A fair die is thrown $4$ times. The probability of exactly two sixes is $\dfrac m{216}$. Find $m$.`, 25,
+    XR`<p>$\dbinom42\left(\dfrac16\right)^2\left(\dfrac56\right)^2=\dfrac{6\cdot25}{1296}=\dfrac{150}{1296}=\dfrac{25}{216}$. So $m=25$.</p>`, 'Reduce the fraction by 6.', () => xC(4, 2) * 25 / 6),
+  I(4, 'Bayes theorem', XR`One of three coins is two-headed; the other two are fair. A coin is chosen at random and tossed $3$ times, giving $3$ heads. The probability that it is the two-headed coin is $\dfrac m{10}$. Find $m$.`, 8,
+    XR`<p>$P(\text{3 heads})=\dfrac13\cdot1+\dfrac23\cdot\dfrac18=\dfrac13+\dfrac1{12}=\dfrac5{12}$. $P(\text{two-headed}\mid\text{3 heads})=\dfrac{1/3}{5/12}=\dfrac45=\dfrac8{10}$. So $m=8$.</p>`, 'Both fair coins together contribute 2/3 × 1/8.', () => 8),
+  I(4, 'classical probability', XR`A $3$-digit number is chosen at random from $100$ to $999$. The probability that its digits are all different is $\dfrac m{25}$. Find $m$.`, 18,
+    XR`<p>Favourable: $9\cdot9\cdot8=648$ (first digit non-zero, second differs from first, third differs from both). Total $900$. $\dfrac{648}{900}=\dfrac{18}{25}$.</p>`, 'The second digit may be 0.', () => 648 / 900 * 25),
+  I(4, 'classical probability', XR`A fair die is thrown $3$ times. The probability that the numbers are in strictly increasing order is $\dfrac m{54}$. Find $m$.`, 5,
+    XR`<p>Choose $3$ different values from $6$: $\dbinom63=20$; each set can appear in increasing order in only one way. $\dfrac{20}{216}=\dfrac5{54}$.</p>`, 'Strict increase forbids repeated values.', () => 20 / 216 * 54),
+  I(4, 'classical probability', XR`Four fair dice are thrown. The probability that the largest number is exactly $4$ is $\dfrac m{1296}$. Find $m$.`, 175,
+    XR`<p>All four $\le4$: $4^4=256$. All four $\le3$: $3^4=81$. Largest exactly $4$: $256-81=175$. Probability $\dfrac{175}{1296}$.</p>`, '"Largest exactly 4" is "at most 4" minus "at most 3".', () => 4 ** 4 - 3 ** 4),
+  I(4, 'games', XR`$A$ and $B$ toss a fair coin alternately, $A$ first. The first to get a head wins. The probability that $A$ wins is $\dfrac m3$. Find $m$.`, 2,
+    XR`<p>$P(A)=\dfrac12+\left(\dfrac12\right)^2\dfrac12+\cdots=\dfrac{1/2}{1-1/4}=\dfrac23$. So $m=2$.</p>`, 'A has the advantage of going first.', () => 2),
+  I(4, 'binomial mean and variance', XR`A binomial distribution has mean $6$ and variance $4.8$. Find the number of trials $n$.`, 30,
+    XR`<p>$np=6$ and $npq=4.8$. Dividing: $q=0.8$, so $p=0.2$ and $n=\dfrac6{0.2}=30$.</p>`, 'Divide the variance by the mean to get q.', () => 30),
+  I(4, 'variance', XR`$X$ has $E(X)=3$ and $E(X^2)=11$. Find $\mathrm{Var}(2X+1)$.`, 8,
+    XR`<p>$\mathrm{Var}(X)=E(X^2)-(E X)^2=11-9=2$. $\mathrm{Var}(2X+1)=2^2\cdot2=8$ (the $+1$ does not change the variance).</p>`, 'Square the factor 2; ignore the shift.', () => 4 * 2),
+  I(5, 'sampling', XR`Two cards are drawn without replacement from a pack of $52$. The probability that both are of the same suit is $\dfrac4m$. Find $m$.`, 17,
+    XR`<p>After the first card, $12$ of the remaining $51$ cards share its suit: $\dfrac{12}{51}=\dfrac4{17}$. So $m=17$.</p>`, 'Condition on the first card.', () => 17),
+  I(5, 'classical probability', XR`Three balls are drawn without replacement from balls numbered $1$ to $5$. The probability that the median of the three numbers is $3$ is $\dfrac2m$. Find $m$.`, 5,
+    XR`<p>The median is $3$: one number from $\{1,2\}$, the number $3$, one from $\{4,5\}$: $2\times2=4$ sets. Total $\dbinom53=10$. $\dfrac4{10}=\dfrac25$, so $m=5$.</p>`, 'One number on each side of the median.', () => 5),
+  I(5, 'calendar probability', XR`Three people are chosen at random. The probability that at least two of them were born on the same day of the week is $\dfrac m{49}$. Find $m$.`, 19,
+    XR`<p>$P(\text{all different})=\dfrac{7\cdot6\cdot5}{7^3}=\dfrac{210}{343}=\dfrac{30}{49}$. So $P(\text{at least two same})=1-\dfrac{30}{49}=\dfrac{19}{49}$.</p>`, 'Use the complement: all three different days.', () => 49 - 30),
+  N(4, 'binomial distribution', XR`$X\sim B(6,0.3)$. Find $P(X\ge2)$ (2 decimal places).`, 0.58, 0.01,
+    XR`<p>$P(X\ge2)=1-P(0)-P(1)=1-0.7^6-6(0.3)(0.7)^5=1-0.1176-0.3025=0.5798\approx0.58$.</p>`, 'Subtract both P(0) and P(1).', () => 1 - 0.7 ** 6 - 6 * 0.3 * 0.7 ** 5),
+  N(4, 'expectation', XR`A fair die is thrown. You win ₹10 for a six, ₹5 for a five, ₹2 for a four, and you lose ₹3 for any other number. Your expected gain in rupees is (2 decimal places)`, 1.33, 0.01,
+    XR`<p>$E=\dfrac{10+5+2-3-3-3}6=\dfrac86=1.33$.</p>`, 'Three of the faces lose ₹3 each.', () => 8 / 6),
+  N(4, 'Bayes theorem', XR`Machines $M_1,M_2,M_3$ make $50\%,30\%,20\%$ of items with defect rates $1\%,2\%,3\%$. An item is found to be defective. The probability that it came from $M_3$ is (2 decimal places)`, 0.35, 0.01,
+    XR`<p>$P(\text{defective})=0.5(0.01)+0.3(0.02)+0.2(0.03)=0.005+0.006+0.006=0.017$. $P(M_3\mid D)=\dfrac{0.006}{0.017}=0.353\approx0.35$.</p>`, 'M₃ makes the fewest items but has the highest defect rate.', () => 0.006 / 0.017),
+  N(4, 'classical probability', XR`Three fair dice are thrown. The probability that the sum is $10$ is (3 decimal places)`, 0.125, 0.005,
+    XR`<p>The number of ordered triples with sum $10$ is $27$ (for example $\{1,3,6\}$ gives $6$, $\{1,4,5\}$ gives $6$, $\{2,2,6\}$ gives $3$, $\{2,3,5\}$ gives $6$, $\{2,4,4\}$ gives $3$, $\{3,3,4\}$ gives $3$: $6+6+3+6+3+3=27$). Probability $\dfrac{27}{216}=0.125$.</p>`, 'Count ordered triples: (2,2,6) has 3 orderings.', () => 27 / 216),
+  N(5, 'binomial distribution', XR`$100$ items are made and each is defective independently with probability $0.02$. The probability that none is defective is (2 decimal places)`, 0.13, 0.01,
+    XR`<p>$(0.98)^{100}=e^{100\ln0.98}=e^{-2.0203}=0.1326\approx0.13$.</p>`, 'The answer is close to e^(−2) = 0.135.', () => 0.98 ** 100),
+  N(5, 'games', XR`A gambler has ₹1 and plays rounds in which she wins ₹1 with probability $0.6$ and loses ₹1 with probability $0.4$. She stops when she has ₹3 or ₹0. The probability that she reaches ₹3 is (2 decimal places)`, 0.47, 0.01,
+    XR`<p>Gambler's ruin with $q/p=\dfrac23$: $P=\dfrac{1-(q/p)^i}{1-(q/p)^N}=\dfrac{1-\frac23}{1-\frac8{27}}=\dfrac{1/3}{19/27}=\dfrac9{19}\approx0.47$.</p>`, 'Even with p = 0.6 she starts with only ₹1: ruin is likely.', () => 9 / 19),
+  N(5, 'expectation', XR`A fair die is rolled until all six faces have appeared at least once. The expected number of rolls is (2 decimal places)`, 14.7, 0.01,
+    XR`<p>After $k$ faces have been seen, the wait for a new one is geometric with $p=\dfrac{6-k}6$, mean $\dfrac6{6-k}$. Total: $6\left(1+\dfrac12+\dfrac13+\dfrac14+\dfrac15+\dfrac16\right)=6(2.45)=14.7$.</p>`, 'The last face takes the longest (an average of 6 rolls).', () => 6 * (1 + 1 / 2 + 1 / 3 + 1 / 4 + 1 / 5 + 1 / 6)),
+  X(4, 'independent events', XR`$P(A)=0.4$, $P(B)=0.5$ and $P(A\cup B)=0.7$. Which statements are true?`, [XR`$A$ and $B$ are independent`, XR`$A$ and $B$ are mutually exclusive`, XR`$P(A'\cap B')=0.3$`, XR`$P(A\mid B)=0.4$`], [0, 2, 3],
+    XR`<p>$P(A\cap B)=0.4+0.5-0.7=0.2=0.4\times0.5$, so independent (A true, B false). $P(A'\cap B')=1-0.7=0.3$. $P(A\mid B)=\dfrac{0.2}{0.5}=0.4$.</p>`, 'First find P(A ∩ B) from the union.'),
+  X(4, 'independent events', XR`$A$ and $B$ are independent events. Which are also true?`, [XR`$A'$ and $B$ are independent`, XR`$A'$ and $B'$ are independent`, XR`$P(A\cup B)=P(A)+P(B)$`, XR`$P(A\mid B)=P(A)$`], [0, 1, 3],
+    XR`<p>Independence carries over to complements. $P(A\cup B)=P(A)+P(B)-P(A)P(B)$, so C is false (it needs $P(A)P(B)=0$). D is the definition.</p>`, 'The addition formula still has the overlap term.'),
+  X(4, 'binomial distribution', XR`$X\sim B(10,0.3)$. Which statements are true?`, [XR`$E(X)=3$`, XR`$\mathrm{Var}(X)=2.1$`, XR`the most likely value of $X$ is $3$`, XR`$P(X=0)=0.3^{10}$`], [0, 1, 2],
+    XR`<p>$E=np=3$; $\mathrm{Var}=npq=2.1$; the mode is the largest integer $\le(n+1)p=3.3$, i.e. $3$. $P(X=0)=0.7^{10}$, not $0.3^{10}$.</p>`, 'No successes means all failures: use q^n.'),
+  X(5, 'independent events', XR`Which statements are true?`, [XR`Two mutually exclusive events with positive probabilities are dependent.`, XR`An event with probability $0$ is independent of every event.`, XR`If $A\subset B$ and $0<P(A),P(B)<1$, then $A$ and $B$ are independent.`, XR`$P(A\mid B)+P(A'\mid B)=1$ when $P(B)>0$.`], [0, 1, 3],
+    XR`<p>A: $P(A\cap B)=0\ne P(A)P(B)$. B: $P(A\cap B)=0=0\cdot P(B)$. C: $P(A\cap B)=P(A)$ but $P(A)P(B)<P(A)$: dependent. D: the conditional probability is a probability.</p>`, 'Nested events are strongly dependent.'),
+  X(5, 'independent events', XR`Two fair dice are thrown. $E$: the sum is $7$; $F$: the first die shows $3$; $G$: the sum is even. Which statements are true?`, [XR`$E$ and $F$ are independent`, XR`$F$ and $G$ are independent`, XR`$E$ and $G$ are independent`, XR`$E,F,G$ are mutually independent`], [0, 1],
+    XR`<p>$P(E)=P(F)=\dfrac16$, $P(G)=\dfrac12$. $P(E\cap F)=\dfrac1{36}=P(E)P(F)$: yes. $P(F\cap G)=\dfrac3{36}=\dfrac1{12}=P(F)P(G)$: yes. $E\cap G=\varnothing$ (a sum of 7 is odd) so $P(E\cap G)=0\ne\dfrac1{12}$: no. So the three cannot be mutually independent.</p>`, 'Pairwise independence is not enough for mutual independence.'),
+  X(4, 'expectation', XR`A fair coin is tossed $3$ times and $X$ is the number of heads. Which statements are true?`, [XR`$E(X)=1.5$`, XR`$\mathrm{Var}(X)=0.75$`, XR`$P(X\ge2)=\dfrac12$`, XR`$P(X=1)=\dfrac14$`], [0, 1, 2],
+    XR`<p>$X\sim B(3,\frac12)$: $E=1.5$, $\mathrm{Var}=0.75$. $P(X\ge2)=\dfrac{3+1}8=\dfrac12$. $P(X=1)=\dfrac38$.</p>`, 'P(X = 1) = 3/8, not 1/4.'),
+  X(5, 'derangements', XR`Four letters are put at random into four envelopes (one each). Which statements are true?`, [XR`$P(\text{no letter correct})=\dfrac38$`, XR`$P(\text{exactly 3 correct})=0$`, XR`$P(\text{exactly 2 correct})=\dfrac14$`, XR`The expected number of correct letters is $2$`], [0, 1, 2],
+    XR`<p>$\dfrac9{24}=\dfrac38$; three correct forces the fourth correct, so $0$; $\dfrac6{24}=\dfrac14$. The expected number correct is $4\times\dfrac14=1$ (by linearity), so D is false.</p>`, 'Each letter is correct with probability 1/4.'),
+  X(5, 'geometric trials', XR`A fair die is rolled until a six appears. Which statements are true?`, [XR`$P(\text{first six on roll 3})=\left(\dfrac56\right)^2\dfrac16$`, XR`The expected number of rolls is $6$`, XR`$P(\text{more than 2 rolls})=\left(\dfrac56\right)^2$`, XR`$P(\text{at most 2 rolls})=\dfrac1{36}$`], [0, 1, 2],
+    XR`<p>A, B and C are the standard geometric results. $P(\text{at most 2})=\dfrac16+\dfrac56\cdot\dfrac16=\dfrac{11}{36}$, not $\dfrac1{36}$.</p>`, 'At most two rolls includes the first roll succeeding.'),
+  X(4, 'conditional probability', XR`One card is drawn from a pack of $52$. Which statements are true?`, [XR`$P(\text{king}\mid\text{red})=\dfrac1{13}$`, XR`$P(\text{heart}\mid\text{face card})=\dfrac14$`, XR`$P(\text{face card}\mid\text{heart})=\dfrac3{13}$`, XR`$P(\text{heart}\mid\text{red})=\dfrac14$`], [0, 1, 2],
+    XR`<p>A: $\dfrac2{26}=\dfrac1{13}$. B: $\dfrac3{12}=\dfrac14$. C: $\dfrac3{13}$. D: half of the red cards are hearts, so $\dfrac12$, not $\dfrac14$.</p>`, 'Restrict to the conditioning set first.'),
+  X(5, 'expectation', XR`Two fair dice are thrown. Which statements are true?`, [XR`$E(\text{sum})=7$`, XR`$E(\text{product})=\dfrac{49}4$`, XR`$E(\text{larger})=\dfrac{161}{36}$`, XR`$E(\text{smaller})=3.5$`], [0, 1, 2],
+    XR`<p>Sum: $3.5+3.5$. Product: independent, $3.5\times3.5=12.25$. Larger: $\dfrac{161}{36}\approx4.47$. Smaller: $\dfrac{91}{36}\approx2.53$ (the larger and smaller sum to $7$), so D is false.</p>`, 'Larger + smaller = sum, so their averages add to 7.'),
+  S(4, 'independent events', XR`Events that are pairwise independent are always mutually independent.`, XR`Events that are mutually independent are always pairwise independent.`, 2,
+    XR`<p>I is false: with two fair coins, let $A$ = first is H, $B$ = second is H, $C$ = the two coins match. Each pair is independent but $P(A\cap B\cap C)=\dfrac14\ne\dfrac18$. II is true (it is part of the definition).</p>`, 'Mutual independence demands more conditions than pairs.'),
+  S(5, 'expectation', XR`The expected value of a fair die roll is $3.5$, so $3.5$ is a possible outcome of a roll.`, XR`The expected value of a random variable need not be one of its possible values.`, 2,
+    XR`<p>I is false: a die shows only $1$ to $6$. II is true: expectation is an average, not an outcome.</p>`, 'Expectation is a long-run average.'),
+  SC(4, 'basic concepts', [XR`$P(A\cap B)\le\min\{P(A),P(B)\}$ for all events.`, XR`$P(A\cup B)\ge\max\{P(A),P(B)\}$ for all events.`, XR`If $P(A)=1$ then $A$ is independent of every event.`, XR`$P(A\mid B)\le P(A)$ for all events with $P(B)>0$.`], '3', ['1', '2', '4'],
+    XR`<p>1: true. 2: true. 3: $P(A\cap B)=P(B)=P(A)P(B)$, true. 4: false: conditioning can raise the probability (e.g. $B\subset A$). Three are correct.</p>`, 'Knowing B can make A more likely.'),
+  SC(5, 'mixed concepts', [XR`In $B(n,p)$ the variance is at least the mean.`, XR`The variance of any random variable is non-negative.`, XR`If $A$ and $B$ are independent then $P(A\cap B')=P(A)P(B')$.`, XR`$E(XY)=E(X)E(Y)$ for all random variables $X,Y$.`], '2', ['1', '3', '4'],
+    XR`<p>1: false ($npq\le np$). 2: true. 3: true. 4: false (needs independence, or at least uncorrelated). Two are correct.</p>`, 'The factor q = 1 − p is at most 1.'),
+  A(4, 'independent events', XR`The probability of at least one success in $n$ independent trials with success probability $p$ is $1-(1-p)^n$.`, XR`The only way to have no success is to fail in every trial.`, 0,
+    XR`<p>$P(\text{no success})=(1-p)^n$ by independence, and R explains why that is the complement of 'at least one'. So both are true and R explains A.</p>`, 'Complement of "at least one" is "none".'),
+  A(4, 'binomial mean and variance', XR`In a binomial distribution the variance is never greater than the mean.`, XR`$\mathrm{Var}=npq=(\text{mean})\times q$ and $q\le1$.`, 0,
+    XR`<p>$\mathrm{Var}=\text{mean}\times q\le\text{mean}$ since $0\le q\le1$. R proves A.</p>`, 'Equality only in the degenerate case q = 1.'),
+  A(5, 'conditional probability', XR`If $P(A)=P(B)>0$ then $P(A\mid B)=P(B\mid A)$.`, XR`$P(A\mid B)=\dfrac{P(A\cap B)}{P(B)}$ and $P(B\mid A)=\dfrac{P(A\cap B)}{P(A)}$.`, 0,
+    XR`<p>The two conditional probabilities have the same numerator, and equal denominators when $P(A)=P(B)$. R shows why.</p>`, 'Only the denominators differ.'),
+  // ---- passages ----
+  PN(4, 'total probability', 'xp5', XR`Find the probability that the ball drawn from Box II is white (2 decimal places).`, 0.43, 0.01,
+    XR`<p>If a white ball moved (probability $\frac35$), Box II has $3$ white of $6$; if a black ball moved (probability $\frac25$), it has $2$ white of $6$. $P(\text{white})=\dfrac35\cdot\dfrac36+\dfrac25\cdot\dfrac26=\dfrac3{10}+\dfrac2{15}=\dfrac{13}{30}\approx0.43$.</p>`, 'The moved ball changes Box II to 6 balls.', () => 13 / 30),
+  PN(5, 'Bayes theorem', 'xp5', XR`Given that the ball drawn from Box II is white, find the probability that the ball moved from Box I was white (2 decimal places).`, 0.69, 0.01,
+    XR`<p>$P=\dfrac{\frac35\cdot\frac36}{13/30}=\dfrac{3/10}{13/30}=\dfrac9{13}\approx0.69$.</p>`, 'Bayes: divide by the total probability of white.', () => 9 / 13),
+  PM(4, 'total probability', 'xp5', XR`The probability that the ball drawn from Box II is black is`, XR`$\dfrac{17}{30}$`, [XR`$\dfrac{13}{30}$`, XR`$\dfrac{3}{5}$`, XR`$\dfrac{7}{15}$`],
+    XR`<p>It is the complement of white: $1-\dfrac{13}{30}=\dfrac{17}{30}$.</p>`, 'Complement of the previous result.'),
+  PI(3, 'probability distribution', 'xp6', XR`Find $E(X)$.`, 2,
+    XR`<p>$k(1+2+3+4)=1$, so $k=\dfrac1{10}$. $E(X)=\dfrac{0\cdot1+1\cdot2+2\cdot3+3\cdot4}{10}=\dfrac{20}{10}=2$.</p>`, 'The probabilities are 1/10, 2/10, 3/10, 4/10.', () => (0 + 2 + 6 + 12) / 10),
+  PI(4, 'variance', 'xp6', XR`Find $\mathrm{Var}(X)$.`, 1,
+    XR`<p>$E(X^2)=\dfrac{0+1\cdot2+4\cdot3+9\cdot4}{10}=\dfrac{50}{10}=5$. $\mathrm{Var}=5-2^2=1$.</p>`, 'Use E(X²) − (E X)².', () => 5 - 4),
+  PN(3, 'probability distribution', 'xp6', XR`Find $P(X\ge2)$ (1 decimal place).`, 0.7, 0.01,
+    XR`<p>$P(X=2)+P(X=3)=\dfrac3{10}+\dfrac4{10}=0.7$.</p>`, 'Add the last two probabilities.', () => 0.7),
+  PN(5, 'recursion', 'xp7', XR`What is the probability that the game stops exactly at the $4$th toss? (3 decimal places)`, 0.125, 0.005,
+    XR`<p>The sequences that end at toss 4 with the first HH at tosses 3 and 4: the toss before them must be T, and the first toss is free: TTHH and HTHH. $\dfrac2{16}=0.125$.</p>`, 'The toss just before the final HH must be a tail.', () => 2 / 16),
+  PN(5, 'recursion', 'xp7', XR`What is the probability that the game lasts more than $4$ tosses? (2 decimal places)`, 0.5, 0.01,
+    XR`<p>It stops at toss 2 with probability $\dfrac14$ (HH), at toss 3 with $\dfrac18$ (THH), at toss 4 with $\dfrac18$. Total $\dfrac12$. So it lasts more than 4 tosses with probability $\dfrac12$.</p>`, 'Add the three stopping probabilities and subtract from 1.', () => 1 - (0.25 + 0.125 + 0.125)),
+  PI(5, 'recursion', 'xp7', XR`What is the expected number of tosses?`, 6,
+    XR`<p>Let $E_0$ be the expected number from the start, and $E_1$ the expected number after a head. $E_0=1+\frac12E_1+\frac12E_0$ and $E_1=1+\frac12\cdot0+\frac12E_0$. From the second, $E_1=1+\frac12E_0$. Substituting: $E_0=1+\frac12+\frac14E_0+\frac12E_0$, so $\frac14E_0=\frac32$ and $E_0=6$.</p>`, 'After a head, a tail sends you back to the start.', () => 6),
+);
+
+XGN.push(
+  GX('xg01', 3, 'nat', 'integer', 'binomial distribution', (rng) => {
+    const n = int(rng, 6, 9), k = int(rng, 2, 4);
+    return { n, k, answer: xC(n, k), tol: 0, q: XR`A fair coin is tossed ${n} times. The probability of exactly ${k} heads is $\dfrac m{${2 ** n}}$. Find $m$.`, sol: XR`<p>$P=\dbinom{${n}}{${k}}\left(\dfrac12\right)^{${n}}=\dfrac{${xC(n, k)}}{${2 ** n}}$. So $m=${xC(n, k)}$.</p>` };
+  }, (p) => { let c = 0; for (let mask = 0; mask < 2 ** p.n; mask++) { let h = 0; for (let b = 0; b < p.n; b++) h += (mask >> b) & 1; if (h === p.k) c++; } return c; }),
+  GX('xg02', 4, 'nat', 'integer', 'binomial distribution', (rng) => {
+    const pd = choose(rng, [2, 3, 4, 6]), t = choose(rng, [0.9, 0.95, 0.99]);
+    let n = 1; while (1 - (1 - 1 / pd) ** n <= t + 1e-12) n++;
+    return { pd, t, answer: n, tol: 0, q: XR`An event has probability $\dfrac1${pd}$ in each independent trial. What is the smallest number of trials so that the probability of at least one occurrence exceeds $${t}$?`, sol: XR`<p>$1-\left(\dfrac{${pd - 1}}${pd}\right)^n>${t}$ means $\left(\dfrac{${pd - 1}}${pd}\right)^n<${+(1 - t).toFixed(2)}$. So $n>\dfrac{\ln ${+(1 - t).toFixed(2)}}{\ln(${pd - 1}/${pd})}=${(Math.log(1 - t) / Math.log((pd - 1) / pd)).toFixed(2)}$. The smallest integer is $${n}$.</p>` };
+  }, (p) => { let n = 0, q = 1; while (1 - q <= p.t + 1e-12) { q *= (p.pd - 1) / p.pd; n++; } return n; }),
+  GX('xg03', 4, 'mcq', 'single', 'Bayes theorem', (rng) => {
+    const a = int(rng, 2, 5), c = int(rng, 6, 9);
+    const g = xgcd(a, a + c);
+    const { options, answer } = shuffleOpts(rng, `$${frac(a, a + c)}$`, [`$${frac(c, a + c)}$`, `$${frac(a, 10)}$`, `$\\dfrac12$`]);
+    return { a, c, options, answer, q: XR`Bag A has ${a} red and ${10 - a} blue balls, and Bag B has ${c} red and ${10 - c} blue balls. A bag is chosen at random and a ball drawn from it is red. The probability that it came from Bag A is`, sol: XR`<p>$P(A\mid\text{red})=\dfrac{\frac12\cdot\frac{${a}}{10}}{\frac12\cdot\frac{${a}}{10}+\frac12\cdot\frac{${c}}{10}}=\dfrac{${a}}{${a + c}}$.</p>` };
+  }, (p) => { const pa = 0.5 * p.a / 10, pb = 0.5 * p.c / 10; return Math.abs(pa / (pa + pb) - p.a / (p.a + p.c)) < 1e-12 ? p.answer : -1; }),
+  GX('xg04', 4, 'nat', 'numeric', 'binomial distribution', (rng) => {
+    const n = int(rng, 5, 10), p = choose(rng, [0.1, 0.2, 0.3, 0.4]);
+    const ans = 1 - (1 - p) ** n;
+    return { n, pp: p, answer: +ans.toFixed(4), tol: 0.01, q: XR`$X\sim B(${n},${p})$. Find the probability of at least one success (2 decimal places).`, sol: XR`<p>$P(X\ge1)=1-(1-p)^n=1-${(1 - p).toFixed(1)}^{${n}}=1-${((1 - p) ** n).toFixed(4)}=${ans.toFixed(2)}$.</p>` };
+  }, (p) => { let s = 0; for (let k = 1; k <= p.n; k++) s += xbin(p.n, k, p.pp); return s; }),
+  GX('xg05', 4, 'nat', 'integer', 'expectation', (rng) => {
+    const n = choose(rng, [4, 7, 10, 13]);
+    return { n, answer: (2 * n + 1) / 3, tol: 0, q: XR`A random variable $X$ takes the values $1,2,\dots,${n}$ with $P(X=x)=kx$. Find $E(X)$.`, sol: XR`<p>$k\cdot\dfrac{${n}\cdot${n + 1}}2=1$ gives $k=\dfrac2{${n * (n + 1)}}$. $E(X)=k\sum x^2=\dfrac2{${n * (n + 1)}}\cdot\dfrac{${n}\cdot${n + 1}\cdot${2 * n + 1}}6=\dfrac{${2 * n + 1}}3=${(2 * n + 1) / 3}$.</p>` };
+  }, (p) => { let s1 = 0, s2 = 0; for (let x = 1; x <= p.n; x++) { s1 += x; s2 += x * x; } return Math.round(s2 / s1); }),
+  GX('xg06', 4, 'mcq', 'single', 'classical probability', (rng) => {
+    const s = int(rng, 4, 10);
+    let cnt = 0; for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) if (a + b >= s) cnt++;
+    const { options, answer } = shuffleOpts(rng, `$${frac(cnt, 36)}$`, [`$${frac(cnt + 1, 36)}$`, `$${frac(cnt - 1, 36)}$`, `$${frac(36 - cnt, 36)}$`]);
+    return { s, cnt, options, answer, q: XR`Two fair dice are thrown. The probability that the sum is at least ${s} is`, sol: XR`<p>Count the ordered pairs with sum $\ge${s}$: ${cnt} pairs out of $36$. So the probability is $${frac(cnt, 36)}$.</p>` };
+  }, (p) => (xdice2((a, b) => a + b >= p.s) === p.cnt ? p.answer : -1)),
+  GX('xg07', 5, 'nat', 'numeric', 'games', (rng) => {
+    const p = choose(rng, [0.55, 0.6, 0.7]), N = choose(rng, [4, 5]), i = int(rng, 1, 2);
+    const r = (1 - p) / p; const ans = (1 - r ** i) / (1 - r ** N);
+    return { pp: p, N, i, answer: +ans.toFixed(4), tol: 0.01, q: XR`A gambler has ₹${i} and plays rounds in which she wins ₹1 with probability $${p}$ and loses ₹1 otherwise. She stops when she has ₹${N} or ₹0. The probability that she reaches ₹${N} is (2 decimal places)`, sol: XR`<p>Gambler's ruin with $\dfrac qp=\dfrac{${(1 - p).toFixed(2)}}{${p}}$: $P=\dfrac{1-(q/p)^{${i}}}{1-(q/p)^{${N}}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => { const P = new Array(p.N + 1).fill(0); P[p.N] = 1; for (let it = 0; it < 20000; it++) for (let k = 1; k < p.N; k++) P[k] = p.pp * P[k + 1] + (1 - p.pp) * P[k - 1]; return P[p.i]; }),
+  GX('xg08', 5, 'nat', 'integer', 'recursion', (rng) => {
+    const n = int(rng, 2, 5);
+    return { n, answer: 2 ** (n + 1) - 2, tol: 0, q: XR`A fair coin is tossed until ${n} heads appear in a row. Find the expected number of tosses.`, sol: XR`<p>Let $E_k$ be the expected further tosses after $k$ heads in a row. $E_k=1+\frac12E_{k+1}+\frac12E_0$ with $E_{${n}}=0$. Solving gives $E_0=2^{${n + 1}}-2=${2 ** (n + 1) - 2}$.</p>` };
+  }, (p) => { const E = new Array(p.n + 1).fill(0); for (let it = 0; it < 200000; it++) for (let k = 0; k < p.n; k++) E[k] = 1 + 0.5 * E[k + 1] + 0.5 * E[0]; return Math.round(E[0]); }),
+  GX('xg09', 4, 'nat', 'integer', 'binomial variance', (rng) => {
+    const [n, pp, v] = choose(rng, [[20, 0.5, 5], [16, 0.25, 3], [25, 0.2, 4], [100, 0.1, 9]]);
+    const a = int(rng, 2, 4), b = int(rng, 1, 5);
+    return { n, pp, a, b, answer: a * a * v, tol: 0, q: XR`$X\sim B(${n},${pp})$. Find $\mathrm{Var}(${a}X+${b})$.`, sol: XR`<p>$\mathrm{Var}(X)=npq=${n}\times${pp}\times${+(1 - pp).toFixed(2)}=${v}$. $\mathrm{Var}(${a}X+${b})=${a}^2\cdot${v}=${a * a * v}$ (the shift $+${b}$ does not matter).</p>` };
+  }, (p) => { let m = 0, m2 = 0; for (let k = 0; k <= p.n; k++) { const pk = xbin(p.n, k, p.pp), y = p.a * k + p.b; m += y * pk; m2 += y * y * pk; } return Math.round(m2 - m * m); }),
+  GX('xg10', 4, 'mcq', 'single', 'geometric trials', (rng) => {
+    const pd = choose(rng, [3, 4, 5, 6]);
+    const pr = 1 / pd; const ans = (1 - pr) / (2 - pr);
+    const { options, answer } = shuffleOpts(rng, `$${frac(pd - 1, 2 * pd - 1)}$`, [`$${frac(1, 2 * pd - 1)}$`, `$\\dfrac12$`, `$${frac(pd - 1, pd)}$`]);
+    return { pd, pr, ans, options, answer, q: XR`A trial succeeds with probability $\dfrac1${pd}$. Trials are repeated until the first success. The probability that the first success occurs on an even-numbered trial is`, sol: XR`<p>$\sum_{k\text{ even}}q^{k-1}p=\dfrac{qp}{1-q^2}=\dfrac q{1+q}$ with $q=\dfrac{${pd - 1}}${pd}$: $\dfrac{${pd - 1}}{${2 * pd - 1}}$.</p>` };
+  }, (p) => { let s = 0, q = 1 - p.pr; for (let k = 2; k < 4000; k += 2) s += q ** (k - 1) * p.pr; return Math.abs(s - p.ans) < 1e-9 && Math.abs(p.ans - (p.pd - 1) / (2 * p.pd - 1)) < 1e-12 ? p.answer : -1; }),
+);
+
+Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
+}
+// ==XP-END
 export default { topic: 'probability', groups, items, gens };

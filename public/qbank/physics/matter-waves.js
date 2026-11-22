@@ -11,6 +11,7 @@ const lamRelKeV = (K) => 1240 / Math.sqrt(K * K + 2 * K * 511); // electron, K i
 
 import * as Q5 from '../_util.js';
 import more2 from './matter-waves.more2.gen.js';
+import r4 from './matter-waves.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -248,6 +249,7 @@ export default {
       sol: 'First: $dE/dp = pc^2/E = v$. Second: $E \\ge pc$, so $E/p \\ge c$, equality for $m = 0$. Third: $E = pc$ gives $\\omega = ck$, no dispersion. Fourth: false; the probability (and energy) moves with the group velocity.',
       trap: 'Phase velocity is a property of a single plane wave, not of anything you could detect moving.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -388,5 +390,6 @@ export default {
           trap: 'Bragg\'s law has $2d$: forgetting the 2 roughly doubles $\\sin\\theta$.' };
       },
       verify: (p) => Math.asin(h / Math.sqrt(2 * mn * p.EmeV * 1e-3 * e) * 1e9 / (2 * p.d)) / DEG },
+    ...r4.gens,
   ],
 };

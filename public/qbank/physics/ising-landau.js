@@ -8,6 +8,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './ising-landau.more.gen.js';
 import more2 from './ising-landau.more2.gen.js';
+import r4 from './ising-landau.r4.gen.js';
 
 const onsagerM = (t) => { const K = 1 / t; const s = Math.sinh(2 * K); return s <= 1 ? 0 : Math.pow(1 - Math.pow(s, -4), 1 / 8); }; // t = kT/J
 const TC2D = 2 / Math.log(1 + Math.SQRT2);
@@ -203,6 +204,7 @@ export default {
       options: ['the zeros lie on the real positive axis', 'there are no zeros for finite $N$', 'all zeros lie on the unit circle $|z| = 1$, and a transition occurs where they pinch the real axis ($h = 0$) as $N\\to\\infty$', 'the zeros lie on the imaginary axis of $T$'], answer: 2,
       sol: 'The Lee-Yang circle theorem: for ferromagnetic couplings the zeros in $z$ lie on $|z| = 1$, i.e. at purely imaginary fields. For finite $N$ none touches the physical axis ($z$ real positive), so $Z$ is analytic. In the thermodynamic limit below $T_c$ they close in on $z = 1$, giving the jump in $m$ at $h = 0$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'netis-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'ground states',
@@ -336,5 +338,6 @@ export default {
           trap: 'Frustration (an odd loop of antiferromagnetic bonds) multiplies the ground-state degeneracy.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

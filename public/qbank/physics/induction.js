@@ -7,6 +7,7 @@ const MU = C.mu0;
 
 import * as Q5 from '../_util.js';
 import more2 from './induction.more2.gen.js';
+import r4 from './induction.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -220,6 +221,7 @@ export default {
       options: ['$\\dfrac{\\mu_0\\pi a^2b^2}{2(b^2+z^2)^{3/2}}$', '$\\dfrac{\\mu_0\\pi ab}{2\\sqrt{b^2+z^2}}$', '$\\dfrac{\\mu_0\\pi a^2}{2b}$ for every $z$', '$\\dfrac{\\mu_0a^2b^2}{4\\pi(b^2+z^2)^{3/2}}$'], answer: 0,
       sol: 'Send current $I$ round the big loop. Its axial field $\\dfrac{\\mu_0Ib^2}{2(b^2+z^2)^{3/2}}$ is nearly uniform over the small loop, so the flux is that times $\\pi a^2$. Divide by $I$. Check: at $z = 0$ it gives $\\mu_0\\pi a^2/(2b)$, the flux through a small loop at the centre. By $M_{12} = M_{21}$ this also gives the much harder flux of the small loop\'s dipole field through the big loop.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'ind-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'faraday law', format: 'graph',
@@ -371,5 +373,6 @@ export default {
           trap: 'The mutual term appears twice ($2M$), because each coil links the other\'s flux.' };
       },
       verify: (p) => p.L1 + p.L2 + (p.aid ? 2 : -2) * p.k * p.g },
+    ...r4.gens,
   ],
 };

@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 import * as Q5 from '../_util.js';
 import more2 from './interference.more2.gen.js';
+import r4 from './interference.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -235,6 +236,7 @@ export default {
       sol: 'Lens to liquid ($1.5 \\to 1.6$): phase $\\pi$. Liquid to plate ($1.6 \\to 1.7$): phase $\\pi$ again. The shifts cancel, so the centre (zero thickness) is bright, and darkness needs $2\\mu t = \\lambda/2$: $t = \\lambda/(4\\mu) = 600/6.4 = 93.75$ nm.',
       trap: 'Assuming the usual dark centre (one $\\pi$ shift) leads to $2\\mu t = \\lambda$ and $t = 187.5$ nm.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'ifr-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'young double slit', format: 'comparison',
@@ -375,5 +377,6 @@ export default {
           sol: `Need $m_1(${l1}) = m_2(${l2})$; the smallest whole numbers are $m_1 = ${m1}$, $m_2 = ${m2}$, a path difference of $${m1 * l1}$ nm. So $y = ${m1 * l1}\\times10^{-9}\\times${D}/(${d}\\times10^{-3}) = ${round(y, 2)}$ mm.`,
           trap: 'Find the lowest common multiple of the wavelengths, not their sum or product.' };
       } },
+    ...r4.gens,
   ],
 };
