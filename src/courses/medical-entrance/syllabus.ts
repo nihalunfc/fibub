@@ -30,6 +30,7 @@ export const MEDICAL_ENTRANCE: CourseSyllabus = {
   updated: '2026-11-22',
   kit: true,
   kitDir: 'entrance',
+  extras: [{ href: '/learn/courses/medical-entrance/practice/', label: 'Practice questions, by chapter' }],
   sharedFrom: 'engineering-entrance',
   footnote: 'Syllabus and exam pattern follow the official NMC and NTA notices checked on 2026-11-22; they can change every year, so check neet.nta.nic.in. All questions are original fibub work, not copied from past papers or books. Nothing you do here is sent anywhere.',
   parts: [

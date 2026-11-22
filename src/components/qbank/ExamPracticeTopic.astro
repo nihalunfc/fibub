@@ -1,0 +1,28 @@
+---
+// One topic's practice page in an exam course: interactive practice, then the written questions as plain HTML.
+import Base from '../../layouts/Base.astro';
+import QBank from './QBank.astro';
+import QBankStatic from './QBankStatic.astro';
+import type { CourseSyllabus } from '../../courses/types';
+import { coursePageLd } from '../../lib/seo';
+import '../../styles/course.css';
+interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { id: string; name: string }; unit: string; count: number; lesson?: { slug: string; title: string }; mock?: boolean }
+const { course, bank, exam, topic, unit, count, lesson, mock = true } = Astro.props;
+const base = `/learn/courses/${course.id}`;
+const title = `${topic.name}: ${course.name} questions`;
+const desc = `${count} original ${course.name} practice questions on ${topic.name.toLowerCase()} (${unit.toLowerCase()}), from warm-up to top-rank level, with full worked solutions. Free, no sign-up.`;
+const ld = coursePageLd(course, `Practice: ${topic.name}`, desc.slice(0, 160), `practice/${topic.id}`);
+---
+<Base title={title} description={desc.slice(0, 160)} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / <a href={`${base}/practice/`}>Practice</a> / {topic.name}</div>
+  <div class="cs-main cs-wide">
+    <h1>{topic.name}</h1>
+    <p class="lead">{unit} · {count} questions and templates for {course.name}, in order from warm-up to top rank. Check each answer, then read the full solution.</p>
+    {lesson && <p>New to this topic? Read the lesson first: <a href={`${base}/${lesson.slug}/`}>{lesson.title}</a>.</p>}
+    <QBank bank={bank} topics={[topic.id]} exam={exam} mode="practice" />
+    <h2>Written questions with solutions</h2>
+    <p class="cs-small">The same questions as a list, so you can print them or read without the practice box. Templates (fresh numbers) appear only in the practice box above.</p>
+    <QBankStatic bank={bank} topic={topic.id} exam={exam} limit={30} />
+    <p><a href={`${base}/practice/`}>← All topics</a>{mock && <> · <a href={`${base}/mock-test/`}>Timed mock test →</a></>}</p>
+  </div>
+</Base>

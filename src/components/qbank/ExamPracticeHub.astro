@@ -1,0 +1,34 @@
+---
+// An exam course's practice page: every unit and topic of the bank with counts for this exam, then a practice block.
+import Base from '../../layouts/Base.astro';
+import QBank from './QBank.astro';
+import { bankCounts } from '../../lib/qbank/build';
+import { coursePageLd } from '../../lib/seo';
+import type { CourseSyllabus } from '../../courses/types';
+import '../../styles/course.css';
+interface Props { course: CourseSyllabus; bank: string; exam: string; pattern: string }
+const { course, bank, exam } = Astro.props;
+const { idx, topics } = await bankCounts(bank);
+const base = `/learn/courses/${course.id}`;
+const n = (t: string) => topics[t]?.exams[exam] ?? 0;
+const units = idx.units.map((u) => ({ ...u, topics: u.topics.filter((t) => n(t.id) > 0) })).filter((u) => u.topics.length);
+const written = Object.values(topics).reduce((s, c) => s + c.items, 0);
+const tmpl = Object.values(topics).reduce((s, c) => s + c.gens, 0);
+const title = `${course.name} practice questions with solutions`;
+const desc = `Free ${course.name} practice: original MCQ, MSQ and NAT questions sorted by topic and difficulty, each with a full worked solution. Check answers instantly; no sign-up.`;
+const ld = coursePageLd(course, 'Practice questions', desc, 'practice');
+---
+<Base title={title} description={desc} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / Practice</div>
+  <div class="cs-main cs-wide">
+    <h1>{title}</h1>
+    <p class="lead">Learn in order: each topic starts with warm-up questions and climbs to exam level, hard and top-rank questions. Every question has a full solution and, where students usually slip, a note on the trap.</p>
+    <p class="cs-meta">The bank so far: {written} written questions and {tmpl} templates that make fresh numbers every time you press New numbers, across {units.reduce((s, u) => s + u.topics.length, 0)} topics. It grows with every update. All questions are original, written for fibub.</p>
+    <p><a class="btn" href={`${base}/mock-test/`}>Take a timed mock test</a></p>
+    <h2>Topics</h2>
+    {units.map((u) => <section class="cs-modcard"><h4>{u.name}</h4><ol>{u.topics.map((t) => <li><a href={`${base}/practice/${t.id}/`}>{t.name}</a> <span class="cs-small">({n(t.id)} questions and templates)</span></li>)}</ol></section>)}
+    <h2>Practise everything</h2>
+    <p class="cs-small">Pick a topic and level, or leave them on All. Tick "Remember my progress" if you want solved questions to move to the end next time; it stays in this browser only.</p>
+    <QBank bank={bank} exam={exam} mode="practice" />
+  </div>
+</Base>

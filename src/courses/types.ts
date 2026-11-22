@@ -19,6 +19,8 @@ export type CourseSyllabus = {
   // canonical link to the original, so each search has one page.
   sharedFrom?: string;
   kitDir?: string;   // folder under public/learn-kit/ for figures and problems (default: the course id)
+  // Extra pages listed under "course home" in the side list (e.g. practice questions and mock tests of exam courses).
+  extras?: { href: string; label: string }[];
   parts: { name: string; modules: CourseModule[] }[];
 };
 

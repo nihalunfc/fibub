@@ -6,6 +6,7 @@ import LessonQuiz from './LessonQuiz.astro';
 import CourseSiblings from '../learn/CourseSiblings.astro';
 import { COURSES, COURSE_CATS } from '../../data/curricula';
 import '../../styles/learn.css';
+import QBankLoader from '../qbank/QBankLoader.astro';
 import { splitFigures, type LessonEntry } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
 import { lessonLd } from '../../lib/seo';
@@ -20,6 +21,7 @@ const prev = liveAll[li - 1], next = liveAll[li + 1];
 const parts = splitFigures(entry.rendered?.html ?? '');
 for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${slug}: unknown figure ${p.fig}`);
 const d = entry.data;
+const hasQBank = (entry.rendered?.html ?? '').includes('class="qbank"');
 const kitV = course.kit ? Date.now().toString(36) : '';
 const cat = COURSE_CATS.find((k) => k.id === COURSES.find((c) => c.id === course.id)?.cat);
 const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
@@ -40,6 +42,7 @@ const ld = borrowed ? [] : lessonLd(course, { n: me.n, title: d.title, summary: 
       <div class="cs-body">
         {parts.map((p) => { if (p.fig) { const F = figures[p.fig]; return <F arg={p.arg} />; } return <Fragment set:html={p.html} />; })}
       </div>
+      {hasQBank && <QBankLoader />}
       <LessonQuiz quiz={d.quiz} />
       {d.sources.length > 0 && <section class="cs-sources"><h2>Sources</h2><ul>{d.sources.map((s) => <li set:html={s.replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" rel="noopener">$1</a>')} />)}</ul></section>}
       <div class="cs-end">
