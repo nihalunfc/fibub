@@ -1,0 +1,38 @@
+---
+// 7.5: what tax applies when you sell to another country? Your side (export) and the buyer's side (import) for goods, digital sales and B2B services.
+---
+<figure class="cs-fig su-fig" data-bt>
+  <span class="cs-figtag">Lookup: selling across a border</span>
+  <div class="su-row">
+    <label>I am based in<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Buyer is in<select name="to"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option><option value="eu">EU or UK</option></select></label>
+    <label>I sell<select name="w"><option value="g">Physical goods</option><option value="d">Digital products or apps to consumers</option><option value="s">Services to businesses</option></select></label>
+  </div>
+  <div class="su-cards" data-out></div>
+  <figcaption>A summary of the main rules as of November 2026 from the CBIC (India), CRA and CBSA (Canada), IRS and CBP (USA), the European Commission and HMRC. Each rule has conditions and exceptions; for a big contract or a new market, check with a tax adviser in that country.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  type W = 'g' | 'd' | 's';
+  const OUT: Record<string, Record<W, string>> = {
+    in: { g: 'Exports are zero-rated: file a Letter of Undertaking (LUT) on the GST portal each year to ship without paying IGST. Customs export filing (shipping bill) and an IEC code are needed.', d: 'Zero-rated export of services if the buyer is outside India and you are paid in foreign currency (or rupees where the RBI allows). Keep the FIRC or e-FIRA for each payment and file an LUT.', s: 'Zero-rated export of services under the same conditions. Show it in GSTR-1 as an export; no GST on the invoice when you have an LUT.' },
+    ca: { g: 'Exports of goods are zero-rated: charge 0 % GST/HST and keep proof the goods left Canada. Commercial exports over $2,000 (or controlled goods) need an export declaration through CBSA.', d: 'Supplies of digital products to buyers outside Canada are generally zero-rated. Keep proof of where the buyer is (billing address, IP, payment card country).', s: 'Most services to non-resident businesses are zero-rated. Keep the contract showing the client is not resident and not registered in Canada.' },
+    us: { g: 'No federal VAT or export tax. Exports are outside state sales tax. Shipments over $2,500 per product line, or that need a licence, are filed in the AES export system.', d: 'No US tax on the export itself. You may still owe tax in the buyer’s country (see right).', s: 'No US tax on the export itself; business income is taxed as usual.' },
+  };
+  const IN: Record<string, Record<W, string>> = {
+    in: { g: 'The importer pays customs duty plus IGST at the border (courier parcels too). Your buyer can claim the IGST back if GST-registered.', d: 'Foreign sellers of online services to Indian consumers (OIDAR) must register for GST in India through a simplified scheme and charge 18 % GST from the first rupee.', s: 'The Indian business pays the GST itself under reverse charge; you do not register in India.' },
+    ca: { g: 'CBSA collects GST/HST, and duty if any, at the border; couriers collect it from the buyer. If your stock sits in a Canadian fulfilment warehouse, the sale is domestic: the marketplace (or you, once registered) charges GST/HST.', d: 'Non-resident sellers of digital products to Canadian consumers must register under the simplified GST/HST system once sales pass $30,000 in 12 months (and the QST in Quebec).', s: 'No Canadian registration needed for B2B services to registered Canadian businesses; the client self-assesses where required.' },
+    us: { g: 'Customs duty and tariffs at the border. The US ended duty-free de minimis entry for low-value parcels from every country on 29 August 2025, so every parcel goes through formal or informal entry. State sales tax applies too if you pass a state’s economic nexus threshold, foreign sellers included.', d: 'No federal tax, but states that tax digital goods or software can require foreign sellers over their nexus threshold to register and collect.', s: 'Generally no US sales tax on B2B services (states vary). Ask whether the client needs a W-8BEN or W-8BEN-E form from you so they do not withhold US tax.' },
+    eu: { g: 'Import VAT at the border. For parcels up to €150 you can register for IOSS and charge VAT at checkout; the UK requires sellers to charge VAT on goods up to £135.', d: 'VAT at the buyer’s country rate from the first euro or pound: register for the EU non-Union OSS (one return for all EU countries) and with HMRC for the UK.', s: 'Reverse charge: the EU or UK business accounts for the VAT; put their VAT number and “reverse charge” on the invoice.' },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bt]')) {
+    const to = fig.querySelector<HTMLSelectElement>('[name=to]')!, w = fig.querySelector<HTMLSelectElement>('[name=w]')!;
+    const cc = followCountry(fig, () => { if (to.value === cc()) to.value = cc() === 'us' ? 'ca' : 'us'; draw(); });
+    to.addEventListener('change', draw); w.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), t = to.value, k = w.value as W, box = fig.querySelector('[data-out]')!;
+      if (c === t) { box.innerHTML = '<div class="su-card on"><strong>Same country</strong><div>That is a domestic sale: see the GST (India), GST/HST (Canada) or sales tax (USA) lessons in this module.</div></div>'; return; }
+      box.innerHTML = `<div class="su-card on"><strong>Your side: exporting</strong><div>${OUT[c][k]}</div></div><div class="su-card"><strong>Buyer’s side: importing</strong><div>${IN[t][k]}</div></div>`;
+    }
+  }
+</script>
