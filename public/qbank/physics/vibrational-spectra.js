@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './vibrational-spectra.more.gen.js';
 import more2 from './vibrational-spectra.more2.gen.js';
 import r4 from './vibrational-spectra.r4.gen.js';
+import r5 from './vibrational-spectra.r5.gen.js';
 
 const U = 1.66053907e-27;     // kg
 const CCM = 2.99792458e10;    // cm/s
@@ -233,6 +234,7 @@ export default {
       trap: 'A purely harmonic molecule with a linear dipole function would show only the fundamental.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -385,5 +387,6 @@ export default {
       verify: (p) => (p.ask === 'gap' ? 2 * (p.B0 + p.B1) : p.R0 - 2 * p.B1) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

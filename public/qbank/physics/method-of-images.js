@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './method-of-images.more.gen.js';
 import more2 from './method-of-images.more2.gen.js';
 import r4 from './method-of-images.r4.gen.js';
+import r5 from './method-of-images.r5.gen.js';
 
 const EPS0 = 8.8541878128e-12, K = 8.9875517923e9, PI = Math.PI;
 
@@ -219,6 +220,7 @@ export default {
       sol: '$b = R^2/d = 64/4 = 16$ cm, on the same ray as the charge, with image charge $-qR/d = -4.0$ nC.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -353,5 +355,6 @@ export default {
       verify: (p) => { const al = Math.acosh(p.ha); let s = 0; for (let n = 1; n < 400; n++) s += 1 / Math.sinh(n * al); return Math.sinh(al) * s; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

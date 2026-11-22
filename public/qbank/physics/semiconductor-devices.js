@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './semiconductor-devices.more.gen.js';
 import more2 from './semiconductor-devices.more2.gen.js';
 import r4 from './semiconductor-devices.r4.gen.js';
+import r5 from './semiconductor-devices.r5.gen.js';
 
 const VT300 = 0.025852; // kT/q at 300 K, volts
 const G = ['gate', 'net'];
@@ -226,6 +227,7 @@ export default {
       trap: 'Pinch-off does not stop the current; carriers cross the depleted region easily, as in a reverse-biased collector junction.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'sd-g01', type: 'nat', level: 2, exams: G, sub: 'MOSFET square law',
@@ -363,5 +365,6 @@ export default {
       verify: (p) => 1 / (2 * Math.PI * Math.sqrt(p.L * 1e-6 * p.C0 / Math.sqrt(1 + p.VR / p.Vbi) * 1e-12)) / 1e6 },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

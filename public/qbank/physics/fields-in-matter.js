@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './fields-in-matter.more.gen.js';
 import more2 from './fields-in-matter.more2.gen.js';
 import r4 from './fields-in-matter.r4.gen.js';
+import r5 from './fields-in-matter.r5.gen.js';
 
 const EPS0 = 8.8541878128e-12, MU0 = 1.25663706212e-6, K = 8.9875517923e9, KB = 1.380649e-23, PI = Math.PI;
 
@@ -206,6 +207,7 @@ export default {
       trap: 'The potential in the dielectric is not simply reduced by $\\epsilon_r$: the factor is $2/(1 + \\epsilon_r)$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -348,5 +350,6 @@ export default {
       verify: (p) => -2 * PI * EPS0 * (p.R / 100) ** 3 * (p.er - 1) / (p.er + 2) * (p.E0 * 1e5) ** 2 * 1e6 },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

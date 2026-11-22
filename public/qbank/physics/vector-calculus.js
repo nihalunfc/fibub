@@ -4,6 +4,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './vector-calculus.more.gen.js';
 import more2 from './vector-calculus.more2.gen.js';
 import r4 from './vector-calculus.r4.gen.js';
+import r5 from './vector-calculus.r5.gen.js';
 
 export default {
   topic: 'vector-calculus',
@@ -119,6 +120,7 @@ export default {
       trap: 'Evaluating $r^2 + 2$ at the surface ($r = 3$) gives $44\\pi$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'vc-g01', type: 'nat', level: 2, exams: ['jam', 'gate'], sub: 'divergence',
@@ -185,5 +187,6 @@ export default {
       verify: (p) => (p.y * p.z * p.u + p.x * p.z * p.v + p.x * p.y * p.w) / p.L },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

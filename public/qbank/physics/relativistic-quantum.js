@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './relativistic-quantum.more.gen.js';
 import more2 from './relativistic-quantum.more2.gen.js';
 import r4 from './relativistic-quantum.r4.gen.js';
+import r5 from './relativistic-quantum.r5.gen.js';
 
 const ALPHA = 1 / 137.035999, MEC2 = 0.51099895, HBC = 197.3269804, HBAR_MEVS = 6.582119569e-22, RY = 13.605693;
 const diracE = (n, j, Z) => { const k = j + 0.5, Za = Z * ALPHA; return 1 / Math.sqrt(1 + (Za / (n - k + Math.sqrt(k * k - Za * Za))) ** 2); };
@@ -195,6 +196,7 @@ export default {
       sol: '$\\hbar c/m_Wc^2 = 197.3\\text{ MeV fm}/80{,}400\\text{ MeV} = 2.45\\times10^{-3}$ fm. The heavy carrier explains why the weak force is so short-ranged (and so weak at low energy).' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'netrq-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'Yukawa range',
@@ -337,5 +339,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

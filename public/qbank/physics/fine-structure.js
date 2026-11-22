@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './fine-structure.more.gen.js';
 import more2 from './fine-structure.more2.gen.js';
 import r4 from './fine-structure.r4.gen.js';
+import r5 from './fine-structure.r5.gen.js';
 
 const AL2 = 5.32514e-5;          // alpha^2, alpha = 1/137.036
 const RY = 13.6057;              // eV
@@ -234,6 +235,7 @@ export default {
       trap: 'Taking the limit $l \\to 0$ in the closed formula happens to give the Darwin result too, but the reason is the Darwin term, not spin-orbit.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -391,6 +393,7 @@ export default {
       verify: (p) => (p.which === 'rel' ? -(724.52 / (4 * p.n ** 4)) * (4 * p.n / (p.l + 0.5) - 3) : (p.l === 0 ? 724.52 / p.n ** 3 : 0)) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
 

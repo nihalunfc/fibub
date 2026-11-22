@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './rotational-spectra.more.gen.js';
 import more2 from './rotational-spectra.more2.gen.js';
 import r4 from './rotational-spectra.r4.gen.js';
+import r5 from './rotational-spectra.r5.gen.js';
 
 const IB = 16.8576;           // I (amu Å^2) = IB / B (cm^-1)
 const C2 = 1.438777;          // hc/k in cm K
@@ -234,6 +235,7 @@ export default {
       trap: 'The heavy halogen hardly matters for $\\mu$; the bond length decides.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -371,5 +373,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

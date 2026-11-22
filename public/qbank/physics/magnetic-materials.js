@@ -10,6 +10,7 @@ const muB = C.e * C.hbar / (2 * C.me); // 9.274e-24 J/T
 import * as Q5 from '../_util.js';
 import more2 from './magnetic-materials.more2.gen.js';
 import r4 from './magnetic-materials.r4.gen.js';
+import r5 from './magnetic-materials.r5.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -238,6 +239,7 @@ export default {
       trap: 'Assuming $B$ just outside equals $B$ inside everywhere. Only the normal component is continuous; at the equator the field is tangential and it jumps.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'mgm-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'kinds of magnetism',
@@ -373,5 +375,6 @@ export default {
       },
       verify: (p) => (p.f * p.T1 - p.T2) / (p.f - 1) },
     ...r4.gens,
+    ...r5.gens,
   ],
 };

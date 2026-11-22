@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './residues.more.gen.js';
 import more2 from './residues.more2.gen.js';
 import r4 from './residues.r4.gen.js';
+import r5 from './residues.r5.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
@@ -225,6 +226,7 @@ export default {
       trap: 'Using $\\sqrt{-i} = e^{-i\\pi/4}$ (the principal value) is wrong on the keyhole branch, where $0 < \\arg z < 2\\pi$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'res-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rational integrals',
@@ -312,5 +314,6 @@ export default {
       verify: (p) => { let s = 1 / (p.a * p.a); for (let n = 1; n < 200000; n++) s += 2 / (n * n + p.a * p.a); return s + 2 / 200000; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './amplifiers-feedback.more.gen.js';
 import more2 from './amplifiers-feedback.more2.gen.js';
 import r4 from './amplifiers-feedback.r4.gen.js';
+import r5 from './amplifiers-feedback.r5.gen.js';
 
 const G = ['gate', 'net'];
 const db = (x) => 20 * Math.log10(x);
@@ -229,6 +230,7 @@ export default {
       trap: 'Placing the dominant pole at $10^6/\\sqrt{10^4}$ or similar guesses; use the gain-bandwidth argument.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'af-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'feedback basics',
@@ -358,5 +360,6 @@ export default {
       verify: (p) => 20 * Math.log10(p.Iee / 0.05 * p.Ree) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

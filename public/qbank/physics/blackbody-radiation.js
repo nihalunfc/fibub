@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more2 from './blackbody-radiation.more2.gen.js';
 import r4 from './blackbody-radiation.r4.gen.js';
+import r5 from './blackbody-radiation.r5.gen.js';
 
 const SIG = 5.67e-8;           // W m^-2 K^-4, as stated in the questions
 const B = 2.898e-3;            // Wien constant, m K
@@ -237,6 +238,7 @@ export default {
       trap: 'The answer does not depend on the distance from the Sun: both forces follow the inverse-square law.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'bbr-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'Wien law',
@@ -318,5 +320,6 @@ export default {
       },
       verify: (p) => T_E0(5772, p.d * AU) * (1 - p.A) ** 0.25 },
     ...r4.gens,
+    ...r5.gens,
   ],
 };

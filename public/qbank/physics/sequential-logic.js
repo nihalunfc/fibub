@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './sequential-logic.more.gen.js';
 import more2 from './sequential-logic.more2.gen.js';
 import r4 from './sequential-logic.r4.gen.js';
+import r5 from './sequential-logic.r5.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -227,6 +228,7 @@ export default {
       trap: 'Using $Q_0$ after the edge instead of before.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'sl-g01', type: 'nat', level: 2, exams: ['jam', 'gate', 'net'], sub: 'frequency division',
@@ -361,5 +363,6 @@ export default {
       verify: (p) => p.f / (p.kind === 'binary' ? 2 ** p.n : p.kind === 'ring' ? p.n : 2 * p.n) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './raman.more.gen.js';
 import more2 from './raman.more2.gen.js';
 import r4 from './raman.r4.gen.js';
+import r5 from './raman.r5.gen.js';
 
 const C2 = 1.438777;   // hc/k, cm K
 const IB = 16.8576;    // I (u Å^2) = IB / B (cm^-1)
@@ -226,6 +227,7 @@ export default {
       trap: '$2\\omega_s - \\omega_p$ is the coherent Stokes (CSRS) signal.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -360,5 +362,6 @@ export default {
       verify: (p) => (p.br === 'S' ? p.v0 + p.B * ((p.J + 2) * (p.J + 3) - p.J * (p.J + 1)) : p.v0 + p.B * ((p.J - 2) * (p.J - 1) - p.J * (p.J + 1))) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
