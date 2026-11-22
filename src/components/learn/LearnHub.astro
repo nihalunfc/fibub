@@ -36,10 +36,7 @@ const crumbs = [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, {
     <div class="lh-sec"><h2>{toolsTitle}</h2></div>
     <ul class="lh-chips">{tools.map((t) => <li><a href={toolUrl(t!)}>{t!.data.name}</a></li>)}</ul>
   </>}
-  {soon.length > 0 && <>
-    <div class="lh-sec"><h2>Coming soon</h2></div>
-    <div class="lh-grid">{soon.map((c) => <CourseCard c={c} />)}</div>
-  </>}
+  {soon.length > 0 && <details class="lh-all lh-soon"><summary>Coming soon ({soon.length})</summary><ul>{soon.map((c) => <li><strong>{c.name}</strong>: {c.text}</li>)}</ul></details>}
   <LearnMore here={cat} />
   <p class="ar-note">Every course is free, with no sign-up. Your progress stays in your own browser: tick "Remember my progress" on a course to keep it on this device.</p>
 </Base>
