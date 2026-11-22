@@ -40,8 +40,32 @@ export default {
           "name": "7. The Mathematics of Maybe: Introduction to Probability"
         },
         {
+          "id": "sequences-and-progressions",
+          "name": "8. Predicting What Comes Next: Exploring Sequences and Progressions"
+        },
+        {
           "id": "propositions-and-their-converses",
           "name": "9. Propositions and their Converses"
+        },
+        {
+          "id": "understanding-data",
+          "name": "10. How Quantities Combine: Understanding Data"
+        },
+        {
+          "id": "the-world-of-algorithms",
+          "name": "11. The World of Algorithms"
+        },
+        {
+          "id": "quadrilaterals",
+          "name": "12. Quadrilaterals"
+        },
+        {
+          "id": "two-variables-one-line",
+          "name": "13. Two Variables, One Line"
+        },
+        {
+          "id": "surface-area-and-volume",
+          "name": "14. Math of Space: Surface Area and Volume"
         }
       ]
     }

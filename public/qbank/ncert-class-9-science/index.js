@@ -50,6 +50,18 @@ export default {
         {
           "id": "sound-waves",
           "name": "10. Sound Waves: Characteristics and Applications"
+        },
+        {
+          "id": "reproduction-how-life-continues",
+          "name": "11. Reproduction: How Life Continues"
+        },
+        {
+          "id": "diversity-and-classification",
+          "name": "12. Patterns in Life: Diversity and Classification"
+        },
+        {
+          "id": "earth-as-a-system",
+          "name": "13. Earth as a System: Energy, Matter, and Life"
         }
       ]
     }
