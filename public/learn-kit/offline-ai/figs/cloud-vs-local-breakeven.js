@@ -18,13 +18,13 @@ export default function (host) {
     line(ctx, pts((t) => H + E * t), col.s[1], 2.5);
     dot(ctx, X(m), Y(P * m), 5, col.s[0]);
     dot(ctx, X(m), Y(H + E * m), 5, col.s[1]);
-    text(ctx, `cloud ${Math.round(P * m)}`, X(m) + 8, Y(P * m) + (P * m > H + E * m ? -10 : 12), { color: col.s[0], size: 12, weight: 700, halo: col.panel });
+    text(ctx, `cloud ${Math.round(P * m)}`, X(m) + 8, Y(P * m) + (P * m > H + E * m || m < 6 ? -12 : 12), { color: col.s[0], size: 12, weight: 700, halo: col.panel });
     text(ctx, `local ${Math.round(H + E * m)}`, X(m) + 8, Y(H + E * m) + (P * m > H + E * m ? 12 : -10), { color: col.s[1], size: 12, weight: 700, halo: col.panel });
     if (step >= 3 && m >= BE - 0.01) {
       line(ctx, [[X(BE), Y(0)], [X(BE), Y(P * BE)]], col.muted, 1, [4, 4]);
       text(ctx, 'break-even 37.5', X(BE), Y(0) - 10, { color: col.ink, size: 11.5, weight: 600, align: 'center', halo: col.panel });
     }
-    if (step === 2) text(ctx, 'local catches up 16 a month', X(m) - 6, Y(1250), { color: col.muted, size: 11.5, align: 'right', halo: col.panel });
+    if (step === 2) text(ctx, 'local catches up 16 a month', X(MAX) - 4, Y(120), { color: col.muted, size: 11.5, align: 'right', halo: col.panel });
   };
   cv.redraw();
   return { step(i) { from = MARK[step] * (i > step ? 1 : 0); if (i < step) from = 0; step = i; k = calm() ? 1 : 0; cv.redraw(); if (k < 1) anim.play(); } };

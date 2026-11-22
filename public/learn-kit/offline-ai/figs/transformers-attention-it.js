@@ -27,10 +27,10 @@ export default function (host) {
         ctx.save(); ctx.strokeStyle = col.s[1]; ctx.globalAlpha = 0.85; ctx.lineWidth = lw;
         ctx.beginPath(); ctx.moveTo(x0, y - 14); ctx.quadraticCurveTo((x0 + x1) / 2, y - 14 - (x0 - x1) * 0.45 * (step === 1 ? e : 1), x1, y - 14); ctx.stroke(); ctx.restore();
         const lab = step === 1 ? `score ${s}` : `${Math.round(share * 100)}%`;
-        text(ctx, lab, x1, y + 28, { color: col.ink, size: 11.5, weight: 700, align: 'center' });
+        text(ctx, lab, x1, y + (+i === 4 ? 46 : 28), { color: col.ink, size: 11.5, weight: 700, align: 'center' });
       }
     }
-    if (step === 3) text(ctx, '"it" now carries mostly the meaning of "cat"', w / 2, h - 12, { color: col.muted, size: 11.5, align: 'center' });
+    if (step === 3) text(ctx, '"it" now carries mostly the meaning of "cat"', w / 2, h - 8, { color: col.muted, size: 11.5, align: 'center' });
     if (step === 4) text(ctx, 'every word\'s key and value stays in memory', w / 2, y + 30, { color: col.muted, size: 11.5, align: 'center' });
   };
   cv.redraw();
