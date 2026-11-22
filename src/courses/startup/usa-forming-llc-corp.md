@@ -30,6 +30,8 @@ sources:
 
 **Module 4 · about 17 minutes · USA.** You'll be able to form an LLC or corporation in a state, sign the founding documents, and take care of the first-week tasks founders often miss.
 
+<div class="bigidea">A US LLC is formed with articles of organization and run by an operating agreement; a corporation with a certificate of incorporation, bylaws and issued stock, and founders with vesting shares file an 83(b) within 30 days.</div>
+
 <div class="cc" data-cc="in">
 
 **Reading for India?** see [registering a company or LLP](/learn/courses/startup/india-company-llp/).
@@ -82,9 +84,30 @@ Forming a corporation
 
 The Corporate Transparency Act required most small companies to report their owners to **FinCEN**. In March 2025 FinCEN's interim rule **exempted companies formed in the USA** and US persons; only companies formed abroad that register to do business in a US state must report. Check fincen.gov for the current rule before relying on this.
 
+<div class="meaning">
+
+<dl>
+<dt>Articles of organization</dt><dd>the state filing that creates an LLC</dd>
+<dt>Operating agreement</dt><dd>the LLC’s internal rules between members</dd>
+<dt>Certificate of incorporation</dt><dd>the state filing that creates a corporation</dd>
+<dt>Par value</dt><dd>a nominal minimum price per share, often tiny</dd>
+<dt>83(b) election</dt><dd>choosing to be taxed on restricted stock at purchase</dd>
+<dt>What it means for you</dt><dd>Form the entity, sign the operating agreement or bylaws, issue founder stock, and if your shares vest, file the 83(b) within 30 days and keep proof.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="usa-forming-llc-corp-83b"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Lena and Dev form "Clinivo Inc." in Delaware: certificate of incorporation through a registered agent service, 10,000,000 authorised common shares at $0.00001 par. They each buy 4,000,000 shares for $40 with four-year vesting and a one-year cliff, sign IP assignments, and mail their 83(b) elections on day 12. They live in California, so they register Clinivo Inc. there as a foreign corporation, get an EIN, and open the bank account. Their Delaware franchise tax is calculated with the assumed par value method, so it stays at about $400 a year instead of tens of thousands.
+
+<div class="myth">
+
+**"An LLC does not need an operating agreement."** Most states do not require you to file one, but without it state default rules decide profit shares, decisions and exits, and banks and courts often ask for it.
+
+</div>
 
 ## 5. Practice
 
@@ -99,6 +122,16 @@ The Corporate Transparency Act required most small companies to report their own
 2. 30 days from the date the stock is transferred.
 3. So founders can buy their shares for very little, and so there is room to issue options and investor shares later; a low par value also keeps some state fees and taxes low.
 </details>
+
+<div class="keypoints">
+
+- LLC: file articles, appoint a registered agent, sign an operating agreement.
+- Corporation: certificate of incorporation, bylaws, board consent, stock purchase agreements.
+- Founders on vesting file an 83(b) within 30 days; it cannot be extended.
+- Most US-formed companies no longer file BOI reports since FinCEN’s March 2025 rule.
+- Keep minutes, a stock ledger and signed agreements.
+
+</div>
 
 **Next:** [USA: EIN, registered agent and other states](/learn/courses/startup/usa-ein-registered-agent/).
 

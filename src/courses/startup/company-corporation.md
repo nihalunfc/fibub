@@ -28,6 +28,8 @@ sources:
 
 **Module 3 · about 16 minutes.** You'll understand what makes a company different, who does what inside it, and how it looks in each country.
 
+<div class="bigidea">A company is a separate legal person: it owns, signs, owes and can be sued in its own name, which shields its owners and lets it issue shares to investors.</div>
+
 ## 1. A separate legal person
 
 A **company** (called a **corporation** in North America) is created by registering it with the government. From then on it is <mark>a legal person in its own right</mark>: it owns its bank account and assets, signs contracts, sues and is sued, owes its own debts and files its own tax return. If it fails, shareholders usually lose only what they paid for their shares.
@@ -71,6 +73,30 @@ More than a sole proprietorship, every year:
 - **Minutes** and records of decisions, a share register.
 - India also needs a statutory **audit** every year, whatever the size.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Before:</b> two founders sign contracts personally; a failed deal could reach their homes.</p></div>
+<div class="step"><p><b>Incorporate:</b> the company now signs, owns the code and opens its own bank account.</p></div>
+<div class="step"><p><b>Shares:</b> each founder holds shares; later an investor buys new shares in the company.</p></div>
+<div class="step"><p><b>The catch:</b> directors stay personally liable for some unpaid wages and deducted tax, and for any loan they guarantee personally.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Company / corporation</dt><dd>a separate legal person created by registration</dd>
+<dt>Shareholder / member</dt><dd>an owner of shares</dd>
+<dt>Director</dt><dd>a person elected to manage the company</dd>
+<dt>Limited liability</dt><dd>owners risk only what they put in</dd>
+<dt>Personal guarantee</dt><dd>a promise that makes you personally liable for a company debt</dd>
+<dt>What it means for you</dt><dd>Choose a company when you take real risk, hire, or plan to raise money, and run it like a separate person: its own bank account, minutes and filings.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="company-corporation-india-tax"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Lena and Dev (Lesson 1.3) incorporate their booking app.
@@ -81,6 +107,12 @@ More than a sole proprietorship, every year:
 | Minimum people | 2 directors, 2 shareholders | 1 director, 1 shareholder | 1 director, 1 shareholder |
 | Their set-up | Both directors and 50/50 shareholders | Both directors, 50/50 | Both directors, 50/50, Lena CEO, Dev CTO |
 | Profit tax | 25.17 % (new regime) | 12.2 % in Ontario on first $500k | 21 % federal plus state |
+
+<div class="myth">
+
+**"With a company, nothing can ever reach my personal assets."** Directors can be personally liable for unpaid employee wages, tax deducted but not paid over, and any loan they personally guarantee. Mixing personal and company money weakens the shield too.
+
+</div>
 
 ## 5. Practice
 
@@ -95,6 +127,16 @@ More than a sole proprietorship, every year:
 2. Limited liability and an easy path to a private limited company later.
 3. Yes, in every state.
 </details>
+
+<div class="keypoints">
+
+- A company owns, signs and is sued in its own name.
+- India: private limited (2 directors, 2 members, one director resident) or OPC; 22 % tax regime option.
+- Canada: federal or provincial corporation; one director is enough.
+- USA: a state corporation (C or S corp for tax).
+- More upkeep: corporate tax return, annual filings, minutes, and in India a yearly audit.
+
+</div>
 
 **Next:** [USA: LLC, C corp or S corp](/learn/courses/startup/llc-c-corp-s-corp/).
 

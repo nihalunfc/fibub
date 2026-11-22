@@ -28,6 +28,8 @@ sources:
 
 **Module 5 · about 12 minutes.** You'll check whether your home business needs permission, and set it up safely for tax and insurance.
 
+<div class="bigidea">You can usually run a business from home if it stays quiet: no big signs, few visitors, no stock or staff on site. Check zoning, your lease or HOA, and your insurer.</div>
+
 ## 1. What the rules allow
 
 Most cities allow a **home occupation**: a business in a home that stays mostly residential. Common limits: a share of floor space, no or few non-resident employees, limited client visits, no outside storage, small or no signs, no nuisance.
@@ -56,9 +58,38 @@ Cities issue **home occupation permits** under zoning codes; HOA covenants can b
 
 > **Key idea:** Tell your insurer. A home policy usually limits business property and does not cover a client who slips on your stairs; a cheap rider or a small business policy does (Lesson 12.3).
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Plan:</b> a bookkeeper works from a spare room in Columbus, Ohio.</p></div>
+<div class="step"><p><b>Zoning:</b> the city confirms no permit is needed for an online business with one client visit a month.</p></div>
+<div class="step"><p><b>HOA and insurer:</b> the HOA allows home offices without signs; the insurer adds a cheap business rider.</p></div>
+<div class="step"><p><b>Tax:</b> the room is used only for work, so a share of home costs is deductible.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Zoning</dt><dd>local rules on what activities are allowed where</dd>
+<dt>Home occupation permit</dt><dd>city permission for a business at home</dd>
+<dt>HOA / strata rules</dt><dd>private rules of a housing association or condo</dd>
+<dt>Business-use share</dt><dd>the part of home costs that relates to the business</dd>
+<dt>What it means for you</dt><dd>Check your city’s home-business rules, your lease or HOA and your insurance before you start, and track the space you use only for work.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="home-based-zoning-office"></div>
+
 ## 3. Worked example
 
 *Made-up founder.* Jordan runs a bookkeeping business from a spare room in Columbus, Ohio: no signs, clients online, one visit a month. The city confirms no permit is needed for that level of activity; the HOA allows "home offices with no client traffic". Jordan adds a business rider to the homeowner's policy and measures the room (120 sq ft) for the simplified home office deduction: $600.
+
+<div class="myth">
+
+**"My home is private, so no rules apply to a business in it."** City zoning, lease terms, condo or HOA rules and your insurance policy all apply, and a home policy usually excludes business equipment and visiting clients.
+
+</div>
 
 ## 4. Practice
 
@@ -73,6 +104,16 @@ Cities issue **home occupation permits** under zoning codes; HOA covenants can b
 2. 200 × $5 = $1,000.
 3. Your landlord (lease), condo corporation, housing society or HOA.
 </details>
+
+<div class="keypoints">
+
+- Quiet home businesses are usually allowed; signs, visitors, staff and stock bring rules.
+- Check city zoning and any home occupation permit.
+- Leases, HOAs and condo rules can be stricter than the city.
+- Tell your insurer; add a business rider or policy.
+- A space used only for work can bring a home office deduction (Canada, USA).
+
+</div>
 
 **Next:** [Rules for selling online](/learn/courses/startup/online-selling-rules/).
 

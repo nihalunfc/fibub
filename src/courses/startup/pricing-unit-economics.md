@@ -27,6 +27,8 @@ sources:
 
 **Module 2 · about 15 minutes · school maths.** You'll be able to set a starting price and check that each customer is worth more than it costs to win them.
 
+<div class="bigidea">Price from the value you create, then check one customer at a time: each must be worth more than it costs to win them, ideally three times more.</div>
+
 ## 1. Three ways to set a price
 
 - **Cost-plus:** cost to make or serve, plus a margin. Simple, but ignores what customers would pay.
@@ -60,6 +62,30 @@ Start with value, check against competitors, and make sure it beats cost by a wi
 **Why 1 ÷ churn?** If 5 % leave each month, on average a customer survives 1 ÷ 0.05 = 20 months (a geometric distribution).
 </details>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Price:</b> ₹1,500 a month per pharmacy, based on the stock it saves.</p></div>
+<div class="step"><p><b>Margin:</b> after ₹250 of SMS and hosting and ₹30 of fees, ₹1,220 a month is left.</p></div>
+<div class="step"><p><b>Lifetime:</b> 3 % cancel each month, so a customer stays about 33 months: LTV about ₹40,700.</p></div>
+<div class="step"><p><b>Check:</b> winning a customer costs ₹4,500, so LTV : CAC is about 9 : 1, paid back in under 4 months.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Gross margin</dt><dd>what is left from a sale after direct costs</dd>
+<dt>CAC</dt><dd>customer acquisition cost: spend to win one customer</dd>
+<dt>Churn</dt><dd>the share of customers who leave each period</dd>
+<dt>LTV</dt><dd>lifetime value: margin earned over a customer’s life</dd>
+<dt>Payback</dt><dd>months for a customer’s margin to repay CAC</dd>
+<dt>What it means for you</dt><dd>Write your price, cost to serve, churn and CAC on one line; if LTV is not at least three times CAC, change price, churn or acquisition before you scale.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="pricing-unit-economics-ltv"></div>
+
 ## 3. Worked example
 
 *Made-up numbers.* Ravi charges ₹1,500 a month per pharmacy. SMS and hosting cost ₹250 per pharmacy, payment fees 2 % (₹30). He spends ₹45,000 on visits and ads and wins 10 pharmacies, so CAC = ₹4,500. Churn is 3 % a month.
@@ -70,6 +96,12 @@ Start with value, check against competitors, and make sure it beats cost by a wi
 - LTV : CAC ≈ **9 : 1**. Payback ≈ 4,500 ÷ 1,220 ≈ **3.7 months**.
 
 Excellent unit economics. If he registers for GST (Module 7), he adds 18 % on top: the pharmacy pays ₹1,770 and Ravi passes ₹270 to the government (less any input tax credit).
+
+<div class="myth">
+
+**"A low price wins more customers, so start cheap."** A low price often attracts the least loyal customers and leaves no margin to pay for growth. It is far easier to lower a price later than to raise it.
+
+</div>
 
 ## 4. Practice
 
@@ -84,6 +116,16 @@ Excellent unit economics. If he registers for GST (Module 7), he adds 18 % on to
 2. Raise price or margin, cut churn, cut CAC.
 3. 1,180 ÷ 1.18 = ₹1,000.
 </details>
+
+<div class="keypoints">
+
+- Start from value, check competitors, and stay well above cost.
+- Margin = price − cost to serve − fees.
+- Lifetime = 1 ÷ monthly churn; LTV = margin × lifetime.
+- Aim for LTV at least 3 × CAC and payback within about 12 months.
+- Quote prices before sales tax unless you say “tax included”; India’s MRP is tax-inclusive.
+
+</div>
 
 **Next:** [Break-even and runway](/learn/courses/startup/break-even-runway/). The [[sales-tax-calculator]] adds or removes GST, HST or sales tax from any price.
 
