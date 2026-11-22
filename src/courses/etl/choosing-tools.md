@@ -80,6 +80,11 @@ def hotel_daily(bdate: str):
 
 Look at what did **not** change: the `pms` module, where the real work lives. That is the payoff of the rule from [Lesson 3.2](/learn/courses/etl/dagster-assets/): keep business logic in plain functions and let the orchestrator only call them.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Ingestion and transformation tools
 
 - **dlt:** a Python library, code first, runs inside any orchestrator, cheap. Good for APIs and files.

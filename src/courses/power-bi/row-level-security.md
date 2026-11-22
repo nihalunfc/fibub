@@ -40,6 +40,10 @@ The rule is a filter on Store, so it flows through relationships to Sales and Ta
 
 Notice `Share of All`: ALL(Store) inside CALCULATE does **not** remove a security filter. RLS filters are applied before everything else, so the person's "all" is all West stores (here the editor imitates it with a slicer, so ALL removes it: in Power BI, the West share would add up to 100 %). Security never leaks through ALL.
 
+Try it: switch who is looking and watch the rows and the total change.
+
+<figure class="fig" data-fig="@biz-rls-roles"><figcaption>Notice that the role removes rows before any measure runs, so every number follows.</figcaption></figure>
+
 ## 3. Dynamic RLS
 
 One role for everyone, driven by a table:

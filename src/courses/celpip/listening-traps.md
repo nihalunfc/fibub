@@ -36,6 +36,11 @@ This lesson brings together everything from lessons 2.1 to 2.7. The traps are th
 
 **Everyday analogy.** A good magic trick works because your eyes follow the hand that moves, not the one that does the trick. A listening trap works the same way: your ear grabs the word you recognise, while the real answer is said in other words.
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 2. The eight traps
 
 | # | Trap | What you hear | What the trap option does |

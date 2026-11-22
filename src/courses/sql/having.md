@@ -75,6 +75,19 @@ Watch the query above run, one step at a time (the live box's **Show how it runs
 
 <div class="problem" data-problem="sql-having-groups"></div>
 
+Step through the clauses in the order SQL really runs them and move the three sliders.
+
+<div class="steps" data-fig="@data-query-order">
+<div class="step">FROM: the whole table is the starting point.</div>
+<div class="step">WHERE: rows are dropped before any grouping.</div>
+<div class="step">GROUP BY: the surviving rows become one row per region.</div>
+<div class="step">HAVING: whole groups are dropped by their aggregate.</div>
+<div class="step">SELECT: columns are computed here, so the alias total exists only from now on.</div>
+<div class="step">ORDER BY: now the alias can be used to sort.</div>
+<div class="step">LIMIT: finally only the first rows are kept.</div>
+</div>
+
+
 ## 3. WHERE vs HAVING
 
 The running order explains everything: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY.

@@ -45,6 +45,10 @@ Two simple operations:
 - **Add** vectors component by component: `$(1, 2) + (3, 1) = (4, 3)$`. As arrows, walk the first, then the second.
 - **Scale** by a number: `$2 \times (1, 2) = (2, 4)$`. The arrow keeps its direction and doubles in length.
 
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
 ## 3. The dot product
 
 Multiply matching components, then add:
@@ -65,6 +69,10 @@ The answer is one number, not a vector. You already do this at the shop till:
 Now drag the arrows:
 
 <!--fig:dot-product-->
+
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
 
 ## 4. What the dot product means
 

@@ -47,6 +47,11 @@ Step through the stages. Each step gives the sentence a report could use.
 <div class="step"><p><b>Stage 7.</b> "Finally, the new bottles <b>are ready to be</b> filled and sold, and the cycle can begin again."</p></div>
 </div>
 
+
+Slide Swap to turn an active sentence into a passive one, then change the tense.
+
+<figure class="fig" data-fig="@lang-voice-machine"><figcaption>Notice that the receiver moves to the front, the verb becomes be plus past participle, and only the form of "be" shows the tense.</figcaption></figure>
+
 ## 3. Sequence words, varied
 
 | Start | Middle | End |

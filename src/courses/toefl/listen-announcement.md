@@ -34,6 +34,11 @@ You hear **one speaker** making an announcement, for example a professor at the 
 
 ETS does not publish how many announcements or questions each person gets, and the number can vary as the test adapts. What you can count on: announcements are full of **times, days, places, prices and rules**, and many of them describe a **change**.
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 2. What it really tests
 
 Announcements test whether you can pick out **practical information** from a stream of speech and understand **why** it is being said. Question types:

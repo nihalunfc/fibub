@@ -58,6 +58,10 @@ Common resolutions:
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="0"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="grad-verbal" data-topics="cr-boldface-paradox" data-mode="practice" data-n="4" data-exam="gmat"></div>

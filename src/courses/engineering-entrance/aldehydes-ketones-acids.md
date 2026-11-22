@@ -60,6 +60,15 @@ A nucleophile attacks the carbonyl carbon, the carbon becomes sp³, and the oxyg
 </dl>
 </div>
 
+**Watch it happen:** nucleophilic addition to a carbonyl. Change the nucleophile and the carbonyl compound and compare the products and the reactivity bars.
+
+<div class="steps" data-fig="@chem-carbonyl-addition" data-title="Nucleophilic addition to C=O" data-ms="6000">
+<div class="step"><b>The carbonyl carbon is δ+.</b></div>
+<div class="step"><b>The nucleophile attacks it.</b></div>
+<div class="step"><b>Tetrahedral alkoxide.</b></div>
+<div class="step"><b>Protonation</b> gives the product.</div>
+</div>
+
 ## 3. Reduction, oxidation and tests
 
 **Reduction:** to alcohols with NaBH₄ or LiAlH₄; all the way to CH₂ with **Clemmensen** (Zn-Hg/conc. HCl, for acid-stable compounds) or **Wolff-Kishner** (NH₂NH₂, then KOH in ethylene glycol, heat; for base-stable compounds).

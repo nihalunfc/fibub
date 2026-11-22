@@ -40,6 +40,11 @@ The date dimension has one row for every calendar day in the range you need, whe
 
 Its key is the one exception to the "keys mean nothing" rule from [Lesson 4.1](/learn/courses/data-modelling/surrogate-keys/). A date never changes its meaning, so a key like `20251129` (YYYYMMDD as an integer) is safe: it is unique, sorts correctly and is readable when you look at a fact table.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Making the days with a recursive CTE
 
 A **recursive CTE** is a CTE that refers to itself: a starting row, then a rule to make the next row from the last one, repeated until a stop condition. ([SQL Lesson 5.5](/learn/courses/sql/recursive-cte/) covers it in depth.) Run this small one: it starts at 1 January and adds a day until 7 January.

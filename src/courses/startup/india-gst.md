@@ -78,6 +78,20 @@ Every item has a code: **HSN** for goods, **SAC** for services. The code decides
 
 For sales within your state charge **CGST + SGST** (half each, for example 9 % + 9 %); for sales to another state charge **IGST** (18 %). The **place of supply** rules decide which: for goods, usually where they are delivered; for most services to a registered business, where that business is registered.
 
+Walk along a supply chain and watch who sends how much tax.
+
+<div class="steps" data-fig="@biz-gst-chain">
+
+<div class="step">Nothing sold yet.</div>
+
+<div class="step">Grower: sells for $100 plus $10 tax, sends $10.</div>
+
+<div class="step">Maker: buys for $100 (paid $10), sells for $160 (charges $16), sends only $6.</div>
+
+<div class="step">Shop: buys for $160, sells for $250, sends $9. The total is $25, which is 10% of $250.</div>
+
+</div>
+
 ## 4. The composition scheme
 
 Small businesses can opt for **composition**: pay a flat low rate on turnover (1 % for traders and manufacturers, 5 % for restaurants, 6 % for small service providers up to ₹50 lakh) and file a simple quarterly statement. The catch: you cannot charge GST on invoices (you issue a *bill of supply*), cannot claim input credit, and cannot make inter-state supplies of goods. It suits shops selling to consumers, not businesses selling to other businesses.

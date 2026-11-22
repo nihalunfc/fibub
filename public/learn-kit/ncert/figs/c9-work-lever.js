@@ -3,7 +3,7 @@
 // MA = load / effort = effort arm / load arm. The figure names the class of lever from the order of the three
 // points: fulcrum in the middle (class 1), load in the middle (class 2), effort in the middle (class 3).
 // Drag the three triangles/arrows along the beam, or use the sliders for the load and effort sizes.
-import { canvas, text, title, line, arrow, row, slider, readout } from '../../kit.js';
+import { canvas, text, title, line, arrow, row, slider, readout, touchGuard } from '../../kit.js';
 
 export default function (host) {
   let F = 0.5, Ld = 0.15, Ef = 0.85, load = 60; // positions along the beam 0..1
@@ -26,7 +26,7 @@ export default function (host) {
   }
   const c = cv.c;
   const pos = (e) => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-  c.style.touchAction = 'none';
+  touchGuard(c, (px, py) => { const g = geom(); return [[F, g.by + 26], [Ld, g.by - 40], [Ef, g.by - 40]].some(([u, y]) => Math.hypot(px - g.X(u), py - y) < 28); });
   c.addEventListener('pointerdown', (e) => {
     const [px, py] = pos(e), g = geom(); let best = null, bd = 28;
     [['F', F, g.by + 26], ['L', Ld, g.by - 40], ['E', Ef, g.by - 40]].forEach(([k, u, y]) => { const d = Math.hypot(px - g.X(u), py - y); if (d < bd) { bd = d; best = k; } });

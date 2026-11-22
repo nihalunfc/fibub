@@ -42,6 +42,11 @@ A *factless fact table* is a fact table with dimension keys and no measures. Eac
 
 The measure is always the same: COUNT(*).
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. An event table: member sign-ups
 
 A sign-up has a when (date), a who (customer) and a where (province), but no amount. Its grain: **one row per member joining**.

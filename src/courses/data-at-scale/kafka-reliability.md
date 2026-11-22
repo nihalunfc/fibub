@@ -95,6 +95,11 @@ If the app team renames `price` to `unit_price` on a Friday, every consumer brea
 
 Topic names carry a version (`pos.sales.v1`, then `v2` for a breaking change). Many teams now write **data contracts**: the schema plus an owner, what each field means, quality rules and how fresh the data will be.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Kafka Connect: plumbing without code
 
 **Kafka Connect** runs ready-made **connectors** that you configure in JSON rather than code:

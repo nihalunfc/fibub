@@ -85,6 +85,10 @@ Within a section, every question counts the same. A hard question you get right 
 
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="greq"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## Practise: two passes against the clock
 
 Set a timer for 9 minutes and try these 5 questions using two passes: answer what you can, mark the rest, return. Then check whether you left any blank.

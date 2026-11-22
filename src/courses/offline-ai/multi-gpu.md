@@ -38,6 +38,10 @@ Two used 24 GB cards give 48 GB for less than one 48 GB card. Two Macs can hold 
 
 **By pieces of every layer (tensor parallel).** Each card holds half of every layer and both work on every token together, swapping partial results many times per token. It makes one user faster, because both cards' memory speed is used at once, but it needs a fast link (NVLink, or at least a good PCIe slot each) and matching cards. vLLM and SGLang use this; llama.cpp has a row-split mode.
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Commands
 
 ```bash

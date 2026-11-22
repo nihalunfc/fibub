@@ -42,6 +42,10 @@ Ask something. After the answer you will see lines such as `prompt eval count` (
 
 It is like the trip computer in a car: it already knows the distance and the time; you just have to look.
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. The script way
 
 ```python

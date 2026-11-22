@@ -47,6 +47,10 @@ The model is like a fast scribe: it writes the first draft, but every page needs
 <div class="step"><p><b>Over a week.</b> Five days: about <b>10 hours</b> per doctor, with no patient data leaving the building.</p></div>
 </div>
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Rules to respect
 
 - **USA:** HIPAA. With local AI there is no outside vendor handling the data, but the Security Rule still applies: access control, audit logs, encryption.
@@ -54,6 +58,10 @@ The model is like a fast scribe: it writes the first draft, but every page needs
 - **UK:** UK GDPR special-category data, NHS data security standards and Caldicott principles.
 - **India:** DPDP Act duties on personal data, plus clinical establishment rules.
 - **Everywhere:** software that diagnoses or recommends treatment can be a regulated **medical device**. Keep AI to drafting and search, with a clinician deciding.
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. A sensible setup
 

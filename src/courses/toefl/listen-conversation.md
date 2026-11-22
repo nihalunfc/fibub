@@ -34,6 +34,11 @@ You hear **two people talking**, often on a university campus: a student and a p
 
 ETS does not publish exactly how many conversations or questions you will get; it changes because the test adapts. Expect each conversation to have a handful of questions, and expect the topics to be ordinary campus life: books, rooms, deadlines, jobs, classes, money, projects.
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 2. What it really tests
 
 It tests whether you can **follow people's goals** in real talk. Not just the facts, but why someone came, what they want, what changed, and how they feel. Four question types cover nearly everything:

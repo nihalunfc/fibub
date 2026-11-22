@@ -37,6 +37,10 @@ With two inputs, `$\hat y = w_1 x_1 + w_2 x_2 + b$` is a flat, tilted plane abov
 
 <!--fig:regression-plane-->
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. The model as a matrix product
 
 Put the data in a table `$X$`, one row per example, with a column of 1s at the front for the bias. Put the weights in a column `$\mathbf{w}$`, with the bias first:
@@ -50,6 +54,10 @@ Matrix times vector means: for each row, take the dot product of that row with `
 ```math
 \hat{\mathbf{y}} = X \mathbf{w}
 ```
+
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
 
 ## 4. The normal equation
 

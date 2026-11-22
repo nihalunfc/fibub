@@ -47,6 +47,11 @@ You get 1 minute to prepare and paper for notes. Then you speak for 1 to 2 minut
 
 Example notes: *neighbour Mrs Ito, 80s · broken wrist, ice · shopping 6 weeks, bins, chats · glad, close now, "community"*.
 
+
+Press Start (or Fast demo) to run the real clock for a cue card: one minute to prepare, then up to two minutes to speak.
+
+<figure class="fig" data-fig="@lang-cue-card-timer"><figcaption>Notice how the four bullets get about 30 seconds each, so you never run out of things to say.</figcaption></figure>
+
 ## 3. Sample talk (about 2 minutes)
 
 <div class="meaning">

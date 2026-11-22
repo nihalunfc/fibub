@@ -37,6 +37,10 @@ See why with a store that has no sales in 2024:
 
 The `/` version shows **Infinity** for Forks Market (its 2024 sales are blank), which would break a chart; DIVIDE leaves it blank. (Use `/` only inside iterators where you know the denominator is never zero; it is slightly faster.)
 
+Try it: make the big store bigger and see the two ways of combining margins drift apart.
+
+<figure class="fig" data-fig="@biz-ratio-of-sums"><figcaption>Notice that the real margin is a ratio of totals, not an average of percentages.</figcaption></figure>
+
 ## 3. Measures built on measures
 
 <!--fig:dax-pad m-margin-pct-->

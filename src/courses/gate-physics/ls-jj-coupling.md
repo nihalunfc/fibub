@@ -33,6 +33,10 @@ sources:
 
 Two electrons round a nucleus of charge `$Ze$`. Ignore the repulsion and each electron is hydrogen-like: the ground state 1s² has energy `$-2Z^2(13.6)$` eV, `$-108.8$` eV for helium. The measured value is `$-79.0$` eV, so the repulsion is a big effect, not a small one.
 
+Switch the type between distinguishable particles, bosons and fermions for the orbital pair 1 and 2.
+
+<figure class="fig" data-fig="@qm-exchange-2d"><figcaption>Fermions avoid the diagonal x₁ = x₂ (the Pauli hole) and bosons gather on it, changing the average separation of the pair.</figcaption></figure>
+
 **First-order perturbation.** The expectation value of `$e^2/(4\pi\varepsilon_0 r_{12})$` in the 1s² state is `$\tfrac54 Z(13.6)$` eV = 34 eV for helium, giving `$-74.8$` eV.
 
 **Variational estimate.** Each electron screens the nucleus from the other. Try hydrogen-like orbitals with an effective charge `$Z'$` and minimise the energy: `$Z' = Z - \tfrac{5}{16}$`, and
@@ -71,6 +75,10 @@ When the residual electrostatic term is larger, as in light atoms, the orbital m
 ```
 
 and each level has `$2J+1$` states. The superscript `$2S+1$` is the multiplicity; when `$L < S$` the term has only `$2L+1$` levels, but the name keeps `$2S+1$`.
+
+Pick l, s, j and m_j, switch the field on and off, and drag the picture to turn it.
+
+<figure class="fig" data-fig="@qm-vector-model"><figcaption>L and S circle quickly about J while J circles slowly about B. Only the lengths √(x(x+1)) and the z-component m_j are fixed, and g_J sets the Zeeman splitting.</figcaption></figure>
 
 **Non-equivalent electrons** (different `$n$` or `$l$`) combine freely. For `$np\,n'p$`: `$L = 0, 1, 2$` and `$S = 0, 1$`, all six terms ¹S, ¹P, ¹D, ³S, ³P, ³D, with 36 states.
 

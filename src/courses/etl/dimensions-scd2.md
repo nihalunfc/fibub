@@ -39,6 +39,11 @@ The Power BI course shows how a report uses a date table in [A proper date table
 
 A surrogate key is like a library's own barcode on a book: the publisher may reprint the book with a new ISBN, but the barcode on the shelf copy stays the same.
 
+Switch between Type 1, 2 and 3 and read the sales-by-city report each time.
+
+<figure class="fig" data-fig="@data-scd-types"><figcaption>Notice which method keeps last year's sales in Pune and which rewrites history.</figcaption></figure>
+
+
 ## 3. The date dimension
 
 One row per date, **generated** (never loaded from a source), covering every date a fact could have plus a few years ahead.

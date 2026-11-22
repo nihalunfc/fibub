@@ -41,6 +41,11 @@ sources:
 3. When you find it, **stop and read carefully** the sentence before, the sentence itself and the sentence after.
 4. If the question has no findable word, use your paragraph notes from skimming to choose where to look.
 
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
+
 ## 3. Worked example
 
 Question: *"Britain has around 270 species of bee."* True, False or Not Given?
@@ -56,6 +61,11 @@ That took about 15 seconds, without reading the rest of the passage.
 **"Skimming means reading fast."** Skimming means reading **selectively**: titles, first sentences, the end. If you read every word quickly, you understand less and remember little.
 
 </div>
+
+
+Slide the speed and press Play to watch the highlighter move at that pace.
+
+<figure class="fig" data-fig="@lang-reading-speed"><figcaption>Notice how long a full passage takes at your speed, and why the timed papers need skimming and scanning.</figcaption></figure>
 
 ## 4. Drills
 

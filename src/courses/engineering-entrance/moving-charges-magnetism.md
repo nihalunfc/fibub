@@ -63,6 +63,18 @@ If v makes an angle θ with B, split it: `$v\sin\theta$` makes the circle (radiu
 
 **Cyclotron.** Two D-shaped boxes in a field B, with an AC voltage across the gap at the cyclotron frequency qB/(2πm). The particle gains energy each half-turn in the gap, its radius grows, and it leaves at the rim radius R with `$K_{\max} = \dfrac{q^2B^2R^2}{2m}$`. It cannot speed electrons much, because their mass grows with speed (relativity) and they fall out of step.
 
+Change the angle between the velocity and B. At 90° the path is a circle; at any other angle it is a helix. Drag to turn the view, and switch to the electron.
+
+<figure class="fig" data-fig="@em-helix-b"><figcaption>Only the component across B turns; the component along B carries on, so the path winds along the field. The period does not depend on speed.</figcaption></figure>
+
+Release the charge from rest, then set its start speed to E/B and see it go straight. Flip the sign of the charge.
+
+<figure class="fig" data-fig="@em-crossed-eb"><figcaption>A cycloid drifts at E/B whatever the charge. A start speed of exactly E/B passes straight through: that is a velocity selector.</figcaption></figure>
+
+Change B, the dee radius and the gap voltage. Watch the proton spiral outwards, getting a push at every gap crossing.
+
+<figure class="fig" data-fig="@em-cyclotron"><figcaption>The time per half-turn stays the same as the circles grow, so a fixed frequency keeps pushing it. Final energy depends on B and R, not on the gap voltage.</figcaption></figure>
+
 ## 3. Biot-Savart law: fields of currents
 
 A small piece dl of a wire with current I makes a field `$dB = \dfrac{\mu_0}{4\pi}\,\dfrac{I\,dl\sin\theta}{r^2}$`, circling the wire. Adding up the pieces gives:
@@ -76,6 +88,10 @@ A small piece dl of a wire with current I makes a field `$dB = \dfrac{\mu_0}{4\p
 | Axis of a loop, distance x | `$\dfrac{\mu_0 IR^2}{2(R^2 + x^2)^{3/2}}$` |
 
 The straight-wire field lines are circles round the wire (curl your right hand's fingers with the thumb along I). Far along its axis, a loop's field falls as 1/x³: a loop is a **magnetic dipole** of moment m = NIA.
+
+Switch between a wire, a loop and a solenoid, reverse the current, and tap the picture to read B. The red end of each needle is its north pole.
+
+<figure class="fig" data-fig="@em-biot-savart"><figcaption>A wire's field circles it; a loop's field threads through it; a solenoid has a nearly uniform field inside and almost none outside.</figcaption></figure>
 
 ## 4. Ampère's law: solenoids and toroids
 
@@ -108,6 +124,10 @@ A **moving coil galvanometer** uses a radial field (so θ = 90° always) and a s
 <div class="problem" data-problem="mc-shunt"></div>
 
 **Worked example (level 4).** An electron moving at 2 × 10⁶ m/s enters a 1 mT field at 60° to it. Radius `$= \dfrac{9.1\times10^{-31}\times 2\times10^6 \times \sin60°}{1.6\times10^{-19}\times10^{-3}} \approx 9.9$` mm. Period `$2\pi m/(qB) \approx 3.6\times10^{-8}$` s. Pitch = (2 × 10⁶ × cos 60°) × 3.6 × 10⁻⁸ ≈ **3.6 cm**.
+
+Press play with the slip rings, then with the split ring. Change N, I and B and watch the torque curve change size.
+
+<figure class="fig" data-fig="@em-loop-torque"><figcaption>The torque is largest when the loop is edge-on to B and zero when face-on. The commutator reverses the current at that point, which keeps a motor turning.</figcaption></figure>
 
 <div class="keypoints">
 

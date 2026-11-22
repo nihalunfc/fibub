@@ -51,6 +51,10 @@ sources:
 
 </div>
 
+**Try it:** Slide the balance sheet items and watch each ratio move through its comfortable zone.
+
+<figure class="fig" data-fig="@tp-ratio-gauges"><figcaption>Raise the stock and watch the current ratio rise while the quick ratio does not.</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-accountancy" data-topics="ratios" data-n="10" data-mode="practice" data-type="mcq"></div>

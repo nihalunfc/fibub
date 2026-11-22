@@ -74,6 +74,16 @@ A coil in a radial field feels torque τ = NIAB, balanced by a spring kφ, so th
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@em-helix-b"><figcaption>Charged particle in a uniform B in 3D (drag to turn), circle to helix with the angle, proton or electron.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-biot-savart"><figcaption>Compass-needle field maps of a wire, a loop and a solenoid computed by Biot-Savart summation; tap to read B.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-loop-torque"><figcaption>3D current loop in B, slip rings against split-ring commutator, with the torque curve.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="moving-charges-magnetism,magnetism-matter" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

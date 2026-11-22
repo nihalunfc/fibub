@@ -69,6 +69,10 @@ P = 1 - (1 - p)^n
 **Try it:** four sites each 60% clear: `$1 - 0.4^4 = 0.97$`, a 97% chance someone sees it.
 </details>
 
+Click through the seven steps of a small project, from question to result.
+
+<figure class="fig" data-fig="@astro-research-steps"><figcaption>Each box shows what you hold at that stage (the values are invented). Skipping the cleaning or the uncertainty step is the most common way to get a wrong answer.</figcaption></figure>
+
 ## 3. What it means physically
 
 Time on Earth is local: when it's noon in one place it's midnight somewhere else, and weather is patchy. A network turns the planet itself into one big observatory that never closes. What makes it work is standards: everyone times with the same clock, uses comparison stars from the same catalogue and reports in the same format, so the measurements can be stitched together.

@@ -44,6 +44,10 @@ sources:
 
 </div>
 
+**Try it:** Move investment or the MPC and see where aggregate demand meets the 45-degree line.
+
+<figure class="fig" data-fig="@tp-income-expenditure"><figcaption>A steeper AD line (higher MPC) gives a bigger multiplier; the dashed line marks full employment.</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-economics" data-topics="employment-environment" data-n="10" data-mode="practice" data-type="mcq"></div>

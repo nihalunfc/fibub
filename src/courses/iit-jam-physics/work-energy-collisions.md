@@ -40,6 +40,10 @@ Only the part of the force along the motion does work. A string holding a stone 
 
 **Worked example.** `$F = 3x^2$` N acts along `$x$`. From `$x = 0$` to `$x = 2$` m: `$W = \int_0^2 3x^2\,dx = [x^3]_0^2 = 8$` J. Multiplying the final force (12 N) by the distance (2 m) would give 24 J, which is wrong because the force was smaller earlier.
 
+Slide the rope angle and watch the work done by the pull. Then raise the friction μ and see which angle gives the largest net push.
+
+<figure class="fig" data-fig="@mech-work-angle"><figcaption>Work is F d cos φ, so only the part of the pull along the motion counts. The upward part reduces the normal force and friction: the best angle satisfies tan φ = μ.</figcaption></figure>
+
 ## 2. Kinetic energy and the work-energy theorem
 
 Put `$\vec F = m\,d\vec v/dt$` into the work integral and you get a result that holds for **every** kind of force:
@@ -79,6 +83,10 @@ Gravity, springs and electrostatic forces pass; friction and drag fail. For cons
 1. Equilibria: `$U'(x) = 4x^3 - 4x = 0$` at `$x = 0, \pm1$`.
 2. `$U''(x) = 12x^2 - 4$`: at `$x = \pm1$` it is 8 (valleys, stable); at `$x = 0$` it is `$-4$` (a hilltop).
 3. Near `$x = 1$`, `$U \approx U(1) + \tfrac12(8)(x - 1)^2$`: a spring of stiffness 8 N/m, so `$\omega = \sqrt{8/0.5} = 4$` rad/s.
+
+Drag the ball to a new starting point, press Play, and then switch the friction on.
+
+<figure class="fig" data-fig="@mech-potential-landscape"><figcaption>The force is the downhill slope of U. The ball can only go where U ≤ E, so it turns back at the dots; valleys are stable, hilltops unstable.</figcaption></figure>
 
 ## 4. Momentum and the centre of mass
 
@@ -135,6 +143,10 @@ v_1 = \frac{m_1 - e\,m_2}{m_1 + m_2}\,u, \qquad v_2 = \frac{(1 + e)\,m_1}{m_1 + 
 **"In a perfectly inelastic collision all the kinetic energy is lost."** Only if the centre of mass was at rest. A moving lump of clay that sticks to a cart still leaves the pair moving, because momentum must be conserved. The energy lost is `$\tfrac12\mu v_{\rm rel}^2$`, the CM-frame energy, which is always less than the lab kinetic energy unless the total momentum is zero.
 
 </div>
+
+Run the collision in the lab frame, then switch to the centre-of-mass frame. Slide e from 1 to 0.
+
+<figure class="fig" data-fig="@mech-collision-frames"><figcaption>In the centre-of-mass frame the total momentum is zero and each block just reverses with its speed times e. The diamond (centre of mass) moves at a steady speed in the lab and is why momentum is conserved.</figcaption></figure>
 
 ## 6. Collisions in two dimensions
 

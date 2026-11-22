@@ -59,6 +59,16 @@ with psycopg.connect("postgresql://postgres:pg@localhost:5432/postgres") as con,
 
 `on conflict` needs a primary key or unique constraint on `(ad_date, campaign_id)`. `excluded` means "the row you tried to insert". `is distinct from` is a null-safe "not equal", so unchanged rows are skipped. (Keep the column order of the staging table and target the same, or list the columns.)
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. DuckDB
 
 DuckDB runs inside your Python process: no server, one file.

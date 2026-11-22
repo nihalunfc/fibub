@@ -2,12 +2,12 @@
 // you or away from you). The field lines are concentric circles. Right-hand thumb rule: thumb along the current, curled
 // fingers show the direction of the field. The strength is B = (mu0/2pi) I/r = 2 x 10^-7 x I / r tesla (r in metres): it
 // grows with the current and falls with distance. A compass needle lines up with the field (drag it around the wire).
-import { canvas, text, title, line, dot, arrow, row, slider, choice, readout, loop } from '../../kit.js';
+import { canvas, text, title, line, dot, arrow, row, slider, choice, readout, loop, touchGuard } from '../../kit.js';
 
 export default function (host) {
-  let I = 5, out = true, comp = null, t = 0;
+  let I = 5, out = true, comp = null, t = 0; let cpos = null;
   const cv = canvas(host, { aspect: 0.82, max: 440, min: 290, label: 'Circular magnetic field lines around a straight wire carrying current' });
-  cv.c.style.touchAction = 'none'; cv.c.style.cursor = 'crosshair';
+  cv.c.style.cursor = 'crosshair'; touchGuard(cv.c, (x, y) => !!cpos && Math.hypot(x - cpos[0], y - cpos[1]) < 28);
   const ctl = row(host);
   choice(ctl, 'Current is', [['out', 'Towards you (⊙)'], ['in', 'Away from you (⊗)']], 'out', (v) => { out = v === 'out'; update(); });
   slider(ctl, { label: 'Current', min: 0.5, max: 10, step: 0.5, value: I, fmt: (v) => `${v} A`, oninput: (v) => { I = v; update(); } });
@@ -33,6 +33,7 @@ export default function (host) {
     text(ctx, out ? 'current ⊙ out of page' : 'current ⊗ into page', cx, cy + 156 > h - 14 ? h - 14 : cy + 156, { color: col.muted, size: 10.5, align: 'center' });
     // the compass
     const c = comp || [cx + 80, cy], dx = c[0] - cx, dy = c[1] - cy, tt = tan(dx, dy), L = Math.hypot(tt[0], tt[1]) || 1, d = [tt[0] / L, tt[1] / L], ang = Math.atan2(d[1], d[0]);
+    cpos = c;
     ctx.save(); ctx.translate(c[0], c[1]); ctx.fillStyle = col.panel; ctx.strokeStyle = col.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 17, 0, 7); ctx.fill(); ctx.stroke(); ctx.rotate(ang);
     ctx.fillStyle = '#e5241d'; ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-2, -5); ctx.lineTo(-2, 5); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#2a6df4'; ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(2, -5); ctx.lineTo(2, 5); ctx.closePath(); ctx.fill(); ctx.restore();
     text(ctx, 'drag the compass', c[0], c[1] - 26, { color: col.muted, size: 10, align: 'center', halo: col.panel });

@@ -40,6 +40,10 @@ For a complex square matrix, `$A^\dagger$` is the conjugate transpose. Four kind
 | unitary | `$U^\dagger U = I$` | modulus 1 (on the unit circle) |
 | normal | `$AA^\dagger = A^\dagger A$` | anywhere |
 
+Choose two transformations and press Apply, then press 'Swap the order' and apply them again.
+
+<figure class="fig" data-fig="@math-matrix-compose"><figcaption>Notice that the letter F ends up in different places when the order is swapped (AB ≠ BA) and that the area is multiplied by the determinant at each stage.</figcaption></figure>
+
 All three special kinds are **normal**, and normality is exactly the condition for being diagonalised by a unitary matrix. The eigenvalue facts take one line each:
 
 - Hermitian: `$\lambda\langle v|v\rangle = \langle v|Hv\rangle = \langle Hv|v\rangle = \lambda^*\langle v|v\rangle$`, so `$\lambda$` is real.
@@ -67,6 +71,10 @@ If `$A$` is normal, its normalised eigenvectors are orthonormal and can be put a
 ```math
 A = UDU^\dagger, \qquad D = \text{diag}(\lambda_1, \dots, \lambda_n), \qquad A = \sum_k \lambda_k P_k \ \text{ with } P_k = |k\rangle\langle k|
 ```
+
+Turn the axes with the θ slider and change σx, σy and τ.
+
+<figure class="fig" data-fig="@math-mohr-tensor"><figcaption>Notice that the components change as the axes turn but the trace does not, and that the point on the Mohr circle meets the horizontal axis at the principal (eigen) values.</figcaption></figure>
 
 The second form, the **spectral decomposition**, is the most useful: the projectors `$P_k$` satisfy `$P_jP_k = \delta_{jk}P_k$` and `$\sum P_k = I$`, so any function acts eigenvalue by eigenvalue:
 

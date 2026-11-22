@@ -71,6 +71,14 @@ Pregnancy lasts about 9 months. The placenta passes food and oxygen, removes was
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-gametogenesis"><figcaption>Spermatogenesis against oogenesis with a stage control: four sperm from one cell, one egg and polar bodies.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-embryo-stages"><figcaption>Step player from zygote to cleavage, morula, blastocyst and implantation along the fallopian tube.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="human-reproduction,reproductive-health" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -75,6 +75,10 @@ P^2 = \frac{4\pi^2}{G M}\,a^3
 **Try it:** Earth around the Sun, `$GM_\odot = 1.327\times10^{20}$` m³/s², `$r = 1.496\times10^{11}$` m: `$v = \sqrt{1.327\times10^{20}/1.496\times10^{11}} = 29.8$` km/s.
 </details>
 
+Choose a mass ratio, press Release near L4 (or L1, L2) and then Play to watch a test particle.
+
+<figure class="fig" data-fig="@astro-lagrange"><figcaption>Near L4 and L5 the particle circles in a stable path as long as the planet has under 3.85% of the mass; near L1 and L2 it drifts away unless corrected. That is why Trojan asteroids gather at Jupiter's L4 and L5 and why JWST sits at the Sun-Earth L2.</figcaption></figure>
+
 ## 3. What it means physically
 
 Gravity weakens with distance squared for the same reason light does (Lesson 1.5): its influence spreads over a sphere. The small mass `$m$` cancels out of the orbit formula, which is why a feather and a space station at the same height orbit at the same speed. And because only the central mass `$M$` is left, measuring `$a$` and `$P$` of any orbiting thing weighs the central body.
@@ -96,6 +100,10 @@ Gravity weakens with distance squared for the same reason light does (Lesson 1.5
 **"There is no gravity in space."** Gravity reaches everywhere, just weaker with distance. The Sun's gravity holds Neptune 4.5 billion km away. Astronauts feel weightless because they are falling freely, not because gravity has stopped.
 
 </div>
+
+Choose a Moon age and press Play: the Earth turns under the two bulges, and the curve shows the tide at your place.
+
+<figure class="fig" data-fig="@astro-tides"><figcaption>Two high tides a day because there is a bulge on the Moon side and one opposite. At new and full Moon the Sun's smaller bulges add up (spring tides); at the quarters they cross (neap tides). Bulges are drawn hugely exaggerated.</figcaption></figure>
 
 ## 4. Worked example
 

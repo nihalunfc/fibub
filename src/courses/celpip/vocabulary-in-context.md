@@ -35,6 +35,11 @@ You also meet these words inside the questions and options. A question might ask
 
 **An everyday analogy.** Think of a jigsaw puzzle with one piece missing. You can still see the picture. You know the missing piece is part of the sky because blue pieces surround it. An unknown word is the missing piece, and the words around it show you its colour.
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 2. Step one: does the word matter?
 
 Before you try to work out a word, ask: **does the question need it?** If a question asks *when* the ferry leaves, and the unknown word is in a sentence about the weather, skip it. Many words you do not know are decoration: descriptions, examples, adjectives that add colour but not facts.

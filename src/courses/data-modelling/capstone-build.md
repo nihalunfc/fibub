@@ -96,6 +96,11 @@ WHERE type = 'table' AND (name LIKE 'dim_%' OR name LIKE 'fact_%' OR name = 'loa
 
 Ten tables. In SQL Server you would write `INT IDENTITY(1,1)` for the surrogate keys and `DECIMAL(12,2)` for money; in PostgreSQL `INT GENERATED ALWAYS AS IDENTITY` and `NUMERIC(12,2)`.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Step 2: staging (02_staging.sql)
 
 One view per source table: rename, trim, fix case, handle NULLs, compute the line value once.

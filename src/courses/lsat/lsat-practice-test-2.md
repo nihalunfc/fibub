@@ -30,6 +30,10 @@ sources:
 
 <div class="qbank" data-bank="lsat" data-exam="lsat" data-mode="mock" data-pattern="lsat-lr"></div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="lsat"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Reading Comprehension (35 minutes)
 
 <div class="steps">

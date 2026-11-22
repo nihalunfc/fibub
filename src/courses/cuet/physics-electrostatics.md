@@ -75,6 +75,16 @@ Potential V = kq/r is a number, not an arrow, so potentials from many charges si
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@em-field-lines"><figcaption>Draggable point charges with field lines, equipotentials and arrows, and a pointer readout of V and E.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-gauss-surface"><figcaption>Gauss's law with a resizable sphere and draggable charges; flux summed numerically and compared with Q_enc/ε₀.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-cap-network"><figcaption>Two capacitors in series or parallel with charge, voltage and energy bars.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="electric-charges-fields,potential-capacitance" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

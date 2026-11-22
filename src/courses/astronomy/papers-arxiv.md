@@ -62,6 +62,10 @@ Read a new exoplanet paper in three passes:
 **Try it:** two measurements of H₀, `$73.0 \pm 1.0$` and `$67.4 \pm 0.5$`: `$\Delta = 5.6$`, `$\sigma = \sqrt{1.0^2 + 0.5^2} = 1.12$`, so `$5.0\sigma$`. That is the Hubble tension, explored in the [cosmology course](/learn/courses/cosmology/).
 </details>
 
+Click through the seven steps of a small project, from question to result.
+
+<figure class="fig" data-fig="@astro-research-steps"><figcaption>Each box shows what you hold at that stage (the values are invented). Skipping the cleaning or the uncertainty step is the most common way to get a wrong answer.</figcaption></figure>
+
 ## 3. What it means physically
 
 A paper is an argument: here is what we measured, here is how, here is what it means, and here is why other explanations don't fit. Peer review checks the argument but doesn't guarantee it is right; science corrects itself when others repeat the work with new data. That is why the data section, and open archives (Lesson 5.6), matter so much.

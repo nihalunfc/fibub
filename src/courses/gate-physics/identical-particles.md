@@ -94,6 +94,10 @@ Symmetry changes where the particles are, even without any force between them. F
 
 The last term is the exchange term. Bosons (upper sign) sit closer together than distinguishable particles, fermions (lower sign) further apart, as if there were a force. It matters only when the two wavefunctions overlap, so that `$\langle x\rangle_{ab} \ne 0$`.
 
+Switch the type between distinguishable particles, bosons and fermions for the orbital pair 1 and 2.
+
+<figure class="fig" data-fig="@qm-exchange-2d"><figcaption>Fermions avoid the diagonal x₁ = x₂ (the Pauli hole) and bosons gather on it, changing the average separation of the pair.</figcaption></figure>
+
 **Worked example (levels 1 and 2 of a well of width a).** `$\langle x\rangle_{12} = -\dfrac{16a}{9\pi^2} = -0.180a$` and `$\langle x^2\rangle_n = a^2\left(\tfrac13 - \tfrac{1}{2n^2\pi^2}\right)$`. So `$\langle(x_1 - x_2)^2\rangle$` is `$0.103a^2$` for distinguishable particles, `$0.038a^2$` for bosons and `$0.168a^2$` for spinless fermions. The probability that both are in the left half is `$\tfrac14$` for distinguishable particles, `$\tfrac14 \pm \left(\tfrac{4}{3\pi}\right)^2$` for bosons and fermions: 0.430 and 0.070.
 
 <figure class="fig" data-fig="exchange-density"><figcaption>The joint probability density of two particles in a well, one in each of two levels, with x₁ across and x₂ up. Distinguishable particles give a plain product; bosons pile up along the diagonal x₁ = x₂; fermions leave it empty. The readout gives the mean squared separation and the probability that both are in the left half.</figcaption></figure>

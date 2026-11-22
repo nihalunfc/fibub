@@ -44,6 +44,17 @@ sources:
 
 **Prevention**: clean water, safe food, waste disposal, disinfecting reservoirs, no stagnant water (mosquito breeding), mosquito nets, larva-eating fish such as *Gambusia* in ponds, insecticide spraying, and vaccines. Ronald Ross showed that mosquitoes carry malaria; William Harvey described blood circulation and showed that normal body temperature is constant; Edward Jenner made the first vaccine (smallpox), and smallpox has since been eradicated.
 
+Step through the life cycle of Plasmodium in humans and in the mosquito.
+
+<div class="steps" data-fig="@bio-malaria-cycle">
+<div class="step"><b>Bite.</b> An infected female Anopheles injects sporozoites.</div>
+<div class="step"><b>Liver.</b> Sporozoites multiply in liver cells and release merozoites.</div>
+<div class="step"><b>Red blood cells.</b> Merozoites enter red cells and multiply.</div>
+<div class="step"><b>Burst.</b> Infected cells rupture, releasing haemozoin: fever and chills every 48 or 72 hours.</div>
+<div class="step"><b>Gametocytes</b> form in the blood and are taken up by a mosquito.</div>
+<div class="step"><b>In the mosquito</b> they fuse, form an oocyst and then sporozoites, ready for the next bite.</div>
+</div>
+
 ## 2. Immunity
 
 **Innate immunity** (present from birth, non-specific) has four barriers:
@@ -77,6 +88,10 @@ sources:
 **"Vaccines give passive immunity because the person does nothing."** The body makes its own antibodies and memory cells after a vaccine, so it is active immunity. Passive means ready-made antibodies.
 
 </div>
+
+Move the day of the second dose and switch between a vaccine and an infection.
+
+<figure class="fig" data-fig="@bio-vaccine-response"><figcaption>The secondary response is faster and larger because memory cells remain: this is the principle of vaccination and boosters.</figcaption></figure>
 
 ## 3. AIDS
 

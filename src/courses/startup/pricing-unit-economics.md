@@ -39,6 +39,10 @@ Start with value, check against competitors, and make sure it beats cost by a wi
 
 > **Key idea:** Prices you quote to customers are *before* sales tax unless you say "tax included". GST, HST and US sales tax belong to the government (Module 7). Retail prices in India are usually shown tax-inclusive (MRP), while Canadian and US shelf prices usually exclude tax.
 
+Try it: change the price and the price sensitivity, and switch between buyers, revenue and profit.
+
+<figure class="fig" data-fig="@biz-elasticity"><figcaption>Notice that the price with the most revenue is not the price with the most profit.</figcaption></figure>
+
 ## 2. Unit economics: one customer at a time
 
 | Term | Meaning | Formula |
@@ -85,6 +89,14 @@ Start with value, check against competitors, and make sure it beats cost by a wi
 </div>
 
 <div class="problem" data-problem="pricing-unit-economics-ltv"></div>
+
+Try it: set the churn and the cost of winning a customer, then see how long the customer takes to pay you back.
+
+<figure class="fig" data-fig="@biz-ltv-cac"><figcaption>Notice that the curve flattens at LTV: customers who leave stop paying.</figcaption></figure>
+
+Try it: raise the fixed costs and see how many more sales you need before the business stops losing money.
+
+<figure class="fig" data-fig="@biz-breakeven"><figcaption>Notice the margin of safety: the gap between the units you expect and the break-even point.</figcaption></figure>
 
 ## 3. Worked example
 

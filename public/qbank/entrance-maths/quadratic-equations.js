@@ -953,4 +953,125 @@ gens.push(
 
 }
 // ==XP-END
+// ==L5-BEGIN (level 5 round: new top-rank items, groups and templates)
+{
+const LR = String.raw;
+const LEX = ['jee-adv'];
+let _v = 0; const LPOS = [3, 1, 0, 2, 2, 0, 1, 3, 0, 2];
+let _vp = 0;
+const lid = () => `qe-v5${String(++_v).padStart(2, '0')}`;
+const lpl = (c, w) => { const p = LPOS[_vp++ % LPOS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const lmk = (sub, extra) => ({ id: lid(), level: 5, exams: LEX, sub, ...extra });
+const LI = (s, q, a, sol, trap, calc) => lmk(s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const LN = (s, q, a, tol, sol, trap, calc) => lmk(s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const LX = (s, q, options, answer, sol, trap) => lmk(s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const LAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const LA = (s, a, r, answer, sol, trap) => lmk(s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: LAO, answer, sol, trap });
+const LSC = (s, lines, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...lpl(c, w), sol, trap });
+const LMT = (s, group, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...lpl(c, w), sol, trap });
+const LPM = (s, group, q, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'passage', group, q, ...lpl(c, w), sol, trap });
+const LPI = (s, group, q, a, sol, trap, calc) => lmk(s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const LG = (id, type, format, sub, make, verify) => ({ id, type, format, level: 5, exams: LEX, sub, make, ...(verify ? { verify } : {}) });
+
+Object.assign(groups, {
+  v5m1: { title: 'Number of real solutions', passage: LR`<p>Match each equation in List I with the number of its real solutions in List II.</p>`,
+    list1: ['A. $2^x=x^2$', 'B. $x^2-4|x|+3=0$', 'C. $\\sqrt{x+2}=x$', 'D. $x^2=\\sin x$'],
+    list2: ['p. 1', 'q. 2', 'r. 3', 's. 4', 't. 0'] },
+  v5m2: { title: 'A parameter in a quadratic', passage: LR`<p>Let $f(x)=x^2-2(k-1)x+(k+5)$ with $k$ real. Match each condition in List I with the set of values of $k$ in List II.</p>`,
+    list1: ['A. $f(x)=0$ has real roots', 'B. both roots of $f(x)=0$ are positive', 'C. both roots of $f(x)=0$ are greater than $2$', 'D. the number $2$ lies strictly between the two roots'],
+    list2: ['p. $k<-5$', 'q. $[4,\\infty)$', 'r. $(-\\infty,-1]\\cup[4,\\infty)$', 's. $\\left[4,\\tfrac{13}3\\right)$', 't. $\\left(\\tfrac{13}3,\\infty\\right)$'] },
+  v5p1: { title: 'Passage: roots on a circle', passage: LR`<p>Let $\alpha,\beta$ be the roots of $x^2-2x+4=0$.</p>` },
+});
+
+items.push(
+  LI('integer solutions', LR`For how many integers $n$ (positive, zero or negative) is $n^2+8n-29$ a perfect square?`, 6,
+    LR`<p>Idea: complete the square and factor a difference of squares.</p><p>$n^2+8n-29=(n+4)^2-45$. If this equals $m^2$ ($m\ge0$), then $(n+4)^2-m^2=45$, so $(n+4-m)(n+4+m)=45$.</p><p>The two factors have the same parity (their sum is $2(n+4)$) and $45$ is odd, so both are odd. The factor pairs with product $45$ and first $\le$ second are $(1,45),(3,15),(5,9)$.</p><p>Then $n+4=\dfrac{a+b}2=23,\ 9,\ 7$ and also the negatives $-23,-9,-7$ (take the negative factor pairs). So $n=19,5,3,-27,-13,-11$.</p><p>That is $6$ integers.</p>`,
+    'Stopping at the three positive values of $n+4$; the square $(n+4)^2$ is the same for $n+4$ and $-(n+4)$.',
+    () => { let c = 0; for (let n = -300; n <= 300; n++) { const v = n * n + 8 * n - 29; if (v >= 0 && Number.isInteger(Math.sqrt(v))) c++; } return c; }),
+  LI('bounds on a quadratic', LR`A real quadratic $f(x)=ax^2+bx+c$ satisfies $|f(x)|\le1$ for every $x$ in $[0,1]$. Find the greatest possible value of $|a|+|b|+|c|$.`, 17,
+    LR`<p>Idea: write $a,b,c$ in terms of three values of $f$.</p><p>Let $p=f(0)=c$, $q=f(\frac12)=\frac a4+\frac b2+c$, $r=f(1)=a+b+c$. Solving: $c=p$, $a=2p-4q+2r$, $b=-3p+4q-r$.</p><p>Since $|p|,|q|,|r|\le1$:</p><p>$|a|+|b|+|c|\le(2+3+1)|p|+(4+4)|q|+(2+1)|r|\le6+8+3=17$.</p><p>Equality needs $p=1$, $q=-1$, $r=1$: $f(x)=8x^2-8x+1$. This has $|f|\le1$ on $[0,1]$ (it is $T_2(2x-1)=\cos(2\arccos(2x-1))$) and $|a|+|b|+|c|=8+8+1=17$.</p>`,
+    'Using only $f(0)$ and $f(1)$ misses the middle value $f(\\tfrac12)$; a quadratic is fixed by three values, and the extreme case alternates $+1,-1,+1$.',
+    () => { let best = 0; for (const p of [-1, 1]) for (const q of [-1, 1]) for (const r of [-1, 1]) best = Math.max(best, Math.abs(2 * p - 4 * q + 2 * r) + Math.abs(-3 * p + 4 * q - r) + Math.abs(p)); return best; }),
+  LI('complex coefficients', LR`For real $k$, the equation $x^2-(5+i)x+(6+ki)=0$ has at least one real root. Find the sum of all possible values of $k$.`, 5,
+    LR`<p>Idea: a real $x$ must satisfy the real and imaginary parts separately.</p><p>Real part: $x^2-5x+6=0$, so $x=2$ or $x=3$. Imaginary part: $-x+k=0$, so $k=x$.</p><p>Both work: $k=2$ (real root $2$, other root $3+i$) and $k=3$ (real root $3$, other root $2+i$).</p><p>Sum of the values of $k$: $2+3=5$.</p>`,
+    'Using "non-real roots occur in conjugate pairs", which only holds for real coefficients. Here the coefficients are complex, so a root can be real while the other is not.',
+    () => { let s = 0; for (let k = -20; k <= 20; k++) { for (const x of [2, 3]) { const re = x * x - 5 * x + 6, im = -x + k; if (re === 0 && im === 0) { s += k; break; } } } return s; }),
+  LN('least value of a sum of roots', LR`Find the least value of $\sqrt{x^2-2x+5}+\sqrt{x^2-10x+34}$ for real $x$ (2 decimal places).`, 6.4, 0.01,
+    LR`<p>Idea: complete the squares to turn it into a sum of distances.</p><p>$x^2-2x+5=(x-1)^2+2^2$ and $x^2-10x+34=(x-5)^2+3^2$. So the expression is the distance from $(x,0)$ to $(1,2)$ plus the distance from $(x,0)$ to $(5,-3)$ (taking the second point below the axis).</p><p>The sum of the two distances is smallest when $(x,0)$ lies on the straight segment joining them, giving the distance between the points: $\sqrt{(5-1)^2+(-3-2)^2}=\sqrt{41}\approx6.40$.</p><p>The segment crosses the x-axis between the points, so this minimum is attained.</p>`,
+    'Choosing both points on the same side of the axis gives $\\sqrt{16+1}$, which is the wrong geometry; one point must be reflected to the other side.',
+    () => { let m = 1e9; for (let x = -10; x < 20; x += 0.0005) m = Math.min(m, Math.sqrt((x - 1) ** 2 + 4) + Math.sqrt((x - 5) ** 2 + 9)); return +m.toFixed(2); }),
+  LN('probability and quadratics', LR`The numbers $a,b,c$ are obtained by rolling a fair die three times (in that order). Find the probability that $ax^2+bx+c=0$ has real roots (3 decimal places).`, 0.199, 0.002,
+    LR`<p>Real roots need $b^2\ge4ac$. For each $b$ count the pairs $(a,c)$ with $ac\le\frac{b^2}{4}$:</p><ul><li>$b=1$: $ac\le0.25$: none. $0$</li><li>$b=2$: $ac\le1$: $(1,1)$. $1$</li><li>$b=3$: $ac\le2.25$: $ac\in\{1,2\}$: $(1,1),(1,2),(2,1)$. $3$</li><li>$b=4$: $ac\le4$: $(1,1),(1,2),(2,1),(1,3),(3,1),(1,4),(4,1),(2,2)$. $8$</li><li>$b=5$: $ac\le6$: $6+3+2+1+1+1=14$ (for $a=1,\dots,6$)</li><li>$b=6$: $ac\le9$: $6+4+3+2+1+1=17$</li></ul><p>Total $0+1+3+8+14+17=43$ out of $6^3=216$.</p><p>Probability $=\dfrac{43}{216}\approx0.199$.</p>`,
+    'Forgetting that $b^2=4ac$ (equal roots) also counts as real, e.g. $(a,b,c)=(1,2,1)$ and $(1,4,4)$.',
+    () => { let k = 0; for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) for (let c = 1; c <= 6; c++) if (b * b >= 4 * a * c) k++; return +(k / 216).toFixed(3); }),
+  LX('roots equal to coefficients', LR`Real numbers $p,q$ are such that the roots of $x^2+px+q=0$ are exactly $p$ and $q$ (in some order). Which of the following are true?`,
+    ['$(p,q)=(0,0)$ satisfies the condition', '$(p,q)=(1,-2)$ satisfies the condition', '$(p,q)=(-2,1)$ satisfies the condition', 'There are exactly two such pairs $(p,q)$'],
+    [0, 1, 3],
+    LR`<p>Vieta with roots $p,q$: sum $p+q=-p$ and product $pq=q$.</p><p>From $pq=q$: $q(p-1)=0$, so $q=0$ or $p=1$.</p><ul><li>$q=0$: $p+0=-p$ gives $p=0$. The pair $(0,0)$ (equation $x^2=0$, both roots $0$).</li><li>$p=1$: $1+q=-1$, so $q=-2$. The pair $(1,-2)$: $x^2+x-2=(x+2)(x-1)$, roots $-2,1$.</li></ul><p>$(-2,1)$: $x^2-2x+1$ has roots $1,1$, not $-2,1$. False.</p><p>So exactly two pairs: options 1, 2 and 4 are true.</p>`,
+    'Dividing $pq=q$ by $q$ and losing the solution $q=0$, hence the pair $(0,0)$.'),
+  LX('quadratic positive on an interval', LR`For which values of $a$ is $x^2-2ax+a+2>0$ for <b>every</b> $x$ in the closed interval $[0,2]$?`,
+    ['$a=-2$', '$a=-1$', '$a=1.9$', '$a=2$', '$a=0.5$'],
+    [1, 2, 4],
+    LR`<p>Idea: the minimum of the quadratic on $[0,2]$ depends on where its vertex $x=a$ is.</p><ul><li>$a<0$: the minimum is $f(0)=a+2$, so we need $a>-2$.</li><li>$0\le a\le2$: the minimum is at the vertex, $f(a)=-a^2+a+2=-(a-2)(a+1)>0$, so $-1<a<2$.</li><li>$a>2$: the minimum is $f(2)=6-3a>0$ needs $a<2$: impossible.</li></ul><p>Together: $-2<a<2$.</p><p>$a=-2$: $f(0)=0$, not positive. $a=2$: $f(2)=0$. $a=-1$, $1.9$, $0.5$: inside $(-2,2)$.</p>`,
+    'Using only the discriminant ($-1<a<2$ for positive on all of $\\mathbb R$) would wrongly reject $a=-1$, which works here because the vertex lies outside $[0,2]$.'),
+  LX('geometric progression', LR`The non-zero real numbers $a,b,c$ are in geometric progression with common ratio $r$. Which of the following are true?`,
+    ['$ax^2+bx+c=0$ has non-real roots', '$ax^2+2bx+c=0$ has equal roots', 'Each root of $ax^2+bx+c=0$ has modulus $|r|$', 'If $r<0$, then $ax^2+bx+c=0$ has real roots'],
+    [0, 1, 2],
+    LR`<p>$b=ar$, $c=ar^2$, so $b^2=ac>0$.</p><ul><li>$D=b^2-4ac=-3b^2<0$: non-real roots. True.</li><li>For $ax^2+2bx+c$: $D/4=b^2-ac=0$: equal roots. True.</li><li>$ax^2+bx+c=a(x^2+rx+r^2)$; the roots are $r\omega,r\omega^2$ with $\omega$ a cube root of unity, modulus $|r|$. (Equivalently, the product of the conjugate pair is $c/a=r^2=|x|^2$.) True.</li><li>The discriminant is negative for every $r\ne0$, positive or negative. False.</li></ul>`,
+    'Confusing $ax^2+bx+c$ with $ax^2+2bx+c$: the factor 2 changes the discriminant from $-3b^2$ to $0$.'),
+  LMT('number of real solutions', 'v5m1', 'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-q, B-s, C-p, D-t'],
+    LR`<p>A. $2^x=x^2$: $x=2$ and $x=4$ work. For $x>4$, $2^x>x^2$. On the negative side, at $x=-1$ we have $2^x=0.5<1$ and at $x=0$, $1>0$, so exactly one root in $(-1,0)$. For $x<-1$, $x^2>1>2^x$ with no further crossing. Total $3$ (r).</p><p>B. For $x\ge0$: $x^2-4x+3=0$ gives $1,3$. By evenness the negatives $-1,-3$ also work. Total $4$ (s).</p><p>C. Square: $x+2=x^2$, so $x=2$ or $x=-1$. Squaring can add false roots: $\sqrt{1}=1\ne-1$, so $-1$ fails. Only $x=2$. Total $1$ (p).</p><p>D. $x^2=\sin x$. For $x<0$, $\sin x<0<x^2$ gives nothing. For $x>1$, $x^2>1\ge\sin x$. On $[0,1]$: $x=0$ is a root; $\sin x-x^2$ is $>0$ just after $0$ (slope $1$) and equals $\sin1-1<0$ at $1$, so there is exactly one more root (near $0.877$). Total $2$ (q).</p>`,
+    'In C, squaring adds the false root $x=-1$; in A, the negative root is easy to miss because the graph of $2^x$ is above the x-axis.'),
+  LMT('location of roots', 'v5m2', 'A-r, B-q, C-s, D-t', ['A-q, B-r, C-s, D-t', 'A-r, B-q, C-t, D-s', 'A-r, B-s, C-q, D-t'],
+    LR`<p>$D=4(k-1)^2-4(k+5)=4(k-4)(k+1)$. Sum of roots $2(k-1)$, product $k+5$, $f(2)=4-4(k-1)+k+5=13-3k$.</p><p>A. $D\ge0$: $k\le-1$ or $k\ge4$ (r).</p><p>B. Both positive: $D\ge0$, sum $>0$ ($k>1$), product $>0$ ($k>-5$): $k\ge4$ (q).</p><p>C. Both roots greater than $2$: $D\ge0$, $f(2)>0$ ($k<\frac{13}3$) and vertex $k-1>2$ ($k>3$): $4\le k<\frac{13}3$ (s).</p><p>D. $2$ strictly between the roots: $f(2)<0$: $k>\frac{13}3$ (t) (this already forces $D>0$).</p>`,
+    'In C and D the boundary $k=\\frac{13}3$ puts a root exactly at $2$, so it is excluded from both.'),
+  LPM('complex roots', 'v5p1', LR`The quadratic equation with roots $\alpha^3$ and $\beta^3$ is`, '$x^2+16x+64=0$', ['$x^2-16x+64=0$', '$x^2+8x+16=0$', '$x^2+4x+8=0$'],
+    LR`<p>$x^2-2x+4=0$ gives $x=1\pm i\sqrt3=2\left(\cos60^\circ\pm i\sin60^\circ\right)$.</p><p>By de Moivre, $\alpha^3=8\left(\cos180^\circ+i\sin180^\circ\right)=-8$, and $\beta^3=-8$ too.</p><p>Both roots are $-8$: sum $-16$, product $64$, so $x^2+16x+64=0$, that is $(x+8)^2=0$.</p>`,
+    'Using $\\alpha^3+\\beta^3=(\\alpha+\\beta)^3$ without the $-3\\alpha\\beta(\\alpha+\\beta)$ term; the product is $(\\alpha\\beta)^3=64$.'),
+  LPI('complex roots', 'v5p1', LR`Find the least positive integer $n$ for which $\alpha^n=\beta^n$.`, 3,
+    LR`<p>$\beta=\bar\alpha$ and $|\alpha|=2$, so $\alpha^n=\beta^n$ means $\alpha^n$ is real: $2^n\sin(60^\circ n)=0$. The least $n$ with $60^\circ n$ a multiple of $180^\circ$ is $n=3$ ($\alpha^3=\beta^3=-8$).</p>`,
+    'Taking $n=6$ (full turn) instead of the half-turn $n=3$ that already makes $\\alpha^n$ real.',
+    () => { for (let n = 1; n < 20; n++) { if (Math.abs(Math.sin(n * Math.PI / 3)) < 1e-9) return n; } return -1; }),
+  LPI('complex roots', 'v5p1', LR`Find the value of $\alpha^{12}+\beta^{12}$.`, 8192,
+    LR`<p>$\alpha^{12}=2^{12}\left(\cos720^\circ+i\sin720^\circ\right)=4096$, and the same for $\beta^{12}$.</p><p>The sum is $2\times4096=8192$.</p>`,
+    'Writing $\\alpha^{12}+\\beta^{12}=2\\cdot2^{12}\\cos(12\\cdot60^\\circ)$ and then taking cos of 720 degrees as 0 instead of 1.',
+    () => Math.round(2 * 2 ** 12 * Math.cos(12 * Math.PI / 3))),
+  LA('inequalities by discriminant', LR`For all real $x,y,z$: $x^2+y^2+z^2\ge xy+yz+zx$.`,
+    LR`As a quadratic in $x$, $x^2-(y+z)x+(y^2+z^2-yz)$ has positive leading coefficient and discriminant $-3(y-z)^2\le0$.`, 0,
+    LR`<p>R: the discriminant is $(y+z)^2-4(y^2+z^2-yz)=-3y^2-3z^2+6yz=-3(y-z)^2\le0$, with leading coefficient $1>0$. R is true.</p><p>A: the quadratic is $x^2+y^2+z^2-xy-yz-zx$, which is therefore $\ge0$ for all real $x$ (for each fixed $y,z$). So A is true, and R is exactly the argument that proves it.</p>`,
+    'The usual proof uses $2(x^2+y^2+z^2-xy-yz-zx)=(x-y)^2+(y-z)^2+(z-x)^2$; the discriminant is a second proof, and both A and R hold.'),
+  LSC('quadratic facts', ['If $\\alpha,\\beta$ are the roots of $ax^2+bx+c=0$, the roots of $ax^2-bx+c=0$ are $-\\alpha,-\\beta$.', 'If $a+b+c=0$, then $1$ is a root of $ax^2+bx+c=0$ and the other root is $\\dfrac ca$.', 'Two quadratics with the same two roots have proportional coefficients.', 'If a quadratic with rational coefficients has an irrational root, its other root is also irrational.', 'If $a>0$ and $f(x)=ax^2+bx+c$ has $f(1)>0$ and $f(2)>0$, then $f(x)>0$ for all $x\\in[1,2]$.'],
+    '4', ['2', '3', '5'],
+    LR`<p>(1) True: replacing $x$ by $-x$ turns $ax^2+bx+c$ into $ax^2-bx+c$.</p><p>(2) True: $f(1)=a+b+c=0$; the product of roots is $\frac ca$, so the other root is $\frac ca$.</p><p>(3) True: two monic factorisations coincide, so $g=\lambda f$.</p><p>(4) True: the sum of roots is rational, so if one root is irrational the other is rational minus irrational, which is irrational.</p><p>(5) False: $f(x)=(x-1.5)^2-0.1$ has $f(1)=f(2)=0.15>0$ but $f(1.5)<0$.</p><p>Four are correct.</p>`,
+    'Statement 5 fails because a parabola can dip below the axis between two positive end values.'),
+);
+
+gens.push(
+  LG('qe-v5g1', 'nat', 'integer', 'complex coefficients', (rng) => {
+    let r1, r2; do { r1 = int(rng, -4, 6); r2 = int(rng, -4, 6); } while (r1 === r2 || r1 === 0 || r2 === 0 || r1 + r2 === 0); const c = int(rng, 1, 3);
+    const p = r1 + r2, qv = r1 * r2; const ans = c * c * (r1 * r1 + r2 * r2);
+    const sg = (v) => (v < 0 ? `-${-v}` : `+${v}`); const ci = c === 1 ? 'i' : `${c}i`;
+    return { r1, r2, c, p, qv, answer: ans, tol: 0,
+      q: LR`For real $k$ the equation $x^2-(${p}+${ci})x+(${qv}+ki)=0$ has at least one real root. Find the sum of the squares of all possible values of $k$.`,
+      sol: LR`<p>A real root $x$ must satisfy both parts. Real part: $x^2${sg(-p)}x${sg(qv)}=0$, so $x=${r1}$ or $x=${r2}$. Imaginary part: $-${c === 1 ? '' : c}x+k=0$, so $k=${c === 1 ? '' : c}x$.</p><p>Possible $k$: $${c * r1}$ and $${c * r2}$. Sum of squares: $(${c * r1})^2+(${c * r2})^2=${ans}$.</p>` };
+  }, (p) => { let s = 0; const cplx = { mul: (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]] }; for (let k = -100; k <= 100; k++) { let ok = false; for (let x = -60; x <= 60; x += 0.5) { const re = x * x - p.p * x + p.qv, im = -p.c * x + k; if (Math.abs(re) < 1e-9 && Math.abs(im) < 1e-9) ok = true; } if (ok) s += k * k; } return s; }),
+  LG('qe-v5g2', 'nat', 'integer', 'integer solutions', (rng) => {
+    const D = choose(rng, [15, 21, 35, 45, 63, 99, 105]); const h = int(rng, 1, 5); let pairs = 0; for (let a = 1; a * a < D; a += 2) if (D % a === 0) pairs++;
+    const b = 2 * h, cc = h * h - D; const ans = 2 * pairs;
+    const cs = cc < 0 ? `${cc}` : `+${cc}`;
+    return { D, h, b, cc, answer: ans, tol: 0, q: LR`For how many integers $n$ (positive, zero or negative) is $n^2+${b}n${cs}$ a perfect square?`,
+      sol: LR`<p>$n^2+${b}n${cs}=(n+${h})^2-${D}$. Setting it equal to $m^2$ ($m\ge0$): $(n+${h}-m)(n+${h}+m)=${D}$. Since ${D} is odd, both factors are odd divisors; ${D} has ${pairs} unordered factor pairs. Each gives $n+${h}=\pm\frac{a+b}{2}$, i.e. two values of $n$. Total $2\times${pairs}=${ans}$.</p>` };
+  }, (p) => { let c = 0; for (let n = -500; n <= 500; n++) { const v = n * n + p.b * n + p.cc; if (v >= 0 && Number.isInteger(Math.sqrt(v))) c++; } return c; }),
+  LG('qe-v5g3', 'mcq', 'single', 'quadratic positive on an interval', (rng) => {
+    const L = choose(rng, [2, 3]); const t = int(rng, 2, 5);
+    const minf = (a) => (a < 0 ? a + t : a > L ? L * L - 2 * a * L + a + t : t + a - a * a);
+    let cnt = 0, trap = 0; for (let a = -80; a <= 80; a++) { if (minf(a) > 1e-9) cnt++; if (a * a - a - t < 0) trap++; }
+    const cand = [...new Set([trap, cnt + 1, cnt - 1, cnt + 2, cnt + 3])].filter((v) => v !== cnt && v >= 0).slice(0, 3);
+    const { options, answer } = shuffleOpts(rng, `${cnt}`, cand.map(String));
+    return { L, t, options, answer, cnt, q: LR`How many integers $a$ make $x^2-2ax+a+${t}>0$ for every $x$ in the closed interval $[0,${L}]$?`,
+      sol: LR`<p>$f(x)=x^2-2ax+a+${t}$ has its vertex at $x=a$. If $a<0$ the minimum on $[0,${L}]$ is $f(0)=a+${t}$. If $0\le a\le${L}$ it is $f(a)=-a^2+a+${t}$. If $a>${L}$ it is $f(${L})=${L * L + t}-${2 * L - 1}a$. Checking each integer $a$ gives $${cnt}$ values that keep the minimum positive. (Using only the discriminant, which is for all real $x$, would give a different count.)</p>` };
+  }, (p) => { let c = 0; for (let a = -80; a <= 80; a++) { let m = 1e9; for (let x = 0; x <= p.L + 1e-9; x += 0.01) m = Math.min(m, x * x - 2 * a * x + a + p.t); if (m > 1e-9) c++; } return p.options[p.answer] === String(c) ? p.answer : -1; }),
+);
+}
+// ==L5-END
 export default { topic: 'quadratic-equations', groups, items, gens };

@@ -47,6 +47,11 @@ Topic: *More and more people are working from home.*
 4. **Problem and solution:** "What problems can working from home cause, and how can they be solved?" → Problems, then matching solutions.
 5. **Two-part:** "Why are more people working from home? Is this a positive development?" → Reasons; then your evaluation.
 
+
+Try building the essay yourself: tap the pieces in the order they appear, then press Check. Switch the essay type to see how the middle changes.
+
+<figure class="fig" data-fig="@lang-essay-builder"><figcaption>Notice that every type has an introduction first and a conclusion last; only the body paragraphs change.</figcaption></figure>
+
 ## 3. Traps in the instruction
 
 - **"To what extent"** allows partial agreement, but your position must still be clear: "I largely agree, although..."

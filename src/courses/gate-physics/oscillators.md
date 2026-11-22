@@ -69,6 +69,10 @@ The amplifier needs gain 3, usually `$1 + R_f/R_1$` with `$R_f = 2R_1$`. With `$
 
 For radio frequencies an LC tank replaces the RC network. In the general three-reactance circuit, the tank is `$X_1$` from input to ground, `$X_2$` from output to ground and `$X_3$` between them; oscillation needs `$X_1 + X_2 + X_3 = 0$`, with `$X_1, X_2$` of the same kind and `$X_3$` of the other.
 
+Watch an LC tank ring and see what loop gain does to its amplitude.
+
+<figure class="fig" data-fig="@sx-lc-tank"><figcaption>Below G = 1 the ringing dies; above it a tiny kick grows until the amplifier saturates and the gain drops back to 1. Higher Q grows more slowly but gives a purer frequency.</figcaption></figure>
+
 | Oscillator | Tank | Frequency | Gain condition |
 |---|---|---|---|
 | Colpitts | two capacitors, one inductor | `$\dfrac1{2\pi\sqrt{LC_1C_2/(C_1 + C_2)}}$` | `$g_mR \ge C_2/C_1$` |

@@ -44,6 +44,11 @@ Switch methods and compare the errors. With a strong weekend effect, "same day l
 - **Rolling origin:** repeat for several cut-off dates and average the errors (like cross-validation for time; see [ML foundations](/learn/courses/ml-foundations/cross-validation/)).
 - **Score:** **MAE** (average absolute miss, in units), **MAPE** (average percentage miss; breaks down near zero), **RMSE** (punishes big misses more).
 
+Slide the window size and switch between trailing and centred.
+
+<figure class="fig" data-fig="@data-rolling-window"><figcaption>Notice that a bigger window is smoother but later, and where the NaN values appear.</figcaption></figure>
+
+
 ## 3. Give a range
 
 A point forecast will be wrong; the question is by how much. A simple honest range: look at your holdout errors and take their spread. If 80 % of past one-week-ahead errors were within ±12 %, give "1,200 (80 % range 1,060 to 1,340)". Ranges grow with the horizon: next week is more certain than next quarter.

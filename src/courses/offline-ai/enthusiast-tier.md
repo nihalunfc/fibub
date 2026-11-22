@@ -46,6 +46,10 @@ quiz:
 
 Prices read between August and 18 November 2026 (sources below). **Check the official store before you buy;** "check the store" means we found no reliable recent figure.
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Fast, roomy, cheap: pick two
 
 Like a builder's saying, "good, fast, cheap: pick two", every machine here gives up one thing. Here are three options for one model, Gemma 4 31B at 4-bit (about 19 GB), using the US prices above:

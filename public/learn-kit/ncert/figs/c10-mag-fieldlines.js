@@ -3,12 +3,12 @@
 // field is stronger. Drag the compass anywhere: its needle lines up with the field there. The lines are traced from a
 // model of two point poles per magnet (B from each pole falls as 1/r^2). Try one magnet, then two magnets with
 // unlike poles facing (attract: lines join them) or like poles facing (repel: lines push apart, with a neutral point).
-import { canvas, text, title, line, dot, arrow, row, choice, readout } from '../../kit.js';
+import { canvas, text, title, line, dot, arrow, row, choice, readout, touchGuard } from '../../kit.js';
 
 export default function (host) {
-  let view = 'lines', setup = 'one', flip = false, comp = null;
+  let view = 'lines', setup = 'one', flip = false, comp = null; let cpos = null;
   const cv = canvas(host, { aspect: 0.66, max: 440, min: 280, label: 'Magnetic field lines of bar magnets with a draggable compass' });
-  cv.c.style.touchAction = 'none'; cv.c.style.cursor = 'crosshair';
+  cv.c.style.cursor = 'crosshair'; touchGuard(cv.c, (x, y) => !!cpos && Math.hypot(x - cpos[0], y - cpos[1]) < 28);
   const ctl = row(host);
   choice(ctl, 'Show', [['lines', 'Field lines'], ['filings', 'Iron filings'], ['none', 'Compass only']], view, (v) => { view = v; update(); });
   choice(ctl, 'Magnets', [['one', 'One magnet'], ['attract', 'Two: N faces S'], ['repel', 'Two: N faces N']], setup, (v) => { setup = v; update(); });
@@ -70,6 +70,7 @@ export default function (host) {
     }
     // the compass
     const c = comp || [w * 0.5, h * 0.82];
+    cpos = c;
     const b = B(c[0], c[1]), d = norm(b), R = 15;
     ctx.save(); ctx.translate(c[0], c[1]); ctx.fillStyle = col.panel; ctx.strokeStyle = col.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, 7); ctx.fill(); ctx.stroke();
     const ang = Math.atan2(d[1], d[0]); ctx.rotate(ang);

@@ -55,6 +55,11 @@ At `$T = \theta_E$` this is still 92% of `$3R$`; it drops to half at `$T = 0.34\
 
 **Worked example.** With `$\theta_E = 240$` K (`$\nu_E = k_B\theta_E/h = 5.0$` THz), at 120 K `$x = 2$`: `$C/3R = 4e^2/(e^2 - 1)^2 = 29.56/40.82 = 0.724$`, `$C = 18.1$` J mol⁻¹ K⁻¹.
 
+The Einstein oscillators freeze out at low T; so do the rotations and vibrations of a gas molecule. Compare the steps.
+
+<figure class="fig" data-fig="@wt-dof-freeze"><figcaption>Same physics as the Einstein solid: a mode switches on once kT is comparable to its spacing. Notice C_v/R = 3/2, 5/2, 7/2 for a diatomic gas, against 3R for a solid at high T.</figcaption></figure>
+
+
 ## 3. The Debye model
 
 Debye (1912) replaced the true spectrum by that of an elastic continuum: three acoustic branches with `$\omega = vk$`. Counting `$\vec k$` in a sphere gives `$3\times\frac{V}{(2\pi)^3}\frac43\pi k^3$` modes below `$k$`, so

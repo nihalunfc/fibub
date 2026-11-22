@@ -31,6 +31,10 @@ sources:
 
 Write the energy of a pair, or per atom of the crystal, as
 
+Heat the pair of atoms and see why the average bond length grows.
+
+<figure class="fig" data-fig="@sx-bond-well"><figcaption>The well is steeper on the compressed side, so a vibrating pair spends more time stretched. This asymmetry is thermal expansion.</figcaption></figure>
+
 ```math
 U(r) = -\frac{A}{r^m} + \frac{B}{r^n}, \qquad n > m
 ```
@@ -57,6 +61,10 @@ Three lessons hide here. The repulsion cancels a fraction `$m/n$` of the attract
 ## 2. Ionic crystals
 
 In NaCl each ion is surrounded by 6 opposite ions at `$r$`, 12 like ions at `$\sqrt2r$`, 8 opposite at `$\sqrt3r$`, 6 like at `$2r$`, and so on. The Coulomb energy per ion pair is `$-\alpha ke^2/r$` (`$k = 1/4\pi\varepsilon_0$`, `$ke^2 = 14.40$` eV Å) with the **Madelung constant**
+
+Look at rock salt in 3D: each ion has six neighbours of the opposite sign.
+
+<figure class="fig" data-fig="@sx-cell-3d"><figcaption>Choose "Rock salt (NaCl)" and "Touching": large Cl⁻ and small Na⁺ ions touch along the cube edge, so a = 2(r₊ + r₋). Coordination number 6, four formula units per cell.</figcaption></figure>
 
 ```math
 \alpha = 6 - \frac{12}{\sqrt2} + \frac{8}{\sqrt3} - \frac{6}{2} + \dots = 1.7476

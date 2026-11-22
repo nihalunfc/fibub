@@ -85,6 +85,10 @@ Permanent dipoles align with a relaxation time `$\tau$` (picoseconds for water).
 
 **Worked example.** Water near room temperature: `$\varepsilon_s \approx 80$`, `$\varepsilon_\infty \approx 5$`, `$\tau \approx 8.3$` ps. The loss peaks at `$f = 1/2\pi\tau = 19$` GHz with `$\varepsilon'' \approx 37$`. A microwave oven runs at 2.45 GHz, well below the peak (`$\omega\tau = 0.128$`): `$\varepsilon'' \approx 75\times0.128/1.016 \approx 9.4$`, enough to heat food yet small enough that the waves get a few centimetres in before they are absorbed.
 
+Slide the frequency across ωτ = 1. See the lag between E and P and the two curves ε′ and ε″.
+
+<figure class="fig" data-fig="@em-debye-relax"><figcaption>The polarisation lags by atan(ωτ); the loss ε″ peaks at ωτ = 1 and ε′ falls from its static to its high-frequency value.</figcaption></figure>
+
 ## 3. Bound charges: the Lorentz oscillator
 
 An electron (or ion) on a spring of natural frequency `$\omega_0$` with damping `$\gamma$`: `$m(\ddot x + \gamma\dot x + \omega_0^2x) = -eE$`. With `$N$` such oscillators per volume and `$\omega_p^2 = Ne^2/\varepsilon_0m$`:

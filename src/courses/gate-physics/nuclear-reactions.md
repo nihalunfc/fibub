@@ -71,6 +71,10 @@ T_{\text{th}} = \frac{\left(\sum m_f\right)^2 - (m_a + m_X)^2}{2m_X}\,c^2
 
 A beam of `$\Phi$` particles per second per unit area hitting a thin target of `$N$` nuclei produces reactions at a rate `$R = \sigma\Phi N$`. The cross-section `$\sigma$` is an effective area, measured in barns: 1 b = `$10^{-28}$` m² = 100 fm², about the geometric size of a heavy nucleus. The differential cross-section `$d\sigma/d\Omega$` counts particles going into solid angle `$d\Omega$`; partial cross-sections for each exit channel add up to the total.
 
+Move the impact parameter, then switch on the whole beam and change the target and the energy.
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>A small impact parameter means a large deflection, and only an almost head-on α comes straight back. The counts fall as 1/sin⁴(θ/2).</figcaption></figure>
+
 **Partial-wave limits.** A beam of wave number `$k$` can be split into partial waves of angular momentum `$\ell$`, which pass the nucleus at impact parameter about `$\ell/k$`. Each partial wave can absorb at most a flux corresponding to an area `$\pi ƛ^2(2\ell + 1)$`, with `$ƛ = 1/k$`. Summing up to `$\ell_{\max} = kR$`:
 
 ```math
@@ -82,6 +86,10 @@ The total for a fully absorbing ("black") nucleus is twice the geometric area: a
 ## 4. The compound nucleus and resonances
 
 At low energy a neutron entering a nucleus shares its energy with all the nucleons and forms a **compound nucleus** that lives long (`$10^{-16}$` s or more, compared with `$10^{-22}$` s for a nucleon to cross the nucleus). It then decays by whatever channels are open. Bohr's **independence hypothesis**: the decay depends only on the energy, spin and parity of the compound state, not on how it was formed. The cross-section factorises, `$\sigma(a, b) = \sigma_{\text{CN}}(a)\,\Gamma_b/\Gamma$`.
+
+Pick D + T, then C + C, and slide the temperature from 1 to 100 keV.
+
+<figure class="fig" data-fig="@qm-fusion-barrier"><figcaption>Thermal energies are far below the barrier. The few fusions that happen come from the Gamow peak, where the thinning Maxwell tail meets the rising tunnelling chance; heavier nuclei need much hotter plasma.</figcaption></figure>
 
 Near an isolated level of energy `$E_R$` and total width `$\Gamma$`, the cross-section has the **Breit-Wigner** form:
 

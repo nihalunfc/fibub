@@ -108,6 +108,10 @@ The numbers expose the physics. For `$T_C = 1000$` K the molecular field is `$B_
 
 <figure class="fig" data-fig="susceptibility"><figcaption>Susceptibility of a paramagnet, a ferromagnet and an antiferromagnet in mean-field theory, drawn as 1/χ (the way data are analysed) or χ, with a common Curie constant. The intercept of 1/χ gives the sign of the interactions: through the origin, at +T_C, or at −θ. Below T_N the antiferromagnet's χ⊥ stays flat while χ∥ falls to zero. The third view is the mean-field magnetisation of a spin-½ ferromagnet.</figcaption></figure>
 
+Cool a grid of spins through the critical temperature to watch the order set in.
+
+<figure class="fig" data-fig="@sx-ising"><figcaption>At low T neighbouring spins line up (ferromagnet) or alternate (antiferromagnet); above T<sub>c</sub> = 2.27 J/k the order melts and M falls to zero. A field h favours up spins and lets you see the susceptibility.</figcaption></figure>
+
 **Antiferromagnets** order with two opposite sublattices below the Néel temperature. Above it `$\chi = C/(T + \theta)$`, so 1/χ extrapolates to a negative temperature; at `$T_N$`, `$\chi$` has a cusp; below, `$\chi_\perp$` is constant and `$\chi_\parallel \to 0$`, so a powder ends at `$\tfrac23\chi(T_N)$`. Simple mean field gives `$\theta = T_N$`; real materials have `$\theta/T_N$` of 1.5 to 5. **Ferrimagnets** (magnetite, ferrites) have unequal sublattices and a net moment.
 
 **Worked example.** `$\chi = 5.0\times10^{-3}$` at 200 K and `$2.5\times10^{-3}$` at 300 K. From `$\chi_1(T_1 - \theta) = \chi_2(T_2 - \theta)$`: `$\theta = +100$` K (ferromagnetic interactions) and `$C = 0.50$` K.

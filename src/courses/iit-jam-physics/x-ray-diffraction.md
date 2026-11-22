@@ -78,6 +78,10 @@ Two consequences you must know:
 
 The same condition, seen in reciprocal space ([lesson 7.1](/learn/courses/iit-jam-physics/crystal-structure/), section 6): an incident wave `$\vec k$` scatters elastically into `$\vec k'$` with `$|\vec k'| = |\vec k| = 2\pi/\lambda$`, and the scattered waves from all lattice points add in step only when
 
+Turn a 2D crystal in the next picture and watch which reciprocal-lattice points touch the Ewald circle; each touch is a reflection.
+
+<figure class="fig" data-fig="@sx-ewald"><figcaption>The circle has radius 1/λ and passes through the origin O of the reciprocal lattice. A reflection needs a lattice point on the circle, and the diffracted beam goes from the centre to that point. Raise 1/λ (shorter wavelength) and the circle reaches more points; points beyond 2/λ never reflect.</figcaption></figure>
+
 ```math
 \vec k' - \vec k = \vec G \qquad\text{(Laue condition)}
 ```
@@ -126,6 +130,10 @@ With two kinds of atom, lines weaken rather than vanish. In CsCl, `$F = f_{\rm C
 ## 5. Indexing a powder pattern
 
 Here is the procedure for a cubic crystal, the most common exam task:
+
+Choose a lattice and watch the allowed lines appear; the ratios of sin²θ are the fingerprint you use for indexing.
+
+<figure class="fig" data-fig="@sx-xrd-powder"><figcaption>Solid lines are allowed reflections, dashed ones are forbidden by the structure factor. Simple cubic gives sin²θ ∝ 1:2:3:4:5:6:8…, bcc 2:4:6:8:10…, fcc 3:4:8:11:12… Change a or λ and the whole pattern slides in 2θ without changing its ratios.</figcaption></figure>
 
 <div class="steps">
 <div class="step"><p><b>Halve the angles.</b> Convert each peak position 2θ into θ.</p></div>

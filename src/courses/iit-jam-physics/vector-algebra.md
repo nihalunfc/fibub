@@ -50,6 +50,10 @@ The two forms are the same number, which gives you the angle between any two vec
 - **Projection:** the component of `$\vec A$` along `$\vec B$` is `$\vec A\cdot\hat B = \vec A\cdot\vec B/B$`.
 - **Work:** `$W = \vec F\cdot\vec d$`. A force at right angles to the motion does no work.
 
+Drag the tips of a and b, then press 'Make perpendicular'.
+
+<figure class="fig" data-fig="@math-vec-projection"><figcaption>Notice that the shadow of a on b has length |a|cos θ, that a·b = |b| times that shadow, and that the leftover part is perpendicular to b.</figcaption></figure>
+
 **Worked example.** The component of `$\vec A = (2, 3, 6)$` along `$\vec B = (1, 2, 2)$` is `$(2 + 6 + 12)/3 = 20/3$`. Dividing by `$|\vec A| = 7$` instead would give the component of `$\vec B$` along `$\vec A$`, a classic wrong option.
 
 ## 3. The cross product: area with a direction
@@ -128,6 +132,10 @@ and the Jacobi identity `$\vec A\times(\vec B\times\vec C) + \vec B\times(\vec C
 - **Reciprocal vectors** of `$\vec a, \vec b, \vec c$`: `$\vec a^* = (\vec b\times\vec c)/[\vec a\,\vec b\,\vec c]$` and cyclically. They satisfy `$\vec a^*\cdot\vec a = 1$` and `$\vec a^*\cdot\vec b = \vec a^*\cdot\vec c = 0$`. Times `$2\pi$`, they are the reciprocal lattice of crystallography, which you will meet in X-ray diffraction.
 
 **Polar and axial vectors.** Under inversion `$\vec r\to-\vec r$`, ordinary (polar) vectors such as `$\vec r$`, `$\vec p$`, `$\vec E$` flip sign. A cross product of two polar vectors does not flip, so `$\vec L$`, `$\vec\tau$` and `$\vec B$` are axial (pseudo) vectors, and the triple product of three polar vectors is a pseudoscalar.
+
+Slide the tilt and turn of the line and the height of the plane, and drag the picture round.
+
+<figure class="fig" data-fig="@math-plane-line-3d"><figcaption>Notice that the angle between line and plane comes from sin φ = |v·n|/(|v||n|), and that v·n = 0 means the line is parallel to the plane.</figcaption></figure>
 
 <div class="keypoints">
 

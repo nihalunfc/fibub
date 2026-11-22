@@ -63,6 +63,10 @@ A flat curve means M(&lt;r) ∝ r: twice as far out, twice the mass inside, thou
 
 <div class="problem" data-problem="rotation-curves-mass"></div>
 
+Slide the galactic longitude and watch the velocity along the line of sight.
+
+<figure class="fig" data-fig="@astro-galactic-los"><figcaption>Gas speeds along a line of sight depend on distance, and the largest value is at the tangent point, where the line gets closest to the centre. Reading that peak at each longitude gives the rotation speed at each radius: a flat rotation curve.</figcaption></figure>
+
 ## 3. Why radio telescopes clinched it
 
 Optical spectra, like Rubin's, follow bright clouds of glowing gas around young stars, which fade out near the visible edge. Cold hydrogen gas glows at a radio wavelength of 21 cm, and it reaches two or more times farther than the stars. In the 1970s radio astronomers, notably Albert Bosma in the Netherlands and Morton Roberts in the United States, followed it far out. The curves stayed flat where there was almost no starlight at all: the mass could not be hiding in faint stars.

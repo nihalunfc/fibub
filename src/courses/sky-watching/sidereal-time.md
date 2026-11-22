@@ -108,6 +108,10 @@ Reduce `$\theta_0$` to 0 to 360°, then divide by 15 for hours.
 
 </div>
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 4. Worked example
 
 *Toronto (longitude 79.4° W) at 03:30 UT on 22 November 2026 (10:30 pm the evening before, local time).*

@@ -39,6 +39,10 @@ A ship's engineer, a farm adviser in a valley, a geologist at a remote camp, a d
 - **Translation** between workers and local people.
 - **Reports:** turning notes into a clean daily report to send when a connection appears.
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Power planning
 
 | Device | Typical draw while working | Model size |

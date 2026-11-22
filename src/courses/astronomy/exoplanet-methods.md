@@ -73,6 +73,10 @@ K = \left(\frac{2\pi G}{P}\right)^{1/3}\frac{M_p}{M_\star^{2/3}}
 **Density** once both are known: `$\rho = M_p / (\tfrac{4}{3}\pi R_p^3)$` (Lesson 2.5).
 </details>
 
+Slide the planet's radius, impact parameter and period, or press a preset (Jupiter, Neptune, Earth).
+
+<figure class="fig" data-fig="@astro-transit-curve"><figcaption>The dip depth is about (Rp/Rs)²: Jupiter gives about 1%, Earth only 0.008%. The curve is rounded because the star's edge is dimmer (limb darkening), and a path near the edge gives a shorter, shallower dip. A longer period makes a longer transit.</figcaption></figure>
+
 ## 3. What it means physically
 
 The transit is a tiny eclipse; the planet is a black dot crossing a bright disc. The wobble is the star being tugged around by its planet like a hammer thrower leaning back against the hammer. A transit alone could be a small star or a brown dwarf; the wobble tells you it has a planet's mass. Size and mass together give density, which says whether the planet is rock, water-rich or gas.
@@ -94,6 +98,10 @@ The transit is a tiny eclipse; the planet is a black dot crossing a bright disc.
 **"Exoplanets are photographed directly."** Almost all of the more than 5,000 known exoplanets were found indirectly, by transits or wobbles. Only a few dozen young, hot, widely separated planets have been imaged directly.
 
 </div>
+
+Change the planet's mass, period and orbit shape, then watch the star and its velocity curve.
+
+<figure class="fig" data-fig="@astro-rv-wobble"><figcaption>The star orbits the common centre of mass and its light is blue-shifted when it comes towards us and red-shifted when it moves away. Heavier planets and shorter periods give bigger wobbles; an elliptical orbit makes a lopsided curve. Jupiter makes the Sun wobble only 12.5 m/s.</figcaption></figure>
 
 ## 4. Worked example
 

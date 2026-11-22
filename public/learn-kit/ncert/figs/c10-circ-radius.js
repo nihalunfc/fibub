@@ -1,7 +1,7 @@
 // Class 10 Circles: the tangent at a point P is perpendicular to the radius OP. Drag P round the circle (or use the slider):
 // the tangent turns but the angle stays 90 degrees. Slide Q along the tangent: OQ² = r² + PQ² > r², so every point of the
 // tangent other than P lies OUTSIDE the circle. That is why a tangent touches at one point only.
-import { canvas, text, title, line, dot, row, slider, readout } from '../../kit.js';
+import { canvas, text, title, line, dot, row, slider, readout, touchGuard } from '../../kit.js';
 
 export default function (host) {
   let a = 35, t = 1.1;
@@ -12,7 +12,7 @@ export default function (host) {
   const out = readout(host);
   let G = {};
   const say = () => { const oq = Math.sqrt(1 + t * t); out.innerHTML = `∠OPQ = <b>90°</b> wherever P is. PQ = ${Math.abs(t).toFixed(1)} r, so OQ = √(r² + PQ²) = <b>${oq.toFixed(2)} r</b>, which is more than r: Q is outside the circle.`; cv.redraw(); };
-  cv.c.style.touchAction = 'none'; let on = false;
+  let on = false; touchGuard(cv.c, (x, y) => Math.hypot(x - G.px, y - G.py) < 24);
   const mv = (e) => { const r = cv.c.getBoundingClientRect(); a = ((Math.atan2(-(e.clientY - r.top - G.cy), e.clientX - r.left - G.cx) * 180) / Math.PI + 360) % 360; sa.set(Math.round(a)); say(); };
   cv.c.addEventListener('pointerdown', (e) => { const r = cv.c.getBoundingClientRect(); if (Math.hypot(e.clientX - r.left - G.px, e.clientY - r.top - G.py) < 32) { on = true; cv.c.setPointerCapture(e.pointerId); e.preventDefault(); } });
   cv.c.addEventListener('pointermove', (e) => on && mv(e));

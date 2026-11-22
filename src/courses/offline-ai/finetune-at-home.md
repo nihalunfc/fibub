@@ -43,11 +43,19 @@ Fine-tuning used to mean renting data-centre GPUs. With QLoRA and today's tools,
 
 Laptops without a graphics card can technically train tiny models on the CPU, but it is too slow to be worth it; borrow a bigger machine or rent a GPU by the hour for the training run only, then run the result offline.
 
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
+
 ## 3. Tools
 
 - **Unsloth** (Windows, Linux, NVIDIA cards): fast, memory-efficient QLoRA, with ready-made notebooks for each popular model, and it exports straight to GGUF for Ollama.
 - **MLX LM** (Mac): one command trains a LoRA adapter on Apple silicon.
 - **Hugging Face TRL + PEFT:** the standard libraries underneath many tools; most flexible, more setup.
+
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
 
 ## 4. A training run on a Mac (MLX LM)
 
@@ -60,6 +68,10 @@ mlx_lm.generate --model mlx-community/Llama-3.2-3B-Instruct-4bit --adapter-path 
 ```
 
 A 4-bit model name means MLX trains with QLoRA automatically. Swap in any MLX model from the mlx-community collection on Hugging Face; the first run downloads it.
+
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
 
 ## 5. A training run on an NVIDIA card (Unsloth)
 
@@ -92,6 +104,10 @@ model.save_pretrained("my-adapter")
 ```
 
 These libraries change often; if a name or argument fails, the notebook for your model has the current form.
+
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
 
 ## 6. Reading the loss
 
@@ -139,6 +155,10 @@ Follow one real-sized run (the publisher in section 7):
 **"The lower the training loss, the better the model."** Training loss can keep falling while the model simply memorises its examples. Judge by validation loss on held-back examples, and then read real answers (Lesson 14.4). A low number is not proof of good writing.
 
 </div>
+
+Step through one training step of the smallest possible network, forward first, then backwards.
+
+<figure class="fig" data-fig="@ai-backprop-player"><figcaption>The forward pass makes the prediction and the loss. The backward pass multiplies slopes link by link (the chain rule) so every weight learns how it should change. Then each weight takes a small step against its slope.</figcaption></figure>
 
 ## 7. Worked example
 

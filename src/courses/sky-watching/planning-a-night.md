@@ -73,6 +73,10 @@ Full darkness lasts `$24 - 2H/15$` hours, with `$h_0 = -18^\circ$`. If `$\cos H 
 **No full darkness when** the Sun's lowest altitude `$-(90^\circ - \varphi - \delta_\odot)$` is above −18°, that is `$\varphi > 72^\circ - \delta_\odot$`: at the June solstice, latitudes above about 48.6°.
 </details>
 
+Choose a target, your latitude and the date. The orange curve is the target's altitude; darker bands mean a darker sky.
+
+<figure class="fig" data-fig="@astro-night-altitude"><figcaption>The best time is when the target is high (low airmass) and the Sun is more than 18° below the horizon. Change the date by a month and see the target shift about two hours earlier.</figcaption></figure>
+
 ## 3. A planning checklist
 
 1. **Weather:** clear sky forecast, cloud maps, and wind (wind shakes telescopes and worsens seeing).

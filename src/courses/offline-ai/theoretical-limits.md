@@ -37,6 +37,10 @@ A language model predicts likely text (Lesson 2.1). When it does not know, a con
 
 **What helps:** give it the source text (Module 12), ask for quotes or page numbers, tell it that "not found" is a good answer, and check anything that matters.
 
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
+
 ## 3. Knowledge cut-off
 
 Training data stops at a date, the **knowledge cut-off**. The model knows nothing after it, and often knows less about the last months before it. A local file never updates itself: a model you downloaded in 2026 still thinks it is 2026 in 2030. It is like a printed encyclopedia: excellent, but frozen on the day it went to press.

@@ -90,6 +90,11 @@ where `$b$` is the base wait and `$U(0, j)$` a random extra between 0 and `$j$`.
 
 <div class="problem" data-problem="apis-databases-backoff"></div>
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Data that changes after the fact
 
 Ad conversions, hotel bookings (changed, cancelled), till refunds: yesterday's numbers are not final. The pattern is a **look-back window**: every run re-pulls the last `$N$` days and replaces them.

@@ -63,6 +63,10 @@ The tension lies between the two weights (29.4 N and 49 N), which is a good sani
 
 **Constraints with movable pulleys.** Write the string length in terms of the positions and differentiate twice. If a string goes from the ceiling, under a movable pulley carrying block B, over a fixed pulley and down to block A, then `$y_A + 2y_B$` = constant, so `$a_A = -2a_B$`: the free end moves twice as fast as the pulley, and the pulley feels a pull of `$2T$`.
 
+Change the two masses and press Play. First use equal masses, then make one much heavier, and compare the acceleration and tension for the two set-ups.
+
+<figure class="fig" data-fig="@mech-atwood"><figcaption>Tension is never simply m2g: it sits between the two weights on the Atwood machine, and is less than m2g on the table because the hanging mass is accelerating down.</figcaption></figure>
+
 ## 3. Friction: check first, then calculate
 
 Friction opposes the *relative sliding* (or the tendency to slide) of two surfaces.
@@ -89,6 +93,10 @@ Let frame `$S'$` move with constant velocity `$\vec V$` relative to `$S$`, with 
 
 Accelerations are the same in both frames, and forces (which depend on separations) are the same, so `$\vec F = m\vec a$` holds in both. **Every frame moving uniformly relative to an inertial frame is itself inertial.** Velocities, momenta and kinetic energies do change from frame to frame, and so does the work done by a force; energy conservation still holds in each frame separately.
 
+Try both pictures. On the river, set the heading to 0° (fastest crossing) and then press Straight across; in the rain picture, raise your walking speed and watch the tilt.
+
+<figure class="fig" data-fig="@mech-relative-velocity"><figcaption>Ground velocity is always the vector sum of velocity in the medium and velocity of the medium. Fastest crossing and shortest path are different headings.</figcaption></figure>
+
 ## 5. Accelerating frames: the pseudo force
 
 Now let the frame accelerate with `$\vec a_0$` (a car speeding up, a lift). The acceleration you measure inside is `$\vec a\,' = \vec a - \vec a_0$`, so
@@ -111,6 +119,10 @@ The extra term `$-m\vec a_0$` behaves like a force pointing **opposite** to the 
 </div>
 
 **Worked example.** A block slides on a smooth `$30^\circ$` incline inside a lift accelerating upward at `$g/2$`. In the lift frame the effective gravity is `$g + g/2 = 1.5g$` downward, so the block's acceleration along the incline is `$1.5g\sin30^\circ = 7.35$` m/s². Solving this in the ground frame is possible but much longer.
+
+Slide the lift's acceleration from upward to downward and watch the scale. Then switch to the lift frame to see the pseudo-force that balances everything.
+
+<figure class="fig" data-fig="@mech-lift-pseudo"><figcaption>The scale reads the normal force N = m(g + a). At a = −g it reads zero: free fall. In the lift's frame you are at rest because the pseudo-force −ma cancels the net real force.</figcaption></figure>
 
 ## 6. Rotating frames: centrifugal and Coriolis forces
 

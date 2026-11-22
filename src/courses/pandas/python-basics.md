@@ -60,6 +60,11 @@ stores
 
 `[0]` is the first item (Python counts from 0), `[-1]` the last. pandas uses lists for "these columns" (`df[['store', 'qty']]`) and dictionaries for "rename this to that" (`df.rename(columns={'qty': 'units'})`).
 
+Choose two conditions and a combiner and read the True/False columns row by row.
+
+<figure class="fig" data-fig="@data-mask-filter"><figcaption>Notice that the filter keeps rows where the final mask is True, and that the original index stays attached.</figcaption></figure>
+
+
 ## 3. Functions and methods
 
 A **function** takes inputs in brackets: `len(prices)`, `round(3.14159, 2)`. A **method** belongs to a value and is called with a dot: `'maple'.upper()`, `prices.append(5.99)`. Inputs can be named: `round(number=3.14159, ndigits=2)`. pandas code is mostly methods, often with named options: `df.sort_values('qty', ascending=False)`.

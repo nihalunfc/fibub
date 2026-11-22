@@ -43,6 +43,11 @@ A good hand-off is like delivering flat-pack furniture with every screw labelled
 
 For a medium company with a few gigabytes of marts on Azure SQL, **Import with a refresh triggered when the pipeline finishes** (Lesson [6.4](/learn/courses/etl/refresh-security-delivery/)) is almost always right. DirectQuery moves the load onto your warehouse: every slicer click becomes a query, so you would need to size and index for that.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. What to hand over
 
 - Load **marts only**, from the `mart` schema, with the read-only `report_reader` login from [Lesson 4.6](/learn/courses/etl/security-cost-azure/). Never raw or staging tables.

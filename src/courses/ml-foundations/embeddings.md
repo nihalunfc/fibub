@@ -56,6 +56,10 @@ Because relations are directions, you can do sums with words. Walk from "man" to
 
 This was the famous result of **word2vec** (Mikolov and colleagues at Google, 2013). Real spaces are messier than the picture, and analogies work only some of the time.
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. How embeddings are learned
 
 "You shall know a word by the company it keeps" (J. R. Firth, 1957). Word2vec trains a tiny network on billions of words of text with one job: given a word, guess the words around it (or the reverse).
@@ -100,6 +104,14 @@ which is row `$i$` of `$\mathbf{E}$`. So an embedding layer is a linear layer wi
 
 **Try it:** `$\mathbf{a} = (1, 2, 2)$` and `$\mathbf{b} = (2, 1, 2)$`. Cosine? (`$\mathbf{a}\cdot\mathbf{b} = 2 + 2 + 4 = 8$`; both lengths are 3; `$8/9 = 0.89$`, very similar.)
 </details>
+
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
 
 ## 4. Worked example
 

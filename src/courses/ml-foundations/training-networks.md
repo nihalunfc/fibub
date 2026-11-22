@@ -55,6 +55,10 @@ Using a batch instead of all rows is **stochastic gradient descent** (SGD, "stoc
 
 <div class="problem" data-problem="training-networks-updates"></div>
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. The knobs
 
 - **Learning rate.** The most important setting: the size of each step. Too small and training crawls. Too big and it bounces or blows up. Try values a factor of 3 or 10 apart (0.3, 0.1, 0.03, ...) and watch the first epochs. Many runs **lower it as training goes** (a schedule), like slowing down as you near a parking spot.
@@ -74,6 +78,10 @@ Using a batch instead of all rows is **stochastic gradient descent** (SGD, "stoc
 </dl>
 
 </div>
+
+Step through one training step of the smallest possible network, forward first, then backwards.
+
+<figure class="fig" data-fig="@ai-backprop-player"><figcaption>The forward pass makes the prediction and the loss. The backward pass multiplies slopes link by link (the chain rule) so every weight learns how it should change. Then each weight takes a small step against its slope.</figcaption></figure>
 
 ## 4. Defences against overfitting
 
@@ -113,6 +121,10 @@ Networks have many weights and can memorise. The usual defences:
 
 **Try it:** 60,000 rows, batch 128, 10 epochs. How many weight updates? (`$\lceil 60{,}000/128 \rceil = 469$` per epoch, 4,690 in all.)
 </details>
+
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
 
 ## 5. Worked example
 

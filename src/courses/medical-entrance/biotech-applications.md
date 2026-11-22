@@ -68,6 +68,17 @@ Adult-onset diabetes is controlled by insulin taken regularly. Earlier insulin c
 
 In **1983**, an American company (Eli Lilly) prepared two DNA sequences for the A and B chains, put them into plasmids of *E. coli*, made the two chains separately, and joined them by disulphide bonds to form **human insulin (Humulin)**. This was the first recombinant medicine of its kind. About 30 recombinant therapeutics are now approved worldwide, 12 of them sold in India (NCERT figures).
 
+Human insulin is made this way: the human gene is placed in a plasmid and grown in bacteria. Step through the method.
+
+<div class="steps" data-fig="@bio-rdna-steps">
+<div class="step"><b>Cut</b> the plasmid and the insulin gene with the same enzyme.</div>
+<div class="step"><b>Anneal</b> the sticky ends.</div>
+<div class="step"><b>Ligate</b> with DNA ligase.</div>
+<div class="step"><b>Transform</b> E. coli.</div>
+<div class="step"><b>Select</b> with the antibiotic.</div>
+<div class="step"><b>Grow</b> the clones in a bioreactor to make the insulin chains.</div>
+</div>
+
 ## 5. Gene therapy
 
 **Gene therapy** corrects a gene defect diagnosed in a child or embryo by putting normal genes into the person's cells or tissues, to take over from the faulty gene.
@@ -81,6 +92,10 @@ Conventional methods (serum and urine analysis) cannot detect a disease early, w
 - **PCR**: amplifies very low amounts of DNA, so it detects **HIV** in suspected AIDS patients and **mutations** in genes of suspected cancer patients, and other genetic disorders.
 - **Probes**: a single-stranded DNA or RNA tagged with a radioactive molecule is allowed to hybridise with its complementary DNA in cells; the clone with the mutated gene does not appear on the photographic film (**autoradiography**), because the probe does not match it.
 - **ELISA**: based on **antigen-antibody interaction**; detects either the pathogen's antigens (proteins, glycoproteins) or the antibodies made against it.
+
+Molecular diagnosis and DNA fingerprinting both end in a gel. Press play and compare the lanes.
+
+<figure class="fig" data-fig="@bio-gel-electrophoresis"><figcaption>A match of every band means the same source; a missing or extra band means a different one.</figcaption></figure>
 
 ## 7. Transgenic animals
 

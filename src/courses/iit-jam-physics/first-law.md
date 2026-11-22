@@ -124,6 +124,11 @@ For `$1 < n < \gamma$` the heat capacity is **negative**: the gas absorbs heat y
 
 </div>
 
+Run a heat engine round its loop and compare the net work with the heat taken in.
+
+<figure class="fig" data-fig="@wt-engine-cycle"><figcaption>Over one cycle ΔU = 0, so net work W = Q_h − Q_c, which is the area of the loop. Notice how the loop and the efficiency change as you change the compression ratio or the hot temperature.</figcaption></figure>
+
+
 ## Practise: exam questions on this lesson
 
 They start easy and climb to top-rank level. Check each answer, then read the full solution. More on the [first law practice page](/learn/courses/iit-jam-physics/practice/first-law/).

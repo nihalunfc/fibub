@@ -42,6 +42,10 @@ With reduced mass `$\mu$`, angular momentum `$\ell = \mu r^2\dot\theta$` and a c
 
 **Orbit to force.** Read the equation backwards. **Worked example:** a particle moves on the spiral `$r = c\,\theta^{-1}$`, so `$u = \theta/c$` and `$u'' = 0$`. Then `$u = -\mu F/(\ell^2u^2)$`, which gives `$F = -\ell^2u^3/\mu = -\ell^2/(\mu r^3)$`: an attractive inverse-cube force, with exactly the angular momentum that makes the bracket above vanish.
 
+Move the launch speed from slow to fast (try Circle and Escape) and look at the two shaded wedges.
+
+<figure class="fig" data-fig="@mech-kepler"><figcaption>Both wedges are swept in the same time and have the same area. Speed 1 gives a circle, between 1 and √2 an ellipse, and √2 or more an escape.</figcaption></figure>
+
 ## 2. The Laplace-Runge-Lenz vector and closed orbits
 
 For `$F = -k/r^2$` there is an extra conserved vector besides `$\vec L$`:
@@ -127,6 +131,10 @@ The same formula holds for an attractive `$-k/r$` (the particle swings round the
 **"A total cross-section is the physical size of the target."** It is an effective area, and it depends on the force and the energy. For a hard sphere it happens to be the shadow `$\pi a^2$`; for Coulomb scattering it is infinite; for neutrons on nuclei it can be thousands of times the geometric size near a resonance. In wave mechanics, even a hard sphere has a total cross-section of `$2\pi a^2$` at short wavelengths, because of diffraction round its edge.
 
 </div>
+
+Switch between the Coulomb target and the hard sphere, change the strength, and compare the two histograms.
+
+<figure class="fig" data-fig="@mech-rutherford"><figcaption>Close approaches bend a Coulomb beam strongly but they are rare, so most particles go to small angles; a hard sphere scatters into all angles about equally.</figcaption></figure>
 
 ## 6. Centre-of-mass and lab frames
 

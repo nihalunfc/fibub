@@ -65,6 +65,11 @@ GROUP BY month, c.province;
 SELECT * FROM snap_members WHERE month IN ('2025-01', '2025-12') ORDER BY month, province;
 ```
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Additive: sum along anything
 
 Sales by store, summed, equals total sales. So do sales by month, by department, by customer. Check one:

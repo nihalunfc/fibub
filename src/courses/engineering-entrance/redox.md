@@ -74,6 +74,18 @@ The **oxidation number** (ON) is the charge an atom would carry if every bond we
 
 The **oxidation number method** does the same with ON changes: the total increase must equal the total decrease.
 
+**Watch it happen:** the same equation as above, balanced with a ledger that checks atoms and charge at every stage.
+
+<div class="steps" data-fig="@chem-redox-steps" data-title="Balance it with a ledger" data-ms="6000">
+<div class="step"><b>Skeleton.</b> MnO₄⁻ + Fe²⁺ → Mn²⁺ + Fe³⁺. Mn goes +7 → +2 (reduced), Fe goes +2 → +3 (oxidised).</div>
+<div class="step"><b>Split</b> into an oxidation and a reduction half-reaction.</div>
+<div class="step"><b>Balance O with H₂O.</b> Four O atoms need four H₂O.</div>
+<div class="step"><b>Balance H with H⁺</b> (acid solution): eight H⁺.</div>
+<div class="step"><b>Balance charge with e⁻:</b> 5 electrons on the left of the reduction half; Fe²⁺ → Fe³⁺ + e⁻.</div>
+<div class="step"><b>Multiply</b> the iron half by 5 so the electrons lost equal those gained.</div>
+<div class="step"><b>Add</b> the halves; the electrons cancel. Check atoms and charge: both +17.</div>
+</div>
+
 ## 5. n-factor, equivalents and normality
 
 The **n-factor** of an oxidant or reductant is the total change in ON per formula unit. K₂Cr₂O₇ → 2Cr³⁺: 2 × 3 = 6. C₂O₄²⁻ → 2CO₂: 2 × 1 = 2. FeC₂O₄ → Fe³⁺ + 2CO₂: 1 + 2 = 3. The n-factor depends on the reaction, not just the substance: KMnO₄ is 5 in acid, 3 in neutral and 1 in strongly basic solution. For a disproportionation, use n = (n<sub>up</sub> × n<sub>down</sub>)/(n<sub>up</sub> + n<sub>down</sub>) per molecule.

@@ -54,6 +54,10 @@ Watch a motion drawn three ways at once. Pick a motion, play it, and watch how t
 <div class="step"><b>Impossible graphs.</b> Two velocities at one instant, a vertical x-t line (infinite speed) or a negative distance can never happen; exams use them as wrong options.</div>
 </div>
 
+Set three accelerations (one of them negative) and press Play. Watch the car and the three graphs together.
+
+<figure class="fig" data-fig="@mech-vt-builder"><figcaption>The slope of v–t is a, the slope of x–t is v, and the shaded area under v–t is the displacement.</figcaption></figure>
+
 ## 3. The equations of constant acceleration
 
 When the acceleration a is constant (and only then):

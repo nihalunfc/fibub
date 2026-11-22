@@ -58,6 +58,11 @@ FROM mini_orders
 
 Press **Show how it runs** and stop at the SELECT step: the new `size` column is worked out row by row. The Duvet ($90) and Speaker ($60) are Large, the Kettles ($45) and Puzzle ($20) are Medium, the Bagels ($5) are Small.
 
+Pick A and B in the truth table, then test each WHERE condition on the rows with NULL.
+
+<figure class="fig" data-fig="@data-null-logic"><figcaption>Notice that UNKNOWN is neither true nor false, and that WHERE keeps only TRUE, so NULL rows vanish silently.</figcaption></figure>
+
+
 ## 3. First true WHEN wins
 
 CASE reads the WHEN lines from the top and stops at the first one that is true. The Duvet at $90 passes `>= 50` and is labelled Large straight away; it never reaches the second test. A Kettle at $45 fails `>= 50`, moves on, and is caught by `>= 20`. So the second line really means "from 20 up to (not including) 50", without you writing the upper limit.

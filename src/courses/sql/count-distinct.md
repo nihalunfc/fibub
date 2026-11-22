@@ -49,6 +49,11 @@ FROM mini_orders
 
 Six orders, but only four different customers (1, 2, 3 and 9), because customers 1 and 3 ordered twice. Press **Show how it runs** and look at the customer_id column: count the different numbers yourself.
 
+Switch between the four operations and add ids to either list to see how duplicates are handled.
+
+<figure class="fig" data-fig="@data-set-ops"><figcaption>Notice that UNION removes duplicates, UNION ALL keeps them, and EXCEPT depends on which list comes first.</figcaption></figure>
+
+
 ## 3. The same question on Northbay
 
 ```sql

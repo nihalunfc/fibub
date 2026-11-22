@@ -48,6 +48,14 @@ The period does not depend on the speed, which is how a cyclotron works. If the 
 
 **Crossed fields.** With `$\vec E\perp\vec B$`, a particle goes straight only if `$v = E/B$` (a velocity selector), whatever its charge or mass. A particle starting from rest drifts at `$\vec E\times\vec B/B^2$`, along a cycloid, in the same direction for both signs of charge.
 
+Change the angle between the velocity and B. At 90° the path is a circle; at any other angle it is a helix. Drag to turn the view, and switch to the electron.
+
+<figure class="fig" data-fig="@em-helix-b"><figcaption>Only the component across B turns; the component along B carries on, so the path winds along the field. The period does not depend on speed.</figcaption></figure>
+
+Release the charge from rest, then set its start speed to E/B and see it go straight. Flip the sign of the charge.
+
+<figure class="fig" data-fig="@em-crossed-eb"><figcaption>A cycloid drifts at E/B whatever the charge. A start speed of exactly E/B passes straight through: that is a velocity selector.</figcaption></figure>
+
 ## 2. The Biot-Savart law
 
 A short piece of wire `$d\vec l$` carrying current `$I$` makes a field
@@ -95,6 +103,10 @@ The legs carry opposite currents but sit on opposite sides of the centre, so the
 **Worked example: a square loop** of side `$a$`. Each side is a segment at distance `$a/2$` seen under `$\pm45^\circ$`: `$\dfrac{\mu_0I}{4\pi(a/2)}\cdot2\sin45^\circ$`. Four sides: `$B = \dfrac{2\sqrt2\,\mu_0I}{\pi a}$`, about 10% less than the circle that just fits inside the square (`$\mu_0I/a$`), because most of the square's wire is further from the centre.
 
 <div class="problem" data-problem="loop-axis-field"></div>
+
+Switch between a wire, a loop and a solenoid, reverse the current, and tap the picture to read B. The red end of each needle is its north pole.
+
+<figure class="fig" data-fig="@em-biot-savart"><figcaption>A wire's field circles it; a loop's field threads through it; a solenoid has a nearly uniform field inside and almost none outside.</figcaption></figure>
 
 ## 3. Ampère's law
 

@@ -57,6 +57,11 @@ P = \frac13\,n\,m\,\langle v^2\rangle, \qquad \left\langle \tfrac12 m v^2\right\
 
 **Worked example.** The rms speed of nitrogen (`$M = 0.028$` kg/mol) at 300 K is `$\sqrt{3RT/M} = \sqrt{3\times8.314\times300/0.028} \approx 517$` m/s, faster than a rifle bullet. The trap: putting `$M = 28$` instead of `$0.028$` gives an answer about 32 times too small.
 
+Heat the gas and shrink the box, and compare the pressure counted from wall hits with N k T / V.
+
+<figure class="fig" data-fig="@wt-gas-box"><figcaption>P = N m ⟨v_x²⟩ / V: the pressure is momentum delivered to the wall per second per area. Notice that ⟨v_x²⟩ = kT/m, so P ∝ T at fixed V and P ∝ 1/V at fixed T (Boyle), and the histogram follows the Maxwell curve.</figcaption></figure>
+
+
 ## 2. The Maxwell distribution: not all molecules are equal
 
 Molecules collide all the time, so their speeds spread out. Maxwell found that each velocity component has a bell curve (Gaussian) centred on zero, and so the speeds follow
@@ -107,6 +112,11 @@ Count the terms `$f$`, and per mole `$U = \tfrac f2 RT$`, `$C_V = \tfrac f2 R$`,
 Why is vibration "frozen" at room temperature? Because energy levels are quantised: a mode whose level spacing is much larger than `$kT$` cannot take up energy. For hydrogen, `$C_V/R$` climbs from 1.5 to 2.5 near 100 K (rotation switching on) and to 3.5 at a few thousand kelvin (vibration). Classical equipartition cannot explain the steps; quantum mechanics can.
 
 **Worked example (mixtures).** One mole of helium plus one mole of oxygen: add heat capacities, `$C_V = (\tfrac32 + \tfrac52)R/2 = 2R$`, so `$\gamma = 3R/2R = 1.5$`. Averaging the two `$\gamma$` values gives 1.53, a favourite wrong option.
+
+Slide the temperature across the freeze-out temperatures of rotation and vibration for a gas.
+
+<figure class="fig" data-fig="@wt-dof-freeze"><figcaption>Equipartition gives ½R per quadratic term only when kT is large compared with the level spacing. Notice the plateaus at 3/2, 5/2 and 7/2 R, with the steps near θ_rot and θ_vib.</figcaption></figure>
+
 
 ## 4. Mean free path, collisions and effusion
 

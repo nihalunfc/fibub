@@ -100,6 +100,10 @@ After n half-lives a first-order reactant falls to (1/2)ⁿ of its start. Time f
 
 </div>
 
+**Try it:** run the three orders and compare the times for each successive halving. Press "Run again": no two runs are alike.
+
+<figure class="fig" data-fig="@chem-half-life"><figcaption>For first order the time to halve never changes; for zero order it shrinks, for second order it doubles each time. With a hundred particles the real count wobbles around the smooth curve (the random nature of decay).</figcaption></figure>
+
 ## 4. Temperature and the Arrhenius equation
 
 Most rates roughly double or triple for a 10 K rise near room temperature (the **temperature coefficient**, k(T+10)/k(T) ≈ 2 to 3). Arrhenius explained why:
@@ -121,6 +125,10 @@ A plot of ln k against 1/T is a straight line with slope −Eₐ/R. A **higher E
 **"Raising the temperature speeds up only the endothermic direction."** Heat speeds up both directions. It speeds the direction with the higher activation energy more, which for an endothermic reaction is the forward one; that is how the equilibrium constant changes with temperature.
 
 </div>
+
+**Try it:** raise the temperature a little and watch the shaded tail; then add a catalyst and watch Ea drop. Read the rate factor in the readout.
+
+<figure class="fig" data-fig="@chem-arrhenius-tail"><figcaption>Only molecules in the shaded tail have enough energy to react. A small rise in T lifts the tail enormously (about ×2 for 10 K); a catalyst lowers Ea, so far more molecules qualify at the same temperature.</figcaption></figure>
 
 ## 5. Complex reactions (JEE Advanced)
 

@@ -71,6 +71,10 @@ When `$S \ne 0$`, project the moment onto `$\mathbf J$` (the projection theorem)
 
 Checks: `$S = 0$` gives `$g = 1$`, pure orbit; `$L = 0$` gives `$g = 2$`, pure spin. Different levels now have different spacings, so a transition breaks into more than three lines.
 
+Pick l, s, j and m_j, switch the field on and off, and drag the picture to turn it.
+
+<figure class="fig" data-fig="@qm-vector-model"><figcaption>L and S circle quickly about J while J circles slowly about B. Only the lengths √(x(x+1)) and the z-component m_j are fixed, and g_J sets the Zeeman splitting.</figcaption></figure>
+
 <div class="meaning">
 
 <dl>
@@ -107,6 +111,10 @@ If `$\mu_BB$` is larger than the fine-structure splitting, the field uncouples `
 
 The small second term is what remains of spin-orbit coupling. E1 transitions keep `$\Delta m_s = 0$` and `$\Delta m_l = 0, \pm1$`, so the `$2m_s$` part cancels and the pattern goes back to a normal triplet (each line a close doublet from the `$a\,m_lm_s$` term).
 
+Drag the field b from 0 to 4 for hydrogen and then sodium, and read the real field in tesla from the answer line.
+
+<figure class="fig" data-fig="@qm-zeeman-regimes"><figcaption>At weak field each level splits by g_J m_j μ_B B; at strong field the lines bunch into the Paschen-Back pattern m_l + 2m_s. Levels with the same m_j never cross.</figcaption></figure>
+
 How strong is strong? Compare `$\mu_BB$` with the splitting. Sodium 3p: 17.2 cm⁻¹ / 0.467 cm⁻¹ T⁻¹ ≈ 37 T, beyond ordinary magnets. Hydrogen 2p: 0.365/0.467 ≈ 0.8 T, easily reached. Lithium 2p (0.34 cm⁻¹) is the classic laboratory case.
 
 ## 5. Magnetic resonance
@@ -124,9 +132,17 @@ h\nu = g\,\mu_B B
 
 NMR is the same idea with the nuclear magneton, 1836 times smaller: protons resonate at 42.58 MHz per tesla.
 
+In free precession change B and the tilt; then switch to the RF pulse view, set 90° and press Pulse.
+
+<figure class="fig" data-fig="@qm-spin-bloch"><figcaption>Precession keeps the angle to B and runs at ω = γB. In the rotating frame a pulse simply tips the spin away from z, and the coil signal (largest after 90°) dies away as the spins dephase.</figcaption></figure>
+
 ## 6. The Stark effect
 
 An electric field acts on the electric dipole, `$H' = e\mathcal E z$`. Atomic states of definite parity have no permanent dipole, so `$\langle z\rangle = 0$` and the first-order shift vanishes, unless degenerate states of opposite parity can be mixed.
+
+Pick the lower, upper and 2p±1 states of n = 2, raise the field, then switch to n = 1.
+
+<figure class="fig" data-fig="@qm-stark"><figcaption>The n = 2 levels shift in straight lines because 2s and 2p mix into states with permanent dipoles; the ground state bends down as F² (induced dipole).</figcaption></figure>
 
 **Linear Stark effect (hydrogen).** In `$n = 2$`, the field mixes 2s and 2p (`$m = 0$`): `$\langle 2s|z|2p_0\rangle = -3a_0$`. Diagonalising the 2×2 block gives
 

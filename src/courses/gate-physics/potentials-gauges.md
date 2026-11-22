@@ -113,6 +113,16 @@ A current `$I_0$` is switched on at `$t = 0$` in an infinite neutral wire. At di
 
 At `$ct = 2s$`, `$B$` is `$2/\sqrt3 = 1.155$` times its final value, and for `$I_0 = 1$` A at `$s = 1$` m the electric field is `$59.96/\sqrt3 = 34.6$` V/m.
 
+Step through, or slide the time since the push. Look at the kink in the field lines spreading out as a shell.
+
+<div class="steps" data-fig="@em-radiation-kink">
+<div class="step">The charge at rest: field lines straight out, strength falling as 1/r².</div>
+<div class="step">At t = 0 it is pushed. The news has only just started to spread.</div>
+<div class="step">A shell of radius ct has spread out. Inside it the lines point away from the new position, outside from the old one.</div>
+<div class="step">The kink has grown. At right angles to the push it is largest; along the push there is none.</div>
+<div class="step">The sideways field at the kink falls only as 1/r. This is the radiation field: it carries energy to infinity.</div>
+</div>
+
 ## 4. Moving point charges
 
 For a point charge the retarded integral needs care, because the charge moves while its signal is "collected". The result (Liénard-Wiechert) is

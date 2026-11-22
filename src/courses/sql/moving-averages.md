@@ -61,6 +61,11 @@ Press **Show how it runs** and step through **OVER**. What to watch:
 
 The jump to 356.18 on Monday 2 December is softened, and Saturday 7 December's 285.05 lifts the average only to 172.81.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. Short windows at the start
 
 The first rows average fewer days than the rest, so they are not comparable. Count the rows in each frame and hide the short ones:

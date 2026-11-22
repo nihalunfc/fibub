@@ -31,6 +31,20 @@ Filter context is the single most important idea in DAX. Once you can picture it
 
 Each row of the result is a separate evaluation of the same measure. For East, Power BI filters Store to the rows with Region = East (just Rideau), the filter flows along the relationship to Sales, and `SUM` adds up the Amount of only those rows.
 
+Follow the filters from the slicers down to the rows that the measure adds up.
+
+<div class="steps" data-fig="@biz-filter-steps">
+
+<div class="step">No filter: every row counts and the total is $870.</div>
+
+<div class="step">Store = Rideau: the slicer filters the Store table, and the filter flows to Sales. Only Rideau rows remain.</div>
+
+<div class="step">Category = Home as well: both filters apply together, so only Rideau AND Home rows remain.</div>
+
+<div class="step">The measure SUM(Sales[Amount]) adds the amounts of the rows left. Now change the slicers yourself.</div>
+
+</div>
+
 ## 3. Where filters come from
 
 For any cell, the filter context combines:
@@ -62,6 +76,10 @@ R = \{\, r \in \text{Sales} : r \text{ passes every } F_i \text{ (directly or th
 
 **Try it:** a matrix cell at Region = West, Year = 2025, with a slicer Category = Home. Which Sales rows count? (Lines in West stores, in 2025, for Home products.)
 </details>
+
+Try it: press Play in column mode, then switch to Measure and use the Store slicer.
+
+<figure class="fig" data-fig="@biz-row-vs-filter"><figcaption>Notice that a column is worked out row by row and stored, and a measure is worked out for whatever the filters leave.</figcaption></figure>
 
 ## 5. Worked example
 

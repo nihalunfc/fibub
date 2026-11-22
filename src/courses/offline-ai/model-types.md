@@ -86,6 +86,22 @@ Thinking has a price in time. A reasoning model writes its working as tokens bef
 
 <div class="problem" data-problem="model-types-thinking-time"></div>
 
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
+
+Try it: press Generate from noise, then raise Guess error and generate again.
+
+<figure class="fig" data-fig="@ai-diffusion-denoise"><figcaption>An image model starts from pure noise and repeatedly guesses and removes noise. Better guesses and more steps give a cleaner picture; poor guesses leave artefacts.</figcaption></figure>
+
+Try it: pick a filter, then step the stage from Convolve to ReLU to Max-pool while the window slides.
+
+<figure class="fig" data-fig="@ai-conv-pool"><figcaption>A filter lights up where its pattern appears. ReLU keeps only the matches, and max-pooling shrinks the map while keeping the strongest responses, so a small shift of the picture barely changes the result.</figcaption></figure>
+
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
+
 ## 3. Worked example
 
 *Made-up numbers.* Arjun downloads a "-pt" file and asks it to summarise an email. It writes three more emails instead. He switches to the "-it" version of the same model and gets a summary first time.

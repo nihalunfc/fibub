@@ -46,6 +46,11 @@ Choosing a BI tool is like choosing a shop front for a bakery. The ovens, recipe
 
 Pricing and features of the paid editions and cloud versions change; check each project's site before you write numbers into a recommendation.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Metabase in ten minutes
 
 ```yaml

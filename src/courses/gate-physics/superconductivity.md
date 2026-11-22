@@ -31,6 +31,10 @@ sources:
 
 Many metals lose all resistance below a critical temperature `$T_c$` (Hg 4.2 K, Pb 7.2 K, Nb 9.2 K). But a superconductor is more than a perfect conductor. Inside a perfect conductor `$\partial\mathbf B/\partial t = 0$`, so it would keep whatever field it had when it became perfect. A superconductor cooled in a field **expels** it (Meissner and Ochsenfeld, 1933): `$B = 0$` inside, `$\chi = -1$`, whatever the history. So superconductivity is a true thermodynamic phase.
 
+Slide the temperature and field across the transition to see the electrons switch from scattering to gliding.
+
+<figure class="fig" data-fig="@sx-sc-resistance"><figcaption>Below T<sub>c</sub> (and below B<sub>c</sub>(T)) the electrons move as Cooper pairs and nothing scatters them, so the resistance is exactly zero; above it the ions scatter normally.</figcaption></figure>
+
 A strong enough field destroys it. For a type-I material
 
 ```math

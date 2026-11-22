@@ -42,6 +42,10 @@ Things to notice:
 - About 2700 BC, Thuban in Draco was near the pole.
 - Around 14,000 AD bright Vega will be the "pole star", though about 5° from the pole.
 
+Slide the year or press Play. The axis sweeps a cone around the pole of the ecliptic while the celestial equator tilts with it.
+
+<figure class="fig" data-fig="@astro-precession-3d"><figcaption>One turn takes about 25,800 years. The pole points to Thuban in 2800 BC, Polaris today and Vega around AD 13,700, and the equinox slides slowly along the ecliptic, which is why coordinate catalogues name their epoch (J2000).</figcaption></figure>
+
 ## 3. Sliding equinoxes
 
 The equinox points, where the ecliptic crosses the celestial equator, slide westward along the ecliptic by about 50″ a year. Over 2,000 years that is about 28°, roughly one zodiac constellation. That is why the March equinox, once in Aries (hence "First Point of Aries"), is now in Pisces. It is also why the astrological "sign" for a birthday no longer matches the constellation the Sun is actually in: astrology froze the signs about 2,000 years ago. (This course is about astronomy; astrology has no scientific basis.)

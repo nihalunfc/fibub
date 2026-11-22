@@ -10,6 +10,7 @@ import type { CourseSyllabus } from '../types';
 export const POWER_BI: CourseSyllabus = {
   id: 'power-bi',
   name: 'Power BI and DAX',
+  kit: true,
   title: 'Power BI and DAX: from raw data to a dashboard managers use',
   text: 'Learn Power BI the way BI teams use it: clean data in Power Query, model it as a star schema, write DAX measures and time intelligence, and design a report people act on. Type and run DAX in every lesson, and watch step by step what each formula does to the data.',
   audience: 'For students, career changers and analysts who know Excel. No coding needed to start. A Windows computer helps for the hands-on parts (Power BI Desktop is free); every DAX exercise also runs right here in the browser.',

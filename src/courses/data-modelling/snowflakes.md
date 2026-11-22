@@ -56,6 +56,16 @@ SELECT product_key, product_name, category_name, department FROM dim_product WHE
 
 Six Tech products, and the words "Electronics" and "Tech" are stored six times. (To keep this lesson short, `product_key` simply reuses `product_id`; [Lesson 4.1](/learn/courses/data-modelling/surrogate-keys/) explains why a real warehouse would make its own.)
 
+Step from the messy sheet to clean tables.
+
+<div class="steps" data-fig="@data-normalize-steps">
+<div class="step">One messy sheet: a list in one cell and repeated customer details.</div>
+<div class="step">1NF: every cell holds one value; each row is one order line.</div>
+<div class="step">2NF: details that depend on only part of the key move to their own table.</div>
+<div class="step">3NF: details that depend on a non-key column (city via customer) move out too.</div>
+</div>
+
+
 ## 3. Snowflake: a chain of tables
 
 To **snowflake** a dimension is to normalise it: each level of a hierarchy gets its own table, and each table points to the level above with a key. Product → category → department:

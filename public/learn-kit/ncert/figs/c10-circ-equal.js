@@ -1,7 +1,7 @@
 // Class 10 Circles: the two tangents from an outside point P are equal (PA = PB). Drag P and watch the two lengths stay equal.
 // Slide "Fold along OP" and the lower half of the picture flips over the line OP: B lands exactly on A. The figure is a kite,
 // OP bisects the angle APB, and ∠APB + ∠AOB = 180° because the angles at A and B are both 90°.
-import { canvas, text, title, line, dot, row, slider, readout } from '../../kit.js';
+import { canvas, text, title, line, dot, row, slider, readout, touchGuard } from '../../kit.js';
 
 export default function (host) {
   let dist = 2.4, ang = 0, fold = 0;
@@ -14,7 +14,7 @@ export default function (host) {
     const al = Math.acos(1 / dist), pa = Math.sqrt(dist * dist - 1), apb = 180 - 2 * ((al * 180) / Math.PI);
     out.innerHTML = `PA = PB = √(OP² − r²) = <b>${pa.toFixed(2)} r</b>. ∠AOB = ${(2 * al * 180 / Math.PI).toFixed(0)}° and ∠APB = <b>${apb.toFixed(0)}°</b>: together <b>180°</b>.`; cv.redraw();
   }
-  cv.c.style.touchAction = 'none'; let on = false;
+  let on = false; touchGuard(cv.c, (x, y) => Math.hypot(x - G.px, y - G.py) < 24);
   const mv = (e) => { const r = cv.c.getBoundingClientRect(), x = e.clientX - r.left - G.cx, y = e.clientY - r.top - G.cy; dist = Math.max(1.2, Math.min(3.4, Math.hypot(x, y) / G.R)); ang = Math.atan2(y, x); sd.set(dist); say(); };
   cv.c.addEventListener('pointerdown', (e) => { const r = cv.c.getBoundingClientRect(); if (Math.hypot(e.clientX - r.left - G.px, e.clientY - r.top - G.py) < 34) { on = true; cv.c.setPointerCapture(e.pointerId); e.preventDefault(); } });
   cv.c.addEventListener('pointermove', (e) => on && mv(e));

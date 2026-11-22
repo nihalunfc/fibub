@@ -76,6 +76,11 @@ SELECT (SELECT COUNT(*) FROM fact_sales) AS sales_lines,
 
 <!--fig:conformed-dims-->
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. The wrong way: joining two facts
 
 The tempting query joins the two fact tables on `product_key` and sums:

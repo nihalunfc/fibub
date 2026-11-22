@@ -352,6 +352,108 @@ mc(5, 'selection', 'In a lake, small beaks eat small seeds and large beaks eat l
 mc(5, 'Darwin', 'Which statement is correct?', 'Fitness in Darwin\'s sense is measured by reproductive success, and the heritable variation it acts on arises by mutation and recombination', ['Fitness is physical strength, which is acquired by exercise', 'Fitness is acquired and passed to offspring', 'Mutations are made by the environment in the direction of need'], 'Fitness is about the number of offspring that survive. Variation is random, and selection is not.');
 mc(5, 'origin of life', 'Which sequence correctly orders these events from oldest to youngest?', 'Formation of the earth, non-cellular life, cellular life, agriculture', ['Cellular life, formation of the earth, non-cellular life, agriculture', 'Formation of the earth, cellular life, non-cellular life, agriculture', 'Non-cellular life, earth formation, agriculture, cellular life'], '4.5 billion years ago, 3 billion, 2000 million and 10,000 years ago.');
 
+// ---------------------------------------------------------------- Level 5 round (v5): top-rank items with fixed ids
+const V5 = ['neet'];
+const V5POS = [1, 3, 0, 2, 2, 0, 3, 1, 1, 2, 3, 0];
+let v5i = 0;
+const v5take = () => V5POS[v5i++ % V5POS.length];
+const v5place = (correct, wrongs) => { const p = v5take(); const o = [...wrongs]; o.splice(p, 0, correct); return [o, p]; };
+function v5mc(id, sub, q, correct, wrongs, sol, trap, format = 'single', group) {
+  const [options, answer] = v5place(correct, wrongs);
+  items.push({ id, type: 'mcq', level: 5, format, exams: V5, sub, ...(group ? { group } : {}), q, options, answer, sol, ...(trap ? { trap } : {}) });
+}
+function v5asr(id, sub, A, R, ans, sol, trap) {
+  items.push({ id, type: 'mcq', level: 5, format: 'assertion', exams: V5, sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AR, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function v5stm(id, sub, s1, s2, ans, sol, trap) {
+  items.push({ id, type: 'mcq', level: 5, format: 'statements', exams: V5, sub, q: `<b>Statement I:</b> ${s1}<br><b>Statement II:</b> ${s2}`, options: ST, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function v5cnt(id, sub, q, correct, wrongs, sol, trap) { v5mc(id, sub, q, correct, wrongs, sol, trap, 'statements'); }
+function v5match(id, sub, key, title, list1, list2, ans, sol, trap) {
+  groups[key] = { title, list1, list2 };
+  const L = 'ABCD';
+  const code = (a) => a.map((c, i) => `${L[i]}-${c}`).join(', ');
+  const a = ans.split('');
+  const sw = (i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return code(b); };
+  const [options, answer] = v5place(code(a), [sw(0, 1), sw(2, 3), sw(0, 2)]);
+  items.push({ id, type: 'mcq', level: 5, format: 'match', exams: V5, sub, group: key, q: 'Match List I with List II and choose the correct code.', options, answer, sol, ...(trap ? { trap } : {}) });
+}
+function v5pass(key, title, passage) { groups[key] = { title, passage }; }
+
+v5mc('ev-v501', 'Hardy-Weinberg', 'In a large, randomly mating population the recessive allele a of an autosomal gene has frequency q = 0.1. Two people are picked at random from those who do <b>not</b> show the recessive trait and they have a child. The chance that the child shows the recessive trait is nearest to', '0.83%', ['1.00%', '3.31%', '0.25%'],
+  'Idea: the parents are chosen from the dominant phenotype only, so use the carrier fraction <i>among them</i>, not among everybody. With p = 0.9 and q = 0.1: carriers 2pq = 0.18; dominant phenotype p<sup>2</sup> + 2pq = 0.99. Chance that a chosen person is a carrier = 0.18/0.99 = 0.1818. Both parents must be carriers: 0.1818<sup>2</sup> = 0.03306. A carrier &times; carrier mating gives an aa child with chance 1/4: 0.03306/4 = 0.00826, about 0.83%. The value 1.00% is q<sup>2</sup>, the frequency in the whole population, which is higher because affected people are left out of the parent pool. The value 3.31% forgets the 1/4.',
+  'The parents are known to be unaffected, so the carrier chance is 0.18/0.99, not 0.18 and not q.');
+v5mc('ev-v502', 'natural selection', 'In Darwin\'s sense, fitness is the ability to leave offspring that themselves survive and reproduce. Four individuals of one species are compared. P is the largest and strongest, and bore 6 young, none of which lived to breed. Q is small, and bore 4 young, of which 3 lived to breed. R bore 5 young, of which 2 lived to breed. S lived 30 years, twice as long as the others, and bore 1 young, which bred. Which individual has the highest fitness?', 'Q', ['P', 'R', 'S'],
+  'Idea: count the offspring that survive to reproduce, not strength, size, lifespan or number born. P = 0, Q = 3, R = 2, S = 1. So Q is the fittest, although it is the smallest and not the longest-lived. P is the "strongest" but leaves no descendants. R bore the most young among those that bred, but fewer of them reached breeding age than Q\'s.',
+  'Fitness is reproductive success, not physical strength or long life.');
+v5mc('ev-v503', 'gene flow', 'The gene pool of an island population has the allele A at frequency 0.5. In every generation, 10% of the alleles of the island gene pool come from the mainland, where the frequency of A is 0.9 (the mainland itself does not change). No other evolutionary force acts. The frequency of A on the island after two generations is', '0.576', ['0.540', '0.580', '0.700'],
+  'Idea: each generation the new frequency is 0.9 &times; (island value) + 0.1 &times; 0.9. Generation 1: 0.9 &times; 0.5 + 0.09 = 0.54. Generation 2: 0.9 &times; 0.54 + 0.09 = 0.486 + 0.09 = 0.576. The value 0.54 stops after one generation. The value 0.58 adds +0.04 twice, but the gain shrinks as the island gets closer to the mainland value (0.04, then 0.036). The value 0.70 is the plain average of 0.5 and 0.9, which would be right only if half the gene pool were replaced.',
+  'Gene flow raises the frequency by a smaller step each generation.');
+v5mc('ev-v504', 'Hardy-Weinberg', 'A population starts with 50% AA, no Aa and 50% aa individuals. It mates at random, with no selection, mutation, migration or drift. The genotype frequencies of AA, Aa and aa in the next generation will be', '0.25, 0.50, 0.25', ['0.50, 0.00, 0.50', '0.25, 0.25, 0.50', '0.36, 0.48, 0.16'],
+  'Idea: the allele frequencies decide the next generation, whatever the starting genotype frequencies. p(A) = 0.5 and q(a) = 0.5 (half of the gametes carry A, half carry a). Random mating of gametes: AA = p<sup>2</sup> = 0.25, Aa = 2pq = 0.50, aa = q<sup>2</sup> = 0.25. After this single generation the population is in equilibrium. The option 0.50, 0.00, 0.50 imagines that the genotypes simply repeat. The option 0.36, 0.48, 0.16 uses p = 0.6.',
+  'A population that is not in equilibrium reaches the equilibrium genotype ratio in one generation of random mating for one autosomal gene.');
+
+v5match('ev-v505', 'Hardy-Weinberg', 'v5m1', 'Population with p(A) = 0.6 and q(a) = 0.4, in equilibrium',
+  ['A. Frequency of AA', 'B. Frequency of Aa', 'C. Frequency of aa', 'D. Fraction of all a alleles that are carried by heterozygotes'],
+  ['p. 0.16', 'q. 0.36', 'r. 0.48', 's. 0.60', 't. 0.40'], 'qrps',
+  'AA = p<sup>2</sup> = 0.36, Aa = 2pq = 2 &times; 0.6 &times; 0.4 = 0.48, aa = q<sup>2</sup> = 0.16. For D, count the a alleles: heterozygotes give 0.48 &times; 1 = 0.48, and the whole gene pool has 2 &times; 0.4 = 0.80 per person. The fraction is 0.48/0.80 = 0.60 (which is p, because pq/q = p). The value 0.40 is q itself, the trap for D.',
+  'Not every a allele sits in an aa person.');
+v5match('ev-v506', 'history of ideas', 'v5m2', 'Scientists and what they are linked with',
+  ['A. Alfred Wallace', 'B. Thomas Malthus', 'C. Hugo de Vries', 'D. Louis Pasteur'],
+  ['p. Evening primrose and the idea of sudden, large mutations', 'q. Natural history of the Malay Archipelago, with conclusions like Darwin\'s', 'r. An essay on how populations outgrow their resources, which influenced Darwin', 's. Killed yeast in sterile flasks, showing that life comes from pre-existing life', 't. A voyage on H.M.S. Beagle'], 'qrps',
+  'Wallace worked in the Malay Archipelago and reached ideas close to Darwin\'s. Malthus\'s essay on population influenced Darwin. De Vries worked on evening primrose and proposed mutations as large, sudden, random changes. Pasteur showed in sterilised flasks that life does not come from killed yeast. The Beagle voyage (t) belongs to Darwin, who is not in List I.',
+  'The Beagle voyage is a distractor, because Darwin is not in List I.');
+v5match('ev-v507', 'selection and drift', 'v5m3', 'Situation and what happens to the population',
+  ['A. A few individuals from the mainland start a colony on an island and its allele frequencies differ from the mainland\'s', 'B. Soot darkens tree trunks and dark moths become common', 'C. Babies of very low or very high weight die more often than babies of average weight', 'D. Only small and large seeds are left, and finches with medium beaks cannot feed well'],
+  ['p. The mean stays the same and the variation falls', 'q. The mean shifts to one side', 'r. Two peaks form in the distribution', 's. A change by chance in a small sample, with no selection needed', 't. Two populations become more alike'], 'sqpr',
+  'A is the founder effect, a kind of genetic drift: a chance sample. B is directional selection, which shifts the mean. C is stabilising selection: both extremes are removed, so the mean stays and the variation falls. D is disruptive selection: medium types do badly, so two peaks form. Option t describes gene flow, not used here.',
+  'Read the shape of the curve: one narrow peak is stabilising, two peaks are disruptive, a shifted peak is directional.');
+v5match('ev-v508', 'Hardy-Weinberg', 'v5m4', 'An X-linked recessive allele with frequency 0.2 in a population at equilibrium',
+  ['A. Percentage of males who show the trait', 'B. Percentage of females who show the trait', 'C. Percentage of females who are carriers', 'D. Ratio of affected males to affected females'],
+  ['p. 4', 'q. 5', 'r. 20', 's. 32', 't. 16'], 'rpsq',
+  'Males have one X, so the trait shows with frequency q = 0.2, that is 20%. Females need two copies: q<sup>2</sup> = 0.04, that is 4%. Female carriers: 2pq = 2 &times; 0.8 &times; 0.2 = 0.32, that is 32%. The ratio of affected males to affected females is q/q<sup>2</sup> = 1/q = 5. The value 16 is not an answer to any row.',
+  'In males the trait frequency is q, not q<sup>2</sup>.');
+
+v5asr('ev-v509', 'antibiotic resistance', 'A bacterial population becomes resistant to an antibiotic because the drug induces the needed mutation in the cells it touches.', 'Resistant mutants arise by chance in the population, and the drug only raises their frequency by killing the sensitive cells.', 3,
+  'Assertion A is false: mutations do not appear because they are needed. Reason R is true: resistant cells arise by chance (random, as de Vries said), and selection by the drug removes the sensitive cells, so the resistant ones multiply. This is natural selection acting on existing variation.',
+  'This is the Lamarckian trap: need does not create the change.');
+v5asr('ev-v510', 'gene flow', 'Gene flow can change the allele frequency of a receiving population even though no new allele enters it.', 'Gene flow changes allele frequency only when it brings in an allele that is absent from the receiving population.', 2,
+  'Assertion A is true: if the incoming migrants carry the same alleles but in different proportions, the frequencies in the receiving population shift (for example 0.5 moving towards 0.9). Reason R is false: gene flow does not need a new allele; it only needs a difference in allele frequency between the two populations.',
+  'Gene flow need not add a new allele.');
+v5asr('ev-v511', 'Hardy-Weinberg', 'If every aa individual of a population is stopped from reproducing for one generation, the allele a will not disappear from the population.', 'The recessive allele is also carried by heterozygous individuals, which do not show the trait and so are not affected by this selection.', 0,
+  'Both are true and R explains A. Aa individuals still make gametes, half of them carrying a, so the allele continues in the next generation (for q = 0.4 it falls only to about 0.29).',
+  'Selection against the recessive phenotype cannot reach the hidden copies in carriers.');
+v5asr('ev-v512', 'Hardy-Weinberg', 'In a population at Hardy-Weinberg equilibrium for one gene with two alleles, the frequency of heterozygotes can never exceed 50 per cent.', 'The value of 2pq is highest when p = q = 0.5.', 0,
+  'Both are true, and R explains A. With p + q = 1, 2pq = 2p(1 &minus; p), which is largest at p = 0.5 and equals 0.5. At any other allele frequency the heterozygote frequency is less than 0.5. (With three or more alleles the limit is higher, but this assertion is about two alleles.)',
+  'The 50% limit is only for a gene with two alleles.');
+
+v5cnt('ev-v513', 'Hardy-Weinberg and drift', 'How many of the following statements are correct? (i) In a population at equilibrium with q = 0.5, the frequency of heterozygotes is the highest possible. (ii) A population of 10 individuals and a population of 10,000 with the same allele frequencies are equally likely to show a large change by drift in one generation. (iii) Gene flow from a population whose allele frequencies are the same as those of the recipient changes nothing. (iv) Because mutation rates are very low, mutation alone changes allele frequencies quickly in a large population. (v) A harmful recessive allele is removed faster from a population as it becomes rarer.', 'Two', ['One', 'Three', 'Four'],
+  '(i) True: 2pq = 0.5 at p = q = 0.5, the maximum. (ii) False: drift is far stronger in the small population. (iii) True: migrants carrying the same frequencies cannot move the frequency. (iv) False: mutation changes allele frequency very slowly, though it is the source of new alleles. (v) False: when the allele is rare, nearly all copies are in carriers, which are not selected against, so the fall in q per generation is tiny. Change in q is about q<sup>2</sup>/(1 + q) for complete selection: 0.167 at q = 0.5 but only 0.0024 at q = 0.05. So (i) and (iii) are correct: two.',
+  'Rare recessive alleles are hard to remove.');
+v5stm('ev-v514', 'history of ideas', 'Darwin held that the variations on which evolution works are large and sudden.', 'De Vries held that evolution is a slow, gradual change by the addition of small variations.', 1,
+  'Both are incorrect. Darwin\'s variations were small and directional, and evolution was gradual. De Vries\' mutations were large, sudden and random (directionless), and he believed that mutation produced new species in a single step (saltation). The two statements swap the two views.',
+  'Each statement describes the other scientist\'s idea.');
+v5stm('ev-v515', 'human evolution', 'Neanderthals were more ape-like than Australopithecus and had a smaller brain than Homo erectus.', 'Neanderthals used hides to protect their body and buried their dead.', 3,
+  'Statement I is incorrect: the Neanderthal brain (about 1400 cc) was larger than that of Homo erectus (about 900 cc), and Neanderthals were much more human-like than Australopithecus. Statement II is correct as per NCERT: they used hides to protect the body and buried their dead.',
+  'Brain size rises through Australopithecus, Homo habilis, Homo erectus and the Neanderthals.');
+v5cnt('ev-v516', 'human evolution', 'How many of the following statements are correct? (i) Ramapithecus was more man-like and Dryopithecus was more ape-like. (ii) Australopithecines essentially ate fruit. (iii) Homo habilis probably ate meat. (iv) Homo erectus had a brain of about 900 cc. (v) Neanderthals lived in the Near East and Central Asia.', 'Four', ['Two', 'Three', 'Five'],
+  '(i) True. (ii) True: they hunted with stone weapons but essentially ate fruit. (iii) False: Homo habilis probably did not eat meat; it was Homo erectus that probably did. (iv) True. (v) True. So four are correct.',
+  'The meat-eating habit goes with Homo erectus, not Homo habilis.');
+v5stm('ev-v517', 'vertebrate fossils', 'Lobefins, fish with stout and strong fins, evolved into the first amphibians.', 'The first mammals were large animals that replaced the dinosaurs.', 2,
+  'Statement I is correct: the lobefins gave rise to the first amphibians, the ancestors of modern frogs and salamanders. Statement II is incorrect: the first mammals were small, shrew-like animals, and they lived alongside the dinosaurs for a long time before the dinosaurs disappeared (about 65 mya).',
+  'The first mammals were small.');
+
+v5pass('v5p1', 'A drug and a bacterial culture', 'A student spreads 10<sup>9</sup> cells of a drug-sensitive bacterium on a plate that contains an antibiotic. Each resistant cell forms one visible colony. Before this, a separate test of the same drug-free culture showed that resistant cells were already present in it, at about 1 cell in 10<sup>6</sup>. In another experiment, a culture that was half resistant and half sensitive was grown for many generations in a medium without the drug. In that medium the resistant cells divide 5% more slowly than the sensitive cells.');
+v5mc('ev-v518', 'antibiotic resistance', 'The results show that', 'the resistant cells arose by chance before the drug was added, and the drug only selected them', ['the drug caused resistance mutations in the cells it came in contact with', 'each cell slowly became resistant by using the drug and then passed this on to its progeny', 'all the cells were resistant at the start and the drug killed those that lost the allele'],
+  'The resistant cells were already present at 1 in 10<sup>6</sup> before contact with the drug, so the variation was there first and selection by the drug picked it out. Options 2 and 3 are Lamarckian or induction ideas that the test does not support. The last option contradicts the fact that most cells (999,999 in 10<sup>6</sup>) were sensitive.',
+  null, 'passage', 'v5p1');
+v5mc('ev-v519', 'antibiotic resistance', 'The number of colonies expected on the plate is about', '1000', ['10<sup>6</sup>', '100', '10<sup>9</sup>'],
+  'Expected resistant cells = 10<sup>9</sup> &times; 1/10<sup>6</sup> = 1000, and each forms one colony. The value 10<sup>6</sup> would be the number if the ratio were 1 in 1000; 10<sup>9</sup> is the number of cells plated.',
+  'Multiply the total by the frequency, not the other way round.', 'passage', 'v5p1');
+v5mc('ev-v520', 'natural selection', 'In the drug-free medium, the proportion of resistant cells in the mixed culture will', 'fall steadily, because the resistant cells have a lower growth rate there', ['remain at 50%, because the resistance allele is not lost', 'rise, because the resistance allele is an adaptation', 'rise at first and then fall'],
+  'Selection works on the environment of the moment. Without the drug the resistant cells have a lower fitness (they divide 5% more slowly), so each generation they form a smaller share of the culture. Resistance is an advantage only where the drug is present. An allele is not "good" or "bad" in itself.',
+  'Fitness depends on the environment.', 'passage', 'v5p1');
+
 const gens = [
   {
     id: `ev-g01`, type: 'nat', level: 3, format: 'numeric', exams: ex(3), sub: 'Hardy-Weinberg',

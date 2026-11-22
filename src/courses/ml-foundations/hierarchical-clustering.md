@@ -58,6 +58,10 @@ Five shops by weekly sales (in $1,000s): A 10, B 12, C 30, D 33, E 60. Average l
 
 To get clusters, **cut** the dendrogram with a horizontal line: every branch it crosses is one cluster. A long stretch with no merges is a natural place to cut, because the groups below it are far apart.
 
+Try it: press New start a few times with random starts, then with k-means++, then Run 30 starts for each.
+
+<figure class="fig" data-fig="@ai-kmeans-init"><figcaption>k-means only finds a nearby good answer, so a bad start can strand two centres in one blob. Spreading the starting centres out (k-means++) and trying several starts both help.</figcaption></figure>
+
 ## 3. Linkage: distance between clusters
 
 Points have distances, but clusters need a rule. Think of measuring how far apart two towns are: from their nearest houses, their farthest houses, or on average.

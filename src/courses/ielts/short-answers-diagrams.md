@@ -43,6 +43,11 @@ The questions **follow the order of the passage**. Turn each question word into 
 | How long | a length of time or distance |
 | Why | a cause, often after "because" or "due to" in the text |
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 2. The method
 
 <div class="steps">

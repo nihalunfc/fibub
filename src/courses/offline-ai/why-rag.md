@@ -47,9 +47,17 @@ Picture a very well-read consultant locked in a room with no filing cabinet. The
 
 </div>
 
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
+
 ## 3. Why not paste everything?
 
 A 300-page policy manual is about 150,000 tokens. On a laptop with an 8,192-token context, it does not fit. Even on a big machine with a 128K window, every question would make the model read the whole manual again (prefill, Lesson 3.5), which can take minutes, and the KV cache (Lesson 8.4) would eat gigabytes. Models also pay less attention to facts buried in the middle of a very long context ("lost in the middle").
+
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
 
 ## 4. The fix: look it up first (RAG)
 

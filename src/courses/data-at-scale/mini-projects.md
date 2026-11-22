@@ -53,6 +53,11 @@ New to pipelines altogether? The seven "proof" projects in [Pipeline to Dashboar
 6. **Cost:** what it would cost per month at a realistic scale, with your working (and "check the official price list" next to any price).
 7. **What I would do next** with a real team and real data.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Plant the faults, plant the answer
 
 Real data is messy, and a project on perfectly clean data proves little. So plant the mess yourself, on purpose, where you know exactly how much there is:

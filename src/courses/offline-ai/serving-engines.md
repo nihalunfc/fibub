@@ -45,6 +45,10 @@ Think of a restaurant. The model is the kitchen. The engine is the front-of-hous
 
 All five offer the OpenAI-style API from Lesson 11.1, so you can start simple and move up without rewriting anything.
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Starting each one
 
 The model names below are examples; use the ones you picked in Module 7.

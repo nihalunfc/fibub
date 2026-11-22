@@ -71,6 +71,10 @@ For very distant galaxies the universe expanded while the light travelled, so di
 **Try it:** Andromeda, about 150,000 ly across at 2.5 million ly: `$\theta = 0.06$` rad `$= 3.4°$`, about seven full Moons (though only the bright core shows to the eye).
 </details>
 
+Slide the galactic longitude and watch the velocity along the line of sight.
+
+<figure class="fig" data-fig="@astro-galactic-los"><figcaption>Gas speeds along a line of sight depend on distance, and the largest value is at the tangent point, where the line gets closest to the centre. Reading that peak at each longitude gives the rotation speed at each radius: a flat rotation curve.</figcaption></figure>
+
 ## 3. What it means physically
 
 Colour tells you about age, because blue stars are heavy and short-lived (Lesson 3.3). A galaxy full of blue light must have made stars recently, which needs cold gas; a red galaxy has run out. Galaxies also collide: when two spirals merge, their discs are scrambled and their gas burns in a burst of star formation, often leaving an elliptical. The Milky Way and Andromeda are expected to merge in several billion years.

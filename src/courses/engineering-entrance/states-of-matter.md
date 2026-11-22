@@ -56,6 +56,10 @@ Together they give the **ideal gas equation** PV = nRT. Since n = m/M, the densi
 
 <div class="problem" data-problem="sm-ideal-gas"></div>
 
+**Try it:** slide the volume down and watch the piston-hit pressure rise; raise T and the particles speed up; add particles and the pressure rises too. Use the quick buttons for Boyle's and Charles's laws.
+
+<figure class="fig" data-fig="@chem-gas-piston"><figcaption>Pressure here is nothing but the push of particles on the piston each second. Compare the measured value with N·T ÷ V in the readout: the ratio P·V ÷ (N·T) stays constant, which is the ideal gas law.</figcaption></figure>
+
 ## 3. Dalton's law of partial pressures
 
 In a mixture of gases that do not react, each gas pushes as if it were alone: P<sub>total</sub> = p₁ + p₂ + … The **partial pressure** of a gas is its mole fraction times the total: p₁ = x₁ P<sub>total</sub>. A gas **collected over water** is mixed with water vapour, so p<sub>dry gas</sub> = P<sub>total</sub> − (vapour pressure of water at that temperature, the **aqueous tension**).
@@ -99,6 +103,10 @@ A larger **a** means stronger attractions and easier liquefaction (NH₃ has a b
 **"A gas with a bigger b is easier to liquefy."** Liquefaction depends on attraction, which is a. The critical temperature T<sub>c</sub> = 8a/(27Rb) grows with a; b only measures the size of the molecules.
 
 </div>
+
+**Try it:** drag the temperature up and down and compare the five gases. Find the temperature where each curve starts out flat (its Boyle temperature).
+
+<figure class="fig" data-fig="@chem-real-gas-z"><figcaption>Z = 1 is ideal. Below the Boyle temperature attractions pull Z under 1; at high pressure repulsion (the size b) always pushes Z above 1. Light, small molecules such as He and H₂ are above 1 almost everywhere at room temperature.</figcaption></figure>
 
 ## 7. Critical constants and liquefaction
 

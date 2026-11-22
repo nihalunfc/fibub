@@ -98,6 +98,10 @@ When there are no indicator words, try each statement as the conclusion: "[The o
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="0"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## Practice set
 
 Original questions in the LSAT's own five-option format, from warm-up to test level. Read the argument, predict the answer, then choose; every question has a full explanation of why the right answer is right and the others are not.

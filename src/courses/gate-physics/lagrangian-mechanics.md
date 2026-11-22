@@ -91,6 +91,10 @@ Here the time-dependent constraint does work on the bead, so `$T + V$` is **not*
 
 <div class="problem" data-problem="hoop-equilibrium"></div>
 
+Slide the hoop's spin through the critical value √(g/R) = 4.43 rad/s, then press Kick.
+
+<figure class="fig" data-fig="@mech-hoop-equilibria"><figcaption>Below the critical spin the bead rests at the bottom; above it the bottom is a hilltop of the effective potential and two new stable points appear on either side.</figcaption></figure>
+
 ## 4. Cyclic coordinates and Noether's theorem
 
 If a coordinate `$q_k$` is missing from `$L$` (it is **cyclic**, or ignorable), the Euler-Lagrange equation reads `$\dot p_k = 0$`: its conjugate momentum is conserved. This is the simplest case of **Noether's theorem**: every continuous symmetry of the Lagrangian gives a conserved quantity.
@@ -104,6 +108,10 @@ If a coordinate `$q_k$` is missing from `$L$` (it is **cyclic**, or ignorable), 
 **Worked example.** A particle moves on the surface of a cone `$z = r\cot\alpha$` under gravity. With `$r$` and `$\phi$` as coordinates, `$L = \tfrac12m(\dot r^2\csc^2\alpha + r^2\dot\phi^2) - mgr\cot\alpha$`. `$\phi$` is cyclic, so `$p_\phi = mr^2\dot\phi$` is conserved: the vertical component of angular momentum, because the cone is symmetric about its axis. The `$x$`-momentum is **not** conserved, since gravity and the cone break that symmetry.
 
 A symmetry tells you a conserved quantity before you solve anything. For a charge near an infinite straight wire, the system is unchanged by moving along the wire and turning around it, so `$p_z$` and `$p_\phi$` are conserved even though the motion is complicated.
+
+Try each setup and look at which strips stay flat.
+
+<figure class="fig" data-fig="@mech-noether"><figcaption>Each symmetry gives its own conserved quantity: rotation gives L, shifts in x or y give p_x or p_y, and no change with time gives E.</figcaption></figure>
 
 ## 5. The energy function and when it is the energy
 
@@ -158,6 +166,10 @@ S[q] = \int_{t_1}^{t_2} L(q, \dot q, t)\,dt, \qquad \delta S = 0
 This is the cleanest statement of classical mechanics: it needs no forces or coordinates, it shows at once that adding `$dF(q,t)/dt$` to `$L$` changes nothing (it only adds a constant `$F(t_2) - F(t_1)$` to `$S$`), and it carries straight into field theory and, via Feynman's path integral, quantum mechanics. The same calculus of variations solves geometric problems: the shortest path on a surface, the soap film between two rings (a catenoid), and the **brachistochrone**, the curve of fastest descent, which is a cycloid.
 
 **Worked example.** A Lagrangian `$L = \tfrac12m\dot x^2 - \tfrac12kx^2$` gives SHM. Multiply it by any constant, or add `$\frac{d}{dt}(x^2t)$`, and the equation of motion `$m\ddot x = -kx$` is unchanged. A test question that offers two Lagrangians differing by such a term expects you to call them equivalent.
+
+Move the two wobble sliders away from zero and watch the action, then press True path.
+
+<figure class="fig" data-fig="@mech-action-path"><figcaption>Any wobble with the same start and end raises the action, so the true path is where the action is stationary (here a minimum).</figcaption></figure>
 
 <div class="keypoints">
 

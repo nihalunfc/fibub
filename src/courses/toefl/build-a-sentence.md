@@ -41,6 +41,11 @@ Here is an original example in the same style:
 
 The correct reply is "My class starts at eight." In our drills, every word is a chip and you tap them in order. Capital letters and full stops are left out, so the first word does not give itself away.
 
+
+Tap the chunks in order to build a correct sentence. The coloured picture shows each chunk's job.
+
+<figure class="fig" data-fig="@lang-order-sentence"><figcaption>Notice that after a question word the subject comes before the verb: "where the library is".</figcaption></figure>
+
 ## 2. What it really tests
 
 Build a Sentence looks like a puzzle, but it tests whether you control the grammar of English sentences:

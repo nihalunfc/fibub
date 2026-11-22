@@ -52,6 +52,11 @@ If you took [Pipeline to Dashboard](/learn/courses/etl/what-orchestrators-do/), 
 
 **Cloud Composer** is Google's managed Airflow (AWS has MWAA; Astronomer is the main independent host). Alternatives: **Dagster** (centred on data assets), **Prefect** (Pythonic), **Dataform** (SQL-only in BigQuery), **Argo Workflows** (Kubernetes).
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. A real DAG
 
 ```python

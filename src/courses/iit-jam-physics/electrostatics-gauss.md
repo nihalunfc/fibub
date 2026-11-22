@@ -48,6 +48,10 @@ Adding the sizes (8.99 N/C) would be the classic wrong answer. A quick symmetry 
 
 A **dipole** (charges `$\pm q$` a small distance `$d$` apart, moment `$p = qd$` from `$-$` to `$+$`) has a field that falls as `$1/r^3$`: `$2kp/r^3$` along `$\vec p$` on its axis, and `$kp/r^3$` *opposite* to `$\vec p$` on its perpendicular bisector.
 
+Drag the charges around, add more with the buttons, and switch field lines, equipotentials and arrows on and off. Move the pointer to read V and E.
+
+<figure class="fig" data-fig="@em-field-lines"><figcaption>Field lines leave positive charges and end on negative ones; equipotentials (coloured rings) cross them at right angles and crowd where the field is strong.</figcaption></figure>
+
 ## 2. Flux: counting field lines through a surface
 
 Imagine field lines drawn so that their density shows the field's strength. The **flux** through a surface counts how many cross it, with a sign:
@@ -61,6 +65,10 @@ Imagine field lines drawn so that their density shows the field's strength. The 
 Use the figure to see the main idea. The dashed circle is a slice through a Gaussian sphere. Move it, resize it, include a charge or leave it out, and watch the flux.
 
 <figure class="fig" data-fig="gauss-charges"><figcaption>Field lines from point charges, with a movable Gaussian surface. The flux depends only on the charge inside: lines from charges outside enter and leave again.</figcaption></figure>
+
+Drag the charges in and out of the sphere and change its radius. The flux is added up from the field on the surface, patch by patch, and compared with Q_enclosed/ε₀.
+
+<figure class="fig" data-fig="@em-gauss-surface"><figcaption>Only the charge inside matters: a charge outside sends as many lines in as out. The flux follows Q_enclosed whatever the shape of the charges.</figcaption></figure>
 
 ## 3. Gauss's law
 
@@ -120,6 +128,10 @@ The recipe is always the same: (1) use symmetry to say which way `$\vec E$` poin
 **Worked example: two sheets.** Sheets of `$+3$` and `$-1\ \mu$`C/m² face each other. Each gives `$\sigma/(2\epsilon_0)$`, away from a positive sheet and towards a negative one. Between them both fields point the same way: `$(3 + 1)\times10^{-6}/(2\epsilon_0) = 2.26\times10^5$` N/C. Outside, they point opposite ways: `$(3 - 1)\times10^{-6}/(2\epsilon_0) = 1.13\times10^5$` N/C. The famous "zero outside a capacitor" is only for equal and opposite charges.
 
 **Cylinders give 2, spheres give 3.** For a uniformly charged solid cylinder (density `$\rho$`), `$E = \rho s/(2\epsilon_0)$` inside; for a uniform sphere, `$E = \rho r/(3\epsilon_0)$`. A wrong option in many papers swaps them.
+
+Pick a ring, rod or disc and change its size. Compare its field on the axis with the point-charge curve and with the infinite line or sheet result.
+
+<figure class="fig" data-fig="@em-charged-bodies"><figcaption>Far away every body looks like a point; close in, the rod follows the infinite line and the disc the infinite sheet. The ring's field is zero at the centre and peaks at a/√2.</figcaption></figure>
 
 ## 5. Densities that change with radius
 

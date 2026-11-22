@@ -67,6 +67,11 @@ Two habits here:
 - An **ordered category** keeps Monday first instead of alphabetical order.
 - Divide by the **number of each weekday** in the data. This data is exactly 78 weeks long, so every weekday appears 78 times, but most stretches of dates are not: a month can hold five Saturdays and four Mondays, so totals alone are not a fair comparison.
 
+Switch the rule between daily, weekly and monthly and change the aggregate.
+
+<figure class="fig" data-fig="@data-resample"><figcaption>Notice how the bars change count and height, and what happens in the last, shorter period.</figcaption></figure>
+
+
 ## 3. Fiscal years and periods
 
 Many companies start their year in another month (1 April in India, Canada's federal government and the UK tax year; 1 February for many retailers). A **period with an anchor** does this in one line:

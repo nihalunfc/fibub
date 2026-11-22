@@ -1,0 +1,16 @@
+---
+// Made by scripts/ncert-pages.mjs: one lesson of an NCERT study course.
+import LessonPage from '../../../../components/course/LessonPage.astro';
+import { ncertCourse } from '../../../../courses/ncert';
+import { FIGURES } from '../../../../courses/ncert-figures';
+import { courseLessons, type LessonEntry } from '../../../../lib/course';
+import '../../../../styles/math.css';
+import '../../../../styles/lesson-kit.css';
+export async function getStaticPaths() {
+  const written = await courseLessons(ncertCourse('ncert-class-9-maths'));
+  const live = new Set(written.keys());
+  return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
+}
+const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+---
+<LessonPage course={ncertCourse('ncert-class-9-maths')} entry={entry} slug={slug} live={live} figures={FIGURES} />

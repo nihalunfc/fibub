@@ -65,6 +65,10 @@ The weight `$w$` sets how steep the S is: a big weight means a small change in x
 
 <div class="problem" data-problem="sigmoid-odds-prob"></div>
 
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
+
 ## 3. Odds and log-odds
 
 Gamblers use **odds**: the chance something happens divided by the chance it doesn't.

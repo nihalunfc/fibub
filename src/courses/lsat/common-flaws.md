@@ -107,6 +107,10 @@ Flaw answer choices are abstract: *"The argument presumes, without providing jus
 
 </div>
 
+**Try it:** Pick a statement and a fact and see what follows.
+
+<figure class="fig" data-fig="@tp-contrapositive"><figcaption>Only P true and Q false give an answer; the other two are the classic traps.</figcaption></figure>
+
 ## Practice set
 
 Original questions in the LSAT's own five-option format, from warm-up to test level. Read the argument, predict the answer, then choose; every question has a full explanation of why the right answer is right and the others are not.

@@ -51,6 +51,11 @@ Task 8 checks whether your words alone can let someone **see** something they ha
 
 **Everyday analogy.** Imagine describing a lost suitcase to an airline agent on the phone. "It’s black" is useless; half the suitcases are black. "It’s a medium black hard case, about as tall as my knee, with a red ribbon on the handle and a big scratch across the front" lets them find it. Task 8 needs that same useful detail.
 
+
+Switch between Version A and Version B of the same paragraph.
+
+<figure class="fig" data-fig="@lang-sentence-rhythm"><figcaption>Notice that Version B mixes short and long sentences and three types, which is what a range of structures looks like.</figcaption></figure>
+
 ## 3. Thirty seconds of planning
 
 1. **Seconds 0 to 10: find the ONE strange thing.** What makes the object unusual? Write it first: `chair = giant hand`.

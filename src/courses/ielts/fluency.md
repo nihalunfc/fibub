@@ -36,9 +36,19 @@ sources:
 
 Use each one occasionally. Repeating "That's a good question" before every answer sounds memorised.
 
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
+
 ## 2. Extending answers
 
 When an answer feels too short, add one of: **because** (a reason), **for example** (an example), **but** (a contrast), **so** (a result), **which means** (a consequence), **when I was younger** (a comparison with the past).
+
+
+Pick a sentence and press Play: the ball lands on every stressed syllable.
+
+<figure class="fig" data-fig="@lang-stress-rhythm"><figcaption>Notice that the beats stay evenly spaced however many weak syllables sit between them, so the small words get squeezed.</figcaption></figure>
 
 ## 3. Self-correction
 

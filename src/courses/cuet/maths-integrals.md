@@ -59,6 +59,10 @@ sources:
 
 </div>
 
+**Try it:** Drag the upper limit and watch the area function grow.
+
+<figure class="fig" data-fig="@math-ftc-accumulator"><figcaption>Its slope is the original function: the two halves of calculus are inverses.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-maths" data-topics="indefinite-integrals,definite-integrals" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

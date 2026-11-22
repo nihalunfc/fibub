@@ -108,6 +108,11 @@ with temperatures in kelvin. Its efficiency depends only on the two temperatures
 
 <div class="problem" data-problem="td-carnot-fridge"></div>
 
+Step through one full cycle of a petrol-engine-like (Otto) cycle, watching the piston and the loop on the P-V diagram together. Then try the Carnot cycle and compare efficiencies.
+
+<div class="steps" data-fig="@wt-engine-cycle"><div class="step"><b>Compression (adiabatic).</b> The piston squeezes the gas with no heat flow, so the temperature and pressure rise.</div><div class="step"><b>Heat added at constant volume.</b> The spark raises the pressure sharply; the piston has not moved yet, so no work is done in this stroke.</div><div class="step"><b>Power stroke (adiabatic).</b> The hot gas pushes the piston out and does more work than was spent on compression.</div><div class="step"><b>Heat rejected at constant volume.</b> The exhaust carries away Q_c; the loop closes. The area inside the loop is the net work per cycle.</div></div>
+
+
 ## 6. The second law and entropy
 
 - **Kelvin-Planck:** no engine working in a cycle can turn all the heat it takes in into work. So η < 1 always.

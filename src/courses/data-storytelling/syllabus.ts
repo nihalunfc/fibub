@@ -10,6 +10,7 @@ import type { CourseSyllabus } from '../types';
 export const DATA_STORYTELLING: CourseSyllabus = {
   id: 'data-storytelling',
   name: 'Data storytelling',
+  kit: true,
   title: 'Data storytelling: charts, KPIs and presentations that lead to decisions',
   text: 'Learn to turn numbers into a message people act on: find the question, pick the right chart, strip the clutter, design KPI cards, build a story and present it to managers. Every lesson has charts you can change, before and after examples, and writing practice with instant feedback.',
   audience: 'For analysts, students and anyone who shows numbers at work. No software needed: every example runs in the browser. Pairs well with the Power BI and DAX course, which uses the same made-up shop.',

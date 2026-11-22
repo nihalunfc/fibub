@@ -50,6 +50,11 @@ Stretch the tail and watch: the median sits off-centre in the box, the right whi
 
 Box plots shine when **comparing groups** side by side: delivery times per region, basket values per store. You see centre, spread, skew and outliers for each group at a glance.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. The 1.5 × IQR rule
 
 John Tukey's rule of thumb marks a value as an outlier when it lies outside the **fences**

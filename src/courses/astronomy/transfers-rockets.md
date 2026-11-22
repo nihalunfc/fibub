@@ -76,6 +76,10 @@ v = \sqrt{GM\left(\frac{2}{r} - \frac{1}{a}\right)}
 **Try it:** Earth to Mars around the Sun: `$\Delta v_1 = 2.95$` km/s, `$\Delta v_2 = 2.65$` km/s, flight 259 days.
 </details>
 
+Choose a mass ratio, press Release near L4 (or L1, L2) and then Play to watch a test particle.
+
+<figure class="fig" data-fig="@astro-lagrange"><figcaption>Near L4 and L5 the particle circles in a stable path as long as the planet has under 3.85% of the mass; near L1 and L2 it drifts away unless corrected. That is why Trojan asteroids gather at Jupiter's L4 and L5 and why JWST sits at the Sun-Earth L2.</figcaption></figure>
+
 ## 3. What it means physically
 
 A rocket pushes itself forward by throwing mass backwards, so each extra km/s means carrying fuel, and the fuel to carry that fuel, and so on. That is why the mass ratio grows exponentially. The Hohmann transfer is cheap because it uses the Sun's gravity to do the coasting; the price is time, and the need for Mars to arrive at the meeting point exactly when you do.

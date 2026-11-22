@@ -34,6 +34,11 @@ ETS publishes **scoring guides** (sometimes called rubrics) and sample materials
 
 ETS has long used a combination of trained human raters and automated scoring for TOEFL speaking. The exact mix and process are described by ETS; check ets.org for the current details.
 
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
+
 ## 2. The score scale in 2026
 
 From 21 January 2026, every TOEFL iBT section, including Speaking, is reported on a **1 to 6 band scale**, in half bands, aligned with the CEFR levels. Your overall score is the average of the four sections, rounded to the nearest half band. For two years after January 2026, score reports also show a comparable score on the old 0 to 120 scale. See [Scores: the 1 to 6 bands, CEFR and the old 0 to 120](/learn/courses/toefl/scores-and-bands/) for the details and the calculator.

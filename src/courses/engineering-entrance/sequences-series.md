@@ -59,6 +59,10 @@ a_n = ar^{n-1}, \qquad S_n = \frac{a(1-r^n)}{1-r} \;(r \ne 1), \qquad S_\infty =
 
 Three numbers in GP are best taken as a/r, a, ar (their product is a³). If a, b, c are in GP, then b² = ac and b = √(ac) is the **geometric mean**. Taking logarithms turns a GP into an AP.
 
+Choose a series and press Play, or slide the number of terms, to watch the partial sums Sₙ.
+
+<figure class="fig" data-fig="@math-series-converge"><figcaption>Notice that the geometric series settles on a/(1 − r), the harmonic series never settles even though its terms shrink, and the alternating one wobbles in to ln 2.</figcaption></figure>
+
 <figure class="fig" data-fig="ap-gp-bars"><figcaption>Terms as bars, running sum as a line. An AP climbs in a straight ramp; a GP with |r| &lt; 1 shrinks, and its running sum levels off at a/(1 − r).</figcaption></figure>
 
 **Recurring decimals** are infinite GPs: 0.3̄ = 3/10 + 3/100 + … = (3/10)/(1 − 1/10) = 1/3. In general 0.ab̄ (repeating ab) = ab/99.

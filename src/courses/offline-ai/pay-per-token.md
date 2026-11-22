@@ -51,6 +51,10 @@ Prices are per million tokens, almost always in US$.
 <div class="step"><p><b>Batch it.</b> The summaries can wait overnight, so batch halves everything: US$15.60. Same work, a bit over a third of the first bill.</p></div>
 </div>
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. Work out your own bill
 
 The defaults are a document-summary job: 2,000 jobs a month, 3,000 tokens in, 800 out.

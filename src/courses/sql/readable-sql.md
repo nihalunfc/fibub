@@ -59,6 +59,19 @@ ORDER BY orders_2025 DESC
 
 The first one joins order_items, so it counts *lines*, not orders: 1,216 for the online shop instead of 662. In one long line, the extra table is easy to miss. Laid out one clause per line, with the joins written as JOINs, you can see at a glance which tables are involved and why. This is the fan-out problem from [Lesson 4.5](/learn/courses/sql/fan-out/), hidden by layout.
 
+Step through the clauses in the order SQL really runs them and move the three sliders.
+
+<div class="steps" data-fig="@data-query-order">
+<div class="step">FROM: the whole table is the starting point.</div>
+<div class="step">WHERE: rows are dropped before any grouping.</div>
+<div class="step">GROUP BY: the surviving rows become one row per region.</div>
+<div class="step">HAVING: whole groups are dropped by their aggregate.</div>
+<div class="step">SELECT: columns are computed here, so the alias total exists only from now on.</div>
+<div class="step">ORDER BY: now the alias can be used to sort.</div>
+<div class="step">LIMIT: finally only the first rows are kept.</div>
+</div>
+
+
 ## 3. Layout rules
 
 There is no single official style; what matters is picking one and sticking to it. These rules are common in analytics teams:

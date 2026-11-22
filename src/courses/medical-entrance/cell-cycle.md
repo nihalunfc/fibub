@@ -64,6 +64,16 @@ The trick in most numerical NEET questions is to separate **DNA content** (C) fr
 
 **Why mitosis matters:** growth of multicellular organisms, repair (for example, the lining of the gut and the outer skin), and keeping the chromosome number constant; in plants it continues throughout life in the apical and lateral meristems.
 
+Step through mitosis in a cell with four chromosomes (2n = 4) and watch the count under the picture.
+
+<div class="steps" data-fig="@bio-mitosis-steps">
+<div class="step"><b>Prophase.</b> Chromosomes condense; each is already two sister chromatids. The spindle begins to form.</div>
+<div class="step"><b>Metaphase.</b> All chromosomes line up on the equatorial plate: the best stage to count and photograph them.</div>
+<div class="step"><b>Anaphase.</b> Centromeres split and the sister chromatids are pulled to opposite poles.</div>
+<div class="step"><b>Telophase.</b> Chromosomes reach the poles and unwind; nuclear envelopes re-form.</div>
+<div class="step"><b>Cytokinesis.</b> The cytoplasm divides: two identical cells, each 2n = 4.</div>
+</div>
+
 ## 4. Meiosis: two divisions, one DNA copy
 
 Meiosis has **one** round of DNA replication followed by **two** divisions, so a diploid cell gives four haploid cells.
@@ -87,6 +97,17 @@ Meiosis has **one** round of DNA replication followed by **two** divisions, so a
 <dt>Bivalent</dt><dd>a pair of homologous chromosomes in meiosis I = 4 chromatids</dd>
 <dt>Physical meaning</dt><dd>Mitosis copies a cell; meiosis shuffles and halves it. The DNA doubling in S is shared by both divisions of meiosis, which is why four cells end up with half the DNA each.</dd>
 </dl>
+</div>
+
+Step through meiosis in the same cell (2n = 4) to see where the chromosome number halves and where crossing over fits.
+
+<div class="steps" data-fig="@bio-meiosis-steps">
+<div class="step"><b>Prophase I.</b> Homologous chromosomes pair up (synapsis) into bivalents.</div>
+<div class="step"><b>Crossing over.</b> Non-sister chromatids swap pieces at chiasmata: new combinations of genes.</div>
+<div class="step"><b>Metaphase I.</b> The pairs line up on the plate, each pair facing opposite poles at random.</div>
+<div class="step"><b>Anaphase I and telophase I.</b> Homologues separate (not sister chromatids): two cells with n = 2, the reduction division.</div>
+<div class="step"><b>Meiosis II.</b> Like mitosis in each cell: centromeres divide and sister chromatids separate.</div>
+<div class="step"><b>Four haploid cells.</b> Each has n = 2 and is genetically different from the others and from the parent.</div>
 </div>
 
 <div class="keypoints">

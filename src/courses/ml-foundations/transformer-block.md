@@ -58,6 +58,10 @@ Follow one token, "sat", through a block. Real models use thousands of numbers p
 
 <div class="problem" data-problem="transformer-block-layernorm"></div>
 
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
+
 ## 3. Why the extra parts
 
 - **Position:** attention is a weighted average, and averages ignore order. Adding a position signal to each embedding (or rotating queries and keys by position, as most recent models do) lets "dog bites man" differ from "man bites dog".
@@ -105,6 +109,10 @@ with `$\operatorname{FFN}(\mathbf{x}) = \mathbf{W}_2 \, \operatorname{ReLU}(\mat
 </dl>
 
 </div>
+
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
 
 ## 4. Worked example
 

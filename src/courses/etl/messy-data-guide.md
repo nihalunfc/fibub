@@ -76,6 +76,11 @@ where `$c$` is the cut-off: 5 hours for this restaurant group, often 3 to 6 hour
 
 <div class="problem" data-problem="messy-data-guide-business-day"></div>
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Text and encoding
 
 - **Windows-1252 against UTF-8.** These are two ways of turning letters into bytes. `Jalapeño` written in Windows-1252 (cp1252) and read as UTF-8 becomes `Jalape�o`. Know the encoding per source, or detect it per file (the `charset-normalizer` library), and decode explicitly. One brand in the course data writes cp1252.

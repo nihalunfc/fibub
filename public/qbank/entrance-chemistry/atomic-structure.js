@@ -203,10 +203,112 @@ xgen({ type: 'nat', level: 3, sub: 'photon energy per mole',
       sol: `<p>Energy of one photon = hc/&lambda; = 6.626 &times; 10<sup>-34</sup> &times; 3 &times; 10<sup>8</sup> / (${l} &times; 10<sup>-9</sup>) J.</p><p>Multiply by N<sub>A</sub> and divide by 1000: <b>${fmt(E, 4)} kJ mol<sup>-1</sup></b>.</p>`, trap: 'Convert nm to m and J to kJ.' };
   }, verify: (p) => 1240 / p.l * 96.485 });
 
+// ---------- level 5 round: top-rank items (as-v5NN) and templates (as-v5gN) ----------
+const V5G = {};
+let _v5 = 0;
+const V5EX = ['jee-adv'];
+const v5id = (n) => `as-v5${String(n).padStart(2, '0')}`;
+const v5mcq = (n, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_v5++) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  return { id: v5id(n), type: 'mcq', level: 5, format, exams: V5EX, sub, q, options, answer: pos, sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) };
+};
+const v5nat = (n, sub, q, answer, tol, unit, sol, trap, group) => ({ id: v5id(n), type: 'nat', level: 5, format: group ? 'passage' : (tol === 0 ? 'integer' : 'numeric'), exams: V5EX, sub, q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) });
+const v5msq = (n, sub, q, options, answer, sol, trap) => ({ id: v5id(n), type: 'msq', level: 5, format: 'multi', exams: V5EX, sub, q, options, answer, sol, ...(trap ? { trap } : {}) });
+const v5match = (n, sub, title, l1, l2, map, sol, trap) => {
+  const L = 'ABCD', Q = 'pqrst'; const gk = `v5m${n}`;
+  V5G[gk] = { title, list1: l1.map((t, i) => `${L[i]}. ${t}`), list2: l2.map((t, i) => `${Q[i]}. ${t}`) };
+  const code = (m) => m.map((x, i) => `${L[i]}-${x}`).join(', ');
+  const sw = (a, i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return b; };
+  const wr = [sw(map, 0, 1), sw(map, 1, 2), sw(map, 2, 3), sw(map, 0, 3), sw(map, 0, 2)].map(code).filter((c) => c !== code(map));
+  return v5mcq(n, sub, 'Match the entries of List I with those of List II and choose the correct code.', code(map), wr.slice(0, 3), sol, trap, 'match', gk);
+};
+const V5A4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+V5G.v5p1 = { title: 'Stopping potential at two wavelengths', passage: '<p>For one metal, the stopping potential is measured at two wavelengths: <b>1.10 V</b> for light of 400 nm and <b>2.96 V</b> for light of 250 nm. Take c = 3.00 &times; 10<sup>8</sup> m s<sup>-1</sup>, e = 1.60 &times; 10<sup>-19</sup> C and hc = 1240 eV nm.</p>' };
+const V5I = [
+  v5msq(1, 'Bohr model: hydrogen-like ions', '<p>An electron in a He<sup>+</sup> ion makes a downward transition between two Bohr levels. In which of these does the emitted photon have exactly the same wavelength as some line of the hydrogen atom?</p>',
+    ['n = 4 &rarr; n = 2', 'n = 6 &rarr; n = 4', 'n = 3 &rarr; n = 2', 'n = 8 &rarr; n = 6', 'n = 5 &rarr; n = 4'], [0, 1, 3],
+    '<p>Idea: for a one-electron ion, 1/&lambda; = R Z<sup>2</sup>(1/n<sub>1</sub><sup>2</sup> - 1/n<sub>2</sub><sup>2</sup>). For He<sup>+</sup>, Z<sup>2</sup> = 4, so 4(1/n<sub>1</sub><sup>2</sup> - 1/n<sub>2</sub><sup>2</sup>) = 1/(n<sub>1</sub>/2)<sup>2</sup> - 1/(n<sub>2</sub>/2)<sup>2</sup>.</p><p>This equals a hydrogen line only if n<sub>1</sub>/2 and n<sub>2</sub>/2 are whole numbers, that is, both levels are <b>even</b>.</p><p>4 &rarr; 2 matches H 2 &rarr; 1 (Lyman &alpha;). 6 &rarr; 4 matches H 3 &rarr; 2 (Balmer &alpha;). 8 &rarr; 6 matches H 4 &rarr; 3 (Paschen &alpha;). The pairs 3 &rarr; 2 and 5 &rarr; 4 involve odd levels, which would need half-integer hydrogen levels, so they match nothing.</p>',
+    'The match needs both levels even, not just the difference.'),
+  v5msq(2, 'electronic configuration and magnetism', '<p>The Mn<sup>2+</sup> ion in the gas phase has five unpaired electrons. Which of these gaseous species also have exactly five unpaired electrons in the ground state? (Z: Cr 24, Mn 25, Fe 26, Co 27, Ni 28)</p>',
+    ['Fe<sup>3+</sup>', 'Cr<sup>+</sup>', 'Co<sup>3+</sup>', 'Ni<sup>+</sup>', 'Mn atom'], [0, 1, 4],
+    '<p>Idea: ions lose the 4s electrons first, and half-filled d<sup>5</sup> has 5 unpaired electrons.</p><p>Fe<sup>3+</sup>: [Ar]3d<sup>5</sup>, 5 unpaired. Correct.</p><p>Cr<sup>+</sup>: Cr is [Ar]3d<sup>5</sup>4s<sup>1</sup>; removing the 4s electron leaves 3d<sup>5</sup>, 5 unpaired. Correct.</p><p>Co<sup>3+</sup>: 3d<sup>6</sup>, 4 unpaired. Wrong.</p><p>Ni<sup>+</sup>: 3d<sup>9</sup>, 1 unpaired. Wrong.</p><p>Mn atom: 3d<sup>5</sup>4s<sup>2</sup>; the 4s pair is paired, so 5 unpaired. Correct.</p>',
+    'Neutral Mn has the same number of unpaired electrons as Mn<sup>2+</sup>, because the two electrons lost were a paired 4s set.'),
+  v5msq(3, 'photoelectric effect', '<p>The stopping potential V<sub>s</sub> is plotted against frequency &nu; for two metals, 1 and 2, with work function &phi;<sub>1</sub> &lt; &phi;<sub>2</sub>, using light of frequency above both thresholds. Which statements are correct?</p>',
+    ['The two lines are parallel', 'The slope of each line is h/e', 'The line of metal 2 cuts the V<sub>s</sub> axis (extended to &nu; = 0) at a less negative value than the line of metal 1', 'At the same frequency above both thresholds, metal 1 gives the larger stopping potential', 'Doubling the intensity at a fixed frequency raises every stopping potential'], [0, 1, 3],
+    '<p>Idea: eV<sub>s</sub> = h&nu; - &phi;, so V<sub>s</sub> = (h/e)&nu; - &phi;/e.</p><p>Both metals have slope h/e, a universal constant, so the lines are parallel. A and B are correct.</p><p>The V<sub>s</sub> intercept is -&phi;/e. The larger &phi; (metal 2) gives the more negative intercept, so C is wrong.</p><p>At the same &nu;, V<sub>s</sub> is larger for the smaller &phi; (metal 1). D is correct.</p><p>Intensity changes the number of photoelectrons (the current), not their maximum energy, so E is wrong.</p>',
+    'The intercepts are different, but the slope is the same for every metal.'),
+  v5nat(4, 'hydrogen spectrum', '<p>A sample of hydrogen atoms is excited so that electrons reach the level n = 7, and then every possible downward transition occurs. How many different spectral lines have wavelengths in the visible range, 400 nm to 700 nm? (R = 1.097 &times; 10<sup>7</sup> m<sup>-1</sup>)</p>', 4, 0, '',
+    '<p>Idea: check which series can fall in 400&ndash;700 nm.</p><p>Lyman lines (to n = 1) are ultraviolet, below 122 nm. Paschen and later series start at 820 nm, in the infrared. Only the Balmer lines (to n = 2) are left.</p><p>&lambda; = 1/[R(1/4 - 1/n<sup>2</sup>)]: n = 3: 656 nm; n = 4: 486 nm; n = 5: 434 nm; n = 6: 410 nm; n = 7: <b>397 nm</b>, which is below 400 nm (violet edge, in the ultraviolet).</p><p>So four lines are visible: <b>4</b>.</p>',
+    'Counting all five Balmer lines; the 7 &rarr; 2 line is at 397 nm.'),
+  v5nat(5, 'orbitals and nodes', '<p>In the n = 5 shell, how many orbitals have <b>more radial nodes than angular nodes</b>?</p>', 4, 0, '',
+    '<p>Idea: radial nodes = n - l - 1 and angular nodes = l.</p><p>5s: 4 radial, 0 angular. 5p: 3 radial, 1 angular. 5d: 2 and 2 (equal, not more). 5f: 1 and 3. 5g: 0 and 4.</p><p>Only 5s (1 orbital) and 5p (3 orbitals) qualify: 1 + 3 = <b>4</b>.</p>',
+    'Counting 5d, where the two numbers are equal.'),
+  v5nat(6, 'electronic configuration', '<p>For elements with atomic number 1 to 36, how many have <b>exactly three unpaired electrons</b> in the ground state of the neutral atom?</p>', 5, 0, '',
+    '<p>Idea: write each ground-state configuration (with the exceptions for Cr and Cu) and apply Hund&rsquo;s rule.</p><p>p<sup>3</sup> atoms: N (2p<sup>3</sup>), P (3p<sup>3</sup>), As (4p<sup>3</sup>): 3 elements.</p><p>d-block: V is 3d<sup>3</sup>4s<sup>2</sup>, 3 unpaired. Co is 3d<sup>7</sup>4s<sup>2</sup>: the 3d level has 5 orbitals, 7 electrons fill them as 5 + 2 pairs, leaving 3 unpaired.</p><p>Others: Sc 1, Ti 2, Cr (3d<sup>5</sup>4s<sup>1</sup>) 6, Mn 5, Fe 4, Ni 2, Cu 1, Ga 1, Ge 2, Se 2.</p><p>Total: N, P, As, V, Co = <b>5</b>.</p>',
+    'Missing V and Co, or counting Cr as 4 unpaired by following the simple Aufbau order.'),
+  v5nat(7, 'Rutherford model', '<p>A 5.0 MeV &alpha;-particle fired head-on at a gold nucleus (Z = 79) is stopped by Coulomb repulsion. A proton moving with the <b>same speed</b> as that &alpha;-particle (take m<sub>&alpha;</sub> = 4m<sub>p</sub>) is fired in the same way. Find the proton&rsquo;s distance of closest approach in fm. (e<sup>2</sup>/4&pi;&epsilon;<sub>0</sub> = 1.44 MeV fm; ignore recoil)</p>', 91.0, 0.5, 'fm',
+    '<p>Idea: at closest approach all the kinetic energy has become Coulomb energy, K = Z<sub>1</sub>Z<sub>2</sub>(1.44 MeV fm)/r.</p><p>Same speed and mass 4 times smaller means the proton&rsquo;s kinetic energy is 5.0/4 = 1.25 MeV.</p><p>r = 1 &times; 79 &times; 1.44 / 1.25 = <b>91.0 fm</b>.</p><p>(For the &alpha;-particle itself, r = 2 &times; 79 &times; 1.44 / 5.0 = 45.5 fm, so the proton gets twice as close to the target nucleus. A proton of the same <i>energy</i> would reach 22.8 fm.)</p>',
+    'Same speed and same energy are different conditions.'),
+  v5nat(8, 'Bohr model: photoionisation', '<p>A Li<sup>2+</sup> ion in the level n = 2 absorbs a photon and is ionised. The ejected electron has a de Broglie wavelength of 2.00 &Aring;. Find the wavelength of the photon in nm. (Ionisation energy of H = 13.6 eV; hc = 1240 eV nm; for an electron &lambda; = 12.27/&radic;K &Aring;, K in eV)</p>', 18.17, 0.1, 'nm',
+    '<p>Idea: photon energy = ionisation energy of the level + kinetic energy of the electron.</p><p>Ionisation energy of Li<sup>2+</sup>, n = 2: 13.6 &times; Z<sup>2</sup>/n<sup>2</sup> = 13.6 &times; 9/4 = 30.6 eV.</p><p>K = (12.27/2.00)<sup>2</sup> = 37.64 eV.</p><p>E = 30.6 + 37.64 = 68.24 eV. &lambda; = 1240/68.24 = <b>18.17 nm</b>.</p>',
+    'Using the ground-state ionisation energy (122.4 eV) instead of the n = 2 value.'),
+  v5match(9, 'Bohr model: ionisation energies', 'Match the species and level with its ionisation energy (energy to remove the electron from that level, in eV)',
+    ['H atom, n = 2', 'He<sup>+</sup> ion, n = 3', 'Li<sup>2+</sup> ion, n = 2', 'Be<sup>3+</sup> ion, n = 4'],
+    ['13.6', '3.40', '30.6', '6.04', '54.4'], ['q', 's', 'r', 'p'],
+    '<p>Idea: E = 13.6 Z<sup>2</sup>/n<sup>2</sup> eV.</p><p>A: 13.6 &times; 1/4 = 3.40. B: 13.6 &times; 4/9 = 6.04. C: 13.6 &times; 9/4 = 30.6. D: 13.6 &times; 16/16 = 13.6.</p><p>A-q, B-s, C-r, D-p. (54.4 is the ground-state value for He<sup>+</sup>, not used.)</p>',
+    'Be<sup>3+</sup> in n = 4 has the same energy as the H ground state, because Z/n = 1 in both.'),
+  v5match(10, 'magnetic moment', 'Match the gaseous species with its spin-only magnetic moment (BM)',
+    ['Cr atom (Z = 24)', 'Cr<sup>3+</sup> ion', 'Mn<sup>2+</sup> ion (Z = 25)', 'Fe<sup>2+</sup> ion (Z = 26)'],
+    ['3.87', '4.90', '5.92', '6.93', '2.83'], ['s', 'p', 'r', 'q'],
+    '<p>Idea: &mu; = &radic;[n(n + 2)] BM, with n unpaired electrons.</p><p>A: Cr is 3d<sup>5</sup>4s<sup>1</sup>, n = 6, &mu; = &radic;48 = 6.93. B: Cr<sup>3+</sup> is 3d<sup>3</sup>, n = 3, &radic;15 = 3.87. C: Mn<sup>2+</sup> is 3d<sup>5</sup>, n = 5, &radic;35 = 5.92. D: Fe<sup>2+</sup> is 3d<sup>6</sup>, n = 4, &radic;24 = 4.90.</p><p>A-s, B-p, C-r, D-q. (2.83 is not used.)</p>',
+    'Using Cr = 3d<sup>4</sup>4s<sup>2</sup> gives 4 unpaired instead of 6.'),
+  v5nat(11, 'photoelectric effect', 'Find Planck&rsquo;s constant from this data, in units of 10<sup>-34</sup> J s (2 decimals).', 6.61, 0.03, '&times; 10<sup>-34</sup> J s',
+    '<p>Idea: V<sub>s</sub> = (h/e)&nu; - &phi;/e, so the slope of V<sub>s</sub> against &nu; is h/e.</p><p>&nu;<sub>1</sub> = 3.00 &times; 10<sup>8</sup> / 400 &times; 10<sup>-9</sup> = 7.50 &times; 10<sup>14</sup> Hz; &nu;<sub>2</sub> = 3.00 &times; 10<sup>8</sup> / 250 &times; 10<sup>-9</sup> = 1.20 &times; 10<sup>15</sup> Hz.</p><p>Slope = (2.96 - 1.10)/(1.20 &times; 10<sup>15</sup> - 7.50 &times; 10<sup>14</sup>) = 1.86 / 4.5 &times; 10<sup>14</sup> = 4.133 &times; 10<sup>-15</sup> V s.</p><p>h = 4.133 &times; 10<sup>-15</sup> &times; 1.60 &times; 10<sup>-19</sup> = <b>6.61 &times; 10<sup>-34</sup> J s</b>.</p>', 'Dividing V<sub>s</sub> by &nu; for one point does not give h/e; the intercept spoils it.', 'v5p1'),
+  v5nat(12, 'photoelectric effect', 'Find the work function of the metal in eV (1 decimal place).', 2.0, 0.05, 'eV',
+    '<p>From the 400 nm data: &phi; = h&nu; - eV<sub>s</sub>. Photon energy at 400 nm = 1240/400 = 3.10 eV. &phi; = 3.10 - 1.10 = <b>2.0 eV</b>.</p><p>Check with 250 nm: 1240/250 = 4.96 eV; 4.96 - 2.96 = 2.0 eV. The same value, as it must be.</p>', 'The stopping potential in volts equals the kinetic energy in eV (for a single charge).', 'v5p1'),
+  v5nat(13, 'photoelectric effect', 'Find the threshold wavelength of the metal in nm.', 620, 3, 'nm',
+    '<p>&lambda;<sub>0</sub> = hc/&phi; = 1240 eV nm / 2.0 eV = <b>620 nm</b>.</p><p>Light of longer wavelength than 620 nm, however intense, ejects no electrons.</p>', 'Light above the threshold wavelength has too little energy per photon.', 'v5p1'),
+  { id: v5id(14), type: 'mcq', level: 5, format: 'assertion', exams: V5EX, sub: 'Bohr model: hydrogen-like ions',
+    q: '<p><b>Assertion (A):</b> The electron in the n = 3 orbit of Li<sup>2+</sup> moves with the same speed as the electron in the n = 1 orbit of hydrogen.</p><p><b>Reason (R):</b> In the Bohr model, both the radius and the speed of the electron in an orbit depend only on the ratio Z/n.</p>',
+    options: V5A4, answer: 2,
+    sol: '<p>In the Bohr model, speed v = 2.19 &times; 10<sup>6</sup> &times; (Z/n) m s<sup>-1</sup>. For Li<sup>2+</sup>, n = 3: Z/n = 3/3 = 1. For H, n = 1: Z/n = 1. The speeds are equal, so A is true.</p><p>R is false: the radius is r = 0.529 n<sup>2</sup>/Z &Aring;, which depends on n<sup>2</sup>/Z, not on Z/n. (Here the radii are 0.529 &times; 9/3 = 1.59 &Aring; and 0.529 &Aring;, different.) Answer: A true, R false.</p>', trap: 'Speed goes as Z/n but radius goes as n<sup>2</sup>/Z.' },
+  { id: v5id(15), type: 'mcq', level: 5, format: 'statements', exams: V5EX, sub: 'orbitals and nodes',
+    q: '<p><b>Statement I:</b> A 2p electron has zero probability density at the nucleus.</p><p><b>Statement II:</b> A 2s electron has zero probability density at the nucleus, because the 2s orbital has a radial node.</p>',
+    options: ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'], answer: 1,
+    sol: '<p>Statement I is correct: every orbital with l &gt; 0 has an angular node passing through the nucleus, so &psi;<sup>2</sup> = 0 at r = 0.</p><p>Statement II is incorrect: an s orbital has a non-zero value at the nucleus. The radial node of 2s is a sphere at a finite distance (about 2a<sub>0</sub> from the nucleus), not at r = 0. This non-zero density at the nucleus is why s electrons penetrate and are shielded less.</p>', trap: 'A radial node is a sphere at some distance from the nucleus, not the nucleus itself.' },
+];
+const V5GN = [
+  { id: 'as-v5g1', type: 'nat', level: 5, exams: V5EX, sub: 'Rutherford model',
+    make(rng) {
+      const K = choose(rng, [4, 5, 6, 7.5, 8]); const T = choose(rng, [['aluminium', 13], ['copper', 29], ['silver', 47], ['gold', 79], ['lead', 82]]);
+      const ans = +(4 * T[1] * 1.44 / K).toFixed(1);
+      return { q: `A ${K} MeV &alpha;-particle fired head-on at a ${T[0]} nucleus (Z = ${T[1]}) is stopped by Coulomb repulsion. A proton moving with the <b>same speed</b> as that &alpha;-particle (m<sub>&alpha;</sub> = 4m<sub>p</sub>) is fired in the same way. Find the proton&rsquo;s distance of closest approach in fm. (e<sup>2</sup>/4&pi;&epsilon;<sub>0</sub> = 1.44 MeV fm; ignore recoil)`,
+        answer: ans, tol: +(ans * 0.01 + 0.1).toFixed(2), unit: 'fm', K, Z: T[1],
+        sol: `<p>The proton has the same speed and a quarter of the mass, so its kinetic energy is ${K}/4 = ${K / 4} MeV.</p><p>r = Z(1.44)/K<sub>p</sub> = ${T[1]} &times; 1.44 / ${K / 4} = <b>${ans} fm</b>.</p>` };
+    }, verify: (p) => 2 * (2 * p.Z * 1.44 / p.K) },
+  { id: 'as-v5g2', type: 'nat', level: 5, exams: V5EX, sub: 'Bohr model: photoionisation',
+    make(rng) {
+      const I = choose(rng, [['He<sup>+</sup>', 2], ['Li<sup>2+</sup>', 3], ['Be<sup>3+</sup>', 4]]); const n = choose(rng, [1, 2, 3]); const le = choose(rng, [1.5, 2, 2.5, 3]);
+      const Ei = 13.6 * I[1] * I[1] / (n * n), K = Math.pow(12.27 / le, 2); const ans = +(1240 / (Ei + K)).toFixed(2);
+      return { q: `A ${I[0]} ion in the level n = ${n} absorbs a photon and is ionised. The ejected electron has a de Broglie wavelength of ${le} &Aring;. Find the wavelength of the photon in nm. (Ionisation energy of H = 13.6 eV; hc = 1240 eV nm; for an electron &lambda; = 12.27/&radic;K &Aring;, K in eV)`,
+        answer: ans, tol: +(ans * 0.01 + 0.01).toFixed(3), unit: 'nm', Z: I[1], n, le,
+        sol: `<p>Ionisation energy of the level = 13.6 &times; ${I[1]}<sup>2</sup>/${n}<sup>2</sup> = ${fmt(Ei, 4)} eV. K = (12.27/${le})<sup>2</sup> = ${fmt(K, 4)} eV.</p><p>E = ${fmt(Ei + K, 4)} eV, &lambda; = 1240/${fmt(Ei + K, 4)} = <b>${ans} nm</b>.</p>` };
+    }, verify: (p) => 1240 / (13.6 * p.Z * p.Z / (p.n * p.n) + 150.4 / (p.le * p.le)) },
+  { id: 'as-v5g3', type: 'nat', level: 5, exams: V5EX, sub: 'orbitals and nodes',
+    make(rng) {
+      const n = choose(rng, [4, 5, 6, 7, 8]); const strict = rng() < 0.5; let c = 0;
+      for (let l = 0; l < n; l++) { const rad = n - l - 1; if (strict ? rad > l : rad >= l) c += 2 * l + 1; }
+      return { q: `In the n = ${n} shell, how many orbitals have ${strict ? 'more' : 'at least as many'} radial nodes ${strict ? 'than' : 'as'} angular nodes?`,
+        answer: c, tol: 0, n, strict,
+        sol: `<p>Radial nodes = n - l - 1 = ${n - 1} - l; angular nodes = l. The condition ${strict ? 'n - l - 1 &gt; l' : 'n - l - 1 &ge; l'} holds for l ${strict ? '&lt;' : '&le;'} ${strict ? `${(n - 1) / 2}` : `${(n - 1) / 2}`}.</p><p>Each l has 2l + 1 orbitals; adding them for the allowed l gives <b>${c}</b>.</p>` };
+    }, verify: (p) => { let c = 0; for (let l = 0; l < p.n; l++) for (let m = -l; m <= l; m++) { const rad = p.n - l - 1; if (p.strict ? rad > l : rad >= l) c++; } return c; } },
+];
+
 export default {
   topic: 'atomic-structure',
   groups: {
     ...XGRP,
+    ...V5G,
     m1: { title: 'Match the scientist with the discovery', list1: ['A. J. J. Thomson', 'B. Rutherford', 'C. Chadwick', 'D. Millikan'], list2: ['p. The atomic nucleus (from alpha-particle scattering)', 'q. The charge-to-mass ratio of the electron', 'r. The charge on the electron (oil-drop experiment)', 's. The neutron'] },
     m2: { title: 'Match the quantum number with what it tells', list1: ['A. Principal quantum number n', 'B. Azimuthal quantum number l', 'C. Magnetic quantum number m<sub>l</sub>', 'D. Spin quantum number m<sub>s</sub>'], list2: ['p. Shape of the orbital', 'q. Orientation of the orbital in space', 'r. Size and (in a hydrogen atom) energy of the orbital', 's. Direction of the spin of the electron'] },
     m3: { title: 'Match the orbital with its nodes', list1: ['A. 3s', 'B. 3p', 'C. 3d', 'D. 4s'], list2: ['p. 0 radial nodes and 2 angular nodes', 'q. 1 radial node and 1 angular node', 'r. 2 radial nodes and 0 angular nodes', 's. 3 radial nodes and 0 angular nodes'] },
@@ -342,6 +444,7 @@ export default {
     PN('as-114', 3, 'magnetic moment', 'p3', 'What is the spin-only magnetic moment of Fe<sup>3+</sup> in BM? Give the answer to 2 decimals.', 5.92, 0.02, 'BM', '<p>μ = √(n(n + 2)) = √(5 × 7) = √35 = <b>5.92 BM</b>.</p>'),
     P('as-115', 4, 'magnetic moment', 'p3', 'Which statement about the two ions is correct?', 'Fe<sup>3+</sup> is more paramagnetic: 5.92 BM against 4.90 BM for Fe<sup>2+</sup>', ['Fe<sup>2+</sup> is more paramagnetic because it has more electrons', 'Both have the same magnetic moment because both are 3d ions', 'Fe<sup>2+</sup> is more paramagnetic: 5.92 BM against 4.90 BM for Fe<sup>3+</sup>'], '<p>Fe<sup>2+</sup> is 3d<sup>6</sup> with 4 unpaired electrons: μ = √24 = 4.90 BM. Fe<sup>3+</sup> is 3d<sup>5</sup> with 5 unpaired electrons: μ = √35 = 5.92 BM.</p><p>The magnetic moment depends on the number of <i>unpaired</i> electrons, not on the number of electrons. So Fe<sup>3+</sup> is more paramagnetic.</p>', 'Losing an electron made it more paramagnetic here (pairing is removed).'),
     ...XI,
+    ...V5I,
   ],
   gens: [
     { id: 'as-g01', type: 'nat', level: 2, exams: EX[2], sub: 'Bohr model',
@@ -474,5 +577,6 @@ export default {
           sol: `<p>Δv ≥ h / (4π m Δx) = 6.626 × 10<sup>-34</sup> / (4π × 9.1 × 10<sup>-31</sup> × ${dx} × 10<sup>-10</sup>).</p><p>Δv = <b>${fmt(dv, 4)} × 10<sup>5</sup> m s<sup>-1</sup></b>.</p>`, trap: 'Convert Å to metres: 1 Å = 10<sup>-10</sup> m.' };
       }, verify: (p) => 6.626e-34 / (4 * Math.PI * 9.1e-31 * p.dx * 1e-10) / 1e5 },
     ...XGENS,
+    ...V5GN,
   ],
 };

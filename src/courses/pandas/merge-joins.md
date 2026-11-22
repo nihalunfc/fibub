@@ -58,6 +58,11 @@ full.groupby('category')['revenue'].sum().round(0).sort_values(ascending=False)
 
 `orders.merge(products, ...)` is the same as `pd.merge(orders, products, ...)`. `suffixes` names clashing columns (both tables have a price).
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. Join types
 
 | `how=` | Keeps | Use for |

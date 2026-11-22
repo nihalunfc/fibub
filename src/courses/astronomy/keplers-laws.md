@@ -73,6 +73,10 @@ For a star of `$M$` solar masses, `$P^2 = a^3 / M$` (Newton's version, Lesson 2.
 **Try it:** Mars, `$a = 1.524$` AU: `$P = 1.524^{1.5} = 1.88$` years.
 </details>
 
+Press Play and switch between the inner planets and all eight. Read the table of a³ and T² while they move.
+
+<figure class="fig" data-fig="@astro-solar-orbits"><figcaption>Inner planets lap the outer ones: Mercury goes round about four times while Earth goes once. For every planet T² (years) equals a³ (AU), and the speed falls as 1/√a.</figcaption></figure>
+
 ## 3. What it means physically
 
 The equal-areas law is a rule about spin: nothing twists a planet round the Sun, so its "amount of turning" (angular momentum) stays fixed. Close in, the planet must swing faster to carry the same turning, like a skater pulling in their arms. The third law says outer planets are slower in two ways: they have further to go, and the Sun's pull is weaker out there, so they move more slowly along the way.

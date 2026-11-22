@@ -114,6 +114,10 @@ With `$\xi = x/x_0$`, `$\psi_n(\xi) = (2^nn!\sqrt\pi)^{-1/2}H_n(\xi)e^{-\xi^2/2}
 
 <figure class="fig" data-fig="oscillator-states"><figcaption>The stationary states on their energy levels inside the parabola, or (third button) |ψₙ|² against the classical density of a particle with the same energy. Turning points are dashed; the readout gives the probability of being found where a classical particle never goes, 16% for n = 0 and shrinking slowly as n grows.</figcaption></figure>
 
+Slide n from 0 up to 30 and switch between the density and ψ itself.
+
+<figure class="fig" data-fig="@qm-ho-classical"><figcaption>The quantum density has n nodes and leaks past the classical turning points; at large n it averages out to the classical curve, which piles up at the ends where the ball moves slowest.</figcaption></figure>
+
 For large `$n$` the wiggles average to the classical density `$1/(\pi\sqrt{A^2 - x^2})$`, largest near the turning points where the particle is slowest: the correspondence principle at work. The ground state is the opposite, largest at the centre.
 
 A **half oscillator** (wall at `$x = 0$`) keeps only the odd states: energies `$\tfrac32\hbar\omega, \tfrac72\hbar\omega, \dots$`. An oscillator in a uniform force `$F$` is the same oscillator moved to `$x = F/m\omega^2$` and lowered by `$F^2/2m\omega^2$`, with unchanged spacing.

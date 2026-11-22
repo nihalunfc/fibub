@@ -45,6 +45,14 @@ sources:
 
 > **Key idea:** A loan must be repaid from cash flow, so it suits businesses with revenue or assets. Equity suits fast-growing startups with no profit yet. Grants suit research and work with public benefit.
 
+Try it: change the loan, the rate and the term, then press Play to run through the months.
+
+<figure class="fig" data-fig="@biz-loan-schedule"><figcaption>Notice that early payments are mostly interest and later ones mostly principal.</figcaption></figure>
+
+Press Play and watch the cash balance run down month by month.
+
+<figure class="fig" data-fig="@biz-runway-burn"><figcaption>Notice that growing sales bend the line up, and that runway is the month it crosses zero.</figcaption></figure>
+
 ## 2. Applying well
 
 - Prepare a business plan with cash flow forecasts (Lesson 2.6) and your registration documents.

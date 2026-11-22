@@ -46,6 +46,10 @@ Measure lengths in `$a_0 = 4\pi\epsilon_0\hbar^2/\mu e^2 = 0.0529$` nm and energ
 <div class="steps">
 <div class="step">
 
+Pick n = 1 to 6 and count the wavelengths round the orbit, then switch to 'Any wavelength' and drag to a fraction.
+
+<figure class="fig" data-fig="@qm-bohr-standing"><figcaption>Only a whole number of wavelengths closes up on itself, which is the same as L = nħ. Between the whole numbers the wave cancels itself and no orbit survives.</figcaption></figure>
+
 **Dimensionless form.** With `$\rho = r/a_0$`: `$u'' = \left[\dfrac{1}{\nu^2} - \dfrac{2}{\rho} + \dfrac{l(l+1)}{\rho^2}\right]u$`.
 
 </div>
@@ -100,6 +104,10 @@ R_{10} = 2e^{-r}, \qquad R_{20} = \frac{1}{\sqrt2}\left(1 - \frac r2\right)e^{-r
 so that `$\psi_{100} = e^{-r/a_0}/\sqrt{\pi a_0^3}$`. The probability of finding the electron between `$r$` and `$r + dr$` is `$P(r)\,dr = r^2|R_{nl}|^2dr$`. The factor `$r^2$` (the area of the shell) pushes the peak away from the nucleus even though `$|\psi|^2$` is largest there for `$s$` states.
 
 <figure class="fig" data-fig="hydrogen-radial"><figcaption>Radial probability density r²|R_nl|² for n up to 4. Choose a state to see its nodes, its most probable radius and ⟨r⟩, or show all l of one n: the circular state l = n − 1 peaks exactly at n²a₀, while s states have an inner bump close to the nucleus.</figcaption></figure>
+
+Click through 1s, 2s, 2p, 3s, 3p and the 3d shapes, and flip between density and sign, vertical and flat slices.
+
+<figure class="fig" data-fig="@qm-orbital-slices"><figcaption>Count the rings (radial nodes, n − l − 1) and the flat nodal planes (l). Neighbouring lobes of a p or d orbital have opposite sign, drawn in the two colours.</figcaption></figure>
 
 **Worked example.** The chance that the ground-state electron is inside `$r = a_0$`:
 

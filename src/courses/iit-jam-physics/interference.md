@@ -116,6 +116,10 @@ Transmitted light is always the opposite of reflected light: energy that does no
 
 </div>
 
+Slide the thickness and the viewing angle, for a soap film and then a coating on glass. Look for the wavelengths that disappear.
+
+<figure class="fig" data-fig="@em-thin-film"><figcaption>The reflected colour depends on thickness through 2nt cos θ and on whether a half-wave phase flip occurs. A quarter-wave coating cancels reflection.</figcaption></figure>
+
 ## 4. Newton's rings
 
 A lens of large radius of curvature `$R$` rests on a flat glass plate. The air gap at distance `$r$` from the contact point is `$t \approx r^2/(2R)$`, so the fringes are circles. With one `$\pi$` shift (air gap), dark rings need `$2t = n\lambda$`:

@@ -35,6 +35,10 @@ Use "Unpivot **other** columns" rather than selecting the months: if April appea
 
 **Pivot** is the reverse (values of one column become column headers). You'll rarely need it for a model, but it is useful to build a small summary for export.
 
+Drag the slider or press Play to turn a wide table into a long one.
+
+<figure class="fig" data-fig="@biz-unpivot-anim"><figcaption>Notice that the month headings become values in a column of their own.</figcaption></figure>
+
 ## 3. Group by
 
 <!--fig:pq-steps group-->

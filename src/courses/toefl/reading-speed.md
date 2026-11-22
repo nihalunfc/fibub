@@ -35,6 +35,11 @@ Many learners lose points not because they cannot understand, but because they r
 
 An everyday picture: think of a supermarket. You do not read every label in every aisle. You look at the aisle signs (skim), walk to the right shelf, look for your brand (scan), and only then read the label carefully. Reading for a test works the same way.
 
+
+Slide the speed and press Play to watch the highlighter move at that pace.
+
+<figure class="fig" data-fig="@lang-reading-speed"><figcaption>Notice how long a full passage takes at your speed, and why the timed papers need skimming and scanning.</figcaption></figure>
+
 ## 2. Three reading speeds
 
 | Speed | When to use it | What you do |
@@ -44,6 +49,11 @@ An everyday picture: think of a supermarket. You do not read every label in ever
 | **Careful read** (slow) | The sentence that answers a question | Read every word, including small ones like "not", "only", "until" |
 
 Skilled readers switch between these all the time. Research on reading fluency (Grabe 2009) shows that good second-language readers read with a purpose and adjust their speed to it, rather than reading everything at one slow pace.
+
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
 
 ## 3. The method for the test
 

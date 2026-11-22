@@ -49,6 +49,11 @@ One entry per metric, kept in the repo (as dbt YAML or a Markdown table) and lin
 
 When finance and operations disagree on a definition, do not quietly pick a winner in code. Build both with different names (`net_sales_finance`, `net_sales_ops`), show the bridge between them on one page (Lesson [6.6](/learn/courses/etl/reconciliation/)), and let the owners agree which goes on the executive dashboard.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Additivity rules
 
 | Class | Examples | How to aggregate |

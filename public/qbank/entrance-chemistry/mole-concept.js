@@ -182,10 +182,112 @@ const XGN = [
     }, verify: (p) => p.Vr / 22.4 * 100 / p.m * 100 },
 ];
 
+// ---------- level 5 round: top-rank items (mc-v5NN) and templates (mc-v5gN) ----------
+const V5G = {};
+let _v5 = 0;
+const V5EX = ['jee-adv'];
+const v5id = (n) => `mc-v5${String(n).padStart(2, '0')}`;
+const v5mcq = (n, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_v5++) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  return { id: v5id(n), type: 'mcq', level: 5, format, exams: V5EX, sub, q, options, answer: pos, sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) };
+};
+const v5nat = (n, sub, q, answer, tol, unit, sol, trap, group) => ({ id: v5id(n), type: 'nat', level: 5, format: group ? 'passage' : (tol === 0 ? 'integer' : 'numeric'), exams: V5EX, sub, q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) });
+const v5msq = (n, sub, q, options, answer, sol, trap) => ({ id: v5id(n), type: 'msq', level: 5, format: 'multi', exams: V5EX, sub, q, options, answer, sol, ...(trap ? { trap } : {}) });
+const v5match = (n, sub, title, l1, l2, map, sol, trap) => {
+  const L = 'ABCD', Q = 'pqrst'; const gk = `v5m${n}`;
+  V5G[gk] = { title, list1: l1.map((t, i) => `${L[i]}. ${t}`), list2: l2.map((t, i) => `${Q[i]}. ${t}`) };
+  const code = (m) => m.map((x, i) => `${L[i]}-${x}`).join(', ');
+  const sw = (a, i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return b; };
+  const wr = [sw(map, 0, 1), sw(map, 1, 2), sw(map, 2, 3), sw(map, 0, 3), sw(map, 0, 2)].map(code).filter((c) => c !== code(map));
+  return v5mcq(n, sub, 'Match the entries of List I with those of List II and choose the correct code.', code(map), wr.slice(0, 3), sol, trap, 'match', gk);
+};
+const V5A4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+V5G.v5p1 = { title: 'Copper in brass by iodometry', passage: '<p>A 0.500 g piece of brass is dissolved in nitric acid, the oxides of nitrogen are boiled off and the solution is made nearly neutral. Excess KI is added. The Cu<sup>2+</sup> ions oxidise iodide:</p><p>2Cu<sup>2+</sup> + 4I<sup>-</sup> &rarr; 2CuI(s) + I<sub>2</sub></p><p>The iodine set free needs <b>18.0 mL of 0.100 M Na<sub>2</sub>S<sub>2</sub>O<sub>3</sub></b> (I<sub>2</sub> + 2S<sub>2</sub>O<sub>3</sub><sup>2-</sup> &rarr; 2I<sup>-</sup> + S<sub>4</sub>O<sub>6</sub><sup>2-</sup>). Take Cu = 63.5. The only substance in brass that reacts is copper.</p>' };
+const V5I = [
+  v5msq(1, 'isotopes and atomic mass', '<p>Chlorine has two isotopes, <sup>35</sup>Cl (75 %) and <sup>37</sup>Cl (25 %), and the atoms pair up at random in Cl<sub>2</sub> molecules. In the mass spectrum of Cl<sub>2</sub>, which statements are correct? (Take isotopic masses equal to mass numbers.)</p>',
+    ['There are three molecular-ion peaks, at 70, 72 and 74', 'Their intensities are in the ratio 9 : 6 : 1', 'The peak at 72 is the strongest', 'The intensity-weighted average of the peak masses is 71', 'The peak at 74 is half as strong as the peak at 70'], [0, 1, 3],
+    '<p>Idea: choose each atom independently. P(35) = 0.75, P(37) = 0.25.</p><p>70 (35-35): 0.75 &times; 0.75 = 0.5625. 72 (35-37 or 37-35): 2 &times; 0.75 &times; 0.25 = 0.375. 74 (37-37): 0.25 &times; 0.25 = 0.0625. Ratio 0.5625 : 0.375 : 0.0625 = <b>9 : 6 : 1</b>.</p><p>Average mass = 0.5625 &times; 70 + 0.375 &times; 72 + 0.0625 &times; 74 = 71, twice the atomic mass 35.5. So A, B and D are correct.</p><p>C is wrong: 70 is the strongest. E is wrong: 74 is 1/9 of the 70 peak.</p>',
+    'The mixed molecule can form in two orders, so its peak carries the factor 2.'),
+  v5msq(2, 'mixed: gas mixtures and dissociation', '<p>One mole of N<sub>2</sub>O<sub>4</sub> (92 g mol<sup>-1</sup>) is heated in a closed vessel. At equilibrium 25 % of it has dissociated: N<sub>2</sub>O<sub>4</sub> &rarr; 2NO<sub>2</sub>. Which statements are correct?</p>',
+    ['The mean molar mass of the mixture is 73.6 g mol<sup>-1</sup>', 'The mole fraction of NO<sub>2</sub> is 0.50', 'At the same temperature and pressure the mixture occupies 25 % more volume than 1 mol of undissociated N<sub>2</sub>O<sub>4</sub>', 'The total mass of the gas has increased to 115 g'], [0, 2],
+    '<p>Idea: dissociation changes the number of moles but never the mass.</p><p>Start: 1 mol N<sub>2</sub>O<sub>4</sub>. After 25 % dissociation: N<sub>2</sub>O<sub>4</sub> = 0.75 mol, NO<sub>2</sub> = 0.50 mol, total = 1.25 mol.</p><p>A: mean M = 92 g / 1.25 mol = <b>73.6</b>. Correct.</p><p>B: mole fraction of NO<sub>2</sub> = 0.50 / 1.25 = 0.40, not 0.50. Wrong.</p><p>C: at fixed T and p, volume &prop; moles, so 1.25 times, 25 % more. Correct.</p><p>D: the mass is still 92 g (conservation of mass). Wrong.</p>',
+    'Mole fraction 0.50 is the amount of NO<sub>2</sub> per mole of the original N<sub>2</sub>O<sub>4</sub>, not per mole of mixture.'),
+  v5msq(3, 'combustion of hydrocarbons', '<p>Equal masses (1.00 g each) of CH<sub>4</sub>, C<sub>2</sub>H<sub>6</sub>, C<sub>3</sub>H<sub>8</sub> and C<sub>2</sub>H<sub>4</sub> are burnt completely in excess oxygen. (C = 12, H = 1) Which statements are correct?</p>',
+    ['Moles of CO<sub>2</sub> formed: C<sub>3</sub>H<sub>8</sub> &gt; C<sub>2</sub>H<sub>6</sub> &gt; CH<sub>4</sub>', 'Moles of H<sub>2</sub>O formed: CH<sub>4</sub> &gt; C<sub>2</sub>H<sub>6</sub> &gt; C<sub>3</sub>H<sub>8</sub>', 'C<sub>2</sub>H<sub>4</sub> and C<sub>2</sub>H<sub>6</sub> give equal moles of CO<sub>2</sub>, since both have two carbon atoms per molecule', 'C<sub>3</sub>H<sub>8</sub> needs more oxygen than CH<sub>4</sub>', 'C<sub>2</sub>H<sub>4</sub> needs less oxygen than C<sub>2</sub>H<sub>6</sub>'], [0, 1, 4],
+    '<p>Idea: for 1 g, moles of a product = (atoms of that element per molecule) / (molar mass).</p><table><tr><th>Gas</th><th>mol CO<sub>2</sub></th><th>mol H<sub>2</sub>O</th><th>mol O<sub>2</sub></th></tr><tr><td>CH<sub>4</sub> (16)</td><td>0.0625</td><td>0.1250</td><td>0.1250</td></tr><tr><td>C<sub>2</sub>H<sub>6</sub> (30)</td><td>0.0667</td><td>0.1000</td><td>0.1167</td></tr><tr><td>C<sub>3</sub>H<sub>8</sub> (44)</td><td>0.0682</td><td>0.0909</td><td>0.1136</td></tr><tr><td>C<sub>2</sub>H<sub>4</sub> (28)</td><td>0.0714</td><td>0.0714</td><td>0.1071</td></tr></table><p>A and B follow the table. C is wrong: 0.0714 against 0.0667. D is wrong: 0.1136 is less than 0.1250. E is correct: 0.1071 &lt; 0.1167.</p>',
+    'Same number of carbon atoms per molecule does not mean the same moles of CO<sub>2</sub> per gram; the molar masses differ.'),
+  v5nat(4, 'isotopes and atomic mass', '<p>A molecule CH<sub>2</sub>Cl<sub>2</sub> is made from atoms of <sup>12</sup>C or <sup>13</sup>C, <sup>1</sup>H or <sup>2</sup>H (D), and <sup>35</sup>Cl or <sup>37</sup>Cl. How many <b>different molecular mass numbers</b> (sum of the mass numbers of the atoms) are possible?</p>', 8, 0, '',
+    '<p>Idea: only the total matters, so count the possible totals, not the molecules.</p><p>Base: 12 + 2 + 70 = 84. Extra mass from carbon: 0 or 1. From the two hydrogens: 0, 1 or 2. From the two chlorines: 0, 2 or 4.</p><p>Carbon + hydrogen give 0, 1, 2, 3. Adding 0, 2 or 4 from chlorine gives every total from 0 to 7. So the mass numbers are 84, 85, ..., 91: <b>8</b> values.</p><p>(The number of different isotopic molecules is 2 &times; 3 &times; 3 = 18, a different question.)</p>',
+    'Counting molecules (18) instead of distinct masses (8).'),
+  v5nat(5, 'eudiometry', '<p>A 40 mL gas mixture of CO, CH<sub>4</sub> and N<sub>2</sub> is burnt in excess oxygen. After cooling to the starting temperature (water condenses), the total volume has contracted by 22 mL, and 20 mL of CO<sub>2</sub> is found. What is the volume of CO in the mixture, in mL?</p>', 12, 0, 'mL',
+    '<p>Idea: CO and CH<sub>4</sub> both give 1 CO<sub>2</sub> per molecule but contract the gas volume differently. Let CO = a, CH<sub>4</sub> = b.</p><p>CO + &frac12;O<sub>2</sub> &rarr; CO<sub>2</sub>: 1.5 volumes become 1, contraction &frac12; per volume of CO.</p><p>CH<sub>4</sub> + 2O<sub>2</sub> &rarr; CO<sub>2</sub> + 2H<sub>2</sub>O(l): 3 volumes become 1, contraction 2 per volume of CH<sub>4</sub>.</p><p>CO<sub>2</sub>: a + b = 20. Contraction: a/2 + 2b = 22.</p><p>From the first, a = 20 - b. Then 10 - b/2 + 2b = 22, so 1.5b = 12, b = 8 and <b>a = 12 mL</b>. (N<sub>2</sub> = 40 - 20 = 20 mL.)</p>',
+    'Water is liquid after cooling, so it takes no volume; counting it as a gas changes the contraction for CH<sub>4</sub>.'),
+  v5nat(6, 'hydrated salts', '<p>A 3.075 g sample of a hydrated salt MgSO<sub>4</sub>&middot;xH<sub>2</sub>O contains 20 % by mass of an inert impurity that does not lose mass on heating. Heating to constant mass drives off 1.26 g. Find x. (Mg = 24, S = 32, O = 16, H = 1)</p>', 7, 0, '',
+    '<p>Idea: the impurity is not part of the hydrate, so remove it before working out the ratio.</p><p>Pure hydrate = 0.80 &times; 3.075 = 2.460 g. Water lost = 1.26 g = 0.0700 mol. Anhydrous MgSO<sub>4</sub> = 2.460 - 1.26 = 1.200 g = 1.200/120 = 0.0100 mol.</p><p>x = 0.0700 / 0.0100 = <b>7</b>.</p><p>(Using all 3.075 g as hydrate gives anhydrous 1.815 g = 0.0151 mol and x = 4.6, a wrong answer.)</p>',
+    'Forgetting the impurity gives x &asymp; 4.6.'),
+  v5nat(7, 'isotopes and atomic mass', '<p>An element X has two isotopes with mass numbers 63 and 65. Its diatomic gas X<sub>2</sub> shows peaks at 126, 128 and 130 in a mass spectrum. The peak at 126 is exactly 4.00 times as intense as the peak at 130. Taking isotopic masses equal to mass numbers, find the average atomic mass of X to 2 decimals.</p>', 63.67, 0.01, '',
+    '<p>Idea: peak intensities go as p<sup>2</sup>, 2pq and q<sup>2</sup>, where p and q are the isotope fractions.</p><p>p<sup>2</sup> / q<sup>2</sup> = 4, so p/q = 2 (not 4). Then p = 2/3 and q = 1/3.</p><p>Average = (2/3) &times; 63 + (1/3) &times; 65 = <b>63.67</b>.</p><p>(Using 4 : 1 as the isotope ratio would give 63.4, the usual slip.)</p>',
+    'The peak ratio is the square of the isotope ratio.'),
+  v5nat(8, 'gravimetric analysis', '<p>A 1.000 g mixture of NaCl and NaBr is heated in a stream of chlorine until all bromide is converted to chloride (2NaBr + Cl<sub>2</sub> &rarr; 2NaCl + Br<sub>2</sub>). The residue weighs 0.7775 g. Find the percentage of NaBr in the mixture. (Na = 23, Cl = 35.5, Br = 80)</p>', 51.5, 0.1, '%',
+    '<p>Idea: each mole of NaBr (103 g) becomes a mole of NaCl (58.5 g), a loss of 44.5 g per mole. The loss tells the moles of NaBr.</p><p>Loss = 1.000 - 0.7775 = 0.2225 g. Moles NaBr = 0.2225 / 44.5 = 0.00500 mol.</p><p>Mass NaBr = 0.00500 &times; 103 = 0.515 g, so <b>51.5 %</b>.</p>',
+    'Using the full 103 g per mole as the loss, instead of the difference 44.5 g.'),
+  v5match(9, 'atoms in samples', 'Match the sample with the number of atoms (in units of N<sub>A</sub>)',
+    ['0.10 mol of K<sub>4</sub>[Fe(CN)<sub>6</sub>]', '0.20 mol of CuSO<sub>4</sub>&middot;5H<sub>2</sub>O (count the water atoms)', '11.2 L of ozone, O<sub>3</sub>, at STP', '5.6 L of NH<sub>3</sub> at STP'],
+    ['1.5 N<sub>A</sub>', '4.2 N<sub>A</sub>', '1.0 N<sub>A</sub>', '1.7 N<sub>A</sub>', '2.4 N<sub>A</sub>'], ['s', 'q', 'p', 'r'],
+    '<p>Idea: moles of sample &times; atoms per formula unit.</p><p>A: K<sub>4</sub>[Fe(CN)<sub>6</sub>] has 4 + 1 + 12 = 17 atoms; 0.10 &times; 17 = 1.7. B: CuSO<sub>4</sub>&middot;5H<sub>2</sub>O has 6 + 15 = 21 atoms; 0.20 &times; 21 = 4.2. C: 11.2 L = 0.5 mol O<sub>3</sub>; 0.5 &times; 3 = 1.5. D: 5.6 L = 0.25 mol NH<sub>3</sub>; 0.25 &times; 4 = 1.0.</p><p>So A-s, B-q, C-p, D-r. (2.4 is not used.)</p>',
+    'Leaving out the water of crystallisation, or counting 11.2 L of O<sub>3</sub> as 0.5 mol of atoms.'),
+  v5match(10, 'limiting reagent', 'Match the reacting mixture with the mass of product formed (in g)',
+    ['6.0 g Mg + 4.0 g O<sub>2</sub> &rarr; MgO', '5.6 g Fe + 3.2 g S &rarr; FeS', '2.7 g Al + 7.1 g Cl<sub>2</sub> &rarr; AlCl<sub>3</sub>', '2.3 g Na + 3.55 g Cl<sub>2</sub> &rarr; NaCl'],
+    ['5.85', '8.8', '8.9', '10.0', '4.0'], ['s', 'q', 'r', 'p'],
+    '<p>Idea: find the limiting reagent in each, then use its moles.</p><p>A: Mg 0.25 mol, O<sub>2</sub> 0.125 mol; 2Mg + O<sub>2</sub> needs 0.25 mol Mg for 0.125 mol O<sub>2</sub>, so both are used up: 0.25 mol MgO = 10.0 g.</p><p>B: Fe 0.10 mol, S 0.10 mol, 1 : 1, so 0.10 mol FeS = 8.8 g.</p><p>C: Al 0.10 mol, Cl<sub>2</sub> 0.10 mol; 2Al + 3Cl<sub>2</sub> needs 0.15 mol Cl<sub>2</sub> for 0.10 mol Al, so Cl<sub>2</sub> limits: (2/3) &times; 0.10 = 0.0667 mol AlCl<sub>3</sub> = 8.9 g.</p><p>D: Na 0.10 mol, Cl<sub>2</sub> 0.05 mol, exactly 2 : 1, so 0.10 mol NaCl = 5.85 g.</p><p>A-s, B-q, C-r, D-p.</p>',
+    'In C, aluminium looks like the limiting reagent only if you forget the 2 : 3 ratio.'),
+  v5mcq(11, 'iodometry', 'In the passage, how many moles of S<sub>2</sub>O<sub>3</sub><sup>2-</sup> are used up for every mole of Cu<sup>2+</sup> in the brass solution?', '1', ['2', '0.5', '4'],
+    '<p>2Cu<sup>2+</sup> gives 1 I<sub>2</sub>, so 1 Cu<sup>2+</sup> gives &frac12; I<sub>2</sub>. Each I<sub>2</sub> needs 2 S<sub>2</sub>O<sub>3</sub><sup>2-</sup>. So 1 Cu<sup>2+</sup> uses &frac12; &times; 2 = <b>1</b> mol of thiosulfate.</p>', 'The two steps of the chain are easy to multiply wrongly: &frac12; &times; 2 = 1.', 'passage', 'v5p1'),
+  v5nat(12, 'iodometry', 'What is the percentage of copper by mass in the brass? Give the answer to 1 decimal place.', 22.9, 0.1, '%',
+    '<p>Thiosulfate = 18.0 mL &times; 0.100 M = 1.80 mmol. Cu<sup>2+</sup> : thiosulfate = 1 : 1, so Cu = 1.80 mmol = 1.80 &times; 63.5 = 114.3 mg.</p><p>Percentage = 114.3 / 500 &times; 100 = <b>22.9 %</b>.</p>', 'Using the I<sub>2</sub> moles (0.90 mmol) as the copper moles gives 11.4 %.', 'v5p1'),
+  v5nat(13, 'iodometry', 'The same amount of I<sub>2</sub> could be set free from excess KI in acid by how many mL of 0.0500 M K<sub>2</sub>Cr<sub>2</sub>O<sub>7</sub>? (Cr<sub>2</sub>O<sub>7</sub><sup>2-</sup> + 6I<sup>-</sup> + 14H<sup>+</sup> &rarr; 2Cr<sup>3+</sup> + 3I<sub>2</sub> + 7H<sub>2</sub>O)', 6, 0, 'mL',
+    '<p>I<sub>2</sub> in the brass experiment = 1.80 mmol thiosulfate / 2 = 0.900 mmol.</p><p>One Cr<sub>2</sub>O<sub>7</sub><sup>2-</sup> gives 3 I<sub>2</sub>, so dichromate needed = 0.900 / 3 = 0.300 mmol.</p><p>Volume = 0.300 mmol / 0.0500 M = <b>6.0 mL</b>.</p>', 'Dichromate gives 3 I<sub>2</sub>, not 6.', 'v5p1'),
+  { id: v5id(14), type: 'mcq', level: 5, format: 'assertion', exams: V5EX, sub: 'isotopes and mass percentage',
+    q: '<p><b>Assertion (A):</b> The mass percentage of hydrogen in D<sub>2</sub>O is the same as in H<sub>2</sub>O, since both are water.</p><p><b>Reason (R):</b> Isotopes of an element have the same chemical properties.</p>',
+    options: V5A4, answer: 3,
+    sol: '<p>Mass percentage depends on atomic masses, and isotopes differ in mass.</p><p>H<sub>2</sub>O: 2.016 / 18.015 = 11.2 % H. D<sub>2</sub>O: 4.028 / 20.03 = 20.1 % D. So A is false.</p><p>R is true: isotopes of one element behave alike chemically (they differ in mass, not in electron arrangement). But the same chemistry does not make the mass fractions equal, so R does not rescue A. Answer: A false, R true.</p>', trap: 'Same chemical behaviour does not mean same mass composition.' },
+  v5mcq(15, 'mixed: gas laws and moles', '<p>A rigid 8.2 L vessel holds 6.0 g H<sub>2</sub> and 32 g O<sub>2</sub> at 300 K. A spark makes them react completely to water, and the vessel returns to 300 K. Ignore the vapour pressure of water. (R = 0.082 L atm K<sup>-1</sup> mol<sup>-1</sup>) The final pressure is</p>', '3.0 atm', ['9.0 atm', '12 atm', '6.0 atm'],
+    '<p>H<sub>2</sub> = 6.0/2 = 3 mol. O<sub>2</sub> = 32/32 = 1 mol. 2H<sub>2</sub> + O<sub>2</sub> &rarr; 2H<sub>2</sub>O: 1 mol O<sub>2</sub> uses 2 mol H<sub>2</sub>, leaving 1 mol H<sub>2</sub>.</p><p>At 300 K the water is liquid and (by the question) does not add pressure. So the gas is 1 mol H<sub>2</sub>.</p><p>p = nRT/V = 1 &times; 0.082 &times; 300 / 8.2 = <b>3.0 atm</b>.</p><p>9.0 atm counts the water as 2 mol of gas; 12 atm is the pressure before the reaction (4 mol).</p>', 'Water vapour at 300 K is not counted.'),
+];
+const V5GN = [
+  { id: 'mc-v5g1', type: 'nat', level: 5, exams: V5EX, sub: 'isotopes and atomic mass',
+    make(rng) {
+      const pr = choose(rng, [[63, 65], [35, 37], [79, 81], [10, 11], [107, 109], [6, 7]]); const r = choose(rng, [4, 9, 16, 25]);
+      const s = Math.sqrt(r); const avg = (pr[0] * s + pr[1]) / (s + 1);
+      return { q: `An element X has two isotopes of mass numbers ${pr[0]} and ${pr[1]}. Its diatomic gas X<sub>2</sub> shows peaks at ${2 * pr[0]}, ${pr[0] + pr[1]} and ${2 * pr[1]}. The peak at ${2 * pr[0]} is ${r} times as intense as the peak at ${2 * pr[1]}. Taking isotopic masses equal to mass numbers, find the average atomic mass of X (2 decimals).`,
+        answer: +avg.toFixed(2), tol: 0.01, m1: pr[0], m2: pr[1], r,
+        sol: `<p>Peak intensities go as p<sup>2</sup> : 2pq : q<sup>2</sup>. So p<sup>2</sup>/q<sup>2</sup> = ${r}, and p/q = &radic;${r} = ${s}.</p><p>p = ${s}/${s + 1}, q = 1/${s + 1}.</p><p>Average = (${s} &times; ${pr[0]} + ${pr[1]}) / ${s + 1} = <b>${avg.toFixed(2)}</b>.</p>` };
+    }, verify: (p) => { const a = Math.sqrt(p.r), c = 1; const pp = a / (a + c), qq = c / (a + c); return pp * p.m1 + qq * p.m2; } },
+  { id: 'mc-v5g2', type: 'nat', level: 5, exams: V5EX, sub: 'hydrated salts',
+    make(rng) {
+      const S = choose(rng, [['MgSO<sub>4</sub>', 120], ['Na<sub>2</sub>CO<sub>3</sub>', 106], ['CaCl<sub>2</sub>', 111], ['Na<sub>2</sub>SO<sub>4</sub>', 142], ['FeSO<sub>4</sub>', 152]]);
+      const x = int(rng, 2, 10); const f = choose(rng, [20, 50, 60]); const k = 1 / (1 - f / 100);
+      const pure = 0.01 * (S[1] + 18 * x); const T = +(pure * k).toFixed(4); const W = +(0.18 * x).toFixed(2);
+      return { q: `A ${T} g sample of ${S[0]}&middot;xH<sub>2</sub>O contains ${f} % by mass of an inert impurity that does not change on heating. Heating to constant mass drives off ${W} g. Find x. (Anhydrous ${S[0]} = ${S[1]} g mol<sup>-1</sup>; H<sub>2</sub>O = 18)`,
+        answer: x, tol: 0, T, W, f, Mx: S[1],
+        sol: `<p>Pure hydrate = ${(100 - f) / 100} &times; ${T} = ${fmt(T * (1 - f / 100), 5)} g. Water lost = ${W} g = ${fmt(W / 18, 4)} mol.</p><p>Anhydrous salt = ${fmt(T * (1 - f / 100) - W, 5)} g = ${fmt((T * (1 - f / 100) - W) / S[1], 4)} mol.</p><p>x = ${fmt(W / 18, 4)} / ${fmt((T * (1 - f / 100) - W) / S[1], 4)} = <b>${x}</b>.</p>` };
+    }, verify: (p) => Math.round((p.W / 18) / ((p.T * (1 - p.f / 100) - p.W) / p.Mx)) },
+  { id: 'mc-v5g3', type: 'mcq', level: 5, exams: V5EX, sub: 'eudiometry',
+    make(rng) {
+      const a = pick(rng, 6, 20, 2), b = pick(rng, 4, 16, 2), c = pick(rng, 10, 30, 5);
+      const V0 = a + b + c, Vc = a + b, K = a / 2 + 2 * b;
+      const o = numOpts(rng, a, [b, 2 * K, Vc / 2 + 1], 'mL', 3);
+      return { q: `A ${V0} mL mixture of CO, CH<sub>4</sub> and N<sub>2</sub> is burnt in excess oxygen. After cooling to the starting temperature (water condenses), the volume has contracted by ${K} mL and ${Vc} mL of CO<sub>2</sub> is found. The volume of CO in the mixture is`,
+        options: o.options, answer: o.answer, a, b, Vc, K,
+        sol: `<p>CO: contraction &frac12; per mL. CH<sub>4</sub>: contraction 2 per mL (water is liquid). Both give 1 mL CO<sub>2</sub> per mL.</p><p>a + b = ${Vc}; a/2 + 2b = ${K}. Then 1.5b = ${K} - ${Vc}/2 = ${K - Vc / 2}, so b = ${b} and <b>a = ${a} mL</b>.</p>` };
+    }, verify: (p) => { const b = (p.K - p.Vc / 2) / 1.5; const a = p.Vc - b; return p.options.indexOf(`${fmt(a, 3)} mL`); } },
+];
+
 export default {
   topic: 'mole-concept',
   groups: {
     ...XGR,
+    ...V5G,
     m1: { title: 'Match the sample with its mass', list1: ['A. 0.25 mol of CH<sub>4</sub>', 'B. 11.2 L of N<sub>2</sub> at 273 K and 1 atm', 'C. 3.011 × 10<sup>23</sup> molecules of H<sub>2</sub>O', 'D. 0.1 mol of CaCO<sub>3</sub>'], list2: ['p. 9 g', 'q. 4 g', 'r. 10 g', 's. 14 g'] },
     m2: { title: 'Match the law with its example', list1: ['A. Law of definite proportions', 'B. Law of multiple proportions', 'C. Gay-Lussac law of gaseous volumes', 'D. Law of conservation of mass'], list2: ['p. CO and CO<sub>2</sub>: for a fixed 12 g of carbon, oxygen is 16 g and 32 g', 'q. Water from a river, a tap or a lab always has H : O = 1 : 8 by mass', 'r. 2 volumes of H<sub>2</sub> and 1 volume of O<sub>2</sub> give 2 volumes of steam', 's. A candle burnt in a sealed jar: total mass before and after is the same'] },
     m3: { title: 'Match the change with the n-factor', list1: ['A. KMnO<sub>4</sub> to Mn<sup>2+</sup> (acidic medium)', 'B. KMnO<sub>4</sub> to MnO<sub>2</sub> (neutral medium)', 'C. K<sub>2</sub>Cr<sub>2</sub>O<sub>7</sub> to Cr<sup>3+</sup> (per formula unit)', 'D. H<sub>2</sub>C<sub>2</sub>O<sub>4</sub> to CO<sub>2</sub>'], list2: ['p. 2', 'q. 3', 'r. 5', 's. 6'] },
@@ -301,6 +403,7 @@ export default {
     PN('mc-099', 5, 'mixture analysis', 'p3', 'How many millimoles of NaHCO<sub>3</sub> were present in the original sample?', 2, 0, 'mmol', '<p>Total HCl to methyl orange = 80.0 × 0.100 = 8.0 mmol.</p><p>Na<sub>2</sub>CO<sub>3</sub> needs 2 HCl per mole in total (to CO<sub>2</sub>): 2 × 3 = 6 mmol. The rest is for the original NaHCO<sub>3</sub> (1 HCl each): 8 - 6 = 2 mmol.</p><p>Answer: <b>2 mmol</b>. (Another way: the second stage takes 50 mL = 5 mmol = 3 from the new NaHCO<sub>3</sub> + 2 original.)</p>', 'The NaHCO<sub>3</sub> formed from Na<sub>2</sub>CO<sub>3</sub> also reacts in the second stage.'),
     PN('mc-100', 5, 'mixture analysis', 'p3', 'What is the percentage by mass of NaHCO<sub>3</sub> in the sample? (Na = 23, H = 1, C = 12, O = 16) Give the answer to 1 decimal place.', 34.6, 0.2, '%', '<p>NaHCO<sub>3</sub> = 2 mmol × 84 = 168 mg. Na<sub>2</sub>CO<sub>3</sub> = 3 mmol × 106 = 318 mg. Total = 486 mg ✓ (matches 0.486 g).</p><p>% NaHCO<sub>3</sub> = 168 / 486 × 100 = <b>34.6%</b>.</p>'),
     ...XI,
+    ...V5I,
   ],
   gens: [
     { id: 'mc-g01', type: 'nat', level: 2, exams: EX[2], sub: 'mole and Avogadro number',
@@ -439,5 +542,6 @@ export default {
           sol: `<p>Millimoles H<sup>+</sup> = ${Ma} × ${Va} = ${fmt(Ma * Va, 4)}. Millimoles OH<sup>-</sup> = ${Mb} × ${Vb} = ${fmt(Mb * Vb, 4)}.</p><p>They cancel 1 : 1, leaving ${fmt(Math.abs(Ma * Va - Mb * Vb), 4)} mmol of ${who}.</p><p>Total volume = ${Va + Vb} mL. Molarity = ${fmt(Math.abs(Ma * Va - Mb * Vb), 4)} / ${Va + Vb} = <b>${fmt(net, 4)} M</b>.</p>` };
       }, verify: (p) => Math.abs(p.Ma * p.Va - p.Mb * p.Vb) / (p.Va + p.Vb) },
     ...XGN,
+    ...V5GN,
   ],
 };

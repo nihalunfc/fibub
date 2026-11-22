@@ -109,6 +109,10 @@ If a system at equilibrium is disturbed, it shifts in the direction that **partl
 
 </div>
 
+**Try it:** press each disturbance in turn and watch the Q and K numbers: add N₂O₄, add NO₂, squeeze, expand, heat, cool. Predict the direction before you look.
+
+<figure class="fig" data-fig="@chem-le-chatelier"><figcaption>After each push Q ≠ K and the system moves to make Q = K again. Heating changes K itself (forward reaction is endothermic), while changing concentration or volume does not: the position shifts but K stays the same.</figcaption></figure>
+
 ## 7. Temperature and K: the van't Hoff equation
 
 Only temperature changes K. For ΔH roughly constant:

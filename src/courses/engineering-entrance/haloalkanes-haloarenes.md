@@ -75,6 +75,16 @@ IUPAC names: 2-bromobutane, 1-chloro-2-methylpropane, 1,2-dichloroethane. Common
 
 </div>
 
+**Watch it happen:** the same carbon under SN2, then switch the figure to SN1 and compare. Drag the picture to turn the molecule.
+
+<div class="steps" data-fig="@chem-sn-mechanism" data-title="SN2 and SN1 side by side" data-ms="6500">
+<div class="step"><b>Reactant.</b> A tetrahedral carbon with the leaving group X on one side.</div>
+<div class="step"><b>Approach.</b> In SN2 the nucleophile pushes in from the back; in SN1 the leaving group starts to leave.</div>
+<div class="step"><b>Transition state or carbocation.</b> SN2: a flat carbon with five partial bonds. SN1: a flat carbocation.</div>
+<div class="step"><b>Substitution.</b> SN2 gives inversion; SN1 lets Nu attack either face.</div>
+<div class="step"><b>Product.</b> Compare the two energy graphs: one hump or two.</div>
+</div>
+
 ## 4. Elimination and other reactions
 
 With **alcoholic KOH** (strong base, heat), a halide loses HX to give an alkene (**β-elimination**, E2 for most cases). **Saytzeff (Zaitsev) rule:** the more substituted alkene is the major product (2-bromobutane gives mainly but-2-ene). Aqueous KOH favours substitution (alcohol); alcoholic KOH and higher temperature favour elimination; 3° halides eliminate most easily.

@@ -38,6 +38,11 @@ Task 1, **Giving Advice**, is the first speaking task. The screen describes a si
 
 **Everyday analogy.** Think of a friend calling you because they are stuck. You would not read them a list. You would say "Okay, here is what I would do", explain why, maybe tell them what happened when your cousin did the same thing, and say "let me know how it goes". That is the shape of a strong Task 1 answer.
 
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
+
 ## 2. What it really tests
 
 Task 1 checks that you can **advise someone clearly and kindly for a full minute and a half**. In the four rating areas:

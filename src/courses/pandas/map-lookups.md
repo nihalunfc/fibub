@@ -54,6 +54,11 @@ orders[['product_id', 'category', 'unit_price', 'list_price']].head()
 
 If the lookup's key repeats, `map` raises an error (it can't choose), which protects you from the duplicate-key trap in Lesson 5.3.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. replace: recode some values, keep the rest
 
 ```python

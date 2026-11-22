@@ -73,6 +73,10 @@ Change the two charges below and watch the lines. Look for the null point, where
 
 A charge q of mass m entering a uniform field between plates moves like a ball thrown sideways: acceleration qE/m across the field, constant speed along it, so its path is a **parabola**.
 
+Drag the charges around, add more with the buttons, and switch field lines, equipotentials and arrows on and off. Move the pointer to read V and E.
+
+<figure class="fig" data-fig="@em-field-lines"><figcaption>Field lines leave positive charges and end on negative ones; equipotentials (coloured rings) cross them at right angles and crowd where the field is strong.</figcaption></figure>
+
 ## 4. The electric dipole
 
 Two equal and opposite charges ±q a distance 2a apart form a dipole. Its **dipole moment** is `$p = q\,(2a)$`, a vector pointing from −q to +q.
@@ -112,6 +116,10 @@ A dipole field falls as 1/r³, faster than a single charge's 1/r², because the 
 
 </div>
 
+Drag the charges in and out of the sphere and change its radius. The flux is added up from the field on the surface, patch by patch, and compared with Q_enclosed/ε₀.
+
+<figure class="fig" data-fig="@em-gauss-surface"><figcaption>Only the charge inside matters: a charge outside sends as many lines in as out. The flux follows Q_enclosed whatever the shape of the charges.</figcaption></figure>
+
 ## 6. Fields of charged bodies (the results to know)
 
 | Body | Field |
@@ -126,6 +134,10 @@ A dipole field falls as 1/r³, faster than a single charge's 1/r², because the 
 <div class="problem" data-problem="ef-gauss-sphere"></div>
 
 **A cavity** in a uniformly charged solid sphere has a **uniform** field inside it, `$\dfrac{\rho\,\vec d}{3\varepsilon_0}$`, where d joins the two centres. A charge q inside the cavity of a hollow conductor induces −q on the cavity wall and +q on the outer surface, so the outside still feels it. The other way round works: a closed conductor **shields** its cavity from charges outside (electrostatic shielding, the reason a car protects you from lightning).
+
+Pick a ring, rod or disc and change its size. Compare its field on the axis with the point-charge curve and with the infinite line or sheet result.
+
+<figure class="fig" data-fig="@em-charged-bodies"><figcaption>Far away every body looks like a point; close in, the rod follows the infinite line and the disc the infinite sheet. The ring's field is zero at the centre and peaks at a/√2.</figcaption></figure>
 
 ## 7. Rings and small oscillations (JEE Advanced)
 

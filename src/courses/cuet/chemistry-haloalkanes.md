@@ -49,6 +49,10 @@ sources:
 
 <div class="problem" data-problem="carius-bromine"></div>
 
+**Try it:** Step through SN2 and SN1 on the same carbon.
+
+<figure class="fig" data-fig="@chem-sn-mechanism"><figcaption>SN2 inverts in one step; SN1 passes through a flat carbocation.</figcaption></figure>
+
 ## 2. Haloarenes and useful compounds
 
 Haloarenes undergo nucleophilic substitution only under harsh conditions (or with −NO₂ groups ortho or para to the halogen). Halogen is ortho-para directing in electrophilic substitution but slightly deactivating. Grignard reagents (RMgX) and the Wurtz, Wurtz-Fittig and Fittig reactions join carbon chains.

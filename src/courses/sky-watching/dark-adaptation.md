@@ -100,6 +100,10 @@ Your eyes during the first half hour outside:
 **Averted vision** typically gains around 1 magnitude on faint targets: about 2.5 times less light needed.
 </details>
 
+Slide how far you look from the faint galaxy, and compare the rod and cone curves.
+
+<figure class="fig" data-fig="@astro-averted-vision"><figcaption>Cones crowd the centre of your gaze but need bright light; rods are absent there and peak about 15 to 20° out. Look a little to the side and the faint galaxy appears brighter. Switch on the blind spot to see why it can vanish at one particular angle.</figcaption></figure>
+
 ## 5. Worked example
 
 *Pupil gain.* At 20 years old a dark-adapted pupil can open to about 7 mm; by 60 it may only reach about 5 mm. The light collected goes as the area:

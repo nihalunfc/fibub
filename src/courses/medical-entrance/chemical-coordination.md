@@ -74,6 +74,10 @@ The **pituitary** sits in a bony cavity, the **sella turcica**, on a stalk from 
 
 **Other organs.** The heart's atrial wall makes **ANF**, which widens blood vessels and lowers blood pressure. Kidney **JG cells** make **erythropoietin**, which drives red cell formation. The gut makes **gastrin** (HCl and pepsinogen from gastric glands), **secretin** (water and bicarbonate from the pancreas), **cholecystokinin** (pancreatic enzymes and bile) and **GIP** (slows stomach secretion and movement). Many tissues also make **growth factors** for growth and repair.
 
+Switch the pancreas between healthy, type 1 and type 2, and change the meal size.
+
+<figure class="fig" data-fig="@bio-glucose-feedback"><figcaption>In a healthy person insulin rises after each meal and pulls glucose back to about 90 mg/dL: negative feedback. Without insulin or with resistant cells, glucose stays high.</figcaption></figure>
+
 ## 5. How hormones act
 
 A hormone acts only on cells with its **receptor**; hormone + receptor form a **hormone–receptor complex** that changes the cell's chemistry.

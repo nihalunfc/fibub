@@ -74,6 +74,11 @@ Watch it happen, one step at a time (the live box's **Show how it runs** button 
 
 <div class="problem" data-problem="sql-where-filter"></div>
 
+Press Play to watch each row being tested, then move the slider and switch between AND, OR and NOT.
+
+<figure class="fig" data-fig="@data-where-flow"><figcaption>Notice that every row is judged on its own, and that a row exactly on the boundary is dropped by a strict greater-than.</figcaption></figure>
+
+
 ## 3. The comparison operators
 
 | Operator | Means | Example |

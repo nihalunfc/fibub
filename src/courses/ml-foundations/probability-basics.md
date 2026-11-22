@@ -40,6 +40,10 @@ A **probability** is a number from 0 (impossible) to 1 (certain) that says how l
 - For two things that don't affect each other (**independent**), `$P(A \text{ and } B) = P(A) \times P(B)$`. Two heads in a row: 0.5 × 0.5 = 0.25.
 - **Conditional probability** `$P(A \mid B)$` is the chance of A once you know B happened: `$P(A \mid B) = P(A \text{ and } B) \,/\, P(B)$`. "The chance an email is spam, given it contains the word *prize*" is a conditional probability. Lesson 4.8 builds a spam filter from these.
 
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
+
 ## 3. The centre: mean and median
 
 The **mean** (average) of `$n$` values is their sum divided by `$n$`:
@@ -49,6 +53,10 @@ The **mean** (average) of `$n$` values is their sum divided by `$n$`:
 ```
 
 The **median** is the middle value once they are sorted. Lesson 2.2 shows when each one is the better summary.
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. The spread: variance and standard deviation
 
@@ -75,6 +83,10 @@ Here it is step by step, with five delivery times:
 <div class="problem" data-problem="probability-basics-sd"></div>
 
 When the values are a **sample** used to estimate a bigger population, divide by `$n - 1$` instead of `$n$` (this is written `$s$`). It corrects a small bias: a sample's own mean sits closer to its values than the true mean does. For large `$n$` the difference is tiny.
+
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
 
 ## 5. The normal curve
 

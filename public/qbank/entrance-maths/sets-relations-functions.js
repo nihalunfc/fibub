@@ -956,4 +956,123 @@ gens.push(
 
 }
 // ==XP-END
+// ==L5-BEGIN (level 5 round: new top-rank items, groups and templates)
+{
+const LR = String.raw;
+const LEX = ['jee-adv'];
+let _v = 0; const LPOS = [2, 0, 3, 1, 1, 3, 0, 2, 3, 1];
+let _vp = 0;
+const lid = () => `srf-v5${String(++_v).padStart(2, '0')}`;
+const lpl = (c, w) => { const p = LPOS[_vp++ % LPOS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const lmk = (sub, extra) => ({ id: lid(), level: 5, exams: LEX, sub, ...extra });
+const LI = (s, q, a, sol, trap, calc) => lmk(s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const LN = (s, q, a, tol, sol, trap, calc) => lmk(s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const LX = (s, q, options, answer, sol, trap) => lmk(s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const LAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const LA = (s, a, r, answer, sol, trap) => lmk(s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: LAO, answer, sol, trap });
+const LSC = (s, lines, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...lpl(c, w), sol, trap });
+const LMT = (s, group, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...lpl(c, w), sol, trap });
+const LPM = (s, group, q, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'passage', group, q, ...lpl(c, w), sol, trap });
+const LPI = (s, group, q, a, sol, trap, calc) => lmk(s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const LPN = (s, group, q, a, tol, sol, trap, calc) => lmk(s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const LG = (id, type, format, sub, make, verify) => ({ id, type, format, level: 5, exams: LEX, sub, make, ...(verify ? { verify } : {}) });
+
+Object.assign(groups, {
+  v5m1: { title: 'Counting functions on a 3-element set', passage: LR`<p>Let $A=\{1,2,3\}$ and consider functions $f:A\to A$. Match each description in List I with the number of such functions in List II.</p>`,
+    list1: ['A. $f$ is one-one', 'B. $f\\circ f=f$', 'C. $f\\circ f$ is the identity map', 'D. $f\\circ f$ is a constant function'],
+    list2: ['p. 4', 'q. 6', 'r. 9', 's. 10', 't. 27'] },
+  v5m2: { title: 'Counting relations on a 3-element set', passage: LR`<p>Let $A=\{1,2,3\}$. Match each kind of relation on $A$ in List I with the number of such relations in List II.</p>`,
+    list1: ['A. reflexive and transitive', 'B. symmetric and transitive', 'C. reflexive, symmetric and transitive', 'D. reflexive and antisymmetric'],
+    list2: ['p. 5', 'q. 15', 'r. 19', 's. 27', 't. 29'] },
+  v5p1: { title: 'Passage: a function with a recurrence', passage: LR`<p>A function $f:\mathbb{R}\to\mathbb{R}$ satisfies $f(x+1)=\dfrac{1+f(x)}{1-f(x)}$ for every real $x$ (so $f(x)\ne1$ always), and $f(0)=\dfrac13$.</p>` },
+});
+
+items.push(
+  LI('counting functions', LR`How many functions $f:\{1,2,3,4\}\to\{1,2,3,4\}$ have $f\circ f$ equal to a constant function?`, 40,
+    LR`<p>Idea: if $f\circ f\equiv c$, then $c$ is fixed and every other value must land in $f^{-1}(c)$ but avoid $c$.</p><p>Put $x=c$: $f(f(c))=c$. Let $d=f(c)$. Then $f(d)=c$, and $f(f(d))=f(c)=d$ must also equal $c$, so $d=c$: $f(c)=c$.</p><p>Let $S=f^{-1}(c)$; it contains $c$. Every $x\in S$ has $f(x)=c$. Every $x\notin S$ must satisfy $f(f(x))=c$, i.e. $f(x)\in S$, and $f(x)\ne c$ (else $x\in S$), so $f(x)\in S\setminus\{c\}$.</p><p>If $|S|=s$: choose the other $s-1$ members of $S$ in $\binom3{s-1}$ ways, and the $4-s$ outside elements go to $S\setminus\{c\}$ in $(s-1)^{4-s}$ ways.</p><p>$s=1$: $0^3=0$. $s=2$: $3\cdot1^2=3$. $s=3$: $3\cdot2^1=6$. $s=4$: $1\cdot 1=1$. Sum $=10$.</p><p>There are $4$ choices of $c$, so the answer is $4\times10=40$.</p>`,
+    'Forgetting that points outside S must NOT map to c (they would then belong to S), which makes the count 92.',
+    () => { let c = 0; for (let m = 0; m < 256; m++) { const f = [m & 3, (m >> 2) & 3, (m >> 4) & 3, (m >> 6) & 3]; const g = f.map((x) => f[x]); if (g.every((v) => v === g[0])) c++; } return c; }),
+  LI('counting functions', LR`How many onto functions $f:\{1,2,3,4,5\}\to\{a,b,c\}$ satisfy $f(1)\ne f(2)$?`, 114,
+    LR`<p>Idea: count all onto functions, then remove those with $f(1)=f(2)$.</p><p>Onto functions from a 5-set to a 3-set: $3^5-3\cdot2^5+3=243-96+3=150$.</p><p>If $f(1)=f(2)$, glue elements 1 and 2 into one object. Then we need an onto function from 4 objects to 3 values: $3^4-3\cdot2^4+3=81-48+3=36$.</p><p>Answer: $150-36=114$.</p>`,
+    'Removing $3\\times$(something) by guesswork. Gluing 1 and 2 keeps surjectivity intact, so the glued count is a plain onto count.',
+    () => { let c = 0; for (let m = 0; m < 243; m++) { const f = []; let x = m; for (let i = 0; i < 5; i++) { f.push(x % 3); x = Math.floor(x / 3); } if (new Set(f).size === 3 && f[0] !== f[1]) c++; } return c; }),
+  LI('partial orders', LR`A relation on $\{1,2,3\}$ is a <i>partial order</i> if it is reflexive, antisymmetric and transitive. How many partial orders are there on $\{1,2,3\}$?`, 19,
+    LR`<p>Idea: sort partial orders by the shape of their "strictly less than" pairs, then count labellings.</p><p>The diagonal is forced. The shapes on three points:</p><ul><li>no strict pair (all unrelated): $1$</li><li>exactly one strict pair $a<b$, third element alone: $3\cdot2=6$ (choose the ordered pair)</li><li>"V": one element below the other two ($a<b$, $a<c$): $3$ (choose the bottom)</li><li>"inverted V": one element above the other two: $3$</li><li>a chain $a<b<c$ (which forces $a<c$): $3!=6$</li></ul><p>Total $1+6+3+3+6=19$.</p>`,
+    'Counting only chains and antichains (7), or using 29 (the count of reflexive transitive relations, which allow $a\sim b$ both ways).',
+    () => { let c = 0; const n = 3; for (let m = 0; m < 2 ** 9; m++) { const R = (i, j) => (m >> (i * n + j)) & 1; let ok = true; for (let i = 0; i < n && ok; i++) { if (!R(i, i)) ok = false; for (let j = 0; j < n; j++) { if (i !== j && R(i, j) && R(j, i)) ok = false; if (R(i, j)) for (let k = 0; k < n; k++) if (R(j, k) && !R(i, k)) ok = false; } } if (ok) c++; } return c; }),
+  LN('functional equations', LR`A function satisfies $f\!\left(x+\dfrac1x\right)=x^3+\dfrac1{x^3}$ for all real $x\ne0$. Find $f(\sqrt5)$ to 2 decimal places.`, 4.47, 0.01,
+    LR`<p>Idea: write the right side in terms of $t=x+\frac1x$.</p><p>$x^3+\frac1{x^3}=t^3-3t$. So $f(t)=t^3-3t$ for every $t$ that can be written as $x+\frac1x$, that is for $|t|\ge2$.</p><p>$\sqrt5>2$, so $f(\sqrt5)=5\sqrt5-3\sqrt5=2\sqrt5\approx4.47$.</p>`,
+    'Checking the domain: $\\sqrt5$ is allowed because $|\\sqrt5|\\ge2$; a value like $f(1.5)$ would not be defined by this rule.',
+    () => +(2 * Math.sqrt(5)).toFixed(2)),
+  LN('counting functions', LR`A function $f:\{1,2,3,4,5\}\to\{1,2,3,4,5\}$ is chosen uniformly at random from all $5^5$ functions. Find the expected number of elements of the codomain that are <b>not</b> in the range of $f$ (2 decimal places).`, 1.64, 0.01,
+    LR`<p>Idea: use indicators. For each $v$ in the codomain, let $I_v=1$ if no element maps to $v$.</p><p>$P(I_v=1)=\left(\dfrac45\right)^5$, because each of the 5 inputs avoids $v$ independently with probability $\frac45$.</p><p>By linearity of expectation the expected count is $5\left(\dfrac45\right)^5=5\cdot0.32768=1.6384\approx1.64$.</p>`,
+    'The indicators are not independent, but expectation is still additive, so no joint probability is needed.',
+    () => +(5 * 0.8 ** 5).toFixed(2)),
+  LX('functional equations', LR`A function satisfies $f\!\left(x+\dfrac1x\right)=x^2+\dfrac1{x^2}$ for all real $x\ne0$. Which of the following are true?`,
+    ['$f(3)=7$', '$f(0)=-2$', 'The domain of $f$ is $(-\\infty,-2]\\cup[2,\\infty)$', 'The range of $f$ is $[-2,\\infty)$', '$f(-3)=f(3)$'],
+    [0, 2, 4],
+    LR`<p>Idea: $x^2+\frac1{x^2}=t^2-2$ with $t=x+\frac1x$, and $t$ takes exactly the values with $|t|\ge2$.</p><p>So $f(t)=t^2-2$ on $(-\infty,-2]\cup[2,\infty)$ only.</p><ul><li>$f(3)=9-2=7$: true.</li><li>$f(0)$: $0$ is not of the form $x+\frac1x$, so $f(0)$ is not defined. False (the formula $t^2-2$ would give $-2$, but it does not apply).</li><li>Domain: true, as above.</li><li>Range: $t^2\ge4$ gives $f\ge2$, so the range is $[2,\infty)$, not $[-2,\infty)$. False.</li><li>$f(-3)=7=f(3)$: true.</li></ul>`,
+    'Using $t^2-2$ outside its domain, which wrongly suggests a range down to $-2$ and a value at $0$.'),
+  LX('composition', LR`Let $f,g:\mathbb N\to\mathbb N$ be $f(n)=n+1$ and $g(n)=n-1$ for $n\ge2$, $g(1)=1$. Which statements are true?`,
+    ['$g\\circ f$ is the identity map on $\\mathbb N$', '$f\\circ g$ is one-one', '$f\\circ g$ is onto', '$g$ is onto but not one-one', '$f\\circ g\\circ f=f$'],
+    [0, 3, 4],
+    LR`<p>Compute: $(g\circ f)(n)=g(n+1)=n$ (since $n+1\ge2$). So $g\circ f=\mathrm{id}$: first option true.</p><p>$(f\circ g)(1)=f(1)=2$, $(f\circ g)(2)=f(1)=2$, $(f\circ g)(n)=n$ for $n\ge2$. Two inputs give $2$: not one-one. The value $1$ is never reached: not onto. Second and third options false.</p><p>$g$ hits every $n$ (as $g(n+1)=n$) so it is onto, and $g(1)=g(2)=1$ so it is not one-one: true.</p><p>$f\circ g\circ f=f\circ(g\circ f)=f\circ\mathrm{id}=f$: true.</p>`,
+    'Treating $g$ as the inverse of $f$: $g\\circ f=\\mathrm{id}$ but $f\\circ g\\ne\\mathrm{id}$, because $f$ is not onto.'),
+  LX('equivalence relations', LR`Let $S=\{1,2,3,4,5\}$. Which of these counts of equivalence relations on $S$ are correct?`,
+    ['Exactly $2$ equivalence classes: $15$', 'Exactly $3$ equivalence classes: $25$', 'Every class has at least $2$ elements: $10$', 'The element $1$ forms a class by itself: $15$'],
+    [0, 1, 3],
+    LR`<p>Idea: an equivalence relation is the same thing as a partition of $S$.</p><ul><li>Two blocks: sizes $4+1$ ($5$ ways) or $3+2$ ($10$ ways): $15$. True.</li><li>Three blocks: sizes $3+1+1$ ($\binom53=10$) or $2+2+1$ ($5\cdot3=15$): $25$. True.</li><li>No singleton: the block sizes are $5$ (1 way) or $3+2$ (10 ways): $11$, not $10$. False.</li><li>$1$ alone: partition the other four elements: Bell$(4)=15$. True.</li></ul>`,
+    'Missing the single-block partition (one class of size 5) in the "no singleton" count.'),
+  LMT('counting functions', 'v5m1', 'A-q, B-s, C-p, D-r', ['A-s, B-q, C-p, D-r', 'A-q, B-p, C-s, D-r', 'A-q, B-s, C-r, D-p'],
+    LR`<p>A. One-one maps of a 3-set into itself are the permutations: $6$ (q).</p><p>B. Idempotent maps: choose the range size $k$ ($\binom3k$ ways), fix the range, and send the other $3-k$ points into the range: $\sum\binom3k k^{3-k}=3+6+1=10$ (s).</p><p>C. $f\circ f=\mathrm{id}$ forces $f$ to be a bijection that is its own inverse: the identity plus the three transpositions: $4$ (p).</p><p>D. Using the earlier method for a 3-set: $c$ fixed, $S=f^{-1}(c)$ with $s$ elements; $s=1$: $0$; $s=2$: $\binom21\cdot1^1=2$; $s=3$: $1$. Sum $3$, times $3$ choices of $c$: $9$ (r).</p>`,
+    'Counting $f\\circ f=\\mathrm{id}$ as only the permutations of order 2, forgetting the identity map.'),
+  LMT('counting relations', 'v5m2', 'A-t, B-q, C-p, D-s', ['A-r, B-q, C-p, D-s', 'A-t, B-p, C-q, D-s', 'A-t, B-q, C-s, D-r'],
+    LR`<p>A. Reflexive and transitive (preorders) on 3 points: call $a\sim b$ when both $aRb$ and $bRa$. This splits the points into classes, and $R$ is then a partial order on the classes. One class: $1$ way. Classes of sizes $2+1$: $3$ ways to split, and $3$ partial orders on two classes (unrelated, or either way round): $9$. Three singleton classes: the $19$ partial orders. Total $1+9+19=29$ (t).</p><p>B. Symmetric and transitive: choose the set $T$ of elements related to something; on $T$ the relation is an equivalence: $\sum\binom3k B_k=1+3+6+5=15$ (q).</p><p>C. Equivalence relations: Bell number $5$ (p).</p><p>D. Reflexive and antisymmetric: diagonal fixed; each of the $3$ pairs of distinct elements has 3 states (none, $a\to b$, $b\to a$): $3^3=27$ (s).</p>`,
+    'Taking "symmetric and transitive" to be the same as equivalence relations (5); elements not related to anything are allowed here.'),
+  LPM('recurrence', 'v5p1', LR`For every real $x$, $f(x+2)$ equals`, '$-\\dfrac{1}{f(x)}$', ['$\\dfrac1{f(x)}$', '$-f(x)$', '$\\dfrac{1-f(x)}{1+f(x)}$'],
+    LR`<p>Let $u=f(x)$. Then $f(x+1)=\frac{1+u}{1-u}$, so $1+f(x+1)=\frac{2}{1-u}$ and $1-f(x+1)=\frac{-2u}{1-u}$.</p><p>$f(x+2)=\dfrac{2/(1-u)}{-2u/(1-u)}=-\dfrac1u$.</p>`,
+    'Shifting by 2 gives $-1/f$, not $f$; the period is 4, not 2.'),
+  LPI('recurrence', 'v5p1', LR`Find $f(2025)$.`, 2,
+    LR`<p>From $f(x+2)=-\frac1{f(x)}$ we get $f(x+4)=-\frac1{f(x+2)}=f(x)$, so $f$ repeats every 4 steps along the integers: $f(n)=f(n\bmod4)$.</p><p>$2025=4\cdot506+1$, so $f(2025)=f(1)=\dfrac{1+\frac13}{1-\frac13}=\dfrac{4/3}{2/3}=2$.</p>`,
+    '$2025\\bmod4=1$, not 0 or 3; also $f(0)=\\frac13$ is not the value asked.',
+    () => 2),
+  LPN('recurrence', 'v5p1', LR`Find $f(0)+f(1)+f(2)+f(3)$ (2 decimal places).`, -1.17, 0.01,
+    LR`<p>$f(0)=\frac13$, $f(1)=2$, $f(2)=-\dfrac1{f(0)}=-3$, $f(3)=-\dfrac1{f(1)}=-\dfrac12$.</p><p>Sum $=\dfrac13+2-3-\dfrac12=-\dfrac76\approx-1.17$.</p>`,
+    'Sign errors when applying $f(x+2)=-1/f(x)$ twice.',
+    () => +(-7 / 6).toFixed(2)),
+  LA('idempotent functions', LR`If $f:\{1,2,3,4\}\to\{1,2,3,4\}$ satisfies $f\circ f=f$ and $f$ is not the identity map, then $f$ is not one-one.`,
+    LR`For an idempotent function, every element of its range is a fixed point of $f$.`, 0,
+    LR`<p>R is true: if $y=f(x)$, then $f(y)=f(f(x))=f(x)=y$.</p><p>A: suppose $f$ is one-one on the finite set $\{1,2,3,4\}$. Then $f$ is onto, so the range is all of $\{1,2,3,4\}$, and by R every element is fixed: $f$ is the identity. Contrapositive: a non-identity idempotent function is not one-one. A is true, and R is exactly the fact used. So R explains A.</p>`,
+    'On an infinite set an idempotent one-one map is still the identity, but the proof there needs cancellation, not finiteness.'),
+  LSC('greatest integer and fractional part', [LR`$\{x\}+\{-x\}=1$ for every real $x$.`, LR`$[x]+\left[x+\tfrac12\right]=[2x]$ for every real $x$.`, LR`$g(x)=x-[x]+\sin2\pi x$ has period $1$.`, LR`$[x]\cdot[-x]\le0$ for every real $x$.`],
+    '3', ['1', '2', '4'],
+    LR`<p>(1) False: at integers $\{x\}=\{-x\}=0$, the sum is $0$.</p><p>(2) True (Hermite's identity): write $x=n+r$; if $r<\frac12$ both sides are $2n$, if $r\ge\frac12$ both are $2n+1$.</p><p>(3) True: $x-[x]$ and $\sin2\pi x$ both repeat every $1$.</p><p>(4) True: if $x$ is an integer, $[x][-x]=-x^2\le0$. Otherwise $[-x]=-[x]-1$, so the product is $-[x]([x]+1)$, and $[x]([x]+1)\ge0$ for every integer $[x]$. So the product is $\le0$.</p><p>Three are correct.</p>`,
+    'Statement (1) is the famous one that holds only for non-integers; the answer is 3, not 4.'),
+);
+
+gens.push(
+  LG('srf-v5g1', 'nat', 'integer', 'equivalence relations', (rng) => {
+    const n = int(rng, 4, 8); const a = [1, 0]; const binom = (x, y) => { let r = 1; for (let i = 1; i <= y; i++) r = r * (x - y + i) / i; return Math.round(r); };
+    for (let m = 2; m <= n; m++) { let s = 0; for (let k = 2; k <= m; k++) s += binom(m - 1, k - 1) * a[m - k]; a[m] = s; }
+    return { n, answer: a[n], tol: 0, q: LR`How many equivalence relations on $\{1,2,\dots,${n}\}$ have no class with just one element?`,
+      sol: LR`<p>An equivalence relation is a partition. Let $a_m$ be the number of partitions of an $m$-set with every block of size $\ge2$; $a_0=1$, $a_1=0$. The block holding the element $1$ has size $k\ge2$, chosen in $\binom{m-1}{k-1}$ ways, and the rest forms such a partition: $a_m=\sum_{k=2}^m\binom{m-1}{k-1}a_{m-k}$.</p><p>This gives $a_2=1,\ a_3=1,\ a_4=4,\ a_5=11,\ a_6=41,\ a_7=162,\ a_8=715$. For $n=${n}$ the answer is $${a[n]}$.</p>` };
+  }, (p) => { let c = 0; const rec = (i, mx, arr) => { if (i === p.n) { const cnt = {}; arr.forEach((v) => { cnt[v] = (cnt[v] || 0) + 1; }); if (Object.values(cnt).every((s) => s >= 2)) c++; return; } for (let v = 0; v <= mx + 1; v++) { arr.push(v); rec(i + 1, Math.max(mx, v), arr); arr.pop(); } }; rec(0, -1, []); return c; }),
+  LG('srf-v5g2', 'nat', 'integer', 'counting functions', (rng) => {
+    const m = int(rng, 4, 7), n = int(rng, 3, 4); const binom = (x, y) => { let r = 1; for (let i = 1; i <= y; i++) r = r * (x - y + i) / i; return Math.round(r); };
+    const onto = (mm) => { let s = 0; for (let j = 0; j <= n; j++) s += (-1) ** j * binom(n, j) * (n - j) ** mm; return s; };
+    const ans = onto(m) - onto(m - 1);
+    return { m, n, answer: ans, tol: 0, q: LR`How many onto functions $f:\{1,2,\dots,${m}\}\to\{1,2,\dots,${n}\}$ satisfy $f(1)\ne f(2)$?`,
+      sol: LR`<p>All onto functions: $\sum_{j}(-1)^j\binom{${n}}j(${n}-j)^{${m}}=${onto(m)}$. Those with $f(1)=f(2)$: glue $1$ and $2$ into one object, giving onto functions from ${m - 1} objects: $${onto(m - 1)}$. Difference: $${onto(m)}-${onto(m - 1)}=${ans}$.</p>` };
+  }, (p) => { let c = 0; const tot = p.n ** p.m; for (let code = 0; code < tot; code++) { let x = code, seen = 0; const f = []; for (let i = 0; i < p.m; i++) { f.push(x % p.n); seen |= 1 << (x % p.n); x = Math.floor(x / p.n); } if (seen === (1 << p.n) - 1 && f[0] !== f[1]) c++; } return c; }),
+  LG('srf-v5g3', 'mcq', 'single', 'recurrence', (rng) => {
+    const a = choose(rng, [2, 3, 4, 5, -2, -3, -4]); const n = int(rng, 100, 2030);
+    const fr = (num, den) => { const gg = ((x, y) => { x = Math.abs(x); y = Math.abs(y); while (y) [x, y] = [y, x % y]; return x; })(num, den); num /= gg; den /= gg; if (den < 0) { num = -num; den = -den; } return den === 1 ? `${num}` : `\\dfrac{${num}}{${den}}`; };
+    const vals = [fr(a, 1), fr(1 + a, 1 - a), fr(-1, a), fr(a - 1, a + 1)]; const ans = vals[n % 4];
+    const { options, answer } = shuffleOpts(rng, `$${ans}$`, vals.filter((v) => v !== ans).map((v) => `$${v}$`));
+    return { a, n, options, answer, q: LR`A function satisfies $f(x+1)=\dfrac{1+f(x)}{1-f(x)}$ for all real $x$ and $f(0)=${a}$. Then $f(${n})$ equals`,
+      sol: LR`<p>$f(1)=\dfrac{1+${a}}{1-${a}}=${vals[1]}$, $f(2)=-\dfrac1{f(0)}=${vals[2]}$, $f(3)=-\dfrac1{f(1)}=${vals[3]}$, $f(4)=f(0)=${vals[0]}$. The values repeat every 4 steps. ${n} leaves remainder ${n % 4} on division by 4, so $f(${n})=${ans}$.</p>` };
+  }, (p) => { let f = p.a; for (let i = 0; i < p.n % 4; i++) f = (1 + f) / (1 - f); const m = p.options[p.answer]; const strip = m.replace(/\$/g, ''); const val = strip.includes('dfrac') ? (() => { const mm = strip.match(/dfrac\{(-?\d+)\}\{(-?\d+)\}/); return +mm[1] / +mm[2]; })() : +strip; return Math.abs(val - f) < 1e-9 ? p.answer : -1; }),
+);
+}
+// ==L5-END
 export default { topic: 'sets-relations-functions', groups, items, gens };

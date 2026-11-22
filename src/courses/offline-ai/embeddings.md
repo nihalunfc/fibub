@@ -39,6 +39,10 @@ A real map has 768 directions, which nobody can draw, so the figure below uses a
 
 <!--fig:embedding-map-->
 
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
 ## 3. Run one on your machine
 
 Ollama runs embedding models too. **EmbeddingGemma** (Google, about 300 million parameters, 768 numbers per text, over 100 languages) is small enough for any laptop:
@@ -64,6 +68,10 @@ print(np.round(vecs @ vecs.T, 2))   # similarity of every pair
 ```
 
 Expect the first two to score clearly higher with each other than either does with the printer sentence, even though they share almost no words. Other good local choices: `nomic-embed-text` (English) and `qwen3-embedding` (strong on many languages and code; bigger). Check the MTEB leaderboard for your language before choosing.
+
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
 
 ## 4. Measuring "close": cosine similarity
 
@@ -114,6 +122,10 @@ For unit-length vectors, `$\cos\theta = \mathbf{a} \cdot \mathbf{b}$`.
 **"A high similarity score means the passage is true or answers the question."** It means the passage is about the same thing. "The drug is safe" and "the drug is not safe" can score very close. Retrieval finds the topic; the chat model still has to read the text carefully (Lesson 12.5).
 
 </div>
+
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
 
 ## 5. Worked example
 

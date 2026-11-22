@@ -60,6 +60,10 @@ Potentials of several charges **add as plain numbers**. No components, no angles
 
 </div>
 
+Drag the ball to a new starting point, press Play, and then switch the friction on.
+
+<figure class="fig" data-fig="@mech-potential-landscape"><figcaption>The force is the downhill slope of U. The ball can only go where U ≤ E, so it turns back at the dots; valleys are stable, hilltops unstable.</figcaption></figure>
+
 ## 2. From V to E and back
 
 **From E to V** you integrate along any path (the result does not depend on the path). **From V to E** you differentiate: `$E_x = -\partial V/\partial x$` and so on.

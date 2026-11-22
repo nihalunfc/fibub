@@ -68,6 +68,11 @@ WHERE NOT EXISTS (
 
 Four products out of 61: strawberries, sourdough, eggs and salted cashews. All cheap groceries, which makes sense.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 4. EXISTS: the semi-join
 
 Swap to `EXISTS` and you get the customers who *do* have a match. Compare it with an inner join:

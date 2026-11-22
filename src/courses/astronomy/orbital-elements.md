@@ -75,6 +75,10 @@ x = \cos E - e, \qquad y = \sqrt{1 - e^2}\,\sin E
 **Try it:** e = 0.5, a quarter of the way round in time (`$M = 90°$`): `$E \approx 2.02$` rad (115.7°), since `$2.02 - 0.5\sin 2.02 = 1.570 \approx \pi/2$`.
 </details>
 
+Press Play and switch between the inner planets and all eight. Read the table of a³ and T² while they move.
+
+<figure class="fig" data-fig="@astro-solar-orbits"><figcaption>Inner planets lap the outer ones: Mercury goes round about four times while Earth goes once. For every planet T² (years) equals a³ (AU), and the speed falls as 1/√a.</figcaption></figure>
+
 ## 3. What it means physically
 
 Only two of the six numbers (`$a$` and `$e$`) are about the orbit's energy and spin; the other four are just about how it is placed and where the body is on it. Gravity from the Sun alone never changes them. Small tugs from other planets slowly do, which is why catalogues give a date (the epoch) with each set. Earth-orbiting satellites drift faster because Earth's bulging equator pulls on them.

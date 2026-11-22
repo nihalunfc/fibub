@@ -78,6 +78,10 @@ L = 4\pi R^2 \sigma T^4
 **Try it:** the Sun, `$T = 5772$` K: `$\lambda_\text{peak} = 2.898\times10^{-3}/5772 = 502$` nm, green.
 </details>
 
+Slide the temperature and the radius. Watch the colour, the curve's peak and the luminosity.
+
+<figure class="fig" data-fig="@astro-star-colour"><figcaption>Hotter stars are bluer and peak at shorter wavelengths (Wien's law), and each square metre of a hot star shines far more (T⁴). A star's power also grows with its surface area (R²), so a cool giant can outshine a hot dwarf.</figcaption></figure>
+
 ## 3. What it means physically
 
 Temperature is how fast the particles in a gas are jiggling. Faster particles bump harder and give out more energetic photons, so the light shifts to shorter wavelengths. More energetic collisions also happen more often, which is why the total power climbs so steeply, as the fourth power of temperature. A star twice as hot with the same surface area pours out sixteen times the energy.

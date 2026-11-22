@@ -97,6 +97,10 @@ Things to notice:
 
 </div>
 
+Choose a star and slide its distance. Watch where the black curve crosses the naked-eye, binocular and telescope lines.
+
+<figure class="fig" data-fig="@astro-magnitude-reach"><figcaption>Every 5 magnitudes is a factor 100 in brightness and the apparent magnitude gets 5 larger for every ten times the distance. A star's absolute magnitude (its brightness at 10 pc) tells you how far away it can still be seen.</figcaption></figure>
+
 ## 4. Worked example
 
 *A made-up estimate.* Comparison stars "62" (6.2) and "69" (6.9). The variable looks closer to the brighter: 1 step from 6.2, 3 steps from 6.9.

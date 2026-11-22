@@ -70,6 +70,10 @@ Convert radians to arcseconds by multiplying by 206,265.
 **Try it:** a 100 m dish at 21 cm: `$\theta = 1.22\times0.21/100 = 2.6\times10^{-3}$` rad = 530″, about 9 arcminutes, a quarter the width of the full Moon.
 </details>
 
+Slide the temperature and the radius. Watch the colour, the curve's peak and the luminosity.
+
+<figure class="fig" data-fig="@astro-star-colour"><figcaption>Hotter stars are bluer and peak at shorter wavelengths (Wien's law), and each square metre of a hot star shines far more (T⁴). A star's power also grows with its surface area (R²), so a cool giant can outshine a hot dwarf.</figcaption></figure>
+
 ## 3. What it means physically
 
 Different temperatures and processes give out different photons (Lessons 1.1 and 1.2), so each band is tuned to different physics. Cold gas at 10 K can't make visible light, so to an optical telescope a star-forming cloud is just a dark patch; in infrared and radio it glows. Sharpness is about waves too: a telescope can only tell two points apart if its opening spans many wavelengths, and a radio wave is so long that a dish the size of a stadium is still "small".

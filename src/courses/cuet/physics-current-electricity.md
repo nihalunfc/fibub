@@ -73,6 +73,20 @@ A real cell of emf ε has internal resistance r, so the terminal voltage is V = 
 
 </div>
 
+**Try it:** Watch the bridge balance.
+
+<figure class="fig" data-fig="@sx-wheatstone-strain"><figcaption>The bridge reads zero when the ratios match.</figcaption></figure>
+
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@em-drift"><figcaption>Animated random motion plus slow drift of electrons in a wire, with the real drift speed of copper.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-kirchhoff"><figcaption>Walker round a chosen loop of a two-battery circuit with the potential graph and the loop sum.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-bridge"><figcaption>Wheatstone bridge and meter bridge with a galvanometer needle and node potentials.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="current-electricity" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

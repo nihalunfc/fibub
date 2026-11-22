@@ -49,6 +49,10 @@ One example per line: this file format is **JSONL**. MLX LM, Unsloth and TRL all
 - **Same system prompt** in training as in use.
 - **Privacy:** remove names and personal details you do not need. Models can memorise rare strings and repeat them.
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. Check and split the data
 
 Save as `prepare.py` next to `all.jsonl`:
@@ -81,6 +85,10 @@ for name, part in [("train", rows[:cut1]), ("valid", rows[cut1:cut2]), ("test", 
 80% trains, 10% validates during training (Lesson 14.3), and 10% stays locked away for the final test.
 
 <div class="problem" data-problem="training-data-split"></div>
+
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
 
 ## 4. The blind test
 
@@ -128,9 +136,17 @@ The pottery shop's set, from export to verdict (section 5 has the story):
 
 </div>
 
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
+
 ## 5. Worked example
 
 *Made-up numbers.* A small pottery shop exports 420 product notes written by its owner over five years. 60 are dropped (outdated, or with prices that might be learned as facts). 360 remain: 288 train, 36 validate, 36 test. After a 15-minute fine-tune of Llama 3.2 3B on a 32 GB Mac, the owner judges 36 blind pairs: the tuned model wins 29, the base 5, two ties. The tuned 3B model now writes in the shop's voice, faster than a 12B model with a long style prompt.
+
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
 
 ## 6. Mini project 6: Teach a small model your house style
 

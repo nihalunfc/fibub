@@ -31,6 +31,10 @@ quiz:
 
 Trace a 2025 month: the visual's dates are replaced by the same dates one year earlier, and the sum runs on those. The 2024 rows have no last year in the data, so `Sales LY` is blank and so is growth. Northbay grew about 29 % in 2025: busier stores, a 4 % price rise and a new store.
 
+Try it: pick a time function and move the month, and see which months are selected.
+
+<figure class="fig" data-fig="@biz-time-intel"><figcaption>Notice that YTD restarts every January and that last year's version is blank in the first year.</figcaption></figure>
+
 ## 3. New stores
 
 <!--fig:dax-pad ti-growth-store-->

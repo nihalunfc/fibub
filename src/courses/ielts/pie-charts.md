@@ -47,6 +47,11 @@ Verbs that link a category to its share: **account for, make up, represent, cons
 
 Rank the slices. The overview names the biggest (or two biggest) and perhaps the smallest. Details: the large slices in one paragraph, the small ones in the other.
 
+
+Switch between Version A and Version B of the same paragraph.
+
+<figure class="fig" data-fig="@lang-sentence-rhythm"><figcaption>Notice that Version B mixes short and long sentences and three types, which is what a range of structures looks like.</figcaption></figure>
+
 ## 3. Two or more pies
 
 Usually the pies show two years or two groups. Now the main features are **changes in share**:

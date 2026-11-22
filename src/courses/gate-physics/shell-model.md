@@ -34,6 +34,10 @@ sources:
 - **Abundance and stability**: tin (Z = 50) has ten stable isotopes, the most of any element; N = 82 has seven stable isotones. Doubly magic `$^{4}$`He, `$^{16}$`O, `$^{40}$`Ca and `$^{208}$`Pb are unusually tightly bound.
 - **Neutron capture cross-sections** are tiny for magic-N nuclei, and electric quadrupole moments are near zero at magic numbers (spherical nuclei) and large between them.
 
+Click cells in the three regions, or pick an example such as C-14 or U-238.
+
+<figure class="fig" data-fig="@qm-nuclide-chart"><figcaption>The stable band bends away from N = Z because of proton repulsion. Colours show the predicted decay, and the dashed lines mark the magic numbers the plain formula cannot explain.</figcaption></figure>
+
 ## 2. Building the potential
 
 A nucleon in the interior feels roughly constant attraction, falling to zero over the nuclear skin: a Woods-Saxon well following the density of [lesson 8.1](/learn/courses/gate-physics/nuclear-properties/). A three-dimensional harmonic oscillator is a good first guess, because it is solvable:
@@ -102,6 +106,10 @@ Between closed shells many valence nucleons act together. Two kinds of collectiv
 **Worked example.** `$^{238}$`U has its `$2^+$` level at 44.9 keV, so `$\hbar^2/2\mathcal I = 7.48$` keV, predicting `$4^+$` at 150 keV and `$6^+$` at 314 keV; measured 148 and 307 keV. The moment of inertia is about half the rigid-body value: the nucleus is part rigid, part superfluid.
 
 The deformed version of the shell model (Nilsson) puts single-particle orbits in a spheroidal well; it explains the spins of odd-A deformed nuclei, which the spherical model gets wrong.
+
+Slide β negative and positive, then try the triaxial and pear shapes and press Play on the vibrating drop.
+
+<figure class="fig" data-fig="@qm-nuclear-shapes"><figcaption>The shape is R₀[1 + βY]: Y₂₀ gives a rugby ball or a pancake, Y₃₀ a pear. A spherical nucleus has no quadrupole moment, and only deformed ones have rotational bands.</figcaption></figure>
 
 <div class="myth">
 

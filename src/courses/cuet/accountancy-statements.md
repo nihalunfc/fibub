@@ -36,6 +36,10 @@ sources:
 | Non-current assets | property, plant and equipment; intangible assets; non-current investments |
 | Current assets | current investments, inventories, trade receivables, cash and cash equivalents |
 
+**Try it:** Press Next entry and watch the two accounts named in each entry change.
+
+<figure class="fig" data-fig="@tp-ledger-balance"><figcaption>Whatever the entry, the debit and the credit are equal, so assets (left) always match liabilities plus capital (right).</figcaption></figure>
+
 ## 2. Two analysis tools
 
 <div class="steps" data-title="Revenue ₹10,00,000 last year, ₹12,50,000 this year; expenses ₹6,00,000 and ₹7,00,000">
@@ -49,6 +53,10 @@ sources:
 **"A bigger profit always means better performance."** Compare profit with revenue and capital: a larger profit on much larger revenue can still be a smaller margin.
 
 </div>
+
+**Try it:** Move the sliders to compare how the two methods write an asset down year by year.
+
+<figure class="fig" data-fig="@tp-depreciation"><figcaption>Straight-line is a straight fall; written-down value falls fastest in the early years and never quite reaches zero.</figcaption></figure>
 
 ## Practice
 

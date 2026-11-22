@@ -49,6 +49,10 @@ Epithelium has a **free surface** facing a body fluid or the outside, cells pack
 - **Adhering junctions** cement neighbouring cells together.
 - **Gap junctions** connect the cytoplasm of neighbouring cells so ions, small molecules and sometimes big molecules pass quickly.
 
+Switch between the three junctions and watch what the dye outside the cells can and cannot do.
+
+<figure class="fig" data-fig="@bio-cell-junctions"><figcaption>The tight junction seals the gap, the adhering junction only holds the cells together, and the gap junction opens channels between their cytoplasm.</figcaption></figure>
+
 ## 2. Connective tissue
 
 The most abundant and widespread tissue. Except in blood, its cells secrete fibres of **collagen** or **elastin** that give strength, elasticity and flexibility, and a **matrix** (ground substance) of modified polysaccharides.

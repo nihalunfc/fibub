@@ -72,6 +72,11 @@ v_t = \frac{2r^2(\rho - \sigma)g}{9\eta}
 
 <div class="problem" data-problem="stokes-terminal"></div>
 
+Drop a ball in each liquid and change the radius; compare the time constant and the terminal speed.
+
+<figure class="fig" data-fig="@wt-terminal-velocity"><figcaption>From the force balance mg − buoyancy = 6πηrv, the terminal speed is v = 2r²(ρ−σ)g/9η and it is reached in about τ = 2r²ρ/9η. Notice that v ∝ r² and that for fast cases Re passes 1 and Stokes' law fails.</figcaption></figure>
+
+
 ## 4. Flow through a pipe: Poiseuille's law
 
 In steady laminar flow through a round pipe, a force balance on a cylinder of fluid of radius `$s$` gives `$\Delta p\,\pi s^2 = -\eta\,(dv/ds)\,2\pi sL$`. Integrate with `$v = 0$` at the wall:
@@ -136,6 +141,11 @@ In a frame that rotates or accelerates, add the fictitious force to gravity; the
 - Torricelli `$\sqrt{2gh}$`; draining time `$(A/a)\sqrt{2H/g}$`; rotating liquid rises `$\omega^2R^2/2g$` at the wall.
 
 </div>
+
+A final check on buoyancy: vary the density and the liquid, and look at the force balance.
+
+<figure class="fig" data-fig="@wt-buoyancy"><figcaption>Archimedes in motion: F_b = ρ_liquid V_sub g. Notice that the equilibrium depth is where F_b equals the weight, giving a submerged fraction ρ/ρ_liquid.</figcaption></figure>
+
 
 ## Practise: exam questions on this lesson
 

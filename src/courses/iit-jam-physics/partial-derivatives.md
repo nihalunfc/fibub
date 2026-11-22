@@ -36,6 +36,10 @@ For `$f(x, y)$`, the partial derivative `$\partial f/\partial x$` (also written 
 \frac{\partial f}{\partial x} = \lim_{h\to0}\frac{f(x + h, y) - f(x, y)}{h}
 ```
 
+Drag the probe over the contour map and turn the direction slider.
+
+<figure class="fig" data-fig="@math-gradient-contour"><figcaption>Notice that the gradient arrow always stands at right angles to the contour, that it points uphill, and that the slope in your direction is largest when you face the same way.</figcaption></figure>
+
 Geometrically, slice the surface `$z = f(x, y)$` with the plane `$y = y_0$`: you get a curve, and `$f_x$` is its slope. Slicing with `$x = x_0$` gives `$f_y$`. Move the point below and watch the two slices and their tangent lines.
 
 <figure class="fig" data-fig="partial-slices"><figcaption>Each slice is an ordinary curve; its slope is a partial derivative. Where both slopes vanish (try the centre of the saddle) the point is stationary.</figcaption></figure>

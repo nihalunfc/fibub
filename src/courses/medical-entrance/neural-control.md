@@ -69,12 +69,27 @@ At rest the axon membrane is **fairly permeable to K⁺**, **nearly impermeable 
 
 </div>
 
+Press play and watch the impulse race along the two axons.
+
+<figure class="fig" data-fig="@bio-saltatory"><figcaption>On the myelinated axon the signal jumps from node to node; on the unmyelinated one every patch of membrane has to fire in turn.</figcaption></figure>
+
 ## 4. Synapses
 
 A **synapse** is where a **pre-synaptic** neuron meets a **post-synaptic** neuron, with or without a gap, the **synaptic cleft**.
 
 - **Electrical synapses:** the membranes are very close and current flows straight across, so transmission is faster. They are rare.
 - **Chemical synapses:** a fluid-filled cleft separates the cells. When an impulse reaches the axon terminal, synaptic vesicles move to the membrane, fuse with it and release **neurotransmitters** (such as acetylcholine) into the cleft. These bind **receptors** on the post-synaptic membrane, ion channels open and a new potential starts, which may be **excitatory** or **inhibitory**.
+
+Step through the events at a chemical synapse.
+
+<div class="steps" data-fig="@bio-synapse-steps">
+<div class="step"><b>Action potential arrives</b> at the axon terminal.</div>
+<div class="step"><b>Ca²⁺ channels open</b> and calcium rushes into the terminal.</div>
+<div class="step"><b>Vesicles fuse</b> with the membrane and release the neurotransmitter.</div>
+<div class="step"><b>Transmitter diffuses</b> across the synaptic cleft.</div>
+<div class="step"><b>Receptors open</b> ligand-gated channels on the next neuron: a postsynaptic potential.</div>
+<div class="step"><b>The signal ends</b> when enzymes break down the transmitter or it is taken back up.</div>
+</div>
 
 ## 5. The brain
 
@@ -102,6 +117,16 @@ A **reflex** is an automatic response to a stimulus at the periphery, made witho
 <dt>Afferent, efferent</dt><dd>towards the CNS; away from the CNS</dd>
 <dt>Physical meaning</dt><dd>The pump charges the battery slowly; the gates discharge it in a flash. An impulse is a travelling flash, not a current flowing down a wire.</dd>
 </dl>
+</div>
+
+Step through a withdrawal reflex.
+
+<div class="steps" data-fig="@bio-reflex-arc">
+<div class="step"><b>Stimulus.</b> A sharp pin excites pain receptors in the skin.</div>
+<div class="step"><b>Sensory neuron.</b> The impulse travels through the dorsal root to the spinal cord.</div>
+<div class="step"><b>Spinal cord.</b> A synapse passes the signal to the motor side; a branch tells the brain.</div>
+<div class="step"><b>Motor neuron.</b> The command leaves through the ventral root.</div>
+<div class="step"><b>Effector.</b> The muscle contracts and the hand moves away before you feel the pain.</div>
 </div>
 
 <div class="keypoints">

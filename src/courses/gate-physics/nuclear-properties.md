@@ -37,6 +37,10 @@ To resolve a few femtometres you need a probe with a reduced wavelength below 1 
 <div class="step"><p><b>Form factor.</b> F(q) is the Fourier transform of the normalised charge density. Measure |F(q)|² over a range of q and transform back to get ρ(r).</p></div>
 </div>
 
+Move the impact parameter, then switch on the whole beam and change the target and the energy.
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>A small impact parameter means a large deflection, and only an almost head-on α comes straight back. The counts fall as 1/sin⁴(θ/2).</figcaption></figure>
+
 ```math
 \frac{d\sigma}{d\Omega} = \left(\frac{d\sigma}{d\Omega}\right)_{\text{Mott}}|F(q)|^2, \qquad F(q) = \int\rho(\vec r)\,e^{i\vec q\cdot\vec r}\,d^3r = \frac{4\pi}{q}\int_0^\infty\rho(r)\,r\sin(qr)\,dr
 ```
@@ -132,6 +136,10 @@ Q_0 = \frac1e\int\rho(\vec r)\,(3z^2 - r^2)\,d^3r \approx \frac25Z(c^2 - a^2) \q
 ```
 
 Positive `$Q_0$` means prolate (cigar), negative means oblate (disc). What the lab measures is the spectroscopic moment in the state of maximum projection, `$Q = Q_0\,\dfrac{3K^2 - J(J+1)}{(J+1)(2J+3)}$`, which vanishes for `$J = 0$` and `$J = \tfrac12$`: quantum fluctuations of the orientation average the shape away. Quadrupole moments are small near closed shells and very large between them: rare-earth and actinide nuclei have `$Q_0$` of 5 to 10 barns (1 b = 100 fm²), a deformation of about 30% between axes. These nuclei rotate, with energy levels `$\hbar^2J(J+1)/2\mathcal I$` ([lesson 8.3](/learn/courses/gate-physics/shell-model/)).
+
+Slide β negative and positive, then try the triaxial and pear shapes and press Play on the vibrating drop.
+
+<figure class="fig" data-fig="@qm-nuclear-shapes"><figcaption>The shape is R₀[1 + βY]: Y₂₀ gives a rugby ball or a pancake, Y₃₀ a pear. A spherical nucleus has no quadrupole moment, and only deformed ones have rotational bands.</figcaption></figure>
 
 **The deuteron** (`$J^P = 1^+$`) is the simplest test. Its moment `$\mu_d = 0.857\,\mu_N$` is close to, but less than, `$\mu_p + \mu_n = 0.880\,\mu_N$`, and its quadrupole moment is `$Q = +0.286$` fm². Both are explained if the state is about 96% `$^3S_1$` and 4% `$^3D_1$`. Parity forbids mixing in `$^1P_1$` or `$^3P_1$` (odd `$l$`); only a **tensor force**, depending on the angle between the spins and the line joining the nucleons, can mix S and D. So a single small number tells us the nuclear force is not central.
 

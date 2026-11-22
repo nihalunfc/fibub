@@ -56,11 +56,19 @@ Pick **one** body. Draw it alone and draw every force on it: weight mg (down), n
 
 **Contact forces between blocks.** A force F pushes blocks m₁ and m₂ side by side on a smooth floor. Both move with a = F/(m₁ + m₂), and the force between them is the force that accelerates the block in front: `$m_2 F/(m_1 + m_2)$`.
 
+Change the two masses and press Play. First use equal masses, then make one much heavier, and compare the acceleration and tension for the two set-ups.
+
+<figure class="fig" data-fig="@mech-atwood"><figcaption>Tension is never simply m2g: it sits between the two weights on the Atwood machine, and is less than m2g on the table because the hanging mass is accelerating down.</figcaption></figure>
+
 ## 3. Lifts and pseudo forces
 
 In a lift with acceleration a (up positive), the scale reads the normal force: `$N = m(g + a)$`. Going up faster or slowing on the way down, you feel heavier; in free fall (a = −g) the scale reads zero: **weightlessness**.
 
 Inside an accelerating frame (a car, a lift), you may add a **pseudo force** `$-m\vec a_{frame}$` to every body and then treat the frame as if it were at rest. A pendulum in a car accelerating at a hangs at `$\tan\theta = a/g$`. Never use pseudo forces in the ground frame.
+
+Slide the lift's acceleration from upward to downward and watch the scale. Then switch to the lift frame to see the pseudo-force that balances everything.
+
+<figure class="fig" data-fig="@mech-lift-pseudo"><figcaption>The scale reads the normal force N = m(g + a). At a = −g it reads zero: free fall. In the lift's frame you are at rest because the pseudo-force −ma cancels the net real force.</figcaption></figure>
 
 ## 4. Friction
 
@@ -112,6 +120,10 @@ The net inward force must be `$mv^2/r$`. Name the real force that supplies it.
 - **Vertical circle on a string:** at the top `$T + mg = mv^2/r$`, at the bottom `$T - mg = mv^2/r$`. To just complete the circle: `$v_{top} = \sqrt{gr}$`, `$v_{bottom} = \sqrt{5gr}$`, and the tension at the bottom is then 6mg. A rod (which can push) needs only `$v_{top} = 0$`, so `$v_{bottom} = 2\sqrt{gr}$`.
 
 **Worked example (level 4, wedge).** A block sits on a smooth wedge of angle θ. How fast must the wedge accelerate sideways so the block does not slide? In the wedge's frame, the pseudo force ma (backwards) and gravity must have no component along the slope: `$ma\cos\theta = mg\sin\theta$`, so **a = g tan θ**.
+
+Set a speed on the banked road and see whether the car holds, then try the ideal speed. Switch to the conical pendulum and spin it faster.
+
+<figure class="fig" data-fig="@mech-banked-conical"><figcaption>On the road, the horizontal parts of N and friction together supply mv²/r. For the conical pendulum T cos θ balances weight while T sin θ supplies the centripetal force.</figcaption></figure>
 
 <div class="keypoints">
 

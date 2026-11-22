@@ -57,6 +57,11 @@ defs = dg.Definitions(
 
 `dbt build` runs, and each model that finishes is reported as an asset materialisation. dbt `data_tests` become Dagster **asset checks** on the model they test. Class and function names change between versions: follow the Dagster docs for the version you install.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Wiring Python and dbt together
 
 - **Upstream:** a dbt `source` maps to a Dagster asset key. Name your Python asset to match the source, or set the key in `_sources.yml`:

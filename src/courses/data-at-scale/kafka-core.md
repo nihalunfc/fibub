@@ -43,6 +43,11 @@ Picture a set of conveyor belts with numbered trays. Each **topic** is a set of 
 - **Replication:** each partition has a **leader** on one broker and **followers** with copies on others. A replication factor of 3 is the usual choice in production, so the data survives a broker failing.
 - **Retention:** keep messages for a time (7 days), up to a size, or forever with **log compaction**, which keeps only the latest value per key (handy for "current price per product").
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Keys decide partitions, and partitions decide order
 
 The producer turns the key into a number (a **hash**) and uses it to pick a partition. All events with key `store-214` land in the same partition, in the order they were sent. So choose the key around what must stay in order: an order ID, a shopper ID, a store.

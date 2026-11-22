@@ -147,6 +147,11 @@ For an ideal gas it gives `$nR$`. For a liquid at 300 K with `$V = 1.8\times10^{
 
 </div>
 
+Mixing at constant temperature and pressure lowers the Gibbs free energy because the entropy rises. Watch the entropy gain that drives it.
+
+<figure class="fig" data-fig="@wt-mixing-entropy"><figcaption>At constant T and P, ΔG_mix = −T ΔS_mix = N k T Σ x ln x, which is always negative for different gases: that is why they mix on their own. Notice that the same gas on both sides gives no change.</figcaption></figure>
+
+
 ## Practise: exam questions on this lesson
 
 They start easy and climb to top-rank level. Check each answer, then read the full solution. More on the [thermodynamic potentials practice page](/learn/courses/iit-jam-physics/practice/thermodynamic-potentials/).

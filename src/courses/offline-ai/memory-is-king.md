@@ -41,6 +41,10 @@ Think of a kitchen. The worktop next to the cooker is small, but everything on i
 
 The model runs fastest when all of it, plus the conversation's memory, sits in the fast kind.
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. What a model needs
 
 A model needs room for three things:

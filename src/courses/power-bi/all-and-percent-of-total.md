@@ -61,6 +61,10 @@ With the slicer on West, `ALL(Store)` divides by the whole chain, so West stores
 | `REMOVEFILTERS()` | every filter in the model | nothing |
 </details>
 
+Try it: set a Category slicer, then compare the plain measure with the CALCULATE versions.
+
+<figure class="fig" data-fig="@biz-calculate-modes"><figcaption>Notice that CALCULATE with a column filter overrides the slicer, KEEPFILTERS keeps both, and ALL removes it.</figcaption></figure>
+
 ## 5. Worked example
 
 *Category share by region.* In a matrix with regions on rows and categories on columns, `Share of Region = DIVIDE([Total Sales], CALCULATE([Total Sales], ALL(Product)))` shows, for each region, how its sales split across categories: each row adds up to 100 %. Swap to `ALL(Store)` and each column adds up to 100 % instead, which answers "where are Home products sold?".

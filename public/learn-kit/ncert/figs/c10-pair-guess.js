@@ -1,6 +1,6 @@
 // Class 10 Pair of Linear Equations: guess and check. 2 notebooks + 1 pen cost 19 rupees and 1 notebook + 3 pens cost 22.
 // Slide (or click on the graph) to try a price for each: each equation turns green when it is satisfied; only (7, 5) satisfies both.
-import { canvas, axes, line, dot, text, title, row, slider, readout } from '../../kit.js';
+import { canvas, axes, line, dot, text, title, row, slider, readout, touchGuard } from '../../kit.js';
 
 const num = (v) => String(+(+v).toFixed(2)).replace('-', '−');
 const term = (v, s, first) => { if (!v) return ''; const a = Math.abs(v), t = (a === 1 ? '' : num(a)) + s; return first ? (v < 0 ? '−' : '') + t : ` ${v < 0 ? '−' : '+'} ${t}`; };
@@ -18,7 +18,7 @@ export default function (host) {
   const sy = slider(ctl, { label: 'Pen price y (₹)', min: 0, max: 12, step: 1, value: y, fmt: num, oninput: (v) => { y = v; upd(); } });
   const pick = (e) => { if (!ax0) return; const r = cv.c.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
     x = Math.max(0, Math.min(12, Math.round(12 * (px - ax0.L) / (ax0.R - ax0.L)))); y = Math.max(0, Math.min(12, Math.round(12 * (ax0.B - py) / (ax0.B - ax0.T)))); sx.set(x); sy.set(y); upd(); };
-  cv.c.addEventListener('pointerdown', pick); cv.c.addEventListener('pointermove', (e) => { if (e.buttons) pick(e); }); cv.c.style.touchAction = 'none';
+  cv.c.addEventListener('pointerdown', pick); cv.c.addEventListener('pointermove', (e) => { if (e.buttons) pick(e); }); touchGuard(cv.c, (x, y) => !!ax0 && x >= ax0.L && x <= ax0.R && y >= ax0.T && y <= ax0.B);
   cv.draw = (ctx, w, h, col) => {
     const t = title(ctx, '2x + y = 19 and x + 3y = 22', col) + 2, ax = (ax0 = axes(ctx, w, h, col, { x: [0, 12], y: [0, 12], t: t + 4, xt: [0, 3, 6, 9, 12], yt: [0, 3, 6, 9, 12], xlabel: 'notebook x (₹)', ylabel: 'pen y (₹)', b: 40 }));
     seg(ctx, ax, 2, 1, 19, R, col.s[0], 3); seg(ctx, ax, 1, 3, 22, R, col.s[1], 3);

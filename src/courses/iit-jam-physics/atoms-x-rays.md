@@ -36,6 +36,10 @@ By 1911 Rutherford had shown that an atom is a tiny positive nucleus with electr
 \frac1\lambda = R\left(\frac{1}{n_f^2} - \frac{1}{n_i^2}\right), \qquad R = 1.097\times10^7\ \text{m}^{-1}
 ```
 
+Move the impact parameter, then switch on the whole beam and change the target and the energy.
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>A small impact parameter means a large deflection, and only an almost head-on α comes straight back. The counts fall as 1/sin⁴(θ/2).</figcaption></figure>
+
 ## 2. Bohr's model
 
 Bohr (1913) kept the circular orbit but added two rules:
@@ -77,6 +81,10 @@ r_n = \frac{n^2a_0}{Z},\quad a_0 = 0.0529\ \text{nm}; \qquad v_n = \frac{Z\alpha
 
 Watch the scalings: radius `$\propto n^2/Z$`, energy `$\propto Z^2/n^2$`, speed `$\propto Z/n$`, orbital period `$\propto n^3/Z^2$`. The orbiting electron is also a current loop; for `$n = 1$` its magnetic moment is `$e\hbar/2m_e = 9.27\times10^{-24}$` A m², the Bohr magneton.
 
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-bohr-standing"><div class="step">n = 1: one wavelength fits round the smallest orbit (r = a₀, E = −13.6 eV).</div><div class="step">n = 2: two wavelengths, the orbit is four times larger.</div><div class="step">n = 3: three wavelengths; the electron is slower, its λ = h/mv is longer.</div><div class="step">n = 4: four wavelengths, L = 4ħ.</div><div class="step">n = 5: five wavelengths, E = −0.54 eV.</div><div class="step">n = 6: six wavelengths. Now try 'Any wavelength' and see why fractions fail.</div></div>
+
 ## 3. Spectral series
 
 Every line is a jump down from `$n_i$` to `$n_f$`. Lines that end on the same level form a series:
@@ -117,6 +125,10 @@ The [Hydrogen spectrum](/learn/hydrogen-spectrum/) tool lets you tap two levels 
 **Franck-Hertz (1914).** Electrons accelerated through mercury vapour lose energy to atoms only in lumps of 4.9 eV; the current to a collector dips at 4.9 V, 9.8 V, ... and the vapour glows at `$1240/4.9 = 253$` nm. Discrete levels, shown without any light source.
 
 **Where Bohr fails.** It gives hydrogen's energies correctly but nothing else: no line intensities, no fine structure, no helium, and it wrongly gives the ground state angular momentum `$\hbar$` (the real 1s state has zero). The [Schrödinger equation](/learn/courses/iit-jam-physics/schrodinger-equation/) in three dimensions gives the same energies with orbitals instead of orbits; the [Hydrogen orbital viewer](/science/hydrogen-orbitals/) shows them.
+
+Bohr's circles were later replaced by orbitals. Click through 1s, 2s, 2p, 3s, 3p and the 3d shapes, and flip between density and sign, vertical and flat slices.
+
+<figure class="fig" data-fig="@qm-orbital-slices"><figcaption>Count the rings (radial nodes, n − l − 1) and the flat nodal planes (l). Neighbouring lobes of a p or d orbital have opposite sign, drawn in the two colours.</figcaption></figure>
 
 ## 5. X-rays
 

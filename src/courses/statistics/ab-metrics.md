@@ -54,6 +54,11 @@ sources:
 
 **Revenue per user** is often the best primary for commerce, but it is very noisy (mostly zeros, a few big orders). Options: a longer test, capping extreme values at, say, the 99th percentile (decided in advance), or CUPED (adjusting for each user's spend before the test), which can cut variance a lot.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Overall evaluation criterion
 
 Some teams combine several metrics into one **overall evaluation criterion (OEC)** with agreed weights, such as revenue minus a cost per support contact. It makes trade-offs explicit before the test, not after.

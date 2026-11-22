@@ -91,6 +91,10 @@ When a question gives only percents and no amounts, pretend the starting value i
 
 </div>
 
+**Try it:** Set three percent changes in a row and compare the result with the sum of the percents.
+
+<figure class="fig" data-fig="@tp-percent-chain"><figcaption>The result is a product of multipliers, which is why +20% then −20% is not zero.</figcaption></figure>
+
 ## Practise: GMAT-style questions on this lesson
 
 Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
