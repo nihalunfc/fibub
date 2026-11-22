@@ -96,6 +96,14 @@ export default {
         {
           "id": "dual-nature",
           "name": "Dual nature of radiation and matter"
+        },
+        {
+          "id": "atoms",
+          "name": "Atoms"
+        },
+        {
+          "id": "nuclei",
+          "name": "Nuclei and radioactivity"
         }
       ]
     }
