@@ -1,0 +1,50 @@
+// Class 9 Science (Exploration), Chapter 8 Journey Inside the Atom: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ja');
+
+export default {
+  topic: 'journey-inside-the-atom', name: 'Journey Inside the Atom', n: 8,
+  items: [
+    m.mcq(1, 'models', '<p>Which model pictured the atom as a sphere of positive charge with electrons embedded in it?</p>', 'Thomson’s model', ['Rutherford’s model', 'Bohr’s model', 'Dalton’s model'], '<p>Thomson’s “plum pudding” model: electrons (plums) set in a positive pudding.</p>'),
+    m.mcq(2, 'models', '<p>In the gold-foil experiment most alpha particles passed straight through. This showed that:</p>', 'most of the atom is empty space', ['the atom is solid', 'electrons are heavier than alpha particles', 'the nucleus is negative'], '<p>If atoms were solid, particles would be stopped or bent. Most passing straight means most of the atom is empty.</p>'),
+    m.mcq(2, 'models', '<p>A few alpha particles bounced almost straight back. This showed that the atom has:</p>', 'a small, dense, positively charged nucleus', ['a negatively charged centre', 'electrons spread evenly', 'neutrons only'], '<p>Only a tiny, heavy, positive centre can turn back a fast positive alpha particle.</p>', { trap: 'Alpha particles are positive, so they are repelled by a positive nucleus (not attracted).' }),
+    m.mcq(2, 'models', '<p>Which problem of Rutherford’s model did Bohr’s model solve?</p>', 'why electrons circling the nucleus do not spiral into it', ['why atoms are neutral', 'why the nucleus is positive', 'why neutrons exist'], '<p>Bohr said electrons stay in fixed shells with fixed energy and do not lose energy while in one.</p>'),
+    m.mcq(1, 'particles', '<p>The particle with no charge in the nucleus is the:</p>', 'neutron', ['proton', 'electron', 'alpha particle'], '<p>Neutrons are neutral; protons are positive.</p>'),
+    m.mcq(2, 'particles', '<p>Which particle has a mass almost 1/1836 of a proton?</p>', 'electron', ['neutron', 'alpha particle', 'positron nucleus'], '<p>An electron is about 1800 times lighter than a proton, so nearly all of an atom’s mass is in the nucleus.</p>'),
+    m.mcq(1, 'number', '<p>The atomic number of an element is the number of:</p>', 'protons in its nucleus', ['neutrons in its nucleus', 'protons plus neutrons', 'shells in the atom'], '<p>Z = number of protons; it fixes which element it is.</p>'),
+    m.mcq(2, 'number', '<p>An atom has 11 protons and 12 neutrons. Its mass number is:</p>', '23', ['11', '12', '1'], '<p>A = protons + neutrons = 11 + 12 = 23 (sodium-23).</p>'),
+    m.mcq(2, 'number', '<p>A neutral atom of mass number 19 and atomic number 9 has how many neutrons?</p>', '10', ['9', '19', '28'], '<p>19 − 9 = 10 neutrons (fluorine-19).</p>'),
+    m.mcq(2, 'isotopes', '<p>Isotopes of an element have the same:</p>', 'number of protons', ['number of neutrons', 'mass number', 'number of nucleons'], '<p>Same Z (protons), different numbers of neutrons, so different A.</p>'),
+    m.mcq(2, 'isotopes', '<p>Carbon-12 and carbon-14 differ in:</p>', 'the number of neutrons', ['the number of protons', 'chemical properties', 'the number of electrons'], '<p>Both have 6 protons and 6 electrons; carbon-12 has 6 neutrons and carbon-14 has 8.</p>'),
+    m.mcq(3, 'isotopes', '<p>Argon-40 and calcium-40 are examples of:</p>', 'isobars', ['isotopes', 'isomers', 'ions'], '<p>Different elements (Z = 18 and 20) with the same mass number 40: isobars.</p>', { trap: 'Isotopes: same Z. Isobars: same A.' }),
+    m.mcq(2, 'shells', '<p>The maximum number of electrons in the second shell is:</p>', '8', ['2', '18', '32'], '<p>For the first 20 elements: shell 1 holds up to 2, shell 2 up to 8, shell 3 up to 8 (before shell 4 starts).</p>'),
+    m.mcq(2, 'shells', '<p>The electron arrangement of chlorine (Z = 17) is:</p>', '2, 8, 7', ['2, 8, 8', '2, 7, 8', '2, 15'], '<p>2 + 8 = 10; 17 − 10 = 7 go in shell 3.</p>'),
+    m.mcq(2, 'valency', '<p>The valency of sodium (2, 8, 1) is:</p>', '1', ['2', '7', '8'], '<p>One outer electron to lose: valency 1.</p>'),
+    m.mcq(2, 'valency', '<p>The valency of oxygen (2, 6) is:</p>', '2', ['6', '4', '8'], '<p>It needs 2 more electrons to make 8: valency = 8 − 6 = 2.</p>'),
+    m.mcq(3, 'valency', '<p>Why is neon chemically inert?</p>', 'its outer shell is full', ['it has no electrons', 'it has only one shell', 'it has a negative charge'], '<p>Neon is 2, 8: both shells full, so it has no tendency to gain or lose electrons.</p>'),
+    m.mcq(3, 'number', '<p>A magnesium ion Mg²⁺ has how many electrons? (Z = 12)</p>', '10', ['12', '14', '2'], '<p>The atom has 12; losing 2 leaves 10 (arrangement 2, 8, like neon).</p>'),
+    m.ar(2, 'models', 'Rutherford’s gold-foil experiment led to the nuclear model.', 'A few alpha particles were deflected through large angles.', 0, '<p>Both true and R explains A: large deflections need a small, dense, positive centre.</p>'),
+    m.ar(2, 'isotopes', 'Isotopes of an element have almost identical chemical properties.', 'They have the same number of electrons and protons.', 0, '<p>Chemistry is decided by the electrons, which depend on the proton number. Both true; R explains A.</p>'),
+    m.ar(3, 'valency', 'Helium is unreactive.', 'Helium has 8 electrons in its outer shell.', 2, '<p>A is true, R is false: helium has only 2 electrons, which fill its only shell.</p>'),
+    m.ar(3, 'number', 'The mass of an atom is concentrated in its nucleus.', 'Protons and neutrons are much heavier than electrons.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(1, 'number', '<p>An atom has 15 protons and 16 neutrons. What is its mass number?</p>', () => 31, 0, '<p>A = 15 + 16 = 31.</p>'),
+    m.nat(2, 'number', '<p>How many neutrons are in an atom of potassium-39 (Z = 19)?</p>', () => 39 - 19, 0, '<p>39 − 19 = 20.</p>'),
+    m.nat(2, 'shells', '<p>How many electrons are in the outer shell of phosphorus (Z = 15)?</p>', () => 5, 0, '<p>Arrangement 2, 8, 5: five.</p>'),
+    m.nat(2, 'isotopes', '<p>Chlorine has isotopes of mass 35 (75%) and 37 (25%). Find the average atomic mass.</p>', () => (75 * 35 + 25 * 37) / 100, 0.005, '<p>(75 × 35 + 25 × 37)/100 = 35.5.</p>'),
+    m.nat(3, 'number', '<p>How many electrons does the sulphide ion S²⁻ have? (Z = 16)</p>', () => 18, 0, '<p>Neutral S has 16; gaining 2 gives 18.</p>'),
+    m.msq(3, 'particles', '<p>Which statements are true? (Choose all that apply.)</p>', ['The nucleus contains protons and neutrons.', 'A neutral atom has equal numbers of protons and electrons.', 'Electrons are found inside the nucleus.', 'Neutrons carry a positive charge.'], [0, 1], '<p>Electrons orbit outside the nucleus and neutrons are neutral.</p>'),
+    m.msq(3, 'isotopes', '<p>Which pairs are isotopes? (Choose all that apply.)</p>', ['¹²C and ¹⁴C', '³⁵Cl and ³⁷Cl', '⁴⁰Ar and ⁴⁰Ca', '¹H and ²H'], [0, 1, 3], '<p>Isotopes have the same symbol (same Z). Ar and Ca have the same A, so they are isobars.</p>'),
+  ],
+  gens: [
+    { id: 'ja-g01', type: 'nat', level: 2, exams: ['board'], sub: 'number',
+      make(rng) { const Z = pick(rng, 3, 20), nn = pick(rng, Z, Z + 5); return { Z, nn, q: `<p>An atom has ${Z} protons and ${nn} neutrons. What is its mass number?</p>`, answer: Z + nn, tol: 0, sol: `<p>A = ${Z} + ${nn} = ${Z + nn}.</p>` }; },
+      verify: (p) => p.nn + p.Z },
+    { id: 'ja-g02', type: 'nat', level: 2, exams: ['board'], sub: 'shells',
+      make(rng) { const Z = pick(rng, 3, 20), o = Z <= 10 ? Z - 2 : Z <= 18 ? Z - 10 : Z - 18; return { Z, q: `<p>How many electrons are in the outermost shell of the atom with atomic number ${Z}? (Shells hold 2, 8, 8, then 2.)</p>`, answer: o, tol: 0, sol: `<p>Fill 2, then 8, then 8; what remains is ${o}.</p>` }; },
+      verify: (p) => { let k = p.Z, last = 0; for (const c of [2, 8, 8, 2]) { const t = Math.min(c, k); if (t > 0) last = t; k -= t; } return last; } },
+    { id: 'ja-g03', type: 'nat', level: 3, exams: ['board'], sub: 'isotopes',
+      make(rng) { const a = choose(rng, [10, 35, 63]), d = 2, pa = pick(rng, 10, 90, 10); return { a, pa, q: `<p>An element has two isotopes: mass ${a} (${pa}%) and mass ${a + d} (${100 - pa}%). Find the average atomic mass to 2 decimal places.</p>`, answer: (pa * a + (100 - pa) * (a + d)) / 100, tol: 0.005, sol: `<p>(${pa} × ${a} + ${100 - pa} × ${a + d})/100 = ${(pa * a + (100 - pa) * (a + d)) / 100}.</p>` }; },
+      verify: (p) => p.a + (2 * (100 - p.pa)) / 100 },
+  ],
+};

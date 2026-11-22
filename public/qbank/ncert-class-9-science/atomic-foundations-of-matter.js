@@ -1,0 +1,56 @@
+// Class 9 Science (Exploration), Chapter 9 Atomic Foundations of Matter: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('af');
+const r2 = (x) => Math.round(x * 100) / 100;
+
+export default {
+  topic: 'atomic-foundations-of-matter', name: 'Atomic Foundations of Matter', n: 9,
+  items: [
+    m.mcq(1, 'laws', '<p>The law of conservation of mass says that in a chemical reaction:</p>', 'the total mass of reactants equals the total mass of products', ['mass always increases', 'mass always decreases', 'only the volume stays the same'], '<p>Mass is neither created nor destroyed in a chemical reaction (Lavoisier).</p>'),
+    m.mcq(2, 'laws', '<p>In an open flask a reaction gives off gas and the balance reading falls. This is because:</p>', 'the gas carried away some mass', ['mass is destroyed', 'the law of conservation of mass is false', 'the flask became lighter by itself'], '<p>Total mass is still conserved: the missing mass is in the gas that escaped. In a sealed flask the reading would not change.</p>', { trap: 'Concluding that mass was destroyed when a gas escaped.' }),
+    m.mcq(2, 'laws', '<p>6 g of carbon burns completely in 16 g of oxygen. The mass of carbon dioxide formed is:</p>', '22 g', ['10 g', '16 g', '96 g'], '<p>Conservation of mass: 6 + 16 = 22 g (all reactants used).</p>'),
+    m.mcq(1, 'laws', '<p>The law of constant proportions says that a pure compound always has:</p>', 'the same elements in the same ratio by mass', ['different ratios in different samples', 'the same colour', 'the same volume of each element'], '<p>For example water is always 1 part hydrogen to 8 parts oxygen by mass, whatever the source.</p>'),
+    m.mcq(2, 'laws', '<p>Water from a river and water from a lab contain hydrogen and oxygen in the ratio:</p>', 'the same, 1 : 8 by mass', ['1 : 2 by mass', '2 : 1 by mass', 'different, depending on the source'], '<p>Constant proportions: pure water is H₂O everywhere, 2 × 1 : 16 = 1 : 8 by mass.</p>'),
+    m.mcq(3, 'laws', '<p>In a compound of two elements, 3 g of X combine with 8 g of Y. How much X combines with 24 g of Y?</p>', '9 g', ['3 g', '24 g', '12 g'], '<p>Constant proportions: X : Y = 3 : 8, so for 24 g of Y (3 times as much) you need 9 g of X.</p>'),
+    m.mcq(2, 'dalton', '<p>Which part of Dalton’s theory explains the law of conservation of mass?</p>', 'atoms are neither created nor destroyed in a reaction, only rearranged', ['atoms are the smallest, indivisible particles', 'all matter is made of atoms', 'atoms of one element are identical'], '<p>If no atoms are made or lost, the total mass stays the same.</p>'),
+    m.mcq(3, 'dalton', '<p>Which part of Dalton’s theory has been shown to be not completely right?</p>', 'atoms are indivisible and all atoms of an element are identical', ['matter is made of atoms', 'atoms combine in fixed ratios to make compounds', 'atoms rearrange in a reaction'], '<p>We now know atoms contain protons, neutrons and electrons, and that isotopes of one element differ in mass.</p>'),
+    m.mcq(1, 'symbols', '<p>The symbol for sodium is:</p>', 'Na', ['S', 'So', 'Sd'], '<p>From its Latin name natrium: Na.</p>'),
+    m.mcq(2, 'symbols', '<p>The symbol K stands for:</p>', 'potassium', ['krypton only', 'calcium', 'carbon'], '<p>K is from kalium (potassium); Ca is calcium and C is carbon.</p>'),
+    m.mcq(2, 'ions', '<p>An atom that has lost electrons becomes:</p>', 'a positive ion (cation)', ['a negative ion (anion)', 'a neutral atom', 'an isotope'], '<p>Losing negative electrons leaves more protons than electrons: a positive ion.</p>'),
+    m.mcq(2, 'ions', '<p>Which is a polyatomic ion?</p>', 'sulphate, SO₄²⁻', ['chloride, Cl⁻', 'sodium, Na⁺', 'oxide, O²⁻'], '<p>A polyatomic ion is a group of atoms carrying a charge together.</p>'),
+    m.mcq(2, 'formula', '<p>The formula of calcium chloride (Ca²⁺ and Cl⁻) is:</p>', 'CaCl₂', ['Ca₂Cl', 'CaCl', 'Ca₂Cl₂'], '<p>Criss-cross: Ca gets 1 (charge of Cl), Cl gets 2 (charge of Ca). CaCl₂.</p>'),
+    m.mcq(2, 'formula', '<p>The formula of aluminium oxide (Al³⁺, O²⁻) is:</p>', 'Al₂O₃', ['AlO', 'Al₃O₂', 'Al₂O₂'], '<p>Swap the charges: Al₂O₃. Check: 2 × 3 = 3 × 2.</p>'),
+    m.mcq(3, 'formula', '<p>The formula of magnesium oxide, from Mg²⁺ and O²⁻, is MgO and not Mg₂O₂ because:</p>', 'the subscripts are cancelled to the smallest whole-number ratio', ['oxygen has no charge', 'magnesium is a gas', 'subscripts must always be 1'], '<p>Criss-cross gives Mg₂O₂; divide both by 2 to get MgO.</p>'),
+    m.mcq(3, 'formula', '<p>The correct formula of ammonium sulphate (NH₄⁺, SO₄²⁻) is:</p>', '(NH₄)₂SO₄', ['NH₄SO₄', 'NH₄(SO₄)₂', 'N₂H₈SO₄ written as NH₄₂SO₄'], '<p>Two NH₄⁺ balance one SO₄²⁻; brackets show that the whole ion is taken twice.</p>'),
+    m.mcq(2, 'mass', '<p>The molecular mass of CO₂ (C = 12, O = 16) is:</p>', '44 u', ['28 u', '60 u', '32 u'], '<p>12 + 2 × 16 = 44 u.</p>'),
+    m.mcq(2, 'mass', '<p>For sodium chloride we speak of formula unit mass, not molecular mass, because:</p>', 'it is made of ions in a lattice, with no separate molecules', ['it is a gas', 'it has no mass', 'it has no formula'], '<p>NaCl is a crystal lattice of Na⁺ and Cl⁻ ions; the formula gives the simplest ratio.</p>'),
+    m.mcq(1, 'mole', '<p>Avogadro’s number is:</p>', '6.022 × 10²³', ['6.022 × 10³²', '3.0 × 10⁸', '1.6 × 10⁻¹⁹'], '<p>The number of particles in one mole.</p>'),
+    m.mcq(2, 'mole', '<p>The mass of one mole of oxygen atoms (O = 16 u) is:</p>', '16 g', ['16 u', '6.022 × 10²³ g', '32 g'], '<p>The molar mass in g/mol equals the atomic mass in u: 16 g/mol.</p>', { trap: 'Mixing up 1 atom (16 u) with 1 mole of atoms (16 g).' }),
+    m.mcq(3, 'mole', '<p>Which sample contains the most molecules?</p>', '2 mol of water', ['18 g of water (M = 18)', '16 g of oxygen gas (M = 32)', '22 g of carbon dioxide (M = 44)'], '<p>2 mol is the largest amount. 18 g of water is 1 mol, 16 g of O₂ is 0.5 mol and 22 g of CO₂ is 0.5 mol.</p>'),
+    m.ar(2, 'laws', 'Mass is conserved in a sealed flask.', 'No substance can enter or leave a sealed flask.', 0, '<p>Both true; R explains A: the total mass of what is inside cannot change.</p>'),
+    m.ar(2, 'dalton', 'Water from any source contains hydrogen and oxygen in the ratio 1 : 8 by mass.', 'Every molecule of water has 2 hydrogen atoms and 1 oxygen atom.', 0, '<p>Fixed atom ratio 2 : 1 and fixed atomic masses 1 and 16 give the fixed mass ratio 2 : 16 = 1 : 8.</p>'),
+    m.ar(3, 'mass', 'The formula unit mass of NaCl is 58.5 u.', 'NaCl exists as separate NaCl molecules.', 2, '<p>A is true (23 + 35.5). R is false: NaCl is an ionic lattice with no separate molecules.</p>'),
+    m.ar(3, 'mole', '1 mole of any substance contains the same number of particles.', 'The mole is defined using Avogadro’s number of particles.', 0, '<p>Both true; the definition of the mole is the reason.</p>'),
+    m.nat(1, 'laws', '<p>12 g of magnesium burns in 8 g of oxygen to form only magnesium oxide. What is the mass of magnesium oxide in grams?</p>', () => 20, 0, '<p>12 + 8 = 20 g.</p>', { unit: 'g' }),
+    m.nat(2, 'mass', '<p>Find the molecular mass of H₂SO₄ in u (H = 1, S = 32, O = 16).</p>', () => 2 + 32 + 64, 0, '<p>2 × 1 + 32 + 4 × 16 = 98 u.</p>', { unit: 'u' }),
+    m.nat(2, 'mole', '<p>How many moles are in 90 g of water (M = 18 g/mol)?</p>', () => 90 / 18, 0, '<p>n = 90/18 = 5 mol.</p>', { unit: 'mol' }),
+    m.nat(3, 'mole', '<p>How many molecules are in 0.5 mol of a gas? Give the answer as a multiple of 10²³ (use 6.022).</p>', () => 3.011, 0.01, '<p>N = 0.5 × 6.022 × 10²³ = 3.011 × 10²³, so the answer is 3.011.</p>'),
+    m.nat(3, 'mole', '<p>What is the mass in grams of 2.5 mol of CO₂ (M = 44 g/mol)?</p>', () => 2.5 * 44, 0, '<p>m = n × M = 2.5 × 44 = 110 g.</p>', { unit: 'g' }),
+    m.msq(3, 'ions', '<p>Which of these are correctly written formulae? (Choose all that apply.)</p>', ['NaCl', 'MgCl₂', 'AlCl₂', 'CaO'], [0, 1, 3], '<p>Al³⁺ needs 3 Cl⁻: AlCl₃, so AlCl₂ is wrong. The others balance their charges.</p>'),
+  ],
+  gens: [
+    { id: 'af-g01', type: 'nat', level: 2, exams: ['board'], sub: 'mole',
+      make(rng) { const M = choose(rng, [18, 44, 32, 58.5, 100]), nn = pick(rng, 1, 6); return { M, nn, q: `<p>Find the mass in grams of ${nn} mol of a substance of molar mass ${M} g/mol.</p>`, answer: r2(M * nn), tol: 0.005, unit: 'g', sol: `<p>m = n × M = ${nn} × ${M} = ${r2(M * nn)} g.</p>` }; },
+      verify: (p) => r2(p.nn * p.M) },
+    { id: 'af-g02', type: 'nat', level: 2, exams: ['board'], sub: 'laws',
+      make(rng) { const m1 = pick(rng, 5, 50, 5), m2 = pick(rng, 5, 50, 5); return { m1, m2, q: `<p>${m1} g of X reacts completely with ${m2} g of Y to make one product in a closed container. What is the mass of the product in grams?</p>`, answer: m1 + m2, tol: 0, unit: 'g', sol: `<p>Conservation of mass: ${m1} + ${m2} = ${m1 + m2} g.</p>` }; },
+      verify: (p) => p.m2 + p.m1 },
+    { id: 'af-g03', type: 'nat', level: 3, exams: ['board'], sub: 'laws',
+      make(rng) { const x = pick(rng, 2, 9), y = pick(rng, 2, 9), k = pick(rng, 2, 6); return { x, y, k, q: `<p>In a compound, X and Y are always in the mass ratio ${x} : ${y}. How many grams of X combine with ${y * k} g of Y?</p>`, answer: x * k, tol: 0, unit: 'g', sol: `<p>${y * k} g of Y is ${k} times ${y} g, so X is ${k} × ${x} = ${x * k} g.</p>` }; },
+      verify: (p) => (p.x / p.y) * (p.y * p.k) },
+    { id: 'af-g04', type: 'nat', level: 3, exams: ['board'], sub: 'mass',
+      make(rng) { const a = pick(rng, 1, 4), b = pick(rng, 1, 4); return { a, b, q: `<p>A made-up compound has the formula Ca<sub>${a}</sub>O<sub>${b}</sub> (Ca = 40 u, O = 16 u). Find its formula unit mass in u.</p>`, answer: 40 * a + 16 * b, tol: 0, unit: 'u', sol: `<p>${a} × 40 + ${b} × 16 = ${40 * a + 16 * b} u.</p>` }; },
+      verify: (p) => p.b * 16 + p.a * 40 },
+  ],
+};
