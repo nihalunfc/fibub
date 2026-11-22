@@ -8,11 +8,16 @@ export default {
   exams: { jam: 'IIT JAM', gate: 'GATE', net: 'CSIR NET' },
   units: [
     { id: 'math', name: 'Mathematical methods', topics: [
+      { id: 'calculus-and-series', name: 'Limits, Taylor series and approximations' },
+      { id: 'partial-derivatives', name: 'Partial derivatives and Jacobians' },
+      { id: 'multiple-integrals', name: 'Double and triple integrals' },
+      { id: 'vector-algebra', name: 'Vector algebra: dot, cross and triple products' },
       { id: 'vector-calculus', name: 'Vectors and vector calculus' },
       { id: 'integral-theorems', name: 'Gauss, Stokes and Green theorems' },
       { id: 'differential-equations', name: 'Differential equations' },
       { id: 'matrices', name: 'Matrices, determinants and eigenvalues' },
       { id: 'complex-numbers', name: 'Complex numbers' },
+      { id: 'fourier-series', name: 'Fourier series' },
     ] },
     { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
       { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
