@@ -10,14 +10,17 @@ import { courseLessons } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
 import { courseLd } from '../../lib/seo';
 import '../../styles/course.css';
-interface Props { course: CourseSyllabus }
-const { course } = Astro.props;
+// compact: one line per module (links to each lesson by number) for very long courses, so the page stays under 120 KB;
+// the sidebar still lists every lesson by name. Its Course data then lists the teaching lessons, not the
+// "question types" pages (each page still has its own data).
+interface Props { course: CourseSyllabus; compact?: boolean }
+const { course, compact = false } = Astro.props;
 const written = await courseLessons(course);
 const live = new Set(written.keys());
 const all = flatLessons(course);
 const cat = COURSE_CATS.find((k) => k.id === COURSES.find((c) => c.id === course.id)?.cat);
 const minutes = [...written.values()].reduce((s, e) => s + e.data.minutes, 0);
-const ld = courseLd(course, all.filter((l) => live.has(l.slug)).map((l) => ({ name: `${l.n} ${l.title}`, url: `/learn/courses/${course.id}/${l.slug}/` })), minutes / 60);
+const ld = courseLd(course, all.filter((l) => live.has(l.slug) && !(compact && l.slug.endsWith('-questions'))).map((l) => ({ name: `${l.n} ${l.title}`, url: `/learn/courses/${course.id}/${l.slug}/` })), minutes / 60);
 ---
 <Base title={`${course.name}: free course`} description={course.text} ld={ld}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / {cat ? <a href={cat.href}>{cat.short}</a> : <a href="/learn/courses/">Courses</a>} / {course.name}</div>
@@ -34,6 +37,9 @@ const ld = courseLd(course, all.filter((l) => live.has(l.slug)).map((l) => ({ na
         <h3 class="cs-parth">{p.name}</h3>
         {p.modules.map((m) => {
           const n = m.lessons.filter((l) => live.has(l[1])).length;
+          if (compact) return (
+            <p class="cs-modline"><span class="cs-n">{m.n}</span> {n ? <a href={`/learn/courses/${course.id}/${m.lessons.find((l) => live.has(l[1]))![1]}/`}>{m.name}</a> : m.name}{m.lessons.length > 1 && n > 0 && <> · {m.lessons.filter((l) => live.has(l[1])).map(([num, slug], i) => <>{i > 0 && ', '}<a href={`/learn/courses/${course.id}/${slug}/`} data-lesson={slug}>{num}</a></>)}</>}{n === 0 && <span class="ar-tag"> Coming soon</span>}</p>
+          );
           return (
             <section class="cs-modcard">
               <h4><span class="cs-n">{m.n}</span> {m.name} <span class:list={['ar-tag', { live: n > 0 }]}>{n === 0 ? 'Coming soon' : n === m.lessons.length ? `${n} lessons` : `${n} of ${m.lessons.length} written`}</span></h4>
