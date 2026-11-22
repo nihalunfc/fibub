@@ -59,6 +59,13 @@ export default {
       { id: 'schrodinger-equation', name: 'The Schrödinger equation: wells, steps and tunnelling' },
       { id: 'atoms-x-rays', name: 'The Bohr atom, spectra and X-rays' },
     ] },
+    { id: 'quantum', name: 'Quantum mechanics', topics: [
+      { id: 'postulates-operators', name: 'Postulates, operators and expectation values' },
+      { id: 'commutators-uncertainty', name: 'Commutators and the uncertainty relation' },
+      { id: 'one-dimensional-potentials', name: 'One-dimensional potentials: wells, barriers and delta potentials' },
+      { id: 'harmonic-oscillator', name: 'The quantum harmonic oscillator and ladder operators' },
+      { id: 'angular-momentum', name: 'Angular momentum' },
+    ] },
     { id: 'solid-state', name: 'Solid state physics and devices', topics: [
       { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
       { id: 'x-ray-diffraction', name: 'X-ray diffraction and Bragg\'s law' },
