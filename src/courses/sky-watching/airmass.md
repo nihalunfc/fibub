@@ -122,8 +122,6 @@ With only two points this is rough; in practice you use many stars and points th
 
 <div class="keypoints">
 
-**Key points**
-
 - Airmass X ≈ 1/sin h; X = 1 overhead, 2 at 30°, about 38 at the horizon.
 - Extinction: m = m₀ + kX, with k about 0.15 to 0.2 in green light at a good site.
 - Blue light is lost more than red, so low stars look redder.

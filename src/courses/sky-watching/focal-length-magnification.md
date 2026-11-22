@@ -130,8 +130,6 @@ The longest focal length eyepiece that fits a standard 1.25-inch barrel shows at
 
 <div class="keypoints">
 
-**Key points**
-
 - M = F / f<sub>e</sub>: swap eyepieces to change power.
 - Exit pupil = D / M = f<sub>e</sub> / N; 2 to 6 mm suits most targets.
 - True field ≈ apparent field / M.

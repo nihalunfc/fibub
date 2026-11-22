@@ -120,8 +120,6 @@ and the same for the height. `$\lceil x \rceil$` means "round up".
 
 <div class="keypoints">
 
-**Key points**
-
 - Field of view θ ≈ 57.3° × sensor size / focal length.
 - Match focal length to the target's size.
 - Mosaics cover big targets with overlapping panels (10 to 20% overlap).

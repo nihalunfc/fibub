@@ -129,8 +129,6 @@ The RA difference is 4 min = `$4 \times 15' = 60' = 1^\circ$`. But at Dec +60°,
 
 <div class="keypoints">
 
-**Key points**
-
 - Dec is sky latitude (−90° to +90°); RA is sky longitude (0 h to 24 h).
 - 1 h of RA = 15°; 1 min = 15′; 1 s = 15″.
 - RA and Dec stay fixed to the stars, unlike alt-az.

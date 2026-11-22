@@ -130,8 +130,6 @@ About 6.5 million parsecs, or 21 million light-years. (Dust would make it look f
 
 <div class="keypoints">
 
-**Key points**
-
 - Pulsating variables (Cepheids, Mira) change size and brightness; eclipsing binaries are blocked by a partner.
 - Leavitt's law: a Cepheid's period gives its absolute magnitude.
 - With M and the observed m, d = 10<sup>(m − M)/5 + 1</sup> pc.

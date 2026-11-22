@@ -127,8 +127,6 @@ so `$h = 46.0^\circ$`. For the azimuth, top `$= -0.940 \times 0.707 = -0.665$`, 
 
 <div class="keypoints">
 
-**Key points**
-
 - Altitude: angle above the horizon. Azimuth: bearing from north through east.
 - Alt-az depends on your location and the time.
 - sin h = sin δ sin φ + cos δ cos φ cos H converts from sky coordinates.

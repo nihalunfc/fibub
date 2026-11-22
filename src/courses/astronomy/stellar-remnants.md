@@ -123,8 +123,6 @@ A teaspoon would weigh about 2 billion tonnes, like the nucleus of an atom scale
 
 <div class="keypoints">
 
-**Key points**
-
 - White dwarfs: Earth-sized, held up by electrons, at most about 1.4 M☉.
 - Neutron stars: about 20 km wide, born in supernovae; many are pulsars.
 - Black holes form when no pressure can stop collapse; R<sub>s</sub> ≈ 2.95 km × M/M☉.

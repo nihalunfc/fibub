@@ -128,8 +128,6 @@ For a galaxy whose surface brightness is close to the sky's, a 10 times darker b
 
 <div class="keypoints">
 
-**Key points**
-
 - Sky brightness is measured in mag/arcsec² (higher = darker).
 - The Bortle scale runs from 1 (pristine) to 9 (inner city).
 - Walker's law: glow ∝ P d<sup>−2.5</sup>; nearby small towns can matter more than far big cities.

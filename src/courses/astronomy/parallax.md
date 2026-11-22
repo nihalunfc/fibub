@@ -121,8 +121,6 @@ The parallax could be 2.4 to 2.6 mas, giving `$1/0.0026 = 385$` pc to `$1/0.0024
 
 <div class="keypoints">
 
-**Key points**
-
 - Parallax is the yearly shift of a nearby star against distant ones as Earth orbits.
 - d (pc) = 1 / p (arcsec); 1 pc = 3.26 ly = 206,265 AU.
 - It needs no assumptions about the star, so it anchors every other distance method.

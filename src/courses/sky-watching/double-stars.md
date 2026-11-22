@@ -128,8 +128,6 @@ because `$a''/p''$` is the semi-major axis in astronomical units.
 
 <div class="keypoints">
 
-**Key points**
-
 - Doubles are described by separation ρ and position angle θ.
 - True binaries orbit; optical doubles only line up.
 - Orbit size in AU = a″ / parallax″.

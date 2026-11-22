@@ -125,8 +125,6 @@ D = \frac{640.22 - 585.25}{744 - 172} = \frac{54.97}{572} = 0.0961\ \text{nm/px}
 
 <div class="keypoints">
 
-**Key points**
-
 - Steps: calibrate, trace, extract, wavelength-calibrate, flux-calibrate, measure.
 - Arc lamps with known lines give the pixel-to-wavelength fit.
 - Resolving power R = λ/Δλ sets what can be measured.

@@ -129,8 +129,6 @@ A gas giant like Jupiter (1.3 g/cm³) orbiting so close that its year lasts 3.5 
 
 <div class="keypoints">
 
-**Key points**
-
 - Transits give the planet's size: δ = (R<sub>p</sub>/R<sub>★</sub>)².
 - Radial velocity gives the planet's mass (times the sine of the orbit tilt).
 - Both together give density and so composition.

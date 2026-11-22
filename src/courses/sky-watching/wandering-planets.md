@@ -127,8 +127,6 @@ So Mars reaches opposition about every 2 years and 50 days. Between oppositions 
 
 <div class="keypoints">
 
-**Key points**
-
 - Planets wander along the ecliptic against the fixed stars.
 - Retrograde loops happen when Earth overtakes an outer planet.
 - Outer planets are best at opposition: up all night, closest, brightest.

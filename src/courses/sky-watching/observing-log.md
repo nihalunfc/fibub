@@ -128,8 +128,6 @@ Anyone reading it knows when, where, with what, in which conditions, and what wa
 
 <div class="keypoints">
 
-**Key points**
-
 - Always log time in UT, place, instrument and magnification.
 - Record seeing, transparency and sky darkness.
 - Describe what you actually saw, including uncertainty.

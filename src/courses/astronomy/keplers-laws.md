@@ -129,8 +129,6 @@ It dips inside Venus's orbit, then swings out beyond Neptune. It last passed the
 
 <div class="keypoints">
 
-**Key points**
-
 - Orbits are ellipses with the Sun at one focus (first law).
 - A planet moves fastest at perihelion and slowest at aphelion (second law, equal areas).
 - P² = a³ for anything orbiting the Sun (third law).

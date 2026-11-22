@@ -138,8 +138,6 @@ So RA 2h 17m is on the meridian. The Pleiades (RA about 3h 47m) have an hour ang
 
 <div class="keypoints">
 
-**Key points**
-
 - Sidereal day = 23 h 56 min 4 s; solar day = 24 h.
 - Stars rise about 4 minutes earlier each night.
 - Local sidereal time = the RA on your meridian.

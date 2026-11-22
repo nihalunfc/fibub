@@ -126,8 +126,6 @@ That is most of Earth's 12,700 km diameter: dishes across a continent or two, li
 
 <div class="keypoints">
 
-**Key points**
-
 - Radio shows cold gas, infrared shows dust and young stars, X-rays show million-degree gas.
 - Resolution θ = 1.22 λ / D: long wavelengths need big telescopes.
 - Interferometers link telescopes so the baseline acts as the diameter.

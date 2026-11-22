@@ -128,8 +128,6 @@ That is achievable with a good polar scope or a camera-based routine, but not by
 
 <div class="keypoints">
 
-**Key points**
-
 - Alt-az mounts are simple; equatorial mounts track with one motor.
 - Polar axis tilt = your latitude, pointed at the celestial pole.
 - Polaris is about 0.6° from the true pole.

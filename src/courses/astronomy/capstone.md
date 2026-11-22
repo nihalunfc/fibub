@@ -115,8 +115,6 @@ Run a transit-timing project from start to finish:
 
 <div class="keypoints">
 
-**Key points**
-
 - Start from one clear, measurable question.
 - Use the full chain: calibrate, measure, fit, propagate errors.
 - Timing many orbits apart gives very precise periods.

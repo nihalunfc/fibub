@@ -120,8 +120,6 @@ About 100 billion Suns' worth inside our orbit. The Sun has been round about 20 
 
 <div class="keypoints">
 
-**Key points**
-
 - The Milky Way is a barred spiral galaxy, about 100,000 ly across, with a few hundred billion stars.
 - The Sun is about 26,000 ly from the centre and orbits once every ~220 million years.
 - A black hole of about 4 million Suns, Sagittarius A*, sits at the centre.

@@ -127,8 +127,6 @@ Without the flat, the corner would read 100: half the true brightness, and any p
 
 <div class="keypoints">
 
-**Key points**
-
 - Darks remove thermal signal and hot pixels (subtract).
 - Flats correct vignetting and dust (divide, after normalising).
 - Bias or flat darks remove the offset from flats.

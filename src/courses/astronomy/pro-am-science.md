@@ -121,8 +121,6 @@ With observers spaced a few km apart across the path, their chords outline the a
 
 <div class="keypoints">
 
-**Key points**
-
 - Amateurs contribute to variable stars (AAVSO), occultations (IOTA), transits, comets and supernovae.
 - Networks beat clouds: P = 1 − (1 − p)ⁿ.
 - Accurate timing (GPS) turns shadows into sizes: v Δt.

@@ -123,8 +123,6 @@ Negative: the star is approaching at about 100 km/s.
 
 <div class="keypoints">
 
-**Key points**
-
 - Moving away stretches light (redshift); approaching squeezes it (blueshift).
 - v = c Δλ / λ₀ for speeds much less than light.
 - Only the motion along the line of sight shows up.

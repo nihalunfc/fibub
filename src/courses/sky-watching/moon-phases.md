@@ -132,8 +132,6 @@ A coincidence makes total solar eclipses possible: the Sun is about 400 times wi
 
 <div class="keypoints">
 
-**Key points**
-
 - Half the Moon is always lit; phases are how much of it faces us.
 - Synodic month: 29.53 days from new Moon to new Moon.
 - Fraction lit k = (1 − cos ψ)/2.

@@ -127,8 +127,6 @@ Very different results: the ZHR is sensitive to the limiting magnitude and to `$
 
 <div class="keypoints">
 
-**Key points**
-
 - Showers occur when Earth crosses a comet's dust trail.
 - Meteors fan out from a radiant by perspective.
 - ZHR corrects your count for clouds, sky darkness and radiant height.

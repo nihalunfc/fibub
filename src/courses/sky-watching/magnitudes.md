@@ -131,8 +131,6 @@ So if you can see stars to magnitude 6.5 by eye, the telescope shows stars to ro
 
 <div class="keypoints">
 
-**Key points**
-
 - Smaller (even negative) magnitudes are brighter.
 - 5 magnitudes = 100 times; 1 magnitude ≈ 2.512 times.
 - F₁/F₂ = 10<sup>0.4(m₂ − m₁)</sup>.

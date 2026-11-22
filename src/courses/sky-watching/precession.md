@@ -125,8 +125,6 @@ So the old coordinates are off by about `$\sqrt{38.4^2 + 16.7^2} \approx 42'$`, 
 
 <div class="keypoints">
 
-**Key points**
-
 - Precession: Earth's axis circles the ecliptic pole every ~25,800 years.
 - The equinoxes slide 50.29″ a year along the ecliptic.
 - The pole star changes over centuries: Thuban, Polaris, then Vega.

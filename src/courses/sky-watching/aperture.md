@@ -135,8 +135,6 @@ About one magnitude deeper and about 2.4 times brighter images of every galaxy: 
 
 <div class="keypoints">
 
-**Key points**
-
 - Aperture is the most important number of a telescope.
 - Light grasp ∝ D²: twice the aperture, four times the light.
 - Limiting magnitude gain = 5 log₁₀(D/7 mm) over the eye.

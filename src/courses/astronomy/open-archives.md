@@ -128,8 +128,6 @@ r = \frac{3}{60} = 0.05°, \qquad \text{area} = \pi\times0.05^2 = 0.00785\ \text
 
 <div class="keypoints">
 
-**Key points**
-
 - Major archives: Gaia, MAST (Hubble, TESS, JWST), ESO, SIMBAD, NASA Exoplanet Archive.
 - Cone search: everything within a radius of a sky position.
 - ADQL is SQL with sky geometry functions like CONTAINS and CIRCLE.

@@ -110,8 +110,6 @@ A paper is an argument: here is what we measured, here is how, here is what it m
 
 <div class="keypoints">
 
-**Key points**
-
 - Most astronomy papers are free on arXiv; NASA ADS searches and tracks citations.
 - Read in three passes: abstract and figures, conclusions, methods.
 - Asymmetric errors x (+a, −b) give a likely range.

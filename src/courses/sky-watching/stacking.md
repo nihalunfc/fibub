@@ -125,8 +125,6 @@ The 1-minute plan has `$\sqrt{10200/7300} = 1.18$` times more noise: a loss, but
 
 <div class="keypoints">
 
-**Key points**
-
 - Stacking n frames improves SNR by √n.
 - Align on stars, then average with outlier rejection.
 - Satellite trails and planes are removed by sigma clipping.

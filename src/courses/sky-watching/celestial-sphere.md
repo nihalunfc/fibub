@@ -144,8 +144,6 @@ So travelling north lifts the northern stars and sinks the southern ones. The an
 
 <div class="keypoints">
 
-**Key points**
-
 - The celestial sphere is an imaginary sphere used to map the sky.
 - The sky turns around the celestial poles, above Earth's poles.
 - The pole's altitude equals your latitude.

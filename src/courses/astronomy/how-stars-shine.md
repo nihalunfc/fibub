@@ -128,8 +128,6 @@ About 1.2 billion years, compared with 10 billion for the Sun. A star cluster th
 
 <div class="keypoints">
 
-**Key points**
-
 - Stars balance gravity against gas pressure (hydrostatic equilibrium).
 - Fusion of hydrogen to helium turns 0.7% of the mass into energy.
 - L ≈ M⁴ near one solar mass, so lifetime t ≈ 10¹⁰ yr × M⁻³.

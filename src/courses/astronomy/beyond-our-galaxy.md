@@ -98,8 +98,6 @@ The physics doesn't change at the edge of the Milky Way: the same gravity holds 
 
 <div class="keypoints">
 
-**Key points**
-
 - Redshifts, rotation speeds and distance methods from this course lead straight into cosmology.
 - Redshift z = Δλ/λ; for small z, v ≈ cz.
 - Galaxy rotation hints at dark matter; galaxy redshifts hint at expansion.

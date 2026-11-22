@@ -127,8 +127,6 @@ Pure photon noise: `$\sqrt{200} = 14.1$` counts. The measured 14 matches, so the
 
 <div class="keypoints">
 
-**Key points**
-
 - FITS = header (keyword = value text) + data (arrays or tables).
 - astropy.io.fits opens files; data comes as NumPy arrays indexed [y, x].
 - Median and MAD give robust sky level and noise.

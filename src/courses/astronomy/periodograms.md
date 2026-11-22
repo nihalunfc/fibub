@@ -121,8 +121,6 @@ f_1 = \frac{1}{0.833} = 1.20\ \text{per day}, \qquad f_2 = \frac{1}{5.0} = 0.20\
 
 <div class="keypoints">
 
-**Key points**
-
 - Folding at a trial period lines the data up only when the period is right.
 - A periodogram scores every trial frequency; peaks mark likely periods.
 - Once-a-day sampling makes aliases at f ± 1 cycle per day.

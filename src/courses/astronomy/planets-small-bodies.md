@@ -127,8 +127,6 @@ Surface rocks are about 2.7 to 3 g/cm³, so the inside must be much denser: an i
 
 <div class="keypoints">
 
-**Key points**
-
 - Inner planets are small, rocky and dense; outer planets are giant, gassy and icy.
 - The snow line, about 3 AU, divides the two kinds.
 - Density ρ = M / (4/3 πR³) tells rock from gas; Earth is 5.5 g/cm³.

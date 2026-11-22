@@ -125,8 +125,6 @@ The rungs exist because an electron bound to an atom behaves like a wave that mu
 
 <div class="keypoints">
 
-**Key points**
-
 - Atoms have fixed energy levels; jumps between them make photons of exact wavelengths.
 - Hot thin gas gives bright emission lines; cool gas in front of a hot source gives dark absorption lines.
 - Hydrogen: 1/λ = R(1/n₁² − 1/n₂²); the Balmer lines (to n = 2) are visible.

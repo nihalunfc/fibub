@@ -130,8 +130,6 @@ So an older observer loses about 0.7 magnitudes by eye. This also matters for bi
 
 <div class="keypoints">
 
-**Key points**
-
 - Full dark adaptation takes 20 to 40 minutes, mostly the rods.
 - Bright white light undoes it in seconds; use dim red light.
 - Averted vision puts faint light onto the rods and gains about 1 magnitude.

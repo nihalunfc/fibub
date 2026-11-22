@@ -125,8 +125,6 @@ About 170 million light-years. Its light left when dinosaurs walked on Earth.
 
 <div class="keypoints">
 
-**Key points**
-
 - Main types: ellipticals, spirals, barred spirals and irregulars.
 - Spirals are blue and still forming stars; ellipticals are red with old stars.
 - Look-back time: we see distant galaxies as they were when the light left.

@@ -123,8 +123,6 @@ The error swings 20″ in half a period (5 minutes) on a roughly sine-shaped cur
 
 <div class="keypoints">
 
-**Key points**
-
 - Stars move 15.041″ cos δ per second.
 - NPF rule: t ≈ (35N + 30p)/(F cos δ) on a fixed tripod.
 - Tracking mounts follow the sky; gear errors still show at long focal lengths.

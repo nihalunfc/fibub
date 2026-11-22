@@ -126,8 +126,6 @@ From launch to J2000.0: `$2451545.0 - 2436116.31 = 15428.69$` days, about 42.2 y
 
 <div class="keypoints">
 
-**Key points**
-
 - Record observations in UT, not local time.
 - The Julian date is a running count of days; subtraction gives intervals.
 - JD days start at noon UT.

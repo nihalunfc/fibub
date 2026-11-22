@@ -123,8 +123,6 @@ Sirius A's orbit around the centre of mass is about half the size of B's, so `$M
 
 <div class="keypoints">
 
-**Key points**
-
 - Most stars are in binaries or larger groups.
 - Total mass: M<sub>A</sub> + M<sub>B</sub> = a³/P² (AU, years, Suns).
 - Mass ratio from speeds or distances to the centre of mass.

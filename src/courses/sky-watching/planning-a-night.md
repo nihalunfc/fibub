@@ -131,8 +131,6 @@ Clock times differ from solar times because of time zones (Toronto is about 17 m
 
 <div class="keypoints">
 
-**Key points**
-
 - Three twilights: civil (−6°), nautical (−12°), astronomical (−18°).
 - Faint objects need astronomical darkness and no Moon.
 - Observe targets near their highest point (when they cross the meridian).

@@ -127,8 +127,6 @@ About 333,000 Earths. The same sum with the Moon's orbit weighs Earth.
 
 <div class="keypoints">
 
-**Key points**
-
 - Gravity: F = GMm / r², an inverse square law.
 - Circular orbit speed v = √(GM / r); higher orbits are slower.
 - Escape speed is √2 times the circular speed at the same place.

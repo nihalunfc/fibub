@@ -125,8 +125,6 @@ Check a 200 mm f/6 Dobsonian with the formulas from this module:
 
 <div class="keypoints">
 
-**Key points**
-
 - Start with eyes and binoculars (7×50 or 10×50).
 - A 150 to 200 mm Dobsonian is the classic first telescope.
 - Check light grasp, resolution, magnification and field before buying.

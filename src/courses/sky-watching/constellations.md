@@ -142,8 +142,6 @@ so `$\theta = 28.7^\circ$`: about five Pointer-lengths, or three fists. (The rig
 
 <div class="keypoints">
 
-**Key points**
-
 - 88 official constellations cover the whole sky with exact borders.
 - Asterisms like the Big Dipper are handy signposts.
 - Hand at arm's length: finger 1°, three fingers 5°, fist 10°, spread hand 20°.

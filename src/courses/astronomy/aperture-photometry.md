@@ -135,8 +135,6 @@ SNR `$\approx 9400/\sqrt{9400 + 6000} = 76$`, so `$\sigma_m \approx 1.086/76 = 0
 
 <div class="keypoints">
 
-**Key points**
-
 - Aperture photometry: sum inside a circle, subtract the sky from a ring.
 - S = Σ − n b; noise grows with both star and sky light.
 - Differential photometry against comparison stars cancels clouds and airmass.

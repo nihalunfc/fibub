@@ -145,8 +145,6 @@ Real day lengths are a few minutes longer than these, because the atmosphere ben
 
 <div class="keypoints">
 
-**Key points**
-
 - Seasons come from the 23.4° tilt of Earth's axis.
 - The Sun's declination swings from +23.4° (June) to −23.4° (December).
 - Noon altitude h = 90° − |φ − δ☉|; heat per square metre ∝ sin h.

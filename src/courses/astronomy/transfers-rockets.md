@@ -128,8 +128,6 @@ Only `$1/4.95 = 20\%$` of the starting mass is left at the end: 80% was fuel. An
 
 <div class="keypoints">
 
-**Key points**
-
 - A Hohmann transfer is half an ellipse touching both orbits.
 - Burns speed up or slow down along the direction of motion.
 - Rocket equation: m₀ / m<sub>f</sub> = e<sup>Δv / v<sub>e</sub></sup>, so fuel grows exponentially with Δv.

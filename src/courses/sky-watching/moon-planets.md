@@ -126,8 +126,6 @@ If the stars are twinkling hard, the seeing is poor and you'll see more at 120×
 
 <div class="keypoints">
 
-**Key points**
-
 - Observe the Moon near the terminator, not at full.
 - Outer planets are biggest at opposition: r = a − 1 AU.
 - Apparent size θ = 206,265″ × d / r.

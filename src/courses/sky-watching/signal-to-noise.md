@@ -122,8 +122,6 @@ so `$\sqrt t = 41.8$` and `$t = 1750$` s, about 29 minutes. With a sky four time
 
 <div class="keypoints">
 
-**Key points**
-
 - Photon (shot) noise is √N.
 - SNR = St / √(St + n(B + D)t + nR²).
 - Sky-limited: SNR grows as √t and falls as 1/√B.

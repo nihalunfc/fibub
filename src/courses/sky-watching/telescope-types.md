@@ -118,8 +118,6 @@ F = m_2 \, f_1
 
 <div class="keypoints">
 
-**Key points**
-
 - Refractors (lenses), reflectors (mirrors), catadioptrics (both).
 - Dobsonian reflectors give the most aperture per dollar.
 - Schmidt-Cassegrains fold a long focal length into a short tube: F = m₂ f₁.

@@ -129,8 +129,6 @@ That is about 400,000 times less energy than one photon of green light.
 
 <div class="keypoints">
 
-**Key points**
-
 - Radio, infrared, visible, ultraviolet, X-rays and gamma rays are one family: electromagnetic waves.
 - All travel at c = 2.998 × 10⁸ m/s in a vacuum, and c = λf.
 - Photon energy E = hc/λ; shortcut E (eV) ≈ 1240 / λ (nm).

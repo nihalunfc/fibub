@@ -126,8 +126,6 @@ Planetary imagers do the opposite: they use long focal lengths (often with a Bar
 
 <div class="keypoints">
 
-**Key points**
-
 - Image scale s = 206.265 × pixel size (µm) / focal length (mm).
 - Aim for 2 to 3 pixels across the seeing blur.
 - Field of view ≈ 57.3° × sensor size / focal length.

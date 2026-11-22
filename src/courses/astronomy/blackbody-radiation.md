@@ -132,8 +132,6 @@ About 800 times the Sun's radius, wider than the orbit of Mars. Its peak wavelen
 
 <div class="keypoints">
 
-**Key points**
-
 - A blackbody's spectrum depends only on its temperature.
 - Wien: λ<sub>peak</sub> T = 2.898 × 10⁻³ m K, so colour gives temperature.
 - Stefan-Boltzmann: power per area ∝ T⁴; luminosity L = 4πR²σT⁴.

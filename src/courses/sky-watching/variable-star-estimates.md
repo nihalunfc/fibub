@@ -127,8 +127,6 @@ m_V = 6.2 + (6.9 - 6.2) \times \frac{1}{1+3} = 6.2 + 0.175 = 6.4
 
 <div class="keypoints">
 
-**Key points**
-
 - Compare the variable with charted stars just brighter and just fainter.
 - Fractional method: m<sub>V</sub> = m<sub>A</sub> + (m<sub>B</sub> − m<sub>A</sub>) a/(a + b).
 - Report to 0.1 mag with the JD and chart ID.

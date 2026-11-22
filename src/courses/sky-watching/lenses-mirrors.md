@@ -124,8 +124,6 @@ That 6.8 mm Moon image is what the eyepiece magnifies, or what falls on a camera
 
 <div class="keypoints">
 
-**Key points**
-
 - Lenses bend (refract) light; mirrors reflect it to a focus.
 - Focal length is where parallel starlight meets: 1/u + 1/v = 1/f.
 - Simple lenses suffer colour fringes (chromatic aberration); mirrors do not.

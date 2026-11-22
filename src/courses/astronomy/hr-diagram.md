@@ -125,8 +125,6 @@ Where a star sits is set mainly by its mass and its age. A main-sequence star's 
 
 <div class="keypoints">
 
-**Key points**
-
 - The HR diagram plots luminosity against temperature (hot on the left).
 - Main sequence: hydrogen-burning stars; position set by mass.
 - Giants and supergiants are top right (cool, big); white dwarfs bottom left (hot, small).

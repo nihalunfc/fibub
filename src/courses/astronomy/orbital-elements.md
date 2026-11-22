@@ -124,8 +124,6 @@ The Moon can be up to about 5.1° north or south of the ecliptic, ten Moon-width
 
 <div class="keypoints">
 
-**Key points**
-
 - Six orbital elements: a, e, i, Ω, ω and a time or mean anomaly.
 - a and e give size and shape; i, Ω and ω give orientation.
 - Kepler's equation M = E − e sin E turns time into position.

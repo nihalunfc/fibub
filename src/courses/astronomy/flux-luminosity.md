@@ -123,8 +123,6 @@ That is `$100\times206{,}265 = 2.06\times10^7$` AU. The flux is `$1361/(2.06\tim
 
 <div class="keypoints">
 
-**Key points**
-
 - Luminosity is fixed for a star; flux depends on distance.
 - F = L / 4πd²: double the distance, a quarter of the flux.
 - The solar constant, 1,361 W/m², is the Sun's flux at Earth.

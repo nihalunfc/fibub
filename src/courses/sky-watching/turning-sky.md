@@ -135,8 +135,6 @@ Watch one night from latitude 45° N:
 
 <div class="keypoints">
 
-**Key points**
-
 - The sky turns 15° an hour around the celestial pole, because Earth spins.
 - Stars with δ > 90° − φ are circumpolar and never set.
 - A star on the celestial equator is up for 12 hours from anywhere.

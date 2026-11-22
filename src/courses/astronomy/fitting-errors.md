@@ -126,8 +126,6 @@ The temperature error, though only 2%, matters almost as much as the luminosity 
 
 <div class="keypoints">
 
-**Key points**
-
 - Least squares minimises the sum of squared, error-weighted misses (χ²).
 - Reduced χ² ≈ 1 means the model and error bars agree.
 - Errors add in quadrature: σ = √(σ₁² + σ₂²) for independent errors.

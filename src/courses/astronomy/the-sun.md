@@ -133,8 +133,6 @@ about 600 million tonnes of hydrogen per second. Even so, the Sun has enough hyd
 
 <div class="keypoints">
 
-**Key points**
-
 - The Sun fuses hydrogen into helium in its core at about 15 million K.
 - It loses 4.26 × 10⁹ kg of mass per second as light (L / c²).
 - Energy crosses the radiative zone, then the convection zone, then escapes at the photosphere.

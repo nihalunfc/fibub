@@ -119,8 +119,6 @@ Timing accuracy matters: 0.1 s error is 0.65 km of chord, so observers use video
 
 <div class="keypoints">
 
-**Key points**
-
 - Total vs annular depends on the Moon's distance; the umbra is about 374,000 km long.
 - Lunar eclipses turn the Moon red with sunlight bent through Earth's air.
 - Never look at the partial Sun without a certified solar filter.

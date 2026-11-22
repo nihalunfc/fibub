@@ -130,8 +130,6 @@ Seeing (Lesson 3.3) blurs every star by typically 1″ to 3″. Compare with the
 
 <div class="keypoints">
 
-**Key points**
-
 - Diffraction turns every star into an Airy disc with faint rings.
 - Rayleigh: θ = 1.22 λ/D ≈ 138″/D (mm); Dawson ≈ 116″/D (mm).
 - Bigger aperture, finer detail.

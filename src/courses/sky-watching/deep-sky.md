@@ -129,8 +129,6 @@ M57 is 6 magnitudes brighter per square arcsecond and shows even from a suburb; 
 
 <div class="keypoints">
 
-**Key points**
-
 - Deep-sky objects: open and globular clusters, nebulae, galaxies.
 - Surface brightness μ = m + 2.5 log₁₀(area) decides visibility.
 - Use low power for large faint objects; dark skies help most.

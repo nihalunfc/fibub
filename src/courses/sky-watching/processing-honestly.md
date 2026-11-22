@@ -127,8 +127,6 @@ Not fair: painting or cloning in detail, pasting stars or objects from other ima
 
 <div class="keypoints">
 
-**Key points**
-
 - Raw astronomical data are linear and need stretching to view.
 - Arcsinh stretches lift faint signal while protecting bright parts.
 - Colours come from filters; narrowband palettes map invisible light.

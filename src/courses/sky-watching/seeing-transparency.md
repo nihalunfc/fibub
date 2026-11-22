@@ -131,8 +131,6 @@ so a telescope larger than `$r_0$` is limited by the air, not by its aperture.
 
 <div class="keypoints">
 
-**Key points**
-
 - Seeing (steadiness) and transparency (clarity) are different.
 - Seeing blur ε ≈ 0.98 λ/r₀; typical 1″ to 3″.
 - Big telescopes are usually limited by seeing, not aperture.
