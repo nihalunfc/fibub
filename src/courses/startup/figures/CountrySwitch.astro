@@ -1,0 +1,12 @@
+---
+// The country switch at the top of every Start a startup lesson. The whole page keeps all three countries
+// (good for search); this only hides the boxes for the other two. Also loads the page script (./su.ts).
+---
+<div class="su-cc" role="group" aria-label="Show the rules for">
+  <span>Rules for</span>
+  <button type="button" data-set-cc="all" aria-pressed="true">All three</button>
+  <button type="button" data-set-cc="in" aria-pressed="false">India</button>
+  <button type="button" data-set-cc="ca" aria-pressed="false">Canada</button>
+  <button type="button" data-set-cc="us" aria-pressed="false">USA</button>
+</div>
+<script>import './su';</script>

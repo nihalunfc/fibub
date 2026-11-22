@@ -1,0 +1,35 @@
+---
+// 1.3: tick what you can do well; see which of the five jobs every business needs are covered and what to do about gaps.
+---
+<figure class="cs-fig su-fig" data-gaps>
+  <span class="cs-figtag">Try it: which jobs can you cover?</span>
+  <p class="su-say" style="margin-top:0">Tick each job you (and any co-founders) can do well today.</p>
+  <div class="su-cards" data-list></div>
+  <div class="su-bars"><div><span>Jobs covered</span><span class="t"><i data-bar></i></span><b data-n></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>No founder covers all five. A gap can be filled three ways: learn it, pay for it (a freelancer, an accountant), or bring in a co-founder. Only the last one costs equity, so save it for the job that matters most for your idea.</figcaption>
+</figure>
+<script>
+  const JOBS: [string, string, string][] = [
+    ['Build', 'Make the product or deliver the service', 'a technical co-founder, a contractor or a no-code tool'],
+    ['Sell', 'Find customers, talk to them, close deals', 'a sales or marketing co-founder; founders usually must sell at first anyway'],
+    ['Money and admin', 'Books, tax, filings, contracts', 'an accountant or bookkeeper on a monthly fee, and this course'],
+    ['Design', 'How it looks and feels to use', 'a freelance designer for the first version'],
+    ['Operations', 'Suppliers, delivery, support, hiring', 'a part-time operations hire once there are customers'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-gaps]')) {
+    const list = fig.querySelector('[data-list]')!;
+    JOBS.forEach(([n, d]) => { const l = document.createElement('label'); l.className = 'su-card'; l.innerHTML = `<span><input type="checkbox"> <strong style="display:inline"></strong></span><span class="su-fine" style="margin:2px 0 0"></span>`; l.querySelector('strong')!.textContent = n; l.querySelector('.su-fine')!.textContent = d; list.append(l); });
+    const boxes = [...list.querySelectorAll<HTMLInputElement>('input')];
+    function draw() {
+      const have = boxes.map((b) => b.checked); const n = have.filter(Boolean).length;
+      boxes.forEach((b) => b.closest('label')!.classList.toggle('on', b.checked));
+      (fig.querySelector('[data-bar]') as HTMLElement).style.width = `${(n / 5) * 100}%`;
+      fig.querySelector('[data-n]')!.textContent = `${n} of 5`;
+      const gaps = JOBS.filter((_, i) => !have[i]);
+      fig.querySelector('[data-say]')!.textContent = gaps.length === 0 ? 'All five covered: a rare, strong start. Still write down who decides what (Lesson 10.1).'
+        : `Gaps: ${gaps.map((g) => `${g[0]} (fill with ${g[2]})`).join('; ')}.`;
+    }
+    boxes.forEach((b) => b.addEventListener('change', draw)); draw();
+  }
+</script>

@@ -1,0 +1,36 @@
+---
+// 4.8: how long to keep business records, by country and record type, with the "keep until" date.
+---
+<figure class="cs-fig su-fig" data-rk>
+  <span class="cs-figtag">Try it: how long must I keep this?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Record<select name="rec"></select></label>
+    <label>Tax or financial year it belongs to ends on<input type="date" name="end" value="2026-03-31" /></label>
+  </div>
+  <div class="su-out"><div><span>Keep for at least</span><b data-y></b></div><div><span>Keep until</span><b data-until></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Minimums from the main tax and company laws; other laws (employment, health, contracts) can need longer, and an audit, appeal or loss carried forward extends the period. When unsure, keep it longer: digital copies are allowed in all three countries if they are complete and readable.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  const R: Record<string, [string, number, string][]> = {
+    in: [['Books of account (company)', 8, 'Companies Act: 8 financial years after the year they relate to.'], ['GST records', 6, 'GST law: 72 months from the due date of the annual return for that year, roughly 6 to 7 years after the year ends.'], ['Income tax records (non-company)', 6, 'Income tax rules: generally 6 years from the end of the assessment year for businesses that must keep books; longer if a case is open.'], ['Payroll, PF and ESI records', 5, 'Labour laws: typically 5 years; check your state and the labour codes.']],
+    ca: [['Books and records, receipts', 6, 'CRA: 6 years from the end of the last tax year they relate to.'], ['GST/HST records', 6, 'Same 6-year rule, from the end of the year.'], ['Payroll records', 6, 'CRA: 6 years; provincial employment standards also set minimums (often 3 years for many records).'], ['Corporate minute book and share register', 99, 'Keep for the life of the corporation plus 2 years after it is dissolved.']],
+    us: [['Income tax returns and support', 3, 'IRS: generally 3 years from filing; 6 years if income was under-reported by more than 25 %; 7 years for bad debt or worthless securities.'], ['Employment tax records', 4, 'IRS: at least 4 years after the tax is due or paid, whichever is later.'], ['Property and asset records', 3, 'Keep until 3 years after the year you sell or dispose of the asset.'], ['Sales tax records', 4, 'Most states: 3 or 4 years; check your state.']],
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-rk]')) {
+    const sel = fig.querySelector<HTMLSelectElement>('[name=rec]')!, end = fig.querySelector<HTMLInputElement>('[name=end]')!;
+    let c = 'in';
+    const cc = followCountry(fig, (x) => { c = x; sel.innerHTML = R[x].map((r, i) => `<option value="${i}">${r[0]}</option>`).join(''); end.value = x === 'in' ? '2026-03-31' : '2025-12-31'; draw(); });
+    function draw() {
+      const r = R[cc()][Number(sel.value) || 0]; if (!r) return;
+      fig.querySelector('[data-y]')!.textContent = r[1] === 99 ? 'life of the business' : `${r[1]} years`;
+      const d = new Date(end.value || '2026-03-31'); if (r[1] !== 99) d.setFullYear(d.getFullYear() + r[1]);
+      fig.querySelector('[data-until]')!.textContent = r[1] === 99 ? 'forever (plus 2 years)' : d.toISOString().slice(0, 10);
+      fig.querySelector('[data-say]')!.textContent = r[2];
+    }
+    sel.addEventListener('input', draw); end.addEventListener('input', draw);
+    void c;
+  }
+</script>

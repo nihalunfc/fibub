@@ -1,0 +1,40 @@
+---
+// 4.5: tick what the business does; see the Business Number and the CRA program accounts (and provincial accounts) it needs.
+---
+<figure class="cs-fig su-fig" data-bn>
+  <span class="cs-figtag">Try it: which CRA accounts do I need?</span>
+  <div class="su-opts" data-k>
+    <button type="button" data-a="corp" aria-pressed="true">It is a corporation</button>
+    <button type="button" data-a="gst" aria-pressed="true">Sales over $30,000 (or registering voluntarily)</button>
+    <button type="button" data-a="pay" aria-pressed="false">Paying employees (or myself a salary)</button>
+    <button type="button" data-a="imp" aria-pressed="false">Importing or exporting goods</button>
+    <button type="button" data-a="qc" aria-pressed="false">Selling in Quebec</button>
+    <button type="button" data-a="pst" aria-pressed="false">Selling goods in BC, Saskatchewan or Manitoba</button>
+  </div>
+  <p class="su-say" style="font-family:ui-monospace,monospace;font-size:17px" data-bnno></p>
+  <div class="su-cards" data-out></div>
+  <figcaption>The Business Number (BN) is nine digits and stays the same for life. Each program account adds two letters and four digits. Provincial sales taxes and workers' compensation are registered separately with the province, using the same BN in most provinces.</figcaption>
+</figure>
+<script>
+  const ACC: [string, string, string, string][] = [
+    ['corp', 'RC0001', 'Corporate income tax', 'Opened automatically for corporations; files the T2 return every year.'],
+    ['gst', 'RT0001', 'GST/HST', 'Charge GST/HST and file returns monthly, quarterly or yearly.'],
+    ['pay', 'RP0001', 'Payroll deductions', 'Remit income tax, CPP and EI withheld from pay; file T4 slips each February.'],
+    ['imp', 'RM0001', 'Import-export', 'Needed to clear goods through the Canada Border Services Agency (CBSA).'],
+    ['qc', 'QST', 'Quebec sales tax (with Revenu Québec)', 'Quebec registers GST and QST together for most Quebec businesses.'],
+    ['pst', 'PST', 'Provincial sales tax', 'Register with the province: BC PST 7 %, Saskatchewan PST 6 %, Manitoba RST 7 %.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bn]')) {
+    const out = fig.querySelector('[data-out]')!;
+    function draw() {
+      const on = new Set([...fig.querySelectorAll<HTMLButtonElement>('[data-k] button[aria-pressed=true]')].map((b) => b.dataset.a));
+      out.innerHTML = '';
+      const progs = ACC.filter((a) => on.has(a[0]));
+      fig.querySelector('[data-bnno]')!.textContent = progs.length ? progs.filter((p) => p[1].length === 6).map((p) => `123456789 ${p[1]}`).join('   ') || 'BN 123456789 (no CRA program accounts yet)' : 'No account needed yet: a sole proprietor under $30,000 with no staff may not need a BN at all.';
+      progs.forEach(([, code, name, d]) => { const c = document.createElement('div'); c.className = 'su-card on'; c.innerHTML = '<strong></strong><span></span>'; c.querySelector('strong')!.textContent = `${code}: ${name}`; c.querySelector('span')!.textContent = d; out.append(c); });
+      if (on.has('pay')) { const c = document.createElement('div'); c.className = 'su-card'; c.innerHTML = '<strong>Also: workers’ compensation</strong><span>Register with your province’s board (WSIB in Ontario, WorkSafeBC, WCB Alberta) if your industry requires coverage.</span>'; out.append(c); }
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-k] button').forEach((b) => b.onclick = () => { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); draw(); });
+    draw();
+  }
+</script>

@@ -1,0 +1,39 @@
+---
+// 3.4: rough federal tax on the same profit as a sole proprietor or single-member LLC, an S corp, or a C corp (USA, 2026).
+// Simplified on purpose: one personal marginal rate, no state tax, QBI deduction taken at 20 % with no limits.
+---
+<figure class="cs-fig su-fig" data-ut>
+  <span class="cs-figtag">Estimator: same profit, three tax treatments (USA)</span>
+  <div class="su-row">
+    <label>Profit before paying yourself ($)<input type="number" name="p" min="0" step="1000" value="120000" /></label>
+    <label>Your federal tax bracket<select name="r"><option>10</option><option>12</option><option selected>22</option><option>24</option><option>32</option><option>35</option><option>37</option></select></label>
+    <label>Salary you pay yourself (S and C corp, $)<input type="number" name="s" min="0" step="1000" value="60000" /></label>
+    <label>C corp: pay out the rest as dividends?<select name="div"><option value="1">Yes, all of it</option><option value="0">No, keep it in the company</option></select></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <p class="su-fine">Federal only, 2026 rules: self-employment and FICA tax 15.3 % on wages up to the $184,500 Social Security wage base (2.9 % above), corporate tax 21 %, qualified dividends taxed at 15 %, and the 20 % qualified business income (QBI) deduction applied in full. Real returns add state tax, income limits on QBI, the 0.9 % additional Medicare tax and payroll costs. Use it to compare, not to file.</p>
+  <figcaption>An S corp only saves money when profit is well above the salary the IRS would call "reasonable" for your work, and it adds payroll and a separate return. A C corp pays tax twice on profit it pays out, but founders raising venture capital use it anyway (Lesson 3.6).</figcaption>
+</figure>
+<script>
+  import { num, money } from './fmt';
+  const WB = 184500;
+  const fica = (w: number) => Math.min(w, WB) * 0.124 + w * 0.029;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ut]')) {
+    function draw() {
+      const P = Math.max(0, num(fig, 'p')), r = Number(fig.querySelector<HTMLSelectElement>('[name=r]')!.value) / 100, S = Math.min(Math.max(0, num(fig, 's')), P / 1.0765), div = fig.querySelector<HTMLSelectElement>('[name=div]')!.value === '1';
+      // Sole proprietor / single-member LLC
+      const se = fica(P * 0.9235), agi1 = P - se / 2, sole = se + r * (agi1 - 0.2 * agi1);
+      // S corp: wages S with both halves of FICA; the rest passes through
+      const pay = fica(S), rest = P - S - pay / 2, scorp = pay + r * (S + rest - 0.2 * Math.max(0, rest));
+      // C corp: same salary; corporate tax on what is left; dividends taxed at 15 %
+      const cprofit = P - S - pay / 2, ctax = 0.21 * Math.max(0, cprofit), ccorp = pay + r * S + ctax + (div ? 0.15 * Math.max(0, cprofit - ctax) : 0);
+      const rows: [string, number][] = [['Sole prop / LLC', sole], ['S corp', scorp], ['C corp', ccorp]];
+      const max = Math.max(...rows.map((x) => x[1])) || 1, min = Math.min(...rows.map((x) => x[1]));
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([n, v]) => `<div><span>${n}</span><span class="t"><i class="${v === min ? 'g' : ''}" style="width:${(v / max) * 100}%"></i></span><b>${money('us', v)}</b></div>`).join('');
+      const best = rows.find((x) => x[1] === min)![0];
+      fig.querySelector('[data-say]')!.textContent = `Lowest here: ${best}, about ${money('us', max - min)} less than the highest.${!div ? ' The C corp figure leaves profit inside the company; it is taxed again when paid out later.' : ''}`;
+    }
+    fig.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

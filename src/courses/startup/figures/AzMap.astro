@@ -1,0 +1,53 @@
+---
+// 1.4: the A to Z road from idea to an official, tax-registered business; play it or tap a stop. Text per country.
+---
+<figure class="cs-fig su-fig" data-az>
+  <span class="cs-figtag">Animation: the road from idea to official</span>
+  <svg viewBox="0 0 640 150" role="img" aria-label="A road with ten stops from idea to growing, and a marker moving along it">
+    <path d="M30 40 H610 V110 H30" fill="none" stroke="var(--line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+    <path data-trail d="M30 40 H610 V110 H30" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" pathLength="100" stroke-dasharray="0 100" />
+    <g data-stops></g>
+    <circle data-dot r="18" cx="30" cy="40" fill="none" stroke="var(--accent)" stroke-width="3.5" />
+  </svg>
+  <div class="su-btns" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-play>Play</button><button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn secondary" data-next>Next</button></div>
+  <div class="su-card on" style="margin-top:10px"><strong data-t></strong><div data-d></div><div class="su-fine" data-c></div></div>
+  <p class="su-wm">fibub.com</p>
+  <figcaption>Ten stops, in the usual order. Some can swap places (many founders open the bank account the same week they register), but tax registration always comes after the business exists, and hiring after payroll is set up.</figcaption>
+</figure>
+<script>
+  import { getCountry } from './su';
+  const S: [string, string, string, string, string][] = [
+    ['Idea', 'Find a problem people pay to solve (Module 2).', '', '', ''],
+    ['Test', 'Talk to customers, build the smallest version, get a first sale.', '', '', ''],
+    ['Structure', 'Choose a legal shape (Module 3).', 'Proprietorship, partnership, LLP, OPC or private limited company', 'Sole proprietorship, partnership or corporation', 'Sole proprietorship, LLC, S corp or C corp'],
+    ['Register', 'Make it official and get its numbers (Module 4).', 'SPICe+ on the MCA portal gives the company its CIN, PAN and TAN', 'Business name registration or incorporation, then a CRA Business Number', 'File with the state, then a free EIN from the IRS'],
+    ['Licences', 'Permits for your trade and premises (Module 5).', 'Shops and Establishments, trade licence, FSSAI and so on', 'Municipal business licence plus any provincial permits', 'City or county licence plus any state permits'],
+    ['Bank', 'A separate business account and payment set-up (Module 6).', 'Current account in the business name', 'Business chequing account', 'Business checking account'],
+    ['Sales tax', 'Register when you cross the limit, or sooner (Module 7).', 'GST registration', 'GST/HST (and PST or QST) accounts', 'Sales tax permits in nexus states'],
+    ['People', 'Payroll and contracts before the first hire (Module 9).', 'PF, ESI and professional tax as the team grows', 'CRA payroll account, workers’ compensation', 'State payroll accounts, workers’ comp, I-9'],
+    ['Protect', 'Trademark, IP assignments, privacy policy (Module 11).', 'Trademark with the CGPDTM', 'Trademark with CIPO', 'Trademark with the USPTO'],
+    ['Keep going', 'Annual returns and taxes on time, every year (Module 12).', 'ROC annual filings, ITR, GST returns', 'Annual return, T2 or T1, GST/HST returns', 'State annual report, federal and state tax returns'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-az]')) {
+    const g = fig.querySelector('[data-stops]')!, dot = fig.querySelector<SVGCircleElement>('[data-dot]')!, trail = fig.querySelector<SVGPathElement>('[data-trail]')!;
+    const pos = (k: number) => { const t = k / (S.length - 1); const L = 580 + 70 + 580; let d = t * L; if (d <= 580) return [30 + d, 40]; d -= 580; if (d <= 70) return [610, 40 + d]; d -= 70; return [610 - d, 110]; };
+    S.forEach(([t], k) => { const [x, y] = pos(k); const el = document.createElementNS('http://www.w3.org/2000/svg', 'g'); el.innerHTML = `<circle cx="${x}" cy="${y}" r="12" fill="var(--bg)" stroke="var(--accent)" stroke-width="2.5"/><text class="az-n" x="${x}" y="${y + 4.5}" text-anchor="middle">${k + 1}</text><text class="az-nm" x="${x}" y="${y < 80 ? y - 18 : y + 30}" text-anchor="middle">${t}</text>`; el.style.cursor = 'pointer'; el.addEventListener('click', () => go(k)); g.append(el); });
+    let i = 0, timer = 0;
+    function go(k: number) {
+      i = Math.max(0, Math.min(S.length - 1, k)); const [x, y] = pos(i);
+      dot.setAttribute('cx', String(x)); dot.setAttribute('cy', String(y));
+      trail.setAttribute('stroke-dasharray', `${(i / (S.length - 1)) * 100} 100`);
+      const s = S[i], cc = getCountry();
+      fig.querySelector('[data-t]')!.textContent = `${i + 1}. ${s[0]}`; fig.querySelector('[data-d]')!.textContent = s[1];
+      const det = cc === 'in' ? s[2] && `India: ${s[2]}` : cc === 'ca' ? s[3] && `Canada: ${s[3]}` : cc === 'us' ? s[4] && `USA: ${s[4]}` : [s[2] && `India: ${s[2]}`, s[3] && `Canada: ${s[3]}`, s[4] && `USA: ${s[4]}`].filter(Boolean).join(' · ');
+      fig.querySelector('[data-c]')!.textContent = det || '';
+    }
+    const stop = () => { clearInterval(timer); timer = 0; fig.querySelector('[data-play]')!.textContent = 'Play'; };
+    fig.querySelector<HTMLButtonElement>('[data-play]')!.onclick = (e) => { if (timer) return stop(); if (i === S.length - 1) go(0); (e.target as HTMLElement).textContent = 'Pause'; timer = window.setInterval(() => { if (i >= S.length - 1) return stop(); go(i + 1); }, 1600); };
+    fig.querySelector<HTMLButtonElement>('[data-prev]')!.onclick = () => { stop(); go(i - 1); };
+    fig.querySelector<HTMLButtonElement>('[data-next]')!.onclick = () => { stop(); go(i + 1); };
+    document.addEventListener('su-country', () => go(i));
+    go(0);
+  }
+</script>
+<style is:inline>[data-az] [data-dot] { transition: cx .6s ease, cy .6s ease; } [data-az] [data-trail] { transition: stroke-dasharray .6s ease; } [data-az] .az-n { font-weight: 700; font-size: 12px; } [data-az] [data-dot] { pointer-events: none; opacity: .85; } @media (max-width: 520px) { [data-az] .az-nm { display: none; } [data-az] .az-n { font-size: 17px; } [data-az] svg circle:not([data-dot]) { r: 16; } }</style>

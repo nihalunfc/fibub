@@ -57,6 +57,8 @@ export const COURSES: Course[] = [
   // cosmology course: Sky watching (src/courses/sky-watching/) and Astronomy (src/courses/astronomy/).
   { id: 'sky-watching', name: 'Sky watching', text: 'Amateur astronomy from your own eyes to binoculars, telescopes and astrophotography: how the sky moves, finding anything, dark skies, what to observe and taking honest astrophotos.', status: 'live', href: '/learn/courses/sky-watching/' },
   { id: 'astronomy', name: 'Astronomy', text: 'The science of stars, planets and galaxies: light and spectra, gravity and orbits, how stars live and die, galaxies, and the research methods astronomers use.', status: 'live', href: '/learn/courses/astronomy/' },
+  // Start a startup (nihal, 2026-11-22): India, Canada and the USA, src/courses/startup/.
+  { id: 'startup', name: 'Start a startup', text: 'Start a business in India, Canada or the USA, online or offline, alone or with co-founders: registering, licences, GST and sales tax, income tax, payroll, IP and equity, with official sources.', status: 'live', href: '/learn/courses/startup/' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned' },

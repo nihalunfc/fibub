@@ -1,0 +1,51 @@
+---
+// 1.2: switch on what the business does; the rules that apply light up, with the country-specific name.
+---
+<figure class="cs-fig su-fig" data-oo>
+  <span class="cs-figtag">Try it: what rules does my business trigger?</span>
+  <div class="su-opts" data-tg>
+    <button type="button" data-k="online" aria-pressed="true">Sells online</button>
+    <button type="button" data-k="shop" aria-pressed="false">Has a shop, office or kitchen</button>
+    <button type="button" data-k="goods" aria-pressed="false">Ships physical goods</button>
+    <button type="button" data-k="data" aria-pressed="true">Collects customer details</button>
+    <button type="button" data-k="food" aria-pressed="false">Food, health or alcohol</button>
+    <button type="button" data-k="staff" aria-pressed="false">Has staff</button>
+    <button type="button" data-k="abroad" aria-pressed="false">Sells to other countries</button>
+  </div>
+  <div class="su-cards" data-cards></div>
+  <figcaption>Every business needs the first three cards. The rest switch on with what you do. Online businesses skip most premises rules but pick up privacy, consumer and cross-border tax rules; offline ones pick up zoning, fire and health permits. Lessons later in the course cover each card.</figcaption>
+</figure>
+<script>
+  const RULES: { when: string; t: string; in: string; ca: string; us: string }[] = [
+    { when: '*', t: 'Register the business', in: 'Proprietorship needs no central registration; LLP and company register with the MCA', ca: 'Register a business name or incorporate (province or federal)', us: 'Form an LLC or corporation with a state, or file a DBA' },
+    { when: '*', t: 'Income tax', in: 'Income Tax Department: PAN, ITR every year', ca: 'CRA: T1 with T2125, or a T2 corporate return', us: 'IRS: Schedule C, Form 1065, 1120-S or 1120' },
+    { when: '*', t: 'Sales tax once over a threshold', in: 'GST registration over the turnover limit (sooner for some online sellers)', ca: 'GST/HST account once over $30,000 in four quarters', us: 'State sales tax permit where you have nexus' },
+    { when: 'online', t: 'Consumer and e-commerce rules', in: 'Consumer Protection (E-Commerce) Rules, 2020', ca: 'Provincial consumer protection acts, Competition Act', us: 'FTC rules (advertising, reviews, returns)' },
+    { when: 'data', t: 'Privacy law', in: 'Digital Personal Data Protection Act, 2023', ca: 'PIPEDA (Quebec Law 25, BC and Alberta acts)', us: 'State laws such as California CCPA; COPPA for children' },
+    { when: 'shop', t: 'Premises permits', in: 'State Shops and Establishments registration, trade licence from the municipality', ca: 'Municipal business licence, zoning, fire inspection', us: 'City or county business licence, zoning, certificate of occupancy' },
+    { when: 'goods', t: 'Product safety and labels', in: 'Legal Metrology packaging rules, BIS for some products', ca: 'Consumer Packaging and Labelling Act, Canada Consumer Product Safety Act', us: 'CPSC product safety, FTC labelling rules' },
+    { when: 'food', t: 'Food or health licence', in: 'FSSAI registration or licence', ca: 'Provincial and municipal food premises rules, CFIA for some foods', us: 'County health permit, FDA facility registration for some foods' },
+    { when: 'staff', t: 'Employer rules', in: 'Labour codes: wages, EPF, ESI, professional tax', ca: 'Payroll account, CPP, EI, provincial employment standards, workers’ compensation', us: 'EIN for payroll, FICA, state unemployment, workers’ comp, I-9' },
+    { when: 'abroad', t: 'Export and foreign tax', in: 'IEC code, LUT for zero-rated GST exports, FEMA rules on payments', ca: 'CBSA export rules, foreign sales tax rules', us: 'EAR export rules, other countries’ VAT or GST' },
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-oo]')) {
+    const cards = fig.querySelector('[data-cards]')!;
+    const on = () => new Set([...fig.querySelectorAll<HTMLButtonElement>('[data-tg] button[aria-pressed=true]')].map((b) => b.dataset.k!));
+    function draw() {
+      const s = on(); cards.innerHTML = '';
+      for (const r of RULES) {
+        const live = r.when === '*' || s.has(r.when) || (r.when === 'online' && s.has('online'));
+        if (!live) continue;
+        const c = document.createElement('div'); c.className = 'su-card on';
+        c.innerHTML = `<strong></strong><div class="cc-mini" data-only="in"></div><div class="cc-mini" data-only="ca"></div><div class="cc-mini" data-only="us"></div>`;
+        c.querySelector('strong')!.textContent = r.t;
+        const m = c.querySelectorAll<HTMLElement>('.cc-mini');
+        m[0].textContent = `India: ${r.in}`; m[1].textContent = `Canada: ${r.ca}`; m[2].textContent = `USA: ${r.us}`;
+        cards.append(c);
+      }
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-tg] button').forEach((b) => b.onclick = () => { b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')); draw(); });
+    draw();
+  }
+</script>
+<style is:inline>.cc-mini { font-size: 13px; margin-top: 3px; }</style>

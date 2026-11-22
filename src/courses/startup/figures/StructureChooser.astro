@@ -1,0 +1,43 @@
+---
+// 3.5: answer five questions; get the usual best-fit structure for India, Canada or the USA, with the reasons.
+---
+<figure class="cs-fig su-fig" data-sc>
+  <span class="cs-figtag">Guided chooser: which structure fits?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Who owns it?<select name="who"><option value="solo">Just me</option><option value="team">Two or more founders</option></select></label>
+    <label>Will you sell shares to investors?<select name="inv"><option value="0">No, self-funded or loans</option><option value="1">Yes, angels or venture capital</option></select></label>
+    <label>Could it run up debts or be sued?<select name="risk"><option value="0">Low risk (simple service)</option><option value="1">Real risk (stock, loans, staff, physical products)</option></select></label>
+    <label>Profit you expect to keep in the business<select name="prof"><option value="0">Little; I'll live on it</option><option value="1">A lot, to reinvest</option></select></label>
+  </div>
+  <div class="su-card good" style="margin-top:8px"><strong data-t></strong><div data-d></div><div class="su-fine" data-alt></div></div>
+  <figcaption>This gives the common answer for a typical founder, not legal advice. Your profession, visa or immigration status, where your customers are and your investors' wishes can all change it, so confirm with a lawyer or accountant before you register.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  type A = { who: string; inv: boolean; risk: boolean; prof: boolean };
+  function pick(cc: string, a: A): [string, string, string] {
+    if (cc === 'in') {
+      if (a.inv) return ['Private limited company', 'Investors buy shares, and only a company can issue them; it can also get DPIIT startup recognition and run an ESOP.', 'Register through SPICe+ on the MCA portal (Lesson 4.2).'];
+      if (a.who === 'solo') return a.risk || a.prof ? ['One Person Company (OPC)', 'Limited liability with one owner, and it converts into a private limited company when you add co-founders or investors.', 'If you expect to add co-founders soon, a private limited company from day one saves a conversion. Simple, low-risk freelancing can stay a proprietorship.'] : ['Sole proprietorship', 'Nothing to incorporate: you trade under your own PAN, register for GST and a shop licence if needed, and pay tax at your slab rates.', 'Move to an OPC or LLP once you take on real risk or staff.'];
+      return a.risk || a.prof ? ['Limited Liability Partnership (LLP)', 'Partners share profit like a partnership but are not personally liable for the firm’s debts, with fewer compliance steps than a company.', 'Choose a private limited company instead if you might raise equity later: investors rarely put money into LLPs.'] : ['LLP (or a registered partnership firm)', 'An LLP adds limited liability for a modest cost. A partnership firm is cheaper, but every partner is personally liable for all its debts.', 'Write a partnership or LLP agreement either way (Lesson 10.1).'];
+    }
+    if (cc === 'ca') {
+      if (a.inv) return ['Corporation (often federal)', 'Investors need shares; a Canadian-controlled private corporation (CCPC) also gets the small business tax rate and lets employees get favourable stock option treatment.', 'Federal incorporation protects your name across Canada; provincial is fine if you only operate in one province (Lesson 3.6).'];
+      if (a.risk || a.prof) return ['Corporation', a.prof ? 'Profit kept in a CCPC is taxed at the small business rate (about 9 % federal plus the provincial rate) instead of your personal rate, and your liability is limited.' : 'Limited liability protects your personal assets, and the business can outlive you.', 'Costs more to run: a separate T2 return and annual filings. If profit is small, a sole proprietorship can come first.'];
+      return a.who === 'solo' ? ['Sole proprietorship', 'Cheapest and simplest: register the business name with your province (unless you use only your own legal name) and report income on your T1 with form T2125.', 'Incorporate later when profit or risk grows; it is a common move.'] : ['General partnership', 'Simple and cheap: register the partnership name with your province and write a partnership agreement. Each partner reports their share on their T1.', 'Every partner is personally liable for all debts. LLPs in Canada are mainly for professions such as law and accounting, so a corporation is the usual way to get limited liability.'];
+    }
+    if (a.inv) return ['Delaware C corporation', 'Venture capital funds and most accelerators expect a Delaware C corp: shares, preferred stock, stock options and well-known law. Qualified small business stock (QSBS) can also make gains tax-free for founders who hold long enough.', 'Register it in Delaware and also in the state where you work (foreign qualification, Lesson 4.7).'];
+    if (a.prof) return ['LLC taxed as an S corporation', 'An LLC gives limited liability; electing S corp tax (Form 2553) can cut self-employment tax once profit is well above a reasonable salary for you.', 'S corp owners must be US citizens or residents and run payroll. Below roughly the salary you would pay yourself, a plain LLC is simpler.'];
+    return a.who === 'solo' ? [a.risk ? 'Single-member LLC' : 'Single-member LLC (or a sole proprietorship)', 'An LLC is cheap in most states and protects personal assets; for federal tax it is ignored by default and you file Schedule C, just like a sole proprietor.', 'Check your state’s yearly fee: some are high (California has an $800 minimum franchise tax).'] : ['Multi-member LLC', 'Limited liability, flexible profit splits in an operating agreement, and partnership tax by default (Form 1065 with a K-1 for each member).', 'If you might raise venture capital, start as a Delaware C corp instead to avoid converting later.'];
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sc]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!.value;
+    const cc = followCountry(fig, () => draw());
+    function draw() {
+      const [t, d, alt] = pick(cc(), { who: v('who'), inv: v('inv') === '1', risk: v('risk') === '1', prof: v('prof') === '1' });
+      fig.querySelector('[data-t]')!.textContent = `Usual fit: ${t}`; fig.querySelector('[data-d]')!.textContent = d; fig.querySelector('[data-alt]')!.textContent = alt;
+    }
+    fig.querySelectorAll('select').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

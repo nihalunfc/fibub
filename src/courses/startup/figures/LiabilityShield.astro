@@ -1,0 +1,42 @@
+---
+// 3.1 and 3.3: what happens to your personal savings when the business owes money it cannot pay, by structure.
+---
+<figure class="cs-fig su-fig" data-ls>
+  <span class="cs-figtag">Animation: who pays the business's debts?</span>
+  <div class="su-opts" data-k>
+    <button type="button" data-s="sole" aria-pressed="true">Sole proprietor</button>
+    <button type="button" data-s="gp" aria-pressed="false">General partnership</button>
+    <button type="button" data-s="ltd" aria-pressed="false">Company, LLP or LLC</button>
+  </div>
+  <label style="display:flex;gap:6px;align-items:center;font-size:14px;margin:4px 0"><input type="checkbox" data-pg /> I signed a personal guarantee for the loan</label>
+  <svg viewBox="0 0 600 170" role="img" aria-label="A debt arrow travelling from the business to the owner's personal assets">
+    <rect x="20" y="40" width="150" height="90" rx="10" class="box" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2" />
+    <text x="95" y="80" text-anchor="middle" style="font-weight:700">Business</text><text x="95" y="100" text-anchor="middle">owes ₹ / $ 50,000</text>
+    <rect data-wall x="292" y="20" width="16" height="130" rx="4" fill="var(--good)" opacity="0" />
+    <rect x="430" y="40" width="150" height="90" rx="10" fill="var(--surface)" stroke="var(--line)" stroke-width="2" />
+    <text x="505" y="74" text-anchor="middle" style="font-weight:700">You</text><text x="505" y="94" text-anchor="middle">savings, car,</text><text x="505" y="112" text-anchor="middle">home</text>
+    <g data-arrow><line x1="175" y1="85" x2="420" y2="85" stroke="var(--bad)" stroke-width="4" stroke-dasharray="10 6" /><polygon points="420,75 438,85 420,95" fill="var(--bad)" /></g>
+  </svg>
+  <p class="su-say" data-say></p>
+  <figcaption>A company, LLP or LLC is a separate legal person, so its debts are its own: you can lose what you put in, not your house. The shield has holes. A personal guarantee (banks and landlords often ask new founders for one), unpaid payroll taxes and fraud can still reach you.</figcaption>
+</figure>
+<script>
+  const SAY: Record<string, string> = {
+    sole: 'Sole proprietor: you and the business are the same person in law. Creditors can go after your personal savings and property.',
+    gp: 'General partnership: every partner is personally liable for all the partnership’s debts, even ones another partner ran up.',
+    ltd: 'Company, LLP or LLC: the debt stops at the business. Creditors can take the business’s assets, not yours.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ls]')) {
+    let s = 'sole'; const pg = fig.querySelector<HTMLInputElement>('[data-pg]')!;
+    const wall = fig.querySelector<SVGRectElement>('[data-wall]')!, arrow = fig.querySelector<SVGGElement>('[data-arrow]')!;
+    function draw() {
+      const shield = s === 'ltd', through = !shield || pg.checked;
+      wall.style.opacity = shield ? (pg.checked ? '0.35' : '1') : '0';
+      arrow.style.transition = 'clip-path .9s ease'; arrow.style.clipPath = 'inset(0 100% 0 0)';
+      requestAnimationFrame(() => requestAnimationFrame(() => { arrow.style.clipPath = through ? 'inset(0 0 0 0)' : 'inset(0 52% 0 0)'; }));
+      fig.querySelector('[data-say]')!.textContent = SAY[s] + (shield && pg.checked ? ' But with a personal guarantee, you promised to pay that loan yourself, so it goes straight through the shield.' : '');
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-k] button').forEach((b) => b.onclick = () => { s = b.dataset.s!; fig.querySelectorAll('[data-k] button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); });
+    pg.addEventListener('change', draw); draw();
+  }
+</script>

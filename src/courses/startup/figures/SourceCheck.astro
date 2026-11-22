@@ -1,0 +1,30 @@
+---
+// 1.5: spot the official government website among look-alikes (paid agents and copycat sites).
+---
+<figure class="cs-fig su-fig" data-src>
+  <span class="cs-figtag">Try it: which one is the official site?</span>
+  <div data-qs></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Official sites end in a government domain: <b>.gov.in</b> or <b>.nic.in</b> in India, <b>canada.ca</b> or <b>.gc.ca</b> federally and <b>.on.ca</b>, <b>.gov.bc.ca</b> and so on for provinces in Canada, and <b>.gov</b> in the USA. Agents with look-alike names can be legal, but they charge for forms you can often file yourself, and some are scams.</figcaption>
+</figure>
+<script>
+  const Q: [string, string[], number, string][] = [
+    ['Register a company in India', ['mca-registration-online.in', 'www.mca.gov.in', 'mcaindia.co.in'], 1, 'The Ministry of Corporate Affairs is mca.gov.in. The others are private agents.'],
+    ['Get a free EIN in the USA', ['irs-ein-tax-id.com', 'www.irs.gov', 'ein-online-filing.us'], 1, 'An EIN is free from irs.gov. Sites that charge $200 for one are private filing services.'],
+    ['Register for GST/HST in Canada', ['www.canada.ca (Canada Revenue Agency)', 'gst-hst-registration.ca', 'cra-online.org'], 0, 'CRA pages live on canada.ca. ".ca" alone is not a government sign: anyone can buy a .ca domain.'],
+    ['Apply for GST in India', ['www.gst.gov.in', 'gstregistration.co', 'gst-india.com'], 0, 'The GST portal is gst.gov.in, run by GSTN.'],
+    ['Form an LLC in Delaware', ['delawareinc-llc.com', 'corp.delaware.gov', 'delaware-llc.org'], 1, 'The Delaware Division of Corporations is corp.delaware.gov. US state sites end in .gov.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-src]')) {
+    const box = fig.querySelector('[data-qs]')!, say = fig.querySelector('[data-say]')!; let right = 0, done = 0;
+    for (const [q, opts, ans, why] of Q) {
+      const d = document.createElement('div'); d.innerHTML = `<p class="su-q"></p><div class="su-opts"></div><p class="su-fine" hidden></p>`;
+      d.querySelector('.su-q')!.textContent = q; const fine = d.querySelector<HTMLElement>('.su-fine')!; fine.textContent = why;
+      opts.forEach((o, k) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = o; b.onclick = () => {
+        if (d.dataset.done) return; d.dataset.done = '1'; done++; if (k === ans) right++;
+        b.classList.add(k === ans ? 'right' : 'wrong'); d.querySelectorAll('button')[ans].classList.add('right'); fine.hidden = false;
+        say.textContent = `${right} of ${done} right`; }; d.querySelector('.su-opts')!.append(b); });
+      box.append(d);
+    }
+  }
+</script>
