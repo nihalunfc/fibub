@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 import * as Q5 from '../_util.js';
+import more2 from './superposition-coupled.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -230,6 +231,7 @@ export default {
       options: ['Near $t = \\pi/\\varepsilon$ the figure is the straight line $y = -x$.', 'Near $t = \\pi/(2\\varepsilon)$ the figure is a circle.', 'The figure is the line $y = x$ once every $\\pi/\\varepsilon$.', 'Its axes always lie along the $x$ and $y$ axes.'], answer: [0, 1],
       sol: 'Over a few cycles this is a fixed-frequency Lissajous figure with a slowly growing phase difference $\\phi = \\varepsilon t$. $\\phi = \\pi$ (at $t = \\pi/\\varepsilon$) gives the line $y = -x$; $\\phi = \\pi/2$ gives a circle (equal amplitudes). The line $y = x$ needs $\\phi = 0, 2\\pi, \\dots$: once every $2\\pi/\\varepsilon$. For equal amplitudes the ellipses have their axes along the diagonals, not along $x$ and $y$ (except the circle). This is how an oscilloscope shows two nearly equal frequencies: the figure "breathes" at the beat frequency.',
       trap: 'Mixing up the time between lines on the same diagonal ($2\\pi/\\varepsilon$) with the time between the two diagonals ($\\pi/\\varepsilon$).' },
+    ...more2,
   ],
   gens: [
     { id: 'spc-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'adding SHMs', unit: 'cm',
