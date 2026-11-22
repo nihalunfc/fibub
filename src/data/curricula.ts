@@ -6,6 +6,7 @@
 // map like src/data/ncert.ts (a list of classes or grades, each with subjects and chapters that list
 // tool ids), export it here with status 'live', and add its pages. A 'planned' entry is not counted.
 import { CLASSES, type SchoolClass } from './ncert';
+import { NCERT_COURSES } from '../courses/ncert';
 import { UK_LEVELS } from './uk';
 import { ONTARIO_CLASSES } from './ontario';
 import { USA_GRADES } from './usa';
@@ -67,6 +68,7 @@ export const INDIA_NCERT_BOARDS: NcertBoard[] = [
  * School curricula are their own hub (/learn/school/).
  */
 export const COURSE_CATS = [
+  { id: 'school', name: 'School study notes', short: 'School', href: '/learn/school/', blurb: 'NCERT chapters explained with animations, tools and practice questions.' },
   { id: 'data-ai', name: 'Data and AI', short: 'Data & AI', href: '/learn/data-ai/', blurb: 'Statistics, SQL, dashboards, machine learning and running AI on your own computer.' },
   { id: 'science', name: 'Science and space', short: 'Science', href: '/learn/science/', blurb: 'Astronomy, cosmology, climate and how scientists work things out.' },
   { id: 'exams', name: 'Exam prep', short: 'Exam prep', href: '/learn/exam-prep/', blurb: 'Practice and strategy for entrance and admission tests such as the SAT and LSAT.' },
@@ -126,6 +128,8 @@ export const COURSES: Course[] = [
   // GMAT and GRE prep (nihal, 2026-11-22): src/courses/gmat/ and src/courses/gre/.
   { id: 'gmat', name: 'GMAT prep', text: 'The whole GMAT from zero: number properties, algebra, word problems, statistics, Critical Reasoning, Reading Comprehension and Data Insights, with worked examples, fresh practice questions every visit and timed practice.', status: 'live', href: '/learn/courses/gmat/', cat: 'exams' },
   { id: 'gre', name: 'GRE prep', text: 'The shorter GRE from zero: Quantitative Comparison, arithmetic, algebra, geometry and data, Text Completion, Sentence Equivalence, reading and the Issue essay, with worked examples, fresh practice questions every visit and a timed practice test.', status: 'live', href: '/learn/courses/gre/', cat: 'exams' },
+  // NCERT study materials (nihal, 2026-11-22): src/courses/ncert.ts, one course per class and subject.
+  ...NCERT_COURSES.map((c) => ({ id: c.id, name: c.name, text: c.text, status: 'live' as const, href: `/learn/courses/${c.id}/`, cat: 'school' as const })),
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned', cat: 'science' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned', cat: 'life' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned', cat: 'science' },

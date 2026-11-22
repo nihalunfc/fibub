@@ -7,6 +7,9 @@ import { allClasses, type Curriculum } from '../../data/curricula';
 import type { SchoolClass } from '../../data/ncert';
 import { allTools, toolUrl } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
+import { chapterLessons } from '../../courses/ncert';
+import { courseLessons } from '../../lib/course';
+import { NCERT_COURSES } from '../../courses/ncert';
 import '../../styles/area.css';
 export function getStaticPaths() {
   return allClasses().map(({ cur, cls }) => ({ params: { klass: cls.id }, props: { cls, cur } }));
@@ -14,7 +17,16 @@ export function getStaticPaths() {
 const { cls, cur } = Astro.props as { cls: SchoolClass; cur: Curriculum };
 const all = await allTools();
 const live = new Map(all.filter((t) => t.data.status === 'live').map((t) => [t.id, t]));
-const subjects = cls.subjects.map((s) => ({ ...s, chapters: s.chapters.map((ch) => ({ ...ch, live: ch.tools.map((id) => live.get(id)).filter((t) => !!t) })) }));
+// NCERT study notes (src/courses/ncert.ts): a chapter links its notes and practice page once they are written.
+const written = new Set<string>();
+for (const c of NCERT_COURSES) for (const slug of (await courseLessons(c)).keys()) written.add(`${c.id}/${slug}`);
+const study = (sid: string, ch: any) => {
+  if (cur.id !== 'ncert') return undefined;
+  const l = chapterLessons(cls.id, sid, ch);
+  if (!l) return undefined;
+  return { course: `/learn/courses/${l.course}/`, notes: written.has(`${l.course}/${l.slug}`) ? l.notes : undefined, practice: written.has(`${l.course}/${l.practiceSlug}`) ? l.practice : undefined };
+};
+const subjects = cls.subjects.map((s) => ({ ...s, chapters: s.chapters.map((ch) => ({ ...ch, study: study(s.id, ch), live: ch.tools.map((id) => live.get(id)).filter((t) => !!t) })) }));
 const count = new Set(subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.live.map((t) => t!.id)))).size;
 const names = cls.subjects.map((s) => s.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1');
 const title = `Learn: ${cls.name}`;
@@ -28,7 +40,7 @@ const range = cur.id === 'ncert' ? 'Class 8 to 12' : `${cur.name}, ${cur.grades}
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href={`/learn/school/#${cur.id}`}>{range}</a> / {cls.name}</div>
   <div class="ar-head">
     <h1>{cls.name}: {names}</h1>
-    <p class="lead">Every chapter, with tools to try: change a number, drag a point, run an experiment and see what happens. {count} tools so far, and more are on the way.</p>
+    <p class="lead">Every chapter, with study notes where they are ready and tools to try: change a number, drag a point, run an experiment and see what happens. {count} tools so far, and more are on the way.</p>
   </div>
   <nav class="lc-jump" aria-label="Subjects">
     {subjects.map((s) => <a href={`#${s.id}`}>{s.name}{s.book && <small> ({s.book})</small>}</a>)}
@@ -36,11 +48,13 @@ const range = cur.id === 'ncert' ? 'Class 8 to 12' : `${cur.name}, ${cur.grades}
   {subjects.map((s) => (
     <section class="lc-subject" id={s.id}>
       <h2>{s.name}{s.book && <small> · {s.book}</small>}</h2>
+      {s.chapters.some((ch) => ch.study) && <p class="lc-course">Study notes for every chapter, with animations, the tools below built in, and practice questions: <a href={s.chapters.find((ch) => ch.study)!.study!.course}>{cls.name} {s.name} course</a></p>}
       <ol class="lc-chapters">
         {s.chapters.map((ch) => (
           <li class="lc-ch" id={`${s.id}-${ch.n}`}>
             <h3><span class="lc-n">{ch.n}</span> {ch.title}</h3>
             <p class="lc-topics">{ch.topics}</p>
+            {(ch.study?.notes || ch.study?.practice) && <p class="lc-study">{ch.study.notes && <a class="lc-notes" href={ch.study.notes}>Study the chapter</a>}{ch.study.practice && <a href={ch.study.practice}>Practice questions</a>}</p>}
             {ch.live.length > 0
               ? <ul class="lc-tools">{ch.live.map((t) => <li><a href={toolUrl(t!)}>{t!.data.name}</a></li>)}</ul>
               : <p class="lc-soon">Tools for this chapter are coming soon.</p>}
@@ -70,4 +84,8 @@ const range = cur.id === 'ncert' ? 'Class 8 to 12' : `${cur.name}, ${cur.grades}
   .lc-tools a:hover { text-decoration: underline; }
   .lc-soon { margin: 0; font-size: 13.5px; color: var(--muted); font-style: italic; }
   .lc-other { margin-top: 24px; }
+  .lc-course { margin: 0 0 10px; font-size: 14.5px; }
+  .lc-study { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .lc-study a { display: inline-block; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; font-weight: 700; font-size: 14px; }
+  .lc-study a.lc-notes { background: var(--accent); color: var(--bg); }
 </style>
