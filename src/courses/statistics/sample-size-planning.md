@@ -16,9 +16,16 @@ quiz:
     choices: ['385', 'About 1,540 (385 per region)', '96']
     ans: 1
     why: 'Each subgroup needs its own 385 for that precision. Planning only the total leaves subgroups too small.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 6.1.4 Choosing a sample size when estimating a proportion https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 7.2.2.2 Sample sizes required https://www.itl.nist.gov/div898/handbook/prc/section2/prc222.htm'
 ---
 
 **Module 5 · about 20 minutes · school maths.** You'll be able to work out a sample size for a mean or a proportion, choose sensible guesses for σ and p, and adjust for response rates and subgroups.
+
+<div class="bigidea">Decide how precise the answer must be, then solve the margin-of-error formula backwards for n.</div>
+
+**In everyday terms:** before buying paint you measure the wall. Before a survey you decide how close the answer must be (the margin) and how much people vary (σ or p), and the sample size follows.
 
 ## 1. Start from the decision
 
@@ -53,6 +60,35 @@ with `$z$` = 1.96 for 95 %. Round up.
 - **Subgroups:** if each region must be reported separately, each needs its own n.
 - **Finite population:** if n is more than about 5 % of the population N, the corrected size is `$n' = n / (1 + (n-1)/N)$`. For 385 out of 2,000 employees: 385 ÷ 1.192 ≈ 323.
 - **Comparisons between groups** (A/B tests) need a different calculation, with power, in Lesson 7.3. Precision for one number isn't the same as being able to detect a difference.
+
+<div class="meaning">
+
+<dl>
+<dt>Margin E</dt><dd>How close you need to be, such as ±$5 or ±3 points.</dd>
+<dt>n = (z·σ / E)²</dt><dd>Sample size for a mean.</dd>
+<dt>n = z²·p(1 − p) / E²</dt><dd>Sample size for a share; use p = 0.5 if you have no idea (the worst case).</dd>
+<dt>Physical meaning</dt><dd>Precision costs in squares: halving the margin needs four times the sample. Population size barely enters, so a national survey and a city survey need about the same n.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Survey 10 % of the population."** Rules based on a share of the population waste money on big populations and fall short on small precise questions. Start from the margin you need.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The goal.</b> Average weekly grocery spend to within ±$5, 95 % confidence. Last year σ ≈ $60.</div>
+<div class="step"><b>Plug in.</b> n = (1.96 × 60 ÷ 5)² = 23.52² ≈ 553.2.</div>
+<div class="step"><b>Round up.</b> 554 completed responses.</div>
+<div class="step"><b>Non-response.</b> Past surveys get 20 % replies: invite 554 ÷ 0.2 = 2,770.</div>
+<div class="step"><b>Subgroups.</b> Each of 3 provinces to ±$8 needs 217 each, 651 in all. That is the binding need: plan for 651 replies.</div>
+</div>
+
+<div class="problem" data-problem="sample-size-mean"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -89,3 +125,12 @@ with `$z$` = 1.96 for 95 %. Round up.
 **Try it on your own data:** the [[sample-size]] calculator does these sums, including finite populations and response rates.
 
 **New words:** *sample size*, *margin of error*, *pilot study*, *finite population correction*, *response rate*.
+
+<div class="keypoints">
+
+- Start from the decision: what margin of error would change it?
+- Mean: n = (z·σ / E)²; share: n = z²·p(1 − p)/E² (p = 0.5 if unknown).
+- Halving the margin needs four times the sample.
+- Divide by the response rate, and plan for each subgroup you will report.
+
+</div>

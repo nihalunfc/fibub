@@ -16,9 +16,16 @@ quiz:
     choices: ['Delete it, it is an outlier', 'Find out why: a data entry error, a lost parcel, or a real but rare event', 'Replace it with the mean']
     ans: 1
     why: 'An outlier is a question, not an answer. Errors should be fixed or removed; real rare events (a lost parcel) may be the most important rows in the data.'
+sources:
+  - 'Tukey, J. W. (1977), Exploratory Data Analysis, Addison-Wesley (the box plot and fences)'
+  - 'NIST/SEMATECH e-Handbook, 1.3.3.7 Box Plot https://www.itl.nist.gov/div898/handbook/eda/section3/boxplot.htm'
 ---
 
 **Module 1 · about 25 minutes · school maths.** You'll be able to describe the shape of a distribution, read and draw a box plot, find outliers with the 1.5 × IQR rule and decide what to do with them.
+
+<div class="bigidea">The shape of the data decides which summaries you can trust, and an outlier is a question to investigate, not a row to delete.</div>
+
+**In everyday terms:** a box plot is like a summary of a race: where the middle runners crossed (the box), where most of the field finished (the whiskers), and the one runner who stopped for a picnic (the dot far out). You would ask the picnic runner what happened before deciding they don't count.
 
 ## 1. Shape tells you which summary to trust
 
@@ -67,6 +74,37 @@ For normal data this flags only about 0.7 % of values. For skewed data it flags 
 
 Never delete outliers just to make results look neater. Do say what you did: "3 test orders were removed; results with them included are in the appendix."
 
+<div class="meaning">
+
+<dl>
+<dt>Box</dt><dd>From Q1 to Q3: the middle half of the data, with a line at the median.</dd>
+<dt>Whiskers</dt><dd>Reach to the furthest values still inside the fences.</dd>
+<dt>Fences</dt><dd>Q1 − 1.5 × IQR and Q3 + 1.5 × IQR. Points beyond them are flagged as outliers.</dd>
+<dt>Right skew</dt><dd>A long tail of large values; the mean sits above the median.</dd>
+<dt>Physical meaning</dt><dd>Most business numbers have a floor (you cannot sell fewer than 0) and no ceiling, so they lean right: a few huge orders, long waits or big customers. The box plot shows that lean at a glance.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Outliers are errors, so remove them."** Some are errors (a typo, a test order). Many are real and important: the biggest customer, the outage, the fraud. Find out which, and state what you did. Deleting real extremes makes risks look smaller than they are.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> Minutes to answer 11 support emails: 12, 15, 18, 20, 22, 24, 25, 27, 30, 34, 95.</div>
+<div class="step"><b>Quartiles.</b> Median 24; Q1 = 19 (halfway from 18 to 20); Q3 = 28.5 (halfway from 27 to 30).</div>
+<div class="step"><b>IQR.</b> 28.5 − 19 = 9.5. The middle half of emails took between 19 and 28.5 minutes.</div>
+<div class="step"><b>Fences.</b> 1.5 × 9.5 = 14.25, so the fences are 4.75 and 42.75.</div>
+<div class="step"><b>Flag.</b> 95 is beyond 42.75: an outlier. The upper whisker stops at 34.</div>
+<div class="step"><b>Investigate.</b> Was the 95-minute email sent at closing time? If so it is real, and "1 in 11 waits over an hour and a half" may be the most useful finding.</div>
+</div>
+
+<div class="problem" data-problem="shape-outliers-fence"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -112,3 +150,12 @@ Before reporting, check the 95. If the email arrived on a Friday night and was a
 **Try it on your own data:** the [[box-plot-lab]] draws box plots from your numbers and marks outliers; the [[histogram-builder]] shows the shape with any bin width.
 
 **New words:** *histogram*, *skew (right, left)*, *bimodal*, *box plot*, *whisker*, *fence*, *outlier*, *skewness*.
+
+<div class="keypoints">
+
+- Symmetric data: mean and SD work. Skewed data: prefer median and IQR.
+- Box plot: box = Q1 to Q3, line = median, whiskers to the last values inside the fences.
+- Outlier rule: below Q1 − 1.5 × IQR or above Q3 + 1.5 × IQR.
+- Investigate every outlier: error, or a real extreme that matters?
+
+</div>

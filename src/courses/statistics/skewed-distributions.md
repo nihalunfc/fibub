@@ -16,9 +16,16 @@ quiz:
     choices: ['Lower, they are nearly done', 'The same: the exponential has no memory', 'Higher']
     ans: 1
     why: 'The exponential is memoryless: the remaining wait does not depend on how long you have already waited. (Real queues are not always like this.)'
+sources:
+  - 'NIST/SEMATECH e-Handbook, 1.3.6.6.7 Exponential Distribution and 1.3.6.6.9 Lognormal Distribution https://www.itl.nist.gov/div898/handbook/eda/section3/eda366.htm'
+  - 'Limpert, E., Stahel, W. A. and Abbt, M. (2001), Log-normal Distributions across the Sciences: Keys and Clues, BioScience 51(5), 341-352 https://doi.org/10.1641/0006-3568(2001)051[0341:LNDATS]2.0.CO;2'
 ---
 
 **Module 3 · about 20 minutes · school maths and logarithms.** You'll be able to use the exponential for waiting times, recognise log-normal money data, and explain why the median and percentiles describe both better than the mean.
+
+<div class="bigidea">Waiting times and money have a floor at zero and no ceiling, so a few huge values stretch the right tail and the mean ends up above the typical value.</div>
+
+**In everyday terms:** queue times at a bank: most people wait a few minutes, nobody waits less than zero, and now and then someone waits forty minutes. The long right tail drags the mean above what most people experience.
 
 ## 1. Data with a floor and no ceiling
 
@@ -57,6 +64,35 @@ The bigger `$\sigma$` (the spread of the logs), the further the mean runs above 
 - **Analyse logs when testing or modelling** money: differences in log values are percentage differences, which is how managers think about money anyway ("10 % higher").
 - **Keep the mean for totals.** Revenue is still mean × count, so for budgets you still need the mean, outliers and all.
 
+<div class="meaning">
+
+<dl>
+<dt>Exponential, rate λ</dt><dd>Time between independent events. Mean 1/λ; median 0.693/λ; P(wait > t) = e^(−λt).</dd>
+<dt>Log-normal</dt><dd>A variable whose logarithm is normal: order values, incomes, prices, file sizes.</dd>
+<dt>Median e^μ, mean e^(μ + σ²/2)</dt><dd>For a log-normal the mean always sits above the median, more so the bigger σ.</dd>
+<dt>Physical meaning</dt><dd>Log-normal data come from multiplying many small effects (a bit more income, a bit more spending, a bit bigger basket), while normal data come from adding them. Taking logs turns multiplying into adding and the skew into a bell.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Remove the big values and the data will be normal."** In skewed data the big values are part of the shape, not mistakes. Use medians and percentiles, or work on the log scale, instead of cutting the tail off.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The model.</b> Order values are log-normal with median $50 and log-spread σ = 0.8 (so μ = ln 50 ≈ 3.912).</div>
+<div class="step"><b>Mean.</b> 50 × e^(0.8²/2) = 50 × e^0.32 ≈ $68.86, well above the $50 median.</div>
+<div class="step"><b>Share above $100.</b> On the log scale: z = (ln 100 − 3.912) ÷ 0.8 ≈ 0.866; area above ≈ 19 %.</div>
+<div class="step"><b>95th percentile.</b> e^(3.912 + 1.645 × 0.8) ≈ $186.</div>
+<div class="step"><b>Report.</b> "Typical order $50; average $69 because one order in twenty is over $186."</div>
+</div>
+
+<div class="problem" data-problem="exponential-wait"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -94,3 +130,12 @@ The bigger `$\sigma$` (the spread of the logs), the further the mean runs above 
 **Try it on your own data:** the [[distribution-explorer]] draws exponential and log-normal curves and gives their percentiles; the [[histogram-builder]] shows whether your data has a long right tail.
 
 **New words:** *exponential distribution*, *memoryless*, *log-normal distribution*, *log scale*, *right tail*.
+
+<div class="keypoints">
+
+- Exponential: waiting times between independent events; P(wait > t) = e^(−λt), mean 1/λ.
+- Log-normal: logs are normal; typical for money and sizes.
+- In right-skewed data the mean sits above the median; report median and percentiles.
+- Logs turn multiplicative, skewed data into roughly symmetric data.
+
+</div>

@@ -16,9 +16,16 @@ quiz:
     choices: ['9', '24', '12']
     ans: 1
     why: 'Independent choices multiply: 3 × 2 × 4 = 24. Each version needs enough traffic, so full combination tests grow expensive fast.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 3.4 and the binomial coefficient in Section 4.3 https://www.openintro.org/book/os/'
+  - 'Blitzstein, J. and Hwang, J. (2019), Introduction to Probability, 2nd edition, Section 1.4 Naive definition and counting https://projects.iq.harvard.edu/stat110'
 ---
 
 **Module 2 · about 15 minutes · school maths.** You'll be able to count outcomes with the multiplication rule, factorials, permutations and combinations, and see why the number of tests or variants grows so fast.
+
+<div class="bigidea">Choices multiply: a few options each give a huge number of combinations, which is why testing everything at once rarely works.</div>
+
+**In everyday terms:** 3 shirts and 4 pairs of trousers make 3 × 4 = 12 outfits. Add 5 pairs of shoes and it is 60. Every new option multiplies, it does not add.
 
 ## 1. Why analysts count
 
@@ -48,6 +55,36 @@ When order does not matter (a team, a set of pairs, which customers said yes), d
 
 - Pairs among `$m$` groups: `$\binom{m}{2} = m(m-1)/2$`. With 10 regions, 45 pairs.
 - Which 3 of 10 customers responded: `$\binom{10}{3} = 120$` possible sets.
+
+<div class="meaning">
+
+<dl>
+<dt>Multiplication rule</dt><dd>k choices of one thing and m of another make k × m combinations.</dd>
+<dt>n! (factorial)</dt><dd>n × (n − 1) × ... × 1: the number of ways to put n things in order.</dd>
+<dt>Permutations nPr</dt><dd>Ordered picks of r from n: n! ÷ (n − r)!. Order matters (1st, 2nd, 3rd prize).</dd>
+<dt>Combinations nCr</dt><dd>Unordered picks: n! ÷ (r! (n − r)!). Order does not matter (a team of 3).</dd>
+<dt>Physical meaning</dt><dd>Counting tells you how fast possibilities explode. Ten on/off features make 1,024 versions of a page; comparing every pair of 10 versions makes 45 comparisons, and each comparison is another chance of a lucky false "win".</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Combinations and permutations are the same count."** Choosing 3 of 10 products for a shelf (a combination) gives 120 ways; choosing which 3 go 1st, 2nd and 3rd on it (a permutation) gives 720, six times as many, because each group of 3 can be ordered 3! = 6 ways.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The plan.</b> Test 4 new checkout features, each on or off.</div>
+<div class="step"><b>Multiply.</b> 2 × 2 × 2 × 2 = 16 versions of the page.</div>
+<div class="step"><b>Share the traffic.</b> 1,600 buyers a week split 16 ways is 100 buyers per version: far too few to see small effects.</div>
+<div class="step"><b>Simplify.</b> Test each feature against the current page instead: 5 arms in one test.</div>
+<div class="step"><b>Count the comparisons.</b> Every pair of 5 arms: 5C2 = 10 comparisons. More comparisons, more chances of a false win (Lesson 6.8).</div>
+</div>
+
+<div class="problem" data-problem="counting-pairs"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -89,3 +126,12 @@ Counting first turned an impossible plan into a workable one.
 **Try it on your own data:** the [[combinatorics-calculator]] works out factorials, permutations and combinations for any numbers, and the [[counting-machine]] lists every arrangement for small cases.
 
 **New words:** *multiplication rule*, *factorial*, *permutation*, *combination*, *n choose k*.
+
+<div class="keypoints">
+
+- Independent choices multiply: k × m × ...
+- n! counts the orders of n things.
+- Permutations count ordered picks; combinations count unordered ones and are smaller by r!.
+- nC2 = n(n − 1)/2 is the number of pairs: it grows fast and inflates false positives.
+
+</div>
