@@ -16,9 +16,16 @@ quiz:
     choices: ['No, 32 is close to 20', 'Yes: about 2.75 SDs above the mean, rare by chance alone', 'Cannot tell without a p-value table']
     ans: 1
     why: '(32 − 20) ÷ 4.36 ≈ 2.75. Counts that far above average happen well under 1 % of the time if the true rate is still 5 %.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 4.3 Binomial distribution https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 1.3.6.6.18 Binomial Distribution https://www.itl.nist.gov/div898/handbook/eda/section3/eda366i.htm'
 ---
 
 **Module 3 · about 25 minutes · school maths.** You'll be able to recognise a binomial situation, compute binomial probabilities, its mean and SD, and judge whether a count of yeses is surprising.
+
+<div class="bigidea">When n independent people each say yes with the same chance p, the number of yeses follows the binomial distribution, centred on n·p.</div>
+
+**In everyday terms:** flip a slightly biased coin 10 times and count heads. Conversions, clicks and defects work the same way: each visitor is one flip with chance p of "yes".
 
 ## 1. Counting yeses
 
@@ -67,6 +74,36 @@ That second formula is the standard error of a proportion. It returns in confide
 - **Not the same p:** mixing mobile (2 %) and desktop (6 %) traffic gives more variation than a single binomial. Split by segment.
 - **No fixed n:** orders per hour have no "number of tries". Use the Poisson (Lesson 3.3).
 
+<div class="meaning">
+
+<dl>
+<dt>n</dt><dd>Number of independent tries (visitors, tickets, units).</dd>
+<dt>p</dt><dd>Chance of a yes on each try.</dd>
+<dt>P(X = k) = nCk · p^k · (1 − p)^(n − k)</dt><dd>Ways to choose which k say yes × chance of that exact pattern.</dd>
+<dt>Mean n·p, SD √(n·p·(1 − p))</dt><dd>Where the count centres and how much it usually wobbles.</dd>
+<dt>Physical meaning</dt><dd>The binomial is the shape of "how many said yes" when everyone decides independently. Its SD grows like √n, so the share p̂ = X/n wobbles less as n grows: that is why big samples give steady percentages.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"10 % conversion means exactly 10 of 100 visitors will buy."** Ten is only the centre. With n = 100 and p = 0.1, the SD is 3, so anything from about 4 to 16 buyers is an ordinary day.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The setup.</b> 80 % of tickets are resolved first time. Next 10 tickets: chance at least 9 are?</div>
+<div class="step"><b>All 10.</b> 0.8¹⁰ ≈ 0.107.</div>
+<div class="step"><b>Exactly 9.</b> Which one fails? 10 ways. Each way: 0.8⁹ × 0.2. Total 10 × 0.134 × 0.2 ≈ 0.268.</div>
+<div class="step"><b>Add.</b> P(at least 9) ≈ 0.107 + 0.268 = 0.376, about 38 %.</div>
+<div class="step"><b>Centre and wobble.</b> Mean 10 × 0.8 = 8; SD √1.6 ≈ 1.26. A day with 6 of 10 is 1.6 SDs low: unlucky, not alarming.</div>
+</div>
+
+<div class="problem" data-problem="binomial-exact"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -106,3 +143,12 @@ Mean = 10 × 0.8 = 8 tickets; SD = √(10 × 0.8 × 0.2) = √1.6 ≈ 1.26. So a
 **Try it on your own data:** the [[binomial-distribution-lab]] draws any binomial and shades the probability you ask for; the [[distribution-explorer]] handles it alongside the other distributions.
 
 **New words:** *Bernoulli trial*, *binomial distribution*, *success probability*, *sample proportion*, *standard error of a proportion*.
+
+<div class="keypoints">
+
+- Binomial: n independent tries, same p, count the yeses.
+- P(X = k) = nCk · p^k · (1 − p)^(n − k).
+- Mean n·p; SD √(n·p(1 − p)); the share X/n has SD √(p(1 − p)/n).
+- It breaks when tries are not independent (one customer, many visits) or p changes.
+
+</div>

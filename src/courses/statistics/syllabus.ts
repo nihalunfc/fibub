@@ -8,6 +8,7 @@ import type { CourseSyllabus } from '../types';
 
 export const STATISTICS: CourseSyllabus = {
   id: 'statistics',
+  kit: true,
   name: 'Statistics for analysts',
   title: 'Statistics for analysts: from averages to A/B tests',
   text: 'The statistics data and BI analysts use every week: describing data, probability, distributions, sampling, confidence intervals, hypothesis tests and A/B testing, with simulations you can play with and every formula worked by hand.',

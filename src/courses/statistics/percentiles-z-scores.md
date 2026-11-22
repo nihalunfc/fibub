@@ -16,9 +16,16 @@ quiz:
     choices: ['It is easier to compute', 'It describes the slow cases customers remember, which the mean hides', 'It is always smaller than the mean']
     ans: 1
     why: 'A mean of 2 seconds can hide 1 visitor in 20 waiting 10 seconds. The 95th percentile puts a number on that tail.'
+sources:
+  - 'OpenIntro Statistics, 4th edition, Section 4.1 Normal distribution (z-scores and percentiles) https://www.openintro.org/book/os/'
+  - 'Hyndman, R. J. and Fan, Y. (1996), Sample Quantiles in Statistical Packages, The American Statistician 50(4), 361-365 https://doi.org/10.1080/00031305.1996.10473566'
 ---
 
 **Module 1 · about 20 minutes · school maths.** You'll be able to find percentiles, compute and read z-scores, and use them to compare values on different scales.
+
+<div class="bigidea">A z-score turns any value into "how many usual wobbles from normal", so values on different scales can be compared fairly.</div>
+
+**In everyday terms:** a 15 cm growth spurt means a lot for a 10-year-old and little for a tree. Dividing by what is normal for each (their SD) puts them on one scale. A percentile says the same thing as a rank: "taller than 90 out of 100 classmates".
 
 ## 1. One value in context
 
@@ -52,6 +59,34 @@ For roughly bell-shaped data, a z-score converts straight into a percentile (Les
 
 - z-scores come from the mean and SD, so outliers distort them, and on heavily skewed data the "1 in 20" rule fails. For skewed data, use percentiles.
 - A value can be unusual without being important: z = 3 on a tiny product line may matter less than z = 1.5 on the flagship.
+
+<div class="meaning">
+
+<dl>
+<dt>Percentile p</dt><dd>The value below which p % of the data falls. The 90th percentile of delivery time is the time 90 % of deliveries beat.</dd>
+<dt>z-score</dt><dd>z = (value − mean) ÷ SD: how many SDs above (+) or below (−) the mean.</dd>
+<dt>Physical meaning</dt><dd>z puts every measurement on the same ruler, marked in "usual wobbles". A z of +2 in sales and +2 in returns are equally unusual even though one is in dollars and the other in units.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"z = 2 always means the top 2.5 %."** That is true only for bell-shaped data. For skewed data like order values, many more values sit above z = 2. Use percentiles when the shape is skewed.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The question.</b> North sold $52,000 this week (usual $45,000, SD $5,000). South sold $18,500 (usual $15,000, SD $1,500). Which week was more unusual?</div>
+<div class="step"><b>Gaps.</b> North is $7,000 above its usual; South is $3,500 above its usual. North looks bigger in dollars.</div>
+<div class="step"><b>Divide by each region's wobble.</b> North: 7,000 ÷ 5,000 = 1.4. South: 3,500 ÷ 1,500 ≈ 2.33.</div>
+<div class="step"><b>Compare.</b> South's week is 2.33 usual wobbles above normal, North's only 1.4. South's week is the more unusual one.</div>
+<div class="step"><b>Report.</b> "South had its best week in a long while; North had a good but ordinary week."</div>
+</div>
+
+<div class="problem" data-problem="z-score-compare"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -94,3 +129,12 @@ North gained more dollars, but South's week is far more unusual for South: a jum
 **Try it on your own data:** the [[normal-curve-lab]] turns any z-score into a percentile and back; the [[distribution-explorer]] does the same for other distributions.
 
 **New words:** *percentile*, *percentile rank*, *P90 / P95*, *z-score*, *standardising*.
+
+<div class="keypoints">
+
+- A percentile is the value a given share of the data falls below; service targets are often written as 90th or 95th percentiles.
+- z = (value − mean) ÷ SD measures distance from normal in SDs.
+- z-scores compare values measured on different scales.
+- The "z = 2 is the top 2.5 %" rule needs bell-shaped data; for skewed data use percentiles.
+
+</div>

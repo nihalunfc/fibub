@@ -16,9 +16,16 @@ quiz:
     choices: ['Yes, it becomes 99 % likely', 'No: it stays a 95 % method, but the interval gets narrower', 'It becomes less likely']
     ans: 1
     why: 'The hit rate is fixed by the level. More data makes each interval shorter, so you learn more, but at the same 95 % reliability.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 5.2 Confidence intervals for a proportion (interpreting confidence) https://www.openintro.org/book/os/'
+  - 'Greenland, S. et al. (2016), Statistical tests, P values, confidence intervals, and power: a guide to misinterpretations, European Journal of Epidemiology 31, 337-350 https://doi.org/10.1007/s10654-016-0149-3'
 ---
 
 **Module 5 · about 15 minutes · no new maths.** You'll be able to explain correctly what a confidence level means, avoid the common misreadings, and say it plainly to non-statisticians.
+
+<div class="bigidea">"95 % confident" is a promise about the method: if you repeated the study many times, 95 % of the intervals it builds would contain the truth.</div>
+
+**In everyday terms:** a ring-toss player who rings the peg 95 % of the time. For any one throw you do not know if it landed, but you trust the player. The peg (the truth) never moves; the rings (intervals) do.
 
 ## 1. The method, not the interval
 
@@ -45,6 +52,35 @@ For a manager: "Our best estimate is 32 minutes, and we're fairly sure the true 
 Or, when deciding: "Even at the low end, 1.2 %, the lift pays for the display. At the high end it's 4.3 %."
 
 That second framing, **what would we do at each end of the interval?**, is the most useful way to use an interval at work. If you'd make the same decision anywhere in the range, you have enough data. If not, you need more, or a decision that holds up either way.
+
+<div class="meaning">
+
+<dl>
+<dt>The truth</dt><dd>One fixed number, unknown: it does not move between samples.</dd>
+<dt>The interval</dt><dd>Changes with every sample.</dd>
+<dt>95 %</dt><dd>The share of samples whose interval catches the truth.</dd>
+<dt>Physical meaning</dt><dd>Each study is one throw. The confidence level is the thrower's hit rate, not the chance that this particular ring is round the peg after it has landed.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If two intervals overlap, the groups are not different."** Overlapping intervals can still hide a real difference. Build the interval for the difference itself: if it excludes 0, the difference is clear at that level.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Two regions.</b> North basket $41.20 (CI $39.10 to $43.30); South $44.00 (CI $41.80 to $46.20).</div>
+<div class="step"><b>They overlap.</b> Tempting to say "no difference". Do not stop there.</div>
+<div class="step"><b>SEs.</b> Each margin ÷ 1.96: about 1.07 and 1.12.</div>
+<div class="step"><b>SE of the difference.</b> √(1.07² + 1.12²) ≈ 1.55.</div>
+<div class="step"><b>Interval for the difference.</b> 2.80 ± 1.96 × 1.55 = −$0.24 to $5.84. It includes 0: not clear at 5 %, though it leans towards South.</div>
+</div>
+
+<div class="problem" data-problem="ci-difference"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -84,3 +120,12 @@ Here the overlap did agree with the test. But with slightly narrower intervals t
 **Try it on your own data:** the [[bootstrap-permutation]] tool shows intervals from your own data; run it on two halves of a file to see how much intervals move.
 
 **New words:** *coverage*, *confidence level*, *prediction interval*, *credible interval*.
+
+<div class="keypoints">
+
+- The 95 % belongs to the method, not to one interval.
+- Plain wording: "the data fit a true value anywhere from A to B".
+- A wider interval is not a worse study; it is an honest one.
+- To compare groups, build the interval of the difference, not two overlapping intervals.
+
+</div>

@@ -16,9 +16,16 @@ quiz:
     choices: ['2.25 % to 3.75 %', '2.9 % to 3.1 %', '0 % to 6 %']
     ans: 0
     why: 'SE = √(0.03 × 0.97 ÷ 2,000) ≈ 0.0038; margin ≈ 0.75 points; interval ≈ 2.25 % to 3.75 %.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 6.1 Inference for a single proportion https://www.openintro.org/book/os/'
+  - 'Brown, L. D., Cai, T. T. and DasGupta, A. (2001), Interval Estimation for a Binomial Proportion, Statistical Science 16(2), 101-133 https://doi.org/10.1214/ss/1009213286'
 ---
 
 **Module 5 · about 20 minutes · school maths.** You'll be able to compute Wald and Wilson intervals for a proportion, know when the simple formula breaks, and read a poll's margin of error.
+
+<div class="bigidea">A percentage from a sample needs a range too: p̂ ± 1.96 × √(p̂(1 − p̂)/n), or the Wilson interval when the sample is small or the share is near 0 % or 100 %.</div>
+
+**In everyday terms:** a poll of 1,000 people says "45 %, plus or minus 3 points". That ±3 is the margin of error: the share in the whole country is very likely somewhere from 42 % to 48 %.
 
 ## 1. Percentages need intervals too
 
@@ -56,6 +63,36 @@ Slide p̂ to 2 % with n = 100: the Wald interval dips below zero, Wilson doesn't
 - The margin covers sampling error only, not bias (Lesson 4.2).
 
 **Rule of three:** if 0 of `$n$` items had a problem, the 95 % upper limit for the true rate is about `$3/n$`. Zero complaints from 300 customers: true rate likely under 1 %.
+
+<div class="meaning">
+
+<dl>
+<dt>p̂ = x/n</dt><dd>The share in your sample.</dd>
+<dt>√(p̂(1 − p̂)/n)</dt><dd>Its standard error.</dd>
+<dt>Wald interval</dt><dd>p̂ ± 1.96·SE. Simple, fine for large n and shares away from the edges.</dd>
+<dt>Wilson interval</dt><dd>A better interval that never goes below 0 % or above 100 % and works for small n.</dd>
+<dt>Physical meaning</dt><dd>A share is pulled hardest when it is near 50 % (the most uncertainty) and least near 0 or 100 %. That is why a 1,000-person poll is ±3 points at worst.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"0 defects in 50 units means the defect rate is 0 %."** It means the rate is probably low, not zero. The Wilson interval is 0 % to about 7 %; the rule of three gives roughly 3/n = 6 % as an upper bound.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The survey.</b> 186 of 300 customers like the new menu.</div>
+<div class="step"><b>Share.</b> p̂ = 186 ÷ 300 = 0.62.</div>
+<div class="step"><b>SE.</b> √(0.62 × 0.38 ÷ 300) ≈ 0.028.</div>
+<div class="step"><b>Margin.</b> 1.96 × 0.028 ≈ 0.055, about 5.5 points.</div>
+<div class="step"><b>Interval.</b> 56.5 % to 67.5 %. All above 50 %: a majority likes the menu, if the 300 were a fair sample.</div>
+</div>
+
+<div class="problem" data-problem="ci-proportion"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -95,3 +132,12 @@ Report: "62 % like the new menu (95 % CI 56 % to 67 %, n = 300)." The interval i
 **Try it on your own data:** the [[hypothesis-tests]] tool gives Wilson intervals for a count out of a total; the [[sample-size]] calculator works the other way, from margin to n.
 
 **New words:** *proportion*, *Wald interval*, *Wilson interval*, *margin of error*, *rule of three*.
+
+<div class="keypoints">
+
+- Share: p̂ ± 1.96 × √(p̂(1 − p̂)/n) for 95 % (Wald).
+- Use the Wilson interval for small n or shares near 0 % or 100 %.
+- The margin of error is largest at 50 %; ±3 points needs about 1,000 people.
+- Zero events does not mean a zero rate; report an upper bound.
+
+</div>
