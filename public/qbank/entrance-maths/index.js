@@ -73,6 +73,14 @@ export default {
           "name": "Matrices and determinants"
         },
         {
+          "id": "applications-derivatives",
+          "name": "Applications of derivatives"
+        },
+        {
+          "id": "indefinite-integrals",
+          "name": "Indefinite integrals"
+        },
+        {
           "id": "definite-integrals",
           "name": "Definite integrals and area"
         },
