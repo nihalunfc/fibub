@@ -76,6 +76,14 @@ Dryopithecus and Ramapithecus (~15 million years ago) → Australopithecines (Ea
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-peppered-moth"><figcaption>Natural selection with 100 moths on light or dark bark, predation slider, generation by generation allele chart.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-genetic-drift"><figcaption>Eight populations with no selection drifting in allele frequency; population size slider and new run.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="evolution" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

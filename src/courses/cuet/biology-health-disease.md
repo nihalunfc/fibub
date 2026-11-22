@@ -64,6 +64,14 @@ Allergy is an over-reaction to harmless things (pollen, dust mites) by IgE and h
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-vaccine-response"><figcaption>Primary and secondary antibody response on a log scale; second-dose day slider, vaccine or infection.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-malaria-cycle"><figcaption>Six-step Plasmodium life cycle between mosquito and human with fever-cycle explanation.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="health-disease" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

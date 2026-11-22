@@ -77,6 +77,20 @@ Polarisation shows light is transverse. Malus's law: I = I₀ cos²θ through an
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@em-mirror-rays"><figcaption>Concave and convex mirror ray diagrams with a movable object and the mirror formula.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-snell-tir"><figcaption>Snell's law, critical angle and Fresnel shares, plus an optical fibre with its acceptance angle.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-prism-dispersion"><figcaption>Prism with seven traced colours, apex and incidence sliders and a minimum-deviation button.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-single-slit"><figcaption>Single-slit and finite-width double-slit intensity patterns with the screen strip.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-brewster"><figcaption>Reflection polarisation at the Brewster angle and a Malus-law stack of polaroids.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="ray-optics,wave-optics" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

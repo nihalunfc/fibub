@@ -72,6 +72,14 @@ PCR copies a chosen piece of DNA in cycles of denaturation (~94 °C), primer ann
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-rdna-steps"><figcaption>Six-step recombinant DNA: cut, anneal, ligate, transform, select with antibiotic, grow.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-gel-electrophoresis"><figcaption>Agarose gel run: ladder, crime-scene and three suspect lanes; voltage and agarose percentage.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="biotech-principles,biotech-applications" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>
