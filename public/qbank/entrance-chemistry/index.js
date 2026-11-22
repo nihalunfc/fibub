@@ -66,12 +66,20 @@ export default {
       "name": "Class 12",
       "topics": [
         {
+          "id": "solutions",
+          "name": "Solutions and colligative properties"
+        },
+        {
           "id": "electrochemistry",
           "name": "Electrochemistry"
         },
         {
           "id": "chemical-kinetics",
           "name": "Chemical kinetics"
+        },
+        {
+          "id": "p-block",
+          "name": "p-block elements (groups 13 to 18)"
         },
         {
           "id": "d-f-block",
@@ -88,6 +96,14 @@ export default {
         {
           "id": "alcohols-phenols-ethers",
           "name": "Alcohols, phenols and ethers"
+        },
+        {
+          "id": "aldehydes-ketones-acids",
+          "name": "Aldehydes, ketones and carboxylic acids"
+        },
+        {
+          "id": "amines",
+          "name": "Amines and diazonium salts"
         }
       ]
     }

@@ -43,6 +43,10 @@ export default {
           "name": "Cell: the unit of life"
         },
         {
+          "id": "cell-biomolecules",
+          "name": "Biomolecules and enzymes"
+        },
+        {
           "id": "cell-cycle",
           "name": "Cell cycle and cell division"
         },
@@ -53,6 +57,10 @@ export default {
         {
           "id": "plant-respiration",
           "name": "Respiration in plants"
+        },
+        {
+          "id": "plant-growth",
+          "name": "Plant growth and development"
         },
         {
           "id": "breathing",
