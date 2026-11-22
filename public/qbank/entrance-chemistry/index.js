@@ -41,6 +41,14 @@ export default {
         {
           "id": "chemical-equilibrium",
           "name": "Chemical equilibrium"
+        },
+        {
+          "id": "ionic-equilibrium",
+          "name": "Ionic equilibrium: acids, bases, pH and buffers"
+        },
+        {
+          "id": "redox",
+          "name": "Redox reactions"
         }
       ]
     }

@@ -41,6 +41,14 @@ export default {
         {
           "id": "centre-of-mass-collisions",
           "name": "Centre of mass, momentum and collisions"
+        },
+        {
+          "id": "rotational-motion",
+          "name": "Rotational motion"
+        },
+        {
+          "id": "gravitation",
+          "name": "Gravitation"
         }
       ]
     }

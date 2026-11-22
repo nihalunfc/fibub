@@ -30,6 +30,14 @@ export default {
           "name": "Morphology of flowering plants"
         },
         {
+          "id": "plant-anatomy",
+          "name": "Anatomy of flowering plants"
+        },
+        {
+          "id": "animal-tissues",
+          "name": "Structural organisation in animals"
+        },
+        {
           "id": "cell",
           "name": "Cell: the unit of life"
         },

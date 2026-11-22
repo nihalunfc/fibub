@@ -40,6 +40,14 @@ export default {
         {
           "id": "binomial-theorem",
           "name": "Binomial theorem"
+        },
+        {
+          "id": "sequences-series",
+          "name": "Sequences and series"
+        },
+        {
+          "id": "straight-lines",
+          "name": "Straight lines"
         }
       ]
     }
