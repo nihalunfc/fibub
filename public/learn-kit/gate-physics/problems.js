@@ -1159,4 +1159,89 @@ export default {
     },
     verify: (p) => { const c = 2.99792458e8, g = 1 / Math.sqrt((1 - p.b) * (1 + p.b)), F02 = -p.E / c, F12 = -p.B; return p.ask === 'E' ? (-g * (F02 - p.b * F12) * c) / 1e5 : -g * (F12 - p.b * F02) * 1e3; },
   },
+  // ---- 7.6 to 7.10 solid state (free electrons, bands, Hall, magnetism, superconductivity) ----
+  'fem-fermi-gas': {
+    title: 'Fermi energy, velocity and temperature of a metal',
+    make(r) {
+      const mets = [['sodium', 1, 2.54], ['potassium', 1, 1.40], ['copper', 1, 8.47], ['silver', 1, 5.86], ['magnesium', 2, 4.30], ['aluminium', 3, 6.02], ['zinc', 2, 6.57]];
+      const [name, Z, na] = mets[int(r, 0, mets.length - 1)];
+      const n = Z * na * 1e28, kF = Math.cbrt(3 * Math.PI ** 2 * n), vF = 1.054571817e-34 * kF / 9.1093837015e-31;
+      const EF = 0.5 * 9.1093837015e-31 * vF * vF / 1.602176634e-19, answer = vF / 1e6;
+      return {
+        q: `<p>${name[0].toUpperCase() + name.slice(1)} has ${na} × 10²⁸ atoms per m³ and ${Z} conduction electron${Z > 1 ? 's' : ''} per atom. Treating them as a free electron gas, find the Fermi velocity in units of 10⁶ m/s.</p>`,
+        answer, unit: '× 10⁶ m/s', tol: 0.01,
+        hint: 'Multiply the atom density by the valence to get n. Then k_F = (3π²n)^(1/3) and v_F = ħk_F/m.',
+        solution: steps(`n = ${Z} × ${na} × 10²⁸ = ${(n / 1e28).toFixed(2)} × 10²⁸ m⁻³.`, `k_F = (3π²n)^(1/3) = ${(kF / 1e10).toFixed(3)} Å⁻¹.`, `v_F = ħk_F/m = 1.0546 × 10⁻³⁴ × ${kF.toExponential(3)} / 9.109 × 10⁻³¹ = <b>${answer.toFixed(3)} × 10⁶ m/s</b>.`, `For comparison E_F = ½mv_F² = ${EF.toFixed(2)} eV and T_F = ${Math.round(EF / 8.617333e-5)} K.`),
+        n,
+      };
+    },
+    verify: (p) => Math.sqrt(2 * (1.054571817e-34 ** 2 / (2 * 9.1093837015e-31)) * (3 * Math.PI ** 2 * p.n) ** (2 / 3) / 9.1093837015e-31) / 1e6,
+  },
+  'bth-tight-binding': {
+    title: 'effective mass along a tight-binding band',
+    make(r) {
+      const t = [0.25, 0.5, 0.75, 1, 1.5][int(r, 0, 4)], a = [0.2, 0.25, 0.3, 0.4][int(r, 0, 3)];
+      const kas = [[0, '0'], [1 / 6, 'π/6'], [1 / 4, 'π/4'], [1 / 3, 'π/3'], [2 / 3, '2π/3'], [5 / 6, '5π/6']];
+      const [f, lab] = kas[int(r, 0, kas.length - 1)];
+      const c = Math.cos(Math.PI * f), answer = 0.0381 / (t * a * a * c);
+      return {
+        q: `<p>Electrons in a chain have the tight-binding band E(k) = E₀ − 2t cos ka with t = ${t} eV and a = ${a} nm. Find the effective mass m*/m<sub>e</sub> at ka = ${lab} (with its sign). Use ħ²/2m<sub>e</sub> = 0.0381 eV nm².</p>`,
+        answer, unit: 'm_e', tol: 0.01,
+        hint: '1/m* = (1/ħ²) d²E/dk². Here d²E/dk² = 2ta² cos ka, so m*/m_e = (ħ²/2m_e)/(ta² cos ka).',
+        solution: steps(`d²E/dk² = 2ta² cos ka = 2 × ${t} × ${a}² × ${c.toFixed(4)} eV nm².`, `m*/m_e = (ħ²/2m_e) / (ta² cos ka) = 0.0381 / (${t} × ${(a * a).toFixed(4)} × ${c.toFixed(4)}) = <b>${answer.toFixed(3)}</b>.`, c < 0 ? 'Past ka = π/2 the band curves downward and the mass is negative: a force pushes the electron backwards.' : 'At ka = π/2 the curvature vanishes and |m*| becomes infinite; beyond it the mass turns negative.'),
+        t, a, f,
+      };
+    },
+    verify: (p) => 0.0381 / (p.t * p.a * p.a * Math.cos(Math.PI * p.f)),
+  },
+  'shl-two-carrier': {
+    title: 'Hall coefficient with electrons and holes',
+    make(r) {
+      const n = int(r, 1, 9), p = int(r, 1, 9), me = [0.15, 0.2, 0.3, 0.4, 0.6][int(r, 0, 4)], mh = [0.05, 0.1, 0.15][int(r, 0, 2)];
+      const num = p * mh * mh - n * me * me, den = (p * mh + n * me) ** 2;
+      const answer = num / (1.602176634e-19 * den * 1e21) * 1e3;
+      return {
+        q: `<p>A sample holds n = ${n} × 10²¹ m⁻³ electrons (μ<sub>e</sub> = ${me} m²/V s) and p = ${p} × 10²¹ m⁻³ holes (μ<sub>h</sub> = ${mh} m²/V s). Find its weak-field Hall coefficient in units of 10⁻³ m³/C, with sign.</p>`,
+        answer, unit: '× 10⁻³ m³/C', tol: 0.01, abs: 0.002,
+        hint: 'R_H = (pμ_h² − nμ_e²) / [e(pμ_h + nμ_e)²]. Each carrier counts with its mobility squared on top.',
+        solution: steps(`Numerator: pμ_h² − nμ_e² = (${p} × ${mh}² − ${n} × ${me}²) × 10²¹ = ${num.toFixed(4)} × 10²¹ m⁻³ (m²/V s)².`, `Denominator: e(pμ_h + nμ_e)² = 1.602 × 10⁻¹⁹ × (${(p * mh + n * me).toFixed(3)} × 10²¹)².`, `R_H = <b>${answer.toFixed(3)} × 10⁻³ m³/C</b>: ${answer < 0 ? 'negative, the electrons win' : 'positive, the holes win'}${(answer < 0) === (p > n) ? ' even though they are outnumbered' : ''}.`),
+        n, p, me, mh,
+      };
+    },
+    verify: (q) => (q.p * q.mh ** 2 - q.n * q.me ** 2) / (1.602176634e-19 * (q.p * q.mh + q.n * q.me) ** 2 * 1e21) * 1e3,
+  },
+  'mgx-curie-weiss': {
+    title: 'Curie-Weiss temperature from two measurements',
+    make(r) {
+      const th = [-120, -60, -30, 20, 50, 90][int(r, 0, 5)], Cc = [0.5, 1, 1.5, 2.5][int(r, 0, 3)];
+      const T1 = Math.max(0, th) + [40, 80][int(r, 0, 1)], T2 = T1 + [100, 200][int(r, 0, 1)];
+      const c1 = +(1000 * Cc / (T1 - th)).toPrecision(4), c2 = +(1000 * Cc / (T2 - th)).toPrecision(4);
+      const answer = (c1 * T1 - c2 * T2) / (c1 - c2);
+      return {
+        q: `<p>A magnetic salt obeys χ = C/(T − θ). Its susceptibility is ${c1} × 10⁻³ at ${T1} K and ${c2} × 10⁻³ at ${T2} K. Find θ in kelvin, with sign.</p>`,
+        answer, unit: 'K', tol: 0.01, abs: 0.5,
+        hint: 'C = χ(T − θ) is the same at both temperatures. Equivalently 1/χ is a straight line in T that crosses zero at T = θ.',
+        solution: steps(`χ₁(T₁ − θ) = χ₂(T₂ − θ), so θ = (χ₁T₁ − χ₂T₂)/(χ₁ − χ₂).`, `θ = (${c1} × ${T1} − ${c2} × ${T2}) / (${c1} − ${c2}) = <b>${answer.toFixed(1)} K</b>.`, answer > 0 ? 'Positive θ: ferromagnetic interactions, ordering near T_C ≈ θ.' : 'Negative θ: antiferromagnetic interactions; the Néel temperature is usually below |θ|.'),
+        c1, c2, T1, T2,
+      };
+    },
+    verify: (p) => (p.c1 * p.T1 - p.c2 * p.T2) / (p.c1 - p.c2),
+  },
+  'scd-silsbee': {
+    title: 'critical current of a superconducting wire at temperature T',
+    make(r) {
+      const els = [['tin', 3.72, 30.5], ['lead', 7.19, 80.3], ['indium', 3.41, 28.1], ['mercury', 4.15, 41.1]];
+      const [name, Tc, B0] = els[int(r, 0, els.length - 1)];
+      const t = [0.2, 0.4, 0.5, 0.6, 0.8][int(r, 0, 4)], T = +(t * Tc).toFixed(3), rad = [0.1, 0.25, 0.5, 1][int(r, 0, 3)];
+      const Bc = B0 * (1 - (T / Tc) ** 2) / 1000, answer = 2 * Math.PI * rad * 1e-3 * Bc / 1.25663706212e-6;
+      return {
+        q: `<p>A ${name} wire of radius ${rad} mm (T<sub>c</sub> = ${Tc} K, B<sub>c</sub>(0) = ${B0} mT, B<sub>c</sub>(T) = B<sub>c</sub>(0)[1 − (T/T<sub>c</sub>)²]) is held at ${T} K. Using Silsbee's rule, find the largest current it can carry without resistance, in amperes.</p>`,
+        answer, unit: 'A', tol: 0.01,
+        hint: 'First find B_c at this temperature. The current destroys superconductivity when its own field at the surface, μ₀I/2πa, reaches B_c.',
+        solution: steps(`B_c(${T} K) = ${B0} × [1 − (${T}/${Tc})²] = ${(Bc * 1000).toFixed(2)} mT.`, `I_c = 2πaB_c/μ₀ = 2π × ${rad} × 10⁻³ × ${Bc.toFixed(5)} / 1.2566 × 10⁻⁶ = <b>${answer.toFixed(2)} A</b>.`, 'Cooling further raises B_c and with it the critical current; a type-II wire with pinning carries far more.'),
+        rad, Bc,
+      };
+    },
+    verify: (p) => 2 * Math.PI * p.rad * 1e-3 * p.Bc / 1.25663706212e-6,
+  },
 };

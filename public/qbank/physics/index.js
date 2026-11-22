@@ -130,6 +130,11 @@ export default {
       { id: 'bonding', name: 'Bonding in solids' },
       { id: 'phonons', name: 'Lattice vibrations and phonons' },
       { id: 'heat-capacity', name: 'Heat capacity: Einstein and Debye' },
+      { id: 'free-electron-model', name: 'The free electron model' },
+      { id: 'band-theory', name: 'Band theory' },
+      { id: 'semiconductors-hall', name: 'Semiconductors, Landau levels and the Hall effect' },
+      { id: 'magnetism', name: 'Dia-, para-, ferro- and antiferromagnetism' },
+      { id: 'superconductivity', name: 'Superconductivity' },
     ] },
     { id: 'electronics', name: 'Electronics', topics: [
       { id: 'transistors', name: 'Transistors and amplifiers' },
