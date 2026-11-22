@@ -115,3 +115,6 @@ html.red-mode figure.photo img { filter: url(#red-night); }
   .bigidea { font-size: 1.02em; }
   .meaning dl { gap: 3px 10px; }
 }
+/* IELTS course figure tables (public/learn-kit/ielts/figs/) */
+.ie-raw, .ie-plan table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
+.ie-raw th, .ie-raw td, .ie-plan th, .ie-plan td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
