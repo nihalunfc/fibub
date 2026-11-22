@@ -356,4 +356,125 @@ export default {
     },
     verify: (p) => -(p.a * (1 - 1 / p.k)) / (p.V1 * 1e-3 * p.cv * 8.314),
   },
+  // ---- module 6: modern physics ----
+  'stopping-potential': {
+    title: 'stopping potential from wavelength and work function',
+    make(r) {
+      const lam = [200, 220, 250, 280, 300, 330, 360, 400][int(r, 0, 7)], phi = [1.9, 2.1, 2.3, 2.5, 2.8, 3.0][int(r, 0, 5)];
+      const E = 1240 / lam, answer = E - phi;
+      return {
+        q: `<p>Light of wavelength ${lam} nm falls on a metal whose work function is ${phi} eV. Find the stopping potential in volts. Take hc = 1240 eV nm.</p>`,
+        answer, unit: 'V', tol: 0.005,
+        hint: 'Find the photon energy in eV with E = 1240/λ(nm). The fastest electron keeps what is left after paying the work function, and the stopping potential in volts equals that energy in eV.',
+        solution: steps(`Photon energy E = 1240/${lam} = ${E.toFixed(3)} eV.`, `K<sub>max</sub> = E − φ = ${E.toFixed(3)} − ${phi} = ${answer.toFixed(3)} eV.`, `An electron with ${answer.toFixed(3)} eV is stopped by <b>${answer.toFixed(3)} V</b>.`),
+        lam, phi,
+      };
+    },
+    verify: (p) => 1240 / p.lam - p.phi,
+  },
+  'compton-scatter': {
+    title: 'energy of a Compton-scattered photon',
+    make(r) {
+      const E = [60, 100, 140, 200, 300, 511, 662][int(r, 0, 6)], th = [30, 60, 90, 120, 150, 180][int(r, 0, 5)];
+      const c = 1 - Math.cos(th * Math.PI / 180), answer = E / (1 + (E / 511) * c);
+      return {
+        q: `<p>A gamma photon of energy ${E} keV is scattered through ${th}° by a free electron at rest. Find the energy of the scattered photon in keV (m<sub>e</sub>c² = 511 keV).</p>`,
+        answer, unit: 'keV', tol: 0.005,
+        hint: 'In energy form the Compton formula reads 1/E′ = 1/E + (1 − cos θ)/(m<sub>e</sub>c²).',
+        solution: steps(`1 − cos ${th}° = ${c.toFixed(4)}.`, `1/E′ = 1/${E} + ${c.toFixed(4)}/511 = ${(1 / E + c / 511).toFixed(6)} keV⁻¹.`, `E′ = <b>${answer.toFixed(1)} keV</b>; the electron carries off the other ${(E - answer).toFixed(1)} keV.`),
+        E, th,
+      };
+    },
+    verify: (p) => 1 / (1 / p.E + (1 - Math.cos(p.th * Math.PI / 180)) / 511),
+  },
+  'de-broglie-electron': {
+    title: 'de Broglie wavelength of an accelerated electron',
+    make(r) {
+      const V = [25, 50, 81, 100, 150, 200, 400, 600, 1000][int(r, 0, 8)];
+      const p = Math.sqrt(2 * 9.11e-31 * 1.6e-19 * V), answer = 6.63e-34 / p * 1e9;
+      return {
+        q: `<p>An electron starts from rest and is accelerated through ${V} V. Find its de Broglie wavelength in nm. Use h = 6.63×10⁻³⁴ J s, m<sub>e</sub> = 9.11×10⁻³¹ kg, e = 1.6×10⁻¹⁹ C.</p>`,
+        answer, unit: 'nm', tol: 0.005,
+        hint: 'The kinetic energy is eV, so the momentum is p = √(2m·eV); then λ = h/p.',
+        solution: steps(`K = eV = 1.6×10⁻¹⁹ × ${V} J.`, `p = √(2 × 9.11×10⁻³¹ × 1.6×10⁻¹⁹ × ${V}) = ${p.toExponential(3)} kg m/s.`, `λ = h/p = <b>${answer.toFixed(4)} nm</b> (check: 1.23/√${V} = ${(1.226 / Math.sqrt(V)).toFixed(4)} nm).`),
+        V,
+      };
+    },
+    verify: (p) => 1.227 / Math.sqrt(p.V),
+  },
+  'uncertainty-speed': {
+    title: 'smallest speed uncertainty of a confined electron',
+    make(r) {
+      const dx = [0.05, 0.1, 0.2, 0.5, 1, 2][int(r, 0, 5)];
+      const answer = 1.055e-34 / (2 * 9.11e-31 * dx * 1e-9) / 1000;
+      return {
+        q: `<p>An electron's position is uncertain by Δx = ${dx} nm. Using Δx·Δp ≥ ħ/2 (ħ = 1.055×10⁻³⁴ J s, m<sub>e</sub> = 9.11×10⁻³¹ kg), find the smallest possible uncertainty in its speed, in km/s.</p>`,
+        answer, unit: 'km/s', tol: 0.005,
+        hint: 'Find the smallest Δp from ħ/(2Δx), then divide by the mass to get Δv.',
+        solution: steps(`Δp = ħ/(2Δx) = 1.055×10⁻³⁴ / (2 × ${dx}×10⁻⁹) = ${(1.055e-34 / (2 * dx * 1e-9)).toExponential(3)} kg m/s.`, `Δv = Δp/m = ${(answer * 1000).toExponential(3)} m/s.`, `So Δv = <b>${answer.toFixed(1)} km/s</b>.`),
+        dx,
+      };
+    },
+    verify: (p) => 1.055e-34 / (2 * 9.11e-31 * p.dx * 1e-9) / 1000,
+  },
+  'box-photon': {
+    title: 'photon from a particle in a box',
+    make(r) {
+      const L = [0.5, 0.8, 1, 1.2, 1.5, 2][int(r, 0, 5)], lo = int(r, 1, 2), hi = lo + int(r, 1, 2);
+      const dE = (hi * hi - lo * lo) * 0.376 / (L * L), answer = 1240 / dE;
+      return {
+        q: `<p>An electron in a one-dimensional infinite well of width ${L} nm drops from n = ${hi} to n = ${lo}. Find the wavelength of the emitted photon in nm. Take h²/(8m<sub>e</sub>) = 0.376 eV nm² and hc = 1240 eV nm.</p>`,
+        answer, unit: 'nm', tol: 0.005,
+        hint: 'E<sub>n</sub> = n² × 0.376/L² eV with L in nm. Find the difference of the two levels, then λ = 1240/ΔE.',
+        solution: steps(`E<sub>1</sub> = 0.376/${L}² = ${(0.376 / (L * L)).toFixed(4)} eV.`, `ΔE = (${hi * hi} − ${lo * lo}) × ${(0.376 / (L * L)).toFixed(4)} = ${dE.toFixed(4)} eV.`, `λ = 1240/${dE.toFixed(4)} = <b>${answer.toFixed(1)} nm</b>.`),
+        L, lo, hi,
+      };
+    },
+    verify: (p) => 1240 * p.L * p.L / ((p.hi ** 2 - p.lo ** 2) * 0.376),
+  },
+  'tunnel-estimate': {
+    title: 'thick-barrier tunnelling estimate',
+    make(r) {
+      const E = [0.5, 1, 1.5, 2][int(r, 0, 3)], V = E + [1, 2, 3, 4][int(r, 0, 3)], a = [0.2, 0.3, 0.4, 0.5][int(r, 0, 3)];
+      const k = Math.sqrt((V - E) / 0.0381), answer = 2 * k * a;
+      return {
+        q: `<p>An electron of energy ${E} eV meets a barrier ${V} eV high and ${a} nm wide. Using ħ²/(2m<sub>e</sub>) = 0.0381 eV nm², find the exponent 2κa in the estimate T ≈ e<sup>−2κa</sup>.</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'κ = √((V₀ − E)/(ħ²/2m)) in nm⁻¹. Only the energy deficit V₀ − E counts.',
+        solution: steps(`V₀ − E = ${V - E} eV.`, `κ = √(${V - E}/0.0381) = ${k.toFixed(3)} nm⁻¹.`, `2κa = 2 × ${k.toFixed(3)} × ${a} = <b>${answer.toFixed(3)}</b>, so T ≈ e<sup>−${answer.toFixed(2)}</sup> = ${Math.exp(-answer).toExponential(2)}.`),
+        E, V, a,
+      };
+    },
+    verify: (p) => 2 * p.a * Math.sqrt((p.V - p.E) / 0.0381),
+  },
+  'rydberg-line': {
+    title: 'wavelength of a hydrogen line',
+    make(r) {
+      const nf = int(r, 1, 3), ni = nf + int(r, 1, 3);
+      const inv = 1.097e7 * (1 / (nf * nf) - 1 / (ni * ni)), answer = 1e9 / inv;
+      const series = ['Lyman', 'Balmer', 'Paschen'][nf - 1];
+      return {
+        q: `<p>Find the wavelength, in nm, of the hydrogen line emitted when the electron drops from n = ${ni} to n = ${nf}. Use R = 1.097×10⁷ m⁻¹.</p>`,
+        answer, unit: 'nm', tol: 0.005,
+        hint: '1/λ = R(1/n<sub>f</sub>² − 1/n<sub>i</sub>²), with the lower level first so the answer is positive.',
+        solution: steps(`1/λ = 1.097×10⁷ × (1/${nf * nf} − 1/${ni * ni}) = ${inv.toExponential(4)} m⁻¹.`, `λ = ${(1 / inv).toExponential(4)} m = <b>${answer.toFixed(1)} nm</b>.`, `It ends on n = ${nf}, so it belongs to the ${series} series.`),
+        ni, nf,
+      };
+    },
+    verify: (p) => 1e9 / (1.097e7 * (1 / p.nf ** 2 - 1 / p.ni ** 2)),
+  },
+  'moseley-energy': {
+    title: 'K-alpha energy from Moseley\'s law',
+    make(r) {
+      const Z = int(r, 20, 50), answer = 10.2 * (Z - 1) ** 2 / 1000;
+      return {
+        q: `<p>Use Moseley's law in the form E(Kα) ≈ 10.2 (Z − 1)² eV to find the Kα X-ray energy, in keV, of the element with Z = ${Z}. Then find its wavelength (hc = 1240 eV nm) as a check.</p>`,
+        answer, unit: 'keV', tol: 0.005,
+        hint: 'The 10.2 eV is the hydrogen 2 → 1 energy, 13.6 × 3/4; the nucleus is screened by the one K electron left, so use Z − 1.',
+        solution: steps(`Z − 1 = ${Z - 1}, (Z − 1)² = ${(Z - 1) ** 2}.`, `E = 10.2 × ${(Z - 1) ** 2} = ${(answer * 1000).toFixed(0)} eV = <b>${answer.toFixed(2)} keV</b>.`, `λ = 1240/${(answer * 1000).toFixed(0)} = ${(1240 / (answer * 1000)).toFixed(4)} nm.`),
+        Z,
+      };
+    },
+    verify: (p) => 13.6 * 0.75 * (p.Z - 1) ** 2 / 1000,
+  },
 };
