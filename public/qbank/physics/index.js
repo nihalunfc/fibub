@@ -23,6 +23,9 @@ export default {
       { id: 'complex-analysis', name: 'Analytic functions and Cauchy\'s theorem' },
       { id: 'residues', name: 'The residue theorem and real integrals' },
       { id: 'fourier-laplace-transforms', name: 'Fourier and Laplace transforms' },
+      { id: 'group-theory', name: 'Group theory for physicists' },
+      { id: 'probability-distributions', name: 'Random variables and probability distributions' },
+      { id: 'numerical-methods', name: 'Numerical methods: roots, integration and ODEs' },
     ] },
     { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
       { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
@@ -43,6 +46,9 @@ export default {
       { id: 'normal-modes', name: 'Small oscillations and normal modes' },
       { id: 'rigid-body-dynamics', name: 'Rigid body dynamics: inertia tensor, Euler\'s equations and tops' },
       { id: 'relativistic-kinematics', name: 'Four-vectors and relativistic kinematics' },
+      { id: 'hamilton-jacobi', name: 'Canonical transformations and Hamilton-Jacobi theory' },
+      { id: 'phase-space-stability', name: 'Phase space, fixed points and stability' },
+      { id: 'nonlinear-dynamics-chaos', name: 'Nonlinear dynamics and chaos' },
     ] },
     { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
       { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
