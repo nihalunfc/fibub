@@ -6,13 +6,16 @@ import QBankStatic from './QBankStatic.astro';
 import type { CourseSyllabus } from '../../courses/types';
 import { coursePageLd } from '../../lib/seo';
 import '../../styles/course.css';
-interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { id: string; name: string }; unit: string; count: number; lesson?: { slug: string; title: string } }
-const { course, bank, exam, topic, unit, count, lesson } = Astro.props;
+interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { id: string; name: string }; unit: string; count: number; lesson?: { slug: string; title: string }; mock?: boolean; label?: string }
+const { course, bank, exam, topic, unit, count, lesson, mock = true, label = course.name } = Astro.props;
 const base = `/learn/courses/${course.id}`;
-const title = `${topic.name}: ${course.name} questions`;
-// Search titles stay within 60 characters: drop words from the end until one fits.
-const docTitle = [`${title} | fibub`, title, `${topic.name} | ${course.name}`, `${topic.name} questions`, topic.name]
-  .find((t) => t.length <= 60) ?? topic.name.slice(0, 57) + '...';
+const title = `${topic.name}: ${label} questions`;
+// Search titles stay within 60 characters: drop words from the end until one fits (the exam label keeps them unique).
+const short = topic.name.split(':')[0];
+const tag = label.replace(/ Physics$/, '');
+const first = short.split(/,| and /)[0];
+const docTitle = [`${title} | fibub`, `${short}: ${label} questions | fibub`, title, `${short}: ${label} questions`, `${short}: ${label}`, `${short}: ${tag}`, `${first}: ${label} questions`, `${first}: ${tag}`, `${short} questions`, short]
+  .find((t) => t.length <= 60) ?? short.slice(0, 57) + '...';
 const desc = `${count} original ${course.name} practice questions on ${topic.name.toLowerCase()} (${unit.toLowerCase()}), from warm-up to top-rank level, with full worked solutions. Free, no sign-up.`;
 const ld = coursePageLd(course, `Practice: ${topic.name}`, desc.slice(0, 160), `practice/${topic.id}`);
 ---
@@ -26,6 +29,6 @@ const ld = coursePageLd(course, `Practice: ${topic.name}`, desc.slice(0, 160), `
     <h2>Written questions with solutions</h2>
     <p class="cs-small">The same questions as a list, so you can print them or read without the practice box. Templates (fresh numbers) appear only in the practice box above.</p>
     <QBankStatic bank={bank} topic={topic.id} exam={exam} limit={30} />
-    <p><a href={`${base}/practice/`}>← All topics</a> · <a href={`${base}/mock-test/`}>Timed mock test →</a></p>
+    <p><a href={`${base}/practice/`}>← All topics</a>{mock && <> · <a href={`${base}/mock-test/`}>Timed mock test →</a></>}</p>
   </div>
 </Base>

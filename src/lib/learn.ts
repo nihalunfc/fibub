@@ -32,7 +32,9 @@ export async function courseCards(): Promise<CourseCard[]> {
   return COURSES.map((c) => {
     const syl = syllabi.find((s) => s.id === c.id);
     if (syl) {
-      const mine = files.filter((e) => e.id.startsWith(`${c.id}/`));
+      // A course can borrow lessons from another (sharedFrom: medical entrance shows the engineering Physics and Chemistry).
+      const listed = new Set(flatLessons(syl).map((l) => l.slug));
+      const mine = files.filter((e) => e.id.startsWith(`${c.id}/`) || (syl.sharedFrom && e.id.startsWith(`${syl.sharedFrom}/`) && listed.has(e.id.slice(syl.sharedFrom.length + 1))));
       // A course marked live with no lesson written yet still shows as coming soon.
       return { ...c, status: mine.length ? c.status : 'planned' as const, kind: 'text' as const, lessons: mine.length, total: flatLessons(syl).length, minutes: mine.reduce((s, e) => s + e.data.minutes, 0) };
     }

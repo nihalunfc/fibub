@@ -1,0 +1,24 @@
+---
+// One chapter's practice page: interactive set, then the written questions as plain HTML (src/components/qbank/).
+import ExamPracticeTopic from '../../../../../components/qbank/ExamPracticeTopic.astro';
+import { MEDICAL_ENTRANCE } from '../../../../../courses/medical-entrance/syllabus';
+import { bankCounts } from '../../../../../lib/qbank/build';
+import { courseLessons } from '../../../../../lib/course';
+import { flatLessons } from '../../../../../courses/types';
+export async function getStaticPaths() {
+  const EXAM: string | undefined = 'neet';
+  const live = await courseLessons(MEDICAL_ENTRANCE);
+  const lessons = flatLessons(MEDICAL_ENTRANCE).filter((l) => live.has(l.slug));
+  const out = [];
+  for (const s of ['physics', 'chemistry', 'biology']) {
+    const bank = `entrance-${s}`, { idx, topics } = await bankCounts(bank);
+    for (const u of idx.units) for (const t of u.topics) {
+      const c = topics[t.id], count = EXAM ? c?.exams[EXAM] ?? 0 : (c?.items ?? 0) + (c?.gens ?? 0);
+      if (count > 0) out.push({ params: { topic: t.id }, props: { bank, exam: EXAM, topic: t, unit: u.name, count, lesson: lessons.find((l) => l.slug === t.id) } });
+    }
+  }
+  return out;
+}
+const { bank, exam, topic, unit, count, lesson } = Astro.props as any;
+---
+<ExamPracticeTopic course={MEDICAL_ENTRANCE} bank={bank} exam={exam} topic={topic} unit={unit} count={count} lesson={lesson} mock={false} label="NEET" />

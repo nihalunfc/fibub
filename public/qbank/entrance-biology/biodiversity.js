@@ -1,0 +1,374 @@
+// NEET UG Biology: Biodiversity and Conservation (NCERT Class 12, 2023 rationalised book). All questions original fibub work.
+import { pick, int, choose, fmt, shuffleOpts, numOpts, g } from '../_entrance.js';
+
+const items = [];
+const groups = {};
+let n = 0, pos = 0;
+const POS = [2, 0, 3, 1];
+const nid = () => `bd-${String(++n).padStart(3, '0')}`;
+const ex = (level) => (level <= 3 ? ['neet', 'cuet'] : ['neet']);
+const AR = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const ST = ['Both Statement I and Statement II are correct', 'Both Statement I and Statement II are incorrect', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct'];
+function mc(level, sub, q, correct, wrongs, sol, trap, format = 'single') {
+  const p = POS[pos++ % 4];
+  const options = [...wrongs];
+  options.splice(p, 0, correct);
+  items.push({ id: nid(), type: 'mcq', level, format, exams: ex(level), sub, q, options, answer: p, sol, ...(trap ? { trap } : {}) });
+}
+function asr(level, sub, A, R, ans, sol, trap) {
+  items.push({ id: nid(), type: 'mcq', level, format: 'assertion', exams: ex(level), sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AR, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function stm(level, sub, s1, s2, ans, sol, trap) {
+  items.push({ id: nid(), type: 'mcq', level, format: 'statements', exams: ex(level), sub, q: `<b>Statement I:</b> ${s1}<br><b>Statement II:</b> ${s2}`, options: ST, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function match(level, sub, key, title, list1, list2, correct, wrongs, sol, trap) {
+  groups[key] = { title, list1, list2 };
+  const p = POS[pos++ % 4];
+  const options = [...wrongs]; options.splice(p, 0, correct);
+  items.push({ id: nid(), type: 'mcq', level, format: 'match', exams: ex(level), sub, group: key, q: 'Match List I with List II and choose the correct code.', options, answer: p, sol, ...(trap ? { trap } : {}) });
+}
+function pass(key, title, passage) { groups[key] = { title, passage }; }
+function pq(key, level, sub, q, correct, wrongs, sol, trap) {
+  const p = POS[pos++ % 4];
+  const options = [...wrongs];
+  options.splice(p, 0, correct);
+  items.push({ id: nid(), type: 'mcq', level, format: 'passage', exams: ex(level), sub, group: key, q, options, answer: p, sol, ...(trap ? { trap } : {}) });
+}
+function nat(level, sub, q, answer, sol, unit, trap, tol = 0) {
+  items.push({ id: nid(), type: 'nat', level, format: tol ? 'numeric' : 'integer', exams: ex(level), sub, q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}) });
+}
+// ---------------------------------------------------------------- Level 1
+mc(1, 'levels', 'The term "biodiversity" popularised by sociobiologist Edward Wilson refers to', 'the sum total of the variety of life on Earth at all levels', ['only the number of species', 'only the number of plants', 'only the genes in a cell'], 'Biodiversity includes genetic, species and ecological diversity. It is not limited to counting species.');
+mc(1, 'levels', 'The three levels of biodiversity are', 'genetic, species and ecological (ecosystem) diversity', ['plant, animal and microbial diversity', 'national, state and local diversity', 'aquatic, terrestrial and aerial diversity'], 'Biodiversity occurs at the level of genes, species and ecosystems.');
+mc(1, 'levels', 'The variation in the potency and concentration of the active chemical reserpine in <i>Rauwolfia vomitoria</i> growing in different Himalayan ranges is an example of', 'genetic diversity', ['species diversity', 'ecological diversity', 'cultural diversity'], 'One species shows genetic variation in its chemical content. It is variation within a species.');
+mc(1, 'levels', 'India has more than 50,000 genetically different strains of rice and 1000 varieties of mango. This is', 'genetic diversity', ['species diversity', 'ecological diversity', 'community diversity'], 'These are varieties of the same species.');
+mc(1, 'levels', 'The diversity at the level of species is exemplified by', 'a greater number of amphibian species in the Western Ghats than in the Eastern Ghats', ['varieties of rice', 'deserts, rainforests and mangroves in one country', 'the reserpine in <i>Rauwolfia</i>'], 'Species diversity is the variety of species in a region. Western Ghats have more amphibians than the Eastern Ghats.');
+mc(1, 'levels', 'India has a greater ecosystem diversity than a country like Norway. Examples are', 'deserts, rain forests, mangroves, coral reefs, wetlands, estuaries and alpine meadows', ['only forests', 'only rivers', 'only deserts'], 'Ecological diversity is the variety of ecosystems or habitats.');
+mc(1, 'numbers', 'According to the IUCN (2004), how many species have been recorded so far?', 'More than 1.5 million', ['More than 7 million', 'About 50,000', 'About 500 million'], 'The recorded (described) species are above 1.5 million. Robert May estimated the global total at about 7 million.');
+mc(1, 'numbers', 'Robert May\'s estimate of the global species diversity is about', '7 million', ['1.5 million', '70 million', '700 million'], 'May\'s figure is a more conservative estimate than some others. A large number of species is still to be discovered.');
+mc(1, 'numbers', 'Which is the most species-rich group among animals?', 'Insects', ['Mammals', 'Birds', 'Fishes'], 'Insects make up more than 70% of the recorded animal species.');
+mc(1, 'numbers', 'Among all recorded species, plants (including algae, fungi, bryophytes, gymnosperms and angiosperms) form no more than about', '22%', ['70%', '50%', '5%'], 'More than 70% of recorded species are animals.');
+mc(1, 'patterns', 'In general, species diversity decreases from', 'the equator towards the poles', ['the poles towards the equator', 'the coasts to the mountains only', 'the north to the south only'], 'The tropics have the greatest species richness, and the polar regions the least. This is the latitudinal gradient.');
+mc(1, 'patterns', 'Which part of the world has the greatest biodiversity on Earth?', 'The Amazonian rain forest', ['The Sahara desert', 'Antarctica', 'The Arctic tundra'], 'It has about 40,000 plant species, 3000 fishes, 1300 birds and 427 mammals among others.');
+mc(1, 'patterns', 'The author of the species-area relationship from the explorations of South American jungles is', 'Alexander von Humboldt', ['Paul Ehrlich', 'Norman Myers', 'David Tilman'], 'Humboldt observed that within a region, species richness increases with explored area, but only up to a limit.');
+mc(1, 'patterns', 'The species-area relationship on a log scale is a', 'straight line', ['rectangular hyperbola', 'parabola', 'sine wave'], 'On a linear scale it is a rectangular hyperbola. Taking logs gives log S = log C + Z log A.');
+mc(1, 'importance', 'The "rivet popper hypothesis" was proposed by', 'Paul Ehrlich', ['Norman Myers', 'David Tilman', 'Alexander von Humboldt'], 'In an airplane, passengers lose rivets one after another. The loss of a rivet may not matter at first, but the loss of a critical one may crash the plane.');
+mc(1, 'importance', 'David Tilman\'s long-term experiments on plots showed that plots with more species', 'showed less year-to-year variation in total biomass', ['produced less biomass', 'showed more variation in biomass', 'had no relation to biomass'], 'Greater diversity also gave higher productivity.');
+mc(1, 'loss', 'The "evil quartet" refers to the', 'four major causes of biodiversity loss', ['four types of biodiversity', 'four hotspots', 'four extinct animals'], 'The four are habitat loss and fragmentation, over-exploitation, alien species invasions and coextinctions. The term was used by Jared Diamond.');
+mc(1, 'loss', 'The most important cause of biodiversity loss is', 'habitat loss and fragmentation', ['over-exploitation', 'alien invasions', 'coextinction'], 'The destruction of habitats like tropical rain forests drives the largest losses of species.');
+mc(1, 'loss', 'Which of these is an extinct animal?', 'Dodo', ['Tiger', 'Elephant', 'Lion'], 'The dodo of Mauritius was lost in historical times. Other examples are the quagga, thylacine and Steller\'s sea cow.');
+mc(1, 'loss', 'The Steller\'s sea cow was lost from', 'Russia', ['Mauritius', 'Australia', 'Africa'], 'Steller\'s sea cow was from Russia; the dodo from Mauritius; the thylacine from Australia; the quagga from Africa.');
+mc(1, 'loss', 'The thylacine was an animal of', 'Australia', ['Africa', 'Russia', 'India'], 'It is now extinct. The quagga was from Africa.');
+mc(1, 'conservation', 'Conservation of biodiversity within its natural habitat is called', 'in situ conservation', ['ex situ conservation', 'cryopreservation', 'bioprospecting'], 'In situ means "on site". Ex situ means "off site", outside the natural habitat.');
+mc(1, 'conservation', 'Zoological parks and botanical gardens are examples of', 'ex situ conservation', ['in situ conservation', 'hotspots', 'biosphere reserves'], 'The threatened animals and plants are taken out of their natural habitat and kept in a special place.');
+mc(1, 'conservation', 'Sacred groves are examples of', 'in situ conservation by tradition and religion', ['ex situ conservation', 'cryopreservation', 'tissue culture'], 'Tracts of forests were set aside by tribal communities for their deities.');
+mc(1, 'conservation', 'The number of biodiversity hotspots in the world identified in the NCERT text is', '34', ['3', '14', '90'], 'Hotspots are regions with very high species richness and high endemism. The 34 hotspots cover less than 2% of the Earth\'s land area.');
+mc(1, 'conservation', 'Which of these is a biodiversity hotspot in India?', 'Western Ghats and Sri Lanka', ['Thar desert', 'Sundarbans only', 'Deccan plateau'], 'The three hotspots covering India are Western Ghats and Sri Lanka, Indo-Burma and the Himalaya.');
+
+// ---------------------------------------------------------------- Level 2
+mc(2, 'levels', 'Which of these cases shows species diversity?', 'The numbers of different bird species in a forest', ['Different varieties of mango', 'Different potencies of the active chemical in one plant', 'Different kinds of crops in a field of rice only'], 'Species diversity is the number of species. Varieties of the same species are genetic diversity.');
+mc(2, 'levels', 'The diversity of habitats at the level of ecosystems is called', 'ecological diversity', ['genetic diversity', 'species richness', 'gene flow'], 'A region with a desert, a forest and a wetland has high ecological diversity.');
+mc(2, 'levels', 'Which statement best explains why genetic diversity is valuable?', 'It allows a species to adapt to changes in the environment', ['It decreases variation', 'It makes all individuals identical', 'It reduces the number of species'], 'Variation provides the raw material for natural selection and for breeding better crops and drugs.');
+mc(2, 'numbers', 'India has 2.4% of the world\'s land area. Its share of the global species diversity is about', '8.1%', ['2.4%', '30%', '0.5%'], 'This is why India is one of the 12 mega-diversity countries.');
+mc(2, 'numbers', 'Biologists have estimated that the number of fungal species in the world is', 'more than the combined total of fishes, amphibians, reptiles and mammals', ['smaller than the number of mammals', 'equal to the number of plants', 'less than the number of fishes'], 'This shows how much of the diversity lies in fungi.');
+mc(2, 'numbers', 'The IUCN Red List is a', 'record of extinct and threatened species', ['list of all insects', 'list of sacred groves', 'list of biosphere reserves in India'], 'The IUCN (International Union for Conservation of Nature and Natural Resources) maintains the Red List.');
+mc(2, 'numbers', 'Scientists estimate that in the Amazonian rain forest there may be at least how many insect species waiting to be discovered?', 'Two million', ['Two thousand', 'Twenty thousand', 'Two hundred'], 'Much of the biodiversity in tropical forests is still unrecorded.');
+mc(2, 'patterns', 'Which of the following is NOT a hypothesis for the latitudinal gradient of species diversity?', 'Tropical regions receive less solar energy, so competition is reduced', ['Tropical latitudes have remained undisturbed for millions of years', 'Tropical environments are less seasonal, more constant and predictable', 'Tropics receive more solar energy and so have higher productivity'], 'The tropics get more solar energy, not less. The other three are the NCERT hypotheses.');
+mc(2, 'patterns', 'Temperate regions have lower species diversity than tropical ones partly because', 'they were subjected to frequent glaciation in the past', ['they have more sunshine', 'they are older', 'they have no plants'], 'Tropical areas were undisturbed for millions of years, giving a long evolutionary time for speciation.');
+mc(2, 'patterns', 'In the species-area equation log S = log C + Z log A, Z is', 'the slope of the line (regression coefficient)', ['the Y-intercept', 'the area', 'the species richness'], 'C is the intercept on the Y-axis. S is species richness and A is area.', 'Do not mix the slope (Z) with the intercept (C).');
+mc(2, 'patterns', 'The value of Z for species-area relationships within small regions is generally in the range of', '0.1 to 0.2', ['0.6 to 1.2', '2 to 5', '10 to 20'], 'This is regardless of the taxonomic group or the region.');
+mc(2, 'patterns', 'For very large areas like entire continents, the slope Z is', 'much steeper, 0.6 to 1.2', ['0.1 to 0.2', 'zero', 'negative'], 'For frugivorous birds and mammals in tropical forests of different continents, a Z of 1.15 was found.');
+mc(2, 'patterns', 'Species richness increases with area explored', 'but only up to a limit', ['without any limit', 'only in deserts', 'never'], 'The relationship is a rectangular hyperbola on arithmetic axes.');
+mc(2, 'importance', 'Which of these is an example of the narrowly utilitarian value of biodiversity?', 'Drugs obtained from plants', ['Oxygen production in the Amazon', 'Aesthetic pleasure of bird watching', 'The intrinsic value of every species'], 'Narrow utility covers direct economic benefits such as food, firewood, fibre and medicines.');
+mc(2, 'importance', 'The broadly utilitarian reason for conserving biodiversity includes', 'the oxygen released by the Amazon forest and pollination by insects and birds', ['the sale of timber', 'the use of herbs for medicines', 'the sale of ornamental fish'], 'Ecosystem services such as pollination, oxygen production and aesthetic pleasure are broad benefits.');
+mc(2, 'importance', 'The Amazon forest contributes about what share of the total oxygen in the Earth\'s atmosphere through photosynthesis?', '20%', ['2%', '50%', '80%'], 'This is the NCERT figure, used to explain the broadly utilitarian argument.');
+mc(2, 'importance', 'The ethical argument for conserving biodiversity says that', 'every species has an intrinsic value, regardless of its use to us', ['species are worth only their market value', 'only large animals matter', 'plants have no value'], 'We have a moral duty to care for all species and to pass on our biological legacy to future generations.');
+mc(2, 'importance', 'More than what percentage of drugs sold in the market are derived from plants, as per NCERT?', '25%', ['2.5%', '75%', '90%'], 'Around 25,000 plant species contribute to the traditional medicines used by native peoples.');
+mc(2, 'loss', 'Which of these is an example of an invasive alien species in India?', '<i>Eichhornia</i> (water hyacinth)', ['Banyan', 'Neem', 'Mango'], 'Water hyacinth, <i>Lantana</i> and <i>Parthenium</i> (carrot grass) are invasive weeds.');
+mc(2, 'loss', 'The introduction of the Nile perch into Lake Victoria led to', 'the extinction of more than 200 species of cichlid fish', ['an increase in cichlid species', 'no change', 'the growth of coral'], 'It is a famous example of the damage by alien species.');
+mc(2, 'loss', 'The African catfish <i>Clarias gariepinus</i>, introduced for aquaculture, is a threat to', 'the indigenous catfishes of our rivers', ['the coral reefs', 'the sacred groves', 'the Western Ghats birds'], 'It is another example of an invasive alien species affecting native fishes.');
+mc(2, 'loss', 'Coextinction is the', 'loss of one species that leads to the extinction of species obligately associated with it', ['extinction of two unrelated species', 'extinction of all the species of a region at once', 'extinction by climate'], 'For example, if a host fish becomes extinct, its unique parasites also become extinct. Plant-pollinator pairs are another case.');
+mc(2, 'loss', 'The Amazon rainforest is being cleared in large parts to grow', 'soya beans and to create grasslands for cattle', ['tea', 'coffee only', 'cotton'], 'It is a major example of habitat loss.');
+mc(2, 'loss', 'Habitat fragmentation badly affects', 'animals requiring large territories and those with migratory habits', ['small insects only', 'all plants alike', 'bacteria'], 'When a large habitat is broken into pieces, species with large home ranges (like some mammals and birds) or migratory habits suffer.');
+mc(2, 'loss', 'The over-exploitation of resources is shown by the extinction of', 'Steller\'s sea cow and the passenger pigeon', ['the Nile perch and the catfish', 'the water hyacinth and <i>Lantana</i>', 'the dodo only by habitat loss'], 'These species were hunted until none remained. Many marine fish stocks are now over-harvested.');
+mc(2, 'loss', 'The current extinction rate is estimated to be', '100 to 1000 times faster than in the pre-human times', ['the same as in the past', '10 times slower', 'zero'], 'Human activities are mostly responsible for the faster rate.');
+mc(2, 'conservation', 'The cryopreservation of gametes in liquid nitrogen is done at', '&minus;196&deg;C', ['0&deg;C', '&minus;20&deg;C', '&minus;4&deg;C'], 'Liquid nitrogen at &minus;196&deg;C keeps gametes of threatened species viable and fertile for long periods.');
+mc(2, 'conservation', 'Which of the following is NOT an ex situ conservation measure?', 'Sacred groves', ['Seed banks', 'Botanical gardens', 'Cryopreservation'], 'Sacred groves protect the species in their own habitat, so they are in situ.');
+mc(2, 'conservation', 'Hotspots are regions with', 'very high species richness and a high degree of endemism', ['no species', 'only exotic species', 'low species diversity'], 'Endemic species are confined to the region and not found elsewhere. Norman Myers identified such regions.');
+mc(2, 'conservation', 'Which of these hotspots covers India\'s northeast?', 'Indo-Burma', ['Western Ghats', 'Sundaland', 'Amazon'], 'The three Indian hotspots are the Western Ghats and Sri Lanka, Indo-Burma and the Himalaya.');
+mc(2, 'conservation', 'The sacred groves of Khasi and Jaintia Hills are in', 'Meghalaya', ['Rajasthan', 'Karnataka', 'Madhya Pradesh'], 'In Meghalaya, they are the last refuges for rare and threatened plants.');
+mc(2, 'conservation', 'Sacred groves are found in', 'the Aravalli hills of Rajasthan and the Western Ghats of Karnataka and Maharashtra', ['Rann of Kutch only', 'the Antarctic', 'only in Kerala backwaters'], 'Sacred groves also occur in the Sarguja, Chanda and Bastar areas of Madhya Pradesh.');
+mc(2, 'conservation', 'Which of these is an example of in situ conservation?', 'National parks', ['Seed banks', 'Zoos', 'Tissue culture'], 'In situ conservation protects the whole ecosystem in its natural habitat: parks, sanctuaries, biosphere reserves.');
+mc(2, 'conservation', 'The Earth Summit held at Rio de Janeiro in 1992 called upon all nations to', 'take appropriate measures for conservation and sustainable utilisation of biodiversity', ['stop all trade', 'reduce all population', 'close all forests'], 'This was the Convention on Biological Diversity.');
+mc(2, 'conservation', 'The World Summit on Sustainable Development in Johannesburg, 2002 was where', '190 countries pledged to reduce the current rate of biodiversity loss significantly by 2010', ['all species were declared safe', 'a new hotspot list was made', 'trade in animals was banned'], 'It was a global goal to slow the loss at global, regional and local levels.');
+
+// ---------------------------------------------------------------- Level 3
+mc(3, 'levels', 'A researcher finds that populations of the same frog species in two valleys differ in the genes for skin toxin. This shows diversity at the level of', 'genes (genetic diversity)', ['species', 'ecosystems', 'biomes'], 'Variation within one species is genetic diversity.');
+mc(3, 'levels', 'Which pair is correctly matched?', 'Ecological diversity - desert, rainforest and mangrove in one country', ['Genetic diversity - number of bird species in a forest', 'Species diversity - the variants of rice', 'Species diversity - reserpine variation in <i>Rauwolfia</i>'], 'Ecological diversity is the variety of ecosystems. The other pairs are mismatched.', 'Variants within a species are genetic, not species diversity.');
+mc(3, 'levels', 'Why is the loss of one species from a high-diversity region more serious than it appears?', 'The loss can affect other species linked to it through food, pollination or shelter', ['It never affects others', 'It always increases productivity', 'It only affects plants'], 'The rivet popper idea: each species may be a small but vital part of the ecosystem.');
+mc(3, 'numbers', 'Which statement about the recorded species of the world is correct?', 'Animals are more than 70% of the species and plants are not more than 22%', ['Plants are more than 50% of the species', 'Mammals are the most species-rich animal group', 'Fungi are fewer than the mammals'], 'NCERT: more than 70% of recorded species are animals, plants (with algae, fungi, bryophytes, gymnosperms and angiosperms) not more than 22%. Insects lead among animals.', 'Check the groups carefully; fungi in fact outnumber fishes, amphibians, reptiles and mammals together.');
+mc(3, 'numbers', 'If the number of recorded species is 1.5 million and May\'s estimate of the global total is 7 million, the percentage of the species still to be described is about', '79%', ['21%', '50%', '5%'], '(7 &minus; 1.5)/7 = 0.786, about 79%.', '21% is the share described, not the share left.');
+mc(3, 'numbers', 'Which of these statements about the diversity of the Amazon forest is correct?', 'It has about 40,000 plant species and 1300 bird species', ['It has 400 plant species', 'It has only mammals', 'It has no insects'], 'The Amazon has about 40,000 plants, 3000 fishes, 1300 birds, 427 mammals, 427 amphibians, 378 reptiles and over 125,000 invertebrates.');
+mc(3, 'patterns', 'Which of the following would NOT be expected as a consequence of the stable and predictable tropical environment?', 'Low niche specialisation among species', ['High niche specialisation', 'Greater species diversity', 'Higher speciation'], 'Constant and predictable environments promote niche specialisation and so more species.');
+mc(3, 'patterns', 'On a graph of S against A on arithmetic scales, the species-area curve is', 'a rectangular hyperbola', ['a straight line', 'a circle', 'a sinusoid'], 'The curve rises and levels off. On log-log axes it becomes a straight line.');
+mc(3, 'patterns', 'The Y-intercept of a log-log species-area line is', 'log C', ['Z', 'log A', 'S'], 'log S = log C + Z log A. When log A = 0, log S = log C.', 'Do not confuse intercept (log C) with slope (Z).');
+mc(3, 'patterns', 'If the slope Z of the species-area relationship is 0.15 and the area is increased tenfold, species richness is multiplied by', '10<sup>0.15</sup> = 1.41', ['10', '1.5', '0.15'], 'S &prop; A<sup>Z</sup>, so for tenfold A, S becomes 10<sup>0.15</sup> = 1.41 times.', 'A tenfold increase in area does not raise species tenfold; the exponent is small.');
+mc(3, 'patterns', 'Why does the slope Z steepen in very large areas like continents?', 'Different regions have different species, so adding area adds many new species', ['Species decrease with area', 'The rule no longer applies', 'Area is measured in a different unit'], 'Over large areas, new regions contain species not found elsewhere, giving a steeper line.');
+mc(3, 'importance', 'Tilman\'s experiments also showed that increased diversity leads to', 'higher productivity', ['lower productivity', 'no change in productivity', 'loss of biomass'], 'Diversity gave greater total biomass and less year-to-year variation.');
+mc(3, 'importance', 'A community with more species is expected to be', 'more stable, able to resist occasional disturbances', ['less stable', 'unstable always', 'unrelated to stability'], 'The stability of a community is not dependent on a fixed number but richer ones tend to resist and recover better.');
+mc(3, 'importance', 'According to the rivet popper hypothesis, in an ecosystem', 'each species may be a vital link, and the loss of many may cause a collapse', ['all species are equally unimportant', 'loss of any species causes immediate collapse', 'only dominant species matter'], 'Ehrlich compared species to rivets in an aeroplane\'s wings.');
+mc(3, 'importance', 'Bioprospecting means', 'exploring molecular, genetic and species-level diversity for products of economic importance', ['destroying forests for timber', 'breeding zoo animals', 'storing seeds'], 'Nations with rich biodiversity can benefit from useful compounds found in them. The term appears in the broad discussion of narrow utilitarian value.');
+mc(3, 'loss', 'Which of the following is the correct match of an extinct animal with its region?', 'Quagga - Africa', ['Dodo - Australia', 'Thylacine - Mauritius', 'Steller\'s sea cow - Africa'], 'The quagga was from Africa; the dodo from Mauritius; the thylacine from Australia; Steller\'s sea cow from Russia.');
+mc(3, 'loss', 'Which of the following are the three subspecies of tiger that became extinct as per NCERT?', 'Bali, Javan and Caspian', ['Bengal, Siberian and Sumatran', 'Indian, Chinese and Malayan', 'Bengal, Javan and Bali'], 'The Bali, Javan and Caspian tigers are extinct.');
+mc(3, 'loss', 'Which is the best example of coextinction?', 'The extinction of a species of fish together with the parasites unique to it', ['The extinction of a bird by hunting', 'The loss of a forest by fire', 'An alien fish replacing a native fish'], 'The parasites depended on that one host. Plant-pollinator pairs are other cases.');
+mc(3, 'loss', 'The IUCN Red List (2004) says the percentages of the species facing threat of extinction are highest among', 'amphibians (32%) among those listed in NCERT', ['birds (12%)', 'mammals (23%) only', 'gymnosperms (31%) only'], 'NCERT notes 12% of birds, 23% of mammals, 32% of amphibians and 31% of gymnosperms face extinction.', 'The question asks for the highest value: 32%.');
+mc(3, 'loss', 'The tropical rain forests once covered about 14% of the Earth\'s land surface. Now they cover not more than about', '6%', ['2%', '14%', '30%'], 'Rain forests are being cleared at a high rate; in India and elsewhere they continue to shrink.');
+mc(3, 'loss', 'Which of the following is an invasive weed that threatens native plants and also causes pollen allergy?', '<i>Parthenium</i>', ['Rice', 'Wheat', 'Mango'], 'Carrot grass (<i>Parthenium</i>), <i>Lantana</i> and <i>Eichhornia</i> are alien invasive weeds.');
+mc(3, 'loss', 'Which of the following is NOT one of the four causes of biodiversity loss in the "evil quartet"?', 'Natural speciation', ['Habitat loss and fragmentation', 'Over-exploitation', 'Coextinctions'], 'Speciation adds species. The four causes are habitat loss and fragmentation, over-exploitation, alien invasions and coextinctions.');
+mc(3, 'loss', 'The sixth mass extinction is different from the previous five because', 'it is mostly due to human activities and is much faster', ['it is caused by meteors', 'it is slower', 'it affects only plants'], 'The rate now is 100 to 1000 times faster than in pre-human times.');
+mc(3, 'conservation', 'Which of the following is an in situ conservation measure for a threatened species?', 'Declaring its forest a sanctuary', ['Placing it in a zoo', 'Storing its sperm in liquid nitrogen', 'Storing its seeds in a bank'], 'Protecting it in its natural habitat is in situ. All others are ex situ.');
+mc(3, 'conservation', 'Why do hotspots deserve priority in conservation?', 'They have exceptionally high species richness and endemism, yet are under severe threat', ['They have few species', 'They are already fully protected', 'They have no endemic species'], 'Conserving the hotspots could reduce the mass extinction by about 30%, as the text mentions.');
+mc(3, 'conservation', 'The 34 hotspots together cover less than what percentage of the Earth\'s land area?', '2%', ['20%', '50%', '10%'], 'Small areas hold a large proportion of species, so protecting them gives high return.', 'Do not quote the 30% reduction in extinction as the area covered.');
+mc(3, 'conservation', 'Which of the following is in the Indian hotspot list?', 'Himalaya', ['Amazon basin', 'Madagascar', 'Sahara'], 'India has parts of three hotspots: Western Ghats and Sri Lanka, Indo-Burma and Himalaya.');
+mc(3, 'conservation', 'Which one is a correct comparison of in situ and ex situ conservation?', 'In situ protects the whole ecosystem; ex situ keeps selected species outside their habitat', ['Both protect the whole ecosystem', 'Both are done in zoos', 'Ex situ protects the whole ecosystem'], 'In situ conserves all levels of biodiversity of the area; ex situ saves single species in zoos, gardens and seed banks.');
+mc(3, 'conservation', 'Cryopreservation is used to', 'store gametes of threatened species at very low temperature', ['grow seeds in soil', 'raise zoo animals', 'build parks'], 'Gametes are stored in liquid nitrogen and can be used in in vitro fertilisation. Plants can be propagated by tissue culture.');
+mc(3, 'conservation', 'Sacred groves protect biodiversity because', 'cultural beliefs prohibit cutting trees and hunting in the grove', ['they are fenced by the government', 'they are in zoos', 'they are in cities'], 'Traditional taboos have kept patches of forest intact over centuries.');
+
+// ---------------------------------------------------------------- Assertion
+asr(3, 'patterns', 'Species diversity is highest in the tropics.', 'Tropical regions have a stable, predictable climate and receive more solar energy.', 0, 'These are two hypotheses for the latitudinal gradient. R explains A.');
+asr(3, 'patterns', 'The species-area relationship is a straight line on a log-log graph.', 'log S = log C + Z log A is the equation of a straight line.', 0, 'Y = log S, X = log A, slope Z, intercept log C. R explains A.');
+asr(4, 'patterns', 'The slope Z of the species-area line is steeper for continents than for small regions.', 'The value of Z is 0.1 to 0.2 for all areas regardless of size.', 2, 'For very large areas Z is 0.6 to 1.2. R is false.');
+asr(3, 'importance', 'Communities with more species tend to be more stable.', 'Tilman\'s plots with more species showed less year-to-year variation in biomass.', 0, 'The experimental result supports the statement. R explains A.');
+asr(3, 'importance', 'The rivet popper hypothesis was proposed by Paul Ehrlich.', 'It compares species to the rivets of an aeroplane.', 1, 'Both are true, but R describes the analogy rather than explaining why Ehrlich proposed it. R is not the explanation of A.');
+asr(3, 'loss', 'Habitat loss is the most important cause of species extinction.', 'The destruction of tropical rainforests removes the homes of a huge number of species.', 0, 'The cutting of the Amazon for soya and cattle is an example. R explains A.');
+asr(4, 'loss', 'Introduction of Nile perch in Lake Victoria increased the number of cichlid species.', 'Nile perch is an alien species.', 3, 'A is false: more than 200 cichlid species were lost. R is true: it is an alien species.');
+asr(3, 'loss', 'The extinction of a host species can lead to the extinction of its parasites.', 'Parasites are obligately associated with their hosts.', 0, 'This is coextinction. R explains A.');
+asr(3, 'conservation', 'Hotspots are high priority for conservation.', 'They have a high degree of endemism and are under threat.', 0, 'Endemic species are found nowhere else, so their loss is permanent.');
+asr(3, 'conservation', 'Sacred groves are in situ conservation sites.', 'The organisms in them are kept in captivity away from their natural habitat.', 2, 'Sacred groves protect species in their natural habitat. R is false.');
+asr(4, 'conservation', 'Cryopreservation helps in the conservation of threatened animals.', 'The gametes are stored at &minus;196&deg;C and can be fertilised later in vitro.', 0, 'The gametes remain viable and fertile for long, so R explains A.');
+asr(4, 'numbers', 'India has a high share of global species diversity compared with its land area.', 'India has 8.1% of the global species and 2.4% of the land area.', 0, 'The figures show the high concentration. India is a mega-diversity country.');
+asr(3, 'levels', 'Ecological diversity of India is greater than that of Norway.', 'India has deserts, rain forests, mangroves, coral reefs and alpine meadows.', 0, 'A greater variety of ecosystems means higher ecosystem diversity.');
+asr(4, 'importance', 'The Amazon forest is called the lungs of the planet.', 'It contributes 20% of the total oxygen in the atmosphere through photosynthesis.', 0, 'NCERT gives this broad utility argument; R explains the "lungs" idea.');
+
+// ---------------------------------------------------------------- Statements
+stm(3, 'levels', 'Variation in rice varieties is genetic diversity.', 'The number of amphibian species in a region is species diversity.', 0, 'Both are correct.');
+stm(3, 'numbers', 'The recorded species are more than 1.5 million.', 'May estimated the total at about 70 million.', 2, 'May\'s estimate is about 7 million, not 70.');
+stm(3, 'numbers', 'More than 70% of recorded species are animals.', 'Insects form more than 70% of animal species.', 0, 'Both are as in the NCERT text.');
+stm(3, 'patterns', 'Species richness increases with area at all scales without limit.', 'Z is 0.1 to 0.2 in smaller regions.', 3, 'Richness increases only up to a limit; I is false. II is correct.');
+stm(4, 'patterns', 'In the equation log S = log C + Z log A, C is the intercept.', 'Z is the slope of the line.', 0, 'Both are correct.');
+stm(3, 'patterns', 'Tropical regions have more stable climates than temperate regions.', 'Temperate regions were glaciated more often in the past.', 0, 'Both are correct and are parts of the hypotheses for the gradient.');
+stm(3, 'importance', 'Tilman showed that more species give less variation in biomass.', 'Tilman showed that more species give lower productivity.', 2, 'Diversity gave higher productivity, so II is false.');
+stm(3, 'loss', 'The "evil quartet" includes habitat loss and fragmentation.', 'It also includes over-exploitation, alien invasions and coextinction.', 0, 'Both are correct.');
+stm(4, 'loss', 'Steller\'s sea cow and the passenger pigeon became extinct due to over-exploitation.', 'The dodo is an African animal.', 2, 'The dodo is from Mauritius, so II is false.');
+stm(3, 'loss', 'The African catfish is an invasive species in Indian rivers.', 'It threatens the native catfishes.', 0, 'Both are correct.');
+stm(4, 'conservation', 'Ex situ conservation includes zoos and seed banks.', 'In situ conservation includes national parks and sacred groves.', 0, 'Both are correct.');
+stm(3, 'conservation', 'Hotspots have a high degree of endemism.', 'Hotspots are regions with very low species richness.', 2, 'They have very high richness, so II is false.');
+stm(4, 'conservation', 'Cryopreservation stores gametes in liquid nitrogen at &minus;196&deg;C.', 'Cryopreserved gametes cannot be used for in vitro fertilisation.', 2, 'They can be used for IVF; II is false.');
+stm(4, 'conservation', 'Sacred groves occur in Meghalaya and the Western Ghats.', 'In Meghalaya they are the last refuge for many threatened plants.', 0, 'Both are correct.');
+stm(5, 'importance', 'Narrowly utilitarian arguments are about direct economic benefits.', 'The role of Amazon in oxygen release is a narrowly utilitarian argument.', 2, 'That role is a broadly utilitarian argument; II is false.');
+stm(5, 'numbers', 'Fungi species in the world outnumber the combined total of fishes, amphibians, reptiles and mammals.', 'Plants form more than half of the recorded species.', 2, 'Plants form not more than 22%, so II is false.');
+
+// ---------------------------------------------------------------- Match
+match(3, 'loss', 'bd-m1', 'Extinct animal and place', ['A. Dodo', 'B. Quagga', 'C. Thylacine', 'D. Steller\'s sea cow'], ['p. Russia', 'q. Australia', 'r. Africa', 's. Mauritius'], 'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-q, B-r, C-s, D-p'], 'Dodo: Mauritius (s). Quagga: Africa (r). Thylacine: Australia (q). Steller\'s sea cow: Russia (p).');
+match(3, 'conservation', 'bd-m2', 'Sacred grove regions', ['A. Khasi and Jaintia Hills', 'B. Aravalli Hills', 'C. Western Ghats', 'D. Sarguja, Chanda and Bastar'], ['p. Madhya Pradesh', 'q. Meghalaya', 'r. Rajasthan', 's. Karnataka and Maharashtra'], 'A-q, B-r, C-s, D-p', ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-s, B-r, C-q, D-p'], 'Khasi and Jaintia: Meghalaya. Aravalli: Rajasthan. Western Ghats: Karnataka and Maharashtra. Sarguja, Chanda and Bastar: Madhya Pradesh.');
+match(3, 'levels', 'bd-m3', 'Example and level of diversity', ['A. Reserpine variation in <i>Rauwolfia</i>', 'B. More amphibians in Western than Eastern Ghats', 'C. Deserts, rain forests and mangroves in India', 'D. 1000 varieties of mango'], ['p. Species diversity', 'q. Genetic diversity', 'r. Ecological diversity', 's. Genetic diversity (varieties)'], 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'], 'Reserpine variation and mango varieties are genetic. Amphibians are species. Habitats are ecological.');
+match(4, 'loss', 'bd-m4', 'Cause and example', ['A. Habitat loss', 'B. Over-exploitation', 'C. Alien invasion', 'D. Coextinction'], ['p. Nile perch in Lake Victoria', 'q. Steller\'s sea cow', 'r. Parasites of an extinct host', 's. Amazon cleared for soya'], 'A-s, B-q, C-p, D-r', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-p, B-q, C-s, D-r'], 'Amazon cleared: habitat loss. Steller\'s sea cow: over-exploitation. Nile perch: alien invasion. Parasites: coextinction.');
+match(4, 'importance', 'bd-m5', 'Scientist and idea', ['A. Paul Ehrlich', 'B. David Tilman', 'C. Alexander von Humboldt', 'D. Norman Myers'], ['p. Hotspots', 'q. Species-area relationship', 'r. Long-term plot experiments on stability', 's. Rivet popper hypothesis'], 'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-q, B-r, C-s, D-p'], 'Ehrlich: rivet popper. Tilman: plots. Humboldt: species-area. Myers: hotspots.');
+match(4, 'conservation', 'bd-m6', 'Conservation method and type', ['A. National park', 'B. Seed bank', 'C. Botanical garden', 'D. Sacred grove'], ['p. In situ', 'q. Ex situ', 'r. Ex situ', 's. In situ (traditional)'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-s, B-q, C-r, D-p'], 'National parks and sacred groves are in situ; seed banks and botanical gardens are ex situ.');
+
+// ---------------------------------------------------------------- Passages
+pass('bd-p1', 'Birds on islands', 'A biologist counts bird species on islands of different areas in the same archipelago. An island of 10 km<sup>2</sup> has 8 species, 100 km<sup>2</sup> has 12 species and 1000 km<sup>2</sup> has about 17 species. The biologist plots log S against log A and gets a straight line.');
+pq('bd-p1', 3, 'patterns', 'The relationship plotted is called the', 'species-area relationship', ['latitudinal gradient', 'pyramid of numbers', 'logistic growth'], 'S increases with A in a regular way.');
+pq('bd-p1', 4, 'patterns', 'The slope of the line (Z) is approximately', '0.16', ['1.6', '16', '0.016'], 'Between 10 and 1000 km<sup>2</sup> (two orders of magnitude, log A rises by 2), log S rises from log 8 = 0.903 to log 17 = 1.230. Z = 0.327/2 = 0.16.', 'A is not 2; the change in log A is 2.');
+pq('bd-p1', 4, 'patterns', 'If the island of 1000 km<sup>2</sup> loses 90% of its forest (area 100 km<sup>2</sup> remains), species expected to remain are about', '12', ['17', '8', '1.7'], 'From the data, 100 km<sup>2</sup> has about 12 species, so about 5 of 17 are lost.');
+pass('bd-p2', 'A forest fragments', 'A large forest is cut by roads and farms into small patches. Large mammals with big territories vanish from the patches. A migratory bird that nested in the forest can no longer find enough connected habitat. An alien weed spreads along the road edges.');
+pq('bd-p2', 3, 'loss', 'The main cause of loss in this passage is', 'habitat loss and fragmentation', ['over-exploitation', 'coextinction only', 'cryopreservation'], 'The forest is broken into patches. Alien invasion is also visible, but habitat fragmentation is the major cause.');
+pq('bd-p2', 4, 'loss', 'The spreading weed is an example of', 'an alien species invasion', ['coextinction', 'ex situ conservation', 'speciation'], 'Weeds such as <i>Lantana</i>, <i>Parthenium</i> and <i>Eichhornia</i> are NCERT examples.');
+pq('bd-p2', 4, 'conservation', 'Which action best conserves the animals needing large territories?', 'Joining the patches by protected corridors and enlarging the sanctuary', ['Putting all of them in zoos', 'Cutting the remaining patches', 'Storing seeds only'], 'In situ conservation of large connected habitat keeps the ecosystem and its species.', 'Zoos cannot hold the wide territory or the ecological roles.');
+pass('bd-p3', 'Lake Victoria', 'In the 1950s a large predatory fish, the Nile perch, was introduced into Lake Victoria in East Africa. Within a few decades, more than 200 species of cichlid fish endemic to the lake became extinct.');
+pq('bd-p3', 3, 'loss', 'The cause of the extinction of the cichlids is', 'invasion of an alien species', ['habitat fragmentation', 'natural speciation', 'over-hunting by humans only'], 'The Nile perch is an alien predator.');
+pq('bd-p3', 4, 'loss', 'These cichlids were "endemic". This means', 'they were found only in that lake', ['they lived everywhere', 'they were alien', 'they were parasites'], 'Endemic species are confined to a region. Their loss is a global loss.');
+
+// ---------------------------------------------------------------- Numbers (fixed)
+nat(3, 'patterns', 'In S = CA<sup>Z</sup>, C = 4 and Z = 0.25. How many species are expected in an area A = 10000 km<sup>2</sup>?', 40, 'Idea: S = C A<sup>Z</sup>. A<sup>0.25</sup> = (10<sup>4</sup>)<sup>0.25</sup> = 10. S = 4 &times; 10 = 40.', 'species', 'Using Z = 2.5 or multiplying C by A gives wrong values.');
+nat(3, 'patterns', 'In log S = log C + Z log A, log C = 0.6, Z = 0.2 and A = 100000 km<sup>2</sup>. What is log S?', 1.6, 'Idea: log A = 5. log S = 0.6 + 0.2 &times; 5 = 1.6.', '', 'The slope multiplies log A, not A.', 0.01);
+nat(4, 'patterns', 'A region of 100 km<sup>2</sup> has 20 species and the same type of region of 10000 km<sup>2</sup> has 40 species. What is the slope Z of the log-log line (2 decimals)?', 0.15, 'Idea: Z = (log S<sub>2</sub> &minus; log S<sub>1</sub>)/(log A<sub>2</sub> &minus; log A<sub>1</sub>) = log 2/2 = 0.301/2 = 0.15.', '', 'The log of the area ratio is 2, since the area rises by 100 times.', 0.01);
+nat(4, 'patterns', 'With Z = 0.2, by what factor does species richness rise when the area is multiplied by 32?', 2, 'Idea: S<sub>2</sub>/S<sub>1</sub> = 32<sup>0.2</sup> = (2<sup>5</sup>)<sup>0.2</sup> = 2.', '', 'The factor is not 32 or 6.4.', 0.01);
+nat(4, 'loss', 'With Z = 0.25, a habitat shrinks to 1/16 of its original area. What percentage of the species is expected to be lost in the long run?', 50, 'Idea: S<sub>new</sub>/S<sub>old</sub> = (1/16)<sup>0.25</sup> = 1/2. So 50% remain and 50% are lost.', '%', 'A loss of 93.75% of area does not mean 93.75% of species.');
+nat(3, 'numbers', 'Of the 784 extinctions recorded over the last 500 years, 338 are invertebrates, 359 are vertebrates and the rest are plants. How many plants?', 87, 'Idea: 784 &minus; 338 &minus; 359 = 87.', 'species', 'Add the two groups first, then subtract.');
+nat(3, 'numbers', 'Of 1.5 million described species, 70% are animals. How many million animal species are described?', 1.05, 'Idea: 0.7 &times; 1.5 million = 1.05 million.', 'million', 'Using 22% gives plant species.', 0.01);
+nat(4, 'numbers', 'The Amazon has 40000 plant species, 3000 fish, 1300 bird, 427 mammal, 427 amphibian and 378 reptile species. What is the total of the vertebrate groups listed (fish, birds, mammals, amphibians and reptiles)?', 5532, 'Idea: 3000 + 1300 + 427 + 427 + 378 = 5532.', 'species', 'Plants are not vertebrates.');
+nat(3, 'numbers', 'India has 2.4% of the world\'s land area and 8.1% of the global species. How many times is the species share compared with the area share? (2 decimals)', 3.38, 'Idea: 8.1/2.4 = 3.375, about 3.38.', '', 'It is the ratio of the two percentages.', 0.01);
+nat(5, 'patterns', 'Two islands: A = 50 km<sup>2</sup> with S = 30 species and a larger island B with S = 60 species. If Z = 0.3, what is the area of B (km<sup>2</sup>)? Use 2<sup>1/0.3</sup> = 10.08 and give the nearest 10.', 500, 'Idea: 60/30 = 2 = (A<sub>B</sub>/50)<sup>0.3</sup>. A<sub>B</sub>/50 = 2<sup>1/0.3</sup> = 10.08. A<sub>B</sub> = 504, about 500 km<sup>2</sup>.', 'km<sup>2</sup>', 'To double S you need more than double the area, as the exponent is small.', 10);
+
+// ---------------------------------------------------------------- Level 4 and 5 extras
+mc(4, 'levels', 'Which pair has the SAME level of diversity?', 'Mango varieties and rice strains', ['Rice strains and a desert and a forest', 'Desert and amphibians in Ghats', 'Mango varieties and birds of the Amazon'], 'Both are genetic diversity. A desert and forest are ecosystems; Amazon birds are species diversity.');
+mc(4, 'patterns', 'A student writes: "Species richness depends on area only." Which is the best correction?', 'Latitude, climate stability and energy also affect richness', ['Species richness depends on nothing', 'Only altitude matters', 'It depends on genes only'], 'Latitude and the area are different factors. Both the latitudinal gradient and the species-area relationship have been recorded.');
+mc(4, 'patterns', 'Z = 1.15 was found for', 'frugivorous birds and mammals in the tropical forests of different continents', ['small islands of the same archipelago', 'temperate lakes', 'soil bacteria'], 'Large areas such as whole continents give steeper slopes (0.6 to 1.2).');
+mc(4, 'patterns', 'If the species-area slope Z is small, then', 'doubling the area adds relatively few new species', ['doubling the area doubles the species', 'species fall with area', 'species richness is zero'], 'S increases as A<sup>Z</sup>. With Z = 0.15, doubling A multiplies S by 1.11.');
+mc(4, 'importance', 'Which of these does NOT represent a broadly utilitarian argument?', 'Timber and firewood from forests', ['Pollination by bees and birds', 'Aesthetic pleasure of watching flowers in bloom', 'Oxygen produced in the Amazon'], 'Timber is a direct economic product, so it is narrowly utilitarian.');
+mc(4, 'importance', 'Which of these is a narrowly utilitarian use?', 'Obtaining drugs from the bark of a forest tree', ['Enjoying the bird song', 'Taking oxygen from the forest', 'Moral duty to future generations'], 'Direct economic products like drugs, food and fibre are narrow utilitarian values.');
+mc(4, 'loss', 'Which statement about the causes of biodiversity loss matches NCERT?', 'Habitat loss and fragmentation is the most important cause', ['Over-exploitation is the most important cause', 'Alien species invasions are the most important cause', 'Coextinction is the most important cause'], 'NCERT names habitat loss and fragmentation as the most important cause of extinction. The other three belong to the evil quartet but are not ranked first.');
+mc(4, 'loss', 'Which is a case of both over-exploitation and loss of a once abundant species?', 'Passenger pigeon', ['Water hyacinth', 'Nile perch', 'Banyan'], 'The passenger pigeon was hunted to extinction.');
+mc(4, 'loss', 'Which one is wrong about alien invasive species?', 'They always improve native biodiversity', ['They may compete with native species', 'They may prey on native species', '<i>Lantana</i> is an example in India'], 'Alien species can cause the decline or extinction of native species.');
+mc(4, 'conservation', 'A sanctuary gives full protection to the entire ecosystem, while a zoo', 'protects selected species outside their natural habitat', ['protects the entire ecosystem', 'is an in situ method', 'has no role in conservation'], 'A zoo is ex situ. Captive breeding there can help to restock threatened species.');
+mc(4, 'conservation', 'Which of the following is NOT an advantage of in situ conservation?', 'It stores sperm and eggs for decades in liquid nitrogen', ['It conserves the whole ecosystem', 'It allows evolution to continue in nature', 'It protects the interactions among species'], 'Storing gametes in liquid nitrogen is ex situ cryopreservation.');
+mc(4, 'conservation', 'Hotspots are identified on the basis of', 'species richness, endemism and threat to habitat', ['soil type', 'altitude', 'number of lakes'], 'Myers identified hotspots as regions with very high species richness and endemism that are under threat.');
+mc(5, 'patterns', 'A region has S = 50 species in 1000 km<sup>2</sup> and Z = 0.2. If the area drops to 10 km<sup>2</sup>, S is about (10<sup>&minus;0.4</sup> = 0.398)', '20', ['0.5', '5', '40'], 'Area falls by 100 times, so S becomes 50 &times; 100<sup>&minus;0.2</sup> = 50 &times; 10<sup>&minus;0.4</sup> = 50 &times; 0.398 = 19.9, about 20.', 'Dividing S by 100 gives 0.5, which ignores the small exponent.');
+mc(5, 'patterns', 'Which of the following would give a straight line on a plot with both axes logarithmic?', 'A power law S = CA<sup>Z</sup>', ['S = C + ZA', 'S = C/A', 'S = C e<sup>A</sup>'], 'Taking logs of a power law gives log S = log C + Z log A, which is linear in log A.');
+mc(5, 'levels', 'Why can a high species diversity not guarantee high genetic diversity within each species?', 'Each species may have small, uniform populations', ['Genes are not related to species', 'More species always means more genes per species', 'Genetic diversity is not measurable'], 'Species richness counts the species. Variation within each species is a separate level.');
+mc(5, 'importance', 'In Tilman\'s design, the variation in biomass from year to year was measured as a sign of', 'ecosystem stability', ['speciation', 'extinction rate', 'competition'], 'Less variation means greater stability. More species gave greater stability.');
+mc(5, 'loss', 'The sixth extinction is called a "mass extinction" because', 'a large number of species is lost in a geologically short period', ['only one species is lost', 'only plants are lost', 'it is a slow natural process'], 'The present rates are 100 to 1000 times those in pre-human times.');
+mc(5, 'conservation', 'Which of the following is correct about the hotspots in India?', 'The Western Ghats and Sri Lanka, Indo-Burma and Himalaya cover India\'s exceptionally high biodiversity regions', ['The Thar desert and Deccan are hotspots', 'India has no hotspot', 'Only the Sundarbans is a hotspot'], 'Three hotspots overlap India. The NCERT also says that conserving hotspots could reduce the mass extinction by about 30%.');
+
+// ---------------------------------------------------------------- Templates
+const gens = [
+  { id: 'bd-g01', type: 'nat', level: 3, format: 'numeric', exams: ex(3), sub: 'patterns',
+    make(rng) {
+      const C = pick(rng, 1, 8, 0.5), Z = choose(rng, [0.1, 0.15, 0.2, 0.25]), k = int(rng, 2, 6), A = 10 ** k;
+      const S = C * A ** Z;
+      return { C, Z, A, q: `In the species-area relationship S = CA<sup>Z</sup>, a region has C = ${C} and Z = ${Z}. How many species are expected in an area of ${fmt(A, 3)} km<sup>2</sup>? (nearest whole number)`, answer: Math.round(S), tol: 1, unit: 'species', sol: `Idea: put the numbers in S = CA<sup>Z</sup>. A<sup>Z</sup> = (10<sup>${k}</sup>)<sup>${Z}</sup> = 10<sup>${(k * Z).toFixed(2)}</sup> = ${(A ** Z).toFixed(2)}. S = ${C} &times; ${(A ** Z).toFixed(2)} = ${S.toFixed(1)}, about ${Math.round(S)}.`, trap: 'Z is an exponent, not a multiplier of A.' };
+    },
+    verify(p) { return Math.round(10 ** (Math.log10(p.C) + p.Z * Math.log10(p.A))); } },
+  { id: 'bd-g02', type: 'nat', level: 3, format: 'numeric', exams: ex(3), sub: 'patterns',
+    make(rng) {
+      const logC = pick(rng, 0.2, 1, 0.1), Z = choose(rng, [0.1, 0.15, 0.2, 0.25, 0.3]), logA = int(rng, 2, 7);
+      const ans = logC + Z * logA;
+      return { logC, Z, logA, q: `In log S = log C + Z log A, log C = ${logC}, Z = ${Z} and log A = ${logA}. Find log S (2 decimals).`, answer: +ans.toFixed(2), tol: 0.01, sol: `Idea: substitute directly. log S = ${logC} + ${Z} &times; ${logA} = ${logC} + ${(Z * logA).toFixed(2)} = ${ans.toFixed(2)}.`, trap: 'The slope multiplies log A, not A.' };
+    },
+    verify(p) { return +(p.logC + p.Z * p.logA).toFixed(2); } },
+  { id: 'bd-g03', type: 'nat', level: 4, format: 'numeric', exams: ex(4), sub: 'patterns',
+    make(rng) {
+      const S1 = int(rng, 4, 30) * 2, Z = choose(rng, [0.1, 0.15, 0.2, 0.25, 0.3, 0.5]), n = choose(rng, [2, 4, 8, 10, 100]);
+      const S2 = S1 * n ** Z;
+      const Zr = Z;
+      return { S1, Z: Zr, n, q: `A forest patch of area A has ${S1} species. The relation S = CA<sup>Z</sup> holds with Z = ${Z}. How many species are expected if the area is made ${n} times larger? (nearest whole number)`, answer: Math.round(S2), tol: 1, unit: 'species', sol: `Idea: S<sub>2</sub>/S<sub>1</sub> = (A<sub>2</sub>/A<sub>1</sub>)<sup>Z</sup> = ${n}<sup>${Z}</sup> = ${(n ** Z).toFixed(3)}. S<sub>2</sub> = ${S1} &times; ${(n ** Z).toFixed(3)} = ${S2.toFixed(1)}, about ${Math.round(S2)}.`, trap: `Species do not rise ${n} times when area does.` };
+    },
+    verify(p) { return Math.round(10 ** (Math.log10(p.S1) + p.Z * Math.log10(p.n))); } },
+  { id: 'bd-g04', type: 'nat', level: 4, format: 'numeric', exams: ex(4), sub: 'patterns',
+    make(rng) {
+      const A1 = choose(rng, [10, 100, 1000]), f = choose(rng, [10, 100, 1000]), S1 = int(rng, 5, 30) * 2;
+      const Z = choose(rng, [0.1, 0.2, 0.25, 0.3, 0.5]);
+      const S2 = S1 * f ** Z;
+      return { A1, f, S1, S2: +S2.toFixed(3), q: `Two sites of the same habitat: ${A1} km<sup>2</sup> has ${S1} species and ${A1 * f} km<sup>2</sup> has ${S2.toFixed(1)} species. Find Z in S = CA<sup>Z</sup> (2 decimals).`, answer: Z, tol: 0.01, sol: `Idea: Z = (log S<sub>2</sub> &minus; log S<sub>1</sub>)/(log A<sub>2</sub> &minus; log A<sub>1</sub>). Area ratio = ${f}, so log ratio = ${Math.log10(f).toFixed(2)}. Species ratio = ${(S2 / S1).toFixed(3)}, log = ${Math.log10(S2 / S1).toFixed(3)}. Z = ${Math.log10(S2 / S1).toFixed(3)}/${Math.log10(f).toFixed(2)} = ${Z}.`, trap: 'Use logs of ratios, not differences of the numbers.' };
+    },
+    verify(p) { return +(Math.log10(p.S2 / p.S1) / Math.log10(p.f)).toFixed(2); } },
+  { id: 'bd-g05', type: 'nat', level: 4, format: 'numeric', exams: ex(4), sub: 'loss',
+    make(rng) {
+      const Z = choose(rng, [0.15, 0.2, 0.25, 0.3]), left = choose(rng, [0.5, 0.25, 0.1, 0.01]);
+      const lost = 100 * (1 - left ** Z);
+      return { Z, left, q: `A habitat is reduced to ${left * 100}% of its original area. Using S = CA<sup>Z</sup> with Z = ${Z}, what percentage of its species is expected to be lost in the long run? (1 decimal)`, answer: +lost.toFixed(1), tol: 0.1, unit: '%', sol: `Idea: remaining fraction of species = (area fraction)<sup>Z</sup> = ${left}<sup>${Z}</sup> = ${(left ** Z).toFixed(3)}. Loss = 100 &times; (1 &minus; ${(left ** Z).toFixed(3)}) = ${lost.toFixed(1)}%.`, trap: 'A loss of 90% of area does not mean a loss of 90% of species.' };
+    },
+    verify(p) { return +(100 - 100 * p.left ** p.Z).toFixed(1); } },
+  { id: 'bd-g06', type: 'nat', level: 3, format: 'numeric', exams: ex(3), sub: 'numbers',
+    make(rng) {
+      const total = choose(rng, [7, 8, 10, 5]), rec = choose(rng, [1.5, 1.6, 1.8]);
+      const ans = (total - rec) / total * 100;
+      return { total, rec, q: `About ${rec} million species have been described, while the estimated total is ${total} million. What percentage of species is still undescribed? (1 decimal)`, answer: +ans.toFixed(1), tol: 0.1, unit: '%', sol: `Idea: undescribed = (total &minus; described)/total. = (${total} &minus; ${rec})/${total} = ${((total - rec) / total).toFixed(3)} = ${ans.toFixed(1)}%.`, trap: 'The described share is the small number, not the answer.' };
+    },
+    verify(p) { return +(100 - 100 * p.rec / p.total).toFixed(1); } },
+  { id: 'bd-g07', type: 'nat', level: 2, format: 'numeric', exams: ex(2), sub: 'numbers',
+    make(rng) {
+      const N = choose(rng, [1.5, 2, 1.2, 1.8]), p = choose(rng, [70, 22, 5]);
+      const ans = N * p / 100;
+      const who = p === 70 ? 'animals' : p === 22 ? 'plants (with algae and fungi)' : 'microbes';
+      return { N, p, q: `Of ${N} million recorded species, ${p}% are ${who} (use this figure for the problem). How many million species is that? (3 decimals)`, answer: +ans.toFixed(3), tol: 0.001, unit: 'million', sol: `Idea: take the percentage of the total. ${p}% of ${N} million = ${N} &times; ${p}/100 = ${ans.toFixed(3)} million.`, trap: 'Change % to a fraction before multiplying.' };
+    },
+    verify(p) { return +(p.N * p.p / 100).toFixed(3); } },
+  { id: 'bd-g08', type: 'mcq', level: 2, format: 'single', exams: ex(2), sub: 'levels',
+    make(rng) {
+      const cases = [
+        ['50,000 strains of rice in India', 'genetic diversity'],
+        ['the variety of ecosystems such as deserts, mangroves and rain forests', 'ecological diversity'],
+        ['more amphibian species in the Western Ghats than the Eastern Ghats', 'species diversity'],
+        ['different potency of reserpine in <i>Rauwolfia</i> from different Himalayan ranges', 'genetic diversity'],
+        ['1000 varieties of mango in India', 'genetic diversity'],
+        ['the many bird species of the Amazon forest', 'species diversity'],
+        ['coral reefs, wetlands and alpine meadows in one country', 'ecological diversity'],
+      ];
+      const [d, a] = choose(rng, cases);
+      const s = shuffleOpts(rng, a, ['genetic diversity', 'species diversity', 'ecological diversity', 'cultural diversity'].filter((x) => x !== a));
+      return { q: `${d.charAt(0).toUpperCase() + d.slice(1)} is an example of`, options: s.options, answer: s.answer, sol: `Idea: ask what varies. Here it is ${a === 'genetic diversity' ? 'the genes within one species' : a === 'species diversity' ? 'the number of species' : 'the kinds of habitats'}. So it is ${a}.`, trap: 'Varieties of one species are genetic, not species diversity.' };
+    } },
+  { id: 'bd-g09', type: 'mcq', level: 2, format: 'single', exams: ex(2), sub: 'loss',
+    make(rng) {
+      const cases = [
+        ['Cutting down the Amazon for soya cultivation', 'habitat loss and fragmentation'],
+        ['Hunting of Steller\'s sea cow until none remained', 'over-exploitation'],
+        ['The Nile perch introduced into Lake Victoria', 'alien species invasion'],
+        ['Parasites disappearing along with their only host species', 'coextinction'],
+        ['Large forest broken into small patches by roads', 'habitat loss and fragmentation'],
+        ['Spread of <i>Lantana</i> and water hyacinth', 'alien species invasion'],
+        ['Passenger pigeons being shot for meat', 'over-exploitation'],
+        ['A plant going extinct because its only pollinator did', 'coextinction'],
+      ];
+      const [d, a] = choose(rng, cases);
+      const all = ['habitat loss and fragmentation', 'over-exploitation', 'alien species invasion', 'coextinction'];
+      const s = shuffleOpts(rng, a, all.filter((x) => x !== a));
+      return { q: `${d} is an example of which of the four causes of biodiversity loss (the evil quartet)?`, options: s.options, answer: s.answer, sol: `Idea: match the event with the cause. This is ${a}.`, trap: 'Pairs of mutualists and hosts and parasites are coextinction.' };
+    } },
+  { id: 'bd-g10', type: 'mcq', level: 2, format: 'single', exams: ex(2), sub: 'loss',
+    make(rng) {
+      const cases = [['Dodo', 'Mauritius'], ['Quagga', 'Africa'], ['Thylacine', 'Australia'], ['Steller\'s sea cow', 'Russia']];
+      const [sp, pl] = choose(rng, cases);
+      const s = shuffleOpts(rng, pl, cases.map((c) => c[1]).filter((x) => x !== pl));
+      return { q: `The extinct ${sp} was an animal of`, options: s.options, answer: s.answer, sol: `Idea: recall the NCERT list. The ${sp} belonged to ${pl}.`, trap: 'Four extinct animals, four regions; do not swap them.' };
+    } },
+  { id: 'bd-g11', type: 'mcq', level: 2, format: 'single', exams: ex(2), sub: 'conservation',
+    make(rng) {
+      const cases = [
+        ['National park', 'in situ'], ['Botanical garden', 'ex situ'], ['Seed bank', 'ex situ'], ['Sacred grove', 'in situ'],
+        ['Zoological park', 'ex situ'], ['Biosphere reserve', 'in situ'], ['Cryopreservation of gametes', 'ex situ'], ['Wildlife sanctuary', 'in situ'],
+      ];
+      const [m, a] = choose(rng, cases);
+      const s = shuffleOpts(rng, `${a} conservation`, [`${a === 'in situ' ? 'ex situ' : 'in situ'} conservation`, 'bioprospecting', 'a biodiversity hotspot']);
+      return { q: `${m} is an example of`, options: s.options, answer: s.answer, sol: `Idea: in situ means conserved in the natural habitat, and ex situ means outside it. ${m} is ${a} conservation.`, trap: 'Sacred groves are in situ, even though people made them.' };
+    } },
+  { id: 'bd-g12', type: 'mcq', level: 3, format: 'single', exams: ex(3), sub: 'conservation',
+    make(rng) {
+      const cases = [['Khasi and Jaintia Hills', 'Meghalaya'], ['Aravalli Hills', 'Rajasthan'], ['Western Ghat region', 'Karnataka and Maharashtra'], ['Sarguja, Chanda and Bastar', 'Madhya Pradesh']];
+      const [g1, st] = choose(rng, cases);
+      const s = shuffleOpts(rng, st, cases.map((c) => c[1]).filter((x) => x !== st));
+      return { q: `Sacred groves in the ${g1} are found in`, options: s.options, answer: s.answer, sol: `Idea: recall the sacred grove regions in NCERT. ${g1} is in ${st}.`, trap: 'Match each region with its state carefully.' };
+    } },
+  { id: 'bd-g13', type: 'mcq', level: 3, format: 'single', exams: ex(3), sub: 'importance',
+    make(rng) {
+      const cases = [
+        ['Drugs from plants', 'narrowly utilitarian'], ['Timber and firewood', 'narrowly utilitarian'], ['Pollination by bees and birds', 'broadly utilitarian'],
+        ['Oxygen released by the Amazon forest', 'broadly utilitarian'], ['Bird watching for pleasure', 'broadly utilitarian'], ['Every species has an intrinsic value', 'ethical'],
+        ['A moral duty to future generations', 'ethical'], ['Tannins, resins and dyes from plants', 'narrowly utilitarian'],
+      ];
+      const [d, a] = choose(rng, cases);
+      const all = ['narrowly utilitarian', 'broadly utilitarian', 'ethical'];
+      const s = shuffleOpts(rng, `${a} argument`, all.filter((x) => x !== a).map((x) => `${x} argument`).concat(['no argument for conservation']));
+      return { q: `"${d}" is an example of which argument for conserving biodiversity?`, options: s.options, answer: s.answer, sol: `Idea: direct products are narrowly utilitarian, ecosystem services and pleasure are broadly utilitarian, and intrinsic worth is ethical. So this is ${a}.`, trap: 'Ecosystem services (oxygen, pollination) are broad, not narrow.' };
+    } },
+  { id: 'bd-g14', type: 'nat', level: 4, format: 'numeric', exams: ex(4), sub: 'patterns',
+    make(rng) {
+      const S1 = int(rng, 10, 50), Z = choose(rng, [0.1, 0.2, 0.25, 0.5]), k = choose(rng, [2, 4, 16]);
+      const S2 = S1 * (1 / k) ** Z;
+      return { S1, Z, k, q: `A reserve holds ${S1} species. If the area is cut to 1/${k} of its size and Z = ${Z}, how many species are expected to remain? (1 decimal)`, answer: +S2.toFixed(1), tol: 0.1, unit: 'species', sol: `Idea: S<sub>2</sub> = S<sub>1</sub> &times; (area fraction)<sup>Z</sup> = ${S1} &times; (1/${k})<sup>${Z}</sup> = ${S1} &times; ${((1 / k) ** Z).toFixed(3)} = ${S2.toFixed(1)}.`, trap: 'Species fall by far less than the area.' };
+    },
+    verify(p) { return +(p.S1 * (1 / p.k) ** p.Z).toFixed(1); } },
+  { id: 'bd-g15', type: 'nat', level: 3, format: 'integer', exams: ex(3), sub: 'numbers',
+    make(rng) {
+      const inv = int(rng, 200, 400), vert = int(rng, 300, 400), tot = inv + vert + int(rng, 60, 100);
+      return { inv, vert, tot, q: `In the last 500 years, ${tot} extinctions were recorded: ${inv} invertebrates, ${vert} vertebrates and the rest plants. How many plant species were lost?`, answer: tot - inv - vert, tol: 0, unit: 'species', sol: `Idea: total minus the two other groups. ${tot} &minus; ${inv} &minus; ${vert} = ${tot - inv - vert}.`, trap: 'Subtract both known groups.' };
+    },
+    verify(p) { return p.tot - (p.inv + p.vert); } },
+  { id: 'bd-g16', type: 'mcq', level: 3, format: 'single', exams: ex(3), sub: 'patterns',
+    make(rng) {
+      const cases = [
+        ['Colombia (near the equator) or Greenland', 'Colombia'], ['The Amazon rain forest or the Arctic tundra', 'The Amazon rain forest'],
+        ['India or Norway, for ecosystem diversity', 'India'], ['A tropical forest or a temperate forest at the same area', 'The tropical forest'],
+        ['A coastal tropical wetland or a polar desert', 'The coastal tropical wetland'],
+      ];
+      const [q0, a] = choose(rng, cases);
+      const opts = q0.includes(' or ') ? q0.split(' or ').map((x) => x.split(',')[0]) : [];
+      const pair = q0.replace(/, for.*$/, '').split(' or ');
+      const wrong = pair.filter((x) => !a.toLowerCase().startsWith(x.toLowerCase().replace(/^an? /, '').replace(/^the /, '').split(' (')[0].slice(0, 5)));
+      const s = shuffleOpts(rng, a, [(pair.find((x) => x.toLowerCase().indexOf(a.toLowerCase().slice(4, 9)) < 0) ?? 'Neither').replace(/ \(.*\)/, ''), 'Both are equal', 'Cannot be compared']);
+      return { q: `Which is expected to have the higher species diversity: ${q0}?`, options: s.options, answer: s.answer, sol: `Idea: species richness is highest in the tropics and falls toward the poles. So ${a} is expected to have the higher diversity.`, trap: 'Diversity falls from the equator to the poles.' };
+    } },
+];
+export default { topic: 'biodiversity', groups, items, gens };

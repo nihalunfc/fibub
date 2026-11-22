@@ -19,14 +19,14 @@ const liveTools = tools.filter((t) => t.data.status === 'live');
 const menus = SHELVES.map((s) => ({ shelf: s, hasSubjects: !!SUBJECTS[s.id], count: liveTools.filter((t) => t.data.shelf === s.id).length }));
 // `title` names the page; `docTitle`, when given, is the exact <title> for search results (see src/lib/seo.ts).
 // `ld` is the page's structured data (JSON-LD) for search engines.
-interface Props { title: string; docTitle?: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string; ld?: object[]; ogType?: 'website' | 'article' }
-const { title, docTitle, description: rawDescription = SITE.description, shelf, noindex = false, image = '/og/home.png', tool, ld, ogType = 'website' } = Astro.props;
+interface Props { title: string; docTitle?: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string; ld?: object[]; ogType?: 'website' | 'article'; canonical?: string }
+const { title, docTitle, description: rawDescription = SITE.description, shelf, noindex = false, image = '/og/home.png', tool, ld, ogType = 'website', canonical: canonicalPath } = Astro.props;
 const description = metaDescription(rawDescription);
 const pagePath = Astro.url.pathname;
 const ldAuto = ld?.length || noindex || pagePath === '/' ? ld : pageLd(title, description, pagePath);
 const ldJson = ldAuto?.length ? JSON.stringify({ '@context': 'https://schema.org', '@graph': ldAuto }).replace(/</g, '\\u003c') : null;
 const imageUrl = new URL(image, SITE.url).href;
-const canonical = new URL(Astro.url.pathname, SITE.url).href;
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, SITE.url).href;
 const path = Astro.url.pathname;
 const area = areaOf(path);
 const learn = AREAS.find((a) => a.id === 'learn')!, blog = AREAS.find((a) => a.id === 'blog')!;

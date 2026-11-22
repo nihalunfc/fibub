@@ -1,0 +1,39 @@
+---
+// Practice hub of a Plus Two entrance course: every subject's chapters that have questions, in course order, each
+// linking to its practice page, then a practice block per subject. Banks: public/qbank/entrance-<subject>/.
+import Base from '../../layouts/Base.astro';
+import QBank from './QBank.astro';
+import { bankCounts } from '../../lib/qbank/build';
+import { coursePageLd } from '../../lib/seo';
+import { SUBJECT_NAMES, type Subject } from '../../data/entrance';
+import type { CourseSyllabus } from '../../courses/types';
+import '../../styles/course.css';
+interface Props { course: CourseSyllabus; subjects: Subject[]; exam?: string; examName: string }
+const { course, subjects, exam, examName } = Astro.props;
+const base = `/learn/courses/${course.id}`;
+const n = (c: { items: number; gens: number; exams: Record<string, number> }) => (exam ? c.exams[exam] ?? 0 : c.items + c.gens);
+const banks = await Promise.all(subjects.map(async (s) => ({ s, bank: `entrance-${s}`, ...(await bankCounts(`entrance-${s}`)) })));
+const written = banks.reduce((a, b) => a + Object.values(b.topics).reduce((x, c) => x + c.items, 0), 0);
+const tmpl = banks.reduce((a, b) => a + Object.values(b.topics).reduce((x, c) => x + c.gens, 0), 0);
+const chapters = banks.reduce((a, b) => a + Object.values(b.topics).filter((c) => n(c) > 0).length, 0);
+const title = `${examName} practice questions`;
+const desc = `Free ${examName} practice: original questions for every chapter, from warm-up to top-rank level, in every exam format, each with a full worked solution. No sign-up.`;
+const ld = coursePageLd(course, 'Practice questions', desc, 'practice');
+---
+<Base title={title} description={desc} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / Practice</div>
+  <div class="cs-main cs-wide">
+    <h1>{title}</h1>
+    <p class="lead">Practise chapter by chapter, in the course order. Each chapter starts with warm-up questions and climbs through standard, exam, hard and top-rank levels. Every question has a full solution and, where students usually slip, a note on the trap.</p>
+    <p class="cs-meta">The bank so far: {written.toLocaleString('en-IN')} written questions and {tmpl} templates that make fresh numbers every time you press New numbers, across {chapters} chapters. New chapters are added with every update. All questions are original, written for fibub.</p>
+    {banks.map((b) => (
+      <section class="cs-modcard">
+        <h2>{SUBJECT_NAMES[b.s]}</h2>
+        {b.idx.units.map((u) => { const ts = u.topics.filter((t) => n(b.topics[t.id]) > 0); return ts.length > 0 && <><h4>{u.name}</h4><ol>{ts.map((t) => <li><a href={`${base}/practice/${t.id}/`}>{t.name}</a> <span class="cs-small">({n(b.topics[t.id])} questions and templates)</span></li>)}</ol></>; })}
+      </section>
+    ))}
+    <h2>Practise a whole subject</h2>
+    <p class="cs-small">Pick a chapter, level, format{exam ? '' : ' and exam'}, or leave them on All. Tick "Remember my progress" if you want solved questions to move to the end next time; it stays in this browser only.</p>
+    {banks.map((b) => <><h3>{SUBJECT_NAMES[b.s]}</h3><QBank bank={b.bank} exam={exam} mode="practice" /></>)}
+  </div>
+</Base>
