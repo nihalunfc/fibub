@@ -249,4 +249,257 @@ const M4 = {
   },
 };
 
-export default { ...M4 };
+
+// ---------- Module 5: trees ----------
+const gini = (cs) => { const t = cs.reduce((a, b) => a + b, 0); return 1 - cs.reduce((a, c) => a + (c / t) ** 2, 0); };
+const H2 = (p) => (p <= 0 || p >= 1 ? 0 : -p * Math.log2(p) - (1 - p) * Math.log2(1 - p));
+const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+const vari = (v) => { const m = mean(v); return mean(v.map((x) => (x - m) ** 2)); };
+const M5 = {
+  'how-trees-decide-leaf': {
+    title: 'follow a loan tree to its leaf',
+    make(r) {
+      const t1 = pick(r, 35, 50, 5), t2 = pick(r, 8, 16, 2);
+      const L = [[pick(r, 10, 20, 1), pick(r, 2, 6, 1)], [pick(r, 1, 4, 1), pick(r, 14, 24, 1)], [pick(r, 6, 12, 1), pick(r, 4, 10, 1)]];
+      const inc = pick(r, 25, 70, 5), debt = pick(r, 4, 24, 2);
+      const leaf = inc <= t1 ? 0 : debt <= t2 ? 1 : 2, [ref, ok] = L[leaf], answer = (ok / (ref + ok)) * 100;
+      const path = inc <= t1 ? `Income ${inc} ≤ ${t1}? Yes, so straight to leaf A.` : `Income ${inc} ≤ ${t1}? No. Debt ${debt} ≤ ${t2}? ${debt <= t2 ? 'Yes: leaf B.' : 'No: leaf C.'}`;
+      return {
+        q: `<p>A bank's decision tree (amounts in thousands of dollars):</p><ul><li>Income ≤ ${t1}? <b>Yes:</b> leaf A, ${L[0][0]} refused and ${L[0][1]} approved.</li><li><b>No:</b> Debt ≤ ${t2}? <b>Yes:</b> leaf B, ${L[1][0]} refused and ${L[1][1]} approved. <b>No:</b> leaf C, ${L[2][0]} refused and ${L[2][1]} approved.</li></ul><p>An applicant has income ${inc} and debt ${debt}. What probability of approval does the tree give? Answer in <b>%</b>.</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: 'Start at the top and answer each question with the applicant\'s numbers. The probability is the share of approved rows in the leaf you land in.',
+        solution: steps(path, `That leaf holds ${ref} refused and ${ok} approved: ${ok} ÷ ${ref + ok} = <b>${n(answer)} %</b>.`),
+        t1, t2, L, inc, debt,
+      };
+    },
+    verify(p) { const rules = [[(i) => i <= p.t1, 0], [(i, d) => i > p.t1 && d <= p.t2, 1], [(i, d) => i > p.t1 && d > p.t2, 2]]; const k = rules.find(([f]) => f(p.inc, p.debt))[1]; return 100 * p.L[k][1] / (p.L[k][0] + p.L[k][1]); },
+  },
+  'gini-entropy-gini': {
+    title: 'Gini impurity of a support queue',
+    make(r) {
+      const cs = [pick(r, 2, 12, 1), pick(r, 1, 10, 1), pick(r, 0, 6, 1)], t = cs[0] + cs[1] + cs[2];
+      const answer = gini(cs);
+      return {
+        q: `<p>A node of a tree that routes support tickets holds ${cs[0]} billing, ${cs[1]} technical and ${cs[2]} delivery tickets. What is its Gini impurity?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Find each class\'s share of the node. Gini = 1 − (sum of the squared shares).',
+        solution: steps(
+          `${t} tickets: shares ${cs.map((c) => `${c}/${t} = ${n(c / t)}`).join(', ')}.`,
+          `Squares: ${cs.map((c) => n((c / t) ** 2)).join(' + ')} = ${n(1 - answer)}.`,
+          `Gini = 1 − ${n(1 - answer)} = <b>${n(answer)}</b>. That is the chance that two tickets drawn at random (with replacement) are of different kinds.`),
+        cs,
+      };
+    },
+    verify(p) { let dis = 0, all = 0; const lab = p.cs.flatMap((c, k) => Array(c).fill(k)); for (const a of lab) for (const b of lab) { all++; if (a !== b) dis++; } return dis / all; },
+  },
+  'gini-entropy-entropy': {
+    title: 'entropy in bits',
+    make(r) {
+      const a = pick(r, 1, 15, 1), b = pick(r, 1, 15, 1), p = a / (a + b), answer = H2(p);
+      return {
+        q: `<p>A leaf of a churn tree holds ${a} customers who left and ${b} who stayed. What is its entropy, in bits (log base 2)?</p>`,
+        answer, unit: 'bits', tol: 0.01,
+        hint: 'With shares p and 1 − p, entropy = −p·log₂ p − (1 − p)·log₂(1 − p). log₂ x = ln x ÷ ln 2.',
+        solution: steps(
+          `Shares: p = ${a}/${a + b} = ${n(p)}, 1 − p = ${n(1 - p)}.`,
+          `−${n(p)} × log₂ ${n(p)} = ${n(-p * Math.log2(p))}; −${n(1 - p)} × log₂ ${n(1 - p)} = ${n(-(1 - p) * Math.log2(1 - p))}.`,
+          `Entropy = <b>${n(answer)} bits</b> (1 bit would be a perfect 50/50 mix, 0 a pure leaf).`),
+        a, b,
+      };
+    },
+    verify: (p) => { const t = p.a + p.b; return (-p.a * Math.log(p.a / t) - p.b * Math.log(p.b / t)) / (t * Math.LN2); },
+  },
+  'information-gain-split': {
+    title: 'the Gini gain of a split',
+    make(r) {
+      const lA = pick(r, 1, 9, 1), lB = pick(r, 0, 6, 1), rA = pick(r, 0, 6, 1), rB = pick(r, 2, 10, 1);
+      const pa = gini([lA + rA, lB + rB]), nl = lA + lB, nr = rA + rB, N = nl + nr;
+      const gl = gini([lA, lB]), gr = gini([rA, rB]), answer = pa - (nl / N) * gl - (nr / N) * gr;
+      return {
+        q: `<p>A gym's tree asks "visits last month ≤ 4?" about ${N} members. ${table(['', 'renewed', 'quit'], [['parent', lA + rA, lB + rB], ['yes side', lA, lB], ['no side', rA, rB]])}<p>What is the Gini gain of this question?</p>`,
+        answer, unit: '', tol: 0.01, abs: 0.002,
+        hint: 'Gain = Gini(parent) − (n_yes/n)·Gini(yes) − (n_no/n)·Gini(no). Gini of a two-class box = 1 − p² − (1 − p)².',
+        solution: steps(
+          `Parent: Gini = ${n(pa)}.`,
+          `Yes side (${nl} members): Gini = ${n(gl)}. No side (${nr} members): Gini = ${n(gr)}.`,
+          `Weighted after: ${nl}/${N} × ${n(gl)} + ${nr}/${N} × ${n(gr)} = ${n(pa - answer)}.`,
+          `Gain = ${n(pa)} − ${n(pa - answer)} = <b>${n(answer)}</b>.`),
+        lA, lB, rA, rB,
+      };
+    },
+    verify(p) { // via sums of squared counts: Gini·n = n − Σc²/n
+      const s = (cs) => { const t = cs[0] + cs[1]; return t - (cs[0] ** 2 + cs[1] ** 2) / t; };
+      const N = p.lA + p.lB + p.rA + p.rB;
+      return (s([p.lA + p.rA, p.lB + p.rB]) - s([p.lA, p.lB]) - s([p.rA, p.rB])) / N;
+    },
+  },
+  'regression-trees-split': {
+    title: 'variance drop for a sales split',
+    make(r) {
+      const lo = [pick(r, 3, 6, 1), pick(r, 4, 8, 1), pick(r, 5, 9, 1)], hi = [pick(r, 12, 16, 1), pick(r, 14, 18, 1), pick(r, 15, 21, 1)];
+      const all = [...lo, ...hi], answer = vari(all) - 0.5 * vari(lo) - 0.5 * vari(hi);
+      return {
+        q: `<p>Daily lemonade sales (in dozens) on six days, from coolest to warmest: ${all.join(', ')}. A regression tree splits the three cool days from the three warm days. By how much does the split lower the weighted variance of sales?</p>`,
+        answer, unit: 'dozen²', tol: 0.01,
+        hint: 'Variance = average squared distance from the mean. Work it out for all six days, then for each half; each half holds 3 of the 6 days, so it gets weight ½.',
+        solution: steps(
+          `All six: mean ${n(mean(all))}, variance ${n(vari(all))}.`,
+          `Cool days: mean ${n(mean(lo))}, variance ${n(vari(lo))}. Warm days: mean ${n(mean(hi))}, variance ${n(vari(hi))}.`,
+          `Weighted after: ½ × ${n(vari(lo))} + ½ × ${n(vari(hi))} = ${n((vari(lo) + vari(hi)) / 2)}.`,
+          `Drop = ${n(vari(all))} − ${n((vari(lo) + vari(hi)) / 2)} = <b>${n(answer)}</b>. The leaves would predict ${n(mean(lo))} and ${n(mean(hi))} dozen.`),
+        lo, hi,
+      };
+    },
+    verify(p) { // between-group variance: the drop equals the spread of the two means around the overall mean
+      const m = mean([...p.lo, ...p.hi]); return 0.5 * (mean(p.lo) - m) ** 2 + 0.5 * (mean(p.hi) - m) ** 2;
+    },
+  },
+  'pruning-alpha': {
+    title: 'when does pruning cut this branch?',
+    make(r) {
+      const L = pick(r, 2, 6, 1), e0 = pick(r, 0.05, 0.15, 0.01), d = pick(r, 0.01, 0.06, 0.005), answer = d / (L - 1);
+      return {
+        q: `<p>A branch of a churn tree has ${L} leaves. Collapsing it into a single leaf would raise the tree's training error from ${n(e0)} to ${n(e0 + d)}. With cost-complexity pruning, cost = error + α × (number of leaves), above what α is the branch pruned?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Collapsing saves (leaves − 1) leaves, each worth α in the cost, and adds the rise in error. Prune when the saving is bigger than the rise.',
+        solution: steps(
+          `Rise in error: ${n(e0 + d)} − ${n(e0)} = ${n(d)}.`,
+          `Leaves saved: ${L} − 1 = ${L - 1}, worth ${L - 1}α.`,
+          `Prune when ${L - 1}α > ${n(d)}, that is α > <b>${n(answer)}</b>.`),
+        L, d, e0,
+      };
+    },
+    verify(p) { let lo = 0, hi = 1; for (let i = 0; i < 60; i++) { const a = (lo + hi) / 2; const keep = p.e0 + a * p.L, cut = p.e0 + p.d + a; cut < keep ? (hi = a) : (lo = a); } return lo; },
+  },
+};
+
+
+// ---------- Module 6: ensembles ----------
+const choose = (n, k) => { let c = 1; for (let i = 1; i <= k; i++) c = (c * (n - k + i)) / i; return c; };
+const M6 = {
+  'wisdom-of-crowds-majority': {
+    title: 'how often is the majority right?',
+    make(r) {
+      const nv = [3, 5, 7][Math.min(2, Math.floor(r() * 3))], p = pick(r, 0.55, 0.85, 0.05);
+      let tot = 0; const rows = [];
+      for (let k = Math.ceil(nv / 2); k <= nv; k++) { const t = choose(nv, k) * p ** k * (1 - p) ** (nv - k); tot += t; rows.push(`exactly ${k} right: ${choose(nv, k)} × ${p}<sup>${k}</sup> × ${n(1 - p)}<sup>${nv - k}</sup> = ${n(t)}`); }
+      const answer = tot * 100;
+      return {
+        q: `<p>A shop runs ${nv} independent fraud checks on each order. Each check is right ${Math.round(p * 100)} % of the time, and the shop goes with the majority. How often is the majority right? Answer in <b>%</b>.</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: `The majority is right when at least ${Math.ceil(nv / 2)} of the ${nv} are right. The chance that exactly k are right is C(${nv}, k) × p<sup>k</sup> × (1 − p)<sup>${nv}−k</sup>. Add those up.`,
+        solution: steps(...rows, `Total: <b>${n(answer)} %</b>, better than any single check's ${Math.round(p * 100)} %.`),
+        nv, p,
+      };
+    },
+    verify(p) { let d = [1]; for (let i = 0; i < p.nv; i++) { const e = Array(d.length + 1).fill(0); d.forEach((v, k) => { e[k] += v * (1 - p.p); e[k + 1] += v * p.p; }); d = e; } return 100 * d.reduce((a, v, k) => a + (k > p.nv / 2 ? v : 0), 0); },
+  },
+  'wisdom-of-crowds-variance': {
+    title: 'averaging correlated forecasts',
+    make(r) {
+      const sd = pick(r, 10, 40, 5), rho = pick(r, 0.1, 0.8, 0.1), nm = pick(r, 3, 20, 1);
+      const s2 = sd * sd, answer = rho * s2 + ((1 - rho) / nm) * s2;
+      return {
+        q: `<p>${nm} demand-forecasting models each predict tomorrow's orders with a spread (standard deviation) of ${sd} orders, so a variance of ${s2}. Any two models' errors have a correlation of ${rho}. What is the variance of their average forecast?</p>`,
+        answer, unit: 'orders²', tol: 0.01,
+        hint: 'Variance of the average = ρσ² + (1 − ρ)σ² ÷ n. The first part is shared by all models and never averages away.',
+        solution: steps(
+          `Shared part: ρσ² = ${rho} × ${s2} = ${n(rho * s2)}.`,
+          `Part that averages away: (1 − ${rho}) × ${s2} ÷ ${nm} = ${n(((1 - rho) * s2) / nm)}.`,
+          `Variance of the average = <b>${n(answer)}</b>, down from ${s2} for one model. With ${nm * 10} models it would still be at least ${n(rho * s2)}.`),
+        s2, rho, nm,
+      };
+    },
+    verify(p) { let tot = 0; for (let i = 0; i < p.nm; i++) for (let j = 0; j < p.nm; j++) tot += i === j ? p.s2 : p.rho * p.s2; return tot / (p.nm * p.nm); },
+  },
+  'bagging-bootstrap-oob': {
+    title: 'how many rows are out of the bag?',
+    make(r) {
+      const nr = pick(r, 5, 60, 1), answer = nr * (1 - 1 / nr) ** nr;
+      return {
+        q: `<p>A small bakery has ${nr} days of sales records. You draw one bootstrap sample: ${nr} days picked at random <b>with replacement</b>. On average, how many of the days are never picked (out of the bag)?</p>`,
+        answer, unit: 'days', tol: 0.01,
+        hint: `One draw misses a given day with probability 1 − 1/${nr}. All ${nr} draws miss it with probability (1 − 1/${nr})<sup>${nr}</sup>. Multiply by the number of days.`,
+        solution: steps(
+          `Chance one draw misses a given day: 1 − 1/${nr} = ${n(1 - 1 / nr, 4)}.`,
+          `Chance all ${nr} draws miss it: ${n(1 - 1 / nr, 4)}<sup>${nr}</sup> = ${n((1 - 1 / nr) ** nr, 4)}.`,
+          `Expected days left out: ${nr} × ${n((1 - 1 / nr) ** nr, 4)} = <b>${n(answer)}</b>. For large data the share heads to e<sup>−1</sup> ≈ 36.8 %.`),
+        nr,
+      };
+    },
+    verify: (p) => p.nr * Math.exp(p.nr * Math.log1p(-1 / p.nr)),
+  },
+  'random-forests-oob-trees': {
+    title: 'how many trees can test each row?',
+    make(r) {
+      const B = pick(r, 100, 800, 50), nr = pick(r, 200, 5000, 100), q = (1 - 1 / nr) ** nr, answer = B * q;
+      return {
+        q: `<p>A random forest for a ${nr}-row customer table has ${B} trees, each grown on its own bootstrap sample. For one particular customer, how many trees on average never saw that row, and so can be used for its out-of-bag prediction?</p>`,
+        answer, unit: 'trees', tol: 0.01,
+        hint: `A row is left out of one bootstrap sample with probability (1 − 1/n)<sup>n</sup>, very close to e<sup>−1</sup> ≈ 0.368 for large n. Multiply by the number of trees.`,
+        solution: steps(
+          `Chance a given tree's sample misses the row: (1 − 1/${nr})<sup>${nr}</sup> = ${n(q, 4)}.`,
+          `Expected trees that missed it: ${B} × ${n(q, 4)} = <b>${n(answer)}</b>. Those trees vote on that row to give its out-of-bag prediction.`),
+        B, nr,
+      };
+    },
+    verify: (p) => p.B * Math.exp(-1) * (1 - 1 / (2 * p.nr)),
+  },
+  'feature-importance-permutation': {
+    title: 'permutation importance from three shuffles',
+    make(r) {
+      const S = pick(r, 0.8, 0.92, 0.01), d = pick(r, 0.01, 0.12, 0.005);
+      const sh = [S - d + pick(r, -0.008, 0.008, 0.002), S - d + pick(r, -0.008, 0.008, 0.002), S - d + pick(r, -0.008, 0.008, 0.002)].map((v) => +v.toFixed(3));
+      const answer = S - (sh[0] + sh[1] + sh[2]) / 3;
+      return {
+        q: `<p>A churn model scores an accuracy of ${S} on validation data. You shuffle the "contract type" column three times, each time scoring again: ${sh.join(', ')}. What is the permutation importance of contract type (the average drop in accuracy)?</p>`,
+        answer, unit: '', tol: 0.02, abs: 0.002,
+        hint: 'Work out the drop for each shuffle (original score minus shuffled score), then average the three drops.',
+        solution: steps(
+          `Drops: ${sh.map((v) => n(S - v)).join(', ')}.`,
+          `Average drop = <b>${n(answer)}</b>. Shuffling breaks the link between the column and the outcome; the bigger the drop, the more the model relied on it.`),
+        S, sh,
+      };
+    },
+    verify: (p) => p.sh.reduce((a, v) => a + (p.S - v), 0) / 3,
+  },
+  'boosting-alpha': {
+    title: 'how much say does a stump get?',
+    make(r) {
+      const nr = pick(r, 10, 40, 2), k = pick(r, 1, Math.floor(nr * 0.4), 1), e = k / nr;
+      const answer = 0.5 * Math.log((1 - e) / e);
+      return {
+        q: `<p>AdaBoost is sorting ${nr} loan applications, all starting with equal weight. Its first stump gets ${k} of them wrong. What is the stump's say α = ½ ln((1 − ε) ÷ ε), where ε is the weighted error?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: `With equal weights, the weighted error is just the share wrong: ε = ${k} ÷ ${nr}.`,
+        solution: steps(
+          `ε = ${k} ÷ ${nr} = ${n(e)}.`,
+          `(1 − ε) ÷ ε = ${n(1 - e)} ÷ ${n(e)} = ${n((1 - e) / e)}.`,
+          `α = ½ × ln ${n((1 - e) / e)} = <b>${n(answer)}</b>. The ${k} misclassified rows now have their weights multiplied by e<sup>α</sup> = ${n(Math.exp(answer))} before rescaling, so after rescaling they hold exactly half the total weight.`),
+        e,
+      };
+    },
+    verify: (p) => Math.atanh(1 - 2 * p.e),
+  },
+  'gradient-boosting-round': {
+    title: 'one round of gradient boosting',
+    make(r) {
+      const y = [pick(r, 80, 120, 5), pick(r, 100, 140, 5), pick(r, 180, 220, 5), pick(r, 200, 260, 5)], eta = pick(r, 0.1, 1, 0.1);
+      const F0 = mean(y), res = y.map((v) => v - F0), hl = (res[0] + res[1]) / 2, answer = F0 + eta * hl;
+      return {
+        q: `<p>Four flats have rents (in $10s per month) of ${y.join(', ')}, from smallest to largest. Gradient boosting starts from the average, then fits a stump to the residuals that splits the two small flats from the two big ones. With learning rate ${eta}, what is the new prediction for the <b>smallest</b> flat?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'Start: F₀ = the average rent. Residual = rent − F₀. The stump\'s left leaf predicts the average residual of the two small flats. New prediction = F₀ + learning rate × that leaf value.',
+        solution: steps(
+          `F₀ = (${y.join(' + ')}) ÷ 4 = ${n(F0, 4)}.`,
+          `Residuals: ${res.map((v) => n(v, 4)).join(', ')}.`,
+          `Left leaf (two small flats): (${n(res[0], 4)} + ${n(res[1], 4)}) ÷ 2 = ${n(hl, 4)}.`,
+          `New prediction: ${n(F0, 4)} + ${eta} × ${n(hl, 4)} = <b>${n(answer, 4)}</b>. Its residual shrinks from ${n(res[0], 4)} to ${n(y[0] - answer, 4)}.`),
+        y, eta,
+      };
+    },
+    verify(p) { const m = mean(p.y), ml = (p.y[0] + p.y[1]) / 2; return (1 - p.eta) * m + p.eta * ml; },
+  },
+};
+
+export default { ...M4, ...M5, ...M6 };
