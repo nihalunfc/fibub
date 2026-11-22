@@ -1,0 +1,57 @@
+// Class 12 Physics, Chapter 12 Atoms: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('at');
+const r3 = (x) => +x.toPrecision(3);
+const R = 1.097e7;
+
+export default {
+  topic: 'atoms', name: 'Atoms', n: 12,
+  items: [
+    m.mcq(1, 'Rutherford', '<p>In the alpha-particle scattering experiment, most alpha particles passed straight through the gold foil. This shows that:</p>', 'the atom is mostly empty space', ['the atom is a solid sphere', 'alpha particles are absorbed by the foil', 'the nucleus is as big as the atom'], '<p>If atoms were solid, most alpha particles would be stopped or turned. Passing through shows the atom is mostly empty.</p>'),
+    m.mcq(1, 'Rutherford', '<p>The size of the nucleus is of the order of:</p>', '10<sup>−15</sup> m', ['10<sup>−10</sup> m', '10<sup>−8</sup> m', '10<sup>−5</sup> m'], '<p>An atom is about 10⁻¹⁰ m; the nucleus is 10⁴ to 10⁵ times smaller, about 10⁻¹⁵ to 10⁻¹⁴ m.</p>'),
+    m.mcq(2, 'Rutherford', '<p>A very small fraction of the alpha particles in Rutherford’s experiment bounced back through more than 90°. This indicates:</p>', 'a small, massive, positively charged nucleus', ['that the electrons are heavy', 'that the positive charge is spread over the atom', 'that the foil was too thick'], '<p>A big deflection needs a strong repulsion, which only a concentrated positive charge can give.</p>'),
+    m.mcq(2, 'Rutherford', '<p>If the kinetic energy of an alpha particle fired straight at a nucleus is doubled, the distance of closest approach:</p>', 'is halved', ['is doubled', 'stays the same', 'becomes four times smaller'], '<p>r₀ = 2Ze²/(4πε₀K) is inversely proportional to K.</p>'),
+    m.mcq(3, 'Rutherford', '<p>The distance of closest approach for a 5 MeV alpha particle to a nucleus of Z = 50 is closest to (e²/4πε₀ = 1.44 MeV fm):</p>', '29 fm', ['14 fm', '58 fm', '5.8 fm'], '<p>r₀ = 2 × 50 × 1.44 / 5 = 28.8 fm.</p>'),
+    m.mcq(2, 'Rutherford', '<p>Which feature of Rutherford’s model contradicts classical electromagnetism?</p>', 'An orbiting electron would radiate energy and spiral into the nucleus', ['The nucleus is positively charged', 'Electrons are negatively charged', 'The nucleus is small'], '<p>An accelerating charge radiates, so the electron should lose energy and fall in within about 10⁻¹¹ s.</p>'),
+    m.mcq(1, 'spectra', '<p>The spectrum of light from a hot dense solid is:</p>', 'continuous', ['a set of bright lines', 'a set of dark lines on a bright background', 'a single line'], '<p>A hot solid radiates all wavelengths.</p>'),
+    m.mcq(2, 'spectra', '<p>The dark lines seen in the spectrum of sunlight are caused by:</p>', 'absorption by cooler gases in the Sun’s outer atmosphere', ['the Sun not emitting those colours', 'emission by gases in space', 'the glass of the prism'], '<p>Gases absorb exactly the wavelengths they would emit, taking them out of the continuous light from below.</p>'),
+    m.mcq(2, 'spectra', '<p>The Balmer series of hydrogen is the set of lines for electron jumps ending at:</p>', 'n = 2', ['n = 1', 'n = 3', 'n = ∞'], '<p>Balmer: n_f = 2 (visible). Lyman is n_f = 1.</p>'),
+    m.mcq(2, 'spectra', '<p>Which series of hydrogen has its lines in the ultraviolet?</p>', 'Lyman', ['Balmer', 'Paschen', 'Brackett'], '<p>Jumps to n = 1 release the biggest energies (10.2 to 13.6 eV), which are ultraviolet.</p>'),
+    m.mcq(3, 'spectra', '<p>The ratio of the longest wavelength of the Lyman series to the longest wavelength of the Balmer series is:</p>', '5 : 27', ['27 : 5', '3 : 4', '4 : 3'], '<p>Lyman: 1/λ = R(1 − 1/4) = 3R/4. Balmer: 1/λ = R(1/4 − 1/9) = 5R/36. The ratio of wavelengths is (5/36)/(3/4) = 5/27.</p>'),
+    m.mcq(3, 'spectra', '<p>The number of spectral lines possible when hydrogen atoms are excited to the n = 5 level is:</p>', '10', ['4', '5', '15'], '<p>n(n − 1)/2 = 5 × 4/2 = 10.</p>', { trap: 'Counting only the jumps to the ground state (4) misses the others, like 5→3 or 4→2.' }),
+    m.mcq(1, 'Bohr', '<p>According to Bohr, the angular momentum of the electron in the n-th orbit is:</p>', 'nh/2π', ['nh', 'h/2πn', 'n²h/2π'], '<p>mvr = nh/2π.</p>'),
+    m.mcq(2, 'Bohr', '<p>The radius of the third Bohr orbit of hydrogen compared with the first is:</p>', '9 times', ['3 times', '6 times', '27 times'], '<p>r ∝ n², so 3² = 9.</p>'),
+    m.mcq(2, 'Bohr', '<p>The speed of the electron in the second Bohr orbit of hydrogen is about:</p>', '1.1 × 10<sup>6</sup> m/s', ['4.4 × 10<sup>6</sup> m/s', '2.2 × 10<sup>6</sup> m/s', '5.5 × 10<sup>5</sup> m/s'], '<p>v = 2.19 × 10⁶ / n = 1.1 × 10⁶ m/s.</p>'),
+    m.mcq(2, 'Bohr', '<p>The total energy of the electron in the first excited state (n = 2) of hydrogen is:</p>', '−3.4 eV', ['−13.6 eV', '−6.8 eV', '+3.4 eV'], '<p>E₂ = −13.6/4 = −3.4 eV.</p>'),
+    m.mcq(2, 'Bohr', '<p>The energy needed to remove the electron from the n = 2 level of hydrogen is:</p>', '3.4 eV', ['13.6 eV', '10.2 eV', '1.9 eV'], '<p>It must be raised to E = 0 from −3.4 eV: 3.4 eV.</p>'),
+    m.mcq(3, 'Bohr', '<p>The ground-state energy of He⁺ (Z = 2) is:</p>', '−54.4 eV', ['−27.2 eV', '−13.6 eV', '−108.8 eV'], '<p>E = −13.6 Z²/n² = −13.6 × 4 = −54.4 eV.</p>'),
+    m.mcq(3, 'Bohr', '<p>An electron jumps from n = 4 to n = 1 in hydrogen. The photon emitted has energy about:</p>', '12.75 eV', ['0.85 eV', '3.4 eV', '13.6 eV'], '<p>E = 13.6(1 − 1/16) = 12.75 eV.</p>'),
+    m.mcq(3, 'Bohr', '<p>As the electron in a hydrogen atom moves from n = 2 to n = 4:</p>', 'its kinetic energy decreases and its total energy increases', ['its kinetic energy increases and its total energy decreases', 'both its kinetic energy and its total energy increase', 'both stay the same'], '<p>K = −E = 13.6/n² falls with n, while E = −13.6/n² rises towards zero.</p>', { trap: 'The potential energy is negative and becomes less negative; do not confuse it with the kinetic energy.' }),
+    m.mcq(2, 'de Broglie', '<p>De Broglie’s explanation of Bohr’s quantisation says that the circumference of an allowed orbit contains:</p>', 'a whole number of de Broglie wavelengths', ['half a wavelength', 'exactly one wavelength for every orbit', 'no whole number of wavelengths'], '<p>2πr = nλ makes a standing wave; this gives mvr = nh/2π.</p>'),
+    m.ar(2, 'Rutherford', 'Most of the atom is empty space.', 'The nucleus is about 10⁴ to 10⁵ times smaller than the atom.', 0, '<p>Both true and R explains A: the nucleus occupies a tiny fraction of the volume.</p>'),
+    m.ar(2, 'Bohr', 'The energy of an electron in a hydrogen atom is negative.', 'The electron is bound to the nucleus.', 0, '<p>Both true and R is the explanation: energy has to be supplied to free it, so the bound state is below zero.</p>'),
+    m.ar(3, 'spectra', 'The spectrum of hydrogen has distinct lines.', 'The energy of the electron in a hydrogen atom can take any value.', 2, '<p>A is true. R is false: the energy takes only certain discrete values, which is why there are distinct lines.</p>'),
+    m.ar(3, 'Bohr', 'The Bohr model can explain the spectrum of He⁺ with a small change.', 'He⁺ has only one electron.', 0, '<p>Both true and R is the explanation: with one electron, Bohr’s model works with Z² in the energy (E = −13.6Z²/n²).</p>'),
+    m.nat(2, 'spectra', '<p>Find the wavelength in nm of the photon emitted when the electron in hydrogen jumps from n = 3 to n = 2. (R = 1.097 × 10<sup>7</sup> m<sup>−1</sup>)</p>', () => 1e9 / (R * (1 / 4 - 1 / 9)), 0.01, '<p>1/λ = R(1/4 − 1/9) = 1.097×10⁷ × 5/36 = 1.524×10⁶ m⁻¹, so λ = 656 nm.</p>', { unit: 'nm' }),
+    m.nat(3, 'Rutherford', '<p>An alpha particle of kinetic energy 5.5 MeV is fired straight at a gold nucleus (Z = 79). Find the distance of closest approach in fm. (e²/4πε₀ = 1.44 MeV fm)</p>', () => (2 * 79 * 1.44) / 5.5, 0.01, '<p>r₀ = 2Z × 1.44/K = 2 × 79 × 1.44/5.5 = 41.4 fm.</p>', { unit: 'fm' }),
+    m.nat(3, 'Bohr', '<p>Find the energy, in eV, needed to excite hydrogen from the ground state to n = 3.</p>', () => 13.6 * (1 - 1 / 9), 0.01, '<p>E₃ − E₁ = −1.51 − (−13.6) = 12.09 eV.</p>', { unit: 'eV' }),
+    m.nat(3, 'Bohr', '<p>What is the radius, in nm, of the n = 2 orbit of He⁺ (Z = 2)? (a₀ = 0.0529 nm)</p>', () => (0.0529 * 4) / 2, 0.01, '<p>r = a₀n²/Z = 0.0529 × 4 / 2 = 0.1058 nm.</p>', { unit: 'nm' }),
+    m.msq(3, 'Bohr', '<p>Which of these quantities increase when the electron of hydrogen moves from n = 1 to n = 3? (Choose all that apply.)</p>', ['The radius of the orbit', 'The total energy', 'The speed of the electron', 'The kinetic energy'], [0, 1], '<p>r ∝ n² and E = −13.6/n² (from −13.6 up to −1.51) both increase. The speed (∝ 1/n) and the kinetic energy (∝ 1/n²) decrease.</p>'),
+    m.msq(2, 'spectra', '<p>Which statements about the hydrogen spectrum are true? (Choose all that apply.)</p>', ['The Lyman series is in the ultraviolet.', 'Each series is named after the lower level of the jumps.', 'The Paschen series lies in the visible region.', 'The series limit comes from n_i = ∞.'], [0, 1, 3], '<p>The Paschen series (n_f = 3) is in the infrared, not the visible region.</p>'),
+  ],
+  gens: [
+    { id: 'at-g01', type: 'nat', level: 2, exams: ['board'], sub: 'spectra',
+      make(rng) { const nf = choose(rng, [1, 2, 3]), ni = nf + choose(rng, [1, 2, 3, 4]); const l = 1e9 / (R * (1 / (nf * nf) - 1 / (ni * ni))); return { nf, ni, q: `<p>Find the wavelength in nm of the line emitted when hydrogen jumps from n = ${ni} to n = ${nf}. (R = 1.097 × 10<sup>7</sup> m<sup>−1</sup>)</p>`, answer: r3(l), tol: Math.max(0.5, l * 0.01), unit: 'nm', sol: `<p>1/λ = R(1/${nf}² − 1/${ni}²), giving λ = ${r3(l)} nm.</p>` }; },
+      verify: (p) => 1240.8 / (13.6 * (1 / (p.nf * p.nf) - 1 / (p.ni * p.ni))) },
+    { id: 'at-g02', type: 'nat', level: 2, exams: ['board'], sub: 'Rutherford',
+      make(rng) { const Z = choose(rng, [13, 29, 47, 79]), K = choose(rng, [4, 5, 5.5, 6, 7.7]); const r0 = (2 * Z * 1.44) / K; return { Z, K, q: `<p>An alpha particle of kinetic energy ${K} MeV is fired straight at a nucleus with Z = ${Z}. Find the distance of closest approach in fm. (e²/4πε₀ = 1.44 MeV fm)</p>`, answer: r3(r0), tol: Math.max(0.05, r0 * 0.01), unit: 'fm', sol: `<p>r₀ = 2Z × 1.44/K = 2 × ${Z} × 1.44 ÷ ${K} = ${r3(r0)} fm.</p>` }; },
+      verify: (p) => (8.988e9 * 2 * 1.602e-19 * p.Z * 1.602e-19) / (p.K * 1e6 * 1.602e-19) * 1e15 },
+    { id: 'at-g03', type: 'nat', level: 3, exams: ['board'], sub: 'Bohr',
+      make(rng) { const Z = choose(rng, [1, 2, 3]), nn = choose(rng, [1, 2, 3, 4]); const E = (13.6 * Z * Z) / (nn * nn); return { Z, nn, q: `<p>Find the energy in eV needed to remove the electron from the n = ${nn} orbit of a hydrogen-like ion with Z = ${Z}.</p>`, answer: r3(E), tol: Math.max(0.01, E * 0.01), unit: 'eV', sol: `<p>E = 13.6 Z²/n² = 13.6 × ${Z * Z} ÷ ${nn * nn} = ${r3(E)} eV.</p>` }; },
+      verify: (p) => 13.6 * (p.Z / p.nn) ** 2 },
+    { id: 'at-g04', type: 'nat', level: 3, exams: ['board'], sub: 'spectra',
+      make(rng) { const nf = choose(rng, [1, 2, 3, 4]); const l = (nf * nf * 1e9) / R; return { nf, q: `<p>Find the shortest wavelength, in nm, of the hydrogen series that ends at n = ${nf}. (R = 1.097 × 10<sup>7</sup> m<sup>−1</sup>)</p>`, answer: r3(l), tol: Math.max(0.5, l * 0.01), unit: 'nm', sol: `<p>The limit is n_i = ∞: λ = n_f²/R = ${nf * nf}/1.097×10⁷ = ${r3(l)} nm.</p>` }; },
+      verify: (p) => 1240.8 / (13.6 / (p.nf * p.nf)) },
+  ],
+};

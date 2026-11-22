@@ -63,7 +63,7 @@ Back to the lesson: [Magnetic Effects of Electric Current](/learn/courses/ncert-
 
 <details><summary>Answer</summary>A short circuit happens when the live and neutral wires touch, so the resistance becomes almost zero. The current then becomes huge, heats the wires and can cause a fire.</details>
 
-**8.** (3 marks) A wire carries 4 A. What is the magnetic field at 2 cm from it? Use $\mu_0 = 4\pi\times10^{-7}$ T m/A.
+**8.** (3 marks) A wire carries 4 A. What is the magnetic field at 2 cm from it? Use `$\mu_0 = 4\pi\times10^{-7}$` T m/A.
 
 <details><summary>Answer</summary>
 
