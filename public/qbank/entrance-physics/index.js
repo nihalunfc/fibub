@@ -52,6 +52,20 @@ export default {
           "name": "Gravitation"
         }
       ]
+    },
+    {
+      "id": "class-12",
+      "name": "Class 12",
+      "topics": [
+        {
+          "id": "potential-capacitance",
+          "name": "Electric potential and capacitors"
+        },
+        {
+          "id": "current-electricity",
+          "name": "Current electricity and circuits"
+        }
+      ]
     }
   ]
 };

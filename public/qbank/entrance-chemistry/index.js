@@ -52,6 +52,20 @@ export default {
           "name": "Redox reactions"
         }
       ]
+    },
+    {
+      "id": "class-12",
+      "name": "Class 12",
+      "topics": [
+        {
+          "id": "electrochemistry",
+          "name": "Electrochemistry"
+        },
+        {
+          "id": "chemical-kinetics",
+          "name": "Chemical kinetics"
+        }
+      ]
     }
   ]
 };
