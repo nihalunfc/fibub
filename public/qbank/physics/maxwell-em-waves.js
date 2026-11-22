@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 const c = C.c, e0 = C.eps0, mu0 = C.mu0;
 
 import * as Q5 from '../_util.js';
+import more2 from './maxwell-em-waves.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -235,6 +236,7 @@ export default {
       calc: () => { const ti = Math.atan(1.5), tt = Math.PI / 2 - ti; return 100 * Math.sin(ti - tt) ** 2 / Math.sin(ti + tt) ** 2; },
       sol: 'Fresnel: $r_s = -\\dfrac{\\sin(\\theta_i - \\theta_t)}{\\sin(\\theta_i + \\theta_t)}$. At Brewster, $\\theta_i = \\tan^{-1}1.5 = 56.31^\\circ$ and $\\theta_i + \\theta_t = 90^\\circ$, so $\\theta_t = 33.69^\\circ$ and $r_s = -\\sin22.62^\\circ = -0.3846$. $R_s = 0.148$, i.e. 14.8%. The p component is not reflected at all, so unpolarised light reflects 7.4% of its intensity, all s-polarised.',
       trap: 'Thinking nothing is reflected at Brewster\'s angle: only the p component vanishes.' },
+    ...more2,
   ],
   gens: [
     { id: 'mxw-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'plane waves',

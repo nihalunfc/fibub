@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 const erf = (x) => { let s = 0, t = x, n = 0; while (Math.abs(t) > 1e-16 && n < 200) { s += t / (2 * n + 1); n++; t *= -x * x / n; } return (2 / Math.sqrt(Math.PI)) * s; };
 
 import * as Q5 from '../_util.js';
+import more2 from './kinetic-theory.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -234,6 +235,7 @@ export default {
       options: ['The number density falls with height as $e^{-mgz/kT}$', 'The speed distribution of molecules at height $z$ is the same Maxwell distribution as at the ground', 'Molecules high up have a smaller mean kinetic energy, because they had to climb', 'Heavier molecules have a smaller scale height $kT/mg$'], answer: [0, 1, 3],
       sol: 'The Boltzmann factor $e^{-(\\frac12 mv^2 + mgz)/kT}$ factorises into a speed part and a height part. So the speed distribution (and the mean energy $\\tfrac32 kT$) is the same at every height, while the density falls as $e^{-mgz/kT}$ with scale height $kT/mg$. Slow molecules do not get as high, which is why fewer arrive, not why those that arrive are slower.',
       trap: 'C sounds natural but contradicts equilibrium at one temperature: temperature measures mean kinetic energy.' },
+    ...more2,
   ],
   gens: [
     { id: 'kth-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'Maxwell speeds', format: 'comparison',
