@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './scattering-theory.more.gen.js';
 import more2 from './scattering-theory.more2.gen.js';
+import r4 from './scattering-theory.r4.gen.js';
 
 const PI = Math.PI, HBC = 197.3269804, MN = 939.565, MPc = 938.272, MEc = 0.51099895, D = PI / 180;
 
@@ -198,6 +199,7 @@ export default {
       answer: 0.67, tol: 0.01, calc: () => (0.4 / 0.49) ** 2,
       sol: 'At $q = 0$: $|f| = \\dfrac{2m\\beta}{\\hbar^2\\mu^2} = \\dfrac{0.40}{0.49} = 0.816$ fm, so $d\\sigma/d\\Omega = 0.666$ fm$^2$/sr $= 6.7$ mb/sr.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'netsc-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'momentum transfer',
@@ -341,5 +343,6 @@ export default {
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

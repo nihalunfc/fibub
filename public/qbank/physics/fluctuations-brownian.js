@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './fluctuations-brownian.more.gen.js';
 import more2 from './fluctuations-brownian.more2.gen.js';
+import r4 from './fluctuations-brownian.r4.gen.js';
 
 const PI = Math.PI, KB = C.kB, E = C.e;
 const binom = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
@@ -196,6 +197,7 @@ export default {
       answer: 64.4, tol: 0.1, calc: () => Math.sqrt(KB * 300 / 1e-12) * 1e6,
       sol: '$\\sqrt{kT/C} = \\sqrt{4.142\\times10^{-21}/10^{-12}} = 6.44\\times10^{-5}$ V $= 64.4\\ \\mu$V, independent of the resistance. The equivalent rms charge is $\\sqrt{kTC} = 6.4\\times10^{-17}$ C, about 400 electrons.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'netfb-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Einstein relation',
@@ -348,5 +350,6 @@ export default {
       },
       verify: (p) => p.b * Math.sqrt(p.N) / (p.ask === 'R' ? 1 : Math.sqrt(6)) },
     ...more,
+    ...r4.gens,
   ],
 };

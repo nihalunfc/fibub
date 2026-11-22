@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './one-dimensional-potentials.more.gen.js';
 import more2 from './one-dimensional-potentials.more2.gen.js';
+import r4 from './one-dimensional-potentials.r4.gen.js';
 
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
 
@@ -199,6 +200,7 @@ export default {
       sol: 'The odd state stays at $4E_1$. Even states: $\\psi = \\sin k(L/2 - |x|)$; the slope jump gives $\\tan(kL/2) = -2k/g$ with $g = 2m\\alpha/\\hbar^2$. For large $g$, $kL/2 = \\pi - \\delta$ with $\\delta \\approx 2k/g \\approx 4\\pi/gL$. Then $E = 4E_1(1 - \\delta/\\pi)^2 \\approx 4E_1(1 - 8/gL)$, so the splitting is $32E_1/gL = 16\\hbar^2E_1/m\\alpha L$, falling as $1/\\alpha$ (a delta barrier has no thickness, so there is no exponential).',
       trap: 'Expecting an exponentially small splitting, which belongs to thick barriers with $\\kappa a \\gg 1$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'q1d-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'delta potentials',
@@ -282,5 +284,6 @@ export default {
           sol: `Branches of the graphical solution start at $z = 0, \\pi/2, \\pi, 3\\pi/2, \\dots$ (even, odd, even, odd, ...), each giving one state if it starts below $z_0 = ${z0}$. That gives ${ev} even and ${od} odd, ${ev + od} in all ($= 1 + \\lfloor 2z_0/\\pi\\rfloor$).` };
       } },
     ...more,
+    ...r4.gens,
   ],
 };
