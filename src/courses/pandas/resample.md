@@ -16,9 +16,16 @@ quiz:
     choices: ["df.groupby('store_id').resample('W-SUN', on='date')['qty'].sum()", "df.resample('W-SUN')", 'You cannot']
     ans: 0
     why: 'Group first, then resample inside each group.'
+sources:
+  - 'pandas documentation, User Guide: Time series / date functionality: resampling https://pandas.pydata.org/docs/user_guide/timeseries.html#resampling'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 7 · about 20 minutes · uses Lesson 7.1.** You'll be able to turn a daily series into weekly, monthly or quarterly ones.
+
+<div class="bigidea">resample is groupby for time: it puts each row into a bucket (week, month, quarter) by its date and summarises each bucket.</div>
+
+**In everyday terms:** sorting a year of receipts into twelve monthly envelopes, then writing the total on each envelope.
 
 ## 1. resample
 
@@ -60,6 +67,36 @@ orders = pd.read_csv('orders.csv', parse_dates=['date'])
 weekly = orders.assign(day=orders['date']).resample('W-SUN', on='date').agg(units=('qty', 'sum'), days=('day', 'nunique'))
 weekly[weekly['days'] < 7]
 ```
+
+<div class="meaning">
+
+<dl>
+<dt>resample('W')</dt><dd>Weekly buckets (weeks ending Sunday by default).</dd>
+<dt>resample('MS') / ('ME')</dt><dd>Monthly buckets labelled by the month start or month end.</dd>
+<dt>.sum() / .mean()</dt><dd>Sum for totals (revenue); mean for levels (price, temperature).</dd>
+<dt>Partial periods</dt><dd>A month with only 10 days of data looks like a crash: drop or flag it.</dd>
+<dt>Physical meaning</dt><dd>Each bucket total is the sum of the days inside it, so the monthly totals add back to the daily total. A sum depends on how many days a bucket has (28 or 31), so compare months by daily average when lengths differ.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The last month fell sharply."** Often it is not over yet: resample builds the current month from the days so far. Compare full periods, or compare the same number of days.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Daily series</b> (index = date). <table class="lk-tbl"><tr><th>date</th><th>revenue</th></tr><tr><td>03-30</td><td>50</td></tr><tr><td>03-31</td><td>70</td></tr><tr><td>04-01</td><td>40</td></tr><tr><td>04-02</td><td>60</td></tr></table></div>
+<div class="step"><b>Buckets.</b> <code>daily.resample('MS')</code>: 30-31 March → March; 1-2 April → April.</div>
+<div class="step"><b>Sum each.</b> <table class="lk-tbl"><tr><th>month</th><th>revenue</th></tr><tr><td>2026-03-01</td><td>120</td></tr><tr><td>2026-04-01</td><td><mark>100</mark></td></tr></table></div>
+<div class="step"><b>Careful.</b> April has 2 days so far; its 100 is not comparable to a full month.</div>
+<div class="step"><b>Per store.</b> <code>df.groupby('store').resample('MS', on='date')['revenue'].sum()</code></div>
+</div>
+
+<div class="problem" data-problem="pd-resample-month"></div>
 
 ## 4. Your turn
 
@@ -106,3 +143,12 @@ orders.resample('QS', on='date')['qty'].sum()
 </details>
 
 **New words:** *resample*, *frequency rule*, *Grouper*, *downsample*, *upsample*, *partial period*.
+
+<div class="keypoints">
+
+- resample(rule) groups rows into time buckets by the date index.
+- 'W', 'MS', 'QS': weekly, monthly, quarterly.
+- sum for flows (revenue), mean for levels (price).
+- Flag or drop the partial first and last periods.
+
+</div>

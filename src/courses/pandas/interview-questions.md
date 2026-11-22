@@ -17,9 +17,16 @@ quiz:
     choices: ['Say what the step does and what you would search for; the idea matters more than the spelling', 'Stay silent', 'Change the subject']
     ans: 0
     why: 'Interviewers test thinking. Everyone looks up syntax.'
+sources:
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
+  - 'pandas documentation, User Guide: User Guide https://pandas.pydata.org/docs/user_guide/index.html'
 ---
 
 **Module 9 · about 45 minutes · revision.** Answer each question out loud, write the line of code, then open the answer. In a live test, say what you are doing as you type: it shows your thinking even when the syntax slips.
+
+<div class="bigidea">Interview pandas questions test a few patterns again and again: filter, group, join, rank and dates. Say the plan in words, then write the line.</div>
+
+**In everyday terms:** a driving test: the examiner asks for the same few manoeuvres. Practise those until they are automatic, and talk through what you are checking.
 
 ## Basics
 
@@ -74,6 +81,36 @@ Something in it isn't a number: "$", commas, "n/a", spaces. Clean with `.str.rep
 
 `.str.strip().str.title()`, then `value_counts()` to spot the rest, and `replace` or `map` for spellings. (Lesson 3.4)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Count per group</dt><dd>groupby + size or value_counts.</dd>
+<dt>Top N per group</dt><dd>sort_values + groupby().head(N), or rank.</dd>
+<dt>Customers with 2+ orders</dt><dd>groupby(customer).order_id.nunique() ≥ 2.</dd>
+<dt>Running total, month over month</dt><dd>cumsum, pct_change.</dd>
+<dt>Physical meaning</dt><dd>Most questions reduce to "what is one row in the answer?" Name that grain first (one row per customer, per store-month) and the right groupby follows.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"They want the shortest code."** They want correct code you can explain, with a check: the row count, a total that still adds up, the edge case you thought of.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Question.</b> What share of customers ordered more than once?</div>
+<div class="step"><b>Grain of the answer.</b> One row per customer.</div>
+<div class="step"><b>Code.</b> <code>n = df.groupby('customer')['order_id'].nunique()</code></div>
+<div class="step"><b>Answer.</b> <code>(n >= 2).mean()</code><table class="lk-tbl"><tr><th>customer</th><th>orders</th><th>2+?</th></tr><tr><td>C1</td><td>3</td><td><mark>True</mark></td></tr><tr><td>C2</td><td>1</td><td>False</td></tr><tr><td>C3</td><td>2</td><td><mark>True</mark></td></tr><tr><td>C4</td><td>1</td><td>False</td></tr></table> → 0.5</div>
+<div class="step"><b>Say the check.</b> nunique, not size: one order with three lines is still one order.</div>
+</div>
+
+<div class="problem" data-problem="pd-repeat-share"></div>
 
 ## Grouping
 
@@ -217,3 +254,12 @@ Method chains or small functions, `assert` checks after joins and cleaning, fixe
 **Next:** keep the [cheat sheet](/learn/courses/pandas/cheat-sheet/) open while you practise, and finish the [capstone notebook](/learn/courses/pandas/capstone-retail-notebook/) so you have something to show.
 
 **New words:** *live coding*, *take-home test*, *vectorised*, *validate*, *named aggregation*.
+
+<div class="keypoints">
+
+- Name the grain of the answer first.
+- Talk through the plan, then write the line.
+- Use nunique for orders and customers.
+- End with a check: row count or a total.
+
+</div>

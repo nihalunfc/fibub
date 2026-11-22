@@ -17,9 +17,16 @@ quiz:
     choices: ['Discounts barely change units here but cost about 10 margin points, so test smaller or fewer discounts', 'Discounts work', 'Remove all discounts tomorrow']
     ans: 0
     why: 'This is a comparison, not an experiment, so suggest a test rather than a final verdict.'
+sources:
+  - 'Knaflic, C. N. (2015), Storytelling with Data, Wiley'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 9 · about 2 hours · uses all of the course.** You'll write a complete analysis notebook and publish it on GitHub, the piece employers ask to see when they say "show me some Python".
+
+<div class="bigidea">A portfolio notebook answers a business question end to end: check the data, join it safely, give the headline, find where it comes from, and say what to do.</div>
+
+**In everyday terms:** a doctor's report: tests checked, the main finding first, the evidence for it, and a clear next step, not a list of every measurement taken.
 
 ## 1. The brief
 
@@ -69,6 +76,36 @@ k.round(1)
 ```
 
 Revenue is up about 10 %, driven by **more orders and more customers**, while the average order got slightly smaller. That is already a sentence for the top of the notebook.
+
+<div class="meaning">
+
+<dl>
+<dt>Brief</dt><dd>The question and who will read the answer.</dd>
+<dt>Checks</dt><dd>Row counts, keys, totals reconciled before any chart.</dd>
+<dt>Headline</dt><dd>One sentence with a number: "Revenue grew 12 %, mostly from WEB".</dd>
+<dt>Drill-down</dt><dd>Which store, product or segment drives it.</dd>
+<dt>Physical meaning</dt><dd>Growth splits into parts that add up: each store's change in revenue sums to the total change. Showing those parts is what turns "revenue grew" into "here is where to invest".</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"More charts make a better notebook."** Reviewers read the first screen. One headline, three supporting charts and a recommendation beat twenty unexplained plots.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Check.</b> Lines 12,480; order_id unique per line; revenue reconciles with finance.</div>
+<div class="step"><b>Join.</b> Stores and products with <code>validate='many_to_one'</code>; row count unchanged.</div>
+<div class="step"><b>Headline.</b> Revenue up from 410k to 460k: +12.2 %.</div>
+<div class="step"><b>Where?</b> <table class="lk-tbl"><tr><th>store</th><th>last year</th><th>this year</th><th>change</th></tr><tr><td>S01</td><td>150</td><td>152</td><td>2</td></tr><tr><td>S02</td><td>140</td><td>138</td><td>-2</td></tr><tr><td>WEB</td><td>120</td><td>170</td><td><mark>50</mark></td></tr></table> (thousands)</div>
+<div class="step"><b>Recommendation.</b> WEB makes all of the growth: invest there, and find out why S02 slipped.</div>
+</div>
+
+<div class="problem" data-problem="pd-growth-share"></div>
 
 ## 4. Your turn: where is the growth?
 
@@ -179,3 +216,12 @@ If revenue rose 10 % with 12 % more customers and a 2 % smaller basket, the grow
 **Try it on your own data:** [[csv-profiler]] for the first look and [[merge-csv]] to join two files without code.
 
 **New words:** *notebook*, *like for like*, *revenue decomposition*, *README*, *portfolio piece*.
+
+<div class="keypoints">
+
+- Start with the brief and the checks, not the charts.
+- Lead with one headline number.
+- Split the change into parts that add up.
+- End with what to do and what to check next.
+
+</div>
