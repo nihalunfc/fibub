@@ -57,6 +57,8 @@ export default {
       { id: 'first-law', name: 'The first law: work, heat and processes' },
       { id: 'second-law-entropy', name: 'The second law, engines and entropy' },
       { id: 'thermodynamic-potentials', name: 'Thermodynamic potentials and Maxwell relations' },
+      { id: 'phase-changes', name: 'Phase changes and the Clausius-Clapeyron equation' },
+      { id: 'blackbody-radiation', name: 'Blackbody radiation' },
     ] },
     { id: 'modern', name: 'Modern physics', topics: [
       { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
@@ -77,6 +79,7 @@ export default {
     ] },
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
+      { id: 'nuclear-reactions', name: 'Nuclear reactions, fission and fusion' },
     ] },
   ],
 };
