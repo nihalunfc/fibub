@@ -49,6 +49,11 @@ Every task has the same parts: a situation, a reader, **three bullet points** yo
 
 Use Ms for a woman unless you know she prefers Mrs or Miss. Never "Dear Mr Anna" or "Dear Mr John Smith" (title + surname only).
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 3. What changes with the tone
 
 | Feature | Formal | Informal |

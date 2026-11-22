@@ -44,6 +44,11 @@ The texts are easier, so the conversion from raw score to band is stricter. For 
 
 In practice this means you **cannot afford careless mistakes in Sections 1 and 2**. They are the marks everyone at your level gets.
 
+
+Slide the speed and press Play to watch the highlighter move at that pace.
+
+<figure class="fig" data-fig="@lang-reading-speed"><figcaption>Notice how long a full passage takes at your speed, and why the timed papers need skimming and scanning.</figcaption></figure>
+
 ## 3. Reading notices and adverts (Section 1)
 
 Short everyday texts are built to be scanned, so use their layout:

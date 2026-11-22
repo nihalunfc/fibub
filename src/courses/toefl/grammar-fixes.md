@@ -39,6 +39,11 @@ The good news: researchers who study learner writing (for example Ferris 2011) f
 
 An everyday picture: a doctor does not test you for every possible illness. They check the common ones first. Your proofreading should work the same way.
 
+
+Pick a tense and watch it drawn on a timeline from past to future.
+
+<figure class="fig" data-fig="@lang-tense-timeline"><figcaption>Notice that the perfect tenses all connect two times, while the simple tenses name just one.</figcaption></figure>
+
 ## 2. The ten mistakes, and the fix for each
 
 **1. Subject-verb agreement.** The verb must match its real subject.
@@ -87,6 +92,11 @@ An everyday picture: a doctor does not test you for every possible illness. They
 **10. Relative clauses and comparisons.**
 - ✗ My roommate, which is from Chile → ✓ My roommate, **who** is from Chile
 - ✗ more long, most easiest → ✓ **longer**, **easiest**
+
+
+Slide Swap to turn an active sentence into a passive one, then change the tense.
+
+<figure class="fig" data-fig="@lang-voice-machine"><figcaption>Notice that the receiver moves to the front, the verb becomes be plus past participle, and only the form of "be" shows the tense.</figcaption></figure>
 
 ## 3. Worked example: proofreading a post
 

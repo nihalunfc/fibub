@@ -49,6 +49,11 @@ Our own explanations; the official public descriptions are on the IELTS website.
 
 An accent is fine. What matters is being easy to understand.
 
+
+Press Start (or Fast demo) to run the real clock for a cue card: one minute to prepare, then up to two minutes to speak.
+
+<figure class="fig" data-fig="@lang-cue-card-timer"><figcaption>Notice how the four bullets get about 30 seconds each, so you never run out of things to say.</figcaption></figure>
+
 ## 3. Practising alone
 
 1. **Use the timers** in the practice room: Part 2 gives you 1 minute to prepare and 2 to speak.

@@ -49,6 +49,11 @@ Task 6 checks whether you can handle an awkward conversation like an adult in a 
 
 **Everyday analogy.** Think of a good restaurant server telling you the dish you ordered is sold out. They apologise, explain briefly, and immediately suggest something similar, maybe with a free dessert. You leave happy even though the news was bad. Your Task 6 answer should leave the listener feeling the same way.
 
+
+Pick a sentence and press Play: the ball lands on every stressed syllable.
+
+<figure class="fig" data-fig="@lang-stress-rhythm"><figcaption>Notice that the beats stay evenly spaced however many weak syllables sit between them, so the small words get squeezed.</figcaption></figure>
+
 ## 3. Choosing the person
 
 Choose the option that gives you **the clearest reasons and the best solution to offer**. Usually one option is easier to explain. If you cannot decide in five seconds, pick the first one. Do not try to talk to both people; the task asks you to speak to **one**. You may mention the other person as part of your reason (*my boss needs me that day*), but speak only to the person you chose.

@@ -50,6 +50,11 @@ Part 6 tests **listening to arguments**. You need to:
 
 **Everyday analogy.** Think of two neighbours arguing about a new dog park, while a third neighbour listens and then says what she thinks. If you only remember "dogs" and "park", you cannot explain the argument. You need the shape: who wants it, why; who is against it, why; and what the third neighbour suggested. Part 6 is always that shape.
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 3. The method: the debate map
 
 <div class="steps">

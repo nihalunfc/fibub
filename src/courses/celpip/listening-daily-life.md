@@ -35,6 +35,11 @@ Part 2, **Listening to a Daily Life Conversation**, gives you **one conversation
 - Four options per question; no penalty for wrong answers.
 - The screen shows a short situation line, sometimes with a picture.
 
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
+
 ## 2. What it really tests
 
 Part 2 tests everyday listening: the kind you need at a service counter or with a neighbour. Typical questions ask:

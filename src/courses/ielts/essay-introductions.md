@@ -49,6 +49,11 @@ The thesis is your answer, matched to the type:
 | Problem / solution | This causes several problems, but they can be reduced by... |
 | Two-part | This is mainly due to X, and I believe it is a largely positive / negative development. |
 
+
+Try building the essay yourself: tap the pieces in the order they appear, then press Check. Switch the essay type to see how the middle changes.
+
+<figure class="fig" data-fig="@lang-essay-builder"><figcaption>Notice that every type has an introduction first and a conclusion last; only the body paragraphs change.</figcaption></figure>
+
 ## 3. Worked examples
 
 Prompt: *Some people believe that cities should ban cars from their centres. To what extent do you agree?*

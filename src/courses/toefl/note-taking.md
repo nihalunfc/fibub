@@ -36,6 +36,11 @@ But bad notes cost points too. If you try to write everything, you stop listenin
 
 Everyday analogy: notes are like the photos you take on a trip. You do not film every second. You snap the moments you want to remember, and later each photo brings back the whole scene.
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 2. What to write and what to skip
 
 | Write | Skip |

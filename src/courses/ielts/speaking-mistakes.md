@@ -48,6 +48,11 @@ sources:
 
 Speaking is a conversation. Sound like a person, not an essay.
 
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
+
 ## 3. On the day
 
 - Speak to the examiner as you would to a polite stranger: friendly, relaxed.

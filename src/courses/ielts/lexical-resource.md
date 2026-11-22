@@ -47,9 +47,19 @@ Words travel in pairs. Learn the pair, not the single word.
 | reach a decision | a key factor | deeply concerned |
 | meet a demand | a vicious circle | strictly controlled |
 
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
+
 ## 3. Paraphrase, not repetition
 
 Repeating the same noun six times shows a narrow range. Use synonyms, word forms and reference: *cars → private vehicles → motorists → traffic → they*.
+
+
+Tap a word on the left, then the word it usually goes with on the right.
+
+<figure class="fig" data-fig="@lang-collocation-match"><figcaption>Notice that these pairs are fixed by habit, not logic, so learn them as whole chunks.</figcaption></figure>
 
 ## 4. Register
 

@@ -45,6 +45,11 @@ In a sentence, stress the content words (nouns, main verbs, adjectives, adverbs)
 
 English has a "beat" on the stressed words. Read sentences aloud tapping the table on each stress.
 
+
+Tap the syllable you think is stressed, then see the answer. Press Next word to continue.
+
+<figure class="fig" data-fig="@lang-syllable-beats"><figcaption>Notice the patterns: -tion and -ic pull the stress to the syllable before them.</figcaption></figure>
+
 ## 3. Endings that carry grammar
 
 | Ending | Sound | Examples |
@@ -55,6 +60,11 @@ English has a "beat" on the stressed words. Read sentences aloud tapping the tab
 | -s | /s/, /z/ or /ɪz/ | cats, dogs, buses |
 
 Dropping these endings makes your grammar sound wrong even when it is right.
+
+
+Pick a sentence and press Play: the ball lands on every stressed syllable.
+
+<figure class="fig" data-fig="@lang-stress-rhythm"><figcaption>Notice that the beats stay evenly spaced however many weak syllables sit between them, so the small words get squeezed.</figcaption></figure>
 
 ## 4. Chunking and intonation
 

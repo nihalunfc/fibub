@@ -35,6 +35,11 @@ Knowing the types saves time. A detail question sends you to one sentence. A mai
 
 An everyday picture: a doctor asks different questions to find different things. "Where does it hurt?" needs one exact answer. "How have you been feeling this month?" needs the big picture. Reading questions work the same way.
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 2. The six types at a glance
 
 | Type | How it is worded | Where to look | A right answer... |

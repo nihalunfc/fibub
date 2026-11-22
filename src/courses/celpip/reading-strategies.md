@@ -41,6 +41,11 @@ Reading is the second section of the test, right after Listening. It has four pa
 
 The whole section takes **43 to 56 minutes**. The range exists because some versions include a few unscored trial questions, and you cannot tell which ones they are. Each part has its own timer in the corner of the screen, and you can move between questions inside a part until its time ends. All answers are chosen from a list (multiple choice or a drop-down menu), and **wrong answers cost nothing**. Never leave a question empty.
 
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
+
 ## 2. What the section really tests
 
 CELPIP Reading is not a vocabulary contest. It tests whether you can do what adults in Canada do every day: understand an email from a friend or a landlord, use a bus schedule, find facts in a news article and follow an argument. Researchers who study second-language reading, such as Grabe (2009), describe two kinds of skill working together:

@@ -48,6 +48,11 @@ sources:
 
 Phrasal verbs fit well here: *catch up, come over, look forward to, sort out, put you up, drop by*.
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 3. Model answer
 
 Task: *A friend is coming to visit your city for the first time. Write a letter to your friend. In your letter, suggest when they should come, describe what you can do together, and give some advice about what to bring.* Begin: Dear Leo,
