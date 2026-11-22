@@ -17,9 +17,17 @@ quiz:
     choices: ['They are dropped', 'All into one NULL group', 'Each into its own group']
     ans: 1
     why: GROUP BY treats all NULLs as one group, so you get a row with a blank tier and its count.
+sources:
+  - 'SQLite documentation, SELECT: Generation of the set of result rows (GROUP BY) https://www.sqlite.org/lang_select.html'
+  - 'Microsoft Learn, SELECT - GROUP BY (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql'
+  - 'PostgreSQL documentation, The GROUP BY and HAVING Clauses https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-GROUP'
 ---
 
 **Module 3 · about 30 minutes · read first: 3.1.** You'll be able to split a table into groups, get one summary row per group, group by more than one column, and fix the "not in GROUP BY" error.
+
+<div class="bigidea">GROUP BY sorts rows into groups that share a value, then each aggregate runs once per group, giving one summary row per group.</div>
+
+**In everyday terms:** sorting laundry into baskets by colour, then counting each basket. You end up with one line per basket ("whites: 12, darks: 9"), not one per sock.
 
 ## 1. Why this matters
 
@@ -41,6 +49,36 @@ Press **Show how it runs**, then **Play**, and watch closely:
 - At the GROUP BY step the six rows are coloured by customer: customers 1 and 3 have two rows each, customers 2 and 9 one each.
 - At the aggregate step each colour squeezes into one row: customer 1 spent 45 + 5 = 50, customer 3 spent 90 + 45 = 135.
 - Six rows in, four rows out: one per group.
+
+<div class="meaning">
+
+<dl>
+<dt>GROUP BY col</dt><dd>Put rows with the same value of col into one group.</dd>
+<dt>Group</dt><dd>All the rows that share that value. Every row is in exactly one group.</dd>
+<dt>Grouping column</dt><dd>A column named in GROUP BY. It has one value per group, so it can be shown.</dd>
+<dt>GROUP BY a, b</dt><dd>Each different pair of values is a group.</dd>
+<dt>Golden rule</dt><dd>Every SELECT column is either in GROUP BY or inside an aggregate.</dd>
+<dt>Physical meaning</dt><dd>The output has one row per different value (or pair) of the grouping columns. The group counts always add back up to the rows that went in.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"I can show any column next to a group total."** One output row stands for a whole group, so a column that differs inside the group has no single value to show. SQLite quietly picks one at random; other databases refuse. Add the column to GROUP BY (smaller groups) or wrap it in an aggregate such as MIN().
+
+</div>
+
+Watch the query above run, one step at a time (its **Show how it runs** button animates the same thing in colour):
+
+<div class="steps">
+<div class="step"><b>FROM mini_orders.</b> <table class="lk-tbl"><tr><th>order</th><th>customer_id</th><th>amount</th></tr><tr><td>101</td><td>1</td><td>45</td></tr><tr><td>102</td><td>1</td><td>5</td></tr><tr><td>103</td><td>2</td><td>20</td></tr><tr><td>104</td><td>3</td><td>90</td></tr><tr><td>105</td><td>3</td><td>45</td></tr><tr><td>106</td><td>9</td><td>60</td></tr></table></div>
+<div class="step"><b>GROUP BY customer_id.</b> Four groups: {101, 102}, {103}, {104, 105}, {106}.</div>
+<div class="step"><b>COUNT(*) and SUM(amount) per group.</b> Each group squeezes into one row. <table class="lk-tbl"><tr><th>customer_id</th><th>orders</th><th>spent</th></tr><tr><td>1</td><td>2</td><td><mark>50</mark></td></tr><tr><td>2</td><td>1</td><td>20</td></tr><tr><td>3</td><td>2</td><td><mark>135</mark></td></tr><tr><td>9</td><td>1</td><td>60</td></tr></table></div>
+<div class="step"><b>Check.</b> 2 + 1 + 2 + 1 = 6 orders and 50 + 20 + 135 + 60 = 265: the groups add back to the whole table.</div>
+</div>
+
+<div class="problem" data-problem="sql-group-sum"></div>
 
 ## 3. On real data
 
@@ -179,5 +217,15 @@ LIMIT 3
 ```
 
 **Try it on your own data:** [[csv-profiler]] shows the most common values in every column of a CSV, a quick GROUP BY without writing SQL.
+
+<div class="keypoints">
+
+- GROUP BY makes one output row per different value of the grouping columns.
+- Aggregates then run once per group instead of once for the whole table.
+- With two grouping columns, each different pair is a group.
+- All NULLs fall into one group of their own.
+- Every SELECT column must be grouped or aggregated; SQLite's leniency here hides mistakes.
+
+</div>
 
 **New words:** *GROUP BY*, *group*, *partition*, *equivalence class*, *grouping column*.

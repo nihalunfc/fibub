@@ -17,9 +17,17 @@ quiz:
     choices: ['NOT IN', 'NOT EXISTS', 'INNER JOIN']
     ans: 1
     why: NOT EXISTS only asks whether a matching row exists, so NULLs in the other table cannot spoil it, and each left row appears at most once.
+sources:
+  - 'SQLite documentation, SQL Language Expressions: The EXISTS operator and IN operator https://www.sqlite.org/lang_expr.html'
+  - 'PostgreSQL documentation, Subquery Expressions (EXISTS, IN, NOT IN) https://www.postgresql.org/docs/current/functions-subquery.html'
+  - 'Microsoft Learn, EXISTS (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/exists-transact-sql'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.3.** You'll be able to find rows with no match and rows with at least one match, choose between NOT EXISTS, LEFT JOIN and NOT IN, and avoid the NOT IN NULL trap.
+
+<div class="bigidea">An anti-join keeps the rows that have no match in another table, a semi-join keeps the rows that have at least one, and NOT EXISTS is the safe way to write the first.</div>
+
+**In everyday terms:** a teacher with a register and a pile of homework. "Who handed nothing in?" is an anti-join; "who handed something in?" is a semi-join. The teacher doesn't care whether a student handed in one sheet or three, only whether any sheet exists.
 
 ## 1. Why this matters
 
@@ -122,6 +130,36 @@ If you must use NOT IN, filter the NULLs out: `NOT IN (SELECT customer_id FROM o
 **Try it:** Northbay has 603 customers and 3 never ordered. How many does EXISTS return? (600.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Anti-join</dt><dd>Rows of A with no match in B.</dd>
+<dt>Semi-join</dt><dd>Rows of A with at least one match in B, each shown once.</dd>
+<dt>EXISTS (subquery)</dt><dd>True if the subquery returns at least one row.</dd>
+<dt>NOT EXISTS (subquery)</dt><dd>True if it returns none. NULL-safe.</dd>
+<dt>NOT IN trap</dt><dd>One NULL in the NOT IN list makes the test unknown for every row, so nothing comes back.</dd>
+<dt>Physical meaning</dt><dd>Neither adds columns or copies rows: each row of A is checked once and either kept or dropped. Semi-join plus anti-join always gives back exactly the rows of A.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"NOT IN (SELECT ...) and NOT EXISTS are the same thing."** They agree only when the list has no NULLs. Northbay's orders have 482 guest rows with a NULL customer_id, so `NOT IN (SELECT customer_id FROM orders)` returns nothing at all, without an error. Use NOT EXISTS by habit.
+
+</div>
+
+Watch both tests on the same customers, one step at a time (the live boxes' **Show how it runs** button animates the real queries):
+
+<div class="steps">
+<div class="step"><b>Customers and the customer_ids in orders.</b> <table class="lk-tbl"><tr><th>id</th><th>name</th></tr><tr><td>1</td><td>Asha</td></tr><tr><td>2</td><td>Ben</td></tr><tr><td>4</td><td>Dina</td></tr></table> <table class="lk-tbl"><tr><th>orders.customer_id</th></tr><tr><td>1</td></tr><tr><td>1</td></tr><tr><td>2</td></tr><tr><td><i>NULL</i></td></tr></table></div>
+<div class="step"><b>EXISTS (semi-join).</b> Asha has a match (twice, but she is kept once); Ben has one; Dina has none. <table class="lk-tbl"><tr><th>id</th><th>name</th></tr><tr><td><mark>1</mark></td><td>Asha</td></tr><tr><td><mark>2</mark></td><td>Ben</td></tr></table></div>
+<div class="step"><b>NOT EXISTS (anti-join).</b> Only Dina. 2 + 1 = 3, every customer once. <table class="lk-tbl"><tr><th>id</th><th>name</th></tr><tr><td><mark>4</mark></td><td>Dina</td></tr></table></div>
+<div class="step"><b>NOT IN (1, 1, 2, NULL).</b> For Dina: 4 ≠ 1 is true, 4 ≠ 2 is true, 4 ≠ NULL is <mark>unknown</mark>. Unknown is not true, so Dina is dropped too: no rows.</div>
+</div>
+
+<div class="problem" data-problem="sql-anti-join-count"></div>
+
 ## 6. Worked example: loyal customers who returned something
 
 *Question:* how many loyalty members have returned at least one item?
@@ -185,5 +223,15 @@ SELECT c.customer_id
 FROM customers c
 WHERE c.customer_id NOT IN (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL)
 ```
+
+<div class="keypoints">
+
+- An anti-join keeps rows with no match; a semi-join keeps rows with at least one, each once.
+- NOT EXISTS / EXISTS ask only whether a match exists; they never copy rows or add columns.
+- LEFT JOIN ... WHERE right_key IS NULL is another correct anti-join.
+- NOT IN breaks if the list holds a NULL; filter NULLs out or use NOT EXISTS.
+- Semi-join count + anti-join count = rows in the first table.
+
+</div>
 
 **New words:** *anti-join*, *semi-join*, *EXISTS*, *NOT EXISTS*, *NOT IN trap*, *three-valued logic*.

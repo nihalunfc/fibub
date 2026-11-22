@@ -17,9 +17,18 @@ quiz:
     choices: ['A column called o.customer_id', 'The customer_id column of the table nicknamed o', 'The customer_id of the first row']
     ans: 1
     why: The letter after the table name is an alias, a short nickname. o.customer_id is the customer_id column of mini_orders.
+sources:
+  - 'SQLite documentation, SELECT: The FROM clause and joins https://www.sqlite.org/lang_select.html#fromclause'
+  - 'PostgreSQL documentation, Joins Between Tables https://www.postgresql.org/docs/current/tutorial-join.html'
+  - 'Microsoft Learn, Joins (SQL Server) https://learn.microsoft.com/en-us/sql/relational-databases/performance/joins'
+  - 'Beaulieu, A. (2020), Learning SQL, 3rd edition, O''Reilly, chapter 5 (Querying Multiple Tables)'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.1.** You'll be able to write an inner join, predict which rows survive it, and join three or four tables to answer a real business question.
+
+<div class="bigidea">An inner join glues each row of one table to every row of another table whose key matches, and drops rows that find no partner.</div>
+
+**In everyday terms:** matching coats to cloakroom tickets. Each ticket number finds its coat; a ticket with no coat, or a coat with no ticket, is left out of the pile you hand back.
 
 ## 1. Why this matters
 
@@ -45,6 +54,36 @@ Things to notice:
 - Dina and Eli have no orders, so they disappear too.
 
 `JOIN` on its own means `INNER JOIN`; both spellings work everywhere. The letters `o` and `c` are **aliases**: short nicknames so you can write `o.order_id` instead of `mini_orders.order_id`. Once a query has two tables, prefix every column with its alias, even when the name is unique. Readers (and you, next month) will thank you.
+
+<div class="meaning">
+
+<dl>
+<dt>JOIN ... ON a.k = b.k</dt><dd>Pair rows whose keys are equal and put their columns side by side.</dd>
+<dt>INNER JOIN</dt><dd>The same as JOIN: keep only pairs that match.</dd>
+<dt>Join condition</dt><dd>The test after ON, usually "this foreign key equals that primary key".</dd>
+<dt>Alias</dt><dd>A short nickname for a table, such as o for mini_orders, used as o.customer_id.</dd>
+<dt>USING (k)</dt><dd>Short for ON a.k = b.k when both columns have the same name.</dd>
+<dt>Physical meaning</dt><dd>Each left row is copied once for every matching right row. Rows with no match on either side disappear without a warning, so the result can have fewer rows than you started with.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A join just adds columns, so the row count stays the same."** An inner join drops every row without a partner and repeats a row once per match. Order 106 vanishes because customer 9 doesn't exist; Northbay's 1,059 online orders vanish when you join to regions. Count rows before and after every join.
+
+</div>
+
+Watch the join above run, one step at a time (the live box's **Show how it runs** button animates the real query):
+
+<div class="steps">
+<div class="step"><b>Two tables.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>item</th></tr><tr><td>101</td><td>1</td><td>Kettle</td></tr><tr><td>102</td><td>1</td><td>Bagels</td></tr><tr><td>103</td><td>2</td><td>Puzzle</td></tr><tr><td>104</td><td>3</td><td>Duvet</td></tr><tr><td>105</td><td>3</td><td>Kettle</td></tr><tr><td>106</td><td>9</td><td>Speaker</td></tr></table> <table class="lk-tbl"><tr><th>id</th><th>name</th></tr><tr><td>1</td><td>Asha</td></tr><tr><td>2</td><td>Ben</td></tr><tr><td>3</td><td>Chen</td></tr><tr><td>4</td><td>Dina</td></tr><tr><td>5</td><td>Eli</td></tr></table></div>
+<div class="step"><b>Each order looks for its customer.</b> 101 and 102 find Asha, 103 finds Ben, 104 and 105 find Chen. 106 looks for customer 9 and finds no one.</div>
+<div class="step"><b>Matched pairs become rows.</b> <table class="lk-tbl"><tr><th>order_id</th><th>item</th><th>name</th></tr><tr><td>101</td><td>Kettle</td><td><mark>Asha</mark></td></tr><tr><td>102</td><td>Bagels</td><td><mark>Asha</mark></td></tr><tr><td>103</td><td>Puzzle</td><td><mark>Ben</mark></td></tr><tr><td>104</td><td>Duvet</td><td><mark>Chen</mark></td></tr><tr><td>105</td><td>Kettle</td><td><mark>Chen</mark></td></tr></table></div>
+<div class="step"><b>What was dropped.</b> Order 106 (no customer) and Dina and Eli (no orders). 6 orders in, 5 rows out.</div>
+</div>
+
+<div class="problem" data-problem="sql-inner-join-rows"></div>
 
 ## 3. When the columns share a name: USING
 
@@ -155,5 +194,15 @@ ORDER BY revenue DESC
 ```
 
 **Try it on your own data:** two CSV files with a shared id column? Join them in [[sql-playground]], or line them up without SQL in [[merge-csv]].
+
+<div class="keypoints">
+
+- JOIN (INNER JOIN) keeps only pairs of rows whose join condition is true.
+- A row is repeated once per match and dropped if it has none, on either side.
+- Give tables aliases and prefix every column with one.
+- USING (k) is a short form of ON when both key columns share a name (not in SQL Server).
+- Before each join, ask how many right rows match each left row, and count rows before and after.
+
+</div>
 
 **New words:** *inner join*, *join condition*, *alias*, *USING*, *Cartesian product*.

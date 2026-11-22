@@ -17,13 +17,40 @@ quiz:
     choices: ['The current version, from September', 'The version valid on the sale''s date in July', 'The first version ever']
     ans: 1
     why: Late facts are looked up by their own date, not by the load date. Using is_current = 1 would file July's sale under the September city.
+sources:
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 19 (ETL subsystems and techniques: late arriving data)'
+  - 'Kimball Group, Design Tip #57: Early arriving facts https://www.kimballgroup.com/2004/05/design-tip-57-early-arriving-facts/'
 ---
 
 **Module 5 · about 30 minutes · read first: 5.2.** You'll be able to load a fact whose customer hasn't arrived yet, repair it when the customer does arrive, and look up the right version for a fact that turns up late.
 
+<div class="bigidea">Data does not always arrive in order: a sale can show up before its customer, or after the customer has changed, and the warehouse needs a rule for both.</div>
+
+**In everyday terms:** a parcel that arrives before the shop has your name on file. The shop writes "unknown customer" on a temporary card, and fills in the real name when you register.
+
 ## 1. Why this matters
 
 Data never arrives in a neat order. The till sends sales every few minutes; the loyalty system sends new members once a night, or once a week, or after a failed job is fixed. A shop's paper receipts from a power cut get typed in a week later. If the warehouse assumes "dimensions first, then facts, all on time", it drops rows or files them under the wrong customer, and nobody notices until a total doesn't match the finance system. Kimball calls these **late-arriving dimensions** (or early-arriving facts) and **late-arriving facts**.
+
+<div class="meaning">
+
+<dl>
+<dt>Early-arriving fact</dt><dd>A fact whose dimension row does not exist yet.</dd>
+<dt>Late-arriving fact</dt><dd>A fact that arrives after the dimension has already changed.</dd>
+<dt>Inferred member</dt><dd>A placeholder dimension row made so the fact can load now. It is filled in later.</dd>
+<dt>Back-fill</dt><dd>Fix the fact's key after the real dimension row arrives.</dd>
+<dt>Restatement</dt><dd>Past report numbers change after late data is added.</dd>
+<dt>Physical meaning</dt><dd>Late data either adds a placeholder row to the dimension, or moves existing fact rows from one key to another. Either way, totals for past periods may change.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Drop the fact or load it with NULL until the customer arrives."** Dropping loses sales. NULL keys break joins and totals. Load it against an inferred member (or an "Unknown" row) and repair it later.
+
+</div>
 
 ## 2. A fact arrives before its customer
 
@@ -221,6 +248,18 @@ JOIN dim_isaac d
 
 Key 606, Toronto, Gold. If you write every fact load with the date-range lookup from the start, late facts need no special handling at all.
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>A sale arrives for customer C9.</b> <table class="lk-tbl"><tr><th>sale</th><th>cust</th><th>amount</th></tr><tr><td>501</td><td>C9</td><td>40</td></tr></table> dim_customer has no C9 yet.</div>
+<div class="step"><b>Inferred member.</b> <table class="lk-tbl"><tr><th>key</th><th>cust</th><th>name</th></tr><tr><td><mark>77</mark></td><td>C9</td><td><mark>Unknown</mark></td></tr></table> Create a placeholder so the sale can load with key 77.</div>
+<div class="step"><b>Fact loads.</b> <table class="lk-tbl"><tr><th>sale</th><th>customer_key</th><th>amount</th></tr><tr><td>501</td><td><mark>77</mark></td><td>40</td></tr></table></div>
+<div class="step"><b>The real customer arrives.</b> <table class="lk-tbl"><tr><th>key</th><th>cust</th><th>name</th></tr><tr><td>77</td><td>C9</td><td><mark>Chloe</mark></td></tr></table> Fill in the placeholder. The fact needs no change.</div>
+<div class="step"><b>Late fact, old date.</b> A sale from February arrives in April. Look up the version that was valid <i>in February</i>, not the current one.</div>
+</div>
+
+<div class="problem" data-problem="dm-late-key"></div>
+
 ## 6. Worked example: what a late fact changes
 
 Late facts also change numbers people have already seen. Suppose July's Toronto sales report went out on 1 August. When receipt 90001 is loaded in November, July's Toronto total grows by $42.50. Three habits keep that honest:
@@ -284,5 +323,14 @@ GROUP BY d.customer_key, d.customer_name
 ORDER BY lines DESC, d.customer_name
 LIMIT 3
 ```
+
+<div class="keypoints">
+
+- Never drop a late fact and never load it with NULL.
+- An inferred member lets the fact load now; update it when the customer arrives.
+- A late fact needs the dimension version valid on the fact's own date.
+- Late data can restate past totals; say so in the report notes.
+
+</div>
 
 **New words:** *late-arriving dimension*, *early-arriving fact*, *late-arriving fact*, *back-fill*, *inferred member*, *restatement*.

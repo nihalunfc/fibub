@@ -17,9 +17,17 @@ quiz:
     choices: ['Store 1, Northbay Downtown', 'Store 12, Northbay Online', 'None of them']
     ans: 1
     why: Store 12 is the website. It sits in the stores table so every order has a store_id, but it has no city or province.
+sources:
+  - 'SQLite documentation, SELECT (LIMIT clause) https://www.sqlite.org/lang_select.html'
+  - 'Kimball Group, Dimensional Modeling Techniques: Grain https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/grain/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 3 (Retail Sales)'
 ---
 
 **Module 1 · about 25 minutes · read first: 1.1.** You'll be able to name every Northbay table, say what one row in each means, and find your way around with `SELECT *` and `LIMIT`.
+
+<div class="bigidea">Before you query a database, learn its map: which tables exist, what one row in each stands for, and which columns point at other tables.</div>
+
+**In everyday terms:** starting a new job in a big supermarket. On day one you walk the aisles: where the stockroom is, which shelf holds what, and that the till receipts are kept in the office. Only then can you answer "how many kettles did we sell?"
 
 ## 1. Why this matters
 
@@ -41,6 +49,39 @@ Two habits make any new table less scary:
 - `SELECT COUNT(*) FROM t` tells you how many rows there are.
 
 Every stop on the tour below is one of these. Press **Run** on each; change the numbers and table names as much as you like. If you break something, the **Reset database** button puts it back.
+
+<div class="meaning">
+
+<dl>
+<dt>Table</dt><dd>One kind of thing Northbay records: stores, products, customers, orders.</dd>
+<dt>Grain</dt><dd>The sentence "one row = one ..." for a table. orders: one checkout. order_items: one product line in a checkout.</dd>
+<dt>Key</dt><dd>A column whose value names one row, such as store_id in stores.</dd>
+<dt>→ (points at)</dt><dd>A column holding another table's key, such as orders.store_id. Read it as "look this up in stores".</dd>
+<dt>NULL</dt><dd>An empty cell: no value at all.</dd>
+<dt>LIMIT 5</dt><dd>Show only the first 5 rows, for a quick look.</dd>
+<dt>Physical meaning</dt><dd>A sale is not stored in one place. The checkout lives in orders, each product on it in order_items, and the shop and customer are kept once in stores and customers, linked by id numbers.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"One sale is one row, so orders and order_items have the same number of rows."** One checkout is one row in orders, but it has one row in order_items for every different product on the receipt. Northbay has 4,064 orders and 7,310 order lines. Always ask what one row means before you count anything.
+
+</div>
+
+Watch one receipt land in the tables, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The receipt.</b> Order 1010: 1 laundry detergent, 4 packs of bagels, 1 art kit.</div>
+<div class="step"><b>orders gets one row.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>store_id</th></tr><tr><td><mark>1010</mark></td><td>1</td><td>8</td></tr></table></div>
+<div class="step"><b>order_items gets one row per product.</b> <table class="lk-tbl"><tr><th>order_id</th><th>product_id</th><th>quantity</th></tr><tr><td>1010</td><td><mark>47</mark></td><td>1</td></tr><tr><td>1010</td><td><mark>11</mark></td><td>4</td></tr><tr><td>1010</td><td><mark>55</mark></td><td>1</td></tr></table></div>
+<div class="step"><b>The ids point elsewhere.</b> store_id 8 → Northbay Prairie in stores; customer_id 1 → Hiro Khan in customers; product 11 → Bagels 6 pack in products.</div>
+</div>
+
+Count rows at the right grain:
+
+<div class="problem" data-problem="sql-receipt-rows"></div>
 
 ## 4. The tour: places
 
@@ -192,5 +233,15 @@ SELECT first_name, last_name, city
 FROM customers
 WHERE customer_id = 3
 ```
+
+<div class="keypoints">
+
+- Northbay has places (regions, stores), things it sells (categories, products, promotions), people (customers, employees) and sales (orders, order_items, returns).
+- Learn every table's grain: orders is one row per checkout, order_items one row per product in a checkout.
+- A column marked → holds another table's key; you look it up there.
+- Peek with SELECT * ... LIMIT 5 and count with SELECT COUNT(*).
+- NULL means an empty cell: guests have no customer_id; the online store has no city.
+
+</div>
 
 **New words:** *key*, *NULL*, *grain*, *cardinality*, *department*, *guest order*.

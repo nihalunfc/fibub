@@ -17,9 +17,17 @@ quiz:
     choices: ['The one with the lower id, always', 'Whichever the database meets first, unless you add a tie-breaker to ORDER BY', 'Both get the same number']
     ans: 1
     why: With a tie, the order is not defined, so the result can change between runs or databases. Add a second ORDER BY column, such as an id, to make it repeatable.
+sources:
+  - 'SQLite documentation, Window functions: built-in window functions https://www.sqlite.org/windowfunctions.html#builtins'
+  - 'Microsoft Learn, RANK (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/rank-transact-sql'
+  - 'PostgreSQL documentation, Window functions https://www.postgresql.org/docs/current/functions-window.html'
 ---
 
 **Module 6 · about 25 minutes · read first: 6.1.** You'll be able to number and rank rows with ROW_NUMBER, RANK and DENSE_RANK, choose the right one when there are ties, and rank inside groups.
+
+<div class="bigidea">ROW_NUMBER, RANK and DENSE_RANK all number rows in an order you choose; they differ only in what they do with ties.</div>
+
+**In everyday terms:** a race where two runners cross the line together in third. RANK says both are 3rd and nobody is 4th; DENSE_RANK says both are 3rd and the next is 4th; ROW_NUMBER makes the judge put one of them 3rd and the other 4th.
 
 ## 1. Why this matters
 
@@ -88,6 +96,36 @@ WHERE store_id IN (1, 2)
 
 Press **Show how it runs**: at the OVER step, the two stores are separate coloured partitions, and the count restarts at 1 when the window moves into store 2. Both store managers come out as rank 1.
 
+<div class="meaning">
+
+<dl>
+<dt>ROW_NUMBER()</dt><dd>Gives 1, 2, 3, ... with no repeats, even on ties.</dd>
+<dt>RANK()</dt><dd>Ties share a number, and the next number is skipped (1, 2, 3, 3, 5).</dd>
+<dt>DENSE_RANK()</dt><dd>Ties share a number, with no gap after (1, 2, 3, 3, 4).</dd>
+<dt>ORDER BY inside OVER</dt><dd>Says what "first" means. It does not sort the output.</dd>
+<dt>Tie-breaker</dt><dd>An extra ORDER BY column (such as an id) that makes ROW_NUMBER give the same answer every time.</dd>
+<dt>Physical meaning</dt><dd>Each row gets a new number column; no rows are removed. RANK counts the rows strictly ahead of you; DENSE_RANK counts the different values ahead of you.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"ROW_NUMBER always gives the same numbers."** When two rows tie on the ORDER BY, the database may number them either way, and the order can change between runs. Add a tie-breaker such as `ORDER BY amount DESC, order_id`.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Order by amount, biggest first.</b> <table class="lk-tbl"><tr><th>order_id</th><th>amount</th></tr><tr><td>104</td><td>90</td></tr><tr><td>106</td><td>60</td></tr><tr><td>101</td><td>45</td></tr><tr><td>105</td><td>45</td></tr><tr><td>103</td><td>20</td></tr><tr><td>102</td><td>5</td></tr></table></div>
+<div class="step"><b>ROW_NUMBER.</b> 1, 2, 3, 4, 5, 6. The two $45 orders get 3 and <mark>4</mark>, and which one gets 3 depends on the tie-breaker.</div>
+<div class="step"><b>RANK.</b> 1, 2, <mark>3, 3</mark>, <mark>5</mark>, 6. Four rows are ahead of the $20 order, so it is 5th.</div>
+<div class="step"><b>DENSE_RANK.</b> 1, 2, <mark>3, 3</mark>, <mark>4</mark>, 5. Three different amounts (90, 60, 45) are ahead of $20, so it is 4th.</div>
+</div>
+
+<div class="problem" data-problem="sql-rank-ties"></div>
+
 ## 5. Worked example
 
 *Question:* rank the Ontario stores (store_id 1 to 7) by completed orders in 2025.
@@ -153,5 +191,14 @@ SELECT name, role, salary,
 FROM employees
 WHERE store_id IS NULL OR store_id = 12
 ```
+
+<div class="keypoints">
+
+- All three ranking functions need ORDER BY inside OVER.
+- ROW_NUMBER never repeats; RANK repeats on ties and leaves gaps; DENSE_RANK repeats without gaps.
+- Add a tie-breaker column so ROW_NUMBER is repeatable.
+- PARTITION BY restarts the numbering in each group.
+
+</div>
 
 **New words:** *ROW_NUMBER*, *RANK*, *DENSE_RANK*, *tie-breaker*.

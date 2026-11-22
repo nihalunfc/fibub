@@ -17,9 +17,17 @@ quiz:
     choices: ['Reports overlap and change, so the same numbers end up computed differently in many places', 'Reports cannot be built from tables', 'It uses too few tables']
     ans: 0
     why: Modelling the process once gives every report the same numbers. Report-shaped tables multiply and drift apart.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 2: Kimball Dimensional Modeling Techniques Overview (four-step design process)'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales'
 ---
 
 **Module 2 · about 25 minutes · read first: 1.3.** You'll be able to name the business processes in a company, find the source rows each one leaves, size them with SQL, and say the four steps of a dimensional design.
+
+<div class="bigidea">A dimensional design starts from something the business does again and again, such as selling or returning, not from one report or one department.</div>
+
+**In everyday terms:** a shop's diaries. You keep one diary for sales, one for deliveries and one for returns. Anyone can read any diary. You do not keep a separate diary for each person who reads them.
 
 ## 1. Why this matters
 
@@ -101,6 +109,37 @@ Once a process is chosen, every dimensional design follows the same four steps, 
 
 The rest of this module takes them one at a time: [grain](/learn/courses/data-modelling/declare-grain/), [facts and dimensions](/learn/courses/data-modelling/facts-and-dimensions/), and putting them together in [the star schema](/learn/courses/data-modelling/star-schema/). After that, [the bus matrix](/learn/courses/data-modelling/bus-matrix/) plans all the processes together.
 
+<div class="meaning">
+
+<dl>
+<dt>Business process</dt><dd>An activity done again and again that leaves a record each time; usually a verb: sell, return, ship.</dd>
+<dt>Event</dt><dd>One occurrence of a process, with a when, where, who, what and some numbers.</dd>
+<dt>Dimensional modelling</dt><dd>Kimball's way of designing tables around processes: facts for the numbers, dimensions for the context.</dd>
+<dt>Four-step design</dt><dd>Choose the process, declare the grain, identify the dimensions, identify the facts.</dd>
+<dt>Physical meaning</dt><dd>Each process becomes its own fact table, one row per event. Reports read from those tables, so ten reports share one sales table instead of building ten.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Build the table the dashboard needs."** A table shaped like one dashboard only serves that dashboard. The next request needs another table, and soon they disagree. Model the process, and every dashboard reads from it.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>The request.</b> "A sales dashboard by store." That is a report, not a process.</div>
+<div class="step"><b>Find the process.</b> Selling. One event: <table class="lk-tbl"><tr><th>when</th><th>where</th><th>who</th><th>what</th><th>qty</th></tr><tr><td>10 Jan</td><td>store 2</td><td>Uma</td><td>Eggs</td><td>2</td></tr></table></div>
+<div class="step"><b>Another process.</b> Returning. One event: <table class="lk-tbl"><tr><th>when</th><th>where</th><th>who</th><th>what</th><th>why</th></tr><tr><td>14 Jan</td><td>store 2</td><td>customer 10</td><td>Detergent</td><td>wrong size</td></tr></table></div>
+<div class="step"><b>Size them.</b> <table class="lk-tbl"><tr><th>process</th><th>events</th></tr><tr><td>Selling</td><td><mark>7,310</mark></td></tr><tr><td>Returning</td><td>204</td></tr></table> Selling first; returns reuse the same date, product, store and customer.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-return-rate"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -159,5 +198,15 @@ FROM order_items i
 JOIN orders o ON o.order_id = i.order_id
 GROUP BY year
 ```
+
+<div class="keypoints">
+
+- Model what the business does (processes), not what one report shows.
+- A process is a verb; each occurrence is an event with when, where, who, what and numbers.
+- Departments and reports are not processes.
+- Four steps: process, grain, dimensions, facts, in that order.
+- Start with the process that has high value and easy data.
+
+</div>
 
 **New words:** *dimensional modelling*, *business process*, *event*, *four-step design*.

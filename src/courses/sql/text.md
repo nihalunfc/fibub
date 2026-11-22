@@ -17,9 +17,17 @@ quiz:
     choices: ['+', '||', '&']
     ans: 1
     why: The standard operator is ||. SQL Server uses + for strings, and CONCAT() works in all three.
+sources:
+  - 'SQLite documentation, Built-in scalar SQL functions https://www.sqlite.org/lang_corefunc.html'
+  - 'PostgreSQL documentation, String functions and operators https://www.postgresql.org/docs/current/functions-string.html'
+  - 'Microsoft Learn, TRIM (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/trim-transact-sql'
 ---
 
 **Module 7 · about 25 minutes · read first: 2.3.** You'll be able to clean and reshape text with TRIM, UPPER, LOWER, SUBSTR, INSTR, REPLACE and ||, and use them to fix the grouping and matching problems that messy text causes.
+
+<div class="bigidea">SQL groups and joins only on values that are exactly equal, so text functions clean values until the ones that mean the same thing look the same.</div>
+
+**In everyday terms:** sorting post into pigeonholes by town. A strict clerk makes separate holes for "Toronto" and "TORONTO ". Cleaning tells the clerk to ignore capitals and spaces.
 
 ## 1. Why this matters
 
@@ -111,6 +119,35 @@ WHERE product_name LIKE '%pack%'
 
 Seven products have "pack" in the name. Note: in SQLite `LIKE` ignores case for plain letters, but `=` does not, so `email = 'UMA.NOVAK17@EXAMPLE.COM'` and `email = 'uma.novak17@example.com'` find different rows. Compare `LOWER(email)` when case should not matter. In PostgreSQL LIKE is case-sensitive and `ILIKE` ignores case.
 
+<div class="meaning">
+
+<dl>
+<dt>TRIM(x)</dt><dd>Removes spaces from both ends. LTRIM and RTRIM do one end.</dd>
+<dt>UPPER(x) / LOWER(x)</dt><dd>All capitals or all small letters, so case stops mattering.</dd>
+<dt>SUBSTR(x, start, length)</dt><dd>Cuts out part of the text. Positions start at 1.</dd>
+<dt>INSTR(x, 'find')</dt><dd>Where 'find' first appears, or 0 if it is not there.</dd>
+<dt>a || b</dt><dd>Joins text (concatenation). A NULL anywhere makes the whole result NULL.</dd>
+<dt>Physical meaning</dt><dd>The stored data does not change; each row gets a cleaned copy of the value. Grouping by the cleaned copy merges groups that only differed by spaces or case.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"'Toronto' and 'Toronto ' are the same city, so GROUP BY will merge them."** To SQL they are different strings: one has an extra character. Group by `TRIM(city)` (and `LOWER` if case varies), and check with `LENGTH(city) <> LENGTH(TRIM(city))`.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Raw values.</b> <table class="lk-tbl"><tr><th>city</th></tr><tr><td>'Toronto'</td></tr><tr><td>'Toronto&nbsp;'</td></tr><tr><td>'toronto'</td></tr><tr><td>'Ottawa'</td></tr></table> GROUP BY city gives 4 groups.</div>
+<div class="step"><b>TRIM.</b> <table class="lk-tbl"><tr><th>TRIM(city)</th></tr><tr><td>'Toronto'</td></tr><tr><td><mark>'Toronto'</mark></td></tr><tr><td>'toronto'</td></tr><tr><td>'Ottawa'</td></tr></table> The trailing space is gone: 3 groups.</div>
+<div class="step"><b>LOWER(TRIM()).</b> <table class="lk-tbl"><tr><th>LOWER(TRIM(city))</th></tr><tr><td>'toronto'</td></tr><tr><td>'toronto'</td></tr><tr><td><mark>'toronto'</mark></td></tr><tr><td>'ottawa'</td></tr></table> Now 2 groups: Toronto 3, Ottawa 1.</div>
+</div>
+
+<div class="problem" data-problem="sql-trim-groups"></div>
+
 ## 6. Worked example
 
 *Question:* which email domains do Northbay's customers use, ignoring case?
@@ -167,5 +204,15 @@ WHERE customer_id <= 5
 ```
 
 **Try it on your own data:** [[text-cleaner]] trims spaces and fixes case in pasted text; [[regex-tester]] helps when a pattern is too hard for LIKE.
+
+<div class="keypoints">
+
+- GROUP BY and joins match text exactly: spaces and capitals count.
+- TRIM removes spaces; LOWER or UPPER removes case differences.
+- SUBSTR, INSTR and || cut and join text.
+- One NULL in a || chain makes the result NULL; use COALESCE(x, '').
+- Clean only what should merge; check a sample afterwards.
+
+</div>
 
 **New words:** *TRIM*, *concatenation*, *SUBSTR*, *INSTR*, *pattern*.

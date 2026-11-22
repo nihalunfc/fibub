@@ -17,9 +17,18 @@ quiz:
     choices: ['Always start a script with SELECT *', 'Before an UPDATE or DELETE, run a SELECT with the same WHERE to see exactly which rows will change', 'Use SELECT instead of UPDATE']
     ans: 1
     why: 'If the SELECT shows 6 rows, the UPDATE will change those 6 rows. If it shows 6,000, you have caught a mistake before it happened.'
+sources:
+  - 'SQLite documentation: INSERT, UPDATE and DELETE https://www.sqlite.org/lang_insert.html'
+  - 'SQLite documentation: Transactions (BEGIN, COMMIT, ROLLBACK) https://www.sqlite.org/lang_transaction.html'
+  - 'SQLite documentation: UPSERT https://www.sqlite.org/lang_upsert.html'
+  - 'Microsoft Learn: Transactions (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/transactions-transact-sql'
 ---
 
 **Module 9 · about 30 minutes · read first: 1.3, 2.2.** You'll be able to insert, update and delete rows, and wrap changes in a transaction so you can undo them.
+
+<div class="bigidea">INSERT, UPDATE and DELETE change the data for everyone, so check the rows first with a SELECT, and wrap the change in a transaction that you can roll back.</div>
+
+**In everyday terms:** editing a shared spreadsheet with "suggest changes" turned on. You see exactly what would change, and nothing is final until you press accept (COMMIT) or reject (ROLLBACK).
 
 ## 1. Why this matters
 
@@ -132,6 +141,40 @@ The DELETE emptied the table (the middle SELECT would show 0), but ROLLBACK put 
 **Try it:** a table has 6 rows; 2 have price < 20. After `DELETE ... WHERE unit_price < 20`, how many rows are left? (6 − 2 = 4.) And after `UPDATE ... WHERE unit_price < 20`? (Still 6: UPDATE never changes the count.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>DML</dt><dd>Data manipulation language: INSERT, UPDATE and DELETE.</dd>
+<dt>INSERT INTO t (cols) VALUES …</dt><dd>Adds rows. List the columns so the statement survives new columns.</dd>
+<dt>UPDATE t SET … WHERE …</dt><dd>Changes the matching rows. With no WHERE, every row changes.</dd>
+<dt>DELETE FROM t WHERE …</dt><dd>Removes the matching rows. With no WHERE, the table is emptied.</dd>
+<dt>BEGIN … COMMIT / ROLLBACK</dt><dd>A transaction: all the changes happen together, or none of them do.</dd>
+<dt>Upsert</dt><dd>Insert, or update if the key already exists (ON CONFLICT or MERGE).</dd>
+<dt>Physical meaning</dt><dd>A SELECT only reads; these statements rewrite the stored table. DELETE takes away the rows the WHERE picks, INSERT adds rows, and UPDATE keeps the row count but rewrites columns in place. Inside a transaction the changes are held back until COMMIT, and ROLLBACK puts the table back exactly as it was.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"I'll just run the UPDATE; I know which rows it hits."** One forgotten or wrong WHERE changes every row, and there is no Undo. Run the WHERE as a SELECT first, count the rows, then make the change inside BEGIN … COMMIT so a mistake can be rolled back.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The table.</b> <table class="lk-tbl"><tr><th>product_id</th><th>price</th></tr><tr><td>57</td><td>79.99</td></tr><tr><td>58</td><td>24.99</td></tr><tr><td>59</td><td>19.99</td></tr><tr><td>60</td><td>12.99</td></tr></table></div>
+<div class="step"><b>SELECT first.</b> <code>WHERE price &lt; 20</code> finds 2 rows. <table class="lk-tbl"><tr><th>product_id</th><th>price</th></tr><tr><td><mark>59</mark></td><td><mark>19.99</mark></td></tr><tr><td><mark>60</mark></td><td><mark>12.99</mark></td></tr></table></div>
+<div class="step"><b>BEGIN; UPDATE … SET price = price × 1.05 WHERE price &lt; 20.</b> Still 4 rows; 2 changed. <table class="lk-tbl"><tr><th>product_id</th><th>price</th></tr><tr><td>57</td><td>79.99</td></tr><tr><td>58</td><td>24.99</td></tr><tr><td>59</td><td><mark>20.99</mark></td></tr><tr><td>60</td><td><mark>13.64</mark></td></tr></table></div>
+<div class="step"><b>Oops: DELETE FROM price_list</b> (no WHERE). Inside the transaction the table is empty. <table class="lk-tbl"><tr><th>product_id</th><th>price</th></tr><tr><td><mark>(no rows)</mark></td><td></td></tr></table></div>
+<div class="step"><b>ROLLBACK.</b> Everything since BEGIN is undone, including the price rise: all 4 rows are back as they were.</div>
+</div>
+
+The change boxes here are not animated; any live box with a SELECT has a **Show how it runs** button that animates the real query.
+
+<div class="problem" data-problem="sql-transaction-rows"></div>
+
 ## 7. Worked example
 
 *Task:* the buyer says "the Smart bulb and the USB-C cable go up to $21.99 and $13.99; everything else stays." Do it safely.
@@ -208,5 +251,15 @@ SELECT COUNT(*) AS members FROM gold_members
 ```
 
 **Try it on your own data:** [[sql-playground]] is a safe place to practise: it works on a copy in your browser, so nothing you change reaches the original file.
+
+<div class="keypoints">
+
+- INSERT adds rows, UPDATE changes them (the count stays the same), DELETE removes them.
+- Run the WHERE as a SELECT first: without a WHERE, UPDATE and DELETE hit every row.
+- BEGIN, change, check, then COMMIT to keep or ROLLBACK to undo.
+- DELETE removes rows, TRUNCATE empties a table fast, DROP removes the table itself.
+- Practise on a copy (CREATE TABLE … AS SELECT), never on the real table.
+
+</div>
 
 **New words:** *DML*, *INSERT*, *UPDATE*, *DELETE*, *transaction*, *COMMIT*, *ROLLBACK*, *ACID*, *upsert*.

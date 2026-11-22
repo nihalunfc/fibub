@@ -17,9 +17,18 @@ quiz:
     choices: ['So the outer query can refer to its columns', 'For speed', 'It does not']
     ans: 0
     why: A derived table acts like a table, and a table needs a name. PostgreSQL and SQL Server require the alias; SQLite lets you skip it, but always add one.
+sources:
+  - 'SQLite documentation, SELECT (subqueries in FROM and as expressions) https://www.sqlite.org/lang_select.html'
+  - 'PostgreSQL documentation, Scalar subqueries https://www.postgresql.org/docs/current/sql-expressions.html#SQL-SYNTAX-SCALAR-SUBQUERIES'
+  - 'Microsoft Learn, Subqueries (SQL Server) https://learn.microsoft.com/en-us/sql/relational-databases/performance/subqueries'
+  - 'Molinaro, A. and de Graaf, R. (2020), SQL Cookbook, 2nd edition, O''Reilly, chapter 3'
 ---
 
 **Module 5 · about 25 minutes · read first: 3.2.** You'll be able to use a subquery as a single value, as a table in FROM, and read nested queries from the inside out.
+
+<div class="bigidea">A subquery is a query in brackets that runs first and hands its answer, one value or a whole table, to the query around it.</div>
+
+**In everyday terms:** a shopping trip with a note that says "buy anything cheaper than the average price on the shelf". First you work out the average (the inner query), then you walk the shelf with that one number in your head (the outer query).
 
 ## 1. Why this matters
 
@@ -88,6 +97,35 @@ Step 1 (inside) makes one row per customer with their order count. Step 2 (outsi
 **Try it:** what is the shape of `(SELECT MAX(order_date) FROM orders)`? (One row, one column: a scalar. It can go in WHERE as `order_date = (...)`.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Subquery</dt><dd>A complete SELECT written inside round brackets, inside another query.</dd>
+<dt>Scalar subquery</dt><dd>A subquery that returns one row and one column, so it can stand wherever a single value fits.</dd>
+<dt>Derived table</dt><dd>A subquery in FROM. It returns a whole table, and the outer query reads from it like any table. Give it a name with AS.</dd>
+<dt>Inside out</dt><dd>The way to read nested SQL: work out the innermost brackets first, then the next level.</dd>
+<dt>Physical meaning</dt><dd>The database builds the inner result first (one number, or a temporary table that exists only during this query), then runs the outer query against it. Nothing is saved.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"I can write WHERE amount > AVG(amount)."** WHERE looks at one row at a time, and one row has no average. Work the average out in its own query, in brackets: `WHERE amount > (SELECT AVG(amount) FROM mini_orders)`.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>The table.</b> mini_orders (6 rows). <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr><tr><td>101</td><td>1</td><td>45</td></tr><tr><td>102</td><td>1</td><td>5</td></tr><tr><td>103</td><td>2</td><td>20</td></tr><tr><td>104</td><td>3</td><td>90</td></tr><tr><td>105</td><td>3</td><td>45</td></tr><tr><td>106</td><td>9</td><td>60</td></tr></table></div>
+<div class="step"><b>Inner query first.</b> <code>SELECT AVG(amount)</code> gives one number: 265 ÷ 6 = <mark>44.17</mark>.</div>
+<div class="step"><b>Swap it in.</b> The outer query now reads <code>WHERE amount &gt; 44.17</code>, a plain filter.</div>
+<div class="step"><b>Filter.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr><tr><td>101</td><td>1</td><td><mark>45</mark></td></tr><tr><td>104</td><td>3</td><td><mark>90</mark></td></tr><tr><td>105</td><td>3</td><td><mark>45</mark></td></tr><tr><td>106</td><td>9</td><td><mark>60</mark></td></tr></table> Four rows are above the average.</div>
+</div>
+
+<div class="problem" data-problem="sql-scalar-above-avg"></div>
+
 ## 5. Worked example: average order value by store
 
 *Question:* which stores have the highest average order value? An order's value is the sum of its lines, so we need two levels.
@@ -152,5 +190,15 @@ FROM (
   GROUP BY order_id
 ) AS per_order
 ```
+
+<div class="keypoints">
+
+- A subquery is a query in brackets inside another query; read it from the inside out.
+- A scalar subquery returns one value and can go in WHERE or SELECT.
+- A subquery in FROM is a derived table; give it a name.
+- Use a derived table for two-step summaries such as an average of counts.
+- Make sure a scalar subquery really returns one row; SQLite hides it when it does not.
+
+</div>
 
 **New words:** *subquery*, *scalar subquery*, *derived table*, *closure*.

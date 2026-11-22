@@ -17,9 +17,18 @@ quiz:
     choices: ['order_id alone', 'product_id alone', 'order_id and product_id together']
     ans: 2
     why: One order has many lines and one product appears in many orders, but each product appears once per order. The pair is a composite key.
+sources:
+  - 'Microsoft Learn, Primary and foreign key constraints https://learn.microsoft.com/en-us/sql/relational-databases/tables/primary-and-foreign-key-constraints'
+  - 'PostgreSQL documentation, Constraints (primary keys and foreign keys) https://www.postgresql.org/docs/current/ddl-constraints.html'
+  - 'SQLite documentation, SQLite Foreign Key Support https://www.sqlite.org/foreignkeys.html'
+  - 'Kimball Group, Dimensional Modeling Techniques: Dimension Surrogate Keys https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/dimension-surrogate-key/'
 ---
 
 **Module 4 · about 20 minutes · read first: 3.5.** You'll be able to find the primary and foreign keys in a database, check them with a query, and say which column a join should match on.
+
+<div class="bigidea">A primary key names each row of a table uniquely, and a foreign key is a column that points at another table's primary key; joins follow these pointers.</div>
+
+**In everyday terms:** a passport number and a boarding pass. Each passport number belongs to exactly one person (primary key); a boarding pass quotes a passport number to say whose it is (foreign key). A boarding pass with a number that was never issued is an orphan.
 
 ## 1. Why this matters
 
@@ -67,6 +76,39 @@ Here are Northbay's main pointers:
 - `order_items.order_id` → `orders.order_id`, and `order_items.product_id` → `products.product_id`
 - `products.category_id` → `categories.category_id`
 - `employees.manager_id` → `employees.employee_id` (a table pointing at itself; see [Lesson 4.6](/learn/courses/sql/self-join/))
+
+<div class="meaning">
+
+<dl>
+<dt>Primary key</dt><dd>A column (or set of columns) that is different on every row and never empty.</dd>
+<dt>Foreign key</dt><dd>A column holding another table's primary key: a pointer.</dd>
+<dt>Orphan</dt><dd>A foreign key value that points at no row.</dd>
+<dt>Composite key</dt><dd>A key made of two or more columns together, such as (order_id, product_id).</dd>
+<dt>Surrogate / natural key</dt><dd>A made-up id number / a real-world value such as an email.</dd>
+<dt>Uniqueness test</dt><dd>COUNT(*) = COUNT(DISTINCT key): any gap means repeated values.</dd>
+<dt>Physical meaning</dt><dd>Keys are how split-up tables get put back together. A join matches a foreign key to a primary key; if the "primary" key repeats, rows get copied, and if a pointer is an orphan, rows go missing.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If a column is called id, it must be unique."** A name is a promise, not a check. Northbay describes its keys but does not enforce them, like many warehouses. Test it: COUNT(*) − COUNT(DISTINCT id) must be 0. Anything else is the number of extra copies.
+
+</div>
+
+Watch a pointer get followed, one step at a time:
+
+<div class="steps">
+<div class="step"><b>mini_customers: id is the primary key.</b> Five rows, five different ids. <table class="lk-tbl"><tr><th>id</th><th>name</th></tr><tr><td>1</td><td>Asha</td></tr><tr><td>2</td><td>Ben</td></tr><tr><td>3</td><td>Chen</td></tr><tr><td>4</td><td>Dina</td></tr><tr><td>5</td><td>Eli</td></tr></table></div>
+<div class="step"><b>mini_orders: customer_id is a foreign key.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th></tr><tr><td>101</td><td>1</td></tr><tr><td>103</td><td>2</td></tr><tr><td>106</td><td><mark>9</mark></td></tr></table></div>
+<div class="step"><b>Follow the pointer.</b> 101 → id 1 → Asha. 103 → id 2 → Ben.</div>
+<div class="step"><b>An orphan.</b> 106 → id 9 → <mark>no such row</mark>. A join will lose this order (Lesson 4.2).</div>
+</div>
+
+Press **Show how it runs** on the boxes above to see the real tables. Then test a key yourself:
+
+<div class="problem" data-problem="sql-key-dupes"></div>
 
 ## 4. Composite keys and natural keys
 
@@ -135,5 +177,15 @@ HAVING COUNT(*) > 1
 ```
 
 **Try it on your own data:** load a CSV into [[sql-playground]] and run the COUNT vs COUNT DISTINCT check on the column you think is the key.
+
+<div class="keypoints">
+
+- A primary key is unique and never empty: knowing it gives you exactly one row.
+- A foreign key holds another table's primary key; an orphan points at nothing.
+- Test a key with COUNT(*) versus COUNT(DISTINCT key); they must match.
+- A composite key uses several columns together, like (order_id, product_id).
+- Surrogate ids are safer than natural keys such as emails or names.
+
+</div>
 
 **New words:** *primary key*, *foreign key*, *orphan*, *composite key*, *surrogate key*, *natural key*.

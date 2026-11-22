@@ -17,9 +17,18 @@ quiz:
     choices: ['Delete the orders', 'Ask the data owner what the dates mean, and note it in your report', 'Ignore it, the totals are fine']
     ans: 1
     why: A failed check is a question, not an instruction. joined_on might mean the loyalty sign-up rather than the first visit. Find out, write it down, and decide together.
+sources:
+  - 'dbt documentation, Add data tests to your DAG (unique, not_null, relationships, accepted_values) https://docs.getdbt.com/docs/build/data-tests'
+  - 'SQLite documentation, Aggregate functions (count) https://www.sqlite.org/lang_aggfunc.html'
+  - 'PostgreSQL documentation, Constraints (foreign keys) https://www.postgresql.org/docs/current/ddl-constraints.html'
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 7 · about 35 minutes · read first: 7.4.** You'll be able to run a standard set of quality checks on a table, write each one so that 0 means "fine", and turn the results into a short list of issues for the people who own the data.
+
+<div class="bigidea">A data quality check is a query that counts the rows breaking one rule, written so that 0 means "fine".</div>
+
+**In everyday terms:** a pilot's pre-flight checklist. Each line is a yes-or-no question, and the plane leaves only when every line passes.
 
 ## 1. Why this matters
 
@@ -129,6 +138,38 @@ WHERE o.order_date < c.joined_on
 
 **596** orders from 187 customers are dated before the customer's `joined_on`. That is not something SQL can settle. Maybe `joined_on` is when they joined the loyalty programme and their earlier purchases were linked afterwards; maybe it is a bug. Ask the data owner, write the answer down, and say in your report which meaning you used. Other rule ideas: a return date after its order date, online orders always at store 12, prices above cost.
 
+<div class="meaning">
+
+<dl>
+<dt>Data quality check</dt><dd>A query that counts rows that break a rule. 0 means the rule holds.</dd>
+<dt>COUNT(*) − COUNT(col)</dt><dd>The number of missing (NULL) values in a column.</dd>
+<dt>COUNT(*) − COUNT(DISTINCT key)</dt><dd>Extra rows that repeat a key; 0 means the key is unique.</dd>
+<dt>Orphan</dt><dd>A row whose foreign key points at a row that does not exist. Found with NOT EXISTS.</dd>
+<dt>Referential integrity</dt><dd>The rule that every foreign key value exists in the table it points to.</dd>
+<dt>Business rule</dt><dd>A rule from how the business works, such as "no order before sign-up". Failures need a conversation, not just a fix.</dd>
+<dt>Physical meaning</dt><dd>Checks only read and count; they never change data. Each one filters the table to the rows that break a rule and returns how many there are.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A NULL is always an error."** Sometimes NULL is the correct answer: a NULL customer_id on Northbay means a guest checkout. Decide for each column whether NULL is allowed, and check orphans only among the filled-in keys.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>orders and customers (ids 1 to 5).</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th></tr><tr><td>101</td><td>1</td></tr><tr><td>102</td><td>NULL</td></tr><tr><td>103</td><td>7</td></tr><tr><td>104</td><td>2</td></tr><tr><td>105</td><td>2</td></tr></table></div>
+<div class="step"><b>Missing.</b> <code>COUNT(*) - COUNT(customer_id)</code> = 5 − 4 = <mark>1</mark> (a guest order: allowed).</div>
+<div class="step"><b>Orphans.</b> Filled-in ids with no customer: <mark>7</mark>. Count = 1: this one needs fixing.</div>
+<div class="step"><b>Key unique?</b> <code>COUNT(*) - COUNT(DISTINCT order_id)</code> = 5 − 5 = <mark>0</mark>. Pass.</div>
+<div class="step"><b>Report.</b> One line per check: name, count, pass or fail. Run it after every load.</div>
+</div>
+
+<div class="problem" data-problem="sql-dq-orphans"></div>
+
 ## 7. Worked example: one checklist query
 
 *Question:* put the main checks for Northbay in one result, one row per check, where 0 means fine.
@@ -193,5 +234,15 @@ GROUP BY loyalty_tier
 ```
 
 **Try it on your own data:** [[csv-profiler]] runs the same kind of checks (missing values, distinct values, ranges) on a CSV file in your browser.
+
+<div class="keypoints">
+
+- Write every check so that 0 means fine.
+- Profile first: row count, key uniqueness, date range.
+- COUNT(*) − COUNT(col) counts missing values; decide where NULL is allowed.
+- Find orphans with NOT EXISTS, leaving allowed NULLs out.
+- Business-rule failures go to the data owner with the counts.
+
+</div>
 
 **New words:** *data quality check*, *orphan*, *referential integrity*, *business rule*.

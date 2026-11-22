@@ -17,13 +17,41 @@ quiz:
     choices: ['Vaults have no history', 'Answering a question needs many joins and "latest row" logic, so marts (often stars) are built on top', 'SQL cannot read vault tables']
     ans: 1
     why: The vault is built for loading and auditing, not for easy querying. Information marts on top give analysts a simple star.
+sources:
+  - 'Linstedt, D. and Olschimke, M. (2015), Building a Scalable Data Warehouse with Data Vault 2.0, Morgan Kaufmann'
+  - 'Data Vault Alliance, Data Vault basics https://datavaultalliance.com/'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 6 · about 30 minutes · read first: 6.1.** You'll be able to name the three Data Vault table types, build a hub, a link and a satellite in SQL, load a day of changes insert-only, and rebuild a star dimension from the vault.
 
+<div class="bigidea">A Data Vault splits the warehouse into hubs (business keys), links (relationships) and satellites (changing details), and only ever inserts.</div>
+
+**In everyday terms:** a library. Hubs are the catalogue cards (one per book). Links are the loan slips tying a book to a member. Satellites are the notes about the book or member that you keep adding to.
+
 ## 1. Why this matters
 
 Data Vault is common in banks, insurers, telecoms and large public bodies, where dozens of source systems change all the time and auditors want to see exactly what arrived, when and from where. If you join such a team you will query hubs, links and satellites from day one. Even if you never build one, knowing the pattern makes you better at loading history and at answering "where did this number come from?"
+
+<div class="meaning">
+
+<dl>
+<dt>Hub</dt><dd>One row per business key (a customer number, a product code).</dd>
+<dt>Link</dt><dd>One row per relationship between hubs (customer buys product).</dd>
+<dt>Satellite</dt><dd>Descriptive columns for a hub or link, with a new row for every change.</dd>
+<dt>Hash key / hash diff</dt><dd>A fixed-length fingerprint of the key / of the details, to spot changes quickly.</dd>
+<dt>Load date, record source</dt><dd>When and from where each row arrived.</dd>
+<dt>Insert-only</dt><dd>Rows are never updated or deleted.</dd>
+<dt>Physical meaning</dt><dd>Every change adds one satellite row. History is complete and loads can run in parallel, at the price of more joins to read it.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A vault is something users query directly."** A vault is a staging-style integration layer. Users read from information marts (often stars) built on top of it.
+
+</div>
 
 ## 2. Three kinds of table
 
@@ -157,6 +185,18 @@ ORDER BY h.customer_bk, s.load_date
 **Try it:** a satellite has 603 rows and a load changes 2 customers and adds 1. How many rows after? (606.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Hub_customer.</b> <table class="lk-tbl"><tr><th>hash</th><th>customer_id</th><th>load_date</th><th>source</th></tr><tr><td>a1f</td><td>C1</td><td>Jan 1</td><td>shop</td></tr></table> The key only, once.</div>
+<div class="step"><b>Hub_product and link.</b> <table class="lk-tbl"><tr><th>link</th><th>cust</th><th>prod</th></tr><tr><td>x7</td><td>a1f</td><td>p9d</td></tr></table> The link records that C1 bought a product.</div>
+<div class="step"><b>Satellite.</b> <table class="lk-tbl"><tr><th>hub</th><th>city</th><th>load_date</th></tr><tr><td>a1f</td><td>Toronto</td><td>Jan 1</td></tr></table></div>
+<div class="step"><b>City changes.</b> No update. <table class="lk-tbl"><tr><th>hub</th><th>city</th><th>load_date</th></tr><tr><td>a1f</td><td>Toronto</td><td>Jan 1</td></tr><tr><td>a1f</td><td><mark>Ottawa</mark></td><td><mark>Mar 1</mark></td></tr></table> A new row is inserted.</div>
+<div class="step"><b>Build the star.</b> A view takes the latest satellite row per hub and shows it as a dimension.</div>
+</div>
+
+<div class="problem" data-problem="dm-vault-rows"></div>
+
 ## 6. Worked example: from vault to star
 
 Analysts want dim_customer, not three tables. An **information mart** (the vault world's name for a reporting layer, usually Kimball stars) is built from the vault with "latest satellite row per hub key":
@@ -229,5 +269,14 @@ SELECT COUNT(*) AS guest_links
 FROM link_order
 WHERE customer_hk = '00000000'
 ```
+
+<div class="keypoints">
+
+- Hubs hold keys, links hold relationships, satellites hold details.
+- Every load is insert-only, so history is never lost.
+- Hash keys let tables load in parallel.
+- Users query marts built on top, not the vault itself.
+
+</div>
 
 **New words:** *Data Vault*, *hub*, *link*, *satellite*, *business key*, *hash key*, *hash diff*, *load date*, *record source*, *ghost record*, *insert-only*, *information mart*.

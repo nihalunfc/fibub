@@ -17,9 +17,17 @@ quiz:
     choices: ['< is faster', '< keeps each pair once and never pairs a row with itself', '<> is not allowed']
     ans: 1
     why: With <> you get both (17, 601) and (601, 17). With < you get only (17, 601), and a row can never be less than itself.
+sources:
+  - 'PostgreSQL documentation, Joins Between Tables (self join) https://www.postgresql.org/docs/current/tutorial-join.html'
+  - 'SQLite documentation, SELECT: The FROM clause and table aliases https://www.sqlite.org/lang_select.html#fromclause'
+  - 'Molinaro, A. and de Graaf, R. (2020), SQL Cookbook, 2nd edition, O''Reilly, chapter 3 (Working with Multiple Tables)'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.3.** You'll be able to join a table to itself, show each employee with their manager, and compare rows of the same table without counting pairs twice.
+
+<div class="bigidea">A self-join joins a table to a second copy of itself, using two aliases, so a row can be matched with another row of the same table.</div>
+
+**In everyday terms:** a class photo where every student holds a card with their buddy's name. To list "student and buddy", you look at the photo twice: once to read the student, once to find the buddy's face.
 
 ## 1. Why this matters
 
@@ -56,6 +64,38 @@ ORDER BY e.employee_id
 ```
 
 Now all five appear, with "(nobody)" for the CEO. The full table has 38 staff; drop the WHERE to see them all.
+
+<div class="meaning">
+
+<dl>
+<dt>Self-join</dt><dd>A join where both sides are the same table.</dd>
+<dt>Two aliases (e, m)</dt><dd>Nicknames that let you treat one table as two: "the employee" and "the manager".</dd>
+<dt>manager_id → employee_id</dt><dd>A foreign key that points into its own table.</dd>
+<dt>a.id &lt; b.id</dt><dd>When pairing rows, stops a row pairing with itself and keeps each pair once.</dd>
+<dt>Direct report</dt><dd>Someone whose manager_id is this person.</dd>
+<dt>Physical meaning</dt><dd>The database reads the same rows twice and puts a matching pair side by side, so columns from two different rows (an employee's and their manager's) end up on one line where you can compare them.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"To find pairs in one table, join ON a.city = b.city."** That pairs every row with itself and lists every pair twice (A–B and B–A). Add `a.id < b.id`: no self-pairs, each pair once. With n rows sharing a value you get n(n − 1)/2 pairs.
+
+</div>
+
+Watch a self-join run, one step at a time (the live boxes' **Show how it runs** button animates the real employees):
+
+<div class="steps">
+<div class="step"><b>One table, read as e.</b> <table class="lk-tbl"><tr><th>employee_id</th><th>name</th><th>manager_id</th></tr><tr><td>1</td><td>Morgan</td><td><i>NULL</i></td></tr><tr><td>2</td><td>Riya</td><td>1</td></tr><tr><td>3</td><td>Tom</td><td>1</td></tr><tr><td>4</td><td>Hana</td><td>3</td></tr></table></div>
+<div class="step"><b>The same table, read again as m.</b> Each e row looks up its manager_id in m.employee_id.</div>
+<div class="step"><b>Matches side by side.</b> <table class="lk-tbl"><tr><th>employee</th><th>manager</th></tr><tr><td>Riya</td><td><mark>Morgan</mark></td></tr><tr><td>Tom</td><td><mark>Morgan</mark></td></tr><tr><td>Hana</td><td><mark>Tom</mark></td></tr></table></div>
+<div class="step"><b>Morgan is missing.</b> Her manager_id is NULL, so the inner join drops her. A LEFT JOIN keeps her with a blank manager.</div>
+</div>
+
+The ids in this picture are simplified. Now count pairs yourself:
+
+<div class="problem" data-problem="sql-self-join-pairs"></div>
 
 ## 4. Comparing a row with its partner
 
@@ -163,5 +203,15 @@ FROM employees a
 JOIN employees b ON a.store_id = b.store_id AND a.employee_id < b.employee_id
 WHERE a.role = 'Associate' AND b.role = 'Associate'
 ```
+
+<div class="keypoints">
+
+- A self-join is an ordinary join with the same table on both sides and two aliases.
+- Use it when a column points into its own table, such as manager_id.
+- A LEFT self-join keeps the row at the top (the CEO, whose manager is NULL).
+- With both rows on one line you can compare them: hired before the manager, earns more.
+- When pairing rows that share a value, add a.id &lt; b.id: n rows give n(n − 1)/2 pairs.
+
+</div>
 
 **New words:** *self-join*, *renaming*, *direct report*.

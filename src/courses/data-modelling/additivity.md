@@ -17,9 +17,17 @@ quiz:
     choices: ['The additive parts: sales amount and cost amount', 'The margin % on each row', 'Only the margin %, averaged']
     ans: 0
     why: Store numerator and denominator as additive facts, and divide the sums at report time. A stored percentage can't be added or averaged correctly.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 4: Inventory (semi-additive facts)'
+  - 'Microsoft Learn, DAX: LASTNONBLANK function https://learn.microsoft.com/en-us/dax/lastnonblank-function-dax'
 ---
 
 **Module 3 · about 30 minutes · read first: 3.2.** You'll be able to classify any measure as additive, semi-additive or non-additive, total each kind correctly, and avoid averages of averages, summed distinct counts and summed balances.
+
+<div class="bigidea">Only some numbers can be added up: sales add along everything, balances add across places but not across time, and ratios, averages and distinct counts never add.</div>
+
+**In everyday terms:** a car journey. Kilometres driven each day add up to the trip. The fuel gauge each evening does not: adding five evening readings is meaningless. Your average speed each day cannot be averaged either, because the days were different lengths.
 
 ## 1. Why this matters
 
@@ -121,6 +129,39 @@ WHERE year = 2025
 
 The months add up to 1,698, but only 583 different customers bought in 2025. A customer who bought in five months is counted five times in the sum. Distinct counts must be recounted from the atomic rows at every level you report. That's one more reason to keep the atomic grain: a monthly summary table can't give you the yearly distinct count.
 
+<div class="meaning">
+
+<dl>
+<dt>Additive</dt><dd>Can be summed along every dimension: sales amount, quantity, cost.</dd>
+<dt>Semi-additive</dt><dd>Can be summed along some dimensions but not time: balances, stock, members on file.</dd>
+<dt>Non-additive</dt><dd>Cannot be summed along any dimension: ratios, percentages, averages, prices, distinct counts.</dd>
+<dt>Ratio of sums</dt><dd>The right way to roll up a rate: SUM(numerator) ÷ SUM(denominator).</dd>
+<dt>Physical meaning</dt><dd>SUM gives the right total only when the parts do not overlap and the measure behaves like a count of money or things. For levels the same people appear in every month; for distinct counts the same customer appears in many groups.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The total of a column of averages is their average."** Each group gets an equal vote, so Tech's 377 lines count as much as Grocery's 5,139: $35.41 instead of the true $17.80. Divide total sales by total lines.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Groups.</b> <table class="lk-tbl"><tr><th>dept</th><th>lines</th><th>sales</th><th>avg</th></tr><tr><td>Grocery</td><td>9</td><td>90</td><td>10</td></tr><tr><td>Tech</td><td>1</td><td>50</td><td>50</td></tr></table></div>
+<div class="step"><b>Average of averages.</b> (10 + 50) ÷ 2 = <mark>30</mark>. Wrong: Tech has one line.</div>
+<div class="step"><b>Ratio of sums.</b> <table class="lk-tbl"><tr><th>sales</th><th>lines</th><th>avg line</th></tr><tr><td>140</td><td>10</td><td><mark>14</mark></td></tr></table></div>
+<div class="step"><b>Distinct counts.</b> <table class="lk-tbl"><tr><th>month</th><th>customers</th></tr><tr><td>Jan</td><td>A, B</td></tr><tr><td>Feb</td><td>B, C</td></tr></table> Sum of months 4; different customers <mark>3</mark>.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-avg-of-avgs"></div>
+
+<div class="problem" data-problem="dm-distinct-sum"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -195,5 +236,15 @@ ORDER BY month
 ```
 
 **Try it on your own data:** [[grouped-data-stats]] shows how a mean worked out from groups differs from the mean of the raw values.
+
+<div class="keypoints">
+
+- Additive measures (amounts, quantities) sum along any dimension.
+- Semi-additive measures (levels, balances) sum across places, not time: take the last value or an average.
+- Non-additive measures (ratios, averages, distinct counts) must be recomputed at each level.
+- Store numerators and denominators as additive facts, never the ratio.
+- Distinct counts need the atomic rows, another reason to keep the atomic grain.
+
+</div>
 
 **New words:** *additive*, *semi-additive*, *non-additive*, *average of averages*, *ratio of sums*.

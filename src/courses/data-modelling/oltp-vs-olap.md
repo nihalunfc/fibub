@@ -17,9 +17,17 @@ quiz:
     choices: ['Fewer, wider tables that repeat some values on purpose', 'Exactly the same', 'One column per table']
     ans: 0
     why: Analytical tables trade some repetition for fewer joins and simpler queries. Operational tables avoid repetition so each fact is changed in one place.
+sources:
+  - 'Microsoft Learn, Azure Architecture Center: Online transaction processing (OLTP) https://learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/online-transaction-processing'
+  - 'Microsoft Learn, Azure Architecture Center: Online analytical processing (OLAP) https://learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/online-analytical-processing'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 1: Data Warehousing, Business Intelligence and Dimensional Modeling Primer'
 ---
 
 **Module 1 · about 20 minutes · read first: [SQL for analysts 4.2](/learn/courses/sql/inner-join/).** You'll be able to tell an operational (OLTP) query from an analytical (OLAP) one, say why they live in different databases, and explain why that changes how tables are designed.
+
+<div class="bigidea">An OLTP database runs the business one tiny change at a time; an OLAP warehouse reads huge piles of history to answer questions, so the two are shaped differently.</div>
+
+**In everyday terms:** a shop till and the year-end stocktake. The till rings up one sale in a second. The stocktake counts everything in the shop and adds it up. You would not do the stocktake at the till during the lunch rush.
 
 ## 1. Why this matters
 
@@ -85,6 +93,38 @@ A warehouse flips the trade-off. It is loaded in batches, then only read, so it 
 
 One more difference: history. The till database stores a customer's *current* loyalty tier. If Uma moves from Bronze to Gold, the old value is overwritten. A warehouse is expected to remember that she was Bronze last year, so last year's report doesn't change. Module 5 is all about that.
 
+<div class="meaning">
+
+<dl>
+<dt>OLTP</dt><dd>Online transaction processing: the database that takes each sale, payment or sign-up as it happens.</dd>
+<dt>OLAP</dt><dd>Online analytical processing: reading many rows and adding them up to answer a question.</dd>
+<dt>Data warehouse</dt><dd>A separate database, loaded in batches, that keeps history and is shaped for reading.</dd>
+<dt>Selectivity</dt><dd>Rows a query touches divided by all rows in the table. Near 0 is OLTP work; near 1 is OLAP work.</dd>
+<dt>Physical meaning</dt><dd>An OLTP query finds a handful of rows by their key and changes or shows them. An OLAP query scans nearly every row, joins it to its descriptions and squeezes it into a few totals.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A warehouse is just a copy of the live database."** A copy would still need many joins for every question, and it would still forget old values. A warehouse is reshaped for reading and keeps history that the live system overwrites.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>The till database.</b> <table class="lk-tbl"><tr><th>order_id</th><th>product</th><th>qty</th></tr><tr><td>1038</td><td>Eggs</td><td>2</td></tr><tr><td>1038</td><td>Kettle</td><td>1</td></tr><tr><td>1039</td><td>Bananas</td><td>6</td></tr></table></div>
+<div class="step"><b>OLTP: one order by its key.</b> <code>WHERE order_id = 1038</code> <table class="lk-tbl"><tr><th>order_id</th><th>product</th><th>qty</th></tr><tr><td><mark>1038</mark></td><td><mark>Eggs</mark></td><td><mark>2</mark></td></tr><tr><td><mark>1038</mark></td><td><mark>Kettle</mark></td><td><mark>1</mark></td></tr></table> 2 of 3 rows touched.</div>
+<div class="step"><b>OLAP: read everything.</b> Every row is read, for every order ever placed: <table class="lk-tbl"><tr><th>rows read</th><th>rows in table</th></tr><tr><td><mark>3</mark></td><td>3</td></tr></table></div>
+<div class="step"><b>Add it up.</b> <code>SUM(qty)</code> <table class="lk-tbl"><tr><th>total_qty</th></tr><tr><td><mark>9</mark></td></tr></table> Many rows in, one number out.</div>
+<div class="step"><b>Split the jobs.</b> The till keeps taking sales; a nightly load copies the rows into a warehouse, where the big reads cannot slow a checkout.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-selectivity"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -148,5 +188,15 @@ FROM order_items i
 JOIN orders o ON o.order_id = i.order_id
 WHERE o.order_date LIKE '2025%'
 ```
+
+<div class="keypoints">
+
+- OLTP runs the business: many tiny writes and lookups by key.
+- OLAP understands the business: big reads that add up many rows.
+- Big scans on the till database slow down checkouts, so analysis moves to a warehouse.
+- OLTP tables avoid repetition; warehouse tables repeat some values on purpose to need fewer joins.
+- A warehouse also keeps history that the live system overwrites.
+
+</div>
 
 **New words:** *OLTP*, *OLAP*, *data warehouse*, *normalised*, *selectivity*.

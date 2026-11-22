@@ -17,9 +17,17 @@ quiz:
     choices: ['They get different running totals', 'They get the same running total, which includes both', 'The query fails']
     ans: 1
     why: The default frame is RANGE, which treats tied rows as one step. Write ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW (and add a tie-breaker) to add them one at a time.
+sources:
+  - 'SQLite documentation, Window functions: frame specifications https://www.sqlite.org/windowfunctions.html#frame_specifications'
+  - 'PostgreSQL documentation, Window function calls (frame clause) https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS'
+  - 'Microsoft Learn, SELECT - OVER clause: ROWS or RANGE https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql'
 ---
 
 **Module 6 · about 30 minutes · read first: 6.1.** You'll be able to build running totals and year-to-date figures with SUM OVER, write a window frame with ROWS BETWEEN, and avoid the default-frame trap when the order has ties.
+
+<div class="bigidea">Add ORDER BY inside OVER and SUM gives each row the total so far; the frame says exactly which rows count.</div>
+
+**In everyday terms:** a car's trip meter. Every kilometre adds to the reading, and you reset it at the start of each new trip (a new partition).
 
 ## 1. Why this matters
 
@@ -127,6 +135,38 @@ FROM mini_orders
 
 Run it. Orders 101 and 105 both show **115** in `default_range` (5 + 20 + 45 + 45), because RANGE adds both $45s at once. With ROWS and a tie-breaker, 101 shows 70 and 105 shows 115. If your running total "jumps" on some rows, look for ties in the ORDER BY. (The animation draws frames row by row, so this example has no "Show how it runs".)
 
+<div class="meaning">
+
+<dl>
+<dt>Running total</dt><dd>The sum of this row and every row before it in the chosen order. Also called a cumulative sum.</dd>
+<dt>Window frame</dt><dd>The slice of the partition the function adds up for the current row.</dd>
+<dt>ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</dt><dd>From the first row of the partition down to this row, counting physical rows.</dd>
+<dt>RANGE</dt><dd>Counts by value: rows tied on the ORDER BY value are all inside the frame together. It is the default when you write ORDER BY and no frame.</dd>
+<dt>Year-to-date</dt><dd>A running total with PARTITION BY year, so it restarts every January.</dd>
+<dt>Physical meaning</dt><dd>Every row stays. For each row the database adds up a growing slice of the rows above it, so the new column only ever grows (for positive values) and ends at the grand total.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Leaving out the frame gives a row-by-row running total."** The default frame is RANGE, so rows that tie on the ORDER BY value are added in one go and show the same total. Write `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` and add a tie-breaker.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Daily sales.</b> <table class="lk-tbl"><tr><th>day</th><th>sales</th></tr><tr><td>1 Dec</td><td>150</td></tr><tr><td>2 Dec</td><td>350</td></tr><tr><td>3 Dec</td><td>250</td></tr><tr><td>4 Dec</td><td>100</td></tr></table></div>
+<div class="step"><b>Row 1.</b> The frame is just 1 Dec: running = <mark>150</mark>.</div>
+<div class="step"><b>Row 2.</b> The frame grows to two rows: 150 + 350 = <mark>500</mark>.</div>
+<div class="step"><b>Rows 3 and 4.</b> 500 + 250 = <mark>750</mark>, then 750 + 100 = <mark>850</mark>. <table class="lk-tbl"><tr><th>day</th><th>sales</th><th>running</th></tr><tr><td>1 Dec</td><td>150</td><td>150</td></tr><tr><td>2 Dec</td><td>350</td><td>500</td></tr><tr><td>3 Dec</td><td>250</td><td>750</td></tr><tr><td>4 Dec</td><td>100</td><td><mark>850</mark></td></tr></table> The last row equals the grand total.</div>
+</div>
+
+<div class="problem" data-problem="sql-running-total"></div>
+
+<div class="problem" data-problem="sql-range-ties"></div>
+
 ## 6. Worked example
 
 *Question:* how much did Northbay sell in 2025 up to the end of each quarter?
@@ -184,5 +224,14 @@ SELECT order_id, amount,
        SUM(amount) OVER (ORDER BY order_id ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS remaining
 FROM mini_orders
 ```
+
+<div class="keypoints">
+
+- SUM(x) OVER (ORDER BY ...) gives a running total.
+- The frame (ROWS BETWEEN ... AND ...) says which rows are added for each row.
+- PARTITION BY restarts the total, for example per year for year-to-date.
+- The default frame is RANGE: ties are added together. Use ROWS and a tie-breaker.
+
+</div>
 
 **New words:** *running total*, *window frame*, *ROWS*, *RANGE*, *year-to-date*.

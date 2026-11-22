@@ -17,9 +17,17 @@ quiz:
     choices: ['Some are stored as ''Winnipeg '' with a trailing space', 'WHERE only returns 50 rows', 'Winnipeg is a reserved word']
     ans: 0
     why: '= needs an exact match, character for character. A trailing space makes a different value. TRIM(city) fixes it (Lesson 7.2).'
+sources:
+  - 'SQLite documentation, SQL Language Expressions https://www.sqlite.org/lang_expr.html'
+  - 'Microsoft Learn, WHERE (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/where-transact-sql'
+  - 'PostgreSQL documentation, Comparison Functions and Operators https://www.postgresql.org/docs/current/functions-comparison.html'
 ---
 
 **Module 2 · about 25 minutes · read first: 2.1.** You'll be able to keep only the rows you need with WHERE, compare numbers, text and dates correctly, and spot a filter that silently misses rows.
+
+<div class="bigidea">WHERE gives every row a yes-or-no test and keeps only the rows that pass.</div>
+
+**In everyday terms:** a bouncer with a guest list. Each person at the door is checked on their own; the ones on the list go in, everyone else stays outside. Nobody's chances depend on the person behind them.
 
 ## 1. Why this matters
 
@@ -37,6 +45,34 @@ WHERE amount > 40
 ```
 
 Press **Show how it runs**, then **Play**. At the WHERE step watch the Bagels ($5) and Puzzle ($20) rows fade out: 6 rows go in, 4 come out. Note that WHERE runs **before** SELECT, so it can test any column of the table, even one you don't show.
+
+<div class="meaning">
+
+<dl>
+<dt>WHERE condition</dt><dd>Keep the rows where the condition is true.</dd>
+<dt>= , &lt;&gt;</dt><dd>Equal, not equal (also written !=).</dd>
+<dt>&gt;, &gt;=, &lt;, &lt;=</dt><dd>Greater, greater or equal, less, less or equal. The "or equal" ones include the boundary value.</dd>
+<dt>'text'</dt><dd>Text values go in single quotes; without them SQL looks for a column.</dd>
+<dt>Physical meaning</dt><dd>WHERE never changes a row. It removes the rows that fail, so the answer can only have the same number of rows or fewer, and it runs before SELECT, so it can test columns you don't show.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"&gt; 45 and &gt;= 45 are basically the same."** They differ by exactly the rows equal to 45, and prices often sit right on round numbers. In mini_orders, `amount > 45` keeps 2 rows and `amount >= 45` keeps 4 (both kettles cost $45). Decide on purpose whether the boundary is in.
+
+</div>
+
+Watch it happen, one step at a time (the live box's **Show how it runs** button animates the real query):
+
+<div class="steps">
+<div class="step"><b>FROM mini_orders.</b> <table class="lk-tbl"><tr><th>order_id</th><th>item</th><th>amount</th></tr><tr><td>101</td><td>Kettle</td><td>45</td></tr><tr><td>102</td><td>Bagels</td><td>5</td></tr><tr><td>103</td><td>Puzzle</td><td>20</td></tr><tr><td>104</td><td>Duvet</td><td>90</td></tr><tr><td>105</td><td>Kettle</td><td>45</td></tr><tr><td>106</td><td>Speaker</td><td>60</td></tr></table></div>
+<div class="step"><b>Test amount &gt; 40 on each row.</b> <table class="lk-tbl"><tr><th>order_id</th><th>amount</th><th>passes?</th></tr><tr><td>101</td><td>45</td><td><mark>yes</mark></td></tr><tr><td>102</td><td>5</td><td>no</td></tr><tr><td>103</td><td>20</td><td>no</td></tr><tr><td>104</td><td>90</td><td><mark>yes</mark></td></tr><tr><td>105</td><td>45</td><td><mark>yes</mark></td></tr><tr><td>106</td><td>60</td><td><mark>yes</mark></td></tr></table></div>
+<div class="step"><b>Keep the passes.</b> 6 rows in, 4 out. <table class="lk-tbl"><tr><th>order_id</th><th>item</th><th>amount</th></tr><tr><td>101</td><td>Kettle</td><td>45</td></tr><tr><td>104</td><td>Duvet</td><td>90</td></tr><tr><td>105</td><td>Kettle</td><td>45</td></tr><tr><td>106</td><td>Speaker</td><td>60</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="sql-where-filter"></div>
 
 ## 3. The comparison operators
 
@@ -179,5 +215,15 @@ SELECT first_name, last_name, joined_on
 FROM customers
 WHERE joined_on >= '2025-12-01'
 ```
+
+<div class="keypoints">
+
+- WHERE tests each row on its own and keeps the rows where the test is true.
+- A filter can only keep or drop rows; it never adds or changes them.
+- &gt; leaves out the boundary value; &gt;= keeps it.
+- Text goes in single quotes, and = on text is exact: capitals and hidden spaces count.
+- ISO dates (YYYY-MM-DD) compare correctly with &lt; and &gt;.
+
+</div>
 
 **New words:** *condition*, *selection*, *predicate*, *comparison operator*, *collation*.

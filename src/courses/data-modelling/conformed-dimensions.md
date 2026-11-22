@@ -17,9 +17,17 @@ quiz:
     choices: ['dim_product, with a made-up product per category', 'A shrunken dimension: one row per category, with labels copied from dim_product', 'No dimension at all']
     ans: 1
     why: A shrunken dimension is an exact rollup of the full one. Its category names match dim_product's, so targets and sales still line up.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 4: Inventory (conformed dimensions and drilling across)'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.1 and 2.5.** You'll be able to build one product dimension that two fact tables share, combine their numbers safely with a drill-across query, and spot a dimension that doesn't conform.
+
+<div class="bigidea">A conformed dimension is one shared table, with the same keys and the same words, used by every fact table, so numbers from different facts line up.</div>
+
+**In everyday terms:** a shared dictionary. If the sales team and the returns team both look words up in the same dictionary, "Tech" means the same thing in both reports. Two private dictionaries drift apart.
 
 ## 1. Why this matters
 
@@ -142,6 +150,38 @@ FROM (SELECT DISTINCT category_name, department FROM dim_product);
 SELECT * FROM dim_category;
 ```
 
+<div class="meaning">
+
+<dl>
+<dt>Conformed dimension</dt><dd>One dimension (or an exact subset of it) shared by every fact table that needs it.</dd>
+<dt>Drill across</dt><dd>Aggregate each fact on its own by the shared attribute, then join the small results.</dd>
+<dt>Shrunken dimension</dt><dd>An exact roll-up of a conformed dimension, such as one row per category, built from it.</dd>
+<dt>Non-conforming</dt><dd>Two versions of a dimension with different keys or spellings, so their facts do not join.</dd>
+<dt>Physical meaning</dt><dd>Both fact loads look their keys up in the same dim_product. A drill-across query sums each fact by department separately, giving one row per department each, then joins one-to-one on the department name.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If both tables have a department column, they conform."** "Groceries" and "Grocery", or "Toys & Kids" and "Kids", do not match, and the join quietly gives NULL. Conforming means the same table, owned by one team.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Shared dim_product.</b> <table class="lk-tbl"><tr><th>product_key</th><th>department</th></tr><tr><td>1</td><td>Grocery</td></tr><tr><td>2</td><td>Tech</td></tr></table></div>
+<div class="step"><b>Sales by department.</b> <table class="lk-tbl"><tr><th>department</th><th>lines</th></tr><tr><td>Grocery</td><td>50</td></tr><tr><td>Tech</td><td>10</td></tr></table></div>
+<div class="step"><b>Returns by department.</b> <table class="lk-tbl"><tr><th>department</th><th>returns</th></tr><tr><td>Grocery</td><td>1</td></tr><tr><td>Tech</td><td>1</td></tr></table></div>
+<div class="step"><b>Join on department.</b> <table class="lk-tbl"><tr><th>department</th><th>per 100 lines</th></tr><tr><td>Grocery</td><td><mark>2.0</mark></td></tr><tr><td>Tech</td><td><mark>10.0</mark></td></tr></table></div>
+<div class="step"><b>A private list breaks it.</b> <table class="lk-tbl"><tr><th>department</th><th>returns</th></tr><tr><td>Grocery</td><td><mark>NULL</mark></td></tr></table> "Groceries" ≠ "Grocery".</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-drill-across"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -226,5 +266,15 @@ FROM dim_category
 GROUP BY department
 ORDER BY categories DESC, department
 ```
+
+<div class="keypoints">
+
+- One dimension table, shared by every fact that uses it.
+- Same keys, same column names, same values.
+- Drill across: aggregate each fact separately, then join the summaries.
+- Mismatched labels give NULLs, not errors.
+- A shrunken dimension is built from the conformed one, so its labels cannot drift.
+
+</div>
 
 **New words:** *conformed dimension*, *drill across*, *shrunken dimension*.

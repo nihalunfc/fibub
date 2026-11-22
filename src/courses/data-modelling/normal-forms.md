@@ -17,9 +17,17 @@ quiz:
     choices: ['1NF', '2NF', '3NF']
     ans: 2
     why: That is a transitive dependency, order_id → store_id → store_city. Third normal form moves store_city to a stores table.
+sources:
+  - 'Codd, E. F. (1970), A Relational Model of Data for Large Shared Data Banks, Communications of the ACM 13(6) https://doi.org/10.1145/362384.362685'
+  - 'Kent, W. (1983), A Simple Guide to Five Normal Forms in Relational Database Theory, Communications of the ACM 26(2) https://doi.org/10.1145/358024.358054'
+  - 'Microsoft Learn: Description of the database normalization basics https://learn.microsoft.com/en-us/office/troubleshoot/access/database-normalization-description'
 ---
 
 **Module 1 · about 35 minutes · read first: 1.1.** You'll be able to spot repeating groups, partial dependencies and transitive dependencies, and split a flat table into first, second and third normal form with SQL.
+
+<div class="bigidea">Normalising splits one messy table into several tidy ones so that every fact is stored in exactly one place.</div>
+
+**In everyday terms:** an address book. If you write a friend's address on every birthday card list, every list, and every party plan, a move means hunting down every copy. Keep the address once in the address book and point to it.
 
 ## 1. Why this matters
 
@@ -177,6 +185,39 @@ SELECT * FROM categories_3nf ORDER BY department, category_name;
 
 "Grocery" is now written once per category instead of once per order line. Look familiar? This is almost exactly how Northbay's real tables (`orders`, `order_items`, `customers`, `stores`, `products`, `categories`) are laid out. The source system is already in 3NF.
 
+<div class="meaning">
+
+<dl>
+<dt>1NF</dt><dd>One value per cell and no repeating groups (no lists, no product1, product2 columns).</dd>
+<dt>2NF</dt><dd>1NF, and every non-key column depends on the whole key, not part of it.</dd>
+<dt>3NF</dt><dd>2NF, and no non-key column depends on another non-key column.</dd>
+<dt>Functional dependency (A → B)</dt><dd>Knowing A tells you B exactly: each A always comes with the same B.</dd>
+<dt>Anomaly</dt><dd>A problem caused by repetition: an update missed in one copy, a thing that cannot be inserted, or a fact lost on delete.</dd>
+<dt>Physical meaning</dt><dd>Each step moves columns that are decided by something other than the whole key into their own small table, and leaves a key behind to join them back. Repeated text becomes one row that many rows point to.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Normalising means making as many tables as possible."** Each split must follow a real dependency, and the tables must join back to exactly the original rows (lossless). Splitting at random loses rows or creates ones that never existed.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Messy start.</b> <table class="lk-tbl"><tr><th>order</th><th>products</th></tr><tr><td>1038</td><td>Eggs, Kettle</td></tr><tr><td>1039</td><td>Eggs</td></tr></table></div>
+<div class="step"><b>1NF: one value per cell.</b> <table class="lk-tbl"><tr><th>order</th><th>product</th></tr><tr><td><mark>1038</mark></td><td><mark>Eggs</mark></td></tr><tr><td><mark>1038</mark></td><td><mark>Kettle</mark></td></tr><tr><td>1039</td><td>Eggs</td></tr></table> Key: (order, product).</div>
+<div class="step"><b>Repetition shows.</b> Add the category: <table class="lk-tbl"><tr><th>order</th><th>product</th><th>category</th></tr><tr><td>1038</td><td>Eggs</td><td><mark>Grocery</mark></td></tr><tr><td>1038</td><td>Kettle</td><td>Home</td></tr><tr><td>1039</td><td>Eggs</td><td><mark>Grocery</mark></td></tr></table> "Grocery" for Eggs is stored twice.</div>
+<div class="step"><b>2NF: split by part of the key.</b> category depends only on product, so it moves out: <table class="lk-tbl"><tr><th>product</th><th>category</th></tr><tr><td>Eggs</td><td>Grocery</td></tr><tr><td>Kettle</td><td>Home</td></tr></table></div>
+<div class="step"><b>3NF: split chains.</b> department depends on category, not on product: <table class="lk-tbl"><tr><th>category</th><th>department</th></tr><tr><td><mark>Grocery</mark></td><td>Grocery</td></tr><tr><td><mark>Home</mark></td><td>Home</td></tr></table> Each fact now lives once.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-1nf-rows"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -265,5 +306,15 @@ ORDER BY orders DESC, c.customer_id
 ```
 
 **Try it on your own data:** paste a CSV into [[csv-profiler]] to see which columns repeat the same values, a quick hint of where a table could be split; then try the split in [[sql-playground]].
+
+<div class="keypoints">
+
+- 1NF: one value per cell, no repeating groups.
+- 2NF: every non-key column depends on the whole key.
+- 3NF: no non-key column depends on another non-key column ("the key, the whole key, and nothing but the key").
+- Repetition causes update, insert and delete anomalies.
+- A split is only safe if joining back gives exactly the original rows (lossless).
+
+</div>
 
 **New words:** *first normal form (1NF)*, *repeating group*, *anomaly*, *functional dependency*, *second normal form (2NF)*, *partial dependency*, *third normal form (3NF)*, *transitive dependency*, *lossless decomposition*.

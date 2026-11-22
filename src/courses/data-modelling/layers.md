@@ -17,13 +17,41 @@ quiz:
     choices: ['It is not a problem', 'The mart skips core''s keys and cleaning rules, so its numbers can disagree with every other mart', 'Views cannot read views']
     ans: 1
     why: Layers only read from the layer below. Skipping core means skipping the rules that make numbers agree, such as the unknown member and de-duplication.
+sources:
+  - 'dbt Labs documentation, How we structure our dbt projects https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 20 (ETL system design and development)'
 ---
 
 **Module 7 · about 30 minutes · read first: 2.4.** You'll be able to explain what belongs in staging, core and mart layers, build each layer for Northbay as tables and views, and check that the dependencies only point one way.
 
+<div class="bigidea">A warehouse is built in layers (staging, core, marts) and each layer reads only from the one before it, so changes flow one way.</div>
+
+**In everyday terms:** a restaurant kitchen. Prep tidies each raw ingredient (staging), the main line combines them into dishes (core), and the pass plates each order for its table (marts).
+
 ## 1. Why this matters
 
 Open any real warehouse project, whether built with dbt, stored procedures or a notebook, and you will find folders or schemas called something like `staging`, `core` (or `warehouse`, `intermediate`) and `marts`. Knowing what goes where tells you where to fix a bug, where to add a new column, and where a reviewer will expect your code. It is the skeleton the rest of this module hangs on.
+
+<div class="meaning">
+
+<dl>
+<dt>Staging</dt><dd>One tidy copy of each source table: renamed, typed, no business logic.</dd>
+<dt>Core</dt><dd>The conformed star: shared dimensions and facts.</dd>
+<dt>Mart</dt><dd>A set of tables or views for one audience.</dd>
+<dt>Intermediate layer</dt><dd>Helper models between staging and core.</dd>
+<dt>DAG</dt><dd>A graph of models where arrows point one way and never loop.</dd>
+<dt>Downstream</dt><dd>Anything that reads from a given model.</dd>
+<dt>Physical meaning</dt><dd>Each layer is its own tables or views. The dependencies form a one-way chain, so a change in staging can only affect what is downstream.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"It is fine for a mart to read straight from the source if it is quicker."** Skipping layers creates hidden dependencies and repeated logic. Every report should read from marts, and marts from core.
+
+</div>
 
 ## 2. Three layers, one direction
 
@@ -155,6 +183,18 @@ December 2025, with 294 orders and $9,136.62, is Northbay's busiest month. Becau
 **Try it:** you fix the city trimming in stg_customers. Which of these change: dim_customer, mart_marketing_customers, stg_orders? (The first two. stg_orders is not downstream.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Sources.</b> Raw tables from the shop database.</div>
+<div class="step"><b>Staging.</b> <table class="lk-tbl"><tr><th>source</th><th>stg</th></tr><tr><td>cust_tbl</td><td><mark>stg_customers</mark></td></tr><tr><td>ord_tbl</td><td><mark>stg_orders</mark></td></tr></table> Rename and cast only.</div>
+<div class="step"><b>Core.</b> <table class="lk-tbl"><tr><th>model</th><th>reads</th></tr><tr><td>dim_customer</td><td>stg_customers</td></tr><tr><td>fact_sales</td><td>stg_orders</td></tr></table></div>
+<div class="step"><b>Marts.</b> <table class="lk-tbl"><tr><th>model</th><th>reads</th></tr><tr><td>mart_finance</td><td>fact_sales, dim_customer</td></tr><tr><td>mart_marketing</td><td>dim_customer</td></tr></table></div>
+<div class="step"><b>One direction.</b> If stg_orders changes, only fact_sales and the marts downstream need checking.</div>
+</div>
+
+<div class="problem" data-problem="dm-layers-downstream"></div>
+
 ## 6. Worked example: does every layer read the right thing?
 
 Views store their SQL, so the database can tell you what reads what. List each object with its layer, from its name prefix:
@@ -177,7 +217,7 @@ Seven objects in three layers. Then check the rule on the marts: does any mart's
 2. Totals agree across layers: staging has 7,310 lines, of which 7,112 belong to completed orders; fact_sales has 7,112 rows. Nothing was lost between staging and core.
 3. Finance's 24 months add up to $126,579.09, the same as fact_sales.
 
-In dbt the same graph comes from `ref()` calls, and tools draw it for you. The ETL course covers that tooling in [Week 5 (dbt)](https://nihalsulaiman.com/learn/etl-course/); this course sticks to the ideas.
+In dbt the same graph comes from `ref()` calls, and tools draw it for you. The ETL course covers that tooling in [Module 5 (dbt)](/learn/courses/etl/dbt-basics/); this course sticks to the ideas.
 
 ## 7. Practice
 
@@ -214,5 +254,14 @@ FROM stg_order_items i
 JOIN stg_orders o ON o.order_id = i.order_id
 WHERE o.status = 'cancelled'
 ```
+
+<div class="keypoints">
+
+- Staging tidies, core models, marts serve.
+- Dependencies point one way; no loops, no skipping layers.
+- Business logic lives in core and marts, never in staging.
+- Each audience gets its own mart.
+
+</div>
 
 **New words:** *staging*, *core*, *data mart*, *intermediate layer*, *directed acyclic graph (DAG)*, *downstream*.

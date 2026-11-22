@@ -17,9 +17,17 @@ quiz:
     choices: ['Four, one from the fact table to each dimension', 'Ten', 'None']
     ans: 0
     why: Each dimension is one hop from the fact table. Snowflaked designs need more hops; the star keeps it to one each.
+sources:
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales'
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 2 · about 35 minutes · read first: 2.3.** You'll be able to build dimension and fact tables from normalised sources with CREATE TABLE AS SELECT, add an unknown-member row, check the star for orphans, and query it with one join per dimension.
+
+<div class="bigidea">A star schema keeps the numbers in one long fact table and the descriptions in a few wide dimension tables, each one join away.</div>
+
+**In everyday terms:** a sports league table and the team cards. The league table is a list of matches with just team numbers and scores; each team card says the team's name, city and colours. To make a report you look up each number on its card.
 
 ## 1. Why this matters
 
@@ -168,6 +176,38 @@ ORDER BY d.year, sales DESC
 LIMIT 10
 ```
 
+<div class="meaning">
+
+<dl>
+<dt>Fact table</dt><dd>The middle of the star: one row per event, a key to each dimension, and the measures.</dd>
+<dt>Dimension table</dt><dd>A point of the star: one row per date, product, store or customer, with its descriptive words.</dd>
+<dt>Unknown member</dt><dd>An extra dimension row (here key 0, "Guest") for facts with no real partner.</dd>
+<dt>Orphan</dt><dd>A fact row whose key finds no dimension row.</dd>
+<dt>Physical meaning</dt><dd>The load flattens each little 3NF family (product, category, department) into one dimension row and writes one fact row per event with keys pointing at those rows. A query joins each needed dimension once, as a lookup.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Leave guest sales with a NULL customer key."** Every inner join to the customer dimension then drops them without an error. Give them an unknown-member row so every fact finds a partner.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>dim_store.</b> <table class="lk-tbl"><tr><th>store_key</th><th>city</th><th>region</th></tr><tr><td>4</td><td>Ottawa</td><td>Ontario South</td></tr><tr><td>12</td><td>(online)</td><td>Online</td></tr></table></div>
+<div class="step"><b>fact_sales.</b> <table class="lk-tbl"><tr><th>date_key</th><th>store_key</th><th>customer_key</th><th>sales</th></tr><tr><td>20241221</td><td>4</td><td>10</td><td>12</td></tr><tr><td>20241221</td><td>12</td><td>0</td><td>30</td></tr></table></div>
+<div class="step"><b>Join the store.</b> <table class="lk-tbl"><tr><th>store_key</th><th>region</th><th>sales</th></tr><tr><td>4</td><td><mark>Ontario South</mark></td><td>12</td></tr><tr><td>12</td><td><mark>Online</mark></td><td>30</td></tr></table> Rows stay 2.</div>
+<div class="step"><b>Guests still count.</b> Key 0 finds "Guest" in dim_customer: <table class="lk-tbl"><tr><th>customer</th><th>sales</th></tr><tr><td>Uma</td><td>12</td></tr><tr><td><mark>Guest</mark></td><td>30</td></tr></table></div>
+<div class="step"><b>Group and sum.</b> <table class="lk-tbl"><tr><th>region</th><th>sales</th></tr><tr><td>Ontario South</td><td>12</td></tr><tr><td>Online</td><td>30</td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-star-region"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -255,5 +295,15 @@ LIMIT 3
 ```
 
 **Try it on your own data:** load your own CSVs into [[sql-playground]] and build a small star with the same CREATE TABLE AS SELECT pattern.
+
+<div class="keypoints">
+
+- Fact table in the middle: keys plus additive measures, one row per event.
+- Dimension tables around it: one wide table per date, product, store, customer.
+- Every query: start at the fact, join the dimensions you need, group by their words, sum the facts.
+- An unknown member keeps facts with no partner from being dropped.
+- Check every load: one row per grain, and no orphans.
+
+</div>
 
 **New words:** *star schema*, *fact table*, *dimension table*, *unknown member*, *orphan*, *cube*.

@@ -17,13 +17,41 @@ quiz:
     choices: ['Copies the table to another region', 'Sorts or groups rows by chosen columns inside storage blocks, so filters on those columns can skip blocks', 'Deletes old rows']
     ans: 1
     why: Clustering keeps similar values together, so the engine can skip blocks whose value range cannot match. It complements partitioning.
+sources:
+  - 'Google Cloud, BigQuery documentation: Introduction to partitioned tables https://cloud.google.com/bigquery/docs/partitioned-tables'
+  - 'Snowflake documentation, Micro-partitions and data clustering https://docs.snowflake.com/en/user-guide/tables-clustering-micropartitions'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 7 · about 25 minutes · read first: 7.4.** You'll be able to explain partitioning, pruning, clustering and columnar storage, write filters that let a warehouse skip data, and estimate what a dashboard will cost to run.
 
+<div class="bigidea">Cloud warehouses bill for the data you scan, so store data by column, split it into partitions, and write filters that let the engine skip what it does not need.</div>
+
+**In everyday terms:** a filing cabinet with a drawer per month. If you only need March, you open one drawer instead of carrying home the whole cabinet.
+
 ## 1. Why this matters
 
 On a laptop a slow query costs you a coffee break. In a cloud warehouse it costs money, every time the dashboard refreshes. Teams have been surprised by four- and five-figure monthly bills from one badly designed table. The good news: a few modelling choices (how a fact table is partitioned and clustered, which columns reports read, whether a summary table exists) usually cut the bill by 90% or more. Hiring managers like candidates who think about this.
+
+<div class="meaning">
+
+<dl>
+<dt>Columnar storage</dt><dd>Each column is stored on its own, so a query reads only the columns it names.</dd>
+<dt>Partition</dt><dd>A slice of the table, usually one day or month.</dd>
+<dt>Partition pruning</dt><dd>Skipping partitions the filter rules out.</dd>
+<dt>Clustering</dt><dd>Sorting data inside partitions so related rows sit together.</dd>
+<dt>Summary table</dt><dd>A small pre-aggregated table for common dashboard questions.</dd>
+<dt>Bytes scanned</dt><dd>What the bill is based on.</dd>
+<dt>Physical meaning</dt><dd>Fewer columns and fewer partitions mean fewer bytes read from disk, so lower cost and faster results. No rows are changed.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"SELECT * with a LIMIT is cheap."** The engine still reads every column, so the bill is the same. Name the columns you need and filter on the partition column.
+
+</div>
 
 ## 2. Where the cost comes from
 
@@ -140,6 +168,18 @@ FROM (SELECT order_date, store_id, SUM(sales_amount) AS sales
 **Try it:** a 1 TiB table, a query reading half the columns and one of 100 equal partitions. How much does one run scan? (1 × 0.5 × 0.01 = 0.005 TiB, about 5 GiB.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>The table.</b> 365 daily partitions, four columns.</div>
+<div class="step"><b>Query 1.</b> <code>SELECT * FROM fact</code> reads every column of every partition: 100%.</div>
+<div class="step"><b>Name columns.</b> Read three of four columns. The wide comment column is skipped.</div>
+<div class="step"><b>Filter the partition column.</b> <code>WHERE order_date &gt;= ...</code> over the last 7 days keeps <mark>7 of 365</mark> partitions.</div>
+<div class="step"><b>Wrap it and lose it.</b> <code>WHERE YEAR(order_date) = 2026</code> can stop pruning. Compare the column directly.</div>
+</div>
+
+<div class="problem" data-problem="dm-scan-cost"></div>
+
 ## 7. Worked example: pricing a dashboard
 
 Imagine Northbay at the scale of a national retail chain: a 2 TiB, 20-column fact table holding 10 years of sales. A dashboard sends 20 queries per refresh and refreshes once a day: 600 queries a month. Each query uses 4 columns and the last 30 days. Using BigQuery's on-demand prices above:
@@ -197,5 +237,15 @@ FROM (SELECT substr(order_date, 1, 7) AS month, store_id, SUM(sales_amount) AS s
       FROM fact_sales
       GROUP BY month, store_id)
 ```
+
+<div class="keypoints">
+
+- Billing follows bytes scanned.
+- Columnar storage: name only the columns you need.
+- Partition by the column most queries filter on, usually date.
+- Do not wrap the partition column in a function.
+- Summary tables answer common dashboard questions cheaply.
+
+</div>
 
 **New words:** *columnar storage*, *partition*, *partition pruning*, *micro-partition*, *clustering*, *summary table*, *materialised view*, *bytes scanned*.

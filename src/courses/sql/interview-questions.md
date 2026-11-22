@@ -17,9 +17,18 @@ quiz:
     choices: ['Count the rows before and after the join, to see whether it dropped or copied rows', 'Add DISTINCT to everything', 'Run it twice']
     ans: 0
     why: 'Comparing row counts catches the two classic join bugs: rows lost by an inner join and rows copied by fan-out.'
+sources:
+  - 'SQLite documentation: SELECT https://www.sqlite.org/lang_select.html'
+  - 'SQLite documentation: Window Functions https://www.sqlite.org/windowfunctions.html'
+  - 'PostgreSQL documentation: Queries (joins, grouping, window functions) https://www.postgresql.org/docs/current/queries.html'
+  - 'Molinaro, A. and de Graaf, R. (2020), SQL Cookbook, 2nd edition, O''Reilly'
 ---
 
 **Module 10 · about 90 minutes (do it in sittings) · read first: Modules 1–8.** You'll be able to answer the SQL questions that come up in data analyst and BI interviews, out loud and under time pressure, and check your own answers.
+
+<div class="bigidea">Interviewers mark how you think as much as the final query: clarify, state the grain, find the keys, build in steps and check the row count.</div>
+
+**In everyday terms:** a driving test. The examiner wants to see you check the mirrors and signal every time, not just arrive; saying your checks out loud is part of passing.
 
 ## 1. Why this matters
 
@@ -67,6 +76,36 @@ FROM orders
 
 **Try it:** orders has 4,064 rows and stores has 12. How many rows does `orders JOIN stores ON store_id` give? (4,064: each order has exactly one store, so the join is many-to-one and can't add rows.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Clarifying question</dt><dd>Asking what a word means before you write SQL ("revenue: completed orders only?").</dd>
+<dt>Grain</dt><dd>What one row of the answer is, such as one row per store.</dd>
+<dt>Cardinality check</dt><dd>Comparing row counts before and after a join to catch lost or copied rows.</dd>
+<dt>Fan-out</dt><dd>A one-to-many join copies each row once per match, so COUNT(*) counts the copies.</dd>
+<dt>Physical meaning</dt><dd>A join puts the rows of two tables side by side. If each order has several lines, each order appears several times after the join; counting rows then counts lines, while COUNT(DISTINCT order_id) still counts orders.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Start typing straight away: speed is what they mark."** A fast query that answers the wrong question scores nothing. Spend the first minute restating the question, agreeing the definitions and saying the expected number of rows; then check it at the end.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Orders and their lines.</b> <table class="lk-tbl"><tr><th>order_id</th><th>lines</th></tr><tr><td>101</td><td>2</td></tr><tr><td>102</td><td>1</td></tr><tr><td>103</td><td>0</td></tr></table></div>
+<div class="step"><b>Inner join to order_items.</b> 101 appears twice, 102 once, 103 vanishes. <table class="lk-tbl"><tr><th>order_id</th><th>item</th></tr><tr><td><mark>101</mark></td><td>a</td></tr><tr><td><mark>101</mark></td><td>b</td></tr><tr><td>102</td><td>c</td></tr></table></div>
+<div class="step"><b>Check.</b> COUNT(*) = 3 rows but COUNT(DISTINCT order_id) = 2 orders, and 3 orders went in. Say so out loud, then pick the count the question needs.</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-join-rows"></div>
 
 ## 3. Worked example
 
@@ -620,5 +659,15 @@ Some interview questions have no data. Short answers you can give:
 - **DELETE vs TRUNCATE vs DROP?** Some rows; all rows quickly; the whole table ([Lesson 9.5](/learn/courses/sql/changing-data/)).
 
 **Try it on your own data:** once these feel easy, write your own questions on a public dataset in [[sql-playground]], then build the [capstone casebook](/learn/courses/sql/capstone/).
+
+<div class="keypoints">
+
+- Clarify definitions and the grain before writing any SQL.
+- Build in steps, one CTE each, and run each step as you go.
+- Compare row counts before and after every join (cardinality check).
+- Use COUNT(DISTINCT key) after a fan-out join; it does not fix a SUM.
+- Finish with the insight in one business sentence, and offer a follow-up.
+
+</div>
 
 **New words:** *clarifying question*, *cardinality check*, *market basket*.
