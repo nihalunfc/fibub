@@ -11,6 +11,8 @@ export default {
       form: 'Form, note and table completion', mcq: 'Multiple choice', map: 'Maps and plans', matching: 'Matching',
       sentence: 'Sentence completion', short: 'Short answers', spelling: 'Spellings and numbers',
       tfng: 'True / False / Not Given', ynng: 'Yes / No / Not Given', headings: 'Matching headings', summary: 'Summary and note completion',
+      matchinfo: 'Matching information', features: 'Matching features', endings: 'Sentence endings', diagram: 'Diagram and flow-chart labels',
+      task1: 'Academic Task 1 reports', data: 'Describing data', letter: 'Letters', tone: 'Tone and phrases',
     } },
   },
   units: [
@@ -23,6 +25,13 @@ export default {
     ] },
     { id: 'reading', name: 'Reading', topics: [
       { id: 'reading-academic', name: 'Academic passages' },
+      { id: 'reading-academic-2', name: 'Academic passages, set 2' },
+      { id: 'reading-general', name: 'General Training: Sections 1 to 3' },
+    ] },
+    { id: 'writing', name: 'Writing', topics: [
+      { id: 'writing-task1', name: 'Academic Task 1: charts, maps and processes' },
+      { id: 'writing-data', name: 'Describing data (endless)' },
+      { id: 'writing-letters', name: 'General Training letters' },
     ] },
   ],
 };
