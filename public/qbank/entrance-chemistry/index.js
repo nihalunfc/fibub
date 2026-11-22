@@ -50,6 +50,14 @@ export default {
         {
           "id": "redox",
           "name": "Redox reactions"
+        },
+        {
+          "id": "goc",
+          "name": "Organic chemistry basics (GOC) and isomerism"
+        },
+        {
+          "id": "hydrocarbons",
+          "name": "Hydrocarbons"
         }
       ]
     },
