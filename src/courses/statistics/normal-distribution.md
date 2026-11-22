@@ -16,9 +16,16 @@ quiz:
     choices: ['Most raw business data is normal', 'Averages and totals of many independent pieces tend to be normal, whatever the pieces look like', 'It is the easiest curve to draw']
     ans: 1
     why: 'Raw data is often skewed. But sums and averages of many independent values become normal (the central limit theorem, Lesson 4.3), and tests are about averages.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 4.1 Normal distribution https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 1.3.6.6.1 Normal Distribution https://www.itl.nist.gov/div898/handbook/eda/section3/eda3661.htm'
 ---
 
 **Module 3 · about 25 minutes · school maths.** You'll be able to use the 68-95-99.7 rule, convert values to z-scores and read normal probabilities, and find a value for a given percentile.
+
+<div class="bigidea">The bell curve is described by its centre μ and spread σ, and the share of values in any range is the area under it.</div>
+
+**In everyday terms:** pour sand slowly onto one spot: it piles into a smooth hump, high in the middle and thin at the edges. Anything made by adding up many small independent nudges (fill weights, heights, sums of sales) piles up the same way.
 
 ## 1. The bell curve
 
@@ -63,6 +70,36 @@ It fits measurement errors, heights, many quality measurements and, most importa
 
 It fits badly for: money per customer (long right tail, Lesson 3.5), small counts (use the binomial or Poisson), anything with a hard limit nearby, and data with fat tails (big moves far more often than "3σ is rare" suggests). Lesson 3.6 shows how to check.
 
+<div class="meaning">
+
+<dl>
+<dt>μ</dt><dd>The centre of the bell: its mean, median and mode.</dd>
+<dt>σ</dt><dd>The spread: the distance from the centre to where the curve bends.</dd>
+<dt>68-95-99.7</dt><dd>Shares within 1, 2 and 3 σ of μ.</dd>
+<dt>z = (x − μ) ÷ σ</dt><dd>Turns any normal value into the standard normal, μ = 0 and σ = 1, so one table of areas works for all.</dd>
+<dt>Physical meaning</dt><dd>Area is probability. "10.6 % of bags are underweight" is the area of the bell to the left of 500 g. Moving μ slides the whole bell; shrinking σ makes it taller and thinner, so less of it spills past a limit.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Most data is normal."** Many business numbers are not: order values, waiting times and incomes are skewed (Lesson 3.5), and counts can be lumpy. The normal fits averages of many things (Lesson 4.3) much better than single raw values.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The line.</b> Bags labelled 500 g; fills are normal with μ = 505 g, σ = 4 g.</div>
+<div class="step"><b>Underweight z.</b> (500 − 505) ÷ 4 = −1.25.</div>
+<div class="step"><b>Read the area.</b> Area to the left of z = −1.25 ≈ 0.106: one bag in ten is underweight.</div>
+<div class="step"><b>Target 1 %.</b> The 1st percentile of the standard normal is z = −2.326, so 500 must sit 2.326 σ below μ.</div>
+<div class="step"><b>New centre.</b> μ = 500 + 2.326 × 4 ≈ 509.3 g. Either give away 4.3 g a bag, or buy a machine with smaller σ.</div>
+</div>
+
+<div class="problem" data-problem="normal-share-below"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -100,3 +137,13 @@ This trade-off, shift the mean or cut the spread, is the heart of quality contro
 **Try it on your own data:** the [[normal-curve-lab]] and [[normal-distribution-lab]] shade any normal probability; the [[distribution-explorer]] compares the normal with other curves.
 
 **New words:** *normal distribution*, *standard normal*, *68-95-99.7 rule*, *Φ (normal CDF)*, *inverse normal*.
+
+<div class="keypoints">
+
+- A normal distribution is set by μ (centre) and σ (spread).
+- About 68 %, 95 % and 99.7 % of values lie within 1, 2 and 3 σ of μ.
+- z = (x − μ) ÷ σ; probabilities are areas under the standard normal curve.
+- To hit a target share, solve x = μ + z·σ for the z of that percentile.
+- The normal fits averages and sums well; raw money and time data are often skewed.
+
+</div>

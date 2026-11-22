@@ -3,7 +3,7 @@ title: 'How an LLM is trained'
 seoTitle: 'How LLMs are trained: pretraining, fine-tuning, RLHF'
 summary: 'An LLM is trained in stages: next-word prediction on trillions of words, then example conversations, then people''s preferences. See the same question answered after each stage, and estimate the cost of training.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'During pretraining, the "label" for each position is:'
     choices: ['The next token in the text itself', 'A score given by a person', 'The topic of the document']
@@ -17,29 +17,55 @@ quiz:
     choices: ['People choosing the better of two answers', 'A bigger web crawl', 'Random noise']
     ans: 0
     why: Comparisons are easier and more reliable to collect than perfect answers, and they steer the model towards what people prefer.
+sources:
+  - 'Ouyang, L. et al. (2022), Training language models to follow instructions with human feedback https://arxiv.org/abs/2203.02155'
+  - 'Kaplan, J. et al. (2020), Scaling Laws for Neural Language Models (source of C ≈ 6ND) https://arxiv.org/abs/2001.08361'
+  - 'Rafailov, R. et al. (2023), Direct Preference Optimization: Your Language Model is Secretly a Reward Model https://arxiv.org/abs/2305.18290'
+  - 'Hoffmann, J. et al. (2022), Training Compute-Optimal Large Language Models https://arxiv.org/abs/2203.15556'
 ---
 
-**Module 10 · about 25 minutes · read first: 3.3, 10.3, 10.5.** You'll be able to name the three stages of LLM training, say what data and goal each one uses, compute a model's loss and perplexity, and estimate the computing cost of pretraining.
+**Module 10 · about 25 minutes · read first: 3.3, 10.3, 10.5.** You'll be able to name the three stages of LLM training, say what data and goal each one uses, work out a model's loss and perplexity, and estimate the computing cost of pretraining.
+
+<div class="bigidea">An LLM learns in three stages: read a huge library guessing each next word, practise answering requests, then learn which answers people prefer.</div>
 
 ## 1. Why this matters
 
-Knowing how a model was trained explains its habits: why a base model rambles, why chat models are polite and sometimes over-cautious, why they know things up to a date and nothing after, and why "fine-tuning on your own data" is a much smaller job than training from scratch. It also explains why only a handful of companies pretrain large models, while anyone can adapt one.
+Knowing how a model was trained explains its habits:
+
+- why a base model rambles instead of answering;
+- why chat models are polite and sometimes over-cautious;
+- why they know things up to a date and nothing after;
+- why "fine-tuning on your own data" is a much smaller job than training from scratch.
+
+It also explains why only a handful of companies pretrain large models, while anyone can adapt one.
 
 ## 2. Three stages
 
-1. **Pretraining.** Predict the next token (Lesson 10.3) over a huge mix of public web pages, books, code and papers: trillions of tokens. The text supplies its own answers, so no labelling is needed (**self-supervised learning**). The result, a **base model**, has absorbed grammar, facts, styles and reasoning patterns, but it continues text rather than answering it.
-2. **Instruction tuning** (supervised fine-tuning). Train on example conversations: a request and a good reply, many written by people. Same next-token loss, counted only on the replies. The model learns the shape of a helpful answer.
-3. **Feedback tuning.** Show people (or a judging model) two answers to the same prompt and record which is better. Methods such as **RLHF** (reinforcement learning from human feedback) and **DPO** shift the model towards preferred answers: clearer, more correct, safer, more honest about doubt.
+1. **Pretraining.** Guess the next token (Lesson 10.3) over a huge mix of public web pages, books, code and papers: trillions of tokens. The text supplies its own answers, so nobody has to label anything (**self-supervised learning**). The result, a **base model**, has soaked up grammar, facts, styles and reasoning patterns. But it continues text rather than answering it.
+2. **Instruction tuning** (supervised fine-tuning). Train on example conversations: a request and a good reply, many written by people. The loss is the same next-token loss, counted only on the replies. The model learns the shape of a helpful answer.
+3. **Feedback tuning.** Show people (or a judging model) two answers to the same request and record which is better. Methods such as **RLHF** (reinforcement learning from human feedback) and **DPO** (direct preference optimisation) shift the model towards the preferred answers: clearer, more correct, safer, more honest about doubt.
 
 <!--fig:llm-stages-->
 
-All three run the same network with gradient descent (Lesson 3.3) and backpropagation (Lesson 9.4); only the data and the target change. Later, smaller fine-tunes (such as LoRA, in the Offline AI course) adapt a finished model to one company's style or task with a few thousand examples.
+All three stages run the same network with gradient descent (Lesson 3.3) and backpropagation (Lesson 9.4); only the data and the target change. Later, smaller fine-tunes (such as LoRA, in the Offline AI course) adapt a finished model to one company's style or task with a few thousand examples.
+
+Here is what one tiny step of pretraining looks like, on the text "the cat sat":
+
+<div class="steps">
+<div class="step"><p><b>Hide the next word.</b> The model sees "the cat" and must guess what comes next. The answer, "sat", is already in the text: no person needed to label it.</p></div>
+<div class="step"><p><b>Guess.</b> The model gives "sat" probability <b>0.20</b> (and the rest to other words).</p></div>
+<div class="step"><p><b>Score the guess.</b> Loss = −ln 0.20 = <b>1.61</b>. A sure, right guess would cost 0.</p></div>
+<div class="step"><p><b>Nudge every weight.</b> Backpropagation works out which way each weight should move to make "sat" likelier here, and gradient descent moves each one a tiny step.</p></div>
+<div class="step"><p><b>Next time.</b> The same context now gives "sat" 0.30, so the loss falls to −ln 0.30 = <b>1.20</b>. Repeat for trillions of positions.</p></div>
+</div>
 
 ## 3. What the numbers mean
 
 - **Loss and perplexity** (Lesson 10.3) are watched throughout pretraining on held-out text, exactly like validation loss in Lesson 9.5.
-- **Scaling:** loss falls smoothly and predictably as models, data and computing grow together. Labs use this to plan a run before spending on it.
-- **Knowledge cut-off:** the model knows only what was in its training text. Events after it are unknown unless supplied in the prompt or found by a search tool.
+- **Scaling:** loss falls smoothly and predictably as models, data and computing grow together. Labs use this to plan a run before paying for it.
+- **Knowledge cut-off:** the model knows only what was in its training text. Events after it are unknown unless they are put in the prompt or found by a search tool.
+
+<div class="problem" data-problem="training-an-llm-perplexity"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -65,6 +91,18 @@ C \approx 6 N D \text{ arithmetic operations}
 **Try it:** a model gives the true next tokens probabilities 0.5, 0.25, 0.1 and 0.8. Mean loss and perplexity? (Losses 0.693, 1.386, 2.303, 0.223; mean 1.151; perplexity `$e^{1.151} = 3.16$`: as unsure as choosing among about 3 tokens.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>N</dt><dd>the number of parameters (weights) in the model</dd>
+<dt>D</dt><dd>the number of tokens of training text it reads</dd>
+<dt>6</dt><dd>about 2 operations per weight per token to make a guess, and 4 more to work out the nudges</dd>
+<dt>C</dt><dd>the total number of arithmetic operations for pretraining</dd>
+<dt>Physical meaning</dt><dd>C is a bill. Divide it by how fast your graphics cards work and you get weeks of a data centre's time and millions in electricity and hardware. That is why only a few labs pretrain big models, and why most people adapt an existing one instead.</dd>
+</dl>
+
+</div>
+
 ## 4. Worked example
 
 How much computing does a mid-sized open model need? Take `$N = 8$` billion parameters and `$D = 15$` trillion tokens:
@@ -73,7 +111,15 @@ How much computing does a mid-sized open model need? Take `$N = 8$` billion para
 C \approx 6 \times (8 \times 10^{9}) \times (15 \times 10^{12}) = 7.2 \times 10^{23}
 ```
 
-A modern data-centre graphics card might sustain about `$4 \times 10^{14}$` operations a second in practice. That gives `$1.8 \times 10^{9}$` card-seconds: about 500,000 card-hours, or roughly 10 days on 2,000 cards, before any failed runs or experiments. Instruction and feedback tuning add only a small fraction of this. Fine-tuning a finished model with LoRA can run on one good computer.
+A modern data-centre graphics card might keep up about `$4 \times 10^{14}$` operations a second in practice. That gives `$1.8 \times 10^{9}$` card-seconds: about 500,000 card-hours, or roughly 10 days on 2,000 cards, before any failed runs or experiments. Instruction and feedback tuning add only a small fraction of this. Fine-tuning a finished model with LoRA can run on one good computer.
+
+<div class="problem" data-problem="training-an-llm-compute"></div>
+
+<div class="myth">
+
+**"Chat models learn their facts from people writing answers in fine-tuning."** Almost all of a model's knowledge comes from pretraining on huge amounts of text. Instruction and feedback tuning mainly teach it how to answer: format, tone, when to say "I'm not sure". Fine-tuning on a few hundred examples is a poor way to add new facts; putting the documents in the prompt usually works better.
+
+</div>
 
 ## 5. Practice
 
@@ -92,3 +138,13 @@ A modern data-centre graphics card might sustain about `$4 \times 10^{14}$` oper
 **Try it on your own data:** the [[prompt-pruner]] turns your own PDFs and web pages into lean text that uses fewer tokens, the units every number in this lesson is counted in.
 
 **New words:** *pretraining*, *self-supervised learning*, *base model*, *instruction tuning*, *supervised fine-tuning*, *RLHF*, *DPO*, *knowledge cut-off*, *scaling law*, *LoRA*.
+
+<div class="keypoints">
+
+- Pretraining: guess the next token over trillions of tokens; the text is its own label (self-supervised).
+- Instruction tuning: example requests and good replies teach the shape of a helpful answer.
+- Feedback tuning (RLHF, DPO): people's choices between two answers steer the model to preferred replies.
+- All stages use the same next-token loss and gradient descent; perplexity = e<sup>loss</sup> tracks progress.
+- Pretraining costs about C ≈ 6ND operations, which is why few labs pretrain and most people adapt.
+
+</div>

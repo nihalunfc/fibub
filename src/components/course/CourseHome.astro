@@ -3,6 +3,9 @@
 import Base from '../../layouts/Base.astro';
 import CourseSidebar from './CourseSidebar.astro';
 import ProgressBox from './ProgressBox.astro';
+import CourseSiblings from '../learn/CourseSiblings.astro';
+import { COURSES, COURSE_CATS } from '../../data/curricula';
+import '../../styles/learn.css';
 import { courseLessons } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
 import { courseLd } from '../../lib/seo';
@@ -12,11 +15,12 @@ const { course } = Astro.props;
 const written = await courseLessons(course);
 const live = new Set(written.keys());
 const all = flatLessons(course);
+const cat = COURSE_CATS.find((k) => k.id === COURSES.find((c) => c.id === course.id)?.cat);
 const minutes = [...written.values()].reduce((s, e) => s + e.data.minutes, 0);
 const ld = courseLd(course, all.filter((l) => live.has(l.slug)).map((l) => ({ name: `${l.n} ${l.title}`, url: `/learn/courses/${course.id}/${l.slug}/` })), minutes / 60);
 ---
 <Base title={`${course.name}: free course`} description={course.text} ld={ld}>
-  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / {course.name}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / {cat ? <a href={cat.href}>{cat.short}</a> : <a href="/learn/courses/">Courses</a>} / {course.name}</div>
   <div class="cs-layout" data-course={course.id} data-total={all.length}>
     <CourseSidebar course={course} live={live} />
     <div class="cs-main">
@@ -38,6 +42,7 @@ const ld = courseLd(course, all.filter((l) => live.has(l.slug)).map((l) => ({ na
           );
         })}
       </>)}
+      <CourseSiblings id={course.id} />
     </div>
   </div>
 </Base>

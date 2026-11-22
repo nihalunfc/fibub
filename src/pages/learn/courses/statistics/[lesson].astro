@@ -4,6 +4,7 @@ import { STATISTICS } from '../../../../courses/statistics/syllabus';
 import { FIGURES } from '../../../../courses/statistics/figures';
 import { courseLessons, type LessonEntry } from '../../../../lib/course';
 import '../../../../styles/math.css';
+import '../../../../styles/lesson-kit.css';
 import '../../../../courses/ml-foundations/figures/figs.css';
 export async function getStaticPaths() {
   const written = await courseLessons(STATISTICS);

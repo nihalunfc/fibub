@@ -96,4 +96,8 @@ a[aria-current="page"].done::after { color: inherit; }
   .cs-body details, .cs-fig { margin: 14px 0; padding: 10px; }
   .cs-quiz { margin-top: 24px; }
   .cs-side > summary { padding: 8px 12px; }
+  .cs-q { padding: 10px 12px; margin-bottom: 8px; }
+  .cs-end { margin: 20px 0 8px; }
+  .cs-prog { padding: 10px 12px; margin: 14px 0; }
 }
+

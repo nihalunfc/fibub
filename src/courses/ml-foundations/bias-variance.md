@@ -3,7 +3,7 @@ title: Bias and variance
 seoTitle: 'Bias-variance trade-off explained, with a simulation'
 summary: 'Every model''s test error splits into bias (wrong on average), variance (changes with the sample) and noise (nobody can remove). Train the same model on 20 different samples and see both, then read the dartboard.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: A straight line fitted to a strongly curved pattern has
     choices: ['High bias, low variance', 'Low bias, high variance', 'Low bias, low variance']
@@ -17,32 +17,54 @@ quiz:
     choices: ['bias² + variance + noise', 'bias + variance', 'bias × variance']
     ans: 0
     why: 'The decomposition: E[(y − f̂)²] = bias² + variance + σ², where σ² is the noise in the data.'
+sources:
+  - 'James, Witten, Hastie, Tibshirani and Taylor (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Section 2.2.2 (the bias-variance trade-off) https://www.statlearning.com/'
+  - 'Hastie, Tibshirani and Friedman (2009), The Elements of Statistical Learning, 2nd edition, Springer, Sections 7.2 and 7.3'
+  - 'Geman, Bienenstock and Doursat (1992), Neural networks and the bias/variance dilemma, Neural Computation 4(1), 1-58 https://doi.org/10.1162/neco.1992.4.1.1'
 ---
 
-**Module 7 · about 25 minutes · read first: 3.7, 6.1.** You'll be able to name the three parts of test error, diagnose high bias or high variance from training and validation scores, and pick the right fix for each.
+**Module 7 · about 25 minutes · read first: 3.7, 6.1.** You'll be able to name the three parts of test error, tell from training and validation scores whether a model is too simple or too jumpy, and pick the right fix for each.
+
+<div class="bigidea">A model can be wrong in two ways: it misses the same way every time (bias), or it changes a lot with each new sample (variance), and the cures are opposite.</div>
 
 ## 1. Why this matters
 
-When a model disappoints, the first question is: is it too simple or too jumpy? The answers need opposite fixes (more flexibility, or less), and guessing wrong wastes days. Bias and variance are the two words for that question, and they also explain why forests average and boosting adds (Module 6).
+When a model disappoints, ask first: is it too simple, or too jumpy? The two problems need opposite fixes. One needs more flexibility, the other needs less. Guess wrong and you can waste days. Bias and variance are the two words for this question. They also explain why random forests average many trees and why boosting adds trees up (Module 6).
 
 ## 2. Two ways to be wrong
 
-Imagine training the same kind of model many times, each on a fresh sample from the same source.
+Picture an archer. Some archers always hit low and to the left: their arrows land close together, but in the wrong place. Others aim at the centre on average, but their arrows fly all over the board. Models behave the same way.
 
-- **Bias:** how far the **average** of those models is from the truth. A model that is too simple misses the same way every time.
-- **Variance:** how much the models **differ** from each other. A model that is too flexible follows each sample's noise, so every sample gives a different fit.
+Imagine training the same kind of model many times, each time on a fresh sample from the same source.
+
+- **Bias** is how far the **average** of those models is from the truth. A model that is too simple misses the same way every time, like the archer who always hits low.
+- **Variance** is how much the models **differ** from each other. A model that is too flexible follows the noise in each sample, so every sample gives a different fit, like the archer whose arrows scatter.
 
 <!--fig:dartboard-->
 
-The simulation does this for real: 20 samples of 12 points from one curve, 20 polynomial fits.
+The simulation does this for real. It takes 20 samples of 12 points from one curve and fits 20 polynomials, so you can see how far the fits wander and where their average lands.
 
 <!--fig:bias-variance-->
 
+### Watch it happen
+
+Here is the whole idea with five small numbers. At one point the true value is 5.
+
+<div class="steps">
+<div class="step"><p><b>Train five times.</b> The same model is trained on five different samples. At our point it predicts 6, 7, 6, 5 and 6. The truth is 5.</p></div>
+<div class="step"><p><b>Find the centre.</b> The average prediction is (6 + 7 + 6 + 5 + 6) ÷ 5 = 6. The models miss by 1 on average, all in the same direction.</p></div>
+<div class="step"><p><b>Bias².</b> Square that miss: (6 − 5)² = 1. This is the part of the error that more data will not fix, because the model itself is off.</p></div>
+<div class="step"><p><b>Variance.</b> How far does each prediction sit from the centre of 6? Distances 0, 1, 0, −1, 0. Squares 0, 1, 0, 1, 0. Average: 2 ÷ 5 = 0.4.</p></div>
+<div class="step"><p><b>Add the noise.</b> Real data also wobble by themselves. Say that noise has variance 0.6. Expected squared error = 1 + 0.4 + 0.6 = 2.0. Each part has a different cure.</p></div>
+</div>
+
+<div class="problem" data-problem="bias-variance-error"></div>
+
 ## 3. The trade-off and the cures
 
-More flexibility lowers bias and raises variance; less does the opposite. Test error is lowest in between: the U-shaped curve of Lesson 3.7.
+More flexibility lowers bias and raises variance. Less flexibility does the opposite. Test error is lowest somewhere in between: the U-shaped curve of Lesson 3.7.
 
-How to tell which problem you have, from training and validation error:
+You can't watch bias and variance directly on real data, because you only have one sample. But training and validation error give the game away:
 
 | | training error | validation error | diagnosis | fixes |
 |---|---|---|---|---|
@@ -50,14 +72,27 @@ How to tell which problem you have, from training and validation error:
 | B | low | much higher | **high variance** (overfitting) | more data, simpler model, regularisation, averaging (bagging, forests), early stopping |
 | C | low | low, close | good | ship it |
 
-The third part, **noise**, is the randomness in the data itself (measurement error, things the columns don't capture). No model can remove it; only better data can.
+The third part, **noise**, is the randomness in the data itself: measurement error, or things your columns don't capture. No model can remove it. Only better data can.
+
+<div class="meaning">
+
+<dl>
+<dt>y = f(x) + ε</dt><dd>what we observe: a true pattern f plus random noise ε</dd>
+<dt>f̂ (f-hat)</dt><dd>the model you get from one particular training sample</dd>
+<dt>Bias²</dt><dd>how far the average model is from the truth, squared: the error built into the kind of model you chose</dd>
+<dt>Variance</dt><dd>how much the model changes from one sample to the next: the error that comes from the luck of the sample</dd>
+<dt>σ² (noise)</dt><dd>the wobble in the data that no model can predict</dd>
+<dt>Physical meaning</dt><dd>A forecaster that always says "same as last week" is steady but stubbornly wrong (bias). One that rebuilds itself from scratch every Monday is clever but nervous (variance). Good models sit between, and part of tomorrow's sales will always be a surprise (noise).</dd>
+</dl>
+
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
 **Principle:** averaged over possible training sets, squared test error splits into three parts that can be measured separately.
 
-**The decomposition:** data come from `$y = f(x) + \varepsilon$` with noise variance `$\sigma^2$`. Let `$\hat{f}$` be the model trained on a random sample, and `$\bar{f}(x) = E[\hat{f}(x)]$` its average over samples. At a point `$x$`:
+**The decomposition:** data come from `$y = f(x) + \varepsilon$` with noise variance `$\sigma^2$`. Let `$\hat{f}$` be the model trained on a random sample, and `$\bar{f}(x) = E[\hat{f}(x)]$` its average over samples (`$E$` means "average over many tries"). At a point `$x$`:
 
 ```math
 E\big[(y - \hat{f}(x))^2\big] = \text{bias}^2 + \text{variance} + \sigma^2
@@ -80,9 +115,15 @@ The cross terms vanish because the noise in a new `$y$` is independent of the tr
 **Try it:** at a point, the truth is 5. Five models trained on different samples predict 6, 7, 6, 5, 6. Bias² and variance? (Average 6, so bias² = 1. Variance = (0 + 1 + 0 + 1 + 0)/5 = 0.4.)
 </details>
 
+<div class="myth">
+
+**"More data always helps."** More data mostly cuts **variance**: each fit depends less on the luck of the sample. It does little for **bias**. A straight line fitted to a million points from a curve is still a straight line, missing the curve in the same places. If training and validation error are both high and close, collect better features or use a more flexible model, not just more rows.
+
+</div>
+
 ## 4. Worked example
 
-*Made-up numbers.* A shop forecasts daily sales. Errors are root mean squared, in units sold.
+*Made-up numbers.* A shop forecasts daily sales. Errors are root mean squared (RMSE), in units sold.
 
 | model | training RMSE | validation RMSE |
 |---|---|---|
@@ -110,3 +151,12 @@ The first two are close on training and validation: high bias. The third has a h
 **Try it on your own data:** the [[small-model-trainer]] shows training and test accuracy side by side; use the table above to diagnose your model.
 
 **New words:** *bias*, *variance*, *irreducible error* (noise), *bias-variance decomposition*, *learning curve*.
+
+<div class="keypoints">
+
+- Test error = bias² + variance + noise.
+- Bias: the model misses the same way every time (too simple). Variance: the model changes a lot with the sample (too flexible).
+- High training and validation error, close together, means high bias. Low training error with much higher validation error means high variance.
+- More data, simpler models and averaging cut variance; more flexibility and better features cut bias. Nothing removes noise except better data.
+
+</div>

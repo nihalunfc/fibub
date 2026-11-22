@@ -3,7 +3,7 @@ title: 'Text as numbers: bag of words and TF-IDF'
 seoTitle: 'Bag of words and TF-IDF explained, with a live example'
 summary: 'Models need numbers, so text must be turned into numbers first. Count the words, weight the rare ones up with TF-IDF, and compare documents by the angle between their rows. See it on four short reviews.'
 minutes: 20
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: A word appears in every document of a collection. Its IDF is
     choices: ['0', '1', 'Very large']
@@ -17,30 +17,71 @@ quiz:
     choices: ['Share no weighted words', 'Are identical', 'Are opposites']
     ans: 0
     why: Counts and TF-IDF weights are never negative, so cosine runs from 0 (no shared weighted words) to 1 (same mix of words).
+sources:
+  - 'Jurafsky, D. and Martin, J. H., Speech and Language Processing, 3rd edition draft, chapter 6 (vector semantics, TF-IDF, cosine) https://web.stanford.edu/~jurafsky/slp3/'
+  - 'Manning, C. D., Raghavan, P. and Schütze, H. (2008), Introduction to Information Retrieval, Cambridge University Press, chapter 6 https://nlp.stanford.edu/IR-book/'
+  - 'scikit-learn user guide: text feature extraction (CountVectorizer, TfidfVectorizer) https://scikit-learn.org/stable/modules/feature_extraction.html'
 ---
 
-**Module 10 · about 20 minutes · read first: 1.4, 4.8.** You'll be able to turn a set of documents into a table of numbers, compute TF-IDF by hand, and compare documents with cosine similarity.
+**Module 10 · about 20 minutes · read first: 1.4, 4.8.** You'll be able to turn a set of documents into a table of numbers, work out TF-IDF by hand, and compare documents with cosine similarity.
+
+<div class="bigidea">A computer can't read, but it can count: turn each document into a row of word counts, give rare words more weight, and similar documents become rows that point the same way.</div>
 
 ## 1. Why this matters
 
-Reviews, support tickets, emails, contracts and survey comments are text, and most of the world's data is text. Before any model can use them, they must become numbers. The simple methods here still power search boxes, spam filters and ticket routing, and they are the honest baseline that a language model has to beat. They are also the first step on the road to embeddings (Lesson 10.2) and LLMs.
+Reviews, support tickets, emails, contracts and survey comments are all text, and most of the world's data is text. A model only understands numbers, so text has to become numbers first.
+
+The simple methods in this lesson still run search boxes, spam filters and ticket routing. They are the honest baseline a language model has to beat. They are also the first step on the road to embeddings (Lesson 10.2) and LLMs.
 
 ## 2. Bag of words
 
-Make a **vocabulary**: every distinct word in the collection, sorted. Each document becomes a row with one column per vocabulary word, holding how many times that word appears. Order is thrown away, as if the words were shaken in a bag: "dog bites man" and "man bites dog" get the same row. Naive Bayes (Lesson 4.8) worked exactly like this.
+First make a **vocabulary**: a sorted list of every different word in the collection. Each document then becomes a row with one column per vocabulary word. Each cell holds how many times that word appears in the document.
 
-Most cleaning happens before counting: lower-case everything, split on spaces and punctuation, and sometimes drop very common words ("the", "and") or cut words to their stem ("charging" → "charg").
+Word order is thrown away, as if you tipped the words into a bag and shook it. So "dog bites man" and "man bites dog" get exactly the same row. Naive Bayes (Lesson 4.8) worked like this.
+
+Most cleaning happens before counting:
+
+- make everything lower case, so "Great" and "great" are one word;
+- split on spaces and punctuation;
+- sometimes drop very common **stop words** ("the", "and");
+- sometimes cut words to their **stem** ("charging" → "charg"), so "charge" and "charging" count together.
+
+**Everyday picture:** a shopping receipt. It lists how many of each item you bought, but not the order you picked them off the shelves.
 
 ## 3. TF-IDF: weight the words that tell documents apart
 
-Raw counts favour words like "the". **TF-IDF** (term frequency × inverse document frequency) multiplies each count by a weight that is large for rare words and zero for words in every document:
+Raw counts favour words like "the", which are everywhere and tell you nothing. **TF-IDF** (term frequency times inverse document frequency) multiplies each count by a weight. The weight is large for rare words and zero for words found in every document.
 
-- **TF:** how often the word is in this document.
-- **IDF:** `$\ln(N / \text{df})$`, where `$N$` is the number of documents and df is how many contain the word.
+- **TF** (term frequency): how often the word appears in this document.
+- **IDF** (inverse document frequency): `$\ln(N / \text{df})$`. Here `$N$` is the number of documents, df is how many of them contain the word, and ln is the natural logarithm.
+
+Watch it happen for the word "great" in the first of four reviews:
+
+<div class="steps">
+<div class="step"><p><b>Count it.</b> Review 1 is "the battery is great and the screen is great". "great" appears <b>2</b> times. That is its TF.</p></div>
+<div class="step"><p><b>How many reviews use it?</b> Of the 4 reviews, only review 1 contains "great", so df = <b>1</b>.</p></div>
+<div class="step"><p><b>Rarity weight.</b> IDF = ln(4 ÷ 1) = ln 4 = <b>1.386</b>. A word in only one review gets a big weight.</p></div>
+<div class="step"><p><b>Multiply.</b> TF-IDF = 2 × 1.386 = <b>2.77</b>. "great" is the word that tells this review apart.</p></div>
+<div class="step"><p><b>Compare with "the".</b> "the" appears 2 times too, but it is in all 4 reviews: IDF = ln(4 ÷ 4) = 0, so its TF-IDF is <b>0</b>. Common words vanish.</p></div>
+</div>
 
 <!--fig:tfidf-table-->
 
-Two documents are compared by the angle between their rows: **cosine similarity** (Lesson 1.4). Long and short documents with the same mix of words point the same way, so length does not matter.
+<div class="meaning">
+
+<dl>
+<dt>count(w, d)</dt><dd>how many times word w appears in document d (the TF)</dd>
+<dt>N</dt><dd>how many documents there are in the whole collection</dd>
+<dt>df(w)</dt><dd>how many documents contain word w at least once</dd>
+<dt>ln(N / df)</dt><dd>the rarity weight (IDF): 0 for a word in every document, bigger the rarer the word is</dd>
+<dt>Physical meaning</dt><dd>TF-IDF is a highlighter pen. It marks the words that make one ticket, review or email different from the rest, and leaves the filler words blank. A search box uses it to rank the documents where your search words stand out.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="text-as-numbers-tfidf"></div>
+
+Two documents are compared by the angle between their rows: **cosine similarity** (Lesson 1.4). A long review and a short review with the same mix of words point the same way, so length does not matter. Cosine runs from 0 (no weighted words in common) to 1 (the same mix).
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -53,7 +94,7 @@ Two documents are compared by the angle between their rows: **cosine similarity*
 \text{tfidf}(w, d) = \text{count}(w, d) \times \ln \frac{N}{\text{df}(w)}
 ```
 
-**Cosine similarity** of rows `$\mathbf{a}$` and `$\mathbf{b}$`:
+**Cosine similarity** of rows `$\mathbf{a}$` and `$\mathbf{b}$`: the dot product (multiply place by place and add), divided by the two lengths.
 
 ```math
 \cos \theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\lVert \mathbf{a} \rVert \, \lVert \mathbf{b} \rVert}
@@ -79,6 +120,14 @@ The four reviews in the simulation. Review 1 is "the battery is great and the sc
 
 "great" carries the review; "the", "is" and "and" vanish. With plain counts, review 1 looks most like review 3 (cosine 0.72), mostly because both are full of "the" and "is". With TF-IDF the similarity drops to 0.07: the only weighted word they share is "screen".
 
+<div class="problem" data-problem="text-as-numbers-cosine"></div>
+
+<div class="myth">
+
+**"Bag of words understands what the text means."** It only counts. "not good" and "good" share the word "good", so they look alike. "cheap" and "inexpensive" share no letters, so they look unrelated. Word order and meaning are both lost. Embeddings (Lesson 10.2) fix the second problem, and attention (Lesson 10.4) the first.
+
+</div>
+
 ## 5. Practice
 
 1. In the simulation, which review is most similar to review 2, and which word links them?
@@ -96,3 +145,12 @@ The four reviews in the simulation. Review 1 is "the battery is great and the sc
 **Try it on your own data:** the [[text-cleaner]] does the cleaning steps (lower case, punctuation, stop words) on your own text, and the [[topic-modeller]] finds themes in many documents from their word counts.
 
 **New words:** *vocabulary*, *bag of words*, *term frequency*, *inverse document frequency*, *TF-IDF*, *stop words*, *stemming*, *cosine similarity*.
+
+<div class="keypoints">
+
+- Bag of words turns each document into a row of word counts, one column per vocabulary word; word order is lost.
+- TF-IDF multiplies each count by ln(N / df), so rare words get weight and words in every document get 0.
+- Cosine similarity compares two rows by their angle, from 0 (nothing shared) to 1 (same mix), whatever their length.
+- These counts can't see meaning or order: "cheap" and "inexpensive" look unrelated, which embeddings fix.
+
+</div>

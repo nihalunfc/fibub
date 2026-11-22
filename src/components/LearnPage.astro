@@ -5,10 +5,12 @@
 import Base from '../layouts/Base.astro';
 import ToolCard from './ToolCard.astro';
 import { allTools } from '../lib/tools';
+import LearnMore from './learn/LearnMore.astro';
 import '../styles/area.css';
+import '../styles/learn.css';
 export type Card = { name: string; text: string; items?: string[]; href?: string; live?: boolean };
-interface Props { title: string; description: string; lead: string; cards: Card[]; cardsTitle?: string; tools?: string[]; toolsTitle?: string }
-const { title, description, lead, cards, cardsTitle, tools: ids = [], toolsTitle = 'Tools you can use today' } = Astro.props;
+interface Props { here?: string; title: string; description: string; lead: string; cards: Card[]; cardsTitle?: string; tools?: string[]; toolsTitle?: string }
+const { here, title, description, lead, cards, cardsTitle, tools: ids = [], toolsTitle = 'Tools you can use today' } = Astro.props;
 const all = await allTools();
 const tools = ids.map((id) => all.find((t) => t.id === id && t.data.status === 'live')).filter((t) => !!t);
 ---
@@ -37,5 +39,6 @@ const tools = ids.map((id) => all.find((t) => t.id === id && t.data.status === '
     <div class="grid">{tools.map((t) => <ToolCard tool={t!} />)}</div>
   </>}
   <slot />
+  <LearnMore here={here} />
   <p class="ar-note">Learn follows the topics of the NCERT books used for Class 8 to 12 in India, so students can practise what they study at school. fibub is an independent free site, not part of NCERT, and it doesn't copy textbook text or pictures. Like every fibub tool, everything runs in your browser: no sign-up, nothing about you is saved.</p>
 </Base>

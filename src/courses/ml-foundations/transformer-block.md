@@ -3,7 +3,7 @@ title: 'The transformer block'
 seoTitle: 'The transformer block explained step by step, with sizes'
 summary: 'A transformer is the same block stacked many times: attention, add and normalise, a small feed-forward network, add and normalise. Step through one from words to next-word probabilities and count its parameters.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'The output of a transformer block has:'
     choices: ['The same shape as its input, so blocks can be stacked', 'One number per token', 'Twice as many numbers as its input']
@@ -17,31 +17,51 @@ quiz:
     choices: ['About 3 million (12 × 512²)', 'About 512', 'About 50,000']
     ans: 0
     why: Attention has 4 matrices of d × d, the feed-forward part 2 of d × 4d, so 12d² ≈ 3.1 million.
+sources:
+  - 'Vaswani, A. et al. (2017), Attention Is All You Need, Advances in Neural Information Processing Systems 30 https://arxiv.org/abs/1706.03762'
+  - 'Ba, J. L., Kiros, J. R. and Hinton, G. E. (2016), Layer Normalization https://arxiv.org/abs/1607.06450'
+  - 'He, K., Zhang, X., Ren, S. and Sun, J. (2016), Deep Residual Learning for Image Recognition, CVPR https://doi.org/10.1109/CVPR.2016.90'
+  - 'Radford, A. et al. (2019), Language Models are Unsupervised Multitask Learners (GPT-2), OpenAI technical report'
 ---
 
 **Module 10 · about 25 minutes · read first: 9.3, 10.4.** You'll be able to name the parts of a transformer block in order, say what each one does to the numbers, and estimate a model's size from its settings.
 
+<div class="bigidea">A transformer is one simple block copied many times: each token listens to the others, then thinks on its own, and keeps its old notes so nothing gets lost.</div>
+
 ## 1. Why this matters
 
-Every well-known LLM (GPT, Gemini, Claude, Llama, Gemma, Mistral) is a stack of transformer blocks. When you read that a model has "32 layers, model width 4,096 and 8 billion parameters", this lesson tells you what those numbers mean, and so roughly how much memory it needs and how fast it can run (the Offline AI course uses exactly this).
+Every well-known LLM (GPT, Gemini, Claude, Llama, Gemma, Mistral) is a stack of transformer blocks. When you read that a model has "32 layers, model width 4,096 and 8 billion parameters", this lesson tells you what those numbers mean. From them you can guess how much memory it needs and how fast it can run (the Offline AI course uses exactly this).
 
 ## 2. One block
 
-Every token enters as a vector of `$d$` numbers (its embedding plus a position signal). One block does four things:
+Every token enters as a list of `$d$` numbers: its embedding plus a signal for its position. `$d$` is called the **model width**. One block does four things:
 
 1. **Attention** (Lesson 10.4): each token mixes in information from the earlier tokens it needs, using several heads.
-2. **Add and normalise:** add the block's input back (a **residual connection**), then rescale each token's vector to mean 0 and spread 1 (**layer normalisation**).
-3. **Feed-forward network:** a small two-layer network (Lesson 9.3) applied to each token on its own: widen to about `$4d$` numbers, bend, shrink back to `$d$`.
+2. **Add and normalise:** add the block's input back on (a **residual connection**), then rescale each token's list to average 0 and spread 1 (**layer normalisation**).
+3. **Feed-forward network:** a small two-layer network (Lesson 9.3) that works on each token on its own: widen to about `$4d$` numbers, bend, shrink back to `$d$`.
 4. **Add and normalise** again.
 
 <!--fig:transformer-block-->
 
-Attention moves information between tokens; the feed-forward part processes each token's information on its own. Stack the block `$N$` times, each copy with its own weights, then score every vocabulary word from the last token's vector, and softmax.
+Attention moves information *between* tokens. The feed-forward part works on each token's information *alone*. Stack the block `$N$` times, each copy with its own weights. Finally, score every vocabulary word from the last token's numbers, and softmax the scores into next-word probabilities.
+
+Follow one token, "sat", through a block. Real models use thousands of numbers per token; here we use 4.
+
+<div class="steps">
+<div class="step"><p><b>In.</b> "sat" arrives as 4 numbers: its embedding plus a position signal saying it is the third word.</p></div>
+<div class="step"><p><b>Listen (attention).</b> "sat" looks back at "the" and "cat" and mixes in mostly "cat": who did the sitting. Out comes a change to add.</p></div>
+<div class="step"><p><b>Add and normalise.</b> Input plus change gives, say, (1, 2, 3, 6). Mean 3, standard deviation 1.871, so it becomes <b>(−1.07, −0.53, 0, 1.60)</b>: same pattern, steady size.</p></div>
+<div class="step"><p><b>Think alone (feed-forward).</b> Widen the 4 numbers to 16, set the negative ones to 0 (the bend, ReLU), and shrink back to 4. This is where much of the model's stored knowledge acts.</p></div>
+<div class="step"><p><b>Add and normalise again.</b> Out come 4 numbers, the same shape as went in, ready for the next block.</p></div>
+<div class="step"><p><b>After the last block.</b> The final token's numbers give one score per vocabulary word, and softmax turns the scores into next-word probabilities.</p></div>
+</div>
+
+<div class="problem" data-problem="transformer-block-layernorm"></div>
 
 ## 3. Why the extra parts
 
 - **Position:** attention is a weighted average, and averages ignore order. Adding a position signal to each embedding (or rotating queries and keys by position, as most recent models do) lets "dog bites man" differ from "man bites dog".
-- **Residuals:** as with very deep networks (Lesson 9.2), gradients fade through many layers. `$\mathbf{x} + f(\mathbf{x})$` gives them a straight path back, so 100-block models still train.
+- **Residuals:** as with very deep networks (Lesson 9.2), gradients fade as they pass back through many layers. `$\mathbf{x} + f(\mathbf{x})$` gives them a straight road back, so 100-block models still train.
 - **Normalisation:** keeps the numbers in a steady range from block to block, so the learning rate that suits one block suits all.
 
 <details class="maths" open>
@@ -74,6 +94,18 @@ with `$\operatorname{FFN}(\mathbf{x}) = \mathbf{W}_2 \, \operatorname{ReLU}(\mat
 **Try it:** a model with `$d = 4{,}096$` and 32 blocks. Weights in the blocks? (`$12 \times 4{,}096^2 \approx 201$` million per block; × 32 ≈ 6.4 billion, before the embedding table.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>d</dt><dd>model width: how many numbers describe each token inside the model</dd>
+<dt>N</dt><dd>how many blocks are stacked (the "layers" in a model's description)</dd>
+<dt>12d²</dt><dd>weights in one block: 4d² in attention plus 8d² in the feed-forward network</dd>
+<dt>V × d</dt><dd>weights in the embedding table, one row of d numbers per vocabulary token</dd>
+<dt>Physical meaning</dt><dd>The parameter count is the model's size on disk and in memory. At 2 bytes per weight, an 8-billion-parameter model needs about 16 GB just to load, which is why width and depth decide whether a model fits on your laptop.</dd>
+</dl>
+
+</div>
+
 ## 4. Worked example
 
 A small model like the one in the simulation: `$d = 512$`, 12 blocks, vocabulary 50,000.
@@ -84,6 +116,14 @@ A small model like the one in the simulation: `$d = 512$`, 12 blocks, vocabulary
 - Total: about **63 million** parameters, about half the size of the first GPT model (2018).
 
 **Layer normalisation** of one token's vector (1, 2, 3, 6): mean 3, variance (4 + 1 + 0 + 9)/4 = 3.5, standard deviation 1.871, so the result is (−1.07, −0.53, 0, 1.60).
+
+<div class="problem" data-problem="transformer-block-params"></div>
+
+<div class="myth">
+
+**"More layers is always what makes a model bigger."** Width matters more per block: the weights grow with `$d^2$`, so doubling the width (same number of blocks) gives about 4 times the weights, while doubling the blocks only doubles them.
+
+</div>
 
 ## 5. Practice
 
@@ -102,3 +142,13 @@ A small model like the one in the simulation: `$d = 512$`, 12 blocks, vocabulary
 **Try it on your own data:** the [[neural-network-toys]] lets you build and train tiny networks, the feed-forward part of every block.
 
 **New words:** *transformer block*, *residual connection*, *layer normalisation*, *feed-forward network*, *positional encoding*, *model width*, *parameters*, *logits*.
+
+<div class="keypoints">
+
+- A transformer block does attention, add and normalise, a feed-forward network, add and normalise.
+- Attention moves information between tokens; the feed-forward part works on each token alone.
+- Residual connections (x + f(x)) and layer normalisation keep deep stacks trainable and steady.
+- A block's output has the same shape as its input, so the block is stacked N times.
+- One block holds about 12d² weights, so model size grows with the square of the width.
+
+</div>

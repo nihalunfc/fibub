@@ -3,7 +3,7 @@ title: Trees that predict numbers
 seoTitle: 'Regression trees explained, with a simulation'
 summary: 'A regression tree predicts a number: the average of the training rows in each leaf. Its splits lower the spread (variance) of the target. See the staircase it draws and work out a split by hand.'
 minutes: 20
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'A regression tree''s leaf holds the values 10, 12 and 17. It predicts:'
     choices: ['17', '13', '12']
@@ -17,33 +17,65 @@ quiz:
     choices: ['Any amount, following the trend', 'The highest leaf average, which is no more than $900k', 'Exactly $900k']
     ans: 1
     why: Every prediction is an average of training values, so a tree can never extrapolate beyond them.
+sources:
+  - 'James, Witten, Hastie and Tibshirani (2021), An Introduction to Statistical Learning, 2nd edition, Springer, Section 8.1.1 (Regression trees) https://www.statlearning.com/'
+  - 'Breiman, Friedman, Olshen and Stone (1984), Classification and Regression Trees, Wadsworth'
+  - 'scikit-learn user guide: Decision trees, regression criteria https://scikit-learn.org/stable/modules/tree.html#regression-criteria'
 ---
 
 **Module 5 · about 20 minutes · read first: 3.5, 5.3.** You'll be able to build a regression tree split by hand, read its staircase predictions, and explain why trees cannot extrapolate.
 
+<div class="bigidea">A regression tree sorts similar cases into groups and predicts each group's average, so its answers form a staircase.</div>
+
 ## 1. Why this matters
 
-Many questions in business are numbers, not classes: next week's sales, a delivery time, a house price. Regression trees answer them, and they are the building block of gradient boosting (Lesson 6.6), which wins most competitions on table data.
+Many business questions are numbers, not classes: next week's sales, a delivery time, a house price. Regression trees answer them, and they are the building block of gradient boosting (Lesson 6.6), which wins most competitions on table data.
 
 ## 2. Same tree, different leaves
 
 A regression tree asks the same kind of questions as a classification tree. Two things change:
 
 - **The leaf's answer** is the average of the target over the training rows in that leaf.
-- **Impurity** is the spread of the target in a box: its variance, the mean squared distance from the box's average. A split is good if each child's values are close to their own average.
+- **Impurity** is how spread out the target is in a box: its **variance**, the average squared distance from the box's own average. A split is good if each side's values sit close to their own average.
 
-So the gain of a split is the drop in weighted variance (equivalently, in total squared error, Lesson 3.2).
+So the gain of a split is the drop in weighted variance (the same as the drop in total squared error, Lesson 3.2).
+
+<div class="steps" data-fig="regression-trees-split">
+<div class="step"><p><b>One guess for every day.</b> Six days of ice-cream sales: 4, 5, 6, 14, 16, 18 (hundreds). With no questions, the best single guess is the mean, 10.5.</p></div>
+<div class="step"><p><b>How wrong is that?</b> The squared distances from 10.5 average to 31.9. That variance is the "impurity" of the whole group.</p></div>
+<div class="step"><p><b>Ask "warmer than 21 °C?"</b> Cool days {4, 5, 6} average 5, with variance 0.67. Warm days {14, 16, 18} average 16, with variance 2.67. Weighted: 1.67. A drop of 30.25: a superb question.</p></div>
+<div class="step"><p><b>The staircase.</b> The tree now says 500 on cool days and 1,600 on warm days. A 40 °C heatwave? Still 1,600, because the last step carries on flat.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>c = ȳ</dt><dd>The leaf's prediction: the average of the training values that landed in it.</dd>
+<dt>I = (1/n) Σ (y<sub>i</sub> − ȳ)²</dt><dd>The leaf's impurity: its variance, the average squared distance from that average.</dd>
+<dt>gain</dt><dd>Variance before the split minus the weighted variance after it.</dd>
+<dt>Physical meaning</dt><dd>Pricing flats by neighbourhood. Instead of a formula, group similar flats and quote each group's average price. Finer groups give finer quotes, but a group of one flat quotes that flat's odd price exactly.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="regression-trees-split"></div>
 
 <!--fig:reg-tree-->
 
 ## 3. A staircase
 
-Because each leaf predicts one constant, the prediction is flat inside each box and jumps at each threshold: a staircase in one dimension, a set of flat-topped blocks in two. More depth means more, finer steps.
+Because each leaf predicts one fixed number, the prediction is flat inside each box and jumps at each threshold: a staircase in one dimension, a set of flat-topped blocks in two. More depth means more, finer steps.
 
 Two consequences:
 
-- **No extrapolation.** Beyond the training data the last step just carries on flat. A linear model would keep going up; a tree stays at the last leaf's average. That is safe for some jobs and wrong for others (prices that keep rising).
+- **No extrapolation.** Beyond the training data the last step just carries on flat. A straight-line model would keep going up; a tree stays at the last leaf's average. That is safe for some jobs and wrong for others (prices that keep rising).
 - **No smoothness.** Two days 0.1 °C apart can get very different predictions if a threshold falls between them. Averaging many trees (Module 6) smooths the steps out.
+
+<div class="myth">
+
+**"A tree will follow the trend into new territory, like a line does."** It can't. Every prediction is the average of some training values, so a tree never predicts above the highest training value or below the lowest. If the future is likely to go beyond your past data (growing sales, rising prices), use a model that can extrapolate, or predict the change rather than the level.
+
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -57,8 +89,6 @@ c = \bar{y} = \frac{1}{n}\sum_i y_i, \qquad I = \frac{1}{n} \sum_i (y_i - \bar{y
 ```
 
 **Gain of a split:** `$I(\text{parent}) - \frac{n_L}{n} I(L) - \frac{n_R}{n} I(R)$`, the same formula as Lesson 5.3 with variance in place of Gini.
-
-**Analogy:** pricing flats by neighbourhood. Instead of a formula, group similar flats and quote each group's average price; finer groups give finer quotes.
 
 **Try it:** values 2, 4, 10, 12. Which split is best: {2} | {4, 10, 12} or {2, 4} | {10, 12}? (Second: each side has variance 1, total weighted 1. The first has a right side of mean 8.67 and variance 11.6, weighted 8.7.)
 </details>
@@ -91,6 +121,15 @@ The tree splits at 21 °C. Its prediction: 500 sales on cool days, 1,600 on warm
 2. Deep trees make tiny leaves that follow the noise of single days (overfitting).
 3. That one row's value, noise and all.
 </details>
+
+<div class="keypoints">
+
+- A regression tree predicts the average of the training values in each leaf.
+- Its splits are chosen to lower the weighted variance (squared error) of the target.
+- Predictions form a staircase: flat within a box, jumping at each threshold.
+- Trees cannot extrapolate beyond the range of the training values.
+
+</div>
 
 **Try it on your own data:** the [[regression-workbench]] fits straight-line models to your table; compare its smooth predictions with a tree's steps.
 

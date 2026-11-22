@@ -16,9 +16,16 @@ quiz:
     choices: ['3', '3.5', '6']
     ans: 1
     why: '(1 + 2 + 3 + 4 + 5 + 6) ÷ 6 = 3.5. The expected value need not be a value the variable can actually take.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 3.4 Random variables https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 1.3.6 Probability Distributions https://www.itl.nist.gov/div898/handbook/eda/section3/eda36.htm'
 ---
 
 **Module 3 · about 20 minutes · school maths.** You'll be able to say what a random variable and its distribution are, tell discrete from continuous, and compute the mean and variance of a simple distribution.
+
+<div class="bigidea">A random variable is a number that chance decides, and its distribution is the full list of what it can be and how often.</div>
+
+**In everyday terms:** before a customer walks in, the number of items they will buy is unknown, but not unknowable: from experience, 40 % buy one, 30 % two, and so on. That table of chances is the distribution.
 
 ## 1. Numbers decided by chance
 
@@ -57,6 +64,37 @@ E[X + Y] = E[X] + E[Y] \qquad \text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y)
 ```
 
 Variances add for independent variables, standard deviations do not. That is why the spread of a sum or average grows more slowly than you might expect, the key to Module 4.
+
+<div class="meaning">
+
+<dl>
+<dt>X</dt><dd>The random variable: the number we will see, such as items in the next basket.</dd>
+<dt>P(X = x)</dt><dd>For counts: the chance of exactly x. All of them add up to 1.</dd>
+<dt>Density f(x)</dt><dd>For measurements: probability is the area under the curve between two values, not the height.</dd>
+<dt>μ = Σ x·P(x)</dt><dd>The mean of the distribution: the long-run average of X.</dd>
+<dt>σ² = Σ (x − μ)²·P(x)</dt><dd>The variance of the distribution: the long-run average squared distance from μ.</dd>
+<dt>Physical meaning</dt><dd>A distribution is a recipe for data. Your real data are one batch cooked from it; statistics works backwards from the batch to guess the recipe.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A density of 2 means a 200 % chance."** For a continuous measurement, the height of the curve is not a probability. Only areas are. A narrow curve can be taller than 1 as long as its total area is 1.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The table.</b> Items per basket: 1 (40 %), 2 (30 %), 3 (20 %), 4 (10 %).</div>
+<div class="step"><b>Check it adds to 1.</b> 0.4 + 0.3 + 0.2 + 0.1 = 1. ✓</div>
+<div class="step"><b>Mean.</b> 1 × 0.4 + 2 × 0.3 + 3 × 0.2 + 4 × 0.1 = 2.0 items.</div>
+<div class="step"><b>Squared gaps, weighted.</b> (1−2)² × 0.4 + 0 × 0.3 + (3−2)² × 0.2 + (4−2)² × 0.1 = 0.4 + 0 + 0.2 + 0.4 = 1.0.</div>
+<div class="step"><b>SD.</b> √1.0 = 1 item. A typical basket is 2 items, give or take 1.</div>
+</div>
+
+<div class="problem" data-problem="random-variable-mean"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -99,3 +137,12 @@ Variances add for independent variables, standard deviations do not. That is why
 **Try it on your own data:** the [[distribution-explorer]] draws the PMF, PDF and CDF of the common distributions and reads probabilities off them.
 
 **New words:** *random variable*, *distribution*, *discrete*, *continuous*, *probability mass function*, *probability density function*, *cumulative distribution function*.
+
+<div class="keypoints">
+
+- A random variable is a number decided by chance; its distribution lists values and chances.
+- Discrete variables have probabilities for each value; continuous ones have densities, and areas are probabilities.
+- Mean of a distribution: Σ x·P(x). Variance: Σ (x − μ)²·P(x).
+- Data are a sample from a distribution; statistics guesses the distribution from the data.
+
+</div>

@@ -16,9 +16,16 @@ quiz:
     choices: ['Card', 'Cash', 'There is no mode for categories']
     ans: 0
     why: 'The mode is the most common value. Card appears 3 times. It is the only average that works for categories like these.'
+sources:
+  - 'OpenIntro Statistics, 4th edition, Section 2.1 Examining numerical data https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 1.3.5.1 Measures of Location https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm'
 ---
 
 **Module 1 · about 20 minutes · school maths.** You'll be able to work out the mean, median and mode, explain why they differ, and choose the right one for a report.
+
+<div class="bigidea">The mean shares the total out equally, the median is the middle person, and the mode is the most common value: three different questions, three different answers.</div>
+
+**In everyday terms:** seven friends split a restaurant bill. The mean is what each pays if they split it evenly. The median is what the friend in the middle of the price list ordered. The mode is the dish most people chose.
 
 ## 1. Why there are three averages
 
@@ -59,6 +66,36 @@ The most common value. It is the only average for **categories** (most common pa
 
 A useful habit: when the mean and median are far apart, say so. "Mean order $61, median $38" tells a manager there are some very large orders worth looking at.
 
+<div class="meaning">
+
+<dl>
+<dt>Mean x̄</dt><dd>Add everything up, divide by how many: the "equal share".</dd>
+<dt>Median</dt><dd>Sort the values; the middle one. Half are below, half above.</dd>
+<dt>Mode</dt><dd>The value (or category) that turns up most often.</dd>
+<dt>Physical meaning</dt><dd>The mean is the balance point of a see-saw holding every value at its place; one heavy value far out tips it a long way. The median only cares about order, so a billionaire walking into a café changes the mean income enormously and the median not at all.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The average customer spends the mean."** With a long tail, most customers spend less than the mean: in the worked example six of seven do. Report the median as "typical" and keep the mean for totals and budgets.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> Seven customers spent $12, $15, $15, $18, $22, $30 and $250.</div>
+<div class="step"><b>Mean.</b> Add: 362. Divide by 7: about $51.71, the equal share.</div>
+<div class="step"><b>Median.</b> Already sorted; the 4th of 7 values is the middle: $18.</div>
+<div class="step"><b>Mode.</b> $15 appears twice, more than any other: $15.</div>
+<div class="step"><b>Why they differ.</b> The $250 customer pulls the mean up; the median does not move. Six of seven customers spent below the mean.</div>
+<div class="step"><b>Report.</b> "Typical spend $18; one large order of $250." Use the mean (7 × $51.71 = $362) for the revenue forecast.</div>
+</div>
+
+<div class="problem" data-problem="centre-mean-median"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -98,3 +135,12 @@ Six of the seven customers spent less than the mean. "Average customer spend is 
 **Try it on your own data:** the [[grouped-data-stats]] tool works out all three averages from a frequency table, and the [[csv-profiler]] shows the mean and median of every column in a file.
 
 **New words:** *mean*, *median*, *mode*, *sample mean* `$\bar{x}$`, *population mean* `$\mu$`, *outlier*, *long tail*.
+
+<div class="keypoints">
+
+- Mean = total ÷ count; it uses every value and is pulled by extremes.
+- Median = the middle value after sorting; it resists outliers and long tails.
+- Mode = the most common value; the only average for categories.
+- Typical value: median. Totals and budgets: mean. Categories: mode.
+
+</div>

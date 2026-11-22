@@ -2,7 +2,7 @@
 title: The machine learning workflow
 summary: 'Real projects follow a loop: ask a sharp question, collect and clean data, split it, train, evaluate against a simple baseline, use the model, and keep watching it. Tap through each step.'
 minutes: 20
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: Why compare a model with a simple baseline, such as "always predict the average"?
     choices: ['To make the model look better', 'To know whether the model adds anything over a guess that needs no learning', 'Because baselines are more accurate']
@@ -16,13 +16,19 @@ quiz:
     choices: ['The model has worn out', 'The world changed, so new data no longer looks like the training data (drift)', 'The computer got slower']
     ans: 1
     why: Customer habits, prices and seasons change. Monitoring catches this drift, and retraining on recent data fixes it.
+sources:
+  - 'Chapman, P. et al. (2000), CRISP-DM 1.0: Step-by-step data mining guide, SPSS (the classic project cycle)'
+  - 'Sculley, D. et al. (2015), Hidden Technical Debt in Machine Learning Systems, Advances in Neural Information Processing Systems 28'
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapters 2 and 5 https://www.statlearning.com/'
 ---
 
 **Module 1 · about 20 minutes · read first: 1.1, 1.2.** You'll be able to describe the eight steps of a machine learning project, say what goes wrong at each, and plan a small project on paper.
 
+<div class="bigidea">Training a model is one step of eight: a real project starts with a sharp question and ends with someone watching the model in use.</div>
+
 ## 1. Why this matters
 
-Model-building is one step of eight. Most projects that fail do so before training (a vague question, the wrong data) or after it (no honest test, no one checking it later). Knowing the whole loop also tells you where each later lesson fits.
+Building the model is only one step of eight, rather like cooking is only one step of running a restaurant: you also have to know what people want, buy good ingredients, taste the food and keep checking it every night. Most machine learning projects that fail do so before training (a vague question, the wrong data) or after it (no honest test, nobody checking later). Knowing the whole loop also shows you where each later lesson fits.
 
 ## 2. The loop
 
@@ -45,7 +51,23 @@ A **baseline** is the answer you'd give with no model at all:
 - For classification: always predict the most common class.
 - For time series: predict that tomorrow equals today, or equals the same day last week.
 
-If your model can't beat the baseline clearly on test data, it isn't worth using, however clever it is. Baselines also catch a common trap: when 95 % of cases are "no", a model that is 95 % accurate may have learned nothing at all (Lesson 4.5).
+If your model can't beat the baseline clearly on test data, it isn't worth using, however clever it is.
+
+<div class="myth">
+
+**"95 % accurate means it's a good model."** Not on its own. If 95 % of loan applicants repay, the lazy rule "everyone repays" is also 95 % accurate, and it never catches a single bad loan. Always ask: accurate compared with what? Compare with the baseline, and use a measure that fits the question (Lesson 4.5).
+
+</div>
+
+Here is the loop in miniature, for a café:
+
+<div class="steps">
+<div class="step"><b>Question.</b> "Each evening, predict tomorrow's sandwich sales, so we waste less." Success: smaller leftovers than now, without running out more often.</div>
+<div class="step"><b>Data and split.</b> 300 past days of sales, weather and weekday. Train on the first 250 days, test on the last 50, because in real use the model always predicts the future.</div>
+<div class="step"><b>Baseline.</b> "Tomorrow sells the same as the same weekday last week." On the 50 test days it is off by 20 sandwiches on average.</div>
+<div class="step"><b>Model.</b> A straight-line model using weekday and forecast temperature is off by 12 on the same days.</div>
+<div class="step"><b>Judge and use.</b> Skill = 1 − 12 ÷ 20 = 0.4: it removes 40 % of the baseline's error. Worth using, and worth checking each month in case habits change.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -64,6 +86,20 @@ Skill 0 means no better than the baseline, 1 means perfect, and a negative skill
 
 **Try it:** a model's average error is 12 minutes; always guessing the average delivery time gives 20 minutes. Skill? (`$1 - 12/20 = 0.4$`: it removes 40 % of the baseline's error.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Baseline</dt><dd>The answer you would give with no model at all: the average, the most common class, or "same as last week".</dd>
+<dt>Error of model ÷ error of baseline</dt><dd>What share of the baseline's mistakes the model still makes.</dd>
+<dt>Skill</dt><dd>One minus that share: 0 means no better than the baseline, 1 means perfect, below 0 means worse.</dd>
+<dt>Drift</dt><dd>The world slowly changing so that new data no longer looks like the training data.</dd>
+<dt>Physical meaning</dt><dd>A model earns its keep only by the mistakes it saves. If guessing "the usual" costs a café 20 wasted sandwiches a day and the model cuts that to 12, those 8 sandwiches a day are its whole value, and the reason someone should keep feeding and checking it.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="ml-workflow-skill"></div>
 
 ## 4. Worked example
 
@@ -95,3 +131,13 @@ Skill 0 means no better than the baseline, 1 means perfect, and a negative skill
 **New words:** *baseline*, *drift*, *skill score*, *monitoring*.
 
 **Next, Module 2:** looking hard at data before you model it.
+
+<div class="keypoints">
+
+- A project runs in a loop: question, collect, explore and clean, split, train, evaluate, use, monitor.
+- Most of the time goes on getting and cleaning data, not on the model.
+- Always compare with a baseline that needs no learning; skill = 1 − model error ÷ baseline error.
+- High accuracy means little without a baseline to compare it with.
+- The world drifts, so a model in use must be watched and retrained.
+
+</div>
