@@ -56,6 +56,10 @@ Divergence is the net outflow per unit volume from a tiny box ([lesson 1.5](/lea
 \iiint_V \nabla\cdot\vec F\,dV = \oint_S \vec F\cdot d\vec a \qquad (d\vec a \text{ points outward})
 ```
 
+Drag the paddle wheel around, switch fields, and press Play to let dots drift with the flow.
+
+<figure class="fig" data-fig="@math-field-flow"><figcaption>Notice that the wheel turns only where the curl is not zero, and the dots spread out only where the divergence is positive.</figcaption></figure>
+
 <div class="meaning">
 
 <dl>
@@ -124,6 +128,10 @@ Put Stokes on a flat region of the `$xy$`-plane with `$\vec F = (P, Q, 0)$`. The
 ```math
 \oint_C (P\,dx + Q\,dy) = \iint_R \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right)dA
 ```
+
+Move and resize the loop, change the field, and compare the two numbers in the readout.
+
+<figure class="fig" data-fig="@math-green-loop"><figcaption>Notice that the circulation round the edge and the sum of curl over the inside are always equal (and likewise flux and divergence): Green's and the divergence theorem in the plane.</figcaption></figure>
 
 Memory aid: "**Q first, then P**", the same order as in the `$z$`-component of the curl, `$\partial_x F_y - \partial_y F_x$`.
 

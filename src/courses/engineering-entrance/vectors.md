@@ -64,6 +64,10 @@ The midpoint is (a + b)/2 and the centroid of a triangle is (a + b + c)/3. Three
 
 Useful expansions: |a + b|² = |a|² + |b|² + 2a · b. If |a + b| = |a − b|, then a · b = 0. The triangle inequality |a + b| ≤ |a| + |b| holds, with equality only when a and b point the same way.
 
+Drag the tips of a and b, then press 'Make perpendicular'.
+
+<figure class="fig" data-fig="@math-vec-projection"><figcaption>Notice that the shadow of a on b has length |a|cos θ, that a·b = |b| times that shadow, and that the leftover part is perpendicular to b.</figcaption></figure>
+
 <figure class="fig" data-fig="vec-products"><figcaption>The thick bar along a is the projection of b on a; a · b is |a| times it. The shaded parallelogram has area |a × b|. One shrinks as the other grows.</figcaption></figure>
 
 <div class="problem" data-problem="vec-angle"></div>

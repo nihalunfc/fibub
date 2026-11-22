@@ -46,6 +46,10 @@ An m × n matrix has m rows and n columns; aᵢⱼ is the entry in row i, column
 
 </div>
 
+Choose two transformations and press Apply, then press 'Swap the order' and apply them again.
+
+<figure class="fig" data-fig="@math-matrix-compose"><figcaption>Notice that the letter F ends up in different places when the order is swapped (AB ≠ BA) and that the area is multiplied by the determinant at each stage.</figcaption></figure>
+
 ## 3. Symmetric, skew-symmetric and special matrices
 
 A is **symmetric** if Aᵀ = A and **skew-symmetric** if Aᵀ = −A (so its diagonal is all zeros). Every square matrix splits uniquely:

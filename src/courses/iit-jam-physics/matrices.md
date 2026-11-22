@@ -36,6 +36,10 @@ A `$2\times2$` matrix takes a vector and returns another:
 \begin{pmatrix} a & b \\ c & d \end{pmatrix}\begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax + by \\ cx + dy \end{pmatrix}
 ```
 
+Choose two transformations and press Apply, then press 'Swap the order' and apply them again.
+
+<figure class="fig" data-fig="@math-matrix-compose"><figcaption>Notice that the letter F ends up in different places when the order is swapped (AB ≠ BA) and that the area is multiplied by the determinant at each stage.</figcaption></figure>
+
 Multiplying two matrices means doing one machine after the other, which is why **order matters**: in general `$AB \ne BA$`. The rules that follow from "one after the other":
 
 - `$(AB)^T = B^TA^T$` and `$(AB)^{-1} = B^{-1}A^{-1}$`: undoing reverses the order, like taking off socks and shoes.

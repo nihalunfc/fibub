@@ -37,6 +37,10 @@ A Fourier series writes a periodic function as a sum of harmonics. Let the perio
 \tilde f(k) = \int_{-\infty}^{\infty}f(x)\,e^{-ikx}\,dx, \qquad f(x) = \frac{1}{2\pi}\int_{-\infty}^{\infty}\tilde f(k)\,e^{ikx}\,dk
 ```
 
+Press Play, then add terms with the slider and switch between the square, sawtooth and triangle waves.
+
+<figure class="fig" data-fig="@math-fourier-build"><figcaption>Notice that each term is one rotating arm, that the square wave needs only odd harmonics, and that the overshoot near a jump (Gibbs) stays at about 9% however many terms you add.</figcaption></figure>
+
 Books differ in where they put the `$2\pi$` (all in the inverse as here, `$1/\sqrt{2\pi}$` on each side, or `$e^{\mp2\pi i\nu t}$` with no factors at all) and in the sign of the exponent. **The physics is the same; the factors are not**, and exam options are built from exactly those factors. Read the convention in the question before you answer.
 
 ## 2. Standard pairs and rules
@@ -53,6 +57,10 @@ With the convention above (and `$a > 0$`):
 | `$e^{-a\lvert x\rvert}$` | `$2a/(a^2 + k^2)$` (Lorentzian) |
 | `$e^{-ax}$` for `$x > 0$`, else 0 | `$1/(a + ik)$` |
 | `$\cos k_0x$` | `$\pi[\delta(k - k_0) + \delta(k + k_0)]$` |
+
+Press Play to slide the flipped copy of g across f, or choose other shapes.
+
+<figure class="fig" data-fig="@math-conv-slide"><figcaption>Notice that the output at each t is the area of the overlap, so two boxes give a triangle and a decaying g smears f forward in time.</figcaption></figure>
 
 The rules that do most of the work:
 

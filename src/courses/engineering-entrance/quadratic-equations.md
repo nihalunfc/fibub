@@ -40,6 +40,15 @@ x = \frac{-b \pm \sqrt{D}}{2a}, \qquad D = b^2 - 4ac
 | D = 0 | one repeated real root −b/2a | touches the x-axis |
 | D < 0 | two complex conjugate roots | never meets the x-axis |
 
+Step through the pictures and then change b and x with the sliders.
+
+<div class="steps" data-fig="@math-complete-square">
+<div class="step"><p><b>The picture.</b> x² is a square of side x, and bx is a strip of area bx.</p></div>
+<div class="step"><p><b>Cut and wrap.</b> Cut the strip in half and wrap the halves round two sides of the square.</p></div>
+<div class="step"><p><b>The corner.</b> A small corner of area (b/2)² is missing; add it.</p></div>
+<div class="step"><p><b>A perfect square.</b> The big square has side x + b/2, so x² + bx + (b/2)² = (x + b/2)².</p></div>
+</div>
+
 With rational coefficients, the roots are rational exactly when D is a perfect square; irrational roots come in pairs `$p \pm \sqrt{q}$`, and complex ones in pairs `$p \pm iq$` (for real coefficients).
 
 Move the sliders and watch the roots, the vertex and the discriminant:
@@ -99,6 +108,10 @@ Questions ask: for which values of a parameter do both roots exceed k, lie betwe
 - `$ax^2 + bx + c > 0$` for **all** real x ⇔ a > 0 and D < 0. It is ≥ 0 for all x ⇔ a > 0 and D ≤ 0.
 - The extreme value is at the vertex: `$f(-b/2a) = -D/4a$`, a minimum if a > 0, a maximum if a < 0.
 - **Range of a rational expression** `$y = \dfrac{p(x)}{q(x)}$` with quadratics: rearrange into a quadratic in x with y as a parameter, and require its discriminant ≥ 0 (x must be real).
+
+Slide a, b, h and k to move, stretch and flip the graph of y = a·f(b(x − h)) + k, and try the |f(x)| and f(|x|) modes.
+
+<figure class="fig" data-fig="@math-fn-transform"><figcaption>Notice that changes inside the brackets (b and h) act sideways and 'backwards', changes outside (a and k) act vertically and as you would expect.</figcaption></figure>
 
 ## 5. Inequalities: the sign scheme
 

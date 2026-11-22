@@ -80,6 +80,10 @@ b₁ × b₂ is the direction of the common perpendicular; d is the projection o
 
 **Angle between planes** = angle between normals: `$\cos\theta = \dfrac{|\vec n_1\cdot\vec n_2|}{|\vec n_1||\vec n_2|}$`. **Angle between a line and a plane** uses the sine, since the line is measured from the plane, not from the normal: `$\sin\phi = \dfrac{|\vec b\cdot\vec n|}{|\vec b||\vec n|}$`.
 
+Slide the tilt and turn of the line and the height of the plane, and drag the picture round.
+
+<figure class="fig" data-fig="@math-plane-line-3d"><figcaption>Notice that the angle between line and plane comes from sin φ = |v·n|/(|v||n|), and that v·n = 0 means the line is parallel to the plane.</figcaption></figure>
+
 <div class="myth">
 
 **"The angle between a line and a plane is found with cos, like two lines."** Using cos with the normal gives the angle between the line and the **normal**, which is 90° minus the answer. A line lying in the plane is perpendicular to the normal, so b · n = 0 gives φ = 0 with the sine formula.
