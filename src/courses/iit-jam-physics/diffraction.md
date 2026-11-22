@@ -37,6 +37,10 @@ Two set-ups are used:
 - **Fraunhofer** (far field): source and screen effectively at infinity, so the wavefronts at the aperture are plane. In practice, lenses do this. The pattern keeps its shape and only grows with distance. JAM is mostly about this case.
 - **Fresnel** (near field): source or screen at a finite distance, so the curvature of the waves matters. The pattern changes shape as you move the screen.
 
+Slide the angle and the index ratio. Watch the small wavelets from the boundary build the new, bent wavefront.
+
+<figure class="fig" data-fig="@em-huygens"><figcaption>The wavelets in the second medium are smaller, so their common tangent is turned: that gives Snell's law, sin θ₁/sin θ₂ = n.</figcaption></figure>
+
 ## 2. The single slit
 
 A slit of width `$a$`, plane wave at normal incidence. Look in a direction `$\theta$`: the wavelet from one edge travels `$a\sin\theta$` further than the wavelet from the other edge.
@@ -78,6 +82,10 @@ The secondary maxima satisfy `$\tan\beta = \beta$`, at `$\beta = 1.43\pi, 2.46\p
 </div>
 
 **Oblique incidence.** If the light arrives at angle `$i$`, the minima become `$a(\sin\theta - \sin i) = m\lambda$` and the central maximum moves to `$\theta = i$`.
+
+Narrow the slit and watch the central band widen. Then switch to two slits of finite width.
+
+<figure class="fig" data-fig="@em-single-slit"><figcaption>The first dark point is at sin θ = λ/a. With two slits the fine fringes sit inside the single-slit envelope, and some orders go missing.</figcaption></figure>
 
 ## 3. From two slits to a grating
 

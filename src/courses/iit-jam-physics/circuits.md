@@ -46,6 +46,10 @@ Discharging from `$V_0$`: `$V_C = V_0e^{-t/\tau}$`. After one `$\tau$` a chargin
 
 <div class="problem" data-problem="rc-charge-time"></div>
 
+Choose charging or discharging and change R and C. The dots are charge carriers moving round the loop; the graph is in units of τ = RC.
+
+<figure class="fig" data-fig="@em-rc-flow"><figcaption>The current starts biggest and dies away exponentially. After one τ the capacitor has reached 63% (charging) or fallen to 37% (discharging).</figcaption></figure>
+
 ## 2. RL circuits
 
 Switch a battery onto `$R$` and `$L$` in series: `$V_0 = IR + L\,dI/dt$`, so
@@ -71,6 +75,10 @@ Add resistance: `$L\ddot q + R\dot q + q/C = 0$`, the damped oscillator of [less
 | `$R > 2\sqrt{L/C}$` (overdamped) | slow creep back, no oscillation |
 
 **Worked example.** `$L = 0.20$` H and `$C = 5.0$` µF: critical at `$R = 2\sqrt{4\times10^4} = 400\ \Omega$`. With `$L = 1$` H, `$C = 1$` µF and `$R = 200\ \Omega$`: `$\omega_d = \sqrt{10^6 - 10^4} = 995$` rad/s, just below `$\omega_0$`.
+
+Change L and C and press play; then add resistance. Follow the energy as it passes between the capacitor and the coil.
+
+<figure class="fig" data-fig="@em-lc-swing"><figcaption>Electric and magnetic energy trade places while the total stays fixed. Resistance makes the swings die away.</figcaption></figure>
 
 ## 4. AC: reactance, impedance and phasors
 
@@ -150,6 +158,10 @@ The [circuit simulator](/science/circuit-simulator/) runs transients and AC swee
 - `$\langle P\rangle = V_{\text{rms}}I_{\text{rms}}\cos\phi = I^2R$`; `$V_{\text{rms}} = V_0/\sqrt2$`. Max power: `$R_L = r$` (or `$Z_L = Z_s^*$`), `$P = V^2/4r$`.
 
 </div>
+
+Change the number of turns, the load and the efficiency. Compare the two voltages and currents.
+
+<figure class="fig" data-fig="@em-transformer"><figcaption>The voltage ratio equals the turns ratio; the current ratio is the opposite, so power in is power out (less any losses).</figcaption></figure>
 
 ## Practise: exam questions on this lesson
 

@@ -92,6 +92,10 @@ Its solutions, called harmonic functions, have one beautiful property: **the val
 
 **Quick test.** `$x^2 - y^2$`, `$xy$` and `$e^x\cos y$` are harmonic; `$x^2 + y^2$` is not (its Laplacian is 4, which needs charge density `$-4\epsilon_0$`).
 
+Choose an electrode layout and press play. Then click a point to compare its potential with the average of its neighbours.
+
+<figure class="fig" data-fig="@em-laplace-relax"><figcaption>Every free point settles to the average of its neighbours, the defining property of a solution of Laplace's equation; the picture relaxes towards the unique answer.</figcaption></figure>
+
 ## 4. The uniqueness theorem
 
 > If `$\rho$` is given inside a region and `$V$` is given on its whole boundary, there is only one solution.
@@ -133,6 +137,15 @@ The sphere carries exactly `$q'$`. The force is `$\dfrac{kq^2Rd}{(d^2 - R^2)^2}$
 
 **"The image of a charge in a grounded sphere is −q, like in a plane."** Only for a plane. A sphere of radius `$R$` needs the smaller image `$-qR/d$`, inside the sphere at `$R^2/d$`. As `$R$` and `$d$` grow with `$d - R$` fixed, `$-qR/d \to -q$` and the plane result comes back.
 
+</div>
+
+Step through the method of images, or press the numbers. Change d to see the induced charge and the force change.
+
+<div class="steps" data-fig="@em-image-steps">
+<div class="step">A charge above a grounded conducting plane pulls opposite charge up out of the metal.</div>
+<div class="step">Replace the metal by an image charge of −q at the same depth below. Above the plane the field does not change.</div>
+<div class="step">Every point of the plane is equally far from +q and −q, so V = 0 there and the field meets it at right angles.</div>
+<div class="step">The field at the surface gives the induced charge σ = −qd/2π(ρ² + d²)^(3/2); the total is −q. The force is that of the image.</div>
 </div>
 
 ## 6. A conducting sphere in a uniform field

@@ -45,6 +45,10 @@ Seen straight down, an object at depth `$d$` in a medium of index `$n$` appears 
 
 **Worked example.** A coin under 4 cm of water (`$n = 4/3$`) on top of 6 cm of glass (`$n = 1.5$`) appears `$4/(4/3) + 6/1.5 = 3 + 4 = 7$` cm below the surface, instead of 10 cm.
 
+Raise the angle of incidence until the refracted ray disappears. Then switch to the optical fibre and find the largest entry angle that stays trapped.
+
+<figure class="fig" data-fig="@em-snell-tir"><figcaption>Past the critical angle all the light is reflected. A fibre uses this over and over; its acceptance angle depends on the two refractive indices.</figcaption></figure>
+
 ## 3. Prisms and dispersion
 
 A prism of apex angle `$A$` deviates a ray least when the ray passes through symmetrically. Then
@@ -56,6 +60,20 @@ n = \frac{\sin[(A + D_m)/2]}{\sin(A/2)}, \qquad \delta \approx (n - 1)A \ \text{
 **Worked example.** `$A = 60^\circ$`, `$D_m = 40^\circ$`: `$n = \sin50^\circ/\sin30^\circ = 1.532$`. With `$n = \sqrt2$`: `$\sin[(60^\circ + D)/2] = 0.707$`, so `$D = 30^\circ$`.
 
 Because `$n$` depends on wavelength, the prism spreads colours by `$(n_v - n_r)A$`. The **dispersive power** is `$\omega = (n_v - n_r)/(n - 1)$`. Two thin prisms of different glass, apex opposite, cancel the spread (no dispersion, some deviation) if `$(n_v - n_r)A = (n'_v - n'_r)A'$`, or cancel the deviation (a direct-vision prism) if `$(n - 1)A = (n' - 1)A'$`. Rainbows are prisms made of drops: about `$42^\circ$` from the antisolar point, red outside; the secondary bow has two internal reflections and reversed colours. See [Prism and dispersion](/learn/prism-dispersion/).
+
+Slide the angle of incidence, then press Minimum deviation. Raise the dispersion to see the colours spread.
+
+<figure class="fig" data-fig="@em-prism-dispersion"><figcaption>Violet bends more than red. The deviation is smallest when the ray crosses the prism symmetrically.</figcaption></figure>
+
+Step through the path of one ray, or slide its height b. At the end, see each colour at its own minimum deviation.
+
+<div class="steps" data-fig="@em-rainbow-drop">
+<div class="step">Sunlight, a bundle of parallel rays, meets a spherical raindrop. Pick one ray at height b above the axis.</div>
+<div class="step">It refracts into the drop (it bends towards the normal, because water has n ≈ 1.33).</div>
+<div class="step">It reflects once from the back surface (part of the light does; the rest leaves).</div>
+<div class="step">It refracts out again. The total turn D = 180° + 2i − 4r depends on b; see the graph.</div>
+<div class="step">D has a minimum (about 138° for red). Rays near that b all leave in nearly the same direction, so that direction is bright: the rainbow, 42° from the line opposite the sun. Violet's minimum is at a slightly different angle.</div>
+</div>
 
 ## 4. One sign convention for everything
 
@@ -129,6 +147,10 @@ For a real object between two lenses, find the first image, then use it as the o
 **Worked example.** A microscope with `$f_o = 1$` cm, `$f_e = 5$` cm, lenses 20 cm apart, final image at infinity: the objective must put its image at the eyepiece focus, `$v_o = 15$` cm, so `$u_o = -15/14$` cm and `$m_o = -14$`; total `$14\times5 = 70$`. The [Microscope and telescope](/learn/microscope-telescope/) tool lets you try other designs.
 
 **Displacement method.** With object and screen a fixed `$D$` apart, a convex lens gives two sharp images (if `$D > 4f$`) at positions `$x$` apart, and `$f = (D^2 - x^2)/(4D)$`; the object height is `$\sqrt{h_1h_2}$`.
+
+Switch between the microscope and the telescope and change the focal lengths. Follow the rays through each lens.
+
+<figure class="fig" data-fig="@em-scope-rays"><figcaption>The microscope's objective makes a big real image that the eyepiece magnifies; in the telescope the two focal points coincide and the beam leaves parallel.</figcaption></figure>
 
 ## 7. Aberrations
 

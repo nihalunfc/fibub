@@ -30,6 +30,10 @@ sources:
 
 A **wavefront** joins points vibrating in step (same phase). Rays are perpendicular to wavefronts. **Huygens' principle:** every point on a wavefront acts as a source of small secondary waves, and the new wavefront is the surface touching them all. It explains reflection and refraction: in a slower medium the secondary waves travel less far, so the wavefront tilts, giving Snell's law `$\dfrac{\sin i}{\sin r} = \dfrac{v_1}{v_2}$`. (Newton's particle model wrongly predicted light speeds up in water.)
 
+Slide the angle and the index ratio. Watch the small wavelets from the boundary build the new, bent wavefront.
+
+<figure class="fig" data-fig="@em-huygens"><figcaption>The wavelets in the second medium are smaller, so their common tangent is turned: that gives Snell's law, sin θ₁/sin θ₂ = n.</figcaption></figure>
+
 ## 2. Interference and coherence
 
 Two waves of amplitudes a₁, a₂ with phase difference φ give intensity
@@ -81,6 +85,10 @@ Try it here, then switch to a single slit.
 
 Light reflecting off the top and bottom of a thin film (thickness t, index μ) interferes. The extra path is 2μt cos r, plus an extra λ/2 for a reflection off a denser medium. For a soap film in air seen in reflection at near-normal incidence: bright when `$2\mu t = \left(n + \tfrac12\right)\lambda$`, dark when `$2\mu t = n\lambda$`. This makes the colours of soap bubbles and oil on water. An **anti-reflection coating** of thickness λ/(4μ) makes the two reflections cancel.
 
+Slide the thickness and the viewing angle, for a soap film and then a coating on glass. Look for the wavelengths that disappear.
+
+<figure class="fig" data-fig="@em-thin-film"><figcaption>The reflected colour depends on thickness through 2nt cos θ and on whether a half-wave phase flip occurs. A quarter-wave coating cancels reflection.</figcaption></figure>
+
 ## 5. Single slit diffraction
 
 Light through a single slit of width a spreads out. Pairing up points across the slit, the first dark band is where `$a\sin\theta = \lambda$`:
@@ -94,6 +102,10 @@ Secondary maxima are at about `$a\sin\theta = \left(n + \tfrac12\right)\lambda$`
 <div class="problem" data-problem="wo-single-slit"></div>
 
 **Resolving power.** Diffraction blurs every point into a small disc. Two points are just resolved when the centre of one disc falls on the first dark ring of the other (Rayleigh): for a circular aperture of diameter D, `$\theta_{\min} = \dfrac{1.22\lambda}{D}$`. Bigger telescopes and shorter wavelengths resolve finer detail. A microscope's resolving power improves with an oil-immersion lens.
+
+Narrow the slit and watch the central band widen. Then switch to two slits of finite width.
+
+<figure class="fig" data-fig="@em-single-slit"><figcaption>The first dark point is at sin θ = λ/a. With two slits the fine fringes sit inside the single-slit envelope, and some orders go missing.</figcaption></figure>
 
 ## 6. Polarisation
 
@@ -110,6 +122,10 @@ where θ is the angle between the light's vibration and the polaroid's axis. Cro
 <div class="problem" data-problem="wo-malus"></div>
 
 **Worked example (level 4).** In a double slit set-up with β = 0.4 mm, a mica sheet (μ = 1.6) 6 µm thick covers one slit, with λ = 600 nm. Extra path = 0.6 × 6 = 3.6 µm = 6λ. The pattern shifts by **6 fringes** (2.4 mm) towards the covered slit; the fringe width stays 0.4 mm.
+
+Slide the angle of incidence to the Brewster angle, then try the three polaroids.
+
+<figure class="fig" data-fig="@em-brewster"><figcaption>At θB the in-page polarisation is not reflected and the reflected and refracted rays are at 90°. Each polaroid multiplies the light by cos² of the angle between neighbouring axes.</figcaption></figure>
 
 <div class="keypoints">
 

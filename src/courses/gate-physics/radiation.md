@@ -39,6 +39,16 @@ In the Lorenz gauge the potentials are sums over sources evaluated at the **reta
 
 For a source of size `$d$` oscillating at `$\omega$`, three length scales matter: `$d$`, the wavelength `$\lambda$` and the distance `$r$`. The **dipole approximation** needs `$d \ll \lambda$`; the **radiation zone** is `$r \gg \lambda$`. The fields there have three kinds of terms, in the ratio `$1 : kr : (kr)^2$` for the `$1/r^3$` (quasi-static), `$1/r^2$` (induction) and `$1/r$` (radiation) parts. Only the `$1/r$` part delivers power to infinity: its intensity falls as `$1/r^2$`, so the power through every large sphere is the same. A steady current, or a charge in uniform motion, has no such part.
 
+Step through, or slide the time since the push. Look at the kink in the field lines spreading out as a shell.
+
+<div class="steps" data-fig="@em-radiation-kink">
+<div class="step">The charge at rest: field lines straight out, strength falling as 1/r².</div>
+<div class="step">At t = 0 it is pushed. The news has only just started to spread.</div>
+<div class="step">A shell of radius ct has spread out. Inside it the lines point away from the new position, outside from the old one.</div>
+<div class="step">The kink has grown. At right angles to the push it is largest; along the push there is none.</div>
+<div class="step">The sideways field at the kink falls only as 1/r. This is the radiation field: it carries energy to infinity.</div>
+</div>
+
 ## 2. The oscillating electric dipole
 
 For `$\vec p(t) = p_0\cos\omega t\,\hat z$`, the radiation fields are
@@ -169,6 +179,10 @@ with a continuous, rising-frequency spectrum. Stable atoms with sharp lines were
 - Cyclotron decay `$\tau = 3\pi\epsilon_0m^3c^3/e^4B^2$`; synchrotron `$\Delta E = e^2\gamma^4/3\epsilon_0R$`, `$\hbar\omega_c = \frac32\hbar\gamma^3c/R$`, protons `$(m_e/m_p)^4$` less.
 
 </div>
+
+Raise the speed and compare the two kinds of acceleration. Watch the lobes swing forward.
+
+<figure class="fig" data-fig="@em-beaming"><figcaption>At high speed the radiation is squeezed into a narrow forward cone of half-angle about 1/γ.</figcaption></figure>
 
 ## Practise: exam questions on this lesson
 

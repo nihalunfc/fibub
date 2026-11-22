@@ -99,6 +99,10 @@ Useful consequences:
 
 <div class="problem" data-problem="frs-reflect"></div>
 
+Slide the angle of incidence to the Brewster angle, then try the three polaroids.
+
+<figure class="fig" data-fig="@em-brewster"><figcaption>At θB the in-page polarisation is not reflected and the reflected and refracted rays are at 90°. Each polaroid multiplies the light by cos² of the angle between neighbouring axes.</figcaption></figure>
+
 ## 4. Total internal reflection
 
 For `$n_1 > n_2$` and `$\sin\theta_i > n_2/n_1$`, Snell gives `$\sin\theta_t > 1$` and `$\cos\theta_t = i\sqrt{\sin^2\theta_t - 1}$`. Both `$r_s$` and `$r_p$` become of the form `$(a - ib)/(a + ib)$`: magnitude exactly 1, with phases
@@ -128,6 +132,14 @@ It is zero at the critical angle and at grazing incidence, with a maximum `$\tan
 **"Past the critical angle there is no light in the second medium."** There is a field there: the evanescent wave, decaying over a fraction of a wavelength. Without it the boundary conditions could not be met. What vanishes is the average energy flow across the boundary. Bring a second prism close and light tunnels through, with transmission falling roughly as `$e^{-2\kappa d}$` with the gap `$d$`.
 
 </div>
+
+Raise the angle of incidence until the refracted ray disappears. Then switch to the optical fibre and find the largest entry angle that stays trapped.
+
+<figure class="fig" data-fig="@em-snell-tir"><figcaption>Past the critical angle all the light is reflected. A fibre uses this over and over; its acceptance angle depends on the two refractive indices.</figcaption></figure>
+
+Raise the angle of incidence past the critical angle, then bring the second prism close.
+
+<figure class="fig" data-fig="@em-evanescent"><figcaption>A field leaks a fraction of a wavelength into the second medium. A nearby second prism lets the light tunnel across (frustrated total reflection).</figcaption></figure>
 
 ## 5. Metals, Stokes relations and coatings
 

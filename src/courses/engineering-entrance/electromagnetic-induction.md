@@ -46,6 +46,20 @@ The flux can change because B changes, the area changes, or the angle changes. *
 
 <div class="problem" data-problem="emi-charge"></div>
 
+Step through Lenz's law, or drag the magnet height yourself. Read the direction of the induced current and the pole it makes.
+
+<div class="steps" data-fig="@em-lenz-steps">
+<div class="step">Far above the coil: nothing changes, no current.</div>
+<div class="step">The magnet approaches: the downward flux through the coil is growing.</div>
+<div class="step">Lenz: the induced current makes a field pointing up, to oppose the growth.</div>
+<div class="step">That field gives the coil's top face a north pole, which repels the approaching magnet.</div>
+<div class="step">The magnet leaves: flux shrinks, the current reverses, the lower face becomes north and pulls the magnet back.</div>
+</div>
+
+Drop the magnet through the closed coil, then through the open coil. Compare how long it takes and look at the two EMF peaks.
+
+<figure class="fig" data-fig="@em-lenz-fall"><figcaption>The EMF changes sign as the magnet passes through, with a bigger second peak. With the coil closed the induced current brakes the magnet; open, it does not.</figcaption></figure>
+
 ## 2. Motional emf
 
 A rod of length l moving at speed v across a field B has an emf `$\varepsilon = Blv$` between its ends. The magnetic force on its free electrons (qv × B) pushes them to one end until an electric field balances it. In general `$\varepsilon = (\vec v \times \vec B)\cdot\vec l$`: only the parts of v, B and l that are mutually perpendicular count.
@@ -57,6 +71,10 @@ A rod of length l moving at speed v across a field B has an emf `$\varepsilon = 
 | Rod rotating about its middle | zero between its ends |
 | Disc of radius R spinning (centre to rim) | `$\tfrac12 B\omega R^2$` |
 | Coil of N turns, area A, rotating | `$NBA\omega\sin\omega t$` |
+
+Change N, B and the turning rate. Watch flux (cosine) and EMF (sine) as the coil turns; drag the picture to look from other angles.
+
+<figure class="fig" data-fig="@em-generator"><figcaption>The EMF is largest when the coil is edge-on to B and zero when face-on, a quarter-turn out of step with the flux.</figcaption></figure>
 
 ## 3. Rods on rails and terminal speed
 

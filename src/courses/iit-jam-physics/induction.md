@@ -54,6 +54,10 @@ The flux can change because `$B$` changes, because the loop's area changes, or b
 
 </div>
 
+Change N, B and the turning rate. Watch flux (cosine) and EMF (sine) as the coil turns; drag the picture to look from other angles.
+
+<figure class="fig" data-fig="@em-generator"><figcaption>The EMF is largest when the coil is edge-on to B and zero when face-on, a quarter-turn out of step with the flux.</figcaption></figure>
+
 ## 2. Lenz's law: getting the direction
 
 Never guess the direction. Use three steps: (1) which way does the flux through the loop point, and is it growing or shrinking? (2) the induced current makes its own field **against the change** (opposite to the flux if it is growing, along it if it is shrinking); (3) the right-hand rule turns that field into a current direction.
@@ -67,6 +71,20 @@ Watch it in the figure. The coil's face nearest the approaching pole becomes the
 **"The induced current opposes the magnetic field."** It opposes the *change* in flux. If the flux through a loop is falling, the induced current flows so as to keep it up, making a field in the same direction as the original one. A falling magnet is slowed both while it approaches a ring and while it leaves it.
 
 </div>
+
+Step through Lenz's law, or drag the magnet height yourself. Read the direction of the induced current and the pole it makes.
+
+<div class="steps" data-fig="@em-lenz-steps">
+<div class="step">Far above the coil: nothing changes, no current.</div>
+<div class="step">The magnet approaches: the downward flux through the coil is growing.</div>
+<div class="step">Lenz: the induced current makes a field pointing up, to oppose the growth.</div>
+<div class="step">That field gives the coil's top face a north pole, which repels the approaching magnet.</div>
+<div class="step">The magnet leaves: flux shrinks, the current reverses, the lower face becomes north and pulls the magnet back.</div>
+</div>
+
+Drop the magnet through the closed coil, then through the open coil. Compare how long it takes and look at the two EMF peaks.
+
+<figure class="fig" data-fig="@em-lenz-fall"><figcaption>The EMF changes sign as the magnet passes through, with a bigger second peak. With the coil closed the induced current brakes the magnet; open, it does not.</figcaption></figure>
 
 ## 3. Motional EMF
 
