@@ -17,8 +17,13 @@ export default {
     { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
       { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
       { id: 'work-energy-collisions', name: 'Work, energy, momentum and collisions' },
+      { id: 'variable-mass', name: 'Variable mass systems and rockets' },
       { id: 'central-forces', name: 'Central forces, orbits and Kepler\'s laws' },
       { id: 'moment-of-inertia', name: 'Moment of inertia and the axis theorems' },
+      { id: 'rigid-body-rotation', name: 'Rotation, rolling and angular momentum' },
+      { id: 'elasticity', name: 'Elasticity: stress, strain and the elastic constants' },
+      { id: 'fluids', name: 'Fluids: surface tension, viscosity and Bernoulli' },
+      { id: 'special-relativity', name: 'Special relativity: Lorentz transformations and E = mc²' },
     ] },
     { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
       { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
