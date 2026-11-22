@@ -1,7 +1,7 @@
 // Class 10 Areas Related to Circles: a sector with angle θ is the fraction θ/360 of the whole circle, so
 // arc length = θ/360 × 2πr and area = θ/360 × πr². Drag the sector's edge (or use the slider) and watch both numbers grow
 // in proportion. Toggle the minor and major sector: they are the two pieces the radii cut the circle into.
-import { canvas, text, title, line, dot, row, slider, choice, readout } from '../../kit.js';
+import { canvas, text, title, line, dot, row, slider, choice, readout, touchGuard } from '../../kit.js';
 
 export default function (host) {
   let th = 90, r = 7, major = false, G = {};
@@ -16,7 +16,7 @@ export default function (host) {
     out.innerHTML = `Fraction = ${major ? 360 - th : th}/360 = <b>${+f.toFixed(3)}</b>. Arc length = ${+f.toFixed(3)} × 2πr = <b>${(f * 2 * P * r).toFixed(2)} cm</b>. Area = ${+f.toFixed(3)} × πr² = <b>${(f * P * r * r).toFixed(2)} cm²</b> (π = 22/7).`;
     cv.redraw();
   }
-  cv.c.style.touchAction = 'none'; let on = false;
+  let on = false; touchGuard(cv.c, (x, y) => Math.hypot(x - G.hx, y - G.hy) < 24);
   const mv = (e) => { const b = cv.c.getBoundingClientRect(); let a = (Math.atan2(-(e.clientY - b.top - G.cy), e.clientX - b.left - G.cx) * 180) / Math.PI; if (a < 0) a += 360; th = Math.max(10, Math.min(350, Math.round(a / 5) * 5)); st.set(th); say(); };
   cv.c.addEventListener('pointerdown', (e) => { const b = cv.c.getBoundingClientRect(); if (Math.hypot(e.clientX - b.left - G.hx, e.clientY - b.top - G.hy) < 30) { on = true; cv.c.setPointerCapture(e.pointerId); e.preventDefault(); } });
   cv.c.addEventListener('pointermove', (e) => on && mv(e)); cv.c.addEventListener('pointerup', () => (on = false)); cv.c.addEventListener('pointercancel', () => (on = false));
