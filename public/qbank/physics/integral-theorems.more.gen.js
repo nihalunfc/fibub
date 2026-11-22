@@ -7,8 +7,8 @@ const kpi = (k) => (k === 0 ? '$0$' : `$${k === 1 ? '' : k === -1 ? '-' : round(
 export default [
   { id: 'it-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'green theorem',
     make(r) {
-      const a = int(r, 1, 4), b = int(r, 1, 4);
-      const all = { ell: a * b, ast: (3 * a * a) / 8, car: (3 * a * a) / 2, cyc: 3 * a * a, sq: a * a, half: (a * a) / 2 };
+      const a = int(r, 2, 4), b = int(r, 2, 5);
+      const all ={ ell: a * b, ast: (3 * a * a) / 8, car: (3 * a * a) / 2, cyc: 3 * a * a, sq: a * a, half: (a * a) / 2 };
       const C = choose(r, [
         ['ell', `the ellipse $x = ${a}\\cos t$, $y = ${b}\\sin t$, $0\\le t\\le 2\\pi$`, `$x\\,dy - y\\,dx = ${a * b}(\\cos^2t + \\sin^2t)\\,dt = ${a * b}\\,dt$, so $A = \\tfrac12\\cdot${a * b}\\cdot2\\pi = ${a * b}\\pi$.`],
         ['ast', `the astroid $x = ${a}\\cos^3t$, $y = ${a}\\sin^3t$, $0\\le t\\le 2\\pi$`, `$x\\,dy - y\\,dx = 3\\cdot${a * a}\\sin^2t\\cos^2t\\,dt = \\tfrac34\\cdot${a * a}\\sin^2 2t\\,dt$. Over a full turn $\\int\\sin^22t\\,dt = \\pi$, so $A = \\tfrac12\\cdot\\tfrac34\\cdot${a * a}\\pi = ${round(all.ast, 4)}\\pi$.`],

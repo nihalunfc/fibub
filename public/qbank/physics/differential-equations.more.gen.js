@@ -92,7 +92,7 @@ export default [
         const W = w === 1 ? '' : w, c = `\\cos ${W}x`, s = `\\sin ${W}x`;
         const right = res ? `$x(A${c} + B${s})$` : `$A${c} + B${s}$`;
         const o = mcqOptions(r, right, [res ? `$A${c} + B${s}$` : `$x(A${c} + B${s})$`, `$A${c}$`, `$Ax${c}$`, `$Ae^{${W}x}$`]);
-        return { q: `For $y'' + ${w0 * w0}y = 3\\cos ${W}x$, the right trial form for a particular solution is`, ...o,
+        return { q: `For $y'' + ${w0 === 1 ? '' : w0 * w0}y = 3\\cos ${W}x$, the right trial form for a particular solution is`, ...o,
           sol: `The homogeneous solutions are $\\cos ${w0 === 1 ? '' : w0}x$ and $\\sin ${w0 === 1 ? '' : w0}x$. ${res ? `The forcing has the same frequency, so $A\\cos + B\\sin$ would solve the homogeneous equation and give zero; multiply by $x$ (resonance): $x(A${c} + B${s})$.` : `The forcing frequency ${w} differs from ${w0}, so $A${c} + B${s}$ works (the sine term is needed in general, though here $B$ turns out to be $0$ because there is no $y'$ term).`}`,
           trap: 'At resonance the ordinary trial form is itself a homogeneous solution, so it must be multiplied by $x$.' };
       }
