@@ -16,9 +16,16 @@ quiz:
     choices: ['Yes', 'No: drop returns a new DataFrame; assign it back (df = df.drop(...)) to keep the change', 'Only for numbers']
     ans: 1
     why: 'Most pandas methods return a new object and leave the original alone.'
+sources:
+  - 'pandas documentation, User Guide: Indexing and selecting data https://pandas.pydata.org/docs/user_guide/indexing.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 2 · about 15 minutes · uses Lesson 1.4.** You'll be able to pick, drop, reorder and rename columns.
+
+<div class="bigidea">Choose the columns you need by name, drop the rest, and rename them so the table reads well.</div>
+
+**In everyday terms:** packing for a trip: take out only what you need, leave the rest, and label the bags so you can find things.
 
 ## 1. One, several, reordered
 
@@ -63,6 +70,35 @@ orders = pd.read_csv('orders.csv')
 display(orders.select_dtypes('number').head(3))       # only numeric columns
 orders.filter(like='_id').head(3)                     # names containing '_id'
 ```
+
+<div class="meaning">
+
+<dl>
+<dt>df[['a', 'b']]</dt><dd>Keep these columns, in this order.</dd>
+<dt>drop(columns=[...])</dt><dd>Remove columns.</dd>
+<dt>rename(columns={'old': 'new'})</dt><dd>Change names.</dd>
+<dt>select_dtypes / filter(like=...)</dt><dd>Choose by type or by part of the name.</dd>
+<dt>Physical meaning</dt><dd>Narrow tables are faster, easier to read and harder to misuse. Selecting columns is deciding which facts the analysis is about.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"rename changes the table."** Like most pandas methods, it returns a new table. Write <code>df = df.rename(...)</code> to keep the result.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Start.</b> 8 columns: order_id, date, customer_id, store_id, product_id, qty, unit_price, discount.</div>
+<div class="step"><b>Keep four.</b> <code>orders[['date', 'store_id', 'qty', 'unit_price']]</code></div>
+<div class="step"><b>Rename.</b> <code>.rename(columns={'unit_price': 'price'})</code></div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>date</th><th>store_id</th><th>qty</th><th>price</th></tr><tr><td>2025-01-01</td><td>S04</td><td>2</td><td>19.99</td></tr><tr><td>2025-01-01</td><td>S01</td><td>1</td><td>4.29</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-columns-count"></div>
 
 ## 4. Your turn
 
@@ -140,3 +176,12 @@ import pandas as pd
 </details>
 
 **New words:** *select*, *drop*, *rename*, *select_dtypes*, *method chaining*.
+
+<div class="keypoints">
+
+- Double brackets select several columns in the order you list.
+- drop(columns=...) removes; rename(columns={...}) renames.
+- select_dtypes and filter choose columns by type or name pattern.
+- Assign the result back; methods return new tables.
+
+</div>

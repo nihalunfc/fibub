@@ -1,0 +1,18 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { LSAT } from '../../../../courses/lsat/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={LSAT}>
+  <section class="cs-builds">
+    <h2>How this course teaches you without a tutor</h2>
+    <ul>
+      <li><strong>Arguments drawn, not just described.</strong> Every argument is mapped step by step into premises, conclusion and the gap between them, so you see the structure the question is testing.</li>
+      <li><strong>One question type per lesson.</strong> What the question asks, the method that answers it every time, worked examples with every wrong answer explained, and the traps the test sets.</li>
+      <li><strong>Logic you can play with.</strong> Conditional chains, contrapositives and "some/most/all" diagrams move as you change them.</li>
+      <li><strong>Take it with you.</strong> Each lesson prints as a one-page summary sheet.</li>
+    </ul>
+    <p><strong>How to use it:</strong> do Module 1 and Module 2 in order (they are the base for everything), then the question-type modules, Reading Comprehension alongside, and the practice tests last. About 10 to 12 weeks at an hour a day. Your progress stays in this browser; tick "Remember my progress" so it is still here next time.</p>
+    <p>Every argument, passage and question is original and written for fibub. Nothing is copied from LSAC or released tests. Free, no sign-up.</p>
+  </section>
+</CourseHome>

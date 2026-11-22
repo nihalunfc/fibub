@@ -11,6 +11,7 @@ import type { CourseSyllabus } from '../types';
 export const STARTUP: CourseSyllabus = {
   id: 'startup',
   name: 'Start a startup',
+  kit: true,
   title: 'Start a startup in India, Canada or the USA: idea to official business',
   text: 'How to start a business in India, Canada or the USA, online or offline, alone or with co-founders: from the idea to registering, licences, GST and sales tax, income tax, payroll, IP and co-founder agreements, with official sources and interactive tools.',
   audience: 'For first-time founders, freelancers and side-project builders. No business or legal background needed; every term is explained.',

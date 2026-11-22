@@ -1,0 +1,56 @@
+---
+// 7.4: where must I collect US sales tax? Physical presence plus the economic nexus thresholds states adopted after Wayfair (2018).
+---
+<figure class="cs-fig su-fig" data-nx>
+  <span class="cs-figtag">Checker: where do I owe US sales tax?</span>
+  <div class="su-row"><label>Home state (where you are based)<select name="home"></select></label></div>
+  <p class="su-q">Your sales into other states over the last 12 months</p>
+  <div class="nx-row nx-head"><span>State</span><span>Sales ($)</span><span>Orders</span><span title="Staff or stock there">Staff/ stock</span></div>
+  <div data-rows></div>
+  <button type="button" class="btn secondary" data-add>Add a state</button>
+  <div class="su-cards" data-out></div>
+  <figcaption>Thresholds as most state revenue departments publish them in late 2026: usually $100,000 of sales into the state in the current or previous calendar year; California and Texas use $500,000, New York $500,000 plus 100 sales, Alabama and Mississippi $250,000. Some states still also count 200 separate sales, and states differ on whether exempt and marketplace sales count, so check each state. Staff, an office or stock in a warehouse (including a marketplace's fulfilment centre) create nexus at any sales level.</figcaption>
+</figure>
+<style is:inline>
+  .nx-row { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.1fr) minmax(0, .95fr) 2.6em; gap: 6px; align-items: center; margin: 4px 0; }
+  .nx-row input[type=number], .nx-row select { width: 100%; min-width: 0; font-size: 14px !important; padding: 6px !important; }
+  .nx-row input[type=checkbox] { justify-self: center; width: 20px; height: 20px; }
+  .nx-head { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.1; }
+  .nx-head span:last-child { text-align: center; }
+</style>
+<script>
+  import { US_STATES } from '../../../lib/money/sales-tax-calculator';
+  import { money } from './fmt';
+  const T: Record<string, [number, number?]> = { CA: [500000], TX: [500000], NY: [500000, 100], AL: [250000], MS: [250000] };
+  const opts = (v: string) => US_STATES.map(([k, n]) => `<option value="${k}"${k === v ? ' selected' : ''}>${n}</option>`).join('');
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-nx]')) {
+    const home = fig.querySelector<HTMLSelectElement>('[name=home]')!; home.innerHTML = opts('FL');
+    const rows = fig.querySelector<HTMLElement>('[data-rows]')!;
+    const add = (st: string, s: number, n: number) => {
+      const d = document.createElement('div'); d.className = 'nx-row';
+      d.innerHTML = `<select data-st aria-label="State">${opts(st)}</select><input type="number" data-s min="0" step="any" value="${s}" aria-label="Sales in dollars"><input type="number" data-n min="0" step="1" value="${n}" aria-label="Orders"><input type="checkbox" data-p aria-label="Staff or stock there">`;
+      rows.append(d);
+    };
+    add('CA', 180000, 1400); add('NY', 120000, 90); add('GA', 105000, 300); add('OR', 60000, 400);
+    fig.querySelector('[data-add]')!.addEventListener('click', () => { add('TX', 0, 0); draw(); });
+    function draw() {
+      const out: string[] = [];
+      const hs = home.value, hName = US_STATES.find((s) => s[0] === hs)![1], hRate = US_STATES.find((s) => s[0] === hs)![2];
+      out.push(card(hRate ? 'bad' : 'good', `${hName} (home)`, hRate ? `Nexus: you are based here. Register and collect from ${hName} buyers (state rate ${hRate} % plus local).` : `${hName} has no statewide sales tax.`));
+      for (const r of rows.querySelectorAll<HTMLElement>('.nx-row')) {
+        const st = r.querySelector<HTMLSelectElement>('[data-st]')!.value; if (st === hs) continue;
+        const s = Number(r.querySelector<HTMLInputElement>('[data-s]')!.value) || 0, n = Number(r.querySelector<HTMLInputElement>('[data-n]')!.value) || 0, phys = r.querySelector<HTMLInputElement>('[data-p]')!.checked;
+        const [name, rate] = [US_STATES.find((x) => x[0] === st)![1], US_STATES.find((x) => x[0] === st)![2]];
+        if (!rate) { out.push(card('good', name, st === 'AK' ? 'No state sales tax, but many Alaska towns tax remote sellers through a shared commission (threshold $100,000).' : 'No statewide sales tax.')); continue; }
+        const [lim, cnt] = T[st] ?? [100000];
+        const econ = cnt ? s > lim && n > cnt : s >= lim;
+        if (phys) out.push(card('bad', name, 'Physical nexus: staff, an office or stock here. Register and collect, whatever your sales.'));
+        else if (econ) out.push(card('bad', name, `Economic nexus: ${money('us', s)} is over the ${money('us', lim)}${cnt ? ` and ${cnt} sales` : ''} threshold. Register, then collect on taxable sales (state rate ${rate} % plus local).`));
+        else out.push(card('good', name, `Below the threshold (${money('us', lim)}${cnt ? ` and ${cnt} sales` : ''}): no need to collect yet. ${s > lim * 0.75 ? 'Close: watch it monthly.' : ''}`));
+      }
+      fig.querySelector('[data-out]')!.innerHTML = out.join('');
+    }
+    function card(k: string, t: string, d: string) { return `<div class="su-card ${k}"><strong>${t}</strong><div>${d}</div></div>`; }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+  }
+</script>

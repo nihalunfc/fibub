@@ -5,7 +5,7 @@ import { iso, fromIso, addDays } from './planner';
 export type Repeat = 'none' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
 export type Item = {
   id: string; title: string; amount: number; kind: 'bill' | 'income'; cat: string; date: string;
-  repeat: Repeat; until: string; note: string; paid: Record<string, true>; skip: Record<string, true>;
+  repeat: Repeat; until: string; note: string; time?: string; paid: Record<string, true>; skip: Record<string, true>;
 };
 export type State = { v: 1; currency: string; weekStart: number; start: number; startDate: string; items: Item[] };
 
@@ -54,7 +54,7 @@ export type Occ = { it: Item; date: string; paid: boolean };
 export function inRange(items: Item[], from: string, to: string): Occ[] {
   const out: Occ[] = [];
   for (const it of items) for (const d of occurrences(it, from, to)) out.push({ it, date: d, paid: !!it.paid[d] });
-  return out.sort((a, b) => a.date.localeCompare(b.date) || (a.it.kind === 'income' ? -1 : 1) || b.it.amount - a.it.amount);
+  return out.sort((a, b) => a.date.localeCompare(b.date) || (a.it.time || '99').localeCompare(b.it.time || '99') || (a.it.kind === 'income' ? -1 : 1) || b.it.amount - a.it.amount);
 }
 
 /** Money in hand at the end of each day from the start date, counting every item (paid or not). */
@@ -100,9 +100,12 @@ export function sample(today: Date): Item[] {
 /** Bills and income as CSV rows: one row per item (with its repeat rule). */
 export function itemsCsv(items: Item[]) {
   const cell = (v: string) => (/[",\r\n]/.test(v) || /^[=+@]/.test(v) ? `"${(/^[=+@]/.test(v) ? "'" : '') + v.replace(/"/g, '""')}"` : v);
-  const head = ['title', 'amount', 'type', 'category', 'first_date', 'repeats', 'until', 'note'];
-  return [head.join(','), ...items.map((i) => [i.title, String(i.amount), i.kind, catOf(i.cat).name, i.date, i.repeat, i.until, i.note].map(cell).join(','))].join('\r\n') + '\r\n';
+  const head = ['title', 'amount', 'type', 'category', 'first_date', 'time', 'repeats', 'until', 'note'];
+  return [head.join(','), ...items.map((i) => [i.title, String(i.amount), i.kind, catOf(i.cat).name, i.date, i.time ?? '', i.repeat, i.until, i.note].map(cell).join(','))].join('\r\n') + '\r\n';
 }
+
+/** 14:30 as 2:30 pm. */
+export const time12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
 
 const REPEAT_IDS = new Set(REPEATS.map((r) => r[0]));
 const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d\d-\d\d$/.test(s);
@@ -129,6 +132,7 @@ export function fromBackup(j: any): State | null {
       id: typeof x.id === 'string' && x.id ? x.id.slice(0, 40) : uid(), title: x.title.slice(0, 80), amount: Math.abs(+x.amount), kind,
       cat: kind === 'income' ? 'income' : catOf(String(x.cat)).id, date: x.date, repeat, until: repeat !== 'none' && isDate(x.until) ? x.until : '',
       note: typeof x.note === 'string' ? x.note.slice(0, 200) : '', paid, skip: dateSet(x.skip),
+      ...(typeof x.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.time) ? { time: x.time } : {}),
     });
   }
   const start = j.start == null || j.start === '' ? NaN : +j.start;

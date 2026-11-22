@@ -1,0 +1,41 @@
+// LSAT · Logical Reasoning · Strengthen. Every argument is original and written for fibub.
+const F = { section: 'lr', qtype: 'strengthen' };
+const Q = 'Which one of the following, if true, most strengthens the argument?';
+import { place } from './_util.js';
+const it = (id, level, arg, options, answer, sol, trap) => place({ id, type: 'mcq', marks: 1, level, exams: ['lsat'], facets: F, format: 'single', q: `<p>${arg}</p><p>${Q}</p>`, options, answer, sol, trap });
+export default {
+  topic: 'strengthen',
+  items: [
+    it('lsat-st-001', 2, 'Students at Hillview who joined the after-school chess club improved their maths grades more over the year than students who did not join. So playing chess improves maths performance.',
+      ['Chess is popular in many countries.', 'Students who joined the club had maths grades no higher than other students\' at the start of the year and took the same maths classes.', 'Some students in the chess club dislike maths.', 'The chess club meets twice a week.', 'Students who play chess also tend to enjoy puzzles.'], 1,
+      '<p>The worry is that club members differed in some other way. {B} rules out two such differences: they did not start ahead and they had the same classes. That makes chess a more likely cause of the gain.</p>', ''),
+    it('lsat-st-002', 3, 'A city reduced bus fares by half for one year, and ridership rose by thirty percent. Officials concluded that the fare cut caused the increase.',
+      ['Bus ridership in similar cities that kept their fares unchanged stayed flat over the same year.', 'Some riders said they would have taken the bus anyway.', 'The fare cut cost the city more than expected.', 'Ridership on the city\'s trains also rose during the year.', 'Most bus riders in the city own cars.'], 0,
+      '<p>A comparison group helps a causal claim. If similar cities without a fare cut saw no rise, the rise in this city is less likely to come from something general, such as fuel prices. {D} weakens: if trains also rose, something other than bus fares may be at work.</p>', ''),
+    it('lsat-st-003', 3, 'Researcher: Birds of this species that nest near the highway lay fewer eggs than those that nest in the quiet forest interior. Traffic noise, which masks the songs males use to attract mates, is probably the reason.',
+      ['The highway was built thirty years ago.', 'Birds near the highway have plenty of food.', 'In a test where speakers played traffic noise in a quiet part of the forest, birds nesting nearby laid fewer eggs than usual.', 'Females of this species also sing.', 'Some birds of this species nest in towns.'], 2,
+      '<p>{C} is an experiment that isolates noise from everything else about highways (fumes, light, predators). Birds exposed to noise alone laid fewer eggs, which strongly supports noise as the cause. {B} helps a little by ruling out food, but {C} is far stronger.</p>',
+      'Several answers can help a little; pick the one that helps most.'),
+    it('lsat-st-004', 4, 'Software firm: Our employees who switched to a four-day week reported higher job satisfaction than before, and their output per week did not fall. A four-day week would therefore work well for all of our staff.',
+      ['The employees who switched were chosen at random from all departments, not volunteers.', 'Job satisfaction is hard to measure.', 'Some employees prefer a five-day week.', 'Other firms have tried four-day weeks.', 'The trial lasted three months.'], 0,
+      '<p>The leap is from the trial group to "all of our staff". If the trial group were volunteers, they might be the people best suited to a short week. {A} says they were a random sample from every department, which makes the group representative and the conclusion much stronger.</p>', ''),
+    it('lsat-st-005', 4, 'Archaeologist: The stone tools found at this site are sharpened in a way seen nowhere else except at a site two hundred kilometres to the north. So people from the northern site probably travelled here.',
+      ['The northern site is older than this one.', 'The stone used for the tools here comes from a quarry near the northern site.', 'Stone tools were common in this region.', 'Sharpening techniques can be learned by watching someone.', 'Few tools were found at either site.'], 1,
+      '<p>The same technique could have been invented twice, or passed along by trade. If the stone itself came from near the northern site, the link between the two places becomes much harder to explain without travel. {D} would weaken: the technique could spread without people moving.</p>', ''),
+    it('lsat-st-006', 5, 'Economist: Countries that spend more on early childhood education have higher average incomes thirty years later. This suggests that early education spending raises a country\'s future income.',
+      ['Rich countries tend to spend more on many public services.', 'Within countries that raised early education spending sharply, the children who attended the new programmes later earned more than similar children born just before the programmes began.', 'Early education programmes vary in quality.', 'Some poor countries spend a lot on early education.', 'Income is not the only measure of a country\'s success.'], 1,
+      '<p>The main worry is reverse causation or a common cause: rich countries can afford more spending. {B} compares otherwise similar children inside the same countries, some just before and some just after the programmes began, and finds the programme group earned more. That isolates the effect of the education. {A} weakens.</p>', ''),
+    it('lsat-st-101', 2, 'Since the library extended its weekend opening hours, the number of books borrowed each month has risen. The longer hours must be the reason more books are borrowed.',
+      ['Most of the increase in borrowing has happened during the newly added weekend hours.', 'The library also sells used books.', 'Many libraries have shortened their hours.', 'The library has a large children’s section.', 'Some people visit the library only to use computers.'], 0,
+      '<p>If the extra borrowing is concentrated in the new hours, that links the rise directly to the change. {A}.</p>'),
+    it('lsat-st-102', 3, 'Biologist: The population of a certain frog in the valley has declined sharply over the past decade. During the same period, a fungus known to infect frogs spread through the valley’s streams. The fungus is likely responsible for the decline.',
+      ['Frogs of this species found dead in the valley were very often infected with the fungus, while healthy frogs rarely carried it.', 'Some frogs in other valleys have also declined.', 'The fungus can survive in cold water.', 'The valley’s streams are popular with hikers.', 'Frogs eat insects that live near streams.'], 0,
+      '<p>A strong link between infection and death in this population supports the causal claim. {A}. {B} could point to some other, wider cause.</p>'),
+    it('lsat-st-103', 4, 'Planner: The new bus lane on Main Avenue has cut average bus travel times there by ten minutes. Since faster buses attract riders, ridership on the Main Avenue route should increase.',
+      ['On other routes where bus lanes cut travel times, ridership rose within a year.', 'Bus fares in the city will not change.', 'Main Avenue has many shops.', 'Some drivers dislike the new lane.', 'Buses on Main Avenue are painted a new colour.'], 0,
+      '<p>Evidence that the same change raised ridership elsewhere supports the prediction. {A}. {B} rules out one complication but adds little positive support.</p>'),
+    it('lsat-st-104', 5, 'Historian: The surviving letters of a merchant show that he owned three ships in 1650 but none in 1660. Since a war that disrupted trade began in 1652, the merchant most likely lost his ships because of the war.',
+      ['Shipping records list each of the three ships as captured or sunk between 1652 and 1655.', 'The merchant wrote many letters after 1660.', 'Most merchants of the time owned fewer than three ships.', 'The war ended in 1654.', 'The merchant later became a banker.'], 0,
+      '<p>Records showing each ship lost during the war years tie the loss directly to the war rather than to, say, sales. {A}.</p>'),
+  ],
+};

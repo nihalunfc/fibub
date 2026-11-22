@@ -1,0 +1,18 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { DATA_AT_SCALE } from '../../../../courses/data-at-scale/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={DATA_AT_SCALE}>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Explain when data is "big"</strong> and which tool fits which job, from one laptop to a cluster.</li>
+      <li><strong>Work with Spark</strong>: how it splits work, PySpark basics, and why shuffles and skew make jobs slow.</li>
+      <li><strong>Use the cloud data stack</strong>: a data lake on object storage, BigQuery, Dataproc and Airflow, and what each one costs.</li>
+      <li><strong>Pick the right database</strong>: Druid, Bigtable, Elasticsearch and the rest of the database zoo, and stream events with Kafka.</li>
+      <li><strong>Feed machine learning and AI</strong>, and understand the data behind retail media and advertising measurement.</li>
+    </ul>
+    <p>Every lesson has a step-by-step animation, a plain-words meaning box, live problems with fresh numbers, a short quiz and a summary sheet to download. The course ends with mini projects and free sandboxes so you can practise without paying. Take <a href="/learn/courses/etl/">Pipeline to Dashboard</a> first if pipelines and warehouses are new to you.</p>
+  </section>
+</CourseHome>

@@ -42,7 +42,7 @@ export function topicGens(file, topicId = file.topic) {
 /** Options of an item: its own, or its group's shared list. */
 export const optionsOf = (it) => it.options ?? it.grp?.options ?? [];
 
-const normText = (s) => String(s).trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[.,;:!?"]+$/g, '').replace(/\s+/g, ' ').trim();
+export const normText = (s) => String(s).trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[.,;:!?"]+$/g, '').replace(/\s+/g, ' ').trim();
 
 /** Read a typed number: accepts 3e8, 3×10^8, 3x10^8, 3*10^8, commas as thousands, a leading + or −, and fractions a/b. */
 export function readNumber(s) {
@@ -59,7 +59,8 @@ export function readNumber(s) {
 }
 
 /**
- * Check a response. `resp`: mcq → index, msq → array of indices, nat → string or number, text → string.
+ * Check a response. `resp`: mcq → index, msq → array of indices, nat → string or number, text → string,
+ * order → the chips in the learner's order (array or one string).
  * Returns { right, partial (0..1 share of correct options picked, msq only), wrongPick (msq: picked a wrong option) }.
  */
 export function check(it, resp) {
@@ -81,6 +82,11 @@ export function check(it, resp) {
     case 'text': {
       const s = normText(resp);
       if (it.maxWords && s.split(' ').filter(Boolean).length > it.maxWords) return { right: false, tooLong: true };
+      return { right: (it.answer ?? []).some((a) => normText(a) === s) };
+    }
+    case 'order': {
+      // Word chips put in order (TOEFL Build a Sentence): resp is the built sentence or the list of chips.
+      const s = normText(Array.isArray(resp) ? resp.join(' ') : resp);
       return { right: (it.answer ?? []).some((a) => normText(a) === s) };
     }
     default: return { right: false, unscored: true };
@@ -148,12 +154,43 @@ export function matches(it, f = {}) {
 export function buildPaper(pattern, pool, gens, r = Math.random) {
   const used = new Set();
   const sections = pattern.sections.map((sec) => {
-    const fits = (it) => it.type === sec.type && marksOf(it) === sec.marks && !used.has(it.id) && it.type !== 'open';
+    // anyLevel: take every level (marks per question stay sec.marks); exams like the SAT and LSAT give every question one mark.
+    // only: { facet: value } keeps a section to part of a bank (e.g. the SAT Math test uses only section: 'math').
+    const only = sec.only || pattern.only;
+    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
+    const fits = (it) => it.type === sec.type && mk(it) && !used.has(it.id) && it.type !== 'open';
     // round-robin over topics so one topic cannot fill a section
     const byTopic = new Map();
     for (const it of shuffle(pool.filter(fits), r)) { if (!byTopic.has(it.topic)) byTopic.set(it.topic, []); byTopic.get(it.topic).push(it); }
-    const gfits = shuffle(gens.filter((g) => g.type === sec.type && marksOf(g) === sec.marks), r);
+    const gfits = shuffle(gens.filter((g) => g.type === sec.type && mk(g)), r);
     for (const g of gfits) { if (!byTopic.has(g.topic)) byTopic.set(g.topic, []); byTopic.get(g.topic).push({ __gen: g }); }
+    // sets: items that share a group (one passage or recording) are taken whole, in their own order, never split.
+    if (sec.sets) {
+      const units = new Map();
+      for (const it of pool) if (fits(it)) { const k = it.group ? `${it.topic}/${it.group}` : it.id; if (!units.has(k)) units.set(k, []); units.get(k).push(it); }
+      // a few random draws, keeping the first that fills the section exactly (else the fullest)
+      let out = [];
+      for (let t = 0; t < 60 && out.length < sec.count; t++) {
+        const pick = [];
+        for (const u of shuffle([...units.values()], r)) {
+          if (pick.length + u.length > sec.count) continue;
+          pick.push(...u);
+          if (pick.length === sec.count) break;
+        }
+        if (pick.length > out.length) out = pick;
+      }
+      for (const it of out) used.add(it.id);
+      return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: sec.count - out.length };
+    }
+    // passages: N draws N whole shared-passage sets (every question of each passage, in its own order) instead of
+    // single questions, as on the LSAT Reading Comprehension section. The count is then whatever those passages hold.
+    if (sec.passages) {
+      const sets = new Map();
+      for (const it of pool) if (it.group && fits(it)) { const key = `${it.topic}/${it.group}`; if (!sets.has(key)) sets.set(key, []); sets.get(key).push(it); }
+      const out = shuffle([...sets.values()], r).slice(0, sec.passages).flat();
+      for (const it of out) used.add(it.id);
+      return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: 0 };
+    }
     const lists = shuffle([...byTopic.values()], r);
     const out = [];
     let k = 0, empty = 0;
@@ -163,6 +200,7 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
       empty = 0;
       const x = l.shift();
       const it = x.__gen ? instantiate(x.__gen, 1 + Math.floor(r() * 2 ** 31)) : x;
+      if (x.__gen && sec.repeat) l.push(x); // repeat: a template may give several fresh questions in one paper
       used.add(it.id); out.push(it);
     }
     return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: sec.count - out.length };
@@ -189,14 +227,94 @@ export const PATTERNS = {
   ] },
   // SAT Math, both modules together (44 questions in 70 minutes; about three quarters multiple choice). The real test
   // adapts its second module; this practice paper does not.
-  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', sections: [
-    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33 },
-    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11 },
+  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', only: { section: 'math' }, sections: [
+    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33, anyLevel: true, repeat: true },
+    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11, anyLevel: true, repeat: true },
   ] },
+  'sat-rw': { name: 'SAT Reading and Writing practice (both modules, not adaptive)', minutes: 64, scheme: 'sat', only: { section: 'rw' }, sections: [
+    { name: 'Reading and Writing', type: 'mcq', marks: 1, count: 54, anyLevel: true, repeat: true },
+  ] },
+  'sat-rw-module': { name: 'SAT Reading and Writing, one module (not adaptive)', minutes: 32, scheme: 'sat', only: { section: 'rw' }, sections: [
+    { name: 'Reading and Writing', type: 'mcq', marks: 1, count: 27, anyLevel: true, repeat: true },
+  ] },
+  'sat-math-module': { name: 'SAT Math, one module (not adaptive)', minutes: 35, scheme: 'sat', only: { section: 'math' }, sections: [
+    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 17, anyLevel: true, repeat: true },
+    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 5, anyLevel: true, repeat: true },
+  ] },
+  'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', only: { section: 'lr' }, sections: [
+    { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
+  ] },
+  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (4 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
+    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 27, passages: 4, anyLevel: true },
+  ] },
+  // CUET (UG): every test is 50 compulsory MCQs in 60 minutes, +5/−1 (NTA bulletin, checked 2026-11-22). The two
+  // sections only mix easier and harder questions; every question is worth 5 marks (marksMap).
+  cuet: { name: 'CUET (UG) test', minutes: 60, scheme: 'cuet', sections: [
+    { name: 'Standard questions', type: 'mcq', marks: 1, count: 30 },
+    { name: 'Harder questions', type: 'mcq', marks: 2, count: 20 },
+  ], marksMap: { 1: 5, 2: 5 } },
   net: { name: 'CSIR NET Physical Sciences (Parts B and C)', minutes: 150, scheme: 'net', sections: [
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
   ], marksMap: { 1: 3.5, 2: 5 } },
+  // CELPIP and TOEFL: one mark a question, no negative marks. Counts follow each part's usual size and the bank's sets
+  // (a recording or passage is never split), so a paper can be a question or two off the real one; not adaptive.
+  'celpip-listening': { name: 'CELPIP-General Listening practice (Parts 1-6)', minutes: 47, scheme: 'none', sections: [
+    { name: 'Part 1: Problem solving', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'listening', part: '1' } },
+    { name: 'Part 2: Daily life conversation', type: 'mcq', marks: 1, count: 5, anyLevel: true, sets: true, only: { skill: 'listening', part: '2' } },
+    { name: 'Part 3: Information', type: 'mcq', marks: 1, count: 6, anyLevel: true, sets: true, only: { skill: 'listening', part: '3' } },
+    { name: 'Part 4: News item', type: 'mcq', marks: 1, count: 5, anyLevel: true, sets: true, only: { skill: 'listening', part: '4' } },
+    { name: 'Part 5: Discussion', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'listening', part: '5' } },
+    { name: 'Part 6: Viewpoints', type: 'mcq', marks: 1, count: 6, anyLevel: true, sets: true, only: { skill: 'listening', part: '6' } },
+  ] },
+  'celpip-reading': { name: 'CELPIP-General Reading practice (Parts 1-4)', minutes: 50, scheme: 'none', sections: [
+    { name: 'Part 1: Correspondence', type: 'mcq', marks: 1, count: 9, anyLevel: true, sets: true, only: { skill: 'reading', part: '1' } },
+    { name: 'Part 2: Diagram', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'reading', part: '2' } },
+    { name: 'Part 3: Information', type: 'text', marks: 1, count: 9, anyLevel: true, sets: true, only: { skill: 'reading', part: '3' } },
+    { name: 'Part 4: Viewpoints', type: 'mcq', marks: 1, count: 9, anyLevel: true, sets: true, only: { skill: 'reading', part: '4' } },
+  ] },
+  'toefl-reading': { name: 'TOEFL iBT Reading practice (2026 format, not adaptive)', minutes: 30, scheme: 'none', sections: [
+    { name: 'Complete the Words', type: 'text', marks: 1, count: 20, anyLevel: true, sets: true, only: { skill: 'reading', task: 'complete-words' } },
+    { name: 'Read in Daily Life', type: 'mcq', marks: 1, count: 15, anyLevel: true, sets: true, only: { skill: 'reading', task: 'daily-life' } },
+    { name: 'Read an Academic Passage', type: 'mcq', marks: 1, count: 15, anyLevel: true, sets: true, only: { skill: 'reading', task: 'academic-passage' } },
+  ] },
+  'toefl-listening': { name: 'TOEFL iBT Listening practice (2026 format, not adaptive)', minutes: 29, scheme: 'none', sections: [
+    { name: 'Listen and Choose a Response', type: 'mcq', marks: 1, count: 16, anyLevel: true, sets: true, only: { skill: 'listening', task: 'choose-response' } },
+    { name: 'Listen to a Conversation', type: 'mcq', marks: 1, count: 12, anyLevel: true, sets: true, only: { skill: 'listening', task: 'conversation' } },
+    { name: 'Listen to an Announcement', type: 'mcq', marks: 1, count: 11, anyLevel: true, sets: true, only: { skill: 'listening', task: 'announcement' } },
+    { name: 'Listen to an Academic Talk', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'listening', task: 'academic-talk' } },
+  ] },
+  'gmat-quant': { name: 'GMAT-style Quantitative Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 8 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 13 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-verbal': { name: 'GMAT-style Verbal Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 7 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 16 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-di': { name: 'GMAT-style Data Insights (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Standard questions', type: 'mcq', marks: 1, count: 2 },
+    { name: 'Data Sufficiency, graphs and two-part questions', type: 'mcq', marks: 2, count: 14 },
+    { name: 'Select-all questions (tables and multi-source)', type: 'msq', marks: 2, count: 4 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  // GRE (shorter test since Sept 2023): Verbal 12 q / 18 min + 15 q / 23 min; Quant 12 q / 21 min + 15 q / 26 min.
+  // Section 1 of each draws on the GRE-only formats (gre-quant, gre-verbal banks), section 2 on the shared banks
+  // (grad-quant, grad-verbal). Every question counts one mark; the real test adapts section 2, these do not.
+  'gre-verbal-1': { name: 'GRE-style Verbal section 1 (not adaptive)', minutes: 18, scheme: 'gre', sections: [
+    { name: 'Text Completion, one blank', type: 'mcq', marks: 1, count: 5, anyLevel: true },
+    { name: 'Text Completion (two or three blanks) and Sentence Equivalence', type: 'msq', marks: 1, count: 7, anyLevel: true },
+  ] },
+  'gre-verbal-2': { name: 'GRE-style Verbal section 2 (not adaptive)', minutes: 23, scheme: 'gre', sections: [
+    { name: 'Reading passages and arguments', type: 'mcq', marks: 1, count: 15, anyLevel: true },
+  ] },
+  'gre-quant-1': { name: 'GRE-style Quant section 1 (not adaptive)', minutes: 21, scheme: 'gre', sections: [
+    { name: 'Quantitative Comparison and multiple choice', type: 'mcq', marks: 1, count: 7, anyLevel: true, repeat: true },
+    { name: 'Numeric entry (type your answer)', type: 'nat', marks: 1, count: 3, anyLevel: true, repeat: true },
+    { name: 'Select all that apply', type: 'msq', marks: 1, count: 2, anyLevel: true, repeat: true },
+  ] },
+  'gre-quant-2': { name: 'GRE-style Quant section 2 (not adaptive)', minutes: 26, scheme: 'gre', sections: [
+    { name: 'Arithmetic, algebra, word problems and data', type: 'mcq', marks: 1, count: 15, anyLevel: true, repeat: true },
+  ] },
 };
 
 /** Counts for a bank: fixed items and templates by type and level. */

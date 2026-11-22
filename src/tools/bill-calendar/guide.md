@@ -11,7 +11,7 @@ ads: false
 order: 15
 icon: wallet
 works: offline
-updated: 2026-11-07
+updated: 2026-11-22
 related: [budget-calculator, loan-payoff-planner, planner, currency-converter]
 flow:
   - { icon: wallet, label: "Add bills" }
@@ -29,7 +29,7 @@ To set the totals behind the calendar, use the [[budget-calculator|budget planne
 ## How to use it
 
 1. Press **+ Add** (or **Try it with sample data** to see how it works first).
-2. Choose **Bill or expense** or **Income**, then give it a name, an amount, a category and the first date.
+2. Choose **Bill or expense** or **Income**, then give it a name, an amount, a category and the first date. If it happens at a set time (a class, an appointment, a payment cut-off), add an optional **time**; it shows in the list and sorts that day's items in order.
 3. Pick how it **repeats**: every week, every 2 weeks (handy for pay days), every month, every 3 months or every year. Add an **Until** date for things that end, such as a loan or a phone contract.
 4. Click any bill on the calendar to **mark it paid**, **skip** just that date (for a month you don't pay it), edit it or delete it.
 5. Open **Balance, currency and your data** and type the money in your account today. Each day then shows what you will have left after that day's bills and pay. Days below zero turn red.

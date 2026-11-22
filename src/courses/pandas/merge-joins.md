@@ -16,15 +16,21 @@ quiz:
     choices: ["A _merge column saying 'both', 'left_only' or 'right_only' for each row", 'A row count', 'An index']
     ans: 0
     why: 'It shows which rows matched, which is the quickest way to check a join.'
+sources:
+  - 'pandas documentation, User Guide: Merge, join, concatenate and compare https://pandas.pydata.org/docs/user_guide/merging.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 5 · about 25 minutes · uses Lesson 2.1.** You'll be able to join tables on a key and choose the right join type.
+
+<div class="bigidea">merge brings columns from one table into another by matching a key. The join type decides what happens to rows that find no partner.</div>
+
+**In everyday terms:** a seating plan and a guest list. Match each seat number to a name; "inner" keeps only seats with a guest, "left" keeps every seat and leaves empty ones blank.
 
 ## 1. Why join
 
 Data is split across tables so each fact is stored once: orders hold a `product_id`, the products table holds names and categories. To report revenue by category, you bring the category into the orders.
 
-<!--anim:merge-anim (table animation, added once the shared tableviz engine is on main)-->
 
 ## 2. merge
 
@@ -84,6 +90,36 @@ m = actual.merge(targets, left_on=['store_id', 'year'], right_on=['shop', 'yr'],
 m['vs_target'] = m['sales'] - m['target']
 m
 ```
+
+<div class="meaning">
+
+<dl>
+<dt>pd.merge(left, right, on='key')</dt><dd>Matches rows where key is equal and puts their columns side by side.</dd>
+<dt>how='inner'</dt><dd>Keeps only keys found in both tables (the default).</dd>
+<dt>how='left'</dt><dd>Keeps every left row; missing partners give NaN.</dd>
+<dt>how='outer', indicator=True</dt><dd>Keeps everything and adds _merge: both, left_only or right_only.</dd>
+<dt>Physical meaning</dt><dd>A join is a lookup done for every row at once. With unique keys on the right, a left join keeps exactly the left table's row count; any change in rows means a key was missing or repeated.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"An inner join is the safe default."** It silently drops orders whose store is missing from the store table, so revenue shrinks without a warning. Use a left join from the table you are counting, and look at what failed to match.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Orders.</b> <table class="lk-tbl"><tr><th>order</th><th>store_id</th><th>qty</th></tr><tr><td>1</td><td>S01</td><td>2</td></tr><tr><td>2</td><td>S02</td><td>1</td></tr><tr><td>3</td><td>S09</td><td>4</td></tr></table> <b>Stores.</b> <table class="lk-tbl"><tr><th>store_id</th><th>city</th></tr><tr><td>S01</td><td>Toronto</td></tr><tr><td>S02</td><td>Ottawa</td></tr><tr><td>S03</td><td>Halifax</td></tr></table></div>
+<div class="step"><b>Match keys.</b> S01 and S02 are in both; S09 is only in orders; S03 only in stores.</div>
+<div class="step"><b>Left join.</b> <code>orders.merge(stores, on='store_id', how='left')</code><table class="lk-tbl"><tr><th>order</th><th>store_id</th><th>qty</th><th>city</th></tr><tr><td>1</td><td>S01</td><td>2</td><td><mark>Toronto</mark></td></tr><tr><td>2</td><td>S02</td><td>1</td><td><mark>Ottawa</mark></td></tr><tr><td>3</td><td>S09</td><td>4</td><td><mark>NaN</mark></td></tr></table></div>
+<div class="step"><b>Inner join.</b> Order 3 disappears: 2 rows, qty 3 instead of 7.</div>
+<div class="step"><b>Find the gap.</b> <code>how='outer', indicator=True</code> shows S09 as left_only and S03 as right_only.</div>
+</div>
+
+<div class="problem" data-problem="pd-join-rows"></div>
 
 ## 5. Your turn
 
@@ -155,3 +191,12 @@ After the merge, filter m['_merge'] == 'left_only' and take store_id.
 </details>
 
 **New words:** *merge*, *join*, *key*, *inner / left / right / outer join*, *orphan*, *indicator*, *suffixes*.
+
+<div class="keypoints">
+
+- merge matches rows on a key; on= names it (left_on/right_on if names differ).
+- inner keeps matches only; left keeps every left row; outer keeps all.
+- Use indicator=True to see which keys failed to match.
+- Count rows before and after every join.
+
+</div>

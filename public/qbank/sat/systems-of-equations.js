@@ -7,7 +7,7 @@ const eq = (a, b, c) => `${term(a, 'x', true)}${term(b, 'y')} = ${fmt(c)}`;
 export default {
   topic: 'systems-of-equations',
   gens: [
-    { id: 'sat-sy-g01', type: 'nat', level: 2, exams: ['sat'], sub: 'solve', facets: F, format: 'numeric',
+    { id: 'sat-sy-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'solve', facets: F, format: 'numeric',
       make(r) {
         const x = nz(r, -6, 8), y = nz(r, -6, 8), a = nz(r, -4, 5), b = nz(r, -4, 5);
         let c = nz(r, -4, 5), d = nz(r, -4, 5); if (a * d - b * c === 0) d += 1; if (d === 0) d = 2;
@@ -17,7 +17,7 @@ export default {
           sol: steps(`Eliminate one variable: multiply the equations so the ${Y} terms match, then subtract (or substitute).`, `Working it through gives ${X} = ${fmt(x)} and ${Y} = ${fmt(y)}.`, `Check in both equations: ${fmt(a * x + b * y)} and ${fmt(c * x + d * y)}. So the answer is <b>${fmt(ans)}</b>. On the test you can also graph both lines in Desmos and click the crossing point.`) };
       },
       verify: (p) => { const D = p.a * p.d - p.b * p.c, x = (p.e * p.d - p.b * p.f) / D, y = (p.a * p.f - p.e * p.c) / D; return p.ask === 'x' ? x : p.ask === 'y' ? y : x + y; } },
-    { id: 'sat-sy-g02', type: 'mcq', level: 2, exams: ['sat'], sub: 'number of solutions', facets: F, format: 'single',
+    { id: 'sat-sy-g02', type: 'mcq', marks: 1, level: 2, exams: ['sat'], sub: 'number of solutions', facets: F, format: 'single',
       make(r) {
         const a = nz(r, 1, 6), b = nz(r, -5, 5), c = int(r, 1, 12), k = int(r, 2, 4), kind = choose(r, ['none', 'many', 'one']);
         const second = kind === 'many' ? eq(k * a, k * b, k * c) : kind === 'none' ? eq(k * a, k * b, k * c + nz(r, 1, 6)) : eq(k * a, k * b + 1, k * c);
@@ -30,7 +30,7 @@ export default {
                 : 'The left sides differ, so the slopes differ and the lines cross once: <b>exactly one</b> solution.'),
           trap: 'Two straight lines can never meet exactly twice.' };
       } },
-    { id: 'sat-sy-g03', type: 'nat', level: 3, exams: ['sat'], sub: 'constant for infinitely many', facets: F, format: 'numeric',
+    { id: 'sat-sy-g03', type: 'nat', marks: 1, level: 3, exams: ['sat'], sub: 'constant for infinitely many', facets: F, format: 'numeric',
       make(r) {
         const a = int(r, 1, 6), b = nz(r, -5, 5), c = int(r, 1, 12), k = int(r, 2, 5), kind = choose(r, ['many', 'none']);
         const q = kind === 'many'
@@ -42,7 +42,7 @@ export default {
             : steps(`For no solution, the lines must be parallel: the left sides in the same ratio, but not the right sides.`, `The ${Y} coefficients are in the ratio ${k}, so ${v('k')} = ${k} × ${a} = <b>${k * a}</b>.`, `Then the right side would need to be ${k * c} for the same line, but it is ${k * c + 1}, so the lines are parallel and distinct.`) };
       },
       verify: (p) => (p.kind === 'many' ? p.k * p.c : p.k * p.a) },
-    { id: 'sat-sy-g04', type: 'nat', level: 2, exams: ['sat'], sub: 'word problem', facets: F, format: 'numeric',
+    { id: 'sat-sy-g04', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'word problem', facets: F, format: 'numeric',
       make(r) {
         const s = choose(r, [['A theatre sold', 'adult tickets', 'student tickets', 'tickets'], ['A bakery sold', 'large cakes', 'small cakes', 'cakes'], ['A school bought', 'laptops', 'tablets', 'devices']]);
         const pa = int(r, 3, 12) * (s[3] === 'devices' ? 50 : 2), pb = pa - int(r, 1, 4) * (s[3] === 'devices' ? 50 : 1), na = int(r, 5, 60), nb = int(r, 5, 60);
@@ -51,7 +51,7 @@ export default {
           sol: steps(`Let ${v('a')} be the number of ${s[1]} and ${v('b')} the number of ${s[2]}: ${v('a')} + ${v('b')} = ${N} and ${pa}${v('a')} + ${pb}${v('b')} = ${T}.`, `Substitute ${v('b')} = ${N} − ${v('a')}: ${pa}${v('a')} + ${pb}(${N} − ${v('a')}) = ${T}, so ${pa - pb}${v('a')} = ${T - pb * N}.`, `${v('a')} = <b>${na}</b> (and ${v('b')} = ${nb}).`) };
       },
       verify: (p) => (p.T - p.pb * p.N) / (p.pa - p.pb) },
-    { id: 'sat-sy-g05', type: 'nat', level: 3, exams: ['sat'], sub: 'combine equations', facets: F, format: 'numeric',
+    { id: 'sat-sy-g05', type: 'nat', marks: 1, level: 3, exams: ['sat'], sub: 'combine equations', facets: F, format: 'numeric',
       make(r) {
         const x = int(r, -5, 9), y = int(r, -5, 9), a = int(r, 2, 7), b = int(r, 1, 6);
         // (a)x + (b)y = e ; (b)x + (a)y = f  → x + y = (e+f)/(a+b), x − y = (e−f)/(a−b)
@@ -63,14 +63,14 @@ export default {
       verify: (p) => (p.ask === 'sum' ? (p.e + p.f) / (p.A + p.b) : (p.e - p.f) / (p.A - p.b)) },
   ],
   items: [
-    { id: 'sat-sy-001', type: 'mcq', level: 1, exams: ['sat'], sub: 'graphs', facets: F,
+    { id: 'sat-sy-001', type: 'mcq', marks: 1, level: 1, exams: ['sat'], sub: 'graphs', facets: F,
       q: '<p>The graphs of two linear equations in the <i>xy</i>-plane cross at the point (3, −2). Which statement must be true?</p>',
       options: ['<i>x</i> = 3 and <i>y</i> = −2 make both equations true.', 'Both lines have a slope of −2/3.', 'Both lines pass through the origin.', 'The system has no solution.'], answer: 0,
       sol: '<p>The crossing point is on both lines, so its coordinates satisfy both equations. That is what "the solution to a system" means.</p>' },
-    { id: 'sat-sy-002', type: 'nat', level: 2, exams: ['sat'], sub: 'word problem', facets: F,
+    { id: 'sat-sy-002', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'word problem', facets: F,
       q: '<p>A farm has only chickens and goats. The animals have 50 heads and 140 legs in total. How many goats are on the farm?</p>', answer: 20, tol: 0,
       sol: '<p><i>c</i> + <i>g</i> = 50 and 2<i>c</i> + 4<i>g</i> = 140. Double the first: 2<i>c</i> + 2<i>g</i> = 100. Subtract: 2<i>g</i> = 40, so <i>g</i> = <b>20</b> (and 30 chickens).</p>' },
-    { id: 'sat-sy-003', type: 'mcq', level: 3, exams: ['sat'], sub: 'model', facets: F,
+    { id: 'sat-sy-003', type: 'mcq', marks: 1, level: 3, exams: ['sat'], sub: 'model', facets: F,
       q: '<p>A gym charges a &#36;40 joining fee and &#36;25 a month. A second gym charges no joining fee and &#36;33 a month. Which system can be used to find the number of months <i>m</i> after which the total costs <i>C</i> are equal?</p>',
       options: ['<i>C</i> = 40 + 25<i>m</i> and <i>C</i> = 33<i>m</i>', '<i>C</i> = 25 + 40<i>m</i> and <i>C</i> = 33<i>m</i>', '<i>C</i> = 40<i>m</i> + 25 and <i>C</i> = 33 + <i>m</i>', '<i>C</i> = 65<i>m</i> and <i>C</i> = 33<i>m</i>'], answer: 0,
       sol: '<p>The fee is paid once (a constant), the monthly price is multiplied by <i>m</i>. Setting 40 + 25<i>m</i> = 33<i>m</i> gives <i>m</i> = 5 months.</p>' },

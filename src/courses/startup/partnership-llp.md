@@ -29,6 +29,8 @@ sources:
 
 **Module 3 · about 15 minutes.** You'll be able to tell a general partnership from an LLP, see how each is taxed, and list what a partnership agreement covers.
 
+<div class="bigidea">Partners share profit and decisions; in a general partnership they also share unlimited liability. An LLP keeps the partnership feel with limited liability, and a written agreement prevents most fights.</div>
+
 ## 1. Three kinds of partnership
 
 - **General partnership.** Two or more people sharing profit and running the business together. Simple, but <mark>every partner is personally liable for all the debts</mark>.
@@ -81,9 +83,39 @@ Partnership agreement checklist
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Start:</b> three designers plan to work together. As a partnership firm, a client suing one of them could reach all three.</p></div>
+<div class="step"><p><b>Choose:</b> they form an LLP instead: each partner is protected from the others’ mistakes and the LLP’s debts.</p></div>
+<div class="step"><p><b>Agree:</b> the LLP agreement sets contributions, a 40 : 30 : 30 profit split, decisions, and a buy-out formula.</p></div>
+<div class="step"><p><b>Year 2:</b> one partner moves abroad; the agreement already says how her share is bought out.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>General partnership</dt><dd>partners share profit and unlimited personal liability</dd>
+<dt>Limited partnership</dt><dd>a general partner manages; limited partners only invest</dd>
+<dt>LLP</dt><dd>partners manage with limited liability</dd>
+<dt>Partnership deed / agreement</dt><dd>the written rules between partners</dd>
+<dt>Designated partner</dt><dd>India: an LLP partner responsible for compliance</dd>
+<dt>What it means for you</dt><dd>If you go into business with others, never run as an unwritten partnership: write an agreement and consider an LLP (India, Canadian professionals) or an LLC (USA).</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="partnership-llp-share"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Three designers in Bengaluru, Arjun, Bina and Chirag, want to work together. A partnership firm would make each of them liable for a client lawsuit against any of them. They form an **LLP** instead: FiLLiP filing with the MCA, Arjun and Bina as designated partners (both resident), profit split 40/35/25 in the LLP agreement filed in Form 3. When they later want outside investors, they plan to convert to a private limited company (Lesson 3.7).
+
+<div class="myth">
+
+**"A partnership needs no paperwork."** It needs no registration to exist, which is the danger. Without a written agreement, the law fills the gaps with equal shares and unlimited joint liability.
+
+</div>
 
 ## 5. Practice
 
@@ -98,6 +130,16 @@ Partnership agreement checklist
 2. As a partnership: Form 1065 and a K-1 for each member.
 3. An unregistered firm cannot sue third parties to enforce contracts (section 69 of the 1932 Act).
 </details>
+
+<div class="keypoints">
+
+- General partners are each liable for all the debts.
+- India: partnership firms (register to be able to sue) and LLPs via FiLLiP with two designated partners, one resident.
+- Canada: LLPs are mainly for regulated professions; most others use a partnership or corporation.
+- USA: multi-member LLCs are taxed as partnerships by default (Form 1065, K-1s).
+- The agreement covers money in, profit shares, decisions, leaving, disputes and IP.
+
+</div>
 
 **Next:** [Companies and corporations](/learn/courses/startup/company-corporation/).
 

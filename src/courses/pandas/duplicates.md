@@ -16,9 +16,16 @@ quiz:
     choices: ['Joins are faster', 'Duplicate keys multiply rows in the join and inflate totals', 'It is required by pandas']
     ans: 1
     why: 'Each duplicate key matches every row on the other side (Lesson 5.3).'
+sources:
+  - 'pandas documentation, User Guide: Duplicate labels and drop_duplicates https://pandas.pydata.org/docs/user_guide/duplicates.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 3 · about 15 minutes · uses Lesson 2.3.** You'll be able to find duplicates, remove the right copies and prove a key is unique.
+
+<div class="bigidea">Duplicates double-count: find exact repeats, repeats on the key columns, and check that every ID that should be unique really is.</div>
+
+**In everyday terms:** a guest list where someone signed in twice. Count heads from the list and you order an extra meal; the fix is to know which column (the name, the ticket number) should be unique.
 
 ## 1. Exact duplicates
 
@@ -67,6 +74,36 @@ orders['order_id'].value_counts().head()
 ```
 
 `order_id` repeats because each row is an order **line**. That's correct for this table, but it means "number of orders" is `orders['order_id'].nunique()`, not `len(orders)`.
+
+<div class="meaning">
+
+<dl>
+<dt>duplicated()</dt><dd>True for each row that repeats an earlier one.</dd>
+<dt>duplicated(subset=[...])</dt><dd>Repeats only on chosen columns.</dd>
+<dt>drop_duplicates(keep=...)</dt><dd>Remove repeats, keeping the first or last.</dd>
+<dt>is_unique</dt><dd>True if a column has no repeats: the test for a key.</dd>
+<dt>Physical meaning</dt><dd>A duplicate row makes one real event count twice: revenue, customers and averages all drift. A repeated key in a lookup table also multiplies rows when you join (Lesson 5.3).</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"drop_duplicates() is always safe."** Two genuine orders of the same product by the same customer on the same day look identical if order_id is missing. Decide which columns define "the same thing" first.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> <table class="lk-tbl"><tr><th>order_id</th><th>product</th><th>qty</th></tr><tr><td>50001</td><td>P101</td><td>2</td></tr><tr><td>50002</td><td>P105</td><td>1</td></tr><tr><td><mark>50001</mark></td><td><mark>P101</mark></td><td><mark>2</mark></td></tr><tr><td>50003</td><td>P101</td><td>2</td></tr></table></div>
+<div class="step"><b>Exact repeats.</b> <code>df.duplicated().sum()</code> → 1 (row 2 repeats row 0).</div>
+<div class="step"><b>Key check.</b> <code>df['order_id'].is_unique</code> → False.</div>
+<div class="step"><b>Look before deleting.</b> Row 2 is a double export of 50001; row 3 is a different order, so keep it.</div>
+<div class="step"><b>Remove.</b> <code>df.drop_duplicates()</code> → 3 rows.</div>
+</div>
+
+<div class="problem" data-problem="pd-dupes"></div>
 
 ## 4. Your turn
 
@@ -131,3 +168,12 @@ orders['order_id'].nunique()
 </details>
 
 **New words:** *duplicate*, *drop_duplicates*, *subset*, *keep*, *is_unique*, *key*.
+
+<div class="keypoints">
+
+- duplicated() flags repeats; .sum() counts them.
+- Use subset= to check the columns that define "the same thing".
+- Check keys with is_unique before joining.
+- Look at duplicates before deleting them.
+
+</div>

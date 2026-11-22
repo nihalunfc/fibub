@@ -1,0 +1,66 @@
+---
+// 12.6 capstone: fill in a one-page launch plan (idea, country, structure, registrations, money, first 90 days) and download or print it. Nothing is stored or sent.
+---
+<figure class="cs-fig su-fig" data-lplan>
+  <span class="cs-figtag">Build it: my launch plan</span>
+  <div class="su-row">
+    <label>Business name<input type="text" name="name" placeholder="For example: Kettle & Co." /></label>
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Online or offline<select name="mode"><option>Online</option><option>Offline (shop, service, factory)</option><option>Both</option></select></label>
+    <label>Founders<select name="team"><option>Just me</option><option>2 founders</option><option>3 or more</option></select></label>
+  </div>
+  <div class="su-row">
+    <label>The problem and who has it<input type="text" name="prob" placeholder="Busy parents can’t find healthy lunches" /></label>
+    <label>What you sell and the price<input type="text" name="offer" placeholder="Weekly lunch boxes, 120 a week" /></label>
+  </div>
+  <div class="su-row">
+    <label>Cash to start<input type="number" name="cash" min="0" value="20000" /></label>
+    <label>Monthly costs<input type="number" name="cost" min="0" value="3000" /></label>
+    <label>Monthly revenue now<input type="number" name="rev" min="0" value="0" /></label>
+  </div>
+  <div class="su-out"><div><span>Suggested structure</span><b data-s></b></div><div><span>Runway</span><b data-r></b></div></div>
+  <ol data-out style="padding-left:20px;margin:10px 0;font-size:14.5px"></ol>
+  <button type="button" class="btn secondary" data-dl>Download my plan</button>
+  <figcaption>The plan is made in your browser from what you type; nothing is saved or sent. Each step links back to a lesson in this course. Rules as of November 2026; not legal or tax advice.</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  import { download } from './su';
+  const REG: Record<CC, [string, string, string]> = {
+    in: ['Private limited company (SPICe+) if you will raise money; LLP if you want low compliance; sole proprietor to test', 'Register: SPICe+ (PAN, TAN, EPFO, ESIC and GST in one), bank account, Udyam, Startup India (DPIIT), shop licence', 'Tax: GST once turnover passes ₹40 lakh goods or ₹20 lakh services (or at once for interstate online sales), TDS, advance tax, ITR'],
+    ca: ['Federal or provincial corporation if profit will stay in the business or you will raise; sole proprietor to test', 'Register: corporation or business name, Business Number and CRA program accounts, provincial and city licences, bank account', 'Tax: GST/HST once sales pass C$30,000 in four quarters, payroll remittances, T2 or T1, instalments'],
+    us: ['Single-member LLC to start; Delaware C corporation if you will raise venture money', 'Register: LLC or corporation in your state (or Delaware plus foreign qualification at home), EIN, registered agent, city and state licences, bank account', 'Tax: sales tax permits where you have nexus, payroll deposits, estimated tax, 1120 or Schedule C'],
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lplan]')) {
+    const v = (n: string) => (fig.querySelector<HTMLInputElement | HTMLSelectElement>(`[name=${n}]`)!.value || '').trim();
+    let lines: string[] = [];
+    const cc = followCountry(fig, draw); fig.addEventListener('input', draw); fig.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), burn = num(fig, 'cost') - num(fig, 'rev'), cash = num(fig, 'cash');
+      const run = burn <= 0 ? 'profitable: no limit' : `${(cash / burn).toFixed(1)} months`;
+      const [st, reg, tax] = REG[c];
+      const solo = v('team') === 'Just me';
+      fig.querySelector('[data-s]')!.textContent = c === 'us' ? (solo ? 'LLC' : 'C corp or LLC') : c === 'in' ? (solo ? 'Sole prop or OPC' : 'Pvt Ltd or LLP') : (solo ? 'Sole prop, then corp' : 'Corporation');
+      fig.querySelector('[data-r]')!.textContent = run;
+      lines = [
+        `Problem and customer: ${v('prob') || '(write it)'} (Lessons 2.1 and 2.2)`,
+        `Offer and price: ${v('offer') || '(write it)'} (Lesson 2.4)`,
+        `Money: ${money(c, cash)} cash, ${money(c, burn)} a month net burn, runway ${run} (Lesson 2.5)`,
+        `Structure: ${st} (Module 3)`,
+        reg + ' (Module 4)',
+        `Licences: check the food, health, home-based and online selling rules that fit your ${v('mode').split(' (')[0].toLowerCase()} business (Module 5)`,
+        tax + ' (Modules 7 and 8)',
+        solo ? 'Team: plan your first hire or contractor (Module 9)' : 'Team: sign a co-founder agreement with vesting this month (Module 10)',
+        'Protect: search and file your trademark; IP assignments; privacy policy and legal pages (Module 11)',
+        'Stay compliant: put every due date in your calendar and buy the insurance you need (Module 12)',
+        'First 90 days: 20 customer interviews, a first version, 10 paying customers, then review this plan',
+      ];
+      const out = fig.querySelector('[data-out]')!; out.innerHTML = '';
+      lines.forEach((l) => { const li = document.createElement('li'); li.style.margin = '4px 0'; li.textContent = l; out.append(li); });
+    }
+    fig.querySelector<HTMLButtonElement>('[data-dl]')!.onclick = () => {
+      const t = `Launch plan: ${v('name') || 'my startup'}`;
+      download('launch-plan.txt', `${t}\n${'='.repeat(t.length)}\nCountry: ${({ in: 'India', ca: 'Canada', us: 'USA' })[cc()]} · ${v('mode')} · ${v('team')}\nMade with fibub.com/learn/courses/startup/launch-plan/ (${new Date().toISOString().slice(0, 10)})\nNot legal or tax advice: check each step with the official source.\n\n${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n`);
+    };
+  }
+</script>

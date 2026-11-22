@@ -27,6 +27,8 @@ sources:
 
 **Module 1 · about 10 minutes.** You'll know where each rule officially lives, how to spot copycat sites, and how to check that a rule is current.
 
+<div class="bigidea">Rules change every year, so act only on the official source: check who published it, when it was last updated, and whether it applies to your structure, size and place.</div>
+
 ## 1. Why the source matters
 
 Business rules change every year: tax rates, thresholds, fees, forms. Blogs and videos go out of date, and some sites that look official are paid agents. Every lesson in this course links the government page it relies on and says "as of" a date. Get into the same habit.
@@ -87,7 +89,41 @@ State matters (shop licences, professional tax, stamp duty) live on each state's
 3. **Find the number.** Rates and thresholds are usually in a table. Write down the source and date next to it in your notes.
 4. **When in doubt, ask.** Many portals have help desks. A chartered accountant (India), CPA (Canada, USA) or business lawyer can confirm how it applies to you.
 
-## 4. Practice
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Find:</b> a founder reads a threshold on a blog post from three years ago.</p></div>
+<div class="step"><p><b>Check who:</b> she opens the government site (a .gov.in, canada.ca or .gov domain), not an agent’s look-alike.</p></div>
+<div class="step"><p><b>Check when and for whom:</b> the page has a “last updated” date this year, and the rule applies to her structure and province.</p></div>
+<div class="step"><p><b>Record:</b> she writes the number, the source and the date checked in her notes, so the next person can verify it.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Official source</dt><dd>the government page, Act or notification that sets the rule</dd>
+<dt>Notification</dt><dd>India: a dated government order that changes a rate or rule</dd>
+<dt>Secretary of State</dt><dd>USA: the state office that registers companies</dd>
+<dt>BizPaL</dt><dd>Canada: the free finder for business permits and licences</dd>
+<dt>As-of date</dt><dd>the date on which a rule was checked</dd>
+<dt>What it means for you</dt><dd>Before acting on any rate, fee or threshold, open the official page, note its date, and write “checked on” in your records.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="official-sources-old-rate"></div>
+
+## 4. Worked example
+
+*Made-up founder.* Neha in Toronto reads on a 2022 blog that she can wait until C$30,000 of sales "per year" to register for GST/HST. She checks the rule on canada.ca: it is C$30,000 over **four consecutive calendar quarters**, not a calendar year, and the page shows when it was last updated. Her sales over the last four quarters already total C$31,500, so she registers now and notes "CRA small supplier page, checked 22 November 2026" in her records.
+
+<div class="myth">
+
+**"A site that looks official is official."** Many paid agents copy government colours and logos and charge for free services such as an EIN. Check the domain (.gov.in, canada.ca, .gov) before you enter anything.
+
+</div>
+
+## 5. Practice
 
 1. Which Indian site publishes GST notifications?
 2. Where would you look for all the permits a café needs in a Canadian city?
@@ -100,6 +136,16 @@ State matters (shop licences, professional tax, stamp duty) live on each state's
 2. BizPaL, plus the city's own licensing page.
 3. FinCEN (part of the US Treasury).
 </details>
+
+<div class="keypoints">
+
+- Check who published a rule, when, and for whom.
+- India: MCA, GST portal and CBIC, Income Tax, Startup India, Udyam, IP India, EPFO and ESIC.
+- Canada: Corporations Canada, provincial registries, CRA, BizPaL, CIPO.
+- USA: your Secretary of State, IRS, state revenue department, SBA, USPTO.
+- Write the source and date next to every number you rely on; ask a professional when unsure.
+
+</div>
 
 **Next:** Module 2 starts with [a problem worth solving](/learn/courses/startup/problem-worth-solving/).
 

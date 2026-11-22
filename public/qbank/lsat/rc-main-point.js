@@ -1,0 +1,36 @@
+// LSAT · Reading Comprehension · main point and passage mapping. Original passage written for fibub.
+import { place } from './_util.js';
+import mp_adverse_possession from './_rc/mp-adverse-possession.js';
+import mp_fruit_fly_sleep from './_rc/mp-fruit-fly-sleep.js';
+import mp_translator from './_rc/mp-translator.js';
+const extra = [mp_adverse_possession, mp_fruit_fly_sleep, mp_translator]; // more original passages, one per file in _rc/
+const F = { section: 'rc', qtype: 'rc' };
+const it = (id, level, sub, q, options, sol, trap) => place({ id, type: 'mcq', marks: 1, level, exams: ['lsat'], sub, facets: F, format: 'passage', group: 'p1', q: `<p>${q}</p>`, options, answer: 0, sol, trap });
+export default {
+  topic: 'rc-main-point',
+  groups: {
+    p1: { title: 'Passage: night markets and the law of public space', passage: `<p>For most of the twentieth century, city planners treated the street as a channel for movement. Sidewalks existed to carry pedestrians from one door to another; anything that slowed that flow, from a vendor's cart to a group of chess players, was an obstruction to be cleared. Municipal codes reflected this view. In many cities, selling food on the sidewalk required a permit that was nearly impossible to obtain, and informal gatherings could be dispersed simply because they were in the way.</p>
+<p>Night markets challenge this model. In cities across Southeast Asia, and increasingly in North America, streets that carry traffic by day are closed in the evening and filled with stalls selling food, clothing and crafts. Supporters describe these markets as a return to an older idea of the street as a place to stay rather than a place to pass through. They point to measurable benefits: small vendors gain customers without paying shop rents, and residents who once avoided a district after dark begin to visit it.</p>
+<p>Critics raise two objections. The first is practical: markets bring noise, litter and crowds that nearby residents never agreed to. The second is legal. If a city closes a public street for the benefit of particular sellers, it seems to grant private parties a special right to land that belongs to everyone. On this view, night markets privatize public space under the banner of community.</p>
+<p>The legal objection is less forceful than it first appears. Cities have long allowed temporary uses of streets, from parades to film shoots, without anyone concluding that the street has ceased to be public. What makes such uses legitimate is not that everyone participates, but that access remains open: anyone may walk through a parade route, and anyone may browse a night market without buying. The practical objection is more serious, but it argues for careful management (limited hours, waste collection, consultation with residents) rather than for prohibition. The real lesson of the night market is that a street can do more than one job, and that codes written for a single purpose should be rewritten to allow for others.</p>` },
+    ...Object.fromEntries(extra.map((x) => [x.group, x.passage])),
+  },
+  items: [
+    it('lsat-rcm-001', 3, 'main point', 'Which one of the following most accurately expresses the main point of the passage?',
+      ['Night markets show that streets can serve more than one purpose, and the objections to them argue for good management rather than prohibition.', 'Night markets have reduced crime in the districts where they operate.', 'City codes from the twentieth century were designed to protect small vendors.', 'The legal objection to night markets shows that they privatize public space.', 'Parades and film shoots should be regulated in the same way as night markets.'],
+      '<p>The final paragraph gives the author\'s own view: the legal objection is weak, the practical one calls for management, and streets can do more than one job. The first option states that. The fourth option is the critics\' view, which the author rejects.</p>', 'Choosing a view the passage reports but the author rejects.'),
+    it('lsat-rcm-002', 3, 'organisation', 'Which one of the following best describes the organisation of the passage?',
+      ['An old view is described, a practice that challenges it is introduced, objections to that practice are given, and the author evaluates the objections.', 'A problem is described, and several solutions are compared and all rejected.', 'Two practices are compared, and the author argues that both should be prohibited.', 'A legal rule is stated and then applied to a series of examples.', 'A historical account is given, followed by a prediction about the future of cities.'],
+      '<p>Paragraph 1: the old "street as channel" view. Paragraph 2: night markets challenge it. Paragraph 3: two objections. Paragraph 4: the author weighs them. The first option maps all four paragraphs.</p>'),
+    it('lsat-rcm-003', 4, 'function of a paragraph', 'The primary function of the first paragraph is to',
+      ['describe a view of streets that the rest of the passage calls into question', 'argue that permits for street vending should be abolished', 'give evidence that night markets reduce traffic', 'present the author\'s main conclusion', 'explain why critics object to night markets'],
+      '<p>The first paragraph sets out the twentieth-century "channel" model, which night markets "challenge" in paragraph 2. It is background for the debate, not the author\'s conclusion.</p>'),
+    it('lsat-rcm-004', 4, 'author\'s attitude', 'The author\'s attitude toward the practical objection to night markets is best described as',
+      ['acceptance that it raises real problems, combined with a belief that those problems can be managed', 'complete agreement that night markets should be banned', 'dismissal of it as irrelevant', 'uncertainty about whether noise is a problem at all', 'hostility toward the residents who raise it'],
+      '<p>The author calls it "more serious" than the legal objection but says it argues "for careful management ... rather than for prohibition". That is partial acceptance with a proposed remedy.</p>'),
+    it('lsat-rcm-005', 5, 'inference', 'The author would be most likely to agree with which one of the following statements?',
+      ['A temporary use of a street can be legitimate even if only some people take part in it, as long as others are not shut out.', 'A street stops being public whenever it is closed to traffic.', 'Night markets should be allowed only in Southeast Asia.', 'Residents\' complaints about noise are always exaggerated.', 'City codes should never limit what happens on sidewalks.'],
+      '<p>The author says temporary uses are legitimate "not [because] everyone participates, but [because] access remains open". The first option restates that. The last option is far too strong: the author wants codes rewritten, not removed.</p>'),
+    ...extra.flatMap((x) => x.items),
+  ],
+};

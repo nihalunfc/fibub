@@ -16,9 +16,16 @@ quiz:
     choices: ['What one row represents, such as one order line or one customer per day', 'The number of columns', 'The file size']
     ans: 0
     why: 'Knowing the grain prevents double counting in joins and sums.'
+sources:
+  - 'Wickham, H. (2014), Tidy Data, Journal of Statistical Software 59(10) https://doi.org/10.18637/jss.v059.i10'
+  - 'pandas documentation, User Guide: Reshaping and pivot tables https://pandas.pydata.org/docs/user_guide/reshaping.html'
 ---
 
 **Module 6 · about 15 minutes · uses all of Module 6.** You'll be able to say what shape a table should be for the job, and get it there.
+
+<div class="bigidea">Tidy means one row per observation, one column per variable, one table per kind of thing. Store and analyse tidy; make wide tables only for people to read.</div>
+
+**In everyday terms:** a filing cabinet: one card per sale, one box on the card per fact. A summary sheet for the manager is written from the cards, never instead of them.
 
 ## 1. Three rules
 
@@ -56,6 +63,36 @@ Analyse in the long shape (filter, group, join, model), then pivot to wide at th
 | Daily sales trend | store × day |
 
 Moving to a coarser grain is a `groupby`; joining tables of different grains needs care (Lesson 5.3).
+
+<div class="meaning">
+
+<dl>
+<dt>Observation</dt><dd>One thing measured: a sale line, a survey answer, a daily reading.</dd>
+<dt>Variable</dt><dd>One kind of fact: store, date, qty. A month name in a header is a variable hiding as a column name.</dd>
+<dt>Grain</dt><dd>What one row means. Say it out loud: "one row per order line".</dd>
+<dt>Long for code, wide for eyes</dt><dd>melt to analyse; pivot_table to present.</dd>
+<dt>Physical meaning</dt><dd>In a tidy table every number has exactly one place, so sums, filters and joins cannot double-count or miss values. Messy shapes force every query to know the layout.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Tidy means sorted or clean."** A tidy table can still have typos and gaps. Tidy is about shape: where each fact lives. Cleaning (Module 3) and tidying are separate jobs.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Messy: quarters in the header.</b> <table class="lk-tbl"><tr><th>store</th><th>Q1</th><th>Q2</th></tr><tr><td>S01</td><td>120</td><td>90</td></tr><tr><td>S02</td><td>80</td><td>110</td></tr></table></div>
+<div class="step"><b>Name the grain.</b> One row per store per quarter.</div>
+<div class="step"><b>Tidy.</b> <code>df.melt(id_vars='store', var_name='quarter', value_name='budget')</code><table class="lk-tbl"><tr><th>store</th><th>quarter</th><th>budget</th></tr><tr><td>S01</td><td>Q1</td><td>120</td></tr><tr><td>S02</td><td>Q1</td><td>80</td></tr><tr><td>S01</td><td>Q2</td><td>90</td></tr><tr><td>S02</td><td>Q2</td><td>110</td></tr></table></div>
+<div class="step"><b>Now one filter does it.</b> <code>tidy.query('budget >= 100')</code> → 2 rows.</div>
+<div class="step"><b>For the report.</b> <code>pivot_table</code> turns it wide again for people.</div>
+</div>
+
+<div class="problem" data-problem="pd-tidy-cells"></div>
 
 ## 4. Your turn
 
@@ -103,3 +140,12 @@ melt with id_vars='store', var_name='quarter', value_name='budget', then filter 
 </details>
 
 **New words:** *tidy data*, *observation*, *variable*, *grain*, *fact table*, *lookup table*.
+
+<div class="keypoints">
+
+- Tidy: one row per observation, one column per variable.
+- Values hiding in headers (months, quarters) are a sign to melt.
+- Say the grain of every table out loud.
+- Analyse long, present wide.
+
+</div>

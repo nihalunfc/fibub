@@ -1,7 +1,7 @@
 ---
 title: The test, section by section
 seoTitle: 'CELPIP test format 2026, every part explained'
-summary: 'The CELPIP-General test format: 6 listening parts, 4 reading parts, 2 writing tasks and 8 speaking tasks, with the number of questions, the timing and what each part asks you to do.'
+summary: 'CELPIP-General format: 6 listening parts, 4 reading parts, 2 writing tasks and 8 speaking tasks, with questions, timing and what each part asks.'
 minutes: 15
 updated: 2026-11-22
 quiz:

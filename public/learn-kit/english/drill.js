@@ -51,7 +51,7 @@ export default async function (host, { data }) {
       let pl = null;
       if (g) {
         if (g.title) { const t = document.createElement('p'); t.className = 'en-gtitle'; t.innerHTML = g.title; box.appendChild(t); }
-        if (g.audio) { pl = player(g.audio, { accent, examOnce: data.once === '1', showTranscript: true }); box.appendChild(pl); }
+        if (g.audio) { pl = player(g.audio, { accent, examOnce: data.once === '1', showTranscript: true, lock: true }); box.appendChild(pl); }
         if (g.passage) { const p = document.createElement('div'); p.className = 'en-passage'; p.innerHTML = g.passage; box.appendChild(p); }
       }
       for (const it of unit) {

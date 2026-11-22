@@ -16,15 +16,21 @@ quiz:
     choices: ["var_name='month', value_name='sales'", "columns=['month', 'sales']", "rename=True"]
     ans: 0
     why: 'var_name names the column of former headers; value_name the numbers.'
+sources:
+  - 'pandas documentation, User Guide: Reshaping and pivot tables https://pandas.pydata.org/docs/user_guide/reshaping.html'
+  - 'Wickham, H. (2014), Tidy Data, Journal of Statistical Software 59(10) https://doi.org/10.18637/jss.v059.i10'
 ---
 
 **Module 6 · about 15 minutes · uses Lesson 6.1.** You'll be able to turn spreadsheet-style wide tables into long ones you can analyse.
+
+<div class="bigidea">melt turns a wide table (one column per month) into a long one (a month column and a value column), the shape pandas groups, filters and plots easily.</div>
+
+**In everyday terms:** unpicking a calendar grid into a diary: instead of one box per day across the page, you write one line per day: "Monday, 3 visits".
 
 ## 1. The wide table problem
 
 Budgets and exports often arrive **wide**: one column per month. Easy to read, hard to analyse: "total for Q1", "months above target", "trend per store" all need month as a column.
 
-<!--anim:melt-anim (table animation, added once the shared tableviz engine is on main)-->
 
 ```python
 import pandas as pd
@@ -66,6 +72,36 @@ long.pivot_table(index=['store', 'year'], columns='measure', values='value').res
 ```
 
 That's a melt followed by a pivot: the measures end up as columns and the years as rows, the most useful shape here.
+
+<div class="meaning">
+
+<dl>
+<dt>id_vars=</dt><dd>Columns that stay as they are (they identify the row).</dd>
+<dt>value_vars=</dt><dd>Columns to unpivot (default: all the others).</dd>
+<dt>var_name=, value_name=</dt><dd>Names for the new "which column" and "the value" columns.</dd>
+<dt>Rows after melt</dt><dd>rows × number of melted columns.</dd>
+<dt>Physical meaning</dt><dd>No number changes: each cell of the wide table becomes one row of the long table, carrying its row label and its column name with it. A 3 × 4 grid of values becomes 12 rows.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Wide is tidier because it is shorter."** Short for eyes, awkward for code: to average across months in wide form you must name every month column. Long form needs one groupby.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Wide.</b> <table class="lk-tbl"><tr><th>store</th><th>Jan</th><th>Feb</th><th>Mar</th></tr><tr><td>S01</td><td>3</td><td>4</td><td>6</td></tr><tr><td>S02</td><td>5</td><td>2</td><td>1</td></tr></table></div>
+<div class="step"><b>Choose.</b> <code>df.melt(id_vars='store', var_name='month', value_name='qty')</code></div>
+<div class="step"><b>Each cell becomes a row.</b> <table class="lk-tbl"><tr><th>store</th><th>month</th><th>qty</th></tr><tr><td>S01</td><td><mark>Jan</mark></td><td>3</td></tr><tr><td>S02</td><td><mark>Jan</mark></td><td>5</td></tr><tr><td>S01</td><td>Feb</td><td>4</td></tr><tr><td>S02</td><td>Feb</td><td>2</td></tr><tr><td>S01</td><td>Mar</td><td>6</td></tr><tr><td>S02</td><td>Mar</td><td>1</td></tr></table></div>
+<div class="step"><b>Count.</b> 2 rows × 3 months = 6 rows.</div>
+<div class="step"><b>Now analyse.</b> <code>long.groupby('month')['qty'].mean()</code>: one line, any number of months.</div>
+</div>
+
+<div class="problem" data-problem="pd-melt-rows"></div>
 
 ## 4. Your turn
 
@@ -113,3 +149,12 @@ survey.melt(id_vars='respondent', var_name='question', value_name='score'), then
 </details>
 
 **New words:** *wide*, *long*, *melt*, *id_vars*, *var_name*, *value_name*, *unpivot*.
+
+<div class="keypoints">
+
+- melt: id_vars stay, other columns become name/value pairs.
+- Rows after melt = rows × melted columns.
+- Name the new columns with var_name and value_name.
+- Long form is the shape for groupby, filters and charts.
+
+</div>

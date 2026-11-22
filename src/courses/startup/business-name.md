@@ -30,6 +30,8 @@ sources:
 
 **Module 4 · about 13 minutes.** You'll choose a name that is likely to be accepted, check it properly, and know how to reserve it.
 
+<div class="bigidea">One name, four checks: the company registry, the trademark register, the domain and the social handles. The registry accepting a name is not permission to use it as a brand.</div>
+
 ## 1. What makes a good name
 
 - **Distinctive:** a coined word (Zomato, Shopify) or an unexpected word, plus a descriptive word if needed ("Kestrel Analytics").
@@ -76,9 +78,30 @@ Checking a name
 
 </div>
 
+<div class="meaning">
+
+<dl>
+<dt>Name availability</dt><dd>whether a registry will accept a company or business name</dd>
+<dt>Trademark conflict</dt><dd>a name too close to a registered mark for similar goods</dd>
+<dt>NUANS</dt><dd>Canada: the name search report for incorporating</dd>
+<dt>RUN</dt><dd>India: the MCA name reservation service</dd>
+<dt>DBA / trade name</dt><dd>a business name other than the owner’s or company’s legal name</dd>
+<dt>What it means for you</dt><dd>Do all four checks before you buy a logo or print anything, and file a trademark for the name you keep (Lesson 11.2).</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="business-name-run-fees"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* A Pune team likes "SmartClinic". The MCA search shows "Smart Clinic Solutions Private Limited" already exists, and a trademark "SMARTCLINIC" is registered in class 9. They try "Clinivo": no company, no trademark in classes 9 and 42, clinivo.in available. They reserve "Clinivo Health Private Limited" in SPICe+ Part A.
+
+<div class="myth">
+
+**"If the company registry accepted my name, nobody can stop me using it."** Registries check only their own list. A trademark owner can still stop you using a confusingly similar name for similar goods, even if your company is registered.
+
+</div>
 
 ## 5. Practice
 
@@ -93,6 +116,16 @@ Checking a name
 2. A corporation registered with a number instead of a name (for example 1234567 Ontario Inc.), often used for holding companies or to incorporate quickly.
 3. Each state checks only its own register. A federal trademark is what protects a brand nationwide.
 </details>
+
+<div class="keypoints">
+
+- Check the registry, trademark register, domain and social handles.
+- Prefer distinctive, made-up names over descriptive ones.
+- India: reserve via RUN or SPICe+ Part A; Canada: NUANS for corporations; USA: state name search and DBA.
+- Search the trademark register in every class you will sell in.
+- Register the name you keep as a trademark.
+
+</div>
 
 **Next:** [India: registering a company or LLP](/learn/courses/startup/india-company-llp/).
 

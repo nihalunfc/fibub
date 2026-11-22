@@ -1,0 +1,31 @@
+---
+// 9.1: employee or contractor? Answer the questions tax authorities ask; the meter leans one way and the notes follow the country.
+---
+<figure class="cs-fig su-fig" data-wt>
+  <span class="cs-figtag">Checker: employee or contractor?</span>
+  <div data-qs></div>
+  <div class="su-bars"><div><span>Leans</span><span class="t"><i data-bar></i></span><b data-n></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>The questions follow the tests used by the CRA (control, tools, chance of profit, integration), the IRS (behavioural, financial and relationship control) and Indian courts (control and integration), and California’s stricter ABC test. No single answer decides; the whole relationship does, whatever the contract calls it. When unsure, the CRA (form CPT1) and IRS (Form SS-8) will rule for you.</figcaption>
+</figure>
+<script>
+  import { getCountry } from './su';
+  const Q: [string, number][] = [
+    ['You decide their hours and how the work is done', 2], ['They use your laptop, software and email address', 1], ['They work only for you, month after month', 2], ['They are paid by the hour or month, whatever the result', 1],
+    ['The work is a core part of your business, done alongside staff', 1], ['They can send someone else to do the work', -2], ['They have their own business: other clients, website, invoices, insurance', -2], ['They can make a profit or loss on the job (fixed price, their own costs)', -2],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-wt]')) {
+    const box = fig.querySelector('[data-qs]')!;
+    box.innerHTML = Q.map(([q], i) => `<label style="display:flex;gap:8px;align-items:center;font-weight:500;font-size:14.5px;margin:4px 0"><input type="checkbox" data-i="${i}"> ${q}</label>`).join('');
+    function draw() {
+      const s = [...box.querySelectorAll<HTMLInputElement>('input:checked')].reduce((a, el) => a + Q[Number(el.dataset.i)][1], 0);
+      const f = Math.max(0, Math.min(1, (s + 6) / 13));
+      const bar = fig.querySelector<HTMLElement>('[data-bar]')!; bar.style.width = `${Math.max(4, f * 100)}%`; bar.className = f > 0.6 ? 'w' : f < 0.4 ? 'g' : '';
+      fig.querySelector('[data-n]')!.textContent = f > 0.6 ? 'Employee' : f < 0.4 ? 'Contractor' : 'Unclear';
+      const cc = getCountry();
+      const note = cc === 'in' ? ' In India, a long-term "consultant" doing an employee’s job can be treated as an employee for PF, ESI and gratuity, and TDS changes from 194J to salary.' : cc === 'ca' ? ' In Canada, the CRA can assess you for unpaid CPP and EI, with penalties and interest, and provinces apply their own employment standards tests.' : cc === 'us' ? ' In the USA, misclassification brings back payroll taxes and penalties; California, New Jersey, Massachusetts and others use the stricter ABC test.' : '';
+      fig.querySelector('[data-say]')!.textContent = (f > 0.6 ? 'This looks like employment. Put them on payroll, or change how the work is organised so they are genuinely in business for themselves.' : f < 0.4 ? 'This looks like a genuine contractor. Keep a written contract that matches the reality, and collect their invoices.' : 'Mixed signals. Write down how the work actually happens and get advice before relying on a contractor label.') + note;
+    }
+    box.addEventListener('change', draw); draw();
+  }
+</script>

@@ -2,7 +2,12 @@
 title: What this course gives you
 summary: A map of the whole course, the four things you will build, and how to study it so the hands-on parts work first time.
 minutes: 15
-updated: 2026-11-18
+updated: 2026-11-22
+sources:
+  - 'Ollama, official documentation and source code https://github.com/ollama/ollama'
+  - 'llama.cpp, official repository and README https://github.com/ggml-org/llama.cpp'
+  - 'Hugging Face Hub documentation (where open models are published) https://huggingface.co/docs/hub'
+  - 'Roediger, H. L. and Karpicke, J. D. (2006), Test-enhanced learning: taking memory tests improves long-term retention, Psychological Science 17(3) https://doi.org/10.1111/j.1467-9280.2006.01693.x'
 quiz:
   - q: Which part of the course gets a model running on your own machine?
     choices: ['Part A: Foundations', 'Part C: Software and setup', 'Part E: Scale, money, limits']
@@ -20,9 +25,13 @@ quiz:
 
 **Module 1 · about 15 minutes · read first: nothing.** By the end you will know what the course covers, what you will build, and which lessons to take first.
 
+<div class="bigidea">This course shows you, one short lesson at a time, how to download an AI model and run it on a computer you control, then put it to real work.</div>
+
 ## 1. Why this matters
 
-Most people meet AI through a website: you type, a company's computers think, an answer comes back. That is fine until you have private files you cannot upload, no internet, a monthly limit you keep hitting, or a job that asks you to build AI into a workflow. This course teaches the other way: download a model and run it on a machine you control.
+Most people meet AI through a website. You type, a company's computers think, and an answer comes back. That works until something gets in the way: private files you cannot upload, no internet, a monthly limit you keep hitting, or a job that asks you to build AI into a workflow.
+
+This course teaches the other way. You download a model and run it on a machine you control. Think of it as the difference between eating at a restaurant and cooking at home: the restaurant is easy, but at home you choose the ingredients, nobody sees your recipe, and the kitchen is open at 3 a.m.
 
 ## 2. What you will be able to do
 
@@ -40,28 +49,53 @@ By the end of the course you will be able to:
 
 ## 3. How the course is built
 
-There are 5 parts, 18 modules and about 117 lessons. Every lesson follows the same shape:
+There are 5 parts, 18 modules and 119 lessons. Every lesson follows the same shape:
 
-1. **Why this matters**, in two to four sentences.
-2. **Numbered sections**, each a plain explanation first.
-3. **A "Maths and principle" box** with the rule behind it, one equation, an analogy and a tiny calculation. You can skip the box and still follow the lesson.
-4. **A worked example** with made-up numbers.
-5. **Practice**, with answers hidden until you open them.
-6. **Check yourself**: three quick questions at the end.
+1. **A big idea** in one sentence, so you know where you are going.
+2. **Why this matters**, in two to four sentences.
+3. **Numbered sections**, each a plain explanation first, with an everyday picture.
+4. **Watch it happen**: a short step-by-step player. Press Play, or step through with Next.
+5. **A meaning box** that says what each symbol stands for and what it means in the real world.
+6. **A "Maths and principle" box** with the rule behind it, one equation, an analogy and a tiny calculation. You can skip the box and still follow the lesson.
+7. **A worked example**, and **live problems** that make new numbers each time you press the button.
+8. **Practice**, with answers hidden until you open them, and **key points** you can download as a one-page summary sheet.
+9. **Check yourself**: three quick questions at the end.
 
-Some lessons have **simulations**: small things to play with, such as a slider that shows whether a model fits in your memory. They run in your browser and send nothing anywhere.
+Some lessons have **simulations**: small things to play with, such as a slider that shows whether a model fits in your memory. They run in your browser and send nothing anywhere. Nothing about you is stored.
+
+Here is how one study plan works out, with the numbers from the worked example below.
+
+<div class="steps">
+<div class="step"><p><b>Count the lessons.</b> The short path (section 4) is about <b>25 lessons</b>.</p></div>
+<div class="step"><p><b>Time per lesson.</b> About 20 minutes of reading and 10 of practice: <b>30 minutes</b>. So 25 × 30 = <b>750 minutes</b>, which is 12.5 hours.</p></div>
+<div class="step"><p><b>Your daily time.</b> Priya has 40 minutes at lunch on 5 days a week: 40 × 5 = <b>200 minutes a week</b>.</p></div>
+<div class="step"><p><b>Divide.</b> 750 ÷ 200 = <b>3.75 weeks</b>. In about four weeks she has a model running offline and a script doing real work.</p></div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
 **Principle:** learning sticks when you do something with it within a day of reading it.
 
-**Equation:** total time ≈ lessons × (reading + practice) = 117 × (20 + 10) minutes ≈ 58 hours.
+**Equation:** total time ≈ lessons × (reading + practice) = 119 × (20 + 10) minutes = 3,570 minutes, about 60 hours.
 
 **Analogy:** the course is a sum of small terms. Each lesson adds a little; skipping the practice is like dropping terms from the sum and hoping the total stays the same. It does not.
 
-**Try it:** at 45 minutes a day, about how many weeks is 58 hours? (58 × 60 ÷ 45 ≈ 77 days, about 11 weeks.)
+**Try it:** at 45 minutes a day, about how many weeks is 60 hours? (60 × 60 ÷ 45 = 80 days, about 11 to 12 weeks.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>L</dt><dd>the number of lessons you plan to take</dd>
+<dt>r + p</dt><dd>minutes of reading plus minutes of practice for one lesson, about 20 + 10</dd>
+<dt>T = L × (r + p)</dt><dd>the total study time in minutes</dd>
+<dt>Physical meaning</dt><dd>The course is long, but each piece is small. At half an hour a day the short path takes about a month and the whole course about a season, the same as learning to drive.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="course-overview-pace"></div>
 
 ## 4. Which order to take it in
 
@@ -73,6 +107,12 @@ The course is written to be taken in order, but you do not have to. If your firs
 4. Module 11 (call the model from Python).
 
 That path is about 25 lessons, all written. After it you can use local AI for real work, and the rest of the course makes you better at it. Lesson 1.4 has a short quiz that suggests a path for your own situation.
+
+<div class="myth">
+
+**"I have to read every lesson in order before I can do anything useful."** You don't. The short path gets a model working within about a month of lunch breaks. The other lessons explain why it works and how to make it faster, cheaper and safer, and you can come back to them whenever a question comes up.
+
+</div>
 
 ## 5. Worked example
 
@@ -93,3 +133,13 @@ That path is about 25 lessons, all written. After it you can use local AI for re
 </details>
 
 **New words:** *model* (the file that holds what the AI learned), *local* or *on-device* (runs on your own machine), *cloud* (runs on a company's computers over the internet).
+
+<div class="keypoints">
+
+- Local AI means the model file sits on your machine and the work happens there, not on a company's servers.
+- The course has 5 parts, 18 modules and 119 lessons; each lesson is about 20 minutes of reading and 10 of practice.
+- The short path (about 25 lessons) gets a model running offline and called from Python in about a month.
+- Total time = lessons × (reading + practice); one lesson a day with its practice is a good pace.
+- Do the practice: it is what makes the setup work first time.
+
+</div>

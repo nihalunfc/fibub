@@ -3,7 +3,7 @@ title: Making images offline
 seoTitle: Make AI images offline with diffusion | Offline AI
 summary: How diffusion models turn noise into pictures, which open image models run on home hardware, how much memory they need, and the licence rules to check before using images at work.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Ho, Jain and Abbeel (2020), Denoising Diffusion Probabilistic Models, https://arxiv.org/abs/2006.11239'
   - 'Hugging Face diffusers library, https://huggingface.co/docs/diffusers'
@@ -26,13 +26,25 @@ quiz:
 
 **Module 13 · about 25 minutes · read first: 7.2.** You'll be able to explain diffusion, choose an image model for your hardware, and check its licence.
 
+<div class="bigidea">An image model starts from random static and cleans a little of it away at each step, steered by your words, so the wait is the number of steps times the time for one step.</div>
+
 ## 1. Why this matters
 
 Image tools are useful for slides, mock-ups, product ideas and teaching material. Running them locally means no per-image fees, no queue, and no uploading of the reference photos you work from. It is a different kind of model from the chat models in this course, so this lesson is a short tour, not a full course.
 
 ## 2. How diffusion works
 
-A **diffusion model** was trained by taking millions of pictures, adding random noise in stages, and learning to predict the noise so it could be removed. To make a new picture, it starts from pure noise and removes a little at a time, 4 to 50 **steps**, steering each step towards your text prompt. Each step is one pass through the network, so steps × time per step = waiting time.
+Think of an old TV showing pure static, and a restorer who has cleaned millions of fuzzy photos. Show them static and say "a lighthouse at dawn", and they wipe away a little fuzz in a way that looks a bit more like a lighthouse. Repeat, and a picture appears.
+
+That is a **diffusion model**. In training it took millions of pictures, added random noise in stages, and learned to predict the noise so it could be removed. To make a new picture, it starts from pure noise and removes a little at a time, 4 to 50 **steps**, steering each step towards your text prompt. Each step is one full pass through the network, so steps × time per step = waiting time.
+
+<div class="steps" data-fig="local-image-generation-denoise">
+<div class="step"><p><b>Step 0: pure noise.</b> A random field of coloured dots, made from the <b>seed</b> number. Same seed, same starting noise.</p></div>
+<div class="step"><p><b>Early steps.</b> The model predicts which part of the image is noise and removes some of it, nudged by "a lighthouse at dawn". Only big shapes show: light sky above, dark sea below.</p></div>
+<div class="step"><p><b>Middle steps.</b> The sun and the tower appear. Each step is one full pass through the network, about 0.4 seconds on a mid-range graphics card.</p></div>
+<div class="step"><p><b>Late steps.</b> Small changes now: edges sharpen and colours settle. More steps here add little.</p></div>
+<div class="step"><p><b>Done.</b> 30 steps × 0.4 s = 12 seconds. A "turbo" or "schnell" model trained for 4 steps takes 4 × 0.4 = 1.6 seconds.</p></div>
+</div>
 
 ## 3. Models and memory
 
@@ -77,6 +89,26 @@ The first run downloads the model (several GB); after that it works offline. SDX
 **Try it:** one step takes 0.4 s. How long do 30 steps take, and 4 steps? (12 s and 1.6 s.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>xₜ</dt><dd>the picture at step t, still partly noise (t counts down to 0)</dd>
+<dt>predicted noise</dt><dd>the model's guess of which part of the picture is static, steered by your prompt</dd>
+<dt>steps</dt><dd>how many clean-up passes the model makes; each is one full run of the network</dd>
+<dt>seed</dt><dd>the number that fixes the starting noise, so the same seed and settings give the same picture</dd>
+<dt>Physical meaning</dt><dd>A sculptor taking away stone that is "not the statue". A few big passes give a rough figure; many small passes give detail, but each pass costs the same time. Turbo models learned to make a few very confident passes, which is why they are so much faster.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="local-image-generation-time"></div>
+
+<div class="myth">
+
+**"The model glues together pictures it has stored."** It keeps no library of images, only learned numbers (weights) that predict noise. Each picture is built fresh from random noise. That said, models can sometimes produce something very close to a famous picture seen many times in training, which is one more reason to check the licence and use care with brands and real people.
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* A teacher makes 40 illustrations for worksheets with FLUX.1 [schnell] (Apache 2.0) in ComfyUI on a 16 GB graphics card, using a quantised version: about 8 seconds per image at 4 steps. Total cost: electricity, about 15 minutes of GPU time. Because the licence allows commercial use, the worksheets can also go in a paid workbook.
@@ -96,3 +128,13 @@ The first run downloads the model (several GB); after that it works offline. SDX
 </details>
 
 **New words:** *diffusion model* (makes images by removing noise step by step), *steps* (number of denoising passes), *seed* (the number that fixes the starting noise), *guidance* (how strongly the prompt steers each step).
+
+<div class="keypoints">
+
+- A diffusion model starts from random noise and removes some at each step, steered by your prompt.
+- Wait per image ≈ steps × time per step; turbo and schnell models are trained to need only 1 to 4 steps.
+- Memory decides what you can run: about 4 GB for Stable Diffusion 1.5, 12 to 24 GB for FLUX (less when quantised).
+- ComfyUI, Draw Things and Python with diffusers all run fully offline after the first download.
+- Always read the licence: some models (FLUX.1 [schnell]) allow commercial use, others (SDXL-Turbo, FLUX.1 [dev]) do not.
+
+</div>

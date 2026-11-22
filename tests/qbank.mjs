@@ -21,6 +21,7 @@ ok('readNumber 1/4', Q.readNumber('1/4') === 0.25);
 ok('readNumber junk', Number.isNaN(Q.readNumber('abc')));
 ok('nat tol', Q.check({ type: 'nat', answer: 2, tol: 0.05 }, '2.04').right && !Q.check({ type: 'nat', answer: 2, tol: 0.05 }, '2.06').right);
 ok('msq exact', Q.check({ type: 'msq', answer: [0, 2] }, [2, 0]).right && !Q.check({ type: 'msq', answer: [0, 2] }, [0]).right);
+ok('order', Q.check({ type: 'order', answer: ['I think it is in room 204'] }, ['I', 'think', 'it', 'is', 'in', 'room', '204']).right && !Q.check({ type: 'order', answer: ['I think it is in room 204'] }, ['think', 'I', 'it', 'is', 'in', 'room', '204']).right);
 ok('text', Q.check({ type: 'text', answer: ['Blue whale'] }, ' blue  WHALE. ').right);
 ok('jam mcq negative', Q.score('jam', { type: 'mcq', answer: 1, level: 3 }, 0).marks === -0.67);
 ok('jam msq no negative', Q.score('jam', { type: 'msq', answer: [1], level: 3 }, [0]).marks === 0);
@@ -57,6 +58,10 @@ const checkItem = (it, where, groups = {}) => {
     ok(`${where}: nat tol set`, typeof it.tol === 'number' && it.tol >= 0 && Number.isFinite(it.tol));
   }
   if (it.type === 'text') ok(`${where}: text answers`, Array.isArray(it.answer) && it.answer.length > 0);
+  if (it.type === 'order') {
+    const chips = (it.options ?? []).map((w) => Q.normText(w)).sort().join('|');
+    ok(`${where}: order chips and answers`, Array.isArray(it.options) && it.options.length >= 2 && Array.isArray(it.answer) && it.answer.length > 0 && it.answer.every((a) => Q.normText(a).split(' ').sort().join('|') === chips));
+  }
   for (const k of ['q', 'sol', 'trap']) texOk(it[k], `${where}.${k}`);
   (opts ?? []).forEach((o, i) => texOk(o, `${where}.options[${i}]`));
   // listening scripts (group or item `audio`) and open writing/speaking tasks
@@ -116,6 +121,18 @@ for (const bank of banks) {
       }
       ok(`${w}: repeatable seed`, JSON.stringify(Q.instantiate(g, 99).q) === JSON.stringify(Q.instantiate(g, 99).q));
     }
+  }
+  // Answer letters spread out: in a topic with 8+ written MCQs, no letter holds more than half and none is unused
+  // among the first four (otherwise students learn "it's usually A").
+  for (const t of listed) {
+    const fu = new URL(`${bank}/${t}.js`, root); if (!existsSync(fu)) continue;
+    const mcq = ((await import(fu.href)).default.items ?? []).filter((i) => i.type === 'mcq' && Number.isInteger(i.answer));
+    if (mcq.length < 8) continue;
+    const c = [0, 0, 0, 0]; for (const i of mcq) if (i.answer < 4) c[i.answer]++;
+    const spread = Math.max(...c) <= mcq.length / 2 && c.every((x) => x > 0);
+    // Enforced for banks listed here; others get a warning until their threads fix them (2026-11-22).
+    if (['physics'].includes(bank)) ok(`${bank}/${t}: MCQ answer letters spread (${c.join('/')})`, spread);
+    else if (!spread) console.warn(`WARN ${bank}/${t}: MCQ answer letters bunched (${c.join('/')}); spread them over A-D`);
   }
   console.log(`${bank}: ${bi} written questions, ${bg} templates`);
   totals.items += bi; totals.gens += bg;

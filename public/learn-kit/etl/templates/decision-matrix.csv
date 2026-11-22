@@ -1,0 +1,6 @@
+criterion,weight,option_a,option_b,option_c
+running cost,0.30,,,
+team skills fit,0.30,,,
+features we need,0.25,,,
+ease of hiring and support,0.15,,,
+weighted total,=SUM(B2:B5),"=SUMPRODUCT($B$2:$B$5,C2:C5)","=SUMPRODUCT($B$2:$B$5,D2:D5)","=SUMPRODUCT($B$2:$B$5,E2:E5)"

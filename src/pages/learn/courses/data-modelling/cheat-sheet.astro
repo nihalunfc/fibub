@@ -1,0 +1,309 @@
+---
+// Data modelling cheat sheet: the design rules and load SQL of the course on one page, grouped by topic. Each item has
+// a short static code sample (or none), a one-line meaning and the lesson that explains it; comparison tables cover
+// fact types, additivity, SCD types and warehouse architectures. Code is plain <pre><code> (no script); to run the
+// SQLite examples, use the SQL sandbox. Modelled on src/pages/learn/courses/sql/cheat-sheet.astro.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { DATA_MODELLING } from '../../../../courses/data-modelling/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+const live = new Set((await courseLessons(DATA_MODELLING)).keys());
+const num = new Map(flatLessons(DATA_MODELLING).map((l) => [l.slug, l.n]));
+type C = [name: string, code: string, meaning: string, lesson: string];
+// A comparison table: column heads, then rows whose last cell is the lesson slug.
+type T = { head: string[]; rows: string[][] };
+type S = { h: string; id: string; intro?: string; table?: T; rows?: C[] };
+
+const SECTIONS: S[] = [
+  { h: 'The four-step design', id: 'design', rows: [
+    ['Four steps, in this order', `1 Choose the business process   taking orders, returns, stock counts
+2 Declare the grain             what one row means, in business words
+3 Identify the dimensions       who, what, where, when: the context
+4 Identify the facts            the numbers each event measures`, 'Grain comes before columns: decide what a row is, and the dimensions and facts follow from it.', 'business-process'],
+    ['One process, one fact table', `sales      → fact_sales        (one row per order line)
+returns    → fact_returns      (one row per returned line)
+stock      → snap_store_day    (one row per store per day)`, 'Each process is its own stream of events. Different processes share dimensions, not fact tables.', 'business-process'],
+    ['Facts or dimension?', `Numbers you add up             → fact     quantity, sales_amount
+Words you filter or group by   → dimension  brand, city, weekday
+A number you group by          → dimension  price band, age band`, 'Ask what people do with the column: sum it (fact) or slice by it (dimension).', 'facts-and-dimensions'],
+  ] },
+  { h: 'Choosing the grain', id: 'grain', rows: [
+    ['Grain statement', `"One row per product on a completed order."   ✓ real-world, exact
+"Sales data."                                 ✗ not a grain
+"order_id and product_id."                    ✗ columns, not meaning`, 'Write it in business words first. The keys follow from it.', 'declare-grain'],
+    ['Choose the atomic grain', `order line     ← atomic: the finest the tills record (start here)
+order
+store per day
+store per month`, 'You can always roll up from fine rows, never drill down from summed ones.', 'declare-grain'],
+    ['Test the grain', `SELECT order_id, product_id, COUNT(*) AS rows
+FROM fact_sales
+GROUP BY order_id, product_id
+HAVING COUNT(*) > 1          -- should return nothing`, 'If the grain is right, its keys are unique.', 'declare-grain'],
+    ['The mixed-grain trap', `-- shipping is per ORDER, but stored on every LINE:
+SUM(shipping_fee)                  -- counted once per line: too big
+-- fix: allocate it to lines, or keep it in an order-grain fact`, 'Every measure must be true at the table\'s grain, or sums double count.', 'declare-grain'],
+  ] },
+  { h: 'Fact tables', id: 'facts', table: { head: ['Type', 'One row per', 'Example', 'Changes after load?', 'Rows', 'Lesson'], rows: [
+    ['Transaction', 'event (order line, payment)', 'fact_sales', 'No: append-only, corrections as reversing rows', 'Sparse: no event, no row', 'transaction-facts'],
+    ['Periodic snapshot', 'thing per period (product per day)', 'snap_store_day, month-end balances', 'No: a new set of rows each period', 'Dense: a row even when nothing moved', 'periodic-snapshots'],
+    ['Accumulating snapshot', 'item through a pipeline (order)', 'order placed → shipped → delivered', 'Yes: updated at each milestone', 'One per item; date column per milestone', 'accumulating-snapshots'],
+    ['Factless', 'event or coverage, no measure', 'sign-ups, products on promotion', 'Usually no', 'Count the rows', 'factless-facts'],
+  ] }, rows: [
+    ['Transaction fact', `CREATE TABLE fact_sales (
+  date_key INTEGER, store_key INTEGER, product_key INTEGER,
+  customer_key INTEGER,        -- -1 for guests, never NULL
+  order_id INTEGER,            -- degenerate dimension
+  quantity INTEGER, sales_amount REAL);`, 'Foreign keys to every dimension, then the measures. Extended amounts, not unit prices.', 'transaction-facts'],
+    ['Periodic snapshot frame', `SELECT d.full_date, s.store_id, COALESCE(SUM(x.amount), 0) AS sales
+FROM dim_date d CROSS JOIN dim_store s          -- every store, every day
+LEFT JOIN daily_sales x ON x.day = d.full_date AND x.store_id = s.store_id
+GROUP BY d.full_date, s.store_id`, 'A CROSS JOIN of the dimensions makes the frame; a LEFT JOIN fills it, with 0 for quiet days.', 'periodic-snapshots'],
+    ['Accumulating snapshot milestone', `UPDATE fact_order_pipeline
+SET shipped_date_key = 20251203,
+    days_to_ship     = 2               -- lag between milestones
+WHERE order_id = 5021;`, 'Rows are updated as each item moves on, so lags and "stuck" items are one query away.', 'accumulating-snapshots'],
+  ] },
+  { h: 'Measure additivity', id: 'additivity', table: { head: ['Kind', 'Adds up across', 'Examples', 'How to total', 'Lesson'], rows: [
+    ['Additive', 'every dimension', 'quantity, sales_amount, cost', 'SUM', 'additivity'],
+    ['Semi-additive', 'every dimension except time', 'stock on hand, account balance, members', 'SUM across stores; over time take the last value or the average', 'additivity'],
+    ['Non-additive', 'nothing', 'margin %, unit price, average basket, distinct customers', 'Store the parts; divide after summing (ratio of sums)', 'additivity'],
+  ] }, rows: [
+    ['Ratio of sums, not average of averages', `SUM(profit) / SUM(sales_amount)     -- ✓ true overall margin
+AVG(margin_pct)                     -- ✗ small stores count as much as big ones`, 'Add up the numerator and denominator first, then divide.', 'additivity'],
+    ['Semi-additive over time', `SELECT store_id, SUM(on_hand) AS units      -- across stores: fine
+FROM snap_store_day
+WHERE full_date = '2025-12-31'              -- one day: the closing level
+GROUP BY store_id`, 'Never sum stock across days. Pick the period-end row (or average the days).', 'additivity'],
+  ] },
+  { h: 'Dimension patterns', id: 'dims', rows: [
+    ['Surrogate key + unknown member', `CREATE TABLE dim_customer AS
+SELECT ROW_NUMBER() OVER (ORDER BY customer_id) AS customer_key,  -- surrogate
+       customer_id,                                               -- natural key
+       first_name || ' ' || last_name AS customer_name,
+       TRIM(city) AS city
+FROM customers;
+INSERT INTO dim_customer VALUES (-1, NULL, 'Guest / unknown', 'Unknown');`, 'A meaningless whole-number key, plus a -1 row that facts with no customer point to.', 'surrogate-keys'],
+    ['Key lookup in the fact load', `SELECT COALESCE(d.customer_key, -1) AS customer_key, o.order_id, ...
+FROM orders o
+LEFT JOIN dim_customer d ON d.customer_id = o.customer_id AND d.is_current = 1`, 'Swap natural keys for surrogate keys. LEFT JOIN plus COALESCE means no fact key is ever NULL.', 'surrogate-keys'],
+    ['Date dimension columns', `date_key        20250307   integer YYYYMMDD
+full_date       2025-03-07
+year, quarter, month_num, month_name
+weekday_num, weekday_name, is_weekend
+is_holiday, is_promo
+fiscal_year, fiscal_quarter          -- April start: FY2026 begins 2025-04-01`, 'One row per day, made with a recursive CTE, so empty days still show and any calendar filter works.', 'date-dimension'],
+    ['Role-playing', `CREATE VIEW order_date  AS SELECT date_key AS order_date_key,  full_date AS order_date  FROM dim_date;
+CREATE VIEW return_date AS SELECT date_key AS return_date_key, full_date AS return_date FROM dim_date;`, 'One physical dimension, one view (or alias) per role. In Power BI, one date table per role.', 'role-playing'],
+    ['Junk dimension', `CREATE TABLE dim_order_flags AS
+SELECT ROW_NUMBER() OVER () AS flags_key, channel, payment_type, is_gift
+FROM (SELECT DISTINCT channel, payment_type, is_gift FROM orders);`, 'Gather several low-cardinality flags into one small dimension: one key on the fact instead of many.', 'junk-degenerate'],
+    ['Degenerate dimension', `fact_sales.order_id      -- no dim_order table: nothing else to describe`, 'A transaction number kept on the fact for grouping lines into baskets and tracing back to the source.', 'junk-degenerate'],
+    ['Conformed + drill across', `WITH s AS (SELECT product_key, SUM(sales_amount) AS sales  FROM fact_sales   GROUP BY product_key),
+     r AS (SELECT product_key, SUM(refund_amount) AS refunds FROM fact_returns GROUP BY product_key)
+SELECT p.category_name, SUM(s.sales) AS sales, SUM(r.refunds) AS refunds
+FROM s LEFT JOIN r USING (product_key) JOIN dim_product p USING (product_key)
+GROUP BY p.category_name`, 'Summarise each fact to the shared dimension first, then join. Never join two fact tables row to row.', 'conformed-dimensions'],
+    ['Snowflake or outrigger', `star:      fact_sales → dim_product (category_name, department_name inside)
+snowflake: fact_sales → dim_product → dim_category → dim_department`, 'Keep hierarchies flattened in one dimension unless a level is big, shared or changes on its own.', 'snowflakes'],
+  ] },
+  { h: 'Slowly changing dimensions', id: 'scd', table: { head: ['Type', 'On a change', 'History kept', 'Rows per customer', 'Use for', 'Lesson'], rows: [
+    ['0', 'Nothing: the value is fixed', 'The original only', '1', 'Sign-up date, date of birth', 'scd-types'],
+    ['1', 'Overwrite', 'None', '1', 'Typo fixes, attributes nobody analyses history by', 'scd-types'],
+    ['2', 'Expire the row, insert a new version', 'Full', '1 per version', 'City, region, tier, segment, category (the default)', 'scd-types'],
+    ['3', 'Move the old value to a previous_ column', 'One step', '1', 'A one-off reorganisation (old region vs new region)', 'scd-types'],
+    ['4', 'Fast-changing attributes go in a mini-dimension with its own key on the fact', 'Full, in the mini-dimension', '1 (main) + small mini-dimension', 'Age band, income band', 'scd-types'],
+    ['5', 'Type 4 plus the current mini-dimension key on the main dimension as type 1', 'Full + current', 'As type 4', 'Rare; a refinement of 4', 'scd-types'],
+    ['6', 'Type 2 rows plus current_ columns overwritten on every version (1 + 2 + 3)', 'Full + current', '1 per version', '"Then" and "now" in one query', 'scd-types'],
+  ] }, rows: [
+    ['SCD2 column set', `customer_key   INTEGER   -- surrogate: one per version
+customer_id    INTEGER   -- natural / durable key: same for all versions
+city, loyalty_tier       -- the tracked attributes
+valid_from     TEXT      -- first day this version was true
+valid_to       TEXT      -- day it stopped ('9999-12-31' if current)
+is_current     INTEGER   -- 1 for the current version, else 0`, 'Ranges are half-open: valid_from ≤ date < valid_to, so each date matches exactly one version.', 'scd-types'],
+    ['SCD2 load skeleton', `-- 0 clean staging the same way as the dimension (TRIM, codes)
+-- 1 expire current rows that changed
+UPDATE dim_customer
+SET valid_to = (SELECT s.load_date FROM stg_customers s
+                WHERE s.customer_id = dim_customer.customer_id),
+    is_current = 0
+WHERE is_current = 1
+  AND EXISTS (SELECT 1 FROM stg_customers s
+              WHERE s.customer_id = dim_customer.customer_id
+                AND (s.city IS NOT dim_customer.city            -- NULL-safe:
+                  OR s.loyalty_tier IS NOT dim_customer.loyalty_tier)); -- IS DISTINCT FROM elsewhere
+-- 2 insert a current row for every staged key without one (changed + new)
+INSERT INTO dim_customer
+SELECT (SELECT MAX(customer_key) FROM dim_customer)
+         + ROW_NUMBER() OVER (ORDER BY s.customer_id),
+       s.customer_id, s.city, s.loyalty_tier,
+       s.load_date, '9999-12-31', 1
+FROM stg_customers s
+WHERE NOT EXISTS (SELECT 1 FROM dim_customer d
+                  WHERE d.customer_id = s.customer_id AND d.is_current = 1);`, 'Two statements, safe to run twice. Compare with IS NOT (SQLite) or IS DISTINCT FROM, never <>, or NULL changes are lost.', 'scd2-by-hand'],
+    ['As it was, as it is, as of', `-- as it was: join the version the fact points at
+JOIN dim_customer d ON d.customer_key = f.customer_key
+-- as it is: step through the durable key to the current version
+JOIN dim_customer cur ON cur.customer_id = d.customer_id AND cur.is_current = 1
+-- as of a date
+JOIN dim_customer a ON a.customer_id = d.customer_id
+ AND '2025-03-31' >= a.valid_from AND '2025-03-31' < a.valid_to`, 'Same dimension, three questions. Filter on the version you join to, never on the one the fact points at.', 'point-in-time'],
+    ['Late-arriving dimension', `INSERT INTO dim_customer (customer_key, customer_id, customer_name, is_inferred)
+SELECT ..., s.customer_id, 'Not yet known', 1          -- inferred member
+FROM stg_sales s WHERE NOT EXISTS (...);
+-- when the real row arrives: overwrite it in place, set is_inferred = 0`, 'Give the unknown key a real surrogate now; fill in its attributes later without changing the key.', 'late-arriving'],
+  ] },
+  { h: 'Warehouse architectures', id: 'arch', table: { head: ['Approach', 'Core idea', 'Shape', 'Best when', 'Watch out for', 'Lesson'], rows: [
+    ['Kimball', 'Build stars one process at a time, tied by conformed dimensions (bottom-up)', 'Star schemas + bus matrix', 'Fast delivery, BI tools, Power BI', 'Stovepipes if dimensions are not conformed', 'bus-matrix'],
+    ['Inmon', 'One integrated enterprise warehouse first, marts built from it (top-down)', 'Normalised (about 3NF) EDW + dependent marts', 'Many sources, one version of the truth', 'Slow to first report; marts still needed', 'inmon'],
+    ['Data Vault', 'Keys, relationships and history in separate insert-only tables', 'Hubs, links, satellites + information marts', 'Many changing sources, strong audit needs', 'Many joins; build stars on top for reports', 'data-vault'],
+    ['One big table', 'Join every attribute onto the fact in advance', 'One wide table per grain', 'Columnar warehouses, a few heavy dashboards', 'Repeated text, costly changes, measures at the wrong grain', 'one-big-table'],
+    ['Medallion', 'Layers of a lakehouse by how clean the data is', 'Bronze (raw) → silver (clean) → gold (business-ready)', 'Databricks, Fabric, files in a lake', 'It names layers, not a model: gold still needs stars', 'lakehouse'],
+  ] }, rows: [
+    ['Data Vault in three tables', `hub_customer   (customer_hk, customer_id, load_date, record_source)
+link_order     (order_hk, customer_hk, order_id_hk, load_date, record_source)
+sat_customer   (customer_hk, load_date, hash_diff, city, loyalty_tier, record_source)
+-- hash key: MD5(UPPER(TRIM(customer_id)))
+-- new sat row only when hash_diff differs from the latest one`, 'Hubs hold keys, links hold relationships, satellites hold history. Nothing is updated.', 'data-vault'],
+  ] },
+  { h: 'Staging → core → marts', id: 'layers', rows: [
+    ['Three layers', `sources → stg_*         one per source table: rename, cast, TRIM; no joins
+        → dim_*, fact_* the conformed star (core)
+        → mart_*        shaped for one team or dashboard`, 'Each layer reads only from the layer below. Sources are touched only by staging.', 'layers'],
+    ['As views', `CREATE VIEW stg_customers AS
+SELECT customer_id, TRIM(city) AS city, COALESCE(loyalty_tier, 'None') AS loyalty_tier
+FROM customers;
+CREATE VIEW mart_sales_month AS
+SELECT d.year, d.month_num, SUM(f.sales_amount) AS sales
+FROM fact_sales f JOIN dim_date d USING (date_key)
+GROUP BY d.year, d.month_num;`, 'Arrows point one way (a DAG): a fix in staging flows to everything downstream.', 'layers'],
+  ] },
+  { h: 'Loading: upserts, MERGE and idempotent loads', id: 'loads', rows: [
+    ['Upsert in SQLite / PostgreSQL', `INSERT INTO dim_product (product_id, product_name, unit_price, updated_at)
+SELECT product_id, product_name, unit_price, '2025-12-31'
+FROM stg_products
+WHERE true                               -- SQLite: lets ON follow a SELECT
+ON CONFLICT (product_id) DO UPDATE SET
+  product_name = excluded.product_name,
+  unit_price   = excluded.unit_price,
+  updated_at   = excluded.updated_at
+WHERE dim_product.unit_price   <> excluded.unit_price
+   OR dim_product.product_name <> excluded.product_name;`, 'Needs a PRIMARY KEY or UNIQUE on the conflict column. The final WHERE skips unchanged rows.', 'merge-loads'],
+    ['MERGE in T-SQL (SQL Server, Azure SQL)', `MERGE dbo.dim_product AS t
+USING stg.products AS s
+   ON t.product_id = s.product_id
+WHEN MATCHED AND (t.unit_price <> s.unit_price
+              OR t.product_name <> s.product_name) THEN
+    UPDATE SET product_name = s.product_name, unit_price = s.unit_price,
+               updated_at = SYSUTCDATETIME()
+WHEN NOT MATCHED BY TARGET THEN
+    INSERT (product_id, product_name, unit_price, updated_at)
+    VALUES (s.product_id, s.product_name, s.unit_price, SYSUTCDATETIME())
+WHEN NOT MATCHED BY SOURCE THEN
+    UPDATE SET is_deleted = 1;           -- soft delete
+-- end with a semicolon; the source must have one row per key`, 'Three cases: matched and changed, new in source, missing from source. Snowflake, BigQuery and Databricks are similar.', 'merge-loads'],
+    ['Idempotent fact load (delete-insert)', `BEGIN;
+DELETE FROM fact_order_lines
+WHERE order_date BETWEEN '2025-12-01' AND '2025-12-31';   -- the batch window
+INSERT INTO fact_order_lines
+SELECT ... FROM stg_order_lines
+WHERE order_date BETWEEN '2025-12-01' AND '2025-12-31';
+COMMIT;`, 'Run it twice, get the same rows. The transaction means a failed insert also undoes the delete.', 'audit-columns'],
+    ['Audit columns and load log', `load_id        which run wrote the row (→ load_log)
+loaded_at      when that run happened
+record_source  which system sent it
+
+load_log (load_id, table_name, batch_from, batch_to,
+          rows_read, rows_deleted, rows_inserted, status, started_at)`, 'Answer "which load wrote this?" and undo one bad load without touching the rest.', 'audit-columns'],
+  ] },
+  { h: 'Warehouse test checklist', id: 'tests', intro: 'Each test is a query for bad rows: zero rows (or 0) means pass. Run them after every load, and stop the pipeline on any failure.', rows: [
+    ['Unique keys', `SELECT product_key, COUNT(*) FROM dim_product
+GROUP BY product_key HAVING COUNT(*) > 1`, 'A duplicate dimension key doubles every fact that joins to it.', 'testing'],
+    ['No NULL fact keys', `SELECT COUNT(*) FROM fact_sales WHERE customer_key IS NULL`, 'Missing values belong on the -1 unknown member, not NULL.', 'testing'],
+    ['No orphans', `SELECT COUNT(*) FROM fact_sales f
+LEFT JOIN dim_customer d ON d.customer_key = f.customer_key
+WHERE d.customer_key IS NULL`, 'Every fact key must exist in its dimension, or inner joins drop rows silently.', 'testing'],
+    ['Accepted values', `SELECT COUNT(*) FROM dim_customer
+WHERE COALESCE(loyalty_tier, '?') NOT IN ('Bronze', 'Silver', 'Gold', 'None')
+   OR city <> TRIM(city)`, 'COALESCE so NULLs fail too: NOT IN skips them.', 'testing'],
+    ['Reconcile with the source', `SELECT (SELECT COUNT(*) FROM order_items i JOIN orders o USING (order_id)
+        WHERE o.status = 'completed')                      AS source_lines,
+       (SELECT COUNT(*) FROM fact_sales)                     AS fact_lines,
+       (SELECT COUNT(*) FROM fact_sales f
+        JOIN dim_product p USING (product_key))              AS after_join`, 'All three should match. A bigger after_join is fan-out from a duplicate key.', 'testing'],
+    ['SCD2: one current row per key', `SELECT customer_id FROM dim_customer
+WHERE is_current = 1
+GROUP BY customer_id HAVING COUNT(*) > 1`, 'Two current versions means a load ran badly or twice.', 'scd2-by-hand'],
+    ['SCD2: no overlapping ranges', `SELECT a.customer_id FROM dim_customer a
+JOIN dim_customer b ON b.customer_id = a.customer_id
+ AND b.customer_key <> a.customer_key
+ AND a.valid_from < b.valid_to AND b.valid_from < a.valid_to`, 'Overlaps make a fact match two versions and double count.', 'scd2-by-hand'],
+  ] },
+  { h: 'Cost and speed', id: 'cost', rows: [
+    ['Let the warehouse skip data', `WHERE order_date >= '2025-12-01' AND order_date < '2026-01-01'  -- ✓ prunes partitions
+WHERE strftime('%Y-%m', order_date) = '2025-12'                -- ✗ reads every partition
+SELECT * ...                                                  -- ✗ reads every column`, 'Filter the partition column with a plain range and name only the columns you need.', 'cost-partitioning'],
+    ['Bytes scanned', `bytes ≈ table size × share of columns read × share of partitions read`, 'On pay-per-scan warehouses, that is the bill. Summary tables shrink the first term.', 'cost-partitioning'],
+  ] },
+];
+const link = (slug: string) => `/learn/courses/data-modelling/${slug}/`;
+---
+<Base title="Data modelling cheat sheet: stars, SCDs, loads" description="Data warehouse design on one free page: grain, fact types, additivity, dimension patterns, SCD types 0-6 with SCD2 SQL, Kimball vs Data Vault, MERGE and tests.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/data-modelling/">Data modelling</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={DATA_MODELLING} live={live} />
+    <div class="cs-main ch">
+      <h1>Data modelling cheat sheet</h1>
+      <p class="lead">The design rules and load SQL of the course on one page, each item with a short example, what it means in one line and the lesson that explains it. Examples use SQLite and the Northbay star (fact_sales, dim_customer, dim_product, dim_date) unless they say otherwise. Print it or keep it open while you design.</p>
+      <p class="ch-try"><strong>Try the SQLite examples in the <a href="/learn/courses/sql/sandbox/">SQL sandbox</a>.</strong></p>
+      <nav class="ch-toc" aria-label="On this page">
+        {SECTIONS.map((s) => <a href={`#${s.id}`}>{s.h}</a>)}
+      </nav>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2 id={s.id}>{s.h}</h2>
+          {s.intro && <p>{s.intro}</p>}
+          {s.table && (
+            <div class="ch-tw">
+              <table class="ch-t">
+                <thead><tr>{s.table.head.map((h) => <th>{h}</th>)}</tr></thead>
+                <tbody>
+                  {s.table.rows.map((r) => (
+                    <tr>
+                      <th scope="row">{r[0]}</th>
+                      {r.slice(1, -1).map((c) => <td>{c}</td>)}
+                      <td><a href={link(r[r.length - 1])}>{num.get(r[r.length - 1])}</a></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {(s.rows ?? []).map(([name, code, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={link(slug)}>Lesson {num.get(slug)}</a></h3>
+              {code && <pre><code>{code}</code></pre>}
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/data-modelling/glossary/">data warehouse glossary</a> and the <a href="/learn/courses/sql/cheat-sheet/">SQL cheat sheet</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-try { margin: 4px 0 12px; }
+  .ch-toc { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; font-weight: 600; }
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-f pre { margin: 6px 0 4px; padding: 8px 10px; overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; line-height: 1.45; }
+  .ch-f p { margin: 2px 0 0; }
+  .ch-tw { overflow-x: auto; margin: 4px 0 8px; }
+  .ch-t { border-collapse: collapse; font-size: 14px; min-width: 640px; }
+  .ch-t th, .ch-t td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .ch-t code { white-space: pre-wrap; }
+</style>

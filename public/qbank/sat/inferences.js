@@ -1,0 +1,33 @@
+// SAT Reading and Writing · Information and ideas · inferences ("most logically completes the text"). Original (fibub).
+import { place } from './_util.js';
+const F = { section: 'rw', domain: 'info' };
+const it = (id, level, sub, text, options, sol, trap) => place({ id, type: 'mcq', marks: 1, level, exams: ['sat'], sub, facets: F, q: `<p>${text}</p><p>Which choice most logically completes the text?</p>`, options, answer: 0, sol, trap });
+export default {
+  topic: 'inferences',
+  items: [
+    it('sat-in-001', 2, 'complete the logic', 'Glass frogs have see-through skin on their bellies. While they sleep, about 90% of their red blood cells gather in the liver, which is covered by a reflective layer. Because red blood cells are what make blood visible, this suggests that ______',
+      ['hiding the blood cells helps the sleeping frogs become even harder for predators to see.', 'glass frogs need more oxygen while sleeping than while awake.', 'the liver of the glass frog is larger than that of other frogs.', 'glass frogs sleep only during the day.'],
+      '<p>The text sets up: see-through bodies, red cells hidden while asleep, red cells are what make blood visible. The conclusion that follows is that hiding them makes the frogs harder to see. The other choices bring in ideas the text does not support.</p>'),
+    it('sat-in-002', 3, 'complete the logic', 'In one experiment, chimpanzees were given a choice between a tool that would get them food immediately and a token they could trade for a better tool an hour later. Many chimpanzees chose the token and kept it until they could trade it. These results suggest that chimpanzees ______',
+      ['can plan for future needs rather than acting only on what they want right now.', 'prefer tokens to food.', 'cannot tell the difference between tools.', 'are unable to wait for rewards.'],
+      '<p>Choosing a token for a better tool later, and keeping it, shows planning ahead. The last option is the opposite; the others are not supported.</p>'),
+    it('sat-in-003', 4, 'complete the logic', 'Historians once thought a medieval trade route through the mountains was used only in summer, because snow blocked the passes in winter. But coins found at a village along the route include some minted in December and January of several different years, and the village\'s records list winter deliveries of salt. Thus, ______',
+      ['the route was probably used in at least some winters too.', 'the passes never received any snow.', 'the coins were brought to the village in summer.', 'salt was the only good carried on the route.'],
+      '<p>Winter-dated coins and records of winter deliveries both point to winter travel. That challenges the old view. The second option goes too far; the third ignores the delivery records.</p>', 'Choosing an extreme version of the right idea.'),
+    it('sat-in-004', 5, 'complete the logic', 'A plant called the Venus flytrap closes its trap only when a trigger hair is touched twice within about 20 seconds. A single touch, such as from a falling raindrop, does not close the trap. Closing takes energy, and reopening takes about a day. The two-touch rule therefore most likely helps the plant ______',
+      ['avoid wasting energy closing on things that are not prey.', 'catch larger insects than other plants can.', 'grow faster in rainy weather.', 'attract insects with its smell.'],
+      '<p>A raindrop touches once; a moving insect touches again. Requiring two touches means the trap closes mostly on live prey, so the costly closing is not wasted. Nothing in the text is about size, growth or smell.</p>'),
+    it('sat-in-101', 2, 'complete the logic', 'A bakery noticed that its bread sold out by noon on weekdays but was often left over on Sundays. The owner checked and found that the nearby office buildings, whose workers bought most of the bread, are closed on Sundays. This suggests that ______',
+      ['the bakery could bake less bread on Sundays without losing many sales.', 'office workers dislike the bakery’s Sunday bread.', 'the bakery should close on weekdays.', 'bread is more popular on Sundays than on weekdays.'],
+      '<p>Most buyers are office workers, and offices are closed on Sundays, so Sunday demand is lower. Baking less then is the logical step. The last choice contradicts the leftover bread.</p>'),
+    it('sat-in-102', 3, 'complete the logic', 'Ice cores drilled from glaciers contain tiny bubbles of air trapped as snow was pressed into ice. Because each layer of ice forms in a known year, scientists can measure the gases in the bubbles of a layer to learn ______',
+      ['what the atmosphere contained around the time that layer formed.', 'how fast the glacier is moving today.', 'how much snow will fall next year.', 'why glaciers form only in cold places.'],
+      '<p>The bubbles are air trapped when the layer formed, and the layer’s year is known, so the gases show the atmosphere of that time. The other choices are not things the bubbles could reveal.</p>'),
+    it('sat-in-103', 4, 'complete the logic', 'A study of two neighbouring lakes found that one had clear water and many plants on its bed, while the other was cloudy with few plants. The cloudy lake had a large population of a fish that stirs up mud while feeding; the clear lake had almost none. When researchers removed most of these fish from the cloudy lake, its water cleared within two years. These results suggest that ______',
+      ['the fish’s feeding helped keep the cloudy lake’s water murky.', 'plants cause fish to stir up mud.', 'the clear lake will soon become cloudy.', 'the fish cannot survive in clear water.'],
+      '<p>Removing the mud-stirring fish made the water clear, so the fish likely caused the murkiness. Nothing suggests the clear lake will change or that the fish cannot live in clear water.</p>'),
+    it('sat-in-104', 5, 'complete the logic', 'Archaeologists found that a village’s oldest houses were built of local stone, while houses built a century later used timber from forests over 100 km away. Over the same period, the village’s rubbish pits began to contain pottery made in distant regions. Taken together, these findings suggest that during that century the village ______',
+      ['developed trading links with distant places.', 'ran out of local stone entirely.', 'was abandoned by its inhabitants.', 'stopped making any pottery of its own.'],
+      '<p>Both distant timber and distant pottery point to goods arriving from far away, which means trade. "Ran out of stone" is possible but not shown; the pottery finds are not explained by it.</p>', 'Choosing an explanation that fits only one of the findings.'),
+  ],
+};

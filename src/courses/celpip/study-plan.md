@@ -1,7 +1,7 @@
 ---
 title: 'Your study plan: from today to test day'
 seoTitle: 'CELPIP study plan: week by week to your target'
-summary: 'Build a week-by-week CELPIP study plan from your test date, the hours you have and your weakest skill, with a quick diagnostic, daily habits that raise your level and a plan you can download.'
+summary: 'Build a week-by-week CELPIP study plan from your test date, weekly hours and weakest skill, with a level check and daily habits that work.'
 minutes: 13
 updated: 2026-11-22
 quiz:

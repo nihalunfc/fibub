@@ -51,7 +51,7 @@ const desc = 'Free courses and learning tools: school science and maths for Clas
   </div>
 
   {COURSE_CATS.map((k) => {
-    const cs = cardsIn(cards, k.id);
+    const cs = cardsIn(cards, k.id).filter((c) => c.status === 'live');
     return cs.length > 0 && <>
       <div class="lh-sec"><h2>{k.name}</h2><a href={k.href}>{cs.some((c) => c.status === 'live') ? `See all ${cs.filter((c) => c.status === 'live').length}` : 'Open'} →</a></div>
       <div class="lh-rail">{cs.slice(0, 8).map((c) => <CourseCard c={c} />)}</div>

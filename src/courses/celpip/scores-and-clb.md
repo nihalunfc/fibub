@@ -1,7 +1,7 @@
 ---
 title: CELPIP levels, CLB and Express Entry points
 seoTitle: 'CELPIP scores to CLB and CRS points, explained'
-summary: 'How CELPIP scores work: levels 1 to 12, how they match Canadian Language Benchmark (CLB) levels, what immigration programmes and citizenship need, and how many Express Entry points each level gives.'
+summary: 'How CELPIP levels 1 to 12 match CLB levels, what PR and citizenship need, and how many Express Entry points each level gives, with a calculator.'
 minutes: 14
 updated: 2026-11-22
 quiz:

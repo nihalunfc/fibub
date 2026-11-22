@@ -16,9 +16,16 @@ quiz:
     choices: ['Distinct customers', 'Revenue', 'Units']
     ans: 0
     why: 'A customer who shopped in two stores is counted once in the total.'
+sources:
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley (grain and additive facts)'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 8 · about 20 minutes · uses Modules 4 and 7.** You'll be able to produce a correct KPI summary from order lines.
+
+<div class="bigidea">KPIs come from order lines, but some count orders and customers, not lines. Compute each from the right grain, and compute the total row from totals, never by averaging averages.</div>
+
+**In everyday terms:** a class average: you cannot average the averages of a class of 10 and a class of 30 and call it the school average; the bigger class must count more.
 
 ## 1. The KPIs from order lines
 
@@ -74,6 +81,36 @@ by.round(0).sort_values('change_%')
 ```
 
 Only January to June exists for 2026, so both years are cut to the same months: like with like (Lesson 7.4).
+
+<div class="meaning">
+
+<dl>
+<dt>Revenue</dt><dd>Sum of line revenue.</dd>
+<dt>Orders</dt><dd>order_id.nunique(), not the number of lines.</dd>
+<dt>Average order value</dt><dd>Revenue ÷ orders.</dd>
+<dt>Total row</dt><dd>Recompute from summed revenue and summed orders.</dd>
+<dt>Physical meaning</dt><dd>A ratio KPI (AOV, conversion) is one total divided by another. The overall ratio is total ÷ total, which weights each store by its size; the mean of the store ratios gives a small store the same say as a big one.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"AOV is the mean of the revenue column."** That is the average line value. An order with three lines would count three times. Divide revenue by the number of distinct orders.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Order lines.</b> <table class="lk-tbl"><tr><th>order_id</th><th>store</th><th>revenue</th></tr><tr><td><mark>1</mark></td><td>S01</td><td>20</td></tr><tr><td><mark>1</mark></td><td>S01</td><td>10</td></tr><tr><td>2</td><td>S01</td><td>30</td></tr><tr><td>3</td><td>S02</td><td>60</td></tr></table></div>
+<div class="step"><b>Per store.</b> <code>agg(revenue=('revenue', 'sum'), orders=('order_id', 'nunique'))</code> → S01 60, 2; S02 60, 1.</div>
+<div class="step"><b>AOV.</b> S01 60 ÷ 2 = 30; S02 60 ÷ 1 = 60.</div>
+<div class="step"><b>Total, done wrong.</b> Mean of 30 and 60 = 45.</div>
+<div class="step"><b>Total, done right.</b> 120 ÷ 3 orders = 40. <table class="lk-tbl"><tr><th>store</th><th>revenue</th><th>orders</th><th>AOV</th></tr><tr><td>S01</td><td>60</td><td>2</td><td>30</td></tr><tr><td>S02</td><td>60</td><td>1</td><td>60</td></tr><tr><td>Total</td><td>120</td><td>3</td><td><mark>40</mark></td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-aov"></div>
 
 ## 4. Your turn
 
@@ -133,3 +170,12 @@ This is exactly why DAX uses measures instead of summed columns (Power BI course
 **Try it on your own data:** [[csv-profiler]] gives a quick first look at any table before you build KPIs.
 
 **New words:** *KPI*, *AOV*, *additive*, *distinct count*, *total row*, *like for like*.
+
+<div class="keypoints">
+
+- Count orders with nunique, not len.
+- AOV = revenue ÷ orders.
+- Total row: divide totals; never average the averages.
+- Compare this year with last year over the same dates.
+
+</div>

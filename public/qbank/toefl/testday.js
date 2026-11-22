@@ -1,0 +1,14 @@
+// TOEFL drills: test-day situations
+// Made from public/learn-kit/toefl/sets/testday.js by scripts/courses/sets-to-qbank.mjs. Original material written for fibub.
+export default {
+  topic: "testday",
+  items: [
+    {"id":"td-01","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"Home Edition: ten minutes before check-in, a software update starts on your laptop.","options":["Let it finish if there is time, then rerun the system check; contact ETS support if needed","Start the test anyway with the update running","Switch to your phone","Turn off the webcam to save power"],"answer":0,"sol":"Updates can block the secure browser. Turn off automatic updates the day before, and rerun the check."},
+    {"id":"td-02","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"Home Edition: someone knocks on your door during the test.","options":["Ignore it and keep your eyes on the screen","Answer the door quickly","Shout to them to come in","Pause the test"],"answer":0,"sol":"Leaving your seat or talking to someone can end the test. Put a sign on the door beforehand."},
+    {"id":"td-03","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"At the test centre, your neighbour starts speaking while you are still in Writing.","options":["Keep writing; this is normal","Ask them to stop","Wait until they finish","Start your speaking early"],"answer":0,"sol":"People reach Speaking at different times. Focus on your own screen."},
+    {"id":"td-04","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"Which ID problem can stop you from testing?","options":["The name on your ID does not match your booking","Your photo is a few years old but valid","Your ID is in a plastic cover","You wear glasses now"],"answer":0,"sol":"Names must match exactly. Fix the booking before test day."},
+    {"id":"td-05","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"You finish a speaking answer early.","options":["Add a reason or an example until time ends","Stay silent","Say \"that is all\" and stop","Ask the proctor what to do"],"answer":0,"sol":"Extra content shows more of your English. Silence shows nothing."},
+    {"id":"td-06","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"The night before the test you should…","options":["check ID, booking and equipment, then sleep","take two full mock tests","memorise model answers word for word","stay up late watching lectures"],"answer":0,"sol":"Remove risks and rest. Memorised answers sound unnatural and may not fit the question."},
+    {"id":"td-07","type":"mcq","level":2,"exams":["ibt"],"facets":{"skill":"test"},"q":"Home Edition: what should be on your desk?","options":["Only your computer and the allowed note-taking materials","Your phone face down","A printed vocabulary list","A second monitor turned off"],"answer":0,"sol":"Anything else on the desk can be seen as a rule break."},
+  ],
+};

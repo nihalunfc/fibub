@@ -16,9 +16,16 @@ quiz:
     choices: ['Deletes digits', 'Pulls the first run of digits out of each value into a new column', 'Counts digits']
     ans: 1
     why: 'extract returns what the bracketed part of the pattern matched.'
+sources:
+  - 'pandas documentation, User Guide: Working with text data https://pandas.pydata.org/docs/user_guide/text.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 3 · about 20 minutes · uses Lesson 3.3.** You'll be able to clean and split text columns so that the same thing is always written the same way.
+
+<div class="bigidea">The .str methods clean a whole text column at once: trim spaces, fix capitals, replace, split and map variants to one standard spelling.</div>
+
+**In everyday terms:** sorting post where people wrote "Harbourview", " harbourview" and "HARBOUR VIEW". A careful clerk tidies each into one form before counting letters per street.
 
 ## 1. Spaces and capitals
 
@@ -65,6 +72,36 @@ clean.value_counts()
 ```
 
 `map(fix)` gives NaN for anything not in the dictionary, and `fillna(s)` keeps the original for those.
+
+<div class="meaning">
+
+<dl>
+<dt>str.strip()</dt><dd>Remove spaces at both ends.</dd>
+<dt>str.lower() / str.title()</dt><dd>Make capitals consistent.</dd>
+<dt>str.replace(a, b)</dt><dd>Swap text.</dd>
+<dt>str.split(sep, expand=True)</dt><dd>Split into columns.</dd>
+<dt>map({...}) / replace({...})</dt><dd>Turn known variants into one standard value.</dd>
+<dt>Physical meaning</dt><dd>To a computer "S01 " and "S01" are different stores. Every unseen variant splits one group into two and makes its totals too small.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"value_counts() shows 7 stores, so the names are clean."** Look at the list: "Harbourview" and "harbourview " count as two. Clean, then count again.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Raw.</b> <table class="lk-tbl"><tr><th>store</th></tr><tr><td> harbourview</td></tr><tr><td>Harbourview </td></tr><tr><td>HARBOURVIEW</td></tr><tr><td>Pine Lake</td></tr></table></div>
+<div class="step"><b>Strip.</b> <code>.str.strip()</code> removes the outer spaces.</div>
+<div class="step"><b>Title case.</b> <code>.str.title()</code> → Harbourview, Harbourview, Harbourview, Pine Lake.</div>
+<div class="step"><b>Count.</b> <code>value_counts()</code>: Harbourview 3, Pine Lake 1. Before cleaning it said 4 different stores.</div>
+</div>
+
+<div class="problem" data-problem="pd-str-count"></div>
 
 ## 4. Your turn
 
@@ -131,3 +168,12 @@ codes.str.extract(r'ORD-(\d{4})-') returns a table; take column [0] and .astype(
 </details>
 
 **New words:** *.str accessor*, *strip*, *title case*, *split*, *extract*, *regular expression*, *mapping*.
+
+<div class="keypoints">
+
+- Use .str methods on whole text columns.
+- strip, then lower or title, before counting or joining.
+- Map known variants to one standard spelling.
+- Re-check with value_counts() after cleaning.
+
+</div>

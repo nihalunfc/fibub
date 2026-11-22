@@ -136,3 +136,16 @@ a.lc:hover, a.lc:focus-visible { border-color: var(--accent); }
 .cs-keep .btn { padding: 8px 14px; font-size: 14.5px; }
 .cs-keep-x { border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; padding: 8px; }
 @media (prefers-reduced-motion: no-preference) { .cs-keep:not([hidden]) { animation: lh-rise .3s ease both; } }
+
+/* "Coming soon" folded into one short line at the end of a page, never mixed in with what is ready. */
+.lh-soon { margin-top: 18px; }
+.lh-soon ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+/* Long lists on phones (/learn/courses/): two narrow cards per row, name and length only. */
+@media (max-width: 639px) {
+  .lh-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .lh-compact .lc { padding: 9px 10px 12px; }
+  .lh-compact .lc .lh-ico, .lh-compact .lc-t { display: none; }
+  .lh-compact .lc-b strong { font-size: 14px; }
+  .lh-compact .lc-p { left: 10px; right: 10px; bottom: 5px; }
+}

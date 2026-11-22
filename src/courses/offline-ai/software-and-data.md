@@ -2,7 +2,7 @@
 title: Software and data teams
 summary: Developers and data analysts use local models as a private coding assistant, SQL helper and log reader, keeping source code and company data in-house. Includes mini project 8, a local SQL helper.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Continue (open-source coding assistant for VS Code and JetBrains that works with Ollama), https://docs.continue.dev'
   - 'Ollama OpenAI-compatible API (official page), https://docs.ollama.com/openai'
@@ -24,6 +24,8 @@ quiz:
 
 **Module 18 · about 25 minutes · read first: 11.2, 13.2 and 13.3.** You'll be able to set up a private coding and data assistant for your team. This includes mini project 8.
 
+<div class="bigidea">A local model can help developers and analysts write code and SQL while the source code and the data itself never leave the company, because the model only needs to see the shape of the data, not the rows.</div>
+
 ## 1. Why this sector
 
 Developers and analysts use AI more than almost anyone, and they work with the most sensitive things a company has: its code and its data. Local models give them help without a policy fight, and run as many queries as they like.
@@ -31,8 +33,8 @@ Developers and analysts use AI more than almost anyone, and they work with the m
 ## 2. Top uses
 
 1. **Coding assistant** in the editor: autocomplete and chat with a local coder model (Lesson 13.3).
-2. **SQL helper:** plain English to SQL against your own schema, explained.
-3. **Log and error reading:** paste a stack trace or log section, get a likely cause.
+2. **SQL helper:** plain English to SQL against your own **schema** (the list of tables and their columns), explained.
+3. **Log and error reading:** paste a stack trace (the list of function calls an error came through) or a log section, get a likely cause.
 4. **Documentation:** docstrings, READMEs and change notes from code.
 5. **Data cleaning scripts** drafted for a person to review.
 
@@ -74,6 +76,16 @@ print(run(sql))
 
 Steps: make a small `sales.db` (or use the one from Lesson 13.2), run the script, read the SQL before trusting the numbers, then try five questions of your own and note which ones it gets wrong.
 
+Here is what happens inside one run:
+
+<div class="steps">
+<div class="step"><p><b>The question.</b> "Total sales by region in 2026, largest first."</p></div>
+<div class="step"><p><b>Only the shape goes in.</b> <code>schema()</code> reads the <code>CREATE TABLE</code> lines: table and column names such as <code>sales(region, amount, sold_on)</code>. Not one customer row is sent to the model.</p></div>
+<div class="step"><p><b>The model writes SQL.</b> For example <code>SELECT region, SUM(amount) FROM sales WHERE sold_on LIKE '2026%' GROUP BY region ORDER BY 2 DESC</code>.</p></div>
+<div class="step"><p><b>Two locks.</b> <code>run()</code> refuses anything that does not start with SELECT or WITH, and opens the database read-only, so even a bad query cannot change or delete data.</p></div>
+<div class="step"><p><b>A person reads it.</b> The SQL is printed before the numbers. You check it does what you asked (the right year, the right total) before you trust the result.</p></div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -85,6 +97,25 @@ Steps: make a small `sales.db` (or use the one from Lesson 13.2), run the script
 
 **Try it:** a schema of 40 columns is about 600 tokens. What does that mean for privacy? (No customer rows are in the prompt at all; only names of tables and columns.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>schema</dt><dd>the table and column names: the headings of your spreadsheets, not their contents</dd>
+<dt>tokens sent</dt><dd>schema + instructions + question; it grows with the number of columns, never with the number of rows</dd>
+<dt>read-only</dt><dd>the database is opened so nothing can be written, changed or deleted</dd>
+<dt>Physical meaning</dt><dd>A table with ten rows and a table with ten million rows send the same prompt, because only the headings travel. Privacy and cost both stay flat however big the data grows.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="software-and-data-tokens"></div>
+
+<div class="myth">
+
+**"If the AI's SQL runs without an error, the answer is right."** A query can run perfectly and still answer the wrong question: the wrong year, a missing filter, a join that counts rows twice. Read the SQL before trusting the numbers, and test the helper on questions whose answers you already know.
+
+</div>
 
 ## 4. Worked scenario
 
@@ -105,3 +136,12 @@ Steps: make a small `sales.db` (or use the one from Lesson 13.2), run the script
 </details>
 
 **New words:** *schema*, *read-only*, *coder model*, *stack trace*.
+
+<div class="keypoints">
+
+- Local coding assistants and SQL helpers keep source code and company data inside the company.
+- The SQL helper sends only the schema and the question: the prompt grows with columns, never with rows.
+- Two locks: allow only SELECT queries, and open the database read-only.
+- A query that runs can still be wrong; read the SQL and test on questions you know the answer to.
+
+</div>

@@ -1,0 +1,35 @@
+---
+// CELPIP practice room: the whole CELPIP bank (public/qbank/celpip/, made from the lesson drill sets by
+// scripts/courses/sets-to-qbank.mjs) with filters for skill, part or task, module and level. Listening is read aloud by
+// the browser; nothing is recorded, saved on a server or sent anywhere.
+import Base from '../../../../../layouts/Base.astro';
+import QBank from '../../../../../components/qbank/QBank.astro';
+import { CELPIP } from '../../../../../courses/celpip/syllabus';
+import { bankCounts } from '../../../../../lib/qbank/build';
+import { coursePageLd } from '../../../../../lib/seo';
+import '../../../../../styles/course.css';
+const { idx, topics } = await bankCounts('celpip');
+const written = Object.values(topics).reduce((s, c) => s + c.items, 0);
+const title = 'CELPIP practice questions: Listening, Reading, Writing, Speaking';
+const desc = 'Free CELPIP practice with answers: listening read aloud in your browser, reading parts, writing and speaking questions, all original. No sign-up, nothing leaves your device.';
+const ld = coursePageLd(CELPIP, 'Practice room', desc, 'practice');
+---
+<Base title={title} docTitle="CELPIP practice questions with answers | fibub" description={desc} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/celpip/">CELPIP preparation</a> / Practice room</div>
+  <div class="cs-main cs-wide">
+    <h1>CELPIP practice room</h1>
+    <p class="lead">Every practice set in the CELPIP course in one place. Pick a skill and a part, or practise everything from easy to hard. Each answer comes with the reason, and the trap that catches most people.</p>
+    <p class="cs-meta">So far: {written} original questions across {Object.keys(topics).length} topics, one topic for each practice set in the course. All questions are written for fibub and not taken from any official test or practice material.</p>
+    <h2>How listening works here</h2>
+    <p>Recordings are read aloud by your own device's English voices, so nothing is downloaded and nothing is sent anywhere. Choose Canadian, American or mixed voices if your device has them, and tick <b>Test conditions</b> to hear each recording once, as in the real test. The transcript opens after you answer.</p>
+    <h2>By module</h2>
+    {idx.units.map((u) => <section class="cs-modcard"><h4>{u.name}</h4><ul>{u.topics.map((t) => <li>{t.name} <span class="cs-small">({topics[t.id]?.items ?? 0} questions)</span></li>)}</ul></section>)}
+    <h2>Practise</h2>
+    <p class="cs-small">Questions that share a passage or a recording are shown together, as a set. Tick "Remember my progress" if you want solved questions to move to the end next time; it stays in this browser only. The lessons keep their own short drills; this room gathers them all.</p>
+    <QBank bank="celpip" mode="practice" />
+    <h2>Vocabulary for every English test</h2>
+    <p>Word families, collocations, spelling, phrasal verbs, words people mix up, and twelve everyday themes from work and housing to health and science. The same bank serves the IELTS, CELPIP and TOEFL courses, from easy to hard, with the reason for every answer.</p>
+    <QBank bank="english" mode="practice" />
+    <p><a href="/learn/courses/celpip/">&larr; Back to the CELPIP course</a></p>
+  </div>
+</Base>

@@ -1,0 +1,40 @@
+---
+// 12.3: tick what your business does; see the insurance it needs (required by law or strongly advised) in your country.
+---
+<figure class="cs-fig su-fig" data-ins>
+  <span class="cs-figtag">Try it: which insurance do I need?</span>
+  <div class="su-row"><label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label></div>
+  <div data-qs></div>
+  <div class="su-cards" data-out></div>
+  <figcaption>A plain-language guide as of November 2026, not a quote. Premiums depend on your trade, revenue, claims history and insurer. Required-by-law covers: India, ESIC and the Employees’ Compensation Act, motor third party; Canada, provincial workers’ compensation (WSIB, WorkSafeBC and others) and auto; USA, workers’ compensation in almost every state, unemployment insurance and commercial auto. Compare at least three quotes or use a licensed broker.</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  const Q: [string, string][] = [['place', 'Customers or visitors come to your premises, or you work at theirs'], ['stuff', 'You own stock, equipment or rent an office or shop'], ['advice', 'You give advice, design, software or professional services'], ['staff', 'You have employees'], ['car', 'You use vehicles for the business'], ['data', 'You hold customer data or take payments online'], ['product', 'You make or sell physical products'], ['raise', 'You have outside investors or a board']];
+  type Pol = [string, string, string, (c: CC) => string, (c: CC) => boolean];
+  const P: Pol[] = [
+    ['General liability', 'place', 'Covers injury to others and damage to their property caused by your business.', () => 'Landlords and big customers often ask for proof before signing.', () => false],
+    ['Property and contents', 'stuff', 'Covers your stock, equipment and fit-out against fire, theft and flood. Add business interruption to replace lost income while you rebuild.', (c) => c === 'in' ? 'In India often sold as a "shop" or "office package" policy.' : 'Home insurance usually excludes business equipment: tell your insurer if you work from home.', () => false],
+    ['Professional liability (errors and omissions)', 'advice', 'Covers claims that your advice, design or software caused a client a loss.', () => 'Many client contracts require it, with a minimum cover amount.', () => false],
+    ['Workers’ compensation', 'staff', 'Pays employees injured at work and protects you from being sued for it.', (c) => c === 'in' ? 'ESIC covers employees earning up to ₹21,000 a month once you have 10 or more staff; for others, Employees’ Compensation Act liability is usually insured.' : c === 'ca' ? 'Register with your province’s board (WSIB in Ontario, WorkSafeBC) when you hire; premiums are a percentage of payroll.' : 'Required in almost every state once you have employees (Texas is the main exception); buy from a private insurer or a state fund.', () => true],
+    ['Commercial auto', 'car', 'Covers vehicles used for work. Personal car policies may refuse a claim during business use.', () => 'Third-party cover is required by law for every vehicle.', () => true],
+    ['Cyber insurance', 'data', 'Pays for breach response, notifying customers, ransomware and some fines where insurable.', () => 'Pairs with the privacy routine in Lesson 11.4.', () => false],
+    ['Product liability', 'product', 'Covers injury or damage caused by a product you make, import or sell.', (c) => c === 'us' ? 'Marketplaces such as Amazon require it once sales pass a threshold.' : 'Importers count as the maker in many cases.', () => false],
+    ['Directors and officers (D&O)', 'raise', 'Covers directors personally against claims about how they ran the company.', () => 'Investors usually require it when they take a board seat.', () => false],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ins]')) {
+    const qs = fig.querySelector('[data-qs]')!, out = fig.querySelector('[data-out]')!;
+    qs.innerHTML = Q.map(([k, t]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-weight:500;font-size:14.5px;margin:5px 0"><input type="checkbox" data-k="${k}" ${k === 'place' || k === 'data' ? 'checked' : ''} style="margin-top:3px"> <span>${t}</span></label>`).join('');
+    const cc = followCountry(fig, draw); qs.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), on = new Set([...qs.querySelectorAll<HTMLInputElement>('input:checked')].map((i) => i.dataset.k!));
+      out.innerHTML = '';
+      const pick = P.filter((p) => on.has(p[1]));
+      if (!pick.length) { out.innerHTML = '<div class="su-card">Tick what your business does to see the cover it needs.</div>'; return; }
+      pick.forEach(([name, , what, note, must]) => {
+        const e = document.createElement('div'); e.className = `su-card ${must(c) ? 'warn' : 'on'}`; e.innerHTML = '<strong></strong><span></span><div class="su-fine"></div>';
+        e.querySelector('strong')!.textContent = `${name}${must(c) ? ' (required by law)' : ''}`; e.querySelector('span')!.textContent = what; e.querySelector('.su-fine')!.textContent = note(c); out.append(e);
+      });
+    }
+  }
+</script>

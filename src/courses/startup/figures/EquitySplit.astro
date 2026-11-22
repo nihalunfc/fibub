@@ -1,0 +1,29 @@
+---
+// 10.2: score each founder on what they bring and risk; weighted scores give a starting equity split to discuss.
+---
+<figure class="cs-fig su-fig" data-es>
+  <span class="cs-figtag">Calculator: a fair starting split</span>
+  <p class="su-fine" style="margin:0">Score each founder 0 to 10 on each line. Weights show how much each line counts; change them if your startup differs.</p>
+  <div style="overflow-x:auto"><table class="su-t" data-t></table></div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>A conversation tool, not a formula that settles it. Most of a startup's value is created after the split, so equal or near-equal splits between full-time founders are common and vesting (Lesson 10.3) protects everyone if someone leaves. Large gaps usually come from one founder starting much earlier, putting in cash, or working part-time.</figcaption>
+</figure>
+<script>
+  const F = ['Founder A', 'Founder B', 'Founder C'];
+  const ROWS: [string, number][] = [['Full-time from the start', 3], ['Time and work already put in', 2], ['Cash invested', 1], ['Skills the product needs', 2], ['Sales, network, fundraising', 2], ['Pay given up (risk)', 1], ['Original idea', 0.5]];
+  const S0 = [[10, 10, 5], [8, 4, 2], [5, 0, 0], [7, 9, 6], [8, 5, 4], [6, 8, 3], [10, 0, 0]];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-es]')) {
+    const t = fig.querySelector('[data-t]')!;
+    t.innerHTML = `<thead><tr><th>What they bring</th><th>Weight</th>${F.map((f, i) => `<th><input type="text" value="${f}" data-n="${i}" style="width:6.5em"></th>`).join('')}</tr></thead><tbody>${ROWS.map(([r, w], j) => `<tr><td>${r}</td><td><input type="number" min="0" max="5" step="0.5" value="${w}" data-w="${j}" style="width:4em"></td>${F.map((_, i) => `<td><input type="number" min="0" max="10" step="1" value="${S0[j][i]}" data-s="${j}-${i}" style="width:3.6em"></td>`).join('')}</tr>`).join('')}</tbody>`;
+    function draw() {
+      const names = F.map((_, i) => (t.querySelector(`[data-n="${i}"]`) as HTMLInputElement).value || `Founder ${i + 1}`);
+      const pts = F.map((_, i) => ROWS.reduce((s, _r, j) => s + Number((t.querySelector(`[data-w="${j}"]`) as HTMLInputElement).value || 0) * Number((t.querySelector(`[data-s="${j}-${i}"]`) as HTMLInputElement).value || 0), 0));
+      const tot = pts.reduce((a, b) => a + b, 0) || 1, pct = pts.map((p) => (p / tot) * 100);
+      fig.querySelector('[data-bars]')!.innerHTML = pct.map((p, i) => `<div><span>${names[i]}</span><span class="t"><i style="width:${p}%"></i></span><b>${p.toFixed(1)} %</b></div>`).join('');
+      const max = Math.max(...pct), min = Math.min(...pct.filter((p) => p > 0));
+      fig.querySelector('[data-say]')!.textContent = `Starting point: ${names.map((n, i) => `${n} ${Math.round(pct[i])} %`).join(', ')}. ${max / min > 3 ? 'One founder scores far lower: is this person really a co-founder, or an early employee with options?' : 'Talk through each line together; agree, then write it down with vesting.'}`;
+    }
+    t.addEventListener('input', draw); draw();
+  }
+</script>

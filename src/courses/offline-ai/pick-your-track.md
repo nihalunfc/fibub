@@ -3,7 +3,11 @@ title: 'Pick your track: laptop, desktop or team server'
 seoTitle: 'Pick your track: laptop, desktop or server'
 summary: Answer four questions about your computer, your users, your budget and your goal, and get a suggested path through the course.
 minutes: 15
-updated: 2026-11-18
+updated: 2026-11-22
+sources:
+  - 'llama.cpp, official repository (quantised GGUF models on CPUs, GPUs and Macs) https://github.com/ggml-org/llama.cpp'
+  - 'Ollama, model library and hardware notes https://github.com/ollama/ollama'
+  - 'Dettmers, T. et al. (2022), LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale https://arxiv.org/abs/2208.07339'
 quiz:
   - q: What decides most strongly which models you can run?
     choices: ['How fast your internet is', 'How much fast memory your machine has', 'Which operating system you use']
@@ -21,9 +25,11 @@ quiz:
 
 **Module 1 · about 15 minutes · read first: 1.1 to 1.3.** You'll be able to name your track and the model size that suits your machine.
 
+<div class="bigidea">Your memory decides which models you can run, so start with the computer you have and pick the track that matches it.</div>
+
 ## 1. Why this matters
 
-The course covers everything from a phone to a team server. You do not need all of it at once. Picking a track tells you which lessons to take first and stops you buying hardware you do not need.
+The course covers everything from a phone to a team server. You do not need all of it at once. Picking a track tells you which lessons to take first. It also stops you buying hardware you do not need.
 
 ## 2. The three tracks
 
@@ -37,7 +43,13 @@ Answer the four questions. The suggestion updates as you change any answer.
 
 <!--fig:pick-track-->
 
-The model names in the suggestion are examples from late 2026. New models come out every few weeks; what stays true is the size class (how many billions of parameters) that fits your memory. Module 7 shows how to pick from whatever is newest.
+The model names in the suggestion are examples from late 2026. New models come out every few weeks. What stays true is the **size class**: how many billions of parameters fit your memory. Module 7 shows how to pick from whatever is newest.
+
+<div class="myth">
+
+**"The B in 7B means gigabytes, so a 16 GB laptop runs a 16B model."** B means billion parameters (the numbers inside the model), not gigabytes. How many gigabytes those take depends on how precisely each one is stored. At 16 bits a 7B model needs 14 GB; squeezed to 4 bits it needs about 3.5 GB. A 16 GB laptop is comfortable with about 12B at 4 bits, not 16B.
+
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -50,6 +62,30 @@ The model names in the suggestion are examples from late 2026. New models come o
 
 **Try it:** a 12-billion-parameter model folded to 4 bits per weight? (12 × 4 ÷ 8 = 6 GB, plus working room, about 7 to 9 GB: fine on a 16 GB laptop.)
 </details>
+
+Watch the suitcase get packed for that 12B model on a 16 GB laptop.
+
+<div class="steps" data-fig="pick-your-track-fit">
+<div class="step"><p><b>The laptop.</b> 16 GB of memory. The operating system and your open apps already use about <b>4 GB</b>, leaving about 12 GB.</p></div>
+<div class="step"><p><b>The weights.</b> 12 billion numbers at 4 bits each. 4 bits is half a byte, so 12 × 4 ÷ 8 = <b>6 GB</b>.</p></div>
+<div class="step"><p><b>Working room.</b> The model also needs space for the conversation it is reading (Lesson 3.3): about <b>2 GB</b> for a normal chat.</p></div>
+<div class="step"><p><b>Check the fit.</b> 4 + 6 + 2 = <b>12 GB</b> of 16. It fits, with 4 GB to spare. Laptop track, models up to about 12B.</p></div>
+<div class="step"><p><b>Try a bigger one.</b> A 27B model at 4 bits is 13.5 GB of weights alone. 4 + 13.5 + 2 = 19.5 GB: it does not fit. That size belongs to the desktop track.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>P</dt><dd>parameters, in billions: the "7B" or "12B" in a model's name</dd>
+<dt>b</dt><dd>bits per weight: how precisely each number is stored (16 for full size, 4 for a typical squeezed model)</dd>
+<dt>P × b ÷ 8</dt><dd>the weights' size in gigabytes (8 bits make 1 byte)</dd>
+<dt>working room</dt><dd>about 1 to 3 GB more for the conversation and the program itself</dd>
+<dt>Physical meaning</dt><dd>The model has to sit in fast memory while it works, like a cook who needs every ingredient on the counter. If it does not fit, it either refuses to load or crawls along, borrowing slow storage.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="pick-your-track-fit"></div>
 
 ## 4. Worked example
 
@@ -70,3 +106,13 @@ The model names in the suggestion are examples from late 2026. New models come o
 </details>
 
 **New words:** *track* (your route through the course), *size class* (models grouped by billions of parameters), *bits per weight* (how precisely each number in the model is stored).
+
+<div class="keypoints">
+
+- Three tracks: laptop (the machine you have), desktop (bigger and faster), team server (many users at once).
+- How much fast memory you have decides which models you can run.
+- Memory needed ≈ parameters (billions) × bits per weight ÷ 8 GB, plus 1 to 3 GB of working room.
+- A 16 GB laptop is comfortable with models up to about 12B at 4 bits per weight.
+- Start on what you have; it tells you what, if anything, is worth buying.
+
+</div>
