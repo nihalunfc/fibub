@@ -16,9 +16,16 @@ quiz:
     choices: ['Uses the last 7 calendar days, however many rows that is', 'Nothing', 'Uses 7 weeks']
     ans: 0
     why: 'A time-based window works even when some days are missing.'
+sources:
+  - 'pandas documentation, User Guide: Windowing operations https://pandas.pydata.org/docs/user_guide/window.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 7 · about 15 minutes · uses Lesson 7.1.** You'll be able to smooth daily KPIs and compute running totals.
+
+<div class="bigidea">A rolling average replaces each day by the average of the last few days, so day-to-day noise cancels and the trend shows.</div>
+
+**In everyday terms:** judging a café by its last seven days instead of today alone: one rainy Tuesday no longer looks like a disaster.
 
 ## 1. rolling
 
@@ -63,6 +70,36 @@ pd.DataFrame({'daily': daily, 'ewm': daily.ewm(alpha=0.3).mean().round(1)}).tail
 ```
 
 `ewm` weights recent days more (Statistics Lesson 8.5). `alpha` near 1 follows the data closely; near 0 is very smooth.
+
+<div class="meaning">
+
+<dl>
+<dt>rolling(7).mean()</dt><dd>Average of this row and the 6 before it.</dd>
+<dt>First rows NaN</dt><dd>Until 7 rows exist; min_periods= relaxes that.</dd>
+<dt>rolling('7D')</dt><dd>A window by time, safe when days are missing.</dd>
+<dt>cumsum() / ewm(span=7)</dt><dd>Running total; a smoother that weights recent days more.</dd>
+<dt>Physical meaning</dt><dd>A 7-day window covers each weekday exactly once, so weekly patterns cancel and only the trend remains. The price: the average lags, responding to a real change a few days late.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A rolling average shows today's value."** It shows the last week's average, centred about 3 days back. A sudden drop takes a week to show fully.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Daily sales.</b> <table class="lk-tbl"><tr><th>day</th><th>sales</th></tr><tr><td>1</td><td>10</td></tr><tr><td>2</td><td>14</td></tr><tr><td>3</td><td>9</td></tr><tr><td>4</td><td>15</td></tr><tr><td>5</td><td>12</td></tr></table></div>
+<div class="step"><b>Window of 3.</b> <code>s.rolling(3).mean()</code>; days 1-2 have no full window: NaN.</div>
+<div class="step"><b>Day 3.</b> (10 + 14 + 9) ÷ 3 = 11.</div>
+<div class="step"><b>Slide.</b> Day 4: (14 + 9 + 15) ÷ 3 = 12.67; day 5: (9 + 15 + 12) ÷ 3 = 12.</div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>day</th><th>sales</th><th>roll3</th></tr><tr><td>1</td><td>10</td><td>NaN</td></tr><tr><td>2</td><td>14</td><td>NaN</td></tr><tr><td>3</td><td>9</td><td><mark>11.0</mark></td></tr><tr><td>4</td><td>15</td><td><mark>12.67</mark></td></tr><tr><td>5</td><td>12</td><td><mark>12.0</mark></td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-rolling-mean"></div>
 
 ## 4. Your turn
 
@@ -118,3 +155,12 @@ daily.rolling(7).mean() gives the averages; .idxmax() gives the date of the high
 **Try it on your own data:** [[time-series-analyser]] splits a series into trend and seasonal pattern.
 
 **New words:** *rolling window*, *trailing*, *centred*, *expanding*, *year to date*, *ewm*.
+
+<div class="keypoints">
+
+- rolling(n).mean() averages the current row and the n − 1 before it.
+- The first n − 1 rows are NaN unless you set min_periods.
+- Use a 7-day window for daily data with a weekly pattern.
+- cumsum() for running totals; ewm() for recent-weighted smoothing.
+
+</div>

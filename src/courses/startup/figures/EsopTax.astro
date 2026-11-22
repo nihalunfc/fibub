@@ -1,0 +1,43 @@
+---
+// 10.4: when and how stock options are taxed: at exercise and at sale, in India, Canada and the USA.
+---
+<figure class="cs-fig su-fig" data-eo>
+  <span class="cs-figtag">Calculator: tax on stock options</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada (C$)</option><option value="us">USA ($)</option></select></label>
+    <label>Options<input type="number" name="n" min="0" step="1" value="10000" /></label>
+    <label>Exercise (strike) price per share<input type="number" name="k" min="0" step="any" value="10" /></label>
+    <label>Share value when exercised<input type="number" name="v" min="0" step="any" value="40" /></label>
+    <label>Sale price per share<input type="number" name="s" min="0" step="any" value="100" /></label>
+    <label>Your top tax rate on salary (%)<input type="number" name="r" min="0" max="60" step="0.5" value="31.2" /></label>
+    <label><span><input type="checkbox" name="x" checked> <span data-xl></span></span></label>
+  </div>
+  <div class="su-out"><div><span>Taxable at exercise</span><b data-a></b></div><div><span>Tax at exercise</span><b data-ta></b></div><div><span>Tax at sale</span><b data-ts></b></div><div><span>You keep</span><b data-k></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Simplified rules as of November 2026. India: perquisite taxed as salary at exercise (DPIIT-recognised startups can defer the tax up to 48 months, until sale, or until you leave); gain on unlisted shares held over 24 months taxed at 12.5 %, otherwise at your slab rate. Canada: stock option benefit is employment income with a 50 % deduction when the strike was at least the share value at grant; for a CCPC the benefit is taxed only when you sell; capital gains are half taxable. USA: ISO with a qualifying sale (2 years from grant, 1 year from exercise) is all long-term gain at 15 % here (AMT can apply at exercise); NSO spread is wages at exercise. Not tax advice.</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  const XL: Record<CC, string> = { in: 'Held over 24 months after exercise', ca: 'Employer is a Canadian-controlled private corporation (CCPC)', us: 'Incentive stock options (ISO) with a qualifying sale (untick for NSO)' };
+  const RATE: Record<CC, number> = { in: 31.2, ca: 43.4, us: 32 };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-eo]')) {
+    let touched = false; fig.querySelector('[name=r]')!.addEventListener('input', () => { touched = true; });
+    const cc = followCountry(fig, (c) => { if (!touched) (fig.querySelector('[name=r]') as HTMLInputElement).value = String(RATE[c]); draw(); });
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), n = num(fig, 'n'), k = num(fig, 'k'), v = num(fig, 'v'), s = num(fig, 's'), r = num(fig, 'r') / 100, x = (fig.querySelector('[name=x]') as HTMLInputElement).checked;
+      fig.querySelector('[data-xl]')!.textContent = XL[c];
+      const spread = Math.max(0, v - k) * n, gain = (s - v) * n, cost = k * n;
+      let taxA = 0, taxS = 0, say = '';
+      if (c === 'in') { taxA = spread * r; taxS = Math.max(0, gain) * (x ? 0.125 * 1.04 : r); say = `The ${money('in', spread)} perquisite is taxed as salary when you exercise, though you have sold nothing: plan cash for it, or use the startup deferral if your employer is DPIIT-recognised. The later gain is taxed as capital gain.`; }
+      else if (c === 'ca') { const ben = spread * 0.5; if (x) { taxA = 0; taxS = ben * r + Math.max(0, gain) * 0.5 * r; } else { taxA = ben * r; taxS = Math.max(0, gain) * 0.5 * r; } say = x ? 'With a CCPC employer nothing is taxed at exercise: the option benefit (half of it, after the deduction) is taxed in the year you sell, along with half the capital gain.' : 'With a public or foreign-controlled employer, half the option benefit is taxed when you exercise; the later gain is half taxable.'; }
+      else { if (x) { taxA = 0; taxS = Math.max(0, s - k) * n * 0.15; say = 'ISO with a qualifying sale: no regular tax at exercise (check the alternative minimum tax), then the whole gain over the strike is long-term capital gain.'; } else { taxA = spread * (r + 0.0765); taxS = Math.max(0, gain) * 0.15; say = 'NSO: the spread is wages when you exercise (income tax plus FICA, withheld by the employer); the later gain is capital gain.'; } }
+      const keep = s * n - cost - taxA - taxS;
+      fig.querySelector('[data-a]')!.textContent = money(c, c === "ca" ? (x ? 0 : spread * 0.5) : c === "us" && x ? 0 : spread);
+      fig.querySelector('[data-ta]')!.textContent = money(c, taxA);
+      fig.querySelector('[data-ts]')!.textContent = money(c, taxS);
+      fig.querySelector('[data-k]')!.textContent = money(c, keep);
+      fig.querySelector('[data-say]')!.textContent = `You pay ${money(c, cost)} to exercise. ${say}`;
+    }
+  }
+</script>

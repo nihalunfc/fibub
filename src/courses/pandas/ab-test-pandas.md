@@ -16,9 +16,16 @@ quiz:
     choices: ['Treat it as an idea to test, because with 6 looks one small p-value is likely by chance', 'Ship it for that segment', 'The test failed']
     ans: 0
     why: 'Multiple comparisons (Statistics Lesson 6.8).'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments, Cambridge University Press'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 8 · about 25 minutes · uses Statistics Module 7.** You'll be able to go from a raw experiment file to a readout, in code.
+
+<div class="bigidea">An A/B readout in pandas is four steps: check the split, compute each group's rate, measure the difference with its uncertainty, then check guardrails before you call it.</div>
+
+**In everyday terms:** a fair taste test: first check both groups really had the same number of tasters, then count who preferred each cup, then ask whether the gap could be chance.
 
 This lesson uses the experiment file from the Statistics course: 24,000 visitors split between the old checkout (A) and a new one (B). The ideas behind each number are in [Statistics Lesson 7.5](/learn/courses/statistics/ab-analysis/); here we do it in pandas.
 
@@ -75,6 +82,36 @@ seg.round(4)
 - **Guardrails**: B is about 46 ms slower to load. Is that acceptable? A decision for the team, written in the readout.
 - **Segments**: B wins on both phones and computers, which makes the overall result more believable. If one segment flipped, treat it as a question for a new test, not a finding.
 
+<div class="meaning">
+
+<dl>
+<dt>Sample ratio check</dt><dd>Users per group should match the planned split (Statistics Lesson 7.5).</dd>
+<dt>groupby('group').agg(users=..., conv=...)</dt><dd>One row per group.</dd>
+<dt>rate = conv ÷ users</dt><dd>Conversion per group.</dd>
+<dt>Lift</dt><dd>Difference in rates, in percentage points, with a confidence interval.</dd>
+<dt>Physical meaning</dt><dd>The lift is a difference between two proportions, each with sampling noise. Its standard error shrinks with more users, so the same 0.5-point lift can be convincing with 50,000 users and pure noise with 2,000.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"B won, it has the higher rate."** Every test has a winner by chance. Report the lift with its interval and p-value, and check the split and guardrails first.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Raw file: one row per user.</b> <table class="lk-tbl"><tr><th>user</th><th>group</th><th>converted</th></tr><tr><td>1</td><td>A</td><td>0</td></tr><tr><td>2</td><td>B</td><td>1</td></tr><tr><td>3</td><td>A</td><td>1</td></tr><tr><td>...</td><td>...</td><td>...</td></tr></table></div>
+<div class="step"><b>Split check.</b> <code>value_counts()</code> → A 5,012, B 4,988: close to 50/50.</div>
+<div class="step"><b>Rates.</b> <code>groupby('group')['converted'].agg(['size', 'sum', 'mean'])</code><table class="lk-tbl"><tr><th>group</th><th>users</th><th>conv</th><th>rate</th></tr><tr><td>A</td><td>5012</td><td>501</td><td>10.0 %</td></tr><tr><td>B</td><td>4988</td><td>549</td><td><mark>11.0 %</mark></td></tr></table></div>
+<div class="step"><b>Lift.</b> 11.0 − 10.0 = +1.0 point; SE ≈ 0.61 points; 95 % CI about −0.2 to +2.2.</div>
+<div class="step"><b>Readout.</b> Promising but not conclusive at this size.</div>
+</div>
+
+<div class="problem" data-problem="pd-ab-lift"></div>
+
 ## 4. Your turn
 
 ```python exercise data=statistics/checkout-test.csv
@@ -129,3 +166,12 @@ The p-value uses the **pooled** rate, because under "no difference" both groups 
 **Try it on your own data:** [[bayesian-ab-test]] and [[sample-size]] check a result or plan the next test.
 
 **New words:** *readout*, *sample ratio*, *lift*, *pooled rate*, *guardrail metric*, *segment*.
+
+<div class="keypoints">
+
+- Check the sample ratio before any result.
+- One groupby gives users, conversions and rate per group.
+- Report the lift in points with a confidence interval.
+- Check guardrail metrics and pre-planned segments only.
+
+</div>

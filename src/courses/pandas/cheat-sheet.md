@@ -17,9 +17,16 @@ quiz:
     choices: ['iloc', 'loc', 'at']
     ans: 0
     why: 'iloc = integer location.'
+sources:
+  - 'pandas documentation, User Guide: User Guide https://pandas.pydata.org/docs/user_guide/index.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 9 · reference.** One line per command, using the course data. Press Ctrl+P (⌘+P on a Mac) to print it.
+
+<div class="bigidea">Almost every analysis is the same short pipeline: read, look, clean, filter, group, combine, reshape, check. This sheet is that pipeline, one line per step.</div>
+
+**In everyday terms:** the card taped inside a kitchen cupboard with the five recipes you cook most: no need to open the book each time.
 
 ## Read and look
 
@@ -32,6 +39,36 @@ quiz:
 | Missing per column | `df.isna().sum()` |
 | Distinct values | `df['store_id'].nunique()`, `df['store_id'].value_counts()` |
 | Save | `df.to_csv('out.csv', index=False)` |
+
+<div class="meaning">
+
+<dl>
+<dt>Read and look</dt><dd>read_csv, head, info, describe.</dd>
+<dt>Clean</dt><dd>isna, drop_duplicates, astype, str, to_datetime.</dd>
+<dt>Summarise</dt><dd>groupby, agg, pivot_table, resample.</dd>
+<dt>Combine</dt><dd>concat for rows, merge for keys, map for one column.</dd>
+<dt>Physical meaning</dt><dd>Each step either keeps the row count (assign, map, transform), shrinks it (filter, groupby, drop_duplicates) or can grow it (merge, melt). Knowing which tells you what to check after every line.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Memorise every function."** Knowing what each step does to the row count, and checking it, matters more than remembering every argument. Look arguments up; know the pipeline.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Read.</b> <code>df = pd.read_csv('orders.csv', parse_dates=['date'])</code></div>
+<div class="step"><b>Clean.</b> <code>df = df.drop_duplicates().dropna(subset=['qty'])</code></div>
+<div class="step"><b>Filter and compute.</b> <code>df = df.query('qty > 0').assign(revenue=lambda d: d.qty * d.price)</code></div>
+<div class="step"><b>Summarise.</b> <code>df.groupby('store')['revenue'].sum()</code></div>
+<div class="step"><b>Check.</b> <code>df.shape</code> after each line; totals add up.</div>
+</div>
+
+<div class="problem" data-problem="pd-cheat-rows"></div>
 
 ## Select and filter
 
@@ -116,3 +153,12 @@ quiz:
 **Next:** test yourself with the [interview questions](/learn/courses/pandas/interview-questions/), or open [Module 1](/learn/courses/pandas/why-pandas/) to start again from the top.
 
 **New words:** none, this page collects the course's words.
+
+<div class="keypoints">
+
+- Read → look → clean → filter → group → combine → reshape → check.
+- Know which steps keep, shrink or grow the rows.
+- Check shape and a total after each step.
+- Print this page and keep it by your desk.
+
+</div>

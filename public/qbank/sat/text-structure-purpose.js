@@ -1,0 +1,21 @@
+// SAT Reading and Writing · Craft and structure · text structure and purpose. Original passages (fibub).
+import { place } from './_util.js';
+const F = { section: 'rw', domain: 'craft' };
+const it = (id, level, sub, text, ask, options, sol, trap) => place({ id, type: 'mcq', marks: 1, level, exams: ['sat'], sub, facets: F, q: `<p>${text}</p><p>${ask}</p>`, options, answer: 0, sol, trap });
+export default {
+  topic: 'text-structure-purpose',
+  items: [
+    it('sat-ts-001', 2, 'main purpose', 'Most people know that bees make honey. Fewer know that bees also pollinate roughly a third of the crops humans eat, from almonds to apples. Without them, many fruits and nuts would become scarce and expensive.', 'Which choice best states the main purpose of the text?',
+      ['To point out a less familiar but important role that bees play', 'To explain how bees make honey', 'To argue that almonds are more important than apples', 'To describe the life cycle of a bee'],
+      '<p>The text moves from what "most people know" (honey) to what "fewer know" (pollination) and why it matters. Its purpose is to highlight that less familiar role.</p>'),
+    it('sat-ts-002', 3, 'function of a sentence', 'Some scientists predicted that the island\'s lizards would vanish after a new predator arrived. Instead, within a few years, the lizards began spending more time high in the trees, where the ground-hunting predator rarely went. Their legs, over several generations, grew shorter, which helps with gripping thin branches.', 'Which choice best describes the function of the first sentence in the overall structure of the text?',
+      ['It presents a prediction that the rest of the text shows to be wrong.', 'It describes the lizards\' new behaviour.', 'It explains why shorter legs help on thin branches.', 'It gives the main conclusion of the scientists\' study.'],
+      '<p>"Instead" signals that what follows contradicts the first sentence. The first sentence is a prediction; the rest shows the lizards adapting rather than vanishing.</p>'),
+    it('sat-ts-003', 3, 'overall structure', 'The painter Lina Ortiz first worked as a mapmaker. In her early paintings, rivers and roads cross the canvas like lines on a survey. Later, after she moved to the coast, the lines loosened into waves and drifting clouds. Critics now see her whole career as a slow movement from measuring the world to feeling it.', 'Which choice best describes the overall structure of the text?',
+      ['It traces how an artist\'s work changed over time and then offers an interpretation of that change.', 'It compares two artists who both worked as mapmakers.', 'It argues that mapmaking is a form of painting.', 'It describes a single painting in detail.'],
+      '<p>The text follows Ortiz\'s work from early to later, then gives the critics\' reading of the change. It is about one artist and many works.</p>'),
+    it('sat-ts-004', 4, 'purpose of a detail', 'Ice cores from Greenland hold tiny bubbles of air trapped as snow piled up over thousands of years. By measuring the gases in each layer, researchers can see how much carbon dioxide the atmosphere held in the past. One core, drilled to a depth of 3 kilometres, records conditions from more than 100,000 years ago.', 'Which choice best describes the function of the third sentence?',
+      ['It gives an example that shows how far back in time ice cores can record the atmosphere.', 'It explains how air becomes trapped in the ice.', 'It challenges the idea that ice cores are useful.', 'It describes a problem with measuring carbon dioxide.'],
+      '<p>The third sentence gives one specific core and how old its record is, illustrating the general method in the first two sentences.</p>'),
+  ],
+};

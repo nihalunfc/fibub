@@ -39,5 +39,27 @@ export default {
       { id: 'right-triangle-trig', name: 'Right-triangle trigonometry' },
       { id: 'circles', name: 'Circles' },
     ] },
+    { id: 'info', name: 'Information and ideas', topics: [
+      { id: 'central-ideas', name: 'Central ideas and details' },
+      { id: 'textual-evidence', name: 'Command of evidence: text' },
+      { id: 'quantitative-evidence', name: 'Command of evidence: data' },
+      { id: 'inferences', name: 'Inferences' },
+    ] },
+    { id: 'craft', name: 'Craft and structure', topics: [
+      { id: 'words-in-context', name: 'Words in context' },
+      { id: 'text-structure-purpose', name: 'Text structure and purpose' },
+      { id: 'cross-text', name: 'Cross-text connections' },
+    ] },
+    { id: 'expression', name: 'Expression of ideas', topics: [
+      { id: 'transitions', name: 'Transitions' },
+      { id: 'rhetorical-synthesis', name: 'Rhetorical synthesis' },
+    ] },
+    { id: 'conventions', name: 'Standard English conventions', topics: [
+      { id: 'sentence-boundaries', name: 'Sentence boundaries' },
+      { id: 'punctuation', name: 'Punctuation' },
+      { id: 'subject-verb-agreement', name: 'Subject-verb agreement' },
+      { id: 'pronouns-modifiers', name: 'Pronouns and modifiers' },
+      { id: 'verb-forms', name: 'Verb tense and form' },
+    ] },
   ],
 };
