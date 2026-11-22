@@ -125,6 +125,10 @@ export default {
       { id: 'transistors', name: 'Transistors and amplifiers' },
       { id: 'op-amps', name: 'Operational amplifiers' },
       { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+      { id: 'semiconductor-devices', name: 'Diodes, BJTs, FETs and MOSFETs (GATE)' },
+      { id: 'amplifiers-feedback', name: 'Amplifiers and feedback (GATE)' },
+      { id: 'op-amp-circuits', name: 'Op-amp circuits (GATE)' },
+      { id: 'oscillators', name: 'Oscillators (GATE)' },
     ] },
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
