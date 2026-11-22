@@ -1,0 +1,57 @@
+---
+// SIM: Power Query's Applied steps. Click a step to see the table after it, with what changed highlighted
+// (new columns, changed cells, removed rows faded) and the M code Power BI writes for it.
+// <!--fig:pq-steps clean--> | unpivot | group
+import { SCENARIOS } from './pq';
+interface Props { arg?: string }
+const id = Astro.props.arg ?? 'clean';
+const s = SCENARIOS[id];
+if (!s) throw new Error(`pq-steps: no scenario "${id}"`);
+---
+<figure class="cs-fig pbi pbi-pq" data-pq={id}>
+  <span class="cs-figtag">Try it: {s.title}</span>
+  <div class="pbi-pqgrid">
+    <ol class="pbi-steps" aria-label="Applied steps">
+      <li><button type="button" data-k="0" aria-pressed="true">Source</button></li>
+      {s.steps.map((st, i) => <li><button type="button" data-k={i + 1} aria-pressed="false">{st.name}</button></li>)}
+    </ol>
+    <div class="pbi-pqmain">
+      <p class="pbi-say" data-note>The data as it arrives. Click the steps in order to clean it.</p>
+      <div class="pbi-tablewrap" data-table></div>
+      <p class="pbi-m"><span>M</span><code data-m>Source = Csv.Document(File.Contents("till-export.csv"))</code></p>
+    </div>
+  </div>
+  <div class="pbi-ctl"><button type="button" class="btn secondary" data-back>← Step back</button><button type="button" class="btn" data-fwd>Next step →</button></div>
+  <figcaption>Each step works on the result of the one before, and Power Query replays them all on every refresh, so next month's file gets the same cleaning. Highlighted: new or changed. Faded with a line through: removed by this step.</figcaption>
+</figure>
+<script>
+  import { SCENARIOS, upTo } from './pq';
+  const esc = (v: unknown) => (v === null ? '<i class="pbi-blank">null</i>' : String(v).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as Record<string, string>)[c]).replace(/^ | $/g, '·'));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pq]')) {
+    const s = SCENARIOS[fig.dataset.pq!];
+    const btns = [...fig.querySelectorAll<HTMLButtonElement>('[data-k]')];
+    let k = 0;
+    const show = () => {
+      const t = upTo(s, k), prev = k ? upTo(s, k - 1) : null;
+      const reshaped = prev && t.ids.some((id) => !prev.ids.includes(id));
+      const newCols = new Set(prev && !reshaped ? t.cols.filter((c) => !prev.cols.includes(c)) : []);
+      let body = '';
+      if (prev && !reshaped) {
+        // Walk the previous rows in order: kept rows show the new values, removed rows are faded.
+        prev.ids.forEach((id, pi) => {
+          const ni = t.ids.indexOf(id);
+          if (ni < 0) { body += `<tr class="drop">${t.cols.map((c, j) => `<td>${esc(prev.rows[pi][prev.cols.includes(c) ? prev.cols.indexOf(c) : j] ?? null)}</td>`).join('')}</tr>`; return; }
+          body += `<tr>${t.cols.map((c, j) => { const v = t.rows[ni][j]; const pj = prev.cols.indexOf(c); const chg = newCols.has(c) || (pj >= 0 && prev.rows[pi][pj] !== v ); return `<td class="${chg ? 'hi' : ''}">${esc(v)}</td>`; }).join('')}</tr>`;
+        });
+      } else body = t.rows.map((r) => `<tr>${r.map((v) => `<td class="${reshaped ? 'hi' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('');
+      fig.querySelector('[data-table]')!.innerHTML = `<table class="pbi-mini"><thead><tr>${t.cols.map((c) => `<th class="${newCols.has(c) || reshaped ? 'hi' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+      fig.querySelector('[data-note]')!.textContent = k ? `Step ${k}: ${s.steps[k - 1].note}` : 'The data as it arrives. Click the steps in order to clean it.';
+      fig.querySelector('[data-m]')!.textContent = k ? `#"${s.steps[k - 1].name}" = ${s.steps[k - 1].m}` : 'Source = Csv.Document(File.Contents("export.csv"))';
+      btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === k)));
+    };
+    btns.forEach((b, i) => b.addEventListener('click', () => { k = i; show(); }));
+    fig.querySelector('[data-back]')!.addEventListener('click', () => { if (k > 0) { k--; show(); } });
+    fig.querySelector('[data-fwd]')!.addEventListener('click', () => { if (k < s.steps.length) { k++; show(); } });
+    show();
+  }
+</script>

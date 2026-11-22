@@ -1,0 +1,50 @@
+---
+// SIM for 3.2: click a value in a dimension table and watch the filter flow along the relationship to Sales,
+// and (only with "both directions") on to the other dimension.
+---
+<figure class="cs-fig pbi" data-flow>
+  <span class="cs-figtag">Try it: which way filters flow</span>
+  <div class="pbi-kinds" role="group" aria-label="Filter">
+    <button type="button" data-f="" aria-pressed="true">No filter</button>
+    <button type="button" data-f="c:Home" aria-pressed="false">Category = Home</button>
+    <button type="button" data-f="c:Outdoor" aria-pressed="false">Category = Outdoor</button>
+    <button type="button" data-f="s:Rideau" aria-pressed="false">Store = Rideau</button>
+    <button type="button" data-f="s:Queen Street" aria-pressed="false">Store = Queen Street</button>
+  </div>
+  <label class="cs-check"><input type="checkbox" data-both /> Both directions between Product and Sales</label>
+  <p class="pbi-say" data-say></p>
+  <div class="pbi-two">
+    <div class="pbi-tv"><p class="pbi-tvname">Product (one side)</p><div class="pbi-tablewrap" data-p></div></div>
+    <div class="pbi-tv"><p class="pbi-tvname">Sales (many side)</p><div class="pbi-tablewrap" data-s></div></div>
+    <div class="pbi-tv"><p class="pbi-tvname">Store (one side)</p><div class="pbi-tablewrap" data-st></div></div>
+  </div>
+  <figcaption>Faded rows are filtered out. With the default single direction, a filter on Store reaches Sales but stops there: Product still shows all four products. Tick "both directions" and it carries on to Product, which is handy for "products sold in this store" but can make models slow and ambiguous (Lesson 3.5).</figcaption>
+</figure>
+<script>
+  const P = [[4, 'Bath towel set', 'Home'], [5, 'Desk lamp', 'Home'], [10, 'Camping chair', 'Outdoor'], [11, 'Water bottle', 'Outdoor']];
+  const ST = [[1, 'Falls Centre'], [3, 'Queen Street'], [4, 'Rideau']];
+  const S = [[1, 4, 1, 45], [2, 10, 1, 55], [3, 5, 3, 76], [4, 11, 3, 20], [5, 4, 3, 90], [6, 5, 4, 38], [7, 5, 1, 38], [8, 10, 3, 110]];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-flow]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const both = q('[data-both]') as HTMLInputElement;
+    let f = '';
+    const show = () => {
+      const [kind, val] = f ? f.split(':') : ['', ''];
+      let pOk = P.map((p) => kind !== 'c' || p[2] === val);
+      const stOk = ST.map((s) => kind !== 's' || s[1] === val);
+      const pk = new Set(P.filter((_, i) => pOk[i]).map((p) => p[0])), sk = new Set(ST.filter((_, i) => stOk[i]).map((s) => s[0]));
+      const sOk = S.map((s) => pk.has(s[1]) && sk.has(s[2]));
+      if (both.checked && kind === 's') { const sold = new Set(S.filter((_, i) => sOk[i]).map((s) => s[1])); pOk = P.map((p) => sold.has(p[0])); }
+      const tb = (head: string[], rows: unknown[][], ok: boolean[], hi: number) => `<table class="pbi-mini"><thead><tr>${head.map((h, i) => `<th class="${i === hi ? 'hi' : ''}">${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r, i) => `<tr class="${ok[i] ? 'keep' : 'drop'}">${r.map((v) => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table><p class="pbi-tvfoot">${ok.filter(Boolean).length} of ${rows.length} rows</p>`;
+      q('[data-p]').innerHTML = tb(['Key', 'Product', 'Category'], P, pOk, 0);
+      q('[data-s]').innerHTML = tb(['Line', 'ProductKey', 'StoreKey', 'Amount'], S, sOk, -1);
+      q('[data-st]').innerHTML = tb(['Key', 'Store'], ST, stOk, 0);
+      const total = S.filter((_, i) => sOk[i]).reduce((a, s) => a + s[3], 0);
+      q('[data-say]').textContent = !f ? `No filter: every row is visible. Total Sales = ${total}.` : kind === 'c' ? `The filter on Product flows down to Sales: ${sOk.filter(Boolean).length} lines, Total Sales = ${total}. Store is not filtered: filters only flow from the one side to the many side.` : both.checked ? `Store filters Sales, and with both directions Sales then filters Product: only the ${pOk.filter(Boolean).length} products sold in ${val} are left.` : `Store filters Sales (${sOk.filter(Boolean).length} lines, Total Sales = ${total}), but the filter stops there: COUNTROWS(Product) would still say 4.`;
+      fig.querySelectorAll('[data-f]').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.f === f)));
+    };
+    fig.querySelectorAll<HTMLElement>('[data-f]').forEach((b) => b.addEventListener('click', () => { f = b.dataset.f!; show(); }));
+    both.addEventListener('change', show);
+    show();
+  }
+</script>

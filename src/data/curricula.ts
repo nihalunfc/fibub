@@ -49,6 +49,9 @@ export const COURSES: Course[] = [
   { id: 'ml-foundations', name: 'From a straight line to an LLM', text: 'How machines learn from data: regression, decision trees, random forests, neural networks and what an LLM is, with simulations and the maths worked by hand.', status: 'live', href: '/learn/courses/ml-foundations/' },
   // Analyst courses (nihal, 2026-11-22): src/courses/statistics/ and src/courses/pandas/.
   { id: 'statistics', name: 'Statistics for analysts', text: 'Averages, spread, probability, distributions, confidence intervals, hypothesis tests and A/B testing, with simulations and every formula worked by hand.', status: 'live', href: '/learn/courses/statistics/' },
+  // Power BI and DAX, Data storytelling (nihal, 2026-11-22): the BI courses (src/courses/power-bi/, src/courses/data-storytelling/).
+  { id: 'power-bi', name: 'Power BI and DAX', text: 'Clean data in Power Query, model a star schema, write DAX measures and time intelligence, and build a dashboard, with DAX you can type and run in every lesson.', status: 'live', href: '/learn/courses/power-bi/' },
+  { id: 'data-storytelling', name: 'Data storytelling', text: 'Pick the right chart, cut the clutter, design KPI cards and present numbers so managers act, with charts you can change and writing practice in every lesson.', status: 'live', href: '/learn/courses/data-storytelling/' },
   { id: 'space-sky', name: 'Space and the sky', text: 'Find the planets tonight, measure the Moon, and learn how we know how far away stars are.', status: 'planned' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },
