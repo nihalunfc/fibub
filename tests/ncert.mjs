@@ -52,6 +52,8 @@ for (const course of courses) {
     ok(`${where}: front matter is valid YAML with a 3-question quiz and a seoTitle up to 60`, fm?.quiz?.length >= 3 && fm.seoTitle?.length <= 60);
     ok(`${where}: summary up to 160 characters`, fm?.summary?.length <= 160);
     ok(`${where}: has key points`, md.includes('class="keypoints"'));
+    const bare = md.split('\n---\n').slice(1).join('\n').replace(/```[\s\S]*?```/g, '').match(/(?<![`\\$])\$[^$\n`]+?\$(?![`$])/);
+    ok(`${where}: maths is written as \`$...$\` with backticks (bare: ${bare?.[0]})`, !bare);
     ok(`${where}: has sources`, /\nsources:\n\s+- /.test(md));
     ok(`${where}: every image has alt text`, !/<img(?![^>]*alt=)/.test(md));
     const visuals = (md.match(/data-fig="|class="steps"/g) ?? []).length + tools.length;

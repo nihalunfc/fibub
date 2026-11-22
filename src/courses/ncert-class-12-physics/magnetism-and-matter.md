@@ -61,20 +61,20 @@ Map magnetic fields of different magnets yourself:
 <div class="step">Put the two side by side: the pictures match. The solenoid is a magnet that you can switch on and off.</div>
 <div class="step">Why? A magnet is full of atoms, and each atom has electrons orbiting and spinning: each is a tiny current loop, with its own magnetic moment.</div>
 <div class="step">In an iron bar the loops all line up. Inside the bar the currents of neighbouring loops run opposite ways and cancel. Only the current round the surface is left, like the current in one big solenoid.</div>
-<div class="step">So a bar magnet has a magnetic dipole moment $m = NIA$, along its axis from south to north: the same formula as for a coil.</div>
+<div class="step">So a bar magnet has a magnetic dipole moment `$m = NIA$`, along its axis from south to north: the same formula as for a coil.</div>
 </div>
 
-The magnetic dipole moment $\vec m$ (unit A m²) is the one number that tells you how strong a magnet is. For a current loop $m = NIA$. For a bar magnet with poles of strength $\pm q_m$ separated by $2l$, $m = q_m\cdot 2l$.
+The magnetic dipole moment `$\vec m$` (unit A m²) is the one number that tells you how strong a magnet is. For a current loop `$m = NIA$`. For a bar magnet with poles of strength `$\pm q_m$` separated by `$2l$`, `$m = q_m\cdot 2l$`.
 
 **The field of a short bar magnet.** Replace the magnet by its two poles and add their fields, just as you add the fields of two electric charges.
 
 <div class="steps" data-fig="c12p-matter-axial">
-<div class="step">Two poles, $+q_m$ at N and $-q_m$ at S, are $2l$ apart. We want B at a point P on the axis, a distance r from the centre.</div>
-<div class="step">The north pole is at a distance $r-l$ from P. It pushes P away: $B_N = \dfrac{\mu_0}{4\pi}\dfrac{q_m}{(r-l)^2}$.</div>
-<div class="step">The south pole is at a distance $r+l$. It pulls P in: $B_S = \dfrac{\mu_0}{4\pi}\dfrac{q_m}{(r+l)^2}$, smaller than $B_N$.</div>
-<div class="step">The two fields point opposite ways along the axis, so the resultant is the difference $B = B_N - B_S$, pointing away from N (along $\vec m$).</div>
-<div class="step">Combine the fractions: $B = \dfrac{\mu_0 q_m}{4\pi}\cdot\dfrac{4rl}{(r^2-l^2)^2} = \dfrac{\mu_0}{4\pi}\dfrac{2mr}{(r^2-l^2)^2}$, using $m = q_m\cdot 2l$.</div>
-<div class="step">For a short magnet ($r\gg l$): $B_{\text{axial}} = \dfrac{\mu_0}{4\pi}\dfrac{2m}{r^3}$. On the equatorial line the same working gives $B_{\text{eq}} = \dfrac{\mu_0}{4\pi}\dfrac{m}{r^3}$, pointing opposite to $\vec m$. The axial field is twice the equatorial one.</div>
+<div class="step">Two poles, `$+q_m$` at N and `$-q_m$` at S, are `$2l$` apart. We want B at a point P on the axis, a distance r from the centre.</div>
+<div class="step">The north pole is at a distance `$r-l$` from P. It pushes P away: `$B_N = \dfrac{\mu_0}{4\pi}\dfrac{q_m}{(r-l)^2}$`.</div>
+<div class="step">The south pole is at a distance `$r+l$`. It pulls P in: `$B_S = \dfrac{\mu_0}{4\pi}\dfrac{q_m}{(r+l)^2}$`, smaller than `$B_N$`.</div>
+<div class="step">The two fields point opposite ways along the axis, so the resultant is the difference `$B = B_N - B_S$`, pointing away from N (along `$\vec m$`).</div>
+<div class="step">Combine the fractions: `$B = \dfrac{\mu_0 q_m}{4\pi}\cdot\dfrac{4rl}{(r^2-l^2)^2} = \dfrac{\mu_0}{4\pi}\dfrac{2mr}{(r^2-l^2)^2}$`, using `$m = q_m\cdot 2l$`.</div>
+<div class="step">For a short magnet (`$r\gg l$`): `$B_{\text{axial}} = \dfrac{\mu_0}{4\pi}\dfrac{2m}{r^3}$`. On the equatorial line the same working gives `$B_{\text{eq}} = \dfrac{\mu_0}{4\pi}\dfrac{m}{r^3}$`, pointing opposite to `$\vec m$`. The axial field is twice the equatorial one.</div>
 </div>
 
 ```math
@@ -85,8 +85,8 @@ B_{\text{axial}} = \frac{\mu_0}{4\pi}\,\frac{2m}{r^3}\qquad B_{\text{equatorial}
 <dl>
 <dt>m</dt><dd>magnetic dipole moment, in A m² (= J/T)</dd>
 <dt>r</dt><dd>distance from the centre of the magnet, much larger than its length</dd>
-<dt>μ₀/4π</dt><dd>$10^{-7}$ T m/A</dd>
-<dt>Physical meaning</dt><dd>A dipole's field falls as $1/r^3$, much faster than the $1/r$ of a long wire or the $1/r^2$ of a single point charge, because the north and south poles almost cancel each other's field far away. It is stronger along the axis than on the side.</dd>
+<dt>μ₀/4π</dt><dd>`$10^{-7}$` T m/A</dd>
+<dt>Physical meaning</dt><dd>A dipole's field falls as `$1/r^3$`, much faster than the `$1/r$` of a long wire or the `$1/r^2$` of a single point charge, because the north and south poles almost cancel each other's field far away. It is stronger along the axis than on the side.</dd>
 </dl>
 </div>
 
@@ -98,7 +98,7 @@ B_{\text{axial}} = \frac{\mu_0}{4\pi}\,\frac{2m}{r^3}\qquad B_{\text{equatorial}
 
 ## 3. A magnet in a uniform magnetic field
 
-Hang a bar magnet in a uniform field B. Each pole feels a force of the same size and opposite direction ($\pm q_mB$), so there is **no net force**, but the two forces make a couple, and the magnet turns until it lines up with the field. This is how a compass works.
+Hang a bar magnet in a uniform field B. Each pole feels a force of the same size and opposite direction (`$\pm q_mB$`), so there is **no net force**, but the two forces make a couple, and the magnet turns until it lines up with the field. This is how a compass works.
 
 ```math
 \vec\tau = \vec m\times\vec B \qquad \tau = mB\sin\theta
@@ -110,7 +110,7 @@ The torque is largest when the magnet is across the field (θ = 90°) and zero w
 U = -\vec m\cdot\vec B = -mB\cos\theta
 ```
 
-The energy is lowest ($-mB$) when $\vec m$ points along B: **stable** equilibrium. It is highest ($+mB$) when $\vec m$ points against B: **unstable** equilibrium, like a pencil balanced on its tip.
+The energy is lowest (`$-mB$`) when `$\vec m$` points along B: **stable** equilibrium. It is highest (`$+mB$`) when `$\vec m$` points against B: **unstable** equilibrium, like a pencil balanced on its tip.
 
 <figure class="fig" data-fig="c12p-matter-torque"><figcaption>The magnet swings like a pendulum. Move the angle slider to choose where to start, press Release, and watch the ball roll in the energy well U = −mB cos θ. Make B stronger and the swing gets faster, as T = 2π√(J/mB).</figcaption></figure>
 
@@ -118,7 +118,7 @@ The energy is lowest ($-mB$) when $\vec m$ points along B: **stable** equilibriu
 
 <div class="problem" data-problem="c12p-matter-work"></div>
 
-For small swings, $\tau = -mB\theta$ is like a spring's restoring force, so the oscillation is simple harmonic with period $T = 2\pi\sqrt{J/mB}$, where J is the moment of inertia. Measuring T for a magnet in the Earth's field is a classic way to compare field strengths.
+For small swings, `$\tau = -mB\theta$` is like a spring's restoring force, so the oscillation is simple harmonic with period `$T = 2\pi\sqrt{J/mB}$`, where J is the moment of inertia. Measuring T for a magnet in the Earth's field is a classic way to compare field strengths.
 
 <div class="problem" data-problem="c12p-matter-period"></div>
 
@@ -139,12 +139,12 @@ The net magnetic flux through **any** closed surface is zero. Every field line t
 Put a material in a solenoid. The current makes a field, but the atoms in the material respond too, and add their own.
 
 <div class="steps" data-fig="c12p-matter-hdef">
-<div class="step">An empty solenoid with n turns per metre and current I has $B_0 = \mu_0 n I$.</div>
+<div class="step">An empty solenoid with n turns per metre and current I has `$B_0 = \mu_0 n I$`.</div>
 <div class="step">Fill it with a material. Its atoms are tiny magnets, pointing every which way, so at first the net moment is zero.</div>
 <div class="step">The field turns the atomic magnets towards its own direction. The net moment per unit volume is the <b>magnetisation</b> M (unit A/m).</div>
-<div class="step">The aligned atoms make a field of their own, $\mu_0 M$, which adds to the field of the current: $B = B_0 + \mu_0 M$.</div>
-<div class="step">Call the part due to the current alone the <b>magnetic intensity</b> $H = nI$ (unit A/m), so $B_0 = \mu_0 H$, and $B = \mu_0(H + M)$.</div>
-<div class="step">For many materials M is proportional to H: $M = \chi H$. The constant χ is the <b>magnetic susceptibility</b>, so $B = \mu_0(1+\chi)H = \mu_0\mu_r H = \mu H$, with the <b>relative permeability</b> $\mu_r = 1+\chi$.</div>
+<div class="step">The aligned atoms make a field of their own, `$\mu_0 M$`, which adds to the field of the current: `$B = B_0 + \mu_0 M$`.</div>
+<div class="step">Call the part due to the current alone the <b>magnetic intensity</b> `$H = nI$` (unit A/m), so `$B_0 = \mu_0 H$`, and `$B = \mu_0(H + M)$`.</div>
+<div class="step">For many materials M is proportional to H: `$M = \chi H$`. The constant χ is the <b>magnetic susceptibility</b>, so `$B = \mu_0(1+\chi)H = \mu_0\mu_r H = \mu H$`, with the <b>relative permeability</b> `$\mu_r = 1+\chi$`.</div>
 </div>
 
 ```math
@@ -175,7 +175,7 @@ Materials fall into three groups, by their susceptibility.
 
 **Diamagnetism** is in all materials. In an atom with all its electron moments cancelling, the applied field induces a tiny opposing moment (Lenz's law again), so the material is pushed away from the strong part of the field. It shows up only when the stronger effects are missing.
 
-**Paramagnetism**: atoms have permanent moments, but pointing randomly. A field lines a few of them up (heat keeps knocking them out of line), so the material is weakly attracted. Hotter means more shaking and weaker response: **Curie's law**, $\chi = C/T$.
+**Paramagnetism**: atoms have permanent moments, but pointing randomly. A field lines a few of them up (heat keeps knocking them out of line), so the material is weakly attracted. Hotter means more shaking and weaker response: **Curie's law**, `$\chi = C/T$`.
 
 **Ferromagnetism**: in iron, neighbouring atomic moments lock together in small patches called **domains** (about a micrometre in size), where all moments point the same way. Without a field the domains point in different directions and cancel. A field makes the domains that agree with it grow and the others shrink, until all point one way: saturation.
 
@@ -207,8 +207,8 @@ Magnetise a piece of iron by taking H up from zero, then down, then reverse it, 
 
 The area inside the loop is the energy lost, as heat, **per unit volume in each cycle** of magnetisation.
 
-- **Retentivity** $B_r$: the B left behind when H is brought back to zero.
-- **Coercivity** $H_c$: the reverse H needed to reduce B to zero.
+- **Retentivity** `$B_r$`: the B left behind when H is brought back to zero.
+- **Coercivity** `$H_c$`: the reverse H needed to reduce B to zero.
 - The loop area = energy lost per cycle per unit volume.
 
 This decides what a material is good for:
@@ -219,13 +219,13 @@ This decides what a material is good for:
 | **Electromagnet** (crane, relay, bell) | high permeability, low retentivity, low coercivity: strong when the current is on and off when it is off | soft iron |
 | **Transformer and motor cores** | narrow loop, so little heat each cycle (the field is reversed 100 times a second) | soft iron, silicon steel |
 
-An **electromagnet** is a solenoid with a soft iron core: the core multiplies the field of the coil by $\mu_r$ (hundreds or thousands), and when the current is switched off, nearly all the magnetism disappears.
+An **electromagnet** is a solenoid with a soft iron core: the core multiplies the field of the coil by `$\mu_r$` (hundreds or thousands), and when the current is switched off, nearly all the magnetism disappears.
 
 A magnetic circuit with an iron path acts like an electric circuit: [Magnetic circuit solver](/science/magnetic-circuit/).
 
 <div class="history">
 
-**Beyond the syllabus (not in the 2023 rationalised NCERT book).** **The Earth as a magnet.** The Earth's field is like that of a huge bar magnet tilted by about 10° to the spin axis (with its south pole near geographic north). At any place it is described by three magnetic elements: the **declination** (angle between magnetic and geographic north), the **dip** (angle the field makes with the horizontal; 0° at the magnetic equator and 90° at the poles) and the **horizontal component** $B_H$. The field strength at the surface is 25 to 65 µT.
+**Beyond the syllabus (not in the 2023 rationalised NCERT book).** **The Earth as a magnet.** The Earth's field is like that of a huge bar magnet tilted by about 10° to the spin axis (with its south pole near geographic north). At any place it is described by three magnetic elements: the **declination** (angle between magnetic and geographic north), the **dip** (angle the field makes with the horizontal; 0° at the magnetic equator and 90° at the poles) and the **horizontal component** `$B_H$`. The field strength at the surface is 25 to 65 µT.
 
 </div>
 
@@ -234,12 +234,12 @@ A magnetic circuit with an iron path acts like an electric circuit: [Magnetic ci
 <div class="keypoints">
 
 - Magnetic poles always come in pairs. Field lines are closed loops (S to N inside the magnet) that never cross; a compass shows their direction.
-- A bar magnet is equivalent to a solenoid; magnetic moment $m = NIA$ (loop) or $q_m\cdot 2l$ (magnet), unit A m².
-- Short magnet: $B_{\text{axial}} = \frac{\mu_0}{4\pi}\frac{2m}{r^3}$ and $B_{\text{eq}} = \frac{\mu_0}{4\pi}\frac{m}{r^3}$ (opposite to m); axial = 2 × equatorial.
-- In a uniform field: no net force, $\tau = mB\sin\theta$, $U = -mB\cos\theta$. Stable at θ = 0, unstable at θ = 180°. Small swings: $T = 2\pi\sqrt{J/mB}$.
-- Gauss's law for magnetism: $\oint\vec B\cdot d\vec A = 0$. No monopoles.
-- $B = \mu_0(H+M)$, $M = \chi H$, $\mu_r = 1+\chi$.
-- Dia: χ small, negative. Para: χ small, positive, $\chi = C/T$. Ferro: χ large, positive, domains; becomes paramagnetic above the Curie temperature.
+- A bar magnet is equivalent to a solenoid; magnetic moment `$m = NIA$` (loop) or `$q_m\cdot 2l$` (magnet), unit A m².
+- Short magnet: `$B_{\text{axial}} = \frac{\mu_0}{4\pi}\frac{2m}{r^3}$` and `$B_{\text{eq}} = \frac{\mu_0}{4\pi}\frac{m}{r^3}$` (opposite to m); axial = 2 × equatorial.
+- In a uniform field: no net force, `$\tau = mB\sin\theta$`, `$U = -mB\cos\theta$`. Stable at θ = 0, unstable at θ = 180°. Small swings: `$T = 2\pi\sqrt{J/mB}$`.
+- Gauss's law for magnetism: `$\oint\vec B\cdot d\vec A = 0$`. No monopoles.
+- `$B = \mu_0(H+M)$`, `$M = \chi H$`, `$\mu_r = 1+\chi$`.
+- Dia: χ small, negative. Para: χ small, positive, `$\chi = C/T$`. Ferro: χ large, positive, domains; becomes paramagnetic above the Curie temperature.
 - Hysteresis: retentivity, coercivity, loop area = energy loss per cycle. Permanent magnets: wide loop (steel). Electromagnets and transformer cores: narrow loop (soft iron).
 
 </div>
