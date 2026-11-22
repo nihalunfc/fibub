@@ -53,7 +53,7 @@ Think of the field lines as streams of water and the coil as a hoop dipped into 
 \Phi = \vec B\cdot\vec A = B A\cos\theta
 ```
 
-The unit is the **weber (Wb)**: 1 Wb = 1 T m². For a curved surface or a non-uniform field, add up $\vec B\cdot d\vec A$ over small pieces.
+The unit is the **weber (Wb)**: 1 Wb = 1 T m². For a curved surface or a non-uniform field, add up `$\vec B\cdot d\vec A$` over small pieces.
 
 <div class="meaning">
 <dl>
@@ -76,7 +76,7 @@ The emf induced in a coil equals the negative of the rate of change of the flux 
 \varepsilon = -\,N\,\frac{d\Phi}{dt}
 ```
 
-where N is the number of turns (each turn sees the same flux, so the emfs add). If the circuit has resistance R, the induced current is $I = \varepsilon/R$, and the charge that flows in a time Δt is $\Delta q = I\Delta t = N\Delta\Phi/R$, **independent of how fast** the flux changed.
+where N is the number of turns (each turn sees the same flux, so the emfs add). If the circuit has resistance R, the induced current is `$I = \varepsilon/R$`, and the charge that flows in a time Δt is `$\Delta q = I\Delta t = N\Delta\Phi/R$`, **independent of how fast** the flux changed.
 
 <figure class="fig" data-fig="c12p-emi-coil"><figcaption>A magnet swinging through a coil. The top graph is the flux Φ(t); the lower one is the emf, which is the (negative) slope of the top graph. The emf is zero when the flux is at its peak, and biggest where the flux changes fastest. More turns, bigger emf.</figcaption></figure>
 
@@ -110,18 +110,18 @@ Why must it be so? Suppose the induced current helped the change instead. Pushin
 
 ## 5. Motional emf
 
-Slide a straight conducting rod of length l at speed v across a uniform field B (with B, the rod and v at right angles). The free charges in the rod move with it, so the magnetic force on each is $qvB$ along the rod. They drift to one end, leaving the other end charged oppositely, until an electric field balances the magnetic force. The rod has become a battery.
+Slide a straight conducting rod of length l at speed v across a uniform field B (with B, the rod and v at right angles). The free charges in the rod move with it, so the magnetic force on each is `$qvB$` along the rod. They drift to one end, leaving the other end charged oppositely, until an electric field balances the magnetic force. The rod has become a battery.
 
 <div class="steps" data-fig="c12p-emi-motional">
 <div class="step">A rod of length l slides at speed v on rails in a field B into the page.</div>
-<div class="step">The free charges are moving with the rod, so the magnetic force $F = qvB$ acts on each, along the rod.</div>
-<div class="step">The work done on a charge q carried a distance l along the rod is $F\,l = qvBl$. The work per unit charge is the emf: $\varepsilon = Blv$.</div>
-<div class="step">Joined to a resistor R by the rails, a current $I = Blv/R$ flows (anticlockwise here, by Lenz's law).</div>
-<div class="step">The rod is now a current in a field, so it feels a force $F = IlB = \dfrac{B^2l^2v}{R}$, which opposes the motion (Lenz's law again). You must pull with this force to keep it going at constant speed.</div>
-<div class="step">The power you supply is $Fv = \dfrac{B^2l^2v^2}{R}$. The power turned to heat in the resistor is $I^2R = \dfrac{B^2l^2v^2}{R}$. They are equal: energy is conserved.</div>
+<div class="step">The free charges are moving with the rod, so the magnetic force `$F = qvB$` acts on each, along the rod.</div>
+<div class="step">The work done on a charge q carried a distance l along the rod is `$F\,l = qvBl$`. The work per unit charge is the emf: `$\varepsilon = Blv$`.</div>
+<div class="step">Joined to a resistor R by the rails, a current `$I = Blv/R$` flows (anticlockwise here, by Lenz's law).</div>
+<div class="step">The rod is now a current in a field, so it feels a force `$F = IlB = \dfrac{B^2l^2v}{R}$`, which opposes the motion (Lenz's law again). You must pull with this force to keep it going at constant speed.</div>
+<div class="step">The power you supply is `$Fv = \dfrac{B^2l^2v^2}{R}$`. The power turned to heat in the resistor is `$I^2R = \dfrac{B^2l^2v^2}{R}$`. They are equal: energy is conserved.</div>
 </div>
 
-**The same answer from Faraday's law.** The area of the circuit grows as the rod moves: in a time $dt$ the rod covers $dx = v\,dt$, adding an area $l\,dx$. The flux is $\Phi = Blx$, so $\varepsilon = d\Phi/dt = Bl\,dx/dt = Blv$. The two routes agree.
+**The same answer from Faraday's law.** The area of the circuit grows as the rod moves: in a time `$dt$` the rod covers `$dx = v\,dt$`, adding an area `$l\,dx$`. The flux is `$\Phi = Blx$`, so `$\varepsilon = d\Phi/dt = Bl\,dx/dt = Blv$`. The two routes agree.
 
 ```math
 \varepsilon = Blv\qquad I = \frac{Blv}{R}\qquad F = \frac{B^2l^2v}{R}\qquad P = Fv = I^2R
@@ -153,7 +153,7 @@ By Lenz's law they oppose the change. A metal plate swung between the poles of a
 
 ### Mutual inductance
 
-Two coils placed near each other. A changing current $I_1$ in coil 1 makes a changing flux through coil 2, and so an emf in it:
+Two coils placed near each other. A changing current `$I_1$` in coil 1 makes a changing flux through coil 2, and so an emf in it:
 
 ```math
 \varepsilon_2 = -M\,\frac{dI_1}{dt}\qquad \Phi_2 = M I_1
@@ -175,11 +175,11 @@ L is the **self-inductance**, also in henry. An inductor acts like inertia for c
 
 <div class="steps" data-fig="c12p-emi-lsteps">
 <div class="step">A long solenoid of n turns per metre, cross-section A and length l.</div>
-<div class="step">When it carries a current I, the field inside is $B = \mu_0 nI$, so the flux through one turn is $\Phi = BA = \mu_0 nIA$.</div>
-<div class="step">The total number of turns is $N = nl$, each linked with this flux, so the flux linkage is $N\Phi = (nl)(\mu_0 nIA) = (\mu_0 n^2 A l)\,I$.</div>
-<div class="step">Compare with $N\Phi = LI$: $L = \mu_0 n^2 A\,l = \dfrac{\mu_0 N^2 A}{l}$. It depends only on the shape and the number of turns, not on the current.</div>
-<div class="step">Fill the solenoid with a material of relative permeability $\mu_r$: $L = \mu_r\mu_0 n^2 A l$. An iron core multiplies L by hundreds or thousands.</div>
-<div class="step">Energy: raising the current from 0 to I against the back emf takes work $dW = |\varepsilon|\,I\,dt = LI\,dI$, so the energy stored is $U = \int_0^I LI\,dI = \tfrac12 LI^2$. It is stored in the magnetic field: $u = B^2/2\mu_0$ per unit volume.</div>
+<div class="step">When it carries a current I, the field inside is `$B = \mu_0 nI$`, so the flux through one turn is `$\Phi = BA = \mu_0 nIA$`.</div>
+<div class="step">The total number of turns is `$N = nl$`, each linked with this flux, so the flux linkage is `$N\Phi = (nl)(\mu_0 nIA) = (\mu_0 n^2 A l)\,I$`.</div>
+<div class="step">Compare with `$N\Phi = LI$`: `$L = \mu_0 n^2 A\,l = \dfrac{\mu_0 N^2 A}{l}$`. It depends only on the shape and the number of turns, not on the current.</div>
+<div class="step">Fill the solenoid with a material of relative permeability `$\mu_r$`: `$L = \mu_r\mu_0 n^2 A l$`. An iron core multiplies L by hundreds or thousands.</div>
+<div class="step">Energy: raising the current from 0 to I against the back emf takes work `$dW = |\varepsilon|\,I\,dt = LI\,dI$`, so the energy stored is `$U = \int_0^I LI\,dI = \tfrac12 LI^2$`. It is stored in the magnetic field: `$u = B^2/2\mu_0$` per unit volume.</div>
 </div>
 
 ```math
@@ -190,7 +190,7 @@ L = \frac{\mu_0 N^2 A}{l}\qquad U = \tfrac12 L I^2
 
 <div class="problem" data-problem="c12p-emi-energy"></div>
 
-**Growth of current in an LR circuit.** Close the switch in a circuit with a battery V, a resistor R and an inductor L. The current cannot jump up at once, because the back emf $L\,dI/dt$ opposes the rise: at the first instant the back emf equals V and I = 0. As I grows, the back emf falls:
+**Growth of current in an LR circuit.** Close the switch in a circuit with a battery V, a resistor R and an inductor L. The current cannot jump up at once, because the back emf `$L\,dI/dt$` opposes the rise: at the first instant the back emf equals V and I = 0. As I grows, the back emf falls:
 
 ```math
 I(t) = \frac{V}{R}\left(1-e^{-t/\tau}\right)\qquad \tau = \frac{L}{R}
@@ -210,13 +210,13 @@ More calculators: [Capacitor and inductor calculator](/science/capacitor-inducto
 
 ## 8. The AC generator
 
-A coil of N turns and area A, spun at angular speed ω in a uniform field B, is the heart of every power station. At time t the angle between the normal and the field is $\theta = \omega t$, so the flux is
+A coil of N turns and area A, spun at angular speed ω in a uniform field B, is the heart of every power station. At time t the angle between the normal and the field is `$\theta = \omega t$`, so the flux is
 
 ```math
 \Phi = NBA\cos\omega t \qquad \varepsilon = -\frac{d\Phi}{dt} = NBA\omega\sin\omega t = \varepsilon_0\sin\omega t
 ```
 
-The emf alternates: it changes sign twice per turn, with peak value $\varepsilon_0 = NBA\omega$ and frequency $f = \omega/2\pi$ (50 Hz in India, so the coil turns 50 times a second, or its equivalent in a multi-pole machine). The emf is zero when the coil faces the field (flux greatest) and greatest when the coil's plane is parallel to the field (flux changing fastest). Slip rings carry the current to the outside, and in a power station steam, water or wind turns the coil (or the magnet).
+The emf alternates: it changes sign twice per turn, with peak value `$\varepsilon_0 = NBA\omega$` and frequency `$f = \omega/2\pi$` (50 Hz in India, so the coil turns 50 times a second, or its equivalent in a multi-pole machine). The emf is zero when the coil faces the field (flux greatest) and greatest when the coil's plane is parallel to the field (flux changing fastest). Slip rings carry the current to the outside, and in a power station steam, water or wind turns the coil (or the magnet).
 
 <figure class="fig" data-fig="@em-generator"><figcaption>A 3D generator coil with its flux and emf graphs. Drag to turn it. The emf is a sine curve, a quarter-turn ahead of the flux.</figcaption></figure>
 
@@ -235,15 +235,15 @@ The emf alternates: it changes sign twice per turn, with peak value $\varepsilon
 
 <div class="keypoints">
 
-- Flux $\Phi = BA\cos\theta$ (unit weber, 1 Wb = 1 T m²). Change B, A or θ to change the flux.
-- Faraday's law: $\varepsilon = -N\,d\Phi/dt$. The induced charge $\Delta q = N\Delta\Phi/R$ does not depend on the time taken.
+- Flux `$\Phi = BA\cos\theta$` (unit weber, 1 Wb = 1 T m²). Change B, A or θ to change the flux.
+- Faraday's law: `$\varepsilon = -N\,d\Phi/dt$`. The induced charge `$\Delta q = N\Delta\Phi/R$` does not depend on the time taken.
 - Lenz's law: the induced current opposes the change in flux. It is conservation of energy.
-- Motional emf: $\varepsilon = Blv$. With resistance R: $I = Blv/R$, braking force $F = B^2l^2v/R$, power $P = Fv = I^2R$.
+- Motional emf: `$\varepsilon = Blv$`. With resistance R: `$I = Blv/R$`, braking force `$F = B^2l^2v/R$`, power `$P = Fv = I^2R$`.
 - Eddy currents are induced in solid metal by a changing flux. They brake motion (brakes, cookers, damping) but waste energy in cores, which are laminated.
-- Mutual inductance: $\varepsilon_2 = -M\,dI_1/dt$. Self-inductance: $\varepsilon = -L\,dI/dt$, $\Phi = LI$. Unit: henry.
-- Solenoid: $L = \mu_0N^2A/l$ (times $\mu_r$ with a core). Energy $U = \tfrac12LI^2$, density $B^2/2\mu_0$.
-- LR circuit: $I = (V/R)(1-e^{-t/\tau})$, $\tau = L/R$.
-- AC generator: $\varepsilon = NBA\omega\sin\omega t$; peak $NBA\omega$.
+- Mutual inductance: `$\varepsilon_2 = -M\,dI_1/dt$`. Self-inductance: `$\varepsilon = -L\,dI/dt$`, `$\Phi = LI$`. Unit: henry.
+- Solenoid: `$L = \mu_0N^2A/l$` (times `$\mu_r$` with a core). Energy `$U = \tfrac12LI^2$`, density `$B^2/2\mu_0$`.
+- LR circuit: `$I = (V/R)(1-e^{-t/\tau})$`, `$\tau = L/R$`.
+- AC generator: `$\varepsilon = NBA\omega\sin\omega t$`; peak `$NBA\omega$`.
 
 </div>
 
