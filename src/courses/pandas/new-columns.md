@@ -16,9 +16,16 @@ quiz:
     choices: ['Adding several columns in one step inside a chain, without changing the original', 'Deleting columns', 'Sorting']
     ans: 0
     why: 'assign returns a new DataFrame with the extra columns, so it fits in method chains.'
+sources:
+  - 'pandas documentation, User Guide: 10 minutes to pandas (setting) https://pandas.pydata.org/docs/user_guide/10min.html#setting'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 2 · about 20 minutes · uses Lesson 2.3.** You'll be able to build the calculated columns most analyses need: revenue, margin, flags and bands.
+
+<div class="bigidea">A new column is a calculation written once for the whole table: arithmetic, a yes/no test or a category from rules.</div>
+
+**In everyday terms:** adding a column to a spreadsheet and filling the formula down, except there is nothing to fill: one line covers every row, now and in next month's file.
 
 ## 1. Arithmetic
 
@@ -68,6 +75,35 @@ products.assign(
 ```
 
 `lambda d: ...` means "using the table as it is at this step", so `margin_pct` can use the `margin` made just before it.
+
+<div class="meaning">
+
+<dl>
+<dt>df['rev'] = df.qty * df.price</dt><dd>Arithmetic on columns, row by row.</dd>
+<dt>df['big'] = df.qty >= 3</dt><dd>A True/False column.</dd>
+<dt>np.where(cond, a, b)</dt><dd>a where cond is True, else b.</dd>
+<dt>assign(...)</dt><dd>Add several columns and return a new table.</dd>
+<dt>Physical meaning</dt><dd>A new column is a new fact about each row, derived from facts you already have. Revenue is not in the file; it is quantity × price × (1 − discount) for each line.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Discounts are already in the price."** Here unit_price is the list price and discount a share; revenue is qty × unit_price × (1 − discount). Always check what each column means before computing with it.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Start.</b> <table class="lk-tbl"><tr><th>qty</th><th>unit_price</th><th>discount</th></tr><tr><td>2</td><td>20.0</td><td>0.1</td></tr><tr><td>1</td><td>5.0</td><td>0</td></tr><tr><td>3</td><td>10.0</td><td>0.2</td></tr></table></div>
+<div class="step"><b>Formula.</b> <code>revenue = qty * unit_price * (1 - discount)</code></div>
+<div class="step"><b>Row 1.</b> 2 × 20 × 0.9 = 36.</div>
+<div class="step"><b>All rows at once.</b> <table class="lk-tbl"><tr><th>qty</th><th>unit_price</th><th>discount</th><th>revenue</th></tr><tr><td>2</td><td>20.0</td><td>0.1</td><td><mark>36.0</mark></td></tr><tr><td>1</td><td>5.0</td><td>0</td><td><mark>5.0</mark></td></tr><tr><td>3</td><td>10.0</td><td>0.2</td><td><mark>24.0</mark></td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-revenue"></div>
 
 ## 4. Your turn
 
@@ -139,3 +175,12 @@ np.where(orders['discount'] > 0, 'yes', 'no')
 </details>
 
 **New words:** *calculated column*, *np.where*, *np.select*, *assign*, *lambda*.
+
+<div class="keypoints">
+
+- Column arithmetic works row by row for the whole table.
+- Comparisons make True/False columns.
+- np.where for two outcomes; np.select or pd.cut for more.
+- assign adds columns inside a chain.
+
+</div>

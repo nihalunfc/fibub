@@ -16,9 +16,16 @@ quiz:
     choices: ['Excel is obsolete', 'Repeatable steps, bigger files, and analyses that are awkward in a spreadsheet; employers list Python for analyst roles', 'pandas has better colours']
     ans: 1
     why: 'A script reruns the same cleaning on next month''s file in a second, and handles millions of rows.'
+sources:
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
+  - 'pandas documentation, User Guide: 10 minutes to pandas https://pandas.pydata.org/docs/user_guide/10min.html'
 ---
 
 **Module 1 · about 10 minutes · no Python needed.** You'll know what pandas is for, and how to use the code boxes in this course.
+
+<div class="bigidea">pandas lets you do to a table, in a few lines of code you can rerun, what would take dozens of clicks in a spreadsheet.</div>
+
+**In everyday terms:** a spreadsheet is cooking by hand every time; pandas is writing the recipe down. The first meal takes a little longer, and every meal after that is one click, exactly the same, and anyone can check the recipe.
 
 ## 1. What pandas is
 
@@ -72,6 +79,35 @@ assert len(_) == 3, f'Your table has {len(_)} rows; show 3.'
 Put stores.head(3) on the last line, so the box shows it.
 ```
 
+<div class="meaning">
+
+<dl>
+<dt>DataFrame</dt><dd>A table: named columns, rows with labels.</dd>
+<dt>Series</dt><dd>One column of a DataFrame.</dd>
+<dt>Method</dt><dd>An action on a table, written table.action(): orders.head(), orders.groupby(...).</dd>
+<dt>Physical meaning</dt><dd>Every pandas line is a step you could do by hand in a spreadsheet: filter, sort, total, join. The difference is that the steps are written down, so next month's file goes through exactly the same steps in a second.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"pandas is for programmers, not analysts."** Most analyst pandas is a dozen commands: read, filter, group, join, pivot, plot. If you can write a spreadsheet formula, you can write these. This course teaches exactly that dozen first.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The question.</b> Which store sold the most units?</div>
+<div class="step"><b>Read.</b> <code>orders = pd.read_csv('orders.csv')</code>: 9,717 order lines in memory.</div>
+<div class="step"><b>Group.</b> <code>orders.groupby('store_id')['qty'].sum()</code>: one total per store.</div>
+<div class="step"><b>Sort.</b> <code>.sort_values(ascending=False)</code>: biggest first.</div>
+<div class="step"><b>Rerun next month.</b> New file, same three lines, answer in a second. No clicks to repeat, nothing to forget.</div>
+</div>
+
+<div class="problem" data-problem="pd-why-lines"></div>
+
 <details class="maths" open>
 <summary>How it works</summary>
 
@@ -111,3 +147,12 @@ Answer in words, then check:
 **Try it on your own data:** fibub's [[csv-profiler]] gives an instant first look at any CSV in your browser, with no code.
 
 **New words:** *pandas*, *library*, *DataFrame*, *Pyodide*.
+
+<div class="keypoints">
+
+- pandas works on tables (DataFrames) made of columns (Series).
+- Code is a written recipe: repeatable, checkable and shareable.
+- A handful of commands covers most analyst work.
+- Every code box here runs real Python in your browser; edit and run freely.
+
+</div>

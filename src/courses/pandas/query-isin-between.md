@@ -16,9 +16,16 @@ quiz:
     choices: ['Yes, both ends by default', 'No', 'Only 4']
     ans: 0
     why: "inclusive='both' is the default; use 'left', 'right' or 'neither' to change it."
+sources:
+  - 'pandas documentation, User Guide: Indexing and selecting data (isin, query) https://pandas.pydata.org/docs/user_guide/indexing.html#the-query-method'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 2 · about 15 minutes · uses Lesson 2.3.** You'll be able to write common filters in fewer, clearer characters.
+
+<div class="bigidea">isin, between and query are readable shortcuts for common filters: one of a list, within a range, and conditions written like a sentence.</div>
+
+**In everyday terms:** a guest list (isin), an age limit (between), and a written house rule (query): three ways to decide who gets in.
 
 ## 1. isin: one of these
 
@@ -55,6 +62,35 @@ orders.query("store_id == 'WEB' and qty >= @limit and discount > 0").head()
 ```
 
 Inside `query` you can write `and`, `or`, `not`, `in`, and refer to columns by name. `@limit` uses the Python variable. Column names with spaces need backticks: `` `order date` > '2025-06-01' ``.
+
+<div class="meaning">
+
+<dl>
+<dt>isin([...])</dt><dd>True if the value is in the list.</dd>
+<dt>between(a, b)</dt><dd>True if a ≤ value ≤ b (both ends included by default).</dd>
+<dt>query("qty > 2 and store_id == 'S01'")</dt><dd>Conditions as text; use @name for Python variables.</dd>
+<dt>Physical meaning</dt><dd>These do exactly what masks do (Lesson 2.3); they just read closer to the question you were asked, which makes mistakes easier to spot.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"between excludes the ends."** By default it includes both: <code>between(2, 4)</code> keeps 2, 3 and 4. Use <code>inclusive='left'</code> or others to change that.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The question.</b> Lines from S01 or S02 with qty from 2 to 4.</div>
+<div class="step"><b>isin.</b> <code>df.store_id.isin(['S01', 'S02'])</code></div>
+<div class="step"><b>between.</b> <code>df.qty.between(2, 4)</code></div>
+<div class="step"><b>Together.</b> <code>df[df.store_id.isin([...]) & df.qty.between(2, 4)]</code></div>
+<div class="step"><b>As query.</b> <code>df.query("store_id in ['S01', 'S02'] and 2 <= qty <= 4")</code>: same rows.</div>
+</div>
+
+<div class="problem" data-problem="pd-between"></div>
 
 ## 4. Your turn
 
@@ -121,3 +157,12 @@ orders.query("qty >= 3 and store_id == 'S02'"), wrapped in len(...). Mind the qu
 </details>
 
 **New words:** *isin*, *between*, *query*, *@variable*.
+
+<div class="keypoints">
+
+- isin for "one of these values".
+- between for ranges, both ends included by default.
+- query writes conditions as readable text; @var uses a Python variable.
+- All three produce the same kind of mask as plain conditions.
+
+</div>
