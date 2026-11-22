@@ -3,6 +3,7 @@
 // rotations and the d-matrix, and central potentials.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './angular-momentum.more.gen.js';
 
 const lp = (l, m) => Math.sqrt(l * (l + 1) - m * (m + 1));
 
@@ -269,5 +270,6 @@ export default {
           sol: `$L^2 = l(l+1)\\hbar^2 = ${l}\\times${l + 1}\\,\\hbar^2 = ${l * (l + 1)}\\hbar^2$.`,
           trap: '$l^2\\hbar^2$ is the old Bohr-Sommerfeld guess; $2l + 1$ is the number of $m$ values.' };
       } },
+    ...more,
   ],
 };

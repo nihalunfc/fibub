@@ -3,6 +3,7 @@
 // an oscillator in a uniform field. (Basic energy levels: schrodinger-equation topic.)
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, round } from '../_util.js';
+import more from './harmonic-oscillator.more.gen.js';
 
 const HBM = 0.0762; // hbar^2 / m_e in eV nm^2
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
@@ -276,5 +277,6 @@ export default {
           sol: `$|\\langle0|e^{ikx}|0\\rangle|^2 = e^{-k^2\\langle x^2\\rangle} = e^{-\\hbar k^2/2m\\omega} = e^{-E_R/\\hbar\\omega} = e^{-${f}} = ${round(P, 3)}$.` };
       },
       verify: (p) => Math.exp(-p.f) },
+    ...more,
   ],
 };

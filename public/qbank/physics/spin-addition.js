@@ -4,6 +4,7 @@
 // L·S, the projection theorem, and three spins.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './spin-addition.more.gen.js';
 
 const half = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
 const ls = (l, j) => (j * (j + 1) - l * (l + 1) - 0.75) / 2;            // <L·S>/ħ² for s = 1/2
@@ -322,5 +323,6 @@ export default {
           sol: `Projection theorem: $\\langle S_z\\rangle = m\\dfrac{\\langle\\vec S\\cdot\\vec J\\rangle}{j(j+1)}$ with $\\vec S\\cdot\\vec J = \\tfrac12[j(j+1) + \\tfrac34 - l(l+1)]\\hbar^2$. So $\\langle S_z\\rangle = ${half(m)}\\times\\dfrac{${round(j * (j + 1) + 0.75 - l * (l + 1), 3)}}{${round(2 * j * (j + 1), 3)}}\\hbar = ${round(sz, 4)}\\hbar$${what === 'Lz' ? `, and $\\langle L_z\\rangle = m\\hbar - \\langle S_z\\rangle = ${round(m - sz, 3)}\\hbar$` : ''}.` };
       },
       verify: (p) => { const P = cgUp(p.l, p.j, p.m), sz = (P - 0.5); return p.what === 'Sz' ? sz : p.m - sz; } },
+    ...more,
   ],
 };
