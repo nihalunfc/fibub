@@ -477,4 +477,151 @@ export default {
     },
     verify: (p) => 13.6 * 0.75 * (p.Z - 1) ** 2 / 1000,
   },
+  // ---- 7.5 Transistors and amplifiers ----
+  'divider-bias': {
+    title: 'Q-point of a voltage-divider bias circuit',
+    make(r) {
+      const pickOf = (a) => a[int(r, 0, a.length - 1)];
+      let VCC, R1, R2, RE, RC, VB, IE, VCE;
+      let n = 0;
+      do {
+        VCC = pickOf([9, 10, 12, 15, 18]); R1 = pickOf([22, 33, 47, 56, 68, 82]); R2 = pickOf([4.7, 6.8, 8.2, 10, 12, 15]);
+        RE = pickOf([0.47, 1, 1.2, 1.5, 2.2]); RC = pickOf([1, 2.2, 3.3, 4.7]);
+        if (++n > 50) { VCC = 12; R1 = 47; R2 = 10; RE = 1; RC = 2.2; }
+        VB = VCC * R2 / (R1 + R2); IE = (VB - 0.7) / RE; VCE = VCC - IE * (RC + RE);
+      } while (VB < 1.2 || VCE < 1);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>A voltage-divider biased common-emitter stage has V<sub>CC</sub> = ${VCC} V, R<sub>1</sub> = ${R1} kΩ (top), R<sub>2</sub> = ${R2} kΩ (bottom), R<sub>E</sub> = ${RE} kΩ and R<sub>C</sub> = ${RC} kΩ. Take V<sub>BE</sub> = 0.7 V and β very large. Find V<sub>CE</sub>, in volts.</p>`,
+        answer: VCE, unit: 'V', tol: 0.01,
+        hint: 'With no base current the divider sets V<sub>B</sub>. Then V<sub>E</sub> = V<sub>B</sub> − 0.7, I<sub>E</sub> = V<sub>E</sub>/R<sub>E</sub> ≈ I<sub>C</sub>, and V<sub>CE</sub> = V<sub>CC</sub> − I<sub>C</sub>(R<sub>C</sub> + R<sub>E</sub>).',
+        solution: steps(`V<sub>B</sub> = ${VCC} × ${R2}/(${R1} + ${R2}) = ${s3(VB)} V.`, `V<sub>E</sub> = ${s3(VB - 0.7)} V, so I<sub>E</sub> = ${s3(VB - 0.7)}/${RE} kΩ = ${s3(IE)} mA ≈ I<sub>C</sub>.`, `V<sub>CE</sub> = ${VCC} − ${s3(IE)} × (${RC} + ${RE}) = <b>${s3(VCE)} V</b>. It is above about 0.2 V, so the transistor is active.`),
+        VCC, R1, R2, RE, RC,
+      };
+    },
+    verify: (p) => { const IE = (p.VCC * p.R2 / (p.R1 + p.R2) - 0.7) / p.RE; return p.VCC - IE * (p.RC + p.RE); },
+  },
+  'ce-gain': {
+    title: 'voltage gain of a common-emitter stage',
+    make(r) {
+      const IC = [0.5, 1, 2, 2.5][int(r, 0, 3)], RC = int(r, 2, 10), RL = [2, 5, 10, 20][int(r, 0, 3)], RE = [0, 0, 100, 220, 470][int(r, 0, 4)];
+      const re = 25 / IC, Rac = RC * RL / (RC + RL);
+      const answer = Rac * 1000 / (re + RE);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>A common-emitter stage runs at I<sub>C</sub> = ${IC} mA (V<sub>T</sub> = 25 mV, β large). R<sub>C</sub> = ${RC} kΩ and a ${RL} kΩ load is capacitively coupled. ${RE ? `An emitter resistor of ${RE} Ω is left unbypassed.` : 'The emitter resistor is fully bypassed.'} Find the magnitude of the mid-band voltage gain.</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'r<sub>e</sub> = V<sub>T</sub>/I<sub>C</sub>. The gain magnitude is (R<sub>C</sub> ∥ R<sub>L</sub>) divided by the total unbypassed resistance in the emitter, r<sub>e</sub> + R<sub>E</sub>.',
+        solution: steps(`r<sub>e</sub> = 25 mV / ${IC} mA = ${s3(re)} Ω.`, `R<sub>C</sub> ∥ R<sub>L</sub> = ${s3(Rac)} kΩ.`, `|A<sub>v</sub>| = ${s3(Rac * 1000)} / (${s3(re)}${RE ? ` + ${RE}` : ''}) = <b>${s3(answer)}</b>. The output is inverted.`),
+        IC, RC, RL, RE,
+      };
+    },
+    verify: (p) => (p.RC * p.RL / (p.RC + p.RL)) * 1000 / (25 / p.IC + p.RE),
+  },
+  // ---- 7.6 Operational amplifiers ----
+  'opamp-output': {
+    title: 'output of an op-amp amplifier, with saturation',
+    make(r) {
+      const inv = r() < 0.5, Rin = [1, 2.2, 4.7, 10][int(r, 0, 3)], Rf = [10, 22, 47, 100, 220][int(r, 0, 4)], Vin = int(r, -20, 20) / 10 || 0.3;
+      const G = inv ? -Rf / Rin : 1 + Rf / Rin, ideal = G * Vin, answer = Math.max(-13, Math.min(13, ideal));
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>An ${inv ? 'inverting' : 'non-inverting'} amplifier uses R<sub>f</sub> = ${Rf} kΩ and ${inv ? 'R<sub>in</sub>' : 'R<sub>1</sub>'} = ${Rin} kΩ, with ±15 V supplies; the output can swing only to ±13 V. Find the output for a DC input of ${Vin} V, in volts.</p>`,
+        answer, unit: 'V', tol: 0.005, abs: 0.01,
+        hint: `Gain = ${inv ? '−R<sub>f</sub>/R<sub>in</sub>' : '1 + R<sub>f</sub>/R<sub>1</sub>'}. If the result is beyond ±13 V, the output sticks at the limit.`,
+        solution: steps(`Gain = ${inv ? `−${Rf}/${Rin}` : `1 + ${Rf}/${Rin}`} = ${s3(G)}.`, `Ideal output = ${s3(G)} × ${Vin} = ${s3(ideal)} V.`, Math.abs(ideal) > 13 ? `That is beyond the ±13 V swing, so the op-amp saturates: V<sub>out</sub> = <b>${answer} V</b>.` : `This is within ±13 V, so V<sub>out</sub> = <b>${s3(answer)} V</b>.`),
+        inv, Rin, Rf, Vin,
+      };
+    },
+    verify: (p) => Math.max(-13, Math.min(13, (p.inv ? -p.Rf / p.Rin : 1 + p.Rf / p.Rin) * p.Vin)),
+  },
+  'slew-limit': {
+    title: 'largest undistorted frequency (slew rate and bandwidth)',
+    make(r) {
+      const SR = [0.5, 1, 2, 5, 13][int(r, 0, 4)], GBW = [1, 3, 4, 10][int(r, 0, 3)], G = [5, 10, 20, 50][int(r, 0, 3)], Vi = int(r, 1, 10) / 10;
+      const Vp = G * Vi, fs = SR * 1e6 / (2 * Math.PI * Vp) / 1e3, fb = GBW * 1e3 / G, answer = Math.min(fs, fb);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>An op-amp with slew rate ${SR} V/μs and gain-bandwidth product ${GBW} MHz is used as a non-inverting amplifier of gain ${G}. The input is a sine wave of ${Vi} V peak. Find the highest input frequency, in kHz, for which the output is neither slew-limited nor beyond the −3 dB bandwidth.</p>`,
+        answer, unit: 'kHz', tol: 0.01,
+        hint: 'Work out both limits: f = SR/(2πV<sub>p</sub>) for the OUTPUT peak V<sub>p</sub>, and f = GBW/gain. The smaller one wins.',
+        solution: steps(`Output peak V<sub>p</sub> = ${G} × ${Vi} = ${s3(Vp)} V.`, `Slew limit: ${SR}×10⁶ / (2π × ${s3(Vp)}) = ${s3(fs)} kHz. Bandwidth: ${GBW} MHz / ${G} = ${s3(fb)} kHz.`, `The answer is the smaller: <b>${s3(answer)} kHz</b> (${fs < fb ? 'slew rate' : 'bandwidth'} limited).`),
+        SR, GBW, G, Vi,
+      };
+    },
+    verify: (p) => Math.min(p.SR * 1e6 / (2 * Math.PI * p.G * p.Vi) / 1e3, p.GBW * 1e3 / p.G),
+  },
+  // ---- 7.7 Logic gates and Boolean algebra ----
+  'twos-sum': {
+    title: 'adding 8-bit two\'s complement numbers',
+    make(r) {
+      const a = int(r, -128, 127), b = int(r, -128, 127);
+      const enc = (x) => ((x + 256) % 256).toString(2).padStart(8, '0');
+      const s = (a + b + 512) % 256, answer = s >= 128 ? s - 256 : s;
+      const over = a + b > 127 || a + b < -128;
+      return {
+        q: `<p>The 8-bit two's complement numbers ${enc(a)} and ${enc(b)} are added in an 8-bit adder and the carry out of the top bit is thrown away. What is the result, read as an 8-bit two's complement number, in decimal?</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'Turn each pattern into a signed number (a leading 1 means subtract 256), add them, and if the sum is outside −128 to 127, wrap it by 256.',
+        solution: steps(`${enc(a)} is ${a} and ${enc(b)} is ${b}.`, `True sum: ${a + b}. ${over ? 'This is outside −128 to 127: OVERFLOW, so the 8 bits wrap round by 256.' : 'This is in range, so there is no overflow.'}`, `The adder shows ${enc(s)}, which reads as <b>${answer}</b>.`),
+        a, b,
+      };
+    },
+    verify: (p) => { const s = p.a + p.b; return ((s + 128) % 256 + 256) % 256 - 128; },
+  },
+  'minterm-count': {
+    title: 'counting the minterms of a function',
+    make(r) {
+      const F = [
+        ['AB + CD', (a, b, c, d) => (a && b) || (c && d)], ['A + BC', (a, b, c) => a || (b && c)], ['A ⊕ B ⊕ C', (a, b, c) => (a ^ b ^ c) === 1],
+        ['(A + B)(C + D)', (a, b, c, d) => (a || b) && (c || d)], ['A·(not B) + C·(not D)', (a, b, c, d) => (a && !b) || (c && !d)], ['A + B + (not C)·D', (a, b, c, d) => a || b || (!c && d)],
+      ];
+      const k = int(r, 0, F.length - 1), [s, f] = F[k];
+      let answer = 0; const rows = [];
+      for (let m = 0; m < 16; m++) { if (f(m >> 3 & 1, m >> 2 & 1, m >> 1 & 1, m & 1)) { answer++; rows.push(m); } }
+      return {
+        q: `<p>Treat f = ${s} as a function of the four variables A, B, C, D (A is the most significant bit). How many rows of its 16-row truth table give f = 1?</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'A product term with j of the four variables is 1 in 2<sup>4−j</sup> rows. Add the terms, then subtract the rows counted twice (inclusion-exclusion).',
+        solution: steps(`The rows with f = 1 are minterms ${rows.join(', ')}.`, `Count them: <b>${answer}</b>.`),
+        k,
+      };
+    },
+    // counted by hand with inclusion-exclusion: 4+4-1, 8+2, 8, 3x3, 4+4-1, 12+1
+    verify: (p) => [7, 10, 8, 9, 7, 13][p.k],
+  },
+  // ---- 6.5 Nuclei, binding energy and radioactivity ----
+  'binding-per-nucleon': {
+    title: 'binding energy per nucleon from an atomic mass',
+    make(r) {
+      const L = [['²H', 1, 2, 2.014102], ['⁴He', 2, 4, 4.002603], ['⁷Li', 3, 7, 7.016003], ['¹²C', 6, 12, 12], ['¹⁶O', 8, 16, 15.994915], ['⁴⁰Ca', 20, 40, 39.962591], ['⁵⁶Fe', 26, 56, 55.934936], ['²⁰⁸Pb', 82, 208, 207.976652], ['²³⁸U', 92, 238, 238.050788]];
+      const [s, Z, A, M] = L[int(r, 0, L.length - 1)];
+      const dm = Z * 1.007825 + (A - Z) * 1.008665 - M, answer = dm * 931.494 / A;
+      const s4 = (x) => +x.toPrecision(4);
+      return {
+        q: `<p>The atomic mass of ${s} (Z = ${Z}) is ${M} u. Using m(¹H) = 1.007825 u, m<sub>n</sub> = 1.008665 u and 1 u = 931.494 MeV/c², find its binding energy per nucleon, in MeV.</p>`,
+        answer, unit: 'MeV', tol: 0.002,
+        hint: 'Mass defect = Z × m(¹H) + (A − Z) × m<sub>n</sub> − M(atom). Hydrogen atoms (not bare protons) keep the electrons balanced. Multiply by 931.494 and divide by A.',
+        solution: steps(`Δm = ${Z}(1.007825) + ${A - Z}(1.008665) − ${M} = ${dm.toFixed(6)} u.`, `B = ${dm.toFixed(6)} × 931.494 = ${s4(dm * 931.494)} MeV.`, `B/A = ${s4(dm * 931.494)} / ${A} = <b>${s4(answer)} MeV</b>.`),
+        Z, A, M,
+      };
+    },
+    verify: (p) => (p.Z * 1.007825 + (p.A - p.Z) * 1.008665 - p.M) * 931.494 / p.A,
+  },
+  'activity-left': {
+    title: 'activity after a given time',
+    make(r) {
+      const A0 = int(r, 2, 50) * 100, T = [2, 6, 8, 12, 15, 24][int(r, 0, 5)], t = int(r, 1, 60);
+      const answer = A0 * 2 ** (-t / T);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>A source has an activity of ${A0} Bq and a half-life of ${T} h. What is its activity ${t} h later, in Bq?</p>`,
+        answer, unit: 'Bq', tol: 0.005,
+        hint: 'A = A₀ × 2<sup>−t/T½</sup>. The number of half-lives need not be a whole number.',
+        solution: steps(`t/T½ = ${t}/${T} = ${s3(t / T)} half-lives.`, `A = ${A0} × 2<sup>−${s3(t / T)}</sup> = ${A0} × ${(2 ** (-t / T)).toPrecision(4)}.`, `A = <b>${s3(answer)} Bq</b>.`),
+        A0, T, t,
+      };
+    },
+    verify: (p) => p.A0 * Math.exp(-Math.LN2 * p.t / p.T),
+  },
 };

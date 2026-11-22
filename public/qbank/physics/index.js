@@ -44,5 +44,13 @@ export default {
       { id: 'schrodinger-equation', name: 'The Schrödinger equation: wells, steps and tunnelling' },
       { id: 'atoms-x-rays', name: 'The Bohr atom, spectra and X-rays' },
     ] },
+    { id: 'electronics', name: 'Electronics', topics: [
+      { id: 'transistors', name: 'Transistors and amplifiers' },
+      { id: 'op-amps', name: 'Operational amplifiers' },
+      { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+    ] },
+    { id: 'nuclear', name: 'Nuclear physics', topics: [
+      { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
+    ] },
   ],
 };
