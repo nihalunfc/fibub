@@ -15,6 +15,12 @@ const near = (name, got, want, tol = 0.01) => {
 const ok = (name, cond) => { cond ? pass++ : (fail++, console.error('FAIL ' + name)); };
 
 // Units
+near('gamma at 0.6c', P.gamma(0.6), 1.25, 1e-9);
+near('gamma at 0.99c', P.gamma(0.99), 7.0888, 1e-4);
+near('Sun Schwarzschild radius in km', P.schwarzschild(P.M_SUN) / 1e3, 2.953, 0.002);
+near('Sun-grazing light bends 1.75 arcsec', P.deflectionArcsec(P.M_SUN, P.R_SUN), 1.75, 0.005);
+near('GPS height gain per day (20,200 km, weak field ~45 µs)', 86400e6 * (P.G * P.M_EARTH / P.C ** 2) * (1 / P.R_EARTH - 1 / (P.R_EARTH + 2.02e7)), 45.7, 0.02);
+near('1 kg as energy in J', P.restEnergy(1), 8.988e16, 1e-3);
 near('1 pc in ly', P.PC / P.LY, 3.2616, 1e-4);
 near('1 ly in m', P.LY, 9.4607e15, 1e-4);
 near('1 Mpc in m', P.MPC, 3.0857e22, 1e-4);

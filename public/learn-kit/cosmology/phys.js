@@ -165,3 +165,17 @@ export function scaleHistory(p, { tMax = 60, aMax = 6, steps = 3000 } = {}) {
 
 /** Temperature of the CMB (K) at redshift z. */
 export const cmbTemp = (z) => T_CMB * (1 + z);
+
+// ---------- Relativity (Module 3) ----------
+/** Lorentz factor for a speed given as a fraction of c. */
+export const gamma = (beta) => 1 / Math.sqrt(1 - beta * beta);
+/** Schwarzschild radius (m) of a mass (kg): r = 2GM/c². */
+export const schwarzschild = (m) => 2 * G * m / (C * C);
+/** Bending of a light ray passing a mass m (kg) at closest distance b (m), in arcseconds: 4GM/(c²b). */
+export const deflectionArcsec = (m, b) => (4 * G * m / (C * C * b)) * 206264.806;
+/** Fractional rate gain of a clock raised by h metres in gravity g (weak field): g h / c². */
+export const gravShift = (h, g = 9.81) => g * h / (C * C);
+/** Energy (J) in a mass (kg). */
+export const restEnergy = (m) => m * C * C;
+/** Einstein radius (arcsec) for a lens of mass m (kg) with distances (m) to lens, source and lens to source. */
+export const einsteinRadiusArcsec = (m, dl, ds, dls) => Math.sqrt(4 * G * m / (C * C) * dls / (dl * ds)) * 206264.806;
