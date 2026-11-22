@@ -308,4 +308,145 @@ export default {
     },
     verify: (p) => (p.N - 1) * p.B - (p.N * p.a) / 1000,
   },
+
+  // ---------- 15.1 Batching ----------
+  'batching-utilisation': {
+    title: 'How busy is the shared machine?',
+    make(r) {
+      const P = pick(r, 6, 24), Q = pick(r, 3, 8), T = pick(r, 250, 500, 50), v = pick(r, 35, 60, 5), rho = (P * Q * (T / v)) / 3600;
+      const answer = rho * 100;
+      return {
+        q: `<p>An office of <b>${P} people</b> shares one local model. Each asks about <b>${Q} questions an hour</b>. Answers average <b>${T} tokens</b>, written at <b>${v} tokens a second</b> for one person. Without batching, what share of each hour is the machine busy, in <b>percent</b>?</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: 'Seconds per answer = tokens ÷ tokens per second. Busy seconds an hour = people × questions × seconds per answer. Divide by 3,600 and multiply by 100.',
+        solution: steps(
+          `Seconds per answer: ${T} ÷ ${v} = ${n(T / v)} s.`,
+          `Questions an hour: ${P} × ${Q} = ${P * Q}.`,
+          `Busy seconds: ${P * Q} × ${n(T / v)} = ${n(P * Q * T / v)} of 3,600.`,
+          `ρ = ${n(rho)}, so <b>${n(answer)}%</b>. ${rho > 0.7 ? 'Above about 70%: expect queues at busy times; turn on batching.' : rho > 0.5 ? 'Between 50% and 70%: batching would smooth the busy moments.' : 'Under half busy: one machine copes, apart from rush moments.'}`),
+        P, Q, T, v,
+      };
+    },
+    verify: (p) => (p.P * p.Q * p.T) / (p.v * 36),
+  },
+
+  // ---------- 15.2 Serving engines ----------
+  'serving-engines-conversations': {
+    title: 'How many full-length chats fit on the card?',
+    make(r) {
+      const M = one(r, [16, 24, 32, 48, 80]), W = pick(r, 4, M - 6), work = 2, kv = one(r, [0.0625, 0.125, 0.25]), T = one(r, [4096, 8192, 16384]);
+      const free = M - W - work, per = (kv * T) / 1024, answer = Math.floor(free / per);
+      return {
+        q: `<p>A server card has <b>${M} GB</b> of memory. The model's weights take <b>${W} GB</b> and the engine needs <b>${work} GB</b> of working space. The KV cache uses <b>${kv} MB per token</b>, and each chat may grow to <b>${f(T)} tokens</b>. How many chats fit at full length at the same moment? (1 GB = 1,024 MB.)</p>`,
+        answer, unit: 'chats', tol: 0.001,
+        hint: 'Memory left = card − weights − working space. One chat = MB per token × tokens, then ÷ 1,024 for GB. Divide and round down.',
+        solution: steps(
+          `Left for chats: ${M} − ${W} − ${work} = ${free} GB.`,
+          `One chat: ${kv} × ${f(T)} = ${f(kv * T)} MB = ${f(per)} GB.`,
+          `Chats: ${free} ÷ ${f(per)} = ${n(free / per)}, so <b>${f(answer)}</b> at full length. Short chats leave room for more.`),
+        M, W, work, kv, T,
+      };
+    },
+    verify: (p) => { const per = (p.kv * p.T) / 1024; let left = p.M - p.W - p.work, c = 0; while (left >= per - 1e-9) { left -= per; c++; } return c; },
+  },
+
+  // ---------- 15.3 Splitting a model ----------
+  'multi-gpu-layer-speed': {
+    title: 'How fast is the layer split?',
+    make(r) {
+      const G = pick(r, 30, 60, 2), s = one(r, [0.4, 0.5, 0.6]), B1 = one(r, [448, 760, 936, 1008]), B2 = one(r, [448, 760, 936, 1008]), d = pick(r, 0, 5);
+      const g1 = G * s, g2 = G - g1, t = g1 / B1 + g2 / B2 + d / 1000, answer = 1 / t;
+      return {
+        q: `<p>A <b>${G} GB</b> model is split by layers: <b>${n(g1)} GB</b> on card 1, which reads memory at <b>${B1} GB/s</b>, and <b>${n(g2)} GB</b> on card 2 at <b>${B2} GB/s</b>. Passing results between them adds <b>${d} ms</b> per token. At best, how many <b>tokens a second</b> can one user get?</p>`,
+        answer, unit: 'tokens/s', tol: 0.01,
+        hint: 'With a layer split the cards take turns, so add the times: GB on card 1 ÷ its speed, plus GB on card 2 ÷ its speed, plus the link (ms ÷ 1,000). Tokens a second = 1 ÷ that time.',
+        solution: steps(
+          `Card 1: ${n(g1)} ÷ ${B1} = ${n(g1 / B1)} s.`,
+          `Card 2: ${n(g2)} ÷ ${B2} = ${n(g2 / B2)} s.`,
+          `Link: ${d} ms = ${n(d / 1000)} s. Total per token: ${n(t)} s.`,
+          `Tokens a second: 1 ÷ ${n(t)} = <b>${n(answer)}</b>.`),
+        G, s, B1, B2, d,
+      };
+    },
+    verify: (p) => 1000 / ((p.G * p.s * 1000) / p.B1 + (p.G * (1 - p.s) * 1000) / p.B2 + p.d),
+  },
+
+  // ---------- 15.4 Office network ----------
+  'office-network-backup': {
+    title: 'How much backup space will you need?',
+    make(r) {
+      const C = pick(r, 2, 20), g = pick(r, 0.5, 4, 0.5), K = pick(r, 7, 30), size = C + 12 * g, answer = K * size;
+      return {
+        q: `<p>Your Open WebUI data folder (accounts, chats, uploads) is <b>${C} GB</b> today and grows by about <b>${g} GB a month</b>. A nightly script keeps the last <b>${K} full copies</b> on the office NAS. How many <b>GB</b> of NAS space will the copies need in 12 months' time?</p>`,
+        answer, unit: 'GB', tol: 0.01,
+        hint: 'First find the folder size after 12 months of growth. Then multiply by the number of copies kept.',
+        solution: steps(
+          `Growth in a year: 12 × ${g} = ${n(12 * g)} GB.`,
+          `Folder size then: ${C} + ${n(12 * g)} = ${n(size)} GB.`,
+          `${K} copies: ${K} × ${n(size)} = <b>${n(answer)} GB</b>. Models are not in the folder; they can be downloaded again.`),
+        C, g, K,
+      };
+    },
+    verify: (p) => { let s = p.C; for (let m = 0; m < 12; m++) s += p.g; return s * p.K; },
+  },
+
+  // ---------- 15.5 Monitoring ----------
+  'monitoring-answer-time': {
+    title: 'How long does a user wait for the whole answer?',
+    make(r) {
+      const wait = pick(r, 0, 10, 0.5), P = pick(r, 1000, 8000, 500), pf = pick(r, 500, 3000, 250), A = pick(r, 100, 600, 50), w = pick(r, 15, 60, 5);
+      const ttft = wait + P / pf, answer = ttft + A / w;
+      return {
+        q: `<p>Your metrics show a request waited <b>${wait} s</b> in the queue. Its prompt was <b>${f(P)} tokens</b>, read at <b>${f(pf)} tokens a second</b>, and the answer was <b>${A} tokens</b>, written at <b>${w} tokens a second</b>. How many <b>seconds</b> from sending to the last word?</p>`,
+        answer, unit: 's', tol: 0.01,
+        hint: 'Answer time = queue wait + prompt ÷ reading speed + answer ÷ writing speed.',
+        solution: steps(
+          `Reading: ${f(P)} ÷ ${f(pf)} = ${n(P / pf)} s. Time to first token: ${wait} + ${n(P / pf)} = ${n(ttft)} s.`,
+          `Writing: ${A} ÷ ${w} = ${n(A / w)} s.`,
+          `Total: <b>${n(answer)} s</b>.`),
+        wait, P, pf, A, w,
+      };
+    },
+    verify: (p) => (p.wait * p.pf * p.w + p.P * p.w + p.A * p.pf) / (p.pf * p.w),
+  },
+
+  // ---------- 15.6 Hybrid ----------
+  'hybrid-cloud-cost': {
+    title: 'What will the cloud share cost each month?',
+    make(r) {
+      const J = pick(r, 1000, 10000, 500), s = pick(r, 2, 20), T = pick(r, 1000, 10000, 500), p = pick(r, 2, 20);
+      const jobs = (J * s) / 100, tok = jobs * T, answer = (tok * p) / 1e6;
+      return {
+        q: `<p>Your team sends <b>${f(J)} jobs a month</b> through a hybrid router, and the rules let <b>${s}%</b> go to the cloud. Each cloud job uses about <b>${f(T)} tokens</b>, at a made-up price of <b>${p} dollars per million tokens</b> (check current prices). What is the monthly cloud bill in <b>dollars</b>?</p>`,
+        answer, unit: 'dollars', tol: 0.01,
+        hint: 'Cloud jobs = jobs × share. Tokens = cloud jobs × tokens per job. Cost = tokens ÷ 1,000,000 × price.',
+        solution: steps(
+          `Cloud jobs: ${f(J)} × ${s}% = ${n(jobs, 6)}.`,
+          `Tokens: ${n(jobs, 6)} × ${f(T)} = ${f(tok)}.`,
+          `Cost: ${f(tok)} ÷ 1,000,000 × ${p} = <b>${n(answer)} dollars</b>, plus the local power bill.`),
+        J, s, T, p,
+      };
+    },
+    verify: (q) => (q.p / 1e6) * q.T * q.J * (q.s / 100),
+  },
+
+  // ---------- 15.7 Renting GPUs ----------
+  'renting-gpus-breakeven': {
+    title: 'When does owning the card pay off?',
+    make(r) {
+      const H = pick(r, 1000, 3000, 100), rent = pick(r, 0.3, 1, 0.1), h = pick(r, 100, 300, 20), e = pick(r, 3, 15);
+      const monthly = h * rent, saved = monthly - e, answer = H / saved;
+      return {
+        q: `<p>A graphics card costs <b>${f(H)}</b> to buy. Renting the same power costs <b>${rent} an hour</b>. Your team would use it <b>${h} hours a month</b>, and running your own would add <b>${e} a month</b> in electricity. After how many <b>months</b> is owning cheaper? (Same currency throughout.)</p>`,
+        answer, unit: 'months', tol: 0.01,
+        hint: 'Monthly rent = hours × hourly price. Owning saves that minus the power cost each month. Months = price ÷ monthly saving.',
+        solution: steps(
+          `Rent a month: ${h} × ${rent} = ${n(monthly)}.`,
+          `Saved by owning each month: ${n(monthly)} − ${e} = ${n(saved)}.`,
+          `Months: ${f(H)} ÷ ${n(saved)} = <b>${n(answer)}</b>. ${answer > 36 ? 'Over three years: renting is probably better.' : 'Within three years: owning is worth a look.'}`),
+        H, rent, h, e,
+      };
+    },
+    verify: (q) => { let lo = 0, hi = 1e4, m = 0; for (let i = 0; i < 80; i++) { m = (lo + hi) / 2; (q.h * q.rent * m < q.H + q.e * m) ? (lo = m) : (hi = m); } return m; },
+  },
 };
