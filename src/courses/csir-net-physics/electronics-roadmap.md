@@ -66,6 +66,12 @@ Described from the published syllabus (check the current one):
 5. **Errors and statistics**: GATE [probability and statistics](/learn/courses/gate-physics/probability/), then [lesson 7.2](/learn/courses/csir-net-physics/errors-data-fitting/) of this course (measurement, errors and fitting data).
 6. **NET extras in this course**: [lesson 7.3](/learn/courses/csir-net-physics/transducers-detectors/) (transducers and detectors) and [lesson 7.4](/learn/courses/csir-net-physics/noise-lock-in/) (noise, filtering and lock-in detection).
 
+Two quick pictures for the main circuits in this block: op-amp circuits and counting logic.
+
+<figure class="fig" data-fig="@sx-opamp-waves"><figcaption>Inverting, non-inverting, integrator and differentiator.</figcaption></figure>
+
+<figure class="fig" data-fig="@sx-flipflop"><figcaption>Flip-flops and the timing diagram.</figcaption></figure>
+
 ## 3. Where each topic is taught
 
 | Topic | Learn it from | NET emphasis |

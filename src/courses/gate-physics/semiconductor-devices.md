@@ -31,6 +31,16 @@ sources:
 
 Bring p-type (acceptors `$N_a$`) and n-type (donors `$N_d$`) silicon together. Carriers diffuse across, leave behind fixed ionised dopants, and build up a field that stops further diffusion. In equilibrium the Fermi level is flat, and the potential step is
 
+Step through how a junction forms, then bias it.
+
+<div class="steps" data-fig="@sx-pn-junction">
+<div class="step"><b>Apart.</b> Two neutral pieces, p and n.</div>
+<div class="step"><b>Diffusion.</b> Holes go right, electrons go left.</div>
+<div class="step"><b>Depletion.</b> Bare ions are left near the junction.</div>
+<div class="step"><b>Equilibrium.</b> A built-in field and voltage stop the diffusion.</div>
+<div class="step"><b>Biased.</b> Forward bias narrows the layer; reverse widens it.</div>
+</div>
+
 ```math
 V_{bi} = \frac{k_BT}{q}\ln\frac{N_aN_d}{n_i^2}, \qquad W = \sqrt{\frac{2\varepsilon_s(V_{bi} - V)}{q}\left(\frac1{N_a} + \frac1{N_d}\right)}, \qquad \frac{x_n}{x_p} = \frac{N_a}{N_d}
 ```
@@ -60,6 +70,10 @@ V_{bi} = \frac{k_BT}{q}\ln\frac{N_aN_d}{n_i^2}, \qquad W = \sqrt{\frac{2\varepsi
 ## 2. The bipolar transistor
 
 An npn transistor is two junctions sharing a thin, lightly doped base. With the base-emitter junction forward biased and the base-collector junction reverse biased (**forward active**), electrons injected from the emitter diffuse across the base and are swept into the collector:
+
+Watch the carriers cross the base of an NPN transistor.
+
+<figure class="fig" data-fig="@sx-bjt-carriers"><figcaption>Electrons injected by V<sub>BE</sub> mostly reach the collector; the few that recombine in the base form I<sub>B</sub>, so β = I<sub>C</sub>/I<sub>B</sub> = 1/(base loss).</figcaption></figure>
 
 ```math
 I_C = I_Se^{V_{BE}/V_T}\left(1 + \frac{V_{CE}}{V_A}\right), \qquad I_C = \beta I_B, \qquad \alpha = \frac{I_C}{I_E} = \frac\beta{\beta + 1}
@@ -129,6 +143,10 @@ A depletion-mode MOSFET has a channel built in, so it conducts at `$V_{GS} = 0$`
 | solar cell | none (fourth quadrant) | `$I = I_0(e^{V/V_T} - 1) - I_L$`; `$V_{oc} = V_T\ln(1 + I_L/I_0)$` |
 
 **Worked example.** A GaAs LED (`$E_g = 1.42$` eV) emits near 873 nm. A silicon photodiode with quantum efficiency 0.8 at 850 nm has `$R = 0.8\times0.85/1.24 = 0.55$` A/W. A solar cell with `$I_L = 35$` mA and `$I_0 = 10^{-12}$` A gives `$V_{oc} = 0.02585\ln(3.5\times10^{10}) = 0.63$` V. Doubling the light adds only `$V_T\ln2 = 18$` mV: the open-circuit voltage is logarithmic in intensity, the short-circuit current linear.
+
+LEDs convert a band gap into a colour.
+
+<figure class="fig" data-fig="@sx-led-gap"><figcaption>λ = 1240/E<sub>g</sub> nm. Move the gap across the visible range.</figcaption></figure>
 
 **Heterojunctions** join materials with different gaps (AlGaAs/GaAs). The band offsets confine carriers and light, which makes efficient lasers possible, and they let an emitter inject electrons without receiving holes back, which gives heterojunction bipolar transistors their high β and speed.
 

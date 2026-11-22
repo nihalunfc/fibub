@@ -66,6 +66,12 @@ Basic magnetism (dia-, para- and ferromagnetism) is listed under statistical phy
 
 Liquid crystals, quasicrystals and superfluidity appear rarely and at a descriptive level: know the kinds of order (nematic, smectic, cholesteric), what makes a quasicrystal (long-range order without periodicity, forbidden rotational symmetries such as fivefold), and the lambda transition of helium-4.
 
+Two pictures to keep in mind while you study this block: the structures you must know and the band picture that decides who conducts.
+
+<figure class="fig" data-fig="@sx-cell-3d"><figcaption>Counting atoms per cell, coordination numbers and packing fractions for the standard structures.</figcaption></figure>
+
+<figure class="fig" data-fig="@sx-band-fill"><figcaption>Metal, semiconductor or insulator is decided by the gap and the temperature.</figcaption></figure>
+
 ## 3. Where each topic is taught
 
 | Topic | Learn it from | NET emphasis |

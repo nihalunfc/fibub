@@ -81,6 +81,10 @@ Most exam questions use three cubic lattices. Turn the cells below and switch to
 
 <figure class="fig" data-fig="unit-cell"><figcaption>Corner atoms are shared by 8 cells, face atoms by 2, body-centre atoms by none. With touching spheres you can see the line along which the atoms meet: an edge (sc), a body diagonal (bcc), a face diagonal (fcc) or a tetrahedral bond (diamond).</figcaption></figure>
 
+Turn the cells in 3D and compare their atoms per cell and packing fraction with the table you just worked out. Rock salt and hexagonal close-packed are also here.
+
+<figure class="fig" data-fig="@sx-cell-3d"><figcaption>Drag to turn each cell. In the small-atom view the orange bonds join nearest neighbours; in the touching view you can see why bcc (68%) packs less well than fcc and hcp (74%), and diamond (34%) is the emptiest.</figcaption></figure>
+
 Every number follows from two facts: **how many atoms the cube owns**, and **along which line the atoms touch**.
 
 | | sc | bcc | fcc (ccp) | diamond |
@@ -122,6 +126,15 @@ Run it backwards and density, lattice constant and molar mass tell you `$n$`, an
 - **Rock salt** (NaCl, KCl, MgO): fcc lattice, basis Na at `$(0,0,0)$` and Cl at `$(\tfrac12,0,0)a$`. Four formula units per cube; each ion has 6 neighbours of the other kind.
 - **Caesium chloride** (CsCl, CuZn): Cs at the corners, Cl at the body centre. The picture looks bcc, but the centre is a different ion, so the lattice is **simple cubic** with a two-ion basis; coordination 8.
 - **Graphene**: a honeycomb. Neighbouring atoms see their bonds in mirror-image directions, so the honeycomb is not a Bravais lattice; it is a hexagonal lattice with a two-atom basis.
+
+Build the close-packed stacks yourself: add layers and decide where the third one goes.
+
+<div class="steps" data-fig="@sx-packing-layers">
+<div class="step"><b>One layer (A).</b> Touching spheres in a hexagonal sheet: each touches 6 neighbours.</div>
+<div class="step"><b>Second layer (B).</b> Each sphere sits in a hollow of A. Only half of the hollows can be used; the dashed rings mark the two kinds that remain.</div>
+<div class="step"><b>Third layer over A.</b> Put it straight above the first layer (choose "Over A"): ABA, which repeats as ABAB, the hexagonal close-packed (hcp) structure.</div>
+<div class="step"><b>Third layer over the gaps.</b> Choose "Over the gaps": ABC, repeating as ABCABC, the face-centred cubic (fcc) structure. Same packing, 74%.</div>
+</div>
 
 Holes between the spheres matter for alloys and ionic crystals. In fcc there are 4 octahedral holes per cube (radius up to `$0.414r$`) and 8 tetrahedral ones (`$0.225r$`).
 

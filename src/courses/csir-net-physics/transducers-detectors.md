@@ -53,6 +53,10 @@ about −4% per kelvin near room temperature, ten times platinum, but exponentia
 
 **Strain gauges.** Stretching a wire lengthens it and narrows it: `$\Delta R/R = (1 + 2\nu)\varepsilon + \Delta\rho/\rho$`. The gauge factor `$GF = (\Delta R/R)/\varepsilon$` is about 2 for metal foil (1.6 from geometry with `$\nu = 0.3$`, the rest from resistivity) and 50 to 200 for semiconductor gauges (piezoresistance). Changes are tiny (0.1% at 500 microstrain), so gauges go in a **Wheatstone bridge**:
 
+Bend the cantilever and see how a strain gauge and a bridge turn it into a voltage.
+
+<figure class="fig" data-fig="@sx-wheatstone-strain"><figcaption>V<sub>out</sub> = V<sub>ex</sub>·GF·ε/4 for one gauge, ×2 for two, ×4 for four. Temperature changes that hit all arms equally cancel out.</figcaption></figure>
+
 ```math
 V_{out} \approx \frac{n}{4}\,V_s\,GF\,\varepsilon \quad (n = 1, 2, 4 \text{ active arms, strains arranged to add})
 ```

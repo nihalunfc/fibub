@@ -81,6 +81,10 @@ so the first stage decides: a low-noise preamplifier with 20 dB gain makes the n
 
 A repetitive signal (triggered by the experiment) averaged over `$N$` sweeps adds coherently (`$\propto N$`) while uncorrelated noise adds in quadrature (`$\propto\sqrt N$`):
 
+Average more and more sweeps and measure the signal-to-noise ratio.
+
+<figure class="fig" data-fig="@sx-signal-average"><figcaption>Averaging N sweeps improves the SNR by √N. Compare it with a lock-in, which narrows the bandwidth instead.</figcaption></figure>
+
 ```math
 \text{SNR}_N = \sqrt N\,\text{SNR}_1
 ```
