@@ -30,7 +30,7 @@ sources:
 
 ## 1. Bands and the gap
 
-An isolated atom has sharp energy levels. Bring `$N$` atoms together into a crystal and each level spreads into a **band** of `$N$` closely spaced states, because neighbouring electron waves overlap. Between bands there can be **gaps** with no states at all (lesson 7.2 hinted why: electron waves with `$2d\sin\theta = n\lambda$` are Bragg-reflected by the lattice and cannot travel).
+An isolated atom has sharp energy levels. Bring `$N$` atoms together into a crystal and each level spreads into a **band** of `$N$` closely spaced states, because neighbouring electron waves overlap. Between bands there can be **gaps** with no states at all ([lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/) hinted why: electron waves with `$2d\sin\theta = n\lambda$` are Bragg-reflected by the lattice and cannot travel).
 
 What matters is how the highest bands are filled at `$T = 0$`:
 

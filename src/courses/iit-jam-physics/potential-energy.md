@@ -30,7 +30,7 @@ sources:
 
 ## 1. Why a potential exists
 
-In lesson 4.1 you saw that `$\nabla\times\vec E = 0$` for any static charges. A curl-free field is the gradient of something (lesson 1.5), so we can write
+In [lesson 4.1](/learn/courses/iit-jam-physics/electrostatics-gauss/) you saw that `$\nabla\times\vec E = 0$` for any static charges. A curl-free field is the gradient of something ([lesson 1.5](/learn/courses/iit-jam-physics/vector-calculus/)), so we can write
 
 ```math
 \vec E = -\nabla V, \qquad V(b) - V(a) = -\int_a^b \vec E\cdot d\vec l
@@ -132,7 +132,7 @@ Step through the standard results for a sphere of charge `$Q$` and radius `$R$`:
 
 </div>
 
-**Worked example.** Air breaks down near `$3\times10^6$` V/m, where `$u = \tfrac12\epsilon_0E^2 \approx 40$` J/m³. A 1 T magnetic field stores about `$4\times10^5$` J/m³ (lesson 4.7): this is why motors are magnetic, not electric.
+**Worked example.** Air breaks down near `$3\times10^6$` V/m, where `$u = \tfrac12\epsilon_0E^2 \approx 40$` J/m³. A 1 T magnetic field stores about `$4\times10^5$` J/m³ ([lesson 4.7](/learn/courses/iit-jam-physics/induction/)): this is why motors are magnetic, not electric.
 
 ## 6. Poisson's and Laplace's equations
 
@@ -142,7 +142,7 @@ Put `$\vec E = -\nabla V$` into `$\nabla\cdot\vec E = \rho/\epsilon_0$`:
 \nabla^2V = -\frac{\rho}{\epsilon_0} \ \ (\text{Poisson}), \qquad \nabla^2V = 0 \ \text{where there is no charge} \ \ (\text{Laplace})
 ```
 
-**Worked example.** `$V = V_0(x^2+y^2+z^2)/a^2$` has `$\nabla^2V = 6V_0/a^2$`, so `$\rho = -6\epsilon_0V_0/a^2$`. And `$a(x^2 - y^2)$`, `$a\,xy$` or `$e^{-kx}\sin ky$` all satisfy Laplace's equation, so they can exist in empty space. Solving Laplace's equation with boundary conditions is lesson 4.3; the [2D electrostatics solver](/science/electrostatics-solver/) does it numerically for any electrodes you draw.
+**Worked example.** `$V = V_0(x^2+y^2+z^2)/a^2$` has `$\nabla^2V = 6V_0/a^2$`, so `$\rho = -6\epsilon_0V_0/a^2$`. And `$a(x^2 - y^2)$`, `$a\,xy$` or `$e^{-kx}\sin ky$` all satisfy Laplace's equation, so they can exist in empty space. Solving Laplace's equation with boundary conditions is [lesson 4.3](/learn/courses/iit-jam-physics/conductors-images/); the [2D electrostatics solver](/science/electrostatics-solver/) does it numerically for any electrodes you draw.
 
 <div class="keypoints">
 
@@ -161,4 +161,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="potential-energy" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 4.3 puts conductors into the picture, solves Laplace's equation and introduces the method of images; after that come dielectrics and capacitors. Back to the field picture: [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/). For multipole expansions and boundary value problems at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** [lesson 4.3](/learn/courses/iit-jam-physics/conductors-images/) puts conductors into the picture, solves Laplace's equation and introduces the method of images; after that come dielectrics and capacitors. Back to the field picture: [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/). For multipole expansions and boundary value problems at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).

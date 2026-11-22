@@ -164,4 +164,4 @@ They start easy and climb to top-rank level. More on the [work, energy and colli
 
 <div class="qbank" data-bank="physics" data-topics="work-energy-collisions" data-exam="jam" data-n="10"></div>
 
-**Before this:** lesson 2.1, [Newton's laws and frames](/learn/courses/iit-jam-physics/newtons-laws-frames/). **Next:** lesson 2.3 on variable-mass systems and rockets, then 2.4, [central forces and orbits](/learn/courses/iit-jam-physics/central-forces/), where energy and angular momentum together decide the shape of every orbit. Going on to GATE? [Central forces and scattering](/learn/courses/gate-physics/) takes collisions into cross-sections.
+**Before this:** lesson 2.1, [Newton's laws and frames](/learn/courses/iit-jam-physics/newtons-laws-frames/). **Next:** [lesson 2.3](/learn/courses/iit-jam-physics/variable-mass/) on variable-mass systems and rockets, then 2.4, [central forces and orbits](/learn/courses/iit-jam-physics/central-forces/), where energy and angular momentum together decide the shape of every orbit. Going on to GATE? [Central forces and scattering](/learn/courses/gate-physics/) takes collisions into cross-sections.

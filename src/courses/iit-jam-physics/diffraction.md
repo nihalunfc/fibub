@@ -184,4 +184,4 @@ They start easy and climb to top-rank level. More on the [diffraction practice p
 
 <div class="qbank" data-bank="physics" data-topics="diffraction" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 3.9 turns to polarisation. Diffraction by the regular rows of atoms in a crystal is the subject of lesson 7.2 (X-ray diffraction and Bragg's law), and the [GATE Physics course](/learn/courses/gate-physics/) extends it to the structure factor. For telescopes in practice, see the [astronomy course](/learn/courses/astronomy/).
+**Next:** [lesson 3.9](/learn/courses/iit-jam-physics/polarisation/) turns to polarisation. Diffraction by the regular rows of atoms in a crystal is the subject of [lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/) (X-ray diffraction and Bragg's law), and the [GATE Physics course](/learn/courses/gate-physics/) extends it to the structure factor. For telescopes in practice, see the [astronomy course](/learn/courses/astronomy/).
