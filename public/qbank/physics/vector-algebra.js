@@ -4,6 +4,7 @@
 // axial vectors, index notation (Kronecker delta, Levi-Civita symbol).
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './vector-algebra.more.gen.js';
 
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -336,5 +337,6 @@ export default {
         const a = dot(p.d1, p.d1), b = dot(p.d1, p.d2), c = dot(p.d2, p.d2), e = dot(p.d1, p.P), f = dot(p.d2, p.P);
         const den = a * c - b * b, t = (e * c - b * f) / den, s = (b * e - a * f) / den;
         const w = [0, 1, 2].map((i) => p.P[i] + s * p.d2[i] - t * p.d1[i]); return norm(w); } },
+    ...more,
   ],
 };
