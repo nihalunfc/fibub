@@ -27,6 +27,8 @@ sources:
 
 **Module 3 · about 12 minutes.** You'll pick a starting structure for your business with clear reasons, and know what would make you change it.
 
+<div class="bigidea">Five questions pick your structure for the next two or three years: how many owners, how much risk, how much profit, whether you will raise money, and where you are.</div>
+
 ## 1. Five questions
 
 1. **Owners:** just you, or several people?
@@ -80,6 +82,29 @@ sources:
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Neha, Jaipur:</b> solo, low risk, lives on the profit: sole proprietorship with GST and Udyam.</p></div>
+<div class="step"><p><b>Tom and Aisha, Calgary:</b> two founders, software, want angel money: federal corporation.</p></div>
+<div class="step"><p><b>Luis, Miami:</b> plumber, two vans, $150,000 profit: LLC with an S corp election.</p></div>
+<div class="step"><p><b>Lesson:</b> same five questions, three different answers, each fitting today’s plan.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Liability</dt><dd>who pays if the business owes money or is sued</dd>
+<dt>Pass-through</dt><dd>business profit taxed on the owners’ personal returns</dd>
+<dt>Small business rate</dt><dd>Canada: low corporate tax on a CCPC’s first C$500,000 of active income</dd>
+<dt>Deferral</dt><dd>tax postponed by keeping profit inside a company</dd>
+<dt>What it means for you</dt><dd>Answer the five questions for your idea, pick for the next two or three years, and if investment is likely soon, start as a company.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="structure-chooser-deferral"></div>
+
 ## 3. Worked example
 
 *Made-up founders.* Three cases, three answers from the chooser:
@@ -87,6 +112,12 @@ sources:
 - **Neha, Jaipur,** solo, sells handmade jewellery online, low risk, lives on the profit: **sole proprietorship** with GST and Udyam.
 - **Tom and Aisha, Calgary,** building software, want angel money: **corporation**, federal so the name is protected nationally.
 - **Luis, Miami,** plumber with two vans and $150,000 profit: **LLC with an S corp election**.
+
+<div class="myth">
+
+**"There is one best structure for every startup."** The right structure depends on owners, risk, profit, plans to raise and country. A solo freelancer and a venture-backed team need different answers.
+
+</div>
 
 ## 4. Practice
 
@@ -101,6 +132,16 @@ sources:
 2. Investors want shares, preferences and ESOPs, which LLPs cannot issue; Indian foreign investment rules for LLPs are also narrower.
 3. Limited liability, and the option of leaving profit in the business at the small business tax rate.
 </details>
+
+<div class="keypoints">
+
+- Five questions: owners, risk, profit, raising money, place.
+- Raising soon: India private limited, Canada corporation, USA Delaware C corp.
+- Low risk and solo: a sole proprietorship is fine to start.
+- High profit: a company can defer tax (Canada) or save payroll tax (US S corp).
+- Changing later is normal but costs time and sometimes tax.
+
+</div>
 
 **Next:** [Where to register](/learn/courses/startup/where-to-register/).
 

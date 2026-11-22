@@ -27,6 +27,8 @@ sources:
 
 **Module 1 · about 12 minutes.** You'll be able to decide whether to start alone or with others, and know what each choice means in law.
 
+<div class="bigidea">Going solo keeps control and paperwork simple; a team brings skills and shared load but needs a written deal, because people in business together with nothing signed are usually a general partnership.</div>
+
 ## 1. Solo: simple and all yours
 
 A solo founder decides fast, keeps 100 % of the ownership and has the simplest paperwork. The costs: every job lands on you, there is nobody to cover when you are ill, and some investors prefer teams.
@@ -69,12 +71,42 @@ A team covers more skills and shares the risk and the work. It needs clear answe
 
 A co-founder is the most expensive option, because shares are forever. Pick co-founders for trust and commitment as much as for skills.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Month 1:</b> two friends start selling T-shirts together and sign nothing.</p></div>
+<div class="step"><p><b>In law:</b> they are a general partnership: each can be personally liable for all the business’s debts.</p></div>
+<div class="step"><p><b>Month 2:</b> they form a company, write down roles and a 50/50 split with vesting, and hire a freelance designer for cash instead of giving away shares.</p></div>
+<div class="step"><p><b>Result:</b> clear ownership, limited liability, and equity kept for the people who will build the company for years.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Sole proprietorship</dt><dd>one person in business with no separate legal entity</dd>
+<dt>One Person Company</dt><dd>India: a company with a single member and limited liability</dd>
+<dt>Single-member LLC</dt><dd>USA: an LLC with one owner, taxed like a sole proprietor by default</dd>
+<dt>General partnership</dt><dd>two or more in business together; each personally liable</dd>
+<dt>Equity</dt><dd>ownership, usually in shares</dd>
+<dt>What it means for you</dt><dd>Fill gaps by learning or paying first; offer equity only for a core skill from someone you trust for years, and put the deal in writing.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="solo-or-team-stake"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Dev (software) and Lena (sales) want to build a booking app.
 
 - Dev alone would need to pay for sales help in cash he doesn't have.
 - With Lena, both jobs are covered. They form a company (India: private limited; Canada: corporation; USA: Delaware C corp because they want investors), split shares 50/50 with four-year vesting (Lesson 10.3), and hire a freelance designer and an accountant.
+
+<div class="myth">
+
+**"We are just two friends helping each other, so there is no partnership."** If two or more people run a business together for profit, the law usually treats them as a general partnership, with personal liability for every debt, whether or not they signed anything.
+
+</div>
 
 ## 5. Practice
 
@@ -89,6 +121,16 @@ A co-founder is the most expensive option, because shares are forever. Pick co-f
 2. As a "disregarded entity": profit goes on the owner's Schedule C, like a sole proprietorship.
 3. Most likely a general partnership under their province's Partnerships Act, with personal liability for debts.
 </details>
+
+<div class="keypoints">
+
+- Solo: fast decisions and 100 % ownership, but every job is yours.
+- Solo structures: sole proprietor; India OPC; Canada one-shareholder corporation; US single-member LLC.
+- A team needs written answers on ownership, decisions and leaving before it starts.
+- Fill gaps by learning, paying, or (most expensive) a co-founder.
+- Choose a structure on purpose to avoid an accidental general partnership.
+
+</div>
 
 **Next:** [The A to Z map](/learn/courses/startup/a-to-z-map/). Freelancing first? The [[freelance-rate]] tool works out an hourly rate that covers tax and time off.
 

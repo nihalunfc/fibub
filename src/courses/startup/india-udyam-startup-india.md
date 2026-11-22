@@ -29,6 +29,8 @@ sources:
 
 **Module 4 · about 15 minutes · India.** You'll know which of these three registrations you need, what each gives you and how to get it.
 
+<div class="bigidea">Udyam is a free MSME registration that unlocks loans, schemes and the 45-day payment protection; DPIIT recognition opens startup tax and IP benefits; a Shops and Establishments registration covers your premises.</div>
+
 ## 1. Udyam (MSME) registration
 
 **Udyam** registers you as a micro, small or medium enterprise (MSME). It is <mark>free, online and takes minutes</mark> on udyamregistration.gov.in with the Aadhaar of the proprietor, managing partner or director, and the business PAN. Investment and turnover figures are pulled from your income tax and GST records.
@@ -70,9 +72,30 @@ After incorporation, the usual order
 
 </div>
 
+<div class="meaning">
+
+<dl>
+<dt>Udyam</dt><dd>free online MSME registration</dd>
+<dt>Micro / small / medium</dt><dd>MSME classes by investment and turnover</dd>
+<dt>DPIIT recognition</dt><dd>official startup status through Startup India</dd>
+<dt>Section 80-IAC</dt><dd>a 3-year tax holiday for eligible recognised startups</dd>
+<dt>Shops and Establishments</dt><dd>state registration for premises and working conditions</dd>
+<dt>What it means for you</dt><dd>Register on Udyam the day you start, apply for DPIIT recognition if you are an eligible company or LLP, and register your premises with the state.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="india-udyam-startup-india-45-days"></div>
+
 ## 5. Worked example
 
 *Made-up founders.* Clinivo Health (from Lesson 4.2), one year old, ₹40 lakh turnover, ₹8 lakh in laptops and servers: **micro** enterprise. They register on Udyam the same day, file Shops and Establishments registration for their Pune office on the Maharashtra portal, and get DPIIT recognition five weeks after applying, describing their no-show prediction model. They will apply for the tax holiday in the first year they expect a profit.
+
+<div class="myth">
+
+**"DPIIT recognition gives every startup a 3-year tax holiday."** Recognition is the gateway. The 80-IAC tax holiday needs a separate application to the Inter-Ministerial Board, and only some recognised startups get it.
+
+</div>
 
 ## 6. Practice
 
@@ -87,6 +110,16 @@ After incorporation, the usual order
 2. No, not as an OPC; it would need to convert to a private limited company.
 3. Any two of: CGTMSE collateral-free loans, the 45-day payment protection, priority-sector lending, tender preferences, state subsidies.
 </details>
+
+<div class="keypoints">
+
+- Udyam is free, online and uses Aadhaar and PAN; class depends on investment and turnover.
+- MSEs must be paid within 45 days under the MSMED Act, and buyers lose the deduction under 43B(h) if they pay late.
+- DPIIT recognition: company, LLP or registered firm, under 10 years, turnover under ₹100 crore, innovative or scalable.
+- Benefits: self-certification for labour laws, cheaper IP filing, 80-IAC for some.
+- Shops and Establishments registration is a state law; follow your state’s portal.
+
+</div>
 
 **Next:** [Canada: registering or incorporating](/learn/courses/startup/canada-incorporation/).
 

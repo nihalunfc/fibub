@@ -28,6 +28,8 @@ sources:
 
 **Module 3 · about 14 minutes.** You'll know the usual routes from one structure to another and when to get professional help.
 
+<div class="bigidea">Moving to a new structure creates a new legal person: contracts, licences, bank accounts and tax registrations do not follow by themselves, and the right tax route can move the business without a tax bill.</div>
+
 ## 1. Why businesses switch
 
 Common triggers: profit grows (a corporation becomes tax-efficient), risk grows (staff, leases), co-founders join, or investors arrive and want shares. Switching is normal. What matters is doing it **without an accidental tax bill** and **moving everything over**: contracts, bank accounts, licences, GST or sales tax registrations, domain and trademarks.
@@ -74,9 +76,47 @@ Moving everything over: the order that works
 
 </div>
 
+<div class="su-check" data-name="What moves to the new entity">
+
+What moves to the new entity
+
+- [ ] Tax advice on the route and the value of what moves
+- [ ] New entity formed or converted, with its tax numbers
+- [ ] Transfer documents signed (business transfer agreement, rollover election or conversion certificate)
+- [ ] New bank account; customers and suppliers told the new legal name and bank details
+- [ ] GST, GST/HST or sales tax registration moved or re-registered
+- [ ] Payroll accounts moved or re-registered
+- [ ] Licences and permits re-issued in the new name
+- [ ] Contracts assigned (customers, suppliers, lease)
+- [ ] Domain names, trademarks and other IP assigned
+- [ ] Old registrations closed and final returns filed
+
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Conversion</dt><dd>changing an entity’s type under the law, keeping its identity</dd>
+<dt>Business transfer</dt><dd>moving assets and contracts to a new entity</dd>
+<dt>Slump sale</dt><dd>India: selling a whole business for a lump sum</dd>
+<dt>Section 85 rollover</dt><dd>Canada: moving assets into a corporation for shares without tax now</dd>
+<dt>Continuance</dt><dd>moving a corporation’s governing law to another jurisdiction</dd>
+<dt>What it means for you</dt><dd>When you switch, get tax advice first, then work through the checklist above so every contract, registration and account moves to the new entity.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="changing-structure-rollover"></div>
+
 ## 3. Worked example
 
 *Made-up founder.* Meera (the Ontario translator from Lesson 3.1) now earns C$140,000 profit and keeps half in the business. Her accountant sets up an Ontario corporation, transfers her equipment and client goodwill under section 85 for shares (T2057 filed), registers the corporation for GST/HST, and Meera starts paying herself a salary and dividends (Lesson 8.5). Profit she leaves in the company is now taxed at 12.2 % instead of her personal rate.
+
+<div class="myth">
+
+**"When I incorporate, my GST number, licences and contracts move to the company automatically."** A new entity is a new legal person. Each registration, licence and contract must be re-issued, re-registered or assigned.
+
+</div>
 
 ## 4. Practice
 
@@ -91,6 +131,16 @@ Moving everything over: the order that works
 2. Form 17 (with FiLLiP), under Schedule II of the LLP Act.
 3. The five-year holding period starts when the C corp stock is issued, not when the LLC was formed.
 </details>
+
+<div class="keypoints">
+
+- Switch when profit, risk, partners or investors change.
+- India: business transfer to a company; OPC to private limited; firm to LLP (Form 17).
+- Canada: section 85 rollover into a corporation; continuance between jurisdictions.
+- USA: statutory conversion of an LLC to a C corp; mergers into Delaware before a round.
+- Move bank accounts, tax registrations, licences, contracts and IP, then close the old ones.
+
+</div>
 
 **Next:** Module 4 starts with [picking and checking a business name](/learn/courses/startup/business-name/).
 

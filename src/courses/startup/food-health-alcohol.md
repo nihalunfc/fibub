@@ -29,6 +29,8 @@ sources:
 
 **Module 5 · about 15 minutes.** You'll know which food, health and alcohol permissions apply to your business and when to get them.
 
+<div class="bigidea">Anything people eat, drink, take or put on their body needs permission before the first sale: food licences, inspected premises and strict labels, and alcohol needs a licence that depends on location.</div>
+
 ## 1. Why these are different
 
 Food, drink, medicine, cosmetics and alcohol can hurt people, so <mark>you need permission before your first sale</mark>, premises are inspected, and labels follow strict rules. Plan 4 to 12 weeks for approvals.
@@ -69,9 +71,39 @@ Alcohol needs licences at every step: making, importing, wholesaling, retail and
 
 > **Key idea:** Alcohol licences can take months and depend on location (distance from schools, local quotas). Check before you sign a lease.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Plan:</b> a cloud kitchen in Hyderabad expects ₹60 lakh turnover.</p></div>
+<div class="step"><p><b>Licence:</b> above ₹12 lakh it needs an FSSAI state licence (not basic registration), applied for on FoSCoS.</p></div>
+<div class="step"><p><b>Premises:</b> a GHMC trade licence and a fire NOC; the kitchen is inspected.</p></div>
+<div class="step"><p><b>Sell:</b> the FSSAI number goes on every delivery app listing and label.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>FSSAI</dt><dd>India’s food safety authority: registration or licence by turnover</dd>
+<dt>Food premises approval</dt><dd>Canada and the USA: local health inspection before opening</dd>
+<dt>Cottage food law</dt><dd>US state rules allowing some low-risk foods from home</dd>
+<dt>Natural health product</dt><dd>Canada: needs a product licence from Health Canada</dd>
+<dt>Liquor licence</dt><dd>permission to sell alcohol, set by state or province and location</dd>
+<dt>What it means for you</dt><dd>Allow 4 to 12 weeks for approvals, check alcohol rules before you sign a lease, and get labels checked before printing.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="food-health-alcohol-label"></div>
+
 ## 5. Worked example
 
 *Made-up founders.* A cloud kitchen in Hyderabad with ₹60 lakh projected turnover gets an FSSAI **state licence** on FoSCoS, a GHMC trade licence and a fire NOC, and lists its FSSAI number on delivery apps. A Vancouver hot-sauce maker selling only in BC uses an inspected commercial kitchen; when an Alberta store orders, she applies for an SFC licence first.
+
+<div class="myth">
+
+**"Small home food businesses do not need a licence."** India requires at least FSSAI basic registration for every food business; Canadian provinces and US states have specific home-food rules, and many foods are not allowed from a home kitchen at all.
+
+</div>
 
 ## 6. Practice
 
@@ -86,6 +118,16 @@ Alcohol needs licences at every step: making, importing, wholesaling, retail and
 2. To follow the state's cottage food law (allowed foods, label wording, any sales cap or registration).
 3. The Alcohol and Tobacco Tax and Trade Bureau (TTB).
 </details>
+
+<div class="keypoints">
+
+- Permission comes before the first sale; plan 4 to 12 weeks.
+- India: FSSAI basic registration up to ₹12 lakh, state licence above, central licence for large or multi-state.
+- Canada: provincial and city food premises rules; Safe Food for Canadians licence for importing or interprovincial trade.
+- USA: county health department; FDA registration for manufacturers; state cottage food laws.
+- Alcohol licences depend on location and can take months.
+
+</div>
 
 **Next:** [Running a business from home](/learn/courses/startup/home-based-zoning/).
 

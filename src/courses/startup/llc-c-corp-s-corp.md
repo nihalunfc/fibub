@@ -29,6 +29,8 @@ sources:
 
 **Module 3 · about 16 minutes · USA focus.** You'll understand the difference between a legal entity and a tax election, and compare LLC, S corp and C corp taxes on your own numbers. (India and Canada readers: the ideas of "pass-through" and "double tax" come back in Module 8.)
 
+<div class="bigidea">In the USA you make two choices: the legal entity (LLC or corporation) and the tax treatment (pass-through, S corp or C corp). Most small businesses start as an LLC; most venture-backed startups are Delaware C corps.</div>
+
 ## 1. Two separate choices
 
 In the USA you choose:
@@ -60,6 +62,30 @@ So "an LLC taxed as an S corp" is a real and common thing.
 
 S corps cannot have more than 100 shareholders, non-resident alien shareholders or more than one class of stock, so they don't work with most investors. Founders who are not US citizens or green card holders and don't live in the USA cannot own S corp shares.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Form:</b> a designer forms a single-member LLC. By default the IRS ignores it: profit goes on her Schedule C with 15.3 % self-employment tax.</p></div>
+<div class="step"><p><b>Grow:</b> profit reaches $120,000. She elects S corp status (Form 2553) and pays herself a reasonable $60,000 salary.</p></div>
+<div class="step"><p><b>Effect:</b> payroll tax applies only to the salary; the rest passes through without it, saving a few thousand dollars after payroll costs.</p></div>
+<div class="step"><p><b>Raise money later?</b> Investors want a C corporation, so she would convert then.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>LLC</dt><dd>a state entity with limited liability and flexible tax treatment</dd>
+<dt>Disregarded entity</dt><dd>a single-member LLC ignored for federal income tax</dd>
+<dt>S corporation</dt><dd>a tax election: pass-through income with owner salaries</dd>
+<dt>C corporation</dt><dd>pays 21 % corporate tax; dividends taxed again</dd>
+<dt>Reasonable salary</dt><dd>the market pay an S corp owner must take for their work</dd>
+<dt>What it means for you</dt><dd>Start with an LLC unless you plan to raise venture money (then a Delaware C corp), and look at an S corp election once profit passes about $40,000 to $60,000.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="llc-c-corp-s-corp-saving"></div>
+
 ## 4. Worked example
 
 *Made-up numbers, using the estimator's simple method (one 22 % rate on all income, no state tax).* Carla's design LLC makes $120,000 profit.
@@ -69,6 +95,12 @@ S corps cannot have more than 100 shareholders, non-resident alien shareholders 
 - **C corp, same salary, the rest paid out as dividends:** payroll $9,180, income tax on salary $13,200, corporate tax ≈ $11,640, dividend tax ≈ $6,570. Total ≈ **$40,600**.
 
 The S election saves Carla about $4,500 before its extra costs, so roughly $1,500 to $3,000 a year net. At $200,000 profit the saving grows a lot. Real brackets are progressive and state taxes differ, so check with a CPA.
+
+<div class="myth">
+
+**"An S corp is a type of company you form."** It is a tax election (Form 2553) made by a corporation or an LLC. The legal entity stays an LLC or corporation under state law.
+
+</div>
 
 ## 5. Practice
 
@@ -83,6 +115,16 @@ The S election saves Carla about $4,500 before its extra costs, so roughly $1,50
 2. The IRS requires reasonable pay for work done, so owners can't avoid payroll tax by taking everything as distributions.
 3. 21 % × $50,000 = $10,500.
 </details>
+
+<div class="keypoints">
+
+- Two choices: legal entity (LLC or corporation) and tax treatment.
+- Pass-through: taxed once on the owner’s return, plus 15.3 % self-employment tax.
+- S corp: reasonable salary through payroll, rest passes through without payroll tax; pays above about $40,000 to $60,000 profit.
+- C corp: 21 % corporate tax, dividends taxed again; the standard for venture capital and QSBS.
+- Elections: Form 8832 (entity classification), Form 2553 (S corp).
+
+</div>
 
 **Next:** [Choosing your structure](/learn/courses/startup/structure-chooser/). Estimate your take-home with [[us-paycheck]].
 

@@ -26,6 +26,8 @@ sources:
 
 **Module 2 · about 13 minutes.** You'll be able to run a customer interview that tells you the truth, and know when you have learned enough to build.
 
+<div class="bigidea">Ask people about their past, not your idea: what happened, what they did, and what it cost. Facts and commitments tell the truth; compliments do not.</div>
+
 ## 1. Why interviews go wrong
 
 People are kind. If you describe your idea and ask whether they like it, most will say yes, and then never buy. The fix is to <mark>talk about their life, not your idea</mark>: what happened, what they did, what it cost.
@@ -79,6 +81,20 @@ About a dozen states (including California) require **all parties** to agree bef
 
 </div>
 
+<div class="meaning">
+
+<dl>
+<dt>Customer interview</dt><dd>a conversation about someone’s real experience of a problem</dd>
+<dt>Leading question</dt><dd>a question that pushes for the answer you want</dd>
+<dt>Commitment</dt><dd>something that costs the person time, reputation or money</dd>
+<dt>Decision-maker</dt><dd>the person who chooses and pays</dd>
+<dt>What it means for you</dt><dd>Book 10 to 20 short conversations with people who have the problem now, follow the script, and count commitments, not compliments.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="customer-interviews-commitments"></div>
+
 ## 5. Worked example
 
 *Made-up founder.* Ravi (from Lesson 2.1) interviews 12 pharmacy owners. Notes after each call:
@@ -88,6 +104,12 @@ About a dozen states (including California) require **all parties** to agree bef
 - 4 said "I'd pay if it saves half the waste"; 2 agreed to a free 1-month pilot.
 
 That last line, a real commitment, is worth more than everything else.
+
+<div class="myth">
+
+**"If people like my idea, they will buy it."** Most people are kind and say yes. Only a commitment, such as a pilot, a pre-order or an introduction to their boss, shows they mean it.
+
+</div>
 
 ## 6. Practice
 
@@ -102,6 +124,16 @@ That last line, a real commitment, is worth more than everything else.
 2. It gives you introductions to more people with the same problem.
 3. Something that costs them time, reputation or money: a pilot, a pre-order, an introduction to the decision-maker.
 </details>
+
+<div class="keypoints">
+
+- Talk about their life and past behaviour, not your idea.
+- Interview people who have the problem now and make the buying decision.
+- 10 to 20 conversations, until you hear the same stories again.
+- End by asking for a small commitment and for who else to talk to.
+- Ask before recording (all-party consent in some US states) and keep notes safe.
+
+</div>
 
 **Next:** [The MVP](/learn/courses/startup/mvp/). Use [[planner]] to book your interview slots.
 
