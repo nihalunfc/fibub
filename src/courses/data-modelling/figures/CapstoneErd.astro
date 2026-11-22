@@ -1,0 +1,36 @@
+---
+// The Northbay warehouse designed in the capstone: three fact tables and the six dimensions around them.
+// Plain HTML: facts in the middle row, dimensions as cards; each fact lists the dimensions it points to.
+const dims = [
+  ['dim_date', 'date_key · year, quarter, month, weekday'],
+  ['dim_product', 'product_key · name, brand, category, department'],
+  ['dim_store', 'store_key · name, city, province, region, channel'],
+  ['dim_customer', 'customer_key · tier, city (SCD2: valid_from, valid_to, is_current)'],
+  ['dim_promotion', 'promotion_key · name, discount, dates; -1 = none'],
+  ['dim_return_reason', 'return_reason_key · reason, reason group'],
+];
+const facts = [
+  ['fact_sales', 'one row per product on each completed order', 'date · product · store · customer · promotion', 'quantity, gross, discount, sales, cost'],
+  ['fact_returns', 'one row per returned product', 'order date + return date · product · store · customer · reason', 'returned quantity, refund'],
+  ['fact_store_daily', 'one row per store per day', 'date · store', 'orders, cancelled, lines, sales'],
+];
+---
+<figure class="cs-fig ce">
+  <div class="ce-facts">
+    {facts.map(([n, g, k, m]) => (
+      <div class="ce-fact"><strong>{n}</strong><span class="ce-g">{g}</span><span><b>Keys:</b> {k}</span><span><b>Measures:</b> {m}</span></div>
+    ))}
+  </div>
+  <div class="ce-dims">{dims.map(([n, d]) => <div class="ce-dim"><strong>{n}</strong><span>{d}</span></div>)}</div>
+  <figcaption>Three facts, six conformed dimensions. Every relationship is one dimension row to many fact rows; dim_date plays two roles in fact_returns. Every dimension has a -1 row, so no fact key is ever empty.</figcaption>
+</figure>
+<style is:inline>
+.ce-facts, .ce-dims { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.ce-dims { margin-top: 10px; }
+.ce-fact, .ce-dim { border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; background: var(--bg); font-size: 12.5px; min-width: 0; }
+.ce-fact { border: 2px solid var(--accent); background: var(--accent-soft); }
+.ce-fact strong, .ce-dim strong { display: block; font-size: 13.5px; overflow-wrap: anywhere; }
+.ce-fact span, .ce-dim span { display: block; color: var(--muted); }
+.ce-fact span.ce-g { color: var(--ink); font-style: italic; }
+.ce-fact b { color: var(--ink); font-weight: 600; }
+</style>

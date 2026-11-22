@@ -1,0 +1,26 @@
+---
+// Kimball's four design steps, each with the Northbay answer used in this course.
+const steps: [string, string, string][] = [
+  ['Pick a business process', 'An activity that happens again and again and leaves a record.', 'Selling: customers buy products at a till or online.'],
+  ['Declare the grain', 'Say in one sentence what one row of the fact table stands for.', 'One row per product on an order (an order line).'],
+  ['Choose the dimensions', 'The who, what, where and when that describe each row.', 'Date, product, store, customer (and promotion).'],
+  ['Choose the facts', 'The numbers measured at that grain.', 'Quantity, sales amount, cost amount.'],
+];
+---
+<figure class="fs">
+  <ol class="fs-list">
+    {steps.map(([h, d, nb], i) => (
+      <li><span class="fs-n">{i + 1}</span><div><strong>{h}</strong><p>{d}</p><p class="fs-nb"><em>Northbay:</em> {nb}</p></div></li>
+    ))}
+  </ol>
+  <figcaption>The four steps, always in this order. The grain comes before the dimensions and facts, because it decides which of them make sense.</figcaption>
+</figure>
+<style is:inline>
+.fs { margin: 20px 0; }
+.fs-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fs-list li { display: flex; gap: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 8px 10px; }
+.fs-n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+.fs-list p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.4; }
+.fs-nb { color: var(--muted); }
+.fs figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>

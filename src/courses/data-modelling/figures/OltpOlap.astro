@@ -1,0 +1,39 @@
+---
+// OLTP vs OLAP side by side: what each database is for, the queries it serves and how its tables are shaped.
+const rows: [string, string, string][] = [
+  ['Job', 'Run the business: take orders, take payments, keep stock right', 'Understand the business: trends, totals, comparisons'],
+  ['Typical question', 'What is in order 1038?', 'Sales by department per year'],
+  ['Rows per query', 'A handful, found by key', 'Thousands to billions, scanned and summed'],
+  ['Writes', 'Constant small inserts and updates, many at once', 'Loaded in batches (nightly, hourly); then read-only'],
+  ['Table shape', 'Many narrow tables, no repeats (normalised)', 'A few wide tables, repeats on purpose (star schema)'],
+  ['Who uses it', 'Tills, the website, apps', 'Analysts, dashboards, finance'],
+  ['History', 'Current state; old values are overwritten', 'Keeps history so last year can be compared'],
+];
+---
+<figure class="oo">
+  <div class="oo-pics" aria-hidden="true">
+    <div class="oo-pic"><h4>OLTP</h4><div class="oo-dots">{Array.from({ length: 12 }, (_, i) => <span style={`--d:${i}`}></span>)}</div><p>many tiny reads and writes</p></div>
+    <div class="oo-pic"><h4>OLAP</h4><div class="oo-bars">{[40, 55, 48, 70, 62, 90].map((h) => <span style={`height:${h}%`}></span>)}</div><p>few big reads that add things up</p></div>
+  </div>
+  <table class="oo-t">
+    <thead><tr><th></th><th>OLTP (operational)</th><th>OLAP (analytical)</th></tr></thead>
+    <tbody>{rows.map(([k, a, b]) => <tr><th scope="row">{k}</th><td>{a}</td><td>{b}</td></tr>)}</tbody>
+  </table>
+  <figcaption>Two databases, two jobs. Northbay's tills write to an OLTP database all day; each night the rows are copied into an OLAP warehouse shaped for questions.</figcaption>
+</figure>
+<style is:inline>
+.oo { margin: 20px 0; }
+.oo-pics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.oo-pic { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 8px 10px; text-align: center; }
+.oo-pic h4 { margin: 0 0 6px; font-size: 15px; }
+.oo-pic p { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.oo-dots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; height: 56px; align-content: center; justify-items: center; }
+.oo-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: calc(0.35 + (var(--d) / 18)); }
+.oo-bars { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 56px; }
+.oo-bars span { width: 14px; background: var(--accent); border-radius: 3px 3px 0 0; }
+.oo-t { width: 100%; border-collapse: collapse; font-size: 13.5px; table-layout: fixed; }
+.oo-t th, .oo-t td { border-top: 1px solid var(--line); padding: 6px 6px; vertical-align: top; text-align: left; line-height: 1.35; overflow-wrap: anywhere; }
+.oo-t thead th { border-top: 0; font-size: 13.5px; }
+.oo-t tbody th { color: var(--muted); font-weight: 600; width: 26%; font-size: 12.5px; }
+.oo figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>
