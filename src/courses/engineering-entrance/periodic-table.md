@@ -64,6 +64,10 @@ An outer electron does not feel the full nuclear charge Z, because the electrons
 
 <div class="problem" data-problem="pt-slater"></div>
 
+**Try it:** slide the element from Li to Ca. Watch the orange valence electron and the Z* bar: it climbs across a period and falls when a new shell starts.
+
+<figure class="fig" data-fig="@chem-zeff-shield"><figcaption>Z* = Z − S rises steadily across period 2 and again across period 3, but drops sharply at Na and K, where the valence electron is in a new shell shielded by a full core. The green line (size) is the mirror image.</figcaption></figure>
+
 ## 4. Atomic and ionic radius
 
 **Across a period** the radius falls (Z<sub>eff</sub> rises, same shell). **Down a group** it rises (a new shell each time). A **cation** is smaller than its atom (fewer electrons, sometimes a whole shell gone); an **anion** is larger (more electron repulsion, same nuclear charge).

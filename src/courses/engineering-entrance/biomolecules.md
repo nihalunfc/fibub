@@ -123,6 +123,10 @@ In the DNA double helix, **A pairs with T (2 hydrogen bonds)** and **G pairs wit
 
 <div class="problem" data-problem="bio-dna-hbonds"></div>
 
+**Try it:** drag the helix to look along it, then pick AT-rich and GC-rich pieces and raise the temperature to melt them.
+
+<figure class="fig" data-fig="@chem-dna-helix"><figcaption>A–T pairs have 2 hydrogen bonds and G–C pairs have 3, so a GC-rich double helix melts at a higher temperature. When the strands separate, the bases unstack and the absorbance at 260 nm rises (the hyperchromic effect).</figcaption></figure>
+
 <div class="myth">
 
 **"All sugars are sweet and all reduce Fehling's solution."** Starch and cellulose are not sweet and not reducing; sucrose is sweet but not reducing. Reducing power needs a free anomeric carbon (a ring that can open to a CHO or α-hydroxy ketone).

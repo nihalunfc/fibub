@@ -109,6 +109,10 @@ In acid it oxidises Fe²⁺, oxalate (warm, autocatalysed by Mn²⁺), I⁻, H�
 
 **Actinoids** (Th to Lr) fill 5f. They show more oxidation states (U: +3 to +6; Np, Pu up to +7) because 5f, 6d and 7s are close in energy. All are radioactive; the later ones are made in reactors. The **actinoid contraction** is larger than the lanthanoid contraction, because 5f shields even worse than 4f.
 
+**Try it:** slide from La to Lu, then switch to "Zr and Hf twins" and compare the 4d and 5d metals.
+
+<figure class="fig" data-fig="@chem-lanthanide-contraction"><figcaption>The ion shrinks steadily because each added 4f electron shields poorly while the nuclear charge rises by one. The result is that 5d metals are the same size as their 4d partners, so Zr/Hf and Nb/Ta are hard to separate.</figcaption></figure>
+
 <div class="myth">
 
 **"Lanthanoids show many oxidation states, like transition metals."** Most stick to +3. The 4f orbitals are buried deep inside the atom and hardly take part in bonding. It is the actinoids, with their more exposed 5f orbitals, that show a wide range.

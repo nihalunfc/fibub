@@ -97,6 +97,10 @@ In NaCl, Cl⁻ forms fcc and Na⁺ fills all octahedral voids: 4 NaCl per cell, 
 
 </div>
 
+**Try it:** switch between octahedral and tetrahedral voids, shrink the atoms to see the gaps, and drag the cell around.
+
+<figure class="fig" data-fig="@chem-fcc-voids"><figcaption>Count them: 4 atoms, 4 octahedral voids, 8 tetrahedral voids in each fcc cell (voids = N and 2N). Each octahedral void touches six atoms and each tetrahedral one touches four.</figcaption></figure>
+
 ## 4. Defects and properties
 
 - **Schottky:** equal numbers of cations and anions missing. Density falls. Ions of similar size: NaCl, KCl, CsCl, AgBr.
