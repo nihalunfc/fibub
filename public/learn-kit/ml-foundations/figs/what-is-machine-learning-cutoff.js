@@ -12,20 +12,21 @@ export default function (host) {
     const L = 30, R = w - 24, y0 = h * 0.56, X = (v) => L + (v / 9) * (R - L);
     line(ctx, [[L, y0], [R, y0]], col.line, 2);
     for (let v = 0; v <= 9; v++) text(ctx, String(v), X(v), y0 + 30, { color: col.muted, size: 10.5, align: 'center' });
-    text(ctx, 'hours studied', (L + R) / 2, h - 12, { color: col.muted, size: 11, align: 'center' });
+    text(ctx, 'hours studied', (L + R) / 2, h - 10, { color: col.muted, size: 11, align: 'center' });
     const c = CUT[step];
     let wrong = 0;
     for (const [hrs, ok] of S) {
       const miss = c != null && (hrs >= c ? 1 : 0) !== ok;
       if (miss) wrong++;
-      dot(ctx, X(hrs), y0, 7, ok ? col.s[0] : col.s[1], miss ? col.bad || col.ink : null);
+      if (miss) dot(ctx, X(hrs), y0, 12, col.panel, col.bad || col.ink);
+      dot(ctx, X(hrs), y0, 7, ok ? col.s[0] : col.s[1]);
       text(ctx, ok ? 'P' : 'F', X(hrs), y0 - 17, { color: col.ink, size: 11, weight: 700, align: 'center' });
     }
     if (c != null) {
       const cx = X(from + (c - from) * ease(k)) - 0.5 * (R - L) / 9;
       line(ctx, [[cx, y0 - 44], [cx, y0 + 16]], col.ink, 2, [5, 4]);
       text(ctx, `c = ${c}`, cx, y0 - 52, { color: col.ink, size: 12, weight: 700, align: 'center', halo: col.panel });
-      if (k >= 1) text(ctx, `${wrong} mistake${wrong === 1 ? '' : 's'}${step === 4 ? ' (the fewest: keep c = 6)' : ''}`, (L + R) / 2, 44, { color: col.ink, size: 13, weight: 700, align: 'center' });
+      if (k >= 1) text(ctx, `${wrong} mistake${wrong === 1 ? '' : 's'}${step === 4 ? ' (the fewest: keep c = 6)' : ''}`, (L + R) / 2, y0 + 54, { color: col.ink, size: 13, weight: 700, align: 'center' });
     } else text(ctx, 'P = passed, F = failed', (L + R) / 2, 44, { color: col.muted, size: 12, align: 'center' });
     title(ctx, 'Rule: predict pass if hours ≥ c', col);
   };

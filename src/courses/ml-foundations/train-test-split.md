@@ -2,7 +2,7 @@
 title: Train, validation and test sets
 summary: 'A model must be judged on data it never saw while learning. Split the data into training, validation and test sets, fit a line to the training points, and watch how the honest test score changes from split to split.'
 minutes: 20
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: Why is the error on the training data not a fair measure of a model?
     choices: ['Training data is always wrong', 'The model was fitted to those exact rows, so it looks better on them than on new data', 'It is always zero']
@@ -16,13 +16,19 @@ quiz:
     choices: ['Shuffle all days and take 20 % at random as the test set', 'Train on the earlier days and test on the most recent ones', 'Test on the first month']
     ans: 1
     why: In use the model always predicts the future from the past, so the test must do the same. Shuffling lets it peek at the future.
+sources:
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapter 5 (resampling methods) https://www.statlearning.com/'
+  - 'Hastie, T., Tibshirani, R. and Friedman, J. (2009), The Elements of Statistical Learning, 2nd ed., Springer, Section 7.2 (training, validation and test) https://hastie.su.domains/ElemStatLearn/'
+  - 'scikit-learn API: train_test_split https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html'
 ---
 
 **Module 2 · about 20 minutes · read first: 1.7.** You'll be able to split a dataset into training, validation and test sets, explain why each exists, and choose a split that fits the data (random, grouped or by time).
 
+<div class="bigidea">Judge a model only on data it never saw while learning: train on one part, tune on a second, and score once on a third that stays locked away.</div>
+
 ## 1. Why this matters
 
-Imagine a student who memorises last year's exam answers. On last year's paper they score 100 %; on this year's they may fail. A model can do the same: fit its training rows perfectly and be useless on new ones. The only honest check is to hide some data from the model while it learns, then score it on that hidden data.
+Imagine a student who memorises last year's exam answers. On last year's paper they score 100 %; on this year's they may fail. A model can do the same: fit its training rows perfectly and be useless on new ones. The only honest check is to hide some data from the model while it learns, like a teacher keeping the real exam paper locked in a drawer, and then score it on that hidden data.
 
 ## 2. Three sets
 
@@ -35,6 +41,16 @@ Imagine a student who memorises last year's exam answers. On last year's paper t
 Why both validation and test? Every time you look at a score and change something because of it, a little information about that data leaks into your choices. After fifty tries on the validation set, its score is flattering. The test set, looked at once, isn't.
 
 With small datasets, setting aside a fixed validation set wastes rows. **Cross-validation** (Lesson 7.2) reuses each row for both training and validation in turns.
+
+<div class="steps" data-fig="train-test-split-steps">
+<div class="step"><b>Ten rows.</b> Here are ten flats, numbered in the order they were collected.</div>
+<div class="step"><b>Shuffle.</b> Mix the order at random, so that no set ends up with only the early rows or only the late ones.</div>
+<div class="step"><b>Lock away the test set.</b> Two rows go in the drawer. Nobody looks at them until the very end.</div>
+<div class="step"><b>Set aside validation.</b> Two more rows are kept for comparing models and settings.</div>
+<div class="step"><b>Train on the rest.</b> The model learns from six rows, is tuned on the two validation rows, and is scored once on the two test rows. (Real projects use thousands of rows, but the jobs are the same.)</div>
+</div>
+
+<div class="problem" data-problem="train-test-split-rows"></div>
 
 ## 3. Try it
 
@@ -51,6 +67,12 @@ Things to notice:
 - **Stratified split:** for classification with a rare class, keep the same share of each class in every set. Otherwise a test set of 50 rows might contain none of the 2 % fraud cases.
 - **Grouped split:** when rows come in groups (several visits per patient, several photos per person), keep each group entirely in one set. Otherwise the model can recognise the patient instead of learning the disease.
 - **Time split:** for anything over time, train on the past and test on the future. Never shuffle.
+
+<div class="myth">
+
+**"I only peeked at the test set a few times, so its score is still fair."** Every peek that changes a decision leaks a little of the test set into the model. Tune against it fifty times and you have, in effect, trained on it: the score flatters you. Use the validation set (or cross-validation) for all choices, and look at the test set once.
+
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -73,6 +95,21 @@ where `$L$` is the loss for one row (for example the squared error `$(y - \hat y
 
 **Try it:** a classifier gets 46 of 50 test rows right: 92 %. Roughly how uncertain is that? (The standard error of a proportion is `$\sqrt{p(1-p)/n} = \sqrt{0.92 \times 0.08 / 50} \approx 0.038$`, so about ±4 points, and a 95 % range of roughly 84 % to 100 %.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Training set</dt><dd>The rows the model learns its parameters from.</dd>
+<dt>Validation set</dt><dd>Rows used to compare models and settings, many times.</dd>
+<dt>Test set</dt><dd>Rows kept locked away for one final score.</dd>
+<dt>Generalisation error</dt><dd>How wrong the model will be, on average, on new data it has never seen. The test error estimates it.</dd>
+<dt>√(p(1 − p)/n)</dt><dd>How much a test accuracy p, measured on n rows, could wobble just by luck of which rows were picked.</dd>
+<dt>Physical meaning</dt><dd>A driving test on roads the learner has never driven. Practising on the test route would make a pass meaningless; the score only means something because the roads were new.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="train-test-split-se"></div>
 
 ## 5. Worked example
 
@@ -103,3 +140,12 @@ where `$L$` is the loss for one row (for example the squared error `$(y - \hat y
 **New words:** *training set*, *validation set*, *test set*, *generalisation error*, *stratified split*, *grouped split*, *time split*.
 
 **Next, Module 3:** the first real model, the straight line fitted by least squares.
+
+<div class="keypoints">
+
+- Training rows fit the parameters, validation rows choose between models, and the test set gives one final honest score.
+- Training error flatters the model; test error estimates how it will do on new data.
+- Split at random for independent rows, stratified for rare classes, grouped for repeated people or items, and by time for anything over time.
+- A small test set gives a wobbly score; its standard error shrinks like 1 ÷ √n.
+
+</div>

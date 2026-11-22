@@ -22,7 +22,7 @@ export default function (host) {
     if (e > 0.05) arrow(ctx, A.X(x0), A.Y(0) - 10, A.X(xm), A.Y(0) - 10, col.ink, 2);
     dot(ctx, A.X(xm), A.Y(f(xm)), 6, col.s[3]);
     dot(ctx, A.X(2), A.Y(1), 3, col.ink);
-    text(ctx, 'bottom', A.X(2), A.Y(1) + 14, { color: col.muted, size: 10.5, align: 'center' });
+    text(ctx, 'bottom', A.X(2) + 6, A.Y(1) + 12, { color: col.muted, size: 10.5 });
     text(ctx, `x = ${x0}: slope ${m}, step −0.25 × (${m}) = +${-ETA * m}`, A.R - 4, 38, { color: col.ink, size: 12.5, weight: 700, align: 'right', halo: col.panel });
     text(ctx, `new x = ${x1}, error ${f(x0)} → ${f(x1)}`, A.R - 4, 56, { color: col.ink, size: 12, align: 'right', halo: col.panel });
     title(ctx, 'Step against the slope', col);

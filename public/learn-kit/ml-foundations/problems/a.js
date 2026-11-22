@@ -172,4 +172,152 @@ export default {
     },
     verify: (p) => (p.base - p.model) / p.base,
   },
+
+  // ---------- Module 2 ----------
+  'types-of-data-cyclic': {
+    title: 'put the hours of the day on a circle',
+    make(r) {
+      const h1 = pick(r, 20, 23), h2 = pick(r, 0, 3);
+      const P = (h) => [Math.sin((2 * Math.PI * h) / 24), Math.cos((2 * Math.PI * h) / 24)];
+      const a = P(h1), b = P(h2), answer = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      return {
+        q: `<p>A bike-share model turns the hour into two numbers, (sin(2π·hour/24), cos(2π·hour/24)), so the day wraps round a circle. How far apart (straight-line distance) are ${h1}:00 and ${String(h2).padStart(2, '0')}:00 on that circle? (As plain numbers they are ${h1 - h2} apart.)</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Work out (sin, cos) for each hour in radians, then use Pythagoras: √((Δsin)² + (Δcos)²).',
+        solution: steps(
+          `${h1}:00 → (${n(a[0])}, ${n(a[1])}); ${h2}:00 → (${n(b[0])}, ${n(b[1])}).`,
+          `Differences: ${n(a[0] - b[0])} and ${n(a[1] - b[1])}.`,
+          `Distance = √(${n((a[0] - b[0]) ** 2)} + ${n((a[1] - b[1]) ** 2)}) = <b>${n(answer)}</b>. Close together, as late night and early morning should be (the far side of the circle is 2 away).`),
+        h1, h2,
+      };
+    },
+    verify: (p) => 2 * Math.sin((Math.PI * ((p.h2 + 24 - p.h1) % 24)) / 24),
+  },
+  'honest-charts-truncated': {
+    title: 'how much does a cut-off axis exaggerate?',
+    make(r) {
+      const a = pick(r, 40, 80), b = a + pick(r, 2, 8), start = a - pick(r, 2, 6);
+      const answer = (b - start) / (a - start);
+      return {
+        q: `<p>A sales slide shows two bars: Store A sold ${a} units and Store B ${b}. The bar axis starts at ${start}, not 0. How many times longer does B's bar look than A's?</p>`,
+        answer, unit: 'times', tol: 0.01,
+        hint: `Each bar is drawn from ${start} up to its value, so its length is value − ${start}.`,
+        solution: steps(
+          `A's bar: ${a} − ${start} = ${a - start}. B's bar: ${b} − ${start} = ${b - start}.`,
+          `Ratio: ${b - start} ÷ ${a - start} = <b>${n(answer)}</b> times as long.`,
+          `The real ratio is ${b} ÷ ${a} = ${n(b / a)}: B sold only ${n((b / a - 1) * 100)} % more. Bars must start at zero.`),
+        a, b, start,
+      };
+    },
+    verify: (p) => 1 + (p.b - p.a) / (p.a - p.start),
+  },
+  'honest-charts-fence': {
+    title: 'find the outlier fence',
+    make(r) {
+      const xs = Array.from({ length: 8 }, () => pick(r, 10, 40)).sort((x, y) => x - y);
+      const q1 = (xs[1] + xs[2]) / 2, q3 = (xs[5] + xs[6]) / 2, iqr = q3 - q1, answer = q3 + 1.5 * iqr;
+      return {
+        q: `<p>Eight customers waited ${xs.join(', ')} minutes on a support line (already sorted). Using the middle of each half for the quartiles, what is Tukey's upper fence, above which a wait counts as an outlier?</p>`,
+        answer, unit: 'minutes', tol: 0.005,
+        hint: 'Lower half: the first four values; Q1 is the middle of them. Upper half: the last four; Q3 is their middle. Fence = Q3 + 1.5 × (Q3 − Q1).',
+        solution: steps(
+          `Q1 = (${xs[1]} + ${xs[2]}) ÷ 2 = ${n(q1)}; Q3 = (${xs[5]} + ${xs[6]}) ÷ 2 = ${n(q3)}.`,
+          `IQR = ${n(q3)} − ${n(q1)} = ${n(iqr)}.`,
+          `Upper fence = ${n(q3)} + 1.5 × ${n(iqr)} = <b>${n(answer)} minutes</b>. Any wait above that would be drawn as a dot beyond the whisker.`),
+        xs,
+      };
+    },
+    verify: (p) => { const s = p.xs; return 2.5 * ((s[5] + s[6]) / 2) - 1.5 * ((s[1] + s[2]) / 2); },
+  },
+  'correlation-causation-r': {
+    title: 'work out a correlation by hand',
+    make(r) {
+      const xs = [1, 2, 3, 4, 5], slope = pick(r, 1, 3), ys = xs.map((x) => slope * x + pick(r, -2, 2) + 3);
+      const mx = mean(xs), my = mean(ys), dx = xs.map((x) => x - mx), dy = ys.map((y) => y - my);
+      const top = sum(dx.map((d, i) => d * dy[i])), sx = Math.sqrt(sum(dx.map((d) => d * d))), sy = Math.sqrt(sum(dy.map((d) => d * d)));
+      const answer = top / (sx * sy);
+      return {
+        q: `<p>An ice-cream van logs hours of sunshine and tubs sold (in tens) on five days:</p>${table(['Sunshine (h)', ...xs], [['Tubs (tens)', ...ys]])}<p>What is the correlation coefficient r?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Subtract each column\'s mean. r = Σ(dx·dy) ÷ (√Σdx² × √Σdy²).',
+        solution: steps(
+          `Means: sunshine ${n(mx)}, tubs ${n(my)}.`,
+          `Deviations: x ${dx.join(', ')}; y ${dy.map((d) => n(d)).join(', ')}.`,
+          `Σ dx·dy = ${n(top, 4)}; √Σdx² = ${n(sx)}; √Σdy² = ${n(sy)}.`,
+          `r = ${n(top, 4)} ÷ (${n(sx)} × ${n(sy)}) = <b>${n(answer)}</b>. Sun and sales move together, but that alone doesn't prove the sun causes the sales.`),
+        xs, ys,
+      };
+    },
+    verify: (p) => { const k = p.xs.length, Sx = sum(p.xs), Sy = sum(p.ys), Sxy = sum(p.xs.map((x, i) => x * p.ys[i])), Sxx = sum(p.xs.map((x) => x * x)), Syy = sum(p.ys.map((y) => y * y)); return (k * Sxy - Sx * Sy) / Math.sqrt((k * Sxx - Sx * Sx) * (k * Syy - Sy * Sy)); },
+  },
+  'cleaning-data-zscore': {
+    title: 'put two columns on the same scale',
+    make(r) {
+      const m = pick(r, 30, 60), s = pick(r, 8, 16), x = m + pick(r, -25, 25);
+      const answer = (x - m) / s;
+      return {
+        q: `<p>In a gym's training data, member age has mean ${m} years and standard deviation ${s} years. Standardise the age of a new ${x}-year-old member (find the z-score).</p>`,
+        answer, unit: '', tol: 0.005, abs: 0.001,
+        hint: 'z = (x − mean) ÷ standard deviation. Use the training mean and sd, even for a new member.',
+        solution: steps(
+          `Gap from the mean: ${x} − ${m} = ${x - m} years.`,
+          `In standard deviations: ${x - m} ÷ ${s} = <b>${n(answer)}</b>. ${answer >= 0 ? 'Older' : 'Younger'} than average by ${n(Math.abs(answer))} standard deviations, a number that can now be compared with any other standardised column.`),
+        m, s, x,
+      };
+    },
+    verify: (p) => p.x / p.s - p.m / p.s,
+  },
+  'cleaning-data-median-fill': {
+    title: 'fill a gap with the training median',
+    make(r) {
+      const xs = Array.from({ length: 7 }, () => pick(r, 20, 60)); xs[pick(r, 0, 6)] = pick(r, 150, 300);
+      const sorted = [...xs].sort((a, b) => a - b), answer = sorted[3];
+      return {
+        q: `<p>A delivery table's training rows have these order values in dollars: ${xs.join(', ')}. One test row has its order value missing. Which value should fill it, if you fill with the training median?</p>`,
+        answer, unit: '$', tol: 0, abs: 0.01,
+        hint: 'Sort the seven training values; the median is the 4th one. (The mean would be pulled up by the very large order.)',
+        solution: steps(
+          `Sorted: ${sorted.join(', ')}.`,
+          `The middle (4th) value is <b>$${answer}</b>. The mean, $${n(mean(xs))}, is dragged up by the one big order, so the median is the safer fill. Add a "was missing" flag too.`),
+        xs,
+      };
+    },
+    verify: (p) => [...p.xs].sort((a, b) => b - a)[3],
+  },
+  'train-test-split-rows': {
+    title: 'how many rare cases are left to train on?',
+    make(r) {
+      const rows = pick(r, 5000, 20000, 1000), rate = pick(r, 2, 8), testShare = pick(r, 15, 25, 5), valShare = pick(r, 15, 25, 5);
+      const pos = (rows * rate) / 100, afterTest = pos * (1 - testShare / 100), answer = afterTest * (1 - valShare / 100);
+      return {
+        q: `<p>An insurer has ${rows.toLocaleString('en-CA')} past claims, ${rate} % of them fraud. It holds out a stratified ${testShare} % test set, then a stratified ${valShare} % of what is left for validation. How many fraud cases remain in the training set?</p>`,
+        answer, unit: 'cases', tol: 0.01,
+        hint: 'Stratified means every set keeps the same fraud share. Find the fraud cases, take away the test share, then take away the validation share of the rest.',
+        solution: steps(
+          `Fraud cases: ${rate} % of ${rows.toLocaleString('en-CA')} = ${n(pos, 4)}.`,
+          `After the test set: ${n(pos, 4)} × ${n(1 - testShare / 100)} = ${n(afterTest, 4)}.`,
+          `After validation: ${n(afterTest, 4)} × ${n(1 - valShare / 100)} = <b>${n(answer, 4)}</b> fraud cases to learn from.`),
+        rows, rate, testShare, valShare,
+      };
+    },
+    verify: (p) => (p.rows * (1 - p.testShare / 100) * (1 - p.valShare / 100) * p.rate) / 100,
+  },
+  'train-test-split-se': {
+    title: 'how much can a test score wobble?',
+    make(r) {
+      const nt = [50, 100, 200, 400, 800][Math.min(4, Math.floor(r() * 5))], acc = pick(r, 0.75, 0.95, 0.01);
+      const answer = Math.sqrt((acc * (1 - acc)) / nt) * 100;
+      return {
+        q: `<p>A spam filter gets ${Math.round(acc * 100)} % of ${nt} test emails right. What is the standard error of that accuracy, in percentage points? (Use √(p(1 − p)/n).)</p>`,
+        answer, unit: 'points', tol: 0.01,
+        hint: `p = ${acc}, n = ${nt}. Work out √(p(1 − p)/n), then × 100 for percentage points.`,
+        solution: steps(
+          `p(1 − p) = ${acc} × ${n(1 - acc)} = ${n(acc * (1 - acc))}.`,
+          `Divide by ${nt} and take the square root: ${n(answer / 100)}.`,
+          `That is <b>${n(answer)} points</b>. A 95 % range is roughly ± ${n(2 * answer)} points: four times the test emails would halve it.`),
+        nt, acc,
+      };
+    },
+    verify: (p) => (100 * Math.sqrt(p.acc - p.acc * p.acc)) / Math.sqrt(p.nt),
+  },
 };
