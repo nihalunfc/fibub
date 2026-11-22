@@ -118,7 +118,7 @@ Habits that win marks in NET:
 1. **Plan**: [lesson 1.2](/learn/courses/csir-net-physics/study-plan/) gives a 6-month week-by-week plan.
 2. **Learn each unit** from its roadmap (lessons 2.1 to 10.1), which lists the GATE and JAM lessons to study and the NET extras in this course.
 3. **Practise by topic** on the [practice page](/learn/courses/csir-net-physics/practice/): filter by unit, topic and level. Choose the NET filter to see questions tagged for NET.
-4. **Sit mocks** on the [mock test page](/learn/courses/csir-net-physics/mock-test/): a timed paper with NET marking (3.5 and 5 marks, quarter penalty). The fibub mock has 25 Part B and 20 Part C questions to answer, so practise Part A separately with lesson 1.3.
+4. **Sit mocks** on the [mock test page](/learn/courses/csir-net-physics/mock-test/): a timed paper with NET marking (2, 3.5 and 5 marks, quarter penalty). The fibub mock gives you the 15 Part A, 20 Part B and 20 Part C questions you would answer on the day, 200 marks in all.
 5. **Review every mock**: was each lost mark a knowledge gap, a method slip, or a bad choice of question? Track that from one mock to the next.
 
 <div class="myth">
