@@ -3,7 +3,7 @@ title: Merging and sharing your adapter
 seoTitle: Merge a LoRA adapter and run it in Ollama | Offline AI
 summary: Run your fine-tuned adapter in Ollama, LM Studio or llama.cpp, merge it into a single model file, and share it responsibly. Covers GGUF export, base-model licences and what an adapter may have memorised.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Ollama Modelfile reference (FROM and ADAPTER), https://github.com/ollama/ollama/blob/main/docs/modelfile.md'
   - 'llama.cpp, convert_lora_to_gguf.py and the --lora option, https://github.com/ggml-org/llama.cpp'
@@ -26,6 +26,8 @@ quiz:
 
 **Module 14 · about 25 minutes · read first: 14.3.** You'll be able to run your adapter in your everyday tools, merge it into one file, and decide what is safe to share.
 
+<div class="bigidea">Run your adapter beside its exact base model, or merge it in to make one ordinary model file, and share it only if the base licence and your training data allow.</div>
+
 ## 1. Why this matters
 
 A fine-tune is only useful once it runs where you work: Ollama, LM Studio or your Python scripts from Module 11. And if it helps you, it might help colleagues, which raises licence and privacy questions worth answering before you hit upload.
@@ -34,6 +36,10 @@ A fine-tune is only useful once it runs where you work: Ollama, LM Studio or you
 
 1. **Base model + adapter:** keep the original model and load the small adapter with it. Good for trying several adapters on one base.
 2. **Merged model:** add the adapter's changes into the weights and save one model. Simplest to share and to run anywhere.
+
+It is like corrections in a book. Notes in the margin (the adapter) let you swap sets of notes on one copy. A new edition with the corrections printed in (the merge) is easier to hand to someone.
+
+<div class="problem" data-problem="sharing-adapters-storage"></div>
 
 ## 3. Into Ollama
 
@@ -62,6 +68,16 @@ ollama create hill-notes -f Modelfile
 ollama run hill-notes
 ```
 
+Here is the whole route for the pottery shop's 3B model:
+
+<div class="steps">
+<div class="step"><p><b>After training.</b> You have the 16-bit base model (about 6.4 GB for a 3.2-billion-parameter model at 2 bytes each) and an adapter of tens of megabytes.</p></div>
+<div class="step"><p><b>Merge.</b> For every adapted grid, the export adds B × A (scaled by α ÷ r) into W. The grids keep their shape, so the merged model is still about 6.4 GB.</p></div>
+<div class="step"><p><b>Quantise once.</b> Export to GGUF at Q4_K_M: about <b>2.0 GB</b>. Merging into 16-bit first, then quantising once, avoids extra rounding error.</p></div>
+<div class="step"><p><b>Register it.</b> A three-line Modelfile with the same system prompt used in training, then <code>ollama create hill-notes -f Modelfile</code>.</p></div>
+<div class="step"><p><b>Use it.</b> Every script from Module 11 now calls <code>model="hill-notes"</code>, at the same speed as the base model.</p></div>
+</div>
+
 Use the actual `.gguf` file name your export produced. Ollama can also load an unmerged adapter with an `ADAPTER` line on top of the exact base model (`FROM gemma4:12b` then `ADAPTER ./my-adapter`) for supported model families; check its Modelfile reference. Now every script from Module 11 can call `model="hill-notes"`.
 
 **llama.cpp** loads a GGUF adapter at run time: `llama-cli -m base.gguf --lora my-adapter.gguf`. **LM Studio** imports a GGUF file through its model folder.
@@ -87,6 +103,24 @@ Before you share a model or adapter, inside your team or publicly:
 **Try it:** the base model is 7.7 GB at 4-bit and the adapter 84 MB. How big is the merged 4-bit file? (About 7.7 GB: the adapter's changes are folded into existing weights.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>W</dt><dd>one of the base model's weight grids</dd>
+<dt>(α ÷ r) × B A</dt><dd>the adapter's correction for that grid, the same shape as W</dd>
+<dt>W_merged</dt><dd>the grid with the correction added in once, for good</dd>
+<dt>derivative model</dt><dd>a model made from another one; the base model's licence still applies to it</dd>
+<dt>Physical meaning</dt><dd>A new edition of a book with the margin notes printed into the text. It has the same number of pages as before, reads at the same speed, and still carries the original author's copyright terms. Anything private that went into the notes can come out in the new edition too.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"My adapter will work on any version of the model."** An adapter fits only the exact base model it was trained on: same family, same size, same release. Its grids are shaped for those layers and its corrections were learned against those weights. On a different base it either fails to load or quietly makes answers worse.
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* The pottery shop from Lesson 14.4 exports a Q4_K_M GGUF of its tuned 3B model (2.0 GB), creates `hill-notes` in Ollama, and points its product-note script (Lesson 11.2) at it. Notes for 80 new products take 4 minutes. The owner shares the model with a part-time helper on the shop laptop only, because the training data included a few customer names, and writes a one-page model card.
@@ -106,3 +140,13 @@ Before you share a model or adapter, inside your team or publicly:
 </details>
 
 **New words:** *merge* or *fuse* (fold an adapter into the base weights), *Modelfile* (Ollama's recipe for a custom model), *derivative model* (a model made from another, under its licence), *model card* (a short description of a model, its data and its limits).
+
+<div class="keypoints">
+
+- You can load an adapter beside its exact base model, or merge it in to make one model file of the same size and speed.
+- For Ollama, export a merged GGUF (merge in 16-bit, quantise once), then write a Modelfile with your training system prompt.
+- Several adapters on one base save disk space; a merged model is easiest to share.
+- Your fine-tune is a derivative: the base model's licence still applies, and you need the right to train on your data.
+- Models can memorise rare strings, so anything trained on private data stays private; write a short model card.
+
+</div>

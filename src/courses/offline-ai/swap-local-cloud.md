@@ -3,7 +3,12 @@ title: Switching between local and cloud with one setting
 seoTitle: Switch between local and cloud AI | Offline AI
 summary: Write your script once and point it at your own machine or a cloud service by changing three settings, so you can use local by default and the cloud only when you need it.
 minutes: 20
-updated: 2026-11-18
+updated: 2026-11-22
+sources:
+  - 'openai Python library: base_url and api_key settings (works with any OpenAI-style server), https://github.com/openai/openai-python'
+  - 'Ollama API and OpenAI compatibility, official documentation, https://docs.ollama.com'
+  - 'python-dotenv, load settings from a .env file, https://github.com/theskumar/python-dotenv'
+  - 'The Twelve-Factor App: III. Config (keep settings in the environment), https://12factor.net/config'
 quiz:
   - q: Which three settings change when you move a script from local to cloud?
     choices: ['Base address, model name and API key', 'Python version, folder and file name', 'Temperature, colour and font']
@@ -21,13 +26,15 @@ quiz:
 
 **Module 11 · about 20 minutes · read first: 11.2.** You'll be able to run the same script against your local model or a cloud model by changing settings, not code.
 
+<div class="bigidea">Write a script once and let three settings (address, model name and key) decide whether it talks to your own machine or a cloud service.</div>
+
 ## 1. Why this matters
 
-Most people end up with a mix: local for everyday and private work, cloud for the hardest problems. If every script is written for one or the other, you maintain two versions. Written this way, you maintain one.
+Most people end up with a mix: local for everyday and private work, cloud for the hardest problems. If every script is written for one or the other, you keep two versions up to date. Written this way, you keep one.
 
 ## 2. Three settings, one script
 
-The OpenAI-style format (Lesson 11.1) is spoken by every local engine and by many cloud services. So a script only needs to know three things:
+The OpenAI-style format (Lesson 11.1) is spoken by every local engine and by many cloud services. So a script only needs to know three things. An **environment variable** is a named setting that lives in your terminal, outside the script, so you can change it without touching the code.
 
 | Setting | Local example | Cloud example |
 |---|---|---|
@@ -56,6 +63,14 @@ With nothing set, it uses your machine. To send one run to a cloud service, set 
 
 Check each provider's documentation for its OpenAI-compatible address and model names; some also have their own Python library with extra features.
 
+<div class="steps">
+<div class="step"><p><b>Nothing set.</b> The script reads <code>AI_BASE_URL</code>, finds nothing, and uses the default <code>http://localhost:11434/v1</code> with model <code>gemma4:e4b</code>. The job runs on your laptop.</p></div>
+<div class="step"><p><b>A hard job comes up.</b> A long contract comparison is too much for the local model. First check the rule: may this text leave the office? Client names are removed, so yes.</p></div>
+<div class="step"><p><b>Set three variables in this terminal only.</b> <code>AI_BASE_URL</code> becomes the provider's address, <code>AI_MODEL</code> its model name, <code>AI_API_KEY</code> your secret key, read from a private <code>.env</code> file.</p></div>
+<div class="step"><p><b>Run the same script.</b> Not one line of code changed. The request has the same shape; it just goes to a different address.</p></div>
+<div class="step"><p><b>Back to local.</b> Close the terminal (or unset the variables) and the next run is local again. The key never appeared in the script.</p></div>
+</div>
+
 ## 3. Keep keys out of your code
 
 - Never paste a key into a script you share or upload.
@@ -67,12 +82,36 @@ Check each provider's documentation for its OpenAI-compatible address and model 
 
 **Principle:** route each job to the cheapest place that does it well enough and is allowed to see the data.
 
-**Equation:** monthly cloud cost = jobs sent to cloud × tokens per job × price per token.
+**Equation:**
+
+```math
+\text{monthly cloud cost} = \text{jobs sent to cloud} \times \text{tokens per job} \times \text{price per token}
+```
 
 **Analogy:** a home kitchen and a restaurant. Cook at home most nights; go out when the occasion needs it. The recipe card (your script) works in both.
 
 **Try it:** 1,000 jobs a month, 10% to the cloud, 3,000 tokens each, at 5 per million tokens (made-up price)? (100 × 3,000 = 300,000 tokens; 0.3 × 5 = 1.5 a month.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>AI_BASE_URL</dt><dd>where requests go: your own machine or a provider's address</dd>
+<dt>AI_MODEL</dt><dd>the model's name at that address; names differ between engines and providers</dd>
+<dt>AI_API_KEY</dt><dd>a secret that tells a paid service who you are; local servers ignore it</dd>
+<dt>jobs × tokens × price</dt><dd>what the cloud part costs each month; the local part costs only electricity</dd>
+<dt>Physical meaning</dt><dd>Your script is a recipe card that works in two kitchens. The three settings are the address on the delivery slip. Cook at home by default, send out only the dishes that need a restaurant, and only ones you are allowed to send.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="swap-local-cloud-bill"></div>
+
+<div class="myth">
+
+**"If the key is only in my script on my own laptop, it is safe."** Scripts get copied, emailed, pasted into chats and pushed to GitHub, and the key goes with them. Anyone with the key can spend your money. Keep keys in environment variables or a `.env` file listed in `.gitignore`, and set a spending limit.
+
+</div>
 
 ## 4. Worked example
 
@@ -93,3 +132,13 @@ Check each provider's documentation for its OpenAI-compatible address and model 
 </details>
 
 **New words:** *base URL* (the start of the address all requests go to), *API key* (a secret that identifies you to a paid service), *.env file* (a private file of settings that is never shared).
+
+<div class="keypoints">
+
+- The OpenAI-style format lets one script talk to local engines and many cloud services.
+- Only three settings change: base address, model name and API key; keep them in environment variables.
+- With nothing set, the script should default to your local machine.
+- Never put keys in code you share; use a `.env` file listed in `.gitignore` and a spending limit.
+- Decide in advance which data may leave your machine, and send only that to the cloud.
+
+</div>

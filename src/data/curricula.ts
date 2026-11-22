@@ -117,6 +117,8 @@ export const COURSES: Course[] = [
   { id: 'lsat', name: 'LSAT prep', text: 'The LSAT explained from everyday reasoning: how arguments work, every Logical Reasoning question type, Reading Comprehension and Argumentative Writing, with original practice questions and full explanations.', status: 'live', href: '/learn/courses/lsat/', cat: 'exams' },
   // CUET (UG) preparation (nihal, 2026-11-22): src/courses/cuet/.
   { id: 'cuet', name: 'CUET (UG) preparation', text: 'The Common University Entrance Test from start to finish: marking strategy, English, the General Test and the domain subjects, with thousands of original questions and full timed mocks.', status: 'live', href: '/learn/courses/cuet/', cat: 'exams' },
+  // GMAT and GRE prep (nihal, 2026-11-22): src/courses/gmat/ and src/courses/gre/.
+  { id: 'gmat', name: 'GMAT prep', text: 'The whole GMAT from zero: number properties, algebra, word problems, statistics, Critical Reasoning, Reading Comprehension and Data Insights, with worked examples, fresh practice questions every visit and timed practice.', status: 'live', href: '/learn/courses/gmat/', cat: 'exams' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned', cat: 'science' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned', cat: 'life' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned', cat: 'science' },

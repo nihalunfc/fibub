@@ -4,8 +4,8 @@ export default {
   id: 'lsat', name: 'LSAT',
   exams: { lsat: 'LSAT' },
   facets: {
-    section: { label: 'Section', values: { lr: 'Logical Reasoning', rc: 'Reading Comprehension' } },
-    qtype: { label: 'Question type', values: { 'must-be-true': 'Must be true', conditional: 'Conditional logic', 'main-point': 'Main point', role: 'Role', 'necessary-assumption': 'Necessary assumption', 'sufficient-assumption': 'Sufficient assumption', strengthen: 'Strengthen', weaken: 'Weaken', evaluate: 'Evaluate', principle: 'Principle', flaw: 'Flaw', method: 'Method of reasoning', parallel: 'Parallel reasoning', 'point-at-issue': 'Point at issue', mss: 'Most strongly supported', paradox: 'Paradox', rc: 'Reading Comprehension' } },
+    section: { label: 'Section', values: { lr: 'Logical Reasoning', rc: 'Reading Comprehension', writing: 'Argumentative Writing' } },
+    qtype: { label: 'Question type', values: { 'must-be-true': 'Must be true', conditional: 'Conditional logic', 'main-point': 'Main point', role: 'Role', 'necessary-assumption': 'Necessary assumption', 'sufficient-assumption': 'Sufficient assumption', strengthen: 'Strengthen', weaken: 'Weaken', evaluate: 'Evaluate', principle: 'Principle', flaw: 'Flaw', method: 'Method of reasoning', parallel: 'Parallel reasoning', 'point-at-issue': 'Point at issue', mss: 'Most strongly supported', paradox: 'Paradox', rc: 'Reading Comprehension', writing: 'Argumentative Writing' } },
   },
   units: [
     { id: 'logic', name: 'Logic drills', topics: [
@@ -34,6 +34,16 @@ export default {
       { id: 'inference-must-be-true', name: 'Must be true' },
       { id: 'most-strongly-supported', name: 'Most strongly supported' },
       { id: 'paradox', name: 'Paradox' },
+    ] },
+    { id: 'reading', name: 'Reading Comprehension', topics: [
+      { id: 'rc-main-point', name: 'Main point and organisation' },
+      { id: 'rc-author-attitude', name: 'Author\'s attitude' },
+      { id: 'rc-detail-inference', name: 'Detail and inference' },
+      { id: 'rc-structure-function', name: 'Structure and function' },
+      { id: 'rc-comparative', name: 'Comparative passages' },
+    ] },
+    { id: 'writing', name: 'Argumentative Writing', topics: [
+      { id: 'argumentative-writing', name: 'Practice prompts' },
     ] },
   ],
 };

@@ -3,7 +3,7 @@ title: Offline speech to text and text to speech
 seoTitle: Offline speech to text and voice with Whisper | Offline AI
 summary: Turn recordings into text with Whisper and give your assistant a voice with Piper, both offline. Build a push-to-talk voice assistant that never sends a sound to the internet.
 minutes: 35
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Radford et al. (2022), Robust Speech Recognition via Large-Scale Weak Supervision (Whisper), https://arxiv.org/abs/2212.04356'
   - 'faster-whisper (MIT), https://github.com/SYSTRAN/faster-whisper'
@@ -26,9 +26,11 @@ quiz:
 
 **Module 13 · about 35 minutes · read first: 11.2.** You'll be able to transcribe audio offline and build a voice assistant. This lesson is **mini project 4: Offline voice assistant**.
 
+<div class="bigidea">A voice assistant is three offline models in a row (sound to text, text to text, text to sound), and the wait you hear is the time of all three added up.</div>
+
 ## 1. Why this matters
 
-Meetings, interviews, lectures, patient consultations and voice notes are full of information, and they are among the most private things people record. Offline transcription keeps them on your machine; a local voice assistant works with no signal at all.
+Meetings, interviews, lectures, patient visits and voice notes are full of useful information, and they are some of the most private things people record. Offline transcription keeps them on your machine. A local voice assistant works with no signal at all.
 
 ## 2. Speech to text: Whisper
 
@@ -52,6 +54,10 @@ for s in segments:
 ```
 
 On a graphics card use `device="cuda", compute_type="float16"`. Feed the transcript to your chat model for a summary and action list, or add it to your document index (Module 12).
+
+**How fast?** Speed is often given as a multiple of real time. If a 12-minute recording takes 3 minutes to transcribe, that is 12 ÷ 3 = 4 times faster than real time. Measure it once on your own machine and you can plan any batch.
+
+<div class="problem" data-problem="offline-speech-batch"></div>
 
 ## 3. Text to speech: Piper
 
@@ -104,6 +110,16 @@ while True:
 
 The system prompt matters: spoken answers must be short and free of lists and symbols.
 
+One question through the chain, with typical laptop times:
+
+<div class="steps">
+<div class="step"><p><b>Record.</b> You press Enter and speak for 5 seconds: "What time does the sun set today?" The sound is saved as <code>question.wav</code>.</p></div>
+<div class="step"><p><b>Sound to text.</b> Whisper small turns the sound into text in about <b>1.2 seconds</b>. From here on, the chat model only ever sees these words, never your voice.</p></div>
+<div class="step"><p><b>First word of the reply.</b> Gemma 4 E4B reads the question and starts its answer after about <b>0.5 seconds</b>.</p></div>
+<div class="step"><p><b>The rest of the reply.</b> 40 tokens at 25 tokens a second = <b>1.6 seconds</b>.</p></div>
+<div class="step"><p><b>Text to sound.</b> Piper turns the text into speech in about <b>0.4 seconds</b>. You hear the answer 1.2 + 0.5 + 1.6 + 0.4 = <b>3.7 seconds</b> after you stop talking.</p></div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -115,6 +131,26 @@ The system prompt matters: spoken answers must be short and free of lists and sy
 
 **Try it:** Whisper 1.2 s, first token 0.5 s, 40 tokens at 25 tok/s, Piper 0.4 s. Total? (1.2 + 0.5 + 1.6 + 0.4 = 3.7 seconds.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>speech-to-text time</dt><dd>how long Whisper takes to turn your words into text</dd>
+<dt>time to first token</dt><dd>how long the chat model reads before it writes the first piece of its reply</dd>
+<dt>reply tokens ÷ decode speed</dt><dd>how long it takes to write the rest of the reply</dd>
+<dt>text-to-speech time</dt><dd>how long Piper takes to turn the reply into sound</dd>
+<dt>Physical meaning</dt><dd>A relay race: the team's time is every leg added together. Making the fastest runner faster changes little; find the slowest leg. Short spoken replies help twice, because they cut both the writing leg and the speaking leg.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="offline-speech-chain"></div>
+
+<div class="myth">
+
+**"The chat model listens to my voice."** In this setup it never hears a sound. Whisper writes down what you said, and the chat model reads that text. If Whisper mishears a name, the chat model answers the wrong question. So when answers seem odd, print the transcript first.
+
+</div>
 
 ## 5. Worked example
 
@@ -142,3 +178,13 @@ The system prompt matters: spoken answers must be short and free of lists and sy
 </details>
 
 **New words:** *speech-to-text* / *STT* / *automatic speech recognition (ASR)*, *text-to-speech* / *TTS* / *speech synthesis*, *transcript* (the written version of a recording).
+
+<div class="keypoints">
+
+- Whisper (through faster-whisper or whisper.cpp) turns speech into text offline in about 100 languages; bigger sizes are more accurate but slower.
+- Piper turns text into speech offline; download the model and voice once, then no internet is needed.
+- A voice assistant is a chain: speech to text, chat model, text to speech. The wait is the sum of the links.
+- Speed as a multiple of real time lets you plan batches: recording length ÷ that multiple = transcription time.
+- Ask for short, plain spoken answers; lists and symbols sound bad read aloud.
+
+</div>

@@ -27,6 +27,8 @@ sources:
 
 **Module 1 · about 12 minutes · no background needed.** You'll be able to say whether your idea is a startup or a small business, and why that one answer shapes almost every legal and money choice later in this course.
 
+<div class="bigidea">A startup is a business built to grow fast by serving many more customers without costs growing at the same pace; a small business grows with its effort. The plan, not the product, decides which you are.</div>
+
 ## 1. Two kinds of new business
 
 Every new business is a bet that people will pay for something. What differs is how it plans to grow.
@@ -70,6 +72,30 @@ Has no single legal "startup" status. "Small business" usually means a Canadian-
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Day 1:</b> two founders have the same idea: clinic booking software.</p></div>
+<div class="step"><p><b>Plan A:</b> grow across the country with investor money. Costs come first, sales later: a <b>startup</b>, so a company from the start.</p></div>
+<div class="step"><p><b>Plan B:</b> serve 40 local clinics from savings and make a steady profit: a <b>small business</b>, so a sole proprietorship is fine to begin.</p></div>
+<div class="step"><p><b>Result:</b> same product, different growth plan, different structure, equity and money choices in every later module.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Startup</dt><dd>a business designed to scale fast, often funded by investors</dd>
+<dt>Small business</dt><dd>a business that grows roughly in step with effort</dd>
+<dt>Scalable</dt><dd>more customers without costs rising at the same pace</dd>
+<dt>DPIIT recognition</dt><dd>India’s official startup status, with tax and fee benefits</dd>
+<dt>CCPC</dt><dd>Canada: a Canadian-controlled private corporation, which gets the small business tax rate</dd>
+<dt>What it means for you</dt><dd>Decide now whether you plan to raise money and grow fast: it decides your structure in Module 3 and your equity plan in Module 10.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="what-is-a-startup-scale"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Priya in Pune and Marcus in Toronto both want to sell clinic booking software.
@@ -78,6 +104,12 @@ Has no single legal "startup" status. "Small business" usually means a Canadian-
 - Marcus wants a calm, profitable business serving 40 clinics in Ontario, funded from his savings. That is a **small business**, even though it is software. He can start as a sole proprietor and incorporate when profit grows.
 
 Same product, different plan, different first steps.
+
+<div class="myth">
+
+**"Having an app makes us a startup."** The growth plan decides it. An app sold to 40 local clients is a small business; a new battery factory aiming for a national market is a startup.
+
+</div>
 
 ## 5. Practice
 
@@ -92,6 +124,16 @@ Same product, different plan, different first steps.
 2. Whether the plan is to grow fast by serving many more customers without costs rising at the same pace.
 3. No: DPIIT recognition is for entities up to 10 years from incorporation or registration.
 </details>
+
+<div class="keypoints">
+
+- Startup: built to scale fast, usually losing money first; small business: grows with effort and aims for steady profit.
+- Neither is better; this course covers both.
+- Raising investment means a company or corporation, because only they issue shares.
+- India has a formal startup label (DPIIT: under 10 years, turnover under ₹100 crore); Canada and the USA do not.
+- Scalable means the cost per customer falls as customers grow.
+
+</div>
 
 **Next:** [Online or offline: what changes legally](/learn/courses/startup/online-vs-offline/). To size your idea, the [[break-even]] and [[cash-runway]] tools show how much you need to sell and how long savings last.
 

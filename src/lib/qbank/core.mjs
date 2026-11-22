@@ -214,8 +214,11 @@ export const PATTERNS = {
     { name: 'Multiple choice', type: 'mcq', marks: 1, count: 17, anyLevel: true, repeat: true },
     { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 5, anyLevel: true, repeat: true },
   ] },
-  'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', sections: [
+  'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', only: { section: 'lr' }, sections: [
     { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
+  ] },
+  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (5 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
+    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 22, anyLevel: true },
   ] },
   // CUET (UG): every test is 50 compulsory MCQs in 60 minutes, +5/−1 (NTA bulletin, checked 2026-11-22). The two
   // sections only mix easier and harder questions; every question is worth 5 marks (marksMap).
@@ -227,6 +230,19 @@ export const PATTERNS = {
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
   ], marksMap: { 1: 3.5, 2: 5 } },
+  'gmat-quant': { name: 'GMAT-style Quantitative Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 8 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 13 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-verbal': { name: 'GMAT-style Verbal Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 7 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 16 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-di': { name: 'GMAT-style Data Insights (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Standard questions', type: 'mcq', marks: 1, count: 2 },
+    { name: 'Data Sufficiency, graphs and two-part questions', type: 'mcq', marks: 2, count: 14 },
+    { name: 'Select-all questions (tables and multi-source)', type: 'msq', marks: 2, count: 4 },
+  ], marksMap: { 1: 1, 2: 1 } },
 };
 
 /** Counts for a bank: fixed items and templates by type and level. */

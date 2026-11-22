@@ -3,7 +3,7 @@ title: A coding assistant that runs on your machine
 seoTitle: Local AI coding assistant with Ollama | Offline AI
 summary: Point a code editor plug-in (Continue) and a command-line pair programmer (Aider) at a local model. Pick coding models by memory size, set the context right, and know where local still falls short.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Continue, open-source AI code assistant (Apache 2.0), https://docs.continue.dev'
   - 'Aider, AI pair programming in your terminal (Apache 2.0), connecting to Ollama, https://aider.chat/docs/llms/ollama.html'
@@ -25,9 +25,13 @@ quiz:
 
 **Module 13 · about 30 minutes · read first: 13.1 and 10.3.** You'll be able to use a local model inside your code editor and in the terminal. This lesson is **mini project 3: Local coding helper**.
 
+<div class="bigidea">A local coding assistant is a coding model on your machine plus a plug-in that sends it your code; how much code it can see and how fast it answers set how useful it is.</div>
+
 ## 1. Why this matters
 
 Coding help is the most popular use of AI at work, and the code is often confidential. A local assistant keeps company code on company machines, works on a plane, and has no monthly limit.
+
+Two kinds of tool do the job. An **editor plug-in** sits inside the program you write code in and suggests or changes code there. A **terminal pair programmer** works from a chat window in the command line and edits the files for you. Both just send text to Ollama on `127.0.0.1` and show you what comes back.
 
 ## 2. Choose a coding model
 
@@ -80,6 +84,16 @@ Then: `/add app.py` to give it a file, and ask "add a --dry-run flag that prints
 
 Give the model enough context: Aider sets Ollama's context window for you, but if answers seem to forget the file, raise it (Lesson 10.3).
 
+Here is one edit request, from your question to the commit, with made-up but typical numbers:
+
+<div class="steps">
+<div class="step"><p><b>You ask.</b> "Add a --dry-run flag." Aider sends your instruction plus the whole of <code>app.py</code>: about 6,000 tokens.</p></div>
+<div class="step"><p><b>Reading (prefill).</b> The model reads all 6,000 tokens before it writes anything. At 600 tokens a second that is 6,000 ÷ 600 = <b>10 seconds</b> of waiting with nothing on screen.</p></div>
+<div class="step"><p><b>Writing (decode).</b> It writes the change, about 400 tokens, at 40 tokens a second: another <b>10 seconds</b>, this time with text appearing.</p></div>
+<div class="step"><p><b>Apply and commit.</b> Aider writes the change into <code>app.py</code> and makes a git commit with a short message. Total wait: about 20 seconds.</p></div>
+<div class="step"><p><b>Undo if needed.</b> Not happy? <code>/undo</code> rolls back that commit, and the file is exactly as it was.</p></div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -91,6 +105,26 @@ Give the model enough context: Aider sets Ollama's context window for you, but i
 
 **Try it:** same file, but you upgrade to a graphics card with 2,000 tok/s prefill and 80 tok/s decode. New wait? (3 + 5 = 8 seconds.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>prompt tokens</dt><dd>everything sent to the model: your instruction plus the code files you added</dd>
+<dt>prefill speed</dt><dd>how many tokens a second the model reads before it starts writing</dd>
+<dt>output tokens</dt><dd>the length of the change or answer it writes</dd>
+<dt>decode speed</dt><dd>how many tokens a second it writes</dd>
+<dt>Physical meaning</dt><dd>The wait for an edit is reading time plus writing time. Adding more files makes the model read longer before you see anything; asking for a short, focused change cuts the writing time. That is why you add only the files that matter.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="local-coding-assistant-wait"></div>
+
+<div class="myth">
+
+**"Use your biggest model for autocomplete too."** Autocomplete runs on almost every pause in your typing, so it has to answer in well under a second. A big model makes the suggestions arrive after you have already typed the line. A tiny 1.5B coding model is the right tool there; save the big model for chat and edits.
+
+</div>
 
 ## 5. Worked example
 
@@ -117,3 +151,13 @@ Give the model enough context: Aider sets Ollama's context window for you, but i
 </details>
 
 **New words:** *autocomplete* or *tab completion* (the model suggests the next code as you type), *fill-in-the-middle* (completing code between what is before and after the cursor), *pair programmer* (an assistant that edits code with you).
+
+<div class="keypoints">
+
+- Continue (in VS Code or JetBrains) and Aider (in the terminal) both talk to Ollama on your own machine.
+- Pick models by memory: a 12B to 20B model on a laptop, a 30B Mixture-of-Experts coder on 24 to 32 GB, and a tiny 1.5B model for autocomplete.
+- Wait per edit ≈ prompt tokens ÷ prefill speed + output tokens ÷ decode speed, so add only the files that matter.
+- Aider commits every change to git, so `/undo` can always roll it back.
+- Give coding tools a long context (16K tokens or more) and turn off usage statistics to keep everything local.
+
+</div>

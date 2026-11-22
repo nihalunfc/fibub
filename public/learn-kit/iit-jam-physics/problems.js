@@ -356,4 +356,345 @@ export default {
     },
     verify: (p) => -(p.a * (1 - 1 / p.k)) / (p.V1 * 1e-3 * p.cv * 8.314),
   },
+  // ---- module 6: modern physics ----
+  'stopping-potential': {
+    title: 'stopping potential from wavelength and work function',
+    make(r) {
+      const lam = [200, 220, 250, 280, 300, 330, 360, 400][int(r, 0, 7)], phi = [1.9, 2.1, 2.3, 2.5, 2.8, 3.0][int(r, 0, 5)];
+      const E = 1240 / lam, answer = E - phi;
+      return {
+        q: `<p>Light of wavelength ${lam} nm falls on a metal whose work function is ${phi} eV. Find the stopping potential in volts. Take hc = 1240 eV nm.</p>`,
+        answer, unit: 'V', tol: 0.005,
+        hint: 'Find the photon energy in eV with E = 1240/λ(nm). The fastest electron keeps what is left after paying the work function, and the stopping potential in volts equals that energy in eV.',
+        solution: steps(`Photon energy E = 1240/${lam} = ${E.toFixed(3)} eV.`, `K<sub>max</sub> = E − φ = ${E.toFixed(3)} − ${phi} = ${answer.toFixed(3)} eV.`, `An electron with ${answer.toFixed(3)} eV is stopped by <b>${answer.toFixed(3)} V</b>.`),
+        lam, phi,
+      };
+    },
+    verify: (p) => 1240 / p.lam - p.phi,
+  },
+  'compton-scatter': {
+    title: 'energy of a Compton-scattered photon',
+    make(r) {
+      const E = [60, 100, 140, 200, 300, 511, 662][int(r, 0, 6)], th = [30, 60, 90, 120, 150, 180][int(r, 0, 5)];
+      const c = 1 - Math.cos(th * Math.PI / 180), answer = E / (1 + (E / 511) * c);
+      return {
+        q: `<p>A gamma photon of energy ${E} keV is scattered through ${th}° by a free electron at rest. Find the energy of the scattered photon in keV (m<sub>e</sub>c² = 511 keV).</p>`,
+        answer, unit: 'keV', tol: 0.005,
+        hint: 'In energy form the Compton formula reads 1/E′ = 1/E + (1 − cos θ)/(m<sub>e</sub>c²).',
+        solution: steps(`1 − cos ${th}° = ${c.toFixed(4)}.`, `1/E′ = 1/${E} + ${c.toFixed(4)}/511 = ${(1 / E + c / 511).toFixed(6)} keV⁻¹.`, `E′ = <b>${answer.toFixed(1)} keV</b>; the electron carries off the other ${(E - answer).toFixed(1)} keV.`),
+        E, th,
+      };
+    },
+    verify: (p) => 1 / (1 / p.E + (1 - Math.cos(p.th * Math.PI / 180)) / 511),
+  },
+  'de-broglie-electron': {
+    title: 'de Broglie wavelength of an accelerated electron',
+    make(r) {
+      const V = [25, 50, 81, 100, 150, 200, 400, 600, 1000][int(r, 0, 8)];
+      const p = Math.sqrt(2 * 9.11e-31 * 1.6e-19 * V), answer = 6.63e-34 / p * 1e9;
+      return {
+        q: `<p>An electron starts from rest and is accelerated through ${V} V. Find its de Broglie wavelength in nm. Use h = 6.63×10⁻³⁴ J s, m<sub>e</sub> = 9.11×10⁻³¹ kg, e = 1.6×10⁻¹⁹ C.</p>`,
+        answer, unit: 'nm', tol: 0.005,
+        hint: 'The kinetic energy is eV, so the momentum is p = √(2m·eV); then λ = h/p.',
+        solution: steps(`K = eV = 1.6×10⁻¹⁹ × ${V} J.`, `p = √(2 × 9.11×10⁻³¹ × 1.6×10⁻¹⁹ × ${V}) = ${p.toExponential(3)} kg m/s.`, `λ = h/p = <b>${answer.toFixed(4)} nm</b> (check: 1.23/√${V} = ${(1.226 / Math.sqrt(V)).toFixed(4)} nm).`),
+        V,
+      };
+    },
+    verify: (p) => 1.227 / Math.sqrt(p.V),
+  },
+  'uncertainty-speed': {
+    title: 'smallest speed uncertainty of a confined electron',
+    make(r) {
+      const dx = [0.05, 0.1, 0.2, 0.5, 1, 2][int(r, 0, 5)];
+      const answer = 1.055e-34 / (2 * 9.11e-31 * dx * 1e-9) / 1000;
+      return {
+        q: `<p>An electron's position is uncertain by Δx = ${dx} nm. Using Δx·Δp ≥ ħ/2 (ħ = 1.055×10⁻³⁴ J s, m<sub>e</sub> = 9.11×10⁻³¹ kg), find the smallest possible uncertainty in its speed, in km/s.</p>`,
+        answer, unit: 'km/s', tol: 0.005,
+        hint: 'Find the smallest Δp from ħ/(2Δx), then divide by the mass to get Δv.',
+        solution: steps(`Δp = ħ/(2Δx) = 1.055×10⁻³⁴ / (2 × ${dx}×10⁻⁹) = ${(1.055e-34 / (2 * dx * 1e-9)).toExponential(3)} kg m/s.`, `Δv = Δp/m = ${(answer * 1000).toExponential(3)} m/s.`, `So Δv = <b>${answer.toFixed(1)} km/s</b>.`),
+        dx,
+      };
+    },
+    verify: (p) => 1.055e-34 / (2 * 9.11e-31 * p.dx * 1e-9) / 1000,
+  },
+  'box-photon': {
+    title: 'photon from a particle in a box',
+    make(r) {
+      const L = [0.5, 0.8, 1, 1.2, 1.5, 2][int(r, 0, 5)], lo = int(r, 1, 2), hi = lo + int(r, 1, 2);
+      const dE = (hi * hi - lo * lo) * 0.376 / (L * L), answer = 1240 / dE;
+      return {
+        q: `<p>An electron in a one-dimensional infinite well of width ${L} nm drops from n = ${hi} to n = ${lo}. Find the wavelength of the emitted photon in nm. Take h²/(8m<sub>e</sub>) = 0.376 eV nm² and hc = 1240 eV nm.</p>`,
+        answer, unit: 'nm', tol: 0.005,
+        hint: 'E<sub>n</sub> = n² × 0.376/L² eV with L in nm. Find the difference of the two levels, then λ = 1240/ΔE.',
+        solution: steps(`E<sub>1</sub> = 0.376/${L}² = ${(0.376 / (L * L)).toFixed(4)} eV.`, `ΔE = (${hi * hi} − ${lo * lo}) × ${(0.376 / (L * L)).toFixed(4)} = ${dE.toFixed(4)} eV.`, `λ = 1240/${dE.toFixed(4)} = <b>${answer.toFixed(1)} nm</b>.`),
+        L, lo, hi,
+      };
+    },
+    verify: (p) => 1240 * p.L * p.L / ((p.hi ** 2 - p.lo ** 2) * 0.376),
+  },
+  'tunnel-estimate': {
+    title: 'thick-barrier tunnelling estimate',
+    make(r) {
+      const E = [0.5, 1, 1.5, 2][int(r, 0, 3)], V = E + [1, 2, 3, 4][int(r, 0, 3)], a = [0.2, 0.3, 0.4, 0.5][int(r, 0, 3)];
+      const k = Math.sqrt((V - E) / 0.0381), answer = 2 * k * a;
+      return {
+        q: `<p>An electron of energy ${E} eV meets a barrier ${V} eV high and ${a} nm wide. Using ħ²/(2m<sub>e</sub>) = 0.0381 eV nm², find the exponent 2κa in the estimate T ≈ e<sup>−2κa</sup>.</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'κ = √((V₀ − E)/(ħ²/2m)) in nm⁻¹. Only the energy deficit V₀ − E counts.',
+        solution: steps(`V₀ − E = ${V - E} eV.`, `κ = √(${V - E}/0.0381) = ${k.toFixed(3)} nm⁻¹.`, `2κa = 2 × ${k.toFixed(3)} × ${a} = <b>${answer.toFixed(3)}</b>, so T ≈ e<sup>−${answer.toFixed(2)}</sup> = ${Math.exp(-answer).toExponential(2)}.`),
+        E, V, a,
+      };
+    },
+    verify: (p) => 2 * p.a * Math.sqrt((p.V - p.E) / 0.0381),
+  },
+  'rydberg-line': {
+    title: 'wavelength of a hydrogen line',
+    make(r) {
+      const nf = int(r, 1, 3), ni = nf + int(r, 1, 3);
+      const inv = 1.097e7 * (1 / (nf * nf) - 1 / (ni * ni)), answer = 1e9 / inv;
+      const series = ['Lyman', 'Balmer', 'Paschen'][nf - 1];
+      return {
+        q: `<p>Find the wavelength, in nm, of the hydrogen line emitted when the electron drops from n = ${ni} to n = ${nf}. Use R = 1.097×10⁷ m⁻¹.</p>`,
+        answer, unit: 'nm', tol: 0.005,
+        hint: '1/λ = R(1/n<sub>f</sub>² − 1/n<sub>i</sub>²), with the lower level first so the answer is positive.',
+        solution: steps(`1/λ = 1.097×10⁷ × (1/${nf * nf} − 1/${ni * ni}) = ${inv.toExponential(4)} m⁻¹.`, `λ = ${(1 / inv).toExponential(4)} m = <b>${answer.toFixed(1)} nm</b>.`, `It ends on n = ${nf}, so it belongs to the ${series} series.`),
+        ni, nf,
+      };
+    },
+    verify: (p) => 1e9 / (1.097e7 * (1 / p.nf ** 2 - 1 / p.ni ** 2)),
+  },
+  'moseley-energy': {
+    title: 'K-alpha energy from Moseley\'s law',
+    make(r) {
+      const Z = int(r, 20, 50), answer = 10.2 * (Z - 1) ** 2 / 1000;
+      return {
+        q: `<p>Use Moseley's law in the form E(Kα) ≈ 10.2 (Z − 1)² eV to find the Kα X-ray energy, in keV, of the element with Z = ${Z}. Then find its wavelength (hc = 1240 eV nm) as a check.</p>`,
+        answer, unit: 'keV', tol: 0.005,
+        hint: 'The 10.2 eV is the hydrogen 2 → 1 energy, 13.6 × 3/4; the nucleus is screened by the one K electron left, so use Z − 1.',
+        solution: steps(`Z − 1 = ${Z - 1}, (Z − 1)² = ${(Z - 1) ** 2}.`, `E = 10.2 × ${(Z - 1) ** 2} = ${(answer * 1000).toFixed(0)} eV = <b>${answer.toFixed(2)} keV</b>.`, `λ = 1240/${(answer * 1000).toFixed(0)} = ${(1240 / (answer * 1000)).toFixed(4)} nm.`),
+        Z,
+      };
+    },
+    verify: (p) => 13.6 * 0.75 * (p.Z - 1) ** 2 / 1000,
+  },
+  // ---- 7.5 Transistors and amplifiers ----
+  'divider-bias': {
+    title: 'Q-point of a voltage-divider bias circuit',
+    make(r) {
+      const pickOf = (a) => a[int(r, 0, a.length - 1)];
+      let VCC, R1, R2, RE, RC, VB, IE, VCE;
+      let n = 0;
+      do {
+        VCC = pickOf([9, 10, 12, 15, 18]); R1 = pickOf([22, 33, 47, 56, 68, 82]); R2 = pickOf([4.7, 6.8, 8.2, 10, 12, 15]);
+        RE = pickOf([0.47, 1, 1.2, 1.5, 2.2]); RC = pickOf([1, 2.2, 3.3, 4.7]);
+        if (++n > 50) { VCC = 12; R1 = 47; R2 = 10; RE = 1; RC = 2.2; }
+        VB = VCC * R2 / (R1 + R2); IE = (VB - 0.7) / RE; VCE = VCC - IE * (RC + RE);
+      } while (VB < 1.2 || VCE < 1);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>A voltage-divider biased common-emitter stage has V<sub>CC</sub> = ${VCC} V, R<sub>1</sub> = ${R1} kΩ (top), R<sub>2</sub> = ${R2} kΩ (bottom), R<sub>E</sub> = ${RE} kΩ and R<sub>C</sub> = ${RC} kΩ. Take V<sub>BE</sub> = 0.7 V and β very large. Find V<sub>CE</sub>, in volts.</p>`,
+        answer: VCE, unit: 'V', tol: 0.01,
+        hint: 'With no base current the divider sets V<sub>B</sub>. Then V<sub>E</sub> = V<sub>B</sub> − 0.7, I<sub>E</sub> = V<sub>E</sub>/R<sub>E</sub> ≈ I<sub>C</sub>, and V<sub>CE</sub> = V<sub>CC</sub> − I<sub>C</sub>(R<sub>C</sub> + R<sub>E</sub>).',
+        solution: steps(`V<sub>B</sub> = ${VCC} × ${R2}/(${R1} + ${R2}) = ${s3(VB)} V.`, `V<sub>E</sub> = ${s3(VB - 0.7)} V, so I<sub>E</sub> = ${s3(VB - 0.7)}/${RE} kΩ = ${s3(IE)} mA ≈ I<sub>C</sub>.`, `V<sub>CE</sub> = ${VCC} − ${s3(IE)} × (${RC} + ${RE}) = <b>${s3(VCE)} V</b>. It is above about 0.2 V, so the transistor is active.`),
+        VCC, R1, R2, RE, RC,
+      };
+    },
+    verify: (p) => { const IE = (p.VCC * p.R2 / (p.R1 + p.R2) - 0.7) / p.RE; return p.VCC - IE * (p.RC + p.RE); },
+  },
+  'ce-gain': {
+    title: 'voltage gain of a common-emitter stage',
+    make(r) {
+      const IC = [0.5, 1, 2, 2.5][int(r, 0, 3)], RC = int(r, 2, 10), RL = [2, 5, 10, 20][int(r, 0, 3)], RE = [0, 0, 100, 220, 470][int(r, 0, 4)];
+      const re = 25 / IC, Rac = RC * RL / (RC + RL);
+      const answer = Rac * 1000 / (re + RE);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>A common-emitter stage runs at I<sub>C</sub> = ${IC} mA (V<sub>T</sub> = 25 mV, β large). R<sub>C</sub> = ${RC} kΩ and a ${RL} kΩ load is capacitively coupled. ${RE ? `An emitter resistor of ${RE} Ω is left unbypassed.` : 'The emitter resistor is fully bypassed.'} Find the magnitude of the mid-band voltage gain.</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'r<sub>e</sub> = V<sub>T</sub>/I<sub>C</sub>. The gain magnitude is (R<sub>C</sub> ∥ R<sub>L</sub>) divided by the total unbypassed resistance in the emitter, r<sub>e</sub> + R<sub>E</sub>.',
+        solution: steps(`r<sub>e</sub> = 25 mV / ${IC} mA = ${s3(re)} Ω.`, `R<sub>C</sub> ∥ R<sub>L</sub> = ${s3(Rac)} kΩ.`, `|A<sub>v</sub>| = ${s3(Rac * 1000)} / (${s3(re)}${RE ? ` + ${RE}` : ''}) = <b>${s3(answer)}</b>. The output is inverted.`),
+        IC, RC, RL, RE,
+      };
+    },
+    verify: (p) => (p.RC * p.RL / (p.RC + p.RL)) * 1000 / (25 / p.IC + p.RE),
+  },
+  // ---- 7.6 Operational amplifiers ----
+  'opamp-output': {
+    title: 'output of an op-amp amplifier, with saturation',
+    make(r) {
+      const inv = r() < 0.5, Rin = [1, 2.2, 4.7, 10][int(r, 0, 3)], Rf = [10, 22, 47, 100, 220][int(r, 0, 4)], Vin = int(r, -20, 20) / 10 || 0.3;
+      const G = inv ? -Rf / Rin : 1 + Rf / Rin, ideal = G * Vin, answer = Math.max(-13, Math.min(13, ideal));
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>An ${inv ? 'inverting' : 'non-inverting'} amplifier uses R<sub>f</sub> = ${Rf} kΩ and ${inv ? 'R<sub>in</sub>' : 'R<sub>1</sub>'} = ${Rin} kΩ, with ±15 V supplies; the output can swing only to ±13 V. Find the output for a DC input of ${Vin} V, in volts.</p>`,
+        answer, unit: 'V', tol: 0.005, abs: 0.01,
+        hint: `Gain = ${inv ? '−R<sub>f</sub>/R<sub>in</sub>' : '1 + R<sub>f</sub>/R<sub>1</sub>'}. If the result is beyond ±13 V, the output sticks at the limit.`,
+        solution: steps(`Gain = ${inv ? `−${Rf}/${Rin}` : `1 + ${Rf}/${Rin}`} = ${s3(G)}.`, `Ideal output = ${s3(G)} × ${Vin} = ${s3(ideal)} V.`, Math.abs(ideal) > 13 ? `That is beyond the ±13 V swing, so the op-amp saturates: V<sub>out</sub> = <b>${answer} V</b>.` : `This is within ±13 V, so V<sub>out</sub> = <b>${s3(answer)} V</b>.`),
+        inv, Rin, Rf, Vin,
+      };
+    },
+    verify: (p) => Math.max(-13, Math.min(13, (p.inv ? -p.Rf / p.Rin : 1 + p.Rf / p.Rin) * p.Vin)),
+  },
+  'slew-limit': {
+    title: 'largest undistorted frequency (slew rate and bandwidth)',
+    make(r) {
+      const SR = [0.5, 1, 2, 5, 13][int(r, 0, 4)], GBW = [1, 3, 4, 10][int(r, 0, 3)], G = [5, 10, 20, 50][int(r, 0, 3)], Vi = int(r, 1, 10) / 10;
+      const Vp = G * Vi, fs = SR * 1e6 / (2 * Math.PI * Vp) / 1e3, fb = GBW * 1e3 / G, answer = Math.min(fs, fb);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>An op-amp with slew rate ${SR} V/μs and gain-bandwidth product ${GBW} MHz is used as a non-inverting amplifier of gain ${G}. The input is a sine wave of ${Vi} V peak. Find the highest input frequency, in kHz, for which the output is neither slew-limited nor beyond the −3 dB bandwidth.</p>`,
+        answer, unit: 'kHz', tol: 0.01,
+        hint: 'Work out both limits: f = SR/(2πV<sub>p</sub>) for the OUTPUT peak V<sub>p</sub>, and f = GBW/gain. The smaller one wins.',
+        solution: steps(`Output peak V<sub>p</sub> = ${G} × ${Vi} = ${s3(Vp)} V.`, `Slew limit: ${SR}×10⁶ / (2π × ${s3(Vp)}) = ${s3(fs)} kHz. Bandwidth: ${GBW} MHz / ${G} = ${s3(fb)} kHz.`, `The answer is the smaller: <b>${s3(answer)} kHz</b> (${fs < fb ? 'slew rate' : 'bandwidth'} limited).`),
+        SR, GBW, G, Vi,
+      };
+    },
+    verify: (p) => Math.min(p.SR * 1e6 / (2 * Math.PI * p.G * p.Vi) / 1e3, p.GBW * 1e3 / p.G),
+  },
+  // ---- 7.7 Logic gates and Boolean algebra ----
+  'twos-sum': {
+    title: 'adding 8-bit two\'s complement numbers',
+    make(r) {
+      const a = int(r, -128, 127), b = int(r, -128, 127);
+      const enc = (x) => ((x + 256) % 256).toString(2).padStart(8, '0');
+      const s = (a + b + 512) % 256, answer = s >= 128 ? s - 256 : s;
+      const over = a + b > 127 || a + b < -128;
+      return {
+        q: `<p>The 8-bit two's complement numbers ${enc(a)} and ${enc(b)} are added in an 8-bit adder and the carry out of the top bit is thrown away. What is the result, read as an 8-bit two's complement number, in decimal?</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'Turn each pattern into a signed number (a leading 1 means subtract 256), add them, and if the sum is outside −128 to 127, wrap it by 256.',
+        solution: steps(`${enc(a)} is ${a} and ${enc(b)} is ${b}.`, `True sum: ${a + b}. ${over ? 'This is outside −128 to 127: OVERFLOW, so the 8 bits wrap round by 256.' : 'This is in range, so there is no overflow.'}`, `The adder shows ${enc(s)}, which reads as <b>${answer}</b>.`),
+        a, b,
+      };
+    },
+    verify: (p) => { const s = p.a + p.b; return ((s + 128) % 256 + 256) % 256 - 128; },
+  },
+  'minterm-count': {
+    title: 'counting the minterms of a function',
+    make(r) {
+      const F = [
+        ['AB + CD', (a, b, c, d) => (a && b) || (c && d)], ['A + BC', (a, b, c) => a || (b && c)], ['A ⊕ B ⊕ C', (a, b, c) => (a ^ b ^ c) === 1],
+        ['(A + B)(C + D)', (a, b, c, d) => (a || b) && (c || d)], ['A·(not B) + C·(not D)', (a, b, c, d) => (a && !b) || (c && !d)], ['A + B + (not C)·D', (a, b, c, d) => a || b || (!c && d)],
+      ];
+      const k = int(r, 0, F.length - 1), [s, f] = F[k];
+      let answer = 0; const rows = [];
+      for (let m = 0; m < 16; m++) { if (f(m >> 3 & 1, m >> 2 & 1, m >> 1 & 1, m & 1)) { answer++; rows.push(m); } }
+      return {
+        q: `<p>Treat f = ${s} as a function of the four variables A, B, C, D (A is the most significant bit). How many rows of its 16-row truth table give f = 1?</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'A product term with j of the four variables is 1 in 2<sup>4−j</sup> rows. Add the terms, then subtract the rows counted twice (inclusion-exclusion).',
+        solution: steps(`The rows with f = 1 are minterms ${rows.join(', ')}.`, `Count them: <b>${answer}</b>.`),
+        k,
+      };
+    },
+    // counted by hand with inclusion-exclusion: 4+4-1, 8+2, 8, 3x3, 4+4-1, 12+1
+    verify: (p) => [7, 10, 8, 9, 7, 13][p.k],
+  },
+  // ---- 6.5 Nuclei, binding energy and radioactivity ----
+  'binding-per-nucleon': {
+    title: 'binding energy per nucleon from an atomic mass',
+    make(r) {
+      const L = [['²H', 1, 2, 2.014102], ['⁴He', 2, 4, 4.002603], ['⁷Li', 3, 7, 7.016003], ['¹²C', 6, 12, 12], ['¹⁶O', 8, 16, 15.994915], ['⁴⁰Ca', 20, 40, 39.962591], ['⁵⁶Fe', 26, 56, 55.934936], ['²⁰⁸Pb', 82, 208, 207.976652], ['²³⁸U', 92, 238, 238.050788]];
+      const [s, Z, A, M] = L[int(r, 0, L.length - 1)];
+      const dm = Z * 1.007825 + (A - Z) * 1.008665 - M, answer = dm * 931.494 / A;
+      const s4 = (x) => +x.toPrecision(4);
+      return {
+        q: `<p>The atomic mass of ${s} (Z = ${Z}) is ${M} u. Using m(¹H) = 1.007825 u, m<sub>n</sub> = 1.008665 u and 1 u = 931.494 MeV/c², find its binding energy per nucleon, in MeV.</p>`,
+        answer, unit: 'MeV', tol: 0.002,
+        hint: 'Mass defect = Z × m(¹H) + (A − Z) × m<sub>n</sub> − M(atom). Hydrogen atoms (not bare protons) keep the electrons balanced. Multiply by 931.494 and divide by A.',
+        solution: steps(`Δm = ${Z}(1.007825) + ${A - Z}(1.008665) − ${M} = ${dm.toFixed(6)} u.`, `B = ${dm.toFixed(6)} × 931.494 = ${s4(dm * 931.494)} MeV.`, `B/A = ${s4(dm * 931.494)} / ${A} = <b>${s4(answer)} MeV</b>.`),
+        Z, A, M,
+      };
+    },
+    verify: (p) => (p.Z * 1.007825 + (p.A - p.Z) * 1.008665 - p.M) * 931.494 / p.A,
+  },
+  'activity-left': {
+    title: 'activity after a given time',
+    make(r) {
+      const A0 = int(r, 2, 50) * 100, T = [2, 6, 8, 12, 15, 24][int(r, 0, 5)], t = int(r, 1, 60);
+      const answer = A0 * 2 ** (-t / T);
+      const s3 = (x) => +x.toPrecision(3);
+      return {
+        q: `<p>A source has an activity of ${A0} Bq and a half-life of ${T} h. What is its activity ${t} h later, in Bq?</p>`,
+        answer, unit: 'Bq', tol: 0.005,
+        hint: 'A = A₀ × 2<sup>−t/T½</sup>. The number of half-lives need not be a whole number.',
+        solution: steps(`t/T½ = ${t}/${T} = ${s3(t / T)} half-lives.`, `A = ${A0} × 2<sup>−${s3(t / T)}</sup> = ${A0} × ${(2 ** (-t / T)).toPrecision(4)}.`, `A = <b>${s3(answer)} Bq</b>.`),
+        A0, T, t,
+      };
+    },
+    verify: (p) => p.A0 * Math.exp(-Math.LN2 * p.t / p.T),
+  },
+  // ---- 7.1 Crystal structure ----
+  'miller-spacing': {
+    title: 'Miller indices and plane spacing',
+    make(r) {
+      const opts = [[1, 1, 0, '1', '1', '∞'], [1, 1, 1, '1', '1', '1'], [2, 1, 0, '1/2', '1', '∞'], [2, 2, 1, '1/2', '1/2', '1'], [3, 2, 0, '2', '3', '∞'], [1, 2, 3, '6', '3', '2'], [2, 0, 0, '1/2', '∞', '∞'], [3, 1, 1, '1', '3', '3']];
+      const [h, k, l, p, q, s] = opts[int(r, 0, opts.length - 1)];
+      const a = int(r, 28, 60) / 10, N = h * h + k * k + l * l, answer = a / Math.sqrt(N);
+      return {
+        q: `<p>A plane in a cubic crystal (lattice constant ${a} Å) cuts the axes at ${p}a, ${q}a and ${s}a (∞ means parallel). Find the spacing of this family of planes, in Å.</p>`,
+        answer, unit: 'Å', tol: 0.005,
+        hint: 'Take reciprocals of the intercepts and clear fractions to get (hkl). Then d = a/√(h² + k² + l²).',
+        solution: steps(`Reciprocals of ${p}, ${q}, ${s} (with 1/∞ = 0), cleared of fractions: (${h}${k}${l}).`, `h² + k² + l² = ${N}.`, `d = ${a}/√${N} = <b>${answer.toFixed(3)} Å</b>.`),
+        a, N,
+      };
+    },
+    verify: (p) => p.a / Math.sqrt(p.N),
+  },
+  // ---- 7.2 X-ray diffraction ----
+  'bragg-lattice': {
+    title: 'lattice constant from a powder line',
+    make(r) {
+      const [name, list] = [['simple cubic', [[1, '100'], [2, '110'], [3, '111']]], ['bcc', [[2, '110'], [4, '200'], [6, '211']]], ['fcc', [[3, '111'], [4, '200'], [8, '220']]]][int(r, 0, 2)];
+      const i = int(r, 0, 2), [N, idx] = list[i], lam = [1.54, 0.71, 1.79][int(r, 0, 2)];
+      const a0 = int(r, 30, 55) / 10, th = Math.round(Math.asin(lam * Math.sqrt(N) / (2 * a0)) * 180 / Math.PI * 100) / 100;
+      const answer = lam * Math.sqrt(N) / (2 * Math.sin(th * Math.PI / 180));
+      const ord = ['first', 'second', 'third'][i];
+      return {
+        q: `<p>The ${ord} line in the powder pattern of a ${name} metal appears at a glancing angle θ = ${th}° with X-rays of wavelength ${lam} Å. Find the lattice constant in Å.</p>`,
+        answer, unit: 'Å', tol: 0.005,
+        hint: `List the allowed reflections of ${name} in order of h² + k² + l². Then use Bragg's law for d, and a = d√(h² + k² + l²).`,
+        solution: steps(`The ${ord} allowed ${name} reflection is (${idx}), with h² + k² + l² = ${N}.`, `d = λ/(2 sin θ) = ${lam}/(2 × ${Math.sin(th * Math.PI / 180).toFixed(4)}) = ${(lam / (2 * Math.sin(th * Math.PI / 180))).toFixed(4)} Å.`, `a = d√${N} = <b>${answer.toFixed(3)} Å</b>.`),
+        lam, N, th,
+      };
+    },
+    verify: (p) => p.lam * Math.sqrt(p.N) / (2 * Math.sin(p.th * Math.PI / 180)),
+  },
+  // ---- 7.3 Semiconductors ----
+  'fermi-shift': {
+    title: 'where the Fermi level sits in doped silicon',
+    make(r) {
+      const m = int(r, 1, 9), e = int(r, 14, 18), N = m * 10 ** e, ni = 1e10, kT = 0.02585, n = r() < 0.5;
+      const answer = kT * Math.log(N / ni);
+      return {
+        q: `<p>Silicon at 300 K (n<sub>i</sub> = 10¹⁰ cm⁻³, kT = 0.02585 eV) is doped with ${m}×10${'⁰¹²³⁴⁵⁶⁷⁸⁹'[Math.floor(e / 10)]}${'⁰¹²³⁴⁵⁶⁷⁸⁹'[e % 10]} ${n ? 'donors' : 'acceptors'} per cm³. How far ${n ? 'above' : 'below'} the intrinsic level E<sub>i</sub> is the Fermi level, in eV?</p>`,
+        answer, unit: 'eV', tol: 0.005,
+        hint: `The majority density equals the doping. Then use ${n ? 'n = n<sub>i</sub> e^((E<sub>F</sub> − E<sub>i</sub>)/kT)' : 'p = n<sub>i</sub> e^((E<sub>i</sub> − E<sub>F</sub>)/kT)'} and take the natural log.`,
+        solution: steps(`Majority density ${n ? 'n' : 'p'} = ${m}×10^${e} cm⁻³; minority density = n<sub>i</sub>²/${n ? 'n' : 'p'} = ${(ni * ni / N).toPrecision(3)} cm⁻³.`, `|E<sub>F</sub> − E<sub>i</sub>| = kT ln(N/n<sub>i</sub>) = 0.02585 × ln(${(N / ni).toPrecision(3)}) = 0.02585 × ${Math.log(N / ni).toFixed(3)}.`, `= <b>${answer.toFixed(3)} eV</b> ${n ? 'above' : 'below'} E<sub>i</sub>.`),
+        N, ni, kT,
+      };
+    },
+    verify: (p) => p.kT * Math.log(p.N / p.ni),
+  },
+  // ---- 7.4 Diodes ----
+  'zener-current': {
+    title: 'current in a Zener regulator',
+    make(r) {
+      let Vin, Vz, R, RL, Iz;
+      do {
+        Vz = [3.3, 5.1, 6.2, 9.1, 12][int(r, 0, 4)]; Vin = Math.round((Vz + int(r, 4, 14)) * 10) / 10;
+        R = [100, 150, 220, 330][int(r, 0, 3)]; RL = [470, 1000, 2200, 4700][int(r, 0, 3)];
+        Iz = (Vin - Vz) / R - Vz / RL;
+      } while (Iz < 0.002);
+      const answer = Iz * 1000;
+      return {
+        q: `<p>A ${Vin} V supply feeds a ${Vz} V Zener diode through a ${R} Ω resistor, and a ${RL} Ω load is connected across the Zener. Find the current through the Zener, in mA.</p>`,
+        answer, unit: 'mA', tol: 0.005,
+        hint: 'The Zener holds the load at V<sub>Z</sub>. Find the series current from the voltage across R, then subtract the load current.',
+        solution: steps(`Series current I<sub>S</sub> = (${Vin} − ${Vz})/${R} = ${((Vin - Vz) / R * 1000).toFixed(3)} mA.`, `Load current I<sub>L</sub> = ${Vz}/${RL} = ${(Vz / RL * 1000).toFixed(3)} mA.`, `I<sub>Z</sub> = I<sub>S</sub> − I<sub>L</sub> = <b>${answer.toFixed(2)} mA</b>.`),
+        Vin, Vz, R, RL,
+      };
+    },
+    verify: (p) => ((p.Vin - p.Vz) / p.R - p.Vz / p.RL) * 1000,
+  },
 };

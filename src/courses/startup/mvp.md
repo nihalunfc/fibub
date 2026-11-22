@@ -27,6 +27,8 @@ sources:
 
 **Module 2 · about 12 minutes.** You'll be able to choose the cheapest test for your idea and run it honestly.
 
+<div class="bigidea">An MVP is the smallest experiment that answers your riskiest question, often with no code at all: a landing page, a pre-sale, or doing the service by hand.</div>
+
 ## 1. Minimum, viable, product
 
 An **MVP (minimum viable product)** is not a cheap version of the final product. It is <mark>the smallest experiment that answers your riskiest question</mark>. Ask: what must be true for this business to work? Then test the shakiest assumption first.
@@ -70,9 +72,39 @@ The FTC's Mail, Internet, or Telephone Order Merchandise Rule says you must ship
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Riskiest question:</b> will pharmacies change how they track expiry dates?</p></div>
+<div class="step"><p><b>Cheapest test:</b> a concierge MVP: the founder types stock into a spreadsheet and sends WhatsApp alerts by hand.</p></div>
+<div class="step"><p><b>One month later:</b> write-offs drop by half for 2 pharmacies.</p></div>
+<div class="step"><p><b>Signal:</b> one owner offers ₹1,500 a month to keep it going. Now it is worth building software.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>MVP</dt><dd>minimum viable product: the smallest test of your riskiest assumption</dd>
+<dt>Concierge MVP</dt><dd>delivering the service by hand to learn</dd>
+<dt>Wizard of Oz</dt><dd>an app on the outside, people doing the work behind it</dd>
+<dt>Pre-sale</dt><dd>taking payment or deposits before the product exists</dd>
+<dt>Conversion rate</dt><dd>the share of visitors who take the action you want</dd>
+<dt>What it means for you</dt><dd>Name your riskiest assumption, choose the cheapest MVP that tests it, and if you pre-sell, state the delivery date and a full refund if you cannot deliver.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="mvp-conversion"></div>
+
 ## 4. Worked example
 
 *Made-up founder.* Ravi runs a concierge MVP: for 2 pharmacies, he types their stock into a spreadsheet and sends WhatsApp alerts 60 days before expiry. After one month, write-offs drop by half. One owner offers ₹1,500 a month to keep it going. The question "will they pay?" is answered before a single line of code.
+
+<div class="myth">
+
+**"An MVP is a cheap first version of the full product."** It is an experiment. Often the best MVP has no code: a landing page, a pre-sale or doing the work by hand.
+
+</div>
 
 ## 5. Practice
 
@@ -87,6 +119,16 @@ The FTC's Mail, Internet, or Telephone Order Merchandise Rule says you must ship
 2. Interest is weak with that message or audience: change one thing (the headline, the audience, the price) and test again.
 3. It is a pre-order, the expected delivery date, and the refund policy if you are late or cannot deliver.
 </details>
+
+<div class="keypoints">
+
+- Test the shakiest assumption first.
+- Six kinds: landing page, pre-sale, concierge, Wizard of Oz, clickable prototype, single feature.
+- Pre-sales are legal if honest: say pre-order, give a date, refund in full if late.
+- India: show price, delivery and refund terms; Canada: cancellation rights if 30 days late; USA: FTC mail order rule.
+- Change one thing at a time and test again.
+
+</div>
 
 **Next:** [Pricing and unit economics](/learn/courses/startup/pricing-unit-economics/). Make a quick sign-up QR code for a market stall with [[qr-code-generator]].
 
