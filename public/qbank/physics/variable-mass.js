@@ -2,6 +2,7 @@
 // staging, conveyor belts, carts collecting rain, chains lifted from a heap or falling onto a pan, jets and dust.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './variable-mass.more.gen.js';
 
 const G0 = 9.8;
 
@@ -298,5 +299,6 @@ export default {
           sol: `$\\Delta v = u\\ln(m_0/m)$, so $m_0/m = e^{\\Delta v/u} = e^{${round(dv / u, 4)}} \\approx ${show(right)}$.`,
           trap: 'The rocket equation uses the natural logarithm, so undo it with $e^x$, not $10^x$.' };
       } },
+    ...more,
   ],
 };

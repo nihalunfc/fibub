@@ -3,6 +3,7 @@
 // E = mc^2, E^2 = p^2c^2 + m^2c^4, decays, inelastic collisions and thresholds.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './special-relativity.more.gen.js';
 
 const gam = (b) => 1 / Math.sqrt(1 - b * b);
 const PARTS = [{ name: 'an electron', m: 0.511 }, { name: 'a proton', m: 938.3 }, { name: 'a muon', m: 105.7 }];
@@ -285,5 +286,6 @@ export default {
           sol: `$(\\gamma - 1)mc^2 = ${k}\\,mc^2$, so $\\gamma = ${g}$ and $\\beta = \\sqrt{1 - 1/\\gamma^2} = \\sqrt{1 - 1/${round(g * g, 4)}} \\approx ${round(right, 3)}$.`,
           trap: 'Setting $\\tfrac12mv^2$ equal to the kinetic energy is wrong at these speeds.' };
       } },
+    ...more,
   ],
 };

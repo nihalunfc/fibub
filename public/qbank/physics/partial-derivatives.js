@@ -4,6 +4,7 @@
 // Lagrange multipliers and thermodynamic applications (Maxwell relations, Legendre transforms).
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './partial-derivatives.more.gen.js';
 
 const R_GAS = 8.314;
 
@@ -319,5 +320,6 @@ export default {
           sol: `Each term has total degree $${a} + ${b} = ${n}$, so $f$ is homogeneous of degree ${n} and Euler's theorem gives $xf_x + yf_y = ${n}f$. Check on the first term: $x\\cdot${a}x^{${a - 1}}y^{${b}} + y\\cdot${b}x^{${a}}y^{${b - 1}} = ${n}x^{${a}}y^{${b}}$.`,
           trap: 'Using the power of one variable only instead of the total degree.' };
       } },
+    ...more,
   ],
 };

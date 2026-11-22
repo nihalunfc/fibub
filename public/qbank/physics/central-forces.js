@@ -2,6 +2,7 @@
 // speed, fields of shells and spheres, satellites, two-body problem and reduced mass, stability of circular orbits.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './central-forces.more.gen.js';
 
 const R_E = 6.4e6, G0 = 9.8;
 
@@ -308,5 +309,6 @@ export default {
           trap: 'Use the total mass and the full separation, not the distance of one star from the centre of mass.' };
       },
       verify: (p) => Math.sqrt(p.a ** 3 / (p.M1 + p.M2)) },
+    ...more,
   ],
 };

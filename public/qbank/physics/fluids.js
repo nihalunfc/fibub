@@ -3,6 +3,7 @@
 // the Venturi meter, draining tanks, rotating and accelerating liquids, buoyancy.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './fluids.more.gen.js';
 
 const G0 = 9.8;
 
@@ -282,5 +283,6 @@ export default {
           sol: `Poiseuille: $Q \\propto r^4/L$, so the factor is $${kr}^4/${kL} = ${show(right)}$.`,
           trap: 'Flow goes as $r^4$, not as the area $r^2$.' };
       } },
+    ...more,
   ],
 };
