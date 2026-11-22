@@ -1,0 +1,172 @@
+---
+// #T1071 Daily task board: shares a day's tasks fairly between the people on shift (maths in src/lib/biz/taskboard.ts).
+// Runs in the browser; nothing is sent anywhere, and nothing is kept on the device unless the box is ticked.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax tb">
+  <div class="ax-card tb-np">
+    <h2>1. Today's tasks</h2>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="tb-preset"><option value="hotel">Hotel housekeeping</option><option value="shop">Shop restocking</option><option value="clean">Cleaning crew</option><option value="maint">Maintenance jobs</option></select>
+      </label>
+    </div>
+    <p class="ax-help">One row per task. Area is where it is (a floor, aisle or building), so the board keeps each person in one area where it can. Tick urgent for tasks that come first, and type a due time such as 14:30 if the task has a deadline.</p>
+    <div class="ax-scroll" style="max-height:340px"><table class="biz-tbl tb-tasks"><thead><tr><th>Task</th><th>Area</th><th class="r">Minutes</th><th>Urgent</th><th>Due by</th><th></th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help tb-count"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tb-add">Add a task</button></div>
+    <details class="biz-paste" style="margin-top:10px"><summary>Paste or open a table of tasks</summary>
+      <p class="ax-help">Columns: task, area, minutes, urgent (yes or blank), due by. This replaces the list above.</p>
+      <textarea class="tb-paste" rows="5" spellcheck="false" placeholder="Restock dairy&#9;Aisle 3&#9;25&#9;yes&#9;10:00"></textarea>
+      <DataFile target=".tb-paste" maxCols={6} maxRows={1000} label="Open a table" />
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small tb-load">Use these tasks</button><span class="ax-help tb-load-msg" style="margin:0"></span></div>
+    </details>
+  </div>
+
+  <div class="ax-card tb-np">
+    <h2>2. People on shift</h2>
+    <p class="ax-help" style="margin-top:0">Who is working, when, and the areas they know best (separate with commas; leave blank for any area).</p>
+    <div class="ax-scroll"><table class="biz-tbl tb-people"><thead><tr><th>Name</th><th>Start</th><th>End</th><th>Areas they know</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tb-addp">Add a person</button></div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Minutes to move between areas <input data-k="travel" inputmode="numeric" /></label>
+      <label>Break in the middle of the shift, minutes <input data-k="breakMin" inputmode="numeric" /></label>
+    </div>
+    <p class="biz-warn tb-warn"></p>
+  </div>
+
+  <div class="ax-card tb-res" aria-live="polite">
+    <h2>Today's board</h2>
+    <div class="biz-kpis tb-kpis"></div>
+    <p class="biz-take tb-take"></p>
+    <div class="ax-row tb-np" style="margin-top:12px"><label>Rebuild the tasks left from <input type="time" class="tb-from" style="width:auto" /></label><button type="button" class="btn small tb-re">Reassign what is left</button><button type="button" class="btn secondary small tb-reset-from">Plan the whole day again</button></div>
+    <p class="ax-help tb-np">If the day changes (a sick call, an urgent job), update the people or tasks above, then press Reassign. Tasks already ticked stay with whoever did them.</p>
+    <div class="tb-cards"></div>
+    <div class="ax-row tb-np" style="margin-top:10px"><button type="button" class="btn secondary small tb-csv">Download the board (CSV)</button><button type="button" class="btn secondary small tb-print">Print the board</button></div>
+  </div>
+
+  <div class="ax-card biz-keep tb-np">
+    <label class="ax-check"><input type="checkbox" class="tb-keep" /> Remember my tasks and people on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, the tasks, people and ticks stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small tb-clear">Clear saved data</button><button type="button" class="btn secondary small tb-resetall">Back to the example</button></div>
+  </div>
+  <p class="biz-fine tb-np">The board is a fair first plan from simple rules, not an optimiser. Check it against what you know about your team. Times are for planning only.</p>
+</div>
+
+<style is:inline>
+  .tb .tb-tasks input[type=text], .tb .tb-people input[type=text] { min-width: 150px; }
+  .tb .tb-tasks input.n { width: 76px; text-align: right; min-width: 0; }
+  .tb .tb-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; margin-top: 12px; }
+  .tb .tb-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--bg); min-width: 0; }
+  .tb .tb-card h3 { margin: 0; font-size: 16px; }
+  .tb .tb-card .sub { font-size: 13px; color: var(--muted); margin: 2px 0 6px; }
+  .tb .tb-card ol { list-style: none; margin: 8px 0 0; padding: 0; }
+  .tb .tb-card li { display: grid; grid-template-columns: 24px 1fr; gap: 6px; padding: 5px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .tb .tb-card li.done { color: var(--muted); text-decoration: line-through; }
+  .tb .tb-card li small { display: block; color: var(--muted); }
+  .tb .tb-card li.done small { text-decoration: none; }
+  .tb .tb-card .flag { color: var(--bad); font-weight: 600; font-size: 12.5px; }
+  .tb .tb-card .urg { color: var(--warn); font-weight: 600; font-size: 12.5px; }
+  .tb .tb-card input[type=checkbox] { width: 20px; height: 20px; margin: 2px 0 0; }
+  @media print { .tb .tb-np { display: none !important; } .tb .tb-card { break-inside: avoid; } }
+</style>
+
+<script>
+  import { assign, problems, spread, hm, toMin, importTasks, type Task, type Person, type Item } from '../../lib/biz/taskboard';
+  import { toCSV, downloadText, keeper, toNum } from '../../lib/biz/common';
+  import { rng } from '../../lib/biz/dash';
+
+  const root = document.querySelector<HTMLElement>('.tb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  type S = { kind: string; tasks: Task[]; people: Person[]; travel: string; breakMin: string; done: Record<string, boolean>; from: string; items: Item[] };
+
+  function makeSample(kind: string): { tasks: Task[]; people: Person[]; travel: string; breakMin: string } {
+    const r = rng(kind.length * 997 + 3), pick = <T,>(a: T[]) => a[Math.floor(r() * a.length)], tasks: Task[] = []; let n = 0;
+    const add = (name: string, zone: string, min: number, urgent = false, due = '') => tasks.push({ id: 't' + ++n, name, zone, min: String(min), urgent, due });
+    let people: Person[]; let travel = '4', breakMin = '30';
+    if (kind === 'hotel') {
+      for (let f = 3; f <= 8; f++) for (let k = 1; k <= 6; k++) { const room = f * 100 + k, p = r(); if (p < 0.4) { const early = r() < 0.15; add(`Room ${room} check-out clean`, `Floor ${f}`, 30, early, early ? '12:00' : pick(['14:00', '15:00', '16:00', ''])); } else if (p < 0.85) add(`Room ${room} stayover service`, `Floor ${f}`, 15, false, '16:00'); }
+      people = [['Maria', '08:00', '16:30', 'Floor 3, Floor 4'], ['Priya', '08:00', '16:30', 'Floor 5, Floor 6'], ['Ana', '08:00', '16:30', 'Floor 7, Floor 8'], ['Joseph', '09:00', '17:30', '']].map(([name, start, end, zones]) => ({ name, start, end, zones }));
+    } else if (kind === 'shop') {
+      const z = ['Front', 'Aisle 1', 'Aisle 2', 'Aisle 3', 'Aisle 4', 'Stockroom'];
+      ['Restock dairy', 'Restock snacks', 'Restock drinks', 'Price changes', 'Face the shelves', 'Fill the fridges', 'Clear the delivery', 'Bakery top-up', 'Check expiry dates', 'Restock cleaning goods', 'Window display', 'Fix the promo end-cap', 'Tidy the checkout', 'Break down boxes', 'Restock frozen', 'Online order picking'].forEach((x, i) => add(x, z[i % z.length], pick([15, 20, 25, 30, 45]), i === 5 || i === 10, i === 5 ? '10:00' : i < 4 ? '12:00' : ''));
+      people = [['Sam', '07:00', '15:00', 'Aisle 1, Aisle 2'], ['Lee', '08:00', '16:00', 'Aisle 3, Aisle 4'], ['Noor', '09:00', '17:00', 'Front, Stockroom']].map(([name, start, end, zones]) => ({ name, start, end, zones })); travel = '3'; breakMin = '30';
+    } else if (kind === 'clean') {
+      const b = ['Office block', 'Clinic', 'School', 'Warehouse'];
+      b.forEach((bn, bi) => { ['Bins and recycling', 'Floors', 'Washrooms', 'Kitchen area', 'Windows and glass', 'Reception'].forEach((t, i) => { if (r() < 0.85) add(`${t}`, bn, pick([20, 30, 45, 60]) + (bi === 3 ? 15 : 0), t === 'Washrooms' && bi === 1, t === 'Washrooms' && bi === 1 ? '09:00' : ''); }); });
+      people = [['Dev', '06:00', '14:00', 'Office block, Clinic'], ['Eli', '06:00', '14:00', 'School'], ['Fay', '07:00', '15:00', 'Warehouse']].map(([name, start, end, zones]) => ({ name, start, end, zones })); travel = '10'; breakMin = '30';
+    } else {
+      ['Fix leaking tap, room 12', 'Replace light tubes, corridor', 'Door closer, back entrance', 'Heating check, plant room', 'Paint touch-up, lobby', 'Unblock drain, kitchen', 'Fire alarm test', 'Replace carpet tile, room 8', 'Reset the boiler', 'Window latch, room 21', 'Oil the barrier gate', 'Test emergency lights'].forEach((x, i) => add(x, pick(['North wing', 'South wing', 'Plant room', 'Outside']), pick([20, 30, 45, 60, 90]), i === 5 || i === 8, i === 5 ? '11:00' : i === 8 ? '10:00' : ''));
+      people = [['Omar', '08:00', '16:00', 'North wing, Plant room'], ['Tess', '08:00', '16:00', 'South wing, Outside']].map(([name, start, end, zones]) => ({ name, start, end, zones })); travel = '8'; breakMin = '30';
+    }
+    return { tasks, people, travel, breakMin };
+  }
+  const fresh = (kind = 'hotel'): S => ({ kind, ...makeSample(kind), done: {}, from: '', items: [] });
+  let st = fresh();
+  const keep = keeper('fibub-taskboard-v1', q('.tb-keep'), q('.tb-clear'), () => st, (v) => { st = Object.assign(fresh(), v); });
+
+  function bind() {
+    q<HTMLSelectElement>('.tb-preset').value = st.kind;
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    q<HTMLInputElement>('.tb-from').value = st.from; tables(); plan();
+  }
+  function tables() {
+    q('.tb-tasks tbody').innerHTML = st.tasks.map((t, i) => `<tr data-i="${i}"><td><input type="text" data-f="name" value="${esc(t.name)}" aria-label="Task" /></td><td><input type="text" data-f="zone" value="${esc(t.zone)}" aria-label="Area" style="min-width:110px" /></td><td class="r"><input class="n" data-f="min" inputmode="numeric" value="${esc(t.min)}" aria-label="Minutes" /></td><td><input type="checkbox" data-f="urgent"${t.urgent ? ' checked' : ''} aria-label="Urgent" /></td><td><input type="text" class="n" data-f="due" placeholder="14:30" value="${esc(t.due)}" aria-label="Due by" /></td><td><button type="button" class="biz-x" data-del aria-label="Remove task">&times;</button></td></tr>`).join('');
+    q('.tb-people tbody').innerHTML = st.people.map((p, i) => `<tr data-i="${i}"><td><input type="text" data-f="name" value="${esc(p.name)}" aria-label="Name" /></td><td><input type="time" data-f="start" value="${esc(p.start)}" aria-label="Start" style="min-width:110px" /></td><td><input type="time" data-f="end" value="${esc(p.end)}" aria-label="End" style="min-width:110px" /></td><td><input type="text" data-f="zones" value="${esc(p.zones)}" aria-label="Areas they know" /></td><td><button type="button" class="biz-x" data-del aria-label="Remove person">&times;</button></td></tr>`).join('');
+  }
+  let timer = 0; const sched = () => { clearTimeout(timer); timer = window.setTimeout(plan, 300); };
+  const onEdit = (list: 'tasks' | 'people') => (e: Event) => {
+    const el = e.target as HTMLInputElement, tr = el.closest<HTMLElement>('tr[data-i]'); if (!tr || !el.dataset.f) return;
+    const o = (st as any)[list][+tr.dataset.i!]; o[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value; keep(); sched();
+  };
+  const onDel = (list: 'tasks' | 'people') => (e: Event) => { const b = (e.target as HTMLElement).closest('[data-del]'); if (!b) return; const i = +b.closest<HTMLElement>('tr')!.dataset.i!; (st as any)[list].splice(i, 1); keep(); tables(); plan(); };
+  q('.tb-tasks').addEventListener('input', onEdit('tasks')); q('.tb-people').addEventListener('input', onEdit('people'));
+  q('.tb-tasks').addEventListener('click', onDel('tasks')); q('.tb-people').addEventListener('click', onDel('people'));
+  q('.tb-add').addEventListener('click', () => { const id = 't' + (Math.max(0, ...st.tasks.map((t) => +t.id.slice(1) || 0)) + 1); st.tasks.push({ id, name: '', zone: '', min: '30', urgent: false, due: '' }); keep(); tables(); plan(); q('.tb-tasks tbody tr:last-child input')?.focus(); });
+  q('.tb-addp').addEventListener('click', () => { st.people.push({ name: '', start: '08:00', end: '16:00', zones: '' }); keep(); tables(); plan(); });
+  root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => el.addEventListener('input', () => { (st as any)[el.dataset.k!] = el.value; keep(); sched(); }));
+  q('.tb-preset').addEventListener('change', (e) => { st = fresh((e.target as HTMLSelectElement).value); keep(); bind(); });
+  q('.tb-resetall').addEventListener('click', () => { st = fresh(); bind(); });
+  q('.tb-load').addEventListener('click', () => {
+    const r = importTasks(q<HTMLTextAreaElement>('.tb-paste').value);
+    if (r.error) { q('.tb-load-msg').textContent = r.error; return; }
+    st.tasks = r.tasks; st.done = {}; st.items = []; st.from = ''; q('.tb-load-msg').textContent = `${r.tasks.length} tasks loaded. ` + r.notes.join(' '); keep(); bind();
+  });
+  q('.tb-re').addEventListener('click', () => { st.from = q<HTMLInputElement>('.tb-from').value || nowHM(); q<HTMLInputElement>('.tb-from').value = st.from; keep(); plan(true); });
+  q('.tb-reset-from').addEventListener('click', () => { st.from = ''; st.done = {}; q<HTMLInputElement>('.tb-from').value = ''; keep(); plan(); });
+  const nowHM = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  let res: ReturnType<typeof assign> | null = null;
+
+  function plan(keepDone = false) {
+    const w = problems(st.tasks, st.people); q('.tb-warn').textContent = w.join(' ');
+    const ids = new Set(st.tasks.map((t) => t.id)); Object.keys(st.done).forEach((k) => { if (!ids.has(k)) delete st.done[k]; });
+    const o = { travel: Math.max(0, +toNum(st.travel) || 0), breakMin: Math.max(0, +toNum(st.breakMin) || 0), from: st.from ? toMin(st.from) : null };
+    res = assign(st.tasks, st.people, o, st.done, st.items); void keepDone;
+    st.items = res.items; keep(); render(); void o;
+  }
+  function render() {
+    const r = res!, tasks = Object.fromEntries(st.tasks.map((t) => [t.id, t]));
+    const total = st.tasks.reduce((a, t) => a + (+toNum(t.min) || 0), 0), left = st.tasks.filter((t) => !st.done[t.id]).length;
+    const late = r.items.filter((x) => x.late && !st.done[x.id]).length, over = r.items.filter((x) => x.overShift && !st.done[x.id]).length, sp = spread(r.people);
+    const avg = r.people.length ? r.people.reduce((a, p) => a + p.load, 0) / r.people.length : 0;
+    const k = (n: string, v: string, s = '', c = '') => `<div class="biz-k ${c}"><span>${n}</span><b>${v}</b><small>${s}</small></div>`;
+    q('.tb-kpis').innerHTML = [k('Tasks left', `${left} of ${st.tasks.length}`, `${done()} done`), k('Work in total', `${(total / 60).toFixed(1)} h`, `${total} minutes`), k('Average load', Math.round(avg * 100) + '%', 'of each person\'s time'), k('Gap busiest to lightest', Math.round(sp * 100) + ' pts', sp <= 0.15 ? 'fairly even' : 'uneven', sp <= 0.15 ? 'good' : 'warn'), k('At risk of being late', String(late), 'past their due time', late ? 'bad' : 'good'), k('After the shift ends', String(over), 'tasks that do not fit', over ? 'bad' : 'good')].join('');
+    q('.tb-take').innerHTML = !st.people.length || !st.tasks.length ? '' : late || over ? `<b>What this means:</b> ${late ? late + ' task' + (late > 1 ? 's' : '') + ' would finish after the due time. ' : ''}${over ? over + ' would run past the end of a shift. ' : ''}Add a person, move a task or lower its minutes, and the board rebuilds.` : `<b>What this means:</b> everything fits inside the shifts and meets its due times, with ${Math.round(sp * 100)} points between the busiest and lightest person.`;
+    q('.tb-cards').innerHTML = r.people.map((p) => {
+      const mine = r.items.filter((x) => x.who === p.name).sort((a, b) => a.start - b.start);
+      return `<div class="tb-card"><h3>${esc(p.name)}</h3><p class="sub">${p.count} tasks, ${(p.work / 60).toFixed(1)} h of ${(p.avail / 60).toFixed(1)} h, finishing about ${hm(p.finish)}</p><div class="biz-bar"><i style="width:${Math.min(100, Math.round(p.load * 100))}%"></i></div><ol>${mine.map((x) => { const t = tasks[x.id]; if (!t) return ''; return `<li class="${st.done[x.id] ? 'done' : ''}"><input type="checkbox" data-done="${x.id}"${st.done[x.id] ? ' checked' : ''} aria-label="Done: ${esc(t.name)}" /><span>${esc(t.name || 'Task')} <small>${hm(x.start)} to ${hm(x.finish)}${t.zone ? ', ' + esc(t.zone) : ''}${t.due ? ', due ' + esc(t.due) : ''}</small>${t.urgent ? ' <span class="urg">Urgent</span>' : ''}${x.late && !st.done[x.id] ? ' <span class="flag">Late</span>' : ''}${x.overShift && !st.done[x.id] ? ' <span class="flag">After shift</span>' : ''}</span></li>`; }).join('')}</ol></div>`;
+    }).join('') || '<p class="ax-help">Add tasks and people to see the board.</p>';
+  }
+  const done = () => Object.values(st.done).filter(Boolean).length;
+  q('.tb-cards').addEventListener('change', (e) => { const el = e.target as HTMLInputElement; if (!el.dataset.done) return; if (el.checked) st.done[el.dataset.done] = true; else delete st.done[el.dataset.done]; keep(); render(); });
+  q('.tb-csv').addEventListener('click', () => {
+    const t = Object.fromEntries(st.tasks.map((x) => [x.id, x])), out: unknown[][] = [['Person', 'Order', 'Task', 'Area', 'Start', 'Finish', 'Minutes', 'Urgent', 'Due by', 'Done']];
+    res!.items.slice().sort((a, b) => (a.who < b.who ? -1 : a.who > b.who ? 1 : a.seq - b.seq)).forEach((x) => { const k = t[x.id]; if (k) out.push([x.who, x.seq, k.name, k.zone, hm(x.start), hm(x.finish), k.min, k.urgent ? 'yes' : '', k.due, st.done[x.id] ? 'yes' : '']); });
+    downloadText('task-board.csv', toCSV(out));
+  });
+  q('.tb-print').addEventListener('click', () => window.print());
+  bind();
+</script>

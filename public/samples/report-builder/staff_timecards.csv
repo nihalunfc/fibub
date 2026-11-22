@@ -1,0 +1,600 @@
+Date,Site,Department,Staff,Shift Start,Hours Worked,Labour Cost
+27-Jul-2026,North Site,Front Office,Ava Nguyen,07:00,7.5,196.72
+27-Jul-2026,North Site,Front Office,Diego Clark,15:00,8,209.84
+27-Jul-2026,North Site,Front Office,Emma Ali,23:00,6,157.38
+27-Jul-2026,North Site,Front Office,Grace Nguyen,07:00,8,209.84
+27-Jul-2026,North Site,Housekeeping,Nina Tremblay,08:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Noah Brown,09:00,6,139.08
+27-Jul-2026,North Site,Housekeeping,Olivia Singh,10:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Omar Garcia,08:00,6,139.08
+27-Jul-2026,North Site,Housekeeping,Omar Tremblay,09:00,8.5,197.03
+27-Jul-2026,North Site,Housekeeping,Ravi Patel,10:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Sam Ali,08:00,6,139.08
+27-Jul-2026,North Site,Housekeeping,Sam Clark,09:00,7.5,173.85
+27-Jul-2026,North Site,Housekeeping,Sam Martin,10:00,8.5,197.03
+27-Jul-2026,North Site,Housekeeping,Sam Smith,08:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Theo Kaur,09:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Zoe Brown,10:00,8.5,197.03
+27-Jul-2026,North Site,Housekeeping,Zoe Patel,08:00,8.5,197.03
+27-Jul-2026,North Site,Housekeeping,Zoe Scott,09:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Chen Lee,10:00,8,185.44
+27-Jul-2026,North Site,Housekeeping,Chen Smith,08:00,8,185.44
+27-Jul-2026,North Site,Food and Beverage,Arjun Smith,06:00,7.5,164.7
+27-Jul-2026,North Site,Food and Beverage,Diego Scott,10:00,8,175.68
+27-Jul-2026,North Site,Food and Beverage,Hannah Garcia,16:00,7.5,164.7
+27-Jul-2026,North Site,Food and Beverage,Isla Patel,17:00,8,175.68
+27-Jul-2026,North Site,Food and Beverage,Isla Taylor,06:00,8,175.68
+27-Jul-2026,North Site,Food and Beverage,Jack Wilson,10:00,6,131.76
+27-Jul-2026,North Site,Food and Beverage,Kofi Moore,16:00,8.5,186.66
+27-Jul-2026,North Site,Food and Beverage,Leah Ali,17:00,7.5,164.7
+27-Jul-2026,North Site,Engineering,Lucas Singh,07:00,8,263.52
+27-Jul-2026,North Site,Engineering,Nina Tremblay,15:00,6,197.64
+27-Jul-2026,North Site,Spa,Maya Khan,09:00,8.5,248.88
+27-Jul-2026,North Site,Spa,Mia Ali,12:00,7.5,219.6
+27-Jul-2026,North Site,Spa,Zoe Smith,09:00,7.5,219.6
+27-Jul-2026,North Site,Spa,Amelia Nguyen,12:00,7.5,219.6
+27-Jul-2026,North Site,Spa,Mason Wilson,09:00,8,234.24
+27-Jul-2026,GTR-NIAGARA,Front Office,Isla Kaur,07:00,8,209.84
+27-Jul-2026,GTR-NIAGARA,Front Office,Jack Tremblay,15:00,7.5,196.72
+27-Jul-2026,GTR-NIAGARA,Front Office,Liam Moore,23:00,6,157.38
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Emma Singh,08:00,6,139.08
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Grace Clark,09:00,7.5,173.85
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Grace Scott,10:00,8,185.44
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Isla Nguyen,08:00,8.5,197.03
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Mason Nguyen,09:00,8.5,197.03
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Mia Khan,10:00,8,185.44
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Mia Nguyen,08:00,8.5,197.03
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Nina Wong,09:00,7.5,173.85
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Noah Smith,10:00,8,185.44
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Clark,08:00,8,185.44
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Khan,09:00,7.5,173.85
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Martin,10:00,8,185.44
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Clark,08:00,6,139.08
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Wilson,09:00,6,139.08
+27-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Brown,10:00,8,185.44
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Olivia Ali,06:00,7.5,164.7
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Olivia Tremblay,10:00,8,175.68
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Omar Wilson,16:00,8,175.68
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Omar Wong,17:00,8,175.68
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Ravi Kaur,06:00,8,175.68
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Ravi Smith,10:00,8.5,186.66
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Zoe Ali,16:00,6,131.76
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Zoe Scott,17:00,6,131.76
+27-Jul-2026,GTR-NIAGARA,Food and Beverage,Arjun Wong,06:00,7.5,164.7
+27-Jul-2026,GTR-NIAGARA,Engineering,Emma Singh,07:00,7.5,247.05
+27-Jul-2026,GTR-NIAGARA,Engineering,Jack Nguyen,15:00,7.5,247.05
+27-Jul-2026,GTR-NIAGARA,Spa,Noah Lee,09:00,8,234.24
+27-Jul-2026,GTR-NIAGARA,Spa,Omar Kaur,12:00,8,234.24
+27-Jul-2026,GTR-NIAGARA,Spa,Omar Moore,09:00,8,234.24
+27-Jul-2026,GTR-NIAGARA,Spa,Ethan Moore,12:00,7.5,219.6
+27-Jul-2026,GTR-NIAGARA,Spa,Hannah Kaur,09:00,8,234.24
+27-Jul-2026,RSS-NIAGARA,Front Office,Ali Patel,07:00,8,209.84
+27-Jul-2026,RSS-NIAGARA,Front Office,Arjun Brown,15:00,8,209.84
+27-Jul-2026,RSS-NIAGARA,Front Office,Ava Clark,23:00,8,209.84
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Emma Martin,08:00,6,139.08
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Emma Wilson,09:00,8,185.44
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Grace Khan,10:00,8,185.44
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Hannah Clark,08:00,8,185.44
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Hannah Kaur,09:00,8,185.44
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Jack Khan,10:00,6,139.08
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Jack Tremblay,08:00,7.5,173.85
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Kofi Roy,09:00,7.5,173.85
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Mia Kaur,10:00,8,185.44
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Gagnon,08:00,7.5,173.85
+27-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Tremblay,09:00,8.5,197.03
+27-Jul-2026,RSS-NIAGARA,Food and Beverage,Amelia Tremblay,06:00,6,131.76
+27-Jul-2026,RSS-NIAGARA,Food and Beverage,Ava Clark,10:00,6,131.76
+27-Jul-2026,RSS-NIAGARA,Food and Beverage,Ava Gagnon,16:00,8,175.68
+27-Jul-2026,RSS-NIAGARA,Food and Beverage,Diego Kaur,17:00,8.5,186.66
+27-Jul-2026,RSS-NIAGARA,Engineering,Ali Clark,07:00,6,197.64
+27-Jul-2026,RSS-NIAGARA,Engineering,Grace Ali,15:00,6,197.64
+27-Jul-2026,RSS-NIAGARA,Spa,Chen Kaur,09:00,7.5,219.6
+27-Jul-2026,HLH-NIAGARA,Front Office,Mason Lee,07:00,8,209.84
+27-Jul-2026,HLH-NIAGARA,Front Office,Mia Gagnon,15:00,8.5,222.95
+27-Jul-2026,HLH-NIAGARA,Front Office,Priya Singh,23:00,6,157.38
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Grace Lee,08:00,8.5,197.03
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Isla Ali,09:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Jack Clark,10:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Kofi Wong,08:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Mason Patel,09:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Mia Patel,10:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Nina Clark,08:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Housekeeping,Nina Roy,09:00,8,185.44
+27-Jul-2026,HLH-NIAGARA,Food and Beverage,Lucas Wilson,06:00,7.5,164.7
+27-Jul-2026,HLH-NIAGARA,Food and Beverage,Mason Gagnon,10:00,8,175.68
+27-Jul-2026,HLH-NIAGARA,Food and Beverage,Maya Tremblay,16:00,7.5,164.7
+27-Jul-2026,HLH-NIAGARA,Food and Beverage,Ravi Wilson,17:00,8.5,186.66
+27-Jul-2026,HLH-NIAGARA,Engineering,Fatima Gagnon,07:00,8,263.52
+27-Jul-2026,HLH-NIAGARA,Engineering,Jack Gagnon,15:00,8,263.52
+27-Jul-2026,HLH-NIAGARA,Spa,Nina Khan,09:00,8,234.24
+27-Jul-2026,PVI-NIAGARA,Front Office,Ethan Gagnon,07:00,8,209.84
+27-Jul-2026,PVI-NIAGARA,Front Office,Hannah Moore,15:00,8,209.84
+27-Jul-2026,PVI-NIAGARA,Front Office,Jack Martin,23:00,6,157.38
+27-Jul-2026,PVI-NIAGARA,Housekeeping,Omar Nguyen,08:00,7.5,173.85
+27-Jul-2026,PVI-NIAGARA,Housekeeping,Priya Taylor,09:00,7.5,173.85
+27-Jul-2026,PVI-NIAGARA,Housekeeping,Ravi Nguyen,10:00,7.5,173.85
+27-Jul-2026,PVI-NIAGARA,Housekeeping,Sofia Ali,08:00,8,185.44
+27-Jul-2026,PVI-NIAGARA,Housekeeping,Ali Moore,09:00,6,139.08
+27-Jul-2026,PVI-NIAGARA,Housekeeping,Chen Tremblay,10:00,8,185.44
+27-Jul-2026,PVI-NIAGARA,Food and Beverage,Amelia Nguyen,06:00,8.5,186.66
+27-Jul-2026,PVI-NIAGARA,Food and Beverage,Chen Roy,10:00,8,175.68
+27-Jul-2026,PVI-NIAGARA,Food and Beverage,Diego Smith,16:00,8,175.68
+27-Jul-2026,PVI-NIAGARA,Engineering,Grace Patel,07:00,7.5,247.05
+27-Jul-2026,PVI-NIAGARA,Engineering,Liam Tremblay,15:00,8,263.52
+27-Jul-2026,PVI-NIAGARA,Spa,Maya Tremblay,09:00,8,234.24
+28-Jul-2026,North Site,Front Office,Grace Nguyen,07:00,8,209.84
+28-Jul-2026,North Site,Front Office,Grace Patel,15:00,6,157.38
+28-Jul-2026,North Site,Front Office,Jack Scott,23:00,8,209.84
+28-Jul-2026,North Site,Front Office,Omar Clark,07:00,6,157.38
+28-Jul-2026,North Site,Housekeeping,Omar Garcia,08:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Omar Tremblay,09:00,7.5,173.85
+28-Jul-2026,North Site,Housekeeping,Ravi Patel,10:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Sam Ali,08:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Sam Clark,09:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Sam Martin,10:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Sam Smith,08:00,6,139.08
+28-Jul-2026,North Site,Housekeeping,Theo Kaur,09:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Zoe Brown,10:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Zoe Patel,08:00,6,139.08
+28-Jul-2026,North Site,Housekeeping,Zoe Scott,09:00,8.5,197.03
+28-Jul-2026,North Site,Housekeeping,Chen Lee,10:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Chen Smith,08:00,8,185.44
+28-Jul-2026,North Site,Housekeeping,Emma Nguyen,09:00,8.5,197.03
+28-Jul-2026,North Site,Housekeeping,Emma Roy,10:00,6,139.08
+28-Jul-2026,North Site,Housekeeping,Emma Singh,08:00,6,139.08
+28-Jul-2026,North Site,Housekeeping,Grace Clark,09:00,8,185.44
+28-Jul-2026,North Site,Food and Beverage,Isla Patel,06:00,8,175.68
+28-Jul-2026,North Site,Food and Beverage,Isla Taylor,10:00,8,175.68
+28-Jul-2026,North Site,Food and Beverage,Jack Wilson,16:00,8,175.68
+28-Jul-2026,North Site,Food and Beverage,Kofi Moore,17:00,7.5,164.7
+28-Jul-2026,North Site,Food and Beverage,Leah Ali,06:00,8.5,186.66
+28-Jul-2026,North Site,Food and Beverage,Liam Moore,10:00,8,175.68
+28-Jul-2026,North Site,Food and Beverage,Lucas Wong,16:00,8.5,186.66
+28-Jul-2026,North Site,Food and Beverage,Mason Gagnon,17:00,8,175.68
+28-Jul-2026,North Site,Food and Beverage,Mia Tremblay,06:00,8.5,186.66
+28-Jul-2026,North Site,Engineering,Arjun Ali,07:00,7.5,247.05
+28-Jul-2026,North Site,Engineering,Liam Singh,15:00,8,263.52
+28-Jul-2026,North Site,Spa,Amelia Nguyen,09:00,7.5,219.6
+28-Jul-2026,North Site,Spa,Mason Wilson,12:00,8,234.24
+28-Jul-2026,North Site,Spa,Maya Khan,09:00,8,234.24
+28-Jul-2026,North Site,Spa,Mia Ali,12:00,8.5,248.88
+28-Jul-2026,North Site,Spa,Zoe Smith,09:00,8,234.24
+28-Jul-2026,GTR-NIAGARA,Front Office,Nina Lee,07:00,7.5,196.72
+28-Jul-2026,GTR-NIAGARA,Front Office,Nina Singh,15:00,8,209.84
+28-Jul-2026,GTR-NIAGARA,Front Office,Noah Wilson,23:00,8,209.84
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Isla Nguyen,08:00,8.5,197.03
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Mason Nguyen,09:00,7.5,173.85
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Mia Khan,10:00,8.5,197.03
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Mia Nguyen,08:00,6,139.08
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Nina Wong,09:00,8,185.44
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Noah Smith,10:00,8,185.44
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Clark,08:00,7.5,173.85
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Khan,09:00,8,185.44
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Martin,10:00,8,185.44
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Clark,08:00,8.5,197.03
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Wilson,09:00,8.5,197.03
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Brown,10:00,8,185.44
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Singh,08:00,6,139.08
+28-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Tremblay,09:00,8,185.44
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Omar Wong,06:00,8,175.68
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Ravi Kaur,10:00,6,131.76
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Ravi Smith,16:00,8,175.68
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Zoe Ali,17:00,8.5,186.66
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Zoe Scott,06:00,8,175.68
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Arjun Wong,10:00,8,175.68
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Ava Martin,16:00,8,175.68
+28-Jul-2026,GTR-NIAGARA,Food and Beverage,Chen Khan,17:00,7.5,164.7
+28-Jul-2026,GTR-NIAGARA,Engineering,Priya Gagnon,07:00,7.5,247.05
+28-Jul-2026,GTR-NIAGARA,Engineering,Emma Singh,15:00,8,263.52
+28-Jul-2026,GTR-NIAGARA,Spa,Ethan Moore,09:00,8,234.24
+28-Jul-2026,GTR-NIAGARA,Spa,Hannah Kaur,12:00,8,234.24
+28-Jul-2026,GTR-NIAGARA,Spa,Noah Lee,09:00,8,234.24
+28-Jul-2026,GTR-NIAGARA,Spa,Omar Kaur,12:00,8,234.24
+28-Jul-2026,GTR-NIAGARA,Spa,Omar Moore,09:00,7.5,219.6
+28-Jul-2026,RSS-NIAGARA,Front Office,Grace Ali,07:00,6,157.38
+28-Jul-2026,RSS-NIAGARA,Front Office,Maya Gagnon,15:00,8,209.84
+28-Jul-2026,RSS-NIAGARA,Front Office,Olivia Tremblay,23:00,7.5,196.72
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Hannah Clark,08:00,6,139.08
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Hannah Kaur,09:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Jack Khan,10:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Jack Tremblay,08:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Kofi Roy,09:00,7.5,173.85
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Mia Kaur,10:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Gagnon,08:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Tremblay,09:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Sam Tremblay,10:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Housekeeping,Theo Scott,08:00,8,185.44
+28-Jul-2026,RSS-NIAGARA,Food and Beverage,Diego Kaur,06:00,8,175.68
+28-Jul-2026,RSS-NIAGARA,Food and Beverage,Emma Gagnon,10:00,8,175.68
+28-Jul-2026,RSS-NIAGARA,Food and Beverage,Grace Nguyen,16:00,7.5,164.7
+28-Jul-2026,RSS-NIAGARA,Food and Beverage,Mason Khan,17:00,8.5,186.66
+28-Jul-2026,RSS-NIAGARA,Engineering,Omar Roy,07:00,8,263.52
+28-Jul-2026,RSS-NIAGARA,Engineering,Ali Clark,15:00,8,263.52
+28-Jul-2026,RSS-NIAGARA,Spa,Amelia Martin,09:00,6,175.68
+28-Jul-2026,HLH-NIAGARA,Front Office,Ravi Clark,07:00,8,209.84
+28-Jul-2026,HLH-NIAGARA,Front Office,Arjun Tremblay,15:00,6,157.38
+28-Jul-2026,HLH-NIAGARA,Front Office,Diego Taylor,23:00,8.5,222.95
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Kofi Wong,08:00,8,185.44
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Mason Patel,09:00,8,185.44
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Mia Patel,10:00,7.5,173.85
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Nina Clark,08:00,7.5,173.85
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Nina Roy,09:00,6,139.08
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Noah Brown,10:00,8,185.44
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Noah Smith,08:00,8,185.44
+28-Jul-2026,HLH-NIAGARA,Housekeeping,Olivia Moore,09:00,8,185.44
+28-Jul-2026,HLH-NIAGARA,Food and Beverage,Ravi Wilson,06:00,8,175.68
+28-Jul-2026,HLH-NIAGARA,Food and Beverage,Ali Nguyen,10:00,8,175.68
+28-Jul-2026,HLH-NIAGARA,Food and Beverage,Arjun Ali,16:00,8,175.68
+28-Jul-2026,HLH-NIAGARA,Food and Beverage,Ava Nguyen,17:00,8.5,186.66
+28-Jul-2026,HLH-NIAGARA,Engineering,Fatima Gagnon,07:00,8,263.52
+28-Jul-2026,HLH-NIAGARA,Engineering,Jack Gagnon,15:00,8.5,279.99
+28-Jul-2026,HLH-NIAGARA,Spa,Diego Scott,09:00,6,175.68
+28-Jul-2026,PVI-NIAGARA,Front Office,Liam Singh,07:00,8,209.84
+28-Jul-2026,PVI-NIAGARA,Front Office,Noah Khan,15:00,6,157.38
+28-Jul-2026,PVI-NIAGARA,Front Office,Ravi Patel,23:00,8,209.84
+28-Jul-2026,PVI-NIAGARA,Housekeeping,Sofia Ali,08:00,8,185.44
+28-Jul-2026,PVI-NIAGARA,Housekeeping,Ali Moore,09:00,8.5,197.03
+28-Jul-2026,PVI-NIAGARA,Housekeeping,Chen Tremblay,10:00,6,139.08
+28-Jul-2026,PVI-NIAGARA,Housekeeping,Diego Smith,08:00,8,185.44
+28-Jul-2026,PVI-NIAGARA,Housekeeping,Hannah Martin,09:00,8.5,197.03
+28-Jul-2026,PVI-NIAGARA,Housekeeping,Hannah Roy,10:00,7.5,173.85
+28-Jul-2026,PVI-NIAGARA,Food and Beverage,Emma Smith,06:00,8.5,186.66
+28-Jul-2026,PVI-NIAGARA,Food and Beverage,Hannah Kaur,10:00,8.5,186.66
+28-Jul-2026,PVI-NIAGARA,Food and Beverage,Isla Brown,16:00,8,175.68
+28-Jul-2026,PVI-NIAGARA,Engineering,Grace Patel,07:00,8,263.52
+28-Jul-2026,PVI-NIAGARA,Engineering,Liam Tremblay,15:00,8,263.52
+28-Jul-2026,PVI-NIAGARA,Spa,Kofi Taylor,09:00,8.5,248.88
+29-Jul-2026,North Site,Front Office,Omar Clark,07:00,7.5,196.72
+29-Jul-2026,North Site,Front Office,Priya Clark,15:00,8,209.84
+29-Jul-2026,North Site,Front Office,Priya Patel,23:00,7.5,196.72
+29-Jul-2026,North Site,Front Office,Ali Wilson,07:00,8,209.84
+29-Jul-2026,North Site,Housekeeping,Sam Ali,08:00,6,139.08
+29-Jul-2026,North Site,Housekeeping,Sam Clark,09:00,8,185.44
+29-Jul-2026,North Site,Housekeeping,Sam Martin,10:00,8,185.44
+29-Jul-2026,North Site,Housekeeping,Sam Smith,08:00,8.5,197.03
+29-Jul-2026,North Site,Housekeeping,Theo Kaur,09:00,8,185.44
+29-Jul-2026,North Site,Housekeeping,Zoe Brown,10:00,6,139.08
+29-Jul-2026,North Site,Housekeeping,Zoe Patel,08:00,8.5,197.03
+29-Jul-2026,North Site,Housekeeping,Zoe Scott,09:00,7.5,173.85
+29-Jul-2026,North Site,Housekeeping,Chen Lee,10:00,7.5,173.85
+29-Jul-2026,North Site,Housekeeping,Chen Smith,08:00,7.5,173.85
+29-Jul-2026,North Site,Housekeeping,Emma Nguyen,09:00,8.5,197.03
+29-Jul-2026,North Site,Housekeeping,Emma Roy,10:00,8,185.44
+29-Jul-2026,North Site,Housekeeping,Emma Singh,08:00,8,185.44
+29-Jul-2026,North Site,Housekeeping,Grace Clark,09:00,7.5,173.85
+29-Jul-2026,North Site,Housekeeping,Grace Lee,10:00,7.5,173.85
+29-Jul-2026,North Site,Housekeeping,Hannah Wilson,08:00,6,139.08
+29-Jul-2026,North Site,Food and Beverage,Kofi Moore,06:00,8,175.68
+29-Jul-2026,North Site,Food and Beverage,Leah Ali,10:00,8,175.68
+29-Jul-2026,North Site,Food and Beverage,Liam Moore,16:00,8,175.68
+29-Jul-2026,North Site,Food and Beverage,Lucas Wong,17:00,8,175.68
+29-Jul-2026,North Site,Food and Beverage,Mason Gagnon,06:00,8,175.68
+29-Jul-2026,North Site,Food and Beverage,Mia Tremblay,10:00,8,175.68
+29-Jul-2026,North Site,Food and Beverage,Noah Moore,16:00,6,131.76
+29-Jul-2026,North Site,Food and Beverage,Olivia Singh,17:00,8,175.68
+29-Jul-2026,North Site,Engineering,Nina Tremblay,07:00,6,197.64
+29-Jul-2026,North Site,Engineering,Priya Wilson,15:00,6,197.64
+29-Jul-2026,North Site,Spa,Mia Ali,09:00,6,175.68
+29-Jul-2026,North Site,Spa,Zoe Smith,12:00,8,234.24
+29-Jul-2026,North Site,Spa,Amelia Nguyen,09:00,7.5,219.6
+29-Jul-2026,North Site,Spa,Mason Wilson,12:00,8.5,248.88
+29-Jul-2026,North Site,Spa,Maya Khan,09:00,7.5,219.6
+29-Jul-2026,GTR-NIAGARA,Front Office,Sam Gagnon,07:00,8,209.84
+29-Jul-2026,GTR-NIAGARA,Front Office,Sofia Garcia,15:00,8,209.84
+29-Jul-2026,GTR-NIAGARA,Front Office,Emma Tremblay,23:00,8,209.84
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Mia Nguyen,08:00,8,185.44
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Nina Wong,09:00,8.5,197.03
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Noah Smith,10:00,8,185.44
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Clark,08:00,8.5,197.03
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Khan,09:00,6,139.08
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Martin,10:00,7.5,173.85
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Clark,08:00,8.5,197.03
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Wilson,09:00,8,185.44
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Brown,10:00,7.5,173.85
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Singh,08:00,8,185.44
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Tremblay,09:00,8.5,197.03
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Sofia Taylor,10:00,6,139.08
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Ali Khan,08:00,8.5,197.03
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Ali Roy,09:00,8.5,197.03
+29-Jul-2026,GTR-NIAGARA,Housekeeping,Amelia Moore,10:00,8,185.44
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Zoe Ali,06:00,8,175.68
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Zoe Scott,10:00,6,131.76
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Arjun Wong,16:00,8,175.68
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Ava Martin,17:00,8.5,186.66
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Chen Khan,06:00,8,175.68
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Chen Wilson,10:00,7.5,164.7
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Diego Wilson,16:00,7.5,164.7
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Emma Roy,17:00,6,131.76
+29-Jul-2026,GTR-NIAGARA,Food and Beverage,Emma Singh,06:00,8,175.68
+29-Jul-2026,GTR-NIAGARA,Engineering,Mia Roy,07:00,8,263.52
+29-Jul-2026,GTR-NIAGARA,Engineering,Priya Gagnon,15:00,8,263.52
+29-Jul-2026,GTR-NIAGARA,Spa,Omar Kaur,09:00,7.5,219.6
+29-Jul-2026,GTR-NIAGARA,Spa,Omar Moore,12:00,8,234.24
+29-Jul-2026,GTR-NIAGARA,Spa,Ethan Moore,09:00,8.5,248.88
+29-Jul-2026,GTR-NIAGARA,Spa,Hannah Kaur,12:00,7.5,219.6
+29-Jul-2026,GTR-NIAGARA,Spa,Noah Lee,09:00,6,175.68
+29-Jul-2026,RSS-NIAGARA,Front Office,Theo Brown,07:00,8.5,222.95
+29-Jul-2026,RSS-NIAGARA,Front Office,Zoe Wong,15:00,8,209.84
+29-Jul-2026,RSS-NIAGARA,Front Office,Ali Patel,23:00,6,157.38
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Jack Tremblay,08:00,6,139.08
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Kofi Roy,09:00,8,185.44
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Mia Kaur,10:00,8.5,197.03
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Gagnon,08:00,8.5,197.03
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Tremblay,09:00,8.5,197.03
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Sam Tremblay,10:00,8,185.44
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Theo Scott,08:00,8,185.44
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Ali Martin,09:00,6,139.08
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Ali Tremblay,10:00,8,185.44
+29-Jul-2026,RSS-NIAGARA,Housekeeping,Amelia Ali,08:00,6,139.08
+29-Jul-2026,RSS-NIAGARA,Food and Beverage,Mason Khan,06:00,8,175.68
+29-Jul-2026,RSS-NIAGARA,Food and Beverage,Nina Smith,10:00,8.5,186.66
+29-Jul-2026,RSS-NIAGARA,Food and Beverage,Olivia Scott,16:00,8,175.68
+29-Jul-2026,RSS-NIAGARA,Food and Beverage,Olivia Tremblay,17:00,6,131.76
+29-Jul-2026,RSS-NIAGARA,Engineering,Liam Khan,07:00,7.5,247.05
+29-Jul-2026,RSS-NIAGARA,Engineering,Omar Roy,15:00,8,263.52
+29-Jul-2026,RSS-NIAGARA,Spa,Emma Brown,09:00,6,175.68
+29-Jul-2026,HLH-NIAGARA,Front Office,Jack Scott,07:00,7.5,196.72
+29-Jul-2026,HLH-NIAGARA,Front Office,Mason Lee,15:00,8,209.84
+29-Jul-2026,HLH-NIAGARA,Front Office,Mia Gagnon,23:00,8.5,222.95
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Nina Clark,08:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Nina Roy,09:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Noah Brown,10:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Noah Smith,08:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Olivia Moore,09:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Theo Martin,10:00,8.5,197.03
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Zoe Smith,08:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Housekeeping,Zoe Taylor,09:00,8,185.44
+29-Jul-2026,HLH-NIAGARA,Food and Beverage,Ava Nguyen,06:00,7.5,164.7
+29-Jul-2026,HLH-NIAGARA,Food and Beverage,Diego Martin,10:00,8,175.68
+29-Jul-2026,HLH-NIAGARA,Food and Beverage,Diego Singh,16:00,8.5,186.66
+29-Jul-2026,HLH-NIAGARA,Food and Beverage,Ethan Nguyen,17:00,8,175.68
+29-Jul-2026,HLH-NIAGARA,Engineering,Fatima Gagnon,07:00,6,197.64
+29-Jul-2026,HLH-NIAGARA,Engineering,Jack Gagnon,15:00,8,263.52
+29-Jul-2026,HLH-NIAGARA,Spa,Noah Nguyen,09:00,8,234.24
+29-Jul-2026,PVI-NIAGARA,Front Office,Ethan Gagnon,07:00,8,209.84
+29-Jul-2026,PVI-NIAGARA,Front Office,Hannah Moore,15:00,8.5,222.95
+29-Jul-2026,PVI-NIAGARA,Front Office,Jack Martin,23:00,8,209.84
+29-Jul-2026,PVI-NIAGARA,Housekeeping,Diego Smith,08:00,8,185.44
+29-Jul-2026,PVI-NIAGARA,Housekeeping,Hannah Martin,09:00,8,185.44
+29-Jul-2026,PVI-NIAGARA,Housekeeping,Hannah Roy,10:00,8.5,197.03
+29-Jul-2026,PVI-NIAGARA,Housekeeping,Leah Brown,08:00,8,185.44
+29-Jul-2026,PVI-NIAGARA,Housekeeping,Leah Singh,09:00,6,139.08
+29-Jul-2026,PVI-NIAGARA,Housekeeping,Mason Tremblay,10:00,6,139.08
+29-Jul-2026,PVI-NIAGARA,Food and Beverage,Liam Scott,06:00,8.5,186.66
+29-Jul-2026,PVI-NIAGARA,Food and Beverage,Maya Garcia,10:00,8,175.68
+29-Jul-2026,PVI-NIAGARA,Food and Beverage,Noah Ali,16:00,6,131.76
+29-Jul-2026,PVI-NIAGARA,Engineering,Grace Patel,07:00,8,263.52
+29-Jul-2026,PVI-NIAGARA,Engineering,Liam Tremblay,15:00,8,263.52
+29-Jul-2026,PVI-NIAGARA,Spa,Priya Lee,09:00,8,234.24
+30-Jul-2026,North Site,Front Office,Ali Wilson,07:00,8,209.84
+30-Jul-2026,North Site,Front Office,Amelia Wilson,15:00,7.5,196.72
+30-Jul-2026,North Site,Front Office,Ava Nguyen,23:00,8.5,222.95
+30-Jul-2026,North Site,Front Office,Diego Clark,07:00,7.5,196.72
+30-Jul-2026,North Site,Housekeeping,Sam Smith,08:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Theo Kaur,09:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Zoe Brown,10:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Zoe Patel,08:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Zoe Scott,09:00,8.5,197.03
+30-Jul-2026,North Site,Housekeeping,Chen Lee,10:00,6,139.08
+30-Jul-2026,North Site,Housekeeping,Chen Smith,08:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Emma Nguyen,09:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Emma Roy,10:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Emma Singh,08:00,8.5,197.03
+30-Jul-2026,North Site,Housekeeping,Grace Clark,09:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Grace Lee,10:00,6,139.08
+30-Jul-2026,North Site,Housekeeping,Hannah Wilson,08:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Kofi Patel,09:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Kofi Scott,10:00,8,185.44
+30-Jul-2026,North Site,Housekeeping,Kofi Tremblay,08:00,8,185.44
+30-Jul-2026,North Site,Food and Beverage,Lucas Wong,06:00,7.5,164.7
+30-Jul-2026,North Site,Food and Beverage,Mason Gagnon,10:00,7.5,164.7
+30-Jul-2026,North Site,Food and Beverage,Mia Tremblay,16:00,8,175.68
+30-Jul-2026,North Site,Food and Beverage,Noah Moore,17:00,8.5,186.66
+30-Jul-2026,North Site,Food and Beverage,Olivia Singh,06:00,8,175.68
+30-Jul-2026,North Site,Food and Beverage,Omar Ali,10:00,8.5,186.66
+30-Jul-2026,North Site,Food and Beverage,Ravi Gagnon,16:00,7.5,164.7
+30-Jul-2026,North Site,Food and Beverage,Sofia Martin,17:00,6,131.76
+30-Jul-2026,North Site,Engineering,Liam Singh,07:00,8,263.52
+30-Jul-2026,North Site,Engineering,Lucas Singh,15:00,8.5,279.99
+30-Jul-2026,North Site,Spa,Mason Wilson,09:00,7.5,219.6
+30-Jul-2026,North Site,Spa,Maya Khan,12:00,8.5,248.88
+30-Jul-2026,North Site,Spa,Mia Ali,09:00,8,234.24
+30-Jul-2026,North Site,Spa,Zoe Smith,12:00,8.5,248.88
+30-Jul-2026,North Site,Spa,Amelia Nguyen,09:00,8,234.24
+30-Jul-2026,GTR-NIAGARA,Front Office,Hannah Patel,07:00,8,209.84
+30-Jul-2026,GTR-NIAGARA,Front Office,Isla Kaur,15:00,8.5,222.95
+30-Jul-2026,GTR-NIAGARA,Front Office,Jack Tremblay,23:00,8,209.84
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Clark,08:00,6,139.08
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Khan,09:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Omar Martin,10:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Clark,08:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Wilson,09:00,6,139.08
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Brown,10:00,7.5,173.85
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Singh,08:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Tremblay,09:00,7.5,173.85
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Sofia Taylor,10:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Ali Khan,08:00,8.5,197.03
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Ali Roy,09:00,7.5,173.85
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Amelia Moore,10:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Ava Khan,08:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Chen Taylor,09:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Housekeeping,Emma Brown,10:00,8,185.44
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Ava Martin,06:00,8,175.68
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Chen Khan,10:00,8,175.68
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Chen Wilson,16:00,6,131.76
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Diego Wilson,17:00,7.5,164.7
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Emma Roy,06:00,8,175.68
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Emma Singh,10:00,8,175.68
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Ethan Clark,16:00,7.5,164.7
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Isla Khan,17:00,8,175.68
+30-Jul-2026,GTR-NIAGARA,Food and Beverage,Kofi Tremblay,06:00,6,131.76
+30-Jul-2026,GTR-NIAGARA,Engineering,Jack Nguyen,07:00,8.5,279.99
+30-Jul-2026,GTR-NIAGARA,Engineering,Mia Roy,15:00,8.5,279.99
+30-Jul-2026,GTR-NIAGARA,Spa,Hannah Kaur,09:00,7.5,219.6
+30-Jul-2026,GTR-NIAGARA,Spa,Noah Lee,12:00,6,175.68
+30-Jul-2026,GTR-NIAGARA,Spa,Omar Kaur,09:00,8,234.24
+30-Jul-2026,GTR-NIAGARA,Spa,Omar Moore,12:00,8,234.24
+30-Jul-2026,GTR-NIAGARA,Spa,Ethan Moore,09:00,6,175.68
+30-Jul-2026,RSS-NIAGARA,Front Office,Arjun Brown,07:00,8.5,222.95
+30-Jul-2026,RSS-NIAGARA,Front Office,Ava Clark,15:00,6,157.38
+30-Jul-2026,RSS-NIAGARA,Front Office,Grace Ali,23:00,8,209.84
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Gagnon,08:00,6,139.08
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Noah Tremblay,09:00,8.5,197.03
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Sam Tremblay,10:00,8.5,197.03
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Theo Scott,08:00,8,185.44
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Ali Martin,09:00,6,139.08
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Ali Tremblay,10:00,6,139.08
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Amelia Ali,08:00,7.5,173.85
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Chen Smith,09:00,8,185.44
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Chen Wilson,10:00,8,185.44
+30-Jul-2026,RSS-NIAGARA,Housekeeping,Diego Lee,08:00,7.5,173.85
+30-Jul-2026,RSS-NIAGARA,Food and Beverage,Olivia Tremblay,06:00,7.5,164.7
+30-Jul-2026,RSS-NIAGARA,Food and Beverage,Omar Garcia,10:00,7.5,164.7
+30-Jul-2026,RSS-NIAGARA,Food and Beverage,Priya Ali,16:00,6,131.76
+30-Jul-2026,RSS-NIAGARA,Food and Beverage,Sam Kaur,17:00,8,175.68
+30-Jul-2026,RSS-NIAGARA,Engineering,Grace Ali,07:00,8,263.52
+30-Jul-2026,RSS-NIAGARA,Engineering,Liam Khan,15:00,8,263.52
+30-Jul-2026,RSS-NIAGARA,Spa,Arjun Taylor,09:00,8,234.24
+30-Jul-2026,HLH-NIAGARA,Front Office,Priya Singh,07:00,8.5,222.95
+30-Jul-2026,HLH-NIAGARA,Front Office,Ravi Clark,15:00,8,209.84
+30-Jul-2026,HLH-NIAGARA,Front Office,Arjun Tremblay,23:00,6,157.38
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Noah Smith,08:00,8.5,197.03
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Olivia Moore,09:00,6,139.08
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Theo Martin,10:00,8.5,197.03
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Zoe Smith,08:00,8.5,197.03
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Zoe Taylor,09:00,7.5,173.85
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Arjun Smith,10:00,8.5,197.03
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Emma Martin,08:00,8.5,197.03
+30-Jul-2026,HLH-NIAGARA,Housekeeping,Emma Taylor,09:00,8,185.44
+30-Jul-2026,HLH-NIAGARA,Food and Beverage,Ethan Nguyen,06:00,8.5,186.66
+30-Jul-2026,HLH-NIAGARA,Food and Beverage,Fatima Gagnon,10:00,8.5,186.66
+30-Jul-2026,HLH-NIAGARA,Food and Beverage,Fatima Tremblay,16:00,8,175.68
+30-Jul-2026,HLH-NIAGARA,Food and Beverage,Isla Clark,17:00,8.5,186.66
+30-Jul-2026,HLH-NIAGARA,Engineering,Fatima Gagnon,07:00,7.5,247.05
+30-Jul-2026,HLH-NIAGARA,Engineering,Jack Gagnon,15:00,8,263.52
+30-Jul-2026,HLH-NIAGARA,Spa,Ethan Singh,09:00,8,234.24
+30-Jul-2026,PVI-NIAGARA,Front Office,Liam Singh,07:00,6,157.38
+30-Jul-2026,PVI-NIAGARA,Front Office,Noah Khan,15:00,8,209.84
+30-Jul-2026,PVI-NIAGARA,Front Office,Ravi Patel,23:00,8,209.84
+30-Jul-2026,PVI-NIAGARA,Housekeeping,Leah Brown,08:00,6,139.08
+30-Jul-2026,PVI-NIAGARA,Housekeeping,Leah Singh,09:00,8,185.44
+30-Jul-2026,PVI-NIAGARA,Housekeeping,Mason Tremblay,10:00,8.5,197.03
+30-Jul-2026,PVI-NIAGARA,Housekeeping,Maya Kaur,08:00,8,185.44
+30-Jul-2026,PVI-NIAGARA,Housekeeping,Mia Wong,09:00,8,185.44
+30-Jul-2026,PVI-NIAGARA,Housekeeping,Omar Nguyen,10:00,8,185.44
+30-Jul-2026,PVI-NIAGARA,Food and Beverage,Olivia Smith,06:00,8.5,186.66
+30-Jul-2026,PVI-NIAGARA,Food and Beverage,Priya Taylor,10:00,7.5,164.7
+30-Jul-2026,PVI-NIAGARA,Food and Beverage,Sofia Lee,16:00,7.5,164.7
+30-Jul-2026,PVI-NIAGARA,Engineering,Grace Patel,07:00,8,263.52
+30-Jul-2026,PVI-NIAGARA,Engineering,Liam Tremblay,15:00,8,263.52
+30-Jul-2026,PVI-NIAGARA,Spa,Lucas Ali,09:00,8,234.24
+31-Jul-2026,North Site,Front Office,Diego Clark,07:00,8.5,222.95
+31-Jul-2026,North Site,Front Office,Emma Ali,15:00,8.5,222.95
+31-Jul-2026,North Site,Front Office,Grace Nguyen,23:00,8,209.84
+31-Jul-2026,North Site,Front Office,Grace Patel,07:00,8,209.84
+31-Jul-2026,North Site,Housekeeping,Zoe Patel,08:00,7.5,173.85
+31-Jul-2026,North Site,Housekeeping,Zoe Scott,09:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Chen Lee,10:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Chen Smith,08:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Emma Nguyen,09:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Emma Roy,10:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Emma Singh,08:00,6,139.08
+31-Jul-2026,North Site,Housekeeping,Grace Clark,09:00,7.5,173.85
+31-Jul-2026,North Site,Housekeeping,Grace Lee,10:00,7.5,173.85
+31-Jul-2026,North Site,Housekeeping,Hannah Wilson,08:00,8.5,197.03
+31-Jul-2026,North Site,Housekeeping,Kofi Patel,09:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Kofi Scott,10:00,8.5,197.03
+31-Jul-2026,North Site,Housekeeping,Kofi Tremblay,08:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Leah Tremblay,09:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Mason Garcia,10:00,7.5,173.85
+31-Jul-2026,North Site,Housekeeping,Mason Khan,08:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Mia Moore,09:00,8,185.44
+31-Jul-2026,North Site,Housekeeping,Nina Tremblay,10:00,7.5,173.85
+31-Jul-2026,North Site,Food and Beverage,Noah Moore,06:00,8,175.68
+31-Jul-2026,North Site,Food and Beverage,Olivia Singh,10:00,7.5,164.7
+31-Jul-2026,North Site,Food and Beverage,Omar Ali,16:00,7.5,164.7
+31-Jul-2026,North Site,Food and Beverage,Ravi Gagnon,17:00,7.5,164.7
+31-Jul-2026,North Site,Food and Beverage,Sofia Martin,06:00,8,175.68
+31-Jul-2026,North Site,Food and Beverage,Sofia Nguyen,10:00,6,131.76
+31-Jul-2026,North Site,Food and Beverage,Sofia Roy,16:00,8.5,186.66
+31-Jul-2026,North Site,Food and Beverage,Theo Wilson,17:00,8,175.68
+31-Jul-2026,North Site,Food and Beverage,Amelia Martin,06:00,6,131.76
+31-Jul-2026,North Site,Engineering,Priya Wilson,07:00,7.5,247.05
+31-Jul-2026,North Site,Engineering,Arjun Ali,15:00,6,197.64
+31-Jul-2026,North Site,Spa,Zoe Smith,09:00,6,175.68
+31-Jul-2026,North Site,Spa,Amelia Nguyen,12:00,8.5,248.88
+31-Jul-2026,North Site,Spa,Mason Wilson,09:00,6,175.68
+31-Jul-2026,North Site,Spa,Maya Khan,12:00,7.5,219.6
+31-Jul-2026,North Site,Spa,Mia Ali,09:00,8,234.24
+31-Jul-2026,GTR-NIAGARA,Front Office,Liam Moore,07:00,7.5,196.72
+31-Jul-2026,GTR-NIAGARA,Front Office,Nina Lee,15:00,8.5,222.95
+31-Jul-2026,GTR-NIAGARA,Front Office,Nina Singh,23:00,8,209.84
+31-Jul-2026,GTR-NIAGARA,Front Office,Noah Wilson,07:00,7.5,196.72
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Clark,08:00,6,139.08
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Ravi Wilson,09:00,7.5,173.85
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Brown,10:00,8,185.44
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Singh,08:00,6,139.08
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Sam Tremblay,09:00,8,185.44
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Sofia Taylor,10:00,7.5,173.85
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Ali Khan,08:00,8,185.44
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Ali Roy,09:00,8.5,197.03
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Amelia Moore,10:00,8.5,197.03
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Ava Khan,08:00,8.5,197.03
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Chen Taylor,09:00,8,185.44
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Emma Brown,10:00,8.5,197.03
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Emma Patel,08:00,7.5,173.85
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Emma Scott,09:00,8,185.44
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Emma Singh,10:00,8.5,197.03
+31-Jul-2026,GTR-NIAGARA,Housekeeping,Grace Clark,08:00,8,185.44
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Diego Wilson,06:00,8,175.68
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Emma Roy,10:00,8,175.68
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Emma Singh,16:00,8.5,186.66
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Ethan Clark,17:00,8,175.68
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Isla Khan,06:00,8,175.68
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Kofi Tremblay,10:00,8,175.68
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Maya Khan,16:00,8.5,186.66
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Noah Ali,17:00,8,175.68
+31-Jul-2026,GTR-NIAGARA,Food and Beverage,Olivia Ali,06:00,6,131.76
+31-Jul-2026,GTR-NIAGARA,Engineering,Emma Singh,07:00,8,263.52
+31-Jul-2026,GTR-NIAGARA,Engineering,Jack Nguyen,15:00,8.5,279.99
+31-Jul-2026,GTR-NIAGARA,Spa,Omar Moore,09:00,8.5,248.88
+31-Jul-2026,GTR-NIAGARA,Spa,Ethan Moore,12:00,6,175.68
+31-Jul-2026,GTR-NIAGARA,Spa,Hannah Kaur,09:00,6,175.68
+31-Jul-2026,GTR-NIAGARA,Spa,Noah Lee,12:00,8,234.24
+31-Jul-2026,GTR-NIAGARA,Spa,Omar Kaur,09:00,7.5,219.6
+31-Jul-2026,RSS-NIAGARA,Front Office,Maya Gagnon,07:00,6,157.38
+31-Jul-2026,RSS-NIAGARA,Front Office,Olivia Tremblay,15:00,7.5,196.72
+31-Jul-2026,RSS-NIAGARA,Front Office,Theo Brown,23:00,8,209.84
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Theo Scott,08:00,8,185.44
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Ali Martin,09:00,8,185.44
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Ali Tremblay,10:00,8,185.44
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Amelia Ali,08:00,8,185.44
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Chen Smith,09:00,7.5,173.85
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Chen Wilson,10:00,6,139.08
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Diego Lee,08:00,7.5,173.85
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Emma Martin,09:00,8,185.44
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Emma Wilson,10:00,8.5,197.03
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Grace Khan,08:00,8,185.44
+31-Jul-2026,RSS-NIAGARA,Housekeeping,Hannah Clark,09:00,6,139.08
+31-Jul-2026,RSS-NIAGARA,Food and Beverage,Sam Kaur,06:00,8.5,186.66
+31-Jul-2026,RSS-NIAGARA,Food and Beverage,Sam Patel,10:00,8.5,186.66
+31-Jul-2026,RSS-NIAGARA,Food and Beverage,Zoe Martin,16:00,8,175.68
+31-Jul-2026,RSS-NIAGARA,Food and Beverage,Zoe Wilson,17:00,6,131.76
+31-Jul-2026,RSS-NIAGARA,Engineering,Ali Clark,07:00,8,263.52
+31-Jul-2026,RSS-NIAGARA,Engineering,Grace Ali,15:00,6,197.64
+31-Jul-2026,RSS-NIAGARA,Spa,Olivia Khan,09:00,8,234.24
+31-Jul-2026,HLH-NIAGARA,Front Office,Diego Taylor,07:00,8,209.84
+31-Jul-2026,HLH-NIAGARA,Front Office,Jack Scott,15:00,8,209.84
+31-Jul-2026,HLH-NIAGARA,Front Office,Mason Lee,23:00,8,209.84
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Zoe Smith,08:00,8,185.44
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Zoe Taylor,09:00,8,185.44
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Arjun Smith,10:00,8,185.44
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Emma Martin,08:00,8,185.44
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Emma Taylor,09:00,7.5,173.85
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Grace Lee,10:00,8,185.44
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Isla Ali,08:00,7.5,173.85
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Jack Clark,09:00,8.5,197.03
+31-Jul-2026,HLH-NIAGARA,Housekeeping,Kofi Wong,10:00,8,185.44
+31-Jul-2026,HLH-NIAGARA,Food and Beverage,Isla Clark,06:00,7.5,164.7
+31-Jul-2026,HLH-NIAGARA,Food and Beverage,Kofi Gagnon,10:00,8,175.68
+31-Jul-2026,HLH-NIAGARA,Food and Beverage,Lucas Wilson,16:00,8,175.68

@@ -1,0 +1,211 @@
+---
+// #T1070 End-of-day close assistant: checklist, balancing the takings and the day's report (maths in src/lib/biz/dayclose.ts).
+// Runs in the browser; nothing is sent anywhere, and nothing is kept on the device unless the box is ticked.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+---
+<div class="tool-ui ax dc">
+  <div class="ax-card dc-np">
+    <h2>1. Tonight's checklist</h2>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="dc-preset"><option value="hotel">Hotel night audit</option><option value="restaurant">Restaurant cash-up</option><option value="shop">Shop closing</option><option value="service">Clinic or service business</option></select>
+      </label>
+      <label>Business name <input data-k="name" /></label>
+      <label>Day being closed <input type="date" data-k="date" /></label>
+      <label>Closed by <input data-k="by" /></label>
+      <label>Currency <select class="dc-cur"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><b class="dc-prog"></b></div>
+    <div class="biz-bar" style="margin:6px 0 10px;max-width:420px"><i class="dc-prog-bar" style="width:0"></i></div>
+    <ol class="dc-steps"></ol>
+    <div class="ax-row" style="margin-top:8px"><input class="dc-newstep" placeholder="Add a step, for example: check the safe" style="flex:1;min-width:200px" aria-label="New step" /><button type="button" class="btn secondary small dc-addstep">Add step</button></div>
+    <p class="ax-help">Tick a step and the time is stamped. Remove a step with the cross. Your own steps stay in the list for this session; tick "Remember" at the bottom to keep them.</p>
+  </div>
+
+  <div class="ax-card dc-np">
+    <h2>2. Balance the takings</h2>
+    <p class="ax-help" style="margin-top:0">For each cashier or till and each way of paying, type what the system says was taken and what was actually counted or settled. The difference is the over (more than expected) or short (less than expected).</p>
+    <div class="ax-row"><label>Tolerance per line <input data-k="tol" inputmode="decimal" style="width:90px" /></label><span class="ax-help" style="margin:0">Differences up to this amount show amber; anything larger shows red.</span></div>
+    <div class="ax-scroll"><table class="biz-tbl dc-lines"><thead><tr><th>Cashier or till</th><th>Paid by</th><th class="r">Expected (system)</th><th class="r">Counted or settled</th><th class="r">Over / short</th><th>Result</th><th>Note</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dc-addline">Add a line</button></div>
+    <div class="biz-kpis dc-bkpis" style="margin-top:12px"></div>
+    <p class="biz-warn dc-bwarn"></p>
+    <h3 class="biz-sub">By cashier</h3>
+    <div class="ax-scroll"><table class="biz-tbl dc-by"></table></div>
+  </div>
+
+  <div class="ax-card dc-np">
+    <h2>3. The day's figures</h2>
+    <div class="ax-grid">
+      <label>What you sell, one word <input data-k="unit" maxlength="20" /></label>
+      <label>Number sold today <input data-k="sold" inputmode="numeric" /></label>
+      <label>Number you could have sold <input data-k="avail" inputmode="numeric" /></label>
+      <label>Main sales (before tax) <input data-k="main" inputmode="decimal" /></label>
+      <label>Tax collected <input data-k="tax" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The number you could have sold is the places or capacity for the day (rooms, seats, appointment slots). Leave it blank if it does not apply and the use figure is left out.</p>
+    <h3 class="biz-sub">Other sales</h3>
+    <div class="ax-scroll"><table class="biz-tbl dc-other"><thead><tr><th>What</th><th class="r">Amount</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dc-addother">Add a line</button></div>
+    <label style="display:block;margin-top:12px">Notes for the next shift <textarea class="dc-notes" rows="3" data-k="notes"></textarea></label>
+  </div>
+
+  <div class="ax-card dc-res" aria-live="polite">
+    <h2 class="dc-title">The day's report</h2>
+    <div class="biz-kpis dc-kpis"></div>
+    <p class="biz-take dc-take"></p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="biz-tbl dc-rep"></table></div>
+    <p class="ax-help dc-repnote"></p>
+    <div class="ax-row dc-np" style="margin-top:10px"><button type="button" class="btn small dc-close">Close this day and add it to history</button><button type="button" class="btn secondary small dc-csv">Download the report (CSV)</button><button type="button" class="btn secondary small dc-print">Print</button></div>
+    <p class="ax-help dc-closed"></p>
+  </div>
+
+  <div class="ax-card dc-np">
+    <h2>History of closed days</h2>
+    <p class="ax-help" style="margin-top:0">Closed days are listed here and feed the month and year to date. They live only in this tab unless you tick "Remember" below, so download the history as a CSV to keep a copy.</p>
+    <svg class="biz-svg dc-chart" viewBox="0 0 700 180" role="img" aria-label="Main sales for the last closed days"></svg>
+    <div class="ax-scroll" style="max-height:340px"><table class="biz-tbl dc-hist"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dc-csvh">Download history (CSV)</button></div>
+  </div>
+
+  <div class="ax-card biz-keep dc-np">
+    <label class="ax-check"><input type="checkbox" class="dc-keep" /> Remember my steps, lines and history on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, what you type and the closed days stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else. Do not use it on a shared computer.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small dc-clear">Clear saved data</button><button type="button" class="btn secondary small dc-reset">Back to the example</button></div>
+  </div>
+  <p class="biz-fine dc-np">This tool checks and records; it does not post to your system. Numbers you type are trusted, so keep running your own end-of-day reports. Not accounting or tax advice.</p>
+</div>
+
+<style is:inline>
+  .dc .dc-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .dc .dc-steps li { display: grid; grid-template-columns: 24px 1fr auto auto; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; font-size: 14.5px; }
+  .dc .dc-steps li.on { background: var(--good-soft); }
+  .dc .dc-steps li.on span { text-decoration: line-through; color: var(--muted); }
+  .dc .dc-steps small { color: var(--muted); font-size: 12.5px; }
+  .dc .dc-steps input[type=checkbox] { width: 20px; height: 20px; margin: 0; }
+  .dc .dc-lines input:not([type=checkbox]) { min-width: 90px; }
+  .dc .dc-lines input.t { min-width: 130px; }
+  .dc tr.s-tol td.dd { color: var(--warn); font-weight: 700; } .dc tr.s-bad td.dd { color: var(--bad); font-weight: 700; } .dc tr.s-ok td.dd { color: var(--good); }
+  .dc .dc-rep td:first-child { font-weight: 600; }
+  @media print { .dc .dc-np { display: none !important; } }
+</style>
+
+<script>
+  import { reconcile, figures, toDate, type Line, type Day } from '../../lib/biz/dayclose';
+  import { todayISO, addDays, toCSV, downloadText, keeper, toNum, validISO } from '../../lib/biz/common';
+  import { barSvg } from '../../lib/biz/dash';
+  import { money, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.dc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  type Step = { t: string; at: string };
+  type S = { cur: string; kind: string; name: string; date: string; by: string; tol: string; unit: string; sold: string; avail: string; main: string; tax: string; other: { label: string; amount: string }[]; notes: string; steps: Step[]; lines: Line[]; hist: Day[] };
+  const KINDS: Record<string, { name: string; unit: string; steps: string[]; who: string[]; types: string[]; sold: string; avail: string; main: string; tax: string; other: [string, string][]; exp: number[]; }> = {
+    hotel: { name: 'Example Hotel', unit: 'room', steps: ['Print or save the arrivals and departures lists', 'Check every no-show and charge by policy', 'Check rates and room status against housekeeping', 'Check folios over their credit limit', 'Balance each cashier (below)', 'Post the room and tax charges', 'Run the daily manager report', 'Back up the system', 'Write the handover notes'], who: ['Front desk', 'Night desk'], types: ['Cash', 'Card', 'Direct bill'], sold: '96', avail: '120', main: '14450', tax: '1880', other: [['Food and drink', '3120'], ['Parking and other', '410']], exp: [1250, 9840, 3360] },
+    restaurant: { name: 'Example Restaurant', unit: 'cover', steps: ['Close every open table and check', 'Print the sales summary from the till', 'Count each till drawer (below)', 'Match card terminal totals to the till', 'Record tips and who they go to', 'Record waste and comps', 'Put the float and takings in the safe', 'Write the notes for the morning'], who: ['Till 1', 'Till 2'], types: ['Cash', 'Card'], sold: '212', avail: '260', main: '7420', tax: '965', other: [['Delivery sales', '830'], ['Gift cards sold', '150']], exp: [1480, 5940] },
+    shop: { name: 'Example Shop', unit: 'sale', steps: ['Print the end-of-day sales report', 'Count each till drawer (below)', 'Match card terminal totals', 'Check refunds and voids with a manager', 'Record the bank deposit', 'Lock up the stock room', 'Write the notes for the next shift'], who: ['Till 1', 'Till 2'], types: ['Cash', 'Card', 'Other'], sold: '184', avail: '', main: '6310', tax: '820', other: [['Online order pick-ups', '540']], exp: [980, 4620, 210] },
+    service: { name: 'Example Clinic', unit: 'appointment', steps: ['Mark every no-show and late cancellation', 'Check tomorrow\'s list is complete', 'Take payment for unpaid visits', 'Balance the card terminal and cash box (below)', 'Send the day\'s invoices', 'Lock the records and the premises', 'Write the handover notes'], who: ['Reception'], types: ['Cash', 'Card', 'Insurance billed'], sold: '41', avail: '48', main: '4120', tax: '0', other: [['Products sold', '230']], exp: [350, 2870, 1130] },
+  };
+  const makeLines = (k: string): Line[] => { const d = KINDS[k]; const out: Line[] = []; d.who.forEach((w, i) => d.types.forEach((t, j) => { const base = d.exp[j] / d.who.length; const e = Math.round(base * (1 + i * 0.1)); out.push({ who: w, type: t, expected: String(e), counted: String(t === 'Cash' && i === 0 ? e - 4.5 : t === 'Cash' ? e + 1 : e), note: '' }); })); return out; };
+  const fresh = (cur: string, kind = 'hotel'): S => { const d = KINDS[kind]; return { cur, kind, name: d.name, date: addDays(todayISO(), 0), by: '', tol: '5', unit: d.unit, sold: d.sold, avail: d.avail, main: d.main, tax: d.tax, other: d.other.map(([label, amount]) => ({ label, amount })), notes: '', steps: d.steps.map((t) => ({ t, at: '' })), lines: makeLines(kind), hist: [] }; };
+  let st = fresh(defaultCurrency());
+  const keep = keeper('fibub-daily-close-v1', q('.dc-keep'), q('.dc-clear'), () => st, (v) => { st = Object.assign(fresh(defaultCurrency()), v); });
+  q('.dc-cur').innerHTML = currencyOptions(st.cur);
+  const $ = (v: number, d = 2) => (Number.isFinite(v) ? money(v, st.cur, d) : '-');
+  const sg = (v: number) => (!Number.isFinite(v) ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + $(Math.abs(v)));
+  const p1 = (v: number) => (Number.isFinite(v) ? (v * 100).toFixed(1) + '%' : '-');
+  const nowHM = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const NAMES: Record<string, string> = { Cash: 'cash', Card: 'card' }; void NAMES;
+
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    q<HTMLSelectElement>('.dc-cur').value = st.cur; q<HTMLSelectElement>('.dc-preset').value = st.kind;
+    if (!validISO(st.date)) st.date = todayISO(); q<HTMLInputElement>('[data-k=date]').value = st.date;
+    steps(); lines(); other(); run();
+  }
+  const disp = (el: HTMLElement) => el; void disp;
+  function steps() {
+    const done = st.steps.filter((s) => s.at).length;
+    q('.dc-prog').textContent = `${done} of ${st.steps.length} steps done`;
+    q<HTMLElement>('.dc-prog-bar').style.width = (st.steps.length ? (done / st.steps.length) * 100 : 0) + '%';
+    q('.dc-steps').innerHTML = st.steps.map((s, i) => `<li class="${s.at ? 'on' : ''}" data-i="${i}"><input type="checkbox" data-tick${s.at ? ' checked' : ''} aria-label="${esc(s.t)}" /><span>${esc(s.t)}</span><small>${s.at ? 'at ' + esc(s.at) : ''}</small><button type="button" class="biz-x" data-del aria-label="Remove step">&times;</button></li>`).join('');
+  }
+  q('.dc-steps').addEventListener('click', (e) => {
+    const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-i]'); if (!li) return; const i = +li.dataset.i!;
+    if ((e.target as HTMLElement).closest('[data-del]')) { st.steps.splice(i, 1); keep(); steps(); run(); }
+  });
+  q('.dc-steps').addEventListener('change', (e) => { const el = e.target as HTMLInputElement; const li = el.closest<HTMLElement>('li[data-i]'); if (!li || !el.matches('[data-tick]')) return; st.steps[+li.dataset.i!].at = el.checked ? nowHM() : ''; keep(); steps(); run(); });
+  q('.dc-addstep').addEventListener('click', () => { const el = q<HTMLInputElement>('.dc-newstep'), t = el.value.trim(); if (!t) return; st.steps.push({ t, at: '' }); el.value = ''; keep(); steps(); run(); });
+
+  function lines() {
+    const rec = reconcile(st.lines, +toNum(st.tol) || 0);
+    q('.dc-lines tbody').innerHTML = rec.rows.map((r, i) => `<tr class="s-${r.st}" data-i="${i}"><td><input class="t" data-f="who" value="${esc(r.who)}" aria-label="Cashier" /></td><td><input class="t" data-f="type" value="${esc(r.type)}" aria-label="Paid by" /></td><td class="r"><input data-f="expected" inputmode="decimal" value="${esc(r.expected)}" aria-label="Expected" /></td><td class="r"><input data-f="counted" inputmode="decimal" value="${esc(r.counted)}" aria-label="Counted" /></td><td class="r dd">${sg(r.diff)}</td><td>${r.st === 'ok' ? 'Balanced' : r.st === 'tol' ? 'Within tolerance' : r.st === 'bad' ? (r.diff > 0 ? 'Over' : 'Short') : 'Not filled in'}</td><td><input class="t" data-f="note" value="${esc(r.note)}" aria-label="Note" /></td><td><button type="button" class="biz-x" data-del aria-label="Remove line">&times;</button></td></tr>`).join('');
+    summary(rec);
+  }
+  function summary(rec = reconcile(st.lines, +toNum(st.tol) || 0)) {
+    q('.dc-bkpis').innerHTML = [['Expected', $(rec.expected), ''], ['Counted', $(rec.counted), ''], ['Over / short', sg(rec.diff), Math.abs(rec.diff) < 0.005 ? 'good' : rec.bad ? 'bad' : 'warn'], ['Lines to check', String(rec.bad), rec.bad ? 'bad' : 'good']].map(([n, v, c]) => `<div class="biz-k ${c}"><span>${n}</span><b>${v}</b></div>`).join('');
+    q('.dc-bwarn').textContent = rec.bad ? `${rec.bad} line${rec.bad > 1 ? 's are' : ' is'} outside the tolerance. Recount, check for a wrong payment type or a missed refund, and write a note.` : rec.open ? `${rec.open} line${rec.open > 1 ? 's are' : ' is'} not filled in yet and left out of the totals.` : '';
+    q('.dc-by').innerHTML = rec.byWho.length ? `<thead><tr><th>Cashier</th><th class="r">Expected</th><th class="r">Counted</th><th class="r">Over / short</th></tr></thead><tbody>${rec.byWho.map((b) => `<tr><td>${esc(b.who)}</td><td class="r">${$(b.e)}</td><td class="r">${$(b.c)}</td><td class="r ${Math.abs(b.diff) < 0.005 ? '' : b.diff > 0 ? 'pos' : 'neg'}">${sg(b.diff)}</td></tr>`).join('')}</tbody>` : '';
+  }
+  q('.dc-lines').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement, tr = el.closest<HTMLElement>('tr[data-i]'); if (!tr || !el.dataset.f) return;
+    (st.lines[+tr.dataset.i!] as any)[el.dataset.f] = el.value; keep();
+    const rec = reconcile(st.lines, +toNum(st.tol) || 0), r = rec.rows[+tr.dataset.i!];
+    tr.className = 's-' + r.st; tr.querySelector('.dd')!.textContent = sg(r.diff); tr.children[5].textContent = r.st === 'ok' ? 'Balanced' : r.st === 'tol' ? 'Within tolerance' : r.st === 'bad' ? (r.diff > 0 ? 'Over' : 'Short') : 'Not filled in';
+    summary(rec); run();
+  });
+  q('.dc-lines').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-del]'); if (!b) return; st.lines.splice(+b.closest<HTMLElement>('tr')!.dataset.i!, 1); keep(); lines(); run(); });
+  q('.dc-addline').addEventListener('click', () => { st.lines.push({ who: st.lines.at(-1)?.who || '', type: '', expected: '', counted: '', note: '' }); keep(); lines(); q('.dc-lines tbody tr:last-child input[data-f=type]')?.focus(); });
+  function other() {
+    q('.dc-other tbody').innerHTML = st.other.map((o, i) => `<tr data-i="${i}"><td><input class="t" style="min-width:180px" data-f="label" value="${esc(o.label)}" aria-label="What" /></td><td class="r"><input data-f="amount" inputmode="decimal" value="${esc(o.amount)}" style="width:110px" aria-label="Amount" /></td><td><button type="button" class="biz-x" data-del aria-label="Remove line">&times;</button></td></tr>`).join('');
+  }
+  q('.dc-other').addEventListener('input', (e) => { const el = e.target as HTMLInputElement, tr = el.closest<HTMLElement>('tr[data-i]'); if (!tr || !el.dataset.f) return; (st.other[+tr.dataset.i!] as any)[el.dataset.f] = el.value; keep(); run(); });
+  q('.dc-other').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-del]'); if (!b) return; st.other.splice(+b.closest<HTMLElement>('tr')!.dataset.i!, 1); keep(); other(); run(); });
+  q('.dc-addother').addEventListener('click', () => { st.other.push({ label: '', amount: '' }); keep(); other(); });
+
+  root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-k]').forEach((el) => el.addEventListener('input', () => { (st as any)[el.dataset.k!] = el.value; keep(); if (el.dataset.k === 'tol') lines(); run(); }));
+  q('.dc-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); lines(); run(); });
+  q('.dc-preset').addEventListener('change', (e) => { const h = st.hist; st = fresh(st.cur, (e.target as HTMLSelectElement).value); st.hist = h; keep(); bind(); });
+  q('.dc-reset').addEventListener('click', () => { st = fresh(st.cur); bind(); });
+
+  let cur: { day: Day; r: ReturnType<typeof toDate>; f: ReturnType<typeof figures>; rec: ReturnType<typeof reconcile> };
+  function run() {
+    const f = figures(st), rec = reconcile(st.lines, +toNum(st.tol) || 0), done = st.steps.filter((s) => s.at).length;
+    const day: Day = { date: st.date, sold: f.sold, avail: f.avail, main: f.main, sales: f.sales, tax: f.tax, diff: rec.diff, done, steps: st.steps.length };
+    const r = toDate(st.hist, day); cur = { day, r, f, rec };
+    q('.dc-title').textContent = `${st.name || 'Business'}: report for ${validISO(st.date) ? new Date(st.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '(choose a date)'}`;
+    const u = st.unit || 'sale', k = (n: string, v: string, s = '', c = '') => `<div class="biz-k ${c}"><span>${n}</span><b>${v}</b><small>${s}</small></div>`;
+    q('.dc-kpis').innerHTML = [k('Total sales', $(f.sales, 0), `plus ${$(f.tax, 0)} tax`), k(`${u[0].toUpperCase() + u.slice(1)}s sold`, String(f.sold), f.avail ? `of ${f.avail} available` : ''), k('Use of capacity', p1(f.use)), k('Average price', $(f.price), 'main sales per ' + u), k('Over / short', sg(rec.diff), rec.bad ? rec.bad + ' to check' : 'all lines within tolerance', rec.bad ? 'bad' : Math.abs(rec.diff) < 0.005 ? 'good' : 'warn'), k('Checklist', `${done} of ${st.steps.length}`, done === st.steps.length ? 'complete' : 'not finished', done === st.steps.length ? 'good' : 'warn')].join('');
+    const todo = st.steps.length - done;
+    q('.dc-take').innerHTML = `<b>Before you close:</b> ` + (todo || rec.bad || rec.open ? [todo ? `${todo} step${todo > 1 ? 's' : ''} left on the checklist` : '', rec.bad ? `${rec.bad} line${rec.bad > 1 ? 's' : ''} outside the tolerance` : '', rec.open ? `${rec.open} line${rec.open > 1 ? 's' : ''} not filled in` : ''].filter(Boolean).join(', ') + '.' : 'the checklist is complete and every line is within the tolerance.');
+    const row = (n: string, a: number, b: number, c: number, fmt: (v: number) => string) => `<tr><td>${n}</td><td class="r">${fmt(a)}</td><td class="r">${fmt(b)}</td><td class="r">${fmt(c)}</td></tr>`;
+    const d0 = (v: number) => $(v, 0), n0 = (v: number) => (Number.isFinite(v) ? Math.round(v).toLocaleString() : '-');
+    q('.dc-rep').innerHTML = `<thead><tr><th>Measure</th><th class="r">Today</th><th class="r">Month to date</th><th class="r">Year to date</th></tr></thead><tbody>${row(u + 's sold', r.today.sold, r.mtd.sold, r.ytd.sold, n0)}${row('Places available', r.today.avail, r.mtd.avail, r.ytd.avail, n0)}${row('Use of capacity', r.today.use, r.mtd.use, r.ytd.use, p1)}${row('Main sales', r.today.main, r.mtd.main, r.ytd.main, d0)}${row('Average price', r.today.price, r.mtd.price, r.ytd.price, $)}${row('Revenue per place', r.today.perPlace, r.mtd.perPlace, r.ytd.perPlace, $)}${row('Total sales', r.today.sales, r.mtd.sales, r.ytd.sales, d0)}${row('Tax collected', r.today.tax, r.mtd.tax, r.ytd.tax, d0)}${row('Over / short', r.today.diff, r.mtd.diff, r.ytd.diff, sg)}</tbody>`;
+    q('.dc-repnote').textContent = `Month and year to date add today to the ${st.hist.filter((d) => d.date < st.date && d.date.slice(0, 7) === st.date.slice(0, 7)).length} closed days of this month and the ${st.hist.filter((d) => d.date < st.date && d.date.slice(0, 4) === st.date.slice(0, 4)).length} of this year in the history below. Ratios come from the totals.`;
+  }
+  q('.dc-close').addEventListener('click', () => {
+    if (!validISO(st.date)) { q('.dc-closed').textContent = 'Choose the day you are closing first.'; return; }
+    const replaced = st.hist.some((d) => d.date === st.date);
+    st.hist = st.hist.filter((d) => d.date !== st.date).concat(cur.day).sort((a, b) => (a.date < b.date ? -1 : 1)).slice(-800);
+    keep(); q('.dc-closed').textContent = `${replaced ? 'Replaced' : 'Added'} ${st.date} in the history. Change the date to start the next day; the steps start again.`;
+    st.steps.forEach((s) => (s.at = '')); st.date = addDays(st.date, 1); q<HTMLInputElement>('[data-k=date]').value = st.date; steps(); hist(); run();
+  });
+  function hist() {
+    const h = st.hist.slice().reverse();
+    q('.dc-hist').innerHTML = h.length ? `<thead><tr><th>Day</th><th class="r">Sold</th><th class="r">Use</th><th class="r">Main sales</th><th class="r">Total sales</th><th class="r">Over / short</th><th class="r">Checklist</th><th></th></tr></thead><tbody>${h.map((d) => `<tr><td>${d.date}</td><td class="r">${d.sold}</td><td class="r">${p1(d.avail > 0 ? d.sold / d.avail : NaN)}</td><td class="r">${$(d.main, 0)}</td><td class="r">${$(d.sales, 0)}</td><td class="r ${Math.abs(d.diff) < 0.005 ? '' : d.diff > 0 ? 'pos' : 'neg'}">${sg(d.diff)}</td><td class="r">${d.done}/${d.steps}</td><td><button type="button" class="biz-x" data-d="${d.date}" aria-label="Remove ${d.date}">&times;</button></td></tr>`).join('')}</tbody>` : '<tbody><tr><td>No closed days yet. Close a day above and it appears here.</td></tr></tbody>';
+    const last = st.hist.slice(-30);
+    q('.dc-chart').innerHTML = last.length ? barSvg(last.map((d) => d.main), last.map((d) => d.date.slice(5)), (v) => (v >= 1e3 ? Math.round(v / 1e3) + 'k' : String(Math.round(v))), 700, 180) : '';
+  }
+  q('.dc-hist').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-d]'); if (!b) return; st.hist = st.hist.filter((d) => d.date !== b.dataset.d); keep(); hist(); run(); });
+  const origRun = run; void origRun;
+  q('.dc-csv').addEventListener('click', () => {
+    const { r, f, rec } = cur, out: unknown[][] = [['Measure', 'Today', 'Month to date', 'Year to date'], ['Sold', r.today.sold, r.mtd.sold, r.ytd.sold], ['Places available', r.today.avail, r.mtd.avail, r.ytd.avail], ['Main sales', r.today.main, r.mtd.main, r.ytd.main], ['Total sales', r.today.sales, r.mtd.sales, r.ytd.sales], ['Tax', r.today.tax, r.mtd.tax, r.ytd.tax], ['Over / short', r.today.diff, r.mtd.diff, r.ytd.diff], [], ['Cashier', 'Paid by', 'Expected', 'Counted', 'Over / short', 'Note']];
+    rec.rows.forEach((x) => out.push([x.who, x.type, x.expected, x.counted, Number.isFinite(x.diff) ? x.diff : '', x.note])); void f;
+    downloadText(`close-${st.date}.csv`, toCSV(out));
+  });
+  q('.dc-csvh').addEventListener('click', () => downloadText('closed-days.csv', toCSV([['Day', 'Sold', 'Places available', 'Main sales', 'Total sales', 'Tax', 'Over / short', 'Steps done', 'Steps'], ...st.hist.map((d) => [d.date, d.sold, d.avail, d.main, d.sales, d.tax, d.diff, d.done, d.steps])])));
+  q('.dc-print').addEventListener('click', () => window.print());
+  bind(); hist();
+</script>

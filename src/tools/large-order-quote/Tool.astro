@@ -1,0 +1,215 @@
+---
+// #T1065 Group and large-order quote: is a big booking worth it once you count the regular customers it pushes out?
+// Maths in src/lib/biz/quote.ts. Runs in the browser; nothing is sent anywhere or kept unless the box is ticked.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax loq">
+  <div class="ax-card">
+    <h2>1. Your business</h2>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="loq-preset"><option value="hotel">Hotel group block</option><option value="catering">Private dining or catering</option><option value="bulk">Bulk or wholesale order</option></select>
+      </label>
+      <label>Currency <select class="loq-cur"></select></label>
+      <label>What you sell (one word) <input data-k="unit" maxlength="20" /></label>
+      <label>How many you can supply a day <input data-k="cap" inputmode="numeric" /></label>
+      <label>Cost to serve one <input data-k="varCost" inputmode="decimal" /></label>
+      <label>Selling cost on regular sales, % <input data-k="channel" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Selling cost is what you pay to win a regular sale: booking-site commission, card fees, delivery. Cost to serve is what each unit costs you to supply (cleaning, food, materials).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. The request</h2>
+    <div class="ax-grid">
+      <label>Who is asking <input data-k="who" /></label>
+      <label>Price offered per unit <input data-k="rate" inputmode="decimal" /></label>
+      <label>How much they will really take up, % <input data-k="pickup" inputmode="decimal" /></label>
+      <label>Share of the unused part you can resell, % <input data-k="resale" inputmode="decimal" /></label>
+      <label>Commission to an agent, % <input data-k="commission" inputmode="decimal" /></label>
+      <label>Safety margin you want, % <input data-k="hurdle" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Take-up: groups usually use less than they reserve (88% is common for conference blocks). Resale: the part they release that you can sell to someone else. Safety margin: how far above break-even the price must be before you say yes.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. What else they spend</h2>
+    <div class="ax-grid">
+      <label><span class="loq-l0"></span> per unit <input data-k="ea" inputmode="decimal" /></label>
+      <label><span class="loq-l1"></span> per unit <input data-k="eb" inputmode="decimal" /></label>
+      <label><span class="loq-l2"></span> per unit <input data-k="ec" inputmode="decimal" /></label>
+      <label>Profit kept on these, % <input data-k="margin" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help loq-extras"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Day by day</h2>
+    <p class="ax-help" style="margin-top:0">For each day: how many regular customers you would normally sell, the price they pay, and how many the group wants.</p>
+    <p class="biz-warn loq-nwarn"></p>
+    <div class="ax-scroll"><table class="biz-tbl loq-nights"><thead><tr><th>Date</th><th class="r">Regular demand</th><th class="r">Regular price</th><th class="r">Group wants</th><th class="r">Pushed out</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small loq-add">Add a day</button></div>
+    <details class="biz-paste" style="margin-top:10px"><summary>Paste or open a table of days</summary>
+      <p class="ax-help">Columns: date, regular demand, regular price, group wants. The first row can be headings.</p>
+      <textarea class="loq-paste" rows="5" spellcheck="false"></textarea>
+      <DataFile target=".loq-paste" maxCols={8} maxRows={100} label="Open a table" />
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small loq-load">Use these rows</button><span class="ax-help loq-load-msg" style="margin:0"></span></div>
+    </details>
+  </div>
+
+  <div class="ax-card loq-res" aria-live="polite">
+    <h2 class="loq-title">Verdict</h2>
+    <p class="biz-warn biz-bad loq-warn"></p>
+    <div class="loq-out">
+      <div class="biz-kpis loq-kpis"></div>
+      <p class="biz-take loq-take"></p>
+      <h3 class="biz-sub">Day by day</h3>
+      <div class="ax-scroll"><table class="biz-tbl loq-result"><thead><tr><th>Date</th><th class="r">Regular demand</th><th class="r">Group uses</th><th class="r">Held for group</th><th class="r">Pushed out</th><th class="r">Revenue lost</th><th class="r">Profit lost</th><th class="r">Group revenue</th><th class="r">Group profit</th><th class="r">Net</th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>
+      <h3 class="biz-sub">Quote review</h3>
+      <div class="loq-quote"></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small loq-csv">Download (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="loq-keep" /> Remember my numbers on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your numbers stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small loq-clear">Clear saved numbers</button><button type="button" class="btn secondary small loq-reset">Back to the example</button></div>
+  </div>
+  <p class="biz-fine">Only as good as the forecast of regular business you enter. It does not price in the long-term value of a repeat client. Estimates before tax; not advice.</p>
+</div>
+
+<style is:inline>
+  .loq dl.loq-dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; font-size: 14.5px; }
+  .loq dl.loq-dl dt { color: var(--muted); } .loq dl.loq-dl dd { margin: 0; text-align: right; font-weight: 600; }
+  .loq .loq-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 10px; }
+  @media (min-width: 640px) { .loq .loq-cols { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { quote, problems as qProblems, type Night } from '../../lib/biz/quote';
+  import { addDays, todayISO, validISO, dayLabel, esc, toCSV, downloadText, keeper, parseTable, parseDate } from '../../lib/biz/common';
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.loq')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MAX = 14;
+  type Row = { date: string; demand: string; price: string; group: string };
+  type S = { cur: string; unit: string; cap: string; varCost: string; channel: string; who: string; rate: string; pickup: string; resale: string; commission: string; hurdle: string; ea: string; eb: string; ec: string; margin: string; labels: string[]; nights: Row[] };
+  const P: Record<string, Omit<S, 'cur' | 'nights'> & { n: [number, number, number][] }> = {
+    hotel: { unit: 'room', cap: '120', varCost: '25', channel: '12', who: 'Regional dental association meeting', rate: '110', pickup: '88', resale: '50', commission: '10', hurdle: '10', ea: '35', eb: '12', ec: '8', margin: '32', labels: ['Food', 'Drinks', 'Meeting rooms'], n: [[105, 140, 21], [127, 175, 23], [134, 195, 23], [74, 110, 17]] },
+    catering: { unit: 'guest', cap: '200', varCost: '14', channel: '5', who: 'Company dinner for a local firm', rate: '32', pickup: '95', resale: '0', commission: '0', hurdle: '10', ea: '6', eb: '4', ec: '3', margin: '40', labels: ['Drinks', 'Equipment hire', 'Service fee'], n: [[150, 38, 60], [185, 42, 80], [210, 45, 80], [120, 32, 40]] },
+    bulk: { unit: 'case', cap: '1000', varCost: '6', channel: '3', who: 'Large order from a regional chain', rate: '7.8', pickup: '100', resale: '0', commission: '0', hurdle: '10', ea: '0', eb: '0', ec: '0', margin: '0', labels: ['Delivery fees', 'Packaging', 'Other add-ons'], n: [[800, 9.5, 300], [900, 9.5, 300], [1000, 9.8, 400], [700, 9, 200]] },
+  };
+  const fresh = (kind: string, cur: string): S => {
+    const { n, ...p } = P[kind], start = addDays(todayISO(), 14);
+    return { cur, ...p, labels: [...p.labels], nights: n.map(([d, pr, g], i) => ({ date: addDays(start, i), demand: String(d), price: String(pr), group: String(g) })) };
+  };
+  let st = fresh('hotel', defaultCurrency());
+  q('.loq-cur').innerHTML = currencyOptions(st.cur);
+  const $ = (v: number, d = 0) => money(v, st.cur, d);
+  const sg = (v: number) => (v >= -0.5 ? '+' : '-') + $(Math.abs(v));
+  const n0 = (v: number) => Math.round(v).toLocaleString();
+  const n1 = (v: number) => (Math.round(v * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const val = (s: string | number) => (String(s).trim() === '' ? NaN : num(String(s)));
+  const keep = keeper('fibub-group-quote-v1', q('.loq-keep'), q('.loq-clear'), () => st, (v) => { st = Object.assign(fresh('hotel', defaultCurrency()), v); });
+
+  const input = () => ({
+    capacity: val(st.cap), varCost: val(st.varCost), channel: val(st.channel),
+    nights: st.nights.map((n): Night => ({ date: n.date, demand: val(n.demand), price: val(n.price), group: val(n.group) })),
+    offer: { rate: val(st.rate), pickup: val(st.pickup), resale: val(st.resale), commission: val(st.commission), hurdle: val(st.hurdle) },
+    extras: { a: val(st.ea), b: val(st.eb), c: val(st.ec), margin: val(st.margin) },
+  });
+
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    q<HTMLSelectElement>('.loq-cur').value = st.cur;
+    st.labels.forEach((l, i) => (q('.loq-l' + i).textContent = l));
+    rows(); run();
+  }
+  root.addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.k) { (st as any)[el.dataset.k] = el.value; keep(); run(); } });
+  q('.loq-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.loq-preset').addEventListener('change', (e) => { st = fresh((e.target as HTMLSelectElement).value, st.cur); keep(); bind(); });
+  q('.loq-reset').addEventListener('click', () => { st = fresh(q<HTMLSelectElement>('.loq-preset').value, st.cur); keep(); bind(); });
+
+  function rows() {
+    q('.loq-nights tbody').innerHTML = st.nights.map((n, i) => `<tr data-row="${i}"><td><input type="date" class="w-date" value="${esc(n.date)}" data-i="${i}" data-f="date" aria-label="Date"></td>
+      ${(['demand', 'price', 'group'] as const).map((f) => `<td class="r"><input inputmode="decimal" value="${esc(n[f])}" data-i="${i}" data-f="${f}" aria-label="${f}" style="width:92px;text-align:right"></td>`).join('')}
+      <td class="r" data-o="disp">-</td><td><button type="button" class="biz-x" data-del="${i}" aria-label="Remove this day">&times;</button></td></tr>`).join('') || '<tr><td colspan="6" class="ax-help">No days yet. Add a day or paste a table.</td></tr>';
+    q<HTMLButtonElement>('.loq-add').disabled = st.nights.length >= MAX;
+  }
+  q('.loq-nights').addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.i == null) return; (st.nights[+el.dataset.i] as any)[el.dataset.f!] = el.value; keep(); run(); });
+  q('.loq-nights').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-del]'); if (!b) return; st.nights.splice(+b.dataset.del!, 1); keep(); rows(); run(); });
+  q('.loq-add').addEventListener('click', () => {
+    if (st.nights.length >= MAX) return;
+    const l = st.nights[st.nights.length - 1];
+    st.nights.push(l ? { date: validISO(l.date) ? addDays(l.date, 1) : '', demand: l.demand, price: l.price, group: l.group } : { date: todayISO(), demand: '100', price: '100', group: '10' });
+    keep(); rows(); run();
+  });
+  q('.loq-load').addEventListener('click', () => {
+    const t = parseTable(q<HTMLTextAreaElement>('.loq-paste').value), msg = q('.loq-load-msg');
+    if (t.length && !parseDate(t[0][0])) t.shift();
+    const out: Row[] = [];
+    t.forEach((r) => { const d = parseDate(r[0]); if (d) out.push({ date: d, demand: String(r[1] ?? '').replace(/[$,\s]/g, ''), price: String(r[2] ?? '').replace(/[$,\s]/g, ''), group: String(r[3] ?? '').replace(/[$,\s]/g, '') }); });
+    if (!out.length) { msg.textContent = 'No rows with a readable date. Dates like 2026-12-01 work.'; return; }
+    st.nights = out.slice(0, MAX); msg.textContent = `Using ${st.nights.length} day${st.nights.length === 1 ? '' : 's'}${out.length > MAX ? ` (the first ${MAX} of ${out.length})` : ''}.`;
+    keep(); rows(); run();
+  });
+
+  let M: ReturnType<typeof quote> | null = null;
+  function run() {
+    const x = input(), w = qProblems(x);
+    const soft: string[] = [];
+    const over = st.nights.filter((n) => val(n.group) > x.capacity);
+    if (over.length) soft.push(`On ${over.map((n) => dayLabel(n.date)).join(', ')} the group wants more than you can supply; the tool caps it at ${n0(x.capacity)}.`);
+    const dates = st.nights.map((n) => n.date).filter(Boolean);
+    if (dates.length !== new Set(dates).size) soft.push('Some dates appear twice.');
+    if (st.nights.some((n) => !validISO(n.date))) soft.push('Some days have no date.');
+    q('.loq-nwarn').textContent = soft.join(' ');
+    q('.loq-warn').textContent = w.length ? 'Please check: ' + w.join(' ') : '';
+    q('.loq-out').hidden = !!w.length;
+    const e = x.extras;
+    q('.loq-extras').textContent = [e.a, e.b, e.c, e.margin].every(Number.isFinite) ? `Total ${$(e.a + e.b + e.c, 2)} per ${st.unit || 'unit'}, of which you keep ${$((e.a + e.b + e.c) * e.margin / 100, 2)} as profit.` : '';
+    if (w.length) { M = null; q('.loq-nights tbody').querySelectorAll('[data-o=disp]').forEach((td) => (td.textContent = '-')); return; }
+    M = quote(x);
+    const { rows: R, T, beRate, verdict, counter, extrasNeeded, extrasRev } = M, o = x.offer, u = (st.unit || 'unit').trim();
+    R.forEach((r, i) => { const td = q(`.loq-nights tr[data-row="${i}"] [data-o=disp]`); if (td) td.textContent = n1(r.displaced); });
+    q('.loq-title').textContent = `Verdict: ${st.who || 'this request'}`;
+    q('.loq-kpis').innerHTML = [
+      ['Verdict', `<span class="biz-verdict ${verdict}">${verdict}</span>`, verdict === 'Accept' ? 'The price clears break-even plus your margin' : verdict === 'Negotiate' ? 'Close: worth a counter-offer' : 'Too far below break-even', ''],
+      ['Net gain or loss', sg(T.net), `Profit against regular business, ${R.length} day${R.length === 1 ? '' : 's'}`, T.net >= 0 ? 'good' : 'bad'],
+      ['Break-even price', beRate == null ? 'n/a' : $(Math.ceil(beRate)), 'Lowest price that still beats regular business', ''],
+      ['Suggested counter-offer', counter == null ? 'n/a' : $(counter), verdict === 'Accept' ? 'Their price already works' : `Break-even + ${o.hurdle}% margin, rounded up`, ''],
+    ].map(([l, v, s, c]) => `<div class="biz-k ${c}"><span>${l}</span><b>${v}</b><small>${s}</small></div>`).join('');
+    const losers = R.filter((r) => r.net < -0.5), winners = R.filter((r) => r.net >= -0.5);
+    let t = `<strong>What this means:</strong> the group should use about <b>${n0(T.g)}</b> ${u}s (${o.pickup}% of ${n0(T.req)} asked for). `;
+    if (T.displaced < 0.5) t += 'You have enough spare capacity every day, so it pushes out no regular customers and almost everything it pays is extra profit. ';
+    else t += `To hold its share you would turn away about <b>${n0(T.displaced)}</b> regular ${u}s worth ${$(T.lostRev)} in revenue (${$(T.lostProfit)} in profit). `;
+    t += `The group brings ${$(T.groupRev)} in revenue and ${$(T.groupProfit)} in profit, so overall you are <b class="${T.net >= 0 ? 'pos' : 'neg'}">${T.net >= 0 ? 'better off by ' + $(T.net) : 'worse off by ' + $(-T.net)}</b>. `;
+    if (beRate != null) t += `The break-even price is ${$(beRate, 2)}; at ${$(o.rate, 2)} the offer is ${o.rate >= beRate ? $(o.rate - beRate, 2) + ' above' : $(beRate - o.rate, 2) + ' below'} it. `;
+    if (verdict === 'Accept') t += `<br><b>Accept.</b> The price covers break-even plus your ${o.hurdle}% safety margin. `;
+    else if (verdict === 'Negotiate') t += `<br><b>Negotiate.</b> Counter at <b>${$(counter!)}</b>${extrasNeeded != null && extrasNeeded > 0 ? `, or keep ${$(o.rate, 2)} and ask for a minimum spend of about ${$(Math.ceil(extrasNeeded))} more per ${u} on extras` : ''}. `;
+    else t += `<br><b>Decline at this price.</b> You would need at least <b>${$(counter!)}</b> to make it worth it. `;
+    if (losers.length && winners.length && verdict !== 'Accept') t += `The loss comes from ${losers.map((r) => dayLabel(r.date)).join(', ')}, when regular demand is strong. If the group can move or shrink those days, the other days alone are worth ${sg(winners.reduce((a, r) => a + r.net, 0))}.`;
+    q('.loq-take').innerHTML = t;
+    q('.loq-result tbody').innerHTML = R.map((r) => `<tr><td>${esc(dayLabel(r.date))}</td><td class="r">${n0(r.demand)}</td><td class="r">${n1(r.g)}</td><td class="r">${n1(r.held)}</td><td class="r">${n1(r.displaced)}</td><td class="r">${$(r.lostRev)}</td><td class="r">${$(r.lostProfit)}</td><td class="r">${$(r.groupRev)}</td><td class="r">${$(r.groupProfit)}</td><td class="r ${r.net >= 0 ? 'pos' : 'neg'}"><b>${sg(r.net)}</b></td></tr>`).join('');
+    q('.loq-result tfoot').innerHTML = `<tr><td>Total</td><td class="r">${n0(T.demand)}</td><td class="r">${n1(T.g)}</td><td class="r">${n1(T.held)}</td><td class="r">${n1(T.displaced)}</td><td class="r">${$(T.lostRev)}</td><td class="r">${$(T.lostProfit)}</td><td class="r">${$(T.groupRev)}</td><td class="r">${$(T.groupProfit)}</td><td class="r ${T.net >= 0 ? 'pos' : 'neg'}">${sg(T.net)}</td></tr>`;
+    const dts = R.map((r) => r.date).filter(validISO).sort(), span = dts.length ? (dts[0] === dts[dts.length - 1] ? dayLabel(dts[0]) : `${dayLabel(dts[0])} to ${dayLabel(dts[dts.length - 1])}`) : `${R.length} days`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    q('.loq-quote').innerHTML = `<p style="margin:0"><b>${esc(st.who || 'Request')}</b>: ${esc(span)}, ${R.length} day${R.length === 1 ? '' : 's'}. Recommendation: <span class="biz-verdict ${verdict}" style="font-size:14px">${verdict}</span>${verdict !== 'Accept' && counter != null ? ` Counter-offer <b>${$(counter)}</b> per ${esc(u)}` : ''}</p>
+      <div class="loq-cols"><dl class="loq-dl">${line(`${u}s asked for`, n0(T.req))}${line('Expected take-up', `${o.pickup}% (${n0(T.g)})`)}${line('Price offered', $(o.rate, 2))}${line('Commission', `${o.commission}%`)}${line('Extras per ' + esc(u), `${$(extrasRev, 2)} at ${x.extras.margin}% profit`)}${line('Group revenue', $(T.groupRev))}${line('Group profit', $(T.groupProfit))}</dl>
+      <dl class="loq-dl">${line('Regular sales pushed out', n0(T.displaced))}${line('Regular revenue lost', $(T.lostRev))}${line('Regular profit lost', $(T.lostProfit))}${line('Net (profit)', `<span class="${T.net >= 0 ? 'pos' : 'neg'}">${sg(T.net)}</span>`)}${line('Net (revenue)', `<span class="${T.netRev >= 0 ? 'pos' : 'neg'}">${sg(T.netRev)}</span>`)}${line('Break-even price', beRate == null ? 'n/a' : $(beRate, 2))}${line(`Price with ${o.hurdle}% margin`, counter == null ? 'n/a' : $(counter))}</dl></div>`;
+  }
+  q('.loq-csv').addEventListener('click', () => {
+    if (!M) return;
+    const { rows: R, T, beRate, verdict, counter } = M;
+    const out: unknown[][] = [['Request', st.who], ['Capacity per day', st.cap], ['Price offered', st.rate], ['Take-up %', st.pickup], ['Resell %', st.resale], ['Commission %', st.commission], ['Cost to serve one', st.varCost], ['Selling cost %', st.channel], ['Verdict', verdict], ['Break-even price', beRate == null ? '' : beRate.toFixed(2)], ['Suggested counter-offer', counter ?? ''], ['Net gain (profit)', Math.round(T.net)], [],
+      ['date', 'regular_demand', 'regular_price', 'group_asked', 'group_expected', 'held_for_group', 'pushed_out', 'revenue_lost', 'profit_lost', 'group_revenue', 'group_profit', 'net']];
+    R.forEach((r) => out.push([r.date, r.demand, r.price, r.group, r.g.toFixed(1), r.held.toFixed(1), r.displaced.toFixed(1), Math.round(r.lostRev), Math.round(r.lostProfit), Math.round(r.groupRev), Math.round(r.groupProfit), Math.round(r.net)]));
+    downloadText('large-order-quote.csv', toCSV(out));
+  });
+
+  bind();
+</script>
