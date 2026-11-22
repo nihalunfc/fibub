@@ -624,4 +624,77 @@ export default {
     },
     verify: (p) => p.A0 * Math.exp(-Math.LN2 * p.t / p.T),
   },
+  // ---- 7.1 Crystal structure ----
+  'miller-spacing': {
+    title: 'Miller indices and plane spacing',
+    make(r) {
+      const opts = [[1, 1, 0, '1', '1', '∞'], [1, 1, 1, '1', '1', '1'], [2, 1, 0, '1/2', '1', '∞'], [2, 2, 1, '1/2', '1/2', '1'], [3, 2, 0, '2', '3', '∞'], [1, 2, 3, '6', '3', '2'], [2, 0, 0, '1/2', '∞', '∞'], [3, 1, 1, '1', '3', '3']];
+      const [h, k, l, p, q, s] = opts[int(r, 0, opts.length - 1)];
+      const a = int(r, 28, 60) / 10, N = h * h + k * k + l * l, answer = a / Math.sqrt(N);
+      return {
+        q: `<p>A plane in a cubic crystal (lattice constant ${a} Å) cuts the axes at ${p}a, ${q}a and ${s}a (∞ means parallel). Find the spacing of this family of planes, in Å.</p>`,
+        answer, unit: 'Å', tol: 0.005,
+        hint: 'Take reciprocals of the intercepts and clear fractions to get (hkl). Then d = a/√(h² + k² + l²).',
+        solution: steps(`Reciprocals of ${p}, ${q}, ${s} (with 1/∞ = 0), cleared of fractions: (${h}${k}${l}).`, `h² + k² + l² = ${N}.`, `d = ${a}/√${N} = <b>${answer.toFixed(3)} Å</b>.`),
+        a, N,
+      };
+    },
+    verify: (p) => p.a / Math.sqrt(p.N),
+  },
+  // ---- 7.2 X-ray diffraction ----
+  'bragg-lattice': {
+    title: 'lattice constant from a powder line',
+    make(r) {
+      const [name, list] = [['simple cubic', [[1, '100'], [2, '110'], [3, '111']]], ['bcc', [[2, '110'], [4, '200'], [6, '211']]], ['fcc', [[3, '111'], [4, '200'], [8, '220']]]][int(r, 0, 2)];
+      const i = int(r, 0, 2), [N, idx] = list[i], lam = [1.54, 0.71, 1.79][int(r, 0, 2)];
+      const a0 = int(r, 30, 55) / 10, th = Math.round(Math.asin(lam * Math.sqrt(N) / (2 * a0)) * 180 / Math.PI * 100) / 100;
+      const answer = lam * Math.sqrt(N) / (2 * Math.sin(th * Math.PI / 180));
+      const ord = ['first', 'second', 'third'][i];
+      return {
+        q: `<p>The ${ord} line in the powder pattern of a ${name} metal appears at a glancing angle θ = ${th}° with X-rays of wavelength ${lam} Å. Find the lattice constant in Å.</p>`,
+        answer, unit: 'Å', tol: 0.005,
+        hint: `List the allowed reflections of ${name} in order of h² + k² + l². Then use Bragg's law for d, and a = d√(h² + k² + l²).`,
+        solution: steps(`The ${ord} allowed ${name} reflection is (${idx}), with h² + k² + l² = ${N}.`, `d = λ/(2 sin θ) = ${lam}/(2 × ${Math.sin(th * Math.PI / 180).toFixed(4)}) = ${(lam / (2 * Math.sin(th * Math.PI / 180))).toFixed(4)} Å.`, `a = d√${N} = <b>${answer.toFixed(3)} Å</b>.`),
+        lam, N, th,
+      };
+    },
+    verify: (p) => p.lam * Math.sqrt(p.N) / (2 * Math.sin(p.th * Math.PI / 180)),
+  },
+  // ---- 7.3 Semiconductors ----
+  'fermi-shift': {
+    title: 'where the Fermi level sits in doped silicon',
+    make(r) {
+      const m = int(r, 1, 9), e = int(r, 14, 18), N = m * 10 ** e, ni = 1e10, kT = 0.02585, n = r() < 0.5;
+      const answer = kT * Math.log(N / ni);
+      return {
+        q: `<p>Silicon at 300 K (n<sub>i</sub> = 10¹⁰ cm⁻³, kT = 0.02585 eV) is doped with ${m}×10${'⁰¹²³⁴⁵⁶⁷⁸⁹'[Math.floor(e / 10)]}${'⁰¹²³⁴⁵⁶⁷⁸⁹'[e % 10]} ${n ? 'donors' : 'acceptors'} per cm³. How far ${n ? 'above' : 'below'} the intrinsic level E<sub>i</sub> is the Fermi level, in eV?</p>`,
+        answer, unit: 'eV', tol: 0.005,
+        hint: `The majority density equals the doping. Then use ${n ? 'n = n<sub>i</sub> e^((E<sub>F</sub> − E<sub>i</sub>)/kT)' : 'p = n<sub>i</sub> e^((E<sub>i</sub> − E<sub>F</sub>)/kT)'} and take the natural log.`,
+        solution: steps(`Majority density ${n ? 'n' : 'p'} = ${m}×10^${e} cm⁻³; minority density = n<sub>i</sub>²/${n ? 'n' : 'p'} = ${(ni * ni / N).toPrecision(3)} cm⁻³.`, `|E<sub>F</sub> − E<sub>i</sub>| = kT ln(N/n<sub>i</sub>) = 0.02585 × ln(${(N / ni).toPrecision(3)}) = 0.02585 × ${Math.log(N / ni).toFixed(3)}.`, `= <b>${answer.toFixed(3)} eV</b> ${n ? 'above' : 'below'} E<sub>i</sub>.`),
+        N, ni, kT,
+      };
+    },
+    verify: (p) => p.kT * Math.log(p.N / p.ni),
+  },
+  // ---- 7.4 Diodes ----
+  'zener-current': {
+    title: 'current in a Zener regulator',
+    make(r) {
+      let Vin, Vz, R, RL, Iz;
+      do {
+        Vz = [3.3, 5.1, 6.2, 9.1, 12][int(r, 0, 4)]; Vin = Math.round((Vz + int(r, 4, 14)) * 10) / 10;
+        R = [100, 150, 220, 330][int(r, 0, 3)]; RL = [470, 1000, 2200, 4700][int(r, 0, 3)];
+        Iz = (Vin - Vz) / R - Vz / RL;
+      } while (Iz < 0.002);
+      const answer = Iz * 1000;
+      return {
+        q: `<p>A ${Vin} V supply feeds a ${Vz} V Zener diode through a ${R} Ω resistor, and a ${RL} Ω load is connected across the Zener. Find the current through the Zener, in mA.</p>`,
+        answer, unit: 'mA', tol: 0.005,
+        hint: 'The Zener holds the load at V<sub>Z</sub>. Find the series current from the voltage across R, then subtract the load current.',
+        solution: steps(`Series current I<sub>S</sub> = (${Vin} − ${Vz})/${R} = ${((Vin - Vz) / R * 1000).toFixed(3)} mA.`, `Load current I<sub>L</sub> = ${Vz}/${RL} = ${(Vz / RL * 1000).toFixed(3)} mA.`, `I<sub>Z</sub> = I<sub>S</sub> − I<sub>L</sub> = <b>${answer.toFixed(2)} mA</b>.`),
+        Vin, Vz, R, RL,
+      };
+    },
+    verify: (p) => ((p.Vin - p.Vz) / p.R - p.Vz / p.RL) * 1000,
+  },
 };
