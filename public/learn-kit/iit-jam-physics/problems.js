@@ -20,4 +20,66 @@ export default {
     },
     verify: (p) => 2 * p.a * p.x + p.b * p.z,
   },
+  'flux-box': {
+    title: 'flux out of a box (divergence theorem)',
+    make(r) {
+      const a = int(r, 1, 4), b = int(r, 1, 4), c = int(r, -2, 3), L = int(r, 1, 3), M = int(r, 1, 3), N = int(r, 1, 3);
+      // F = (a x^2, b y, c z): div = 2a x + b + c; integral over [0,L]x[0,M]x[0,N] = a L^2 M N + (b + c) L M N
+      const answer = a * L * L * M * N + (b + c) * L * M * N;
+      return {
+        q: `<p>Find the outward flux of <b>F</b> = ${a}x² <b>i</b> + ${b}y <b>j</b> + ${c}z <b>k</b> through the closed surface of the box 0 ≤ x ≤ ${L}, 0 ≤ y ≤ ${M}, 0 ≤ z ≤ ${N}.</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'Do not integrate over six faces. Find ∇·F, then integrate it over the volume of the box.',
+        solution: steps(`∇·F = ${2 * a}x + ${b} + (${c}) = ${2 * a}x + ${b + c}.`, `∫ ${2 * a}x dV = ${2 * a} × (${L}²/2) × ${M} × ${N} = ${a * L * L * M * N}.`, `∫ ${b + c} dV = ${b + c} × ${L * M * N} = ${(b + c) * L * M * N}.`, `Flux = <b>${answer}</b>.`),
+        a, b, c, L, M, N,
+      };
+    },
+    verify: (p) => (2 * p.a * (p.L ** 2 / 2) + (p.b + p.c) * p.L) * p.M * p.N,
+  },
+  'damped-frequency': {
+    title: 'frequency of a damped oscillator',
+    make(r) {
+      const g = int(r, 1, 4), w0 = int(r, g + 1, 9);
+      const answer = Math.sqrt(w0 * w0 - g * g);
+      return {
+        q: `<p>The motion of an oscillator obeys x'' + ${2 * g}x' + ${w0 * w0}x = 0 (time in seconds). Find the angular frequency of its oscillation in rad/s.</p>`,
+        answer, unit: 'rad/s', tol: 0.005,
+        hint: 'Try x = e<sup>mt</sup>. The imaginary part of m is the angular frequency; the real part is the decay rate.',
+        solution: steps(`Auxiliary equation: m² + ${2 * g}m + ${w0 * w0} = 0.`, `m = −${g} ± √(${g * g} − ${w0 * w0}) = −${g} ± i√${w0 * w0 - g * g}.`, `So x = e<sup>−${g}t</sup>(A cos ωt + B sin ωt) with ω = √${w0 * w0 - g * g} = <b>${answer.toFixed(3)}</b> rad/s, a little below the undamped ${w0} rad/s.`),
+        g, w0,
+      };
+    },
+    verify: (p) => Math.sqrt(p.w0 ** 2 - p.g ** 2),
+  },
+  'eigen-2x2': {
+    title: 'eigenvalues of a 2 × 2 matrix',
+    make(r) {
+      // built from integer eigenvalues l1 > l2 so the answer is exact: a + d = l1 + l2 and ad - bc = l1 l2, with b = 1.
+      const l1 = int(r, 1, 6), l2 = int(r, -4, l1 - 1), a = int(r, -3, 6), d = l1 + l2 - a, b = 1, c = a * d - l1 * l2;
+      return {
+        q: `<p>Find the larger eigenvalue of the matrix A = [[${a}, ${b}], [${c}, ${d}]] (rows in brackets).</p>`,
+        answer: l1, unit: '', tol: 0, abs: 1e-9,
+        hint: 'You do not need eigenvectors. The eigenvalues add up to the trace and multiply to the determinant.',
+        solution: steps(`Trace = ${a} + ${d} = ${a + d}; determinant = (${a})(${d}) − (${b})(${c}) = ${a * d - b * c}.`, `Characteristic equation: λ² − ${a + d}λ + ${a * d - b * c} = 0.`, `λ = [${a + d} ± √(${(a + d) ** 2} − ${4 * (a * d - b * c)})]/2 = ${l1} or ${l2}. Larger: <b>${l1}</b>.`),
+        a, b, c, d,
+      };
+    },
+    verify: (p) => { const t = p.a + p.d, D = p.a * p.d - p.b * p.c; return (t + Math.sqrt(t * t - 4 * D)) / 2; },
+  },
+  'complex-power': {
+    title: 'a power of a complex number',
+    make(r) {
+      const [name, R, th] = [['1 + i', Math.SQRT2, 45], ['√3 + i', 2, 30], ['1 + i√3', 2, 60], ['1 − i', Math.SQRT2, -45]][int(r, 0, 3)];
+      const n = int(r, 3, 8);
+      const answer = R ** n * Math.cos((n * th * Math.PI) / 180);
+      return {
+        q: `<p>Find the real part of (${name})<sup>${n}</sup>.</p>`,
+        answer, unit: '', tol: 0.001, abs: 1e-6,
+        hint: 'Write the number as r e<sup>iθ</sup> first. Then raise r to the power and multiply the angle (De Moivre).',
+        solution: steps(`${name} has modulus ${R === 2 ? '2' : '√2'} and argument ${th}°.`, `(${name})<sup>${n}</sup> = ${R === 2 ? '2' : '√2'}<sup>${n}</sup> e<sup>i·${n * th}°</sup>, of modulus ${+(R ** n).toFixed(4)}.`, `Real part = ${+(R ** n).toFixed(4)} × cos ${n * th}° = <b>${+answer.toFixed(4)}</b>.`),
+        R, th, n,
+      };
+    },
+    verify: (p) => p.R ** p.n * Math.cos((p.n * p.th * Math.PI) / 180),
+  },
 };

@@ -9,6 +9,10 @@ export default {
   units: [
     { id: 'math', name: 'Mathematical methods', topics: [
       { id: 'vector-calculus', name: 'Vectors and vector calculus' },
+      { id: 'integral-theorems', name: 'Gauss, Stokes and Green theorems' },
+      { id: 'differential-equations', name: 'Differential equations' },
+      { id: 'matrices', name: 'Matrices, determinants and eigenvalues' },
+      { id: 'complex-numbers', name: 'Complex numbers' },
     ] },
   ],
 };
