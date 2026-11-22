@@ -30,6 +30,12 @@ export default {
       { id: 'fluids', name: 'Fluids: surface tension, viscosity and Bernoulli' },
       { id: 'special-relativity', name: 'Special relativity: Lorentz transformations and E = mc²' },
     ] },
+    { id: 'classical', name: 'Classical mechanics (GATE and NET)', topics: [
+      { id: 'lagrangian-mechanics', name: 'Lagrangian mechanics' },
+      { id: 'hamiltonian-mechanics', name: 'Hamiltonian mechanics and phase space' },
+      { id: 'poisson-brackets', name: 'Poisson brackets and canonical transformations' },
+      { id: 'central-force-scattering', name: 'Central forces, orbits and scattering cross-sections' },
+    ] },
     { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
       { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
       { id: 'damped-forced-oscillations', name: 'Damped and forced oscillations, resonance' },
