@@ -17,13 +17,41 @@ quiz:
     choices: ['Bronze', 'Silver', 'Gold']
     ans: 2
     why: Gold holds business-ready tables for reporting, which is where facts and dimensions live. Silver is cleaned and conformed but not yet shaped for a particular use.
+sources:
+  - 'Databricks documentation, What is the medallion lakehouse architecture? https://docs.databricks.com/en/lakehouse/medallion.html'
+  - 'Armbrust, M. et al. (2021), Lakehouse: A New Generation of Open Platforms that Unify Data Warehousing and Advanced Analytics, CIDR https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf'
+  - 'Microsoft Learn, Medallion lakehouse architecture https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion'
 ---
 
 **Module 6 · about 25 minutes · read first: 6.1.** You'll be able to explain the difference between a data lake, a warehouse and a lakehouse, name what goes into the bronze, silver and gold layers, and build all three for a small Northbay feed.
 
+<div class="bigidea">A lakehouse keeps cheap files like a lake but adds tables and rules like a warehouse, usually in three layers: bronze, silver and gold.</div>
+
+**In everyday terms:** a water treatment plant. Bronze is the raw river water you store as it came. Silver is filtered and checked. Gold is bottled for each customer.
+
 ## 1. Why this matters
 
 Job adverts for data engineers and BI developers now mention "lakehouse", "Databricks", "Microsoft Fabric" or "medallion architecture" as often as "data warehouse". They are not a replacement for modelling: the gold layer of a lakehouse is still made of facts and dimensions. Knowing the words, and what really changes, lets you join those teams without being lost.
+
+<div class="meaning">
+
+<dl>
+<dt>Data lake</dt><dd>Cheap file storage that accepts any data as it arrives.</dd>
+<dt>Lakehouse</dt><dd>A lake plus a table format, so you get warehouse features on files.</dd>
+<dt>Bronze</dt><dd>Raw data landed exactly as received.</dd>
+<dt>Silver</dt><dd>Cleaned, typed and de-duplicated data.</dd>
+<dt>Gold</dt><dd>Business-ready tables shaped for reports.</dd>
+<dt>Time travel</dt><dd>Reading a table as it was at an earlier version.</dd>
+<dt>Physical meaning</dt><dd>Each layer is a table written from the one before. Rows only get fewer, tidier and more summarised as they move toward gold.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Clean the data on the way in so bronze looks tidy."** Bronze must keep the raw data untouched, so you can replay it after fixing a bug in silver.
+
+</div>
 
 ## 2. Lake, warehouse, lakehouse
 
@@ -141,6 +169,18 @@ Now try the same query on `bronze_orders` instead (change `silver_orders` to `br
 **Try it:** a third file re-sends all 37 orders again. How many rows in bronze, and in silver? (85 in bronze; still 37 in silver.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Bronze.</b> <table class="lk-tbl"><tr><th>id</th><th>amount</th><th>load</th></tr><tr><td>1</td><td>30</td><td>1</td></tr><tr><td>1</td><td>35</td><td>2</td></tr><tr><td>2</td><td></td><td>1</td></tr></table> Raw, with duplicates and blanks.</div>
+<div class="step"><b>Silver step 1.</b> Keep the latest row per id. <table class="lk-tbl"><tr><th>id</th><th>amount</th></tr><tr><td>1</td><td><mark>35</mark></td></tr><tr><td>2</td><td></td></tr></table></div>
+<div class="step"><b>Silver step 2.</b> Drop rows with no amount. <table class="lk-tbl"><tr><th>id</th><th>amount</th></tr><tr><td>1</td><td>35</td></tr></table></div>
+<div class="step"><b>Gold.</b> <table class="lk-tbl"><tr><th>metric</th><th>value</th></tr><tr><td>total_sales</td><td><mark>35</mark></td></tr></table> Shaped for the dashboard.</div>
+<div class="step"><b>Bug found.</b> Fix silver, then rebuild silver and gold from bronze. Nothing is lost.</div>
+</div>
+
+<div class="problem" data-problem="dm-lake-silver"></div>
+
 ## 7. Worked example: where does each rule go?
 
 Northbay's online shop starts sending clickstream events as JSON, about a million a day. Where does each piece go?
@@ -188,5 +228,14 @@ WHERE status = 'completed'
 GROUP BY store_id
 ORDER BY orders DESC, store_id
 ```
+
+<div class="keypoints">
+
+- Lake = cheap files; warehouse = governed tables; lakehouse = both.
+- Bronze is raw, silver is clean, gold is shaped for use.
+- Never edit bronze; rebuild the later layers instead.
+- Schema-on-read versus schema-on-write is about when the structure is checked.
+
+</div>
 
 **New words:** *data lake*, *object storage*, *schema-on-write*, *schema-on-read*, *lakehouse*, *table format*, *time travel*, *medallion architecture*, *bronze*, *silver*, *gold*.

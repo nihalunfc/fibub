@@ -17,9 +17,18 @@ quiz:
     choices: ['ROW_NUMBER', 'RANK', 'Neither can']
     ans: 1
     why: RANK gives tied rows the same number, so WHERE rnk = 1 keeps both. ROW_NUMBER picks one of them.
+sources:
+  - 'SQLite documentation, Window functions https://www.sqlite.org/windowfunctions.html'
+  - 'Microsoft Learn, ROW_NUMBER (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/row-number-transact-sql'
+  - 'Snowflake documentation, QUALIFY https://docs.snowflake.com/en/sql-reference/constructs/qualify'
+  - 'Molinaro, A. and de Graaf, R. (2020), SQL Cookbook, 2nd edition, O''Reilly, chapter 11'
 ---
 
 **Module 6 · about 25 minutes · read first: 6.2.** You'll be able to pick the top N rows in each group with a ranking function in a CTE, choose how ties are handled, and get "the latest row per key", the pattern behind most deduplication.
+
+<div class="bigidea">To get the top N in each group, number the rows inside each group in a CTE, then keep the rows numbered N or less.</div>
+
+**In everyday terms:** picking the two tallest players from each team for a photo. You line up each team by height on its own, then take the first two from every line.
 
 ## 1. Why this matters
 
@@ -112,6 +121,35 @@ Customer 17's latest order is 4843 on 2025-12-10; customer 142's is 4524 on 2025
 
 Say which one you used in the report: "top 2 products (ties included)".
 
+<div class="meaning">
+
+<dl>
+<dt>Top N per group</dt><dd>The best N rows of each group, such as the 2 highest salaries in every store.</dd>
+<dt>PARTITION BY + ORDER BY</dt><dd>Restart the numbering in each group, and decide which row counts as first.</dd>
+<dt>rn &lt;= N</dt><dd>The filter in the outer query that keeps the top rows.</dd>
+<dt>Latest row per key</dt><dd>Top 1 per group ordered by date, newest first. The base of most deduplication.</dd>
+<dt>QUALIFY</dt><dd>A WHERE for window values, in BigQuery, Snowflake and DuckDB only.</dd>
+<dt>Physical meaning</dt><dd>The inner step adds a number to every row; the outer step throws away every row whose number is too big. Each group keeps at most N rows (more with RANK if there are ties).</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"ORDER BY salary DESC LIMIT 2 gives the top 2 per store."** LIMIT cuts the whole result once, so you get the 2 best-paid people in the whole company. Number the rows per store with PARTITION BY, then filter.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Start.</b> <table class="lk-tbl"><tr><th>name</th><th>store</th><th>salary</th></tr><tr><td>Ana</td><td>1</td><td>92000</td></tr><tr><td>Bo</td><td>1</td><td>50000</td></tr><tr><td>Cy</td><td>1</td><td>40000</td></tr><tr><td>Di</td><td>2</td><td>86000</td></tr><tr><td>Ed</td><td>2</td><td>58000</td></tr><tr><td>Flo</td><td>2</td><td>41000</td></tr></table></div>
+<div class="step"><b>Number inside each store.</b> <code>ROW_NUMBER() OVER (PARTITION BY store ORDER BY salary DESC)</code> <table class="lk-tbl"><tr><th>name</th><th>store</th><th>salary</th><th>rn</th></tr><tr><td>Ana</td><td>1</td><td>92000</td><td><mark>1</mark></td></tr><tr><td>Bo</td><td>1</td><td>50000</td><td><mark>2</mark></td></tr><tr><td>Cy</td><td>1</td><td>40000</td><td><mark>3</mark></td></tr><tr><td>Di</td><td>2</td><td>86000</td><td><mark>1</mark></td></tr><tr><td>Ed</td><td>2</td><td>58000</td><td><mark>2</mark></td></tr><tr><td>Flo</td><td>2</td><td>41000</td><td><mark>3</mark></td></tr></table> The count restarts at store 2.</div>
+<div class="step"><b>Keep rn &lt;= 2.</b> <table class="lk-tbl"><tr><th>name</th><th>store</th><th>salary</th></tr><tr><td>Ana</td><td>1</td><td>92000</td></tr><tr><td>Bo</td><td>1</td><td>50000</td></tr><tr><td>Di</td><td>2</td><td>86000</td></tr><tr><td>Ed</td><td>2</td><td>58000</td></tr></table> Two per store.</div>
+</div>
+
+<div class="problem" data-problem="sql-top-n-sum"></div>
+
 ## 6. Worked example
 
 *Question:* what were the two best-selling products by units in each department in 2025?
@@ -197,5 +235,14 @@ SELECT category_id, product_name, unit_price
 FROM ranked
 WHERE rnk = 1
 ```
+
+<div class="keypoints">
+
+- Number rows inside each group with ROW_NUMBER or RANK in a CTE, then filter rn <= N outside.
+- The filter must be outside: WHERE runs before window functions exist.
+- ROW_NUMBER gives exactly N per group; RANK keeps all rows tied at N.
+- Top 1 by newest date gives the latest row per key.
+
+</div>
 
 **New words:** *top N per group*, *QUALIFY*, *latest row per key*.

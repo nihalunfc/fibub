@@ -17,9 +17,17 @@ quiz:
     choices: ['It is slower', 'Two different lines with the same value would be counted once', 'SUM DISTINCT does not exist']
     ans: 1
     why: DISTINCT works on values, not rows. Two separate $3.49 lines would collapse into one, so the total would be too small.
+sources:
+  - 'Kimball Group, Dimensional Modeling Techniques: Grain https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/grain/'
+  - 'PostgreSQL documentation, Joins Between Tables https://www.postgresql.org/docs/current/tutorial-join.html'
+  - 'dbt Labs, How we structure our dbt projects: Marts (join at the right grain) https://docs.getdbt.com/best-practices/how-we-structure/4-marts'
 ---
 
 **Module 4 · about 30 minutes · read first: 4.2 and 3.5.** You'll be able to predict when a join will copy rows, spot an inflated total, and fix it so every SUM and COUNT is right.
+
+<div class="bigidea">A join repeats a row once for every match, so after joining a "many" table, sums and counts of the "one" side get multiplied; aggregate first, then join.</div>
+
+**In everyday terms:** a group photo. If every person in team A is photographed with every person in team B, someone who counts faces across all the photos counts each person several times. The people didn't multiply; the photos did.
 
 ## 1. Why this matters
 
@@ -93,6 +101,36 @@ It runs and looks fine. It is wrong in both columns:
 - **Revenue** is counted once per *return* for the three orders with two returns. Store 12 shows $33,543.04 instead of $33,473.08; store 10 shows $9,513.59 instead of $9,454.69.
 
 The revenue error is small, which makes it dangerous: nobody spots 0.2% by eye.
+
+<div class="meaning">
+
+<dl>
+<dt>Fan-out</dt><dd>One row turning into several rows after a join, because it has several matches.</dd>
+<dt>"One" side / "many" side</dt><dd>The table with one row per key (orders) / the table with many rows per key (order_items, returns).</dd>
+<dt>Bag</dt><dd>A table that may hold the same row more than once; SUM adds every copy.</dd>
+<dt>Aggregate first</dt><dd>Bring each "many" table down to one row per key before joining.</dd>
+<dt>Physical meaning</dt><dd>For each key, a join makes (rows on the left) × (rows on the right) rows. Every copy of a value is added again by SUM, so the total is weighted by the number of matches.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"COUNT(DISTINCT) or SUM(DISTINCT) fixes fan-out."** COUNT(DISTINCT key) fixes counts only. SUM(DISTINCT) removes repeated values, so two genuine $3.49 lines become one. The real fix is to aggregate each "many" table to the grain you want, then join one row to one row.
+
+</div>
+
+Watch fan-out inflate a total, one step at a time (the live box above has a **Show how it runs** button that animates the real order 2198):
+
+<div class="steps">
+<div class="step"><b>Order lines.</b> One order, two lines, worth 30 in total. <table class="lk-tbl"><tr><th>order</th><th>line</th><th>value</th></tr><tr><td>7</td><td>a</td><td>10</td></tr><tr><td>7</td><td>b</td><td>20</td></tr></table></div>
+<div class="step"><b>Returns.</b> The same order had two returns. <table class="lk-tbl"><tr><th>order</th><th>return</th></tr><tr><td>7</td><td>r1</td></tr><tr><td>7</td><td>r2</td></tr></table></div>
+<div class="step"><b>Join on order.</b> Every line pairs with every return: 2 × 2 = 4 rows. <table class="lk-tbl"><tr><th>line</th><th>value</th><th>return</th></tr><tr><td>a</td><td>10</td><td>r1</td></tr><tr><td>a</td><td><mark>10</mark></td><td>r2</td></tr><tr><td>b</td><td>20</td><td>r1</td></tr><tr><td>b</td><td><mark>20</mark></td><td>r2</td></tr></table></div>
+<div class="step"><b>SUM(value) = 60, COUNT(return) = 4.</b> Both doubled: the truth is 30 and 2.</div>
+<div class="step"><b>Aggregate first.</b> Lines → (order 7, 30); returns → (order 7, 2). Joining one row to one row gives 30 and 2.</div>
+</div>
+
+<div class="problem" data-problem="sql-fan-out-sum"></div>
 
 ## 5. The fix: aggregate first, then join
 
@@ -207,5 +245,15 @@ SELECT s.channel, s.revenue, r.returns
 FROM sales s
 JOIN rets r ON r.channel = s.channel
 ```
+
+<div class="keypoints">
+
+- A join repeats each row once per match; SUM and COUNT then add every copy.
+- Joining one table to two "many" tables multiplies rows: lines × returns per order.
+- The fix: aggregate each "many" table to the grain you want, then join.
+- COUNT(DISTINCT key) fixes counts but not sums; SUM(DISTINCT) is never the fix.
+- Count rows before and after any join you don't fully trust.
+
+</div>
 
 **New words:** *fan-out*, *bag (multiset)*, *aggregate first*.

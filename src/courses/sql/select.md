@@ -17,9 +17,17 @@ quiz:
     choices: ['4,064, one per order', '2, one per different channel', '1']
     ans: 1
     why: DISTINCT keeps each different value once. Northbay has two channels, store and online.
+sources:
+  - 'SQLite documentation, SELECT (result columns and DISTINCT) https://www.sqlite.org/lang_select.html'
+  - 'PostgreSQL documentation, Select Lists https://www.postgresql.org/docs/current/queries-select-lists.html'
+  - 'Microsoft Learn, SELECT clause (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/select-clause-transact-sql'
 ---
 
 **Module 2 · about 25 minutes · read first: 1.4.** You'll be able to choose and rename columns, work out new columns from old ones, and remove repeated rows.
+
+<div class="bigidea">SELECT decides which columns the answer has: pick them, rename them, work out new ones, and with DISTINCT drop rows that repeat.</div>
+
+**In everyday terms:** photocopying a wide spreadsheet with most columns folded under. Every row is still on the copy, just narrower; you can also write a new column in the margin, like "price with tax".
 
 ## 1. Why this matters
 
@@ -77,6 +85,39 @@ LIMIT 5
 ```
 
 SQL Server uses `+` or `CONCAT(first_name, ' ', last_name)`; PostgreSQL and SQLite accept both `||` and `CONCAT` (SQLite from version 3.44).
+
+<div class="meaning">
+
+<dl>
+<dt>SELECT a, b</dt><dd>Keep columns a and b, in that order.</dd>
+<dt>*</dt><dd>Every column. Fine for a quick look; list columns in saved queries.</dd>
+<dt>Expression</dt><dd>A worked-out value, such as unit_price - unit_cost or ROUND(x, 2).</dd>
+<dt>AS name</dt><dd>An alias: the name of the result column. The table is not renamed.</dd>
+<dt>||</dt><dd>Joins pieces of text end to end.</dd>
+<dt>DISTINCT</dt><dd>Keeps each different row (or pair of values) once.</dd>
+<dt>Physical meaning</dt><dd>SELECT never removes or adds rows (DISTINCT aside): it makes every row narrower or wider. New columns are calculated row by row and exist only in the answer.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"SELECT DISTINCT a, b gives the different values of a and the different values of b."** DISTINCT works on the whole row you chose. With two columns it keeps each different pair, so you can see the same channel several times, once for each status it comes with.
+
+</div>
+
+Watch SELECT with a new column and then DISTINCT, one step at a time:
+
+<div class="steps">
+<div class="step"><b>FROM products</b> (three of them). <table class="lk-tbl"><tr><th>product</th><th>unit_price</th><th>unit_cost</th><th>category</th></tr><tr><td>Duvet</td><td>89.99</td><td>45.44</td><td>Bedding</td></tr><tr><td>Pillow 2 pack</td><td>29.99</td><td>13.80</td><td>Bedding</td></tr><tr><td>Kettle</td><td>44.99</td><td>24.00</td><td>Kitchen</td></tr></table></div>
+<div class="step"><b>SELECT product, unit_price - unit_cost AS margin.</b> Two columns kept, one worked out per row. <table class="lk-tbl"><tr><th>product</th><th>margin</th></tr><tr><td>Duvet</td><td><mark>44.55</mark></td></tr><tr><td>Pillow 2 pack</td><td><mark>16.19</mark></td></tr><tr><td>Kettle</td><td><mark>20.99</mark></td></tr></table></div>
+<div class="step"><b>SELECT category.</b> Still 3 rows: a repeat is allowed. <table class="lk-tbl"><tr><th>category</th></tr><tr><td>Bedding</td></tr><tr><td>Bedding</td></tr><tr><td>Kitchen</td></tr></table></div>
+<div class="step"><b>SELECT DISTINCT category.</b> The repeat collapses. <table class="lk-tbl"><tr><th>category</th></tr><tr><td><mark>Bedding</mark></td></tr><tr><td><mark>Kitchen</mark></td></tr></table></div>
+</div>
+
+The picture uses simplified prices; the live boxes use Northbay's real ones, and their **Show how it runs** button animates each step.
+
+<div class="problem" data-problem="sql-distinct-rows"></div>
 
 ## 5. A column that is the same on every row
 
@@ -172,5 +213,15 @@ SELECT brand FROM products
 -- answer:
 SELECT DISTINCT brand FROM products
 ```
+
+<div class="keypoints">
+
+- List the columns you want after SELECT, in the order you want them.
+- Any expression can be a column; name it with AS.
+- Aliases and worked-out columns exist only in the answer, never in the table.
+- SELECT keeps every row; only DISTINCT removes repeats.
+- DISTINCT works on the whole chosen row, so two columns give different pairs.
+
+</div>
 
 **New words:** *projection*, *expression*, *alias*, *literal*, *DISTINCT*, *bag*.

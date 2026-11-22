@@ -17,9 +17,18 @@ quiz:
     choices: ['It is on the primary key', 'It contains every column the query needs, so the table itself is never read', 'It covers every row in the table']
     ans: 1
     why: 'If the index holds all the columns the query uses, the database answers from the index alone and skips the trip to the table.'
+sources:
+  - 'SQLite documentation: CREATE INDEX https://www.sqlite.org/lang_createindex.html'
+  - 'SQLite documentation: Query Planning (how indexes are used) https://www.sqlite.org/queryplanner.html'
+  - 'PostgreSQL documentation: Multicolumn Indexes https://www.postgresql.org/docs/current/indexes-multicolumn.html'
+  - 'Microsoft Learn: Create indexes with included columns https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-indexes-with-included-columns'
 ---
 
 **Module 9 · about 30 minutes · read first: 9.1.** You'll be able to create, list and drop indexes, choose the column order of a composite index, and say when an index is not worth it.
+
+<div class="bigidea">An index is a sorted copy of some columns with pointers back to the rows, and a composite index only helps queries that fix its first column.</div>
+
+**In everyday terms:** a phone book sorted by last name, then first name. Finding "Patel, Priya" is quick; finding everyone called "Priya" means reading the whole book.
 
 ## 1. Why this matters
 
@@ -91,6 +100,39 @@ SCAN orders. This is the **leftmost prefix rule**: a composite index helps queri
 
 **Try it:** an index on (city, last_name). Can it help `WHERE last_name = 'Patel'`? (No: Patels are spread across every city.) `WHERE city = 'Ottawa' ORDER BY last_name`? (Yes: within Ottawa they are already in order, so no sort is needed.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Index</dt><dd>A separate sorted copy of one or more columns, each entry pointing to its row.</dd>
+<dt>B-tree</dt><dd>The sorted tree most databases use for indexes: quick to search, stays sorted as rows arrive.</dd>
+<dt>Composite index</dt><dd>An index on several columns, sorted by the first, then the second inside it.</dd>
+<dt>Leftmost prefix rule</dt><dd>A composite index helps only when the query fixes its first column (or first few).</dd>
+<dt>Covering index</dt><dd>Holds every column the query needs, so the table itself is never read.</dd>
+<dt>Unique index</dt><dd>Also refuses duplicate values, which makes it a data-quality guard.</dd>
+<dt>Physical meaning</dt><dd>Creating an index writes a new, sorted structure next to the table; the table rows don't move. Queries that match its sort order read one small, unbroken block of it. Every INSERT, UPDATE and DELETE must now update that structure too.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"An index on (store_id, order_date) helps any query on either column."** It is sorted by store first, so rows for one date are scattered across every store. A query on order_date alone can't use it. Put the column you test with = first and the range column last.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The table, in arrival order.</b> <table class="lk-tbl"><tr><th>row</th><th>store_id</th><th>day</th></tr><tr><td>1</td><td>2</td><td>14</td></tr><tr><td>2</td><td>1</td><td>3</td></tr><tr><td>3</td><td>2</td><td>2</td></tr><tr><td>4</td><td>1</td><td>20</td></tr></table></div>
+<div class="step"><b>CREATE INDEX ON orders(store_id, day).</b> Sorted by store, then day. <table class="lk-tbl"><tr><th>store_id</th><th>day</th><th>row</th></tr><tr><td>1</td><td>3</td><td>2</td></tr><tr><td>1</td><td>20</td><td>4</td></tr><tr><td>2</td><td>2</td><td>3</td></tr><tr><td>2</td><td>14</td><td>1</td></tr></table></div>
+<div class="step"><b>store_id = 2 AND day &gt;= 10.</b> One unbroken block. <table class="lk-tbl"><tr><th>store_id</th><th>day</th><th>row</th></tr><tr><td>1</td><td>3</td><td>2</td></tr><tr><td>1</td><td>20</td><td>4</td></tr><tr><td>2</td><td>2</td><td>3</td></tr><tr><td><mark>2</mark></td><td><mark>14</mark></td><td><mark>1</mark></td></tr></table></div>
+<div class="step"><b>day &gt;= 10 alone.</b> The matches are in two places, one per store, so the database scans instead. <table class="lk-tbl"><tr><th>store_id</th><th>day</th><th>row</th></tr><tr><td>1</td><td>3</td><td>2</td></tr><tr><td><mark>1</mark></td><td><mark>20</mark></td><td><mark>4</mark></td></tr><tr><td>2</td><td>2</td><td>3</td></tr><tr><td><mark>2</mark></td><td><mark>14</mark></td><td><mark>1</mark></td></tr></table></div>
+</div>
+
+The plan boxes in this lesson describe rather than run, so they have no animation; in other lessons any live box with a SELECT has a **Show how it runs** button that animates the real query.
+
+<div class="problem" data-problem="sql-leftmost-prefix"></div>
 
 ## 4. Covering indexes
 
@@ -165,5 +207,15 @@ SELECT order_date FROM orders WHERE customer_id = 7
 ```
 
 **Try it on your own data:** load a large CSV in [[sql-playground]], time a query, add an index and time it again.
+
+<div class="keypoints">
+
+- An index is a sorted copy of columns with pointers back to the rows; CREATE INDEX name ON t(cols).
+- A composite index is sorted by its first column, then the next: the leftmost prefix rule.
+- Put equality columns first and the range column last.
+- A covering index answers the query without touching the table.
+- Indexes slow down writes and take space: index join, filter and sort columns, then check the plan.
+
+</div>
 
 **New words:** *index*, *B-tree*, *composite index*, *leftmost prefix rule*, *covering index*, *unique index*, *expression index*.

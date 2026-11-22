@@ -17,9 +17,17 @@ quiz:
     choices: ['members_at_month_end', 'new_members', 'month']
     ans: 0
     why: Members at month end is a level (a balance). Adding January's level to February's counts the same people twice. New members per month is a flow and adds up fine.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 4: Inventory (periodic snapshot fact table)'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
 ---
 
 **Module 3 · about 30 minutes · read first: 3.1.** You'll be able to build a periodic snapshot from a transaction fact, explain why it is dense, use its stored zeros for correct averages, and store a level such as members on file.
+
+<div class="bigidea">A periodic snapshot stores one row per thing per period, whether anything happened or not, so zeros are real rows and levels like stock or members are easy to read.</div>
+
+**In everyday terms:** a daily weigh-in. You step on the scale every morning and write the number down, even if nothing changed. At the end of the month you can see every day, and the average is honest.
 
 ## 1. Why this matters
 
@@ -120,6 +128,38 @@ SELECT * FROM snap_members_month LIMIT 6;
 
 Summing `new_members` over 2025 gives the year's sign-ups. Summing `members_at_month_end` over 2025 gives nonsense: the same people counted twelve times. For a level, take the last period's value (or an average), never the sum.
 
+<div class="meaning">
+
+<dl>
+<dt>Periodic snapshot</dt><dd>One row per thing (store, product, account) per period (day, month), always.</dd>
+<dt>Dense</dt><dd>Every combination has a row; size = things × periods.</dd>
+<dt>Flow</dt><dd>An amount during the period, such as sales today or new members; it adds up over time.</dd>
+<dt>Level</dt><dd>An amount at a moment, such as stock tonight or members on file; never summed over time.</dd>
+<dt>Frame</dt><dd>The CROSS JOIN of all things with all periods that the snapshot is built on.</dd>
+<dt>Physical meaning</dt><dd>The load makes the full grid of store × day, then LEFT JOINs the day's totals and turns blanks into 0. Each period adds a fixed number of rows and they are not changed again.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Average daily sales = AVG over the transaction rows."** That averages only the days with a sale. Vancouver looks like $35.89 a day instead of the true $11.34. Divide by every day, which the snapshot does by storing the zeros.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Transaction rows.</b> <table class="lk-tbl"><tr><th>day</th><th>sales</th></tr><tr><td>Mon</td><td>30</td></tr><tr><td>Wed</td><td>12</td></tr></table></div>
+<div class="step"><b>The frame.</b> Every day for the store: <table class="lk-tbl"><tr><th>day</th></tr><tr><td>Mon</td></tr><tr><td>Tue</td></tr><tr><td>Wed</td></tr></table></div>
+<div class="step"><b>LEFT JOIN and COALESCE.</b> <table class="lk-tbl"><tr><th>day</th><th>sales</th></tr><tr><td>Mon</td><td>30</td></tr><tr><td>Tue</td><td><mark>0</mark></td></tr><tr><td>Wed</td><td>12</td></tr></table></div>
+<div class="step"><b>Honest average.</b> <table class="lk-tbl"><tr><th>method</th><th>average</th></tr><tr><td>rows with sales</td><td>21</td></tr><tr><td>every day</td><td><mark>14</mark></td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-snapshot-avg"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -198,5 +238,15 @@ WHERE month LIKE '2025%'
 ```
 
 **Try it on your own data:** chart a daily snapshot exported as CSV in [[plot-maker]]: the zero days show up as dips instead of disappearing.
+
+<div class="keypoints">
+
+- One row per thing per period, even when nothing happened.
+- Dense and predictable: things × periods rows.
+- Stored zeros make averages and "days with no sale" easy and right.
+- Flows add up over time; levels do not (take the last value or an average).
+- Build it from the transaction fact with a CROSS JOIN frame and a LEFT JOIN.
+
+</div>
 
 **New words:** *periodic snapshot fact table*, *dense*, *level*, *flow*, *frame (CROSS JOIN of dimensions)*.

@@ -17,9 +17,18 @@ quiz:
     choices: ['December had no sales', 'Many December orders haven''t been returned yet: their returns will land in January, after the data ends', 'The date dimension is missing December']
     ans: 1
     why: Counting by order date assigns each return to the month of the sale, so recent months keep growing as late returns arrive. Counting by return date is complete but mixes sales from different months.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 6: Order Management (role-playing dimensions)'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
+  - 'SQLite documentation: CREATE VIEW https://www.sqlite.org/lang_createview.html'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.2.** You'll be able to join one dimension more than once with aliases, build a view per role, and explain why "returns in November" has two different right answers.
+
+<div class="bigidea">A role-playing dimension is one dimension table joined to a fact more than once, each join giving it a different meaning, such as order date and return date.</div>
+
+**In everyday terms:** one actor playing two parts in a play. It is the same person on stage, but in each scene the costume tells you which character they are. The alias is the costume.
 
 ## 1. Why this matters
 
@@ -110,6 +119,37 @@ ORDER BY returns DESC
 ```
 
 Sunday (38) and Saturday (35) are the busiest days at the returns desk; Tuesday (21) is the quietest. In Power BI the same idea is either one date table with one active and one inactive relationship (switched on with `USERELATIONSHIP` in a measure), or one copy of the date table per role. Copies are simpler for report users, for the same reason the views are.
+
+<div class="meaning">
+
+<dl>
+<dt>Role-playing dimension</dt><dd>One dimension used for several foreign keys on the same fact.</dd>
+<dt>Alias</dt><dd>A short name for a table in one query (od, rd) so the same table can be joined twice.</dd>
+<dt>View</dt><dd>A saved SELECT that behaves like a table; one view per role with role names on its columns.</dd>
+<dt>Role</dt><dd>What a date means on the row: when it was bought, when it came back.</dd>
+<dt>Physical meaning</dt><dd>The fact row holds two keys into the same dim_date. The query reads dim_date twice, once per key, and each copy gives its columns a different meaning.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Returns in November has one right answer."** By order date it is 14; by return date it is 11. Both are right for different questions. Always label which role a chart uses.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Fact with two dates.</b> <table class="lk-tbl"><tr><th>return</th><th>order_date_key</th><th>return_date_key</th></tr><tr><td>1</td><td>20251028</td><td>20251105</td></tr><tr><td>2</td><td>20251110</td><td>20251120</td></tr></table></div>
+<div class="step"><b>Join dim_date as od.</b> <table class="lk-tbl"><tr><th>return</th><th>order month</th></tr><tr><td>1</td><td><mark>Oct</mark></td></tr><tr><td>2</td><td><mark>Nov</mark></td></tr></table></div>
+<div class="step"><b>Join dim_date again as rd.</b> <table class="lk-tbl"><tr><th>return</th><th>order month</th><th>return month</th></tr><tr><td>1</td><td>Oct</td><td><mark>Nov</mark></td></tr><tr><td>2</td><td>Nov</td><td><mark>Nov</mark></td></tr></table></div>
+<div class="step"><b>Count November.</b> <table class="lk-tbl"><tr><th>role</th><th>returns</th></tr><tr><td>by order month</td><td>1</td></tr><tr><td>by return month</td><td>2</td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-role-month"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -202,5 +242,15 @@ FROM fact_returns
 GROUP BY reason
 ORDER BY avg_days DESC
 ```
+
+<div class="keypoints">
+
+- Keep one date dimension and let it play several roles.
+- Join it once per role with a different alias.
+- Crossed aliases still run but answer a different question.
+- Publish one view per role with role names on the columns.
+- Label every chart with the role it uses.
+
+</div>
 
 **New words:** *role-playing dimension*, *alias*, *view*, *days_to_return*.

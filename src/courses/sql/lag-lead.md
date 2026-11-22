@@ -17,9 +17,17 @@ quiz:
     choices: ['LEAD(order_date) OVER (PARTITION BY customer_id ORDER BY order_date)', 'LAG(order_date) OVER (ORDER BY customer_id)', 'MAX(order_date) OVER ()']
     ans: 0
     why: LEAD looks forward one row. Partition by customer so it never reaches into another customer's orders, and order by date so the next row is the next order.
+sources:
+  - 'SQLite documentation, Window functions: lag() and lead() https://www.sqlite.org/windowfunctions.html#builtins'
+  - 'Microsoft Learn, LAG (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/lag-transact-sql'
+  - 'PostgreSQL documentation, Window functions https://www.postgresql.org/docs/current/functions-window.html'
 ---
 
 **Module 6 · about 25 minutes · read first: 6.1.** You'll be able to compare each row with the one before or after it using LAG and LEAD, work out change and percentage change, and measure the gap between events per customer.
+
+<div class="bigidea">LAG copies a value from the row before onto this row, and LEAD from the row after, so you can compare neighbours with simple arithmetic.</div>
+
+**In everyday terms:** a weekly weigh-in diary where each line also shows last week's weight in pencil. Now "how much did I lose?" is one subtraction on the same line.
 
 ## 1. Why this matters
 
@@ -110,6 +118,36 @@ Customer 17 waited 105 days, then 227, then just 28. In SQL Server write `DATEDI
 
 A trap: if you forget PARTITION BY on a table with many customers, the first order of customer 18 is compared with the last order of customer 17. Always partition by the thing you are following.
 
+<div class="meaning">
+
+<dl>
+<dt>LAG(x)</dt><dd>The value of x on the row before this one, in the ORDER BY inside OVER.</dd>
+<dt>LEAD(x)</dt><dd>The value of x on the row after this one.</dd>
+<dt>Offset</dt><dd>How many rows to look back or ahead: <code>LAG(x, 4)</code> is four rows back (same quarter last year).</dd>
+<dt>Default</dt><dd>The third argument: what to show instead of NULL when there is no such row.</dd>
+<dt>Percentage change</dt><dd>(new − old) ÷ old × 100. Divide by the previous value.</dd>
+<dt>Physical meaning</dt><dd>No rows are added or removed. Each row gets one new column holding a neighbour's value; the first row (for LAG) or last row (for LEAD) gets NULL.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Percentage change is (new − old) ÷ new."** Change is always measured against where you started: divide by the old value. From 200 to 250 is +25%, not +20%. And write `100.0`, or whole-number division turns small changes into 0.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Monthly sales, in order.</b> <table class="lk-tbl"><tr><th>month</th><th>sales</th></tr><tr><td>Jan</td><td>200</td></tr><tr><td>Feb</td><td>250</td></tr><tr><td>Mar</td><td>225</td></tr></table></div>
+<div class="step"><b>LAG(sales).</b> Each row copies the value from the row above. <table class="lk-tbl"><tr><th>month</th><th>sales</th><th>prev</th></tr><tr><td>Jan</td><td>200</td><td><mark>NULL</mark></td></tr><tr><td>Feb</td><td>250</td><td><mark>200</mark></td></tr><tr><td>Mar</td><td>225</td><td><mark>250</mark></td></tr></table></div>
+<div class="step"><b>Change.</b> sales − prev: Jan NULL, Feb <mark>+50</mark>, Mar <mark>−25</mark>.</div>
+<div class="step"><b>Percentage change.</b> Feb: 50 ÷ 200 × 100 = <mark>25%</mark>. Mar: −25 ÷ 250 × 100 = <mark>−10%</mark>.</div>
+</div>
+
+<div class="problem" data-problem="sql-lag-pct"></div>
+
 ## 6. Worked example
 
 *Question:* how did each 2025 quarter compare with the same quarter of 2024?
@@ -175,5 +213,15 @@ SELECT order_id, customer_id, amount,
        LAG(amount, 1, 0) OVER (PARTITION BY customer_id ORDER BY order_id) AS prev_amount
 FROM mini_orders
 ```
+
+<div class="keypoints">
+
+- LAG looks at the row before, LEAD at the row after; ORDER BY inside OVER defines before and after.
+- The first row has no previous row, so LAG gives NULL (or the default you pass).
+- Percentage change = (new − old) ÷ old × 100; use 100.0.
+- LAG(x, 4) on quarters compares with the same quarter last year.
+- Add PARTITION BY to compare only within one customer or store.
+
+</div>
 
 **New words:** *LAG*, *LEAD*, *offset*, *first difference*, *year-over-year*.

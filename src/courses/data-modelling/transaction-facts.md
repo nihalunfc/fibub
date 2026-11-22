@@ -17,9 +17,17 @@ quiz:
     choices: ['Insert a reversing row with negative amounts', 'Delete the original row', 'Overwrite the quantity with 0']
     ans: 0
     why: Adding a reversing row keeps history and makes the old reports reproducible, while the totals net to zero.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (transaction fact tables)'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 2: Kimball Dimensional Modeling Techniques Overview (transaction, periodic and accumulating snapshot fact tables)'
 ---
 
 **Module 3 · about 25 minutes · read first: 2.4.** You'll be able to describe a transaction fact table, build one, explain why it is sparse, find "nothing happened" with a date dimension, and correct it with reversing rows.
+
+<div class="bigidea">A transaction fact table holds one row per event, written once and never changed, so it is detailed and easy to load but has no rows for things that did not happen.</div>
+
+**In everyday terms:** a bank statement. Each line is one payment, in date order. Lines are never edited: a refund is a new line with a minus sign. Days with no spending have no line at all.
 
 ## 1. Why this matters
 
@@ -128,6 +136,39 @@ GROUP BY date_key
 
 The order nets to zero, January 10 still shows the sale as it was reported then, and January 17 shows the refund. Last month's report run again gives the same answer as before, which is what auditors want.
 
+<div class="meaning">
+
+<dl>
+<dt>Transaction fact table</dt><dd>One row per event at the atomic grain, added when the event happens.</dd>
+<dt>Sparse</dt><dd>No event, no row: most possible combinations are empty.</dd>
+<dt>Append-only</dt><dd>Rows are only added, never changed.</dd>
+<dt>Reversing row</dt><dd>A correction: a copy of the original rows with the measures negated, dated when the correction happened.</dd>
+<dt>Fill rate</dt><dd>Rows ÷ all possible combinations of the dimensions.</dd>
+<dt>Physical meaning</dt><dd>The load adds new rows for new events and leaves old rows alone. Zeros never appear as rows; to see them you start from a list of all dates (or products) and LEFT JOIN the facts.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Fix a refunded order by deleting or updating its rows."** Then last month's report changes when you run it again, and auditors cannot see what happened. Add reversing rows dated on the refund day; the order nets to zero and history stays true.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Events as they happen.</b> <table class="lk-tbl"><tr><th>date</th><th>order</th><th>sales</th></tr><tr><td>10 Jan</td><td>1038</td><td>48</td></tr><tr><td>11 Jan</td><td>1039</td><td>12</td></tr></table></div>
+<div class="step"><b>Sparse.</b> 12 Jan had no sales, so it has no row. <table class="lk-tbl"><tr><th>date</th><th>sales</th></tr><tr><td>10 Jan</td><td>48</td></tr><tr><td>11 Jan</td><td>12</td></tr></table></div>
+<div class="step"><b>Find the empty day.</b> Dates LEFT JOIN facts: <table class="lk-tbl"><tr><th>date</th><th>sales</th></tr><tr><td>10 Jan</td><td>48</td></tr><tr><td>11 Jan</td><td>12</td></tr><tr><td>12 Jan</td><td><mark>0</mark></td></tr></table></div>
+<div class="step"><b>A refund on 17 Jan.</b> Add a reversing row: <table class="lk-tbl"><tr><th>date</th><th>order</th><th>sales</th></tr><tr><td>10 Jan</td><td>1038</td><td>48</td></tr><tr><td>11 Jan</td><td>1039</td><td>12</td></tr><tr><td><mark>17 Jan</mark></td><td><mark>1038</mark></td><td><mark>−48</mark></td></tr></table></div>
+<div class="step"><b>Net.</b> Order 1038 sums to 0; 10 January still shows what was reported then.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-fill-rate"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -200,5 +241,15 @@ WHERE date_key BETWEEN 20250101 AND 20251231 AND quantity > 0
 GROUP BY store_key
 ORDER BY lines DESC
 ```
+
+<div class="keypoints">
+
+- One row per event, at the atomic grain.
+- Sparse: nothing happened, no row; bring zeros in from a date dimension with a LEFT JOIN.
+- Append-only: correct with reversing rows, never updates.
+- Facts are usually fully additive.
+- Usually the biggest table, and the source for snapshots.
+
+</div>
 
 **New words:** *transaction fact table*, *sparse*, *append-only*, *reversing row*, *fill rate*.

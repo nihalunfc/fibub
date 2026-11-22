@@ -17,9 +17,17 @@ quiz:
     choices: ['The same text is stored many times and a change must be reloaded into many rows', 'Queries need more joins', 'It cannot be queried with SQL']
     ans: 0
     why: Repetition takes space and makes changes bigger. In return, questions need fewer joins and run faster.
+sources:
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 1: Data Warehousing, Business Intelligence and Dimensional Modeling Primer'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
+  - 'SQLite documentation: SELECT, the join operators https://www.sqlite.org/lang_select.html'
 ---
 
 **Module 1 · about 25 minutes · read first: 1.2.** You'll be able to explain why warehouses denormalise, build a wide table from normalised sources, measure what it costs, and avoid the fan-out that makes a wide table lie.
+
+<div class="bigidea">A warehouse stores the result of joins on purpose, so every reader gets the same answer with fewer joins, and it stays safe as long as each join adds columns, never rows.</div>
+
+**In everyday terms:** a ready meal versus a recipe. The recipe (3NF) keeps each ingredient once, but everyone has to cook it every time. The ready meal (wide table) is cooked once in the factory, and everyone just heats it up.
 
 ## 1. Why this matters
 
@@ -119,6 +127,37 @@ JOIN employees e ON e.store_id = s.store_id
 
 The table had 7,112 rows; the join returns 19,485, and the sales total jumps from about $126,600 to $347,075.60, nearly three times the truth. This is called *fan-out* (see [SQL for analysts 4.5](/learn/courses/sql/fan-out/)). Facts at a different grain, like employees or daily targets, belong in their own table, not folded into this one.
 
+<div class="meaning">
+
+<dl>
+<dt>Denormalise</dt><dd>Store the result of joins so readers do not repeat them.</dd>
+<dt>Wide table</dt><dd>One table with the measures and every descriptive column already attached.</dd>
+<dt>Lookup join</dt><dd>A join from the many side to the one side (line → order → store): each row finds exactly one partner.</dd>
+<dt>Fan-out</dt><dd>A join to the many side copies each row once per match, so sums grow.</dd>
+<dt>Physical meaning</dt><dd>The load joins each order line to its order, store, region, product and category once, and writes the joined row down. The row count stays the same; only columns are added.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Denormalising is fine with any join."** Only many-to-one joins are safe. Join employees (many per store) onto sales and every sale is copied once per employee: Northbay's sales nearly triple.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Lines.</b> <table class="lk-tbl"><tr><th>line</th><th>store_id</th><th>sales</th></tr><tr><td>1</td><td>2</td><td>10</td></tr><tr><td>2</td><td>2</td><td>5</td></tr><tr><td>3</td><td>12</td><td>8</td></tr></table></div>
+<div class="step"><b>Lookup join to stores.</b> One store per line: <table class="lk-tbl"><tr><th>line</th><th>store_id</th><th>sales</th><th>region</th></tr><tr><td>1</td><td>2</td><td>10</td><td><mark>Ontario South</mark></td></tr><tr><td>2</td><td>2</td><td>5</td><td><mark>Ontario South</mark></td></tr><tr><td>3</td><td>12</td><td>8</td><td><mark>Online</mark></td></tr></table> 3 rows in, 3 out.</div>
+<div class="step"><b>Store it.</b> That joined result is the wide table. Readers now group by region with no join at all.</div>
+<div class="step"><b>The trap: join employees.</b> Store 2 has 2 employees: <table class="lk-tbl"><tr><th>line</th><th>sales</th><th>employee</th></tr><tr><td>1</td><td>10</td><td><mark>Ana</mark></td></tr><tr><td>1</td><td>10</td><td><mark>Raj</mark></td></tr><tr><td>2</td><td>5</td><td><mark>Ana</mark></td></tr><tr><td>2</td><td>5</td><td><mark>Raj</mark></td></tr><tr><td>3</td><td>8</td><td>Kim</td></tr></table> 5 rows; sales sum 38 instead of 23.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-fanout-rows"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -192,5 +231,15 @@ WHERE channel = 'online' AND year = 2024
 GROUP BY category_name
 ORDER BY sales DESC
 ```
+
+<div class="keypoints">
+
+- 3NF is safe for writing but needs many joins for every question.
+- A warehouse joins once at load time and stores the wide result.
+- It can afford repetition because users only read it; the source stays the one place facts are edited.
+- Only follow many-to-one links: each join must add columns, not rows.
+- Facts at a different grain (employees, targets) get their own table.
+
+</div>
 
 **New words:** *denormalise*, *wide table*, *lookup join*, *fan-out*, *star schema*.

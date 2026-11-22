@@ -17,9 +17,17 @@ quiz:
     choices: ['COUNT(*) of its rows, grouped by dimensions', 'SUM of a measure column', 'You cannot measure it']
     ans: 0
     why: Each row is one event, so the count of rows is the number of events. Some teams add a column fixed at 1 so BI tools have something to sum.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (factless fact tables, promotion coverage)'
+  - 'SQLite documentation: compound SELECT statements (UNION, INTERSECT, EXCEPT) https://www.sqlite.org/lang_select.html#compound_select_statements'
 ---
 
 **Module 3 · about 25 minutes · read first: 3.1.** You'll be able to build factless fact tables for events and for coverage, count them, and combine coverage with sales to find what did not happen.
+
+<div class="bigidea">A factless fact table has keys but no numbers: the row itself is the fact, and comparing what was possible with what happened shows what did not happen.</div>
+
+**In everyday terms:** a class register. Each tick says "this pupil was here today"; there is no number to add. Compare the register with the timetable and you see who missed which class.
 
 ## 1. Why this matters
 
@@ -113,6 +121,37 @@ LIMIT 10
 
 Press **Show how it runs** to watch EXCEPT remove every covered store-day that has a sale, leaving the quiet ones. Without the coverage table this question is impossible: the sales fact has no rows for days nobody bought anything.
 
+<div class="meaning">
+
+<dl>
+<dt>Factless fact table</dt><dd>A fact table with dimension keys and no measures; COUNT(*) is the measure.</dd>
+<dt>Event table</dt><dd>Records things that happen with nothing to measure, such as sign-ups or attendance.</dd>
+<dt>Coverage table</dt><dd>Records what was possible or in effect, such as promotions running at stores.</dd>
+<dt>EXCEPT / anti-join</dt><dd>Rows in one set that have no match in another.</dd>
+<dt>Physical meaning</dt><dd>Coverage holds every (promotion, store, day) that was in effect. Taking away the store-days that appear in the sales fact leaves exactly the covered store-days with no sale.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The sales table can tell me what was on promotion but did not sell."** It has no rows for days nobody bought anything. Without a coverage table that question cannot be answered.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Coverage.</b> <table class="lk-tbl"><tr><th>store</th><th>day</th></tr><tr><td>S1</td><td>Mon</td></tr><tr><td>S1</td><td>Tue</td></tr><tr><td>S2</td><td>Mon</td></tr><tr><td>S2</td><td>Tue</td></tr></table></div>
+<div class="step"><b>Sales.</b> <table class="lk-tbl"><tr><th>store</th><th>day</th></tr><tr><td>S1</td><td>Mon</td></tr><tr><td>S2</td><td>Tue</td></tr></table></div>
+<div class="step"><b>Coverage EXCEPT sales.</b> <table class="lk-tbl"><tr><th>store</th><th>day</th></tr><tr><td><mark>S1</mark></td><td><mark>Tue</mark></td></tr><tr><td><mark>S2</mark></td><td><mark>Mon</mark></td></tr></table> 4 − 2 = 2 quiet store-days.</div>
+<div class="step"><b>Reach.</b> <table class="lk-tbl"><tr><th>covered</th><th>with a sale</th><th>share</th></tr><tr><td>4</td><td>2</td><td><mark>50%</mark></td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-coverage-quiet"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -196,5 +235,15 @@ WHERE date_key BETWEEN 20250101 AND 20251231
 GROUP BY month
 ORDER BY month
 ```
+
+<div class="keypoints">
+
+- A factless fact has keys and no measures; the measure is COUNT(*).
+- Event tables record happenings with nothing to measure.
+- Coverage tables record what was possible or in effect.
+- Coverage minus events (EXCEPT or an anti-join) shows what did not happen.
+- Share = covered rows with a match ÷ covered rows.
+
+</div>
 
 **New words:** *factless fact table*, *event table*, *coverage table*.

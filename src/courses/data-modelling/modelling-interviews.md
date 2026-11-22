@@ -17,15 +17,42 @@ quiz:
     choices: ['Transaction fact of every sale', 'Periodic snapshot: one row per product per store per day (or week) with quantity on hand', 'Factless fact']
     ans: 1
     why: Inventory is a level measured at points in time, which is what a periodic snapshot holds. Movements in and out can be a separate transaction fact.
+sources:
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapters 2 and 8 (techniques overview, multivalued dimensions)'
+  - 'SQLite documentation, SQL language reference https://www.sqlite.org/lang.html'
 ---
 
 **Module 8 · about 35 minutes · read first: the whole course.** You'll be able to answer the data modelling questions that come up in analyst, BI developer and data engineer interviews, in a minute or less each, and solve the common live exercises in SQL.
+
+<div class="bigidea">Interview answers are short and structured: say the idea, give a tiny example, then name the trade-off.</div>
+
+**In everyday terms:** explaining a recipe to a friend in a minute. You say what the dish is, give one example, and mention the thing that usually goes wrong.
 
 ## 1. Why this matters
 
 Modelling interviews follow a pattern: a few definitions to check you know the words, a "how would you handle..." question about history or keys, a live SQL task, and a design question where you think out loud. The answers below are short on purpose: say the idea, give one example, name the trade-off. Then stop and let the interviewer ask more. Each answer links to the lesson that goes deeper.
 
 **How to answer a design question.** Use Kimball's four steps out loud: (1) which business process, (2) declare the grain, (3) the dimensions, (4) the facts (measures). Then mention history (SCDs), the unknown member and how you would test it. That structure alone puts you ahead of most candidates.
+
+<div class="meaning">
+
+<dl>
+<dt>Grain</dt><dd>What one row in the fact table means.</dd>
+<dt>Inferred member</dt><dd>A placeholder dimension row for an early fact.</dd>
+<dt>Bridge table</dt><dd>A table that links a fact to many dimension rows, such as a team of sellers.</dd>
+<dt>Allocation weight</dt><dd>The share of the fact given to each member. Weights add to 100%.</dd>
+<dt>Four-step design</dt><dd>Process, grain, dimensions, facts.</dd>
+<dt>Physical meaning</dt><dd>Each answer maps to a concrete table design. If you can sketch the tables and say how many rows result, you understand it.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Interviewers want the textbook definition word for word."** They want to see you choose: say which design you would use for the business question and why.
+
+</div>
 
 ## 2. Set up for the live exercises
 
@@ -258,6 +285,20 @@ By the date column most queries filter on (usually the event date), at a size th
 **Try it:** is "number of distinct customers" additive across months? (No. A customer who buys in both months is counted once in the two-month total, so you can't add the monthly counts.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>The question.</b> "A sale is made by a team of two. How do you model it?"</div>
+<div class="step"><b>Name the issue.</b> Many sellers per sale: a many-to-many relationship.</div>
+<div class="step"><b>Bridge table.</b> <table class="lk-tbl"><tr><th>sale_key</th><th>employee_key</th><th>weight</th></tr><tr><td>1</td><td>A</td><td><mark>0.6</mark></td></tr><tr><td>1</td><td>B</td><td><mark>0.4</mark></td></tr></table></div>
+<div class="step"><b>Use the weight.</b> Sale of 200 gives A 120 and B 80. Without the weight the sale is counted twice.</div>
+<div class="step"><b>State the trade-off.</b> It needs one more join and the weights must add to 1.</div>
+</div>
+
+<div class="problem" data-problem="dm-bridge-alloc"></div>
+
+<div class="problem" data-problem="dm-bridge-total"></div>
+
 ## 8. Worked example: a design question, out loud
 
 *"Northbay wants to report stock levels and stock-outs by store and product. Design it."*
@@ -300,5 +341,15 @@ JOIN (SELECT product_key FROM dim_product UNION ALL SELECT 28) d ON d.product_ke
 ```
 
 **Try it on your own data:** paste any two CSV extracts into [[sql-playground]] and check their grain and keys the same way.
+
+<div class="keypoints">
+
+- Answer in a minute: idea, example, trade-off.
+- Four steps: process, grain, dimensions, facts.
+- Bridge tables need allocation weights.
+- Be ready to write the SQL live.
+- Explain a choice, do not just recite a definition.
+
+</div>
 
 **New words:** *inferred member*, *bridge table*, *allocation weight*, *four-step design*.

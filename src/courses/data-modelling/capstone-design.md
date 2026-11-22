@@ -17,15 +17,42 @@ quiz:
     choices: ['fact_sales holds sales data', 'fact_sales has one row per product on each completed order', 'fact_sales is big']
     ans: 1
     why: A grain says exactly what one row represents, in business words. It decides which dimensions and measures can belong to the table.
+sources:
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 3 (retail sales case study) and chapter 4 (inventory)'
+  - 'SQLite documentation, SQL language reference https://www.sqlite.org/lang.html (PRAGMA table_info, for profiling)'
 ---
 
 **Module 8 · about 35 minutes · read first: 2.5, 5.2.** You'll be able to profile a source database in SQL, turn the profile into a bus matrix, grain statements, an ERD and a data dictionary, and write down the design decisions a reviewer will ask about. This is part 1 of the **Northbay warehouse** portfolio project.
+
+<div class="bigidea">Design before you build: profile the source, list the processes, declare each grain, and write the decisions down so a reviewer can follow them.</div>
+
+**In everyday terms:** drawing the plans before building a house. You measure the plot, decide the rooms, mark where the pipes go, and keep a note of why.
 
 ## 1. Why this matters
 
 "Tell me about a warehouse you designed" is the opening question of most data modelling interviews, and a GitHub repo with a clear design document answers it before you are asked. Part 1 produces the documents; [part 2](/learn/courses/data-modelling/capstone-build/) builds and tests the warehouse in your browser; [part 3](/learn/courses/data-modelling/capstone-cloud/) moves it to a real database and puts it on your portfolio.
 
 **The brief.** Northbay Retail (12 stores including the online shop, about 600 loyalty members, two years of orders) wants one warehouse that answers: sales by day, store, product and customer tier; returns and why; how promotions perform; and how each store is doing day by day. Customer tier and city must be reportable "as they were" at the time of each sale.
+
+<div class="meaning">
+
+<dl>
+<dt>Source profiling</dt><dd>Counting rows, nulls, keys and ranges in the source before designing.</dd>
+<dt>Bus matrix</dt><dd>A grid of business processes against dimensions.</dd>
+<dt>Grain</dt><dd>What one row of a fact table stands for.</dd>
+<dt>Data dictionary</dt><dd>A list of every table and column with its meaning.</dd>
+<dt>Design decision</dt><dd>A written choice with the reason for it.</dd>
+<dt>Physical meaning</dt><dd>Nothing is built yet. The output is documents that decide which tables, keys and rows the build will create.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Start by creating tables and adjust as you go."** Changing the grain later means rebuilding the fact table and every report on it. Write the grain first.
+
+</div>
 
 ## 2. Step 1: profile the source
 
@@ -173,6 +200,18 @@ fibub's [[data-dictionary]] tool can turn a table like this into a tidy document
 **Try it:** a table has 5,000 rows and 4,980 distinct (store, date) pairs. Is (store, date) its grain? (No: 20 rows share a pair, so something else, perhaps a till or shift, is part of the grain.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Profile.</b> <table class="lk-tbl"><tr><th>table</th><th>rows</th><th>null keys</th></tr><tr><td>orders</td><td>1200</td><td>0</td></tr><tr><td>order_items</td><td>3400</td><td>0</td></tr><tr><td>customers</td><td>300</td><td><mark>12</mark></td></tr></table> Find the problems early.</div>
+<div class="step"><b>Processes.</b> Sales, returns, inventory.</div>
+<div class="step"><b>Bus matrix.</b> <table class="lk-tbl"><tr><th>process</th><th>date</th><th>product</th><th>store</th></tr><tr><td>Sales</td><td>1</td><td>1</td><td>1</td></tr><tr><td>Returns</td><td>1</td><td>1</td><td>1</td></tr><tr><td>Inventory</td><td>1</td><td>1</td><td></td></tr></table> Date and product are shared, so they must be conformed.</div>
+<div class="step"><b>Grain.</b> "One row per order line", written as a sentence.</div>
+<div class="step"><b>Document.</b> ERD, data dictionary, and a note on each decision (for example, type 2 on customer city).</div>
+</div>
+
+<div class="problem" data-problem="dm-bus-shared"></div>
+
 ## 8. Worked example: the design decisions document
 
 Reviewers read decisions more closely than diagrams. Write a short `docs/decisions.md` with one numbered entry per choice, each saying what, why and the alternative you rejected. Three examples, with the numbers that justify them:
@@ -223,5 +262,14 @@ ORDER BY p.promo_id
 ```
 
 **Try it on your own data:** profile any CSV with [[csv-profiler]] before you design a model for it.
+
+<div class="keypoints">
+
+- Profile first: counts, nulls, keys and ranges.
+- The bus matrix shows which dimensions must be conformed.
+- One grain sentence per fact table.
+- Write the decisions and the reasons down.
+
+</div>
 
 **New words:** *source profiling*, *design decision*, *data dictionary*, *index set*.

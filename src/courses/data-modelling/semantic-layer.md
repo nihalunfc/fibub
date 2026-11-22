@@ -17,13 +17,40 @@ quiz:
     choices: ['One date table with two active relationships', 'A separate date table per role (Date, Return Date), each with its own active relationship', 'No date table']
     ans: 1
     why: Only one relationship between two tables can be active. Role-playing copies of the date table make each date usable directly in visuals.
+sources:
+  - 'Microsoft Learn, Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
+  - 'Microsoft Learn, Data Analysis Expressions (DAX) reference https://learn.microsoft.com/en-us/dax/'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 7 · about 30 minutes · read first: 7.4.** You'll be able to explain what a semantic layer is, describe the star schema Power BI works best with, write measures that stay correct under any filter, and run the checks that tell you a star is ready for a report.
 
+<div class="bigidea">A semantic layer sits on top of the star and defines the relationships and measures once, so every report uses the same numbers.</div>
+
+**In everyday terms:** a menu on top of the kitchen. Customers pick "margin" from the menu; they do not need to know which ingredients went into it.
+
 ## 1. Why this matters
 
 Most analysts never query the warehouse directly: they open Power BI, Tableau or Looker, which sit on a **semantic layer**. If the model under that layer is a clean star, reports are fast and numbers agree. If it is a pile of flat files joined every which way, you get slow reports, circular relationships and totals that change depending on which visual you look at. BI developer interviews almost always ask "how would you model this for Power BI?"
+
+<div class="meaning">
+
+<dl>
+<dt>Semantic layer</dt><dd>The shared definitions of tables, relationships and measures that reports use.</dd>
+<dt>Measure</dt><dd>A calculation done at report time, such as SUM(sales).</dd>
+<dt>Filter context</dt><dd>The filters a slicer or chart puts on the data before a measure runs.</dd>
+<dt>Active relationship</dt><dd>The one relationship used by default between two tables.</dd>
+<dt>Row-level security</dt><dd>Rules that show each person only their rows.</dd>
+<dt>Physical meaning</dt><dd>The layer stores no extra rows. It stores definitions, and recalculates the measure for whatever filters apply.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A margin % can be stored per row and averaged."** An average of row percentages gives wrong results. Store profit and sales, then divide the sums in the measure.
+
+</div>
 
 ## 2. What a semantic layer is
 
@@ -157,6 +184,18 @@ Hide the raw Sales Amount column and every report uses the measures. The same ap
 **Try it:** group A has $300 over 10 orders, group B $100 over 2 orders. What is the overall AOV? ($400 ÷ 12 ≈ $33.33, not the mean of $30 and $50.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Facts.</b> <table class="lk-tbl"><tr><th>region</th><th>sales</th><th>profit</th></tr><tr><td>East</td><td>100</td><td>20</td></tr><tr><td>East</td><td>300</td><td>30</td></tr><tr><td>West</td><td>200</td><td>40</td></tr></table></div>
+<div class="step"><b>A bad measure.</b> Average of row margins for East: (20% + 10%) / 2 = 15%.</div>
+<div class="step"><b>A good measure.</b> <code>SUM(profit) / SUM(sales)</code> for East: 50 / 400 = <mark>12.5%</mark>.</div>
+<div class="step"><b>A slicer applies.</b> Choose West: the same measure re-runs on only West rows, 40 / 200 = 20%.</div>
+<div class="step"><b>Define once.</b> Every report that uses the Margin % measure gets the same answer.</div>
+</div>
+
+<div class="problem" data-problem="dm-measure-ratio"></div>
+
 ## 8. Worked example: one date table per role
 
 Returns have two dates. "Returns in 2025" can mean returned in 2025 or ordered in 2025. In Power BI only one relationship between Returns and Date can be active, so Microsoft recommends a second date table, Return Date, with its own active relationship. In SQL that is the same dimension joined twice under two names:
@@ -221,5 +260,14 @@ WHERE rd.year = 2025
 GROUP BY r.reason
 ORDER BY returns DESC
 ```
+
+<div class="keypoints">
+
+- The semantic layer holds definitions, not copies of data.
+- Relationships should be one-to-many from dimension to fact.
+- Slicers filter first; measures aggregate after.
+- Ratios: sum the parts, then divide.
+
+</div>
 
 **New words:** *semantic layer*, *semantic model*, *measure*, *filter context*, *active relationship*, *bi-directional relationship*, *row-level security*.

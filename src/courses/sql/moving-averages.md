@@ -17,9 +17,17 @@ quiz:
     choices: ['Nothing', 'The "3 days" can stretch over a week, because ROWS counts rows, not days', 'The query fails']
     ans: 1
     why: ROWS counts the rows that exist. Fill in the missing days first, or use RANGE on a day number so the frame covers calendar days.
+sources:
+  - 'SQLite documentation, Window functions: frame specifications https://www.sqlite.org/windowfunctions.html#frame_specifications'
+  - 'Microsoft Learn, SELECT - OVER clause (moving averages) https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql'
+  - 'NIST/SEMATECH e-Handbook of Statistical Methods, 6.4.2 Moving average https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc42.htm'
 ---
 
 **Module 6 · about 25 minutes · read first: 6.5.** You'll be able to write a moving average with a ROWS frame, spot the short windows at the start, choose trailing or centred, and handle days with no data.
+
+<div class="bigidea">A moving average is AVG over a frame of fixed size that slides down the rows, smoothing out day-to-day noise so the trend shows.</div>
+
+**In everyday terms:** looking at countryside from a train window. You always see the same width of land; as the train moves, one field slides out at the back and a new one slides in at the front.
 
 ## 1. Why this matters
 
@@ -137,6 +145,37 @@ Only 5 days have sales. On 10 January, `by_rows` averages 4, 8 and 10 January (3
 
 The other fix is to build a full calendar with a recursive CTE ([Lesson 5.5](/learn/courses/sql/recursive-cte/)), LEFT JOIN the sales to it with `COALESCE(sales, 0)`, and then use ROWS as normal. SQL Server does not allow a number with RANGE, so there the calendar is the way. (No animation here: the picture draws ROWS frames only.)
 
+<div class="meaning">
+
+<dl>
+<dt>Moving average</dt><dd>The average of this row and a fixed number of neighbours. Also called a rolling average.</dd>
+<dt>ROWS BETWEEN 2 PRECEDING AND CURRENT ROW</dt><dd>This row and the 2 before it: a 3-row trailing frame.</dd>
+<dt>Trailing</dt><dd>Uses only past rows, so today's value can be worked out today. Standard on dashboards.</dd>
+<dt>Centred</dt><dd>Uses rows on both sides (1 PRECEDING AND 1 FOLLOWING); it does not lag behind, but the newest day is not final yet.</dd>
+<dt>Short window</dt><dd>At the start there are fewer rows than the frame size, and AVG divides by how many are really there.</dd>
+<dt>Physical meaning</dt><dd>Every row stays and gets one smoothed number. A big spike is shared among the rows near it, so peaks get lower and dips get higher.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"ROWS BETWEEN 6 PRECEDING always means 7 days."** It means 7 rows. If some days have no sales, they have no row, and the frame stretches over more calendar days. Fill the gaps with a date spine (COALESCE to 0) first, or use RANGE on a day number.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Daily sales.</b> <table class="lk-tbl"><tr><th>day</th><th>sales</th></tr><tr><td>1</td><td>90</td></tr><tr><td>2</td><td>150</td></tr><tr><td>3</td><td>60</td></tr><tr><td>4</td><td>120</td></tr><tr><td>5</td><td>30</td></tr></table></div>
+<div class="step"><b>Day 1.</b> Frame = day 1 only: <mark>90</mark> (a short window).</div>
+<div class="step"><b>Day 2.</b> Frame = days 1-2: (90 + 150) ÷ 2 = <mark>120</mark> (still short).</div>
+<div class="step"><b>Day 3.</b> Full frame, days 1-3: (90 + 150 + 60) ÷ 3 = <mark>100</mark>.</div>
+<div class="step"><b>Days 4 and 5.</b> The frame slides: days 2-4 give (150 + 60 + 120) ÷ 3 = <mark>110</mark>; days 3-5 give (60 + 120 + 30) ÷ 3 = <mark>70</mark>. The jumps of the raw data are softened.</div>
+</div>
+
+<div class="problem" data-problem="sql-moving-avg"></div>
+
 ## 6. Worked example
 
 *Question:* what was the 7-day trailing average of sales over December 2024, and when did it peak?
@@ -201,5 +240,14 @@ SELECT order_id, amount,
        MAX(amount) OVER (ORDER BY order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS max_3
 FROM mini_orders
 ```
+
+<div class="keypoints">
+
+- A moving average is AVG(x) OVER (ORDER BY day ROWS BETWEEN k PRECEDING AND CURRENT ROW).
+- The first rows have short windows; hide them or start the data earlier.
+- Trailing uses only the past; centred uses both sides.
+- ROWS counts rows, not days: fill missing days first.
+
+</div>
 
 **New words:** *moving average*, *trailing*, *centred*, *low-pass filter*.

@@ -17,9 +17,17 @@ quiz:
     choices: ['WHERE', 'HAVING', 'FROM']
     ans: 1
     why: WHERE tests single rows before any grouping. HAVING tests groups after GROUP BY has summed them.
+sources:
+  - 'Microsoft Learn, SELECT (Transact-SQL): Logical processing order of the SELECT statement https://learn.microsoft.com/en-us/sql/t-sql/queries/select-transact-sql'
+  - 'PostgreSQL documentation, Queries: Overview and Table Expressions https://www.postgresql.org/docs/current/queries-table-expressions.html'
+  - 'SQLite documentation, SELECT https://www.sqlite.org/lang_select.html'
 ---
 
 **Module 1 · about 20 minutes · read first: 1.3.** You'll be able to say the order in which SQL works out each part of a query, and use it to fix the most common beginner errors.
+
+<div class="bigidea">SQL runs a query in a different order from the way you write it: FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT.</div>
+
+**In everyday terms:** a recipe card lists the dish's name first, but the cook starts by fetching ingredients. SELECT is the name on the card; FROM is the trip to the cupboard.
 
 ## 1. Why this matters
 
@@ -64,6 +72,38 @@ Things to notice:
 - Order 106 belongs to customer 9, who doesn't exist, so the (inner) join drops it.
 - WHERE removes the $5 bagels **before** grouping, so they never reach a total.
 - Each city turns into one row only at the aggregate step.
+
+<div class="meaning">
+
+<dl>
+<dt>FROM / JOIN</dt><dd>Runs first: fetch the rows of the table(s).</dd>
+<dt>WHERE</dt><dd>Throws away rows, one at a time, before any grouping.</dd>
+<dt>GROUP BY</dt><dd>Puts the rows left into groups.</dd>
+<dt>HAVING</dt><dd>Throws away whole groups, after the totals are known.</dd>
+<dt>SELECT</dt><dd>Works out the output columns and their aliases.</dd>
+<dt>ORDER BY, LIMIT</dt><dd>Sort the answer, then keep the first few rows.</dd>
+<dt>Physical meaning</dt><dd>Each step takes a table and hands a smaller or reshaped table to the next. A step can only use what earlier steps have made, which is why WHERE cannot see a SUM or (in most databases) a SELECT alias.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"SQL runs top to bottom, starting with SELECT."** SELECT is written first but runs fifth. That is why `WHERE SUM(amount) > 40` fails (there are no groups yet when WHERE runs) and why ORDER BY can use an alias but WHERE usually cannot.
+
+</div>
+
+Watch the query above run, one step at a time (the live box's **Show how it runs** button animates the real thing):
+
+<div class="steps">
+<div class="step"><b>FROM + JOIN.</b> 5 joined rows (order 106 has no customer). <table class="lk-tbl"><tr><th>order</th><th>city</th><th>amount</th></tr><tr><td>101</td><td>Toronto</td><td>45</td></tr><tr><td>102</td><td>Toronto</td><td>5</td></tr><tr><td>103</td><td>Ottawa</td><td>20</td></tr><tr><td>104</td><td>Toronto</td><td>90</td></tr><tr><td>105</td><td>Toronto</td><td>45</td></tr></table></div>
+<div class="step"><b>WHERE amount &gt; 10.</b> The $5 bagels go. <table class="lk-tbl"><tr><th>order</th><th>city</th><th>amount</th></tr><tr><td>101</td><td>Toronto</td><td>45</td></tr><tr><td>103</td><td>Ottawa</td><td>20</td></tr><tr><td>104</td><td>Toronto</td><td>90</td></tr><tr><td>105</td><td>Toronto</td><td>45</td></tr></table></div>
+<div class="step"><b>GROUP BY city.</b> Two bowls: Toronto (45, 90, 45) and Ottawa (20).</div>
+<div class="step"><b>SELECT city, SUM(amount).</b> <table class="lk-tbl"><tr><th>city</th><th>total</th></tr><tr><td>Toronto</td><td><mark>180</mark></td></tr><tr><td>Ottawa</td><td><mark>20</mark></td></tr></table></div>
+<div class="step"><b>ORDER BY total DESC.</b> Already biggest first, so the answer is Toronto 180, Ottawa 20.</div>
+</div>
+
+<div class="problem" data-problem="sql-run-order"></div>
 
 ## 4. The errors this explains
 
@@ -127,5 +167,15 @@ FROM mini_orders
 WHERE amount > 30
 ORDER BY amount DESC
 ```
+
+<div class="keypoints">
+
+- Written order: SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT.
+- Running order: FROM (and JOIN), WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT.
+- WHERE filters rows before grouping; HAVING filters groups after.
+- A step can only use what earlier steps made: no SUM in WHERE, aliases are safe in ORDER BY.
+- When a query errors, walk through it in running order.
+
+</div>
 
 **New words:** *logical order of execution*, *alias*, *pipeline*.

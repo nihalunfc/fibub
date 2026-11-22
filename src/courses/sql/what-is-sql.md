@@ -17,9 +17,18 @@ quiz:
     choices: ['Yes, it removes the rows it shows', 'No, SELECT only reads', 'Only if you press Run twice']
     ans: 1
     why: SELECT only reads. Changing data uses other statements (INSERT, UPDATE, DELETE), covered much later.
+sources:
+  - 'SQLite documentation, SELECT https://www.sqlite.org/lang_select.html'
+  - 'PostgreSQL documentation, Tutorial: The SQL Language https://www.postgresql.org/docs/current/tutorial-sql.html'
+  - 'Microsoft Learn, SELECT (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/select-transact-sql'
+  - 'Codd, E. F. (1970), A Relational Model of Data for Large Shared Data Banks, Communications of the ACM 13(6), 377-387'
 ---
 
 **Module 1 · about 20 minutes · read first: nothing.** You'll be able to say what SQL is, run your first query, and read a simple query out loud in plain English.
+
+<div class="bigidea">SQL is a short, English-like language for asking questions of tables: you say what answer you want, and the database works out how to find it.</div>
+
+**In everyday terms:** ordering at a café. You say "a large latte, no sugar"; you don't walk behind the counter and tell the barista which buttons to press. A query is your order, and the database is the barista.
 
 ## 1. Why this matters
 
@@ -52,6 +61,39 @@ WHERE city = 'Toronto'
 ```
 
 Now press **Show how it runs** and then **Play**. Watch the steps: FROM fetches all five rows, WHERE fades out the three that aren't in Toronto, and SELECT keeps only the two columns you asked for. That picture (start with a table, throw rows away, keep some columns) is most of SQL.
+
+<div class="meaning">
+
+<dl>
+<dt>Database</dt><dd>A set of tables that belong together, such as all of Northbay's stores, products and orders.</dd>
+<dt>Table</dt><dd>A named grid of rows and columns. Every row has the same columns.</dd>
+<dt>Query</dt><dd>A question written in SQL. It always hands back a table.</dd>
+<dt>SELECT ... FROM ...</dt><dd>"Show me these columns from this table."</dd>
+<dt>WHERE</dt><dd>"Only the rows that pass this test."</dd>
+<dt>Declarative</dt><dd>You describe the result, not the steps to get it.</dd>
+<dt>Physical meaning</dt><dd>A SELECT reads rows, throws away the ones that fail the test, keeps the columns you named and hands you a new, temporary table. The stored table is never changed.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Running a query changes or moves the data."** A SELECT only reads. It makes a fresh answer table each time and leaves the real table exactly as it was, so you can run it a hundred times without harm. Changing data takes different statements (INSERT, UPDATE, DELETE), which come much later.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query in the same way):
+
+<div class="steps">
+<div class="step"><b>FROM mini_customers.</b> Fetch every row. <table class="lk-tbl"><tr><th>id</th><th>name</th><th>city</th></tr><tr><td>1</td><td>Asha</td><td>Toronto</td></tr><tr><td>2</td><td>Ben</td><td>Ottawa</td></tr><tr><td>3</td><td>Chen</td><td>Toronto</td></tr><tr><td>4</td><td>Dina</td><td>Hamilton</td></tr><tr><td>5</td><td>Eli</td><td>Ottawa</td></tr></table></div>
+<div class="step"><b>WHERE city = 'Toronto'.</b> Test each row; keep the ones that pass. <table class="lk-tbl"><tr><th>id</th><th>name</th><th>city</th></tr><tr><td>1</td><td>Asha</td><td><mark>Toronto</mark></td></tr><tr><td>3</td><td>Chen</td><td><mark>Toronto</mark></td></tr></table></div>
+<div class="step"><b>SELECT name, city.</b> Keep only the columns you asked for. <table class="lk-tbl"><tr><th>name</th><th>city</th></tr><tr><td><mark>Asha</mark></td><td>Toronto</td></tr><tr><td><mark>Chen</mark></td><td>Toronto</td></tr></table></div>
+<div class="step"><b>The answer.</b> A new table of 2 rows and 2 columns. mini_customers still has all 5 rows.</div>
+</div>
+
+Try one yourself. Each time you press **New numbers** you get a fresh table:
+
+<div class="problem" data-problem="sql-first-query-cells"></div>
 
 ## 4. Questions a store actually asks
 
@@ -149,5 +191,15 @@ WHERE order_date LIKE '2024%'
 ```
 
 **Try it on your own data:** load a CSV into [[sql-playground]] and query it the same way.
+
+<div class="keypoints">
+
+- SQL is the language for asking questions of tables; almost every data and BI job uses it.
+- A database is a set of tables; a table is rows and columns.
+- SQL is declarative: you say what you want, the database plans how.
+- Every SELECT hands back a table and never changes the stored data.
+- FROM picks the table, WHERE keeps rows, SELECT keeps columns.
+
+</div>
 
 **New words:** *database*, *table*, *query*, *declarative*, *relation*, *SQLite*.

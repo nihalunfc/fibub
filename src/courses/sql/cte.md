@@ -17,9 +17,18 @@ quiz:
     choices: ['They read top to bottom in the order the steps happen, and each step can be checked on its own', 'They always run faster', 'Subqueries are being removed from SQL']
     ans: 0
     why: Nested queries read inside out. CTEs read like a recipe, and you can run each step alone to check it. Speed is usually the same.
+sources:
+  - 'SQLite documentation, The WITH clause https://www.sqlite.org/lang_with.html'
+  - 'PostgreSQL documentation, WITH queries (common table expressions) https://www.postgresql.org/docs/current/queries-with.html'
+  - 'Microsoft Learn, WITH common_table_expression (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/with-common-table-expression-transact-sql'
+  - 'dbt documentation, How we style our SQL (CTEs) https://docs.getdbt.com/best-practices/how-we-style/2-how-we-style-our-sql'
 ---
 
 **Module 5 · about 25 minutes · read first: 5.1.** You'll be able to write a query as a series of named steps with WITH, check each step on its own, and turn a hard question into a few easy ones.
+
+<div class="bigidea">A CTE gives a step of your query a name with WITH, so a hard question becomes a list of easy steps you read from top to bottom.</div>
+
+**In everyday terms:** a recipe written as numbered steps: "1. make the dough, 2. make the sauce, 3. put the sauce on the dough". Each step can use what the earlier steps made.
 
 ## 1. Why this matters
 
@@ -109,6 +118,35 @@ Low **361**, Medium **223**, High **14**. Each step does one job: pick the lines
 
 **Try it:** in the banding query, what is the grain (one row is ...) of `spend`? (One customer.) Of `line_values`? (One order line.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>CTE (common table expression)</dt><dd>A named query written before the main query: <code>WITH name AS (SELECT ...)</code>.</dd>
+<dt>WITH</dt><dd>The word that starts the list of CTEs. One WITH, then CTEs separated by commas.</dd>
+<dt>Main query</dt><dd>The SELECT after the last CTE. It uses the CTE names like tables.</dd>
+<dt>Check a step</dt><dd>Run one CTE's SELECT on its own to see the middle result.</dd>
+<dt>Physical meaning</dt><dd>Each CTE is a temporary result that exists only while this one statement runs. Nothing is stored in the database, and the result is the same as the nested-subquery version.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A CTE saves a table I can use in my next query."** It lasts for one statement only. Run a second query and the name is gone. To keep a result, create a table or a view.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Start.</b> mini_orders. <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr><tr><td>101</td><td>1</td><td>45</td></tr><tr><td>102</td><td>1</td><td>5</td></tr><tr><td>103</td><td>2</td><td>20</td></tr><tr><td>104</td><td>3</td><td>90</td></tr><tr><td>105</td><td>3</td><td>45</td></tr><tr><td>106</td><td>9</td><td>60</td></tr></table></div>
+<div class="step"><b>Step 1: spend.</b> <code>WITH spend AS (SELECT customer_id, SUM(amount) AS total ... GROUP BY customer_id)</code> <table class="lk-tbl"><tr><th>customer_id</th><th>total</th></tr><tr><td>1</td><td><mark>50</mark></td></tr><tr><td>2</td><td><mark>20</mark></td></tr><tr><td>3</td><td><mark>135</mark></td></tr><tr><td>9</td><td><mark>60</mark></td></tr></table></div>
+<div class="step"><b>Step 2: banded.</b> uses spend: <code>CASE WHEN total &gt;= 50 THEN 'High' ELSE 'Low' END</code> <table class="lk-tbl"><tr><th>customer_id</th><th>band</th></tr><tr><td>1</td><td><mark>High</mark></td></tr><tr><td>2</td><td><mark>Low</mark></td></tr><tr><td>3</td><td><mark>High</mark></td></tr><tr><td>9</td><td><mark>High</mark></td></tr></table></div>
+<div class="step"><b>Main query.</b> <code>SELECT band, COUNT(*) FROM banded GROUP BY band</code> <table class="lk-tbl"><tr><th>band</th><th>customers</th></tr><tr><td>High</td><td>3</td></tr><tr><td>Low</td><td>1</td></tr></table> Each step did one job.</div>
+</div>
+
+<div class="problem" data-problem="sql-cte-band-count"></div>
 
 ## 5. Worked example: each store's share of 2025 revenue
 
@@ -224,5 +262,14 @@ WHERE n > (SELECT AVG(n) FROM counts)
 ```
 
 **Try it on your own data:** paste a long nested query from work into [[sql-playground]] with a sample of the data and untangle it into named CTE steps.
+
+<div class="keypoints">
+
+- WITH name AS (query) names a step; the main query uses it like a table.
+- Several CTEs go after one WITH, separated by commas; each can use the ones above.
+- A CTE lasts only for one statement.
+- Name each CTE after what one row means, and run steps on their own to check them.
+
+</div>
 
 **New words:** *CTE (common table expression)*, *WITH*, *CROSS JOIN*.

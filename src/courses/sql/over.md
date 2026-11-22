@@ -17,9 +17,17 @@ quiz:
     choices: ['Window functions are worked out after WHERE, so WHERE cannot see them', 'SUM cannot be used with OVER', 'WHERE only accepts text']
     ans: 0
     why: Window functions run at the SELECT step, after WHERE has already chosen the rows. To filter on one, work it out in a CTE or subquery and filter outside.
+sources:
+  - 'SQLite documentation, Window functions https://www.sqlite.org/windowfunctions.html'
+  - 'PostgreSQL documentation, Tutorial: window functions https://www.postgresql.org/docs/current/tutorial-window.html'
+  - 'Microsoft Learn, SELECT - OVER clause (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql'
 ---
 
 **Module 6 · about 25 minutes · read first: 3.2.** You'll be able to put a total, an average or a count next to every row with OVER, split it by group with PARTITION BY, and say how that differs from GROUP BY.
+
+<div class="bigidea">OVER works out a total, average or count for a group of rows and writes it on every row, without merging any rows.</div>
+
+**In everyday terms:** a class photo with a caption. GROUP BY gives you only the caption ("28 pupils"); OVER keeps every face in the picture and writes "class of 28" under each one.
 
 ## 1. Why this matters
 
@@ -107,6 +115,35 @@ WHERE amount > avg_amount
 
 Second, WHERE decides what the window can see. If you filter to Toronto customers first, the "grand total" is the Toronto total. That is usually what you want, but say so in the column name.
 
+<div class="meaning">
+
+<dl>
+<dt>Window</dt><dd>The set of rows a window function looks at for the current row.</dd>
+<dt>Window function</dt><dd>Any function followed by OVER, such as <code>SUM(amount) OVER ()</code>.</dd>
+<dt>OVER ()</dt><dd>Empty brackets: the window is every row of the result.</dd>
+<dt>PARTITION BY</dt><dd>Splits rows into groups; each row's window is only its own group.</dd>
+<dt>Physical meaning</dt><dd>The row count does not change. The database adds one new column, filled for each row from its window, after WHERE and GROUP BY have run.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"OVER (PARTITION BY x) is the same as GROUP BY x."** GROUP BY squeezes each group into one row; PARTITION BY keeps every row and only decides which rows each window sees. Six orders in, six rows out.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Start.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr><tr><td>101</td><td>1</td><td>45</td></tr><tr><td>102</td><td>1</td><td>5</td></tr><tr><td>103</td><td>2</td><td>20</td></tr><tr><td>104</td><td>3</td><td>90</td></tr><tr><td>105</td><td>3</td><td>45</td></tr><tr><td>106</td><td>9</td><td>60</td></tr></table></div>
+<div class="step"><b>Partition.</b> <code>PARTITION BY customer_id</code> makes four windows: customer 1 (101, 102), 2 (103), 3 (104, 105) and 9 (106).</div>
+<div class="step"><b>Sum each window.</b> Customer 1: 45 + 5 = 50. Customer 3: 90 + 45 = 135. The others are their own amount.</div>
+<div class="step"><b>Write it on every row.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th><th>customer_total</th></tr><tr><td>101</td><td>1</td><td>45</td><td><mark>50</mark></td></tr><tr><td>102</td><td>1</td><td>5</td><td><mark>50</mark></td></tr><tr><td>103</td><td>2</td><td>20</td><td><mark>20</mark></td></tr><tr><td>104</td><td>3</td><td>90</td><td><mark>135</mark></td></tr><tr><td>105</td><td>3</td><td>45</td><td><mark>135</mark></td></tr><tr><td>106</td><td>9</td><td>60</td><td><mark>60</mark></td></tr></table> Still 6 rows.</div>
+</div>
+
+<div class="problem" data-problem="sql-over-partition"></div>
+
 ## 5. Worked example
 
 *Question:* at stores 1 and 2, how far is each employee's salary from their store's average?
@@ -171,5 +208,14 @@ WHERE amount > cust_avg
 ```
 
 **Try it on your own data:** load a CSV into [[sql-playground]] and add a group average next to each row.
+
+<div class="keypoints">
+
+- A window function is a function followed by OVER; it keeps every row.
+- OVER () looks at all rows; OVER (PARTITION BY x) looks at the row's own group.
+- Window functions run after WHERE, GROUP BY and HAVING, so WHERE cannot test them.
+- To filter on a window value, compute it in a CTE and filter outside.
+
+</div>
 
 **New words:** *window*, *window function*, *OVER*, *PARTITION BY*.

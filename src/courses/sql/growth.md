@@ -17,9 +17,18 @@ quiz:
     choices: ['LAG only works on dates', 'A month with no sales has no row, so LAG would skip it and compare the wrong months', 'It makes the query faster']
     ans: 1
     why: 'LAG counts rows, not months. A missing row makes "the row before" a month that is two or more months back.'
+sources:
+  - 'SQLite documentation: Window Functions (LAG) https://www.sqlite.org/windowfunctions.html'
+  - 'SQLite documentation: Date and Time Functions (strftime) https://www.sqlite.org/lang_datefunc.html'
+  - 'PostgreSQL documentation: Window Functions https://www.postgresql.org/docs/current/functions-window.html'
+  - 'Microsoft Learn: LAG (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/lag-transact-sql'
 ---
 
 **Module 8 · about 30 minutes · read first: 6.4, 7.1.** You'll be able to build a monthly revenue table and add month-over-month (MoM) and year-over-year (YoY) growth columns that are correct even when months are missing.
+
+<div class="bigidea">Growth compares a number with the same number one period earlier: make one row per month, then let LAG fetch the earlier value.</div>
+
+**In everyday terms:** checking your weight on the same scale every month. "Up 2 kg since last month" is month-over-month; "up 3 kg since this time last year" is year-over-year, and it ignores the extra holiday dinners in December.
 
 ## 1. Why this matters
 
@@ -108,6 +117,41 @@ All of 2024 shows NULL for YoY, because the data starts in January 2024. Every m
 
 **Try it:** growth compounds. Two months of +10% is 1.1 × 1.1 = 1.21, so +21%, not +20%. What do +50% then −50% give? (1.5 × 0.5 = 0.75: a 25% fall.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Month-over-month (MoM)</dt><dd>The change since the month before, divided by the month before.</dd>
+<dt>Year-over-year (YoY)</dt><dd>The change since the same month a year earlier. It cancels out the seasons.</dd>
+<dt>LAG(x, k) OVER (ORDER BY month)</dt><dd>The value of x from k rows earlier in month order. It counts rows, not months.</dd>
+<dt>NULLIF(x, 0)</dt><dd>Turns a 0 into NULL so that dividing by it gives NULL instead of an error.</dd>
+<dt>Calendar table</dt><dd>A list of every month (or day), used so that empty months still get a row.</dd>
+<dt>Physical meaning</dt><dd>The query first squashes thousands of order lines into one row per month. LAG then copies the value from the row above into the current row, so the new and old numbers sit side by side and one division gives the growth.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"LAG(revenue) always gives last month."** It gives the previous *row*. If a month had no sales, it has no row, and LAG reaches back two months without telling you. Join a calendar of every month first, and turn missing values into 0 with COALESCE.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>One row per month.</b> GROUP BY month gives the monthly table. <table class="lk-tbl"><tr><th>month</th><th>revenue</th></tr><tr><td>2025-01</td><td>4000</td></tr><tr><td>2025-02</td><td>5000</td></tr><tr><td>2025-03</td><td>4500</td></tr></table></div>
+<div class="step"><b>LAG copies the row above.</b> <table class="lk-tbl"><tr><th>month</th><th>revenue</th><th>prev</th></tr><tr><td>2025-01</td><td>4000</td><td><mark>NULL</mark></td></tr><tr><td>2025-02</td><td>5000</td><td><mark>4000</mark></td></tr><tr><td>2025-03</td><td>4500</td><td><mark>5000</mark></td></tr></table></div>
+<div class="step"><b>Divide by the older number.</b> (5000 − 4000) ÷ 4000 = 25 %; (4500 − 5000) ÷ 5000 = −10 %. <table class="lk-tbl"><tr><th>month</th><th>revenue</th><th>mom_pct</th></tr><tr><td>2025-01</td><td>4000</td><td>NULL</td></tr><tr><td>2025-02</td><td>5000</td><td><mark>25.0</mark></td></tr><tr><td>2025-03</td><td>4500</td><td><mark>−10.0</mark></td></tr></table></div>
+<div class="step"><b>The trap.</b> If April has no sales, May sits right under March, and LAG compares May with March. <table class="lk-tbl"><tr><th>month</th><th>sold</th><th>prev</th></tr><tr><td>2025-03</td><td>6</td><td>4</td></tr><tr><td>2025-05</td><td>3</td><td><mark>6 (March!)</mark></td></tr></table></div>
+<div class="step"><b>The fix.</b> LEFT JOIN onto a calendar of every month and use COALESCE(sold, 0). <table class="lk-tbl"><tr><th>month</th><th>sold</th><th>prev</th></tr><tr><td>2025-03</td><td>6</td><td>4</td></tr><tr><td><mark>2025-04</mark></td><td><mark>0</mark></td><td>6</td></tr><tr><td>2025-05</td><td>3</td><td><mark>0</mark></td></tr></table></div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-mom-growth"></div>
+
+<div class="problem" data-problem="sql-compound-growth"></div>
 
 ## 5. The missing-month trap
 
@@ -246,5 +290,15 @@ LIMIT 1
 ```
 
 **Try it on your own data:** export a monthly table and chart it with [[plot-maker]], or run your own CSV through these queries in [[sql-playground]].
+
+<div class="keypoints">
+
+- Build a table with exactly one row per period before working out growth.
+- Growth = (new − old) ÷ old. MoM uses LAG(x) and YoY uses LAG(x, 12) on monthly rows.
+- Write 100.0, not 100, and wrap the divisor in NULLIF(…, 0).
+- LAG counts rows, not months: join a calendar so empty months get a row with 0.
+- Growth multiplies: +10 % then +10 % is +21 %, and +50 % then −50 % is −25 %.
+
+</div>
 
 **New words:** *month-over-month (MoM) growth*, *year-over-year (YoY) growth*, *seasonality*, *calendar table*.

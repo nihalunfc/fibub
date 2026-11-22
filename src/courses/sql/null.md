@@ -17,9 +17,17 @@ quiz:
     choices: ['Every customer who is not Gold, including those with no tier', 'Bronze and Silver customers only; NULL tiers are dropped', 'Only Gold customers']
     ans: 1
     why: NULL <> 'Gold' is unknown, not true, so WHERE drops those rows. Add OR loyalty_tier IS NULL to keep them.
+sources:
+  - 'SQLite documentation, NULL Handling in SQLite Versus Other Database Engines https://www.sqlite.org/nulls.html'
+  - 'Microsoft Learn, NULL and UNKNOWN (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/null-and-unknown-transact-sql'
+  - 'PostgreSQL documentation, Conditional Expressions (COALESCE, NULLIF) https://www.postgresql.org/docs/current/functions-conditional.html'
 ---
 
 **Module 2 · about 30 minutes · read first: 2.3.** You'll be able to find and replace missing values, explain why `= NULL` never works, and avoid the NULL traps in `<>` and `NOT IN`.
+
+<div class="bigidea">NULL means "no value here", and any comparison with it is neither true nor false but unknown, so WHERE quietly drops those rows.</div>
+
+**In everyday terms:** a form with a blank box for "favourite colour". Is the blank "blue"? You can't say. Is it "not blue"? You can't say that either. SQL treats the blank the same way: every question about it gets "don't know".
 
 ## 1. Why this matters
 
@@ -77,6 +85,38 @@ SELECT NULL = NULL AS equal,
 - `NULL + 5` is NULL: unknown plus 5 is still unknown.
 - `1 IN (1, NULL)` is true: 1 matched, so the NULL doesn't matter.
 - `2 NOT IN (1, NULL)` is unknown: 2 might be equal to the unknown value.
+
+<div class="meaning">
+
+<dl>
+<dt>NULL</dt><dd>No value: unknown, missing or not applicable. Not 0 and not empty text ''.</dd>
+<dt>IS NULL / IS NOT NULL</dt><dd>The only tests that find (or skip) blanks.</dd>
+<dt>Unknown</dt><dd>The third answer a test can give, besides true and false. WHERE drops it.</dd>
+<dt>COALESCE(a, b)</dt><dd>The first value that is not NULL: fills a blank with a default.</dd>
+<dt>NULLIF(a, b)</dt><dd>Gives NULL when a = b, for example to avoid dividing by zero.</dd>
+<dt>Physical meaning</dt><dd>A NULL cell holds nothing. Any test on it (=, &lt;&gt;, &gt;, NOT IN) is unknown, so the row fails both a filter and its opposite, and silently falls out of both answers.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"WHERE tier = 'Gold' and WHERE tier &lt;&gt; 'Gold' together cover every row."** Rows with a NULL tier fail both tests. Northbay has 54 Gold and 491 not-Gold customers, which is 545, not 603. If the blanks should count, add `OR tier IS NULL`.
+
+</div>
+
+Watch the &lt;&gt; trap happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Five customers.</b> <table class="lk-tbl"><tr><th>id</th><th>tier</th></tr><tr><td>1</td><td>Gold</td></tr><tr><td>2</td><td>Silver</td></tr><tr><td>3</td><td><i>NULL</i></td></tr><tr><td>4</td><td>Bronze</td></tr><tr><td>5</td><td><i>NULL</i></td></tr></table></div>
+<div class="step"><b>Test tier &lt;&gt; 'Gold'.</b> <table class="lk-tbl"><tr><th>id</th><th>tier</th><th>test</th></tr><tr><td>1</td><td>Gold</td><td>false</td></tr><tr><td>2</td><td>Silver</td><td>true</td></tr><tr><td>3</td><td><i>NULL</i></td><td><mark>unknown</mark></td></tr><tr><td>4</td><td>Bronze</td><td>true</td></tr><tr><td>5</td><td><i>NULL</i></td><td><mark>unknown</mark></td></tr></table></div>
+<div class="step"><b>WHERE keeps only true.</b> 2 rows, not 4. <table class="lk-tbl"><tr><th>id</th><th>tier</th></tr><tr><td>2</td><td>Silver</td></tr><tr><td>4</td><td>Bronze</td></tr></table></div>
+<div class="step"><b>Add OR tier IS NULL.</b> The blanks come back: 4 rows. <table class="lk-tbl"><tr><th>id</th><th>tier</th></tr><tr><td>2</td><td>Silver</td></tr><tr><td><mark>3</mark></td><td><i>NULL</i></td></tr><tr><td>4</td><td>Bronze</td></tr><tr><td><mark>5</mark></td><td><i>NULL</i></td></tr></table></div>
+</div>
+
+Press **Show how it runs** on any live box in this lesson to watch the real rows fade out. Then try it:
+
+<div class="problem" data-problem="sql-null-not-equal"></div>
 
 ## 5. The <> trap
 
@@ -191,5 +231,15 @@ FROM stores
 SELECT store_name, COALESCE(city, 'Online') AS city
 FROM stores
 ```
+
+<div class="keypoints">
+
+- NULL means no value; it is not 0 and not ''.
+- = NULL never finds anything. Use IS NULL and IS NOT NULL.
+- Tests on NULL give unknown, and WHERE drops unknown rows.
+- &lt;&gt; and NOT IN silently skip NULLs; a NULL inside a NOT IN list empties the answer.
+- COALESCE fills blanks with a default; NULLIF(y, 0) avoids division by zero.
+
+</div>
 
 **New words:** *NULL*, *IS NULL*, *three-valued logic*, *unknown*, *COALESCE*, *NULLIF*.

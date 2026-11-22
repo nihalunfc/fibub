@@ -17,9 +17,17 @@ quiz:
     choices: ['Values that look the same differ by spaces or capitals', 'DISTINCT counts NULL as a city', 'It counts rows, not values']
     ans: 0
     why: '''Ottawa'' and ''Ottawa '' are different values. Clean first, e.g. COUNT(DISTINCT TRIM(city)).'
+sources:
+  - 'SQLite documentation, Built-in Aggregate Functions (count with DISTINCT) https://www.sqlite.org/lang_aggfunc.html'
+  - 'Microsoft Learn, COUNT (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/count-transact-sql'
+  - 'Kimball Group, Additive, Semi-Additive, and Non-Additive Facts https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/additive-semi-additive-non-additive-fact/'
 ---
 
 **Module 3 · about 25 minutes · read first: 3.3.** You'll be able to choose between counting rows and counting different values, explain why distinct counts don't add up, and spot values that are only *nearly* the same.
+
+<div class="bigidea">COUNT(*) counts rows, COUNT(DISTINCT x) counts different values, and distinct counts from separate groups never add up to the whole.</div>
+
+**In everyday terms:** a gym. Counting visits is COUNT(*); counting members who came is COUNT(DISTINCT member). Monday's members plus Tuesday's members overcounts everyone who came on both days.
 
 ## 1. Why this matters
 
@@ -54,6 +62,35 @@ FROM orders
 4,064 orders, of which 3,582 were by members, placed by 600 different members. On average a member placed 3,582 / 600 ≈ 6 orders over the two years.
 
 Pick the count that matches the noun in the question: "how many **orders**" is COUNT(*); "how many **customers**" is COUNT(DISTINCT customer_id).
+
+<div class="meaning">
+
+<dl>
+<dt>COUNT(*)</dt><dd>Number of rows (orders, visits, lines).</dd>
+<dt>COUNT(DISTINCT x)</dt><dd>Number of different non-NULL values of x (customers, products).</dd>
+<dt>Additive</dt><dd>A number you can add across groups: row counts, sums.</dd>
+<dt>Non-additive</dt><dd>A number you cannot add across groups: distinct counts, averages.</dd>
+<dt>Physical meaning</dt><dd>COUNT(DISTINCT) puts each value through a sieve that lets it pass only once, then counts what passed. Someone who appears in two groups passes once in each group but only once overall.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Customers in 2024 plus customers in 2025 is how many customers we had."** Anyone who bought in both years is counted twice. 561 + 584 = 1,145, but only 600 customers ordered at all. Never add distinct counts; count again over the combined rows.
+
+</div>
+
+Watch it happen, one step at a time (press **Show how it runs** on any live box to see real rows):
+
+<div class="steps">
+<div class="step"><b>Orders in two months.</b> <table class="lk-tbl"><tr><th>month</th><th>customer</th></tr><tr><td>Jan</td><td>Asha</td></tr><tr><td>Jan</td><td>Ben</td></tr><tr><td>Jan</td><td>Asha</td></tr><tr><td>Feb</td><td>Ben</td></tr><tr><td>Feb</td><td>Chen</td></tr></table></div>
+<div class="step"><b>COUNT(*) per month.</b> Jan 3, Feb 2. These add up: 3 + 2 = 5 orders.</div>
+<div class="step"><b>COUNT(DISTINCT customer) per month.</b> Jan {Asha, Ben} = 2, Feb {Ben, Chen} = 2. <table class="lk-tbl"><tr><th>month</th><th>customers</th></tr><tr><td>Jan</td><td><mark>2</mark></td></tr><tr><td>Feb</td><td><mark>2</mark></td></tr></table></div>
+<div class="step"><b>Over both months.</b> {Asha, Ben, Chen} = 3, not 2 + 2 = 4. Ben is in both months, so adding counts him twice.</div>
+</div>
+
+<div class="problem" data-problem="sql-distinct-overlap"></div>
 
 ## 4. Distinct counts don't add up
 
@@ -183,5 +220,15 @@ FROM orders
 SELECT COUNT(DISTINCT strftime('%Y-%m', order_date)) AS months
 FROM orders
 ```
+
+<div class="keypoints">
+
+- Match the count to the noun: "how many orders" is COUNT(*); "how many customers" is COUNT(DISTINCT customer_id).
+- COUNT(DISTINCT x) ignores NULLs.
+- Distinct counts don't add up across groups; overlap = sum of parts − whole.
+- Clean before counting: trailing spaces and capitals make new "different" values.
+- Count people by a key, not by a name; SUM(DISTINCT) is almost never what you want.
+
+</div>
 
 **New words:** *COUNT DISTINCT*, *cardinality*, *additive*, *non-additive*, *inclusion-exclusion*.

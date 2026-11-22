@@ -17,9 +17,17 @@ quiz:
     choices: ['To save a few bytes of text', 'A dimension needs a whole set of attributes that another dimension already provides, like a date with its fiscal year and weekday', 'To avoid using a date dimension']
     ans: 1
     why: An outrigger is a dimension referenced from another dimension. Pointing a customer's sign-up date at dim_date gives it every calendar attribute for free.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (resisting the urge to snowflake; outriggers)'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.1.** You'll be able to build the same dimension as a star and as a snowflake, show that they give the same answers, and decide which one to use.
+
+<div class="bigidea">Snowflaking normalises a dimension into a chain of tables; it gives the same answers as a star but with more joins, so use stars for what people query.</div>
+
+**In everyday terms:** a set of nesting boxes versus one labelled box. The flat star is one box with the product, its category and department all written on the label. The snowflake puts each label in its own box inside the next, tidier but you open three boxes to read it.
 
 ## 1. Why this matters
 
@@ -153,6 +161,38 @@ ORDER BY sales DESC
 
 Ontario South leads with $42,944.35, then Online with $32,661.99. Use outriggers sparingly: each one is another join, and a chain of them is a snowflake by another name.
 
+<div class="meaning">
+
+<dl>
+<dt>Snowflake schema</dt><dd>A star whose dimensions are split into a chain of normalised tables.</dd>
+<dt>Hierarchy</dt><dd>Levels that roll up: product → category → department.</dd>
+<dt>Outrigger</dt><dd>A dimension referenced by another dimension rather than by a fact.</dd>
+<dt>Star (flat) dimension</dt><dd>One wide table with every level of the hierarchy copied onto each row.</dd>
+<dt>Physical meaning</dt><dd>In the star, each product row carries its category and department text. In the snowflake, a product row carries a category key, and the category row carries a department key; a query walks the chain with extra joins.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A snowflake is the correct, normalised version of a star."** Both are correct and give identical totals. The snowflake saves a little space and makes renames one row, but every query and every Power BI model pays with extra joins.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Star dimension.</b> <table class="lk-tbl"><tr><th>product</th><th>category</th><th>department</th></tr><tr><td>Earbuds</td><td>Electronics</td><td>Tech</td></tr><tr><td>Phone</td><td>Electronics</td><td>Tech</td></tr></table></div>
+<div class="step"><b>Snowflaked.</b> <table class="lk-tbl"><tr><th>product</th><th>category_id</th></tr><tr><td>Earbuds</td><td>1</td></tr><tr><td>Phone</td><td>1</td></tr></table> <table class="lk-tbl"><tr><th>category_id</th><th>category</th><th>dept_id</th></tr><tr><td>1</td><td>Electronics</td><td>4</td></tr></table> <table class="lk-tbl"><tr><th>dept_id</th><th>department</th></tr><tr><td>4</td><td>Tech</td></tr></table></div>
+<div class="step"><b>Rename Tech in the star.</b> <table class="lk-tbl"><tr><th>product</th><th>department</th></tr><tr><td>Earbuds</td><td><mark>Technology</mark></td></tr><tr><td>Phone</td><td><mark>Technology</mark></td></tr></table> 2 rows changed.</div>
+<div class="step"><b>Rename in the snowflake.</b> <table class="lk-tbl"><tr><th>dept_id</th><th>department</th></tr><tr><td>4</td><td><mark>Technology</mark></td></tr></table> 1 row changed.</div>
+<div class="step"><b>Same totals.</b> Sales by department are identical; the star needs 1 join, the snowflake 3.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-rename-rows"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -230,5 +270,15 @@ JOIN dim_category c   ON c.category_key = p.category_key
 JOIN dim_department d ON d.department_key = c.department_key
 WHERE c.category_name = 'Toys'
 ```
+
+<div class="keypoints">
+
+- A snowflake normalises a dimension into a chain of tables.
+- Stars and snowflakes give the same answers; snowflakes need more joins.
+- Snowflakes make a hierarchy rename a one-row change.
+- Build stars for what people query; Power BI works best with stars.
+- An outrigger is a small, deliberate snowflake, such as a date key inside a dimension.
+
+</div>
 
 **New words:** *snowflake schema*, *snowflaking*, *hierarchy*, *outrigger*.
