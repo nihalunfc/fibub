@@ -60,7 +60,7 @@ For example, in 2N₂O₅ → 4NO₂ + O₂ the NO₂ appears four times as fast
 
 ## 3. Rate law, order and molecularity
 
-The relation between rate and the concentrations of reactants, found **by experiment**, is the **rate law**. For `$aA + bB \to$ products`
+The relation between rate and the concentrations of reactants, found **by experiment**, is the **rate law**. For `$aA + bB \to$` products
 
 ```math
 \text{rate}=k\,[A]^x[B]^y,\qquad \text{order}=x+y
