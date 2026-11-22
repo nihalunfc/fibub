@@ -19,6 +19,7 @@ const lam_e = (V) => C.h / Math.sqrt(2 * C.me * C.e * V) * 1e10; // electron wav
 
 import * as Q5 from '../_util.js';
 import more2 from './x-ray-diffraction.more2.gen.js';
+import r4 from './x-ray-diffraction.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -260,6 +261,7 @@ export default {
       sol: 'The equation is a straight line $y = c + mx$ with $y = \\beta\\cos\\theta$ and $x = \\sin\\theta$. Intercept $c = K\\lambda/\\tau$, so $\\tau = K\\lambda/c$. Slope $m = 4\\varepsilon$. A horizontal line ($m = 0$) means no strain: the broadening is all from small crystallites, as Scherrer assumes.',
       trap: 'Size broadening goes as $1/\\cos\\theta$ and strain broadening as $\\tan\\theta$; the plot separates them because only strain depends on $\\sin\\theta$ after multiplying by $\\cos\\theta$.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -402,5 +404,6 @@ export default {
           trap: 'Forgetting to square, or using the fcc rule that gives equal $F$ for both.' };
       },
       verify: (p) => ((p.fa + p.fb) / (p.fa - p.fb)) ** 2 },
+    ...r4.gens,
   ],
 };
