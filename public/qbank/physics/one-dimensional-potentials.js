@@ -143,7 +143,7 @@ export default {
     // ---------- level 4 ----------
     { id: 'q1d-028', type: 'nat', level: 4, exams: ['gate', 'net'], sub: 'finite well',
       q: 'An electron is in a very shallow square well, depth $0.020$ eV and width $0.50$ nm. Treating it as a delta well of the same area, $\\alpha = V_0a$, its bound-state energy is ______ meV. (Use $\\hbar^2/2m_e = 0.0381$ eV nm².)',
-      answer: -0.66, tol: 0.02, calc: () => -1000 * (0.02 * 0.5) ** 2 / (4 * HB2M),
+      answer: -0.66, tol: 0.04, calc: () => -1000 * (0.02 * 0.5) ** 2 / (4 * HB2M),
       sol: 'Here $z_0 = 0.25\\sqrt{0.020/0.0381} = 0.18 \\ll 1$, so the well is shallow and the wavefunction is much wider than the well: it sees only the area $\\alpha = V_0a = 0.010$ eV nm. $E = -\\dfrac{m\\alpha^2}{2\\hbar^2} = -\\dfrac{\\alpha^2}{4(\\hbar^2/2m)} = -\\dfrac{10^{-4}}{0.1524}$ eV $= -0.66$ meV. (Solving the even-state equation exactly gives $-0.63$ meV.)',
       trap: 'Using the infinite-well formula for a well this shallow; the state is barely bound and mostly outside.' },
     { id: 'q1d-029', type: 'mcq', level: 4, exams: ['gate', 'net'], sub: 'delta potentials',
