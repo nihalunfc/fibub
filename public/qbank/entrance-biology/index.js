@@ -93,6 +93,10 @@ export default {
           "name": "Human reproduction"
         },
         {
+          "id": "reproductive-health",
+          "name": "Reproductive health"
+        },
+        {
           "id": "inheritance",
           "name": "Principles of inheritance and variation"
         },
@@ -107,6 +111,10 @@ export default {
         {
           "id": "health-disease",
           "name": "Human health and disease"
+        },
+        {
+          "id": "microbes-welfare",
+          "name": "Microbes in human welfare"
         }
       ]
     }
