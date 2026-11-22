@@ -42,7 +42,7 @@ export function topicGens(file, topicId = file.topic) {
 /** Options of an item: its own, or its group's shared list. */
 export const optionsOf = (it) => it.options ?? it.grp?.options ?? [];
 
-const normText = (s) => String(s).trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[.,;:!?"]+$/g, '').replace(/\s+/g, ' ').trim();
+export const normText = (s) => String(s).trim().toLowerCase().replace(/[‘’]/g, "'").replace(/[.,;:!?"]+$/g, '').replace(/\s+/g, ' ').trim();
 
 /** Read a typed number: accepts 3e8, 3×10^8, 3x10^8, 3*10^8, commas as thousands, a leading + or −, and fractions a/b. */
 export function readNumber(s) {
@@ -59,7 +59,8 @@ export function readNumber(s) {
 }
 
 /**
- * Check a response. `resp`: mcq → index, msq → array of indices, nat → string or number, text → string.
+ * Check a response. `resp`: mcq → index, msq → array of indices, nat → string or number, text → string,
+ * order → the chips in the learner's order (array or one string).
  * Returns { right, partial (0..1 share of correct options picked, msq only), wrongPick (msq: picked a wrong option) }.
  */
 export function check(it, resp) {
@@ -81,6 +82,11 @@ export function check(it, resp) {
     case 'text': {
       const s = normText(resp);
       if (it.maxWords && s.split(' ').filter(Boolean).length > it.maxWords) return { right: false, tooLong: true };
+      return { right: (it.answer ?? []).some((a) => normText(a) === s) };
+    }
+    case 'order': {
+      // Word chips put in order (TOEFL Build a Sentence): resp is the built sentence or the list of chips.
+      const s = normText(Array.isArray(resp) ? resp.join(' ') : resp);
       return { right: (it.answer ?? []).some((a) => normText(a) === s) };
     }
     default: return { right: false, unscored: true };
