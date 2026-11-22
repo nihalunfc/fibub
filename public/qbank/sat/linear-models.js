@@ -5,7 +5,7 @@ const F = { section: 'math', domain: 'algebra' };
 export default {
   topic: 'linear-models',
   gens: [
-    { id: 'sat-lm-g01', type: 'nat', level: 2, exams: ['sat'], sub: 'rate of change', facets: F, format: 'numeric',
+    { id: 'sat-lm-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'rate of change', facets: F, format: 'numeric',
       make(r) {
         const start = int(r, 10, 80) * 10, rate = int(r, 2, 30) * 5 * (r() < 0.4 ? -1 : 1), d = choose(r, [2, 3, 4, 5]);
         const t = [0, d, 2 * d, 3 * d], y = t.map((x) => start + rate * x);
@@ -14,7 +14,7 @@ export default {
           trap: `Giving the change per row (${fmt(rate * d)}) instead of per day.` };
       },
       verify: (p) => (p.y[1] - p.y[0]) / p.d },
-    { id: 'sat-lm-g02', type: 'nat', level: 2, exams: ['sat'], sub: 'break-even', facets: F, format: 'numeric',
+    { id: 'sat-lm-g02', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'break-even', facets: F, format: 'numeric',
       make(r) {
         const m = int(r, 2, 15), ra = int(r, 10, 40), rb = ra + int(r, 2, 12);
         const k = rb - ra, fee = k * m;
@@ -22,7 +22,7 @@ export default {
           sol: steps(`Plan A after ${v('n')} months: ${fee} + ${ra}${v('n')}. Plan B: ${rb}${v('n')}.`, `Set them equal: ${fee} + ${ra}${v('n')} = ${rb}${v('n')}, so ${fee} = ${k}${v('n')}.`, `${v('n')} = ${fee} ÷ ${k} = <b>${m}</b> months.`) };
       },
       verify: (p) => p.fee / (p.rb - p.ra) },
-    { id: 'sat-lm-g03', type: 'nat', level: 2, exams: ['sat'], sub: 'when empty', facets: F, format: 'numeric',
+    { id: 'sat-lm-g03', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'when empty', facets: F, format: 'numeric',
       make(r) {
         const rate = int(r, 2, 12) * 5, t = int(r, 4, 30), V = rate * t, ask = int(r, 1, t - 1);
         const kind = choose(r, ['empty', 'left']);
@@ -30,7 +30,7 @@ export default {
           sol: steps(`Model: ${v('G')} = ${V} − ${rate}${v('t')}.`, kind === 'empty' ? `Empty means ${v('G')} = 0: ${rate}${v('t')} = ${V}, so ${v('t')} = <b>${t}</b>.` : `${v('G')} = ${V} − ${rate}(${ask}) = <b>${V - rate * ask}</b>.`) };
       },
       verify: (p) => (p.kind === 'empty' ? p.V / p.rate : p.V - p.rate * p.ask) },
-    { id: 'sat-lm-g04', type: 'mcq', level: 2, exams: ['sat'], sub: 'interpret', facets: F, format: 'single',
+    { id: 'sat-lm-g04', type: 'mcq', marks: 1, level: 2, exams: ['sat'], sub: 'interpret', facets: F, format: 'single',
       make(r) {
         const s = choose(r, [
           ['A candle\'s height, in centimetres, <i>t</i> hours after it is lit is', 'h', 'the number of centimetres the candle burns down each hour', 'the height of the candle before it is lit', 'the number of hours the candle burns'],
@@ -45,11 +45,11 @@ export default {
       } },
   ],
   items: [
-    { id: 'sat-lm-001', type: 'mcq', level: 2, exams: ['sat'], sub: 'build', facets: F,
+    { id: 'sat-lm-001', type: 'mcq', marks: 1, level: 2, exams: ['sat'], sub: 'build', facets: F,
       q: '<p>A taxi charges &#36;3.50 to start a ride and &#36;1.80 for each mile. Which function gives the cost <i>C</i>, in dollars, of a ride of <i>m</i> miles?</p>',
       options: ['<i>C</i>(<i>m</i>) = 1.80<i>m</i> + 3.50', '<i>C</i>(<i>m</i>) = 3.50<i>m</i> + 1.80', '<i>C</i>(<i>m</i>) = 5.30<i>m</i>', '<i>C</i>(<i>m</i>) = 1.80(<i>m</i> + 3.50)'], answer: 0,
       sol: '<p>The start charge is paid once: + 3.50. Each mile adds 1.80: 1.80<i>m</i>. The last option would multiply the start charge by 1.80 too.</p>' },
-    { id: 'sat-lm-002', type: 'nat', level: 3, exams: ['sat'], sub: 'two points', facets: F,
+    { id: 'sat-lm-002', type: 'nat', marks: 1, level: 3, exams: ['sat'], sub: 'two points', facets: F,
       q: '<p>A plant was 12 centimetres tall 3 weeks after planting and 26 centimetres tall 10 weeks after planting. If it grew at a constant rate, how tall, in centimetres, was it when it was planted?</p>', answer: 6, tol: 0,
       sol: '<p>Rate: (26 − 12) ÷ (10 − 3) = 2 cm per week. Going back 3 weeks from 12 cm: 12 − 3 × 2 = <b>6</b> cm.</p>' },
   ],
