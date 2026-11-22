@@ -17,9 +17,17 @@ quiz:
     choices: ['COUNT(*)', 'COUNT(o.order_id)', 'SUM(1)']
     ans: 1
     why: COUNT(*) counts the filled-in row, giving 1. COUNT(o.order_id) skips NULLs, so a customer with no orders gets 0.
+sources:
+  - 'SQLite documentation, SELECT: The FROM clause and joins https://www.sqlite.org/lang_select.html#fromclause'
+  - 'PostgreSQL documentation, Table Expressions: Joined Tables https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-JOIN'
+  - 'Microsoft Learn, Joins (SQL Server): outer joins https://learn.microsoft.com/en-us/sql/relational-databases/performance/joins'
 ---
 
 **Module 4 · about 30 minutes · read first: 4.2.** You'll be able to keep unmatched rows with a left join, find rows with no match, and avoid the two mistakes that make left-join numbers wrong.
+
+<div class="bigidea">A left join keeps every row of the first table, joins matches as usual, and fills the right table's columns with NULL where nothing matches.</div>
+
+**In everyday terms:** a class register. Every student on the list gets a line, whether or not they handed in homework; those who didn't get a blank in the homework column. An inner join is the pile of homework sheets, where missing students don't appear at all.
 
 ## 1. Why this matters
 
@@ -54,6 +62,37 @@ LEFT JOIN mini_customers c ON o.customer_id = c.id
 ```
 
 A `RIGHT JOIN` keeps the right table instead, and a `FULL JOIN` keeps both sides. Most analysts rewrite a right join as a left join with the tables swapped, because it reads more easily. (SQLite supports both since version 3.39; so do SQL Server and PostgreSQL.)
+
+<div class="meaning">
+
+<dl>
+<dt>LEFT JOIN</dt><dd>Keep every row of the left table (the one written first).</dd>
+<dt>Left table</dt><dd>The table before LEFT JOIN: the one you are protecting.</dd>
+<dt>NULL padding</dt><dd>The blanks a left row gets in the right table's columns when nothing matches.</dd>
+<dt>WHERE right_key IS NULL</dt><dd>Keeps only the left rows that found no match.</dd>
+<dt>ON vs WHERE</dt><dd>Tests on the right table go in ON (they decide matches); tests in WHERE run after and can remove the padded rows.</dd>
+<dt>Physical meaning</dt><dd>The result has at least as many rows as the left table: one per match, or one padded row for a left row with no match. COUNT(*) counts those padded rows, COUNT(right column) does not.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A WHERE on the right table just narrows a left join."** It undoes it. Padded rows have NULL in the right table's columns, and NULL fails the test, so they vanish and you are back to an inner join. Put conditions on the right table in ON; keep WHERE for the left table (or for IS NULL checks).
+
+</div>
+
+Watch the left join above run, one step at a time (the live box's **Show how it runs** button animates the real query):
+
+<div class="steps">
+<div class="step"><b>Start from every customer.</b> <table class="lk-tbl"><tr><th>id</th><th>name</th></tr><tr><td>1</td><td>Asha</td></tr><tr><td>2</td><td>Ben</td></tr><tr><td>3</td><td>Chen</td></tr><tr><td>4</td><td>Dina</td></tr><tr><td>5</td><td>Eli</td></tr></table></div>
+<div class="step"><b>Join matching orders.</b> Asha and Chen get two rows each, Ben one.</div>
+<div class="step"><b>Pad the rest with NULL.</b> 5 matched + 2 padded = 7 rows. <table class="lk-tbl"><tr><th>name</th><th>order_id</th><th>item</th></tr><tr><td>Asha</td><td>101</td><td>Kettle</td></tr><tr><td>Asha</td><td>102</td><td>Bagels</td></tr><tr><td>Ben</td><td>103</td><td>Puzzle</td></tr><tr><td>Chen</td><td>104</td><td>Duvet</td></tr><tr><td>Chen</td><td>105</td><td>Kettle</td></tr><tr><td>Dina</td><td><mark><i>NULL</i></mark></td><td><mark><i>NULL</i></mark></td></tr><tr><td>Eli</td><td><mark><i>NULL</i></mark></td><td><mark><i>NULL</i></mark></td></tr></table></div>
+<div class="step"><b>WHERE o.order_id IS NULL.</b> Only the unmatched: Dina and Eli, the customers with no orders.</div>
+<div class="step"><b>Order 106 is still missing.</b> It sits in the right table, and a left join only protects the left.</div>
+</div>
+
+<div class="problem" data-problem="sql-left-join-count"></div>
 
 ## 3. Finding what is missing
 
@@ -194,5 +233,16 @@ GROUP BY p.product_name
 ORDER BY returns, p.product_name
 LIMIT 5
 ```
+
+<div class="keypoints">
+
+- LEFT JOIN keeps every left row; unmatched ones get NULL in the right table's columns.
+- The result has at least as many rows as the left table.
+- WHERE right_key IS NULL lists the left rows with no match.
+- Filters on the right table belong in ON, not WHERE.
+- After a left join, count with COUNT(right column), not COUNT(*), and wrap sums in COALESCE.
+- Once a chain of joins uses LEFT JOIN, keep the later joins LEFT too.
+
+</div>
 
 **New words:** *left join*, *left table*, *right join*, *full join*, *COALESCE*.

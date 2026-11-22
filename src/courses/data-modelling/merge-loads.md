@@ -17,13 +17,41 @@ quiz:
     choices: ['It is required syntax', 'So unchanged rows are not rewritten, which keeps audit columns and change counts honest', 'To make inserts faster']
     ans: 1
     why: Without it every matching row is "updated" even when nothing changed, which bumps updated_at and hides what really changed.
+sources:
+  - 'PostgreSQL documentation, INSERT (ON CONFLICT) https://www.postgresql.org/docs/current/sql-insert.html'
+  - 'SQLite documentation, UPSERT https://www.sqlite.org/lang_upsert.html'
+  - 'Microsoft Learn, MERGE (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql'
 ---
 
 **Module 7 · about 30 minutes · read first: 7.1.** You'll be able to load a dimension with an upsert, load a fact table incrementally without duplicates, preview a load before running it, and read the same logic as a SQL Server MERGE.
 
+<div class="bigidea">An upsert updates the rows that already exist and inserts the ones that do not, so loading a batch never creates duplicates.</div>
+
+**In everyday terms:** updating a contact list from a new file. If the person is already there, fix their number. If not, add them.
+
 ## 1. Why this matters
 
 Rebuilding every table from scratch each night works while the data is small. Soon it takes too long, or it loses history. Real warehouses load **incrementally**: insert what is new, update what changed, leave the rest alone. That one statement, MERGE in SQL Server, Snowflake and BigQuery, or INSERT ... ON CONFLICT in PostgreSQL and SQLite, is in almost every load job you will read or write.
+
+<div class="meaning">
+
+<dl>
+<dt>Full reload</dt><dd>Empty the target and load everything again.</dd>
+<dt>Incremental load</dt><dd>Load only what is new or changed.</dd>
+<dt>Upsert</dt><dd>Update if the key exists, otherwise insert.</dd>
+<dt>Conflict target</dt><dd>The key column the upsert checks for an existing row.</dd>
+<dt>MERGE</dt><dd>The SQL Server / standard form of an upsert.</dd>
+<dt>Soft delete</dt><dd>Mark a row as deleted instead of removing it.</dd>
+<dt>Physical meaning</dt><dd>Existing rows are changed in place and missing rows are added. The row count grows only by the number of new keys.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"To load a batch I can just INSERT it."** Plain INSERT of a key that already exists either fails or creates a duplicate. Use an upsert keyed on the business key.
+
+</div>
 
 ## 2. Full reload or incremental?
 
@@ -174,6 +202,20 @@ References: [MERGE (Transact-SQL)](https://learn.microsoft.com/en-us/sql/t-sql/s
 **Try it:** the target has 100 keys, the batch has 30 keys, 25 of which already exist. How many rows after the upsert? (105.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Target.</b> <table class="lk-tbl"><tr><th>id</th><th>city</th></tr><tr><td>1</td><td>Toronto</td></tr><tr><td>2</td><td>Halifax</td></tr></table></div>
+<div class="step"><b>New batch.</b> <table class="lk-tbl"><tr><th>id</th><th>city</th></tr><tr><td>2</td><td>Ottawa</td></tr><tr><td>3</td><td>Calgary</td></tr></table> Id 2 exists; id 3 is new.</div>
+<div class="step"><b>Update id 2.</b> <table class="lk-tbl"><tr><th>id</th><th>city</th></tr><tr><td>1</td><td>Toronto</td></tr><tr><td>2</td><td><mark>Ottawa</mark></td></tr></table></div>
+<div class="step"><b>Insert id 3.</b> <table class="lk-tbl"><tr><th>id</th><th>city</th></tr><tr><td>1</td><td>Toronto</td></tr><tr><td>2</td><td>Ottawa</td></tr><tr><td><mark>3</mark></td><td><mark>Calgary</mark></td></tr></table></div>
+<div class="step"><b>Re-run.</b> The same batch changes nothing, so the load is safe to repeat.</div>
+</div>
+
+<div class="problem" data-problem="dm-merge-rows"></div>
+
+<div class="problem" data-problem="dm-hwm-load"></div>
+
 ## 7. Worked example: an incremental fact load
 
 Facts usually only gain rows. The safe pattern: give the fact table a key at its grain (here order and product, one row per order line), load a batch that **overlaps** the last load a little, and skip lines you already have. Overlap protects you from late or re-sent rows.
@@ -252,5 +294,14 @@ FROM fact_order_lines
 WHERE order_date >= '2025-12-30'
 GROUP BY order_date
 ```
+
+<div class="keypoints">
+
+- Upsert = update existing keys, insert new ones.
+- Use incremental loads with a high-water mark for big tables.
+- Preview a load with a SELECT before running it.
+- MERGE and ON CONFLICT do the same job in different dialects.
+
+</div>
 
 **New words:** *full reload*, *incremental load*, *upsert*, *MERGE*, *conflict target*, *excluded*, *soft delete*.

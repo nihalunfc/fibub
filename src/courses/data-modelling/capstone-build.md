@@ -17,15 +17,40 @@ quiz:
     choices: ['Nothing useful', 'Two different load paths agree, so neither lost nor doubled sales', 'The dashboard is pretty']
     ans: 1
     why: Reconciling two facts built different ways is a strong check. If one load dropped or doubled rows, the totals would differ.
+sources:
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'SQLite documentation, SQL language reference https://www.sqlite.org/lang.html'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapters 3 and 5 (retail star and slowly changing dimensions)'
 ---
 
 **Module 8 · about 35 minutes · read first: 8.1.** You'll be able to build a complete star schema warehouse from DDL to tests, load an SCD type 2 dimension and look up its keys by date, and prove the result with a test suite. This is part 2 of the **Northbay warehouse** project; it builds what [part 1](/learn/courses/data-modelling/capstone-design/) designed.
+
+<div class="bigidea">Build the warehouse as numbered scripts (DDL, staging, dimensions, customer history, facts, tests) that can be run again from the top.</div>
+
+**In everyday terms:** building from a flat-pack kit. The steps are numbered, you do them in order, and a final check confirms nothing is left over.
 
 ## 1. Why this matters
 
 Design documents show you can think; a build shows you can deliver. Everything here runs in your browser, in order, top to bottom. Each block is also the file you will put in your repo: `01_ddl.sql`, `02_staging.sql` and so on. In [part 3](/learn/courses/data-modelling/capstone-cloud/) you run the same files on a real database.
 
 Run the blocks **in order**. If anything goes wrong, press **Reset database** and start again from the top.
+
+<div class="meaning">
+
+<dl>
+<dt>Load script</dt><dd>A SQL file that creates or fills part of the warehouse.</dd>
+<dt>Point-in-time join</dt><dd>Looking up the dimension version valid on the fact date.</dd>
+<dt>Test suite</dt><dd>All the checks in one script.</dd>
+<dt>Physical meaning</dt><dd>The scripts create the tables from the design, fill them, and then verify the row counts, keys and totals.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Once the tables exist, the work is done."** Without tests you cannot prove the totals match the source. The last script checks them.
+
+</div>
 
 ## 2. Step 1: DDL (01_ddl.sql)
 
@@ -317,6 +342,18 @@ Eleven tests, all PASS. Keep this view in your repo: it is the first thing a rev
 **Try it:** a customer has three versions, changing on 1 March and 1 September. An order on 15 August matches which version? (The second.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>01_ddl.</b> Create empty dimension and fact tables with keys.</div>
+<div class="step"><b>02_staging.</b> Copy the source into tidy staging tables.</div>
+<div class="step"><b>03_dimensions.</b> Fill dim_product, dim_store and dim_date.</div>
+<div class="step"><b>04_dim_customer.</b> <table class="lk-tbl"><tr><th>key</th><th>cust</th><th>city</th><th>from</th></tr><tr><td>1</td><td>Asha</td><td>Toronto</td><td>2024-01-01</td></tr><tr><td><mark>2</mark></td><td>Asha</td><td><mark>Ottawa</mark></td><td><mark>2025-03-01</mark></td></tr></table> Type 2 history.</div>
+<div class="step"><b>05_facts and 06_tests.</b> Look up each key by date, load facts, then run the tests. All zeros means pass.</div>
+</div>
+
+<div class="problem" data-problem="dm-key-version"></div>
+
 ## 8. Worked example: questions the warehouse can answer
 
 **As it was vs as it is.** How much did customers who are Gold *today* spend, against how much was spent *while* customers were Gold?
@@ -416,5 +453,14 @@ WHERE d.year = 2025
 GROUP BY p.department
 ORDER BY margin_pct DESC
 ```
+
+<div class="keypoints">
+
+- One numbered script per step; run them in order.
+- Customer keys are looked up by the order date.
+- Tests prove the warehouse matches the source.
+- Anyone should be able to rebuild from scratch.
+
+</div>
 
 **New words:** *point-in-time join*, *load script*, *test suite*.

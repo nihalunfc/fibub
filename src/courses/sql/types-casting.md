@@ -17,9 +17,18 @@ quiz:
     choices: ['There are no March orders', "strftime returns the text '03', which is not equal to the number 3", 'strftime only works on timestamps']
     ans: 1
     why: "The month comes back as text with a leading zero. Compare with '03', or CAST(strftime('%m', order_date) AS INTEGER) = 3."
+sources:
+  - 'SQLite documentation, Datatypes in SQLite https://www.sqlite.org/datatype3.html'
+  - 'SQLite documentation, CAST expressions https://www.sqlite.org/lang_expr.html#castexpr'
+  - 'Microsoft Learn, CAST and CONVERT (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/cast-and-convert-transact-sql'
+  - 'PostgreSQL documentation, Type conversion https://www.postgresql.org/docs/current/typeconv.html'
 ---
 
 **Module 7 · about 25 minutes · read first: 1.3.** You'll be able to check a value's type, change it with CAST, avoid whole-number division, and spot comparisons between text and numbers that silently go wrong.
+
+<div class="bigidea">Every value has a type, and the same symbol does different things on different types, so check types whenever an answer looks quietly wrong.</div>
+
+**In everyday terms:** money in two currencies. 10 dollars and 9 euros cannot be compared until you convert one; comparing just the numbers gives nonsense.
 
 ## 1. Why this matters
 
@@ -122,6 +131,36 @@ SELECT 0.1 + 0.2 AS total, 0.1 + 0.2 = 0.3 AS is_equal, ROUND(0.1 + 0.2, 2) = 0.
 
 `0.1 + 0.2` is 0.30000000000000004, so the equality test is false (0). ROUND before comparing money, or store cents as integers. Warehouses offer an exact `DECIMAL(10, 2)` type for money; SQLite does not.
 
+<div class="meaning">
+
+<dl>
+<dt>Data type</dt><dd>The kind of value: INTEGER, REAL, TEXT or NULL. <code>typeof(x)</code> shows it in SQLite.</dd>
+<dt>Whole-number division</dt><dd>INTEGER ÷ INTEGER drops the fraction: 7 / 2 = 3.</dd>
+<dt>CAST(x AS type)</dt><dd>Turns a value into another type. CAST to INTEGER cuts off the fraction.</dd>
+<dt>TRY_CAST</dt><dd>SQL Server: gives NULL instead of an error when a value cannot be converted.</dd>
+<dt>Floating point</dt><dd>REAL numbers are stored in binary, so 0.1 + 0.2 is not exactly 0.3.</dd>
+<dt>Physical meaning</dt><dd>A CAST makes a new value of the new type on each row; the stored column is unchanged. The type decides what =, &lt; and / mean for that value.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If the query runs without an error, the types are fine."** Type problems almost never raise errors in SQLite. They give a 0% rate (whole-number division), an empty result (text '03' compared with the number 3) or a wrong sort ('10' before '9').
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>The data.</b> <table class="lk-tbl"><tr><th>returns</th><th>orders</th></tr><tr><td>29</td><td>1059</td></tr></table> Both INTEGER.</div>
+<div class="step"><b>100 * returns / orders.</b> 100 × 29 = 2900; 2900 / 1059 = 2.74, and the fraction is dropped: <mark>2</mark>.</div>
+<div class="step"><b>100.0 * returns / orders.</b> 100.0 is REAL, so the whole sum becomes REAL: <mark>2.74</mark>.</div>
+<div class="step"><b>Text versus number.</b> <code>strftime('%m', d) = 3</code> compares '03' with 3: <mark>no match</mark>. <code>CAST(strftime('%m', d) AS INTEGER) = 3</code> matches.</div>
+</div>
+
+<div class="problem" data-problem="sql-int-division"></div>
+
 ## 7. Worked example
 
 *Question:* what share of orders were cancelled in each channel?
@@ -178,5 +217,15 @@ WHERE store_id <= 11
 ```
 
 **Try it on your own data:** [[csv-profiler]] shows which columns of a CSV are really numbers, dates or text before you load it.
+
+<div class="keypoints">
+
+- Check a value's type with typeof(x) when an answer looks wrong.
+- Integer ÷ integer drops the fraction; write 100.0 or CAST first.
+- Text compares in dictionary order: '10' < '9'.
+- CAST changes a type; to INTEGER it cuts, so ROUND first if needed.
+- Do not test REAL numbers with =; round, or store money as whole cents.
+
+</div>
 
 **New words:** *data type*, *CAST*, *whole-number division*, *TRY_CAST*, *floating point*.

@@ -17,9 +17,17 @@ quiz:
     choices: ['Amounts add up across lines; rates do not', 'Rates take more space', 'SQL cannot store fractions']
     ans: 0
     why: Two lines at 10% off don't make 20% off. Store additive amounts, and work out rates in the report as a ratio of sums.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (identify the dimensions and facts)'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
 ---
 
 **Module 2 · about 30 minutes · read first: 2.2.** You'll be able to sort any column into fact or dimension, choose additive facts over rates and unit prices, and compute line-level sales, cost and margin.
+
+<div class="bigidea">Facts are the numbers an event measures; dimensions are the words that describe it, and the test is "would you add it up, or group by it?"</div>
+
+**In everyday terms:** a till receipt. The prices and totals are the facts. The shop name, the date, the cashier and the product names are the context, the dimensions.
 
 ## 1. Why this matters
 
@@ -101,6 +109,38 @@ WHERE p.product_id IN (19, 54)
 ```
 
 Facts tables are the opposite: narrow (a few keys and numbers) and very long (one row per event). Dimension tables are wide and short (one row per product, store or customer). That contrast is the shape of the star schema in the next lesson.
+
+<div class="meaning">
+
+<dl>
+<dt>Fact (measure)</dt><dd>A number produced by the event, usually added up: quantity, sales amount, cost amount.</dd>
+<dt>Dimension</dt><dd>The context of the event: when, where, who, what, why.</dd>
+<dt>Attribute</dt><dd>A descriptive column of a dimension: brand, city, loyalty tier.</dd>
+<dt>Extended amount</dt><dd>quantity × unit price: an amount that adds up, unlike the price itself.</dd>
+<dt>Degenerate dimension</dt><dd>A label such as the order number kept on the fact row with no table behind it.</dd>
+<dt>Physical meaning</dt><dd>Facts become the narrow, very long table of numbers. Attributes become wide, short tables. Reports filter and group by attributes and add up the facts inside each group.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Unit price and discount % are facts, so sum them."** Adding prices across lines means nothing, and two 10% discounts are not 20%. Store amounts (sales_amount, discount_amount) and work out the price or rate as a ratio of sums.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>A source line.</b> <table class="lk-tbl"><tr><th>product</th><th>store</th><th>qty</th><th>unit_price</th><th>discount</th></tr><tr><td>Kettle</td><td>2</td><td>2</td><td>44.99</td><td>10%</td></tr></table></div>
+<div class="step"><b>Sort the columns.</b> <table class="lk-tbl"><tr><th>column</th><th>goes to</th></tr><tr><td>product, store</td><td>dimension keys</td></tr><tr><td>qty</td><td><mark>fact</mark></td></tr><tr><td>unit_price, discount</td><td><mark>turn into amounts</mark></td></tr></table></div>
+<div class="step"><b>Make additive facts.</b> <table class="lk-tbl"><tr><th>qty</th><th>gross_amount</th><th>discount_amount</th><th>sales_amount</th></tr><tr><td>2</td><td><mark>89.98</mark></td><td><mark>9.00</mark></td><td><mark>80.98</mark></td></tr></table></div>
+<div class="step"><b>Ratios come later.</b> Average price = SUM(sales_amount) ÷ SUM(qty): <table class="lk-tbl"><tr><th>avg price</th></tr><tr><td><mark>40.49</mark></td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-avg-price"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -193,5 +233,15 @@ WHERE o.status = 'completed'
 GROUP BY c.loyalty_tier
 ORDER BY sales DESC
 ```
+
+<div class="keypoints">
+
+- Add it up: fact. Group by it: dimension attribute.
+- Store amounts, not prices or rates; work out ratios from sums.
+- Numbers that describe a thing (store size) are attributes, not facts.
+- Dimensions are wide and descriptive; facts are narrow and long.
+- The order number stays on the fact as a degenerate dimension.
+
+</div>
 
 **New words:** *fact*, *measure*, *dimension*, *attribute*, *extended amount*, *degenerate dimension*.

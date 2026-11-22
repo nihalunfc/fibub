@@ -17,9 +17,17 @@ quiz:
     choices: ['Online orders', 'All orders', 'Online revenue']
     ans: 0
     why: Each online row adds 1 and every other row adds 0, so the sum is the number of online rows.
+sources:
+  - 'SQLite documentation, SQL Language Expressions: The CASE expression https://www.sqlite.org/lang_expr.html#the_case_expression'
+  - 'Microsoft Learn, CASE (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql'
+  - 'PostgreSQL documentation, Conditional Expressions: CASE https://www.postgresql.org/docs/current/functions-conditional.html'
 ---
 
 **Module 2 · about 30 minutes · read first: 2.4.** You'll be able to write CASE expressions that label rows, group numbers into bands, tidy messy values, and count only the rows you care about.
+
+<div class="bigidea">CASE gives each row a value by checking tests from the top and using the first one that is true, so you can turn raw numbers into labels.</div>
+
+**In everyday terms:** a coin-sorting machine. Each coin rolls past a row of slots and drops into the first one it fits; whatever fits no slot rolls into the tray at the end (the ELSE).
 
 ## 1. Why this matters
 
@@ -55,6 +63,36 @@ Press **Show how it runs** and stop at the SELECT step: the new `size` column is
 CASE reads the WHEN lines from the top and stops at the first one that is true. The Duvet at $90 passes `>= 50` and is labelled Large straight away; it never reaches the second test. A Kettle at $45 fails `>= 50`, moves on, and is caught by `>= 20`. So the second line really means "from 20 up to (not including) 50", without you writing the upper limit.
 
 That's why bands go from one end to the other. Swap the two WHEN lines in the box above and run it: now everything $20 and over is "Medium", and nothing is ever "Large", because the broader test catches them first.
+
+<div class="meaning">
+
+<dl>
+<dt>CASE ... END</dt><dd>An expression that works out one value per row.</dd>
+<dt>WHEN test THEN value</dt><dd>If the test is true for this row, use this value and stop.</dd>
+<dt>ELSE value</dt><dd>The value for rows that passed no test. Without ELSE they get NULL.</dd>
+<dt>Band</dt><dd>A range of numbers given one label, such as "Medium: 20 to under 50".</dd>
+<dt>SUM(CASE WHEN test THEN 1 ELSE 0 END)</dt><dd>Counts the rows that pass the test.</dd>
+<dt>Physical meaning</dt><dd>CASE adds a column without changing the number of rows. Each row goes down the WHEN list on its own and stops at the first true test, so the order of the WHEN lines decides the label.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"All the WHEN tests are checked, and the row gets the one that fits best."** CASE stops at the first true WHEN. Put `WHEN amount >= 20` above `WHEN amount >= 50` and every $90 order becomes Medium. Write bands from one end to the other, and always add an ELSE so surprises show up.
+
+</div>
+
+Watch the size label being worked out, one row at a time (the live box's **Show how it runs** button animates the real query):
+
+<div class="steps">
+<div class="step"><b>Duvet, $90.</b> 90 &gt;= 50 is true: <mark>Large</mark>. The second test is never checked.</div>
+<div class="step"><b>Kettle, $45.</b> 45 &gt;= 50 is false; 45 &gt;= 20 is true: <mark>Medium</mark>.</div>
+<div class="step"><b>Bagels, $5.</b> Both tests are false, so ELSE: <mark>Small</mark>.</div>
+<div class="step"><b>All six rows.</b> Same rows, one new column. <table class="lk-tbl"><tr><th>item</th><th>amount</th><th>size</th></tr><tr><td>Kettle</td><td>45</td><td><mark>Medium</mark></td></tr><tr><td>Bagels</td><td>5</td><td><mark>Small</mark></td></tr><tr><td>Puzzle</td><td>20</td><td><mark>Medium</mark></td></tr><tr><td>Duvet</td><td>90</td><td><mark>Large</mark></td></tr><tr><td>Kettle</td><td>45</td><td><mark>Medium</mark></td></tr><tr><td>Speaker</td><td>60</td><td><mark>Large</mark></td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="sql-case-band"></div>
 
 ## 4. ELSE, and what happens without it
 
@@ -204,5 +242,15 @@ SELECT SUM(CASE WHEN email IS NULL THEN 1 ELSE 0 END) AS no_email,
        SUM(CASE WHEN loyalty_tier IS NULL THEN 1 ELSE 0 END) AS no_tier
 FROM customers
 ```
+
+<div class="keypoints">
+
+- CASE works out one value per row and can go anywhere a column can.
+- WHEN lines are checked from the top; the first true one wins.
+- Rows that match no WHEN get ELSE, or NULL if there is no ELSE.
+- Put a NULL test first, since NULL fails every comparison.
+- SUM(CASE WHEN test THEN 1 ELSE 0 END) counts several things in one pass; check the bands add up to the total.
+
+</div>
 
 **New words:** *CASE expression*, *band*, *piecewise function*, *indicator function*, *conditional aggregation*.

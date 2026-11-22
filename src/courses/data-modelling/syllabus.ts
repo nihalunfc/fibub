@@ -10,6 +10,7 @@ export const DATA_MODELLING: CourseSyllabus = {
   name: 'Data modelling',
   title: 'Data modelling and warehousing: star schemas, facts, dimensions and history',
   text: 'Design the tables behind every dashboard. Normal forms, Kimball star schemas, facts and dimensions, slowly changing dimensions, Data Vault and the lakehouse, and how a warehouse is loaded and tested, with live SQL to build each piece yourself.',
+  kit: true,
   audience: 'For analysts, BI developers and data engineers. Know basic SQL first (Modules 1-4 of SQL for analysts).',
   updated: '2026-11-22',
   footnote: 'Northbay Retail is a made-up company; its data is generated in your browser. Queries run on your device and nothing you type is sent anywhere.',

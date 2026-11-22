@@ -17,9 +17,18 @@ quiz:
     choices: ['The result is already sorted', 'SQLite has to build a temporary sorted structure to do the ORDER BY', 'The query will fail on big tables']
     ans: 1
     why: 'There was no index in the right order, so SQLite sorts the rows itself. That is fine for small results but costs time on large ones.'
+sources:
+  - 'SQLite documentation: EXPLAIN QUERY PLAN https://www.sqlite.org/eqp.html'
+  - 'SQLite documentation: The SQLite Query Optimizer Overview https://www.sqlite.org/optoverview.html'
+  - 'PostgreSQL documentation: Using EXPLAIN https://www.postgresql.org/docs/current/using-explain.html'
+  - 'Microsoft Learn: Display an Actual Execution Plan https://learn.microsoft.com/en-us/sql/relational-databases/performance/display-an-actual-execution-plan'
 ---
 
 **Module 9 · about 25 minutes · read first: 1.4, 4.2.** You'll be able to ask the database for its query plan, read the main lines of it, and spot the two most common slow patterns.
+
+<div class="bigidea">EXPLAIN shows the plan the database chose for your query, and the first thing to look for is whether it reads every row (SCAN) or jumps to the ones it needs (SEARCH).</div>
+
+**In everyday terms:** asking a sat-nav for the route before you set off. It doesn't drive anywhere; it shows which roads it would take, and you can spot the slow detour.
 
 ## 1. Why this matters
 
@@ -86,6 +95,39 @@ The main words you will see in SQLite plans:
 
 **Try it:** a table grows from 1 million to 1 billion rows. How much longer does an index search take? (log₂ goes from about 20 to about 30: only half as long again, while a scan takes 1,000 times longer.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Query planner</dt><dd>The part of the database that decides how to run your query.</dd>
+<dt>EXPLAIN QUERY PLAN</dt><dd>Shows the plan without running the query (SQLite).</dd>
+<dt>SCAN t</dt><dd>Reads every row of table t and tests each one.</dd>
+<dt>SEARCH t USING INDEX</dt><dd>Uses a sorted index to jump straight to the matching rows.</dd>
+<dt>Covering index</dt><dd>An index that holds every column the query needs, so the table is never touched.</dd>
+<dt>Sargable</dt><dd>A condition written so an index can be used: the bare column compared with a value or range.</dd>
+<dt>Physical meaning</dt><dd>The answer is the same whichever plan runs. What changes is how many rows the database has to touch: a scan touches all n, a search touches about log₂ n index steps plus the k rows that match.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The plan is the same however I write the WHERE."** Wrapping the column in a function, such as strftime('%Y', order_date) = '2025', hides it from the index, and the plan falls back to a scan. Rewrite it as a range on the bare column: order_date &gt;= '2025-01-01' AND order_date &lt; '2026-01-01'.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>No index.</b> Plan: SCAN orders. Every row is read and tested. <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>tested?</th></tr><tr><td>1</td><td>17</td><td><mark>yes</mark></td></tr><tr><td>2</td><td>42</td><td><mark>yes, match</mark></td></tr><tr><td>3</td><td>8</td><td><mark>yes</mark></td></tr><tr><td>…</td><td>…</td><td><mark>yes, all 4,064</mark></td></tr></table></div>
+<div class="step"><b>Build an index.</b> A sorted copy of customer_id with pointers back. <table class="lk-tbl"><tr><th>customer_id</th><th>row</th></tr><tr><td>8</td><td>3</td></tr><tr><td>17</td><td>1</td></tr><tr><td><mark>42</mark></td><td><mark>2</mark></td></tr><tr><td>42</td><td>911</td></tr></table></div>
+<div class="step"><b>With the index.</b> Plan: SEARCH orders USING INDEX (customer_id=?). Halve the sorted list about 12 times to reach 42, then read the 5 matching rows.</div>
+<div class="step"><b>Hide the column in a function.</b> WHERE strftime('%Y', order_date) = '2025' → SCAN again, because the index is sorted by the date, not by its year text.</div>
+</div>
+
+The plan boxes in this lesson describe rather than run, so they have no animation; in other lessons any live box with a SELECT has a **Show how it runs** button that animates the real query.
+
+<div class="problem" data-problem="sql-index-reads"></div>
 
 ## 4. Joins, sorts and groups in a plan
 
@@ -172,5 +214,15 @@ WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01'
 ```
 
 **Try it on your own data:** load a CSV in [[sql-playground]] and compare plans before and after you add an index.
+
+<div class="keypoints">
+
+- EXPLAIN QUERY PLAN (SQLite) shows how a query would run, without running it.
+- SCAN reads every row; SEARCH USING INDEX jumps to the matching ones.
+- A search costs about log₂ n + k reads; a scan costs about n.
+- USE TEMP B-TREE lines are sorts for GROUP BY or ORDER BY.
+- Keep conditions sargable: compare the bare column with a value or range, not a function of it.
+
+</div>
 
 **New words:** *query planner*, *query plan*, *full table scan*, *index search*, *covering index*, *sargable*.

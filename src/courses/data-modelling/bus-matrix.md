@@ -17,9 +17,17 @@ quiz:
     choices: ['Sum each fact table to department separately, then join the two results', 'Join fact_sales to fact_returns on product_key and sum', 'Union the two fact tables and average']
     ans: 0
     why: Joining two fact tables directly multiplies rows. Drilling across sums each one to the shared grain first, then joins one row to one row.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 4: Inventory (enterprise data warehouse bus architecture and bus matrix)'
+  - 'Kimball Group, Design Tip #41: Drill Down into a Detailed Bus Matrix (2002), in Kimball, R. et al., The Kimball Group Reader, 2nd edition (2016), Wiley'
 ---
 
 **Module 2 · about 30 minutes · read first: 2.4.** You'll be able to draw a bus matrix for a company, explain conformed dimensions, and compare two fact tables safely with a drill-across query.
+
+<div class="bigidea">The bus matrix is a one-page grid of business processes against shared dimensions, so each new fact table plugs into the same date, product and store tables.</div>
+
+**In everyday terms:** a power strip. Every appliance has the same plug, so any of them can go into any socket. Shared dimensions are the standard plug every fact table uses.
 
 ## 1. Why this matters
 
@@ -119,6 +127,37 @@ ORDER BY return_pct DESC
 
 This only works because both facts use the **same** `dim_product`. If returns had its own product table where "Kids" was called "Toys & Games", the join on department would quietly drop a row. Conformed dimensions are what make drill-across possible.
 
+<div class="meaning">
+
+<dl>
+<dt>Bus matrix</dt><dd>A grid: one row per business process, one column per dimension, a mark where they meet.</dd>
+<dt>Conformed dimension</dt><dd>One dimension used, with the same keys and values, by every fact table that needs it.</dd>
+<dt>Drill-across</dt><dd>Sum each fact table to a shared attribute separately, then join the small results.</dd>
+<dt>Stovepipe</dt><dd>A fact table built with its own private dimensions, which cannot be compared with the others.</dd>
+<dt>Physical meaning</dt><dd>Each row of the matrix becomes a fact table; each column becomes one dimension table, built once and reused. Comparisons across facts join small summaries on shared attribute values.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"To compare sales with returns, join the two fact tables on product."** Each sale pairs with every return of that product, so both totals balloon. Sum each fact first, then join the summaries.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>The matrix.</b> <table class="lk-tbl"><tr><th>process</th><th>Date</th><th>Product</th><th>Store</th><th>Customer</th></tr><tr><td>Sales</td><td>x</td><td>x</td><td>x</td><td>x</td></tr><tr><td>Returns</td><td>x</td><td>x</td><td>x</td><td>x</td></tr><tr><td>Coverage</td><td>x</td><td></td><td>x</td><td></td></tr></table></div>
+<div class="step"><b>Sales summed by department.</b> <table class="lk-tbl"><tr><th>department</th><th>sales</th></tr><tr><td>Home</td><td>300</td></tr><tr><td>Tech</td><td>200</td></tr></table></div>
+<div class="step"><b>Returns summed by department.</b> <table class="lk-tbl"><tr><th>department</th><th>returned</th></tr><tr><td>Home</td><td>15</td></tr><tr><td>Tech</td><td>20</td></tr></table></div>
+<div class="step"><b>Join the summaries.</b> One row to one row: <table class="lk-tbl"><tr><th>department</th><th>sales</th><th>returned</th><th>share</th></tr><tr><td>Home</td><td>300</td><td>15</td><td><mark>5.0%</mark></td></tr><tr><td>Tech</td><td>200</td><td>20</td><td><mark>10.0%</mark></td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-fact-join-fanout"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -194,5 +233,15 @@ FROM s JOIN r ON r.brand = s.brand
 ORDER BY return_pct DESC
 LIMIT 3
 ```
+
+<div class="keypoints">
+
+- Build the warehouse one process at a time, from one plan.
+- Rows are processes (fact tables), columns are dimensions.
+- Dimensions with the most marks (date, product, store) deserve the most care.
+- Conformed dimensions make facts comparable.
+- Never join two fact tables row to row; drill across.
+
+</div>
 
 **New words:** *bus matrix*, *conformed dimension*, *drill-across*, *stovepipe*.

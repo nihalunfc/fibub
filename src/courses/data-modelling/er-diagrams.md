@@ -17,9 +17,17 @@ quiz:
     choices: ['Through a table in between (order_items) with a key from each side', 'With a list of product ids in orders', 'It cannot be stored']
     ans: 0
     why: A bridge table turns one many-to-many line into two one-to-many lines. order_items has one row per order and product pair.
+sources:
+  - 'Chen, P. P. (1976), The Entity-Relationship Model: Toward a Unified View of Data, ACM Transactions on Database Systems 1(1) https://doi.org/10.1145/320434.320440'
+  - 'SQLite documentation: Foreign key support https://www.sqlite.org/foreignkeys.html'
+  - 'Microsoft Learn, Power BI: Model relationships in Power BI Desktop https://learn.microsoft.com/en-us/power-bi/transform-model/desktop-relationships-understand'
 ---
 
 **Module 1 · about 30 minutes · read first: 1.2.** You'll be able to read crow's-foot ER diagrams, say the cardinality of any relationship, turn a many-to-many into a bridge table, and check a diagram against real data with SQL.
+
+<div class="bigidea">An ER diagram is the map of a database: boxes for things, lines for links, and marks on each line that say how many rows can match.</div>
+
+**In everyday terms:** a family tree. Boxes are people, lines are relationships. Reading "one parent has zero or many children" tells you how the family fits together before you meet anyone.
 
 ## 1. Why this matters
 
@@ -103,6 +111,38 @@ A table can also have a relationship with itself. Each employee has a manager wh
 
 Diagrams come in three levels of detail. A *conceptual* model shows only entities and relationships, for talking with the business ("customers place orders at stores"). A *logical* model adds attributes, keys and cardinality, but no database specifics; the figure above is logical. A *physical* model is the real tables with data types, indexes and constraints for one database product. You will draw all three in the capstone.
 
+<div class="meaning">
+
+<dl>
+<dt>Entity</dt><dd>A kind of thing the business keeps records of; a box, usually a table.</dd>
+<dt>Attribute</dt><dd>A fact about an entity; a column.</dd>
+<dt>Relationship</dt><dd>How two entities are linked; a line, usually a foreign key.</dd>
+<dt>Cardinality</dt><dd>How many rows on one side can match one row on the other: one-to-one, one-to-many, many-to-many.</dd>
+<dt>Bridge table</dt><dd>A table in between that turns a many-to-many into two one-to-many links.</dd>
+<dt>Physical meaning</dt><dd>Each line is a foreign key in one table pointing at a key in another. The marks tell you whether a join can drop rows (a circle: zero allowed) or multiply them (a crow's foot: many).</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If today's data shows at most one, the line is one."** Draw the business rule, not today's data. A line can be returned twice even if nobody has done it yet, and a customer can have zero orders.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Two boxes.</b> <table class="lk-tbl"><tr><th>customer_id</th><th>name</th></tr><tr><td>10</td><td>Uma</td></tr><tr><td>11</td><td>Ben</td></tr></table> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th></tr><tr><td>1038</td><td>10</td></tr><tr><td>1039</td><td>10</td></tr><tr><td>1040</td><td>NULL</td></tr></table></div>
+<div class="step"><b>Read left to right.</b> One customer has zero or many orders: <table class="lk-tbl"><tr><th>customer</th><th>orders</th></tr><tr><td>Uma</td><td><mark>2</mark></td></tr><tr><td>Ben</td><td><mark>0</mark></td></tr></table></div>
+<div class="step"><b>Read right to left.</b> One order has zero or one customer: order 1040 is a guest. <table class="lk-tbl"><tr><th>order_id</th><th>customer</th></tr><tr><td>1038</td><td>Uma</td></tr><tr><td>1039</td><td>Uma</td></tr><tr><td>1040</td><td><mark>none</mark></td></tr></table></div>
+<div class="step"><b>Why it matters.</b> An inner join drops the guest: <table class="lk-tbl"><tr><th>order_id</th><th>name</th></tr><tr><td>1038</td><td>Uma</td></tr><tr><td>1039</td><td>Uma</td></tr></table> The circle on the line warned you.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-guest-drop"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -168,5 +208,15 @@ FROM (SELECT customer_id, COUNT(*) AS n FROM orders WHERE customer_id IS NOT NUL
 ```
 
 **Try it on your own data:** describe each table and column of your own source in [[data-dictionary]], then draw its boxes and lines from that list.
+
+<div class="keypoints">
+
+- Entities are boxes, attributes are columns, relationships are lines.
+- Crow's foot: the inner mark is the most (bar = one, foot = many), the outer mark the least (bar = one, circle = zero).
+- Read every line both ways, starting "one X has ...".
+- Many-to-many needs a bridge table, such as order_items.
+- Check a diagram against the data with SQL, but draw the business rule.
+
+</div>
 
 **New words:** *ER diagram*, *entity*, *attribute*, *relationship*, *cardinality*, *crow's-foot notation*, *many-to-many*, *bridge table*, *conceptual, logical and physical model*.

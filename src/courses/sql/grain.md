@@ -17,9 +17,17 @@ quiz:
     choices: ['GROUP BY order_id HAVING COUNT(*) > 1 should return no rows', 'SELECT DISTINCT order_id', 'ORDER BY order_id']
     ans: 0
     why: If any order_id appears more than once, that query shows it. An empty answer means the column is unique, so the grain holds.
+sources:
+  - 'Kimball Group, Dimensional Modeling Techniques: Grain https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/grain/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 2 (Kimball Dimensional Modeling Techniques Overview) and chapter 3 (Retail Sales)'
+  - 'SQLite documentation, SELECT (GROUP BY and subqueries in FROM) https://www.sqlite.org/lang_select.html'
 ---
 
 **Module 3 · about 30 minutes · read first: 3.4.** You'll be able to state the grain of any table in one sentence, test it with a query, spot answers computed at the wrong grain, and use GROUP BY to change grain on purpose.
+
+<div class="bigidea">The grain is what one row of a table stands for; count and average at the grain your question is about, and use GROUP BY to change grain on purpose.</div>
+
+**In everyday terms:** a shopping receipt. "How many things did you buy?" counts printed lines; "how many trips did you make?" counts receipts. Same shopping, different grain, different answer.
 
 ## 1. Why this matters
 
@@ -74,6 +82,36 @@ FROM order_items
 ```
 
 AVG over order_items averages **lines**: $17.75. Total revenue divided by the number of orders gives the average **order**: $31.93. Both are correct answers to different questions; only the second is "average order value".
+
+<div class="meaning">
+
+<dl>
+<dt>Grain</dt><dd>The sentence "one row per ..." for a table, such as "one row per product in an order".</dd>
+<dt>Finer grain</dt><dd>More rows, each about a smaller thing (lines are finer than orders).</dd>
+<dt>Coarser grain</dt><dd>Fewer rows, each about a bigger thing (orders are coarser than lines).</dd>
+<dt>Average order value</dt><dd>Total revenue ÷ number of orders, not the average of the lines.</dd>
+<dt>Grain test</dt><dd>GROUP BY the supposed key HAVING COUNT(*) &gt; 1 should return no rows.</dd>
+<dt>Physical meaning</dt><dd>An average is a total divided by a count of rows, so the grain decides what you divide by. GROUP BY order_id squeezes each order's lines into one row, turning a line-grain table into an order-grain one.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"AVG(line value) over order_items is the average order value."** That averages lines, not orders: $17.75 instead of $31.93. When the table is finer than the noun in your question, either divide the total by COUNT(DISTINCT order_id) or GROUP BY order_id first and average the results.
+
+</div>
+
+Watch the grain change, one step at a time (the live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Line grain.</b> Two orders, three lines. <table class="lk-tbl"><tr><th>order_id</th><th>product</th><th>value</th></tr><tr><td>1</td><td>Bagels</td><td>10</td></tr><tr><td>1</td><td>Kettle</td><td>40</td></tr><tr><td>2</td><td>Milk</td><td>10</td></tr></table></div>
+<div class="step"><b>AVG(value) at line grain.</b> (10 + 40 + 10) ÷ 3 = <mark>20</mark> per line.</div>
+<div class="step"><b>GROUP BY order_id.</b> Now one row per order. <table class="lk-tbl"><tr><th>order_id</th><th>order_value</th></tr><tr><td>1</td><td><mark>50</mark></td></tr><tr><td>2</td><td><mark>10</mark></td></tr></table></div>
+<div class="step"><b>AVG(order_value) at order grain.</b> (50 + 10) ÷ 2 = <mark>30</mark> per order. Same total, 60, divided by 2 orders instead of 3 lines.</div>
+</div>
+
+<div class="problem" data-problem="sql-grain-aov"></div>
 
 ## 5. Changing grain with GROUP BY
 
@@ -219,5 +257,15 @@ HAVING COUNT(*) > 1
 ```
 
 **Try it on your own data:** before you analyse a new CSV in [[sql-playground]], write one line saying its grain, then test it with the GROUP BY ... HAVING COUNT(*) > 1 check.
+
+<div class="keypoints">
+
+- Say every table's grain as "one row per ..." before you count or average.
+- When the grain is finer than your question's noun, COUNT(DISTINCT key) instead of COUNT(*).
+- Average order value = total revenue ÷ number of orders, not AVG over lines.
+- GROUP BY changes grain on purpose; feed the result into another query to average it.
+- Test a grain: GROUP BY the key HAVING COUNT(*) &gt; 1 should be empty.
+
+</div>
 
 **New words:** *grain*, *index set*, *key*, *average order value*, *subquery*.

@@ -17,13 +17,40 @@ quiz:
     choices: ['Types 1, 2 and 3: new rows for history, plus current-value columns overwritten on every row', 'Types 0 and 1 only', 'Type 2 with no dates']
     ans: 0
     why: 1 + 2 + 3 = 6. Rows are versioned like type 2, and each row also carries current_city and current_tier, overwritten like type 1, so one query can show both "then" and "now".
+sources:
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball Group, Design Tip #152: Slowly Changing Dimension Types 0, 4, 5, 6 and 7 https://www.kimballgroup.com/2013/02/design-tip-152-slowly-changing-dimension-types-0-4-5-6-7/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 5 (slowly changing dimension basics)'
 ---
 
 **Module 5 · about 30 minutes · read first: 4.1.** You'll be able to name the five common ways to handle a changing dimension attribute, say what each keeps and loses, and pick one per column.
 
+<div class="bigidea">A slowly changing dimension type is a rule for what to do with the old value when an attribute changes: forget it, keep it as a row, or keep it in a column.</div>
+
+**In everyday terms:** an address book. Type 1 crosses out the old address and writes the new one. Type 2 keeps the old line and adds a new line underneath. Type 3 has a "previous address" box next to the current one.
+
 ## 1. Why this matters
 
 Dimensions change. Customers move, products change category, stores get new managers, sales regions are redrawn. Every time, someone has to decide: should last year's sales follow the customer to their new city, or stay where they happened? The answer changes real numbers on real dashboards, and "how do you handle slowly changing dimensions?" is asked in almost every BI and data engineering interview. The changes are called **slowly changing** because they happen now and then, not on every transaction.
+
+<div class="meaning">
+
+<dl>
+<dt>SCD (slowly changing dimension)</dt><dd>A dimension whose attributes change now and then, not on every sale.</dd>
+<dt>Type 1</dt><dd>Overwrite the old value. No history.</dd>
+<dt>Type 2</dt><dd>Add a new row for the new value. Full history.</dd>
+<dt>Type 3</dt><dd>Keep the previous value in an extra column. One step of history.</dd>
+<dt>Type 6</dt><dd>Type 2 rows plus a "current value" column on every row (1 + 2 + 3).</dd>
+<dt>Physical meaning</dt><dd>Type 1 changes a value inside a row. Type 2 adds a row to the table. Type 3 adds a column. The number of rows is what decides how history behaves.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Type 2 is always the best choice."** Type 2 costs rows, joins and more code, and many columns do not need history (a fixed typo, a phone number nobody reports on). Pick per column: type 1 for corrections, type 2 for things the business reports "as it was".
+
+</div>
 
 ## 2. One customer's timeline
 
@@ -177,6 +204,20 @@ The type is chosen **per column**, not per table. Northbay might keep `joined_on
 **Try it:** Asha's Speaker was bought on 2025-10-05. Which type 2 row covers it? (Key 3: 2025-09-15 ≤ 2025-10-05 < 9999-12-31.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Asha lives in Toronto.</b> <table class="lk-tbl"><tr><th>key</th><th>customer</th><th>city</th></tr><tr><td>1</td><td>Asha</td><td>Toronto</td></tr></table> Her January sale points at key 1.</div>
+<div class="step"><b>She moves to Ottawa.</b> The dimension must now say something new. What happens to the old row depends on the type.</div>
+<div class="step"><b>Type 1: overwrite.</b> <table class="lk-tbl"><tr><th>key</th><th>customer</th><th>city</th></tr><tr><td>1</td><td>Asha</td><td><mark>Ottawa</mark></td></tr></table> The January sale now reports Ottawa. Toronto is gone.</div>
+<div class="step"><b>Type 2: new row.</b> <table class="lk-tbl"><tr><th>key</th><th>customer</th><th>city</th><th>valid_to</th></tr><tr><td>1</td><td>Asha</td><td>Toronto</td><td><mark>2025-03-01</mark></td></tr><tr><td><mark>2</mark></td><td>Asha</td><td><mark>Ottawa</mark></td><td>9999-12-31</td></tr></table> The January sale still points at key 1 (Toronto). New sales use key 2.</div>
+<div class="step"><b>Type 3: extra column.</b> <table class="lk-tbl"><tr><th>key</th><th>customer</th><th>city</th><th>previous_city</th></tr><tr><td>1</td><td>Asha</td><td><mark>Ottawa</mark></td><td><mark>Toronto</mark></td></tr></table> One step of history, but a third move erases Toronto.</div>
+</div>
+
+<div class="problem" data-problem="dm-scd-rows"></div>
+
+<div class="problem" data-problem="dm-scd-type1-total"></div>
+
 ## 8. Worked example: Northbay's three re-sign-ups
 
 In August 2025, three Northbay members signed up a second time (customers 601-603, see [SQL Lesson 4.3](/learn/courses/sql/left-join/)), each time on the Silver tier, while their original accounts said Bronze. Suppose the data team decides each re-sign-up is really the same person moving up to Silver on that date. Build their tier history as type 2. The first version uses `1900-01-01` as `valid_from`, a common way to say "true since before our data starts", so purchases from before the recorded `joined_on` still find a row:
@@ -257,5 +298,15 @@ JOIN tier_history h ON h.customer_id = o.customer_id AND h.is_current = 1
 GROUP BY h.name, h.tier
 ORDER BY sales DESC
 ```
+
+<div class="keypoints">
+
+- Type 1 overwrites, type 2 adds a row, type 3 adds a column.
+- Type 2 needs a surrogate key, valid_from, valid_to and is_current.
+- Facts keep pointing at the version that was true when they happened.
+- Choose the type per column, not per table.
+- Type 6 = 1 + 2 + 3: history rows plus a current-value column.
+
+</div>
 
 **New words:** *slowly changing dimension (SCD)*, *type 0*, *type 1*, *type 2*, *type 3*, *type 6*, *valid_from*, *valid_to*, *is_current*, *half-open range*.

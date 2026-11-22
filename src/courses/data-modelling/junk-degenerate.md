@@ -17,9 +17,17 @@ quiz:
     choices: ['COUNT(*)', 'COUNT(DISTINCT order_id)', 'SUM(order_id)']
     ans: 1
     why: Each order has one or more lines, so COUNT(*) counts lines. COUNT(DISTINCT order_id) counts each order once.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 6: Order Management (junk dimensions)'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (degenerate dimensions for transaction numbers)'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.1 and 2.3.** You'll be able to fold several small flags into one junk dimension, keep an order number as a degenerate dimension, and use it to count orders and baskets correctly.
+
+<div class="bigidea">Leftover flags go together into one small junk dimension, and the leftover order number stays on the fact table as a degenerate dimension with no table behind it.</div>
+
+**In everyday terms:** a kitchen drawer and a receipt number. The odd bits (rubber bands, a torch, birthday candles) go in one drawer instead of a cupboard each. The receipt number does not need a drawer at all: you keep it on the receipt to find it again.
 
 ## 1. Why this matters
 
@@ -127,6 +135,39 @@ GROUP BY order_id
 
 Other common degenerate dimensions are invoice numbers, ticket numbers, cheque numbers and transaction ids: any "header" number whose header has been split up among the other dimensions.
 
+<div class="meaning">
+
+<dl>
+<dt>Low cardinality</dt><dd>A column with only a few possible values, such as store or online.</dd>
+<dt>Junk dimension</dt><dd>One small table holding every combination of a few unrelated flags, with one key.</dd>
+<dt>Degenerate dimension</dt><dd>A dimension key, such as order_id, kept on the fact row with no dimension table.</dd>
+<dt>Basket</dt><dd>All the lines of one order; found by grouping on the degenerate key.</dd>
+<dt>Physical meaning</dt><dd>The junk dimension is a CROSS JOIN of the flag values with a key on each combination; the fact load looks up one flags_key per line. order_id is copied onto each line, so COUNT(DISTINCT order_id) counts orders.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Count orders with COUNT(*) on the sales fact."** At line grain that counts lines, so an "average order value" would really be per line, about 45% too small at Northbay. Use COUNT(DISTINCT order_id).
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Leftover columns.</b> <table class="lk-tbl"><tr><th>order</th><th>channel</th><th>status</th><th>promo</th></tr><tr><td>3305</td><td>online</td><td>completed</td><td>yes</td></tr></table></div>
+<div class="step"><b>Junk dimension.</b> <table class="lk-tbl"><tr><th>flags_key</th><th>channel</th><th>status</th><th>promo</th></tr><tr><td>1</td><td>Store</td><td>Completed</td><td>No promotion</td></tr><tr><td><mark>8</mark></td><td>Online</td><td>Completed</td><td>On promotion</td></tr></table></div>
+<div class="step"><b>Fact carries one key.</b> <table class="lk-tbl"><tr><th>order_id</th><th>flags_key</th><th>sales</th></tr><tr><td>3305</td><td><mark>8</mark></td><td>20</td></tr><tr><td>3305</td><td>8</td><td>9</td></tr></table></div>
+<div class="step"><b>Baskets from order_id.</b> <table class="lk-tbl"><tr><th>order_id</th><th>lines</th><th>sales</th></tr><tr><td><mark>3305</mark></td><td><mark>2</mark></td><td><mark>29</mark></td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-junk-rows"></div>
+
+<div class="problem" data-problem="dm-basket-size"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -210,5 +251,15 @@ FROM fact_sales f
 JOIN dim_order_flags fl ON fl.flags_key = f.flags_key
 WHERE fl.status = 'cancelled'
 ```
+
+<div class="keypoints">
+
+- Fold several low-cardinality flags into one junk dimension with one key.
+- Build it with CROSS JOIN, or from the combinations that occur when the values are many.
+- Use words ("On promotion"), not 1 and 0, in the junk dimension.
+- Keep order or invoice numbers as degenerate dimensions on the fact.
+- Count orders with COUNT(DISTINCT order_id), never COUNT(*).
+
+</div>
 
 **New words:** *low cardinality*, *junk dimension*, *degenerate dimension*, *basket*.

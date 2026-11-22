@@ -17,9 +17,18 @@ quiz:
     choices: ['It makes the repo longer', 'So every answer uses the same rules and a reader can check them', 'GitHub requires it']
     ans: 1
     why: 'Thirty answers that each define revenue differently can''t be compared. One stated definition makes the casebook consistent and checkable.'
+sources:
+  - 'SQLite documentation: SQL As Understood By SQLite https://www.sqlite.org/lang.html'
+  - 'GitHub Docs: About READMEs https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes'
+  - 'dbt documentation: About metrics and the semantic layer https://docs.getdbt.com/docs/build/about-metricflow'
+  - 'Knaflic, C. N. (2015), Storytelling with Data, Wiley, chapter 1 (the importance of context)'
 ---
 
 **Module 10 · about 35 minutes to read, a few weekends to build · read first: the whole course.** You'll be able to plan, build and present a SQL portfolio project that shows employers you can answer real business questions.
+
+<div class="bigidea">A casebook shows employers you can turn a business question into a correct query and the result into one useful sentence, using the same definitions every time.</div>
+
+**In everyday terms:** a cook's recipe book. Each page has the dish, the method, a photo of the result and a tip, and "a cup" means the same amount on every page.
 
 ## 1. Why this matters
 
@@ -56,6 +65,38 @@ Write these at the top of your README and stick to them, so all 30 answers agree
 
 **Try it:** your channel answers give store revenue $42,206.49 and online $11,778.96 for 2024. What must the 2024 total be? ($53,985.45, which matches $53,985.46 to within the one-cent rounding of each part. Rounding differences of a cent are fine; bigger gaps mean a filter differs.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Casebook</dt><dd>A public collection of business questions, each with its query, result and insight.</dd>
+<dt>Metric definition</dt><dd>One written rule for a number, such as what counts as revenue, used for every answer.</dd>
+<dt>Additive metric</dt><dd>A sum: the parts add up to the whole, which gives you a free check.</dd>
+<dt>Non-additive metric</dt><dd>A rate or average: add the counts underneath, never the rates.</dd>
+<dt>Caveat</dt><dd>What else could explain a result, said next to the insight.</dd>
+<dt>Physical meaning</dt><dd>Each answer is the same metric worked out on a different slice of the rows. Sums over separate slices add up to the total; rates do not, because each slice has a different number of rows underneath.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Store return rate 5 %, online 9 %, so overall 7 %."** That is only true if both channels have the same number of orders. Add the returns and the orders first, then divide. The same goes for averages and conversion rates in every casebook answer.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Two channels.</b> <table class="lk-tbl"><tr><th>channel</th><th>orders</th><th>returned</th><th>rate</th></tr><tr><td>store</td><td>900</td><td>45</td><td>5 %</td></tr><tr><td>online</td><td>100</td><td>9</td><td>9 %</td></tr></table></div>
+<div class="step"><b>Wrong: average the rates.</b> (5 + 9) ÷ 2 = <mark>7 %</mark>.</div>
+<div class="step"><b>Right: add the counts, then divide.</b> <table class="lk-tbl"><tr><th>orders</th><th>returned</th><th>rate</th></tr><tr><td><mark>1000</mark></td><td><mark>54</mark></td><td><mark>5.4 %</mark></td></tr></table></div>
+<div class="step"><b>Free check for sums.</b> Store revenue + online revenue must equal total revenue, to within a cent of rounding.</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-rate-not-additive"></div>
 
 ## 4. The 30 questions
 
@@ -258,5 +299,15 @@ ORDER BY avg_days DESC
 ```
 
 **Try it on your own data:** once the casebook is done, repeat five of the questions on a public dataset with [[sql-playground]] and add them as a bonus section; tidy the CSV first with [[data-cleaner]].
+
+<div class="keypoints">
+
+- Each entry: the question, a readable query, the result and a one-line insight.
+- Write the metric definitions at the top of the README and use them everywhere.
+- Sums add up across slices; rates and averages don't: add the counts, then divide.
+- Say the caveat next to the insight: a link is not a cause.
+- Pick a few questions you can explain without notes for interviews.
+
+</div>
 
 **New words:** *casebook*, *metric definition*, *insight*, *caveat*.

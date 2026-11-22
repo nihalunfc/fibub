@@ -17,9 +17,18 @@ quiz:
     choices: ['Always put them in the same bucket', 'Split them across two buckets, because NTILE cuts by row count, not by value', 'Leave them out']
     ans: 1
     why: 'NTILE makes buckets of (nearly) equal size, so a block of ties can be cut in two. Add a tie-breaker like customer_id so the cut is at least repeatable.'
+sources:
+  - 'SQLite documentation: Window Functions (NTILE) https://www.sqlite.org/windowfunctions.html'
+  - 'Microsoft Learn: NTILE (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/ntile-transact-sql'
+  - 'Hughes, A. M. (2012), Strategic Database Marketing, 4th edition, McGraw-Hill, chapter on RFM analysis'
+  - 'SQLite documentation: CASE expression https://www.sqlite.org/lang_expr.html#the_case_expression'
 ---
 
 **Module 8 · about 30 minutes · read first: 6.7, 2.6.** You'll be able to score customers on recency, frequency and monetary value with NTILE, and group them into segments with CASE.
+
+<div class="bigidea">RFM gives every customer three scores from 1 to 5, for how recently, how often and how much they buy, and turns those scores into a few named groups with a plan each.</div>
+
+**In everyday terms:** a shop owner who knows the regulars. "Came in last week, comes every week, spends a lot" is a champion; "used to come every week but hasn't been in for months" is someone to phone.
 
 ## 1. Why this matters
 
@@ -94,6 +103,39 @@ Customer 1 scores R = 5, F = 3, M = 5: shopped six days before the end of the da
 
 **Try it:** 10 customers, NTILE(4). How big is each bucket? (10 = 4 × 2 + 2, so 3, 3, 2, 2.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Recency</dt><dd>Days since the last purchase. Fewer days is better.</dd>
+<dt>Frequency</dt><dd>Number of orders: COUNT(DISTINCT order_id), not lines.</dd>
+<dt>Monetary</dt><dd>Total spend in the period.</dd>
+<dt>NTILE(5) OVER (ORDER BY x)</dt><dd>Sorts the rows and cuts them into 5 groups as equal in size as possible, numbered 1 to 5.</dd>
+<dt>Tie-breaker</dt><dd>An extra sort column (customer_id) so the cut is the same on every run.</dd>
+<dt>Segment</dt><dd>A named group of score codes, made with CASE; the first matching WHEN wins.</dd>
+<dt>Physical meaning</dt><dd>One GROUP BY squashes each customer's orders into three numbers. NTILE then replaces each number by its fifth of the ranking, so days, counts and dollars all become 1–5 and can be compared and combined.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"NTILE splits by value, so equal values get equal scores."** NTILE splits by row count. If 200 customers all have 5 orders, some of them can get F = 2 and others F = 3. Add a tie-breaker so the result is at least repeatable, or use fixed thresholds in CASE when ties matter.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Three numbers per customer.</b> <table class="lk-tbl"><tr><th>customer</th><th>last_order</th><th>orders</th><th>spend</th></tr><tr><td>A</td><td>2025-12-20</td><td>9</td><td>640</td></tr><tr><td>B</td><td>2025-03-02</td><td>8</td><td>510</td></tr><tr><td>C</td><td>2025-12-01</td><td>2</td><td>90</td></tr><tr><td>D</td><td>2025-02-11</td><td>1</td><td>40</td></tr></table></div>
+<div class="step"><b>Sort and cut into quarters</b> (NTILE(4) on 4 customers: one each). Later last order = higher R. <table class="lk-tbl"><tr><th>customer</th><th>R</th><th>F</th><th>M</th></tr><tr><td>A</td><td><mark>4</mark></td><td><mark>4</mark></td><td><mark>4</mark></td></tr><tr><td>B</td><td><mark>2</mark></td><td><mark>3</mark></td><td><mark>3</mark></td></tr><tr><td>C</td><td><mark>3</mark></td><td><mark>2</mark></td><td><mark>2</mark></td></tr><tr><td>D</td><td><mark>1</mark></td><td><mark>1</mark></td><td><mark>1</mark></td></tr></table></div>
+<div class="step"><b>CASE turns scores into segments.</b> The first WHEN that matches wins. <table class="lk-tbl"><tr><th>customer</th><th>code</th><th>segment</th></tr><tr><td>A</td><td>444</td><td><mark>Champion</mark></td></tr><tr><td>B</td><td>233</td><td><mark>At risk</mark></td></tr><tr><td>C</td><td>322</td><td><mark>New or occasional</mark></td></tr><tr><td>D</td><td>111</td><td><mark>Lapsed</mark></td></tr></table></div>
+<div class="step"><b>Group by segment.</b> Count customers and add up spend: now marketing has a to-do list, not 600 names.</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-ntile-score"></div>
 
 ## 4. From scores to segments
 
@@ -215,5 +257,15 @@ LIMIT 5
 ```
 
 **Try it on your own data:** profile your customer export first with [[csv-profiler]], then score it in [[sql-playground]].
+
+<div class="keypoints">
+
+- RFM = recency, frequency and monetary value, one GROUP BY per customer.
+- Count orders with COUNT(DISTINCT order_id), because the join to order_items fans out.
+- NTILE(5) turns each number into a 1–5 score by rank; sort so that better means higher.
+- NTILE cuts by row count, so ties can split; add a tie-breaker to make it repeatable.
+- CASE groups the 125 possible codes into a few segments; the order of the WHEN lines matters.
+
+</div>
 
 **New words:** *RFM*, *recency*, *frequency*, *monetary*, *quintile*, *tie-breaker*, *segment*.

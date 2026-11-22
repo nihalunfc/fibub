@@ -17,9 +17,17 @@ quiz:
     choices: ['It is worked out once for each outer row, in principle', 'It always scans every table twice', 'It disables indexes']
     ans: 0
     why: In principle the inner query runs once per outer row. Databases often optimise this, but a join to a grouped table or a window function is usually safer on large data.
+sources:
+  - 'SQLite documentation, Subquery expressions (correlated subqueries) https://www.sqlite.org/lang_expr.html#subq'
+  - 'Microsoft Learn, Correlated subqueries (SQL Server) https://learn.microsoft.com/en-us/sql/relational-databases/performance/subqueries#correlated'
+  - 'PostgreSQL documentation, Subquery expressions https://www.postgresql.org/docs/current/functions-subquery.html'
 ---
 
 **Module 5 · about 25 minutes · read first: 5.1 and 5.2.** You'll be able to write a subquery that depends on the current row, use it to compare each row with its own group, and rewrite it as a join when speed matters.
+
+<div class="bigidea">A correlated subquery mentions a column of the outer row, so it gives a different answer for every row: "compare me with my own group".</div>
+
+**In everyday terms:** each pupil checking their mark against the average of their own class, not the whole school. The question is the same, but the class changes from pupil to pupil.
 
 ## 1. Why this matters
 
@@ -119,6 +127,37 @@ Same 28 products. The derived table makes one average per category (10 rows), th
 **Try it:** Ben has one order of $20. What is f(order 103)? (20, his own average. A row is never above an average made only of itself.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Correlated subquery</dt><dd>A subquery that uses a column from the outer query, such as <code>o2.customer_id = o.customer_id</code>.</dd>
+<dt>Outer row</dt><dd>The row the outer query is looking at right now. The subquery is worked out again for it.</dd>
+<dt>Two aliases</dt><dd>The same table given two names (o and o2) so SQL knows which copy each column belongs to.</dd>
+<dt>Rewrite as a join</dt><dd>Group once in a derived table, then join each row to its own group. Same answer, often faster on big tables.</dd>
+<dt>Physical meaning</dt><dd>In principle the inner query runs once per outer row, each time seeing only the rows that match that outer row. The outer table is filtered or gets one looked-up value per row.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"I can leave out the second alias."** Without it, `WHERE customer_id = customer_id` compares the inner row with itself, is always true, and the subquery becomes the plain overall average. Give the inner copy its own name and point at the outer one.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>The table.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr><tr><td>101</td><td>1</td><td>45</td></tr><tr><td>102</td><td>1</td><td>5</td></tr><tr><td>103</td><td>2</td><td>20</td></tr><tr><td>104</td><td>3</td><td>90</td></tr><tr><td>105</td><td>3</td><td>45</td></tr><tr><td>106</td><td>9</td><td>60</td></tr></table></div>
+<div class="step"><b>Order 101 (customer 1).</b> The subquery sees only customer 1: (45 + 5) ÷ 2 = 25. Is 45 &gt; 25? <mark>Keep</mark>.</div>
+<div class="step"><b>Order 102.</b> Same customer, same average 25. Is 5 &gt; 25? No.</div>
+<div class="step"><b>Order 103 (customer 2).</b> Average of one order is 20. Is 20 &gt; 20? No.</div>
+<div class="step"><b>Orders 104 and 105 (customer 3).</b> Average 67.5. 90 &gt; 67.5 <mark>keep</mark>; 45 does not.</div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th><th>amount</th></tr><tr><td><mark>101</mark></td><td>1</td><td>45</td></tr><tr><td><mark>104</mark></td><td>3</td><td>90</td></tr></table> Order 106 is alone in its group, so it equals its own average and is dropped.</div>
+</div>
+
+<div class="problem" data-problem="sql-correlated-above-own"></div>
+
 ## 6. Worked example: customers who have gone quiet
 
 *Question:* which customers' latest order was before July 2025? These are candidates for a "we miss you" email.
@@ -174,5 +213,14 @@ SELECT o.store_id, o.order_id, o.order_date
 FROM orders o
 WHERE o.order_date = (SELECT MAX(o2.order_date) FROM orders o2 WHERE o2.store_id = o.store_id)
 ```
+
+<div class="keypoints">
+
+- A correlated subquery uses a column of the outer row, so its answer changes row by row.
+- Use it to compare each row with its own group.
+- Give the inner and outer copies of a table different aliases.
+- On big tables, rewrite it as a grouped derived table joined back, or use a window function.
+
+</div>
 
 **New words:** *correlated subquery*, *outer row*.

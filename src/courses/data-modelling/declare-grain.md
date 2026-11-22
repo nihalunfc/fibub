@@ -17,9 +17,17 @@ quiz:
     choices: ['Orders with several lines are counted several times', 'You get the right total', 'SQL raises an error']
     ans: 0
     why: Mixing grains breaks additivity. An order with three lines adds its total three times. Keep every measure at the table's declared grain.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (declare the grain)'
+  - 'Microsoft Learn, Power BI guidance: Understand star schema and the importance for Power BI https://learn.microsoft.com/en-us/power-bi/guidance/star-schema'
 ---
 
 **Module 2 · about 30 minutes · read first: 2.1.** You'll be able to write a grain statement, choose the atomic grain, test a grain with SQL, and spot a measure stored at the wrong grain.
+
+<div class="bigidea">The grain says exactly what one row of a fact table stands for, and every number on the row must be true at that grain.</div>
+
+**In everyday terms:** a photo's resolution. A sharp photo can always be shrunk to a thumbnail, but a thumbnail can never be blown up to show faces it never captured. Store the sharpest version.
 
 ## 1. Why this matters
 
@@ -123,6 +131,40 @@ FROM lines_mixed
 
 The three orders are worth $167.60, the sum of their lines. Summing `order_total` gives $648.92, because it counts order 1038 four times, order 1040 four times and order 1041 twice. Every measure in a fact table must be true **at the declared grain**. An order-level number belongs in an order-grain table, or must be split across the lines (*allocated*) by a stated rule.
 
+<div class="meaning">
+
+<dl>
+<dt>Grain</dt><dd>What one row of a fact table stands for, written as "one row per ...".</dd>
+<dt>Atomic grain</dt><dd>The finest detail the source system records, for sales the order line.</dd>
+<dt>Roll up</dt><dd>Add a fine grain up to a coarser one with GROUP BY.</dd>
+<dt>Drill down</dt><dd>Go to finer detail; impossible below the grain you stored.</dd>
+<dt>Mixed grain</dt><dd>A number at one grain (an order total) stored on rows at another (lines), so sums double count.</dd>
+<dt>Physical meaning</dt><dd>The grain fixes which columns identify a row and promises that no two rows share them. A roll-up collapses many rows into one per group; nothing can split them apart again.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Copy the order total onto each line so reports can just sum it."** Summing it counts each order once per line. Order 1038 has four lines, so its total is added four times. Keep each number at the grain it belongs to, or split it across the lines by a stated rule.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Atomic lines.</b> <table class="lk-tbl"><tr><th>order</th><th>product</th><th>store</th><th>day</th><th>sales</th></tr><tr><td>1038</td><td>Eggs</td><td>2</td><td>10 Jan</td><td>4</td></tr><tr><td>1038</td><td>Kettle</td><td>2</td><td>10 Jan</td><td>40</td></tr><tr><td>1039</td><td>Eggs</td><td>2</td><td>10 Jan</td><td>4</td></tr></table></div>
+<div class="step"><b>Roll up to store per day.</b> <table class="lk-tbl"><tr><th>store</th><th>day</th><th>sales</th></tr><tr><td><mark>2</mark></td><td><mark>10 Jan</mark></td><td><mark>48</mark></td></tr></table> 3 rows become 1; products are gone.</div>
+<div class="step"><b>Try to drill down.</b> From 48 alone there is no way to know it was Eggs, Kettle and Eggs. Stored detail is the only way back.</div>
+<div class="step"><b>Mixed grain.</b> <table class="lk-tbl"><tr><th>order</th><th>line sales</th><th>order_total</th></tr><tr><td>1038</td><td>4</td><td><mark>44</mark></td></tr><tr><td>1038</td><td>40</td><td><mark>44</mark></td></tr><tr><td>1039</td><td>4</td><td>4</td></tr></table> SUM(order_total) = 92, but the real total is 48.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-mixed-grain"></div>
+
+<div class="problem" data-problem="dm-grain-rollup"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -184,5 +226,15 @@ FROM lines_mixed
 SELECT SUM(order_total) AS total
 FROM (SELECT DISTINCT order_id, order_total FROM lines_mixed)
 ```
+
+<div class="keypoints">
+
+- Write the grain as one business sentence: "one row per ...".
+- Choose the atomic grain: you can roll up but never drill down.
+- Test it: GROUP BY the identifying columns HAVING COUNT(*) > 1 must return nothing.
+- Every measure must be true at the declared grain.
+- Decide the grain from the business rule, then test the data.
+
+</div>
 
 **New words:** *grain*, *grain statement*, *atomic grain*, *roll up*, *drill down*, *mixed grain*, *allocation*.

@@ -1,6 +1,7 @@
 ---
 import CourseHome from '../../../../components/course/CourseHome.astro';
 import { DATA_MODELLING } from '../../../../courses/data-modelling/syllabus';
+import '../../../../styles/lesson-kit.css';
 ---
 <CourseHome course={DATA_MODELLING}>
   <p class="cs-meta"><strong>Quick reference:</strong> <a href="/learn/courses/data-modelling/glossary/">glossary</a> · <a href="/learn/courses/data-modelling/cheat-sheet/">cheat sheet</a> · <a href="/learn/courses/sql/sandbox/">SQL sandbox</a></p>
@@ -13,6 +14,6 @@ import { DATA_MODELLING } from '../../../../courses/data-modelling/syllabus';
       <li><strong>Load and test a warehouse</strong>: staging layers, MERGE, audit columns and tests for keys and orphans.</li>
       <li><strong>Leave with a portfolio project</strong>: the Northbay warehouse, designed, built and tested by you, then moved to a cloud warehouse.</li>
     </ul>
-    <p>Every lesson has diagrams, live SQL boxes where you build each piece in your browser, and a 3-question quiz. Know basic SQL first: <a href="/learn/courses/sql/">SQL for analysts</a>, Modules 1-4. For the tools that run warehouses in production (dbt, Dagster, Azure SQL), go on to <a href="https://nihalsulaiman.com/learn/etl-course/" rel="noopener">Pipeline to Dashboard</a>.</p>
+    <p>Every lesson has diagrams, live SQL boxes where you build each piece in your browser, and a 3-question quiz. Know basic SQL first: <a href="/learn/courses/sql/">SQL for analysts</a>, Modules 1-4. For the tools that run warehouses in production (dbt, Dagster, Azure SQL), go on to <a href="/learn/courses/etl/">Pipeline to Dashboard</a>.</p>
   </section>
 </CourseHome>

@@ -17,9 +17,17 @@ quiz:
     choices: ['Those city names have a stray space at the end, so they do not equal the store city', 'EXCEPT is broken', 'Those stores are closed']
     ans: 0
     why: Set operations compare values exactly. 'Toronto ' with a trailing space is a different value from 'Toronto'. TRIM fixes it.
+sources:
+  - 'SQLite documentation, SELECT: Compound Select Statements https://www.sqlite.org/lang_select.html#compound'
+  - 'PostgreSQL documentation, Combining Queries (UNION, INTERSECT, EXCEPT) https://www.postgresql.org/docs/current/queries-union.html'
+  - 'Microsoft Learn, Set Operators - EXCEPT and INTERSECT (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql'
 ---
 
 **Module 4 · about 25 minutes · read first: 4.2.** You'll be able to stack two results with UNION and UNION ALL, and compare two lists with INTERSECT and EXCEPT.
+
+<div class="bigidea">Set operations stack two query results on top of each other: UNION ALL keeps every row, UNION drops repeats, INTERSECT keeps rows in both, EXCEPT keeps rows only in the first.</div>
+
+**In everyday terms:** two class registers. Stapling them together is UNION ALL; everyone in either class, once each, is UNION; students in both classes is INTERSECT; students in the first class but not the second is EXCEPT.
 
 ## 1. Why this matters
 
@@ -124,6 +132,37 @@ No rows: every customer lives in a store city. Set operations are a fast way to 
 **Try it:** 561 customers bought in 2024, 584 in 2025, and 545 in both. How many bought in at least one year? (561 + 584 − 545 = 600.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Set operation</dt><dd>Combines two results by rows (downwards), not by columns like a join.</dd>
+<dt>Union-compatible</dt><dd>Both queries return the same number of columns, in the same order, with matching types.</dd>
+<dt>UNION ALL</dt><dd>Every row from both: the counts simply add.</dd>
+<dt>UNION</dt><dd>Both stacked, then repeated rows removed.</dd>
+<dt>INTERSECT / EXCEPT</dt><dd>Rows found in both / rows in the first that are not in the second.</dd>
+<dt>Physical meaning</dt><dd>Whole rows are compared value by value; column names come from the first query. Unlike =, set operations treat two NULLs as the same, and 'Toronto ' with a space is a different row from 'Toronto'.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"UNION is the normal choice; UNION ALL is a special case."** UNION removes duplicate rows, which costs time and can throw away real repeats, such as two orders with the same date and amount. Use UNION ALL unless you actually want repeats gone.
+
+</div>
+
+Watch all four on the same two lists, one step at a time (the live boxes' **Show how it runs** button animates the real stacking):
+
+<div class="steps">
+<div class="step"><b>Two lists.</b> <table class="lk-tbl"><tr><th>2024 buyers</th></tr><tr><td>Asha</td></tr><tr><td>Ben</td></tr><tr><td>Chen</td></tr></table> <table class="lk-tbl"><tr><th>2025 buyers</th></tr><tr><td>Ben</td></tr><tr><td>Chen</td></tr><tr><td>Dina</td></tr></table></div>
+<div class="step"><b>UNION ALL.</b> 3 + 3 = 6 rows; Ben and Chen appear twice. <table class="lk-tbl"><tr><th>name</th></tr><tr><td>Asha</td></tr><tr><td>Ben</td></tr><tr><td>Chen</td></tr><tr><td><mark>Ben</mark></td></tr><tr><td><mark>Chen</mark></td></tr><tr><td>Dina</td></tr></table></div>
+<div class="step"><b>UNION.</b> Repeats removed: Asha, Ben, Chen, Dina (4 rows).</div>
+<div class="step"><b>INTERSECT.</b> In both: <mark>Ben, Chen</mark> (kept customers).</div>
+<div class="step"><b>EXCEPT.</b> 2025 EXCEPT 2024 is <mark>Dina</mark> (new); 2024 EXCEPT 2025 is <mark>Asha</mark> (lost). Check: 4 = 3 + 3 − 2.</div>
+</div>
+
+<div class="problem" data-problem="sql-set-op-rows"></div>
+
 ## 6. Worked example: new, kept and lost customers
 
 *Question:* compare 2024's customers with 2025's.
@@ -177,5 +216,15 @@ SELECT product_id FROM returns WHERE return_date LIKE '2025-12%'
 ```
 
 **Try it on your own data:** two exports of the same list from different months? Load both into [[sql-playground]] and use EXCEPT both ways to see what was added and what was removed.
+
+<div class="keypoints">
+
+- Joins add columns; set operations add rows, one result under the other.
+- Both queries need the same number of columns in the same order; names come from the first.
+- UNION ALL keeps every row; UNION removes repeats (use UNION ALL unless you want that).
+- INTERSECT keeps rows in both; EXCEPT keeps rows in the first but not the second.
+- Set operations compare whole values exactly and treat NULLs as equal; trim text first.
+
+</div>
 
 **New words:** *set operation*, *UNION ALL*, *INTERSECT*, *EXCEPT*, *union-compatible*, *activity log*.

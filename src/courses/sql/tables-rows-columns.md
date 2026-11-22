@@ -17,9 +17,18 @@ quiz:
     choices: ['SQLite secretly converts them to dates', 'Year-month-day text sorts in the same order as the dates, character by character', 'It is a lucky accident']
     ans: 1
     why: Text is compared one character at a time from the left. With the biggest unit (year) first and zero-padded months and days, text order equals date order.
+sources:
+  - 'SQLite documentation, Datatypes In SQLite https://www.sqlite.org/datatype3.html'
+  - 'SQLite documentation, Built-in scalar functions (typeof) https://www.sqlite.org/lang_corefunc.html'
+  - 'Microsoft Learn, Data types (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-types-transact-sql'
+  - 'PostgreSQL documentation, Mathematical Functions and Operators https://www.postgresql.org/docs/current/functions-math.html'
 ---
 
 **Module 1 · about 20 minutes · read first: 1.2.** You'll be able to say what one row and one column of a table mean, check the type of any value, and avoid two classic type traps.
+
+<div class="bigidea">A column holds one kind of fact with one type, a row holds one thing the table records, and the type decides how values compare, sort and divide.</div>
+
+**In everyday terms:** a paper form. Each box asks for one kind of answer (a date, a number, a name) and each filled-in form is one row. Write a number in the "name" box and sorting the forms later goes wrong.
 
 ## 1. Why this matters
 
@@ -72,6 +81,39 @@ PRAGMA table_info(order_items)
 ```
 
 SQL Server uses `EXEC sp_columns 'order_items'` and PostgreSQL uses `\d order_items` (or the `information_schema.columns` view, which works in both).
+
+<div class="meaning">
+
+<dl>
+<dt>Column</dt><dd>One kind of fact with a name and a type, such as quantity (whole numbers).</dd>
+<dt>Row</dt><dd>One thing the table records, with one value per column.</dd>
+<dt>INTEGER / REAL</dt><dd>Whole numbers / numbers with decimals.</dd>
+<dt>TEXT</dt><dd>Words, codes and (in SQLite) dates. Compared letter by letter.</dd>
+<dt>typeof(x)</dt><dd>Tells you which type a value really is.</dd>
+<dt>Integer division</dt><dd>Whole number ÷ whole number drops the remainder: 7 / 2 = 3.</dd>
+<dt>Physical meaning</dt><dd>The type is stored with each value and decides what the database does with it: TEXT '10' sorts before '9', INTEGER 10 after 9, and 7 / 2 gives 3 unless one side has a decimal.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A number is a number, whatever type it is stored as."** The type changes the answer. Text '10' sorts before '9', and SUM(quantity) / COUNT(*) on whole numbers gives 1 instead of 1.51. Check types with typeof(), and write `* 1.0` (or 2.0) when you divide whole numbers.
+
+</div>
+
+Watch the integer-division trap happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>A tiny order_items.</b> <table class="lk-tbl"><tr><th>line</th><th>quantity</th></tr><tr><td>1</td><td>1</td></tr><tr><td>2</td><td>3</td></tr><tr><td>3</td><td>1</td></tr></table></div>
+<div class="step"><b>SUM(quantity) = 5, COUNT(*) = 3.</b> Both are INTEGER. <table class="lk-tbl"><tr><th>units</th><th>lines</th></tr><tr><td><mark>5</mark></td><td><mark>3</mark></td></tr></table></div>
+<div class="step"><b>5 / 3 as whole numbers.</b> The remainder is dropped. <table class="lk-tbl"><tr><th>wrong_avg</th></tr><tr><td><mark>1</mark></td></tr></table></div>
+<div class="step"><b>5 * 1.0 / 3.</b> One side is REAL, so the decimals stay. <table class="lk-tbl"><tr><th>right_avg</th></tr><tr><td><mark>1.67</mark></td></tr></table></div>
+</div>
+
+Any live box's **Show how it runs** button animates a real query this way. Now predict what SQLite says:
+
+<div class="problem" data-problem="sql-int-division"></div>
 
 ## 4. Dates are text here
 
@@ -162,5 +204,15 @@ FROM stores
 SELECT SUM(size_sqft) * 1.0 / COUNT(size_sqft) AS avg_size
 FROM stores
 ```
+
+<div class="keypoints">
+
+- A column is one kind of fact with one type; a row is one thing recorded.
+- Rows have no built-in order or position; find them by their values.
+- SQLite's types: INTEGER, REAL, TEXT and NULL (no value). typeof() shows which.
+- Dates are TEXT in YYYY-MM-DD form, which sorts correctly; other date formats do not.
+- Whole number ÷ whole number drops the remainder; multiply by 1.0 first.
+
+</div>
 
 **New words:** *column*, *row*, *storage class*, *domain*, *integer division*, *ISO date*.

@@ -17,9 +17,17 @@ quiz:
     choices: ['Lags between milestones, such as days from order to return', 'Daily balances', 'Counts of page views']
     ans: 0
     why: Because every milestone date sits on the same row, the time between two steps is a simple subtraction.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 4: Inventory (accumulating snapshot fact table)'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 6: Order Management (accumulating snapshot for order fulfilment pipeline)'
 ---
 
 **Module 3 · about 30 minutes · read first: 3.2.** You'll be able to design an accumulating snapshot with milestone dates, load it, update it as milestones happen, and measure lags and pipeline status from it.
+
+<div class="bigidea">An accumulating snapshot keeps one row per thing moving through a process, and fills in a date on that row as each milestone happens.</div>
+
+**In everyday terms:** a parcel tracking page. One parcel, one page: shipped, out for delivery, delivered. The page is updated as the parcel moves, and you can see how long each step took.
 
 ## 1. Why this matters
 
@@ -134,6 +142,37 @@ ORDER BY MIN(days_to_return)
 
 From transaction facts you'd have to join sales to returns every time, and remember to keep the lines that never came back.
 
+<div class="meaning">
+
+<dl>
+<dt>Accumulating snapshot</dt><dd>One row per thing (order line, claim, application) for its whole life.</dd>
+<dt>Milestone</dt><dd>A step of the process, with its own date column on the row.</dd>
+<dt>Lag</dt><dd>Days between two milestones, worked out on the row.</dd>
+<dt>Pipeline status</dt><dd>Where each thing is now, such as window open, returned or kept.</dd>
+<dt>Physical meaning</dt><dd>The first load inserts one row per new thing with blanks for future milestones. Each night the load updates existing rows as milestones happen and inserts rows for new things; it never adds a row for a milestone.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Fact tables are never updated, so add a new row when a return happens."** That is how transaction facts work. An accumulating snapshot is the one fact table that is updated: the return fills in the existing row, so lags are a simple subtraction.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Load on 15 Dec.</b> <table class="lk-tbl"><tr><th>line</th><th>sold</th><th>returned</th><th>status</th></tr><tr><td>A</td><td>1 Nov</td><td></td><td>kept</td></tr><tr><td>B</td><td>5 Dec</td><td></td><td>window open</td></tr></table></div>
+<div class="step"><b>B comes back on 20 Dec.</b> The row is updated: <table class="lk-tbl"><tr><th>line</th><th>sold</th><th>returned</th><th>status</th></tr><tr><td>A</td><td>1 Nov</td><td></td><td>kept</td></tr><tr><td>B</td><td>5 Dec</td><td><mark>20 Dec</mark></td><td><mark>returned</mark></td></tr></table></div>
+<div class="step"><b>A new sale.</b> A new row joins: <table class="lk-tbl"><tr><th>line</th><th>sold</th><th>returned</th><th>status</th></tr><tr><td>A</td><td>1 Nov</td><td></td><td>kept</td></tr><tr><td>B</td><td>5 Dec</td><td>20 Dec</td><td>returned</td></tr><tr><td><mark>C</mark></td><td><mark>28 Dec</mark></td><td></td><td><mark>window open</mark></td></tr></table></div>
+<div class="step"><b>Lag by subtraction.</b> <table class="lk-tbl"><tr><th>line</th><th>days_to_return</th></tr><tr><td>B</td><td><mark>15</mark></td></tr></table></div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-acc-status"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -211,5 +250,15 @@ GROUP BY year
 ```
 
 **Try it on your own data:** [[date-calculator]] works out the days between two milestone dates when you want to check a lag by hand.
+
+<div class="keypoints">
+
+- One row per thing, for a process with a clear start and end.
+- One date column per milestone, filled in as it happens.
+- The only fact table that is updated (usually with MERGE).
+- Lags between milestones become simple subtraction.
+- At any date each row has exactly one status, so status counts add to the row count.
+
+</div>
 
 **New words:** *accumulating snapshot fact table*, *milestone*, *lag*, *pipeline status*.
