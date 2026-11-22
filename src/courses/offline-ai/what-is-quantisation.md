@@ -61,6 +61,10 @@ With 4 bits you can store 2⁴ = 16 different whole numbers. A common scheme use
 
 <div class="problem" data-problem="what-is-quantisation-round"></div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Two gains, one cost
 
 - **Smaller:** fits machines it otherwise would not.

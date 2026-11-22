@@ -35,6 +35,10 @@ Convolutional neural networks (CNNs) made computers see. They read cheques in th
 
 A black-and-white picture is a grid of brightness values: 0 for black, bigger for brighter. A colour picture is three grids (red, green, blue), called **channels**. A small 256 × 256 colour photo is 196,608 numbers. A fully connected layer of 1,000 neurons on it would need nearly 200 million weights, and would have to learn "an eye at the top left" and "an eye at the top right" separately.
 
+Try it: pick a filter, then step the stage from Convolve to ReLU to Max-pool while the window slides.
+
+<figure class="fig" data-fig="@ai-conv-pool"><figcaption>A filter lights up where its pattern appears. ReLU keeps only the matches, and max-pooling shrinks the map while keeping the strongest responses, so a small shift of the picture barely changes the result.</figcaption></figure>
+
 ## 3. Convolution
 
 A **filter** (or kernel) is a small grid of weights, say 3 × 3. Slide it over the picture. At each position, multiply each of the 9 pixels under it by the matching weight and add them up. The results form a new grid, the **feature map**, which is bright where the patch looks like the filter's pattern.

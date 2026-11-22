@@ -48,6 +48,10 @@ Model pages list names like Q4_K_M, IQ3_XS, AWQ, GPTQ-Int4, MLX-4bit and FP8. Th
 <div class="step"><p><b>Who reads it.</b> It is a GGUF name, so llama.cpp, Ollama and LM Studio. A vLLM server on an NVIDIA card would want AWQ or GPTQ instead.</p></div>
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Graphics card formats (vLLM and similar)
 
 - **AWQ** and **GPTQ:** 4-bit methods that use sample data to protect the important weights. Common for serving on NVIDIA cards (Module 15).

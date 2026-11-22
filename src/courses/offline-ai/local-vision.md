@@ -45,6 +45,10 @@ Gemma 4 models take images as well as text, so the model you installed in Module
 <div class="step"><p><b>Read with your words.</b> The 256 image tokens go into the context next to your prompt ("Read this receipt..."), and the model answers in text, or in JSON if you ask (section 4).</p></div>
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Describe an image
 
 ```python
@@ -59,6 +63,10 @@ print(reply["message"]["content"])
 ```
 
 The `images` list takes file paths (or raw bytes). In the terminal, `ollama run gemma4:12b` also accepts a path typed in the prompt, and chat apps such as LM Studio and Open WebUI let you drag an image in.
+
+Try it: pick a filter, then step the stage from Convolve to ReLU to Max-pool while the window slides.
+
+<figure class="fig" data-fig="@ai-conv-pool"><figcaption>A filter lights up where its pattern appears. ReLU keeps only the matches, and max-pooling shrinks the map while keeping the strongest responses, so a small shift of the picture barely changes the result.</figcaption></figure>
 
 ## 4. Turn receipts into data
 

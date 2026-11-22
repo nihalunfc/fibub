@@ -59,6 +59,10 @@ A **front end** is the app you type into; the model runs behind it.
 | Newest knowledge | Your documents, search tool | Partial | 17.4 |
 | Strongest reasoning | The biggest model your hardware fits | Behind on the hardest tasks | 17.1 |
 
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
+
 ## 3. How to choose what to rebuild
 
 List the features you used in the last month and how often. Rebuild the top three locally. For anything you use rarely (video, deep web research), keep a cloud option rather than building it.

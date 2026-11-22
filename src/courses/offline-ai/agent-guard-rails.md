@@ -52,6 +52,10 @@ Here is what a planted instruction does, and where the code stops it:
 <div class="step"><p><b>You read the log.</b> <code>agent-log.jsonl</code> shows both attempts. You spot the planted line, remove the file, and the model was never able to do harm.</p></div>
 </div>
 
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
+
 ## 3. Guard rails, strongest first
 
 1. **Least privilege:** give only the tools the task needs. No shell, no delete, no network unless essential.
@@ -127,6 +131,10 @@ Watch 10,000 tasks pass through those three layers:
 **"My agent runs offline, so it is safe."** Offline removes one big risk: with no email or web tool, it cannot send your data out. It does not stop the agent deleting, overwriting or moving your own files, which a confused or tricked model can still do. Fence the folder, keep approvals, and keep backups.
 
 </div>
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. Worked example
 

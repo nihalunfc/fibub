@@ -65,6 +65,10 @@ A popular version weights each vote by `$1/d$`, so closer neighbours count more.
 
 <div class="problem" data-problem="k-nearest-neighbours-vote"></div>
 
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
+
 ## 3. The one dial: k
 
 <!--fig:knn-regions-->
@@ -74,6 +78,10 @@ A popular version weights each vote by `$1/d$`, so closer neighbours count more.
 - **Very large k:** far-away points swamp the vote; the border flattens out and then becomes "always the majority class". Underfitting.
 
 Choose `$k$` with a validation set or cross-validation (Lesson 7.2). With two classes, an odd `$k$` avoids ties.
+
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
 
 ## 4. The curse of dimensionality
 

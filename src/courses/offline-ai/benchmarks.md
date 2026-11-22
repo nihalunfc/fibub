@@ -41,6 +41,10 @@ The **model card** is the model's front page (Lesson 7.1). Look for:
 - **Benchmark table**, and which version was tested (often the full-precision one, not the small copy you will run).
 - **Recommended settings** (temperature and so on, Lesson 10.1) and the chat template (Lesson 10.2).
 
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
+
 ## 3. What benchmarks measure
 
 A **benchmark** is a fixed set of test questions with known answers. A **leaderboard** ranks models by their scores. Common kinds:
@@ -50,6 +54,10 @@ A **benchmark** is a fixed set of test questions with known answers. A **leaderb
 - **Maths** contest problems.
 - **Coding:** writing functions, or fixing real bugs in real projects.
 - **Crowd votes** (LMArena): people compare two anonymous answers and pick the better one; a rating comes out.
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. Why leaderboards mislead
 

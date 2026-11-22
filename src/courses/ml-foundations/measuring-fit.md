@@ -57,6 +57,10 @@ Here are all three scores for one small test, step by step. True sandwich sales 
 
 <div class="problem" data-problem="measuring-fit-rmse"></div>
 
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
 ## 3. Reading residuals
 
 Plot each residual against its prediction. A good model leaves residuals that look like random noise: centred on zero, the same spread everywhere, no shape.

@@ -52,6 +52,10 @@ Signs: speed falls after a few minutes, fans get loud, the laptop's underside ge
 
 </div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Battery
 
 On battery, laptops usually switch to power-saving modes that cap the chip. A thin laptop writing with a local model may use 20 to 40 W: on a 60 Wh battery that is about 1.5 to 3 hours of steady AI use. A **watt-hour (Wh)** is the battery's store of energy: a 60 Wh battery can give 60 W for one hour, or 30 W for two. Phones (Lesson 4.6) drain faster in proportion and heat up quicker.

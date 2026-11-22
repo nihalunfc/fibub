@@ -79,6 +79,10 @@ if __name__ == "__main__":
 
 Run `python ask.py How many days of leave do new staff get?`. The answer comes first, then the list of sources with their similarity scores. Temperature 0 keeps answers steady (Lesson 10.1).
 
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
 ## 3. Add keyword search (hybrid)
 
 Embeddings are weak on exact codes, names and numbers: to a meaning map, "INV-20931" and "INV-20932" look almost the same. Old-fashioned keyword search is strong exactly there. **Hybrid search** runs both and merges the two ranked lists with **reciprocal rank fusion** (RRF): each list gives a chunk 1 ÷ (60 + its rank), and the scores are added. SQLite has a built-in keyword search (FTS5). Save as `hybrid.py` and call `hybrid_search` instead of `search` when your questions often contain codes. It returns `(file, page, text)` without a score, so in `answer` unpack three values instead of four:
@@ -122,6 +126,10 @@ If you rebuild the index, delete the `words` table too (`DROP TABLE IF EXISTS wo
 <div class="step"><p><b>Fuse the ranks.</b> A: 1/63 + 1/61 ≈ 0.03227. C: 1/62 + 1/62 ≈ 0.03226, a whisker behind. B: 1/61 ≈ 0.0164. A comes first, and B, liked by only one list, drops to last.</p></div>
 <div class="step"><p><b>Answer with numbers.</b> The top chunks go into the prompt as [1], [2], [3]. The model writes "CA$40 if cancelled less than 24 hours ahead [1]", and the script prints "[1] policies/price-list-2026.pdf, page 2".</p></div>
 </div>
+
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
 
 ## 4. Optional: a re-ranker
 
@@ -171,6 +179,14 @@ best = [c for _, c in sorted(zip(scores, candidates), key=lambda p: -p[0])][:5]
 **"If the answer has a citation, it must be right."** A citation only says which passage the model looked at. It can still misread it or mix two sources. Click through for anything that matters, and test with known questions (Lesson 12.7).
 
 </div>
+
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
 
 ## 5. Worked example
 

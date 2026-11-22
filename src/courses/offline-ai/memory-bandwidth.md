@@ -68,6 +68,10 @@ In symbols, with `$B$` the bandwidth in GB/s and `$M$` the GB read for each toke
 
 </div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Reading the speed off a spec sheet
 
 Memory bandwidth is written in GB/s (gigabytes per second):
@@ -86,6 +90,10 @@ A Mixture-of-Experts model (Lesson 2.5) reads only its active experts for each t
 **"A faster processor makes the AI write faster."** While writing, the chip mostly waits for memory. A higher clock speed or more "AI TOPS" with the same memory changes little. Look for the GB/s number instead.
 
 </div>
+
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
 
 ## 4. Reading time versus writing time
 

@@ -59,6 +59,10 @@ Here is what one tiny step of pretraining looks like, on the text "the cat sat":
 <div class="step"><p><b>Next time.</b> The same context now gives "sat" 0.30, so the loss falls to −ln 0.30 = <b>1.20</b>. Repeat for trillions of positions.</p></div>
 </div>
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. What the numbers mean
 
 - **Loss and perplexity** (Lesson 10.3) are watched throughout pretraining on held-out text, exactly like validation loss in Lesson 9.5.
@@ -102,6 +106,14 @@ C \approx 6 N D \text{ arithmetic operations}
 </dl>
 
 </div>
+
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
+
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
 
 ## 4. Worked example
 

@@ -45,6 +45,10 @@ Skills fade without use, like a language you stop speaking. The best time to pic
 - **Become a data analyst.** [Pipeline to Dashboard](/learn/courses/etl/) teaches the work around the models: getting data in, cleaning it, loading a warehouse and building dashboards. [Data at Scale](/learn/courses/data-at-scale/) covers the tools for data too big for one computer.
 - **Practise on your own data.** Pick a question you care about (your spending, a club's attendance, a public dataset from your city) and follow the capstone's seven steps.
 
+Try it: press Generate from noise, then raise Guess error and generate again.
+
+<figure class="fig" data-fig="@ai-diffusion-denoise"><figcaption>An image model starts from pure noise and repeatedly guesses and removes noise. Better guesses and more steps give a cleaner picture; poor guesses leave artefacts.</figcaption></figure>
+
 ## 3. Your first project
 
 1. **One clear question** with a number or category to predict, and a reason someone would act on the answer.

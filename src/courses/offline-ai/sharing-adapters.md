@@ -41,6 +41,10 @@ It is like corrections in a book. Notes in the margin (the adapter) let you swap
 
 <div class="problem" data-problem="sharing-adapters-storage"></div>
 
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
+
 ## 3. Into Ollama
 
 The dependable route is a merged GGUF file (Lesson 7.5). From Unsloth, after training:

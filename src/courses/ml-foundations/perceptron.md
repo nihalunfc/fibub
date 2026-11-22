@@ -60,6 +60,10 @@ Each input pushes the total up or down by its weight, and the neuron "fires" (sa
 
 </div>
 
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
+
 ## 3. Learning from mistakes
 
 The **perceptron rule**: go through the examples. Whenever the neuron is wrong, nudge the weights towards the right answer. `$\eta$` (eta, the **learning rate**) sets the size of each nudge.

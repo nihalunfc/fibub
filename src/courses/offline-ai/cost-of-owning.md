@@ -45,6 +45,10 @@ The name for this is **total cost of ownership**: everything a thing costs you f
 | **Resale** | What you can sell it for after 2 to 4 years | Often 30 to 60% for graphics cards and Macs |
 | **What it replaces** | Plans or API spend you cancel | The saving |
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Electricity
 
 <!--fig:power-bill-->

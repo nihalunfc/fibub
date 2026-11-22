@@ -55,6 +55,10 @@ A sentence's probability is each word's probability multiplied together. Watch t
 
 <div class="problem" data-problem="next-word-bigram"></div>
 
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
+
 ## 3. From counts to neural language models
 
 Counting breaks down fast. With a vocabulary of 50,000 words there are 125 trillion possible three-word sequences, and most never appear in any text, so most counts are zero.
@@ -68,6 +72,10 @@ A **neural language model** swaps the count table for a network:
 Because similar words have similar embeddings, similar contexts give similar guesses, even for word sequences the model has never seen.
 
 Early neural language models read only the last few words, or used recurrent networks (Lesson 9.7) that forgot. Transformers (Lessons 10.4 and 10.5) can use thousands of earlier tokens.
+
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
 
 ## 4. Scoring a model: loss and perplexity
 
@@ -112,6 +120,10 @@ p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}
 
 **Try it:** a model gives the true next words probabilities 0.5 and 0.125. Mean loss and perplexity? (`$(\ln 2 + \ln 8)/2 = \ln 4 = 1.386$`; perplexity `$e^{1.386} = 4$`.)
 </details>
+
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
 
 ## 5. Worked example
 

@@ -70,6 +70,10 @@ Once the choice is made, retrain the chosen model on all the training data. A se
 
 </div>
 
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
 ## 3. Choosing the folds
 
 Plain shuffled folds assume every row is a separate, independent case. When that isn't true, the folds must follow the data:
@@ -104,6 +108,10 @@ Plain shuffled folds assume every row is a separate, independent case. When that
 
 **Try it:** fold accuracies 0.82, 0.86, 0.80, 0.84, 0.83. Mean and sd? (Mean 0.83. Deviations −0.01, 0.03, −0.03, 0.01, 0: squares add to 0.002; sd = √(0.002/4) ≈ 0.022.)
 </details>
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 4. Worked example
 

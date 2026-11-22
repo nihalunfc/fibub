@@ -56,6 +56,10 @@ Each tree is a small correction. Adding only a fraction `$\eta$` of each one, ra
 
 <div class="problem" data-problem="gradient-boosting-round"></div>
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. Why "gradient"?
 
 For squared error `$L = \tfrac12 (y - F)^2$`, the slope (derivative) with respect to the prediction `$F$` is `$-(y - F)$`: the residual with a minus sign. So "fit a tree to the residuals and take a step" is the same as "fit a tree to the negative gradient and take a step". It is gradient descent, where the thing being adjusted is the whole prediction function instead of a few weights.

@@ -38,6 +38,10 @@ Banks, insurers and investment firms hold customer data and market-sensitive inf
 3. **Document checks:** know-your-customer files, loan documents and claims checked for missing items.
 4. **Search across policies and procedures** with citations (Module 12).
 
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
+
 ## 3. What regulators expect
 
 - **Canada:** OSFI's Guideline E-23 on model risk (effective 2027) covers AI models in federally regulated banks and insurers.

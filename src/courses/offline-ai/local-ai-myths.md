@@ -35,6 +35,10 @@ Myths cost money in both directions. Some people buy a powerful machine they do 
 
 **Reality:** you can start on the laptop you have. Small models of 1 to 4 billion parameters run on 8 GB of memory, and some, such as Google's Gemma 4 E2B, are made to run on phones. A 16 GB laptop runs models of about 12 billion parameters, which handle summaries, rewriting and everyday questions well. Bigger hardware buys you bigger, smarter models and more speed, not the ability to start.
 
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
+
 ## 3. Myth 2: "Local models are useless compared with the cloud"
 
 **Reality:** the best cloud models still lead on the hardest tasks, but the gap has narrowed a lot. In late 2026 open models such as Qwen3.8-27B and Gemma 4 31B run on a single 24 to 32 GB machine, and gpt-oss-120b runs on 128 GB machines. For a large share of daily work (drafting, summarising, extracting, coding help, searching your own files) a good local model is enough. Lesson 17.1 maps where the gap remains.

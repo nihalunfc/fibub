@@ -49,6 +49,10 @@ A word's score for another word is the dot product of its query with that word's
 
 Queries, keys and values are made from each word's embedding by three learned weight tables, so the model learns what to look for. Real models run several **heads** side by side, each with its own tables, so one head can track grammar while another tracks who "it" is.
 
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
+
 ## 3. One row, step by step
 
 Here is one word's attention worked out in full, with tiny numbers. Its query is (1, 0). Three words offer keys (2, 0), (0, 2) and (1, 1), with values (1, 0), (0, 1) and (1, 1). Each key has d = 2 numbers.
@@ -101,6 +105,10 @@ In matrix form, for all words at once: `$\operatorname{softmax}(\mathbf{Q}\mathb
 
 **Try it:** scores 2, 0 and 0 for three words. Weights? (`$e^2 = 7.39$`; total `$7.39 + 1 + 1 = 9.39$`; weights 0.79, 0.11, 0.11.)
 </details>
+
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
 
 ## 4. Worked example
 

@@ -40,6 +40,10 @@ Picture a mixing desk in a recording studio with billions of tiny knobs. Trainin
 - **B** = billion. **E2B** and **E4B** in Gemma 4 mean "effectively" 2 or 4 billion working at a time, with some extra stored parts.
 - For Mixture-of-Experts models the name may give two numbers: **26B A4B** means 26 billion in total, about 4 billion **active** per token (Lesson 2.5).
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. From parameters to gigabytes
 
 Bytes per parameter depend on precision: 16 bits = 2 bytes, 8 bits = 1 byte, 4 bits = half a byte. So:
@@ -61,6 +65,10 @@ Watch the 12B row being worked out.
 <div class="step"><p><b>8 bits each.</b> 8 bits = 1 byte. 12 × 1 = <b>12 GB</b>. Fits, but leaves little room.</p></div>
 <div class="step"><p><b>4 bits each.</b> Half a byte. 12 × 0.5 = <b>6 GB</b>. Comfortable on a 16 GB laptop. Storing each number less precisely is called <b>quantisation</b> (Module 8); quality drops only a little.</p></div>
 </div>
+
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
 
 ## 4. Size and ability
 
@@ -97,6 +105,10 @@ More parameters can store more patterns, so bigger models usually reason better,
 </div>
 
 <div class="problem" data-problem="parameters-gb"></div>
+
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
 
 ## 5. Worked example
 

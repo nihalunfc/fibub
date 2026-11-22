@@ -55,6 +55,10 @@ Neuron A asks "is at least one input on?" (x₁ + x₂ − 0.5 ≥ 0). Neuron B 
 <div class="step"><p><b>What happened.</b> The hidden layer moved the four corners to (A, B) = (0, 0), (1, 0), (1, 0), (1, 1). In that new space one straight line separates them. That is "learning features".</p></div>
 </div>
 
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
+
 ## 3. Width and depth
 
 - **Wider** (more neurons per layer): more lines to combine. One hidden layer with enough neurons can approximate any reasonable function: the **universal approximation theorem** (Cybenko, 1989).
@@ -102,6 +106,14 @@ More neurons means more weights, so more flexibility and more risk of overfittin
 
 **Try it:** count the parameters of a network with layers 10, 32, 16, 1. (`$10 \times 32 + 32 = 352$`; `$32 \times 16 + 16 = 528$`; `$16 + 1 = 17$`. Total 897.)
 </details>
+
+Try it: pick a filter, then step the stage from Convolve to ReLU to Max-pool while the window slides.
+
+<figure class="fig" data-fig="@ai-conv-pool"><figcaption>A filter lights up where its pattern appears. ReLU keeps only the matches, and max-pooling shrinks the map while keeping the strongest responses, so a small shift of the picture barely changes the result.</figcaption></figure>
+
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
 
 ## 4. Worked example
 

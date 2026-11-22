@@ -46,6 +46,10 @@ The context is like a desk. A bigger desk holds more papers at once, but it take
 <div class="step"><p><b>Check the memory.</b> The KV cache grows with the context, roughly four times bigger at 16,384 than at 4,096. Use the calculator below: model + cache + 1 GB must fit (Lesson 4.1).</p></div>
 </div>
 
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
+
 ## 3. How to change it
 
 - **Ollama, whole server:** set `OLLAMA_CONTEXT_LENGTH=16384` before starting it, or use the context slider in the desktop app's settings.

@@ -45,6 +45,10 @@ Two words in that table:
 - **Dense:** every parameter is used for every token, like a choir where everyone sings every note.
 - **MoE (Mixture-of-Experts):** the model is split into many "experts" and only a few work on each token (Lesson 2.5). "26B A4B" means 26 billion parameters in total, about 4 billion **a**ctive per token.
 
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
+
 ## 3. The big ones (data-centre size)
 
 Kimi K3 (Moonshot AI, 2.8T parameters), DeepSeek-V4.1-Flash (MIT licence), GLM-5.3 (Z.ai), Meta's Muse Spark Open and others are open too, but need hundreds of GB of memory. They matter for teams that rent servers (Lesson 15.7) and as a sign of where home-sized models will be in a year or two.

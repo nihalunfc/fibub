@@ -62,6 +62,10 @@ Two scaled columns, each with variance 1, correlation 0.8. Total variance: 1 + 1
 
 <div class="problem" data-problem="pca-project"></div>
 
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
 ## 3. Using PCA
 
 - **Scale first** (Lesson 2.4), or the column with the biggest units dominates.
@@ -113,6 +117,14 @@ Maximising this over unit vectors gives the **eigenvector** of `$\mathbf{S}$` wi
 **"PCA picks out the most important columns."** It doesn't pick columns at all. Each component is a **new** column, a blend of all the old ones. And "most spread" is not the same as "most useful": the direction that best predicts your target, or separates your classes, may have little spread and end up in a minor component. PCA is a summary of the inputs, not a judge of what matters for a prediction.
 
 </div>
+
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
+
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
 
 ## 4. Worked example
 

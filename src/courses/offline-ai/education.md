@@ -37,6 +37,10 @@ Teachers want help with preparation and marking; students want a patient tutor. 
 - **Students:** step-by-step help on homework (with the teacher's rules), practice quizzes, language practice, explaining a paragraph in simpler words.
 - **Offline classrooms:** one server in the school, reached over Wi-Fi from cheap laptops or tablets, so a whole class can use AI with no internet at all.
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Care points
 
 - **Children's data:** extra legal protection in all four countries (DPDP parental consent in India, COPPA and FERPA in the USA, UK GDPR's children's code, provincial laws in Canada). Local keeps it in school; still use accounts and short retention.

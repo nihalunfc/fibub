@@ -35,6 +35,10 @@ Many of the best open models are now **Mixture-of-Experts (MoE)**. They break th
 
 In a **dense** model, every parameter is used for every token. A 31B dense model reads all 31B for each token. Simple and predictable: memory and speed both follow its size. It is like a small office where everyone reads every letter.
 
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
+
 ## 3. MoE: a team of specialists
 
 An MoE model splits the feed-forward part of each layer (Lesson 2.4) into many **experts**, plus a small **router**. For each token, the router picks a few experts (often 2 to 8 out of dozens or more) and only those run. It is like a hospital reception desk that sends each patient to two of its many specialists.

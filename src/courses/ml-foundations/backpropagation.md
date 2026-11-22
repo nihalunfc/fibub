@@ -35,6 +35,10 @@ Backpropagation (popularised by Rumelhart, Hinton and Williams in 1986) is how e
 
 Gradient descent (Lesson 3.3) needs `$\partial L / \partial w$` for every weight `$w$`. Read it as "how much the loss `$L$` would change if `$w$` were nudged a tiny bit". Nudging each weight one at a time and rerunning the network would take one forward pass per weight: billions of passes for a large model. Backpropagation gets every gradient with **one forward and one backward pass**.
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. The chain rule
 
 The loss depends on a weight through a chain of steps. Think of gears: turn the first gear, and the last one turns by the product of all the gear ratios in between. If `$L$` depends on `$p$`, which depends on `$z$`, which depends on `$w$`, then
@@ -72,6 +76,10 @@ The network in the picture: input x = 2, w₁ = 0.5, a ReLU, w₂ = 1.5, bias b 
 </dl>
 
 </div>
+
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
 
 ## 4. The recipe
 
@@ -112,6 +120,10 @@ The network in the picture: input x = 2, w₁ = 0.5, a ReLU, w₂ = 1.5, bias b 
 
 **Try it:** a neuron computes `$z = w a$` with `$a = 3$`, and the error arriving at `$z$` is `$\partial L/\partial z = -0.2$`. Gradient for `$w$`? New `$w$` with `$\eta = 0.5$` if `$w = 1$`? (`$-0.6$`; `$1 + 0.3 = 1.3$`.)
 </details>
+
+Step through one training step of the smallest possible network, forward first, then backwards.
+
+<figure class="fig" data-fig="@ai-backprop-player"><figcaption>The forward pass makes the prediction and the loss. The backward pass multiplies slopes link by link (the chain rule) so every weight learns how it should change. Then each weight takes a small step against its slope.</figcaption></figure>
 
 ## 5. Worked example
 

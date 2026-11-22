@@ -40,6 +40,10 @@ Think of sorting post. A regression model would guess how heavy each letter is. 
 - **Multi-class** has more than two trays: the digits 0 to 9, types of plant, which department a complaint goes to.
 - **Multi-label** lets one item go in several trays at once: one photo can contain a dog and a car.
 
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
+
 ## 3. Probabilities, then decisions
 
 A good classifier doesn't just say "spam". It says "spam, with probability 0.93". A **probability** is a number from 0 (surely not) to 1 (surely yes). You then turn it into an action with a **threshold**, a cut-off line: flag the email if `$p \ge 0.5$`, or only if `$p \ge 0.9$` when a false alarm is costly.
@@ -68,6 +72,10 @@ Keep the two steps apart. The model's job is to say how likely something is. You
 The best threshold comes from costs. If acting costs a little and missing costs a lot, act even when the chance is small.
 
 <div class="problem" data-problem="classification-threshold"></div>
+
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
 
 ## 4. Why not just use linear regression?
 

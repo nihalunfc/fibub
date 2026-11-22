@@ -43,6 +43,10 @@ A **format** is the way the numbers are laid out in the file, like DOCX and PDF 
 
 Older formats such as `.bin` or `.pt` are **pickle** files. Pickle is a Python way of saving things that can also save instructions, so opening one can run code. Avoid them from sources you do not trust (Lesson 7.6).
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Picking the right file
 
 1. Know your engine: Ollama or LM Studio on Windows means GGUF; LM Studio on a Mac can use MLX or GGUF; Python serving engines use safetensors.

@@ -53,6 +53,10 @@ Llama 3.1 8B has 32 layers, 8 key-value heads and a head size of 128. At 16 bits
 <div class="step"><p><b>Turn on an 8-bit cache.</b> One byte per number instead of two halves it: 65,536 tokens now cost <b>4 GB</b>. Total 9.8 GB. It fits again, with answers that are almost always the same.</p></div>
 </div>
 
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
+
 ## 3. Shrinking it
 
 1. **Shorter context:** set only what you need (Lesson 10.3). 8K instead of 128K saves a lot.
@@ -97,6 +101,10 @@ M_{KV} = 2 \times L \times H_{kv} \times d \times B \times T
 **"The model fits in memory, so any length of document will work."** The weights are only part of the bill. A long document adds its own cache, and on older designs 32,000 tokens can need as much memory as the model itself. Always budget weights plus cache.
 
 </div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 4. Worked example
 

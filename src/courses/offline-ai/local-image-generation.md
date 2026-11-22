@@ -46,6 +46,10 @@ That is a **diffusion model**. In training it took millions of pictures, added r
 <div class="step"><p><b>Done.</b> 30 steps × 0.4 s = 12 seconds. A "turbo" or "schnell" model trained for 4 steps takes 4 × 0.4 = 1.6 seconds.</p></div>
 </div>
 
+Try it: press Generate from noise, then raise Guess error and generate again.
+
+<figure class="fig" data-fig="@ai-diffusion-denoise"><figcaption>An image model starts from pure noise and repeatedly guesses and removes noise. Better guesses and more steps give a cleaner picture; poor guesses leave artefacts.</figcaption></figure>
+
 ## 3. Models and memory
 
 | Model family | Memory (graphics card) | Licence to check |

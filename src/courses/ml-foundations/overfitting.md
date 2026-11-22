@@ -53,6 +53,10 @@ Here is the U-shape in numbers, for 14 noisy points fitted with polynomials of r
 <div class="step"><b>The rule.</b> Choose the flexibility with the lowest validation error, never the lowest training error. (The numbers are illustrative; the simulation above shows the same shape.)</div>
 </div>
 
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
+
 ## 3. Why it happens
 
 The training data is the true pattern **plus noise**. A flexible model can't tell the two apart, and given enough freedom it fits both. The noise is different in every sample, so the noise-fitting parts are pure error on new data.
@@ -62,6 +66,10 @@ Overfitting gets worse with:
 - **More flexibility:** more parameters, more features, deeper trees.
 - **Less data:** 14 points can be threaded by a degree-13 polynomial exactly; 14,000 cannot.
 - **More noise** in the labels.
+
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
 
 ## 4. Cures
 

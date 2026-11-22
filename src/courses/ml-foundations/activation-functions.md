@@ -59,6 +59,10 @@ It's like folding paper. Stretching or sliding a sheet keeps every straight line
 
 </div>
 
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
+
 ## 3. The common ones
 
 <!--fig:activations-->
@@ -107,6 +111,10 @@ Gradient descent (Lesson 3.3) needs slopes, and backpropagation (Lesson 9.4) mul
 
 **Try it:** `$\sigma(0) = 0.5$`. What is `$\sigma'(0)$`, and `$\sigma'(4)$` if `$\sigma(4) \approx 0.982$`? (0.5 × 0.5 = 0.25; 0.982 × 0.018 ≈ 0.018.)
 </details>
+
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
 
 ## 4. Worked example
 
