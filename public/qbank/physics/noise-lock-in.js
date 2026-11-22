@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './noise-lock-in.more.gen.js';
 import more2 from './noise-lock-in.more2.gen.js';
 import r4 from './noise-lock-in.r4.gen.js';
+import r5 from './noise-lock-in.r5.gen.js';
 
 const KB = 1.380649e-23, QE = 1.602176634e-19;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -226,6 +227,7 @@ export default {
       trap: 'Narrowing the bandwidth reduces the noise as its square root.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'nli-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Johnson noise',
@@ -375,5 +377,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

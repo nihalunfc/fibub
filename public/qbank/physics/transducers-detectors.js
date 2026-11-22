@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './transducers-detectors.more.gen.js';
 import more2 from './transducers-detectors.more2.gen.js';
 import r4 from './transducers-detectors.r4.gen.js';
+import r5 from './transducers-detectors.r5.gen.js';
 
 const HC = 1239.84;          // eV nm
 const QE = 1.602176634e-19;  // C
@@ -226,6 +227,7 @@ export default {
       trap: 'The non-linearity is set by $\\Delta R/R$, not by the strain alone.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'trd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'thermocouples',
@@ -408,5 +410,6 @@ export default {
       verify: (p) => (p.mode === 't' ? (p.V / p.S) * p.e * Math.LN10 : p.V * p.e * Math.LN10 / p.tr) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
