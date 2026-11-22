@@ -80,6 +80,14 @@ export default {
         {
           "id": "coordination-compounds",
           "name": "Coordination compounds"
+        },
+        {
+          "id": "haloalkanes-haloarenes",
+          "name": "Haloalkanes and haloarenes"
+        },
+        {
+          "id": "alcohols-phenols-ethers",
+          "name": "Alcohols, phenols and ethers"
         }
       ]
     }
