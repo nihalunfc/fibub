@@ -1,0 +1,18 @@
+---
+import ExamPracticeTopic from '../../../../../components/qbank/ExamPracticeTopic.astro';
+import { LSAT, LSAT_BANK } from '../../../../../courses/lsat/syllabus';
+import { bankCounts } from '../../../../../lib/qbank/build';
+import { courseLessons } from '../../../../../lib/course';
+import { flatLessons } from '../../../../../courses/types';
+export async function getStaticPaths() {
+  const { idx, topics } = await bankCounts(LSAT_BANK.bank);
+  const live = await courseLessons(LSAT);
+  const lessons = flatLessons(LSAT).filter((l) => live.has(l.slug));
+  return idx.units.flatMap((u) => u.topics.filter((t) => (topics[t.id]?.exams["lsat"] ?? 0) > 0).map((t) => ({
+    params: { topic: t.id },
+    props: { topic: t, unit: u.name, count: topics[t.id].exams["lsat"], lesson: lessons.find((l) => l.slug === t.id) },
+  })));
+}
+const { topic, unit, count, lesson } = Astro.props as any;
+---
+<ExamPracticeTopic course={LSAT} {...LSAT_BANK} topic={topic} unit={unit} count={count} lesson={lesson} />

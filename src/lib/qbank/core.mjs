@@ -148,11 +148,13 @@ export function matches(it, f = {}) {
 export function buildPaper(pattern, pool, gens, r = Math.random) {
   const used = new Set();
   const sections = pattern.sections.map((sec) => {
-    const fits = (it) => it.type === sec.type && marksOf(it) === sec.marks && !used.has(it.id) && it.type !== 'open';
+    // anyLevel: take every level (marks per question stay sec.marks); exams like the SAT and LSAT give every question one mark.
+    const mk = (it) => sec.anyLevel || marksOf(it) === sec.marks;
+    const fits = (it) => it.type === sec.type && mk(it) && !used.has(it.id) && it.type !== 'open';
     // round-robin over topics so one topic cannot fill a section
     const byTopic = new Map();
     for (const it of shuffle(pool.filter(fits), r)) { if (!byTopic.has(it.topic)) byTopic.set(it.topic, []); byTopic.get(it.topic).push(it); }
-    const gfits = shuffle(gens.filter((g) => g.type === sec.type && marksOf(g) === sec.marks), r);
+    const gfits = shuffle(gens.filter((g) => g.type === sec.type && mk(g)), r);
     for (const g of gfits) { if (!byTopic.has(g.topic)) byTopic.set(g.topic, []); byTopic.get(g.topic).push({ __gen: g }); }
     const lists = shuffle([...byTopic.values()], r);
     const out = [];
@@ -163,6 +165,7 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
       empty = 0;
       const x = l.shift();
       const it = x.__gen ? instantiate(x.__gen, 1 + Math.floor(r() * 2 ** 31)) : x;
+      if (x.__gen && sec.repeat) l.push(x); // repeat: a template may give several fresh questions in one paper
       used.add(it.id); out.push(it);
     }
     return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: sec.count - out.length };
@@ -190,8 +193,11 @@ export const PATTERNS = {
   // SAT Math, both modules together (44 questions in 70 minutes; about three quarters multiple choice). The real test
   // adapts its second module; this practice paper does not.
   'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', sections: [
-    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33 },
-    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11 },
+    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33, anyLevel: true, repeat: true },
+    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11, anyLevel: true, repeat: true },
+  ] },
+  'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', sections: [
+    { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
   ] },
   net: { name: 'CSIR NET Physical Sciences (Parts B and C)', minutes: 150, scheme: 'net', sections: [
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },

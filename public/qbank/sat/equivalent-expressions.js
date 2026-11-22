@@ -7,7 +7,7 @@ const br = (a, b) => `(${lin(a, b)})`;
 export default {
   topic: 'equivalent-expressions',
   gens: [
-    { id: 'sat-ee-g01', type: 'nat', level: 2, exams: ['sat'], sub: 'expand', facets: F, format: 'numeric',
+    { id: 'sat-ee-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'expand', facets: F, format: 'numeric',
       make(r) {
         const a = nz(r, 1, 5), b = nz(r, -9, 9), c = nz(r, 1, 5), d = nz(r, -9, 9), ask = choose(r, ['b', 'c', 'a + b + c']);
         const A = a * c, B = a * d + b * c, C = b * d, ans = ask === 'b' ? B : ask === 'c' ? C : A + B + C;
@@ -17,7 +17,7 @@ export default {
           trap: 'Multiplying only the first terms and the last terms (forgetting the two middle products).' };
       },
       verify: (p) => { const A = p.a * p.c, B = p.a * p.d + p.b * p.c, C = p.b * p.d; return p.ask === 'b' ? B : p.ask === 'c' ? C : A + B + C; } },
-    { id: 'sat-ee-g02', type: 'nat', level: 2, exams: ['sat'], sub: 'difference of squares', facets: F, format: 'numeric',
+    { id: 'sat-ee-g02', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'difference of squares', facets: F, format: 'numeric',
       make(r) {
         const s = int(r, 3, 15), d = int(r, 1, s - 1), ask = choose(r, ['diff', 'prod']);
         const prod = s * d;
@@ -28,7 +28,7 @@ export default {
             sol: steps(`${v('a')}<sup>2</sup> − ${v('b')}<sup>2</sup> = (${v('a')} + ${v('b')})(${v('a')} − ${v('b')}).`, `= ${s} × ${d} = <b>${prod}</b>.`) };
       },
       verify: (p) => (p.ask === 'diff' ? p.prod / p.s : p.s * p.d) },
-    { id: 'sat-ee-g03', type: 'nat', level: 2, exams: ['sat'], sub: 'combine', facets: F, format: 'numeric',
+    { id: 'sat-ee-g03', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'combine', facets: F, format: 'numeric',
       make(r) {
         const a = int(r, 2, 6), b = nz(r, -9, 9), c = int(r, 2, 6), d = nz(r, -9, 9), ask = choose(r, ['p', 'q']);
         const P = a - c, Q = a * b - c * d;
@@ -37,7 +37,7 @@ export default {
           trap: 'Writing − c(x + d) as − cx + cd: the sign of the second term must change too.' };
       },
       verify: (p) => (p.ask === 'p' ? p.a - p.c : p.a * p.b - p.c * p.d) },
-    { id: 'sat-ee-g04', type: 'mcq', level: 2, exams: ['sat'], sub: 'factor', facets: F, format: 'single',
+    { id: 'sat-ee-g04', type: 'mcq', marks: 1, level: 2, exams: ['sat'], sub: 'factor', facets: F, format: 'single',
       make(r) {
         const m = nz(r, -9, 9), n = nz(r, -9, 9), k = choose(r, [1, 1, 2, 3]);
         const right = `${k === 1 ? '' : k}${br(1, m)}${br(1, n)}`;
@@ -46,7 +46,7 @@ export default {
           sol: steps(k === 1 ? 'Look for two numbers that multiply to the constant and add to the coefficient of x.' : `Take out the common factor ${k} first: ${k}(${quad(1, m + n, m * n)}).`, `${fmt(m)} × ${fmt(n)} = ${fmt(m * n)} and ${fmt(m)} + ${fmt(n)} = ${fmt(m + n)}.`, `So the expression is <b>${right}</b>. Check by expanding.`),
           trap: 'Getting the signs of the two numbers the wrong way round. Expand your answer to check.' };
       } },
-    { id: 'sat-ee-g05', type: 'nat', level: 3, exams: ['sat'], sub: 'perfect square', facets: F, format: 'numeric',
+    { id: 'sat-ee-g05', type: 'nat', marks: 1, level: 3, exams: ['sat'], sub: 'perfect square', facets: F, format: 'numeric',
       make(r) {
         const a = int(r, 1, 6), b = nz(r, -9, 9), ask = choose(r, ['k', 'c']);
         return { q: ask === 'k' ? `<p>If (${lin(a, b)})<sup>2</sup> = ${fmt(a * a)}${X}<sup>2</sup> + ${v('k')}${X} + ${fmt(b * b)} for all values of ${X}, what is the value of ${v('k')}?</p>`
@@ -58,11 +58,11 @@ export default {
       verify: (p) => (p.ask === 'k' ? 2 * p.a * p.b : p.b * p.b) },
   ],
   items: [
-    { id: 'sat-ee-001', type: 'mcq', level: 1, exams: ['sat'], sub: 'combine', facets: F,
+    { id: 'sat-ee-001', type: 'mcq', marks: 1, level: 1, exams: ['sat'], sub: 'combine', facets: F,
       q: '<p>Which expression is equivalent to (4<i>x</i><sup>2</sup> − 3<i>x</i> + 7) − (<i>x</i><sup>2</sup> + 5<i>x</i> − 2)?</p>',
       options: ['3<i>x</i><sup>2</sup> − 8<i>x</i> + 9', '3<i>x</i><sup>2</sup> + 2<i>x</i> + 5', '3<i>x</i><sup>2</sup> − 8<i>x</i> + 5', '5<i>x</i><sup>2</sup> + 2<i>x</i> + 9'], answer: 0,
       sol: '<p>Subtracting a bracket changes every sign inside it: 4<i>x</i><sup>2</sup> − 3<i>x</i> + 7 − <i>x</i><sup>2</sup> − 5<i>x</i> + 2 = 3<i>x</i><sup>2</sup> − 8<i>x</i> + 9.</p>' },
-    { id: 'sat-ee-002', type: 'mcq', level: 3, exams: ['sat'], sub: 'factor', facets: F,
+    { id: 'sat-ee-002', type: 'mcq', marks: 1, level: 3, exams: ['sat'], sub: 'factor', facets: F,
       q: '<p>Which expression is a factor of 6<i>x</i><sup>2</sup> + 7<i>x</i> − 20?</p>',
       options: ['3<i>x</i> − 4', '3<i>x</i> + 4', '2<i>x</i> − 5', '6<i>x</i> + 5'], answer: 0,
       sol: '<p>6<i>x</i><sup>2</sup> + 7<i>x</i> − 20 = (3<i>x</i> − 4)(2<i>x</i> + 5). Check: 6<i>x</i><sup>2</sup> + 15<i>x</i> − 8<i>x</i> − 20. A quick test: a factor 3<i>x</i> − 4 means <i>x</i> = 4/3 makes the expression zero: 6(16/9) + 28/3 − 20 = 32/3 + 28/3 − 20 = 0. ✓</p>' },

@@ -79,7 +79,7 @@ Default numbers in the simulator: 8,000,000 founder shares; 10 % pool; seed of 1
 3. All issued shares plus all options (granted and in the pool), warrants, SAFEs and convertible notes as if converted.
 </details>
 
-**Next:** Module 7 begins with how GST and sales taxes work (in the next part of the course; see the [course home](/learn/courses/startup/)).
+**Next:** Module 7 starts with [How GST and sales taxes work](/learn/courses/startup/how-gst-works/).
 
 **New words:** *cap table*, *fully diluted*, *dilution*, *option pool*, *stock ledger*, *register of members*.
 
