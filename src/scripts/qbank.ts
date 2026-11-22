@@ -68,6 +68,113 @@ function store(bank: string) {
   };
 }
 
+
+// ---------- listening: scripts read aloud by the browser's own voices (speechSynthesis), nothing downloaded or sent ----------
+type Line = { who?: string; text: string };
+let voicesP: Promise<SpeechSynthesisVoice[]> | null = null;
+function englishVoices(): Promise<SpeechSynthesisVoice[]> {
+  voicesP ??= new Promise((res) => {
+    const get = () => speechSynthesis.getVoices().filter((v) => /^en([-_]|$)/i.test(v.lang));
+    const now = get();
+    if (now.length) return res(now);
+    speechSynthesis.addEventListener('voiceschanged', () => res(get()), { once: true });
+    setTimeout(() => res(get()), 1500);
+  });
+  return voicesP;
+}
+const ACCENT: Record<string, string> = { GB: 'British', AU: 'Australian', US: 'American', CA: 'Canadian', IN: 'Indian', IE: 'Irish', NZ: 'New Zealand', ZA: 'South African' };
+const accentOf = (v: SpeechSynthesisVoice) => ACCENT[(v.lang.split(/[-_]/)[1] || '').toUpperCase()] ?? v.lang;
+let playing: { stop(): void } | null = null;
+
+/** A player for a listening script: Play / Pause / Stop, speed, accent, and a once-only exam mode. */
+function audioPlayer(lines: Line[], onEnd?: () => void) {
+  const box = h('div', { class: 'qb-audio' });
+  if (!('speechSynthesis' in window)) {
+    box.append(h('p', { class: 'qb-hint' }, 'This browser cannot read text aloud, so the script is shown instead. Read it once, quickly, then answer.'));
+    const t = h('div', { class: 'qb-script' }); lines.forEach((l) => t.append(h('p', {}, h('b', {}, l.who && l.who !== 'N' ? `${l.who}: ` : ''), l.text))); box.append(t);
+    return box;
+  }
+  const play = h('button', { type: 'button', class: 'btn' }, '▶ Play recording');
+  const stop = h('button', { type: 'button', class: 'btn ghost' }, '■ Stop');
+  const speed = h('select', { 'aria-label': 'Speed' }, ...[['0.8', 'Slower'], ['0.95', 'Normal'], ['1.1', 'Faster']].map(([v, t]) => h('option', { value: v, selected: v === '0.95' }, t)));
+  const accent = h('select', { 'aria-label': 'Accent' }, h('option', { value: '' }, 'Mixed accents'));
+  const once = h('input', { type: 'checkbox' });
+  const status = h('span', { class: 'qb-astatus', 'aria-live': 'polite' }, 'Read the questions first, then press Play.');
+  const script = h('details', { class: 'qb-script' }, h('summary', {}, 'Transcript (open after you answer)'));
+  lines.forEach((l) => script.append(h('p', {}, l.who && l.who !== 'N' ? h('b', {}, `Speaker ${l.who}: `) : h('i', {}, ''), l.text)));
+  box.append(h('div', { class: 'qb-abar' }, play, stop, h('label', { class: 'qb-sel' }, h('span', {}, 'Speed'), speed), h('label', { class: 'qb-sel' }, h('span', {}, 'Voices'), accent)),
+    h('label', { class: 'qb-rem' }, once, ' Test conditions: play once only, no pausing'), status, script);
+  englishVoices().then((vs) => {
+    const seen = [...new Set(vs.map(accentOf))];
+    seen.forEach((a) => accent.append(h('option', { value: a }, `${a} English`)));
+    if (!vs.length) status.textContent = 'No English voice found on this device: the transcript is below.';
+  });
+  let i = 0, state: 'idle' | 'playing' | 'paused' | 'done' = 'idle', used = false;
+  const label = () => { play.textContent = state === 'playing' ? '❚❚ Pause' : state === 'paused' ? '▶ Resume' : state === 'done' ? '↻ Play again' : '▶ Play recording'; };
+  const halt = () => { speechSynthesis.cancel(); state = i >= lines.length ? 'done' : 'idle'; label(); };
+  async function speakFrom() {
+    const vs = await englishVoices();
+    const pool = accent.value ? vs.filter((v) => accentOf(v) === accent.value) : vs;
+    const byWho = new Map<string, SpeechSynthesisVoice>();
+    const pickFor = (who: string) => {
+      if (!pool.length) return undefined;
+      if (!byWho.has(who)) {
+        // different voices for different speakers where the device has them; prefer a mix of accents when "Mixed"
+        const k = byWho.size;
+        const order = accent.value ? pool : [...pool].sort((a, b) => accentOf(a).localeCompare(accentOf(b)));
+        byWho.set(who, order[(k * Math.max(1, Math.floor(order.length / 3)) + (who === 'N' ? 0 : 1)) % order.length]);
+      }
+      return byWho.get(who);
+    };
+    const next = () => {
+      if (state !== 'playing') return;
+      if (i >= lines.length) { state = 'done'; label(); status.textContent = 'End of recording.'; if (once.checked) play.disabled = true; onEnd?.(); return; }
+      const l = lines[i];
+      const u = new SpeechSynthesisUtterance(l.text);
+      u.rate = Number(speed.value); u.lang = 'en-GB';
+      const v = pickFor(l.who ?? 'N'); if (v) { u.voice = v; u.lang = v.lang; }
+      if (l.who === 'B' || l.who === 'D') u.pitch = 1.08; else if (l.who === 'C') u.pitch = 0.92;
+      u.onend = () => { i++; setTimeout(next, 280); };
+      u.onerror = () => { i++; next(); };
+      status.textContent = `Playing… ${Math.min(lines.length, i + 1)} of ${lines.length}`;
+      speechSynthesis.speak(u);
+    };
+    next();
+  }
+  play.addEventListener('click', () => {
+    if (state === 'playing') { if (once.checked) return; speechSynthesis.pause(); state = 'paused'; label(); return; }
+    if (state === 'paused') { speechSynthesis.resume(); state = 'playing'; label(); return; }
+    if (once.checked && used) return;
+    playing?.stop();
+    playing = { stop: halt };
+    speechSynthesis.cancel();
+    if (state === 'done') i = 0;
+    used = true; state = 'playing'; label(); speakFrom();
+  });
+  stop.addEventListener('click', () => { if (once.checked && state === 'playing') return; i = 0; speechSynthesis.cancel(); state = 'idle'; label(); status.textContent = 'Stopped.'; });
+  return box;
+}
+
+/** Timers for speaking (prep, then speak) and a word counter for writing. Nothing is recorded or saved. */
+function openTools(it: Item, host: HTMLElement) {
+  const t = it.timers ?? {};
+  if (t.prep || t.speak) {
+    const show = h('span', { class: 'qb-timer', role: 'timer' }, '');
+    let left = 0, phase = '', iv: any = 0;
+    const fmt = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+    const run = (secs: number, name: string, then?: () => void) => { clearInterval(iv); left = secs; phase = name; show.textContent = `${phase} ${fmt(left)}`; iv = setInterval(() => { left--; show.textContent = `${phase} ${fmt(Math.max(0, left))}`; if (left <= 0) { clearInterval(iv); then ? then() : (show.textContent = `${phase}: time is up`); } }, 1000); };
+    const start = h('button', { type: 'button', class: 'btn' }, t.prep ? `Start: ${t.prep / 60 >= 1 ? t.prep / 60 + ' min' : t.prep + ' s'} to prepare` : 'Start speaking');
+    start.addEventListener('click', () => t.prep ? run(t.prep, 'Prepare', () => run(t.speak, 'Speak now')) : run(t.speak, 'Speak now'));
+    host.append(h('div', { class: 'qb-abar' }, start, show), h('p', { class: 'qb-hint' }, 'Speak out loud, and record yourself with your phone\'s voice recorder if you can. Then compare with the model answer.'));
+    host.append(h('textarea', { rows: 4, class: 'qb-open', 'aria-label': 'Notes (not saved, not sent)', placeholder: 'Your notes (not saved, not sent)' }));
+    return;
+  }
+  const ta = h('textarea', { rows: 10, class: 'qb-open', 'aria-label': 'Your answer (not saved, not sent)', placeholder: 'Write your answer here. It stays on this page only.' }) as HTMLTextAreaElement;
+  const wc = h('span', { class: 'qb-wc' }, '0 words');
+  ta.addEventListener('input', () => { const n = ta.value.trim().split(/\s+/).filter(Boolean).length; wc.textContent = `${n} word${n === 1 ? '' : 's'}${t.words ? ` (aim for at least ${t.words})` : ''}`; wc.classList.toggle('short', !!t.words && n < t.words); });
+  host.append(ta, h('p', { class: 'qb-hint' }, wc, t.minutes ? ` · Suggested time: ${t.minutes} minutes` : ''));
+}
+
 // ---------- renderers by type: draw the answer area, read the response ----------
 type Renderer = { draw(it: Item, host: HTMLElement, name: string): Promise<void> | void; read(host: HTMLElement): any; show?(it: Item, host: HTMLElement): void };
 export const RENDER: Record<string, Renderer> = {
@@ -109,7 +216,7 @@ export const RENDER: Record<string, Renderer> = {
     read: (host) => host.querySelector<HTMLInputElement>('input')?.value ?? '',
   },
   open: {
-    draw(it, host) { host.append(h('textarea', { rows: 6, class: 'qb-open', 'aria-label': 'Your answer (not saved, not sent)' })); },
+    draw(it, host) { openTools(it, host); },
     read: () => null,
   },
 };
@@ -122,17 +229,37 @@ function markOptions(host: HTMLElement, right: Set<number>) {
 }
 
 const answerText = async (it: Item) => {
-  if (it.type === 'mcq') return `Answer: ${String.fromCharCode(65 + it.answer)}`;
+  if (it.type === 'mcq') { const o = optionsOf(it)[it.answer]; const plain = String(o ?? '').replace(/<[^>]+>/g, ''); return `Answer: ${String.fromCharCode(65 + it.answer)}${plain && plain.length <= 60 && plain !== String.fromCharCode(65 + it.answer) ? ` (${plain})` : ''}`; }
   if (it.type === 'msq') return `Answer: ${(it.answer as number[]).map((i) => String.fromCharCode(65 + i)).join(', ')}`;
   if (it.type === 'nat') return `Answer: ${+Number(it.answer).toPrecision(6)}${it.unit ? ' ' + it.unit : ''}${it.tol ? ` (accepted ${+(it.answer - it.tol).toPrecision(6)} to ${+(it.answer + it.tol).toPrecision(6)})` : ''}`;
   if (it.type === 'text') return `Accepted: ${(it.answer ?? []).join(' / ')}`;
   return '';
 };
 
+/** A group's shared material: title, passage (reading text, form, plan), lists for matching, and audio. */
+async function groupBlock(g: Item) {
+  const el = h('div', { class: 'qb-group' });
+  if (g.title) el.append(h('p', { class: 'qb-gtitle' }, g.title));
+  if (g.audio) el.append(audioPlayer(g.audio, () => el.closest('.qb-set')?.classList.add('heard')));
+  if (g.passage) { const p = h('div', { class: 'qb-passage' }); await setHtml(p, g.passage); el.append(p); }
+  if (g.list1) {
+    const t = h('table', { class: 'qb-match' }, h('tr', {}, h('th', {}, 'List I'), h('th', {}, 'List II')));
+    const n = Math.max(g.list1.length, g.list2?.length ?? 0);
+    for (let i = 0; i < n; i++) {
+      const a = h('td'), b = h('td');
+      if (g.list1[i]) await setHtml(a, `${String.fromCharCode(65 + i)}. ${g.list1[i]}`);
+      if (g.list2?.[i]) await setHtml(b, `${['P', 'Q', 'R', 'S', 'T', 'U'][i]}. ${g.list2[i]}`);
+      t.append(h('tr', {}, a, b));
+    }
+    el.append(t);
+  }
+  return el;
+}
+
 let uid = 0;
 
 /** One question card: badges, group material, the question, the answer area and (after checking) the solution. */
-async function card(it: Item, ctx: { bankName?: string; topicName?: (t: string) => string; mode: 'practice' | 'mock' | 'list'; onCheck?: (r: any) => void; onNew?: () => void }) {
+async function card(it: Item, ctx: { bankName?: string; topicName?: (t: string) => string; mode: 'practice' | 'mock' | 'list'; onCheck?: (r: any) => void; onNew?: () => void; noGroup?: boolean }) {
   const name = `qb${++uid}`;
   const el = h('article', { class: 'qb-card', 'data-id': it.id });
   const badges = h('p', { class: 'qb-badges' },
@@ -144,23 +271,8 @@ async function card(it: Item, ctx: { bankName?: string; topicName?: (t: string) 
     it.gen ? h('span', { class: 'qb-fresh', title: 'Made from a template: new numbers every time' }, 'Fresh numbers') : null,
   );
   el.append(badges);
-  if (it.grp?.passage || it.grp?.list1) {
-    const g = h('div', { class: 'qb-group' });
-    if (it.grp.title) g.append(h('p', { class: 'qb-gtitle' }, it.grp.title));
-    if (it.grp.passage) { const p = h('div'); await setHtml(p, it.grp.passage); g.append(p); }
-    if (it.grp.list1) {
-      const t = h('table', { class: 'qb-match' }, h('tr', {}, h('th', {}, 'List I'), h('th', {}, 'List II')));
-      const n = Math.max(it.grp.list1.length, it.grp.list2?.length ?? 0);
-      for (let i = 0; i < n; i++) {
-        const a = h('td'), b = h('td');
-        if (it.grp.list1[i]) await setHtml(a, `${String.fromCharCode(65 + i)}. ${it.grp.list1[i]}`);
-        if (it.grp.list2?.[i]) await setHtml(b, `${['P', 'Q', 'R', 'S', 'T', 'U'][i]}. ${it.grp.list2[i]}`);
-        t.append(h('tr', {}, a, b));
-      }
-      g.append(t);
-    }
-    el.append(g);
-  }
+  if (!ctx.noGroup && (it.grp?.passage || it.grp?.list1 || it.grp?.audio)) el.append(await groupBlock(it.grp));
+  if (it.audio && !it.grp) el.append(audioPlayer(it.audio));
   const q = h('div', { class: 'qb-q' });
   await setHtml(q, it.q);
   el.append(q);
@@ -173,8 +285,8 @@ async function card(it: Item, ctx: { bankName?: string; topicName?: (t: string) 
   const out = h('div', { class: 'qb-out', 'aria-live': 'polite' });
   const sol = h('div', { class: 'qb-sol', hidden: true });
   const bar = h('p', { class: 'qb-bar' });
-  const btnCheck = h('button', { type: 'button', class: 'btn' }, 'Check');
-  const btnSol = h('button', { type: 'button', class: 'btn ghost' }, 'Show solution');
+  const btnCheck = h('button', { type: 'button', class: 'btn', hidden: it.type === 'open' }, 'Check');
+  const btnSol = h('button', { type: 'button', class: 'btn ghost' }, it.type === 'open' ? 'Show the model answer and checklist' : 'Show solution');
   bar.append(btnCheck, btnSol);
   if (it.gen && ctx.onNew) bar.append(h('button', { type: 'button', class: 'btn ghost', onclick: ctx.onNew }, 'New numbers'));
   el.append(bar, out, sol);
@@ -185,6 +297,7 @@ async function card(it: Item, ctx: { bankName?: string; topicName?: (t: string) 
     const parts = [`<p class="qb-answer">${await answerText(it)}</p>`, `<div class="qb-soltext">${it.sol ?? ''}</div>`];
     if (it.trap) parts.push(`<p class="qb-trap"><b>Why people get this wrong:</b> ${it.trap}</p>`);
     if (it.model) parts.push(`<div class="qb-model"><b>Model answer</b>${it.model}</div>`);
+    if (it.checklist?.length) parts.push(`<div class="qb-check"><b>Check your own answer</b><ul>${it.checklist.map((c: string) => `<li><label><input type="checkbox"> ${c}</label></li>`).join('')}</ul></div>`);
     await setHtml(sol, parts.join(''));
     btnSol.hidden = true;
   }
@@ -259,7 +372,18 @@ async function practice(root: HTMLElement) {
       q = q.sort((a, b) => lv(a) - lv(b));
       if (st.remember) q = [...q.filter((x: any) => done[(x.__gen ?? x).id] !== 1), ...q.filter((x: any) => done[(x.__gen ?? x).id] === 1)];
     } else q = shuffle(q);
-    queue = n ? q.slice(0, n) : q;
+    // Items that share a group (a passage or a recording) become one set, shown together in the group's own order.
+    const bundled: any[] = [], sets = new Map<string, any>();
+    for (const x of q as any[]) {
+      const it = x.__gen ? null : x;
+      if (it?.group && it.grp) {
+        const key = `${it.topic}/${it.group}`;
+        if (!sets.has(key)) { const set = { __set: key, grp: it.grp, items: [] as Item[] }; sets.set(key, set); bundled.push(set); }
+        sets.get(key).items.push(it);
+      } else bundled.push(x);
+    }
+    for (const set of sets.values()) set.items.sort((a: Item, b: Item) => pool.indexOf(a) - pool.indexOf(b));
+    if (n) { let c = 0; queue = []; for (const x of bundled) { if (c >= n) break; queue.push(x); c += x.__set ? x.items.length : 1; } } else queue = bundled;
     pos = 0;
     count.textContent = `${its.length} written question${its.length === 1 ? '' : 's'}${gs.length ? ` + ${gs.length} template${gs.length === 1 ? '' : 's'} that make fresh numbers every time` : ''}${n && q.length > n ? ` (showing ${n})` : ''}.`;
     show();
@@ -269,17 +393,30 @@ async function practice(root: HTMLElement) {
     stage.innerHTML = '';
     if (!queue.length) { stage.append(h('p', { class: 'qb-wait' }, 'No questions match these filters yet. Try another level or type.')); return; }
     const x: any = queue[pos % queue.length];
+    const nav = () => h('p', { class: 'qb-nav' },
+      h('button', { type: 'button', class: 'btn ghost', disabled: pos === 0, onclick: () => { pos--; show(); } }, '← Previous'),
+      h('span', {}, `${x.__set ? 'Set' : 'Question'} ${pos % queue.length + 1} of ${queue.length}`),
+      h('button', { type: 'button', class: 'btn', onclick: () => { pos++; show(); } }, 'Next →'));
+    if (x.__set) {
+      const wrap = h('div', { class: 'qb-set' });
+      const side = h('div', { class: 'qb-setside' }, await groupBlock(x.grp));
+      const qs = h('div', { class: 'qb-setqs' });
+      for (const it of x.items) {
+        const c = await card(it, { topicName, mode: 'practice', noGroup: true,
+          onCheck: (r) => { if (r.gaveUp && it.__counted) return; if (!it.__counted) { it.__counted = 1; tally.tried++; if (r.right) tally.right++; st.mark(it.id, !!r.right); paintFoot(); } } });
+        qs.append(c.el);
+      }
+      wrap.append(side, qs);
+      stage.append(wrap, nav());
+      return;
+    }
     const it = x.__gen ? instantiate(x.__gen, seed ?? newSeed()) : x;
     const c = await card(it, {
       topicName, mode: 'practice',
       onCheck: (r) => { if (r.gaveUp && it.__counted) return; if (!it.__counted) { it.__counted = 1; tally.tried++; if (r.right) tally.right++; st.mark(x.__gen ? x.__gen.id : it.id, !!r.right); paintFoot(); } },
       onNew: () => show(),
     });
-    const nav = h('p', { class: 'qb-nav' },
-      h('button', { type: 'button', class: 'btn ghost', disabled: pos === 0, onclick: () => { pos--; show(); } }, '← Previous'),
-      h('span', {}, `Question ${pos % queue.length + 1} of ${queue.length}`),
-      h('button', { type: 'button', class: 'btn', onclick: () => { pos++; show(); } }, 'Next →'));
-    stage.append(c.el, nav);
+    stage.append(c.el, nav());
   }
 
   function paintFoot() {

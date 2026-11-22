@@ -96,6 +96,20 @@ export default {
     },
     verify(p) { const n = p.q.match(/<b>([\d.]+) /g).map((x) => parseFloat(x.slice(3))); return n[0] * n[1] * n[2]; },
   },
+  'reading-pace': {
+    title: 'how many minutes per question are left?',
+    make(r) {
+      const used = int(r, 25, 45), done = int(r, 14, 28), left = 40 - done, mins = 60 - 2 - used;
+      const answer = Math.round((mins / left) * 10) / 10;
+      return {
+        q: `<p>In Reading you have used <b>${used} minutes</b> and answered <b>${done}</b> of the 40 questions. You want to keep 2 minutes at the end for checking. How many minutes can you spend on each remaining question? (one decimal place)</p>`,
+        answer, unit: 'minutes per question', tol: 0.03,
+        hint: 'Minutes left for questions = 60 − 2 − minutes used. Questions left = 40 − questions done. Divide.',
+        solution: steps(`Minutes left: 60 − 2 − ${used} = ${mins}.`, `Questions left: 40 − ${done} = ${left}.`, `${mins} ÷ ${left} = <b>${answer}</b> minutes per question.`, answer < 1.3 ? 'That is tight: use the two-minute rule strictly and guess where you must.' : 'You are on track.'),
+      };
+    },
+    verify(p) { const n = p.q.match(/<b>(\d+)/g).map((x) => +x.slice(3)); return Math.round(((58 - n[0]) / (40 - n[1])) * 10) / 10; },
+  },
   'words-per-minute': {
     title: 'can you write enough in the time?',
     make(r) {
@@ -108,6 +122,6 @@ export default {
         solution: steps(`${words} ÷ ${minutes} = <b>${answer}</b> words a minute.`, 'Time yourself on a practice essay: most people handwrite 10 to 15 words a minute when they are thinking at the same time.'),
       };
     },
-    verify(p) { const n = p.q.match(/<b>(\d+) /g).map((x) => parseFloat(x.slice(3))); return n[0] / n[1]; },
+    verify(p) { const n = p.q.match(/<b>(\d+) /g).map((x) => parseFloat(x.slice(3))); return Math.round((n[0] / n[1]) * 10) / 10; },
   },
 };
