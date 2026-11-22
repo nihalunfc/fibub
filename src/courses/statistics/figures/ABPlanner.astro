@@ -1,0 +1,36 @@
+---
+// SIM for 7.3: plan an A/B test on conversion. Baseline rate, the smallest lift worth detecting and daily
+// traffic give the visitors needed per group and how many days to run.
+---
+<figure class="cs-fig mlf" data-abplan>
+  <span class="cs-figtag">Try it: plan a conversion test</span>
+  <canvas aria-label="Visitors needed per group against the smallest detectable relative lift"></canvas>
+  <div class="mlf-ctl">
+    <label>Current conversion rate: <output data-v="p"></output><input type="range" name="p" min="0.005" max="0.3" step="0.005" value="0.04" /></label>
+    <label>Smallest lift worth detecting (relative): <output data-v="mde"></output><input type="range" name="mde" min="0.02" max="0.5" step="0.01" value="0.1" /></label>
+    <label>Visitors a day (both groups): <output data-v="t"></output><input type="range" name="t" min="500" max="50000" step="500" value="6000" /></label>
+    <label>Power: <output data-v="pw"></output><input type="range" name="pw" min="0.5" max="0.95" step="0.05" value="0.8" /></label>
+  </div>
+  <div class="mlf-read"><div><span>new rate to detect</span><b data-p2></b></div><div><span>visitors per group</span><b data-n></b></div><div><span>days to run (round up to whole weeks)</span><b data-d></b></div></div>
+  <figcaption>Two-sided test at α = 5 %. The curve shows how fast the required traffic grows as the lift you want to detect shrinks: halve the lift and you need about four times the visitors. Low baseline rates need far more traffic. Run whole weeks so weekdays and weekends are both covered.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct } from './skit';
+  import { nPerGroupProportions } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-abplan]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0.02, 0.5], y: [0, 100], h: 230, xLabel: 'relative lift', yLabel: 'thousand per group' });
+    const P = slider(fig, 'p', () => draw(), (v) => pct(v, 1)), M = slider(fig, 'mde', () => draw(), (v) => `+${Math.round(v * 100)} %`);
+    const T = slider(fig, 't', () => draw(), (v) => v.toLocaleString('en')), PW = slider(fig, 'pw', () => draw(), (v) => pct(v, 0));
+    function draw() {
+      const b = P(), m = M(), pw = PW(), n = nPerGroupProportions(b, b * (1 + m), 0.05, pw), days = Math.ceil((2 * n) / T());
+      const f = (x: number) => nPerGroupProportions(b, b * (1 + x), 0.05, pw) / 1000;
+      p.o.y = [0, Math.max(5, Math.min(f(0.02), f(m) * 4))]; p.begin(); p.fn(f, { color: p.pal.accent });
+      p.dot(m, Math.min(f(m), p.y1), { r: 5, color: p.pal.accent2 }).end();
+      put(fig, 'p2', pct(b * (1 + m), 2)); put(fig, 'n', n.toLocaleString('en'));
+      put(fig, 'd', `${days} day${days === 1 ? '' : 's'} → ${Math.max(1, Math.ceil(days / 7))} week${Math.ceil(days / 7) > 1 ? 's' : ''}`);
+      void fmt;
+    }
+    live(cv, draw);
+  }
+</script>

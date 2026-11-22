@@ -1,0 +1,42 @@
+---
+// SIM for 7.4: the peeking problem. Run A/A tests (no real difference) for 28 days and check the p-value
+// every day. Stopping the first time p < 0.05 produces far more false wins than checking once at the end.
+---
+<figure class="cs-fig mlf" data-peek>
+  <span class="cs-figtag">Try it: peek every day</span>
+  <canvas aria-label="Running p-values of many A/A tests over 28 days, with the 0.05 line"></canvas>
+  <div class="mlf-btns"><button type="button" class="btn" data-run="20">Run 20 A/A tests</button><button type="button" class="btn secondary" data-run="500">Run 500 more (not drawn)</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>tests run</span><b data-k></b></div><div><span>"won" if checked once on day 28</span><b data-end></b></div><div><span>"won" if stopped at the first p &lt; 0.05</span><b data-any></b></div></div>
+  <figcaption>Each line is one A/A test: both groups see the same page, 1,000 visitors a day each, 5 % conversion. Any "win" is a false positive. Checked once at the end, about 5 % win, as promised. Stopped the first day p dips under 0.05, 20 % or more "win". Peeking is fine; stopping on a peek is not, unless you use a method built for it (sequential testing).</figcaption>
+</figure>
+<script>
+  import { Plot, live, put, pct } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  import { propTest } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-peek]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(28); let lines: number[][] = [], k = 0, endWins = 0, anyWins = 0;
+    const p = new Plot(cv, { x: [1, 28], y: [0, 1], h: 250, xLabel: 'day', yLabel: 'p-value' });
+    // Binomial(1000, 0.05) by normal approximation, rounded: fast enough for hundreds of tests.
+    const conv = () => Math.max(0, Math.round(50 + Math.sqrt(47.5) * R.normal()));
+    function one() {
+      let ca = 0, cb = 0; const ps: number[] = [];
+      for (let d = 1; d <= 28; d++) { ca += conv(); cb += conv(); ps.push(propTest(ca, 1000 * d, cb, 1000 * d).p); }
+      k++; if (ps[27] < 0.05) endWins++; if (ps.some((v) => v < 0.05)) anyWins++;
+      return ps;
+    }
+    function draw() {
+      p.begin(); p.rect(1, 0, 27, 0.05, { fill: p.pal.accent2, alpha: 0.15 }); p.line(1, 0.05, 28, 0.05, { color: p.pal.accent2, width: 1.5 });
+      lines.forEach((ps) => { const hit = ps.some((v) => v < 0.05); p.path(ps.map((v, i) => [i + 1, v]), { color: hit ? p.pal.accent2 : p.pal.accent, width: hit ? 2 : 1.2, alpha: hit ? 0.9 : 0.45 }); });
+      p.end();
+      put(fig, 'k', k.toLocaleString('en')); put(fig, 'end', k ? pct(endWins / k, 1) : '–'); put(fig, 'any', k ? pct(anyWins / k, 1) : '–');
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => {
+      const n = Number(b.dataset.run);
+      for (let i = 0; i < n; i++) { const ps = one(); if (n <= 20) lines.push(ps); }
+      if (lines.length > 60) lines = lines.slice(-60);
+      draw();
+    }));
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { lines = []; k = 0; endWins = 0; anyWins = 0; draw(); });
+    live(cv, draw);
+  }
+</script>

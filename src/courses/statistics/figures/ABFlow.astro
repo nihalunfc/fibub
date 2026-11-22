@@ -1,0 +1,21 @@
+---
+// DIAGRAM for 7.1: the shape of an A/B test. Visitors are split at random, each group sees one version,
+// the same metric is measured in both, and the difference (with its interval) drives the decision.
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">How an A/B test works</span>
+  <svg viewBox="0 0 640 260" role="img" aria-label="Visitors split at random into group A and group B, each measured on the same metric, then compared to make a decision">
+    <defs><marker id="st-ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fa" /></marker></defs>
+    <rect class="box" x="10" y="100" width="130" height="60" rx="10" /><text x="75" y="126" text-anchor="middle" class="b">Visitors</text><text x="75" y="146" text-anchor="middle" class="mu">eligible for the test</text>
+    <rect class="acc" x="175" y="100" width="110" height="60" rx="10" /><text x="230" y="126" text-anchor="middle" class="b">Random</text><text x="230" y="146" text-anchor="middle" class="mu">split 50/50</text>
+    <rect class="box" x="320" y="30" width="140" height="60" rx="10" /><text x="390" y="56" text-anchor="middle" class="b">A: current</text><text x="390" y="76" text-anchor="middle" class="mu">control</text>
+    <rect class="box" x="320" y="170" width="140" height="60" rx="10" /><text x="390" y="196" text-anchor="middle" class="b">B: new version</text><text x="390" y="216" text-anchor="middle" class="mu">treatment</text>
+    <rect class="acc" x="495" y="100" width="135" height="60" rx="10" /><text x="562" y="122" text-anchor="middle" class="b">Compare</text><text x="562" y="140" text-anchor="middle" class="mu">difference + interval</text><text x="562" y="155" text-anchor="middle" class="mu">→ decision</text>
+    <path class="lna" d="M140 130 H171" marker-end="url(#st-ab)" />
+    <path class="lna" d="M285 120 L316 66" marker-end="url(#st-ab)" /><path class="lna" d="M285 140 L316 194" marker-end="url(#st-ab)" />
+    <path class="lna" d="M460 62 L493 116" marker-end="url(#st-ab)" /><path class="lna" d="M460 198 L493 146" marker-end="url(#st-ab)" />
+    <text x="390" y="130" text-anchor="middle" class="mu">same metric, same period</text>
+    <text x="632" y="256" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>Randomisation is what makes the comparison fair: anything else that affects the metric (device, season, how keen the customer is) ends up spread evenly between A and B, so the only systematic difference is the change you made.</figcaption>
+</figure>

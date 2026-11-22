@@ -1,0 +1,59 @@
+---
+// SIM for 7.5 (and the 9.1 capstone): type in an A/B test's visitors and conversions and get the full
+// readout: rates, absolute and relative lift with intervals, the z-test, a sample ratio check and a verdict.
+---
+<figure class="cs-fig mlf" data-abread>
+  <span class="cs-figtag">Try it: read an A/B test</span>
+  <div class="st-tablewrap">
+    <table class="st-table">
+      <thead><tr><th></th><th>Visitors</th><th>Conversions</th></tr></thead>
+      <tbody>
+        <tr><th>A (control)</th><td><input type="number" min="1" value="10000" data-k="na" aria-label="Visitors in A" /></td><td><input type="number" min="0" value="410" data-k="xa" aria-label="Conversions in A" /></td></tr>
+        <tr><th>B (new)</th><td><input type="number" min="1" value="10050" data-k="nb" aria-label="Visitors in B" /></td><td><input type="number" min="0" value="482" data-k="xb" aria-label="Conversions in B" /></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <canvas aria-label="Each group's conversion rate with its confidence interval, and the difference with its interval against zero"></canvas>
+  <div class="mlf-read"><div><span>rates A / B</span><b data-r></b></div><div><span>lift (points)</span><b data-l></b></div><div><span>relative lift</span><b data-rl></b></div><div><span>z, p (two-sided)</span><b data-zp></b></div><div><span>sample ratio check</span><b data-srm></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Top: each group's rate with its 95 % Wilson interval. Bottom: the difference B − A with its 95 % interval, against zero (dashed). The verdict reads the interval first, then the p-value, and refuses to read anything if the split between groups looks broken (Lesson 7.6). Starting numbers are made up.</figcaption>
+</figure>
+<style is:inline>
+  .st-tablewrap { overflow-x: auto; }
+  .st-table { border-collapse: collapse; font-size: 14.5px; margin: 4px 0 10px; }
+  .st-table th, .st-table td { border: 1px solid var(--line); padding: 4px 6px; text-align: center; }
+  .st-table input { width: 6.2em; font: inherit; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); text-align: right; }
+</style>
+<script>
+  import { Plot, live, fmt, put, pct } from './skit';
+  import { propTest, ciProportion, srmTest } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-abread]')) {
+    const cv = fig.querySelector('canvas')!, val = (k: string) => Math.max(0, Number(fig.querySelector<HTMLInputElement>(`[data-k=${k}]`)!.value) || 0);
+    const p = new Plot(cv, { x: [0, 1], y: [0, 3], h: 220, noYTicks: true, xLabel: 'conversion (points)' });
+    function draw() {
+      const na = val('na'), xa = Math.min(val('xa'), na), nb = val('nb'), xb = Math.min(val('xb'), nb);
+      if (!na || !nb) { put(fig, 'say', 'Each group needs at least one visitor.'); return; }
+      const t = propTest(xa, na, xb, nb), ca = ciProportion(xa, na).wilson, cb = ciProportion(xb, nb).wilson, srm = srmTest([na, nb], [1, 1]);
+      const lo = Math.min(ca.lo, cb.lo, t.lo, 0) * 100, hi = Math.max(ca.hi, cb.hi, t.hi, 0) * 100, pad = (hi - lo) * 0.08 || 1;
+      p.o.x = [lo - pad, hi + pad]; p.begin();
+      const bar = (a: number, b: number, m: number, y: number, col: string, name: string) => { p.line(a * 100, y, b * 100, y, { color: col, width: 5 }); p.dot(m * 100, y, { r: 6, color: col }); p.text(p.x0, y + 0.32, ` ${name}`, { bold: true, color: col, size: 12 }); };
+      bar(ca.lo, ca.hi, t.pA, 2.4, p.pal.accent, 'A');
+      bar(cb.lo, cb.hi, t.pB, 1.6, p.pal.accent2, 'B');
+      p.line(0, 0.2, 0, 1.2, { color: p.pal.muted, width: 1.5, dash: [5, 4] });
+      bar(t.lo, t.hi, t.diff, 0.7, p.pal.ink, 'B − A');
+      p.end();
+      put(fig, 'r', `${pct(t.pA, 2)} / ${pct(t.pB, 2)}`);
+      put(fig, 'l', `${t.diff >= 0 ? '+' : ''}${fmt(100 * t.diff, 2)} (${fmt(100 * t.lo, 2)} to ${fmt(100 * t.hi, 2)})`);
+      put(fig, 'rl', Number.isFinite(t.lift) ? `${t.lift >= 0 ? '+' : ''}${fmt(100 * t.lift, 1)} %` : '–');
+      put(fig, 'zp', `${fmt(t.z, 2)}, ${t.p < 0.0001 ? '< 0.0001' : fmt(t.p, 4)}`);
+      put(fig, 'srm', srm.p < 0.001 ? `broken (p = ${srm.p < 0.0001 ? '< 0.0001' : fmt(srm.p, 4)})` : `OK (p = ${fmt(srm.p, 2)})`);
+      const say = srm.p < 0.001 ? 'Stop: the split between A and B is far from 50/50, so something in the setup is broken. Fix that before reading the result.'
+        : t.lo > 0 ? 'B is better: the whole interval for the lift is above zero. Check it is big enough to be worth shipping, and check the guardrails.'
+        : t.hi < 0 ? 'B is worse: the whole interval is below zero.'
+        : 'Inconclusive: the interval includes zero. The data fits a small loss, no change or a gain. Did the test reach its planned sample size?';
+      put(fig, 'say', say);
+    }
+    fig.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+    live(cv, draw);
+  }
+</script>

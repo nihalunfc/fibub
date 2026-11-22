@@ -7,7 +7,7 @@
   <canvas aria-label="A band of plus or minus two standard errors narrowing as sample size grows, with sample means as dots"></canvas>
   <div class="mlf-ctl"><label>Sample size n: <output data-v="n"></output><input type="range" name="n" min="4" max="400" step="1" value="25" /></label></div>
   <div class="mlf-btns"><button type="button" class="btn" data-run>Draw 30 samples at this n</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
-  <div class="mlf-read"><div><span>standard error σ/√n</span><b data-se></b></div><div><span>±2 SE band</span><b data-band></b></div><div><span>n needed to halve it</span><b data-half></b></div></div>
+  <div class="mlf-read"><div><span>standard error σ/√n</span><b data-sev></b></div><div><span>±2 SE band</span><b data-band></b></div><div><span>n needed to halve it</span><b data-half></b></div></div>
   <figcaption>Basket values have mean $40 and SD $20 (made up). The shaded band is the mean ± 2 standard errors: about 95 % of sample means land inside it. The band narrows fast at first and then slowly, because it shrinks with the square root of n. Going from 25 to 100 baskets halves it; halving it again takes 400.</figcaption>
 </figure>
 <script>
@@ -27,7 +27,7 @@
       pts.forEach(([x, y]) => p.dot(x, y, { r: 3, color: p.pal.accent2, alpha: 0.75 }));
       p.line(n, 20, n, 60, { color: p.pal.muted, width: 1 });
       p.end();
-      put(fig, 'se', `$${fmt(se, 2)}`); put(fig, 'band', `$${fmt(mu - 2 * se, 1)} to $${fmt(mu + 2 * se, 1)}`); put(fig, 'half', (4 * n).toLocaleString('en'));
+      put(fig, 'sev', `$${fmt(se, 2)}`); put(fig, 'band', `$${fmt(mu - 2 * se, 1)} to $${fmt(mu + 2 * se, 1)}`); put(fig, 'half', (4 * n).toLocaleString('en'));
     }
     fig.querySelector('[data-run]')!.addEventListener('click', () => {
       const n = N();
