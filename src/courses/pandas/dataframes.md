@@ -16,9 +16,16 @@ quiz:
     choices: ["df.total = qty * price", "df['total'] = df['qty'] * df['unit_price']", "df.add('total')"]
     ans: 1
     why: 'Assign a Series to a new column name in square brackets.'
+sources:
+  - 'pandas documentation, User Guide: Intro to data structures https://pandas.pydata.org/docs/user_guide/dsintro.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 1 · about 15 minutes · uses Lesson 1.3.** You'll be able to build a DataFrame, describe its structure, and add a column.
+
+<div class="bigidea">A DataFrame is a table of Series that share one index: pick a column and you get a Series back, add a Series and you get a new column.</div>
+
+**In everyday terms:** a filing cabinet where each drawer is a column and each folder position is a row label. Pull out one drawer (a column), or look across all drawers at one position (a row).
 
 ## 1. Columns that share an index
 
@@ -69,6 +76,35 @@ df
 ```
 
 `df['sales']` is a Series, so everything from the last lesson works on it. Assigning to a new name adds a column.
+
+<div class="meaning">
+
+<dl>
+<dt>df.shape</dt><dd>(rows, columns).</dd>
+<dt>df.columns, df.index</dt><dd>Column names and row labels.</dd>
+<dt>df['qty']</dt><dd>One column as a Series.</dd>
+<dt>df['total'] = ...</dt><dd>A new column, computed for every row.</dd>
+<dt>Physical meaning</dt><dd>Each row is one thing (an order line), each column one fact about it (qty, price). Keeping that shape is what lets every later step, from grouping to joining, work.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"df['qty'] and df[['qty']] are the same."** One bracket gives a Series (one column of values); two brackets give a DataFrame with one column. Some methods need one, some the other.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>A table.</b> <table class="lk-tbl"><tr><th></th><th>store</th><th>qty</th><th>price</th></tr><tr><td>0</td><td>S01</td><td>2</td><td>18.99</td></tr><tr><td>1</td><td>WEB</td><td>1</td><td>24.99</td></tr><tr><td>2</td><td>S01</td><td>3</td><td>4.5</td></tr></table></div>
+<div class="step"><b>Shape.</b> 3 rows, 3 columns.</div>
+<div class="step"><b>A column out.</b> <code>df['qty']</code> → the Series 2, 1, 3.</div>
+<div class="step"><b>A column in.</b> <code>df['total'] = df['qty'] * df['price']</code><table class="lk-tbl"><tr><th></th><th>store</th><th>qty</th><th>price</th><th>total</th></tr><tr><td>0</td><td>S01</td><td>2</td><td>18.99</td><td><mark>37.98</mark></td></tr><tr><td>1</td><td>WEB</td><td>1</td><td>24.99</td><td><mark>24.99</mark></td></tr><tr><td>2</td><td>S01</td><td>3</td><td>4.5</td><td><mark>13.5</mark></td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-df-total"></div>
 
 ## 4. Your turn
 
@@ -145,3 +181,12 @@ df.shape is a pair (rows, columns); [0] takes the first item. len(df) works too.
 </details>
 
 **New words:** *DataFrame*, *column*, *shape*, *dtypes*, *copy-on-write*.
+
+<div class="keypoints">
+
+- A DataFrame is columns (Series) sharing one index.
+- df['col'] gives a Series; df[['a', 'b']] gives a DataFrame.
+- Assigning to a new name adds a column computed for every row.
+- shape, columns, index and dtypes describe the structure.
+
+</div>

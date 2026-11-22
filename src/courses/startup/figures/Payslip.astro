@@ -1,0 +1,45 @@
+---
+// 9.2-9.4: one hire's monthly payslip and the employer's extra costs, for India, Canada or the USA (2026 rates).
+---
+<figure class="cs-fig su-fig" data-ps>
+  <span class="cs-figtag">Calculator: one employee’s payslip and your cost</span>
+  <div class="su-row"><label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada (C$)</option><option value="us">USA ($)</option></select></label></div>
+  <div class="su-row" data-in></div>
+  <table class="su-t num" data-t></table>
+  <div class="su-out"><div><span>Take-home a month</span><b data-th></b></div><div><span>Your cost a month</span><b data-cost></b></div><div><span>Cost ÷ salary</span><b data-x></b></div></div>
+  <figcaption data-cap></figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  import { india, canada, usa, type Pay } from './payroll';
+  import { PROVINCES } from '../../../lib/money/canada-income-tax';
+  const CAP: Record<CC, string> = {
+    in: 'India, FY 2025-26 new regime TDS, labour codes in force from 21 November 2025 (wages at least 50 % of pay), EPF 12 % + 12 % on wages up to ₹15,000 (EPF applies from 20 staff), ESI 0.75 % + 3.25 % for pay up to ₹21,000 a month (from 10 staff), professional tax by state (Karnataka ₹200 a month here). Statutory bonus, insurance and leave encashment are left out.',
+    ca: 'Canada, 2026: CPP 5.95 % each on earnings from $3,500 to $74,600 plus CPP2 4 % to $85,000; EI 1.63 % (employer 1.4 times) to $68,900; income tax from fibub’s Canada engine with basic credits. Vacation pay 4 % is paid on top in most provinces (6 % after 5 years in several). Workers’ compensation premiums and Ontario’s Employer Health Tax (payroll over $1 million) are left out.',
+    us: 'USA, 2026: Social Security 6.2 % each to $184,500, Medicare 1.45 % each (plus 0.9 % employee over $200,000), FUTA 0.6 % of the first $7,000 after the state credit, federal withholding for a single filer with the standard deduction. State income tax and unemployment rates and wage bases vary: set your state’s. Workers’ compensation insurance and benefits are left out.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ps]')) {
+    const box = fig.querySelector<HTMLElement>('[data-in]')!;
+    const cc = followCountry(fig, (c) => { build(c); draw(); });
+    function build(c: CC) {
+      box.innerHTML = c === 'in'
+        ? '<label>Monthly gross pay (₹)<input type="number" name="g" min="0" step="any" value="60000"></label><label>Basic + DA share (%)<input type="number" name="b" min="0" max="100" step="1" value="40"></label><label>Professional tax a month (₹)<input type="number" name="pt" min="0" step="1" value="200"></label><label><span><input type="checkbox" name="cap" checked> PF on ₹15,000 only</span></label>'
+        : c === 'ca'
+          ? `<label>Yearly salary (C$)<input type="number" name="g" min="0" step="any" value="65000"></label><label>Province<select name="p">${Object.entries(PROVINCES).map(([k, v]) => `<option value="${k}"${k === 'ON' ? ' selected' : ''}>${v.name}</option>`).join('')}</select></label><label>Vacation pay (%)<input type="number" name="v" min="0" step="0.5" value="4"></label>`
+          : '<label>Yearly salary ($)<input type="number" name="g" min="0" step="any" value="65000"></label><label>State income tax, rough (%)<input type="number" name="st" min="0" step="0.1" value="5"></label><label>State unemployment rate (%)<input type="number" name="su" min="0" step="0.1" value="3.4"></label><label>…on the first ($)<input type="number" name="wb" min="0" step="100" value="7000"></label>';
+      fig.querySelector('[data-cap]')!.textContent = CAP[c];
+    }
+    function draw() {
+      const c = cc(); let p: Pay;
+      if (c === 'in') p = india(num(fig, 'g'), num(fig, 'b') / 100, (fig.querySelector('[name=cap]') as HTMLInputElement)?.checked ?? true, num(fig, 'pt'));
+      else if (c === 'ca') p = canada(num(fig, 'g'), (fig.querySelector('[name=p]') as HTMLSelectElement)?.value || 'ON', num(fig, 'v') / 100);
+      else p = usa(num(fig, 'g'), num(fig, 'st') / 100, num(fig, 'su') / 100, num(fig, 'wb'));
+      const mo = (x: number) => money(c, x / 12);
+      fig.querySelector('[data-t]')!.innerHTML = `<thead><tr><th>Each month</th><th>Amount</th></tr></thead><tbody><tr><td><b>Gross pay${c === 'ca' && num(fig, 'v') ? ' (with vacation pay)' : ''}</b></td><td><b>${mo(p.gross)}</b></td></tr>${p.employee.map(([n, v]) => `<tr><td>− ${n}</td><td>${mo(v)}</td></tr>`).join('')}<tr><td><b>Employee takes home</b></td><td><b>${mo(p.takeHome)}</b></td></tr><tr><td colspan="2" style="padding-top:10px"><b>On top, you pay</b></td></tr>${p.employer.map(([n, v]) => `<tr><td>+ ${n}</td><td>${mo(v)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Your total cost</td><td><b>${mo(p.cost)}</b></td></tr></tfoot>`;
+      fig.querySelector('[data-th]')!.textContent = mo(p.takeHome);
+      fig.querySelector('[data-cost]')!.textContent = mo(p.cost);
+      fig.querySelector('[data-x]')!.textContent = p.gross ? `${(p.cost / (c === 'ca' ? p.gross / (1 + num(fig, 'v') / 100) : p.gross)).toFixed(2)} ×` : '–';
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', (e) => { if ((e.target as HTMLElement).getAttribute('name') !== 'cc') draw(); });
+  }
+</script>

@@ -16,10 +16,14 @@ quiz:
     choices: ["Stars drift slightly between frames, so the same star must land on the same pixel", "To change the colour", "To remove dark current"]
     ans: 0
     why: "Without alignment, stacking would smear the stars."
-sources: []
+sources:
+  - "Howell, S. B. (2006), Handbook of CCD Astronomy, 2nd ed., Cambridge University Press (the CCD equation, calibration frames)"
+  - "Berry, R. and Burnell, J. (2005), The Handbook of Astronomical Image Processing, 2nd ed., Willmann-Bell"
 ---
 
-**Module 6 · about 20 minutes · square roots and averages.** You'll be able to explain why stacking works, choose between few long or many short frames, and describe registration and outlier rejection.
+**Module 6 · about 20 minutes · read first: [6.2 Exposure, noise and signal-to-noise](/learn/courses/sky-watching/signal-to-noise/), [6.3 Calibration frames: darks, flats and bias](/learn/courses/sky-watching/calibration-frames/) · maths: square roots and averages.** You'll be able to explain why stacking works, choose between few long or many short frames, and describe registration and outlier rejection.
+
+<div class="bigidea">Averaging many aligned frames keeps the signal and cuts random noise by the square root of the number of frames; stacking also rejects satellite trails and lets modest mounts make deep images.</div>
 
 ## 1. Why this matters
 
@@ -42,11 +46,39 @@ Things to notice:
 2. **Register:** find stars in each frame and shift, rotate (and sometimes scale) frames so they line up.
 3. **Combine:** average or median each pixel across frames, with **outlier rejection** (sigma clipping): values far from the others at that pixel, like a satellite trail, a plane or a cosmic-ray hit, are dropped.
 
+
+<div class="meaning">
+
+<dl>
+<dt>SNR<sub>n</sub> = √n × SNR₁</dt><dd>Stacking n frames.</dd>
+<dt>Sigma clipping</dt><dd>Ignore values far from the stack's average at each pixel.</dd>
+<dt>B t ≫ R²</dt><dd>Each frame should be long enough for sky noise to swamp read noise.</dd>
+<dt>Physical meaning</dt><dd>Many blurry, noisy photos of the same scene, averaged, show what is really there: the true signal is in every frame and adds up, while the random speckle points a different way each time and averages out.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Stacking 100 one-second frames equals one 100-second frame."** Only if read noise is negligible. Each frame adds read noise, so very short frames can be much worse. Make each frame long enough that sky noise dominates.
+
+</div>
+
 ## 4. Long or short?
 
 - **Read noise** is added once per frame, so very short frames pay more read noise per minute of total time.
 - **Long frames** risk tracking errors, saturated stars and losing a whole frame to a gust of wind or a plane.
 - Rule of thumb: make each frame long enough that the sky's noise swamps the read noise (often a few minutes in a city, longer under dark skies or with narrowband filters), then take as many as you can.
+
+Stack 64 short frames of a nebula:
+
+<div class="steps">
+<div class="step"><b>One frame.</b> SNR 4: the nebula is barely visible in the noise.</div>
+<div class="step"><b>Align.</b> Software finds the stars in each frame and shifts them all to match.</div>
+<div class="step"><b>Average 4 frames.</b> Signal is the same, noise falls by √4 = 2: SNR 8.</div>
+<div class="step"><b>Average 64.</b> Noise falls by √64 = 8: SNR 32. The faint outer wisps appear.</div>
+<div class="step"><b>Reject outliers.</b> A satellite crosses one frame. Sigma-clipping notices that pixel is far from the others in the stack and ignores it.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -75,6 +107,10 @@ The 1-minute plan has `$\sqrt{10200/7300} = 1.18$` times more noise: a loss, but
 
 ## 6. Practice
 
+<div class="problem" data-problem="frames-needed"></div>
+
+**More practice** (answers below):
+
 1. How many frames would cut noise by 10 times?
 2. One frame has SNR 8. What SNR do 36 frames give?
 3. Why is the median better than the mean at removing satellite trails when you have few frames?
@@ -86,6 +122,15 @@ The 1-minute plan has `$\sqrt{10200/7300} = 1.18$` times more noise: a loss, but
 2. `$8 \times 6 = 48$`.
 3. A single very bright value shifts the mean a lot but barely moves the median.
 </details>
+
+<div class="keypoints">
+
+- Stacking n frames improves SNR by √n.
+- Align on stars, then average with outlier rejection.
+- Satellite trails and planes are removed by sigma clipping.
+- Sub-exposures should be long enough that sky noise beats read noise.
+
+</div>
 
 **Try it with your own files:** align and stack frames in your browser with the [[image-stacker]].
 

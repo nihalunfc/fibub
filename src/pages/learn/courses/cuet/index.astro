@@ -1,0 +1,18 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { CUET } from '../../../../courses/cuet/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={CUET}>
+  <section class="cs-builds">
+    <h2>How to use this course, with no teacher needed</h2>
+    <ol>
+      <li><strong>Start with Part A (four short lessons).</strong> You will know exactly how the test is marked, which subjects your target courses need and how many weeks you have.</li>
+      <li><strong>Take the lessons in order inside each subject.</strong> Every lesson teaches one idea with a picture or a step-by-step animation, a worked example, the usual traps, then a practice set from the question bank. Do the practice before you move on.</li>
+      <li><strong>Practise until it is easy.</strong> Each practice set draws fresh questions every time, many with new numbers, and shows a full solution after every answer, so you can keep going until you get nine out of ten.</li>
+      <li><strong>Finish with the full mock tests in Part F.</strong> 50 questions, 60 minutes, +5 for a right answer and −1 for a wrong one, exactly like the real test, with a score, a topic-by-topic report and every solution.</li>
+    </ol>
+    <p>Only study the parts you need: everyone needs the <a href="/learn/courses/cuet/what-is-cuet/">exam basics</a> and usually English; the General Test is needed by many universities; then take the domain subjects you chose. Domain subjects follow the NCERT Class 12 books. For deeper theory, the science lessons link to the matching chapters of the free <a href="/learn/courses/">engineering and medical entrance courses</a>.</p>
+    <p>Free, no sign-up. Every passage and question is written for fibub, never copied from past papers. Your ticks stay in this browser; save them as a file below so you never lose your place.</p>
+  </section>
+</CourseHome>

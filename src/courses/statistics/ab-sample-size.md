@@ -16,9 +16,16 @@ quiz:
     choices: ['9 days', '14 days (two full weeks)', '7 days']
     ans: 1
     why: 'Round up to whole weeks so every weekday is represented equally; behaviour often differs on weekends.'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments: A Practical Guide to A/B Testing, Cambridge University Press, Chapter 17 (statistics behind experiments)'
+  - 'van Belle, G. (2008), Statistical Rules of Thumb, 2nd edition, Wiley, Section 2.4 (the 16/Δ² rule)'
 ---
 
 **Module 7 · about 25 minutes · school maths.** You'll be able to compute the users needed for a conversion test, turn that into a duration, and choose what to do when traffic is short.
+
+<div class="bigidea">The smaller the effect you want to catch, the bigger the test: halve the minimum detectable effect and you need four times the users.</div>
+
+**In everyday terms:** spotting a friend in a crowd. A friend in a bright red coat is easy to see from far away; one in grey needs you to get much closer. Small effects are grey coats: you need many more users to see them.
 
 ## 1. Four inputs
 
@@ -64,6 +71,36 @@ If the test would take months:
 - **Accept more risk:** α = 0.10 or power 0.7, stated in advance.
 - **Don't test:** for low-risk, easily reversed changes, sometimes shipping and monitoring is the sensible choice.
 
+<div class="meaning">
+
+<dl>
+<dt>Baseline p</dt><dd>Today's rate, such as 4 % conversion.</dd>
+<dt>MDE</dt><dd>Minimum detectable effect: the smallest lift worth acting on.</dd>
+<dt>n per group ≈ 16·p(1 − p) ÷ MDE²</dt><dd>Rule of thumb for 80 % power at α = 5 %.</dd>
+<dt>Duration</dt><dd>Total users ÷ eligible users per day, rounded up to whole weeks.</dd>
+<dt>Physical meaning</dt><dd>The test must be long enough for the signal (the lift) to stand clear of the noise (the wobble of the rates). Noise shrinks with √n, so to see half the signal you need four times the data.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"We will stop when it looks significant."** That is peeking (Lesson 7.4). Fix the size in advance; if the test is too long to be practical, test a bolder change or accept a larger MDE.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Baseline.</b> 4 % of users buy. The team cares about +10 % relative: 4.0 % → 4.4 %.</div>
+<div class="step"><b>Rule of thumb.</b> 16 × 0.04 × 0.96 ÷ 0.004² ≈ 38,400 per group (the exact formula gives about 39,500).</div>
+<div class="step"><b>Traffic.</b> 6,000 eligible users a day: 79,000 ÷ 6,000 ≈ 13.2 days.</div>
+<div class="step"><b>Round up.</b> 2 full weeks.</div>
+<div class="step"><b>Smaller MDE?</b> +5 % relative would need about 4 times as many users: 8 weeks. Probably too long.</div>
+</div>
+
+<div class="problem" data-problem="ab-n-rule"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -99,3 +136,12 @@ If the test would take months:
 **Try it on your own data:** the [[sample-size]] calculator does the exact sums for proportions and means, including unequal splits.
 
 **New words:** *baseline rate*, *minimum detectable effect*, *power analysis*, *test duration*.
+
+<div class="keypoints">
+
+- n per group ≈ 16·p(1 − p) ÷ MDE² (80 % power, α = 5 %).
+- Halving the MDE quadruples n.
+- Duration = total users ÷ daily traffic, rounded up to whole weeks.
+- Fix size and duration before launch.
+
+</div>

@@ -16,9 +16,16 @@ quiz:
     choices: ['Its largest value', 'The labels for each value (0, 1, 2, ... unless you set others)', 'The column name']
     ans: 1
     why: 'Every value has a label. Operations between two Series line up on these labels.'
+sources:
+  - 'pandas documentation, User Guide: Intro to data structures https://pandas.pydata.org/docs/user_guide/dsintro.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 1 · about 15 minutes · uses Lesson 1.2.** You'll be able to create a Series, do column maths, and summarise it.
+
+<div class="bigidea">A Series is one column of values with a label on every row, and maths on it happens to the whole column at once.</div>
+
+**In everyday terms:** a column in a spreadsheet where the row numbers can be names (store IDs, dates). Typing "× 2" once doubles every cell, with no formula to drag down.
 
 ## 1. A labelled column
 
@@ -69,6 +76,34 @@ import pandas as pd
 pay = pd.Series(['card', 'cash', 'card', 'app', 'card', 'cash'])
 pay.value_counts()
 ```
+
+<div class="meaning">
+
+<dl>
+<dt>values</dt><dd>The data, all of one type.</dd>
+<dt>index</dt><dd>The labels of the rows (0, 1, 2... by default).</dd>
+<dt>s * 2, s + t</dt><dd>Whole-column maths; two Series line up by index label, not by position.</dd>
+<dt>Physical meaning</dt><dd>The index is how pandas knows which value belongs to which thing. Adding two Series matches labels like matching name tags, so a value never lands on the wrong store even if the order differs.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Adding two columns adds them row by row in order."** pandas adds them by index label. If one Series has S01, S02 and the other S02, S03, you get NaN for S01 and S03. Check the labels when results look half empty.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>A Series.</b> <table class="lk-tbl"><tr><th>index</th><th>value</th></tr><tr><td>S01</td><td>120</td></tr><tr><td>S02</td><td>95</td></tr><tr><td>WEB</td><td>140</td></tr></table></div>
+<div class="step"><b>Whole-column maths.</b> <code>s * 1.1</code> multiplies every value: 132, 104.5, 154.</div>
+<div class="step"><b>Summary.</b> <code>s.sum()</code> → 355; <code>s.mean()</code> → 118.33.</div>
+<div class="step"><b>Line up by label.</b> Add a Series with S02 and WEB only: S01 becomes NaN because it has no partner.<table class="lk-tbl"><tr><th>index</th><th>s + t</th></tr><tr><td>S01</td><td><mark>NaN</mark></td></tr><tr><td>S02</td><td>100</td></tr><tr><td>WEB</td><td>150</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-series-mean"></div>
 
 ## 4. Your turn
 
@@ -145,3 +180,12 @@ this_week - last_week
 </details>
 
 **New words:** *Series*, *index*, *dtype*, *vectorised*, *NaN*, *boolean mask*, *alignment*.
+
+<div class="keypoints">
+
+- A Series = values + index labels.
+- Arithmetic applies to every value at once.
+- Two Series combine by matching labels, not positions.
+- sum, mean, min, max, count and describe summarise a Series.
+
+</div>

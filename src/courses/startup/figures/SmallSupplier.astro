@@ -1,0 +1,41 @@
+---
+// 7.3: Canada's $30,000 small-supplier test over four calendar quarters, and the rate your customer's province charges.
+---
+<figure class="cs-fig su-fig" data-ss>
+  <span class="cs-figtag">Checker: am I still a small supplier?</span>
+  <p class="su-q">Taxable sales in your last four calendar quarters (C$, worldwide, including associated businesses)</p>
+  <div class="su-row">
+    <label>Quarter 1<input type="number" name="q1" min="0" step="any" value="4000" /></label>
+    <label>Quarter 2<input type="number" name="q2" min="0" step="any" value="6000" /></label>
+    <label>Quarter 3<input type="number" name="q3" min="0" step="any" value="9000" /></label>
+    <label>Quarter 4<input type="number" name="q4" min="0" step="any" value="12500" /></label>
+  </div>
+  <div class="su-bars"><div><span>Toward $30,000</span><span class="t"><i data-bar></i></span><b data-sum></b></div></div>
+  <p class="su-say" data-say></p>
+  <p class="su-q">What do I charge a customer in…</p>
+  <div class="su-row"><label>Province or territory<select name="p"></select></label><label>Price before tax (C$)<input type="number" name="a" min="0" step="any" value="100" /></label></div>
+  <div class="su-out" data-out></div>
+  <figcaption>Small supplier rule from the CRA: you must register for the GST/HST once taxable sales pass $30,000 in any four consecutive calendar quarters, or in a single quarter. Taxi and ride-share drivers must register from the first dollar. Sales to a customer in another province are taxed at that province's rate (place of supply rules). PST in BC, Saskatchewan and Manitoba and QST in Quebec are separate registrations. Rates as of November 2026.</figcaption>
+</figure>
+<script>
+  import { CANADA } from '../../../lib/money/sales-tax-calculator';
+  import { money, num } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ss]')) {
+    const sel = fig.querySelector<HTMLSelectElement>('[name=p]')!;
+    sel.innerHTML = Object.entries(CANADA).map(([k, v]) => `<option value="${k}"${k === 'ON' ? ' selected' : ''}>${v.name}</option>`).join('');
+    function draw() {
+      const q = [1, 2, 3, 4].map((i) => num(fig, `q${i}`)), s = q.reduce((a, b) => a + b, 0), big = q.findIndex((x) => x > 30000);
+      const bar = fig.querySelector<HTMLElement>('[data-bar]')!; bar.style.width = `${Math.min(100, (s / 30000) * 100)}%`; bar.className = s > 30000 ? 'w' : '';
+      fig.querySelector('[data-sum]')!.textContent = money('ca', s);
+      fig.querySelector('[data-say]')!.textContent = big >= 0
+        ? `Quarter ${big + 1} alone passed $30,000: you stopped being a small supplier with the sale that crossed the line. Charge GST/HST on that sale and register within 29 days.`
+        : s > 30000
+          ? 'Over $30,000 in four quarters: you stop being a small supplier at the end of the month after this quarter. Charge GST/HST from then and register within 29 days.'
+          : `Still a small supplier: ${money('ca', 30000 - s)} to go. Registering voluntarily lets you claim back the GST/HST on your own costs, but then you must charge it.`;
+      const P = CANADA[sel.value], a = num(fig, 'a'), tax = P.parts.map((p) => [p.name, (a * p.rate) / 100] as const), tot = tax.reduce((x, [, v]) => x + v, 0);
+      fig.querySelector('[data-out]')!.innerHTML = tax.map(([n, v]) => `<div><span>${n} (${P.parts.find((p) => p.name === n)!.rate} %)</span><b>${money('ca', v, 2)}</b></div>`).join('') + `<div><span>Customer pays</span><b>${money('ca', a + tot, 2)}</b></div>`
+        + (P.parts.length > 1 ? `<div><span>Note</span><b style="font-size:13.5px">You charge ${P.parts[1].name} only if registered for it in ${P.name}</b></div>` : '');
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+  }
+</script>

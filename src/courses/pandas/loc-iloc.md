@@ -16,9 +16,16 @@ quiz:
     choices: ['Yes: loc slices include the end label', 'No', 'Only with iloc']
     ans: 0
     why: 'Label slices include both ends; position slices (iloc[2:4]) stop before the end, like Python lists.'
+sources:
+  - 'pandas documentation, User Guide: Indexing and selecting data https://pandas.pydata.org/docs/user_guide/indexing.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 2 · about 20 minutes · uses Lesson 2.1.** You'll be able to pick any rows and columns by label or position, and change values the right way.
+
+<div class="bigidea">loc picks rows and columns by their labels (and by conditions); iloc picks them by position, like counting cells.</div>
+
+**In everyday terms:** loc is finding a house by its street address; iloc is "the third house from the corner". Addresses stay right when the houses are re-ordered; counting does not.
 
 ## 1. loc: by label
 
@@ -65,6 +72,34 @@ orders.loc[big, ['order_id', 'qty', 'discount']].head()
 ```
 
 **Don't** write `orders[big]['discount'] = 0.15`: the first brackets make a temporary table and the change is lost (pandas 3 warns and ignores it). One `loc` with both parts always works.
+
+<div class="meaning">
+
+<dl>
+<dt>df.loc[rows, cols]</dt><dd>By label; slices include both ends.</dd>
+<dt>df.iloc[rows, cols]</dt><dd>By position from 0; the end of a slice is excluded.</dd>
+<dt>df.loc[mask, 'col']</dt><dd>Rows where the condition is True, one column.</dd>
+<dt>Physical meaning</dt><dd>Labels belong to the data; positions belong to the current order. After sorting or filtering, label 5 may be in position 0. Use loc for meaning, iloc for "the first few".</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"loc[0:2] and iloc[0:2] give the same rows."** loc includes label 2 (3 rows, if labels are 0, 1, 2); iloc stops before position 2 (2 rows). After sorting, they may not even be the same rows.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>A sorted table.</b> <table class="lk-tbl"><tr><th>label</th><th>store</th><th>qty</th></tr><tr><td>7</td><td>WEB</td><td>9</td></tr><tr><td>2</td><td>S01</td><td>8</td></tr><tr><td>5</td><td>S03</td><td>6</td></tr></table></div>
+<div class="step"><b>iloc[0]</b> → the first row in position: label 7, WEB.</div>
+<div class="step"><b>loc[2]</b> → the row whose label is 2: S01, wherever it sits.</div>
+<div class="step"><b>loc with a condition.</b> <code>df.loc[df['qty'] > 7, 'store']</code> → WEB, S01.</div>
+</div>
+
+<div class="problem" data-problem="pd-iloc-slice"></div>
 
 ## 4. Your turn
 
@@ -140,3 +175,12 @@ top.loc[top.index[0], 'order_id']
 </details>
 
 **New words:** *loc*, *iloc*, *label*, *position*, *index_col*, *chained assignment*.
+
+<div class="keypoints">
+
+- loc = labels (and boolean masks); iloc = positions.
+- loc slices include the end label; iloc slices exclude the end position.
+- df.loc[mask, 'col'] filters and selects in one step.
+- Use loc to change values: df.loc[mask, 'col'] = value.
+
+</div>

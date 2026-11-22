@@ -16,9 +16,16 @@ quiz:
     choices: ['Nothing', 'Riders share the same drivers, so treated riders change what control riders experience (interference)', 'Riders are not users']
     ans: 1
     why: 'When units interact, the control group is not a clean "no change" world. Randomise by city or time window instead.'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments: A Practical Guide to A/B Testing, Cambridge University Press, Chapters 3 and 23'
+  - 'Gelman, A. and Carlin, J. (2014), Beyond Power Calculations: Assessing Type S and Type M Errors, Perspectives on Psychological Science 9(6), 641-651 https://doi.org/10.1177/1745691614551642'
 ---
 
 **Module 7 · about 20 minutes · no new maths.** You'll be able to spot the common ways a "winning" test misleads, and know the check for each.
+
+<div class="bigidea">Lifts from tests usually shrink after launch: novelty wears off, lucky winners regress, and wins from different tests do not simply add up.</div>
+
+**In everyday terms:** a new café on the high street is packed in its first week because it is new. Judging its long-term business by that week overestimates it badly. A redesign gets the same first-week bump.
 
 ## 1. Novelty and learning effects
 
@@ -55,6 +62,36 @@ Standard tests assume one user's group doesn't affect another's outcome. That fa
 ## 5. Twyman's law
 
 "Any figure that looks interesting or different is usually wrong." A +30 % lift from a button colour is almost always a bug: a tracking change, SRM (Lesson 7.6), bots, or a metric that double counts. Check the plumbing before celebrating.
+
+<div class="meaning">
+
+<dl>
+<dt>Novelty effect</dt><dd>Users react to anything new; the effect fades.</dd>
+<dt>Winner's curse</dt><dd>Tests that pass with low power overstate the true effect.</dd>
+<dt>Interference</dt><dd>Users in A and B affect each other (marketplaces, social features), so the groups are not separate.</dd>
+<dt>Non-additivity</dt><dd>Two +3 % wins on the same page rarely give +6 %.</dd>
+<dt>Physical meaning</dt><dd>A test measures a short window in an artificial setting. The long-run effect is usually smaller, so trust repeated, well-powered results and holdout groups over single exciting numbers.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"12 winning tests at +1.5 % each mean +18 % this quarter."** Inflated winners, novelty and overlap mean the real total is usually far smaller. A long-running holdout group shows what all the changes really added.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The report.</b> 12 winning tests add up to +18 % conversion.</div>
+<div class="step"><b>Reality.</b> Conversion over the quarter rose 3 %.</div>
+<div class="step"><b>Winner's curse.</b> Several tests had about 30 % power, so their winning lifts were inflated.</div>
+<div class="step"><b>Novelty.</b> Three wins were measured in the first week of eye-catching redesigns.</div>
+<div class="step"><b>Fix.</b> Power tests properly, run whole weeks, re-test big winners, and keep a holdout group.</div>
+</div>
+
+<div class="problem" data-problem="winners-curse"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -96,3 +133,12 @@ The fix: plan power, run full weeks, one primary metric, replicate surprising wi
 **Try it on your own data:** the [[bootstrap-permutation]] tool lets you see how much an estimate wobbles by chance; [[sample-size]] tells you whether a test had the power to be trusted.
 
 **New words:** *novelty effect*, *learning effect*, *holdout group*, *winner's curse*, *interference*, *Twyman's law*.
+
+<div class="keypoints">
+
+- Watch for novelty: compare early and late weeks of the test.
+- Low-powered wins exaggerate effects (the winner's curse).
+- Interference between users breaks the A/B separation; randomise by cluster if needed.
+- Lifts from separate tests do not simply add; use a holdout to measure the total.
+
+</div>

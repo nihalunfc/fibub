@@ -16,10 +16,14 @@ quiz:
     choices: ["The exposure time", "The optical setup: focus, camera rotation and dust", "The sky"]
     ans: 1
     why: "Flats map the light path; if you move the camera or refocus, the dust shadows and vignetting move too."
-sources: []
+sources:
+  - "Howell, S. B. (2006), Handbook of CCD Astronomy, 2nd ed., Cambridge University Press (the CCD equation, calibration frames)"
+  - "Berry, R. and Burnell, J. (2005), The Handbook of Astronomical Image Processing, 2nd ed., Willmann-Bell"
 ---
 
-**Module 6 · about 25 minutes · arithmetic on images.** You'll be able to name each calibration frame, take it correctly, and apply the calibration formula.
+**Module 6 · about 25 minutes · read first: [6.2 Exposure, noise and signal-to-noise](/learn/courses/sky-watching/signal-to-noise/) · maths: arithmetic on images.** You'll be able to name each calibration frame, take it correctly, and apply the calibration formula.
+
+<div class="bigidea">Raw astronomical images carry the camera's own faults, hot pixels, glow, vignetting and dust shadows; dark, flat and bias frames record those faults so you can subtract and divide them out.</div>
 
 ## 1. Why this matters
 
@@ -41,6 +45,16 @@ Things to notice:
 
 - Subtracting the dark removes hot pixels and the glow on the right; it doesn't touch the corners or dust rings.
 - Dividing by the flat brightens the corners and erases the dust rings. Do both for a clean frame.
+
+Calibrate one image:
+
+<div class="steps">
+<div class="step"><b>The light frame.</b> Your target, plus hot pixels, a warm glow, darker corners and doughnut-shaped dust shadows.</div>
+<div class="step"><b>Subtract the dark.</b> A frame taken with the cap on, same exposure and temperature, records hot pixels and thermal glow. Light − dark removes them.</div>
+<div class="step"><b>Make a flat.</b> Photograph an evenly lit surface. It records vignetting and dust: where less light reaches each pixel.</div>
+<div class="step"><b>Divide by the flat.</b> After normalising it to an average of 1, divide: dim corners and dust shadows are lifted back to the true level.</div>
+<div class="step"><b>Use many.</b> Average 20 or more of each calibration frame into a master, so it does not add its own noise to every image.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -68,6 +82,24 @@ The flat is divided by its own mean so it averages 1, and the calibrated image k
 
 Without the flat, the corner would read 100: half the true brightness, and any photometry there would be off by 0.75 magnitudes.
 
+
+<div class="meaning">
+
+<dl>
+<dt>Dark</dt><dd>Cap-on frame: thermal signal and hot pixels.</dd>
+<dt>Flat</dt><dd>Evenly lit frame: how much light reaches each pixel.</dd>
+<dt>Calibrated = (light − dark) / normalised flat</dt><dd>Undo the camera's faults in reverse order.</dd>
+<dt>Physical meaning</dt><dd>A camera is a slightly dirty window with a heater. The dark frame measures what the heater adds on its own; the flat measures how much each part of the window dims the light. Subtract the first, divide by the second, and you see through a clean window.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Calibration frames are optional extras for perfectionists."** Without flats, dust and vignetting show strongly once you stretch an image; without darks, hot pixels become coloured streaks after stacking. Calibration is what makes faint signal reliable.
+
+</div>
+
 ## 4. Practical tips
 
 - Take flats without moving focus or the camera, ideally the same night.
@@ -76,6 +108,10 @@ Without the flat, the corner would read 100: half the true brightness, and any p
 - Many modern cameras have tiny dark current; bias and flats then matter more than darks.
 
 ## 5. Practice
+
+<div class="problem" data-problem="calibrate-pixel"></div>
+
+**More practice** (answers below):
 
 1. Raw light 900, dark 100, normalised flat 0.8. What is the calibrated value?
 2. You refocused halfway through the night. What should you do about flats?
@@ -88,6 +124,15 @@ Without the flat, the corner would read 100: half the true brightness, and any p
 2. Take flats for each focus position (the dust shadows changed).
 3. Dust removes a fraction of the incoming light (it multiplies the signal); a dark frame records only the camera's own signal, which is added.
 </details>
+
+<div class="keypoints">
+
+- Darks remove thermal signal and hot pixels (subtract).
+- Flats correct vignetting and dust (divide, after normalising).
+- Bias or flat darks remove the offset from flats.
+- Use master frames averaged from many exposures.
+
+</div>
 
 **Try it with your own files:** build masters and calibrate frames in your browser with the [[calibration-frames]] tool, then look at the results with the [[fits-viewer]].
 

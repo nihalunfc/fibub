@@ -22,7 +22,9 @@ sources:
   - "Walker, M. F. (1977), The effects of urban lighting on the brightness of the night sky, PASP 89, 405"
 ---
 
-**Module 3 · about 25 minutes · logarithms.** You'll be able to read a sky quality measurement, estimate your naked-eye limiting magnitude and Bortle class, and judge how far you need to drive for a darker sky.
+**Module 3 · about 25 minutes · read first: [1.7 How bright is it? The magnitude scale](/learn/courses/sky-watching/magnitudes/), [3.1 Dark adaptation and averted vision](/learn/courses/sky-watching/dark-adaptation/) · maths: logarithms.** You'll be able to read a sky quality measurement, estimate your naked-eye limiting magnitude and Bortle class, and judge how far you need to drive for a darker sky.
+
+<div class="bigidea">Artificial light brightens the night sky and hides faint stars; sky brightness is measured in magnitudes per square arcsecond, and the Bortle scale turns that into nine classes from pristine to inner city.</div>
 
 ## 1. Why this matters
 
@@ -50,6 +52,16 @@ Things to notice:
 - From SQM 22 to 20 the sky brightens 6 times, but the faintest visible star only goes from about 6.6 to 5.5: the eye copes surprisingly well with points.
 - The number of visible stars falls much faster: from thousands to hundreds.
 
+Drive from a city centre to a dark site:
+
+<div class="steps">
+<div class="step"><b>City centre, Bortle 9.</b> Sky brightness about 17 mag/arcsec². Only the Moon, planets and a dozen stars.</div>
+<div class="step"><b>Suburbs, Bortle 6.</b> About 19 mag/arcsec². The Big Dipper and summer triangle are clear; no Milky Way.</div>
+<div class="step"><b>Rural, Bortle 4.</b> About 21 mag/arcsec². The Milky Way is visible overhead; light domes glow on the horizon.</div>
+<div class="step"><b>Dark site, Bortle 1 to 2.</b> About 21.9 mag/arcsec². The Milky Way casts shadows; stars to magnitude 7 or more.</div>
+<div class="step"><b>The lesson.</b> Every step down the scale doubles to triples the number of stars you can see.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -68,6 +80,24 @@ I \propto P\, d^{-2.5}
 **Try it:** a city of 1 million at 50 km versus a town of 50,000 at 10 km: `$10^6 \times 50^{-2.5} = 56.6$` and `$5\times 10^4 \times 10^{-2.5} = 1581$`. The small nearby town is about 28 times worse.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>S (mag/arcsec²)</dt><dd>Sky brightness: higher numbers mean a darker sky.</dd>
+<dt>NELM</dt><dd>Naked-eye limiting magnitude: faintest star you can see.</dd>
+<dt>I ∝ P d<sup>−2.5</sup></dt><dd>Walker's law: glow from a town of population P at distance d.</dd>
+<dt>Physical meaning</dt><dd>Light pollution is a fog of scattered light. Street and building lights shine up and sideways, the air scatters that light back down, and the faint stars drown in the glow, just as stars vanish in daylight even though they are still there.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Light pollution only matters to astronomers."** Excess night light wastes energy, disturbs sleep, and confuses birds, insects and sea turtles. Shielded, warm, dimmer lights help everyone and still light the ground.
+
+</div>
+
 ## 4. Worked example
 
 *Is the drive worth it?* Your back garden reads SQM 19.0; a site 40 minutes away reads 21.5.
@@ -80,6 +110,10 @@ For a galaxy whose surface brightness is close to the sky's, a 10 times darker b
 
 ## 5. Practice
 
+<div class="problem" data-problem="walker-ratio"></div>
+
+**More practice** (answers below):
+
 1. How many times brighter is a sky of SQM 18 than one of SQM 21?
 2. Estimate NELM for SQM 20.5 with the formula.
 3. Name two things you can do at home to see more from a light-polluted garden.
@@ -91,6 +125,15 @@ For a galaxy whose surface brightness is close to the sky's, a 10 times darker b
 2. `$7.93 - 5\log_{10}(10^{0.216} + 1) = 7.93 - 5 \log_{10}(2.64) = 7.93 - 2.11 = 5.8$`.
 3. Shield your eyes from direct lights (a hood or a wall), observe objects high in the sky away from the town's glow, wait for full dark adaptation, and choose bright targets like the Moon, planets and double stars.
 </details>
+
+<div class="keypoints">
+
+- Sky brightness is measured in mag/arcsec² (higher = darker).
+- The Bortle scale runs from 1 (pristine) to 9 (inner city).
+- Walker's law: glow ∝ P d<sup>−2.5</sup>; nearby small towns can matter more than far big cities.
+- Shielded, warm-coloured lighting reduces skyglow.
+
+</div>
 
 **Try it with real numbers:** compare sky brightness, Bortle class and limiting magnitude with the [[light-pollution-calculator]], and pick the darkest nights with the [[dark-sky-calendar]].
 

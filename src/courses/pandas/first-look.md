@@ -16,9 +16,16 @@ quiz:
     choices: ["df['order_id'].nunique() == len(df)", 'df.info()', "df['order_id'].sum()"]
     ans: 0
     why: 'If the number of distinct values equals the number of rows, each row has its own id.'
+sources:
+  - 'pandas documentation, User Guide: Essential basic functionality (descriptive statistics) https://pandas.pydata.org/docs/user_guide/basics.html'
+  - 'NIST/SEMATECH e-Handbook, 1.1 EDA Introduction https://www.itl.nist.gov/div898/handbook/eda/section1/eda1.htm'
 ---
 
 **Module 1 · about 15 minutes · uses Lesson 1.5.** You'll have a routine for the first five minutes with any new dataset.
+
+<div class="bigidea">Before any analysis, spend two minutes looking: a few rows, the types and gaps, the ranges, and the most common values.</div>
+
+**In everyday terms:** a mechanic walks round a car before opening the bonnet: tyres, lights, dents. info, describe and value_counts are that walk round, and they catch most problems early.
 
 ## 1. See some rows
 
@@ -67,6 +74,36 @@ print(orders.nunique())
 ```
 
 There are more rows than distinct order ids, so a row is an **order line** (one product within an order), not an order. Knowing what one row means (the **grain**) prevents double counting later.
+
+<div class="meaning">
+
+<dl>
+<dt>head(), sample()</dt><dd>See real rows.</dd>
+<dt>info()</dt><dd>Column types and non-missing counts.</dd>
+<dt>describe()</dt><dd>Count, mean, SD, min, quartiles, max for numbers.</dd>
+<dt>nunique(), value_counts()</dt><dd>How many distinct values, and which are most common.</dd>
+<dt>Physical meaning</dt><dd>Each summary answers a "could this be wrong?" question: a negative quantity, a price of 9,999, a store that appears once, a date in 1970. Spotting them now saves wrong conclusions later.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"describe() covers everything."** It skips text columns by default and says nothing about duplicates or keys. Add <code>describe(include='object')</code>, <code>duplicated().sum()</code> and <code>value_counts()</code> on the key columns.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Rows.</b> <code>orders.head()</code>: the columns look as expected.</div>
+<div class="step"><b>Types and gaps.</b> <code>orders.info()</code>: 9,717 rows, qty int64, date datetime, no missing values.</div>
+<div class="step"><b>Ranges.</b> <code>orders.describe()</code>: qty from 1 to a small maximum, discount from 0 to 0.3. Nothing impossible.</div>
+<div class="step"><b>Keys.</b> <code>orders['store_id'].value_counts()</code>: 7 stores, none tiny.</div>
+<div class="step"><b>Note it.</b> Write one line: "9,717 lines, Jan 2025 to Jun 2026, 7 stores, no gaps." That line opens your report.</div>
+</div>
+
+<div class="problem" data-problem="pd-describe-mean"></div>
 
 ## 5. Your turn
 
@@ -138,3 +175,12 @@ Write down what surprises you; each surprise is a question for the data owner or
 **Try it on your own data:** [[csv-profiler]] runs this whole checklist on a CSV in one go.
 
 **New words:** *head*, *tail*, *sample*, *info*, *describe*, *value_counts*, *nunique*, *grain*.
+
+<div class="keypoints">
+
+- head/sample for rows; info for types and gaps; describe for ranges.
+- value_counts and nunique for categories and keys.
+- Look for impossible values, odd types, rare categories and duplicates.
+- Write down what you found before analysing.
+
+</div>

@@ -17,9 +17,16 @@ quiz:
     choices: ['Yes, one must be wrong', 'No: the trend is clearly real, but most of the week-to-week variation comes from other things', 'Only with small samples']
     ans: 1
     why: 'p is about whether the slope is zero; R² is about how much of the spread the line explains. They answer different questions.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Chapters 8-9 Linear and multiple regression https://www.openintro.org/book/os/'
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapter 3 https://www.statlearning.com/'
 ---
 
 **Module 8 · about 25 minutes · uses Lessons 5.1 and 6.3.** You'll be able to read every number in a regression table, put an interval on a coefficient, and say what it does and doesn't show.
+
+<div class="bigidea">A regression coefficient is the expected change in the outcome for a one-unit change in a predictor, holding the others fixed, with its own standard error and interval.</div>
+
+**In everyday terms:** a recipe that says "each extra spoon of sugar makes the cake about 5 % sweeter". The coefficient is that "5 % per spoon"; its interval says how sure the baker is.
 
 ## 1. Predicting vs explaining
 
@@ -56,6 +63,36 @@ Look at the **residuals** (actual − fitted):
 - **Even spread?** A funnel shape (bigger errors for bigger values) makes SEs wrong; use robust SEs or log the outcome.
 - **Independent?** Weekly data often has runs of positive and negative residuals; standard SEs are then too small.
 - **Outliers and leverage:** one extreme point can move the line a lot (Lesson 8.1).
+
+<div class="meaning">
+
+<dl>
+<dt>Coefficient b</dt><dd>Change in y per one-unit change in x, other predictors held fixed.</dd>
+<dt>SE(b)</dt><dd>How much b would wobble across samples.</dd>
+<dt>t = b ÷ SE(b)</dt><dd>Is b distinguishable from 0?</dd>
+<dt>R²</dt><dd>Share of variation in y explained by the model.</dd>
+<dt>Physical meaning</dt><dd>The slope is a rate of exchange between two quantities in the data: dollars of sales per dollar of ads. It describes how they moved together in the past, not what would happen if you changed one of them.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The coefficient shows what happens if we spend more."** Observational regression shows association. If ad spend rose in weeks the team expected to be busy, the slope mixes the ads' effect with the busy weeks. Experiments answer "what if".
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> 20 weeks of ad spend and sales, both in $100s.</div>
+<div class="step"><b>Slope.</b> b = 1.60: each extra $100 of ads went with about $160 more sales.</div>
+<div class="step"><b>Uncertainty.</b> SE ≈ 0.55, t ≈ 2.9, 95 % CI $44 to $276 per $100.</div>
+<div class="step"><b>Fit.</b> R² = 0.32: ads line up with a third of the week-to-week variation.</div>
+<div class="step"><b>Limits.</b> One holiday week sits high; without it the slope is 1.45. Causation needs a geo experiment.</div>
+</div>
+
+<div class="problem" data-problem="regression-ci"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -99,3 +136,12 @@ where `$s = \sqrt{\text{SSE}/(n-2)}$` is the typical residual. Spreading the x v
 **Try it on your own data:** the [[regression-workbench]] tool gives the full table with standard errors, intervals, residual plots and ANOVA; [[curve-fitter]] handles curved relationships.
 
 **New words:** *coefficient*, *standard error of a coefficient*, *dummy variable*, *controlling for*, *residual plot*, *heteroscedasticity*, *robust standard errors*.
+
+<div class="keypoints">
+
+- A coefficient is the change in y per unit of x, holding other predictors fixed.
+- Report it with its CI; t = b ÷ SE tests "no association".
+- R² measures fit, not importance or causation.
+- Check residual plots for curves, funnels and outliers.
+
+</div>

@@ -55,3 +55,27 @@
 .qb-static details { margin-top: 6px; }
 .qb-static summary { cursor: pointer; color: var(--accent); }
 @media print { .qb-tools, .qb-bar, .qb-nav, .qb-foot { display: none; } }
+/* Sets (a passage or recording with its questions), listening player, writing and speaking tools (IELTS and other language exams) */
+.qb-set { display: grid; gap: 12px; margin: 10px 0; }
+.qb-setside .qb-group { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0; }
+.qb-setqs .qb-card { margin: 8px 0; }
+.qb-passage { line-height: 1.6; }
+.qb-passage h3 { margin: 4px 0 8px; }
+.qb-passage table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 6px 0; }
+.qb-passage td, .qb-passage th { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.qb-passage caption { font-weight: 600; text-align: left; padding: 4px 0; }
+.qb-passage svg { display: block; margin: 8px 0; }
+@media (min-width: 1000px) {
+  .qb-set { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+  .qb-setside { position: sticky; top: 8px; max-height: calc(100vh - 100px); overflow: auto; }
+}
+.qb-audio { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; margin: 6px 0 10px; display: grid; gap: 8px; }
+.qb-abar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; }
+.qb-astatus { font-size: 14px; color: var(--muted); }
+.qb-script summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+.qb-script p { margin: 4px 0; font-size: 15px; }
+.qb-wc { font-variant-numeric: tabular-nums; }
+.qb-wc.short { color: var(--warn, #b54708); }
+.qb-model { border-left: 3px solid var(--good, #1a7f37); padding-left: 10px; margin: 8px 0; }
+.qb-check ul { list-style: none; padding: 0; margin: 6px 0; }
+.qb-check li { margin: 4px 0; }

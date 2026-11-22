@@ -20,7 +20,9 @@ sources:
   - "GMST formula: IAU 1982 expression as given in J. Meeus, Astronomical Algorithms, 2nd ed. (1998), chapter 12"
 ---
 
-**Module 2 · about 25 minutes · a little algebra.** You'll be able to explain the sidereal day, use local sidereal time to find what is on your meridian, and work out an object's hour angle.
+**Module 2 · about 25 minutes · read first: [2.2 Right ascension and declination: the sky's latitude and longitude](/learn/courses/sky-watching/right-ascension-declination/) · maths: a little algebra.** You'll be able to explain the sidereal day, use local sidereal time to find what is on your meridian, and work out an object's hour angle.
+
+<div class="bigidea">A day measured by the stars is 23 h 56 min 4 s, about 4 minutes shorter than a solar day; sidereal time is star time, and when it equals a star's right ascension, that star is on your meridian.</div>
 
 ## 1. Why this matters
 
@@ -56,6 +58,16 @@ H = \text{LST} - \alpha
 
 That hour angle is exactly what the alt-az formulas in Lesson 2.1 need.
 
+See where the 4 minutes go:
+
+<div class="steps">
+<div class="step"><b>Day 1, noon.</b> The Sun and a distant star are both due south.</div>
+<div class="step"><b>One full spin later, 23 h 56 m.</b> Earth has turned 360°: the star is due south again.</div>
+<div class="step"><b>But not the Sun.</b> Earth has moved about 1° along its orbit, so it must turn about 1° more (4 minutes) to bring the Sun back south.</div>
+<div class="step"><b>Over a year.</b> Those 4 minutes a day add up to a whole day: 366.25 star-days fit in 365.25 sun-days.</div>
+<div class="step"><b>Using it.</b> If your local sidereal time is 5.9 h, Betelgeuse (RA 5.9 h) is crossing your meridian right now.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -78,6 +90,24 @@ Reduce `$\theta_0$` to 0 to 360°, then divide by 15 for hours.
 **The magic number:** `$360.98564736629^\circ$` per day is Earth's turn relative to the stars in one solar day: a full turn plus about 0.9856°.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>Sidereal day</dt><dd>23 h 56 min 4 s: one turn of Earth relative to the stars.</dd>
+<dt>LST</dt><dd>Local sidereal time: the RA currently on your meridian.</dd>
+<dt>H = LST − α</dt><dd>Hour angle: how long since the star crossed the meridian.</dd>
+<dt>Physical meaning</dt><dd>Walk once round a merry-go-round centre while it turns, and you see the centre pole one fewer time than you see the fairground around you. Earth circling the Sun loses one Sun-day per year compared with star-days for exactly that reason.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Stars rise at the same clock time every night."** Each star rises about 4 minutes earlier every night, two hours earlier each month. That is why the winter stars of Orion appear in the evening only in winter.
+
+</div>
+
 ## 4. Worked example
 
 *Toronto (longitude 79.4° W) at 03:30 UT on 22 November 2026 (10:30 pm the evening before, local time).*
@@ -90,6 +120,10 @@ So RA 2h 17m is on the meridian. The Pleiades (RA about 3h 47m) have an hour ang
 
 ## 5. Practice
 
+<div class="problem" data-problem="transit-wait"></div>
+
+**More practice** (answers below):
+
 1. How much earlier does a star rise after one week?
 2. LST is 14h 00m. What is the hour angle of Arcturus (RA 14h 16m)? Is it east or west of the meridian?
 3. Why is there no "sidereal noon"?
@@ -101,6 +135,15 @@ So RA 2h 17m is on the meridian. The Pleiades (RA about 3h 47m) have an hour ang
 2. `$H = 14.00 - 14.27 = -0.27$` h, about −16 minutes: just east of the meridian, still climbing.
 3. There is a reference point: sidereal time 0 h is when the vernal equinox point crosses the meridian. It just doesn't line up with anything you would notice in daily life; it falls at a different clock time every day.
 </details>
+
+<div class="keypoints">
+
+- Sidereal day = 23 h 56 min 4 s; solar day = 24 h.
+- Stars rise about 4 minutes earlier each night.
+- Local sidereal time = the RA on your meridian.
+- Hour angle H = LST − RA tells you where a star is in its daily circle.
+
+</div>
 
 **Try it with real numbers:** get the sidereal time, Julian date and time systems for any moment with [[astro-time]], and see when objects transit with [[object-altitude]].
 

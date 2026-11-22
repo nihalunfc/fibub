@@ -16,10 +16,14 @@ quiz:
     choices: ["The sky's shot noise remains after subtraction", "It changes star colours", "It heats the camera"]
     ans: 0
     why: "You can subtract the average sky, but not its random fluctuations, which add noise."
-sources: []
+sources:
+  - "Howell, S. B. (2006), Handbook of CCD Astronomy, 2nd ed., Cambridge University Press (the CCD equation, calibration frames)"
+  - "Berry, R. and Burnell, J. (2005), The Handbook of Astronomical Image Processing, 2nd ed., Willmann-Bell"
 ---
 
-**Module 6 · about 25 minutes · square roots.** You'll be able to name the sources of noise in an astronomical image, compute signal-to-noise, and work out how exposure, sky and camera affect it.
+**Module 6 · about 25 minutes · read first: [6.1 Cameras, pixels and image scale](/learn/courses/sky-watching/image-scale/), [1.7 How bright is it? The magnitude scale](/learn/courses/sky-watching/magnitudes/) · maths: square roots.** You'll be able to name the sources of noise in an astronomical image, compute signal-to-noise, and work out how exposure, sky and camera affect it.
+
+<div class="bigidea">Every image is signal plus noise; photon counts have a natural randomness equal to the square root of the count, so signal-to-noise grows only as the square root of exposure time, and dark skies and low read noise help.</div>
 
 ## 1. Why this matters
 
@@ -37,6 +41,16 @@ Things to notice:
 
 - At short exposures read noise matters; once the sky signal per frame is large, the curve follows √t.
 - Raise the sky glow and the same star needs much longer for the same SNR.
+
+Watch signal and noise grow during an exposure:
+
+<div class="steps">
+<div class="step"><b>Photons arrive randomly,</b> like raindrops. Collect 100 on average and you get anywhere from about 90 to 110: noise √100 = 10.</div>
+<div class="step"><b>Expose 4 times longer.</b> 400 photons, noise √400 = 20. Signal grew 4 times, noise only 2: SNR doubled.</div>
+<div class="step"><b>Add sky.</b> A bright sky adds its own photons and its own noise, even though you subtract its average later.</div>
+<div class="step"><b>Add the camera.</b> Read noise adds a fixed amount per frame; dark current adds noise that grows with time and temperature.</div>
+<div class="step"><b>Example.</b> A star at 50 e⁻/s over 20 pixels with sky 5 e⁻/s per pixel, 60 s: SNR = 3,000 / √(3,000 + 6,000) = 31.6.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -60,6 +74,24 @@ Things to notice:
 - **Narrowband filters:** passing only the light of glowing gas (such as hydrogen-alpha) cuts the sky glow enormously, which is why city imagers love them for emission nebulae.
 - **Cooling** the camera to cut dark current.
 
+
+<div class="meaning">
+
+<dl>
+<dt>√N</dt><dd>Shot noise: random spread of a count of N photons.</dd>
+<dt>SNR = St / √(St + n(B + D)t + nR²)</dt><dd>The CCD equation: star, sky, dark and read noise.</dd>
+<dt>SNR ∝ √t</dt><dd>In the sky-limited case, four times the time doubles the SNR.</dd>
+<dt>Physical meaning</dt><dd>Catching photons is like counting raindrops in a cup: the number in any minute varies by chance. The variation grows more slowly than the count, so the longer you collect, the smaller the chance part is compared with the total.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Subtracting the sky removes its noise."** Subtracting removes the sky's average level but not its random flicker. That noise stays in your image, which is why dark skies make such a difference to faint targets.
+
+</div>
+
 ## 4. Worked example
 
 *How long for SNR 50 on a faint star?* Star 10 e⁻/s, sky 20 pixels × 3 e⁻/s each = 60 e⁻/s, read noise ignored (long frames).
@@ -72,6 +104,10 @@ so `$\sqrt t = 41.8$` and `$t = 1750$` s, about 29 minutes. With a sky four time
 
 ## 5. Practice
 
+<div class="problem" data-problem="ccd-snr"></div>
+
+**More practice** (answers below):
+
 1. You expect 400 photons. What is the shot noise?
 2. An image has SNR 20 after 10 minutes, sky-limited. How long for SNR 40?
 3. Why does subtracting a constant sky level not remove light pollution's harm?
@@ -83,6 +119,15 @@ so `$\sqrt t = 41.8$` and `$t = 1750$` s, about 29 minutes. With a sky four time
 2. 4 times longer: 40 minutes.
 3. The sky's random fluctuations (shot noise) stay; only its average is removed.
 </details>
+
+<div class="keypoints">
+
+- Photon (shot) noise is √N.
+- SNR = St / √(St + n(B + D)t + nR²).
+- Sky-limited: SNR grows as √t and falls as 1/√B.
+- Magnitude error ≈ 1.086 / SNR.
+
+</div>
 
 **Try it with real numbers:** plan exposure lengths for your sky and camera with the [[sub-exposure-calculator]].
 

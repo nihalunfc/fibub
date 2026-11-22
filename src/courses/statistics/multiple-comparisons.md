@@ -16,9 +16,16 @@ quiz:
     choices: ['Pick the primary metric and the segments to check before the test starts', 'Look at every segment and report the ones that won', 'Only report p-values below 0.01']
     ans: 0
     why: 'Pre-registering one primary metric and a short list of segments keeps the number of tests small and honest. Everything else is exploration, labelled as such.'
+sources:
+  - 'Holm, S. (1979), A Simple Sequentially Rejective Multiple Test Procedure, Scandinavian Journal of Statistics 6(2), 65-70 https://www.jstor.org/stable/4615733'
+  - 'Benjamini, Y. and Hochberg, Y. (1995), Controlling the False Discovery Rate, Journal of the Royal Statistical Society B 57(1), 289-300 https://doi.org/10.1111/j.2517-6161.1995.tb02031.x'
 ---
 
 **Module 6 · about 20 minutes · school maths.** You'll be able to explain why many tests produce false positives, apply Bonferroni and Holm corrections, and set up analyses that avoid the trap.
+
+<div class="bigidea">Every extra test is another lottery ticket for a false alarm, so the more you test, the stricter each test must be.</div>
+
+**In everyday terms:** throw 20 darts blindfolded at a board and one will probably hit something. Testing 20 segments at 5 % is the same: one "significant" segment is expected by chance alone.
 
 ## 1. Slice it enough and something wins
 
@@ -49,6 +56,36 @@ When you're screening many things and can tolerate some false leads (which 50 pr
 2. **Label exploration as exploration:** "In an unplanned look at 12 segments, mobile users in Quebec showed a lift (unadjusted p = 0.03). Worth a follow-up test."
 3. **Replicate:** a surprising segment win becomes the hypothesis of the next test, not a shipped decision.
 4. **Count the forking paths:** trying several date ranges, outlier rules or metric definitions is also multiple testing, even if you only report one.
+
+<div class="meaning">
+
+<dl>
+<dt>Family-wise error rate</dt><dd>Chance of at least one false alarm across all the tests: 1 − 0.95^k for k independent tests.</dd>
+<dt>Bonferroni</dt><dd>Test each at α ÷ k. Simple, strict.</dd>
+<dt>Holm</dt><dd>Sort p-values; compare the smallest with α/k, the next with α/(k − 1), and so on; stop at the first failure. Always at least as powerful as Bonferroni.</dd>
+<dt>False discovery rate</dt><dd>Controls the share of "wins" that are false rather than the chance of any false win.</dd>
+<dt>Physical meaning</dt><dd>Significance is a ticket price. If you buy many tickets, you must pay more per ticket, or the few winners you find will mostly be luck.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Each segment was tested at 5 %, so each result is 95 % solid."** With 10 segments, the chance of at least one false win is 1 − 0.95¹⁰ ≈ 40 %. Pre-register a few segments and correct for them.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Five segments.</b> p-values: 0.004, 0.03, 0.04, 0.20, 0.65. Three look significant.</div>
+<div class="step"><b>Family risk.</b> With 5 tests, chance of at least one false win ≈ 1 − 0.95⁵ ≈ 23 %.</div>
+<div class="step"><b>Holm, step 1.</b> Smallest 0.004 vs 0.05/5 = 0.010: passes.</div>
+<div class="step"><b>Holm, step 2.</b> Next 0.03 vs 0.05/4 = 0.0125: fails, so stop here.</div>
+<div class="step"><b>Report.</b> Only the new-user lift survives correction (adjusted p = 0.02); the others are ideas for a follow-up test.</div>
+</div>
+
+<div class="problem" data-problem="family-wise"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -88,3 +125,12 @@ Report: "The lift was clear for new users (adjusted p = 0.02). Returning and mob
 **Try it on your own data:** the [[hypothesis-tests]] tool adjusts a list of p-values with Bonferroni, Holm or Benjamini-Hochberg.
 
 **New words:** *multiple comparisons*, *family-wise error rate*, *Bonferroni correction*, *Holm correction*, *false discovery rate*, *Benjamini-Hochberg*, *pre-registration*.
+
+<div class="keypoints">
+
+- k tests at α give about 1 − (1 − α)^k chance of at least one false alarm.
+- Bonferroni: α/k each. Holm: a step-down version that is never worse.
+- FDR methods suit large screens (many metrics); they control the share of false wins.
+- Best fix: decide the few segments and metrics before the test.
+
+</div>

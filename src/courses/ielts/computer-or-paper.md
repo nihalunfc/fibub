@@ -1,7 +1,7 @@
 ---
 title: 'Computer or paper, and booking the test'
 seoTitle: 'IELTS on computer or paper? Booking the test'
-summary: 'Should you take IELTS on computer or on paper? The real differences in Listening, Reading and Writing, how results timing differs, and a checklist for booking the test and choosing a date.'
+summary: 'IELTS on computer or on paper? The real differences in Listening, Reading and Writing, when results arrive, and a checklist for booking the test.'
 minutes: 11
 updated: 2026-11-22
 quiz:

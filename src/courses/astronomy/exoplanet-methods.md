@@ -21,7 +21,9 @@ sources:
   - "NASA Exoplanet Archive (counts described in words), exoplanetarchive.ipac.caltech.edu"
 ---
 
-**Module 5 · about 25 minutes · squares, roots and Kepler's law.** You'll be able to explain the transit and radial-velocity methods, find a planet's size from a transit depth, and combine both methods to get its density.
+**Module 5 · about 25 minutes · read first: [1.4 The Doppler shift](/learn/courses/astronomy/doppler-shift/), [3.4 Binary stars and stellar masses](/learn/courses/astronomy/binary-stars/), [5.1 Aperture photometry](/learn/courses/astronomy/aperture-photometry/) · maths: squares, roots and Kepler's law.** You'll be able to explain the transit and radial-velocity methods, find a planet's size from a transit depth, and combine both methods to get its density.
+
+<div class="bigidea">Planets around other stars are found mostly by the dip in light when they cross their star and by the star's tiny wobble; the dip gives the size, the wobble gives the mass, and together they give the density.</div>
 
 ## 1. Why this matters
 
@@ -40,6 +42,16 @@ Things to notice:
 
 - A Jupiter-sized planet dips a Sun-like star by about 1%, easy for a backyard camera; an Earth needs a space telescope.
 - Moving the planet closer shortens the period and transit and raises the wobble.
+
+Follow one planet through both methods:
+
+<div class="steps">
+<div class="step"><b>The transit.</b> Every 4 days a planet crosses its star and the light drops by 1%: depth δ = 0.01.</div>
+<div class="step"><b>Size.</b> δ = (R<sub>p</sub>/R<sub>★</sub>)², so R<sub>p</sub> = √0.01 = 0.1 of the star's radius. For a Sun-like star that is about 11 Earth radii, Jupiter-sized.</div>
+<div class="step"><b>The wobble.</b> The planet tugs the star in a small circle. Doppler shifts show it moving towards and away from us by 100 m/s every 4 days.</div>
+<div class="step"><b>Mass.</b> That speed, the period and the star's mass give about 0.7 Jupiter masses.</div>
+<div class="step"><b>Density.</b> Mass ÷ volume: a puffy gas giant roasting close to its star, a "hot Jupiter".</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -65,6 +77,24 @@ K = \left(\frac{2\pi G}{P}\right)^{1/3}\frac{M_p}{M_\star^{2/3}}
 
 The transit is a tiny eclipse; the planet is a black dot crossing a bright disc. The wobble is the star being tugged around by its planet like a hammer thrower leaning back against the hammer. A transit alone could be a small star or a brown dwarf; the wobble tells you it has a planet's mass. Size and mass together give density, which says whether the planet is rock, water-rich or gas.
 
+
+<div class="meaning">
+
+<dl>
+<dt>δ = (R<sub>p</sub>/R<sub>★</sub>)²</dt><dd>Transit depth: the fraction of the star's disc the planet covers.</dd>
+<dt>K</dt><dd>Radial-velocity amplitude: how fast the star wobbles towards and away from us.</dd>
+<dt>ρ = M<sub>p</sub> / (4/3 πR<sub>p</sub>³)</dt><dd>Planet density: rock, water or gas.</dd>
+<dt>Physical meaning</dt><dd>The transit is a moth crossing a distant street lamp: you cannot see the moth, only the tiny dimming. The wobble is a dog on a lead pulling its owner: you see the owner jerk, and how hard tells you how big the dog is.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Exoplanets are photographed directly."** Almost all of the more than 5,000 known exoplanets were found indirectly, by transits or wobbles. Only a few dozen young, hot, widely separated planets have been imaged directly.
+
+</div>
+
 ## 4. Worked example
 
 *A star of 1 R☉ shows a 0.84% dip every 3.5 days. The wobble gives a planet mass of 0.7 Jupiter masses. What is the planet like?*
@@ -81,6 +111,10 @@ A gas giant like Jupiter (1.3 g/cm³) orbiting so close that its year lasts 3.5 
 
 ## 5. Practice
 
+<div class="problem" data-problem="transit-radius"></div>
+
+**More practice** (answers below):
+
 1. A transit is 0.01% deep (100 ppm) on a Sun-sized star. How big is the planet?
 2. Doubling a planet's mass at the same orbit changes K how?
 3. Why does a transit need a nearly edge-on orbit?
@@ -92,6 +126,15 @@ A gas giant like Jupiter (1.3 g/cm³) orbiting so close that its year lasts 3.5 
 2. K doubles.
 3. Otherwise the planet passes above or below the star's disc as seen from Earth.
 </details>
+
+<div class="keypoints">
+
+- Transits give the planet's size: δ = (R<sub>p</sub>/R<sub>★</sub>)².
+- Radial velocity gives the planet's mass (times the sine of the orbit tilt).
+- Both together give density and so composition.
+- Most known exoplanets were found by transits (Kepler, TESS) and radial velocity.
+
+</div>
 
 **Try it with real numbers:** plan a transit with the [[transit-planner]], fit one with the [[transit-light-curve-fitter]], get masses with the [[exoplanet-mass-calculator]], and check for liquid water with the [[habitable-zone-calculator]].
 

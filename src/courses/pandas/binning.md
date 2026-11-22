@@ -16,9 +16,16 @@ quiz:
     choices: ['To make the output readable, like "budget", "mid", "premium"', 'It is required', 'To sort the bins']
     ans: 0
     why: 'Labels replace interval notation with names people understand.'
+sources:
+  - 'pandas documentation, User Guide: Reshaping (cut, qcut) https://pandas.pydata.org/docs/user_guide/reshaping.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 4 · about 15 minutes · uses Lesson 4.1.** You'll be able to group numbers into bands and summarise by band.
+
+<div class="bigidea">cut puts numbers into bands with edges you choose; qcut makes bands that each hold about the same number of rows.</div>
+
+**In everyday terms:** postage: parcels go into weight bands (0-1 kg, 1-5 kg, over 5 kg) with fixed edges, like cut. A teacher splitting a class into four equal-sized reading groups by score is qcut.
 
 ## 1. cut: your own edges
 
@@ -48,6 +55,35 @@ summary
 ```
 
 Quartiles and deciles of customer spend are the starting point for segmentation (Lesson 8.4): how much revenue comes from the top quarter?
+
+<div class="meaning">
+
+<dl>
+<dt>pd.cut(x, bins=[0, 10, 50, 1000])</dt><dd>Bands with your edges; (10, 50] means above 10 up to 50.</dd>
+<dt>labels=[...]</dt><dd>Names for the bands.</dd>
+<dt>pd.qcut(x, 4)</dt><dd>Quartile bands: about a quarter of rows each.</dd>
+<dt>right=False</dt><dd>Include the left edge instead: [10, 50).</dd>
+<dt>Physical meaning</dt><dd>Bands turn a continuous number into a category you can group and chart. cut keeps the meaning of the edges (price points); qcut keeps the group sizes equal (fair comparisons, RFM scores).</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A value on the edge goes in the higher band."** With the default right=True, 10 falls in (0, 10], the lower band. Check the edges against what the business means by "under $10".
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Prices.</b> 4.5, 10, 18, 49, 120.</div>
+<div class="step"><b>Edges.</b> <code>pd.cut(prices, [0, 10, 50, 1000], labels=['budget', 'mid', 'premium'])</code></div>
+<div class="step"><b>10.</b> Falls in (0, 10]: budget.</div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>price</th><th>band</th></tr><tr><td>4.5</td><td>budget</td></tr><tr><td>10</td><td><mark>budget</mark></td></tr><tr><td>18</td><td>mid</td></tr><tr><td>49</td><td>mid</td></tr><tr><td>120</td><td>premium</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-cut-band"></div>
 
 ## 3. Your turn
 
@@ -100,3 +136,12 @@ pd.cut(customers['days'], [0, 180, 365, 2000], labels=['new', 'recent', 'establi
 **Try it on your own data:** [[histogram-builder]] shows how your numbers spread before you choose edges.
 
 **New words:** *bin*, *cut*, *qcut*, *quantile bins*, *band*, *observed*.
+
+<div class="keypoints">
+
+- cut: fixed edges you choose; qcut: equal-sized groups.
+- Default bands include the right edge: (a, b].
+- Name the bands with labels=.
+- Group by the band to compare segments.
+
+</div>

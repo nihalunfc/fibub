@@ -1,0 +1,49 @@
+---
+// 8.7: the founder's tax calendar for a country and structure, with a plain-text download to copy into a calendar.
+---
+<figure class="cs-fig su-fig" data-tc>
+  <span class="cs-figtag">Planner: my tax calendar</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Structure<select name="k"><option value="p">Sole proprietor (or single-member LLC)</option><option value="c">Company or corporation</option></select></label>
+    <label><span><input type="checkbox" name="g" checked> Registered for GST/HST or sales tax</span></label>
+    <label><span><input type="checkbox" name="e"> I have employees</span></label>
+  </div>
+  <table class="su-t" data-t></table>
+  <div class="su-btns" style="margin-top:8px"><button type="button" class="btn secondary" data-dl>Download as text</button></div>
+  <figcaption>Usual federal or central due dates for a calendar year (India: April to March financial year) as of November 2026. When a date falls on a weekend or holiday it usually moves to the next working day. States and provinces add their own dates; your own year end changes a company's dates. Check the official calendars: Income Tax India and GST portal, CRA, IRS Tax Calendar for Businesses (Publication 509).</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  import { download } from './su';
+  type R = [string, string, string?]; // [when, what, condition: g = GST, e = employees]
+  const D: Record<CC, Record<'p' | 'c' | 'all', R[]>> = {
+    in: {
+      all: [['11th of each month', 'GSTR-1 (sales) for last month; quarterly by the 13th under QRMP', 'g'], ['20th of each month', 'GSTR-3B and GST payment (22nd or 24th quarterly under QRMP)', 'g'], ['7th of each month', 'Pay TDS deducted last month (30 April for March)'], ['15th of each month', 'PF and ESI contributions for last month', 'e'], ['31 Jul, 31 Oct, 31 Jan, 31 May', 'Quarterly TDS returns (24Q salaries, 26Q others)'], ['15 Jun, 15 Sep, 15 Dec, 15 Mar', 'Advance tax: 15 %, 45 %, 75 %, 100 % of the year’s tax (presumptive 44AD/44ADA: all by 15 March)'], ['15 June', 'Form 16 to employees', 'e'], ['31 December', 'GSTR-9 annual GST return (optional below ₹2 crore)', 'g']],
+      p: [['31 July', 'Income tax return (ITR-3 or ITR-4) if no tax audit'], ['30 September', 'Tax audit report, if turnover is over the audit limit'], ['31 October', 'Income tax return if audited']],
+      c: [['30 September', 'Annual general meeting (within 6 months of the year end) and tax audit report'], ['30 days after the AGM', 'AOC-4: financial statements to the Registrar'], ['60 days after the AGM', 'MGT-7 or MGT-7A: annual return to the Registrar'], ['31 October', 'Company income tax return (ITR-6)']],
+    },
+    ca: {
+      all: [['15th of each month', 'Payroll deductions (income tax, CPP, EI) for last month, for most small employers', 'e'], ['Last day of February', 'T4 slips and summary for last year', 'e'], ['One month after each period', 'GST/HST return if you file monthly or quarterly', 'g']],
+      p: [['15 Mar, 15 Jun, 15 Sep, 15 Dec', 'Income tax instalments, if you owed over $3,000 this year and last'], ['30 April', 'Pay last year’s income tax and annual GST/HST balance'], ['15 June', 'T1 return with business income (T2125); annual GST/HST return']],
+      c: [['Monthly (or quarterly for small CCPCs)', 'Corporate tax instalments, once last year’s tax was over $3,000'], ['2 or 3 months after year end', 'Pay the corporate tax balance (3 months for a small CCPC)'], ['3 months after year end', 'Annual GST/HST return, if you file annually', 'g'], ['6 months after year end', 'T2 corporation income tax return'], ['Within 60 days of the anniversary', 'Annual return to Corporations Canada (federal) or your province']],
+    },
+    us: {
+      all: [['31 January', 'W-2s to employees and the SSA; 1099-NEC to contractors paid $2,000 or more in 2026 ($600 for 2025)'], ['30 Apr, 31 Jul, 31 Oct, 31 Jan', 'Form 941 quarterly payroll return', 'e'], ['31 January', 'Form 940 yearly unemployment (FUTA) return', 'e'], ['Monthly or quarterly (20th in many states)', 'State sales tax returns', 'g']],
+      p: [['15 Apr, 15 Jun, 15 Sep, 15 Jan', 'Estimated tax payments (Form 1040-ES)'], ['15 April', 'Form 1040 with Schedule C and Schedule SE (extension to 15 October to file, not to pay)']],
+      c: [['15 March', 'S corp (Form 1120-S) and partnership (Form 1065) returns, K-1s to owners'], ['15 April', 'C corp return (Form 1120); owners’ Form 1040'], ['15 Apr, 15 Jun, 15 Sep, 15 Dec', 'C corp estimated tax payments'], ['Varies by state', 'State annual report and franchise tax (Delaware corporations: 1 March)']],
+    },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tc]')) {
+    const cc = followCountry(fig, draw);
+    fig.addEventListener('change', (e) => { if ((e.target as HTMLElement).getAttribute('name') !== 'cc') draw(); });
+    let rows: R[] = [];
+    function draw() {
+      const c = cc(), k = (fig.querySelector('[name=k]') as HTMLSelectElement).value as 'p' | 'c';
+      const g = (fig.querySelector('[name=g]') as HTMLInputElement).checked, e = (fig.querySelector('[name=e]') as HTMLInputElement).checked;
+      rows = [...D[c][k], ...D[c].all].filter(([, , w]) => !w || (w === 'g' && g) || (w === 'e' && e));
+      fig.querySelector('[data-t]')!.innerHTML = `<thead><tr><th>When</th><th>What</th></tr></thead><tbody>${rows.map(([w, t]) => `<tr><td>${w}</td><td>${t}</td></tr>`).join('')}</tbody>`;
+    }
+    fig.querySelector('[data-dl]')!.addEventListener('click', () => download('tax-calendar.txt', `My tax calendar (fibub.com, Start a startup course)\n\n${rows.map(([w, t]) => `${w}: ${t}`).join('\n')}\n\nCheck official dates every year. Not tax advice.\n`));
+  }
+</script>

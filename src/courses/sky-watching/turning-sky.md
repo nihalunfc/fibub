@@ -20,7 +20,9 @@ sources:
   - "Sidereal rotation period of Earth (23 h 56 min 4 s): IERS, iers.org"
 ---
 
-**Module 1 · about 20 minutes · a little arithmetic.** You'll be able to explain the sky's daily turning, work out how far it turns in a given time, and decide which stars never set from your latitude.
+**Module 1 · about 20 minutes · read first: [1.1 The celestial sphere: a map painted on a dome](/learn/courses/sky-watching/celestial-sphere/) · maths: a little arithmetic.** You'll be able to explain the sky's daily turning, work out how far it turns in a given time, and decide which stars never set from your latitude.
+
+<div class="bigidea">Earth spins once a day, so the whole sky seems to turn around the celestial pole at 15° an hour; stars close enough to the pole never set, and stars close enough to the other pole never rise.</div>
 
 ## 1. Why this matters
 
@@ -49,6 +51,24 @@ Things to notice:
 - Push the exposure to 12 hours: stars near the pole draw complete rings and never touch the horizon.
 - Lower your latitude: the pole sinks, the rings shrink and more stars dip below the horizon.
 
+
+<div class="meaning">
+
+<dl>
+<dt>15° per hour</dt><dd>360° in about 24 hours of star time.</dd>
+<dt>δ > 90° − φ</dt><dd>Circumpolar: the star never sets from latitude φ.</dd>
+<dt>cos H₀ = −tan φ tan δ</dt><dd>Hour angle of setting; hours above the horizon = 2H₀/15.</dd>
+<dt>Physical meaning</dt><dd>You are standing on a merry-go-round. The stars are the fairground lights all around, staying still, but to you they sweep past. Lights straight above the centre (the pole) just spin in place, and the closer a light is to that point, the smaller its circle.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The stars move across the sky during the night."** The stars hardly move at all relative to each other. The sky's nightly motion is Earth turning beneath them, which is why all stars move together, keeping their patterns.
+
+</div>
+
 ## 4. Circumpolar, rising and never seen
 
 From latitude `$\varphi$` (north), every star falls in one of three groups:
@@ -60,6 +80,16 @@ From latitude `$\varphi$` (north), every star falls in one of three groups:
 | `$\delta < \varphi - 90^\circ$` | Never rises: you must travel south to see it |
 
 From Toronto (44° N), stars north of +46° are circumpolar (the Big Dipper and Cassiopeia among them), and stars south of −46° never rise (the Southern Cross is at about −60°). From Singapore (1° N) almost the whole sky rises and sets, and almost nothing is circumpolar.
+
+Watch one night from latitude 45° N:
+
+<div class="steps">
+<div class="step"><b>Dusk.</b> The Big Dipper hangs low in the north-east; Orion is rising in the east.</div>
+<div class="step"><b>Two hours later.</b> The whole sky has turned 30° anticlockwise around Polaris (15° per hour).</div>
+<div class="step"><b>Midnight.</b> Orion is high in the south. The Big Dipper has swung up over Polaris.</div>
+<div class="step"><b>Before dawn.</b> Orion sets in the west. The Big Dipper is still up: at 45° N it is circumpolar and never sets.</div>
+<div class="step"><b>Star trails.</b> A long camera exposure of the north shows each star drawing an arc around the pole: the turning made visible.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -87,6 +117,10 @@ From Toronto (44° N), stars north of +46° are circumpolar (the Big Dipper and 
 
 ## 6. Practice
 
+<div class="problem" data-problem="hours-up"></div>
+
+**More practice** (answers below):
+
 1. How long does the sky take to turn 45°?
 2. From 60° N, is Capella (declination +46°) circumpolar?
 3. From 30° S, which declinations never rise?
@@ -98,6 +132,15 @@ From Toronto (44° N), stars north of +46° are circumpolar (the Big Dipper and 
 2. Circumpolar needs `$\delta > 30^\circ$`: yes.
 3. In the south everything flips: stars with declination above `$90 - 30 = +60^\circ$` never rise.
 </details>
+
+<div class="keypoints">
+
+- The sky turns 15° an hour around the celestial pole, because Earth spins.
+- Stars with δ > 90° − φ are circumpolar and never set.
+- A star on the celestial equator is up for 12 hours from anywhere.
+- Hours above the horizon: cos H₀ = −tan φ tan δ.
+
+</div>
 
 **Try it on the real sky:** plan a star-trail photo with the [[star-trail-exposure]] tool, or see how high any object climbs tonight with [[object-altitude]].
 

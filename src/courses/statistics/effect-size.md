@@ -16,9 +16,16 @@ quiz:
     choices: ['p = 0.03', 'Lift +1.2 points (95 % CI +0.3 to +2.1), worth about $40k a year at the low end', 'Significant']
     ans: 1
     why: 'It gives the size, the uncertainty and the business meaning. The p-value adds little beyond that.'
+sources:
+  - 'Sullivan, G. M. and Feinn, R. (2012), Using Effect Size - or Why the P Value Is Not Enough, Journal of Graduate Medical Education 4(3), 279-282 https://doi.org/10.4300/JGME-D-12-00156.1'
+  - 'Cohen, J. (1988), Statistical Power Analysis for the Behavioral Sciences, 2nd edition, Routledge'
 ---
 
 **Module 6 · about 20 minutes · school maths.** You'll be able to report effect sizes (absolute, relative and standardised), tell statistical from practical significance, and write readouts that lead with size.
+
+<div class="bigidea">A p-value says whether an effect stands out from noise; the effect size says how big it is, and only the size tells you whether it matters.</div>
+
+**In everyday terms:** a scale accurate to a gram can prove you gained 3 grams this week. It is certainly real and certainly unimportant. With enough data, every tiny difference becomes "significant".
 
 ## 1. Two separate questions
 
@@ -49,6 +56,35 @@ Before the test, agree on the **smallest effect worth acting on** (from cost, ri
 | Above zero, but includes values below the minimum | Real, maybe not worth it; more data or a judgement call |
 | Includes zero and the minimum | Inconclusive; underpowered |
 | Entirely below the minimum, around zero | Probably no worthwhile effect, a useful result in itself |
+
+<div class="meaning">
+
+<dl>
+<dt>Raw difference</dt><dd>In the metric's own units: +$0.35 a week, +0.8 points.</dd>
+<dt>Relative lift</dt><dd>Difference ÷ baseline: +0.67 %.</dd>
+<dt>Cohen's d</dt><dd>Difference ÷ SD: size compared with how much individuals vary (0.2 small, 0.5 medium, 0.8 large).</dd>
+<dt>Physical meaning</dt><dd>Size times reach is value. A d of 0.009 is invisible for one customer, yet across 1.5 million customers a week it can be worth hundreds of thousands. Judge importance in money or time, not in p-values.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"p = 0.001 means a big effect."** A tiny p can come from a tiny effect measured on a huge sample. Always put the estimate and its interval next to the p-value, and translate it into business value.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The test.</b> 200,000 users per group. Weekly spend: A $52.40, B $52.75, SD $40.</div>
+<div class="step"><b>Size.</b> +$0.35 (+0.67 %); Cohen's d = 0.35 ÷ 40 ≈ 0.009: tiny per person.</div>
+<div class="step"><b>Certainty.</b> SE ≈ 0.126, z ≈ 2.77, p ≈ 0.006; CI +$0.10 to +$0.60.</div>
+<div class="step"><b>Scale up.</b> 1.5 million users × $0.10 to $0.60 = $150k to $900k a week.</div>
+<div class="step"><b>Decide.</b> Tiny per user, large in total: ship if the new search is cheap to run.</div>
+</div>
+
+<div class="problem" data-problem="cohens-d"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -87,3 +123,12 @@ Tiny per user, large in total. If the new search costs little to run, ship it. T
 **Try it on your own data:** the [[hypothesis-tests]] tool reports Cohen's d and confidence intervals with every test; the [[bayesian-ab-test]] tool shows the chance that a lift beats your minimum worthwhile size.
 
 **New words:** *effect size*, *absolute difference*, *relative lift*, *Cohen's d*, *practical significance*, *minimum worthwhile effect*, *number needed to treat*.
+
+<div class="keypoints">
+
+- Report the effect in real units, with its interval, every time.
+- Cohen's d = difference ÷ SD compares effects across metrics.
+- Large samples make tiny effects significant; small samples hide large ones.
+- Importance = size × reach × value per unit, compared with cost.
+
+</div>

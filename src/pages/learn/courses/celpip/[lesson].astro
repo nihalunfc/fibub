@@ -1,0 +1,15 @@
+---
+import LessonPage from '../../../../components/course/LessonPage.astro';
+import { CELPIP } from '../../../../courses/celpip/syllabus';
+import { FIGURES } from '../../../../courses/celpip/figures';
+import { courseLessons, type LessonEntry } from '../../../../lib/course';
+import '../../../../styles/lesson-kit.css';
+import '../../../../styles/english-kit.css';
+export async function getStaticPaths() {
+  const written = await courseLessons(CELPIP);
+  const live = new Set(written.keys());
+  return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
+}
+const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+---
+<LessonPage course={CELPIP} entry={entry} slug={slug} live={live} figures={FIGURES} />

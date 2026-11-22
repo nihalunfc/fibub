@@ -1,0 +1,115 @@
+// CUET Economics: development policies 1950 to 1990. Original questions for fibub.
+import { pick, int, choose, fmt, rs, shuffleOpts, steps } from '../cuet-general-test/_cuet.js';
+const T = { exams: ['cuet'], format: 'single' };
+const P = [2, 0, 3, 1, 1, 3, 0, 2];
+let k = 0;
+const put = (c, w) => { const i = P[k++ % 8], o = [...w]; o.splice(i, 0, c); return { options: o, answer: i }; };
+const mcq = (id, level, sub, q, c, w, sol, trap) => ({ id, type: 'mcq', level, sub, q, ...put(c, w), sol, ...(trap ? { trap } : {}), ...T });
+const AR = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const asr = (id, level, sub, A, R, code, sol, trap) => ({ id, type: 'mcq', level, sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AR, answer: code, sol, ...(trap ? { trap } : {}), exams: ['cuet'], format: 'assertion' });
+const mat = (id, level, sub, L, R, c, w, sol) => ({ id, type: 'mcq', level, sub,
+  q: `Match List I with List II.<b>List I</b><ul>${L.map((x) => `<li>${x}</li>`).join('')}</ul><b>List II</b><ul>${R.map((x) => `<li>${x}</li>`).join('')}</ul>`,
+  ...put(c, w), sol, exams: ['cuet'], format: 'match' });
+export default {
+  topic: 'indian-economy-1950-90',
+  items: [
+    mcq('ie-001', 1, 'planning', 'The Planning Commission of India was set up in', '1950', ['1947', '1956', '1969'],
+      'It was set up in March 1950, with the Prime Minister as chairperson. It was replaced by the NITI Aayog in 2015.'),
+    mcq('ie-002', 1, 'planning', 'The First Five Year Plan began in', '1951', ['1947', '1956', '1961'],
+      'The First Plan covered 1951 to 1956 and gave priority to agriculture, irrigation and power.'),
+    mcq('ie-003', 1, 'planning', 'The four main goals of India\'s five year plans were', 'growth, modernisation, self-reliance and equity', ['growth, privatisation, globalisation and liberalisation', 'inflation, imports, tourism and defence', 'exports, profits, taxes and savings'],
+      'Plans aimed at a rising output (growth), new technology and social change (modernisation), less dependence on imports (self-reliance) and fair sharing of benefits (equity). Privatisation and globalisation belong to the 1991 reforms.'),
+    mcq('ie-004', 1, 'planning', 'Economic growth means', 'a steady increase in the country\'s capacity to produce goods and services', ['a fall in the prices of goods', 'a rise in the number of banks', 'an increase in the government\'s debt'],
+      'Growth is shown by rising GDP: more productive capital, more services that support production, or a larger output.'),
+    mcq('ie-005', 1, 'planning', 'Modernisation as a goal of planning includes', 'adopting new technology and changing social outlook, such as treating women as equal to men', ['building only temples and monuments', 'stopping all imports', 'closing the public sector'],
+      'Modernisation covers both new methods of production and a change in social outlook.'),
+    mcq('ie-006', 1, 'planning', 'Self-reliance as a goal of planning means', 'avoiding or reducing imports of goods that can be produced in the country', ['exporting all goods', 'depending on foreign aid', 'having no trade at all'],
+      'The aim was to cut dependence on foreign countries, especially for foodgrains and key industrial goods.'),
+    mcq('ie-007', 1, 'planning', 'Equity as a goal of planning means', 'the benefits of development must reach the poor as well as the rich', ['everyone must earn exactly the same', 'all industries should be private', 'all land must be owned by the state'],
+      'Equity asks that growth should reduce poverty and inequality, not only raise the average income.'),
+    mcq('ie-008', 2, 'planning', 'The Second Five Year Plan emphasised', 'the development of heavy industries in the public sector', ['only agriculture and irrigation', 'the export of services', 'software and information technology'],
+      'The Second Plan (1956 to 1961) followed a strategy of rapid industrialisation based on heavy industries such as steel and machinery.'),
+    mcq('ie-009', 2, 'planning', 'The strategy of the Second Five Year Plan is associated with', 'P. C. Mahalanobis', ['Amartya Sen', 'Verghese Kurien', 'Dadabhai Naoroji'],
+      'P. C. Mahalanobis, a statistician, prepared the development model that gave priority to heavy industry.'),
+    mcq('ie-010', 2, 'agriculture', 'The first major step in land reforms after independence was', 'abolition of intermediaries such as zamindars', ['introducing high-yielding seeds', 'opening of foreign trade', 'licensing of industry'],
+      'Abolishing intermediaries brought tillers into direct contact with the government and gave them ownership rights.'),
+    mcq('ie-011', 1, 'agriculture', 'A land ceiling is', 'a legal limit on the amount of land one person can own', ['a tax on the sale of land', 'the minimum size of a farm', 'a subsidy for land purchase'],
+      'Ceilings aimed to reduce concentration of land in a few hands and to give surplus land to landless farmers.'),
+    mcq('ie-012', 2, 'agriculture', 'Tenancy reform aimed to', 'give tenants security of tenure and regulate the rents', ['ban agriculture', 'increase the rent', 'take land from tenants'],
+      'Tenancy laws tried to protect cultivators from eviction and from very high rents.'),
+    mcq('ie-013', 2, 'agriculture', 'The Green Revolution of the mid-1960s was based mainly on', 'high-yielding variety seeds, fertilisers and assured irrigation', ['abolition of zamindari', 'import of foodgrains', 'nationalisation of banks'],
+      'HYV seeds gave a much higher yield per hectare when combined with fertiliser and reliable water.'),
+    mcq('ie-014', 1, 'agriculture', 'The Green Revolution mainly raised the output of', 'wheat and rice', ['jute and tea', 'cotton and rubber', 'pulses and oilseeds'],
+      'The new seeds were first developed for wheat and rice, so the gains were largest for these crops.'),
+    mcq('ie-015', 1, 'agriculture', 'Which state was among the first to gain from the Green Revolution?', 'Punjab', ['Nagaland', 'Sikkim', 'Mizoram'],
+      'Punjab, together with parts of Haryana, western Uttar Pradesh, Andhra Pradesh and Tamil Nadu, benefited early: places with irrigation.'),
+    mcq('ie-016', 2, 'agriculture', 'The marketed surplus of a farm is', 'the part of its output that is sold in the market', ['the part kept for own use', 'the land rented out', 'the seeds imported'],
+      'After the Green Revolution, the marketed surplus of foodgrains rose, helping to feed growing cities and to build stocks.'),
+    mcq('ie-017', 2, 'agriculture', 'A common criticism of the Green Revolution is that it', 'widened gaps between regions and between large and small farmers', ['reduced foodgrain output', 'abolished fertiliser use', 'stopped the use of machines'],
+      'The costly inputs favoured larger farmers and irrigated regions, while small farmers lagged. Risk of pests on the new varieties was another concern.'),
+    mcq('ie-018', 2, 'agriculture', 'Subsidies on fertiliser and electricity were given to farmers mainly to', 'encourage small farmers to adopt new technology', ['discourage production', 'reduce irrigation', 'raise the price of food'],
+      'Subsidised inputs made the new methods affordable for farmers with little capital.'),
+    mcq('ie-019', 2, 'industry', 'The Industrial Policy Resolution of 1956 divided industries into', 'three categories', ['two categories', 'four categories', 'five categories'],
+      'One group was reserved for the state, a second group was open to both state and private firms (the state taking the lead), and a third left to private enterprise.'),
+    mcq('ie-020', 2, 'industry', 'Industrial licensing under the Industries (Development and Regulation) Act, 1951 meant', 'a firm needed government permission to start or expand an industry', ['all firms were closed', 'firms were free to produce anything', 'only imports required permission'],
+      'Licensing was used to guide industry to chosen products and regions, but it also created delays.'),
+    mcq('ie-021', 1, 'industry', 'A public sector enterprise is one that is', 'owned and run by the government', ['owned by a family', 'owned by foreign companies', 'owned by workers only'],
+      'In the planning era, the public sector took the lead in heavy industry and infrastructure.'),
+    mcq('ie-022', 1, 'industry', 'A mixed economy is one in which', 'both the public sector and the private sector work', ['only the government produces', 'only private firms produce', 'there is no trade'],
+      'India after independence adopted a mixed economy: the state led in key industries while private enterprise also functioned.'),
+    mcq('ie-023', 2, 'trade', 'Import substitution means', 'producing at home goods that used to be imported, protected by tariffs and quotas', ['importing more and producing less', 'exporting only raw materials', 'banning all exports'],
+      'The idea was to save foreign exchange and build home industries behind a protective wall.'),
+    mcq('ie-024', 1, 'trade', 'A quota on imports is', 'a limit on the quantity of a good that may be imported', ['a tax on imports', 'a subsidy on exports', 'a ban on all trade'],
+      'A tariff is a tax; a quota is a quantity limit. Both protected domestic industry.',
+      'Tariff and quota are different tools.'),
+    mcq('ie-025', 2, 'banking', 'In July 1969, the government nationalised', '14 major commercial banks', ['all banks', 'the Reserve Bank of India', 'all insurance companies at once'],
+      'The aim was to direct bank credit to agriculture and small enterprises and to spread banking in rural areas.'),
+    mcq('ie-026', 1, 'sectors', 'Banking, transport and communication belong to the', 'tertiary (services) sector', ['primary sector', 'secondary sector', 'informal sector only'],
+      'Primary = agriculture and allied; secondary = industry; tertiary = services.'),
+    mcq('ie-027', 3, 'sectors', 'Agriculture\'s share in GDP is 20% while it employs 60% of the workforce. Output per worker in agriculture compared with the economy-wide average is', 'one-third of it', ['three times it', 'equal to it', 'one-half of it'],
+      'Relative productivity = (20 ÷ 60) ÷ (100 ÷ 100) = 1/3.',
+      'A large share of workers but a small share of output means low output per worker.'),
+    mcq('ie-028', 2, 'agriculture', 'Wheat output rises from 50 to 60 million tonnes. The rise is', '20%', ['10%', '16.7%', '60%'],
+      '(60 − 50) ÷ 50 × 100 = <b>20%</b>.'),
+    asr('ie-029', 2, 'agriculture', 'The Green Revolution raised foodgrain output in India.', 'High-yielding variety seeds gave much higher yield per hectare.', 0,
+      'Both true; the higher-yielding seeds are the reason output rose.'),
+    asr('ie-030', 2, 'agriculture', 'Land ceilings help to reduce the concentration of land ownership.', 'Land ceilings allow any person to hold any amount of land.', 2,
+      'A is true; R is false: a ceiling sets a limit.'),
+    asr('ie-031', 3, 'planning', 'India adopted a mixed economy after independence.', 'The Second Plan gave priority to heavy industries.', 1,
+      'Both true. The Second Plan is an example of the strategy, but it does not explain why the economy was mixed.'),
+    asr('ie-032', 2, 'trade', 'The policy of import substitution aimed to increase imports of consumer goods.', 'Tariffs and quotas protected domestic industries from foreign competition.', 3,
+      'A is false: the aim was to replace imports with home production. R is true.'),
+    mat('ie-033', 2, 'planning', ['A. Growth', 'B. Modernisation', 'C. Self-reliance', 'D. Equity'], ['1. Benefits of development reaching the poor', '2. Less dependence on imports', '3. Rising capacity to produce goods and services', '4. New technology and social change'],
+      'A-3, B-4, C-2, D-1', ['A-4, B-3, C-2, D-1', 'A-3, B-4, C-1, D-2', 'A-2, B-4, C-3, D-1'],
+      'Growth is more output; modernisation is technology and social outlook; self-reliance is fewer imports; equity is fair sharing.'),
+    mat('ie-034', 2, 'planning', ['A. Land reforms', 'B. Green Revolution', 'C. Industrial licensing', 'D. Import substitution'], ['1. Abolition of intermediaries', '2. High-yielding variety seeds', '3. Permission needed to start an industry', '4. Protecting home industry from imports'],
+      'A-1, B-2, C-3, D-4', ['A-2, B-1, C-3, D-4', 'A-1, B-2, C-4, D-3', 'A-1, B-3, C-2, D-4'],
+      'Match each policy with what it did.'),
+    mcq('ie-035', 2, 'colonial', 'Under British rule, India was mainly made a', 'supplier of raw materials and a market for finished goods from Britain', ['major exporter of machinery', 'centre of heavy industry', 'closed economy with no trade'],
+      'Indian handicrafts declined as cheap machine-made goods came in, while raw materials such as cotton and jute went out.'),
+    mcq('ie-036', 2, 'sectors', 'Between 1950 and 1990, the share of agriculture in GDP', 'fell significantly, but the share of the workforce in agriculture fell only a little', ['fell, and the workforce share fell by the same amount', 'rose strongly', 'stayed exactly the same'],
+      'Output shifted towards industry and services, but most workers stayed in agriculture, a sign of the slow structural change of that period.'),
+    mcq('ie-037', 1, 'planning', 'The Planning Commission was replaced in 2015 by the', 'NITI Aayog', ['Finance Commission', 'Election Commission', 'Law Commission'],
+      'NITI Aayog (National Institution for Transforming India) took over the role of the policy think tank.'),
+    mcq('ie-038', 2, 'agriculture', 'In the 1960s India\'s foodgrain situation was such that the country', 'had to import foodgrains', ['exported large amounts', 'had a huge surplus', 'banned farming'],
+      'Food shortages and dependence on imports were among the reasons for the Green Revolution and for the goal of self-reliance.'),
+  ],
+  gens: [
+    { id: 'ie-g01', type: 'mcq', level: 2, sub: 'agriculture', ...T,
+      make(rng) {
+        const a = pick(rng, 40, 100, 10), pc = choose(rng, [10, 20, 25, 30, 40, 50]), b = a * (1 + pc / 100);
+        const { options, answer } = shuffleOpts(rng, pc, [(pc * 100) / (100 + pc), pc / 2, pc + 10], (v) => `${fmt(v, 1)}%`);
+        return { q: `Foodgrain output rises from ${fmt(a, 0)} to ${fmt(b, 0)} million tonnes. The percentage increase is`, options, answer, a, b, pc,
+          sol: steps(`Increase = ${fmt(b, 0)} − ${fmt(a, 0)} = ${fmt(b - a, 0)}.`, `${fmt(b - a, 0)} ÷ ${fmt(a, 0)} × 100 = <b>${pc}%</b>.`), trap: 'Divide by the starting output, not the final output.' };
+      },
+      verify: (p) => (`${fmt(((p.b - p.a) / p.a) * 100, 1)}%` === p.options[p.answer] ? p.answer : -1) },
+    { id: 'ie-g02', type: 'mcq', level: 3, sub: 'sectors', ...T,
+      make(rng) {
+        const g = choose(rng, [10, 15, 20, 25]), w = choose(rng, [50, 60, 75]), r = g / w;
+        const { options, answer } = shuffleOpts(rng, r, [w / g, 1, g / 100], (v) => fmt(v, 2));
+        return { q: `A sector produces ${g}% of GDP and employs ${w}% of the workforce. Its output per worker relative to the economy-wide average is`, options, answer, g, w, r,
+          sol: steps(`Relative output per worker = share of GDP ÷ share of workforce.`, `= ${g} ÷ ${w} = <b>${fmt(r, 2)}</b> of the average.`), trap: 'A value below 1 means output per worker is lower than average.' };
+      },
+      verify: (p) => (fmt(p.g / p.w, 2) === p.options[p.answer] ? p.answer : -1) },
+  ],
+};
