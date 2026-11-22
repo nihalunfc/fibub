@@ -86,6 +86,8 @@ export default {
       { id: 'waveguides', name: 'Waveguides, transmission lines, cavities and optical fibres' },
       { id: 'radiation', name: 'Radiation from dipoles and accelerated charges' },
       { id: 'covariant-electrodynamics', name: 'Electrodynamics and relativity: covariant form, field transformations' },
+      { id: 'retarded-potentials', name: 'Liénard-Wiechert fields and radiation (NET)' },
+      { id: 'plasma-dispersion', name: 'Plasma oscillations and dispersion (NET)' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
@@ -103,6 +105,9 @@ export default {
       { id: 'photon-phonon-gases', name: 'Photon and phonon gases, Bose-Einstein condensation' },
       { id: 'fermi-gas', name: 'The degenerate Fermi gas' },
       { id: 'phase-transitions', name: 'Phase transitions and critical phenomena' },
+      { id: 'fluctuations-brownian', name: 'Fluctuations, diffusion and Brownian motion (NET)' },
+      { id: 'ising-landau', name: 'The Ising model and Landau theory (NET)' },
+      { id: 'transport', name: 'Kinetic theory of transport (NET)' },
     ] },
     { id: 'modern', name: 'Modern physics', topics: [
       { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
@@ -122,6 +127,8 @@ export default {
       { id: 'variational-wkb', name: 'The variational method and WKB' },
       { id: 'time-dependent-perturbation', name: 'Time-dependent perturbation theory and Fermi\'s golden rule' },
       { id: 'identical-particles', name: 'Identical particles' },
+      { id: 'scattering-theory', name: 'Scattering: Born approximation and partial waves (NET)' },
+      { id: 'relativistic-quantum', name: 'Klein-Gordon and Dirac equations (NET)' },
     ] },
     { id: 'atomic', name: 'Atomic and molecular physics', topics: [
       { id: 'fine-structure', name: 'Hydrogen spectra and fine structure' },
