@@ -10,6 +10,10 @@ export type CourseSyllabus = {
   audience: string;
   updated: string;
   footnote?: string; // the small print under every lesson (default: the Offline AI price note)
+  // Lesson kit (public/learn-kit/): step-by-step "watch it happen" players, live problems, count-ups, PNG downloads
+  // and a printable summary sheet. Figures are JS modules in public/learn-kit/<id>/figs/<name>.js, problems in
+  // public/learn-kit/<id>/problems.js; the course's pages import src/styles/lesson-kit.css.
+  kit?: boolean;
   parts: { name: string; modules: CourseModule[] }[];
 };
 

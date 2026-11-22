@@ -17,18 +17,20 @@ const prev = liveAll[li - 1], next = liveAll[li + 1];
 const parts = splitFigures(entry.rendered?.html ?? '');
 for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${slug}: unknown figure ${p.fig}`);
 const d = entry.data;
+const kitV = course.kit ? Date.now().toString(36) : '';
 const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
 const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
 ---
 <Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article">
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
-  <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug}>
+  <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.id}/` : undefined}>
     <CourseSidebar course={course} live={live} current={slug} />
     <article class="cs-main cs-lesson">
       <p class="cs-kicker">Module {me.module.n}: {me.module.name} · Lesson {me.n} · about {d.minutes} min</p>
       <h1>{d.title}</h1>
       <p class="lead">{d.summary}</p>
+      {course.kit && <p class="cs-kitbar"><button type="button" class="lk-btn" data-action="summary-sheet">⤓ Summary sheet (PDF)</button><span>Key points, meanings and formulas on one page: choose "Save as PDF" in the print box.</span></p>}
       <div class="cs-body">
         {parts.map((p) => { if (p.fig) { const F = figures[p.fig]; return <F arg={p.arg} />; } return <Fragment set:html={p.html} />; })}
       </div>
@@ -47,3 +49,4 @@ const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug,
   </div>
 </Base>
 <script>import '../../scripts/course';</script>
+{course.kit && <script type="module" is:inline src={`/learn-kit/lesson-kit.js?v=${kitV}`}></script>}
