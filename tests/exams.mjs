@@ -80,6 +80,7 @@ for (const c of ['sat', 'lsat']) {
     for (const m of md.matchAll(/data-fig="([a-z0-9-]+)"/g)) ok(`${c}/${f}: figure ${m[1]} exists`, existsSync(new URL(m[1] + '.js', figDir)));
     for (const m of md.matchAll(/data-problem="([a-z0-9-]+)"/g)) ok(`${c}/${f}: problem ${m[1]} exists`, !!PROBLEMS[m[1]]);
     for (const m of md.matchAll(/data-qbank="([a-z0-9-]+)\/([a-z0-9-]+)"/g)) ok(`${c}/${f}: bank topic ${m[1]}/${m[2]} exists`, !!banks[`${m[1]}/${m[2]}`]);
+    for (const m of md.matchAll(/data-bank="([a-z0-9-]+)" data-topics="([a-z0-9,-]+)"/g)) for (const t of m[2].split(',')) ok(`${c}/${f}: practice topic ${m[1]}/${t} exists`, !!banks[`${m[1]}/${t}`]);
     let fm = null; try { fm = yaml.load(md.split('\n---\n')[0].replace(/^---\n/, '')); } catch (e) { console.log(f, String(e).split('\n')[0]); }
     ok(`${c}/${f}: front matter with a 3-question quiz and a short seoTitle`, fm?.quiz?.length === 3 && (!fm.seoTitle || fm.seoTitle.length <= 60));
     ok(`${c}/${f}: quiz answers valid`, (fm?.quiz || []).every((q) => q.ans < q.choices.length));

@@ -149,7 +149,9 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
   const used = new Set();
   const sections = pattern.sections.map((sec) => {
     // anyLevel: take every level (marks per question stay sec.marks); exams like the SAT and LSAT give every question one mark.
-    const mk = (it) => sec.anyLevel || marksOf(it) === sec.marks;
+    // only: { facet: value } keeps a section to part of a bank (e.g. the SAT Math test uses only section: 'math').
+    const only = sec.only || pattern.only;
+    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
     const fits = (it) => it.type === sec.type && mk(it) && !used.has(it.id) && it.type !== 'open';
     // round-robin over topics so one topic cannot fill a section
     const byTopic = new Map();
@@ -192,9 +194,19 @@ export const PATTERNS = {
   ] },
   // SAT Math, both modules together (44 questions in 70 minutes; about three quarters multiple choice). The real test
   // adapts its second module; this practice paper does not.
-  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', sections: [
+  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', only: { section: 'math' }, sections: [
     { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33, anyLevel: true, repeat: true },
     { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11, anyLevel: true, repeat: true },
+  ] },
+  'sat-rw': { name: 'SAT Reading and Writing practice (both modules, not adaptive)', minutes: 64, scheme: 'sat', only: { section: 'rw' }, sections: [
+    { name: 'Reading and Writing', type: 'mcq', marks: 1, count: 54, anyLevel: true, repeat: true },
+  ] },
+  'sat-rw-module': { name: 'SAT Reading and Writing, one module (not adaptive)', minutes: 32, scheme: 'sat', only: { section: 'rw' }, sections: [
+    { name: 'Reading and Writing', type: 'mcq', marks: 1, count: 27, anyLevel: true, repeat: true },
+  ] },
+  'sat-math-module': { name: 'SAT Math, one module (not adaptive)', minutes: 35, scheme: 'sat', only: { section: 'math' }, sections: [
+    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 17, anyLevel: true, repeat: true },
+    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 5, anyLevel: true, repeat: true },
   ] },
   'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', sections: [
     { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
