@@ -3,6 +3,7 @@
 // Simpson and Gauss quadrature (error orders, Richardson extrapolation), Euler, Heun and Runge-Kutta methods for
 // ODEs, stability and symplectic integrators, linear systems. Original questions for fibub.
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
+import more from './numerical-methods.more.gen.js';
 
 const trap = (f, a, b, n) => { const h = (b - a) / n; let s = (f(a) + f(b)) / 2; for (let i = 1; i < n; i++) s += f(a + i * h); return s * h; };
 const simp = (f, a, b, n) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
@@ -342,5 +343,6 @@ export default {
           sol: `${xs.map((v, i) => `$x_{${i + 1}} = ${v}$`).join(', ')}. The iterates approach the fixed point $x^* = ${round(fix, 5)}$, since $|g'(x^*)| = ${round(kind === 'sqrt' ? 1 / (2 * Math.sqrt(fix + c)) : Math.abs(a), 4)} < 1$; the error shrinks by about that factor each step.` };
       },
       verify: (p) => { let x = p.x0; for (let i = 0; i < p.N; i++) x = p.kind === 'sqrt' ? (x + p.c) ** 0.5 : p.a * x + p.b; return x; } },
+    ...more,
   ],
 };

@@ -3,6 +3,7 @@
 // S4), the orthogonality theorem and reducing representations, Lie groups SO(N), SU(N), U(N), generators and
 // commutators, SU(2) addition of angular momenta and SU(3) multiplets. Original questions for fibub.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './group-theory.more.gen.js';
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const C3V = 'The character table of $C_{3v}$ (isomorphic to $S_3$), with classes $E$, $2C_3$, $3\\sigma_v$, is: $A_1$: $(1, 1, 1)$; $A_2$: $(1, 1, -1)$; $E$: $(2, -1, 0)$.';
@@ -352,5 +353,6 @@ export default {
           trap: 'All rotations by the same angle form one class, so the character depends only on $\\theta$, not on the axis.' };
       },
       verify: (p) => { let s = 0; for (let m = -p.j; m <= p.j + 1e-9; m++) s += Math.cos(m * p.th); return s; } },
+    ...more,
   ],
 };

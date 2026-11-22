@@ -4,6 +4,7 @@
 // the Poisson, Helmholtz, screened and heat kernels.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './delta-greens-functions.more.gen.js';
 
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const tm = (c, v) => (c === 0 ? '' : ` ${c < 0 ? '-' : '+'} ${Math.abs(c) === 1 ? '' : Math.abs(c)}${v}`); // signed term
@@ -353,5 +354,6 @@ export default {
           trap: 'A suddenly applied force does not give the static displacement at once.' };
       },
       verify: (p) => rk4(() => p.F, 0, p.w0 * p.w0, 0, 0, p.t) },
+    ...more,
   ],
 };

@@ -4,6 +4,7 @@
 // seen from moving frames, and the forces between moving charges (GATE/NET level).
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
+import more from './covariant-electrodynamics.more.gen.js';
 
 const c = C.c;
 const K = 1 / (4 * Math.PI * C.eps0);
@@ -378,5 +379,6 @@ export default {
           trap: 'Find $\\gamma$ from the total energy $T + mc^2$, not from $T$ alone.' };
       },
       verify: (p) => Math.pow((p.T + p.m) / p.m, 3) / 10 ** p.ex },
+    ...more,
   ],
 };

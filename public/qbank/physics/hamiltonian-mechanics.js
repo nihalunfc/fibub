@@ -2,6 +2,7 @@
 // phase space and phase portraits, Liouville's theorem, action-angle variables and adiabatic invariants.
 // Original questions for fibub. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './hamiltonian-mechanics.more.gen.js';
 
 const g = 9.8;
 
@@ -347,5 +348,6 @@ export default {
           sol: `With $q = q_{\\max}u$ and $q_{\\max} \\propto E^{1/${n}}$, the action is $J \\propto E^{1/2 + 1/${n}}$, so $T = dJ/dE \\propto E^{1/${n} - 1/2}$, i.e. ${show(right)}.`,
           trap: 'Only the quadratic potential gives a period independent of amplitude.' };
       } },
+    ...more,
   ],
 };

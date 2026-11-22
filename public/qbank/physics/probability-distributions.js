@@ -3,6 +3,7 @@
 // the central limit theorem, change of variables, moments and characteristic functions, Bayes' theorem, covariance.
 // Topic id `probability-distributions` (the GATE topic `probability` is separate). Original questions for fibub.
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
+import more from './probability-distributions.more.gen.js';
 
 const fact = (n) => { let f = 1; for (let i = 2; i <= n; i++) f *= i; return f; };
 const binom = (n, k) => fact(n) / (fact(k) * fact(n - k));
@@ -343,5 +344,6 @@ export default {
         if (p.ask === 'mean') return simpson((x) => x * f(x), 0, 80 / p.a, 8000) / Z;
         let best = 0, bx = 0; for (let x = 0; x < 20 / p.a; x += 0.0005) if (f(x) > best) { best = f(x); bx = x; } return bx;
       } },
+    ...more,
   ],
 };

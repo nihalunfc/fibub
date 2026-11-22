@@ -3,6 +3,7 @@
 // Original questions for GATE and CSIR NET practice (fibub), with a few BSc-level ones also tagged for IIT JAM.
 // Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './linear-vector-spaces.more.gen.js';
 
 export default {
   topic: 'linear-vector-spaces',
@@ -309,5 +310,6 @@ export default {
           sol: `On $|u\\rangle \\pm |v\\rangle$ the operator gives $(1 \\pm c)(|u\\rangle \\pm |v\\rangle)$ with $c = ${c}$, so the eigenvalues are $1 + ${c} = ${pl}$ and $1 - ${c} = ${mi}$. They add to 2, the trace.`,
           trap: 'Squaring the overlap (as for a probability) gives the wrong splitting.' };
       } },
+    ...more,
   ],
 };

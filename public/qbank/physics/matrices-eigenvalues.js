@@ -3,6 +3,7 @@
 // The BSc basics (2x2 eigenvalues, inverse, rank, first Cayley-Hamilton use) are in the JAM topic `matrices`.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './matrices-eigenvalues.more.gen.js';
 
 const pm = (M) => `\\begin{pmatrix} ${M.map((r) => r.join(' & ')).join(' \\\\ ')} \\end{pmatrix}`;
 
@@ -328,5 +329,6 @@ export default {
           trap: 'Off by one: the top-right entry of $A^n$ is $F_n$, the top-left is $F_{n+1}$.' };
       },
       verify: (p) => Math.round((((1 + Math.sqrt(5)) / 2) ** p.n - ((1 - Math.sqrt(5)) / 2) ** p.n) / Math.sqrt(5)) },
+    ...more,
   ],
 };

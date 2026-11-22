@@ -3,6 +3,7 @@
 // infinitesimal generators and the Hamilton-Jacobi equation. Convention throughout:
 // {f, g} = sum_i (df/dq_i dg/dp_i - df/dp_i dg/dq_i), so {q, p} = 1. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './poisson-brackets.more.gen.js';
 
 const g = 9.8;
 const PB = 'Use $\\{f, g\\} = \\sum_i\\left(\\dfrac{\\partial f}{\\partial q_i}\\dfrac{\\partial g}{\\partial p_i} - \\dfrac{\\partial f}{\\partial p_i}\\dfrac{\\partial g}{\\partial q_i}\\right)$.';
@@ -323,5 +324,6 @@ export default {
           sol: `$\\partial S/\\partial\\alpha = x - \\alpha t/m = \\beta$, so $x = \\beta + \\alpha t/m = ${be} + ${al}\\times${t}/${m} = ${answer}$ m.` };
       },
       verify: (p) => p.be + p.al * p.t / p.m },
+    ...more,
   ],
 };

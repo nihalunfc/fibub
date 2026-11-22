@@ -3,6 +3,7 @@
 // beats, beaded strings, rings and chains (dispersion). The JAM topic superposition-coupled has the basics.
 // Original questions for fibub. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './normal-modes.more.gen.js';
 
 const g = 9.8;
 
@@ -316,5 +317,6 @@ export default {
           sol: `Substituting into $m\\ddot x_n = k(x_{n+1} - 2x_n + x_{n-1})$ gives $\\omega_j^2 = \\dfrac{2k}{m}\\left(1 - \\cos\\dfrac{2\\pi j}{N}\\right)$, so $\\omega_j = 2\\sqrt{k/m}\\,|\\sin(\\pi j/N)| = 2\\times${w0}\\times|\\sin(${j}\\pi/${N})| = ${answer}$ rad/s.${N - j !== j ? ` (The mode $j = ${N - j}$ has the same frequency.)` : ''}` };
       },
       verify: (p) => 2 * p.w0 * Math.abs(Math.sin(Math.PI * p.j / p.N)) },
+    ...more,
   ],
 };

@@ -3,6 +3,7 @@
 // fields, dipole-dipole interactions, molecular dipoles, nuclear quadrupoles, magnetic dipoles.
 // Original questions (fibub) for GATE and CSIR NET. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './multipoles.more.gen.js';
 
 const K = 8.9875517923e9, D = 3.33564e-30, E = 1.602176634e-19, PI = Math.PI;
 
@@ -343,5 +344,6 @@ export default {
           trap: 'At the magic angle 54.7° the energy is zero; beyond it the sign flips.' };
       },
       verify: (p) => { const c = Math.cos(p.b * PI / 180); return -p.qc * 1e-9 * (p.a * 1e-3) ** 2 * p.G * 1e8 * (1.5 * c * c - 0.5) * 1e6; } },
+    ...more,
   ],
 };
