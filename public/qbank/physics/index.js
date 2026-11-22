@@ -83,6 +83,11 @@ export default {
       { id: 'x-ray-diffraction', name: 'X-ray diffraction and Bragg\'s law' },
       { id: 'semiconductors', name: 'Semiconductors and the Fermi level' },
       { id: 'diodes', name: 'p-n junctions, diodes and Zener diodes' },
+      { id: 'free-electron-model', name: 'The free electron model' },
+      { id: 'band-theory', name: 'Band theory' },
+      { id: 'semiconductors-hall', name: 'Semiconductors, Landau levels and the Hall effect' },
+      { id: 'magnetism', name: 'Dia-, para-, ferro- and antiferromagnetism' },
+      { id: 'superconductivity', name: 'Superconductivity' },
     ] },
     { id: 'electronics', name: 'Electronics', topics: [
       { id: 'transistors', name: 'Transistors and amplifiers' },
