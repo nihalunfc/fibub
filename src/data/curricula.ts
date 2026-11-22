@@ -51,7 +51,7 @@ export const COURSES: Course[] = [
   { id: 'statistics', name: 'Statistics for analysts', text: 'Averages, spread, probability, distributions, confidence intervals, hypothesis tests and A/B testing, with simulations and every formula worked by hand.', status: 'live', href: '/learn/courses/statistics/' },
   // SQL for analysts and Data modelling (nihal, 2026-11-22): src/courses/sql/, src/courses/data-modelling/.
   { id: 'sql', name: 'SQL for analysts', text: 'Learn SQL by typing it: live editors on a store database, answer checks, and step-by-step pictures of joins, GROUP BY and window functions.', status: 'live', href: '/learn/courses/sql/' },
-  { id: 'data-modelling', name: 'Data modelling and warehousing', text: 'Star schemas, facts and dimensions, slowly changing dimensions, Data Vault and the lakehouse, with live SQL to build a warehouse yourself.', status: 'planned' },
+  { id: 'data-modelling', name: 'Data modelling and warehousing', text: 'Star schemas, facts and dimensions, slowly changing dimensions, Data Vault and the lakehouse, with live SQL to build a warehouse yourself.', status: 'live', href: '/learn/courses/data-modelling/' },
   { id: 'space-sky', name: 'Space and the sky', text: 'Find the planets tonight, measure the Moon, and learn how we know how far away stars are.', status: 'planned' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },

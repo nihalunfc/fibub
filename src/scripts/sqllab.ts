@@ -40,7 +40,8 @@ function mount(host: HTMLElement, spec: Spec) {
 }
 
 export function liven(root: ParentNode = document) {
-  for (const pre of root.querySelectorAll<HTMLElement>('pre[data-language="sql"]:not([data-rn])')) {
+  const pres = [...root.querySelectorAll<HTMLElement>('pre:not([data-rn])')].filter((p) => p.dataset.language === 'sql' || p.querySelector(':scope > code.language-sql'));
+  for (const pre of pres) {
     pre.dataset.rn = '1';
     const spec = parseBlock(pre.textContent ?? '');
     if (spec.mode === 'static') {

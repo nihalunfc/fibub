@@ -44,6 +44,14 @@ export function compareTables(mine: RunTable | undefined, want: RunTable | undef
   return { pass: false, msg: 'Same number of rows, but some values differ from the answer\'s. Check your conditions and sums.' };
 }
 
+/** Save a result table as a CSV file (made on the device; nothing is sent). */
+export function downloadCsv(t: RunTable, name = 'result.csv') {
+  const q = (v: Cell) => { const x = v == null ? '' : String(v); return /[",\n\r]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+  const text = [t.cols, ...t.rows].map((r) => r.map(q).join(',')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 export function drawTable(t: RunTable, max = 200) {
   const box = el('div', 'rn-table');
   if (t.name) box.append(el('div', 'rn-tname', t.name));
@@ -88,7 +96,7 @@ export function mountRunner(host: HTMLElement, cfg: RunnerConfig) {
       out.replaceChildren();
       if (!r.ok) { say(r.error ?? 'Something went wrong.', 'bad'); return r; }
       if (r.note) say(r.note, 'info');
-      for (const t of r.tables ?? []) out.append(drawTable(t, max));
+      for (const t of r.tables ?? []) { out.append(drawTable(t, max)); if (t.rows.length) { const d = btn('Download CSV', 'rn-link'); d.addEventListener('click', () => downloadCsv(t)); out.append(d); } }
       if (r.text) out.append(el('pre', 'rn-text', r.text));
       if (!viz.hidden && cfg.explain) await explain();
       return r;

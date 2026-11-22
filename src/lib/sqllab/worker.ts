@@ -25,7 +25,7 @@ function run(sql: string) {
   for (const st of db.iterateStatements(sql)) {
     try {
       const columns: string[] = st.getColumnNames(); const values: unknown[][] = [];
-      while (st.step()) { values.push(st.get()); if (values.length > 5000) break; }
+      while (st.step()) { values.push(st.get()); if (values.length > 50000) break; }
       if (columns.length) last = { columns, values }; else changes += db.getRowsModified();
     } finally { st.free(); }
   }

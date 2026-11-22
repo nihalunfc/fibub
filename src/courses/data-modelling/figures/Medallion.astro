@@ -1,0 +1,26 @@
+---
+// Medallion layers in a lakehouse: sources → bronze → silver → gold → reports, with what each layer does.
+const steps = [
+  { n: 'Sources', d: 'files, apps, events', k: 'src' },
+  { n: 'Bronze', d: 'raw, as it arrived, plus file and load time; duplicates kept', k: 'br' },
+  { n: 'Silver', d: 'typed, cleaned, de-duplicated, one row per business key', k: 'si' },
+  { n: 'Gold', d: 'business-ready: star schemas, summaries, features', k: 'go' },
+  { n: 'Reports', d: 'Power BI, notebooks, ML', k: 'src' },
+];
+---
+<figure class="cs-fig md">
+  <ol class="md-flow">{steps.map((s) => <li class={`md-${s.k}`}><strong>{s.n}</strong><span>{s.d}</span></li>)}</ol>
+  <figcaption>Each layer is rebuilt from the one before it. Bronze is never changed, so a fix to a cleaning rule can always be replayed into silver and gold.</figcaption>
+</figure>
+<style is:inline>
+.md-flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .md-flow { grid-template-columns: repeat(5, 1fr); gap: 18px; } }
+.md-flow li { position: relative; border: 2px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); }
+.md-flow li strong { display: block; font-size: 14px; }
+.md-flow li span { display: block; font-size: 12.5px; color: var(--muted); }
+.md-flow li:not(:last-child)::after { content: '↓'; position: absolute; left: 50%; bottom: -21px; transform: translateX(-50%); color: var(--muted); }
+@media (min-width: 720px) { .md-flow li:not(:last-child)::after { content: '→'; left: auto; right: -15px; bottom: auto; top: 50%; transform: translateY(-50%); } }
+.md-br { border-style: dashed; border-color: var(--muted); }
+.md-si { border-color: var(--ink); }
+.md-go { border-color: var(--accent); background: var(--accent-soft); }
+</style>

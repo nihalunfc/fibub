@@ -1,0 +1,41 @@
+---
+// Inmon (top-down: sources → staging → normalised EDW → dependent star marts) beside Kimball
+// (bottom-up: sources → staging → conformed star marts on the bus). Plain HTML so it reflows at 375 px.
+const inmon = [
+  ['Sources', 'tills, web shop, CRM'],
+  ['Staging', 'copies of each source'],
+  ['Enterprise warehouse', 'normalised (about 3NF), integrated, with history'],
+  ['Dependent marts', 'stars per subject, built only from the warehouse'],
+  ['Reports', 'Power BI, Excel, SQL'],
+];
+const kimball = [
+  ['Sources', 'tills, web shop, CRM'],
+  ['Staging', 'copies of each source'],
+  ['Conformed star schemas', 'one per business process, sharing dimensions (the bus)'],
+  ['Reports', 'Power BI, Excel, SQL'],
+];
+---
+<figure class="cs-fig ik">
+  <div class="ik-cols">
+    <div class="ik-col">
+      <h4>Inmon: top-down</h4>
+      <ol>{inmon.map(([n, d], i) => <li class={i === 2 ? 'ik-key' : ''}><strong>{n}</strong><span>{d}</span></li>)}</ol>
+    </div>
+    <div class="ik-col">
+      <h4>Kimball: bottom-up</h4>
+      <ol>{kimball.map(([n, d], i) => <li class={i === 2 ? 'ik-key' : ''}><strong>{n}</strong><span>{d}</span></li>)}</ol>
+    </div>
+  </div>
+  <figcaption>Both end in stars that people query. Inmon puts an integrated, normalised warehouse in the middle and feeds every mart from it; Kimball goes straight to conformed stars and lets the shared dimensions tie them together.</figcaption>
+</figure>
+<style is:inline>
+.ik-cols { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.ik-col h4 { margin: 0 0 8px; font-size: 15px; }
+.ik-col ol { list-style: none; margin: 0; padding: 0; }
+.ik-col li { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--bg); position: relative; margin-bottom: 18px; }
+.ik-col li:last-child { margin-bottom: 0; }
+.ik-col li:not(:last-child)::after { content: '↓'; position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); color: var(--muted); font-size: 13px; line-height: 18px; }
+.ik-col li strong { display: block; font-size: 14px; }
+.ik-col li span { display: block; font-size: 13px; color: var(--muted); }
+.ik-col li.ik-key { border-color: var(--accent); background: var(--accent-soft); }
+</style>
