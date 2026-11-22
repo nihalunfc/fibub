@@ -1,0 +1,35 @@
+---
+// SIM for 7.6: sample ratio mismatch. With a planned 50/50 split, how far from 50/50 can the counts drift by
+// chance? Move the split and the total and watch the chi-square p-value.
+---
+<figure class="cs-fig mlf" data-srm>
+  <span class="cs-figtag">Try it: is the split broken?</span>
+  <canvas aria-label="The share of visitors in group B, with the range chance alone would produce for this many visitors"></canvas>
+  <div class="mlf-ctl">
+    <label>Total visitors: <output data-v="n"></output><input type="range" name="n" min="2" max="6" step="0.05" value="5" /></label>
+    <label>Share that landed in B: <output data-v="s"></output><input type="range" name="s" min="0.47" max="0.53" step="0.0005" value="0.505" /></label>
+  </div>
+  <div class="mlf-read"><div><span>visitors A / B</span><b data-ab></b></div><div><span>χ² p-value for 50/50</span><b data-p></b></div><div><span>verdict (threshold p &lt; 0.001)</span><b data-v></b></div></div>
+  <figcaption>The shaded band is the 99.9 % range for B's share if visitors really were split 50/50. With 1,000 visitors a 50.5 % share is nothing; with 100,000 visitors (50,500 vs 49,500) it is far outside the band, so something in the setup is losing or adding visitors on one side. Because tests have so many visitors, the check uses a strict threshold (p &lt; 0.001) to avoid false alarms.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct, fmt } from './skit';
+  import { srmTest } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-srm]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [2, 6], y: [0.47, 0.53], h: 230, xLabel: 'log10(total visitors)', yLabel: 'share in B' });
+    const N = slider(fig, 'n', () => draw(), (v) => Math.round(10 ** v).toLocaleString('en')), S = slider(fig, 's', () => draw(), (v) => pct(v, 2));
+    function draw() {
+      const n = Math.round(10 ** N()), s = S(), b = Math.round(n * s), a = n - b, r = srmTest([a, b], [1, 1]);
+      p.begin();
+      const up: [number, number][] = [], dn: [number, number][] = [];
+      for (let x = 2; x <= 6.001; x += 0.05) { const h = 3.29 * Math.sqrt(0.25 / 10 ** x); up.push([x, Math.min(0.53, 0.5 + h)]); dn.unshift([x, Math.max(0.47, 0.5 - h)]); }
+      p.poly([...up, ...dn], { fill: p.pal.accent, alpha: 0.18 });
+      p.line(2, 0.5, 6, 0.5, { color: p.pal.muted, width: 1, dash: [5, 4] });
+      p.dot(N(), s, { r: 6, color: r.p < 0.001 ? p.pal.accent2 : p.pal.ink }).end();
+      put(fig, 'ab', `${a.toLocaleString('en')} / ${b.toLocaleString('en')}`);
+      put(fig, 'p', r.p < 0.0001 ? '< 0.0001' : fmt(r.p, 4)); put(fig, 'v', r.p < 0.001 ? 'mismatch: investigate' : 'fine');
+    }
+    live(cv, draw);
+  }
+</script>

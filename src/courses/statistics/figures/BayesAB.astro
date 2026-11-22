@@ -1,0 +1,51 @@
+---
+// SIM for 7.7: the Bayesian view of an A/B test. Each group's conversion rate gets a Beta posterior; the
+// chance that B beats A and the expected loss of choosing B come from the overlap of the two curves.
+---
+<figure class="cs-fig mlf" data-bayesab>
+  <span class="cs-figtag">Try it: chance that B is better</span>
+  <canvas aria-label="Two posterior curves for the conversion rates of A and B"></canvas>
+  <div class="mlf-ctl">
+    <label>Visitors per group: <output data-v="n"></output><input type="range" name="n" min="100" max="20000" step="100" value="2000" /></label>
+    <label>Conversions in A: <output data-v="a"></output><input type="range" name="a" min="0" max="2000" step="1" value="80" /></label>
+    <label>Conversions in B: <output data-v="b"></output><input type="range" name="b" min="0" max="2000" step="1" value="100" /></label>
+  </div>
+  <div class="mlf-read"><div><span>P(B better than A)</span><b data-pb></b></div><div><span>expected loss if you pick B</span><b data-loss></b></div><div><span>95 % credible interval for B − A</span><b data-ci></b></div></div>
+  <figcaption>Starting from a flat prior (every rate equally plausible), each curve shows how plausible each conversion rate is after the data: a Beta(conversions + 1, non-conversions + 1) distribution. The chance B beats A is the share of plausible (A, B) pairs where B is higher. "Expected loss" is how many points you would lose, on average, if you picked B and it was actually worse. Teams often ship when that loss is below a tiny threshold they agreed on.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct } from './skit';
+  import { lgamma } from '../../../lib/stats/dist';
+  import { rng, quantile } from '../../../lib/ml/core';
+  const betaPdf = (x: number, a: number, b: number) => (x <= 0 || x >= 1 ? 0 : Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) + lgamma(a + b) - lgamma(a) - lgamma(b)));
+  /** A Beta(a, b) random number from two gamma draws (Marsaglia-Tsang). */
+  function gamma(R: ReturnType<typeof rng>, k: number): number {
+    if (k < 1) return gamma(R, k + 1) * R.next() ** (1 / k);
+    const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) { const z = R.normal(), v = (1 + c * z) ** 3; if (v <= 0) continue; const u = R.next(); if (Math.log(u) < 0.5 * z * z + d - d * v + d * Math.log(v)) return d * v; }
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bayesab]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0, 0.1], y: [0, 1], h: 230, xLabel: 'conversion rate', noYTicks: true });
+    const ia = fig.querySelector<HTMLInputElement>('input[name=a]')!, ib = fig.querySelector<HTMLInputElement>('input[name=b]')!;
+    const N = slider(fig, 'n', () => { ia.max = ib.max = String(N()); draw(); }), A = slider(fig, 'a', () => draw()), B = slider(fig, 'b', () => draw());
+    function draw() {
+      const n = N(), a = Math.min(A(), n), b = Math.min(B(), n), aa = [a + 1, n - a + 1], bb = [b + 1, n - b + 1];
+      const ma = aa[0] / (n + 2), mb = bb[0] / (n + 2), sd = Math.sqrt(Math.max(ma * (1 - ma), mb * (1 - mb)) / (n + 3));
+      const lo = Math.max(0, Math.min(ma, mb) - 5 * sd), hi = Math.min(1, Math.max(ma, mb) + 5 * sd);
+      const fa = (x: number) => betaPdf(x, aa[0], aa[1]), fb = (x: number) => betaPdf(x, bb[0], bb[1]);
+      p.o.x = [lo, hi]; p.o.y = [0, Math.max(fa(ma), fb(mb)) * 1.15]; p.begin();
+      p.fn(fa, { color: p.pal.accent, width: 2.5 }).fn(fb, { color: p.pal.accent2, width: 2.5 });
+      p.text(ma, fa(ma), 'A', { align: 'center', base: 'bottom', bold: true, color: p.pal.accent, dy: -3 }).text(mb, fb(mb), 'B', { align: 'center', base: 'bottom', bold: true, color: p.pal.accent2, dy: -3 }).end();
+      const R = rng(5), diffs: number[] = []; let win = 0, loss = 0;
+      for (let i = 0; i < 4000; i++) {
+        const xa = gamma(R, aa[0]), ya = gamma(R, aa[1]), xb = gamma(R, bb[0]), yb = gamma(R, bb[1]);
+        const ra = xa / (xa + ya), rb = xb / (xb + yb), d = rb - ra; diffs.push(d); if (d > 0) win++; else loss -= d;
+      }
+      diffs.sort((x, y) => x - y);
+      put(fig, 'pb', pct(win / 4000, 1)); put(fig, 'loss', `${fmt((100 * loss) / 4000, 3)} points`);
+      put(fig, 'ci', `${fmt(100 * quantile(diffs, 0.025), 2)} to ${fmt(100 * quantile(diffs, 0.975), 2)} points`);
+    }
+    live(cv, draw);
+  }
+</script>

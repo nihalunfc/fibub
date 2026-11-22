@@ -1,0 +1,36 @@
+---
+// SIM for 7.8: the novelty effect. A new feature gets an early burst of attention that fades. The daily lift
+// falls towards its long-run level, and a test stopped after the first week overstates the effect.
+---
+<figure class="cs-fig mlf" data-novel>
+  <span class="cs-figtag">Try it: does the lift last?</span>
+  <canvas aria-label="Daily lift over six weeks falling from a high start towards a lower long-run level, with the running average"></canvas>
+  <div class="mlf-ctl">
+    <label>Long-run lift: <output data-v="lr"></output><input type="range" name="lr" min="-2" max="5" step="0.5" value="1" /></label>
+    <label>Extra lift at launch (novelty): <output data-v="nv"></output><input type="range" name="nv" min="-6" max="10" step="0.5" value="6" /></label>
+    <label>Stop the test after day: <output data-v="d"></output><input type="range" name="d" min="7" max="42" step="7" value="7" /></label>
+  </div>
+  <div class="mlf-read"><div><span>estimate if stopped then</span><b data-e></b></div><div><span>true long-run lift</span><b data-t></b></div></div>
+  <figcaption>Dots: each day's measured lift (%) for 6 weeks, with noise. Line: the running estimate from day 1. A negative launch value is the opposite, a learning curve: people dislike change at first and come round. Either way, plot the lift by day, compare new and returning users, and run long enough for it to settle. Made-up numbers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng, mean } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-novel]')) {
+    const cv = fig.querySelector('canvas')!, Z = (() => { const R = rng(33); return Array.from({ length: 42 }, () => R.normal()); })();
+    const p = new Plot(cv, { x: [1, 42], y: [-6, 14], h: 240, xLabel: 'day', yLabel: 'lift %' });
+    const sg = (v: number) => `${v > 0 ? '+' : ''}${fmt(v, 1)} %`;
+    const LR = slider(fig, 'lr', () => draw(), sg), NV = slider(fig, 'nv', () => draw(), sg), D = slider(fig, 'd', () => draw());
+    function draw() {
+      const lr = LR(), nv = NV(), d = D(), lift = Z.map((z, i) => lr + nv * Math.exp(-i / 6) + 1.2 * z);
+      const run = lift.map((_, i) => mean(lift.slice(0, i + 1)));
+      p.begin(); p.line(1, 0, 42, 0, { color: p.pal.muted, width: 1 }); p.line(1, lr, 42, lr, { color: p.pal.ink, width: 1.5, dash: [5, 4] });
+      p.rect(1, -6, d - 1, 20, { fill: p.pal.accent2, alpha: 0.07 });
+      lift.forEach((v, i) => p.dot(i + 1, v, { r: 3, color: p.pal.accent, alpha: 0.6 }));
+      p.path(run.map((v, i) => [i + 1, v]), { color: p.pal.accent2, width: 2.5 });
+      p.dot(d, run[d - 1], { r: 6, color: p.pal.accent2 }).end();
+      put(fig, 'e', sg(run[d - 1])); put(fig, 't', sg(lr));
+    }
+    live(cv, draw);
+  }
+</script>
