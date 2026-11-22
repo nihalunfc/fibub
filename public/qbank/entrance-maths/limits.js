@@ -1036,4 +1036,326 @@ const gens = [
   }, (p) => NL([(x) => ((1 + p.a * x) ** (1 / x) - E_ ** p.a) / x, (x) => (x - sin(p.k * x) / p.k) / x ** 3, (x) => (tan(p.k * x) / p.k - x) / x ** 3][p.kind], 0)),
 ];
 
-export default { topic: 'limits', groups, items: (() => { items.forEach((it, i) => { it.id = `li-${String(i + 1).padStart(3, '0')}`; }); return items; })(), gens };
+items.forEach((it, i) => { it.id = `li-${String(i + 1).padStart(3, '0')}`; });
+
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = false;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `li-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id: `li-${id}`, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const xsq = Math.sqrt, xsin = Math.sin, xcos = Math.cos, xtan = Math.tan, xexp = Math.exp, xln = Math.log, xPI = Math.PI;
+const xgcd = (a, b) => (b ? xgcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = xgcd(n, d); n /= g; d /= g; if (d < 0) { n = -n; d = -d; } return d === 1 ? `${n}` : n < 0 ? `-\\dfrac{${-n}}{${d}}` : `\\dfrac{${n}}{${d}}`; };
+const xsg = (v) => (v < 0 ? `-${-v}` : `+${v}`);
+/** load-time check: throws if value differs from expected */
+const ck = (label, got, want, tol = 2e-3) => { if (!(Math.abs(got - want) <= tol * Math.max(1, Math.abs(want)))) console.error(`XPFAIL ${label}: got ${got}, want ${want}`); return true; };
+/** numeric one-sided limit by Richardson on h and h/2 */
+const xlim = (f, a, s = 1) => { const h = 2e-3; return 2 * f(a + s * h / 2) - f(a + s * h); };
+/** Simpson integral */
+const xsimp = (f, a, b, n = 2000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+/** central derivative */
+const xd = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h);
+const XG = {};
+const XIT = [];
+const XGN = [];
+// ---- load-time numeric checks of every claimed value ----
+const xe = Math.E;
+ck('sin5x/tan2x', xlim((x) => xsin(5 * x) / xtan(2 * x), 0), 2.5);
+ck('x3-27', xlim((x) => (x ** 3 - 27) / (x ** 2 - 9), 3), 27 / 6, 1e-2);
+ck('cos x - cos 3x', xlim((x) => (xcos(x) - xcos(3 * x)) / x ** 2, 0), 4, 1e-3);
+ck('1inf x2', ((1e3 ** 2 + 1) / (1e3 ** 2 - 1)) ** (1e3 ** 2), xe ** 2, 2e-3);
+ck('riemann e', (() => { let s = 0; const n = 1e5; for (let k = 1; k <= n; k++) s += xexp(k / n); return s / n; })(), xe - 1, 1e-4);
+ck('3^x-2^x', xlim((x) => (3 ** x - 2 ** x) / x, 0), xln(1.5), 1e-4);
+ck('const', xlim((x) => (x + -2.5 * x * xcos(x) - -1.5 * xsin(x)) / x ** 3, 0, 1), 1, 5e-3);
+ck('x^x - x', xlim((x) => (x ** x - x) / (xln(x) - x + 1), 1, 1), -2, 2e-2);
+ck('asin-atan', xlim((x) => (Math.asin(x) - Math.atan(x)) / x ** 3, 0), 0.5, 2e-3);
+ck('cbrt', (() => { const x = 1e5; return Math.cbrt(x ** 3 + 3 * x ** 2) - x; })(), 1, 1e-3);
+ck('inv-sqrt sum', (() => { let s = 0; const n = 1e5; for (let k = 1; k <= n; k++) s += 1 / Math.sqrt(n * n + k); return s; })(), 1, 1e-4);
+ck('tan tan', xlim((x) => (xtan(xtan(x)) - xsin(xsin(x))) / (xtan(x) - xsin(x)), 0), 2, 2e-3);
+ck('exp x2', xlim((x) => (xexp(x * x) - xcos(x)) / (x * x), 0), 1.5, 1e-3);
+ck('abc const', xlim((x) => (xexp(x) - 2 * xcos(x) + xexp(-x)) / (x * xsin(x)), 0), 2, 1e-3);
+ck('tan/sin 1/x3', xlim((x) => ((1 + xtan(x)) / (1 + xsin(x))) ** (1 / x ** 3), 0, 1), xexp(0.5), 2e-2);
+ck('tanx/x', xlim((x) => (xtan(x) / x) ** (1 / (x * x)), 0), xexp(1 / 3), 1e-3);
+ck('x2 ln cos', (() => { const x = 1e3; return x * x * xln(xcos(1 / x)); })(), -0.5, 1e-3);
+ck('cot', xlim((x) => 1 / (x * x) - 1 / xtan(x) ** 2, 0), 2 / 3, 1e-3);
+ck('int sin t2', xlim((x) => xsimp((t) => xsin(t * t), 0, x, 200) / x ** 3, 0), 1 / 3, 1e-3);
+ck('7', xlim((x) => (1 - xcos(x) * xcos(2 * x) * xcos(3 * x)) / (x * x), 0), 7, 1e-3);
+ck('r/(n2+r2)', (() => { let s = 0; const n = 1e5; for (let r = 1; r <= n; r++) s += r / (n * n + r * r); return s; })(), xln(2) / 2, 1e-4);
+ck('x - x2 ln', (() => { const x = 1e4; return x - x * x * xln(1 + 1 / x); })(), 0.5, 1e-3);
+ck('xtan3x', xlim((x) => (x * xtan(3 * x) - 3 * x * xtan(x)) / (1 - xcos(3 * x)) ** 2, 0), 32 / 81, 1e-2);
+ck('(1+x)^{1/x}-e over x', xlim((x) => ((1 + x) ** (1 / x) - xe) / x, 0), -xe / 2, 1e-2);
+ck('((1+x)^{1/x}/e)^{1/x}', xlim((x) => ((1 + x) ** (1 / x) / xe) ** (1 / x), 0), xexp(-0.5), 2e-2);
+ck('sin^2 pi sqrt', (() => { const n = 1e6; return xsin(xPI * Math.sqrt(n * n + n)) ** 2; })(), 1, 1e-3);
+ck('4/e', (() => { const n = 1e5; let s = 0; for (let k = 1; k <= n; k++) s += xln(n + k); return xexp(s / n) / n; })(), 4 / xe, 1e-4);
+ck('cos(sin)-cos', xlim((x) => (xcos(xsin(x)) - xcos(x)) / x ** 4, 0), 1 / 6, 1e-2);
+ck('x2(e^(2/x)-...)', (() => { const x = 1e4; return x * x * (xexp(2 / x) - xexp(2 / (x + 1))); })(), 2, 1e-3);
+ck('cbrt 6,3', (() => { const x = 1e5; return Math.cbrt(x ** 3 + 6 * x ** 2) - Math.cbrt(x ** 3 - 3 * x ** 2); })(), 3, 1e-3);
+ck('n2(1-cos)', (() => { const n = 1e4; return n * n * (1 - xcos(Math.sqrt(8) / n)); })(), 4, 1e-3);
+ck('cos2x,cos4x', xlim((x) => (3 + -4 * xcos(2 * x) + xcos(4 * x)) / x ** 4, 0, 1), 8, 2e-2);
+ck('cos7-cos3', xlim((x) => (xcos(3 * x) - xcos(7 * x)) / (x * x), 0), 20, 1e-3);
+ck('(1-cos)/x', xlim((x) => (1 - xcos(x)) / x, 0, 1), 0, 1e-2);
+ck('sin1/x ln', xlim((x) => (xln(Math.sin(x)) / xln(x)), 0, 1), 1, 2e-1);
+ck('prod', (() => { let p = 1; const n = 1e5; for (let k = 2; k <= n; k++) p *= 1 - 1 / (k * k); return p; })(), 0.5, 1e-4);
+ck('(1+1/n)^{n^2}/e^n', (() => { const n = 1e4; return xexp(n * n * xln(1 + 1 / n) - n); })(), xexp(-0.5), 1e-3);
+ck('pi/4 sum', (() => { let s = 0; const n = 1e5; for (let r = 1; r <= n; r++) s += n / (n * n + r * r); return s; })(), xPI / 4, 1e-4);
+ck('ln2 sum', (() => { let s = 0; const n = 1e5; for (let r = 1; r <= n; r++) s += 1 / (n + r); return s; })(), xln(2), 1e-4);
+ck('e^(a... (2^x+4^x+8^x)/3)^(1/x)', xlim((x) => ((2 ** x + 4 ** x + 8 ** x) / 3) ** (1 / x), 0), 4, 1e-3);
+ck('x^2 ln... cot^(1/ln x)', (() => { const x = 1e-8; return Math.exp(xln(1 / xtan(x)) / xln(x)); })(), 1 / xe, 2e-2);
+ck('xk lim', xlim((x) => (xcos(2 * x) - 1) / (x * x), 0), -2, 1e-3);
+
+Object.assign(XG, {
+  xm1: { title: 'Match: standard limits at 0', passage: XR`<p>Match each limit in List I (as $x\to0$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim\dfrac{\tan3x}{\sin2x}$`, XR`B. $\displaystyle\lim\dfrac{1-\cos4x}{x^2}$`, XR`C. $\displaystyle\lim\dfrac{5^x-1}{x\ln5}$`, XR`D. $\displaystyle\lim(1+2x)^{1/x}$`],
+    list2: [XR`p. $1$`, XR`q. $\dfrac32$`, XR`r. $8$`, XR`s. $e^2$`, XR`t. $2$`] },
+  xm2: { title: 'Match: limits as x tends to infinity', passage: XR`<p>Match each limit in List I (as $x\to\infty$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim\dfrac{2x^3+x}{x^3-1}$`, XR`B. $\displaystyle\lim\left(\sqrt{x^2+3x}-x\right)$`, XR`C. $\displaystyle\lim\left(1+\dfrac3x\right)^x$`, XR`D. $\displaystyle\lim\dfrac{\sin x}{x}$`],
+    list2: [XR`p. $\dfrac32$`, XR`q. $2$`, XR`r. $e^3$`, XR`s. $0$`] },
+  xm3: { title: 'Match: limits that are derivatives of $f(x)=x^3$ at $2$', passage: XR`<p>Let $f(x)=x^3$. Match each limit in List I with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim_{h\to0}\dfrac{f(2+h)-f(2)}h$`, XR`B. $\displaystyle\lim_{h\to0}\dfrac{f(2+h)-f(2-h)}h$`, XR`C. $\displaystyle\lim_{x\to2}\dfrac{f(x)-f(2)}{x^2-4}$`, XR`D. $\displaystyle\lim_{h\to0}\dfrac{f(2+h)-f(2)}{2h}$`],
+    list2: [XR`p. $3$`, XR`q. $6$`, XR`r. $12$`, XR`s. $24$`] },
+  xm4: { title: 'Match: how limits at 0 behave', passage: XR`<p>Match each limit in List I with what happens, from List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim_{x\to0}x\sin\dfrac1x$`, XR`B. $\displaystyle\lim_{x\to0^+}\dfrac1{\sin x}$`, XR`C. $\displaystyle\lim_{x\to0}\dfrac{|x|}x$`, XR`D. $\displaystyle\lim_{x\to0^+}x^x$`],
+    list2: [XR`p. equals $0$`, XR`q. equals $1$`, XR`r. does not exist (two different one-sided limits)`, XR`s. is $+\infty$`] },
+  xm5: { title: 'Match: limits of sequences', passage: XR`<p>Match each limit in List I (as $n\to\infty$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim\left(1+\dfrac1n\right)^{2n}$`, XR`B. $\displaystyle\lim n^{1/n}$`, XR`C. $\displaystyle\lim\dfrac{1+2+\cdots+n}{n^2}$`, XR`D. $\displaystyle\lim\dfrac{(n!)^{1/n}}n$`],
+    list2: [XR`p. $\dfrac12$`, XR`q. $1$`, XR`r. $e^2$`, XR`s. $\dfrac1e$`] },
+  xm6: { title: 'Match: the constant that makes the limit work', passage: XR`<p>In each row of List I, $a>0$ is a constant chosen so that the limit (as $x\to0$) has the stated value. Match each row with the value of $a$ in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim\dfrac{1-\cos ax}{x^2}=8$`, XR`B. $\displaystyle\lim\dfrac{\sin ax}{x}=3$`, XR`C. $\displaystyle\lim\dfrac{\tan ax}{\sin3x}=2$`, XR`D. $\displaystyle\lim(1+ax)^{1/x}=e^5$`],
+    list2: [XR`p. $3$`, XR`q. $4$`, XR`r. $5$`, XR`s. $6$`] },
+  xm7: { title: 'Match: the first non-zero series coefficient', passage: XR`<p>Match each limit in List I (as $x\to0$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim\dfrac{e^x-1-x}{x^2}$`, XR`B. $\displaystyle\lim\dfrac{x-\sin x}{x^3}$`, XR`C. $\displaystyle\lim\dfrac{\cos x-1+\frac{x^2}2}{x^4}$`, XR`D. $\displaystyle\lim\dfrac{\tan x-x}{x^3}$`],
+    list2: [XR`p. $\dfrac13$`, XR`q. $\dfrac1{24}$`, XR`r. $\dfrac16$`, XR`s. $\dfrac12$`] },
+  xm8: { title: 'Match: sums that become integrals', passage: XR`<p>Match each limit in List I (as $n\to\infty$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\lim\sum_{r=1}^{n}\dfrac1{n+r}$`, XR`B. $\displaystyle\lim\sum_{r=1}^{n}\dfrac n{n^2+r^2}$`, XR`C. $\displaystyle\lim\dfrac1{n^3}\sum_{r=1}^{n}r^2$`, XR`D. $\displaystyle\lim\dfrac1n\sum_{r=1}^{n}e^{r/n}$`],
+    list2: [XR`p. $\dfrac13$`, XR`q. $e-1$`, XR`r. $\ln2$`, XR`s. $\dfrac\pi4$`] },
+  xp1: { title: 'Passage: a recursive sequence', passage: XR`<p>A sequence is defined by $a_1=1$ and $a_{n+1}=\sqrt{6+a_n}$. It can be shown that it is increasing and that every term is less than $3$, so it converges to a limit $L$.</p>` },
+  xp2: { title: 'Passage: a function known only at one point', passage: XR`<p>$f$ is differentiable on $\mathbb R$ with $f(0)=0$ and $f'(0)=3$. Use only the definition of the derivative as a limit.</p>` },
+});
+
+XIT.push(
+  // ---- L2 ----
+  M(2, 'standard limits', XR`$\displaystyle\lim_{x\to0}\dfrac{\sin5x}{\tan2x}=$`, XR`$\dfrac52$`, [XR`$\dfrac25$`, '$5$', '$1$'],
+    XR`<p>Write $\dfrac{\sin5x}{\tan2x}=\dfrac{\sin5x}{5x}\cdot\dfrac{2x}{\tan2x}\cdot\dfrac{5x}{2x}$. The first two factors tend to $1$ and the last is $\dfrac52$.</p>`, 'Each angle is divided by its own coefficient; the leftover ratio is 5/2, not 2/5.'),
+  M(2, 'factorising', XR`$\displaystyle\lim_{x\to3}\dfrac{x^3-27}{x^2-9}=$`, XR`$\dfrac92$`, ['$9$', '$3$', XR`$\dfrac{27}2$`],
+    XR`<p>Factor: $x^3-27=(x-3)(x^2+3x+9)$ and $x^2-9=(x-3)(x+3)$. Cancel $(x-3)$ and put $x=3$: $\dfrac{9+9+9}{6}=\dfrac{27}6=\dfrac92$.</p>`, 'Cancel the common factor first; direct substitution gives 0/0.'),
+  I(2, 'limits at infinity', XR`$\displaystyle\lim_{x\to\infty}\dfrac{\sqrt{9x^2+1}}{x+2}=$`, 3,
+    XR`<p>Divide top and bottom by $x$ (for $x>0$, $\sqrt{9x^2+1}/x=\sqrt{9+1/x^2}$): $\dfrac{\sqrt{9+1/x^2}}{1+2/x}\to\dfrac{3}{1}=3$.</p>`, 'Divide by the highest power of x; the square root of 9x² behaves like 3x.', () => 3),
+  A(2, 'standard limits', XR`$\displaystyle\lim_{x\to0}\dfrac{\sin(x^\circ)}{x}=\dfrac\pi{180}$, where $x^\circ$ means $x$ degrees.`, XR`The limit $\lim_{x\to0}\dfrac{\sin x}{x}=1$ holds only when $x$ is measured in radians.`, 0,
+    XR`<p>$\sin(x^\circ)=\sin\dfrac{\pi x}{180}$, so the ratio is $\dfrac\pi{180}\cdot\dfrac{\sin(\pi x/180)}{\pi x/180}\to\dfrac\pi{180}$. A is true, and it is true exactly because the standard limit needs radians. R is the explanation.</p>`, 'The standard limit is a statement about radians; degrees bring in a factor of π/180.'),
+  S(2, 'one-sided limits', XR`$\displaystyle\lim_{x\to0}\dfrac{|x|}{x}$ does not exist.`, XR`The left-hand limit is $-1$ and the right-hand limit is $+1$.`, 0,
+    XR`<p>For $x<0$, $|x|=-x$ so the ratio is $-1$; for $x>0$ it is $+1$. The one-sided limits differ, so the two-sided limit does not exist. Both statements are true.</p>`, 'The two-sided limit exists only when both one-sided limits exist and are equal.'),
+  M(2, 'greatest integer', XR`Find $\displaystyle\lim_{x\to2^-}\big([x]+x\big)$, where $[x]$ is the greatest integer function.`, '$3$', ['$4$', '$2$', 'does not exist'],
+    XR`<p>Just left of $2$, $[x]=1$. And $x\to2$. So the sum tends to $1+2=3$.</p>`, '[x] jumps at 2: from the left it is 1, not 2.'),
+  // ---- L3 ----
+  M(3, 'series expansion', XR`$\displaystyle\lim_{x\to0}\dfrac{\cos x-\cos3x}{x^2}=$`, '$4$', ['$-4$', '$2$', '$8$'],
+    XR`<p>$\cos x\approx1-\dfrac{x^2}2$ and $\cos3x\approx1-\dfrac{9x^2}2$. The difference is $\dfrac{8x^2}2=4x^2$. Divide by $x^2$: $4$. (Or: $\cos x-\cos3x=2\sin2x\sin x\approx2\cdot2x\cdot x$.)</p>`, 'The order of subtraction matters: cos x − cos 3x is positive for small x.'),
+  I(3, 'derivative form', XR`If $f$ is differentiable at $2$ with $f'(2)=5$, find $\displaystyle\lim_{h\to0}\dfrac{f(2+3h)-f(2-h)}{h}$.`, 20,
+    XR`<p>Add and subtract $f(2)$: $\dfrac{f(2+3h)-f(2)}{h}+\dfrac{f(2)-f(2-h)}{h}$. The first part is $3\cdot\dfrac{f(2+3h)-f(2)}{3h}\to3f'(2)$. The second is $\dfrac{f(2-h)-f(2)}{-h}\to f'(2)$. Total $4f'(2)=20$.</p>`, 'The step sizes 3h and −h are different: each part picks up its own factor.', () => 4 * 5),
+  M(3, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to\infty}\left(\dfrac{x^2+1}{x^2-1}\right)^{x^2}=$`, '$e^2$', ['$e$', '$1$', '$e^{1/2}$'],
+    XR`<p>Base $=1+\dfrac2{x^2-1}$. The exponent times the excess: $x^2\cdot\dfrac2{x^2-1}\to2$. So the limit is $e^2$.</p>`, 'Use the exponent × (base − 1) rule; the exponent here is x², not x.'),
+  M(3, 'sums as integrals', XR`$\displaystyle\lim_{n\to\infty}\dfrac1n\sum_{k=1}^{n}e^{k/n}=$`, '$e-1$', ['$e$', '$1$', '$e+1$'],
+    XR`<p>This is a Riemann sum for $\int_0^1e^x\,dx$ with the sample at the right end of each strip. The value is $e-1$.</p>`, 'The sum starts at k = 1 but that does not change the limit; no term is missing in the integral.'),
+  N(3, 'standard limits', XR`Evaluate $\displaystyle\lim_{x\to0}\dfrac{3^x-2^x}{x}$ (2 decimal places).`, 0.41, 0.01,
+    XR`<p>$3^x-2^x=(3^x-1)-(2^x-1)$ and $\dfrac{a^x-1}x\to\ln a$. So the limit is $\ln3-\ln2=\ln1.5\approx0.405$, i.e. $0.41$.</p>`, 'The limit is a difference of logarithms, ln 3 − ln 2, not ln(3 − 2).', () => Math.log(1.5)),
+  I(3, 'finding constants', XR`If $\displaystyle\lim_{x\to0}\dfrac{x+ax\cos x-b\sin x}{x^3}=1$, find $4(a+b)$.`, -16,
+    XR`<p>Expand: $x+a\left(x-\dfrac{x^3}2\right)-b\left(x-\dfrac{x^3}6\right)=(1+a-b)x+\left(-\dfrac a2+\dfrac b6\right)x^3+\cdots$</p><p>For a finite limit the $x$-coefficient must vanish: $b=1+a$. The $x^3$ coefficient must be 1: $-\dfrac a2+\dfrac{1+a}6=1$, so $-3a+1+a=6$, $a=-\dfrac52$, $b=-\dfrac32$. Then $4(a+b)=4(-4)=-16$.</p>`, 'Two conditions, two unknowns: first kill the x term, then match the x³ term.', () => 4 * (-2.5 + -1.5)),
+  A(3, 'squeeze', XR`$\displaystyle\lim_{x\to0}x\sin\dfrac1x=0$ although $\displaystyle\lim_{x\to0}\sin\dfrac1x$ does not exist.`, XR`$\left|x\sin\dfrac1x\right|\le|x|$ for every $x\ne0$, and $|x|\to0$.`, 0,
+    XR`<p>$-|x|\le x\sin\frac1x\le|x|$ and both bounds tend to 0, so by squeeze the limit is 0. $\sin\frac1x$ oscillates between $-1$ and $1$ infinitely often near 0, so it has no limit. R explains A.</p>`, 'A bounded oscillating factor times something that tends to 0 gives 0.'),
+  S(3, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to0}(1+x)^{1/x}=e$.`, XR`$\displaystyle\lim_{x\to\infty}(1+x)^{1/x}=e$.`, 1,
+    XR`<p>Statement I is the standard limit. For II, $(1+x)^{1/x}=e^{\ln(1+x)/x}$ and $\dfrac{\ln(1+x)}x\to0$ as $x\to\infty$, so the limit is $e^0=1$. Statement II is false.</p>`, 'The form (1 + small)^(large) needs the base to tend to 1; here the base tends to ∞.'),
+  M(3, 'inverse trigonometric', XR`$\displaystyle\lim_{x\to0}\dfrac{\sin^{-1}x-\tan^{-1}x}{x^3}=$`, XR`$\dfrac12$`, [XR`$\dfrac16$`, XR`$-\dfrac12$`, XR`$\dfrac13$`],
+    XR`<p>$\sin^{-1}x=x+\dfrac{x^3}6+\cdots$ and $\tan^{-1}x=x-\dfrac{x^3}3+\cdots$. Difference: $\left(\dfrac16+\dfrac13\right)x^3=\dfrac{x^3}2$. So the limit is $\dfrac12$.</p>`, 'The cubic term of tan⁻¹x is negative: subtracting it adds 1/3.'),
+  I(3, 'limits at infinity', XR`$\displaystyle\lim_{x\to\infty}\left(\sqrt[3]{x^3+3x^2}-x\right)=$`, 1,
+    XR`<p>$\sqrt[3]{x^3+3x^2}=x\left(1+\dfrac3x\right)^{1/3}\approx x\left(1+\dfrac1x\right)=x+1$. So the difference tends to $1$.</p>`, 'Expand (1 + 3/x)^(1/3) to first order; the 1/3 and the 3 cancel.', () => 1),
+  M(3, 'sandwich', XR`$\displaystyle\lim_{n\to\infty}\left(\dfrac1{\sqrt{n^2+1}}+\dfrac1{\sqrt{n^2+2}}+\cdots+\dfrac1{\sqrt{n^2+n}}\right)=$`, '$1$', ['$0$', XR`$\dfrac12$`, XR`$\infty$`],
+    XR`<p>There are $n$ terms. Each is between $\dfrac1{\sqrt{n^2+n}}$ and $\dfrac1{\sqrt{n^2+1}}$, so the sum is between $\dfrac n{\sqrt{n^2+n}}$ and $\dfrac n{\sqrt{n^2+1}}$. Both bounds tend to 1. By squeeze the limit is $1$.</p>`, 'n terms each tending to 0 is not automatically 0: count the terms.'),
+  I(3, 'standard limits', XR`$\displaystyle\lim_{x\to0}\dfrac{(e^{6x}-1)\tan4x}{x^2}=$`, 24,
+    XR`<p>$\dfrac{e^{6x}-1}{x}\to6$ and $\dfrac{\tan4x}{x}\to4$. The product is $24$.</p>`, 'Split the product into two standard limits; do not expand everything.', () => 24),
+  I(3, 'factorising', XR`$\displaystyle\lim_{x\to2}\dfrac{x^{10}-1024}{x-2}=$`, 5120,
+    XR`<p>This is the derivative of $x^{10}$ at $2$: $10\cdot2^9=10\cdot512=5120$. Or use $\dfrac{x^n-a^n}{x-a}\to na^{n-1}$.</p>`, 'The answer is n·aⁿ⁻¹ with a = 2, not n·aⁿ.', () => 10 * 2 ** 9),
+  // ---- matches (L3-L5) ----
+  MT(3, 'standard limits', 'xm1', 'A-q, B-r, C-p, D-s', ['A-t, B-r, C-p, D-s', 'A-q, B-t, C-p, D-s', 'A-q, B-r, C-s, D-p'],
+    XR`<p>A: $\dfrac{\tan3x}{\sin2x}\to\dfrac32$ (q). B: $\dfrac{1-\cos4x}{x^2}\to\dfrac{16}2=8$ (r). C: $\dfrac{5^x-1}{x}\to\ln5$, so the ratio is $1$ (p). D: $(1+2x)^{1/x}\to e^2$ (s).</p>`, 'In B the coefficient is squared before halving: 4² / 2 = 8.'),
+  MT(3, 'limits at infinity', 'xm2', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-s, B-p, C-r, D-q'],
+    XR`<p>A: ratio of leading coefficients $2/1=2$ (q). B: $\sqrt{x^2+3x}-x=\dfrac{3x}{\sqrt{x^2+3x}+x}\to\dfrac32$ (p). C: $(1+3/x)^x\to e^3$ (r). D: $|\sin x|\le1$ so $\dfrac{\sin x}x\to0$ (s).</p>`, 'The sine does not have a limit, but sin x / x does: the denominator wins.'),
+  MT(3, 'derivative form', 'xm3', 'A-r, B-s, C-p, D-q', ['A-r, B-q, C-p, D-s', 'A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p'],
+    XR`<p>$f'(2)=3\cdot4=12$. A is $f'(2)=12$ (r). B is $2f'(2)=24$ (s). C: $\dfrac{f(x)-f(2)}{x-2}\cdot\dfrac{x-2}{x^2-4}\to12\cdot\dfrac14=3$ (p). D is $\dfrac12f'(2)=6$ (q).</p>`, 'Check what the step size is in the denominator: it decides the multiple of f′(2).'),
+  MT(4, 'one-sided limits', 'xm4', 'A-p, B-s, C-r, D-q', ['A-p, B-s, C-q, D-r', 'A-q, B-s, C-r, D-p', 'A-r, B-s, C-p, D-q'],
+    XR`<p>A: $|x\sin\frac1x|\le|x|\to0$ (p). B: $\sin x\to0^+$, so $\dfrac1{\sin x}\to+\infty$ (s). C: the one-sided limits are $-1$ and $1$ (r). D: $x^x=e^{x\ln x}$ and $x\ln x\to0$, so the limit is $1$ (q).</p>`, 'x^x at 0 is not 0^0 = 0: the exponent also shrinks.'),
+  MT(4, 'sequences', 'xm5', 'A-r, B-q, C-p, D-s', ['A-r, B-p, C-q, D-s', 'A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p'],
+    XR`<p>A: $(1+\frac1n)^{2n}=\left[(1+\frac1n)^n\right]^2\to e^2$ (r). B: $n^{1/n}=e^{\ln n/n}\to1$ (q). C: $\dfrac{n(n+1)/2}{n^2}\to\dfrac12$ (p). D: by Stirling, $(n!)^{1/n}\approx n/e$, so the limit is $\dfrac1e$ (s).</p>`, 'Stirling: (n!)^(1/n) grows like n/e, so dividing by n leaves 1/e.'),
+  MT(4, 'finding constants', 'xm6', 'A-q, B-p, C-s, D-r', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-s, B-p, C-q, D-r'],
+    XR`<p>A: $\dfrac{1-\cos ax}{x^2}\to\dfrac{a^2}2=8$, so $a=4$ (q). B: $\dfrac{\sin ax}x\to a=3$ (p). C: $\dfrac{\tan ax}{\sin3x}\to\dfrac a3=2$, so $a=6$ (s). D: $(1+ax)^{1/x}\to e^a=e^5$, so $a=5$ (r).</p>`, 'In A the limit is a²/2, so a² = 16.'),
+  MT(4, 'series expansion', 'xm7', 'A-s, B-r, C-q, D-p', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p'],
+    XR`<p>$e^x-1-x\approx\dfrac{x^2}2$ gives $\dfrac12$ (s). $x-\sin x\approx\dfrac{x^3}6$ gives $\dfrac16$ (r). $\cos x-1+\dfrac{x^2}2\approx\dfrac{x^4}{24}$ gives $\dfrac1{24}$ (q). $\tan x-x\approx\dfrac{x^3}3$ gives $\dfrac13$ (p).</p>`, 'tan x − x has 1/3, while x − sin x has 1/6: do not swap them.'),
+  MT(5, 'sums as integrals', 'xm8', 'A-r, B-s, C-p, D-q', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-p, C-s, D-q'],
+    XR`<p>A: $\dfrac1n\sum\dfrac1{1+r/n}\to\int_0^1\dfrac{dx}{1+x}=\ln2$ (r). B: $\dfrac1n\sum\dfrac1{1+(r/n)^2}\to\int_0^1\dfrac{dx}{1+x^2}=\dfrac\pi4$ (s). C: $\int_0^1x^2dx=\dfrac13$ (p). D: $\int_0^1e^xdx=e-1$ (q).</p>`, 'Pull out one factor 1/n to make each sum look like (1/n) Σ f(r/n).'),
+  // ---- L4 ----
+  M(4, 'series expansion', XR`$\displaystyle\lim_{x\to0}\dfrac{\tan(\tan x)-\sin(\sin x)}{\tan x-\sin x}=$`, '$2$', ['$1$', XR`$\dfrac12$`, '$3$'],
+    XR`<p>To third order: $\tan x=x+\dfrac{x^3}3$, $\sin x=x-\dfrac{x^3}6$. Then $\tan(\tan x)\approx\tan x+\dfrac{\tan^3x}3\approx x+\dfrac{2x^3}3$ and $\sin(\sin x)\approx\sin x-\dfrac{\sin^3x}6\approx x-\dfrac{x^3}3$. The numerator is $x^3$. The denominator is $\dfrac{x^3}3+\dfrac{x^3}6=\dfrac{x^3}2$. Ratio: $2$.</p>`, 'Both numerator and denominator are of order x³: expand each to that order.'),
+  N(4, 'series expansion', XR`Evaluate $\displaystyle\lim_{x\to0}\dfrac{e^{x^2}-\cos x}{x^2}$ (2 decimal places).`, 1.5, 0.01,
+    XR`<p>$e^{x^2}\approx1+x^2$ and $\cos x\approx1-\dfrac{x^2}2$. The difference is $\dfrac{3x^2}2$, so the limit is $\dfrac32=1.50$.</p>`, 'cos x is subtracted: its −x²/2 turns into +x²/2.', () => 1.5),
+  M(4, 'sequences', XR`$\displaystyle\lim_{n\to\infty}\dfrac{(n!)^{1/n}}n=$`, XR`$\dfrac1e$`, ['$1$', '$e$', '$0$'],
+    XR`<p>Let $y_n=\dfrac1n\ln\dfrac{n!}{n^n}=\dfrac1n\sum_{k=1}^n\ln\dfrac kn\to\int_0^1\ln x\,dx=-1$. So the limit is $e^{-1}$.</p>`, 'Take logs and turn the sum into an integral; ∫₀¹ ln x dx = −1.'),
+  I(4, 'finding constants', XR`If $\displaystyle\lim_{x\to0}\dfrac{ae^x-b\cos x+ce^{-x}}{x\sin x}=2$, find $100a+10b+c$.`, 121,
+    XR`<p>Expand the numerator: $a\left(1+x+\dfrac{x^2}2\right)-b\left(1-\dfrac{x^2}2\right)+c\left(1-x+\dfrac{x^2}2\right)=(a-b+c)+(a-c)x+\dfrac{a+b+c}2x^2+\cdots$. The denominator is $\approx x^2$.</p><p>Finite limit needs $a-b+c=0$ and $a-c=0$. Then the limit is $\dfrac{a+b+c}2=2$, so $a+b+c=4$. From $a=c$, $b=2a$: $4a=4$, so $a=1,b=2,c=1$. $100+20+1=121$.</p>`, 'Three conditions for three unknowns: constant term, x term, then the x² coefficient.', () => 121),
+  M(4, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to0}\left(\dfrac{1+\tan x}{1+\sin x}\right)^{1/x^3}=$`, XR`$\sqrt e$`, ['$e$', '$1$', '$e^2$'],
+    XR`<p>Base $=1+\dfrac{\tan x-\sin x}{1+\sin x}$. The excess is $\approx\dfrac{x^3}2$. Exponent × excess $\to\dfrac{x^3}2\cdot\dfrac1{x^3}=\dfrac12$. The limit is $e^{1/2}$.</p>`, 'tan x − sin x is of order x³ (not x): use x³/2.'),
+  N(4, '$1^\\infty$ form', XR`Evaluate $\displaystyle\lim_{x\to0}\left(\dfrac{\tan x}x\right)^{1/x^2}$ (2 decimal places).`, 1.4, 0.01,
+    XR`<p>$\dfrac{\tan x}x=1+\dfrac{x^2}3+\cdots$. Exponent × excess $=\dfrac1{x^2}\cdot\dfrac{x^2}3=\dfrac13$. The limit is $e^{1/3}\approx1.396\approx1.40$.</p>`, 'Tan has +x³/3 (so the limit is above 1); sin would give e^(−1/6).', () => Math.exp(1 / 3)),
+  M(4, 'limits at infinity', XR`$\displaystyle\lim_{x\to\infty}x^2\ln\cos\dfrac1x=$`, XR`$-\dfrac12$`, [XR`$\dfrac12$`, '$0$', '$-1$'],
+    XR`<p>Put $t=\dfrac1x$: $\dfrac{\ln\cos t}{t^2}$ as $t\to0$. $\ln\cos t\approx-\dfrac{t^2}2$. The limit is $-\dfrac12$.</p>`, 'ln cos t is negative for small t.'),
+  M(4, 'L\'Hopital', XR`$\displaystyle\lim_{x\to0}\left(\dfrac1{x^2}-\cot^2x\right)=$`, XR`$\dfrac23$`, ['$0$', XR`$\dfrac13$`, '$1$'],
+    XR`<p>$\cot x=\dfrac1x-\dfrac x3-\cdots$, so $\cot^2x=\dfrac1{x^2}-\dfrac23+\cdots$. Hence $\dfrac1{x^2}-\cot^2x\to\dfrac23$.</p>`, 'Subtracting two infinities: the leading 1/x² cancels, the next term decides.'),
+  M(4, 'limits via integrals', XR`$\displaystyle\lim_{x\to0}\dfrac1{x^3}\int_0^x\sin(t^2)\,dt=$`, XR`$\dfrac13$`, ['$0$', '$1$', XR`$\dfrac12$`],
+    XR`<p>The form is $\dfrac00$. By L'Hôpital (Leibniz rule) the limit is $\lim\dfrac{\sin(x^2)}{3x^2}=\dfrac13$. Or: $\sin t^2\approx t^2$, $\int_0^xt^2dt=\dfrac{x^3}3$.</p>`, 'The derivative of the integral is the integrand at the top limit: sin(x²).'),
+  I(4, 'series expansion', XR`$\displaystyle\lim_{x\to0}\dfrac{1-\cos x\cos2x\cos3x}{x^2}=$`, 7,
+    XR`<p>For small $x$, $\cos kx\approx1-\dfrac{k^2x^2}2$, so the product is $\approx1-\dfrac{(1+4+9)x^2}2$. Then $1-$product $=7x^2$. The limit is $7$.</p>`, 'The small corrections add (they do not multiply) at order x².', () => 7),
+  N(4, 'sums as integrals', XR`$\displaystyle\lim_{n\to\infty}\sum_{r=1}^{n}\dfrac r{n^2+r^2}$ (2 decimal places).`, 0.35, 0.01,
+    XR`<p>$\dfrac r{n^2+r^2}=\dfrac1n\cdot\dfrac{r/n}{1+(r/n)^2}$. The sum tends to $\int_0^1\dfrac x{1+x^2}dx=\dfrac12\ln2\approx0.3466$, i.e. $0.35$.</p>`, 'Do not forget the factor 1/n that becomes dx.', () => Math.log(2) / 2),
+  M(4, 'limits at infinity', XR`$\displaystyle\lim_{x\to\infty}\left(x-x^2\ln\left(1+\dfrac1x\right)\right)=$`, XR`$\dfrac12$`, ['$0$', '$1$', XR`$-\dfrac12$`],
+    XR`<p>$\ln\left(1+\dfrac1x\right)=\dfrac1x-\dfrac1{2x^2}+\dfrac1{3x^3}-\cdots$. So $x^2\ln(\cdots)=x-\dfrac12+\dfrac1{3x}-\cdots$. Then $x-\left(x-\dfrac12+\cdots\right)\to\dfrac12$.</p>`, 'Stopping the series after 1/x gives 0: you need the second term.'),
+  M(4, 'series expansion', XR`$\displaystyle\lim_{x\to0}\dfrac{x\tan3x-3x\tan x}{(1-\cos3x)^2}=$`, XR`$\dfrac{32}{81}$`, [XR`$\dfrac{8}{9}$`, XR`$\dfrac{16}{81}$`, XR`$\dfrac{32}{9}$`],
+    XR`<p>$\tan3x=3x+9x^3$, $\tan x=x+\dfrac{x^3}3$. $x\tan3x=3x^2+9x^4$; $3x\tan x=3x^2+x^4$. Numerator $\approx8x^4$. $1-\cos3x\approx\dfrac{9x^2}2$, so the denominator is $\dfrac{81x^4}4$. Ratio: $8\cdot\dfrac4{81}=\dfrac{32}{81}$.</p>`, 'tan 3x = 3x + (3x)³/3 = 3x + 9x³.'),
+  M(4, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to0^+}(\cot x)^{1/\ln x}=$`, XR`$\dfrac1e$`, ['$e$', '$1$', '$0$'],
+    XR`<p>Take the log: $\dfrac{\ln\cot x}{\ln x}$. As $x\to0^+$, $\cot x\approx\dfrac1x$, so $\ln\cot x\approx-\ln x$ and the ratio $\to-1$. The limit is $e^{-1}$.</p>`, 'The base tends to ∞ and the exponent to 0: take logs.'),
+  I(4, 'limits at infinity', XR`$\displaystyle\lim_{x\to\infty}\left(\sqrt[3]{x^3+6x^2}-\sqrt[3]{x^3-3x^2}\right)=$`, 3,
+    XR`<p>$\sqrt[3]{x^3+6x^2}=x(1+6/x)^{1/3}\approx x+2$ and $\sqrt[3]{x^3-3x^2}\approx x-1$. The difference is $2-(-1)=3$.</p>`, 'The second root gives −1 and the minus sign in front makes it +1.', () => 3),
+  I(4, 'series expansion', XR`$\displaystyle\lim_{n\to\infty}n^2\left(1-\cos\dfrac{\sqrt8}n\right)=$`, 4,
+    XR`<p>$1-\cos t\approx\dfrac{t^2}2$ with $t=\dfrac{\sqrt8}n$: $n^2\cdot\dfrac{8}{2n^2}=4$.</p>`, 'Square the √8 before halving.', () => 4),
+  I(4, 'limits of functions', XR`Let $f(x)=\displaystyle\lim_{n\to\infty}\dfrac{x^{2n}-1}{x^{2n}+1}$ for $x\ne0$. Find $2f(2)+3f\left(\dfrac12\right)+5f(1)$.`, -1,
+    XR`<p>If $|x|>1$, $x^{2n}\to\infty$ so $f=1$. If $|x|<1$, $x^{2n}\to0$ so $f=-1$. At $x=1$: $\dfrac{1-1}{1+1}=0$. So $2(1)+3(-1)+5(0)=-1$.</p>`, 'The point x = 1 is separate: there the ratio is 0, not ±1.', () => 2 * 1 + 3 * -1 + 0),
+  S(4, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to0}(1+x)^{1/x}=e$.`, XR`$\displaystyle\lim_{x\to0}(1+x^2)^{1/x}=e$.`, 1,
+    XR`<p>I is the standard limit. For II, $(1+x^2)^{1/x}=\exp\left(\dfrac{\ln(1+x^2)}x\right)$ and $\dfrac{\ln(1+x^2)}x\approx x\to0$, so the limit is $e^0=1$. II is false: the excess $x^2$ must be paired with an exponent $1/x^2$.</p>`, 'Check that exponent × (base − 1) has a finite non-zero limit.'),
+  SC(4, 'mixed forms', [XR`$\displaystyle\lim_{x\to0}\dfrac{\sin x}{|x|}$ does not exist.`, XR`$\displaystyle\lim_{x\to0^+}x^x=1$.`, XR`$\displaystyle\lim_{x\to\infty}\left(1+\dfrac1x\right)^{x^2}=e$.`, XR`$\displaystyle\lim_{x\to0}\dfrac{1-\cos x}{x}=0$.`], '3', ['1', '2', '4'],
+    XR`<p>1: the one-sided limits are $-1$ and $1$, so true. 2: $e^{x\ln x}\to e^0=1$, true. 3: $(1+1/x)^{x^2}=\exp(x^2\ln(1+1/x))\approx e^{x}\to\infty$, false. 4: $\dfrac{1-\cos x}x\approx\dfrac x2\to0$, true. Three are correct.</p>`, 'In statement 3 the exponent is x², so the limit is infinite.'),
+  A(4, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to\infty}\left(1+\dfrac1x\right)^x=e$ but $\displaystyle\lim_{x\to\infty}\left(1+\dfrac1x\right)^{x^2}=\infty$.`, XR`Whenever the base tends to $1$ and the exponent tends to $\infty$, the limit is $e$.`, 2,
+    XR`<p>A is true: the second limit is $\exp(x^2\ln(1+1/x))\approx e^{x}\to\infty$. R is false: the limit is $e^L$ where $L=\lim(\text{exponent})(\text{base}-1)$, which can be any number, $0$ or $\pm\infty$. So A is true and R is false.</p>`, 'The 1^∞ form is indeterminate: it can be anything.'),
+  X(4, 'standard limits', XR`Which of the following limits equal $1$?`, [XR`$\displaystyle\lim_{x\to0}\dfrac{\sin3x}{3x}$`, XR`$\displaystyle\lim_{x\to\infty}x\sin\dfrac1x$`, XR`$\displaystyle\lim_{x\to\infty}\dfrac{\sin x}x$`, XR`$\displaystyle\lim_{x\to0^+}x^x$`], [0, 1, 3],
+    XR`<p>A: standard, $1$. B: put $t=1/x$: $\dfrac{\sin t}t\to1$. C: $0$ (bounded over large). D: $e^{x\ln x}\to e^0=1$. So A, B and D.</p>`, 'Sin x over x equals 1 only when the angle tends to 0.'),
+  X(4, 'existence', XR`Which of the following limits exist (as finite numbers)?`, [XR`$\displaystyle\lim_{x\to0}\dfrac{|x|}x$`, XR`$\displaystyle\lim_{x\to0}x\left[\dfrac1x\right]$`, XR`$\displaystyle\lim_{x\to0}\sin\dfrac1x$`, XR`$\displaystyle\lim_{x\to0}x^2\sin\dfrac1x$`], [1, 3],
+    XR`<p>A has one-sided limits $-1,1$: no. B: $[1/x]=\frac1x-\{\frac1x\}$, so $x[1/x]=1-x\{1/x\}\to1$ from both sides: yes. C oscillates: no. D: bounded by $x^2$: $0$, yes. So B and D.</p>`, 'x[1/x] looks like a jump function but the fractional part is multiplied by x → 0.'),
+  X(4, 'limits at infinity', XR`Which of the following limits (as $x\to\infty$) equal $\dfrac12$?`, [XR`$\sqrt{x^2+x}-x$`, XR`$x\left(e^{1/(2x)}-1\right)$`, XR`$x^2\left(1-\cos\dfrac1x\right)$`, XR`$x\sin\dfrac1x$`], [0, 1, 2],
+    XR`<p>A: $\dfrac{x}{\sqrt{x^2+x}+x}\to\dfrac12$. B: $x\cdot\dfrac1{2x}=\dfrac12$. C: $x^2\cdot\dfrac1{2x^2}=\dfrac12$. D: $\to1$. So A, B, C.</p>`, 'D is the classic 1; do not mix it up with 1/2.'),
+  X(4, 'algebra of limits', XR`Which statements about functions near $x=a$ are always true?`, [XR`If $\lim f$ and $\lim(f+g)$ both exist, then $\lim g$ exists.`, XR`If $\lim f$ and $\lim(fg)$ both exist, then $\lim g$ exists.`, XR`If $\lim f(x)=L$, then $\lim|f(x)|=|L|$.`, XR`If $\lim|f(x)|$ exists, then $\lim f(x)$ exists.`], [0, 2],
+    XR`<p>A: $g=(f+g)-f$, true. B: false, e.g. $f=0$ and $g$ any function with no limit. C: $\big||f|-|L|\big|\le|f-L|$, true. D: false, take $f=1$ for $x>a$ and $-1$ for $x<a$. So A and C.</p>`, 'Dividing is not the same as subtracting: f can be zero.'),
+  X(4, 'finding constants', XR`If $\displaystyle\lim_{x\to0}\dfrac{1-\cos ax}{x^2}=2$, which values of $a$ are possible?`, ['$2$', '$-2$', '$4$', XR`$\dfrac12$`], [0, 1],
+    XR`<p>The limit is $\dfrac{a^2}2=2$, so $a^2=4$ and $a=\pm2$. Both $2$ and $-2$ work, since cosine is even.</p>`, 'The equation a² = 4 has two roots.'),
+  X(4, 'series expansion', XR`For which pairs $(a,b)$ is $\displaystyle\lim_{x\to0}\dfrac{a\sin x+b\sin2x}{x^3}$ finite?`, ['$(2,-1)$', '$(-4,2)$', '$(1,1)$', '$(3,1)$'], [0, 1],
+    XR`<p>$a\sin x+b\sin2x=(a+2b)x-\dfrac{a+8b}6x^3+\cdots$. Finite needs $a+2b=0$: $(2,-1)$ and $(-4,2)$ qualify. For $(1,1)$ and $(3,1)$, $a+2b\ne0$, so the limit is infinite.</p>`, 'Only the x term must vanish; x³ gives the value.'),
+  // ---- L5 ----
+  X(5, 'sequences', XR`Which of the following sequences converge?`, [XR`$\left(1+\dfrac1n\right)^n$`, XR`$(-1)^n\left(1+\dfrac1n\right)$`, XR`$n^{1/n}$`, XR`$\dfrac{\sin(n\pi/2)}n$`], [0, 2, 3],
+    XR`<p>A tends to $e$. B alternates near $+1$ and $-1$: diverges. C tends to $1$. D is bounded over $n$: tends to $0$. So A, C, D.</p>`, 'A sequence of alternating signs with a fixed size does not converge.'),
+  X(5, 'one-sided limits', XR`Which of the following limits (as $x\to0^+$) are equal to $0$?`, [XR`$x\ln x$`, XR`$\dfrac{\ln x}x$`, XR`$x^x$`, XR`$e^{-1/x}$`], [0, 3],
+    XR`<p>A: $x\ln x\to0$. B: $\to-\infty$. C: $\to1$. D: $-1/x\to-\infty$, so $e^{-1/x}\to0$. So A and D.</p>`, 'Powers beat logarithms: x ln x → 0, but ln x / x does not.'),
+  X(5, 'limits at infinity', XR`Which limits (as $x\to\infty$) are finite?`, [XR`$\sqrt{x^2+1}-x$`, XR`$x-\ln x$`, XR`$\dfrac{x^2+\sin x}{x^2-\cos x}$`, XR`$x^2e^{-x}$`], [0, 2, 3],
+    XR`<p>A: $\dfrac1{\sqrt{x^2+1}+x}\to0$. B: $x$ outgrows $\ln x$, so $\to\infty$. C: $\to1$. D: exponential beats polynomial, $\to0$. So A, C, D.</p>`, 'A difference of two large quantities can be finite or infinite: compare growth.'),
+  M(5, 'derivative and limits', XR`Let $f(x)=x^2\sin\dfrac1x$ for $x\ne0$ and $f(0)=0$. Which statement is true?`, XR`$f'(0)=0$ but $\displaystyle\lim_{x\to0}f'(x)$ does not exist`, [XR`$f'(0)$ does not exist`, XR`$f'(0)=0$ and $\displaystyle\lim_{x\to0}f'(x)=0$`, XR`$f'(0)=1$`],
+    XR`<p>$f'(0)=\lim\dfrac{h^2\sin(1/h)}h=\lim h\sin\dfrac1h=0$. For $x\ne0$, $f'(x)=2x\sin\dfrac1x-\cos\dfrac1x$. The first term tends to 0 but $\cos\frac1x$ oscillates, so $\lim_{x\to0}f'(x)$ does not exist. The derivative exists at 0 but is not continuous there.</p>`, 'The derivative at a point and the limit of the derivative are different things.'),
+  M(5, '$1^\\infty$ form', XR`$\displaystyle\lim_{x\to0}\left(\dfrac{(1+x)^{1/x}}e\right)^{1/x}=$`, XR`$e^{-1/2}$`, ['$1$', '$e^{1/2}$', '$e^{-1}$'],
+    XR`<p>$(1+x)^{1/x}=\exp\left(\dfrac{\ln(1+x)}x\right)=\exp\left(1-\dfrac x2+\dfrac{x^2}3\right)$. Divide by $e$: $\exp\left(-\dfrac x2+\cdots\right)$. Raise to $\dfrac1x$: $\exp\left(-\dfrac12+\cdots\right)\to e^{-1/2}$.</p>`, 'You need ln(1+x)/x to two terms: 1 − x/2.'),
+  N(5, '$1^\\infty$ form', XR`Evaluate $\displaystyle\lim_{x\to0}\dfrac{(1+x)^{1/x}-e}{x}$ (2 decimal places).`, -1.36, 0.01,
+    XR`<p>$(1+x)^{1/x}=e\cdot\exp\left(-\dfrac x2+\cdots\right)=e\left(1-\dfrac x2+\cdots\right)$. So the numerator is $\approx-\dfrac{ex}2$ and the limit is $-\dfrac e2\approx-1.36$.</p>`, 'The limit is negative: (1+x)^(1/x) approaches e from below.', () => -Math.E / 2),
+  N(5, 'sums and products', XR`Evaluate $\displaystyle\lim_{n\to\infty}\dfrac1n\Big[(n+1)(n+2)\cdots(2n)\Big]^{1/n}$ (2 decimal places).`, 1.47, 0.01,
+    XR`<p>Take logs: $\ln L=\lim\dfrac1n\sum_{k=1}^n\ln\dfrac{n+k}n=\int_0^1\ln(1+x)\,dx=2\ln2-1$. So $L=e^{2\ln2-1}=\dfrac4e\approx1.47$.</p>`, 'Divide each factor by n to see the Riemann sum.', () => 4 / Math.E),
+  N(5, 'series expansion', XR`Evaluate $\displaystyle\lim_{x\to0}\dfrac{\cos(\sin x)-\cos x}{x^4}$ (2 decimal places).`, 0.17, 0.01,
+    XR`<p>$\sin^2x=x^2-\dfrac{x^4}3$ and $\sin^4x\approx x^4$. So $\cos(\sin x)=1-\dfrac{\sin^2x}2+\dfrac{\sin^4x}{24}=1-\dfrac{x^2}2+\dfrac{x^4}6+\dfrac{x^4}{24}$. And $\cos x=1-\dfrac{x^2}2+\dfrac{x^4}{24}$. The difference is $\dfrac{x^4}6$. The limit is $\dfrac16\approx0.17$.</p>`, 'The x⁴ term of sin²x (−x⁴/3) must be kept.', () => 1 / 6),
+  I(5, 'sequences', XR`$\displaystyle\lim_{n\to\infty}\sin^2\left(\pi\sqrt{n^2+n}\right)=$`, 1,
+    XR`<p>$\sqrt{n^2+n}=n+\dfrac12-\dfrac1{8n}+\cdots$. So $\pi\sqrt{n^2+n}=n\pi+\dfrac\pi2-\varepsilon_n$ with $\varepsilon_n\to0$. $\sin^2(n\pi+\frac\pi2-\varepsilon_n)=\cos^2\varepsilon_n\to1$.</p>`, 'Without the square, the limit would not exist (the sign alternates with n).', () => 1),
+  I(5, 'limits at infinity', XR`$\displaystyle\lim_{x\to\infty}x^2\left(e^{2/x}-e^{2/(x+1)}\right)=$`, 2,
+    XR`<p>Factor out $e^{2/(x+1)}$: the bracket is $e^{2/(x+1)}\left(e^{\delta}-1\right)$ with $\delta=\dfrac2x-\dfrac2{x+1}=\dfrac2{x(x+1)}$. For large $x$: $e^{2/(x+1)}\to1$ and $e^\delta-1\approx\delta\approx\dfrac2{x^2}$. Multiply by $x^2$: $2$.</p>`, 'Use the mean value idea: e^a − e^b ≈ e^a (a − b) for close a and b.', () => 2),
+  I(5, 'finding constants', XR`If $\displaystyle\lim_{x\to0}\dfrac{a+b\cos2x+c\cos4x}{x^4}$ is finite and equals $8$, find $a^2+b^2+c^2$.`, 26,
+    XR`<p>$\cos2x=1-2x^2+\dfrac{2x^4}3$ and $\cos4x=1-8x^2+\dfrac{32x^4}3$. Constant term: $a+b+c=0$. $x^2$ term: $-2b-8c=0$, so $b=-4c$. Then $a=3c$. $x^4$ term: $\dfrac23b+\dfrac{32}3c=\dfrac{-8c+32c}3=8c=8$, so $c=1$, $b=-4$, $a=3$. $9+16+1=26$.</p>`, 'Three unknowns need three conditions: x⁰, x², x⁴.', () => 26),
+  SC(5, 'sequences', [XR`$\displaystyle\lim_{n\to\infty}(n!)^{1/n}=\infty$.`, XR`$\displaystyle\lim_{n\to\infty}\left(\dfrac1{n!}\right)^{1/n}=1$.`, XR`$\displaystyle\lim_{n\to\infty}\dfrac{(1+1/n)^{n^2}}{e^n}=e^{-1/2}$.`, XR`$\displaystyle\lim_{n\to\infty}\left(1-\dfrac1n\right)^n=1$.`], '2', ['1', '3', '4'],
+    XR`<p>1: $(n!)^{1/n}\approx n/e\to\infty$: true. 2: it is $1/(n!)^{1/n}\to0$: false. 3: $n^2\ln(1+\frac1n)=n-\dfrac12+\cdots$, so the ratio $\to e^{-1/2}$: true. 4: the limit is $e^{-1}$: false. Two are correct.</p>`, 'Statement 4 is the mirror of the standard limit: it gives 1/e.'),
+  PI(4, 'sequences', 'xp1', XR`Find the limit $L$ of the sequence.`, 3,
+    XR`<p>At the limit, $a_{n+1}$ and $a_n$ are both $L$: $L=\sqrt{6+L}$. Square: $L^2-L-6=0$, so $(L-3)(L+2)=0$. The terms are positive, so $L=3$.</p>`, 'Reject the negative root L = −2.', () => 3),
+  PM(5, 'sequences', 'xp1', XR`$\displaystyle\lim_{n\to\infty}\dfrac{3-a_{n+1}}{3-a_n}=$`, XR`$\dfrac16$`, [XR`$\dfrac13$`, XR`$\dfrac12$`, '$1$'],
+    XR`<p>$3-a_{n+1}=3-\sqrt{6+a_n}=\dfrac{9-(6+a_n)}{3+\sqrt{6+a_n}}=\dfrac{3-a_n}{3+\sqrt{6+a_n}}$. As $a_n\to3$, the denominator tends to $3+3=6$. So the ratio tends to $\dfrac16$.</p>`, 'Multiply by the conjugate; the denominator tends to 6, not 3.'),
+  PI(5, 'sequences', 'xp1', XR`Let $d_n=3-a_n$. The ratio $d_{n+1}/d_n$ tends to $r$. Find $\displaystyle\lim_{n\to\infty}\dfrac{d_{n+1}}{d_n}\cdot36$.`, 6,
+    XR`<p>From the previous part $r=\dfrac16$ (the errors shrink geometrically by a factor $\frac16$ each step). $36\cdot\dfrac16=6$.</p>`, 'Use the value found in the previous item.', () => 36 / 6),
+  PI(3, 'derivative form', 'xp2', XR`Find $\displaystyle\lim_{x\to0}\dfrac{f(4x)}{\sin3x}$.`, 4,
+    XR`<p>$\dfrac{f(4x)}{\sin3x}=\dfrac{f(4x)-f(0)}{4x}\cdot\dfrac{3x}{\sin3x}\cdot\dfrac43$. The first factor $\to f'(0)=3$, the second $\to1$. So the limit is $3\cdot\dfrac43=4$.</p>`, 'Use f(0) = 0 to write f(4x) as a difference quotient.', () => 3 * 4 / 3),
+  PI(4, 'derivative form', 'xp2', XR`Find $\displaystyle\lim_{x\to0}\dfrac{f(x)-f(-x)}x$.`, 6,
+    XR`<p>$\dfrac{f(x)-f(0)}x\to3$ and $\dfrac{f(0)-f(-x)}x=\dfrac{f(-x)-f(0)}{-x}\to3$. The sum is $6$.</p>`, 'Two different one-sided pieces, each giving f′(0).', () => 6),
+  PM(5, 'derivative form', 'xp2', XR`Which expression has limit $0$ as $x\to0$?`, XR`$\dfrac{f(x)+f(-x)}x$`, [XR`$\dfrac{f(x)}x$`, XR`$\dfrac{f(x)-f(-x)}x$`, XR`$\dfrac{f(2x)}{\sin x}$`],
+    XR`<p>$f(x)+f(-x)=[f(x)-f(0)]+[f(-x)-f(0)]$. Divide by $x$: $\dfrac{f(x)-f(0)}x-\dfrac{f(-x)-f(0)}{-x}\to3-3=0$. The others tend to $3$, $6$ and $6$.</p>`, 'Check each against f′(0) = 3: only the sum f(x) + f(−x) cancels.'),
+);
+
+XGN.push(
+  GX('xg01', 3, 'nat', 'integer', 'standard limits', (rng) => {
+    const pa = int(rng, 2, 9), qa = int(rng, 2, 9);
+    return { pa, qa, answer: pa * qa, tol: 0, q: XR`$\displaystyle\lim_{x\to0}\dfrac{(e^{${pa}x}-1)\tan${qa}x}{x^2}=$`, sol: XR`<p>$\dfrac{e^{${pa}x}-1}x\to${pa}$ and $\dfrac{\tan${qa}x}x\to${qa}$. The product is $${pa * qa}$.</p>` };
+  }, (p) => Math.round(xlim((x) => (xexp(p.pa * x) - 1) * xtan(p.qa * x) / (x * x), 0))),
+  GX('xg02', 3, 'nat', 'integer', 'standard limits', (rng) => {
+    const q = int(rng, 2, 5), k = int(rng, 2, 4), pp = k * q;
+    return { q0: q, k, pp, answer: k * k, tol: 0, q: XR`$\displaystyle\lim_{x\to0}\dfrac{1-\cos${pp}x}{1-\cos${q}x}=$`, sol: XR`<p>$1-\cos ax\approx\dfrac{a^2x^2}2$. The ratio tends to $\dfrac{${pp}^2}{${q}^2}=\left(\dfrac{${pp}}{${q}}\right)^2=${k * k}$.</p>` };
+  }, (p) => Math.round(xlim((x) => (1 - xcos(p.pp * x)) / (1 - xcos(p.q0 * x)), 0))),
+  GX('xg03', 4, 'nat', 'numeric', '$1^\\infty$ form', (rng) => {
+    const a = int(rng, 1, 3), ans = Math.exp(-a * a / 6);
+    return { a, answer: +ans.toFixed(3), tol: 0.01, q: XR`Evaluate $\displaystyle\lim_{x\to0}\left(\dfrac{\sin ${a === 1 ? '' : a}x}{${a === 1 ? '' : a}x}\right)^{1/x^2}$ (2 decimal places).`, sol: XR`<p>$\dfrac{\sin ax}{ax}=1-\dfrac{a^2x^2}6+\cdots$. Exponent × excess $=\dfrac1{x^2}\cdot\left(-\dfrac{${a * a}x^2}6\right)=-\dfrac{${a * a}}6$. The limit is $e^{-${a * a}/6}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xlim((x) => ((xsin(p.a * x) / (p.a * x)) ** (1 / (x * x))), 0)),
+  GX('xg04', 4, 'nat', 'integer', 'series expansion', (rng) => {
+    const n = choose(rng, [3, 4, 7, 8]);
+    const ans = n * (n + 1) * (2 * n + 1) / 12;
+    return { n, answer: ans, tol: 0, q: XR`$\displaystyle\lim_{x\to0}\dfrac{1-${n === 3 ? '\\cos x\\cos2x\\cos3x' : `\\cos x\\cos2x\\cdots\\cos${n}x`}}{x^2}=$`, sol: XR`<p>$\cos kx\approx1-\dfrac{k^2x^2}2$, so the product is $\approx1-\dfrac{x^2}2\sum_{k=1}^{${n}}k^2$. The sum of squares is $\dfrac{${n}\cdot${n + 1}\cdot${2 * n + 1}}6=${n * (n + 1) * (2 * n + 1) / 6}$. The limit is half of that: $${ans}$.</p>` };
+  }, (p) => { const f = (x) => { let c = 1; for (let k = 1; k <= p.n; k++) c *= xcos(k * x); return (1 - c) / (x * x); }; return Math.round(xlim(f, 0)); }),
+  GX('xg05', 4, 'nat', 'integer', 'limits at infinity', (rng) => {
+    const a = int(rng, 1, 8), b = choose(rng, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].filter((v) => (a + v) % 3 === 0));
+    return { a, b, answer: (a + b) / 3, tol: 0, q: XR`$\displaystyle\lim_{x\to\infty}\left(\sqrt[3]{x^3+${a}x^2}-\sqrt[3]{x^3-${b}x^2}\right)=$`, sol: XR`<p>$\sqrt[3]{x^3+ax^2}=x(1+a/x)^{1/3}\approx x+\dfrac a3$ and $\sqrt[3]{x^3-bx^2}\approx x-\dfrac b3$. The difference is $\dfrac{a+b}3=\dfrac{${a + b}}3=${(a + b) / 3}$.</p>` };
+  }, (p) => { const x = 1e5; return Math.round(Math.cbrt(x ** 3 + p.a * x ** 2) - Math.cbrt(x ** 3 - p.b * x ** 2)); }),
+  GX('xg06', 3, 'mcq', 'single', 'standard limits', (rng) => {
+    const a = int(rng, 2, 7), b = int(rng, 1, a - 1), c = int(rng, 2, 6);
+    const val = (a - b) / c;
+    const { options, answer } = shuffleOpts(rng, `$${frac(a - b, c)}$`, [`$${frac(a + b, c)}$`, `$${frac(b - a, c)}$`, `$${a - b}$`, `$${frac(a, c)}$`]);
+    return { a, b, c, val, options, answer, q: XR`$\displaystyle\lim_{x\to0}\dfrac{e^{${a}x}-e^{${b}x}}{\sin${c}x}=$`, sol: XR`<p>Divide top and bottom by $x$: $\dfrac{e^{${a}x}-1}x-\dfrac{e^{${b}x}-1}x\to${a}-${b}$ and $\dfrac{\sin${c}x}x\to${c}$. So the limit is $\dfrac{${a - b}}{${c}}$.</p>` };
+  }, (p) => { const v = xlim((x) => (xexp(p.a * x) - xexp(p.b * x)) / xsin(p.c * x), 0); return Math.abs(v - p.val) < 1e-3 ? p.answer : -1; }),
+  GX('xg07', 4, 'mcq', 'single', '$1^\\infty$ form', (rng) => {
+    const a = int(rng, 2, 6);
+    const { options, answer } = shuffleOpts(rng, `$e^{-${a * a}/2}$`, [`$e^{-${a * a}}$`, `$e^{${a * a}/2}$`, `$e^{-${a}/2}$`]);
+    return { a, options, answer, q: XR`$\displaystyle\lim_{x\to0}(\cos${a}x)^{1/x^2}=$`, sol: XR`<p>$\cos${a}x=1-\dfrac{${a * a}x^2}2+\cdots$. Exponent × excess $=\dfrac1{x^2}\cdot\left(-\dfrac{${a * a}x^2}2\right)=-\dfrac{${a * a}}2$. So the limit is $e^{-${a * a}/2}$.</p>` };
+  }, (p) => { const v = xlim((x) => (xcos(p.a * x) ** (1 / (x * x))), 0, 1); return Math.abs(v - Math.exp(-p.a * p.a / 2)) < 1e-4 ? p.answer : -1; }),
+  GX('xg08', 5, 'nat', 'numeric', 'sums as integrals', (rng) => {
+    const k = int(rng, 1, 3), ans = Math.atan(k) / k;
+    return { k, answer: +ans.toFixed(3), tol: 0.01, q: XR`Evaluate $\displaystyle\lim_{n\to\infty}\sum_{r=1}^{n}\dfrac n{n^2+${k * k}r^2}$ (2 decimal places).`, sol: XR`<p>Factor $n^2$ from the denominator: $\dfrac1n\cdot\dfrac1{1+${k * k}(r/n)^2}$. The sum tends to $\int_0^1\dfrac{dx}{1+${k * k}x^2}=\dfrac{\tan^{-1}${k}}{${k}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xsimp((x) => 1 / (1 + p.k * p.k * x * x), 0, 1)),
+  GX('xg09', 5, 'nat', 'integer', 'finding constants', (rng) => {
+    const c = int(rng, 1, 3), a = 3 * c, b = -4 * c;
+    return { a, b, c, answer: a * a + b * b + c * c, tol: 0, q: XR`The limit $\displaystyle\lim_{x\to0}\dfrac{a+b\cos2x+c\cos4x}{x^4}$ is finite and equals ${8 * c}. Find $a^2+b^2+c^2$.`, sol: XR`<p>Using $\cos2x=1-2x^2+\dfrac{2x^4}3$ and $\cos4x=1-8x^2+\dfrac{32x^4}3$: the constant term gives $a+b+c=0$, the $x^2$ term gives $b=-4c$, and the $x^4$ term gives $8c=${8 * c}$. So $c=${c}$, $b=${b}$, $a=${a}$. Then $a^2+b^2+c^2=${a * a}+${b * b}+${c * c}=${a * a + b * b + c * c}$.</p>` };
+  }, (p) => { const L = xlim((x) => (p.a + p.b * xcos(2 * x) + p.c * xcos(4 * x)) / x ** 4, 0, 1); return Math.abs(L - 8 * p.c) < 0.3 ? p.a * p.a + p.b * p.b + p.c * p.c : -1; }),
+  GX('xg10', 3, 'mcq', 'single', 'factorising', (rng) => {
+    const a = int(rng, 2, 3), m = int(rng, 4, 8), n = int(rng, 2, m - 1);
+    const val = (m / n) * a ** (m - n);
+    const num = m * a ** (m - n), den = n;
+    const { options, answer } = shuffleOpts(rng, `$${frac(num, den)}$`, [`$${frac(m, n)}$`, `$${frac(m * a ** m, n * a ** n)}$`, `$${frac(n * a ** (m - n), m)}$`]);
+    return { a, m, n, val, options, answer, q: XR`$\displaystyle\lim_{x\to${a}}\dfrac{x^{${m}}-${a ** m}}{x^{${n}}-${a ** n}}=$`, sol: XR`<p>Divide top and bottom by $x-${a}$. The top tends to $${m}\cdot${a}^{${m - 1}}$ and the bottom to $${n}\cdot${a}^{${n - 1}}$. The ratio is $\dfrac{${m}}{${n}}\cdot${a}^{${m - n}}=${frac(num, den)}$.</p>` };
+  }, (p) => { const v = xlim((x) => (x ** p.m - p.a ** p.m) / (x ** p.n - p.a ** p.n), p.a); return Math.abs(v - p.val) < 1e-2 * Math.max(1, Math.abs(p.val)) ? p.answer : -1; }),
+);
+XIT.push(
+  X(5, 'greatest integer', XR`Here $[x]$ is the greatest integer function and $\{x\}=x-[x]$. Which of the following limits equal $1$?`, [XR`$\displaystyle\lim_{x\to0^+}x\left[\dfrac1x\right]$`, XR`$\displaystyle\lim_{x\to0^+}x\left\{\dfrac1x\right\}$`, XR`$\displaystyle\lim_{x\to\infty}\dfrac{[x]}x$`, XR`$\displaystyle\lim_{x\to\infty}\dfrac{\{x\}}x$`], [0, 2],
+    XR`<p>A: $x[1/x]=1-x\{1/x\}$ and $0\le x\{1/x\}<x\to0$, so the limit is $1$. B: that same term $x\{1/x\}\to0$. C: $x-1<[x]\le x$, so $\dfrac{[x]}x\to1$. D: $0\le\{x\}<1$, so $\dfrac{\{x\}}x\to0$. Answer: A and C.</p>`, '{x} is always below 1, so any ratio with a growing or shrinking x quickly kills it.'),
+);
+
+Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
+}
+// ==XP-END
+export default { topic: 'limits', groups, items, gens };

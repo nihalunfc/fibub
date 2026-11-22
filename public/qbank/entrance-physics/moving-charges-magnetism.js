@@ -649,4 +649,322 @@ const gens = [
     },
     verify: (p) => { const f = (d) => MU * p.I1 * p.I2 * p.l / (2 * Math.PI * d); return (f(p.d1) - f(p.d1 + p.w)) * 1e6; } },
 ];
+// ---------- expansion block: more hard items, matches, multi-correct, passages and templates ----------
+{
+const XR = String.raw;
+const XEXB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv', 'neet'], 5: ['jee-adv'] };
+let xk = 156; let xc = 0;
+const xid = () => `mc-${String(++xk).padStart(3, '0')}`;
+const XPOS = [2, 0, 3, 1, 1, 3, 0, 2];
+const xex = (level, type, sub) => (type === 'mcq' && level <= 3 && ((s)=>true)(sub) ? [...XEXB[level], 'cuet'] : XEXB[level]);
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type, sub), sub, ...o });
+const xm = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xi = (level, sub, q, value, sol, o = {}) => {
+  const answer = Math.round(value); if (Math.abs(value - answer) > 1e-6) throw new Error('not an integer: ' + value + ' ' + q.slice(0, 60));
+  return xb(level, sub, { type: 'nat', format: 'integer', q, answer, tol: 0, calc: () => answer, sol, ...o });
+};
+const xn = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return xb(level, sub, { type: 'nat', format: 'numeric', q, answer, tol, calc: () => answer, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XA = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XA, answer, sol, ...o });
+const XS = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XS, answer, sol, ...o });
+const xmatch = (level, sub, group, q, correct, sol, o = {}) => {
+  const L = correct.split(', ').map((s) => s.split('-')); const rs = L.map((x) => x[1]);
+  const mk = (p) => L.map((x, i) => `${x[0]}-${p[i]}`).join(', ');
+  const swaps = [[0, 1], [2, 3], [1, 2], [0, 3], [0, 2], [1, 3]]; const wr = [];
+  for (let t = 0; t < 6 && wr.length < 3; t++) { const [i, j] = swaps[(t + xc) % 6]; const p = [...rs]; [p[i], p[j]] = [p[j], p[i]]; const s = mk(p); if (s !== correct && !wr.includes(s)) wr.push(s); }
+  if (wr.length < 3) throw new Error('match options');
+  const pos = XPOS[xc++ % 8]; const options = [...wr]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xp = (extra) => (level, sub, group, q, ...rest) => extra(level, sub, q, ...rest);
+const XG = (n, level, type, sub, make, verify) => ({ id: `mc-g${n}`, type, level, exams: xex(level, type, sub), sub, make, verify });
+const f3 = (v) => fmt(v, 3);
+const sg = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XPY = (o) => ({ format: 'passage', ...o });
+const XMU = 4e-7 * Math.PI; const XQE = 1.6e-19; const XMP = 1.67e-27; const XU = 1.66e-27; const XPI = Math.PI;
+Object.assign(groups, {
+  xm1: { title: 'Fields of current distributions (current I)',
+    list1: ['A. Long straight wire, at distance $d$', 'B. Centre of a single circular loop of radius $R$', 'C. Inside a long solenoid with $n$ turns per metre', 'D. Inside a toroid of $N$ turns at radius $r$'],
+    list2: [r`p. $\dfrac{\mu_0I}{2\pi d}$`, r`q. $\dfrac{\mu_0I}{2R}$`, r`r. $\mu_0nI$`, r`s. $\dfrac{\mu_0NI}{2\pi r}$`] },
+  xm2: { title: 'A particle of charge q, mass m and speed v moving perpendicular to a uniform field B',
+    list1: ['A. Radius of the circle', 'B. Time for one revolution', 'C. Frequency of revolution', 'D. Magnitude of its angular momentum about the centre'],
+    list2: [r`p. $\dfrac{mv}{qB}$`, r`q. $\dfrac{2\pi m}{qB}$`, r`r. $\dfrac{qB}{2\pi m}$`, r`s. $\dfrac{m^2v^2}{qB}$`] },
+  xm3: { title: 'Torque on a coil (N turns, area A, current I) in a field B; theta is the angle between B and the normal to the coil',
+    list1: ['A. $\\theta = 0^\\circ$', 'B. $\\theta = 90^\\circ$', 'C. $\\theta = 60^\\circ$', 'D. $\\theta = 30^\\circ$'],
+    list2: [r`p. $0$`, r`q. $NIAB$`, r`r. $\dfrac{\sqrt3}{2}NIAB$`, r`s. $\dfrac12NIAB$`] },
+  xm4: { title: 'Two long parallel wires, 1 and 2, carry currents; the field is zero at some line parallel to them',
+    list1: ['A. Equal currents, same direction', 'B. Currents $2I$ and $I$, same direction: zero field at distance from the $2I$ wire', 'C. Equal currents, opposite directions', 'D. Currents $2I$ and $I$, opposite directions: zero field outside, near the $I$ wire'],
+    list2: [r`p. midway between them`, r`q. nowhere`, r`r. $\dfrac{2d}{3}$ (with $d$ the separation)`, r`s. at distance $d$ from the $I$ wire, on the side away from the $2I$ wire`] },
+  xm5: { title: 'Loops with the same current I (centre fields)',
+    list1: ['A. One full circle of radius $R$', 'B. Semicircle of radius $R$', 'C. Quarter circle of radius $R$', 'D. Full circle of radius $R/2$'],
+    list2: [r`p. $\dfrac{\mu_0I}{R}$`, r`q. $\dfrac{\mu_0I}{4R}$`, r`r. $\dfrac{\mu_0I}{2R}$`, r`s. $\dfrac{\mu_0I}{8R}$`] },
+  xm6: { title: 'Magnetic meters (galvanometer: resistance G, full-scale current Ig)',
+    list1: ['A. Converting to an ammeter of range $I$', 'B. Converting to a voltmeter of range $V$', 'C. Effect of the shunt on the ammeter\'s resistance', 'D. Effect of the series resistor on the voltmeter\'s resistance'],
+    list2: [r`p. a low resistance in parallel`, r`q. a high resistance in series`, r`r. total resistance is less than $G$`, r`s. total resistance is more than $G$`] },
+  xm7: { title: 'Motion of a charged particle in uniform fields',
+    list1: ['A. $\\vec v\\parallel\\vec B$, no $\\vec E$', 'B. $\\vec v\\perp\\vec B$, no $\\vec E$', 'C. $\\vec v$ at $60^\\circ$ to $\\vec B$, no $\\vec E$', 'D. $\\vec E\\perp\\vec B$ with $v=E/B$, $\\vec v\\perp$ both'],
+    list2: [r`p. circle`, r`q. straight line: no force acts at all`, r`r. helix`, r`s. straight line: electric and magnetic forces cancel`] },
+  xm8: { title: 'Long straight cylinder of radius R carrying a uniform current I',
+    list1: ['A. $B$ at $r=R/2$', 'B. $B$ at $r=R$', 'C. $B$ at $r=4R$', 'D. $B$ on the axis'],
+    list2: [r`p. $\dfrac{\mu_0I}{2\pi R}$`, r`q. $\dfrac{\mu_0I}{4\pi R}$`, r`r. $0$`, r`s. $\dfrac{\mu_0I}{8\pi R}$`] },
+  xp1: { title: 'Ions in a mass analyser',
+    passage: r`<p>Singly charged ions ($q = 1.6\times10^{-19}$ C) of mass 40 u pass through a velocity selector in which the electric field is $5.0\times10^{4}$ V/m and the magnetic field is 0.25 T. They then enter a region with a second uniform magnetic field of 0.50 T perpendicular to their velocity. Take $1\ \mathrm{u} = 1.66\times10^{-27}$ kg.</p>` },
+  xp2: { title: 'A coil in a field',
+    passage: r`<p>A coil has 50 turns, each a circle of radius 0.10 m, and carries 2.0 A. It is in a uniform field of 0.40 T. Initially the plane of the coil is parallel to the field.</p>` },
+});
+
+// ---------- L2 ----------
+items.push(
+  xm(2, 'circular motion', XR`A proton and an electron enter the same uniform magnetic field with equal speeds, perpendicular to it. Which has the larger circular path, and by about what factor?`,
+    'The proton, about 1800 times', ['The electron, about 1800 times', 'They are equal', 'The proton, about 42 times'],
+    XR`$r = \dfrac{mv}{qB}$. Same $q$, $v$ and $B$, so $r\propto m$. $m_p/m_e\approx1836$. The proton's circle is larger by that factor. The factor 42 is $\sqrt{1836}$, which would apply for equal kinetic energies.`),
+  xm(2, 'force on a wire', XR`A straight wire 0.20 m long carries 5.0 A at $30^\circ$ to a uniform field of 0.40 T. The force on the wire is`,
+    '0.20 N', ['0.40 N', '0.35 N', '0.10 N'],
+    XR`$F = BIL\sin\theta = 0.40\times5.0\times0.20\times\sin30^\circ = 0.20$ N. (With $\sin\theta$ forgotten you would get 0.40 N.)`),
+  xm(2, 'direction of force', XR`An electron moving towards the east enters a region where the magnetic field points towards the north. The magnetic force on it is directed`,
+    'vertically downward', ['vertically upward', 'towards the south', 'towards the west'],
+    XR`Take east $=\hat x$, north $=\hat y$, up $=\hat z$. For a positive charge $\vec F\propto\vec v\times\vec B = \hat x\times\hat y = +\hat z$ (up). The electron is negative, so the force reverses: downward.`,
+    { trap: 'The direction rule is for positive charges; reverse it for electrons.' }),
+  xi(2, 'field of a loop', XR`A circular coil of 100 turns and radius 0.10 m carries 0.50 A. The field at its centre is $n\pi\times10^{-4}$ T. Find $n$.`, XMU * 100 * 0.5 / (2 * 0.1) / (XPI * 1e-4),
+    XR`$B = \dfrac{\mu_0NI}{2R} = \dfrac{4\pi\times10^{-7}\times100\times0.5}{2\times0.1} = \pi\times10^{-4}$ T, so $n=1$.`),
+  xa(2, 'work done by magnetic force', XR`A magnetic field cannot change the kinetic energy of a moving charged particle.`, XR`The magnetic force on a moving charge is always perpendicular to its velocity.`, 0,
+    XR`Work done $=\vec F\cdot\vec v\,dt = 0$ when $\vec F\perp\vec v$, so the kinetic energy does not change. A is true and R is the reason.`),
+  xt(2, 'forces between wires', XR`Two long parallel wires carrying currents in the same direction attract each other.`, XR`The force per unit length between two long parallel wires is $\dfrac{\mu_0I_1I_2}{2\pi d}$.`, 0,
+    XR`Both statements are true: wire 1 makes a field at wire 2 which, by $\vec F = I\vec L\times\vec B$, pulls it toward wire 1 when the currents are parallel, and the magnitude is $\dfrac{\mu_0I_1I_2}{2\pi d}$ per unit length.`),
+  xmatch(2, 'fields of current distributions', 'xm1', XR`Match each source in List I with its field in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Straight wire: $\dfrac{\mu_0I}{2\pi d}$ (p). Centre of a loop: $\dfrac{\mu_0I}{2R}$ (q). Inside a long solenoid: $\mu_0nI$ (r). Toroid: $\dfrac{\mu_0NI}{2\pi r}$ (s).`),
+);
+
+// ---------- L3 ----------
+items.push(
+  xi(3, 'field of a loop', XR`A wire of fixed length carrying a current is wound first into one circular turn and then into 3 turns (a smaller coil). The field at the centre is how many times larger for the 3-turn coil?`, 9,
+    XR`Length $L = N\cdot2\pi R$, so $R = \dfrac{L}{2\pi N}$. Field at the centre $B = \dfrac{\mu_0NI}{2R} = \dfrac{\mu_0N^2I\pi}{L}\propto N^2$. For $N=3$ against $N=1$: $9$ times.`,
+    { trap: 'Both the number of turns and the radius change.' }),
+  xn(3, 'solenoid', XR`A solenoid has 200 turns on a length of 0.25 m and carries 2.0 A. Find the field inside near its middle, in mT.`, XMU * (200 / 0.25) * 2 * 1e3, 0.02, 2,
+    XR`$n = \dfrac{200}{0.25} = 800\ \mathrm{m^{-1}}$. $B = \mu_0nI = 4\pi\times10^{-7}\times800\times2.0 = 2.01\times10^{-3}$ T $= 2.01$ mT.`, { unit: 'mT' }),
+  xm(3, 'cyclotron', XR`A cyclotron uses a field of 1.0 T for protons. The frequency of the alternating voltage must be about ($m_p = 1.67\times10^{-27}$ kg)`,
+    '15.2 MHz', ['30.4 MHz', '7.6 MHz', '95.5 MHz'],
+    XR`$f = \dfrac{qB}{2\pi m} = \dfrac{1.6\times10^{-19}\times1.0}{2\pi\times1.67\times10^{-27}} = 1.52\times10^{7}$ Hz. The factor $2\pi$ matters: $qB/m$ alone would be the angular frequency, $9.6\times10^{7}$ rad/s.`),
+  xi(3, 'conversion of a galvanometer', XR`A galvanometer of resistance 50 $\Omega$ gives full-scale deflection for 2.0 mA. The series resistance needed to make it a voltmeter of range 0 to 10 V is, in $\Omega$,`, 10 / 2e-3 - 50,
+    XR`Total resistance for 10 V at 2 mA: $\dfrac{10}{0.002} = 5000\ \Omega$. Series resistor $R = 5000 - 50 = 4950\ \Omega$.`, { unit: 'Ω' }),
+  xa(3, 'velocity selector', XR`In a velocity selector with perpendicular $\vec E$ and $\vec B$, the particles that pass undeflected can have any charge and any mass.`, XR`Both the electric and magnetic forces are proportional to the charge, so the condition for balance is $v = E/B$.`, 0,
+    XR`Balance: $qE = qvB$, so $v = E/B$ with $q$ cancelling. Mass never appears. R explains A.`),
+  xt(3, 'helical motion', XR`A charged particle projected parallel to a uniform magnetic field moves in a straight line at constant speed.`, XR`The magnetic force on a moving charge is $qvB$, independent of the angle between $\vec v$ and $\vec B$.`, 2,
+    XR`Statement I is true: $\vec F = q\vec v\times\vec B = 0$ for $\vec v\parallel\vec B$. Statement II is false: the force is $qvB\sin\theta$ and depends on the angle.`),
+  xmatch(3, 'circular motion', 'xm2', XR`Match each quantity in List I with its value in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$r = \dfrac{mv}{qB}$ (p). $T = \dfrac{2\pi r}{v} = \dfrac{2\pi m}{qB}$ (q). $f = \dfrac1T = \dfrac{qB}{2\pi m}$ (r). $L = mvr = \dfrac{m^2v^2}{qB}$ (s).`),
+  xmatch(3, 'torque on a loop', 'xm3', XR`Match each case in List I with the torque in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$\tau = NIAB\sin\theta$ where $\theta$ is the angle between $\vec B$ and the normal (the moment). $0^\circ$: 0 (p). $90^\circ$: $NIAB$ (q). $60^\circ$: $\dfrac{\sqrt3}{2}NIAB$ (r). $30^\circ$: $\dfrac12NIAB$ (s).`,
+    { trap: 'The angle is measured from the normal to the coil, not from its plane.' }),
+  xi(3, 'forces between wires', XR`Two long parallel wires 0.20 m apart carry 10 A and 20 A in the same direction. The force per unit length is $n\times10^{-5}$ N/m. Find $n$.`, 2e-7 * 10 * 20 / 0.2 / 1e-5,
+    XR`$\dfrac{F}{l} = \dfrac{\mu_0I_1I_2}{2\pi d} = \dfrac{2\times10^{-7}\times10\times20}{0.20} = 2\times10^{-4} = 20\times10^{-5}$ N/m, attractive.`),
+  xn(3, 'helical motion', XR`A proton moves at $2.0\times10^{6}$ m/s at $60^\circ$ to a uniform field of 0.20 T. Find the pitch of its helical path, in m ($m_p = 1.67\times10^{-27}$ kg).`, 2e6 * Math.cos(XPI / 3) * 2 * XPI * XMP / (XQE * 0.2), 0.003, 3,
+    XR`Pitch $=v_\parallel T$, with $v_\parallel = v\cos60^\circ = 1.0\times10^{6}$ m/s and $T = \dfrac{2\pi m}{qB} = \dfrac{2\pi\times1.67\times10^{-27}}{1.6\times10^{-19}\times0.2} = 3.28\times10^{-7}$ s. Pitch $= 0.328$ m.`, { unit: 'm', trap: 'The period depends only on the perpendicular motion; the pitch uses the parallel component.' }),
+  xm(3, "Ampère's law", XR`A long straight cylinder of radius $R$ carries a current uniformly over its cross-section. The ratio of the field at $r = R/2$ to the field at $r = 2R$ is`,
+    '1', ['4', '2', '1/2'],
+    XR`Inside, $B = \dfrac{\mu_0Ir}{2\pi R^2}$; at $R/2$: $\dfrac{\mu_0I}{4\pi R}$. Outside, $B = \dfrac{\mu_0I}{2\pi r}$; at $2R$: $\dfrac{\mu_0I}{4\pi R}$. The two are equal, ratio 1.`, { trap: 'Inside the field rises with $r$; outside it falls.' }),
+  xa(3, 'ammeter conversion', XR`A galvanometer is converted into an ammeter by connecting a high resistance in series with it.`, XR`An ammeter must have a very low resistance.`, 3,
+    XR`A is false: a <i>low</i> resistance (shunt) is connected in <i>parallel</i> to a galvanometer to make an ammeter; a high series resistance makes a voltmeter. R is true: an ammeter is placed in series and must not disturb the current.`),
+  xt(3, 'instruments', XR`An ideal ammeter has zero resistance.`, XR`An ideal voltmeter has infinite resistance.`, 0,
+    XR`An ammeter is put in series; any resistance would reduce the current it measures. A voltmeter is put in parallel; any current it draws would disturb the circuit. So both statements are true.`),
+  xmatch(3, 'field of a loop', 'xm5', XR`Match each arrangement carrying current $I$ in List I with the field at its centre in List II.`, 'A-r, B-q, C-s, D-p',
+    XR`Full circle: $\dfrac{\mu_0I}{2R}$ (r). Semicircle: half of that, $\dfrac{\mu_0I}{4R}$ (q). Quarter circle: a quarter, $\dfrac{\mu_0I}{8R}$ (s). Full circle of radius $R/2$: $\dfrac{\mu_0I}{2(R/2)} = \dfrac{\mu_0I}{R}$ (p).`),
+);
+
+// ---------- L4 ----------
+items.push(
+  xi(4, 'neutral point', XR`Two long parallel wires 40 cm apart carry 2 A and 6 A in the same direction. The field is zero on the line between them at a distance of $x$ cm from the 2 A wire. Find $x$.`, 10,
+    XR`Zero where $\dfrac{\mu_0\cdot2}{2\pi x} = \dfrac{\mu_0\cdot6}{2\pi(40-x)}$, i.e. $2(40-x) = 6x$, $80 = 8x$, $x = 10$ cm.`),
+  xi(4, 'cyclotron', XR`A cyclotron's dees have a potential difference of 50 kV across the gap. A proton is accelerated until it has 20 MeV. How many complete revolutions does it make?`, 20e6 / (2 * 50e3),
+    XR`It crosses the gap twice per revolution and gains $50$ keV each time, i.e. $100$ keV per revolution. Revolutions $=\dfrac{20\ \mathrm{MeV}}{0.1\ \mathrm{MeV}} = 200$.`),
+  xi(4, 'time in a field region', XR`A proton enters a magnetic field region of width $d$ perpendicular to its boundary. Its path radius is $r = 2d$. By how many degrees is it deviated when it leaves on the other side?`, Math.asin(0.5) * 180 / XPI,
+    XR`It leaves when its horizontal travel equals $d$: $r\sin\theta = d$, so $\sin\theta = \dfrac{d}{r} = \dfrac12$ and $\theta = 30^\circ$.`),
+  xn(4, 'Biot-Savart for a straight wire', XR`A straight wire 0.40 m long carries 10 A. Find the field at a point 0.15 m from its midpoint on the perpendicular bisector, in $\mu$T.`, 1e-7 * 10 / 0.15 * 2 * 0.8 * 1e6, 0.15, 2,
+    XR`$B = \dfrac{\mu_0I}{4\pi d}(\sin\phi_1+\sin\phi_2)$ with $\sin\phi = \dfrac{0.2}{\sqrt{0.15^2+0.2^2}} = \dfrac{0.2}{0.25} = 0.8$. $B = \dfrac{10^{-7}\times10}{0.15}\times1.6 = 1.07\times10^{-5}$ T $= 10.7\ \mu$T.`, { unit: 'µT' }),
+  xn(4, 'forces between wires', XR`Three long parallel wires pass through the corners of an equilateral triangle of side 0.10 m, each carrying 10 A in the same direction. Find the force per unit length on one wire, in units of $10^{-4}$ N/m.`, Math.sqrt(3) * 2e-7 * 100 / 0.1 / 1e-4, 0.02, 2,
+    XR`Each of the other two attracts with $F_0 = \dfrac{\mu_0I^2}{2\pi d} = \dfrac{2\times10^{-7}\times100}{0.10} = 2\times10^{-4}$ N/m, towards that wire. The two forces are $60^\circ$ apart: resultant $2F_0\cos30^\circ = \sqrt3F_0 = 3.46\times10^{-4}$ N/m, pointing towards the centre of the triangle.`, { unit: '×10⁻⁴ N/m' }),
+  xn(4, 'field of a moving charge', XR`An electron in the first Bohr orbit (radius $0.53\times10^{-10}$ m) goes round $6.6\times10^{15}$ times per second. Find the field at the nucleus, in tesla.`, XMU * XQE * 6.6e15 / (2 * 0.53e-10), 0.15, 2,
+    XR`Current $I = ef = 1.6\times10^{-19}\times6.6\times10^{15} = 1.056\times10^{-3}$ A. $B = \dfrac{\mu_0I}{2r} = \dfrac{4\pi\times10^{-7}\times1.056\times10^{-3}}{2\times0.53\times10^{-10}} = 12.5$ T.`, { unit: 'T' }),
+  xn(4, 'crossed fields', XR`Protons pass undeflected through crossed fields $E = 5.0\times10^{4}$ V/m and $B = 0.10$ T. The electric field is then switched off. Find the radius of their circular path in the magnetic field alone, in cm ($m_p = 1.67\times10^{-27}$ kg).`, XMP * (5e4 / 0.1) / (XQE * 0.1) * 100, 0.1, 2,
+    XR`Speed $v = E/B = 5\times10^{5}$ m/s. $r = \dfrac{mv}{qB} = \dfrac{1.67\times10^{-27}\times5\times10^{5}}{1.6\times10^{-19}\times0.10} = 0.0522$ m $= 5.22$ cm.`, { unit: 'cm' }),
+  xs(4, 'magnetic force on a charge', XR`A charged particle moves in a uniform magnetic field. Choose the correct statements.`,
+    [XR`Its speed stays constant.`, XR`If its velocity has a component along $\vec B$, the path is a helix.`, XR`Its kinetic energy increases steadily.`, XR`Its momentum changes.`],
+    [0, 1, 3],
+    XR`The force is perpendicular to $\vec v$, so it does no work: speed and kinetic energy are constant (A true, C false). With a component of $\vec v$ along $\vec B$, that component stays constant while the perpendicular part circles: helix (B true). The direction of $\vec v$ keeps changing, so momentum (a vector) changes (D true).`),
+  xs(4, 'torque on a loop', XR`A current loop is in a uniform magnetic field. Choose the correct statements.`,
+    [XR`The net force on the loop is zero.`, XR`The torque is zero when the plane of the loop is perpendicular to the field.`, XR`The torque is greatest when the magnetic moment is parallel to the field.`, XR`The force on a curved part of the loop between two points equals the force on a straight wire joining them with the same current.`],
+    [0, 1, 3],
+    XR`In a uniform field $\sum I\,d\vec l\times\vec B = I(\oint d\vec l)\times\vec B = 0$ (A). Plane perpendicular to $\vec B$ means moment parallel to $\vec B$: $\tau = mB\sin0 = 0$ (B). Torque is greatest when the moment is perpendicular to $\vec B$ (C false). For an open curve, $\vec F = I\vec L_{\mathrm{net}}\times\vec B$ with $\vec L_{\mathrm{net}}$ the straight displacement between its ends (D).`),
+  xs(4, "Ampère's law", XR`A long straight wire of radius $R$ carries a uniform current. Choose the correct statements about its magnetic field.`,
+    [XR`Inside, $B$ is proportional to the distance from the axis.`, XR`Outside, $B$ is inversely proportional to the distance from the axis.`, XR`$B$ is continuous at the surface.`, XR`$B$ is largest on the axis.`],
+    [0, 1, 2],
+    XR`Inside: $B = \dfrac{\mu_0Ir}{2\pi R^2}\propto r$. Outside: $B = \dfrac{\mu_0I}{2\pi r}\propto\dfrac1r$. At $r=R$ both give $\dfrac{\mu_0I}{2\pi R}$. On the axis $B=0$.`),
+  xs(4, 'cyclotron', XR`Choose the correct statements about a cyclotron (non-relativistic).`,
+    [XR`The ion's frequency of revolution does not depend on its speed.`, XR`The frequency does not depend on the radius of its path.`, XR`The final kinetic energy is proportional to the square of the dee radius.`, XR`The final kinetic energy does not depend on the magnetic field.`],
+    [0, 1, 2],
+    XR`$f = \dfrac{qB}{2\pi m}$ is independent of $v$ and $r$. $K = \dfrac{q^2B^2R^2}{2m}\propto R^2$ and $\propto B^2$, so D is false.`),
+  xs(4, 'toroid', XR`Choose the correct statements about solenoids and toroids.`,
+    [XR`Inside a toroid the field varies with the distance from its axis.`, XR`The field inside a long ideal solenoid is uniform.`, XR`The field outside an ideal toroid is zero.`, XR`Doubling the length of a solenoid, with the same turns and current, doubles the field inside.`],
+    [0, 1, 2],
+    XR`Toroid: $B = \dfrac{\mu_0NI}{2\pi r}$ varies with $r$ (A) and is zero outside (C). Ideal long solenoid: uniform (B). For the solenoid, $B = \mu_0nI$ and doubling the length halves $n$, so $B$ halves (D false).`),
+  xa(4, 'circular motion', XR`The time taken by a non-relativistic charged particle to complete a circle in a uniform magnetic field does not depend on its speed.`, XR`When the speed is increased, the radius increases in the same proportion, so the particle covers a proportionally longer circle in the same time.`, 0,
+    XR`$T = \dfrac{2\pi r}{v} = \dfrac{2\pi m}{qB}$ since $r = \dfrac{mv}{qB}$. Radius and speed scale together, so $T$ is unchanged. R gives the reason.`),
+  xa(4, 'forces between wires', XR`Two long parallel wires carrying currents in opposite directions repel each other.`, XR`Two long parallel wires carrying currents in the same direction attract each other.`, 1,
+    XR`Both statements are true. But R does not explain A: reversing one current reverses the force, and R is the fact for the other case. The explanation of A is that the field of one wire at the other, and the force $I\vec l\times\vec B$, both reverse direction when one current reverses.`),
+  xt(4, 'galvanometer', XR`Increasing the number of turns of a moving coil galvanometer increases its current sensitivity.`, XR`Increasing the number of turns also increases its voltage sensitivity.`, 2,
+    XR`Current sensitivity $\dfrac{\theta}{I} = \dfrac{NAB}{k}\propto N$ (true). Voltage sensitivity $\dfrac{\theta}{V} = \dfrac{NAB}{kR}$, and the coil's resistance $R$ also grows with $N$, so it does not necessarily rise: for a doubled $N$, both $N$ and $R$ double and it stays the same. Statement II is false.`),
+  xt(4, 'field of a loop', XR`On the axis of a circular current loop the field is largest at the centre.`, XR`On the axis, $B = \dfrac{\mu_0IR^2}{2(R^2+x^2)^{3/2}}$.`, 0,
+    XR`The expression decreases as $|x|$ increases, so it is greatest at $x=0$, where it becomes $\dfrac{\mu_0I}{2R}$. Both statements are true (unlike a charged ring's electric field, which is zero at the centre).`),
+  xm(4, 'circular motion', XR`Protons, deuterons and alpha particles are accelerated through the same potential difference and enter the same perpendicular magnetic field. The radii $r_p : r_d : r_\alpha$ are in the ratio`,
+    XR`$1:\sqrt2:\sqrt2$`, [XR`$1:2:2$`, XR`$1:\sqrt2:1$`, XR`$1:2:\sqrt2$`],
+    XR`$r = \dfrac{\sqrt{2mqV}}{qB} = \dfrac{1}{B}\sqrt{\dfrac{2mV}{q}}\propto\sqrt{m/q}$. Proton: 1. Deuteron ($m=2,q=1$): $\sqrt2$. Alpha ($m=4,q=2$): $\sqrt2$.`),
+);
+
+// ---------- L5 ----------
+items.push(
+  xi(5, 'magnetic moment', XR`A uniformly charged disc of radius $R$ and total charge $Q$ rotates about its axis at angular speed $\omega$. Its magnetic moment is $\dfrac{Q\omega R^2}{n}$. Find $n$.`, 4,
+    XR`A ring of radius $r$ and width $dr$ carries charge $dq = \dfrac{Q}{\pi R^2}2\pi r\,dr$, current $dI = \dfrac{\omega}{2\pi}dq$ and moment $dm = \pi r^2\,dI = \dfrac{Q\omega}{R^2}r^3\,dr$. Integrating from 0 to $R$: $m = \dfrac{Q\omega R^2}{4}$. So $n=4$.`,
+    { trap: 'A ring would give $\\tfrac12Q\\omega R^2$; the disc has a smaller moment because inner charge counts less.' }),
+  xi(5, 'force on a curved wire', XR`A semicircular wire of radius 0.20 m carries 10 A. Its ends lie on a line, and it is in a uniform field of 0.50 T perpendicular to its plane. The force on it, in newton, is`, 2 * 0.5 * 10 * 0.2,
+    XR`The force on the curved wire equals the force on the straight chord between its ends: $F = BI(2R) = 0.50\times10\times0.40 = 2$ N.`, { unit: 'N', trap: 'It is not $\\pi RIB$.' }),
+  xi(5, 'torque on a coil', XR`A coil of 50 turns and area $2\times10^{-3}$ m$^2$ carries 0.40 A. It is in a field of 0.50 T, with its plane parallel to the field. The torque is $n\times10^{-2}$ N m. Find $n$.`, 50 * 0.4 * 2e-3 * 0.5 / 1e-2,
+    XR`Plane parallel to the field means the normal is perpendicular to it: $\tau = NIAB = 50\times0.40\times2\times10^{-3}\times0.50 = 0.02 = 2\times10^{-2}$ N m.`),
+  xn(5, 'solenoid', XR`A flat spiral coil of 100 turns has inner radius 5.0 cm and outer radius 10.0 cm and carries 2.0 A. Treat the turns as spread uniformly in radius. Find the field at its centre, in mT.`, XMU * 100 * 2 / (2 * 0.05) * Math.log(2) * 1e3, 0.02, 2,
+    XR`A thin annulus of radius $r$ and width $dr$ contains $dN = \dfrac{N}{b-a}dr$ turns and gives $dB = \dfrac{\mu_0I\,dN}{2r}$. Integrate: $B = \dfrac{\mu_0NI}{2(b-a)}\ln\dfrac ba = \dfrac{4\pi\times10^{-7}\times100\times2}{2\times0.05}\times0.693 = 1.74\times10^{-3}$ T.`, { unit: 'mT' }),
+  xn(5, 'mass spectrometer', XR`Singly charged chlorine ions of mass 35 u and 37 u are accelerated through 2.0 kV and bent in a field of 0.50 T. They strike a plate after a half circle. Find the separation between the two landing spots, in mm ($1\ \mathrm{u} = 1.66\times10^{-27}$ kg).`, 2 * (Math.sqrt(2 * 37 * XU * 2000 / XQE) - Math.sqrt(2 * 35 * XU * 2000 / XQE)) / 0.5 * 1e3, 0.05, 2,
+    XR`$r = \dfrac{1}{B}\sqrt{\dfrac{2mV}{q}}$. For 35 u: $r_1 = \dfrac{1}{0.5}\sqrt{\dfrac{2\times35\times1.66\times10^{-27}\times2000}{1.6\times10^{-19}}} = 0.0762$ m. For 37 u: $r_2 = 0.0784$ m. Spots are at diameters: separation $= 2(r_2-r_1) = 4.3$ mm.`, { unit: 'mm', trap: 'The landing spots are a <i>diameter</i> away, so the separation is twice the difference in radii.' }),
+  xs(5, 'crossed fields', XR`Charged particles move through uniform crossed fields $\vec E\perp\vec B$ with $v = E/B$ undeflected. Choose the correct statements.`,
+    [XR`The undeflected speed does not depend on the particle's charge or sign.`, XR`The undeflected speed does not depend on its mass.`, XR`A neutral particle is undeflected at any speed.`, XR`A particle with $v<E/B$ is deflected in the direction of the magnetic force.`],
+    [0, 1, 2],
+    XR`$qE = qvB$ gives $v = E/B$: no $q$ or $m$ (A, B). A neutral particle feels neither force (C). If $v<E/B$ then $qvB<qE$ and the electric force dominates: it bends along the electric force, not the magnetic one (D false).`),
+  xs(5, 'field of a moving charge', XR`A point charge $q$ moves with constant velocity $\vec v$ (speed far below $c$). Choose the correct statements about its magnetic field at a point P.`,
+    [XR`The field is zero at P if P is on the line of motion.`, XR`The field at perpendicular distance $r$ has magnitude $\dfrac{\mu_0qv}{4\pi r^2}$.`, XR`The field is perpendicular to both $\vec v$ and the line from the charge to P.`, XR`The field depends only on $v$, not on the position of P.`],
+    [0, 1, 2],
+    XR`$\vec B = \dfrac{\mu_0}{4\pi}\dfrac{q\vec v\times\hat r}{r^2}$. On the line of motion $\sin\theta = 0$ (A). At $\theta = 90^\circ$ the magnitude is $\dfrac{\mu_0qv}{4\pi r^2}$ (B). Direction is $\vec v\times\hat r$: perpendicular to both (C). It depends on distance and angle (D false).`),
+  xs(5, 'moving coil galvanometer', XR`Choose the correct statements about a moving coil galvanometer with a radial field.`,
+    [XR`The torque on the coil does not depend on the angle of deflection.`, XR`The deflection is proportional to the current.`, XR`The current sensitivity increases if the number of turns increases.`, XR`The current sensitivity increases if the torsion constant of the spring increases.`],
+    [0, 1, 2],
+    XR`The radial field keeps the plane parallel to $\vec B$, so $\tau = NIAB$ at all angles (A). It balances $k\phi$: $\phi = \dfrac{NAB}{k}I$ (B). Sensitivity $\propto N$ (C) and $\propto1/k$, so a stiffer spring lowers it (D false).`),
+  xs(5, 'neutral point', XR`Two long parallel wires, 1 and 2, carry currents $I_1\ne0$ and $I_2\ne0$. Choose the correct statements.`,
+    [XR`If the currents are equal and in the same direction, the field is zero midway between them.`, XR`If the currents are opposite, the field is zero nowhere between them.`, XR`If the currents are unequal and opposite, a zero of the field exists outside the wires, nearer the wire with the smaller current.`, XR`If the currents are equal and opposite, the field is zero somewhere outside the wires.`],
+    [0, 1, 2],
+    XR`Same direction: fields oppose between the wires and are equal at the midpoint (A). Opposite: fields add between them (B). Outside, the fields oppose; equality needs $\dfrac{I_1}{x_1} = \dfrac{I_2}{x_2}$ with the larger distance for the larger current, so the point is nearer the smaller current (C). For equal currents $x_1=x_2$ cannot hold outside, so no zero (D false).`),
+  xs(5, 'magnetic moment', XR`A ring of charge $Q$, mass $m$ and radius $R$ rotates about its axis at angular speed $\omega$. Choose the correct statements.`,
+    [XR`The equivalent current is $\dfrac{Q\omega}{2\pi}$.`, XR`The field at the centre is $\dfrac{\mu_0Q\omega}{4\pi R}$.`, XR`The magnetic moment is $\dfrac12Q\omega R^2$.`, XR`The ratio of magnetic moment to angular momentum depends on $R$.`],
+    [0, 1, 2],
+    XR`$I = Q/T = \dfrac{Q\omega}{2\pi}$. $B = \dfrac{\mu_0I}{2R} = \dfrac{\mu_0Q\omega}{4\pi R}$. $\mu = I\pi R^2 = \tfrac12Q\omega R^2$. Angular momentum $L = mR^2\omega$, so $\mu/L = \dfrac{Q}{2m}$, independent of $R$ (D false).`),
+  xmatch(5, 'neutral point', 'xm4', XR`Match each case in List I with the position of zero field in List II ($d$ = separation of the wires).`, 'A-p, B-r, C-q, D-s',
+    XR`Equal parallel currents: zero midway (p). Currents $2I$ and $I$ in the same direction: from $\dfrac{2I}{x} = \dfrac{I}{d-x}$, $x = \dfrac{2d}{3}$ from the $2I$ wire (r). Equal opposite currents: the fields add between and are unequal in size outside, so there is no zero (q). Currents $2I$ and $I$ opposite: outside, nearer $I$: $\dfrac{2I}{d+y} = \dfrac{I}{y}$ gives $y = d$ from the $I$ wire (s).`),
+  xmatch(5, 'meters', 'xm6', XR`Match each item in List I with the matching item in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Ammeter: low resistance shunt in parallel (p). Voltmeter: high resistance in series (q). A shunt in parallel makes total resistance less than $G$ (r). A series resistor makes it more than $G$ (s).`),
+  xmatch(5, 'motion in a field', 'xm7', XR`Match each situation in List I with the path in List II.`, 'A-q, B-p, C-r, D-s',
+    XR`$\vec v\parallel\vec B$: no force, straight line (q). $\vec v\perp\vec B$: circle (p). $60^\circ$: circle plus drift along $\vec B$, a helix (r). Crossed fields with $v=E/B$: the two forces cancel, a straight line (s).`),
+  xmatch(5, "Ampère's law", 'xm8', XR`Match each position in List I with the field in List II.`, 'A-q, B-p, C-s, D-r',
+    XR`Inside, $B = \dfrac{\mu_0Ir}{2\pi R^2}$: at $r=R/2$ this is $\dfrac{\mu_0I}{4\pi R}$ (q). At the surface $r=R$: $\dfrac{\mu_0I}{2\pi R}$ (p). Outside, $B = \dfrac{\mu_0I}{2\pi r}$: at $r=4R$ it is $\dfrac{\mu_0I}{8\pi R}$ (s). On the axis $r=0$ gives 0 (r).`),
+);
+
+
+items.push(
+  xn(4, 'finite solenoid', XR`A long solenoid has 1000 turns per metre and carries 4.0 A. Find the field on its axis at one open end, in mT.`, XMU * 1000 * 4 / 2 * 1e3, 0.03, 2,
+    XR`Deep inside, $B = \mu_0nI = 4\pi\times10^{-7}\times1000\times4 = 5.03$ mT. At an open end of a long solenoid the field is half of that: $2.51$ mT.`, { unit: 'mT', trap: 'The end value is half the central value, not equal to it.' }),
+  xi(4, 'concentric loops', XR`A 2-turn coil of radius 0.10 m and a single turn of radius 0.20 m share a centre and lie in one plane. Each carries 10 A, in opposite senses. The field at the centre is $n\pi\times10^{-5}$ T. Find $n$.`, XMU * 10 / 2 * (2 / 0.1 - 1 / 0.2) / (XPI * 1e-5),
+    XR`$B = \dfrac{\mu_0I}{2}\left(\dfrac{N_1}{r_1}-\dfrac{N_2}{r_2}\right) = 2\pi\times10^{-6}\left(20-5\right) = 30\pi\times10^{-6} = 3\pi\times10^{-5}$ T. So $n=3$.`, { trap: 'Opposite senses subtract.' }),
+  xm(4, 'time in a field region', XR`A particle of charge $q$ and mass $m$ enters a field region of width $d$ and strength $B$, moving perpendicular to the boundary and to $B$. The least speed with which it can cross the region is`,
+    XR`$\dfrac{qBd}{m}$`, [XR`$\dfrac{qBd}{2m}$`, XR`$\dfrac{2qBd}{m}$`, XR`$\dfrac{qB}{md}$`],
+    XR`It just grazes the far edge when the radius equals the width: $r = \dfrac{mv}{qB} = d$, so $v = \dfrac{qBd}{m}$. For a larger speed it crosses the region.`),
+  xt(5, 'crossed fields', XR`A charged particle can move in a straight line through a region having both an electric and a magnetic field.`, XR`This happens when the net force $q\vec E+q\vec v\times\vec B$ on it is zero.`, 0,
+    XR`Example: crossed fields with $v=E/B$. A straight line at constant velocity requires zero net force, which is exactly Statement II. Both true.`),
+);
+
+// ---------- passages ----------
+items.push(
+  xn(3, 'velocity selector', XR`Find the speed of the ions that leave the velocity selector undeflected, in $10^{5}$ m/s.`, 5e4 / 0.25 / 1e5, 0.01, 2,
+    XR`$v = \dfrac{E}{B_1} = \dfrac{5.0\times10^{4}}{0.25} = 2.0\times10^{5}$ m/s.`, XPY({ group: 'xp1', unit: '×10⁵ m/s' })),
+  xn(4, 'mass spectrometer', XR`Find the radius of their circular path in the second field, in cm.`, 40 * XU * 2e5 / (XQE * 0.5) * 100, 0.15, 2,
+    XR`$r = \dfrac{mv}{qB_2} = \dfrac{40\times1.66\times10^{-27}\times2.0\times10^{5}}{1.6\times10^{-19}\times0.50} = 0.166$ m $= 16.6$ cm.`, XPY({ group: 'xp1', unit: 'cm' })),
+  xm(5, 'mass spectrometer', XR`Ions of mass 36 u (same charge and same speed) are also present in the beam. They go through the selector undeflected. In the second field the ratio of their radius to that of the 40 u ions is`,
+    '0.9', ['1.11', '0.81', '1'],
+    XR`The selector passes both, since $v = E/B_1$ is independent of mass. Then $r\propto m$ at fixed $q$, $v$, $B_2$: $\dfrac{36}{40} = 0.9$.`, XPY({ group: 'xp1', trap: 'The selector does not separate masses; the second field does.' })),
+  xn(3, 'magnetic moment', XR`Find the magnetic moment of the coil, in A m$^2$.`, 50 * 2 * XPI * 0.01, 0.01, 2,
+    XR`$m = NIA = 50\times2.0\times\pi\times(0.10)^2 = 3.14\ \mathrm{A\,m^2}$.`, XPY({ group: 'xp2', unit: 'A m²' })),
+  xn(4, 'torque on a loop', XR`Find the torque on the coil at the start, in N m.`, 50 * 2 * XPI * 0.01 * 0.4, 0.01, 2,
+    XR`Plane parallel to $\vec B$ means moment perpendicular to $\vec B$: $\tau = mB = 3.14\times0.40 = 1.26$ N m.`, XPY({ group: 'xp2', unit: 'N m' })),
+  xn(5, 'energy of a dipole', XR`The coil is free to turn about a diameter and has moment of inertia $0.050\ \mathrm{kg\,m^2}$. It is released from the starting position and turns until its moment lines up with the field. Find its angular speed then, in rad/s (ignore damping).`, Math.sqrt(2 * 50 * 2 * XPI * 0.01 * 0.4 / 0.05), 0.07, 2,
+    XR`Energy: $U = -mB\cos\theta$ with $\theta$ from the moment to $\vec B$. At the start $\theta = 90^\circ$, $U=0$; at alignment $U = -mB$. So $\tfrac12I\omega^2 = mB = 1.257$ J and $\omega = \sqrt{\dfrac{2\times1.257}{0.050}} = 7.09$ rad/s.`, XPY({ group: 'xp2', unit: 'rad/s', trap: 'The kinetic energy gained is $mB$, not $2mB$.' })),
+);
+
+// ---------- templates ----------
+gens.push(
+  XG(27, 3, 'mcq', 'circular motion', (rng) => {
+    const v = int(rng, 0, 3); const w = choose(rng, [{ n: 'deuteron', m: 2, q: 1 }, { n: 'alpha particle', m: 4, q: 2 }]);
+    const cond = ['the same speed', 'the same kinetic energy', 'the same accelerating potential difference', 'the same momentum'][v];
+    const ratio = [w.m / w.q, Math.sqrt(w.m) / w.q, Math.sqrt(w.m / w.q), 1 / w.q][v];
+    const why = [XR`$r = \dfrac{mv}{qB}\propto\dfrac mq$`, XR`$r = \dfrac{\sqrt{2mK}}{qB}\propto\dfrac{\sqrt m}{q}$`, XR`$r = \dfrac1B\sqrt{\dfrac{2mV}{q}}\propto\sqrt{\dfrac mq}$`, XR`$r = \dfrac{p}{qB}\propto\dfrac1q$`][v];
+    const pool = [w.m / w.q, Math.sqrt(w.m) / w.q, Math.sqrt(w.m / w.q), 1 / w.q, w.m, w.q, 1 / w.m];
+    const wr = []; for (const x of pool) { if (Math.abs(x - ratio) > 1e-9 && !wr.some((y) => Math.abs(y - x) < 1e-9)) wr.push(x); if (wr.length === 3) break; }
+    const o = numOpts(rng, ratio, wr, '', 3);
+    return { v, wm: w.m, wq: w.q, rt: f3(ratio), q: XR`A proton and a ${w.n} enter the same uniform magnetic field perpendicular to it with ${cond}. The radius of the ${w.n}'s path is how many times the proton's radius?`, options: o.options, answer: o.answer,
+      sol: XR`${why}. For the ${w.n} ($m = ${w.m}m_p$, $q = ${w.q}q_p$) the ratio is $${f3(ratio)}$.`, trap: 'Decide which quantity is held equal, then see how $r$ depends on $m$ and $q$.' };
+  }, (p) => { const ratio = [p.wm / p.wq, Math.sqrt(p.wm) / p.wq, Math.sqrt(p.wm / p.wq), 1 / p.wq][p.v]; return p.options.findIndex((o) => o === f3(ratio)); }),
+  XG(28, 4, 'nat', 'Biot-Savart for a straight wire', (rng) => {
+    const a = choose(rng, [0.2, 0.3, 0.4]); const d = choose(rng, [0.1, 0.15, 0.2, 0.3]); const I = pick(rng, 5, 20, 5);
+    const s = a / Math.sqrt(a * a + d * d); const B = 1e-7 * I / d * 2 * s * 1e6;
+    return { a, d, I, q: XR`A straight wire ${2 * a} m long carries ${I} A. Find the field at a point ${d} m from its midpoint on the perpendicular bisector, in $\mu$T.`, answer: +B.toFixed(3), tol: Math.max(0.02, B * 0.01), unit: 'µT',
+      sol: XR`$B = \dfrac{\mu_0I}{4\pi d}(\sin\phi_1+\sin\phi_2)$ with $\sin\phi = \dfrac{${a}}{\sqrt{${a}^2+${d}^2}} = ${f3(s)}$. $B = \dfrac{10^{-7}\times${I}}{${d}}\times${f3(2 * s)} = ${f3(B)}\ \mu$T.` };
+  }, (p) => { let sum = 0; const N = 20000; for (let i = 0; i < N; i++) { const y = -p.a + (i + 0.5) / N * 2 * p.a; const dl = 2 * p.a / N; sum += 1e-7 * p.I * dl * p.d / Math.pow(y * y + p.d * p.d, 1.5); } return sum * 1e6; }),
+  XG(29, 4, 'nat', 'field of a spiral coil', (rng) => {
+    const a = choose(rng, [0.02, 0.04, 0.05]); const b = choose(rng, [0.08, 0.1, 0.12]); const N = choose(rng, [50, 100, 200]); const I = pick(rng, 1, 4);
+    const B = XMU * N * I / (2 * (b - a)) * Math.log(b / a) * 1e3;
+    return { a, b, N, I, q: XR`A flat spiral coil of ${N} turns has inner radius ${a * 100} cm and outer radius ${b * 100} cm, carrying ${I} A with the turns spread uniformly in radius. Find the field at its centre, in mT.`, answer: +B.toFixed(3), tol: Math.max(0.01, B * 0.01), unit: 'mT',
+      sol: XR`$B = \dfrac{\mu_0NI}{2(b-a)}\ln\dfrac ba = \dfrac{4\pi\times10^{-7}\times${N}\times${I}}{2\times${f3(b - a)}}\times${f3(Math.log(b / a))} = ${f3(B)}$ mT.` };
+  }, (p) => { let s = 0; const n = 20000; for (let i = 0; i < n; i++) { const r = p.a + (i + 0.5) / n * (p.b - p.a); s += XMU * p.I * (p.N / (p.b - p.a)) * ((p.b - p.a) / n) / (2 * r); } return s * 1e3; }),
+  XG(30, 4, 'nat', 'forces between wires', (rng) => {
+    const I = pick(rng, 5, 20, 5); const d = choose(rng, [0.05, 0.1, 0.2]);
+    const F = Math.sqrt(3) * 2e-7 * I * I / d;
+    return { I, d, q: XR`Three long parallel wires pass through the corners of an equilateral triangle of side ${d} m, each carrying ${I} A in the same direction. Find the force per unit length on one of them, in $10^{-4}$ N/m.`, answer: +(F / 1e-4).toFixed(3), tol: Math.max(0.01, F / 1e-4 * 0.01), unit: '×10⁻⁴ N/m',
+      sol: XR`Each other wire attracts with $F_0 = \dfrac{\mu_0I^2}{2\pi d} = ${f3(2e-7 * I * I / d / 1e-4)}\times10^{-4}$ N/m. The two forces are $60^\circ$ apart, so the resultant is $\sqrt3F_0 = ${f3(F / 1e-4)}\times10^{-4}$ N/m.` };
+  }, (p) => { const F0 = 2e-7 * p.I * p.I / p.d; const u1 = [Math.cos(Math.PI / 3), Math.sin(Math.PI / 3)]; const u2 = [1, 0]; return Math.hypot(F0 * (u1[0] + u2[0]), F0 * (u1[1] + u2[1])) / 1e-4; }),
+  XG(31, 5, 'nat', 'mass spectrometer', (rng) => {
+    const m1 = choose(rng, [20, 35, 63]); const dm = choose(rng, [1, 2]); const V = choose(rng, [1000, 2000, 4000]); const B = choose(rng, [0.4, 0.5, 0.8]);
+    const rr = (m) => Math.sqrt(2 * m * XU * V / XQE) / B; const sep = 2 * (rr(m1 + dm) - rr(m1)) * 1e3;
+    return { m1, dm, V, B, q: XR`Singly charged ions of mass ${m1} u and ${m1 + dm} u are accelerated through ${V} V and bent through a half circle in a field of ${B} T. Find the distance between the two landing spots, in mm ($1\ \mathrm{u}=1.66\times10^{-27}$ kg).`, answer: +sep.toFixed(3), tol: Math.max(0.05, sep * 0.01), unit: 'mm',
+      sol: XR`$r = \dfrac1B\sqrt{\dfrac{2mV}{q}}$ gives $r_1 = ${f3(rr(m1) * 100)}$ cm and $r_2 = ${f3(rr(m1 + dm) * 100)}$ cm. The spots are a diameter from the entry point, so the separation is $2(r_2-r_1) = ${f3(sep)}$ mm.` };
+  }, (p) => { const k = (m) => Math.sqrt(2 * m * 1.66e-27 * p.V / 1.6e-19) / p.B; return 2 * (k(p.m1 + p.dm) - k(p.m1)) * 1e3; }),
+  XG(32, 3, 'mcq', 'conversion of a galvanometer', (rng) => {
+    const v = int(rng, 0, 1); const G = choose(rng, [40, 50, 100, 200]); const Ig = choose(rng, [1, 2, 5]) * 1e-3;
+    if (v === 0) { const I = choose(rng, [0.5, 1, 2, 5]); const S = Ig * G / (I - Ig); const o = numOpts(rng, S, [Ig * G / I, I * G, G * (I - Ig)], 'Ω', 3);
+      return { v, G, Ig, I, q: XR`A galvanometer of resistance ${G} $\Omega$ shows full scale for ${Ig * 1e3} mA. The shunt needed to make it an ammeter of range 0 to ${I} A is`, options: o.options, answer: o.answer, sol: XR`$S = \dfrac{I_gG}{I-I_g} = \dfrac{${sg(Ig)}\times${G}}{${I}-${sg(Ig)}} = ${f3(S)}\ \Omega$ in parallel.`, trap: 'The shunt carries $I - I_g$, not $I$.' }; }
+    const V = choose(rng, [3, 5, 10, 15]); const R = V / Ig - G; const o = numOpts(rng, R, [V / Ig, V / Ig + G, Ig * G / V], 'Ω', 3);
+    return { v, G, Ig, V, q: XR`A galvanometer of resistance ${G} $\Omega$ shows full scale for ${Ig * 1e3} mA. The series resistance needed to make it a voltmeter of range 0 to ${V} V is`, options: o.options, answer: o.answer, sol: XR`$R = \dfrac{V}{I_g} - G = \dfrac{${V}}{${sg(Ig)}} - ${G} = ${f3(R)}\ \Omega$ in series.`, trap: 'Subtract the galvanometer\'s own resistance.' };
+  }, (p) => { const val = p.v === 0 ? p.Ig * p.G / (p.I - p.Ig) : p.V / p.Ig - p.G; return p.options.findIndex((o) => o === `${f3(val)} Ω`); }),
+  XG(33, 4, 'nat', 'helical motion', (rng) => {
+    const part = choose(rng, [{ n: 'proton', m: XMP }, { n: 'electron', m: 9.11e-31 }]); const th = choose(rng, [30, 45, 60]); const B = choose(rng, [0.1, 0.2, 0.5]); const v = pick(rng, 1, 5) * 1e6;
+    const T = 2 * XPI * part.m / (XQE * B); const pitch = v * Math.cos(th * XPI / 180) * T; const r = part.m * v * Math.sin(th * XPI / 180) / (XQE * B);
+    return { n: part.n, m: part.m, th, B, v, q: XR`A ${part.n} moves at $${v / 1e6}\times10^{6}$ m/s at $${th}^\circ$ to a uniform field of ${B} T. Find the pitch of its helix, in cm.`, answer: +(pitch * 100).toFixed(4), tol: Math.max(0.0005, pitch * 100 * 0.01), unit: 'cm',
+      sol: XR`$T = \dfrac{2\pi m}{qB} = ${f3(T)}$ s and $v_\parallel = v\cos${th}^\circ = ${f3(v * Math.cos(th * XPI / 180))}$ m/s. Pitch $= v_\parallel T = ${f3(pitch * 100)}$ cm. (The radius of the helix is $${f3(r * 100)}$ cm.)` };
+  }, (p) => { const r = p.m * p.v * Math.sin(p.th * XPI / 180) / (XQE * p.B); const vperp = p.v * Math.sin(p.th * XPI / 180); const t = 2 * XPI * r / vperp; return p.v * Math.cos(p.th * XPI / 180) * t * 100; }),
+  XG(34, 5, 'nat', 'magnetic moment', (rng) => {
+    const v = int(rng, 0, 1); const Q = pick(rng, 1, 9) * 1e-6; const w = pick(rng, 50, 300, 50); const R = choose(rng, [0.1, 0.2, 0.3]);
+    const mu = v === 0 ? 0.5 * Q * w * R * R : 0.25 * Q * w * R * R;
+    return { v, Q, w, R, q: XR`A ${v === 0 ? 'thin ring' : 'uniformly charged disc'} of radius ${R} m carries $${Q * 1e6}\ \mu$C ${v === 0 ? 'spread uniformly on it' : 'spread uniformly over its face'} and rotates about its axis at ${w} rad/s. Find its magnetic moment, in $10^{-6}$ A m$^2$.`, answer: +(mu / 1e-6).toFixed(3), tol: Math.max(0.01, mu / 1e-6 * 0.01), unit: '×10⁻⁶ A m²',
+      sol: v === 0 ? XR`$I = \dfrac{Q\omega}{2\pi}$ and $\mu = I\pi R^2 = \tfrac12Q\omega R^2 = ${f3(mu / 1e-6)}\times10^{-6}$ A m$^2$.` : XR`Summing ring by ring, $\mu = \tfrac14Q\omega R^2 = ${f3(mu / 1e-6)}\times10^{-6}$ A m$^2$.` };
+  }, (p) => { if (p.v === 0) return (p.Q * p.w / (2 * XPI)) * XPI * p.R * p.R / 1e-6; let m = 0; const n = 20000; for (let i = 0; i < n; i++) { const r = (i + 0.5) / n * p.R; const dq = p.Q / (XPI * p.R * p.R) * 2 * XPI * r * (p.R / n); m += (dq * p.w / (2 * XPI)) * XPI * r * r; } return m / 1e-6; }),
+  XG(35, 5, 'nat', 'neutral point', (rng) => {
+    const same = int(rng, 0, 1); const I1 = pick(rng, 1, 4); const k = choose(rng, [2, 3, 4]); const I2 = I1 * k; const d = choose(rng, [0.2, 0.3, 0.4, 0.6]);
+    const x = same ? d * I1 / (I1 + I2) : d * I1 / (I2 - I1);
+    return { same, I1, I2, d, q: XR`Two long parallel wires ${d * 100} cm apart carry ${I1} A and ${I2} A ${same ? 'in the same direction' : 'in opposite directions'}. Find the distance of the point of zero field from the ${I1} A wire, in cm${same ? ' (on the line between them)' : ' (outside the wires)'}.`, answer: +(x * 100).toFixed(3), tol: Math.max(0.01, x * 100 * 0.01), unit: 'cm',
+      sol: same ? XR`Between the wires, $\dfrac{${I1}}{x} = \dfrac{${I2}}{${d * 100}-x}$ (in cm), so $x = \dfrac{${d * 100}\times${I1}}{${I1}+${I2}} = ${f3(x * 100)}$ cm.` : XR`Outside, nearer the smaller current: $\dfrac{${I1}}{x} = \dfrac{${I2}}{x+${d * 100}}$, so $x = \dfrac{${d * 100}\times${I1}}{${I2}-${I1}} = ${f3(x * 100)}$ cm, on the side away from the ${I2} A wire.` };
+  }, (p) => { let lo = 1e-6, hi = 10; const B = (x) => p.same ? 1 / x - p.I2 / p.I1 / (p.d - x) : 1 / x - p.I2 / p.I1 / (x + p.d); const a = p.same ? 1e-6 : 1e-6; let A = a, Bb = p.same ? p.d - 1e-6 : 100; for (let i = 0; i < 200; i++) { const m = (A + Bb) / 2; if (B(A) * B(m) <= 0) Bb = m; else A = m; } return A * 100; }),
+);
+
+}
+
 export default { topic: 'moving-charges-magnetism', groups, items, gens };

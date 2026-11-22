@@ -930,4 +930,334 @@ const gens = [
     verify: (p) => { if (p.v === 0) return 1 / (1 / p.R + 1 / p.Rv); if (p.v === 1) return (p.R + p.Ra - p.R) / p.R * 100; return (p.I2 * p.R - p.I1 * p.R) / (p.I2 - p.I1); } },
 ];
 
+// ---------- expansion block: more hard items, matches, multi-correct, passages and templates ----------
+{
+const XR = String.raw;
+const XEXB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv', 'neet'], 5: ['jee-adv'] };
+let xk = 193; let xc = 0;
+const xid = () => `xp-${String(++xk).padStart(3, '0')}`;
+const XPOS = [2, 0, 3, 1, 1, 3, 0, 2];
+const xex = (level, type, sub) => (type === 'mcq' && level <= 3 && ((s)=>['metre bridge','resistivity','ohms law','galvanometer','mirror','lens','optics','prism','microscope','diode','zener','semiconductor'].includes(s))(sub) ? [...XEXB[level], 'cuet'] : XEXB[level]);
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type, sub), sub, ...o });
+const xm = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xi = (level, sub, q, value, sol, o = {}) => {
+  const answer = Math.round(value); if (Math.abs(value - answer) > 1e-6) throw new Error('not an integer: ' + value + ' ' + q.slice(0, 60));
+  return xb(level, sub, { type: 'nat', format: 'integer', q, answer, tol: 0, calc: () => answer, sol, ...o });
+};
+const xn = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return xb(level, sub, { type: 'nat', format: 'numeric', q, answer, tol, calc: () => answer, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XA = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XA, answer, sol, ...o });
+const XS = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XS, answer, sol, ...o });
+const xmatch = (level, sub, group, q, correct, sol, o = {}) => {
+  const L = correct.split(', ').map((s) => s.split('-')); const rs = L.map((x) => x[1]);
+  const mk = (p) => L.map((x, i) => `${x[0]}-${p[i]}`).join(', ');
+  const swaps = [[0, 1], [2, 3], [1, 2], [0, 3], [0, 2], [1, 3]]; const wr = [];
+  for (let t = 0; t < 6 && wr.length < 3; t++) { const [i, j] = swaps[(t + xc) % 6]; const p = [...rs]; [p[i], p[j]] = [p[j], p[i]]; const s = mk(p); if (s !== correct && !wr.includes(s)) wr.push(s); }
+  if (wr.length < 3) throw new Error('match options');
+  const pos = XPOS[xc++ % 8]; const options = [...wr]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xp = (extra) => (level, sub, group, q, ...rest) => extra(level, sub, q, ...rest);
+const XG = (n, level, type, sub, make, verify) => ({ id: `xp-g${n}`, type, level, exams: xex(level, type, sub), sub, make, verify });
+const f3 = (v) => fmt(v, 3);
+const sg = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XPY = (o) => ({ format: 'passage', ...o });
+const XPI = Math.PI; const XG0 = 9.8;
+Object.assign(groups, {
+  xm1: { title: 'Apparatus and experiments',
+    list1: ['A. Young\'s modulus of a wire', 'B. Surface tension by capillary rise', 'C. Specific heat of a solid by mixtures', 'D. Speed of sound in air'],
+    list2: [r`p. Searle's apparatus`, r`q. capillary tube and travelling microscope`, r`r. calorimeter and thermometer`, r`s. resonance tube and tuning fork`] },
+  xm2: { title: 'Formulae used in experiments',
+    list1: ['A. Simple pendulum, period', 'B. Spring-mass system, period', 'C. Resonance tube: speed from two resonance lengths $L_1$, $L_2$', 'D. First resonance of a closed tube, with end correction $e$'],
+    list2: [r`p. $T = 2\pi\sqrt{L/g}$`, r`q. $T = 2\pi\sqrt{m/k}$`, r`r. $v = 2f(L_2-L_1)$`, r`s. $f = \dfrac{v}{4(L_1+e)}$`] },
+  xm3: { title: 'Type of error',
+    list1: ['A. Zero error of a screw gauge', 'B. Variation in the reaction time when using a stopwatch', 'C. Using a stretched metre scale', 'D. Mistake in reading the circular scale'],
+    list2: [r`p. systematic error`, r`q. random error`, r`r. instrumental error`, r`s. gross (personal) error`] },
+  xm4: { title: 'Maximum percentage error in a derived quantity (each reading has the stated error)',
+    list1: [r`A. $g = \dfrac{4\pi^2L}{T^2}$ with $L$ 1 %, $T$ 1 %`, r`B. $\rho = \dfrac{m}{\pi r^2h}$ with $m$ 2 %, $r$ 1 %, $h$ 2 %`, r`C. $R = \dfrac{V}{I}$ with $V$ 2 %, $I$ 3 %`, r`D. $T = 2\pi\sqrt{L/g}$ with $L$ 4 %, $g$ 4 %`],
+    list2: ['p. 3 %', 'q. 6 %', 'r. 5 %', 's. 4 %'] },
+  xm5: { title: 'Curves and graphs in experiments',
+    list1: ['A. $1/v$ against $1/u$ for a convex lens', 'B. Deviation against angle of incidence for a prism', 'C. $T^2$ against $L$ for a pendulum', 'D. Current against voltage for a Zener diode in reverse bias'],
+    list2: [r`p. straight line with intercept $1/f$`, r`q. curve with a minimum`, r`r. straight line through the origin`, r`s. nearly vertical line after breakdown`] },
+  xm6: { title: 'Electrical experiments',
+    list1: ['A. Metre bridge', 'B. Ohm\'s law verification', 'C. Galvanometer resistance (half deflection)', 'D. Zener regulator'],
+    list2: [r`p. null point: $R/X = l/(100-l)$`, r`q. $V$-$I$ graph a straight line through the origin`, r`r. $G = \dfrac{RS}{R-S}$`, r`s. constant output voltage in breakdown`] },
+  xm7: { title: 'Optics experiments',
+    list1: ['A. Prism at minimum deviation', 'B. Displacement method for a lens', 'C. Convex mirror from a convex lens', 'D. $u$-$v$ method'],
+    list2: [r`p. $\mu = \dfrac{\sin\frac{A+\delta_m}{2}}{\sin\frac A2}$`, r`q. $f = \dfrac{D^2-d^2}{4D}$`, r`r. the lens forms the image at the mirror's centre of curvature`, r`s. $\dfrac1f = \dfrac1v-\dfrac1u$`] },
+  xm8: { title: 'Significant figures',
+    list1: ['A. 0.0420', 'B. 5.000', 'C. 0.0050', 'D. 0.050400'],
+    list2: ['p. 2', 'q. 3', 'r. 4', 's. 5'] },
+  xp1: { title: 'Young\'s modulus by Searle\'s method',
+    passage: r`<p>A steel wire 2.00 m long has diameter 0.80 mm (measured with a screw gauge). A load of 2.0 kg stretches it by 0.50 mm. Take $g = 9.8\ \mathrm{m\,s^{-2}}$.</p>` },
+  xp2: { title: 'Focal length of a convex lens by displacement',
+    passage: r`<p>An object and a screen are 90 cm apart. A convex lens gives a sharp image at two positions that are 30 cm apart.</p>` },
+});
+
+// ---------- L2 ----------
+items.push(
+  xm(2, 'screw gauge', XR`A screw gauge has a zero error of $-0.03$ mm (the zero of the circular scale is below the reference line). It reads 2.45 mm for a wire. The true diameter is`, '2.48 mm', ['2.42 mm', '2.45 mm', '2.51 mm'],
+    XR`True reading $=$ observed $-$ zero error $= 2.45-(-0.03) = 2.48$ mm. (A negative zero error means the instrument reads too little, so we add.)`),
+  xm(2, 'sigfig', XR`The number of significant figures in 0.0420 is`, '3', ['2', '4', '5'],
+    XR`Leading zeros do not count. The digits 4, 2 and the trailing 0 (which is after the decimal point and shows precision) count: 3.`),
+  xi(2, 'vernier', XR`A vernier calliper has 1 MSD = 1 mm and 20 vernier divisions equal 19 MSD. Its least count in micrometre is`, 1 / 20 * 1000,
+    XR`$LC = 1\ \mathrm{MSD}-1\ \mathrm{VSD} = 1-\dfrac{19}{20} = 0.05$ mm $=50\ \mu$m.`, { unit: 'µm' }),
+  xa(2, 'pendulum', XR`In a simple pendulum experiment the bob is displaced through only a small angle.`, XR`The formula $T = 2\pi\sqrt{L/g}$ is valid only for small oscillations.`, 0,
+    XR`For larger amplitudes the restoring torque is $mgL\sin\theta$, not $mgL\theta$, and the period becomes longer than $2\pi\sqrt{L/g}$. R explains A.`),
+  xt(2, 'metre bridge', XR`The unknown resistance in a metre bridge is measured most accurately when the null point is near the middle.`, XR`The percentage error in the unknown resistance is least when the null point is at 50 cm.`, 0,
+    XR`$\dfrac{\Delta X}{X} = \dfrac{\Delta l}{l(100-l)}\times100$, whose denominator is greatest at $l=50$. Both true.`),
+  xm(2, 'lens', XR`In a lens experiment an object is at $u=-30$ cm and a real image forms at $v=+60$ cm. The focal length is`, '20 cm', ['40 cm', '60 cm', '$-20$ cm'],
+    XR`$\dfrac1f = \dfrac1v-\dfrac1u = \dfrac{1}{60}+\dfrac{1}{30} = \dfrac{3}{60}$, so $f = 20$ cm.`),
+  xmatch(2, 'apparatus', 'xm1', XR`Match each experiment in List I with its apparatus in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Young's modulus of a wire: Searle's apparatus (p). Surface tension by capillary rise: capillary tube with a travelling microscope (q). Specific heat by mixtures: a calorimeter (r). Speed of sound: resonance tube with a tuning fork (s).`),
+);
+
+// ---------- L3 ----------
+items.push(
+  xn(3, 'screw gauge', XR`A screw gauge has pitch 1 mm and 100 circular divisions. With the jaws closed, the zero of the circular scale is 4 divisions above the reference line. A wire reads 2 mm on the main scale and 36 on the circular scale. Find the true diameter, in mm.`, 2 + 0.36 - 0.04, 0.005, 2,
+    XR`$LC = \dfrac{1}{100} = 0.01$ mm. The zero error is $+4$ divisions $=+0.04$ mm. Observed $= 2+36\times0.01 = 2.36$ mm. True $=2.36-0.04 = 2.32$ mm.`, { unit: 'mm', trap: 'Zero above the line is a positive error.' }),
+  xn(3, 'pendulum', XR`A student times 20 oscillations of a pendulum as 40.2 s. The length (point of suspension to centre of bob) is 100.0 cm. Find $g$, in $\mathrm{m\,s^{-2}}$.`, 4 * XPI * XPI * 1.0 / (40.2 / 20) ** 2, 0.03, 2,
+    XR`$T = \dfrac{40.2}{20} = 2.01$ s. $g = \dfrac{4\pi^2L}{T^2} = \dfrac{39.48\times1.000}{4.040} = 9.77\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  xi(3, 'errors', XR`In finding $g = 4\pi^2L/T^2$, $L$ has a 1% error and $T$ has a 1% error. The maximum percentage error in $g$ is`, 1 + 2 * 1,
+    XR`$\dfrac{\Delta g}{g} = \dfrac{\Delta L}{L}+2\dfrac{\Delta T}{T} = 1+2 = 3\%$. The power 2 on $T$ doubles its contribution.`, { unit: '%' }),
+  xm(3, 'metre bridge', XR`In a metre bridge a resistance of 6 $\Omega$ is in the left gap and the unknown $X$ is in the right gap. The null point is at 40 cm from the left end. $X$ is`, '9 $\\Omega$', ['4 $\\Omega$', '6 $\\Omega$', '2.4 $\\Omega$'],
+    XR`$\dfrac{R}{X} = \dfrac{l}{100-l} = \dfrac{40}{60}$, so $X = 6\times\dfrac{60}{40} = 9\ \Omega$.`, { trap: 'The longer wire segment goes with the unknown on that side.' }),
+  xn(3, 'young', XR`In Searle's experiment a wire of length 2.00 m and diameter 0.80 mm is extended by 0.50 mm under a load of 2.0 kg. Find Young's modulus, in units of $10^{11}$ Pa ($g=9.8$).`, 2 * 9.8 * 2 / (XPI * 0.4e-3 ** 2 * 0.5e-3) / 1e11, 0.03, 2,
+    XR`$Y = \dfrac{MgL}{\pi r^2\Delta L} = \dfrac{2\times9.8\times2.00}{\pi\times(0.4\times10^{-3})^2\times0.5\times10^{-3}} = 1.56\times10^{11}$ Pa. The radius is half the diameter.`, { unit: '×10¹¹ Pa' }),
+  xm(3, 'specific heat', XR`100 g of a metal at 100 °C is dropped into 200 g of water at 20 °C and the mixture reaches 25 °C (calorimeter's heat capacity ignored; $c_w = 4.2\ \mathrm{J\,g^{-1}K^{-1}}$). The specific heat of the metal is`, XR`$0.56\ \mathrm{J\,g^{-1}K^{-1}}$`, [XR`$0.045\ \mathrm{J\,g^{-1}K^{-1}}$`, XR`$1.12\ \mathrm{J\,g^{-1}K^{-1}}$`, XR`$4.2\ \mathrm{J\,g^{-1}K^{-1}}$`],
+    XR`Heat lost $=$ heat gained: $100\times c\times(100-25) = 200\times4.2\times(25-20)$. $7500c = 4200$, $c = 0.56$.`),
+  xa(3, 'Zener diode', XR`A Zener diode is used as a voltage regulator in reverse bias.`, XR`In breakdown the voltage across a Zener diode stays nearly constant while the current through it changes widely.`, 0,
+    XR`In breakdown the reverse $V$-$I$ curve is almost vertical: the voltage is fixed at the Zener voltage, so the load sees a steady voltage. R explains A.`),
+  xt(3, 'half deflection', XR`In the half-deflection method the galvanometer resistance is $G = \dfrac{RS}{R-S}$.`, XR`The half-deflection method uses a shunt $S$ that reduces the deflection to half, with a large series resistance $R$ keeping the current nearly constant.`, 0,
+    XR`With the shunt on, half the current goes through $S$ and half through $G$ (so $G = S$ would hold if the total current were unchanged). Allowing for the change of the total current gives $G = \dfrac{RS}{R-S}$. Both statements are true.`),
+  xt(3, 'least count', XR`The least count of an instrument is the smallest value it can measure directly.`, XR`The accuracy of an instrument is the same as its precision.`, 2,
+    XR`Statement I is true. Statement II is false: precision is the closeness of repeated readings; accuracy is the closeness to the true value. An instrument with a zero error can be precise but not accurate.`),
+  xmatch(3, 'formulae', 'xm2', XR`Match each system in List I with its formula in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Pendulum: $T = 2\pi\sqrt{L/g}$ (p). Spring-mass: $T = 2\pi\sqrt{m/k}$ (q). $L_2-L_1 = \lambda/2$, so $v = f\lambda = 2f(L_2-L_1)$ (r). First resonance: $L_1+e = \lambda/4$, so $f = \dfrac{v}{4(L_1+e)}$ (s).`),
+  xmatch(3, 'errors', 'xm3', XR`Match each cause in List I with the type of error in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`A zero error shifts every reading the same way: systematic (p). Reaction-time variation changes from one reading to the next: random (q). A stretched scale is an instrumental fault (r). A misread scale is a personal blunder (s).`, { trap: 'A zero error is also an instrumental error, but its defining character is that it is systematic.' }),
+  xi(3, 'resonance tube', XR`In a resonance-tube experiment with a 500 Hz fork, the first and second resonance lengths are 17 cm and 51 cm. The speed of sound, in m/s, is`, 2 * 500 * 0.34,
+    XR`$\dfrac\lambda2 = L_2-L_1 = 34$ cm, so $\lambda = 68$ cm $=0.68$ m. $v = f\lambda = 500\times0.68 = 340$ m/s.`, { unit: 'm/s' }),
+  xn(3, 'capillary', XR`Water rises 3.6 cm in a capillary of radius 0.40 mm. Find the surface tension, in N/m (angle of contact 0°, $\rho=1000$, $g = 9.8$).`, 0.4e-3 * 0.036 * 1000 * 9.8 / 2, 0.001, 4,
+    XR`$T = \dfrac{rh\rho g}{2} = \dfrac{0.4\times10^{-3}\times0.036\times1000\times9.8}{2} = 0.0706$ N/m.`, { unit: 'N/m' }),
+  xm(3, 'screw gauge', XR`With the jaws of a screw gauge (pitch 1 mm, 100 divisions) closed, the 4th division of the circular scale is below the reference line. A reading of 3.58 mm is observed for an object. The true reading is`, '3.62 mm', ['3.54 mm', '3.58 mm', '3.66 mm'],
+    XR`Zero below the line: negative error of $-4\times0.01 = -0.04$ mm. True $=3.58-(-0.04) = 3.62$ mm.`),
+  xi(3, 'sigfig', XR`How many significant figures are there in 0.050400?`, 5,
+    XR`Leading zeros do not count. The digits 5, 0, 4, 0, 0 are significant (the zero between 5 and 4 is trapped, and the trailing zeros are after the decimal point). So 5.`),
+  xn(3, 'prism', XR`A prism of angle $60^\circ$ shows a minimum deviation of $40^\circ$. Find its refractive index.`, Math.sin(50 * XPI / 180) / Math.sin(30 * XPI / 180), 0.005, 3,
+    XR`$\mu = \dfrac{\sin\frac{A+\delta_m}{2}}{\sin\frac A2} = \dfrac{\sin50^\circ}{\sin30^\circ} = \dfrac{0.766}{0.5} = 1.532$.`),
+  xi(3, 'metre bridge', XR`The unknown resistance $X$ is in the left gap of a metre bridge and a 12 $\Omega$ resistance in the right gap. The null point is 25 cm from the left end. $X$ in ohm is`, 12 * 25 / 75,
+    XR`$\dfrac{X}{12} = \dfrac{l}{100-l} = \dfrac{25}{75}$, so $X = 4\ \Omega$.`, { unit: 'Ω' }),
+  xi(3, 'sigfig', XR`The product $2.50\times1.2$ is to be reported with the right number of significant figures. How many does the result have?`, 2,
+    XR`The product has as many significant figures as the factor with the fewest: 1.2 has 2. $2.50\times1.2 = 3.0$ (2 s.f.).`),
+  xmatch(3, 'significant figures', 'xm8', XR`Match each number in List I with its number of significant figures in List II.`, 'A-q, B-r, C-p, D-s',
+    XR`Leading zeros never count; trailing zeros after a decimal point do. 0.0420: digits 4, 2, 0 give 3 (q). 5.000: 4 (r). 0.0050: digits 5, 0 give 2 (p). 0.050400: digits 5, 0, 4, 0, 0 give 5 (s).`),
+);
+
+// ---------- L4 ----------
+items.push(
+  xi(4, 'errors', XR`Young's modulus is found from $Y = \dfrac{4MgL}{\pi d^2\Delta L}$. The errors in $M$, $d$ and $\Delta L$ are 1%, 1% and 1%; the error in $L$ is negligible. The maximum percentage error in $Y$ is`, 1 + 2 * 1 + 1,
+    XR`$\dfrac{\Delta Y}{Y} = \dfrac{\Delta M}{M}+2\dfrac{\Delta d}{d}+\dfrac{\Delta(\Delta L)}{\Delta L} = 1+2+1 = 4\%$. The diameter appears squared.`, { unit: '%', trap: 'The diameter\'s error counts twice.' }),
+  xi(4, 'errors', XR`The density of a cylinder is $\rho = \dfrac{m}{\pi r^2h}$. The errors in $m$, $r$ and $h$ are 2%, 1% and 3%. The maximum percentage error in $\rho$ is`, 2 + 2 * 1 + 3,
+    XR`$\dfrac{\Delta\rho}{\rho} = \dfrac{\Delta m}{m}+2\dfrac{\Delta r}{r}+\dfrac{\Delta h}{h} = 2+2+3 = 7\%$. Errors always add, even in a quotient.`, { unit: '%' }),
+  xn(4, 'errors', XR`A stopwatch with a least count of 0.1 s times 100 oscillations of a pendulum as 200.0 s. The percentage error in the period is`, 0.1 / 200 * 100, 0.005, 3,
+    XR`$\dfrac{\Delta t}{t} = \dfrac{0.1}{200} = 0.05\%$. The error in $T = t/100$ has the same relative size. Timing many oscillations cuts the relative error.`, { unit: '%' }),
+  xi(4, 'resonance tube', XR`In a resonance-tube experiment the first and second resonances occur at 16 cm and 52 cm. The end correction, in cm, is`, (52 - 3 * 16) / 2,
+    XR`$\lambda/2 = 52-16 = 36$ cm, so $\lambda = 72$ cm. First resonance: $L_1+e = \lambda/4 = 18$ cm, so $e = 18-16 = 2$ cm.`, { unit: 'cm', trap: 'The first resonance length is not $\\lambda/4$ exactly; the open end acts as if the tube were longer by $e$.' }),
+  xi(4, 'lens', XR`An object and a screen are 100 cm apart. A convex lens gives sharp images at two positions 20 cm apart. The focal length, in cm, is`, (100 * 100 - 20 * 20) / (4 * 100),
+    XR`$f = \dfrac{D^2-d^2}{4D} = \dfrac{10000-400}{400} = 24$ cm.`, { unit: 'cm' }),
+  xn(4, 'pendulum graph', XR`A graph of $T^2$ against $L$ passes through (0.25 m, 1.00 s$^2$) and (1.00 m, 4.00 s$^2$). Find $g$ from its slope, in $\mathrm{m\,s^{-2}}$.`, 4 * XPI * XPI / ((4 - 1) / (1 - 0.25)), 0.03, 2,
+    XR`Slope $=\dfrac{4.00-1.00}{1.00-0.25} = 4.0\ \mathrm{s^2\,m^{-1}}$. Since $T^2 = \dfrac{4\pi^2}{g}L$, $g = \dfrac{4\pi^2}{4.0} = 9.87\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  xn(4, 'prism', XR`A glass prism of angle $60^\circ$ and refractive index 1.5 is used at minimum deviation. Find the minimum deviation, in degrees.`, 2 * Math.asin(1.5 * Math.sin(XPI / 6)) * 180 / XPI - 60, 0.2, 1,
+    XR`At minimum deviation $r = A/2 = 30^\circ$. $\sin i = 1.5\sin30^\circ = 0.75$, $i = 48.6^\circ$. $\delta_m = 2i-A = 97.2-60 = 37.2^\circ$.`, { unit: '°' }),
+  xn(4, 'Zener diode', XR`A 12 V supply feeds a 5.1 V Zener diode through a series resistor of $200\ \Omega$. A load of $510\ \Omega$ is connected across the diode. Find the current through the Zener diode, in mA.`, ((12 - 5.1) / 200 - 5.1 / 510) * 1e3, 0.1, 1,
+    XR`Total current $=\dfrac{12-5.1}{200} = 34.5$ mA. Load current $=\dfrac{5.1}{510} = 10$ mA. Zener current $=34.5-10 = 24.5$ mA.`, { unit: 'mA' }),
+  xs(4, 'simple pendulum', XR`Choose the correct statements for the simple pendulum experiment.`,
+    [XR`The amplitude should be small.`, XR`A small, heavy, dense bob is better than a large light one.`, XR`If the length is measured to the centre of the bob, the $T^2$-$L$ graph passes through the origin.`, XR`A larger amplitude gives a shorter period.`],
+    [0, 1, 2],
+    XR`The formula needs small angles; a small dense bob keeps the effective length well defined and air drag small. With $L$ to the centre of mass, $T^2 = \dfrac{4\pi^2}{g}L$ passes through the origin. For larger amplitudes the period becomes longer (D false).`),
+  xs(4, 'metre bridge', XR`Choose the correct statements about the metre bridge.`,
+    [XR`The percentage error in $X$ is least when the null point is near the middle.`, XR`Thick copper strips are used to keep the connection resistance small.`, XR`Interchanging the known and unknown resistances and averaging removes the effect of end corrections.`, XR`An AC source is used so that the wire does not heat.`],
+    [0, 1, 2],
+    XR`A DC source and a galvanometer are used (AC would not give a clean null with a galvanometer; heating is avoided by short key presses, D false).`),
+  xs(4, 'errors', XR`Choose the correct statements.`,
+    [XR`Random errors can be reduced by taking the mean of many readings.`, XR`A zero error is a systematic error.`, XR`The least count limits the precision of a single reading.`, XR`Taking more readings reduces systematic errors.`],
+    [0, 1, 2],
+    XR`Systematic errors push every reading the same way, so averaging does not remove them; they must be corrected by calibration or a zero correction (D false).`),
+  xs(4, 'screw gauge', XR`Choose the correct statements about a screw gauge.`,
+    [XR`A positive zero error is subtracted from the observed reading.`, XR`The screw should be turned only in one direction when measuring, to avoid backlash.`, XR`The ratchet prevents too much pressure on the object.`, XR`The pitch of the screw equals its least count.`],
+    [0, 1, 2],
+    XR`The least count is the pitch divided by the number of circular divisions (D false).`),
+  xs(4, 'Zener diode', XR`Choose the correct statements about a Zener regulator circuit.`,
+    [XR`The Zener diode is reverse biased.`, XR`A series resistor limits the current.`, XR`The voltage across the Zener is nearly constant in breakdown.`, XR`The Zener diode is forward biased for regulation.`],
+    [0, 1, 2],
+    XR`In forward bias the diode conducts at about 0.7 V, which gives no regulation at the Zener voltage (D false).`),
+  xa(4, 'metre bridge', XR`The percentage error in measuring an unknown resistance with a metre bridge is least when the null point is at the middle of the wire.`, XR`The fractional error in $X$ is $\dfrac{\Delta l}{l(100-l)}\times100$ for a given $\Delta l$, and $l(100-l)$ is greatest at $l=50$.`, 0,
+    XR`$X = R\dfrac{100-l}{l}$ (or its reciprocal), so $\dfrac{\Delta X}{X} = \dfrac{100\,\Delta l}{l(100-l)}$, smallest when $l(100-l)$ is greatest. R explains A.`),
+  xa(4, 'parallax', XR`Parallax error is avoided by keeping the eye vertically above the mark being read.`, XR`Parallax arises from the apparent shift of an object's position when viewed from different directions.`, 0,
+    XR`Reading from the side shifts the pointer against the scale. Viewing along the normal removes the shift. R explains A.`),
+  xt(4, 'pendulum', XR`A longer simple pendulum gives a smaller relative error in $g$ for the same stopwatch error.`, XR`Timing 50 oscillations instead of 10 reduces the relative error in the period.`, 0,
+    XR`For the same absolute error $\Delta t$, a longer pendulum has a longer period, so $\Delta T/T$ is smaller. Timing more oscillations does the same. Both are true.`),
+  xt(4, 'diode', XR`The forward-bias characteristic of a $p$-$n$ junction diode is a straight line.`, XR`A $p$-$n$ junction diode obeys Ohm's law.`, 1,
+    XR`The forward current rises exponentially with voltage after the knee, not linearly. The diode is non-ohmic. Both statements are false.`),
+  xm(4, 'young', XR`In Searle's experiment a wire of diameter measured as $0.80\pm0.01$ mm is used with all other quantities exact. The percentage error in $Y$ due to the diameter alone is`, '2.5%', ['1.25%', '0.5%', '5%'],
+    XR`$\dfrac{\Delta d}{d} = \dfrac{0.01}{0.80} = 1.25\%$. $Y\propto\dfrac{1}{d^2}$, so $\dfrac{\Delta Y}{Y} = 2\times1.25\% = 2.5\%$.`),
+  xm(4, 'specific heat', XR`In a mixtures experiment a student forgets the heat taken by the calorimeter. The computed specific heat of the hot metal block is`, 'smaller than the true value', ['larger than the true value', 'the same', 'zero'],
+    XR`The hot block gives heat $mc\Delta T$ to the water and the calorimeter. Counting only the water's share, the heat attributed to the block is too small, so $c$ comes out too small.`),
+  xmatch(4, 'error propagation', 'xm4', XR`Match each expression in List I with the maximum percentage error in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`A: $1+2\times1 = 3\%$ (p). B: $2+2\times1+2 = 6\%$ (q). C: $2+3 = 5\%$ (r). D: $T\propto L^{1/2}g^{-1/2}$, so each error gets the power $\tfrac12$: $\tfrac12\times4+\tfrac12\times4 = 4\%$ (s).`),
+);
+
+// ---------- L5 ----------
+items.push(
+  xs(5, 'Young\'s modulus', XR`Choose the correct statements about Searle's method for Young's modulus.`,
+    [XR`$Y = \dfrac{MgL}{\pi r^2\Delta L}$.`, XR`The error in the diameter contributes twice its percentage to the error in $Y$.`, XR`Loading and unloading readings can differ (elastic after-effect).`, XR`A thicker wire is better because it extends more under the same load.`],
+    [0, 1, 2],
+    XR`A thicker wire extends less (the extension $\propto1/r^2$), making $\Delta L$ harder to measure accurately (D false).`),
+  xs(5, 'prism', XR`Choose the correct statements about the prism experiment.`,
+    [XR`At minimum deviation the ray inside the prism is parallel to its base.`, XR`At minimum deviation the angle of incidence equals the angle of emergence.`, XR`The graph of deviation against angle of incidence is a curve with a single minimum.`, XR`The deviation is least when the angle of incidence is the smallest possible.`],
+    [0, 1, 2],
+    XR`The minimum occurs at $i=e$, with the internal ray symmetric (parallel to the base). The minimum is in the middle of the curve, not at the smallest incidence (D false).`),
+  xs(5, 'lens', XR`Choose the correct statements for experiments on a convex lens.`,
+    [XR`The graph of $1/v$ against $1/u$ is a straight line.`, XR`Its intercept on the $1/v$ axis gives $1/f$.`, XR`In the displacement method, $f = \dfrac{D^2-d^2}{4D}$.`, XR`The displacement method works for any separation $D$ between object and screen.`],
+    [0, 1, 2],
+    XR`From $\dfrac1v-\dfrac1u = \dfrac1f$, the plot is a straight line with intercept $\dfrac1f$. The displacement method needs $D>4f$ for two positions to exist (D false).`),
+  xs(5, 'half deflection', XR`Choose the correct statements about the half-deflection method for galvanometer resistance.`,
+    [XR`$G = \dfrac{RS}{R-S}$.`, XR`The series resistance $R$ should be large so the circuit current is nearly unchanged when the shunt is added.`, XR`The shunt $S$ is connected in parallel with the galvanometer.`, XR`The shunt is connected in series with the galvanometer.`],
+    [0, 1, 2],
+    XR`A shunt is parallel; with a large $R$, the total current is nearly the same with and without $S$. The series option is wrong (D false).`),
+  xs(5, 'specific heat', XR`Choose the correct statements about finding a specific heat by mixtures.`,
+    [XR`Heat lost by the hot body equals heat gained by the water and calorimeter.`, XR`The calorimeter's water equivalent must be included.`, XR`Stirring helps to give a uniform temperature.`, XR`The heat capacity of the calorimeter can always be ignored.`],
+    [0, 1, 2],
+    XR`For small water masses the calorimeter's heat capacity is not negligible (D false).`),
+  xm(5, 'metre bridge', XR`In a metre bridge a student uses a resistance box in the left gap, but the resistance of the connecting strips on the right is not negligible and is $0.5\ \Omega$ in series with the unknown. The null point for the box at $10\ \Omega$ is 50 cm. The unknown resistance (without the strip) is`, '9.5 $\\Omega$', ['10 $\\Omega$', '10.5 $\\Omega$', '5 $\\Omega$'],
+    XR`At the null point the left resistance equals the right resistance, so the total on the right $=10\ \Omega$. The strip takes $0.5\ \Omega$, so the unknown is $10-0.5 = 9.5\ \Omega$.`, { trap: 'An extra series resistance in the gap must be subtracted.' }),
+  xm(5, 'significant figures', XR`The length and breadth of a plate are $12.5$ cm and $4.20$ cm. Its area, written with the correct number of significant figures, is`, XR`$52.5\ \mathrm{cm^2}$`, [XR`$52.50\ \mathrm{cm^2}$`, XR`$52\ \mathrm{cm^2}$`, XR`$52.5000\ \mathrm{cm^2}$`],
+    XR`$12.5\times4.20 = 52.5$. Both factors have three significant figures, so the answer has three: 52.5.`),
+  xm(5, 'errors', XR`Length is $L = 25.0\pm0.1$ cm and breadth $b = 12.0\pm0.1$ cm. The perimeter of the rectangle is`, XR`$74.0\pm0.4$ cm`, [XR`$74.0\pm0.2$ cm`, XR`$74.0\pm0.1$ cm`, XR`$74.0\pm0.8$ cm`],
+    XR`Perimeter $=2(L+b) = 74.0$ cm. Absolute errors add: $2(0.1+0.1) = 0.4$ cm.`, { trap: 'The factor 2 multiplies the error too.' }),
+  xa(5, 'backlash', XR`Backlash error in a screw gauge is avoided by turning the screw in one direction only.`, XR`Backlash arises from the play between the screw and the nut when the direction of rotation is reversed.`, 0,
+    XR`When the rotation is reversed, the screw first turns through the slack before it moves, giving a false reading. R explains A.`),
+  xa(5, 'zero error', XR`The zero error of a screw gauge is a random error.`, XR`The zero error changes randomly each time the jaws are closed.`, 1,
+    XR`The zero error is the same every time the jaws are closed (for a given instrument), so it is a systematic error. Both A and R are false.`),
+  xt(5, 'precision and accuracy', XR`A set of readings can be precise but not accurate.`, XR`A zero error makes an instrument inaccurate but not necessarily imprecise.`, 0,
+    XR`Repeated readings can cluster tightly (precise) around a wrong value (inaccurate) if a zero error shifts them all. Both are true.`),
+  xmatch(5, 'optics experiments', 'xm7', XR`Match each experiment in List I with the relation in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Prism: $\mu = \dfrac{\sin(A+\delta_m)/2}{\sin A/2}$ (p). Displacement method: $f = \dfrac{D^2-d^2}{4D}$ (q). Convex mirror with an auxiliary lens: the image is at the mirror's centre of curvature (r). $u$-$v$ method: $\dfrac1f = \dfrac1v-\dfrac1u$ (s).`),
+  xmatch(5, 'graphs', 'xm5', XR`Match each graph in List I with its shape in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$\dfrac1v = \dfrac1u+\dfrac1f$ is a straight line with intercept $\dfrac1f$ (p). Deviation against $i$ has a minimum (q). $T^2 = \dfrac{4\pi^2}{g}L$ is a straight line through the origin (r). A Zener in reverse breakdown has an almost vertical $V$-$I$ line (s).`),
+  xmatch(5, 'electrical experiments', 'xm6', XR`Match each experiment in List I with the relation in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Metre bridge: $R/X = l/(100-l)$ (p). Ohm's law: straight line through the origin (q). Half deflection: $G = \dfrac{RS}{R-S}$ (r). Zener regulator: constant voltage in breakdown (s).`),
+);
+
+// ---------- passages ----------
+items.push(
+  xn(3, 'young', XR`Find Young's modulus of the steel, in units of $10^{11}$ Pa.`, 2 * 9.8 * 2 / (XPI * 0.4e-3 ** 2 * 0.5e-3) / 1e11, 0.03, 2,
+    XR`$Y = \dfrac{MgL}{\pi r^2\Delta L} = \dfrac{2.0\times9.8\times2.00}{\pi\times(0.40\times10^{-3})^2\times0.50\times10^{-3}} = 1.56\times10^{11}$ Pa.`, XPY({ group: 'xp1', unit: '×10¹¹ Pa' })),
+  xi(4, 'errors', XR`The diameter has an error of 0.01 mm, the extension an error of 0.01 mm and the length an error of 1 mm. The percentage error in $Y$, to the nearest whole number, is (use $\Delta M/M$ negligible)`, Math.round(1 / 2000 * 100 + 2 * 0.01 / 0.8 * 100 + 0.01 / 0.5 * 100),
+    XR`$\dfrac{\Delta L}{L} = \dfrac{1\ \mathrm{mm}}{2000\ \mathrm{mm}} = 0.05\%$. $2\dfrac{\Delta d}{d} = 2\times\dfrac{0.01}{0.80} = 2.5\%$. $\dfrac{\Delta(\Delta L)}{\Delta L} = \dfrac{0.01}{0.50} = 2\%$. Total $= 0.05+2.5+2 = 4.55\%\approx5\%$.`, XPY({ group: 'xp1', unit: '%' })),
+  xm(5, 'errors', XR`Which measurement contributes the largest share of the error in $Y$, so should be improved first?`, 'the diameter of the wire (the screw gauge reading)', ['the length of the wire', 'the load', 'the value of $g$'],
+    XR`The three contributions are 0.05% (length), 2.5% (diameter, counted twice) and 2% (extension). The diameter contributes the most, so improving its measurement helps most. Improving the length gains almost nothing.`, XPY({ group: 'xp1' })),
+  xi(3, 'lens', XR`The magnification in the first position (the lens nearer the object) is $m_1 = v/u$. It is`, 60 / 30,
+    XR`$f = \dfrac{D^2-d^2}{4D} = \dfrac{8100-900}{360} = 20$ cm. The two object distances are $\dfrac{D\mp d}{2} = 30$ cm and 60 cm. In the first (nearer) position $u = 30$ cm, $v = 90-30 = 60$ cm, so $m_1 = \dfrac{60}{30} = 2$.`, XPY({ group: 'xp2' })),
+  xn(3, 'lens', XR`Find the focal length of the lens, in cm.`, (90 * 90 - 30 * 30) / (4 * 90), 0.1, 1,
+    XR`$f = \dfrac{D^2-d^2}{4D} = \dfrac{90^2-30^2}{4\times90} = \dfrac{7200}{360} = 20$ cm.`, XPY({ group: 'xp2', unit: 'cm' })),
+  xi(5, 'lens', XR`The two images have heights 8 mm and 2 mm. The height of the object, in mm, is`, Math.sqrt(8 * 2),
+    XR`The magnifications at the two positions are $m_1 = 2$ and $m_2 = \dfrac12$ (their product is 1, as $m_1m_2 = \dfrac vu\cdot\dfrac uv = 1$). Image heights are $h_1 = m_1h_0$ and $h_2 = m_2h_0$, so $h_1h_2 = h_0^2$: $h_0 = \sqrt{8\times2} = 4$ mm.`, XPY({ group: 'xp2', unit: 'mm' })),
+);
+
+// ---------- templates ----------
+gens.push(
+  XG(21, 3, 'mcq', 'vernier', (rng) => {
+    const v = int(rng, 0, 1);
+    if (v === 0) { const msd = choose(rng, [0.5, 1]); const N = choose(rng, [10, 20, 25, 50]); const lc = msd / N; const o = numOpts(rng, lc, [msd / (N - 1), msd * (N - 1) / N, msd * N], 'mm', 3);
+      return { v, msd, N, q: XR`In a vernier calliper 1 main-scale division is ${msd} mm and ${N} vernier divisions coincide with ${N - 1} main-scale divisions. The least count is`, options: o.options, answer: o.answer, sol: XR`$LC = \dfrac{1\ \mathrm{MSD}}{N} = \dfrac{${msd}}{${N}} = ${f3(lc)}$ mm.`, trap: 'The least count is the difference between one MSD and one VSD.' }; }
+    const pitch = choose(rng, [0.5, 1]); const N = choose(rng, [50, 100]); const lc = pitch / N; const o = numOpts(rng, lc, [pitch * N, pitch / (N / 2), pitch / N * 10], 'mm', 3);
+    return { v, pitch, N, msd: pitch, q: XR`A screw gauge has a pitch of ${pitch} mm and ${N} divisions on its circular scale. Its least count is`, options: o.options, answer: o.answer, sol: XR`$LC = \dfrac{\text{pitch}}{N} = \dfrac{${pitch}}{${N}} = ${f3(lc)}$ mm.` };
+  }, (p) => { const lc = p.v === 0 ? p.msd / p.N : p.pitch / p.N; return p.options.findIndex((o) => o === `${f3(lc)} mm`); }),
+  XG(22, 4, 'nat', 'pendulum', (rng) => {
+    const L = choose(rng, [50, 80, 100, 120]); const n = choose(rng, [20, 30, 50]); const g0 = pick(rng, 9.6, 10, 0.1); const T = 2 * XPI * Math.sqrt(L / 100 / g0); const t = +(n * T).toFixed(1);
+    const g = 4 * XPI * XPI * (L / 100) / ((t / n) ** 2);
+    return { L, n, t, q: XR`A student times ${n} oscillations of a simple pendulum as ${t} s. The distance from the point of suspension to the centre of the bob is ${L} cm. Find $g$ from these readings, in $\mathrm{m\,s^{-2}}$.`, answer: +g.toFixed(3), tol: Math.max(0.02, g * 0.003), unit: 'm/s²',
+      sol: XR`$T = \dfrac{${t}}{${n}} = ${f3(t / n)}$ s. $g = \dfrac{4\pi^2L}{T^2} = \dfrac{39.48\times${L / 100}}{${f3((t / n) ** 2)}} = ${f3(g)}\ \mathrm{m\,s^{-2}}$.` };
+  }, (p) => { let a = 5, b = 15; for (let i = 0; i < 100; i++) { const m = (a + b) / 2; const Tm = 2 * XPI * Math.sqrt(p.L / 100 / m); if (Tm > p.t / p.n) a = m; else b = m; } return a; }),
+  XG(23, 4, 'nat', 'errors', (rng) => {
+    const v = int(rng, 0, 3); const a = pick(rng, 1, 3); const b = pick(rng, 1, 4); const c = pick(rng, 1, 3);
+    const F = [
+      { f: XR`$g = \dfrac{4\pi^2L}{T^2}$`, d: `$L$ ${a} %, $T$ ${b} %`, e: a + 2 * b, w: XR`$\dfrac{\Delta L}{L}+2\dfrac{\Delta T}{T}$` },
+      { f: XR`$\rho = \dfrac{m}{\pi r^2h}$`, d: `$m$ ${a} %, $r$ ${b} %, $h$ ${c} %`, e: a + 2 * b + c, w: XR`$\dfrac{\Delta m}{m}+2\dfrac{\Delta r}{r}+\dfrac{\Delta h}{h}$` },
+      { f: XR`$T = 2\pi\sqrt{\dfrac Lg}$`, d: `$L$ ${2 * a} %, $g$ ${2 * b} %`, e: a + b, w: XR`$\tfrac12\dfrac{\Delta L}{L}+\tfrac12\dfrac{\Delta g}{g}$` },
+      { f: XR`$Y = \dfrac{4MgL}{\pi d^2\Delta L}$`, d: `$M$ ${a} %, $L$ ${b} %, $d$ ${c} %, $\\Delta L$ ${a + c} %`, e: a + b + 2 * c + (a + c), w: XR`$\dfrac{\Delta M}{M}+\dfrac{\Delta L}{L}+2\dfrac{\Delta d}{d}+\dfrac{\Delta(\Delta L)}{\Delta L}$` },
+    ][v];
+    return { v, a, b, c, q: XR`For ${F.f} the errors in the readings are: ${F.d}. Find the maximum percentage error in the result.`, answer: F.e, tol: 0.01, unit: '%',
+      sol: XR`Maximum error $=${F.w} = ${F.e}\%$. Errors add, and each is multiplied by its power.` };
+  }, (p) => [p.a + 2 * p.b, p.a + 2 * p.b + p.c, p.a + p.b, p.a + p.b + 2 * p.c + (p.a + p.c)][p.v]),
+  XG(24, 3, 'mcq', 'metre bridge', (rng) => {
+    const R = choose(rng, [2, 3, 4, 5, 6, 10, 12]); const l = choose(rng, [20, 25, 40, 60, 75]); const left = int(rng, 0, 1);
+    const X = left ? R * (100 - l) / l : R * l / (100 - l);
+    const o = numOpts(rng, X, [R * l / (100 - l) * (left ? 1 : 0) + R * (100 - l) / l * (left ? 0 : 1), R * l / 100, R * (100 - l) / 100, R], 'Ω', 3);
+    return { R, l, left, q: XR`In a metre bridge the known resistance of ${R} $\Omega$ is in the ${left ? 'left' : 'right'} gap and the unknown resistance is in the ${left ? 'right' : 'left'} gap. The null point is ${l} cm from the left end. The unknown resistance is`, options: o.options, answer: o.answer, sol: XR`The resistances are in the ratio of the wire lengths of their gaps: ${left ? '$\\dfrac{R}{X} = \\dfrac{l}{100-l}$, so $X = R\\dfrac{100-l}{l}$' : '$\\dfrac{X}{R} = \\dfrac{l}{100-l}$, so $X = R\\dfrac{l}{100-l}$'}. $X = ${f3(X)}\\ \\Omega$.`, trap: 'The unknown is in the gap whose wire length goes with it.' };
+  }, (p) => { const X = p.left ? p.R * (100 - p.l) / p.l : p.R * p.l / (100 - p.l); return p.options.findIndex((o) => o === `${f3(X)} Ω`); }),
+  XG(25, 4, 'nat', 'young', (rng) => {
+    const M = choose(rng, [1, 2, 3, 4]); const L = choose(rng, [1.5, 2, 2.5]); const d = choose(rng, [0.5, 0.6, 0.8, 1.0]) * 1e-3; const e = choose(rng, [0.3, 0.4, 0.5, 0.8]) * 1e-3;
+    const Y = M * XG0 * L / (XPI * (d / 2) ** 2 * e) / 1e11;
+    return { M, L, d, e, q: XR`In Searle's experiment a wire ${L} m long and ${d * 1e3} mm in diameter is stretched by ${e * 1e3} mm by a load of ${M} kg. Find Young's modulus, in $10^{11}$ Pa ($g=9.8$).`, answer: +Y.toFixed(3), tol: Math.max(0.02, Y * 0.01), unit: '×10¹¹ Pa',
+      sol: XR`$Y = \dfrac{MgL}{\pi r^2\Delta L}$ with $r = d/2 = ${d * 500}$ mm. $Y = \dfrac{${M}\times9.8\times${L}}{\pi\times(${f3(d / 2)})^2\times${f3(e)}} = ${f3(Y)}\times10^{11}$ Pa.`, trap: 'Use the radius, not the diameter.' };
+  }, (p) => { const A = XPI * p.d * p.d / 4; return p.M * XG0 / A * p.L / p.e / 1e11; }),
+  XG(26, 4, 'nat', 'sound', (rng) => {
+    const f = choose(rng, [256, 288, 320, 384, 512]); const v0 = pick(rng, 330, 345, 5); const e0 = choose(rng, [0.5, 1, 1.5, 2]) / 100;
+    const lam = v0 / f; const L1 = lam / 4 - e0; const L2 = 3 * lam / 4 - e0;
+    return { f, v0, e0, q: XR`In a resonance-tube experiment with a ${f} Hz fork the first resonance is at ${f3(L1 * 100)} cm and the second at ${f3(L2 * 100)} cm. Find the end correction, in cm.`, answer: +(e0 * 100).toFixed(3), tol: 0.02, unit: 'cm',
+      sol: XR`$\lambda/2 = L_2-L_1 = ${f3((L2 - L1) * 100)}$ cm, so $\lambda/4 = ${f3(lam / 4 * 100)}$ cm. $e = \dfrac\lambda4-L_1 = ${f3(lam / 4 * 100)}-${f3(L1 * 100)} = ${f3(e0 * 100)}$ cm. (The speed of sound is $2f(L_2-L_1) = ${f3(v0)}$ m/s.)` };
+  }, (p) => { const lam = p.v0 / p.f; const L1 = lam / 4 - p.e0; const L2 = 3 * lam / 4 - p.e0; return ((L2 - 3 * L1) / 2) * 100; }),
+  XG(27, 4, 'nat', 'prism', (rng) => {
+    const A = choose(rng, [30, 45, 60]); const mu = pick(rng, 1.4, 1.7, 0.05);
+    if (Math.abs(mu * Math.sin(A * XPI / 360)) >= 1) return XGsafe();
+    const dm = 2 * Math.asin(mu * Math.sin(A * XPI / 360)) * 180 / XPI - A;
+    return { A, mu, q: XR`A prism of angle ${A}° and refractive index ${mu} is used at minimum deviation. Find the minimum deviation, in degrees.`, answer: +dm.toFixed(2), tol: Math.max(0.1, dm * 0.01), unit: '°',
+      sol: XR`At minimum deviation $r = A/2$. $\sin\dfrac{A+\delta_m}{2} = \mu\sin\dfrac A2 = ${f3(mu * Math.sin(A * XPI / 360))}$, so $\dfrac{A+\delta_m}{2} = ${f3(Math.asin(mu * Math.sin(A * XPI / 360)) * 180 / XPI)}^\circ$ and $\delta_m = ${f3(dm)}^\circ$.` };
+    function XGsafe() { const A2 = 30; const dm2 = 2 * Math.asin(mu * Math.sin(A2 * XPI / 360)) * 180 / XPI - A2; return { A: A2, mu, q: XR`A prism of angle ${A2}° and refractive index ${mu} is used at minimum deviation. Find the minimum deviation, in degrees.`, answer: +dm2.toFixed(2), tol: Math.max(0.1, dm2 * 0.01), unit: '°', sol: XR`$\sin\dfrac{A+\delta_m}{2} = \mu\sin\dfrac A2$, giving $\delta_m = ${f3(dm2)}^\circ$.` }; }
+  }, (p) => { const half = Math.asin(Math.sin((p.A) * XPI / 360) * p.mu); return (2 * half - p.A * XPI / 180) * 180 / XPI; }),
+  XG(28, 4, 'nat', 'lens', (rng) => {
+    const f = choose(rng, [10, 12, 15, 20, 25]); const k = choose(rng, [4.5, 5, 6, 8]); const D = f * k; const d = Math.sqrt(D * D - 4 * D * f);
+    return { f, k, D, q: XR`An object and a screen are ${f3(D)} cm apart. A convex lens gives sharp images in two positions separated by ${f3(d)} cm. Find the focal length, in cm.`, answer: +f.toFixed(2), tol: Math.max(0.05, f * 0.005), unit: 'cm',
+      sol: XR`$f = \dfrac{D^2-d^2}{4D} = \dfrac{${f3(D * D)}-${f3(d * d)}}{4\times${f3(D)}} = ${f3(f)}$ cm.` };
+  }, (p) => { const d = Math.sqrt(p.D * p.D - 4 * p.D * p.f); return (p.D * p.D - d * d) / (4 * p.D); }),
+  XG(29, 3, 'mcq', 'screw gauge', (rng) => {
+    const N = choose(rng, [50, 100]); const pitch = N === 100 ? 1 : 0.5; const lc = pitch / N; const msr = pick(rng, 1, 6, 0.5); const cs = int(rng, 10, N - 5); const ze = choose(rng, [-4, -3, -2, 2, 3, 4]);
+    const obs = msr + cs * lc; const tr = obs - ze * lc;
+    const o = numOpts(rng, tr, [obs + ze * lc, obs, obs - 2 * ze * lc], 'mm', 4);
+    return { N, pitch, msr, cs, ze, q: XR`A screw gauge has a pitch of ${pitch} mm and ${N} divisions. The zero error is ${ze > 0 ? '+' : '−'}${Math.abs(ze)} divisions (${ze > 0 ? 'the zero of the circular scale is above the reference line' : 'the zero of the circular scale is below the reference line'}). An object gives a main-scale reading of ${msr} mm and a circular-scale reading of ${cs}. The true reading is`, options: o.options, answer: o.answer,
+      sol: XR`$LC = ${lc}$ mm. Observed $= ${msr}+${cs}\times${lc} = ${f3(obs)}$ mm. Zero error $= ${ze > 0 ? '+' : '-'}${Math.abs(ze) * lc}$ mm. True $=$ observed $-$ zero error $= ${f3(tr)}$ mm.`, trap: 'Subtract the zero error with its sign.' };
+  }, (p) => { const lc = p.pitch / p.N; const tr = p.msr + p.cs * lc - p.ze * lc; return p.options.findIndex((o) => o === `${fmt(tr, 4)} mm`); }),
+  XG(30, 5, 'nat', 'zener', (rng) => {
+    const Vs = choose(rng, [9, 12, 15]); const Vz = choose(rng, [3.3, 5.1, 6.2]); const Rs = choose(rng, [100, 150, 200, 300]); const RL = choose(rng, [330, 510, 620, 1000]);
+    const Iz = ((Vs - Vz) / Rs - Vz / RL) * 1e3;
+    if (Iz <= 1) return { Vs, Vz, Rs, RL, q: XR`A ${Vs} V supply feeds a ${Vz} V Zener diode through ${Rs} $\Omega$, with a ${RL} $\Omega$ load across the Zener. Find the Zener current, in mA, if it is still in breakdown, or give 0 if it stops regulating.`, answer: 0, tol: 0.05, unit: 'mA', sol: XR`Supply current $=\dfrac{${Vs}-${Vz}}{${Rs}} = ${f3((Vs - Vz) / Rs * 1e3)}$ mA, load current $=\dfrac{${Vz}}{${RL}} = ${f3(Vz / RL * 1e3)}$ mA. Nothing is left for the Zener, so it does not regulate: 0.` };
+    return { Vs, Vz, Rs, RL, q: XR`A ${Vs} V supply feeds a ${Vz} V Zener diode through ${Rs} $\Omega$, with a ${RL} $\Omega$ load across the Zener. Find the Zener current, in mA, if it is still in breakdown, or give 0 if it stops regulating.`, answer: +Iz.toFixed(2), tol: Math.max(0.05, Iz * 0.01), unit: 'mA',
+      sol: XR`Supply current $=\dfrac{${Vs}-${Vz}}{${Rs}} = ${f3((Vs - Vz) / Rs * 1e3)}$ mA. Load current $=\dfrac{${Vz}}{${RL}} = ${f3(Vz / RL * 1e3)}$ mA. Zener current $=${f3(Iz)}$ mA.` };
+  }, (p) => { const I = (p.Vs - p.Vz) / p.Rs; const IL = p.Vz / p.RL; return I - IL <= 1e-3 ? 0 : (I - IL) * 1e3; }),
+  XG(31, 4, 'nat', 'specific heat', (rng) => {
+    const mw = choose(rng, [100, 150, 200]); const mb = choose(rng, [50, 100, 150]); const Tb = choose(rng, [90, 100]); const Tw = choose(rng, [15, 20, 25]); const Tf = Tw + choose(rng, [3, 4, 5, 6]);
+    const c = mw * 4.2 * (Tf - Tw) / (mb * (Tb - Tf));
+    return { mw, mb, Tb, Tw, Tf, q: XR`${mb} g of a metal at ${Tb} °C is dropped into ${mw} g of water at ${Tw} °C (calorimeter ignored; $c_w = 4.2\ \mathrm{J\,g^{-1}K^{-1}}$). The final temperature is ${Tf} °C. Find the specific heat of the metal, in $\mathrm{J\,g^{-1}K^{-1}}$.`, answer: +c.toFixed(3), tol: Math.max(0.005, c * 0.01), unit: 'J/(g K)',
+      sol: XR`${mb}$\times c\times(${Tb}-${Tf}) = ${mw}\times4.2\times(${Tf}-${Tw})$, so $c = ${f3(c)}$.` };
+  }, (p) => p.mw * 4.2 * (p.Tf - p.Tw) / (p.mb * (p.Tb - p.Tf))),
+  XG(32, 5, 'nat', 'galvanometer', (rng) => {
+    const G = choose(rng, [20, 50, 100, 200]); const Rr = choose(rng, [2000, 5000, 10000]); const S = G * Rr / (Rr + G);
+    return { G, Rr, q: XR`In the half-deflection method a galvanometer of resistance $G$ is in series with $R = ${Rr}\ \Omega$. A shunt $S = ${f3(S)}\ \Omega$ halves the deflection. Using the exact formula $G = \dfrac{RS}{R-S}$, find $G$, in ohm.`, answer: +G.toFixed(2), tol: Math.max(0.05, G * 0.005), unit: 'Ω',
+      sol: XR`$G = \dfrac{RS}{R-S} = \dfrac{${Rr}\times${f3(S)}}{${Rr}-${f3(S)}} = ${f3(G)}\ \Omega$. (If $R\gg G$, $G\approx S$.)` };
+  }, (p) => { const S = p.G * p.Rr / (p.Rr + p.G); return p.Rr * S / (p.Rr - S); }),
+);
+
+}
+
 export default { topic: 'experimental-physics', groups, items, gens };

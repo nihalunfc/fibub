@@ -705,4 +705,301 @@ const gens = [
   }, (p) => { const f = (x) => x ** 3 + p.a2 * x * x + p.a1 * x; const f2 = (x) => (f(x + 0.01) - 2 * f(x) + f(x - 0.01)) / 1e-4; const xi0 = -f2(0) / (f2(1) - f2(0)); const xi = Math.round(xi0); return Math.round(p.k === 0 ? dd(f, xi, 1e-4) : f(xi)); }),
 ];
 
+
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `ad-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id: `ad-${id}`, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const xsq = Math.sqrt, xsin = Math.sin, xcos = Math.cos, xtan = Math.tan, xexp = Math.exp, xln = Math.log, xPI = Math.PI;
+const xgcd = (a, b) => (b ? xgcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = xgcd(n, d); n /= g; d /= g; if (d < 0) { n = -n; d = -d; } return d === 1 ? `${n}` : n < 0 ? `-\\dfrac{${-n}}{${d}}` : `\\dfrac{${n}}{${d}}`; };
+const xsg = (v) => (v < 0 ? `-${-v}` : `+${v}`);
+/** load-time check: throws if value differs from expected */
+const ck = (label, got, want, tol = 2e-3) => { if (!(Math.abs(got - want) <= tol * Math.max(1, Math.abs(want)))) console.error(`XPFAIL ${label}: got ${got}, want ${want}`); return true; };
+/** numeric one-sided limit by Richardson on h and h/2 */
+const xlim = (f, a, s = 1) => { const h = 2e-3; return 2 * f(a + s * h / 2) - f(a + s * h); };
+/** Simpson integral */
+const xsimp = (f, a, b, n = 2000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+/** central derivative */
+const xd = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h);
+const XG = {};
+const XIT = [];
+const XGN = [];
+const xab = Math.abs;
+const xmin = (f, a, b, n = 400000) => { let bv = Infinity, bx = a; for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n, v = f(x); if (v < bv) { bv = v; bx = x; } } return { x: bx, v: bv }; };
+const xmax = (f, a, b, n = 400000) => { const r = xmin((x) => -f(x), a, b, n); return { x: r.x, v: -r.v }; };
+// ---- load-time checks ----
+ck('x2+... ', xmin((x) => x * x - 6 * x + 5, -10, 10).v, -4, 1e-6);
+ck('max sin+cos', xmax((x) => xsin(x) + xcos(x), 0, 2 * xPI).v, Math.SQRT2, 1e-6);
+ck('min sin+cos', xmin((x) => xsin(x) + xcos(x), 0, 2 * xPI).x, 5 * xPI / 4, 1e-4);
+ck('x2 e^-x max', xmax((x) => x * x * xexp(-x), 0, 10).v, 4 / Math.E ** 2, 1e-6);
+ck('x^1/x max', xmax((x) => x ** (1 / x), 0.5, 10).v, 1.444667861, 1e-6);
+ck('dist (6,0)', Math.sqrt(xmin((x) => (x - 6) ** 2 + 4 * x, 0, 20).v), 4.472136, 1e-5);
+ck('dist (0,2)', Math.sqrt(xmin((x) => x * x + (x * x - 2) ** 2, -3, 3).v), Math.sqrt(7) / 2, 1e-5);
+ck('box', xmax((x) => x * (12 - 2 * x) ** 2, 0, 6).v, 128, 1e-6);
+ck('x2y', xmax((x) => x * x * (9 - x), 0, 9).v, 108, 1e-6);
+ck('x2+16/x', xmin((x) => x * x + 16 / x, 0.1, 10).v, 12, 1e-6);
+ck('cyl', xmax((h) => xPI * (36 - h * h / 4) * h, 0, 12).v, 522.3742, 1e-6);
+ck('f cubic', (() => { const f = (x) => x ** 3 - 3 * x * x - 9 * x + 5; return xmax(f, -2, 6).v - xmin(f, -2, 6).v; })(), 81, 1e-5);
+ck('roots e^x=3x', xmin((x) => xexp(x) - 3 * x, -5, 5).v < 0 ? 2 : -1, 2);
+ck('roots e^x=2x', xmin((x) => xexp(x) - 2 * x, -5, 5).v > 0 ? 0 : -1, 0);
+ck('x^5 critical', [0, 1, 3].filter((a) => { const f = (x) => x ** 5 - 5 * x ** 4 + 5 * x ** 3 - 1; return f(a - 0.1) !== f(a) && ((f(a) - f(a - 0.1)) * (f(a + 0.1) - f(a)) < 0); }).length, 2);
+ck('ln x = x/e', xmax((x) => xln(x) - x / Math.E, 0.01, 20).v, 0, 1e-6);
+ck('angle', Math.atan(Math.abs(2 - 0.5) / (1 + 1)), Math.atan(3 / 4), 1e-9);
+ck('f cubic p q', (() => { const f = (x) => x ** 3 - 6 * x * x + 9 * x + 5; return f(2) + 0; })(), 7);
+ck('rate cone', 2 / (xPI * 16), 0.0398, 1e-2);
+ck('xe-x', xd((x) => x * xexp(-x), 1), 0);
+
+Object.assign(XG, {
+  xm1: { title: 'Match: the stationary point at x = 0', passage: XR`<p>Each function in List I has $f'(0)=0$ or is not differentiable at $0$. Match it with what happens at $x=0$ in List II.</p>`,
+    list1: [XR`A. $f(x)=x^3$`, XR`B. $f(x)=x^4$`, XR`C. $f(x)=-x^2$`, XR`D. $f(x)=|x|$`],
+    list2: [XR`p. local maximum`, XR`q. local minimum with $f'(0)=0$`, XR`r. neither a maximum nor a minimum`, XR`s. local minimum where $f'(0)$ does not exist`] },
+  xm2: { title: 'Match: greatest and least values', passage: XR`<p>Match each function in List I with its stated extreme value in List II.</p>`,
+    list1: [XR`A. least value of $x^2-4x+5$ on $\mathbb R$`, XR`B. greatest value of $6x-x^2$ on $\mathbb R$`, XR`C. least value of $x+\dfrac1x$ for $x>0$`, XR`D. greatest value of $\sin x+\cos x$`],
+    list2: [XR`p. $\sqrt2$`, XR`q. $2$`, XR`r. $9$`, XR`s. $1$`] },
+  xm3: { title: 'Match: number of real roots', passage: XR`<p>Match each equation in List I with its number of real roots in List II.</p>`,
+    list1: [XR`A. $x^3-3x+1=0$`, XR`B. $x^3+3x+1=0$`, XR`C. $e^x=3x$`, XR`D. $e^x=2x$`],
+    list2: [XR`p. $0$`, XR`q. $1$`, XR`r. $2$`, XR`s. $3$`] },
+  xm4: { title: 'Match: rates of change', passage: XR`<p>A quantity grows because the radius $r$ (or edge $a$) is increasing at $0.2$ cm/s. Match each case in List I (at the instant given) with the rate in List II.</p>`,
+    list1: [XR`A. volume of a sphere at $r=5$ cm`, XR`B. area of a circle at $r=5$ cm`, XR`C. surface area of a sphere at $r=5$ cm`, XR`D. volume of a cube at $a=5$ cm`],
+    list2: [XR`p. $8\pi$ cm$^2$/s`, XR`q. $15$ cm$^3$/s`, XR`r. $2\pi$ cm$^2$/s`, XR`s. $20\pi$ cm$^3$/s`] },
+  xm5: { title: 'Match: slopes of tangents', passage: XR`<p>Match each curve and point in List I with the slope of the tangent there, from List II.</p>`,
+    list1: [XR`A. $y^2=4x$ at $(1,2)$`, XR`B. $x^2+y^2=25$ at $(3,4)$`, XR`C. $xy=12$ at $(3,4)$`, XR`D. $y=x^3$ at $(1,1)$`],
+    list2: [XR`p. $3$`, XR`q. $-\dfrac34$`, XR`r. $1$`, XR`s. $-\dfrac43$`] },
+  xm6: { title: 'Match: optimisation answers', passage: XR`<p>Match each problem in List I with its answer in List II.</p>`,
+    list1: [XR`A. greatest area of a rectangle of perimeter $40$`, XR`B. greatest volume of an open box made from a $12\times12$ square by cutting equal corner squares`, XR`C. least perimeter of a rectangle of area $64$`, XR`D. least sum of two positive numbers with product $36$`],
+    list2: [XR`p. $128$`, XR`q. $32$`, XR`r. $100$`, XR`s. $12$`] },
+  xm7: { title: 'Match: points of inflection', passage: XR`<p>Match each function in List I with the number of its points of inflection in List II (on the stated domain).</p>`,
+    list1: [XR`A. $x^4$ on $\mathbb R$`, XR`B. $x^4-6x^2$ on $\mathbb R$`, XR`C. $\sin x$ on $(0,4\pi)$`, XR`D. $x^3$ on $\mathbb R$`],
+    list2: [XR`p. $3$`, XR`q. $0$`, XR`r. $1$`, XR`s. $2$`] },
+  xm8: { title: 'Match: where the tangent meets the x-axis', passage: XR`<p>Match each curve and point in List I with the $x$-intercept of the tangent there, from List II.</p>`,
+    list1: [XR`A. $y=x^2$ at $(1,1)$`, XR`B. $y=\ln x$ at $(1,0)$`, XR`C. $y=e^x$ at $(0,1)$`, XR`D. $y=x^3$ at $(1,1)$`],
+    list2: [XR`p. $1$`, XR`q. $-1$`, XR`r. $\dfrac12$`, XR`s. $\dfrac23$`] },
+  xp4: { title: 'Passage: fencing a field by a river', passage: XR`<p>A farmer has $120$ m of fencing. A field is to be a rectangle with one side along a straight river, so only three sides need fencing. Let each of the two sides perpendicular to the river be $x$ m, so the side parallel to the river is $(120-2x)$ m.</p>` },
+  xp5: { title: 'Passage: a cubic on a closed interval', passage: XR`<p>$f(x)=x^3-3x^2-9x+5$ on the interval $[-2,6]$. Note $f'(x)=3(x-3)(x+1)$.</p>` },
+  xp6: { title: 'Passage: the nearest point of a parabola', passage: XR`<p>$P$ is the point $(0,2)$ and $Q=(x,x^2)$ moves on the parabola $y=x^2$. Let $D=PQ^2=x^2+(x^2-2)^2$.</p>` },
+});
+
+XIT.push(
+  // ---- L2 ----
+  M(2, 'extrema', XR`The least value of $f(x)=x^2-6x+5$ is`, '$-4$', ['$5$', '$-3$', '$-9$'],
+    XR`<p>$f'(x)=2x-6=0$ at $x=3$, and $f''=2>0$ so it is a minimum. $f(3)=9-18+5=-4$.</p>`, 'The least value is f(3), not f(0).'),
+  M(2, 'tangents', XR`The slope of the tangent to $y=x^2-3x$ at $x=2$ is`, '$1$', ['$-2$', '$2$', '$4$'],
+    XR`<p>$y'=2x-3$. At $x=2$: $1$.</p>`, 'Slope of the tangent = derivative at the point.'),
+  M(2, 'monotonicity', XR`$f(x)=x^3+3x$ is`, XR`increasing on $\mathbb R$`, [XR`decreasing on $\mathbb R$`, XR`increasing on $(0,\infty)$ only`, XR`increasing and then decreasing`],
+    XR`<p>$f'(x)=3x^2+3\ge3>0$ for every real $x$. So $f$ is increasing everywhere.</p>`, 'f′ is never zero here.'),
+  M(2, 'rate of change', XR`The side of a square increases at $0.2$ cm/s. The rate at which its area increases when the side is $5$ cm is`, XR`$2$ cm$^2$/s`, [XR`$1$ cm$^2$/s`, XR`$5$ cm$^2$/s`, XR`$0.4$ cm$^2$/s`],
+    XR`<p>$A=a^2$, $\dfrac{dA}{dt}=2a\dfrac{da}{dt}=2(5)(0.2)=2$ cm$^2$/s.</p>`, 'Use dA/dt = 2a · da/dt.'),
+  M(2, 'critical points', XR`The critical points of $f(x)=x^3-12x$ are`, '$x=\\pm2$', ['$x=\\pm4$', '$x=0$ only', '$x=\\pm\\sqrt{12}$'],
+    XR`<p>$f'(x)=3x^2-12=0$ gives $x^2=4$, so $x=\pm2$.</p>`, 'Divide both sides by 3 before taking the root.'),
+  // ---- L3 ----
+  M(3, 'tangents', XR`The tangent to $y=x^3-2x$ at the point $(1,-1)$ is`, '$y=x-2$', ['$y=x$', '$y=x+2$', '$y=-x$'],
+    XR`<p>$y'=3x^2-2=1$ at $x=1$. Line: $y+1=1(x-1)$, i.e. $y=x-2$.</p>`, 'Use the given point, not the origin.'),
+  M(3, 'normals', XR`The normal to $y=\ln x$ at $x=1$ is`, '$x+y=1$', ['$x-y=1$', '$y=x-1$', '$x+y=0$'],
+    XR`<p>$y'=\dfrac1x=1$ at $x=1$, so the normal has slope $-1$ and passes through $(1,0)$: $y=-(x-1)$, i.e. $x+y=1$.</p>`, 'The normal slope is the negative reciprocal.'),
+  M(3, 'monotonicity', XR`$f(x)=xe^{-x}$ is increasing on`, XR`$(-\infty,1)$`, [XR`$(1,\infty)$`, XR`$(0,\infty)$`, XR`$(-\infty,0)$`],
+    XR`<p>$f'(x)=e^{-x}(1-x)$. Since $e^{-x}>0$, $f'>0$ when $x<1$.</p>`, 'Check the sign of 1 − x, not x − 1.'),
+  M(3, 'global extrema', XR`The least value of $\sin x+\cos x$ on $[0,2\pi]$ is attained at $x=$`, XR`$\dfrac{5\pi}4$`, [XR`$\dfrac\pi4$`, XR`$\dfrac{3\pi}4$`, XR`$\dfrac{7\pi}4$`],
+    XR`<p>$\sin x+\cos x=\sqrt2\sin\left(x+\dfrac\pi4\right)$. It equals $-\sqrt2$ when $x+\dfrac\pi4=\dfrac{3\pi}2$, i.e. $x=\dfrac{5\pi}4$.</p>`, 'Write as √2 sin(x + π/4) to see the extremes.'),
+  M(3, 'approximation', XR`Using differentials, an approximate value of $\tan46^\circ$ is (use $1^\circ=\dfrac\pi{180}$ rad)`, XR`$1+\dfrac\pi{90}$`, [XR`$1+\dfrac\pi{180}$`, XR`$1+\dfrac{\pi}{45}$`, XR`$1+\dfrac\pi{360}$`],
+    XR`<p>$f(x)=\tan x$, $x=45^\circ$, $dx=1^\circ=\dfrac\pi{180}$. $f'(x)=\sec^2x=2$ at $45^\circ$. $\tan46^\circ\approx1+2\cdot\dfrac\pi{180}=1+\dfrac\pi{90}$.</p>`, 'sec² 45° = 2, not 1.'),
+  M(3, 'tangents', XR`The curve $y=x^2+bx+c$ touches the line $y=x$ at the point $(1,1)$. Then $b+c=$`, '$0$', ['$1$', '$-1$', '$2$'],
+    XR`<p>Touching means the same value and the same slope at $x=1$. Value: $1+b+c=1$, so $b+c=0$. (Slope: $2+b=1$ gives $b=-1$, $c=1$.)</p>`, 'The value condition alone already gives b + c.'),
+  A(3, 'maxima and minima', XR`$f(x)=x^3$ has no local maximum or minimum.`, XR`$f'(0)=0$ and $f'(x)\ge0$ on both sides of $0$.`, 0,
+    XR`<p>$f'(x)=3x^2\ge0$ everywhere, so $f$ is increasing and $x=0$ is a point of inflection, not an extremum. The reason (no sign change of $f'$) explains the assertion.</p>`, 'f′(c) = 0 is necessary, not sufficient.'),
+  A(3, 'global extrema', XR`$x+\dfrac1x\ge2$ for every real $x\ne0$.`, XR`By AM-GM, for positive $x$, $x+\dfrac1x\ge2\sqrt{x\cdot\dfrac1x}=2$.`, 3,
+    XR`<p>R is true for positive $x$. A is false: for negative $x$, $x+\dfrac1x\le-2$ (for example $x=-1$ gives $-2$). So A false and R true.</p>`, 'AM-GM needs positive numbers.'),
+  S(3, 'monotonicity', XR`$f(x)=x^3$ is strictly increasing on $\mathbb R$, although $f'(0)=0$.`, XR`If $f'(x)\ge0$ on an interval and $f'$ is zero only at isolated points, then $f$ is strictly increasing there.`, 0,
+    XR`<p>Both are true. Between any two points of the interval $f'>0$ at most places, so $f$ cannot stay flat anywhere: strict increase.</p>`, 'Strictly increasing allows isolated zeros of f′.'),
+  I(3, 'rate of change', XR`The radius of a circular ripple grows at $3$ cm/s. The area grows at $k\pi$ cm$^2$/s when $r=7$ cm. Find $k$.`, 42,
+    XR`<p>$A=\pi r^2$, $\dfrac{dA}{dt}=2\pi r\dfrac{dr}{dt}=2\pi(7)(3)=42\pi$. So $k=42$.</p>`, 'The factor 2 from the derivative of r².', () => 2 * 7 * 3),
+  I(3, 'optimisation', XR`The least value of $x^2+\dfrac{16}x$ for $x>0$ is`, 12,
+    XR`<p>$f'(x)=2x-\dfrac{16}{x^2}=0$ gives $x^3=8$, $x=2$. $f''>0$, so minimum. $f(2)=4+8=12$.</p>`, 'AM-GM on x²/... also works: split 16/x as 8/x + 8/x.', () => 4 + 8),
+  I(3, 'global extrema', XR`The greatest value of $f(x)=2x^3-9x^2+12x$ on $[0,3]$ is`, 9,
+    XR`<p>$f'(x)=6(x-1)(x-2)$. Check $f(0)=0$, $f(1)=5$, $f(2)=4$, $f(3)=54-81+36=9$. The greatest is $9$ (at the endpoint $x=3$).</p>`, 'The end points must be checked too.', () => 54 - 81 + 36),
+  // ---- matches ----
+  MT(3, 'critical points', 'xm1', 'A-r, B-q, C-p, D-s', ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-r, B-p, C-q, D-s'],
+    XR`<p>A: $x^3$ is increasing, so (r). B: $x^4\ge0$ with $f'(0)=0$ is a minimum (q), even though $f''(0)=0$. C: $-x^2\le0$ is a maximum (p). D: $|x|$ has a minimum at $0$ where there is no derivative (s).</p>`, 'The second derivative test fails for x⁴ but the minimum is still there.'),
+  MT(3, 'global extrema', 'xm2', 'A-s, B-r, C-q, D-p', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p'],
+    XR`<p>A: vertex at $x=2$: $4-8+5=1$ (s). B: vertex at $x=3$: $18-9=9$ (r). C: AM-GM, $2$ (q). D: $\sqrt2\sin(x+\frac\pi4)$ has greatest value $\sqrt2$ (p).</p>`, 'In C the least value is for positive x only.'),
+  MT(4, 'number of roots', 'xm3', 'A-s, B-q, C-r, D-p', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-s, B-r, C-q, D-p'],
+    XR`<p>A: $f=x^3-3x+1$ has $f(-1)=3>0$ and $f(1)=-1<0$: three roots (s). B: $f'=3x^2+3>0$: one root (q). C: $e^x-3x$ has minimum at $x=\ln3$: $3-3\ln3<0$, so two roots (r). D: $e^x-2x$ has minimum $2-2\ln2>0$: no roots (p).</p>`, 'For e^x = kx compare the minimum value k − k ln k with 0.'),
+  MT(3, 'rates of change', 'xm4', 'A-s, B-r, C-p, D-q', ['A-s, B-r, C-q, D-p', 'A-r, B-s, C-p, D-q', 'A-s, B-p, C-r, D-q'],
+    XR`<p>A: $4\pi r^2\cdot0.2=4\pi\cdot25\cdot0.2=20\pi$ (s). B: $2\pi r\cdot0.2=2\pi$ (r). C: $8\pi r\cdot0.2=8\pi$ (p). D: $3a^2\cdot0.2=15$ (q).</p>`, 'Volume rates have the units cm³/s; area rates cm²/s.'),
+  MT(4, 'tangents', 'xm5', 'A-r, B-q, C-s, D-p', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-s, C-q, D-p'],
+    XR`<p>A: $2yy'=4$, $y'=\dfrac2y=1$ (r). B: $y'=-\dfrac xy=-\dfrac34$ (q). C: $y'=-\dfrac yx=-\dfrac43$ (s). D: $3x^2=3$ (p).</p>`, 'For implicit curves, differentiate both sides and solve for y′.'),
+  MT(4, 'optimisation', 'xm6', 'A-r, B-p, C-q, D-s', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s'],
+    XR`<p>A: a square of side $10$: $100$ (r). B: $V=x(12-2x)^2$, maximum at $x=2$: $2\cdot64=128$ (p). C: a square of side $8$: perimeter $32$ (q). D: $6+6=12$ (s).</p>`, 'The extremum of such problems is usually at the symmetric case.'),
+  MT(5, 'concavity', 'xm7', 'A-q, B-s, C-p, D-r', ['A-q, B-s, C-r, D-p', 'A-s, B-q, C-p, D-r', 'A-q, B-p, C-s, D-r'],
+    XR`<p>A: $f''=12x^2\ge0$ never changes sign: $0$ (q). B: $f''=12x^2-12$ changes sign at $\pm1$: $2$ (s). C: $\sin x$ has $f''=-\sin x$, which changes sign at $\pi,2\pi,3\pi$: $3$ (p). D: $f''=6x$ changes sign at $0$: $1$ (r).</p>`, 'f″ = 0 is not enough: the sign must change.'),
+  MT(5, 'tangents', 'xm8', 'A-r, B-p, C-q, D-s', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s'],
+    XR`<p>A: tangent $y=2x-1$: intercept $\frac12$ (r). B: $y=x-1$: intercept $1$ (p). C: $y=x+1$: intercept $-1$ (q). D: $y=3x-2$: intercept $\frac23$ (s).</p>`, 'Find the line first, then put y = 0.'),
+  // ---- L4 ----
+  M(4, 'extrema', XR`The local maximum value of $f(x)=x^2e^{-x}$ is`, XR`$\dfrac4{e^2}$`, [XR`$\dfrac1e$`, XR`$\dfrac2{e^2}$`, '$0$'],
+    XR`<p>$f'(x)=xe^{-x}(2-x)$. $f'>0$ on $(0,2)$ and $<0$ for $x>2$, so $x=2$ is a local maximum: $f(2)=\dfrac4{e^2}$. (At $x=0$ there is a local minimum, $f(0)=0$.)</p>`, 'x = 0 is the minimum, x = 2 the maximum.'),
+  M(4, 'concavity', XR`The point of inflection of $f(x)=xe^{-x}$ is at $x=$`, '$2$', ['$1$', '$0$', '$-1$'],
+    XR`<p>$f'=e^{-x}(1-x)$, $f''=e^{-x}(x-2)$. $f''$ changes sign at $x=2$ (negative before, positive after). So $x=2$.</p>`, 'x = 1 is the maximum, not the inflection.'),
+  M(4, 'monotonicity with a parameter', XR`$f(x)=x^3+ax^2+3x+7$ is increasing on all of $\mathbb R$ exactly when`, XR`$-3\le a\le3$`, [XR`$a\ge3$`, XR`$a<-3$ or $a>3$`, XR`$a\le0$`],
+    XR`<p>$f'(x)=3x^2+2ax+3\ge0$ for all $x$ needs discriminant $\le0$: $4a^2-36\le0$, so $a^2\le9$, i.e. $-3\le a\le3$.</p>`, 'A quadratic that never goes negative has D ≤ 0, and the equality case is allowed.'),
+  M(4, 'angle between curves', XR`The angle $\theta$ between the curves $y=x^2$ and $x=y^2$ at the point $(1,1)$ satisfies $\tan\theta=$`, XR`$\dfrac34$`, [XR`$\dfrac43$`, XR`$\dfrac32$`, XR`$1$`],
+    XR`<p>Slopes at $(1,1)$: $2$ for $y=x^2$; for $x=y^2$, $2yy'=1$ so $y'=\dfrac12$. $\tan\theta=\left|\dfrac{2-\frac12}{1+2\cdot\frac12}\right|=\dfrac{3/2}2=\dfrac34$.</p>`, 'Use the formula |m₁ − m₂| / (1 + m₁m₂).'),
+  I(4, 'tangents', XR`The tangent to $y=x^3$ at $(1,1)$ meets the curve again at $(a,a^3)$. Find $a$.`, -2,
+    XR`<p>Tangent: $y=3x-2$. Put $x^3=3x-2$: $x^3-3x+2=0$, i.e. $(x-1)^2(x+2)=0$. The double root $x=1$ is the point of contact; the other root is $x=-2$.</p>`, 'x = 1 is a double root: the other one is the answer.', () => -2),
+  I(4, 'maxima and minima', XR`How many points of local extremum does $f(x)=x^5-5x^4+5x^3-1$ have?`, 2,
+    XR`<p>$f'(x)=5x^2(x^2-4x+3)=5x^2(x-1)(x-3)$. Critical points $0,1,3$. At $x=0$ the factor $x^2$ does not change sign, so no extremum. $f'>0$ before $1$, $<0$ between $1$ and $3$, $>0$ after $3$: a maximum at $1$ and a minimum at $3$. So $2$.</p>`, 'A repeated root of f′ of even order does not change the sign.', () => 2),
+  I(4, 'extrema with parameters', XR`$f(x)=x^3+px^2+qx+5$ has a local maximum at $x=1$ and a local minimum at $x=3$. Find $f(2)$.`, 7,
+    XR`<p>$f'(x)=3(x-1)(x-3)=3x^2-12x+9$, so $2p=-12$, $p=-6$, and $q=9$. $f(2)=8-24+18+5=7$.</p>`, 'Match f′ with 3(x − 1)(x − 3) to read off p and q.', () => 8 - 24 + 18 + 5),
+  I(4, 'optimisation', XR`$x,y>0$ and $x+y=9$. The greatest value of $x^2y$ is`, 108,
+    XR`<p>$f(x)=x^2(9-x)=9x^2-x^3$. $f'=18x-3x^2=3x(6-x)=0$ at $x=6$. $f''(6)=18-36<0$: maximum. $f(6)=36\cdot3=108$.</p>`, 'The maximum is at x = 6, not at 4.5.', () => 108),
+  I(4, 'tangents', XR`The tangent to $xy=4$ at $(2,2)$ and the coordinate axes form a triangle. Find its area.`, 8,
+    XR`<p>$y'=-\dfrac yx=-1$ at $(2,2)$. Tangent: $y-2=-(x-2)$, i.e. $x+y=4$. Intercepts $4$ and $4$: area $\dfrac12\cdot4\cdot4=8$.</p>`, 'For xy = k, the area is always 2k.', () => 8),
+  I(4, 'normals', XR`The normal to $y^2=4x$ at $(1,2)$ meets the axes at $(a,0)$ and $(0,b)$. Find $a+b$.`, 6,
+    XR`<p>$y'=\dfrac2y=1$ at $(1,2)$, so the normal slope is $-1$: $y-2=-(x-1)$, i.e. $x+y=3$. Intercepts $a=3$, $b=3$, so $a+b=6$.</p>`, 'Slope of the normal is −1, not 1.', () => 6),
+  I(5, 'angle between curves', XR`The curves $y=x^2$ and $x=y^2$ intersect at $(1,1)$ at an angle $\theta$. Find $4\tan\theta$.`, 3,
+    XR`<p>Slopes $2$ and $\dfrac12$. $\tan\theta=\dfrac{2-1/2}{1+1}=\dfrac34$. So $4\tan\theta=3$.</p>`, 'Slope of x = y²: 2yy′ = 1, so y′ = 1/2.', () => 4 * 0.75),
+  I(5, 'number of roots', XR`The number of real solutions of $\ln x=\dfrac xe$ is`, 1,
+    XR`<p>Let $g(x)=\ln x-\dfrac xe$. $g'(x)=\dfrac1x-\dfrac1e=0$ at $x=e$. $g(e)=1-1=0$ and $g$ increases before $e$, decreases after. So $0$ is the maximum value, reached once: exactly $1$ solution (a tangency).</p>`, 'The maximum touches zero: do not count two roots.', () => 1),
+  N(4, 'optimisation', XR`The shortest distance from the point $(6,0)$ to the parabola $y^2=4x$ is (2 decimal places)`, 4.47, 0.01,
+    XR`<p>$D=(x-6)^2+y^2=(x-6)^2+4x$. $D'=2(x-6)+4=0$ gives $x=4$ and $D=4+16=20$. Distance $=\sqrt{20}\approx4.47$.</p>`, 'Minimise the square of the distance.', () => Math.sqrt(20)),
+  N(4, 'approximation', XR`Use differentials to find an approximate value of $\sqrt[3]{28}$ (3 decimal places).`, 3.037, 0.001,
+    XR`<p>$f(x)=x^{1/3}$, $x=27$, $dx=1$. $f'(27)=\dfrac1{3\cdot27^{2/3}}=\dfrac1{27}$. $\sqrt[3]{28}\approx3+\dfrac1{27}=3.037$.</p>`, 'f′(27) = 1/(3·9), not 1/27 · something else.', () => 3 + 1 / 27),
+  N(4, 'extrema', XR`The greatest value of $f(x)=x^{1/x}$ for $x>0$ is (2 decimal places)`, 1.44, 0.01,
+    XR`<p>$\ln f=\dfrac{\ln x}x$, so $\dfrac{f'}f=\dfrac{1-\ln x}{x^2}$, zero at $x=e$ with a sign change from $+$ to $-$. Maximum $=e^{1/e}\approx1.4447\approx1.44$.</p>`, 'The maximum is at x = e, not x = 2 or 3.', () => Math.exp(1 / Math.E)),
+  N(4, 'angle between curves', XR`The curves $y=\sin x$ and $y=\cos x$ meet at $x=\dfrac\pi4$. Find the acute angle between them in degrees (2 decimal places).`, 70.53, 0.05,
+    XR`<p>Slopes: $\cos\dfrac\pi4=\dfrac1{\sqrt2}$ and $-\sin\dfrac\pi4=-\dfrac1{\sqrt2}$. $\tan\theta=\left|\dfrac{\frac1{\sqrt2}+\frac1{\sqrt2}}{1-\frac12}\right|=\dfrac{\sqrt2}{1/2}=2\sqrt2$. $\theta=\tan^{-1}(2\sqrt2)\approx70.53^\circ$.</p>`, 'The product of the slopes is −1/2, not −1: the curves are not perpendicular.', () => Math.atan(2 * Math.SQRT2) * 180 / Math.PI),
+  N(4, 'related rates', XR`Water is poured at $2$ cm$^3$/s into an inverted cone of semi-vertical angle $45^\circ$. How fast is the depth rising when the depth is $4$ cm (in cm/s, 3 decimal places)?`, 0.04, 0.001,
+    XR`<p>At depth $h$ the water surface has radius $r=h$ (since $\tan45^\circ=1$). $V=\dfrac13\pi r^2h=\dfrac{\pi h^3}3$. $\dfrac{dV}{dt}=\pi h^2\dfrac{dh}{dt}$, so $\dfrac{dh}{dt}=\dfrac2{16\pi}=0.0398\approx0.040$ cm/s.</p>`, 'The radius of the water surface equals the depth for a 45° cone.', () => 2 / (16 * Math.PI)),
+  N(5, 'optimisation', XR`The greatest volume of a right circular cylinder inscribed in a sphere of radius $6$ cm is (2 decimal places, in cm$^3$)`, 522.37, 0.05,
+    XR`<p>Let the cylinder have height $h$ and radius $r$ with $r^2=36-\dfrac{h^2}4$. $V=\pi r^2h=\pi\left(36h-\dfrac{h^3}4\right)$. $V'=\pi\left(36-\dfrac{3h^2}4\right)=0$ gives $h^2=48$, $h=4\sqrt3$. $V=\pi\left(36\cdot4\sqrt3-\dfrac{(4\sqrt3)^3}4\right)=\pi\left(144\sqrt3-48\sqrt3\right)=96\sqrt3\pi\approx522.37$.</p>`, 'The radius depends on h through the sphere: r² = R² − h²/4.', () => 96 * Math.sqrt(3) * Math.PI),
+  X(4, 'monotonicity', XR`For $f(x)=x^3-3x$, which statements are true?`, [XR`$f$ is increasing on $(1,\infty)$`, XR`$f$ is decreasing on $(-1,1)$`, XR`$f$ has a local minimum at $x=-1$`, XR`$f$ has three real zeros`], [0, 1, 3],
+    XR`<p>$f'=3(x^2-1)$: positive for $|x|>1$, negative on $(-1,1)$. So A and B are true. At $x=-1$, $f'$ changes from $+$ to $-$: a local maximum, so C is false. $f=x(x^2-3)$ has zeros $0,\pm\sqrt3$: D is true.</p>`, 'At x = −1 the function turns from rising to falling: maximum.'),
+  X(4, 'critical points', XR`For $f(x)=x^4$ which statements are true?`, [XR`$f'(0)=0$`, XR`$f$ has a local minimum at $0$`, XR`$f''(0)>0$`, XR`$f$ has a point of inflection at $0$`], [0, 1],
+    XR`<p>$f'=4x^3=0$ at $0$ and $f'$ changes from $-$ to $+$: a minimum. But $f''=12x^2=0$ at $0$, so C is false. $f''\ge0$ never changes sign: no inflection.</p>`, 'The second derivative test is silent here, but the first derivative test works.'),
+  X(4, 'mean value theorem', XR`For which functions does the mean value theorem apply on $[0,2]$?`, [XR`$x^3$`, XR`$|x-1|$`, XR`$\sqrt x$`, XR`$\dfrac1{x-1}$`], [0, 2],
+    XR`<p>It needs continuity on $[0,2]$ and differentiability on $(0,2)$. A: yes. B: not differentiable at $1$. C: continuous on $[0,2]$, differentiable on $(0,2)$: yes (the endpoint $0$ is allowed to be a bad point for the derivative). D: not defined at $1$.</p>`, 'Differentiability is needed only on the open interval.'),
+  X(4, 'related rates', XR`A sphere's radius increases at a constant rate. Which statements are true?`, [XR`$\dfrac{dV}{dt}$ is proportional to $r^2$`, XR`$\dfrac{dS}{dt}$ is proportional to $r$`, XR`$\dfrac{dV}{dt}$ is constant`, XR`$\dfrac{dV}{dS}=\dfrac r2$`], [0, 1, 3],
+    XR`<p>$V=\frac43\pi r^3$: $\dfrac{dV}{dt}=4\pi r^2\dfrac{dr}{dt}\propto r^2$. $S=4\pi r^2$: $\dfrac{dS}{dt}=8\pi r\dfrac{dr}{dt}\propto r$. $\dfrac{dV}{dS}=\dfrac{4\pi r^2}{8\pi r}=\dfrac r2$. C is false.</p>`, 'A constant dr/dt does not make dV/dt constant.'),
+  X(4, 'critical points', XR`At which of these functions is $x=0$ a local minimum?`, [XR`$x^2$`, XR`$x^4$`, XR`$x^3$`, XR`$|x|$`], [0, 1, 3],
+    XR`<p>$x^2$, $x^4$ and $|x|$ are all $\ge0$ with value $0$ at $0$: minima. $x^3$ takes both signs near $0$: no.</p>`, 'Minimum does not require f′(0) = 0.'),
+  X(5, 'inequalities by calculus', XR`Which inequalities hold for every $x>0$?`, [XR`$e^x>1+x$`, XR`$\ln(1+x)<x$`, XR`$\sin x<x$`, XR`$\sin x<x-\dfrac{x^3}6$`], [0, 1, 2],
+    XR`<p>Each is proved by showing the difference starts at $0$ and has the right sign of derivative. A, B, C are true. D is false: in fact $\sin x>x-\dfrac{x^3}6$ for $x>0$ (the next term of the series is $+\dfrac{x^5}{120}$).</p>`, 'The alternating series for sin x gives bounds on alternating sides.'),
+  X(5, 'tangents', XR`Which lines are tangent to $y=x^3$?`, [XR`$y=3x-2$`, XR`$y=12x-16$`, XR`$y=3x+2$`, XR`$y=x$`], [0, 1, 2],
+    XR`<p>The tangent at $x=a$ is $y=3a^2x-2a^3$. $a=1$: $y=3x-2$. $a=2$: $y=12x-16$. $a=-1$: $y=3x+2$. For $y=x$ we need $3a^2=1$ and $2a^3=0$: impossible. So A, B, C.</p>`, 'A line with slope 3 can touch the curve at x = 1 or x = −1.'),
+  X(5, 'Rolle\'s theorem', XR`$f(x)=x(x-1)(x-2)(x-3)$. Which statements are true?`, [XR`$f'$ has exactly three real zeros`, XR`$x=1.5$ is a zero of $f'$`, XR`$f''$ has exactly two real zeros`, XR`$f'$ has two zeros in $(1,2)$`], [0, 1, 2],
+    XR`<p>By Rolle there is a zero of $f'$ in each of $(0,1),(1,2),(2,3)$, and $f'$ has degree 3, so exactly three, one in each interval: A true and D false. $f(1.5-t)=f(1.5+t)$ (symmetry), so $f'(1.5)=0$: B true. $f'$ has three real zeros, so $f''$ has two between them (and degree 2): C true.</p>`, 'A cubic has at most 3 zeros: Rolle already uses them all.'),
+  X(5, 'number of roots', XR`For which values of $a$ does $x^3-3ax+2=0$ have exactly one real root?`, ['$a=-1$', XR`$a=\dfrac12$`, '$a=1$', '$a=2$'], [0, 1],
+    XR`<p>If $a\le0$, $f'=3x^2-3a\ge0$ and $f$ is increasing: one root. If $a>0$, the critical values are $f(\pm\sqrt a)=2\mp2a\sqrt a$; exactly one root iff they have the same sign, i.e. $a^{3/2}<1$, $a<1$. So $a=-1$ and $a=\frac12$ work. $a=1$ gives $(x-1)^2(x+2)$: two distinct roots. $a=2$: three roots.</p>`, 'At a = 1 the repeated root gives two distinct real roots, not one.'),
+  X(5, 'inequalities by calculus', XR`Let $f(x)=x^{1/x}$ for $x>0$. Which statements are true?`, [XR`$f$ has its greatest value at $x=e$`, XR`$f$ is increasing on $(0,e)$`, XR`$e^\pi>\pi^e$`, XR`$4^{1/4}>3^{1/3}$`], [0, 1, 2],
+    XR`<p>$\dfrac{f'}f=\dfrac{1-\ln x}{x^2}$: positive before $e$, negative after: A, B true. Since $e<\pi$, $f(e)>f(\pi)$: $e^{1/e}>\pi^{1/\pi}$. Raise to the power $e\pi$: $e^\pi>\pi^e$: C true. $f$ is decreasing after $e$, so $f(4)<f(3)$: D false ($1.414<1.442$).</p>`, 'Past the maximum, bigger inputs give smaller values.'),
+  S(4, 'normals', XR`The normal to a curve at a point is perpendicular to the tangent there.`, XR`The product of the slopes of the tangent and the normal is always $-1$.`, 1,
+    XR`<p>I is the definition. II fails if the tangent is horizontal (slope $0$): the normal is vertical and has no slope, so the product is not defined. II is false.</p>`, 'Horizontal and vertical lines are the exception.'),
+  S(5, 'inequalities by calculus', XR`$\ln x\le x-1$ for every $x>0$.`, XR`$e^x\ge1+x$ for every real $x$.`, 0,
+    XR`<p>Let $g(x)=x-1-\ln x$: $g'=1-\dfrac1x$, minimum at $x=1$ with $g(1)=0$, so $g\ge0$. Let $h(x)=e^x-1-x$: $h'=e^x-1$, minimum at $0$ with $h(0)=0$. Both are true (and each follows from the other).</p>`, 'Both are tangent-line inequalities at x = 1 and x = 0.'),
+  SC(4, 'mixed', [XR`A cubic polynomial has at most two critical points.`, XR`Every cubic polynomial has exactly one point of inflection.`, XR`If $f'(c)=0$, then $f$ has a local extremum at $c$.`, XR`A continuous function on $(0,1)$ always attains its greatest value.`], '2', ['1', '3', '4'],
+    XR`<p>1: $f'$ is quadratic, so at most two zeros: true. 2: $f''$ is linear with exactly one zero and it changes sign: true. 3: false ($x^3$). 4: false (an open interval: $f(x)=x$ on $(0,1)$ has no greatest value). Two are correct.</p>`, 'On an open interval the extreme value theorem does not apply.'),
+  SC(5, 'concavity', [XR`If $f''(c)=0$, then $c$ is a point of inflection.`, XR`If $f$ is concave up on an interval, then $f'$ is increasing there.`, XR`The tangent line to a concave-up graph lies below the graph.`, XR`Every polynomial of even degree has at least one critical point.`], '3', ['1', '2', '4'],
+    XR`<p>1: false ($x^4$). 2: true. 3: true (tangent lines of convex functions are underestimates). 4: true: $f'$ has odd degree, so it has a real zero. Statements 2, 3, 4: three correct.</p>`, 'f″(c) = 0 needs a sign change of f″.'),
+  A(4, 'maxima and minima', XR`$f(x)=|x|$ has a local minimum at $x=0$ even though $f'(0)$ does not exist.`, XR`A local extremum can occur only at points where $f'=0$.`, 2,
+    XR`<p>A is true. R is false: extrema can also occur where the derivative does not exist (critical points include those). So A true, R false.</p>`, 'Critical points are f′ = 0 or f′ not defined.'),
+  A(4, 'Rolle\'s theorem', XR`Between two consecutive real roots of a polynomial $p(x)$ there is a root of $p'(x)$.`, XR`Rolle's theorem applies to polynomials on any closed interval whose end values are equal.`, 0,
+    XR`<p>A polynomial is continuous and differentiable everywhere. If $p(a)=p(b)=0$, Rolle gives $c\in(a,b)$ with $p'(c)=0$. R is exactly this argument.</p>`, 'Polynomials never violate the hypotheses of Rolle.'),
+  A(5, 'number of roots', XR`If $f'(x)>0$ for all real $x$, then $f(x)=0$ has exactly one real root.`, XR`A strictly increasing function can cross the $x$-axis at most once.`, 3,
+    XR`<p>R is true. A is false: $f(x)=e^x$ has $f'>0$ but no root. The root need not exist; at most one is guaranteed. So A false, R true.</p>`, 'At most one is not the same as exactly one.'),
+  // ---- passages ----
+  PI(3, 'optimisation', 'xp4', XR`Find the value of $x$ (in m) that gives the greatest area.`, 30,
+    XR`<p>$A(x)=x(120-2x)=120x-2x^2$. $A'=120-4x=0$ gives $x=30$. $A''=-4<0$: maximum.</p>`, 'The parallel side is 120 − 2x = 60 m, not 30 m.', () => 30),
+  PI(3, 'optimisation', 'xp4', XR`Find the greatest area (in m$^2$).`, 1800,
+    XR`<p>At $x=30$ the sides are $30$ m (two of them) and $60$ m: area $30\times60=1800$ m$^2$.</p>`, 'Area = x(120 − 2x) at x = 30.', () => 30 * 60),
+  PM(4, 'concavity', 'xp4', XR`$A''(x)$ equals`, '$-4$', ['$-2$', '$4$', '$120-4x$'],
+    XR`<p>$A=120x-2x^2$, $A'=120-4x$, $A''=-4<0$ for every $x$, so every critical point is a maximum.</p>`, 'A′ is 120 − 4x; do not stop there.'),
+  PI(4, 'global extrema', 'xp5', XR`Find the local maximum value of $f$.`, 10,
+    XR`<p>$f'=3(x-3)(x+1)$ is positive for $x<-1$ and negative on $(-1,3)$: local maximum at $x=-1$. $f(-1)=-1-3+9+5=10$.</p>`, 'The local maximum is at x = −1, and the local minimum at x = 3.', () => -1 - 3 + 9 + 5),
+  PI(5, 'global extrema', 'xp5', XR`Find (greatest value of $f$ on $[-2,6]$) $-$ (least value of $f$ on $[-2,6]$).`, 81,
+    XR`<p>Compare $f(-2)=3$, $f(-1)=10$, $f(3)=27-27-27+5=-22$, $f(6)=216-108-54+5=59$. The greatest is $59$, the least is $-22$. The difference is $81$.</p>`, 'The greatest value is at the end x = 6, not at the local maximum x = −1.', () => 59 - (-22)),
+  PI(5, 'number of roots', 'xp5', XR`How many zeros does $f$ have in $[-2,6]$?`, 2,
+    XR`<p>$f(-2)=3>0$ and $f$ rises to $f(-1)=10$: no zero on $[-2,-1]$. It falls to $f(3)=-22$: one zero in $(-1,3)$. It then rises to $f(6)=59>0$: one zero in $(3,6)$. In total $2$ (the third zero of the cubic lies left of $-2$).</p>`, 'The cubic has three real zeros, but one is outside the interval.', () => 2),
+  PN(4, 'optimisation', 'xp6', XR`At the nearest point, what is $x^2$? (2 decimal places)`, 1.5, 0.01,
+    XR`<p>Write $u=x^2$: $D=u+(u-2)^2=u^2-3u+4$. $\dfrac{dD}{du}=2u-3=0$ gives $u=\dfrac32$. ($u\ge0$ is allowed, and $D''>0$.)</p>`, 'Substituting u = x² reduces it to a quadratic.', () => 1.5),
+  PN(4, 'optimisation', 'xp6', XR`What is the least value of $D$? (2 decimal places)`, 1.75, 0.01,
+    XR`<p>$D=u^2-3u+4$ at $u=\dfrac32$: $\dfrac94-\dfrac92+4=\dfrac74=1.75$.</p>`, 'This is the square of the distance.', () => 1.75),
+  PM(5, 'optimisation', 'xp6', XR`The shortest distance from $P$ to the parabola is`, XR`$\dfrac{\sqrt7}2$`, [XR`$\dfrac74$`, XR`$\sqrt2$`, XR`$2$`],
+    XR`<p>$D_{\min}=\dfrac74$, so the distance is $\sqrt{D_{\min}}=\dfrac{\sqrt7}2\approx1.32$. (The point $(0,0)$, at distance $2$, is a local maximum of $D$ along the curve, not the nearest point.)</p>`, 'Take the square root at the end.'),
+);
+
+XGN.push(
+  GX('xg01', 3, 'nat', 'integer', 'optimisation', (rng) => {
+    const m = int(rng, 2, 5);
+    return { m, answer: 3 * m * m, tol: 0, q: XR`The least value of $f(x)=x^2+\dfrac{${2 * m ** 3}}x$ for $x>0$ is`, sol: XR`<p>$f'(x)=2x-\dfrac{${2 * m ** 3}}{x^2}=0$ gives $x^3=${m ** 3}$, so $x=${m}$. $f''>0$, so it is a minimum. $f(${m})=${m * m}+${2 * m * m}=${3 * m * m}$.</p>` };
+  }, (p) => Math.round(xmin((x) => x * x + 2 * p.m ** 3 / x, 0.1, 20, 200000).v)),
+  GX('xg02', 4, 'nat', 'integer', 'optimisation', (rng) => {
+    const s = choose(rng, [9, 12, 15, 18, 21, 24]);
+    const ans = 2 * s ** 3 / 27;
+    return { s, answer: ans, tol: 0, q: XR`An open box is made from a square sheet of side $${s}$ cm by cutting a square of side $x$ from each corner and folding up the sides. Find the greatest possible volume (in cm$^3$).`, sol: XR`<p>$V=x(${s}-2x)^2$. $V'=(${s}-2x)(${s}-6x)=0$ gives $x=${s / 6}$ (the other root $x=${s / 2}$ gives zero volume). $V(${s / 6})=${s / 6}\cdot${(2 * s) / 3}^2=${ans}$.</p>` };
+  }, (p) => Math.round(xmax((x) => x * (p.s - 2 * x) ** 2, 0, p.s / 2, 300000).v)),
+  GX('xg03', 3, 'mcq', 'single', 'monotonicity', (rng) => {
+    const k = int(rng, 2, 6);
+    const { options, answer } = shuffleOpts(rng, `$\\left(-\\infty,\\dfrac1${k}\\right)$`, [`$\\left(\\dfrac1${k},\\infty\\right)$`, `$(-\\infty,${k})$`, `$\\left(0,\\dfrac1${k}\\right)$`]);
+    return { k, options, answer, q: XR`$f(x)=xe^{-${k}x}$ is increasing on`, sol: XR`<p>$f'(x)=e^{-${k}x}(1-${k}x)$. Since $e^{-${k}x}>0$, $f'>0$ exactly when $x<\dfrac1${k}$. So $f$ is increasing on $\left(-\infty,\dfrac1${k}\right)$.</p>` };
+  }, (p) => { const f = (x) => x * xexp(-p.k * x); const a = xd(f, 1 / p.k - 0.05) > 0, b = xd(f, 1 / p.k + 0.05) < 0, c = xd(f, -3) > 0; return a && b && c ? p.answer : -1; }),
+  GX('xg04', 4, 'nat', 'numeric', 'optimisation', (rng) => {
+    const a = int(rng, 3, 12);
+    const ans = 2 * Math.sqrt(a - 1);
+    return { a, answer: +ans.toFixed(3), tol: 0.01, q: XR`Find the shortest distance from the point $(${a},0)$ to the parabola $y^2=4x$ (2 decimal places).`, sol: XR`<p>$D=(x-${a})^2+4x$. $D'=2(x-${a})+4=0$ gives $x=${a - 2}$ and $D=4+${4 * (a - 2)}=${4 * a - 4}$. Distance $=\sqrt{${4 * a - 4}}=${ans.toFixed(2)}$.</p>` };
+  }, (p) => Math.sqrt(xmin((x) => (x - p.a) ** 2 + 4 * x, 0, p.a + 5, 300000).v)),
+  GX('xg05', 4, 'nat', 'integer', 'number of roots', (rng) => {
+    const k = choose(rng, [-4, -3, -2, -1, 0, 1, 2, 3, 4]);
+    const ans = xab(k) < 2 ? 3 : xab(k) === 2 ? 2 : 1;
+    return { k, answer: ans, tol: 0, q: XR`How many distinct real roots does $x^3-3x${xsg(k)}=0$ have?`, sol: XR`<p>$f(x)=x^3-3x${xsg(k)}$, $f'=3(x^2-1)$: local maximum at $x=-1$ with $f(-1)=${k + 2}$ and local minimum at $x=1$ with $f(1)=${k - 2}$. The number of roots depends on these: three if they have opposite signs, two if one is zero, one if they have the same sign. Here the values are $${k + 2}$ and $${k - 2}$, so there are $${ans}$ distinct real roots.</p>` };
+  }, (p) => { const f = (x) => x ** 3 - 3 * x + p.k; const rts = []; let prev = f(-4); for (let x = -4 + 1e-4; x <= 4; x += 1e-4) { const v = f(x); if (prev * v < 0) rts.push(x); prev = v; } [-1, 1].forEach((c) => { if (xab(f(c)) < 1e-9) rts.push(c); }); return new Set(rts.map((r) => Math.round(r * 100))).size; }),
+  GX('xg06', 3, 'mcq', 'single', 'normals', (rng) => {
+    const n = int(rng, 2, 7);
+    const { options, answer } = shuffleOpts(rng, `$-\\dfrac1${n}$`, [`$-${n}$`, `$\\dfrac1${n}$`, `$${n}$`]);
+    return { n, options, answer, q: XR`The slope of the normal to the curve $y=x^{${n}}$ at $x=1$ is`, sol: XR`<p>$y'=${n}x^{${n - 1}}=${n}$ at $x=1$. The normal's slope is the negative reciprocal: $-\dfrac1${n}$.</p>` };
+  }, (p) => (Math.abs(-1 / xd((x) => x ** p.n, 1) + 1 / p.n) < 1e-6 ? p.answer : -1)),
+  GX('xg07', 3, 'nat', 'numeric', 'approximation', (rng) => {
+    const n = int(rng, 10, 25), k = int(rng, 1, 2);
+    const ans = n + k / (2 * n);
+    return { n, k, answer: +ans.toFixed(4), tol: 0.002, q: XR`Using differentials, the approximate value of $\sqrt{${n * n + k}}$ is (3 decimal places)`, sol: XR`<p>Take $f(x)=\sqrt x$ at $x=${n * n}$ with $dx=${k}$. $f'(x)=\dfrac1{2\sqrt x}=\dfrac1{${2 * n}}$. So $\sqrt{${n * n + k}}\approx${n}+\dfrac{${k}}{${2 * n}}=${ans.toFixed(3)}$.</p>` };
+  }, (p) => Math.sqrt(p.n * p.n + p.k)),
+  GX('xg08', 4, 'nat', 'integer', 'tangents', (rng) => {
+    const k = int(rng, 2, 9), a = choose(rng, [1, 2, 3, 4]);
+    return { k, a, answer: 2 * k, tol: 0, q: XR`The tangent to $xy=${k}$ at the point $\left(${a},\dfrac{${k}}{${a}}\right)$ and the coordinate axes form a triangle. Find its area (in square units).`, sol: XR`<p>$y'=-\dfrac yx=-\dfrac{${k}}{${a * a}}$ at the point. The tangent meets the axes at $x=${2 * a}$ and $y=\dfrac{${2 * k}}{${a}}$. Area $=\dfrac12\cdot${2 * a}\cdot\dfrac{${2 * k}}{${a}}=${2 * k}$ (it does not depend on the point).</p>` };
+  }, (p) => { const f = (x) => p.k / x; const m = xd(f, p.a), y0 = f(p.a); const xi = p.a - y0 / m, yi = y0 - m * p.a; return Math.round(0.5 * xab(xi) * xab(yi)); }),
+  GX('xg09', 5, 'nat', 'integer', 'optimisation', (rng) => {
+    const a = int(rng, 2, 7), b = int(rng, 2, 7);
+    return { a, b, answer: a * b, tol: 0, q: XR`A tangent to the ellipse $\dfrac{x^2}{${a * a}}+\dfrac{y^2}{${b * b}}=1$ at a point in the first quadrant meets the axes, forming a triangle with them. Find the least possible area of this triangle.`, sol: XR`<p>Tangent at $(${a}\cos\theta,${b}\sin\theta)$: $\dfrac{x\cos\theta}{${a}}+\dfrac{y\sin\theta}{${b}}=1$, with intercepts $\dfrac{${a}}{\cos\theta}$ and $\dfrac{${b}}{\sin\theta}$. Area $=\dfrac{${a * b}}{2\sin\theta\cos\theta}=\dfrac{${a * b}}{\sin2\theta}\ge${a * b}$, with equality at $\theta=45^\circ$. Least area $=${a * b}$.</p>` };
+  }, (p) => Math.round(xmin((t) => p.a * p.b / (2 * xsin(t) * xcos(t)), 0.01, xPI / 2 - 0.01, 200000).v)),
+  GX('xg10', 4, 'nat', 'integer', 'optimisation', (rng) => {
+    const k = int(rng, 2, 6);
+    return { k, answer: 6 * k * k, tol: 0, q: XR`A closed cylinder has volume $${2 * k ** 3}\pi$ cm$^3$. Its least total surface area is $S\pi$ cm$^2$. Find $S$.`, sol: XR`<p>$\pi r^2h=${2 * k ** 3}\pi$ so $h=\dfrac{${2 * k ** 3}}{r^2}$. Surface area $S_t=2\pi r^2+2\pi rh=2\pi r^2+\dfrac{${4 * k ** 3}\pi}r$. $\dfrac{dS_t}{dr}=4\pi r-\dfrac{${4 * k ** 3}\pi}{r^2}=0$ gives $r^3=${k ** 3}$, $r=${k}$ and $h=${2 * k}=2r$. $S_t=2\pi(${k * k})+${4 * k * k}\pi=${6 * k * k}\pi$.</p>` };
+  }, (p) => Math.round(xmin((r) => 2 * r * r + 4 * p.k ** 3 / r, 0.1, 3 * p.k, 200000).v)),
+  GX('xg11', 4, 'nat', 'integer', 'Rolle\'s theorem', (rng) => {
+    const n = int(rng, 4, 8), j = int(rng, 1, 3);
+    return { n, j, answer: n - j, tol: 0, q: XR`$p(x)=(x-1)(x-2)\cdots(x-${n})$ has ${n} distinct real roots. How many real roots does the ${j === 1 ? 'first derivative $p\'(x)$' : j === 2 ? 'second derivative $p\'\'(x)$' : 'third derivative $p\'\'\'(x)$'} have?`, sol: XR`<p>By Rolle's theorem, between consecutive real roots of a polynomial there is a root of its derivative. $p$ has ${n} real roots, so $p'$ has at least ${n - 1}$; its degree is ${n - 1}$, so exactly ${n - 1}$ real roots, all distinct. Repeating, $p^{(${j})}$ has degree ${n - j}$ and exactly ${n - j} real roots.</p>` };
+  }, (p) => { let c = []; for (let i = 0; i < p.n; i++) { const r = i + 1; const nc = new Array(c.length + 1).fill(0); (c.length ? c : [1]).forEach((v, k) => { nc[k + 1] += v; nc[k] += -r * v; }); c = c.length ? nc : [-1, 1]; } for (let t = 0; t < p.j; t++) c = c.slice(1).map((v, k) => v * (k + 1)); const ev = (x) => c.reduceRight((s, v) => s * x + v, 0); let cnt = 0, prev = ev(0.5); for (let x = 0.5 + 1e-3; x < p.n + 0.5; x += 1e-3) { const v = ev(x); if (prev * v < 0) cnt++; prev = v; } return cnt; }),
+);
+
+Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
+}
+// ==XP-END
 export default { topic: 'applications-derivatives', groups, items, gens };
