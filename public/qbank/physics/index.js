@@ -131,6 +131,8 @@ export default {
       { id: 'vibrational-spectra', name: 'Vibrational spectra' },
       { id: 'raman', name: 'Raman spectroscopy' },
       { id: 'lasers', name: 'Einstein coefficients and lasers' },
+      { id: 'esr-nmr', name: 'Magnetic resonance: ESR and NMR' },
+      { id: 'electronic-spectra', name: 'Electronic spectra and the Franck-Condon principle' },
     ] },
     { id: 'solid-state', name: 'Solid state physics and devices', topics: [
       { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
@@ -152,6 +154,11 @@ export default {
       { id: 'transistors', name: 'Transistors and amplifiers' },
       { id: 'op-amps', name: 'Operational amplifiers' },
       { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+    ] },
+    { id: 'experimental', name: 'Experimental methods', topics: [
+      { id: 'errors-data-fitting', name: 'Measurement, errors and fitting data' },
+      { id: 'transducers-detectors', name: 'Transducers and detectors' },
+      { id: 'noise-lock-in', name: 'Noise, filtering and lock-in detection' },
     ] },
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
