@@ -1,0 +1,30 @@
+---
+// SIM for 3.2: the binomial distribution. Set how many people see an offer and the chance each one says
+// yes; shade "k or more say yes" and read its probability.
+---
+<figure class="cs-fig mlf" data-binom>
+  <span class="cs-figtag">Try it: how many of n say yes?</span>
+  <canvas aria-label="Bars of the binomial probabilities with the bars at or above a chosen count highlighted"></canvas>
+  <div class="mlf-ctl">
+    <label>People who see the offer n: <output data-v="n"></output><input type="range" name="n" min="1" max="60" step="1" value="20" /></label>
+    <label>Chance each says yes p: <output data-v="p"></output><input type="range" name="p" min="0.01" max="0.99" step="0.01" value="0.2" /></label>
+    <label>At least k say yes, k: <output data-v="k"></output><input type="range" name="k" min="0" max="60" step="1" value="7" /></label>
+  </div>
+  <div class="mlf-read"><div><span>P(X ≥ k)</span><b data-pk></b></div><div><span>mean np</span><b data-m></b></div><div><span>standard deviation √(np(1−p))</span><b data-s></b></div></div>
+  <figcaption>Each bar is the chance that exactly that many of the n people say yes, if each decides independently with the same chance p. Highlighted bars add up to "at least k". With n = 20 and p = 0.2 you expect 4 yeses, and 7 or more happens only about 1 time in 10, so seeing 7 is a little surprising but not shocking.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct, bars } from './skit';
+  import { binomPmf } from '../../../lib/stats/dist';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-binom]')) {
+    const cv = fig.querySelector('canvas')!;
+    const pl = new Plot(cv, { x: [-0.5, 20.5], y: [0, 0.3], h: 240, xLabel: 'number who say yes' });
+    const N = slider(fig, 'n', () => draw()), P = slider(fig, 'p', () => draw()), K = slider(fig, 'k', () => draw());
+    function draw() {
+      const n = N(), p = P(), k = Math.min(K(), n), pr = Array.from({ length: n + 1 }, (_, i) => binomPmf(i, n, p));
+      pl.o.x = [-0.7, n + 0.7]; pl.o.y = [0, Math.max(...pr) * 1.15]; pl.begin(); bars(pl, pr, 0, (i) => i >= k); pl.end();
+      put(fig, 'pk', pct(pr.slice(k).reduce((s, x) => s + x, 0), 1)); put(fig, 'm', fmt(n * p, 2)); put(fig, 's', fmt(Math.sqrt(n * p * (1 - p)), 2));
+    }
+    live(cv, draw);
+  }
+</script>

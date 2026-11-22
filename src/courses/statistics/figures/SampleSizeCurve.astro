@@ -1,0 +1,30 @@
+---
+// SIM for 5.4: how many people to survey. Choose the margin you can live with and the confidence level; the
+// curve shows the cost of each extra point of precision.
+---
+<figure class="cs-fig mlf" data-sscurve>
+  <span class="cs-figtag">Try it: precision costs data</span>
+  <canvas aria-label="Required sample size against margin of error, rising steeply as the margin gets small"></canvas>
+  <div class="mlf-ctl">
+    <label>Margin of error you need: ±<output data-v="me"></output><input type="range" name="me" min="0.01" max="0.1" step="0.005" value="0.03" /></label>
+    <label>Confidence level: <output data-v="cl"></output><input type="range" name="cl" min="0.8" max="0.99" step="0.01" value="0.95" /></label>
+  </div>
+  <div class="mlf-read"><div><span>people needed (worst case 50 %)</span><b data-n></b></div><div><span>for half the margin</span><b data-n2></b></div></div>
+  <figcaption>Required sample size n = z² × p(1 − p) ÷ margin², using p = 50 % when you don't know the answer yet (the safest guess). Halving the margin needs four times the people, so ±1 point costs nine times as much as ±3 points. Population size barely matters unless you are sampling a big share of it.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put } from './skit';
+  import { nForProportion } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sscurve]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0.01, 0.1], y: [0, 10000], h: 230, xLabel: 'margin ± (share)', yLabel: 'people' });
+    const ME = slider(fig, 'me', () => draw(), (v) => `${(100 * v).toFixed(1)} points`), CL = slider(fig, 'cl', () => draw(), (v) => `${Math.round(v * 100)} %`);
+    function draw() {
+      const me = ME(), cl = CL(), n = nForProportion(me, 0.5, cl);
+      p.begin(); p.fn((x) => nForProportion(x, 0.5, cl), { color: p.pal.accent });
+      p.dot(me, Math.min(n, 10000), { r: 5, color: p.pal.accent2 }).end();
+      put(fig, 'n', n.toLocaleString('en')); put(fig, 'n2', nForProportion(me / 2, 0.5, cl).toLocaleString('en'));
+    }
+    live(cv, draw);
+  }
+</script>

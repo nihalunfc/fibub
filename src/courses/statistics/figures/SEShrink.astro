@@ -1,0 +1,40 @@
+---
+// SIM for 4.4: the standard error. The curve shows σ/√n against sample size; the dots are sample means from
+// real draws at the chosen n, scattering within about ±2 standard errors of the truth.
+---
+<figure class="cs-fig mlf" data-se>
+  <span class="cs-figtag">Try it: how fast does the wobble shrink?</span>
+  <canvas aria-label="A band of plus or minus two standard errors narrowing as sample size grows, with sample means as dots"></canvas>
+  <div class="mlf-ctl"><label>Sample size n: <output data-v="n"></output><input type="range" name="n" min="4" max="400" step="1" value="25" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run>Draw 30 samples at this n</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>standard error σ/√n</span><b data-se></b></div><div><span>±2 SE band</span><b data-band></b></div><div><span>n needed to halve it</span><b data-half></b></div></div>
+  <figcaption>Basket values have mean $40 and SD $20 (made up). The shaded band is the mean ± 2 standard errors: about 95 % of sample means land inside it. The band narrows fast at first and then slowly, because it shrinks with the square root of n. Going from 25 to 100 baskets halves it; halving it again takes 400.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-se]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(8), mu = 40, s = 20; let pts: [number, number][] = [];
+    const p = new Plot(cv, { x: [0, 400], y: [20, 60], h: 250, xLabel: 'sample size n', yLabel: 'sample mean $' });
+    const N = slider(fig, 'n', () => draw());
+    function draw() {
+      const n = N(), se = s / Math.sqrt(n);
+      p.begin();
+      const up: [number, number][] = [], dn: [number, number][] = [];
+      for (let k = 4; k <= 400; k += 2) { up.push([k, mu + 2 * s / Math.sqrt(k)]); dn.unshift([k, mu - 2 * s / Math.sqrt(k)]); }
+      p.poly([...up, ...dn], { fill: p.pal.accent, alpha: 0.15 });
+      p.line(0, mu, 400, mu, { color: p.pal.ink, width: 1.5, dash: [5, 4] });
+      pts.forEach(([x, y]) => p.dot(x, y, { r: 3, color: p.pal.accent2, alpha: 0.75 }));
+      p.line(n, 20, n, 60, { color: p.pal.muted, width: 1 });
+      p.end();
+      put(fig, 'se', `$${fmt(se, 2)}`); put(fig, 'band', `$${fmt(mu - 2 * se, 1)} to $${fmt(mu + 2 * se, 1)}`); put(fig, 'half', (4 * n).toLocaleString('en'));
+    }
+    fig.querySelector('[data-run]')!.addEventListener('click', () => {
+      const n = N();
+      for (let k = 0; k < 30; k++) { let t = 0; for (let i = 0; i < n; i++) t += Math.max(0, R.normal(mu, s)); pts.push([n, t / n]); }
+      draw();
+    });
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { pts = []; draw(); });
+    live(cv, draw);
+  }
+</script>

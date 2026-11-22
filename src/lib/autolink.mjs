@@ -73,7 +73,7 @@ export default function autolinkTools() {
     const path = file?.path || file?.history?.[0] || '';
     const isBlog = /[\\/]blog[\\/][^\\/]+[\\/][^\\/]+\.md$/.test(path);
     // ML foundations lessons use hand-made [[tool-id]] links only (no automatic links inside a lesson).
-    const isCourse = /[\\/]courses[\\/]ml-foundations[\\/][^\\/]+\.md$/.test(path);
+    const isCourse = /[\\/]courses[\\/](?:ml-foundations|statistics)[\\/][^\\/]+\.md$/.test(path);
     if (!isBlog && !isCourse && !/[\\/]tools[\\/][^\\/]+[\\/]guide\.md$/.test(path)) return;
     // A tool guide never links to itself; a Blog article may link to every tool, its own included.
     const self = isBlog ? '' : basename(dirname(path));

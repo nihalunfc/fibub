@@ -1,0 +1,47 @@
+---
+// SIM for 2.3: send a $10-off coupon or not. Simulate customers one by one; the running profit per customer
+// for each choice wobbles, then settles on its expected value.
+---
+<figure class="cs-fig mlf" data-ev>
+  <span class="cs-figtag">Try it: does the coupon pay?</span>
+  <canvas aria-label="Two lines of running average profit per customer, with and without a coupon, settling on their expected values"></canvas>
+  <div class="mlf-ctl">
+    <label>Buy rate with the coupon: <output data-v="pc"></output><input type="range" name="pc" min="0.05" max="0.15" step="0.005" value="0.08" /></label>
+    <label>Coupon value: $<output data-v="d"></output><input type="range" name="d" min="0" max="25" step="1" value="10" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run="200">Add 200 customers</button><button type="button" class="btn secondary" data-run="2000">Add 2,000</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>expected profit, no coupon</span><b data-e0></b></div><div><span>expected profit, coupon</span><b data-e1></b></div><div><span>customers simulated</span><b data-n></b></div></div>
+  <figcaption>Without a coupon, 5 % of customers buy and each sale makes $40 profit (made up). The coupon raises the buy rate but takes its value off every sale. Expected value = chance × payoff, added over outcomes: 0.05 × $40 = $2.00 per customer without it. Early on the lines cross and recross; only after thousands of customers does luck wash out.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ev]')) {
+    const cv = fig.querySelector('canvas')!; let R = rng(3);
+    let s0: number[] = [], s1: number[] = [], t0 = 0, t1 = 0;
+    const p = new Plot(cv, { x: [0, 200], y: [0, 5], h: 240, xLabel: 'customers', yLabel: '$ per customer' });
+    const reset = () => { R = rng(3); s0 = []; s1 = []; t0 = 0; t1 = 0; draw(); };
+    const PC = slider(fig, 'pc', reset, (v) => `${fmt(100 * v, 1)} %`), D = slider(fig, 'd', reset);
+    function draw() {
+      const e0 = 0.05 * 40, e1 = PC() * (40 - D()), n = s0.length;
+      p.o.x = [0, Math.max(200, n)]; p.o.y = [Math.min(0, e1 - 1), Math.max(5, e1 + 1.5)]; p.begin();
+      p.line(0, e0, p.x1, e0, { color: p.pal.accent, width: 1, dash: [5, 4] }).line(0, e1, p.x1, e1, { color: p.pal.accent2, width: 1, dash: [5, 4] });
+      const step = Math.max(1, Math.floor(n / 400));
+      const pts = (s: number[]) => s.map((v, i) => [i + 1, v] as [number, number]).filter((_, i) => i % step === 0 || i === n - 1);
+      if (n) { p.path(pts(s0), { color: p.pal.accent }); p.path(pts(s1), { color: p.pal.accent2 }); }
+      p.text(p.x1, e0, 'no coupon ', { align: 'right', base: 'bottom', color: p.pal.accent, dy: -2 }).text(p.x1, e1, 'coupon ', { align: 'right', base: 'top', color: p.pal.accent2, dy: 2 });
+      p.end();
+      put(fig, 'e0', `$${fmt(e0)}`); put(fig, 'e1', `$${fmt(e1)}`); put(fig, 'n', n.toLocaleString('en'));
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => {
+      for (let i = 0; i < Number(b.dataset.run); i++) {
+        if (R.next() < 0.05) t0 += 40;
+        if (R.next() < PC()) t1 += 40 - D();
+        s0.push(t0 / (s0.length + 1)); s1.push(t1 / (s1.length + 1));
+      }
+      draw();
+    }));
+    fig.querySelector('[data-reset]')!.addEventListener('click', reset);
+    live(cv, draw);
+  }
+</script>

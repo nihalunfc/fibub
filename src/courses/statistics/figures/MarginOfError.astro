@@ -1,0 +1,32 @@
+---
+// SIM for 5.2: margin of error for a proportion. Pick the observed share and the sample size; compare the
+// simple (Wald) interval with the Wilson interval, which behaves better near 0 % and 100 %.
+---
+<figure class="cs-fig mlf" data-moe>
+  <span class="cs-figtag">Try it: margin of error for a percentage</span>
+  <canvas aria-label="Margin of error against sample size for the chosen percentage, with the current sample marked"></canvas>
+  <div class="mlf-ctl">
+    <label>Observed share p̂: <output data-v="p"></output><input type="range" name="p" min="0.01" max="0.99" step="0.01" value="0.62" /></label>
+    <label>Sample size n: <output data-v="n"></output><input type="range" name="n" min="20" max="3000" step="10" value="300" /></label>
+  </div>
+  <div class="mlf-read"><div><span>margin of error (95 %)</span><b data-me></b></div><div><span>simple (Wald) interval</span><b data-w></b></div><div><span>Wilson interval</span><b data-wi></b></div></div>
+  <figcaption>The curve is the 95 % margin of error, 1.96 × √(p̂(1 − p̂)/n), against sample size. A poll of 1,000 people has a margin of about ±3 points; 300 people, about ±5.5. The margin is largest at 50 % and shrinks towards 0 % and 100 %, where the simple formula breaks down (it can go below 0). The Wilson interval fixes that and is what good tools use.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct } from './skit';
+  import { ciProportion } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-moe]')) {
+    const cv = fig.querySelector('canvas')!;
+    const pl = new Plot(cv, { x: [0, 3000], y: [0, 0.15], h: 230, xLabel: 'sample size n', yLabel: 'margin ±' });
+    const P = slider(fig, 'p', () => draw(), (v) => pct(v, 0)), N = slider(fig, 'n', () => draw());
+    function draw() {
+      const p = P(), n = N(), c = ciProportion(Math.round(p * n), n);
+      pl.begin(); pl.fn((x) => (x < 10 ? NaN : 1.96 * Math.sqrt((p * (1 - p)) / x)), { color: pl.pal.accent, from: 10 });
+      pl.fn((x) => (x < 10 ? NaN : 1.96 * Math.sqrt(0.25 / x)), { color: pl.pal.muted, width: 1, dash: [4, 4], from: 10 });
+      pl.dot(n, c.wald.me, { r: 5, color: pl.pal.accent2 }).text(2950, 0.012, 'dashed: worst case, 50 %', { align: 'right', color: pl.pal.muted, size: 11 }).end();
+      put(fig, 'me', `±${(100 * c.wald.me).toFixed(1)} points`);
+      put(fig, 'w', `${pct(c.wald.lo)} to ${pct(c.wald.hi)}`); put(fig, 'wi', `${pct(c.wilson.lo)} to ${pct(c.wilson.hi)}`);
+    }
+    live(cv, draw);
+  }
+</script>

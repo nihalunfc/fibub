@@ -1,0 +1,17 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { STATISTICS } from '../../../../courses/statistics/syllabus';
+---
+<CourseHome course={STATISTICS}>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Describe any dataset honestly</strong>: pick the right average, measure spread, spot skew and outliers, and say where one value stands.</li>
+      <li><strong>Reason with chance</strong>: conditional probability, Bayes, expected value and the distributions behind counts, waiting times and money.</li>
+      <li><strong>Go from a sample to the truth</strong>: standard errors, confidence intervals, the bootstrap and how big a sample you need.</li>
+      <li><strong>Test ideas</strong>: t-tests, chi-square, ANOVA and rank tests, what a p-value means, power, and the traps of many tests at once.</li>
+      <li><strong>Run and read A/B tests</strong> like a product analyst: design, sample size, peeking, sample ratio mismatch and a written decision.</li>
+    </ul>
+    <p>Every lesson has a picture or simulation, a maths box with a worked example, practice questions and a short quiz. You finish with an <strong>experiment readout</strong>, a one-page decision memo built from a realistic A/B test, ready for your portfolio. Statistics links to the machine learning course <a href="/learn/courses/ml-foundations/">From a straight line to an LLM</a>, which covers fitting models, and to fibub's free statistics tools for your own data.</p>
+  </section>
+</CourseHome>

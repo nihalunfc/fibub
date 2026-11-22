@@ -1,0 +1,35 @@
+---
+// SIM for 6.1: the logic of a test. A new checkout layout: 62 of 100 visitors chose it over the old one in a
+// side-by-side test. If people had no preference (the null), how often would 62 or more happen by chance?
+---
+<figure class="cs-fig mlf" data-nullsim>
+  <span class="cs-figtag">Try it: what would chance alone do?</span>
+  <canvas aria-label="Histogram of results from simulated worlds where there is no preference, with the observed result marked"></canvas>
+  <div class="mlf-ctl"><label>Visitors (of 100) who preferred the new layout: <output data-v="obs"></output><input type="range" name="obs" min="50" max="75" step="1" value="62" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run="100">Simulate 100 no-preference worlds</button><button type="button" class="btn secondary" data-run="5000">Simulate 5,000</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>worlds simulated</span><b data-k></b></div><div><span>as extreme as yours (either way)</span><b data-ext></b></div><div><span>so the p-value is about</span><b data-p></b></div></div>
+  <figcaption>Each simulated world flips a fair coin for each of 100 visitors, because under the null hypothesis nobody prefers either layout. The bars show what chance alone produces. Results at least as far from 50 as yours (in either direction) are highlighted; their share is the p-value. If chance rarely gets that far, the "no preference" story looks hard to believe.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-nullsim]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(6); let counts = new Array(101).fill(0), k = 0;
+    const p = new Plot(cv, { x: [28, 72], y: [0, 1], h: 230, xLabel: 'preferred new (of 100)', noYTicks: true });
+    const O = slider(fig, 'obs', () => draw());
+    function draw() {
+      const o = O(), d = Math.abs(o - 50), top = Math.max(1, ...counts);
+      p.o.x = [Math.min(28, 100 - o - 3), Math.max(72, o + 3)]; p.o.y = [0, top * 1.15]; p.begin();
+      counts.forEach((c, i) => c && p.rect(i - 0.4, 0, 0.8, c, { fill: Math.abs(i - 50) >= d ? p.pal.accent2 : p.pal.accent, alpha: Math.abs(i - 50) >= d ? 0.9 : 0.5 }));
+      p.line(o, 0, o, top * 1.1, { color: p.pal.ink, width: 2 }).text(o, top * 1.1, ' yours', { base: 'top' }).end();
+      const ext = counts.reduce((s, c, i) => s + (Math.abs(i - 50) >= d ? c : 0), 0);
+      put(fig, 'k', k.toLocaleString('en')); put(fig, 'ext', k ? ext.toLocaleString('en') : '–'); put(fig, 'p', k ? pct(ext / k, 1) : '–');
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => {
+      for (let j = 0; j < Number(b.dataset.run); j++) { let y = 0; for (let i = 0; i < 100; i++) if (R.next() < 0.5) y++; counts[y]++; k++; }
+      draw();
+    }));
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { counts = new Array(101).fill(0); k = 0; draw(); });
+    live(cv, draw);
+  }
+</script>

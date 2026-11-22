@@ -1,0 +1,43 @@
+---
+// SIM for 3.6: is this data normal? A histogram and a normal Q-Q plot of the same 200 values. Straight line:
+// normal. A bend upward at the right: a long right tail. An S-shape: heavy or light tails.
+---
+<figure class="cs-fig mlf" data-qq>
+  <span class="cs-figtag">Try it: read a Q-Q plot</span>
+  <div class="bw-two"><canvas aria-label="A histogram of the data"></canvas><canvas aria-label="A normal quantile-quantile plot of the data"></canvas></div>
+  <div class="mlf-ctl"><label>Data <select name="kind"><option value="normal">Heights (close to normal)</option><option value="right">Order values (long right tail)</option><option value="heavy">Daily returns (heavy tails)</option><option value="uniform">Minute of the hour a call comes in (flat)</option></select></label></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>A <strong>Q-Q plot</strong> lines up the sorted data against where those values would sit if the data were normal. If the points follow the straight line, a normal model is fine. Curves away from the line show where the data differs, usually in the tails, which is where the risk is. All data made up.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt, put } from './skit';
+  import { rng, mean, sd, histogram } from '../../../lib/ml/core';
+  import { normalInv } from '../../../lib/stats/dist';
+  const SAY: Record<string, string> = {
+    normal: 'The points hug the line: a normal model fits, so mean ± 2 standard deviations really does cover about 95 %.',
+    right: 'The points bend upward at the right: the biggest values are far bigger than a normal curve allows. Use the median, a log scale or a log-normal model.',
+    heavy: 'An S-shape, steep at both ends: more extreme days than a normal curve predicts. Normal-based risk numbers would understate big moves.',
+    uniform: 'A flattened S, the opposite way: fewer extreme values than normal, because the data stops sharply at both ends.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-qq]')) {
+    const [c1, c2] = fig.querySelectorAll('canvas'), sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const h = new Plot(c1, { x: [-4, 4], y: [0, 1], h: 220, noYTicks: true, xLabel: 'z-score' });
+    const q = new Plot(c2, { x: [-3, 3], y: [-4, 4], h: 220, xLabel: 'normal quantile', yLabel: 'data (z)' });
+    function data(kind: string) {
+      const R = rng(17);
+      return Array.from({ length: 200 }, () => kind === 'normal' ? R.normal() : kind === 'right' ? Math.exp(0.7 * R.normal()) : kind === 'heavy' ? R.normal() / Math.sqrt((R.normal() ** 2 + R.normal() ** 2 + R.normal() ** 2) / 3) : R.next());
+    }
+    function draw() {
+      let xs = data(sel.value); const m = mean(xs), s = sd(xs, true); xs = xs.map((x) => (x - m) / s).sort((a, b) => a - b);
+      const bins = histogram(xs, -4, 4, 32), top = Math.max(...bins);
+      h.o.y = [0, top * 1.1]; h.begin(); bins.forEach((v, i) => v && h.rect(-4 + i * 0.25, 0, 0.25, v, { fill: h.pal.accent, alpha: 0.55, color: h.pal.bg, width: 1 })); h.end();
+      q.begin(); q.line(-3, -3, 3, 3, { color: q.pal.muted, width: 1.5, dash: [5, 4] });
+      xs.forEach((x, i) => q.dot(normalInv((i + 0.5) / xs.length), Math.max(-4, Math.min(4, x)), { r: 2.6, color: q.pal.accent2, alpha: 0.8 }));
+      q.end();
+      put(fig, 'say', SAY[sel.value]);
+      void fmt;
+    }
+    sel.addEventListener('change', draw);
+    live(c1, draw); live(c2, draw);
+  }
+</script>

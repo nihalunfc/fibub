@@ -1,0 +1,40 @@
+---
+// SIM for 3.1: roll one to five dice and add them. The bars of simulated sums fill up towards the exact
+// distribution (dots); with more dice the shape turns into a bell.
+---
+<figure class="cs-fig mlf" data-dice>
+  <span class="cs-figtag">Try it: roll and add dice</span>
+  <canvas aria-label="Bars of how often each dice total came up, with dots for the exact probabilities"></canvas>
+  <div class="mlf-ctl"><label>Number of dice: <output data-v="k"></output><input type="range" name="k" min="1" max="5" step="1" value="2" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-roll="10">Roll 10 times</button><button type="button" class="btn secondary" data-roll="1000">Roll 1,000 times</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>rolls</span><b data-n></b></div><div><span>average total so far</span><b data-m></b></div><div><span>expected total E[X] = 3.5 × dice</span><b data-e></b></div></div>
+  <figcaption>The total of the dice is a <strong>random variable</strong>: a number decided by chance. Its <strong>distribution</strong> lists every possible value with its probability (the dots, worked out exactly by counting). Rolled bars are the same thing estimated from experience. With one die every face is equally likely; with two, 7 is the most common total because more combinations make it.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  /** Exact distribution of the sum of k dice, from k to 6k. */
+  function exact(k: number) { let d = [1]; for (let i = 0; i < k; i++) { const n = new Array(d.length + 5).fill(0); d.forEach((v, j) => { for (let f = 0; f < 6; f++) n[j + f] += v / 6; }); d = n; } return d; }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-dice]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(9); let rolls: number[] = [];
+    const p = new Plot(cv, { x: [0, 31], y: [0, 0.2], h: 240, xLabel: 'total' });
+    const K = slider(fig, 'k', () => { rolls = []; draw(); });
+    function draw() {
+      const k = K(), ex = exact(k), top = Math.max(...ex) * 1.3;
+      p.o.x = [k - 1, 6 * k + 1]; p.o.y = [0, top]; p.begin();
+      const c = new Array(ex.length).fill(0); rolls.forEach((t) => c[t - k]++);
+      if (rolls.length) c.forEach((v, i) => v && p.rect(k + i - 0.4, 0, 0.8, v / rolls.length, { fill: p.pal.accent, alpha: 0.55 }));
+      ex.forEach((v, i) => p.dot(k + i, v, { r: 3.5, color: p.pal.ink }));
+      p.end();
+      put(fig, 'n', rolls.length.toLocaleString('en'));
+      put(fig, 'm', rolls.length ? fmt(rolls.reduce((s, x) => s + x, 0) / rolls.length, 2) : '–');
+      put(fig, 'e', fmt(3.5 * k, 1));
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-roll]').forEach((b) => b.addEventListener('click', () => {
+      for (let i = 0; i < Number(b.dataset.roll); i++) { let t = 0; for (let d = 0; d < K(); d++) t += R.int(1, 6); rolls.push(t); }
+      draw();
+    }));
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { rolls = []; draw(); });
+    live(cv, draw);
+  }
+</script>

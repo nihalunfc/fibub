@@ -1,0 +1,36 @@
+---
+// SIM for 3.4: areas under the standard normal curve. Drag two limits (in z units) and read the area
+// between them; buttons jump to the 68-95-99.7 rule.
+---
+<figure class="cs-fig mlf" data-narea>
+  <span class="cs-figtag">Try it: area under the bell curve</span>
+  <canvas aria-label="A standard normal curve with the area between two limits shaded"></canvas>
+  <div class="mlf-ctl">
+    <label>From z = <output data-v="a"></output><input type="range" name="a" min="-4" max="4" step="0.05" value="-1" /></label>
+    <label>To z = <output data-v="b"></output><input type="range" name="b" min="-4" max="4" step="0.05" value="1" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-set="1">±1σ</button><button type="button" class="btn secondary" data-set="1.96">±1.96σ</button><button type="button" class="btn secondary" data-set="2">±2σ</button><button type="button" class="btn secondary" data-set="3">±3σ</button></div>
+  <div class="mlf-read"><div><span>area between (probability)</span><b data-in></b></div><div><span>left tail</span><b data-lt></b></div><div><span>right tail</span><b data-rt></b></div></div>
+  <figcaption>The standard normal has mean 0 and standard deviation 1; any normal value turns into this scale with z = (x − μ) ÷ σ. The shaded area is the probability of landing between the two limits. ±1.96 holds exactly 95 %, which is where the 1.96 in confidence intervals (Module 5) comes from.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct, area } from './skit';
+  import { normalPdf, normalCdf } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-narea]')) {
+    const cv = fig.querySelector('canvas')!, f = (x: number) => normalPdf(x);
+    const p = new Plot(cv, { x: [-4, 4], y: [0, 0.45], h: 230, xLabel: 'z' });
+    const ia = fig.querySelector<HTMLInputElement>('input[name=a]')!, ib = fig.querySelector<HTMLInputElement>('input[name=b]')!;
+    const A = slider(fig, 'a', () => draw()), B = slider(fig, 'b', () => draw());
+    function draw() {
+      const a = Math.min(A(), B()), b = Math.max(A(), B());
+      p.begin(); area(p, f, a, b); p.fn(f, { color: p.pal.ink }).end();
+      put(fig, 'in', pct(normalCdf(b) - normalCdf(a), 2)); put(fig, 'lt', pct(normalCdf(a), 2)); put(fig, 'rt', pct(1 - normalCdf(b), 2));
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((btn) => btn.addEventListener('click', () => {
+      const v = Number(btn.dataset.set); ia.value = String(-v); ib.value = String(v);
+      ia.dispatchEvent(new Event('input')); ib.dispatchEvent(new Event('input'));
+    }));
+    live(cv, draw);
+    void fmt;
+  }
+</script>

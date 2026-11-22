@@ -1,0 +1,30 @@
+---
+// SIM for 3.3: the Poisson distribution for counts in a fixed window (orders per hour). Set the average rate
+// and a staffing limit; read the chance of more orders than the team can handle.
+---
+<figure class="cs-fig mlf" data-poisson>
+  <span class="cs-figtag">Try it: orders per hour</span>
+  <canvas aria-label="Bars of Poisson probabilities with counts above a chosen limit highlighted"></canvas>
+  <div class="mlf-ctl">
+    <label>Average orders per hour λ: <output data-v="l"></output><input type="range" name="l" min="0.5" max="25" step="0.5" value="8" /></label>
+    <label>The team can handle per hour: <output data-v="c"></output><input type="range" name="c" min="0" max="40" step="1" value="12" /></label>
+  </div>
+  <div class="mlf-read"><div><span>P(more than the team can handle)</span><b data-over></b></div><div><span>over a 10-hour day, busy hours expected</span><b data-day></b></div><div><span>mean = variance = λ</span><b data-l2></b></div></div>
+  <figcaption>When events happen one at a time, independently, at a steady average rate (orders, calls, website errors, defects), the count in a fixed window follows a <strong>Poisson distribution</strong>. Its one number λ is both its mean and its variance. Highlighted bars are hours with more orders than the team can handle; plan staff for those, not for the average.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct, bars } from './skit';
+  import { poissonPmf, poissonCdf } from '../../../lib/stats/dist';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-poisson]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [-0.5, 30], y: [0, 0.3], h: 240, xLabel: 'orders in an hour' });
+    const L = slider(fig, 'l', () => draw()), C = slider(fig, 'c', () => draw());
+    function draw() {
+      const l = L(), c = C(), top = Math.ceil(l + 4 * Math.sqrt(l) + 3), pr = Array.from({ length: top + 1 }, (_, k) => poissonPmf(k, l));
+      p.o.x = [-0.7, top + 0.7]; p.o.y = [0, Math.max(...pr) * 1.15]; p.begin(); bars(p, pr, 0, (k) => k > c); p.end();
+      const over = 1 - poissonCdf(c, l);
+      put(fig, 'over', pct(over, 1)); put(fig, 'day', fmt(10 * over, 1)); put(fig, 'l2', fmt(l, 1));
+    }
+    live(cv, draw);
+  }
+</script>

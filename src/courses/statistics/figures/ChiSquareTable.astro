@@ -1,0 +1,52 @@
+---
+// SIM for 6.5: a chi-square test of independence on a 2 × 3 table you can edit: did customers on each plan
+// renew at the same rate? Shows expected counts and each cell's contribution.
+---
+<figure class="cs-fig mlf" data-chisq>
+  <span class="cs-figtag">Try it: edit the counts</span>
+  <div class="st-tablewrap">
+    <table class="st-table">
+      <thead><tr><th></th><th>Basic</th><th>Plus</th><th>Pro</th></tr></thead>
+      <tbody>
+        <tr><th>Renewed</th><td><input type="number" min="0" value="120" aria-label="Basic renewed" /></td><td><input type="number" min="0" value="90" aria-label="Plus renewed" /></td><td><input type="number" min="0" value="70" aria-label="Pro renewed" /></td></tr>
+        <tr><th>Left</th><td><input type="number" min="0" value="80" aria-label="Basic left" /></td><td><input type="number" min="0" value="40" aria-label="Plus left" /></td><td><input type="number" min="0" value="20" aria-label="Pro left" /></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <canvas aria-label="Bars of observed against expected renewal counts for each plan"></canvas>
+  <div class="mlf-read"><div><span>χ² statistic</span><b data-c></b></div><div><span>degrees of freedom</span><b data-df></b></div><div><span>p-value</span><b data-p></b></div><div><span>Cramér's V (strength)</span><b data-v></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Expected counts (outlined) are what each cell would hold if renewal had nothing to do with the plan: row total × column total ÷ grand total. χ² adds up (observed − expected)² ÷ expected over every cell. Large gaps, relative to what is expected, give a large χ² and a small p-value. Made-up numbers.</figcaption>
+</figure>
+<style is:inline>
+  .st-tablewrap { overflow-x: auto; }
+  .st-table { border-collapse: collapse; font-size: 14.5px; margin: 4px 0 10px; }
+  .st-table th, .st-table td { border: 1px solid var(--line); padding: 4px 6px; text-align: center; }
+  .st-table input { width: 4.6em; font: inherit; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); text-align: right; }
+</style>
+<script>
+  import { Plot, live, fmt, put } from './skit';
+  import { chiSquareTable } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-chisq]')) {
+    const cv = fig.querySelector('canvas')!, ins = [...fig.querySelectorAll<HTMLInputElement>('input')];
+    const p = new Plot(cv, { x: [0.4, 3.6], y: [0, 1], h: 200, noXTicks: true, yLabel: 'renewed' });
+    function draw() {
+      const v = ins.map((i) => Math.max(0, Number(i.value) || 0)), t = [v.slice(0, 3), v.slice(3)];
+      const ok = t[0].map((x, j) => x + t[1][j]).every((c) => c > 0) && t.every((r) => r.some((x) => x > 0));
+      if (!ok) { put(fig, 'say', 'Each row and column needs at least one customer.'); return; }
+      const r = chiSquareTable(t), top = Math.max(...t[0], ...r.expected[0]) * 1.2;
+      p.o.y = [0, top]; p.begin();
+      ['Basic', 'Plus', 'Pro'].forEach((name, j) => {
+        p.rect(j + 1 - 0.3, 0, 0.6, t[0][j], { fill: p.pal.accent, alpha: 0.6 });
+        p.rect(j + 1 - 0.3, 0, 0.6, r.expected[0][j], { color: p.pal.ink, width: 2, dash: [5, 3] });
+        p.text(j + 1, 0, name, { align: 'center', base: 'top', dy: 4 });
+      });
+      p.end();
+      put(fig, 'c', fmt(r.chi2, 2)); put(fig, 'df', String(r.df)); put(fig, 'p', r.p < 0.0001 ? '< 0.0001' : fmt(r.p, 4)); put(fig, 'v', fmt(r.cramersV, 2));
+      const small = r.expected.flat().some((e) => e < 5);
+      put(fig, 'say', small ? 'Some expected counts are below 5, so the chi-square p-value is unreliable here; use Fisher\'s exact test or combine groups.' : r.p < 0.05 ? 'Renewal rates differ by plan more than chance would explain.' : 'These differences are within what chance could produce.');
+    }
+    ins.forEach((i) => i.addEventListener('input', draw));
+    live(cv, draw);
+  }
+</script>

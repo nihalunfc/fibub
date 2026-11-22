@@ -1,0 +1,33 @@
+---
+// SIM for 6.9: significant is not the same as important. A tiny true difference becomes "highly significant"
+// with enough data, while the effect size stays tiny.
+---
+<figure class="cs-fig mlf" data-effect>
+  <span class="cs-figtag">Try it: more data, same tiny effect</span>
+  <canvas aria-label="The p-value falling as sample size grows while the effect size stays flat"></canvas>
+  <div class="mlf-ctl">
+    <label>True difference in average basket: $<output data-v="d"></output><input type="range" name="d" min="0.1" max="5" step="0.1" value="0.5" /></label>
+    <label>Customers per group: <output data-v="n"></output><input type="range" name="n" min="2" max="6" step="0.1" value="3" /></label>
+  </div>
+  <div class="mlf-read"><div><span>customers per group</span><b data-nn></b></div><div><span>expected p-value</span><b data-p></b></div><div><span>effect size d (difference ÷ SD)</span><b data-es></b></div><div><span>95 % interval for the difference</span><b data-ci></b></div></div>
+  <figcaption>Basket values have SD $25 (made up). The curve shows the p-value you would typically get for this true difference at each sample size (log scale, 100 to 1,000,000 per group). With a million customers, a 50-cent difference is "p &lt; 0.0001" yet is 0.02 standard deviations: real, but probably not worth a redesign. Always report the size of the effect and its interval, not just the p-value.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { normalCdf } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-effect]')) {
+    const cv = fig.querySelector('canvas')!, sd = 25;
+    const p = new Plot(cv, { x: [2, 6], y: [0, 1], h: 220, xLabel: 'log10(customers per group)', yLabel: 'p-value' });
+    const D = slider(fig, 'd', () => draw(), (v) => fmt(v, 2)), N = slider(fig, 'n', () => draw(), (v) => Math.round(10 ** v).toLocaleString('en'));
+    const pAt = (d: number, n: number) => 2 * (1 - normalCdf(d / (sd * Math.sqrt(2 / n))));
+    function draw() {
+      const d = D(), n = Math.round(10 ** N()), se = sd * Math.sqrt(2 / n), pv = pAt(d, n);
+      p.begin(); p.line(2, 0.05, 6, 0.05, { color: p.pal.accent2, width: 1.5, dash: [5, 4] }).text(6, 0.05, '0.05 ', { align: 'right', base: 'bottom', color: p.pal.accent2, size: 11 });
+      p.fn((x) => pAt(d, 10 ** x), { color: p.pal.accent });
+      p.dot(N(), pv, { r: 5, color: p.pal.ink }).end();
+      put(fig, 'nn', n.toLocaleString('en')); put(fig, 'p', pv < 0.0001 ? '< 0.0001' : fmt(pv, 4)); put(fig, 'es', fmt(d / sd, 3));
+      put(fig, 'ci', `$${fmt(d - 1.96 * se, 2)} to $${fmt(d + 1.96 * se, 2)}`);
+    }
+    live(cv, draw);
+  }
+</script>

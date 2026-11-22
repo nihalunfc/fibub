@@ -1,0 +1,42 @@
+---
+// SIM for 4.5: the bootstrap. Resample 20 order values with replacement, take the median each time, and the
+// pile of medians gives a confidence interval with no formula at all.
+---
+<figure class="cs-fig mlf" data-bootci>
+  <span class="cs-figtag">Try it: resample your own data</span>
+  <canvas aria-label="Histogram of bootstrap medians with the middle 95 percent marked"></canvas>
+  <div class="mlf-ctl"><label>Statistic <select name="stat"><option value="median">Median order value</option><option value="mean">Mean order value</option><option value="p90">90th percentile</option></select></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run="1">Resample once</button><button type="button" class="btn secondary" data-run="1000">Resample 1,000 times</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <p class="mlf-hint" data-last></p>
+  <div class="mlf-read"><div><span>from the original 20</span><b data-orig></b></div><div><span>resamples</span><b data-k></b></div><div><span>95 % bootstrap interval</span><b data-ci></b></div></div>
+  <figcaption>The 20 orders (made up, in $): 12, 15, 18, 19, 22, 24, 25, 27, 29, 31, 33, 35, 38, 41, 45, 52, 60, 75, 98, 140. A bootstrap resample picks 20 of them at random <em>with replacement</em>, so some repeat and some are left out. Each resample gives a slightly different median. The middle 95 % of those medians is the interval: it shows how much the median could move with different customers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt, put } from './skit';
+  import { rng, mean, median, quantile, histogram } from '../../../lib/ml/core';
+  const DATA = [12, 15, 18, 19, 22, 24, 25, 27, 29, 31, 33, 35, 38, 41, 45, 52, 60, 75, 98, 140];
+  const STAT: Record<string, (x: number[]) => number> = { median, mean, p90: (x) => quantile(x, 0.9) };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bootci]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector<HTMLSelectElement>('select')!, R = rng(31); let st: number[] = [];
+    const p = new Plot(cv, { x: [0, 150], y: [0, 1], h: 230, noYTicks: true, xLabel: '$' });
+    function draw() {
+      const f = STAT[sel.value], orig = f(DATA), lo = sel.value === 'p90' ? 40 : 15, hi = sel.value === 'p90' ? 150 : 70, bins = 40;
+      p.o.x = [lo, hi];
+      const h = histogram(st, lo, hi, bins), top = Math.max(1, ...h); p.o.y = [0, top * 1.15]; p.begin();
+      h.forEach((c, i) => c && p.rect(lo + (i * (hi - lo)) / bins, 0, (hi - lo) / bins, c, { fill: p.pal.accent, alpha: 0.55, color: p.pal.bg, width: 1 }));
+      if (st.length >= 40) { const a = quantile(st, 0.025), b = quantile(st, 0.975); p.rect(a, 0, b - a, top * 1.1, { fill: p.pal.accent2, alpha: 0.1 }); p.line(a, 0, a, top * 1.1, { color: p.pal.accent2, width: 2 }).line(b, 0, b, top * 1.1, { color: p.pal.accent2, width: 2 }); put(fig, 'ci', `$${fmt(a, 1)} to $${fmt(b, 1)}`); }
+      else put(fig, 'ci', 'resample 40+ times');
+      p.line(orig, 0, orig, top * 1.1, { color: p.pal.ink, width: 2, dash: [5, 4] }).end();
+      put(fig, 'orig', `$${fmt(orig, 1)}`); put(fig, 'k', st.length.toLocaleString('en'));
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => {
+      const f = STAT[sel.value]; let last: number[] = [];
+      for (let k = 0; k < Number(b.dataset.run); k++) { last = DATA.map(() => DATA[Math.floor(R.next() * DATA.length)]); st.push(f(last)); }
+      put(fig, 'last', `Last resample: ${last.sort((x, y) => x - y).join(', ')}`);
+      draw();
+    }));
+    const clear = () => { st = []; put(fig, 'last', ''); draw(); };
+    fig.querySelector('[data-clear]')!.addEventListener('click', clear); sel.addEventListener('change', clear);
+    live(cv, draw);
+  }
+</script>

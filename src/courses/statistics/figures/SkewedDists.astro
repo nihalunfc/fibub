@@ -1,0 +1,39 @@
+---
+// SIM for 3.5: exponential waiting times and log-normal order values. Change the shape and watch the mean
+// pull away from the median in the long right tail.
+---
+<figure class="cs-fig mlf" data-skewd>
+  <span class="cs-figtag">Try it: long right tails</span>
+  <canvas aria-label="A right-skewed curve with the mean and median marked"></canvas>
+  <div class="mlf-ctl">
+    <label>Distribution <select name="kind"><option value="exp">Exponential: minutes between calls</option><option value="logn" selected>Log-normal: order value in $</option></select></label>
+    <label>Spread (shape): <output data-v="s"></output><input type="range" name="s" min="0.2" max="1.4" step="0.05" value="0.8" /></label>
+  </div>
+  <div class="mlf-read"><div><span>median</span><b data-md></b></div><div><span>mean</span><b data-m></b></div><div><span>share above the mean</span><b data-ab></b></div></div>
+  <figcaption>Waiting times and money are never negative and have no upper limit, so they pile up on the left with a long tail to the right. The mean lands above the median, often well above, and fewer than half the values are above the mean. Report the median (and a high percentile such as the 90th) for these, and expect a few huge orders or long waits.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct, area } from './skit';
+  import { expPdf, expCdf, lognormPdf, lognormCdf } from '../../../lib/stats/dist';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-skewd]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const p = new Plot(cv, { x: [0, 200], y: [0, 0.05], h: 240, noYTicks: true });
+    const S = slider(fig, 's', () => draw());
+    function draw() {
+      const s = S(), exp = sel.value === 'exp';
+      let f: (x: number) => number, F: (x: number) => number, md: number, m: number, top: number, unit: string;
+      if (exp) { const mean = 4 * s / 0.8, l = 1 / mean; f = (x) => expPdf(x, l); F = (x) => expCdf(x, l); md = Math.LN2 / l; m = mean; top = mean * 5; unit = ' min'; }
+      else { const mu = Math.log(50); f = (x) => lognormPdf(x, mu, s); F = (x) => lognormCdf(x, mu, s); md = 50; m = Math.exp(mu + (s * s) / 2); top = Math.min(600, 50 * Math.exp(2.2 * s)); unit = ''; }
+      const peak = exp ? f(0) : f(Math.exp(Math.log(50) - s * s));
+      p.o.x = [0, top]; p.o.y = [0, peak * 1.2]; p.o.xLabel = exp ? 'minutes' : 'order $'; p.begin();
+      area(p, f, m, top, p.pal.accent2, 0.2); p.fn(f, { color: p.pal.ink, from: 0.0001 });
+      p.line(md, 0, md, peak * 1.1, { color: p.pal.accent, width: 2 }).text(md, peak * 1.1, ' median', { color: p.pal.accent, base: 'top' });
+      p.line(m, 0, m, peak * 0.9, { color: p.pal.accent2, width: 2, dash: [5, 4] }).text(m, peak * 0.9, ' mean', { color: p.pal.accent2, base: 'top' });
+      p.end();
+      const pre = exp ? '' : '$';
+      put(fig, 'md', `${pre}${fmt(md, 1)}${unit}`); put(fig, 'm', `${pre}${fmt(m, 1)}${unit}`); put(fig, 'ab', pct(1 - F(m), 0));
+    }
+    sel.addEventListener('change', draw);
+    live(cv, draw);
+  }
+</script>

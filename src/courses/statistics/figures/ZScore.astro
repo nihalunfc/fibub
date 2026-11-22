@@ -1,0 +1,32 @@
+---
+// SIM for 1.5: one value on a normal curve. Move it and read its z-score and percentile; the shaded area
+// is the share of values below it.
+---
+<figure class="cs-fig mlf" data-zscore>
+  <span class="cs-figtag">Try it: where does one value stand?</span>
+  <canvas aria-label="A bell curve of basket sizes with the area below a chosen value shaded"></canvas>
+  <div class="mlf-ctl">
+    <label>Basket value: $<output data-v="x"></output><input type="range" name="x" min="20" max="120" step="1" value="88" /></label>
+  </div>
+  <div class="mlf-read"><div><span>z-score (x − μ) ÷ σ</span><b data-z></b></div><div><span>share of baskets below</span><b data-p></b></div><div><span>so it is roughly the</span><b data-pc></b></div></div>
+  <figcaption>Basket values at a shop are roughly normal with mean μ = $70 and standard deviation σ = $15 (made up). The z-score says how many standard deviations a value sits from the mean, so values on different scales can be compared. The shaded area is its percentile: the share of baskets that are smaller.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, area } from './skit';
+  import { normalPdf, normalCdf } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-zscore]')) {
+    const cv = fig.querySelector('canvas')!, mu = 70, s = 15, f = (x: number) => normalPdf(x, mu, s);
+    const p = new Plot(cv, { x: [15, 125], y: [0, 0.03], h: 240, xLabel: 'basket $', noYTicks: true });
+    const x = slider(fig, 'x', () => draw());
+    function draw() {
+      const v = x(), z = (v - mu) / s, q = normalCdf(v, mu, s);
+      p.begin(); area(p, f, 15, v); p.fn(f, { color: p.pal.ink });
+      for (let k = -3; k <= 3; k++) p.text(mu + k * s, 0.0285, k ? `${k > 0 ? '+' : '−'}${Math.abs(k)}σ` : 'μ', { align: 'center', color: p.pal.muted, size: 11 });
+      p.line(v, 0, v, f(v) + 0.003, { color: p.pal.accent2, width: 2.5 }).end();
+      put(fig, 'z', fmt(z, 2)); put(fig, 'p', `${fmt(100 * q, 1)} %`);
+      const r = Math.round(100 * q), sfx = r % 10 === 1 && r !== 11 ? 'st' : r % 10 === 2 && r !== 12 ? 'nd' : r % 10 === 3 && r !== 13 ? 'rd' : 'th';
+      put(fig, 'pc', `${r}${sfx} percentile`);
+    }
+    live(cv, draw);
+  }
+</script>

@@ -1,0 +1,103 @@
+---
+title: 'The Poisson: orders per hour and rare events'
+summary: 'The Poisson distribution counts events in a fixed window of time or space: orders per hour, calls per minute, defects per metre. Its one parameter λ, why mean equals variance, and how to staff for busy hours.'
+minutes: 20
+updated: 2026-11-22
+quiz:
+  - q: 'A shop gets 6 orders an hour on average. Which distribution describes the count in one hour?'
+    choices: ['Binomial with n = 6', 'Poisson with λ = 6', 'Normal with mean 6 and SD 6']
+    ans: 1
+    why: 'Events arriving one at a time, independently, at a steady average rate, counted in a fixed window: that is the Poisson. There is no fixed number of tries.'
+  - q: 'If the average is 4 calls per 10 minutes, what is λ for a 30-minute window?'
+    choices: ['4', '12', '1.33']
+    ans: 1
+    why: 'λ scales with the window: 4 per 10 minutes is 12 per 30 minutes.'
+  - q: 'Count data has mean 5 and variance 14. What does that suggest?'
+    choices: ['A perfect Poisson', 'Overdispersion: events cluster (busy and quiet periods), so a plain Poisson understates the spread', 'The data has an error']
+    ans: 1
+    why: 'A Poisson has variance equal to its mean. Variance much bigger than the mean means the rate is not steady, for example lunch rushes, so plan for wider swings.'
+---
+
+**Module 3 · about 20 minutes · school maths.** You'll be able to recognise a Poisson situation, compute Poisson probabilities, scale λ to a window, and spot when counts are more spread out than Poisson.
+
+## 1. Counts with no fixed number of tries
+
+How many orders arrive in the next hour? Calls in the next 10 minutes? Website errors today? There's no "number of tries", just events arriving at some average rate. When events
+
+1. happen **one at a time**,
+2. **independently** of each other,
+3. at a **steady average rate** over the window,
+
+the count in a fixed window follows a **Poisson distribution** with parameter `$\lambda$` (lambda), the average count per window:
+
+```math
+P(X = k) = \frac{\lambda^k e^{-\lambda}}{k!}, \qquad k = 0, 1, 2, \ldots
+```
+
+## 2. One number does everything
+
+The Poisson's mean and variance are both `$\lambda$`:
+
+```math
+E[X] = \lambda \qquad \text{Var}(X) = \lambda \qquad \text{SD}(X) = \sqrt{\lambda}
+```
+
+So a store averaging 100 orders an hour usually sees 100 ± 10 (`$\sqrt{100}$`), while one averaging 4 sees 4 ± 2: relatively much bumpier. Small counts are noisy, which is why a small branch's daily numbers jump around so much.
+
+`$\lambda$` scales with the window: 6 orders an hour is 1 per 10 minutes, or 48 in an 8-hour day.
+
+<!--fig:poisson-bars-->
+
+Set λ to 8 and the team's limit to 12: about 1 hour in 16 is over the limit. Over a 10-hour day about half of all days have at least one busy hour, even though the average is far below 12. Staffing to the average leaves you short in exactly the hours customers notice.
+
+## 3. Checking the fit: overdispersion
+
+Real counts often vary **more** than Poisson, because the rate isn't steady (lunch rush, weekends, campaigns) or events come in clusters (one customer files three tickets). Compare the sample variance with the mean:
+
+- variance ≈ mean: Poisson is a fair model;
+- variance ≫ mean: **overdispersion**. Model hours separately (λ for 12–1 pm, λ for 3–4 pm), or use a wider distribution (the negative binomial).
+
+## 4. Link to the binomial
+
+A binomial with large `$n$` and small `$p$` looks like a Poisson with `$\lambda = np$`: 10,000 visitors each with a 0.03 % chance of reporting a bug is close to Poisson with λ = 3. This "law of rare events" is why the Poisson fits so many rare counts.
+
+<details class="maths" open>
+<summary>Maths and principle</summary>
+
+**Principle:** chop the window into a huge number of tiny slices, each with a tiny chance of one event. The count is then binomial with enormous `$n$` and tiny `$p$`, which tends to the Poisson formula.
+
+**Equations:** `$P(X=k) = \lambda^k e^{-\lambda}/k!$`, `$E[X] = \text{Var}(X) = \lambda$`. P(no events) = `$e^{-\lambda}$`.
+
+**In code:** Excel `POISSON.DIST(k, λ, FALSE)` (exactly) or `TRUE` (k or fewer); Python `scipy.stats.poisson.pmf(k, lam)`.
+
+**Try it:** λ = 3. P(0) = `$e^{-3}$` ≈ 0.050; P(1) = 3`$e^{-3}$` ≈ 0.149; P(2) = 9`$e^{-3}$`/2 ≈ 0.224.
+</details>
+
+## 5. Worked example
+
+*Made-up numbers.* A help desk gets on average 2 urgent tickets per hour. One person can handle up to 3 an hour.
+
+- P(0) = `$e^{-2}$` ≈ 0.135; P(1) = 2`$e^{-2}$` ≈ 0.271; P(2) = 4`$e^{-2}$`/2 ≈ 0.271; P(3) = 8`$e^{-2}$`/6 ≈ 0.180.
+- P(X ≤ 3) ≈ 0.135 + 0.271 + 0.271 + 0.180 = **0.857**.
+- P(more than 3) ≈ **14.3 %** of hours, about 1 hour in 7.
+- Over a 40-hour week, expect about 40 × 0.143 ≈ **6 overloaded hours**.
+
+If the target is "fewer than 1 overloaded hour a week", one person isn't enough at peak times, though the average (2 an hour) looks comfortable.
+
+## 6. Practice
+
+1. Errors average 0.5 a day. What is the chance of an error-free day?
+2. Calls average 90 an hour. About what range covers most hours (± 2 SD)?
+3. Daily complaints: mean 3.1, variance 3.0. Poisson or overdispersed?
+
+<details>
+<summary>Answers</summary>
+
+1. `$e^{-0.5}$` ≈ 0.607, about 61 %.
+2. SD = √90 ≈ 9.5, so about 71 to 109.
+3. Variance ≈ mean, so a Poisson model is reasonable.
+</details>
+
+**Try it on your own data:** the [[distribution-explorer]] draws the Poisson for any λ and gives exact tail probabilities.
+
+**New words:** *Poisson distribution*, *rate λ*, *overdispersion*, *law of rare events*.

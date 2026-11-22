@@ -1,0 +1,41 @@
+---
+// SIM for 5.1: a confidence interval for a mean. Draw one sample of delivery times; the interval is the
+// sample mean ± t × s/√n. Change n and the confidence level to see the interval widen or narrow.
+---
+<figure class="cs-fig mlf" data-cimean>
+  <span class="cs-figtag">Try it: build an interval from one sample</span>
+  <canvas aria-label="A sample of delivery times as dots with the confidence interval for the mean drawn as a bar"></canvas>
+  <div class="mlf-ctl">
+    <label>Sample size n: <output data-v="n"></output><input type="range" name="n" min="3" max="200" step="1" value="12" /></label>
+    <label>Confidence level: <output data-v="cl"></output><input type="range" name="cl" min="0.8" max="0.99" step="0.01" value="0.95" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-new>Draw a new sample</button></div>
+  <div class="mlf-read"><div><span>sample mean x̄ and SD s</span><b data-ms></b></div><div><span>t multiplier (vs z)</span><b data-t></b></div><div><span>interval</span><b data-ci></b></div></div>
+  <figcaption>Dots: one sample of delivery times (true mean 32 minutes, dashed, which in real life you never see). The bar is the interval x̄ ± t × s/√n. More data or a lower confidence level makes it narrower. With small samples the t multiplier is noticeably bigger than the normal 1.96, to pay for not knowing σ.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng, mean, sd } from '../../../lib/ml/core';
+  import { ciMean } from '../../../lib/stats/tests';
+  import { normalInv } from '../../../lib/stats/dist';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cimean]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(14); let pool: number[] = [];
+    const fresh = () => { pool = Array.from({ length: 200 }, () => Math.max(5, R.normal(32, 8))); };
+    fresh();
+    const p = new Plot(cv, { x: [5, 60], y: [0, 1], h: 200, xLabel: 'minutes', noYTicks: true });
+    const N = slider(fig, 'n', () => draw()), CL = slider(fig, 'cl', () => draw(), (v) => `${Math.round(v * 100)} %`);
+    function draw() {
+      const xs = pool.slice(0, N()), m = mean(xs), s = sd(xs, true), ci = ciMean(m, s, xs.length, CL());
+      p.begin();
+      xs.forEach((x, i) => p.dot(x, 0.55 + ((i * 0.618) % 1) * 0.38, { r: 3.2, color: p.pal.accent, alpha: 0.6 }));
+      p.line(32, 0, 32, 1, { color: p.pal.ink, width: 1.5, dash: [5, 4] });
+      p.rect(ci.lo, 0.2, ci.hi - ci.lo, 0.14, { fill: p.pal.accent2, alpha: 0.35, color: p.pal.accent2, width: 2 });
+      p.dot(m, 0.27, { r: 5, color: p.pal.accent2 }).end();
+      put(fig, 'ms', `${fmt(m, 1)} / ${fmt(s, 1)} min`);
+      put(fig, 't', `${fmt(ci.t, 3)} (vs ${fmt(normalInv(1 - (1 - CL()) / 2), 3)})`);
+      put(fig, 'ci', `${fmt(ci.lo, 1)} to ${fmt(ci.hi, 1)} min`);
+    }
+    fig.querySelector('[data-new]')!.addEventListener('click', () => { fresh(); draw(); });
+    live(cv, draw);
+  }
+</script>

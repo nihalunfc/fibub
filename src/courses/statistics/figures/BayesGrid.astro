@@ -1,0 +1,38 @@
+---
+// SIM for 2.2: 1,000 transactions, a few of them fraud. A fraud alert catches most fraud but also flags
+// some honest ones. Count the flagged squares to see why most alerts are false when fraud is rare.
+---
+<figure class="cs-fig mlf" data-bayes>
+  <span class="cs-figtag">Try it: why most alerts are false alarms</span>
+  <canvas aria-label="A grid of 1000 transactions coloured as caught fraud, missed fraud, false alarm or honest"></canvas>
+  <div class="mlf-ctl">
+    <label>Fraud rate (base rate): <output data-v="pr"></output><input type="range" name="pr" min="0.002" max="0.3" step="0.002" value="0.01" /></label>
+    <label>Alert catches fraud (sensitivity): <output data-v="se"></output><input type="range" name="se" min="0.5" max="1" step="0.01" value="0.9" /></label>
+    <label>False alarm rate on honest ones: <output data-v="fp"></output><input type="range" name="fp" min="0" max="0.2" step="0.005" value="0.05" /></label>
+  </div>
+  <div class="mlf-read"><div><span>flagged</span><b data-f></b></div><div><span>flagged that are really fraud</span><b data-tp></b></div><div><span>P(fraud | flagged)</span><b data-post></b></div></div>
+  <figcaption>Solid first colour: fraud caught. Outline: fraud missed. Second colour: honest transaction flagged (false alarm). Faint: honest and not flagged. With 1 % fraud, a 90 %-accurate alert still produces mostly false alarms, because 5 % of 990 honest transactions (about 50) outnumber 90 % of 10 fraud ones (9). This is the <strong>base-rate</strong> effect, and Bayes' rule is this count written as a formula.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct } from './skit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bayes]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0, 40], y: [0, 25], h: 250, bare: true });
+    const show = (v: number) => pct(v, v < 0.05 ? 1 : 0);
+    const PR = slider(fig, 'pr', () => draw(), show), SE = slider(fig, 'se', () => draw(), show), FP = slider(fig, 'fp', () => draw(), show);
+    function draw() {
+      const fraud = Math.round(1000 * PR()), tp = Math.round(fraud * SE()), fp = Math.round((1000 - fraud) * FP());
+      p.begin();
+      for (let i = 0; i < 1000; i++) {
+        const x = i % 40, y = 24 - Math.floor(i / 40);
+        if (i < tp) p.rect(x + 0.1, y + 0.1, 0.8, 0.8, { fill: p.pal.accent, alpha: 0.95 });
+        else if (i < fraud) p.rect(x + 0.15, y + 0.15, 0.7, 0.7, { color: p.pal.accent, width: 1.5 });
+        else if (i < fraud + fp) p.rect(x + 0.1, y + 0.1, 0.8, 0.8, { fill: p.pal.accent2, alpha: 0.9 });
+        else p.rect(x + 0.1, y + 0.1, 0.8, 0.8, { fill: p.pal.grid, alpha: 0.7 });
+      }
+      p.end();
+      put(fig, 'f', `${tp + fp} of 1,000`); put(fig, 'tp', String(tp)); put(fig, 'post', tp + fp ? pct(tp / (tp + fp), 0) : '–');
+    }
+    live(cv, draw);
+  }
+</script>
