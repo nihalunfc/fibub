@@ -1,0 +1,45 @@
+---
+// The practice editor: type DAX, run it on the Northbay model (Ctrl+Enter), see the result as a table visual,
+// check it against the expected answer, and press "Show me what happened" to step through what the formula did.
+// Used in lessons as <!--fig:dax-pad <exercise-id>--> (exercises in ../exercises.ts) and on the playground page.
+import { EXERCISES } from '../exercises';
+import { FUNCTIONS } from '../../../lib/dax/engine';
+interface Props { arg?: string }
+const id = Astro.props.arg ?? 'playground';
+const ex = EXERCISES[id];
+if (!ex) throw new Error(`dax-pad: no exercise called "${id}" in src/courses/power-bi/exercises.ts`);
+const BY = ['', 'Product[Category]', 'Product[Product]', 'Store[Store]', 'Store[Region]', "'Date'[Year]", "'Date'[Quarter]", "'Date'[Month]", "'Date'[YearMonth]", "'Date'[Weekday]"];
+const by = ex.by ?? '';
+const opts = BY.includes(by) ? BY : [...BY, by];
+const play = id === 'playground';
+const rows = Math.min(14, Math.max(play ? 8 : 3, ex.starter.split('\n').length + 1));
+---
+<figure class="cs-fig pbi-pad" data-dax-pad data-ex={JSON.stringify({ id, solution: ex.solution ?? '', append: ex.append ?? '', ordered: !!ex.ordered, slicers: ex.slicers ?? [] })}>
+  <span class="cs-figtag">{play ? 'DAX playground' : 'Try it: write the DAX'}</span>
+  {ex.task && <p class="pbi-task" set:html={ex.task} />}
+  <label class="pbi-edlabel"><span class="visually-hidden">DAX code</span>
+    <textarea class="pbi-ed" rows={rows} spellcheck="false" autocapitalize="off" autocomplete="off" data-ed>{ex.starter}</textarea>
+  </label>
+  <div class="pbi-bar">
+    <button type="button" class="btn" data-run>Run <span class="pbi-kbd">Ctrl+Enter</span></button>
+    {ex.solution && <button type="button" class="btn secondary" data-check>Check my answer</button>}
+    <label class="pbi-by">Split by
+      <select data-by>{opts.map((o) => <option value={o} selected={o === by}>{o || 'nothing (one total)'}</option>)}</select>
+    </label>
+  </div>
+  <div class="pbi-out" data-out aria-live="polite"><p class="pbi-wait">{play ? 'Write a measure and press Run.' : 'Press Run to see the result.'}</p></div>
+  <div class="pbi-bar pbi-bar2">
+    <button type="button" class="btn secondary" data-trace hidden>Show me what happened</button>
+    {ex.hint && <button type="button" class="btn secondary" data-hint>Hint</button>}
+    {ex.solution && <button type="button" class="btn secondary" data-answer>Show the answer</button>}
+    <button type="button" class="btn secondary" data-reset>Start again</button>
+  </div>
+  {ex.hint && <p class="pbi-hint" hidden data-hint-text set:html={ex.hint} />}
+  {ex.solution && <pre class="pbi-sol" hidden data-sol><code>{ex.solution}</code></pre>}
+  <div class="pbi-player" data-player hidden></div>
+  {play && <details class="pbi-fns"><summary>Functions this editor knows ({FUNCTIONS.length})</summary><p>{FUNCTIONS.join(', ')}</p></details>}
+</figure>
+<script>
+  import { mountPad } from './pad';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-dax-pad]')) mountPad(fig);
+</script>

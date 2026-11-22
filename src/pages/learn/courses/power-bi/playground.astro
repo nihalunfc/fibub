@@ -1,0 +1,26 @@
+---
+// The DAX playground: one big practice editor on the whole Northbay model, with the tables and columns listed.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import DaxPad from '../../../../courses/power-bi/figures/DaxPad.astro';
+import ModelMap from '../../../../courses/power-bi/figures/ModelMap.astro';
+import { POWER_BI } from '../../../../courses/power-bi/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import '../../../../styles/course.css';
+import '../../../../courses/power-bi/figures/figs.css';
+const live = new Set((await courseLessons(POWER_BI)).keys());
+---
+<Base title="DAX playground: write and run DAX online" description="Write and run DAX measures and queries in your browser on a ready-made retail model (sales, products, stores, dates, targets). Free, no install, no sign-up, and it shows step by step what each formula does.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/power-bi/">Power BI and DAX</a> / Playground</div>
+  <div class="cs-layout">
+    <CourseSidebar course={POWER_BI} live={live} />
+    <div class="cs-main cs-body">
+      <h1>DAX playground</h1>
+      <p class="lead">Write measures, calculated columns or <code>EVALUATE</code> queries on the Northbay Goods model and run them with <kbd>Ctrl</kbd>+<kbd>Enter</kbd>. Pick a column to split the result by, like a table visual in Power BI. Click a row of the result, then "Show me what happened" to see the steps.</p>
+      <DaxPad arg="playground" />
+      <h2>The model</h2>
+      <ModelMap />
+      <p class="cs-small">This is a teaching engine that follows the documented DAX rules, not Microsoft's own engine: it covers the functions used in the course (see the list under the editor). Relationships are single direction, many to one. Everything runs in your browser; nothing you type is sent or saved.</p>
+    </div>
+  </div>
+</Base>

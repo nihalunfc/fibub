@@ -1,0 +1,60 @@
+---
+// SIM for 4.2 and 4.3: build a KPI card. Pick the measure, the period and what to compare with; the card shows the
+// number, the change, a colour that means good or bad, and an optional trend line, and says what is still missing.
+---
+<figure class="cs-fig ds" data-kpi>
+  <span class="cs-figtag">Try it: build a KPI card</span>
+  <div class="ds-row">
+    <label>Measure <select data-m><option value="sales">Sales</option><option value="share">Forks Market share of sales</option></select></label>
+    <label>Period <select data-p><option value="feb">February 2025</option><option value="dec">December 2025</option><option value="ytd" selected>2025, full year</option></select></label>
+    <label>Compare with <select data-c><option value="none">Nothing</option><option value="ly">Last year</option><option value="target" selected>Target</option><option value="both">Target and last year</option></select></label>
+    <label class="ds-cmp"><input type="checkbox" data-spark checked /> Trend line</label>
+  </div>
+  <div class="ds-kpiwrap" data-card></div>
+  <p class="ds-step" data-say aria-live="polite"></p>
+  <figcaption>A number on its own can't be good or bad. A KPI needs a comparison, and the colour should mean "good" or "needs attention", never decoration.</figcaption>
+</figure>
+<script>
+  import { PAL, k } from './charts';
+  import * as D from './data';
+  const spark = (v: number[], hi: number) => {
+    const max = Math.max(...v), min = Math.min(...v), x = (i: number) => (i / (v.length - 1)) * 120, y = (n: number) => 30 - ((n - min) / (max - min || 1)) * 26;
+    return `<svg viewBox="-2 0 126 34" class="ds-spark" role="img" aria-label="Trend"><path d="${v.map((n, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(n).toFixed(1)}`).join('')}" fill="none" stroke="${PAL[0]}" stroke-width="2"/><circle cx="${x(hi)}" cy="${y(v[hi])}" r="3.5" fill="${PAL[0]}"/></svg>`;
+  };
+  const sumTo = (a: number[], n: number) => a.slice(0, n).reduce((x, y) => x + y, 0);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-kpi]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const v = (s: string) => (q(s) as HTMLSelectElement).value;
+    const show = () => {
+      const m = v('[data-m]'), p = v('[data-p]'), c = v('[data-c]'), sp = (q('[data-spark]') as HTMLInputElement).checked;
+      let val: number, ly: number | null, tg: number | null, label: string, fmt: (n: number) => string, trend: number[], hi: number;
+      const mi = p === 'feb' ? 1 : 11;
+      if (m === 'sales') {
+        val = p === 'ytd' ? D.TOTAL_2025 : D.SALES_2025[mi];
+        ly = p === 'ytd' ? D.TOTAL_2024 : D.SALES_2024[mi];
+        tg = p === 'ytd' ? sumTo(D.TARGET_2025, 12) : D.TARGET_2025[mi];
+        label = `Sales, ${p === 'ytd' ? '2025' : p === 'feb' ? 'Feb 2025' : 'Dec 2025'}`; fmt = (n) => '$' + k(n);
+        trend = D.SALES_2025; hi = p === 'ytd' ? 11 : mi;
+      } else {
+        val = D.STORE_2025[4] / D.TOTAL_2025; ly = null; tg = null; label = 'Forks Market share of 2025 sales'; fmt = (n) => (n * 100).toFixed(1) + ' %';
+        trend = []; hi = 0;
+      }
+      const rows: string[] = [];
+      const cmp = (name: string, base: number) => { const d = val / base - 1, good = d >= 0; return `<p class="ds-delta ${good ? 'good' : 'bad'}"><span aria-hidden="true">${good ? '▲' : '▼'}</span> ${(Math.abs(d) * 100).toFixed(1)} % ${good ? 'above' : 'below'} ${name} <span class="ds-muted">(${fmt(base)})</span></p>`; };
+      if ((c === 'target' || c === 'both') && tg) rows.push(cmp('target', tg));
+      if ((c === 'ly' || c === 'both') && ly) rows.push(cmp('last year', ly));
+      q('[data-card]').innerHTML = `<div class="ds-kpicard"><p class="ds-kpilabel">${label}</p><p class="ds-kpival">${fmt(val)}</p>${rows.join('')}${sp && trend.length ? spark(trend, hi) : ''}</div>`;
+      const tips: string[] = [];
+      if (m === 'share') tips.push('A share has no target or last year here (the store is new), so the card can only show the number. Say in words what "good" looks like, such as "10 % in year one".');
+      else if (c === 'none') tips.push('With nothing to compare against, the reader can\'t tell if this is good. Add a target or last year.');
+      else if (c === 'both') tips.push('Two comparisons can disagree: that is information. February 2025 was below both; December beat both.');
+      if (m === 'sales' && p === 'ytd' && (c === 'ly' || c === 'both')) tips.push('Careful: the 29 % growth includes Forks Market, which didn\'t exist in 2024. Like-for-like (same four stores) growth is 14 %. Say which one you show.');
+      if (m === 'sales' && p === 'feb') tips.push('One month is noisy. Pair a monthly card with year to date so a bad month is seen in context.');
+      if (!sp && m === 'sales') tips.push('Without a trend line the reader can\'t see if this is a blip or a pattern.');
+      if (!tips.length) tips.push('A good card: a clear label with the period, the number, one comparison with a direction and colour, and a trend.');
+      q('[data-say]').textContent = tips.join(' ');
+    };
+    fig.querySelectorAll('select, input').forEach((s) => s.addEventListener('change', show));
+    show();
+  }
+</script>

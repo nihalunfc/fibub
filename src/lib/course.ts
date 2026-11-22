@@ -20,12 +20,13 @@ export async function courseLessons(c: CourseSyllabus) {
   return bySlug;
 }
 
-/** Split a lesson's HTML at <!--fig:name--> markers: text parts and figure names, in order. */
-export function splitFigures(html: string): { html?: string; fig?: string }[] {
-  const out: { html?: string; fig?: string }[] = [];
-  const re = /<!--\s*fig:([a-z0-9-]+)\s*-->/g;
+/** Split a lesson's HTML at <!--fig:name--> markers: text parts and figure names, in order.
+ *  A marker can carry one argument for the figure, <!--fig:dax-pad sum-amount-->, passed as its `arg` prop. */
+export function splitFigures(html: string): { html?: string; fig?: string; arg?: string }[] {
+  const out: { html?: string; fig?: string; arg?: string }[] = [];
+  const re = /<!--\s*fig:([a-z0-9-]+)(?:\s+([a-z0-9-]+))?\s*-->/g;
   let at = 0, m: RegExpExecArray | null;
-  while ((m = re.exec(html))) { out.push({ html: html.slice(at, m.index) }, { fig: m[1] }); at = m.index + m[0].length; }
+  while ((m = re.exec(html))) { out.push({ html: html.slice(at, m.index) }, { fig: m[1], arg: m[2] }); at = m.index + m[0].length; }
   out.push({ html: html.slice(at) });
   return out.filter((p) => p.fig || p.html?.trim());
 }
