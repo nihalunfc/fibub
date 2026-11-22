@@ -17,6 +17,13 @@ export async function courseLessons(c: CourseSyllabus) {
     e.data.quiz.forEach((q, i) => { if (q.ans >= q.choices.length) throw new Error(`course ${c.id}: ${slug}.md quiz ${i + 1} has no choice ${q.ans}`); });
     bySlug.set(slug, e);
   }
+  if (c.sharedFrom) {
+    for (const e of await getCollection('lessons')) {
+      if (!e.id.startsWith(`${c.sharedFrom}/`)) continue;
+      const slug = e.id.slice(c.sharedFrom.length + 1);
+      if (listed.has(slug) && !bySlug.has(slug)) bySlug.set(slug, e);
+    }
+  }
   return bySlug;
 }
 

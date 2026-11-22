@@ -1,0 +1,15 @@
+---
+import LessonPage from '../../../../components/course/LessonPage.astro';
+import { MEDICAL_ENTRANCE } from '../../../../courses/medical-entrance/syllabus';
+import { FIGURES } from '../../../../courses/medical-entrance/figures';
+import { courseLessons, type LessonEntry } from '../../../../lib/course';
+import '../../../../styles/math.css';
+import '../../../../styles/lesson-kit.css';
+export async function getStaticPaths() {
+  const written = await courseLessons(MEDICAL_ENTRANCE);
+  const live = new Set(written.keys());
+  return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
+}
+const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+---
+<LessonPage course={MEDICAL_ENTRANCE} entry={entry} slug={slug} live={live} figures={FIGURES} />
