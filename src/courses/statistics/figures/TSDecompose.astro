@@ -1,0 +1,41 @@
+---
+// SIM for 8.4: a daily sales series = trend + weekly pattern + noise. A moving average with a window of
+// exactly one week removes the weekly pattern and shows the trend; other windows leave ripples.
+---
+<figure class="cs-fig mlf" data-tsdec>
+  <span class="cs-figtag">Try it: trend, season, noise</span>
+  <canvas aria-label="Twelve weeks of daily sales with a moving average line"></canvas>
+  <div class="mlf-ctl">
+    <label>Trend (sales per week): <output data-v="t"></output><input type="range" name="t" min="-20" max="30" step="1" value="8" /></label>
+    <label>Weekend boost: <output data-v="w"></output><input type="range" name="w" min="0" max="120" step="5" value="60" /></label>
+    <label>Noise (SD): <output data-v="s"></output><input type="range" name="s" min="0" max="50" step="1" value="15" /></label>
+    <label>Moving average window (days): <output data-v="k"></output><input type="range" name="k" min="2" max="14" step="1" value="7" /></label>
+  </div>
+  <div class="mlf-read"><div><span>average Saturday vs Tuesday</span><b data-wk></b></div><div><span>trend read from the moving average</span><b data-tr></b></div></div>
+  <figcaption>Dots: daily sales over 12 weeks, made from a straight trend, a weekend boost every Saturday and Sunday, and noise. Line: the moving average (each point is the mean of the last k days). With k = 7 every window holds exactly one weekend, so the weekly pattern cancels and the trend shows; try 5 or 10 and the ripple comes back. Comparing a Saturday with the Tuesday before is comparing seasons, not growth. Made-up numbers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, fmt } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  import { movingAverage } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tsdec]')) {
+    const cv = fig.querySelector('canvas')!, D = 84;
+    const p = new Plot(cv, { x: [0, D], y: [0, 600], h: 250, xLabel: 'day', yLabel: 'sales' });
+    const T = slider(fig, 't', () => draw(), (v) => fmt(v, 0)), W = slider(fig, 'w', () => draw(), (v) => fmt(v, 0)), S = slider(fig, 's', () => draw(), (v) => fmt(v, 0)), K = slider(fig, 'k', () => draw(), (v) => fmt(v, 0));
+    const Z = (() => { const R = rng(84); return Array.from({ length: D }, () => R.normal()); })();
+    function draw() {
+      // Day 0 is a Monday: days 5 and 6 of each week are the weekend.
+      const ys = Z.map((z, i) => 200 + (T() / 7) * i + (i % 7 >= 5 ? W() : 0) + S() * z), ma = movingAverage(ys, K());
+      p.begin();
+      for (let w = 0; w < 12; w++) p.rect(w * 7 + 4.5, 0, 2, 600, { fill: p.pal.grid, alpha: 0.6 });
+      ys.forEach((y, i) => p.dot(i, y, { r: 2.6, color: i % 7 >= 5 ? p.pal.accent2 : p.pal.ink, alpha: 0.8 }));
+      p.path(ma.map((v, i) => [i, v] as [number, number]).filter(([, v]) => Number.isFinite(v)), { color: p.pal.accent, width: 2.5 });
+      p.end();
+      const avg = (f: (i: number) => boolean) => { const v = ys.filter((_, i) => f(i)); return v.reduce((a, b) => a + b, 0) / v.length; };
+      put(fig, 'wk', `${fmt(avg((i) => i % 7 === 5), 0)} vs ${fmt(avg((i) => i % 7 === 1), 0)}`);
+      const ok = ma.map((v, i) => [i, v]).filter(([, v]) => Number.isFinite(v)), first = ok[0], last = ok[ok.length - 1];
+      put(fig, 'tr', `${fmt(((last[1] - first[1]) / (last[0] - first[0])) * 7, 1)} a week (true ${fmt(T(), 0)})`);
+    }
+    live(cv, draw);
+  }
+</script>
