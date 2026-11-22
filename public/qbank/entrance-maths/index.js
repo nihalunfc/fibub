@@ -10,7 +10,8 @@ export default {
     "cusat": "CUSAT CAT",
     "comedk": "COMEDK UGET",
     "jee-main": "JEE Main",
-    "jee-adv": "JEE Advanced"
+    "jee-adv": "JEE Advanced",
+    "cuet": "CUET (UG)"
   },
   "units": [
     {

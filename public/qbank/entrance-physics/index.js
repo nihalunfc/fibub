@@ -11,7 +11,8 @@ export default {
     "comedk": "COMEDK UGET",
     "jee-main": "JEE Main",
     "jee-adv": "JEE Advanced",
-    "neet": "NEET UG"
+    "neet": "NEET UG",
+    "cuet": "CUET (UG)"
   },
   "units": [
     {

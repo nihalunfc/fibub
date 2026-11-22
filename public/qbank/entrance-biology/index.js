@@ -6,7 +6,8 @@ export default {
   "id": "entrance-biology",
   "name": "Biology (Plus Two entrance)",
   "exams": {
-    "neet": "NEET UG"
+    "neet": "NEET UG",
+    "cuet": "CUET (UG)"
   },
   "units": [
     {
@@ -44,6 +45,28 @@ export default {
         {
           "id": "cell-cycle",
           "name": "Cell cycle and cell division"
+        },
+        {
+          "id": "photosynthesis",
+          "name": "Photosynthesis in higher plants"
+        },
+        {
+          "id": "plant-respiration",
+          "name": "Respiration in plants"
+        }
+      ]
+    },
+    {
+      "id": "class-12",
+      "name": "Class 12",
+      "topics": [
+        {
+          "id": "inheritance",
+          "name": "Principles of inheritance and variation"
+        },
+        {
+          "id": "molecular-inheritance",
+          "name": "Molecular basis of inheritance"
         }
       ]
     }
