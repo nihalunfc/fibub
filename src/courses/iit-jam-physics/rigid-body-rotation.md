@@ -57,6 +57,10 @@ Torque about a point O is `$\vec\tau = \vec r\times\vec F$`, with `$\vec r$` fro
 
 </div>
 
+Slide the point where the force acts and the angle of the push, then press Play to spin the bar up.
+
+<figure class="fig" data-fig="@mech-torque"><figcaption>Torque is force times lever arm, r F sin α. The dashed line is the line of force; the green segment is the lever arm. Along the bar (α = 0°) the torque is zero.</figcaption></figure>
+
 ## 2. Hinged rods and the hinge force
 
 A uniform rod of length `$L$` hinged at one end and released horizontally:
@@ -117,6 +121,10 @@ With no external torque about an axis, `$L$` about it is constant. Inside a syst
 
 </div>
 
+Press Pull in / push out, or slide the weights' radius, and watch ω, I, L and the kinetic energy.
+
+<figure class="fig" data-fig="@mech-skater"><figcaption>L = Iω stays level because no outside torque acts. As the weights come in, I falls and ω rises; the kinetic energy rises too, supplied by the work of pulling the weights inwards.</figcaption></figure>
+
 ## 6. Precession: why a top does not fall
 
 A fast top with spin angular momentum `$\vec L$` (size `$I\omega$`) tilted at an angle feels gravity's torque `$mgr\sin\theta$`, horizontal and at right angles to `$\vec L$`. Since `$d\vec L = \vec\tau\,dt$`, the torque only swings `$\vec L$` sideways: the axis sweeps round a cone instead of falling.
@@ -128,6 +136,10 @@ A fast top with spin angular momentum `$\vec L$` (size `$I\omega$`) tilted at an
 The tilt cancels, and a slower spin precesses **faster**, which is why a top wobbles more and more as it slows. Gyroscopes in phones and spacecraft use the same `$d\vec L = \vec\tau\,dt$`. For the full theory with the inertia tensor and Euler's equations, see GATE [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/).
 
 To check a body's moment of inertia, use the [moment of inertia calculator](/science/moment-of-inertia/); to see friction and rolling on a slope, try the [friction ramp](/learn/friction-ramp/).
+
+Press Play, then change the spin and the hung mass. Drag the picture to look from other sides.
+
+<figure class="fig" data-fig="@mech-gyro"><figcaption>The torque is horizontal and perpendicular to L, so L turns rather than falls. Precession Ω = τ/L is faster for a slower spin or a bigger torque.</figcaption></figure>
 
 <div class="keypoints">
 

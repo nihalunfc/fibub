@@ -122,6 +122,10 @@ The motor's power is **twice** the rate at which kinetic energy is created. The 
 
 </div>
 
+Slide the mist thickness and press Play. Look at the dashed line at g/7.
+
+<figure class="fig" data-fig="@mech-raindrop"><figcaption>The drop collects mass at rest, so its acceleration is not simply g: it falls to g/7 whatever the mist density.</figcaption></figure>
+
 ## 5. Chains: lifted from a heap and falling onto a pan
 
 **Lifted at constant speed `$v$`.** The moving part (length `$y$`) has momentum `$\lambda yv$`, growing at `$\lambda v^2$`. So `$F = \lambda yg + \lambda v^2$`. Half of the `$\lambda v^3$` part of the power is lost as heat, as on the belt.

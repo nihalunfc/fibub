@@ -117,6 +117,10 @@ It follows from `$x^2 + y^2 = r^2$` when every particle has `$z = 0$`. It is the
 
 </div>
 
+Choose a shape, slide the axis away from the centre, then switch to the perpendicular-axis view.
+
+<figure class="fig" data-fig="@mech-axis-theorems"><figcaption>Parallel axis: I = I_cm + Md², a parabola with its minimum at the centre. Perpendicular axis: for a flat shape I_z = I_x + I_y. The values come from the dots, not from the formulas.</figcaption></figure>
+
 ## 5. Composite bodies and holes
 
 Moments of inertia about the **same axis** simply add. A hole is a piece with "negative mass": compute the full body, then subtract the missing piece, shifted to the same axis.

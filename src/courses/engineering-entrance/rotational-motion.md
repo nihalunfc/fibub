@@ -43,6 +43,10 @@ That perpendicular distance is the **moment arm**. A force whose line passes thr
 
 </div>
 
+Slide the point where the force acts and the angle of the push, then press Play to spin the bar up.
+
+<figure class="fig" data-fig="@mech-torque"><figcaption>Torque is force times lever arm, r F sin α. The dashed line is the line of force; the green segment is the lever arm. Along the bar (α = 0°) the torque is zero.</figcaption></figure>
+
 ## 2. Moment of inertia
 
 Moment of inertia measures how hard a body is to spin up: `$I = \sum m r^2 = \int r^2\,dm$`, where r is the distance from the **axis**. It depends on the axis chosen. Writing `$I = Mk^2$` defines the **radius of gyration** k.
@@ -65,6 +69,10 @@ See every row of this table spin. Pick a body and an axis: the dots are bits of 
 - **Perpendicular axis theorem** (flat bodies only): `$I_z = I_x + I_y$`, where x and y lie in the plate and z is perpendicular to it through the same point. A ring about a diameter: MR²/2; a disc about a diameter: MR²/4.
 
 <div class="problem" data-problem="rot-parallel-axis"></div>
+
+Choose a shape, slide the axis away from the centre, then switch to the perpendicular-axis view.
+
+<figure class="fig" data-fig="@mech-axis-theorems"><figcaption>Parallel axis: I = I_cm + Md², a parabola with its minimum at the centre. Perpendicular axis: for a flat shape I_z = I_x + I_y. The values come from the dots, not from the formulas.</figcaption></figure>
 
 ## 3. The rotation dictionary
 
@@ -92,6 +100,14 @@ With constant α, the equations of motion carry over: `$\omega = \omega_0 + \alp
 <div class="problem" data-problem="rot-ang-mom"></div>
 
 **Angular momentum of a particle** moving in a straight line about a point O: `$L = mvd$`, where d is the perpendicular distance from O to the line. It stays constant, even though the particle is not going round anything.
+
+Press Pull in / push out, or slide the weights' radius, and watch ω, I, L and the kinetic energy.
+
+<figure class="fig" data-fig="@mech-skater"><figcaption>L = Iω stays level because no outside torque acts. As the weights come in, I falls and ω rises; the kinetic energy rises too, supplied by the work of pulling the weights inwards.</figcaption></figure>
+
+Press Play, then change the spin and the hung mass. Drag the picture to look from other sides.
+
+<figure class="fig" data-fig="@mech-gyro"><figcaption>The torque is horizontal and perpendicular to L, so L turns rather than falls. Precession Ω = τ/L is faster for a slower spin or a bigger torque.</figcaption></figure>
 
 ## 5. Rolling without slipping
 

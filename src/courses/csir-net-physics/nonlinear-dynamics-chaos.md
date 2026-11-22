@@ -95,6 +95,10 @@ It grows only logarithmically with precision: a million times better data buys `
 
 <div class="problem" data-problem="chaos-horizon"></div>
 
+Press Play and watch the two pendulums, then lower the starting angle and restart.
+
+<figure class="fig" data-fig="@mech-double-pendulum"><figcaption>Two starts that differ by only 10⁻³ rad end up completely different: the separation grows roughly exponentially. At small angles there is no such divergence.</figcaption></figure>
+
 ## 4. Flows and maps in more dimensions
 
 **The Lorenz system** (a model of convection):

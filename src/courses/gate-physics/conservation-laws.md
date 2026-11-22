@@ -42,6 +42,10 @@ sources:
 
 Discrete symmetries (parity P, charge conjugation C, time reversal T) give multiplicative quantum numbers (`$\pm1$`) and selection rules instead of additive charges. Additive quantum numbers add over the particles in a state; antiparticles carry the opposite values.
 
+Try each setup and look at which strips stay flat.
+
+<figure class="fig" data-fig="@mech-noether"><figcaption>Each symmetry gives its own conserved quantity: rotation gives L, shifts in x or y give p_x or p_y, and no change with time gives E.</figcaption></figure>
+
 ## 2. What each interaction conserves
 
 | Quantity | Strong | EM | Weak |

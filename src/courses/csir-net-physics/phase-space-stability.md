@@ -75,6 +75,10 @@ J = \begin{pmatrix}\partial f/\partial x & \partial f/\partial y\\ \partial g/\p
 
 <div class="problem" data-problem="linear-eigen"></div>
 
+Drag the red handle anywhere to choose a start, then change the system.
+
+<figure class="fig" data-fig="@mech-phase-drag"><figcaption>Each curve is one motion: closed loops are oscillations, spirals are damped, a limit cycle attracts every nearby start. Fixed points and the separatrix organise the whole picture.</figcaption></figure>
+
 ## 3. Conservative systems and the pendulum
 
 For `$m\ddot x = -V'(x)$`, minima of `$V$` are centres and maxima are saddles, with small-oscillation frequency `$\omega = \sqrt{V''(x^*)/m}$` at a minimum. A Hamiltonian flow has `$\tau = 0$` everywhere (`$\partial_q\dot q + \partial_p\dot p = H_{qp} - H_{pq} = 0$`): by **Liouville's theorem** phase-space areas are preserved, so there are no nodes, spirals or attractors, only saddles and centres.
@@ -90,6 +94,10 @@ divide swinging (closed curves) from whirling over the top (open curves). On the
 **Damping** adds `$-b\dot x$`, the trace becomes `$-b/m < 0$`, and the centre becomes a stable spiral (underdamped), a degenerate node (critical, `$b = 2\sqrt{km}$`) or a stable node (overdamped).
 
 <div class="problem" data-problem="separatrix-speed"></div>
+
+Press Play and watch the blob of starting states stretch, then switch on friction.
+
+<figure class="fig" data-fig="@mech-liouville"><figcaption>The shape distorts enormously, but with no friction its area stays the same. This is Liouville's theorem; friction compresses phase space.</figcaption></figure>
 
 ## 4. Lyapunov functions and limit cycles
 
@@ -124,6 +132,10 @@ Just past a saddle-node the flow lingers near the vanished points: crossing `$\d
 **"A centre in the linearisation means closed orbits in the real system."** Only if something protects them, such as a conserved energy or a symmetry. Otherwise the nonlinear terms can turn the centre into a slow spiral, in or out. The trace and determinant test is decisive for saddles, nodes and spirals (they are robust), but not for centres. Use a conserved quantity or a Lyapunov function to settle the borderline case.
 
 </div>
+
+Slide the hoop's spin through the critical value √(g/R) = 4.43 rad/s, then press Kick.
+
+<figure class="fig" data-fig="@mech-hoop-equilibria"><figcaption>Below the critical spin the bead rests at the bottom; above it the bottom is a hilltop of the effective potential and two new stable points appear on either side.</figcaption></figure>
 
 <div class="keypoints">
 

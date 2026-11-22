@@ -139,6 +139,10 @@ The exact steady-precession condition has two roots, a slow precession (the one 
 
 **Worked example: precession of the equinoxes.** The Sun and Moon pull on the Earth's equatorial bulge and exert a torque on its tilted spin. The Earth is a fast top on this scale, and its axis precesses round the pole of its orbit once every 25 800 years. Polaris will not always be the pole star.
 
+Press Play, then change the spin and the hung mass. Drag the picture to look from other sides.
+
+<figure class="fig" data-fig="@mech-gyro"><figcaption>The torque is horizontal and perpendicular to L, so L turns rather than falls. Precession Ω = τ/L is faster for a slower spin or a bigger torque.</figcaption></figure>
+
 <div class="keypoints">
 
 - `$I_{ij} = \sum m(r^2\delta_{ij} - x_ix_j)$`; `$\vec L = I\vec\omega$`, `$T = \tfrac12\vec\omega^TI\vec\omega$`; parallel-axis `$I^{\rm cm}_{ij} + M(d^2\delta_{ij} - d_id_j)$`.
