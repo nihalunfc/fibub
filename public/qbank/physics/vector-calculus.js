@@ -1,6 +1,7 @@
 // Vectors and vector calculus: gradient, divergence, curl, line/surface/volume integrals, Gauss, Stokes, Green.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './vector-calculus.more.gen.js';
 
 export default {
   topic: 'vector-calculus',
@@ -178,5 +179,6 @@ export default {
           trap: 'Forgetting to divide by the length of the direction vector.' };
       },
       verify: (p) => (p.y * p.z * p.u + p.x * p.z * p.v + p.x * p.y * p.w) / p.L },
+    ...more,
   ],
 };

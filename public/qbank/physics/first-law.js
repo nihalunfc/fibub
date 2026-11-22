@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const R = 8.314;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'first-law',
   items: [
@@ -203,6 +222,55 @@ export default {
       sol: 'A: $P = RT/V = R/(aT)$ and $dV = 2aT\\,dT$, so $P\\,dV = 2R\\,dT$. B: $C = C_V + 2R = \\tfrac32R + 2R = \\tfrac72R$. C: $T \\propto V^{1/2}$ and $P = RT/V \\propto V^{-1/2}$, so $PV^{1/2}$ is constant ($n = \\tfrac12$; check: $C_V - R/(n - 1) = 1.5R + 2R$). D: $V$ grows with $T$, so expansion heats the gas.' },
   ],
   gens: [
+    { id: 'fst-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'work', unit: 'J', format: 'graph',
+      make(r) {
+        const P1 = Q5.int(r, 1, 4) * 100, P2 = Q5.int(r, 1, 4) * 100 + 50, V1 = Q5.int(r, 1, 5), V2 = V1 + Q5.int(r, 1, 6);
+        const W = (P1 + P2) * (V2 - V1) / 2, dU = 1.5 * (P2 * V2 - P1 * V1), Qh = dU + W;
+        return { q: `A monatomic ideal gas is taken along a straight line on its $P$-$V$ diagram from $(${P1}$ kPa, $${V1}$ L$)$ to $(${P2}$ kPa, $${V2}$ L$)$. The heat absorbed by the gas is ______ J (to one decimal place; negative if it gives out heat).`,
+          answer: Q5.round(Qh, 1), tol: 0.1, P1, P2, V1, V2,
+          sol: `Work done by the gas = area under the line (a trapezium): $W = \\tfrac12(${P1} + ${P2})(${V2} - ${V1}) = ${W}$ J (kPa $\\times$ L $=$ J). $\\Delta U = \\tfrac32nR\\Delta T = \\tfrac32(P_2V_2 - P_1V_1) = \\tfrac32(${P2 * V2} - ${P1 * V1}) = ${dU}$ J. First law: $Q = \\Delta U + W = ${Q5.round(Qh, 1)}$ J.`,
+          trap: 'kPa times litre is a joule; and $\\Delta U$ needs only the end states, $\\tfrac32\\Delta(PV)$.' };
+      },
+      verify: (p) => { const n = 100, P = (V) => p.P1 + (p.P2 - p.P1) * (V - p.V1) / (p.V2 - p.V1); let W = 0; const h = (p.V2 - p.V1) / n; for (let i = 0; i < n; i++) W += P(p.V1 + (i + 0.5) * h) * h; const R = 8.314, T1 = p.P1 * p.V1 / R, T2 = p.P2 * p.V2 / R; return 1.5 * R * (T2 - T1) + W; } },
+    { id: 'fst-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'first law', format: 'statements',
+      make(r) {
+        const [proc, dU, W, Qh] = Q5.choose(r, [['reversible isothermal expansion', 0, 1, 1], ['reversible adiabatic expansion', -1, 1, 0], ['heating at constant volume', 1, 0, 1], ['expansion at constant pressure', 1, 1, 1], ['free expansion into a vacuum, in an insulated box', 0, 0, 0], ['reversible isothermal compression', 0, -1, -1]]);
+        const S = [['The internal energy of the gas does not change.', dU === 0], ['The gas does positive work on its surroundings.', W > 0], ['Heat flows into the gas.', Qh > 0],
+          ['The temperature of the gas rises.', dU > 0], ['No heat crosses the boundary.', Qh === 0], ['No work is done by or on the gas.', W === 0]];
+        const o = q5msq(r, S.filter((s) => s[1]).map((s) => s[0]), S.filter((s) => !s[1]).map((s) => s[0]));
+        return { q: `An ideal gas undergoes ${proc}. Which statements are correct?`, ...o,
+          sol: `For an ideal gas $U$ depends only on $T$, and $Q = \\Delta U + W$ (with $W$ the work done by the gas). Here: $\\Delta U ${dU === 0 ? '= 0' : dU > 0 ? '> 0' : '< 0'}$, $W ${W === 0 ? '= 0' : W > 0 ? '> 0' : '< 0'}$, $Q ${Qh === 0 ? '= 0' : Qh > 0 ? '> 0' : '< 0'}$.${proc.startsWith('free') ? ' In a free expansion nothing pushes back, so $W = 0$; the box is insulated, so $Q = 0$; hence $\\Delta U = 0$ and $T$ is unchanged.' : ''}${proc.includes('adiabatic') ? ' No heat enters, so the work comes from internal energy and the gas cools.' : ''}`,
+          trap: 'Free expansion: no work and no heat, yet the volume changes; isothermal: heat flows even though $T$ is fixed.' };
+      } },
+    { id: 'fst-t23', type: 'mcq', level: 2, exams: ['jam'], sub: 'polytropic', format: 'limiting case',
+      make(r) {
+        const names = ['isobaric (constant pressure)', 'isothermal', 'adiabatic', 'isochoric (constant volume)'];
+        const [nn, c] = Q5.choose(r, [['n = 0', 0], ['n = 1', 1], ['n = 5/3', 2], ['n \\to \\infty', 3]]);
+        const o = Q5.mcqOptions(r, names[c], names.filter((x, i) => i !== c));
+        return { q: `A monatomic ideal gas follows $PV^n = $ constant. For $${nn}$ the process is`, ...o,
+          sol: '$n = 0$: $P$ constant. $n = 1$: $PV$ constant, so $T$ constant. $n = \\gamma = 5/3$ (monatomic): the reversible adiabatic. $n \\to \\infty$: $P^{1/n}V = $ constant tends to $V = $ constant. The molar heat capacity $C = C_V + R/(1 - n)$ runs through $C_P$, $\\infty$, $0$ and $C_V$ in these four cases.',
+          trap: 'The constant-volume process is the limit $n \\to \\infty$, not $n = 0$.' };
+      } },
+    { id: 'fst-t24', type: 'mcq', level: 3, exams: ['jam'], sub: 'work', format: 'comparison',
+      make(r) {
+        const rr = Q5.choose(r, [2, 3, 4]), exp = r() < 0.5;
+        const right = exp ? 'isobaric > isothermal > adiabatic' : 'adiabatic > isothermal > isobaric';
+        const o = Q5.mcqOptions(r, right, ['isobaric > isothermal > adiabatic', 'adiabatic > isothermal > isobaric', 'isothermal > isobaric > adiabatic', 'all three are equal'].filter((s) => s !== right));
+        return { q: `An ideal gas starts from the same state each time and is ${exp ? `expanded reversibly to ${rr} times its volume` : `compressed reversibly to 1/${rr} of its volume`} by an isobaric, an isothermal or an adiabatic process. Ranked by the size of the work ${exp ? 'done by' : 'done on'} the gas:`, ...o,
+          sol: exp ? 'Work is the area under the curve. From the same start, pressure stays highest on the isobar, falls as $1/V$ on the isotherm and falls faster ($1/V^\\gamma$) on the adiabat. So $W_{\\rm isobaric} > W_{\\rm isothermal} > W_{\\rm adiabatic}$.'
+            : 'Going to smaller volume, pressure stays fixed on the isobar, rises as $1/V$ on the isotherm and rises fastest on the adiabat (the gas heats up). The area under each curve is the work done on the gas: $W_{\\rm adiabatic} > W_{\\rm isothermal} > W_{\\rm isobaric}$.',
+          trap: 'The ranking reverses between expansion and compression; picture the three curves leaving the same point.' };
+      } },
+    { id: 'fst-t25', type: 'nat', level: 2, exams: ['jam'], sub: 'isobaric', unit: 'J',
+      make(r) {
+        const W = Q5.int(r, 10, 200) * 10, [name, f] = Q5.choose(r, [['monatomic', 3], ['diatomic (rigid)', 5], ['polyatomic (rigid, non-linear)', 6]]);
+        const Qh = W * (f / 2 + 1);
+        return { q: `A ${name} ideal gas is heated at constant pressure and does $${W}$ J of work as it expands. The heat supplied is ______ J.`,
+          answer: Q5.round(Qh, 1), tol: 0.5, W, f,
+          sol: `At constant pressure $W = P\\Delta V = nR\\Delta T$ and $Q = nC_P\\Delta T$ with $C_P = (${f}/2 + 1)R$. So $Q = W\\cdot C_P/R = ${W}\\times${f / 2 + 1} = ${Qh}$ J.`,
+          trap: 'Only a fraction $R/C_P$ of the heat becomes work; the rest raises the internal energy.' };
+      },
+      verify: (p) => { const n = 2, dT = p.W / (n * 8.314); return n * (p.f / 2 + 1) * 8.314 * dT; } },
     { id: 'fst-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'isothermal',
       make(r) {
         const n = pick(r, 0.5, 3, 0.5), T = int(r, 25, 80) * 10, k = choose(r, [2, 3, 4, 5, 10]), comp = r() < 0.4;

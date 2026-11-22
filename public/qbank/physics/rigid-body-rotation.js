@@ -3,6 +3,7 @@
 // centre of percussion, gyroscopic precession.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './rigid-body-rotation.more.gen.js';
 
 const G0 = 9.8;
 const BODIES = [
@@ -299,5 +300,6 @@ export default {
           sol: `$mg\\dfrac L2 = \\dfrac12\\cdot\\dfrac{mL^2}{3}\\omega^2$, so $\\omega = \\sqrt{3g/L} = \\sqrt{3\\times9.8/${L}} \\approx ${show(Math.sqrt(3 * G0 / L))}$.`,
           trap: 'The centre of mass falls only $L/2$, and the moment of inertia is about the hinge.' };
       } },
+    ...more,
   ],
 };

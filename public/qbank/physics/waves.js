@@ -4,6 +4,25 @@
 // practice (fibub).
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'waves',
   items: [
@@ -205,6 +224,69 @@ export default {
       trap: 'Forgetting that each copy must make a round trip and be inverted twice to come back as it started.' },
   ],
   gens: [
+    { id: 'wav-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'travelling waves',
+      make(r) {
+        const k = Q5.int(r, 1, 6), w = k * Q5.int(r, 2, 20), v = w / k;
+        const [f, plus, why] = Q5.choose(r, [
+          [`${0.02}\\sin(${k}x - ${w}t)`, true, 'the phase $kx - \\omega t$ stays constant when $x$ grows with $t$'],
+          [`${0.02}\\sin(${w}t + ${k}x)`, false, 'the phase $\\omega t + kx$ stays constant only if $x$ falls as $t$ grows'],
+          [`${0.02}\\cos(${w}t - ${k}x)`, true, '$\\cos(\\omega t - kx) = \\cos(kx - \\omega t)$, whose phase is constant for $x$ growing with $t$'],
+          [`-${0.02}\\sin(${w}t - ${k}x)`, true, '$-\\sin(\\omega t - kx) = \\sin(kx - \\omega t)$'],
+          [`${0.02}\\cos(${k}x + ${w}t)`, false, 'the phase $kx + \\omega t$ stays constant only if $x$ falls as $t$ grows']]);
+        const s = (dir, sp) => `along $${dir}x$ at $${sp}$ m/s`;
+        const kw = Q5.round(k / w, 3);
+        const o = Q5.mcqOptions(r, s(plus ? '+' : '-', v), [s(plus ? '-' : '+', v), s(plus ? '+' : '-', kw), s(plus ? '-' : '+', kw)]);
+        return { q: `A wave on a string is $y = ${f}$ (SI units). It travels`, ...o,
+          sol: `The speed is $\\omega/k = ${w}/${k} = ${v}$ m/s. Direction: ${why}, so it moves along $${plus ? '+' : '-'}x$.`,
+          trap: 'Speed is $\\omega/k$, not $k/\\omega$; and look at the relative sign of the $x$ and $t$ terms, not their order.' };
+      } },
+    { id: 'wav-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'standing waves', format: 'statements',
+      make(r) {
+        const n = Q5.int(r, 2, 6), L = Q5.pick(r, 1, 3, 0.5), th = `${n}${['', 'st', 'nd', 'rd'][n] || 'th'}`;
+        const R = (x) => Q5.round(x, 3);
+        const T = [`There are $${n + 1}$ nodes, counting the two fixed ends.`, `There are $${n}$ antinodes.`, `The wavelength is $${R(2 * L / n)}$ m.`,
+          `Neighbouring nodes are $${R(L / n)}$ m apart.`, 'All points between two neighbouring nodes move in phase.', 'On average no energy is carried along the string.'];
+        const F = [`There are $${n}$ nodes, counting the two fixed ends.`, `There are $${n + 1}$ antinodes.`, `The wavelength is $${R(L / n)}$ m.`,
+          `Neighbouring nodes are $${R(2 * L / n)}$ m apart.`, 'Points on opposite sides of a node move in phase.', 'Every point of the string vibrates with the same amplitude.'];
+        const o = q5msq(r, T, F);
+        return { q: `A string $${L}$ m long, fixed at both ends, vibrates in its ${th} harmonic. Which statements are correct?`, ...o,
+          sol: `In the ${th} harmonic the string holds $${n}$ half-wavelengths: $\\lambda = 2L/n = ${R(2 * L / n)}$ m, nodes $\\lambda/2 = ${R(L / n)}$ m apart, $${n + 1}$ nodes including the ends and $${n}$ antinodes. In a standing wave every point between two nodes moves in phase, the two sides of a node are in antiphase, the amplitude varies as $|\\sin kx|$, and the two travelling waves carry equal and opposite energy flows.`,
+          trap: 'Nodes are half a wavelength apart, not a whole one.' };
+      } },
+    { id: 'wav-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'travelling waves', unit: 'm',
+      make(r) {
+        const w = Q5.int(r, 50, 500), A = Q5.pick(r, 0.001, 0.01, 0.001), v = Q5.int(r, 10, 200);
+        const vp = Q5.round(A * w, 4), ap = Q5.round(A * w * w, 3);
+        const lam = 2 * Math.PI * v * vp / ap;
+        return { q: `A sinusoidal wave travels at $${v}$ m/s along a string. The largest transverse speed of any bit of string is $${vp}$ m/s and the largest transverse acceleration is $${ap}$ m/s$^2$. The wavelength is ______ m (to three significant figures).`,
+          answer: +lam.toPrecision(3), tol: +(0.006 * lam).toPrecision(2), v, vp, ap,
+          sol: `Each bit of string does SHM with $v_{\\max} = A\\omega$ and $a_{\\max} = A\\omega^2$. Dividing, $\\omega = a_{\\max}/v_{\\max} = ${Q5.round(ap / vp, 2)}$ rad/s. Then $k = \\omega/v$ and $\\lambda = 2\\pi v/\\omega = ${+lam.toPrecision(3)}$ m.`,
+          trap: 'The transverse particle speed is not the wave speed; it only gives $A\\omega$.' };
+      },
+      verify: (p) => { const A = p.vp * p.vp / p.ap; const w = Math.sqrt(p.ap / A); return 2 * Math.PI * p.v / w; } },
+    { id: 'wav-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'wave speed', format: 'dimensions',
+      make(r) {
+        const [what, ok, bad] = Q5.choose(r, [
+          ['transverse waves on a string of tension $T$ and mass per unit length $\\mu$', '\\sqrt{T/\\mu}', ['\\sqrt{T\\mu}', 'T/\\mu', '\\sqrt{\\mu/T}']],
+          ['longitudinal waves in a rod of Young modulus $Y$ and density $\\rho$', '\\sqrt{Y/\\rho}', ['\\sqrt{Y\\rho}', 'Y/\\rho', '\\sqrt{\\rho/Y}']],
+          ['deep-water gravity waves of wavelength $\\lambda$ (with $g$)', '\\sqrt{g\\lambda/2\\pi}', ['\\sqrt{g/2\\pi\\lambda}', 'g\\lambda/2\\pi', '\\sqrt{2\\pi\\lambda/g}']],
+          ['short ripples ruled by surface tension $\\sigma$, on a liquid of density $\\rho$, of wavelength $\\lambda$', '\\sqrt{2\\pi\\sigma/\\rho\\lambda}', ['\\sqrt{2\\pi\\sigma\\lambda/\\rho}', '\\sqrt{2\\pi\\sigma/\\rho}', '2\\pi\\sigma/\\rho\\lambda']],
+          ['sound in a gas of pressure $P$, density $\\rho$ and adiabatic index $\\gamma$', '\\sqrt{\\gamma P/\\rho}', ['\\sqrt{\\gamma\\rho/P}', '\\gamma P/\\rho', '\\sqrt{\\gamma P\\rho}']]]);
+        const o = Q5.mcqOptions(r, ok, bad, (s) => `$v = ${s}$`);
+        return { q: `On dimensional grounds alone, which expression could give the speed of ${what}?`, ...o,
+          sol: `Only $${ok}$ has the dimensions of speed, $\\mathrm{L\\,T^{-1}}$. (Tension/$\\mu$, modulus/density, pressure/density and $g\\lambda$ all have dimensions $\\mathrm{L^2T^{-2}}$, as does $\\sigma/(\\rho\\lambda)$; their square roots are speeds.) Dimensionless numbers such as $2\\pi$ or $\\gamma$ cannot be fixed this way.`,
+          trap: 'An expression without the square root has dimensions of speed squared.' };
+      } },
+    { id: 'wav-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'energy and power', format: 'comparison',
+      make(r) {
+        const [fa, sa] = Q5.choose(r, [[2, '2'], [3, '3'], [0.5, '1/2'], [1.5, '1.5']]), [ff, sf] = Q5.choose(r, [[2, '2'], [0.5, '1/2'], [3, '3'], [1.5, '1.5'], [1, '1']]), [fT, sT] = Q5.choose(r, [[4, '4'], [9, '9'], [0.25, '1/4'], [1, '1'], [2, '2']]);
+        const k = fa * fa * ff * ff * Math.sqrt(fT);
+        return { q: `A sine wave runs along a stretched string. The amplitude is multiplied by $${sa}$, the frequency by $${sf}$ and the tension by $${sT}$ (same string). The average power carried is multiplied by ______ (to three decimal places).`,
+          answer: Q5.round(k, 3), tol: Math.max(0.001, Q5.round(0.002 * k, 4)), fa, ff, fT,
+          sol: `$\\bar P = \\tfrac12\\mu v\\omega^2A^2$ with $v = \\sqrt{T/\\mu}$, so $\\bar P = \\tfrac12\\sqrt{T\\mu}\\,\\omega^2A^2$. The factor is $(${sa})^2\\times(${sf})^2\\times\\sqrt{${sT}} = ${Q5.round(k, 3)}$.`,
+          trap: 'Tension enters through the wave speed, as a square root.' };
+      },
+      verify: (p) => { const P = (mu, T, w, A) => 0.5 * mu * Math.sqrt(T / mu) * w * w * A * A; return P(0.01, 50 * p.fT, 300 * p.ff, 0.002 * p.fa) / P(0.01, 50, 300, 0.002); } },
     { id: 'wav-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'travelling waves',
       make(r) {
         const k = choose(r, [0.5, 1, 2, 2.5, 4, 5, 8, 10]), w = choose(r, [10, 20, 40, 50, 100, 200, 300, 400]);

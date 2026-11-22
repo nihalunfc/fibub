@@ -17,6 +17,25 @@ const LINES = {
 const RULE = { sc: 'every $(hkl)$ is allowed', bcc: 'only $h + k + l$ even is allowed', fcc: 'only $h, k, l$ all odd or all even are allowed', diamond: 'only all odd, or all even with $h + k + l$ a multiple of 4, are allowed' };
 const lam_e = (V) => C.h / Math.sqrt(2 * C.me * C.e * V) * 1e10; // electron wavelength in Å (non-relativistic)
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'x-ray-diffraction',
   items: [
@@ -242,6 +261,59 @@ export default {
   ],
 
   gens: [
+    { id: 'xrd-t21', type: 'mcq', level: 2, exams: ['jam', 'gate'], sub: 'missing reflections',
+      make(r) {
+        const bcc = r() < 0.5, not = r() < 0.5;
+        const all = ['100', '110', '111', '200', '210', '211', '220', '221', '300', '310', '311', '222'];
+        const ok = (s) => { const [h, k, l] = s.split('').map(Number); return bcc ? (h + k + l) % 2 === 0 : (h % 2 === k % 2 && k % 2 === l % 2); };
+        const yes = all.filter(ok).map((s) => `$(${s})$`), no = all.filter((s) => !ok(s)).map((s) => `$(${s})$`);
+        const o = not ? q5odd(r, no, yes) : q5odd(r, yes, no);
+        return { q: `A crystal has the ${bcc ? 'body' : 'face'}-centred cubic structure with one atom per lattice point. Indexed on the conventional cubic cell, which reflection ${not ? 'is <b>absent</b> from' : 'appears in'} its powder pattern?`, ...o,
+          sol: bcc ? 'bcc: atoms at $(0,0,0)$ and $(\\tfrac12,\\tfrac12,\\tfrac12)$ give $F = f[1 + e^{i\\pi(h+k+l)}]$, zero when $h + k + l$ is odd. Allowed: $(110), (200), (211), (220), (310), (222), \\dots$'
+            : 'fcc: four atoms per cell give $F = f[1 + e^{i\\pi(h+k)} + e^{i\\pi(k+l)} + e^{i\\pi(h+l)}]$, which is $4f$ when $h, k, l$ are all even or all odd and zero when they are mixed. Allowed: $(111), (200), (220), (311), (222), \\dots$',
+          trap: 'bcc needs $h + k + l$ even; fcc needs $h, k, l$ unmixed. $(100)$ is absent in both.' };
+      } },
+    { id: 'xrd-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'methods', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['The Laue method uses a fixed single crystal and a continuous range of wavelengths.', 'The powder method uses one wavelength and crystallites in all orientations.', 'In Bragg\'s law $2d\\sin\\theta = n\\lambda$, $\\theta$ is measured from the planes, not from their normal.',
+          'The diffracted beam is turned through $2\\theta$ from the incident beam.', 'No Bragg reflection is possible from planes with $d < \\lambda/2$.'];
+        const F = ['The Laue method uses a single wavelength.', 'In Bragg\'s law, $\\theta$ is measured from the normal to the planes.', 'The diffracted beam is turned through $\\theta$ from the incident beam.',
+          'Neutrons cannot be diffracted by crystals because they carry no charge.', 'Planes with $d < \\lambda/2$ give their first-order reflection at small angles.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about X-ray diffraction are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'Laue: white radiation on a fixed crystal; each set of planes picks the wavelength that satisfies Bragg. Powder: monochromatic radiation; some crystallites always sit at the right angle, giving cones. $\\theta$ is the glancing angle to the planes and the beam turns by $2\\theta$. Since $\\sin\\theta \\le 1$, reflection needs $\\lambda \\le 2d$. Neutrons scatter from nuclei (and magnetic moments) and diffract well; only their wavelength matters.',
+          trap: 'Glancing angle $\\theta$ versus deviation $2\\theta$: the detector reads $2\\theta$.' };
+      } },
+    { id: 'xrd-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'indexing', unit: 'degrees',
+      make(r) {
+        const t1 = Q5.pick(r, 10, 40, 0.1);
+        const t2 = Math.asin(Math.sin(t1 * Math.PI / 180) * 2 / Math.sqrt(3)) * 180 / Math.PI;
+        return { q: `In the powder pattern of a face-centred cubic metal, the $(111)$ reflection appears at a Bragg angle $\\theta = ${t1}^\\circ$. With the same X-rays, the $(200)$ reflection appears at $\\theta = $ ______ degrees (to two decimal places).`,
+          answer: Q5.round(t2, 2), tol: 0.02, t1,
+          sol: `$\\sin\\theta \\propto 1/d \\propto \\sqrt{h^2 + k^2 + l^2}$. So $\\sin\\theta_{200} = \\sin\\theta_{111}\\sqrt{4/3} = \\sin${t1}^\\circ\\times1.1547 = ${Q5.round(Math.sin(t1 * Math.PI / 180) * 2 / Math.sqrt(3), 4)}$, giving $\\theta = ${Q5.round(t2, 2)}^\\circ$.`,
+          trap: 'Scale $\\sin\\theta$, not $\\theta$ itself.' };
+      },
+      verify: (p) => { const lam = 0.154, a = lam * Math.sqrt(3) / (2 * Math.sin(p.t1 * Math.PI / 180)), d = a / 2; return Math.asin(lam / (2 * d)) * 180 / Math.PI; } },
+    { id: 'xrd-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'peak shift',
+      make(r) {
+        const [what, low] = Q5.choose(r, [['the sample is heated, so its lattice expands', true], ['the sample is compressed, so its lattice shrinks', false], ['the X-ray wavelength is changed to a longer one', false], ['the X-ray wavelength is changed to a shorter one', true]]);
+        const right = low ? 'to smaller angles $2\\theta$' : 'to larger angles $2\\theta$';
+        const o = Q5.mcqOptions(r, right, ['to smaller angles $2\\theta$', 'to larger angles $2\\theta$', 'nowhere: the peaks stay where they are', 'nowhere, but each peak splits in two'].filter((s) => s !== right));
+        return { q: `A powder diffraction pattern is recorded. Then ${what}. The peaks move`, ...o,
+          sol: `Bragg: $\\sin\\theta = \\lambda/2d$. ${what.includes('lattice') ? `Here $d$ ${low ? 'grows, so $\\sin\\theta$ falls' : 'shrinks, so $\\sin\\theta$ grows'}.` : `Here $\\lambda$ ${low ? 'shrinks, so $\\sin\\theta$ falls' : 'grows, so $\\sin\\theta$ grows'}.`} The peaks move ${low ? 'to smaller' : 'to larger'} angles, and high-angle peaks move the most.`,
+          trap: 'Larger spacing means smaller angles: $\\sin\\theta \\propto 1/d$.' };
+      } },
+    { id: 'xrd-t25', type: 'nat', level: 4, exams: ['gate', 'net'], sub: 'structure factor',
+      make(r) {
+        const f1 = Q5.int(r, 20, 60), f2 = Q5.int(r, 5, 19), up = r() < 0.5;
+        const ratio = up ? ((f1 + f2) / (f1 - f2)) ** 2 : ((f1 - f2) / (f1 + f2)) ** 2;
+        return { q: `A crystal has the CsCl structure: a simple cubic lattice with ion A (form factor $${f1}$) at $(0,0,0)$ and ion B (form factor $${f2}$) at $(\\tfrac12,\\tfrac12,\\tfrac12)$. Ignoring all other factors, the intensity ratio $I_{${up ? '110' : '100'}}/I_{${up ? '100' : '110'}}$ is ______ (to three decimal places).`,
+          answer: Q5.round(ratio, 3), tol: Math.max(0.002, Q5.round(0.002 * ratio, 4)), f1, f2, up,
+          sol: `$F_{hkl} = f_A + f_Be^{i\\pi(h + k + l)}$: $f_A + f_B = ${f1 + f2}$ when $h + k + l$ is even, $f_A - f_B = ${f1 - f2}$ when odd. $I \\propto |F|^2$: $I_{110}/I_{100} = (${f1 + f2}/${f1 - f2})^2$, so the asked ratio is $${Q5.round(ratio, 3)}$. (If A and B were identical, $(100)$ would vanish: bcc.)`,
+          trap: 'In CsCl the odd reflections are weak, not absent, because the two ions differ.' };
+      },
+      verify: (p) => { const F = (h, k, l) => { const ph = Math.PI * (h + k + l); return Math.hypot(p.f1 + p.f2 * Math.cos(ph), p.f2 * Math.sin(ph)) ** 2; }; return p.up ? F(1, 1, 0) / F(1, 0, 0) : F(1, 0, 0) / F(1, 1, 0); } },
     { id: 'xrd-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'Bragg law',
       make(r) {
         const lam = choose(r, [0.71, 1.54, 1.79, 1.94, 2.29]), n = choose(r, [1, 1, 1, 2]);

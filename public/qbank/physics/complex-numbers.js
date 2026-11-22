@@ -2,6 +2,7 @@
 // complex logarithm and powers, hyperbolic links, phasors and AC impedance, first steps of analytic functions.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './complex-numbers.more.gen.js';
 
 const deg = (x) => x * 180 / Math.PI;
 
@@ -290,5 +291,6 @@ export default {
           sol: `Powers of $i$ repeat every 4 ($i^0 = 1, i^1 = i, i^2 = -1, i^3 = -i$). $${neg ? -n : n} \\equiv ${m} \\pmod 4$, so $i^{${neg ? -n : n}} = i^{${m}} = ${vals[m]}$.${neg ? ' (For negative powers use $i^{-1} = -i$, which the remainder rule handles automatically.)' : ''}`,
           trap: 'For a negative exponent take the remainder that lies in 0 to 3, not the negative remainder.' };
       } },
+    ...more,
   ],
 };

@@ -7,6 +7,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const deg = Math.PI / 180;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'polarisation',
   items: [
@@ -194,6 +213,58 @@ export default {
       sol: '$r_p = \\tan(\\theta_i - \\theta_t)/\\tan(\\theta_i + \\theta_t)$. The denominator\'s tangent passes through infinity at $\\theta_i + \\theta_t = 90^\\circ$, so $r_p$ passes through zero and changes sign: a phase jump of $\\pi$ in the reflected $p$ wave. Complex coefficients appear only beyond the critical angle, going from dense to rare.' },
   ],
   gens: [
+    { id: 'pol-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'brewster', unit: 'degrees',
+      make(r) {
+        const tb = Q5.pick(r, 50, 62, 0.5);
+        const n = Math.tan(tb * Math.PI / 180), tc = Math.asin(1 / n) * 180 / Math.PI;
+        return { q: `Light in air reflected from a flat transparent block is completely polarised when the angle of incidence is $${tb}^\\circ$. For light inside the block meeting the same surface, the critical angle is ______ degrees (to two decimal places).`,
+          answer: Q5.round(tc, 2), tol: 0.02, tb,
+          sol: `Brewster: $n = \\tan\\theta_B = \\tan ${tb}^\\circ = ${Q5.round(n, 4)}$. Critical angle: $\\sin\\theta_c = 1/n$, so $\\theta_c = \\sin^{-1}(${Q5.round(1 / n, 4)}) = ${Q5.round(tc, 2)}^\\circ$.`,
+          trap: 'Brewster uses $\\tan$, the critical angle uses $\\sin$: the two angles are not complementary.' };
+      },
+      verify: (p) => { const t = p.tb * Math.PI / 180; return Math.asin(Math.cos(t) / Math.sin(t)) * 180 / Math.PI; } },
+    { id: 'pol-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'wave plates', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['Circularly polarised light passing through a polariser loses half its intensity, at any orientation of the polariser.', 'A half-wave plate turns linearly polarised light at angle $\\theta$ to its fast axis into linear light at $-\\theta$ (a turn of $2\\theta$).',
+          'A quarter-wave plate turns linear light at $45^\\circ$ to its axes into circular light.', 'A polariser alone cannot tell circularly polarised light from unpolarised light.', 'Unpolarised light passing through an ideal polariser loses half its intensity.'];
+        const F = ['Circularly polarised light passing through a polariser gives an intensity that varies as the polariser turns.', 'A half-wave plate turns linear light into circular light.',
+          'A quarter-wave plate turns linear light into circular light whatever the angle to its axes.', 'A polariser alone can tell circularly polarised light from unpolarised light.', 'A quarter-wave plate turns circular light into unpolarised light.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about polarisers and wave plates (ideal, at normal incidence) are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'Circular light has equal, perpendicular components $\\pi/2$ apart; a polariser at any angle passes half. Unpolarised light also gives half at every angle, so a polariser alone cannot separate them (a quarter-wave plate first turns circular light into linear, which then can be extinguished). A half-wave plate adds $\\pi$ to one component, reflecting the polarisation direction about the fast axis; a quarter-wave plate adds $\\pi/2$, giving circular light only when the two components are equal, i.e. at $45^\\circ$. Wave plates never make light unpolarised.',
+          trap: 'Circular and unpolarised light look the same through a single polariser.' };
+      } },
+    { id: 'pol-t23', type: 'mcq', level: 2, exams: ['jam'], sub: 'elliptical light',
+      make(r) {
+        const [a, b, ph, phs, kind] = Q5.choose(r, [[3, 3, 0, '0', 0], [2, 5, Math.PI, '\\pi', 0], [4, 4, Math.PI / 2, '\\pi/2', 1], [5, 5, -Math.PI / 2, '-\\pi/2', 1], [3, 5, Math.PI / 2, '\\pi/2', 2], [4, 4, Math.PI / 3, '\\pi/3', 2], [2, 6, Math.PI / 4, '\\pi/4', 2]]);
+        const names = ['linearly polarised', 'circularly polarised', 'elliptically polarised', 'unpolarised'];
+        const o = Q5.mcqOptions(r, names[kind], names.filter((x, i) => i !== kind));
+        return { q: `A light wave has $E_x = ${a}\\cos(kz - \\omega t)$ and $E_y = ${b}\\cos(kz - \\omega t ${phs[0] === '-' ? '- ' + phs.slice(1) : '+ ' + phs})$ (arbitrary units). It is`, ...o,
+          sol: kind === 0 ? `With phase difference $${phs}$ the two components rise and fall together (or exactly opposite), so $E_y/E_x = ${ph === 0 ? '' : '-'}${q5frac(b, a)}$ at all times: the field stays on one line.`
+            : kind === 1 ? 'Equal amplitudes and a phase difference of $\\pm\\pi/2$: the tip of $\\vec E$ moves on a circle.'
+              : `The phase difference $${phs}$ is neither $0$ nor $\\pi$, and the case is not equal amplitudes with $\\pm\\pi/2$, so the tip traces an ellipse.`,
+          trap: 'Circular light needs both equal amplitudes and a phase difference of exactly $\\pi/2$.' };
+      } },
+    { id: 'pol-t24', type: 'nat', level: 3, exams: ['jam'], sub: 'analysing light', unit: 'W/m²',
+      make(r) {
+        const Iu = Q5.int(r, 2, 20), Ip = Q5.int(r, 2, 20), th = Q5.choose(r, [20, 30, 45, 60, 70]);
+        const I = Iu / 2 + Ip * Math.cos(th * Math.PI / 180) ** 2;
+        return { q: `A beam is a mixture of $${Iu}$ W/m² of unpolarised light and $${Ip}$ W/m² of light polarised along $x$. It passes an ideal polariser whose axis is at $${th}^\\circ$ to $x$. The transmitted intensity is ______ W/m² (to two decimal places).`,
+          answer: Q5.round(I, 2), tol: 0.01, Iu, Ip, th,
+          sol: `The unpolarised part always gives half: $${Iu}/2 = ${Iu / 2}$. The polarised part obeys Malus: $${Ip}\\cos^2 ${th}^\\circ = ${Q5.round(Ip * Math.cos(th * Math.PI / 180) ** 2, 3)}$. Total $= ${Q5.round(I, 2)}$ W/m².`,
+          trap: 'Malus law applies only to the polarised part.' };
+      },
+      verify: (p) => { const mx = p.Iu / 2 + p.Ip, mn = p.Iu / 2; return (mx + mn) / 2 + (mx - mn) / 2 * Math.cos(2 * p.th * Math.PI / 180); } },
+    { id: 'pol-t25', type: 'mcq', level: 2, exams: ['jam'], sub: 'optical activity', format: 'comparison',
+      make(r) {
+        const t1 = Q5.int(r, 5, 30), L1 = Q5.int(r, 1, 3), c1 = Q5.int(r, 5, 20), L2 = Q5.int(r, 1, 4), c2 = Q5.int(r, 5, 25);
+        const s = (x) => `$${Q5.round(x, 2)}^\\circ$`;
+        const o = Q5.mcqOptions(r, t1 * L2 * c2 / (L1 * c1), [t1 * L2 / L1, t1 * c2 / c1, t1 * L1 * c1 / (L2 * c2), t1 * L2 * c2 / (L1 * c1) * 2], s);
+        return { q: `A sugar solution of concentration $${c1}$ g per 100 mL in a tube $${L1}$ dm long turns the plane of polarisation by $${t1}^\\circ$. The same sugar at $${c2}$ g per 100 mL in a tube $${L2}$ dm long (same light, same temperature) turns it by`, ...o,
+          sol: `Rotation $= [\\alpha]\\,L\\,c$, proportional to both length and concentration: $\\theta_2 = ${t1}^\\circ\\times\\dfrac{${L2}\\times${c2}}{${L1}\\times${c1}} = ${Q5.round(t1 * L2 * c2 / (L1 * c1), 2)}^\\circ$.`,
+          trap: 'Both the path length and the concentration scale the rotation.' };
+      } },
     { id: 'pol-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'malus law',
       make(r) {
         const I0 = int(r, 2, 40), th = choose(r, [15, 20, 30, 37, 45, 53, 60, 70, 75]);

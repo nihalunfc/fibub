@@ -9,6 +9,25 @@ const kB = C.kB / C.e;            // Boltzmann constant in eV/K
 const kT300 = kB * 300;           // 0.025852 eV
 const q = C.e;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'semiconductors',
   items: [
@@ -239,6 +258,58 @@ export default {
   ],
 
   gens: [
+    { id: 'sem-t21', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'band gap from data', unit: 'eV',
+      make(r) {
+        const Eg = Q5.pick(r, 0.6, 1.5, 0.01), T1 = Q5.int(r, 28, 32) * 10, T2 = T1 + Q5.int(r, 2, 8) * 10, k = 8.617e-5;
+        const ratio = +((T2 / T1) ** 1.5 * Math.exp(-Eg / (2 * k) * (1 / T2 - 1 / T1))).toPrecision(4);
+        const E = 2 * k * Math.log(ratio * (T1 / T2) ** 1.5) / (1 / T1 - 1 / T2);
+        return { q: `The intrinsic carrier density of a semiconductor is $${ratio}$ times larger at $${T2}$ K than at $${T1}$ K. Using $n_i \\propto T^{3/2}e^{-E_g/2k_BT}$ with a constant gap, the band gap is ______ eV (to two decimal places; $k_B = 8.617\\times10^{-5}$ eV/K).`,
+          answer: Q5.round(E, 2), tol: 0.01, ratio, T1, T2,
+          sol: `$\\dfrac{n_2}{n_1} = \\left(\\dfrac{T_2}{T_1}\\right)^{3/2}\\exp\\left[\\dfrac{E_g}{2k_B}\\left(\\dfrac1{T_1} - \\dfrac1{T_2}\\right)\\right]$. So $E_g = \\dfrac{2k_B\\ln[(n_2/n_1)(T_1/T_2)^{3/2}]}{1/T_1 - 1/T_2} = \\dfrac{2\\times8.617\\times10^{-5}\\times${Q5.round(Math.log(ratio * (T1 / T2) ** 1.5), 4)}}{${Q5.fmt(1 / T1 - 1 / T2, 4)}} = ${Q5.round(E, 2)}$ eV.`,
+          trap: 'The exponent has $2k_BT$, not $k_BT$; and remove the $T^{3/2}$ factor before taking the logarithm.' };
+      },
+      verify: (p) => { const k = 8.617e-5, x = Math.log(p.ratio) - 1.5 * Math.log(p.T2 / p.T1); return x * 2 * k * p.T1 * p.T2 / (p.T2 - p.T1); } },
+    { id: 'sem-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'doping', format: 'statements',
+      make(r) {
+        const [el, don] = Q5.choose(r, [['phosphorus', true], ['arsenic', true], ['antimony', true], ['boron', false], ['aluminium', false], ['gallium', false], ['indium', false]]), k = Q5.int(r, 14, 18);
+        const maj = don ? 'electrons' : 'holes', min = don ? 'hole' : 'electron';
+        const T = [`The silicon becomes ${don ? 'n' : 'p'}-type.`, `The majority carriers are ${maj}.`, `The ${min} concentration is about $10^{${20 - k}}$ cm$^{-3}$.`, `The Fermi level moves towards the ${don ? 'conduction' : 'valence'} band.`, 'The crystal as a whole stays electrically neutral.'];
+        const F = [`The silicon becomes ${don ? 'p' : 'n'}-type.`, `The majority carriers are ${don ? 'holes' : 'electrons'}.`, `The ${min} concentration is about $10^{${k}}$ cm$^{-3}$.`, `The Fermi level moves towards the ${don ? 'valence' : 'conduction'} band.`, `The crystal carries a net ${don ? 'negative' : 'positive'} charge.`];
+        const o = q5msq(r, T, F);
+        return { q: `Silicon ($n_i = 10^{10}$ cm$^{-3}$ at 300 K) is doped with $10^{${k}}$ ${el} atoms per cm$^3$, all ionised. Which statements are correct at 300 K?`, ...o,
+          sol: `${el[0].toUpperCase() + el.slice(1)} is in group ${don ? '15: each atom gives an electron (a donor)' : '13: each atom takes an electron, leaving a hole (an acceptor)'}. The majority density is $10^{${k}}$ cm$^{-3}$ and mass action $np = n_i^2$ gives the minority density $10^{20}/10^{${k}} = 10^{${20 - k}}$ cm$^{-3}$. The Fermi level moves towards the ${don ? 'conduction' : 'valence'} band. Each ionised dopant's charge is balanced by its carrier, so the crystal stays neutral.`,
+          trap: 'Doping changes which carriers dominate, not the overall charge of the crystal.' };
+      } },
+    { id: 'sem-t23', type: 'mcq', level: 3, exams: ['jam'], sub: 'temperature dependence', format: 'graph',
+      make(r) {
+        const S = Q5.int(r, 30, 90) * 100, k = 8.617e-5;
+        const s = (x) => `$${Q5.round(x, 2)}$ eV`;
+        const o = Q5.mcqOptions(r, 2 * k * S, [k * S, 4 * k * S, k * S / 2], s);
+        return { q: `For an intrinsic semiconductor, a graph of $\\ln\\sigma$ against $1/T$ is a straight line with slope $-${S}$ K (ignore the slow $T^{3/2}$ factor). The band gap is about ($k_B = 8.617\\times10^{-5}$ eV/K)`, ...o,
+          sol: `$\\sigma \\propto n_i \\propto e^{-E_g/2k_BT}$, so $\\ln\\sigma = \\text{const} - \\dfrac{E_g}{2k_B}\\cdot\\dfrac1T$. The slope is $-E_g/2k_B$, so $E_g = 2k_B\\times${S} = ${Q5.round(2 * k * S, 2)}$ eV.`,
+          trap: 'The intrinsic density carries $E_g/2k_BT$: the factor 2 is easy to drop.' };
+      } },
+    { id: 'sem-t24', type: 'nat', level: 3, exams: ['jam'], sub: 'Hall mobility', unit: 'cm²/V s',
+      make(r) {
+        const n = Q5.int(r, 1, 99) * 1e15, mu = Q5.int(r, 10, 200) * 10, e = 1.602e-19;
+        const RH = +(1 / (n * e)).toPrecision(3), sg = +(n * e * mu).toPrecision(3);
+        const ans = sg * RH;
+        return { q: `An n-type sample has Hall coefficient $-${RH}$ cm$^3$/C and conductivity $${sg}$ S/cm. Assuming one kind of carrier, the electron mobility is ______ cm$^2$/(V s) (to three significant figures).`,
+          answer: +ans.toPrecision(3), tol: +(0.006 * ans).toPrecision(2), RH, sg,
+          sol: `$R_H = -1/ne$ gives $n = 1/(e|R_H|) = ${Q5.fmt(1 / (e * RH), 3)}$ cm$^{-3}$. Then $\\mu = \\sigma/ne = \\sigma|R_H| = ${sg}\\times${RH} = ${+ans.toPrecision(3)}$ cm$^2$/(V s).`,
+          trap: 'The Hall mobility is simply $\\sigma|R_H|$; the sign of $R_H$ only tells the carrier type.' };
+      },
+      verify: (p) => { const e = 1.602e-19, n = 1 / (e * p.RH); return p.sg / (n * e); } },
+    { id: 'sem-t25', type: 'mcq', level: 2, exams: ['jam'], sub: 'temperature dependence', format: 'graph',
+      make(r) {
+        const names = ['freeze-out: the donors are not yet ionised', 'extrinsic (saturation): almost all donors ionised, few intrinsic carriers', 'intrinsic: carriers across the gap outnumber the donors', 'degenerate: the Fermi level lies inside the conduction band'];
+        const desc = ['at very low temperature, where $n$ rises steeply with $T$ but stays far below $N_d$', 'over a broad middle range, where $n$ stays nearly constant at about $N_d$', 'at high temperature, where $n$ rises steeply again, far above $N_d$'];
+        const c = Q5.int(r, 0, 2);
+        const o = Q5.mcqOptions(r, names[c], names.filter((x, i) => i !== c));
+        return { q: `A graph of electron density $n$ against temperature for moderately doped n-type silicon (donor density $N_d$) is examined ${desc[c]}. This region is the`, ...o,
+          sol: 'At low $T$ electrons stay bound to donors (freeze-out). Once $k_BT$ is well above the small donor energy (tens of meV), all donors ionise and $n \\approx N_d$ over a wide range: the useful extrinsic region. When $n_i(T)$, which grows as $e^{-E_g/2k_BT}$, exceeds $N_d$, the material turns intrinsic. Degeneracy comes from very heavy doping, not from temperature.',
+          trap: 'The flat middle region is where devices work; it ends when intrinsic carriers take over.' };
+      } },
     { id: 'sem-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'mass action',
       make(r) {
         const ni = choose(r, [1.0e10, 1.5e10, 2.4e13, 2.0e6]), mat = { 1e10: 'silicon', 1.5e10: 'silicon', 2.4e13: 'germanium', 2e6: 'gallium arsenide' }[ni];

@@ -5,6 +5,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const R = 8.314;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'second-law-entropy',
   items: [
@@ -198,6 +217,56 @@ export default {
       trap: 'Comparing magnitudes. The order of hotness runs $+0 \\dots +\\infty, -\\infty \\dots -0$, and $1/T$ is the natural variable.' },
   ],
   gens: [
+    { id: 'snd-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'Carnot engine', format: 'comparison',
+      make(r) {
+        const Th = Q5.int(r, 40, 80) * 10, Tc = Q5.int(r, 25, 35) * 10, d = Q5.int(r, 1, 5) * 10;
+        const up = 100 * (1 - Tc / (Th + d)), down = 100 * (1 - (Tc - d) / Th);
+        const o = Q5.mcqOptions(r, `Lowering $T_C$ by $${d}$ K, to $\\eta = ${Q5.round(down, 1)}\\%$`, [`Raising $T_H$ by $${d}$ K, to $\\eta = ${Q5.round(up, 1)}\\%$`, 'Both give the same new efficiency', 'Neither: a Carnot efficiency is fixed by the working substance']);
+        return { q: `A Carnot engine works between $T_H = ${Th}$ K and $T_C = ${Tc}$ K. Which single change raises its efficiency more?`, ...o,
+          sol: `$\\eta = 1 - T_C/T_H$, now $${Q5.round(100 * (1 - Tc / Th), 1)}\\%$. Raising $T_H$: $1 - ${Tc}/${Th + d} = ${Q5.round(up, 1)}\\%$. Lowering $T_C$: $1 - ${Tc - d}/${Th} = ${Q5.round(down, 1)}\\%$. In general $\\Delta\\eta_{\\rm cold} - \\Delta\\eta_{\\rm hot} = \\dfrac{\\Delta T}{T_H}\\left(1 - \\dfrac{T_C}{T_H + \\Delta T}\\right) > 0$, so lowering the cold temperature always wins.`,
+          trap: '$T_C$ appears in the numerator directly; $T_H$ only in the denominator, where a change has less effect.' };
+      } },
+    { id: 'snd-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'entropy of the universe', format: 'statements',
+      make(r) {
+        const n = Q5.int(r, 1, 4), rr = Q5.choose(r, [2, 3, 4]), free = r() < 0.5;
+        const x = Q5.round(n * 8.314 * Math.log(rr), 2);
+        const S = [[`The entropy of the gas rises by $${x}$ J/K.`, true], ['The entropy of the surroundings does not change.', free], [`The entropy of the surroundings falls by $${x}$ J/K.`, !free],
+          ['The entropy of the universe does not change.', !free], [`The entropy of the universe rises by $${x}$ J/K.`, free], ['The gas absorbs heat.', !free],
+          [free ? 'The entropy of the gas does not change, because no heat flows.' : 'The entropy of the gas does not change, because its temperature is constant.', false]];
+        const o = q5msq(r, S.filter((s) => s[1]).map((s) => s[0]), S.filter((s) => !s[1]).map((s) => s[0]));
+        return { q: `$${n}$ mol of an ideal gas expands from volume $V$ to $${rr}V$ at a starting temperature $T$, ${free ? 'by a free expansion into a vacuum inside an insulated box' : 'reversibly and isothermally, in contact with a reservoir at $T$'}. Which statements are correct? ($R = 8.314$ J mol$^{-1}$ K$^{-1}$.)`, ...o,
+          sol: `Entropy is a state function. The gas ends at the same $T$ with $${rr}$ times the volume either way, so $\\Delta S_{\\rm gas} = nR\\ln ${rr} = ${x}$ J/K (work it out along a reversible isotherm). ${free ? 'In the free expansion nothing outside changes ($Q = 0$), so $\\Delta S_{\\rm surr} = 0$ and the universe gains ' + x + ' J/K: the process is irreversible.' : 'In the reversible isotherm the gas takes $Q = nRT\\ln ' + rr + '$ from the reservoir, whose entropy falls by $Q/T = ' + x + '$ J/K, so the universe is unchanged.'}`,
+          trap: '$\\Delta S = Q/T$ only along a reversible path; for the free expansion use any reversible path between the same states.' };
+      } },
+    { id: 'snd-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'entropy change', unit: 'J/K',
+      make(r) {
+        const m = Q5.pick(r, 0.1, 2, 0.1), t = Q5.int(r, 10, 80);
+        const S = m * 334000 / 273.15 + m * 4186 * Math.log((273.15 + t) / 273.15);
+        return { q: `$${m}$ kg of ice at $0\\,^\\circ$C is melted and the water warmed to $${t}\\,^\\circ$C, slowly. The entropy change of the water is ______ J/K (to the nearest whole number; latent heat $334$ kJ/kg, $c = 4186$ J kg$^{-1}$ K$^{-1}$, $0\\,^\\circ$C $= 273.15$ K).`,
+          answer: Math.round(S), tol: 1, m, t,
+          sol: `Melting at constant $T$: $\\Delta S_1 = mL/T = ${m}\\times334000/273.15 = ${Q5.round(m * 334000 / 273.15, 1)}$ J/K. Warming: $\\Delta S_2 = \\int mc\\,dT/T = mc\\ln(T_2/T_1) = ${m}\\times4186\\ln(${Q5.round(273.15 + t, 2)}/273.15) = ${Q5.round(m * 4186 * Math.log((273.15 + t) / 273.15), 1)}$ J/K. Total $\\approx ${Math.round(S)}$ J/K.`,
+          trap: 'Warming needs $\\ln(T_2/T_1)$ in kelvin, not $\\Delta T/T$.' };
+      },
+      verify: (p) => { const T1 = 273.15, T2 = 273.15 + p.t, n = 200, h = (T2 - T1) / n; let s = 0; for (let i = 0; i <= n; i++) { const w = i === 0 || i === n ? 1 : i % 2 ? 4 : 2; s += w * p.m * 4186 / (T1 + i * h); } return p.m * 334000 / T1 + s * h / 3; } },
+    { id: 'snd-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'cycles', format: 'graph',
+      make(r) {
+        const Th = Q5.int(r, 40, 90) * 10, Tc = Q5.int(r, 25, 35) * 10, S1 = Q5.int(r, 1, 5), S2 = S1 + Q5.int(r, 1, 6), dS = S2 - S1;
+        const s = (x) => `$${Q5.round(x / 1000, 2)}$ kJ`;
+        const o = Q5.mcqOptions(r, (Th - Tc) * dS, [Th * dS, Tc * dS, (Th + Tc) * dS / 2, (Th - Tc) * S2], s);
+        return { q: `On a temperature-entropy diagram, a reversible engine's cycle is a rectangle with sides at $T = ${Tc}$ K and $${Th}$ K and at $S = ${S1}$ J/K and $${S2}$ J/K, traversed clockwise. The net work done per cycle is`, ...o,
+          sol: `On a $T$-$S$ diagram the heat is $\\int T\\,dS$, the area under a path. Heat in along the top: $${Th}\\times${dS}$ J; heat out along the bottom: $${Tc}\\times${dS}$ J. Net work = enclosed area $= (${Th} - ${Tc})\\times${dS} = ${(Th - Tc) * dS}$ J. (This is a Carnot cycle.)`,
+          trap: 'The heat taken in is the area under the top side; the work is only the enclosed area.' };
+      } },
+    { id: 'snd-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'refrigerators', unit: 'W',
+      make(r) {
+        const tc = Q5.int(r, -20, 5), th = Q5.int(r, 25, 40), fr = Q5.pick(r, 0.3, 0.7, 0.05), P = Q5.int(r, 1, 8) * 100;
+        const Tc = tc + 273, Th = th + 273, Qc = fr * P * Tc / (Th - Tc);
+        return { q: `A refrigerator keeps its inside at $${tc}\\,^\\circ$C in a room at $${th}\\,^\\circ$C. Its coefficient of performance is $${fr}$ of the Carnot value, and it draws $${P}$ W of electrical power. It removes heat from the inside at ______ W (to the nearest whole number; $0\\,^\\circ$C $= 273$ K).`,
+          answer: Math.round(Qc), tol: 1, tc, th, fr, P,
+          sol: `Carnot COP $= T_C/(T_H - T_C) = ${Tc}/${Th - Tc} = ${Q5.round(Tc / (Th - Tc), 3)}$. Actual COP $= ${fr}\\times${Q5.round(Tc / (Th - Tc), 3)} = ${Q5.round(fr * Tc / (Th - Tc), 3)}$. Heat removed $= \\text{COP}\\times P = ${Math.round(Qc)}$ W.`,
+          trap: 'Use kelvin; the refrigerator COP is $T_C/(T_H - T_C)$, not $T_H/(T_H - T_C)$ (that is a heat pump).' };
+      },
+      verify: (p) => p.fr * p.P / ((p.th + 273) / (p.tc + 273) - 1) },
     { id: 'snd-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'Carnot engine',
       make(r) {
         const Th = int(r, 40, 120) * 10, Tc = int(r, 25, Math.floor(Th / 10) - 5) * 10, cel = r() < 0.4;

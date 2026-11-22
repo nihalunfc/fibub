@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const CONV = 'Take the equation of motion as $m\\ddot x + b\\dot x + kx = F_0\\cos\\omega t$, with $\\beta = b/2m$ and $\\omega_0 = \\sqrt{k/m}$.';
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'damped-forced-oscillations',
   items: [
@@ -214,6 +233,63 @@ export default {
       trap: 'For high $Q$ this ratio is almost 1, which is why the two resonances are often treated as the same; at $Q = 1$ they are not.' },
   ],
   gens: [
+    { id: 'dfo-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'phase', format: 'limiting case',
+      make(r) {
+        const reg = Q5.int(r, 0, 2), phase = r() < 0.5;
+        const where = ['much lower than', 'equal to', 'much higher than'][reg];
+        let o, sol;
+        if (phase) {
+          o = Q5.mcqOptions(r, ['$0$', '$\\pi/2$', '$\\pi$'][reg], ['$0$', '$\\pi/2$', '$\\pi$', '$\\pi/4$']);
+          sol = `$\\tan\\delta = \\dfrac{2\\beta\\omega}{\\omega_0^2 - \\omega^2}$. For $\\omega \\ll \\omega_0$, $\\tan\\delta \\to 0^+$: $\\delta \\to 0$ (the mass follows the force). At $\\omega = \\omega_0$ the denominator vanishes: $\\delta = \\pi/2$ whatever the damping. For $\\omega \\gg \\omega_0$, $\\tan\\delta \\to 0^-$: $\\delta \\to \\pi$ (the motion is opposite to the force).`;
+        } else {
+          o = Q5.mcqOptions(r, ['$F_0/k$', '$F_0/(b\\,\\omega_0)$', '$F_0/(m\\omega^2)$, falling towards zero'][reg], ['$F_0/k$', '$F_0/(b\\,\\omega_0)$', '$F_0/(m\\omega^2)$, falling towards zero', 'infinite, whatever the damping']);
+          sol = `$A(\\omega) = \\dfrac{F_0/m}{\\sqrt{(\\omega_0^2 - \\omega^2)^2 + (b\\omega/m)^2}}$. For $\\omega \\ll \\omega_0$ this is $F_0/(m\\omega_0^2) = F_0/k$ (the static stretch). At $\\omega = \\omega_0$ only the damping term is left: $A = F_0/(b\\omega_0)$, finite for any $b > 0$. For $\\omega \\gg \\omega_0$ the $\\omega^4$ term wins: $A \\approx F_0/(m\\omega^2) \\to 0$ (inertia controls).`;
+        }
+        return { q: `A mass $m$ on a spring of constant $k$ (natural frequency $\\omega_0$) with damping constant $b$ is driven by $F_0\\cos\\omega t$, with $\\omega$ ${where} $\\omega_0$. In the steady state, ${phase ? 'by what phase does the displacement lag behind the force?' : 'the amplitude is about'}`, ...o, sol,
+          trap: phase ? 'The lag at exact resonance is $\\pi/2$ for every damping, not 0.' : 'Resonance amplitude is limited by damping; it is infinite only when $b = 0$.' };
+      } },
+    { id: 'dfo-t22', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'quality factor',
+      make(r) {
+        const N = Q5.int(r, 5, 60), [p, ps] = Q5.choose(r, [[0.5, '1/2'], [1 / 3, '1/3'], [0.25, '1/4'], [0.2, '1/5'], [0.1, '1/10']]), f = Q5.int(r, 50, 900);
+        const Q = Math.PI * N / Math.log(1 / p);
+        return { q: `A lightly damped tuning fork of frequency $${f}$ Hz is struck. Its amplitude falls to $${ps}$ of the starting value in $${N}$ oscillations. Its quality factor $Q$ is ______ (to one decimal place).`,
+          answer: Q5.round(Q, 1), tol: 0.15, N, p,
+          sol: `The amplitude falls as $e^{-\\beta t}$. After $N$ periods ($t = N/f$): $e^{-\\beta N/f} = ${ps}$, so $\\beta = f\\ln(1/p)/N$. With $Q = \\omega_0/(2\\beta) = \\dfrac{2\\pi f}{2\\beta} = \\dfrac{\\pi N}{\\ln(1/p)} = \\dfrac{\\pi\\times${N}}{${Q5.round(Math.log(1 / p), 4)}} = ${Q5.round(Q, 1)}$. The frequency cancels.`,
+          trap: 'The frequency is a distractor: counting cycles already measures time in periods.' };
+      },
+      verify: (p) => { const delta = -Math.log(p.p) / p.N; return Math.PI / delta; } },
+    { id: 'dfo-t23', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'bandwidth', format: 'statements',
+      make(r) {
+        const f0 = Q5.int(r, 10, 90) * 10, Q = Q5.int(r, 10, 100), yes = r() < 0.5;
+        const bw = Q5.round(f0 / Q, 2), tE = Q5.round(1000 * Q / (2 * Math.PI * f0), 2);
+        const T = [`The half-power bandwidth is about $${bw}$ Hz.`, `The stored energy falls by a factor $e$ in about $${tE}$ ms once the drive is removed.`, 'The amplitude resonance is slightly below the natural frequency.', 'The velocity (and power) resonance is exactly at the natural frequency.'];
+        const F = [`The half-power bandwidth is about $${f0 * Q}$ Hz.`, `The half-power bandwidth is about $${Q5.round(bw / 2, 2)}$ Hz.`, 'The amplitude resonance is slightly above the natural frequency.', 'The velocity resonance is slightly below the natural frequency.', 'The displacement lags the force by $\\pi$ at the natural frequency.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `A driven oscillator has natural frequency $${f0}$ Hz and quality factor $${Q}$. Which statements are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: `Half-power bandwidth $\\Delta f = f_0/Q = ${f0}/${Q} = ${bw}$ Hz. Energy decays as $e^{-2\\beta t}$ with $2\\beta = \\omega_0/Q$, so the $1/e$ time is $Q/\\omega_0 = ${Q}/(2\\pi\\times${f0})$ s $= ${tE}$ ms. Amplitude resonance is at $\\sqrt{\\omega_0^2 - 2\\beta^2}$, a little below $\\omega_0$; velocity resonance is exactly at $\\omega_0$, where the displacement lags by $\\pi/2$.`,
+          trap: 'Energy decays twice as fast as amplitude; the bandwidth is $f_0/Q$, not $f_0/(2Q)$.' };
+      } },
+    { id: 'dfo-t24', type: 'mcq', level: 3, exams: ['jam'], sub: 'response curve', format: 'graph',
+      make(r) {
+        const k = Q5.int(r, 2, 6), ask = Q5.int(r, 0, 2);
+        const what = ['$b_P/b_Q$ of their damping constants', '$\\Delta\\omega_P/\\Delta\\omega_Q$ of their half-power widths', '$Q_P/Q_Q$ of their quality factors'][ask];
+        const right = ask === 2 ? `$${k}$` : `$1/${k}$`;
+        const o = Q5.mcqOptions(r, right, [`$${k}$`, `$1/${k}$`, `$${k * k}$`, `$1/${k * k}$`]);
+        return { q: `Two lightly damped oscillators P and Q have the same mass, the same natural frequency and the same driving-force amplitude. On a graph of steady-state amplitude against driving frequency, the peak of P is $${k}$ times as high as the peak of Q. The ratio ${what} is`, ...o,
+          sol: `For light damping the peak amplitude is $F_0/(b\\omega_0)$, so peak height $\\propto 1/b$: $b_P/b_Q = 1/${k}$. The half-power width is $\\Delta\\omega = b/m$, also $\\propto b$: ratio $1/${k}$. $Q = m\\omega_0/b \\propto 1/b$: ratio $${k}$.`,
+          trap: 'A taller peak means less damping, a narrower curve and a larger $Q$, all by the same factor.' };
+      } },
+    { id: 'dfo-t25', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'energy decay', unit: '%',
+      make(r) {
+        const m = Q5.pick(r, 0.2, 2, 0.1), k = Q5.int(r, 10, 200), b = Q5.pick(r, 0.05, 0.5, 0.05);
+        const beta = b / (2 * m), wd = Math.sqrt(k / m - beta * beta), Td = 2 * Math.PI / wd;
+        const loss = 100 * (1 - Math.exp(-2 * beta * Td));
+        return { q: `A mass of $${m}$ kg on a spring of constant $${k}$ N/m moves with damping constant $b = ${b}$ kg/s. The percentage of its mechanical energy lost in one complete (damped) oscillation is ______ % (to two decimal places).`,
+          answer: Q5.round(loss, 2), tol: 0.02, m, k, b,
+          sol: `$\\beta = b/2m = ${Q5.round(beta, 4)}$ s$^{-1}$, $\\omega_d = \\sqrt{k/m - \\beta^2} = ${Q5.round(wd, 4)}$ rad/s, $T_d = 2\\pi/\\omega_d = ${Q5.round(Td, 4)}$ s. The amplitude falls by $e^{-\\beta T_d}$ per cycle, so the energy (amplitude squared) falls by $e^{-2\\beta T_d}$. Fraction lost $= 1 - e^{-2\\beta T_d} = ${Q5.round(loss, 2)}\\%$.`,
+          trap: 'Square the amplitude ratio to get the energy ratio.' };
+      },
+      verify: (p) => { const be = p.b / (2 * p.m), T = 2 * Math.PI / Math.sqrt(p.k / p.m - be * be); const ratio = Math.exp(-be * T); return 100 * (1 - ratio * ratio); } },
     { id: 'dfo-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'underdamped motion',
       make(r) {
         const m = choose(r, [0.25, 0.5, 1, 2]), k = choose(r, [25, 50, 100, 200, 400]), w0 = Math.sqrt(k / m);

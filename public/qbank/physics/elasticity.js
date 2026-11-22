@@ -3,6 +3,7 @@
 // spinning, torsion of wires and shafts, the torsion pendulum, bending of cantilevers.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './elasticity.more.gen.js';
 
 const G0 = 9.8;
 const MATS = [
@@ -292,5 +293,6 @@ export default {
           sol: `$\\Delta L = FL/(AY) \\propto L/d^2$: ratio $= ${kL}/${kd}^2 = ${show(right)}$.`,
           trap: 'Area goes as the diameter squared.' };
       } },
+    ...more,
   ],
 };

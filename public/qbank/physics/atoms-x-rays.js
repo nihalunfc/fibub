@@ -10,6 +10,25 @@ const RH = 1.097e7;     // Rydberg constant, m^-1, as stated
 const HC = 1240;        // eV nm
 const lineNm = (Z, ni, nf) => 1e9 / (RH * Z * Z * (1 / (nf * nf) - 1 / (ni * ni)));
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'atoms-x-rays',
   items: [
@@ -235,6 +254,61 @@ export default {
   ],
 
   gens: [
+    { id: 'atx-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'bohr orbits', format: 'comparison',
+      make(r) {
+        const ion = ['H', 'He$^+$', 'Li$^{2+}$'];
+        const Z1 = Q5.int(r, 1, 3), Z2 = Q5.int(r, 1, 3), n1 = Q5.int(r, 1, 4); let n2 = Q5.int(r, 1, 4); if (Z1 === Z2 && n1 === n2) n2 = n1 === 4 ? 1 : n1 + 1;
+        const Qs = { 'orbit radius': [(n, Z) => n * n, (n, Z) => Z], 'orbital speed': [(n, Z) => Z, (n, Z) => n], 'binding energy': [(n, Z) => Z * Z, (n, Z) => n * n], 'orbital period': [(n, Z) => n ** 3, (n, Z) => Z * Z], 'angular momentum': [(n, Z) => n, () => 1] };
+        const key = Q5.choose(r, Object.keys(Qs));
+        const rat = (k) => q5frac(Qs[k][0](n1, Z1) * Qs[k][1](n2, Z2), Qs[k][1](n1, Z1) * Qs[k][0](n2, Z2));
+        const right = rat(key), inv = q5frac(Qs[key][1](n1, Z1) * Qs[key][0](n2, Z2), Qs[key][0](n1, Z1) * Qs[key][1](n2, Z2));
+        const o = Q5.mcqOptions(r, right, [inv, ...Object.keys(Qs).filter((k) => k !== key).map(rat), q5frac(n1 * Z2, n2 * Z1), q5frac(n2 * Z1 * 3, n1 * Z2 * 2)], (s) => `$${s}$`);
+        return { q: `In the Bohr model, the ratio of the ${key} of the electron in ${ion[Z1 - 1]} ($n = ${n1}$) to that in ${ion[Z2 - 1]} ($n = ${n2}$) is`, ...o,
+          sol: `Bohr scalings: $r \\propto n^2/Z$, $v \\propto Z/n$, binding energy $\\propto Z^2/n^2$, period $T = 2\\pi r/v \\propto n^3/Z^2$, angular momentum $= n\\hbar$. For the ${key}: $${right}$.`,
+          trap: 'Keep the powers straight: radius $n^2/Z$, energy $Z^2/n^2$, period $n^3/Z^2$.' };
+      } },
+    { id: 'atx-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'x-ray spectrum', format: 'statements',
+      make(r) {
+        const c = Q5.int(r, 0, 2);
+        const L = [
+          ['the accelerating voltage is raised', ['The cut-off (shortest) wavelength becomes shorter.', 'The characteristic lines stay at the same wavelengths.', 'The total X-ray intensity rises.'], ['The characteristic lines shift to shorter wavelengths.', 'The cut-off wavelength is unchanged.', 'The cut-off wavelength becomes longer.']],
+          ['the tube current is raised, at the same voltage', ['The cut-off wavelength is unchanged.', 'The characteristic lines stay at the same wavelengths.', 'The intensity at every wavelength rises.'], ['The cut-off wavelength becomes shorter.', 'The characteristic lines shift to shorter wavelengths.', 'New characteristic lines must appear.']],
+          ['the target is changed to an element of higher atomic number, at the same voltage', ['The characteristic lines move to shorter wavelengths.', 'The cut-off wavelength is unchanged.', 'The continuous spectrum generally becomes more intense.'], ['The cut-off wavelength becomes shorter.', 'The characteristic lines stay at the same wavelengths.', 'The characteristic lines move to longer wavelengths.']]][c];
+        const o = q5msq(r, L[1], L[2]);
+        return { q: `In an X-ray tube, ${L[0]}. Which statements are correct?`, ...o,
+          sol: 'The cut-off wavelength $\\lambda_{\\min} = hc/eV$ depends only on the voltage (an electron gives all its energy to one photon). Characteristic lines come from inner-shell jumps in the target atoms, so they depend only on the target ($\\propto 1/(Z-1)^2$ by Moseley), not on voltage or current (once the voltage can excite them). The current sets the number of electrons per second, so it scales the intensity everywhere; higher voltage and higher-$Z$ targets also make bremsstrahlung more intense.',
+          trap: 'Voltage moves the cut-off, the target moves the lines, and the current moves neither.' };
+      } },
+    { id: 'atx-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'hydrogen-like ions',
+      make(r) {
+        const [n1, n2] = Q5.choose(r, [[1, 2], [2, 3], [1, 3], [2, 4], [3, 4]]), Z = Q5.int(r, 1, 10);
+        const f = 1 / (n1 * n1) - 1 / (n2 * n2), lam = +(1e9 / (1.097e7 * Z * Z * f)).toPrecision(4);
+        const ans = Math.round(Math.sqrt(1e9 / (1.097e7 * lam * f)));
+        return { q: `A hydrogen-like ion emits a line of wavelength $${lam}$ nm when its electron drops from $n = ${n2}$ to $n = ${n1}$. Its atomic number $Z$ is ______ (use $R = 1.097\\times10^7$ m$^{-1}$).`,
+          answer: ans, tol: 0, n1, n2, lam,
+          sol: `$\\dfrac1\\lambda = RZ^2\\left(\\dfrac1{${n1}^2} - \\dfrac1{${n2}^2}\\right)$, so $Z^2 = \\dfrac{1}{R\\lambda(${Q5.round(f, 4)})} = \\dfrac{1}{1.097\\times10^7\\times${lam}\\times10^{-9}\\times${Q5.round(f, 4)}} = ${Q5.round(1e9 / (1.097e7 * lam * f), 2)}$, so $Z = ${ans}$.`,
+          trap: 'The Rydberg formula for an ion carries $Z^2$, not $Z$.' };
+      },
+      verify: (p) => { const E = 1240 / p.lam, f = 1 / (p.n1 * p.n1) - 1 / (p.n2 * p.n2); return Math.round(Math.sqrt(E / (13.6 * f))); } },
+    { id: 'atx-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'franck-hertz', format: 'graph',
+      make(r) {
+        const dV = Q5.choose(r, [4.9, 4.7, 6.7, 2.1, 1.6, 10.2, 3.2]);
+        const s = (x) => `$${Q5.round(x, 1)}$ nm`;
+        const o = Q5.mcqOptions(r, 1240 / dV, [620 / dV, 2480 / dV, 1240 / (dV + 1), 1240 * dV / 10], s);
+        return { q: `In a Franck-Hertz experiment with a certain vapour, the graph of collector current against accelerating voltage shows sharp dips spaced $${dV}$ V apart. Light emitted by the excited atoms has a wavelength of about ($hc = 1240$ eV nm)`, ...o,
+          sol: `Each dip marks electrons that have just enough energy to excite an atom and lose it in one collision; the spacing $${dV}$ V means the excitation energy is $${dV}$ eV. The atom returns by emitting $\\lambda = hc/E = 1240/${dV} = ${Q5.round(1240 / dV, 1)}$ nm. (For mercury, $4.9$ V gives the $254$ nm ultraviolet line.)`,
+          trap: 'Use the spacing between dips, not the position of the first dip, which is shifted by contact potentials.' };
+      } },
+    { id: 'atx-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'moseley', unit: 'pm',
+      make(r) {
+        const Z1 = Q5.int(r, 20, 50), Z2 = 20 + ((Z1 - 20 + Q5.int(r, 1, 30)) % 31);
+        const l1 = +(1240e3 / (10.2 * (Z1 - 1) ** 2)).toPrecision(4), l2 = l1 * (Z1 - 1) ** 2 / (Z2 - 1) ** 2;
+        return { q: `The $K\\alpha$ X-ray line of an element with $Z = ${Z1}$ has wavelength $${l1}$ pm. Using Moseley's law ($\\sqrt f \\propto Z - 1$), the $K\\alpha$ wavelength for $Z = ${Z2}$ is ______ pm (to three significant figures).`,
+          answer: +l2.toPrecision(3), tol: +(0.006 * l2).toPrecision(2), Z1, Z2, l1,
+          sol: `$f \\propto (Z - 1)^2$, so $\\lambda \\propto 1/(Z - 1)^2$: $\\lambda_2 = ${l1}\\times\\dfrac{${Z1 - 1}^2}{${Z2 - 1}^2} = ${+l2.toPrecision(3)}$ pm.`,
+          trap: 'Moseley uses $Z - 1$ (screening by the other K electron), and wavelength goes inversely with frequency.' };
+      },
+      verify: (p) => 1240e3 / (10.2 * (p.Z2 - 1) ** 2) },
     { id: 'atx-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'bohr energies',
       make(r) {
         const [Z, ion] = choose(r, [[1, 'a hydrogen atom'], [2, 'a He$^+$ ion'], [3, 'a Li$^{2+}$ ion'], [4, 'a Be$^{3+}$ ion']]), n = int(r, 1, 5);

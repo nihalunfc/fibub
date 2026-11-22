@@ -2,6 +2,7 @@
 // one and two dimensions, coefficient of restitution and the centre-of-mass frame.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank. g = 9.8 m/s².
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './work-energy-collisions.more.gen.js';
 
 export default {
   topic: 'work-energy-collisions',
@@ -333,5 +334,6 @@ export default {
           trap: 'Momentum adds as a vector, so combine the components with Pythagoras.' };
       },
       verify: (p) => Math.hypot(p.m1 * p.u1, p.m2 * p.u2) / (p.m1 + p.m2) },
+    ...more,
   ],
 };

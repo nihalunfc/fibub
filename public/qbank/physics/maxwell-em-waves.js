@@ -7,6 +7,25 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 
 const c = C.c, e0 = C.eps0, mu0 = C.mu0;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'maxwell-em-waves',
   items: [
@@ -218,6 +237,55 @@ export default {
       trap: 'Thinking nothing is reflected at Brewster\'s angle: only the p component vanishes.' },
   ],
   gens: [
+    { id: 'mxw-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'plane waves',
+      make(r) {
+        const i = Q5.int(r, 0, 2), j = (i + Q5.int(r, 1, 2)) % 3, l = 3 - i - j, sE = r() < 0.5 ? 1 : -1, sB = r() < 0.5 ? 1 : -1;
+        const eps = (j - i + 3) % 3 === 1 ? 1 : -1, sk = sE * sB * eps;
+        const ax = ['x', 'y', 'z'], d = (s, a) => `$${s > 0 ? '+' : '-'}\\hat ${ax[a]}$`;
+        const o = Q5.mcqOptions(r, d(sk, l), [d(-sk, l), d(sE, i), d(sB, j), d(-sE, i)]);
+        return { q: `At some point and instant, a plane electromagnetic wave in vacuum has its electric field along ${d(sE, i)} and its magnetic field along ${d(sB, j)}. The wave is travelling along`, ...o,
+          sol: `The wave travels along $\\vec E\\times\\vec B$ (the Poynting vector). ${d(sE, i)} $\\times$ ${d(sB, j)} $=$ ${d(sk, l)}, using $\\hat x\\times\\hat y = \\hat z$ and its cyclic forms.`,
+          trap: 'The order matters: $\\vec E\\times\\vec B$, not $\\vec B\\times\\vec E$.' };
+      } },
+    { id: 'mxw-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'plane waves', format: 'statements',
+      make(r) {
+        const f = Q5.int(r, 50, 900), yes = r() < 0.5;
+        const T = [`Its wavelength is $${Q5.round(300 / f, 3)}$ m.`, 'At each point its electric and magnetic energy densities are equal.', '$\\vec E$ and $\\vec B$ oscillate in phase.', 'Its average intensity is proportional to the square of the electric field amplitude.', 'Both fields are perpendicular to the direction of travel.'];
+        const F = [`Its wavelength is $${Q5.round(600 / f, 3)}$ m.`, '$\\vec E$ and $\\vec B$ are a quarter period out of phase.', 'Its electric energy density is $c$ times its magnetic energy density.', 'Its average intensity is proportional to the electric field amplitude.', 'Its magnetic field amplitude is $c$ times its electric field amplitude.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `A plane electromagnetic wave of frequency $${f}$ MHz travels in vacuum. Which statements are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: `$\\lambda = c/f = 3\\times10^8/(${f}\\times10^6) = ${Q5.round(300 / f, 3)}$ m. In a vacuum plane wave $B = E/c$ and the two are in phase and perpendicular to each other and to $\\vec k$. Energy densities: $\\tfrac12\\varepsilon_0E^2 = \\tfrac12B^2/\\mu_0$ since $B^2 = \\varepsilon_0\\mu_0E^2$. $\\bar I = \\tfrac12c\\varepsilon_0E_0^2 \\propto E_0^2$.`,
+          trap: 'Although $B = E/c$ is tiny in SI units, the magnetic field carries exactly half the energy.' };
+      } },
+    { id: 'mxw-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'momentum and pressure', unit: 'μPa',
+      make(r) {
+        const I = Q5.int(r, 1, 20) * 100, th = Q5.choose(r, [0, 15, 30, 45, 60]);
+        const P = 2 * I * Math.cos(th * Math.PI / 180) ** 2 / 3e8 * 1e6;
+        return { q: `Light of intensity $${I}$ W/m$^2$ falls on a flat, perfectly reflecting mirror at $${th}^\\circ$ to the normal. The radiation pressure on the mirror is ______ $\\mu$Pa (to three decimal places; $c = 3\\times10^8$ m/s).`,
+          answer: Q5.round(P, 3), tol: 0.002, I, th,
+          sol: `The beam brings momentum $I/c$ per unit time per unit beam area. A beam meeting the mirror at $\\theta$ spreads over an area larger by $1/\\cos\\theta$, and reflection reverses only the normal part, $2\\cos\\theta$ of the momentum. So $P = \\dfrac{2I\\cos^2\\theta}{c} = \\dfrac{2\\times${I}\\times\\cos^2${th}^\\circ}{3\\times10^8} = ${Q5.round(P, 3)}\\ \\mu$Pa.`,
+          trap: 'One $\\cos\\theta$ comes from the spread of the beam over the surface, the other from the normal part of the momentum.' };
+      },
+      verify: (p) => { const c = Math.cos(p.th * Math.PI / 180), flux = p.I * c / 3e8; return flux * 2 * c * 1e6; } },
+    { id: 'mxw-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'maxwell equations', format: 'units',
+      make(r) {
+        const units = ['m s$^{-1}$', '$\\Omega$', 'J m$^{-3}$', 'W m$^{-2}$', 'N C$^{-1}$', 'T'];
+        const [ex, u] = Q5.choose(r, [['1/\\sqrt{\\mu_0\\varepsilon_0}', 0], ['\\sqrt{\\mu_0/\\varepsilon_0}', 1], ['E/B', 0], ['\\varepsilon_0E^2', 2], ['EB/\\mu_0', 3], ['B^2/\\mu_0', 2]]);
+        const o = Q5.mcqOptions(r, units[u], Q5.shuffle(r, units.filter((x, i) => i !== u)));
+        return { q: `In SI units, with $E$ an electric field and $B$ a magnetic field, the quantity $${ex}$ is measured in`, ...o,
+          sol: '$1/\\sqrt{\\mu_0\\varepsilon_0} = c$ and $E/B = c$ (for a wave): speeds. $\\sqrt{\\mu_0/\\varepsilon_0} \\approx 377\\ \\Omega$, the impedance of free space. $\\varepsilon_0E^2$ and $B^2/\\mu_0$ are (twice) energy densities, J m$^{-3}$. $EB/\\mu_0$ is the size of the Poynting vector, W m$^{-2}$.',
+          trap: 'Energy density J m$^{-3}$ is the same as pressure N m$^{-2}$; intensity has an extra "per second".' };
+      } },
+    { id: 'mxw-t25', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'waves in matter', unit: 'nT',
+      make(r) {
+        const E0 = Q5.int(r, 10, 300), er = Q5.choose(r, [2.25, 4, 1.69, 2.56, 9, 6.25]);
+        const n = Math.sqrt(er), B0 = n * E0 / 2.998e8 * 1e9;
+        return { q: `A plane wave travels in a non-magnetic, lossless dielectric with $\\varepsilon_r = ${er}$. Its electric field amplitude is $${E0}$ V/m. Its magnetic field amplitude is ______ nT (to two decimal places; $c = 2.998\\times10^8$ m/s).`,
+          answer: Q5.round(B0, 2), tol: Math.max(0.01, Q5.round(0.002 * B0, 3)), E0, er,
+          sol: `The wave speed is $v = c/n$ with $n = \\sqrt{\\varepsilon_r} = ${n}$, and $B_0 = E_0/v = nE_0/c = ${n}\\times${E0}/2.998\\times10^8 = ${Q5.round(B0, 2)}$ nT.`,
+          trap: 'In matter $B = E/v$, not $E/c$: the magnetic field is larger by $n$.' };
+      },
+      verify: (p) => { const mu0 = 4e-7 * Math.PI, eta = mu0 * 2.998e8 / Math.sqrt(p.er), H = p.E0 / eta; return mu0 * H * 1e9; } },
     { id: 'mxw-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'plane waves', unit: 'nT',
       make(r) {
         const E = int(r, 1, 100) * 3;
