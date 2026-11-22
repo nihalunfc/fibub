@@ -3,7 +3,7 @@ title: 'Measuring fit: residuals, RMSE and R²'
 seoTitle: 'Regression metrics: residuals, RMSE, MAE and R²'
 summary: 'How good is a regression model? RMSE and MAE give the typical error in real units, R² gives the share of variation explained, and a residual plot shows what the scores hide. Switch between four datasets and read the residuals.'
 minutes: 25
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'Errors of 2, −2, 2, −2 and 10. Which is larger, MAE or RMSE?'
     choices: ['MAE', 'RMSE', 'They are equal']
@@ -17,13 +17,19 @@ quiz:
     choices: ['Collect more rows', 'Add a squared term or another feature that captures the curve', 'Report a higher R²']
     ans: 1
     why: A pattern in the residuals means the model is missing a shape. A U says the relationship curves.
+sources:
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Sections 2.2 and 3.1 (assessing model accuracy, R²) https://www.statlearning.com/'
+  - 'scikit-learn user guide: Regression metrics https://scikit-learn.org/stable/modules/model_evaluation.html'
+  - 'Hyndman, R. J. and Athanasopoulos, G. (2021), Forecasting: Principles and Practice, 3rd ed., OTexts, Section 5.8 (evaluating point forecast accuracy) https://otexts.com/fpp3/'
 ---
 
 **Module 3 · about 25 minutes · read first: 3.2.** You'll be able to compute MAE, RMSE and R², choose the right one for a job, and diagnose a model from its residual plot.
 
+<div class="bigidea">Ask two questions of every model: how far off is it typically (MAE, RMSE, R²), and is it missing a pattern (the residual plot)?</div>
+
 ## 1. Why this matters
 
-A model always produces numbers, even a bad one. Before anyone acts on its predictions they need two answers: how far off is it, typically, and is it missing something systematic? The scores answer the first. The residual plot answers the second, and catches problems the scores hide.
+A model always produces numbers, even a bad one, just as a broken clock always shows a time. Before anyone acts on its predictions they need two answers: how far off is it, typically, and is it missing something systematic? The scores answer the first. The residual plot answers the second, and catches problems the scores hide.
 
 ## 2. Three scores
 
@@ -38,6 +44,18 @@ With residuals `$e_i = y_i - \hat y_i$` on `$n$` test rows:
 Choose by what hurts: if one miss of 10 is much worse than five misses of 2 (stock levels, dosing), use RMSE. If every unit of error costs the same (delivery minutes), MAE is more honest. R² is good for comparing models on the same data, but it says nothing about whether the error is small enough for the job: an R² of 0.9 can still mean errors of $50,000 on house prices.
 
 Always quote scores on **test** data. On training data they flatter.
+
+Here are all three scores for one small test, step by step. True sandwich sales on four days were 3, 5, 7 and 9 (dozens); a model predicted 4, 5, 6 and 9:
+
+<div class="steps">
+<div class="step"><b>The errors.</b> y − ŷ = −1, 0, 1, 0.</div>
+<div class="step"><b>MAE.</b> Average the sizes: (1 + 0 + 1 + 0) ÷ 4 = 0.5 dozen. "We are typically off by half a dozen."</div>
+<div class="step"><b>RMSE.</b> Square, average, square root: √((1 + 0 + 1 + 0) ÷ 4) = √0.5 ≈ 0.71 dozen. A little bigger than MAE, as it always is unless every error is the same size.</div>
+<div class="step"><b>The baseline.</b> Always guessing the mean, 6, gives squared errors 9, 1, 1, 9: SST = 20. The model's squared errors add to SSE = 2.</div>
+<div class="step"><b>R².</b> 1 − 2 ÷ 20 = 0.9. The model removes 90 % of the baseline's squared error.</div>
+</div>
+
+<div class="problem" data-problem="measuring-fit-rmse"></div>
 
 ## 3. Reading residuals
 
@@ -73,6 +91,26 @@ Also, `$\text{RMSE} = \sqrt{\text{SSE}/n}$`, so lowering one lowers the other, a
 **Try it:** y = 3, 5, 7, 9; predictions 4, 5, 6, 9. Find R². (`$\bar y = 6$`; SST = 9 + 1 + 1 + 9 = 20; SSE = 1 + 0 + 1 + 0 = 2; R² = 1 − 2/20 = 0.9.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>MAE</dt><dd>The average size of a miss, in the units of y. Every unit of error counts the same.</dd>
+<dt>RMSE</dt><dd>The square root of the average squared miss. Big misses count extra.</dd>
+<dt>SSE and SST</dt><dd>The model's total squared error, and the total squared error of always guessing the mean.</dd>
+<dt>R² = 1 − SSE ÷ SST</dt><dd>The share of the baseline's error the model removes: 1 is perfect, 0 is no better than the mean, below 0 is worse.</dd>
+<dt>Physical meaning</dt><dd>MAE is what an average customer feels: "it's usually about 9 minutes late". RMSE is what the complaints desk feels, because the one order that was 40 minutes late hurts far more than four that were 10 minutes late. R² is what the manager asks: "how much better is this than just guessing the usual?".</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"An R² of 0.9 means the predictions are good enough."** R² compares with the mean, not with what the job needs. House prices that vary by $500,000 can give R² = 0.9 while the typical miss is still $100,000, too much for a buyer. Always quote an error in real units (MAE or RMSE) next to R².
+
+</div>
+
+<div class="problem" data-problem="measuring-fit-r2"></div>
+
 ## 4. Worked example
 
 *Made-up numbers.* Two models predict delivery times (minutes) for the same 6 test orders, whose true times are 20, 25, 30, 35, 40, 90 (the last was a road closure).
@@ -103,3 +141,12 @@ Model A is closer on five of six orders and has the lower MAE; Model B has the l
 **Try it on your own data:** the [[regression-workbench]] shows R² and a residual plot for any model you fit.
 
 **New words:** *MAE*, *RMSE*, *R²*, *SSE* and *SST*, *residual plot*, *heteroscedasticity* (a funnel: the error spread changes with the prediction).
+
+<div class="keypoints">
+
+- MAE is the average size of the errors; RMSE counts big errors more; both are in the units of y, and MAE ≤ RMSE.
+- R² = 1 − SSE ÷ SST is the share of the mean-guess error the model removes; on test data it can be negative.
+- Choose the score by what hurts the business, and always quote it on test data.
+- A residual plot should look like random noise; curves, funnels and groups point to what the model is missing.
+
+</div>

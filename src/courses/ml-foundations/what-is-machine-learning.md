@@ -3,7 +3,7 @@ title: What data analytics and machine learning are
 seoTitle: 'What is machine learning? A plain introduction'
 summary: Data analytics describes what happened; machine learning finds a rule from examples so it can predict what has not happened yet. See the difference, and let a machine learn its first rule.
 minutes: 15
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: In machine learning, what does the computer get, and what does it produce?
     choices: ['It gets rules and data, and produces answers', 'It gets data and the right answers, and produces a rule (the model)', 'It gets a question and searches the internet']
@@ -17,17 +17,27 @@ quiz:
     choices: ['Typing in the best cut-off by hand', 'Trying many cut-offs and keeping the one with the fewest mistakes on the examples', 'Adding more students']
     ans: 1
     why: Training is a search for the settings that make the fewest mistakes on known examples. Every model in this course is trained this way, only with smarter searches.
+sources:
+  - 'Mitchell, T. M. (1997), Machine Learning, McGraw-Hill, Chapter 1 (the "learning from experience" definition)'
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapter 2 https://www.statlearning.com/'
+  - 'Goodfellow, I., Bengio, Y. and Courville, A. (2016), Deep Learning, MIT Press, Chapter 5 (machine learning basics) https://www.deeplearningbook.org/'
 ---
 
 **Module 1 · about 15 minutes · no maths needed yet.** You'll be able to say what data analytics and machine learning are, how they differ from normal programming, and what "training a model" means.
 
+<div class="bigidea">Machine learning means showing a computer many examples with their answers, and letting it find the rule by itself.</div>
+
 ## 1. Why this matters
 
-Every day, programs decide which email is spam, which song plays next, how much a house might sell for and which words a chatbot writes. Most of these programs were not written rule by rule by a person. They **learned** their rules from examples. This course shows you how, step by step, from the simplest learner (a straight line) to the largest (a language model such as the ones behind chat assistants).
+Every day, programs decide which email is spam, which song plays next, what a house might sell for and which words a chatbot writes. Nobody wrote most of these rules by hand. The programs **learned** them from examples.
+
+Think of how a child learns what a dog is. Nobody gives the child a rule book ("four legs, fur, barks"). The child sees many dogs, hears "dog" each time, and slowly works out the pattern. Machine learning does the same thing with numbers.
+
+This course takes you from the simplest learner (a straight line) to the largest (the language models behind chat assistants), one small step at a time.
 
 ## 2. Three kinds of work with data
 
-People use "data analytics", "data science" and "machine learning" loosely. A useful way to keep them apart is by the question each answers:
+People mix up "data analytics", "data science" and "machine learning". The easiest way to keep them apart is to ask which question each one answers:
 
 | Kind | The question | Example |
 |---|---|---|
@@ -35,31 +45,47 @@ People use "data analytics", "data science" and "machine learning" loosely. A us
 | **Diagnostic analytics** | Why did it happen? | Sales fell in stores where a competitor opened. |
 | **Predictive (machine learning)** | What will happen, or what is this new thing? | Next week's sales; is this email spam? |
 
-Descriptive and diagnostic work mostly uses summaries, charts and careful comparisons (Module 2). Predictive work needs a **model**: a rule that turns inputs into a prediction. Machine learning is the craft of finding that rule from data.
+The first two look backwards. They use summaries, charts and careful comparisons (Module 2). The third looks forwards. It needs a **model**: a rule that turns inputs (what you know) into a prediction (what you want to know). Machine learning is the craft of finding that rule from data.
 
 ## 3. Rules written by people, or rules found by the machine
 
 <!--fig:rules-vs-learning-->
 
-In normal programming, a person writes the rule: "if the mark is 40 or more, print pass". That works when the rule is known and simple. It fails when nobody can write the rule down. Try writing exact rules for "is this photo a cat?" or "will this customer cancel?" and you'll see the problem.
+In normal programming, a person writes the rule: "if the mark is 40 or more, print pass". That works when the rule is simple and known. It breaks when nobody can write the rule down. Try writing exact rules for "is this photo a cat?" or "will this customer cancel?" and you'll soon give up.
 
-Machine learning turns it round. You give the computer many **examples** together with the **right answers** (photos labelled cat or not cat; past customers marked cancelled or stayed). The computer searches for a rule that gets those examples right. The rule it finds is the **model**. Then you use the model on new examples whose answers you don't know.
+Machine learning turns this round. You give the computer many **examples** together with the **right answers**: photos labelled cat or not cat, past customers marked "cancelled" or "stayed". The computer searches for a rule that gets those examples right. The rule it finds is the **model**. Then you use the model on new cases whose answers you don't know yet.
+
+<div class="myth">
+
+**"A model that has learned is always right."** No. A model is a summary of past examples, and real life is noisy. Even the best rule in the simulation below gets some students wrong, because hours of study don't decide everything. A good model is right *more often* than a simple guess, and you measure how often on cases it has never seen (Lesson 2.5).
+
+</div>
 
 ## 4. The smallest possible learning machine
 
-Here are 24 students. For each, we know how many hours they studied and whether they passed. We want a rule of the form "pass if hours ≥ some cut-off". Move the slider to try cut-offs yourself, then let the machine do it.
+Here are 24 students. For each one, we know how many hours they studied and whether they passed. We want a rule of the form "pass if hours ≥ some cut-off". Move the slider to try cut-offs yourself, then let the machine do it.
 
 <!--fig:learn-a-rule-->
 
-What the machine did is exactly what training means in every model of this course:
+What the machine did is exactly what "training" means for every model in this course:
 
-1. **Choose a family of rules** (here: "pass if hours ≥ c", for any number c).
-2. **Measure how wrong a rule is** on the known examples (here: count the mistakes).
-3. **Search** for the setting with the smallest error (here: try every c in steps of 0.25).
+1. **Choose a family of rules.** Here: "pass if hours ≥ c", for any number c.
+2. **Measure how wrong a rule is** on the known examples. Here: count the mistakes.
+3. **Search** for the setting with the smallest error. Here: try every c in steps of 0.25.
 
-The number c is called a **parameter**: a setting the machine learns. A straight line has 2 parameters, a decision tree has a few dozen, and a large language model has billions. Steps 1 to 3 stay the same. What changes is the family of rules and how clever the search is.
+Watch the same three steps with just eight students:
 
-Notice also that even the best cut-off makes a few mistakes. Some students studied little and passed; some studied a lot and failed. Real data is noisy, and a model is a useful summary, not a perfect oracle.
+<div class="steps" data-fig="what-is-machine-learning-cutoff">
+<div class="step"><b>The examples.</b> Eight students studied 1 to 8 hours. P means passed, F means failed. Mostly, more hours means a pass, but student 3 passed with little study and student 5 failed with a lot.</div>
+<div class="step"><b>Try c = 2.</b> The rule says everyone with 2 or more hours passes. It is wrong about students 2, 4 and 5, who failed. That is 3 mistakes.</div>
+<div class="step"><b>Try c = 4.</b> Now students 1 to 3 are predicted to fail. Student 3 actually passed, and 4 and 5 still failed. Still 3 mistakes.</div>
+<div class="step"><b>Try c = 6.</b> Students 1 to 5 are predicted to fail, 6 to 8 to pass. Only student 3 is wrong: 1 mistake.</div>
+<div class="step"><b>Keep the best.</b> No other cut-off does better, so training keeps c = 6. Student 3 is still wrong. That is noise, not a bug: no single cut-off can fix it.</div>
+</div>
+
+The number c is called a **parameter**: a setting the machine learns. A straight line has 2 parameters, a decision tree a few dozen, and a large language model billions. The three steps stay the same. Only the family of rules and the cleverness of the search change.
+
+<div class="problem" data-problem="what-is-machine-learning-cutoff"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -85,6 +111,18 @@ Read it as: "c-star is the value of c that makes the count of wrong predictions 
 **Try it:** 5 students studied 1, 3, 4, 6 and 8 hours. Only the last two passed. How many mistakes does c = 5 make? (None: 6 and 8 are at least 5 and passed; the rest are below 5 and failed.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Model</dt><dd>A rule that turns what you know (hours studied) into a guess about what you want to know (pass or fail).</dd>
+<dt>Parameter (c)</dt><dd>A dial inside the model that training turns. Here, the cut-off number of hours.</dd>
+<dt>Error</dt><dd>How often, or how badly, the model is wrong on examples whose answers you already know.</dd>
+<dt>Training</dt><dd>Turning the dials until the error is as small as possible.</dd>
+<dt>Physical meaning</dt><dd>The model is a compressed memory of experience. A tutor who has seen hundreds of students can guess who will pass; the machine does the same with a written-down rule, and it never gets tired or forgets an example.</dd>
+</dl>
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* A small shop wants to know which online orders will be returned. Writing rules by hand ("if size is XL and colour is beige...") quickly gets out of control. Instead it takes 2,000 past orders, each with columns such as price, category, delivery days and whether the customer had returned something before, plus the answer: returned or not. A model trained on 1,500 of them is checked on the other 500 it never saw, and gets 82 % right, against 70 % for the simple guess "nothing is ever returned". That 12-point gain is what the model is worth. The shop then uses it to add a sizing tip to the risky orders. Every step of that story (choosing columns, splitting off 500 rows, comparing with a simple guess) is a lesson in this course.
@@ -106,3 +144,13 @@ Read it as: "c-star is the value of c that makes the count of wrong predictions 
 **New words:** *model* (a rule found from data that turns inputs into a prediction), *training* (searching for the parameter values with the least error), *parameter* (a setting the machine learns), *prediction* (the model's output, written `$\hat y$`).
 
 **Next:** the words used for every dataset: features, labels and examples.
+
+<div class="keypoints">
+
+- Analytics describes the past; machine learning predicts what is not yet known.
+- In machine learning you give examples with answers, and the computer finds the rule (the model).
+- Training has three steps: choose a family of rules, measure the error, search for the settings with the least error.
+- A parameter is a dial the machine sets; big models have billions of them, but the idea is the same.
+- Real data is noisy, so even the best model makes some mistakes.
+
+</div>
