@@ -2,6 +2,7 @@
 // and orthogonal matrices, Cayley-Hamilton, functions of matrices, Pauli matrices.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './matrices.more.gen.js';
 
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const mat2 = (a, b, c, d) => `\\begin{pmatrix} ${a} & ${b} \\\\ ${c} & ${d} \\end{pmatrix}`;
@@ -303,5 +304,6 @@ export default {
           sol: `$(\\vec a\\cdot\\vec\\sigma)^2 = |\\vec a|^2I$, and $\\vec a\\cdot\\vec\\sigma$ is traceless, so the eigenvalues are $\\pm|\\vec a| = \\pm\\sqrt{${a * a} + ${b * b} + ${c * c}} = \\pm${+n.toFixed(3)}$.`,
           trap: 'Adding the coefficients ($' + (a + b + c) + '$) treats the Pauli matrices as if they commuted.' };
       } },
+    ...more,
   ],
 };

@@ -2,6 +2,7 @@
 // constant-coefficient homogeneous and forced equations, damping, resonance, Euler-Cauchy, physical models.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './differential-equations.more.gen.js';
 
 export default {
   topic: 'differential-equations',
@@ -299,5 +300,6 @@ export default {
           trap: 'Multiply the right side by the integrating factor too: $x^' + n + '\\cdot x^' + m + '$.' };
       },
       verify: (p) => 2 ** (p.m + 1) / (p.m + p.n + 1) + (p.y1 - 1 / (p.m + p.n + 1)) * 2 ** -p.n },
+    ...more,
   ],
 };

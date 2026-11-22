@@ -1,6 +1,7 @@
 // Gauss (divergence), Stokes and Green: the integral theorems, solid angle, flux of point sources, closing surfaces.
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './integral-theorems.more.gen.js';
 
 export default {
   topic: 'integral-theorems',
@@ -306,5 +307,6 @@ export default {
           trap: 'Using $\\pi a^2/d^2$ (the small-disc approximation) is wrong for a disc this large.' };
       },
       verify: (p) => 2 * (1 - p.d / p.h) },
+    ...more,
   ],
 };
