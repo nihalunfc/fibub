@@ -1,0 +1,203 @@
+---
+// #T1072 KPI dashboard: the few numbers a manager checks each morning, with change and a plain note (maths in src/lib/biz/dash.ts).
+// Runs in the browser. Your file is read on this device and never uploaded; saving settings and budget on the device is opt-in.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax kp">
+  <div class="ax-card">
+    <h2>1. Your daily numbers</h2>
+    <p class="ax-help kp-src" style="margin-top:0"></p>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="kp-preset"><option value="hotel">Hotels (rooms)</option><option value="restaurant">Restaurants (covers)</option><option value="clinic">Clinics (appointments)</option><option value="any">Any business</option></select>
+      </label>
+      <label>Currency <select class="kp-cur"></select></label>
+    </div>
+    <p class="ax-help">One row per site per day. Columns: date, site (optional), places available, number sold, revenue; then total revenue and profit if you have them. Headings are matched by name; without headings the order above is used.</p>
+    <textarea class="kp-paste" rows="5" spellcheck="false" placeholder="date&#9;site&#9;available&#9;sold&#9;revenue&#10;2026-10-01&#9;North&#9;120&#9;96&#9;13400"></textarea>
+    <DataFile target=".kp-paste" maxCols={10} maxRows={60000} label="Open a file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small kp-use">Use these numbers</button><button type="button" class="btn secondary small kp-sample">Back to the example</button></div>
+    <p class="biz-warn kp-imp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Period and site</h2>
+    <div class="ax-grid">
+      <label>Period <select class="kp-period"></select></label>
+      <label>Site <select class="kp-site"></select></label>
+    </div>
+    <p class="ax-help">Periods count back from the latest date in your data. The previous period is the same number of days just before it; for a month or year to date it is the same stretch last month or last year.</p>
+  </div>
+
+  <div class="ax-card kp-res" aria-live="polite">
+    <h2 class="kp-title">Results</h2>
+    <p class="ax-help kp-range" style="margin-top:0"></p>
+    <div class="biz-kpis kp-kpis"></div>
+    <p class="biz-take kp-take"></p>
+    <h3 class="biz-sub kp-ct1"></h3>
+    <svg class="biz-svg kp-chart1" viewBox="0 0 700 220" role="img" aria-label="Use of capacity by month, this year against last year"></svg>
+    <div class="ax-legend"><span><i style="background:var(--accent)"></i>Latest 12 months</span><span><i style="background:var(--muted)"></i>The 12 months before</span></div>
+    <h3 class="biz-sub">Revenue by month</h3>
+    <svg class="biz-svg kp-chart2" viewBox="0 0 700 200" role="img" aria-label="Revenue by month"></svg>
+    <h3 class="biz-sub">By site</h3>
+    <div class="ax-scroll"><table class="biz-tbl kp-sites"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small kp-csv">Download the numbers (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Budget against actual</h2>
+    <p class="ax-help" style="margin-top:0">Type the target use of capacity and price for each month of the latest year. Budget revenue is places available times use times price. It follows the site chosen in step 2.</p>
+    <div class="ax-scroll"><table class="biz-tbl kp-bud"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small kp-fill">Fill from last year plus 3%</button><button type="button" class="btn secondary small kp-csvb">Download budget (CSV)</button></div>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="kp-keep" /> Remember my settings and budget on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, the currency, period, site and budget stay in this browser only. Your daily numbers file is never kept. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small kp-clear">Clear saved settings</button></div>
+  </div>
+  <p class="biz-fine">Figures are only as good as the rows you give it. Not advice; check against your own reports.</p>
+</div>
+
+<style is:inline>
+  .kp .kp-bud input { width: 86px; text-align: right; }
+  .kp .kp-bud td:first-child, .kp .kp-sites td:first-child { font-weight: 600; }
+</style>
+
+<script>
+  import { importRows, sumRows, use, price, perPlace, change, ranges, PERIODS, monthly, note, sampleRows, lineSvg, barSvg, shiftYear, type Row, type SiteDef } from '../../lib/biz/dash';
+  import { addDays, todayISO, toCSV, downloadText, keeper, toNum } from '../../lib/biz/common';
+  import { money, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.kp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  type Kind = { unit: string; use: string; price: string; per: string; sites: SiteDef[] };
+  const KINDS: Record<string, Kind> = {
+    hotel: { unit: 'room', use: 'Occupancy', price: 'Average rate', per: 'Revenue per available room', sites: [{ name: 'Harbour', cap: 120, base: 88, price: 150 }, { name: 'Airport', cap: 80, base: 62, price: 120 }, { name: 'Old Town', cap: 60, base: 38, price: 175 }] },
+    restaurant: { unit: 'cover', use: 'Seats filled', price: 'Average spend', per: 'Revenue per seat', sites: [{ name: 'Centre', cap: 180, base: 118, price: 34 }, { name: 'Riverside', cap: 120, base: 80, price: 41 }, { name: 'Mall', cap: 140, base: 92, price: 24 }] },
+    clinic: { unit: 'appointment', use: 'Slots filled', price: 'Average fee', per: 'Revenue per slot', sites: [{ name: 'Main clinic', cap: 60, base: 46, price: 95 }, { name: 'East', cap: 40, base: 27, price: 88 }] },
+    any: { unit: 'sale', use: 'Use of capacity', price: 'Average price', per: 'Revenue per place', sites: [{ name: 'Shop 1', cap: 100, base: 70, price: 48 }, { name: 'Shop 2', cap: 80, base: 52, price: 52 }, { name: 'Shop 3', cap: 60, base: 36, price: 45 }] },
+  };
+  type S = { cur: string; kind: string; period: string; site: string; budget: Record<string, [string, string]> };
+  const fresh = (cur: string): S => ({ cur, kind: 'hotel', period: 'd28', site: '', budget: {} });
+  let st = fresh(defaultCurrency());
+  const keep = keeper('fibub-kpi-v1', q('.kp-keep'), q('.kp-clear'), () => st, (v) => { st = Object.assign(fresh(defaultCurrency()), v); });
+  q('.kp-cur').innerHTML = currencyOptions(st.cur);
+  q('.kp-period').innerHTML = Object.entries(PERIODS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  const $ = (v: number, d = 0) => (Number.isFinite(v) ? money(v, st.cur, d) : '-');
+  const p1 = (v: number) => (Number.isFinite(v) ? (v * 100).toFixed(1) + '%' : '-');
+  const K = () => KINDS[st.kind] || KINDS.any;
+  const dl = (v: number) => (Number.isFinite(v) ? (v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(1) + '%' : 'n/a');
+  const dpts = (v: number) => (Number.isFinite(v) ? (v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(1) + ' pts' : 'n/a');
+  const compact = (v: number) => { const a = Math.abs(v); return a >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (v / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'k' : String(Math.round(v)); };
+  let rows: Row[] = [], mine = false;
+  const sample = () => { rows = sampleRows(addDays(todayISO(), -1), K().sites, undefined, 11); mine = false; };
+
+  function bind() {
+    q<HTMLSelectElement>('.kp-cur').value = st.cur; q<HTMLSelectElement>('.kp-preset').value = st.kind; q<HTMLSelectElement>('.kp-period').value = st.period;
+    q('.kp-src').innerHTML = mine ? '<b>Using your numbers.</b> Press "Back to the example" to go back.' : '<b>Using the example.</b> Two years of made-up daily numbers for three sites. Paste or open your own below.';
+    const sites = [...new Set(rows.map((r) => r.site))];
+    if (st.site && !sites.includes(st.site)) st.site = '';
+    q('.kp-site').innerHTML = '<option value="">All sites</option>' + sites.map((s) => `<option${s === st.site ? ' selected' : ''}>${s.replace(/</g, '&lt;')}</option>`).join('');
+    run();
+  }
+
+  let T: ReturnType<typeof calc>;
+  function calc() {
+    const end = rows[rows.length - 1].d, r = ranges(end, st.period);
+    return { end, r, cur: sumRows(rows, r.cur[0], r.cur[1], st.site), prev: sumRows(rows, r.prev[0], r.prev[1], st.site), ly: sumRows(rows, r.ly[0], r.ly[1], st.site) };
+  }
+  function run() {
+    if (!rows.length) return;
+    T = calc(); const { cur, prev, ly } = T, k = K();
+    q('.kp-title').textContent = `${PERIODS[st.period]}${st.site ? ', ' + st.site : ', all sites'}`;
+    q('.kp-range').textContent = `${T.r.cur[0]} to ${T.r.cur[1]} (${cur.days} days). Compared with ${T.r.prev[0]} to ${T.r.prev[1]} and with ${T.r.ly[0]} to ${T.r.ly[1]}.`;
+    const card = (name: string, v: string, a: number, b: number, pts = false) => {
+      const f = pts ? dpts : dl, ca = pts ? a - 0 : a;
+      const cls = (x: number) => (Number.isFinite(x) ? (x >= 0 ? 'pos' : 'neg') : '');
+      return `<div class="biz-k"><span>${name}</span><b>${v}</b><small>vs previous <span class="${cls(a)}">${f(a)}</span></small><small>vs last year <span class="${cls(b)}">${f(b)}</span></small></div>`;
+    };
+    const kp = [
+      card('Revenue', $(cur.rev), change(cur.rev, prev.rev), change(cur.rev, ly.rev)),
+      card(k.use, p1(use(cur)), use(cur) - use(prev), use(cur) - use(ly), true),
+      card(k.price, $(price(cur), 2), change(price(cur), price(prev)), change(price(cur), price(ly))),
+      card(k.per, $(perPlace(cur), 2), change(perPlace(cur), perPlace(prev)), change(perPlace(cur), perPlace(ly))),
+    ];
+    if (cur.hasProfit && cur.tot > 0) kp.push(`<div class="biz-k"><span>Profit margin</span><b>${p1(cur.profit / cur.tot)}</b><small>${$(cur.profit)} on ${$(cur.tot)}</small></div>`);
+    if (cur.hasTot) kp.push(card('Total revenue', $(cur.tot), change(cur.tot, prev.tot), change(cur.tot, ly.tot)));
+    q('.kp-kpis').innerHTML = kp.join('');
+    q('.kp-take').innerHTML = '<b>What changed:</b> ' + (note(k.unit, { use: k.use, price: k.price }, cur, prev, ly, (v) => $(v)) || 'Not enough earlier data to compare.');
+    charts(); sites(); budget();
+  }
+  function charts() {
+    const m = monthly(rows, st.site), last = m.slice(-12), before = m.slice(-24, -12);
+    q('.kp-ct1').textContent = k0() + ' by month';
+    if (last.length < 2) { q('.kp-chart1').innerHTML = ''; q('.kp-chart2').innerHTML = ''; return; }
+    const lab = last.map(([key]) => MON[+key.slice(5, 7) - 1]);
+    const u = (a: typeof m) => a.map(([, s]) => (s.cap > 0 ? s.sold / s.cap : null));
+    q('.kp-chart1').innerHTML = lineSvg([{ name: 'before', v: before.length === last.length ? u(before) : last.map(() => null), color: 'var(--muted)', dash: true }, { name: 'last', v: u(last), color: 'var(--accent)' }], lab, (v) => Math.round(v * 100) + '%');
+    q('.kp-chart2').innerHTML = barSvg(last.map(([, s]) => s.rev), lab, compact);
+  }
+  const k0 = () => K().use;
+  function sites() {
+    const names = [...new Set(rows.map((r) => r.site))];
+    const th = `<thead><tr><th>Site</th><th class="r">Revenue</th><th class="r">${K().use}</th><th class="r">${K().price}</th><th class="r">${K().per}</th><th class="r">Revenue vs last year</th></tr></thead>`;
+    const body = names.map((n) => { const c = sumRows(rows, T.r.cur[0], T.r.cur[1], n), l = sumRows(rows, T.r.ly[0], T.r.ly[1], n), d = change(c.rev, l.rev);
+      return `<tr><td>${n.replace(/</g, '&lt;')}</td><td class="r">${$(c.rev)}</td><td class="r">${p1(use(c))}</td><td class="r">${$(price(c), 2)}</td><td class="r">${$(perPlace(c), 2)}</td><td class="r ${Number.isFinite(d) ? (d >= 0 ? 'pos' : 'neg') : ''}">${dl(d)}</td></tr>`; }).join('');
+    q('.kp-sites').innerHTML = th + `<tbody>${body}</tbody>`;
+  }
+  function budget() {
+    const yr = T.end.slice(0, 4), tbl = q('.kp-bud');
+    const head = `<thead><tr><th>Month</th><th class="r">Target use %</th><th class="r">Target price</th><th class="r">Budget</th><th class="r">Actual</th><th class="r">Difference</th></tr></thead>`;
+    let tb = 0, ta = 0;
+    const body = MON.map((mn, i) => {
+      const key = `${yr}-${String(i + 1).padStart(2, '0')}`, b = st.budget[key] || ['', ''], s = monthly(rows, st.site).find((x) => x[0] === key)?.[1];
+      const ly = monthly(rows, st.site).find((x) => x[0] === `${+yr - 1}-${key.slice(5)}`)?.[1];
+      const cap = s?.cap || ly?.cap || 0, u = toNum(b[0]), p = toNum(b[1]);
+      const bud = u !== '' && p !== '' ? cap * (u / 100) * p : NaN, act = s ? s.rev : NaN, full = key <= T.end.slice(0, 7);
+      if (Number.isFinite(bud) && full && Number.isFinite(act)) { tb += bud; ta += act; }
+      const diff = Number.isFinite(bud) && Number.isFinite(act) ? act - bud : NaN;
+      return `<tr><td>${mn}</td><td class="r"><input data-b="${key}" data-i="0" inputmode="decimal" value="${b[0]}" aria-label="Target use for ${mn}" /></td><td class="r"><input data-b="${key}" data-i="1" inputmode="decimal" value="${b[1]}" aria-label="Target price for ${mn}" /></td><td class="r">${$(bud)}</td><td class="r">${$(act)}</td><td class="r ${Number.isFinite(diff) ? (diff >= 0 ? 'pos' : 'neg') : ''}">${Number.isFinite(diff) ? (diff >= 0 ? '+' : '-') + $(Math.abs(diff)) : '-'}</td></tr>`;
+    }).join('');
+    const tot = tb > 0 ? `<tfoot><tr><td colspan="3">Months so far with a budget (${yr})</td><td class="r">${$(tb)}</td><td class="r">${$(ta)}</td><td class="r ${ta >= tb ? 'pos' : 'neg'}">${(ta >= tb ? '+' : '-') + $(Math.abs(ta - tb))}</td></tr></tfoot>` : '';
+    tbl.innerHTML = head + `<tbody>${body}</tbody>` + tot;
+  }
+  q('.kp-bud').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement; if (!el.dataset.b) return;
+    const b = (st.budget[el.dataset.b] ||= ['', '']); b[+el.dataset.i!] = el.value; keep();
+    clearTimeout(bt); bt = window.setTimeout(() => { const f = document.activeElement as HTMLInputElement | null, id = f?.dataset.b, ix = f?.dataset.i, pos = f?.selectionStart; budget(); if (id) { const n = root.querySelector<HTMLInputElement>(`[data-b="${id}"][data-i="${ix}"]`); n?.focus(); try { n?.setSelectionRange(pos ?? 0, pos ?? 0); } catch { /* ignore */ } } }, 350);
+  });
+  let bt = 0;
+  q('.kp-fill').addEventListener('click', () => {
+    const yr = T.end.slice(0, 4), m = monthly(rows, st.site);
+    for (let i = 1; i <= 12; i++) { const key = `${+yr - 1}-${String(i).padStart(2, '0')}`, s = m.find((x) => x[0] === key)?.[1]; if (s && s.cap > 0 && s.sold > 0) st.budget[`${yr}-${String(i).padStart(2, '0')}`] = [(Math.min(100, (s.sold / s.cap) * 103)).toFixed(1), (s.rev / s.sold * 1.03).toFixed(2)]; }
+    keep(); budget();
+  });
+  q('.kp-csvb').addEventListener('click', () => {
+    const out: unknown[][] = [['Month', 'Target use %', 'Target price']]; Object.keys(st.budget).sort().forEach((k) => out.push([k, st.budget[k][0], st.budget[k][1]]));
+    downloadText('budget.csv', toCSV(out));
+  });
+  q('.kp-csv').addEventListener('click', () => {
+    const out: unknown[][] = [['Site', 'From', 'To', 'Revenue', 'Sold', 'Places available', 'Use %', 'Price', 'Revenue per place']];
+    for (const n of [...new Set(rows.map((r) => r.site))]) { const c = sumRows(rows, T.r.cur[0], T.r.cur[1], n); out.push([n, T.r.cur[0], T.r.cur[1], c.rev, c.sold, c.cap, (use(c) * 100).toFixed(2), price(c).toFixed(2), perPlace(c).toFixed(2)]); }
+    downloadText('kpi-summary.csv', toCSV(out));
+  });
+  q('.kp-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.kp-period').addEventListener('change', (e) => { st.period = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.kp-site').addEventListener('change', (e) => { st.site = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.kp-preset').addEventListener('change', (e) => { st.kind = (e.target as HTMLSelectElement).value; st.site = ''; q('.kp-imp').textContent = ''; keep(); sample(); bind(); });
+  q('.kp-sample').addEventListener('click', () => { q('.kp-imp').textContent = ''; q<HTMLTextAreaElement>('.kp-paste').value = ''; sample(); bind(); });
+  q('.kp-use').addEventListener('click', () => {
+    const t = q<HTMLTextAreaElement>('.kp-paste').value;
+    if (!t.trim()) { q('.kp-imp').textContent = 'Paste some rows or open a file first.'; return; }
+    const hasSite = t.split(/\r?\n/)[0].split(/[\t,;]/).length >= 5;
+    const r = importRows(t, hasSite ? ['d', 'site', 'cap', 'sold', 'rev', 'tot', 'profit'] : ['d', 'cap', 'sold', 'rev', 'tot', 'profit']);
+    if (r.error) { q('.kp-imp').textContent = r.error; return; }
+    rows = r.rows; mine = true; st.site = ''; q('.kp-imp').textContent = 'What we did with your file: ' + r.notes.join(' ');
+    bind();
+  });
+  sample(); bind();
+</script>
