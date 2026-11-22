@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './fine-structure.more.gen.js';
 import more2 from './fine-structure.more2.gen.js';
+import r4 from './fine-structure.r4.gen.js';
 
 const AL2 = 5.32514e-5;          // alpha^2, alpha = 1/137.036
 const RY = 13.6057;              // eV
@@ -232,6 +233,7 @@ export default {
       sol: 'For $l = 0$ the operator $\\vec L\\cdot\\vec S$ is identically zero, so $E_{so} = 0$ (the "0/0" is resolved by the operator, not by a limit). The Darwin term $R_\\infty hc\\,\\alpha^2Z^4/n^3$, present only for $l = 0$, then makes relativistic + Darwin equal to $-(R_\\infty hc\\,\\alpha^2Z^4/n^4)(n - \\tfrac34)$, the $j = \\tfrac12$ value of the general formula.',
       trap: 'Taking the limit $l \\to 0$ in the closed formula happens to give the Darwin result too, but the reason is the Darwin term, not spin-orbit.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -388,6 +390,7 @@ export default {
       },
       verify: (p) => (p.which === 'rel' ? -(724.52 / (4 * p.n ** 4)) * (4 * p.n / (p.l + 0.5) - 3) : (p.l === 0 ? 724.52 / p.n ** 3 : 0)) },
     ...more,
+    ...r4.gens,
   ],
 };
 

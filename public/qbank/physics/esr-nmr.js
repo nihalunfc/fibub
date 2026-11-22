@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './esr-nmr.more.gen.js';
 import more2 from './esr-nmr.more2.gen.js';
+import r4 from './esr-nmr.r4.gen.js';
 
 const H = 6.62607015e-34, KB = 1.380649e-23;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -228,6 +229,7 @@ export default {
       sol: 'Width $\\propto\\sqrt{1 + s} = \\sqrt4 = 2$: power broadening. The absorption $\\chi\'\'$ at the peak scales as $1/(1 + s) = 1/4$ of its unsaturated value, because the population difference is reduced. Low RF power is used to measure true linewidths.',
       trap: 'Stronger driving broadens and saturates; it never narrows the line.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'nmr-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Larmor frequency',
@@ -385,5 +387,6 @@ export default {
       },
       verify: (p) => (p.mode === 'low' ? p.B0 - p.a * p.n * p.I : 2 * p.a * p.n * p.I) },
     ...more,
+    ...r4.gens,
   ],
 };
