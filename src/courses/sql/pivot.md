@@ -54,6 +54,11 @@ ORDER BY c.department, year
 
 Eight rows: four departments × two years. To compare 2024 with 2025 for one department, your eye has to jump between rows. **Pivoting** turns the values of one column (year) into column headings.
 
+Drag the slider between wide and long, or press Play, and follow one number as it moves.
+
+<figure class="fig" data-fig="@data-reshape"><figcaption>Notice that no value changes, only its position: month names become values in a column.</figcaption></figure>
+
+
 ## 3. The CASE pivot
 
 The trick: group by the thing you want as rows (department), and for each column you want, write one aggregate with a CASE inside that only lets that column's rows through.

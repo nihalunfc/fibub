@@ -57,6 +57,11 @@ orders.iloc[-2:]                 # the last 2 rows
 
 Use `iloc` for "the first n" or "the last row"; use `loc` for everything with names, which keeps working when the column order changes.
 
+Choose two conditions and a combiner and read the True/False columns row by row.
+
+<figure class="fig" data-fig="@data-mask-filter"><figcaption>Notice that the filter keeps rows where the final mask is True, and that the original index stays attached.</figcaption></figure>
+
+
 ## 3. Conditions with loc
 
 `loc` also takes a True/False Series for the rows, which makes it the safe way to **change** values:

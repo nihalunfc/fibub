@@ -41,6 +41,11 @@ Move the visitors slider: the band of "normal" shares narrows as the test grows.
 
 Compare the observed counts with the planned split using a **chi-square goodness-of-fit test** (Lesson 6.5) with one degree of freedom. Run it on every test, before reading any metric, and use **p < 0.001** as the alarm.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Common causes
 
 - **Redirects or extra page loads** in one variant: users drop off (or get counted twice) before logging.

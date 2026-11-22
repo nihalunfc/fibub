@@ -45,6 +45,11 @@ f(t) = \lambda e^{-\lambda t}, \qquad P(T > t) = e^{-\lambda t}
 - Median `$\ln 2 / \lambda \approx 0.693 / \lambda$`: about 69 % of the mean. Most gaps are shorter than average, a few are very long.
 - **Memoryless:** having waited 5 minutes doesn't make the next call any closer. Useful for arrivals; often wrong for things that wear out or for service times.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. The log-normal: money and sizes
 
 A variable is **log-normal** when its logarithm is normal. That happens when a quantity is the **product** of many independent factors (an order value = items × price × quantity discounts...), just as normals come from sums.

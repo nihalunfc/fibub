@@ -42,6 +42,11 @@ Picture a vast card index in strict alphabetical order across thousands of drawe
 
 Under the hood the key space is cut into **tablets** (ranges of keys) spread over nodes, and Bigtable moves tablets around to balance load. The data sits in Google's distributed file system, so adding nodes does not copy data; it only moves who serves which range.
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Row key design: the whole game
 
 Write down the questions first, then design the key so each is a single lookup or one continuous scan.

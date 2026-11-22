@@ -49,6 +49,11 @@ Food Cost %   = DIVIDE ( SUM ( fct_order_lines[food_cost] ), [Net Sales] )
 
 If `Orders` would be cheaper as `COUNTROWS ( fct_orders )`, that is a reason to give the warehouse an order-grain fact (Lesson 5.1), not to write cleverer DAX.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. What the total row really does
 
 <div class="steps">

@@ -98,6 +98,11 @@ GROUP BY why_unknown
 
 82 of December's 575 lines landed on the unknown member. 74 are real guests and will stay there. But 8 lines ($191.19) belong to real customers who simply haven't arrived yet. Nothing was lost, which is the job of the unknown member, but those 8 lines now need fixing.
 
+Switch between Type 1, 2 and 3 and read the sales-by-city report each time.
+
+<figure class="fig" data-fig="@data-scd-types"><figcaption>Notice which method keeps last year's sales in Pune and which rewrites history.</figcaption></figure>
+
+
 ## 3. Option A: back-fill the fact
 
 When the late customers finally arrive, add them to the dimension, then re-point the fact rows that are on -1 **and** have a natural key:

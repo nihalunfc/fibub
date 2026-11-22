@@ -62,6 +62,11 @@ print(s[nums.isna()].tolist())      # the values that failed
 nums
 ```
 
+Drag the row count up, then tap columns to switch them to a smaller dtype.
+
+<figure class="fig" data-fig="@data-dtype-memory"><figcaption>Notice that number columns shrink a little but text columns shrink a lot when they become category or datetime.</figcaption></figure>
+
+
 ## 3. Numbers to text, categories and booleans
 
 ```python

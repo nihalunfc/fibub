@@ -52,6 +52,11 @@ Each partition is materialised and tracked on its own. The asset page shows a st
 
 **Business day boundaries.** A quick-service restaurant chain's business day might run from 05:00 to 04:59 the next morning. Orders after midnight then belong to the previous business date, but the point-of-sale system may put them in the next day's export. So the partition for 14 September must read **both** the 14 and 15 September folders and filter by business date. Write down which raw inputs each partition reads: that is its **dependency window**.
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Backfills
 
 In the UI: select the asset, click **Materialize**, pick a date range and launch a backfill. Dagster queues one run per partition (or one run for the whole range, if the asset uses `BackfillPolicy.single_run()` and reads `context.partition_key_range`).

@@ -47,6 +47,11 @@ t = \frac{\bar{x} - \mu_0}{s/\sqrt{n}}, \qquad df = n - 1
 
 Lesson 6.1's pack weights were an example.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. Two-sample t (Welch)
 
 ```math

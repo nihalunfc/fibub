@@ -50,6 +50,11 @@ create clustered columnstore index cci_fct_qsr_lines on mart.fct_qsr_lines;
 
 Load a columnstore in batches of at least 102,400 rows, so the data goes straight into compressed row groups. Small trickle inserts wait in an uncompressed "delta store" until there are enough of them.
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Seek or scan
 
 A **B-tree** is a tree of pages. The top page (the root) says which page below to look in, that page says the same, and so on down to the **leaf** pages that hold the rows (or pointers to them). Each page points to hundreds of pages below it, so even a billion rows need only four or five levels.

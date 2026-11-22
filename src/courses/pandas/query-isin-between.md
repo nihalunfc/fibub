@@ -51,6 +51,11 @@ black_friday_week = orders[orders['date'].between('2025-11-24', '2025-11-30')]
 print(len(mid_price), len(black_friday_week))
 ```
 
+Choose two conditions and a combiner and read the True/False columns row by row.
+
+<figure class="fig" data-fig="@data-mask-filter"><figcaption>Notice that the filter keeps rows where the final mask is True, and that the original index stays attached.</figcaption></figure>
+
+
 ## 3. query: conditions as text
 
 ```python data=orders.csv

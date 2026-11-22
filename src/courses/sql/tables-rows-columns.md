@@ -49,6 +49,11 @@ LIMIT 4
 
 Unlike a spreadsheet, a table has no "row 1" or "cell B7". Rows have no built-in order (you'll ask for one with ORDER BY in Lesson 2.5), and you find a row by its values, such as `order_id = 1010`, not by its position.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. The types you need
 
 SQLite stores every value as one of five *storage classes*. Four matter here:

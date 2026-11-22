@@ -58,6 +58,11 @@ FROM orders
 WHERE order_id = 2000
 ```
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Scan versus search
 
 An **index** is a sorted copy of one or more columns with pointers back to the rows, like the index at the back of a book ([Lesson 9.2](/learn/courses/sql/indexes/) goes deeper). Make one on `customer_id` and ask again:

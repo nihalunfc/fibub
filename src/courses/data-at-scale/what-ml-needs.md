@@ -75,6 +75,11 @@ The rule that matters most is **point-in-time correctness**: every feature value
 
 </div>
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Two ways to serve predictions
 
 | | **Batch inference** | **Online inference** |

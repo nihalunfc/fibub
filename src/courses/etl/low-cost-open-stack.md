@@ -53,6 +53,11 @@ Think of it like furnishing a flat. You do not need a designer showroom. Solid, 
 
 Every part is open source and **swappable**: Postgres for Azure SQL, Metabase for Power BI, MinIO for Azure Blob or S3. That is the **upgrade path** when the company grows or joins a Microsoft-based group. The local model piece links to the [Offline AI course](/learn/courses/offline-ai/) if you want to go deeper.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Size it, then cost it
 
 <div class="steps">

@@ -54,6 +54,11 @@ restaurant_dbt/
 
 Naming conventions make a project readable by a team: `stg_<source>__<entity>`, `int_<verb>`, `fct_` and `dim_`; one staging model per source table; no business logic in staging; every mart model has a description, a grain sentence and a primary-key test.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. The basics
 
 ```sql

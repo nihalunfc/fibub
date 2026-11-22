@@ -43,6 +43,11 @@ The standard error (SE) is the standard deviation of a statistic's sampling dist
 
 A common reporting error is to put "± SE" on a chart where readers expect "± SD", or the other way round. Say which one you're showing.
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. The formulas
 
 **Mean:**

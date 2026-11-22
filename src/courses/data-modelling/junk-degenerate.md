@@ -47,6 +47,11 @@ WHERE order_id BETWEEN 1001 AND 1006
 
 Three **low-cardinality** columns (few possible values: 2 each) and one number, `order_id`, that is different on every order. They need different treatment.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. A junk dimension for the flags
 
 A **junk dimension** is a single small table that holds every combination of a few unrelated flags, with one surrogate key. The fact table then carries one key, `flags_key`, instead of three text columns.

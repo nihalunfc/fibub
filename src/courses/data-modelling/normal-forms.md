@@ -65,6 +65,16 @@ FROM flat_orders
 WHERE products LIKE '%Eggs%'
 ```
 
+Step from the messy sheet to clean tables.
+
+<div class="steps" data-fig="@data-normalize-steps">
+<div class="step">One messy sheet: a list in one cell and repeated customer details.</div>
+<div class="step">1NF: every cell holds one value; each row is one order line.</div>
+<div class="step">2NF: details that depend on only part of the key move to their own table.</div>
+<div class="step">3NF: details that depend on a non-key column (city via customer) move out too.</div>
+</div>
+
+
 ## 3. First normal form (1NF): one value per cell
 
 A table is in *1NF* when every cell holds a single value and there are no repeating groups (no lists, no columns like product1, product2, product3). The fix is one row per product on each order, an *order line*. Its key becomes the pair (order_id, product_id).

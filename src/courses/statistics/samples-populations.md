@@ -46,6 +46,11 @@ A sample tells you about the population only if it is chosen in a way unrelated 
 
 In SQL, `ORDER BY RANDOM() LIMIT 1000` (or `TABLESAMPLE`) draws a random sample; in pandas, `df.sample(n=1000, random_state=1)`.
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. Sampling variation
 
 <!--fig:poll-sim-->

@@ -49,6 +49,11 @@ Observational data (Lesson 4.2) is full of self-selection: customers who use a f
 
 **7. Decision rule.** Written before launch: "Ship if the 95 % CI for the conversion lift is above 0 and no guardrail worsens significantly; otherwise keep the current page."
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Before launch
 
 - **A/A test** (both groups get the same version) to check the pipeline: you should see no difference and a correct split.

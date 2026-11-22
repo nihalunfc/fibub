@@ -47,6 +47,11 @@ Departments are not processes (Finance uses many processes). Reports are not pro
 | Running promotions | a sale period at the stores | `promotions` |
 | Staffing | an employee working at a store | `employees` |
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Look at one event
 
 Every event carries the same kind of context. Here are three returns with their who, what, where and when, plus why:

@@ -54,6 +54,11 @@ with `$\delta$` the absolute difference (it's Lehr's rule from Lesson 6.4, since
 
 For a mean metric (revenue per user) use `$n \approx 16\sigma^2/\delta^2$` with σ from past data.
 
+Raise the sample size, then shrink the effect size, and watch the two bells and the shaded areas.
+
+<figure class="fig" data-fig="@data-power-overlap"><figcaption>Notice that alpha comes from the null bell, beta from the real-effect bell, and power is what is left of the real bell beyond the cut-off.</figcaption></figure>
+
+
 ## 3. From users to days
 
 - Days = 2n ÷ eligible users per day (for 50/50).

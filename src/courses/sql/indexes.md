@@ -65,6 +65,11 @@ FROM sqlite_master
 WHERE type = 'index'
 ```
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Composite indexes: column order matters
 
 A **composite index** covers several columns. It is sorted by the first column, then by the second inside each value of the first, like a phone book sorted by last name, then first name. That order decides which queries it can help.

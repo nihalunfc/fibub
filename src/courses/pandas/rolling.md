@@ -59,6 +59,11 @@ ytd.tail(3)
 
 `expanding()` is a window that grows from the start: running totals, running maximums. `.cumsum()` does the same for sums.
 
+Slide the window size and switch between trailing and centred.
+
+<figure class="fig" data-fig="@data-rolling-window"><figcaption>Notice that a bigger window is smoother but later, and where the NaN values appear.</figcaption></figure>
+
+
 ## 3. Exponential smoothing
 
 ```python data=orders.csv

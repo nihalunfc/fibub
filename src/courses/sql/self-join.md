@@ -49,6 +49,11 @@ WHERE e.store_id IS NULL OR e.store_id = 12
 
 Read `e` as "the employee" and `m` as "the manager". Riya and Tom report to Morgan Ellis; Hana and Olivia report to Tom Becker.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. Keep the person at the top
 
 Morgan Ellis, the CEO, is missing. Her `manager_id` is NULL, so the inner join found no match. Use a left join to keep everyone:
