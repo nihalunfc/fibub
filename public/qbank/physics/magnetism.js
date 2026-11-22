@@ -44,7 +44,7 @@ export default {
       sol: 'The molecular field $\\lambda M$ adds to the applied field: $M = \\dfrac{C}{T}(H + \\lambda M)$, so $\\chi = \\dfrac{C}{T - \\lambda C}$ with $T_C = \\lambda C$. It diverges as $T \\to T_C^+$. The plus sign belongs to antiferromagnets.' },
     { id: 'mgx-005', type: 'msq', level: 1, exams: ['gate', 'net', 'jam'], sub: 'Hund\'s rules',
       q: 'Which statements of Hund\'s rules for the ground state of an ion with one partly filled shell are correct?',
-      options: ['Choose the largest total spin $S$ allowed by the Pauli principle.', 'For that $S$, choose the largest total orbital angular momentum $L$.', '$J = |L - S|$ if the shell is less than half full and $J = L + S$ if more than half full.', '$J = L + S$ always, because it maximises the moment.'], answer: [0, 1, 2],
+      options: ['$J = L + S$ always, because it maximises the moment.', 'Choose the largest total spin $S$ allowed by the Pauli principle.', 'For that $S$, choose the largest total orbital angular momentum $L$.', '$J = |L - S|$ if the shell is less than half full and $J = L + S$ if more than half full.'], answer: [1, 2, 3],
       sol: 'Parallel spins keep electrons apart (exchange), lowering the Coulomb energy; then maximal $L$ keeps them circulating the same way. Spin-orbit coupling $\\lambda\\mathbf L\\cdot\\mathbf S$ has $\\lambda > 0$ for less than half filling (smallest $J$ lowest) and $\\lambda < 0$ beyond (largest $J$ lowest).' },
     { id: 'mgx-006', type: 'mcq', level: 1, exams: ['gate', 'net', 'jam'], sub: 'antiferromagnetism',
       q: 'As an antiferromagnet is cooled through its Néel temperature $T_N$, its (powder) susceptibility',
@@ -74,7 +74,7 @@ export default {
       sol: '$\\chi \\propto 1/T$: $3.0\\times10^{-4}\\times300/4.0 = 2.25\\times10^{-2}$. Cooling paramagnetic salts this way is the basis of magnetic thermometry and adiabatic demagnetisation.' },
     { id: 'mgx-012', type: 'msq', level: 2, exams: ['gate', 'net'], sub: 'diamagnetism',
       q: 'Which statements about Langevin (core) diamagnetism are correct?',
-      options: ['Every material has a diamagnetic contribution, though it may be masked by paramagnetism.', 'It is proportional to the number of electrons per atom times their mean square orbital radius.', 'It is strongly temperature dependent, like the Curie law.', 'It arises because an applied field changes the orbital motion of electrons, inducing a moment opposed to the field.'], answer: [0, 1, 3],
+      options: ['It is strongly temperature dependent, like the Curie law.', 'It arises because an applied field changes the orbital motion of electrons, inducing a moment opposed to the field.', 'Every material has a diamagnetic contribution, though it may be masked by paramagnetism.', 'It is proportional to the number of electrons per atom times their mean square orbital radius.'], answer: [1, 2, 3],
       sol: 'Switching on $B$ adds a Larmor precession to each orbit, inducing a moment $-\\dfrac{e^2B}{6m}\\langle r^2\\rangle$ per electron (Lenz). So $\\chi = -\\mu_0n\\dfrac{Ze^2\\langle r^2\\rangle}{6m}$, set by atomic sizes, not by temperature. All matter has it.' },
     { id: 'mgx-013', type: 'mcq', level: 2, exams: ['gate', 'net'], sub: 'Curie-Weiss law',
       q: 'For a material above its ordering temperature, $1/\\chi$ is plotted against $T$ and the straight line extrapolates to $1/\\chi = 0$ at $T = -45$ K. The material most likely orders',
@@ -94,7 +94,7 @@ export default {
       sol: 'Antiparallel sublattices with unequal moments leave a net spontaneous magnetisation, so a ferrimagnet behaves outwardly like a weak ferromagnet (domains, hysteresis), but its $1/\\chi$ above $T_C$ is curved, not a Curie-Weiss line. Ferrites are ferrimagnets and are insulators, so they suit high-frequency cores.' },
     { id: 'mgx-041', type: 'msq', level: 2, exams: ['gate', 'net'], sub: 'Curie law',
       q: 'For $N$ non-interacting ions per unit volume with total angular momentum $J$ and factor $g$, which statements about the weak-field susceptibility are correct?',
-      options: ['$\\chi = \\dfrac{\\mu_0Ng^2\\mu_B^2J(J+1)}{3k_BT}$.', 'A plot of $\\chi T$ against $T$ is flat.', 'The effective moment is $g\\sqrt{J(J+1)}\\,\\mu_B$, larger than the saturation moment $gJ\\mu_B$.', 'In SI units $\\chi$ has units of A/m.'], answer: [0, 1, 2],
+      options: ['A plot of $\\chi T$ against $T$ is flat.', 'The effective moment is $g\\sqrt{J(J+1)}\\,\\mu_B$, larger than the saturation moment $gJ\\mu_B$.', 'In SI units $\\chi$ has units of A/m.', '$\\chi = \\dfrac{\\mu_0Ng^2\\mu_B^2J(J+1)}{3k_BT}$.'], answer: [0, 1, 3],
       sol: 'Expanding the Brillouin function for small $x = g\\mu_BJB/k_BT$ gives $M = Ng^2\\mu_B^2J(J+1)B/3k_BT$, so $\\chi = \\mu_0M/B$ as stated and $\\chi T = C$ is constant. $\\sqrt{J(J+1)} > J$, so $\\mu_{\\rm eff} > gJ\\mu_B$. $\\chi = M/H$ is dimensionless in SI.' },
 
     // ---------- level 3 ----------
@@ -128,7 +128,7 @@ export default {
       sol: 'The number of thermally excited magnons in 3D with $\\omega \\propto k^2$ is $\\propto T^{3/2}$, and each lowers $M$ by $g\\mu_B$. Quadrupling $T$ multiplies the deficit by $4^{3/2} = 8$: $8\\%$.' },
     { id: 'mgx-024', type: 'msq', level: 3, exams: ['gate', 'net'], sub: 'hysteresis',
       q: 'Which statements about the hysteresis loop of a ferromagnet are correct?',
-      options: ['The area of the $B$-$H$ loop is the energy lost as heat per unit volume per cycle.', 'Permanent magnets need a large coercivity.', 'Transformer cores need a narrow loop (low coercivity).', 'The coercive field is the field at which the magnetisation first reaches saturation.'], answer: [0, 1, 2],
+      options: ['The coercive field is the field at which the magnetisation first reaches saturation.', 'The area of the $B$-$H$ loop is the energy lost as heat per unit volume per cycle.', 'Permanent magnets need a large coercivity.', 'Transformer cores need a narrow loop (low coercivity).'], answer: [1, 2, 3],
       sol: 'Work per unit volume is $\\oint H\\,dB$, the loop area, dissipated in irreversible domain-wall jumps. Hard magnets resist demagnetisation (large $H_c$); soft magnets waste little energy each cycle (small $H_c$). The coercive field is where $M$ (or $B$) returns to zero on the reverse sweep.' },
     { id: 'mgx-025', type: 'nat', level: 3, exams: ['gate', 'net'], sub: 'diamagnetism',
       q: 'A solid has $5.0\\times10^{28}$ atoms per m$^3$, each with $Z = 10$ electrons of mean square distance from the nucleus $\\langle r^2\\rangle = 0.010$ nm$^2$. Its Langevin susceptibility $\\chi = -\\mu_0nZe^2\\langle r^2\\rangle/6m_e$ is ______ $\\times10^{-5}$ (to two decimal places, with sign).',
@@ -149,7 +149,7 @@ export default {
       sol: 'A uniformly magnetised block has a large stray field with energy $\\sim\\tfrac12\\mu_0M_s^2V$. Splitting into domains with closure domains cancels most of this. Each wall costs exchange and anisotropy energy per area, so the domain size settles where the two balance.' },
     { id: 'mgx-042', type: 'msq', level: 3, exams: ['gate', 'net'], sub: 'Landé g factor',
       q: 'For the Landé factor $g = 1 + \\dfrac{J(J+1) + S(S+1) - L(L+1)}{2J(J+1)}$, which statements are correct?',
-      options: ['$g = 2$ for any state with $L = 0$.', '$g = 1$ for any state with $S = 0$.', '$g$ can exceed 2.', '$g$ always lies between 1 and 2.'], answer: [0, 1, 2],
+      options: ['$g$ can exceed 2.', '$g$ always lies between 1 and 2.', '$g = 2$ for any state with $L = 0$.', '$g = 1$ for any state with $S = 0$.'], answer: [0, 2, 3],
       sol: '$L = 0$ makes $J = S$ and $g = 1 + 1 = 2$; $S = 0$ makes $J = L$ and $g = 1$. For $^6D_{1/2}$ ($L = 2$, $S = 5/2$, $J = 1/2$): $g = 1 + (0.75 + 8.75 - 6)/1.5 = 3.33$. It can also be below 1 (Ce$^{3+}$, $6/7$) or even zero ($^4D_{1/2}$).' },
 
     // ---------- level 4 ----------
@@ -163,7 +163,7 @@ export default {
       sol: '9 electrons: the first 7 fill every $m_l$ with spin up ($L = 0$), the remaining 2 go spin down into $m_l = 3, 2$: $S = 7/2 - 1 = 5/2$, $L = 5$ (H). More than half full, so $J = L + S = 15/2$: $^6H_{15/2}$. $g = 1 + \\dfrac{63.75 + 8.75 - 30}{127.5} = 4/3$. $\\mu_{\\rm eff} = \\tfrac43\\sqrt{63.75} = 10.65\\,\\mu_B$, among the largest of any ion.' },
     { id: 'mgx-031', type: 'msq', level: 4, exams: ['gate', 'net'], sub: 'antiferromagnetism',
       q: 'For a two-sublattice antiferromagnet in mean-field theory (nearest-neighbour coupling only), which statements are correct?',
-      options: ['Below $T_N$ the parallel susceptibility $\\chi_\\parallel$ falls to zero as $T \\to 0$.', 'Below $T_N$ the perpendicular susceptibility $\\chi_\\perp$ stays roughly constant at its value at $T_N$.', 'For every real antiferromagnet the Curie-Weiss $\\theta$ equals $T_N$.', 'A powder sample at $T \\to 0$ has $\\chi$ about two thirds of its value at $T_N$.'], answer: [0, 1, 3],
+      options: ['Below $T_N$ the perpendicular susceptibility $\\chi_\\perp$ stays roughly constant at its value at $T_N$.', 'For every real antiferromagnet the Curie-Weiss $\\theta$ equals $T_N$.', 'A powder sample at $T \\to 0$ has $\\chi$ about two thirds of its value at $T_N$.', 'Below $T_N$ the parallel susceptibility $\\chi_\\parallel$ falls to zero as $T \\to 0$.'], answer: [0, 2, 3],
       sol: 'A field along the spins can only change the sublattice magnetisations, which are saturated at $T = 0$, so $\\chi_\\parallel \\to 0$. A perpendicular field cants both sublattices against the exchange field, giving $\\chi_\\perp = 1/\\lambda = \\chi(T_N)$, independent of $T$. Powder: $\\tfrac13\\chi_\\parallel + \\tfrac23\\chi_\\perp \\to \\tfrac23\\chi(T_N)$. Simple mean field gives $\\theta = T_N$, but next-neighbour couplings make $\\theta/T_N$ range from about 1.5 to 5 in real materials.' },
     { id: 'mgx-032', type: 'nat', level: 4, exams: ['gate', 'net'], sub: 'Curie-Weiss law',
       q: 'A material obeys $\\chi = C/(T - \\theta)$. Its susceptibility is $5.0\\times10^{-3}$ at $200$ K and $2.5\\times10^{-3}$ at $300$ K. Then $\\theta$ is ______ K (with sign).',

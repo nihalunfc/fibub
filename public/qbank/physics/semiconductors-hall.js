@@ -33,7 +33,7 @@ export default {
       sol: 'Carriers circle at $\\omega_c = eB/m^*$, and power is absorbed when $\\omega = \\omega_c$. So $m^* = eB/\\omega$, independent of density and scattering, provided $\\omega_c\\tau > 1$ so that the orbit completes.' },
     { id: 'shl-005', type: 'msq', level: 1, exams: ['gate', 'net'], sub: 'effective density of states',
       q: 'The effective density of states of the conduction band is $N_c = 2\\left(\\dfrac{m_d^*k_BT}{2\\pi\\hbar^2}\\right)^{3/2}$. Which statements are correct?',
-      options: ['$N_c \\propto T^{3/2}$.', 'A heavier density-of-states mass gives a larger $N_c$.', 'In a non-degenerate semiconductor $n = N_ce^{-(E_c - E_F)/k_BT}$.', '$N_c$ is the actual number of states per unit volume in the conduction band.'], answer: [0, 1, 2],
+      options: ['$N_c$ is the actual number of states per unit volume in the conduction band.', '$N_c \\propto T^{3/2}$.', 'A heavier density-of-states mass gives a larger $N_c$.', 'In a non-degenerate semiconductor $n = N_ce^{-(E_c - E_F)/k_BT}$.'], answer: [1, 2, 3],
       sol: 'Integrating $g(E)e^{-(E - E_F)/k_BT}$ over the band gives $n = N_ce^{-(E_c - E_F)/k_BT}$: $N_c$ is the number of states one would need at the band edge to give the same $n$, an effective number. It grows as $(m_d^*T)^{3/2}$. The real band has far more states.' },
     { id: 'shl-006', type: 'mcq', level: 1, exams: ['gate', 'net'], sub: 'two-carrier Hall effect',
       q: 'An intrinsic semiconductor ($n = p$) has electron mobility larger than hole mobility. Its Hall coefficient is',
@@ -65,7 +65,7 @@ export default {
       sol: 'Set $N_ce^{-(E_c - E_i)/k_BT} = N_ve^{-(E_i - E_v)/k_BT}$: $E_i = \\dfrac{E_c + E_v}{2} + \\dfrac{k_BT}{2}\\ln\\dfrac{N_v}{N_c}$, and $N_v/N_c = (m_h^*/m_e^*)^{3/2}$, giving the factor $\\tfrac34$. Heavier holes push $E_i$ up towards the conduction band.' },
     { id: 'shl-012', type: 'msq', level: 2, exams: ['gate', 'net'], sub: 'quantum Hall effect',
       q: 'Which statements about the integer quantum Hall effect in a 2D electron gas are correct?',
-      options: ['On a plateau the longitudinal resistance $R_{xx}$ drops to zero.', 'The plateau value $h/\\nu e^2$ does not depend on the sample\'s size, shape or impurity content.', 'The plateaus have finite width only because disorder localises the states between Landau levels.', 'Plateaus are best seen in perfectly clean samples, where they become wider.'], answer: [0, 1, 2],
+      options: ['The plateaus have finite width only because disorder localises the states between Landau levels.', 'Plateaus are best seen in perfectly clean samples, where they become wider.', 'On a plateau the longitudinal resistance $R_{xx}$ drops to zero.', 'The plateau value $h/\\nu e^2$ does not depend on the sample\'s size, shape or impurity content.'], answer: [0, 2, 3],
       sol: 'When $E_F$ lies among localised states between Landau levels, nothing can scatter and $R_{xx} \\to 0$, while $R_{xy}$ is pinned at $h/\\nu e^2$ to parts in $10^{10}$, whatever the sample details. In a perfectly clean sample there are no localised states, $E_F$ jumps from one level to the next and the plateaus shrink to points.' },
     { id: 'shl-013', type: 'mcq', level: 2, exams: ['gate', 'net'], sub: 'mobility',
       q: 'In a semiconductor, lattice scattering alone would give a mobility of $1500$ cm$^2$/V s and impurity scattering alone $3000$ cm$^2$/V s. By Matthiessen\'s rule the actual mobility is',
@@ -86,7 +86,7 @@ export default {
       sol: 'For free electrons $\\hbar eB/m_e = 0.1158$ meV per tesla, i.e. $1.158$ meV at $10$ T. Dividing by $0.067$: $\\hbar\\omega_c = 17.3$ meV, about $200$ K in temperature units, so the levels are well resolved at liquid-helium temperature.' },
     { id: 'shl-041', type: 'msq', level: 2, exams: ['gate', 'net'], sub: 'cyclotron resonance',
       q: 'Which statements about cyclotron resonance in semiconductors are correct?',
-      options: ['A sharp resonance requires $\\omega_c\\tau \\gg 1$, i.e. $\\mu B \\gg 1$.', 'Experiments are done at low temperature partly to increase $\\tau$.', 'The sense of rotation (circular polarisation absorbed) tells electrons from holes.', 'The resonant frequency is independent of the effective mass.'], answer: [0, 1, 2],
+      options: ['Experiments are done at low temperature partly to increase $\\tau$.', 'The sense of rotation (circular polarisation absorbed) tells electrons from holes.', 'The resonant frequency is independent of the effective mass.', 'A sharp resonance requires $\\omega_c\\tau \\gg 1$, i.e. $\\mu B \\gg 1$.'], answer: [0, 1, 3],
       sol: '$\\omega_c\\tau = (eB/m^*)(m^*\\mu/e) = \\mu B$; the carrier must complete about a radian before scattering. Cooling suppresses phonon scattering and freezes out carriers that would screen. Electrons and holes circle in opposite senses, so they absorb opposite circular polarisations. $\\omega_c = eB/m^*$ depends directly on $m^*$: that is the point of the experiment.' },
 
     // ---------- level 3 ----------
@@ -130,7 +130,7 @@ export default {
       sol: '$E_i - E_{\\rm mid} = \\tfrac34k_BT\\ln(m_h^*/m_e^*) = 0.75\\times25.85\\times\\ln(0.5185) = 19.39\\times(-0.657) = -12.7$ meV. The electrons have more effective states, so $E_i$ sits slightly below mid-gap.' },
     { id: 'shl-026', type: 'msq', level: 3, exams: ['gate', 'net'], sub: 'quantum Hall effect',
       q: 'On an integer quantum Hall plateau, which statements are correct?',
-      options: ['Both $\\rho_{xx}$ and $\\sigma_{xx}$ are zero.', '$\\sigma_{xy} = \\nu e^2/h$.', 'On the $\\nu = 2$ plateau $R_{xy} \\approx 12.9$ k$\\Omega$.', 'Since $\\rho_{xx} = 0$, $\\sigma_{xx}$ must be infinite.'], answer: [0, 1, 2],
+      options: ['Since $\\rho_{xx} = 0$, $\\sigma_{xx}$ must be infinite.', 'Both $\\rho_{xx}$ and $\\sigma_{xx}$ are zero.', '$\\sigma_{xy} = \\nu e^2/h$.', 'On the $\\nu = 2$ plateau $R_{xy} \\approx 12.9$ k$\\Omega$.'], answer: [1, 2, 3],
       sol: 'Inverting the resistivity tensor, $\\sigma_{xx} = \\dfrac{\\rho_{xx}}{\\rho_{xx}^2 + \\rho_{xy}^2}$. With $\\rho_{xy} \\ne 0$, $\\rho_{xx} = 0$ gives $\\sigma_{xx} = 0$ too: a perfect insulator and a perfect conductor at once, along different directions. $\\sigma_{xy} = 1/\\rho_{xy} = \\nu e^2/h$, and $R_K/2 = 12.9$ k$\\Omega$.',
       trap: 'Inverting component by component works only for a diagonal tensor.' },
     { id: 'shl-027', type: 'mcq', level: 3, exams: ['gate', 'net'], sub: 'Hall angle',
@@ -144,7 +144,7 @@ export default {
       trap: 'Forgetting that $2000$ cm$^2$/V s is $0.20$ m$^2$/V s.' },
     { id: 'shl-042', type: 'msq', level: 3, exams: ['gate', 'net'], sub: 'Hall measurements',
       q: 'In a Hall-bar measurement on a thin single-carrier semiconductor film, which statements are correct?',
-      options: ['For fixed current and field, the Hall voltage is inversely proportional to the film thickness.', 'An offset from misaligned Hall contacts can be removed by averaging readings taken with $+B$ and $-B$.', 'The Hall voltage is much larger in a semiconductor than in a metal for the same current, field and thickness.', 'The Hall coefficient depends on the length of the bar.'], answer: [0, 1, 2],
+      options: ['The Hall voltage is much larger in a semiconductor than in a metal for the same current, field and thickness.', 'The Hall coefficient depends on the length of the bar.', 'For fixed current and field, the Hall voltage is inversely proportional to the film thickness.', 'An offset from misaligned Hall contacts can be removed by averaging readings taken with $+B$ and $-B$.'], answer: [0, 2, 3],
       sol: '$V_H = IB/(net)$. The misalignment offset is an ohmic drop that does not change sign with $B$, while $V_H$ does. Semiconductor densities are $10^{6}$ to $10^{10}$ times smaller than metallic ones, so $V_H$ is that much larger. $R_H = 1/ne$ is a material property, independent of the bar\'s length.' },
 
     // ---------- level 4 ----------
@@ -164,7 +164,7 @@ export default {
       trap: 'Multiplying the mass by 6 instead of $6^{2/3}$.' },
     { id: 'shl-032', type: 'msq', level: 4, exams: ['gate', 'net'], sub: 'Landau levels',
       q: 'Electrons of effective mass $m^*$ are in a uniform field $B$ along $z$. Which statements are correct?',
-      options: ['In 2D, each Landau level holds $eB/h$ states per unit area for each spin.', 'In 3D the energies are $(j + \\tfrac12)\\hbar\\omega_c + \\hbar^2k_z^2/2m^*$.', 'The degeneracy of a Landau level does not depend on $B$.', 'For free electrons ($m^* = m_e$, $g = 2$) the Zeeman splitting equals $\\hbar\\omega_c$.'], answer: [0, 1, 3],
+      options: ['In 3D the energies are $(j + \\tfrac12)\\hbar\\omega_c + \\hbar^2k_z^2/2m^*$.', 'The degeneracy of a Landau level does not depend on $B$.', 'For free electrons ($m^* = m_e$, $g = 2$) the Zeeman splitting equals $\\hbar\\omega_c$.', 'In 2D, each Landau level holds $eB/h$ states per unit area for each spin.'], answer: [0, 2, 3],
       sol: 'The states of a parabolic band in an energy slab $\\hbar\\omega_c$ wide collapse into one level: $\\dfrac{m^*}{2\\pi\\hbar^2}\\hbar\\omega_c = \\dfrac{eB}{h}$ per spin per area, growing with $B$. Motion along $B$ is free. Zeeman: $g\\mu_BB = 2\\cdot\\dfrac{e\\hbar}{2m_e}B = \\hbar eB/m_e = \\hbar\\omega_c$, so spin-split levels coincide pairwise for free electrons.' },
     { id: 'shl-033', type: 'nat', level: 4, exams: ['gate', 'net'], sub: 'Hall effect in 2D',
       q: 'A 2D electron gas shows $R_{xy} = 1.25$ k$\\Omega$ at $B = 2.0$ T (classical regime) and sheet resistance $25$ $\\Omega$ per square at $B = 0$. Its mobility is ______ m$^2$/V s (to one decimal place).',
