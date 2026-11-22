@@ -14,6 +14,7 @@ const nl = (k) => { if (PN[k]) return PN[k]; const [, s, a] = k.match(/^([A-Z][a
 const RX = [['Li7', 'p', 'n', 'Be7'], ['Li7', 'p', 'a', 'He4'], ['Li6', 'n', 'a', 'H3'], ['Be9', 'a', 'n', 'C12'], ['B10', 'n', 'a', 'Li7'], ['C12', 'd', 'p', 'C13'], ['N14', 'n', 'p', 'C14'], ['N14', 'a', 'p', 'O17'], ['O16', 'd', 'a', 'N14'], ['H3', 'p', 'n', 'He3'], ['H2', 'd', 'n', 'He3'], ['H2', 'd', 'p', 'H3'], ['F19', 'p', 'a', 'O16'], ['N15', 'p', 'a', 'C12'], ['Li6', 'd', 'a', 'He4'], ['C12', 'a', 'g', 'O16'], ['B11', 'p', 'n', 'C11x'], ['C13', 'a', 'n', 'O16'], ['C14', 'p', 'n', 'N14'], ['B11', 'd', 'n', 'C12'], ['Be9', 'd', 'p', 'Be10x'], ['C12', 'p', 'd', 'C11y']].filter((x) => !/x|y/.test(x[3]));
 const Qof = ([X, a, b, Y]) => D[X][0] + D[a][0] - D[b][0] - D[Y][0];
 const Am = (k) => D[k][2];
+const sci = (x, d = 3) => { const e = Math.floor(Math.log10(Math.abs(x))); return `${(x / 10 ** e).toFixed(d)}\\times10^{${e}}`; };
 const rxs = (x) => `${nl(x[0])}(${nl(x[1])}, ${nl(x[2])})${nl(x[3])}`;
 // non-relativistic Q equation, larger root for T_b (MeV), masses in u (integers ok)
 const Tb = (ma, mX, mb, mY, Q, Ta, th) => { const c = Math.cos(th * Math.PI / 180); const A = Math.sqrt(ma * mb * Ta) * c, Dd = A * A + (mY + mb) * (mY * Q + (mY - ma) * Ta); const s = (A + Math.sqrt(Dd)) / (mY + mb); return s * s; };
@@ -310,7 +311,7 @@ export default {
         const rate = I * 1e-6 / (zq * QE) * (rho * 1e-3 / M * NA) * sig * 1e-27;
         return { q: `A beam of ${zq === 1 ? 'singly' : 'doubly'} charged ions with electrical current $${I}\\ \\mu$A hits a thin target of areal density $${rho}$ mg/cm$^2$ (molar mass ${M} g/mol). The cross-section is $${sig}$ mb. The reaction rate is ______ $\\times10^6$ s$^{-1}$ (to three significant figures).`,
           answer: +(rate / 1e6).toPrecision(3), tol: +(rate / 1e6 * 0.006).toPrecision(2), I, zq, rho, M, sig,
-          sol: `Ions per second $= I/(qe) = ${(I * 1e-6 / (zq * QE)).toExponential(3)}$. Nuclei per cm$^2$ $= ${(rho * 1e-3 / M * NA).toExponential(3)}$. $\\sigma = ${sig}\\times10^{-27}$ cm$^2$. Rate $= ${(rate).toExponential(3)}$ s$^{-1}$.`,
+          sol: `Ions per second $= I/(qe) = ${sci(I * 1e-6 / (zq * QE), 3)}$. Nuclei per cm$^2$ $= ${sci(rho * 1e-3 / M * NA, 3)}$. $\\sigma = ${sig}\\times10^{-27}$ cm$^2$. Rate $= ${sci(rate, 3)}$ s$^{-1}$.`,
           trap: zq === 2 ? 'A doubly charged ion carries $2e$, so the particle current is half the charge current.' : 'mb to cm$^2$ is $10^{-27}$.' };
       },
       verify: (p) => p.I * 1e-6 / (p.zq * QE) * (p.rho * 1e-3 / p.M * NA) * p.sig * 1e-27 / 1e6 },
@@ -349,7 +350,7 @@ export default {
         const s = m * m + tgt[1] * tgt[1] + 2 * tgt[1] * (T + m), av = Math.sqrt(s) - m - tgt[1];
         return { q: `A proton of kinetic energy $${T}$ MeV hits ${tgt[0]} at rest (masses $${m}$ and $${tgt[1]}$ MeV$/c^2$). The kinetic energy available in the CM frame, $\\sqrt s - \\sum m$, is ______ MeV (to the nearest MeV).`,
           answer: Math.round(av), tol: 1, unit: 'MeV', T, M: tgt[1],
-          sol: `$s = m_p^2 + M^2 + 2ME_p$ with $E_p = ${round(T + m, 3)}$ MeV: $s = ${s.toExponential(5)}$ MeV$^2$, $\\sqrt s = ${round(Math.sqrt(s), 1)}$ MeV. Available: $${Math.round(av)}$ MeV, compared with the non-relativistic $${round(T * tgt[1] / (tgt[1] + m), 0)}$ MeV.`,
+          sol: `$s = m_p^2 + M^2 + 2ME_p$ with $E_p = ${round(T + m, 3)}$ MeV: $s = ${sci(s, 5)}$ MeV$^2$, $\\sqrt s = ${round(Math.sqrt(s), 1)}$ MeV. Available: $${Math.round(av)}$ MeV, compared with the non-relativistic $${round(T * tgt[1] / (tgt[1] + m), 0)}$ MeV.`,
           trap: 'The non-relativistic formula overestimates the available energy at high $T$.' };
       },
       verify: (p) => Math.sqrt(MP * MP + p.M * p.M + 2 * p.M * (p.T + MP)) - MP - p.M },
