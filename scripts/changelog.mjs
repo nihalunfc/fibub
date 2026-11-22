@@ -50,8 +50,10 @@ for (const block of raw.split('\x1e').slice(1)) {
   // A sweep over most tools at once (a rename pass, new ID codes) is one site-wide change: listing
   // every tool would bloat /changes/ past the page-size limit and fill each tool's own list.
   if (touched.size > 50) { touched.clear(); site = true; }
-  entries.push({ sha: sha.slice(0, 12), date, title: title.trim(), tools: [...touched].sort(), site });
+  // Dates in UTC, so commits made in different time zones still sort (and compare as text) newest first.
+  entries.push({ sha: sha.slice(0, 12), date: new Date(date).toISOString().replace('.000Z', '+00:00'), title: title.trim(), tools: [...touched].sort(), site });
 }
+entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 const json = JSON.stringify(entries, null, 1) + '\n';
 mkdirSync('src/data', { recursive: true });
 if (!existsSync(OUT) || readFileSync(OUT, 'utf8') !== json) writeFileSync(OUT, json);

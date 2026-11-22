@@ -1,0 +1,48 @@
+---
+// SIM for 8.5: simple forecasts compared on a held-out last two weeks: naive, seasonal naive (same day
+// last week), the 7-day average and exponential smoothing, each scored by mean absolute error.
+---
+<figure class="cs-fig mlf" data-fcast>
+  <span class="cs-figtag">Try it: which forecast wins?</span>
+  <canvas aria-label="Ten weeks of daily sales, with the last two weeks forecast by the chosen method"></canvas>
+  <div class="mlf-ctl">
+    <label>Method: <select name="m"><option value="naive">Naive (repeat the last day)</option><option value="snaive" selected>Seasonal naive (same day last week)</option><option value="ma">Average of the last 7 days</option><option value="ses">Exponential smoothing</option></select></label>
+    <label>Smoothing α (exponential only): <output data-v="a"></output><input type="range" name="a" min="0.05" max="1" step="0.05" value="0.3" /></label>
+    <label>Weekend boost: <output data-v="w"></output><input type="range" name="w" min="0" max="120" step="5" value="60" /></label>
+  </div>
+  <div class="mlf-read"><div><span>this method's error (MAE)</span><b data-mae></b></div><div><span>naive / seasonal / 7-day / smoothing</span><b data-all></b></div></div>
+  <figcaption>Dots: actual daily sales; the last 14 days (shaded) are hidden from the forecasts and used to score them. The line is the chosen method's forecast. MAE is the average miss in sales per day. With a strong weekly pattern, "same day last week" beats the fancier smoothing; set the weekend boost to 0 and the smoother methods win. Always compare against a naive forecast before trusting a model. Made-up numbers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, fmt } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  import { expSmooth } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fcast]')) {
+    const cv = fig.querySelector('canvas')!, D = 70, H = 14, sel = fig.querySelector<HTMLSelectElement>('select[name="m"]')!;
+    const p = new Plot(cv, { x: [0, D], y: [0, 500], h: 250, xLabel: 'day', yLabel: 'sales' });
+    const A = slider(fig, 'a', () => draw()), W = slider(fig, 'w', () => draw(), (v) => fmt(v, 0));
+    const Z = (() => { const R = rng(70); return Array.from({ length: D }, () => R.normal()); })();
+    function forecast(m: string, hist: number[]) {
+      const n = hist.length, out: number[] = [];
+      for (let h = 0; h < H; h++) {
+        if (m === 'naive') out.push(hist[n - 1]);
+        else if (m === 'snaive') out.push(hist[n - 7 + (h % 7)]);
+        else if (m === 'ma') out.push(hist.slice(-7).reduce((a, b) => a + b, 0) / 7);
+        else { const s = expSmooth(hist, A()); out.push(s[s.length - 1]); }
+      }
+      return out;
+    }
+    function draw() {
+      const ys = Z.map((z, i) => 200 + 0.8 * i + (i % 7 >= 5 ? W() : 0) + 18 * z), hist = ys.slice(0, D - H), test = ys.slice(D - H);
+      const mae = (f: number[]) => f.reduce((a, v, i) => a + Math.abs(v - test[i]), 0) / H;
+      const all = ['naive', 'snaive', 'ma', 'ses'].map((m) => mae(forecast(m, hist))), f = forecast(sel.value, hist);
+      p.begin(); p.rect(D - H - 0.5, 0, H + 0.5, 500, { fill: p.pal.grid, alpha: 0.7 });
+      ys.forEach((y, i) => p.dot(i, y, { r: 2.6, color: i >= D - H ? p.pal.muted : p.pal.ink, alpha: 0.85 }));
+      p.path(f.map((v, h) => [D - H + h, v] as [number, number]), { color: p.pal.accent, width: 2.5 });
+      p.end();
+      put(fig, 'mae', fmt(mae(f), 1)); put(fig, 'all', all.map((v) => fmt(v, 0)).join(' / '));
+    }
+    sel.addEventListener('change', draw);
+    live(cv, draw);
+  }
+</script>
