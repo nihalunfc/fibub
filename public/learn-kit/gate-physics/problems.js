@@ -184,4 +184,81 @@ export default {
       return y;
     },
   },
+  // ---- 3.6 to 3.10 waves in matter, Fresnel, waveguides, radiation, covariant electrodynamics ----
+  'emm-skin': {
+    title: 'skin depth and surface resistance of a metal',
+    make(r) {
+      const M = [['copper', 5.8e7], ['aluminium', 3.5e7], ['silver', 6.3e7], ['brass', 1.5e7]][int(r, 0, 3)], f = [1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10][int(r, 0, 6)];
+      const mu0 = 1.25663706212e-6, d = Math.sqrt(2 / (mu0 * M[1] * 2 * Math.PI * f)), answer = d * 1e6;
+      return {
+        q: `<p>Find the skin depth of ${M[0]} (σ = ${M[1].toExponential(1)} S/m, μ = μ₀) at f = ${f.toExponential(0)} Hz, in μm.</p>`,
+        answer, unit: 'μm', tol: 0.01,
+        hint: 'For a good conductor (σ ≫ ωε) δ = √(2/(μσω)) with ω = 2πf. Check the condition first: for any metal it holds far into the microwave range.',
+        solution: steps(`ω = 2π × ${f.toExponential(0)} = ${(2 * Math.PI * f).toExponential(3)} rad/s.`, `δ = √(2/(μ₀σω)) = √(2/(1.2566×10⁻⁶ × ${M[1].toExponential(1)} × ${(2 * Math.PI * f).toExponential(3)})) = <b>${answer.toPrecision(3)} μm</b>.`, `The surface resistance is R<sub>s</sub> = 1/(σδ) = ${(1 / (M[1] * d)).toExponential(3)} Ω.`),
+        s: M[1], f,
+      };
+    },
+    verify: (p) => 1e6 / Math.sqrt(Math.PI * p.f * 1.25663706212e-6 * p.s),
+  },
+  'frs-reflect': {
+    title: 'Fresnel reflectance at oblique incidence',
+    make(r) {
+      const n = [1.33, 1.5, 1.6, 1.8, 2.4][int(r, 0, 4)], th = [20, 30, 45, 60, 70, 80][int(r, 0, 5)], pol = int(r, 0, 1) ? 'p' : 's';
+      const D = Math.PI / 180, ci = Math.cos(th * D), st = Math.sin(th * D) / n, ct = Math.sqrt(1 - st * st);
+      const rr = pol === 's' ? (ci - n * ct) / (ci + n * ct) : (n * ci - ct) / (n * ci + ct), answer = 100 * rr * rr;
+      return {
+        q: `<p>Light polarised ${pol === 's' ? 'perpendicular to' : 'in'} the plane of incidence (${pol}) goes from air into glass of index ${n} at ${th}° incidence. Find the reflectance R<sub>${pol}</sub> in percent.</p>`,
+        answer, unit: '%', tol: 0.01, abs: 0.01,
+        hint: pol === 's' ? 'r_s = (n₁cosθᵢ − n₂cosθₜ)/(n₁cosθᵢ + n₂cosθₜ); find θₜ from Snell first. R = r².' : 'r_p = (n₂cosθᵢ − n₁cosθₜ)/(n₂cosθᵢ + n₁cosθₜ); find θₜ from Snell first. R = r², and it is zero at the Brewster angle.',
+        solution: steps(`Snell: sin θₜ = sin ${th}°/${n} = ${st.toFixed(4)}, so cos θₜ = ${ct.toFixed(4)}; cos θᵢ = ${ci.toFixed(4)}.`, `r<sub>${pol}</sub> = ${rr.toFixed(4)}.`, `R<sub>${pol}</sub> = r² = <b>${answer.toFixed(2)}%</b>. (Brewster angle here: ${(Math.atan(n) / D).toFixed(1)}°.)`),
+        n, th, pol,
+      };
+    },
+    verify: (p) => { const D = Math.PI / 180, ti = p.th * D, tt = Math.asin(Math.sin(ti) / p.n); return 100 * (p.pol === 's' ? (Math.sin(ti - tt) / Math.sin(ti + tt)) ** 2 : (Math.tan(ti - tt) / Math.tan(ti + tt)) ** 2); },
+  },
+  'wvg-te10': {
+    title: 'group velocity and guide wavelength of the TE10 mode',
+    make(r) {
+      const a = [1.5, 2.0, 2.29, 2.5, 3.5, 4.8][int(r, 0, 5)], fc = 15 / a, f = +(fc * (1.2 + 0.1 * int(r, 0, 6))).toFixed(2), ask = int(r, 0, 1) ? 'guide wavelength' : 'group velocity';
+      const s = Math.sqrt(1 - (fc / f) ** 2), answer = ask === 'group velocity' ? s : 30 / f / s;
+      return {
+        q: `<p>An air-filled rectangular guide has broad side a = ${a} cm. A ${f} GHz signal travels in its TE₁₀ mode. Find the ${ask === 'group velocity' ? 'group velocity as a multiple of c' : 'guide wavelength in cm'} (take c = 3.0×10⁸ m/s).</p>`,
+        answer, unit: ask === 'group velocity' ? '× c' : 'cm', tol: 0.01,
+        hint: 'The TE₁₀ cutoff is f_c = c/2a. Then v_g = c√(1 − (f_c/f)²) and λ_g = λ/√(1 − (f_c/f)²), with λ = c/f.',
+        solution: steps(`f<sub>c</sub> = c/2a = 3.0×10¹⁰ cm/s / (2 × ${a} cm) = ${fc.toFixed(3)} GHz.`, `√(1 − (f<sub>c</sub>/f)²) = √(1 − (${fc.toFixed(3)}/${f})²) = ${s.toFixed(4)}.`, ask === 'group velocity' ? `v<sub>g</sub> = <b>${s.toFixed(3)} c</b>; the phase velocity is ${(1 / s).toFixed(3)} c.` : `λ = 30/${f} = ${(30 / f).toFixed(3)} cm, so λ<sub>g</sub> = <b>${answer.toFixed(3)} cm</b>.`),
+        a, f, ask,
+      };
+    },
+    verify: (p) => { const kc = Math.PI / p.a, k = (2 * Math.PI * p.f) / 30, kz = Math.sqrt(k * k - kc * kc); return p.ask === 'group velocity' ? kz / k : (2 * Math.PI) / kz; },
+  },
+  'rdn-dipole': {
+    title: 'power radiated by a short dipole antenna',
+    make(r) {
+      const frac = [10, 20, 25, 40, 50][int(r, 0, 4)], I0 = int(r, 1, 12), eta = 376.730313;
+      const R = (2 * Math.PI / 3) * eta / (frac * frac), answer = 0.5 * I0 * I0 * R;
+      return {
+        q: `<p>A short dipole antenna of length λ/${frac} carries a uniform current of amplitude ${I0} A. Find the time-averaged power it radiates, in W.</p>`,
+        answer, unit: 'W', tol: 0.01,
+        hint: 'Radiation resistance of a short dipole: R = (2π/3)η₀(l/λ)² ≈ 790(l/λ)² Ω. For a current of amplitude I₀, ⟨P⟩ = ½I₀²R.',
+        solution: steps(`R = 789.6 × (1/${frac})² = ${R.toFixed(4)} Ω.`, `⟨P⟩ = ½ × ${I0}² × ${R.toFixed(4)} = <b>${answer.toFixed(3)} W</b>.`, `The pattern is sin²θ, so the peak intensity is 1.5 times the average over all directions.`),
+        frac, I0,
+      };
+    },
+    verify: (p) => { const mu0 = 1.25663706212e-6, c = 2.99792458e8, l = 1 / p.frac, w = 2 * Math.PI * c, p0 = (p.I0 * l) / w; return (mu0 * p0 * p0 * w ** 4) / (12 * Math.PI * c); },
+  },
+  'ced-boost': {
+    title: 'electric and magnetic fields seen from a moving frame',
+    make(r) {
+      const E = int(r, 1, 9) * 1e5, B = int(r, 1, 9) * 1e-3, b = [0.2, 0.5, 0.6, 0.8][int(r, 0, 3)], ask = int(r, 0, 1) ? 'E' : 'B', c = 2.99792458e8;
+      const g = 1 / Math.sqrt(1 - b * b), v = b * c, Ep = g * (E - v * B), Bp = g * (B - (v * E) / (c * c)), answer = ask === 'E' ? Ep / 1e5 : Bp * 1e3;
+      return {
+        q: `<p>In frame S, E = ${E.toExponential(0)} V/m along +y and B = ${B * 1e3} mT along +z. Frame S′ moves at ${b}c along +x. Find ${ask === 'E' ? 'E′<sub>y</sub> in units of 10⁵ V/m' : 'B′<sub>z</sub> in mT'} (with sign).</p>`,
+        answer, unit: ask === 'E' ? '×10⁵ V/m' : 'mT', tol: 0.01, abs: 0.002,
+        hint: 'Perpendicular components mix: E′⊥ = γ(E + v × B)⊥ and B′⊥ = γ(B − v × E/c²)⊥. With v along x, (v × B)_y = −vB_z and (v × E)_z = vE_y.',
+        solution: steps(`γ = 1/√(1 − ${b}²) = ${g.toFixed(4)}, v = ${v.toExponential(4)} m/s.`, ask === 'E' ? `E′<sub>y</sub> = γ(E<sub>y</sub> − vB<sub>z</sub>) = ${g.toFixed(4)} × (${E.toExponential(1)} − ${(v * B).toExponential(4)}) = <b>${(Ep / 1e5).toFixed(3)}×10⁵ V/m</b>.` : `B′<sub>z</sub> = γ(B<sub>z</sub> − vE<sub>y</sub>/c²) = ${g.toFixed(4)} × (${B.toExponential(1)} − ${((v * E) / (c * c)).toExponential(4)}) = <b>${(Bp * 1e3).toFixed(4)} mT</b>.`, `Check the invariant: E′² − c²B′² = E² − c²B² = ${(E * E - c * c * B * B).toExponential(3)} V²/m².`),
+        E, B, b, ask,
+      };
+    },
+    verify: (p) => { const c = 2.99792458e8, g = 1 / Math.sqrt((1 - p.b) * (1 + p.b)), F02 = -p.E / c, F12 = -p.B; return p.ask === 'E' ? (-g * (F02 - p.b * F12) * c) / 1e5 : -g * (F12 - p.b * F02) * 1e3; },
+  },
 };

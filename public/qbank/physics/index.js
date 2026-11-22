@@ -56,6 +56,11 @@ export default {
       { id: 'induction', name: 'Electromagnetic induction and inductance' },
       { id: 'circuits', name: 'DC transients and AC circuits' },
       { id: 'maxwell-em-waves', name: 'Maxwell\'s equations and electromagnetic waves' },
+      { id: 'em-waves-media', name: 'Electromagnetic waves in matter, conductors and plasmas' },
+      { id: 'fresnel-equations', name: 'Reflection, refraction and the Fresnel equations' },
+      { id: 'waveguides', name: 'Waveguides, transmission lines, cavities and optical fibres' },
+      { id: 'radiation', name: 'Radiation from dipoles and accelerated charges' },
+      { id: 'covariant-electrodynamics', name: 'Electrodynamics and relativity: covariant form, field transformations' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
