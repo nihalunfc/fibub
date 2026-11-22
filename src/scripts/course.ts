@@ -29,6 +29,7 @@ if (root) {
       else { sessionStorage.setItem(KEY, s); localStorage.removeItem(KEY); }
     } catch { /* storage blocked: progress lasts for this page only */ }
     paint();
+    dispatchEvent(new Event('fibub-course-saved'));
   }
 
   const msg = (t: string) => { const m = root.querySelector('[data-prog-msg]'); if (m) m.textContent = t; };
@@ -83,10 +84,57 @@ if (root) {
       const why = fs.querySelector<HTMLElement>('.cs-why')!; why.hidden = false; why.prepend(ok ? 'Right. ' : 'Not quite. ');
       if (answered === qs.length) {
         quiz.querySelector('[data-quiz-score]')!.textContent = `You got ${right} of ${qs.length}.${right === qs.length ? ' Well done.' : ' Read the reasons above, then try the lesson again later.'}`;
-        prog.quiz[lessonSlug] = [right, qs.length]; save();
+        prog.quiz[lessonSlug] = [right, qs.length];
+        // Finishing the quiz ticks the lesson off, so the course home moves on to the next one.
+        if (!prog.done[lessonSlug]) { prog.done[lessonSlug] = today(); msg('Quiz finished: lesson marked as done.'); }
+        save();
       }
     }));
   }
+  // Finish in order (nihal, 2026-11-22): the course home gets one button to the first lesson not yet done,
+  // in syllabus order (the module list is already in that order).
+  const home = root.querySelector<HTMLElement>('.cs-main .cs-meta');
+  if (home && !lessonSlug) {
+    const go = document.createElement('a'); go.className = 'btn cs-go'; home.after(go);
+    const paintGo = () => {
+      const links = [...root.querySelectorAll<HTMLAnchorElement>('.cs-modcard a[data-lesson]')];
+      const next = links.find((a) => !prog.done[a.dataset.lesson!]);
+      const n = Object.keys(prog.done).length;
+      go.hidden = !links.length;
+      if (!next) { go.href = '#progress'; go.textContent = 'All written lessons done. Well done!'; return; }
+      go.href = next.href; go.textContent = `${n ? 'Continue' : 'Start'}: ${next.textContent!.trim().replace(/\s+/g, ' ')} →`;
+    };
+    paintGo(); addEventListener('fibub-course-saved', paintGo);
+  }
+
+  // Keep your progress (nihal, 2026-11-22). Progress lasts for this tab until the learner chooses to keep it
+  // on this device, so once they have some, a small bar offers that, and closing the tab asks first.
+  const has = () => Object.keys(prog.done).length + Object.keys(prog.quiz).length > 0;
+  const DISMISS = 'fibub-course-keep-dismissed';
+  const bar = document.createElement('div');
+  bar.className = 'cs-keep'; bar.setAttribute('role', 'region'); bar.setAttribute('aria-label', 'Keep your progress'); bar.hidden = true;
+  bar.innerHTML = '<p><strong>Keep your progress?</strong> Right now it lasts only until you close this tab.</p><div><button type="button" class="btn" data-keep>Keep it on this device</button><button type="button" class="cs-keep-x" aria-label="Not now" data-keep-x>Not now</button></div>';
+  document.body.append(bar);
+  const dismissed = () => { try { return sessionStorage.getItem(DISMISS) === '1'; } catch { return false; } };
+  const paintKeep = () => { bar.hidden = remember || !has() || dismissed(); };
+  bar.querySelector('[data-keep]')!.addEventListener('click', () => {
+    remember = true; save();
+    bar.innerHTML = '<p>Saved on this device. Only this browser can see it; clear it any time on the <a href="#progress">course home</a>.</p>';
+    bar.hidden = false; setTimeout(() => (bar.hidden = true), 4000);
+  });
+  bar.querySelector('[data-keep-x]')!.addEventListener('click', () => { try { sessionStorage.setItem(DISMISS, '1'); } catch { /* */ } bar.hidden = true; });
+  addEventListener('fibub-course-saved', paintKeep); paintKeep();
+  // Moving between fibub pages keeps this tab's progress, so only leaving the site or closing the tab asks.
+  let internal = false;
+  document.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest?.('a');
+    if (a && a.origin === location.origin) internal = true;
+  }, true);
+  addEventListener('beforeunload', (e) => {
+    if (internal || remember || !has()) { internal = false; return; }
+    e.preventDefault(); e.returnValue = '';
+  });
+
   // Remember this lesson as the place to pick up from (kept with the progress, in the same storage).
   if (lessonSlug) {
     const label = (root.querySelector('.cs-kicker')?.textContent?.match(/Lesson ([\d.]+)/)?.[1] ?? '') + ' ' + (root.querySelector('h1')?.textContent ?? '');

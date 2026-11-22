@@ -3594,7 +3594,7 @@ try {
     subOn: [...document.querySelectorAll('.tb-sub a.on')].map((e) => e.textContent.trim()),
     area: document.documentElement.dataset.area,
   }));
-  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 7], ['/learn/', 'learn', 'Learn', 'Overview', 8], ['/learn/languages/', 'learn', 'Learn', 'Languages', 8], ['/learn/data-ai/', 'learn', 'Learn', 'Data & AI', 8], ['/tools/', 'tools', 'Tools', 'All', 7], ['/science/', 'tools', 'Tools', 'Science', 7], ['/science/astronomy/', 'tools', 'Tools', 'Science', 7], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/blog/', 'blog', 'Blog', 'Latest', 9], ['/blog/guides/', 'blog', 'Blog', 'Guides', 9], ['/changes/', 'blog', 'Blog', 'Change log', 9], ['/stats/', 'blog', 'Blog', 'Usage stats', 9], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
+  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 7], ['/learn/', 'learn', 'Learn', 'Overview', 9], ['/learn/languages/', 'learn', 'Learn', 'Languages', 9], ['/learn/data-ai/', 'learn', 'Learn', 'Data & AI', 9], ['/tools/', 'tools', 'Tools', 'All', 7], ['/science/', 'tools', 'Tools', 'Science', 7], ['/science/astronomy/', 'tools', 'Tools', 'Science', 7], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/blog/', 'blog', 'Blog', 'Latest', 9], ['/blog/guides/', 'blog', 'Blog', 'Guides', 9], ['/changes/', 'blog', 'Blog', 'Change log', 9], ['/stats/', 'blog', 'Blog', 'Usage stats', 9], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
     await phone.goto(BASE + path);
     const t = await tabState();
     check(t.tabs.join() === 'Learn,Tools,Home,Blog,Menu' && t.on.join() === on && t.area === area && t.sub.length === n && t.subOn.join() === subOn, `bottom bar on ${path}: ${t.on} lit, ${t.sub.length} sections${subOn ? `, ${subOn} lit` : ''} (${JSON.stringify(t)})`);
@@ -3652,7 +3652,7 @@ try {
   await phone.goto(BASE + '/learn/');
   {
     const g = await phone.evaluate(() => ({ hubs: document.querySelectorAll('.lh-hub').length, rails: document.querySelectorAll('.lh-rail').length, cards: document.querySelectorAll('.lc').length, sw: document.documentElement.scrollWidth, cont: document.querySelector('[data-continue]').hidden }));
-    check(g.hubs === 6 && g.rails >= 3 && g.cards >= 8 && g.sw <= 390 && g.cont, `Learn: six category tiles, a sideways row per category, no sideways page scroll, no "continue" strip without progress (${JSON.stringify(g)})`);
+    check(g.hubs === 7 && g.rails >= 3 && g.cards >= 8 && g.sw <= 390 && g.cont, `Learn: seven category tiles, a sideways row per category, no sideways page scroll, no "continue" strip without progress (${JSON.stringify(g)})`);
   }
   // Continue where you left off: opening a lesson remembers it (this tab only), and Learn offers it back.
   await phone.goto(BASE + '/learn/courses/statistics/centre/');
