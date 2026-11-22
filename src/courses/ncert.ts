@@ -10,7 +10,7 @@ import type { CourseModule, CourseSyllabus } from './types';
 import { CLASSES, type Chapter } from '../data/ncert';
 
 /** Courses that are published (the others wait until their first lessons are written). */
-export const NCERT_LIVE = ['ncert-class-10-science', 'ncert-class-10-maths'];
+export const NCERT_LIVE = ['ncert-class-10-science', 'ncert-class-10-maths']; // Class 9 joins when its lessons land (run scripts/ncert-pages.mjs then)
 
 // Short, readable addresses for chapters whose full titles are long.
 const SLUGS: Record<string, string> = {
@@ -20,6 +20,21 @@ const SLUGS: Record<string, string> = {
   'Pair of Linear Equations in Two Variables': 'pair-of-linear-equations',
   'Some Applications of Trigonometry': 'applications-of-trigonometry',
   'How do Organisms Reproduce?': 'how-organisms-reproduce',
+  'Exploration: Entering the World of Secondary Science': 'exploration-secondary-science',
+  'Describing Motion Around Us': 'describing-motion',
+  'Exploring Mixtures and their Separation': 'mixtures-and-separation',
+  'Sound Waves: Characteristics and Applications': 'sound-waves',
+  'Reproduction: How Life Continues': 'reproduction-how-life-continues',
+  'Patterns in Life: Diversity and Classification': 'diversity-and-classification',
+  'Earth as a System: Energy, Matter, and Life': 'earth-as-a-system',
+  'Cell: The Building Block of Life': 'cell-building-block-of-life',
+  'Orienting Yourself: The Use of Coordinates': 'use-of-coordinates',
+  "I\'m Up and Down, and Round and Round": 'up-and-down-round-and-round',
+  'Measuring Space: Perimeter and Area': 'perimeter-and-area',
+  'The Mathematics of Maybe: Introduction to Probability': 'introduction-to-probability',
+  'Predicting What Comes Next: Exploring Sequences and Progressions': 'sequences-and-progressions',
+  'How Quantities Combine: Understanding Data': 'understanding-data',
+  'Math of Space: Surface Area and Volume': 'surface-area-and-volume',
 };
 
 /** The address of a chapter inside its course. */
