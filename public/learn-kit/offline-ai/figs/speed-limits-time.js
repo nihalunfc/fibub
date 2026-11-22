@@ -10,7 +10,7 @@ const ROWS = [
   { name: '+ thinking on', read: 15, think: 40, write: 13.3 },
   { name: 'Fixed', read: 1.5, think: 0, write: 10 },
 ];
-const MAX = 70;
+const MAX = 84;
 
 export default function (host) {
   return stepFig(host, {
@@ -26,7 +26,7 @@ export default function (host) {
           const ww = (X(v) - L) * k; rect(ctx, x, y, Math.max(ww, v ? 1.5 : 0), 26, c); x += ww;
         }
         const tot = r.read + r.think + r.write;
-        text(ctx, tot.toFixed(1) + ' s', Math.min(x + 6, R - 40), y + 13, { color: col.ink, size: 12, weight: 700, halo: col.panel });
+        text(ctx, tot.toFixed(1) + ' s', x + 6, y + 13, { color: col.ink, size: 12, weight: 700, halo: col.panel });
       }
       const ly = h - 26;
       [['reading', col.s[0]], ['thinking', col.s[2]], ['writing', col.s[1]]].forEach(([lab, c], i) => {

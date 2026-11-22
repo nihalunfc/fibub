@@ -27,13 +27,13 @@ export default function (host) {
         text(ctx, '2,000 jobs × 3,000 in and × 800 out', 12, h - 24, { color: col.muted, size: 11.5 });
         return;
       }
-      const max = 44, X = (v) => L + (v / max) * (R - L);
+      const max = 54, X = (v) => L + (v / max) * (R - L);
       for (let i = 0; i < s.step && i < ROWS.length; i++) {
         const r = ROWS[i], y = top + 12 + i * 52, k = i === s.step - 1 ? s.e : 1;
         text(ctx, r.name, 12, y + 14, { color: col.ink, size: 11.5, weight: 650 });
         rect(ctx, L, y, (X(r.inp) - L) * k, 28, col.s[0]);
         rect(ctx, X(r.inp), y, (X(r.inp + r.out) - X(r.inp)) * k, 28, col.s[1]);
-        text(ctx, money(r.inp + r.out), Math.min(X(r.inp + r.out) + 6, R - 52), y + 14, { color: col.ink, size: 12, weight: 700, halo: col.panel });
+        text(ctx, money(r.inp + r.out), X(r.inp + r.out) + 6, y + 14, { color: col.ink, size: 12, weight: 700, halo: col.panel });
       }
       rect(ctx, 12, h - 30, 12, 12, col.s[0]);
       text(ctx, 'input', 30, h - 24, { color: col.muted, size: 11.5 });
