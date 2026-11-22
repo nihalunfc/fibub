@@ -625,4 +625,318 @@ const gens = [
     verify: (p) => (p.v === 0 ? 2 * p.A * Math.sin(2 * PI / p.frac[0]) : p.v === 1 ? p.w / p.kk : 340 / p.f / 4 * 100) },
 ];
 
-export default { topic: 'waves', groups, items, gens };
+
+// ---------- Expansion (2026-11-22): more hard items, matches, passages and templates ----------
+const xs = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XCUET = false;
+const xex = (l, t) => (l <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet'] : l === 3 ? ['jee-main', 'neet', 'keam', 'comedk'] : l === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv']).concat(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : []);
+let xk = 0; let xc = 0;
+const xid = () => `wv-x${String(++xk).padStart(3, '0')}`;
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type), sub, ...o });
+const xpos = () => [2, 0, 3, 1][xc++ % 4];
+const xmcq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('options not distinct: ' + q.slice(0, 60));
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xnat = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return xb(level, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol: typeof sol === 'function' ? sol(answer) : sol, ...o });
+};
+const xmsq = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAOPT = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xasrt = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAOPT, answer, sol, ...o });
+const XSOPT = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xstm = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSOPT, answer, sol, ...o });
+const xcnt = (level, sub, q, list, n, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((s, i) => `(${i + 1}) ${s}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: n - 1, sol, ...o });
+// match: correct code and three wrong codes
+const xmt = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('match options not distinct: ' + group);
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xpas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return { id: xid(), type: 'nat', level, format: 'passage', exams: xex(level, 'nat'), sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const xpasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: xid(), type: 'mcq', level, format: 'passage', exams: xex(level, 'mcq'), sub, group, q, options, answer: pos, sol, ...o };
+};
+// template: exams from level and type
+const xg = (id, level, type, sub, make, verify) => ({ id, type, level, exams: xex(level, type), sub, make, verify });
+const XV = 340; const XPI = Math.PI;
+
+const xgroups = {
+  mw1: { title: 'Frequencies in pipes of length $L$',
+    list1: ['A. Fundamental of a pipe open at both ends', 'B. Fundamental of a pipe closed at one end', 'C. Second overtone of a pipe closed at one end', 'D. Third harmonic of a pipe open at both ends'],
+    list2: [r`p. $\dfrac{v}{2L}$`, r`q. $\dfrac{v}{4L}$`, r`r. $\dfrac{5v}{4L}$`, r`s. $\dfrac{3v}{2L}$`, r`t. $\dfrac{v}{L}$`] },
+  mw2: { title: 'Reading a wave equation',
+    list1: [r`A. Frequency of $y = 0.05\sin(200\pi t - 4\pi x)$ (SI)`, r`B. Wavelength of the same wave`, r`C. Speed of the same wave`, r`D. Maximum speed of a particle of the medium`],
+    list2: ['p. 100 Hz', 'q. 0.5 m', 'r. 50 m/s', r`s. $10\pi$ m/s`, 't. 0.01 s'] },
+  mw3: { title: 'Doppler shifts (source 1000 Hz, speed of sound 340 m/s)',
+    list1: ['A. Source approaches a stationary observer at 34 m/s', 'B. Source recedes from a stationary observer at 34 m/s', 'C. Observer approaches a stationary source at 34 m/s', 'D. Observer recedes from a stationary source at 34 m/s'],
+    list2: ['p. 1111 Hz', 'q. 909 Hz', 'r. 1100 Hz', 's. 900 Hz', 't. 1000 Hz'] },
+  mw4: { title: 'Sound level changes',
+    list1: ['A. The intensity is doubled', 'B. The intensity is multiplied by 10', 'C. The distance from a point source is doubled', 'D. 100 identical sources sound together instead of one'],
+    list2: ['p. increases by 3 dB', 'q. increases by 10 dB', 'r. decreases by 6 dB', 's. increases by 20 dB', 't. unchanged'] },
+  mw5: { title: 'A string fixed at both ends (fundamental $f$, length $L$)',
+    list1: ['A. Frequency of the second overtone', 'B. Number of nodes (ends included) in the second overtone', 'C. Wavelength of the second harmonic', 'D. Frequency of the second harmonic'],
+    list2: [r`p. $3f$`, 'q. 4', 'r. $L$', r`s. $2f$`] },
+  mw6: { title: 'Ratio of the speed of sound',
+    list1: ['A. Hydrogen ($M = 2$, $\\gamma = 1.4$) to air ($M = 29$, $\\gamma = 1.4$), same temperature', 'B. Helium ($M = 4$, $\\gamma = 5/3$) to air, same temperature', 'C. Air at four times the absolute temperature to air', 'D. Air at double the pressure (same temperature) to air'],
+    list2: ['p. 3.81', 'q. 2.94', 'r. 2', 's. 1', 't. 1.41'] },
+  mw7: { title: 'A wave going from a string $\\mu$ into a string $4\\mu$ (same tension)',
+    list1: ['A. Ratio of wave speeds, $v_2/v_1$', 'B. Reflected amplitude / incident amplitude', 'C. Transmitted amplitude / incident amplitude', 'D. Fraction of the incident power that is transmitted'],
+    list2: [r`p. $\tfrac12$`, r`q. $-\tfrac13$`, r`r. $\tfrac23$`, r`s. $\tfrac89$`, r`t. $\tfrac19$`] },
+  mw8: { title: 'Fundamental frequency of a stretched string',
+    list1: ['A. The tension is multiplied by 4', 'B. The wire is replaced by one of double diameter (same material, same tension and length)', 'C. The length is halved and the tension doubled', 'D. The tension is multiplied by 9 and the length by 3'],
+    list2: ['p. frequency × 2', r`q. frequency × $\tfrac12$`, r`r. frequency × $2\sqrt2$`, 's. frequency unchanged', 't. frequency × 4'] },
+  pw1: { title: 'A plucked string in its third harmonic',
+    passage: r`<p>A string of mass per unit length $0.04\ \mathrm{kg\,m^{-1}}$ is stretched with a tension of 64 N between two fixed points 1.2 m apart. It vibrates in its third harmonic, and the amplitude of each antinode is 3.0 mm.</p>` },
+  pw2: { title: 'A passing ambulance',
+    passage: r`<p>An ambulance siren emits a steady 700 Hz. It travels at $20\ \mathrm{m\,s^{-1}}$ along a straight road, past a stationary observer standing at the roadside. Take the speed of sound as $340\ \mathrm{m\,s^{-1}}$ in still air.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xnat(2, 'wave equation', r`A travelling wave is $y = 0.02\sin(10\pi t - 2\pi x)$ in SI units. Find its speed (in $\mathrm{m\,s^{-1}}$).`, 10 * XPI / (2 * XPI), 0, 0,
+    r`Compare with $y = A\sin(\omega t - kx)$: $\omega = 10\pi$, $k = 2\pi$. $v = \dfrac\omega k = \dfrac{10\pi}{2\pi} = 5\ \mathrm{m\,s^{-1}}$, in the $+x$ direction.`, { unit: 'm/s' }),
+  xmcq(2, 'types of waves', r`Which of these waves cannot be polarised?`, 'Sound waves in air', ['Light waves', 'Transverse waves on a string', 'Radio waves'],
+    r`Polarisation needs a transverse vibration whose direction can be restricted. In air the particles move along the direction of travel, so sound is longitudinal and cannot be polarised.`),
+  xnat(2, 'speed on a string', r`A string of mass per unit length $0.04\ \mathrm{kg\,m^{-1}}$ is under a tension of 100 N. Find the speed of a transverse wave on it (in $\mathrm{m\,s^{-1}}$).`, Math.sqrt(100 / 0.04), 0, 0,
+    r`$v = \sqrt{\dfrac T\mu} = \sqrt{\dfrac{100}{0.04}} = \sqrt{2500} = 50\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xmcq(2, 'closed pipe', r`A pipe closed at one end produces`, 'only odd harmonics of its fundamental', ['all harmonics', 'only even harmonics', 'only the fundamental'],
+    r`A closed end is a node and an open end an antinode, so $L = \dfrac{(2n - 1)\lambda}{4}$ and the frequencies are $f, 3f, 5f, \ldots$ An open pipe gives all harmonics.`),
+  xnat(2, 'intensity and loudness', r`A sound has intensity $10^{-6}\ \mathrm{W\,m^{-2}}$. Find its level in decibels (reference $10^{-12}\ \mathrm{W\,m^{-2}}$).`, 10 * Math.log10(1e-6 / 1e-12), 0, 0,
+    r`$\beta = 10\log_{10}\dfrac{I}{I_0} = 10\log_{10}10^{6} = 60$ dB.`, { unit: 'dB' }),
+  xmcq(2, 'speed of sound', r`The speed of sound in air increases when`, 'the temperature rises', ['the pressure rises at constant temperature', 'the frequency increases', 'the amplitude increases'],
+    r`$v = \sqrt{\gamma P/\rho}$. At a fixed temperature, $P/\rho$ is constant (a change of pressure changes the density in the same ratio), so pressure does not matter. Frequency and amplitude do not affect the speed. A higher temperature lowers $\rho$ at the same $P$, and $v\propto\sqrt T$.`, { trap: 'Pressure alone does not change the speed.' }),
+
+  // ---------- Level 3 ----------
+  xnat(3, 'closed pipe', r`A pipe 0.5 m long is closed at one end. Find the frequency of its second overtone (in Hz; $v = 340\ \mathrm{m\,s^{-1}}$).`, 5 * XV / (4 * 0.5), 0, 0,
+    r`Fundamental $f_1 = \dfrac{v}{4L} = \dfrac{340}{2} = 170$ Hz. Overtones: $3f_1$ (first), $5f_1$ (second). $5\times170 = 850$ Hz.`, { unit: 'Hz', trap: 'Second overtone of a closed pipe is the 5th harmonic, not the 3rd.' }),
+  xnat(3, 'open pipe', r`An open pipe is 0.85 m long. Find the frequency of its first overtone (in Hz; $v = 340\ \mathrm{m\,s^{-1}}$).`, 2 * XV / (2 * 0.85), 0, 0,
+    r`Open pipe: $f_n = \dfrac{nv}{2L}$. The first overtone is $n = 2$: $f = \dfrac{340}{0.85} = 400$ Hz.`, { unit: 'Hz' }),
+  xnat(3, 'strings', r`The tension in a stretched wire is raised by 21 %. Its fundamental frequency was 100 Hz. Find the new fundamental frequency (in Hz).`, 100 * Math.sqrt(1.21), 0, 0,
+    r`$f\propto\sqrt T$, so $f' = 100\sqrt{1.21} = 110$ Hz. A 21 % rise in tension gives a 10 % rise in frequency.`, { unit: 'Hz' }),
+  xnat(3, 'Doppler effect', r`A source of frequency 500 Hz moves towards a stationary observer at $34\ \mathrm{m\,s^{-1}}$. Find the frequency heard (in Hz, 1 decimal; $v = 340\ \mathrm{m\,s^{-1}}$).`, 500 * 340 / (340 - 34), 0.1, 1,
+    r`$f' = f\dfrac{v}{v - v_s} = 500\times\dfrac{340}{306} = 555.6$ Hz.`, { unit: 'Hz' }),
+  xnat(3, 'Doppler effect', r`An observer walks away from a stationary 400 Hz source at $17\ \mathrm{m\,s^{-1}}$ ($v = 340\ \mathrm{m\,s^{-1}}$). Find the frequency heard (in Hz).`, 400 * (340 - 17) / 340, 0, 0,
+    r`$f' = f\dfrac{v - v_o}{v} = 400\times\dfrac{323}{340} = 380$ Hz.`, { unit: 'Hz' }),
+  xnat(3, 'interference', r`Two waves of amplitudes in the ratio $3:1$ interfere. Find the ratio $I_{max}/I_{min}$.`, (3 + 1) ** 2 / (3 - 1) ** 2, 0, 0,
+    r`$A_{max} = 3 + 1 = 4$, $A_{min} = 3 - 1 = 2$. Intensity goes as amplitude squared: $\dfrac{16}{4} = 4$.`, { trap: 'Intensity ratio is the square of the amplitude sums.' }),
+  xnat(3, 'intensity and loudness', r`The sound level of a point source is 80 dB at 10 m. Find the level at 40 m (in dB, 1 decimal; no absorption).`, 80 - 20 * Math.log10(4), 0.1, 1,
+    r`$I\propto1/r^2$. Moving 4 times farther cuts $I$ by 16: $\Delta\beta = 10\log_{10}16 = 12.04$ dB. New level $= 80 - 12.04 = 68.0$ dB.`, { unit: 'dB' }),
+  xnat(3, 'intensity and loudness', r`One machine gives a sound level of 60 dB at a point. Two identical machines running together give what level there (in dB, 1 decimal)?`, 60 + 10 * Math.log10(2), 0.1, 1,
+    r`Intensities add: $2I$. $\beta = 60 + 10\log_{10}2 = 63.0$ dB, not 120 dB.`, { unit: 'dB', trap: 'Levels do not add: intensities do.' }),
+  xnat(3, 'speed of sound in gases', r`Find the ratio of the speed of sound in hydrogen ($M = 2$) to that in air ($M = 29$) at the same temperature, if both have $\gamma = 1.4$ (2 decimals).`, Math.sqrt(29 / 2), 0.01, 2,
+    r`$v = \sqrt{\gamma RT/M}$. Same $\gamma$ and $T$: $\dfrac{v_H}{v_{air}} = \sqrt{\dfrac{29}{2}} = 3.81$.`),
+  xnat(3, 'speed of sound', r`The speed of sound in air at 0 °C is $331\ \mathrm{m\,s^{-1}}$. Find the speed at 40 °C (in $\mathrm{m\,s^{-1}}$, 1 decimal).`, 331 * Math.sqrt(313 / 273), 0.3, 1,
+    r`$v\propto\sqrt T$ with $T$ in kelvin: $v = 331\sqrt{\dfrac{313}{273}} = 354.4\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', trap: 'Use kelvin, not celsius.' }),
+  xnat(3, 'end correction', r`In a resonance tube experiment with a 500 Hz fork, the first resonance is at 16.0 cm and the second at 51.0 cm. Find the end correction (in cm, 1 decimal).`, (51 - 3 * 16) / 2, 0.05, 1,
+    r`$L_1 + e = \dfrac\lambda4$ and $L_2 + e = \dfrac{3\lambda}4$. Subtract: $\dfrac\lambda2 = 35$ cm. So $L_1 + e = 17.5$ cm and $e = 1.5$ cm. (Also $e = \dfrac{L_2 - 3L_1}{2} = 1.5$ cm; the speed is $500\times0.70 = 350\ \mathrm{m\,s^{-1}}$.)`, { unit: 'cm' }),
+  xnat(3, 'standing waves', r`Two successive harmonics of a string fixed at both ends are 120 Hz and 160 Hz, with none between them. Find its fundamental frequency (in Hz).`, 160 - 120, 0, 0,
+    r`Harmonics are $nf_1$ and $(n+1)f_1$, so the difference is $f_1 = 40$ Hz (they are the 3rd and 4th harmonics).`, { unit: 'Hz' }),
+  xnat(3, 'waves on a rope', r`A heavy uniform rope hangs from a ceiling. Find the speed of a transverse pulse at a point 2.5 m above its free lower end (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, Math.sqrt(9.8 * 2.5), 0.02, 2,
+    r`The tension at a point is the weight of the rope below it, $T = \mu xg$, so $v = \sqrt{T/\mu} = \sqrt{gx} = \sqrt{9.8\times2.5} = 4.95\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xnat(3, 'Doppler effect', r`A siren emitting 600 Hz moves towards a stationary observer at $20\ \mathrm{m\,s^{-1}}$ and then, after passing, moves away at the same speed. Find the ratio (frequency heard before passing)/(frequency heard after) (3 decimals). $v = 340\ \mathrm{m\,s^{-1}}$.`, 360 / 320, 0.002, 3,
+    r`Before: $f\dfrac{v}{v - v_s} = f\dfrac{340}{320}$. After: $f\dfrac{340}{360}$. Ratio $= \dfrac{360}{320} = 1.125$.`),
+  xnat(3, 'energy of waves', r`A 2 mm amplitude wave of frequency 50 Hz runs on a string of mass per unit length $0.02\ \mathrm{kg\,m^{-1}}$ at $40\ \mathrm{m\,s^{-1}}$. Find the average power it carries (in W, 3 decimals).`, 0.5 * 0.02 * (2 * XPI * 50) ** 2 * (2e-3) ** 2 * 40, 0.002, 3,
+    r`$P = \tfrac12\mu\omega^2A^2v = \tfrac12\times0.02\times(314.2)^2\times(0.002)^2\times40 = 0.158$ W.`, { unit: 'W' }),
+  xnat(3, 'sound level', r`The sound level for one person talking is 50 dB. Find the level when a crowd of 1000 such people talk together (in dB).`, 50 + 10 * Math.log10(1000), 0, 0,
+    r`Intensity is multiplied by 1000: $\Delta\beta = 10\log_{10}1000 = 30$ dB. Level $= 80$ dB.`, { unit: 'dB' }),
+  xnat(3, 'phase and path', r`Two points on a wave of wavelength 1.5 m are 0.25 m apart along the direction of travel. Find the phase difference between them (in degrees).`, 360 * 0.25 / 1.5, 0, 0,
+    r`$\Delta\varphi = \dfrac{2\pi}{\lambda}\Delta x$, i.e. $360^\circ\times\dfrac{0.25}{1.5} = 60^\circ$.`, { unit: '°' }),
+  xmt(3, 'pipes', 'mw1', r`Match each with its frequency, for a pipe of length $L$ and speed of sound $v$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Open: $f_n = \dfrac{nv}{2L}$, so fundamental $\dfrac{v}{2L}$ (p), third harmonic $\dfrac{3v}{2L}$ (s). Closed: $\dfrac{v}{4L}$ (q) and odd multiples: first overtone $3\times$, second overtone $5\times$: $\dfrac{5v}{4L}$ (r).`),
+  xmt(3, 'wave equation', 'mw2', r`Match each quantity for $y = 0.05\sin(200\pi t - 4\pi x)$ (SI) with its value.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-t, B-q, C-r, D-s'],
+    r`$\omega = 200\pi$ gives $f = 100$ Hz (p). $k = 4\pi$ gives $\lambda = \dfrac{2\pi}{k} = 0.5$ m (q). $v = f\lambda = 50$ m/s (r). Maximum particle speed $A\omega = 0.05\times200\pi = 10\pi$ m/s (s). The period 0.01 s (t) is not asked.`),
+  xasrt(3, 'standing waves', r`In a stationary wave on a string, no energy is transported along the string.`, r`The two travelling waves forming it carry equal energy in opposite directions.`, 0,
+    r`The average energy flows of the two opposite travelling waves cancel, so the net flow is zero. Energy only sloshes between kinetic and potential forms in each loop. R explains A.`),
+  xstm(3, 'Doppler effect', r`The frequency heard by a stationary observer from a moving source depends on the speed of the source relative to the medium.`, r`When the observer, not the source, moves, the wavelength in the medium is unchanged.`, 0,
+    r`I: the source's motion changes the wavelength in the medium, $\lambda' = (v - v_s)/f$. II: the observer's motion changes only the rate at which crests are met; the wavelength is unchanged. Both true.`),
+  xmcq(3, 'sound properties', r`Which of these is NOT correct for a stationary wave on a string fixed at both ends?`, 'All points between two successive nodes vibrate in opposite phase', ['Nodes are separated by half a wavelength', 'All points between two successive nodes vibrate in phase', 'The amplitude differs from point to point'],
+    r`Points in the same loop vibrate in phase (they all pass the mean position together); points in adjacent loops are in opposite phase. So the first option is wrong, the NOT-correct one.`, { trap: 'Read the NOT.' }),
+
+  // ---------- Level 4 ----------
+  xnat(4, 'Doppler effect and beats', r`A source of 680 Hz moves directly towards a large wall at $17\ \mathrm{m\,s^{-1}}$. An observer stands behind the source, on the line from the wall, and hears the sound directly and after reflection. Find the beat frequency (in Hz, 1 decimal; $v = 340\ \mathrm{m\,s^{-1}}$).`, 680 * 340 / (340 - 17) - 680 * 340 / (340 + 17), 0.2, 1,
+    r`Reflected sound: the wall sees the source approaching, $f_r = \dfrac{680\times340}{340 - 17} = 715.8$ Hz (a stationary wall reflects the same frequency). Direct sound: the source recedes from the observer, $f_d = \dfrac{680\times340}{340 + 17} = 647.6$ Hz. Beats $= 715.8 - 647.6 = 68.2$ Hz.`, { unit: 'Hz' }),
+  xnat(4, 'beats', r`A tuning fork X and a 384 Hz fork give 6 beats per second. When X is filed a little, the beats become 8 per second. Find the original frequency of X (in Hz).`, 390, 0, 0,
+    r`X is either 378 or 390 Hz. Filing raises the frequency of X. If X were 378 Hz, filing would bring it closer to 384 and the beats would fall. They rise, so X is above 384: 390 Hz.`, { unit: 'Hz', trap: 'Filing raises, waxing lowers the frequency.' }),
+  xnat(4, 'sonometer', r`A sonometer wire carrying a metal block of density $8000\ \mathrm{kg\,m^{-3}}$ has a fundamental frequency of 300 Hz in air. The block is now immersed in water. Find the new frequency (in Hz, 1 decimal).`, 300 * Math.sqrt(1 - 1 / 8), 0.2, 1,
+    r`In air the tension is $mg$. In water the buoyant force removes the fraction $\dfrac{\rho_w}{\rho} = \dfrac18$: $T' = \dfrac78T$. $f' = 300\sqrt{\dfrac78} = 280.6$ Hz.`, { unit: 'Hz' }),
+  xnat(4, 'closed pipe', r`An organ pipe open at both ends has a fundamental of 300 Hz. One end is now closed. Find the frequency of the second overtone of the closed pipe (in Hz).`, 5 * 150, 0, 0,
+    r`Closed pipe fundamental $= \dfrac{v}{4L} = \dfrac12\times\dfrac{v}{2L} = 150$ Hz. Second overtone $= 5\times150 = 750$ Hz.`, { unit: 'Hz' }),
+  xnat(4, 'pipes', r`A pipe's fundamental is 500 Hz at 27 °C. Find the new fundamental when the air is at 47 °C (in Hz, 1 decimal; ignore the expansion of the pipe).`, 500 * Math.sqrt(320 / 300), 0.2, 1,
+    r`$f = \dfrac{v}{4L}$ or $\dfrac{v}{2L}$, so $f\propto v\propto\sqrt T$. $f' = 500\sqrt{\dfrac{320}{300}} = 516.4$ Hz.`, { unit: 'Hz' }),
+  xnat(4, 'intensity and loudness', r`An isotropic point source radiates 1.0 W of sound. Find the sound level at 5.0 m (in dB, nearest integer; $I_0 = 10^{-12}\ \mathrm{W\,m^{-2}}$).`, 10 * Math.log10(1 / (4 * XPI * 25) / 1e-12), 0.5, 0,
+    r`$I = \dfrac{P}{4\pi r^2} = \dfrac{1}{4\pi\times25} = 3.18\times10^{-3}\ \mathrm{W\,m^{-2}}$. $\beta = 10\log_{10}\dfrac{3.18\times10^{-3}}{10^{-12}} = 10\times9.50 = 95$ dB.`, { unit: 'dB' }),
+  xnat(4, 'Doppler effect', r`A source of 600 Hz moves at $20\ \mathrm{m\,s^{-1}}$ towards a point, while an observer moves away from that point in the same direction at $30\ \mathrm{m\,s^{-1}}$ (the source is chasing the observer along a line). Find the frequency heard (in Hz, 2 decimals; $v = 340$).`, 600 * (340 - 30) / (340 - 20), 0.02, 2,
+    r`Both move in the same direction, source behind the observer. $f' = f\dfrac{v - v_o}{v - v_s} = 600\times\dfrac{310}{320} = 581.25$ Hz.`, { unit: 'Hz', trap: 'Observer moving away lowers the numerator; source moving towards lowers the denominator.' }),
+  xnat(4, 'Doppler effect', r`A source of 1000 Hz moves at $40\ \mathrm{m\,s^{-1}}$ along a straight line. A stationary observer on a line making $60^\circ$ with the velocity (the direction from source to observer) hears it at a certain instant. Find the frequency heard (in Hz, 1 decimal; $v = 340$).`, 1000 * 340 / (340 - 40 * Math.cos(XPI / 3)), 0.2, 1,
+    r`Only the component of the source velocity along the line to the observer matters: $40\cos60^\circ = 20\ \mathrm{m\,s^{-1}}$. $f' = \dfrac{1000\times340}{340 - 20} = 1062.5$ Hz.`, { unit: 'Hz' }),
+  xnat(4, 'standing waves', r`A standing wave on a string is $y = 0.01\sin\left(\dfrac{\pi x}{2}\right)\cos(100\pi t)$ (SI). Find the speed of the travelling waves that form it (in $\mathrm{m\,s^{-1}}$).`, 100 * XPI / (XPI / 2), 0, 0,
+    r`Compare with $y = 2A\sin kx\cos\omega t$: $k = \dfrac\pi2$ and $\omega = 100\pi$. $v = \dfrac\omega k = \dfrac{100\pi}{\pi/2} = 200\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xnat(4, 'pipes', r`A pipe closed at one end has a fundamental frequency of 85 Hz ($v = 340\ \mathrm{m\,s^{-1}}$). How many of its harmonics lie in the audible range up to 20 000 Hz?`, ((Math.floor(20000 / 85) + 1) / 2) | 0, 0, 0,
+    r`Only odd multiples occur: $85, 255, 425, \ldots, 85(2n - 1)$. The largest odd multiple not above 20 000: $20\,000/85 = 235.3$, so the largest odd number is 235. The odd numbers 1, 3, ..., 235 number $\dfrac{235 + 1}{2} = 118$.`, { trap: 'Count odd multiples only.' }),
+  xnat(4, 'resonance tube', r`A pipe closed at one end resonates at 300 Hz and at the next higher frequency 500 Hz, with none between. Find the length of the pipe (in m, 2 decimals; $v = 340\ \mathrm{m\,s^{-1}}$).`, 340 / (4 * 100), 0.005, 2,
+    r`The ratio $3:5$ shows odd harmonics, so the pipe is closed. The gap between neighbours is $2f_1 = 200$ Hz, so $f_1 = 100$ Hz. $L = \dfrac{v}{4f_1} = \dfrac{340}{400} = 0.85$ m. (An open pipe would give a gap of $f_1$ and ratio $n:(n+1)$.)`, { unit: 'm' }),
+  xnat(4, 'intensity and loudness', r`A long straight line source (like a busy road) radiates sound uniformly so that intensity falls as $1/r$. The level is 90 dB at 10 m. Find the level at 100 m (in dB).`, 90 - 10 * Math.log10(10), 0, 0,
+    r`For a line source $I\propto1/r$, so a tenfold distance cuts $I$ by 10: $\Delta\beta = -10$ dB. Level $= 80$ dB. (For a point source it would have fallen by 20 dB.)`, { unit: 'dB', trap: 'Line source: 1/r. Point source: 1/r².' }),
+  xnat(4, 'beats and reflection', r`A car moves at $10\ \mathrm{m\,s^{-1}}$ towards a stationary source of 1700 Hz. It reflects the sound back to the source's side. A listener beside the source hears the source and the reflected sound together. Find the beat frequency (in Hz, 1 decimal; $v = 340\ \mathrm{m\,s^{-1}}$).`, 1700 * 350 / 330 - 1700, 0.2, 1,
+    r`The car meets crests at $f_1 = f\dfrac{v + u}{v} = 1700\times\dfrac{350}{340}$. It re-emits this frequency as a moving source: $f_2 = f_1\dfrac{v}{v - u} = 1700\times\dfrac{350}{330} = 1803.0$ Hz. Beats $= 1803.0 - 1700 = 103.0$ Hz.`, { unit: 'Hz' }),
+  xnat(4, 'intensity of sound', r`A 1000 Hz sound wave in air ($\rho = 1.2\ \mathrm{kg\,m^{-3}}$, $v = 340\ \mathrm{m\,s^{-1}}$) has intensity $10^{-6}\ \mathrm{W\,m^{-2}}$. Find the displacement amplitude of the air particles (in nm, 1 decimal).`, Math.sqrt(1e-6 / (2 * XPI ** 2 * 1e6 * 1.2 * 340)) * 1e9, 0.3, 1,
+    r`$I = \tfrac12\rho v\omega^2A^2 = 2\pi^2\rho vf^2A^2$. $A^2 = \dfrac{10^{-6}}{2\pi^2\times1.2\times340\times10^{6}} = 1.24\times10^{-16}$, $A = 1.1\times10^{-8}$ m $= 11.1$ nm.`, { unit: 'nm' }),
+  xnat(4, 'sound level', r`The intensity of one sound is four times that of another. Find the difference of their levels (in dB, 2 decimals).`, 10 * Math.log10(4), 0.01, 2,
+    r`$\Delta\beta = 10\log_{10}\dfrac{I_1}{I_2} = 10\log_{10}4 = 6.02$ dB.`, { unit: 'dB' }),
+  xmsq(4, 'wave equation', r`A wave is $y = A\sin(\omega t - kx)$. Which are correct?`, [r`It travels in the $+x$ direction with speed $\omega/k$.`, r`A particle's maximum speed is $A\omega$.`, r`A particle's maximum speed is $A\omega/k$.`, r`Two points $\lambda/2$ apart are in opposite phase.`], [0, 1, 3],
+    r`The combination $\omega t - kx$ is a wave moving towards $+x$ at $\omega/k$ (A). Particle velocity $A\omega\cos(\cdot)$ has maximum $A\omega$ (B true, C false: the wave speed and the particle speed are different things). A phase difference of $k\Delta x = \pi$ is opposite phase (D).`),
+  xmsq(4, 'standing waves', r`For a stationary wave on a string fixed at both ends, which are correct?`, [r`The distance between adjacent nodes is $\lambda/2$.`, r`The amplitude at an antinode is twice the amplitude of either travelling wave.`, r`All particles reach the mean position at the same instant.`, r`Particles on opposite sides of a node vibrate in phase.`], [0, 1, 2],
+    r`Node spacing $\lambda/2$ (A). $y = 2A\sin kx\cos\omega t$ (B). The time factor $\cos\omega t$ is common, so all pass the mean together (C). Across a node $\sin kx$ changes sign, so the motion is in opposite phase (D false).`),
+  xmsq(4, 'closed pipe', r`A pipe closed at one end has fundamental frequency $f$. Which are correct?`, [r`The first overtone is $3f$.`, r`The second overtone is $5f$.`, r`The pipe has an antinode at the closed end.`, r`The pipe has a node at the closed end.`], [0, 1, 3],
+    r`Overtones are $3f, 5f, 7f\ldots$ (A, B). The air cannot move at the closed end: a displacement node (D); the open end is an antinode.`),
+  xmsq(4, 'Doppler effect', r`Which of these change the frequency heard from a source of frequency $f$?`, [r`The source moves towards a stationary observer.`, r`The observer moves towards a stationary source.`, r`The source and the observer both move with the same velocity in still air.`, r`The source and the observer are at rest but a steady wind blows along the line joining them.`], [0, 1],
+    r`A and B shift the frequency. If both move together (C), the relative motion is zero, so the frequency is unchanged. A wind moves the medium: the wavelength and wave speed both change in step, and with source and observer at rest the frequency is unchanged (D).`),
+  xmsq(4, 'interference', r`Two coherent sources vibrate in phase. At a point where the path difference is $\Delta$, which are correct?`, [r`$\Delta = \lambda$ gives constructive interference.`, r`$\Delta = \dfrac{3\lambda}{2}$ gives destructive interference.`, r`$\Delta = \dfrac{\lambda}{4}$ gives amplitude $\sqrt2\times$ the single amplitude (for equal sources).`, r`$\Delta = 0.4\lambda$ gives no sound at all, for equal sources.`], [0, 1, 2],
+    r`$\Delta = n\lambda$: constructive (A). $(n + \tfrac12)\lambda$: destructive (B). $\Delta = \lambda/4$: phase difference $\pi/2$, amplitude $2A\cos45^\circ = \sqrt2A$ (C). Silence needs exactly $(n+\tfrac12)\lambda$; $0.4\lambda$ gives a partial cancellation (D false).`),
+  xasrt(4, 'speed of sound', r`The speed of sound in a gas is independent of the pressure of the gas at constant temperature.`, r`The pressure and the density of a gas change in the same proportion at constant temperature.`, 0,
+    r`$v = \sqrt{\gamma P/\rho}$, and at constant $T$, $P/\rho$ is constant (Boyle's law), so $v$ is independent of $P$. R explains A.`),
+  xasrt(4, 'Doppler effect', r`When the source and the observer are both at rest, a steady wind blowing from the source to the observer changes the frequency heard.`, r`A wind changes the speed of sound relative to the ground.`, 3,
+    r`A is false: the wind changes the speed and the wavelength together, so crests still arrive at the same rate as they are emitted. R is true.`),
+  xstm(4, 'beats', r`Two sound waves of frequencies 300 Hz and 304 Hz produce a sound whose loudness varies 4 times a second.`, r`The amplitude of the resultant varies at a frequency equal to the difference of the two frequencies.`, 0,
+    r`The resultant is $2A\cos(\pi\Delta f\,t)\sin(\ldots)$ whose intensity swells $|f_1 - f_2| = 4$ times each second. Both are true.`),
+  xcnt(4, 'standing waves in pipes', r`How many of these are correct for pipes of the same length $L$ (open pipe fundamental $f_0$)?`, [r`The closed pipe has fundamental $f_0/2$.`, r`The first overtone of the open pipe is $2f_0$.`, r`The first overtone of the closed pipe is $3f_0/2$.`, r`The open pipe has all harmonics, the closed pipe only odd ones.`], 4,
+    r`(1) $\dfrac{v}{4L} = \dfrac{f_0}{2}$. (2) $\dfrac{2v}{2L} = 2f_0$. (3) $3\times\dfrac{f_0}{2}$. (4) True. All four are correct.`),
+  xmt(4, 'Doppler shifts', 'mw3', r`A source emits 1000 Hz and the speed of sound is 340 m/s. Match each situation with the frequency heard.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+    r`(A) $\dfrac{1000\times340}{340 - 34} = 1111$ Hz (p). (B) $\dfrac{1000\times340}{374} = 909$ Hz (q). (C) $1000\times\dfrac{374}{340} = 1100$ Hz (r). (D) $1000\times\dfrac{306}{340} = 900$ Hz (s). A moving source and a moving observer give different values, even at equal speeds.`),
+  xmt(4, 'sound level changes', 'mw4', r`Match each change with the change in the sound level.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$\Delta\beta = 10\log_{10}(I_2/I_1)$. (A) $\times2$: $+3$ dB (p). (B) $\times10$: $+10$ dB (q). (C) distance $\times2$ gives $I\times\tfrac14$: $-6$ dB (r). (D) 100 sources: $I\times100$: $+20$ dB (s).`),
+  xmt(4, 'string harmonics', 'mw5', r`Match each item about a string fixed at both ends (fundamental $f$, length $L$).`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-s, B-q, C-r, D-p'],
+    r`Second overtone = third harmonic: frequency $3f$ (p), with 4 nodes (two ends and two inside) (q). Second harmonic: $\lambda = \dfrac{2L}{2} = L$ (r) and frequency $2f$ (s).`),
+  xmt(4, 'stretched string', 'mw8', r`The fundamental of a string is $f = \dfrac{1}{2L}\sqrt{\dfrac{T}{\mu}}$. Match each change with its effect.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`(A) $\sqrt4 = 2$ (p). (B) $\mu\propto d^2$ becomes 4 times, so $f\to\tfrac12$ (q). (C) $\dfrac{\sqrt2}{1/2} = 2\sqrt2$ (r). (D) $\dfrac{\sqrt9}{3} = 1$ (s).`),
+  xpas(3, 'speed on a string', 'pw1', r`Find the speed of waves on the string (in $\mathrm{m\,s^{-1}}$).`, Math.sqrt(64 / 0.04), 0, 0,
+    r`$v = \sqrt{T/\mu} = \sqrt{64/0.04} = \sqrt{1600} = 40\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xpas(3, 'harmonics', 'pw1', r`Find the frequency of the vibration (in Hz).`, 3 * 40 / (2 * 1.2), 0, 0,
+    r`$f_3 = \dfrac{3v}{2L} = \dfrac{3\times40}{2.4} = 50$ Hz.`, { unit: 'Hz' }),
+  xpas(4, 'particle speed', 'pw1', r`Find the maximum speed of a particle of the string at an antinode (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, 0.003 * 2 * XPI * 50, 0.01, 2,
+    r`$\omega = 2\pi\times50 = 314.2\ \mathrm{s^{-1}}$. $v_{max} = A\omega = 0.003\times314.2 = 0.94\ \mathrm{m\,s^{-1}}$. This is not the wave speed (40 m/s).`, { unit: 'm/s', trap: 'Particle speed and wave speed are different.' }),
+  xpas(3, 'Doppler effect', 'pw2', r`Find the frequency heard as the ambulance approaches (in Hz, 1 decimal).`, 700 * 340 / 320, 0.1, 1,
+    r`$f' = f\dfrac{v}{v - v_s} = 700\times\dfrac{340}{320} = 743.8$ Hz.`, { unit: 'Hz' }),
+  xpas(4, 'Doppler effect', 'pw2', r`Find the drop in the frequency heard as it passes (approaching to receding) (in Hz, 1 decimal).`, 700 * 340 / 320 - 700 * 340 / 360, 0.2, 1,
+    r`Receding: $700\times\dfrac{340}{360} = 661.1$ Hz. Drop $= 743.75 - 661.11 = 82.6$ Hz.`, { unit: 'Hz' }),
+  xpas(5, 'Doppler effect and wind', 'pw2', r`A steady wind of $10\ \mathrm{m\,s^{-1}}$ blows from the ambulance's side towards the observer, along the road, when it approaches. Find the frequency heard (in Hz, 1 decimal).`, 700 * 350 / 330, 0.2, 1,
+    r`The sound travels at $340 + 10 = 350\ \mathrm{m\,s^{-1}}$ over the ground towards the observer. For a moving source and a stationary observer: $f' = f\dfrac{v_{eff}}{v_{eff} - v_s} = 700\times\dfrac{350}{330} = 742.4$ Hz. (Source speed is measured over the ground; the wavelength in the moving air is $\lambda' = (v_{eff} - v_s)/f$.)`, { unit: 'Hz', trap: 'The wind changes the speed of sound over the ground, not the source speed.' }),
+
+  // ---------- Level 5 ----------
+  xnat(5, 'reflection and transmission', r`A wave travels along a string of linear density $\mu$ and meets a junction with a string of linear density $4\mu$ under the same tension. Find the fraction of the incident power that is transmitted (3 decimals).`, 8 / 9, 0.002, 3,
+    r`$v\propto\mu^{-1/2}$, so $v_2 = v_1/2$. The amplitude reflection coefficient is $r = \dfrac{v_2 - v_1}{v_2 + v_1} = -\dfrac13$. The reflected power fraction is $r^2 = \dfrac19$, so $1 - \dfrac19 = \dfrac89 = 0.889$ is transmitted. (Check: $t = \dfrac23$, power $\propto Zt^2$ with $Z_2 = 2Z_1$: $2\times\dfrac49 = \dfrac89$.)`, { trap: 'Power depends on impedance as well as amplitude, so it is not t squared.' }),
+  xnat(5, 'waves on a rope', r`A uniform rope of length 4.9 m hangs from a ceiling. A pulse is sent from the lower free end. Find the time it takes to reach the ceiling (in s, 3 decimals). Take $g = 9.8\ \mathrm{m\,s^{-2}}$.`, 2 * Math.sqrt(4.9 / 9.8), 0.003, 3,
+    r`At height $x$ above the free end $v = \sqrt{gx}$. $t = \int_0^L\dfrac{dx}{\sqrt{gx}} = 2\sqrt{\dfrac Lg} = 2\sqrt{\dfrac{4.9}{9.8}} = 1.414$ s.`, { unit: 's', trap: 'The speed grows with height, so L/v at the top would be wrong.' }),
+  xnat(5, 'Kundt\'s tube', r`A rod 1.0 m long is clamped at its middle in a Kundt's tube and vibrates in its fundamental mode. The speed of sound in the rod is $5000\ \mathrm{m\,s^{-1}}$. Find the distance between adjacent nodes of the powder in the air column (in cm, 1 decimal; $v_{air} = 340\ \mathrm{m\,s^{-1}}$).`, 340 / (2 * 2500) * 100, 0.1, 1,
+    r`A rod clamped at the middle has a node there and antinodes at its ends: $L = \dfrac{\lambda_{rod}}{2}$, $f = \dfrac{5000}{2\times1.0} = 2500$ Hz. In air $\lambda = \dfrac{340}{2500} = 0.136$ m. Nodes are $\dfrac\lambda2 = 6.8$ cm apart.`, { unit: 'cm' }),
+  xnat(5, 'speed of sound in solids', r`A steel rod has Young's modulus $2.0\times10^{11}\ \mathrm{N\,m^{-2}}$ and density $7800\ \mathrm{kg\,m^{-3}}$. Find the speed of longitudinal waves in it (in $\mathrm{m\,s^{-1}}$, nearest 10).`, Math.sqrt(2e11 / 7800), 10, 0,
+    r`$v = \sqrt{Y/\rho} = \sqrt{\dfrac{2.0\times10^{11}}{7800}} = \sqrt{2.564\times10^{7}} = 5060\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xnat(5, 'Doppler effect', r`A siren emitting 800 Hz is whirled in a horizontal circle of radius 1.0 m at 10 revolutions per second. A distant stationary observer in the plane hears frequencies between a minimum and a maximum. Find the ratio $f_{max}/f_{min}$ (3 decimals; $v = 340\ \mathrm{m\,s^{-1}}$).`, (340 + 2 * XPI * 1 * 10) / (340 - 2 * XPI * 1 * 10), 0.003, 3,
+    r`Speed $u = 2\pi Rf = 62.8\ \mathrm{m\,s^{-1}}$. $f_{max} = f\dfrac{v}{v - u}$ (moving straight towards) and $f_{min} = f\dfrac{v}{v + u}$ (moving straight away). Ratio $= \dfrac{v + u}{v - u} = \dfrac{402.8}{277.2} = 1.453$.`, { trap: 'The ratio does not involve f.' }),
+  xmsq(5, 'speed of sound', r`Which of these increase the speed of sound in a gas?`, [r`Raising the temperature at constant composition.`, r`Replacing a heavier gas by a lighter one of the same $\gamma$ at the same temperature.`, r`Raising the pressure at constant temperature.`, r`Raising the frequency of the wave.`], [0, 1],
+    r`$v = \sqrt{\gamma RT/M}$: rises with $T$ (A) and falls with $M$ (B). At constant $T$ the pressure does not matter (C), and speed is independent of frequency (D).`),
+  xmsq(5, 'reflection', r`A pulse travelling along a string reaches the end. Which are correct?`, [r`At a fixed end it is reflected with a phase change of $\pi$.`, r`At a free end it is reflected without a phase change.`, r`If the string joins a lighter string, the reflected pulse is inverted.`, r`If the string joins a heavier string, the reflected pulse is inverted.`], [0, 1, 3],
+    r`Fixed end: inverted (A). Free end: same sign (B). Going to a heavier (slower) string the end behaves like a partly fixed one: $r = \dfrac{v_2 - v_1}{v_2 + v_1} < 0$, inverted (D). Going to a lighter string $r > 0$, not inverted (C false).`),
+  xmsq(5, 'standing waves on a string', r`A string of length $L$ fixed at both ends vibrates in its fourth harmonic. Which are correct?`, [r`There are 3 nodes between the ends.`, r`There are 5 antinodes.`, r`The wavelength is $L/2$.`, r`The frequency is 4 times the fundamental.`], [0, 2, 3],
+    r`$\lambda_n = \dfrac{2L}{n}$, so $\lambda_4 = \dfrac L2$ (C). Four loops: 4 antinodes, not 5 (B false), and $5$ nodes including the ends, i.e. 3 inside (A). $f_4 = 4f_1$ (D).`),
+  xmsq(5, 'intensity and loudness', r`Which are correct about sound levels?`, [r`Doubling the intensity raises the level by about 3 dB.`, r`Two sources of 60 dB each, heard together, give 120 dB.`, r`A rise of 10 dB means the intensity is ten times greater.`, r`Moving to twice the distance from a point source lowers the level by about 6 dB.`], [0, 2, 3],
+    r`$10\log_{10}2 = 3.01$ (A). Intensities add, so $2I$: 63 dB, not 120 dB (B false). $10\log_{10}10 = 10$ (C). Intensity falls to $\tfrac14$: $-6$ dB (D).`),
+  xmsq(5, 'beats', r`Two tuning forks of nearly equal frequency are sounded together. Which are correct?`, [r`The number of beats per second equals the difference of their frequencies.`, r`Loading one fork with wax changes the beat frequency.`, r`The frequency of the resultant is the difference of the two frequencies.`, r`The beats are heard at a fixed place by any listener.`], [0, 1, 3],
+    r`$f_b = |f_1 - f_2|$ (A). Wax lowers one frequency and so changes $f_b$ (B). The wave $2A\cos(\pi\Delta f\,t)\sin(2\pi\bar ft)$ oscillates at the mean frequency $\bar f$ (C false: the resultant oscillates at the mean frequency, and only the loudness swells at the difference). The loudness variation is heard by every listener in the region (D).`),
+  xmt(5, 'speed of sound', 'mw6', r`Match each comparison with the ratio of the speeds of sound.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`(A) $\sqrt{29/2} = 3.81$ (p). (B) $\sqrt{\dfrac{(5/3)\times29}{1.4\times4}} = \sqrt{8.63} = 2.94$ (q). (C) $\sqrt4 = 2$ (r). (D) 1: pressure has no effect at constant $T$ (s).`),
+  xmt(5, 'waves on strings', 'mw7', r`A wave moves from a string of density $\mu$ into a string of density $4\mu$ at the same tension. Match each quantity.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$v_2/v_1 = \sqrt{\mu/4\mu} = \tfrac12$ (p). $r = \dfrac{v_2 - v_1}{v_2 + v_1} = -\tfrac13$ (q). $t = \dfrac{2v_2}{v_1 + v_2} = \tfrac23$ (r). Power fraction $1 - r^2 = \tfrac89$ (s).`),
+  xasrt(5, 'Doppler effect', r`A stationary observer hears a shorter wavelength from a source that is approaching.`, r`After emitting each crest, the source moves a distance $v_sT$ towards the observer before emitting the next one, while the wave speed is fixed by the medium.`, 0,
+    r`The crests are $\lambda' = vT - v_sT = (v - v_s)T$ apart. That is exactly what R describes, so A is true and R explains it.`),
+  xstm(5, 'standing waves', r`In a stationary wave the energy density at a node is always zero.`, r`At a node the particle displacement is always zero.`, 3,
+    r`Statement II is true. Statement I is false: the kinetic energy is zero at the node (no motion) but the strain is greatest there, so there is potential energy of deformation whenever the wave is stretched. Total energy density is not zero.`, { trap: 'No motion at a node does not mean no energy.' }),
+  xmcq(4, 'refraction of waves', r`A sound wave goes from air into water. Which of these stays the same?`, 'The frequency', ['The wavelength', 'The speed', 'The amplitude of pressure'],
+    r`The frequency is set by the source. The speed is much larger in water, so the wavelength changes in proportion. The pressure amplitude changes at the boundary (partial reflection).`),
+];
+xitems.push(
+  xnat(4, 'pipes', r`A tube resonates at 105 Hz, 175 Hz and 245 Hz, and at no frequency in between. Find its fundamental frequency (in Hz).`, 35, 0, 0,
+    r`The ratios $105:175:245 = 3:5:7$ are odd harmonics, so the tube is closed at one end and $f_1 = 105/3 = 35$ Hz. (The gaps of 70 Hz are $2f_1$.)`, { unit: 'Hz', trap: 'Dividing the gap (70 Hz) gives the wrong fundamental for a closed pipe.' }),
+  xnat(3, 'strings', r`A violin string 32 cm long vibrates at 440 Hz in its fundamental. At what length (in cm, 1 decimal) must it be pressed to give 660 Hz, with the same tension?`, 32 * 440 / 660, 0.1, 1,
+    r`$f\propto1/L$, so $L' = 32\times\dfrac{440}{660} = 21.3$ cm.`, { unit: 'cm' }),
+  xnat(4, 'resonance tube', r`A 425 Hz tuning fork is held over a tall tube whose water level rises steadily at $0.5\ \mathrm{cm\,s^{-1}}$. Find the time between two successive resonances (in s; $v = 340\ \mathrm{m\,s^{-1}}$).`, (340 / 425 / 2) / 0.005, 0, 0,
+    r`$\lambda = \dfrac{340}{425} = 0.8$ m. Successive resonances of the air column are $\lambda/2 = 0.4$ m apart in length, so the water must rise 40 cm: $t = \dfrac{0.40}{0.005} = 80$ s.`, { unit: 's' }),
+  xnat(5, 'interference', r`Two identical loudspeakers 1.9 m apart in a line emit the same note in phase, of wavelength 0.40 m. Between them there are points where the sound is nearly silent. How many such nodes lie on the line between the speakers?`, 10, 0, 0,
+    r`At position $x$ from one speaker the path difference is $|d - 2x|$, where $d = 1.9$ m. Cancellation needs $|d - 2x| = \left(n + \tfrac12\right)\lambda = 0.2, 0.6, 1.0, 1.4, 1.8$ m (all below 1.9 m). Each value gives two positions, one on each side of the centre: $5\times2 = 10$ nodes.`, { trap: 'Count each path difference twice, once for each side of the centre.' }),
+  xnat(5, 'Doppler effect', r`A bat flies at $5\ \mathrm{m\,s^{-1}}$ straight towards a wall, emitting a 40 kHz sound. Find the frequency of the echo it hears (in kHz, 2 decimals; $v = 340\ \mathrm{m\,s^{-1}}$).`, 40 * 345 / 335, 0.02, 2,
+    r`The wall receives $f_1 = 40\times\dfrac{340}{340 - 5}$ (source approaching) and reflects this frequency. The bat, moving towards the wall, hears $f_2 = f_1\dfrac{340 + 5}{340} = 40\times\dfrac{345}{335} = 41.19$ kHz.`, { unit: 'kHz' }),
+);
+
+const xgens = [
+  xg('wv-g24', 3, 'nat', 'Doppler effect', function make(rng) {
+    const f = pick(rng, 300, 900, 50); const vs = pick(rng, 10, 40, 10); const vo = pick(rng, 10, 30, 10); const sT = rng() < 0.5; const oT = rng() < 0.5;
+    const fp = f * (340 + (oT ? vo : -vo)) / (340 - (sT ? vs : -vs));
+    return { f, vs, vo, sT, oT, q: `A ${f} Hz source moves ${sT ? 'towards' : 'away from'} a moving observer at ${vs} m/s, and the observer moves ${oT ? 'towards' : 'away from'} the source at ${vo} m/s (along the same line, still air, $v = 340$ m/s). Find the frequency heard (in Hz, 1 decimal).`, answer: +fp.toFixed(1), tol: 0.2, unit: 'Hz',
+      sol: `$f' = f\\dfrac{v \\pm v_o}{v \\mp v_s}$. Observer ${oT ? 'towards: $+v_o$' : 'away: $-v_o$'}, source ${sT ? 'towards: $-v_s$' : 'away: $+v_s$'}. $f' = ${f}\\times\\dfrac{${340 + (oT ? vo : -vo)}}{${340 - (sT ? vs : -vs)}} = ${xs(fp, 5)}$ Hz.`, trap: 'Numerator: the observer. Denominator: the source.' };
+  }, (p) => p.f * (340 + (p.oT ? 1 : -1) * p.vo) / (340 + (p.sT ? -1 : 1) * p.vs)),
+  xg('wv-g25', 3, 'nat', 'resonance tube', function make(rng) {
+    const f = choose(rng, [256, 320, 384, 480, 512]); const v = pick(rng, 330, 350, 5); const e = choose(rng, [1.0, 1.5, 2.0]);
+    const lam = v / f * 100; const L1 = lam / 4 - e; const L2 = 3 * lam / 4 - e;
+    return { f, v, e, q: `In a resonance tube experiment with a ${f} Hz fork, the first resonance is at ${xs(L1, 4)} cm and the second at ${xs(L2, 4)} cm. Find the speed of sound (in $\\mathrm{m\\,s^{-1}}$, 1 decimal).`, answer: +v.toFixed(1), tol: 0.5, unit: 'm/s', L1, L2,
+      sol: `$L_2 - L_1 = \\dfrac\\lambda2 = ${xs(L2 - L1, 4)}$ cm, so $\\lambda = ${xs(2 * (L2 - L1), 4)}$ cm and $v = f\\lambda = ${f}\\times${xs(2 * (L2 - L1) / 100, 4)} = ${xs(v)}\\ \\mathrm{m\\,s^{-1}}$. The end correction cancels in the difference.`, trap: 'Use the difference, so the end correction drops out.' };
+  }, (p) => p.f * 2 * (p.L2 - p.L1) / 100),
+  xg('wv-g26', 4, 'nat', 'resonance tube', function make(rng) {
+    const L = pick(rng, 0.4, 1.2, 0.05); const n = int(rng, 1, 3); const f1 = 340 / (4 * L);
+    const fa = (2 * n - 1) * f1; const fb = (2 * n + 1) * f1;
+    return { L, n, q: `A pipe closed at one end resonates at ${xs(fa, 5)} Hz and the next higher frequency ${xs(fb, 5)} Hz. Find its length (in m, 2 decimals; $v = 340\\ \\mathrm{m\\,s^{-1}}$).`, answer: +L.toFixed(2), tol: 0.01, unit: 'm', fa, fb,
+      sol: `Consecutive resonances of a closed pipe differ by $2f_1 = ${xs(fb - fa, 5)}$ Hz, so $f_1 = ${xs((fb - fa) / 2, 5)}$ Hz and $L = \\dfrac{v}{4f_1} = \\dfrac{340}{${xs(2 * (fb - fa), 5)}} = ${xs(L)}$ m.`, trap: 'The gap between neighbours is 2f1 for a closed pipe, f1 for an open one.' };
+  }, (p) => 340 / (2 * (p.fb - p.fa))),
+  xg('wv-g27', 3, 'mcq', 'intensity and loudness', function make(rng) {
+    const n = choose(rng, [2, 4, 10, 100, 1000]); const b = pick(rng, 40, 80, 10); const lv = b + 10 * Math.log10(n);
+    const o = numOpts(rng, lv, [b * n, b + n, b + 10 * Math.log10(n) * 2], 'dB', 3);
+    return { n, b, q: `One machine produces ${b} dB at a point. ${n} identical machines run together there. The sound level is`, options: o.options, answer: o.answer,
+      sol: `Intensities add: $I\\to${n}I$, so $\\beta = ${b} + 10\\log_{10}${n} = ${xs(lv)}$ dB. Multiplying the level by ${n} (or adding ${n}) mistakes decibels for a linear scale.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt(p.b + 10 * Math.log10(p.n), 3)} dB`)),
+  xg('wv-g28', 4, 'nat', 'sonometer', function make(rng) {
+    const rho = choose(rng, [2700, 4000, 7800, 8900, 11300]); const f = pick(rng, 200, 400, 50);
+    const fp = f * Math.sqrt(1 - 1000 / rho);
+    return { rho, f, q: `A sonometer wire stretched by a block of density ${rho} $\\mathrm{kg\\,m^{-3}}$ has a fundamental of ${f} Hz. The block is lowered fully into water (1000 $\\mathrm{kg\\,m^{-3}}$). Find the new frequency (in Hz, 1 decimal).`, answer: +fp.toFixed(1), tol: 0.2, unit: 'Hz',
+      sol: `The buoyant force is the fraction $\\dfrac{1000}{${rho}}$ of the weight, so $T' = T\\left(1 - \\dfrac{1000}{${rho}}\\right)$ and $f' = ${f}\\sqrt{${xs(1 - 1000 / rho, 4)}} = ${xs(fp)}$ Hz.`, trap: 'f goes as the square root of T.' };
+  }, (p) => { const T = 1; const T2 = T * (p.rho - 1000) / p.rho; return p.f * Math.sqrt(T2 / T); }),
+  xg('wv-g29', 4, 'nat', 'Doppler effect and beats', function make(rng) {
+    const f = pick(rng, 500, 900, 50); const u = pick(rng, 5, 25, 5);
+    const b = f * 340 * 2 * u / (340 ** 2 - u ** 2);
+    return { f, u, q: `A ${f} Hz source moves straight towards a large wall at ${u} m/s. A listener behind it hears the sound directly and as reflected from the wall. Find the beat frequency (in Hz, 1 decimal; $v = 340\\ \\mathrm{m\\,s^{-1}}$).`, answer: +b.toFixed(1), tol: 0.2, unit: 'Hz',
+      sol: `Reflected: $\\dfrac{${f}\\times340}{340 - ${u}} = ${xs(f * 340 / (340 - u), 5)}$ Hz. Direct (source receding from the listener): $\\dfrac{${f}\\times340}{340 + ${u}} = ${xs(f * 340 / (340 + u), 5)}$ Hz. Beats $= ${xs(b)}$ Hz.`, trap: 'The wall is at rest: it reflects the frequency it receives.' };
+  }, (p) => p.f * 340 / (340 - p.u) - p.f * 340 / (340 + p.u)),
+  xg('wv-g30', 5, 'nat', 'reflection and transmission', function make(rng) {
+    const n = choose(rng, [4, 9, 16, 25]);
+    const tr = 4 * Math.sqrt(n) / (1 + Math.sqrt(n)) ** 2;
+    return { n, q: `A wave on a string of density $\\mu$ reaches a junction with a string of density $${n}\\mu$ (same tension). What fraction of the incident power is transmitted (3 decimals)?`, answer: +tr.toFixed(3), tol: 0.002,
+      sol: `$v\\propto\\mu^{-1/2}$, so $v_2/v_1 = 1/${Math.sqrt(n)}$. $r = \\dfrac{v_2 - v_1}{v_2 + v_1} = \\dfrac{1 - ${Math.sqrt(n)}}{1 + ${Math.sqrt(n)}} = ${xs((1 - Math.sqrt(n)) / (1 + Math.sqrt(n)), 4)}$. Reflected power $r^2 = ${xs(((1 - Math.sqrt(n)) / (1 + Math.sqrt(n))) ** 2, 4)}$; transmitted $= 1 - r^2 = ${xs(tr, 4)}$.`, trap: 'Transmitted amplitude squared is not the transmitted power.' };
+  }, (p) => { const z = Math.sqrt(p.n); const t = 2 / (1 + z); return t * t * z; }),
+];
+
+xgens.push(
+  xg('wv-g31', 4, 'nat', 'pipes', function make(rng) {
+    const L = choose(rng, [0.4, 0.5, 0.8, 1.0]); const closed = rng() < 0.5; const lim = choose(rng, [10000, 15000, 20000]);
+    const f1 = closed ? 340 / (4 * L) : 340 / (2 * L);
+    let cnt = 0; let n = 1;
+    while ((closed ? (2 * n - 1) * f1 : n * f1) <= lim) { cnt++; n++; }
+    return { L, closed, lim, q: `A pipe ${closed ? 'closed at one end' : 'open at both ends'} is ${L} m long ($v = 340\\ \\mathrm{m\\,s^{-1}}$). How many of its natural frequencies, counting the fundamental, are not above ${lim} Hz?`, answer: cnt, tol: 0,
+      sol: `$f_1 = ${closed ? `\\dfrac{v}{4L}` : `\\dfrac{v}{2L}`} = ${xs(f1, 4)}$ Hz. ${closed ? `Only odd multiples occur: $(2n - 1)f_1\\le${lim}$ gives $2n - 1\\le${xs(lim / f1, 4)}$, so $n = ${cnt}$.` : `All multiples occur: $nf_1\\le${lim}$ gives $n\\le${xs(lim / f1, 4)}$, so $n = ${cnt}$.`}`, trap: 'A closed pipe has only odd harmonics.' };
+  }, (p) => { const f1 = p.closed ? 340 / (4 * p.L) : 340 / (2 * p.L); const m = Math.floor(p.lim / f1 + 1e-9); return p.closed ? Math.floor((m + 1) / 2) : m; }),
+  xg('wv-g32', 3, 'mcq', 'closed pipe', function make(rng) {
+    const L = choose(rng, [0.25, 0.5, 0.85, 1.0]); const n = choose(rng, [1, 2, 3]); const f1 = 340 / (4 * L); const fn = (2 * n + 1) * f1;
+    const o = numOpts(rng, fn, [(n + 1) * f1, 2 * (n + 1) * f1, (2 * n + 1) * 340 / (2 * L)], 'Hz', 4);
+    const nm = n === 1 ? 'first' : n === 2 ? 'second' : 'third';
+    return { L, n, q: `A pipe ${L} m long is closed at one end ($v = 340\\ \\mathrm{m\\,s^{-1}}$). The frequency of its ${nm} overtone is`, options: o.options, answer: o.answer,
+      sol: `$f_1 = \\dfrac{v}{4L} = ${xs(f1, 4)}$ Hz. Overtones of a closed pipe are $3f_1, 5f_1, 7f_1$, so the ${nm} overtone is $${2 * n + 1}f_1 = ${xs(fn, 4)}$ Hz. Using $${n + 1}f_1$ (the overtone number plus one) or the open-pipe spacing gives the other options.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt((2 * p.n + 1) * 340 / (4 * p.L), 4)} Hz`)),
+);
+
+export default { topic: 'waves', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

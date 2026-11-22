@@ -589,4 +589,329 @@ gens.push(
   }, (p) => (p.v === 0 ? p.L * p.n1 / (p.n1 + p.n2) : p.v === 1 ? p.L * p.n1 * p.T1 / (p.n1 * p.T1 + p.n2 * p.T2) : (p.n1 * p.T1) / (p.n2 * p.T2))),
 );
 
-export default { topic: 'kinetic-theory', groups, items, gens };
+// ======== Expansion block (added 2026-11-22): more hard items and templates, ids kt-x001 onward ========
+import * as XH from '../_entrance.js';
+const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
+const xr = String.raw;
+const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xex = (level, type, neet) => { const e = [...XE[level]]; if (neet && level === 4) e.push('neet'); if (false && level <= 3 && type === 'mcq') e.push('cuet'); return e; };
+let xk = 0, xc = 0;
+const XPOS = [2, 0, 3, 1, 3, 1, 0, 2];
+const xb = (level, sub, o) => { const { neet, ...rest } = o; return { id: `kt-x${String(++xk).padStart(3, '0')}`, level, exams: xex(level, o.type, neet), sub, ...rest }; };
+const xq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xn = (level, sub, q, ans, tol, calc, sol, o = {}) => {
+  const v = calc();
+  if (!(Math.abs(v - ans) <= Math.max(tol, 1e-9) + 1e-9)) throw new Error(`kt item ${xk + 1}: calc ${v} vs answer ${ans}`);
+  return xb(level, sub, { type: 'nat', format: tol === 0 && Number.isInteger(ans) ? 'integer' : 'numeric', q, answer: ans, tol, calc, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAO, answer, sol, ...o });
+const XSO = ['Both Statement I and Statement II are true and II explains I', 'Both Statement I and Statement II are true but II does not explain I', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSO, answer, sol, ...o });
+const XSW = [['A', 'B'], ['C', 'D'], ['A', 'C'], ['B', 'D'], ['A', 'D'], ['B', 'C']];
+/** match item: map like {A:'q',B:'s',C:'p',D:'r'}; three wrong codes made by swapping two answers. */
+const xm = (level, sub, group, q, map, sol, o = {}) => {
+  const code = (m) => ['A', 'B', 'C', 'D'].map((l) => `${l}-${m[l]}`).join(', ');
+  const wrongs = [];
+  for (let i = 0; wrongs.length < 3; i++) { const [a, b] = XSW[(xc + i) % 6]; const m = { ...map }; [m[a], m[b]] = [m[b], m[a]]; wrongs.push(code(m)); }
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, code(map));
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const XMU = xr`\mathrm{m\,s^{-1}}`;
+
+const xRG = 8.31; const xKB = 1.38e-23; const xNA = 6.02e23;
+const xgroups = {
+  xm1: { title: 'Ratios of molecular speeds', list1: [xr`A. $v_{rms}/v_{mp}$ for one gas`, xr`B. $v_{mean}/v_{mp}$ for one gas`, xr`C. $v_{rms}/v_{mean}$ for one gas`, 'D. $v_{rms}$ of hydrogen / $v_{rms}$ of oxygen at the same temperature'],
+    list2: ['p. 1.085', 'q. 1.128', 'r. 1.225', 's. 4', 't. 2'] },
+  xm2: { title: 'Ratio of specific heats', list1: ['A. Monatomic gas', 'B. Rigid diatomic gas', 'C. Rigid non-linear triatomic gas', 'D. Diatomic gas at a temperature where vibration is fully active'],
+    list2: ['p. 5/3', 'q. 7/5', 'r. 4/3', 's. 9/7', 't. 1'] },
+  xm3: { title: 'Heating a fixed mass in a rigid vessel (T doubled)', list1: ['A. Factor for the rms speed', 'B. Factor for the pressure', 'C. Factor for the mean free path', 'D. Factor for the mean time between collisions'],
+    list2: [xr`p. $1$`, xr`q. $\sqrt2$`, xr`r. $2$`, xr`s. $1/\sqrt2$`, xr`t. $4$`] },
+  xm4: { title: 'Heating at constant pressure (T raised four times)', list1: ['A. Factor for the rms speed', 'B. Factor for the number density', 'C. Factor for the mean free path', 'D. Factor for the number of collisions per second of one molecule'],
+    list2: [xr`p. $1/4$`, xr`q. $1/2$`, xr`r. $2$`, xr`s. $4$`, xr`t. $1$`] },
+  xm5: { title: 'Critical constants of a van der Waals gas', list1: ['A. Critical temperature $T_c$', 'B. Critical pressure $P_c$', 'C. Critical molar volume $V_c$', 'D. The ratio $P_cV_c/(RT_c)$'],
+    list2: [xr`p. $\dfrac{a}{27b^2}$`, xr`q. $3b$`, xr`r. $\dfrac{8a}{27Rb}$`, xr`s. $\dfrac38$`, xr`t. $b$`] },
+  xm6: { title: 'Effusion', list1: ['A. Mean kinetic energy of a molecule inside the gas', 'B. Mean kinetic energy of the molecules that effuse through a small hole', 'C. Ratio of effusion rates of hydrogen and oxygen (same $T$, $P$)', 'D. Ratio of effusion rates of two gases whose molar masses are in the ratio $1:9$ (lighter : heavier)'],
+    list2: [xr`p. $\tfrac32kT$`, xr`q. $2kT$`, 'r. 4', 's. 3', xr`t. $kT$`] },
+  xm7: { title: 'Nitrogen at 300 K ($M = 0.028$ kg/mol, $R = 8.31$)', list1: ['A. $v_{rms}$', 'B. $v_{mean}$', 'C. $v_{mp}$', 'D. Mean translational kinetic energy of a molecule'],
+    list2: [xr`p. $422\ \mathrm{m\,s^{-1}}$`, xr`q. $476\ \mathrm{m\,s^{-1}}$`, xr`r. $517\ \mathrm{m\,s^{-1}}$`, xr`s. $6.21\times10^{-21}$ J`, xr`t. $1.24\times10^{-20}$ J`] },
+  xm8: { title: 'A gas taken along a straight line on the P-V graph', list1: ['A. Volume at which the temperature is highest', 'B. Pressure at that volume', 'C. Highest temperature', 'D. Number of moles'],
+    list2: ['p. 5 L', xr`q. $5\times10^5$ Pa`, 'r. 301 K', 's. 1 mol', 't. 10 L'] },
+  xp1: { title: 'A cylinder of helium brought to rest',
+    passage: xr`<p>A sealed, insulated cylinder holds 2 mol of helium ($M = 4\ \mathrm{g\,mol^{-1}}$) and moves at $50\ \mathrm{m\,s^{-1}}$. It is suddenly stopped. Assume all the kinetic energy of the gas's bulk motion becomes random thermal energy of the gas, and ignore the heat capacity of the cylinder. $R = 8.31$.</p>` },
+  xp2: { title: 'Argon in a flask',
+    passage: xr`<p>One mole of argon ($M = 0.040\ \mathrm{kg\,mol^{-1}}$, molecular diameter $3.6\times10^{-10}$ m) is held at 300 K in a 25 L flask. Take $R = 8.31$ and $k = 1.38\times10^{-23}\ \mathrm{J\,K^{-1}}$.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xq(2, 'temperature', xr`Hydrogen, helium and oxygen are at the same temperature. Which has the greatest average translational kinetic energy per molecule?`, 'All three have the same', ['Hydrogen, because it is lightest', 'Helium, because it is monatomic', 'Oxygen, because its molecules are heaviest'],
+    xr`Average translational kinetic energy per molecule is $\tfrac32kT$, which depends only on the temperature. The lighter gases move faster, but each molecule has the same average kinetic energy.`,
+    { trap: 'Mixing up speed (depends on mass) with kinetic energy (does not).' }),
+  xn(2, 'kinetic energy of molecules', xr`At what temperature, in $^\circ$C, is the average translational kinetic energy of molecules double its value at $27\,^\circ$C?`, 327, 0, () => 2 * 300 - 273,
+    xr`Average energy $\propto T$ in kelvin. $27\,^\circ\mathrm{C} = 300$ K. Double energy means $T = 600$ K, which is $600 - 273 = 327\,^\circ$C.`,
+    { trap: 'Doubling 27 gives 54 °C, but the law uses kelvin.' }),
+  xn(2, 'molar volume', xr`Find the mass, in g, of 11.2 L of oxygen ($M = 32\ \mathrm{g\,mol^{-1}}$) at STP (22.4 L per mole).`, 16, 0, () => 11.2 / 22.4 * 32,
+    xr`Moles $= 11.2/22.4 = 0.5$. Mass $= 0.5\times32 = 16$ g.`),
+  xq(2, 'pressure of a gas', xr`The rms speed of the molecules of a gas is doubled while the density stays the same. By what factor does the pressure change? (Use $P = \tfrac13\rho v_{rms}^2$.)`, '4 times', ['2 times', xr`$\sqrt2$ times`, '8 times'],
+    xr`$P\propto v_{rms}^2$ at fixed density, so doubling the speed multiplies the pressure by $2^2 = 4$.`),
+  xn(2, 'rms speed', xr`Find the ratio $v_{rms}$(helium, $M = 4$) / $v_{rms}$(neon, $M = 20$) at the same temperature (2 decimals).`, 2.24, 0.01, () => Math.sqrt(20 / 4),
+    xr`$v_{rms}\propto1/\sqrt M$, so the ratio is $\sqrt{20/4} = \sqrt5 = 2.24$.`),
+  xq(2, 'degrees of freedom', xr`A rigid non-linear triatomic molecule such as water vapour has how many degrees of freedom (translation plus rotation, vibration frozen)?`, '6', ['3', '5', '7'],
+    xr`It can move in 3 independent directions (3 translational) and rotate about 3 axes (3 rotational): $3 + 3 = 6$. A linear molecule has only 2 rotational ones.`),
+
+  // ---------- Level 3 ----------
+  xn(3, 'Boltzmann constant', xr`At what temperature does $kT$ equal 1 eV ($1.6\times10^{-19}$ J)? Give the answer in units of $10^4$ K (2 decimals). $k = 1.38\times10^{-23}\ \mathrm{J\,K^{-1}}$.`, 1.16, 0.01, () => 1.6e-19 / 1.38e-23 / 1e4,
+    xr`$T = \dfrac{1.6\times10^{-19}}{1.38\times10^{-23}} = 1.16\times10^4$ K. (At room temperature $kT$ is only about $\tfrac1{40}$ eV.)`),
+  xn(3, 'gas in a cylinder', xr`A vertical cylinder of cross-section $50\ \mathrm{cm^2}$ has a smooth piston of mass 10 kg trapping 0.2 mol of an ideal gas at 300 K. The air above is at $1.0\times10^5$ Pa. Taking $g = 10\ \mathrm{m\,s^{-2}}$ and $R = 8.31$, find the height of the gas column in m (2 decimals).`, 0.83, 0.01,
+    () => 0.2 * 8.31 * 300 / (1e5 + 10 * 10 / 50e-4) / 50e-4,
+    xr`Gas pressure $= P_0 + mg/A = 1.0\times10^5 + \dfrac{100}{5\times10^{-3}} = 1.2\times10^5$ Pa. $V = nRT/P = \dfrac{0.2\times8.31\times300}{1.2\times10^5} = 4.155\times10^{-3}\ \mathrm{m^3}$. Height $= V/A = 4.155\times10^{-3}/5\times10^{-3} = 0.83$ m.`,
+    { trap: 'Using atmospheric pressure alone, which ignores the piston weight.' }),
+  xn(3, 'specific heats of gases', xr`At very high temperature the vibrational modes of a diatomic gas are fully active. Find $\gamma = C_p/C_v$ (2 decimals).`, 1.29, 0.01, () => 1 + 2 / 7,
+    xr`Translation 3, rotation 2, vibration 2 (kinetic and potential): $f = 7$. $\gamma = 1 + 2/f = 9/7 = 1.29$.`),
+  xn(3, 'speed of sound', xr`The speed of sound in an ideal gas is $v = \sqrt{\gamma P/\rho}$ and $v_{rms} = \sqrt{3P/\rho}$. For a rigid diatomic gas find $v/v_{rms}$ (2 decimals).`, 0.68, 0.01, () => Math.sqrt((7 / 5) / 3),
+    xr`$\dfrac{v}{v_{rms}} = \sqrt{\dfrac{\gamma}{3}} = \sqrt{\dfrac{7/5}{3}} = \sqrt{\dfrac{7}{15}} = 0.68$. Sound is always slower than the molecules.`),
+  xn(3, 'gas laws', xr`A cylinder of volume 40 L holds a gas at 16 atm. Balloons of 2 L each, filled at 1 atm, are made from it at constant temperature until the cylinder pressure falls to 1 atm. How many balloons can be filled?`, 300, 0, () => (16 * 40 - 1 * 40) / 2,
+    xr`Total gas expressed at 1 atm: $16\times40 = 640$ L. The cylinder keeps $1\times40 = 40$ L. The rest, $600$ L, goes into balloons: $600/2 = 300$.`,
+    { trap: 'Dividing 640 by 2 gives 320, forgetting the gas left in the cylinder.' }),
+  xn(3, 'gas mixtures', xr`Equal masses of hydrogen ($M = 2$) and helium ($M = 4$) are mixed in one vessel. Find the ratio (number of hydrogen molecules) / (number of helium atoms).`, 2, 0, () => (1 / 2) / (1 / 4),
+    xr`For mass $m$ each: $n_{H_2} = m/2$ and $n_{He} = m/4$. The ratio is $(m/2)/(m/4) = 2$. Their partial pressures are in the same ratio.`),
+  xn(3, 'rms speed', xr`At 300 K the rms speed of oxygen ($M = 32$) is the same as that of nitrogen ($M = 28$) at what temperature, in K (1 decimal)?`, 262.5, 0.5, () => 300 * 28 / 32,
+    xr`$v_{rms}\propto\sqrt{T/M}$, so $T/M$ is the same: $T_{N_2} = 300\times\dfrac{28}{32} = 262.5$ K.`),
+  xn(3, 'degrees of freedom', xr`A gas has $\gamma = 4/3$. How many degrees of freedom does each molecule have?`, 6, 0, () => 2 / (4 / 3 - 1),
+    xr`$\gamma = 1 + 2/f$, so $2/f = 1/3$ and $f = 6$ (such as a rigid non-linear triatomic molecule).`),
+  xn(3, 'degrees of freedom', xr`A vessel holds 1 mol of helium and 3 mol of nitrogen (rigid diatomic) at the same temperature $T$. The total internal energy is $xRT$. Find $x$ (1 decimal).`, 9, 0, () => 1 * 1.5 + 3 * 2.5,
+    xr`$U = \tfrac32RT\times1 + \tfrac52RT\times3 = (1.5 + 7.5)RT = 9RT$, so $x = 9$.`),
+  xn(3, 'pressure of a gas', xr`A gas of density $2.4\ \mathrm{kg\,m^{-3}}$ is at a pressure of $2.0\times10^5$ Pa. Find the rms speed of its molecules, in $\mathrm{m\,s^{-1}}$.`, 500, 0, () => Math.sqrt(3 * 2e5 / 2.4),
+    xr`$P = \tfrac13\rho v_{rms}^2$, so $v_{rms} = \sqrt{3P/\rho} = \sqrt{6\times10^5/2.4} = \sqrt{2.5\times10^5} = 500\ \mathrm{m\,s^{-1}}$.`),
+  xn(3, 'internal energy of a gas', xr`A cubic metre of nitrogen (rigid diatomic) is at $1.0\times10^5$ Pa. Find its internal energy in units of $10^5$ J (1 decimal).`, 2.5, 0, () => 2.5 * 1e5 / 1e5,
+    xr`$U = \tfrac f2nRT = \tfrac f2PV = \tfrac52\times10^5\times1 = 2.5\times10^5$ J (answer 2.5).`),
+  xq(3, 'graphs of gas laws', xr`For a fixed mass of an ideal gas at constant temperature, which graph is a straight line through the origin?`, '$P$ against $1/V$', ['$P$ against $V$', '$PV$ against $P$', '$V$ against $1/T$'],
+    xr`Boyle's law: $P = (\text{const})\times1/V$. So $P$ against $1/V$ is a straight line through the origin, whereas $P$ against $V$ is a hyperbola and $PV$ against $P$ is a horizontal line.`),
+  xa(3, 'kinetic energy of molecules', xr`When the Kelvin temperature of a gas is doubled, the average translational kinetic energy of its molecules doubles, but the rms speed does not.`, xr`Average kinetic energy is proportional to $T$, while the rms speed is proportional to $\sqrt T$.`, 0,
+    xr`Both are true and R explains A. The rms speed increases by $\sqrt2 = 1.41$, not 2.`),
+  xa(3, 'specific heats of gases', xr`The molar specific heat of a gas at constant pressure is greater than at constant volume.`, xr`At constant pressure the gas expands and does work against the surroundings, so more heat is needed for the same temperature rise.`, 0,
+    xr`Both are true and R explains A. $C_p - C_v = R$ for an ideal gas.`),
+  xm(3, 'speeds of molecules', 'xm1', xr`Match each ratio in List I with its value in List II.`, { A: 'r', B: 'q', C: 'p', D: 's' },
+    xr`$v_{rms} = \sqrt{3RT/M}$, $v_{mean} = \sqrt{8RT/\pi M}$, $v_{mp} = \sqrt{2RT/M}$. A: $\sqrt{3/2} = 1.225$ (r). B: $\sqrt{4/\pi} = 1.128$ (q). C: $\sqrt{3\pi/8} = 1.085$ (p). D: $\sqrt{32/2} = 4$ (s).`),
+  xm(3, 'specific heats of gases', 'xm2', xr`Match the gas in List I with its $\gamma = C_p/C_v$.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$\gamma = 1 + 2/f$. A: $f=3$, $\gamma = 5/3$ (p). B: $f=5$, $7/5$ (q). C: $f=6$, $4/3$ (r). D: $f=7$, $9/7$ (s).`),
+
+  // ---------- Level 4 ----------
+  xn(4, 'bulk and thermal motion', xr`A sealed, insulated container of helium ($M = 4\ \mathrm{g\,mol^{-1}}$) moving at $100\ \mathrm{m\,s^{-1}}$ is suddenly stopped and all the bulk kinetic energy of the gas appears as thermal energy. Find the rise in temperature, in K (2 decimals). $R = 8.31$.`, 1.6, 0.01, () => 0.004 * 100 * 100 / (3 * 8.31),
+    xr`Per mole: bulk KE $= \tfrac12Mv^2 = \tfrac12(0.004)(10^4) = 20$ J. Thermal energy: $\tfrac32R\,\Delta T$. So $\Delta T = \dfrac{Mv^2}{3R} = \dfrac{0.004\times10^4}{3\times8.31} = 1.60$ K.`,
+    { trap: 'Using 5/2 R (diatomic) for a monatomic gas, or forgetting that the energy is shared by all the molecules.' }),
+  xn(4, 'P-V graph', xr`One mole of an ideal gas is taken along the straight line $P = 10^6 - 10^8V$ (SI units, $V$ in $\mathrm{m^3}$) from $V = 2\times10^{-3}\ \mathrm{m^3}$ to $V = 8\times10^{-3}\ \mathrm{m^3}$. Find the highest temperature reached, in K (1 decimal). $R = 8.31$.`, 300.8, 0.2,
+    () => { let best = 0; for (let V = 2e-3; V <= 8e-3; V += 1e-6) best = Math.max(best, (1e6 - 1e8 * V) * V / 8.31); return best; },
+    xr`$T = PV/(nR) = \dfrac{(10^6 - 10^8V)V}{R}$. The product $PV$ is largest when $\dfrac{d}{dV}(10^6V - 10^8V^2) = 0$: $V = 5\times10^{-3}\ \mathrm{m^3}$, giving $P = 5\times10^5$ Pa. $T_{max} = \dfrac{5\times10^5\times5\times10^{-3}}{8.31} = \dfrac{2500}{8.31} = 300.8$ K. (This lies between the end points.)`,
+    { trap: 'Taking the temperature at the end points; on a straight line with negative slope the temperature rises and then falls.' }),
+  xn(4, 'mixing gases', xr`1 mol of helium at 300 K and 1 mol of nitrogen (rigid diatomic) at 400 K are mixed in an insulated rigid vessel. Find the final temperature, in K (1 decimal).`, 362.5, 0.2, () => (1 * 3 * 300 + 1 * 5 * 400) / (3 + 5),
+    xr`No energy is lost, so $U_1 + U_2 = U_{final}$: $\tfrac32R(300) + \tfrac52R(400) = (\tfrac32 + \tfrac52)RT$. $T = \dfrac{450 + 1000}{4} = 362.5$ K.`,
+    { trap: 'Averaging 300 and 400 gives 350 K, which ignores that nitrogen stores more energy per kelvin.' }),
+  xn(4, 'degrees of freedom', xr`A diatomic gas has $\gamma = 1.25$ at a very high temperature when many modes are active. How many degrees of freedom $f$ does it effectively have?`, 8, 0, () => 2 / (1.25 - 1),
+    xr`$\gamma = 1 + 2/f$ gives $2/f = 0.25$, so $f = 8$.`),
+  xn(4, 'real gases', xr`For a van der Waals gas, find the ratio $P_cV_c/(RT_c)$ (3 decimals), where $P_c = \dfrac{a}{27b^2}$, $V_c = 3b$ and $T_c = \dfrac{8a}{27Rb}$.`, 0.375, 0.001, () => (1 / 27) * 3 / (8 / 27),
+    xr`$\dfrac{P_cV_c}{RT_c} = \dfrac{\dfrac{a}{27b^2}\cdot3b}{R\cdot\dfrac{8a}{27Rb}} = \dfrac{3a/(27b)}{8a/(27b)} = \dfrac38 = 0.375$. For an ideal gas it would be 1.`),
+  xn(4, 'balloon', xr`A hot-air balloon of volume $500\ \mathrm{m^3}$ is filled with air at 360 K. The outside air is at 300 K with density $1.16\ \mathrm{kg\,m^{-3}}$ at the same pressure. Find the maximum mass, in kg, of the balloon fabric and load that it can lift (1 decimal).`, 96.7, 0.2, () => 1.16 * 500 * (1 - 300 / 360),
+    xr`At equal pressure, density $\propto1/T$: inside, $\rho_i = 1.16\times300/360 = 0.967\ \mathrm{kg\,m^{-3}}$. Mass of displaced cold air $= 1.16\times500 = 580$ kg; mass of hot air $= 483.3$ kg. Maximum load $= 580 - 483.3 = 96.7$ kg.`),
+  xq(4, 'effusion', xr`Molecules escape through a very small hole into a vacuum. Compared with the mean translational kinetic energy $\tfrac32kT$ of the gas inside, the mean kinetic energy of the escaping molecules is`, xr`$2kT$, larger`, [xr`$\tfrac32kT$, the same`, xr`$kT$, smaller`, xr`$3kT$, larger`],
+    xr`Faster molecules strike the hole more often and so escape more often (the flux is proportional to $v\,f(v)$). The mean energy of the escaping molecules works out to $2kT$. This is why the remaining gas cools.`),
+  xq(4, 'free expansion', xr`An ideal gas expands from one half of an insulated rigid container into the vacuum in the other half after a partition is removed. Its temperature`, 'does not change', ['falls, because the gas does work', 'rises, because the molecules collide with more walls', 'falls to half its initial value'],
+    xr`No external pressure acts, so the gas does no work, and the container is insulated, so there is no heat flow. $\Delta U = 0$. For an ideal gas $U$ depends only on $T$, so $T$ is unchanged and the pressure halves.`),
+  xs(4, 'Maxwell distribution', xr`The Maxwell speed distribution curves are drawn for helium and oxygen at the same temperature. Which are correct?`,
+    ['The helium curve peaks at a larger speed', 'The areas under the two curves are equal', 'The helium curve is broader', 'The oxygen curve has the higher peak', 'The helium curve lies above the oxygen curve at all speeds'], [0, 1, 2, 3],
+    xr`$v_{mp}\propto1/\sqrt M$, so helium peaks at the larger speed. Each curve is normalised (total probability 1), so the areas are equal. A peak at higher speed with the same area makes the helium curve broader and lower, and the oxygen curve narrower and taller. At low speeds the oxygen curve is below the helium curve, so helium is not above at all speeds.`),
+  xs(4, 'equipartition of energy', xr`A diatomic gas at a very high temperature has all its vibrational modes active. Which are correct?`,
+    [xr`$C_v = \tfrac72R$`, xr`$\gamma = 9/7$`, xr`The internal energy of $n$ moles is $\tfrac72nRT$`, xr`$\gamma = 7/5$`, xr`The mean translational kinetic energy per molecule is still $\tfrac32kT$`], [0, 1, 2, 4],
+    xr`Active modes: 3 translational, 2 rotational, 2 vibrational (each vibration counts as 2: kinetic plus potential): $f = 7$. $C_v = \tfrac72R$, $\gamma = 1 + 2/7 = 9/7$, $U = \tfrac72nRT$. $7/5$ is the low-temperature value. Translational energy is $\tfrac32kT$ at all temperatures.`),
+  xs(4, 'P-V graph', xr`An ideal gas is taken along the straight line $P = aV$ (through the origin) from $V_0$ to $2V_0$. Which are correct?`,
+    ['The temperature rises to 4 times its initial value', 'The pressure doubles', 'The process is isothermal', 'The internal energy increases', xr`$T\propto V^2$ along the process`], [0, 1, 3, 4],
+    xr`$PV = nRT$ with $P = aV$ gives $T = aV^2/(nR)\propto V^2$ (true). Doubling $V$ quadruples $T$ (true) and doubles $P$ (true). It is certainly not isothermal (false). $U\propto T$ increases (true).`),
+  xs(4, 'kinetic theory derivation', xr`In deriving $P = \tfrac13(N/V)m\overline{v^2}$ for molecules in a cube of side $L$, which steps are correct?`,
+    [xr`A molecule hitting a wall perpendicularly changes its momentum by $2mv_x$`, xr`It hits the same wall $v_x/2L$ times per second`, xr`The average force from one molecule is $mv_x^2/L$`, xr`$\overline{v_x^2} = \tfrac13\overline{v^2}$ because motion is random in all directions`, xr`The result would be $P = \tfrac13(N/V)mv$ if collisions between molecules were included`], [0, 1, 2, 3],
+    xr`Each hit reverses $v_x$, so $\Delta p = 2mv_x$ (true). The time between hits on one wall is $2L/v_x$ (true). Force $= 2mv_x\times v_x/2L = mv_x^2/L$ (true). By isotropy $\overline{v_x^2} = \overline{v^2}/3$ (true). Collisions between molecules do not change the total momentum transfer on average, so the result is unchanged and it involves $\overline{v^2}$, not $v$ (false).`),
+  xs(4, 'free expansion', xr`An ideal gas at pressure $P$ and temperature $T$ occupies one of two identical, insulated, rigid vessels joined by a closed tap; the other is empty. The tap is opened. Which are correct?`,
+    ['The final temperature is $T$', 'The final pressure is $P/2$', 'The gas does no work', 'The internal energy is unchanged', 'The rms speed of the molecules decreases'], [0, 1, 2, 3],
+    xr`No work, no heat: $\Delta U = 0$, so $T$ is unchanged (true) and the rms speed is unchanged (false). The volume doubles at constant $T$: $P\to P/2$ (true).`),
+  xm(4, 'effect of heating', 'xm3', xr`A fixed mass of ideal gas in a rigid vessel is heated so that its absolute temperature doubles. Match the quantities in List I with the factor by which they change.`, { A: 'q', B: 'r', C: 'p', D: 's' },
+    xr`A: $v_{rms}\propto\sqrt T$, factor $\sqrt2$ (q). B: at fixed $V$, $P\propto T$, factor 2 (r). C: $\lambda = 1/(\sqrt2\pi d^2n)$ with $n$ fixed, factor 1 (p). D: collision frequency $\propto v$, so the time between collisions changes by $1/\sqrt2$ (s).`),
+  xm(4, 'effect of heating', 'xm4', xr`A fixed mass of ideal gas at constant pressure is heated until its absolute temperature is four times larger. Match the quantities in List I with the factors in List II.`, { A: 'r', B: 'p', C: 's', D: 'q' },
+    xr`A: $v_{rms}\propto\sqrt T$, factor 2 (r). B: $n = P/kT$, factor $1/4$ (p). C: $\lambda\propto1/n$, factor 4 (s). D: collisions per second $\propto n\bar v\propto\tfrac14\times2 = \tfrac12$ (q).`),
+  xm(4, 'real gases', 'xm5', xr`Match the quantities of a van der Waals gas in List I with their expressions in List II.`, { A: 'r', B: 'p', C: 'q', D: 's' },
+    xr`$T_c = \dfrac{8a}{27Rb}$ (r), $P_c = \dfrac{a}{27b^2}$ (p), $V_c = 3b$ (q), and $P_cV_c/RT_c = 3/8$ (s). The $b$ alone is the excluded volume per mole, not a critical quantity.`),
+  xm(4, 'speeds of molecules', 'xm7', xr`Match each quantity for nitrogen at 300 K in List I with its value in List II.`, { A: 'r', B: 'q', C: 'p', D: 's' },
+    xr`$v_{rms} = \sqrt{3RT/M} = 517$ (r). $v_{mean} = \sqrt{8RT/\pi M} = 476$ (q). $v_{mp} = \sqrt{2RT/M} = 422$ (p). Mean translational KE $= \tfrac32kT = 6.21\times10^{-21}$ J (s). The $1.24\times10^{-20}$ J is $3kT$.`),
+  xm(4, 'P-V graph', 'xm8', xr`One mole of gas follows $P = 10^6 - 10^8V$ (SI units). Match the quantities.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$PV$ is maximum at $V = 5\times10^{-3}\ \mathrm{m^3} = 5$ L (p), where $P = 5\times10^5$ Pa (q) and $T = 2500/8.31 = 301$ K (r). The number of moles is given: 1 (s).`),
+  xa(4, 'temperature', xr`The temperature of a gas in a closed box does not change when the box is carried at a steady speed in a lorry.`, xr`Temperature is a measure of the random motion of the molecules relative to the box, not of the bulk motion of the box.`, 0,
+    xr`Both are true and R explains A. The bulk velocity adds the same vector to every molecule's velocity but does not change the random motion measured relative to the box (and so not $T$). Only if the box were stopped suddenly would that bulk energy become thermal.`),
+  xa(4, 'effusion', xr`When a gas leaks slowly through a tiny hole into a vacuum, the gas that remains cools down.`, xr`Faster molecules strike the hole more often and escape, so the mean kinetic energy of the molecules left behind falls.`, 0,
+    xr`Both are true and R explains A. Escaping molecules carry $2kT$ each on average, more than the $\tfrac32kT$ average inside, so the remaining gas loses energy faster than it loses molecules.`),
+  xt(4, 'speed of sound', xr`The speed of sound in a gas is greater than the rms speed of its molecules.`, xr`The speed of sound in a gas is $v = \sqrt{\gamma/3}\,v_{rms}$.`, 3,
+    xr`Statement II is true: $v = \sqrt{\gamma P/\rho}$ and $v_{rms} = \sqrt{3P/\rho}$. Since $\gamma < 3$ for every gas, $v < v_{rms}$, so Statement I is false.`),
+  xt(4, 'internal energy of a gas', xr`One mole of hydrogen and one mole of helium at the same temperature have the same internal energy.`, xr`Their molecules have the same average translational kinetic energy.`, 3,
+    xr`II is true ($\tfrac32kT$). But hydrogen (rigid diatomic) also stores rotational energy: $U_{H_2} = \tfrac52RT$ against $\tfrac32RT$ for helium. So I is false.`),
+  xt(4, 'effusion', xr`The rate of effusion of a gas through a small hole is proportional to its pressure.`, xr`The rate of effusion is proportional to $n\bar v\propto P/\sqrt{MT}$.`, 0,
+    xr`Both are true and II explains I. At fixed $T$ and $M$, effusion rate $\propto P$.`),
+
+
+  // ---------- more multi-correct, level 5 ----------
+  xs(5, 'effusion', xr`A gas leaks slowly through a tiny hole in a rigid insulated vessel into a vacuum. Which are correct?`,
+    [xr`The rate of effusion is proportional to $1/\sqrt M$ at a given temperature`, 'A light gas leaks out faster than a heavy gas at the same pressure and temperature', xr`The molecules that escape carry a mean kinetic energy of $2kT$`, 'The gas left behind cools down', 'The gas leaves as a bulk flow at the rms speed'], [0, 1, 2, 3],
+    xr`Effusion flux $=\tfrac14n\bar v\propto P/\sqrt{MT}$ (true, true). Fast molecules escape preferentially, each taking $2kT$ on average, more than the $\tfrac32kT$ average of the gas (true), so the remainder cools (true). In effusion (hole much smaller than the mean free path) there is no bulk flow: molecules leave one by one (false).`),
+  xs(5, 'real gases', xr`For a van der Waals gas $\left(P + \dfrac{an^2}{V^2}\right)(V - nb) = nRT$, which are correct?`,
+    ['The constant $a$ allows for attraction between molecules', 'The constant $b$ is about four times the actual volume of the molecules in one mole', 'At moderate pressures the real gas exerts less pressure than an ideal gas at the same $n$, $V$, $T$', 'At very high pressure $PV/nRT$ is greater than 1', xr`The constant $b$ has the unit $\mathrm{Pa\,m^6\,mol^{-2}}$`], [0, 1, 2, 3],
+    xr`The $a$ term corrects for attraction, which lowers the pressure on the walls (true, true). $b$ is the excluded volume, about 4 times the molecular volume per mole (true). At very high pressure the volume term $V - nb$ dominates, so $PV > nRT$ (true). The unit $\mathrm{Pa\,m^6\,mol^{-2}}$ belongs to $a$; $b$ has $\mathrm{m^3\,mol^{-1}}$ (false).`),
+  xs(5, 'gas mixtures', xr`A vessel holds 1 mol of helium and 3 mol of nitrogen at 300 K. Which are correct?`,
+    ['The partial pressure of helium is one quarter of the total pressure', 'The average translational kinetic energy of a helium atom equals that of a nitrogen molecule', xr`The rms speed of helium atoms is $\sqrt7$ times that of nitrogen molecules`, xr`The total internal energy is $9RT$`, 'Helium contributes half of the pressure'], [0, 1, 2, 3],
+    xr`Partial pressures go as mole fractions: He $= \tfrac14$ (true; the last option is false). Both have $\tfrac32kT$ (true). $v_{rms}\propto1/\sqrt M$: $\sqrt{28/4} = \sqrt7$ (true). $U = \tfrac32RT + 3\times\tfrac52RT = 9RT$ (true).`),
+  xs(5, 'constant-pressure heating', xr`A fixed mass of ideal gas is heated slowly at constant pressure. Which are correct?`,
+    ['The number density of the molecules decreases', 'The mean free path increases', xr`The number of collisions per second of one molecule decreases (it varies as $1/\sqrt T$)`, 'The rms speed increases', 'The number of collisions per second of one molecule increases'], [0, 1, 2, 3],
+    xr`At constant $P$, $n = P/kT$ falls (true) and $\lambda\propto1/n$ rises (true). Collision frequency $\propto n\bar v\propto T^{-1}\cdot T^{1/2} = T^{-1/2}$, so it decreases (true, last false). $v_{rms}\propto\sqrt T$ rises (true).`),
+
+  // ---------- level 5 numeric ----------
+  xn(5, 'real gases', xr`For nitrogen, the van der Waals constants are $a = 0.137\ \mathrm{Pa\,m^6\,mol^{-2}}$ and $b = 3.87\times10^{-5}\ \mathrm{m^3\,mol^{-1}}$. Find its critical temperature $T_c = \dfrac{8a}{27Rb}$ in K (1 decimal). $R = 8.31$.`, 126.2, 0.3, () => 8 * 0.137 / (27 * 8.31 * 3.87e-5),
+    xr`$T_c = \dfrac{8\times0.137}{27\times8.31\times3.87\times10^{-5}} = \dfrac{1.096}{8.683\times10^{-3}} = 126.2$ K. Above this temperature nitrogen cannot be liquefied by pressure alone.`),
+  xn(5, 'escape of gases', xr`A planet keeps a gas only if the rms speed of its molecules is less than one sixth of the escape speed. The escape speed from Earth is $11.2\ \mathrm{km\,s^{-1}}$. Find the highest temperature, in K (nearest whole number), at which helium ($M = 4\ \mathrm{g\,mol^{-1}}$) would be retained. $R = 8.31$.`, 559, 1, () => 0.004 * (11200 / 6) ** 2 / (3 * 8.31),
+    xr`Need $v_{rms} = \sqrt{3RT/M}\le v_{esc}/6 = 1867\ \mathrm{m\,s^{-1}}$. $T\le\dfrac{M(v_{esc}/6)^2}{3R} = \dfrac{0.004\times3.484\times10^6}{24.93} = 559$ K.`,
+    { trap: 'Using the full escape speed gives T about 20 000 K, which ignores the high-speed tail of the Maxwell distribution.' }),
+  xn(5, 'molecular flux', xr`Nitrogen ($M = 0.028\ \mathrm{kg\,mol^{-1}}$) is at $1.013\times10^5$ Pa and 300 K. The number of molecules striking a unit area of wall per second is $\tfrac14n\bar v$. Find it in units of $10^{27}\ \mathrm{m^{-2}s^{-1}}$ (2 decimals). Take $R = 8.31$, $k = 1.38\times10^{-23}$.`, 2.91, 0.02,
+    () => 0.25 * (1.013e5 / (1.38e-23 * 300)) * Math.sqrt(8 * 8.31 * 300 / (Math.PI * 0.028)) / 1e27,
+    xr`$n = P/kT = \dfrac{1.013\times10^5}{1.38\times10^{-23}\times300} = 2.447\times10^{25}\ \mathrm{m^{-3}}$. $\bar v = \sqrt{8RT/\pi M} = 476\ \mathrm{m\,s^{-1}}$. Flux $= \tfrac14\times2.447\times10^{25}\times476 = 2.91\times10^{27}\ \mathrm{m^{-2}s^{-1}}$.`,
+    { trap: 'Leaving out the factor 1/4: only about a quarter of n v̄ hits a given wall (a molecule moves in all directions).' }),
+  xn(5, 'gas spring', xr`A piston of mass 1 kg closes a vertical cylinder of cross-section $100\ \mathrm{cm^2}$ trapping air ($\gamma = 1.4$) at $1.0\times10^5$ Pa in a column 20 cm high. The piston is pressed slightly and released; the air compresses adiabatically. Find the period of the small oscillations in ms (1 decimal). (Ignore the piston's weight change in the pressure.)`, 75.1, 0.5,
+    () => 2 * Math.PI * Math.sqrt(1 * 0.2 / (1.4 * 1e5 * 0.01)) * 1000,
+    xr`For an adiabatic change $PV^\gamma$ is constant, so $\Delta P = -\gamma P\,\Delta V/V = -\gamma P x/h$ for a displacement $x$. The restoring force is $A\Delta P = -\dfrac{\gamma PA}{h}x$, so $k = \dfrac{1.4\times10^5\times10^{-2}}{0.2} = 7000\ \mathrm{N\,m^{-1}}$. $T = 2\pi\sqrt{m/k} = 2\pi\sqrt{1/7000} = 0.0751$ s $= 75.1$ ms.`),
+  xn(5, 'molar heat capacity of a process', xr`A rigid diatomic ideal gas is taken along a process with $P\propto V$. Find its molar heat capacity along this process in units of $R$.`, 3, 0, () => 2.5 + 0.5,
+    xr`Heat $dQ = dU + P\,dV$. With $P = aV$: $P\,dV = aV\,dV = \tfrac12\,d(aV^2) = \tfrac12\,d(PV) = \tfrac12R\,dT$ per mole. $C = C_v + \tfrac R2 = \tfrac52R + \tfrac12R = 3R$.`),
+  xb(5, 'statements', { type: 'mcq', format: 'statements', q: xr`How many of these are correct?<br>(a) $v_{rms} > v_{mean} > v_{mp}$ for a gas.<br>(b) The pressure of an ideal gas depends on the size of its molecules.<br>(c) At the same temperature all ideal-gas molecules have the same average translational kinetic energy.<br>(d) A real gas at its Boyle temperature behaves ideally over a wide range of low pressures.<br>(e) The mean free path of a gas at fixed temperature increases as the pressure increases.`,
+    options: ['2', '3', '4', '5'], answer: 1,
+    sol: xr`(a) true. (b) false: ideal gas molecules are points, and $P = nkT$ does not depend on size. (c) true: $\tfrac32kT$. (d) true: at the Boyle temperature $a$ and $b$ effects cancel at low pressure. (e) false: $\lambda\propto1/P$ at fixed $T$. Three are correct.` }),
+  xn(3, 'connected vessels', xr`Two identical vessels are joined by a tube so the pressure is the same in both. One is held at $T$ and the other at $2T$. Find the ratio (moles in the cooler vessel) / (moles in the hotter vessel).`, 2, 0, () => 2 * 1 / 1,
+    xr`$n = PV/RT$ with the same $P$ and $V$: $n\propto1/T$. The cooler vessel holds twice as many moles.`),
+
+  xs(4, 'isothermal compression', xr`An ideal gas is compressed isothermally to half its volume. Which are correct?`,
+    ['The rms speed of the molecules is unchanged', 'The mean free path is halved', 'The number of collisions per second made by one molecule is doubled', 'The pressure is doubled', 'The internal energy decreases'], [0, 1, 2, 3],
+    xr`$T$ is constant, so $v_{rms}$ and $U$ are unchanged (true; the last is false). $n$ doubles, so $\lambda\propto1/n$ halves (true) and the collision frequency $\propto n\bar v$ doubles (true). $P\propto n$ doubles (true).`),
+  xm(5, 'effusion', 'xm6', xr`Match the items in List I with the values in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`A: $\tfrac32kT$ (p). B: molecules that effuse carry $2kT$ on average (q). C: rates go as $1/\sqrt M$: $\sqrt{32/2} = 4$ (r). D: $\sqrt{9} = 3$ (s). The $kT$ is not any of these.`),
+
+  // ---------- passages ----------
+  xn(3, 'bulk and thermal motion', xr`Find the kinetic energy of the bulk motion of the gas, in J.`, 10, 0, () => 0.5 * 2 * 0.004 * 50 * 50,
+    xr`Mass $= 2\times0.004 = 0.008$ kg. KE $= \tfrac12mv^2 = \tfrac12\times0.008\times2500 = 10$ J.`, { format: 'passage', group: 'xp1' }),
+  xn(4, 'bulk and thermal motion', xr`Find the rise in the temperature of the gas, in K (2 decimals).`, 0.4, 0.01, () => 10 / (2 * 1.5 * 8.31),
+    xr`$\Delta U = n\cdot\tfrac32R\,\Delta T = 10$ J. $\Delta T = \dfrac{10}{2\times1.5\times8.31} = 0.40$ K.`, { format: 'passage', group: 'xp1' }),
+  xq(5, 'bulk and thermal motion', xr`The helium is replaced by 2 mol of nitrogen ($M = 28\ \mathrm{g\,mol^{-1}}$, rigid diatomic) moving at the same $50\ \mathrm{m\,s^{-1}}$. The temperature rise is, compared with the helium case,`, 'about 4.2 times as large', ['about 7 times as large', 'about the same', 'about 0.24 times as large'],
+    xr`Bulk KE of 2 mol of $N_2 = \tfrac12\times0.056\times2500 = 70$ J. $\Delta T = 70/(2\times\tfrac52\times8.31) = 1.68$ K, against 0.40 K for helium: a ratio of 4.2. Equivalent: ratio $= \dfrac{M_2}{M_1}\cdot\dfrac{f_1}{f_2} = 7\times\dfrac35 = 4.2$. The factor 7 alone ignores the extra degrees of freedom.`,
+    { format: 'passage', group: 'xp1', trap: 'Saying 7: the heavier mass gives 7 times the energy, but nitrogen needs more energy per kelvin.' }),
+  xn(3, 'ideal gas equation', xr`Find the pressure of the argon, in kPa (1 decimal).`, 99.7, 0.1, () => 8.31 * 300 / 0.025 / 1000,
+    xr`$P = nRT/V = \dfrac{1\times8.31\times300}{25\times10^{-3}} = 9.97\times10^4$ Pa $= 99.7$ kPa.`, { format: 'passage', group: 'xp2' }),
+  xn(4, 'rms speed', xr`Find the rms speed of the argon atoms, in $\mathrm{m\,s^{-1}}$ (nearest whole number).`, 432, 1, () => Math.sqrt(3 * 8.31 * 300 / 0.04),
+    xr`$v_{rms} = \sqrt{3RT/M} = \sqrt{\dfrac{3\times8.31\times300}{0.040}} = \sqrt{1.87\times10^5} = 432\ \mathrm{m\,s^{-1}}$.`, { format: 'passage', group: 'xp2' }),
+  xn(5, 'collision frequency', xr`Each atom makes $\sqrt2\pi d^2n\bar v$ collisions per second. Find this in units of $10^9\ \mathrm{s^{-1}}$ (2 decimals).`, 5.53, 0.05,
+    () => Math.SQRT2 * Math.PI * (3.6e-10) ** 2 * (8.31 * 300 / 0.025 / (1.38e-23 * 300)) * Math.sqrt(8 * 8.31 * 300 / (Math.PI * 0.04)) / 1e9,
+    xr`$n = P/kT = \dfrac{9.97\times10^4}{1.38\times10^{-23}\times300} = 2.41\times10^{25}\ \mathrm{m^{-3}}$. $\bar v = \sqrt{8RT/\pi M} = 398\ \mathrm{m\,s^{-1}}$. Collision rate $= 1.414\times3.1416\times(3.6\times10^{-10})^2\times2.41\times10^{25}\times398 = 5.5\times10^{9}\ \mathrm{s^{-1}}$.`,
+    { format: 'passage', group: 'xp2' }),
+];
+
+const xgens = [
+  { id: 'kt-g22', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'bulk and thermal motion',
+    make(rng) {
+      const [name, M] = xchoose(rng, [['helium', 4], ['neon', 20], ['argon', 40]]); const v = xchoose(rng, [50, 100, 200]);
+      const answer = +(M * 1e-3 * v * v / (3 * 8.31)).toFixed(3);
+      return { M, v, answer, tol: Math.max(0.01, answer * 0.01), unit: 'K',
+        q: `A sealed, insulated container of ${name} (M = ${M} g/mol) moving at ${v} m/s is suddenly stopped, and all the bulk kinetic energy of the gas becomes thermal energy. Find the rise in temperature, in K. Take R = 8.31.`,
+        sol: `Per mole: ½Mv² = ½×${M / 1000}×${v}² = ${xfmt(0.5 * M / 1000 * v * v, 4)} J equals (3/2)RΔT. ΔT = Mv²/(3R) = ${xfmt(M / 1000 * v * v, 4)}/${xfmt(3 * 8.31, 4)} = ${xfmt(answer, 4)} K.` };
+    },
+    verify: (p) => { const n = 1; const ke = 0.5 * n * p.M * 1e-3 * p.v * p.v; return ke / (n * 1.5 * 8.31); } },
+  { id: 'kt-g23', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'mixing gases',
+    make(rng) {
+      const n1 = xchoose(rng, [1, 2, 3]), n2 = xchoose(rng, [1, 2, 3]), t1 = xchoose(rng, [250, 300, 350]), t2 = xchoose(rng, [400, 450, 500]);
+      const answer = +((n1 * 3 * t1 + n2 * 5 * t2) / (3 * n1 + 5 * n2)).toFixed(2);
+      return { n1, n2, t1, t2, answer, tol: 0.1, unit: 'K',
+        q: `${n1} mol of helium at ${t1} K and ${n2} mol of nitrogen (rigid diatomic) at ${t2} K are mixed in an insulated rigid vessel. Find the final temperature, in K.`,
+        sol: `Energy is conserved: (3/2)R·${n1}·${t1} + (5/2)R·${n2}·${t2} = ((3/2)${n1} + (5/2)${n2})R·T. T = (3×${n1}×${t1} + 5×${n2}×${t2})/(3×${n1} + 5×${n2}) = ${xfmt(answer, 5)} K.` };
+    },
+    verify: (p) => { const U = 1.5 * p.n1 * p.t1 + 2.5 * p.n2 * p.t2; return U / (1.5 * p.n1 + 2.5 * p.n2); } },
+  { id: 'kt-g24', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'molecular flux',
+    make(rng) {
+      const [name, M] = xchoose(rng, [['nitrogen', 0.028], ['oxygen', 0.032], ['helium', 0.004], ['hydrogen', 0.002]]); const T = xchoose(rng, [300, 400]); const P = xchoose(rng, [1.0, 2.0]) * 1e5;
+      const nn = P / (1.38e-23 * T); const vb = Math.sqrt(8 * 8.31 * T / (Math.PI * M)); const answer = +(0.25 * nn * vb / 1e27).toFixed(3);
+      return { M, T, P, answer, tol: Math.max(0.02, answer * 0.01), unit: '10²⁷ m⁻² s⁻¹',
+        q: `${name[0].toUpperCase() + name.slice(1)} (M = ${M} kg/mol) is at ${P / 1e5}×10⁵ Pa and ${T} K. The number of molecules hitting 1 m² of wall per second is ¼ n v̄. Find it in units of 10²⁷ m⁻² s⁻¹. Take R = 8.31 and k = 1.38×10⁻²³.`,
+        sol: `n = P/kT = ${xfmt(nn, 4)} m⁻³. Mean speed v̄ = √(8RT/πM) = ${xfmt(vb, 4)} m/s. Flux = ¼ n v̄ = ${xfmt(answer, 4)} × 10²⁷ m⁻² s⁻¹.` };
+    },
+    verify: (p) => { const m = p.M / 6.02e23; return p.P / Math.sqrt(2 * Math.PI * m * 1.38e-23 * p.T) / 1e27; } },
+  { id: 'kt-g25', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'P-V graph',
+    make(rng) {
+      const P0 = xchoose(rng, [8e5, 1e6, 1.2e6]), Vm = xchoose(rng, [4, 5, 6]) * 1e-3, n = xchoose(rng, [1, 2]); const a = P0 / (2 * Vm);
+      const answer = +((P0 / 2) * Vm / (n * 8.31)).toFixed(2);
+      return { P0, Vm, n, a, answer, tol: 0.3, unit: 'K',
+        q: `${n} mol of an ideal gas is taken along the straight line P = ${xfmt(P0, 3)} − ${xfmt(a, 4)}V (SI units) through a range of volumes that includes the peak temperature. Find the highest temperature, in K. Take R = 8.31.`,
+        sol: `PV = ${xfmt(P0, 3)}V − ${xfmt(a, 4)}V² is largest at V = P0/2a = ${xfmt(Vm, 4)} m³, where P = P0/2 = ${xfmt(P0 / 2, 4)} Pa. T_max = PV/nR = ${xfmt(P0 / 2 * Vm, 5)}/(${n}×8.31) = ${xfmt(answer, 4)} K.` };
+    },
+    verify: (p) => { let best = 0; for (let V = 1e-4; V < p.P0 / p.a; V += 1e-6) best = Math.max(best, (p.P0 - p.a * V) * V / (p.n * 8.31)); return best; } },
+  { id: 'kt-g26', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'escape of gases',
+    make(rng) {
+      const [pl, ve] = xchoose(rng, [['Earth', 11200], ['Mars', 5030], ['the Moon', 2380]]); const [gn, M] = xchoose(rng, [['hydrogen', 0.002], ['helium', 0.004], ['nitrogen', 0.028]]);
+      const T = M * (ve / 6) ** 2 / (3 * 8.31); const answer = +T.toFixed(1);
+      return { ve, M, answer, tol: Math.max(0.5, answer * 0.01), unit: 'K',
+        q: `A planet keeps a gas only if its rms molecular speed is less than one sixth of the escape speed. The escape speed from ${pl} is ${ve} m/s. Find the highest temperature, in K, at which ${gn} (M = ${M * 1000} g/mol) is retained. R = 8.31.`,
+        sol: `Need √(3RT/M) ≤ v_esc/6 = ${xfmt(ve / 6, 4)} m/s. T = M(v_esc/6)²/(3R) = ${M}×${xfmt((ve / 6) ** 2, 5)}/${xfmt(3 * 8.31, 4)} = ${xfmt(answer, 4)} K.` };
+    },
+    verify: (p) => { let lo = 1, hi = 1e6; for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; if (Math.sqrt(3 * 8.31 * mid / p.M) < p.ve / 6) lo = mid; else hi = mid; } return lo; } },
+  { id: 'kt-g27', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'gas laws',
+    make(rng) {
+      const vc = xchoose(rng, [20, 30, 40, 50]), dp = xchoose(rng, [10, 15, 20]), vb = xchoose(rng, [2, 5, 10]); const answer = dp * vc / vb;
+      return { vc, dp, vb, answer, tol: 0,
+        q: `A cylinder of ${vc} L holds a gas at ${dp + 1} atm. Balloons of ${vb} L each, filled at 1 atm, are made from it at constant temperature until the cylinder pressure falls to 1 atm. How many balloons can be filled?`,
+        sol: `Gas available at 1 atm: (${dp + 1} − 1) × ${vc} = ${dp * vc} L (the ${vc} L left in the cylinder at 1 atm cannot be used). Balloons = ${dp * vc}/${vb} = ${answer}.` };
+    },
+    verify: (p) => ((p.dp + 1) * p.vc - p.vc) / p.vb },
+  { id: 'kt-g28', type: 'mcq', level: 3, exams: xex(3, 'mcq'), sub: 'ratio of speeds',
+    make(rng) {
+      const gases = [['hydrogen', 2], ['helium', 4], ['methane', 16], ['neon', 20], ['nitrogen', 28], ['oxygen', 32], ['carbon dioxide', 44]];
+      const i = int(rng, 0, 6); let j = int(rng, 0, 6); if (j === i) j = (j + 1) % 7; const [na, Ma] = gases[i], [nb, Mb] = gases[j];
+      const ratio = Math.sqrt(Mb / Ma); const o = xno(rng, ratio, [Mb / Ma, Math.sqrt(Ma / Mb), Ma / Mb], '', 3);
+      return { Ma, Mb, options: o.options, answer: o.answer,
+        q: `Find the ratio (rms speed of ${na}) / (rms speed of ${nb}) at the same temperature. Molar masses: ${na} ${Ma} g/mol, ${nb} ${Mb} g/mol.`,
+        sol: `v_rms ∝ 1/√M, so the ratio is √(M_b/M_a) = √(${Mb}/${Ma}) = ${xfmt(ratio, 3)}. Forgetting the square root gives ${xfmt(Mb / Ma, 3)}; inverting gives ${xfmt(Math.sqrt(Ma / Mb), 3)}.` };
+    },
+    verify: (p) => p.options.indexOf(xfmt(Math.sqrt(p.Mb / p.Ma), 3)) },
+  { id: 'kt-g29', type: 'mcq', level: 4, exams: xex(4, 'mcq'), sub: 'effect of heating',
+    make(rng) {
+      const k = xchoose(rng, [2, 4, 9]); const qty = int(rng, 0, 3);
+      const names = ['the rms speed', 'the number of molecules per unit volume', 'the mean free path', 'the number of collisions per second made by one molecule'];
+      const f = (x) => xfmt(x, 3);
+      const vals = [Math.sqrt(k), 1 / k, k, 1 / Math.sqrt(k)];
+      const o = xsh(rng, `×${f(vals[qty])}`, vals.filter((_, i) => i !== qty).map((v) => `×${f(v)}`).concat([`×${f(k * k)}`]));
+      return { k, qty, options: o.options, answer: o.answer,
+        q: `A fixed mass of ideal gas is heated at constant pressure until its absolute temperature is ${k} times larger. By what factor does ${names[qty]} change?`,
+        sol: `At constant P: n = P/kT ∝ 1/T, v̄ ∝ √T, λ ∝ 1/n ∝ T, and collision frequency ∝ n v̄ ∝ T^(−1/2). With T × ${k}: rms speed × ${f(vals[0])}, number density × ${f(vals[1])}, mean free path × ${f(vals[2])}, collision frequency × ${f(vals[3])}.` };
+    },
+    verify: (p) => { const T = p.k; const phys = [Math.sqrt(T), (1 / T), 1 / (1 / T), (1 / T) * Math.sqrt(T)]; return p.options.indexOf(`×${xfmt(phys[p.qty], 3)}`); } },
+  { id: 'kt-g30', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'gas spring',
+    make(rng) {
+      const m = xchoose(rng, [0.5, 1, 2]), h = xchoose(rng, [0.1, 0.2, 0.25]), A = xchoose(rng, [0.005, 0.01, 0.02]), gam = xchoose(rng, [1.4, 1.67]);
+      const k = gam * 1e5 * A / h; const answer = +(2 * Math.PI * Math.sqrt(m / k) * 1000).toFixed(2);
+      return { m, h, A, gam, answer, tol: Math.max(0.3, answer * 0.01), unit: 'ms',
+        q: `A piston of mass ${m} kg closes a cylinder of cross-section ${A * 1e4} cm² and traps gas (γ = ${gam}) at 1.0×10⁵ Pa in a column ${h * 100} cm long. Pressed slightly and released, the gas compresses adiabatically. Find the period of small oscillations in ms.`,
+        sol: `Adiabatic: ΔP = −γPΔV/V gives a restoring force F = −(γPA/h)x, so k = γPA/h = ${gam}×10⁵×${A}/${h} = ${xfmt(k, 4)} N/m. T = 2π√(m/k) = 2π√(${m}/${xfmt(k, 4)}) = ${xfmt(answer, 4)} ms.` };
+    },
+    verify: (p) => { const w = Math.sqrt(p.gam * 1e5 * p.A / (p.h * p.m)); return 2 * Math.PI / w * 1000; } },
+  { id: 'kt-g31', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'real gases',
+    make(rng) {
+      const [gn, a, b] = xchoose(rng, [['nitrogen', 0.137, 3.87e-5], ['oxygen', 0.138, 3.18e-5], ['carbon dioxide', 0.364, 4.27e-5], ['argon', 0.136, 3.2e-5]]);
+      const answer = +(8 * a / (27 * 8.31 * b)).toFixed(1);
+      return { a, b, answer, tol: Math.max(0.5, answer * 0.01), unit: 'K',
+        q: `For ${gn} the van der Waals constants are a = ${a} Pa m⁶ mol⁻² and b = ${xfmt(b * 1e5, 3)}×10⁻⁵ m³ mol⁻¹. Find its critical temperature T_c = 8a/(27Rb) in K. Take R = 8.31.`,
+        sol: `T_c = 8a/(27Rb) = (8×${a})/(27×8.31×${xfmt(b, 3)}) = ${xfmt(8 * a, 4)}/${xfmt(27 * 8.31 * b, 4)} = ${xfmt(answer, 4)} K.` };
+    },
+    verify: (p) => { const Pc = p.a / (27 * p.b * p.b), Vc = 3 * p.b; return 8 * Pc * Vc / (3 * 8.31); } },
+];
+
+export default { topic: 'kinetic-theory', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
