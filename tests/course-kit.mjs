@@ -13,7 +13,7 @@ const near = (name, got, want, tol = 0.01) => {
 const ok = (name, cond) => { cond ? pass++ : (fail++, console.error('FAIL ' + name)); };
 const IDS = ['etl', 'data-at-scale', 'offline-ai'];
 // Courses being upgraded in place: only lessons that already have a big idea box get the full checks.
-const PARTIAL = new Set(['offline-ai']);
+const PARTIAL = new Set([]);
 let pass = 0, fail = 0;
 let lessons = 0;
 for (const id of IDS) {
