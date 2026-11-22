@@ -1,0 +1,53 @@
+// Class 9 Science, Chapter 6 How Forces Affect Motion: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('hf');
+const r2 = (x) => Math.round(x * 100) / 100;
+
+export default {
+  topic: 'how-forces-affect-motion', name: 'How Forces Affect Motion', n: 6,
+  items: [
+    m.mcq(1, 'balanced', '<p>The SI unit of force is:</p>', 'newton', ['joule', 'watt', 'kilogram'], '<p>The newton (N): 1 N = 1 kg m/s².</p>'),
+    m.mcq(2, 'balanced', '<p>Forces of 30 N to the right and 30 N to the left act on a body. The body:</p>', 'has zero net force, so its velocity does not change', ['accelerates to the right', 'accelerates to the left', 'must be at rest'], '<p>The forces are balanced and cancel: net force 0. The velocity stays the same, whether it is zero or not.</p>', { trap: 'Believing that zero net force means the body must be at rest.' }),
+    m.mcq(2, 'balanced', '<p>A 12 N force to the right and a 5 N force to the left act on a block. The net force is:</p>', '7 N to the right', ['17 N to the right', '7 N to the left', '60 N'], '<p>Forces in opposite directions subtract: 12 − 5 = 7 N in the direction of the larger.</p>'),
+    m.mcq(2, 'inertia', '<p>Which statement about inertia is correct?</p>', 'The greater the mass, the greater the inertia', ['Inertia depends on the speed of the body', 'Inertia is a force', 'Only moving bodies have inertia'], '<p>Mass is the measure of inertia. Every body has it, moving or not, and it is not a force.</p>'),
+    m.mcq(2, 'inertia', '<p>When a moving bus stops suddenly, passengers tend to fall forward. This is because of:</p>', 'the inertia of motion of their bodies', ['a force pushing them forward', 'the inertia of rest', 'friction between the seat and the floor'], '<p>Their bodies tend to keep moving forward at the old speed while the bus stops.</p>'),
+    m.mcq(2, 'inertia', '<p>A coin on a card over a glass drops into the glass when the card is flicked away fast because:</p>', 'the coin has inertia and tends to stay at rest', ['the coin is heavier than the card', 'the card exerts a force on the coin', 'the glass attracts the coin'], '<p>There is not enough time for friction to move the coin sideways, so it stays at rest horizontally and gravity pulls it down.</p>'),
+    m.mcq(2, 'inertia', '<p>A student of mass 50 kg goes to the Moon, where g is about one-sixth of Earth’s. Her mass and weight there are:</p>', 'mass 50 kg, weight smaller than on Earth', ['mass 50 kg, weight the same', 'mass smaller, weight smaller', 'mass smaller, weight the same'], '<p>Mass is the amount of matter and does not change. Weight = mg falls with g.</p>', { trap: 'Saying that mass changes on the Moon.' }),
+    m.mcq(1, 'momentum', '<p>Momentum is the product of:</p>', 'mass and velocity', ['mass and acceleration', 'force and time squared', 'mass and weight'], '<p>p = mv.</p>'),
+    m.mcq(2, 'momentum', '<p>A 2 kg ball moving at 3 m/s and a 6 kg ball moving at 1 m/s have momenta in the ratio:</p>', '1 : 1', ['3 : 1', '1 : 3', '1 : 9'], '<p>2 × 3 = 6 kg m/s and 6 × 1 = 6 kg m/s: equal.</p>'),
+    m.mcq(2, 'fma', '<p>A force of 10 N acts on a body of mass 2 kg. Its acceleration is:</p>', '5 m/s²', ['20 m/s²', '0.2 m/s²', '12 m/s²'], '<p>a = F/m = 10/2 = 5 m/s².</p>'),
+    m.mcq(2, 'fma', '<p>The same force acts first on a 2 kg body and then on a 4 kg body. The acceleration of the second is:</p>', 'half that of the first', ['twice that of the first', 'the same as the first', 'four times that of the first'], '<p>a = F/m. For twice the mass, with the same F, a is halved.</p>'),
+    m.mcq(3, 'fma', '<p>A car of mass 800 kg has an engine force of 2400 N, and a resistive force of 400 N. Its acceleration is:</p>', '2.5 m/s²', ['3 m/s²', '0.4 m/s²', '5 m/s²'], '<p>Net force = 2400 − 400 = 2000 N. a = 2000/800 = 2.5 m/s².</p>', { trap: 'Forgetting to subtract the resistive force.' }),
+    m.mcq(3, 'fma', '<p>A seat belt reduces injury in a crash because it:</p>', 'increases the time over which the passenger stops, reducing the force', ['reduces the momentum of the passenger', 'increases the mass of the passenger', 'makes the car stop faster'], '<p>F = Δp/t: longer time, smaller force. The change of momentum is fixed.</p>'),
+    m.mcq(1, 'third', '<p>Newton’s third law says that:</p>', 'every force has an equal and opposite force on another body', ['force is proportional to mass', 'a body at rest stays at rest', 'momentum is mass times velocity'], '<p>Forces come in pairs, equal and opposite, on different bodies.</p>'),
+    m.mcq(2, 'third', '<p>A swimmer moves forward by pushing the water backward. The force that moves her forward is exerted by:</p>', 'the water on the swimmer', ['the swimmer on the water', 'the air', 'her own weight'], '<p>The swimmer pushes the water back (action); the water pushes her forward (reaction).</p>'),
+    m.mcq(3, 'third', '<p>A book lies on a table. Which is the third-law partner of the table pushing up on the book?</p>', 'the book pushing down on the table', ['the weight of the book', 'the Earth pulling the table', 'the table’s own weight'], '<p>A pair acts on two different bodies: the table pushes up on the book, so the book pushes down on the table. The weight is the Earth’s pull on the book, a different pair.</p>', { trap: 'Taking weight and the table’s push as an action-reaction pair.' }),
+    m.mcq(2, 'conservation', '<p>Total momentum of an isolated system stays constant when:</p>', 'no net external force acts on it', ['the system is at rest only', 'kinetic energy does not change', 'the masses are equal'], '<p>Conservation of momentum holds when there is no external force.</p>'),
+    m.mcq(2, 'conservation', '<p>A 1 kg trolley moving at 6 m/s hits a stationary 2 kg trolley and they stick together. Their common speed is:</p>', '2 m/s', ['3 m/s', '6 m/s', '4 m/s'], '<p>1 × 6 = (1 + 2)v, so v = 2 m/s.</p>'),
+    m.mcq(3, 'conservation', '<p>A girl of 40 kg runs at 4 m/s and jumps onto a stationary 10 kg skateboard. The speed of the girl and the board together is:</p>', '3.2 m/s', ['4 m/s', '0.8 m/s', '3 m/s'], '<p>40 × 4 = (40 + 10)v, so v = 160/50 = 3.2 m/s.</p>'),
+    m.mcq(3, 'conservation', '<p>A rocket moves upward because:</p>', 'the exhaust gas pushed downward exerts an equal upward force on it', ['the exhaust pushes against the air', 'the Earth pulls it up', 'the gas inside it is lighter than air'], '<p>Action: the rocket pushes gas down. Reaction: the gas pushes the rocket up. It works in a vacuum too.</p>'),
+    m.ar(2, 'inertia', 'A passenger falls backwards when a stationary bus suddenly starts.', 'A body at rest tends to remain at rest.', 0, '<p>Both true; inertia of rest is the reason.</p>'),
+    m.ar(2, 'third', 'A balloon released with its neck open darts across the room.', 'The air rushing out pushes the balloon in the opposite direction (Newton’s third law).', 0, '<p>Both true, and R explains A: the balloon pushes air back, the air pushes the balloon forward.</p>'),
+    m.ar(3, 'third', 'The action force and the reaction force never cancel each other.', 'They act on different bodies.', 0, '<p>Both true, and R is the reason: forces can only cancel when acting on the same body.</p>'),
+    m.nat(1, 'momentum', '<p>Find the momentum of a 5 kg trolley moving at 6 m/s, in kg m/s.</p>', () => 30, 0, '<p>p = mv = 5 × 6 = 30 kg m/s.</p>', { unit: 'kg m/s' }),
+    m.nat(2, 'fma', '<p>A 1500 kg car accelerates at 2 m/s². Find the net force in newtons.</p>', () => 3000, 0, '<p>F = ma = 1500 × 2 = 3000 N.</p>', { unit: 'N' }),
+    m.nat(3, 'fma', '<p>A 0.2 kg ball moving at 20 m/s is stopped in 0.04 s. Find the average force in newtons.</p>', () => 0.2 * 20 / 0.04, 0.01, '<p>F = Δp/t = 0.2 × 20 / 0.04 = 100 N.</p>', { unit: 'N' }),
+    m.nat(3, 'conservation', '<p>A 50 g bullet is fired at 200 m/s from a 5 kg gun. Find the recoil speed of the gun in m/s.</p>', () => 0.05 * 200 / 5, 0.01, '<p>V = mv/M = 0.05 × 200 / 5 = 2 m/s.</p>', { unit: 'm/s' }),
+    m.msq(3, 'conservation', '<p>Two trolleys collide on a smooth track with no external horizontal force. Which statements are true? (Choose all that apply.)</p>', ['The total momentum is the same before and after.', 'Each trolley has the same momentum before and after.', 'The change in momentum of one trolley is equal and opposite to that of the other.', 'The forces between them are equal in size.'], [0, 2, 3], '<p>Total momentum is conserved and the changes in the two momenta are equal and opposite, by the third law the forces are equal. Individual momenta do change.</p>'),
+  ],
+  gens: [
+    { id: 'hf-g01', type: 'nat', level: 2, exams: ['board'], sub: 'fma',
+      make(rng) { const m0 = pick(rng, 2, 40, 2), F = pick(rng, 10, 120, 10); return { m0, F, q: `<p>A force of ${F} N acts on a ${m0} kg object. Find its acceleration in m/s² (2 decimal places).</p>`, answer: r2(F / m0), tol: 0.01, unit: 'm/s²', sol: `<p>a = F/m = ${F}/${m0} = ${r2(F / m0)} m/s².</p>` }; },
+      verify: (p) => r2(p.F / p.m0) },
+    { id: 'hf-g02', type: 'nat', level: 3, exams: ['board'], sub: 'conservation',
+      make(rng) { const m1 = pick(rng, 2, 10), u1 = pick(rng, 2, 10), m2 = pick(rng, 2, 10); return { m1, u1, m2, q: `<p>A ${m1} kg trolley at ${u1} m/s hits a ${m2} kg trolley at rest and they stick together. Find the speed after the collision in m/s (2 decimal places).</p>`, answer: r2(m1 * u1 / (m1 + m2)), tol: 0.01, unit: 'm/s', sol: `<p>${m1} × ${u1} = (${m1} + ${m2})v, so v = ${m1 * u1}/${m1 + m2} = ${r2(m1 * u1 / (m1 + m2))} m/s.</p>` }; },
+      verify: (p) => r2(p.u1 / (1 + p.m2 / p.m1)) },
+    { id: 'hf-g03', type: 'nat', level: 3, exams: ['board'], sub: 'conservation',
+      make(rng) { const mb = pick(rng, 10, 50, 10), vb = pick(rng, 200, 600, 100), M = pick(rng, 2, 6); return { mb, vb, M, q: `<p>A ${mb} g bullet is fired at ${vb} m/s from a ${M} kg gun. Find the recoil speed of the gun in m/s (3 decimal places).</p>`, answer: +(mb / 1000 * vb / M).toFixed(3), tol: 0.01, unit: 'm/s', sol: `<p>V = mv/M = ${mb / 1000} × ${vb} / ${M} = ${(mb / 1000 * vb / M).toFixed(3)} m/s.</p>` }; },
+      verify: (p) => +((p.mb * p.vb) / (1000 * p.M)).toFixed(3) },
+    { id: 'hf-g04', type: 'nat', level: 3, exams: ['board'], sub: 'fma',
+      make(rng) { const m0 = pick(rng, 0.1, 0.5, 0.1), v = pick(rng, 10, 40, 10), t = choose(rng, [0.01, 0.02, 0.05]); return { m0, v, t, q: `<p>A ${m0} kg ball at ${v} m/s is stopped in ${t} s. Find the average force in newtons.</p>`, answer: r2(m0 * v / t), tol: 0.01, unit: 'N', sol: `<p>F = Δp/t = ${m0} × ${v} / ${t} = ${r2(m0 * v / t)} N.</p>` }; },
+      verify: (p) => r2(p.m0 * (p.v / p.t)) },
+  ],
+};
