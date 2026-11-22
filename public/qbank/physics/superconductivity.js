@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './superconductivity.more.gen.js';
+import more2 from './superconductivity.more2.gen.js';
 
 const PHI0 = C.h / (2 * C.e); // flux quantum, Wb
 const kBe = C.kB / C.e;
@@ -195,6 +196,7 @@ export default {
       q: 'A symmetric DC SQUID has two identical junctions of critical current $I_c$ and negligible loop inductance. Its total critical current when the enclosed flux is $\\Phi_0/2$ is',
       options: ['$2I_c$', '$\\sqrt2\\,I_c$', '$I_c$', 'zero'], answer: 3,
       sol: 'The maximum supercurrent is $I_{\\max} = 2I_c|\\cos(\\pi\\Phi/\\Phi_0)|$: the two junction currents interfere like two slits. At $\\Phi = \\Phi_0/2$ the cosine is zero, so the critical current vanishes; at $\\Phi = 0$ it is $2I_c$. $\\sqrt2I_c$ occurs at $\\Phi_0/4$.' },
+    ...more2,
   ],
   gens: [
     { id: 'scd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'critical field',

@@ -4,6 +4,8 @@
 // equations. (Gauges, retarded time and the LW potentials themselves are in potentials-gauges.)
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './retarded-potentials.more.gen.js';
+import more2 from './retarded-potentials.more2.gen.js';
 
 const PI = Math.PI, E = C.e, ME = C.me, EPS = C.eps0, C0 = C.c, MU0 = C.mu0;
 const KL = E * E / (6 * PI * EPS * C0 ** 3);          // Larmor coefficient for an electron, W s^4/m^2
@@ -213,6 +215,7 @@ export default {
       answer: 3.37, tol: 0.01, calc: () => 1836.15267 ** 2 / 1e6,
       sol: 'Equal force $eE$, so $a = eE/m$ and $P\\propto q^2a^2\\propto1/m^2$. Ratio $= (m_p/m_e)^2 = 1836.15^2 = 3.37\\times10^6$.',
       trap: 'At the same acceleration (not the same field) the two would radiate equally.' },
+    ...more2,
   ],
   gens: [
     { id: 'netrp-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Larmor formula',
@@ -341,5 +344,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

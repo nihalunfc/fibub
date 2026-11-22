@@ -4,6 +4,7 @@
 // commutators, SU(2) addition of angular momenta and SU(3) multiplets. Original questions for fibub.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './group-theory.more.gen.js';
+import more2 from './group-theory.more2.gen.js';
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const C3V = 'The character table of $C_{3v}$ (isomorphic to $S_3$), with classes $E$, $2C_3$, $3\\sigma_v$, is: $A_1$: $(1, 1, 1)$; $A_2$: $(1, 1, -1)$; $E$: $(2, -1, 0)$.';
@@ -205,6 +206,7 @@ export default {
       q: 'The symmetric group $S_4$ (order 24) has 5 conjugacy classes. The dimensions of its irreducible representations are',
       options: ['$1, 1, 2, 2, 4$', '$1, 1, 3, 3, 4$', '$1, 1, 2, 3, 3$', '$1, 2, 2, 3, 4$'], answer: 2,
       sol: 'Five irreps with $\\sum d_i^2 = 24$, two of them 1-d (trivial and sign, since $S_4$ has the sign homomorphism), and each $d_i$ dividing 24. $1 + 1 + 4 + 9 + 9 = 24$ works. The others sum to 26, 36 and 34. The two 3-d irreps are the rotations of a cube (or tetrahedron) and that rep times the sign.' },
+    ...more2,
   ],
   gens: [
     { id: 'grp-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'cyclic groups',

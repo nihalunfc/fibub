@@ -5,6 +5,8 @@
 // (Classical Rutherford scattering and cross-section geometry are in central-force-scattering.)
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './scattering-theory.more.gen.js';
+import more2 from './scattering-theory.more2.gen.js';
 
 const PI = Math.PI, HBC = 197.3269804, MN = 939.565, MPc = 938.272, MEc = 0.51099895, D = PI / 180;
 
@@ -195,6 +197,7 @@ export default {
       q: 'A nucleon scatters from a Yukawa potential with $2m\\beta/\\hbar^2 = 0.40$ fm$^{-1}$ and $\\mu = 0.70$ fm$^{-1}$. In Born approximation, the forward differential cross-section is ______ fm$^2$/sr (to two decimal places).',
       answer: 0.67, tol: 0.01, calc: () => (0.4 / 0.49) ** 2,
       sol: 'At $q = 0$: $|f| = \\dfrac{2m\\beta}{\\hbar^2\\mu^2} = \\dfrac{0.40}{0.49} = 0.816$ fm, so $d\\sigma/d\\Omega = 0.666$ fm$^2$/sr $= 6.7$ mb/sr.' },
+    ...more2,
   ],
   gens: [
     { id: 'netsc-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'momentum transfer',
@@ -337,5 +340,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

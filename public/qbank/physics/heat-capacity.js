@@ -4,6 +4,7 @@
 // compounds with several atoms, magnons. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './heat-capacity.more.gen.js';
+import more2 from './heat-capacity.more2.gen.js';
 
 const PI = Math.PI, R = C.R;
 const BETA0 = 12 * PI ** 4 / 5 * R;    // 1943.8 J/mol K: C = BETA0 (T/theta)^3 per mole of atoms
@@ -258,6 +259,7 @@ export default {
       answer: 1.028, tol: 0.003, calc: () => (4 * PI ** 4 / 5) * 1e-3 / 0.0758,
       sol: '$\\tfrac{4\\pi^4}5 = 77.93$, so the $T^3$ law gives $0.07793$. Ratio $= 0.07793/0.0758 = 1.028$. The $T^3$ law overestimates by about 3% at $\\theta_D/10$; it is accurate to better than 1% only below about $\\theta_D/50$, because it extends the $\\omega^2$ spectrum to infinity.',
       trap: 'Assuming the $T^3$ law is exact everywhere below $\\theta_D$.' },
+    ...more2,
   ],
 
   gens: [

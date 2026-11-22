@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './one-dimensional-potentials.more.gen.js';
+import more2 from './one-dimensional-potentials.more2.gen.js';
 
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
 
@@ -197,6 +198,7 @@ export default {
       options: ['$\\dfrac{8\\hbar^2E_1}{m\\alpha L}$', '$\\dfrac{16\\hbar^2E_1}{m\\alpha L}$', '$4E_1e^{-m\\alpha L/\\hbar^2}$', '$\\dfrac{\\hbar^2E_1}{m\\alpha L}$'], answer: 1,
       sol: 'The odd state stays at $4E_1$. Even states: $\\psi = \\sin k(L/2 - |x|)$; the slope jump gives $\\tan(kL/2) = -2k/g$ with $g = 2m\\alpha/\\hbar^2$. For large $g$, $kL/2 = \\pi - \\delta$ with $\\delta \\approx 2k/g \\approx 4\\pi/gL$. Then $E = 4E_1(1 - \\delta/\\pi)^2 \\approx 4E_1(1 - 8/gL)$, so the splitting is $32E_1/gL = 16\\hbar^2E_1/m\\alpha L$, falling as $1/\\alpha$ (a delta barrier has no thickness, so there is no exponential).',
       trap: 'Expecting an exponentially small splitting, which belongs to thick barriers with $\\kappa a \\gg 1$.' },
+    ...more2,
   ],
   gens: [
     { id: 'q1d-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'delta potentials',

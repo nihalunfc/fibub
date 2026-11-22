@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './special-functions.more.gen.js';
+import more2 from './special-functions.more2.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 // Legendre P_n(x) by Bonnet's recurrence (n+1)P_{n+1} = (2n+1)xP_n - nP_{n-1}
@@ -243,6 +244,7 @@ export default {
       answer: -0.637, tol: 0.002, calc: () => -2 / Math.PI,
       sol: 'Write $f = \\sqrt{2/\\pi x}$, $J_{1/2} = f\\sin x$, $J_{-1/2} = f\\cos x$. Then $W = f\\sin x(f\'\\cos x - f\\sin x) - f\\cos x(f\'\\sin x + f\\cos x) = -f^2 = -\\frac{2}{\\pi x}$. At $x = 1$: $-0.637$. This matches the general $W[J_\\nu, J_{-\\nu}] = -\\frac{2\\sin\\nu\\pi}{\\pi x}$ with $\\nu = \\tfrac12$. The $1/x$ dependence is Abel\'s formula for $y\'\' + \\frac1xy\' + \\ldots$.',
       trap: 'Sign: the order $J_{1/2}J_{-1/2}\' - \\ldots$ makes it negative.' },
+    ...more2,
   ],
   gens: [
     { id: 'sfn-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'orthogonality',

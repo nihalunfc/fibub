@@ -3,6 +3,7 @@
 // Original questions (fibub). Levels: 1 warm-up ... 5 top rank. Basics (conductors, the slot) are in conductors-images.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './boundary-value-problems.more.gen.js';
+import more2 from './boundary-value-problems.more2.gen.js';
 
 const EPS0 = 8.8541878128e-12;
 const sh = Math.sinh, ch = Math.cosh, PI = Math.PI;
@@ -218,6 +219,7 @@ export default {
       options: ['$V(P)$ equals the average of $V$ over the sphere of radius $a$.', '$V(P)$ equals the average of $V$ over the solid ball of radius $a$.', '$|\\nabla V|^2$ can have a strict local maximum inside the region.', '$\\partial V/\\partial x$ is itself harmonic.'], answer: [0, 1, 3],
       sol: 'The sphere average is $V(P)$ for every radius, so averaging over shells gives the ball average too. Derivatives of harmonic functions are harmonic ($\\partial_x$ commutes with $\\nabla^2$). But $|\\nabla V|^2$ is subharmonic: $\\nabla^2|\\nabla V|^2 = 2\\sum_{ij}(\\partial_i\\partial_jV)^2 \\ge 0$, so it cannot have a strict interior maximum. The field strength is largest on the boundary.',
       trap: 'Each field component is harmonic, but the field strength squared is not: it is subharmonic.' },
+    ...more2,
   ],
 
   gens: [

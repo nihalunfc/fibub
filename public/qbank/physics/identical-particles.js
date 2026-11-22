@@ -6,6 +6,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './identical-particles.more.gen.js';
+import more2 from './identical-particles.more2.gen.js';
 
 const C = (n, k) => { if (k < 0 || k > n) return 0; let c = 1; for (let i = 1; i <= k; i++) c = c * (n - k + i) / i; return Math.round(c); };
 // Fill single-particle levels with energies e(i) and degeneracies d(i); cap = particles per orbital.
@@ -199,6 +200,7 @@ export default {
       q: 'Eight non-interacting electrons are in a cubic infinite well, with levels $(n_x^2 + n_y^2 + n_z^2)\\epsilon$. The ground-state energy is ______ $\\epsilon$.',
       answer: 42, tol: 0, calc: () => fill(8, (i) => [3, 6, 9][i], (i) => [1, 3, 3][i], 2),
       sol: '$(1,1,1)$ at $3\\epsilon$ holds 2 electrons; $(1,1,2)$ and its permutations at $6\\epsilon$ (3 orbitals) hold 6. Total $2\\times3 + 6\\times6 = 42\\epsilon$. (The next level, $(1,2,2)$ at $9\\epsilon$, would start the third shell.)' },
+    ...more2,
   ],
   gens: [
     { id: 'qip-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'filling levels',

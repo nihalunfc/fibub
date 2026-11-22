@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './em-waves-media.more.gen.js';
+import more2 from './em-waves-media.more2.gen.js';
 
 const PC = 3.0857e16; // parsec in metres
 const KDM = (C.e * C.e) / (8 * Math.PI ** 2 * C.eps0 * C.me * C.c); // delay t = KDM * (column density) / f^2
@@ -249,6 +250,7 @@ export default {
       answer: 2.77, tol: 0.03, calc: () => (4 * Math.sqrt((C.mu0 * 2 * Math.PI * 1e10) / (2 * 5.8e7))) / ETA0 * 1e4,
       sol: '$r = \\dfrac{\\eta_c - \\eta_0}{\\eta_c + \\eta_0}$ with $\\eta_c = R_s(1 - i)$ (for $e^{-i\\omega t}$) and $R_s \\ll \\eta_0$. To first order $|r|^2 \\approx 1 - 4\\,\\text{Re}(\\eta_c)/\\eta_0 = 1 - 4R_s/\\eta_0$. With $R_s = 0.0261\\ \\Omega$: $1 - R = 4\\times0.0261/376.7 = 2.77\\times10^{-4}$. This is the Hagen-Rubens result $1 - R = 2\\sqrt{2\\omega\\epsilon_0/\\sigma}$.',
       trap: 'Only the real (resistive) part of the surface impedance absorbs.' },
+    ...more2,
   ],
 
   gens: [

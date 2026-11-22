@@ -5,6 +5,8 @@
 // (series and parallel resonance, Q, load pulling, Pierce negative resistance); UJT relaxation oscillator.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './oscillators.more.gen.js';
+import more2 from './oscillators.more2.gen.js';
 
 const G = ['gate', 'net'];
 const TAU = 2 * Math.PI;
@@ -221,6 +223,7 @@ export default {
       options: ['slightly below $f_0$', 'slightly above $f_0$', 'exactly $f_0$', 'zero: it cannot oscillate'], answer: 0,
       sol: 'The loop phase must total zero, so the network must supply a small lead to cancel the amplifier\'s lag. The lead-lag network leads below $f_0$ (its phase is $-\\arctan[(\\omega RC - 1/\\omega RC)/3]$, positive for $\\omega < \\omega_0$). So the oscillation settles slightly below $f_0$, with a little more gain needed.',
       trap: 'Guessing the frequency rises because something "lags".' },
+    ...more2,
   ],
   gens: [
     { id: 'osc-g01', type: 'nat', level: 2, exams: ['jam', 'gate', 'net'], sub: 'Wien bridge',
@@ -351,5 +354,6 @@ export default {
           trap: 'Leaving $C_0$ out of the denominator.' };
       },
       verify: (p) => p.fs * 1e6 * p.C / (2 * (p.C0 + p.CL)) },
+    ...more,
   ],
 };

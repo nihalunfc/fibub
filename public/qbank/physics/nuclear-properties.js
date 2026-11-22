@@ -4,6 +4,8 @@
 // electric quadrupole moments (intrinsic and spectroscopic), hyperfine counting, isospin labels.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './nuclear-properties.more.gen.js';
+import more2 from './nuclear-properties.more2.gen.js';
 
 const HBARC = 197.327;          // MeV fm
 const E2 = 1.43996;             // e^2/(4 pi eps0) in MeV fm
@@ -237,6 +239,7 @@ export default {
       options: ['${}^{40}$Ar and ${}^{40}$Ca', '${}^{14}$C and ${}^{14}$N', '${}^{3}$H and ${}^{3}$He', '${}^{12}$C and ${}^{13}$C'], answer: [0, 1, 2],
       sol: 'Isobars share the mass number $A$: 40, 14 and 3 in the first three pairs. ${}^{12}$C and ${}^{13}$C share $Z$, so they are isotopes. ${}^3$H and ${}^3$He are also a mirror pair.',
       trap: 'Isobars differ in $Z$; same-element pairs are isotopes.' },
+    ...more2,
   ],
   gens: [
     { id: 'npr-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'rms radius',
@@ -356,5 +359,6 @@ export default {
           sol: `$F$ runs from $|I - J|$ to $I + J$, giving $2\\min(I, J) + 1$ levels. If $I \\ge J$ there would be $2J + 1 = ${2 * J + 1}$. Since only ${n} appear, $I < J$ and $2I + 1 = ${n}$: $I = ${half(I)}$.`,
           trap: 'Using $2J + 1$, or assuming the count always gives I.', I, J };
       } },
+    ...more,
   ],
 };

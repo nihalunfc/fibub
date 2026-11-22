@@ -5,6 +5,8 @@
 // Cabibbo mixing, OZI rule, neutrino oscillation, the Standard Model content.
 // Original questions for fibub.
 import { pick, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './particles-quarks.more.gen.js';
+import more2 from './particles-quarks.more2.gen.js';
 
 const HBARC = 197.327, HBAR_MEVS = 6.582120e-22, MP = 938.272;
 // name, quark content (TeX), Q, B, S, I, I3, kind
@@ -247,6 +249,7 @@ export default {
       options: ['The proton and neutron form an $I = \\tfrac12$ doublet', 'The three pions form an $I = 1$ triplet', 'The strong interaction conserves isospin to a good approximation', 'The electromagnetic interaction conserves total isospin'], answer: [0, 1, 2],
       sol: 'Isospin symmetry reflects $m_u \\approx m_d$ and the flavour blindness of QCD. Electromagnetism distinguishes $u$ ($+\\tfrac23$) from $d$ ($-\\tfrac13$), so it conserves $I_3$ (charge) but not $I$; that is why $\\Sigma^0 \\to \\Lambda\\gamma$ ($\\Delta I = 1$) is allowed.',
       trap: 'EM conserves $I_3$ but breaks total $I$.' },
+    ...more2,
   ],
   gens: [
     { id: 'pqk-g01', type: 'mcq', level: 1, exams: ['jam', 'gate', 'net'], sub: 'quark content',
@@ -357,5 +360,6 @@ export default {
           trap: 'Signs: $d$ and $s$ quarks have negative moments.' };
       },
       verify: (p) => { const u = 2 / 3 * MP / p.mu_, d = -1 / 3 * MP / p.mu_, s = -1 / 3 * MP / p.ms; return [(4 * u - d) / 3, (4 * d - u) / 3, (4 * u - s) / 3, (4 * d - s) / 3, (4 * s - u) / 3, (4 * s - d) / 3, s, 3 * s][p.idx]; } },
+    ...more,
   ],
 };

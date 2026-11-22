@@ -4,6 +4,8 @@
 // (cyclotron, upper hybrid, Faraday rotation, whistlers) and pulsar dispersion.
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './plasma-dispersion.more.gen.js';
+import more2 from './plasma-dispersion.more2.gen.js';
 
 const PI = Math.PI, E = C.e, ME = C.me, EPS = C.eps0, C0 = C.c, KB = C.kB, MP = C.mp, HB = C.hbar;
 const wp = (n) => Math.sqrt(n * E * E / (EPS * ME));      // electron plasma angular frequency, n in m^-3
@@ -193,6 +195,7 @@ export default {
       q: 'Aluminium has $1.81\\times10^{29}$ free electrons per m$^3$. Its free-electron plasmon energy $\\hbar\\omega_p$ is ______ eV (to one decimal place).',
       answer: 15.8, tol: 0.1, calc: () => HB * wp(1.81e29) / E,
       sol: '$\\omega_p = \\sqrt{\\dfrac{1.81\\times10^{29}\\times2.566\\times10^{-38}}{8.854\\times10^{-12}\\times9.109\\times10^{-31}}} = 2.40\\times10^{16}$ s$^{-1}$. $\\hbar\\omega_p = 6.582\\times10^{-16}\\times2.40\\times10^{16} = 15.8$ eV, close to the 15 eV plasmon loss seen in electron energy-loss spectra of aluminium.' },
+    ...more2,
   ],
   gens: [
     { id: 'netpl-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'plasma frequency',
@@ -344,5 +347,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

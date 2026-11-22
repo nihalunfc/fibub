@@ -4,6 +4,7 @@
 // Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './linear-vector-spaces.more.gen.js';
+import more2 from './linear-vector-spaces.more2.gen.js';
 
 export default {
   topic: 'linear-vector-spaces',
@@ -217,6 +218,7 @@ export default {
       options: ['The position operator $\\hat x$ has no eigenvectors inside $L^2(\\mathbb R)$', 'Every Cauchy sequence in $L^2(\\mathbb R)$ converges to an element of $L^2(\\mathbb R)$', 'The plane wave $e^{ikx}$ belongs to $L^2(\\mathbb R)$', 'The Gaussian $e^{-x^2}$ belongs to $L^2(\\mathbb R)$'], answer: [0, 1, 3],
       sol: 'The eigenfunctions of $\\hat x$ are $\\delta(x - x_0)$, which are not square integrable, so $\\hat x$ has no normalisable eigenvectors (a continuous spectrum). Completeness (every Cauchy sequence converges) is what makes $L^2$ a Hilbert space. $|e^{ikx}|^2 = 1$ has infinite integral, so plane waves are not in $L^2$; they are used as generalised (delta-normalised) states. $\\int e^{-2x^2}dx = \\sqrt{\\pi/2}$ is finite.',
       trap: 'Plane waves and delta functions are useful but live outside the Hilbert space proper.' },
+    ...more2,
   ],
   gens: [
     { id: 'lvs-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'inner product',

@@ -5,6 +5,8 @@
 // triplet, octupole), the Nilsson model, backbending and superdeformation, liquid-drop deformation energy and fission
 // stability. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './collective-model.more.gen.js';
+import more2 from './collective-model.more2.gen.js';
 
 const R = String.raw;
 const HC = 197.327, MN = 939.0;
@@ -235,6 +237,7 @@ export default {
       options: [R`$R_{4/2}\approx2.0$: harmonic vibrator`, R`$R_{4/2}\approx1.0$: well-deformed rotor`, R`$R_{4/2}\approx2.5$: $\gamma$-soft rotor`, R`$R_{4/2}\approx3.33$: axially symmetric rigid rotor`], answer: [0, 2, 3],
       sol: R`The three limits of the interacting boson model: U(5) vibrator ($R = 2$), O(6) $\gamma$-soft ($R = 2.5$), SU(3) rotor ($R = 10/3$). Real nuclei move from below 2 near closed shells, through 2 to 2.5 in transitional regions, to 3.3 mid-shell. A value near 1 would mean $4^+$ and $2^+$ almost degenerate, which happens only in special single-particle (seniority) cases near closed shells.`,
       trap: 'Rotors have the largest ratio, not the smallest.' },
+    ...more2,
   ],
   gens: [
     { id: 'coll-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rotational bands', unit: 'keV',
@@ -364,6 +367,7 @@ export default {
           sol: R`A band has $I \ge K$. For $K = 0$ the reflection symmetry of the intrinsic state allows only every second spin: even $I$ for $0^+$ bands, odd for $0^-$. For $K \ne 0$ all $I = K, K+1, \dots$ appear. Two phonons of spin 2 (bosons) couple only to $0, 2, 4$. Here: ${c[1]}.`,
           trap: 'Only K = 0 bands skip spins.' };
       } },
+    ...more,
   ],
 };
 function sci0(v) { const e = Math.floor(Math.log10(v)); return `${(v / 10 ** e).toFixed(3)}\\times10^{${e}}`; }

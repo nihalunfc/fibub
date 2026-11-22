@@ -4,6 +4,8 @@
 // scintillators, semiconductor detectors and the Fano factor), vacuum gauges, pumps and pump-down time.
 // Original questions for CSIR NET (and GATE) practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './transducers-detectors.more.gen.js';
+import more2 from './transducers-detectors.more2.gen.js';
 
 const HC = 1239.84;          // eV nm
 const QE = 1.602176634e-19;  // C
@@ -221,6 +223,7 @@ export default {
       options: ['0.5%', '1%', '0.1%', '5%'], answer: 0,
       sol: '$x = 100\\times10^{-4} = 0.01$. The ratio exact/linear $= 4/(4 + 2x) = 1/(1 + x/2) \\approx 1 - x/2$, a shortfall of $x/2 = 0.5\\%$. High-gauge-factor sensors make the bridge non-linearity noticeable; a half or full bridge removes it.',
       trap: 'The non-linearity is set by $\\Delta R/R$, not by the strain alone.' },
+    ...more2,
   ],
   gens: [
     { id: 'trd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'thermocouples',
@@ -401,5 +404,6 @@ export default {
           trap: 'Pressure falls exponentially, so each decade takes the same time.' };
       },
       verify: (p) => (p.mode === 't' ? (p.V / p.S) * p.e * Math.LN10 : p.V * p.e * Math.LN10 / p.tr) },
+    ...more,
   ],
 };

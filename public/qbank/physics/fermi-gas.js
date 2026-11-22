@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './fermi-gas.more.gen.js';
+import more2 from './fermi-gas.more2.gen.js';
 
 const sig = (x, n = 3) => Number(x.toPrecision(n));
 const kF = (n, g = 2) => (6 * Math.PI ** 2 * n / g) ** (1 / 3);
@@ -208,6 +209,7 @@ export default {
       q: 'As an ideal electron gas is compressed from the non-relativistic to the ultra-relativistic regime at $T = 0$, its adiabatic index $\\Gamma = d\\ln P/d\\ln n$ changes from',
       options: ['4/3 to 5/3', '1 to 2', '5/3 to 1', '5/3 to 4/3'], answer: 3,
       sol: 'Non-relativistic: $P \\propto n^{5/3}$. Ultra-relativistic: $P \\propto n^{4/3}$. A self-gravitating star needs $\\Gamma > 4/3$ for stability; reaching $4/3$ is the origin of the Chandrasekhar limit.' },
+    ...more2,
   ],
   gens: [
     { id: 'fgas-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Fermi energy',

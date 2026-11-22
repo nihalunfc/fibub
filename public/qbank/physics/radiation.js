@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './radiation.more.gen.js';
+import more2 from './radiation.more2.gen.js';
 
 const c = C.c;
 const ETA0 = Math.sqrt(C.mu0 / C.eps0);
@@ -246,6 +247,7 @@ export default {
       options: ['It radiates nothing along the $z$ axis', 'Along the $z$ axis its radiation is circularly polarised', 'In the $xy$ plane its radiation is linearly polarised', 'Its total power is twice that of a linear dipole of amplitude $p_0$'], answer: [1, 2, 3],
       sol: 'It is two perpendicular dipoles, $90^\\circ$ out of phase. Along $z$ both are fully transverse, equal and in quadrature: circular polarisation, at maximum intensity. Looking along $x$, only the $y$ dipole is transverse: linear polarisation. The cross terms average to zero, so the powers add: $2\\times\\frac{\\mu_0p_0^2\\omega^4}{12\\pi c}$.',
       trap: 'The $z$ axis is perpendicular to both dipoles, so it is the brightest direction, not dark.' },
+    ...more2,
   ],
 
   gens: [

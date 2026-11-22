@@ -5,6 +5,8 @@
 // CMOS dynamic power, wired-AND). The JAM topic `digital-logic` covers gates, De Morgan, basic K-maps and number
 // systems. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './combinational-logic.more.gen.js';
+import more2 from './combinational-logic.more2.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -248,6 +250,7 @@ export default {
       options: ['$AB$', '$A + B$', '$A\\oplus B$', '$AB + BC + CA$'], answer: 3,
       sol: 'The dual swaps AND with OR. The dual of $AB + BC + CA$ is $(A + B)(B + C)(C + A)$, which expands back to $AB + BC + CA$: the majority function is self-dual. The dual of $AB$ is $A + B$ (and vice versa), and the dual of $A\\oplus B = A\\bar B + \\bar AB$ is $(A + \\bar B)(\\bar A + B) = \\overline{A\\oplus B}$.',
       trap: 'Thinking XOR is self-dual because it is symmetric.' },
+    ...more2,
   ],
   gens: [
     { id: 'cl-g01', type: 'nat', level: 3, exams: G, sub: 'K-maps',
@@ -377,5 +380,6 @@ export default {
           sol: `Prime implicants: $${res.primes.map(tex).join(',\\ ')}$ (${res.primes.length}). Essential: ${res.ess.length ? `$${res.ess.map(tex).join(',\\ ')}$ (${res.ess.length})` : 'none'}. A minimal cover: $F = ${res.min.map(tex).join(' + ')}$ (${res.terms} terms). Don\'t-cares may enlarge groups but never need to be covered.`,
           trap: 'Requiring the don\'t-cares to be covered, or calling a prime essential when another prime also covers each of its minterms.' };
       } },
+    ...more,
   ],
 };

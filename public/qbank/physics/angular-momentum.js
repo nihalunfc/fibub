@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './angular-momentum.more.gen.js';
+import more2 from './angular-momentum.more2.gen.js';
 
 const lp = (l, m) => Math.sqrt(l * (l + 1) - m * (m + 1));
 
@@ -192,6 +193,7 @@ export default {
       q: 'The state $|2, 2\\rangle$ is rotated by $90^\\circ$ about the $y$-axis. The probability of then finding $m = 0$ (still $l = 2$) is ______ (to three decimal places).',
       answer: 0.375, tol: 0.003, calc: () => 3 / 8,
       sol: 'The amplitude is $d^2_{02}(\\beta) = \\sqrt{\\tfrac38}\\sin^2\\beta$. At $\\beta = 90^\\circ$: $\\sqrt{3/8}$, probability $\\tfrac38 = 0.375$. Check with Cartesian forms: $|2,2\\rangle \\propto (x + iy)^2$ becomes $\\propto (z + iy)^2 = z^2 - y^2 + 2iyz$ (up to signs), and projecting $z^2 - y^2$ on $3z^2 - r^2$ gives the same $3/8$.' },
+    ...more2,
   ],
   gens: [
     { id: 'qam-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'ladder operators',

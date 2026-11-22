@@ -5,6 +5,8 @@
 // flops), shift registers, LFSRs, state machines (Mealy and Moore, sequence detectors, state encoding).
 // The JAM topic `digital-logic` has the basic counters and flip-flops. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './sequential-logic.more.gen.js';
+import more2 from './sequential-logic.more2.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -222,6 +224,7 @@ export default {
       options: ['a down counter', 'an up counter', 'a Gray-code counter', 'a ring counter'], answer: 0,
       sol: 'Bit 1 toggles when $Q_0 = 0$ before the edge. 00 → 11 (bit 1 toggles) → 10 (bit 1 holds, since $Q_0$ was 1) → 01 (toggles) → 00. The sequence 0, 3, 2, 1 counts down: a bit flips when all lower bits are 0.',
       trap: 'Using $Q_0$ after the edge instead of before.' },
+    ...more2,
   ],
   gens: [
     { id: 'sl-g01', type: 'nat', level: 2, exams: ['jam', 'gate', 'net'], sub: 'frequency division',
@@ -354,5 +357,6 @@ export default {
           trap: 'Using the wrong number of states for the counter type.' };
       },
       verify: (p) => p.f / (p.kind === 'binary' ? 2 ** p.n : p.kind === 'ring' ? p.n : 2 * p.n) },
+    ...more,
   ],
 };

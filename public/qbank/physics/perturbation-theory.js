@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './perturbation-theory.more.gen.js';
+import more2 from './perturbation-theory.more2.gen.js';
 
 const lower2 = (a, b, v) => (a + b) / 2 - Math.sqrt(((a - b) / 2) ** 2 + v * v);
 const wellStep = (n, f) => f - Math.sin(2 * n * Math.PI * f) / (2 * n * Math.PI); // <n|H'|n>/V0 for H' = V0 on 0 < x < f a
@@ -195,6 +196,7 @@ export default {
       q: 'For $H = \\begin{pmatrix}0 & V\\\\V & \\Delta\\end{pmatrix}$ with $V/\\Delta = 0.5$, the ratio of the exact downward shift of the lower level to the second-order perturbative shift $V^2/\\Delta$ is ______ (to three decimal places).',
       answer: 0.828, tol: 0.003, calc: () => (Math.sqrt(0.25 + 0.25) - 0.5) / 0.25,
       sol: 'Exact lower level: $\\tfrac\\Delta2 - \\sqrt{\\tfrac{\\Delta^2}{4} + V^2} = \\Delta(0.5 - \\sqrt{0.5}) = -0.2071\\Delta$. Second order: $-V^2/\\Delta = -0.25\\Delta$. Ratio $0.828$: the series $-\\tfrac{V^2}{\\Delta} + \\tfrac{V^4}{\\Delta^3} - \\dots$ already needs its fourth-order term ($+0.0625$) at this coupling.' },
+    ...more2,
   ],
   gens: [
     { id: 'qpt-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'two-level',

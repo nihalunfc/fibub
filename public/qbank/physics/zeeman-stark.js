@@ -3,6 +3,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './zeeman-stark.more.gen.js';
+import more2 from './zeeman-stark.more2.gen.js';
 
 const MUB = 5.7884e-5;       // Bohr magneton, eV/T
 const MUB_GHZ = 13.9962;     // mu_B/h, GHz/T
@@ -239,6 +240,7 @@ export default {
       options: ['$n^2$', '$n^4$', '$n^7$', '$n^6$'], answer: 2,
       sol: 'In second order, $\\alpha \\sim 2\\sum|\\langle z\\rangle|^2/\\Delta E$. The dipole matrix elements to nearby states grow as $n^2a_0$ and the energy gaps shrink as $1/n^3$, so $\\alpha \\sim (n^2)^2/(n^{-3}) = n^7$. Rydberg atoms are enormously polarisable, which is why they are used as electric field sensors.',
       trap: 'Squaring the size ($n^2$) alone gives $n^4$, which misses the shrinking energy denominators.' },
+    ...more2,
   ],
 
   gens: [

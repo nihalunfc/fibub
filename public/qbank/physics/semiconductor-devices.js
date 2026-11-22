@@ -5,6 +5,8 @@
 // and the CMOS inverter. The JAM topics `diodes` and `transistors` cover rectifiers, alpha/beta and load lines.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './semiconductor-devices.more.gen.js';
+import more2 from './semiconductor-devices.more2.gen.js';
 
 const VT300 = 0.025852; // kT/q at 300 K, volts
 const G = ['gate', 'net'];
@@ -221,6 +223,7 @@ export default {
       options: ['The gate oxide breaks down and limits the current', 'The extra drain voltage drops across a short pinched-off region near the drain, while the channel voltage at the pinch-off point stays at $V_{GS} - V_T$', 'The carriers in the channel recombine before reaching the drain', 'The source runs out of carriers'], answer: 1,
       sol: 'In the gradual-channel picture the channel charge per length is $C_{ox}(V_{GS} - V(x) - V_T)$, which vanishes where $V(x) = V_{GS} - V_T$. Beyond that, the strong field of the pinched-off region sweeps carriers to the drain; the voltage across the inverted channel, and so the current, stays fixed. The pinch-off point creeps slightly towards the source as $V_{DS}$ grows: that is channel-length modulation.',
       trap: 'Pinch-off does not stop the current; carriers cross the depleted region easily, as in a reverse-biased collector junction.' },
+    ...more2,
   ],
   gens: [
     { id: 'sd-g01', type: 'nat', level: 2, exams: G, sub: 'MOSFET square law',
@@ -356,5 +359,6 @@ export default {
           trap: 'Using $C_0$ (the zero-bias value) or forgetting that more reverse bias lowers $C$ and raises $f$.' };
       },
       verify: (p) => 1 / (2 * Math.PI * Math.sqrt(p.L * 1e-6 * p.C0 / Math.sqrt(1 + p.VR / p.Vbi) * 1e-12)) / 1e6 },
+    ...more,
   ],
 };

@@ -4,6 +4,8 @@
 // islands of isomerism, and a first look at collective bands (rotor and vibrator ratios, moments of inertia).
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './shell-model.more.gen.js';
+import more2 from './shell-model.more2.gen.js';
 
 const GSP = 5.586, GSN = -3.826;
 const LL = ['s', 'p', 'd', 'f', 'g', 'h', 'i', 'j'];
@@ -242,6 +244,7 @@ export default {
       options: ['The gamma transition between them changes $J$ by 4 with a change of parity, so its lowest multipole is M4', 'The excited state is likely to be a long-lived isomer', 'The transition can go by E1 because the parity changes', 'Internal conversion can compete strongly with gamma emission for such a low-energy, high-multipole transition'], answer: [0, 1, 3],
       sol: '$|\\Delta J| = 4$ needs multipole $L \\ge 4$; with a parity change, $L = 4$ is magnetic (M4), whose Weisskopf rate at 40 keV is tiny, so the state lives long. E1 needs $|\\Delta J| \\le 1$. Low energy and high multipolarity give a large conversion coefficient, so conversion electrons dominate.',
       trap: 'Parity change alone does not make a transition E1; angular momentum must also allow it.' },
+    ...more2,
   ],
   gens: [
     { id: 'nsm-g01', type: 'mcq', level: 2, exams: ['gate', 'net'], sub: 'ground-state spin',
@@ -354,5 +357,6 @@ export default {
           sol: `$J$ runs from $|j_p - j_n| = ${lo}$ to $j_p + j_n = ${hi}$ in integer steps; parity $(-1)^{l_p + l_n} = (-1)^{${op[1] + on[1]}} = ${par}$.`,
           trap: 'The parity is the product of both nucleons’ parities.', a, b };
       } },
+    ...more,
   ],
 };

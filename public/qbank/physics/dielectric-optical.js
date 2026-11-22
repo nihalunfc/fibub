@@ -5,6 +5,8 @@
 // and Lyddane-Sachs-Teller, ferroelectrics and the Curie-Weiss law, crystal classes (piezo-, pyro-, ferroelectric),
 // semiconductor absorption edges and excitons. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './dielectric-optical.more.gen.js';
+import more2 from './dielectric-optical.more2.gen.js';
 
 const R = String.raw;
 const EPS0 = C.eps0, E = C.e, ME = C.me, HBAR = C.hbar;
@@ -233,6 +235,7 @@ export default {
       options: [R`$2.5\,\omega_T$`, R`$1.58\,\omega_T$`, R`$0.63\,\omega_T$`, R`$1.25\,\omega_T$`], answer: 1,
       sol: R`Reflection is total where $\varepsilon < 0$: from the pole at $\omega_T$ to the zero at $\omega_L$. LST: $\omega_L = \omega_T\sqrt{\varepsilon(0)/\varepsilon(\infty)} = \omega_T\sqrt{2.5} = 1.58\,\omega_T$.`,
       trap: R`2.5 is $\omega_L^2/\omega_T^2$; take the square root.` },
+    ...more2,
   ],
   gens: [
     { id: 'diel-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Clausius-Mossotti',
@@ -364,5 +367,6 @@ export default {
           sol: R`$\lambda_p = 2\pi c/\omega_p$ with $\omega_p = \sqrt{ne^2/\varepsilon_0m}$ gives $\lambda_p = ${Math.round(lp)}$ nm. ${tr ? R`Here $\lambda < \lambda_p$, so $\omega > \omega_p$, $\varepsilon > 0$ and the wave propagates.` : R`Here $\lambda > \lambda_p$, so $\omega < \omega_p$, $\varepsilon < 0$, $n$ is imaginary and $R\approx1$.`}`,
           trap: 'Short wavelengths (high frequencies) get through; long ones are reflected.' };
       } },
+    ...more,
   ],
 };

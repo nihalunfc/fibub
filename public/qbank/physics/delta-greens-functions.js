@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './delta-greens-functions.more.gen.js';
+import more2 from './delta-greens-functions.more2.gen.js';
 
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const tm = (c, v) => (c === 0 ? '' : ` ${c < 0 ? '-' : '+'} ${Math.abs(c) === 1 ? '' : Math.abs(c)}${v}`); // signed term
@@ -239,6 +240,7 @@ export default {
       answer: 8.283, tol: 0.002, calc: () => 2 + 2 * Math.PI,
       sol: '$\\cos\\theta = 0$ at $\\theta = \\pi/2$ and $3\\pi/2$ in $[0, 2\\pi]$, each with $|\\sin\\theta| = 1$. So the integral is $(1 + \\frac\\pi2) + (1 + \\frac{3\\pi}{2}) = 2 + 2\\pi \\approx 8.283$.',
       trap: 'Missing the second zero at $3\\pi/2$.' },
+    ...more2,
   ],
   gens: [
     { id: 'dgf-g01', type: 'nat', level: 1, exams: ['gate', 'net', 'jam'], sub: 'sifting',

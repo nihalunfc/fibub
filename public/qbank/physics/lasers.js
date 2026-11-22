@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './lasers.more.gen.js';
+import more2 from './lasers.more2.gen.js';
 
 const H = 6.62607015e-34, CL = 2.99792458e8, KB = 1.380649e-23, U = 1.66053907e-27;
 const C2 = 1.438777e-2;   // hc/k in m K
@@ -222,6 +223,7 @@ export default {
       options: ['X-ray photons cannot cause stimulated emission', 'Spontaneous emission rates grow roughly as $\\nu^3$, so upper levels empty extremely fast and the pump power needed to keep an inversion becomes enormous; good X-ray mirrors are also lacking', 'X-rays travel slower than light', 'The Einstein relations fail for X-rays'], answer: 1,
       sol: '$A \\propto \\nu^3|d|^2$: lifetimes of X-ray transitions are femtoseconds to picoseconds, and the pump power per unit volume needed for a given gain rises roughly as $\\nu^4$ or faster. With no efficient mirrors, X-ray lasers work in single-pass amplified spontaneous emission (e.g. free-electron lasers).',
       trap: 'Stimulated emission works at any frequency; it is the competition with spontaneous decay that hurts.' },
+    ...more2,
   ],
 
   gens: [
