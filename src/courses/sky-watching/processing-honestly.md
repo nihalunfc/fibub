@@ -16,10 +16,15 @@ quiz:
     choices: ["Applying the same stretch curve to the whole image", "Removing a satellite trail by rejecting outlier pixels", "Painting in a spiral arm that the data don't show"]
     ans: 2
     why: "Adding detail that isn't in the data turns an image into an illustration."
-sources: []
+sources:
+  - "Howell, S. B. (2006), Handbook of CCD Astronomy, 2nd ed., Cambridge University Press (the CCD equation, calibration frames)"
+  - "Berry, R. and Burnell, J. (2005), The Handbook of Astronomical Image Processing, 2nd ed., Willmann-Bell"
+  - "Lupton, R. et al. (2004), Preparing red-green-blue images from CCD data, Publications of the Astronomical Society of the Pacific 116, 133 (arcsinh stretch)"
 ---
 
-**Module 6 · about 25 minutes · functions and curves.** You'll be able to explain linear data and stretching, describe how colour images are made, and tell honest processing from fabrication.
+**Module 6 · about 25 minutes · read first: [6.4 Stacking: why many short shots beat one long one](/learn/courses/sky-watching/stacking/), [6.3 Calibration frames: darks, flats and bias](/learn/courses/sky-watching/calibration-frames/) · maths: functions and curves.** You'll be able to explain linear data and stretching, describe how colour images are made, and tell honest processing from fabrication.
+
+<div class="bigidea">Astronomical data are linear and mostly dark, so a stretch is needed to show the faint parts; colour comes from filters and is often mapped from invisible wavelengths, and honest processing changes how data look, never what they say.</div>
 
 ## 1. Why this matters
 
@@ -38,6 +43,16 @@ Things to notice:
 - Linear: only the core shows.
 - Arcsinh with strength 40: the arms appear, the core is not burnt out.
 - Raising the black point too far clips faint data to black: information lost.
+
+Process a stacked galaxy image:
+
+<div class="steps">
+<div class="step"><b>Linear data.</b> The stack looks almost black: the galaxy's faint arms are just 1% of the brightest star.</div>
+<div class="step"><b>Set the black point.</b> Subtract the sky level so the background sits just above zero.</div>
+<div class="step"><b>Stretch.</b> An arcsinh curve with β = 40 lifts 0.01 to 0.09, nine times brighter, while bright cores stay below white.</div>
+<div class="step"><b>Colour.</b> Combine red, green and blue filter images, or map invisible hydrogen, oxygen and sulphur light to colours (the "Hubble palette") and say so.</div>
+<div class="step"><b>Honesty rules.</b> Never paint in detail, clone out real features or add stars. Say what was done.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -61,6 +76,24 @@ y_\text{gamma} = x'^{1/\gamma}, \qquad y_\text{asinh} = \frac{\operatorname{asin
 - **Narrowband:** filters that pass single emission lines: hydrogen-alpha (656 nm, deep red), oxygen III (501 nm, teal), sulphur II (672 nm, red). Mapping three of them to red, green and blue (the "Hubble palette", SHO) is a **false-colour** image: it shows chemistry, not what the eye would see. Say so in the caption.
 - **Invisible light:** infrared, ultraviolet, X-ray and radio images ([Astronomy 1.6](/learn/courses/astronomy/beyond-visible/)) are always mapped to visible colours by choice.
 
+
+<div class="meaning">
+
+<dl>
+<dt>Linear</dt><dd>Pixel values proportional to the light collected.</dd>
+<dt>y = asinh(βx) / asinh(β)</dt><dd>Arcsinh stretch: lifts faint signal, keeps bright parts below white.</dd>
+<dt>False colour</dt><dd>Colours assigned to wavelengths, possibly invisible ones.</dd>
+<dt>Physical meaning</dt><dd>The camera records light like a ruler, but our eyes judge brightness like magnitudes, by ratios. A stretch translates the ruler into eye language so faint and bright parts both show. It changes the display, not the measurement, as long as you treat every pixel by the same rule.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Colourful space images are fake."** Most use real data with honest choices: stretching to show faint parts and mapping real wavelengths, some invisible, to colours. Good images state their filters and processing. Fake would mean adding things that are not in the data.
+
+</div>
+
 ## 4. Honest processing
 
 Fair: calibration, stacking with outlier rejection, a global stretch, colour calibration, gentle noise reduction and sharpening applied evenly, removing gradients from light pollution, and stating what you did.
@@ -76,6 +109,10 @@ Not fair: painting or cloning in detail, pasting stars or objects from other ima
 
 ## 6. Practice
 
+<div class="problem" data-problem="asinh-stretch"></div>
+
+**More practice** (answers below):
+
 1. Is an image with hydrogen-alpha shown in green "natural colour"?
 2. What happens to faint data if the black point is set above their level?
 3. Why should the same stretch apply to the whole image?
@@ -87,6 +124,17 @@ Not fair: painting or cloning in detail, pasting stars or objects from other ima
 2. They become pure black: the information is clipped away.
 3. A local stretch can create or hide structure; a global curve keeps the relative brightness order of every pixel.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Raw astronomical data are linear and need stretching to view.
+- Arcsinh stretches lift faint signal while protecting bright parts.
+- Colours come from filters; narrowband palettes map invisible light.
+- Honest processing never adds, removes or invents features, and is documented.
+
+</div>
 
 **Try it with your own files:** open FITS images and try linear, log and arcsinh stretches in the [[fits-viewer]].
 

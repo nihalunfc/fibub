@@ -21,7 +21,9 @@ sources:
   - "IVOA ADQL Recommendation 2.1 (2023); archive names and access policies as published by ESA, NASA/STScI and ESO"
 ---
 
-**Module 5 · about 20 minutes · SQL and sky geometry.** You'll be able to name the main open archives, write a cone search in ADQL, and plan an archive-only project.
+**Module 5 · about 20 minutes · read first: [5.5 FITS files and Python on your own laptop](/learn/courses/astronomy/fits-python/), [Sky watching 2.2 Right ascension and declination: the sky's latitude and longitude](/learn/courses/sky-watching/right-ascension-declination/) · maths: SQL and sky geometry.** You'll be able to name the main open archives, write a cone search in ADQL, and plan an archive-only project.
+
+<div class="bigidea">Most telescope data become public within a year, and archives like Gaia, MAST and SIMBAD let anyone search by position and filter by brightness with a simple query language.</div>
 
 ## 1. Why this matters
 
@@ -44,6 +46,16 @@ Things to notice:
 
 - Doubling the radius gives four times the area, so about four times as many rows.
 - One magnitude fainter roughly doubles to triples the count: plan limits before downloading.
+
+Find every Gaia star near the Orion Nebula:
+
+<div class="steps">
+<div class="step"><b>Choose a position.</b> The Trapezium is at RA 83.82°, Dec −5.39°.</div>
+<div class="step"><b>Choose a radius.</b> A cone of 0.05° (3 arcminutes) around it.</div>
+<div class="step"><b>Write the query.</b> ADQL, a version of SQL: <code>SELECT source_id, ra, dec, phot_g_mean_mag FROM gaiadr3.gaia_source WHERE 1 = CONTAINS(POINT(ra, dec), CIRCLE(83.82, -5.39, 0.05))</code>.</div>
+<div class="step"><b>Filter.</b> Add <code>AND parallax_over_error &gt; 10</code> to keep only stars with good distances.</div>
+<div class="step"><b>Download.</b> Save the table as CSV or FITS and analyse it on your own computer.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -70,6 +82,24 @@ WHERE 1 = CONTAINS(POINT(ra, dec), CIRCLE(83.82, -5.39, 0.05))
 
 An archive is the shared memory of astronomy. Every photon a big telescope catches is stored with its calibration, so a question nobody asked in 2015 can be answered from 2015 data today. Because the data are public, anyone can check a published result, which is how science stays honest.
 
+
+<div class="meaning">
+
+<dl>
+<dt>cos θ = sin δ₁ sin δ₂ + cos δ₁ cos δ₂ cos(α₁ − α₂)</dt><dd>Angle between two sky positions.</dd>
+<dt>π r²</dt><dd>Area of a small cone in square degrees.</dd>
+<dt>41,253 deg²</dt><dd>Area of the whole sky.</dd>
+<dt>Physical meaning</dt><dd>An archive is a public library of the sky: every observation, labelled with where and when it was taken. A cone search is asking the librarian for every book on one shelf; ADQL lets you add "only the ones published after 2015, under 300 pages".</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Only professional astronomers can use telescope data."** Gaia, Hubble, TESS, SDSS and many more release their data free to anyone. Students and amateurs regularly publish discoveries made from archives.
+
+</div>
+
 ## 4. Worked example
 
 *A catalogue has on average 50,000 stars brighter than G = 15 per square degree near the Milky Way's plane. How many will a 3 arcminute cone return?*
@@ -79,6 +109,10 @@ r = \frac{3}{60} = 0.05°, \qquad \text{area} = \pi\times0.05^2 = 0.00785\ \text
 ```
 
 ## 5. Practice
+
+<div class="problem" data-problem="cone-count"></div>
+
+**More practice** (answers below):
 
 1. Two stars are at the same Dec of 0° and RA 10.00° and 10.05°. How far apart are they?
 2. A query returns 2 million rows. Name two ways to cut it down.
@@ -91,6 +125,17 @@ r = \frac{3}{60} = 0.05°, \qquad \text{area} = \pi\times0.05^2 = 0.00785\ \text
 2. A smaller radius, a brighter magnitude limit, or only the columns you need.
 3. MAST.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Major archives: Gaia, MAST (Hubble, TESS, JWST), ESO, SIMBAD, NASA Exoplanet Archive.
+- Cone search: everything within a radius of a sky position.
+- ADQL is SQL with sky geometry functions like CONTAINS and CIRCLE.
+- Expected count = area × density, a quick sanity check.
+
+</div>
 
 **Try it with real numbers:** check a catalogue star's altitude tonight with the [[object-altitude]] tool, convert coordinates with [[sky-coordinates]], and fetch planet data in the [[planet-data-explorer]].
 

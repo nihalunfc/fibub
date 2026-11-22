@@ -20,7 +20,9 @@ sources:
   - "General precession 50.29 arcseconds per year and obliquity 23.44°: IAU 2006 precession model (Capitaine et al. 2003)"
 ---
 
-**Module 2 · about 20 minutes · angles.** You'll be able to explain precession, estimate how much it shifts coordinates over a few decades, and say why the zodiac signs no longer match the constellations.
+**Module 2 · about 20 minutes · read first: [2.2 Right ascension and declination: the sky's latitude and longitude](/learn/courses/sky-watching/right-ascension-declination/) · maths: angles.** You'll be able to explain precession, estimate how much it shifts coordinates over a few decades, and say why the zodiac signs no longer match the constellations.
+
+<div class="bigidea">Earth's axis wobbles like a slowing spinning top, tracing a circle on the sky every 25,800 years; the pole star changes, the equinoxes slide, and every catalogue must say which epoch its coordinates are for.</div>
 
 ## 1. Why this matters
 
@@ -46,6 +48,16 @@ The equinox points, where the ecliptic crosses the celestial equator, slide west
 
 Because RA is measured from the equinox, every star's RA and Dec slowly change. Hence the epoch.
 
+Follow the north celestial pole through time:
+
+<div class="steps">
+<div class="step"><b>Why.</b> The Sun and Moon pull on Earth's equatorial bulge, trying to straighten its tilt. Instead, like a spinning top, the axis swings round slowly.</div>
+<div class="step"><b>About 2700 BC.</b> The pole was near Thuban in Draco when the Egyptian pyramids were built.</div>
+<div class="step"><b>Today.</b> It is within 1° of Polaris, and will be closest around 2100.</div>
+<div class="step"><b>AD 14,000.</b> Vega, one of the brightest stars, will be near the pole.</div>
+<div class="step"><b>For your charts.</b> Every star's RA and Dec slowly change, so catalogues say J2000 (coordinates for the year 2000) and software corrects them to today.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -66,6 +78,24 @@ p \approx 50.29'' \text{ per year} \quad\Rightarrow\quad T = \frac{360 \times 36
 **In ecliptic coordinates** it is simple: every star's ecliptic latitude stays the same and its longitude grows by `$p$` a year. The figure uses exactly this.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>50.29″ per year</dt><dd>Rate at which the equinoxes slide along the ecliptic.</dd>
+<dt>~25,800 years</dt><dd>One full precession circle.</dd>
+<dt>Epoch (J2000)</dt><dd>The date a set of coordinates is valid for.</dd>
+<dt>Physical meaning</dt><dd>Spin a top and tip it slightly: gravity tries to pull it over, but instead its axis sweeps slowly round in a cone. Earth is the top, the Sun and Moon pulling on its bulging middle provide the twist, and the cone takes about 26,000 years.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Polaris has always been the pole star."** Polaris has been near the pole only for the last few centuries. In ancient Greece there was no good pole star; in 12,000 years the honour passes to Vega.
+
+</div>
+
 ## 4. Worked example
 
 *How far has a star on the celestial equator at RA 0 h moved between B1950 and J2000 (50 years)?*
@@ -76,6 +106,10 @@ p \approx 50.29'' \text{ per year} \quad\Rightarrow\quad T = \frac{360 \times 36
 So the old coordinates are off by about `$\sqrt{38.4^2 + 16.7^2} \approx 42'$`, more than the Moon's diameter. A telescope with a 30′ field of view would miss the target completely.
 
 ## 5. Practice
+
+<div class="problem" data-problem="precession-shift"></div>
+
+**More practice** (answers below):
 
 1. How many degrees does the equinox move along the ecliptic in 1,000 years?
 2. Why don't stars' ecliptic latitudes change with precession?
@@ -88,6 +122,17 @@ So the old coordinates are off by about `$\sqrt{38.4^2 + 16.7^2} \approx 42'$`, 
 2. Precession is the equator swinging round; the ecliptic (Earth's orbit) stays almost fixed, and ecliptic latitude is measured from it.
 3. About 12,900 years ago (half of 25,800), around 10,900 BC.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Precession: Earth's axis circles the ecliptic pole every ~25,800 years.
+- The equinoxes slide 50.29″ a year along the ecliptic.
+- The pole star changes over centuries: Thuban, Polaris, then Vega.
+- Catalogues give coordinates for an epoch such as J2000.
+
+</div>
 
 **Try it with real numbers:** convert coordinates between J2000 and today's epoch, or between equatorial and ecliptic, with [[sky-coordinates]].
 

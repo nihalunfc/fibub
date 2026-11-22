@@ -20,7 +20,9 @@ sources:
   - "Synodic month 29.530589 days, sidereal month 27.321662 days, orbital inclination 5.145°: NASA Moon Fact Sheet, nssdc.gsfc.nasa.gov"
 ---
 
-**Module 1 · about 25 minutes · a little geometry.** You'll be able to explain Moon phases, predict roughly when the Moon rises in each phase, and say why eclipses are rare.
+**Module 1 · about 25 minutes · read first: [1.2 Why the sky turns: daily motion and circumpolar stars](/learn/courses/sky-watching/turning-sky/) · maths: a little geometry.** You'll be able to explain Moon phases, predict roughly when the Moon rises in each phase, and say why eclipses are rare.
+
+<div class="bigidea">Half the Moon is always lit by the Sun; its phases show how much of that lit half faces us as it orbits, and eclipses happen only when Sun, Earth and Moon line up exactly.</div>
 
 ## 1. Why this matters
 
@@ -46,6 +48,16 @@ Things to notice:
 
 The Moon goes round Earth once relative to the stars in **27.32 days** (the *sidereal month*). But in that time Earth has moved about 27° along its orbit, so the Sun's direction has shifted. The Moon needs about two more days to catch up to the same phase: the **synodic month**, new Moon to new Moon, is **29.53 days**.
 
+Follow the Moon through one month:
+
+<div class="steps">
+<div class="step"><b>New Moon.</b> The Moon is between Earth and the Sun. Its lit half faces away: we see nothing.</div>
+<div class="step"><b>Waxing crescent, then first quarter.</b> A week later it is 90° from the Sun: we see half the disc lit, high in the evening sky.</div>
+<div class="step"><b>Full Moon.</b> Two weeks in, Earth is between: we see the whole lit half, rising at sunset.</div>
+<div class="step"><b>Last quarter.</b> 270° round: the other half lit, rising around midnight.</div>
+<div class="step"><b>Back to new.</b> 29.5 days after the start (the synodic month), slightly longer than the Moon's 27.3-day orbit because Earth has moved round the Sun meanwhile.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -66,6 +78,24 @@ k = \frac{1 - \cos\psi}{2}
 **Try it:** at first quarter `$\psi = 90^\circ$`, so `$k = (1 - 0)/2 = 0.5$`: half lit.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>ψ (elongation)</dt><dd>Angle between the Moon and the Sun in our sky: 0° new, 180° full.</dd>
+<dt>k = (1 − cos ψ)/2</dt><dd>Fraction of the disc that is lit.</dd>
+<dt>1/S = 1/27.32 − 1/365.26</dt><dd>Synodic month S = 29.53 days.</dd>
+<dt>Physical meaning</dt><dd>Hold a ball at arm's length in a room with one lamp and turn slowly round. The ball always has a lit side facing the lamp, but you see it go from dark to crescent to full and back. The Moon does the same with the Sun as the lamp and you on Earth in the middle.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The phases are caused by Earth's shadow."** Earth's shadow touches the Moon only during a lunar eclipse, at full Moon. Phases are simply our changing view of the Moon's sunlit half.
+
+</div>
+
 ## 4. Eclipses
 
 A **solar eclipse** happens when the new Moon passes exactly in front of the Sun; a **lunar eclipse** when the full Moon passes through Earth's shadow. If the Moon's orbit lay in the same plane as Earth's, we would get both every month. In fact it is tilted by about **5.1°**, so usually the new Moon slips above or below the Sun and the full Moon misses Earth's shadow.
@@ -84,6 +114,10 @@ A coincidence makes total solar eclipses possible: the Sun is about 400 times wi
 
 ## 6. Practice
 
+<div class="problem" data-problem="moon-lit"></div>
+
+**More practice** (answers below):
+
 1. What phase rises around midnight?
 2. How much of the disc is lit at elongation 60°?
 3. Why can a lunar eclipse be seen from half the Earth at once, but a total solar eclipse only from a narrow strip?
@@ -95,6 +129,17 @@ A coincidence makes total solar eclipses possible: the Sun is about 400 times wi
 2. `$k = (1 - 0.5)/2 = 0.25$`: a crescent, a quarter lit.
 3. During a lunar eclipse the Moon itself goes dark, so anyone who can see the Moon sees it. In a solar eclipse the Moon's small shadow (at most about 270 km wide for totality) sweeps over just a strip of Earth.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Half the Moon is always lit; phases are how much of it faces us.
+- Synodic month: 29.53 days from new Moon to new Moon.
+- Fraction lit k = (1 − cos ψ)/2.
+- Eclipses need an exact line-up; the Moon's orbit is tilted 5°, so most months miss.
+
+</div>
 
 **Try it on the real sky:** find upcoming eclipses for your town with the [[eclipse-finder]], and see Moon-free dark nights in the [[dark-sky-calendar]].
 

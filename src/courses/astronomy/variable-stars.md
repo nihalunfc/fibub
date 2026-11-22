@@ -22,7 +22,9 @@ sources:
   - "Cepheid period-luminosity calibration (V band, rounded): Benedict, G. F. et al. (2007), AJ 133, 1810"
 ---
 
-**Module 3 · about 25 minutes · logs and the distance modulus.** You'll be able to name the main kinds of variable star, use the period-luminosity rule, and find the distance to a Cepheid.
+**Module 3 · about 25 minutes · read first: [1.5 Flux, luminosity and the inverse square law](/learn/courses/astronomy/flux-luminosity/), [3.3 How stars shine and age](/learn/courses/astronomy/how-stars-shine/) · maths: logs and the distance modulus.** You'll be able to name the main kinds of variable star, use the period-luminosity rule, and find the distance to a Cepheid.
+
+<div class="bigidea">Some stars change brightness in step with their size or because a partner blocks them, and for pulsating Cepheids the period reveals the true power, which turns them into distance markers.</div>
 
 ## 1. Why this matters
 
@@ -43,6 +45,16 @@ Things to notice:
 - Cepheids brighten quickly and fade slowly, so their light curves look like a saw tooth.
 - On the lower panel, a 10-day Cepheid is about 2.4 magnitudes, or 9 times, more powerful than a 1-day one.
 - The same period with a fainter measured magnitude means a more distant star.
+
+Use a Cepheid to measure a distance:
+
+<div class="steps">
+<div class="step"><b>Watch it pulse.</b> Measure the star's brightness on many nights. It brightens and fades every 30 days.</div>
+<div class="step"><b>Leavitt's law.</b> Henrietta Leavitt found in 1912 that longer-period Cepheids are more luminous. Here M<sub>V</sub> = −2.43 × (log 30 − 1) − 4.05 = −5.2.</div>
+<div class="step"><b>How bright it looks.</b> Its average apparent magnitude is m = 15.8.</div>
+<div class="step"><b>Distance modulus.</b> m − M = 21.0, so d = 10<sup>21.0/5 + 1</sup> = 160,000 pc: in a neighbouring galaxy.</div>
+<div class="step"><b>Why it matters.</b> This is how Hubble showed in 1925 that Andromeda is a separate galaxy far beyond the Milky Way.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -66,6 +78,24 @@ d = 10^{(m - M)/5 + 1}\ \text{pc}
 
 A Cepheid pulsates because a layer of helium in it acts like a valve. When the star is squeezed, that helium gets more ionised and more opaque, trapping heat, which pushes the layer out; as it expands it becomes clearer, lets the heat escape and falls back. Bigger stars are fluffier, so they take longer to swing in and out, like a longer pendulum. Bigger also means more luminous, which is why period and power go together.
 
+
+<div class="meaning">
+
+<dl>
+<dt>P</dt><dd>Pulsation period in days.</dd>
+<dt>M<sub>V</sub> = −2.43(log P − 1) − 4.05</dt><dd>Leavitt's law: the period gives the absolute magnitude.</dd>
+<dt>d = 10<sup>(m − M)/5 + 1</sup> pc</dt><dd>Distance from how bright the star looks compared with how bright it truly is.</dd>
+<dt>Physical meaning</dt><dd>A Cepheid breathes in and out like a balloon whose valve sticks: its outer layers trap heat, swell, release it and fall back. Bigger, brighter Cepheids are larger balloons that breathe more slowly, so the rhythm gives away the size and power.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A variable star is one that is dying."** Most variable stars are in a normal, long stage of life. Cepheids pulse for millions of years, and eclipsing binaries are perfectly healthy stars that simply pass in front of each other.
+
+</div>
+
 ## 4. Worked example
 
 *A Cepheid in a distant galaxy has a period of 10 days and average apparent magnitude 25.0. How far is the galaxy?*
@@ -82,6 +112,10 @@ About 6.5 million parsecs, or 21 million light-years. (Dust would make it look f
 
 ## 5. Practice
 
+<div class="problem" data-problem="cepheid-distance"></div>
+
+**More practice** (answers below):
+
 1. What is `$M_V$` for a 3-day Cepheid?
 2. A 10-day Cepheid has m = 15.0. How far away is it?
 3. Why are RR Lyrae stars useful even though their period doesn't tell you their power?
@@ -93,6 +127,17 @@ About 6.5 million parsecs, or 21 million light-years. (Dust would make it look f
 2. `$m - M = 19.05$`, `$d = 10^{4.81} = 65{,}000$` pc (65 kpc), about as far as the Magellanic Clouds.
 3. They all have nearly the same power (`$M_V \approx +0.6$`), so they are standard candles too, though fainter ones.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Pulsating variables (Cepheids, Mira) change size and brightness; eclipsing binaries are blocked by a partner.
+- Leavitt's law: a Cepheid's period gives its absolute magnitude.
+- With M and the observed m, d = 10<sup>(m − M)/5 + 1</sup> pc.
+- Cepheids are the second rung of the distance ladder, after parallax.
+
+</div>
 
 **Try it with real numbers:** find periods in light curves with the [[period-finder]], and log your own estimates with the [[variable-star-log]].
 

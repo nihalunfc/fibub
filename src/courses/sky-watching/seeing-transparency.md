@@ -20,7 +20,9 @@ sources:
   - "Fried, D. L. (1966), Optical resolution through a randomly inhomogeneous medium, JOSA 56, 1372"
 ---
 
-**Module 3 · about 25 minutes · some physics.** You'll be able to tell seeing from transparency, estimate the blur of a star from both the telescope and the air, and decide what to observe on a given night.
+**Module 3 · about 25 minutes · read first: [3.2 Light pollution and the Bortle scale](/learn/courses/sky-watching/light-pollution/), [2.6 Airmass: why low objects look dim](/learn/courses/sky-watching/airmass/) · maths: some physics.** You'll be able to tell seeing from transparency, estimate the blur of a star from both the telescope and the air, and decide what to observe on a given night.
+
+<div class="bigidea">Seeing is how steady the air is and transparency is how clear it is: seeing blurs stars and planets, transparency dims faint objects, and a night can be good for one and bad for the other.</div>
 
 ## 1. Why this matters
 
@@ -39,6 +41,25 @@ Seeing is measured as the width of a star's blurred image (its FWHM, full width 
 
 **Transparency** is how much light gets through at all: affected by haze, humidity, dust, smoke and thin cloud. A transparent night shows deep blue twilight, a crisp Milky Way and faint stars near the horizon. Strangely, very transparent nights after a cold front often have *poor* seeing (turbulent air), while hazy, still nights can have excellent seeing.
 
+
+<div class="meaning">
+
+<dl>
+<dt>Seeing</dt><dd>Blur from turbulent air; measured in arcseconds.</dd>
+<dt>r₀</dt><dd>Fried parameter: size of a patch of steady air (5 to 20 cm typical).</dd>
+<dt>ε ≈ 0.98 λ / r₀</dt><dd>Seeing blur at wavelength λ.</dd>
+<dt>Transparency</dt><dd>How much light gets through: haze, dust, thin cloud.</dd>
+<dt>Physical meaning</dt><dd>Seeing is like looking at a coin at the bottom of a rippling pool: the water is clear, but the ripples make the coin dance. Transparency is muddy water: still but dim. Telescopes bigger than r₀ cannot beat the ripples, which is why big observatories sit on calm mountain tops.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A clear sky full of stars is always a good night for planets."** The clearest nights often follow cold fronts with turbulent air and bad seeing. Planets look best on calm, slightly hazy nights.
+
+</div>
+
 ## 4. The telescope's own limit
 
 Even with perfect air, a telescope cannot show a point as a point: light waves passing through a round opening spread into a small pattern (the **Airy disc**). The smallest separation two equal stars can have and still be resolved is set by the aperture `$D$` (Lesson 4.4 goes further). The figure combines both blurs.
@@ -49,6 +70,16 @@ Things to notice:
 
 - With seeing set to 0, a bigger aperture always splits closer pairs.
 - With seeing at 2″, going beyond about 100 mm barely helps: the air, not the telescope, sets the limit. Big telescopes still collect more light, though.
+
+Compare two nights through the same telescope:
+
+<div class="steps">
+<div class="step"><b>Night 1, after a cold front.</b> The sky is crystal clear and full of stars (great transparency), but stars twinkle hard and Jupiter boils (poor seeing).</div>
+<div class="step"><b>Why.</b> Fast winds mix warm and cold air into small pockets that bend light randomly: r₀ is only 5 cm, giving about 2.2″ of blur.</div>
+<div class="step"><b>Night 2, under a calm high-pressure system.</b> The sky is slightly hazy (poor transparency), but stars barely twinkle and Jupiter's belts are sharp (good seeing).</div>
+<div class="step"><b>Now r₀ is 15 cm.</b> Blur only 0.7″, close to what a 20 cm telescope can resolve.</div>
+<div class="step"><b>Choose your target.</b> Galaxies on night 1, planets and double stars on night 2.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -82,6 +113,10 @@ so a telescope larger than `$r_0$` is limited by the air, not by its aperture.
 
 ## 6. Practice
 
+<div class="problem" data-problem="seeing-blur"></div>
+
+**More practice** (answers below):
+
 1. Find the Rayleigh limit of a 100 mm telescope.
 2. On a night with `$r_0 = 5$` cm, what is the seeing?
 3. The Moon looks sharp and steady, but faint galaxies are invisible. Which observing would you choose?
@@ -93,6 +128,17 @@ so a telescope larger than `$r_0$` is limited by the air, not by its aperture.
 2. `$0.98 \times 550\times10^{-9}/0.05 = 1.08\times10^{-5}$` rad = 2.2″.
 3. Good seeing, poor transparency: the Moon, planets and double stars.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Seeing (steadiness) and transparency (clarity) are different.
+- Seeing blur ε ≈ 0.98 λ/r₀; typical 1″ to 3″.
+- Big telescopes are usually limited by seeing, not aperture.
+- Pick galaxies for transparent nights and planets for steady ones.
+
+</div>
 
 **Try it with real numbers:** measure the blur of stars in your own images with the [[star-fwhm-checker]], or work out your telescope's resolution with the [[telescope-calculator]].
 

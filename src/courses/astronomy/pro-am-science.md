@@ -21,7 +21,9 @@ sources:
   - "AAVSO (aavso.org), IOTA occultation network (occultations.org), Zooniverse (zooniverse.org), ExoClock (exoclock.space): programmes described in words"
 ---
 
-**Module 5 · about 20 minutes · coverage and timing.** You'll be able to name ways amateurs contribute to research, explain why networks matter, and get a measurement ready to submit.
+**Module 5 · about 20 minutes · read first: [5.1 Aperture photometry](/learn/courses/astronomy/aperture-photometry/), [Sky watching 5.4 Variable stars: making a brightness estimate](/learn/courses/sky-watching/variable-star-estimates/) · maths: coverage and timing.** You'll be able to name ways amateurs contribute to research, explain why networks matter, and get a measurement ready to submit.
+
+<div class="bigidea">Amateurs make real discoveries, timing transits and occultations, monitoring variable stars and finding supernovae, because networks spread around the world catch what one observer alone would miss.</div>
 
 ## 1. Why this matters
 
@@ -43,6 +45,16 @@ Things to notice:
 - One observer catches only their own night, and only when it's clear.
 - Spreading observers around the world fills the gaps; adding more in one place helps much less.
 
+See why a network beats a single observer:
+
+<div class="steps">
+<div class="step"><b>The event.</b> An asteroid will pass in front of a star for 4 seconds, along a shadow path 60 km wide.</div>
+<div class="step"><b>One observer.</b> A 60% chance of clear sky, and if clouds come, the event is lost forever.</div>
+<div class="step"><b>Four observers along the path.</b> The chance that all four are clouded out is 0.4⁴ = 0.026, so 97% that someone sees it.</div>
+<div class="step"><b>Timing.</b> Each clear observer records when the star vanished and returned, to 0.1 s. The shadow moves at 5 km/s, so each chord is measured to 0.5 km.</div>
+<div class="step"><b>Result.</b> Line up the chords and you have the asteroid's outline, from backyard telescopes.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -61,6 +73,24 @@ P = 1 - (1 - p)^n
 
 Time on Earth is local: when it's noon in one place it's midnight somewhere else, and weather is patchy. A network turns the planet itself into one big observatory that never closes. What makes it work is standards: everyone times with the same clock, uses comparison stars from the same catalogue and reports in the same format, so the measurements can be stitched together.
 
+
+<div class="meaning">
+
+<dl>
+<dt>P = 1 − (1 − p)ⁿ</dt><dd>Chance at least one of n independent sites is clear.</dd>
+<dt>v Δt</dt><dd>Distance accuracy from timing accuracy Δt for a shadow moving at v.</dd>
+<dt>Coverage</dt><dd>Observers spread in longitude keep a target in view around the clock.</dd>
+<dt>Physical meaning</dt><dd>The sky above any one place is cloudy, daylit or below the horizon most of the time. Spreading observers across the globe is like having many nets in the water instead of one: the chance of catching the fish grows quickly with every net.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Amateur data are too poor to matter."** AAVSO light curves, occultation timings and amateur supernova discoveries are used in professional papers every year. Good method matters more than telescope size.
+
+</div>
+
 ## 4. Worked example
 
 *An asteroid's shadow crosses Earth at 8 km/s. Observers time the star's disappearance to ±0.1 s. How precisely does each chord measure the asteroid?*
@@ -73,6 +103,10 @@ With observers spaced a few km apart across the path, their chords outline the a
 
 ## 5. Practice
 
+<div class="problem" data-problem="network-clear"></div>
+
+**More practice** (answers below):
+
 1. Two sites, each 50% clear. What is the chance at least one sees an event?
 2. Why should you report the time of an observation in UTC?
 3. Name one online project you could join without a telescope.
@@ -84,6 +118,17 @@ With observers spaced a few km apart across the path, their chords outline the a
 2. So observations from different time zones line up exactly.
 3. Galaxy classification or planet hunting on Zooniverse (or similar).
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Amateurs contribute to variable stars (AAVSO), occultations (IOTA), transits, comets and supernovae.
+- Networks beat clouds: P = 1 − (1 − p)ⁿ.
+- Accurate timing (GPS) turns shadows into sizes: v Δt.
+- Citizen science projects (Zooniverse) need only a web browser.
+
+</div>
 
 **Try it with real numbers:** keep standard records with the [[observing-log]] and [[variable-star-log]], and plan transits with the [[transit-planner]].
 

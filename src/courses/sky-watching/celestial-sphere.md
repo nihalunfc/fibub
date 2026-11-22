@@ -20,7 +20,9 @@ sources:
   - "IAU definitions of the celestial poles and equator: International Astronomical Union, iau.org"
 ---
 
-**Module 1 · about 20 minutes · no maths needed.** You'll be able to describe the celestial sphere, find the celestial poles and equator, and explain why the pole's height in your sky equals your latitude.
+**Module 1 · about 20 minutes · read first: nothing, start here · maths: no maths needed.** You'll be able to describe the celestial sphere, find the celestial poles and equator, and explain why the pole's height in your sky equals your latitude.
+
+<div class="bigidea">Astronomers pretend the stars are painted on a giant sphere around Earth; it is not real, but it makes the sky easy to map, and from anywhere the celestial pole stands as high above your horizon as your latitude.</div>
 
 ## 1. Why this matters
 
@@ -57,9 +59,38 @@ Things to notice:
 - As your latitude grows, the pole climbs and the celestial equator tilts down towards the south.
 - A star's daily path is a circle *parallel to the celestial equator*. The horizon cuts some circles in two (the star rises and sets), misses others entirely (the star never sets, or never rises).
 
+
+<div class="meaning">
+
+<dl>
+<dt>Zenith</dt><dd>The point straight above your head.</dd>
+<dt>Celestial pole</dt><dd>Where Earth's axis, extended, meets the sky; the sky turns around it.</dd>
+<dt>h<sub>pole</sub> = φ</dt><dd>The pole's altitude equals your latitude.</dd>
+<dt>h<sub>max</sub> = 90° − |φ − δ|</dt><dd>How high a star of declination δ climbs.</dd>
+<dt>Physical meaning</dt><dd>Earth is a ball, so "up" points in a different direction at every place. Walk north and your "up" tilts towards Earth's axis; the pole, fixed far away in that direction, climbs in your sky by exactly the angle you walked. Sailors used this for centuries to find their latitude.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Polaris is the brightest star in the sky."** It is only about the 48th brightest. It is famous because it sits almost exactly at the north celestial pole, so it barely moves all night. The brightest night-time star is Sirius.
+
+</div>
+
 ## 4. Why the pole rises with latitude
 
 Your horizon is a flat plane touching Earth where you stand. Walk north and the ground curves away under you, so your horizon tilts. Earth's axis, though, points at the same place among the stars. After you have walked 1° of latitude north, your horizon has tilted by 1°, so the pole appears 1° higher.
+
+Travel north and watch the pole star rise:
+
+<div class="steps">
+<div class="step"><b>At the equator, 0°.</b> The celestial pole sits on the northern horizon. Every star rises straight up in the east and sets straight down in the west.</div>
+<div class="step"><b>At 20° N (Mumbai).</b> Polaris is 20° up, about two fists above the north horizon.</div>
+<div class="step"><b>At 43° N (Toronto).</b> Polaris is 43° up, about halfway to the zenith. Stars circle around it.</div>
+<div class="step"><b>At 52° N (London).</b> 52° up; more stars near the pole never set.</div>
+<div class="step"><b>At the North Pole, 90°.</b> Polaris is straight overhead. Stars circle parallel to the horizon and never rise or set.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -95,6 +126,10 @@ So travelling north lifts the northern stars and sinks the southern ones. The an
 
 ## 6. Practice
 
+<div class="problem" data-problem="max-altitude"></div>
+
+**More practice** (answers below):
+
 1. What is the altitude of the north celestial pole seen from 35° N?
 2. From the equator, how high is a star at declination +40° at its highest?
 3. At what latitude is the celestial equator directly overhead?
@@ -106,6 +141,17 @@ So travelling north lifts the northern stars and sinks the southern ones. The an
 2. `$90 - |0 - 40| = 50^\circ$`.
 3. On Earth's equator (0°), where the celestial equator passes through the zenith.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- The celestial sphere is an imaginary sphere used to map the sky.
+- The sky turns around the celestial poles, above Earth's poles.
+- The pole's altitude equals your latitude.
+- A star's highest altitude is 90° − |φ − δ|.
+
+</div>
 
 **Try it on the real sky:** find what is above your own horizon right now with [[sky-tonight]], or convert any star's position between coordinate systems with [[sky-coordinates]].
 

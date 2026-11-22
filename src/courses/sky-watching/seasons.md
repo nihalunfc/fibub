@@ -20,7 +20,9 @@ sources:
   - "Earth's obliquity 23.44° and perihelion date: NASA Earth Fact Sheet, nssdc.gsfc.nasa.gov"
 ---
 
-**Module 1 · about 25 minutes · some trigonometry.** You'll be able to explain the seasons, find the Sun's noon altitude on any date, and say why days are long in summer and why the far north gets midnight Sun.
+**Module 1 · about 25 minutes · read first: [1.1 The celestial sphere: a map painted on a dome](/learn/courses/sky-watching/celestial-sphere/), [1.2 Why the sky turns: daily motion and circumpolar stars](/learn/courses/sky-watching/turning-sky/) · maths: some trigonometry.** You'll be able to explain the seasons, find the Sun's noon altitude on any date, and say why days are long in summer and why the far north gets midnight Sun.
+
+<div class="bigidea">Seasons come from Earth's 23.4° tilt, not its distance from the Sun: the tilt changes how high the noon Sun climbs and how long it stays up, and so how much warmth each square metre gets.</div>
 
 ## 1. Why this matters
 
@@ -46,6 +48,25 @@ A simple formula, good to about 1°, gives the declination on day `$n$` of the y
 \delta_\odot \approx -23.44^\circ \cos\!\left( \frac{360^\circ}{365.25} (n + 10) \right)
 ```
 
+
+<div class="meaning">
+
+<dl>
+<dt>23.4°</dt><dd>Tilt of Earth's axis to its orbit.</dd>
+<dt>δ☉</dt><dd>The Sun's declination: +23.4° in June to −23.4° in December.</dd>
+<dt>h<sub>noon</sub> = 90° − |φ − δ☉|</dt><dd>Height of the Sun at local noon.</dd>
+<dt>∝ sin h</dt><dd>Sunlight energy per square metre of flat ground.</dd>
+<dt>Physical meaning</dt><dd>Shine a torch straight down at a table and you get a small bright circle; tilt it and the same light spreads over a long, dim oval. Winter sunlight is the tilted torch: low, spread out, and also on for fewer hours.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"It is summer when Earth is closest to the Sun."** Earth is closest in early January, during northern winter and southern summer. The distance changes by only 3%. When it is summer in Canada it is winter in Australia, which distance could never explain.
+
+</div>
+
 ## 4. High Sun, long days
 
 Two effects make summer warm:
@@ -61,6 +82,16 @@ Things to notice:
 
 - At the equator the noon Sun is always high and the day always about 12 hours: little seasonal change.
 - Above about 66.6° N in June, the curve never dips below the horizon: the **midnight Sun**. In December the same place gets **polar night**.
+
+Follow the noon Sun through one year at 45° N:
+
+<div class="steps">
+<div class="step"><b>June solstice.</b> The northern half tilts towards the Sun. The Sun's declination is +23.4°, and at noon it climbs to 90 − |45 − 23.4| = 68°. Days last about 15.5 hours.</div>
+<div class="step"><b>September equinox.</b> No tilt towards or away. Declination 0°, noon Sun at 45°, 12-hour days everywhere.</div>
+<div class="step"><b>December solstice.</b> Tilted away. Declination −23.4°, noon Sun only 21.6° up, days about 8.6 hours.</div>
+<div class="step"><b>Spread-out light.</b> At 21.6°, a beam of sunlight spreads over 2.7 times more ground than when overhead, so each square metre gets much less heat.</div>
+<div class="step"><b>And the distance?</b> Earth is actually closest to the Sun in early January, during northern winter.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -96,6 +127,10 @@ Real day lengths are a few minutes longer than these, because the atmosphere ben
 
 ## 6. Practice
 
+<div class="problem" data-problem="noon-sun"></div>
+
+**More practice** (answers below):
+
 1. Find the noon Sun's altitude at 20° N on the June solstice.
 2. At what latitude is the noon Sun overhead on the December solstice?
 3. Why does the Sun at the North Pole circle the sky at the same height all day in June?
@@ -107,6 +142,17 @@ Real day lengths are a few minutes longer than these, because the atmosphere ben
 2. At 23.44° S, the Tropic of Capricorn.
 3. At the pole the celestial equator lies along the horizon, and all daily circles are parallel to it. The Sun circles 23.4° up.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Seasons come from the 23.4° tilt of Earth's axis.
+- The Sun's declination swings from +23.4° (June) to −23.4° (December).
+- Noon altitude h = 90° − |φ − δ☉|; heat per square metre ∝ sin h.
+- The two hemispheres have opposite seasons.
+
+</div>
 
 **Try it on the real sky:** get the Sun's exact position, sunrise and sunset for any place and date with the [[sun-position-calculator]], or see the solstices and equinoxes in the [[sky-events-calendar]].
 

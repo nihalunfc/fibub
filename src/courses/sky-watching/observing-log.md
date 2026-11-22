@@ -16,10 +16,14 @@ quiz:
     choices: ["What photos on the internet show", "What you actually saw through the eyepiece", "Only the object's catalogue data"]
     ans: 1
     why: "An honest record of your own view is the point; it shows your progress and can be checked against others."
-sources: []
+sources:
+  - "Antoniadi seeing scale, as used by the British Astronomical Association, britastro.org"
+  - "AAVSO and IMO observing report guidelines, aavso.org and imo.net"
 ---
 
-**Module 5 · about 15 minutes · no maths needed.** You'll be able to write a complete log entry, choose what to record, and see how logs feed real research.
+**Module 5 · about 15 minutes · read first: [2.4 Universal Time and the Julian date](/learn/courses/sky-watching/julian-date/), [3.3 Seeing and transparency](/learn/courses/sky-watching/seeing-transparency/) · maths: no maths needed.** You'll be able to write a complete log entry, choose what to record, and see how logs feed real research.
+
+<div class="bigidea">A log turns a night of looking into a record you can learn from and share: the time in UT, your site, instrument, conditions and what you actually saw.</div>
 
 ## 1. Why this matters
 
@@ -44,6 +48,16 @@ Every scientific observation starts as a note in a log. Your log shows your skil
 
 In each case the extras you wrote down (UT, conditions, method) are what make an observation usable by someone else.
 
+Write one log entry:
+
+<div class="steps">
+<div class="step"><b>When.</b> 2027-03-12, 03:15 UT (not local time), so anyone can compare.</div>
+<div class="step"><b>Where.</b> Site name, latitude and longitude, Bortle class or SQM reading.</div>
+<div class="step"><b>With what.</b> 200 mm Dobsonian, 10 mm eyepiece (120×), no filter.</div>
+<div class="step"><b>Conditions.</b> Seeing III on the Antoniadi scale, transparency good, naked-eye limit 6.0.</div>
+<div class="step"><b>What you saw, honestly.</b> "M51: two glows; with averted vision a hint of the spiral arm towards NGC 5195. Not certain." Uncertainty is part of the data.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -59,6 +73,24 @@ In each case the extras you wrote down (UT, conditions, method) are what make an
 
 **Time to JD for a log:** 2026-07-14 02:35 UT is `$JD = 2461235.6076$` (Lesson 2.4).
 </details>
+
+
+<div class="meaning">
+
+<dl>
+<dt>UT</dt><dd>Universal Time: the same for every observer.</dd>
+<dt>Seeing scale</dt><dd>Antoniadi I to V (say which way round you use it).</dd>
+<dt>NELM / SQM</dt><dd>How dark the sky was, by eye or by meter.</dd>
+<dt>Physical meaning</dt><dd>A log is the everyday form of a scientific measurement: a value with its conditions and uncertainty. Without the conditions, nobody (including you next year) can tell whether a faint view was due to the object, the telescope or the sky.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Only "proper" scientific observers need a log."** Logs make you a better observer: you notice more when you write it down, and you can see your skills and sky improving over months. Many famous amateur discoveries started with a careful log.
+
+</div>
 
 ## 4. Worked example
 
@@ -78,6 +110,10 @@ Anyone reading it knows when, where, with what, in which conditions, and what wa
 
 ## 5. Practice
 
+<div class="problem" data-problem="to-ut"></div>
+
+**More practice** (answers below):
+
 1. Convert 22:15 local time in New Delhi (UT + 5:30) into UT.
 2. Name three conditions worth recording on every night.
 3. Why record the magnification as well as the telescope?
@@ -89,6 +125,17 @@ Anyone reading it knows when, where, with what, in which conditions, and what wa
 2. Any three of: seeing, transparency or NELM, Moon phase and altitude, wind, temperature, humidity.
 3. What you can see depends on it: detail at high power, faint extended glow at low power.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Always log time in UT, place, instrument and magnification.
+- Record seeing, transparency and sky darkness.
+- Describe what you actually saw, including uncertainty.
+- Logs turn casual observing into data you can share.
+
+</div>
 
 **Try it on the real sky:** keep your log in your own browser, with export, using the [[observing-log]] tool, and plan the next session with the [[observing-session]] planner.
 

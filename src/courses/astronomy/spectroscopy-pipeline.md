@@ -21,7 +21,9 @@ sources:
   - "Neon line wavelengths in air: NIST Atomic Spectra Database (lab values, used in the figure)"
 ---
 
-**Module 5 · about 25 minutes · straight-line fits.** You'll be able to list the steps that turn a raw spectrum into a calibrated one, put a wavelength scale on it, and see how calibration errors become velocity errors.
+**Module 5 · about 25 minutes · read first: [1.3 Spectral lines: fingerprints of atoms](/learn/courses/astronomy/spectral-lines/), [1.4 The Doppler shift](/learn/courses/astronomy/doppler-shift/), [Sky watching 6.3 Calibration frames: darks, flats and bias](/learn/courses/sky-watching/calibration-frames/) · maths: straight-line fits.** You'll be able to list the steps that turn a raw spectrum into a calibrated one, put a wavelength scale on it, and see how calibration errors become velocity errors.
+
+<div class="bigidea">A spectrum on the detector is just a smear of counts; calibrate it, extract it, put a wavelength scale on it with a lamp, correct for the instrument, and only then measure lines and speeds.</div>
 
 ## 1. Why this matters
 
@@ -43,6 +45,16 @@ Things to notice:
 - Both the starting wavelength and the scale (nm per pixel) must be right; one alone leaves misses at the ends.
 - The velocity only means something once the lamp lines sit on their ticks.
 
+Turn a raw spectrum image into a velocity:
+
+<div class="steps">
+<div class="step"><b>Calibrate.</b> Subtract bias and dark, divide by a flat, exactly as for images.</div>
+<div class="step"><b>Trace and extract.</b> Follow the bright stripe of starlight across the detector and add up each column into one number: counts per pixel.</div>
+<div class="step"><b>Wavelength scale.</b> Take a lamp spectrum (neon, argon or thorium) with known lines. Fit pixel → wavelength, say λ = 400 + 0.1 x nm.</div>
+<div class="step"><b>Correct.</b> Divide by the instrument's response, measured on a standard star.</div>
+<div class="step"><b>Measure.</b> Fit the H-alpha line centre at 656.50 nm. Shift = 0.22 nm, so the star recedes at 100 km/s.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -63,6 +75,24 @@ Real pipelines fit a polynomial of order 3 to 5 to many lamp lines by least squa
 
 The grating in a spectrograph spreads light into its colours like a prism, but each instrument spreads it a little differently, and the setup flexes with temperature. The lamp, taken right before or after the star, is a ruler laid alongside your spectrum, made of atoms whose line positions are known exactly. Everything you later claim, such as a planet's tug of a few m/s, depends on how well that ruler is held still.
 
+
+<div class="meaning">
+
+<dl>
+<dt>λ(x) = λ₀ + D x</dt><dd>Dispersion solution: wavelength at pixel x.</dd>
+<dt>R = λ / Δλ</dt><dd>Resolving power: how finely the spectrograph separates wavelengths.</dd>
+<dt>σ<sub>v</sub> = c σ<sub>λ</sub> / λ</dt><dd>Velocity uncertainty from a wavelength uncertainty.</dd>
+<dt>Physical meaning</dt><dd>The lamp is a ruler laid beside the starlight. Without it, a spectrum is a strip of brightness with no numbers on it; with it, each pixel gets a wavelength, and any shift of a line from its laboratory place becomes a speed.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A spectrograph shows the true colours of a star."** Raw spectra are tilted by the instrument and the atmosphere: some wavelengths are recorded more efficiently than others. Only after dividing by the response does the shape mean anything physical.
+
+</div>
+
 ## 4. Worked example
 
 *Two neon lines, 585.25 nm and 640.22 nm, fall on pixels 172 and 744. What is the dispersion solution, and what wavelength is pixel 760?*
@@ -77,6 +107,10 @@ D = \frac{640.22 - 585.25}{744 - 172} = \frac{54.97}{572} = 0.0961\ \text{nm/px}
 
 ## 5. Practice
 
+<div class="problem" data-problem="spectral-resolution"></div>
+
+**More practice** (answers below):
+
 1. With `$D = 0.1$` nm/px, how many pixels does a 30 km/s shift of H-alpha move?
 2. Why is the lamp taken through the same slit and grating as the star?
 3. What is the resolving power of a spectrograph that just separates lines 0.5 nm apart at 500 nm?
@@ -88,6 +122,17 @@ D = \frac{640.22 - 585.25}{744 - 172} = \frac{54.97}{572} = 0.0961\ \text{nm/px}
 2. So the light follows the identical path and lands where the star's light of the same wavelength would.
 3. `$R = 500/0.5 = 1000$`.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Steps: calibrate, trace, extract, wavelength-calibrate, flux-calibrate, measure.
+- Arc lamps with known lines give the pixel-to-wavelength fit.
+- Resolving power R = λ/Δλ sets what can be measured.
+- Line centres give radial velocities: σ<sub>v</sub> = c σ<sub>λ</sub>/λ.
+
+</div>
 
 **Try it with real numbers:** identify lines with the [[spectral-line-identifier]], and turn shifts into speeds with the [[redshift-calculator]].
 

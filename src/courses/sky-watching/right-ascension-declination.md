@@ -21,7 +21,9 @@ sources:
   - "ICRS reference frame and J2000.0 epoch: International Astronomical Union resolutions, iau.org"
 ---
 
-**Module 2 · about 25 minutes · angles and hours.** You'll be able to read RA and Dec from a catalogue, convert hours to degrees, and find the ecliptic and the Sun on a sky map.
+**Module 2 · about 25 minutes · read first: [2.1 Altitude and azimuth: pointing from where you stand](/learn/courses/sky-watching/altitude-azimuth/), [1.1 The celestial sphere: a map painted on a dome](/learn/courses/sky-watching/celestial-sphere/) · maths: angles and hours.** You'll be able to read RA and Dec from a catalogue, convert hours to degrees, and find the ecliptic and the Sun on a sky map.
+
+<div class="bigidea">Declination is latitude on the sky and right ascension is longitude, measured in hours; they stay fixed to the stars, so every catalogue and telescope uses them.</div>
 
 ## 1. Why this matters
 
@@ -53,6 +55,16 @@ A typical catalogue line: Betelgeuse, RA 05h 55m 10.3s, Dec +07° 24′ 25″.
 
 Careful: a minute of RA is *not* the same angle as a minute of arc, and on the sky a minute of RA gets narrower towards the poles (just as degrees of longitude do on Earth), by a factor `$\cos\delta$`.
 
+Read the coordinates of Betelgeuse:
+
+<div class="steps">
+<div class="step"><b>Declination +7° 24′ 25″.</b> Like latitude: 7.4° north of the celestial equator.</div>
+<div class="step"><b>Right ascension 5h 55m 10.3s.</b> Like longitude, but counted eastward in hours from the March equinox point.</div>
+<div class="step"><b>Why hours?</b> The sky turns 360° in 24 hours, so 1 hour of RA = 15°. 5.92 h × 15 = 88.8°.</div>
+<div class="step"><b>Fixed to the stars.</b> These numbers stay the same all night and from every place (apart from slow precession).</div>
+<div class="step"><b>Use them.</b> Type them into a GoTo telescope or a chart and Betelgeuse is found anywhere in the world.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -73,6 +85,24 @@ Careful: a minute of RA is *not* the same angle as a minute of arc, and on the s
 **Try it:** Betelgeuse. RA `$= 15 \times (5 + 55/60 + 10.3/3600) = 15 \times 5.9195 = 88.79^\circ$`. Dec `$= 7 + 24/60 + 25/3600 = 7.407^\circ$`.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>δ (declination)</dt><dd>Angle north (+) or south (−) of the celestial equator.</dd>
+<dt>α (right ascension)</dt><dd>Angle east from the March equinox, in hours (1 h = 15°).</dd>
+<dt>Δθ = Δα cos δ</dt><dd>A step in RA is narrower on the sky near the poles.</dd>
+<dt>Physical meaning</dt><dd>RA and Dec are a grid drawn on the celestial sphere itself, turning with the stars, the way latitude and longitude are drawn on Earth and turn with it. Your city's coordinates do not change when the Earth spins; neither do a star's.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Right ascension is measured in hours because it is a time."** It is an angle. Hours are used because the sky turns once in 24 hours, so RA tells you when a star crosses your meridian compared with others, which is very handy for observers.
+
+</div>
+
 ## 4. Worked example
 
 *How far apart on the sky are two made-up stars at the same declination +60°, one at RA 10h 00m and one at 10h 04m?*
@@ -80,6 +110,10 @@ Careful: a minute of RA is *not* the same angle as a minute of arc, and on the s
 The RA difference is 4 min = `$4 \times 15' = 60' = 1^\circ$`. But at Dec +60°, `$\cos 60^\circ = 0.5$`, so they are only `$1^\circ \times 0.5 = 0.5^\circ$` apart: about the width of the full Moon. On the celestial equator the same RA step would be the full 1°.
 
 ## 5. Practice
+
+<div class="problem" data-problem="ra-degrees"></div>
+
+**More practice** (answers below):
 
 1. Convert RA 18h 36m 56s (Vega) to degrees.
 2. Convert Dec −16° 42′ 58″ (Sirius) to decimal degrees.
@@ -92,6 +126,17 @@ The RA difference is 4 min = `$4 \times 15' = 60' = 1^\circ$`. But at Dec +60°,
 2. `$-(16 + 42/60 + 58/3600) = -16.716^\circ$`.
 3. September, at the September equinox.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Dec is sky latitude (−90° to +90°); RA is sky longitude (0 h to 24 h).
+- 1 h of RA = 15°; 1 min = 15′; 1 s = 15″.
+- RA and Dec stay fixed to the stars, unlike alt-az.
+- The ecliptic is tilted 23.4° to the celestial equator.
+
+</div>
 
 **Try it with real numbers:** convert between RA/Dec, alt-az, ecliptic and galactic coordinates with [[sky-coordinates]], or browse objects by their coordinates in the [[observing-session]] planner.
 

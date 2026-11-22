@@ -20,7 +20,9 @@ sources:
   - "Rods and cones, rhodopsin and dark adaptation: standard physiology texts; see for example Kolb, Fernandez and Nelson (eds.), Webvision, University of Utah"
 ---
 
-**Module 3 · about 20 minutes · no maths needed.** You'll be able to explain how the eye adapts to darkness, protect your night vision at the telescope, and use averted vision to see fainter objects.
+**Module 3 · about 20 minutes · read first: [1.7 How bright is it? The magnitude scale](/learn/courses/sky-watching/magnitudes/) · maths: no maths needed.** You'll be able to explain how the eye adapts to darkness, protect your night vision at the telescope, and use averted vision to see fainter objects.
+
+<div class="bigidea">Your eyes take 20 to 40 minutes to reach full night sensitivity and one glance at a white screen undoes it; rods, red light and averted vision are the keys to seeing faint things.</div>
 
 ## 1. Why this matters
 
@@ -50,9 +52,37 @@ Things to notice:
 - Turn phones to night or red mode, at the lowest brightness. (This site's red-light button, in the header, does exactly that.)
 - Don't look at the Moon or planets through a big telescope just before a faint galaxy.
 
+
+<div class="meaning">
+
+<dl>
+<dt>Rods</dt><dd>Very sensitive, colour-blind cells; packed away from the centre of the eye.</dd>
+<dt>Cones</dt><dd>Colour cells in the centre (fovea); need more light.</dd>
+<dt>Δm = 2.5 log₁₀(gain)</dt><dd>A sensitivity gain of 10,000 is about 10 magnitudes.</dd>
+<dt>Physical meaning</dt><dd>The rods are like a camera set to a very high sensitivity that takes half an hour to warm up and is wiped by any bright flash. They sit away from the centre of your eye, so looking slightly to the side of a faint object (averted vision) puts its light onto them.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Carrots give you night vision."** Vitamin A is needed to make rhodopsin, so a real deficiency harms night vision, but extra carrots do not improve normal eyes. The story was spread as British wartime cover for radar.
+
+</div>
+
 ## 4. Averted vision
 
 Because the fovea has almost no rods, a faint object looked at directly can vanish. Look **a little to one side**, about 8° to 16° away, usually towards your nose, and it pops back. Experienced observers do this all the time: the target sits in rod-rich retina while the eye stays pointed nearby. Gently tapping the telescope also helps, since the eye notices movement better than still light.
+
+Your eyes during the first half hour outside:
+
+<div class="steps">
+<div class="step"><b>Minute 0.</b> Stepping out of a lit room, you see only the brightest stars. The pupil opens from about 2 mm to 6 or 7 mm within seconds.</div>
+<div class="step"><b>Minutes 1 to 10.</b> The cones (colour cells) adapt first and level off.</div>
+<div class="step"><b>Minutes 10 to 40.</b> The rods slowly rebuild their light-sensitive pigment, rhodopsin. Faint stars and the Milky Way appear.</div>
+<div class="step"><b>Full adaptation.</b> You now see about 10,000 times fainter than in daylight, but in grey only.</div>
+<div class="step"><b>Protect it.</b> Rods hardly respond to deep red light, so a dim red torch keeps your night vision. A white phone screen resets you in seconds.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -82,6 +112,10 @@ So an older observer loses about 0.7 magnitudes by eye. This also matters for bi
 
 ## 6. Practice
 
+<div class="problem" data-problem="pupil-gain"></div>
+
+**More practice** (answers below):
+
 1. A red torch reduces your limiting magnitude by 0.1 and a white phone screen by 2. How many times more light does a star need to be visible after the phone?
 2. Why can colour be seen in bright planets but not in faint nebulae by eye?
 3. Where in your field of view should you place a faint galaxy for averted vision?
@@ -93,6 +127,17 @@ So an older observer loses about 0.7 magnitudes by eye. This also matters for bi
 2. Planets are bright enough for cones; faint nebulae only trigger rods, which can't see colour.
 3. A little to one side, usually towards your nose, about 8° to 16° from where you look.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Full dark adaptation takes 20 to 40 minutes, mostly the rods.
+- Bright white light undoes it in seconds; use dim red light.
+- Averted vision puts faint light onto the rods and gains about 1 magnitude.
+- Night vision is in grey: faint nebulae look colourless to the eye.
+
+</div>
 
 **Try it on the real sky:** pick a Moon-free night with the [[dark-sky-calendar]], and switch this site to red light (header button) before you go out.
 

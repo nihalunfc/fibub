@@ -17,10 +17,14 @@ quiz:
     choices: ["Mars must be in the right place when you arrive, and the planets line up that way every synodic period", "Rockets need two years to build", "The Sun blocks Mars otherwise"]
     ans: 0
     why: "The Earth-Mars arrangement repeats every synodic period, about 780 days."
-sources: []
+sources:
+  - "Hohmann transfers, launch windows and the rocket equation: NASA JPL, Basics of Space Flight, science.nasa.gov/learn/basics-of-space-flight"
+  - "Tsiolkovsky, K. E. (1903), Exploration of outer space by means of reaction devices (the rocket equation)"
 ---
 
-**Module 2 · about 25 minutes · square roots and logarithms.** You'll be able to describe a Hohmann transfer, work out its two burns and flight time, and use the rocket equation to find how much of a rocket must be fuel.
+**Module 2 · about 25 minutes · read first: [2.2 Newton's gravity and orbital speed](/learn/courses/astronomy/newtons-gravity/), [2.3 Describing an orbit: the six elements](/learn/courses/astronomy/orbital-elements/) · maths: square roots and logarithms.** You'll be able to describe a Hohmann transfer, work out its two burns and flight time, and use the rocket equation to find how much of a rocket must be fuel.
+
+<div class="bigidea">To reach another planet you don't aim at it: you speed up into an ellipse that touches both orbits, and the rocket equation says each change of speed costs fuel exponentially.</div>
 
 ## 1. Why this matters
 
@@ -37,6 +41,16 @@ Things to notice:
 - For Mars (1.52 AU) the flight takes about 260 days, half the period of the transfer ellipse.
 - Going further costs more, but not without limit: very distant orbits need less extra speed than you might guess, and the flight time grows long.
 - A faster exhaust shrinks the mass ratio a lot: the fuel cost grows exponentially with Δv.
+
+Fly a Hohmann transfer from Earth to Mars:
+
+<div class="steps">
+<div class="step"><b>Start in Earth's orbit.</b> You already move round the Sun at 29.8 km/s with Earth.</div>
+<div class="step"><b>First burn.</b> Speed up by about 2.9 km/s along Earth's direction of motion. Your circle becomes an ellipse whose far end reaches Mars's orbit.</div>
+<div class="step"><b>Coast.</b> Half an ellipse takes about 259 days. You slow down as you climb away from the Sun.</div>
+<div class="step"><b>Arrive.</b> At the far end you are slower than Mars. A second burn of about 2.6 km/s matches its orbit.</div>
+<div class="step"><b>Timing.</b> Mars must arrive at the meeting point when you do, so launch windows come every 26 months.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -66,6 +80,24 @@ v = \sqrt{GM\left(\frac{2}{r} - \frac{1}{a}\right)}
 
 A rocket pushes itself forward by throwing mass backwards, so each extra km/s means carrying fuel, and the fuel to carry that fuel, and so on. That is why the mass ratio grows exponentially. The Hohmann transfer is cheap because it uses the Sun's gravity to do the coasting; the price is time, and the need for Mars to arrive at the meeting point exactly when you do.
 
+
+<div class="meaning">
+
+<dl>
+<dt>v = √(GM(2/r − 1/a))</dt><dd>Vis-viva: speed at distance r on an orbit of size a.</dd>
+<dt>Δv</dt><dd>Change of speed a manoeuvre needs; the "price" of a trip.</dd>
+<dt>Δv = v<sub>e</sub> ln(m₀ / m<sub>f</sub>)</dt><dd>Rocket equation: speed gained from burning fuel with exhaust speed v<sub>e</sub>.</dd>
+<dt>Physical meaning</dt><dd>A rocket moves by throwing mass backwards, like a skater pushing off by throwing heavy balls. But the fuel for later burns must itself be carried and pushed by earlier ones, so each extra km/s multiplies the fuel needed instead of adding to it.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Rockets need air to push against."** A rocket pushes on its own exhaust, not on the air. It works best in a vacuum, where no air resists it.
+
+</div>
+
 ## 4. Worked example
 
 *A probe with a chemical engine (v_e = 3.5 km/s) makes both Earth-to-Mars burns, 5.6 km/s in total. What fraction of its starting mass must be fuel?*
@@ -78,6 +110,10 @@ Only `$1/4.95 = 20\%$` of the starting mass is left at the end: 80% was fuel. An
 
 ## 5. Practice
 
+<div class="problem" data-problem="rocket-equation"></div>
+
+**More practice** (answers below):
+
 1. For a Hohmann transfer from 1 AU to 4 AU, what is the transfer ellipse's `$a_t$`, and how long is the flight?
 2. An ion engine has `$v_e$` = 30 km/s. What mass ratio does it need for 5.6 km/s?
 3. Why does a transfer to Venus (0.72 AU) start with a burn backwards?
@@ -89,6 +125,17 @@ Only `$1/4.95 = 20\%$` of the starting mass is left at the end: 80% was fuel. An
 2. `$e^{5.6/30} = e^{0.187} = 1.21$`: only 17% fuel. Ion engines push very gently, though, so they take months to deliver it.
 3. To fall inwards you must slow down, lowering the near side of the orbit to Venus's distance.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- A Hohmann transfer is half an ellipse touching both orbits.
+- Burns speed up or slow down along the direction of motion.
+- Rocket equation: m₀ / m<sub>f</sub> = e<sup>Δv / v<sub>e</sub></sup>, so fuel grows exponentially with Δv.
+- Launch windows open when the planets line up right.
+
+</div>
 
 **Try it with real numbers:** plan transfers with the [[orbit-transfer-calculator]], find launch windows on a [[porkchop-plot]], and size a rocket with the [[rocket-equation]] tool.
 

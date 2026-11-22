@@ -16,10 +16,14 @@ quiz:
     choices: ["Colour fringes", "Slow drift in declination and field rotation", "Brighter stars"]
     ans: 1
     why: "If the axis is off the pole, stars slowly drift north or south and the field rotates around the guide star."
-sources: []
+sources:
+  - "Meeus, J. (1998), Astronomical Algorithms, 2nd ed., Willmann-Bell (sidereal rate)"
+  - "Polaris offset from the pole (rounded): SIMBAD, simbad.cds.unistra.fr"
 ---
 
-**Module 4 · about 25 minutes · uses Lessons 1.1 and 1.2.** You'll be able to compare alt-az and equatorial mounts, polar-align an equatorial mount, and work out how accurate the alignment must be.
+**Module 4 · about 25 minutes · read first: [1.1 The celestial sphere: a map painted on a dome](/learn/courses/sky-watching/celestial-sphere/), [1.2 Why the sky turns: daily motion and circumpolar stars](/learn/courses/sky-watching/turning-sky/), [4.5 Refractors, reflectors and catadioptrics](/learn/courses/sky-watching/telescope-types/) · maths: uses Lessons 1.1 and 1.2.** You'll be able to compare alt-az and equatorial mounts, polar-align an equatorial mount, and work out how accurate the alignment must be.
+
+<div class="bigidea">A mount holds the telescope and follows the sky; an equatorial mount tilts one axis to point at the celestial pole so one motor can track, and polar alignment is lining that axis up.</div>
 
 ## 1. Why this matters
 
@@ -46,6 +50,16 @@ Things to notice:
 - With a 5′ error and 2″ pixels, drift stays under 1 pixel for only about 90 seconds. Many imagers aim for under 1′.
 - For visual observing, even 1° of error only means nudging the declination knob now and then.
 
+Polar-align an equatorial mount at 45° N:
+
+<div class="steps">
+<div class="step"><b>Level the tripod</b> and point the mount's polar axis roughly north.</div>
+<div class="step"><b>Set the latitude.</b> Tilt the polar axis to 45°, your latitude, so it is parallel to Earth's axis.</div>
+<div class="step"><b>Find the pole.</b> Through the polar scope, put Polaris on its small circle at the position for tonight (Polaris is 0.6° from the true pole).</div>
+<div class="step"><b>Track.</b> Now turning only the RA axis at one turn per sidereal day keeps a star centred.</div>
+<div class="step"><b>Check.</b> If the axis is 5′ off, a star drifts about 0.02″ per second in declination: over 10 minutes, about 13″, enough to trail at long focal lengths.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -66,6 +80,24 @@ t_\text{max} = \frac{s}{\varepsilon\,\omega_\oplus}
 **Try it:** `$\varepsilon = 10' = 600''$`, `$s = 1.5''$`: `$t_\text{max} = 1.5 / (600 \times 7.29\times10^{-5}) = 34$` s.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>Alt-az mount</dt><dd>Up-down and left-right axes; needs two motors and field rotation to track.</dd>
+<dt>Equatorial mount</dt><dd>One axis parallel to Earth's axis; one motor tracks.</dd>
+<dt>t<sub>max</sub> = s / (ε ω)</dt><dd>Longest exposure before a polar error ε drifts one pixel s.</dd>
+<dt>Physical meaning</dt><dd>Earth spins around its axis. Tilt the mount's main axis so it is parallel to Earth's and you have built a little Earth axis in reverse: turning it backwards at Earth's rate exactly cancels the spin, and stars stay put.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Polar alignment means pointing the telescope at Polaris."** It means pointing the mount's polar axis at the celestial pole, which is 0.6° from Polaris. The telescope itself can point anywhere.
+
+</div>
+
 ## 4. Worked example
 
 *How accurate for 3-minute guided-free exposures at 1.2″ per pixel?* We need
@@ -78,6 +110,10 @@ That is achievable with a good polar scope or a camera-based routine, but not by
 
 ## 5. Practice
 
+<div class="problem" data-problem="polar-drift"></div>
+
+**More practice** (answers below):
+
 1. Your latitude is 23° N. At what altitude do you set the polar axis?
 2. With a 2′ error, how far does a star drift in 5 minutes (worst case)?
 3. Why do alt-az mounts cause field rotation but equatorial mounts don't?
@@ -89,6 +125,17 @@ That is achievable with a good polar scope or a camera-based routine, but not by
 2. `$120'' \times 7.29\times10^{-5} \times 300 = 2.6''$`.
 3. An alt-az mount keeps "up" pointing at the zenith, but a star's orientation relative to the zenith changes as it crosses the sky. An EQ mount turns about the same axis as the sky, so the field turns with it.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Alt-az mounts are simple; equatorial mounts track with one motor.
+- Polar axis tilt = your latitude, pointed at the celestial pole.
+- Polaris is about 0.6° from the true pole.
+- Polar error causes declination drift: ε × 7.29 × 10⁻⁵ per second.
+
+</div>
 
 **Try it on the real sky:** find where Polaris sits in your polar scope right now, and how to correct, with the [[polar-alignment]] tool.
 

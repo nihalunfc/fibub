@@ -22,7 +22,9 @@ sources:
   - "IAU 2006 Resolution B5 (definition of a planet)"
 ---
 
-**Module 2 · about 25 minutes · density and a temperature formula.** You'll be able to sort the planets into families, work out a planet's density and a simple temperature, and tell asteroids, comets and dwarf planets apart.
+**Module 2 · about 25 minutes · read first: [2.1 Kepler's laws](/learn/courses/astronomy/keplers-laws/), [1.2 Blackbody radiation: colour is temperature](/learn/courses/astronomy/blackbody-radiation/) · maths: density and a temperature formula.** You'll be able to sort the planets into families, work out a planet's density and a simple temperature, and tell asteroids, comets and dwarf planets apart.
+
+<div class="bigidea">Rocky planets formed near the Sun where only rock and metal could stay solid; giants formed further out where ice was plentiful; and density and temperature, worked out from simple measurements, tell the story.</div>
 
 ## 1. Why this matters
 
@@ -44,6 +46,16 @@ Things to notice:
 - Density splits the planets cleanly into two groups.
 - On log axes, the periods fall on a straight line of slope 1.5: Kepler's third law (Lesson 2.1).
 - The simple temperature falls steadily with distance; real Venus and Earth are warmer because of their air.
+
+Walk outwards through the Solar System:
+
+<div class="steps">
+<div class="step"><b>Mercury to Mars.</b> Small, dense worlds (4 to 5.5 g/cm³) of rock and iron, close enough to the Sun that ice boiled away.</div>
+<div class="step"><b>The asteroid belt.</b> Rocky leftovers between Mars and Jupiter that never formed a planet.</div>
+<div class="step"><b>The snow line.</b> Beyond about 3 AU it is cold enough for water ice. Solid material is suddenly plentiful and cores grow fast.</div>
+<div class="step"><b>Jupiter and Saturn.</b> Big cores grabbed hydrogen and helium gas. Saturn's density, 0.69 g/cm³, is less than water.</div>
+<div class="step"><b>Uranus, Neptune and beyond.</b> Ice giants, then the Kuiper belt of icy bodies like Pluto, and far out the source of comets.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -67,6 +79,24 @@ T_\text{eq} = T_\odot\sqrt{\frac{R_\odot}{2d}}\,(1 - A)^{1/4}
 
 Near the young Sun it was too warm for ice, so only rock and metal could clump into solid lumps, and there was not much of them: the inner planets stayed small. Beyond the **frost line**, a little outside Mars's orbit today, water froze too, giving far more solid material. Cores grew to several Earth masses, heavy enough to pull in the abundant hydrogen and helium, and the giants were born. The temperature formula is energy balance: sunlight in equals infrared out.
 
+
+<div class="meaning">
+
+<dl>
+<dt>ρ = M / (4/3 πR³)</dt><dd>Density: mass per volume, a clue to what a planet is made of.</dd>
+<dt>A (albedo)</dt><dd>Fraction of sunlight a surface reflects.</dd>
+<dt>T<sub>eq</sub> ∝ (1 − A)<sup>1/4</sup> / √d</dt><dd>Equilibrium temperature: falls with the square root of distance from the Sun.</dd>
+<dt>Physical meaning</dt><dd>Density sorts worlds the way weight sorts luggage: a heavy small case is full of books, a light big one is full of clothes. Iron is about 8 g/cm³, rock 3, ice 1 and hydrogen gas much less, so one number says roughly what a planet is made of.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Asteroid belts are crowded fields of rocks you must dodge."** Asteroids in our belt are typically hundreds of thousands of kilometres apart. Spacecraft cross the belt without steering around anything.
+
+</div>
+
 ## 4. Worked example
 
 *Earth has mass 5.97 × 10²⁴ kg and radius 6,371 km. What is its average density, and what does it say?*
@@ -79,6 +109,10 @@ Surface rocks are about 2.7 to 3 g/cm³, so the inside must be much denser: an i
 
 ## 5. Practice
 
+<div class="problem" data-problem="planet-density"></div>
+
+**More practice** (answers below):
+
 1. Jupiter is 5.2 AU from the Sun with albedo 0.34. Estimate its equilibrium temperature using Earth's 254 K.
 2. A small moon has mass 1 × 10¹⁶ kg and radius 11 km. What is its density, and what might it be made of?
 3. What is the difference between a dwarf planet and an asteroid?
@@ -90,6 +124,17 @@ Surface rocks are about 2.7 to 3 g/cm³, so the inside must be much denser: an i
 2. `$\rho = 10^{16}/(\tfrac{4}{3}\pi\times(1.1\times10^4)^3) = 1{,}790$` kg/m³, about 1.8 g/cm³: rock mixed with ice, or loose rubble with gaps (Mars's moon Phobos is like this).
 3. A dwarf planet is massive enough for its gravity to pull it round; most asteroids are too small and stay lumpy.
 </details>
+
+<div class="keypoints">
+
+**Key points**
+
+- Inner planets are small, rocky and dense; outer planets are giant, gassy and icy.
+- The snow line, about 3 AU, divides the two kinds.
+- Density ρ = M / (4/3 πR³) tells rock from gas; Earth is 5.5 g/cm³.
+- Equilibrium temperature falls as 1/√d and depends on albedo.
+
+</div>
 
 **Try it with real numbers:** compare the planets in the [[planet-data-explorer]], estimate impact craters with the [[impact-crater-calculator]], and keep Mars time with [[mars-time]].
 
