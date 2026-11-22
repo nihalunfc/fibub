@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './photon-phonon-gases.more.gen.js';
+import more2 from './photon-phonon-gases.more2.gen.js';
 
 const Z3 = 1.2020569, Z32 = 2.6123753, Z52 = 1.3414873;
 const aRad = (Math.PI ** 2 * C.kB ** 4) / (15 * C.hbar ** 3 * C.c ** 3); // J m^-3 K^-4
@@ -210,6 +211,7 @@ export default {
       q: 'In the Debye model of a crystal of $N$ atoms with sound speed $v_s$, which statements are correct?',
       options: ['The cut-off is chosen so that the total number of modes is $3N$', 'At $T \\ll \\theta_D$ the phonon energy is proportional to $T^4$', 'At $T \\gg \\theta_D$ the heat capacity approaches $3Nk$', 'The number of thermal phonons is independent of temperature'], answer: [0, 1, 2],
       sol: '$\\int_0^{\\omega_D}g(\\omega)d\\omega = 3N$ defines $\\omega_D$. Low $T$: photon-like gas with three polarisations, $U \\propto T^4$, $C \\propto T^3$. High $T$: every mode classical, $3Nk$. Phonon number is not conserved; at low $T$ it grows as $T^3$.' },
+    ...more2,
   ],
   gens: [
     { id: 'phgas-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'photon number',

@@ -3,6 +3,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './postulates-operators.more.gen.js';
+import more2 from './postulates-operators.more2.gen.js';
 
 const HBAR_EVFS = 0.6582119569; // hbar in eV fs
 const H_EVFS = 4.135667696; // h in eV fs
@@ -216,6 +217,7 @@ export default {
       answer: 0.78, tol: 0.005, calc: () => Math.cos(Math.PI / 20) ** 20,
       sol: 'Between measurements $P_1(\\tau) = \\cos^2(V\\tau/\\hbar)$, and each "yes" resets the state to $|1\\rangle$. With $\\tau = T/10$, $V\\tau/\\hbar = \\pi/20$. So $P = \\cos^{20}(\\pi/20) = (0.98769)^{20} = 0.78$. Frequent measurement freezes the evolution (the quantum Zeno effect): as the number of measurements grows, $P \\to 1$.',
       trap: 'Multiplying probabilities of $\\cos^2$ at the total time, or using $\\cos$ instead of $\\cos^2$.' },
+    ...more2,
   ],
   gens: [
     { id: 'qpo-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'expectation values',

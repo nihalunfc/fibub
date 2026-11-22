@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub), MSc level. Kept apart from the JAM kinetic-theory topic.
 import { pick, int, choose, mcqOptions, round, shuffle, C } from '../_util.js';
 import more from './classical-gas-equipartition.more.gen.js';
+import more2 from './classical-gas-equipartition.more2.gen.js';
 
 const kBe = 8.617333e-5; // eV/K
 const lam = (mu, T) => C.h / Math.sqrt(2 * Math.PI * mu * C.u * C.kB * T); // thermal wavelength, m (mu in u)
@@ -207,6 +208,7 @@ export default {
       q: 'For a classical ideal gas of $N$ atoms in an isotropic harmonic trap $\\tfrac12m\\omega^2r^2$, which statements are correct?',
       options: ['$U = 3NkT$', '$C = 3Nk$', 'The cloud radius grows as $\\sqrt T$', 'The peak density is independent of temperature'], answer: [0, 1, 2],
       sol: 'Six quadratic terms per atom: $U = 3NkT$, $C = 3Nk$ (twice the box value). The density is Gaussian with $\\sigma = \\sqrt{kT/m\\omega^2}$, so its size grows as $\\sqrt T$ and the peak density $N/(2\\pi\\sigma^2)^{3/2}$ falls as $T^{-3/2}$.' },
+    ...more2,
   ],
   gens: [
     { id: 'cgeq-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'thermal wavelength',

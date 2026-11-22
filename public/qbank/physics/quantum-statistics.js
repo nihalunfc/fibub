@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, shuffle, C } from '../_util.js';
 import more from './quantum-statistics.more.gen.js';
+import more2 from './quantum-statistics.more2.gen.js';
 
 const kBe = 8.617333e-5;
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
@@ -205,6 +206,7 @@ export default {
       q: 'For an ideal quantum gas in a 3D box with $g(\\varepsilon) \\propto \\sqrt\\varepsilon$, which relations hold for both bosons and fermions?',
       options: ['$PV = \\tfrac23U$', '$PV = kT\\ln\\mathcal Z$', '$U = \\tfrac32NkT$ exactly at every temperature', 'In an adiabatic (isentropic) change, $PV^{5/3}$ is constant'], answer: [0, 1, 3],
       sol: 'With $\\varepsilon \\propto V^{-2/3}$ for every level, $P = -\\langle\\partial E/\\partial V\\rangle = \\tfrac23U/V$ whatever the statistics. $\\ln\\mathcal Z = PV/kT$ always. Isentropic means fixed occupations, so $U \\propto V^{-2/3}$ and $PV^{5/3}$ is constant. But $U = \\tfrac32NkT$ only in the classical limit; a degenerate Fermi gas has $U \\to \\tfrac35NE_F$ at $T = 0$.' },
+    ...more2,
   ],
   gens: [
     { id: 'qstat-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'counting',

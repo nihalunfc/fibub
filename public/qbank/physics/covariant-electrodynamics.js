@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './covariant-electrodynamics.more.gen.js';
+import more2 from './covariant-electrodynamics.more2.gen.js';
 
 const c = C.c;
 const K = 1 / (4 * Math.PI * C.eps0);
@@ -244,6 +245,7 @@ export default {
       options: ['A boost along $x$ removes the magnetic field', 'A boost along $x$ removes the electric field', 'The fields are those of a static capacitor seen from a moving frame', 'Both invariants vanish: boosts along $x$ scale both fields by $\\sqrt{(1 - \\beta)/(1 + \\beta)}$, but neither can be removed'], answer: 3,
       sol: '$E^2 - c^2B^2 = 0$ and $\\vec E\\cdot\\vec B = 0$: a null field, like a plane wave. $E\'_y = \\gamma(E - vE/c) = \\gamma(1 - \\beta)E$ and $cB\'_z = \\gamma(1 - \\beta)E$: both shrink together for $\\beta > 0$ and grow for $\\beta < 0$. Removing one would make the first invariant non-zero; a static capacitor seen from a moving frame always has $E > cB$.',
       trap: 'Crossed fields with $E = cB$ exactly sit on the boundary: no drift frame exists ($v = c$).' },
+    ...more2,
   ],
 
   gens: [

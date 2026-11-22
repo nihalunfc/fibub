@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './waveguides.more.gen.js';
+import more2 from './waveguides.more2.gen.js';
 
 const c = C.c;
 const ETA0 = Math.sqrt(C.mu0 / C.eps0);
@@ -281,6 +282,7 @@ export default {
       answer: 31.9, tol: 0.3, unit: 'dB/cm', calc: () => { const kc = 1.841 / 0.005, k = (2 * Math.PI * 1e9) / c; return Math.sqrt(kc * kc - k * k) * 0.01 * 20 * Math.log10(Math.E); },
       sol: '$k_c = 1.841/0.005 = 368.2$ m$^{-1}$, $k = 2\\pi f/c = 20.96$ m$^{-1}$, so $\\alpha = \\sqrt{k_c^2 - k^2} = 367.6$ Np/m $= 3.676$ Np/cm $= 8.686\\times3.676 = 31.9$ dB/cm. Far below cutoff the result hardly depends on frequency, which is what makes such attenuators precise.',
       trap: 'Using the TM$_{01}$ zero (2.405) gives a larger, wrong attenuation: the least-attenuated mode, TE$_{11}$, dominates.' },
+    ...more2,
   ],
 
   gens: [
