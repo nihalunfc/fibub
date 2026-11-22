@@ -6,6 +6,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './magnetism.more.gen.js';
+import more2 from './magnetism.more2.gen.js';
 
 const muB = C.e * C.hbar / (2 * C.me);
 const landeG = (L, S, J) => 1 + (J * (J + 1) + S * (S + 1) - L * (L + 1)) / (2 * J * (J + 1));
@@ -205,6 +206,7 @@ export default {
       q: 'Eu$^{3+}$ (4f$^6$) has ground term $^7F_0$ with $J = 0$, yet europium(III) salts are paramagnetic at room temperature. The main reason is',
       options: ['the crystal field restores an orbital moment in the $J = 0$ state', 'the nucleus carries a large magnetic moment', 'the ion is really Eu$^{2+}$ with $^8S_{7/2}$', 'the $J = 1, 2, \\dots$ levels lie only a few hundred kelvin above, so they are thermally occupied, and the field also mixes them into the ground state (Van Vleck paramagnetism)'], answer: 3,
       sol: 'A $J = 0$ state has no first-order moment, but $\\mathbf L + 2\\mathbf S$ has matrix elements to the $^7F_1$ level about 500 K higher. Second-order mixing gives a temperature-independent Van Vleck susceptibility $\\propto|\\langle1|\\mu_z|0\\rangle|^2/\\Delta$, and at room temperature the excited multiplets are also thermally populated. Sm$^{3+}$ shows a similar effect.' },
+    ...more2,
   ],
   gens: [
     { id: 'mgx-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Landé g factor',

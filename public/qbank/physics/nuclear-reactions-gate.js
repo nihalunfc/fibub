@@ -6,6 +6,7 @@
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './nuclear-reactions-gate.more.gen.js';
+import more2 from './nuclear-reactions-gate.more2.gen.js';
 
 const HBARC = 197.327, MN = 939.565, MP = 938.272, NA = 6.02214076e23, QE = 1.602176634e-19;
 // mass excesses in MeV (AME 2020); symbol -> [Delta, Z, A]
@@ -245,6 +246,7 @@ export default {
       options: ['At $\\theta = 90^\\circ$, $Q$ follows from $T_a$ and $T_b$ without the square-root term', 'For an exoergic reaction on a very heavy target, $T_b$ hardly changes with angle', 'For a given $T_a$, the most energetic $b$ particles (higher root) come out at $0^\\circ$', '$T_b$ does not depend on $T_a$'], answer: [0, 1, 2],
       sol: 'At $90^\\circ$, $\\cos\\theta = 0$. As $m_Y \\to \\infty$ the angle term $\\propto 1/m_Y$ vanishes and $T_b \\to T_a + Q$ at all angles. The positive root grows with $\\cos\\theta$, so it is largest forward. $T_b$ clearly depends on $T_a$.',
       trap: 'Recoil corrections shrink as the residual nucleus gets heavier.' },
+    ...more2,
   ],
   gens: [
     { id: 'nrg-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Q value',

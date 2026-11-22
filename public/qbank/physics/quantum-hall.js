@@ -5,6 +5,7 @@
 // graphene, Landauer conductance quanta and Coulomb blockade. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './quantum-hall.more.gen.js';
+import more2 from './quantum-hall.more2.gen.js';
 
 const R = String.raw;
 const H = C.h, E = C.e, HBAR = C.hbar, ME = C.me;
@@ -233,6 +234,7 @@ export default {
       options: [R`The conductance rises in steps of $2e^2/h$ as the constriction is widened.`, R`The steps exist only in a strong magnetic field.`, R`The resistance of a ballistic single-mode wire does not depend on its length.`, R`A perfect (reflectionless) single-mode wire still has resistance $h/2e^2$.`], answer: [0, 2, 3],
       sol: R`Each transverse mode below the Fermi energy carries current $(2e/h)\,e V$ (velocity times 1D density of states is $2/h$ per unit energy, spin included, independent of energy). Widening opens modes one at a time: steps of $2e^2/h$ at $B = 0$. With no scattering inside, the length does not matter; the resistance $h/2e^2$ per mode comes from the contacts.`,
       trap: 'The steps are seen at zero field (van Wees and Wharam, 1988); a field only modifies them.' },
+    ...more2,
   ],
   gens: [
     { id: 'qhe-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'filling factor',

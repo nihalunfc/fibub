@@ -6,6 +6,7 @@
 // covers biasing and load lines. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './amplifiers-feedback.more.gen.js';
+import more2 from './amplifiers-feedback.more2.gen.js';
 
 const G = ['gate', 'net'];
 const db = (x) => 20 * Math.log10(x);
@@ -225,6 +226,7 @@ export default {
       options: ['100 Hz', '1 kHz', '10 Hz', '10 kHz'], answer: 0,
       sol: 'Above the dominant pole $f_d$ the loop gain is about $T_0f_d/f$. Setting it to 1 at 1 MHz: $f_d = 10^6/10^4 = 100$ Hz. At that crossover the second pole adds $-45^\\circ$ to the dominant pole\'s $-90^\\circ$, leaving about 45° of margin (a little more in fact, since the second pole also lowers the magnitude).',
       trap: 'Placing the dominant pole at $10^6/\\sqrt{10^4}$ or similar guesses; use the gain-bandwidth argument.' },
+    ...more2,
   ],
   gens: [
     { id: 'af-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'feedback basics',

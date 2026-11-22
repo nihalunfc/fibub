@@ -6,6 +6,7 @@
 // stability. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './collective-model.more.gen.js';
+import more2 from './collective-model.more2.gen.js';
 
 const R = String.raw;
 const HC = 197.327, MN = 939.0;
@@ -236,6 +237,7 @@ export default {
       options: [R`$R_{4/2}\approx2.0$: harmonic vibrator`, R`$R_{4/2}\approx1.0$: well-deformed rotor`, R`$R_{4/2}\approx2.5$: $\gamma$-soft rotor`, R`$R_{4/2}\approx3.33$: axially symmetric rigid rotor`], answer: [0, 2, 3],
       sol: R`The three limits of the interacting boson model: U(5) vibrator ($R = 2$), O(6) $\gamma$-soft ($R = 2.5$), SU(3) rotor ($R = 10/3$). Real nuclei move from below 2 near closed shells, through 2 to 2.5 in transitional regions, to 3.3 mid-shell. A value near 1 would mean $4^+$ and $2^+$ almost degenerate, which happens only in special single-particle (seniority) cases near closed shells.`,
       trap: 'Rotors have the largest ratio, not the smallest.' },
+    ...more2,
   ],
   gens: [
     { id: 'coll-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rotational bands', unit: 'keV',

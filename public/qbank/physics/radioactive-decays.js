@@ -6,6 +6,7 @@
 // topic nuclei-radioactivity.) Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './radioactive-decays.more.gen.js';
+import more2 from './radioactive-decays.more2.gen.js';
 
 const ALPHA = 1 / 137.036, MA = 3727.379, HBARC = 197.327, KE2 = 1.44, U = 931.494, HBAR_EVS = 6.582120e-16, CL = 2.99792458e8;
 const twoG = (Z, Q, R) => { const B = 2 * Z * KE2 / R, x = Q / B; return 2 * Math.sqrt(2 * MA * Q) / HBARC * (2 * Z * KE2 / Q) * (Math.acos(Math.sqrt(x)) - Math.sqrt(x * (1 - x))); };
@@ -237,6 +238,7 @@ export default {
       options: ['The alpha kinetic energy is slightly less than $Q$, because the daughter recoils', 'Alpha spectra consist of discrete lines, sometimes several (fine structure), one for each daughter level reached', 'Alpha decay is energetically allowed for most nuclei with $A \\gtrsim 150$, but is observed only where the half-life is not astronomically long', 'The alpha particle has more kinetic energy than the height of the Coulomb barrier'], answer: [0, 1, 2],
       sol: 'Momentum sharing gives $T_\\alpha = Q(A - 4)/A$. Each final level gives a line. $Q_\\alpha > 0$ for most heavy nuclei, but with small $Q$ the half-life exceeds the age of the universe. The alpha energy (4 to 9 MeV) is far below the barrier (about 25 MeV): it escapes by tunnelling.',
       trap: 'If the alpha were above the barrier, decay would take about $10^{-21}$ s.' },
+    ...more2,
   ],
   gens: [
     { id: 'rdk-g01', type: 'nat', level: 3, exams: ['gate', 'net'], sub: 'Weisskopf estimates',

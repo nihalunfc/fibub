@@ -6,6 +6,7 @@
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './deuteron-nuclear-force.more.gen.js';
+import more2 from './deuteron-nuclear-force.more2.gen.js';
 
 const R = String.raw;
 const HC = 197.327, MN = 938.92, MU = MN / 2;     // MeV fm; nucleon mass (average) and n-p reduced mass in MeV
@@ -243,6 +244,7 @@ export default {
       options: ['halves', 'stays the same', 'roughly quadruples (to over 100 MeV), because V₀R² must stay above π²ħ²/8μ', 'doubles exactly'], answer: 2,
       sol: R`The condition $kR\gtrsim\pi/2$ fixes $V_0R^2 \gtrsim \pi^2\hbar^2/8\mu = 102$ MeV fm$^2$. At $R = 2$ fm, $V_0 \approx 37$ MeV; at $R = 1$ fm, $V_0 \approx 123$ MeV (solving $k\cot kR = -\kappa$). Only the product $V_0R^2$ (the well's "strength") is fixed by a weakly bound state, which is why low-energy data cannot fix the shape.`,
       trap: R`It is $V_0R^2$, not $V_0R$, that stays roughly constant.` },
+    ...more2,
   ],
   gens: [
     { id: 'deut-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Yukawa theory',

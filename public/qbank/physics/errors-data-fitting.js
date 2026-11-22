@@ -5,6 +5,7 @@
 // Original questions for CSIR NET (and GATE) practice (fibub). Basics of probability live in the `probability` topic.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './errors-data-fitting.more.gen.js';
+import more2 from './errors-data-fitting.more2.gen.js';
 
 // erf by Abramowitz-Stegun 7.1.26 (error below 1.5e-7) and by Simpson integration (used by verify).
 const erf = (x) => { const s = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.3275911 * a); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a)); };
@@ -224,6 +225,7 @@ export default {
       options: ['$\\langle x^2\\rangle = \\mu^2$ exactly', '$\\langle\\ln x\\rangle$ is approximately $\\ln\\mu + \\sigma^2/(2\\mu^2)$', '$\\langle x^2\\rangle = \\mu^2 + \\sigma^2$, so squaring before averaging gives a larger result', '$\\langle 1/x\\rangle = 1/\\mu$ to second order in $\\sigma$'], answer: 2,
       sol: '$\\langle x^2\\rangle = \\langle x\\rangle^2 + \\text{var}(x) = \\mu^2 + \\sigma^2$ exactly. In general $\\langle f\\rangle \\approx f(\\mu) + \\tfrac12f\'\'(\\mu)\\sigma^2$: $\\ln$ is concave so $\\langle\\ln x\\rangle \\approx \\ln\\mu - \\sigma^2/2\\mu^2$, and $1/x$ is convex so $\\langle1/x\\rangle \\approx (1/\\mu)(1 + \\sigma^2/\\mu^2)$.',
       trap: 'Averaging a non-linear function is not the same as applying it to the average.' },
+    ...more2,
   ],
   gens: [
     { id: 'edf-g01', type: 'nat', level: 2, exams: ['gate', 'net', 'jam'], sub: 'error propagation',

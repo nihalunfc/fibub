@@ -6,6 +6,7 @@
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './defects-dislocations.more.gen.js';
+import more2 from './defects-dislocations.more2.gen.js';
 
 const R = String.raw;
 const KB = 8.617333e-5; // eV/K
@@ -233,6 +234,7 @@ export default {
       options: ['A dislocation line cannot end inside a perfect crystal; it ends at a surface, a grain boundary or a node, or closes into a loop.', 'The Burgers vector is the same at every point along one dislocation line.', 'A pure screw dislocation has a unique slip plane.', 'Climb is a conservative motion that needs no diffusion.'], answer: [0, 1],
       sol: R`The Burgers circuit around a line gives the same closure failure wherever it is drawn, so $\vec b$ is constant, and a line ending inside perfect crystal would let a circuit slip off it to give zero: impossible. At a node the vectors add up ($\sum\vec b_i = 0$ for lines pointing out). A screw has $\vec b\parallel\hat\xi$, so every plane containing the line is a slip plane; climb adds or removes atoms and needs diffusion.`,
       trap: 'Along a curved loop the character (edge, screw, mixed) changes, but b does not.' },
+    ...more2,
   ],
   gens: [
     { id: 'def-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'vacancy concentration',

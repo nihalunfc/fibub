@@ -5,6 +5,7 @@
 // deformation energy. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './binding-energy-semf.more.gen.js';
+import more2 from './binding-energy-semf.more2.gen.js';
 
 const AV = 15.8, AS = 18.3, AC = 0.714, AA = 23.2, AP = 12;   // MeV; pairing delta = AP/sqrt(A)
 const U = 931.494, DNH = 0.782;                              // MeV per u; (m_n - m_H)c^2
@@ -249,6 +250,7 @@ export default {
       options: ['Its size is roughly $12/\\sqrt A$ MeV, about 1 MeV in heavy nuclei', 'It explains why only four stable odd-odd nuclei exist', 'It gives odd-$A$ isobars two separate mass parabolas', 'It causes the odd-even zigzag of neutron separation energies'], answer: [0, 1, 3],
       sol: 'Pairing lifts odd-odd nuclei above their even-even neighbours by about $2\\delta$, so they nearly always have a downhill decay. It produces the zigzag in $S_n$ and $S_p$. Odd-$A$ isobars all have $\\delta = 0$, so they share one parabola; two parabolas belong to even $A$.',
       trap: 'Mixing up which $A$ has two parabolas.' },
+    ...more2,
   ],
   gens: [
     { id: 'bse-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'separation energy',
