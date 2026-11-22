@@ -8,6 +8,7 @@ const R = 8.314;
 
 import * as Q5 from '../_util.js';
 import more2 from './first-law.more2.gen.js';
+import r4 from './first-law.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -222,6 +223,7 @@ export default {
       options: ['The work done by the gas when its temperature rises by $\\Delta T$ is $2R\\Delta T$', 'The molar heat capacity for this process is $\\tfrac72 R$', 'The process is polytropic with $PV^{1/2} = $ constant', 'The gas cools as it expands'], answer: [0, 1, 2],
       sol: 'A: $P = RT/V = R/(aT)$ and $dV = 2aT\\,dT$, so $P\\,dV = 2R\\,dT$. B: $C = C_V + 2R = \\tfrac32R + 2R = \\tfrac72R$. C: $T \\propto V^{1/2}$ and $P = RT/V \\propto V^{-1/2}$, so $PV^{1/2}$ is constant ($n = \\tfrac12$; check: $C_V - R/(n - 1) = 1.5R + 2R$). D: $V$ grows with $T$, so expansion heats the gas.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'fst-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'work', unit: 'J', format: 'graph',
@@ -357,5 +359,6 @@ export default {
           sol: `$PV^{\\gamma}$ is constant with $\\gamma = ${gs}$, so $P_2/P_1 = ${k}^{${gs}} \\approx ${round(k ** g, 2)}$.`,
           trap: `$${k}^{\\gamma - 1}$ is the temperature ratio; $${k}$ would be an isothermal compression.` };
       } },
+    ...r4.gens,
   ],
 };

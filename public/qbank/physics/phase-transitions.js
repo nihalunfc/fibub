@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle, C } from '../_util.js';
 import more from './phase-transitions.more.gen.js';
 import more2 from './phase-transitions.more2.gen.js';
+import r4 from './phase-transitions.r4.gen.js';
 
 const kBe = 8.617333e-5;
 const mf = (t) => { if (t >= 1) return 0; let m = 1; for (let i = 0; i < 2000; i++) m = Math.tanh(m / t); return m; }; // m = tanh(m/t)
@@ -198,6 +199,7 @@ export default {
       options: ['It ignores correlated fluctuations of the order parameter', 'It overestimates $T_c$', 'It predicts a phase transition even in one dimension', 'It gives exact exponents in two and three dimensions'], answer: [0, 1, 2],
       sol: 'Replacing neighbours by their average drops fluctuations, which favour disorder; so $T_c$ comes out too high (4 vs 2.27 for the square lattice) and a transition is wrongly predicted in 1D. Its exponents are exact only above four dimensions (or for long-range forces).' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'phtr-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'mean-field Ising',
@@ -315,5 +317,6 @@ export default {
           sol: `${which === 'mean-field theory' ? 'Mean field: $\\alpha = 0$ (jump), $\\beta = 1/2$, $\\gamma = 1$, $\\delta = 3$, $\\nu = 1/2$.' : '2D Ising (Onsager, Yang): $\\alpha = 0$ (log), $\\beta = 1/8$, $\\gamma = 7/4$, $\\delta = 15$, $\\nu = 1$.'} Both sets satisfy $\\alpha + 2\\beta + \\gamma = 2$ and $\\gamma = \\beta(\\delta - 1)$.` };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -15,6 +15,7 @@ const WRONG = ['$\\left(\\frac{\\partial S}{\\partial V}\\right)_T = -\\left(\\f
 
 import * as Q5 from '../_util.js';
 import more2 from './thermodynamic-potentials.more2.gen.js';
+import r4 from './thermodynamic-potentials.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -219,6 +220,7 @@ export default {
       options: ['$S$ is extensive (homogeneous of degree 1)', 'Its equation of state is $PV = U$', 'Its heat capacity $C_V$ grows as $T^{1/2}$', 'Its heat capacity $C_V$ falls as $T$ rises'], answer: [0, 1, 2],
       sol: 'A: scaling $U, V, N$ by $\\lambda$ scales $(NVU)^{1/3}$ by $\\lambda$. $1/T = \\partial S/\\partial U = S/(3U)$ and $P/T = \\partial S/\\partial V = S/(3V)$; dividing gives $P = U/V$ (B). From $1/T = \\tfrac{c}{3}(NV)^{1/3}U^{-2/3}$: $U = (cT/3)^{3/2}(NV)^{1/2}$, so $C_V = dU/dT \\propto T^{1/2}$ (C), which grows with $T$ (D false).' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'tpot-t21', type: 'mcq', level: 2, exams: ['jam', 'gate'], sub: 'equilibrium',
@@ -352,5 +354,6 @@ export default {
           sol: `Equate the mixed second derivatives of ${k}: the coefficients in $${d}$ are its first derivatives, so ${rel}.`,
           trap: 'Get the sign from the signs of the two terms in the differential: one minus sign in it means a minus sign in the relation.' };
       } },
+    ...r4.gens,
   ],
 };
