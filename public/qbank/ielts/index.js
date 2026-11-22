@@ -13,6 +13,7 @@ export default {
       tfng: 'True / False / Not Given', ynng: 'Yes / No / Not Given', headings: 'Matching headings', summary: 'Summary and note completion',
       matchinfo: 'Matching information', features: 'Matching features', endings: 'Sentence endings', diagram: 'Diagram and flow-chart labels',
       task1: 'Academic Task 1 reports', data: 'Describing data', letter: 'Letters', tone: 'Tone and phrases',
+      essay: 'Task 2 essays', essaylang: 'Essay skills', interview: 'Speaking Part 1 questions', cue: 'Part 2 cue cards', discussion: 'Part 3 discussion', speaklang: 'Speaking skills',
     } },
   },
   units: [
@@ -32,6 +33,14 @@ export default {
       { id: 'writing-task1', name: 'Academic Task 1: charts, maps and processes' },
       { id: 'writing-data', name: 'Describing data (endless)' },
       { id: 'writing-letters', name: 'General Training letters' },
+      { id: 'writing-task2', name: 'Task 2 essays' },
+      { id: 'writing-essay-skills', name: 'Essay skills: questions, thesis, paragraphs, linking' },
+    ] },
+    { id: 'speaking', name: 'Speaking', topics: [
+      { id: 'speaking-part1', name: 'Part 1: questions about you' },
+      { id: 'speaking-part2', name: 'Part 2: cue cards' },
+      { id: 'speaking-part3', name: 'Part 3: discussion' },
+      { id: 'speaking-skills', name: 'Speaking skills: answers, fillers, linking' },
     ] },
   ],
 };
