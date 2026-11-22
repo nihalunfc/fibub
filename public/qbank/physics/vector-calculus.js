@@ -3,6 +3,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './vector-calculus.more.gen.js';
 import more2 from './vector-calculus.more2.gen.js';
+import r4 from './vector-calculus.r4.gen.js';
 
 export default {
   topic: 'vector-calculus',
@@ -117,6 +118,7 @@ export default {
       sol: '$\\nabla\\cdot(\\hat r/r^2) = 4\\pi\\delta^3(\\vec r)$. The integral picks out $(r^2+2)$ at $r = 0$: $4\\pi\\times2 = 8\\pi$.',
       trap: 'Evaluating $r^2 + 2$ at the surface ($r = 3$) gives $44\\pi$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'vc-g01', type: 'nat', level: 2, exams: ['jam', 'gate'], sub: 'divergence',
@@ -182,5 +184,6 @@ export default {
       },
       verify: (p) => (p.y * p.z * p.u + p.x * p.z * p.v + p.x * p.y * p.w) / p.L },
     ...more,
+    ...r4.gens,
   ],
 };
