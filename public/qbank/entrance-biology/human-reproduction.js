@@ -359,6 +359,108 @@ const CELLS = [
   ['a blastomere', 2, 'comes from mitotic divisions of the zygote'], ['a cell of the inner cell mass', 2, 'comes from mitotic divisions of the zygote'], ['a trophoblast cell', 2, 'comes from mitotic divisions of the zygote'],
 ];
 const PHASES = [[1, 5, 'menstrual phase'], [6, 13, 'follicular (proliferative) phase'], [14, 14, 'ovulation'], [15, 28, 'luteal (secretory) phase']];
+// ---------------------------------------------------------------- Level 5 round (v5): top-rank items with fixed ids
+const V5 = ['neet'];
+const V5POS = [1, 3, 0, 2, 2, 0, 3, 1, 1, 2, 3, 0];
+let v5i = 0;
+const v5take = () => V5POS[v5i++ % V5POS.length];
+const v5place = (correct, wrongs) => { const p = v5take(); const o = [...wrongs]; o.splice(p, 0, correct); return [o, p]; };
+function v5mc(id, sub, q, correct, wrongs, sol, trap, format = 'single', group) {
+  const [options, answer] = v5place(correct, wrongs);
+  items.push({ id, type: 'mcq', level: 5, format, exams: V5, sub, ...(group ? { group } : {}), q, options, answer, sol, ...(trap ? { trap } : {}) });
+}
+function v5asr(id, sub, A, R, ans, sol, trap) {
+  items.push({ id, type: 'mcq', level: 5, format: 'assertion', exams: V5, sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AR, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function v5stm(id, sub, s1, s2, ans, sol, trap) {
+  items.push({ id, type: 'mcq', level: 5, format: 'statements', exams: V5, sub, q: `<b>Statement I:</b> ${s1}<br><b>Statement II:</b> ${s2}`, options: ST, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function v5cnt(id, sub, q, correct, wrongs, sol, trap) { v5mc(id, sub, q, correct, wrongs, sol, trap, 'statements'); }
+function v5match(id, sub, key, title, list1, list2, ans, sol, trap) {
+  groups[key] = { title, list1, list2 };
+  const L = 'ABCD';
+  const code = (a) => a.map((c, i) => `${L[i]}-${c}`).join(', ');
+  const a = ans.split('');
+  const sw = (i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return code(b); };
+  const [options, answer] = v5place(code(a), [sw(0, 1), sw(2, 3), sw(0, 2)]);
+  items.push({ id, type: 'mcq', level: 5, format: 'match', exams: V5, sub, group: key, q: 'Match List I with List II and choose the correct code.', options, answer, sol, ...(trap ? { trap } : {}) });
+}
+function v5pass(key, title, passage) { groups[key] = { title, passage }; }
+
+v5mc('hr-v501', 'male system', 'Which cells of the testis stay in contact with the wall of the seminiferous tubule and also reach its lumen, with the developing germ cells held between them?', 'Sertoli cells', ['Leydig cells', 'spermatogonia', 'primary spermatocytes'],
+  'Idea: the Sertoli cells are the supporting (nurse) cells that span the seminiferous tubule from the wall to the lumen and nourish the germ cells; spermiation releases sperm from them into the lumen. Leydig cells lie outside the tubules, in the interstitial spaces. Spermatogonia lie at the periphery, and primary spermatocytes are displaced inwards; neither stays connected to the lumen.',
+  'Leydig cells are in the spaces between the tubules, not in them.');
+v5mc('hr-v502', 'gametogenesis', 'Five primary spermatocytes and five primary oocytes complete meiosis. Every secondary oocyte is fertilised, and every first polar body also divides. How many of the haploid cells formed can <b>not</b> act as gametes?', '15', ['10', '20', '5'],
+  'Idea: one primary spermatocyte gives four spermatids, all of which become sperm. One primary oocyte gives one ovum and three polar bodies (the first polar body divides into two, and the secondary oocyte gives a second polar body). So the cells that cannot act as gametes: 5 &times; 3 = 15. The value 10 forgets that the first polar body divides. The value 20 counts the sperm instead.',
+  'One oocyte gives one functional gamete and three polar bodies if the first polar body divides.');
+v5mc('hr-v503', 'male system', 'Both seminal vesicles of a healthy man are removed surgically; the testes, epididymis and vasa deferentia are normal. Which result is expected?', 'Spermatogenesis goes on as before, but the semen has a smaller volume and lacks the fructose-rich secretion', ['Spermatogenesis stops because the androgen level falls', 'Sperm cannot leave the testis, so there are no sperm in the testis', 'The sperm are formed but cannot enter the urethra at all'],
+  'Idea: the seminal vesicles are accessory glands that add fluid (rich in fructose) to the semen. Sperm are made in the seminiferous tubules, under the control of the hormones of the testis, which do not depend on the seminal vesicles. The vasa deferentia still join the ejaculatory duct, so sperm still reach the urethra. Only the volume and the energy-rich fluid fall.',
+  'Accessory glands add to the semen but do not make or move the sperm.');
+v5mc('hr-v504', 'gametogenesis', 'Which statement is true of both a spermatid and a second polar body of a human?', 'Both are haploid, with 23 chromosomes, each of a single chromatid', ['Both are formed from a diploid cell by meiosis I', 'Both have 46 chromosomes', 'Both are functional gametes as soon as they are formed'],
+  'Idea: both are products of meiosis II. A secondary spermatocyte or a secondary oocyte has 23 chromosomes of two chromatids each. Meiosis II separates the chromatids, so each product has 23 single-chromatid chromosomes. A spermatid still needs spermiogenesis to become a sperm, and a polar body is not a gamete. Meiosis I is the division that halves the number from 46 to 23.',
+  'Meiosis I halves the chromosome number; meiosis II separates the chromatids.');
+
+v5match('hr-v505', 'numbers', 'v5m1', 'Numbers from the human reproductive system',
+  ['A. Compartments (testicular lobules) in each testis', 'B. Primary follicles in each ovary at puberty', 'C. Mammary lobes in each breast', 'D. Length of each fallopian tube'],
+  ['p. 15 to 20', 'q. About 250', 'r. 10 to 12 cm', 's. 60,000 to 80,000', 't. 2 to 4 cm'], 'qspr',
+  'Each testis has about 250 lobules. Each ovary has 60,000 to 80,000 primary follicles at puberty (from about 2 to 4 million at birth). Each breast has 15 to 20 mammary lobes. The oviduct is about 10 to 12 cm long. The value 2 to 4 cm is the length of the ovary, which is not in List I.',
+  'The ovary is 2 to 4 cm and the oviduct 10 to 12 cm; do not swap them.');
+v5match('hr-v506', 'gametogenesis', 'v5m2', 'Cells of oogenesis and their chromosomes and chromatids',
+  ['A. Primary oocyte arrested in prophase I (after DNA replication)', 'B. First polar body, as formed', 'C. Second polar body, as formed', 'D. Zygote just after the fusion of the nuclei'],
+  ['p. 23 chromosomes, 46 chromatids', 'q. 23 chromosomes, 23 chromatids', 'r. 46 chromosomes, 92 chromatids', 's. 46 chromosomes, 46 chromatids', 't. 92 chromosomes, 92 chromatids'], 'rpqs',
+  'The primary oocyte has 46 chromosomes, each of two chromatids (92). Meiosis I gives a haploid cell of 23 chromosomes of two chromatids each: the secondary oocyte and the first polar body (46 chromatids). Meiosis II separates the chromatids, so the second polar body has 23 chromosomes of one chromatid (23). The zygote is diploid, with 46 single-chromatid chromosomes before it replicates its DNA.',
+  'Count chromosomes by centromeres, and chromatids by DNA strands.');
+v5match('hr-v507', 'fertilisation and early development', 'v5m3', 'Event and the place where it happens',
+  ['A. Fertilisation', 'B. First cleavage divisions of the zygote', 'C. Change of the morula into a blastocyst', 'D. Implantation'],
+  ['p. In the uterine cavity', 'q. In the endometrium', 'r. At the ampullary-isthmic junction', 's. In the isthmus of the fallopian tube, on the way to the uterus', 't. In the infundibulum'], 'rspq',
+  'Fertilisation takes place at the ampullary-isthmic junction. The zygote divides as it moves through the isthmus towards the uterus, giving a 2, 4, 8 and 16 celled morula. The morula changes into the blastocyst as it moves further into the uterus. The blastocyst embeds in the endometrium (implantation).',
+  'The infundibulum only collects the ovum; fertilisation is not there.');
+v5match('hr-v508', 'hormones', 'v5m4', 'Event and the hormone that triggers it',
+  ['A. Rupture of the Graafian follicle', 'B. Change of spermatids into sperm (spermiogenesis)', 'C. Ejection of milk when the baby sucks', 'D. Regrowth of the endometrium in the follicular phase'],
+  ['p. FSH acting on the Sertoli cells', 'q. LH surge', 'r. Oxytocin', 's. Oestrogen', 't. Prolactin'], 'qprs',
+  'The surge of LH in the middle of the cycle makes the Graafian follicle rupture. FSH acts on the Sertoli cells and stimulates factors that help spermiogenesis. Suckling releases oxytocin, which causes milk ejection. Oestrogen from the growing follicles regenerates the endometrium. Prolactin makes the milk but does not eject it.',
+  'Prolactin makes milk; oxytocin ejects it.');
+
+v5asr('hr-v509', 'male hormones', 'In the male, the secretion of androgens depends on LH and not on FSH.', 'LH acts on the Leydig cells in the interstitial spaces, whereas FSH acts on the Sertoli cells inside the seminiferous tubules.', 0,
+  'Both are true and R explains A. Androgens are made by the Leydig cells, and the Leydig cells have receptors for LH. FSH acts on the Sertoli cells and stimulates factors that help spermiogenesis, so it does not drive androgen synthesis.',
+  'LH goes with Leydig, FSH with Sertoli.');
+v5asr('hr-v510', 'oogenesis', 'A primary oocyte becomes a secondary oocyte before the girl is born.', 'Meiosis I of the oogonia begins and is arrested at prophase I during embryonic life.', 3,
+  'Assertion A is false: the primary oocytes formed in the foetus stay arrested at prophase I. Only after puberty, inside a tertiary follicle, does a primary oocyte complete meiosis I and become a secondary oocyte. Reason R is true.',
+  'The arrested cell at birth is a primary oocyte.');
+v5asr('hr-v511', 'male system', 'In the testis, the cells that undergo meiosis lie inside the seminiferous tubules.', 'The Leydig cells divide by meiosis to produce androgens.', 2,
+  'Assertion A is true: spermatogonia divide by mitosis and primary spermatocytes undergo meiosis, all inside the tubules. Reason R is false: Leydig cells do not divide by meiosis, and they make androgens by synthesis, not by division.',
+  'Meiosis makes gametes only.');
+v5asr('hr-v512', 'male system', 'The seminal plasma is rich in fructose, calcium and some enzymes.', 'The seminal vesicles are paired glands, while the prostate is a single gland.', 1,
+  'Both statements are true, but R does not explain A. The seminal plasma gets its fructose and other secretions from the accessory glands, but the number of the glands (paired or single) does not explain what the plasma contains.',
+  'A true reason need not be the explanation.');
+
+v5cnt('hr-v513', 'mammary gland', 'How many of the following statements are correct? (i) A mammary gland has 15 to 20 mammary lobes containing clusters of alveoli. (ii) The cells of the alveoli secrete milk. (iii) The alveoli open directly into the lactiferous duct. (iv) Several mammary ducts join to form a wider mammary ampulla. (v) The mammary tubules of each lobe join to form the mammary ampulla.', 'Three', ['Two', 'Four', 'Five'],
+  '(i) True. (ii) True. (iii) False: the alveoli open into mammary tubules. (iv) True: several mammary ducts join to form the ampulla, which connects to the lactiferous duct. (v) False: the tubules of each lobe join to form a mammary duct, not the ampulla. So (i), (ii) and (iv) are correct: three.',
+  'The order is alveoli, tubules, duct, ampulla, lactiferous duct.');
+v5stm('hr-v514', 'ovary', 'The number of primary follicles in an ovary at puberty is smaller than at birth.', 'At puberty the primary follicles of the ovary contain secondary oocytes.', 2,
+  'Statement I is correct: about 2 to 4 million at birth fall to 60,000 to 80,000 at puberty. Statement II is incorrect: primary follicles contain primary oocytes arrested at prophase I. The secondary oocyte forms only in a tertiary follicle after puberty.',
+  'Secondary oocytes are never found in primary follicles.');
+v5stm('hr-v515', 'oogenesis', 'The second polar body is formed in the tertiary follicle before ovulation.', 'The first polar body is formed in the tertiary follicle before ovulation.', 3,
+  'Statement I is incorrect: the second polar body forms only after the entry of a sperm, when the secondary oocyte completes meiosis II. Statement II is correct: the primary oocyte of the tertiary follicle completes meiosis I and gives the secondary oocyte and the first polar body.',
+  'Meiosis II is completed after sperm entry.');
+v5stm('hr-v516', 'fertilisation', 'Fertilisation can take place only if the ovum and the sperm reach the ampullary-isthmic junction at the same time.', 'Therefore not every coitus leads to fertilisation and pregnancy.', 0,
+  'Both are correct. Fertilisation needs the sperm and the ovum to be transported to the ampullary-isthmic junction together, which explains why not all copulations lead to pregnancy.',
+  null);
+v5cnt('hr-v517', 'gametogenesis', 'How many of the following statements are correct? (i) A secondary spermatocyte has 23 chromosomes, each of two chromatids. (ii) A spermatid has 23 chromosomes, each of one chromatid. (iii) A first polar body has 23 chromosomes, each of two chromatids. (iv) A second polar body has 46 chromatids. (v) A primary spermatocyte at metaphase I has 92 chromatids.', 'Four', ['Two', 'Three', 'Five'],
+  '(i) True. (ii) True. (iii) True: meiosis I separates homologous chromosomes, not chromatids. (iv) False: a second polar body is haploid, with 23 single-chromatid chromosomes, so 23 chromatids. (v) True: 46 chromosomes, each of two chromatids. So four are correct.',
+  'A haploid cell after meiosis II has 23 chromatids, not 46.');
+
+v5pass('v5p1', 'Three men, one fault each', 'Three adult men each have one fault. Man X: his Leydig cells do not respond to LH. Man Y: his Sertoli cells do not respond to FSH, but his pituitary and Leydig cells are normal. Man Z: both of his vasa deferentia are blocked, but his testes, pituitary and hormone levels are normal.');
+v5mc('hr-v518', 'male system', 'The man whose semen contains seminal plasma but no sperm, even though sperm are being formed normally in his testes, is', 'Z', ['X', 'Y', 'all three'],
+  'The sperm of Z are made but cannot pass beyond the blocked vasa deferentia, so the ejaculatory duct carries only the secretions of the accessory glands. X has low androgens, which disturbs sperm formation. Y has a fault in sperm formation (spermiogenesis).',
+  null, 'passage', 'v5p1');
+v5mc('hr-v519', 'male hormones', 'The man who is expected to have a low level of androgens is', 'X', ['Y', 'Z', 'none of them'],
+  'Androgens are made by the Leydig cells under the control of LH. In X the Leydig cells do not respond to LH, so androgens fall. In Y and Z the Leydig cells and LH are normal.',
+  null, 'passage', 'v5p1');
+v5mc('hr-v520', 'male hormones', 'The man who has a normal androgen level and normal male secondary sexual characters, but poor sperm formation in the testes, is', 'Y', ['X', 'Z', 'both X and Z'],
+  'In Y the Leydig cells are normal, so androgens and the secondary sexual characters are normal. His Sertoli cells do not respond to FSH, so the factors that help spermiogenesis are missing. X has low androgens. Z forms sperm normally.',
+  null, 'passage', 'v5p1');
+
 const gens = [
   {
     id: 'hr-g01', type: 'nat', level: 3, format: 'integer', exams: ['neet'], sub: 'counting sperm',

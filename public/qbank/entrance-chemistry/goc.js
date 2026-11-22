@@ -675,9 +675,122 @@ xgen({ type: 'mcq', level: 4, sub: 'aromaticity',
       sol: `<p>Check the four conditions: ring, planar, continuous conjugation, and the number of &pi; electrons (4n + 2 aromatic, 4n antiaromatic).</p><p>${name[0].toUpperCase() + name.slice(1)}: <b>${T[k]}</b>.</p>`, trap: 'A ring with an sp<sup>3</sup> carbon, or a tub shape, cannot be aromatic or antiaromatic.' };
   }, verify: (p) => p.options.indexOf(p.T[p.k]) });
 
-export default {
+// ---------------------------------------------------------------- Level 5 round (added 2026-11-22)
+const V5P = 'go';
+const V5I = [], V5GR = {}, V5G = []; let _v5 = 0, _v5pos = 2;
+const V5EX = ['jee-adv'];
+const V5A4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const V5S4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const v5id = () => `${V5P}-v5${String(++_v5).padStart(2, '0')}`;
+const v5opts = (right, wrongs) => { const pos = (_v5pos++) % 4; const options = [...wrongs]; options.splice(pos, 0, right); return { options, answer: pos }; };
+const v5single = (sub, q, right, wrongs, sol, trap, format = 'single', group) => { const o = v5opts(right, wrongs); const it = { id: v5id(), type: 'mcq', level: 5, format, exams: V5EX, sub, q, options: o.options, answer: o.answer, sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) }; V5I.push(it); return it; };
+const v5nat = (sub, q, answer, tol, unit, sol, trap, format, group) => { V5I.push({ id: v5id(), type: 'nat', level: 5, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: V5EX, sub, q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) }); };
+const v5msq = (sub, q, options, answer, sol, trap) => { V5I.push({ id: v5id(), type: 'msq', level: 5, format: 'multi', exams: V5EX, sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const v5fixed = (sub, q, options, answer, sol, trap, format) => { V5I.push({ id: v5id(), type: 'mcq', level: 5, format, exams: V5EX, sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const v5asr = (sub, A, R, answer, sol, trap) => v5fixed(sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, V5A4, answer, sol, trap, 'assertion');
+const v5stm = (sub, s1, s2, answer, sol, trap) => v5fixed(sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, V5S4, answer, sol, trap, 'statements');
+const v5match = (sub, title, l1, l2, map, sol, trap) => {
+  const gid = `v5m${Object.keys(V5GR).length + 1}`; const L = 'ABCD', Q = 'pqrst';
+  V5GR[gid] = { title, list1: l1.map((t, i) => `${L[i]}. ${t}`), list2: l2.map((t, i) => `${Q[i]}. ${t}`) };
+  const code = (m) => m.map((x, i) => `${L[i]}-${x}`).join(', ');
+  const sw = (a, i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return b; };
+  const wr = [sw(map, 0, 1), sw(map, 1, 2), sw(map, 2, 3), sw(map, 0, 3), sw(map, 0, 2)].map(code).filter((c) => c !== code(map));
+  v5single(sub, 'Match the entries of List I with those of List II and choose the correct code.', code(map), wr.slice(0, 3), sol, trap, 'match', gid);
+};
+const v5passage = (gid, title, passage) => { V5GR[gid] = { title, passage }; };
+const v5gen = (g) => V5G.push({ ...g, id: `${V5P}-v5g${V5G.length + 1}`, level: 5, exams: V5EX });
+v5nat('counting isomers', '<p>How many isomers (structural isomers and stereoisomers, with each enantiomer counted separately) are possible for C<sub>4</sub>H<sub>6</sub>Cl<sub>2</sub> that contain a four-membered carbon ring and no other ring or double bond?</p>', 6, 0, '',
+  '<p>Idea: the ring is cyclobutane with two Cl atoms. Sort by positions, then check stereochemistry.</p><p>1,1-dichloro: 1 (no stereoisomers).</p><p>1,2-dichloro: cis (meso, a plane of symmetry) 1, trans (two enantiomers, no plane) 2: total 3.</p><p>1,3-dichloro: cis 1 and trans 1, both achiral (a plane through C2 and C4): total 2.</p><p>Total = 1 + 3 + 2 = <b>6</b>.</p>',
+  'trans-1,2 is the only chiral one, and it counts twice; cis-1,2 is meso.');
+v5nat('isomers of substitution products', '<p>2-Methylbutane is chlorinated in light and every mono-chloro product is collected. How many distinct compounds are present, counting enantiomers as separate compounds?</p>', 6, 0, '',
+  '<p>Idea: find the different kinds of C&ndash;H, replace one H, then look for chiral carbons.</p><p>2-Methylbutane is CH<sub>3</sub>&ndash;CH(CH<sub>3</sub>)&ndash;CH<sub>2</sub>&ndash;CH<sub>3</sub>. It has four kinds of H: the two equivalent CH<sub>3</sub> on C2, C2&ndash;H, C3&ndash;H<sub>2</sub> and the CH<sub>3</sub> on C3.</p><p>1) ClCH<sub>2</sub>CH(CH<sub>3</sub>)CH<sub>2</sub>CH<sub>3</sub>: C2 has H, CH<sub>3</sub>, CH<sub>2</sub>Cl, C<sub>2</sub>H<sub>5</sub>: chiral, 2 compounds.</p><p>2) (CH<sub>3</sub>)<sub>2</sub>CClCH<sub>2</sub>CH<sub>3</sub>: 1 compound.</p><p>3) (CH<sub>3</sub>)<sub>2</sub>CHCHClCH<sub>3</sub>: C3 has H, Cl, CH<sub>3</sub>, isopropyl: chiral, 2 compounds.</p><p>4) (CH<sub>3</sub>)<sub>2</sub>CHCH<sub>2</sub>CH<sub>2</sub>Cl: 1 compound.</p><p>Total = 2 + 1 + 2 + 1 = <b>6</b>.</p>',
+  'Counting only 4 structural isomers forgets that two of them are chiral.');
+v5nat('isomers of C<sub>4</sub>H<sub>10</sub>O', '<p>The total number of isomers of C<sub>4</sub>H<sub>10</sub>O that are alcohols or ethers, counting enantiomers separately, is</p>', 8, 0, '',
+  '<p>Idea: C<sub>4</sub>H<sub>10</sub>O has no ring or double bond, so it is an alcohol or an ether.</p><p>Alcohols: butan-1-ol, butan-2-ol, 2-methylpropan-1-ol, 2-methylpropan-2-ol = 4 structures.</p><p>Ethers: methoxypropane, ethoxyethane, 2-methoxypropane = 3 structures.</p><p>Butan-2-ol has a chiral carbon (H, OH, CH<sub>3</sub>, C<sub>2</sub>H<sub>5</sub>), so it has 2 enantiomers: +1.</p><p>Total = 4 + 3 + 1 = <b>8</b>.</p>',
+  'The answer 7 is the structural count; the chiral alcohol adds one more.');
+v5nat('dipole moments', '<p>Assume each C&ndash;Cl bond has the same moment, bond moments add as vectors, and all Cl&ndash;C=C angles are 120&deg;. If cis-1,2-dichloroethene has &mu; = 1.90 D, the dipole moment of 1,1-dichloroethene on this model is</p>', 1.1, 0.03, 'D',
+  '<p>Idea: find the bond moment m from the cis isomer, then add two vectors at a different angle.</p><p>In the cis isomer the two C&ndash;Cl bonds point 60&deg; apart, so &mu; = 2m cos 30&deg; = 1.732m = 1.90, so m = 1.097 D.</p><p>In the 1,1-isomer both Cl are on the same carbon, 120&deg; apart: &mu; = 2m cos 60&deg; = m = <b>1.10 D</b>.</p>',
+  'The angle between the bond vectors (60&deg; in cis, 120&deg; in 1,1) is not the Cl&ndash;C=C angle itself.');
+v5nat('inductive effect', '<p>The pK<sub>a</sub> of CH<sub>3</sub>COOH is 4.76 and that of ClCH<sub>2</sub>COOH is 2.86. How many times stronger an acid is chloroethanoic acid than ethanoic acid (K<sub>a</sub> ratio)?</p>', 79.4, 0.5, '',
+  '<p>pK<sub>a</sub> = &minus;log K<sub>a</sub>, so K<sub>a</sub>(Cl)/K<sub>a</sub>(H) = 10<sup>(4.76 &minus; 2.86)</sup> = 10<sup>1.90</sup> = <b>79.4</b>.</p><p>The &minus;I effect of Cl stabilises the carboxylate and raises K<sub>a</sub>.</p>',
+  'A difference of 1.9 in pK<sub>a</sub> is a factor of about 79, not 1.9 and not 1.66 (the ratio 4.76/2.86).');
+v5msq('acidity of benzoic acids', '<p>Take benzoic acid (pK<sub>a</sub> 4.20) as reference. Which statements are correct?</p>',
+  ['p-Nitrobenzoic acid is a stronger acid than benzoic acid', 'o-Methylbenzoic acid is a weaker acid than benzoic acid', 'p-Methoxybenzoic acid is a weaker acid than benzoic acid', 'm-Methoxybenzoic acid is a stronger acid than benzoic acid', 'p-Methylbenzoic acid is a stronger acid than benzoic acid'], [0, 2, 3],
+  '<p>(A) The &minus;M and &minus;I effects of NO<sub>2</sub> stabilise the anion: stronger (pK<sub>a</sub> 3.44). Correct.</p><p>(B) False. Almost any ortho substituent makes benzoic acid stronger (the ortho effect: it twists the COOH out of the ring plane and removes resonance with the ring), so o-methylbenzoic acid (3.91) is stronger.</p><p>(C) At para the +M effect of OMe dominates and destabilises the anion: weaker (4.47). Correct.</p><p>(D) At meta there is no resonance with COOH, only the &minus;I effect of oxygen: stronger (4.09). Correct.</p><p>(E) +I and hyperconjugation of CH<sub>3</sub> weaken the acid (4.37). False.</p>',
+  'OMe is acid-strengthening at meta but acid-weakening at para; ortho substituents behave differently from para.');
+v5msq('tautomerism', '<p>Which of these can show tautomerism?</p>', ['Propanone, CH<sub>3</sub>COCH<sub>3</sub>', 'Benzaldehyde, C<sub>6</sub>H<sub>5</sub>CHO', 'Nitromethane, CH<sub>3</sub>NO<sub>2</sub>', '2,2-Dimethylpropanal, (CH<sub>3</sub>)<sub>3</sub>CCHO', 'Phenol'], [0, 2, 4],
+  '<p>Tautomerism here means the movement of an H atom between two positions, with a shift of a double bond.</p><p>Propanone has &alpha;-H: keto and enol forms. Correct.</p><p>Nitromethane: CH<sub>3</sub>&ndash;N(=O)O has H on the carbon next to the N=O group, giving the aci-form CH<sub>2</sub>=N(OH)O. Correct.</p><p>Phenol has a keto tautomer, cyclohexa-2,4-dienone (strongly disfavoured, but it exists). Correct.</p><p>Benzaldehyde and 2,2-dimethylpropanal have no &alpha;-H, so no keto&ndash;enol tautomerism. False.</p>',
+  'No alpha-hydrogen means no keto-enol tautomerism, however many carbonyl groups there are.');
+v5msq('purification of organic compounds', '<p>Which statements about purification are correct?</p>',
+  ['Glycerol is purified by distillation under reduced pressure because it decomposes near its normal boiling point', 'Aniline is separated from non-volatile impurities by steam distillation', 'A mixture of an immiscible liquid and water in steam distillation boils above 373 K at 1 atm', 'o-Nitrophenol can be separated from p-nitrophenol by steam distillation', 'The R<sub>f</sub> value in chromatography can be greater than 1'], [0, 1, 3],
+  '<p>(A) Correct: lower pressure lowers the boiling point, so the liquid distils before it decomposes.</p><p>(B) Correct: aniline is immiscible with water, steam volatile and decomposes slightly at its own boiling point.</p><p>(C) False: the mixture boils when the sum of the two vapour pressures equals the atmospheric pressure, which happens below 373 K.</p><p>(D) Correct: o-nitrophenol has intramolecular H-bonding and is steam volatile; p-nitrophenol has intermolecular H-bonding and is not.</p><p>(E) False: R<sub>f</sub> = distance moved by the spot / distance moved by the solvent front, never above 1.</p>',
+  'In steam distillation the mixture boils below 100 &deg;C, which is why heat-sensitive liquids can be distilled.');
+v5match('reaction intermediates', 'Match each species with the description of the carbon that carries the charge',
+  ['(CH<sub>3</sub>)<sub>3</sub>C<sup>+</sup>', 'CH<sub>3</sub><sup>&minus;</sup>', 'HC&equiv;C<sup>&minus;</sup>', 'C<sub>6</sub>H<sub>5</sub><sup>&minus;</sup> (phenyl anion)'],
+  ['sp hybrid carbon with the lone pair in an sp orbital', 'planar carbon with an empty p orbital', 'pyramidal sp<sup>3</sup> carbon with a lone pair', 'sp<sup>2</sup> carbon with the lone pair in an sp<sup>2</sup> orbital in the plane of the ring', 'charge delocalised over three carbons'], ['q', 'r', 'p', 's'],
+  '<p>A: a carbocation is sp<sup>2</sup> and planar with an empty p orbital (q). B: a methyl carbanion is sp<sup>3</sup>, pyramidal, with a lone pair (r). C: the carbon of the acetylide ion is sp hybridised and the lone pair sits in an sp orbital (p). D: in the phenyl anion the lone pair is in an sp<sup>2</sup> orbital in the ring plane, and is not part of the &pi; system (s).</p>',
+  'The phenyl anion lone pair is not delocalised into the ring; it is not like the benzyl or allyl anion.');
+v5match('stereoisomerism', 'Match each pair in List I with the relationship in List II',
+  ['(2R,3R)- and (2S,3S)-2,3-dibromobutane', '(2R,3R)- and (2R,3S)-2,3-dibromobutane', '(2R,3S)- and (2S,3R)-2,3-dibromobutane', 'anti and gauche conformations of butane'],
+  ['enantiomers', 'diastereomers', 'the same compound', 'conformers', 'positional isomers'], ['p', 'q', 'r', 's'],
+  '<p>A: the two chiral centres are inverted together, so the pair are non-superimposable mirror images: enantiomers (p).</p><p>B: only one centre differs and they are not mirror images: diastereomers (q) (the (2R,3S) form is meso).</p><p>C: (2R,3S) and (2S,3R) are the same meso compound written with its centres labelled in the other order: the same compound (r).</p><p>D: rotation about the C2&ndash;C3 bond gives conformers (s).</p>',
+  'For a meso compound the (R,S) and (S,R) labels describe one molecule, not an enantiomeric pair.');
+v5passage('v5p1', 'Debromination of 2,3-dibromobutane', '<p>2,3-Dibromobutane, CH<sub>3</sub>CHBr&ndash;CHBrCH<sub>3</sub>, is treated with NaI in acetone. The two bromine atoms are removed in an anti elimination: they must lie at 180&deg; to each other (anti-periplanar) in the reacting conformation, and a C=C bond forms between the two carbons.</p>');
+v5nat('stereoisomers', 'The number of stereoisomers of 2,3-dibromobutane is', 3, 0, '', '<p>Two similar chiral centres: the (2R,3R) and (2S,3S) pair of enantiomers, plus the meso form (2R,3S) = (2S,3R). Total <b>3</b>, not 4.</p>', 'A molecule with two identical chiral centres has fewer than 2<sup>2</sup> stereoisomers because of the meso form.', 'passage', 'v5p1');
+v5single('stereospecific elimination', 'The meso isomer on anti debromination gives mainly', 'trans-but-2-ene', ['cis-but-2-ene', 'but-1-ene', 'a 1 : 1 mixture of cis- and trans-but-2-ene'],
+  '<p>Place the two Br atoms anti. In the meso isomer the two CH<sub>3</sub> groups are then also anti to each other (the conformer has a centre of symmetry). When the Br atoms leave, the CH<sub>3</sub> groups end up on opposite sides of the new C=C: <b>trans-but-2-ene</b>.</p><p>No hydrogen is removed, so but-1-ene cannot form, and the reaction is stereospecific, so not a 1 : 1 mixture.</p>', 'It is the fixed geometry of the anti arrangement that decides cis or trans, not alkene stability.', 'passage', 'v5p1');
+v5single('stereospecific elimination', 'Which statement about the (2R,3R) isomer is correct?', 'On anti debromination it gives only cis-but-2-ene, so the racemic mixture also gives only cis-but-2-ene, which is optically inactive', ['It gives optically active cis-but-2-ene, because the starting material is optically active', 'It gives trans-but-2-ene, the same as the meso isomer', 'It gives the same alkene as the meso isomer, because both are 2,3-dibromobutane'],
+  '<p>For (2R,3R) the conformation with Br anti has the two CH<sub>3</sub> groups gauche (on the same side), so removing both Br gives <b>cis-but-2-ene</b>. The product is achiral, so it is optically inactive however the starting material was; chirality of the substrate is lost when both centres are removed.</p><p>Meso gives trans, (R,R) and (S,S) give cis: a stereospecific reaction, so options 2, 3 and 4 are wrong.</p>', 'An optically active reactant does not always give an optically active product.', 'passage', 'v5p1');
+v5asr('basicity', 'Guanidine, HN=C(NH<sub>2</sub>)<sub>2</sub>, is a much stronger base than ordinary aliphatic amines.', 'Its conjugate acid is stabilised by resonance, the positive charge being shared equally by the three nitrogen atoms.', 0,
+  '<p>Protonation occurs on the =NH nitrogen. The guanidinium ion, C(NH<sub>2</sub>)<sub>3</sub><sup>+</sup>, has three equivalent resonance structures (charge on each N), so it is very stable and guanidine is a strong base (pK<sub>aH</sub> about 13.6, close to NaOH). R explains A: <b>option 1</b>.</p>', 'Resonance in the conjugate acid raises the basicity; resonance in the base itself usually lowers it (as in aniline).');
+v5single('hybridisation and shape', 'Which statement about allene (propadiene, CH<sub>2</sub>=C=CH<sub>2</sub>) is correct?', 'The central carbon is sp hybridised, C=C=C is linear, and the two CH<sub>2</sub> groups lie in mutually perpendicular planes', ['All the atoms lie in one plane, because every carbon is sp<sup>2</sup>', 'The central carbon is sp<sup>2</sup> hybridised and the C=C=C angle is about 120&deg;', 'The two &pi; bonds are formed by the same pair of p orbitals'],
+  '<p>The central carbon forms two &sigma; bonds and two &pi; bonds, so it is sp hybridised with a 180&deg; angle. Its two unhybridised p orbitals are perpendicular, so one &pi; bond lies in each of two perpendicular planes; the CH<sub>2</sub> groups therefore are in perpendicular planes. This is why an allene whose two end carbons each carry two different groups can be chiral.</p>', 'Cumulated double bonds are not coplanar like conjugated ones.');
+
+const V5GOC = { cis: 60, o: 60, m: 120 };
+v5gen({ type: 'nat', sub: 'dipole moments', make(rng) {
+  const mu = choose(rng, [1.2, 1.5, 1.6, 1.8, 2.0]); const kind = choose(rng, ['o', 'm']); const th = V5GOC[kind];
+  const R = 2 * mu * Math.cos((th / 2) * Math.PI / 180);
+  return { q: `Treat each C&ndash;Cl bond moment as ${mu} D in ${kind === 'o' ? 'o' : 'm'}-dichlorobenzene, add the two moments as vectors and take the ring as a perfect hexagon. The dipole moment of the ${kind === 'o' ? 'ortho' : 'meta'} compound in D is`, answer: +R.toFixed(3), tol: 0.03, unit: 'D', mu, th,
+    sol: `<p>The angle between the two C&ndash;X bond vectors is ${th}&deg; (${kind === 'o' ? 'neighbouring carbons of a hexagon' : 'carbons one apart'}).</p><p>&mu; = 2m cos(${th / 2}&deg;) = 2 &times; ${mu} &times; ${Math.cos((th / 2) * Math.PI / 180).toFixed(4)} = <b>${R.toFixed(3)} D</b>.</p>`, trap: 'The angle between bond vectors is 60&deg; (ortho), 120&deg; (meta), 180&deg; (para, giving zero).' }; },
+  verify: (p) => { const a = (p.th * Math.PI) / 180; return Math.hypot(p.mu + p.mu * Math.cos(a), p.mu * Math.sin(a)); } });
+v5gen({ type: 'mcq', sub: 'inductive effect', make(rng) {
+  const A = [['CH<sub>3</sub>COOH', 4.76], ['ClCH<sub>2</sub>COOH', 2.86], ['Cl<sub>2</sub>CHCOOH', 1.29], ['Cl<sub>3</sub>CCOOH', 0.65], ['FCH<sub>2</sub>COOH', 2.59], ['HCOOH', 3.75], ['C<sub>6</sub>H<sub>5</sub>COOH', 4.2]];
+  let i = int(rng, 0, A.length - 1), j = int(rng, 0, A.length - 1); while (A[i][1] >= A[j][1]) { i = int(rng, 0, A.length - 1); j = int(rng, 0, A.length - 1); }
+  const d = A[j][1] - A[i][1]; const ratio = 10 ** d; const rt = (v) => fmt(v, 3);
+  const { options, answer } = shuffleOpts(rng, rt(ratio), [rt(d), rt(A[j][1] / A[i][1]), rt(ratio / 10)]);
+  return { q: `The pK<sub>a</sub> values are ${A[i][0]} ${A[i][1]} and ${A[j][0]} ${A[j][1]}. About how many times stronger an acid is ${A[i][0]} than ${A[j][0]}?`, options, answer, ratio, d, ri: rt(ratio),
+    sol: `<p>K<sub>a</sub> ratio = 10<sup>&Delta;pK<sub>a</sub></sup> = 10<sup>${A[j][1]} &minus; ${A[i][1]}</sup> = 10<sup>${d.toFixed(2)}</sup> = <b>${rt(ratio)}</b>.</p>`, trap: 'A pK<sub>a</sub> difference is a power of ten, not a ratio of the numbers.' }; },
+  verify: (p) => p.options.indexOf(fmt(10 ** p.d, 3)) });
+const V5ALK = [['propane', [[0, 1], [1, 2]]], ['butane', [[0, 1], [1, 2], [2, 3]]], ['2-methylpropane', [[0, 1], [0, 2], [0, 3]]], ['pentane', [[0, 1], [1, 2], [2, 3], [3, 4]]], ['2-methylbutane', [[0, 1], [1, 2], [2, 3], [1, 4]]], ['2,2-dimethylpropane', [[0, 1], [0, 2], [0, 3], [0, 4]]], ['2,2-dimethylbutane', [[0, 1], [1, 2], [2, 3], [1, 4], [1, 5]]], ['2,3-dimethylbutane', [[0, 1], [1, 2], [2, 3], [1, 4], [2, 5]]]];
+const V5CNT = { propane: 2, butane: 3, '2-methylpropane': 2, pentane: 4, '2-methylbutane': 6, '2,2-dimethylpropane': 1, '2,2-dimethylbutane': 4, '2,3-dimethylbutane': 3 };
+const v5canon = (adj, v, par) => '(' + adj[v].filter((u) => u !== par).map((u) => v5canon(adj, u, v)).sort().join('') + ')';
+const v5monoCl = (edges) => {
+  const n = Math.max(...edges.flat()) + 1; const seen = new Set(); let total = 0;
+  for (let c = 0; c < n; c++) {
+    if (edges.filter((e) => e.includes(c)).length >= 4) continue;
+    const adj = Array.from({ length: n + 1 }, () => []); for (const [a, b] of edges) { adj[a].push(b); adj[b].push(a); } adj[c].push(n); adj[n].push(c);
+    const keyOf = (r) => v5canon(adj.map((l, i) => l.map((x) => x)), r, -1);
+    // label chlorine by an extra marker so it differs from carbon
+    const lab = (v, par) => (v === n ? 'C' : '') + '(' + adj[v].filter((u) => u !== par).map((u) => lab(u, v)).sort().join('') + ')';
+    let best = null; for (let r = 0; r <= n; r++) { const k = lab(r, -1); if (best === null || k < best) best = k; }
+    if (seen.has(best)) continue; seen.add(best);
+    let chiral = false;
+    for (let v = 0; v < n; v++) { const subs = adj[v].map((u) => lab(u, v)); if (adj[v].length === 4 && new Set(subs).size === 4) chiral = true; if (adj[v].length === 3 && new Set(subs).size === 3) chiral = true; }
+    total += chiral ? 2 : 1;
+  }
+  return total;
+};
+v5gen({ type: 'nat', sub: 'isomers of substitution products', make(rng) {
+  const [name] = choose(rng, V5ALK); const ans = V5CNT[name];
+  return { q: `Free-radical monochlorination of ${name} gives a mixture of products. How many different compounds does it contain if enantiomers are counted separately?`, answer: ans, tol: 0, name,
+    sol: `<p>Find each set of equivalent hydrogens, replace one H by Cl, and mark any carbon with four different groups as a source of two enantiomers.</p><p>${name}: <b>${ans}</b> compounds.</p>`, trap: 'Do not forget that a chiral product counts as two.' }; },
+  verify: (p) => v5monoCl(V5ALK.find((x) => x[0] === p.name)[1]) });
+
+
+const V5BASE = {
   topic: 'goc',
   groups: { ...GRP, ...XGRP },
   items: [...HAND1, ...HAND3, ...HAND4, ...MATCH, ...PASSAGES, ...NAME_ITEMS, ...COUNT_ITEMS, ...XI],
   gens: [...GENS, ...XGENS],
 };
+export default { ...V5BASE, groups: { ...V5BASE.groups, ...V5GR }, items: [...V5BASE.items, ...V5I], gens: [...V5BASE.gens, ...V5G] };

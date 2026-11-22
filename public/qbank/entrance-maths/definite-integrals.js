@@ -888,4 +888,107 @@ gens.push(
 
 }
 // ==XP-END
+
+
+// ==L5-M2-START
+{
+  const R = String.raw;
+  const E5 = ['jee-adv'];
+  const o = (id, type, format, sub, q, extra) => ({ id, type, format, level: 5, exams: E5, sub, q, ...extra });
+  const AOPT5 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+  const simp5 = (f, a, b, n = 20000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return (s * h) / 3; };
+  Object.assign(groups, {
+    v5m1: {
+      title: 'Special values of definite integrals',
+      passage: R`<p>Match each integral in List I with its value in List II.</p>`,
+      list1: [R`A. $\displaystyle\int_0^{\pi/2}\ln(\sin x)\,dx$`, R`B. $\displaystyle\int_0^1\frac{\ln(1+x)}{1+x^2}\,dx$`, R`C. $\displaystyle\int_0^{\pi}\frac{x\sin x}{1+\cos^2x}\,dx$`, R`D. $\displaystyle\int_0^{\pi/2}\frac{dx}{1+(\tan x)^{2025}}$`],
+      list2: [R`p. $\dfrac\pi8\ln2$`, R`q. $-\dfrac\pi2\ln2$`, R`r. $\dfrac\pi4$`, R`s. $\dfrac{\pi^2}4$`, R`t. $\dfrac\pi2$`],
+    },
+    v5m2: {
+      title: 'Limits and derivatives of integral functions',
+      passage: R`<p>Match each quantity in List I with its value in List II.</p>`,
+      list1: [R`A. $\displaystyle\lim_{x\to0}\frac1{x^3}\int_0^x\sin(t^2)\,dt$`, R`B. $\displaystyle\lim_{x\to0}\frac1{x^3}\int_0^{x^2}\sin\sqrt t\,dt$`, R`C. $\dfrac d{dx}\displaystyle\int_x^{x^2}e^t\,dt$ at $x=1$`, R`D. $\displaystyle\lim_{x\to0}\frac1{x^3}\int_0^x(1-\cos t)\,dt$`],
+      list2: [R`p. $\dfrac16$`, R`q. $\dfrac13$`, R`r. $\dfrac23$`, R`s. $e$`],
+    },
+    v5p1: {
+      title: 'Passage: an integral equation',
+      passage: R`<p>A continuous function $f$ on $[0,1]$ satisfies $f(x)=x+\displaystyle\int_0^1(x+t)f(t)\,dt$ for all $x\in[0,1]$. Let $A=\displaystyle\int_0^1f(t)\,dt$ and $B=\displaystyle\int_0^1tf(t)\,dt$.</p>`,
+    },
+  });
+  items.push(
+    o('di-v501', 'nat', 'integer', 'orthogonality', R`$\displaystyle\int_0^{\pi}\left(\frac{\sin5x}{\sin x}\right)^2dx=k\pi$. Find $k$.`, { answer: 5, tol: 0,
+      sol: R`<p>Idea: $\dfrac{\sin5x}{\sin x}=1+2\cos2x+2\cos4x$ (sum of $e^{2ijx}$ for $j=-2,\dots,2$).</p><p>Square it. The cross terms are multiples of $\cos2x$, $\cos4x$ and $\cos2x\cos4x$, each integrating to $0$ over $[0,\pi]$. The squares give $\int_0^\pi1\,dx=\pi$, $4\int_0^\pi\cos^22x\,dx=2\pi$ and $4\int_0^\pi\cos^24x\,dx=2\pi$.</p><p>Total $=\pi+2\pi+2\pi=5\pi$, so $k=5$.</p>`,
+      trap: 'Using the value $5$ of the integrand at $x=0$ (squared: 25), or splitting the square without checking the cross terms vanish.' }),
+    o('di-v502', 'nat', 'integer', 'modulus integrand', R`Let $I=\displaystyle\int_0^{2\pi}|\sin x+\cos x|\,dx$. Find $I^2$.`, { answer: 32, tol: 0,
+      sol: R`<p>$\sin x+\cos x=\sqrt2\sin\left(x+\dfrac\pi4\right)$. Over any full period the area under $|\sin|$ is $4$ (two humps of area $2$ each), so $I=\sqrt2\cdot4=4\sqrt2$.</p><p>$I^2=32$.</p><p>(Without the modulus the integral would be $0$.)</p>`,
+      trap: 'Dropping the modulus and getting $0$, or integrating $|\\sin x|+|\\cos x|$ instead (that gives $8$).' }),
+    o('di-v503', 'nat', 'integer', 'derivative of an integral', R`A continuous function $f$ satisfies $\displaystyle\int_0^{x^2}f(t)\,dt=x^2+x^3$ for all $x>0$. Find $f(4)$.`, { answer: 4, tol: 0,
+      sol: R`<p>Differentiate both sides with respect to $x$ (Leibniz rule): $f(x^2)\cdot2x=2x+3x^2$, so $f(x^2)=1+\dfrac{3x}2$.</p><p>Put $x=2$ (so that $x^2=4$): $f(4)=1+3=4$.</p><p>(Check: $F(u)=u+u^{3/2}$, so $f(u)=1+\tfrac32\sqrt u$, and $f(4)=4$.)</p>`,
+      trap: 'Forgetting the chain-rule factor $2x$, or putting $x=4$ into the right side instead of $x=2$.' }),
+    o('di-v504', 'nat', 'numeric', 'integration by parts', R`Evaluate $\displaystyle\int_0^{\pi/2}x\cot x\,dx$. (2 decimal places)`, { answer: 1.09, tol: 0.01,
+      sol: R`<p>By parts with $u=x$, $dv=\cot x\,dx$: $\displaystyle\int_0^{\pi/2}x\cot x\,dx=\Big[x\ln\sin x\Big]_0^{\pi/2}-\int_0^{\pi/2}\ln\sin x\,dx$.</p><p>The bracket is $0$ at $\pi/2$ and tends to $0$ at $0$ (since $x\ln x\to0$). Use $\int_0^{\pi/2}\ln\sin x\,dx=-\dfrac\pi2\ln2$.</p><p>So the value is $\dfrac\pi2\ln2\approx1.0888\approx1.09$.</p>`,
+      trap: 'Writing $\\cot x$ at $x=0$ as if the integrand blew up. $x\\cot x\\to1$, so the integral is proper.' }),
+    o('di-v505', 'nat', 'numeric', 'area of a closed curve', R`Find the area enclosed by the curve $y^2=x^2(1-x^2)$. (2 decimal places)`, { answer: 1.33, tol: 0.01,
+      sol: R`<p>$y=\pm|x|\sqrt{1-x^2}$ for $-1\le x\le1$: a figure-of-eight made of two loops, symmetric about both axes.</p><p>Area $=4\displaystyle\int_0^1x\sqrt{1-x^2}\,dx$. Put $u=1-x^2$: $\displaystyle\int_0^1x\sqrt{1-x^2}\,dx=\dfrac12\int_0^1\sqrt u\,du=\dfrac13$.</p><p>Area $=\dfrac43\approx1.33$.</p>`,
+      trap: 'Integrating $x\\sqrt{1-x^2}$ over $[-1,1]$ (which gives $0$) or counting only one loop.' }),
+    o('di-v506', 'msq', 'multi', 'integral conditions', R`$f:[0,1]\to\mathbb R$ is continuous. Which statements are true?`, { options: [R`If $\int_0^1f(x)\,dx=0$ and $\int_0^1xf(x)\,dx=0$, then $f$ has at least two zeros in $(0,1)$`, R`If $\int_0^1f(x)\,dx=0$, then $f$ has at least two zeros in $(0,1)$`, R`If $\int_0^1f(x)\,dx=\int_0^1f(x)^2dx$, then $f(c)=0$ or $f(c)=1$ for some $c$`, R`If $\int_0^1(1-x)f(x)\,dx=0$, then $f$ has a zero in $(0,1)$`], answer: [0, 2, 3],
+      sol: R`<p>(A) If $f$ changed sign only once, at $x_0$, then $f(x)(x-x_0)$ would not change sign, so $\int f(x)(x-x_0)dx\ne0$ unless $f\equiv0$. But the integral is $\int xf-x_0\int f=0$. So $f$ changes sign at least twice, giving two zeros. (If $f\equiv0$ it has many.) True.</p><p>(B) $f(x)=2x-1$ has $\int_0^1f=0$ but only one zero. False.</p><p>(C) $\int_0^1f(f-1)\,dx=0$, so the continuous function $f(f-1)$ has a zero, i.e. $f(c)=0$ or $1$. True.</p><p>(D) The weight $1-x$ is positive on $(0,1)$. If $f$ had no zero it would keep one sign, and the integral would not be $0$. True.</p><p>Answer: A, C, D.</p>`,
+      trap: 'Generalising from one condition ($\\int f=0$ gives one zero) to two zeros. Two zeros need two independent conditions.' }),
+    o('di-v507', 'msq', 'multi', 'reduction formula', R`Let $I_n=\displaystyle\int_0^{\pi/4}\tan^nx\,dx$. Which statements are true?`, { options: [R`$I_0+I_2=1$`, R`$I_4=\dfrac\pi4-\dfrac23$`, R`$I_6=I_4-\dfrac15$`, R`$\dfrac1{14}<I_6<\dfrac1{10}$`], answer: [0, 1, 3],
+      sol: R`<p>$I_n+I_{n+2}=\displaystyle\int_0^{\pi/4}\tan^nx\sec^2x\,dx=\dfrac1{n+1}$.</p><p>(A) $n=0$: $I_0+I_2=1$. True.</p><p>(B) $I_0=\dfrac\pi4$, $I_2=1-\dfrac\pi4$, $I_4=\dfrac13-I_2=\dfrac\pi4-\dfrac23$. True.</p><p>(C) $I_4+I_6=\dfrac15$ gives $I_6=\dfrac15-I_4$, not $I_4-\dfrac15$. False.</p><p>(D) $I_n$ decreases with $n$, so $2I_{n+2}<\dfrac1{n+1}<2I_n$. With $n=4$: $I_6<\dfrac1{10}$; with $n=6$: $I_6>\dfrac1{14}$. True. (Actually $I_6\approx0.0813$.)</p><p>Answer: A, B, D.</p>`,
+      trap: 'Writing the recurrence with a minus sign. It is a sum: $I_n+I_{n+2}=\\tfrac1{n+1}$.' }),
+    o('di-v508', 'msq', 'multi', "King's rule", R`Which of the following integrals exist (as finite numbers) and equal $\dfrac\pi4$?`, { options: [R`$\displaystyle\int_0^{\pi/2}\frac{\sqrt{\sin x}}{\sqrt{\sin x}+\sqrt{\cos x}}\,dx$`, R`$\displaystyle\int_0^1\frac{dx}{x+\sqrt{1-x^2}}$`, R`$\displaystyle\int_0^{\pi}\frac{\sin x}{\sin x+\cos x}\,dx$`, R`$\displaystyle\int_0^{\pi/2}\frac{\sin^2x}{\sin^2x+\cos^2x}\,dx$`], answer: [0, 1, 3],
+      sol: R`<p>(A) King's rule on $[0,\tfrac\pi2]$ gives $2I=\int_0^{\pi/2}1\,dx$, so $I=\dfrac\pi4$. True.</p><p>(B) Put $x=\sin\theta$: $\displaystyle\int_0^{\pi/2}\frac{\cos\theta}{\sin\theta+\cos\theta}d\theta=\dfrac\pi4$ by King's rule. True.</p><p>(C) The denominator $\sin x+\cos x$ is $0$ at $x=\dfrac{3\pi}4\in(0,\pi)$ and the integrand blows up like $\dfrac1{x-3\pi/4}$ there. The integral does not exist as a finite number, so King's rule cannot be used. False.</p><p>(D) The denominator is $1$: $\int_0^{\pi/2}\sin^2x\,dx=\dfrac\pi4$. True.</p><p>Answer: A, B, D.</p>`,
+      trap: 'Applying King\'s rule over $[0,\\pi]$ without checking that the integrand is bounded (the denominator vanishes at $3\\pi/4$).' }),
+    { ...o('di-v509', 'mcq', 'match', 'special integrals', R`Match each integral with its value.`, { options: ['A-q, B-p, C-r, D-s', 'A-q, B-p, C-s, D-t', 'A-p, B-q, C-s, D-r', 'A-q, B-p, C-s, D-r'], answer: 3 }), group: 'v5m1',
+      sol: R`<p>A: $\displaystyle\int_0^{\pi/2}\ln\sin x\,dx=-\dfrac\pi2\ln2$ (q), the classic value found by adding it to its King's-rule twin $\int\ln\cos x$.</p><p>B: put $x=\tan\theta$: $\int_0^{\pi/4}\ln(1+\tan\theta)d\theta$, and King's rule ($\theta\to\tfrac\pi4-\theta$) gives $\dfrac\pi8\ln2$ (p).</p><p>C: King's rule gives $I=\dfrac\pi2\int_0^\pi\dfrac{\sin x}{1+\cos^2x}dx=\dfrac\pi2\cdot\dfrac\pi2=\dfrac{\pi^2}4$ (s).</p><p>D: King's rule pairs $\dfrac1{1+\tan^kx}$ with $\dfrac1{1+\cot^kx}$, which sum to $1$. So $I=\dfrac\pi4$ (r), for any $k$.</p>`,
+      trap: 'In D, believing the large power 2025 changes the answer. King\'s rule makes it irrelevant.' },
+    { ...o('di-v510', 'mcq', 'match', 'Leibniz rule and limits', R`Match each quantity with its value.`, { options: ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-q, B-s, C-r, D-p'], answer: 1 }), group: 'v5m2',
+      sol: R`<p>A: $\sin t^2\approx t^2$ near $0$, so the integral is $\approx\dfrac{x^3}3$; the limit is $\dfrac13$ (q).</p><p>B: $\sin\sqrt t\approx\sqrt t$, and $\int_0^{x^2}\sqrt t\,dt=\dfrac23(x^2)^{3/2}=\dfrac23x^3$; the limit is $\dfrac23$ (r).</p><p>C: $\dfrac d{dx}\int_x^{x^2}e^tdt=2xe^{x^2}-e^x$, which at $x=1$ is $2e-e=e$ (s).</p><p>D: $\int_0^x(1-\cos t)dt=x-\sin x\approx\dfrac{x^3}6$; the limit is $\dfrac16$ (p).</p>`,
+      trap: 'In B the upper limit is $x^2$, which changes $x^{3/2\\cdot2}$ into $x^3$ and doubles the coefficient to $\\tfrac23$.' },
+    { ...o('di-v511', 'nat', 'passage', 'integral equations', R`Find $A=\int_0^1f(t)\,dt$.`, { answer: -7, tol: 0,
+      sol: R`<p>$f(x)=x+x\int_0^1f\,dt+\int_0^1tf\,dt=(1+A)x+B$.</p><p>Integrate over $[0,1]$: $A=\dfrac{1+A}2+B$, so $A=1+2B$.</p><p>Multiply by $x$ and integrate: $B=\dfrac{1+A}3+\dfrac B2$, so $B=\dfrac{2(1+A)}3$.</p><p>Substitute: $B=\dfrac{2(2+2B)}3$, so $3B=4+4B$, $B=-4$ and $A=1+2B=-7$.</p>`,
+      trap: 'Treating $\\int_0^1(x+t)f(t)\\,dt$ as a number. It contains the variable $x$.' }), group: 'v5p1' },
+    { ...o('di-v512', 'nat', 'passage', 'integral equations', R`Find $B=\int_0^1tf(t)\,dt$.`, { answer: -4, tol: 0,
+      sol: R`<p>From the two equations $A=1+2B$ and $3B=2(1+A)$ we get $B=-4$ (and $A=-7$).</p><p>Check: with $f(x)=-6x-4$, $\int_0^1t(-6t-4)\,dt=-2-2=-4$.</p>`,
+      trap: 'Using only one of the two equations. Two unknowns need two integrals.' }), group: 'v5p1' },
+    { ...o('di-v513', 'nat', 'passage', 'integral equations', R`Find $f(1)$.`, { answer: -10, tol: 0,
+      sol: R`<p>$f(x)=(1+A)x+B=-6x-4$. So $f(1)=-10$.</p><p>Check with the original equation at $x=1$: $f(1)=1+\int_0^1(1+t)f(t)\,dt=1+(A+B)=1-11=-10$.</p>`,
+      trap: 'Answering with $A+B$ or forgetting the leading $x$ in $f(x)=x+\\dots$.' }), group: 'v5p1' },
+    o('di-v514', 'mcq', 'single', 'Beta integrals', R`$\displaystyle\int_0^{\pi/2}\sin^5x\cos^4x\,dx$ equals`, { options: [R`$\dfrac8{945}$`, R`$\dfrac4{315}$`, R`$\dfrac8{315}$`, R`$\dfrac2{63}$`], answer: 2,
+      sol: R`<p>Wallis formula for $\int_0^{\pi/2}\sin^mx\cos^nx\,dx$ with one odd power: the product of the "$m-1,m-3,\dots$" and "$n-1,n-3,\dots$" terms over $(m+n)(m+n-2)\cdots$.</p><p>The formula is $\dfrac{(m-1)(m-3)\cdots(n-1)(n-3)\cdots}{(m+n)(m+n-2)\cdots}$; here $\dfrac{(4)(2)\cdot(3)(1)}{9\cdot7\cdot5\cdot3\cdot1}=\dfrac{24}{945}=\dfrac8{315}$.</p><p>Check with the substitution $u=\cos x$: $\int_0^1(1-u^2)^2u^4\,du=\dfrac15-\dfrac27+\dfrac19=\dfrac{63-90+35}{315}=\dfrac8{315}$.</p>`,
+      trap: 'Using the all-even formula with a factor $\\tfrac\\pi2$, or dropping the factor $3\\cdot1$ from $\\cos^4$.' }),
+    o('di-v515', 'mcq', 'assertion', 'substitution', R`<p><b>Assertion (A):</b> Substituting $t=\tan\dfrac x2$ in $\displaystyle\int_0^{2\pi}\frac{dx}{2+\cos x}$ gives limits $0$ and $0$, so the integral is $0$.</p><p><b>Reason (R):</b> $2+\cos x\ge1>0$ for all $x$, so the integrand is positive on $[0,2\pi]$.</p>`, { options: AOPT5, answer: 3,
+      sol: R`<p>R is true: $\cos x\ge-1$. A positive continuous integrand has a positive integral, so the value is not $0$. Indeed it equals $\dfrac{2\pi}{\sqrt3}\approx3.63$.</p><p>A is false: $t=\tan\dfrac x2$ is not continuous on $[0,2\pi]$ (it is infinite at $x=\pi$), so the substitution cannot be applied across the whole interval. Split at $\pi$, or use the periodicity.</p><p>A false, R true.</p>`,
+      trap: 'Trusting a substitution blindly when the new variable is discontinuous inside the interval.' }),
+  );
+  gens.push(
+    { id: 'di-v5g1', type: 'nat', format: 'numeric', level: 5, exams: E5, sub: 'orthogonality',
+      make(rng) {
+        const n = int(rng, 3, 9), ans = (n * Math.PI) / 2;
+        return { n, answer: Math.round(ans * 100) / 100, tol: 0.01,
+          q: `Evaluate $\\displaystyle\\int_0^{\\pi/2}\\left(\\frac{\\sin ${n}x}{\\sin x}\\right)^2dx$. (2 decimal places)`,
+          sol: `<p>$\\dfrac{\\sin ${n}x}{\\sin x}$ is a sum of cosines ${n % 2 ? `$1+2\\cos2x+\\dots+2\\cos${n - 1}x$` : `$2\\cos x+2\\cos3x+\\dots+2\\cos${n - 1}x$`}. Over $[0,\\pi]$, squaring and integrating leaves only the squares of the terms, giving $${n}\\pi$.</p><p>The square of the integrand is symmetric about $\\dfrac\\pi2$, so $[0,\\pi/2]$ gives half: $\\dfrac{${n}\\pi}2\\approx${ans.toFixed(2)}$.</p>` };
+      },
+      verify(p) { return Math.round(simp5((x) => (x < 1e-9 ? p.n * p.n : (Math.sin(p.n * x) / Math.sin(x)) ** 2), 0, Math.PI / 2, 40000) * 100) / 100; } },
+    { id: 'di-v5g2', type: 'nat', format: 'integer', level: 5, exams: E5, sub: 'modulus integrand',
+      make(rng) {
+        const a = int(rng, 1, 5), b = int(rng, 1, 5);
+        return { a, b, answer: 16 * (a * a + b * b), tol: 0,
+          q: `Let $I=\\displaystyle\\int_0^{2\\pi}|${a === 1 ? '' : a}\\sin x+${b === 1 ? '' : b}\\cos x|\\,dx$. Find $I^2$.`,
+          sol: `<p>${a === 1 ? '' : a}$\\sin x+${b === 1 ? '' : b}\\cos x=\\sqrt{${a * a + b * b}}\\sin(x+\\varphi)$. Over a full period $\\int|\\sin|=4$, so $I=4\\sqrt{${a * a + b * b}}$.</p><p>$I^2=16\\cdot${a * a + b * b}=${16 * (a * a + b * b)}$.</p>` };
+      },
+      verify(p) { return Math.round(simp5((x) => Math.abs(p.a * Math.sin(x) + p.b * Math.cos(x)), 0, 2 * Math.PI, 400000) ** 2); } },
+    { id: 'di-v5g3', type: 'nat', format: 'integer', level: 5, exams: E5, sub: 'derivative of an integral',
+      make(rng) {
+        const p = int(rng, 1, 5), r = int(rng, 1, 4), m = int(rng, 2, 5), qq = 2 * r;
+        return { p, qq, r, m, answer: p + 3 * r * m, tol: 0,
+          q: `A continuous function $f$ satisfies $\\displaystyle\\int_0^{x^2}f(t)\\,dt=${p}x^2+${qq}x^3$ for all $x>0$. Find $f(${m * m})$.`,
+          sol: `<p>Differentiate (Leibniz rule): $2x\\,f(x^2)=${2 * p}x+${3 * qq}x^2$, so $f(x^2)=${p}+${3 * r}x$.</p><p>Put $x=${m}$ (so $x^2=${m * m}$): $f(${m * m})=${p}+${3 * r}\\cdot${m}=${p + 3 * r * m}$.</p>` };
+      },
+      verify(p) { const f = (u) => p.p + 1.5 * p.qq * Math.sqrt(u); const F = (u) => p.p * u + p.qq * u ** 1.5; const h = 1e-5, u = p.m * p.m; return Math.round((F(u + h) - F(u - h)) / (2 * h) + 0 * f(u)); } },
+  );
+}
+// ==L5-M2-END
+
 export default { topic: 'definite-integrals', groups, items, gens };

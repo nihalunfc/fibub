@@ -355,6 +355,108 @@ pq('x13', 4, 'joints', 'Which joint in the list allows no movement?', '(4) only'
 pq('x13', 4, 'joints', 'How many of the seven joints are cartilaginous?', 'Two', ['One', 'Three', 'Four'], 'The joints between the vertebrae (2) and the pubic symphysis (7) are cartilaginous.');
 
 
+// ---------------------------------------------------------------- Level 5 round (v5): top-rank items with fixed ids
+const V5 = ['neet'];
+const V5POS = [1, 3, 0, 2, 2, 0, 3, 1, 1, 2, 3, 0];
+let v5i = 0;
+const v5take = () => V5POS[v5i++ % V5POS.length];
+const v5place = (correct, wrongs) => { const p = v5take(); const o = [...wrongs]; o.splice(p, 0, correct); return [o, p]; };
+function v5mc(id, sub, q, correct, wrongs, sol, trap, format = 'single', group) {
+  const [options, answer] = v5place(correct, wrongs);
+  items.push({ id, type: 'mcq', level: 5, format, exams: V5, sub, ...(group ? { group } : {}), q, options, answer, sol, ...(trap ? { trap } : {}) });
+}
+function v5asr(id, sub, A, R, ans, sol, trap) {
+  items.push({ id, type: 'mcq', level: 5, format: 'assertion', exams: V5, sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AR, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function v5stm(id, sub, s1, s2, ans, sol, trap) {
+  items.push({ id, type: 'mcq', level: 5, format: 'statements', exams: V5, sub, q: `<b>Statement I:</b> ${s1}<br><b>Statement II:</b> ${s2}`, options: ST, answer: ans, sol, ...(trap ? { trap } : {}) });
+}
+function v5cnt(id, sub, q, correct, wrongs, sol, trap) { v5mc(id, sub, q, correct, wrongs, sol, trap, 'statements'); }
+function v5match(id, sub, key, title, list1, list2, ans, sol, trap) {
+  groups[key] = { title, list1, list2 };
+  const L = 'ABCD';
+  const code = (a) => a.map((c, i) => `${L[i]}-${c}`).join(', ');
+  const a = ans.split('');
+  const sw = (i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return code(b); };
+  const [options, answer] = v5place(code(a), [sw(0, 1), sw(2, 3), sw(0, 2)]);
+  items.push({ id, type: 'mcq', level: 5, format: 'match', exams: V5, sub, group: key, q: 'Match List I with List II and choose the correct code.', options, answer, sol, ...(trap ? { trap } : {}) });
+}
+function v5pass(key, title, passage) { groups[key] = { title, passage }; }
+
+v5mc('lc-v501', 'skeleton counts', 'How many bones are there in the vertebral column, the rib cage (ribs and sternum), the hyoid and the ear ossicles of an adult human, taken together?', '58', ['52', '57', '64'],
+  'Idea: add the parts one by one. Vertebral column 26 (7 + 12 + 5 + 1 sacrum + 1 coccyx). Ribs 24 (12 pairs) and sternum 1, so the rib cage is 25. Hyoid 1. Ear ossicles 6 (3 in each ear). Total 26 + 25 + 1 + 6 = 58. The value 52 leaves out the ossicles and 57 leaves out the hyoid. The value 64 counts the ossicles twice.',
+  'The ear ossicles are 6 in all, not 3.');
+v5mc('lc-v502', 'disorders and genetics', 'A form of muscular dystrophy is inherited as an X-linked recessive trait. A man without the disorder marries a woman who is a carrier. What fraction of all their children is expected to be affected?', 'one-fourth', ['one-half', 'one-eighth', 'none'],
+  'Idea: work out the cross. Mother X<sup>D</sup>X<sup>d</sup>, father X<sup>D</sup>Y. Children: X<sup>D</sup>X<sup>D</sup> (normal daughter), X<sup>D</sup>X<sup>d</sup> (carrier daughter), X<sup>D</sup>Y (normal son), X<sup>d</sup>Y (affected son), each 1/4. So 1/4 of all children are affected (half of the sons). No daughter is affected, since the father gives her a normal X. The value one-half is the fraction among the sons only.',
+  'Half of the sons are affected, but only a quarter of all children.');
+v5mc('lc-v503', 'sarcomere', 'A relaxed sarcomere is 2.4 &micro;m long. Its A band is 1.5 &micro;m, and each thin filament is 0.9 &micro;m long, measured from its Z line. By what percentage must the sarcomere shorten for the H zone to disappear? (Assume the thick filaments keep their length.)', '25%', ['12.5%', '20%', '37.5%'],
+  'Idea: the H zone is the part of the A band that has no thin filament. The I band is 2.4 &minus; 1.5 = 0.9 &micro;m, so half of it, 0.45 &micro;m, lies on each side. Each thin filament therefore enters the A band by 0.9 &minus; 0.45 = 0.45 &micro;m. H zone = 1.5 &minus; 2 &times; 0.45 = 0.6 &micro;m. For it to vanish, each thin filament must slide 0.3 &micro;m inwards from each side, so the sarcomere shortens by 0.6 &micro;m. 0.6/2.4 = 25% (the sarcomere is then 1.8 &micro;m long). The value 12.5% forgets that two sides slide. The value 37.5% is the I band as a fraction of the sarcomere.',
+  'Both sides move, so the sarcomere shortens by twice the slide of one thin filament.');
+v5mc('lc-v504', 'neuromuscular junction', 'A poison blocks the enzyme that breaks down acetylcholine at the motor end plate of skeletal muscle. Its immediate effect is', 'repeated stimulation of the fibre, with twitching and spasm of the muscle', ['at once a limp paralysis, because no acetylcholine is released', 'a block in the release of Ca<sup>2+</sup>, so the muscle cannot contract', 'relaxation of the muscle because ATP is not available'],
+  'Idea: acetylcholine is the signal that makes the sarcolemma fire, and it is normally removed quickly. If the enzyme is blocked, acetylcholine stays at the end plate and keeps the sarcolemma stimulated, which keeps releasing Ca<sup>2+</sup>, so the muscle twitches and goes into spasm. (Later the muscle may weaken.) Acetylcholine is released normally in this case, so there is no limp paralysis at first.',
+  'This is the reverse of a receptor blocker, which would make the muscle limp.');
+
+v5match('lc-v505', 'types of movement', 'v5m1', 'Cell or organ and the way it moves or causes movement',
+  ['A. Macrophages and leucocytes', 'B. Paramoecium', 'C. Hydra', 'D. Passage of ova through the female reproductive tract'],
+  ['p. Cilia of the lining epithelium', 'q. Pseudopodia formed by the streaming of protoplasm', 'r. Tentacles that catch the prey and can also be used for locomotion', 's. Cilia that push food into the cavity and also move the animal', 't. Muscles of the limbs'], 'qsrp',
+  'Macrophages and leucocytes show amoeboid movement by pseudopodia. In Paramoecium the cilia move food into the cavity of the body and also help locomotion. Hydra uses its tentacles to capture prey and also for locomotion. The ova move in the female tract through the cilia of the lining epithelium (with the muscles of the tube). Limb muscles (t) are not in List I.',
+  'Both B and D involve cilia: choose by what the cilia do.');
+v5match('lc-v506', 'sarcomere', 'v5m2', 'A relaxed sarcomere 2.5 &micro;m long, with an A band of 1.6 &micro;m and thin filaments of 1.0 &micro;m each (from the Z line); lengths in &micro;m',
+  ['A. I band of the relaxed sarcomere (the whole I band)', 'B. H zone of the relaxed sarcomere', 'C. Overlap of thick and thin filaments on one side of the relaxed sarcomere', 'D. Sarcomere length at which the H zone just disappears'],
+  ['p. 0.55', 'q. 2.0', 'r. 0.5', 's. 0.9', 't. 2.5'], 'srpq',
+  'I band = 2.5 &minus; 1.6 = 0.9. Half of it is 0.45 on each side, so the overlap on each side is 1.0 &minus; 0.45 = 0.55. The H zone is the A band minus the two overlaps: 1.6 &minus; 2 &times; 0.55 = 0.5. The H zone vanishes when the two thin filaments meet in the middle, which is at a sarcomere length of 2 &times; 1.0 = 2.0.',
+  'Overlap is counted on both sides when finding the H zone.');
+v5match('lc-v507', 'skeleton counts', 'v5m3', 'Part of the limb skeleton and the number of bones',
+  ['A. Carpals in one wrist', 'B. Tarsals in one ankle', 'C. Phalanges in one hand', 'D. All the bones of one hindlimb (girdle not counted)'],
+  ['p. 7', 'q. 14', 'r. 30', 's. 8', 't. 26'], 'spqr',
+  'One wrist has 8 carpals. One ankle has 7 tarsals. One hand has 14 phalanges (with 8 carpals and 5 metacarpals it has 27 bones). One hindlimb has femur, tibia, fibula and patella (4) plus 7 tarsals, 5 metatarsals and 14 phalanges (26 in the foot): 30 bones. The value 26 is the foot, which is not in List I.',
+  'Do not mix up the foot (26) with the whole hindlimb (30).');
+v5match('lc-v508', 'skeleton and joints', 'v5m4', 'Part of a bone and the bone or cavity it articulates with',
+  ['A. Head of the humerus', 'B. Head of the femur', 'C. Occipital condyles of the skull', 'D. Atlas, in a pivot joint'],
+  ['p. Acetabulum of the coxal bone', 'q. Atlas', 'r. Glenoid cavity of the scapula', 's. Axis', 't. Patella'], 'rpqs',
+  'The humerus fits into the glenoid cavity of the scapula (shoulder joint). The femur fits into the acetabulum of the coxal bone (hip joint). The skull articulates with the atlas through its two occipital condyles. The atlas turns on the axis in a pivot joint. The patella (t) is the knee cap and is not a partner of any of these.',
+  'The atlas appears twice: once as the partner of the skull and once as the bone that turns on the axis.');
+
+v5asr('lc-v509', 'disorders', 'Gout is a form of arthritis.', 'Gout is an inflammation of the joints caused by the accumulation of uric acid crystals.', 0,
+  'Both are true and R explains A. Arthritis means inflammation of the joints. In gout the inflammation is caused by uric acid crystals deposited in the joints, so gout is one kind of arthritis.',
+  'Gout is not the same as osteoporosis, which is a loss of bone mass.');
+v5asr('lc-v510', 'muscle contraction', 'Ca<sup>2+</sup> released from the sarcoplasmic reticulum binds to tropomyosin and exposes the active sites on actin.', 'Troponin is distributed at regular intervals on the tropomyosin.', 3,
+  'Assertion A is false: Ca<sup>2+</sup> binds to a subunit of troponin, not to tropomyosin. This changes the troponin-tropomyosin complex and unmasks the active sites on actin. Reason R is true, but it does not make A correct.',
+  'Ca<sup>2+</sup> binds troponin; tropomyosin masks the sites.');
+v5asr('lc-v511', 'sarcomere', 'In a contracted sarcomere, both the I band and the H zone are narrower than in the relaxed state.', 'Both the thick and the thin filaments become shorter during contraction.', 2,
+  'Assertion A is true: the thin filaments slide inwards, so the I band narrows and the H zone shrinks. Reason R is false: neither set of filaments changes its length. The filaments slide over each other, which is why the A band stays the same.',
+  'Sliding, not shortening, of filaments.');
+v5asr('lc-v512', 'joints', 'The knee joint and the elbow joint are both hinge joints.', 'Both the knee and the elbow are synovial joints.', 1,
+  'Both statements are true, but R does not explain A. A synovial joint can be a ball and socket, a pivot, a gliding, a saddle or a hinge joint. Being synovial does not make a joint a hinge. The hinge type is a matter of movement in one plane.',
+  'Many other synovial joints are not hinge joints.');
+
+v5cnt('lc-v513', 'skeleton counts', 'How many of the following statements are correct? (i) Each forelimb (girdle not counted) has 30 bones. (ii) Each hand has 27 bones. (iii) Each foot has 28 bones. (iv) Each ankle has 7 tarsals. (v) Each wrist has 7 carpals.', 'Three', ['Two', 'Four', 'Five'],
+  '(i) True: humerus, radius, ulna and the 27 bones of the hand. (ii) True: 8 carpals, 5 metacarpals and 14 phalanges. (iii) False: a foot has 7 + 5 + 14 = 26 bones. (iv) True. (v) False: a wrist has 8 carpals. So (i), (ii) and (iv) are correct: three.',
+  'Wrist 8, ankle 7; hand 27, foot 26.');
+v5stm('lc-v514', 'sarcomere', 'During contraction the A band becomes shorter, in proportion to the shortening of the sarcomere.', 'During contraction the I band and the H zone become narrower.', 3,
+  'Statement I is incorrect: the A band is the length of the thick filaments, which does not change. Statement II is correct: the thin filaments slide into the A band, so the I band and the H zone narrow.',
+  'The A band stays constant.');
+v5stm('lc-v515', 'muscle types', 'A skeletal muscle fibre is multinucleate.', 'A smooth muscle fibre is also multinucleate, like a skeletal muscle fibre.', 2,
+  'Statement I is correct: the sarcoplasm of a skeletal fibre has many nuclei, so it is a syncytium. Statement II is incorrect: a smooth muscle fibre is a spindle-shaped cell with a single nucleus.',
+  'Multinucleate and syncytial go with skeletal fibres.');
+v5stm('lc-v516', 'pelvic girdle', 'Each coxal bone is formed by the fusion of the ilium, the ischium and the pubis.', 'The acetabulum, which receives the head of the femur, is a cavity at the point where these three bones fuse.', 0,
+  'Both are correct. The three parts fuse into a coxal bone, and at their meeting point there is a cavity, the acetabulum, to which the thigh bone (femur) articulates.',
+  null);
+v5stm('lc-v517', 'sarcomere', 'The thick filaments are anchored to the Z lines.', 'The H zone contains only thin filaments.', 1,
+  'Both are incorrect. The thin filaments are anchored to the Z lines, and the thick filaments are held at the M line in the middle of the sarcomere. The H zone is the central part of the A band that has only thick filaments (no thin filaments reach it in the relaxed state).',
+  'Thin to Z, thick to M.');
+
+v5pass('v5p1', 'Four tubes with a muscle fibre', 'A skeletal muscle fibre whose membrane has been removed, so that chemicals reach the myofibrils directly, is placed in four tubes. Tube 1: ATP and Ca<sup>2+</sup> are present, and the fibre shortens. Tube 2: ATP is present and a chemical that binds all the Ca<sup>2+</sup>; the fibre does not shorten and stays soft. Tube 3: Ca<sup>2+</sup> is present but no ATP; the fibre does not shorten, and it becomes stiff and hard to stretch. Tube 4: ATP and Ca<sup>2+</sup> are present, with an antibody that stops Ca<sup>2+</sup> from binding to troponin; the fibre does not shorten and stays soft.');
+v5mc('lc-v518', 'muscle contraction', 'The fibre of Tube 2 does not shorten because', 'with no free Ca<sup>2+</sup> the active sites on actin stay covered by the troponin-tropomyosin complex', ['the thin filaments become shorter when Ca<sup>2+</sup> is absent', 'ATP cannot reach the myosin heads when there is no Ca<sup>2+</sup>', 'the thick filaments are lost when Ca<sup>2+</sup> is bound'],
+  'ATP is present in Tube 2, so the myosin heads can be energised. What is missing is the Ca<sup>2+</sup> that unmasks the active sites on actin, so cross bridges cannot form. The filaments do not change their length in either state.',
+  null, 'passage', 'v5p1');
+v5mc('lc-v519', 'muscle contraction', 'The stiffness of the fibre in Tube 3 is best explained by', 'the myosin heads staying attached to actin, because ATP is needed to detach them', ['the Ca<sup>2+</sup> being pumped back into the sarcoplasmic reticulum', 'the troponin-tropomyosin complex covering the active sites for good', 'the build-up of lactic acid in the tube'],
+  'With Ca<sup>2+</sup> the sites are open and the heads bind actin. Without ATP the heads cannot be released, so the cross bridges stay in place and the fibre is stiff and cannot shorten or lengthen. This is the cause of rigor in a dead body. The sites are open (Ca<sup>2+</sup> is present), and no pump or lactic acid is mentioned in the tube.',
+  null, 'passage', 'v5p1');
+v5mc('lc-v520', 'muscle contraction', 'Which two tubes together show that Ca<sup>2+</sup> acts through troponin and not on myosin directly?', 'Tube 1 and Tube 4', ['Tube 1 and Tube 2', 'Tube 2 and Tube 3', 'Tube 3 and Tube 4'],
+  'Idea: compare tubes that differ in one thing only. Tubes 1 and 4 both have ATP and Ca<sup>2+</sup>; the only difference is the antibody that blocks the binding of Ca<sup>2+</sup> to troponin, and the fibre stops shortening. So Ca<sup>2+</sup> works only if it can bind troponin. Tubes 1 and 2 differ in the presence of Ca<sup>2+</sup>, which shows that it is needed but not how it acts.',
+  null, 'passage', 'v5p1');
+
 export default { topic: 'locomotion', groups, items, gens: makeGens() };
 
 function makeGens() {
