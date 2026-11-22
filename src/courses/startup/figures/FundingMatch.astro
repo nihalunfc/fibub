@@ -1,0 +1,49 @@
+---
+// 6.4: answer three questions; see the government-backed loans, guarantees and grants that usually fit, by country.
+---
+<figure class="cs-fig su-fig" data-fm>
+  <span class="cs-figtag">Finder: loans, grants and schemes that may fit</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Stage<select name="st"><option value="idea">Idea or prototype</option><option value="early">Early sales</option><option value="grow">Growing, needs equipment or working capital</option></select></label>
+    <label>Doing research and development?<select name="rd"><option value="0">No</option><option value="1">Yes</option></select></label>
+  </div>
+  <div class="su-cards" data-out></div>
+  <figcaption>Main national schemes only, as of November 2026; amounts and rules change each budget. States, provinces and cities add many more, often for particular groups (women founders, youth, rural areas, specific industries). Apply only through the official portal or your bank: no genuine scheme charges an agent fee to "guarantee" approval.</figcaption>
+</figure>
+<script>
+  import { followCountry } from './fmt';
+  type S = [string, string, string[], boolean?];
+  const D: Record<string, S[]> = {
+    in: [
+      ['Startup India Seed Fund Scheme', 'Grants (up to ₹20 lakh) for proof of concept and convertible debt or debentures (up to ₹50 lakh) for early startups, given through approved incubators. Needs DPIIT recognition.', ['idea', 'early']],
+      ['PM Mudra Yojana', 'Bank loans without collateral for micro businesses: Shishu up to ₹50,000, Kishore up to ₹5 lakh, Tarun up to ₹10 lakh, Tarun Plus up to ₹20 lakh for good past borrowers.', ['early', 'grow']],
+      ['CGTMSE guarantee', 'Credit guarantee that lets banks lend to micro and small enterprises without collateral (Udyam registration helps).', ['early', 'grow']],
+      ['Stand-Up India', 'Bank loans of ₹10 lakh to ₹1 crore for greenfield businesses led by women or SC/ST founders.', ['idea', 'early']],
+      ['BIRAC and DST programmes', 'Grants for biotech and deep-tech research (BIG, NIDHI-PRAYAS) through government agencies and incubators.', ['idea', 'early', 'grow'], true],
+    ],
+    ca: [
+      ['Canada Small Business Financing Program (CSBFP)', 'Government-backed loans through your bank for equipment, leaseholds and some working capital for businesses with revenue under $10 million.', ['early', 'grow']],
+      ['BDC', 'The Business Development Bank of Canada lends to startups and small businesses, including working capital and technology loans.', ['early', 'grow']],
+      ['Futurpreneur', 'Loans with mentoring for founders aged 18 to 39 (with BDC co-financing).', ['idea', 'early']],
+      ['NRC IRAP', 'Advice and funding for innovative small and medium businesses developing technology, through industrial technology advisors.', ['idea', 'early', 'grow'], true],
+      ['SR&ED tax credits', 'Refundable tax credits (35 % on eligible spending for qualifying CCPCs, up to the expenditure limit) for experimental development, claimed with the T2 return.', ['early', 'grow'], true],
+    ],
+    us: [
+      ['SBA 7(a) loans', 'Bank loans partly guaranteed by the SBA, up to $5 million, for working capital, equipment and buying a business.', ['early', 'grow']],
+      ['SBA microloans', 'Loans up to $50,000 through nonprofit intermediaries, often with training, for startups and small businesses.', ['idea', 'early']],
+      ['SBIR and STTR', 'Federal research grants and contracts (Phase I and II) for small businesses doing R&D that agencies need.', ['idea', 'early', 'grow'], true],
+      ['R&D tax credit', 'Federal credit for qualified research; startups with under $5 million in receipts can apply part of it against payroll tax. Domestic research costs can again be deducted at once.', ['early', 'grow'], true],
+      ['State and local programmes', 'State economic development agencies offer loans, grants and tax credits; your Small Business Development Center (SBDC) can match you for free.', ['idea', 'early', 'grow']],
+    ],
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fm]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!.value;
+    const cc = followCountry(fig, () => draw());
+    function draw() {
+      const out = fig.querySelector('[data-out]')!; out.innerHTML = '';
+      D[cc()].forEach(([t, d, st, rd]) => { const fit = st.includes(v('st')) && (!rd || v('rd') === '1'); const e = document.createElement('div'); e.className = `su-card${fit ? ' good' : ''}`; if (!fit) e.style.opacity = '.5'; e.innerHTML = '<strong></strong><span></span>'; e.querySelector('strong')!.textContent = t + (fit ? '' : ' (less likely to fit)'); e.querySelector('span')!.textContent = d; out.append(e); });
+    }
+    fig.querySelectorAll('select').forEach((el) => el.addEventListener('input', draw));
+  }
+</script>

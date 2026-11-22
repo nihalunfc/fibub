@@ -28,6 +28,19 @@ import StateFees from './StateFees.astro';
 import ForeignQualify from './ForeignQualify.astro';
 import RecordsKeep from './RecordsKeep.astro';
 
+// Modules 5-6
+import LicenceFinder from './LicenceFinder.astro';
+import FoodLicence from './FoodLicence.astro';
+import HomeRisk from './HomeRisk.astro';
+import SiteCheck from './SiteCheck.astro';
+import LandedCost from './LandedCost.astro';
+import AccountDocs from './AccountDocs.astro';
+import PaymentFees from './PaymentFees.astro';
+import LedgerSim from './LedgerSim.astro';
+import FundingMatch from './FundingMatch.astro';
+import SafeConvert from './SafeConvert.astro';
+import CapTable from './CapTable.astro';
+
 export const FIGURES: Record<string, any> = {
   country: CountrySwitch,
   'startup-or-small': StartupOrSmall,
@@ -54,4 +67,15 @@ export const FIGURES: Record<string, any> = {
   'state-fees': StateFees,
   'foreign-qualify': ForeignQualify,
   'records-keep': RecordsKeep,
+  'licence-finder': LicenceFinder,
+  'food-licence': FoodLicence,
+  'home-risk': HomeRisk,
+  'site-check': SiteCheck,
+  'landed-cost': LandedCost,
+  'account-docs': AccountDocs,
+  'payment-fees': PaymentFees,
+  'ledger-sim': LedgerSim,
+  'funding-match': FundingMatch,
+  'safe-convert': SafeConvert,
+  'cap-table': CapTable,
 };

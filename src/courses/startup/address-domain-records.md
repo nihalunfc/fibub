@@ -86,7 +86,7 @@ Buy the domain the day you reserve the name (.in, .ca, .com; ideally the .com to
 3. At least until 15 April 2030 (3 years), longer for employment tax records (4 years) and in the special cases.
 </details>
 
-**Next:** Module 5, licences and permits, is being written now; see the [course home](/learn/courses/startup/) for what is live.
+**Next:** Module 5, [which licences you need](/learn/courses/startup/licence-finder/).
 
 **New words:** *registered office*, *virtual office*, *record retention*, *signing authority*.
 

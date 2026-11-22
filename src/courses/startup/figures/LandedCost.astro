@@ -1,0 +1,42 @@
+---
+// 5.5: landed cost of an import: goods + freight + duty + surcharges + import tax, and how much tax a registered business gets back.
+---
+<figure class="cs-fig su-fig" data-lc2>
+  <span class="cs-figtag">Calculator: what an import really costs</span>
+  <div class="su-row">
+    <label>Country you import into<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada (C$)</option><option value="us">USA ($)</option></select></label>
+    <label>Goods value<input type="number" name="v" min="0" step="any" value="100000" /></label>
+    <label>Freight and insurance<input type="number" name="f" min="0" step="any" value="8000" /></label>
+    <label>Units in the shipment<input type="number" name="u" min="1" step="1" value="200" /></label>
+    <label>Duty rate, % (from the tariff)<input type="number" name="d" min="0" max="200" step="0.1" value="10" /></label>
+    <label data-tl>Import tax rate, %<input type="number" name="t" min="0" max="40" step="0.1" value="18" /></label>
+  </div>
+  <div class="su-out"><div><span>Duty and charges</span><b data-duty></b></div><div><span>Import tax</span><b data-tax></b></div><div><span>Landed cost</span><b data-land></b></div><div><span>Per unit</span><b data-unit></b></div><div><span>Real cost if you claim the tax back</span><b data-net></b></div></div>
+  <p class="su-fine" data-note></p>
+  <figcaption>Find the duty rate for your product's HS code in the official tariff (India's Customs Tariff on CBIC, the Canadian Customs Tariff, the US Harmonized Tariff Schedule), and check trade agreements and any extra tariffs that apply to the country of origin. Rates change often.</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, put } from './fmt';
+  const DEF = { in: [100000, 8000, 10, 18], ca: [2000, 300, 6.5, 5], us: [2000, 300, 5, 0] } as const;
+  const NOTE = {
+    in: 'India: duty is on the CIF value; a Social Welfare Surcharge of 10 % of basic duty is added for most goods; IGST is charged on value + duty + surcharge and is claimable as input tax credit if you are GST-registered.',
+    ca: 'Canada: duty is on the value for duty (the price, without international freight); GST (5 %) is charged on value + duty and is claimable as an input tax credit by GST/HST registrants. Provincial sales tax may apply separately.',
+    us: 'USA: duty is on the transaction value, without international freight; there is no federal sales tax at import. Formal entries add a Merchandise Processing Fee (0.3464 %, with a minimum and maximum) and, by sea, a Harbor Maintenance Fee (0.125 %). Duty is not recoverable. Since August 2025 the $800 duty-free "de minimis" rule no longer applies to most shipments.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lc2]')) {
+    let touched = false;
+    fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', () => { touched = true; draw(); }));
+    const cc = followCountry(fig, (c) => { if (!touched) (['v', 'f', 'd', 't'] as const).forEach((k, i) => (fig.querySelector<HTMLInputElement>(`[name=${k}]`)!.value = String(DEF[c][i]))); draw(); });
+    function draw() {
+      const c = cc(), v = num(fig, 'v'), f = num(fig, 'f'), d = num(fig, 'd') / 100, t = num(fig, 't') / 100;
+      // India values goods for duty with freight and insurance (CIF); Canada and the USA leave international freight out.
+      const base = c === 'in' ? v + f : v;
+      let duty = base * d, extra = 0;
+      if (c === 'in') extra = duty * 0.1;
+      if (c === 'us') extra = Math.min(Math.max(base * 0.003464, 33.58), 651.5);
+      const tax = c === 'us' ? 0 : (base + duty + extra) * t, land = v + f + duty + extra + tax;
+      put(fig, 'duty', money(c, duty + extra)); put(fig, 'tax', money(c, tax)); put(fig, 'land', money(c, land)); put(fig, 'unit', money(c, land / Math.max(1, num(fig, 'u')), 2)); put(fig, 'net', money(c, land - tax));
+      put(fig, 'note', NOTE[c]);
+    }
+  }
+</script>

@@ -1,0 +1,24 @@
+---
+// 5.3: will my home business need a permit? Each yes adds to the likely need for a home occupation permit or zoning approval.
+---
+<figure class="cs-fig su-fig" data-hr>
+  <span class="cs-figtag">Try it: will my home business need a permit?</span>
+  <div data-qs></div>
+  <div class="su-bars"><div><span>Permit likelihood</span><span class="t"><i data-bar></i></span><b data-n></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Cities allow many quiet home businesses (an office in a spare room) without a permit; they regulate what neighbours notice: customers, staff, signs, deliveries, noise and smells. Your lease, building society or homeowners' association can be stricter than the city.</figcaption>
+</figure>
+<script>
+  const Q: [string, number][] = [['Customers or clients visit the home', 3], ['Employees (not family) work at the home', 3], ['A sign outside', 2], ['Regular deliveries or trucks', 2], ['Noise, smells or machinery', 3], ['Food, beauty or child care at home', 3], ['Stock or equipment stored outside', 2], ['Only a laptop and phone', 0]];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-hr]')) {
+    const box = fig.querySelector('[data-qs]')!;
+    box.innerHTML = Q.map(([q], i) => `<label style="display:flex;gap:8px;align-items:center;font-weight:500;font-size:14.5px;margin:4px 0"><input type="checkbox" data-i="${i}"> ${q}</label>`).join('');
+    function draw() {
+      const s = [...box.querySelectorAll<HTMLInputElement>('input:checked')].reduce((a, el) => a + Q[Number(el.dataset.i)][1], 0), f = Math.min(1, s / 8);
+      const bar = fig.querySelector<HTMLElement>('[data-bar]')!; bar.style.width = `${Math.max(4, f * 100)}%`; bar.className = f >= 0.6 ? 'w' : f > 0 ? '' : 'g';
+      fig.querySelector('[data-n]')!.textContent = f >= 0.6 ? 'High' : f > 0.2 ? 'Medium' : 'Low';
+      fig.querySelector('[data-say]')!.textContent = f >= 0.6 ? 'Likely needs a home occupation permit, zoning approval or a licence for the activity (health, child care). Call the city planning office before you start.' : f > 0.2 ? 'May need a permit. Check your city’s home business rules and your lease or society rules.' : 'Probably fine without a permit in most cities, but check once: some cities licence every business, even home offices.';
+    }
+    box.addEventListener('change', draw); draw();
+  }
+</script>

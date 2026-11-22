@@ -1,0 +1,33 @@
+---
+// 6.2: what each way of getting paid costs on your own sales, using typical published rates (check your provider).
+---
+<figure class="cs-fig su-fig" data-pf>
+  <span class="cs-figtag">Calculator: what does getting paid cost?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada (C$)</option><option value="us">USA ($)</option></select></label>
+    <label>Average sale<input type="number" name="a" min="1" step="any" value="1500" /></label>
+    <label>Sales per month<input type="number" name="n" min="1" step="1" value="200" /></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-fine" data-note></p>
+  <figcaption>Rates are typical published standard rates in late 2026 for small businesses, before volume discounts; providers change them and add fees for international cards, currency conversion, chargebacks and instant payouts. Read your provider's pricing page. Fees are a business expense (and in India, GST is charged on the gateway's fee).</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num } from './fmt';
+  type M = [string, (a: number) => number];
+  const M: Record<string, M[]> = {
+    in: [['UPI to merchant', () => 0], ['Payment gateway (cards, UPI, wallets ~2 % + GST)', (a) => a * 0.02 * 1.18], ['International cards (~3 % + GST)', (a) => a * 0.03 * 1.18], ['Bank transfer (NEFT/IMPS)', () => 0]],
+    ca: [['Interac e-Transfer (business, ~$1.50)', () => 1.5], ['Card payments online (~2.9 % + 30¢)', (a) => a * 0.029 + 0.3], ['Card terminal in person (~2.65 % + 10¢)', (a) => a * 0.0265 + 0.1], ['Pre-authorised debit (~1 %, max $5)', (a) => Math.min(a * 0.01, 5)]],
+    us: [['ACH bank debit (~0.8 %, max $5)', (a) => Math.min(a * 0.008, 5)], ['Card payments online (~2.9 % + 30¢)', (a) => a * 0.029 + 0.3], ['Card terminal in person (~2.6 % + 15¢)', (a) => a * 0.026 + 0.15], ['Zelle or bank transfer (often free)', () => 0]],
+  };
+  const DEF = { in: [1500, 200], ca: [60, 200], us: [60, 200] } as const;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pf]')) {
+    let touched = false; fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', () => { touched = true; draw(); }));
+    const cc = followCountry(fig, (c) => { if (!touched) { fig.querySelector<HTMLInputElement>('[name=a]')!.value = String(DEF[c][0]); fig.querySelector<HTMLInputElement>('[name=n]')!.value = String(DEF[c][1]); } draw(); });
+    function draw() {
+      const c = cc(), a = num(fig, 'a'), n = num(fig, 'n'), rows = M[c].map(([t, f]) => [t, f(a) * n] as const), max = Math.max(...rows.map((r) => r[1]), 1);
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([t, v]) => `<div style="grid-template-columns:1fr"><span>${t}</span><span style="display:grid;grid-template-columns:1fr 6.5em;gap:8px;align-items:center"><span class="t"><i class="${v === 0 ? 'g' : ''}" style="width:${Math.max(1, (v / max) * 100)}%"></i></span><b>${money(c, v)}/mo</b></span></div>`).join('');
+      fig.querySelector('[data-note]')!.textContent = c === 'in' ? 'India: the RBI and government have kept UPI person-to-merchant payments free of MDR for most merchants; gateways still charge for cards, wallets and their services.' : c === 'ca' ? 'Canada: card rates differ for debit (often a flat few cents in person) and credit cards; surcharging credit cards is allowed in most provinces (not Quebec) within limits.' : 'USA: some states limit card surcharges; ACH is cheapest for large invoices but slower.';
+    }
+  }
+</script>
