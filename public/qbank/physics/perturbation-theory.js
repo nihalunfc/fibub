@@ -7,6 +7,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './perturbation-theory.more.gen.js';
 import more2 from './perturbation-theory.more2.gen.js';
 import r4 from './perturbation-theory.r4.gen.js';
+import r5 from './perturbation-theory.r5.gen.js';
 
 const lower2 = (a, b, v) => (a + b) / 2 - Math.sqrt(((a - b) / 2) ** 2 + v * v);
 const wellStep = (n, f) => f - Math.sin(2 * n * Math.PI * f) / (2 * n * Math.PI); // <n|H'|n>/V0 for H' = V0 on 0 < x < f a
@@ -199,6 +200,7 @@ export default {
       sol: 'Exact lower level: $\\tfrac\\Delta2 - \\sqrt{\\tfrac{\\Delta^2}{4} + V^2} = \\Delta(0.5 - \\sqrt{0.5}) = -0.2071\\Delta$. Second order: $-V^2/\\Delta = -0.25\\Delta$. Ratio $0.828$: the series $-\\tfrac{V^2}{\\Delta} + \\tfrac{V^4}{\\Delta^3} - \\dots$ already needs its fourth-order term ($+0.0625$) at this coupling.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'qpt-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'two-level',
@@ -318,6 +320,7 @@ export default {
       verify: (p) => Math.hypot(p.d, 2 * p.V) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
 
