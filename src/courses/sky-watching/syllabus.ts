@@ -14,6 +14,7 @@ export const SKYWATCH: CourseSyllabus = {
   title: 'Sky watching: from your own eyes to telescopes and astrophotography',
   text: 'Learn the night sky with your own eyes, then with binoculars, a telescope and a camera: how the sky moves, finding anything with coordinates, dark skies, choosing and setting up a telescope, what to observe, and taking honest astrophotos. Every lesson has interactive figures and the maths worked by hand.',
   audience: 'For anyone who wants to start looking up, from Class 8 up. No equipment needed to begin. The physics behind what you see is in the Astronomy course.',
+  kit: true,
   updated: '2026-11-22',
   footnote: 'Numbers in the examples are made up to show the idea unless a source is given. Simulations run in your browser on made-up data; nothing you type is sent anywhere. Astronomy only: nothing here is astrology.',
   parts: [

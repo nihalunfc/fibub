@@ -20,7 +20,9 @@ sources:
   - "American Association of Variable Star Observers (AAVSO), aavso.org: charts, comparison star sequences and the International Database"
 ---
 
-**Module 5 · about 25 minutes · ratios.** You'll be able to make a visual brightness estimate with two comparison stars, explain why light curves need many observers, and report an estimate in a useful form.
+**Module 5 · about 25 minutes · read first: [1.7 How bright is it? The magnitude scale](/learn/courses/sky-watching/magnitudes/), [5.3 Double stars](/learn/courses/sky-watching/double-stars/) · maths: ratios.** You'll be able to make a visual brightness estimate with two comparison stars, explain why light curves need many observers, and report an estimate in a useful form.
+
+<div class="bigidea">With nothing but your eyes and a chart of comparison stars you can estimate a variable star's magnitude to about a tenth, and your estimates join a century-long record used by professionals.</div>
 
 ## 1. Why this matters
 
@@ -41,6 +43,16 @@ Use a chart (for example from the AAVSO) that marks **comparison stars** with kn
 3. Work out the magnitude; record the time (UT and JD, Lesson 2.4), the comparison stars used and the chart ID.
 
 Keep the stars at similar altitudes (Lesson 2.6) and similar positions in the field; look at them in turn rather than at once.
+
+Make one estimate of a variable star:
+
+<div class="steps">
+<div class="step"><b>Find the field.</b> Use an AAVSO chart; it marks comparison stars with their magnitudes (without decimal points, so 72 means 7.2).</div>
+<div class="step"><b>Pick two.</b> One comparison a little brighter (A, 7.2) and one a little fainter (B, 8.0).</div>
+<div class="step"><b>Judge the steps.</b> The variable looks 3 steps fainter than A and 1 step brighter than B.</div>
+<div class="step"><b>Interpolate.</b> 7.2 + 0.8 × 3/4 = 7.8.</div>
+<div class="step"><b>Report.</b> Send the estimate with the time in JD and the chart used. Averages of many observers are good to a few hundredths.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -67,6 +79,24 @@ Things to notice:
 - With 1 observer the curve is ragged; with 20 the average follows the true curve closely.
 - Halving each observer's error helps as much as quadrupling the number of observers.
 
+
+<div class="meaning">
+
+<dl>
+<dt>m<sub>V</sub> = m<sub>A</sub> + (m<sub>B</sub> − m<sub>A</sub>) a/(a + b)</dt><dd>Fractional method: interpolate between two comparison stars.</dd>
+<dt>σ / √n</dt><dd>Uncertainty of the average of n independent estimates.</dd>
+<dt>JD</dt><dd>Julian date of the estimate (Lesson 2.4).</dd>
+<dt>Physical meaning</dt><dd>Your eye is poor at saying how bright a star is on its own but very good at saying which of two nearby stars is brighter. Comparing with known stars right next to the variable cancels the sky, the air and your own eye.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Visual estimates are useless now that cameras exist."** The AAVSO archive holds tens of millions of observations going back over a century, and visual estimates still fill gaps and catch outbursts that no robot telescope is watching.
+
+</div>
+
 ## 4. Worked example
 
 *A made-up estimate.* Comparison stars "62" (6.2) and "69" (6.9). The variable looks closer to the brighter: 1 step from 6.2, 3 steps from 6.9.
@@ -79,6 +109,10 @@ m_V = 6.2 + (6.9 - 6.2) \times \frac{1}{1+3} = 6.2 + 0.175 = 6.4
 
 ## 5. Practice
 
+<div class="problem" data-problem="fraction-estimate"></div>
+
+**More practice** (answers below):
+
 1. V is exactly halfway between 7.4 and 8.0. What is its magnitude?
 2. V is 3 steps from 4.8 and 2 steps from 5.3. What is V?
 3. Why should you avoid comparison stars much lower in the sky than the variable?
@@ -90,6 +124,15 @@ m_V = 6.2 + (6.9 - 6.2) \times \frac{1}{1+3} = 6.2 + 0.175 = 6.4
 2. `$4.8 + 0.5 \times 3/5 = 5.1$`.
 3. They suffer more extinction (higher airmass), so they look fainter than their catalogue values, biasing your estimate.
 </details>
+
+<div class="keypoints">
+
+- Compare the variable with charted stars just brighter and just fainter.
+- Fractional method: m<sub>V</sub> = m<sub>A</sub> + (m<sub>B</sub> − m<sub>A</sub>) a/(a + b).
+- Report to 0.1 mag with the JD and chart ID.
+- Many observers average to much better precision: σ/√n.
+
+</div>
 
 **Try it with real numbers:** log your own estimates and plot a light curve with the [[variable-star-log]], and find a period from your data with the [[period-finder]].
 

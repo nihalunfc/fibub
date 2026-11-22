@@ -16,9 +16,16 @@ quiz:
     choices: ['It comes out nearly the same', 'It can change a lot, because it depends on the random sample', 'It always gets smaller']
     ans: 1
     why: 'The p-value is itself a random quantity. With modest power, repeats can easily give 0.01 one time and 0.3 the next.'
+sources:
+  - 'Wasserstein, R. L. and Lazar, N. A. (2016), The ASA Statement on p-Values: Context, Process, and Purpose, The American Statistician 70(2), 129-133 https://doi.org/10.1080/00031305.2016.1154108'
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 5.3 https://www.openintro.org/book/os/'
 ---
 
 **Module 6 · about 25 minutes · school maths.** You'll be able to define a p-value correctly, avoid the five common misreadings, and report it alongside an effect size and interval.
+
+<div class="bigidea">A p-value is the chance of data at least this extreme if nothing were going on; it is not the chance that nothing is going on.</div>
+
+**In everyday terms:** you find your friend has won the lottery. "How likely is a win if they played fairly?" is tiny. That does not make cheating likely, because millions play fairly and someone always wins. The p-value only answers the first question.
 
 ## 1. The definition
 
@@ -55,6 +62,35 @@ Report **the effect, its interval and the p-value**, in that order of importance
 That sentence lets a reader judge both how big and how certain. Compare "the result was not significant", which throws away nearly everything.
 
 Write small p-values as "p < 0.001" rather than "p = 0.000".
+
+<div class="meaning">
+
+<dl>
+<dt>p</dt><dd>P(data this extreme or more | H₀ true).</dd>
+<dt>Small p</dt><dd>The data sit poorly with H₀.</dd>
+<dt>p ≥ α</dt><dd>The data are compatible with H₀; not proof of it.</dd>
+<dt>Physical meaning</dt><dd>The p-value is a measure of how surprised a believer in "no effect" should be. It says nothing on its own about how big or how important the effect is; that is the interval's job.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"p = 0.03 means a 3 % chance the result is a fluke."** It means: if there were no effect, data this extreme would turn up 3 % of the time. The chance that the effect is real also depends on how plausible it was beforehand (Lesson 2.2).
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The test.</b> A: 200 of 5,000 converted (4.0 %). B: 240 of 5,000 (4.8 %).</div>
+<div class="step"><b>World without an effect.</b> Both groups share one rate: 440 ÷ 10,000 = 4.4 %.</div>
+<div class="step"><b>Expected wobble there.</b> SE = √(0.044 × 0.956 × (1/5,000 + 1/5,000)) ≈ 0.41 points.</div>
+<div class="step"><b>Surprise.</b> The gap is 0.8 points = 1.95 SEs.</div>
+<div class="step"><b>p-value.</b> A gap of 1.95 SEs or more, either way, happens about 5.1 % of the time by chance. Suggestive, not conclusive.</div>
+</div>
+
+<div class="problem" data-problem="p-value-two-sided"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -97,3 +133,12 @@ So: "just short of 0.05". The honest reading: there's suggestive evidence B is b
 **Try it on your own data:** the [[hypothesis-tests]] tool shows the null distribution with your statistic and the p-value area shaded.
 
 **New words:** *p-value*, *tail area*, *statistical significance*, *null distribution*.
+
+<div class="keypoints">
+
+- p = chance of data this extreme if H₀ were true.
+- It is not the chance H₀ is true, nor the chance the result will repeat.
+- p says nothing about size; always report the estimate and its interval.
+- p near 0.05 is weak evidence; p-values bounce around between repeats of the same study.
+
+</div>

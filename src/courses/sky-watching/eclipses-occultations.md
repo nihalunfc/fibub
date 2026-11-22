@@ -21,7 +21,9 @@ sources:
   - "Eye safety: American Astronomical Society, eclipse.aas.org (ISO 12312-2 solar viewers)"
 ---
 
-**Module 5 · about 25 minutes · small angles.** You'll be able to tell eclipses, transits and occultations apart, explain total versus annular eclipses, and see how amateur timings measure the shapes of asteroids.
+**Module 5 · about 25 minutes · read first: [1.4 Moon phases and eclipses](/learn/courses/sky-watching/moon-phases/), [4.4 Resolution, the Dawson limit and the atmosphere](/learn/courses/sky-watching/resolution/) · maths: small angles.** You'll be able to tell eclipses, transits and occultations apart, explain total versus annular eclipses, and see how amateur timings measure the shapes of asteroids.
+
+<div class="bigidea">When one body passes in front of another we get an eclipse, a transit or an occultation; total solar eclipses depend on the Moon's distance, and occultation timings measure asteroid shapes to a few kilometres.</div>
 
 ## 1. Why this matters
 
@@ -46,6 +48,16 @@ Things to notice:
 - Near perigee the umbra reaches past Earth's surface: a narrow path of totality.
 - Near apogee the umbra ends in space: the Moon can't cover the Sun and an annular "ring of fire" shows.
 
+See why some solar eclipses are total and others annular:
+
+<div class="steps">
+<div class="step"><b>A lucky match.</b> The Sun is about 400 times wider than the Moon and about 400 times further away, so both look about 0.5° wide.</div>
+<div class="step"><b>Moon near perigee.</b> It looks slightly bigger than the Sun: the umbra reaches Earth and the eclipse is total.</div>
+<div class="step"><b>Moon near apogee.</b> It looks slightly smaller: a ring of Sun shows round it, an annular eclipse.</div>
+<div class="step"><b>Lunar eclipses.</b> The Moon passes through Earth's shadow. Sunlight bent through our atmosphere turns it copper-red.</div>
+<div class="step"><b>Occultations.</b> When an asteroid hides a star, observers on the ground time the disappearance; each timing gives a chord across the asteroid.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -60,6 +72,24 @@ L = \frac{R_\text{M}\,D}{R_\odot - R_\text{M}} = \frac{1737 \times 149.6\times10
 **Occultation chord:** a star hidden for time `$t$` by an asteroid moving across the sky at speed `$v$` (km/s, projected at the asteroid's distance) gives a chord across the asteroid of length `$\ell = v\,t$`.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>θ = 2R / d</dt><dd>Apparent angular size of a body of radius R at distance d.</dd>
+<dt>L = R<sub>M</sub> D / (R☉ − R<sub>M</sub>)</dt><dd>Length of the Moon's umbra, about 374,000 km.</dd>
+<dt>Chord = v t</dt><dd>Asteroid width along one track from the shadow speed and the time hidden.</dd>
+<dt>Physical meaning</dt><dd>An eclipse is a shadow play on a cosmic scale. The Moon's shadow cone is just about long enough to reach Earth; when the Moon is a bit further away, the tip falls short and we see a ring. Occultations use the same idea to measure things too small to see.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Solar eclipses happen every month at new Moon."** The Moon's orbit is tilted 5° to Earth's, so at most new Moons its shadow passes above or below Earth. Eclipses need the new or full Moon to fall near a node, which happens only in a few "eclipse seasons" a year.
+
+</div>
+
 ## 4. Worked example: weighing nothing, measuring an asteroid
 
 *Made-up occultation.* An asteroid's shadow sweeps across Earth at 6.5 km/s (its projected speed). Five observers along a line across the path record the star vanishing for 7.4, 12.1, 13.0, 10.8 and 4.2 seconds.
@@ -70,6 +100,10 @@ L = \frac{R_\text{M}\,D}{R_\odot - R_\text{M}} = \frac{1737 \times 149.6\times10
 Timing accuracy matters: 0.1 s error is 0.65 km of chord, so observers use video and time signals from GPS. Groups such as the International Occultation Timing Association coordinate these campaigns.
 
 ## 5. Practice
+
+<div class="problem" data-problem="occultation-chord"></div>
+
+**More practice** (answers below):
 
 1. Is a planet crossing its star seen from Earth an eclipse, a transit or an occultation?
 2. At the Moon's average distance (384,400 km) can a solar eclipse be total?
@@ -82,6 +116,15 @@ Timing accuracy matters: 0.1 s error is 0.65 km of chord, so observers use video
 2. Barely not: the umbra (about 374,000 km) is shorter than 384,400 − 6,371 km, so it falls just short: annular at the centre line. Totality needs the Moon a bit closer than average.
 3. 45 km.
 </details>
+
+<div class="keypoints">
+
+- Total vs annular depends on the Moon's distance; the umbra is about 374,000 km long.
+- Lunar eclipses turn the Moon red with sunlight bent through Earth's air.
+- Never look at the partial Sun without a certified solar filter.
+- Occultation chords (v × t) map asteroid shapes.
+
+</div>
 
 **Try it on the real sky:** find eclipses visible from your town with the [[eclipse-finder]], and predict exoplanet transits you could time with the [[transit-planner]].
 

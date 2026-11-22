@@ -16,9 +16,16 @@ quiz:
     choices: ['That B won', 'That the split between groups matches the plan (no sample ratio mismatch)', 'That the p-value is small']
     ans: 1
     why: 'If visitors went missing from one group, every number after that is biased. Check the split first (Lesson 7.6).'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments: A Practical Guide to A/B Testing, Cambridge University Press, Chapters 3 and 17'
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 6.2 Difference of two proportions https://www.openintro.org/book/os/'
 ---
 
 **Module 7 · about 25 minutes · uses Lessons 5.2 and 6.3.** You'll be able to read a finished conversion test in the right order, report it with an interval, and write the decision.
+
+<div class="bigidea">Read a finished test in order: check the split, then the size of the difference and its interval, then the p-value, then the guardrails, then decide by the rule you wrote.</div>
+
+**In everyday terms:** a pilot's checklist. Instruments first (is the data sound?), then position (how big is the effect?), then the go/no-go call. Skipping straight to "did we win?" is how accidents happen.
 
 ## 1. Read it in this order
 
@@ -48,6 +55,36 @@ The **confidence interval for the difference** answers the more useful question:
 **Small samples or rare events** (fewer than about 10 conversions in a group): use Fisher's exact test ([[crosstab-chi-square]] gives both).
 
 **Means** (revenue per user): Welch's t-test or a bootstrap by user (Lesson 4.5), not the proportion test.
+
+<div class="meaning">
+
+<dl>
+<dt>Split check</dt><dd>Are the group sizes what the design promised? (Lesson 7.6)</dd>
+<dt>Absolute lift</dt><dd>p_B − p_A, in percentage points.</dd>
+<dt>Relative lift</dt><dd>(p_B − p_A) ÷ p_A, in %.</dd>
+<dt>CI for the lift</dt><dd>Lift ± 1.96 × √(p_A(1 − p_A)/n_A + p_B(1 − p_B)/n_B).</dd>
+<dt>Physical meaning</dt><dd>The interval is the honest answer: "the new form adds between 0.1 and 1.3 orders per 100 visitors". The p-value only says whether that range includes zero.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Relative lift sounds bigger, so lead with it."** +17 % relative and +0.7 points are the same result. Give both, and the absolute numbers behind them, so readers can judge the real-world size.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> A: 410 orders from 10,000 visitors (4.10 %). B: 482 from 10,050 (4.80 %).</div>
+<div class="step"><b>Split.</b> 10,000 against 10,050 is fine for a 50/50 design (p ≈ 0.72).</div>
+<div class="step"><b>Lift.</b> +0.70 points, or +17 % relative.</div>
+<div class="step"><b>Interval.</b> SE ≈ 0.29 points; 95 % CI about +0.13 to +1.27 points: above zero.</div>
+<div class="step"><b>Decide.</b> Guardrails fine, so by the written rule: ship. Expected value: about 7 extra orders per 1,000 visitors.</div>
+</div>
+
+<div class="problem" data-problem="ab-ci-lift"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -104,3 +141,12 @@ Notice the two groups' own intervals overlap (4.51 vs 4.40) even though the diff
 **Try it on your own data:** the [[hypothesis-tests]] tool runs the two-proportion test and t-tests on your numbers; [[crosstab-chi-square]] handles 2 × 2 tables with Fisher's exact test; [[bayesian-ab-test]] gives the Bayesian reading (Lesson 7.7).
 
 **New words:** *absolute lift*, *relative lift*, *two-proportion z-test*, *pooled rate*, *readout*.
+
+<div class="keypoints">
+
+- Check the split and data quality before any result.
+- Report absolute and relative lift with a 95 % CI.
+- Then the p-value, then guardrails.
+- Decide by the rule written before the test, and translate the lift into money or orders.
+
+</div>

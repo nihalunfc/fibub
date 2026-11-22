@@ -16,9 +16,16 @@ quiz:
     choices: ['Yes, completely', 'No: stopping the first time P(B better) passes 95 % still produces many false wins when there is no real difference', 'Only with a flat prior']
     ans: 1
     why: 'Repeated checks give noise many chances, whatever the method (Lesson 7.4). An expected-loss threshold helps, because when the groups are truly equal the expected loss rarely gets tiny early on.'
+sources:
+  - 'Stucchio, C. (2015), Bayesian A/B Testing at VWO, VWO technical paper https://vwo.com/downloads/VWO_SmartStats_technical_whitepaper.pdf'
+  - 'Gelman, A. et al. (2013), Bayesian Data Analysis, 3rd edition, CRC Press, Chapter 2 (the beta-binomial model) http://www.stat.columbia.edu/~gelman/book/'
 ---
 
 **Module 7 · about 25 minutes · uses Lessons 2.2 and 7.5.** You'll be able to read a Bayesian A/B result, explain "chance B is better" and "expected loss", and say when the approach helps.
+
+<div class="bigidea">The Bayesian view answers the question managers actually ask: how likely is it that B is better, and how much do we lose if we pick B and are wrong?</div>
+
+**In everyday terms:** a weather forecast says "70 % chance of rain" instead of "we reject the hypothesis of a dry day". You decide about the umbrella from the chance and from how much you mind getting wet.
 
 ## 1. The question managers actually ask
 
@@ -44,6 +51,36 @@ Teams typically agree in advance to ship when the expected loss is below a tiny 
 
 - A **flat prior** lets the data speak; with thousands of visitors its effect is negligible.
 - An **informative prior** from past tests (most changes move conversion by less than a few percent) shrinks wild early results towards zero. That's a strength, but it must be set before the test and written down.
+
+<div class="meaning">
+
+<dl>
+<dt>Prior</dt><dd>What you believed about the rate before the test (often a flat Beta(1, 1)).</dd>
+<dt>Posterior Beta(1 + buyers, 1 + non-buyers)</dt><dd>What you believe after the data, for each version.</dd>
+<dt>P(B > A)</dt><dd>The share of posterior draws where B's rate beats A's.</dd>
+<dt>Expected loss</dt><dd>If you pick B, the average amount by which A would have been better, counting only the cases where it is.</dd>
+<dt>Physical meaning</dt><dd>The posterior is a cloud of plausible true rates. Draw from both clouds many times: how often B lands above A is the chance B is better, and how far below A it lands when it loses is the risk.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"P(B better) = 94 % means ship."** It depends on what being wrong costs. Decide in advance on an expected-loss threshold; a 94 % chance with a tiny downside can be a fine bet, and with a big downside it is not.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> A: 80 of 2,000 buy (4.0 %). B: 100 of 2,000 (5.0 %).</div>
+<div class="step"><b>Posteriors.</b> A: Beta(81, 1,921). B: Beta(101, 1,901).</div>
+<div class="step"><b>Draw.</b> 100,000 pairs of rates; B is higher in about 94 % of them.</div>
+<div class="step"><b>Risk.</b> Where B loses, it loses by little: expected loss about 0.018 points.</div>
+<div class="step"><b>Rule.</b> The plan said "ship when expected loss < 0.01 points": keep running to the planned size, then decide.</div>
+</div>
+
+<div class="problem" data-problem="beta-posterior-mean"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -99,3 +136,12 @@ Both views agree on the evidence. The Bayesian one states it in terms people can
 **Try it on your own data:** the [[bayesian-ab-test]] tool computes posteriors, P(B better) and expected loss for your counts; [[distribution-explorer]] draws Beta curves.
 
 **New words:** *prior*, *posterior*, *Beta distribution*, *conjugate prior*, *credible interval*, *expected loss*.
+
+<div class="keypoints">
+
+- With a flat prior, the posterior for a rate is Beta(1 + yes, 1 + no).
+- P(B > A) and expected loss come from comparing draws from the two posteriors.
+- Set the decision threshold (expected loss) before the test.
+- Bayesian tests are not immune to peeking problems unless the rule is planned.
+
+</div>

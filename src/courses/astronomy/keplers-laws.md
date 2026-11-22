@@ -21,7 +21,9 @@ sources:
   - "Halley's comet orbit (rounded a and e): JPL Small-Body Database, ssd.jpl.nasa.gov"
 ---
 
-**Module 2 · about 25 minutes · ellipses and powers.** You'll be able to state Kepler's three laws, use P² = a³ to find a period or an orbit size, and work out the closest and furthest points of an orbit.
+**Module 2 · about 25 minutes · read first: [Sky watching 1.5 Planets that wander](/learn/courses/sky-watching/wandering-planets/) · maths: ellipses and powers.** You'll be able to state Kepler's three laws, use P² = a³ to find a period or an orbit size, and work out the closest and furthest points of an orbit.
+
+<div class="bigidea">Planets move on ellipses with the Sun at one focus, sweep out equal areas in equal times, and the further out they are the longer their year: P² = a³ in years and AU.</div>
 
 ## 1. Why this matters
 
@@ -40,6 +42,16 @@ Things to notice:
 - At e = 0.5 the planet races through perihelion and crawls at aphelion. Press Play and watch.
 - The two wedges cover equal time and equal area, even though their shapes are very different.
 - Earth's orbit (e = 0.017) is so close to a circle that you couldn't tell it apart by eye.
+
+Follow a comet round one orbit:
+
+<div class="steps">
+<div class="step"><b>Far out (aphelion).</b> The comet is at its furthest from the Sun and moving slowest, crawling along its path.</div>
+<div class="step"><b>Falling in.</b> The Sun's pull speeds it up as it comes closer, like a ball rolling downhill.</div>
+<div class="step"><b>Closest (perihelion).</b> Fastest point. In one week it sweeps a short, fat slice of area.</div>
+<div class="step"><b>Equal areas.</b> At aphelion one week sweeps a long, thin slice. The two slices have exactly the same area: that is Kepler's second law.</div>
+<div class="step"><b>The year.</b> If the orbit's semi-major axis is 4 AU, one lap takes √(4³) = 8 years.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -65,6 +77,24 @@ For a star of `$M$` solar masses, `$P^2 = a^3 / M$` (Newton's version, Lesson 2.
 
 The equal-areas law is a rule about spin: nothing twists a planet round the Sun, so its "amount of turning" (angular momentum) stays fixed. Close in, the planet must swing faster to carry the same turning, like a skater pulling in their arms. The third law says outer planets are slower in two ways: they have further to go, and the Sun's pull is weaker out there, so they move more slowly along the way.
 
+
+<div class="meaning">
+
+<dl>
+<dt>a</dt><dd>Semi-major axis: half the longest width of the ellipse, the orbit's "size".</dd>
+<dt>e</dt><dd>Eccentricity: 0 is a circle, close to 1 is a long thin ellipse.</dd>
+<dt>P² = a³</dt><dd>Third law for the Sun: P in years, a in AU.</dd>
+<dt>Physical meaning</dt><dd>A planet trades height for speed like a skateboarder in a bowl: it speeds up as it falls towards the Sun and slows as it climbs away. The equal-area rule is that trade written down, and it holds because nothing twists the planet sideways (angular momentum is conserved).</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Earth has seasons because it is closer to the Sun in summer."** Earth is closest to the Sun in early January, during northern winter. Its orbit is nearly a circle (e = 0.017); seasons come from the tilt of its axis.
+
+</div>
+
 ## 4. Worked example
 
 *Halley's comet has a = 17.8 AU and e = 0.967. Find its period and its closest and furthest distances.*
@@ -81,6 +111,10 @@ It dips inside Venus's orbit, then swings out beyond Neptune. It last passed the
 
 ## 5. Practice
 
+<div class="problem" data-problem="kepler-period"></div>
+
+**More practice** (answers below):
+
 1. Jupiter takes 11.86 years to orbit the Sun. What is its `$a$`?
 2. A comet has perihelion 1 AU and aphelion 9 AU. Find `$a$`, `$e$` and `$P$`.
 3. Earth's e is 0.017. How much closer to the Sun is Earth at perihelion than at aphelion, in percent?
@@ -92,6 +126,15 @@ It dips inside Venus's orbit, then swings out beyond Neptune. It last passed the
 2. `$a = (1 + 9)/2 = 5$` AU; `$e = (9 - 1)/(9 + 1) = 0.8$`; `$P = 5^{1.5} = 11.2$` years.
 3. `$r_\text{peri}/r_\text{aph} = 0.983/1.017 = 0.967$`, about 3.3% closer.
 </details>
+
+<div class="keypoints">
+
+- Orbits are ellipses with the Sun at one focus (first law).
+- A planet moves fastest at perihelion and slowest at aphelion (second law, equal areas).
+- P² = a³ for anything orbiting the Sun (third law).
+- Perihelion = a(1 − e), aphelion = a(1 + e).
+
+</div>
 
 **Try it with real numbers:** set up any orbit with the [[orbit-elements]] tool, and look up the planets in the [[planet-data-explorer]].
 
