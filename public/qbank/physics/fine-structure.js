@@ -2,6 +2,7 @@
 // Dirac formula E(n, j), the Lamb shift, alkali doublets, hyperfine splitting and the fine structure of lines.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './fine-structure.more.gen.js';
 
 const AL2 = 5.32514e-5;          // alpha^2, alpha = 1/137.036
 const RY = 13.6057;              // eV
@@ -384,6 +385,7 @@ export default {
           trap: which === 'rel' ? 'The relativistic term depends on $l$, not $j$.' : 'Only $s$ states feel the Darwin term.' };
       },
       verify: (p) => (p.which === 'rel' ? -(724.52 / (4 * p.n ** 4)) * (4 * p.n / (p.l + 0.5) - 3) : (p.l === 0 ? 724.52 / p.n ** 3 : 0)) },
+    ...more,
   ],
 };
 

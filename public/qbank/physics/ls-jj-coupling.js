@@ -2,6 +2,7 @@
 // Hund's rules, the Landé interval rule, jj coupling and the selection rules for multi-electron spectra.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './ls-jj-coupling.more.gen.js';
 
 const LT = ['S', 'P', 'D', 'F', 'G', 'H', 'I', 'K', 'L', 'M'];
 const fr = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
@@ -394,5 +395,6 @@ export default {
           trap: 'Ionisation energy is a difference of two total energies, not half the two-electron energy.' };
       },
       verify: (p) => -13.6 * p.Z ** 2 + 2 * (p.Z - 5 / 16) ** 2 * 13.6 },
+    ...more,
   ],
 };
