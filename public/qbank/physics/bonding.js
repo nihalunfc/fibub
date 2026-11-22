@@ -3,6 +3,7 @@
 // Lennard-Jones potential (pair and lattice sums, equilibrium spacing, cohesive energy, force constant, bulk modulus,
 // zero-point effects), covalent, metallic and hydrogen bonds. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './bonding.more.gen.js';
 
 const KE = C.e / (4 * Math.PI * C.eps0) * 1e10;        // e^2/(4 pi eps0) in eV Å (14.40)
 const KEJ = C.e ** 2 / (4 * Math.PI * C.eps0);          // in J m
@@ -385,5 +386,6 @@ export default {
           trap: 'Using the atomic mass instead of the reduced mass $m/2$.' };
       },
       verify: (p) => Math.sqrt(72 * p.e / 1000 * C.e / (2 ** (1 / 3) * (p.s * 1e-10) ** 2) / (p.M / 2 * C.u)) / (2 * Math.PI) / 1e12 },
+    ...more,
   ],
 };

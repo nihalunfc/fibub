@@ -5,6 +5,7 @@
 // hysteresis. (H, B, M, bound currents and basic hysteresis: JAM topic magnetic-materials.)
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
+import more from './magnetism.more.gen.js';
 
 const muB = C.e * C.hbar / (2 * C.me);
 const landeG = (L, S, J) => 1 + (J * (J + 1) + S * (S + 1) - L * (L + 1)) / (2 * J * (J + 1));
@@ -342,5 +343,6 @@ export default {
           sol: `$B = hf/g\\mu_B = 6.626\\times10^{-34}\\times${f}\\times10^9/(${g}\\times9.274\\times10^{-24}) = ${round(B, 3)}$ T.` };
       },
       verify: (p) => (p.toF ? p.g * muB * p.B / C.h / 1e9 : p.f * 1e9 * C.h / (p.g * muB)) },
+    ...more,
   ],
 };

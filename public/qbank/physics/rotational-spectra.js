@@ -2,6 +2,7 @@
 // strongest line, centrifugal distortion, symmetric tops, which molecules are microwave active, nuclear spin statistics.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './rotational-spectra.more.gen.js';
 
 const IB = 16.8576;           // I (amu Å^2) = IB / B (cm^-1)
 const C2 = 1.438777;          // hc/k in cm K
@@ -364,5 +365,6 @@ export default {
           sol: `$BJ(J+1) = ${B}\\times${J * (J + 1)} = ${round(B * J * (J + 1), 3)}$; $(A - B)K^2 = (${round(A - B, 3)})\\times${K * K} = ${round((A - B) * K * K, 3)}$. Sum: ${show(E)}. ${type === 'oblate' ? 'For an oblate top $A < B$ (often written $C$), so the $K$ term lowers the energy.' : 'For a prolate top $A > B$, so the $K$ term raises the energy.'}`,
           trap: 'The $K$ term carries $A - B$, not $A$.' };
       } },
+    ...more,
   ],
 };

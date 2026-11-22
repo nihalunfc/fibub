@@ -2,6 +2,7 @@
 // canonical and grand canonical ensembles, fluctuations, Liouville's theorem, phase-space counting, negative temperature.
 // Original questions for GATE and CSIR NET practice (fibub), MSc level. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './ensembles.more.gen.js';
 
 const kB = 8.617333e-5; // eV/K
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
@@ -341,5 +342,6 @@ export default {
           sol: `The region is $0 < x < L$, $|p| < p_{\\max} = \\sqrt{2mE}$, area $2Lp_{\\max}$. $p_{\\max} = \\sqrt{2\\times9.109\\times10^{-31}\\times${E}\\times1.602\\times10^{-19}} = ${(Math.sqrt(2 * C.me * E * C.e)).toExponential(3).replace('e', '\\times10^{') + '}'}$ kg m/s. $N = 2Lp_{\\max}/h \\approx ${round(n, 2)}$, the same as the largest box quantum number $n = L\\sqrt{8mE}/h$.` };
       },
       verify: (p) => 2 * p.L * 1e-9 * Math.sqrt(2 * C.me * p.E * C.e) / C.h },
+    ...more,
   ],
 };

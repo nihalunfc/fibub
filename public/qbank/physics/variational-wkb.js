@@ -5,6 +5,7 @@
 // field emission, decay lifetimes and double-well splitting.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './variational-wkb.more.gen.js';
 
 const K1 = 5.1232; // sqrt(2 m_e · 1 eV)/ħ in nm⁻¹
 const U = 0.0381;  // ħ²/2m_e in eV nm²
@@ -309,5 +310,6 @@ export default {
           sol: `$m/\\hbar^2 = 1/(2\\times0.0381)$ eV$^{-1}$ nm$^{-2}$. ${which === 'var' ? `$-m\\alpha^2/\\pi\\hbar^2 = -\\alpha^2/(2\\pi\\times0.0381) = ${round(v, 2)}$ meV` : `$-m\\alpha^2/2\\hbar^2 = -\\alpha^2/(4\\times0.0381) = ${round(v, 2)}$ meV`}. The Gaussian estimate is $2/\\pi$ of the exact binding: an upper bound on the energy.` };
       },
       verify: (p) => (p.which === 'var' ? -(p.a ** 2) / (2 * Math.PI * U) : -(p.a ** 2) / (4 * U)) * 1000 },
+    ...more,
   ],
 };

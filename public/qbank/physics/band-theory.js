@@ -4,6 +4,7 @@
 // semiclassical dynamics and Bloch oscillations, effective-mass tensors.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
+import more from './band-theory.more.gen.js';
 
 const HB2M = (C.hbar ** 2) / (2 * C.me) / C.e * 1e18; // hbar^2/2m_e in eV nm^2 (0.0381)
 const H_eVs = C.h / C.e; // Planck constant in eV s
@@ -318,5 +319,6 @@ export default {
           sol: which === 'bottom' ? `At $k = 0$ solve $\\cos x + ${P}\\sin x/x = 1$ for $0 < x < \\pi$ (the left side falls from $${1 + P}$ at $x \\to 0$ to $-1$ at $x = \\pi$). Numerically $x = ${round(x0, 3)}$.` : `The first band ends at $x = \\alpha a = \\pi$. The second starts where $\\cos x + ${P}\\sin x/x = -1$ with $\\pi < x < 2\\pi$: $x = ${round(x1, 3)}$. Gap ratio $= (x^2 - \\pi^2)/\\pi^2 = ${round(ans, 2)}$.` };
       },
       verify: (p) => { const f = kpRHS(p.P); if (p.which === 'bottom') return bisect((x) => f(x) - 1, 1e-6, Math.PI); const x1 = bisect((x) => f(x) + 1, Math.PI + 1e-9, 2 * Math.PI); return (x1 ** 2 - Math.PI ** 2) / Math.PI ** 2; } },
+    ...more,
   ],
 };

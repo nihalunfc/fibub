@@ -3,6 +3,7 @@
 // photon lifetime, line broadening, coherence, Gaussian beams, Q-switching and mode locking, common lasers.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './lasers.more.gen.js';
 
 const H = 6.62607015e-34, CL = 2.99792458e8, KB = 1.380649e-23, U = 1.66053907e-27;
 const C2 = 1.438777e-2;   // hc/k in m K
@@ -369,5 +370,6 @@ export default {
           trap: 'Better mirrors (smaller loss) mean longer photon lifetime and higher $Q$.' };
       },
       verify: (p) => { const tau = 2 * p.L / (CL * Math.log(1 / (p.R1 * p.R2))); return p.mode === 'tau' ? tau * 1e9 : 2 * Math.PI * (CL / (p.lam * 1e-9)) * tau / 1e6; } },
+    ...more,
   ],
 };

@@ -3,6 +3,7 @@
 // exchange correlations, the 2D Fermi gas, simple many-orbital and Hubbard-atom models.
 // Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, shuffle, C } from '../_util.js';
+import more from './quantum-statistics.more.gen.js';
 
 const kBe = 8.617333e-5;
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
@@ -310,5 +311,6 @@ export default {
           sol: `$\\mathcal Z = 1 + 2e^{\\beta\\mu} + e^{\\beta(2\\mu - U)} = 1 + 2e^{${round(b * mu, 3)}} + e^{${round(b * (2 * mu - U), 3)}} = ${round(Z, 4)}$. $\\langle n\\rangle = [2e^{\\beta\\mu} + 2e^{\\beta(2\\mu - U)}]/\\mathcal Z \\approx ${round(n, 4)}$.` };
       },
       verify: (p) => { const Z = 1 + 2 * Math.exp(p.b * p.mu) + Math.exp(p.b * (2 * p.mu - p.U)); return (2 * Math.exp(p.b * p.mu) + 2 * Math.exp(p.b * (2 * p.mu - p.U))) / Z; } },
+    ...more,
   ],
 };

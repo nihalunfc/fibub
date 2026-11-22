@@ -2,6 +2,7 @@
 // the Paschen-Back regime, electron spin resonance, the linear Stark effect of hydrogen and the quadratic Stark effect.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './zeeman-stark.more.gen.js';
 
 const MUB = 5.7884e-5;       // Bohr magneton, eV/T
 const MUB_GHZ = 13.9962;     // mu_B/h, GHz/T
@@ -384,5 +385,6 @@ export default {
           sol: '$g_J = 1 + [J(J+1) + S(S+1) - L(L+1)]/2J(J+1)$. ' + ch.map((x) => `$${sym(...x)}$: $g = ${round(gJ(...x), 3)}$.`).join(' '),
           trap: '$g > 1$ when spin dominates the moment; $g < 1$ when $L(L+1)$ outweighs $S(S+1)$ in the numerator.' };
       } },
+    ...more,
   ],
 };

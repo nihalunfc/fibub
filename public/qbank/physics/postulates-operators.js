@@ -2,6 +2,7 @@
 // measurement and collapse, expectation values and spreads, unitary time evolution, Ehrenfest and the virial theorem.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './postulates-operators.more.gen.js';
 
 const HBAR_EVFS = 0.6582119569; // hbar in eV fs
 const H_EVFS = 4.135667696; // h in eV fs
@@ -299,5 +300,6 @@ export default {
           trap: 'Adding the two currents, or expecting interference terms: right- and left-moving waves carry independent currents.' };
       },
       verify: (p) => p.A ** 2 - p.B ** 2 },
+    ...more,
   ],
 };

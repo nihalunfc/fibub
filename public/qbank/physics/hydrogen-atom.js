@@ -5,6 +5,7 @@
 // atoms-x-rays; this topic is the MSc treatment.)
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './hydrogen-atom.more.gen.js';
 
 const L = ['s', 'p', 'd', 'f', 'g', 'h'];
 const rAvg = (n, l) => (3 * n * n - l * (l + 1)) / 2;            // <r> in units of a/Z
@@ -327,5 +328,6 @@ export default {
         return { q: `For the ${n}${L[l]} state of a hydrogen-like ion with $Z = ${Z}$, $\\langle 1/r^2\\rangle$ equals (use $\\langle r^{-2}\\rangle = Z^2/[n^3(l + \\tfrac12)a_0^2]$)`, ...o,
           sol: `$\\langle r^{-2}\\rangle = \\dfrac{${Z}^2}{${n}^3(${l} + \\tfrac12)a_0^2} = \\dfrac{${2 * num}}{${den}a_0^2}$ (simplify the fraction). Unlike $\\langle 1/r\\rangle = Z/n^2a_0$, it depends on $l$, which is why fine structure lifts the $l$ degeneracy.` };
       } },
+    ...more,
   ],
 };
