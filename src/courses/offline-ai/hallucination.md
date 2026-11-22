@@ -2,7 +2,11 @@
 title: Why models make things up
 summary: Models predict likely text, not true text, so they sometimes produce confident errors. Why it happens, when it is most likely, and the habits that reduce it.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
+sources:
+  - 'Ji, Z. et al. (2023), Survey of Hallucination in Natural Language Generation, ACM Computing Surveys 55(12) https://doi.org/10.1145/3571730'
+  - 'Kalai, A. T. et al. (2025), Why Language Models Hallucinate https://arxiv.org/abs/2509.04664'
+  - 'Lewis, P. et al. (2020), Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks https://arxiv.org/abs/2005.11401'
 quiz:
   - q: Why do language models sometimes state false facts confidently?
     choices: ['They are designed to lie', 'They predict likely-sounding text, and a plausible wrong answer can score highly', 'Their internet is slow']
@@ -20,6 +24,8 @@ quiz:
 
 **Module 2 · about 20 minutes · read first: 2.1.** You'll be able to predict when a model is likely to make things up and set up your work to catch it.
 
+<div class="bigidea">A model picks likely-sounding words, not checked facts, so when it does not know something it can still produce a fluent, confident answer that is wrong.</div>
+
 ## 1. Why this matters
 
 A wrong figure in a report or a made-up legal reference can cost far more than the time the model saved. Every serious workflow needs a plan for errors.
@@ -27,6 +33,16 @@ A wrong figure in a report or a made-up legal reference can cost far more than t
 ## 2. Why it happens
 
 The loop in Lesson 2.1 picks likely text, not checked facts. When the model has learned a fact well, likely and true are the same. When it has not (rare names, recent events, exact numbers, references), the most fluent continuation can be a confident invention. This is called **hallucination**.
+
+Think of a student in an exam who never learned the answer but must write something. A well-practised student writes a smooth, convincing paragraph anyway. The model is always that student: it must pick some next token.
+
+<div class="steps">
+<div class="step"><p><b>A question it can't know.</b> "Which library won the 2019 regional award for small branches?" The model never read the answer.</p></div>
+<div class="step"><p><b>No clear favourite.</b> For the first word of the name, many tokens score about the same: "Maple" 12%, "River" 10%, "Oak" 9%, and so on. None is strong.</p></div>
+<div class="step"><p><b>It still picks one.</b> The loop must choose. Say it picks "Maple".</p></div>
+<div class="step"><p><b>Then everything flows.</b> After "Maple", "Grove" is very likely (80%), then "Library" (90%). Each word fits the words before it, so the whole answer reads confidently, though only the first choice was a guess.</p></div>
+<div class="step"><p><b>Give it the source.</b> Paste the award page into the prompt and the right name scores 95%: it is right there to copy. This is why grounding works.</p></div>
+</div>
 
 It is most likely with:
 
@@ -56,9 +72,28 @@ It is most likely with:
 **Try it:** 20 claims each 98% likely to be right? (0.98²⁰ ≈ 0.67: one answer in three has at least one error. That is why checking matters.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>p</dt><dd>the chance that one claim in the answer is right, for example 0.98 (98%)</dd>
+<dt>n</dt><dd>how many separate facts the answer states</dd>
+<dt>pⁿ</dt><dd>p multiplied by itself n times: the chance every single claim is right</dd>
+<dt>Physical meaning</dt><dd>Small error rates add up. A model that is right 98% of the time per fact still gives a long report with at least one mistake about a third of the time. Long, fact-heavy answers need checking; short answers grounded in a source you supplied need much less.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="hallucination-chain"></div>
+
 ## 4. Worked example
 
 *Made-up numbers.* A small charity asks a local model for "five grants for literacy projects in Ontario with deadlines". It lists five, two of which do not exist. Next time they paste the funders' pages and ask "list grants mentioned in this text, quoting the deadline line". Every answer now comes with a quote they can check.
+
+<div class="myth">
+
+**"If the model sounds sure, it's probably right."** Tone tells you nothing. The words "definitely" and "according to" are just likely tokens like any others. A made-up reference reads exactly as smoothly as a real one. Judge an answer by whether you can check it against a source, not by how confident it sounds.
+
+</div>
 
 ## 5. Practice
 
@@ -75,3 +110,13 @@ It is most likely with:
 </details>
 
 **New words:** *hallucination* (confident, made-up content), *grounding* (answering from supplied sources), *knowledge cut-off*.
+
+<div class="keypoints">
+
+- Models pick likely text, not checked facts; when they never learned a fact, a fluent guess can still win.
+- Errors are most likely with exact numbers, dates, quotes, references, recent events, niche topics and small models.
+- If each claim is right with chance p, an answer with n claims is all right with chance pⁿ (0.98²⁰ ≈ 0.67).
+- Ground answers in text you supply, ask for quotes, allow "not stated", and use low temperature for facts.
+- Check numbers with a calculator or spreadsheet, not the model, and never judge by how confident it sounds.
+
+</div>
