@@ -52,6 +52,26 @@ export default {
           "name": "Gravitation"
         },
         {
+          "id": "solids-elasticity",
+          "name": "Elasticity of solids"
+        },
+        {
+          "id": "fluids",
+          "name": "Fluids: pressure, flow, viscosity and surface tension"
+        },
+        {
+          "id": "thermal-properties",
+          "name": "Heat, expansion, calorimetry and heat transfer"
+        },
+        {
+          "id": "thermodynamics-physics",
+          "name": "Thermodynamics"
+        },
+        {
+          "id": "kinetic-theory",
+          "name": "Kinetic theory of gases"
+        },
+        {
           "id": "oscillations",
           "name": "Oscillations and simple harmonic motion"
         },
@@ -78,12 +98,20 @@ export default {
           "name": "Moving charges and magnetic fields"
         },
         {
+          "id": "magnetism-matter",
+          "name": "Magnetism and matter"
+        },
+        {
           "id": "electromagnetic-induction",
           "name": "Electromagnetic induction"
         },
         {
           "id": "alternating-current",
           "name": "Alternating current"
+        },
+        {
+          "id": "em-waves",
+          "name": "Electromagnetic waves"
         },
         {
           "id": "ray-optics",
@@ -104,6 +132,14 @@ export default {
         {
           "id": "nuclei",
           "name": "Nuclei and radioactivity"
+        },
+        {
+          "id": "semiconductors",
+          "name": "Semiconductor electronics"
+        },
+        {
+          "id": "experimental-physics",
+          "name": "Experimental skills and practical physics"
         }
       ]
     }

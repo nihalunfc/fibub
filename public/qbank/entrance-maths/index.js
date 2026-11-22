@@ -57,6 +57,10 @@ export default {
         {
           "id": "conic-sections",
           "name": "Parabola, ellipse and hyperbola"
+        },
+        {
+          "id": "limits",
+          "name": "Limits"
         }
       ]
     },
@@ -73,6 +77,10 @@ export default {
           "name": "Matrices and determinants"
         },
         {
+          "id": "continuity-differentiability",
+          "name": "Continuity and differentiability"
+        },
+        {
           "id": "applications-derivatives",
           "name": "Applications of derivatives"
         },
@@ -85,8 +93,16 @@ export default {
           "name": "Definite integrals and area"
         },
         {
+          "id": "differential-equations",
+          "name": "Differential equations"
+        },
+        {
           "id": "vectors",
           "name": "Vectors"
+        },
+        {
+          "id": "three-d-geometry",
+          "name": "Three-dimensional geometry"
         }
       ]
     }

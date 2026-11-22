@@ -36,6 +36,10 @@ export default {
           "name": "Chemical bonding and molecular structure"
         },
         {
+          "id": "states-of-matter",
+          "name": "Gases and liquids"
+        },
+        {
           "id": "chemical-thermodynamics",
           "name": "Chemical thermodynamics"
         },
@@ -50,6 +54,10 @@ export default {
         {
           "id": "redox",
           "name": "Redox reactions"
+        },
+        {
+          "id": "s-block",
+          "name": "s-block elements and hydrogen"
         },
         {
           "id": "goc",
@@ -78,6 +86,10 @@ export default {
           "name": "Chemical kinetics"
         },
         {
+          "id": "solid-state-surface",
+          "name": "Solid state and surface chemistry"
+        },
+        {
           "id": "p-block",
           "name": "p-block elements (groups 13 to 18)"
         },
@@ -88,6 +100,10 @@ export default {
         {
           "id": "coordination-compounds",
           "name": "Coordination compounds"
+        },
+        {
+          "id": "metallurgy",
+          "name": "Metals and metallurgy"
         },
         {
           "id": "haloalkanes-haloarenes",
@@ -104,6 +120,14 @@ export default {
         {
           "id": "amines",
           "name": "Amines and diazonium salts"
+        },
+        {
+          "id": "biomolecules",
+          "name": "Biomolecules"
+        },
+        {
+          "id": "practical-chemistry",
+          "name": "Practical chemistry: salt analysis, titrations and tests"
         }
       ]
     }
