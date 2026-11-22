@@ -10,5 +10,11 @@ export default {
     { id: 'math', name: 'Mathematical methods', topics: [
       { id: 'vector-calculus', name: 'Vectors and vector calculus' },
     ] },
+    { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
+      { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
+      { id: 'damped-forced-oscillations', name: 'Damped and forced oscillations, resonance' },
+      { id: 'interference', name: 'Interference' },
+      { id: 'diffraction', name: 'Diffraction' },
+    ] },
   ],
 };
