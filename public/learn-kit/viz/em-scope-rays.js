@@ -32,7 +32,7 @@ export default function (host) {
       // intermediate image
       const hi = -ho * vo / uo; arrow(ctx, X(vo), cy, X(vo), Y(hi), col.s[3], 2.5, 6); text(ctx, 'I₁', X(vo), Y(hi) + 12, { color: col.s[3], size: 10.5, weight: 700, align: 'center' });
       // virtual final image: back-trace from eyepiece
-      text(ctx, 'Emerging rays spread: traced back they meet in a magnified virtual image 25 cm in front of the eye (off to the left).', 10, 16, { color: col.s[1], size: 10.5, weight: 600 });
+      text(ctx, 'Rays spread: virtual image 25 cm to the left', 10, 16, { color: col.s[1], size: 10.5, weight: 600 });
       [[fo, 0], [-fo, 0], [xe + fe, 1], [xe - fe, 1]].forEach(([dx, i]) => { const x = i ? dx : dx; line(ctx, [[X(x), cy - 3], [X(x), cy + 3]], col.muted, 1.2); });
       text(ctx, 'ticks: focal points', 10, h - 10, { color: col.muted, size: 10 });
     } else {
