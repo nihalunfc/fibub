@@ -11,7 +11,7 @@ export default function (host) {
   const sE = slider(ctl, { label: 'Field strength E (arb.)', min: 0, max: 1, step: 0.05, value: 0.6, fmt: (v) => v.toFixed(2), oninput: () => cv.redraw() });
   const sT = slider(ctl, { label: 'Time between collisions τ', min: 0.2, max: 2, step: 0.1, value: 1, fmt: (v) => v.toFixed(1) + ' (arb.)', oninput: () => cv.redraw() });
   const ctl2 = row(host);
-  const btn = button(ctl2, 'Switch field on', () => { on = !on; btn.textContent = on ? 'Switch field off' : 'Switch field on'; });
+  const btn = button(ctl2, 'Switch field on', () => { on = !on; queueMicrotask(() => cv.redraw()); btn.textContent = on ? 'Switch field off' : 'Switch field on'; });
   loop(host, (dt) => { const target = on ? sE.value * sT.value * 0.55 : 0; sh += (target - sh) * Math.min(1, dt / (0.25 * sT.value)); cv.redraw(); show(); }).button(ctl2);
   const out = readout(host);
   function show() {

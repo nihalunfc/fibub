@@ -16,7 +16,7 @@ export default function (host) {
   const vbi = () => KT * Math.log((10 ** sd.value * 10 ** sd.value) / NI ** 2);
   const Wd = (V) => Math.sqrt((2 * 11.7 * 8.85e-14 * (vbi() - V)) / (1.6e-19 * 10 ** sd.value / 2)) * 1e4; // um, symmetric N_a = N_d
   loop(host, () => cv.redraw());
-  function show() {
+  function show() { queueMicrotask(() => cv.redraw());
     const V = st === 5 ? sb.value : 0, vb = vbi();
     const msg = ['p-type (holes, with fixed negative acceptors) and n-type (electrons, with fixed positive donors) are neutral before they meet.', 'The moment they meet, holes diffuse to n and electrons to p, because each side has far more of them. Each carrier that leaves is neutralised on the other side.', 'Near the junction the carriers have gone, and what is left is bare charge: negative acceptors in p, positive donors in n. This is the depletion region.', `The charged layers make a field E that points from n to p and pushes carriers back (drift). Drift balances diffusion: built-in potential V_bi = (kT/q) ln(N_aN_d/n_i²) = ${vb.toFixed(2)} V.`, `Bias ${V.toFixed(2)} V: the barrier is V_bi − V = ${(vb - V).toFixed(2)} V and the depletion width W = ${Wd(V).toFixed(2)} µm. Forward bias narrows it and lets current flow; reverse bias widens it.`];
     out.innerHTML = `<b>Stage ${st}.</b> ${msg[st - 1]}`;

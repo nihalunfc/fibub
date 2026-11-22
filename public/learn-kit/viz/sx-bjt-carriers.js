@@ -24,7 +24,7 @@ export default function (host) {
     cv.redraw();
   }).button(row(host));
   const out = readout(host);
-  function show() { const ic = IC(), ib = ic / sb.value; out.innerHTML = `<b>V_BE = ${sv.value.toFixed(3)} V:</b> I_C = I_S e^(V_BE/V_T) = ${(ic * 1000).toFixed(3)} mA, I_B = I_C/β = ${(ib * 1e6).toFixed(1)} µA, I_E = I_C + I_B = ${((ic + ib) * 1000).toFixed(3)} mA. A rise of only ${(VT * Math.LN10 * 1000).toFixed(0)} mV in V_BE multiplies I_C by 10. In the picture a fraction 1/(β+1) = ${(100 / (sb.value + 1)).toFixed(1)}% of electrons is lost in the base (the flashes), so a thinner base means a bigger β. (A sample of electrons is drawn, and base losses are shown 6 times too often so you can see them.)`; }
+  function show() { queueMicrotask(() => cv.redraw()); const ic = IC(), ib = ic / sb.value; out.innerHTML = `<b>V_BE = ${sv.value.toFixed(3)} V:</b> I_C = I_S e^(V_BE/V_T) = ${(ic * 1000).toFixed(3)} mA, I_B = I_C/β = ${(ib * 1e6).toFixed(1)} µA, I_E = I_C + I_B = ${((ic + ib) * 1000).toFixed(3)} mA. A rise of only ${(VT * Math.LN10 * 1000).toFixed(0)} mV in V_BE multiplies I_C by 10. In the picture a fraction 1/(β+1) = ${(100 / (sb.value + 1)).toFixed(1)}% of electrons is lost in the base (the flashes), so a thinner base means a bigger β. (A sample of electrons is drawn, and base losses are shown 6 times too often so you can see them.)`; }
   cv.draw = (ctx, w, h, col) => {
     const G = geo(w, h);
     ctx.fillStyle = col.soft; ctx.fillRect(G.x0, G.y0, G.x1 - G.x0, G.y1 - G.y0); ctx.fillRect(G.x2, G.y0, G.x3 - G.x2, G.y1 - G.y0);

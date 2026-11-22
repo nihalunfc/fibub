@@ -24,7 +24,7 @@ export default function (host) {
   }).button(row(host));
   const out = readout(host);
   const lam = () => 1239.84 / sg.value;
-  function show() {
+  function show() { queueMicrotask(() => cv.redraw());
     const l = lam(), Eg = sg.value, kind = l < 380 ? 'ultraviolet, invisible' : l > 750 ? 'infrared, invisible' : 'visible';
     out.innerHTML = `<b>Eg = ${Eg.toFixed(2)} eV gives λ = 1240 / ${Eg.toFixed(2)} = ${l.toFixed(0)} nm</b> (${kind}). Forward voltage to turn on is about Eg/q ≈ ${Eg.toFixed(1)} V. A bigger gap means a bluer, higher-energy photon; that is why blue LEDs needed gallium nitride and were hard to make.`;
   }

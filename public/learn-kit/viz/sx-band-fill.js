@@ -23,7 +23,7 @@ export default function (host) {
   }).button(ctl2);
   const out = readout(host);
   const ni = () => 3e19 * Math.pow(sT.value / 300, 1.5) * Math.exp(-sg.value / (2 * KB * sT.value));
-  function show() {
+  function show() { queueMicrotask(() => cv.redraw());
     const Eg = sg.value, n = ni();
     out.innerHTML = Eg < 0.05 ? `<b>Gap ≈ 0: a metal.</b> The bands overlap or the top band is half full, so there are about 10²² free electrons per cm³ at every temperature, and resistivity rises with T because of scattering.` : `<b>Eg = ${Eg.toFixed(2)} eV, T = ${sT.value} K.</b> kT = ${(KB * sT.value * 1000).toFixed(1)} meV; thermal carriers n = p ≈ ${fmt(n, 2)} cm⁻³ (Si at 300 K is about 10¹⁰). ${Eg > 4 ? 'This is an insulator: kT is tiny compared with the gap.' : 'Raise T or lower Eg and the carrier density climbs exponentially.'} ${sp.value >= Eg ? 'A photon of this energy can lift an electron across the gap.' : 'A photon of this energy is too weak to cross the gap, so the crystal is transparent to it.'}`;
   }
