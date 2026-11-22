@@ -102,10 +102,11 @@ function post(m: object) { (self as unknown as Worker).postMessage(m); }
 
 async function files(names: string[]) {
   for (const n of names) {
-    if (have.has(n) || !/^[\w.-]+$/.test(n)) continue;
-    const r = await fetch(`/data/courses/pandas/${n}`);
+    // 'x.csv' is a pandas course file; 'statistics/x.csv' borrows another course's file
+    if (have.has(n) || !/^(?:[a-z-]+\/)?[\w.-]+$/.test(n)) continue;
+    const r = await fetch(`/data/courses/${n.includes('/') ? n : `pandas/${n}`}`);
     if (!r.ok) throw new Error(`Could not load the file ${n}`);
-    py.FS.writeFile(n, new Uint8Array(await r.arrayBuffer()));
+    py.FS.writeFile(n.split('/').pop()!, new Uint8Array(await r.arrayBuffer()));
     have.add(n);
   }
 }

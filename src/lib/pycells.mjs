@@ -43,7 +43,7 @@ function cell(main, parts, file) {
   if (m.kv.data) attrs.push(`data-files="${esc(m.kv.data)}"`);
   if (m.kv.viz) attrs.push(`data-viz="${esc(m.kv.viz)}"`);
   return `<div class="py" ${attrs.join(' ')}>` +
-    `<div class="py-head"><span class="py-tag">${kind === 'exercise' ? 'Your turn' : 'Python'}</span>${m.kv.data ? `<span class="py-files">${esc(m.kv.data.split(',').join(', '))}</span>` : ''}</div>` +
+    `<div class="py-head"><span class="py-tag">${kind === 'exercise' ? 'Your turn' : 'Python'}</span>${m.kv.data ? `<span class="py-files">${esc(m.kv.data.split(',').map((f) => f.split('/').pop()).join(', '))}</span>` : ''}</div>` +
     `<textarea class="py-code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" rows="${Math.min(24, Math.max(2, lines))}" aria-label="Python code you can edit">${esc(main.value)}</textarea>` +
     tpl('start', main.value) + tpl('setup', parts.setup) + tpl('sol', parts.solution) + tpl('check', parts.check) + tpl('hint', parts.hint) +
     `<div class="py-btns"><button type="button" class="btn" data-run>Run</button>` +

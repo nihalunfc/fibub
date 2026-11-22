@@ -48,7 +48,7 @@ quiz:
 
 <!--fig:ab-readout-->
 
-**Tools that do each step in your browser:** [[csv-profiler]] to look at the file first; [[grouped-data-stats]] for counts and means by group; [[hypothesis-tests]] for the proportion and Welch tests; [[bootstrap-permutation]] for revenue; [[bayesian-ab-test]] for the chance B is better. Or use Python and pandas (the [pandas course](/learn/courses/) covers this exact kind of grouping).
+**Tools that do each step in your browser:** [[csv-profiler]] to look at the file first; [[grouped-data-stats]] for counts and means by group; [[hypothesis-tests]] for the proportion and Welch tests; [[bootstrap-permutation]] for revenue; [[bayesian-ab-test]] for the chance B is better. Or use Python: [pandas Lesson 8.6](/learn/courses/pandas/ab-test-pandas/) does this whole readout in code.
 
 ## 3. What a strong analysis shows
 
