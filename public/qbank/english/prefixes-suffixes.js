@@ -1,0 +1,80 @@
+// English bank: prefixes and suffixes (un-, dis-, mis-, re-, over-, -ful, -less, -ment, -ise/-ize...), for
+// building and guessing words in reading and writing. Original items written for fibub.
+// mcq options are written correct-first and placed by ROT so the answer letters spread over A-D.
+// Append new items at the end with new ids; never reuse an id.
+const EX = ['ielts', 'celpip', 'toefl'];
+const F = { skill: 'vocabulary' };
+const ROT = [0, 3, 2, 1, 2, 1, 0, 3, 1, 3, 0, 2];
+let n = 0;
+const m = (id, level, q, opts, sol, sub) => { const k = ROT[n++ % ROT.length]; const o = opts.slice(1); o.splice(k, 0, opts[0]); return { id, type: 'mcq', level, exams: EX, facets: F, sub, q, options: o, answer: k, sol }; };
+const t = (id, level, q, answer, sol, sub) => ({ id, type: 'text', level, exams: EX, facets: F, sub, q, answer: [].concat(answer), maxWords: 1, sol });
+const neg = (w, ctx) => `Which word is the opposite of <b>${w}</b>?<br><i>${ctx}</i>`;
+
+export default {
+  topic: 'prefixes-suffixes',
+  items: [
+    m('ps-001', 1, neg('happy', 'He was ______ with the result.'), ['unhappy', 'dishappy', 'inhappy', 'imhappy'], '<b>un-</b> is the most common negative prefix: <b>unhappy</b>.', 'negative prefixes'),
+    m('ps-002', 1, neg('agree', 'I ______ with that idea.'), ['disagree', 'unagree', 'inagree', 'misagree'], '<b>dis-</b> with many verbs: <b>disagree</b>, dislike, disappear.', 'negative prefixes'),
+    m('ps-003', 1, neg('possible', 'It is ______ to finish today.'), ['impossible', 'unpossible', 'inpossible', 'dispossible'], 'Before p, b and m, <b>in-</b> becomes <b>im-</b>: impossible, impolite.', 'negative prefixes'),
+    m('ps-004', 1, neg('correct', 'Your answer is ______.'), ['incorrect', 'uncorrect', 'discorrect', 'imcorrect'], '<b>in-</b>: <b>incorrect</b>, incomplete.', 'negative prefixes'),
+    m('ps-005', 1, neg('legal', 'Parking here is ______.'), ['illegal', 'unlegal', 'inlegal', 'dislegal'], 'Before l, <b>in-</b> becomes <b>il-</b>: illegal, illogical.', 'negative prefixes'),
+    m('ps-006', 1, neg('regular', 'The buses are very ______.'), ['irregular', 'unregular', 'inregular', 'disregular'], 'Before r, <b>in-</b> becomes <b>ir-</b>: irregular, irresponsible.', 'negative prefixes'),
+    m('ps-007', 1, 'What does <b>re-</b> mean in <i>rewrite</i>?', ['again', 'not', 'before', 'too much'], '<b>re-</b> = again: rewrite, rebuild, reuse.', 'meaning of prefixes'),
+    m('ps-008', 1, 'What does <b>-less</b> mean in <i>homeless</i>?', ['without', 'full of', 'more', 'able to be'], '<b>-less</b> = without: homeless, careless, useless.', 'meaning of suffixes'),
+    m('ps-009', 2, 'What does <b>mis-</b> mean in <i>misunderstand</i>?', ['wrongly', 'again', 'before', 'not enough'], '<b>mis-</b> = wrongly: misunderstand, misspell, misuse.', 'meaning of prefixes'),
+    m('ps-010', 2, 'What does <b>pre-</b> mean in <i>preview</i>?', ['before', 'after', 'against', 'under'], '<b>pre-</b> = before: preview, prepay, prehistoric.', 'meaning of prefixes'),
+    m('ps-011', 2, 'What does <b>over-</b> mean in <i>overcooked</i>?', ['too much', 'not enough', 'again', 'above the house'], '<b>over-</b> = too much: overcooked, overweight, overpriced.', 'meaning of prefixes'),
+    m('ps-012', 2, 'What does <b>under-</b> mean in <i>underpaid</i>?', ['not enough', 'too much', 'again', 'before'], '<b>under-</b> = not enough: underpaid, underestimate.', 'meaning of prefixes'),
+    m('ps-013', 2, 'What does <b>-able</b> mean in <i>washable</i>?', ['can be done', 'without', 'person who', 'full of'], '<b>-able</b> = can be done: washable, readable, breakable.', 'meaning of suffixes'),
+    m('ps-014', 2, 'What does <b>-er</b> mean in <i>teacher</i>?', ['a person who does it', 'more', 'without', 'small'], '<b>-er / -or</b> = a person who does something: teacher, actor, driver.', 'meaning of suffixes'),
+    m('ps-015', 2, neg('patient', 'The children became ______ waiting for the bus.'), ['impatient', 'unpatient', 'dispatient', 'inpatient'], '<b>Impatient</b>. Careful: <i>inpatient</i> is a hospital patient who stays overnight.', 'negative prefixes'),
+    m('ps-016', 2, neg('honest', 'It was ______ to take the money.'), ['dishonest', 'unhonest', 'inhonest', 'imhonest'], '<b>Dishonest</b>.', 'negative prefixes'),
+    m('ps-017', 2, neg('employed', 'He has been ______ since March.'), ['unemployed', 'disemployed', 'inemployed', 'misemployed'], '<b>Unemployed</b> = without a job.', 'negative prefixes'),
+    m('ps-018', 2, 'Which word means "full of hope"?', ['hopeful', 'hopeless', 'hopely', 'hopeness'], '<b>-ful</b> = full of: hopeful, careful, useful. (One l at the end.)', 'meaning of suffixes'),
+    m('ps-019', 3, 'What does <b>anti-</b> mean in <i>antisocial</i>?', ['against', 'for', 'before', 'between'], '<b>anti-</b> = against: antisocial, antibiotic.', 'meaning of prefixes'),
+    m('ps-020', 3, 'What does <b>inter-</b> mean in <i>international</i>?', ['between', 'inside', 'against', 'without'], '<b>inter-</b> = between: international, interact.', 'meaning of prefixes'),
+    m('ps-021', 3, 'What does <b>co-</b> mean in <i>co-worker</i>?', ['together, with', 'against', 'before', 'not'], '<b>co-</b> = together: co-worker, cooperate, co-author.', 'meaning of prefixes'),
+    m('ps-022', 3, 'What does <b>post-</b> mean in <i>postgraduate</i>?', ['after', 'before', 'during', 'without'], '<b>post-</b> = after: postgraduate, postwar.', 'meaning of prefixes'),
+    m('ps-023', 3, 'What does <b>multi-</b> mean in <i>multilingual</i>?', ['many', 'one', 'two', 'no'], '<b>multi-</b> = many: multilingual (many languages), multicultural.', 'meaning of prefixes'),
+    m('ps-024', 3, 'What does <b>bi-</b> mean in <i>bilingual</i>?', ['two', 'many', 'half', 'one'], '<b>bi-</b> = two: bilingual, bicycle, biannual.', 'meaning of prefixes'),
+    m('ps-025', 3, 'Which suffix makes a noun from <b>develop</b>?', ['-ment', '-ness', '-ity', '-ance'], 'develop → develop<b>ment</b>.', 'noun suffixes'),
+    m('ps-026', 3, 'Which suffix makes a noun from <b>kind</b>?', ['-ness', '-ment', '-tion', '-ance'], 'kind → kind<b>ness</b>.', 'noun suffixes'),
+    m('ps-027', 3, 'Which suffix makes a noun from <b>active</b>?', ['-ity', '-ful', '-ment', '-ance'], 'active → activ<b>ity</b> (drop the e).', 'noun suffixes'),
+    m('ps-028', 3, 'Which suffix makes a verb from <b>modern</b>?', ['-ize', '-en', '-ify', '-ate'], 'modern → modern<b>ize</b> (US, Canada) or modern<b>ise</b> (UK).', 'verb suffixes'),
+    m('ps-029', 3, 'Which suffix makes a verb from <b>short</b>?', ['-en', '-ize', '-ify', '-ate'], 'short → short<b>en</b>, like wide → widen.', 'verb suffixes'),
+    m('ps-030', 3, 'Which suffix makes a verb from <b>simple</b>?', ['-ify', '-en', '-ize', '-ate'], 'simple → simpl<b>ify</b>.', 'verb suffixes'),
+    m('ps-031', 4, neg('responsible', 'It was ______ to leave the child alone.'), ['irresponsible', 'unresponsible', 'disresponsible', 'inresponsible'], 'Before r: <b>ir-</b>.', 'negative prefixes'),
+    m('ps-032', 4, neg('literate', 'Ten percent of adults are still ______.'), ['illiterate', 'unliterate', 'inliterate', 'disliterate'], 'Before l: <b>il-</b>.', 'negative prefixes'),
+    m('ps-033', 4, neg('mature', 'His behavior was rather ______.'), ['immature', 'unmature', 'dismature', 'inmature'], 'Before m: <b>im-</b>.', 'negative prefixes'),
+    m('ps-034', 4, neg('relevant', 'That point is ______ to the discussion.'), ['irrelevant', 'unrelevant', 'disrelevant', 'inrelevant'], '<b>Irrelevant</b> = not connected.', 'negative prefixes'),
+    m('ps-035', 4, 'What does <b>counter-</b> mean in <i>counterproductive</i>?', ['opposite or against', 'together', 'very', 'before'], '<b>counter-</b> = against: counterproductive (having the opposite effect).', 'meaning of prefixes'),
+    m('ps-036', 4, 'What does <b>sub-</b> mean in <i>substandard</i>?', ['below', 'above', 'between', 'again'], '<b>sub-</b> = below or under: substandard, subway.', 'meaning of prefixes'),
+    m('ps-037', 4, 'What does <b>-ology</b> mean in <i>sociology</i>?', ['the study of', 'the fear of', 'a person who', 'the place of'], '<b>-ology</b> = the study of: sociology, biology.', 'meaning of suffixes'),
+    m('ps-038', 4, 'What does <b>-wise</b> mean in <i>cost-wise</i>?', ['in terms of', 'clever about', 'without', 'against'], '<b>-wise</b> = in terms of (informal): cost-wise, time-wise.', 'meaning of suffixes'),
+    m('ps-039', 5, 'What does <b>mal-</b> mean in <i>malnutrition</i>?', ['badly', 'large', 'many', 'male'], '<b>mal-</b> = badly: malnutrition, malfunction.', 'meaning of prefixes'),
+    m('ps-040', 5, 'What does <b>trans-</b> mean in <i>transatlantic</i>?', ['across', 'under', 'around', 'inside'], '<b>trans-</b> = across: transatlantic, transport.', 'meaning of prefixes'),
+    m('ps-041', 5, 'What does <b>pseudo-</b> mean in <i>pseudoscience</i>?', ['false', 'early', 'large', 'new'], '<b>pseudo-</b> = false, pretending to be.', 'meaning of prefixes'),
+    m('ps-042', 5, 'What does <b>semi-</b> mean in <i>semi-skilled</i>?', ['partly', 'fully', 'not', 'very'], '<b>semi-</b> = half or partly.', 'meaning of prefixes'),
+    m('ps-043', 5, 'Which word means "unable to be changed back"?', ['irreversible', 'unreversible', 'disreversible', 'unreversing'], '<b>ir-</b> + revers + <b>-ible</b>.', 'building words'),
+    m('ps-044', 5, 'Which word means "not able to be avoided"?', ['inevitable', 'unevitable', 'disevitable', 'inavoidable'], '<b>Inevitable</b> = certain to happen.', 'building words'),
+    t('ps-045', 1, 'Add a prefix to make the opposite: <b>kind</b> → ______', ['unkind'], '<b>unkind</b>.', 'negative prefixes'),
+    t('ps-046', 1, 'Add a prefix to make the opposite: <b>like</b> (verb) → ______', ['dislike'], '<b>dislike</b>.', 'negative prefixes'),
+    t('ps-047', 1, 'Add a suffix: <b>help</b> + full of → ______', ['helpful'], '<b>helpful</b> (-ful has one l).', 'adjective suffixes'),
+    t('ps-048', 1, 'Add a suffix: <b>care</b> + without → ______', ['careless'], '<b>careless</b>.', 'adjective suffixes'),
+    t('ps-049', 2, 'Add a prefix: <b>use</b> + again → ______', ['reuse', 're-use'], '<b>reuse</b>.', 'meaning of prefixes'),
+    t('ps-050', 2, 'Add a prefix: <b>spell</b> + wrongly → ______', ['misspell'], '<b>misspell</b>: mis + spell, so double s.', 'meaning of prefixes'),
+    t('ps-051', 2, 'Add a suffix to make a noun: <b>govern</b> → ______', ['government'], '<b>government</b>.', 'noun suffixes'),
+    t('ps-052', 2, 'Add a suffix to make a noun: <b>dark</b> → ______', ['darkness'], '<b>darkness</b>.', 'noun suffixes'),
+    t('ps-053', 3, 'Add a prefix: <b>estimate</b> + too low → ______', ['underestimate'], '<b>underestimate</b>.', 'meaning of prefixes'),
+    t('ps-054', 3, 'Add a suffix to make an adjective: <b>comfort</b> → ______ (able to give comfort)', ['comfortable'], '<b>comfortable</b>.', 'adjective suffixes'),
+    t('ps-055', 3, 'Add a suffix to make a noun: <b>equal</b> → ______', ['equality'], '<b>equality</b>.', 'noun suffixes'),
+    t('ps-056', 3, 'Add a suffix to make a verb: <b>critic</b> → ______ (US spelling)', ['criticize', 'criticise'], '<b>criticize</b> (UK: criticise).', 'verb suffixes'),
+    t('ps-057', 4, 'Add a prefix to make the opposite: <b>appropriate</b> → ______', ['inappropriate'], '<b>inappropriate</b>.', 'negative prefixes'),
+    t('ps-058', 4, 'Add a prefix to make the opposite: <b>logical</b> → ______', ['illogical'], 'Before l: <b>illogical</b>.', 'negative prefixes'),
+    t('ps-059', 4, 'Add a suffix to make a noun: <b>reluctant</b> → ______', ['reluctance'], '<b>reluctance</b>: -ant → -ance.', 'noun suffixes'),
+    t('ps-060', 5, 'Add a suffix to make a noun: <b>sustainable</b> → ______', ['sustainability'], '<b>-able</b> → <b>-ability</b>.', 'noun suffixes'),
+    t('ps-061', 5, 'Add a prefix to make the opposite: <b>accessible</b> → ______', ['inaccessible'], '<b>inaccessible</b>.', 'negative prefixes'),
+    t('ps-062', 5, 'Build one word: not + compare + able (cannot be compared) → ______', ['incomparable'], 'in + compar + <b>-able</b>: <b>incomparable</b>.', 'building words'),
+    t('ps-063', 3, 'Add a suffix to make an adjective: <b>danger</b> → ______', ['dangerous'], '<b>-ous</b>: dangerous, famous.', 'adjective suffixes'),
+  ],
+};

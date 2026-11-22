@@ -84,5 +84,29 @@ for (const c of courses) {
     ok(`${c}/${f}: every image has alt text`, !/<img(?![^>]*alt=)/.test(md));
   }
 }
+// Mock tests: each pattern draws a full paper (sets kept whole) from the CELPIP/TOEFL banks, many times.
+{
+  const { buildPaper, PATTERNS, topicItems } = await import('../src/lib/qbank/core.mjs');
+  const mocks = { celpip: [['celpip-listening', 'general'], ['celpip-reading', 'general']], toefl: [['toefl-reading', 'ibt'], ['toefl-listening', 'ibt']] };
+  for (const [bank, pats] of Object.entries(mocks)) {
+    const pool = [];
+    for (const f of readdirSync(`public/qbank/${bank}`)) if (f !== 'index.js') pool.push(...topicItems((await import(`../public/qbank/${bank}/${f}`)).default, f.replace(/\.js$/, '')));
+    for (const [pat, ex] of pats) {
+      const p = PATTERNS[pat];
+      let short = 0, split = 0;
+      for (let k = 0; k < 40; k++) {
+        const paper = buildPaper(p, pool.filter((i) => !i.exams || i.exams.includes(ex)), []);
+        for (const s of paper.sections) {
+          short += s.short;
+          const seen = {};
+          for (const it of s.items) if (it.group) seen[`${it.topic}/${it.group}`] = (seen[`${it.topic}/${it.group}`] ?? 0) + 1;
+          for (const [g, n] of Object.entries(seen)) if (n !== pool.filter((i) => `${i.topic}/${i.group}` === g && i.type === s.type && (!i.exams || i.exams.includes(ex)) && Object.entries(p.sections.find((x) => x.name === s.name).only).every(([a, b]) => i.facets?.[a] === b)).length) split++;
+        }
+      }
+      ok(`mock ${pat}: 40 papers drawn with no missing questions`, short === 0, `short ${short}`);
+      ok(`mock ${pat}: recordings and passages never split`, split === 0, `split ${split}`);
+    }
+  }
+}
 console.log(`english courses: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
