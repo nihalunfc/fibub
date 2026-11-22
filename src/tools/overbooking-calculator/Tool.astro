@@ -1,0 +1,283 @@
+---
+// #T1064 No-show and overbooking calculator: how many extra bookings to accept (maths in src/lib/biz/overbooking.ts).
+// Runs in the browser; nothing is sent anywhere, and nothing is kept on the device unless the box is ticked.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax ob">
+  <div class="ax-card">
+    <h2>1. The day's numbers</h2>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="ob-preset">
+          <option value="hotel">Hotel rooms</option><option value="restaurant">Restaurant tables</option>
+          <option value="clinic">Clinic appointments</option><option value="tour">Tour seats</option>
+        </select>
+      </label>
+      <label>Currency <select class="ob-cur"></select></label>
+      <label>What you sell (one word) <input data-k="unit" maxlength="20" /></label>
+      <label>Places you can sell <input data-k="cap" inputmode="numeric" /></label>
+      <label>Bookings on the books now <input data-k="books" inputmode="numeric" /></label>
+      <label>Cancel before the day, % <input data-k="cancel" inputmode="decimal" /></label>
+      <label>No-show on the day, % <input data-k="noshow" inputmode="decimal" /></label>
+      <label>Price of one booking <input data-k="price" inputmode="decimal" /></label>
+      <label>Extra spend per booking <input data-k="extras" inputmode="decimal" /></label>
+      <label>Cost of serving one <input data-k="cost" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help ob-value"></p>
+    <p class="ax-help">Use your own history for the same day of the week and season. Cancel is the share of bookings that cancel between now and the day; no-show is the share of the rest that never arrive.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. What it costs when you turn someone away</h2>
+    <p class="ax-help" style="margin-top:0">Add every cost: a refund, finding them somewhere else, a goodwill gift, and the future business you may lose. Turning away someone with a booking is never free.</p>
+    <div class="ax-scroll"><table class="biz-tbl ob-walk"><thead><tr><th>Cost</th><th class="r">Amount</th><th></th></tr></thead><tbody></tbody><tfoot><tr><td>Total per person turned away</td><td class="r ob-walk-total"></td><td></td></tr></tfoot></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ob-add-walk">Add a cost</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. How much risk you accept</h2>
+    <div class="ax-row">
+      <label class="ax-check"><input type="radio" name="ob-risk" value="cap" checked /> Cap the chance of turning anyone away at</label>
+      <input class="ob-cap" data-k="capPct" inputmode="decimal" style="width:80px" aria-label="Cap in percent" /> <span>%</span>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><label class="ax-check"><input type="radio" name="ob-risk" value="free" /> Best average result, whatever the risk</label></div>
+    <p class="ax-help">The best average result sometimes means turning someone away now and then. If your standards say that must be rare, set a cap and the tool picks the best level inside it.</p>
+  </div>
+
+  <div class="ax-card ob-res" aria-live="polite">
+    <h2 class="ob-title">Recommendation for this day</h2>
+    <p class="biz-warn biz-bad ob-warn"></p>
+    <div class="ob-out">
+      <div class="biz-kpis ob-kpis"></div>
+      <p class="biz-take ob-take"></p>
+      <h3 class="biz-sub">Every level, side by side</h3>
+      <div class="ax-scroll"><table class="biz-tbl ob-levels"><thead><tr><th>Extra</th><th class="r">Booking limit</th><th class="r">Expected arrivals</th><th class="r">Empty</th><th class="r">Turned away</th><th class="r">Chance of any</th><th class="r">Expected value</th><th class="r">Gain</th></tr></thead><tbody></tbody></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ob-csv-levels">Download levels (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <div class="biz-card-head"><h2>4. The next 14 days</h2><button type="button" class="btn secondary small ob-dates">Dates from today</button></div>
+    <p class="ax-help" style="margin-top:0">One row per day. Type the places and bookings; leave the two rate boxes blank to use the rates from step 1.</p>
+    <p class="biz-warn ob-plan-warn"></p>
+    <div class="ax-scroll"><table class="biz-tbl ob-plan"><thead><tr><th>Date</th><th class="r">Places</th><th class="r">Booked</th><th class="r">Cancel %</th><th class="r">No-show %</th><th class="r">Extra</th><th class="r">Limit</th><th>What to do</th><th class="r">Chance of any</th><th class="r">Gain</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="biz-kpis ob-plan-kpis" style="margin-top:12px"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ob-add-day">Add a day</button>
+      <button type="button" class="btn secondary small ob-csv-plan">Download plan (CSV)</button>
+    </div>
+    <details class="biz-paste" style="margin-top:10px"><summary>Paste or open a table of days</summary>
+      <p class="ax-help">Columns: date, places, booked, cancel %, no-show % (the last two can be blank). The first row can be headings.</p>
+      <textarea class="ob-paste" rows="5" spellcheck="false" placeholder="2026-12-01&#9;120&#9;131"></textarea>
+      <DataFile target=".ob-paste" maxCols={8} maxRows={400} label="Open a table" />
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small ob-load">Use these rows</button><span class="ax-help ob-load-msg" style="margin:0"></span></div>
+    </details>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="ob-keep" /> Remember my numbers on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your numbers stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ob-clear">Clear saved numbers</button><button type="button" class="btn secondary small ob-reset">Back to the example</button></div>
+  </div>
+  <p class="biz-fine">An estimate from a simple chance model: each booking turns up independently with the same probability. A large group cancelling together is not covered. Not advice; check against your own history.</p>
+</div>
+
+<style is:inline>
+  .ob .ob-walk input:not(.w-num) { min-width: 200px; width: 100%; }
+  .ob .ob-cap { text-align: right; }
+</style>
+
+<script>
+  import { analyse, stats, showRate } from '../../lib/biz/overbooking';
+  import { addDays, todayISO, validISO, dayLabel, esc, toCSV, downloadText, keeper, parseTable, parseDate, dowOf } from '../../lib/biz/common';
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.ob')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MAX = 14;
+  type Walk = { label: string; amt: number };
+  type Day = { date: string; cap: string; books: string; cancel: string; noshow: string };
+  type S = { cur: string; unit: string; cap: string; books: string; cancel: string; noshow: string; price: string; extras: string; cost: string; mode: 'cap' | 'free'; capPct: string; walk: Walk[]; plan: Day[] };
+  const PRESETS: Record<string, Omit<S, 'cur' | 'mode' | 'capPct' | 'plan'>> = {
+    hotel: { unit: 'room', cap: '120', books: '128', cancel: '6', noshow: '3', price: '140', extras: '20', cost: '25', walk: [{ label: 'Room at a nearby competitor (first night)', amt: 135 }, { label: 'Taxi to and from the other hotel', amt: 25 }, { label: 'Goodwill credit (free night or points)', amt: 50 }, { label: 'Future business at risk', amt: 70 }] },
+    restaurant: { unit: 'table', cap: '40', books: '44', cancel: '8', noshow: '7', price: '90', extras: '0', cost: '55', walk: [{ label: 'Free drinks or dessert while they wait', amt: 15 }, { label: 'Voucher for their next visit', amt: 20 }, { label: 'Future business at risk', amt: 30 }] },
+    clinic: { unit: 'appointment', cap: '24', books: '26', cancel: '5', noshow: '12', price: '80', extras: '0', cost: '10', walk: [{ label: 'Staff time to rebook', amt: 10 }, { label: 'Patient waits or is sent elsewhere', amt: 25 }, { label: 'Future business at risk', amt: 40 }] },
+    tour: { unit: 'seat', cap: '30', books: '32', cancel: '5', noshow: '4', price: '60', extras: '8', cost: '12', walk: [{ label: 'Refund and rebooking on another trip', amt: 60 }, { label: 'Goodwill credit', amt: 25 }, { label: 'Future business at risk', amt: 35 }] },
+  };
+  const RATIO = [0.69, 0.76, 0.79, 0.85, 0.94, 1.06, 1.08]; // bookings against places, Sunday first
+  const samplePlan = (start: string, cap: number): Day[] => Array.from({ length: MAX }, (_, i) => {
+    const date = addDays(start, i), r = RATIO[dowOf(date)] * (i < 7 ? 1 : 0.92) - i * 0.003;
+    return { date, cap: String(cap), books: String(Math.round(cap * r)), cancel: '', noshow: '' };
+  });
+  const fresh = (kind: string, cur: string): S => {
+    const p = PRESETS[kind];
+    return { cur, ...p, walk: p.walk.map((w) => ({ ...w })), mode: 'cap', capPct: '15', plan: samplePlan(todayISO(), +p.cap) };
+  };
+  let st = fresh('hotel', defaultCurrency());
+  q('.ob-cur').innerHTML = currencyOptions(st.cur);
+  const $ = (v: number, d = 0) => money(v, st.cur, d);
+  const sg = (v: number) => (v >= 0 ? '+' : '-') + $(Math.abs(v));
+  const n1 = (v: number) => (Math.round(v * 10) / 10).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const pct = (v: number) => (v < 0.001 && v > 0 ? '<0.1%' : (v * 100).toFixed(1) + '%');
+  const val = (s: string | number) => (String(s).trim() === '' ? NaN : num(String(s)));
+  const keep = keeper('fibub-overbooking-v1', q('.ob-keep'), q('.ob-clear'), () => st, (v) => { st = Object.assign(fresh('hotel', defaultCurrency()), v); });
+  const walkTotal = () => st.walk.reduce((a, w) => a + (+w.amt || 0), 0);
+  const placeValue = () => val(st.price) + (val(st.extras) || 0) - (val(st.cost) || 0);
+  const unitPl = () => (st.unit || 'place').trim() + 's';
+  const capFrac = () => (st.mode === 'cap' ? (val(st.capPct) >= 0 && val(st.capPct) <= 100 ? val(st.capPct) / 100 : null) : null);
+
+  function problems(): string[] {
+    const w: string[] = [], c = val(st.cap), b = val(st.books), cx = val(st.cancel), ns = val(st.noshow);
+    if (!(c >= 1) || c % 1) w.push('Places you can sell must be a whole number of 1 or more.');
+    if (c > 20000) w.push('Places you can sell looks too large (over 20,000).');
+    if (!(b >= 0) || b % 1) w.push('Bookings on the books must be a whole number, 0 or more.');
+    if (!(cx >= 0 && cx < 100)) w.push('Cancel rate must be between 0 and 99.9%.');
+    if (!(ns >= 0 && ns < 100)) w.push('No-show rate must be between 0 and 99.9%.');
+    if (!(val(st.price) >= 0) || (st.extras.trim() !== '' && !(val(st.extras) >= 0)) || (st.cost.trim() !== '' && !(val(st.cost) >= 0))) w.push('Price, extras and cost can not be blank or negative.');
+    else if (placeValue() <= 0) w.push('The cost of serving is higher than the price plus extras, so a filled place loses money and overbooking can never pay. Check step 1.');
+    if (st.walk.some((x) => !(+x.amt >= 0))) w.push('Each cost line needs an amount of 0 or more.');
+    if (st.mode === 'cap' && capFrac() == null) w.push('The cap must be between 0 and 100%.');
+    return w;
+  }
+
+  // ----- inputs -----
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    q<HTMLSelectElement>('.ob-cur').value = st.cur;
+    root.querySelectorAll<HTMLInputElement>('input[name=ob-risk]').forEach((r) => (r.checked = r.value === st.mode));
+    q<HTMLInputElement>('.ob-cap').disabled = st.mode !== 'cap';
+    walkRows(); planRows(); run();
+  }
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset.k) { (st as any)[el.dataset.k] = el.value; keep(); run(); }
+  });
+  q('.ob-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.ob-preset').addEventListener('change', (e) => { st = fresh((e.target as HTMLSelectElement).value, st.cur); keep(); bind(); });
+  root.querySelectorAll<HTMLInputElement>('input[name=ob-risk]').forEach((r) => r.addEventListener('change', () => { st.mode = r.value as 'cap' | 'free'; q<HTMLInputElement>('.ob-cap').disabled = st.mode !== 'cap'; keep(); run(); }));
+  q('.ob-reset').addEventListener('click', () => { st = fresh(q<HTMLSelectElement>('.ob-preset').value, st.cur); keep(); bind(); });
+
+  function walkRows() {
+    q('.ob-walk tbody').innerHTML = st.walk.map((w, i) => `<tr><td><input type="text" value="${esc(w.label)}" data-w="${i}" data-f="label" aria-label="Cost name"></td><td class="r"><input class="w-num" inputmode="decimal" value="${esc(w.amt)}" data-w="${i}" data-f="amt" aria-label="Amount" style="text-align:right"></td><td><button type="button" class="biz-x" data-wdel="${i}" aria-label="Remove this cost">&times;</button></td></tr>`).join('') || '<tr><td colspan="3" class="ax-help">No costs yet. Add at least one.</td></tr>';
+  }
+  q('.ob-walk').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement; if (el.dataset.w == null) return;
+    const w = st.walk[+el.dataset.w]; if (el.dataset.f === 'amt') w.amt = val(el.value); else w.label = el.value;
+    keep(); run();
+  });
+  q('.ob-walk').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-wdel]'); if (!b) return; st.walk.splice(+b.dataset.wdel!, 1); keep(); walkRows(); run(); });
+  q('.ob-add-walk').addEventListener('click', () => { st.walk.push({ label: 'Other cost', amt: 0 }); keep(); walkRows(); run(); });
+
+  // ----- results -----
+  let LAST: ReturnType<typeof analyse> | null = null;
+  function run() {
+    q('.ob-walk-total').textContent = $(walkTotal());
+    const w = problems(), warn = q('.ob-warn');
+    warn.textContent = w.length ? 'Please check: ' + w.join(' ') : '';
+    q('.ob-out').hidden = !!w.length;
+    q('.ob-value').textContent = Number.isFinite(placeValue()) ? `Each place you fill is worth ${$(placeValue())} to you (price plus extras minus cost). About ${(showRate(val(st.cancel) || 0, val(st.noshow) || 0) * 100).toFixed(1)}% of bookings turn into people who arrive.` : '';
+    if (w.length) { LAST = null; plan(); return; }
+    const C = val(st.cap), p = showRate(val(st.cancel), val(st.noshow)), v = placeValue(), wc = walkTotal(), up = unitPl();
+    const A = analyse(C, p, v, wc, capFrac()); LAST = A;
+    const b = A.best, f = A.bestFree, books = val(st.books), now = stats(books, C, p), left = b.L - books;
+    q('.ob-kpis').innerHTML = [
+      ['Extra bookings to accept', `+${b.k}`, `Booking limit ${b.L.toLocaleString()} for ${C.toLocaleString()} ${up}`, ''],
+      [`${up[0].toUpperCase() + up.slice(1)} you can still sell`, left >= 0 ? left.toLocaleString() : '0', left >= 0 ? `You have ${books.toLocaleString()} booked` : `${-left} over the limit: stop selling`, left < 0 ? 'bad' : ''],
+      ['Gain against no overbooking', sg(b.gain), 'Expected, for a day like this', b.gain > 0.5 ? 'good' : ''],
+      ['Chance of turning anyone away', pct(b.pw), `About ${n1(b.walked)} turned away and ${n1(b.empty)} empty on average`, ''],
+    ].map(([l, x, s, c]) => `<div class="biz-k ${c}"><span>${l}</span><b>${x}</b><small>${s}</small></div>`).join('');
+    let t = `<strong>What this means:</strong> accept up to <b>${b.L.toLocaleString()}</b> bookings for your ${C.toLocaleString()} ${up}, which is <b>${b.k}</b> more than you have. `;
+    if (b.k === 0) t += `Overbooking does not pay here: turning someone away costs ${$(wc)}, a filled place earns ${$(v)}, and with ${(p * 100).toFixed(1)}% of bookings turning up each extra booking is more likely to cause a problem than fill an empty place. `;
+    else t += `With ${val(st.cancel)}% cancelling and ${val(st.noshow)}% not showing, a full book of ${C.toLocaleString()} would leave about ${Math.round(C * (1 - p))} ${up} empty. Overbooking by ${b.k} fills most of them: on average ${n1(b.empty)} stay empty and ${n1(b.walked)} people are turned away, worth <b>${sg(b.gain)}</b> a day compared with not overbooking. `;
+    t += `There is a ${pct(b.pw)} chance you will have to turn at least one person away, so have a plan and a partner ready. `;
+    if (st.mode === 'cap' && f.k !== b.k) t += `Without your ${val(st.capPct)}% cap the best average result would be +${f.k} (${sg(f.gain - b.gain)} more a day), but the chance of turning anyone away would rise to ${pct(f.pw)}. `;
+    if (left < 0) t += `<br><b>You are already ${-left} bookings over this limit.</b> If you stop selling, expect about ${n1(now.walked)} turned away (${pct(now.pw)} chance of any). Close every channel and offer another day to the latest bookers.`;
+    else if (left > 0) t += `<br>You have ${books.toLocaleString()} booked, so you can sell <b>${left}</b> more before you close. If you sold nothing more you would expect about ${n1(now.empty)} empty ${up}.`;
+    else t += '<br>You are exactly at the limit: close sales now.';
+    q('.ob-take').innerHTML = t;
+    q('.ob-levels tbody').innerHTML = A.view.map((r) => `<tr class="${r.k === b.k ? 'sel' : ''}"><td>+${r.k}${r.k === b.k ? ' <span class="ax-pill good">Recommended</span>' : ''}${r.k === f.k && f.k !== b.k ? ' <span class="ax-pill warn">Best with no cap</span>' : ''}</td><td class="r">${r.L.toLocaleString()}</td><td class="r">${n1(r.mean)}</td><td class="r">${n1(r.empty)}</td><td class="r">${n1(r.walked)}</td><td class="r">${pct(r.pw)}</td><td class="r">${$(r.ev)}</td><td class="r ${r.gain > 0.5 ? 'pos' : r.gain < -0.5 ? 'neg' : ''}">${sg(r.gain)}</td></tr>`).join('');
+    plan();
+  }
+  q('.ob-csv-levels').addEventListener('click', () => {
+    if (!LAST) return;
+    const rows: unknown[][] = [['Places', st.cap], ['On the books', st.books], ['Cancel %', st.cancel], ['No-show %', st.noshow], ['Value of a filled place', placeValue()], ['Cost per person turned away', walkTotal()], ['Recommended extra', LAST.best.k], [],
+      ['Extra', 'Booking limit', 'Expected arrivals', 'Expected empty', 'Expected turned away', 'Chance of any %', 'Expected value', 'Gain vs none', 'Recommended']];
+    LAST.view.forEach((r) => rows.push([r.k, r.L, r.mean.toFixed(2), r.empty.toFixed(2), r.walked.toFixed(2), (r.pw * 100).toFixed(2), Math.round(r.ev), Math.round(r.gain), r.k === LAST!.best.k ? 'yes' : '']));
+    downloadText('overbooking-levels.csv', toCSV(rows));
+  });
+
+  // ----- planner -----
+  type Out = { date: string; cap: number; books: number; cx: number; ns: number; k: number; L: number; left: number; pw: number; walked: number; empty: number; gain: number; status: string };
+  let PLAN: Out[] = [];
+  function planRows() {
+    q('.ob-plan tbody').innerHTML = st.plan.map((r, i) => `<tr data-row="${i}"><td><input type="date" class="w-date" value="${esc(r.date)}" data-i="${i}" data-f="date" aria-label="Date"></td>
+      ${(['cap', 'books', 'cancel', 'noshow'] as const).map((f) => `<td class="r"><input inputmode="decimal" value="${esc(r[f])}" data-i="${i}" data-f="${f}" aria-label="${f}" ${f === 'cancel' ? `placeholder="${esc(st.cancel)}"` : f === 'noshow' ? `placeholder="${esc(st.noshow)}"` : ''} style="width:84px;text-align:right"></td>`).join('')}
+      <td class="r" data-o="k"></td><td class="r" data-o="L"></td><td data-o="do"></td><td class="r" data-o="pw"></td><td class="r" data-o="gain"></td><td><button type="button" class="biz-x" data-pdel="${i}" aria-label="Remove this day">&times;</button></td></tr>`).join('') || '<tr><td colspan="11" class="ax-help">No days yet. Press "Dates from today" or add a day.</td></tr>';
+    q<HTMLButtonElement>('.ob-add-day').disabled = st.plan.length >= MAX;
+  }
+  q('.ob-plan').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement; if (el.dataset.i == null) return;
+    (st.plan[+el.dataset.i] as any)[el.dataset.f!] = el.value; keep(); plan();
+  });
+  q('.ob-plan').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-pdel]'); if (!b) return; st.plan.splice(+b.dataset.pdel!, 1); keep(); planRows(); plan(); });
+  q('.ob-add-day').addEventListener('click', () => {
+    if (st.plan.length >= MAX) return;
+    const last = st.plan[st.plan.length - 1];
+    st.plan.push({ date: last && validISO(last.date) ? addDays(last.date, 1) : todayISO(), cap: last?.cap ?? st.cap, books: '', cancel: '', noshow: '' }); keep(); planRows(); plan();
+  });
+  q('.ob-dates').addEventListener('click', () => {
+    if (!st.plan.length) st.plan = samplePlan(todayISO(), val(st.cap) || 100).map((r) => ({ ...r, books: '' })); else st.plan.forEach((r, i) => (r.date = addDays(todayISO(), i)));
+    keep(); planRows(); plan();
+  });
+  function plan() {
+    const tb = q('.ob-plan tbody'); PLAN = [];
+    const w = problems(), msgs: string[] = [];
+    q('.ob-plan-kpis').innerHTML = '';
+    if (w.length) { q('.ob-plan-warn').textContent = 'Fix steps 1 to 3 first; the planner uses them.'; tb.querySelectorAll('[data-o]').forEach((td) => (td.textContent = '')); return; }
+    const v = placeValue(), wc = walkTotal();
+    st.plan.forEach((r, i) => {
+      const tr = tb.querySelector(`tr[data-row="${i}"]`); if (!tr) return;
+      const set = (k: string, h: string) => { tr.querySelector(`[data-o="${k}"]`)!.innerHTML = h; };
+      const cx = r.cancel.trim() === '' ? val(st.cancel) : val(r.cancel), ns = r.noshow.trim() === '' ? val(st.noshow) : val(r.noshow);
+      const C = val(r.cap), B = val(r.books), bad: string[] = [];
+      if (!(C >= 1 && C % 1 === 0)) bad.push('places'); if (!(B >= 0 && B % 1 === 0)) bad.push('booked');
+      if (!(cx >= 0 && cx < 100)) bad.push('cancel %'); if (!(ns >= 0 && ns < 100)) bad.push('no-show %');
+      if (bad.length) { ['k', 'L', 'pw', 'gain'].forEach((k) => set(k, '-')); set('do', `<span class="neg">Check ${bad.join(', ')}</span>`); msgs.push(`${dayLabel(r.date)}: check ${bad.join(', ')}.`); return; }
+      const A = analyse(C, showRate(cx, ns), v, wc, capFrac()), b = A.best, left = b.L - B;
+      const status = left > 0 ? `Open: sell ${left} more` : left === 0 ? 'At limit: close sales' : `Over by ${-left}: close, plan for it`;
+      set('k', '+' + b.k); set('L', b.L.toLocaleString()); set('do', `<span class="${left < 0 ? 'neg' : left > 0 ? 'pos' : ''}">${status}</span>`); set('pw', pct(b.pw)); set('gain', `<span class="${b.gain > 0.5 ? 'pos' : ''}">${sg(b.gain)}</span>`);
+      PLAN.push({ date: r.date, cap: C, books: B, cx, ns, k: b.k, L: b.L, left, pw: b.pw, walked: b.walked, empty: b.empty, gain: b.gain, status });
+    });
+    const dates = st.plan.map((r) => r.date).filter(Boolean);
+    if (dates.length !== new Set(dates).size) msgs.push('Some dates appear twice.');
+    if (st.plan.some((r) => !validISO(r.date))) msgs.push('Some days have no date.');
+    q('.ob-plan-warn').textContent = msgs.join(' ');
+    if (!PLAN.length) return;
+    const over = PLAN.filter((x) => x.left < 0).length, open = PLAN.filter((x) => x.left > 0).reduce((a, x) => a + x.left, 0);
+    q('.ob-plan-kpis').innerHTML = [
+      ['Expected gain, all days', sg(PLAN.reduce((a, x) => a + x.gain, 0)), `against not overbooking, ${PLAN.length} days`, ''],
+      ['Still to sell', open.toLocaleString(), "Up to each day's booking limit", ''],
+      ['Days over the limit', String(over), over ? 'Close sales on these days' : 'None: you are within every limit', over ? 'bad' : ''],
+      ['Expected turned away', n1(PLAN.reduce((a, x) => a + x.walked, 0)), 'Across all planned days', ''],
+    ].map(([l, x, s, c]) => `<div class="biz-k ${c}"><span>${l}</span><b>${x}</b><small>${s}</small></div>`).join('');
+  }
+  q('.ob-csv-plan').addEventListener('click', () => {
+    plan();
+    const rows: unknown[][] = [['date', 'places', 'booked', 'cancel_pct', 'no_show_pct', 'overbook_by', 'booking_limit', 'left_to_sell', 'chance_of_any_pct', 'expected_turned_away', 'expected_empty', 'gain_vs_none', 'action']];
+    PLAN.forEach((x) => rows.push([x.date, x.cap, x.books, x.cx, x.ns, x.k, x.L, x.left, (x.pw * 100).toFixed(1), x.walked.toFixed(2), x.empty.toFixed(2), Math.round(x.gain), x.status]));
+    downloadText('overbooking-plan.csv', toCSV(rows));
+  });
+  q('.ob-load').addEventListener('click', () => {
+    const rows = parseTable(q<HTMLTextAreaElement>('.ob-paste').value), msg = q('.ob-load-msg');
+    if (rows.length && !parseDate(rows[0][0])) rows.shift();
+    const out: Day[] = [];
+    rows.forEach((r) => { const d = parseDate(r[0]); if (d) out.push({ date: d, cap: String(val(r[1] ?? '') || st.cap), books: String(r[2] ?? '').replace(/[,\s]/g, ''), cancel: String(r[3] ?? '').replace(/[%\s]/g, ''), noshow: String(r[4] ?? '').replace(/[%\s]/g, '') }); });
+    if (!out.length) { msg.textContent = 'No rows with a readable date. Dates like 2026-12-01 or 12/01/2026 work.'; return; }
+    st.plan = out.slice(0, MAX); msg.textContent = `Using ${st.plan.length} day${st.plan.length === 1 ? '' : 's'}${out.length > MAX ? ` (the first ${MAX} of ${out.length})` : ''}.`;
+    keep(); planRows(); plan();
+  });
+
+  bind();
+</script>
