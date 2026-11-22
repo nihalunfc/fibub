@@ -7,6 +7,7 @@ const MU = C.mu0;
 const ALPHA_M = 6.6446573357e-27, DEUT_M = 3.3435837724e-27;
 
 import * as Q5 from '../_util.js';
+import more2 from './magnetostatics.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -214,6 +215,7 @@ export default {
       q: 'For the conductor with an off-axis hole (previous idea), $J = 1.0\\times10^6$ A/m$^2$ and the axes are 2.0 mm apart. The field in the hole is ______ mT (to two decimal places).',
       answer: 1.26, tol: 0.013, calc: () => MU * 1e6 * 0.002 / 2 * 1000,
       sol: '$B = \\dfrac{\\mu_0Jd}{2} = \\dfrac{(4\\pi\\times10^{-7})(10^6)(0.002)}{2} \\approx 1.26\\times10^{-3}$ T, the same everywhere in the hole, perpendicular to both $\\vec J$ and $\\vec d$.' },
+    ...more2,
   ],
   gens: [
     { id: 'mag-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'ampere', format: 'graph',

@@ -31,6 +31,7 @@ const EXPR4 = [
 const count4 = (f) => { let n = 0; for (let m = 0; m < 16; m++) if (f(m >> 3 & 1, m >> 2 & 1, m >> 1 & 1, m & 1)) n++; return n; };
 
 import * as Q5 from '../_util.js';
+import more2 from './digital-logic.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -276,6 +277,7 @@ export default {
       answer: -76, tol: 0, calc: () => { const s = (100 + 80) & 255; return s >= 128 ? s - 256 : s; },
       sol: 'The numbers are $100$ and $80$. Their true sum $180$ is above $127$, the largest 8-bit signed value. The adder gives $10110100$, whose top bit is 1: as a signed number it is $180 - 256 = -76$. Two positive numbers giving a negative result is the sign of OVERFLOW.',
       trap: 'Answering 180 ignores the 8-bit range: the hardware cannot hold it.' },
+    ...more2,
   ],
 
   gens: [

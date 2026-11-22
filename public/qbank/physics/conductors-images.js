@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 const K = 1 / (4 * Math.PI * C.eps0); // 8.988e9 N m^2 C^-2
 
 import * as Q5 from '../_util.js';
+import more2 from './conductors-images.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -237,6 +238,7 @@ export default {
       answer: 135, tol: 1.5, calc: () => K * 3e-9 / 0.2,
       sol: 'The sphere is one equipotential, so its potential equals the potential at its centre. There, the point charge contributes $kq/d$, and the induced charges contribute $\\sum k\\,dq/R = (k/R)\\times(\\text{total induced}) = 0$, since every induced charge is the same distance $R$ from the centre and they add to zero. So $V = kq/d = \\dfrac{(8.99\\times10^9)(3.0\\times10^{-9})}{0.20} = 135$ V, whatever the radius.',
       trap: 'Trying to work out the induced distribution. The centre trick needs no images at all (the image method gives the same: $k(qR/d)/R = kq/d$).' },
+    ...more2,
   ],
   gens: [
     { id: 'cim-t21', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'images: plane', format: 'comparison',
