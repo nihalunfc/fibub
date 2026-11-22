@@ -5,6 +5,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more2 from './phase-changes.more2.gen.js';
+import r4 from './phase-changes.r4.gen.js';
 
 const R = 8.314;               // J/(mol K), as stated in the questions
 const ATM = 1.013e5;           // Pa
@@ -238,6 +239,7 @@ export default {
       sol: 'The local slope of $\\ln P$ against $1/T$ is $-L/R$ (in the ideal-vapour approximation). A shallower slope at higher $T$ means a smaller $L$. Indeed $dL/dT \\approx C_{P,\\rm vap} - C_{P,\\rm liq} < 0$ for ordinary liquids, and $L \\to 0$ at the critical point. (Non-ideal vapour and the growing liquid volume push the same way near $T_c$, but the second and third options are the wrong way round: both get worse, not better, as $T$ rises.)',
       trap: 'A curved Clausius–Clapeyron plot does not mean the equation is wrong, only that $L$ is not constant.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'phch-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'entropy of transition',
@@ -318,5 +320,6 @@ export default {
           trap: 'The slope grows with the pressure itself: the curve is exponential, not straight.' };
       },
       verify: (p) => p.L * 1000 * p.P * ATM / (R * p.T * p.T) / 1000 },
+    ...r4.gens,
   ],
 };

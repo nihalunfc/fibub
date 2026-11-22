@@ -5,6 +5,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more2 from './blackbody-radiation.more2.gen.js';
+import r4 from './blackbody-radiation.r4.gen.js';
 
 const SIG = 5.67e-8;           // W m^-2 K^-4, as stated in the questions
 const B = 2.898e-3;            // Wien constant, m K
@@ -235,6 +236,7 @@ export default {
       sol: 'Radiation force: $\\dfrac{L}{4\\pi d^2c}\\pi r^2$. Gravity: $\\dfrac{GM}{d^2}\\cdot\\dfrac43\\pi r^3\\rho$. Both fall as $1/d^2$, so the distance cancels. Equal when $r = \\dfrac{3L}{16\\pi GMc\\rho} = \\dfrac{1.148\\times10^{27}}{2.002\\times10^{33}} = 5.7\\times10^{-7}$ m $= 0.57$ μm. Smaller grains are blown out of the solar system; that is why comet dust tails curve away from the Sun.',
       trap: 'The answer does not depend on the distance from the Sun: both forces follow the inverse-square law.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'bbr-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'Wien law',
@@ -315,5 +317,6 @@ export default {
           trap: 'Temperature falls only as $1/\\sqrt d$ with distance.' };
       },
       verify: (p) => T_E0(5772, p.d * AU) * (1 - p.A) ** 0.25 },
+    ...r4.gens,
   ],
 };
