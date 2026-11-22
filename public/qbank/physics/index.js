@@ -156,6 +156,13 @@ export default {
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
       { id: 'nuclear-reactions', name: 'Nuclear reactions, fission and fusion' },
+      { id: 'nuclear-properties', name: 'Nuclear size, spin and moments' },
+      { id: 'binding-energy-semf', name: 'Binding energy and the semi-empirical mass formula' },
+      { id: 'shell-model', name: 'The nuclear shell model' },
+      { id: 'radioactive-decays', name: 'Alpha, beta and gamma decay (GATE)' },
+      { id: 'nuclear-reactions-gate', name: 'Nuclear reactions and Q values (GATE)' },
+      { id: 'particles-quarks', name: 'Elementary particles and quarks' },
+      { id: 'conservation-laws', name: 'Conservation laws and symmetries' },
     ] },
     { id: 'aptitude', name: 'General aptitude (NET Part A)', topics: [
       { id: 'part-a-aptitude', name: 'Part A: series, percentages, data, geometry, puzzles, graphs and estimation' },
