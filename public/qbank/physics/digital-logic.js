@@ -30,6 +30,25 @@ const EXPR4 = [
 ];
 const count4 = (f) => { let n = 0; for (let m = 0; m < 16; m++) if (f(m >> 3 & 1, m >> 2 & 1, m >> 1 & 1, m & 1)) n++; return n; };
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'digital-logic',
   items: [
@@ -260,6 +279,59 @@ export default {
   ],
 
   gens: [
+    { id: 'dlg-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'simplification',
+      make(r) {
+        const pool = [['A + AB', 'A'], ['A(A + B)', 'A'], ['A + \\bar A B', 'A + B'], ['AB + A\\bar B', 'A'], ['(A + B)(A + \\bar B)', 'A'], ['AB + \\bar A C + BC', 'AB + \\bar A C'],
+          ['\\bar A\\bar B + \\bar A B', '\\bar A'], ['\\overline{A + B}', '\\bar A\\,\\bar B'], ['\\overline{AB}', '\\bar A + \\bar B'], ['A\\bar B + \\bar A B + AB', 'A + B'], ['(A + B)(\\bar A + C)', '\\bar A B + AC']];
+        const [ex, res] = Q5.choose(r, pool);
+        const others = [...new Set([...pool.map((p) => p[1]), 'B', 'AB', '1', 'A\\bar B', '\\bar A + B'])].filter((s) => s !== res);
+        const o = Q5.mcqOptions(r, res, Q5.shuffle(r, others), (s) => `$${s}$`);
+        return { q: `The Boolean expression $${ex}$ simplifies to`, ...o,
+          sol: 'Useful laws: absorption $A + AB = A$ and $A(A + B) = A$; $A + \\bar AB = A + B$; combining $AB + A\\bar B = A$ and its dual $(A + B)(A + \\bar B) = A$; consensus $AB + \\bar AC + BC = AB + \\bar AC$; De Morgan $\\overline{A + B} = \\bar A\\bar B$, $\\overline{AB} = \\bar A + \\bar B$. ' + `Here $${ex} = ${res}$ (check with a truth table if unsure).`,
+          trap: 'A truth table settles any doubt: two expressions are equal only if they agree on every input.' };
+      } },
+    { id: 'dlg-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'universal gates', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['A NAND gate with its inputs tied together acts as a NOT gate.', 'Any Boolean function can be built from NOR gates alone.', 'An XOR gate gives 1 when its two inputs differ.', '$\\overline{AB} = \\bar A + \\bar B$.', 'An OR gate can be built from three NAND gates.'];
+        const F = ['XOR is a universal gate.', 'An AND gate followed by a NOT gate is a NOR gate.', '$\\overline{A + B} = \\bar A + \\bar B$.', 'An XNOR gate gives 1 when its two inputs differ.', 'NAND gates alone cannot make an OR function.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about logic gates are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'NAND and NOR are universal: NOT from tied inputs, AND or OR by adding inverters (OR $= \\overline{\\bar A\\cdot\\bar B}$: two NANDs as inverters and one NAND). XOR gates, even with constant inputs, build only parity (linear) functions and can never make AND, so XOR is not universal. AND then NOT is NAND, not NOR. De Morgan: $\\overline{AB} = \\bar A + \\bar B$ and $\\overline{A + B} = \\bar A\\bar B$. XOR is 1 for different inputs, XNOR for equal ones.',
+          trap: 'De Morgan swaps AND with OR as the bar is broken.' };
+      } },
+    { id: 'dlg-t23', type: 'nat', level: 2, exams: ['jam'], sub: 'number systems',
+      make(r) {
+        const o8 = `${Q5.int(r, 1, 7)}${Q5.int(r, 0, 7)}${Q5.int(r, 0, 7)}`, h16 = `${'123456789ABCDEF'[Q5.int(r, 0, 14)]}${'0123456789ABCDEF'[Q5.int(r, 0, 15)]}`;
+        const s = parseInt(o8, 8) + parseInt(h16, 16);
+        return { q: `$(${o8})_8 + (${h16})_{16}$, written in decimal, is ______.`,
+          answer: s, tol: 0, o8, h16,
+          sol: `$(${o8})_8 = ${o8[0]}\\times64 + ${o8[1]}\\times8 + ${o8[2]} = ${parseInt(o8, 8)}$. $(${h16})_{16} = ${parseInt(h16[0], 16)}\\times16 + ${parseInt(h16[1], 16)} = ${parseInt(h16, 16)}$. Sum $= ${s}$.`,
+          trap: 'Hex digits A-F stand for 10-15; octal places are 1, 8, 64.' };
+      },
+      verify: (p) => { let a = 0; for (const d of p.o8) a = a * 8 + Number(d); let b = 0; for (const d of p.h16) b = b * 16 + '0123456789ABCDEF'.indexOf(d); return a + b; } },
+    { id: 'dlg-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'truth tables', format: 'graph',
+      make(r) {
+        const combos = Q5.shuffle(r, [[0, 0], [0, 1], [1, 0], [1, 1]]);
+        const G = { AND: (a, b) => a & b, OR: (a, b) => a | b, NAND: (a, b) => 1 - (a & b), NOR: (a, b) => 1 - (a | b), XOR: (a, b) => a ^ b, XNOR: (a, b) => 1 - (a ^ b) };
+        const g = Q5.choose(r, Object.keys(G));
+        const row = (f) => combos.map(f).join(', ');
+        const o = Q5.mcqOptions(r, `${g} gate`, Q5.shuffle(r, Object.keys(G).filter((x) => x !== g)).map((x) => `${x} gate`));
+        return { q: `A timing diagram shows four equal time slots. Input A is $${row((c) => c[0])}$, input B is $${row((c) => c[1])}$, and the output Y is $${row((c) => G[g](c[0], c[1]))}$ in successive slots. The gate is`, ...o,
+          sol: `Read the slots as a truth table: ${combos.map((c) => `$(A, B) = (${c[0]}, ${c[1]}) \\to Y = ${G[g](c[0], c[1])}$`).join('; ')}. That is the ${g} truth table.`,
+          trap: 'Sort the slots into a truth table; with all four input pairs present the gate is fixed uniquely.' };
+      } },
+    { id: 'dlg-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'counters',
+      make(r) {
+        const c = Q5.int(r, 0, 3);
+        let qtext, ans, sol, n = 0, K = 0, S = 0;
+        if (c === 0) { n = Q5.int(r, 5, 15); K = Q5.int(r, 20, 500); ans = K % n; qtext = `A synchronous mod-$${n}$ counter (counting $0, 1, \\dots, ${n - 1}, 0, \\dots$) starts at $0$. After $${K}$ clock pulses its count is ______.`; sol = `It returns to 0 every $${n}$ pulses, so the count is $${K} \\bmod ${n} = ${ans}$.`; }
+        else if (c === 1) { n = Q5.int(r, 3, 6); ans = 2 * n; qtext = `A Johnson (twisted-ring) counter is built from $${n}$ flip-flops. The number of distinct states it cycles through is ______.`; sol = `A Johnson counter fills with 1s and then with 0s: $2n = ${ans}$ states.`; }
+        else if (c === 2) { n = Q5.int(r, 3, 8); ans = n; qtext = `A ring counter is built from $${n}$ flip-flops with a single 1 circulating. The number of clock pulses before it first returns to its starting state is ______.`; sol = `The single 1 moves one place per pulse and comes back after $n = ${ans}$ pulses.`; }
+        else { n = Q5.int(r, 3, 6); S = Q5.int(r, 0, 2 ** n - 1); K = Q5.int(r, 10, 200); ans = (S + K) % 2 ** n; qtext = `A $${n}$-bit binary up-counter holds $${S}$ (decimal). After $${K}$ more clock pulses it holds ______ (decimal; it wraps round after $${2 ** n - 1}$).`; sol = `It counts modulo $2^${n} = ${2 ** n}$: $(${S} + ${K}) \\bmod ${2 ** n} = ${ans}$.`; }
+        return { q: qtext, answer: ans, tol: 0, sol, c, n, K, S, trap: 'Counters wrap round: work modulo the number of states.' };
+      },
+      verify: (p) => { if (p.c === 1) { let st = Array(p.n).fill(0); const seen = new Set(); while (!seen.has(st.join(''))) { seen.add(st.join('')); st = [1 - st[p.n - 1], ...st.slice(0, -1)]; } return seen.size; } if (p.c === 2) { let st = [1, ...Array(p.n - 1).fill(0)]; let k = 0; do { st = [st[p.n - 1], ...st.slice(0, -1)]; k++; } while (st[0] !== 1); return k; } const mod = p.c === 0 ? p.n : 2 ** p.n; let x = p.c === 0 ? 0 : p.S; for (let i = 0; i < p.K; i++) x = (x + 1) % mod; return x; } },
     { id: 'dlg-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'number systems',
       make(r) {
         const w = int(r, 5, 8), n = int(r, 2 ** (w - 1), 2 ** w - 1);
