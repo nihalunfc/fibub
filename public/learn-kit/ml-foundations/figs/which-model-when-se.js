@@ -28,7 +28,7 @@ export default function (host) {
     if (step >= 2) {
       const xr = L + (R - L) * (step === 2 ? e : 1);
       line(ctx, [[L, Y(LIM)], [xr, Y(LIM)]], col.s[3], 2, [6, 4]);
-      text(ctx, 'limit 0.170 + 0.013 = 0.183', L + 6, Y(LIM) - 10, { color: col.s[3], size: 11.5, weight: 700, halo: col.panel });
+      text(ctx, 'dashed line: limit 0.170 + 0.013 = 0.183', L + 6, Y(0.196), { color: col.s[3], size: 11.5, weight: 700, halo: col.panel });
     }
     const T = ['Mean error over 5 folds (lower is better)', 'Bars: one standard error, sd ÷ √5', 'Best is boosting: draw its limit', 'All three are under the limit', 'Choose the simplest inside: logistic'];
     title(ctx, T[step], col);
