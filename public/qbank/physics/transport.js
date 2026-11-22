@@ -7,6 +7,7 @@
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './transport.more.gen.js';
+import more2 from './transport.more2.gen.js';
 
 const PI = Math.PI, KB = C.kB, U = C.u, E = C.e, ME = C.me;
 const L0 = PI * PI / 3 * (KB / E) ** 2;                            // Sommerfeld Lorenz number
@@ -194,6 +195,7 @@ export default {
       q: 'Two parallel plates 1.0 mm apart contain air ($\\eta = 1.8\\times10^{-5}$ Pa s). The top plate slides at 1.0 m/s. The shear stress needed to keep it moving (laminar Couette flow) is ______ mPa.',
       answer: 18, tol: 0.1, calc: () => 1.8e-5 * 1 / 1e-3 * 1e3,
       sol: 'The velocity profile is linear, $du/dz = 1.0/10^{-3} = 1000$ s$^{-1}$, and the stress is $\\eta\\,du/dz = 1.8\\times10^{-5}\\times1000 = 1.8\\times10^{-2}$ Pa $= 18$ mPa. On the molecular level this is the net downward flux of $x$-momentum.' },
+    ...more2,
   ],
   gens: [
     { id: 'nettr-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'free paths',
