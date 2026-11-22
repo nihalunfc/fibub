@@ -64,6 +64,12 @@ export default {
       { id: 'schrodinger-equation', name: 'The Schrödinger equation: wells, steps and tunnelling' },
       { id: 'atoms-x-rays', name: 'The Bohr atom, spectra and X-rays' },
     ] },
+    { id: 'atomic', name: 'Atomic and molecular physics', topics: [
+      { id: 'fine-structure', name: 'Hydrogen spectra and fine structure' },
+      { id: 'ls-jj-coupling', name: 'Many-electron atoms: LS and jj coupling' },
+      { id: 'zeeman-stark', name: 'Zeeman and Stark effects' },
+      { id: 'rotational-spectra', name: 'Rotational spectra' },
+    ] },
     { id: 'solid-state', name: 'Solid state physics and devices', topics: [
       { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
       { id: 'x-ray-diffraction', name: 'X-ray diffraction and Bragg\'s law' },
