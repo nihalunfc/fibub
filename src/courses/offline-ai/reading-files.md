@@ -3,7 +3,7 @@ title: Reading PDFs, scans, spreadsheets and email
 seoTitle: Read PDFs, scans and email for offline RAG | Offline AI
 summary: Turn the files people actually have into clean text for your index, offline. PDFs page by page, scanned pages with OCR, Word files, spreadsheets row by row, and saved emails.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'pypdf (BSD licence), https://pypdf.readthedocs.io'
   - 'Tesseract OCR (Apache 2.0), https://github.com/tesseract-ocr/tesseract'
@@ -26,6 +26,8 @@ quiz:
 ---
 
 **Module 12 · about 30 minutes · read first: 12.4.** You'll be able to turn PDFs, scans, Word files, spreadsheets and emails into text for your index, without any upload.
+
+<div class="bigidea">Search can only find text it was given, so every kind of file needs a reader that pulls out its words and remembers where they came from.</div>
 
 ## 1. Why this matters
 
@@ -66,11 +68,19 @@ def read_any(path):
     return []  # anything else is skipped
 ```
 
+<div class="steps">
+<div class="step"><p><b>A normal PDF.</b> <code>lease.pdf</code> has 8 pages of real text. <code>read_any</code> returns 8 pairs, (1, "..."), (2, "...") ... (8, "..."), so every chunk can later say "page 6".</p></div>
+<div class="step"><p><b>A scanned PDF.</b> <code>old-lease.pdf</code> is photos of paper. Every page comes back as empty text, so it would add nothing to the index. Run OCRmyPDF on it first (section 3), then read the new file.</p></div>
+<div class="step"><p><b>A spreadsheet.</b> A row with columns item and cost becomes the line "item: printer, cost: 400". The column names travel with the values, so a search for "printer cost" can find it.</p></div>
+<div class="step"><p><b>An email.</b> <code>quote.eml</code> becomes "From: Sam, Date: 3 March, Subject: Printer quote", a blank line, then the message body. The header helps both search and citations.</p></div>
+<div class="step"><p><b>Anything else.</b> A <code>.zip</code> or a photo is skipped (an empty list). Count what was skipped, so you know what the pipeline cannot see.</p></div>
+</div>
+
 Each spreadsheet row becomes a line like `item: printer, cost: 400`, so the column names travel with the values. Emails keep sender, date and subject at the top, which helps both search and citations. Save emails from your mail program as `.eml` files (most programs can export or drag them to a folder).
 
 ## 3. Scans need OCR
 
-A scanned PDF contains pictures of pages, so `extract_text` returns nothing. **OCR** (optical character recognition) reads the letters. The dependable offline route is **OCRmyPDF**, which uses Tesseract and adds an invisible text layer to the PDF:
+A scanned PDF contains pictures of pages, so `extract_text` returns nothing. It is like a photo of a letter: you can see the words, but a computer sees only coloured dots. **OCR** (optical character recognition) reads the letters from the picture. The dependable offline route is **OCRmyPDF**, which uses Tesseract and adds an invisible text layer to the PDF:
 
 ```
 ocrmypdf --skip-text scanned.pdf scanned-ocr.pdf
@@ -92,12 +102,36 @@ For photos of receipts, handwritten notes or messy layouts, a vision model can d
 
 **Principle:** retrieval can only find text that exists in the index. Every file type needs a reader that keeps the text and its location.
 
-**Equation:** what the model can answer ⊆ what was retrieved ⊆ what was indexed ⊆ what the readers extracted.
+**Equation:** (⊆ means "is part of")
+
+```math
+\text{answerable} \subseteq \text{retrieved} \subseteq \text{indexed} \subseteq \text{extracted by the readers}
+```
 
 **Analogy:** a chain of sieves, each finer than the last. Whatever falls out at the first sieve (a scan with no OCR, a table read as jumble) can never reach the answer, however good the model. Where it breaks: OCR is not perfect; a 1% character error rate means about one wrong letter in every hundred, which matters for names and numbers.
 
 **Try it:** a folder of 500 PDFs, 60 of them scans with no OCR. What share of the folder can the pipeline answer from? (440 ÷ 500 = 88%. The other 12% is invisible.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>extracted</dt><dd>the text the readers actually pulled out of your files (nothing from a scan without OCR)</dd>
+<dt>indexed</dt><dd>the chunks of that text that were embedded and saved</dd>
+<dt>retrieved</dt><dd>the few chunks the search hands to the model for this question</dd>
+<dt>answerable</dt><dd>what the model can answer correctly from those chunks</dd>
+<dt>Physical meaning</dt><dd>Your files pass through a row of sieves, each finer than the last. A scan with no OCR or a table read as jumble falls out at the very first sieve, and no model, however clever, can answer from text it never received. Check what came out of the readers before blaming the model.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="reading-files-coverage"></div>
+
+<div class="myth">
+
+**"It's a PDF, so the computer can read it."** A PDF is only a container. Some hold real text; scanned ones hold pictures of pages, which give back nothing until OCR adds a text layer. If a file gives no chunks, print `read_any(path)` and look.
+
+</div>
 
 ## 5. Worked example
 
@@ -118,3 +152,13 @@ For photos of receipts, handwritten notes or messy layouts, a vision model can d
 </details>
 
 **New words:** *OCR* / *optical character recognition* (reading letters from images), *text layer* (hidden, selectable text inside a scanned PDF), *.eml* (one saved email as a file).
+
+<div class="keypoints">
+
+- One `read_any` function turns PDFs, Word files, spreadsheets and emails into (page, text) pairs, all offline.
+- Read PDFs page by page so every chunk keeps its page number for citations.
+- Scanned PDFs hold pictures, not text: run OCRmyPDF (Tesseract) once, then index the new files.
+- Spreadsheet rows keep their column names; emails keep sender, date and subject.
+- Questions about totals and sums belong to code (pandas or SQL), not to RAG.
+
+</div>

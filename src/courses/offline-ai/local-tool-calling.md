@@ -3,7 +3,7 @@ title: Letting a local model use tools safely
 seoTitle: Safe tool calling with local AI models | Offline AI
 summary: Give your agent tools that change things, such as writing files, querying a database or running code, with a yes or no from you before each risky step. Design tools a small model uses well.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'ollama Python library, tool calling, https://github.com/ollama/ollama-python'
   - 'Python sqlite3, read-only connections with URI mode, https://docs.python.org/3/library/sqlite3.html'
@@ -25,9 +25,11 @@ quiz:
 
 **Module 13 · about 30 minutes · read first: 13.1.** You'll be able to add tools that change things, behind an approval step, and design tools a small model rarely misuses.
 
+<div class="bigidea">What an agent can break is set by the tools your code hands it and the checks your code runs, not by what the prompt asks it to do.</div>
+
 ## 1. Why this matters
 
-Reading is harmless; writing, deleting, sending and running code are not. The difference between a useful agent and a dangerous one is the set of tools you hand it and the checks in your code.
+Reading a file is harmless. Writing, deleting, sending and running code are not. A useful agent and a dangerous one can use the same model; the difference is the set of tools you hand it and the checks in your code.
 
 ## 2. Three kinds of tools
 
@@ -59,7 +61,15 @@ def write_file(path: str, text: str) -> str:
     return f"saved {p.name}"
 ```
 
-The model never touches the disk itself. Your code checks the path, refuses to overwrite, shows you the text, and only then writes.
+The model never touches the disk itself. Your code checks the path, refuses to overwrite, shows you the text, and only then writes. Here is one request travelling through it:
+
+<div class="steps">
+<div class="step"><p><b>The model asks.</b> It replies with a tool call: <code>write_file("summary.md", "Three clients have December deadlines...")</code>. Nothing has happened yet; this is just text.</p></div>
+<div class="step"><p><b>Fence check.</b> <code>inside("summary.md")</code> makes sure the path is in the workspace. A path like <code>../notes.txt</code> stops here with an error.</p></div>
+<div class="step"><p><b>No overwriting.</b> If <code>summary.md</code> already exists, the tool returns "refused: that file already exists; choose a new name" and the model can pick another name.</p></div>
+<div class="step"><p><b>You decide.</b> The first 500 characters are printed and the script waits for you. Anything except "y" means no.</p></div>
+<div class="step"><p><b>The result goes back.</b> "saved summary.md" or "refused by the user" is added to the conversation, and the model plans its next turn from there.</p></div>
+</div>
 
 ## 4. A database tool that cannot do harm
 
@@ -104,6 +114,26 @@ Note the docstring: it names the table and its columns, which saves the model a 
 **Try it:** an agent has list_files, read_file and write_file-with-approval. Which tool sets its worst case? (write_file, and only if you approve something you did not read.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>read tool</dt><dd>a tool that can only look (list, read, search, a read-only database query); the worst it can do is waste time</dd>
+<dt>write tool</dt><dd>a tool that changes something; it sits behind a check in your code, such as an approval</dd>
+<dt>worst case</dt><dd>the most harmful tool you gave the agent, times the chance that its check fails</dd>
+<dt>approval step</dt><dd>your code stops and asks a person before the action runs</dd>
+<dt>Physical meaning</dt><dd>Giving an agent tools is like giving a new temp worker keys. The supply cupboard key (read tools) is fine. The safe key (delete, shell, email) is not, however polite they seem. And a signature on every purchase only helps if you read what you sign, so keep approvals few.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="local-tool-calling-approvals"></div>
+
+<div class="myth">
+
+**"I told the model never to delete anything, so it won't."** A prompt is a request, not a lock. Models misread tasks, and text inside a file can talk them out of their instructions (Lesson 13.8). Only your code is sure to run: if there is no delete tool, nothing can be deleted.
+
+</div>
+
 ## 6. Worked example
 
 *Made-up numbers.* A shop owner gives an agent `query_sales` (read-only) and `write_file` (approval). Task: "Write a one-page summary of October sales by region." The agent runs three SELECT queries, drafts the summary and asks to create `october-summary.md`. The owner reads the draft, presses y, and has the report in two minutes. The sales database could not have been changed whatever the model wrote.
@@ -123,3 +153,13 @@ Note the docstring: it names the table and its columns, which saves the model a 
 </details>
 
 **New words:** *read-only* (can look but not change), *approval step* or *human in the loop* (a person confirms before an action), *excessive agency* (giving an AI more power than the job needs).
+
+<div class="keypoints">
+
+- Sort tools into read (allow freely), write (ask first) and run or send (avoid, or sandbox and ask every time).
+- The model only asks; your code checks the path, refuses overwrites and waits for a "y" before anything changes.
+- A read-only database connection cannot be harmed by any query the model writes.
+- Small models do best with 3 to 6 specific tools, clear docstrings, short results and helpful error messages.
+- Keep approvals rare so each one is actually read.
+
+</div>

@@ -2,7 +2,7 @@
 title: 'Many users, one model: batching'
 summary: Why one machine can answer several people at once nearly as fast as one, how batching works, and how to tell when a queue is about to form.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention" (vLLM), SOSP 2023, https://arxiv.org/abs/2309.06180'
   - 'Yu et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models" (continuous batching), OSDI 2022, https://www.usenix.org/conference/osdi22/presentation/yu'
@@ -24,13 +24,24 @@ quiz:
 
 **Module 15 · about 20 minutes · read first: 4.2 and 5.5.** You'll be able to explain batching and predict whether one machine can serve your group without a queue.
 
+<div class="bigidea">One read of the model's weights can feed several answers at once, so one machine can serve a group, and queues start when it is busy most of the time, long before it is busy all the time.</div>
+
 ## 1. Why this matters
 
-At home, one person talks to one model. In an office, five or fifty people share it. If the machine answers them strictly one by one, the tenth person waits for nine answers first. Batching lets it write several answers at the same time, and the trick that makes this possible is the same fact that sets the speed limit in Lesson 4.2.
+At home, one person talks to one model. In an office, five or fifty people share it. If the machine answers them strictly one by one, the tenth person waits for nine answers first. **Batching** lets it write several answers at the same time, and the trick that makes this possible is the same fact that sets the speed limit in Lesson 4.2.
 
 ## 2. The free ride
 
 To write one token, the chip reads every active weight from memory once. Reading is the slow part; the sums are quick. So if four answers are in progress, the chip can read the weights once and do the sums for all four. Each answer gets slightly slower, but the machine as a whole writes nearly four times as many tokens per second.
+
+It is like a bus. Driving the route costs about the same with one passenger or forty, so filling the seats moves far more people for almost the same fuel.
+
+<div class="steps" data-fig="batching-free-ride">
+<div class="step"><p><b>One answer at a time.</b> To write each token the chip reads all 8 GB of weights. At 40 reads a second, Ana gets 40 tokens a second. Ben, Chen and Dev wait in the queue.</p></div>
+<div class="step"><p><b>Four answers share each read.</b> Same 8 GB read, but now the sums are done for all four. Each person gets about 35 tokens a second; the machine writes about <b>140</b>. (Made-up but typical numbers.)</p></div>
+<div class="step"><p><b>Continuous batching.</b> Ben's short answer finishes. At the very next step, Eve's new question takes his seat. Nobody waits for a batch to fill or for the longest answer to end.</p></div>
+<div class="step"><p><b>The catch.</b> Each conversation keeps its own KV cache (Lesson 8.4), which takes memory and must be read too. As the batch grows, memory fills and the gain per extra seat shrinks.</p></div>
+</div>
 
 The gain shrinks as the batch grows: each answer also has its own KV cache (Lesson 8.4) to read, and at some point the chip's arithmetic, not memory, becomes the bottleneck. Real engines often get 3 to 6 times the total output from a batch of 8, and more from bigger batches on data-centre cards.
 
@@ -65,6 +76,26 @@ Notice three things. With batch size 1, the queue jumps once the machine is busy
 **Try it:** 30 people, 4 questions an hour each, 20 seconds per answer? (30 × 4 × 20 = 2,400 seconds; ρ = 2,400 ÷ 3,600 ≈ 0.67, so waits of about two answer times at busy moments. Batching would help.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>ρ (rho), utilisation</dt><dd>the share of each hour the machine is busy answering, from 0 (idle) to 1 (always busy)</dd>
+<dt>seconds per answer</dt><dd>answer tokens ÷ tokens per second for one person</dd>
+<dt>3,600</dt><dd>the seconds in an hour</dd>
+<dt>ρ ÷ (1 − ρ)</dt><dd>the average wait in answer times in the simplest queue model: 1 at 50% busy, 4 at 80%, 9 at 90%</dd>
+<dt>Physical meaning</dt><dd>A supermarket with one till. At half busy you rarely queue; at 90% busy one slow customer backs up the whole line. Batching is like opening more tills at the same counter: the same machine serves more people before the line forms.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="batching-utilisation"></div>
+
+<div class="myth">
+
+**"The machine is only busy 70% of the time, so nobody waits."** Questions do not arrive evenly. They bunch up after meetings and lunch, and when two arrive together one waits. The average wait climbs steeply long before 100%: in the simple model, about 2.3 answer times at 70% and 9 at 90%. Plan to stay under about 70%, or turn on batching.
+
+</div>
+
 ## 6. Worked example
 
 *Made-up numbers.* A 12-person design studio runs Gemma 4 12B on a 16 GB card at 40 tokens per second for one person. Answers average 500 tokens, so 12.5 seconds each. Each person asks about 8 questions an hour: ρ = 12 × 8 × 12.5 ÷ 3,600 ≈ 0.33. Without batching that is fine most of the day. After lunch everybody asks at once and waits climb to a minute. They set Ollama to 4 parallel requests, which needs a little more memory for context, and the after-lunch waits drop to a few seconds.
@@ -84,3 +115,13 @@ Notice three things. With batch size 1, the queue jumps once the machine is busy
 </details>
 
 **New words:** *batching* (writing several answers in one pass over the weights), *continuous batching*, *utilisation*, *queue*, *parallel slots*.
+
+<div class="keypoints">
+
+- Writing a token means reading all active weights once; batching lets that one read feed several answers.
+- Continuous batching adds and removes requests at every step, so nobody waits for a batch to fill.
+- Utilisation ρ = people × questions per hour × seconds per answer ÷ 3,600; waits grow like ρ ÷ (1 − ρ).
+- Below about 0.5 one machine is fine; 0.5 to 0.8 turn on batching; above 0.8 add capacity.
+- Each parallel slot needs its own KV cache memory (`OLLAMA_NUM_PARALLEL`, or `-np` in llama-server).
+
+</div>

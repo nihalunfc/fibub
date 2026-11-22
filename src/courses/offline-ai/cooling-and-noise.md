@@ -2,9 +2,11 @@
 title: Cooling, noise and where to put the machine
 summary: Keep an AI machine cool and quiet. Airflow, room heat, fan noise, dust and where to place a home or office machine.
 minutes: 15
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Graphics card board power: NVIDIA product pages via Compute Market, updated 1 November 2026, https://compute-market.com'
+  - 'NVIDIA System Management Interface (nvidia-smi) documentation, including the power limit setting (official page), https://docs.nvidia.com/deploy/nvidia-smi/index.html'
+  - 'Halliday, D., Resnick, R. and Walker, J., Fundamentals of Physics (Wiley), chapters on energy and the first law of thermodynamics (electrical energy used ends up as heat)'
 quiz:
   - q: Where does almost all the electricity an AI machine uses end up?
     choices: ['As heat in the room', 'Stored in the model', 'Sent back to the grid']
@@ -22,13 +24,47 @@ quiz:
 
 **Module 6 · about 15 minutes · read first: 6.1.** You'll be able to place and set up a machine so it stays fast, quiet and safe.
 
+<div class="bigidea">Almost every watt an AI machine uses becomes heat in the room, and that heat must be carried away or the chip slows itself down.</div>
+
 ## 1. Why this matters
 
 A machine that overheats slows itself down (Lesson 6.4), wears out sooner and annoys everyone with fan noise. In hot climates, such as summers in India and the Gulf, this matters even more.
 
 ## 2. Heat goes into the room
 
-Every watt becomes heat. A 450 W machine running for hours warms a small room like a small heater. In summer, that can mean more air-conditioning cost; in a Canadian or UK winter, it is free heat.
+Every watt becomes heat. The computing itself stores almost no energy: the electricity flows in, the sums get done, and the energy leaves as warmth. A 450 W machine running for hours warms a small room like a small heater. In summer, that can mean more air-conditioning cost; in a Canadian or UK winter, it is free heat.
+
+<div class="steps">
+<div class="step"><b>Power in.</b> A PC draws 450 W for a 6-hour batch job: 450 × 6 = 2,700 Wh = 2.7 kWh of electricity.</div>
+<div class="step"><b>Heat out.</b> Nearly all of it becomes heat in the room: 2.7 kWh, exactly what a 450 W heater gives in 6 hours.</div>
+<div class="step"><b>In winter.</b> In a cold Canadian or UK room, that heat is not wasted: the heating does a little less work.</div>
+<div class="step"><b>In summer.</b> In Chennai in May, the air conditioner must pump that heat outside. One that moves about 3 kWh of heat per kWh of electricity uses about 2.7 ÷ 3 = 0.9 kWh extra.</div>
+</div>
+
+```math
+\text{heat added (kWh)} \approx \text{electricity used (kWh)} = \frac{W \times h}{1000}
+```
+
+<div class="problem" data-problem="cooling-and-noise-heat"></div>
+
+<div class="meaning">
+
+<dl>
+<dt>W × h ÷ 1,000</dt><dd>The electricity the machine used, in kWh.</dd>
+<dt>Heat added</dt><dd>The warmth released into the room: about the same number of kWh.</dd>
+<dt>Air-conditioner efficiency</dt><dd>How many kWh of heat it moves outside for each kWh of electricity, often about 2.5 to 4.</dd>
+<dt>Physical meaning</dt><dd>A computer is, in energy terms, an electric heater that does sums on the way. Like a crowded room that needs a window opened, the heat has to go somewhere, or the chip gets hot and slows down.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A computer turns electricity into computing, not heat."** Energy is never used up, only changed. The sums carry away almost none of it, so nearly all the electricity ends up as heat in the room. A 400 W PC warms a room just like a 400 W heater.
+
+</div>
+
+<div class="problem" data-problem="cooling-and-noise-ac"></div>
 
 ## 3. Placement checklist
 
@@ -40,7 +76,7 @@ Every watt becomes heat. A 450 W machine running for hours warms a small room li
 
 ## 4. Noise
 
-Macs and AI boxes are near-silent under typical use. Graphics PCs can be loud under long loads. Fixes: lower the card's power limit, set a gentler fan curve, choose a larger case with bigger, slower fans, or put the machine in another room and use it over the network (Lesson 11.1).
+Macs and AI boxes are near-silent under typical use. Graphics PCs can be loud under long loads. Fixes: lower the card's power limit, set a gentler **fan curve** (the setting that decides how fast the fans spin at each temperature), choose a larger case with bigger, slower fans, or put the machine in another room and use it over the network (Lesson 11.1).
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -73,3 +109,12 @@ Macs and AI boxes are near-silent under typical use. Graphics PCs can be loud un
 </details>
 
 **New words:** *airflow*, *fan curve*, *dust filter*.
+
+<div class="keypoints">
+
+- Nearly all the electricity a machine uses becomes heat: heat in kWh ≈ W × h ÷ 1,000.
+- That heat is free warmth in winter, and extra air-conditioning work in a hot summer.
+- Give the case 10 to 15 cm of space, never shut it in a closed cupboard, and clean dust filters often.
+- A lower power limit, a gentler fan curve or a bigger case makes a graphics PC cooler and quieter.
+
+</div>

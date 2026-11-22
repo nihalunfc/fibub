@@ -3,7 +3,7 @@ title: 'Testing answers: did it find the right page?'
 seoTitle: Test RAG retrieval with a question set | Offline AI
 summary: Write 20 test questions with known answers, measure how often search finds the right page, and use the score to choose settings. Then finish mini project 2, Ask my documents.
 minutes: 35
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Manning, Raghavan and Schütze, Introduction to Information Retrieval, chapter 8 (evaluation), https://nlp.stanford.edu/IR-book/'
   - 'Ragas, open-source RAG evaluation (Apache 2.0), https://docs.ragas.io'
@@ -24,6 +24,8 @@ quiz:
 
 **Module 12 · about 35 minutes · read first: 12.5.** You'll be able to measure retrieval quality with a test set and decide which setting to change. This lesson completes **mini project 2: Ask my documents**.
 
+<div class="bigidea">A fixed set of questions with known answers turns "it seems fine" into a score, so you can tell whether each change really helps and which part to fix.</div>
+
 ## 1. Why this matters
 
 A RAG system that looks right on three demo questions can fail on the fourth. A small test set turns "seems fine" into a number you can show a manager, and tells you exactly which part to fix.
@@ -34,6 +36,8 @@ A RAG system that looks right on three demo questions can fail on the fourth. A 
 2. **Generation:** the right passage was there, but the answer is wrong, incomplete or uncited. Fix with a bigger chat model, a clearer prompt or fewer, better sources.
 
 Always test retrieval first: if the right page never reaches the model, nothing downstream can help.
+
+It is like a delivery service. First check the parcel reached the right house (retrieval). Only then ask whether the person who opened it understood it (generation).
 
 ## 3. Write a test set
 
@@ -73,6 +77,14 @@ with open("tests.csv", encoding="utf-8") as f:
 print(f"Found in top 5: {found}/{total} ({found / total:.0%})   MRR: {rr / total:.2f}")
 ```
 
+<div class="steps">
+<div class="step"><p><b>Five test questions.</b> For each, the script searches and notes where the right page appears in the top 5: question 1 at rank 1, question 2 at rank 3, question 3 not at all, question 4 at rank 2, question 5 at rank 1.</p></div>
+<div class="step"><p><b>Hit rate at 5.</b> The right page was somewhere in the top 5 for 4 of the 5 questions: 4 ÷ 5 = <b>80%</b>.</p></div>
+<div class="step"><p><b>Reciprocal ranks.</b> Each rank becomes 1 ÷ rank: 1, 1/3, 0 (a miss), 1/2, 1. First place is worth a whole point; third place only a third.</p></div>
+<div class="step"><p><b>MRR.</b> Add them and divide by 5: (1 + 0.333 + 0 + 0.5 + 1) ÷ 5 ≈ <b>0.57</b>. Closer to 1 means the right page tends to come first.</p></div>
+<div class="step"><p><b>Change one thing.</b> Turn on hybrid search, rebuild, run the same five questions. If question 3 is now found at rank 2, hit rate becomes 100% and MRR ≈ 0.67: keep the change.</p></div>
+</div>
+
 It prints every miss, then two scores. **Hit rate at 5**: the share of questions where the right page was anywhere in the top 5. **MRR** (mean reciprocal rank): 1 if the right page is always first, 0.5 if always second, and so on. Change one setting, rebuild the index, run again, keep the change only if the score goes up.
 
 ## 5. Check the answers too
@@ -84,12 +96,39 @@ For generation, read the answers to your 20 questions and mark each: correct and
 
 **Principle:** measure retrieval with a fixed question set so every change is compared on the same ground.
 
-**Equation:** hit rate@k = (questions with the right source in top k) ÷ (all questions). MRR = (1/N) Σ 1/rankᵢ, counting 0 for a miss.
+**Equation:**
+
+```math
+\text{hit rate@}k = \frac{\text{questions with the right source in the top } k}{\text{all questions}}, \qquad \text{MRR} = \frac{1}{N} \sum_{i=1}^{N} \frac{1}{\text{rank}_i}
+```
+
+counting 0 for a miss.
 
 **Analogy:** a sports team's practice drills. You do not judge a new training method by one good match; you run the same drill every week and compare times. Where it breaks: 20 questions is a small sample; a change from 17 to 18 hits may be luck. Bigger changes (17 to 20) or a larger set are more convincing.
 
 **Try it:** three questions, right page at rank 1, rank 2, and missed. MRR? ((1 + 0.5 + 0) ÷ 3 = 0.5.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>N</dt><dd>the number of test questions</dd>
+<dt>k</dt><dd>how many search results you look at (5 here, the same number you send to the model)</dd>
+<dt>rank<sub>i</sub></dt><dd>where the right page appeared for question i: 1 for first place</dd>
+<dt>hit rate@k</dt><dd>the share of questions where the right page made the top k at all</dd>
+<dt>MRR</dt><dd>the average of 1 ÷ rank: 1 if the right page always comes first, 0.5 if always second</dd>
+<dt>Physical meaning</dt><dd>The test set is your weekly practice drill. Hit rate says how often the right page reached the model at all; MRR says how near the top it was. Run the same drill after every change and keep only the changes that raise the score.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="testing-rag-mrr"></div>
+
+<div class="myth">
+
+**"It answered my three demo questions well, so it works."** Three hand-picked questions prove little; the fourth may fail. Twenty or more real questions, including different wording, exact codes and table answers, give a score you can trust, and a change from 17 to 18 hits may still be luck.
+
+</div>
 
 ## 6. Worked example
 
@@ -119,3 +158,13 @@ Your `askdocs` folder now holds `chunker.py`, `readers.py`, `index_docs.py`, `as
 </details>
 
 **New words:** *test set* or *evaluation set* (fixed questions with known answers), *hit rate at k* / *recall at k*, *MRR* or *mean reciprocal rank*.
+
+<div class="keypoints">
+
+- RAG can fail in two places: retrieval (the right page was not found) or generation (it was found but misused). Test retrieval first.
+- Write 20 or more real questions with the file and page of each answer before tuning anything.
+- Hit rate@k is the share of questions with the right page in the top k; MRR averages 1 ÷ rank.
+- Change one setting at a time, rebuild, re-run, and keep the change only if the score goes up.
+- Read the answers too: correct and cited, correct but uncited, wrong, or a wrong "could not find".
+
+</div>

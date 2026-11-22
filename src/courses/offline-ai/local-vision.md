@@ -3,10 +3,11 @@ title: Reading images and screenshots locally
 seoTitle: Read images and receipts with a local AI model | Offline AI
 summary: Send photos, receipts, charts and screenshots to a local vision model and get descriptions or clean JSON back. Know what vision models read well, what they get wrong, and what an image costs in tokens.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'ollama Python library, images in chat messages, https://github.com/ollama/ollama-python'
   - 'Gemma 4 model card (multimodal input), https://ai.google.dev/gemma/docs'
+  - 'Dosovitskiy et al. (2020), An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale, https://arxiv.org/abs/2010.11929'
 quiz:
   - q: How does a vision model "see" an image?
     choices: ['It turns the picture into a set of image tokens that sit in the context with your text', 'It searches the internet for the image', 'It reads the file name']
@@ -24,13 +25,25 @@ quiz:
 
 **Module 13 · about 25 minutes · read first: 11.3.** You'll be able to send images to a local model and get descriptions or structured data back.
 
+<div class="bigidea">A vision model cuts a picture into small squares and turns them into a few hundred tokens that sit next to your words, so it can read and describe images but loses detail finer than that budget.</div>
+
 ## 1. Why this matters
 
-Much work information is in pictures: receipts, whiteboard photos, scanned forms, screenshots of error messages, charts in reports. A local vision model reads them without uploading anything, which matters for ID cards, medical images and internal dashboards.
+A lot of work information is in pictures: receipts, whiteboard photos, scanned forms, screenshots of error messages, charts in reports. A local vision model reads them without uploading anything. That matters for ID cards, medical images and internal dashboards.
 
 ## 2. Which models can see
 
 Gemma 4 models take images as well as text, so the model you installed in Module 9 may already do this. Other families have vision versions too (look for "VL" or "vision" in the name in the Ollama library). Bigger is better for small print and dense documents: E4B reads a clear receipt; 12B and up handle forms and charts far better.
+
+**How the model sees.** A part called the **image encoder** shrinks the picture to a fixed size, cuts it into small squares called **patches**, and turns each patch into numbers the model can read, much like text tokens. Many models then merge neighbouring patches to save room. The numbers below follow one common design (an 896-pixel square, 14-pixel patches, 4 × 4 merging); your model may differ, but the idea is the same.
+
+<div class="steps">
+<div class="step"><p><b>The photo.</b> A receipt photo of 3,000 × 4,000 pixels. Far too many to read one by one.</p></div>
+<div class="step"><p><b>Resize.</b> The encoder squeezes it to a fixed 896 × 896 square, whatever its original size. Tiny print may already blur here.</p></div>
+<div class="step"><p><b>Cut into patches.</b> 896 ÷ 14 = 64 patches across and 64 down: 64 × 64 = 4,096 patches.</p></div>
+<div class="step"><p><b>Merge.</b> Each block of 4 × 4 = 16 neighbouring patches becomes one token: 4,096 ÷ 16 = <b>256 image tokens</b>.</p></div>
+<div class="step"><p><b>Read with your words.</b> The 256 image tokens go into the context next to your prompt ("Read this receipt..."), and the model answers in text, or in JSON if you ask (section 4).</p></div>
+</div>
 
 ## 3. Describe an image
 
@@ -85,6 +98,26 @@ Loop over a folder of receipt photos and write each to a CSV row, as in Lesson 1
 **Try it:** a model spends 256 tokens per image and your context is 8,192 tokens. Leaving 2,000 tokens for text, how many images fit? ((8,192 − 2,000) ÷ 256 ≈ 24.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>width, height</dt><dd>the size of the picture after the encoder resizes it, in pixels</dd>
+<dt>patch size</dt><dd>the side of each small square the picture is cut into (often 14 or 16 pixels)</dd>
+<dt>pooling</dt><dd>how many neighbouring patches are merged into one token</dd>
+<dt>image tokens</dt><dd>what the picture costs in the context window, just like words do</dd>
+<dt>Physical meaning</dt><dd>Describing a painting over the phone in exactly 250 words. A face fits easily; a page of small print does not, so details vanish. That is why a vision model reads a clear receipt well but misses tiny print, and why each image eats into the room left for text.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="local-vision-tokens"></div>
+
+<div class="myth">
+
+**"If the model read a number off the receipt, the number must be there."** Unlike ordinary OCR, which garbles unclear digits, a vision model can write a neat, believable number that is not on the page, especially from a blurry or faded photo. Spot-check totals against another record, such as the bank statement.
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* A small builder photographs 140 supplier receipts a month. The receipt script with Gemma 4 12B on a 16 GB graphics card takes about 6 seconds a receipt, 14 minutes in all. Checking the totals against the bank statement finds 3 misreads (two blurry photos, one faded thermal print), which are fixed by hand. Before, the job took an evening.
@@ -103,4 +136,14 @@ Loop over a folder of receipt photos and write each to a CSV row, as in Lesson 1
 3. Models read labels well but can misjudge values between gridlines. Never use a vision model's reading of a chart as data without checking.
 </details>
 
-**New words:** *vision model* or *multimodal model* (takes images as well as text), *image tokens* (an image turned into tokens), *image encoder* (the part that turns pixels into tokens).
+**New words:** *vision model* or *multimodal model* (takes images as well as text), *image tokens* (an image turned into tokens), *image encoder* (the part that turns pixels into tokens), *patch* (one small square of the picture).
+
+<div class="keypoints">
+
+- Gemma 4 and other "vision" or "VL" models take images as well as text; pass file paths in the `images` list.
+- The image encoder resizes the picture, cuts it into patches and turns them into a fixed budget of image tokens, often a few hundred.
+- Image tokens use context space like text, so many images in one request leave less room for words.
+- Combine vision with a JSON schema to turn receipts and forms into clean data.
+- Vision models read and describe well but miscount, misjudge chart values and can invent digits: check numbers.
+
+</div>
