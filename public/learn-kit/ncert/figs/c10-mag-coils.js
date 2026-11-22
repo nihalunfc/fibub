@@ -3,12 +3,12 @@
 // circular field lines; inside the coil they all point the same way and add up. The field of a loop is strongest at its
 // centre; a solenoid (many turns) has a strong, nearly uniform field inside, like a bar magnet's, with the N pole at the
 // end the field comes out of. Field lines are traced from the sum of the straight-wire fields (B ~ 1/r each).
-import { canvas, text, title, line, dot, arrow, row, slider, choice, readout } from '../../kit.js';
+import { canvas, text, title, line, dot, arrow, row, slider, choice, readout, touchGuard } from '../../kit.js';
 
 export default function (host) {
-  let kind = 'solenoid', turns = 6, rev = false, core = false, comp = null; const cache = {};
+  let kind = 'solenoid', turns = 6, rev = false, core = false, comp = null; let cpos = null; const cache = {};
   const cv = canvas(host, { aspect: 0.7, max: 440, min: 280, label: 'Magnetic field lines of a circular loop and of a solenoid' });
-  cv.c.style.touchAction = 'none'; cv.c.style.cursor = 'crosshair';
+  cv.c.style.cursor = 'crosshair'; touchGuard(cv.c, (x, y) => !!cpos && Math.hypot(x - cpos[0], y - cpos[1]) < 28);
   const ctl = row(host);
   choice(ctl, 'Coil', [['loop', 'Circular loop'], ['solenoid', 'Solenoid']], kind, (v) => { kind = v; wt.style.display = v === 'solenoid' ? '' : 'none'; update(); });
   choice(ctl, 'Current', [['f', 'One way'], ['r', 'Reversed']], 'f', (v) => { rev = v === 'r'; update(); });
@@ -51,6 +51,7 @@ export default function (host) {
     const xl = wires[0][0] - 30, xr = wires[wires.length - 2][0] + 30; text(ctx, s > 0 ? 'S' : 'N', xl, cy, { color: s > 0 ? '#2a6df4' : '#e5241d', size: 18, weight: 700, align: 'center' }); text(ctx, s > 0 ? 'N' : 'S', xr, cy, { color: s > 0 ? '#e5241d' : '#2a6df4', size: 18, weight: 700, align: 'center' });
     // compass
     const c = comp || [cx, cy + Rc + 46 > h - 24 ? h - 24 : cy + Rc + 46], bb = B(c[0], c[1]), d = norm(bb);
+    cpos = c;
     ctx.save(); ctx.translate(c[0], c[1]); ctx.fillStyle = col.panel; ctx.strokeStyle = col.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 14, 0, 7); ctx.fill(); ctx.stroke(); ctx.rotate(Math.atan2(d[1], d[0]));
     ctx.fillStyle = '#e5241d'; ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-2, -4); ctx.lineTo(-2, 4); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#2a6df4'; ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(2, -4); ctx.lineTo(2, 4); ctx.closePath(); ctx.fill(); ctx.restore();
   };

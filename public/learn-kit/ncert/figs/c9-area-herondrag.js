@@ -1,13 +1,14 @@
 // Class 9 Area: Heron's formula live. Drag the three corners of a triangle on the grid (1 square = 1 m). The sides,
 // s = (a + b + c)/2 and area = sqrt(s(s - a)(s - b)(s - c)) are worked out from the lengths alone; the same area is
 // found a second way from base x height / 2 to show that the two agree.
-import { canvas, text, title, readout, dot } from '../../kit.js';
+import { canvas, text, title, readout, dot, touchGuard } from '../../kit.js';
 import { heron } from './c9-area-lib.js';
 
 export default function (host) {
   const V = [[2, 1], [14, 1], [6, 9]];
   const cv = canvas(host, { aspect: 0.9, max: 440, min: 290, label: 'A triangle on a grid with draggable corners and the area worked out by Heron formula' });
-  cv.c.style.touchAction = 'none'; cv.c.style.cursor = 'grab';
+  cv.c.style.cursor = 'grab';
+  touchGuard(cv.c, (x, y) => !!map && V.some((v) => Math.hypot(map.X(v[0]) - x, map.Y(v[1]) - y) < 24));
   const out = readout(host);
   let map = null, drag = -1;
   const GX = 16, GY = 11;

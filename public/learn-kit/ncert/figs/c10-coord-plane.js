@@ -1,6 +1,6 @@
 // Class 10 Coordinate Geometry: reading a point on the Cartesian plane. Drag P (it snaps to whole numbers): x tells how far
 // right (+) or left (-) of the y-axis, y how far up (+) or down (-) of the x-axis. The signs of (x, y) decide the quadrant.
-import { canvas, text, title, line, dot, arrow, row, slider, button, choice, readout, loop } from '../../kit.js';
+import { canvas, text, title, line, dot, arrow, row, slider, button, choice, readout, loop, touchGuard } from '../../kit.js';
 
 const fm = (v) => String(+(+v).toFixed(2));
 /** Equal-scale view: data x0..x1, y0..y1 fitted under the title. */
@@ -25,7 +25,8 @@ function grid(ctx, V, col, every = 1) {
 }
 /** Make points draggable. getV() gives the current view, pts are {x,y} objects, snap rounds to whole numbers. */
 function drag(cv, getV, pts, { snap = true, onmove, only } = {}) {
-  let k = -1; cv.c.style.touchAction = 'none';
+  let k = -1;
+  touchGuard(cv.c, (x, y) => { const V = getV(); return pts.some((p, i) => (!only || only.includes(i)) && (V.X(p.x) - x) ** 2 + (V.Y(p.y) - y) ** 2 < 28 * 28); });
   const pos = (e) => { const r = cv.c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   cv.c.addEventListener('pointerdown', (e) => {
     const V = getV(), [x, y] = pos(e); let best = 28 * 28; k = -1;

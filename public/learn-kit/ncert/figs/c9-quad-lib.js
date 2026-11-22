@@ -1,5 +1,5 @@
 // Shared helpers for the Class 9 Quadrilaterals figures (not a figure itself): wrapped caption, grid view, draggable corners.
-import { text, dot } from '../../kit.js';
+import { text, dot, touchGuard } from '../../kit.js';
 
 /** Caption wrapped onto up to three lines at the bottom of the canvas. */
 export const note = (ctx, str, w, h, col) => {
@@ -29,8 +29,9 @@ export const seg = (ctx, v, p, q, color, lw = 2, dash) => {
 };
 /** Make the points in pts draggable on the grid (snapped to `snap`). getView() gives the latest view. */
 export function dragger(cv, pts, getView, { snap = 1, radius = 1.6, onmove, lock } = {}) {
-  cv.c.style.touchAction = 'none'; cv.c.style.cursor = 'grab';
+  cv.c.style.cursor = 'grab';
   let d = -1;
+  touchGuard(cv.c, (x, y) => { const v = getView(); return pts.some((p, i) => !(lock && lock(i)) && Math.hypot(v.X(p[0]) - x, v.Y(p[1]) - y) < 24); });
   const pos = (e) => { const r = cv.c.getBoundingClientRect(), v = getView(); return [(e.clientX - r.left - v.ox) / v.s, (v.oy - (e.clientY - r.top)) / v.s]; };
   cv.c.addEventListener('pointerdown', (e) => {
     const [x, y] = pos(e); let best = -1, bd = radius;

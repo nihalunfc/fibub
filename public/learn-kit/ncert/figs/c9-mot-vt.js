@@ -1,7 +1,7 @@
 // Class 9 Science, Chapter 4: a velocity-time graph with the area shaded. Drag the end point (time right, speed up) or the
 // start-speed slider. The slope is the acceleration, and the area under the line is the displacement: a rectangle u·t plus
 // a triangle ½·a·t² (a trapezium overall), so s = ut + ½at².
-import { canvas, axes, text, title, line, dot, row, slider, readout, clamp } from '../../kit.js';
+import { canvas, axes, text, title, line, dot, row, slider, readout, clamp, touchGuard } from '../../kit.js';
 
 export default function (host) {
   let u = 4, t = 6, v = 16, A = null;
@@ -33,7 +33,7 @@ export default function (host) {
   };
   let drag = false;
   const mv = (e) => { if (!drag || !A) return; const r = cv.c.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top; t = clamp(Math.round(((px - A.X(0)) / (A.X(10) - A.X(0)) * 10) * 5) / 5, 1, 10); v = clamp(Math.round(((A.Y(0) - py) / (A.Y(0) - A.Y(30)) * 30)), 0, 30); upd(); };
-  cv.c.style.touchAction = 'none';
+  touchGuard(cv.c, (x, y) => !!A && ((x >= A.X(0) && x <= A.X(10) && y >= A.Y(30) && y <= A.Y(0)) || Math.hypot(x - A.X(t), y - A.Y(v)) < 24));
   cv.c.addEventListener('pointerdown', (e) => { drag = true; cv.c.setPointerCapture(e.pointerId); mv(e); });
   cv.c.addEventListener('pointermove', mv); cv.c.addEventListener('pointerup', () => { drag = false; });
   upd();

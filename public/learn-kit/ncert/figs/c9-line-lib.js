@@ -1,5 +1,5 @@
 // Shared helpers for the Class 9 "Two Variables, One Line" figures (not a figure itself): coordinate plane, line clipping, dragging.
-import { text, dot } from '../../kit.js';
+import { text, dot, touchGuard } from '../../kit.js';
 
 export const note = (ctx, str, w, h, col) => {
   const max = Math.max(24, Math.floor((w - 20) / 6.4)), ls = []; let cur = '';
@@ -44,8 +44,9 @@ export const eqn = (a, b, c) => {
 export const pt = (ctx, v, x, y, color, r = 5, ring) => dot(ctx, v.X(x), v.Y(y), r, color, ring);
 /** Draggable points, snapped to `snap` and kept inside the plane. */
 export function dragger(cv, pts, getView, { snap = 1, radius = 1, onmove } = {}) {
-  cv.c.style.touchAction = 'none'; cv.c.style.cursor = 'grab';
+  cv.c.style.cursor = 'grab';
   let d = -1;
+  touchGuard(cv.c, (x, y) => { const v = getView(); return pts.some((p) => Math.hypot(v.X(p[0]) - x, v.Y(p[1]) - y) < 24); });
   const pos = (e) => { const r = cv.c.getBoundingClientRect(), v = getView(); return [v.wx(e.clientX - r.left), v.wy(e.clientY - r.top)]; };
   cv.c.addEventListener('pointerdown', (e) => {
     const [x, y] = pos(e); let best = -1, bd = radius;
