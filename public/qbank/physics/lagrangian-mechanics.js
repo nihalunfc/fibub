@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './lagrangian-mechanics.more.gen.js';
 import more2 from './lagrangian-mechanics.more2.gen.js';
+import r4 from './lagrangian-mechanics.r4.gen.js';
 
 const g = 9.8;
 
@@ -224,6 +225,7 @@ export default {
       sol: 'The Euler equation is $y\'\' = y$; with the end conditions, $y = \\sinh x/\\sinh 1$. Integrate $\\int y\'^2\\,dx$ by parts: $[yy\']_0^1 - \\int yy\'\'\\,dx = [yy\']_0^1 - \\int y^2\\,dx$. So $J = [yy\']_0^1 = y(1)y\'(1) = \\cosh 1/\\sinh 1 = \\coth 1 = 1.313$.',
       trap: 'The by-parts trick avoids integrating $\\sinh^2$ and $\\cosh^2$ separately.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'lag-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'simple systems',
@@ -354,5 +356,6 @@ export default {
       },
       verify: (p) => { const mu = 4 * p.m2 * p.m3 / (p.m2 + p.m3); return Math.abs(g * (p.m1 - mu) / (p.m1 + mu)); } },
     ...more,
+    ...r4.gens,
   ],
 };

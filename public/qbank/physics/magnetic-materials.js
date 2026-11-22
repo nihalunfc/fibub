@@ -9,6 +9,7 @@ const muB = C.e * C.hbar / (2 * C.me); // 9.274e-24 J/T
 
 import * as Q5 from '../_util.js';
 import more2 from './magnetic-materials.more2.gen.js';
+import r4 from './magnetic-materials.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -236,6 +237,7 @@ export default {
       sol: 'Outside it is a dipole $m = \\tfrac43\\pi R^3M$. On the equator the dipole field is $\\dfrac{\\mu_0m}{4\\pi r^3}$ against $\\vec m$; at $r = R$: $\\dfrac{\\mu_0}{4\\pi R^3}\\cdot\\dfrac43\\pi R^3M = \\dfrac{\\mu_0M}{3} = 0.419$ T, pointing opposite to $\\vec M$. (At the poles it is $\\tfrac23\\mu_0M$, equal to the inside value, as continuity of $B_\\perp$ demands.)',
       trap: 'Assuming $B$ just outside equals $B$ inside everywhere. Only the normal component is continuous; at the equator the field is tangential and it jumps.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'mgm-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'kinds of magnetism',
@@ -370,5 +372,6 @@ export default {
           trap: 'Curie\'s law $C/T$ alone does not fit both points.' };
       },
       verify: (p) => (p.f * p.T1 - p.T2) / (p.f - 1) },
+    ...r4.gens,
   ],
 };

@@ -1,0 +1,92 @@
+// English bank: prepositions (time, place, dependent prepositions, graph language, common errors).
+// Original items written for fibub; US spelling. mcq options are written correct-first and placed by ROT.
+// Append new items at the end; ids are numbered in order (gr-001 ...), never reuse or reorder.
+const EX = ['ielts', 'celpip', 'toefl'];
+const F = { skill: 'grammar' };
+const ROT = [2, 0, 3, 1, 1, 3, 0, 2, 3, 1, 2, 0];
+let n = 0, c = 0;
+const id = () => 'gr-' + String(++c).padStart(3, '0');
+const m = (level, q, opts, sol, sub, trap) => { const k = ROT[n++ % ROT.length]; const o = opts.slice(1); o.splice(k, 0, opts[0]); const it = { id: id(), type: 'mcq', level, exams: EX, facets: F, sub, q, options: o, answer: k, sol }; if (trap) it.trap = trap; return it; };
+const t = (level, q, answer, sol, sub, trap) => { const it = { id: id(), type: 'text', level, exams: EX, facets: F, sub, q, answer: [].concat(answer), maxWords: 1, sol }; if (trap) it.trap = trap; return it; };
+// p: correct preposition first, then three wrong ones
+const p = (level, q, opts, sol, sub, trap) => m(level, q, opts, sol, sub, trap);
+const S = 'Which sentence is correct?';
+
+export default {
+  topic: 'prepositions',
+  items: [
+    p(1, "She was born ______ 1995.", ['in', 'on', 'at', 'by'], "Years take <b>in</b>.", 'time: in, on, at'),
+    p(1, "The meeting is ______ Monday morning.", ['on', 'in', 'at', 'by'], "Days (and parts of a particular day) take <b>on</b>: on Monday morning.", 'time: in, on, at'),
+    p(1, "The train leaves ______ 6:30.", ['at', 'on', 'in', 'by'], "Clock times take <b>at</b>.", 'time: in, on, at'),
+    p(1, "I usually study ______ the evening.", ['in', 'on', 'at', 'by'], "Parts of the day (morning, afternoon, evening) take <b>in</b>.", 'time: in, on, at', "But: at night, at noon."),
+    p(2, "My birthday is ______ 14 March.", ['on', 'in', 'at', 'by'], "Dates take <b>on</b>; months alone take <i>in</i> (in March).", 'time: in, on, at'),
+    p(2, "We received the results ______ the morning of the exam.", ['on', 'in', 'at', 'during'], "A specific morning (the morning of the exam) takes <b>on</b>.", 'time: in, on, at', "<i>In the morning</i> is general; <i>on the morning of</i> is one particular day."),
+    p(1, "She has lived in Canada ______ 2019.", ['since', 'for', 'during', 'from'], "<b>Since</b> + a starting point (2019).", 'for, since, during'),
+    p(1, "She has lived in Canada ______ five years.", ['for', 'since', 'during', 'in'], "<b>For</b> + a length of time (five years).", 'for, since, during', "Check: is it a point in time (since) or a period (for)?"),
+    p(2, "The shop is closed ______ the holidays.", ['during', 'for', 'since', 'while'], "<b>During</b> + a noun for an event or period. <i>While</i> needs a clause.", 'for, since, during'),
+    p(2, "I studied ______ three hours last night.", ['for', 'during', 'since', 'in'], "A length of time (three hours) takes <b>for</b>.", 'for, since, during'),
+    p(2, "Please send the report ______ Friday at the latest.", ['by', 'until', 'since', 'during'], "<b>By</b> means not later than (a deadline).", 'by and until'),
+    p(2, "The library stays open ______ 9 p.m.", ['until', 'by', 'since', 'for'], "<b>Until</b> shows how long a situation continues.", 'by and until', "<i>By</i> is a deadline; <i>until</i> is a continuing state."),
+    p(3, "I will be at work ______ five o'clock, so please call after that.", ['until', 'by', 'at', 'during'], "She is at work continuously up to 5: <b>until</b>.", 'by and until'),
+    p(3, "The new bridge will be ready ______ two years.", ['in', 'on', 'at', 'since'], "<b>In</b> + a period means after that time from now.", 'time: in, on, at'),
+    p(3, "The plane arrived just ______ time for the meeting.", ['in', 'on', 'at', 'by'], "<i>In time</i> means early enough; <i>on time</i> means exactly as scheduled.", 'time: in, on, at'),
+    p(3, "______ the end of the lecture, the professor answered questions.", ['At', 'In', 'On', 'By'], "<i>At the end</i> is the point when something stops; <i>in the end</i> means finally.", 'time: in, on, at'),
+    p(1, "She lives ______ Toronto.", ['in', 'at', 'on', 'to'], "Cities and countries take <b>in</b>.", 'place: in, on, at'),
+    p(1, "We met ______ the bus stop.", ['at', 'in', 'on', 'by'], "A point where something happens: <b>at</b>.", 'place: in, on, at'),
+    p(1, "The picture is ______ the wall.", ['on', 'in', 'at', 'to'], "A surface: <b>on</b>.", 'place: in, on, at'),
+    p(2, "He lives ______ 25 Park Street.", ['at', 'in', 'on', 'to'], "A full address with a number takes <b>at</b>; the street alone takes <i>on</i>.", 'place: in, on, at'),
+    p(2, "Their office is ______ the third floor.", ['on', 'in', 'at', 'to'], "Floors take <b>on</b>.", 'place: in, on, at'),
+    p(2, "We arrived ______ Dubai at midnight.", ['in', 'to', 'at', 'on'], "<i>Arrive in</i> a city or country; <i>arrive at</i> a building or a point. <i>Arrive to</i> is wrong.", 'place: in, on, at', "<i>Arrive to</i> is a very common error."),
+    p(2, "He read about the accident ______ the newspaper.", ['in', 'on', 'at', 'by'], "<b>In</b> the newspaper; <i>on</i> the internet, <i>on</i> TV.", 'place: in, on, at'),
+    p(2, "I saw the advertisement ______ the internet.", ['on', 'in', 'at', 'by'], "<b>On</b> the internet, <b>on</b> TV, <b>on</b> the radio.", 'place: in, on, at'),
+    p(3, "We went to the airport ______ taxi.", ['by', 'in', 'on', 'with'], "<b>By</b> + a transport word with no article: by taxi, by bus.", 'place: in, on, at', "<i>In a taxi</i> is fine too, but not <i>in taxi</i>."),
+    p(3, "She is waiting ______ the top of the stairs.", ['at', 'in', 'to', 'by'], "Points and edges: <b>at</b> the top, <b>at</b> the end, <b>at</b> the corner.", 'place: in, on, at'),
+    p(1, "It depends ______ the weather.", ['on', 'of', 'from', 'to'], "<b>Depend on</b>.", 'verb + preposition', "Not <i>depend of</i>."),
+    p(1, "She is interested ______ photography.", ['in', 'on', 'for', 'about'], "<b>Interested in</b>.", 'adjective + preposition'),
+    p(1, "He is very good ______ mathematics.", ['at', 'in', 'on', 'for'], "<b>Good at</b> a skill or subject.", 'adjective + preposition'),
+    p(2, "The manager is responsible ______ the whole team.", ['for', 'of', 'to', 'at'], "<b>Responsible for</b>.", 'adjective + preposition'),
+    p(2, "She is afraid ______ flying.", ['of', 'from', 'for', 'about'], "<b>Afraid of</b>.", 'adjective + preposition'),
+    p(2, "My answer is different ______ yours.", ['from', 'with', 'of', 'by'], "<b>Different from</b> (<i>different to</i> is also used in UK English).", 'adjective + preposition'),
+    p(2, "This phone is similar ______ the one I had before.", ['to', 'with', 'than', 'as'], "<b>Similar to</b>.", 'adjective + preposition'),
+    p(2, "Everyone should have access ______ clean water.", ['to', 'of', 'for', 'at'], "<b>Access to</b>.", 'noun + preposition'),
+    p(2, "There has been a sharp increase ______ the price of oil.", ['in', 'of', 'on', 'at'], "<b>An increase in</b> (a rise in, a fall in) something; <i>of</i> is used before the amount.", 'noun + preposition'),
+    p(3, "Scientists are looking for a solution ______ the problem of plastic waste.", ['to', 'of', 'for', 'at'], "<b>A solution to</b> a problem.", 'noun + preposition', "Also: the answer to, the key to, the reply to."),
+    p(3, "What was the main reason ______ the delay?", ['for', 'of', 'to', 'at'], "<b>The reason for</b> something.", 'noun + preposition'),
+    p(3, "Social media has had a huge impact ______ young people.", ['on', 'to', 'for', 'at'], "<b>Impact on</b> (also <i>effect on</i>, <i>influence on</i>).", 'noun + preposition'),
+    p(3, "There is a growing demand ______ electric cars.", ['for', 'of', 'to', 'on'], "<b>A demand for</b> something; <b>a need for</b>; <b>a lack of</b>.", 'noun + preposition'),
+    p(3, "The rise in obesity is partly due ______ lack of exercise.", ['to', 'of', 'for', 'from'], "<b>Due to</b>.", 'adjective + preposition'),
+    p(3, "He apologized ______ being late.", ['for', 'of', 'about', 'to'], "<b>Apologize for</b> something, <b>to</b> someone.", 'verb + preposition'),
+    p(3, "The committee consists ______ ten members.", ['of', 'from', 'in', 'with'], "<b>Consist of</b>.", 'verb + preposition'),
+    p(3, "Poor sleep can result ______ health problems.", ['in', 'from', 'of', 'to'], "<b>Result in</b> = cause. <b>Result from</b> = be caused by.", 'verb + preposition', "<i>Result from</i> and <i>result in</i> have opposite directions."),
+    p(3, "Many elderly people suffer ______ loneliness.", ['from', 'of', 'with', 'by'], "<b>Suffer from</b>.", 'verb + preposition'),
+    p(4, "She succeeded ______ getting a scholarship.", ['in', 'at', 'to', 'for'], "<b>Succeed in</b> + -ing.", 'verb + preposition'),
+    p(4, "Many factors contribute ______ climate change.", ['to', 'for', 'in', 'at'], "<b>Contribute to</b>. The <i>to</i> here is a preposition.", 'verb + preposition'),
+    p(4, "We look forward ______ meeting you next week.", ['to', 'for', 'at', 'on'], "<b>Look forward to</b> + -ing; <i>to</i> is a preposition, so <i>meeting</i> not <i>meet</i>.", 'verb + preposition'),
+    p(4, "The police accused him ______ stealing the car.", ['of', 'for', 'with', 'about'], "<b>Accuse someone of</b> + -ing.", 'verb + preposition'),
+    p(2, "Sales rose ______ 10 percent last year.", ['by', 'to', 'at', 'of'], "<b>Rose by</b> gives the amount of change.", 'graph language'),
+    p(2, "The number of visitors rose from 2,000 ______ 3,500.", ['to', 'by', 'at', 'for'], "<b>From... to</b> gives the start and end values.", 'graph language'),
+    p(3, "Unemployment reached a peak ______ 12 percent in 2010.", ['at', 'of', 'by', 'to'], "<b>Peak at</b>, <b>stand at</b>, <b>level off at</b>: a position on the chart.", 'graph language'),
+    p(3, "There was an increase ______ 5 percent in the number of students.", ['of', 'by', 'at', 'to'], "<b>An increase of 5 percent</b> (noun + of + amount); the verb form is <i>rose by</i>.", 'graph language', "<i>An increase by</i> is a common mistake."),
+    p(3, "The price remained stable ______ 40 dollars for six months.", ['at', 'by', 'on', 'to'], "<b>Remain stable at</b> a level.", 'graph language'),
+    p(3, "The figure fell ______ half between 2000 and 2010.", ['by', 'to', 'at', 'of'], "<b>Fell by half</b>: the amount of change; <i>fell to half</i> would give the new level.", 'graph language'),
+    p(4, "Rail travel accounted ______ 30 percent of all journeys.", ['for', 'of', 'to', 'at'], "<b>Account for</b> a proportion.", 'graph language'),
+    p(4, "Energy use rose steadily ______ 2005 and 2015.", ['between', 'during', 'from', 'among'], "<b>Between</b> 2005 <b>and</b> 2015; or <i>from 2005 to 2015</i>.", 'graph language'),
+    p(5, "Profits fell sharply ______ 2008, ______ 20 percent, and then stood ______ 4 million.", ['in, by, at', 'on, to, by', 'at, by, to', 'in, to, in'], "Years take <i>in</i>; the amount of change takes <i>by</i>; a stable level takes <i>at</i>.", 'graph language'),
+    m(1, S, ["We discussed the problem for an hour.", "We discussed about the problem for an hour.", "We discussed on the problem for an hour.", "We discussed of the problem for an hour."], "<i>Discuss</i> is followed directly by its object; <i>discuss about</i> is a common error.", 'common errors'),
+    m(2, S, ["The speaker emphasized the importance of sleep.", "The speaker emphasized on the importance of sleep.", "The speaker emphasized about the importance of sleep.", "The speaker emphasized to the importance of sleep."], "<i>Emphasize</i> takes a direct object, no preposition. (The noun is <i>emphasis on</i>.)", 'common errors'),
+    m(2, S, ["She got married to a doctor.", "She got married with a doctor.", "She married with a doctor.", "She got married by a doctor."], "<b>Marry</b> takes no preposition; <b>be married to</b> is correct.", 'common errors'),
+    m(2, S, ["He entered the room quietly.", "He entered into the room quietly.", "He entered to the room quietly.", "He entered in the room quietly."], "<i>Enter</i> takes a direct object: <i>enter the room</i>.", 'common errors'),
+    m(2, S, ["We reached the hotel at midnight.", "We reached to the hotel at midnight.", "We arrived the hotel at midnight.", "We reached at the hotel at midnight."], "<i>Reach</i> has a direct object; <i>arrive</i> needs <i>at</i>/<i>in</i>.", 'common errors'),
+    m(3, S, ["Please explain the problem to me.", "Please explain me the problem.", "Please explain about me the problem.", "Please explain the problem me."], "<i>Explain something to someone</i>: the person needs <i>to</i>.", 'common errors'),
+    m(3, S, ["Nearly 200 people attended the conference.", "Nearly 200 people attended to the conference.", "Nearly 200 people attended at the conference.", "Nearly 200 people attended in the conference."], "<i>Attend</i> (go to) takes a direct object. <i>Attend to</i> means give attention to.", 'common errors'),
+    m(3, S, ["Many schools have trouble coping with large class sizes.", "Many schools have trouble coping up large class sizes.", "Many schools have trouble coping about large class sizes.", "Many schools have trouble coping for large class sizes."], "<b>Cope with</b>.", 'common errors'),
+    t(1, "Type the missing preposition: We are interested ______ learning French.", ['in'], "<b>Interested in</b>.", 'adjective + preposition'),
+    t(1, "Type the missing preposition: The meeting is ______ Wednesday.", ['on'], "Days take <b>on</b>.", 'time: in, on, at'),
+    t(2, "Type the missing preposition: She is married ______ an engineer.", ['to'], "<b>Be married to</b> someone.", 'common errors'),
+    t(2, "Type the missing preposition: This depends ______ the price.", ['on'], "<b>Depend on</b>.", 'verb + preposition'),
+    t(2, "Type the missing word: Prices rose ______ 8 percent. (by / to / at)", ['by'], "The amount of change takes <b>by</b>.", 'graph language'),
+    t(3, "Correct the error. \"We discussed about the plan.\" Type the word that must be deleted.", ['about'], "<i>Discuss</i> has no preposition.", 'common errors'),
+    t(3, "Type the missing preposition: There has been a steady rise ______ the number of tourists.", ['in'], "<b>A rise in</b> something.", 'noun + preposition'),
+    t(4, "Type the missing preposition: The flood resulted ______ damage to hundreds of homes.", ['in'], "<b>Result in</b> = cause.", 'verb + preposition'),
+  ],
+};

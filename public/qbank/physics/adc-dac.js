@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './adc-dac.more.gen.js';
 import more2 from './adc-dac.more2.gen.js';
+import r4 from './adc-dac.r4.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -226,6 +227,7 @@ export default {
       sol: 'DNL is the measured width minus the ideal width: $0.4 - 1 = -0.6$ LSB for code 8 (and $+0.6$ LSB for code 7). A code of width 0 (DNL $= -1$) would be a missing code.',
       trap: 'Quoting the width itself instead of its deviation from 1 LSB.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'adc-g01', type: 'nat', level: 2, exams: ['jam', 'gate', 'net'], sub: 'R-2R DAC',
@@ -351,5 +353,6 @@ export default {
       },
       verify: (p) => { const s = -20 * Math.log10(2 * Math.PI * p.f * 1e6 * p.tj * 1e-12); return p.ask === 'snr' ? s : (s - 1.76) / 6.02; } },
     ...more,
+    ...r4.gens,
   ],
 };

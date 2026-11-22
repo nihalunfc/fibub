@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './fields-in-matter.more.gen.js';
 import more2 from './fields-in-matter.more2.gen.js';
+import r4 from './fields-in-matter.r4.gen.js';
 
 const EPS0 = 8.8541878128e-12, MU0 = 1.25663706212e-6, K = 8.9875517923e9, KB = 1.380649e-23, PI = Math.PI;
 
@@ -204,6 +205,7 @@ export default {
       sol: 'In the dielectric the field is that of an effective charge $q\'\' = \\dfrac{2\\epsilon_2}{\\epsilon_1 + \\epsilon_2}q$ at the real position, in a medium $\\epsilon_2$: $V = \\dfrac{q\'\'}{4\\pi\\epsilon_2R_1} = \\dfrac{2}{1 + \\epsilon_r}\\dfrac{q}{4\\pi\\epsilon_0R_1}$. Check the boundary: $V$ continuous needs $q + q\' = q\'\'/\\epsilon_r$ with $q\' = -\\dfrac{\\epsilon_r - 1}{\\epsilon_r + 1}q$: $1 - \\tfrac12 = \\tfrac12$. ✓ So $\\kappa = 2/(1 + 3) = 0.5$.',
       trap: 'The potential in the dielectric is not simply reduced by $\\epsilon_r$: the factor is $2/(1 + \\epsilon_r)$.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -345,5 +347,6 @@ export default {
       },
       verify: (p) => -2 * PI * EPS0 * (p.R / 100) ** 3 * (p.er - 1) / (p.er + 2) * (p.E0 * 1e5) ** 2 * 1e6 },
     ...more,
+    ...r4.gens,
   ],
 };

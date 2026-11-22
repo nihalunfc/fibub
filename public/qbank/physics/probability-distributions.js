@@ -5,6 +5,7 @@
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
 import more from './probability-distributions.more.gen.js';
 import more2 from './probability-distributions.more2.gen.js';
+import r4 from './probability-distributions.r4.gen.js';
 
 const fact = (n) => { let f = 1; for (let i = 2; i <= n; i++) f *= i; return f; };
 const binom = (n, k) => fact(n) / (fact(k) * fact(n - k));
@@ -204,6 +205,7 @@ export default {
       answer: 0.6366, tol: 0.003, calc: () => 2 / Math.PI,
       sol: 'Let $y \\in [0, d/2]$ be the distance from the needle\'s centre to the nearest line (uniform, density $2/d$) and $\\theta \\in [0, \\pi/2]$ its angle to the lines (density $2/\\pi$). It crosses when $y < \\tfrac d2\\sin\\theta$. $P = \\int_0^{\\pi/2}\\dfrac2\\pi\\cdot\\dfrac2d\\cdot\\dfrac d2\\sin\\theta\\,d\\theta = \\dfrac2\\pi \\approx 0.637$ (Buffon\'s needle).' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'prd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'binomial',
@@ -347,5 +349,6 @@ export default {
         let best = 0, bx = 0; for (let x = 0; x < 20 / p.a; x += 0.0005) if (f(x) > best) { best = f(x); bx = x; } return bx;
       } },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 import * as Q5 from '../_util.js';
 import more2 from './sound-doppler.more2.gen.js';
+import r4 from './sound-doppler.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -224,6 +225,7 @@ export default {
       sol: 'Heaps sit at displacement nodes, $\\lambda_{air}/2 = 5$ cm apart, so $\\lambda_{air} = 0.10$ m and $f = 340/0.10 = 3400$ Hz. Clamped at the middle (a node) with free ends (antinodes), the fundamental has $L = \\lambda_{rod}/2$, so $\\lambda_{rod} = 2$ m and $v_{rod} = 6800$ m/s. Same frequency in both: $v_{rod}/v_{air} = \\lambda_{rod}/\\lambda_{air} = 2L/(2d) = L/d = 20$.',
       trap: 'Using the heap spacing as a whole wavelength halves the frequency.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'sdp-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'pipes', format: 'comparison',
@@ -366,5 +368,6 @@ export default {
           sol: `It was $${f0} \\pm ${b}$. ${wax ? 'Wax lowers' : 'Filing raises'} the unknown frequency. Since the beats ${up ? 'increased, it moved away from' : 'decreased, it moved towards'} $${f0}$ Hz, so it started at $${right}$ Hz.`,
           trap: 'Wax lowers a fork\'s frequency; filing the prongs raises it.' };
       } },
+    ...r4.gens,
   ],
 };

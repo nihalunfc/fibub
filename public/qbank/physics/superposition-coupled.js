@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 import * as Q5 from '../_util.js';
 import more2 from './superposition-coupled.more2.gen.js';
+import r4 from './superposition-coupled.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -232,6 +233,7 @@ export default {
       sol: 'Over a few cycles this is a fixed-frequency Lissajous figure with a slowly growing phase difference $\\phi = \\varepsilon t$. $\\phi = \\pi$ (at $t = \\pi/\\varepsilon$) gives the line $y = -x$; $\\phi = \\pi/2$ gives a circle (equal amplitudes). The line $y = x$ needs $\\phi = 0, 2\\pi, \\dots$: once every $2\\pi/\\varepsilon$. For equal amplitudes the ellipses have their axes along the diagonals, not along $x$ and $y$ (except the circle). This is how an oscilloscope shows two nearly equal frequencies: the figure "breathes" at the beat frequency.',
       trap: 'Mixing up the time between lines on the same diagonal ($2\\pi/\\varepsilon$) with the time between the two diagonals ($\\pi/\\varepsilon$).' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'spc-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'adding SHMs', unit: 'cm',
@@ -367,5 +369,6 @@ export default {
           sol: `Eliminating $t$: $x^2 + y^2 - 2xy\\cos\\phi = A^2\\sin^2\\phi$. With $\\phi = ${ph}$ this is ${right}. (Lines at $0$ and $\\pi$, a circle at $\\pi/2$, ellipses along $y = x$ for $0 < \\phi < \\pi/2$ and along $y = -x$ for $\\pi/2 < \\phi < \\pi$.)`,
           trap: 'Check which diagonal: the sign of $\\cos\\phi$ decides it.' };
       } },
+    ...r4.gens,
   ],
 };

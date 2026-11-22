@@ -6,6 +6,7 @@
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './semiconductors-hall.more.gen.js';
 import more2 from './semiconductors-hall.more2.gen.js';
+import r4 from './semiconductors-hall.r4.gen.js';
 
 const RK = C.h / C.e ** 2; // von Klitzing constant, ohm
 const kBe = C.kB / C.e;
@@ -204,6 +205,7 @@ export default {
       sol: 'The plateaus are $h/\\nu e^2 = 25.81/\\nu$ k$\\Omega$ with $\\nu = 1, 2$ so far; the next is $\\nu = 3$: $25.81/3 = 8.60$ k$\\Omega$. (With spin unresolved only even $\\nu$ appear and the next would be $6.45$ k$\\Omega$; here $\\nu = 1$ is seen, so spin is resolved.)',
       trap: 'Halving again to $6.45$ k$\\Omega$: the sequence is $1/\\nu$, not $1/2^\\nu$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'shl-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Landau levels',
@@ -345,5 +347,6 @@ export default {
       },
       verify: (p) => (p.kind === 'corbino' ? Math.sqrt(p.ratioq - 1) / p.B : p.me * p.mh * p.B * p.B) },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './rigid-body-dynamics.more.gen.js';
 import more2 from './rigid-body-dynamics.more2.gen.js';
+import r4 from './rigid-body-dynamics.r4.gen.js';
 
 const g = 9.8;
 const DEG = Math.PI / 180;
@@ -196,6 +197,7 @@ export default {
       options: ['It nutates at a frequency close to $I_3\\omega_3/I_1$', 'The nutation amplitude falls as $1/\\omega_3^2$ for faster spins', 'The average precession rate is close to $Mgl/(I_3\\omega_3)$', 'It precesses steadily from the start, with no nutation'], answer: [0, 1, 2],
       sol: 'Released from rest, the axis first dips; the tip traces cusps (the cuspidal case of nutation). Expanding about the steady-precession angle, the nutation frequency is about $I_3\\omega_3/I_1$ and the dip is about $\\dfrac{I_1Mgl\\sin\\theta}{I_3^2\\omega_3^2}$, so it shrinks as $1/\\omega_3^2$. The mean drift is the slow precession $Mgl/I_3\\omega_3$. Steady precession would need the right initial $\\dot\\phi$, which this start does not have.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'rbd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'inertia tensor',
@@ -329,5 +331,6 @@ export default {
       },
       verify: (p) => p.Lv / p.I1 },
     ...more,
+    ...r4.gens,
   ],
 };
