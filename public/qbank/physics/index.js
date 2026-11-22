@@ -14,5 +14,11 @@ export default {
       { id: 'matrices', name: 'Matrices, determinants and eigenvalues' },
       { id: 'complex-numbers', name: 'Complex numbers' },
     ] },
+    { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
+      { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
+      { id: 'first-law', name: 'The first law: work, heat and processes' },
+      { id: 'second-law-entropy', name: 'The second law, engines and entropy' },
+      { id: 'thermodynamic-potentials', name: 'Thermodynamic potentials and Maxwell relations' },
+    ] },
   ],
 };
