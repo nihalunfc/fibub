@@ -42,7 +42,7 @@ Skills fade without use, like a language you stop speaking. The best time to pic
 <!--fig:course-map-->
 
 - **Run AI yourself.** The [Offline AI course](/learn/courses/offline-ai/) on this site takes Module 10 into practice: pick a model that fits your computer, run it offline, and build tools around it.
-- **Become a data analyst.** [Pipeline to Dashboard](https://nihalsulaiman.com/learn/etl-course/) teaches the work around the models: getting data in, cleaning it, loading a warehouse and building dashboards. [Data at Scale](https://nihalsulaiman.com/learn/big-data-cloud/) covers the tools for data too big for one computer.
+- **Become a data analyst.** [Pipeline to Dashboard](/learn/courses/etl/) teaches the work around the models: getting data in, cleaning it, loading a warehouse and building dashboards. [Data at Scale](/learn/courses/data-at-scale/) covers the tools for data too big for one computer.
 - **Practise on your own data.** Pick a question you care about (your spending, a club's attendance, a public dataset from your city) and follow the capstone's seven steps.
 
 ## 3. Your first project
