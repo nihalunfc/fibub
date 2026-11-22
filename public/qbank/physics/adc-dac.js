@@ -4,6 +4,7 @@
 // ENOB; flash, counter-ramp, successive-approximation, dual-slope and sigma-delta converters (comparator counts,
 // conversion times, SAR bit trials, mains rejection, oversampling gain). Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './adc-dac.more.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -347,5 +348,6 @@ export default {
           trap: 'Using the sampling rate in place of the signal frequency.' };
       },
       verify: (p) => { const s = -20 * Math.log10(2 * Math.PI * p.f * 1e6 * p.tj * 1e-12); return p.ask === 'snr' ? s : (s - 1.76) / 6.02; } },
+    ...more,
   ],
 };

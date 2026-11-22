@@ -4,6 +4,7 @@
 // values from the formula, double beta decay, fission: symmetric-fission energy, the fissility limit and the
 // deformation energy. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './binding-energy-semf.more.gen.js';
 
 const AV = 15.8, AS = 18.3, AC = 0.714, AA = 23.2, AP = 12;   // MeV; pairing delta = AP/sqrt(A)
 const U = 931.494, DNH = 0.782;                              // MeV per u; (m_n - m_H)c^2
@@ -353,5 +354,6 @@ export default {
           trap: 'Dropping the sign when the mass is below $A$ u.' };
       },
       verify: (p) => (M[p.k] - +p.k.match(/\d+/)[0]) * U },
+    ...more,
   ],
 };

@@ -4,6 +4,7 @@
 // dimensions), the baryon octet and decuplet weight diagrams, the meson nonet and mixing, the Gell-Mann-Okubo mass
 // formulas and the Omega minus, colour, quark-model magnetic moments. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './quark-model.more.gen.js';
 
 const R = String.raw;
 // quark flavour numbers: [charge, I3, B, S, C, Bottom]
@@ -387,5 +388,6 @@ export default {
           trap: 'In the I = 1/2 channel, charge exchange is half the elastic π⁻p rate; in the I = 3/2 channel it is twice.' };
       },
       verify: (p) => p.v },
+    ...more,
   ],
 };

@@ -5,6 +5,7 @@
 // Cabibbo mixing, OZI rule, neutrino oscillation, the Standard Model content.
 // Original questions for fibub.
 import { pick, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './particles-quarks.more.gen.js';
 
 const HBARC = 197.327, HBAR_MEVS = 6.582120e-22, MP = 938.272;
 // name, quark content (TeX), Q, B, S, I, I3, kind
@@ -357,5 +358,6 @@ export default {
           trap: 'Signs: $d$ and $s$ quarks have negative moments.' };
       },
       verify: (p) => { const u = 2 / 3 * MP / p.mu_, d = -1 / 3 * MP / p.mu_, s = -1 / 3 * MP / p.ms; return [(4 * u - d) / 3, (4 * d - u) / 3, (4 * u - s) / 3, (4 * d - s) / 3, (4 * s - u) / 3, (4 * s - d) / 3, s, 3 * s][p.idx]; } },
+    ...more,
   ],
 };

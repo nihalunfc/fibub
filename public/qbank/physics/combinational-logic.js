@@ -5,6 +5,7 @@
 // CMOS dynamic power, wired-AND). The JAM topic `digital-logic` covers gates, De Morgan, basic K-maps and number
 // systems. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './combinational-logic.more.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -377,5 +378,6 @@ export default {
           sol: `Prime implicants: $${res.primes.map(tex).join(',\\ ')}$ (${res.primes.length}). Essential: ${res.ess.length ? `$${res.ess.map(tex).join(',\\ ')}$ (${res.ess.length})` : 'none'}. A minimal cover: $F = ${res.min.map(tex).join(' + ')}$ (${res.terms} terms). Don\'t-cares may enlarge groups but never need to be covered.`,
           trap: 'Requiring the don\'t-cares to be covered, or calling a prime essential when another prime also covers each of its minterms.' };
       } },
+    ...more,
   ],
 };

@@ -5,6 +5,7 @@
 // (series and parallel resonance, Q, load pulling, Pierce negative resistance); UJT relaxation oscillator.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './oscillators.more.gen.js';
 
 const G = ['gate', 'net'];
 const TAU = 2 * Math.PI;
@@ -351,5 +352,6 @@ export default {
           trap: 'Leaving $C_0$ out of the denominator.' };
       },
       verify: (p) => p.fs * 1e6 * p.C / (2 * (p.C0 + p.CL)) },
+    ...more,
   ],
 };

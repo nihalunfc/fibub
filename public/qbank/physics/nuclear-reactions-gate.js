@@ -5,6 +5,7 @@
 // (Ghoshal) and direct reactions (stripping, pickup), Rutherford scaling, optical model.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './nuclear-reactions-gate.more.gen.js';
 
 const HBARC = 197.327, MN = 939.565, MP = 938.272, NA = 6.02214076e23, QE = 1.602176634e-19;
 // mass excesses in MeV (AME 2020); symbol -> [Delta, Z, A]
@@ -364,5 +365,6 @@ export default {
           trap: 'Not placing the angle in the right quadrant when the denominator is negative.' };
       },
       verify: (p) => { const t = p.tc * Math.PI / 180, vx = Math.cos(t) + p.g, vy = Math.sin(t); return Math.acos(vx / Math.hypot(vx, vy)) * 180 / Math.PI; } },
+    ...more,
   ],
 };

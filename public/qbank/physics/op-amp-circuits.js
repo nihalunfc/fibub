@@ -5,6 +5,7 @@
 // instrumentation and difference amplifiers with resistor mismatch. The JAM topic `op-amps` covers the basic inverting,
 // non-inverting, summing and integrator circuits. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './op-amp-circuits.more.gen.js';
 
 const G = ['gate', 'net'];
 const VT = 0.025852;
@@ -352,5 +353,6 @@ export default {
           trap: 'Dropping the minus sign.' };
       },
       verify: (p) => -p.Z * p.R1 / p.R2 },
+    ...more,
   ],
 };

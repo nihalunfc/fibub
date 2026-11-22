@@ -5,6 +5,7 @@
 // pairs and CMRR, current mirrors, cascodes; power amplifier classes and efficiency. The JAM topic `transistors`
 // covers biasing and load lines. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './amplifiers-feedback.more.gen.js';
 
 const G = ['gate', 'net'];
 const db = (x) => 20 * Math.log10(x);
@@ -351,5 +352,6 @@ export default {
           trap: 'Using the whole tail current in $g_m$ adds 6 dB.' };
       },
       verify: (p) => 20 * Math.log10(p.Iee / 0.05 * p.Ree) },
+    ...more,
   ],
 };

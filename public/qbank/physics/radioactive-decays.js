@@ -5,6 +5,7 @@
 // internal conversion, isomers, recoil and the Mossbauer effect. (The decay law and simple Q values are in the JAM
 // topic nuclei-radioactivity.) Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './radioactive-decays.more.gen.js';
 
 const ALPHA = 1 / 137.036, MA = 3727.379, HBARC = 197.327, KE2 = 1.44, U = 931.494, HBAR_EVS = 6.582120e-16, CL = 2.99792458e8;
 const twoG = (Z, Q, R) => { const B = 2 * Z * KE2 / R, x = Q / B; return 2 * Math.sqrt(2 * MA * Q) / HBARC * (2 * Z * KE2 / Q) * (Math.acos(Math.sqrt(x)) - Math.sqrt(x * (1 - x))); };
@@ -361,5 +362,6 @@ export default {
           trap: 'Forgetting to convert from natural log to base 10.' };
       },
       verify: (p) => Math.PI * 2 * p.Z * ALPHA * Math.sqrt(2 * MA) * (1 / Math.sqrt(p.T1) - 1 / Math.sqrt(p.T2)) / Math.LN10 },
+    ...more,
   ],
 };

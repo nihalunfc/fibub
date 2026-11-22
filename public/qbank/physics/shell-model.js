@@ -4,6 +4,7 @@
 // islands of isomerism, and a first look at collective bands (rotor and vibrator ratios, moments of inertia).
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './shell-model.more.gen.js';
 
 const GSP = 5.586, GSN = -3.826;
 const LL = ['s', 'p', 'd', 'f', 'g', 'h', 'i', 'j'];
@@ -354,5 +355,6 @@ export default {
           sol: `$J$ runs from $|j_p - j_n| = ${lo}$ to $j_p + j_n = ${hi}$ in integer steps; parity $(-1)^{l_p + l_n} = (-1)^{${op[1] + on[1]}} = ${par}$.`,
           trap: 'The parity is the product of both nucleons’ parities.', a, b };
       } },
+    ...more,
   ],
 };
