@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './one-dimensional-potentials.more.gen.js';
 import more2 from './one-dimensional-potentials.more2.gen.js';
 import r4 from './one-dimensional-potentials.r4.gen.js';
+import r5 from './one-dimensional-potentials.r5.gen.js';
 
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
 
@@ -201,6 +202,7 @@ export default {
       trap: 'Expecting an exponentially small splitting, which belongs to thick barriers with $\\kappa a \\gg 1$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'q1d-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'delta potentials',
@@ -285,5 +287,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
