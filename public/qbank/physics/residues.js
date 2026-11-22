@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './residues.more.gen.js';
+import more2 from './residues.more2.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
@@ -221,6 +222,7 @@ export default {
       options: ['$z = 0$ is a branch point of the integrand, not a pole', 'Above and below the cut the two straight-line integrals are equal and cancel', 'The residue theorem cannot be used on a closed contour that winds round $z = 0$ without crossing a cut', '$\\int_0^\\infty\\frac{\\sqrt x}{x^2 + 1}dx = \\frac{\\pi}{\\sqrt2}$'], answer: [0, 2, 3],
       sol: 'Round $z = 0$, $\\sqrt z$ changes sign: a branch point, where no residue is defined; a closed contour must not encircle it unless a cut is crossed, which is why the keyhole hugs the cut. Below the cut $\\sqrt z = -\\sqrt x$ and the path runs inwards, so the two line integrals add: $2I = 2\\pi i(\\text{Res}_i + \\text{Res}_{-i})$ with $\\sqrt i = e^{i\\pi/4}$, $\\sqrt{-i} = e^{3i\\pi/4}$ on this branch: $\\frac{e^{i\\pi/4}}{2i} + \\frac{e^{3i\\pi/4}}{-2i} = \\frac{\\sqrt2}{2i}$. So $I = \\frac{\\pi\\sqrt2}{2} = \\frac{\\pi}{\\sqrt2}$.',
       trap: 'Using $\\sqrt{-i} = e^{-i\\pi/4}$ (the principal value) is wrong on the keyhole branch, where $0 < \\arg z < 2\\pi$.' },
+    ...more2,
   ],
   gens: [
     { id: 'res-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rational integrals',

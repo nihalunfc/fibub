@@ -5,6 +5,7 @@
 // Levels: 1 warm-up ... 5 top rank.
 import { int, choose, round } from '../_util.js';
 import more from './fourier-laplace-transforms.more.gen.js';
+import more2 from './fourier-laplace-transforms.more2.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const FT = 'Use $\\tilde f(k) = \\int_{-\\infty}^{\\infty}f(x)e^{-ikx}dx$.';
@@ -221,6 +222,7 @@ export default {
       options: ['If $f$ has a jump discontinuity, $\\tilde f$ falls off like $1/k$', 'If $f$ and $f\'$ are continuous but $f\'\'$ jumps, $\\tilde f$ falls off like $1/k^3$', 'A non-zero function can vanish outside a finite interval in $x$ and also have $\\tilde f$ vanishing outside a finite interval in $k$', 'The transform of a Gaussian falls faster than any power of $1/k$'], answer: [0, 1, 3],
       sol: 'Each integration by parts gains a factor $1/(ik)$ until a discontinuity stops it: a jump in $f^{(n)}$ leaves a $1/k^{n+1}$ tail ($n = 0$: box, $1/k$; $n = 2$: $1/k^3$). The Gaussian is smooth to all orders, and its transform is a Gaussian, decaying faster than any power. A function confined in $x$ has an entire (analytic) transform, which cannot vanish on an interval unless it is identically zero: no function is confined in both.',
       trap: 'This is the mathematical root of the uncertainty principle: perfect confinement in both domains is impossible.' },
+    ...more2,
   ],
   gens: [
     { id: 'flt-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Laplace pairs',

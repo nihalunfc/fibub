@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './tensors.more.gen.js';
+import more2 from './tensors.more2.gen.js';
 
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let b = 1; for (let i = 1; i <= k; i++) b = (b * (n - k + i)) / i; return Math.round(b); };
 const vec = (v) => `(${v.join(', ')})`;
@@ -236,6 +237,7 @@ export default {
       answer: 18, tol: 0, calc: () => 6 * 3,
       sol: 'In $n$ dimensions, contracting $n - 1$ index pairs of two $\\varepsilon$s gives $(n - 1)!\\,\\delta_{ln}$. Here $3!\\,\\delta_{ln} = 6\\delta_{ln}$, so the result is $6A_lA_l = 18$. (Check with 3D: $\\varepsilon_{ijk}\\varepsilon_{ijm} = 2!\\,\\delta_{km}$ ✓.)',
       trap: 'Carrying over the 3D factor 2.' },
+    ...more2,
   ],
   gens: [
     { id: 'tns-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'counting components',

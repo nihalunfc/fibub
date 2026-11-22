@@ -4,6 +4,7 @@
 // are in conductors-images (IIT JAM).
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './method-of-images.more.gen.js';
+import more2 from './method-of-images.more2.gen.js';
 
 const EPS0 = 8.8541878128e-12, K = 8.9875517923e9, PI = Math.PI;
 
@@ -215,6 +216,7 @@ export default {
       q: 'A charge of $+2.0$ nC sits 4.0 cm from the centre of a grounded spherical cavity of radius 8.0 cm. The image charge sits at ______ cm from the centre of the cavity.',
       answer: 16, tol: 0.01, calc: () => 64 / 4,
       sol: '$b = R^2/d = 64/4 = 16$ cm, on the same ray as the charge, with image charge $-qR/d = -4.0$ nC.' },
+    ...more2,
   ],
 
   gens: [

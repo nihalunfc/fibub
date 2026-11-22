@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './complex-analysis.more.gen.js';
+import more2 from './complex-analysis.more2.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 
@@ -220,6 +221,7 @@ export default {
       answer: 6.28, tol: 0.01, calc: () => 2 * Math.PI,
       sol: 'On the unit circle $z = e^{i\\theta}$, $e^{z} = e^{\\cos\\theta}e^{i\\sin\\theta}$ and $dz = iz\\,d\\theta$. Then $\\oint\\frac{e^z}{z^2}dz = \\int_0^{2\\pi} e^{\\cos\\theta}e^{i\\sin\\theta}e^{-2i\\theta}\\,ie^{i\\theta}d\\theta = i\\int_0^{2\\pi} e^{\\cos\\theta}e^{i(\\sin\\theta - \\theta)}d\\theta$. By Cauchy\'s formula the left side is $2\\pi i\\cdot(e^z)\'|_0 = 2\\pi i$. So $\\int e^{\\cos\\theta}e^{i(\\sin\\theta - \\theta)}d\\theta = 2\\pi$, and its real part is the required integral: $2\\pi \\approx 6.28$.',
       trap: 'Picking $\\oint e^z/z\\,dz$ instead gives the integral of $e^{\\cos\\theta}\\cos(\\sin\\theta)$, which is a different (though also $2\\pi$-valued) integral; match the $-\\theta$ in the phase.' },
+    ...more2,
   ],
   gens: [
     { id: 'cax-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Cauchy-Riemann',

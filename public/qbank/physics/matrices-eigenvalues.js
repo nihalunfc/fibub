@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './matrices-eigenvalues.more.gen.js';
+import more2 from './matrices-eigenvalues.more2.gen.js';
 
 const pm = (M) => `\\begin{pmatrix} ${M.map((r) => r.join(' & ')).join(' \\\\ ')} \\end{pmatrix}`;
 
@@ -219,6 +220,7 @@ export default {
       answer: 1, tol: 0,
       sol: 'Every eigenvalue satisfies $\\lambda^2 = -1$, so $\\lambda = \\pm i$. The characteristic polynomial has real coefficients, so non-real roots come in conjugate pairs with equal multiplicity: $i, i, -i, -i$. Hence $\\det A = (i)(i)(-i)(-i) = 1$. (Also $(\\det A)^2 = \\det(-I) = 1$, and the pairing rules out $-1$.) In odd dimension no real $A$ with $A^2 = -I$ exists.',
       trap: '$(\\det A)^2 = 1$ alone allows $\\pm1$; the conjugate pairing fixes the sign.' },
+    ...more2,
   ],
   gens: [
     { id: 'mev-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Hermitian matrices',

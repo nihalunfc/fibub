@@ -4,6 +4,7 @@
 // ODEs, stability and symplectic integrators, linear systems. Original questions for fibub.
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
 import more from './numerical-methods.more.gen.js';
+import more2 from './numerical-methods.more2.gen.js';
 
 const trap = (f, a, b, n) => { const h = (b - a) / n; let s = (f(a) + f(b)) / 2; for (let i = 1; i < n; i++) s += f(a + i * h); return s * h; };
 const simp = (f, a, b, n) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
@@ -191,6 +192,7 @@ export default {
       q: 'Simpson\'s 1/3 rule with $h = 1$ is applied to $\\int_0^2x^4\\,dx$. Using the error formula $E = -\\dfrac{(b-a)h^4}{180}f^{(4)}$, the rule',
       options: ['underestimates by $0.0167$', 'is exact', 'overestimates by $1.067$', 'overestimates by $0.267$'], answer: 3,
       sol: '$f^{(4)} = 24$, so $E = I - S = -\\dfrac{2\\times1\\times24}{180} = -0.267$: $S$ is larger than $I$ by $0.267$. Directly: $S = 20/3 = 6.667$ and $I = 6.4$. (With $h = 0.5$ the error would be $16$ times smaller, $0.0167$.)' },
+    ...more2,
   ],
   gens: [
     { id: 'num-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Newton-Raphson',
