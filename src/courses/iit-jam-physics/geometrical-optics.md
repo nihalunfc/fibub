@@ -174,3 +174,5 @@ They start easy and climb to top-rank level. More on the [geometrical optics pra
 <div class="qbank" data-bank="physics" data-topics="geometrical-optics" data-exam="jam" data-n="10"></div>
 
 **Next:** rays are the short-wavelength limit of waves. [Lesson 3.7](/learn/courses/iit-jam-physics/interference/) brings the wave nature back with interference, then [diffraction](/learn/courses/iit-jam-physics/diffraction/) and [polarisation](/learn/courses/iit-jam-physics/polarisation/). For drawing ray diagrams by hand first, try the [Lens ray diagram](/learn/lens-ray-diagram/) and [Mirror ray diagram](/learn/mirror-ray-diagram/) tools.
+
+**Go deeper:** GATE Physics derives the laws of reflection and refraction, and how much light each surface reflects, from Maxwell's equations in [the Fresnel equations](/learn/courses/gate-physics/fresnel-equations/).

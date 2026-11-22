@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 const R = 8.314;
 
 import * as Q5 from '../_util.js';
+import more2 from './second-law-entropy.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -215,6 +216,7 @@ export default {
       options: ['from the spin system to the body', 'from the body to the spin system', 'in neither direction, since $|T|$ for the spins can be smaller than 300 K', 'in either direction, depending on $|T|$'], answer: 0,
       sol: 'Heat flows so that total entropy rises. $1/T = \\partial S/\\partial U$ is negative for the spins: they gain entropy by losing energy. The body gains entropy by gaining energy. So energy flows from the spins to the body, whatever the size of $|T|$. Negative temperatures are "hotter than infinite temperature".',
       trap: 'Comparing magnitudes. The order of hotness runs $+0 \\dots +\\infty, -\\infty \\dots -0$, and $1/T$ is the natural variable.' },
+    ...more2,
   ],
   gens: [
     { id: 'snd-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'Carnot engine', format: 'comparison',

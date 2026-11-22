@@ -62,7 +62,7 @@ The core quantum unit ([roadmap 5.1](/learn/courses/csir-net-physics/quantum-roa
 3. **Atoms in fields**: GATE [Zeeman and Stark effects](/learn/courses/gate-physics/zeeman-stark/).
 4. **Molecules**: GATE [rotational spectra](/learn/courses/gate-physics/rotational-spectra/), [vibrational spectra](/learn/courses/gate-physics/vibrational-spectra/) and [Raman spectroscopy](/learn/courses/gate-physics/raman/).
 5. **Lasers**: GATE [Einstein coefficients and lasers](/learn/courses/gate-physics/lasers/).
-6. **NET extras in this course**: lesson 8.2 (magnetic resonance: ESR and NMR) and lesson 8.3 (electronic spectra and the Franck-Condon principle).
+6. **NET extras in this course**: [lesson 8.2](/learn/courses/csir-net-physics/esr-nmr/) (magnetic resonance: ESR and NMR) and [lesson 8.3](/learn/courses/csir-net-physics/electronic-spectra/) (electronic spectra and the Franck-Condon principle).
 
 ## 3. Where each topic is taught
 
@@ -75,8 +75,8 @@ The core quantum unit ([roadmap 5.1](/learn/courses/csir-net-physics/quantum-roa
 | Vibrational spectra | [GATE 6.5](/learn/courses/gate-physics/vibrational-spectra/) | anharmonicity, dissociation energy, P and R branches |
 | Raman | [GATE 6.6](/learn/courses/gate-physics/raman/) | Stokes and anti-Stokes, 4B spacing, mutual exclusion |
 | Lasers | [GATE 6.7](/learn/courses/gate-physics/lasers/) | A/B ratio ∝ ν³, three- and four-level schemes, mode spacing c/2L |
-| ESR, NMR | lesson 8.2 | resonance frequency from g and B, chemical shift in ppm |
-| Electronic spectra, Franck-Condon | lesson 8.3 | vibrational progressions, Born-Oppenheimer separation |
+| ESR, NMR | [lesson 8.2](/learn/courses/csir-net-physics/esr-nmr/) | resonance frequency from g and B, chemical shift in ppm |
+| Electronic spectra, Franck-Condon | [lesson 8.3](/learn/courses/csir-net-physics/electronic-spectra/) | vibrational progressions, Born-Oppenheimer separation |
 
 ## 4. A worked NET-style example
 
@@ -127,7 +127,7 @@ You are ready for condensed matter when you can, without notes:
 <div class="keypoints">
 
 - Part C only: atomic structure and spectra, fine and hyperfine structure, coupling schemes, atoms in fields, magnetic resonance, molecular spectra, lasers.
-- Order: hydrogen and fine structure, LS and jj coupling, Zeeman and Stark, rotational, vibrational and Raman spectra, lasers, lessons 8.2 and 8.3.
+- Order: hydrogen and fine structure, LS and jj coupling, Zeeman and Stark, rotational, vibrational and Raman spectra, lasers, lessons [8.2](/learn/courses/csir-net-physics/esr-nmr/) and [8.3](/learn/courses/csir-net-physics/electronic-spectra/).
 - Landé g, term symbols, `$BJ(J + 1)$`, anharmonic `$G(v)$` and selection rules answer most questions.
 
 </div>
@@ -136,4 +136,4 @@ You are ready for condensed matter when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="fine-structure,ls-jj-coupling,zeeman-stark,rotational-spectra,vibrational-spectra,raman,lasers,atoms-x-rays" data-exam="net" data-n="10"></div>
 
-**Next:** [condensed matter roadmap](/learn/courses/csir-net-physics/condensed-roadmap/).
+**Next:** the first lesson of this unit, [Magnetic resonance: ESR and NMR](/learn/courses/csir-net-physics/esr-nmr/). Already strong in this unit? Skip ahead to the [condensed matter roadmap](/learn/courses/csir-net-physics/condensed-roadmap/).

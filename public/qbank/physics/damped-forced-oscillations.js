@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 const CONV = 'Take the equation of motion as $m\\ddot x + b\\dot x + kx = F_0\\cos\\omega t$, with $\\beta = b/2m$ and $\\omega_0 = \\sqrt{k/m}$.';
 
 import * as Q5 from '../_util.js';
+import more2 from './damped-forced-oscillations.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -231,6 +232,7 @@ export default {
       answer: 0.866, tol: 0.003, calc: () => Math.sqrt(1 - 1 / 4),
       sol: '$A(\\omega_0) = F_0/(2m\\beta\\omega_0)$ and $A_{\\max} = F_0/(2m\\beta\\sqrt{\\omega_0^2 - \\beta^2})$. Ratio $= \\sqrt{1 - (\\beta/\\omega_0)^2} = \\sqrt{1 - 1/(4Q^2)} = \\sqrt{3/4} = 0.866$.',
       trap: 'For high $Q$ this ratio is almost 1, which is why the two resonances are often treated as the same; at $Q = 1$ they are not.' },
+    ...more2,
   ],
   gens: [
     { id: 'dfo-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'phase', format: 'limiting case',

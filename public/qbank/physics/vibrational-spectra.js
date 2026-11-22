@@ -3,6 +3,7 @@
 // isotope shifts and normal modes of polyatomic molecules.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './vibrational-spectra.more.gen.js';
 
 const U = 1.66053907e-27;     // kg
 const CCM = 2.99792458e10;    // cm/s
@@ -378,5 +379,6 @@ export default {
           trap: 'There is no line at the band origin itself.' };
       },
       verify: (p) => (p.ask === 'gap' ? 2 * (p.B0 + p.B1) : p.R0 - 2 * p.B1) },
+    ...more,
   ],
 };

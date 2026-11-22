@@ -4,6 +4,7 @@
 // Wiedemann-Franz, thermionic emission and thin-film subbands. (Basic Fermi-Dirac and semiconductor ideas: JAM
 // topic semiconductors.) Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
+import more from './free-electron-model.more.gen.js';
 
 const HB2M = (C.hbar ** 2) / (2 * C.me) / C.e * 1e18; // hbar^2/2m_e in eV nm^2 (0.0381)
 const kBe = C.kB / C.e; // eV/K
@@ -329,5 +330,6 @@ export default {
         return { q: `For a 3D free electron gas of density $n$, which of these quantities are proportional to $n^{${p}/3}$?`, options: pickd.map((x) => x[0]), answer, p,
           sol: `$k_F = (3\\pi^2n)^{1/3}$, $v_F = \\hbar k_F/m \\propto n^{1/3}$, $E_F = k_BT_F = \\hbar^2k_F^2/2m \\propto n^{2/3}$, $g(E_F) = 3n/2E_F \\propto n^{1/3}$, and $\\omega_p = \\sqrt{ne^2/\\varepsilon_0m} \\propto n^{1/2}$.` };
       } },
+    ...more,
   ],
 };

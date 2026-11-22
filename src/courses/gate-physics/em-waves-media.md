@@ -165,3 +165,5 @@ From warm-up to top-rank level, with full solutions. More on the [practice page]
 <div class="qbank" data-bank="physics" data-topics="em-waves-media" data-exam="gate" data-n="10"></div>
 
 **Before this:** the JAM lesson on [Maxwell's equations and electromagnetic waves](/learn/courses/iit-jam-physics/maxwell-em-waves/) and, for group velocity in general, [waves](/learn/courses/iit-jam-physics/waves/). **Next:** [lesson 3.7, the Fresnel equations](/learn/courses/gate-physics/fresnel-equations/), where these media meet at a boundary. Back to the [GATE Physics course home](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [Plasma oscillations and dispersion](/learn/courses/csir-net-physics/plasma-dispersion/) goes further with the plasma frequency and cutoffs.

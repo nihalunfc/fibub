@@ -169,3 +169,5 @@ From warm-up to top-rank level, with full solutions. For the BSc-level basics, t
 <div class="qbank" data-bank="physics" data-topics="matrices-eigenvalues" data-exam="gate" data-n="10"></div>
 
 **Before this:** [lesson 1.1, linear vector spaces and Dirac notation](/learn/courses/gate-physics/linear-vector-spaces/). **Next:** [lesson 1.3, analytic functions and Cauchy's theorem](/learn/courses/gate-physics/complex-analysis/). Back to the [GATE Physics course home](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [Group theory for physicists](/learn/courses/csir-net-physics/group-theory/) shows how unitary matrices like these form groups such as SU(2).

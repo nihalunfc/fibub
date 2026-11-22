@@ -4,6 +4,7 @@
 // Friedel's law and anomalous scattering, magnetic neutron peaks, LEED and electron diffraction, Fourier synthesis.
 // Original questions for fibub. Bragg's law, indexing and the basic cubic rules are in x-ray-diffraction.
 import { pick, int, choose, shuffle, mcqOptions, round } from '../_util.js';
+import more from './structure-factor.more.gen.js';
 
 const PI = Math.PI, D = PI / 180;
 const bar = (n) => (n < 0 ? `\\bar{${-n}}` : `${n}`);
@@ -408,5 +409,6 @@ export default {
           trap: 'Forgetting the factor 2 from the $+h$ and $-h$ terms.' };
       },
       verify: (p) => p.F0 + 2 * (p.F1 * Math.cos(2 * Math.PI * p.x0) + p.F2v * Math.cos(4 * Math.PI * p.x0)) },
+    ...more,
   ],
 };

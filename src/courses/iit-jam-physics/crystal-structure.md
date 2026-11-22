@@ -203,4 +203,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="crystal-structure" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/) shines X-rays on these planes and uses Bragg's law to measure them. The [GATE Physics course](/learn/courses/gate-physics/) builds on the reciprocal lattice for diffraction, phonons and electron bands.
+**Next:** [lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/) shines X-rays on these planes and uses Bragg's law to measure them. The GATE Physics course builds on [the reciprocal lattice](/learn/courses/gate-physics/reciprocal-lattice/) for [diffraction](/learn/courses/gate-physics/structure-factor/), [phonons](/learn/courses/gate-physics/phonons/) and [electron bands](/learn/courses/gate-physics/band-theory/).

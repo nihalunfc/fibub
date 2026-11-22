@@ -10,6 +10,7 @@ const kT300 = kB * 300;           // 0.025852 eV
 const q = C.e;
 
 import * as Q5 from '../_util.js';
+import more2 from './semiconductors.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -255,6 +256,7 @@ export default {
       answer: 4.88, tol: 0.06, calc: () => (0.25 / (0.0529177 * 60 * 1e-7)) ** 3 / 1e17,
       sol: 'Donor Bohr radius: $a^* = a_0\\dfrac{\\varepsilon_r}{m^*/m_e} = 0.0529\\times\\dfrac{12}{0.20} = 3.175$ nm $= 3.175\\times10^{-7}$ cm. Then $N_d = (0.25/a^*)^3 = (7.87\\times10^5\\text{ cm}^{-1})^3 = 4.88\\times10^{17}$ cm$^{-3}$. Above this doping the semiconductor stays conducting even at $T \\to 0$.',
       trap: 'Using $a^* = a_0\\,m^*/\\varepsilon_r$ (inverted). A small mass and a large permittivity make the orbit bigger.' },
+    ...more2,
   ],
 
   gens: [

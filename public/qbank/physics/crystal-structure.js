@@ -17,6 +17,7 @@ const STRUCT = {
 };
 
 import * as Q5 from '../_util.js';
+import more2 from './crystal-structure.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -272,6 +273,7 @@ export default {
       options: ['A periodic crystal can have an 8-fold rotation axis.', 'Quasicrystals give sharp diffraction spots with 5-fold or 10-fold symmetry but have no translational periodicity.', 'There are exactly 5 Bravais lattices in two dimensions.', 'The centred square lattice is a sixth two-dimensional Bravais lattice.'], answer: [1, 2],
       sol: '<b>8-fold:</b> false. Only 1, 2, 3, 4 and 6-fold axes are compatible with translations. <b>Quasicrystals:</b> true. They are ordered (hence sharp spots) without repeating, which allows symmetries a lattice cannot have. <b>5 in 2D:</b> true: oblique, rectangular, centred rectangular, square, hexagonal. <b>Centred square:</b> false. A centred square is just a smaller square lattice turned by $45^\\circ$, with side $a/\\sqrt2$.',
       trap: 'Centring sometimes gives nothing new: centred square is square, base-centred cubic is tetragonal.' },
+    ...more2,
   ],
 
   gens: [

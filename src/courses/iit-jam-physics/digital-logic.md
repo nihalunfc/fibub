@@ -203,4 +203,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="digital-logic" data-exam="jam" data-n="10"></div>
 
-**Next:** this completes the electronics module, with [transistors](/learn/courses/iit-jam-physics/transistors/) and [op-amps](/learn/courses/iit-jam-physics/op-amps/) before it. The [GATE Physics course](/learn/courses/gate-physics/) goes on to combinational design, flip-flops, counters and registers in detail.
+**Next:** this completes the electronics module, with [transistors](/learn/courses/iit-jam-physics/transistors/) and [op-amps](/learn/courses/iit-jam-physics/op-amps/) before it, and module 8 begins with [the JAM paper](/learn/courses/iit-jam-physics/jam-exam-pattern/). The GATE Physics course goes on to [combinational design](/learn/courses/gate-physics/combinational-logic/), [flip-flops, counters and registers](/learn/courses/gate-physics/sequential-logic/) in detail.

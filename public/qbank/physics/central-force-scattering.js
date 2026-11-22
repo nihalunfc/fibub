@@ -3,6 +3,7 @@
 // section, hard-sphere, Rutherford and 1/r^2 scattering, capture, and lab/centre-of-mass conversion.
 // Kepler's laws, vis-viva and basic orbits are in the JAM topic central-forces. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './central-force-scattering.more.gen.js';
 
 const KE = 1.44; // e^2/(4 pi eps0) in MeV fm
 const DEG = Math.PI / 180;
@@ -337,5 +338,6 @@ export default {
           sol: `$\\Theta = 2\\theta_L$, so $d\\Omega_{CM}/d\\Omega_L = 4\\cos\\theta_L$ and the ratio is $4\\cos ${tl}^\\circ = ${answer}$.` };
       },
       verify: (p) => 4 * Math.cos(p.tl * DEG) },
+    ...more,
   ],
 };

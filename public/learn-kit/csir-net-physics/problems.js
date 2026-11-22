@@ -5,6 +5,16 @@ const int = (r, a, b) => a + Math.floor(r() * (b - a + 1));
 const steps = (...ls) => '<ol>' + ls.map((l) => `<li>${l}</li>`).join('') + '</ol>';
 const ord = (k) => `${k + 1}${['st', 'nd', 'rd'][k] || 'th'}`;
 
+const KB = 8.617333e-5, HPL = 6.62607015e-34, QE = 1.602176634e-19, EPS0 = 8.8541878128e-12, ME = 9.1093837e-31, HBAR = 1.054571817e-34, CL = 2.99792458e8;
+const HC = 197.327, MUNP = 469.46;
+// S-wave square-well depth that binds at -B (MeV) for range R (fm): solve k cot kR = -kappa on (pi/2R, pi/R)
+const wellDepth = (R, B) => {
+  const ka = Math.sqrt(2 * MUNP * B) / HC;
+  let lo = Math.PI / (2 * R), hi = Math.PI / R - 1e-12;
+  for (let i = 0; i < 100; i++) { const k = (lo + hi) / 2; if (k / Math.tan(k * R) + ka > 0) lo = k; else hi = k; }
+  return { k: lo, ka, V0: (HC * lo) ** 2 / (2 * MUNP) + B };
+};
+
 export default {
   // ---- 1.1 to 1.3 and the unit roadmaps (start-here writer) ----
   'net-guess-value': {
@@ -390,5 +400,493 @@ export default {
       };
     },
     verify: (p) => Math.log(10 ** (p.e0 - p.e1)) / p.lam,
+  },
+  // ---- 7.2 to 7.4 experimental methods, 8.2 and 8.3 molecular spectroscopy ----
+  'ls-slope-error': {
+    title: 'least-squares slope and its standard error',
+    make(r) {
+      const N = int(r, 4, 7), dx = [0.5, 1, 2][int(r, 0, 2)], s = [0.1, 0.2, 0.3, 0.5][int(r, 0, 3)];
+      const x = Array.from({ length: N }, (_, i) => (i + 1) * dx);
+      const xm = x.reduce((a, b) => a + b, 0) / N, Sxx = x.reduce((a, b) => a + (b - xm) ** 2, 0);
+      const answer = s / Math.sqrt(Sxx);
+      return {
+        q: `<p>A straight line is fitted by least squares to ${N} points at x = ${x.join(', ')}. Every y value has the same standard error σ = ${s}. Find the standard error of the fitted slope.</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'The slope is a linear combination of the y values, b = Σ(xᵢ − x̄)yᵢ / Σ(xᵢ − x̄)². Propagate σ through it: σ_b = σ/√Σ(xᵢ − x̄)².',
+        solution: steps(`x̄ = ${xm.toFixed(3)}.`, `Σ(xᵢ − x̄)² = ${Sxx.toFixed(4)}.`, `σ_b = ${s}/√${Sxx.toFixed(4)} = <b>${answer.toFixed(4)}</b>. The y values themselves never enter: only σ and the spread of x.`),
+        x, s,
+      };
+    },
+    verify(p) { const N = p.x.length, Sx = p.x.reduce((a, b) => a + b, 0), Sxx = p.x.reduce((a, b) => a + b * b, 0); return p.s * Math.sqrt(N / (N * Sxx - Sx * Sx)); },
+  },
+  'propagate-power': {
+    title: 'relative uncertainty of a product of powers',
+    make(r) {
+      const a = int(r, 1, 3), b = int(r, 1, 2), px = int(r, 1, 5) / 2, py = int(r, 1, 6) / 2;
+      const answer = Math.sqrt((a * px) ** 2 + (b * py) ** 2);
+      return {
+        q: `<p>A result is f = x<sup>${a}</sup>/y<sup>${b}</sup>, with independent relative uncertainties ${px}% in x and ${py}% in y. Find the relative uncertainty of f in percent.</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: 'For f = xᵃ yᵇ (b may be negative), (σ_f/f)² = (a σ_x/x)² + (b σ_y/y)². Dividing counts the same as multiplying.',
+        solution: steps(`Power-weighted terms: ${a} × ${px}% = ${a * px}% and ${b} × ${py}% = ${b * py}%.`, `In quadrature: √(${(a * px) ** 2} + ${(b * py) ** 2}) = <b>${answer.toFixed(3)}%</b>.`),
+        a, b, px, py,
+      };
+    },
+    verify(p) { return Math.hypot(p.a * p.px, p.b * p.py); },
+  },
+  'gm-dead-time': {
+    title: 'true count rate from a dead-time-limited counter',
+    make(r) {
+      const tau = [50, 100, 200, 300][int(r, 0, 3)], m = int(r, 2, 20) * 100;
+      const answer = m / (1 - m * tau * 1e-6);
+      return {
+        q: `<p>A Geiger counter with a non-paralysable dead time of ${tau} μs records ${m} counts per second. Find the true rate in counts per second.</p>`,
+        answer, unit: 's⁻¹', tol: 0.005,
+        hint: 'After each count the tube is dead for τ, so it is live only for a fraction 1 − mτ of the time. The true rate n satisfies m = n(1 − mτ).',
+        solution: steps(`Dead fraction mτ = ${m} × ${tau}×10⁻⁶ = ${(m * tau * 1e-6).toFixed(4)}.`, `n = m/(1 − mτ) = ${m}/${(1 - m * tau * 1e-6).toFixed(4)} = <b>${answer.toFixed(1)} s⁻¹</b>.`),
+        tau, m,
+      };
+    },
+    verify(p) { return p.m / (1 - p.m * p.tau * 1e-6); },
+  },
+  'bridge-output': {
+    title: 'strain-gauge bridge output',
+    make(r) {
+      const arms = [1, 2, 4][int(r, 0, 2)], Vs = [2, 5, 10][int(r, 0, 2)], GF = [2, 2.1][int(r, 0, 1)], eps = int(r, 1, 10) * 100;
+      const answer = Vs * GF * eps * 1e-6 * arms / 4 * 1000;
+      return {
+        q: `<p>A Wheatstone bridge with ${Vs} V supply has ${arms === 1 ? 'one active gauge' : arms === 2 ? 'two active gauges with opposite strains in adjacent arms' : 'four active gauges arranged so that their changes add'} (gauge factor ${GF}, strain magnitude ${eps} microstrain). Find the output voltage in mV (small-signal approximation).</p>`,
+        answer, unit: 'mV', tol: 0.01,
+        hint: 'Each active arm contributes V_s·GF·ε/4 when the strains are arranged to add.',
+        solution: steps(`ΔR/R = GF·ε = ${GF} × ${eps}×10⁻⁶ = ${(GF * eps * 1e-6).toExponential(2)}.`, `V_out = ${arms}/4 × V_s × ΔR/R = ${arms}/4 × ${Vs} × ${(GF * eps * 1e-6).toExponential(2)} V = <b>${answer.toFixed(3)} mV</b>.`),
+        arms, Vs, GF, eps,
+      };
+    },
+    verify(p) { return p.arms * p.Vs * p.GF * p.eps * 1e-6 / 4 * 1000; },
+  },
+  'johnson-noise': {
+    title: 'Johnson noise of a resistor',
+    make(r) {
+      const R = [1e3, 1e4, 1e5, 1e6][int(r, 0, 3)], T = [77, 300][int(r, 0, 1)], B = [100, 1e3, 1e4][int(r, 0, 2)];
+      const answer = Math.sqrt(4 * 1.380649e-23 * T * R * B) * 1e6;
+      return {
+        q: `<p>Find the rms Johnson noise voltage, in μV, of a ${R >= 1e6 ? R / 1e6 + ' MΩ' : R / 1e3 + ' kΩ'} resistor at ${T} K measured in a ${B} Hz bandwidth. (k_B = 1.381×10⁻²³ J/K.)</p>`,
+        answer, unit: 'μV', tol: 0.01,
+        hint: 'v_rms = √(4 k_B T R B). Every factor enters under the square root.',
+        solution: steps(`4 k_B T R B = 4 × 1.381×10⁻²³ × ${T} × ${R} × ${B} = ${(4 * 1.380649e-23 * T * R * B).toExponential(3)} V².`, `v_rms = <b>${answer.toFixed(3)} μV</b>.`),
+        R, T, B,
+      };
+    },
+    verify(p) { return Math.sqrt(4 * 1.380649e-23 * p.T * p.R * p.B) * 1e6; },
+  },
+  'lockin-snr': {
+    title: 'signal-to-noise ratio after a lock-in',
+    make(r) {
+      const sig = int(r, 1, 10), dens = int(r, 1, 20) * 5, tau = [0.1, 0.3, 1, 3, 10][int(r, 0, 4)];
+      const B = 1 / (4 * tau), noise = dens * Math.sqrt(B), answer = sig * 1000 / noise;
+      return {
+        q: `<p>A ${sig} μV signal at the reference frequency sits in white noise of ${dens} nV/√Hz. The lock-in has a single-pole output filter with time constant ${tau} s. Find the signal-to-noise ratio of the output.</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'A single RC section of time constant τ has noise-equivalent bandwidth 1/(4τ). Output noise = density × √bandwidth.',
+        solution: steps(`ENBW = 1/(4 × ${tau}) = ${B.toFixed(4)} Hz.`, `Noise = ${dens} nV/√Hz × √${B.toFixed(4)} = ${noise.toFixed(3)} nV.`, `SNR = ${sig * 1000} nV / ${noise.toFixed(3)} nV = <b>${answer.toFixed(1)}</b>.`),
+        sig, dens, tau,
+      };
+    },
+    verify(p) { return p.sig * 1000 / (p.dens * Math.sqrt(1 / (4 * p.tau))); },
+  },
+  'nmr-pulse': {
+    title: 'length of a 90° or 180° pulse',
+    make(r) {
+      const nuc = [['¹H', 42.577], ['¹³C', 10.708], ['¹⁹F', 40.078], ['³¹P', 17.235]][int(r, 0, 3)], th = [90, 180][int(r, 0, 1)], B1 = [0.1, 0.2, 0.5, 1, 2][int(r, 0, 4)];
+      const answer = (th / 360) / (nuc[1] * 1e6 * B1 * 1e-3) * 1e6;
+      return {
+        q: `<p>An on-resonance RF field of amplitude B₁ = ${B1} mT (rotating frame) acts on ${nuc[0]} nuclei (γ/2π = ${nuc[1]} MHz/T). How long, in μs, is a ${th}° pulse?</p>`,
+        answer, unit: 'μs', tol: 0.01,
+        hint: 'In the rotating frame the magnetisation turns about B₁ at frequency (γ/2π)B₁ turns per second. A 90° pulse is a quarter turn.',
+        solution: steps(`Nutation frequency (γ/2π)B₁ = ${nuc[1]}×10⁶ × ${B1}×10⁻³ = ${(nuc[1] * B1 * 1e3).toFixed(1)} Hz.`, `One full turn takes ${(1e6 / (nuc[1] * B1 * 1e3)).toFixed(3)} μs; ${th}° is ${th / 360} of it: <b>${answer.toFixed(3)} μs</b>.`),
+        g: nuc[1], th, B1,
+      };
+    },
+    verify(p) { return (p.th * Math.PI / 180) / (2 * Math.PI * p.g * 1e6 * p.B1 * 1e-3) * 1e6; },
+  },
+  'esr-lines': {
+    title: 'number of ESR hyperfine lines',
+    make(r) {
+      const n1 = int(r, 1, 4), n2 = int(r, 0, 2), I2 = [1, 0.5][int(r, 0, 1)];
+      const answer = (n1 + 1) * (2 * n2 * I2 + 1);
+      return {
+        q: `<p>An unpaired electron couples to ${n1} equivalent proton${n1 > 1 ? 's' : ''}${n2 ? ` and to ${n2} equivalent ${I2 === 1 ? '¹⁴N (I = 1)' : '¹⁹F (I = 1/2)'} nucle${n2 > 1 ? 'i' : 'us'}, with a different coupling constant` : ''}. How many ESR lines appear (none overlapping)?</p>`,
+        answer, unit: '', tol: 0, abs: 0.01,
+        hint: 'A set of n equivalent nuclei of spin I splits each line into 2nI + 1. Different sets multiply.',
+        solution: steps(`Protons: 2 × ${n1} × ½ + 1 = ${n1 + 1}.`, n2 ? `Second set: 2 × ${n2} × ${I2 === 1 ? 1 : '½'} + 1 = ${2 * n2 * I2 + 1}.` : 'No second set.', `Total <b>${answer}</b> lines.`),
+        n1, n2, I2,
+      };
+    },
+    verify(p) { return (2 * p.n1 * 0.5 + 1) * (2 * p.n2 * p.I2 + 1); },
+  },
+  'fc-poisson': {
+    title: 'Franck-Condon factor for displaced oscillators',
+    make(r) {
+      const S = int(r, 2, 30) / 10, v = int(r, 0, 4);
+      let f = 1; for (let k = 2; k <= v; k++) f *= k;
+      const answer = Math.exp(-S) * S ** v / f;
+      return {
+        q: `<p>Two electronic states have harmonic potentials of equal frequency, displaced so that the Huang-Rhys factor is S = ${S}. What fraction of the absorption from v″ = 0 goes into the ${v} ← 0 band?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: "For equal frequencies, |⟨v′|0⟩|² = e^(−S) S^v′ / v′!: a Poisson distribution with mean S.",
+        solution: steps(`e^(−${S}) = ${Math.exp(-S).toFixed(4)}.`, `S^${v}/${v}! = ${(S ** v).toFixed(4)}/${f} = ${(S ** v / f).toFixed(4)}.`, `Product: <b>${answer.toFixed(4)}</b>.`),
+        S, v,
+      };
+    },
+    verify(p) { let f = 1; for (let k = 2; k <= p.v; k++) f *= k; return Math.exp(-p.S) * p.S ** p.v / f; },
+  },
+  'vibronic-band': {
+    title: 'position of a vibronic band',
+    make(r) {
+      const Te = int(r, 150, 300) * 100, w1 = int(r, 50, 150) * 10, x1 = int(r, 3, 15), w2 = int(r, 100, 250) * 10, x2 = int(r, 5, 20), v1 = int(r, 0, 3), v2 = int(r, 0, 1);
+      const G = (w, x, v) => w * (v + 0.5) - x * (v + 0.5) ** 2;
+      const answer = Te + G(w1, x1, v1) - G(w2, x2, v2);
+      return {
+        q: `<p>An upper state has T_e = ${Te} cm⁻¹, ω′ = ${w1} cm⁻¹, ω′x′ = ${x1} cm⁻¹; the ground state has ω″ = ${w2} cm⁻¹, ω″x″ = ${x2} cm⁻¹. Find the wavenumber of the ${v1} ← ${v2} band in cm⁻¹.</p>`,
+        answer, unit: 'cm⁻¹', tol: 0.0001, abs: 0.5,
+        hint: 'ν = T_e + G′(v′) − G″(v″), with G(v) = ω(v + ½) − ωx(v + ½)², each measured from its own potential minimum.',
+        solution: steps(`G′(${v1}) = ${w1}×${v1 + 0.5} − ${x1}×${(v1 + 0.5) ** 2} = ${G(w1, x1, v1)}.`, `G″(${v2}) = ${w2}×${v2 + 0.5} − ${x2}×${(v2 + 0.5) ** 2} = ${G(w2, x2, v2)}.`, `ν = ${Te} + ${G(w1, x1, v1)} − ${G(w2, x2, v2)} = <b>${answer.toFixed(2)} cm⁻¹</b>.`),
+        Te, w1, x1, w2, x2, v1, v2,
+      };
+    },
+    verify(p) { const G = (w, x, v) => w * (v + 0.5) - x * (v + 0.5) ** 2; return p.Te + G(p.w1, p.x1, p.v1) - G(p.w2, p.x2, p.v2); },
+  },
+  // ---- 4.2, 4.3 electromagnetic theory ----
+  'larmor-power': {
+    title: 'Larmor power of an electron circling in a magnetic field',
+    make(r) {
+      const B = [0.5, 1, 1.5, 2, 3, 5][int(r, 0, 5)], v7 = int(r, 1, 3);
+      const e = 1.602176634e-19, me = 9.1093837e-31, eps0 = 8.8541878128e-12, c = 2.99792458e8;
+      const v = v7 * 1e7, a = e * B * v / me, P = e * e * a * a / (6 * Math.PI * eps0 * c ** 3), answer = P / e;
+      return {
+        q: `<p>An electron moves at ${v7} × 10⁷ m/s on a circle perpendicular to a uniform field B = ${B} T. Using the non-relativistic Larmor formula, find the power it radiates, in eV per second.</p>`,
+        answer, unit: 'eV/s', tol: 0.01,
+        hint: 'The acceleration is centripetal, a = v²/r with r = mv/eB, so a = eBv/m. Then P = e²a²/(6πε₀c³).',
+        solution: steps(`a = eBv/m = 1.7588 × 10¹¹ × ${B} × ${v.toExponential(1)} = ${a.toExponential(3)} m/s².`, `P = e²a²/(6πε₀c³) = 5.71 × 10⁻⁵⁴ × a² = ${P.toExponential(3)} W.`, `Divide by e = 1.602 × 10⁻¹⁹ J/eV: P = <b>${answer.toFixed(1)} eV/s</b>. The kinetic energy is ${(0.5 * me * v * v / e).toFixed(0)} eV, so the energy decays on a time scale KE/P = ${(0.5 * me * v * v / P).toPrecision(2)} s (in general 3πε₀m³c³/e⁴B² ≈ 2.6/B² s, whatever the speed).`),
+        B, v,
+      };
+    },
+    verify(p) {
+      const e = 1.602176634e-19, k = 8.9875517923e9, c = 2.99792458e8, a = (e / 9.1093837e-31) * p.B * p.v;
+      return (2 / 3) * k * e * a * a / c ** 3;
+    },
+  },
+  'plasma-cutoff': {
+    title: 'cutoff and group velocity of a radio wave in a plasma',
+    make(r) {
+      const n11 = int(r, 2, 30), n = n11 * 1e11;
+      const e = 1.602176634e-19, me = 9.1093837e-31, eps0 = 8.8541878128e-12;
+      const fp = Math.sqrt(n * e * e / (eps0 * me)) / (2 * Math.PI) / 1e6;
+      const f = Math.ceil(fp) + int(r, 1, 6), answer = Math.sqrt(1 - (fp / f) ** 2);
+      return {
+        q: `<p>A layer of the ionosphere has electron density ${n11} × 10¹¹ m⁻³. A pulse at ${f} MHz crosses it. Find the group velocity of the pulse in the layer, as a fraction of c (ignore collisions and the Earth's field).</p>`,
+        answer, unit: 'c', tol: 0.005,
+        hint: 'Plasma frequency f<sub>p</sub> = (1/2π)√(ne²/ε₀m), about 8.98√n Hz with n in m⁻³. From ω² = ω<sub>p</sub>² + c²k², v<sub>g</sub> = dω/dk = c√(1 − ω<sub>p</sub>²/ω²).',
+        solution: steps(`f<sub>p</sub> = 8.98 × √(${n.toExponential(1)}) Hz = ${fp.toFixed(3)} MHz, below ${f} MHz, so the wave gets through.`, `(f<sub>p</sub>/f)² = ${((fp / f) ** 2).toFixed(4)}.`, `v<sub>g</sub>/c = √(1 − ${((fp / f) ** 2).toFixed(4)}) = <b>${answer.toFixed(4)}</b>. The phase velocity is c²/v<sub>g</sub>, faster than light, and v<sub>p</sub>v<sub>g</sub> = c².`),
+        n, f,
+      };
+    },
+    verify(p) {
+      const wp2 = p.n * 3182.6, w = 2 * Math.PI * p.f * 1e6; // e²/(ε₀m) = 3182.6 m³ s⁻²
+      return Math.sqrt(1 - wp2 / (w * w));
+    },
+  },
+  // ---- 5.2, 5.3 quantum mechanics ----
+  'partial-wave-sigma': {
+    title: 'total cross-section from s- and p-wave phase shifts',
+    make(r) {
+      const k = [0.2, 0.3, 0.4, 0.5, 0.8][int(r, 0, 4)], d0 = int(r, 10, 80), d1 = int(r, 2, 30);
+      const s0 = Math.sin(d0 * Math.PI / 180) ** 2, s1 = Math.sin(d1 * Math.PI / 180) ** 2;
+      const answer = (4 * Math.PI / (k * k)) * (s0 + 3 * s1);
+      return {
+        q: `<p>Neutrons scatter off a nucleus at wave number k = ${k} fm⁻¹. Only two partial waves matter: δ₀ = ${d0}° and δ₁ = ${d1}°. Find the total elastic cross-section in fm² (1 fm² = 10 mb).</p>`,
+        answer, unit: 'fm²', tol: 0.01,
+        hint: 'σ = (4π/k²) Σ (2l + 1) sin²δ<sub>l</sub>. The p wave carries weight 3.',
+        solution: steps(`4π/k² = ${(4 * Math.PI / (k * k)).toFixed(2)} fm².`, `sin²δ₀ = ${s0.toFixed(4)}, 3 sin²δ₁ = ${(3 * s1).toFixed(4)}.`, `σ = ${(4 * Math.PI / (k * k)).toFixed(2)} × ${(s0 + 3 * s1).toFixed(4)} = <b>${answer.toFixed(1)} fm²</b> = ${(answer / 100).toFixed(3)} b. Unitarity caps the s-wave part at 4π/k².`),
+        k, d0, d1,
+      };
+    },
+    verify(p) {
+      const t = (x) => (1 - Math.cos(2 * x * Math.PI / 180)) / 2;
+      return 4 * Math.PI / (p.k * p.k) * (t(p.d0) + 3 * t(p.d1));
+    },
+  },
+  'dirac-binding': {
+    title: 'exact Dirac fine-structure splitting of the n = 2 level',
+    make(r) {
+      const Z = [5, 10, 20, 26, 30, 40, 50, 60, 70, 80, 92][int(r, 0, 10)], a = 1 / 137.035999, mc2 = 510998.95;
+      const E = (n, j) => { const k = j + 0.5, za = Z * a; return mc2 / Math.sqrt(1 + (za / (n - k + Math.sqrt(k * k - za * za))) ** 2); };
+      const answer = E(2, 1.5) - E(2, 0.5), lead = mc2 * (Z * a) ** 4 / 32;
+      return {
+        q: `<p>For a hydrogen-like ion with Z = ${Z} (point nucleus, no Lamb shift, no recoil), use the exact Dirac energy formula to find the splitting E(2p<sub>3/2</sub>) − E(2p<sub>1/2</sub>) in eV.</p>`,
+        answer, unit: 'eV', tol: 0.01,
+        hint: 'E<sub>nj</sub> = mc² [1 + (Zα/(n − δ))²]<sup>−1/2</sup> with δ = j + ½ − √((j + ½)² − Z²α²). The leading term of the splitting is mc²(Zα)⁴/32, but at large Z the exact result is larger.',
+        solution: steps(`Zα = ${(Z * a).toFixed(5)}. For j = 1/2: δ = 1 − √(1 − Z²α²) = ${(1 - Math.sqrt(1 - (Z * a) ** 2)).toFixed(6)}; for j = 3/2: δ = 2 − √(4 − Z²α²) = ${(2 - Math.sqrt(4 - (Z * a) ** 2)).toFixed(6)}.`, `E(2p<sub>1/2</sub>) = ${E(2, 0.5).toFixed(3)} eV and E(2p<sub>3/2</sub>) = ${E(2, 1.5).toFixed(3)} eV (rest energy included).`, `Splitting = <b>${answer.toPrecision(4)} eV</b>. The leading-order estimate mc²(Zα)⁴/32 gives ${lead.toPrecision(4)} eV.`),
+        Z,
+      };
+    },
+    verify(p) {
+      const a = 1 / 137.035999, za = p.Z * a, mc2 = 510998.95;
+      const E = (j) => { const d = j + 0.5 - Math.sqrt((j + 0.5) ** 2 - za * za); return mc2 * (1 + (za / (2 - d)) ** 2) ** -0.5; };
+      return E(1.5) - E(0.5);
+    },
+  },
+  // ---- 6.2 to 6.4 statistical physics ----
+  'stokes-einstein-rms': {
+    title: 'rms Brownian displacement from the Stokes-Einstein relation',
+    make(r) {
+      const a = [0.25, 0.5, 1, 2][int(r, 0, 3)], T = [293, 298, 310][int(r, 0, 2)], eta = { 293: 1.0, 298: 0.89, 310: 0.69 }[T], t = [1, 5, 10, 30, 60][int(r, 0, 4)];
+      const kB = 1.380649e-23, D = kB * T / (6 * Math.PI * eta * 1e-3 * a * 1e-6), answer = Math.sqrt(2 * D * t) * 1e6;
+      return {
+        q: `<p>A sphere of radius ${a} μm drifts in water at ${T} K (viscosity ${eta} mPa s). Find the rms displacement along one axis after ${t} s, in μm.</p>`,
+        answer, unit: 'μm', tol: 0.01,
+        hint: 'D = k<sub>B</sub>T/(6πηa) (Stokes-Einstein), and along one axis ⟨x²⟩ = 2Dt.',
+        solution: steps(`D = 1.381 × 10⁻²³ × ${T} / (6π × ${eta} × 10⁻³ × ${a} × 10⁻⁶) = ${D.toExponential(3)} m²/s.`, `⟨x²⟩ = 2Dt = ${(2 * D * t).toExponential(3)} m².`, `x<sub>rms</sub> = <b>${answer.toFixed(2)} μm</b>. In three dimensions the rms distance is √3 times larger.`),
+        a, T, eta, t,
+      };
+    },
+    verify(p) {
+      const R = 8.314462618, NA = 6.02214076e23;
+      return 1e6 * Math.sqrt(R * p.T * p.t / (3 * Math.PI * NA * p.eta * 1e-3 * p.a * 1e-6));
+    },
+  },
+  'ising-ring': {
+    title: 'nearest-neighbour correlation on a short Ising ring',
+    make(r) {
+      const N = int(r, 3, 8), K = [0.2, 0.4, 0.5, 0.75, 1, 1.5][int(r, 0, 5)], t = Math.tanh(K);
+      const answer = (t + t ** (N - 1)) / (1 + t ** N);
+      return {
+        q: `<p>N = ${N} Ising spins sit on a ring (periodic boundary) with energy E = −J Σ s<sub>i</sub>s<sub>i+1</sub>, no field, and K = J/k<sub>B</sub>T = ${K}. Find the nearest-neighbour correlation ⟨s<sub>i</sub>s<sub>i+1</sub>⟩.</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'The transfer matrix has eigenvalues 2cosh K and 2sinh K, so Z = (2cosh K)<sup>N</sup> + (2sinh K)<sup>N</sup>. Then ⟨s<sub>i</sub>s<sub>i+1</sub>⟩ = (1/N) ∂ ln Z/∂K.',
+        solution: steps(`Z = (2cosh K)<sup>${N}</sup> + (2sinh K)<sup>${N}</sup>; with t = tanh K = ${t.toFixed(4)}, (1/N)∂ ln Z/∂K = (t + t<sup>N−1</sup>)/(1 + t<sup>N</sup>).`, `t<sup>${N - 1}</sup> = ${(t ** (N - 1)).toFixed(4)}, t<sup>${N}</sup> = ${(t ** N).toFixed(4)}.`, `⟨s<sub>i</sub>s<sub>i+1</sub>⟩ = <b>${answer.toFixed(4)}</b>, slightly above the infinite-chain value tanh K = ${t.toFixed(4)}: closing the ring gives a second path that correlates neighbours.`),
+        N, K,
+      };
+    },
+    verify(p) {
+      let Z = 0, S = 0;
+      for (let m = 0; m < 1 << p.N; m++) {
+        const s = (i) => ((m >> (i % p.N)) & 1 ? 1 : -1);
+        let b = 0; for (let i = 0; i < p.N; i++) b += s(i) * s(i + 1);
+        const w = Math.exp(p.K * b); Z += w; S += w * b;
+      }
+      return S / Z / p.N;
+    },
+  },
+  'gas-viscosity': {
+    title: 'Chapman-Enskog viscosity of a hard-sphere gas',
+    make(r) {
+      const g = [['helium', 4.0026, 0.218], ['neon', 20.18, 0.259], ['argon', 39.95, 0.364], ['nitrogen', 28.01, 0.375], ['carbon dioxide', 44.01, 0.459]][int(r, 0, 4)];
+      const T = [200, 250, 300, 400, 500, 600][int(r, 0, 5)], kB = 1.380649e-23, m = g[1] * 1.66053907e-27, d = g[2] * 1e-9;
+      const answer = 1e6 * (5 / 16) * Math.sqrt(Math.PI * m * kB * T) / (Math.PI * d * d);
+      return {
+        q: `<p>Treat ${g[0]} (molar mass ${g[1]} g/mol) as hard spheres of diameter ${g[2]} nm. Using the Chapman-Enskog result for hard spheres, find its viscosity at ${T} K in μPa s.</p>`,
+        answer, unit: 'μPa s', tol: 0.01,
+        hint: 'η = (5/16) √(πmk<sub>B</sub>T) / (πd²). It does not depend on pressure, and grows as √T.',
+        solution: steps(`m = ${g[1]} × 1.6605 × 10⁻²⁷ kg = ${m.toExponential(3)} kg; πd² = ${(Math.PI * d * d).toExponential(3)} m².`, `√(πmk<sub>B</sub>T) = ${Math.sqrt(Math.PI * m * kB * T).toExponential(3)} kg m/s.`, `η = (5/16) × that / πd² = <b>${answer.toFixed(1)} μPa s</b>. The elementary mean-free-path estimate ⅓nm v̄λ comes out about 1.5 times too small.`),
+        M: g[1], d: g[2], T,
+      };
+    },
+    verify(p) {
+      const m = p.M * 1e-3 / 6.02214076e23, d = p.d * 1e-9;
+      return 1e6 * (5 / 16) * Math.sqrt(m * 1.380649e-23 * p.T / Math.PI) / (d * d);
+    },
+  },
+  // ---- 9.2 to 9.4 solid state (CSIR NET) ----
+  'vacancy-ppm': {
+    title: 'equilibrium vacancy fraction from the formation energy',
+    make(r) {
+      const E = int(r, 8, 14) / 10, T = int(r, 18, 26) * 50;
+      const x = Math.exp(-E / (KB * T)), answer = 1e6 * x;
+      return {
+        q: `<p>The vacancy formation energy in a metal is E<sub>v</sub> = ${E} eV. Ignoring the formation entropy, find the equilibrium fraction of vacant lattice sites at T = ${T} K, in parts per million.</p>`,
+        answer, unit: 'ppm', tol: 0.01,
+        hint: 'Minimising F = nE<sub>v</sub> − TS with S = k ln[N!/(n!(N−n)!)] gives n/N ≈ exp(−E<sub>v</sub>/kT) when n ≪ N.',
+        solution: steps(`kT = 8.617×10⁻⁵ × ${T} = ${(KB * T).toFixed(5)} eV.`, `E<sub>v</sub>/kT = ${(E / (KB * T)).toFixed(3)}.`, `n/N = exp(−${(E / (KB * T)).toFixed(3)}) = ${x.toExponential(3)} = <b>${answer.toPrecision(3)} ppm</b>.`),
+        E, T,
+      };
+    },
+    verify(p) { return 1e6 * 10 ** (-p.E / (KB * p.T) / Math.LN10); },
+  },
+  'taylor-density': {
+    title: 'dislocation density from the Taylor hardening law',
+    make(r) {
+      const G = int(r, 25, 80), b = int(r, 25, 29) / 100, al = [0.2, 0.3, 0.4, 0.5][int(r, 0, 3)], tau = int(r, 10, 60);
+      const rho = (tau * 1e6 / (al * G * 1e9 * b * 1e-9)) ** 2, answer = rho / 1e12;
+      return {
+        q: `<p>A cold-worked metal has shear modulus G = ${G} GPa and Burgers vector b = ${b} nm. Its flow stress follows Taylor's law τ = αGb√ρ with α = ${al}. If the measured shear flow stress is τ = ${tau} MPa, find the dislocation density ρ in units of 10¹² m⁻².</p>`,
+        answer, unit: '10¹² m⁻²', tol: 0.01,
+        hint: 'Invert the law: ρ = (τ/αGb)². Keep every quantity in SI units (Pa and m).',
+        solution: steps(`αGb = ${al} × ${G}×10⁹ Pa × ${b}×10⁻⁹ m = ${(al * G * b).toFixed(3)} Pa·m.`, `√ρ = τ/(αGb) = ${tau}×10⁶ / ${(al * G * b).toFixed(3)} = ${(tau * 1e6 / (al * G * b)).toExponential(3)} m⁻¹.`, `ρ = ${rho.toExponential(3)} m⁻² = <b>${answer.toPrecision(3)} × 10¹² m⁻²</b>.`),
+        G, b, al, tau,
+      };
+    },
+    verify(p) { return Math.exp(2 * (Math.log(p.tau * 1e6) - Math.log(p.al * p.G * 1e9 * p.b * 1e-9))) / 1e12; },
+  },
+  'clausius-polarisability': {
+    title: 'molecular polarisability from the Clausius-Mossotti relation',
+    make(r) {
+      const er = int(r, 105, 300) / 100, N = int(r, 15, 60) / 10;
+      const ratio = (er - 1) / (er + 2), alpha = 3 * EPS0 * ratio / (N * 1e28), answer = alpha / 1e-40;
+      return {
+        q: `<p>A non-polar solid has N = ${N} × 10²⁸ molecules per m³ and relative permittivity ε<sub>r</sub> = ${er}. Using the Lorentz local field, find the molecular polarisability α in units of 10⁻⁴⁰ F m².</p>`,
+        answer, unit: '10⁻⁴⁰ F m²', tol: 0.01,
+        hint: 'Clausius-Mossotti: (ε<sub>r</sub> − 1)/(ε<sub>r</sub> + 2) = Nα/3ε₀.',
+        solution: steps(`(ε<sub>r</sub> − 1)/(ε<sub>r</sub> + 2) = ${(er - 1).toFixed(2)}/${(er + 2).toFixed(2)} = ${ratio.toFixed(4)}.`, `α = 3ε₀ × ${ratio.toFixed(4)} / N = 3 × 8.854×10⁻¹² × ${ratio.toFixed(4)} / ${N}×10²⁸.`, `α = <b>${answer.toPrecision(3)} × 10⁻⁴⁰ F m²</b>.`),
+        er, N,
+      };
+    },
+    verify(p) { const x = p.N * 1e28 * 1e-40 / (3 * EPS0); /* x·a = (er-1)/(er+2) */ return (p.er - 1) / ((p.er + 2) * x); },
+  },
+  'drude-reflect': {
+    title: 'plasma wavelength of a free-electron metal',
+    make(r) {
+      const n = int(r, 8, 60) / 10;
+      const wp = Math.sqrt(n * 1e28 * QE * QE / (EPS0 * ME)), answer = 2 * Math.PI * CL / wp * 1e9;
+      return {
+        q: `<p>A metal has n = ${n} × 10²⁸ free electrons per m³ (take the free-electron mass and neglect damping and core polarisation). Below what wavelength, in nm, does it become transparent?</p>`,
+        answer, unit: 'nm', tol: 0.01,
+        hint: 'ε(ω) = 1 − ω<sub>p</sub>²/ω² with ω<sub>p</sub>² = ne²/ε₀m. Waves propagate when ε > 0, that is ω > ω<sub>p</sub>, so λ < λ<sub>p</sub> = 2πc/ω<sub>p</sub>.',
+        solution: steps(`ω<sub>p</sub> = √(ne²/ε₀m) = ${wp.toExponential(3)} rad/s (ħω<sub>p</sub> = ${(HBAR * wp / QE).toFixed(2)} eV).`, `λ<sub>p</sub> = 2πc/ω<sub>p</sub> = <b>${answer.toPrecision(3)} nm</b>.`, 'Shorter wavelengths (higher frequencies) pass through: the ultraviolet transparency of the alkali metals.'),
+        n,
+      };
+    },
+    verify(p) { return 2 * Math.PI * CL * Math.sqrt(EPS0 * ME / (p.n * 1e28)) / QE * 1e9; },
+  },
+  'hall-plateau-field': {
+    title: 'magnetic field at the centre of a quantum Hall plateau',
+    make(r) {
+      const n = int(r, 10, 60) / 10, nu = int(r, 1, 6);
+      const answer = n * 1e15 * HPL / (QE * nu);
+      return {
+        q: `<p>A two-dimensional electron gas has sheet density n = ${n} × 10¹⁵ m⁻². At what magnetic field, in tesla, is the filling factor exactly ν = ${nu}? What is the Hall resistance there?</p>`,
+        answer, unit: 'T', tol: 0.01,
+        hint: 'Each (spin-resolved) Landau level holds eB/h states per unit area, so ν = nh/(eB).',
+        solution: steps(`eB/h per level; ν = nh/(eB) gives B = nh/(eν).`, `B = ${n}×10¹⁵ × 6.626×10⁻³⁴ / (1.602×10⁻¹⁹ × ${nu}) = <b>${answer.toPrecision(3)} T</b>.`, `There R<sub>xy</sub> = h/(νe²) = 25 812.8/${nu} = ${(25812.807 / nu).toFixed(1)} Ω.`),
+        n, nu,
+      };
+    },
+    verify(p) { return (p.n * 1e15 / p.nu) / (QE / HPL); },
+  },
+  'well-subbands': {
+    title: 'subband spacing in a quantum well',
+    make(r) {
+      const L = int(r, 5, 20), m = [0.067, 0.023, 0.19][int(r, 0, 2)], name = { 0.067: 'GaAs', 0.023: 'InAs', 0.19: 'Si (along the confinement)' }[m];
+      const E1 = (Math.PI * HBAR / (L * 1e-9)) ** 2 / (2 * m * ME) / QE * 1000, answer = 3 * E1;
+      return {
+        q: `<p>Electrons in a ${L} nm wide ${name} quantum well have effective mass m* = ${m} m<sub>e</sub>. Treating the well as infinitely deep, find the energy gap between the first two subbands, E₂ − E₁, in meV.</p>`,
+        answer, unit: 'meV', tol: 0.01,
+        hint: 'E<sub>n</sub> = n²π²ħ²/(2m*L²), so E₂ − E₁ = 3E₁.',
+        solution: steps(`E₁ = π²ħ²/(2m*L²) = ${E1.toFixed(2)} meV (π²ħ²/2m<sub>e</sub> = 0.376 eV nm², divided by ${m} × ${L}²).`, `E₂ − E₁ = 3E₁ = <b>${answer.toPrecision(3)} meV</b>.`, 'If this is much larger than kT, only the lowest subband is filled and the electrons move in two dimensions.'),
+        L, m,
+      };
+    },
+    verify(p) { return 3 * HPL * HPL / (8 * p.m * ME * (p.L * 1e-9) ** 2) / QE * 1000; },
+  },
+  // ---- 10.2 to 10.4 nuclear and particle (CSIR NET) ----
+  'deuteron-depth': {
+    title: 'square-well depth that binds the deuteron',
+    make(r) {
+      const R = int(r, 15, 28) / 10, B = [2.2246, 2.2246, 1.5, 3.0][int(r, 0, 3)];
+      const s = wellDepth(R, B), answer = s.V0;
+      return {
+        q: `<p>Model the neutron-proton force as an attractive square well of range R = ${R} fm. What depth V₀, in MeV, gives a single S-wave bound state at E = −${B} MeV? (ħc = 197.33 MeV fm, reduced mass μc² = 469.46 MeV.)</p>`,
+        answer, unit: 'MeV', tol: 0.01,
+        hint: 'Inside u = sin kr with k = √(2μ(V₀ − B))/ħ; outside u ∝ e<sup>−κr</sup> with κ = √(2μB)/ħ. Matching u′/u at R gives k cot kR = −κ, with kR a little above π/2. Solve it numerically.',
+        solution: steps(`κ = √(2 × 469.46 × ${B})/197.33 = ${s.ka.toFixed(4)} fm⁻¹.`, `Solve k cot(k × ${R}) = −${s.ka.toFixed(4)}: k = ${s.k.toFixed(4)} fm⁻¹, kR = ${(s.k * R).toFixed(4)} (just above π/2).`, `V₀ = (ħck)²/(2μc²) + B = ${((HC * s.k) ** 2 / (2 * MUNP)).toFixed(2)} + ${B} = <b>${answer.toFixed(2)} MeV</b>.`),
+        R, B,
+      };
+    },
+    verify(p) {
+      // Newton on x = kR for x cot x = -kappa R, then depth
+      const ka = Math.sqrt(2 * MUNP * p.B) / HC, c = ka * p.R; let x = Math.PI / 2 + 0.3;
+      for (let i = 0; i < 60; i++) { const f = x / Math.tan(x) + c, d = 1 / Math.tan(x) - x / Math.sin(x) ** 2; x -= f / d; }
+      return (HC * x / p.R) ** 2 / (2 * MUNP) + p.B;
+    },
+  },
+  'np-scattering-length': {
+    title: 'low-energy neutron-proton cross section from the scattering lengths',
+    make(r) {
+      const at = int(r, 530, 550) / 100, as = -int(r, 2300, 2400) / 100;
+      const sig = Math.PI * (3 * at * at + as * as) / 100, answer = sig;
+      return {
+        q: `<p>The triplet and singlet neutron-proton scattering lengths are a<sub>t</sub> = ${at} fm and a<sub>s</sub> = ${as} fm. Find the zero-energy np cross section for unpolarised beams, in barns.</p>`,
+        answer, unit: 'b', tol: 0.01,
+        hint: 'At zero energy σ = 4πa² for each spin channel. Unpolarised: 3/4 of pairs are triplet, 1/4 singlet.',
+        solution: steps(`σ = 4π[(3/4)a<sub>t</sub>² + (1/4)a<sub>s</sub>²] = π(3a<sub>t</sub>² + a<sub>s</sub>²).`, `= π(3 × ${(at * at).toFixed(3)} + ${(as * as).toFixed(2)}) fm² = ${(sig * 100).toFixed(1)} fm².`, `1 b = 100 fm², so σ = <b>${answer.toFixed(2)} b</b>: far above 4πa<sub>t</sub>² = ${(4 * Math.PI * at * at / 100).toFixed(2)} b, proof that the singlet state has a large (virtual) scattering length.`),
+        at, as,
+      };
+    },
+    verify(p) { return 4 * Math.PI * (0.75 * p.at ** 2 + 0.25 * p.as ** 2) / 100; },
+  },
+  'rotor-gamma-ladder': {
+    title: 'gamma-ray energy in a ground-state rotational band',
+    make(r) {
+      const E2 = int(r, 40, 110), I = 2 * int(r, 2, 6);
+      const A = E2 / 6, answer = A * (4 * I - 2);
+      return {
+        q: `<p>An even-even deformed nucleus has its first 2⁺ state at ${E2} keV. Treating its ground band as a rigid rotor, find the energy of the E2 gamma ray from the ${I}⁺ level to the ${I - 2}⁺ level, in keV.</p>`,
+        answer, unit: 'keV', tol: 0.005,
+        hint: 'E(I) = (ħ²/2𝓘) I(I+1), so E(2⁺) = 6ħ²/2𝓘. The I → I − 2 gamma ray has energy (ħ²/2𝓘)(4I − 2).',
+        solution: steps(`ħ²/2𝓘 = ${E2}/6 = ${A.toFixed(3)} keV.`, `E(${I}) − E(${I - 2}) = ${A.toFixed(3)} × [${I * (I + 1)} − ${(I - 2) * (I - 1)}] = ${A.toFixed(3)} × ${4 * I - 2}.`, `E<sub>γ</sub> = <b>${answer.toFixed(1)} keV</b>.`),
+        E2, I,
+      };
+    },
+    verify(p) { const A = p.E2 / 6; return A * p.I * (p.I + 1) - A * (p.I - 2) * (p.I - 1); },
+  },
+  'spectroscopic-q': {
+    title: 'spectroscopic quadrupole moment from the intrinsic moment',
+    make(r) {
+      const I = [1.5, 2.5, 3.5, 4.5][int(r, 0, 3)], Q0 = int(r, 20, 90) / 10;
+      const answer = Q0 * (3 * I * I - I * (I + 1)) / ((I + 1) * (2 * I + 3));
+      return {
+        q: `<p>An odd-A deformed nucleus has intrinsic quadrupole moment Q₀ = ${Q0} b. Its ground state is the band head with I = K = ${I * 2}/2. Find the spectroscopic quadrupole moment Q measured in the lab, in barns.</p>`,
+        answer, unit: 'b', tol: 0.005,
+        hint: 'Q = Q₀ [3K² − I(I+1)] / [(I+1)(2I+3)]. With I = K this is Q₀ I(2I − 1)/[(I+1)(2I+3)].',
+        solution: steps(`3K² − I(I+1) = ${(3 * I * I).toFixed(2)} − ${(I * (I + 1)).toFixed(2)} = ${(3 * I * I - I * (I + 1)).toFixed(2)}.`, `(I+1)(2I+3) = ${(I + 1).toFixed(1)} × ${2 * I + 3} = ${((I + 1) * (2 * I + 3)).toFixed(2)}.`, `Q = ${Q0} × ${(3 * I * I - I * (I + 1)).toFixed(2)}/${((I + 1) * (2 * I + 3)).toFixed(2)} = <b>${answer.toFixed(3)} b</b>, smaller than Q₀ because the rotation averages the shape.`),
+        I, Q0,
+      };
+    },
+    verify(p) { return p.Q0 * p.I * (2 * p.I - 1) / ((p.I + 1) * (2 * p.I + 3)); },
+  },
+  'gmo-predict': {
+    title: 'Gell-Mann–Okubo prediction of the Λ mass',
+    make(r) {
+      const N = 939 + int(r, -3, 3), Xi = 1318 + int(r, -4, 4), Sig = 1193 + int(r, -4, 4);
+      const answer = (2 * (N + Xi) - Sig) / 3;
+      return {
+        q: `<p>Take the baryon-octet masses as M<sub>N</sub> = ${N} MeV, M<sub>Ξ</sub> = ${Xi} MeV and M<sub>Σ</sub> = ${Sig} MeV. Use the Gell-Mann–Okubo formula to predict M<sub>Λ</sub> in MeV.</p>`,
+        answer, unit: 'MeV', tol: 0.002,
+        hint: 'For the octet the mass formula M = a + bY + c[I(I+1) − Y²/4] leads to 2(M<sub>N</sub> + M<sub>Ξ</sub>) = 3M<sub>Λ</sub> + M<sub>Σ</sub>.',
+        solution: steps(`2(M<sub>N</sub> + M<sub>Ξ</sub>) = 2 × ${N + Xi} = ${2 * (N + Xi)} MeV.`, `3M<sub>Λ</sub> = ${2 * (N + Xi)} − ${Sig} = ${2 * (N + Xi) - Sig} MeV.`, `M<sub>Λ</sub> = <b>${answer.toFixed(1)} MeV</b> (measured 1115.7 MeV).`),
+        N, Xi, Sig,
+      };
+    },
+    verify(p) {
+      // fit a, b, c from N (Y=1,I=1/2), Sig (Y=0,I=1), Xi (Y=-1,I=1/2), then evaluate Lambda (Y=0,I=0)
+      const b = (p.N - p.Xi) / 2, c = (p.Sig - (p.N + p.Xi) / 2) / (2 - 0.5), a = p.Sig - 2 * c;
+      return a + 0 * b; // b (the hypercharge term) drops out for Y = 0
+    },
+  },
+  'kaon-threshold': {
+    title: 'threshold pion energy for associated strangeness production',
+    make(r) {
+      const R = [['π⁻ p → K⁰ Λ', 139.57, 497.61, 1115.68], ['π⁻ p → K⁺ Σ⁻', 139.57, 493.68, 1197.45], ['π⁺ p → K⁺ Σ⁺', 139.57, 493.68, 1189.37], ['π⁻ p → K⁰ Σ⁰', 139.57, 497.61, 1192.64]][int(r, 0, 3)];
+      const [rx, mpi, mK, mY] = R, mp = 938.27, M = mK + mY;
+      const answer = (M * M - (mpi + mp) ** 2) / (2 * mp);
+      return {
+        q: `<p>A pion beam hits protons at rest and makes strange particles through ${rx}. Find the threshold kinetic energy of the pion, in MeV. (m<sub>π</sub> = ${mpi}, m<sub>p</sub> = ${mp}, m<sub>K</sub> = ${mK}, m<sub>Y</sub> = ${mY} MeV.) Check that strangeness is conserved.</p>`,
+        answer, unit: 'MeV', tol: 0.005,
+        hint: 'At threshold the products are at rest in the centre-of-mass frame: s = (m<sub>K</sub> + m<sub>Y</sub>)². In the lab s = m<sub>π</sub>² + m<sub>p</sub>² + 2E<sub>π</sub>m<sub>p</sub>.',
+        solution: steps(`Strangeness: 0 + 0 → (+1) + (−1). The strong interaction conserves S, so the kaon and the hyperon are made together.`, `√s at threshold = ${M.toFixed(2)} MeV; initial rest masses add to ${(mpi + mp).toFixed(2)} MeV.`, `T<sub>π</sub> = [(${M.toFixed(2)})² − (${(mpi + mp).toFixed(2)})²]/(2 × ${mp}) = <b>${answer.toFixed(1)} MeV</b>.`),
+        mpi, mK, mY, mp,
+      };
+    },
+    verify(p) { const s = (p.mK + p.mY) ** 2, E = (s - p.mpi ** 2 - p.mp ** 2) / (2 * p.mp); return E - p.mpi; },
   },
 };

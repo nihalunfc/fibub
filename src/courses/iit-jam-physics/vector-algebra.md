@@ -147,3 +147,5 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 <div class="qbank" data-bank="physics" data-topics="vector-algebra" data-exam="jam" data-n="10"></div>
 
 **Before this:** [lesson 1.3, multiple integrals](/learn/courses/iit-jam-physics/multiple-integrals/). **Next:** lesson 1.5, [gradient, divergence and curl](/learn/courses/iit-jam-physics/vector-calculus/), where the del operator behaves like a vector in exactly these products. Cross products drive [central forces and angular momentum](/learn/courses/iit-jam-physics/central-forces/) and [the magnetic force](/learn/courses/iit-jam-physics/magnetostatics/).
+
+**Go deeper:** index notation grows into [tensors](/learn/courses/gate-physics/tensors/) in GATE Physics, and vectors in general into [linear vector spaces and Dirac notation](/learn/courses/gate-physics/linear-vector-spaces/).

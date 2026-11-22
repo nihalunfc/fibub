@@ -176,3 +176,5 @@ They start at the definitions and climb to GATE top-rank level. Check each answe
 <div class="qbank" data-bank="physics" data-topics="zeeman-stark" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 6.4](/learn/courses/gate-physics/rotational-spectra/) leaves atoms for molecules, starting with the slowest motion, rotation. The g factors here use the terms from [lesson 6.2](/learn/courses/gate-physics/ls-jj-coupling/).
+
+**Going on to CSIR NET?** [Magnetic resonance: ESR and NMR](/learn/courses/csir-net-physics/esr-nmr/) drives transitions between these Zeeman levels.

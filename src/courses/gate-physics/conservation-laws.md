@@ -152,4 +152,4 @@ Two pions have much more phase space than three, so `$K_1$` decays fast and `$K_
 
 <div class="qbank" data-bank="physics" data-topics="conservation-laws" data-exam="gate" data-n="10"></div>
 
-**Next:** this is the last lesson of Module 8. Mix all seven topics in a timed set on the [practice page](/learn/courses/gate-physics/practice/), return to the [GATE Physics course](/learn/courses/gate-physics/) for Module 9, or go back to [lesson 8.1](/learn/courses/gate-physics/nuclear-properties/) to revise from the start.
+**Next:** this is the last lesson of Module 8. Mix all seven topics in a timed set on the [practice page](/learn/courses/gate-physics/practice/), return to the GATE Physics course for [Module 9](/learn/courses/gate-physics/semiconductor-devices/), or go back to [lesson 8.1](/learn/courses/gate-physics/nuclear-properties/) to revise from the start.

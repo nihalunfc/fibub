@@ -4,6 +4,7 @@
 // oscillations and the integer quantum Hall effect. (Doping, mass action, single-carrier Hall basics: JAM topic
 // semiconductors.) Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
+import more from './semiconductors-hall.more.gen.js';
 
 const RK = C.h / C.e ** 2; // von Klitzing constant, ohm
 const kBe = C.kB / C.e;
@@ -341,5 +342,6 @@ export default {
           sol: `For $n = p$ the Hall field vanishes and $\\Delta\\rho/\\rho_0 = \\mu_e\\mu_hB^2 = ${me}\\times${mh}\\times${B}^2 = ${+dr.toPrecision(3)}$.` };
       },
       verify: (p) => (p.kind === 'corbino' ? Math.sqrt(p.ratioq - 1) / p.B : p.me * p.mh * p.B * p.B) },
+    ...more,
   ],
 };

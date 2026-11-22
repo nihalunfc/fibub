@@ -4,6 +4,7 @@
 // spontaneous emission and natural linewidths, sudden and adiabatic limits, kicked oscillators and Landau-Zener.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './time-dependent-perturbation.more.gen.js';
 
 const HBAR_EVS = 6.582119569e-16; // ħ in eV s
 // Sudden expansion of an infinite well from a to k·a: probability ground → ground.
@@ -313,5 +314,6 @@ export default {
           sol: `$P_{\\text{jump}} = \\exp\\left(-\\dfrac{2\\pi V^2}{\\hbar\\alpha}\\right)$ with $\\hbar\\alpha = 6.582\\times10^{-16}\\times${a}\\times10^3 = ${(HBAR_EVS * a * 1e3).toExponential(3).replace('e-', '\\times10^{-') + '}'}$ eV$^2$: exponent $${round(ex, 4)}$, $P_{\\text{jump}} = ${round(v, 3)}$${ad ? `, so the adiabatic probability is $${round(1 - v, 3)}$` : ''}.` };
       },
       verify: (p) => { const v = Math.exp(-2 * Math.PI * (p.V * 1e-6) ** 2 / (HBAR_EVS * p.a * 1e3)); return p.ad ? 1 - v : v; } },
+    ...more,
   ],
 };

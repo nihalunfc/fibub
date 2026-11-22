@@ -182,3 +182,5 @@ They start at the definitions and climb to GATE top-rank level. Check each answe
 <div class="qbank" data-bank="physics" data-topics="fine-structure" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 6.2](/learn/courses/gate-physics/ls-jj-coupling/) adds more electrons: terms, Hund's rules and the two ways of coupling angular momenta.
+
+**Going on to CSIR NET?** [The Klein-Gordon and Dirac equations](/learn/courses/csir-net-physics/relativistic-quantum/) shows where spin and the fine-structure terms come from.

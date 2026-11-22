@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 const TAU = 2 * Math.PI;
 
 import * as Q5 from '../_util.js';
+import more2 from './simple-harmonic-motion.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -250,6 +251,7 @@ export default {
       options: ['The area enclosed by its orbit in the $(x, p)$ plane is $2\\pi E/\\omega$.', 'The enclosed area is the same for every energy.', 'The enclosed area is $\\pi E/\\omega$.', 'Setting this area equal to $nh$ (Bohr-Sommerfeld) gives $E = n\\hbar\\omega$.'], answer: [0, 3],
       sol: 'The orbit is an ellipse with semi-axes $x_0 = \\sqrt{2E/(m\\omega^2)}$ and $p_0 = \\sqrt{2mE}$. Area $= \\pi x_0p_0 = \\pi\\cdot2E/\\omega = 2\\pi E/\\omega$ (A true, B and C false). Setting $2\\pi E/\\omega = nh$ gives $E = nh\\omega/(2\\pi) = n\\hbar\\omega$ (D), the old quantum rule (the exact answer adds $\\tfrac12\\hbar\\omega$).',
       trap: 'C forgets that $\\pi x_0p_0$ already contains the factor 2 from $x_0p_0 = 2E/\\omega$.' },
+    ...more2,
   ],
   gens: [
     { id: 'shm-t21', type: 'msq', level: 2, exams: ['jam'], sub: 'kinematics', format: 'statements',

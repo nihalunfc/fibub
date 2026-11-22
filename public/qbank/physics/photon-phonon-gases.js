@@ -4,6 +4,7 @@
 // radiation laws themselves; these questions are about the statistical derivation and its consequences.
 // Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './photon-phonon-gases.more.gen.js';
 
 const Z3 = 1.2020569, Z32 = 2.6123753, Z52 = 1.3414873;
 const aRad = (Math.PI ** 2 * C.kB ** 4) / (15 * C.hbar ** 3 * C.c ** 3); // J m^-3 K^-4
@@ -333,5 +334,6 @@ export default {
           sol: `RJ gives $kT$ per mode; Planck gives $h\\nu/(e^{h\\nu/kT} - 1)$. Ratio $= (e^x - 1)/x = ${round(v, 4)}$.${x <= 0.1 ? ' Nearly 1: classical physics works at low frequency.' : ''}` };
       },
       verify: (p) => (Math.exp(p.x) - 1) / p.x },
+    ...more,
   ],
 };

@@ -86,6 +86,8 @@ export default {
       { id: 'waveguides', name: 'Waveguides, transmission lines, cavities and optical fibres' },
       { id: 'radiation', name: 'Radiation from dipoles and accelerated charges' },
       { id: 'covariant-electrodynamics', name: 'Electrodynamics and relativity: covariant form, field transformations' },
+      { id: 'retarded-potentials', name: 'Liénard-Wiechert fields and radiation (NET)' },
+      { id: 'plasma-dispersion', name: 'Plasma oscillations and dispersion (NET)' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
@@ -103,6 +105,9 @@ export default {
       { id: 'photon-phonon-gases', name: 'Photon and phonon gases, Bose-Einstein condensation' },
       { id: 'fermi-gas', name: 'The degenerate Fermi gas' },
       { id: 'phase-transitions', name: 'Phase transitions and critical phenomena' },
+      { id: 'fluctuations-brownian', name: 'Fluctuations, diffusion and Brownian motion (NET)' },
+      { id: 'ising-landau', name: 'The Ising model and Landau theory (NET)' },
+      { id: 'transport', name: 'Kinetic theory of transport (NET)' },
     ] },
     { id: 'modern', name: 'Modern physics', topics: [
       { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
@@ -122,6 +127,8 @@ export default {
       { id: 'variational-wkb', name: 'The variational method and WKB' },
       { id: 'time-dependent-perturbation', name: 'Time-dependent perturbation theory and Fermi\'s golden rule' },
       { id: 'identical-particles', name: 'Identical particles' },
+      { id: 'scattering-theory', name: 'Scattering: Born approximation and partial waves (NET)' },
+      { id: 'relativistic-quantum', name: 'Klein-Gordon and Dirac equations (NET)' },
     ] },
     { id: 'atomic', name: 'Atomic and molecular physics', topics: [
       { id: 'fine-structure', name: 'Hydrogen spectra and fine structure' },
@@ -131,6 +138,8 @@ export default {
       { id: 'vibrational-spectra', name: 'Vibrational spectra' },
       { id: 'raman', name: 'Raman spectroscopy' },
       { id: 'lasers', name: 'Einstein coefficients and lasers' },
+      { id: 'esr-nmr', name: 'Magnetic resonance: ESR and NMR' },
+      { id: 'electronic-spectra', name: 'Electronic spectra and the Franck-Condon principle' },
     ] },
     { id: 'solid-state', name: 'Solid state physics and devices', topics: [
       { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
@@ -147,11 +156,26 @@ export default {
       { id: 'semiconductors-hall', name: 'Semiconductors, Landau levels and the Hall effect' },
       { id: 'magnetism', name: 'Dia-, para-, ferro- and antiferromagnetism' },
       { id: 'superconductivity', name: 'Superconductivity' },
+      { id: 'defects-dislocations', name: 'Defects and dislocations' },
+      { id: 'dielectric-optical', name: 'Dielectric and optical properties of solids' },
+      { id: 'quantum-hall', name: 'The quantum Hall effect and low-dimensional systems' },
     ] },
     { id: 'electronics', name: 'Electronics', topics: [
       { id: 'transistors', name: 'Transistors and amplifiers' },
       { id: 'op-amps', name: 'Operational amplifiers' },
       { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+      { id: 'semiconductor-devices', name: 'Diodes, BJTs, FETs and MOSFETs' },
+      { id: 'amplifiers-feedback', name: 'Amplifiers and feedback' },
+      { id: 'op-amp-circuits', name: 'Op-amp circuits' },
+      { id: 'oscillators', name: 'Oscillators' },
+      { id: 'combinational-logic', name: 'Combinational logic' },
+      { id: 'sequential-logic', name: 'Flip-flops, counters and registers' },
+      { id: 'adc-dac', name: 'ADCs and DACs' },
+    ] },
+    { id: 'experimental', name: 'Experimental methods', topics: [
+      { id: 'errors-data-fitting', name: 'Measurement, errors and fitting data' },
+      { id: 'transducers-detectors', name: 'Transducers and detectors' },
+      { id: 'noise-lock-in', name: 'Noise, filtering and lock-in detection' },
     ] },
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
@@ -163,6 +187,9 @@ export default {
       { id: 'nuclear-reactions-gate', name: 'Nuclear reactions and Q values (GATE)' },
       { id: 'particles-quarks', name: 'Elementary particles and quarks' },
       { id: 'conservation-laws', name: 'Conservation laws and symmetries' },
+      { id: 'deuteron-nuclear-force', name: 'The deuteron and the nuclear force' },
+      { id: 'collective-model', name: 'The collective model and nuclear deformation' },
+      { id: 'quark-model', name: 'Isospin, strangeness and the quark model' },
     ] },
     { id: 'aptitude', name: 'General aptitude (NET Part A)', topics: [
       { id: 'part-a-aptitude', name: 'Part A: series, percentages, data, geometry, puzzles, graphs and estimation' },

@@ -174,4 +174,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="newtons-laws-frames" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 2.2, [work, energy, momentum and collisions](/learn/courses/iit-jam-physics/work-energy-collisions/), gives you shortcuts that avoid forces altogether. Want to see how air resistance bends a real trajectory? Try the [projectile drag tool](/science/projectile-drag/). Going on to GATE? [Lagrangian mechanics](/learn/courses/gate-physics/) handles constraints without drawing a single force.
+**Next:** lesson 2.2, [work, energy, momentum and collisions](/learn/courses/iit-jam-physics/work-energy-collisions/), gives you shortcuts that avoid forces altogether. Want to see how air resistance bends a real trajectory? Try the [projectile drag tool](/science/projectile-drag/). Going on to GATE? [Lagrangian mechanics](/learn/courses/gate-physics/lagrangian-mechanics/) handles constraints without drawing a single force.

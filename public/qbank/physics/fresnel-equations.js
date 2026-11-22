@@ -5,6 +5,7 @@
 // Sign convention used for r_p: r_p = (n2 cos θi − n1 cos θt)/(n2 cos θi + n1 cos θt). Questions avoid depending on it.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt } from '../_util.js';
+import more from './fresnel-equations.more.gen.js';
 
 const D = Math.PI / 180;
 /** Fresnel amplitude coefficients for a ray from n1 into n2 at incidence thDeg (no TIR). */
@@ -387,5 +388,6 @@ export default {
           sol: `$\\sin\\theta_c = n_2/n_1 = \\sin${thc}^\\circ = ${s.toFixed(4)}$, and $\\tan\\theta_B = n_2/n_1$ too. So $\\theta_B = \\tan^{-1}(${s.toFixed(4)}) = ${thB.toFixed(1)}^\\circ$, below the critical angle as always.`,
           trap: 'The external Brewster angle is the complement of the internal one.' };
       } },
+    ...more,
   ],
 };

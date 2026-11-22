@@ -4,6 +4,7 @@
 // matrix elements, the finite size of the nucleus, and checks against exact solutions.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './perturbation-theory.more.gen.js';
 
 const lower2 = (a, b, v) => (a + b) / 2 - Math.sqrt(((a - b) / 2) ** 2 + v * v);
 const wellStep = (n, f) => f - Math.sin(2 * n * Math.PI * f) / (2 * n * Math.PI); // <n|H'|n>/V0 for H' = V0 on 0 < x < f a
@@ -311,6 +312,7 @@ export default {
           sol: `Gap $= \\sqrt{\\Delta^2 + 4V^2} = \\sqrt{${d}^2 + 4\\times${V}^2} = ${round(v, 3)}$ meV.${d === 0 ? ' At zero detuning this is the minimum gap $2V$ of the avoided crossing.' : ''}` };
       },
       verify: (p) => Math.hypot(p.d, 2 * p.V) },
+    ...more,
   ],
 };
 

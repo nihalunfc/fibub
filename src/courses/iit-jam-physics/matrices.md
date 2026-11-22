@@ -194,4 +194,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="matrices" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 1.7, differential equations](/learn/courses/iit-jam-physics/differential-equations/). **Next:** [lesson 1.9, complex numbers](/learn/courses/iit-jam-physics/complex-numbers/). Eigenvalues come back in coupled oscillations, rigid-body rotation and all of quantum mechanics. For GATE and CSIR NET, continue with [Hermitian and unitary matrices and diagonalisation](/learn/courses/gate-physics/) in the GATE Physics course.
+**Before this:** [lesson 1.7, differential equations](/learn/courses/iit-jam-physics/differential-equations/). **Next:** [lesson 1.9, complex numbers](/learn/courses/iit-jam-physics/complex-numbers/). Eigenvalues come back in coupled oscillations, rigid-body rotation and all of quantum mechanics. For GATE and CSIR NET, continue with [Hermitian and unitary matrices and diagonalisation](/learn/courses/gate-physics/matrices-eigenvalues/) in the GATE Physics course.

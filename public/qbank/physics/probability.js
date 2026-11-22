@@ -4,6 +4,7 @@
 // propagation of errors, weighted means, least squares and chi-square.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './probability.more.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const binom = (n, k) => (k < 0 || k > n ? 0 : Math.round(fact(n) / (fact(k) * fact(n - k))));
@@ -362,5 +363,6 @@ export default {
           trap: 'Subtract survival probabilities; do not multiply the interval by the rate unless it is very short.' };
       },
       verify: (p) => integ((t) => Math.exp(-t / p.tau) / p.tau, p.t1, p.t2, 20000) },
+    ...more,
   ],
 };

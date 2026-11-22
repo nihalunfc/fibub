@@ -130,4 +130,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="first-law" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 5.1, kinetic theory](/learn/courses/iit-jam-physics/kinetic-theory/), for where `$C_V$` and `$\gamma$` come from. **Next:** [lesson 5.3, the second law and entropy](/learn/courses/iit-jam-physics/second-law-entropy/), which says how much of the heat an engine can turn into work. Going on to GATE? The [GATE Physics course](/learn/courses/gate-physics/) builds the same ideas from statistical mechanics in its thermodynamics module.
+**Before this:** [lesson 5.1, kinetic theory](/learn/courses/iit-jam-physics/kinetic-theory/), for where `$C_V$` and `$\gamma$` come from. **Next:** [lesson 5.3, the second law and entropy](/learn/courses/iit-jam-physics/second-law-entropy/), which says how much of the heat an engine can turn into work. Going on to GATE? The GATE Physics course builds the same ideas from [statistical mechanics](/learn/courses/gate-physics/ensembles/) in its thermodynamics module.

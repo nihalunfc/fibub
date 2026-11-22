@@ -155,4 +155,4 @@ From warm-up to top-rank level, with full solutions. More on the [practice page]
 
 <div class="qbank" data-bank="physics" data-topics="covariant-electrodynamics" data-exam="gate" data-n="10"></div>
 
-**Before this:** [lesson 3.9, radiation](/learn/courses/gate-physics/radiation/), and the JAM lesson on [special relativity](/learn/courses/iit-jam-physics/special-relativity/). Back to the [GATE Physics course home](/learn/courses/gate-physics/), where Part C, quantum and statistical physics, follows.
+**Before this:** [lesson 3.9, radiation](/learn/courses/gate-physics/radiation/), and the JAM lesson on [special relativity](/learn/courses/iit-jam-physics/special-relativity/). Back to the [GATE Physics course home](/learn/courses/gate-physics/), where [Part C](/learn/courses/gate-physics/postulates-operators/), quantum and statistical physics, follows.

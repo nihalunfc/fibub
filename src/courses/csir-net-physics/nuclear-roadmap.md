@@ -57,28 +57,27 @@ Described from the published syllabus (check the current one). All of it is **Pa
 ## 2. The order to study it
 
 1. **Basics** from JAM: [nuclei, binding energy and radioactivity](/learn/courses/iit-jam-physics/nuclei-radioactivity/) and [nuclear reactions, fission and fusion](/learn/courses/iit-jam-physics/nuclear-reactions/).
-2. **Nuclear properties and the mass formula**: the GATE lessons on nuclear size, spin and moments and on binding energy and the semi-empirical mass formula.
-3. **Shell model**: the GATE lesson on the nuclear shell model. Revise GATE [angular momentum](/learn/courses/gate-physics/angular-momentum/) first if spin-orbit coupling is shaky.
-4. **Decays and reactions**: the GATE lessons on alpha, beta and gamma decay and on nuclear reactions and Q values.
-5. **Particles**: the GATE lessons on elementary particles and quarks and on conservation laws and symmetries.
+2. **Nuclear properties and the mass formula**: the GATE lessons on [nuclear size, spin and moments](/learn/courses/gate-physics/nuclear-properties/) and on [binding energy and the semi-empirical mass formula](/learn/courses/gate-physics/binding-energy-semf/).
+3. **Shell model**: the GATE lesson on [the nuclear shell model](/learn/courses/gate-physics/shell-model/). Revise GATE [angular momentum](/learn/courses/gate-physics/angular-momentum/) first if spin-orbit coupling is shaky.
+4. **Decays and reactions**: the GATE lessons on [alpha, beta and gamma decay](/learn/courses/gate-physics/radioactive-decays/) and on [nuclear reactions and Q values](/learn/courses/gate-physics/nuclear-reactions/).
+5. **Particles**: the GATE lessons on [elementary particles and quarks](/learn/courses/gate-physics/particles-quarks/) and on [conservation laws and symmetries](/learn/courses/gate-physics/conservation-laws/).
 6. **Relativistic kinematics**: GATE [four-vectors and relativistic kinematics](/learn/courses/gate-physics/relativistic-kinematics/) (thresholds and invariant mass).
-7. **NET extras in this course**: lesson 10.2 (the deuteron and the nuclear force), lesson 10.3 (the collective model and nuclear deformation) and lesson 10.4 (isospin, strangeness and the quark model).
+7. **NET extras in this course**: [lesson 10.2](/learn/courses/csir-net-physics/deuteron-nuclear-force/) (the deuteron and the nuclear force), [lesson 10.3](/learn/courses/csir-net-physics/collective-model/) (the collective model and nuclear deformation) and [lesson 10.4](/learn/courses/csir-net-physics/quark-model/) (isospin, strangeness and the quark model).
 
-Several GATE nuclear lessons are still being written; until they appear, use the JAM lessons, the practice sets and the textbooks in the sources.
 
 ## 3. Where each topic is taught
 
 | Topic | Learn it from | NET emphasis |
 |---|---|---|
 | Radioactivity, binding energy | [JAM nuclei](/learn/courses/iit-jam-physics/nuclei-radioactivity/) | decay chains, activity, B/A curve |
-| Reactions, fission, fusion | [JAM reactions](/learn/courses/iit-jam-physics/nuclear-reactions/), GATE reactions lesson | Q value, threshold energy, compound nucleus |
-| Size, spin, moments | GATE nuclear properties lesson | R ∝ A^(1/3), magnetic moments, quadrupole moments and shape |
-| Mass formula | GATE mass formula lesson | most stable Z for given A, mirror-nucleus energies |
-| Shell model | GATE shell model lesson | magic numbers, spin-parity, Schmidt lines |
-| Decays and selection rules | GATE decays lesson | Gamow factor, Fermi and Gamow-Teller rules, multipolarity of gamma rays |
-| Particles, quarks, symmetries | GATE particles and conservation lessons, lesson 10.4 | quark content, which force, allowed or forbidden reactions |
-| Deuteron, nuclear force | lesson 10.2 | tensor force, mixed ³S₁ and ³D₁ ground state, only one bound state |
-| Collective model | lesson 10.3 | rotational bands E ∝ J(J + 1), ratio E(4⁺)/E(2⁺) = 10/3 |
+| Reactions, fission, fusion | [JAM reactions](/learn/courses/iit-jam-physics/nuclear-reactions/), [GATE reactions lesson](/learn/courses/gate-physics/nuclear-reactions/) | Q value, threshold energy, compound nucleus |
+| Size, spin, moments | [GATE nuclear properties lesson](/learn/courses/gate-physics/nuclear-properties/) | R ∝ A^(1/3), magnetic moments, quadrupole moments and shape |
+| Mass formula | [GATE mass formula lesson](/learn/courses/gate-physics/binding-energy-semf/) | most stable Z for given A, mirror-nucleus energies |
+| Shell model | [GATE shell model lesson](/learn/courses/gate-physics/shell-model/) | magic numbers, spin-parity, Schmidt lines |
+| Decays and selection rules | [GATE decays lesson](/learn/courses/gate-physics/radioactive-decays/) | Gamow factor, Fermi and Gamow-Teller rules, multipolarity of gamma rays |
+| Particles, quarks, symmetries | GATE [particles](/learn/courses/gate-physics/particles-quarks/) and [conservation](/learn/courses/gate-physics/conservation-laws/) lessons, [lesson 10.4](/learn/courses/csir-net-physics/quark-model/) | quark content, which force, allowed or forbidden reactions |
+| Deuteron, nuclear force | [lesson 10.2](/learn/courses/csir-net-physics/deuteron-nuclear-force/) | tensor force, mixed ³S₁ and ³D₁ ground state, only one bound state |
+| Collective model | [lesson 10.3](/learn/courses/csir-net-physics/collective-model/) | rotational bands E ∝ J(J + 1), ratio E(4⁺)/E(2⁺) = 10/3 |
 | Relativistic kinematics | [GATE 2.7](/learn/courses/gate-physics/relativistic-kinematics/) | thresholds, two-body decays at rest |
 
 ## 4. A worked NET-style example
@@ -124,7 +123,7 @@ You are ready for full NET mocks when you can, without notes:
 <div class="keypoints">
 
 - Part C only: nuclear properties, mass formula, nuclear force and deuteron, shell and collective models, decays, reactions, particles and the quark model, symmetries, relativistic kinematics.
-- Order: JAM basics, properties and mass formula, shell model, decays and reactions, particles, kinematics, lessons 10.2 to 10.4.
+- Order: JAM basics, properties and mass formula, shell model, decays and reactions, particles, kinematics, lessons [10.2](/learn/courses/csir-net-physics/deuteron-nuclear-force/) to [10.4](/learn/courses/csir-net-physics/quark-model/).
 - Check each conservation law in turn; parity of a shell-model state is `$(-1)^l$`.
 
 </div>
@@ -133,4 +132,4 @@ You are ready for full NET mocks when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="nuclei-radioactivity,nuclear-reactions,relativistic-kinematics,special-relativity" data-exam="net" data-n="10"></div>
 
-**Next:** you have the plan for every unit. Sit a full [mock test](/learn/courses/csir-net-physics/mock-test/), review it, and return to the roadmap of your weakest unit.
+**Next:** the first lesson of this unit, [The deuteron and the nuclear force](/learn/courses/csir-net-physics/deuteron-nuclear-force/).

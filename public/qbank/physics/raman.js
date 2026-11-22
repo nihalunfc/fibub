@@ -3,6 +3,7 @@
 // intensity ratios and Raman thermometry, the nu^4 law, resonance and coherent Raman.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './raman.more.gen.js';
 
 const C2 = 1.438777;   // hc/k, cm K
 const IB = 16.8576;    // I (u Å^2) = IB / B (cm^-1)
@@ -353,5 +354,6 @@ export default {
           trap: 'O(0) and O(1) do not exist; the label is the lower-level $J$.' };
       },
       verify: (p) => (p.br === 'S' ? p.v0 + p.B * ((p.J + 2) * (p.J + 3) - p.J * (p.J + 1)) : p.v0 + p.B * ((p.J - 2) * (p.J - 1) - p.J * (p.J + 1))) },
+    ...more,
   ],
 };

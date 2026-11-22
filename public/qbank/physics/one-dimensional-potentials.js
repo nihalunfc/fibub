@@ -3,6 +3,7 @@
 // the Ramsauer effect, double delta wells, parity and matching conditions. (Basics: schrodinger-equation topic.)
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './one-dimensional-potentials.more.gen.js';
 
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
 
@@ -278,5 +279,6 @@ export default {
         return { q: `A finite square well has $z_0 = \\tfrac a2\\sqrt{2mV_0}/\\hbar = ${z0}$. Its bound states are`, ...o,
           sol: `Branches of the graphical solution start at $z = 0, \\pi/2, \\pi, 3\\pi/2, \\dots$ (even, odd, even, odd, ...), each giving one state if it starts below $z_0 = ${z0}$. That gives ${ev} even and ${od} odd, ${ev + od} in all ($= 1 + \\lfloor 2z_0/\\pi\\rfloor$).` };
       } },
+    ...more,
   ],
 };

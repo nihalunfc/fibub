@@ -172,3 +172,5 @@ They start easy and climb to top-rank level. More on the [Hamiltonian mechanics 
 <div class="qbank" data-bank="physics" data-topics="hamiltonian-mechanics" data-exam="gate" data-n="10"></div>
 
 **Before this:** lesson 2.1, [Lagrangian mechanics](/learn/courses/gate-physics/lagrangian-mechanics/). **Next:** lesson 2.3, [Poisson brackets and canonical transformations](/learn/courses/gate-physics/poisson-brackets/). Basics: the JAM lesson on [simple harmonic motion](/learn/courses/iit-jam-physics/simple-harmonic-motion/).
+
+**Going on to CSIR NET?** [Phase space, fixed points and stability](/learn/courses/csir-net-physics/phase-space-stability/) reads Hamilton's equations as a flow in phase space.

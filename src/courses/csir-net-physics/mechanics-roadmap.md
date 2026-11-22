@@ -83,7 +83,7 @@ Part B questions are usually one clean step: count degrees of freedom, read off 
 | Rigid bodies | [GATE 2.6](/learn/courses/gate-physics/rigid-body-dynamics/) | inertia tensor of simple shapes, principal axes |
 | Relativity | [GATE 2.7](/learn/courses/gate-physics/relativistic-kinematics/), [JAM relativity](/learn/courses/iit-jam-physics/special-relativity/) | invariant mass, threshold energies, velocity addition |
 | Non-inertial frames | [JAM Newton's laws and frames](/learn/courses/iit-jam-physics/newtons-laws-frames/) | Coriolis and centrifugal terms |
-| Stability, chaos, Hamilton-Jacobi | lessons 3.2 to 3.4 | fixed-point types, Lyapunov exponents, separation of the HJ equation |
+| Stability, chaos, Hamilton-Jacobi | lessons [3.2](/learn/courses/csir-net-physics/hamilton-jacobi/) to [3.4](/learn/courses/csir-net-physics/nonlinear-dynamics-chaos/) | fixed-point types, Lyapunov exponents, separation of the HJ equation |
 
 ## 4. A worked NET-style example
 
@@ -132,7 +132,7 @@ You are ready for electromagnetism when you can, without notes:
 
 - Part B: Lagrangian and Hamiltonian mechanics, conservation laws, central forces and collisions, rigid bodies, small oscillations, relativity.
 - Part C: phase space and stability, Poisson brackets and canonical transformations, Noether's theorem, Hamilton-Jacobi theory.
-- Order: Lagrangian, Hamiltonian, Poisson brackets, central forces, normal modes, rigid bodies, relativity, then lessons 3.2 to 3.4.
+- Order: Lagrangian, Hamiltonian, Poisson brackets, central forces, normal modes, rigid bodies, relativity, then lessons [3.2](/learn/courses/csir-net-physics/hamilton-jacobi/) to [3.4](/learn/courses/csir-net-physics/nonlinear-dynamics-chaos/).
 - Normal modes: ω² are the eigenvalues of `$M^{-1}K$`; check with trace and determinant.
 
 </div>
@@ -141,4 +141,4 @@ You are ready for electromagnetism when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="lagrangian-mechanics,hamiltonian-mechanics,poisson-brackets,central-force-scattering,normal-modes,rigid-body-dynamics,relativistic-kinematics,special-relativity" data-exam="net" data-n="10"></div>
 
-**Next:** [electromagnetic theory roadmap](/learn/courses/csir-net-physics/em-roadmap/).
+**Next:** the first lesson of this unit, [Canonical transformations and Hamilton-Jacobi theory](/learn/courses/csir-net-physics/hamilton-jacobi/). Already strong in this unit? Skip ahead to the [electromagnetic theory roadmap](/learn/courses/csir-net-physics/em-roadmap/).

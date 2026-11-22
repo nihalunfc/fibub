@@ -4,6 +4,7 @@
 // and Raman scattering, LO-TO splitting and the Lyddane-Sachs-Teller relation, soft modes, thermal conductivity.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './phonons.more.gen.js';
 
 const PI = Math.PI, U = C.u;
 const HEV = C.h / C.e;                     // h in eV s
@@ -387,5 +388,6 @@ export default {
           trap: 'Using $1/(e^x + 1)$ (fermions) or the bare Boltzmann factor.' };
       },
       verify: (p) => 1 / Math.expm1(p.E / (KBMEV * p.T)) },
+    ...more,
   ],
 };

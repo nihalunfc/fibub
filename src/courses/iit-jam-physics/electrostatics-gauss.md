@@ -164,4 +164,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="electrostatics-gauss" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 4.2 turns the field into a potential, a single number at each point that is far easier to add up, and works out the energy stored in charge arrangements: [potential and electrostatic energy](/learn/courses/iit-jam-physics/potential-energy/). Going on to GATE? The [GATE Physics course](/learn/courses/gate-physics/) takes this into boundary value problems, images and multipoles.
+**Next:** lesson 4.2 turns the field into a potential, a single number at each point that is far easier to add up, and works out the energy stored in charge arrangements: [potential and electrostatic energy](/learn/courses/iit-jam-physics/potential-energy/). Going on to GATE? The GATE Physics course takes this into [boundary value problems](/learn/courses/gate-physics/boundary-value-problems/), [images](/learn/courses/gate-physics/method-of-images/) and [multipoles](/learn/courses/gate-physics/multipoles/).

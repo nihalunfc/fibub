@@ -20,6 +20,7 @@ const NUC = [
 const bePerA = (Z, A, M) => (Z * MH + (A - Z) * MN - M) * U / A;
 
 import * as Q5 from '../_util.js';
+import more2 from './nuclei-radioactivity.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -270,6 +271,7 @@ export default {
       options: ['for even $A$ there is never more than one stable isobar', 'for even $A$ there can be two (or even three) stable isobars, and an odd-odd nucleus between them may decay both by $\\beta^-$ and by $\\beta^+$/electron capture', 'for odd $A$ there are usually several stable isobars', 'odd-odd nuclei with even $A$ cannot undergo beta decay'], answer: 1,
       sol: 'For odd $A$ the nuclei lie on one parabola and successive beta decays slide down to a single minimum: usually one stable isobar. For even $A$ beta decay hops between the two parabolas. An even-even nucleus near the bottom may lie below both its odd-odd neighbours, so it cannot beta decay even if another even-even isobar two steps away is lower still. That allows two stable isobars, such as ${}^{40}$Ar and ${}^{40}$Ca, with ${}^{40}$K between them decaying both ways.',
       trap: 'Single beta decays change $Z$ by one, so an even-even nucleus is "trapped" if both neighbours are heavier, even when it is not the absolute minimum.' },
+    ...more2,
   ],
 
   gens: [

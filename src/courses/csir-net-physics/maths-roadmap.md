@@ -132,7 +132,7 @@ You are ready for mechanics when you can, without notes:
 
 - Part B: linear algebra, ODEs and special functions, Fourier and Laplace, complex analysis, probability.
 - Part C: Green's functions and PDEs, numerical methods, tensors, group theory.
-- Order: linear algebra, complex analysis, ODEs and special functions, transforms, PDEs and Green's functions, probability, tensors, then the NET extras (lessons 2.2 to 2.4).
+- Order: linear algebra, complex analysis, ODEs and special functions, transforms, PDEs and Green's functions, probability, tensors, then the NET extras (lessons [2.2](/learn/courses/csir-net-physics/group-theory/) to [2.4](/learn/courses/csir-net-physics/numerical-methods/)).
 - Learn every tool through one worked example you can redo from memory, and check answers with dimensions and limits.
 
 </div>
@@ -141,4 +141,4 @@ You are ready for mechanics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="linear-vector-spaces,matrices-eigenvalues,complex-analysis,residues,fourier-laplace-transforms,special-functions,partial-differential-equations,delta-greens-functions,tensors,probability" data-exam="net" data-n="10"></div>
 
-**Next:** [classical mechanics roadmap](/learn/courses/csir-net-physics/mechanics-roadmap/).
+**Next:** the first lesson of this unit, [Group theory for physicists](/learn/courses/csir-net-physics/group-theory/). Already strong in this unit? Skip ahead to the [classical mechanics roadmap](/learn/courses/csir-net-physics/mechanics-roadmap/).

@@ -4,6 +4,7 @@
 // (Cooper pairs, gap, isotope effect, coherence length), Josephson effects, SQUIDs and high-Tc cuprates.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
+import more from './superconductivity.more.gen.js';
 
 const PHI0 = C.h / (2 * C.e); // flux quantum, Wb
 const kBe = C.kB / C.e;
@@ -354,5 +355,6 @@ export default {
           trap: kind === 'lam' ? 'Using $(T/T_c)^2$ instead of the fourth power.' : 'Using $1 - T/T_c$.' };
       },
       verify: (p) => (p.kind === 'lam' ? p.l0 / Math.sqrt(1 - p.t ** 4) : 1 - p.t ** 4) },
+    ...more,
   ],
 };

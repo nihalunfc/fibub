@@ -188,4 +188,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="complex-numbers" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 1.8, matrices and eigenvalues](/learn/courses/iit-jam-physics/matrices/). **Next:** [lesson 1.10](/learn/courses/iit-jam-physics/fourier-series/), Fourier series, where Euler's formula writes any periodic signal as a sum of turning arrows. For GATE and CSIR NET, continue with [analytic functions and Cauchy's theorem](/learn/courses/gate-physics/) in the GATE Physics course.
+**Before this:** [lesson 1.8, matrices and eigenvalues](/learn/courses/iit-jam-physics/matrices/). **Next:** [lesson 1.10](/learn/courses/iit-jam-physics/fourier-series/), Fourier series, where Euler's formula writes any periodic signal as a sum of turning arrows. For GATE and CSIR NET, continue with [analytic functions and Cauchy's theorem](/learn/courses/gate-physics/complex-analysis/) in the GATE Physics course.

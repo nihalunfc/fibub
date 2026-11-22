@@ -144,3 +144,5 @@ From warm-up to top-rank level, with full solutions. More on the [partial differ
 <div class="qbank" data-bank="physics" data-topics="partial-differential-equations" data-exam="gate" data-n="10"></div>
 
 fibub's [Heat conduction solver](/science/heat-conduction/) and [Standing waves calculator](/science/standing-waves/) let you try other rods and strings. **Before this:** [lesson 1.6, series solutions and special functions](/learn/courses/gate-physics/special-functions/). **Next:** [lesson 1.8, the Dirac delta and Green's functions](/learn/courses/gate-physics/delta-greens-functions/), which solve the same equations with sources. Back to the [GATE Physics course home](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [Numerical methods](/learn/courses/csir-net-physics/numerical-methods/) solves the same equations by finite differences when separation of variables fails.

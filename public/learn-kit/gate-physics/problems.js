@@ -1485,4 +1485,251 @@ export default {
     // independent check: lab flight time against the dilated lifetime
     verify: (p) => { const E = Math.hypot(p.p, p.m), beta = p.p / E, gamma = E / p.m, t = p.d / (beta * 2.99792458e8); return 100 * Math.exp(-t / (gamma * p.tau)); },
   },
+  // ---- 9.1 to 9.7 electronics ----
+  'mosfet-bias': {
+    title: 'drain voltage of a MOSFET in saturation',
+    make(r) {
+      const Vt = [0.5, 0.8, 1, 1.2][int(r, 0, 3)], ov = int(r, 5, 15) / 10, k = int(r, 2, 8) / 2, RD = int(r, 10, 20) / 10, VDD = 12;
+      const VGS = +(Vt + ov).toFixed(2), ID = 0.5 * k * ov * ov, answer = VDD - ID * RD;
+      return {
+        q: `<p>An n-channel enhancement MOSFET has V<sub>T</sub> = ${Vt} V and k<sub>n</sub> = μ<sub>n</sub>C<sub>ox</sub>W/L = ${k} mA/V². It is biased at V<sub>GS</sub> = ${VGS} V with a ${RD} kΩ drain resistor to V<sub>DD</sub> = ${VDD} V and the source grounded. Find V<sub>DS</sub> in volts (neglect channel-length modulation).</p>`,
+        answer, unit: 'V', tol: 0.005,
+        hint: 'Assume saturation: I<sub>D</sub> = ½k<sub>n</sub>(V<sub>GS</sub> − V<sub>T</sub>)². Then check that V<sub>DS</sub> ≥ V<sub>GS</sub> − V<sub>T</sub>.',
+        solution: steps(`Overdrive V<sub>GS</sub> − V<sub>T</sub> = ${ov} V.`, `I<sub>D</sub> = ½ × ${k} × ${ov}² = ${ID.toFixed(4)} mA.`, `V<sub>DS</sub> = ${VDD} − ${ID.toFixed(4)} × ${RD} = <b>${answer.toFixed(3)} V</b>, which exceeds the overdrive ${ov} V, so saturation holds.`),
+        Vt, ov, k, RD, VDD,
+      };
+    },
+    verify: (p) => { const gm = p.k * p.ov; return p.VDD - (gm * p.ov / 2) * p.RD; },
+  },
+  'jfet-self-bias': {
+    title: 'drain current of a self-biased JFET',
+    make(r) {
+      const Idss = int(r, 4, 12), Vp = int(r, 2, 6), Rs = int(r, 2, 10) / 10;
+      const a = Rs / Vp, b = 2 * Idss * a + 1, answer = (b - Math.sqrt(4 * Idss * a + 1)) / (2 * Idss * a * a);
+      return {
+        q: `<p>An n-channel JFET with I<sub>DSS</sub> = ${Idss} mA and V<sub>P</sub> = −${Vp} V has its gate at ground through a large resistor and a ${Rs} kΩ resistor from source to ground. Find the drain current in mA.</p>`,
+        answer, unit: 'mA', tol: 0.005,
+        hint: 'V<sub>GS</sub> = −I<sub>D</sub>R<sub>S</sub>. Put that into Shockley’s equation I<sub>D</sub> = I<sub>DSS</sub>(1 − V<sub>GS</sub>/V<sub>P</sub>)² and keep the root with |V<sub>GS</sub>| &lt; |V<sub>P</sub>|.',
+        solution: steps(`I<sub>D</sub> = ${Idss}(1 − ${Rs}I<sub>D</sub>/${Vp})², a quadratic in I<sub>D</sub>.`, `The two roots are ${answer.toFixed(4)} mA and ${((b + Math.sqrt(4 * Idss * a + 1)) / (2 * Idss * a * a)).toFixed(3)} mA; the second gives |V<sub>GS</sub>| &gt; ${Vp} V (channel cut off), so it is rejected.`, `I<sub>D</sub> = <b>${answer.toFixed(3)} mA</b>, V<sub>GS</sub> = −${(answer * Rs).toFixed(3)} V.`),
+        Idss, Vp, Rs,
+      };
+    },
+    verify: (p) => { let lo = 0, hi = p.Vp / p.Rs; for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (p.Idss * (1 - m * p.Rs / p.Vp) ** 2 - m > 0) lo = m; else hi = m; } return lo; },
+  },
+  'feedback-bandwidth': {
+    title: 'bandwidth of an amplifier with negative feedback',
+    make(r) {
+      const A0 = int(r, 2, 20) * 1e4, fH = int(r, 5, 50), beta = [0.01, 0.02, 0.05, 0.1, 0.2][int(r, 0, 4)];
+      const answer = fH * (1 + A0 * beta) / 1000;
+      return {
+        q: `<p>An amplifier has open-loop gain A₀ = ${A0} and a single pole at f<sub>H</sub> = ${fH} Hz. Negative feedback with β = ${beta} is applied. Find the closed-loop bandwidth in kHz.</p>`,
+        answer, unit: 'kHz', tol: 0.005,
+        hint: 'With one pole, A(f) = A₀/(1 + jf/f<sub>H</sub>). Feedback divides the gain by 1 + A₀β and multiplies the bandwidth by the same factor.',
+        solution: steps(`Desensitivity 1 + A₀β = ${(1 + A0 * beta).toFixed(0)}.`, `Closed-loop gain A₀/(1 + A₀β) = ${(A0 / (1 + A0 * beta)).toFixed(3)}.`, `Bandwidth f<sub>H</sub>(1 + A₀β) = <b>${answer.toFixed(2)} kHz</b>. Gain × bandwidth = ${(A0 * fH / 1e6).toFixed(2)} MHz is unchanged.`),
+        A0, fH, beta,
+      };
+    },
+    verify: (p) => (p.A0 * p.fH) / (p.A0 / (1 + p.A0 * p.beta)) / 1000,
+  },
+  'miller-pole': {
+    title: 'input pole of a common-emitter stage from the Miller effect',
+    make(r) {
+      const Av = int(r, 20, 200), Cmu = int(r, 1, 5) / 2, Cpi = int(r, 5, 30), Rs = int(r, 5, 50) / 10;
+      const Ctot = Cpi + Cmu * (1 + Av), answer = 1 / (2 * Math.PI * Rs * 1e3 * Ctot * 1e-12) / 1e6;
+      return {
+        q: `<p>A common-emitter stage has mid-band voltage gain −${Av} from base to collector, C<sub>π</sub> = ${Cpi} pF and C<sub>μ</sub> = ${Cmu} pF. It is driven from an effective source resistance of ${Rs} kΩ (including r<sub>π</sub> in parallel). Estimate the input pole frequency in MHz.</p>`,
+        answer, unit: 'MHz', tol: 0.005,
+        hint: 'C<sub>μ</sub> bridges a gain of −A<sub>v</sub>, so seen from the input it looks like C<sub>μ</sub>(1 + A<sub>v</sub>) to ground.',
+        solution: steps(`Miller capacitance C<sub>μ</sub>(1 + A<sub>v</sub>) = ${Cmu} × ${1 + Av} = ${(Cmu * (1 + Av)).toFixed(1)} pF.`, `Total input capacitance ${Ctot.toFixed(1)} pF.`, `f = 1/(2π × ${Rs} kΩ × ${Ctot.toFixed(1)} pF) = <b>${answer.toFixed(3)} MHz</b>.`),
+        Av, Cmu, Cpi, Rs,
+      };
+    },
+    verify: (p) => { const tauNs = p.Rs * (p.Cpi + p.Cmu + p.Cmu * p.Av); return 1e3 / (2 * Math.PI * tauNs); },
+  },
+  'schmitt-thresholds': {
+    title: 'thresholds of an inverting Schmitt trigger with a reference',
+    make(r) {
+      const Vs = int(r, 10, 14), Vref = int(r, 0, 6) / 2, R1 = int(r, 1, 10), R2 = int(r, 2, 10) * 5;
+      const answer = (Vref * R2 + Vs * R1) / (R1 + R2);
+      return {
+        q: `<p>In an inverting Schmitt trigger the input drives the − terminal. The + terminal connects through R₁ = ${R1} kΩ to a reference of ${Vref} V and through R₂ = ${R2} kΩ to the output, which saturates at ±${Vs} V. Find the upper threshold voltage in volts.</p>`,
+        answer, unit: 'V', tol: 0.005,
+        hint: 'The + terminal sits at the superposition of the reference and the output: V₊ = (V<sub>ref</sub>R₂ + V<sub>out</sub>R₁)/(R₁ + R₂). The upper threshold uses V<sub>out</sub> = +V<sub>sat</sub>.',
+        solution: steps(`With the output high, V₊ = (${Vref} × ${R2} + ${Vs} × ${R1})/${R1 + R2}.`, `V<sub>UT</sub> = <b>${answer.toFixed(3)} V</b>; the lower threshold is ${((Vref * R2 - Vs * R1) / (R1 + R2)).toFixed(3)} V.`, `Hysteresis width 2V<sub>sat</sub>R₁/(R₁ + R₂) = ${(2 * Vs * R1 / (R1 + R2)).toFixed(3)} V, centred on V<sub>ref</sub>R₂/(R₁ + R₂).`),
+        Vs, Vref, R1, R2,
+      };
+    },
+    verify: (p) => { const lower = (p.Vref * p.R2 - p.Vs * p.R1) / (p.R1 + p.R2); return lower + 2 * p.Vs * p.R1 / (p.R1 + p.R2); },
+  },
+  'astable-frequency': {
+    title: 'frequency of an op-amp astable multivibrator',
+    make(r) {
+      const R = int(r, 1, 100), C = [1, 2.2, 4.7, 10, 22, 47, 100][int(r, 0, 6)], R1 = int(r, 1, 10), R2 = int(r, 1, 10);
+      const beta = R1 / (R1 + R2), T = 2 * R * 1e3 * C * 1e-9 * Math.log((1 + beta) / (1 - beta)), answer = 1 / T;
+      return {
+        q: `<p>An op-amp astable has timing resistor R = ${R} kΩ (output to − input) and capacitor C = ${C} nF from the − input to ground; the + input is fed from the output by a divider with R₁ = ${R1} kΩ to ground and R₂ = ${R2} kΩ to the output. The output swings symmetrically between ±V<sub>sat</sub>. Find the oscillation frequency in Hz.</p>`,
+        answer, unit: 'Hz', tol: 0.005,
+        hint: 'The capacitor charges from −βV<sub>sat</sub> toward +V<sub>sat</sub> and switches at +βV<sub>sat</sub>, with β = R₁/(R₁ + R₂). Each half period is RC ln[(1 + β)/(1 − β)].',
+        solution: steps(`β = ${R1}/${R1 + R2} = ${beta.toFixed(4)}.`, `T = 2RC ln[(1 + β)/(1 − β)] = 2 × ${R} kΩ × ${C} nF × ${Math.log((1 + beta) / (1 - beta)).toFixed(4)} = ${(T * 1e3).toFixed(4)} ms.`, `f = 1/T = <b>${answer.toFixed(1)} Hz</b>.`),
+        R, C, R1, R2,
+      };
+    },
+    verify: (p) => 1 / (2 * p.R * p.C * 1e-6 * Math.log(1 + 2 * p.R1 / p.R2)),
+  },
+  'wien-unequal': {
+    title: 'gain needed by a Wien bridge with unequal parts',
+    make(r) {
+      const R1 = int(r, 5, 20), R2 = int(r, 5, 20), C1 = int(r, 5, 20), C2 = int(r, 5, 20);
+      const answer = 1 + R1 / R2 + C2 / C1;
+      return {
+        q: `<p>A Wien network has R₁ = ${R1} kΩ in series with C₁ = ${C1} nF, feeding R₂ = ${R2} kΩ in parallel with C₂ = ${C2} nF (output taken across the parallel pair). What minimum non-inverting gain must the amplifier have for oscillation?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'Set the phase of β = Z<sub>p</sub>/(Z<sub>s</sub> + Z<sub>p</sub>) to zero: ω₀² = 1/(R₁R₂C₁C₂). At ω₀, 1/β = 1 + R₁/R₂ + C₂/C₁.',
+        solution: steps(`1/β = 1 + Z<sub>s</sub>/Z<sub>p</sub> = 1 + (R₁ + 1/jωC₁)(1/R₂ + jωC₂) = 1 + R₁/R₂ + C₂/C₁ + j(ωR₁C₂ − 1/ωR₂C₁).`, `The imaginary part vanishes at ω₀ = 1/√(R₁R₂C₁C₂), f₀ = ${(1 / (2 * Math.PI * Math.sqrt(R1 * R2 * C1 * C2) * 1e-6)).toFixed(1)} Hz.`, `Required gain 1 + ${R1}/${R2} + ${C2}/${C1} = <b>${answer.toFixed(4)}</b> (3 when the parts are equal).`),
+        R1, R2, C1, C2,
+      };
+    },
+    verify: (p) => {
+      const w = 1 / Math.sqrt(p.R1 * p.R2 * p.C1 * p.C2); // kΩ·nF = µs, so w is in rad/µs
+      const re = 1 + p.R1 / p.R2 + p.C2 / p.C1, im = w * p.R1 * p.C2 - 1 / (w * p.R2 * p.C1);
+      return Math.hypot(re, im);
+    },
+  },
+  'colpitts-frequency': {
+    title: 'frequency of a Colpitts oscillator',
+    make(r) {
+      const L = int(r, 10, 500), C1 = int(r, 1, 20) * 10, C2 = int(r, 1, 20) * 10;
+      const Cs = C1 * C2 / (C1 + C2), answer = 1 / (2 * Math.PI * Math.sqrt(L * 1e-6 * Cs * 1e-12)) / 1e3;
+      return {
+        q: `<p>A Colpitts oscillator uses L = ${L} µH with C₁ = ${C1} pF and C₂ = ${C2} pF. Find the oscillation frequency in kHz.</p>`,
+        answer, unit: 'kHz', tol: 0.005,
+        hint: 'The two capacitors are in series around the tank: C = C₁C₂/(C₁ + C₂), and f = 1/(2π√(LC)).',
+        solution: steps(`C = ${C1} × ${C2}/${C1 + C2} = ${Cs.toFixed(3)} pF.`, `f = 1/(2π√(${L} µH × ${Cs.toFixed(3)} pF)) = <b>${answer.toFixed(1)} kHz</b>.`, `The amplifier must supply a gain of at least C₂/C₁ = ${(C2 / C1).toFixed(3)} (for a BJT, g<sub>m</sub>R ≥ C₂/C₁).`),
+        L, C1, C2,
+      };
+    },
+    verify: (p) => Math.sqrt((1 / p.C1 + 1 / p.C2) * 1e12 / (p.L * 1e-6)) / (2 * Math.PI * 1e3),
+  },
+  'adder-delay': {
+    title: 'worst-case delay of a ripple-carry adder',
+    make(r) {
+      const n = [4, 8, 16, 32][int(r, 0, 3)], tc = int(r, 2, 8) * 10, ts = int(r, 3, 12) * 10;
+      const answer = (n - 1) * tc + ts;
+      return {
+        q: `<p>${n === 8 ? "An" : "A"} ${n}-bit ripple-carry adder is built from full adders whose carry-out appears ${tc} ps after its inputs settle and whose sum appears ${ts} ps after its inputs settle. Find the worst-case time for the most significant sum bit to be valid, in ps.</p>`,
+        answer, unit: 'ps', tol: 0.005,
+        hint: 'The worst case is a carry generated in bit 0 that propagates through every stage. The last stage needs its carry-in before it can form its sum.',
+        solution: steps(`The carry passes through stages 0 to ${n - 2}: ${n - 1} × ${tc} = ${(n - 1) * tc} ps to reach the carry-in of bit ${n - 1}.`, `Bit ${n - 1} then needs ${ts} ps to form its sum.`, `Worst case <b>${answer} ps</b>; it grows linearly with n, which carry look-ahead reduces to roughly log n.`),
+        n, tc, ts,
+      };
+    },
+    verify: (p) => p.n * p.tc - p.tc + p.ts,
+  },
+  'cmos-power': {
+    title: 'dynamic power of CMOS logic',
+    make(r) {
+      const C = int(r, 5, 50) * 10, V = [0.9, 1.0, 1.2, 1.8, 3.3][int(r, 0, 4)], f = int(r, 1, 30) * 100, a = [0.05, 0.1, 0.2, 0.25][int(r, 0, 3)];
+      const answer = a * C * 1e-12 * V * V * f * 1e6 * 1e3;
+      return {
+        q: `<p>A CMOS block switches a total capacitance of ${C} pF at a clock of ${f} MHz with supply ${V} V. On average a fraction α = ${a} of the capacitance makes a 0 → 1 transition each cycle. Find the dynamic power in mW.</p>`,
+        answer, unit: 'mW', tol: 0.005,
+        hint: 'Each 0 → 1 transition draws CV² from the supply (half stored, half lost in the pull-up); the stored half is lost on the way down. So P = αCV²f.',
+        solution: steps(`Energy per full charge-discharge cycle CV² = ${C} pF × ${V}² = ${(C * V * V).toFixed(2)} pJ.`, `Transitions per second αf = ${a} × ${f} MHz.`, `P = αCV²f = <b>${answer.toFixed(3)} mW</b>. Halving V cuts this by four.`),
+        C, V, f, a,
+      };
+    },
+    verify: (p) => (p.C * p.V * p.V) * (p.a * p.f) * 1e-3,
+  },
+  'max-clock': {
+    title: 'maximum clock frequency of a synchronous circuit',
+    make(r) {
+      const tcq = int(r, 3, 10) * 10, tl = int(r, 5, 40) * 10, tsu = int(r, 2, 8) * 10, sk = int(r, 0, 5) * 10;
+      const answer = 1e3 / (tcq + tl + tsu + sk);
+      return {
+        q: `<p>In a synchronous circuit the flip-flops have clock-to-Q delay ${tcq} ps and setup time ${tsu} ps; the slowest logic path between two flip-flops takes ${tl} ps; the clock may reach the receiving flip-flop ${sk} ps earlier than the launching one. Find the maximum clock frequency in GHz.</p>`,
+        answer, unit: 'GHz', tol: 0.005,
+        hint: 'Data launched at one edge must arrive a setup time before the next edge at the receiver: t<sub>cq</sub> + t<sub>logic</sub> + t<sub>su</sub> ≤ T − (early arrival of the receiving clock).',
+        solution: steps(`Minimum period T = ${tcq} + ${tl} + ${tsu} + ${sk} = ${tcq + tl + tsu + sk} ps.`, `f<sub>max</sub> = 1/T = <b>${answer.toFixed(3)} GHz</b>.`),
+        tcq, tl, tsu, sk,
+      };
+    },
+    verify: (p) => 1 / ((p.tcq + p.tl + p.tsu + p.sk) * 1e-3),
+  },
+  'counter-division': {
+    title: 'output frequency of cascaded counters',
+    make(r) {
+      const fin = int(r, 1, 20) * 100, N1 = int(r, 3, 12), N2 = int(r, 2, 16);
+      const answer = fin * 1e3 / (N1 * N2);
+      return {
+        q: `<p>A ${fin} kHz clock drives a mod-${N1} counter whose most significant output clocks a mod-${N2} counter. Find the frequency of the second counter’s most significant output in Hz.</p>`,
+        answer, unit: 'Hz', tol: 0.005,
+        hint: 'A mod-N counter completes one cycle, and so produces one period of its MSB, every N input pulses. Cascaded counters multiply their moduli.',
+        solution: steps(`After the first counter: ${fin} kHz/${N1} = ${(fin * 1e3 / N1).toFixed(2)} Hz.`, `After the second: divide by ${N2}: <b>${answer.toFixed(3)} Hz</b> (overall mod-${N1 * N2}).`, `Flip-flops needed: ${Math.ceil(Math.log2(N1))} + ${Math.ceil(Math.log2(N2))}. The MSB of a counter whose modulus is not a power of two is not a 50% square wave.`),
+        fin, N1, N2,
+      };
+    },
+    verify: (p) => (p.fin / p.N1 / p.N2) * 1e3,
+  },
+  'r2r-output': {
+    title: 'output of an R-2R ladder DAC',
+    make(r) {
+      const n = [4, 6, 8][int(r, 0, 2)], code = int(r, 1, 2 ** n - 1), Vref = [2.5, 5, 10][int(r, 0, 2)];
+      const answer = Vref * code / 2 ** n, bin = code.toString(2).padStart(n, '0');
+      return {
+        q: `<p>${n === 8 ? "An" : "A"} ${n}-bit R-2R ladder with reference ${Vref} V drives the virtual ground of an inverting op-amp whose feedback resistor equals the ladder’s R. The input code is ${bin} (binary, MSB first). Find the magnitude of the output voltage in volts.</p>`,
+        answer, unit: 'V', tol: 0.005,
+        hint: 'At every node of an R-2R ladder the current splits in half, so the MSB branch carries V<sub>ref</sub>/2R, the next V<sub>ref</sub>/4R, and so on. With R<sub>f</sub> = R the output is V<sub>ref</sub> × code/2ⁿ.',
+        solution: steps(`Code ${bin} = ${code} in decimal.`, `|V<sub>out</sub>| = ${Vref} × ${code}/${2 ** n} = <b>${answer.toFixed(4)} V</b>.`, `One LSB is ${(Vref / 2 ** n).toFixed(4)} V; full scale (all ones) is ${(Vref * (2 ** n - 1) / 2 ** n).toFixed(4)} V, one LSB short of V<sub>ref</sub>.`),
+        n, code, Vref,
+      };
+    },
+    verify: (p) => { let s = 0; for (let i = 0; i < p.n; i++) if ((p.code >> i) & 1) s += p.Vref / 2 ** (p.n - i); return s; },
+  },
+  'sqnr-bits': {
+    title: 'signal-to-quantisation-noise ratio of an ADC',
+    make(r) {
+      const n = int(r, 6, 16), a = [1, 0.5, 0.25, 0.1][int(r, 0, 3)];
+      const answer = 6.0206 * n + 1.7609 + 20 * Math.log10(a);
+      return {
+        q: `<p>An ideal ${n}-bit ADC digitises a sine wave whose amplitude is ${a === 1 ? 'exactly full scale' : `${a} of full scale`}. Find the signal-to-quantisation-noise ratio in dB.</p>`,
+        answer, unit: 'dB', tol: 0.005,
+        hint: 'Quantisation noise power is q²/12 with q = (full range)/2ⁿ. A sine of amplitude A has power A²/2. A smaller input keeps the same noise.',
+        solution: steps(`Full-scale SQNR = 6.02n + 1.76 = ${(6.0206 * n + 1.7609).toFixed(2)} dB.`, `An amplitude of ${a} of full scale subtracts ${(-20 * Math.log10(a)).toFixed(2)} dB.`, `SQNR = <b>${answer.toFixed(2)} dB</b>.`),
+        n, a,
+      };
+    },
+    verify: (p) => 10 * Math.log10(1.5 * p.a * p.a * 4 ** p.n),
+  },
+  // ---- 10.1 and 10.2 the GATE paper ----
+  'gate-raw-score': {
+    title: 'raw marks on the GATE physics part',
+    make(r) {
+      const c1 = int(r, 6, 13), w1 = int(r, 0, 15 - c1), c2 = int(r, 5, 12), w2 = int(r, 0, 15 - c2), ms1 = int(r, 0, 3), ms2 = int(r, 1, 5), n1 = int(r, 2, 7), n2 = int(r, 3, 10);
+      const answer = c1 - w1 / 3 + 2 * c2 - 2 * w2 / 3 + ms1 + 2 * ms2 + n1 + 2 * n2;
+      return {
+        q: `<p>In the physics part of GATE PH a candidate gets ${c1} one-mark MCQs right and ${w1} wrong, ${c2} two-mark MCQs right and ${w2} wrong, ${ms1} one-mark and ${ms2} two-mark MSQs fully right (the rest wrong), and ${n1} one-mark and ${n2} two-mark NATs right (the rest wrong or blank). Find the marks out of 85.</p>`,
+        answer, unit: 'marks', tol: 0.005,
+        hint: 'Only MCQs carry negative marks: −1/3 for a one-mark MCQ and −2/3 for a two-mark MCQ. A wrong MSQ or NAT scores 0, and there is no partial credit for MSQs.',
+        solution: steps(`One-mark MCQ: ${c1} − ${w1}/3 = ${(c1 - w1 / 3).toFixed(3)}.`, `Two-mark MCQ: 2 × ${c2} − 2 × ${w2}/3 = ${(2 * c2 - 2 * w2 / 3).toFixed(3)}.`, `MSQ: ${ms1} + 2 × ${ms2} = ${ms1 + 2 * ms2}. NAT: ${n1} + 2 × ${n2} = ${n1 + 2 * n2}.`, `Total <b>${answer.toFixed(2)}</b> out of 85 (the general aptitude part adds up to 15 more).`),
+        c1, w1, c2, w2, ms1, ms2, n1, n2,
+      };
+    },
+    verify: (p) => (p.c1 + p.ms1 + p.n1) + 2 * (p.c2 + p.ms2 + p.n2) - (p.w1 + 2 * p.w2) / 3,
+  },
+  'gate-guess-value': {
+    title: 'expected marks from educated guesses on GATE MCQs',
+    make(r) {
+      const m1 = int(r, 2, 8), e1 = int(r, 0, 2), m2 = int(r, 2, 8), e2 = int(r, 1, 2);
+      const E = (marks, e) => { const p = 1 / (4 - e); return p * marks - (1 - p) * marks / 3; };
+      const answer = m1 * E(1, e1) + m2 * E(2, e2);
+      return {
+        q: `<p>Near the end of GATE you have ${m1} one-mark MCQs where you can rule out ${e1} of the four options, and ${m2} two-mark MCQs where you can rule out ${e2}. You guess uniformly among the options left on each. What is your expected change in marks?</p>`,
+        answer, unit: 'marks', tol: 0.005,
+        hint: 'With k options left, p = 1/k. One guess is worth p × (marks) − (1 − p) × (marks)/3 on average.',
+        solution: steps(`One-mark: p = 1/${4 - e1}, value per guess ${E(1, e1).toFixed(4)}; × ${m1} = ${(m1 * E(1, e1)).toFixed(4)}.`, `Two-mark: p = 1/${4 - e2}, value per guess ${E(2, e2).toFixed(4)}; × ${m2} = ${(m2 * E(2, e2)).toFixed(4)}.`, `Expected change <b>${answer >= 0 ? '+' : ''}${answer.toFixed(3)} marks</b>. A blind guess among four is worth exactly zero; every option ruled out makes guessing pay.`),
+        m1, e1, m2, e2,
+      };
+    },
+    verify: (p) => { const v = (mk, e) => mk * (4 / (4 - e) - 1) / 3; return p.m1 * v(1, p.e1) + p.m2 * v(2, p.e2); },
+  },
 };

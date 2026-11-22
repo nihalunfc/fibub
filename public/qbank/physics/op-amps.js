@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 const par = (a, b) => (a * b) / (a + b);
 
 import * as Q5 from '../_util.js';
+import more2 from './op-amps.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -267,6 +268,7 @@ export default {
       options: ['$-V_{in}$', '$0$', '$2V_{in}$', '$+V_{in}$'], answer: 3,
       sol: 'Superposition. Through the inverting path: $-(R/R)V_{in} = -V_{in}$. Through the non-inverting path: $(1 + R/R)V_{in} = 2V_{in}$. Total $+V_{in}$. Check with the virtual short: $V_- = V_{in}$, so no current flows in the input resistor and none in the feedback resistor, giving $V_o = V_- = V_{in}$.',
       trap: 'It looks like the two paths should cancel to zero, but the non-inverting path has gain 2, not 1.' },
+    ...more2,
   ],
 
   gens: [

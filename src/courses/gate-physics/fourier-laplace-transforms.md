@@ -175,4 +175,4 @@ From warm-up to top-rank level, with full solutions. More on the [Fourier and La
 
 <div class="qbank" data-bank="physics" data-topics="fourier-laplace-transforms" data-exam="gate" data-n="10"></div>
 
-**Before this:** [lesson 1.4, the residue theorem and real integrals](/learn/courses/gate-physics/residues/). This completes the first block of mathematical physics; the remaining lessons of Module 1 are listed on the [GATE Physics course home](/learn/courses/gate-physics/), and mixed practice is on the [GATE practice page](/learn/courses/gate-physics/practice/).
+**Before this:** [lesson 1.4, the residue theorem and real integrals](/learn/courses/gate-physics/residues/). This completes the first block of mathematical physics; the remaining lessons of Module 1, starting with [series solutions: Legendre, Bessel and Hermite](/learn/courses/gate-physics/special-functions/), are listed on the [GATE Physics course home](/learn/courses/gate-physics/), and mixed practice is on the [GATE practice page](/learn/courses/gate-physics/practice/).

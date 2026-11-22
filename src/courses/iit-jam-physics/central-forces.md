@@ -162,4 +162,4 @@ They start easy and climb to top-rank level. More on the [central forces practic
 
 <div class="qbank" data-bank="physics" data-topics="central-forces" data-exam="jam" data-n="10"></div>
 
-**Before this:** lesson 2.2, [work, energy and collisions](/learn/courses/iit-jam-physics/work-energy-collisions/). **Next:** lesson 2.5, [moment of inertia](/learn/courses/iit-jam-physics/moment-of-inertia/). Going on to GATE? [Central forces and scattering](/learn/courses/gate-physics/) adds the orbit equation in full and Rutherford scattering.
+**Before this:** lesson 2.2, [work, energy and collisions](/learn/courses/iit-jam-physics/work-energy-collisions/). **Next:** lesson 2.5, [moment of inertia](/learn/courses/iit-jam-physics/moment-of-inertia/). Going on to GATE? [Central forces and scattering](/learn/courses/gate-physics/central-force-scattering/) adds the orbit equation in full and Rutherford scattering.

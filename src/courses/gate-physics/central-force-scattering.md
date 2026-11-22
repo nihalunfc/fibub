@@ -162,3 +162,5 @@ They start easy and climb to top-rank level. More on the [central forces and sca
 <div class="qbank" data-bank="physics" data-topics="central-force-scattering" data-exam="gate" data-n="10"></div>
 
 **Before this:** lesson 2.3, [Poisson brackets and canonical transformations](/learn/courses/gate-physics/poisson-brackets/). **Next:** lesson 2.5, [small oscillations and normal modes](/learn/courses/gate-physics/normal-modes/). Basics: the JAM lessons on [central forces](/learn/courses/iit-jam-physics/central-forces/) and [work, energy and collisions](/learn/courses/iit-jam-physics/work-energy-collisions/).
+
+**Going on to CSIR NET?** [Scattering: Born approximation and partial waves](/learn/courses/csir-net-physics/scattering-theory/) redoes this lesson's cross-sections in quantum mechanics.

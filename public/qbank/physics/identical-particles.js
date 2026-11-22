@@ -5,6 +5,7 @@
 // ortho and para molecules.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './identical-particles.more.gen.js';
 
 const C = (n, k) => { if (k < 0 || k > n) return 0; let c = 1; for (let i = 1; i <= k; i++) c = c * (n - k + i) / i; return Math.round(c); };
 // Fill single-particle levels with energies e(i) and degeneracies d(i); cap = particles per orbital.
@@ -303,5 +304,6 @@ export default {
           sol: kind === 'bosons' ? `There are $g(g + 1)/2 = ${g * (g + 1) / 2}$ symmetric states, $g = ${g}$ of them doubly occupied: $2/(g + 1) = ${round(v, 3)}$, more than the classical $1/g$.` : `There are $g^2 = ${g * g}$ states, $g$ of them doubly occupied: $1/g = ${round(v, 3)}$. Bosons would give $2/(g + 1)$.` };
       },
       verify: (p) => (p.kind === 'bosons' ? 2 / (p.g + 1) : 1 / p.g) },
+    ...more,
   ],
 };

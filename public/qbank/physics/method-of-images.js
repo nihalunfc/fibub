@@ -3,6 +3,7 @@
 // for a sphere near a plane. Original questions (fibub) for GATE and CSIR NET. The plane and simple sphere basics
 // are in conductors-images (IIT JAM).
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './method-of-images.more.gen.js';
 
 const EPS0 = 8.8541878128e-12, K = 8.9875517923e9, PI = Math.PI;
 
@@ -346,5 +347,6 @@ export default {
           trap: 'The nearer the plane, the more image terms matter and the larger the capacitance.' };
       },
       verify: (p) => { const al = Math.acosh(p.ha); let s = 0; for (let n = 1; n < 400; n++) s += 1 / Math.sinh(n * al); return Math.sinh(al) * s; } },
+    ...more,
   ],
 };

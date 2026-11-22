@@ -172,3 +172,5 @@ They start at the definitions and climb to GATE top-rank level. Check each answe
 <div class="qbank" data-bank="physics" data-topics="vibrational-spectra" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 6.6](/learn/courses/gate-physics/raman/) sees the same vibrations and rotations by scattering instead of absorption, with different selection rules.
+
+**Going on to CSIR NET?** [Electronic spectra and the Franck-Condon principle](/learn/courses/csir-net-physics/electronic-spectra/) adds an electronic jump on top of these vibrational levels.

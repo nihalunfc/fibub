@@ -196,4 +196,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="semiconductors" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 7.4](/learn/courses/iit-jam-physics/diodes/) joins p-type and n-type material into a junction, the heart of diodes, LEDs and solar cells. The [GATE Physics course](/learn/courses/gate-physics/) derives the density of states and band structure behind these results.
+**Next:** [lesson 7.4](/learn/courses/iit-jam-physics/diodes/) joins p-type and n-type material into a junction, the heart of diodes, LEDs and solar cells. The GATE Physics course derives [the density of states](/learn/courses/gate-physics/semiconductors-hall/) and [band structure](/learn/courses/gate-physics/band-theory/) behind these results.

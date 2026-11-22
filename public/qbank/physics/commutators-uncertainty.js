@@ -3,6 +3,7 @@
 // the energy-time relation, Heisenberg equations of motion and uncertainty estimates.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './commutators-uncertainty.more.gen.js';
 
 const H_EVFS = 4.135667696; // h in eV fs
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
@@ -274,5 +275,6 @@ export default {
           sol: `$[x, p^n] = [x, p^{n-1}]p + p^{n-1}[x, p]$, and by induction $[x, p^n] = n\\,i\\hbar\\,p^{n-1}$. For $n = ${n}$: $${n}i\\hbar\\,\\hat p^{${n - 1}}$.`,
           trap: 'A sign slip from $[\\hat p, \\hat x] = -i\\hbar$ gives the negative option.' };
       } },
+    ...more,
   ],
 };

@@ -65,13 +65,12 @@ Described from the published syllabus (check the current one):
 1. **Refresh the basics** if needed with JAM [matter waves](/learn/courses/iit-jam-physics/matter-waves/) and [the Schrödinger equation](/learn/courses/iit-jam-physics/schrodinger-equation/).
 2. **The formal frame**: GATE [linear vector spaces and Dirac notation](/learn/courses/gate-physics/linear-vector-spaces/), [postulates and operators](/learn/courses/gate-physics/postulates-operators/), [commutators and uncertainty](/learn/courses/gate-physics/commutators-uncertainty/).
 3. **Solvable problems**: GATE [one-dimensional potentials](/learn/courses/gate-physics/one-dimensional-potentials/) and [the harmonic oscillator](/learn/courses/gate-physics/harmonic-oscillator/).
-4. **Angular momentum**: GATE [angular momentum](/learn/courses/gate-physics/angular-momentum/), then the GATE lessons on the hydrogen atom and on spin and the addition of angular momenta.
-5. **Approximation methods**: the GATE lessons on time-independent perturbation theory, the variational method and WKB, and time-dependent perturbation theory.
-6. **Identical particles**: the GATE lesson on identical particles.
+4. **Angular momentum**: GATE [angular momentum](/learn/courses/gate-physics/angular-momentum/), then the GATE lessons on [the hydrogen atom](/learn/courses/gate-physics/hydrogen-atom/) and on [spin and the addition of angular momenta](/learn/courses/gate-physics/spin-addition/).
+5. **Approximation methods**: the GATE lessons on [time-independent perturbation theory](/learn/courses/gate-physics/perturbation-theory/), [the variational method and WKB](/learn/courses/gate-physics/variational-wkb/), and [time-dependent perturbation theory](/learn/courses/gate-physics/time-dependent-perturbation/).
+6. **Identical particles**: the GATE lesson on [identical particles](/learn/courses/gate-physics/identical-particles/).
 7. **Fine structure** (Part C): GATE [hydrogen spectra and fine structure](/learn/courses/gate-physics/fine-structure/).
-8. **NET extras in this course**: lesson 5.2 (scattering: Born approximation and partial waves) and lesson 5.3 (Klein-Gordon and Dirac equations).
+8. **NET extras in this course**: [lesson 5.2](/learn/courses/csir-net-physics/scattering-theory/) (scattering: Born approximation and partial waves) and [lesson 5.3](/learn/courses/csir-net-physics/relativistic-quantum/) (Klein-Gordon and Dirac equations).
 
-Some GATE quantum lessons in steps 4 to 6 are still being written; until they appear, the practice sets and the textbooks in the sources cover them.
 
 ## 3. Where each topic is taught
 
@@ -82,13 +81,13 @@ Some GATE quantum lessons in steps 4 to 6 are still being written; until they ap
 | Wells, barriers, delta potentials | [GATE 4.3](/learn/courses/gate-physics/one-dimensional-potentials/), [JAM](/learn/courses/iit-jam-physics/schrodinger-equation/) | bound-state counting, transmission, parity |
 | Harmonic oscillator | [GATE 4.4](/learn/courses/gate-physics/harmonic-oscillator/) | ladder operators, ⟨x²⟩ in level n, coherent states |
 | Angular momentum | [GATE 4.5](/learn/courses/gate-physics/angular-momentum/) | L² and L_z eigenvalues, Pauli matrices, raising operators |
-| Hydrogen, spin, addition | GATE lessons 4.6 and 4.7 | degeneracy n², Clebsch-Gordan for two spin-½ |
-| Perturbation, variational, WKB | GATE lessons 4.8 and 4.9 | first- and second-order shifts, trial functions, WKB quantisation |
-| Golden rule, selection rules | GATE lesson 4.10 | Δl = ±1, transition rates |
-| Identical particles | GATE lesson 4.11 | symmetric and antisymmetric states, exchange |
+| Hydrogen, spin, addition | GATE lessons [4.6](/learn/courses/gate-physics/hydrogen-atom/) and [4.7](/learn/courses/gate-physics/spin-addition/) | degeneracy n², Clebsch-Gordan for two spin-½ |
+| Perturbation, variational, WKB | GATE lessons [4.8](/learn/courses/gate-physics/perturbation-theory/) and [4.9](/learn/courses/gate-physics/variational-wkb/) | first- and second-order shifts, trial functions, WKB quantisation |
+| Golden rule, selection rules | [GATE lesson 4.10](/learn/courses/gate-physics/time-dependent-perturbation/) | Δl = ±1, transition rates |
+| Identical particles | [GATE lesson 4.11](/learn/courses/gate-physics/identical-particles/) | symmetric and antisymmetric states, exchange |
 | Fine structure | [GATE 6.1](/learn/courses/gate-physics/fine-structure/) | spin-orbit splitting, j quantum numbers |
-| Scattering | lesson 5.2 | Born amplitude of a Yukawa potential, s-wave phase shift |
-| Relativistic QM | lesson 5.3 | Dirac matrices, negative energies, spin from the Dirac equation |
+| Scattering | [lesson 5.2](/learn/courses/csir-net-physics/scattering-theory/) | Born amplitude of a Yukawa potential, s-wave phase shift |
+| Relativistic QM | [lesson 5.3](/learn/courses/csir-net-physics/relativistic-quantum/) | Dirac matrices, negative energies, spin from the Dirac equation |
 
 ## 4. A worked NET-style example
 
@@ -140,7 +139,7 @@ You are ready for statistical physics when you can, without notes:
 
 - Part B: Schrödinger equation and solvable problems, operators and commutators, Dirac notation, angular momentum and spin, hydrogen, approximation methods, golden rule, identical particles.
 - Part C: spin-orbit coupling, WKB, scattering, Klein-Gordon and Dirac, semi-classical radiation.
-- Order: formal frame, 1D problems and the oscillator, angular momentum and hydrogen, approximation methods, identical particles, fine structure, lessons 5.2 and 5.3.
+- Order: formal frame, 1D problems and the oscillator, angular momentum and hydrogen, approximation methods, identical particles, fine structure, lessons [5.2](/learn/courses/csir-net-physics/scattering-theory/) and [5.3](/learn/courses/csir-net-physics/relativistic-quantum/).
 - Probabilities are squares of overlaps in the basis of the quantity measured.
 
 </div>
@@ -149,4 +148,4 @@ You are ready for statistical physics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="postulates-operators,commutators-uncertainty,one-dimensional-potentials,harmonic-oscillator,angular-momentum,schrodinger-equation,fine-structure,linear-vector-spaces" data-exam="net" data-n="10"></div>
 
-**Next:** [statistical physics roadmap](/learn/courses/csir-net-physics/stat-roadmap/).
+**Next:** the first lesson of this unit, [Scattering: Born approximation and partial waves](/learn/courses/csir-net-physics/scattering-theory/). Already strong in this unit? Skip ahead to the [statistical physics roadmap](/learn/courses/csir-net-physics/stat-roadmap/).

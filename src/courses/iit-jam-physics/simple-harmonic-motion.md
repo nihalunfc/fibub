@@ -202,4 +202,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="simple-harmonic-motion" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 3.2](/learn/courses/iit-jam-physics/damped-forced-oscillations/) adds friction and a driving force, which leads to resonance. The same `$\ddot x = -\omega^2x$` reappears in electric circuits and in the quantum harmonic oscillator; the [GATE Physics course](/learn/courses/gate-physics/) takes it further with small oscillations of many coupled bodies and normal modes.
+**Next:** [lesson 3.2](/learn/courses/iit-jam-physics/damped-forced-oscillations/) adds friction and a driving force, which leads to resonance. The same `$\ddot x = -\omega^2x$` reappears in electric circuits and in the [quantum harmonic oscillator](/learn/courses/gate-physics/harmonic-oscillator/); the GATE Physics course takes it further with [small oscillations of many coupled bodies and normal modes](/learn/courses/gate-physics/normal-modes/).

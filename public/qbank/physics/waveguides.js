@@ -3,6 +3,7 @@
 // plates and coaxial lines (TEM), transmission-line basics, cavity resonators and step-index optical fibres (GATE/NET).
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
+import more from './waveguides.more.gen.js';
 
 const c = C.c;
 const ETA0 = Math.sqrt(C.mu0 / C.eps0);
@@ -405,5 +406,6 @@ export default {
           trap: 'The slowest ray travels at the critical angle, a path $n_1/n_2$ times the axial one.' };
       },
       verify: (p) => (p.L * 1000 * p.n1 * (p.n1 - p.n2)) / (c * p.n2) * 1e9 },
+    ...more,
   ],
 };

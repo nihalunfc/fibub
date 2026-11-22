@@ -3,6 +3,7 @@
 // contours, branch points, residue at infinity and sums of series (GATE level).
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './residues.more.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
@@ -305,5 +306,6 @@ export default {
           trap: '$\\cot(ix) = -i\\coth x$.' };
       },
       verify: (p) => { let s = 1 / (p.a * p.a); for (let n = 1; n < 200000; n++) s += 2 / (n * n + p.a * p.a); return s + 2 / 200000; } },
+    ...more,
   ],
 };

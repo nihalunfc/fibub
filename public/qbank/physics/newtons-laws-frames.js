@@ -3,6 +3,7 @@
 // Levels: 1 warm-up ... 5 top rank. Unless a question says otherwise, g = 9.8 m/s².
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './newtons-laws-frames.more.gen.js';
+import more2 from './newtons-laws-frames.more2.gen.js';
 
 const D = Math.PI / 180;
 const OMEGA = 7.29e-5; // Earth's rotation rate, rad/s
@@ -242,6 +243,7 @@ export default {
       options: ['The friction force equals the applied force in size.', 'The friction force equals $\\mu_sN$.', 'The net force on the block is zero.', 'The normal force equals the weight.'], answer: [0, 2, 3],
       sol: 'At rest, the net force is zero (C), so friction exactly cancels the push (A). The push is horizontal, so vertically only the weight and the normal force act, and they balance (D). Friction reaches $\\mu_sN$ only when slipping is about to start, so B is false.',
       trap: '$\\mu_sN$ is a maximum, not the actual value.' },
+    ...more2,
   ],
   gens: [
     { id: 'nlf-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'constraints',

@@ -142,4 +142,4 @@ They start easy and climb to top-rank level. More on the [practice page](/learn/
 
 <div class="qbank" data-bank="physics" data-topics="numerical-methods" data-exam="net" data-n="10"></div>
 
-**Before this:** lesson 2.3, [probability distributions](/learn/courses/csir-net-physics/probability-distributions/). **Next:** module 3 begins with lesson 3.2, [canonical transformations and Hamilton-Jacobi theory](/learn/courses/csir-net-physics/hamilton-jacobi/). Background on series and ODEs: [Taylor series](/learn/courses/iit-jam-physics/calculus-and-series/) and [differential equations](/learn/courses/iit-jam-physics/differential-equations/).
+**Before this:** lesson 2.3, [probability distributions](/learn/courses/csir-net-physics/probability-distributions/). **Next:** [module 3](/learn/courses/csir-net-physics/mechanics-roadmap/) begins with lesson 3.2, [canonical transformations and Hamilton-Jacobi theory](/learn/courses/csir-net-physics/hamilton-jacobi/). Background on series and ODEs: [Taylor series](/learn/courses/iit-jam-physics/calculus-and-series/) and [differential equations](/learn/courses/iit-jam-physics/differential-equations/).

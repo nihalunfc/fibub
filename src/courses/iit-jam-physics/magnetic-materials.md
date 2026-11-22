@@ -147,4 +147,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="magnetic-materials" data-exam="jam" data-n="10"></div>
 
-**Next:** [electromagnetic induction and inductance](/learn/courses/iit-jam-physics/induction/), where iron cores raise inductances by `$\mu_r$`. The electric twin of this lesson is [dielectrics and capacitors](/learn/courses/iit-jam-physics/dielectrics/); the fields of the free currents came from [Biot-Savart and Ampère](/learn/courses/iit-jam-physics/magnetostatics/). For the quantum theory of magnetism at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** [electromagnetic induction and inductance](/learn/courses/iit-jam-physics/induction/), where iron cores raise inductances by `$\mu_r$`. The electric twin of this lesson is [dielectrics and capacitors](/learn/courses/iit-jam-physics/dielectrics/); the fields of the free currents came from [Biot-Savart and Ampère](/learn/courses/iit-jam-physics/magnetostatics/). For [the quantum theory of magnetism](/learn/courses/gate-physics/magnetism/) at MSc level, see the GATE Physics course.

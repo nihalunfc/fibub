@@ -3,6 +3,7 @@
 // energies, gases in gravity and centrifuges, Langevin paramagnet, hard-sphere virial coefficient, trapped gases.
 // Original questions for GATE and CSIR NET practice (fibub), MSc level. Kept apart from the JAM kinetic-theory topic.
 import { pick, int, choose, mcqOptions, round, shuffle, C } from '../_util.js';
+import more from './classical-gas-equipartition.more.gen.js';
 
 const kBe = 8.617333e-5; // eV/K
 const lam = (mu, T) => C.h / Math.sqrt(2 * Math.PI * mu * C.u * C.kB * T); // thermal wavelength, m (mu in u)
@@ -323,5 +324,6 @@ export default {
         return { q: 'Which one of the following statements about classical ideal gases is correct?', options: o.options, answer: o.answer,
           sol: `Correct: ${right}. The others fail: ${ws.map((w) => w.replace(/\.$/, '')).join('; ')}. (Equipartition needs quadratic terms and high $T$; the $1/N!$ fixes the entropy; $PV = NkT$ for any dispersion; $\\lambda \\propto T^{-1/2}$; $H = kT/mg$ is larger for light gases.)` };
       } },
+    ...more,
   ],
 };

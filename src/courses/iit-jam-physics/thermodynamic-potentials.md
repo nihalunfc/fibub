@@ -153,4 +153,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="thermodynamic-potentials" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 5.3, the second law and entropy](/learn/courses/iit-jam-physics/second-law-entropy/). **Next:** [lesson 5.5](/learn/courses/iit-jam-physics/phase-changes/), phase changes and the Clausius–Clapeyron equation, which follows from equal chemical potentials. Going on to GATE? [Partition functions and free energy](/learn/courses/gate-physics/) computes `$F = -kT\ln Z$` directly from the energy levels.
+**Before this:** [lesson 5.3, the second law and entropy](/learn/courses/iit-jam-physics/second-law-entropy/). **Next:** [lesson 5.5](/learn/courses/iit-jam-physics/phase-changes/), phase changes and the Clausius–Clapeyron equation, which follows from equal chemical potentials. Going on to GATE? [Partition functions and free energy](/learn/courses/gate-physics/partition-functions/) computes `$F = -kT\ln Z$` directly from the energy levels.

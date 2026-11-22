@@ -76,3 +76,39 @@ export function rk4(f, y0, t0, t1, n = 2000) {
   }
   return y;
 }
+
+// ---- Block added by the quantum / statistical / atomic / solid-state variety writer (templates <prefix>-m31..m35) ----
+/** MCQ from one correct option and a pool of wrong ones: up to three distinct wrongs drawn at random, all shuffled. */
+export function pickMcq(r, correct, wrongs) {
+  const seen = new Set([correct]), ws = [];
+  for (const w of shuffle(r, wrongs)) { if (!seen.has(w)) { seen.add(w); ws.push(w); } if (ws.length === 3) break; }
+  const all = shuffle(r, [correct, ...ws]);
+  return { options: all, answer: all.indexOf(correct) };
+}
+
+/**
+ * "Which is correct" / "which is NOT correct" MCQ from statements [text, reason].
+ * not = false: one true statement among three false ones; not = true: one false statement among three true ones.
+ * Returns { options, answer, sol } with every shown statement's verdict and reason in sol.
+ */
+export function factMcq(r, trues, falses, not = false) {
+  const right = not ? falses : trues, wrong = not ? trues : falses;
+  const c = right[Math.floor(r() * right.length)];
+  const all = shuffle(r, [c, ...shuffle(r, wrong).slice(0, 3)]);
+  const isT = (s) => trues.includes(s);
+  const sol = `${not ? 'Exactly one statement is false, and that is the answer.' : 'Exactly one statement is true, and that is the answer.'}<ul>${all.map((s) => `<li>${s[0]}: <b>${isT(s) ? 'true' : 'false'}</b>. ${s[1]}</li>`).join('')}</ul>`;
+  return { options: all.map((s) => s[0]), answer: all.indexOf(c), sol };
+}
+
+/** Order-of-magnitude MCQ for x > 0: options $10^{k}$ (plus a unit) around k = round(log10 x). Returns { options, answer, k }. */
+export function oomMcq(r, x, unit = '') {
+  const k = Math.round(Math.log10(x));
+  const show = (e) => `$10^{${e}}$${unit ? ' ' + unit : ''}`;
+  const offs = shuffle(r, [-3, -2, -1, 1, 2, 3]).slice(0, 2);
+  const near = r() < 0.5 ? -1 : 1;
+  const ws = [...new Set([near, ...offs])];
+  for (const x of [-near, 2 * near, -2 * near]) if (ws.length < 3 && !ws.includes(x)) ws.push(x);
+  const all = shuffle(r, [0, ...ws.slice(0, 3)]).map((o) => show(k + o));
+  return { options: all, answer: all.indexOf(show(k)), k };
+}
+// ---- end of block ----

@@ -125,4 +125,6 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="phase-transitions" data-exam="gate" data-n="10"></div>
 
-**Module 5 complete.** Review the whole module with mixed questions on the [GATE practice page](/learn/courses/gate-physics/practice/). Watch domains form and critical fluctuations grow in fibub's [Ising model simulator](/science/ising-model/), and explore coexistence curves with the [phase diagram calculator](/science/phase-diagram-calculator/).
+**Module 5 complete.** Review the whole module with mixed questions on the [GATE practice page](/learn/courses/gate-physics/practice/). Watch domains form and critical fluctuations grow in fibub's [Ising model simulator](/science/ising-model/), and explore coexistence curves with the [phase diagram calculator](/science/phase-diagram-calculator/). **Next:** Module 6 begins with [hydrogen spectra and fine structure](/learn/courses/gate-physics/fine-structure/).
+
+**Going on to CSIR NET?** [The Ising model and Landau theory](/learn/courses/csir-net-physics/ising-landau/) adds exact results and more Landau extensions.

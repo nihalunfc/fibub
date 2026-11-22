@@ -3,6 +3,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './matrices.more.gen.js';
+import more2 from './matrices.more2.gen.js';
 
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const mat2 = (a, b, c, d) => `\\begin{pmatrix} ${a} & ${b} \\\\ ${c} & ${d} \\end{pmatrix}`;
@@ -228,6 +229,7 @@ export default {
       options: ['$0$', '$2i$', '$-2i$', '$2$'], answer: 1,
       sol: '$\\sigma_x\\sigma_y = i\\sigma_z$, so $\\sigma_x\\sigma_y\\sigma_z = i\\sigma_z^2 = iI$. The trace of $iI$ ($2\\times2$) is $2i$.',
       trap: 'Each Pauli matrix is traceless, but the trace of a product is not the product of traces.' },
+    ...more2,
   ],
   gens: [
     { id: 'mx-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'determinants',

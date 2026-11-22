@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 import * as Q5 from '../_util.js';
+import more2 from './waves.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -222,6 +223,7 @@ export default {
       options: ['The shape splits into two copies of half the height running in opposite directions.', 'If instead the string starts straight with initial velocity $g(x)$, then $y = \\dfrac1{2v}\\displaystyle\\int_{x - vt}^{x + vt}g(s)\\,ds$.', 'When one copy reaches a fixed end it comes back inverted.', 'On a string of length $L$ fixed at both ends, the starting shape first reappears after a time $L/v$.'], answer: [0, 1, 2],
       sol: 'D\'Alembert: $y = \\tfrac12[f(x - vt) + f(x + vt)] + \\frac{1}{2v}\\int_{x - vt}^{x + vt}g\\,ds$, which gives the first two. A fixed end inverts a pulse. With both ends fixed every mode has a frequency that is a multiple of $v/2L$, so the motion repeats after $2L/v$, not $L/v$ (after $L/v$ the shape is inverted and mirrored).',
       trap: 'Forgetting that each copy must make a round trip and be inverted twice to come back as it started.' },
+    ...more2,
   ],
   gens: [
     { id: 'wav-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'travelling waves',

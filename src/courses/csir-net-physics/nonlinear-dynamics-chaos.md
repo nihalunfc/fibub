@@ -150,3 +150,5 @@ They start easy and climb to top-rank level. More on the [practice page](/learn/
 <div class="qbank" data-bank="physics" data-topics="nonlinear-dynamics-chaos" data-exam="net" data-n="10"></div>
 
 **Before this:** lesson 3.3, [phase space, fixed points and stability](/learn/courses/csir-net-physics/phase-space-stability/). Related: [Hamilton-Jacobi theory and action-angle variables](/learn/courses/csir-net-physics/hamilton-jacobi/) for the integrable systems that KAM perturbs, and [numerical methods](/learn/courses/csir-net-physics/numerical-methods/) for integrating chaotic flows.
+
+**Next:** module 4 begins with the [electromagnetic theory roadmap](/learn/courses/csir-net-physics/em-roadmap/).

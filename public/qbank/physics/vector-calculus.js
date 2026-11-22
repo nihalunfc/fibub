@@ -2,6 +2,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './vector-calculus.more.gen.js';
+import more2 from './vector-calculus.more2.gen.js';
 
 export default {
   topic: 'vector-calculus',
@@ -115,6 +116,7 @@ export default {
       options: ['$4\\pi$', '$8\\pi$', '$44\\pi$', '$0$'], answer: 1,
       sol: '$\\nabla\\cdot(\\hat r/r^2) = 4\\pi\\delta^3(\\vec r)$. The integral picks out $(r^2+2)$ at $r = 0$: $4\\pi\\times2 = 8\\pi$.',
       trap: 'Evaluating $r^2 + 2$ at the surface ($r = 3$) gives $44\\pi$.' },
+    ...more2,
   ],
   gens: [
     { id: 'vc-g01', type: 'nat', level: 2, exams: ['jam', 'gate'], sub: 'divergence',

@@ -3,6 +3,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './complex-numbers.more.gen.js';
+import more2 from './complex-numbers.more2.gen.js';
 
 const deg = (x) => x * 180 / Math.PI;
 
@@ -210,6 +211,7 @@ export default {
       options: ['$4$', '$5$', '$6$', 'infinitely many'], answer: 2,
       sol: 'Take moduli: $|z|^4 = |z|$, so $|z| = 0$ or $|z| = 1$. $z = 0$ is one solution. If $|z| = 1$ then $\\bar z = 1/z$, so $z^4 = 1/z$, i.e. $z^5 = 1$: five solutions. Total 6.',
       trap: 'Forgetting $z = 0$ gives 5.' },
+    ...more2,
   ],
   gens: [
     { id: 'cx-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'modulus and argument',

@@ -2,6 +2,7 @@
 // cyclic coordinates and Noether's theorem, the energy function, Lagrange multipliers, velocity-dependent potentials
 // and the calculus of variations. Original questions for fibub. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './lagrangian-mechanics.more.gen.js';
 
 const g = 9.8;
 
@@ -350,5 +351,6 @@ export default {
           trap: 'The lower pulley does not act like its total mass $m_2 + m_3$: the two masses accelerate relative to it.' };
       },
       verify: (p) => { const mu = 4 * p.m2 * p.m3 / (p.m2 + p.m3); return Math.abs(g * (p.m1 - mu) / (p.m1 + mu)); } },
+    ...more,
   ],
 };

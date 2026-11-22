@@ -11,6 +11,7 @@ const HC = 1240;        // eV nm
 const lineNm = (Z, ni, nf) => 1e9 / (RH * Z * Z * (1 / (nf * nf) - 1 / (ni * ni)));
 
 import * as Q5 from '../_util.js';
+import more2 from './atoms-x-rays.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -251,6 +252,7 @@ export default {
       answer: 5, tol: 0, calc: () => Math.round(Math.sqrt(HC / 32.8 * 9 / RY)),
       sol: 'The series limit is the jump from $n = \\infty$ to $n = 3$: $E = 13.6Z^2/9$. With $E = 1240/32.8 = 37.80$ eV: $Z^2 = 37.80\\times9/13.6 = 25.0$, so $Z = 5$ (B$^{4+}$).',
       trap: 'The series limit corresponds to the binding energy of the lower level, $13.6Z^2/n^2$, not to a jump from $n + 1$.' },
+    ...more2,
   ],
 
   gens: [

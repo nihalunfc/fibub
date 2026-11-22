@@ -125,7 +125,7 @@ A fast top with spin angular momentum `$\vec L$` (size `$I\omega$`) tilted at an
 \Omega = \frac{mgr}{I\omega}
 ```
 
-The tilt cancels, and a slower spin precesses **faster**, which is why a top wobbles more and more as it slows. Gyroscopes in phones and spacecraft use the same `$d\vec L = \vec\tau\,dt$`. For the full theory with the inertia tensor and Euler's equations, see GATE [rigid body dynamics](/learn/courses/gate-physics/).
+The tilt cancels, and a slower spin precesses **faster**, which is why a top wobbles more and more as it slows. Gyroscopes in phones and spacecraft use the same `$d\vec L = \vec\tau\,dt$`. For the full theory with the inertia tensor and Euler's equations, see GATE [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/).
 
 To check a body's moment of inertia, use the [moment of inertia calculator](/science/moment-of-inertia/); to see friction and rolling on a slope, try the [friction ramp](/learn/friction-ramp/).
 
@@ -148,3 +148,5 @@ They start easy and climb to top-rank level. More on the [rotation practice page
 <div class="qbank" data-bank="physics" data-topics="rigid-body-rotation" data-exam="jam" data-n="10"></div>
 
 **Before this:** lesson 2.5, [moment of inertia](/learn/courses/iit-jam-physics/moment-of-inertia/). **Next:** lesson 2.7, [elasticity](/learn/courses/iit-jam-physics/elasticity/), where solid bodies stop being perfectly rigid.
+
+**Go deeper:** GATE's [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/) handles tops and gyroscopes with Euler's equations, and [Lagrangian mechanics](/learn/courses/gate-physics/lagrangian-mechanics/) treats rolling as a constraint.

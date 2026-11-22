@@ -174,3 +174,5 @@ A mixed set of harder questions from across the syllabus. Before solving each on
 <div class="qbank" data-bank="physics" data-topics="central-forces,interference,first-law,photons,special-relativity,matrices,electrostatics-gauss,schrodinger-equation" data-exam="jam" data-level="3,4,5" data-n="12"></div>
 
 **Before this:** [lesson 8.1, the JAM paper](/learn/courses/iit-jam-physics/jam-exam-pattern/). **Next:** put it all together in a full [mock test](/learn/courses/iit-jam-physics/mock-test/) under exam conditions, and keep sharpening weak topics on the [practice pages](/learn/courses/iit-jam-physics/practice/).
+
+**Go deeper:** the same habits pay off at the next level; see [a GATE strategy](/learn/courses/gate-physics/gate-strategy/) and [the NET paper](/learn/courses/csir-net-physics/net-exam-pattern/).

@@ -70,7 +70,7 @@ Part B questions are typically a field, a potential, a boundary condition or a r
 7. **Guided waves**: GATE [waveguides, transmission lines and cavities](/learn/courses/gate-physics/waveguides/).
 8. **Radiation**: GATE [radiation from dipoles and accelerated charges](/learn/courses/gate-physics/radiation/).
 9. **Relativity and fields**: GATE [covariant electrodynamics](/learn/courses/gate-physics/covariant-electrodynamics/).
-10. **NET extras in this course**: lesson 4.2 (retarded and Liénard-Wiechert potentials) and lesson 4.3 (plasma oscillations and dispersion).
+10. **NET extras in this course**: [lesson 4.2](/learn/courses/csir-net-physics/retarded-potentials/) (retarded and Liénard-Wiechert potentials) and [lesson 4.3](/learn/courses/csir-net-physics/plasma-dispersion/) (plasma oscillations and dispersion).
 
 ## 3. Where each topic is taught
 
@@ -83,9 +83,9 @@ Part B questions are typically a field, a potential, a boundary condition or a r
 | Waves in media, skin depth | [GATE 3.6](/learn/courses/gate-physics/em-waves-media/) | complex refractive index, skin depth, plasma cut-off |
 | Fresnel, Brewster, total reflection | [GATE 3.7](/learn/courses/gate-physics/fresnel-equations/) | reflectance at normal incidence, Brewster angle, evanescent waves |
 | Waveguides, transmission lines | [GATE 3.8](/learn/courses/gate-physics/waveguides/) | cut-off frequency, group velocity, characteristic impedance, matching |
-| Radiation | [GATE 3.9](/learn/courses/gate-physics/radiation/), lesson 4.2 | Larmor formula, dipole pattern, ω⁴ scaling |
+| Radiation | [GATE 3.9](/learn/courses/gate-physics/radiation/), [lesson 4.2](/learn/courses/csir-net-physics/retarded-potentials/) | Larmor formula, dipole pattern, ω⁴ scaling |
 | Covariant form | [GATE 3.10](/learn/courses/gate-physics/covariant-electrodynamics/) | field tensor, invariants E·B and E² − c²B² |
-| Plasma dispersion | lesson 4.3, [GATE 3.6](/learn/courses/gate-physics/em-waves-media/) | ω² = ω_p² + c²k², phase and group velocity |
+| Plasma dispersion | [lesson 4.3](/learn/courses/csir-net-physics/plasma-dispersion/), [GATE 3.6](/learn/courses/gate-physics/em-waves-media/) | ω² = ω_p² + c²k², phase and group velocity |
 
 ## 4. A worked NET-style example
 
@@ -128,7 +128,7 @@ You are ready for quantum mechanics when you can, without notes:
 
 <div class="myth">
 
-**"Optics is a separate subject and NET skips it."** Reflection, refraction, polarisation, Fresnel's relations, interference, coherence and diffraction are all in the core electromagnetism syllabus. Revise them with the JAM optics lessons, then the GATE Fresnel lesson.
+**"Optics is a separate subject and NET skips it."** Reflection, refraction, polarisation, Fresnel's relations, interference, coherence and diffraction are all in the core electromagnetism syllabus. Revise them with the JAM optics lessons, then the [GATE Fresnel lesson](/learn/courses/gate-physics/fresnel-equations/).
 
 </div>
 
@@ -136,7 +136,7 @@ You are ready for quantum mechanics when you can, without notes:
 
 - Part B: statics and boundary values, induction, Maxwell's equations in media, potentials and gauges, waves and optics, charges in fields.
 - Part C: plasma dispersion, covariant form, waveguides and transmission lines, radiation and retarded potentials.
-- Order: boundary values and images, multipoles, fields in matter, potentials, waves in media and Fresnel, waveguides, radiation, covariant form, lessons 4.2 and 4.3.
+- Order: boundary values and images, multipoles, fields in matter, potentials, waves in media and Fresnel, waveguides, radiation, covariant form, lessons [4.2](/learn/courses/csir-net-physics/retarded-potentials/) and [4.3](/learn/courses/csir-net-physics/plasma-dispersion/).
 - Dipole radiation: intensity ∝ `$p_0^2\omega^4\sin^2\theta/r^2$`.
 
 </div>
@@ -145,4 +145,4 @@ You are ready for quantum mechanics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="boundary-value-problems,method-of-images,multipoles,fields-in-matter,potentials-gauges,em-waves-media,fresnel-equations,waveguides,radiation,covariant-electrodynamics" data-exam="net" data-n="10"></div>
 
-**Next:** [quantum mechanics roadmap](/learn/courses/csir-net-physics/quantum-roadmap/).
+**Next:** the first lesson of this unit, [Retarded and Liénard-Wiechert potentials](/learn/courses/csir-net-physics/retarded-potentials/). Already strong in this unit? Skip ahead to the [quantum mechanics roadmap](/learn/courses/csir-net-physics/quantum-roadmap/).

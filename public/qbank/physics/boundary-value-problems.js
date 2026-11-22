@@ -2,6 +2,7 @@
 // cylindrical coordinates, Legendre expansions, corners and edges. MSc level (GATE, CSIR NET).
 // Original questions (fibub). Levels: 1 warm-up ... 5 top rank. Basics (conductors, the slot) are in conductors-images.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './boundary-value-problems.more.gen.js';
 
 const EPS0 = 8.8541878128e-12;
 const sh = Math.sinh, ch = Math.cosh, PI = Math.PI;
@@ -351,5 +352,6 @@ export default {
           sol: `$c_n = \\dfrac2a\\displaystyle\\int_0^aV(x)\\sin\\dfrac{n\\pi x}{a}dx$. ${shape === 'const' ? 'For a constant: $c_n = \\dfrac{2V_0}{n\\pi}(1 - \\cos n\\pi)$, i.e. $4V_0/n\\pi$ for odd $n$ and 0 for even $n$.' : 'For $V_0x/a$, integrating by parts: $c_n = \\dfrac{2V_0}{n\\pi}(-1)^{n+1}$.'} For $n = ${n}$: $${num}$.`,
           trap: 'Watch the parity: a constant has only odd harmonics; a ramp has all harmonics with alternating signs.' };
       } },
+    ...more,
   ],
 };
