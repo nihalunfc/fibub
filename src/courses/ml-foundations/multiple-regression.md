@@ -3,7 +3,7 @@ title: 'Many inputs: multiple regression and matrices'
 seoTitle: 'Multiple linear regression and the normal equation'
 summary: 'With two inputs a linear model is a flat plane; with more it is a hyperplane. Stack the data in a matrix and one equation, the normal equation, gives every weight at once. Turn a 3-D plane and work a small example.'
 minutes: 30
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: 'In ŷ = Xw, what is in each row of X?'
     choices: ['One example''s inputs, with a 1 at the front for the bias', 'One feature for all examples', 'The predictions']
@@ -17,13 +17,19 @@ quiz:
     choices: ['They become unstable: large and of opposite sign, swinging with small data changes', 'They are both zero', 'Nothing unusual']
     ans: 0
     why: This is multicollinearity. XᵀX is nearly impossible to invert, so the split of credit between the two is arbitrary. Drop one, or use ridge (Lesson 3.8).
+sources:
+  - 'James, G., Witten, D., Hastie, T., Tibshirani, R. and Taylor, J. (2023), An Introduction to Statistical Learning with Applications in Python, Springer, Chapter 3 (linear regression) https://www.statlearning.com/'
+  - 'Hastie, T., Tibshirani, R. and Friedman, J. (2009), The Elements of Statistical Learning, 2nd ed., Springer, Chapter 3 (linear methods for regression) https://hastie.su.domains/ElemStatLearn/'
+  - 'Strang, G. (2016), Introduction to Linear Algebra, 5th ed., Wellesley-Cambridge Press, Chapter 4 (projections and least squares)'
 ---
 
 **Module 3 · about 30 minutes · read first: 1.4, 3.2.** You'll be able to write multiple regression in matrix form, explain the normal equation, solve a two-input example, and spot multicollinearity.
 
+<div class="bigidea">With many inputs, the whole model is one matrix product, ŷ = Xw, and the best weights solve one small set of equations: the normal equation.</div>
+
 ## 1. Why this matters
 
-Real predictions use many inputs: a price depends on size, age, location and more. Writing one formula per weight gets messy fast. Matrices let us write the model, the loss and the solution in one line each, whatever the number of inputs. They are also how computers (and graphics cards) actually do the sums, which is why the same notation carries straight into neural networks.
+Real predictions use many inputs: a price depends on size, age, location and more. Writing one formula per weight gets messy fast, like a shopping list with one line per apple instead of "6 apples". Matrices let us write the model, the loss and the solution in one line each, whatever the number of inputs. They are also how computers (and graphics cards) actually do the sums, which is why the same notation carries straight into neural networks.
 
 ## 2. The picture: a plane
 
@@ -69,6 +75,18 @@ In practice software solves the equation by elimination or a QR decomposition ra
 **Try it:** with only the column of 1s (no inputs), what does the normal equation give? (`$X^{\mathsf T}X = n$` and `$X^{\mathsf T}\mathbf{y} = \sum y_i$`, so `$b = \bar y$`: the baseline that always predicts the mean.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>X</dt><dd>The design matrix: one row per example, a column of 1s for the bias, then one column per input.</dd>
+<dt>w</dt><dd>The weights, bias first, as one column.</dd>
+<dt>Xw</dt><dd>Every prediction at once: each row of X dotted with w.</dd>
+<dt>XᵀX w = Xᵀy</dt><dd>The normal equation: a small square set of equations, one per weight, whose solution is the least-squares fit.</dd>
+<dt>Physical meaning</dt><dd>The predictions are the shadow of the true values on the "floor" of everything the inputs can explain. The leftover, the residuals, stands straight up from that floor: no mix of the inputs can reduce it further. Each weight is the effect of one input with all the others held still, which is what lets the model untangle size from age.</dd>
+</dl>
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* Four flats with size `$x_1$` (in 10 m²), age `$x_2$` (in 10 years) and price `$y$` ($000):
@@ -93,6 +111,18 @@ The normal equation for the two weights uses sums of products of the centred col
 
 Subtracting: `$5 w_1 = 180$`, so `$w_1 = 36$`, then `$w_2 = (90 - 180)/5 = -18$`. Bias: `$b = 295 - 36 \times 7 - (-18) \times 2.5 = 295 - 252 + 45 = 88$`.
 
+The same solution as a sequence:
+
+<div class="steps">
+<div class="step"><b>Centre the columns.</b> Subtract the means (size 7, age 2.5, price 295), so the bias drops out and only two weights are left.</div>
+<div class="step"><b>Build the small table.</b> Sums of products of the centred columns: Σx₁² = 10, Σx₁x₂ = 5, Σx₂² = 5, Σx₁y = 270, Σx₂y = 90.</div>
+<div class="step"><b>Two equations.</b> 10w₁ + 5w₂ = 270 and 5w₁ + 5w₂ = 90. Subtract the second from the first: 5w₁ = 180, so w₁ = 36.</div>
+<div class="step"><b>Back-substitute.</b> 5 × 36 + 5w₂ = 90 gives w₂ = −18. Bias: 295 − 36 × 7 + 18 × 2.5 = 88.</div>
+<div class="step"><b>Read it.</b> +$36,000 per extra 10 m², −$18,000 per extra 10 years, holding the other still. Price alone hid the age effect, because the bigger flats were also older.</div>
+</div>
+
+<div class="problem" data-problem="multiple-regression-solve"></div>
+
 So price ≈ 36 × size(10 m²) − 18 × age(10 yr) + 88: each extra 10 m² adds $36,000, and each extra 10 years takes off $18,000. Check: the first flat gives 180 − 18 + 88 = 250, exactly its price (this tiny example fits perfectly). Notice that prices alone (two at 250, two at 340) hid the age effect: the bigger flats were also older.
 
 ## 6. Multicollinearity
@@ -116,3 +146,12 @@ When two inputs carry almost the same information (size in m² and in ft², or "
 **Try it on your own data:** the [[regression-workbench]] fits multiple regression to your CSV and gives each input's VIF (variance inflation factor), which flags inputs that are too alike.
 
 **New words:** *multiple regression*, *design matrix*, *transpose*, *normal equation*, *hyperplane*, *multicollinearity*.
+
+<div class="keypoints">
+
+- Multiple regression fits a flat plane (or hyperplane) through the data: ŷ = Xw, with a column of 1s for the bias.
+- The least-squares weights solve the normal equation XᵀXw = Xᵀy, one equation per weight.
+- Each weight is the effect of its input with the other inputs held still, which can reveal effects hidden in simple comparisons.
+- When two inputs are near copies (multicollinearity), the fit is fine but their separate weights are unstable.
+
+</div>

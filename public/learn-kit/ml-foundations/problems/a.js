@@ -320,4 +320,189 @@ export default {
     },
     verify: (p) => (100 * Math.sqrt(p.acc - p.acc * p.acc)) / Math.sqrt(p.nt),
   },
+
+  // ---------- Module 3 ----------
+  'linear-model-predict': {
+    title: 'read and use a linear model',
+    make(r) {
+      const w1 = pick(r, 2, 5, 0.1), w2 = pick(r, 200, 600, 10), b = pick(r, 800, 1600, 50), ads = pick(r, 50, 400, 10), wk = r() < 0.5 ? 1 : 0;
+      const answer = w1 * ads + w2 * wk + b;
+      return {
+        q: `<p>An online shop's model for daily sales (in $) is ŷ = ${w1} × ads + ${w2} × weekend + ${b}, where <i>ads</i> is that day's ad spend in dollars and <i>weekend</i> is 1 on Saturday or Sunday and 0 otherwise. Predict sales for a ${wk ? 'Saturday' : 'Tuesday'} with $${ads} of ads.</p>`,
+        answer, unit: '$', tol: 0.002,
+        hint: `Put the inputs in: ads = ${ads} and weekend = ${wk}. Multiply each by its weight, add them, then add the bias.`,
+        solution: steps(
+          `Ads: ${w1} × ${ads} = ${n(w1 * ads, 5)}.`,
+          `Weekend: ${w2} × ${wk} = ${w2 * wk}.`,
+          `Total: ${n(w1 * ads, 5)} + ${w2 * wk} + ${b} = <b>$${n(answer, 5)}</b>. Each effect simply adds on: that is what "linear" means.`),
+        w1, w2, b, ads, wk,
+      };
+    },
+    verify: (p) => [p.w1, p.w2, p.b].reduce((s, w, i) => s + w * [p.ads, p.wk, 1][i], 0),
+  },
+  'least-squares-slope': {
+    title: 'fit the least-squares line by hand',
+    make(r) {
+      const xs = [1, 2, 3, 4, 5].map((x) => x * pick(r, 10, 20, 10)), m = pick(r, 2, 4, 0.5), c = pick(r, 50, 120, 10);
+      const ys = xs.map((x) => m * x + c + pick(r, -20, 20, 5));
+      const mx = mean(xs), my = mean(ys), dx = xs.map((x) => x - mx), dy = ys.map((y) => y - my);
+      const top = sum(dx.map((d, i) => d * dy[i])), bot = sum(dx.map((d) => d * d)), answer = top / bot;
+      return {
+        q: `<p>Five flats:</p>${table(['Size (m²)', ...xs], [['Price ($000)', ...ys]])}<p>What is the slope of the least-squares line, in $000 per m²?</p>`,
+        answer, unit: '$000 per m²', tol: 0.005,
+        hint: 'Find the two means, then m = Σ(x − x̄)(y − ȳ) ÷ Σ(x − x̄)².',
+        solution: steps(
+          `Means: x̄ = ${n(mx)}, ȳ = ${n(my, 4)}.`,
+          `x − x̄: ${dx.join(', ')}. y − ȳ: ${dy.map((d) => n(d, 4)).join(', ')}.`,
+          `Σ products = ${n(top, 5)}; Σ(x − x̄)² = ${n(bot, 5)}.`,
+          `m = ${n(top, 5)} ÷ ${n(bot, 5)} = <b>${n(answer, 4)}</b>. The intercept is then ${n(my, 4)} − ${n(answer, 4)} × ${n(mx)} = ${n(my - answer * mx, 4)}.`),
+        xs, ys,
+      };
+    },
+    verify: (p) => { const k = p.xs.length, Sx = sum(p.xs), Sy = sum(p.ys), Sxy = sum(p.xs.map((x, i) => x * p.ys[i])), Sxx = sum(p.xs.map((x) => x * x)); return (k * Sxy - Sx * Sy) / (k * Sxx - Sx * Sx); },
+  },
+  'gradient-descent-step': {
+    title: 'one gradient descent step on a line',
+    make(r) {
+      const x1 = 1, x2 = 2, y1 = pick(r, 2, 5), y2 = y1 + pick(r, 1, 4), eta = pick(r, 0.05, 0.2, 0.05);
+      const gw = (2 / 2) * ((0 - y1) * x1 + (0 - y2) * x2), gb = (2 / 2) * ((0 - y1) + (0 - y2));
+      const answer = 0 - eta * gw;
+      return {
+        q: `<p>A line ŷ = wx + b is fitted to two days of a bakery's data, (x, y) = (${x1}, ${y1}) and (${x2}, ${y2}), using the mean squared error. Start at w = 0, b = 0 and take one gradient descent step with learning rate ${eta}. What is the new w?</p>`,
+        answer, unit: '', tol: 0.002,
+        hint: '∂L/∂w = (2/n) Σ (ŷ − y)·x. With w = b = 0 every prediction is 0, so each error ŷ − y is just −y.',
+        solution: steps(
+          `Predictions 0 and 0; errors ŷ − y: −${y1} and −${y2}.`,
+          `∂L/∂w = (2/2) × ((−${y1}) × ${x1} + (−${y2}) × ${x2}) = ${gw}. (And ∂L/∂b = ${gb}.)`,
+          `New w = 0 − ${eta} × (${gw}) = <b>${n(answer)}</b>. The line tilts upwards, towards the data.`),
+        y1, y2, eta,
+      };
+    },
+    verify: (p) => { const L = (w) => ((w - p.y1) ** 2 + (2 * w - p.y2) ** 2) / 2, h = 1e-5; return -p.eta * (L(h) - L(-h)) / (2 * h); },
+  },
+  'multiple-regression-solve': {
+    title: 'solve a two-input normal equation',
+    make(r) {
+      const w1 = pick(r, 20, 40), w2 = -pick(r, 5, 20), a = pick(r, 8, 14), d = pick(r, 4, 8), c = pick(r, 2, Math.min(6, Math.floor(Math.sqrt(a * d)) - 1));
+      const e = a * w1 + c * w2, f = c * w1 + d * w2;
+      return {
+        q: `<p>For a price model with centred inputs size (x₁) and age (x₂), the sums are Σx₁² = ${a}, Σx₁x₂ = ${c}, Σx₂² = ${d}, Σx₁y = ${e} and Σx₂y = ${f}. The normal equation is ${a}w₁ + ${c}w₂ = ${e} and ${c}w₁ + ${d}w₂ = ${f}. What is w₁?</p>`,
+        answer: w1, unit: '', tol: 0.002,
+        hint: 'Eliminate w₂: multiply the first equation by ' + d + ' and the second by ' + c + ', then subtract.',
+        solution: steps(
+          `${d} × first: ${a * d}w₁ + ${c * d}w₂ = ${e * d}.`,
+          `${c} × second: ${c * c}w₁ + ${c * d}w₂ = ${f * c}.`,
+          `Subtract: ${a * d - c * c}w₁ = ${e * d - f * c}, so w₁ = <b>${n(w1)}</b>.`,
+          `Then w₂ = (${f} − ${c} × ${w1}) ÷ ${d} = ${n(w2)}. Size pushes the price up; age pulls it down.`),
+        a, c, d, e, f,
+      };
+    },
+    verify: (p) => { const det = p.a * p.d - p.c * p.c; return (p.e * p.d - p.c * p.f) / det; },
+  },
+  'measuring-fit-rmse': {
+    title: 'MAE or RMSE?',
+    make(r) {
+      const es = Array.from({ length: 5 }, () => pick(r, -6, 6)); es.push(pick(r, 15, 30));
+      const answer = Math.sqrt(mean(es.map((e) => e * e))), mae = mean(es.map(Math.abs));
+      return {
+        q: `<p>A delivery-time model's errors on six test orders were ${es.join(', ')} minutes. What is its RMSE, in minutes?</p>`,
+        answer, unit: 'minutes', tol: 0.005,
+        hint: 'Square each error, average the squares, then take the square root.',
+        solution: steps(
+          `Squares: ${es.map((e) => e * e).join(', ')}. Sum = ${sum(es.map((e) => e * e))}.`,
+          `Mean square: ${sum(es.map((e) => e * e))} ÷ 6 = ${n(answer * answer, 4)}.`,
+          `RMSE = √${n(answer * answer, 4)} = <b>${n(answer)} minutes</b>. The MAE is only ${n(mae)}: the one big miss counts far more in RMSE.`),
+        es,
+      };
+    },
+    verify: (p) => Math.hypot(...p.es) / Math.sqrt(p.es.length),
+  },
+  'measuring-fit-r2': {
+    title: 'how much does the model explain?',
+    make(r) {
+      const ys = Array.from({ length: 4 }, () => pick(r, 10, 40)), preds = ys.map((y) => y + pick(r, -4, 4));
+      if (new Set(ys).size === 1) ys[0] += 10;
+      const my = mean(ys), sst = sum(ys.map((y) => (y - my) ** 2)), sse = sum(ys.map((y, i) => (y - preds[i]) ** 2)), answer = 1 - sse / sst;
+      return {
+        q: `<p>A café's model predicted ${preds.join(', ')} sandwiches on four test days; the true sales were ${ys.join(', ')}. What is the model's R²?</p>`,
+        answer, unit: '', tol: 0.005, abs: 0.002,
+        hint: 'R² = 1 − SSE ÷ SST. SSE adds the squared errors of the model; SST adds the squared gaps of the true values from their mean.',
+        solution: steps(
+          `Mean of the true values: ${n(my)}. SST = ${ys.map((y) => n((y - my) ** 2)).join(' + ')} = ${n(sst, 4)}.`,
+          `Errors: ${ys.map((y, i) => y - preds[i]).join(', ')}. SSE = ${n(sse, 4)}.`,
+          `R² = 1 − ${n(sse, 4)} ÷ ${n(sst, 4)} = <b>${n(answer)}</b>.${answer < 0 ? ' Negative: worse than always guessing the mean.' : ''}`),
+        ys, preds,
+      };
+    },
+    verify: (p) => { const my = mean(p.ys); return (sum(p.ys.map((y) => (y - my) ** 2)) - sum(p.ys.map((y, i) => (y - p.preds[i]) ** 2))) / sum(p.ys.map((y) => (y - my) ** 2)); },
+  },
+  'polynomial-features-peak': {
+    title: 'find the peak of a fitted curve',
+    make(r) {
+      const peak = pick(r, 24, 32), c = pick(r, 0.2, 0.5, 0.05), b = +(2 * c * peak).toFixed(4), a = -pick(r, 100, 200, 10);
+      return {
+        q: `<p>A café fits iced-drink sales against temperature t (°C) with a squared feature: sales = ${a} + ${b} t − ${c} t². At what temperature are sales highest?</p>`,
+        answer: peak, unit: '°C', tol: 0.002,
+        hint: `At the peak the slope is zero. The slope of the curve is ${b} − ${2 * c} t (Lesson 1.5).`,
+        solution: steps(
+          `Slope: d(sales)/dt = ${b} − 2 × ${c} t = ${b} − ${n(2 * c)} t.`,
+          `Set it to zero: t = ${b} ÷ ${n(2 * c)} = <b>${n(peak)} °C</b>.`,
+          `Sales there: ${a} + ${b} × ${peak} − ${c} × ${peak}² = ${n(a + b * peak - c * peak * peak, 4)} drinks. Hotter than that, people stay indoors.`),
+        a, b, c,
+      };
+    },
+    verify: (p) => { let best = 0, bv = -Infinity; for (let t = 0; t <= 50; t += 0.001) { const v = p.a + p.b * t - p.c * t * t; if (v > bv) { bv = v; best = t; } } return best; },
+  },
+  'overfitting-decompose': {
+    title: 'split the test error into its parts',
+    make(r) {
+      const bias = pick(r, 1, 6), variance = pick(r, 4, 30), noise = pick(r, 2, 6);
+      const answer = bias * bias + variance + noise * noise;
+      return {
+        q: `<p>For a delivery-time model, a study over many training sets finds: the average prediction is off by ${bias} minutes (bias), predictions vary between training sets with variance ${variance} minutes², and the delivery times themselves have random noise with standard deviation ${noise} minutes. What is the expected squared error on a new order, in minutes²?</p>`,
+        answer, unit: 'minutes²', tol: 0.002,
+        hint: 'Expected squared error = bias² + variance + noise². Square the bias and the noise standard deviation first.',
+        solution: steps(
+          `Bias² = ${bias}² = ${bias * bias}. Noise² = ${noise}² = ${noise * noise}.`,
+          `Total = ${bias * bias} + ${variance} + ${noise * noise} = <b>${answer} minutes²</b> (an RMSE of about ${n(Math.sqrt(answer))} minutes).`,
+          `${variance > bias * bias ? 'Variance is the biggest part you can change: the model is too jumpy, so simplify it, regularise it or add data.' : 'Bias is the biggest part you can change: the model is too simple, so give it more flexibility or better features.'} The noise part, ${noise * noise}, no model can remove.`),
+        bias, variance, noise,
+      };
+    },
+    verify: (p) => Math.hypot(p.bias, p.noise) ** 2 + p.variance,
+  },
+  'regularisation-ridge': {
+    title: 'shrink a weight with ridge',
+    make(r) {
+      const w = pick(r, 2, 9, 0.5) * (r() < 0.5 ? -1 : 1), s = pick(r, 10, 50, 5), lam = pick(r, 5, 40, 5);
+      const answer = (w * s) / (s + lam);
+      return {
+        q: `<p>For one standardised feature with Σx² = ${s}, plain least squares gives a weight of ${w}. What weight does ridge regression give with λ = ${lam}?</p>`,
+        answer, unit: '', tol: 0.002,
+        hint: 'For one feature, ridge scales the least-squares weight by s ÷ (s + λ), where s = Σx².',
+        solution: steps(
+          `Shrink factor: ${s} ÷ (${s} + ${lam}) = ${n(s / (s + lam))}.`,
+          `Ridge weight: ${w} × ${n(s / (s + lam))} = <b>${n(answer)}</b>. Smaller, same sign, never exactly zero.`),
+        w, s, lam,
+      };
+    },
+    verify: (p) => p.w / (1 + p.lam / p.s),
+  },
+  'regularisation-lasso': {
+    title: 'shrink, or drop, a weight with lasso',
+    make(r) {
+      const ws = [pick(r, 0.5, 6, 0.5), -pick(r, 0.5, 6, 0.5), pick(r, 0.5, 6, 0.5)], lam = pick(r, 1, 3, 0.5);
+      const lasso = ws.map((w) => Math.sign(w) * Math.max(0, Math.abs(w) - lam)), answer = lasso.filter((v) => v !== 0).length;
+      return {
+        q: `<p>A shop's sales model has three standardised features with least-squares weights ${ws.join(', ')}. Lasso (in its simple one-feature-at-a-time form) subtracts λ′ = ${lam} from the size of each weight and clips at zero. How many features does the model still use?</p>`,
+        answer, unit: 'features', tol: 0, abs: 0.01,
+        hint: `New weight = sign(w) × max(0, |w| − ${lam}). A feature is dropped when its weight becomes 0.`,
+        solution: steps(
+          ws.map((w, i) => `${w} → ${n(lasso[i])}`).join('; ') + '.',
+          `<b>${answer}</b> feature${answer === 1 ? '' : 's'} keep a non-zero weight. Lasso has done feature selection: the weak ones are gone entirely.`),
+        ws, lam,
+      };
+    },
+    verify: (p) => p.ws.reduce((k, w) => k + (Math.abs(w) > p.lam ? 1 : 0), 0),
+  },
 };
