@@ -8,6 +8,7 @@ import { int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './hydrogen-atom.more.gen.js';
 import more2 from './hydrogen-atom.more2.gen.js';
 import r4 from './hydrogen-atom.r4.gen.js';
+import r5 from './hydrogen-atom.r5.gen.js';
 
 const L = ['s', 'p', 'd', 'f', 'g', 'h'];
 const rAvg = (n, l) => (3 * n * n - l * (l + 1)) / 2;            // <r> in units of a/Z
@@ -214,6 +215,7 @@ export default {
       trap: 'Treating $\\beta/r^2$ as a small perturbation: it is not small, but it is exactly solvable.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'qhy-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'expectation values',
@@ -334,5 +336,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
