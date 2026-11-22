@@ -1,0 +1,55 @@
+---
+// DIA for 4.5: light paths in a refractor, a Newtonian reflector and a Schmidt-Cassegrain, one at a time.
+---
+<figure class="cs-fig mlf" data-scopes>
+  <span class="cs-figtag">Picture: three telescope designs (tap to switch)</span>
+  <div class="mlf-btns" role="tablist">
+    <button type="button" class="btn secondary" data-k="0" aria-pressed="true">Refractor</button>
+    <button type="button" class="btn secondary" data-k="1" aria-pressed="false">Newtonian</button>
+    <button type="button" class="btn secondary" data-k="2" aria-pressed="false">Schmidt-Cassegrain</button>
+  </div>
+  <svg viewBox="0 0 360 150" role="img" aria-labelledby="st-t">
+    <title id="st-t">Light paths through a telescope design</title>
+    <g data-d="0">
+      <rect x="20" y="40" width="290" height="70" class="box" />
+      <ellipse cx="40" cy="75" rx="6" ry="34" class="acc" />
+      <path d="M0 48 L40 48 L300 75 M0 102 L40 102 L300 75 M0 75 L300 75" class="lna" />
+      <rect x="300" y="65" width="40" height="20" class="box" /><text x="320" y="100" text-anchor="middle" class="mu">eyepiece</text>
+      <text x="40" y="128" text-anchor="middle" class="mu">objective lens</text>
+    </g>
+    <g data-d="1" style="display:none">
+      <rect x="20" y="40" width="300" height="70" class="box" />
+      <path d="M300 42 Q306 75 300 108" class="lna" style="stroke-width:4" />
+      <path d="M0 48 L300 48 L80 75 M0 102 L300 102 L80 75" class="lna" />
+      <line x1="70" y1="65" x2="90" y2="85" class="ln" style="stroke-width:4" />
+      <path d="M80 75 L80 20" class="lna" />
+      <rect x="70" y="8" width="20" height="14" class="box" /><text x="100" y="18" class="mu">eyepiece (side)</text>
+      <text x="300" y="128" text-anchor="middle" class="mu">main mirror</text><text x="80" y="128" text-anchor="middle" class="mu">flat diagonal</text>
+    </g>
+    <g data-d="2" style="display:none">
+      <rect x="40" y="40" width="200" height="70" class="box" />
+      <rect x="38" y="40" width="5" height="70" class="acc" />
+      <path d="M236 44 Q244 75 236 106" class="lna" style="stroke-width:4" />
+      <path d="M0 50 L236 50 L52 70 M0 100 L236 100 L52 80" class="lna" />
+      <rect x="46" y="66" width="6" height="18" class="fa" />
+      <path d="M52 70 L300 75 M52 80 L300 75" class="lna" />
+      <rect x="300" y="65" width="40" height="20" class="box" /><text x="320" y="100" text-anchor="middle" class="mu">eyepiece</text>
+      <text x="40" y="128" text-anchor="middle" class="mu">corrector + secondary</text><text x="236" y="128" text-anchor="middle" class="mu">main mirror (with hole)</text>
+    </g>
+    <text x="356" y="146" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>Not to scale. Light enters from the left. A refractor bends light with a lens; a Newtonian focuses it with a curved mirror and turns it out of the side with a small flat mirror; a Schmidt-Cassegrain folds the light path back on itself, so a long focal length fits in a short tube.</figcaption>
+</figure>
+<script>
+  const SAY = [
+    'Refractor: sealed tube, no central obstruction, sharp and contrasty, little upkeep. Cost rises steeply with aperture, and simple lenses show coloured fringes unless they use special (apochromatic) glass.',
+    'Newtonian reflector: the most aperture for the money, no colour fringes. The tube is open, so mirrors need occasional collimation (lining up) and time to cool. On a simple Dobsonian mount it is the classic first big telescope.',
+    'Schmidt-Cassegrain: a long focal length (often f/10) in a compact tube, easy to carry and good on planets and small targets. Narrower fields, a large central obstruction, and the corrector plate can dew up.',
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-scopes]')) {
+    const btns = [...fig.querySelectorAll<HTMLButtonElement>('[data-k]')], gs = [...fig.querySelectorAll<SVGGElement>('[data-d]')], say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const pick = (k: number) => { btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === k))); gs.forEach((g, i) => { g.style.display = i === k ? '' : 'none'; }); say.textContent = SAY[k]; };
+    btns.forEach((b, i) => b.addEventListener('click', () => pick(i))); pick(0);
+  }
+</script>

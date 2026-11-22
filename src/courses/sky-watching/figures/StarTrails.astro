@@ -1,0 +1,58 @@
+---
+// SIM for 1.2: star trails looking north. Every star turns 15° an hour round the celestial pole; stars close
+// enough to the pole never touch the horizon (circumpolar).
+---
+<figure class="cs-fig mlf" data-trails>
+  <span class="cs-figtag">Try it: leave the shutter open</span>
+  <canvas aria-label="Star trails above the northern horizon, curving around the celestial pole"></canvas>
+  <div class="mlf-ctl">
+    <label>Your latitude <output data-v="lat"></output><input type="range" name="lat" min="5" max="85" step="1" value="43"></label>
+    <label>Hours of exposure <output data-v="hrs"></output><input type="range" name="hrs" min="0" max="12" step="0.5" value="3"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>each trail's arc</span><b data-arc></b></div>
+    <div><span>circumpolar if declination above</span><b data-cp></b></div>
+  </div>
+  <figcaption>A camera aimed at the celestial pole: north is at the bottom middle, west to the left, east to the right. Trails near the pole (marked) are short circles; trails far from it are long arcs that dip below the horizon. A long enough exposure turns circumpolar stars into full rings. Made-up stars; real pole position.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider } from '../../ml-foundations/figures/kit';
+  import { altAz, rng } from '../../../lib/astrocourse/sky';
+  const R = rng(7), ST = Array.from({ length: 160 }, () => [R() * 360, 15 + Math.asin(R()) * 75 / (Math.PI / 2), R()]); // hour angle, dec 15..90, brightness
+  const D = Math.PI / 180;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-trails]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.3, 1.3], y: [-1, 1], h: 290, bare: true, equal: true });
+    const draw = () => {
+      const lat = gl(), hrs = gh(), sl = Math.sin(lat * D), cl = Math.cos(lat * D);
+      // A camera aimed at the celestial pole (north, altitude = latitude), stereographic projection: east on the right.
+      const proj = (alt: number, az: number): [number, number] | null => {
+        const x = Math.cos(alt * D) * Math.sin(az * D), y = Math.cos(alt * D) * Math.cos(az * D), z = Math.sin(alt * D);
+        const d = y * cl + z * sl; if (d < -0.3) return null;
+        return [x / (1 + d), (-y * sl + z * cl) / (1 + d)];
+      };
+      p.begin(); const c = p.ctx, col = p.pal.red ? p.pal.ink : '#dfe6f5';
+      c.fillStyle = p.pal.red ? p.pal.night : '#0c1220'; c.fillRect(0, 0, p.W, p.H);
+      for (const [H0, dec, b] of ST) {
+        const pts: [number, number][] = [], w = 0.6 + 1.6 * b, n = Math.max(1, Math.round(hrs * 6));
+        const flush = () => { if (pts.length > 1) p.path(pts, { color: col, width: w, alpha: 0.9 }); else if (pts.length === 1) p.dot(pts[0][0], pts[0][1], { r: w, color: col }); pts.length = 0; };
+        for (let k = 0; k <= n; k++) {
+          const { alt, az } = altAz(H0 + (k / 6) * 15, dec, lat), xy = alt > 0 ? proj(alt, az) : null;
+          if (!xy) { flush(); continue; } pts.push(xy);
+        }
+        flush();
+      }
+      const hz: [number, number][] = [];
+      for (let a = -100; a <= 100; a += 2) { const xy = proj(0, a); if (xy) hz.push(xy); }
+      p.poly([...hz, [p.x1 + 1, p.y0 - 1], [p.x0 - 1, p.y0 - 1]], { fill: p.pal.red ? p.pal.line : '#232a1c', alpha: 1 });
+      p.path(hz, { color: p.pal.red ? p.pal.ink : '#4b5540', width: 1.5 });
+      const gold = p.pal.red ? p.pal.ink : '#f0b45a';
+      p.dot(0, 0, { shape: 'cross', r: 6, color: gold }); p.text(0, 0, 'pole', { dx: 9, size: 11, color: gold });
+      for (const [az, t] of [[-90, 'W'], [0, 'N'], [90, 'E']] as [number, string][]) { const xy = proj(0, az); if (xy) p.text(xy[0], xy[1], t, { color: '#ffffff', bold: true, align: 'center', dy: 12 }); }
+      c.save(); c.globalAlpha = 0.5; c.fillStyle = '#ffffff'; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('fibub.com', p.W - 8, 14); c.restore();
+      q('[data-arc]').textContent = `${(hrs * 15).toFixed(0)}° (15° per hour)`; q('[data-cp]').textContent = `${90 - lat}°`;
+    };
+    const gl = slider(fig, 'lat', () => go(), (v) => `${v}° N`), gh = slider(fig, 'hrs', () => go(), (v) => `${v} h`);
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,40 @@
+---
+// SIM for 2.1: drag a target around an all-sky chart and read its altitude and azimuth, the compass point and
+// how many fists at arm's length it is above the horizon.
+---
+<figure class="cs-fig mlf" data-altaz>
+  <span class="cs-figtag">Try it: drag the target</span>
+  <canvas aria-label="An all-sky chart with a draggable target and its altitude and azimuth"></canvas>
+  <div class="mlf-read">
+    <div><span>altitude</span><b data-alt></b></div>
+    <div><span>azimuth</span><b data-az></b></div>
+    <div><span>direction</span><b data-dir></b></div>
+    <div><span>fists above horizon</span><b data-fist></b></div>
+  </div>
+  <figcaption>Altitude is the angle up from the horizon (0° on the edge, 90° in the middle). Azimuth is the compass bearing, measured from north (0°) through east (90°), south (180°) and west (270°). A fist held at arm's length covers about 10° of sky, a finger about 1° to 2°.</figcaption>
+</figure>
+<script>
+  import { Plot, live, drag, fmt } from '../../ml-foundations/figures/kit';
+  import { chartFrame, toChart, fromChart } from './chart';
+  const DIRS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-altaz]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.15, 1.15], y: [-1.15, 1.15], h: 320, bare: true, equal: true });
+    let T = toChart(35, 135);
+    const draw = () => {
+      const { alt, az } = fromChart(T[0], T[1]);
+      p.begin(); chartFrame(p);
+      const arc: [number, number][] = []; for (let i = 0; i <= 30; i++) arc.push(toChart(0, (az * i) / 30));
+      p.path(arc, { color: p.pal.accent2, width: 3 });
+      p.line(...toChart(0, az), T[0], T[1], { color: p.pal.accent, width: 3 });
+      p.line(0, 0, ...toChart(0, az), { color: p.pal.muted, width: 1, dash: [4, 4] });
+      p.dot(T[0], T[1], { r: 9, color: p.pal.accent });
+      p.text(...toChart(0, az / 2), `az ${fmt(az, 0)}°`, { color: p.pal.accent2, dx: 6, dy: 12, size: 11 });
+      p.end();
+      q('[data-alt]').textContent = `${fmt(alt, 0)}°`; q('[data-az]').textContent = `${fmt(az, 0)}°`;
+      q('[data-dir]').textContent = DIRS[Math.round(az / 22.5) % 16]; q('[data-fist]').textContent = fmt(alt / 10, 1);
+    };
+    const go = live(cv, draw);
+    drag(p, () => [T], (_, x, y) => { const r = Math.hypot(x, y); T = r > 1 ? [x / r, y / r] : [x, y]; go(); }, 30);
+  }
+</script>

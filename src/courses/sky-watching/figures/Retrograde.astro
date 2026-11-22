@@ -1,0 +1,56 @@
+---
+// SIM for 1.5: why Mars seems to go backwards. Earth (inner, faster) overtakes Mars; the line of sight swings
+// back against the stars. Below: Mars's direction against the stars over time, with the loop.
+---
+<figure class="cs-fig mlf" data-retro>
+  <span class="cs-figtag">Try it: play two years</span>
+  <canvas data-top aria-label="Earth and Mars orbiting the Sun, with the line of sight from Earth to Mars"></canvas>
+  <canvas data-lon aria-label="Mars's direction against the stars over time, showing a backward loop"></canvas>
+  <div class="mlf-ctl">
+    <label>Weeks <output data-v="wk"></output><input type="range" name="wk" min="0" max="110" step="0.5" value="40"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-play>Play</button></div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>Circular orbits with the real sizes (Mars 1.52 times as far from the Sun as Earth) and periods (1 and 1.88 years). In the lower plot "direction" is Mars's ecliptic longitude seen from Earth: it normally grows, but for about 10 weeks around opposition it shrinks. That is retrograde motion. Nothing about Mars changes; Earth is overtaking it.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  const A = 1.524, PE = 52.18, PM = 52.18 * 1.8808, M0 = 2.2;
+  const pos = (w: number) => { const e = (2 * Math.PI * w) / PE, m = M0 + (2 * Math.PI * w) / PM; return { E: [Math.cos(e), Math.sin(e)], M: [A * Math.cos(m), A * Math.sin(m)] }; };
+  const lonAt = (w: number) => { const { E, M } = pos(w); return (Math.atan2(M[1] - E[1], M[0] - E[0]) * 180) / Math.PI; };
+  const series: number[] = []; { let prev = lonAt(0), acc = prev; for (let i = 0; i <= 440; i++) { const v = lonAt(i / 4); let d = v - prev; if (d > 180) d -= 360; if (d < -180) d += 360; acc += d; series.push(acc); prev = v; } }
+  const lo = Math.min(...series), hi = Math.max(...series);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-retro]')) {
+    const top = fig.querySelector<HTMLCanvasElement>('[data-top]')!, low = fig.querySelector<HTMLCanvasElement>('[data-lon]')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const p = new Plot(top, { x: [-2.6, 2.6], y: [-1.75, 1.75], h: 250, bare: true, equal: true });
+    const g = new Plot(low, { x: [0, 110], y: [lo - 10, hi + 10], h: 170, xLabel: 'weeks', yLabel: 'direction (°)' });
+    const draw = () => {
+      const w = gw(), { E, M } = pos(w), i = Math.round(w * 4), back = series[Math.min(440, i + 1)] < series[i];
+      p.begin();
+      const ring = (r: number) => Array.from({ length: 81 }, (_, k) => [r * Math.cos(k / 80 * 6.283), r * Math.sin(k / 80 * 6.283)] as [number, number]);
+      p.path(ring(1), { color: p.pal.line, width: 1 }).path(ring(A), { color: p.pal.line, width: 1 });
+      p.dot(0, 0, { r: 9, color: p.pal.accent2 });
+      const dx = M[0] - E[0], dy = M[1] - E[1], L = Math.hypot(dx, dy), far = 4 / L;
+      p.line(E[0], E[1], E[0] + dx * far, E[1] + dy * far, { color: back ? p.pal.bad : p.pal.muted, width: 1.5, dash: [5, 4] });
+      p.dot(E[0], E[1], { r: 6, color: p.pal.accent }); p.text(E[0], E[1], 'Earth', { dx: 8, size: 11 });
+      p.dot(M[0], M[1], { r: 5, color: p.pal.bad }); p.text(M[0], M[1], 'Mars', { dx: 8, size: 11 });
+      p.end();
+      g.begin();
+      g.path(series.map((v, k) => [k / 4, v] as [number, number]), { color: g.pal.muted, width: 1.5 });
+      g.path(series.slice(0, i + 1).map((v, k) => [k / 4, v] as [number, number]), { color: g.pal.bad, width: 2.5 });
+      g.dot(w, series[i], { r: 5, color: g.pal.bad });
+      g.end();
+      say.textContent = back ? 'Retrograde: Mars is drifting backwards (westward) against the stars.' : 'Normal (prograde) motion: Mars drifts eastward against the stars.';
+    };
+    let timer = 0;
+    const gw = slider(fig, 'wk', () => go(), (v) => `${fmt(v, 1)}`);
+    const go = () => { draw(); };
+    live(top, draw); live(low, draw);
+    const btn = fig.querySelector<HTMLButtonElement>('[data-play]')!, inp = fig.querySelector<HTMLInputElement>('input[name=wk]')!;
+    btn.addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = 0; btn.textContent = 'Play'; return; }
+      btn.textContent = 'Pause'; if (+inp.value >= 110) inp.value = '0';
+      timer = window.setInterval(() => { inp.value = String(Math.min(110, +inp.value + 0.5)); inp.dispatchEvent(new Event('input')); if (+inp.value >= 110) btn.click(); }, 60);
+    });
+  }
+</script>

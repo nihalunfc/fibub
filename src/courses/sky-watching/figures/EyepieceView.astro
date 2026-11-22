@@ -1,0 +1,43 @@
+---
+// SIM for 4.3: choose a telescope and an eyepiece; see the magnification, exit pupil and true field, with the
+// full Moon drawn to scale inside the eyepiece circle.
+---
+<figure class="cs-fig mlf" data-eyepiece>
+  <span class="cs-figtag">Try it: swap eyepieces</span>
+  <canvas aria-label="An eyepiece field of view with the full Moon drawn to scale"></canvas>
+  <div class="mlf-ctl">
+    <label>Telescope focal length <output data-v="F"></output><input type="range" name="F" min="400" max="2800" step="50" value="1200"></label>
+    <label>Aperture <output data-v="D"></output><input type="range" name="D" min="60" max="300" step="5" value="150"></label>
+    <label>Eyepiece focal length <output data-v="fe"></output><input type="range" name="fe" min="3" max="40" step="1" value="25"></label>
+    <label>Eyepiece apparent field <output data-v="af"></output><input type="range" name="af" min="40" max="100" step="2" value="52"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>magnification</span><b data-m></b></div>
+    <div><span>exit pupil</span><b data-ep></b></div>
+    <div><span>true field</span><b data-tf></b></div>
+    <div><span>focal ratio</span><b data-fr></b></div>
+  </div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>The circle is what you see in the eyepiece; the grey disc is the full Moon (about 0.5° across) at the same scale. Exit pupils above about 7 mm waste light (your pupil can't take it); below about 0.5 mm the view gets dim and blurry ("empty magnification").</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { magnification, exitPupil, trueField, focalRatio } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-eyepiece]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const p = new Plot(cv, { x: [-1.1, 1.1], y: [-1.1, 1.1], h: 240, bare: true, equal: true });
+    const draw = () => {
+      const F = gF(), D = gD(), fe = gfe(), af = gaf(), M = magnification(F, fe), ep = exitPupil(D, M), tf = trueField(af, M);
+      p.begin(); const c = p.ctx, R = Math.min(p.px(1) - p.px(0), p.py(-1) - p.py(0));
+      c.fillStyle = p.pal.red ? p.pal.night : '#0c1220'; c.beginPath(); c.arc(p.px(0), p.py(0), R, 0, 6.283); c.fill();
+      const mr = (0.52 / tf) * R; c.fillStyle = p.pal.red ? p.pal.ink : '#c9c6b8';
+      c.save(); c.beginPath(); c.arc(p.px(0), p.py(0), R, 0, 6.283); c.clip(); c.beginPath(); c.arc(p.px(0), p.py(0), mr, 0, 6.283); c.fill(); c.restore();
+      c.strokeStyle = p.pal.line; c.lineWidth = 2; c.beginPath(); c.arc(p.px(0), p.py(0), R, 0, 6.283); c.stroke();
+      p.end();
+      q('[data-m]').textContent = `${fmt(M, 0)} ×`; q('[data-ep]').textContent = `${fmt(ep, 1)} mm`; q('[data-tf]').textContent = `${fmt(tf, 2)}°`; q('[data-fr]').textContent = `f/${fmt(focalRatio(F, D), 1)}`;
+      say.textContent = ep > 7 ? 'Exit pupil too large: some light misses your eye. Use a shorter eyepiece.' : ep < 0.5 ? `Over-magnified: beyond about ${fmt(2 * D, 0)}× the view only gets dimmer and blurrier.` : M > 150 ? 'High power: good for planets, the Moon and close doubles on steady nights.' : M < 50 ? 'Low power: wide fields for star clusters, big nebulae and finding things.' : 'Medium power: good for most galaxies, globular clusters and planetary nebulae.';
+    };
+    const gF = slider(fig, 'F', () => go(), (v) => `${v} mm`), gD = slider(fig, 'D', () => go(), (v) => `${v} mm`), gfe = slider(fig, 'fe', () => go(), (v) => `${v} mm`), gaf = slider(fig, 'af', () => go(), (v) => `${v}°`);
+    const go = live(cv, draw);
+  }
+</script>

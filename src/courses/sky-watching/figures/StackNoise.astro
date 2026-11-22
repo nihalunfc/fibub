@@ -1,0 +1,41 @@
+---
+// SIM for 6.4: average N noisy frames of a faint made-up galaxy. Noise falls as 1/√N, so the galaxy emerges.
+---
+<figure class="cs-fig mlf" data-stack>
+  <span class="cs-figtag">Try it: stack more frames</span>
+  <canvas aria-label="A faint galaxy emerging from noise as more frames are averaged"></canvas>
+  <div class="mlf-ctl"><label>Frames stacked <output data-v="n"></output><input type="range" name="n" min="1" max="64" step="1" value="1"></label></div>
+  <div class="mlf-read">
+    <div><span>noise left</span><b data-noise></b></div>
+    <div><span>SNR gain</span><b data-gain></b></div>
+  </div>
+  <figcaption>Each frame has the same faint galaxy plus fresh random noise. Averaging keeps the galaxy (it is the same in every frame) while the noise partly cancels: 4 frames halve it, 16 quarter it, 64 cut it to an eighth. Stacking also lets software throw out satellite trails and aircraft by rejecting pixels that disagree with the rest (sigma clipping). Made-up data.</figcaption>
+</figure>
+<script>
+  import { live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  import { pagePalette } from '../../../lib/report';
+  const N = 100, gal = new Float32Array(N * N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const x = (i - 50) / 22, y = (j - 50) / 22, u = x * 0.87 + y * 0.5, v = -x * 0.5 + y * 0.87, r = Math.hypot(u, v * 2.2), th = Math.atan2(v * 2.2, u);
+    gal[j * N + i] = 0.9 * Math.exp(-r * 2.2) * (1 + 0.5 * Math.cos(2 * th - 3 * r)) + 0.35 * Math.exp(-r * r * 40);
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-stack]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const n = gn(), R = rng(9), red = pagePalette().red, ctx = cv.getContext('2d')!, size = Math.min(300, cv.clientWidth || 300);
+      cv.width = N; cv.height = N; cv.style.height = size + 'px'; cv.style.maxWidth = size + 'px'; cv.style.margin = '0 auto';
+      const img = ctx.createImageData(N, N), sig = 0.45 / Math.sqrt(n);
+      for (let k = 0; k < N * N; k++) {
+        const g = Math.sqrt(-2 * Math.log(R() + 1e-12)) * Math.cos(2 * Math.PI * R());
+        const L = Math.max(0, Math.min(255, (0.12 + gal[k] + sig * g) * 230));
+        img.data[4 * k] = L; img.data[4 * k + 1] = red ? 0 : L; img.data[4 * k + 2] = red ? 0 : L; img.data[4 * k + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffffff'; ctx.font = '7px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('fibub.com', N - 3, N - 3); ctx.globalAlpha = 1;
+      q('[data-noise]').textContent = `${fmt(100 / Math.sqrt(n), 0)} % of one frame`; q('[data-gain]').textContent = `${fmt(Math.sqrt(n), 1)} ×`;
+    };
+    const gn = slider(fig, 'n', () => go(), (v) => `${v}`);
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,39 @@
+---
+// SIM for 5.6: the Moon's shadow cone. Near perigee the dark umbra reaches Earth (a total solar eclipse);
+// near apogee it falls short (annular). Also compares the Sun's and Moon's apparent sizes.
+---
+<figure class="cs-fig mlf" data-eclipse>
+  <span class="cs-figtag">Try it: move the Moon closer or further</span>
+  <canvas aria-label="The Moon's umbra and penumbra cones reaching towards Earth, not to scale sideways"></canvas>
+  <div class="mlf-ctl"><label>Earth-Moon distance <output data-v="r"></output><input type="range" name="r" min="356500" max="406700" step="100" value="384400"></label></div>
+  <div class="mlf-read">
+    <div><span>Moon's apparent size</span><b data-m></b></div>
+    <div><span>Sun's apparent size</span><b data-s></b></div>
+    <div><span>eclipse at the centre line</span><b data-t></b></div>
+  </div>
+  <figcaption>Distances along the line are to scale; widths are stretched so the cones are visible. The umbra (dark cone) is where the Sun is completely hidden; it is about 374,000 km long, close to the Moon's distance, so whether it reaches Earth's surface depends on where the Moon is in its slightly oval orbit (356,500 to 406,700 km). Sun's size shown for Earth's average distance. Values from NASA fact sheets.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { eclipseType } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-eclipse]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-20000, 420000], y: [-1, 1], h: 200, bare: true });
+    const draw = () => {
+      const r = gr(), e = eclipseType(r), L = e.umbraLen, W = 0.35; // half-width of the Moon in plot units (stretched)
+      p.begin();
+      p.text(-18000, 0.85, '← sunlight from far left', { size: 10.5, color: p.pal.accent2 });
+      // Penumbra: lines from the Sun's opposite limbs crossing at the Moon, opening towards Earth.
+      p.poly([[0, W], [r + 20000, W + (r + 20000) * (W / L) * 1.02], [r + 20000, -W - (r + 20000) * (W / L) * 1.02], [0, -W]], { fill: p.pal.muted, alpha: 0.15 });
+      p.poly([[0, W], [Math.min(L, 420000), W * (1 - Math.min(L, 420000) / L)], [Math.min(L, 420000), -W * (1 - Math.min(L, 420000) / L)], [0, -W]], { fill: p.pal.ink, alpha: 0.55 });
+      p.dot(0, 0, { r: 8, color: p.pal.muted }); p.text(0, -W, 'Moon', { dy: 14, align: 'center', size: 11 });
+      const ex = r - 6371; p.line(ex, -0.95, ex, 0.95, { color: p.pal.accent, width: 3 }); p.text(ex, 0.95, "Earth's surface", { align: 'right', dx: -6, base: 'top', size: 10.5, color: p.pal.accent });
+      p.dot(L, 0, { r: 4, color: p.pal.bad }); p.text(L, 0, 'umbra tip', { dy: -12, align: 'center', size: 10.5, color: p.pal.bad });
+      p.end();
+      q('[data-m]').textContent = `${fmt(e.moonArcmin, 1)}′`; q('[data-s]').textContent = `${fmt(e.sunArcmin, 1)}′`;
+      q('[data-t]').textContent = e.total ? 'total: the Moon covers the Sun' : 'annular: a ring of Sun shows';
+    };
+    const gr = slider(fig, 'r', () => go(), (v) => `${Math.round(v).toLocaleString('en')} km`);
+    const go = live(cv, draw);
+  }
+</script>

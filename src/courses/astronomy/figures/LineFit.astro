@@ -1,0 +1,49 @@
+---
+// SIM for 11.7: fitting a straight line to measurements with error bars. Move the slope and intercept and watch
+// chi-squared; the reduced chi-squared tells you whether the error bars are honest.
+---
+<figure class="cs-fig mlf" data-linefit>
+  <span class="cs-figtag">Try it: fit by hand, then let the maths do it</span>
+  <canvas aria-label="Measurements with error bars and an adjustable straight line"></canvas>
+  <div class="mlf-ctl">
+    <label>Slope <output data-v="m"></output><input type="range" name="m" min="0" max="4" step="0.01" value="1.5"></label>
+    <label>Intercept <output data-v="b"></output><input type="range" name="b" min="-5" max="10" step="0.05" value="5"></label>
+    <label>Error bars claimed <output data-v="s"></output><input type="range" name="s" min="0.3" max="3" step="0.05" value="1"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-fit>Best fit (least squares)</button></div>
+  <div class="mlf-read">
+    <div><span>χ² (sum of squared misses ÷ σ²)</span><b data-chi></b></div>
+    <div><span>reduced χ² (÷ 10 degrees of freedom)</span><b data-red></b></div>
+    <div><span>best slope ± error</span><b data-best></b></div>
+  </div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Twelve simulated measurements with true scatter of 1 unit around a hidden line. Reduced χ² near 1 means the line and the error bars agree; much bigger means a bad model or error bars that are too small; much smaller means the error bars were too big. The slope's error shrinks as 1/√(number of points).</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const R = rng(12), X: number[] = [], Y: number[] = [];
+  for (let i = 0; i < 12; i++) { const x = 0.5 + i * 0.8; X.push(x); Y.push(2.2 * x + 1.3 + (R() + R() + R() + R() - 2) * 1.73); }
+  const n = X.length, mx = X.reduce((a, b) => a + b) / n, my = Y.reduce((a, b) => a + b) / n;
+  const sxx = X.reduce((a, x) => a + (x - mx) ** 2, 0), BM = X.reduce((a, x, i) => a + (x - mx) * (Y[i] - my), 0) / sxx, BB = my - BM * mx;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-linefit]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 10], y: [-2, 26], h: 260, xLabel: 'x (e.g. time)', yLabel: 'y (e.g. brightness)' });
+    const draw = () => {
+      const m = gm(), b = gb(), s = gs();
+      p.begin();
+      for (let i = 0; i < n; i++) { p.line(X[i], Y[i] - s, X[i], Y[i] + s, { color: p.pal.accent, width: 1.2 }); p.dot(X[i], Y[i], { r: 3.5, color: p.pal.accent }); }
+      p.fn((x) => m * x + b, { color: p.pal.accent2, width: 2.5 });
+      p.end();
+      const chi = X.reduce((a, x, i) => a + ((Y[i] - (m * x + b)) / s) ** 2, 0), red = chi / (n - 2);
+      q('[data-chi]').textContent = fmt(chi, 1); q('[data-red]').textContent = fmt(red, 2);
+      q('[data-best]').textContent = `${fmt(BM, 2)} ± ${fmt(s / Math.sqrt(sxx), 2)}`;
+      q('[data-say]').textContent = red > 2 ? 'Too big: the line misses by more than the error bars allow (or the bars are too small).' : red < 0.5 ? 'Too small: the points sit closer to the line than the error bars suggest. Are the bars too big?' : 'About right: the misses match the claimed error bars.';
+    };
+    const gm = slider(fig, 'm', () => go()), gb = slider(fig, 'b', () => go()), gs = slider(fig, 's', () => go());
+    const go = live(cv, draw);
+    fig.querySelector('[data-fit]')!.addEventListener('click', () => {
+      for (const [nm, v] of [['m', BM], ['b', BB]] as [string, number][]) { const inp = fig.querySelector<HTMLInputElement>(`input[name=${nm}]`)!; inp.value = String(v); inp.dispatchEvent(new Event('input')); }
+    });
+  }
+</script>

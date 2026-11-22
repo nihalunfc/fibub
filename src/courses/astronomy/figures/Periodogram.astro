@@ -1,0 +1,51 @@
+---
+// SIM for 11.2: a variable star observed on scattered nights. Top: the raw points. Middle: a periodogram (how well a
+// sine wave fits at each trial period). Bottom: the points folded on the chosen period.
+---
+<figure class="cs-fig mlf" data-pgram>
+  <span class="cs-figtag">Try it: find the hidden period</span>
+  <canvas data-a aria-label="Brightness measurements of a star on scattered nights"></canvas>
+  <canvas data-b aria-label="Periodogram: fit quality against trial period, with the chosen period marked"></canvas>
+  <canvas data-c aria-label="The measurements folded on the chosen period"></canvas>
+  <div class="mlf-ctl">
+    <label>Trial period <output data-v="P"></output><input type="range" name="P" min="0.2" max="10" step="0.002" value="1.5"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-best>Jump to the highest peak</button></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Simulated data: 60 measurements on random nights over 120 days, from a star with a hidden period and noise of 0.05 magnitudes. Because we observe only at night, false peaks (aliases) appear near periods where 1/P differs from the true value by 1 per day. The periodogram here is a simple least-squares sine fit at each period (like the Lomb-Scargle method).</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const R = rng(17), TRUE_P = 3.217, t: number[] = [], m: number[] = [];
+  for (let k = 0; k < 60; k++) { const tt = Math.floor(R() * 120) + 0.25 + R() * 0.2; t.push(tt); m.push(12 + 0.3 * Math.sin((2 * Math.PI * tt) / TRUE_P) + (R() + R() + R() - 1.5) * 0.1); }
+  const mean = m.reduce((a, b) => a + b, 0) / m.length, v0 = m.reduce((a, b) => a + (b - mean) ** 2, 0);
+  const power = (P: number) => {
+    let ss = 0, cc = 0, sc = 0, ys = 0, yc = 0;
+    for (let i = 0; i < t.length; i++) { const w = (2 * Math.PI * t[i]) / P, s = Math.sin(w), c = Math.cos(w), y = m[i] - mean; ss += s * s; cc += c * c; sc += s * c; ys += y * s; yc += y * c; }
+    const det = ss * cc - sc * sc, a = (ys * cc - yc * sc) / det, b = (yc * ss - ys * sc) / det;
+    return (a * ys + b * yc) / v0;
+  };
+  const grid: [number, number][] = []; for (let f = 0.1; f <= 5; f += 0.0005) grid.push([1 / f, power(1 / f)]);
+  const best = grid.reduce((a, b) => (b[1] > a[1] ? b : a));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pgram]')) {
+    const A = fig.querySelector<HTMLCanvasElement>('[data-a]')!, B = fig.querySelector<HTMLCanvasElement>('[data-b]')!, Cc = fig.querySelector<HTMLCanvasElement>('[data-c]')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const pa = new Plot(A, { x: [0, 122], y: [-12.55, -11.45], h: 140, xLabel: 'day', yLabel: 'mag', noYTicks: true });
+    const pc = new Plot(Cc, { x: [0, 2], y: [-12.55, -11.45], h: 140, xLabel: 'phase (two cycles shown)', yLabel: 'mag', noYTicks: true });
+    const draw = () => {
+      const P = gP();
+      pa.begin(); for (let i = 0; i < t.length; i++) pa.dot(t[i], -m[i], { r: 3, color: pa.pal.accent }); pa.end();
+      const pb = new Plot(B, { x: [Math.log10(0.2), 1], y: [0, 1], h: 150, xLabel: 'log₁₀ trial period (days)', yLabel: 'power' });
+      pb.begin(); pb.path(grid.filter(([p]) => p >= 0.2).map(([p, w]) => [Math.log10(p), w] as [number, number]), { color: pb.pal.accent2, width: 1.2 });
+      pb.line(Math.log10(P), 0, Math.log10(P), 1, { color: pb.pal.warn, width: 1.5, dash: [3, 3] }); pb.end();
+      pc.begin(); for (let i = 0; i < t.length; i++) { const ph = (t[i] / P) % 1; pc.dot(ph, -m[i], { r: 3, color: pc.pal.accent }); pc.dot(ph + 1, -m[i], { r: 3, color: pc.pal.accent, alpha: 0.4 }); } pc.end();
+      const pw = power(P);
+      say.textContent = pw > 0.7 ? `A clean wave: ${fmt(P, 3)} days fits ${fmt(pw * 100, 0)}% of the variation.` : pw > 0.35 ? `Partly lined up (${fmt(pw * 100, 0)}%). Could be an alias; try the other peaks.` : `Scrambled: ${fmt(P, 3)} days explains only ${fmt(pw * 100, 0)}% of the variation.`;
+    };
+    const gP = slider(fig, 'P', () => go(), (v) => `${fmt(v, 3)} days`);
+    const go = () => draw();
+    live(A, draw); live(B, draw); live(Cc, draw);
+    const inp = fig.querySelector<HTMLInputElement>('input[name=P]')!;
+    fig.querySelector('[data-best]')!.addEventListener('click', () => { inp.value = String(best[0]); inp.dispatchEvent(new Event('input')); });
+  }
+</script>

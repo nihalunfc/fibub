@@ -1,0 +1,50 @@
+---
+// SIM for 2.2: the whole sky flattened into a map of right ascension and declination, with the celestial
+// equator, the ecliptic and the Sun's place on any date.
+---
+<figure class="cs-fig mlf" data-radec>
+  <span class="cs-figtag">Try it: move the Sun through the year</span>
+  <canvas aria-label="A map of the whole sky in right ascension and declination with bright stars, the celestial equator, the ecliptic and the Sun"></canvas>
+  <div class="mlf-ctl">
+    <label>Date <output data-v="day"></output><input type="range" name="day" min="1" max="365" step="1" value="80"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>Sun's RA</span><b data-ra></b></div>
+    <div><span>Sun's Dec</span><b data-dec></b></div>
+    <div><span>hidden in daylight</span><b data-hid></b></div>
+  </div>
+  <figcaption>Right ascension runs from right to left (east is left on a sky map, as if you were inside the globe looking out), in hours from 0 to 24. Declination runs from −90° at the bottom to +90° at the top. The straight line is the celestial equator; the wave is the ecliptic, the Sun's yearly path, tilted 23.4°. Stars within about 3 hours of RA of the Sun are up in daylight and can't be seen.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { sunRaDec, fromEcliptic } from '../../../lib/astrocourse/sky';
+  import { STARS, LINES, star } from '../../../lib/astrocourse/stars';
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateOf = (n: number) => { const d = new Date(Date.UTC(2026, 0, n)); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`; };
+  const hms = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60) % 60).padStart(2, '0')} m`;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-radec]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-24, 0], y: [-90, 90], h: 260, noXTicks: true, yLabel: 'Dec (°)' });
+    const draw = () => {
+      const n = gn(), s = sunRaDec(n);
+      p.begin();
+      for (let h = 0; h <= 24; h += 6) p.text(-h, -90, `${h}h`, { align: 'center', base: 'top', dy: 4, size: 11, color: p.pal.muted });
+      for (const [a, b] of [[s.ra - 3, s.ra + 3], [s.ra - 27, s.ra - 21], [s.ra + 21, s.ra + 27]]) {
+        const lo = Math.max(0, a), hi = Math.min(24, b); if (hi > lo) p.rect(-hi, -90, hi - lo, 180, { fill: p.pal.accent2, alpha: 0.12 });
+      }
+      p.line(-24, 0, 0, 0, { color: p.pal.muted, width: 1.5 });
+      const ecl: [number, number][] = []; for (let l = 0; l <= 360; l += 3) { const e = fromEcliptic(l, 0); ecl.push([-e.ra, e.dec]); }
+      ecl.sort((a, b) => a[0] - b[0]); p.path(ecl, { color: p.pal.accent2, width: 2, dash: [6, 4] });
+      for (const [a, b] of LINES) { const A = star(a), B = star(b); if (Math.abs(A[1] - B[1]) < 6) p.line(-A[1], A[2], -B[1], B[2], { color: p.pal.muted, width: 1, alpha: 0.7 }); }
+      for (const [nm, ra, dec, m] of STARS) { p.dot(-ra, dec, { r: Math.max(1.5, 4 - m), color: p.pal.ink }); if (m < 0.2) p.text(-ra, dec, nm, { dx: 5, size: 10.5, color: p.pal.muted }); }
+      p.dot(-s.ra, s.dec, { r: 8, color: p.pal.accent2 });
+      p.text(-1, 6, 'equator', { size: 10.5, color: p.pal.muted, align: 'right' });
+      p.end();
+      q('[data-ra]').textContent = hms(s.ra); q('[data-dec]').textContent = `${fmt(s.dec, 1)}°`;
+      const near = STARS.filter(([, ra, dec]) => Math.abs(((ra - s.ra + 36) % 24) - 12) < 3).filter(([, , , m]) => m < 1.2).map(([nm]) => nm);
+      q('[data-hid]').textContent = near.length ? near.slice(0, 3).join(', ') : 'no very bright stars';
+    };
+    const gn = slider(fig, 'day', () => go(), dateOf);
+    const go = live(cv, draw);
+  }
+</script>
