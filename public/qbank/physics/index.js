@@ -35,6 +35,9 @@ export default {
       { id: 'hamiltonian-mechanics', name: 'Hamiltonian mechanics and phase space' },
       { id: 'poisson-brackets', name: 'Poisson brackets and canonical transformations' },
       { id: 'central-force-scattering', name: 'Central forces, orbits and scattering cross-sections' },
+      { id: 'normal-modes', name: 'Small oscillations and normal modes' },
+      { id: 'rigid-body-dynamics', name: 'Rigid body dynamics: inertia tensor, Euler\'s equations and tops' },
+      { id: 'relativistic-kinematics', name: 'Four-vectors and relativistic kinematics' },
     ] },
     { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
       { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
