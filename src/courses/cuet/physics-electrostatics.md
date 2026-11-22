@@ -77,7 +77,7 @@ Potential V = kq/r is a number, not an arrow, so potentials from many charges si
 
 ## 4. Practice
 
-<div class="qbank" data-bank="entrance-physics" data-topics="potential-capacitance" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>
+<div class="qbank" data-bank="entrance-physics" data-topics="electric-charges-fields,potential-capacitance" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>
 
 <div class="keypoints">
 
