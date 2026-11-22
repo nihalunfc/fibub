@@ -16,6 +16,7 @@ export const ASTRONOMY: CourseSyllabus = {
   title: 'Astronomy: the science of stars, planets and galaxies',
   text: 'How we know what we know about the sky: light and spectra, gravity and orbits, how stars shine, live and die, what galaxies are, and the methods researchers use, from photometry to open archives. Every lesson has interactive figures and the maths worked by hand.',
   audience: 'For anyone curious about how the universe works, from Class 11 up: students, hobbyists and physics graduates. School maths is enough; each lesson explains the rest. Observing the sky yourself is in the Sky watching course; the universe as a whole is in the Cosmology course.',
+  kit: true,
   updated: '2026-11-22',
   footnote: 'Numbers in the examples are made up to show the idea unless a source is given. Simulations run in your browser on made-up data; nothing you type is sent anywhere. Astronomy only: nothing here is astrology.',
   parts: [

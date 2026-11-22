@@ -1,0 +1,48 @@
+---
+// 8.6: sort common founder costs: deductible now, over several years, partly, or not at all. Explanations follow the page's country.
+---
+<figure class="cs-fig su-fig" data-xs>
+  <span class="cs-figtag">Game: can I deduct this?</span>
+  <p class="su-fine" style="margin:0 0 6px">Pick an answer for each cost. Score: <b data-score>0</b> of <span data-of></span></p>
+  <div data-items></div>
+  <figcaption>General rules for India, Canada and the USA as of November 2026: a cost is deductible when it is incurred to earn business income and is not personal or capital. Each country has exceptions and limits; keep the receipt and a note of the business purpose for every claim.</figcaption>
+</figure>
+<script>
+  import { getCountry } from './su';
+  const A = ['Deduct now', 'Over several years', 'Only the business part', 'Not deductible'];
+  // [cost, right answer index, explanation; country notes appended where they differ]
+  const X: [string, number, string, Partial<Record<'in' | 'ca' | 'us', string>>][] = [
+    ['Monthly design software subscription', 0, 'An everyday running cost of the business.', {}],
+    ['A ₹1.2 lakh / $2,000 laptop for work', 1, 'Equipment lasting years is a capital asset: you claim depreciation over its life.', { in: 'India: 40 % a year (written-down value) for computers.', ca: 'Canada: CCA class 50 (55 %), with a half-year rule in the first year.', us: 'USA: you can usually deduct it all in the first year under Section 179 or bonus depreciation.' }],
+    ['Rent for a flat where one room is your office', 2, 'Only the share of the home used for work (by area), if the space is used regularly for the business.', { ca: 'Canada: the room must be your main place of business or used only for business and for meeting clients regularly.', us: 'USA: the space must be used regularly and only for business; there is also a simplified $5 a square foot method.' }],
+    ['Phone plan used 60 % for business', 2, 'Claim the business share; keep a sample of bills to show the split.', {}],
+    ['Lunch with a client to discuss a deal', 2, 'Business meals are allowed but limited.', { in: 'India: deductible if wholly for business; keep bills and the purpose.', ca: 'Canada: 50 % of meals and entertainment.', us: 'USA: 50 % of business meals; entertainment is not deductible.' }],
+    ['Driving from home to your own office every day', 3, 'Commuting is personal. Trips from your office to clients, suppliers or the bank are business trips.', {}],
+    ['A traffic fine on the way to a client', 3, 'Fines and penalties for breaking the law are never deductible.', {}],
+    ['Your own income tax payment', 3, 'Income tax is paid out of profit, not a cost of earning it.', {}],
+    ['Gym membership', 3, 'A personal cost, even if fitness helps you work.', { ca: 'Canada: club dues and recreational facilities are specifically not deductible.' }],
+    ['Course that improves skills for your current business', 0, 'Training for the business you already run is a business cost (a course to start a new career is not).', {}],
+    ['Interest on a business loan', 0, 'Interest on money borrowed for the business is deductible; repaying the loan itself is not.', {}],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-xs]')) {
+    const box = fig.querySelector('[data-items]')!; let score = 0;
+    fig.querySelector('[data-of]')!.textContent = String(X.length);
+    X.forEach(([cost, right, why, notes]) => {
+      const el = document.createElement('div'); el.className = 'su-card'; el.style.marginBottom = '8px';
+      el.innerHTML = `<strong></strong><div class="su-opts">${A.map((a, i) => `<button type="button" data-a="${i}">${a}</button>`).join('')}</div><div class="su-fine" hidden></div>`;
+      el.querySelector('strong')!.textContent = cost;
+      const fine = el.querySelector<HTMLElement>('.su-fine')!;
+      el.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+        if (el.dataset.done) return; el.dataset.done = '1';
+        const pick = Number(b.dataset.a);
+        b.classList.add(pick === right ? 'right' : 'wrong');
+        el.querySelector<HTMLButtonElement>(`[data-a="${right}"]`)!.classList.add('right');
+        if (pick === right) { score++; fig.querySelector('[data-score]')!.textContent = String(score); }
+        const cc = getCountry() as 'in' | 'ca' | 'us' | 'all';
+        const extra = cc === 'all' ? Object.values(notes).join(' ') : notes[cc] ?? '';
+        fine.textContent = `${pick === right ? 'Right.' : `Answer: ${A[right]}.`} ${why} ${extra}`; fine.hidden = false;
+      }));
+      box.append(el);
+    });
+  }
+</script>

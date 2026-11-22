@@ -1,7 +1,7 @@
 ---
 title: 'What band you need for study, work and migration'
 seoTitle: 'What IELTS band do I need? Study, work, Canada CLB'
-summary: 'The IELTS bands people usually need for university, nursing, and migration to Canada, the UK and Australia, with an IELTS to CLB converter and how to read the rule.'
+summary: 'The IELTS bands usually needed for university, nursing and migration to Canada, the UK and Australia, with an IELTS to CLB converter.'
 minutes: 13
 updated: 2026-11-22
 quiz:

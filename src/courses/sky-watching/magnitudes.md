@@ -21,7 +21,9 @@ sources:
   - "Reference magnitudes: Sun and Moon from NASA fact sheets (nssdc.gsfc.nasa.gov); Sirius and Polaris from the Yale Bright Star Catalogue"
 ---
 
-**Module 1 · about 25 minutes · logarithms (explained here).** You'll be able to read magnitudes, convert a magnitude difference into a brightness ratio and back, and combine the light of two stars.
+**Module 1 · about 25 minutes · read first: [1.6 Constellations and star charts](/learn/courses/sky-watching/constellations/) · maths: logarithms (explained here).** You'll be able to read magnitudes, convert a magnitude difference into a brightness ratio and back, and combine the light of two stars.
+
+<div class="bigidea">Brightness is measured in magnitudes: smaller numbers are brighter, and every 5 magnitudes is exactly 100 times in light, so each magnitude is about 2.5 times.</div>
 
 ## 1. Why this matters
 
@@ -44,6 +46,16 @@ Things to notice:
 
 - Set A to 1 and B to 6: 100 times. Set them 10 magnitudes apart: 10,000 times.
 - From the faintest naked-eye stars (about 6.5) to the faintest things a space telescope has recorded (about 31) is about 24 magnitudes: a factor of around 6 billion.
+
+Climb down the magnitude ladder:
+
+<div class="steps">
+<div class="step"><b>Magnitude 1.</b> The brightest stars, like Spica and Antares. Sirius is even brighter, at −1.46.</div>
+<div class="step"><b>Magnitude 2.</b> 2.5 times fainter: Polaris and most stars of the Big Dipper.</div>
+<div class="step"><b>Magnitude 6.</b> 100 times fainter than magnitude 1: the faintest stars a person sees from a dark site.</div>
+<div class="step"><b>Magnitude 11.</b> Another 100 times fainter: within reach of a 10 cm telescope.</div>
+<div class="step"><b>Adding stars.</b> Two magnitude 3 stars together shine as one of magnitude 2.25. Add the light, not the magnitudes.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -71,6 +83,24 @@ m_\text{total} = -2.5 \log_{10}\!\left(10^{-0.4 m_1} + 10^{-0.4 m_2}\right)
 
 Everything above is **apparent magnitude** `$m$`: how bright an object *looks* from Earth. A nearby dim star can look brighter than a distant luminous one. To compare stars fairly astronomers also use **absolute magnitude** `$M$`: how bright the star would look from a standard distance of 10 parsecs (32.6 light-years). The two are linked by the **distance modulus**, `$m - M = 5\log_{10}(d / 10\ \text{pc})$`, which [Astronomy 1.5](/learn/courses/astronomy/flux-luminosity/) derives from the inverse square law.
 
+
+<div class="meaning">
+
+<dl>
+<dt>m₁ − m₂ = −2.5 log₁₀(F₁/F₂)</dt><dd>Pogson's rule: magnitude difference from the ratio of fluxes.</dd>
+<dt>F₁/F₂ = 10<sup>0.4(m₂ − m₁)</sup></dt><dd>Brightness ratio from a magnitude difference.</dd>
+<dt>M</dt><dd>Absolute magnitude: how bright the star would look from 10 parsecs.</dd>
+<dt>Physical meaning</dt><dd>The scale is backwards and logarithmic because it began with the eye. Hipparchus ranked stars from "first class" (brightest) to "sixth class", and our eyes judge brightness by ratios, not differences. Pogson in 1856 made it exact: 5 steps = 100 times.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A magnitude 2 star is twice as faint as a magnitude 1 star."** It is about 2.5 times fainter. Magnitudes are a logarithmic scale: each step multiplies the brightness by 2.512, and 5 steps make exactly 100 times.
+
+</div>
+
 ## 4. Worked example
 
 *How faint can a telescope go?* Your eye's pupil is at most about 7 mm wide when dark-adapted. A 200 mm telescope collects light over an area `$(200/7)^2 = 816$` times larger. The gain in magnitudes:
@@ -83,6 +113,10 @@ So if you can see stars to magnitude 6.5 by eye, the telescope shows stars to ro
 
 ## 5. Practice
 
+<div class="problem" data-problem="mag-ratio"></div>
+
+**More practice** (answers below):
+
 1. How many times brighter is a magnitude 0 star than a magnitude 4 star?
 2. A variable star brightens by a factor of 4. How many magnitudes is that?
 3. Mizar (2.2) and its companion Alcor (4.0) are close together. What is their combined magnitude?
@@ -94,6 +128,15 @@ So if you can see stars to magnitude 6.5 by eye, the telescope shows stars to ro
 2. `$2.5 \log_{10} 4 = 2.5 \times 0.602 = 1.5$` magnitudes.
 3. `$-2.5\log_{10}(10^{-0.88} + 10^{-1.6}) = -2.5 \log_{10}(0.1318 + 0.0251) = -2.5 \times (-0.805) = 2.01$`.
 </details>
+
+<div class="keypoints">
+
+- Smaller (even negative) magnitudes are brighter.
+- 5 magnitudes = 100 times; 1 magnitude ≈ 2.512 times.
+- F₁/F₂ = 10<sup>0.4(m₂ − m₁)</sup>.
+- Combine stars by adding fluxes, then convert back to magnitudes.
+
+</div>
 
 **Try it with real numbers:** convert between magnitudes and fluxes, or add up several stars, with the [[magnitude-flux-converter]].
 

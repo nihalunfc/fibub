@@ -1,0 +1,45 @@
+---
+// 7.6: build an invoice that passes a tax check. Tap fields to add them; the checker lists what the law still needs for that amount.
+---
+<figure class="cs-fig su-fig" data-ic>
+  <span class="cs-figtag">Try it: will this invoice pass?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (GST invoice)</option><option value="ca">Canada (GST/HST)</option><option value="us">USA (sales tax)</option></select></label>
+    <label>Invoice total<input type="number" name="a" min="0" step="any" value="600" /></label>
+    <button type="button" class="btn secondary" data-all>Add everything</button>
+  </div>
+  <div class="su-opts" data-f></div>
+  <div class="su-inv" data-inv></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Rules: India CGST Rule 46 (and e-invoicing with an IRN for businesses over ₹5 crore turnover); Canada, CRA input tax credit information requirements (thresholds $100 and $500); USA, no federal format, but most states require sales tax to be shown separately and exempt sales to be backed by a certificate. As of November 2026.</figcaption>
+</figure>
+<style is:inline>
+  .su-inv { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 13.5px; background: var(--bg); min-height: 70px; }
+  .su-inv div { padding: 2px 0; border-bottom: 1px dotted var(--line); }
+  .su-inv div:last-child { border: 0; }
+</style>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  // [label, sample text, required from this invoice amount (Infinity = good practice only)]
+  const F: Record<CC, [string, string, number][]> = {
+    in: [['Your name, address and GSTIN', 'Asha Designs, Kochi, GSTIN 32ABCDE1234F1Z5', 0], ['Invoice number (unique, in series, max 16 characters)', 'No. AD/26-27/0042', 0], ['Date', '22 Nov 2026', 0], ['Buyer name and address', 'Bright Clinic, Bengaluru', 0], ['Buyer GSTIN (if registered)', 'GSTIN 29PQRSX6789K1Z2', 0], ['HSN or SAC code', 'SAC 998391', 0], ['Description, quantity, taxable value', 'Logo design, 1, ₹50,000', 0], ['Tax rate and amount (CGST + SGST, or IGST)', 'IGST 18 %: ₹9,000', 0], ['Place of supply (state)', 'Place of supply: Karnataka (29)', 0], ['Whether reverse charge applies', 'Reverse charge: No', 0], ['Signature or digital signature', 'Signed: Asha', 0], ['Payment terms and bank details', 'Due in 15 days, UPI/IFSC …', Infinity]],
+    ca: [['Your business name', 'Maple Data Services', 0], ['Date', 'November 22, 2026', 0], ['Total amount', 'Total $678.00', 0], ['Your GST/HST registration number', 'GST/HST 123456789 RT0001', 100], ['Tax charged (amount, or "HST included" with the rate)', 'HST 13 %: $78.00', 100], ['Buyer name', 'Lakeview Dental Inc.', 500], ['Payment terms', 'Net 30', 500], ['Description of what was sold', 'Dashboard set-up, 6 hours', 500], ['Invoice number', 'INV-0042', Infinity]],
+    us: [['Your business name and address', 'Peak Supply LLC, Denver CO', 0], ['Invoice number and date', 'INV-0042, Nov 22, 2026', 0], ['Buyer name and address', 'Rio Café, Austin TX', 0], ['Description, quantity, price', 'Espresso cups × 48', 0], ['Sales tax shown separately', 'Sales tax 8.25 %: $49.50', 0], ['Resale or exemption certificate on file (if no tax)', 'Resale cert. TX-01-…', Infinity], ['Payment terms', 'Net 15', Infinity]],
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ic]')) {
+    let on = new Set<number>();
+    const cc = followCountry(fig, (c) => { on = new Set([0]); const a = fig.querySelector<HTMLInputElement>('[name=a]')!; a.value = c === 'in' ? '59000' : '678'; build(); });
+    fig.querySelector('[data-all]')!.addEventListener('click', () => { F[cc()].forEach((_, i) => on.add(i)); build(); });
+    fig.querySelector('[name=a]')!.addEventListener('input', build);
+    function build() {
+      const c = cc(), box = fig.querySelector<HTMLElement>('[data-f]')!;
+      box.innerHTML = F[c].map(([l], i) => `<button type="button" data-i="${i}" aria-pressed="${on.has(i)}">${on.has(i) ? '✓ ' : '+ '}${l}</button>`).join('');
+      box.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => { const i = Number(b.dataset.i); on.has(i) ? on.delete(i) : on.add(i); build(); }));
+      fig.querySelector('[data-inv]')!.innerHTML = [...on].sort((x, y) => x - y).map((i) => `<div>${F[c][i][1]}</div>`).join('') || '<div>Empty invoice: tap the fields above.</div>';
+      const a = num(fig, 'a'), miss = F[c].filter(([, , need], i) => a >= need && !on.has(i)).map(([l]) => l);
+      const say = fig.querySelector<HTMLElement>('[data-say]')!;
+      say.textContent = miss.length ? `Missing for a ${money(c, a)} invoice: ${miss.join('; ')}.` : `Passes for ${money(c, a)}. ${c === 'ca' ? 'Your buyer can claim the input tax credit.' : c === 'in' ? 'Your buyer can claim input credit once you report it in GSTR-1.' : 'Keep a copy for at least as long as the state can audit (often 3 to 4 years).'}`;
+      say.style.color = miss.length ? 'var(--bad)' : 'var(--good)';
+    }
+  }
+</script>

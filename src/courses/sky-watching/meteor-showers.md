@@ -20,7 +20,9 @@ sources:
   - "International Meteor Organization (IMO), imo.net: ZHR method and shower calendar"
 ---
 
-**Module 5 · about 20 minutes · logarithms and sines.** You'll be able to explain meteor showers and radiants, plan a session, and turn a count into a zenithal hourly rate.
+**Module 5 · about 20 minutes · read first: [3.1 Dark adaptation and averted vision](/learn/courses/sky-watching/dark-adaptation/), [2.1 Altitude and azimuth: pointing from where you stand](/learn/courses/sky-watching/altitude-azimuth/) · maths: logarithms and sines.** You'll be able to explain meteor showers and radiants, plan a session, and turn a count into a zenithal hourly rate.
+
+<div class="bigidea">Meteor showers happen when Earth crosses a stream of comet dust; meteors seem to fan out from one point, the radiant, and the zenithal hourly rate turns your own count into a number anyone can compare.</div>
 
 ## 1. Why this matters
 
@@ -39,6 +41,24 @@ Because the grains travel in parallel, perspective makes them seem to fan out fr
 - Showers are usually best after midnight, when your side of Earth faces forward along its orbit and sweeps up more dust.
 - Moonlight hides faint meteors; check the phase (Lesson 1.4).
 
+
+<div class="meaning">
+
+<dl>
+<dt>Radiant</dt><dd>The point meteors seem to come from (a perspective effect).</dd>
+<dt>ZHR</dt><dd>Zenithal hourly rate: meteors per hour for an ideal observer with the radiant overhead.</dd>
+<dt>r</dt><dd>Population index: how many times more meteors each magnitude fainter.</dd>
+<dt>Physical meaning</dt><dd>Driving through falling snow at night, flakes seem to stream out from a point ahead of you, though they fall in parallel. Meteors do the same: the dust grains travel in parallel, and perspective makes them fan out from the radiant.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Shooting stars are stars falling."** Meteors are dust grains, usually smaller than a grain of sand, burning up about 100 km above us at 10 to 70 km/s. The stars stay exactly where they are.
+
+</div>
+
 ## 4. Making counts comparable
 
 Your hourly count depends on your sky, the radiant's height and cloud. The **zenithal hourly rate (ZHR)** corrects for all three: it is what one observer would see under a perfect sky (limiting magnitude 6.5) with the radiant overhead.
@@ -49,6 +69,16 @@ Things to notice:
 
 - A radiant at 30° doubles the correction; at 10° it is nearly 6 times, and unreliable.
 - A city sky (limiting magnitude 5) multiplies the count by about 4 for a typical shower.
+
+Count the Perseids and turn your count into a ZHR:
+
+<div class="steps">
+<div class="step"><b>Count.</b> In 1.5 hours of real watching you see 54 Perseids, a rate of 36 per hour.</div>
+<div class="step"><b>Clouds.</b> 10% of your sky was blocked: divide by 0.9, so 40 per hour.</div>
+<div class="step"><b>Your sky.</b> Your limiting magnitude was 5.8 instead of the standard 6.5. With r = 2.2, multiply by 2.2<sup>0.7</sup> = 1.74: 70 per hour.</div>
+<div class="step"><b>The radiant's height.</b> It was 50° up; divide by sin 50° = 0.77: ZHR ≈ 90.</div>
+<div class="step"><b>Compare.</b> Observers in different places, under different skies, now report the same kind of number.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -79,6 +109,10 @@ Very different results: the ZHR is sensitive to the limiting magnitude and to `$
 
 ## 6. Practice
 
+<div class="problem" data-problem="zhr"></div>
+
+**More practice** (answers below):
+
 1. 20 meteors in 2 hours, lm 6.5, radiant overhead, no cloud: ZHR?
 2. Why are meteors from a radiant near the horizon long and slow-looking?
 3. Name the shower peaking in mid-August.
@@ -90,6 +124,15 @@ Very different results: the ZHR is sensitive to the limiting magnitude and to `$
 2. They skim the atmosphere at a shallow angle, so they travel far across the sky before burning out.
 3. The Perseids, from Comet 109P/Swift-Tuttle.
 </details>
+
+<div class="keypoints">
+
+- Showers occur when Earth crosses a comet's dust trail.
+- Meteors fan out from a radiant by perspective.
+- ZHR corrects your count for clouds, sky darkness and radiant height.
+- Watch after midnight, when your side of Earth faces forward in its orbit.
+
+</div>
 
 **Try it on the real sky:** see this year's showers with Moon conditions and best hours for your town with the [[meteor-shower-planner]].
 
