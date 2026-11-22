@@ -84,6 +84,8 @@ export const COURSES: Course[] = [
   // English tests (nihal, 2026-11-22): CELPIP (Canada) and the 2026 TOEFL iBT, src/courses/celpip/ and src/courses/toefl/.
   { id: 'celpip', name: 'CELPIP preparation', text: 'Reach your CELPIP target for Canadian PR or citizenship: every part of Listening, Reading, Writing and Speaking, with listening read aloud, timed practice, model answers and original questions.', status: 'live', href: '/learn/courses/celpip/', cat: 'exams' },
   { id: 'toefl', name: 'TOEFL preparation', text: 'Prepare for the new 2026 TOEFL iBT: every task explained, listening read aloud, word-building and sentence drills, timed writing and speaking, model answers and original questions.', status: 'live', href: '/learn/courses/toefl/', cat: 'exams' },
+  // Exam prep (nihal, 2026-11-22): SAT and LSAT, src/courses/sat/ and src/courses/lsat/, questions in public/qbank/.
+  { id: 'sat', name: 'SAT prep', text: 'The digital SAT from start to finish: how the adaptive test works, every Math and Reading and Writing skill, and thousands of original practice questions with worked solutions.', status: 'live', href: '/learn/courses/sat/', cat: 'exams' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned', cat: 'science' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned', cat: 'life' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned', cat: 'science' },

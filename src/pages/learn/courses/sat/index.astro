@@ -1,0 +1,19 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { SAT } from '../../../../courses/sat/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={SAT}>
+  <section class="cs-builds">
+    <h2>How this course teaches you without a teacher</h2>
+    <ul>
+      <li><strong>One skill per lesson, in the order to learn them.</strong> Each lesson starts from the basics, shows the idea moving, and ends with the exact way the SAT asks about it.</li>
+      <li><strong>Watch it happen.</strong> Worked examples unfold step by step with Play, Back and Next, and graphs you can drag show why each rule works.</li>
+      <li><strong>Live problems.</strong> New numbers every time you press the button, an instant check, a hint and the full worked solution, so you never run out of practice.</li>
+      <li><strong>Traps named.</strong> Every lesson lists the wrong answers the test is built to catch and how to avoid them.</li>
+      <li><strong>Take it with you.</strong> Each lesson prints as a one-page summary sheet for revision.</li>
+    </ul>
+    <p><strong>How to use it:</strong> do Part A first (about an hour), then work through Math and Reading and Writing side by side, one lesson of each per day. Finish with the practice tests in Part D. About 8 weeks at one hour a day. Your progress stays in this browser; tick "Remember my progress" so it is still here next time.</p>
+    <p>Every question is original and written for fibub. Nothing is copied from the College Board or any prep book. Free, no sign-up.</p>
+  </section>
+</CourseHome>
