@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './partial-differential-equations.more.gen.js';
 import more2 from './partial-differential-equations.more2.gen.js';
+import r4 from './partial-differential-equations.r4.gen.js';
 
 const integ = (f, a, b, N = 20000) => { let s = 0; const h = (b - a) / N; for (let i = 0; i < N; i++) s += f(a + (i + 0.5) * h); return s * h; };
 
@@ -231,6 +232,7 @@ export default {
       sol: 'Slab: slowest mode $\\cos(\\pi x/2a)$, rate $\\kappa(\\pi/2a)^2$, time $\\frac{4a^2}{\\pi^2\\kappa}$. Ball: the radially symmetric mode is $j_0(kr) = \\frac{\\sin kr}{kr}$ (as $ru$ obeys the 1D equation), with $\\sin ka = 0$, $k = \\pi/a$; time $\\frac{a^2}{\\pi^2\\kappa}$. Ratio $\\frac14$: the ball cools four times faster, because heat leaves in every direction.',
       trap: 'Taking $k = \\pi/2a$ for the ball as for the slab: $ru$ must vanish at the centre too, so a full half-wave fits in the radius.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'pde-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'heat equation',
@@ -362,5 +364,6 @@ export default {
       },
       verify: (p) => (p.v0 / ((p.n * Math.PI * p.c) / p.L)) * 1000 },
     ...more,
+    ...r4.gens,
   ],
 };

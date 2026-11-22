@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './residues.more.gen.js';
 import more2 from './residues.more2.gen.js';
+import r4 from './residues.r4.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
@@ -223,6 +224,7 @@ export default {
       sol: 'Round $z = 0$, $\\sqrt z$ changes sign: a branch point, where no residue is defined; a closed contour must not encircle it unless a cut is crossed, which is why the keyhole hugs the cut. Below the cut $\\sqrt z = -\\sqrt x$ and the path runs inwards, so the two line integrals add: $2I = 2\\pi i(\\text{Res}_i + \\text{Res}_{-i})$ with $\\sqrt i = e^{i\\pi/4}$, $\\sqrt{-i} = e^{3i\\pi/4}$ on this branch: $\\frac{e^{i\\pi/4}}{2i} + \\frac{e^{3i\\pi/4}}{-2i} = \\frac{\\sqrt2}{2i}$. So $I = \\frac{\\pi\\sqrt2}{2} = \\frac{\\pi}{\\sqrt2}$.',
       trap: 'Using $\\sqrt{-i} = e^{-i\\pi/4}$ (the principal value) is wrong on the keyhole branch, where $0 < \\arg z < 2\\pi$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'res-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rational integrals',
@@ -309,5 +311,6 @@ export default {
       },
       verify: (p) => { let s = 1 / (p.a * p.a); for (let n = 1; n < 200000; n++) s += 2 / (n * n + p.a * p.a); return s + 2 / 200000; } },
     ...more,
+    ...r4.gens,
   ],
 };

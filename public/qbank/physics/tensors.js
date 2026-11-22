@@ -6,6 +6,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './tensors.more.gen.js';
 import more2 from './tensors.more2.gen.js';
+import r4 from './tensors.r4.gen.js';
 
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let b = 1; for (let i = 1; i <= k; i++) b = (b * (n - k + i)) / i; return Math.round(b); };
 const vec = (v) => `(${v.join(', ')})`;
@@ -238,6 +239,7 @@ export default {
       sol: 'In $n$ dimensions, contracting $n - 1$ index pairs of two $\\varepsilon$s gives $(n - 1)!\\,\\delta_{ln}$. Here $3!\\,\\delta_{ln} = 6\\delta_{ln}$, so the result is $6A_lA_l = 18$. (Check with 3D: $\\varepsilon_{ijk}\\varepsilon_{ijm} = 2!\\,\\delta_{km}$ ✓.)',
       trap: 'Carrying over the 3D factor 2.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'tns-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'counting components',
@@ -365,5 +367,6 @@ export default {
         const F = [[0, -Ex, -Ey, -Ez], [Ex, 0, -Bz, By], [Ey, Bz, 0, -Bx], [Ez, -By, Bx, 0]], g = [1, -1, -1, -1];
         let s = 0; for (let m = 0; m < 4; m++) for (let n = 0; n < 4; n++) s += g[m] * g[n] * F[m][n] * F[m][n]; return s; } },
     ...more,
+    ...r4.gens,
   ],
 };

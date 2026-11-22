@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './special-functions.more.gen.js';
 import more2 from './special-functions.more2.gen.js';
+import r4 from './special-functions.r4.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 // Legendre P_n(x) by Bonnet's recurrence (n+1)P_{n+1} = (2n+1)xP_n - nP_{n-1}
@@ -245,6 +246,7 @@ export default {
       sol: 'Write $f = \\sqrt{2/\\pi x}$, $J_{1/2} = f\\sin x$, $J_{-1/2} = f\\cos x$. Then $W = f\\sin x(f\'\\cos x - f\\sin x) - f\\cos x(f\'\\sin x + f\\cos x) = -f^2 = -\\frac{2}{\\pi x}$. At $x = 1$: $-0.637$. This matches the general $W[J_\\nu, J_{-\\nu}] = -\\frac{2\\sin\\nu\\pi}{\\pi x}$ with $\\nu = \\tfrac12$. The $1/x$ dependence is Abel\'s formula for $y\'\' + \\frac1xy\' + \\ldots$.',
       trap: 'Sign: the order $J_{1/2}J_{-1/2}\' - \\ldots$ makes it negative.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'sfn-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'orthogonality',
@@ -369,5 +371,6 @@ export default {
       },
       verify: (p) => J(1.5, p.x) },
     ...more,
+    ...r4.gens,
   ],
 };
