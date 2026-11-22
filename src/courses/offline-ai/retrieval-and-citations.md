@@ -3,7 +3,7 @@ title: Finding, re-ranking and citing sources
 seoTitle: Retrieval, re-ranking and citations in RAG | Offline AI
 summary: Ask questions of your own documents and get answers with numbered sources. Add keyword search for names and codes, and an optional re-ranker for sharper results, all offline.
 minutes: 35
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Cormack, Clarke and Büttcher (2009), Reciprocal rank fusion outperforms Condorcet and individual rank learning methods, https://dl.acm.org/doi/10.1145/1571941.1572114'
   - 'SQLite FTS5 full-text search, https://sqlite.org/fts5.html'
@@ -24,6 +24,8 @@ quiz:
 ---
 
 **Module 12 · about 35 minutes · read first: 12.4.** You'll be able to ask questions of your indexed documents and get answers with numbered, checkable sources.
+
+<div class="bigidea">Find the best passages two ways (by meaning and by exact words), put the winners in the prompt with numbers, and make the model cite those numbers or admit it found nothing.</div>
 
 ## 1. Why this matters
 
@@ -79,7 +81,7 @@ Run `python ask.py How many days of leave do new staff get?`. The answer comes f
 
 ## 3. Add keyword search (hybrid)
 
-Embeddings are weak on exact codes, names and numbers. SQLite has a built-in keyword search (FTS5). Save as `hybrid.py` and call `hybrid_search` instead of `search` when your questions often contain codes. It returns `(file, page, text)` without a score, so in `answer` unpack three values instead of four:
+Embeddings are weak on exact codes, names and numbers: to a meaning map, "INV-20931" and "INV-20932" look almost the same. Old-fashioned keyword search is strong exactly there. **Hybrid search** runs both and merges the two ranked lists with **reciprocal rank fusion** (RRF): each list gives a chunk 1 ÷ (60 + its rank), and the scores are added. SQLite has a built-in keyword search (FTS5). Save as `hybrid.py` and call `hybrid_search` instead of `search` when your questions often contain codes. It returns `(file, page, text)` without a score, so in `answer` unpack three values instead of four:
 
 ```python
 import re
@@ -113,6 +115,14 @@ def hybrid_search(question, k=5):
 
 If you rebuild the index, delete the `words` table too (`DROP TABLE IF EXISTS words` in `index_docs.py`) so it is rebuilt to match.
 
+<div class="steps">
+<div class="step"><p><b>The question.</b> "What is the cancellation fee in the 2026 price list?" Three chunks are in the running: A (the 2026 price list), B (a guide to cancelling appointments) and C (a 2024 price list).</p></div>
+<div class="step"><p><b>Meaning search.</b> Vector search ranks B 1st, C 2nd, A 3rd: all three are "about cancelling and fees", and the exact year does not count for much.</p></div>
+<div class="step"><p><b>Keyword search.</b> FTS5 ranks A 1st (it has "2026", "fee" and "cancellation"), C 2nd, and does not find B at all.</p></div>
+<div class="step"><p><b>Fuse the ranks.</b> A: 1/63 + 1/61 ≈ 0.03227. C: 1/62 + 1/62 ≈ 0.03226, a whisker behind. B: 1/61 ≈ 0.0164. A comes first, and B, liked by only one list, drops to last.</p></div>
+<div class="step"><p><b>Answer with numbers.</b> The top chunks go into the prompt as [1], [2], [3]. The model writes "CA$40 if cancelled less than 24 hours ahead [1]", and the script prints "[1] policies/price-list-2026.pdf, page 2".</p></div>
+</div>
+
 ## 4. Optional: a re-ranker
 
 A **re-ranker** reads the question and one chunk together and scores the pair. It is more accurate than vector search but too slow to run on everything, so take the top 20 and re-score them:
@@ -131,12 +141,36 @@ best = [c for _, c in sorted(zip(scores, candidates), key=lambda p: -p[0])][:5]
 
 **Principle:** two weak, different rankings fused together beat either alone; rank fusion needs no tuning because it uses positions, not raw scores.
 
-**Equation:** RRF score(chunk) = Σ over lists of 1 ÷ (60 + rank in that list).
+**Equation:**
+
+```math
+\text{RRF}(\text{chunk}) = \sum_{\text{lists}} \frac{1}{60 + \text{rank in that list}}
+```
 
 **Analogy:** two judges at a cooking contest, one tasting (meaning), one checking the recipe was followed (exact words). A dish both rank in the top three wins over one only a single judge loved. The 60 stops a single first place from dominating. Where it breaks: if one list is junk, fusion drags good results down; check each list on its own first (Lesson 12.7).
 
 **Try it:** chunk A is 1st in vectors and 3rd in keywords; chunk B is 2nd in vectors and absent from keywords. Scores? (A: 1/61 + 1/63 ≈ 0.0323; B: 1/62 ≈ 0.0161. A wins.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>rank</dt><dd>a chunk's position in one search's list: 1 for the best match, 2 for the next</dd>
+<dt>60</dt><dd>a fixed cushion from the original paper, so a single first place cannot outweigh agreement between lists</dd>
+<dt>Σ over lists</dt><dd>add the scores from every list the chunk appears in; a list that missed it adds nothing</dd>
+<dt>citation [n]</dt><dd>the number of the source the fact came from, printed with its file and page so a person can check</dd>
+<dt>Physical meaning</dt><dd>Two judges with different tastes, one for meaning and one for exact words, each make a top list. A passage both of them rate highly is a safer bet than one only a single judge loved. The numbered citations let anyone walk to the shelf and check the page in ten seconds.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="retrieval-and-citations-rrf"></div>
+
+<div class="myth">
+
+**"If the answer has a citation, it must be right."** A citation only says which passage the model looked at. It can still misread it or mix two sources. Click through for anything that matters, and test with known questions (Lesson 12.7).
+
+</div>
 
 ## 5. Worked example
 
@@ -157,3 +191,13 @@ best = [c for _, c in sorted(zip(scores, candidates), key=lambda p: -p[0])][:5]
 </details>
 
 **New words:** *hybrid search* (meaning search plus keyword search), *reciprocal rank fusion* (combining rankings by position), *re-ranker* or *cross-encoder* (a model that scores a question and a passage together), *citation* (a pointer to the source of a fact).
+
+<div class="keypoints">
+
+- `ask.py` embeds the question, takes the top 5 chunks, and asks the model to answer only from them with numbered citations.
+- Tell the model to say "I could not find that in your documents" when the sources lack the answer; temperature 0 keeps answers steady.
+- Keyword search (SQLite FTS5) catches exact codes, names and numbers that embeddings miss.
+- Reciprocal rank fusion adds 1 ÷ (60 + rank) from each list, so chunks both searches like rise to the top.
+- An optional re-ranker reads the question and each of the top 20 chunks together for a sharper order.
+
+</div>
