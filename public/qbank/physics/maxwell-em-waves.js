@@ -10,6 +10,7 @@ const c = C.c, e0 = C.eps0, mu0 = C.mu0;
 import * as Q5 from '../_util.js';
 import more2 from './maxwell-em-waves.more2.gen.js';
 import r4 from './maxwell-em-waves.r4.gen.js';
+import r5 from './maxwell-em-waves.r5.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -239,6 +240,7 @@ export default {
       trap: 'Thinking nothing is reflected at Brewster\'s angle: only the p component vanishes.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'mxw-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'plane waves',
@@ -375,5 +377,6 @@ export default {
       },
       verify: (p) => p.Cn * 1e-9 * p.dV * 1e3 * 1e3 },
     ...r4.gens,
+    ...r5.gens,
   ],
 };

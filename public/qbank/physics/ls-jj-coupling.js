@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './ls-jj-coupling.more.gen.js';
 import more2 from './ls-jj-coupling.more2.gen.js';
 import r4 from './ls-jj-coupling.r4.gen.js';
+import r5 from './ls-jj-coupling.r5.gen.js';
 
 const LT = ['S', 'P', 'D', 'F', 'G', 'H', 'I', 'K', 'L', 'M'];
 const fr = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
@@ -240,6 +241,7 @@ export default {
       trap: 'Hole counting gives the term; the "more than half" rule then flips $J$ to $L + S$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -401,5 +403,6 @@ export default {
       verify: (p) => -13.6 * p.Z ** 2 + 2 * (p.Z - 5 / 16) ** 2 * 13.6 },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

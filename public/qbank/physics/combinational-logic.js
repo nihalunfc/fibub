@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './combinational-logic.more.gen.js';
 import more2 from './combinational-logic.more2.gen.js';
 import r4 from './combinational-logic.r4.gen.js';
+import r5 from './combinational-logic.r5.gen.js';
 
 const an = (n) => ([8, 11, 18].includes(n) ? 'An' : 'A');
 const G = ['gate', 'net'];
@@ -253,6 +254,7 @@ export default {
       trap: 'Thinking XOR is self-dual because it is symmetric.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'cl-g01', type: 'nat', level: 3, exams: G, sub: 'K-maps',
@@ -384,5 +386,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

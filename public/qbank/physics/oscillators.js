@@ -8,6 +8,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './oscillators.more.gen.js';
 import more2 from './oscillators.more2.gen.js';
 import r4 from './oscillators.r4.gen.js';
+import r5 from './oscillators.r5.gen.js';
 
 const G = ['gate', 'net'];
 const TAU = 2 * Math.PI;
@@ -226,6 +227,7 @@ export default {
       trap: 'Guessing the frequency rises because something "lags".' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'osc-g01', type: 'nat', level: 2, exams: ['jam', 'gate', 'net'], sub: 'Wien bridge',
@@ -358,5 +360,6 @@ export default {
       verify: (p) => p.fs * 1e6 * p.C / (2 * (p.C0 + p.CL)) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

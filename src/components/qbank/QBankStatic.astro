@@ -4,17 +4,21 @@
 import { bankTopic, texHtml, topicItems } from '../../lib/qbank/build';
 import '../../styles/qbank.css';
 import '../../styles/math.css';
-interface Props { bank: string; topic: string; limit?: number; exam?: string }
-const { bank, topic, limit = 25, exam } = Astro.props;
+interface Props { bank: string; topic: string; limit?: number; exam?: string; budget?: number }
+// budget caps the rendered maths HTML (characters) so a page stays under 120 KB however big the bank grows.
+const { bank, topic, limit = 25, exam, budget = 55000 } = Astro.props;
 const f = await bankTopic(bank, topic);
 const LV: Record<number, string> = { 1: 'Warm-up', 2: 'Standard', 3: 'Exam level', 4: 'Hard', 5: 'Top rank' };
 const items = topicItems(f).filter((i: any) => i.type !== 'open' && (!exam || !i.exams || i.exams.includes(exam)))
   .sort((a: any, b: any) => a.level - b.level).slice(0, limit);
+let used = 0;
+const size = (it: any) => [it.q, it.sol, it.trap, it.grp?.passage, ...(it.options ?? it.grp?.options ?? [])].reduce((n: number, t: any) => n + (t ? texHtml(t).length : 0), 0);
+const shown = items.filter((it: any) => (used += size(it)) <= budget || used === size(it));
 const letter = (i: number) => String.fromCharCode(65 + i);
 const ans = (it: any) => it.type === 'mcq' ? letter(it.answer) : it.type === 'msq' ? it.answer.map(letter).join(', ') : it.type === 'nat' ? `${it.answer}${it.unit ? ' ' + it.unit : ''}${it.tol ? ` (±${it.tol})` : ''}` : (it.answer ?? []).join(' / ');
 ---
 <ol class="qb-static">
-  {items.map((it: any) => (
+  {shown.map((it: any) => (
     <li id={it.id}>
       <p class="qb-badges"><span>{it.type.toUpperCase()}</span><span class={`qb-lv qb-lv${it.level}`}>{LV[it.level]}</span></p>
       {it.grp?.passage && <div class="qb-group" set:html={texHtml(it.grp.passage)} />}

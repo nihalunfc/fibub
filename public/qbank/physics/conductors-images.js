@@ -9,6 +9,7 @@ const K = 1 / (4 * Math.PI * C.eps0); // 8.988e9 N m^2 C^-2
 import * as Q5 from '../_util.js';
 import more2 from './conductors-images.more2.gen.js';
 import r4 from './conductors-images.r4.gen.js';
+import r5 from './conductors-images.r5.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -241,6 +242,7 @@ export default {
       trap: 'Trying to work out the induced distribution. The centre trick needs no images at all (the image method gives the same: $k(qR/d)/R = kq/d$).' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'cim-t21', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'images: plane', format: 'comparison',
@@ -379,5 +381,6 @@ export default {
       },
       verify: (p) => 4 * Math.PI * C.eps0 * (p.R / 100) ** 3 * p.E0 * 1000 * 1e12 },
     ...r4.gens,
+    ...r5.gens,
   ],
 };

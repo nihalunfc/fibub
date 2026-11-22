@@ -7,6 +7,7 @@ import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './free-electron-model.more.gen.js';
 import more2 from './free-electron-model.more2.gen.js';
 import r4 from './free-electron-model.r4.gen.js';
+import r5 from './free-electron-model.r5.gen.js';
 
 const HB2M = (C.hbar ** 2) / (2 * C.me) / C.e * 1e18; // hbar^2/2m_e in eV nm^2 (0.0381)
 const kBe = C.kB / C.e; // eV/K
@@ -208,6 +209,7 @@ export default {
       sol: 'Here $\\varepsilon = 1 - \\omega_p^2/\\omega^2 < 0$, so the refractive index $N = i\\kappa$ is purely imaginary (no absorption when $\\omega\\tau \\gg 1$). Then $R = |(N - 1)/(N + 1)|^2 = |(i\\kappa - 1)/(i\\kappa + 1)|^2 = 1$. Small losses from finite $\\tau$ bring it just below 1, which is why polished metals are such good mirrors.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'fem-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Fermi energy',
@@ -336,5 +338,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
