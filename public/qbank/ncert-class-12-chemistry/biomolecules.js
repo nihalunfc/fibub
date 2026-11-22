@@ -1,0 +1,55 @@
+// Class 12 Chemistry, Chapter 10 Biomolecules: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('bm');
+const MR = { Gly: 75, Ala: 89, Ser: 105, Val: 117, Leu: 131, Phe: 165 };
+
+export default {
+  topic: 'biomolecules', name: 'Biomolecules', n: 10,
+  items: [
+    m.mcq(1, 'carbohydrates', '<p>Glucose is a:</p>', 'aldohexose', ['ketohexose', 'aldopentose', 'disaccharide'], '<p>Six carbons and an aldehyde group (CHO) at C1.</p>'),
+    m.mcq(2, 'carbohydrates', '<p>Which is a non-reducing sugar?</p>', 'sucrose', ['maltose', 'lactose', 'glucose'], '<p>In sucrose both anomeric carbons (C1 of glucose and C2 of fructose) are used in the glycosidic link.</p>', { trap: 'Assuming every sugar reduces Fehling’s solution.' }),
+    m.mcq(2, 'carbohydrates', '<p>Sucrose on hydrolysis gives:</p>', 'glucose and fructose', ['two glucose', 'glucose and galactose', 'fructose only'], '<p>Sucrose is glucose + fructose. Maltose is two glucose; lactose is galactose + glucose.</p>'),
+    m.mcq(2, 'carbohydrates', '<p>The α and β forms of glucose differ in the position of the OH on:</p>', 'C1 (the anomeric carbon)', ['C2', 'C4', 'C6'], '<p>These forms are anomers.</p>'),
+    m.mcq(3, 'carbohydrates', '<p>Glucose does not give the Schiff test and does not react with NaHSO₃ because:</p>', 'it exists mainly as a cyclic hemiacetal, with very little free CHO', ['it has no carbonyl ever', 'it is a ketone', 'it is ionic'], '<p>Less than 0.02 % of glucose is in the open-chain aldehyde form in water.</p>'),
+    m.mcq(2, 'carbohydrates', '<p>Cellulose and starch differ in:</p>', 'the glycosidic link: β-1,4 in cellulose, α-1,4 in starch', ['the monomer: fructose in cellulose', 'being a protein', 'having no C–O bonds'], '<p>Both are polymers of glucose. The β link makes cellulose a straight, strong fibre that humans cannot digest.</p>'),
+    m.mcq(2, 'carbohydrates', '<p>Starch turns blue-black with:</p>', 'iodine', ['Fehling’s solution', 'Tollens’ reagent', 'bromine water'], '<p>Iodine sits inside the helix of amylose.</p>'),
+    m.mcq(2, 'carbohydrates', '<p>Glycogen is:</p>', 'the energy store of animals, a highly branched glucose polymer', ['the plant cell wall', 'a protein', 'a disaccharide'], '<p>Stored in liver and muscle.</p>'),
+    m.mcq(2, 'proteins', '<p>Amino acids in solution at the isoelectric point exist as:</p>', 'zwitterions', ['cations only', 'anions only', 'neutral molecules with free NH₂ and COOH'], '<p>–COO⁻ and –NH₃⁺: net charge zero.</p>'),
+    m.mcq(2, 'proteins', '<p>Essential amino acids are those that:</p>', 'the body cannot make and must get from food', ['are only found in plants', 'have no amino group', 'are made only in the liver'], '<p>Examples are valine, leucine and lysine. Dals, milk, eggs and soya supply them.</p>'),
+    m.mcq(2, 'proteins', '<p>The bond that joins amino acids in a protein is:</p>', 'peptide (amide) bond', ['glycosidic bond', 'phosphodiester bond', 'ester bond'], '<p>–CO–NH–, formed by loss of water.</p>'),
+    m.mcq(2, 'proteins', '<p>A tripeptide contains:</p>', 'three amino acids and two peptide bonds', ['three amino acids and three peptide bonds', 'two amino acids', 'three peptide bonds and two amino acids'], '<p>n amino acids make n − 1 peptide bonds.</p>', { trap: 'Counting n bonds.' }),
+    m.mcq(3, 'proteins', '<p>The α-helix is held in shape by:</p>', 'hydrogen bonds between C=O and N–H of the backbone', ['disulphide bridges only', 'ionic bonds between cells', 'covalent bonds between side chains only'], '<p>This is the secondary structure.</p>'),
+    m.mcq(3, 'proteins', '<p>Denaturation of a protein (like boiling an egg) destroys:</p>', 'secondary and tertiary structure but not the peptide bonds (primary structure)', ['the primary structure', 'the amino acids', 'only the peptide bonds'], '<p>Heat or acid breaks hydrogen bonds and other weak bonds; the sequence stays.</p>'),
+    m.mcq(2, 'proteins', '<p>Haemoglobin, with four chains, shows:</p>', 'quaternary structure', ['primary structure only', 'secondary structure only', 'no structure'], '<p>Quaternary means several folded chains packed together.</p>'),
+    m.mcq(2, 'enzymes', '<p>Enzymes are mostly:</p>', 'proteins that act as biological catalysts', ['carbohydrates', 'lipids', 'nucleic acids'], '<p>They lower the activation energy, work at body temperature and are very specific.</p>'),
+    m.mcq(2, 'enzymes', '<p>The enzyme-substrate fit is often compared with:</p>', 'a lock and key', ['a ladder', 'a magnet', 'a filter'], '<p>The substrate fits the active site.</p>'),
+    m.mcq(3, 'enzymes', '<p>A competitive inhibitor reduces enzyme activity by:</p>', 'occupying the active site because it resembles the substrate', ['destroying the substrate', 'raising Vmax', 'heating the enzyme'], '<p>More substrate can overcome it.</p>'),
+    m.mcq(2, 'vitamins', '<p>Scurvy is caused by deficiency of vitamin:</p>', 'C', ['A', 'D', 'B₁'], '<p>Ascorbic acid is needed for collagen: amla and guava are good sources.</p>'),
+    m.mcq(2, 'vitamins', '<p>Which vitamin is fat-soluble?</p>', 'vitamin A', ['vitamin C', 'vitamin B₁', 'vitamin B₁₂'], '<p>A, D, E and K are fat-soluble.</p>'),
+    m.mcq(2, 'vitamins', '<p>Beri-beri is caused by a lack of:</p>', 'thiamine (B₁)', ['riboflavin', 'vitamin D', 'vitamin K'], '<p>Thiamine is lost when rice is polished.</p>'),
+    m.mcq(2, 'nucleic', '<p>The sugar in DNA is:</p>', '2-deoxyribose', ['ribose', 'glucose', 'fructose'], '<p>RNA has ribose, with an OH on C2.</p>'),
+    m.mcq(2, 'nucleic', '<p>A nucleotide is made of:</p>', 'a base, a sugar and a phosphate group', ['a base and an amino acid', 'a sugar and a fatty acid', 'two bases'], '<p>A nucleoside has only the base and the sugar.</p>'),
+    m.mcq(2, 'nucleic', '<p>In DNA, adenine pairs with:</p>', 'thymine by two hydrogen bonds', ['guanine by two', 'cytosine by three', 'uracil by three'], '<p>A–T has two hydrogen bonds; G–C has three.</p>'),
+    m.mcq(3, 'nucleic', '<p>Which is NOT a difference between DNA and RNA?</p>', 'both contain phosphate groups', ['DNA has deoxyribose, RNA has ribose', 'DNA has thymine, RNA has uracil', 'DNA is double-stranded, RNA is usually single-stranded'], '<p>Both are polymers of nucleotides linked through phosphate groups.</p>'),
+    m.ar(2, 'carbohydrates', 'Sucrose is a non-reducing sugar.', 'Both anomeric carbons of its monosaccharides take part in the glycosidic bond.', 0, '<p>Both true, R explains A: no free hemiacetal can open to give CHO.</p>'),
+    m.ar(3, 'proteins', 'Boiling an egg changes its texture permanently.', 'Heat denatures the protein by breaking its secondary and tertiary structure.', 0, '<p>Both true, R explains A. The amino acid sequence is unchanged.</p>'),
+    m.ar(3, 'nucleic', 'DNA with a high G–C content melts at a higher temperature than DNA with a high A–T content.', 'G–C pairs have three hydrogen bonds and A–T pairs have two.', 0, '<p>Both true, R explains A.</p>'),
+    m.ar(3, 'enzymes', 'Enzymes work best at a particular pH and temperature.', 'Extremes of pH or temperature alter the shape of the protein and its active site.', 0, '<p>Both true, R explains A.</p>'),
+    m.nat(2, 'proteins', '<p>How many peptide bonds are there in a protein chain of 120 amino acids?</p>', () => 119, 0, '<p>n − 1 = 119.</p>'),
+    m.nat(2, 'nucleic', '<p>If 24 % of the bases in a double-stranded DNA are thymine, what percentage is cytosine?</p>', () => 26, 0.01, '<p>A = T = 24 %, so G + C = 52 % and C = 26 %.</p>'),
+    m.nat(3, 'proteins', '<p>The pKa values of glycine are 2.34 and 9.60. Find its isoelectric point.</p>', () => 5.97, 0.01, '<p>pI = (2.34 + 9.60)/2 = 5.97.</p>'),
+    m.msq(3, 'carbohydrates', '<p>Which statements about glucose are correct? (Choose all that apply.)</p>', ['It exists as α and β anomers.', 'It reduces Tollens’ reagent.', 'It is a ketose.', 'It forms a six-membered pyranose ring.'], [0, 1, 3], '<p>Glucose is an aldose, so option 3 is false.</p>'),
+  ],
+  gens: [
+    { id: 'bm-g01', type: 'nat', level: 2, exams: ['board'], sub: 'nucleic',
+      make(rng) { const a = choose(rng, [18, 20, 24, 27, 30, 33]); return { a, q: `<p>A double-stranded DNA has ${a} % adenine. What percentage of the bases is cytosine?</p>`, answer: 50 - a, tol: 0.01, unit: '%', sol: `<p>A = T = ${a} %, so G + C = ${100 - 2 * a} % and C = ${50 - a} %.</p>` }; },
+      verify: (p) => (100 - 2 * p.a) / 2 },
+    { id: 'bm-g02', type: 'nat', level: 3, exams: ['board'], sub: 'proteins',
+      make(rng) { const P = choose(rng, [['Gly', 'Ala'], ['Ala', 'Ser', 'Val'], ['Gly', 'Leu', 'Phe'], ['Val', 'Ala', 'Gly', 'Ser']]), M = P.reduce((s, a) => s + MR[a], 0) - 18 * (P.length - 1); return { P, q: `<p>Find the molar mass of the peptide ${P.join('–')}. The free amino acid masses are ${[...new Set(P)].map((a) => a + ' ' + MR[a]).join(', ')} g/mol.</p>`, answer: M, tol: 0.005, unit: 'g/mol', sol: `<p>Sum of masses minus ${P.length - 1} × 18 = ${M} g/mol.</p>` }; },
+      verify: (p) => 18 + p.P.reduce((s, a) => s + MR[a] - 18, 0) },
+    { id: 'bm-g03', type: 'nat', level: 2, exams: ['board'], sub: 'carbohydrates',
+      make(rng) { const g = choose(rng, [17.1, 34.2, 68.4, 171]); return { g, q: `<p>${g} g of sucrose (342 g/mol) is hydrolysed completely. What mass of fructose (180 g/mol) is formed?</p>`, answer: +(g / 342 * 180).toPrecision(5), tol: 0.01, unit: 'g', sol: `<p>n(sucrose) = ${g}/342; one fructose per sucrose: ${(g / 342 * 180).toFixed(2)} g.</p>` }; },
+      verify: (p) => 180 * p.g / 342 },
+  ],
+};

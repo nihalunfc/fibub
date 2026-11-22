@@ -1,0 +1,52 @@
+// Class 12 Biology, Chapter 10 Biotechnology and its Applications: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ba');
+
+export default {
+  topic: 'biotechnology-and-its-applications', name: 'Biotechnology and its Applications', n: 10,
+  items: [
+    m.mcq(1, 'agri', '<p>The soil bacterium whose protein is used to protect crops from insects is:</p>', 'Bacillus thuringiensis', ['Rhizobium leguminosarum', 'Agrobacterium tumefaciens', 'Thermus aquaticus'], '<p>Bt stands for <i>Bacillus thuringiensis</i>, whose cry genes make an insecticidal protein.</p>'),
+    m.mcq(2, 'agri', '<p>The Bt toxin protein in the bacterium exists as an inactive:</p>', 'protoxin crystal', ['active toxin dissolved in water', 'mRNA', 'enzyme-linked antibody'], '<p>It is activated only in the alkaline gut of the insect.</p>'),
+    m.mcq(2, 'agri', '<p>The gene cryIAc is effective against:</p>', 'cotton bollworms', ['corn borer', 'nematodes', 'fruit flies'], '<p>cryIAc and cryIIAb control cotton bollworms; cryIAb controls corn borer.</p>'),
+    m.mcq(2, 'agri', '<p>The Bt toxin does not harm the human gut because:</p>', 'it is not activated in an acidic gut and has no receptor to bind', ['humans digest it quickly with trypsin only', 'it is destroyed by saliva', 'it kills only plants'], '<p>It needs an alkaline pH to dissolve and receptors on the gut cells to act.</p>'),
+    m.mcq(3, 'agri', '<p>How does the Bt toxin kill an insect larva?</p>', 'it makes pores in the gut lining cells, which swell and burst', ['it blocks the mouth', 'it damages the larva’s DNA directly', 'it breaks down the cuticle'], '<p>The activated toxin binds the gut epithelium and forms pores.</p>'),
+    m.mcq(2, 'agri', '<p>Golden Rice is rich in:</p>', 'provitamin A (beta-carotene)', ['vitamin C', 'iron only', 'vitamin D'], '<p>Genes for the beta-carotene pathway were put into rice.</p>'),
+    m.mcq(2, 'agri', '<p>The Indian committee that makes decisions about GM research and the safety of GM organisms is the:</p>', 'GEAC', ['ICMR', 'ICAR', 'UGC'], '<p>Genetic Engineering Appraisal Committee.</p>'),
+    m.mcq(1, 'rnai', '<p>RNA interference silences a gene by the action of:</p>', 'double-stranded RNA', ['single-stranded DNA', 'a protein antibiotic', 'a restriction enzyme'], '<p>dsRNA binds to the complementary mRNA and blocks its translation.</p>'),
+    m.mcq(2, 'rnai', '<p>The nematode that attacks tobacco roots is:</p>', 'Meloidogyne incognitia', ['Ascaris lumbricoides', 'Wuchereria bancrofti', 'Caenorhabditis elegans only'], '<p>RNAi against its genes was used to protect tobacco.</p>'),
+    m.mcq(3, 'rnai', '<p>In the RNAi tobacco plants, the sense and antisense RNAs:</p>', 'pair to form dsRNA that silences the nematode mRNA', ['pair with the plant’s DNA to cut it', 'are translated into toxins directly', 'are destroyed at once by the host'], '<p>Complementary RNAs form dsRNA, which silences the matching mRNA.</p>'),
+    m.mcq(1, 'insulin', '<p>Insulin is made of:</p>', 'two polypeptide chains joined by disulphide bridges', ['one long chain with no bridges', 'three identical subunits', 'a protein and a nucleic acid'], '<p>Chain A (21 amino acids) and chain B (30 amino acids).</p>'),
+    m.mcq(2, 'insulin', '<p>The part of proinsulin that is removed during maturation is the:</p>', 'C peptide', ['A chain', 'B chain', 'signal sequence of the plasmid'], '<p>The C peptide is cut out to give the mature insulin.</p>'),
+    m.mcq(2, 'insulin', '<p>The first recombinant human insulin was made by the company:</p>', 'Eli Lilly', ['Pfizer', 'Bayer', 'Roche'], '<p>Eli Lilly produced chains A and B separately in <i>E. coli</i> in 1983.</p>'),
+    m.mcq(3, 'insulin', '<p>Insulin A and B chains were made in separate cultures because:</p>', 'E. coli cannot remove the C peptide from proinsulin', ['insulin has no disulphide bonds', 'A and B chains are encoded on different chromosomes of the bacterium', 'plasmids can only carry one gene'], '<p>The bacterium lacks the maturation machinery, so the two chains were made apart and then joined.</p>'),
+    m.mcq(2, 'insulin', '<p>An advantage of recombinant human insulin over insulin from animals is that it:</p>', 'does not cause allergic reactions', ['is cheaper to inject', 'lowers blood pressure', 'does not need refrigeration'], '<p>Human insulin is not a foreign protein for people, so it gives fewer reactions.</p>'),
+    m.mcq(1, 'gene', '<p>Gene therapy was first used in 1990 to treat:</p>', 'ADA deficiency', ['cystic fibrosis', 'sickle-cell anaemia', 'diabetes'], '<p>A four-year-old girl with adenosine deaminase deficiency.</p>'),
+    m.mcq(2, 'gene', '<p>In ADA gene therapy, the vector used to carry the gene into lymphocytes is a:</p>', 'retrovirus', ['bacteriophage', 'Ti plasmid', 'gene gun'], '<p>A disarmed retrovirus carries the ADA cDNA into the cells.</p>'),
+    m.mcq(3, 'gene', '<p>Why must patients treated with ADA gene therapy of lymphocytes get repeated infusions?</p>', 'the lymphocytes are not immortal', ['the gene is lost during storage', 'the retrovirus returns', 'ADA is made only once'], '<p>The treated lymphocytes die in time. Putting the gene in embryonic or marrow cells could be permanent.</p>'),
+    m.mcq(1, 'diag', '<p>PCR is used for the early detection of HIV because it:</p>', 'amplifies tiny amounts of viral nucleic acid', ['measures antibodies', 'stains cells with iodine', 'grows the virus in agar'], '<p>It makes millions of copies of a target from very few molecules.</p>'),
+    m.mcq(2, 'diag', '<p>ELISA is based on:</p>', 'the antigen-antibody reaction', ['DNA replication', 'translation of mRNA', 'osmosis'], '<p>Detects antigens, or antibodies made against the pathogen, with an enzyme-linked antibody giving colour.</p>'),
+    m.mcq(2, 'diag', '<p>A radioactively labelled single-stranded DNA used to find a complementary sequence is called a:</p>', 'probe', ['primer', 'vector', 'ladder'], '<p>The probe hybridises with its complement, which is then seen by autoradiography.</p>'),
+    m.mcq(2, 'trans', '<p>Transgenic animals are those that:</p>', 'carry and express a foreign gene', ['have lost a gene', 'are cloned from a body cell', 'are born from different species'], '<p>Their DNA has been changed to carry an extra gene.</p>'),
+    m.mcq(2, 'trans', '<p>Rosie, the transgenic cow, produced milk with:</p>', 'human alpha-lactalbumin', ['human insulin', 'Bt toxin', 'more lactose'], '<p>2.4 grams per litre of human alpha-lactalbumin.</p>'),
+    m.mcq(3, 'trans', '<p>Which animal is used most often to make transgenic models of human disease?</p>', 'mouse', ['cow', 'monkey', 'sheep'], '<p>More than 95 per cent of transgenic animals are mice.</p>'),
+    m.mcq(2, 'ethics', '<p>Using bioresources and traditional knowledge of a country without authorisation and payment is called:</p>', 'biopiracy', ['bioremediation', 'biomagnification', 'bioassay'], '<p>Biopiracy. Basmati, turmeric and neem patents are examples.</p>'),
+    m.mcq(2, 'ethics', '<p>A patent is:</p>', 'a right given to an inventor to stop others using the invention commercially', ['a free licence for all', 'a test for GM safety', 'a trademark for a crop'], '<p>A government grants this for a fixed term.</p>'),
+    m.ar(2, 'agri', 'Bt cotton needs less spraying of insecticide for bollworm.', 'In Bt cotton the plant itself makes the insecticidal protein.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'diag', 'ELISA is the best test to detect an HIV infection a few days after exposure.', 'ELISA depends on the body making antibodies or having antigens at detectable levels.', 3, '<p>A is false: early after exposure, antibody levels are too low, so PCR is better. R is true.</p>'),
+    m.ar(3, 'insulin', 'Proinsulin must lose its C peptide before it works.', 'The C peptide joins chains A and B by disulphide bridges.', 2, '<p>A is true. R is false: the disulphide bridges join A and B directly; the C peptide is the piece that is removed.</p>'),
+    m.nat(2, 'insulin', '<p>A human insulin molecule has an A chain of 21 amino acids and a B chain of 30. How many amino acids are in 10 molecules?</p>', () => 510, 0, '<p>21 + 30 = 51 per molecule; 51 × 10 = 510.</p>'),
+    m.msq(3, 'trans', '<p>Which are uses of transgenic animals? (Choose all that apply.)</p>', ['Testing the safety of polio vaccine', 'Making human proteins in milk', 'Studying Alzheimer disease', 'Making Bt toxin crystals for protoxin activation'], [0, 1, 2], '<p>The first three are listed uses. Bt toxin is a bacterial insecticidal protein used in plants.</p>'),
+  ],
+  gens: [
+    { id: 'ba-g01', type: 'nat', level: 2, exams: ['board'], sub: 'insulin',
+      make(rng) { const k = pick(rng, 5, 100, 5); return { k, q: `<p>Human insulin has chain A of 21 amino acids and chain B of 30. How many amino acids in total are there in ${k} insulin molecules?</p>`, answer: 51 * k, tol: 0, unit: '', sol: `<p>(21 + 30) × ${k} = ${51 * k}.</p>` }; },
+      verify: (p) => { let t = 0; for (let i = 0; i < p.k; i++) t += 21 + 30; return t; } },
+    { id: 'ba-g02', type: 'nat', level: 2, exams: ['board'], sub: 'agri',
+      make(rng) { const b = pick(rng, 5, 12, 1), a = pick(rng, 1, 4, 1), acres = pick(rng, 2, 20, 1); return { b, a, acres, q: `<p>A farmer sprays non-Bt cotton ${b} times and Bt cotton ${a} times a season. How many sprays are saved over ${acres} acres?</p>`, answer: (b - a) * acres, tol: 0, unit: '', sol: `<p>(${b} − ${a}) × ${acres} = ${(b - a) * acres}.</p>` }; },
+      verify: (p) => { let t = 0; for (let i = 0; i < p.acres; i++) t += p.b - p.a; return t; } },
+    { id: 'ba-g03', type: 'nat', level: 3, exams: ['board'], sub: 'insulin',
+      make(rng) { const k = pick(rng, 10, 200, 10); return { k, q: `<p>${k} A chains and ${k} B chains of insulin are mixed and all pair up. Each insulin has 2 disulphide bridges between A and B. How many such bridges form?</p>`, answer: 2 * k, tol: 0, unit: '', sol: `<p>${k} molecules × 2 = ${2 * k}.</p>` }; },
+      verify: (p) => p.k + p.k },
+  ],
+};

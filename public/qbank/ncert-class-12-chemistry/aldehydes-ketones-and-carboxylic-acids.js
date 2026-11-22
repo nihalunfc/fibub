@@ -1,0 +1,53 @@
+// Class 12 Chemistry, Chapter 8 Aldehydes, Ketones and Carboxylic Acids: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('ak');
+
+export default {
+  topic: 'aldehydes-ketones-and-carboxylic-acids', name: 'Aldehydes, Ketones and Carboxylic Acids', n: 8,
+  items: [
+    m.mcq(1, 'nomenclature', '<p>The IUPAC name of CH₃CH₂CHO is:</p>', 'propanal', ['propanone', 'propan-1-ol', 'propanoic acid'], '<p>An aldehyde takes the suffix “al”; the CHO carbon is carbon 1.</p>'),
+    m.mcq(2, 'nomenclature', '<p>The IUPAC name of CH₃COCH₂CH₃ is:</p>', 'butanone', ['butanal', 'butan-2-ol', 'butanoic acid'], '<p>A ketone takes “one”. There is no need for a locant because the C=O can only be on carbon 2.</p>'),
+    m.mcq(2, 'nomenclature', '<p>The IUPAC name of C₆H₅COOH is:</p>', 'benzoic acid', ['benzaldehyde', 'phenylmethanol', 'phenol'], '<p>The COOH group on a benzene ring gives benzoic acid.</p>'),
+    m.mcq(2, 'structure', '<p>The carbonyl carbon is hybridised:</p>', 'sp², trigonal planar', ['sp³, tetrahedral', 'sp, linear', 'sp³d'], '<p>One σ bond to O, two to other atoms and a π bond in C=O: 120° angles.</p>'),
+    m.mcq(2, 'physical', '<p>Which has the highest boiling point?</p>', 'ethanoic acid', ['propanone', 'propanal', 'butane'], '<p>Carboxylic acids form hydrogen-bonded dimers.</p>'),
+    m.mcq(2, 'physical', '<p>Propanal boils at 48 °C and propan-1-ol at 97 °C because:</p>', 'the alcohol hydrogen bonds but the aldehyde cannot with itself', ['propanal is heavier', 'the alcohol is non-polar', 'the aldehyde has an O–H bond'], '<p>Aldehydes and ketones have a polar C=O but no O–H, so they have dipole forces only.</p>'),
+    m.mcq(2, 'physical', '<p>Propanone is miscible with water because:</p>', 'its carbonyl oxygen accepts hydrogen bonds from water', ['it has an O–H bond', 'it is ionic', 'it reacts with water'], '<p>The O of C=O has lone pairs that bond to the H of water.</p>'),
+    m.mcq(2, 'preparation', '<p>Oxidation of propan-2-ol with acidified K₂Cr₂O₇ gives:</p>', 'propanone', ['propanal', 'propanoic acid', 'propene'], '<p>A secondary alcohol gives a ketone.</p>'),
+    m.mcq(3, 'preparation', '<p>Rosenmund reduction converts:</p>', 'acid chloride to aldehyde', ['aldehyde to alcohol', 'acid to ester', 'ketone to alkane'], '<p>H₂ over Pd/BaSO₄ (a poisoned catalyst) stops at the aldehyde.</p>'),
+    m.mcq(3, 'preparation', '<p>Benzene with ethanoyl chloride and anhydrous AlCl₃ gives:</p>', 'acetophenone (phenylethanone)', ['benzaldehyde', 'benzoic acid', 'toluene'], '<p>Friedel–Crafts acylation puts a COCH₃ group on the ring.</p>'),
+    m.mcq(2, 'reactions', '<p>Which compound gives a silver mirror with Tollens’ reagent?</p>', 'ethanal', ['propanone', 'ethanol', 'ethanoic acid'], '<p>Aldehydes are oxidised by Ag⁺, which becomes silver metal. Ketones are not.</p>'),
+    m.mcq(2, 'reactions', '<p>Benzaldehyde does NOT respond to:</p>', 'Fehling’s test', ['Tollens’ test', '2,4-DNP', 'sodium bisulphite'], '<p>Fehling’s solution only oxidises aliphatic aldehydes.</p>', { trap: 'Assuming every aldehyde gives Fehling’s test.' }),
+    m.mcq(2, 'reactions', '<p>Which gives the iodoform test?</p>', 'propanone', ['propanal', 'benzaldehyde', 'methanal'], '<p>The CH₃CO– group (a methyl ketone) gives yellow CHI₃ with I₂/NaOH.</p>'),
+    m.mcq(3, 'reactions', '<p>The most reactive carbonyl compound towards nucleophilic addition is:</p>', 'methanal', ['propanone', 'benzaldehyde', 'ethanal'], '<p>Methanal has two H atoms: no electron-pushing alkyl groups and the least steric hindrance.</p>'),
+    m.mcq(3, 'reactions', '<p>Why is benzaldehyde less reactive than ethanal in nucleophilic addition?</p>', 'resonance with the ring lowers the positive charge on carbon', ['it has more hydrogens', 'it has no C=O', 'the ring is smaller'], '<p>The benzene ring donates electrons by resonance to the carbonyl carbon.</p>'),
+    m.mcq(2, 'reactions', '<p>Which pair gives the aldol condensation?</p>', 'ethanal with dilute NaOH', ['methanal with dilute NaOH', 'benzaldehyde with dilute NaOH', 'tert-butyl alcohol with NaOH'], '<p>Aldol needs an α hydrogen. Methanal and benzaldehyde have none.</p>'),
+    m.mcq(2, 'reactions', '<p>Methanal with concentrated NaOH gives:</p>', 'methanol and sodium methanoate', ['only methanol', 'only sodium methanoate', 'methanoic acid and methane'], '<p>The Cannizzaro reaction: one molecule is oxidised, the other reduced.</p>'),
+    m.mcq(2, 'reactions', '<p>Clemmensen reduction converts C=O into:</p>', 'CH₂', ['CH–OH', 'COOH', 'CH=CH'], '<p>Zinc amalgam and concentrated HCl reduce a carbonyl group to a methylene group.</p>'),
+    m.mcq(3, 'reactions', '<p>Wolff–Kishner reduction uses:</p>', 'hydrazine and KOH in ethylene glycol', ['Zn(Hg) and HCl', 'LiAlH₄', 'Pd/BaSO₄'], '<p>It suits compounds that are sensitive to acid.</p>'),
+    m.mcq(2, 'acids', '<p>The correct order of acidity is:</p>', 'ethanol < phenol < ethanoic acid', ['phenol < ethanol < ethanoic acid', 'ethanoic acid < phenol < ethanol', 'ethanol < ethanoic acid < phenol'], '<p>The carboxylate ion shares its charge between two oxygens: pKa 4.8, against phenol 10 and ethanol 16.</p>'),
+    m.mcq(3, 'acids', '<p>Which is the strongest acid?</p>', 'trichloroethanoic acid', ['ethanoic acid', 'chloroethanoic acid', 'propanoic acid'], '<p>Three Cl atoms withdraw electrons strongly (−I effect) and stabilise the anion.</p>'),
+    m.mcq(3, 'acids', '<p>Benzoic acid is a stronger acid than ethanoic acid because:</p>', 'the sp² carbon of the ring is more electron-withdrawing than CH₃', ['benzoic acid has more carbon atoms', 'it has two OH groups', 'ethanoic acid is not an acid'], '<p>pKa 4.20 against 4.76: the ring (sp²) pulls electrons slightly more than a methyl group pushes.</p>'),
+    m.mcq(2, 'acids', '<p>Carboxylic acids release CO₂ from:</p>', 'sodium hydrogencarbonate', ['sodium chloride', 'phenol', 'ethanol'], '<p>They are stronger than carbonic acid; phenols are not.</p>'),
+    m.mcq(2, 'acids', '<p>HVZ reaction (Hell–Volhard–Zelinsky) gives:</p>', 'α-halo carboxylic acid', ['an acyl chloride', 'an ester', 'an aldehyde'], '<p>Br₂ with red phosphorus brominates the α carbon of an acid with α hydrogen.</p>'),
+    m.ar(2, 'reactions', 'Aldehydes are more reactive than ketones towards nucleophiles.', 'Ketones have two alkyl groups that push electrons to the carbonyl carbon and block the approach of the nucleophile.', 0, '<p>Both true and R explains A (electronic and steric effects).</p>'),
+    m.ar(3, 'acids', 'Carboxylic acids are much stronger acids than alcohols.', 'The carboxylate ion is stabilised by resonance, with the charge shared between two oxygens.', 0, '<p>Both true and R is the reason.</p>'),
+    m.ar(3, 'reactions', 'Benzaldehyde undergoes the Cannizzaro reaction.', 'Benzaldehyde has no α hydrogen.', 0, '<p>Without an α H there is no enolate, so aldol cannot occur and the hydride-transfer route is followed.</p>'),
+    m.ar(3, 'physical', 'Boiling points of carboxylic acids are higher than those of alcohols of comparable mass.', 'Carboxylic acids form dimers through two hydrogen bonds.', 0, '<p>Both true, R explains A.</p>'),
+    m.nat(2, 'reactions', '<p>How many moles of silver are deposited when 1 mole of ethanal is oxidised completely by Tollens’ reagent?</p>', () => 2, 0, '<p>RCHO + 2 Ag⁺ → RCOOH + 2 Ag.</p>'),
+    m.nat(2, 'nomenclature', '<p>How many aldehydes have the molecular formula C₄H₈O?</p>', () => 2, 0, '<p>Butanal and 2-methylpropanal.</p>'),
+    m.nat(3, 'acids', '<p>The pKa of ethanoic acid is 4.76. At what pH is a buffer of ethanoic acid and sodium ethanoate equimolar?</p>', () => 4.76, 0.01, '<p>pH = pKa + log(1) = 4.76.</p>'),
+    m.msq(3, 'reactions', '<p>Which of these give a positive iodoform test? (Choose all that apply.)</p>', ['Ethanal', 'Propanone', 'Ethanol', 'Propanal'], [0, 1, 2], '<p>The test needs CH₃CO– or CH₃CH(OH)–. Propanal has neither.</p>'),
+  ],
+  gens: [
+    { id: 'ak-g01', type: 'nat', level: 2, exams: ['board'], sub: 'acids',
+      make(rng) { const A = choose(rng, [['ethanoic acid', 60], ['benzoic acid', 122], ['propanoic acid', 74]]), g = choose(rng, [0.6, 1.2, 2.4, 3.7]), c = choose(rng, [0.1, 0.2]); return { M: A[1], g, c, q: `<p>${g} g of ${A[0]} (${A[1]} g/mol) is neutralised by ${c} mol/L NaOH. Find the volume of NaOH in mL.</p>`, answer: +(g / A[1] / c * 1000).toPrecision(5), tol: 0.01, unit: 'mL', sol: `<p>n = ${g}/${A[1]} mol; V = n/c = ${(g / A[1] / c * 1000).toFixed(1)} mL.</p>` }; },
+      verify: (p) => 1000 * p.g / (p.M * p.c) },
+    { id: 'ak-g02', type: 'nat', level: 3, exams: ['board'], sub: 'acids',
+      make(rng) { const pKa = choose(rng, [3.75, 4.2, 4.76, 4.87]), r = choose(rng, [0.1, 0.5, 2, 10]); return { pKa, r, q: `<p>A buffer has [A⁻]/[HA] = ${r} and the acid has pKa ${pKa}. Find its pH.</p>`, answer: +(pKa + Math.log10(r)).toPrecision(5), tol: 0.01, sol: `<p>pH = pKa + log(${r}) = ${(pKa + Math.log10(r)).toFixed(2)}.</p>` }; },
+      verify: (p) => Math.log10(Math.pow(10, p.pKa) * p.r) },
+    { id: 'ak-g03', type: 'nat', level: 2, exams: ['board'], sub: 'reactions',
+      make(rng) { const A = choose(rng, [['ethanal', 44], ['propanal', 58], ['benzaldehyde', 106]]), g = choose(rng, [1.1, 2.9, 5.3]); return { M: A[1], g, q: `<p>${g} g of ${A[0]} (${A[1]} g/mol) is oxidised by Tollens’ reagent (2 Ag per aldehyde, Ag = 108 g/mol). Find the mass of silver in grams.</p>`, answer: +(216 * g / A[1]).toPrecision(5), tol: 0.01, unit: 'g', sol: `<p>n = ${g}/${A[1]}; mass Ag = 2 × n × 108 = ${(216 * g / A[1]).toFixed(2)} g.</p>` }; },
+      verify: (p) => 2 * 108 * (p.g / p.M) },
+  ],
+};
