@@ -14,17 +14,23 @@ export default {
       { id: 'matrices', name: 'Matrices, determinants and eigenvalues' },
       { id: 'complex-numbers', name: 'Complex numbers' },
     ] },
+    { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
+      { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
+      { id: 'work-energy-collisions', name: 'Work, energy, momentum and collisions' },
+      { id: 'central-forces', name: 'Central forces, orbits and Kepler\'s laws' },
+      { id: 'moment-of-inertia', name: 'Moment of inertia and the axis theorems' },
+    ] },
     { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
       { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
       { id: 'damped-forced-oscillations', name: 'Damped and forced oscillations, resonance' },
       { id: 'interference', name: 'Interference' },
       { id: 'diffraction', name: 'Diffraction' },
     ] },
-    { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
-      { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
-      { id: 'work-energy-collisions', name: 'Work, energy, momentum and collisions' },
-      { id: 'central-forces', name: 'Central forces, orbits and Kepler\'s laws' },
-      { id: 'moment-of-inertia', name: 'Moment of inertia and the axis theorems' },
+    { id: 'em', name: 'Electricity and magnetism', topics: [
+      { id: 'electrostatics-gauss', name: 'Electric fields and Gauss\'s law' },
+      { id: 'potential-energy', name: 'Potential and electrostatic energy' },
+      { id: 'magnetostatics', name: 'Magnetic fields: Biot-Savart and Ampère' },
+      { id: 'induction', name: 'Electromagnetic induction and inductance' },
     ] },
   ],
 };
