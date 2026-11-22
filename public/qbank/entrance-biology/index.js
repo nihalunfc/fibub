@@ -61,6 +61,14 @@ export default {
         {
           "id": "circulation",
           "name": "Body fluids and circulation"
+        },
+        {
+          "id": "excretion",
+          "name": "Excretory products and their elimination"
+        },
+        {
+          "id": "locomotion",
+          "name": "Locomotion and movement"
         }
       ]
     },
