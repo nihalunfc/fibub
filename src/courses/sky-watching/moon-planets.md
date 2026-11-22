@@ -96,6 +96,10 @@ A tour of the Solar System through a 150 mm telescope:
 
 </div>
 
+Pick a planet and press Play. Compare how far from the Sun it can appear in our sky, and how much of it is lit.
+
+<figure class="fig" data-fig="@astro-synodic"><figcaption>An inner planet (Mercury, Venus) never strays far from the Sun: it has a largest elongation and shows phases. An outer planet can stand opposite the Sun (opposition), when it is closest, brightest and up all night. The time between repeats (the synodic period) is longer than the planet's year.</figcaption></figure>
+
 ## 4. Worked example
 
 *Is tonight good for Jupiter?* Suppose Jupiter is at opposition (`$r = 5.20 - 1 = 4.20$` AU, 628 million km), at altitude 55° from your site.

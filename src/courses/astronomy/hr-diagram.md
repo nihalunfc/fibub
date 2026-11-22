@@ -73,6 +73,10 @@ On log axes this is a straight line for each radius:
 **Try it:** a star of 2 R☉ at 5,772 K has `$L = 4$` L☉.
 </details>
 
+Slide the temperature and the radius. Watch the colour, the curve's peak and the luminosity.
+
+<figure class="fig" data-fig="@astro-star-colour"><figcaption>Hotter stars are bluer and peak at shorter wavelengths (Wien's law), and each square metre of a hot star shines far more (T⁴). A star's power also grows with its surface area (R²), so a cool giant can outshine a hot dwarf.</figcaption></figure>
+
 ## 3. What it means physically
 
 Where a star sits is set mainly by its mass and its age. A main-sequence star's mass fixes how hard gravity squeezes it, so how hot its core gets and how fast it burns (Lesson 3.3). When the core runs out of hydrogen, the star swells into a giant and moves to the upper right. At the end, the exposed core is left as a white dwarf at the lower left. So the diagram is a picture of life stories, frozen at one moment.
@@ -93,6 +97,16 @@ Where a star sits is set mainly by its mass and its age. A main-sequence star's 
 
 **"Stars move along the main sequence as they age."** A star stays at almost the same spot on the main sequence for most of its life; its place there is set by its mass. Only when the core hydrogen runs out does it leave, swelling into a giant.
 
+</div>
+
+Pick a mass and press Play or slide the stage. The dot follows the star's track across the HR diagram.
+
+<div class="steps" data-fig="@astro-hr-evolve">
+<div class="step">The star is born onto the main sequence and burns hydrogen in its core. It sits still for most of its life.</div>
+<div class="step">The core hydrogen runs out. The star leaves the main sequence for the subgiant and red giant branches.</div>
+<div class="step">Core helium burning and then the late giant stage: the star is at its biggest and brightest.</div>
+<div class="step">The outer layers are blown off. This is where the track turns hot and fast.</div>
+<div class="step">The end: a white dwarf, or for a very massive star, a supernova.</div>
 </div>
 
 ## 4. Worked example

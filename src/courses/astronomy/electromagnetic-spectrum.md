@@ -72,6 +72,10 @@ A handy shortcut: `$E\ (\text{eV}) \approx 1240 / \lambda\ (\text{nm})$`. One el
 **Try it:** green light at 500 nm has `$f = 3\times10^8/500\times10^{-9} = 6\times10^{14}$` Hz and `$E \approx 1240/500 = 2.5$` eV.
 </details>
 
+Slide the temperature and the radius. Watch the colour, the curve's peak and the luminosity.
+
+<figure class="fig" data-fig="@astro-star-colour"><figcaption>Hotter stars are bluer and peak at shorter wavelengths (Wien's law), and each square metre of a hot star shines far more (T⁴). A star's power also grows with its surface area (R²), so a cool giant can outshine a hot dwarf.</figcaption></figure>
+
 ## 3. What it means physically
 
 The energy of one photon decides what it can do to matter. A visible photon (about 2 eV) can nudge an electron in an atom to a higher level, which is how your eye and a camera sensor detect it. An X-ray photon (thousands of eV) can knock electrons clean out of atoms, so X-rays come from violent places: gas at millions of degrees, matter falling onto black holes. A radio photon is a millionth of an eV, far too weak to change an atom much; radio comes from slow, gentle processes such as cold hydrogen flipping its spin (Lesson 1.6).

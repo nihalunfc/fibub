@@ -107,6 +107,10 @@ Watch one night from latitude 45° N:
 **Try it:** a star on the celestial equator (`$\delta = 0$`): `$\cos H_0 = 0$`, so `$H_0 = 90^\circ$` and it is up for `$2 \times 90 / 15 = 12$` hours, from any latitude.
 </details>
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 5. Worked example
 
 *From 40° N.* Vega has declination +38.8°.

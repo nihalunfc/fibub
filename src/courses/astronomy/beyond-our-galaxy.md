@@ -49,6 +49,10 @@ Carry your toolkit past the edge of our galaxy:
 <div class="step"><b>Next.</b> The cosmology course starts exactly here, with the distance ladder, expansion, dark matter and the Big Bang.</div>
 </div>
 
+Slide the radial velocity, or press a preset (a star, a spinning galaxy, a quasar), and watch the lines in the lower spectrum move.
+
+<figure class="fig" data-fig="@astro-redshift-lines"><figcaption>Every line moves by the same fraction, z = Δλ/λ. A star at 30 km/s moves Hα by only 0.07 nm; a distant galaxy at 100,000 km/s pushes it into the infrared. Negative velocities (moving towards us) shift lines to the blue.</figcaption></figure>
+
 ## 3. What it means physically
 
 The physics doesn't change at the edge of the Milky Way: the same gravity holds galaxies together, the same atoms make the same spectral lines, and the same light carries the news. What changes is that distances become so large that light's travel time matters, so looking far away means looking back in time, and the universe itself is no longer a fixed stage.

@@ -37,6 +37,10 @@ These alignments are some of the most precisely predictable events in nature and
 - **Transit:** a small body crosses the disc of a big one (Mercury or Venus across the Sun; a planet across its star).
 - **Occultation:** a nearer body hides a further one completely (the Moon covering a star or planet; an asteroid covering a star).
 
+Press Play to run a year and then switch the Moon's orbit between tilted and not tilted. Watch the strip of new and full Moons.
+
+<figure class="fig" data-fig="@astro-eclipse-nodes"><figcaption>With a flat orbit every new Moon would eclipse the Sun. The real orbit is tilted 5.1°, so only when a new or full Moon happens near a node does an eclipse happen: two clumps (eclipse seasons) a year, giving 4 to 7 eclipses in total.</figcaption></figure>
+
 ## 3. Total or annular?
 
 The Moon's distance varies from about 356,500 to 406,700 km, so its apparent size ranges from about 33.5′ to 29.4′. The Sun's is about 31.6′ to 32.7′. The Moon's dark shadow cone, the **umbra**, is about 374,000 km long: just about Earth's distance.

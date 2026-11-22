@@ -74,6 +74,10 @@ d = 10^{(m - M)/5 + 1}\ \text{pc}
 **Try it:** a 30-day Cepheid: `$M_V = -2.43\times(1.477 - 1) - 4.05 = -5.21$`.
 </details>
 
+Slide the planet's radius, impact parameter and period, or press a preset (Jupiter, Neptune, Earth).
+
+<figure class="fig" data-fig="@astro-transit-curve"><figcaption>The dip depth is about (Rp/Rs)²: Jupiter gives about 1%, Earth only 0.008%. The curve is rounded because the star's edge is dimmer (limb darkening), and a path near the edge gives a shorter, shallower dip. A longer period makes a longer transit.</figcaption></figure>
+
 ## 3. What it means physically
 
 A Cepheid pulsates because a layer of helium in it acts like a valve. When the star is squeezed, that helium gets more ionised and more opaque, trapping heat, which pushes the layer out; as it expands it becomes clearer, lets the heat escape and falls back. Bigger stars are fluffier, so they take longer to swing in and out, like a longer pendulum. Bigger also means more luminous, which is why period and power go together.

@@ -44,6 +44,10 @@ Things to notice:
 - At first quarter the Moon is 90° from the Sun in the sky, and exactly half its disc is lit.
 - The Moon rises about 50 minutes later each day. A first-quarter Moon rises around noon and is high at sunset; a full Moon rises at sunset; a last-quarter Moon rises around midnight.
 
+Drag the Moon's age to any phase, then turn the Earth with the time slider (or press Play). The flag is you.
+
+<figure class="fig" data-fig="@astro-moon-clock"><figcaption>Full Moon rises as the Sun sets and is high at midnight; a first-quarter Moon is high at sunset and sets around midnight. The phase decides when the Moon is up, and each night it rises about 50 minutes later.</figcaption></figure>
+
 ## 3. Two kinds of month
 
 The Moon goes round Earth once relative to the stars in **27.32 days** (the *sidereal month*). But in that time Earth has moved about 27° along its orbit, so the Sun's direction has shifted. The Moon needs about two more days to catch up to the same phase: the **synodic month**, new Moon to new Moon, is **29.53 days**.
@@ -96,6 +100,10 @@ k = \frac{1 - \cos\psi}{2}
 
 </div>
 
+Choose a Moon age and press Play: the Earth turns under the two bulges, and the curve shows the tide at your place.
+
+<figure class="fig" data-fig="@astro-tides"><figcaption>Two high tides a day because there is a bulge on the Moon side and one opposite. At new and full Moon the Sun's smaller bulges add up (spring tides); at the quarters they cross (neap tides). Bulges are drawn hugely exaggerated.</figcaption></figure>
+
 ## 4. Eclipses
 
 A **solar eclipse** happens when the new Moon passes exactly in front of the Sun; a **lunar eclipse** when the full Moon passes through Earth's shadow. If the Moon's orbit lay in the same plane as Earth's, we would get both every month. In fact it is tilted by about **5.1°**, so usually the new Moon slips above or below the Sun and the full Moon misses Earth's shadow.
@@ -103,6 +111,10 @@ A **solar eclipse** happens when the new Moon passes exactly in front of the Sun
 Eclipses can only happen when a new or full Moon falls near one of the two **nodes**, the points where the Moon's orbit crosses Earth's orbital plane. That lines up during two "eclipse seasons" a year, each about 35 days long, so there are at least four eclipses a year (some of them faint partial ones), but any one place sees a total solar eclipse only every few hundred years on average.
 
 A coincidence makes total solar eclipses possible: the Sun is about 400 times wider than the Moon but also about 400 times further away, so both look about half a degree across. When the Moon is near its furthest point it looks slightly smaller, and the eclipse is **annular**: a ring of Sun stays visible.
+
+Press Play to run a year and then switch the Moon's orbit between tilted and not tilted. Watch the strip of new and full Moons.
+
+<figure class="fig" data-fig="@astro-eclipse-nodes"><figcaption>With a flat orbit every new Moon would eclipse the Sun. The real orbit is tilted 5.1°, so only when a new or full Moon happens near a node does an eclipse happen: two clumps (eclipse seasons) a year, giving 4 to 7 eclipses in total.</figcaption></figure>
 
 ## 5. Worked example
 

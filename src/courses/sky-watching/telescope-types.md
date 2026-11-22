@@ -39,6 +39,10 @@ Telescope shops are full of jargon: achromat, apo, Newtonian, Dob, SCT, Mak, RC.
 
 **Catadioptrics** (both). A thin corrector lens at the front plus mirrors. The **Schmidt-Cassegrain (SCT)** and **Maksutov-Cassegrain** fold a long focal length into a short tube: compact, easy to carry, good for planets and small objects, with narrower fields.
 
+Slide the aperture and the eyepiece, and watch the star field and the limiting magnitude.
+
+<figure class="fig" data-fig="@astro-light-gather"><figcaption>The aperture sets how faint you can see (light grows with area, so doubling the diameter gives 4 times the light and about 1.5 magnitudes deeper). The eyepiece only sets the magnification, the true field and the exit pupil: a higher power does not show fainter stars.</figcaption></figure>
+
 ## 3. Things every design deals with
 
 - **Central obstruction.** Reflectors and catadioptrics have a secondary mirror in the light path. It blocks a little light and moves some light from the Airy disc into the rings, slightly softening contrast on planets. Refractors have none.

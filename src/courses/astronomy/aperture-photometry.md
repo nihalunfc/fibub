@@ -79,6 +79,10 @@ m = m_c - 2.5\log_{10}\frac{S}{S_c}
 **Uncertainty in magnitudes**: `$\sigma_m \approx 1.086/\text{SNR}$`.
 </details>
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<figure class="fig" data-fig="@astro-ccd-steps"><figcaption>Subtracting bias and dark removes the offset and hot pixels. Dividing by the flat removes vignetting and dust shadows. After both, equal stars read equal counts anywhere on the chip, and the real signal stands above a flat sky.</figcaption></figure>
+
 ## 3. What it means physically
 
 A star's light is spread over several pixels by the air and optics ([Sky watching 3.3](/learn/courses/sky-watching/seeing-transparency/)), so you must gather it all back up. The sky isn't black: air glow, light pollution and moonlight add light to every pixel, including those under the star. Comparing with stars in the same frame is powerful because thin cloud or changing altitude dims all of them by the same fraction, and a ratio cancels it out.

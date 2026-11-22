@@ -71,6 +71,10 @@ It comes from asking where the escape speed `$\sqrt{2GM/r}$` (Lesson 2.2) reache
 **Try it:** a 1 solar-mass white dwarf of radius 5,800 km: `$\rho = 1.99\times10^{30}/(\tfrac{4}{3}\pi\times(5.8\times10^{6})^3) = 2.4\times10^{9}$` kg/m³, so a teaspoon (5 mL) weighs 12 tonnes.
 </details>
 
+Pick a mass and press Play or slide the stage. The dot follows the star's track across the HR diagram.
+
+<figure class="fig" data-fig="@astro-hr-evolve"><figcaption>A star spends most of its life on the main sequence, then swells into a giant as hydrogen runs out. The 20 solar-mass star lives about a million times faster than a red dwarf, and its end is a supernova; the 1 and 5 solar-mass stars end as white dwarfs. Tracks are schematic.</figcaption></figure>
+
 ## 3. What it means physically
 
 The pressure that holds up white dwarfs and neutron stars is not heat but a quantum rule: two electrons (or two neutrons) can't occupy the same state, so packing them closer forces them to move faster, which pushes back. This pressure has a limit. Past it, the particles would need to move faster than light, so gravity wins. A black hole isn't a cosmic vacuum cleaner; from far away its gravity is the same as any object of the same mass. Only very close does it become a point of no return.
@@ -92,6 +96,10 @@ The pressure that holds up white dwarfs and neutron stars is not heat but a quan
 **"Black holes suck everything in like a vacuum cleaner."** From far away a black hole pulls exactly like any star of the same mass. If the Sun became a black hole of the same mass, Earth would keep orbiting just as it does now (though it would be very dark and cold).
 
 </div>
+
+Slide the impact parameter b, switch between one ray and a fan, and set the radius for the escape speed readout.
+
+<figure class="fig" data-fig="@astro-black-hole-rays"><figcaption>Light is bent more the closer it passes: far away it is bent a little, near 3 GM/c² it can go round the photon sphere, and below b ≈ 5.2 GM/c² it is captured. The escape speed equals the speed of light at the event horizon, r = 2 GM/c².</figcaption></figure>
 
 ## 4. Worked example
 

@@ -34,6 +34,10 @@ Earth's axis is tilted **23.44°** from the perpendicular to its orbit, and it k
 
 A common mistake is to blame distance. Earth's orbit is nearly a circle: it is closest to the Sun (perihelion) in early January and furthest in early July, only about 3% different. And the hemispheres have opposite seasons at the same moment, which distance could never explain.
 
+Move the date through the year and set your latitude. Watch the bright part of your latitude circle, the part in daylight, grow and shrink.
+
+<figure class="fig" data-fig="@astro-seasons-orbit"><figcaption>The axis keeps pointing the same way while Earth moves round the Sun. When the northern axis leans towards the Sun, more than half of every northern circle is lit: longer days and a higher noon Sun. Try 70° N in June and December.</figcaption></figure>
+
 ## 3. The Sun's declination through the year
 
 Seen from Earth, the tilt makes the Sun slide north and south on the celestial sphere. Its declination swings between:

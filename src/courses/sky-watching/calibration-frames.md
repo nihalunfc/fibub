@@ -72,6 +72,14 @@ The flat is divided by its own mean so it averages 1, and the calibrated image k
 **Why many frames per master:** combining `$n$` frames cuts their random noise by `$\sqrt n$`. A noisy master dark would add its noise to every light.
 </details>
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<div class="steps" data-fig="@astro-ccd-steps">
+<div class="step">The raw frame: stars on top of a bias offset, hot pixels, vignetting and dust shadows.</div>
+<div class="step">Subtract the bias and the dark frame: the offset and hot pixels go.</div>
+<div class="step">Divide by the flat field: vignetting and dust disappear and the stars are comparable everywhere.</div>
+</div>
+
 ## 3. Worked example
 
 *One pixel in a dusty corner.* The true sky signal is 200 e⁻. The corner gets only 50% of the light because of vignetting and dust, and the dark signal for that exposure is 30 e⁻.

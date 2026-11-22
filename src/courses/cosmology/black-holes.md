@@ -55,6 +55,10 @@ r_{s} = \frac{2 G M}{c^{2}} \approx 2.95\ \text{km} \times \frac{M}{M_{\odot}}
 
 The horizon is not a surface you could stand on. It is a one-way boundary. Outside it, a rocket can escape. Inside, space and time are so bent that every possible future path leads further in, as surely as every path today leads to tomorrow.
 
+Slide the impact parameter b, switch between one ray and a fan, and set the radius for the escape speed readout.
+
+<figure class="fig" data-fig="@astro-black-hole-rays"><figcaption>Light is bent more the closer it passes: far away it is bent a little, near 3 GM/c² it can go round the photon sphere, and below b ≈ 5.2 GM/c² it is captured. The escape speed equals the speed of light at the event horizon, r = 2 GM/c².</figcaption></figure>
+
 ## 3. Seeing the unseeable
 
 A black hole gives out no light of its own, but it shows itself in three ways:

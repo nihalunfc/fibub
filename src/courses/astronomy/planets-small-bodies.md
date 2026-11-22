@@ -75,6 +75,10 @@ T_\text{eq} = T_\odot\sqrt{\frac{R_\odot}{2d}}\,(1 - A)^{1/4}
 **Try it:** Earth, `$d = 1$` AU, `$A = 0.31$`: `$T_\text{eq} = 5772\times\sqrt{6.96\times10^8/(2\times1.496\times10^{11})}\times0.69^{1/4} = 5772\times0.0482\times0.911 = 254$` K.
 </details>
 
+Pick a planet and press Play. Compare how far from the Sun it can appear in our sky, and how much of it is lit.
+
+<figure class="fig" data-fig="@astro-synodic"><figcaption>An inner planet (Mercury, Venus) never strays far from the Sun: it has a largest elongation and shows phases. An outer planet can stand opposite the Sun (opposition), when it is closest, brightest and up all night. The time between repeats (the synodic period) is longer than the planet's year.</figcaption></figure>
+
 ## 3. What it means physically
 
 Near the young Sun it was too warm for ice, so only rock and metal could clump into solid lumps, and there was not much of them: the inner planets stayed small. Beyond the **frost line**, a little outside Mars's orbit today, water froze too, giving far more solid material. Cores grew to several Earth masses, heavy enough to pull in the abundant hydrogen and helium, and the giants were born. The temperature formula is energy balance: sunlight in equals infrared out.
