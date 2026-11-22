@@ -4,6 +4,7 @@
 // counting, Kaplan-Yorke), Poincaré sections, KAM and the route to Hamiltonian chaos. Original questions for fibub.
 import { int, pick, choose, mcqOptions, round } from '../_util.js';
 import more from './nonlinear-dynamics-chaos.more.gen.js';
+import more2 from './nonlinear-dynamics-chaos.more2.gen.js';
 
 const LOG = 'The logistic map is $x_{n+1} = rx_n(1 - x_n)$, with $0 \\leq x \\leq 1$ and $0 < r \\leq 4$.';
 const LYA = 'For a one-dimensional map the Lyapunov exponent is $\\lambda = \\lim_{n\\to\\infty}\\dfrac1n\\sum_{i=0}^{n-1}\\ln|f\'(x_i)|$.';
@@ -188,6 +189,7 @@ export default {
       q: 'The Lyapunov exponents of the Lorenz attractor are about $0.906$, $0$ and $-14.572$. The Kaplan-Yorke dimension $D = j + \\dfrac{\\sum_{i\\leq j}\\lambda_i}{|\\lambda_{j+1}|}$, with $j$ the largest index for which the partial sum is still non-negative, is about',
       options: ['$2.06$', '$1.06$', '$2.94$', '$3.00$'], answer: 0,
       sol: 'Partial sums: $0.906$ ($j = 1$), $0.906$ ($j = 2$), $-13.67$ ($j = 3$, negative). So $j = 2$ and $D = 2 + 0.906/14.572 \\approx 2.06$: a surface-like object with fine fractal layering.' },
+    ...more2,
   ],
   gens: [
     { id: 'chs-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'logistic map',

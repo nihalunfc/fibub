@@ -4,6 +4,7 @@
 // special-relativity. Metric signature (+, -, -, -). Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './relativistic-kinematics.more.gen.js';
+import more2 from './relativistic-kinematics.more2.gen.js';
 
 const M = { p: 938.27, n: 939.57, pi: 139.57, pi0: 134.98, mu: 105.66, e: 0.511, K: 493.68, K0: 497.61, L: 1115.68, eta: 547.86 };
 const DEG = Math.PI / 180;
@@ -192,6 +193,7 @@ export default {
       q: 'Which statements about the invariant mass of a system of particles are correct?',
       options: ['The square of the total four-momentum is the same in all frames', 'In the centre-of-mass frame the total three-momentum is zero', 'The invariant mass of a system equals the sum of the rest masses of its particles', 'A massless particle has no rest frame, but a system of two massless particles moving in different directions does'], answer: [0, 1, 3],
       sol: 'A: it is a Minkowski square. B: that defines the CM frame, where $Mc^2$ is the total energy. C is false: the invariant mass includes the kinetic energy in the CM frame (a box of hot gas weighs more). D: two photons that are not collinear have $M > 0$, so a frame exists where their momenta cancel.' },
+    ...more2,
   ],
   gens: [
     { id: 'rk-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'four-momentum',

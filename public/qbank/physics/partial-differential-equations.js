@@ -4,6 +4,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './partial-differential-equations.more.gen.js';
+import more2 from './partial-differential-equations.more2.gen.js';
 
 const integ = (f, a, b, N = 20000) => { let s = 0; const h = (b - a) / N; for (let i = 0; i < N; i++) s += f(a + (i + 0.5) * h); return s * h; };
 
@@ -229,6 +230,7 @@ export default {
       answer: 0.25, tol: 0.01, calc: () => (1 / Math.PI ** 2) / (4 / Math.PI ** 2),
       sol: 'Slab: slowest mode $\\cos(\\pi x/2a)$, rate $\\kappa(\\pi/2a)^2$, time $\\frac{4a^2}{\\pi^2\\kappa}$. Ball: the radially symmetric mode is $j_0(kr) = \\frac{\\sin kr}{kr}$ (as $ru$ obeys the 1D equation), with $\\sin ka = 0$, $k = \\pi/a$; time $\\frac{a^2}{\\pi^2\\kappa}$. Ratio $\\frac14$: the ball cools four times faster, because heat leaves in every direction.',
       trap: 'Taking $k = \\pi/2a$ for the ball as for the slab: $ru$ must vanish at the centre too, so a full half-wave fits in the radius.' },
+    ...more2,
   ],
   gens: [
     { id: 'pde-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'heat equation',
