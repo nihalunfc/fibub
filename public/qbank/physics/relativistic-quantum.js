@@ -5,6 +5,7 @@
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './relativistic-quantum.more.gen.js';
+import more2 from './relativistic-quantum.more2.gen.js';
 
 const ALPHA = 1 / 137.035999, MEC2 = 0.51099895, HBC = 197.3269804, HBAR_MEVS = 6.582119569e-22, RY = 13.605693;
 const diracE = (n, j, Z) => { const k = j + 0.5, Za = Z * ALPHA; return 1 / Math.sqrt(1 + (Za / (n - k + Math.sqrt(k * k - Za * Za))) ** 2); };
@@ -191,6 +192,7 @@ export default {
       q: 'The weak interaction is carried by the $W$ boson, $m_Wc^2 = 80.4$ GeV. The range $\\hbar/m_Wc$ is ______ $\\times10^{-3}$ fm (to two decimal places).',
       answer: 2.45, tol: 0.01, calc: () => HBC / 80400 * 1e3,
       sol: '$\\hbar c/m_Wc^2 = 197.3\\text{ MeV fm}/80{,}400\\text{ MeV} = 2.45\\times10^{-3}$ fm. The heavy carrier explains why the weak force is so short-ranged (and so weak at low energy).' },
+    ...more2,
   ],
   gens: [
     { id: 'netrq-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'Yukawa range',

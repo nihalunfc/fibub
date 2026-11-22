@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './time-dependent-perturbation.more.gen.js';
+import more2 from './time-dependent-perturbation.more2.gen.js';
 
 const HBAR_EVS = 6.582119569e-16; // ħ in eV s
 // Sudden expansion of an infinite well from a to k·a: probability ground → ground.
@@ -195,6 +196,7 @@ export default {
       q: 'The centre of an oscillator potential jumps suddenly by $d$, with $m\\omega d^2/\\hbar = 2$, while the particle is in the ground state. The probability that it is found in the first excited state of the shifted oscillator is ______ (to three decimal places).',
       answer: 0.368, tol: 0.002, calc: () => Math.exp(-1),
       sol: 'Seen from the new centre the old ground state is displaced by $d$: a coherent state with $|\\alpha|^2 = m\\omega d^2/2\\hbar = 1$. Its number distribution is Poisson: $P(n) = e^{-|\\alpha|^2}|\\alpha|^{2n}/n!$, so $P(1) = e^{-1} = 0.368$ (and $P(0)$ is also $0.368$). The mean energy rises by $\\tfrac12m\\omega^2d^2 = \\hbar\\omega$.' },
+    ...more2,
   ],
   gens: [
     { id: 'qtd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rabi',

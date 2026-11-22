@@ -3,6 +3,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './fine-structure.more.gen.js';
+import more2 from './fine-structure.more2.gen.js';
 
 const AL2 = 5.32514e-5;          // alpha^2, alpha = 1/137.036
 const RY = 13.6057;              // eV
@@ -230,6 +231,7 @@ export default {
       options: ['The numerator is also zero for $l = 0$, $j = 1/2$; spin-orbit vanishes and the Darwin term supplies a contact energy that makes the total fit the $E_{nj}$ formula', 'The divergence is real and is cut off by the finite proton size', 'The $s$ states have no fine structure at all', 'One must use $l = 1/2$ for $s$ states'], answer: 0,
       sol: 'For $l = 0$ the operator $\\vec L\\cdot\\vec S$ is identically zero, so $E_{so} = 0$ (the "0/0" is resolved by the operator, not by a limit). The Darwin term $R_\\infty hc\\,\\alpha^2Z^4/n^3$, present only for $l = 0$, then makes relativistic + Darwin equal to $-(R_\\infty hc\\,\\alpha^2Z^4/n^4)(n - \\tfrac34)$, the $j = \\tfrac12$ value of the general formula.',
       trap: 'Taking the limit $l \\to 0$ in the closed formula happens to give the Darwin result too, but the reason is the Darwin term, not spin-orbit.' },
+    ...more2,
   ],
 
   gens: [

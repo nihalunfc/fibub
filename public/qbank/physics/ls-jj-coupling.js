@@ -3,6 +3,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './ls-jj-coupling.more.gen.js';
+import more2 from './ls-jj-coupling.more2.gen.js';
 
 const LT = ['S', 'P', 'D', 'F', 'G', 'H', 'I', 'K', 'L', 'M'];
 const fr = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
@@ -236,6 +237,7 @@ export default {
       options: ['$^4I_{9/2}$', '$^2H_{11/2}$', '$^4F_{9/2}$', '$^4I_{15/2}$'], answer: 3,
       sol: '$4f^{11}$ has 3 holes: same terms as $f^3$, Hund term $^4I$ ($S = 3/2$, $L = 6$). More than half full, so $J = L + S = 15/2$. The $^4I_{13/2}\\to{}^4I_{15/2}$ transition at 1.54 $\\mu$m is the erbium fibre amplifier line.',
       trap: 'Hole counting gives the term; the "more than half" rule then flips $J$ to $L + S$.' },
+    ...more2,
   ],
 
   gens: [

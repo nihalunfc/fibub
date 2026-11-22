@@ -6,6 +6,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './variational-wkb.more.gen.js';
+import more2 from './variational-wkb.more2.gen.js';
 
 const K1 = 5.1232; // sqrt(2 m_e · 1 eV)/ħ in nm⁻¹
 const U = 0.0381;  // ħ²/2m_e in eV nm²
@@ -192,6 +193,7 @@ export default {
       q: 'In a symmetric double well, each well alone has vibration quantum $\\hbar\\omega = 0.10$ eV, and the WKB barrier integral at the ground energy is $\\theta = \\int\\kappa\\,dx = 5.0$. The tunnelling splitting $\\Delta E \\approx \\dfrac{\\hbar\\omega}{\\pi}e^{-\\theta}$ is ______ meV (to three decimal places).',
       answer: 0.214, tol: 0.002, calc: () => 100 / Math.PI * Math.exp(-5),
       sol: '$\\Delta E = \\tfrac{0.10}{\\pi}e^{-5}$ eV $= 0.0318\\times0.00674$ eV $= 2.14\\times10^{-4}$ eV $= 0.214$ meV. A particle put in one well moves to the other in a time $\\pi\\hbar/\\Delta E$ (as in the ammonia inversion line), and the splitting depends on $e^{-\\theta}$, not $e^{-2\\theta}$, because it is an amplitude effect.' },
+    ...more2,
   ],
   gens: [
     { id: 'qvw-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'tunnelling',
