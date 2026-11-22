@@ -8,13 +8,14 @@ import { GLOSSARY } from '../../../../courses/offline-ai/glossary';
 import { courseLessons } from '../../../../lib/course';
 import { flatLessons } from '../../../../courses/types';
 import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
 const live = new Set((await courseLessons(OFFLINE_AI)).keys());
 const num = new Map(flatLessons(OFFLINE_AI).map((l) => [l.slug, l]));
 const terms = [...GLOSSARY].sort((a, b) => a[0].localeCompare(b[0], 'en', { sensitivity: 'base' }));
 const letters = [...new Set(terms.map((t) => t[0][0].toUpperCase()))];
 const id = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 ---
-<Base title="Offline AI glossary: local AI terms explained" description={`${terms.length} terms from the free Offline AI course, from tokens and quantisation to RAG and batching, each in plain English with its other names and the lesson that explains it.`}>
+<Base title="Offline AI glossary: local AI terms explained" description={`${terms.length} terms from the free Offline AI course, from tokens and quantisation to RAG and batching, each in plain English with its other names and the lesson that explains it.`} ld={coursePageLd(OFFLINE_AI, 'Glossary', '', 'glossary')}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/offline-ai/">Offline AI</a> / Glossary</div>
   <div class="cs-layout">
     <CourseSidebar course={OFFLINE_AI} live={live} />

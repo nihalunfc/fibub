@@ -27,7 +27,19 @@ function lastChanged() {
       if (m) byArticle.set(`${kind}/${f.slice(0, -3)}`, m[1]);
     }
   }
-  return { byTool, byArticle, newest: log[0]?.date };
+  // Course lessons (/learn/courses/<course>/<slug>/) use their own `updated`; a course home takes its newest lesson.
+  const byLesson = new Map();
+  if (existsSync('src/courses')) for (const c of readdirSync('src/courses')) {
+    if (c.includes('.')) continue;
+    for (const f of readdirSync(`src/courses/${c}`)) {
+      if (!f.endsWith('.md')) continue;
+      const m = readFileSync(`src/courses/${c}/${f}`, 'utf8').match(/^updated:\s*(\S+)/m);
+      if (!m) continue;
+      byLesson.set(`${c}/${f.slice(0, -3)}`, m[1]);
+      if (!byLesson.has(c) || byLesson.get(c) < m[1]) byLesson.set(c, m[1]);
+    }
+  }
+  return { byTool, byArticle, byLesson, newest: log[0]?.date };
 }
 const changed = lastChanged();
 
@@ -43,7 +55,9 @@ export default defineConfig({
     filter: (page) => !/\/(nav|offline)\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page),
     serialize(item) {
       const path = new URL(item.url).pathname.split('/').filter(Boolean);
-      const date = path[0] === 'blog' && path.length === 3 ? changed.byArticle.get(`${path[1]}/${path[2]}`)
+      const course = path[0] === 'learn' && path[1] === 'courses' && path.length >= 3;
+      const date = course ? changed.byLesson.get(path.slice(2, 4).join('/')) ?? changed.byLesson.get(path[2])
+        : path[0] === 'blog' && path.length === 3 ? changed.byArticle.get(`${path[1]}/${path[2]}`)
         : path.length === 2 ? changed.byTool.get(path[1]) : undefined;
       const lastmod = date ?? (path.length <= 2 && !['about', 'privacy', 'terms', 'contact'].includes(path[0]) ? changed.newest : undefined);
       if (lastmod) item.lastmod = new Date(lastmod).toISOString();

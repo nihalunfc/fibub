@@ -146,3 +146,56 @@ export const pageLd = (name: string, description: string, path: string) => {
     breadcrumbs(crumbs),
   ];
 };
+
+// ---- Courses (every lesson page is its own search answer; nihal, 2026-11-22) ----
+type CourseLike = { id: string; name: string; title: string; text: string; audience?: string; updated?: string };
+const courseUrl = (c: { id: string }) => `/learn/courses/${c.id}/`;
+const courseId = (c: { id: string }) => `${abs(courseUrl(c))}#course`;
+const provider = { '@type': 'Organization', '@id': ORG_ID, name: SITE.name, url: `${SITE.url}/` };
+
+/** Home > Learn > Courses > <course> (> extra). */
+export const courseCrumbs = (c: CourseLike, extra?: Crumb): Crumb[] => [
+  { name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Courses', url: '/learn/courses/' },
+  { name: c.name, url: courseUrl(c) }, ...(extra ? [extra] : []),
+];
+
+/** A course home: Course (free, online, self-paced) with its lessons as parts, plus breadcrumbs. */
+export function courseLd(c: CourseLike, lessons: { name: string; url: string }[], hours?: number) {
+  const workload = hours ? `PT${Math.max(1, Math.round(hours))}H` : undefined;
+  return [
+    {
+      '@type': 'Course', '@id': courseId(c), name: c.title, alternateName: c.name !== c.title ? c.name : undefined,
+      description: c.text, url: abs(courseUrl(c)), inLanguage: 'en', isAccessibleForFree: true,
+      educationalLevel: 'Beginner', audience: c.audience ? { '@type': 'Audience', audienceType: c.audience } : undefined,
+      provider, publisher: { '@id': ORG_ID }, dateModified: c.updated,
+      offers: { '@type': 'Offer', category: 'Free', price: 0, priceCurrency: 'CAD', availability: 'https://schema.org/InStock' },
+      hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'Online', courseWorkload: workload, inLanguage: 'en' },
+      numberOfLessons: lessons.length || undefined,
+      hasPart: lessons.map((l) => ({ '@type': 'LearningResource', name: l.name, url: abs(l.url) })),
+    },
+    breadcrumbs(courseCrumbs(c)),
+  ];
+}
+
+/** One lesson: a LearningResource (also an Article for search) that is part of its course, with breadcrumbs. */
+export function lessonLd(c: CourseLike, l: { n: string; title: string; summary: string; slug: string; minutes: number; updated: Date; module: string; quiz: number }) {
+  const url = abs(`${courseUrl(c)}${l.slug}/`);
+  const date = l.updated.toISOString().slice(0, 10);
+  return [
+    {
+      '@type': ['LearningResource', 'Article'], '@id': `${url}#lesson`, name: l.title, headline: l.title.slice(0, 110),
+      description: l.summary, url, mainEntityOfPage: url, inLanguage: 'en', isAccessibleForFree: true,
+      learningResourceType: l.quiz ? ['Lesson', 'Quiz'] : 'Lesson', educationalLevel: 'Beginner',
+      timeRequired: `PT${l.minutes}M`, position: l.n, about: l.module, dateModified: date, datePublished: date,
+      author: provider, publisher: { '@id': ORG_ID }, image: abs('/og/home.png'),
+      isPartOf: { '@type': 'Course', '@id': courseId(c), name: c.title, url: abs(courseUrl(c)) },
+    },
+    breadcrumbs(courseCrumbs(c, { name: l.title, url: `${courseUrl(c)}${l.slug}/` })),
+  ];
+}
+
+/** Any other course page (cheat sheet and so on): a WebPage inside the course, plus breadcrumbs. */
+export const coursePageLd = (c: CourseLike, name: string, description: string, slug: string) => [
+  { '@type': 'WebPage', name: `${name}: ${c.title}`, description: description || undefined, url: abs(`${courseUrl(c)}${slug}/`), inLanguage: 'en', isPartOf: { '@id': courseId(c) }, publisher: { '@id': ORG_ID } },
+  breadcrumbs(courseCrumbs(c, { name, url: `${courseUrl(c)}${slug}/` })),
+];
