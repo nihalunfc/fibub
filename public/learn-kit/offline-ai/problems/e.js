@@ -189,4 +189,123 @@ export default {
     },
     verify: (p) => 1 / ((1 / p.a) * (1 / p.b) * (1 / p.c)),
   },
+
+  // ---------- 14.1 Prompting, RAG or fine-tuning ----------
+  'prompt-rag-or-finetune-prefill': {
+    title: 'What does a long example prompt cost each day?',
+    make(r) {
+      const P = pick(r, 800, 3000, 100), R = pick(r, 1000, 20000, 1000), s = pick(r, 500, 3000, 250);
+      const tokens = P * R, answer = tokens / s / 3600;
+      return {
+        q: `<p>A team's system prompt holds <b>${f(P)} tokens</b> of example letters and is sent with each of <b>${f(R)} requests a day</b>. Their server reads prompts at <b>${f(s)} tokens a second</b>. How many <b>hours</b> of reading a day does that prompt cost, which a fine-tune could remove?</p>`,
+        answer, unit: 'hours', tol: 0.01,
+        hint: 'Tokens a day = prompt tokens × requests. Divide by the reading speed for seconds, then by 3,600 for hours.',
+        solution: steps(
+          `Tokens a day: ${f(P)} × ${f(R)} = ${f(tokens)}.`,
+          `Seconds: ${f(tokens)} ÷ ${f(s)} = ${n(tokens / s)} s.`,
+          `Hours: ÷ 3,600 = <b>${n(answer)}</b>. That is reading time the server spends on the same instructions over and over.`),
+        P, R, s,
+      };
+    },
+    verify: (p) => (p.P / p.s) * (p.R / 3600),
+  },
+
+  // ---------- 14.2 LoRA and QLoRA ----------
+  'lora-params': {
+    title: 'How many numbers does LoRA train?',
+    make(r) {
+      const d = one(r, [2048, 3072, 4096, 5120]), rk = one(r, [8, 16, 32, 64]), L = pick(r, 16, 40, 2), m = 4;
+      const per = rk * (d + d), total = per * L * m, answer = total / 1e6;
+      return {
+        q: `<p>You add LoRA adapters with rank <b>r = ${rk}</b> to the four attention grids (q, k, v, o) in each of a model's <b>${L} layers</b>. Treat every grid as <b>${f(d)} × ${f(d)}</b>. How many <b>million</b> numbers does LoRA train?</p>`,
+        answer, unit: 'million', tol: 0.01,
+        hint: 'Each grid gets B (d × r) and A (r × d): r × (d + d) numbers. Multiply by 4 grids per layer and by the number of layers.',
+        solution: steps(
+          `One grid: ${rk} × (${f(d)} + ${f(d)}) = ${f(per)}.`,
+          `One layer (4 grids): ${f(per * m)}.`,
+          `All ${L} layers: ${f(per * m)} × ${L} = ${f(total)}.`,
+          `In millions: <b>${n(answer, 4)}</b>. At 2 bytes each the adapter is about ${n(total * 2 / 1e6)} MB.`),
+        d, rk, L, m,
+      };
+    },
+    verify: (p) => (p.L * p.m * (p.d * p.rk + p.rk * p.d)) / 1e6,
+  },
+
+  // ---------- 14.3 Fine-tuning at home ----------
+  'finetune-at-home-time': {
+    title: 'How long will the training run take?',
+    make(r) {
+      const b = one(r, [1, 2, 4]), g = one(r, [2, 4, 8]), eb = b * g, E = eb * pick(r, 25, 150), ep = pick(r, 1, 3), s = pick(r, 4, 15, 0.5);
+      const st = (E / eb) * ep, answer = (st * s) / 60;
+      return {
+        q: `<p>You fine-tune on <b>${f(E)} examples</b> with batch size <b>${b}</b>, gradient accumulation <b>${g}</b> and <b>${ep} epoch${ep > 1 ? 's' : ''}</b>. Each step takes about <b>${s} seconds</b>. About how many <b>minutes</b> will the run take?</p>`,
+        answer, unit: 'minutes', tol: 0.01,
+        hint: 'Effective batch = batch × accumulation. Steps = examples ÷ effective batch × epochs. Then multiply by seconds per step and divide by 60.',
+        solution: steps(
+          `Effective batch: ${b} × ${g} = ${eb}.`,
+          `Steps per epoch: ${f(E)} ÷ ${eb} = ${f(E / eb)}; × ${ep} = ${f(st)} steps.`,
+          `Seconds: ${f(st)} × ${s} = ${n(st * s)}.`,
+          `Minutes: ÷ 60 = <b>${n(answer)}</b>.`),
+        b, g, E, ep, s,
+      };
+    },
+    verify: (p) => { let t = 0; for (let e = 0; e < p.ep; e++) for (let i = 0; i < p.E; i += p.b * p.g) t += p.s; return t / 60; },
+  },
+
+  // ---------- 14.4 Training set and blind test ----------
+  'training-data-split': {
+    title: 'How many examples go into training?',
+    make(r) {
+      const N = pick(r, 200, 1200, 10), D = pick(r, 10, 100, 10), M = N - D, answer = (M * 8) / 10;
+      return {
+        q: `<p>You export <b>${f(N)} examples</b> and drop <b>${D}</b> that are outdated or not up to standard. The rest are split 80% training, 10% validation and 10% test. How many examples go into the <b>training</b> set?</p>`,
+        answer, unit: 'examples', tol: 0.001,
+        hint: 'First take off the dropped examples. Then 80% of what is left trains.',
+        solution: steps(
+          `Kept: ${f(N)} − ${D} = ${f(M)}.`,
+          `Training: ${f(M)} × 0.8 = <b>${f(answer)}</b>.`,
+          `Validation and test get ${f(M / 10)} each, and the test set stays locked away until the end.`),
+        N, D,
+      };
+    },
+    verify: (p) => (p.N - p.D) - 2 * ((p.N - p.D) / 10),
+  },
+  'training-data-winrate': {
+    title: 'What is the tuned model\'s win rate?',
+    make(r) {
+      const P = pick(r, 20, 60), t = pick(r, 0, 4), dec = P - t, W = pick(r, Math.ceil(dec / 2), dec - 1), L = dec - W;
+      const answer = (W / dec) * 100;
+      return {
+        q: `<p>In a blind test of <b>${P} pairs</b>, the tuned model wins <b>${W}</b>, the base model wins <b>${L}</b>, and <b>${t}</b> ${t === 1 ? 'is a tie' : 'are ties'}. What is the tuned model's <b>win rate</b>, in percent?</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: 'Leave the ties out. Win rate = tuned wins ÷ (tuned wins + base wins), times 100.',
+        solution: steps(
+          `Decided pairs: ${W} + ${L} = ${dec}.`,
+          `Win rate: ${W} ÷ ${dec} = ${n(W / dec)}, so <b>${n(answer)}%</b>.`,
+          `${answer >= 75 ? 'A clear win.' : 'Not a clear win; test more pairs or look for a bigger gap.'}`),
+        P, t, W, L,
+      };
+    },
+    verify: (p) => 100 - (p.L / (p.W + p.L)) * 100,
+  },
+
+  // ---------- 14.5 Merging and sharing ----------
+  'sharing-adapters-storage': {
+    title: 'How much disk do adapters save?',
+    make(r) {
+      const B = one(r, [2, 4.9, 7.7, 16]), a = pick(r, 20, 200, 10), N = pick(r, 3, 10);
+      const merged = N * B, adapters = B + (N * a) / 1000, answer = merged - adapters;
+      return {
+        q: `<p>You have <b>${N}</b> fine-tunes of the same base model. The base model file is <b>${B} GB</b> and each adapter is <b>${a} MB</b>. How many <b>GB</b> do you save by keeping one base plus ${N} adapters, instead of ${N} merged models? (1 GB = 1,000 MB.)</p>`,
+        answer, unit: 'GB', tol: 0.01,
+        hint: 'A merged model is the same size as the base. Compare N × base with base + N × adapter (in GB).',
+        solution: steps(
+          `${N} merged models: ${N} × ${B} = ${n(merged)} GB.`,
+          `One base + ${N} adapters: ${B} + ${N} × ${a} ÷ 1,000 = ${n(adapters)} GB.`,
+          `Saved: ${n(merged)} − ${n(adapters)} = <b>${n(answer)} GB</b>. Merged copies are still easier to hand to someone else.`),
+        B, a, N,
+      };
+    },
+    verify: (p) => (p.N - 1) * p.B - (p.N * p.a) / 1000,
+  },
 };
