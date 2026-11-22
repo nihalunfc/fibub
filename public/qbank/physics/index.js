@@ -77,6 +77,12 @@ export default {
       { id: 'one-dimensional-potentials', name: 'One-dimensional potentials: wells, barriers and delta potentials' },
       { id: 'harmonic-oscillator', name: 'The quantum harmonic oscillator and ladder operators' },
       { id: 'angular-momentum', name: 'Angular momentum' },
+      { id: 'hydrogen-atom', name: 'The hydrogen atom' },
+      { id: 'spin-addition', name: 'Spin and the addition of angular momenta' },
+      { id: 'perturbation-theory', name: 'Time-independent perturbation theory' },
+      { id: 'variational-wkb', name: 'The variational method and WKB' },
+      { id: 'time-dependent-perturbation', name: 'Time-dependent perturbation theory and Fermi\'s golden rule' },
+      { id: 'identical-particles', name: 'Identical particles' },
     ] },
     { id: 'solid-state', name: 'Solid state physics and devices', topics: [
       { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
