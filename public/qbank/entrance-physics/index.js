@@ -50,6 +50,14 @@ export default {
         {
           "id": "gravitation",
           "name": "Gravitation"
+        },
+        {
+          "id": "oscillations",
+          "name": "Oscillations and simple harmonic motion"
+        },
+        {
+          "id": "waves",
+          "name": "Waves and sound"
         }
       ]
     },
