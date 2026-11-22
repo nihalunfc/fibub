@@ -53,6 +53,14 @@ export default {
         {
           "id": "plant-respiration",
           "name": "Respiration in plants"
+        },
+        {
+          "id": "breathing",
+          "name": "Breathing and exchange of gases"
+        },
+        {
+          "id": "circulation",
+          "name": "Body fluids and circulation"
         }
       ]
     },
