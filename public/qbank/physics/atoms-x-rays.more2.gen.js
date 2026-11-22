@@ -55,7 +55,7 @@ export default [
     trap: 'Mixing up nm with Å or forgetting the $10^3$ in kV.' },
   { id: 'atx-x11', type: 'nat', level: 3, exams: ['jam'], sub: 'bohr model', unit: 'nm',
     q: 'The de Broglie wavelength of the electron in the $n = 3$ Bohr orbit of He$^+$ is ______ nm (to three decimal places; $a_0 = 0.0529$ nm).',
-    answer: 0.499, tol: 0.002, calc: () => 2 * Math.PI * 0.0529 * 3 / 2 / 3,
+    answer: 0.499, tol: 0.002, calc: () => 2 * Math.PI * (9 * 0.0529 / 2) / 3,
     sol: 'Bohr\'s condition says $n$ wavelengths fit round the orbit: $n\\lambda = 2\\pi r_n$. With $r_n = n^2a_0/Z = 9(0.0529)/2 = 0.238$ nm: $\\lambda = 2\\pi r_n/n = 2\\pi(0.238)/3 = 0.499$ nm (in general $2\\pi a_0n/Z$).',
     trap: 'Forgetting the $1/Z$ in the radius (gives 0.997 nm).' },
   { id: 'atx-x12', type: 'nat', level: 4, exams: ['jam'], sub: 'reduced mass', unit: 'pm',
