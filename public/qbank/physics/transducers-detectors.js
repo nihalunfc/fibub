@@ -4,6 +4,7 @@
 // scintillators, semiconductor detectors and the Fano factor), vacuum gauges, pumps and pump-down time.
 // Original questions for CSIR NET (and GATE) practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './transducers-detectors.more.gen.js';
 
 const HC = 1239.84;          // eV nm
 const QE = 1.602176634e-19;  // C
@@ -401,5 +402,6 @@ export default {
           trap: 'Pressure falls exponentially, so each decade takes the same time.' };
       },
       verify: (p) => (p.mode === 't' ? (p.V / p.S) * p.e * Math.LN10 : p.V * p.e * Math.LN10 / p.tr) },
+    ...more,
   ],
 };

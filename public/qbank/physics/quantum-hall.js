@@ -4,6 +4,7 @@
 // conductivity and resistivity tensors, edge states, Laughlin's argument and the Chern number, the fractional effect,
 // graphene, Landauer conductance quanta and Coulomb blockade. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './quantum-hall.more.gen.js';
 
 const R = String.raw;
 const H = C.h, E = C.e, HBAR = C.hbar, ME = C.me;
@@ -354,5 +355,6 @@ export default {
           sol: R`$e^2/2C = ${round(Ec, 3)}$ meV; a tenth of it is ${round(Ec / 10, 4)} meV, and dividing by $k_B = 0.08617$ meV/K gives $T = ${round(T, 1)}$ K.`, trap: 'Convert meV to kelvin with kB = 0.08617 meV/K.' };
       },
       verify: (p) => { const Ec = E / (2 * p.Caf * 1e-18) * 1000; return p.mode === 'E' ? Ec : Ec / 1000 / 8.617333e-5 / 10; } },
+    ...more,
   ],
 };

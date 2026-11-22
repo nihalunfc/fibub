@@ -5,6 +5,7 @@
 // and selection rules, MO bond orders, predissociation, fluorescence, phosphorescence and the Jablonski diagram.
 // Original questions for CSIR NET (and GATE) practice (fibub). Pure vibrational and rotational spectra have their own topics.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './electronic-spectra.more.gen.js';
 
 const HBAR = 1.054571817e-34, U = 1.66053906660e-27, CCM = 2.99792458e10, C2 = 1.438777, EV = 8065.544;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -384,5 +385,6 @@ export default {
           trap: 'R(J) uses $m = J + 1$; P(J) uses $m = -J$; there is no line at $m = 0$.' };
       },
       verify: (p) => { const L = (m) => (p.B1 + p.B2) * m + (p.B1 - p.B2) * m * m; return p.br === 'R' ? L(p.JJ + 1) : p.br === 'P' ? L(-p.JJ) : L(1) - L(-1); } },
+    ...more,
   ],
 };

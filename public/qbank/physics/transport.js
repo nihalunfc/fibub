@@ -6,6 +6,7 @@
 // (Basic mean free path and the elementary eta = n m v lambda / 3 are in kinetic-theory.)
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './transport.more.gen.js';
 
 const PI = Math.PI, KB = C.kB, U = C.u, E = C.e, ME = C.me;
 const L0 = PI * PI / 3 * (KB / E) ** 2;                            // Sommerfeld Lorenz number
@@ -326,5 +327,6 @@ export default {
         return { q: P[0], ...o, sol: `The answer: ${P[1]}. Transport coefficients come from fluxes of momentum ($\\eta$), energy ($\\kappa$) and particles ($D$), each carried about a mean free path; $\\eta$ and $\\kappa$ are pressure independent, $D\\propto1/P$; rates of independent processes add.`,
           trap: 'Keep straight which coefficient depends on pressure: only $D$.' };
       } },
+    ...more,
   ],
 };

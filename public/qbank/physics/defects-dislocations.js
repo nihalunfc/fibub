@@ -5,6 +5,7 @@
 // faults, Taylor hardening, Orowan's equation, Frank-Read sources), planar defects (tilt boundaries, Hall-Petch).
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './defects-dislocations.more.gen.js';
 
 const R = String.raw;
 const KB = 8.617333e-5; // eV/K
@@ -387,5 +388,6 @@ export default {
           sol: `Defects are sorted by how many dimensions they extend in: point (0D), line (1D), planar (2D) and volume (3D). ${desc[0].toUpperCase() + desc.slice(1)} is a ${ans}.`,
           trap: 'A dislocation is a line, even though it bounds a slipped area; a wall of dislocations is a boundary (planar).' };
       } },
+    ...more,
   ],
 };

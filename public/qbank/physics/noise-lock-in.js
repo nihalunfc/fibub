@@ -4,6 +4,7 @@
 // amplifiers (mixing, phase, X/Y/R, square-wave references, time constants, dynamic reserve) and boxcar averaging.
 // Original questions for CSIR NET (and GATE) practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './noise-lock-in.more.gen.js';
 
 const KB = 1.380649e-23, QE = 1.602176634e-19;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -368,5 +369,6 @@ export default {
           sol: `For ${kind}, dB $= ${kind === 'voltage' ? 20 : 10}\\log_{10}(${ratio}) = ${round(db, 2)}$ dB.`,
           trap: 'Power uses 10 log; amplitudes (voltage, current) use 20 log, because power goes as amplitude squared.' };
       } },
+    ...more,
   ],
 };

@@ -5,6 +5,7 @@
 // walks and thermally activated escape.
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './fluctuations-brownian.more.gen.js';
 
 const PI = Math.PI, KB = C.kB, E = C.e;
 const binom = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; };
@@ -344,5 +345,6 @@ export default {
           trap: 'The size grows as $\\sqrt N$, not $N$.' };
       },
       verify: (p) => p.b * Math.sqrt(p.N) / (p.ask === 'R' ? 1 : Math.sqrt(6)) },
+    ...more,
   ],
 };

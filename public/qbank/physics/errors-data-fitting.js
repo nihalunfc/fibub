@@ -4,6 +4,7 @@
 // linearising plots, chi-square and goodness of fit, correlation coefficient, rejecting data, counting-time choices.
 // Original questions for CSIR NET (and GATE) practice (fibub). Basics of probability live in the `probability` topic.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './errors-data-fitting.more.gen.js';
 
 // erf by Abramowitz-Stegun 7.1.26 (error below 1.5e-7) and by Simpson integration (used by verify).
 const erf = (x) => { const s = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.3275911 * a); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a)); };
@@ -383,5 +384,6 @@ export default {
           trap: 'Angles must be in radians when you differentiate trigonometric functions.' };
       },
       verify: (p) => (p.mode === 'ln' ? p.s / p.x : p.mode === 'exp' ? p.k * Math.exp(p.k * p.x) * p.s : p.mode === 'sin' ? Math.cos(p.x * Math.PI / 180) * p.s * Math.PI / 180 : 2 * p.s / p.x ** 3) },
+    ...more,
   ],
 };

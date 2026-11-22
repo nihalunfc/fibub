@@ -5,6 +5,7 @@
 // (Classical Rutherford scattering and cross-section geometry are in central-force-scattering.)
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './scattering-theory.more.gen.js';
 
 const PI = Math.PI, HBC = 197.3269804, MN = 939.565, MPc = 938.272, MEc = 0.51099895, D = PI / 180;
 
@@ -337,5 +338,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

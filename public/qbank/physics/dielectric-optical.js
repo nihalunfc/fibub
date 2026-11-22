@@ -5,6 +5,7 @@
 // and Lyddane-Sachs-Teller, ferroelectrics and the Curie-Weiss law, crystal classes (piezo-, pyro-, ferroelectric),
 // semiconductor absorption edges and excitons. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './dielectric-optical.more.gen.js';
 
 const R = String.raw;
 const EPS0 = C.eps0, E = C.e, ME = C.me, HBAR = C.hbar;
@@ -364,5 +365,6 @@ export default {
           sol: R`$\lambda_p = 2\pi c/\omega_p$ with $\omega_p = \sqrt{ne^2/\varepsilon_0m}$ gives $\lambda_p = ${Math.round(lp)}$ nm. ${tr ? R`Here $\lambda < \lambda_p$, so $\omega > \omega_p$, $\varepsilon > 0$ and the wave propagates.` : R`Here $\lambda > \lambda_p$, so $\omega < \omega_p$, $\varepsilon < 0$, $n$ is imaginary and $R\approx1$.`}`,
           trap: 'Short wavelengths (high frequencies) get through; long ones are reflected.' };
       } },
+    ...more,
   ],
 };
