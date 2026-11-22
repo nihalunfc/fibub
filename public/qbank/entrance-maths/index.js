@@ -51,6 +51,20 @@ export default {
           "name": "Straight lines"
         }
       ]
+    },
+    {
+      "id": "class-12",
+      "name": "Class 12",
+      "topics": [
+        {
+          "id": "matrices-determinants",
+          "name": "Matrices and determinants"
+        },
+        {
+          "id": "definite-integrals",
+          "name": "Definite integrals and area"
+        }
+      ]
     }
   ]
 };
