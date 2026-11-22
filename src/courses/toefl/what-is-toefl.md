@@ -1,7 +1,7 @@
 ---
 title: What the TOEFL iBT is and who it is for
 seoTitle: 'What is the TOEFL iBT? The 2026 test explained'
-summary: 'The TOEFL iBT is an English test for university admission, used by thousands of universities in the USA, Canada and beyond. Here is what changed in January 2026, who needs it and how to prepare with this free course.'
+summary: 'The TOEFL iBT is an English test for university admission. What changed in January 2026, who needs it and how to prepare with this free course.'
 minutes: 12
 updated: 2026-11-22
 quiz:
