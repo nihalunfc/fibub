@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './collective-model.more.gen.js';
 import more2 from './collective-model.more2.gen.js';
+import r4 from './collective-model.r4.gen.js';
 
 const R = String.raw;
 const HC = 197.327, MN = 939.0;
@@ -238,6 +239,7 @@ export default {
       sol: R`The three limits of the interacting boson model: U(5) vibrator ($R = 2$), O(6) $\gamma$-soft ($R = 2.5$), SU(3) rotor ($R = 10/3$). Real nuclei move from below 2 near closed shells, through 2 to 2.5 in transitional regions, to 3.3 mid-shell. A value near 1 would mean $4^+$ and $2^+$ almost degenerate, which happens only in special single-particle (seniority) cases near closed shells.`,
       trap: 'Rotors have the largest ratio, not the smallest.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'coll-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'rotational bands', unit: 'keV',
@@ -368,6 +370,7 @@ export default {
           trap: 'Only K = 0 bands skip spins.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };
 function sci0(v) { const e = Math.floor(Math.log10(v)); return `${(v / 10 ** e).toFixed(3)}\\times10^{${e}}`; }
