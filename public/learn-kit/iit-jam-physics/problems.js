@@ -930,4 +930,160 @@ export default {
     },
     verify: (p) => { const N = 4000, dx = Math.PI / N; let s = 0; for (let i = 0; i < N; i++) s += p.h * Math.sin(p.n * (i + 0.5) * dx) * dx; return (2 / Math.PI) * s; },
   },
+  // ---- 3.3 Superposition, Lissajous figures and coupled oscillators ----
+  'shm-add': {
+    title: 'amplitude of two added SHMs',
+    make(r) {
+      const A1 = int(r, 2, 9), A2 = int(r, 2, 9), ph = [30, 45, 60, 90, 120, 135, 150][int(r, 0, 6)];
+      const answer = Math.sqrt(A1 * A1 + A2 * A2 + 2 * A1 * A2 * Math.cos(ph * Math.PI / 180));
+      return {
+        q: `<p>Two SHMs along the same line, x₁ = ${A1} sin ωt and x₂ = ${A2} sin(ωt + ${ph}°) (in cm), act on one particle. Find the amplitude of the resulting motion, in cm.</p>`,
+        answer, unit: 'cm', tol: 0.005,
+        hint: 'Draw each SHM as an arrow (phasor) of length A at its phase angle and add the arrows: A² = A₁² + A₂² + 2A₁A₂ cos φ.',
+        solution: steps(`cos ${ph}° = ${(+Math.cos(ph * Math.PI / 180).toFixed(4))}.`, `A² = ${A1 * A1} + ${A2 * A2} + 2(${A1})(${A2})(${(+Math.cos(ph * Math.PI / 180).toFixed(4))}) = ${(answer * answer).toFixed(3)}.`, `A = <b>${answer.toFixed(3)} cm</b>.`),
+        A1, A2, ph,
+      };
+    },
+    verify: (p) => Math.hypot(p.A1 + p.A2 * Math.cos(p.ph * Math.PI / 180), p.A2 * Math.sin(p.ph * Math.PI / 180)),
+  },
+  'coupled-transfer': {
+    title: 'energy transfer time for coupled pendulums',
+    make(r) {
+      const L = [0.5, 0.8, 1, 1.2, 1.5, 2][int(r, 0, 5)], km = [0.05, 0.1, 0.2, 0.3, 0.5][int(r, 0, 4)];
+      const w1 = Math.sqrt(9.8 / L), w2 = Math.sqrt(9.8 / L + 2 * km), answer = Math.PI / (w2 - w1);
+      return {
+        q: `<p>Two identical pendulums of length ${L} m are joined at the bobs by a light spring with k/m = ${km} s⁻². One is pulled aside and released; the other starts at rest. How long (in s) until all the energy is in the second pendulum? Take g = 9.8 m/s².</p>`,
+        answer, unit: 's', tol: 0.005,
+        hint: 'Find the two normal-mode frequencies: ω₁ = √(g/L) (in step) and ω₂ = √(g/L + 2k/m) (opposite). The energy has crossed over when the beat envelope first reaches zero, at t = π/(ω₂ − ω₁).',
+        solution: steps(`ω₁ = √(9.8/${L}) = ${w1.toFixed(4)} rad/s.`, `ω₂ = √(${(9.8 / L).toFixed(3)} + ${2 * km}) = ${w2.toFixed(4)} rad/s.`, `t = π/(ω₂ − ω₁) = π/${(w2 - w1).toFixed(5)} = <b>${answer.toFixed(1)} s</b>.`),
+        L, km,
+      };
+    },
+    verify: (p) => Math.PI / (Math.sqrt(9.8 / p.L + 2 * p.km) - Math.sqrt(9.8 / p.L)),
+  },
+  // ---- 3.4 Waves ----
+  'string-harmonic': {
+    title: 'frequency of a harmonic on a stretched string',
+    make(r) {
+      const L = int(r, 4, 20) / 10, T = int(r, 20, 300), mu = [0.001, 0.002, 0.005, 0.01, 0.02][int(r, 0, 4)], n = int(r, 1, 5);
+      const v = Math.sqrt(T / mu), answer = n * v / (2 * L);
+      return {
+        q: `<p>A string ${L} m long is fixed at both ends, with tension ${T} N and mass per unit length ${mu} kg/m. Find the frequency of its harmonic number ${n}, in Hz.</p>`,
+        answer, unit: 'Hz', tol: 0.005,
+        hint: 'Wave speed v = √(T/μ). Harmonic n fits n half-wavelengths into the string: L = nλ/2, so f = nv/(2L).',
+        solution: steps(`v = √(${T}/${mu}) = ${v.toFixed(2)} m/s.`, `λ = 2L/n = ${(2 * L / n).toFixed(3)} m.`, `f = v/λ = <b>${answer.toFixed(1)} Hz</b>.`),
+        L, T, mu, n,
+      };
+    },
+    verify: (p) => p.n * Math.sqrt(p.T / p.mu) / (2 * p.L),
+  },
+  'group-velocity': {
+    title: 'group velocity from a dispersion relation',
+    make(r) {
+      const a = int(r, 1, 6), b = int(r, 1, 4), k = int(r, 1, 5);
+      // omega = a k + b k^3
+      const answer = a + 3 * b * k * k;
+      return {
+        q: `<p>Waves in a medium obey ω = ${a}k + ${b}k³ (consistent units). Find the group velocity at k = ${k}.</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'Group velocity is dω/dk, not ω/k (which is the phase velocity).',
+        solution: steps(`dω/dk = ${a} + ${3 * b}k².`, `At k = ${k}: ${a} + ${3 * b}(${k * k}) = <b>${answer}</b>.`, `(The phase velocity is ω/k = ${a} + ${b}k² = ${a + b * k * k}.)`),
+        a, b, k,
+      };
+    },
+    verify: (p) => { const h = 1e-6, w = (k) => p.a * k + p.b * k ** 3; return (w(p.k + h) - w(p.k - h)) / (2 * h); },
+  },
+  // ---- 3.5 Sound and the Doppler effect ----
+  'doppler-shift': {
+    title: 'Doppler shift with a moving source and listener',
+    make(r) {
+      const f = [256, 300, 400, 500, 512, 600, 800][int(r, 0, 6)], us = int(r, 0, 40), uo = int(r, 0, 30), v = 340;
+      const answer = f * (v + uo) / (v - us);
+      return {
+        q: `<p>A source of ${f} Hz moves at ${us} m/s towards a listener, who moves at ${uo} m/s towards the source, along one line in still air (speed of sound ${v} m/s). What frequency does the listener hear, in Hz?</p>`,
+        answer, unit: 'Hz', tol: 0.002,
+        hint: 'f′ = f (v + u<sub>o</sub>)/(v − u<sub>s</sub>) when they approach. The listener\'s speed goes on top, the source\'s underneath: they are not interchangeable.',
+        solution: steps(`v + u<sub>o</sub> = ${v + uo} m/s and v − u<sub>s</sub> = ${v - us} m/s.`, `f′ = ${f} × ${v + uo}/${v - us} = <b>${answer.toFixed(1)} Hz</b>.`),
+        f, us, uo, v,
+      };
+    },
+    verify: (p) => p.f * (1 + p.uo / p.v) / (1 - p.us / p.v),
+  },
+  'pipe-resonance': {
+    title: 'resonant frequency of an air column',
+    make(r) {
+      const L = int(r, 20, 150) / 100, closed = r() < 0.5, n = closed ? [1, 3, 5][int(r, 0, 2)] : int(r, 1, 4), v = 340;
+      const answer = closed ? n * v / (4 * L) : n * v / (2 * L);
+      return {
+        q: `<p>A pipe ${L} m long is ${closed ? 'closed at one end' : 'open at both ends'}. Taking the speed of sound as ${v} m/s and ignoring end corrections, find the frequency of harmonic number ${n}, in Hz.</p>`,
+        answer, unit: 'Hz', tol: 0.002,
+        hint: closed ? 'A closed end is a displacement node and an open end an antinode, so the pipe holds an odd number of quarter wavelengths: f = nv/(4L) with n odd.' : 'Both ends are displacement antinodes, so the pipe holds a whole number of half wavelengths: f = nv/(2L).',
+        solution: steps(closed ? `λ = 4L/n = ${(4 * L / n).toFixed(3)} m.` : `λ = 2L/n = ${(2 * L / n).toFixed(3)} m.`, `f = v/λ = <b>${answer.toFixed(1)} Hz</b>.`),
+        L, closed, n, v,
+      };
+    },
+    verify: (p) => p.v / ((p.closed ? 4 : 2) * p.L / p.n),
+  },
+  // ---- 3.6 Geometrical optics ----
+  'thin-lens-image': {
+    title: 'image distance for a thin lens',
+    make(r) {
+      const f = [10, 12, 15, 20, 25, 30, -10, -15, -20][int(r, 0, 8)], u0 = int(r, 5, 80), u = u0 === f ? u0 + 1 : u0;
+      const answer = 1 / (1 / f - 1 / u); // Cartesian v with object at -u
+      return {
+        q: `<p>An object is ${u} cm in front of a thin ${f > 0 ? 'converging' : 'diverging'} lens of focal length ${Math.abs(f)} cm. Using the Cartesian convention (light travels in +x, distances from the lens), find the image distance v in cm (positive = real, behind the lens).</p>`,
+        answer, unit: 'cm', tol: 0.002,
+        hint: 'Use 1/v − 1/u = 1/f with u = −(object distance) and f negative for a diverging lens.',
+        solution: steps(`u = −${u} cm, f = ${f} cm.`, `1/v = 1/f + 1/u = 1/${f} − 1/${u} = ${(1 / f - 1 / u).toFixed(5)}.`, `v = <b>${answer.toFixed(2)} cm</b> (${answer > 0 ? 'real, behind the lens' : 'virtual, on the object side'}); magnification v/u = ${(answer / -u).toFixed(3)}.`),
+        f, u,
+      };
+    },
+    verify: (p) => p.f * p.u / (p.u - p.f),
+  },
+  'two-lens-focal': {
+    title: 'equivalent focal length of two separated lenses',
+    make(r) {
+      const f1 = [10, 15, 20, 25, 30, 40][int(r, 0, 5)], f2 = [10, 15, 20, 25, -10, -20][int(r, 0, 5)], d0 = int(r, 1, 15), d = f1 + f2 === d0 ? d0 + 1 : d0;
+      const answer = f1 * f2 / (f1 + f2 - d);
+      return {
+        q: `<p>Thin lenses of focal lengths ${f1} cm and ${f2} cm are ${d} cm apart on one axis. Find the equivalent focal length of the pair, in cm (negative means diverging).</p>`,
+        answer, unit: 'cm', tol: 0.002,
+        hint: 'Powers add, with a correction for the gap: 1/F = 1/f₁ + 1/f₂ − d/(f₁f₂).',
+        solution: steps(`1/F = 1/${f1} + 1/(${f2}) − ${d}/(${f1}×${f2}) = ${(1 / f1 + 1 / f2 - d / (f1 * f2)).toFixed(5)} cm⁻¹.`, `F = f₁f₂/(f₁ + f₂ − d) = ${f1 * f2}/${f1 + f2 - d} = <b>${answer.toFixed(2)} cm</b>.`),
+        f1, f2, d,
+      };
+    },
+    verify: (p) => 1 / (1 / p.f1 + 1 / p.f2 - p.d / (p.f1 * p.f2)),
+  },
+  // ---- 3.9 Polarisation ----
+  'malus-chain': {
+    title: 'intensity through three polarisers',
+    make(r) {
+      const I0 = int(r, 10, 100), a = int(r, 10, 80), b = a + int(r, 10, 80);
+      const answer = I0 / 2 * Math.cos(a * Math.PI / 180) ** 2 * Math.cos((b - a) * Math.PI / 180) ** 2;
+      return {
+        q: `<p>Unpolarised light of intensity ${I0} W/m² passes through three ideal polarisers in turn, with axes at 0°, ${a}° and ${b}°. Find the emerging intensity in W/m².</p>`,
+        answer, unit: 'W/m²', tol: 0.005,
+        hint: 'The first polariser halves unpolarised light. After that, each polariser multiplies by cos² of the angle between it and the one before (not the angle from the first).',
+        solution: steps(`After the first: ${I0}/2 = ${I0 / 2}.`, `After the second: × cos²${a}° = ${(I0 / 2 * Math.cos(a * Math.PI / 180) ** 2).toFixed(3)}.`, `After the third: × cos²${b - a}° = <b>${answer.toFixed(3)} W/m²</b>.`),
+        I0, a, b,
+      };
+    },
+    verify: (p) => p.I0 / 8 * (1 + Math.cos(2 * p.a * Math.PI / 180)) * (1 + Math.cos(2 * (p.b - p.a) * Math.PI / 180)),
+  },
+  'brewster-angle': {
+    title: 'Brewster angle and the refracted ray',
+    make(r) {
+      const n1 = [1, 1, 1.33][int(r, 0, 2)], n2 = [1.45, 1.5, 1.6, 1.7, 2.0, 2.42][int(r, 0, 5)];
+      const answer = Math.atan(n2 / n1) * 180 / Math.PI;
+      return {
+        q: `<p>Light travelling in a medium of index ${n1} reflects from a flat surface of a medium of index ${n2}. At what angle of incidence (in degrees) is the reflected light completely polarised?</p>`,
+        answer, unit: '°', tol: 0.002,
+        hint: 'Brewster: tan θ<sub>B</sub> = n₂/n₁. At this angle the reflected and refracted rays are at 90° to each other.',
+        solution: steps(`tan θ<sub>B</sub> = ${n2}/${n1} = ${(n2 / n1).toFixed(4)}.`, `θ<sub>B</sub> = <b>${answer.toFixed(2)}°</b>; the refracted ray is at 90° − θ<sub>B</sub> = ${(90 - answer).toFixed(2)}°.`),
+        n1, n2,
+      };
+    },
+    verify: (p) => 90 - Math.atan(p.n1 / p.n2) * 180 / Math.PI,
+  },
 };

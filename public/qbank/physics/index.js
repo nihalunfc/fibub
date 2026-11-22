@@ -33,8 +33,13 @@ export default {
     { id: 'waves-optics', name: 'Oscillations, waves and optics', topics: [
       { id: 'simple-harmonic-motion', name: 'Simple harmonic motion' },
       { id: 'damped-forced-oscillations', name: 'Damped and forced oscillations, resonance' },
+      { id: 'superposition-coupled', name: 'Superposition, Lissajous figures and coupled oscillators' },
+      { id: 'waves', name: 'Waves: the wave equation, standing waves and group velocity' },
+      { id: 'sound-doppler', name: 'Sound, beats and the Doppler effect' },
+      { id: 'geometrical-optics', name: 'Geometrical optics: mirrors, lenses and systems' },
       { id: 'interference', name: 'Interference' },
       { id: 'diffraction', name: 'Diffraction' },
+      { id: 'polarisation', name: 'Polarisation: Malus, Brewster and wave plates' },
     ] },
     { id: 'em', name: 'Electricity and magnetism', topics: [
       { id: 'electrostatics-gauss', name: 'Electric fields and Gauss\'s law' },
