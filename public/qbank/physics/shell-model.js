@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './shell-model.more.gen.js';
 import more2 from './shell-model.more2.gen.js';
+import r4 from './shell-model.r4.gen.js';
 
 const GSP = 5.586, GSN = -3.826;
 const LL = ['s', 'p', 'd', 'f', 'g', 'h', 'i', 'j'];
@@ -245,6 +246,7 @@ export default {
       sol: '$|\\Delta J| = 4$ needs multipole $L \\ge 4$; with a parity change, $L = 4$ is magnetic (M4), whose Weisskopf rate at 40 keV is tiny, so the state lives long. E1 needs $|\\Delta J| \\le 1$. Low energy and high multipolarity give a large conversion coefficient, so conversion electrons dominate.',
       trap: 'Parity change alone does not make a transition E1; angular momentum must also allow it.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'nsm-g01', type: 'mcq', level: 2, exams: ['gate', 'net'], sub: 'ground-state spin',
@@ -358,5 +360,6 @@ export default {
           trap: 'The parity is the product of both nucleons’ parities.', a, b };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

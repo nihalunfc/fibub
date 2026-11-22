@@ -5,6 +5,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more2 from './nuclear-reactions.more2.gen.js';
+import r4 from './nuclear-reactions.r4.gen.js';
 
 const U = 931.5;              // MeV per u, as stated in the questions
 const MEV = 1.602e-13;        // J per MeV
@@ -237,6 +238,7 @@ export default {
       sol: 'Reactions per second: $10^9/(17.6\\times1.602\\times10^{-13}) = 3.547\\times10^{20}$. Per year: $\\times3.156\\times10^7 = 1.119\\times10^{28}$. One tritium nucleus is used in each, of mass $3.016\\times1.6605\\times10^{-27} = 5.008\\times10^{-27}$ kg. Total: $1.119\\times10^{28}\\times5.008\\times10^{-27} = 56.1$ kg. Tritium is so rare (half-life $12.3$ years) that the plant must breed it from lithium in its blanket ($^6$Li $+ n \\to {}^3$H $+ \\alpha$).',
       trap: 'Count reactions, not nucleons: one tritium per $17.6$ MeV.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'nrx-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'Q-value',
@@ -317,5 +319,6 @@ export default {
           trap: 'About $1.05$ kg of uranium-235 per day per gigawatt thermal.' };
       },
       verify: (p) => p.P * 1e6 / (200 * MEV) * p.days * 86400 * 0.235 / NA },
+    ...r4.gens,
   ],
 };

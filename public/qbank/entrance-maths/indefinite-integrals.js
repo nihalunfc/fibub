@@ -701,4 +701,374 @@ const gens = [
   }, (p) => p.v - simp((x) => p.m * cos(p.k * x), 0, PI_ / (2 * p.k), 2000)),
 ];
 
+
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `ii-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id: `ii-${id}`, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const xsq = Math.sqrt, xsin = Math.sin, xcos = Math.cos, xtan = Math.tan, xexp = Math.exp, xln = Math.log, xPI = Math.PI;
+const xgcd = (a, b) => (b ? xgcd(b, a % b) : Math.abs(a));
+const frac = (n, d) => { const g = xgcd(n, d); n /= g; d /= g; if (d < 0) { n = -n; d = -d; } return d === 1 ? `${n}` : n < 0 ? `-\\dfrac{${-n}}{${d}}` : `\\dfrac{${n}}{${d}}`; };
+const xsg = (v) => (v < 0 ? `-${-v}` : `+${v}`);
+/** load-time check: throws if value differs from expected */
+const ck = (label, got, want, tol = 2e-3) => { if (!(Math.abs(got - want) <= tol * Math.max(1, Math.abs(want)))) console.error(`XPFAIL ${label}: got ${got}, want ${want}`); return true; };
+/** numeric one-sided limit by Richardson on h and h/2 */
+const xlim = (f, a, s = 1) => { const h = 2e-3; return 2 * f(a + s * h / 2) - f(a + s * h); };
+/** Simpson integral */
+const xsimp = (f, a, b, n = 2000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
+/** central derivative */
+const xd = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h);
+const XG = {};
+const XIT = [];
+const XGN = [];
+const xat = Math.atan, xas = Math.asin, xab = Math.abs, xsq2 = Math.SQRT2;
+const AD = (F, f, pts = [0.4, 0.9, 1.3, 1.8]) => pts.every((x) => { const d = xd(F, x, 1e-5), t = f(x); return Number.isFinite(d) && xab(d - t) <= 2e-5 * (1 + xab(t)); });
+const ckA = (label, F, f, pts) => ck(label, AD(F, f, pts) ? 1 : 0, 1);
+const ckN = (label, F, f, pts) => ck(label, AD(F, f, pts) ? 0 : 1, 1); // F must NOT be an antiderivative
+// ---- load-time checks ----
+ckA('x e^x', (x) => (x - 1) * xexp(x), (x) => x * xexp(x));
+ckA('ln x', (x) => x * xln(x) - x, xln);
+ckA('e^x sin+cos', (x) => xexp(x) * xsin(x), (x) => xexp(x) * (xsin(x) + xcos(x)));
+ckA('e^x/x', (x) => xexp(x) / x, (x) => xexp(x) * (1 / x - 1 / (x * x)));
+ckA('sec x', (x) => 1 / xcos(x), (x) => xsin(x) / xcos(x) ** 2);
+ckA('-cot', (x) => -1 / xtan(x), (x) => 1 / xsin(x) ** 2);
+ckA('sec-1', (x) => Math.acos(1 / x), (x) => 1 / (x * Math.sqrt(x * x - 1)), [1.4, 1.9, 2.5]);
+ckA('asinh', (x) => xln(x + Math.sqrt(x * x + 1)), (x) => 1 / Math.sqrt(x * x + 1));
+ckA('sin2', (x) => x / 2 - xsin(2 * x) / 4, (x) => xsin(x) ** 2);
+ckA('cos2', (x) => x / 2 + xsin(2 * x) / 4, (x) => xcos(x) ** 2);
+ckA('tan2', (x) => xtan(x) - x, (x) => xtan(x) ** 2);
+ckA('1/(x2-1)', (x) => 0.5 * xln(Math.abs((x - 1) / (x + 1))), (x) => 1 / (x * x - 1), [1.4, 1.9, 2.5]);
+ckA('x2/(x2-1)', (x) => x + 0.5 * xln(Math.abs((x - 1) / (x + 1))), (x) => x * x / (x * x - 1), [1.4, 1.9, 2.5]);
+ckA('1/(x(x+1))', (x) => xln(x / (x + 1)), (x) => 1 / (x * (x + 1)));
+ckA('x2 e^x', (x) => xexp(x) * (x * x - 2 * x + 2), (x) => x * x * xexp(x));
+ckA('x e^2x', (x) => xexp(2 * x) * (2 * x - 1) / 4, (x) => x * xexp(2 * x));
+ckA('e^x sin', (x) => xexp(x) * (xsin(x) - xcos(x)) / 2, (x) => xexp(x) * xsin(x));
+ckA('e^2x cos', (x) => xexp(2 * x) * (2 * xcos(x) + xsin(x)) / 5, (x) => xexp(2 * x) * xcos(x));
+ckA('(1+x2)^-3/2', (x) => x / Math.sqrt(1 + x * x), (x) => (1 + x * x) ** -1.5);
+ckA('x/sqrt(1+x2)', (x) => Math.sqrt(1 + x * x), (x) => x / Math.sqrt(1 + x * x));
+ckA('x2/sqrt(1-x2)', (x) => 0.5 * (xas(x) - x * Math.sqrt(1 - x * x)), (x) => x * x / Math.sqrt(1 - x * x), [0.2, 0.5, 0.8]);
+ckA('1/(x2 sqrt(x2+1))', (x) => -Math.sqrt(x * x + 1) / x, (x) => 1 / (x * x * Math.sqrt(x * x + 1)));
+ckA('sin3x cosx', (x) => -xcos(4 * x) / 8 - xcos(2 * x) / 4, (x) => xsin(3 * x) * xcos(x));
+ckA('4sin+3cos', (x) => 2 * x - xln(Math.abs(xsin(x) + 2 * xcos(x))), (x) => (4 * xsin(x) + 3 * xcos(x)) / (xsin(x) + 2 * xcos(x)), [0.2, 0.5, 0.7]);
+ckA('x+3 over x2+2x+2', (x) => 0.5 * xln(x * x + 2 * x + 2) + 2 * xat(x + 1), (x) => (x + 3) / (x * x + 2 * x + 2));
+ckA('x3e^x', (x) => xexp(x) * (x ** 3 - 3 * x * x + 6 * x - 6), (x) => x ** 3 * xexp(x));
+ckA('e3x cos2x', (x) => xexp(3 * x) * (3 * xcos(2 * x) + 2 * xsin(2 * x)) / 13, (x) => xexp(3 * x) * xcos(2 * x));
+ckA('sin4', (x) => 3 * x / 8 - xsin(2 * x) / 4 + xsin(4 * x) / 32, (x) => xsin(x) ** 4);
+ckA('1/(sin+cos)', (x) => (1 / xsq2) * xln(xtan(x / 2 + xPI / 8)), (x) => 1 / (xsin(x) + xcos(x)), [0.2, 0.5, 0.7]);
+ckA('x/(1+x4)', (x) => 0.5 * xat(x * x), (x) => x / (1 + x ** 4));
+ckA('x3/(x2+1)', (x) => x * x / 2 - 0.5 * xln(x * x + 1), (x) => x ** 3 / (x * x + 1));
+ckA('1/(x2+4x+13)', (x) => xat((x + 2) / 3) / 3, (x) => 1 / (x * x + 4 * x + 13));
+ckA('asin', (x) => x * xas(x) + Math.sqrt(1 - x * x), xas, [0.2, 0.5, 0.8]);
+ckA('atan', (x) => x * xat(x) - 0.5 * xln(1 + x * x), xat);
+ckA('x ln x', (x) => x * x / 2 * xln(x) - x * x / 4, (x) => x * xln(x));
+ckA('1/(1+e^x)', (x) => x - xln(1 + xexp(x)), (x) => 1 / (1 + xexp(x)));
+ckA('1/(1+e^x) b', (x) => -xln(1 + xexp(-x)), (x) => 1 / (1 + xexp(x)));
+ckA('1/(1+e^x) d', (x) => xln(xexp(x) / (1 + xexp(x))), (x) => 1 / (1 + xexp(x)));
+ckN('1/(1+e^x) c', (x) => xln(1 + xexp(x)), (x) => 1 / (1 + xexp(x)));
+ckA('1/sqrt asinh b', (x) => -xln(Math.sqrt(x * x + 1) - x), (x) => 1 / Math.sqrt(x * x + 1));
+ckN('1/sqrt asinh d', (x) => xln(Math.sqrt(x * x + 1) - x), (x) => 1 / Math.sqrt(x * x + 1));
+ckA('sin2x a', (x) => xsin(x) ** 2, (x) => xsin(2 * x));
+ckA('sin2x b', (x) => -(xcos(x) ** 2), (x) => xsin(2 * x));
+ckA('sin2x c', (x) => -xcos(2 * x) / 2, (x) => xsin(2 * x));
+ckN('sin2x d', (x) => xcos(x) ** 2, (x) => xsin(2 * x));
+ckN('sincos not', (x) => xcos(x) ** 2 / 2, (x) => xsin(x) * xcos(x));
+ckA('sincos a', (x) => xsin(x) ** 2 / 2, (x) => xsin(x) * xcos(x));
+ckA('sincos b', (x) => -(xcos(x) ** 2) / 2, (x) => xsin(x) * xcos(x));
+ckA('sincos c', (x) => -xcos(2 * x) / 4, (x) => xsin(x) * xcos(x));
+ckA('e^x f 1', (x) => x * xexp(x), (x) => xexp(x) * (x + 1));
+ckA('e^x f 2', (x) => x * x * xexp(x), (x) => xexp(x) * (x * x + 2 * x));
+ckA('e^x f 3', (x) => xexp(x) * xln(x), (x) => xexp(x) * (xln(x) + 1 / x));
+ckN('e^x f 4', (x) => xexp(x) * (x * x + 1), (x) => xexp(x) * (x * x + 1));
+ckA('1/(sin cos)', (x) => xln(xtan(x)), (x) => 1 / (xsin(x) * xcos(x)), [0.3, 0.6, 1.2]);
+ckA('1/(sin cos) b', (x) => -xln(1 / xtan(x)), (x) => 1 / (xsin(x) * xcos(x)), [0.3, 0.6, 1.2]);
+ckN('1/(sin cos) c', (x) => 0.5 * xln(xtan(x)), (x) => 1 / (xsin(x) * xcos(x)), [0.3, 0.6, 1.2]);
+ckA('sqrt(a2-x2)', (x) => 0.5 * x * Math.sqrt(4 - x * x) + 2 * xas(x / 2), (x) => Math.sqrt(4 - x * x), [0.3, 0.9, 1.5]);
+ckA('sqrt(x2+a2)', (x) => 0.5 * x * Math.sqrt(x * x + 4) + 2 * xln(x + Math.sqrt(x * x + 4)), (x) => Math.sqrt(x * x + 4));
+ckN('sqrt(x2-a2) plus', (x) => 0.5 * x * Math.sqrt(x * x - 4) + 2 * xln(x + Math.sqrt(x * x - 4)), (x) => Math.sqrt(x * x - 4), [2.5, 3, 4]);
+ckA('1/sqrt(x2-a2)', (x) => xln(x + Math.sqrt(x * x - 4)), (x) => 1 / Math.sqrt(x * x - 4), [2.5, 3, 4]);
+ckA('atan alt', (x) => xas(x / Math.sqrt(1 + x * x)), (x) => 1 / (1 + x * x));
+ckA('-acot', (x) => -(xPI / 2 - xat(x)), (x) => 1 / (1 + x * x));
+ckA('x e^x^2', (x) => xexp(x * x) / 2, (x) => x * xexp(x * x));
+ckA('1/(x2+6x+13)', (x) => xat((x + 3) / 2) / 2, (x) => 1 / (x * x + 6 * x + 13));
+ckA('1/(1+cos2x)', (x) => xtan(x) / 2, (x) => 1 / (1 + xcos(2 * x)), [0.3, 0.6, 1.0]);
+ckA('1/(1+cos x)', (x) => xtan(x / 2), (x) => 1 / (1 + xcos(x)), [0.3, 0.6, 1.0]);
+ckA('1/(x sqrt(x2-4))', (x) => 0.5 * Math.acos(2 / x), (x) => 1 / (x * Math.sqrt(x * x - 4)), [2.5, 3, 4]);
+ckA('(x2+1)/(x4+1)', (x) => xat((x * x - 1) / (xsq2 * x)) / xsq2, (x) => (x * x + 1) / (x ** 4 + 1), [1.3, 1.9, 2.6]);
+ckA('e^x(x-1)/(x+1)^3', (x) => xexp(x) / (x + 1) ** 2, (x) => xexp(x) * (x - 1) / (x + 1) ** 3);
+ckA('1/(x(x3+1))', (x) => xln(x ** 3 / (x ** 3 + 1)) / 3, (x) => 1 / (x * (x ** 3 + 1)));
+ckA('sinx/(sinx+cosx)', (x) => 0.5 * (x - xln(Math.abs(xsin(x) + xcos(x)))), (x) => xsin(x) / (xsin(x) + xcos(x)), [0.2, 0.5, 0.7]);
+ckA('cosx/(sinx+cosx)', (x) => 0.5 * (x + xln(Math.abs(xsin(x) + xcos(x)))), (x) => xcos(x) / (xsin(x) + xcos(x)), [0.2, 0.5, 0.7]);
+ckA('x|x|/2', (x) => x * xab(x) / 2, xab, [-1.3, -0.4, 0.5, 1.7]);
+ckA('2sin cos form', (x) => xsin(x) ** 2, (x) => 2 * xsin(x) * xcos(x));
+ckA('2sin cos form b', (x) => -(xcos(x) ** 2), (x) => 2 * xsin(x) * xcos(x));
+ck('n(F) x e^x passage', ((1 - 1) * Math.E + 4), 4);
+ckA('(3x+5)', (x) => 2 * xln(x + 1) + xln(x + 2), (x) => (3 * x + 5) / ((x + 1) * (x + 2)));
+ckA('e^x sin pass', (x) => xexp(x) * (xsin(x) - xcos(x)) / 2 + 0.5, (x) => xexp(x) * xsin(x));
+ck('F(pi) e^x sin', xexp(xPI) * 0.5 + 0.5, 12.0703463, 1e-6);
+ck('F(2) x e^x', xexp(2) + 4, 11.389056, 1e-6);
+
+Object.assign(XG, {
+  xm1: { title: 'Match: standard integrals', passage: XR`<p>Match each integral in List I (omitting $+C$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\int\sec x\tan x\,dx$`, XR`B. $\displaystyle\int\csc^2x\,dx$`, XR`C. $\displaystyle\int\dfrac{dx}{x\sqrt{x^2-1}}$ for $x>1$`, XR`D. $\displaystyle\int\dfrac{dx}{\sqrt{x^2+1}}$`],
+    list2: [XR`p. $\ln\left(x+\sqrt{x^2+1}\right)$`, XR`q. $\sec x$`, XR`r. $-\cot x$`, XR`s. $\sec^{-1}x$`] },
+  xm2: { title: 'Match: integrals by parts', passage: XR`<p>Match each integral in List I (omitting $+C$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\int xe^x\,dx$`, XR`B. $\displaystyle\int\ln x\,dx$`, XR`C. $\displaystyle\int e^x(\sin x+\cos x)\,dx$`, XR`D. $\displaystyle\int e^x\left(\dfrac1x-\dfrac1{x^2}\right)dx$`],
+    list2: [XR`p. $\dfrac{e^x}x$`, XR`q. $e^x\sin x$`, XR`r. $x\ln x-x$`, XR`s. $(x-1)e^x$`] },
+  xm3: { title: 'Match: the substitution that works', passage: XR`<p>Match each integral in List I with the substitution from List II that turns it into a standard form.</p>`,
+    list1: [XR`A. $\displaystyle\int\dfrac{dx}{x(1+\ln x)}$`, XR`B. $\displaystyle\int\dfrac{dx}{\sqrt x\,(1+\sqrt x)}$`, XR`C. $\displaystyle\int\dfrac{\sec^2x}{1+\tan x}\,dx$`, XR`D. $\displaystyle\int\dfrac{e^x}{1+e^{2x}}\,dx$`],
+    list2: [XR`p. $u=\tan x$`, XR`q. $u=e^x$`, XR`r. $u=\ln x$`, XR`s. $u=\sqrt x$`] },
+  xm4: { title: 'Match: antiderivative through a point', passage: XR`<p>For each $f'(x)$ in List I, the function $f$ has $f(0)=1$. Match it with $f(x)$ from List II.</p>`,
+    list1: [XR`A. $f'(x)=e^x$`, XR`B. $f'(x)=\cos x$`, XR`C. $f'(x)=\dfrac1{1+x^2}$`, XR`D. $f'(x)=3x^2$`],
+    list2: [XR`p. $\tan^{-1}x+1$`, XR`q. $x^3+1$`, XR`r. $e^x$`, XR`s. $\sin x+1$`] },
+  xm5: { title: 'Match: powers of sine and cosine', passage: XR`<p>Match each integral in List I (omitting $+C$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\int\sin^2x\,dx$`, XR`B. $\displaystyle\int\cos^2x\,dx$`, XR`C. $\displaystyle\int\sin x\cos x\,dx$`, XR`D. $\displaystyle\int\tan^2x\,dx$`],
+    list2: [XR`p. $\tan x-x$`, XR`q. $\dfrac x2-\dfrac{\sin2x}4$`, XR`r. $\dfrac{\sin^2x}2$`, XR`s. $\dfrac x2+\dfrac{\sin2x}4$`] },
+  xm6: { title: 'Match: partial fractions', passage: XR`<p>Match each integral in List I (omitting $+C$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\int\dfrac{dx}{x^2-1}$`, XR`B. $\displaystyle\int\dfrac{x\,dx}{x^2-1}$`, XR`C. $\displaystyle\int\dfrac{dx}{x(x+1)}$`, XR`D. $\displaystyle\int\dfrac{x^2\,dx}{x^2-1}$`],
+    list2: [XR`p. $\ln\left|\dfrac x{x+1}\right|$`, XR`q. $\dfrac12\ln|x^2-1|$`, XR`r. $x+\dfrac12\ln\left|\dfrac{x-1}{x+1}\right|$`, XR`s. $\dfrac12\ln\left|\dfrac{x-1}{x+1}\right|$`] },
+  xm7: { title: 'Match: repeated integration by parts', passage: XR`<p>Match each integral in List I (omitting $+C$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\int x^2e^x\,dx$`, XR`B. $\displaystyle\int xe^{2x}\,dx$`, XR`C. $\displaystyle\int e^x\sin x\,dx$`, XR`D. $\displaystyle\int e^{2x}\cos x\,dx$`],
+    list2: [XR`p. $\dfrac{e^x(\sin x-\cos x)}2$`, XR`q. $e^x(x^2-2x+2)$`, XR`r. $\dfrac{e^{2x}(2x-1)}4$`, XR`s. $\dfrac{e^{2x}(2\cos x+\sin x)}5$`] },
+  xm8: { title: 'Match: algebraic integrals', passage: XR`<p>Match each integral in List I (omitting $+C$) with its value in List II.</p>`,
+    list1: [XR`A. $\displaystyle\int\dfrac{dx}{(1+x^2)^{3/2}}$`, XR`B. $\displaystyle\int\dfrac{x\,dx}{\sqrt{1+x^2}}$`, XR`C. $\displaystyle\int\dfrac{x^2\,dx}{\sqrt{1-x^2}}$`, XR`D. $\displaystyle\int\dfrac{dx}{x^2\sqrt{x^2+1}}$`],
+    list2: [XR`p. $\sqrt{1+x^2}$`, XR`q. $\dfrac x{\sqrt{1+x^2}}$`, XR`r. $\dfrac12\left(\sin^{-1}x-x\sqrt{1-x^2}\right)$`, XR`s. $-\dfrac{\sqrt{x^2+1}}x$`] },
+  xp4: { title: 'Passage: an antiderivative through a point', passage: XR`<p>$F'(x)=xe^x$ and $F(0)=3$.</p>` },
+  xp5: { title: 'Passage: sine over sine plus cosine', passage: XR`<p>Let $I_1=\displaystyle\int\dfrac{\sin x}{\sin x+\cos x}\,dx$ and $I_2=\displaystyle\int\dfrac{\cos x}{\sin x+\cos x}\,dx$. Then $I_1+I_2=\displaystyle\int1\,dx=x$, and $I_2-I_1=\displaystyle\int\dfrac{\cos x-\sin x}{\sin x+\cos x}dx=\ln|\sin x+\cos x|$ (ignoring constants).</p>` },
+  xp6: { title: 'Passage: a rational integrand', passage: XR`<p>$\displaystyle\int\dfrac{dx}{x(x^3+1)}$ can be done by writing $\dfrac1{x(x^3+1)}=\dfrac{x^2}{x^3(x^3+1)}$ and substituting $t=x^3$. Let $F$ be the antiderivative that satisfies $F(1)=0$.</p>` },
+});
+
+XIT.push(
+  // ---- L2 ----
+  M(2, 'standard forms', XR`$\displaystyle\int(3x^2+2x)\,dx=$`, '$x^3+x^2+C$', ['$6x+2+C$', '$x^3+2x^2+C$', '$3x^3+x^2+C$'],
+    XR`<p>Raise each power by one and divide by it: $3\cdot\dfrac{x^3}3+2\cdot\dfrac{x^2}2=x^3+x^2$.</p>`, 'Integrating is the reverse of differentiating: do not differentiate.'),
+  M(2, 'exponential', XR`$\displaystyle\int e^{3x}\,dx=$`, XR`$\dfrac{e^{3x}}3+C$`, ['$3e^{3x}+C$', '$e^{3x}+C$', XR`$\dfrac{e^{3x}}{3x}+C$`],
+    XR`<p>$\dfrac d{dx}e^{3x}=3e^{3x}$, so divide by $3$ to undo it.</p>`, 'Divide by the coefficient of x.'),
+  M(2, 'trigonometric', XR`$\displaystyle\int\cos2x\,dx=$`, XR`$\dfrac{\sin2x}2+C$`, ['$2\\sin2x+C$', '$\\sin2x+C$', XR`$-\dfrac{\sin2x}2+C$`],
+    XR`<p>$\dfrac d{dx}\sin2x=2\cos2x$, so $\int\cos2x\,dx=\dfrac12\sin2x$.</p>`, 'The factor 2 goes below, not above.'),
+  M(2, 'logarithmic', XR`$\displaystyle\int\dfrac{dx}{2x+1}=$`, XR`$\dfrac12\ln|2x+1|+C$`, [XR`$\ln|2x+1|+C$`, XR`$2\ln|2x+1|+C$`, XR`$-\dfrac1{(2x+1)^2}+C$`],
+    XR`<p>With $u=2x+1$, $du=2\,dx$: $\int\dfrac{du}{2u}=\dfrac12\ln|u|$.</p>`, 'Do not forget 1/2 from du = 2 dx.'),
+  M(2, 'trigonometric', XR`$\displaystyle\int\sec^2(3x)\,dx=$`, XR`$\dfrac{\tan3x}3+C$`, ['$3\\tan3x+C$', '$\\tan3x+C$', XR`$\dfrac{\sec^33x}3+C$`],
+    XR`<p>$\dfrac d{dx}\tan3x=3\sec^23x$, so divide by $3$.</p>`, 'sec² integrates to tan; the 3 divides.'),
+  // ---- L3 ----
+  M(3, 'substitution', XR`$\displaystyle\int xe^{x^2}\,dx=$`, XR`$\dfrac{e^{x^2}}2+C$`, ['$e^{x^2}+C$', '$2e^{x^2}+C$', XR`$\dfrac{x^2e^{x^2}}2+C$`],
+    XR`<p>Let $u=x^2$, $du=2x\,dx$: $\int\dfrac{e^u}2du=\dfrac{e^{x^2}}2$.</p>`, 'The x outside is the derivative of the inside up to a factor 2.'),
+  M(3, 'standard forms', XR`$\displaystyle\int\tan x\,dx=$`, '$\\ln|\\sec x|+C$', ['$\\ln|\\sin x|+C$', '$\\sec^2x+C$', '$-\\ln|\\sec x|+C$'],
+    XR`<p>$\int\tan x\,dx=-\ln|\cos x|=\ln\dfrac1{|\cos x|}=\ln|\sec x|$.</p>`, 'The minus sign in −ln|cos x| turns into ln|sec x|.'),
+  M(3, 'quadratic denominators', XR`$\displaystyle\int\dfrac{dx}{x^2+6x+13}=$`, XR`$\dfrac12\tan^{-1}\dfrac{x+3}2+C$`, [XR`$\tan^{-1}\dfrac{x+3}2+C$`, XR`$\dfrac13\tan^{-1}\dfrac{x+3}3+C$`, XR`$\dfrac12\ln|x^2+6x+13|+C$`],
+    XR`<p>Complete the square: $x^2+6x+13=(x+3)^2+4$. Then $\int\dfrac{du}{u^2+2^2}=\dfrac12\tan^{-1}\dfrac u2$.</p>`, 'The constant is 2² = 4, so the factor is 1/2.'),
+  M(3, 'by parts', XR`$\displaystyle\int x\ln x\,dx=$`, XR`$\dfrac{x^2}2\ln x-\dfrac{x^2}4+C$`, [XR`$\dfrac{x^2}2\ln x-\dfrac{x^2}2+C$`, XR`$x\ln x-x+C$`, XR`$\dfrac{x^2}2\ln x+\dfrac{x^2}4+C$`],
+    XR`<p>Take $u=\ln x$, $dv=x\,dx$: $\dfrac{x^2}2\ln x-\int\dfrac{x^2}2\cdot\dfrac1x\,dx=\dfrac{x^2}2\ln x-\dfrac{x^2}4$.</p>`, 'The leftover integral is x/2, whose antiderivative is x²/4.'),
+  M(3, 'trigonometric', XR`Which of the following is NOT an antiderivative of $\sin x\cos x$?`, XR`$\dfrac{\cos^2x}2$`, [XR`$\dfrac{\sin^2x}2$`, XR`$-\dfrac{\cos^2x}2$`, XR`$-\dfrac{\cos2x}4$`],
+    XR`<p>$\dfrac d{dx}\dfrac{\cos^2x}2=-\sin x\cos x$, which has the wrong sign. The other three all differentiate to $\sin x\cos x$ (they differ from each other by constants: $\sin^2x=1-\cos^2x$ and $\cos2x=1-2\sin^2x$).</p>`, 'Different-looking answers can all be right: they differ by constants.'),
+  M(3, 'trigonometric', XR`$\displaystyle\int\dfrac{dx}{1+\cos2x}=$`, XR`$\dfrac{\tan x}2+C$`, ['$\\tan x+C$', XR`$\dfrac{\cot x}2+C$`, XR`$-\dfrac{\tan x}2+C$`],
+    XR`<p>$1+\cos2x=2\cos^2x$, so the integrand is $\dfrac12\sec^2x$ and the integral is $\dfrac12\tan x$.</p>`, '1 + cos 2x = 2cos²x.'),
+  A(3, 'concepts', XR`$\displaystyle\int2\sin x\cos x\,dx$ can be written as $\sin^2x+C$ and also as $-\cos^2x+C$.`, XR`Two antiderivatives of the same function differ by a constant.`, 0,
+    XR`<p>Both $\sin^2x$ and $-\cos^2x$ differentiate to $2\sin x\cos x$. Their difference is $\sin^2x+\cos^2x=1$, a constant, which is exactly what R says. R explains why both answers are right.</p>`, 'Different forms do not mean one is wrong.'),
+  A(3, 'substitution', XR`$\displaystyle\int\sin^2x\,dx\ne\dfrac{\sin^3x}3+C$.`, XR`The rule $\int u^2\,du=\dfrac{u^3}3$ needs $du$ to appear, and here $d(\sin x)=\cos x\,dx$ is not in the integrand.`, 0,
+    XR`<p>$\dfrac d{dx}\dfrac{\sin^3x}3=\sin^2x\cos x\ne\sin^2x$. The extra factor $\cos x$ is exactly what R says is missing. Use $\sin^2x=\dfrac{1-\cos2x}2$ instead.</p>`, 'Substitution needs the derivative of the inner function present.'),
+  S(3, 'standard forms', XR`$\displaystyle\int\tan x\,dx=\ln|\sec x|+C$.`, XR`$\displaystyle\int\cot x\,dx=\ln|\sin x|+C$.`, 0,
+    XR`<p>Both are standard: $\int\cot x\,dx=\int\dfrac{\cos x}{\sin x}dx=\ln|\sin x|$.</p>`, 'The pair: tan gives ln|sec|, cot gives ln|sin|.'),
+  I(3, 'partial fractions', XR`$\displaystyle\int\dfrac{3x+5}{(x+1)(x+2)}\,dx=A\ln|x+1|+B\ln|x+2|+C$. Find $10A+B$.`, 21,
+    XR`<p>$\dfrac{3x+5}{(x+1)(x+2)}=\dfrac A{x+1}+\dfrac B{x+2}$. At $x=-1$: $A=\dfrac{-3+5}{1}=2$. At $x=-2$: $B=\dfrac{-6+5}{-1}=1$. So $10A+B=21$.</p>`, 'Cover-up method: block off each factor and substitute its root.', () => 21),
+  I(3, 'by parts: e^x(f + f\')', XR`$\displaystyle\int x^2e^x\,dx=e^x(x^2+ax+b)+C$. Find $ab$.`, -4,
+    XR`<p>By parts twice: $\int x^2e^x=x^2e^x-2\int xe^x=x^2e^x-2(x-1)e^x=e^x(x^2-2x+2)$. So $a=-2$, $b=2$, $ab=-4$.</p>`, 'Differentiate e^x(x² + ax + b): it must give x²e^x.', () => -2 * 2),
+  I(3, 'finding f from f\'', XR`$F'(x)=\dfrac1{1+\cos x}$ and $F(0)=0$. Find $F\left(\dfrac\pi2\right)$.`, 1,
+    XR`<p>$1+\cos x=2\cos^2\dfrac x2$, so $F'=\dfrac12\sec^2\dfrac x2$ and $F=\tan\dfrac x2+C$. $F(0)=0$ gives $C=0$. $F\left(\dfrac\pi2\right)=\tan\dfrac\pi4=1$.</p>`, 'Half-angle identity: 1 + cos x = 2cos²(x/2).', () => 1),
+  N(3, 'by parts', XR`$F'(x)=\ln x$ and $F(1)=0$. Find $F(2)$ (2 decimal places).`, 0.39, 0.01,
+    XR`<p>$F(x)=x\ln x-x+C$. $F(1)=-1+C=0$, so $C=1$. $F(2)=2\ln2-2+1=2(0.6931)-1=0.386\approx0.39$.</p>`, 'Use the condition to find C before evaluating.', () => 2 * Math.log(2) - 1),
+  // ---- matches ----
+  MT(3, 'standard forms', 'xm1', 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    XR`<p>A: $\dfrac d{dx}\sec x=\sec x\tan x$ (q). B: $\dfrac d{dx}(-\cot x)=\csc^2x$ (r). C: $\dfrac d{dx}\sec^{-1}x=\dfrac1{x\sqrt{x^2-1}}$ for $x>1$ (s). D: standard result with $\ln$ (p).</p>`, 'Check each by differentiating the candidate.'),
+  MT(3, 'by parts', 'xm2', 'A-s, B-r, C-q, D-p', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p'],
+    XR`<p>A: by parts, $(x-1)e^x$ (s). B: $x\ln x-x$ (r). C: $\int e^x(f+f')=e^xf$ with $f=\sin x$ (q). D: $f=\dfrac1x$, $f'=-\dfrac1{x^2}$, so $\dfrac{e^x}x$ (p).</p>`, 'The pattern e^x(f + f′) integrates to e^x f.'),
+  MT(4, 'substitution', 'xm3', 'A-r, B-s, C-p, D-q', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-p, C-s, D-q'],
+    XR`<p>A: $u=\ln x$, $du=\dfrac{dx}x$ (r). B: $u=\sqrt x$, $du=\dfrac{dx}{2\sqrt x}$ (s). C: $u=\tan x$, $du=\sec^2x\,dx$ (p). D: $u=e^x$, $du=e^xdx$, leaving $\dfrac{du}{1+u^2}$ (q).</p>`, 'Look for a function whose derivative is also in the integrand.'),
+  MT(3, 'finding f from f\'', 'xm4', 'A-r, B-s, C-p, D-q', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-p, C-s, D-q'],
+    XR`<p>Each antiderivative has the form $F+C$ with $f(0)=1$. A: $e^x$, $e^0=1$ so $C=0$ (r). B: $\sin x+C$, $C=1$ (s). C: $\tan^{-1}x+C$, $C=1$ (p). D: $x^3+C$, $C=1$ (q).</p>`, 'Test the point: only e^x needs no constant.'),
+  MT(3, 'trigonometric', 'xm5', 'A-q, B-s, C-r, D-p', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'],
+    XR`<p>A: $\sin^2x=\dfrac{1-\cos2x}2$ gives $\dfrac x2-\dfrac{\sin2x}4$ (q). B: $\cos^2x=\dfrac{1+\cos2x}2$ gives $\dfrac x2+\dfrac{\sin2x}4$ (s). C: $\dfrac{\sin^2x}2$ (r). D: $\tan^2x=\sec^2x-1$ gives $\tan x-x$ (p).</p>`, 'The sin² and cos² results differ only by the sign of the sin 2x/4 term.'),
+  MT(4, 'partial fractions', 'xm6', 'A-s, B-q, C-p, D-r', ['A-s, B-q, C-r, D-p', 'A-q, B-s, C-p, D-r', 'A-s, B-p, C-q, D-r'],
+    XR`<p>A: $\dfrac1{x^2-1}=\dfrac12\left(\dfrac1{x-1}-\dfrac1{x+1}\right)$ (s). B: $u=x^2-1$ gives $\dfrac12\ln|x^2-1|$ (q). C: $\dfrac1x-\dfrac1{x+1}$ (p). D: $1+\dfrac1{x^2-1}$ (r).</p>`, 'D needs division first because the degrees are equal.'),
+  MT(5, 'by parts (repeated)', 'xm7', 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    XR`<p>Differentiate each candidate to check. A: by parts twice, $e^x(x^2-2x+2)$ (q). B: $\dfrac{xe^{2x}}2-\dfrac{e^{2x}}4$ (r). C: the 'cycle' method gives $\dfrac{e^x(\sin x-\cos x)}2$ (p). D: the cycle gives $\dfrac{e^{2x}(2\cos x+\sin x)}5$ (s).</p>`, 'In the cycle method the integral reappears: solve for it.'),
+  MT(5, 'irrational integrands', 'xm8', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: $x=\tan\theta$ gives $\int\cos\theta\,d\theta=\sin\theta=\dfrac x{\sqrt{1+x^2}}$ (q). B: $u=1+x^2$ gives $\sqrt{1+x^2}$ (p). C: $x=\sin\theta$ gives $\int\sin^2\theta\,d\theta=\dfrac12(\theta-\sin\theta\cos\theta)$ (r). D: $x=\tan\theta$ gives $\int\dfrac{\cos\theta}{\sin^2\theta}d\theta=-\dfrac1{\sin\theta}=-\dfrac{\sqrt{x^2+1}}x$ (s).</p>`, 'For √(1 ± x²) forms, try x = tan θ or sin θ.'),
+  // ---- L4 ----
+  M(4, 'irrational integrands', XR`For $x>2$, $\displaystyle\int\dfrac{dx}{x\sqrt{x^2-4}}=$`, XR`$\dfrac12\sec^{-1}\dfrac x2+C$`, [XR`$\sec^{-1}\dfrac x2+C$`, XR`$\dfrac12\ln\left|x+\sqrt{x^2-4}\right|+C$`, XR`$2\sec^{-1}\dfrac x2+C$`],
+    XR`<p>Put $x=2\sec\theta$, $dx=2\sec\theta\tan\theta\,d\theta$, $\sqrt{x^2-4}=2\tan\theta$. The integral is $\int\dfrac{2\sec\theta\tan\theta}{2\sec\theta\cdot2\tan\theta}d\theta=\dfrac\theta2=\dfrac12\sec^{-1}\dfrac x2$.</p>`, 'The a in sec⁻¹(x/a) comes with a factor 1/a.'),
+  M(4, 'by parts: e^x(f + f\')', XR`$\displaystyle\int\dfrac{e^x(x-1)}{(x+1)^3}\,dx=$`, XR`$\dfrac{e^x}{(x+1)^2}+C$`, [XR`$\dfrac{e^x}{x+1}+C$`, XR`$\dfrac{e^x}{(x+1)^3}+C$`, XR`$\dfrac{e^x(x-1)}{(x+1)^2}+C$`],
+    XR`<p>Write $\dfrac{x-1}{(x+1)^3}=\dfrac1{(x+1)^2}-\dfrac2{(x+1)^3}$. With $f=\dfrac1{(x+1)^2}$, $f'=-\dfrac2{(x+1)^3}$, so the integrand is $e^x(f+f')$ and the integral is $e^xf=\dfrac{e^x}{(x+1)^2}$.</p>`, 'Split (x − 1) = (x + 1) − 2 to see f and f′.'),
+  M(4, 'trigonometric', XR`$\displaystyle\int\dfrac{dx}{\sin x\cos x}=$`, '$\\ln|\\tan x|+C$', ['$\\ln|\\sin x\\cos x|+C$', XR`$\dfrac12\ln|\tan x|+C$`, '$\\ln|\\cot x|+C$'],
+    XR`<p>$\dfrac1{\sin x\cos x}=\dfrac{\sec^2x}{\tan x}$. Put $u=\tan x$: $\int\dfrac{du}u=\ln|\tan x|$.</p>`, 'Divide top and bottom by cos²x.'),
+  M(4, 'trigonometric', XR`$\displaystyle\int\dfrac{dx}{\sin x+\cos x}=$`, XR`$\dfrac1{\sqrt2}\ln\left|\tan\left(\dfrac x2+\dfrac\pi8\right)\right|+C$`, [XR`$\sqrt2\ln\left|\tan\left(\dfrac x2+\dfrac\pi8\right)\right|+C$`, XR`$\dfrac1{\sqrt2}\ln\left|\tan\left(x+\dfrac\pi4\right)\right|+C$`, XR`$\dfrac1{\sqrt2}\ln\left|\sin x+\cos x\right|+C$`],
+    XR`<p>$\sin x+\cos x=\sqrt2\sin\left(x+\dfrac\pi4\right)$. So the integral is $\dfrac1{\sqrt2}\int\csc\left(x+\dfrac\pi4\right)dx=\dfrac1{\sqrt2}\ln\left|\tan\dfrac{x+\pi/4}2\right|$.</p>`, 'Combine into a single sine first; ∫ csc u du = ln|tan(u/2)|.'),
+  M(5, 'irrational integrands', XR`$\displaystyle\int\dfrac{x^2+1}{x^4+1}\,dx=$`, XR`$\dfrac1{\sqrt2}\tan^{-1}\left(\dfrac{x^2-1}{\sqrt2\,x}\right)+C$`, [XR`$\dfrac1{\sqrt2}\tan^{-1}\left(\dfrac{x^2+1}{\sqrt2\,x}\right)+C$`, XR`$\tan^{-1}\left(\dfrac{x^2-1}{\sqrt2\,x}\right)+C$`, XR`$\dfrac12\tan^{-1}\left(\dfrac{x^2-1}{x}\right)+C$`],
+    XR`<p>Divide top and bottom by $x^2$: $\dfrac{1+1/x^2}{x^2+1/x^2}$. Put $t=x-\dfrac1x$, $dt=\left(1+\dfrac1{x^2}\right)dx$, and $x^2+\dfrac1{x^2}=t^2+2$. The integral is $\int\dfrac{dt}{t^2+2}=\dfrac1{\sqrt2}\tan^{-1}\dfrac t{\sqrt2}$ with $t=\dfrac{x^2-1}x$.</p>`, 'The classic trick: divide by x² and set t = x − 1/x.'),
+  I(4, 'trigonometric', XR`$\displaystyle\int\dfrac{4\sin x+3\cos x}{\sin x+2\cos x}\,dx=Ax+B\ln|\sin x+2\cos x|+C$. Find $10A+B$.`, 19,
+    XR`<p>Write the numerator as $A(\sin x+2\cos x)+B(\cos x-2\sin x)$, using the derivative of the denominator. Matching: $\sin$: $4=A-2B$; $\cos$: $3=2A+B$. Then $A=4+2B$ and $3=8+4B+B$, so $B=-1$, $A=2$. $10A+B=20-1=19$.</p>`, 'B is negative: do not drop the sign.', () => 20 - 1),
+  I(4, 'quadratic denominators', XR`$\displaystyle\int\dfrac{x+3}{x^2+2x+2}\,dx=A\ln(x^2+2x+2)+B\tan^{-1}(x+1)+C$. Find $2A+B$.`, 3,
+    XR`<p>$x+3=\dfrac12(2x+2)+2$. The first part gives $\dfrac12\ln(x^2+2x+2)$. The second: $\int\dfrac{2\,dx}{(x+1)^2+1}=2\tan^{-1}(x+1)$. So $A=\dfrac12$, $B=2$, $2A+B=3$.</p>`, 'Split the numerator into (derivative of denominator)/2 plus a constant.', () => 2 * 0.5 + 2),
+  I(4, 'by parts: e^x(f + f\')', XR`$\displaystyle\int x^3e^x\,dx=e^x(x^3+ax^2+bx+c)+C$. Find $a+b+c$.`, -3,
+    XR`<p>Repeated parts: $\int x^3e^x=e^x(x^3-3x^2+6x-6)$. So $a=-3$, $b=6$, $c=-6$ and $a+b+c=-3$.</p>`, 'Signs alternate: +, −, +, −.', () => -3 + 6 - 6),
+  I(4, 'trigonometric', XR`$\displaystyle\int\sin^4x\,dx=ax+b\sin2x+c\sin4x+C$. Find $32(a+b+c)$.`, 5,
+    XR`<p>$\sin^4x=\left(\dfrac{1-\cos2x}2\right)^2=\dfrac14-\dfrac{\cos2x}2+\dfrac{\cos^22x}4=\dfrac38-\dfrac{\cos2x}2+\dfrac{\cos4x}8$. Integrate: $\dfrac{3x}8-\dfrac{\sin2x}4+\dfrac{\sin4x}{32}$. So $a=\dfrac38$, $b=-\dfrac14$, $c=\dfrac1{32}$. $32(a+b+c)=12-8+1=5$.</p>`, 'Reduce the power with cos 2x identities twice.', () => 12 - 8 + 1),
+  I(4, 'substitution', XR`$\displaystyle\int\dfrac{dx}{x(x^5+1)}=A\ln\left|\dfrac{x^5}{x^5+1}\right|+C$. Find $\dfrac1A$.`, 5,
+    XR`<p>Write $\dfrac1{x(x^5+1)}=\dfrac{x^4}{x^5(x^5+1)}$ and put $t=x^5$, $dt=5x^4dx$: $\dfrac15\int\dfrac{dt}{t(t+1)}=\dfrac15\ln\left|\dfrac t{t+1}\right|$. So $A=\dfrac15$ and $\dfrac1A=5$.</p>`, 'Multiply top and bottom by x⁴ to create the derivative of x⁵.', () => 5),
+  I(5, 'by parts (repeated)', XR`$\displaystyle\int e^{3x}\cos2x\,dx=\dfrac{e^{3x}}{13}(a\cos2x+b\sin2x)+C$. Find $10a+b$.`, 32,
+    XR`<p>Use $\int e^{ax}\cos bx\,dx=\dfrac{e^{ax}(a\cos bx+b\sin bx)}{a^2+b^2}$ (check by differentiation). With $a=3$, $b=2$: denominator $13$, coefficients $3$ and $2$. So $10\cdot3+2=32$.</p>`, 'The cos coefficient is the exponent rate, the sin coefficient is the frequency.', () => 32),
+  I(5, 'trigonometric', XR`$F'(x)=\sin3x\cos x$ and $F(0)=0$. Find $16\,F\left(\dfrac\pi6\right)$.`, 5,
+    XR`<p>$\sin3x\cos x=\dfrac12(\sin4x+\sin2x)$. $F(x)=-\dfrac{\cos4x}8-\dfrac{\cos2x}4+C$. $F(0)=-\dfrac18-\dfrac14+C=0$ gives $C=\dfrac38$. $F\left(\dfrac\pi6\right)=-\dfrac{\cos(2\pi/3)}8-\dfrac{\cos(\pi/3)}4+\dfrac38=\dfrac1{16}-\dfrac18+\dfrac38=\dfrac5{16}$. So $16F=5$.</p>`, 'cos(2π/3) is −1/2, which turns the first term positive.', () => 16 * 5 / 16),
+  N(4, 'substitution', XR`$F'(x)=\dfrac x{1+x^4}$ and $F(0)=0$. Find $F(1)$ (2 decimal places).`, 0.39, 0.01,
+    XR`<p>Put $u=x^2$: $\int\dfrac{x\,dx}{1+x^4}=\dfrac12\int\dfrac{du}{1+u^2}=\dfrac12\tan^{-1}(x^2)$. $F(1)=\dfrac12\cdot\dfrac\pi4=\dfrac\pi8\approx0.39$.</p>`, 'The inner function is x², so the answer is tan⁻¹(x²)/2.', () => Math.PI / 8),
+  N(4, 'quadratic denominators', XR`$F'(x)=\dfrac1{x^2+4x+13}$ and $F(-2)=0$. Find $F(1)$ (2 decimal places).`, 0.26, 0.01,
+    XR`<p>$x^2+4x+13=(x+2)^2+9$. $F(x)=\dfrac13\tan^{-1}\dfrac{x+2}3+C$, and $F(-2)=0$ gives $C=0$. $F(1)=\dfrac13\tan^{-1}1=\dfrac\pi{12}\approx0.26$.</p>`, 'The shift is +2, so F(−2) is the centre of the arctangent.', () => Math.PI / 12),
+  N(4, 'inverse trigonometric', XR`$F'(x)=\sin^{-1}x$ and $F(0)=0$ (taking $F(x)=x\sin^{-1}x+\sqrt{1-x^2}-1$). Find $F\left(\dfrac12\right)$ (2 decimal places).`, 0.13, 0.01,
+    XR`<p>$F\left(\dfrac12\right)=\dfrac12\cdot\dfrac\pi6+\sqrt{\dfrac34}-1=0.2618+0.8660-1=0.1278\approx0.13$.</p>`, 'The −1 makes F(0) = 0.', () => 0.5 * Math.PI / 6 + Math.sqrt(0.75) - 1),
+  N(4, 'irrational integrands', XR`$F'(x)=\dfrac1{x\sqrt{x^2-1}}$ for $x>1$, with $F(\sqrt2)=\dfrac\pi4$. Find $F(2)$ (2 decimal places).`, 1.05, 0.01,
+    XR`<p>$F(x)=\sec^{-1}x+C$. $\sec^{-1}\sqrt2=\dfrac\pi4$, so $C=0$. $F(2)=\sec^{-1}2=\dfrac\pi3\approx1.05$.</p>`, 'The given point is consistent with C = 0.', () => Math.PI / 3),
+  N(5, 'by parts', XR`$F'(x)=\dfrac{x^3}{x^2+1}$ and $F(0)=0$. Find $F(1)$ (2 decimal places).`, 0.15, 0.01,
+    XR`<p>$\dfrac{x^3}{x^2+1}=x-\dfrac x{x^2+1}$. $F(x)=\dfrac{x^2}2-\dfrac12\ln(x^2+1)$ (with $F(0)=0$). $F(1)=\dfrac12-\dfrac12\ln2=0.5-0.3466=0.153\approx0.15$.</p>`, 'Divide first; do not substitute blindly.', () => 0.5 - Math.log(2) / 2),
+  N(5, 'by parts (repeated)', XR`$F'(x)=e^x\sin x$ and $F(0)=0$. Find $F(\pi)$ (2 decimal places).`, 12.07, 0.01,
+    XR`<p>$\int e^x\sin x\,dx=\dfrac{e^x(\sin x-\cos x)}2$. At $0$ this is $-\dfrac12$, so $F(x)=\dfrac{e^x(\sin x-\cos x)}2+\dfrac12$. $F(\pi)=\dfrac{e^\pi(0+1)}2+\dfrac12=\dfrac{23.1407+1}2=12.07$.</p>`, 'Add 1/2 to make F(0) = 0.', () => (Math.exp(Math.PI) + 1) / 2),
+  N(5, 'trigonometric', XR`$F'(x)=\dfrac1{\sin x+\cos x}$ and $F(0)=0$. Find $F\left(\dfrac\pi4\right)$ (2 decimal places).`, 0.62, 0.01,
+    XR`<p>$F(x)=\dfrac1{\sqrt2}\ln\left|\tan\left(\dfrac x2+\dfrac\pi8\right)\right|+C$. At $x=0$: $\dfrac1{\sqrt2}\ln\tan\dfrac\pi8$, so $C=-\dfrac1{\sqrt2}\ln\tan\dfrac\pi8$. $F\left(\dfrac\pi4\right)=\dfrac1{\sqrt2}\left(\ln\tan\dfrac\pi4-\ln\tan\dfrac\pi8\right)=\dfrac1{\sqrt2}\left(0-\ln0.4142\right)=\dfrac{0.8814}{1.4142}=0.623\approx0.62$.</p>`, 'tan(π/8) = √2 − 1 ≈ 0.414.', () => (1 / Math.SQRT2) * (-Math.log(Math.tan(Math.PI / 8)))),
+  X(4, 'concepts', XR`Which of the following are antiderivatives of $\sin2x$?`, [XR`$\sin^2x$`, XR`$-\cos^2x$`, XR`$-\dfrac12\cos2x$`, XR`$\cos^2x$`], [0, 1, 2],
+    XR`<p>$\dfrac d{dx}\sin^2x=2\sin x\cos x=\sin2x$. $\dfrac d{dx}(-\cos^2x)=2\cos x\sin x=\sin2x$. $\dfrac d{dx}\left(-\dfrac12\cos2x\right)=\sin2x$. But $\dfrac d{dx}\cos^2x=-\sin2x$. So A, B, C (they all differ by constants).</p>`, 'The three correct answers differ by constants.'),
+  X(4, 'logarithmic', XR`Which of these integrals evaluate to an expression containing a logarithm?`, [XR`$\displaystyle\int\dfrac{dx}{x^2-1}$`, XR`$\displaystyle\int\dfrac{dx}{x^2+1}$`, XR`$\displaystyle\int\dfrac{dx}{x\ln x}$`, XR`$\displaystyle\int\dfrac{x\,dx}{x^2+1}$`], [0, 2, 3],
+    XR`<p>A: $\dfrac12\ln\left|\dfrac{x-1}{x+1}\right|$. B: $\tan^{-1}x$ (no log). C: $\ln|\ln x|$. D: $\dfrac12\ln(x^2+1)$. So A, C, D.</p>`, 'Compare x²−1 with x²+1: the signs decide log or arctan.'),
+  X(4, 'exponential', XR`Which of the following are antiderivatives of $\dfrac1{1+e^x}$?`, [XR`$x-\ln(1+e^x)$`, XR`$-\ln(1+e^{-x})$`, XR`$\ln(1+e^x)$`, XR`$\ln\dfrac{e^x}{1+e^x}$`], [0, 1, 3],
+    XR`<p>$\dfrac1{1+e^x}=\dfrac{e^{-x}}{e^{-x}+1}$, so an antiderivative is $-\ln(1+e^{-x})$. Also $x-\ln(1+e^x)=\ln\dfrac{e^x}{1+e^x}=-\ln(e^{-x}+1)$: these three are the same function. C has derivative $\dfrac{e^x}{1+e^x}$, which is different.</p>`, 'Rewrite using e⁻ˣ and compare forms.'),
+  X(4, 'trigonometric', XR`Which of the following are antiderivatives of $\dfrac1{\sin x\cos x}$ on $\left(0,\dfrac\pi2\right)$?`, [XR`$\ln|\tan x|$`, XR`$-\ln|\cot x|$`, XR`$\dfrac12\ln|\tan x|$`, XR`$\ln|\sin x|-\ln|\cos x|$`], [0, 1, 3],
+    XR`<p>$\dfrac1{\sin x\cos x}=\dfrac{\sec^2x}{\tan x}$, so $\ln|\tan x|$ works. $-\ln|\cot x|=\ln|\tan x|$ and $\ln|\sin x|-\ln|\cos x|=\ln|\tan x|$: the same function. C is half of the answer.</p>`, 'Three of the answers are the same function written differently.'),
+  X(4, 'by parts', XR`Which of these are correct?`, [XR`$\displaystyle\int\sin^{-1}x\,dx=x\sin^{-1}x+\sqrt{1-x^2}+C$`, XR`$\displaystyle\int\tan^{-1}x\,dx=x\tan^{-1}x-\dfrac12\ln(1+x^2)+C$`, XR`$\displaystyle\int\ln x\,dx=x\ln x-x+C$`, XR`$\displaystyle\int x\ln x\,dx=\dfrac{x^2}2\ln x-\dfrac{x^2}2+C$`], [0, 1, 2],
+    XR`<p>A, B, C are the standard results by parts with $dv=dx$. In D the last term is $\dfrac{x^2}4$ (not $\dfrac{x^2}2$): $\int\dfrac x2dx=\dfrac{x^2}4$.</p>`, 'Differentiate each answer to check.'),
+  X(4, 'concepts', XR`Which functions $F$ satisfy $F'(x)=\dfrac1{1+x^2}$ for all real $x$?`, [XR`$\tan^{-1}x$`, XR`$-\cot^{-1}x$`, XR`$\sin^{-1}\dfrac x{\sqrt{1+x^2}}$`, XR`$\tan^{-1}x+\cot^{-1}x$`], [0, 1, 2],
+    XR`<p>A is standard. $\cot^{-1}x=\dfrac\pi2-\tan^{-1}x$ (principal value in $(0,\pi)$), so $-\cot^{-1}x=\tan^{-1}x-\dfrac\pi2$, also an antiderivative. For C, $\sin^{-1}\dfrac x{\sqrt{1+x^2}}=\tan^{-1}x$ for all real $x$. D equals the constant $\dfrac\pi2$ (derivative $0$).</p>`, 'A constant has derivative 0, not 1/(1 + x²).'),
+  X(5, 'irrational integrands', XR`Which of the following are correct for $a=2$?`, [XR`$\displaystyle\int\sqrt{4-x^2}\,dx=\dfrac x2\sqrt{4-x^2}+2\sin^{-1}\dfrac x2+C$`, XR`$\displaystyle\int\sqrt{x^2+4}\,dx=\dfrac x2\sqrt{x^2+4}+2\ln\left(x+\sqrt{x^2+4}\right)+C$`, XR`$\displaystyle\int\sqrt{x^2-4}\,dx=\dfrac x2\sqrt{x^2-4}+2\ln\left|x+\sqrt{x^2-4}\right|+C$`, XR`$\displaystyle\int\dfrac{dx}{\sqrt{x^2-4}}=\ln\left|x+\sqrt{x^2-4}\right|+C$`], [0, 1, 3],
+    XR`<p>The pattern is $\int\sqrt{x^2\pm a^2}\,dx=\dfrac x2\sqrt{x^2\pm a^2}\pm\dfrac{a^2}2\ln|x+\sqrt{x^2\pm a^2}|$. For $x^2-a^2$ the second term has a MINUS sign, so C is wrong. A, B and D are correct.</p>`, 'The log term has the sign of the ± inside the root.'),
+  X(5, 'by parts: e^x(f + f\')', XR`For which of these is $\displaystyle\int g(x)\,dx=e^x\cdot h(x)+C$ with the $h$ shown?`, [XR`$g=e^x(x+1)$, $h=x$`, XR`$g=e^x(x^2+2x)$, $h=x^2$`, XR`$g=e^x\left(\ln x+\dfrac1x\right)$, $h=\ln x$`, XR`$g=e^x(x^2+1)$, $h=x^2+1$`], [0, 1, 2],
+    XR`<p>$\int e^x(h+h')\,dx=e^xh$. A: $h+h'=x+1$ ✓. B: $x^2+2x$ ✓. C: $\ln x+\dfrac1x$ ✓. D: $h+h'=x^2+1+2x\ne x^2+1$, so it is not of that form (the true answer is $e^x(x^2-2x+3)$).</p>`, 'Check that g = h + h′ exactly.'),
+  X(5, 'concepts', XR`Which statements are true?`, [XR`Two antiderivatives of the same function on an interval differ by a constant.`, XR`If $f$ is even, then $\displaystyle\int_0^xf(t)\,dt$ is an odd function of $x$.`, XR`$\displaystyle\int|x|\,dx=\dfrac{x|x|}2+C$.`, XR`The function $[x]$ (greatest integer) has an antiderivative on $\mathbb R$.`], [0, 1, 2],
+    XR`<p>A is a standard theorem. B: substituting $t\to-t$ shows $\int_0^{-x}f=-\int_0^xf$. C: $\dfrac d{dx}\dfrac{x|x|}2=|x|$ for all $x$ (including $0$). D is false: a derivative cannot have a jump discontinuity (Darboux's property), so $[x]$ is not a derivative.</p>`, 'A derivative has the intermediate value property.'),
+  S(4, 'concepts', XR`Every continuous function on an interval has an antiderivative there.`, XR`Every function that has an antiderivative on an interval is continuous there.`, 1,
+    XR`<p>I is the fundamental theorem of calculus. II is false: $F(x)=x^2\sin\dfrac1x$ ($F(0)=0$) is differentiable everywhere, but $F'(x)$ is not continuous at $0$.</p>`, 'Derivatives need not be continuous.'),
+  S(4, 'quadratic denominators', XR`$\displaystyle\int\dfrac{dx}{x^2-a^2}=\dfrac1{2a}\ln\left|\dfrac{x-a}{x+a}\right|+C$.`, XR`$\displaystyle\int\dfrac{dx}{a^2-x^2}=\dfrac1{2a}\ln\left|\dfrac{a+x}{a-x}\right|+C$.`, 0,
+    XR`<p>Both are standard. The second is the negative of the first with the fraction inverted, and $-\ln\left|\dfrac{x-a}{x+a}\right|=\ln\left|\dfrac{x+a}{x-a}\right|=\ln\left|\dfrac{a+x}{a-x}\right|$. So both are true.</p>`, 'The signs flip with the order of subtraction.'),
+  A(4, 'logarithmic', XR`$\displaystyle\int\dfrac{dx}x=\ln x+C$ for all $x\ne0$.`, XR`$\ln x$ is defined only for $x>0$.`, 3,
+    XR`<p>R is true. A is false as stated: for $x<0$ the antiderivative is $\ln|x|$, and $\ln x$ is not defined. The correct statement is $\int\dfrac{dx}x=\ln|x|+C$. So A false, R true.</p>`, 'The absolute value makes the formula valid on both sides of 0.'),
+  A(4, 'concepts', XR`$\displaystyle\int e^{x^2}dx$ cannot be written using elementary functions.`, XR`$e^{x^2}$ has no antiderivative.`, 2,
+    XR`<p>A is true (a theorem of Liouville). R is false: $e^{x^2}$ is continuous, so it does have an antiderivative, for example $\int_0^xe^{t^2}dt$; it is just not elementary.</p>`, 'Having an antiderivative is different from having an elementary formula.'),
+  A(5, 'concepts', XR`$\displaystyle\int|x|\,dx=\dfrac{x|x|}2+C$ on all of $\mathbb R$.`, XR`The function $\dfrac{x|x|}2$ is differentiable at $x=0$ and its derivative is $|x|$ everywhere.`, 0,
+    XR`<p>$\dfrac{x|x|}2$ equals $\dfrac{x^2}2$ for $x\ge0$ and $-\dfrac{x^2}2$ for $x<0$. Its derivative is $|x|$ on both sides and at $0$ ($\lim\dfrac{h|h|/2}h=0=|0|$). So R is true and it is exactly why A holds on all of $\mathbb R$.</p>`, 'Writing x²/2 only (without the sign) would fail for negative x.'),
+  SC(4, 'concepts', [XR`$\displaystyle\int xe^x\,dx=(x-1)e^x+C$.`, XR`$\displaystyle\int\dfrac{dx}{\sqrt{1-x^2}}=-\cos^{-1}x+C$.`, XR`$\displaystyle\int\ln x\,dx=\dfrac1x+C$.`, XR`$\displaystyle\int\dfrac{dx}{x^2+1}=\dfrac12\ln(x^2+1)+C$.`], '2', ['1', '3', '4'],
+    XR`<p>1: true. 2: true, since $\dfrac d{dx}(-\cos^{-1}x)=\dfrac1{\sqrt{1-x^2}}$ (it differs from $\sin^{-1}x$ by a constant). 3: false: $\dfrac1x$ is the derivative of $\ln x$. 4: false: the answer is $\tan^{-1}x$. Two are correct.</p>`, 'Check by differentiating.'),
+  SC(5, 'concepts', [XR`$\displaystyle\int\dfrac{\sin x}x\,dx$ is an elementary function.`, XR`$e^{-x^2}$ has an antiderivative on $\mathbb R$.`, XR`An antiderivative of a polynomial is a polynomial.`, XR`$\displaystyle\int\dfrac{dx}{1+x^2}=-\cot^{-1}x+C$.`], '3', ['1', '2', '4'],
+    XR`<p>1: false (the sine integral is not elementary). 2: true (continuous). 3: true. 4: true because $-\cot^{-1}x=\tan^{-1}x-\dfrac\pi2$. Three are correct (2, 3, 4).</p>`, 'Existence of an antiderivative and a closed form are different.'),
+  PI(3, 'by parts', 'xp4', XR`Find $F(1)$.`, 4,
+    XR`<p>$F(x)=(x-1)e^x+C$. $F(0)=-1+C=3$, so $C=4$. $F(1)=0+4=4$.</p>`, 'F(0) = −1 + C, not just C.', () => 0 + 4),
+  PN(4, 'by parts', 'xp4', XR`Find $F(2)$ (2 decimal places).`, 11.39, 0.01,
+    XR`<p>$F(2)=(2-1)e^2+4=7.389+4=11.39$.</p>`, 'Use C = 4.', () => Math.exp(2) + 4),
+  PI(4, 'by parts', 'xp4', XR`Find the least value of $F$ on $\mathbb R$.`, 3,
+    XR`<p>$F'=xe^x$ is negative for $x<0$ and positive for $x>0$, so $F$ decreases then increases: minimum at $x=0$, $F(0)=3$.</p>`, 'Minimum where F′ changes sign: x = 0.', () => 3),
+  PM(4, 'trigonometric', 'xp5', XR`$I_1=$`, XR`$\dfrac12\left(x-\ln|\sin x+\cos x|\right)+C$`, [XR`$\dfrac12\left(x+\ln|\sin x+\cos x|\right)+C$`, XR`$x-\ln|\sin x+\cos x|+C$`, XR`$\dfrac12\ln|\sin x+\cos x|+C$`],
+    XR`<p>$I_1+I_2=x$ and $I_2-I_1=\ln|\sin x+\cos x|$. Subtract: $2I_1=x-\ln|\sin x+\cos x|$.</p>`, 'Subtract the second equation from the first, then halve.'),
+  PM(4, 'trigonometric', 'xp5', XR`$I_2=$`, XR`$\dfrac12\left(x+\ln|\sin x+\cos x|\right)+C$`, [XR`$\dfrac12\left(x-\ln|\sin x+\cos x|\right)+C$`, XR`$x+\ln|\sin x+\cos x|+C$`, XR`$\dfrac12\ln|\sin x+\cos x|+C$`],
+    XR`<p>Add the two equations: $2I_2=x+\ln|\sin x+\cos x|$.</p>`, 'Adding gives I₂; subtracting gave I₁.'),
+  PN(5, 'trigonometric', 'xp5', XR`Take $I_1$ with the constant chosen so that $I_1(0)=0$. Find $I_1\left(\dfrac\pi4\right)$ (2 decimal places).`, 0.22, 0.01,
+    XR`<p>$I_1=\dfrac12(x-\ln|\sin x+\cos x|)+C$. At $0$: $\dfrac12(0-\ln1)+C=0$, so $C=0$. $I_1\left(\dfrac\pi4\right)=\dfrac12\left(\dfrac\pi4-\ln\sqrt2\right)=\dfrac12(0.7854-0.3466)=0.219\approx0.22$.</p>`, 'sin(π/4) + cos(π/4) = √2.', () => 0.5 * (Math.PI / 4 - Math.log(Math.SQRT2))),
+  PN(4, 'partial fractions', 'xp6', XR`Find $F(2)$ (2 decimal places).`, 0.19, 0.01,
+    XR`<p>$\dfrac{x^2}{x^3(x^3+1)}$ with $t=x^3$: $\dfrac13\int\dfrac{dt}{t(t+1)}=\dfrac13\ln\left|\dfrac t{t+1}\right|$. So $F(x)=\dfrac13\ln\dfrac{x^3}{x^3+1}+C$ and $F(1)=\dfrac13\ln\dfrac12+C=0$ gives $C=\dfrac13\ln2$. $F(2)=\dfrac13\ln\dfrac89+\dfrac13\ln2=\dfrac13\ln\dfrac{16}9=\dfrac13(0.5754)=0.19$. </p>`, 'Add the constant fixed by F(1) = 0.', () => (1 / 3) * Math.log(16 / 9)),
+  PM(5, 'partial fractions', 'xp6', XR`$\displaystyle\lim_{x\to\infty}F(x)=$`, XR`$\dfrac13\ln2$`, ['$0$', XR`$\dfrac13\ln\dfrac12$`, XR`$\ln2$`],
+    XR`<p>As $x\to\infty$, $\dfrac{x^3}{x^3+1}\to1$ so $\ln\to0$, and $F\to C=\dfrac13\ln2$.</p>`, 'The constant of integration is what survives at infinity.'),
+);
+
+XGN.push(
+  GX('xg01', 3, 'nat', 'integer', 'partial fractions', (rng) => {
+    const A = int(rng, 1, 4), B = int(rng, 1, 4), p = int(rng, 1, 3), qq = p + int(rng, 1, 3);
+    const s = A + B, c = A * qq + B * p;
+    return { A, B, p, qq, answer: 10 * A + B, tol: 0, q: XR`$\displaystyle\int\dfrac{${s}x+${c}}{(x+${p})(x+${qq})}\,dx=A\ln|x+${p}|+B\ln|x+${qq}|+C$. Find $10A+B$.`, sol: XR`<p>Cover-up: at $x=-${p}$, $A=\dfrac{-${s * p}+${c}}{${qq}-${p}}=${A}$. At $x=-${qq}$, $B=\dfrac{-${s * qq}+${c}}{${p}-${qq}}=${B}$. So $10A+B=${10 * A + B}$.</p>` };
+  }, (p) => { const f = (x) => (( p.A + p.B) * x + p.A * p.qq + p.B * p.p) / ((x + p.p) * (x + p.qq)); const F = (x) => p.A * xln(x + p.p) + p.B * xln(x + p.qq); const I = xsimp(f, 0, 1, 4000); return Math.abs(I - (F(1) - F(0))) < 1e-8 ? 10 * p.A + p.B : -1; }),
+  GX('xg02', 4, 'nat', 'integer', 'by parts: e^x(f + f\')', (rng) => {
+    const n = int(rng, 2, 5);
+    const co = []; let c = 1, fact = 1;
+    for (let k = 0; k <= n; k++) { co.push(((k % 2) ? -1 : 1) * (k === 0 ? 1 : (fact *= (n - k + 1), fact))); }
+    const sum = co.reduce((a, b) => a + b, 0);
+    return { n, co, answer: sum, tol: 0, q: XR`$\displaystyle\int x^{${n}}e^x\,dx=e^x\,P(x)+C$, where $P$ is a polynomial. Find the sum of the coefficients of $P$, i.e. $P(1)$.`, sol: XR`<p>$P+P'=x^{${n}}$. By repeated parts, $P(x)=x^{${n}}-${n}x^{${n - 1}}+${n}(${n - 1})x^{${n - 2}}-\cdots$ (alternating signs, factorial-type coefficients: $${co.join(',\\ ')}$ from the highest power down). Their sum is $P(1)=${sum}$.</p>` };
+  }, (p) => { const P = (x) => p.co.reduce((s, v, k) => s + v * x ** (p.n - k), 0); const F = (x) => xexp(x) * P(x); const ok = [0.3, 1.1].every((x) => xab(xd(F, x, 1e-5) - x ** p.n * xexp(x)) < 1e-4 * (1 + x ** p.n * xexp(x))); return ok ? P(1) : -1; }),
+  GX('xg03', 3, 'mcq', 'single', 'substitution', (rng) => {
+    const n = int(rng, 2, 5), k = int(rng, 1, 6);
+    const { options, answer } = shuffleOpts(rng, `$\\dfrac1${n}\\ln|x^${n}+${k}|+C$`, [`$\\ln|x^${n}+${k}|+C$`, `$${n}\\ln|x^${n}+${k}|+C$`, `$\\dfrac1{${n + 1}}\\ln|x^${n + 1}+${k}|+C$`]);
+    return { n, k, options, answer, q: XR`$\displaystyle\int\dfrac{x^{${n - 1}}}{x^${n}+${k}}\,dx=$`, sol: XR`<p>The numerator is $\dfrac1${n}$ of the derivative of the denominator ($\dfrac d{dx}(x^${n}+${k})=${n}x^{${n - 1}}$). So the integral is $\dfrac1${n}\ln|x^${n}+${k}|+C$.</p>` };
+  }, (p) => { const F = (x) => xln(x ** p.n + p.k) / p.n; return xab(xd(F, 1.3, 1e-5) - 1.3 ** (p.n - 1) / (1.3 ** p.n + p.k)) < 1e-6 ? p.answer : -1; }),
+  GX('xg04', 4, 'nat', 'numeric', 'quadratic denominators', (rng) => {
+    const b = int(rng, 1, 4), c = int(rng, 2, 4);
+    const ans = Math.PI / (4 * c);
+    return { b, c, answer: +ans.toFixed(4), tol: 0.01, q: XR`$F'(x)=\dfrac1{x^2+${2 * b}x+${b * b + c * c}}$ and $F(-${b})=0$. Find $F(${c - b})$ (2 decimal places).`, sol: XR`<p>Complete the square: $x^2+${2 * b}x+${b * b + c * c}=(x+${b})^2+${c * c}$. $F(x)=\dfrac1${c}\tan^{-1}\dfrac{x+${b}}${c}$ (the constant is $0$ because $F(-${b})=0$). $F(${c - b})=\dfrac1${c}\tan^{-1}1=\dfrac\pi{${4 * c}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xsimp((x) => 1 / (x * x + 2 * p.b * x + p.b * p.b + p.c * p.c), -p.b, p.c - p.b, 4000)),
+  GX('xg05', 4, 'mcq', 'single', 'by parts (repeated)', (rng) => {
+    const a = int(rng, 1, 3), b = int(rng, 1, 3), d = a * a + b * b;
+    const { options, answer } = shuffleOpts(rng, `$\\dfrac{e^{${a === 1 ? '' : a}x}(${a === 1 ? '' : a}\\sin ${b === 1 ? '' : b}x-${b === 1 ? '' : b}\\cos ${b === 1 ? '' : b}x)}{${d}}+C$`, [`$\\dfrac{e^{${a === 1 ? '' : a}x}(${a === 1 ? '' : a}\\sin ${b === 1 ? '' : b}x+${b === 1 ? '' : b}\\cos ${b === 1 ? '' : b}x)}{${d}}+C$`, `$\\dfrac{e^{${a === 1 ? '' : a}x}(${b === 1 ? '' : b}\\sin ${b === 1 ? '' : b}x-${a === 1 ? '' : a}\\cos ${b === 1 ? '' : b}x)}{${d}}+C$`, `$\\dfrac{e^{${a === 1 ? '' : a}x}(${a === 1 ? '' : a}\\sin ${b === 1 ? '' : b}x-${b === 1 ? '' : b}\\cos ${b === 1 ? '' : b}x)}{${a + b}}+C$`]);
+    return { a, b, options, answer, q: XR`$\displaystyle\int e^{${a === 1 ? '' : a}x}\sin ${b === 1 ? '' : b}x\,dx=$`, sol: XR`<p>Using $\int e^{ax}\sin bx\,dx=\dfrac{e^{ax}(a\sin bx-b\cos bx)}{a^2+b^2}$ with $a=${a}$, $b=${b}$: the denominator is $${d}$. (Check: differentiating $e^{ax}(a\sin bx-b\cos bx)$ gives $(a^2+b^2)e^{ax}\sin bx$.)</p>` };
+  }, (p) => { const F = (x) => xexp(p.a * x) * (p.a * xsin(p.b * x) - p.b * xcos(p.b * x)) / (p.a * p.a + p.b * p.b); return xab(xd(F, 0.7, 1e-5) - xexp(0.7 * p.a) * xsin(0.7 * p.b)) < 1e-6 * 10 ? p.answer : -1; }),
+  GX('xg06', 4, 'nat', 'numeric', 'by parts', (rng) => {
+    const n = int(rng, 1, 3);
+    const ans = Math.E ** (n + 1) / (n + 1) - Math.E ** (n + 1) / (n + 1) ** 2 + 1 / (n + 1) ** 2;
+    return { n, answer: +ans.toFixed(3), tol: Math.max(0.01, +(ans * 0.002).toFixed(3)), q: XR`$F'(x)=x^{${n}}\ln x$ and $F(1)=0$. Find $F(e)$ (2 decimal places).`, sol: XR`<p>By parts: $F(x)=\dfrac{x^{${n + 1}}}{${n + 1}}\ln x-\dfrac{x^{${n + 1}}}{${(n + 1) ** 2}}+C$. $F(1)=-\dfrac1{${(n + 1) ** 2}}+C=0$ gives $C=\dfrac1{${(n + 1) ** 2}}$. $F(e)=\dfrac{e^{${n + 1}}}{${n + 1}}-\dfrac{e^{${n + 1}}}{${(n + 1) ** 2}}+\dfrac1{${(n + 1) ** 2}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xsimp((x) => x ** p.n * xln(x), 1, Math.E, 4000)),
+  GX('xg07', 4, 'nat', 'integer', 'trigonometric', (rng) => {
+    const c = int(rng, 1, 3), d = int(rng, 1, 3), A = int(rng, 1, 4), B = int(rng, 1, 4);
+    const a = A * c - B * d, b = A * d + B * c;
+    return { c, d, A, B, a, b, answer: 10 * A + B, tol: 0, q: XR`$\displaystyle\int\dfrac{${a < 0 ? '-' + (-a === 1 ? '' : -a) : a === 1 ? '' : a}\sin x+${b === 1 ? '' : b}\cos x}{${c === 1 ? '' : c}\sin x+${d === 1 ? '' : d}\cos x}\,dx=Ax+B\ln|${c === 1 ? '' : c}\sin x+${d === 1 ? '' : d}\cos x|+C$. Find $10A+B$.`, sol: XR`<p>Write the numerator as $A(${c === 1 ? '' : c}\sin x+${d === 1 ? '' : d}\cos x)+B(${c === 1 ? '' : c}\cos x-${d === 1 ? '' : d}\sin x)$ (the second bracket is the derivative of the denominator). Matching: $\sin$: ${a}$=${c}A-${d}B$; $\cos$: ${b}$=${d}A+${c}B$. Solving gives $A=${A}$, $B=${B}$. So $10A+B=${10 * A + B}$.</p>` };
+  }, (p) => { const f = (x) => (p.a * xsin(x) + p.b * xcos(x)) / (p.c * xsin(x) + p.d * xcos(x)); const F = (x) => p.A * x + p.B * xln(xab(p.c * xsin(x) + p.d * xcos(x))); return [0.2, 0.5, 0.8].every((x) => xab(xd(F, x, 1e-5) - f(x)) < 1e-5 * (1 + xab(f(x)))) ? 10 * p.A + p.B : -1; }),
+  GX('xg08', 4, 'nat', 'numeric', 'partial fractions', (rng) => {
+    const n = int(rng, 2, 5);
+    const ans = (1 / n) * (Math.log(2 ** n / (2 ** n + 1)) + Math.log(2));
+    return { n, answer: +ans.toFixed(4), tol: 0.01, q: XR`$F'(x)=\dfrac1{x(x^{${n}}+1)}$ for $x>0$ and $F(1)=0$. Find $F(2)$ (2 decimal places).`, sol: XR`<p>Write $\dfrac1{x(x^{${n}}+1)}=\dfrac{x^{${n - 1}}}{x^{${n}}(x^{${n}}+1)}$ and put $t=x^{${n}}$: $\dfrac1${n}\ln\dfrac t{t+1}$. So $F(x)=\dfrac1${n}\ln\dfrac{x^{${n}}}{x^{${n}}+1}+C$ with $C=\dfrac1${n}\ln2$ (from $F(1)=0$). $F(2)=\dfrac1${n}\ln\dfrac{${2 ** n}\cdot2}{${2 ** n + 1}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xsimp((x) => 1 / (x * (x ** p.n + 1)), 1, 2, 4000)),
+  GX('xg09', 5, 'nat', 'numeric', 'by parts (repeated)', (rng) => {
+    const a = int(rng, 1, 2), b = int(rng, 1, 3);
+    const ans = b * (Math.exp(a * Math.PI / b) + 1) / (a * a + b * b);
+    return { a, b, answer: +ans.toFixed(3), tol: Math.max(0.01, +(ans * 0.002).toFixed(3)), q: XR`$F'(x)=e^{${a === 1 ? '' : a}x}\sin ${b === 1 ? '' : b}x$ and $F(0)=0$. Find $F\left(\dfrac{\pi}{${b}}\right)$ (2 decimal places).`, sol: XR`<p>$F(x)=\dfrac{e^{${a}x}(${a}\sin${b}x-${b}\cos${b}x)}{${a * a + b * b}}+C$. $F(0)=\dfrac{-${b}}{${a * a + b * b}}+C=0$ gives $C=\dfrac{${b}}{${a * a + b * b}}$. At $x=\dfrac\pi{${b}}$: $\sin\pi=0$, $\cos\pi=-1$, so $F=\dfrac{${b}\,(e^{${a}\pi/${b}}+1)}{${a * a + b * b}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => xsimp((x) => xexp(p.a * x) * xsin(p.b * x), 0, Math.PI / p.b, 4000)),
+);
+ckA('x cos 2x', (x) => x * xsin(2 * x) / 2 + xcos(2 * x) / 4, (x) => x * xcos(2 * x));
+ckA('1/(x2+x+1)', (x) => (2 / Math.sqrt(3)) * xat((2 * x + 1) / Math.sqrt(3)), (x) => 1 / (x * x + x + 1));
+ckA('x2/(1+x2)2', (x) => 0.5 * (xat(x) - x / (1 + x * x)), (x) => x * x / (1 + x * x) ** 2);
+ckA('e^x tan x', (x) => xexp(x) * xtan(x), (x) => xexp(x) * (2 + xsin(2 * x)) / (1 + xcos(2 * x)), [0.2, 0.5, 0.9]);
+XIT.push(
+  I(4, 'by parts', XR`$\displaystyle\int x\cos2x\,dx=Ax\sin2x+B\cos2x+C$. Find $4A+4B$.`, 3,
+    XR`<p>By parts: $\int x\cos2x\,dx=\dfrac{x\sin2x}2-\int\dfrac{\sin2x}2dx=\dfrac{x\sin2x}2+\dfrac{\cos2x}4$. So $A=\dfrac12$, $B=\dfrac14$ and $4A+4B=2+1=3$.</p>`, 'The second integral gives +cos 2x / 4 (two minus signs).', () => 4 * 0.5 + 4 * 0.25),
+  I(4, 'quadratic denominators', XR`$\displaystyle\int\dfrac{dx}{x^2+x+1}=A\tan^{-1}\left(\dfrac{2x+1}{\sqrt3}\right)+C$. Find $3A^2$.`, 4,
+    XR`<p>$x^2+x+1=\left(x+\dfrac12\right)^2+\dfrac34$. With $\dfrac34=\left(\dfrac{\sqrt3}2\right)^2$: $\int\dfrac{du}{u^2+k^2}=\dfrac1k\tan^{-1}\dfrac uk$ with $k=\dfrac{\sqrt3}2$, so $A=\dfrac2{\sqrt3}$ and the argument is $\dfrac{x+1/2}{\sqrt3/2}=\dfrac{2x+1}{\sqrt3}$. $3A^2=3\cdot\dfrac43=4$.</p>`, 'Complete the square carefully: the constant is 3/4, not 1.', () => 3 * (2 / Math.sqrt(3)) ** 2),
+  I(5, 'irrational integrands', XR`$\displaystyle\int\dfrac{x^2}{(1+x^2)^2}\,dx=a\tan^{-1}x+b\,\dfrac x{1+x^2}+C$. Find $4(a^2+b^2)$.`, 2,
+    XR`<p>$\dfrac{x^2}{(1+x^2)^2}=\dfrac1{1+x^2}-\dfrac1{(1+x^2)^2}$. With $x=\tan\theta$: $\int\dfrac{dx}{(1+x^2)^2}=\int\cos^2\theta\,d\theta=\dfrac12\left(\theta+\dfrac{\tan\theta}{1+\tan^2\theta}\right)=\dfrac12\left(\tan^{-1}x+\dfrac x{1+x^2}\right)$. So the integral is $\tan^{-1}x-\dfrac12\tan^{-1}x-\dfrac12\dfrac x{1+x^2}$, giving $a=\dfrac12$, $b=-\dfrac12$. $4(a^2+b^2)=4\cdot\dfrac12=2$.</p>`, 'b is negative; squaring removes the sign.', () => 4 * (0.25 + 0.25)),
+  X(4, 'standard forms', XR`Which of these equal $\displaystyle\int\tan x\,dx$ (up to a constant)?`, [XR`$\ln|\sec x|$`, XR`$-\ln|\cos x|$`, XR`$\ln|\cos x|$`, XR`$\ln\left|\dfrac1{\cos x}\right|$`], [0, 1, 3],
+    XR`<p>$\int\tan x\,dx=-\ln|\cos x|$. Also $\ln|\sec x|=\ln\left|\dfrac1{\cos x}\right|=-\ln|\cos x|$, so A, B and D are the same function. C has the wrong sign.</p>`, 'ln(1/u) = −ln u.'),
+  M(5, 'by parts: e^x(f + f\')', XR`$\displaystyle\int e^x\,\dfrac{2+\sin2x}{1+\cos2x}\,dx=$`, '$e^x\\tan x+C$', ['$e^x\\sec x+C$', '$e^x\\sec^2x+C$', '$2e^x\\tan x+C$'],
+    XR`<p>$\dfrac{2+\sin2x}{1+\cos2x}=\dfrac{2+2\sin x\cos x}{2\cos^2x}=\sec^2x+\tan x$. With $f=\tan x$, $f'=\sec^2x$, the integrand is $e^x(f+f')$, so the integral is $e^x\tan x$.</p>`, 'Use 1 + cos 2x = 2cos²x and sin 2x = 2 sin x cos x.'),
+);
+
+Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
+}
+// ==XP-END
 export default { topic: 'indefinite-integrals', groups, items, gens };

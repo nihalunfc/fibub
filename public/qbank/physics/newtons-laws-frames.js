@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './newtons-laws-frames.more.gen.js';
 import more2 from './newtons-laws-frames.more2.gen.js';
+import r4 from './newtons-laws-frames.r4.gen.js';
 
 const D = Math.PI / 180;
 const OMEGA = 7.29e-5; // Earth's rotation rate, rad/s
@@ -244,6 +245,7 @@ export default {
       sol: 'At rest, the net force is zero (C), so friction exactly cancels the push (A). The push is horizontal, so vertically only the weight and the normal force act, and they balance (D). Friction reaches $\\mu_sN$ only when slipping is about to start, so B is false.',
       trap: '$\\mu_sN$ is a maximum, not the actual value.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'nlf-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'constraints',
@@ -332,5 +334,6 @@ export default {
       },
       verify: (p) => { const s = Math.sin(p.th * D), c = Math.cos(p.th * D); return p.m * 9.8 * s * c / (p.M + p.m * s * s); } },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -613,4 +613,313 @@ const gens = [
   }, (p) => (p.v === 0 ? Math.sqrt(p.n1 ** 2 - p.n2 ** 2) : p.v === 1 ? Math.asin(Math.sqrt(p.n1 ** 2 - p.n2 ** 2)) / D2R : Math.asin(p.n2 / p.n1) / D2R)),
 ];
 
+{ // ===== extension block (added 2026-11-22): harder items, new formats and templates =====
+const r = String.raw;
+const CUET = true; const PFX = 'ro'; const GN = 25;
+const F = (x, s = 3) => String(+Number(x).toPrecision(s));
+const XEB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xe = (l, type) => (CUET && type === 'mcq' && l <= 3 ? [...XEB[l], 'cuet'] : XEB[l]);
+let xk = 0; let xc = 0;
+const xb = (l, sub, o) => ({ id: `${PFX}-x${String(++xk).padStart(3, '0')}`, level: l, sub, ...o, exams: xe(l, o.type) });
+const m = (l, sub, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o }); };
+const n = (l, sub, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol, ...o }); };
+const s = (l, sub, q, options, answer, sol, o = {}) => xb(l, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const AO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const a = (l, sub, A, R, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AO, answer, sol, ...o });
+const SO = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const t = (l, sub, I, II, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SO, answer, sol, ...o });
+// "how many of these are correct": list = 4 statements, k = how many are correct (1-4)
+const cn = (l, sub, q, list, k, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((x, i) => `(${['i', 'ii', 'iii', 'iv'][i]}) ${x}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: k - 1, sol, ...o });
+// match item: letters = correct List II letter for A, B, C, D, e.g. ['q','r','p','s']
+const mt = (l, sub, group, letters, sol, o = {}) => {
+  const code = (L) => L.map((x, i) => `${'ABCD'[i]}-${x}`).join(', ');
+  const right = code(letters); const wr = [];
+  for (const [i, j] of [[0, 1], [1, 2], [2, 3], [0, 3], [0, 2], [1, 3]]) { const L = [...letters]; [L[i], L[j]] = [L[j], L[i]]; const c = code(L); if (c !== right && !wr.includes(c)) wr.push(c); }
+  const pos = (xc++ * 3 + 2) % 4; const options = wr.slice(0, 3); options.splice(pos, 0, right);
+  return xb(l, sub, { type: 'mcq', format: 'match', q: 'Match the entries of List I with List II and choose the correct code.', group, options, answer: pos, sol, ...o });
+};
+const pn = (l, sub, group, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: 'passage', group, q, answer, tol, calc: () => answer, sol, ...o }); };
+const pm = (l, sub, group, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'passage', group, q, options, answer: pos, sol, ...o }); };
+let xg = GN;
+const gx = (l, type, sub, make, verify) => ({ id: `${PFX}-g${String(++xg).padStart(2, '0')}`, type, level: l, exams: xe(l, type), sub, make, verify });
+const NG = {};
+const Dg = Math.PI / 180; const sd = (x) => Math.sin(x * Dg); const asd = (x) => Math.asin(x) / Dg;
+Object.assign(groups, {
+  xo1: { title: 'A concave mirror of focal length $f$: image for various object positions',
+    list1: ['A. Object at infinity', 'B. Object at $2f$ (the centre of curvature)', 'C. Object between $f$ and $2f$', 'D. Object between the pole and the focus'],
+    list2: ['p. Virtual, erect and magnified', 'q. Real, inverted and the same size', 'r. Real, inverted and magnified', 's. Real, a point at the focus'] },
+  xo2: { title: 'Critical angles (light going from the medium into air)',
+    list1: ['A. Glass, $\\mu = 1.5$', 'B. Water, $\\mu = 4/3$', 'C. Diamond, $\\mu = 2.42$', 'D. A medium with $\\mu = \\sqrt2$'],
+    list2: ['p. $24.4^\\circ$', 'q. $41.8^\\circ$', 'r. $45^\\circ$', 's. $48.6^\\circ$'] },
+  xo3: { title: 'Prism formulas',
+    list1: ['A. Deviation by a thin prism', 'B. Refractive index from the angle of minimum deviation', 'C. Angular dispersion between violet and red', 'D. Dispersive power'],
+    list2: [r`p. $\dfrac{\mu_v-\mu_r}{\mu-1}$`, r`q. $(\mu-1)A$`, r`r. $(\mu_v-\mu_r)A$`, r`s. $\dfrac{\sin\frac{A+\delta_m}{2}}{\sin\frac A2}$`] },
+  xo4: { title: 'A thin glass lens ($\\mu = 1.5$) with $f = 10$ cm in air, placed in other media',
+    list1: ['A. In air', 'B. In water ($\\mu = 4/3$)', 'C. In a liquid with $\\mu = 1.5$', 'D. In a liquid with $\\mu = 1.6$'],
+    list2: ['p. $+40$ cm', 'q. Infinite (no focusing)', 'r. $-80$ cm', 's. $+10$ cm'] },
+  xo5: { title: 'Thin lenses $f_1 = +20$ cm and $f_2 = -20$ cm separated by a distance $d$: effective focal length of the pair',
+    list1: ['A. $d = 0$', 'B. $d = 10$ cm', 'C. $d = 20$ cm', 'D. $d = 40$ cm'],
+    list2: ['p. $+10$ cm', 'q. $+20$ cm', 'r. $+40$ cm', 's. Infinite'] },
+  xo6: { title: 'Optical instruments',
+    list1: ['A. Magnifying power of an astronomical telescope ($f_o = 100$ cm, $f_e = 5$ cm), normal adjustment', 'B. Length of that telescope', 'C. Magnifying power of a compound microscope ($f_o = 2$ cm, $f_e = 5$ cm, tube length 20 cm, image at infinity, $D = 25$ cm)', 'D. Magnifying power of a simple microscope of $f = 5$ cm with the image at infinity'],
+    list2: ['p. 105 cm', 'q. 5', 'r. 20', 's. 50'] },
+  xo7: { title: 'Apparent depth and shift',
+    list1: ['A. A fish 12 cm under water ($\\mu = 4/3$) as seen from air: apparent depth', 'B. A bird 8 m above water as seen by the fish: apparent height', 'C. Shift of an object seen through a 6 cm glass slab ($\\mu = 1.5$)', 'D. Apparent thickness of that slab'],
+    list2: ['p. 9 cm', 'q. 2 cm', 'r. 10.67 m', 's. 4 cm'] },
+  xo8: { title: 'Prisms of $\\mu = 1.5$ with angles $45^\\circ$-$45^\\circ$-$90^\\circ$ (critical angle in air $41.8^\\circ$)',
+    list1: ['A. A ray enters normally through a short face', 'B. A ray enters normally through the long (hypotenuse) face', 'C. The same prism in water ($\\mu = 4/3$, critical angle $48.6^\\circ$), ray as in A', 'D. Condition on $\\mu$ for total reflection in air for the ray in A'],
+    list2: ['p. Turned through $90^\\circ$', 'q. Turned through $180^\\circ$ (reversed)', 'r. No total reflection, light leaves the hypotenuse', r`s. $\mu > \sqrt2$`] },
+  xop1: { title: 'Two lenses in line',
+    passage: r`<p>A convex lens of focal length 15 cm is placed 10 cm in front of a concave lens of focal length 30 cm, on the same axis. A small object is placed 30 cm in front of the convex lens.</p>` },
+  xop2: { title: 'Light through a prism',
+    passage: r`<p>A prism has refracting angle $60^\circ$ and refractive index $\sqrt2$ for a certain light. The prism is in air.</p>` },
+});
+
+items.push(
+  // ---------- Level 2 ----------
+  n(2, 'spherical mirrors', r`A concave mirror has a focal length of 15 cm. An object is placed 30 cm in front of it. How far (in cm) from the mirror is the image?`, () => 30, 0, 0,
+    r`The object is at the centre of curvature, $2f$. Mirror formula: $\dfrac1v = \dfrac1f - \dfrac1u$ (magnitudes, real object and image): $\dfrac1v = \dfrac1{15}-\dfrac1{30} = \dfrac1{30}$, so $v = 30$ cm. The image is real, inverted, and the same size.`, { unit: 'cm' }),
+  m(2, 'plane mirror', r`A plane mirror is turned through $15^\circ$ about an axis in its plane, perpendicular to the incident ray's plane, while the incident ray stays fixed. The reflected ray turns through`, r`$30^\circ$`, [r`$15^\circ$`, r`$45^\circ$`, r`$7.5^\circ$`],
+    r`When a mirror turns through $\theta$ the normal turns through $\theta$, so the angle of incidence changes by $\theta$ and the reflected ray turns by $2\theta = 30^\circ$.`),
+  n(2, 'refraction', r`The refractive index of a glass is 1.5. Find the speed of light in it (in units of $10^8\ \mathrm{m\,s^{-1}}$; $c = 3\times10^8$).`, () => 3 / 1.5, 0, 0,
+    r`$v = c/\mu = 3\times10^8/1.5 = 2\times10^8\ \mathrm{m\,s^{-1}}$.`, { unit: '10⁸ m/s' }),
+  m(2, 'total internal reflection', r`The critical angle for a medium of refractive index $\sqrt2$ against air is`, r`$45^\circ$`, [r`$30^\circ$`, r`$60^\circ$`, r`$90^\circ$`],
+    r`$\sin\theta_c = 1/\mu = 1/\sqrt2$, so $\theta_c = 45^\circ$.`),
+  n(2, 'lenses', r`A convex lens has a focal length of 25 cm. Find its power (in dioptres).`, () => 100 / 25, 0, 0,
+    r`$P = 1/f$ with $f$ in metres: $1/0.25 = 4$ D.`, { unit: 'D' }),
+  m(2, 'plane mirror', r`Two plane mirrors are inclined at $60^\circ$. The number of images of an object between them is`, '5', ['6', '4', '3'],
+    r`$n = \dfrac{360^\circ}{\theta} - 1 = 6 - 1 = 5$ (360 divided by $\theta$ is a whole number).`),
+  n(2, 'apparent depth', r`A coin lies at the bottom of water ($\mu = 4/3$) 12 cm deep. At what apparent depth (in cm) is it seen from directly above?`, () => 12 / (4 / 3), 0, 0,
+    r`Apparent depth $= \dfrac{\text{real depth}}{\mu} = \dfrac{12}{4/3} = 9$ cm.`, { unit: 'cm' }),
+  mt(2, 'spherical mirrors', 'xo1', ['s', 'q', 'r', 'p'], r`Object at infinity: image at the focus, real and point-like (s). At $2f$: real, inverted, same size at $2f$ (q). Between $f$ and $2f$: real, inverted, magnified, beyond $2f$ (r). Inside the focus: virtual, erect, magnified (p).`),
+  // ---------- Level 3 ----------
+  n(3, 'lenses', r`A concave lens has $f = -20$ cm and an object is 30 cm in front of it. Find the distance of the image from the lens (in cm).`, () => 12, 0, 0,
+    r`$\dfrac1v = \dfrac1f + \dfrac1u = -\dfrac1{20} - \dfrac1{30} = -\dfrac{5}{60}$, so $v = -12$ cm: a virtual, erect, diminished image 12 cm from the lens on the object's side.`, { unit: 'cm' }),
+  n(3, 'prism', r`A prism of angle $60^\circ$ and refractive index $\sqrt3$ is set at minimum deviation. Find the angle of minimum deviation (in degrees).`, () => 2 * asd(Math.sqrt(3) * sd(30)) - 60, 0, 0,
+    r`$\mu = \dfrac{\sin\frac{A+\delta_m}2}{\sin\frac A2}$, so $\sin\frac{A+\delta_m}{2} = \sqrt3\times\tfrac12 = 0.866$. $\dfrac{A+\delta_m}2 = 60^\circ$, so $\delta_m = 60^\circ$.`, { unit: '°' }),
+  n(3, 'prism', r`A thin prism of angle $4^\circ$ and refractive index 1.5 deviates a ray by how many degrees?`, () => 0.5 * 4, 0, 0,
+    r`$\delta = (\mu-1)A = 0.5\times4^\circ = 2^\circ$.`, { unit: '°' }),
+  n(3, 'lens maker', r`A biconvex lens of glass ($\mu = 1.5$) has both faces of radius 20 cm. Find its focal length (in cm).`, () => 1 / (0.5 * (1 / 20 + 1 / 20)), 0, 0,
+    r`$\dfrac1f = (\mu-1)\left(\dfrac1{R_1}-\dfrac1{R_2}\right) = 0.5\left(\dfrac1{20}+\dfrac1{20}\right) = \dfrac1{20}$. $f = 20$ cm.`, { unit: 'cm' }),
+  m(3, 'lens in liquid', r`A glass lens ($\mu = 1.5$) is placed in water ($\mu = 4/3$). Its focal length becomes`, '4 times its value in air', ['2 times its value in air', 'one-fourth of its value in air', 'unchanged'],
+    r`$\dfrac{f_w}{f_a} = \dfrac{\mu_g - 1}{\mu_g/\mu_w - 1} = \dfrac{0.5}{1.125-1} = 4$.`, { trap: 'The lens still converges, but more weakly.' }),
+  n(3, 'lens combinations', r`Two thin lenses of focal lengths $+10$ cm and $-40$ cm are in contact. Find the focal length of the combination (in cm, 1 decimal).`, () => 1 / (1 / 10 - 1 / 40), 0.1, 1,
+    r`$\dfrac1F = \dfrac1{10} - \dfrac1{40} = \dfrac{3}{40}$. $F = 13.3$ cm (converging).`, { unit: 'cm' }),
+  n(3, 'refraction through a slab', r`A glass slab of thickness 6 cm and $\mu = 1.5$ is placed over a printed page. By how much (in cm) does the print appear raised?`, () => 6 * (1 - 1 / 1.5), 0, 0,
+    r`Shift $= t\left(1 - \dfrac1\mu\right) = 6\times\dfrac13 = 2$ cm.`, { unit: 'cm' }),
+  n(3, 'telescope', r`An astronomical telescope has an objective of focal length 100 cm and an eyepiece of focal length 5 cm. Find its magnifying power in normal adjustment.`, () => 100 / 5, 0, 0,
+    r`$M = f_o/f_e = 100/5 = 20$. (The length of the telescope is $f_o + f_e = 105$ cm.)`),
+  n(3, 'microscope', r`A compound microscope has $f_o = 2$ cm, $f_e = 5$ cm and a tube length (distance between the lenses' focal points) of 20 cm. For the final image at infinity find its magnifying power ($D = 25$ cm).`, () => (20 / 2) * (25 / 5), 0, 0,
+    r`$M = \dfrac{L}{f_o}\cdot\dfrac{D}{f_e} = \dfrac{20}{2}\times\dfrac{25}{5} = 10\times5 = 50$.`),
+  n(3, 'eye defects', r`A short-sighted person cannot see clearly beyond 80 cm. What lens power (in D, 2 decimals) lets them see distant objects clearly? Give the answer with its sign.`, () => -1 / 0.8, 0.01, 2,
+    r`The lens must form an image of a distant object at the far point (80 cm), a virtual image: $f = -0.8$ m. $P = 1/f = -1.25$ D (a concave lens).`, { unit: 'D' }),
+  n(3, 'total internal reflection', r`A point source lies at the bottom of a liquid of refractive index 1.25 and depth 60 cm. Find the radius (in cm) of the circle of light on the surface.`, () => 60 * Math.tan(Math.asin(1 / 1.25)), 0, 0,
+    r`$\sin\theta_c = 1/1.25 = 0.8$, $\tan\theta_c = \dfrac43$. $r = h\tan\theta_c = 60\times\dfrac43 = 80$ cm.`, { unit: 'cm' }),
+  n(3, 'plane mirror', r`A person walks towards a large plane mirror at $1.5\ \mathrm{m\,s^{-1}}$. At what speed (in m/s) does she approach her image?`, () => 3, 0, 0,
+    r`The image moves towards her mirror-symmetrically at $1.5\ \mathrm{m\,s^{-1}}$ too, so the relative speed is $3\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', trap: 'The image speed is relative to the mirror, not to her.' }),
+  n(3, 'lenses', r`Find the least possible distance (in cm) between a real object and its real image formed by a convex lens of focal length 15 cm.`, () => 4 * 15, 0, 0,
+    r`With $u$ and $v$ the distances, $D = u + v$ and $\dfrac1u+\dfrac1v = \dfrac1f$ gives $u^2 - Du + Df = 0$. Real solutions need $D^2\ge4Df$, so $D\ge4f = 60$ cm (object and image both at $2f$).`, { unit: 'cm' }),
+  n(3, 'apparent depth', r`A layer of water ($\mu = 4/3$) 12 cm thick lies on a layer of oil ($\mu = 1.5$) 15 cm thick. An observer in air looks straight down at the bottom of the oil. At what apparent depth (in cm) is the bottom seen?`, () => 12 / (4 / 3) + 15 / 1.5, 0, 0,
+    r`Each layer contributes (thickness)/(its index): $\dfrac{12}{4/3}+\dfrac{15}{1.5} = 9+10 = 19$ cm.`, { unit: 'cm' }),
+  m(3, 'total internal reflection', r`A ray enters normally through one short face of a $45^\circ$-$45^\circ$-$90^\circ$ prism and meets the long face. The least refractive index for total reflection there is`, r`$\sqrt2$`, [r`$1.5$`, r`$2$`, r`$\sqrt3$`],
+    r`The angle of incidence at the long face is $45^\circ$. TIR needs $45^\circ\ge\theta_c$, i.e. $\sin45^\circ\ge1/\mu$, so $\mu\ge\sqrt2 = 1.414$.`),
+  m(3, 'dispersion', r`White light passes through a glass prism. Which colour is deviated the most?`, 'violet', ['red', 'green', 'yellow'],
+    r`The refractive index is greatest for violet (shortest wavelength), so $\delta = (\mu - 1)A$ is greatest for it.`),
+  mt(3, 'total internal reflection', 'xo2', ['q', 's', 'p', 'r'], r`$\theta_c = \sin^{-1}(1/\mu)$. Glass: $\sin^{-1}0.667 = 41.8^\circ$ (q). Water: $\sin^{-1}0.75 = 48.6^\circ$ (s). Diamond: $\sin^{-1}0.413 = 24.4^\circ$ (p). $\mu = \sqrt2$: $45^\circ$ (r).`),
+  mt(3, 'prism', 'xo3', ['q', 's', 'r', 'p'], r`Thin prism: $\delta = (\mu-1)A$ (q). Minimum deviation: $\mu = \dfrac{\sin\frac{A+\delta_m}2}{\sin\frac A2}$ (s). Angular dispersion: $\delta_v-\delta_r = (\mu_v-\mu_r)A$ (r). Dispersive power: $\omega = \dfrac{\mu_v-\mu_r}{\mu-1}$ (p).`),
+  mt(3, 'optical instruments', 'xo6', ['r', 'p', 's', 'q'], r`Telescope: $M = 100/5 = 20$ (r), length $= 105$ cm (p). Microscope: $\dfrac{20}{2}\times\dfrac{25}{5} = 50$ (s). Simple microscope with the image at infinity: $M = D/f = 25/5 = 5$ (q).`),
+  mt(3, 'apparent depth', 'xo7', ['p', 'r', 'q', 's'], r`A: $12/(4/3) = 9$ cm (p). B: the fish sees objects above water raised: $8\times\tfrac43 = 10.67$ m (r). C: shift $= 6(1-\tfrac1{1.5}) = 2$ cm (q). D: $6/1.5 = 4$ cm (s).`),
+  a(3, 'spherical mirrors', 'A concave mirror can form a virtual image.', 'When an object is between the pole and the focus, the reflected rays diverge and appear to come from a point behind the mirror.', 0,
+    r`Both true and R explains A: for $u<f$, $v$ comes out negative (behind the mirror), and the image is virtual, erect and magnified.`),
+  a(3, 'total internal reflection', 'A diamond sparkles brilliantly.', 'The critical angle for diamond is small, so light inside it suffers many total internal reflections.', 0,
+    r`$\mu = 2.42$ gives $\theta_c = 24.4^\circ$, very small, so most rays inside are totally reflected several times before leaving through the cut faces. Both true, R explains A.`),
+  t(3, 'refraction', 'The speed of light in glass is less than in air for every colour.', r`The refractive index $\mu = c/v$ of glass is greater than 1 for every colour.`, 0,
+    r`Both true. $\mu>1$ means $v<c$.`),
+  cn(3, 'concepts', 'How many of the following are correct?', ['Total internal reflection can occur when light goes from a rarer to a denser medium.', 'A real image can be caught on a screen.', 'A concave lens always forms a virtual image of a real object.', 'The focal length of a lens does not depend on the medium it is in.'], 2,
+    r`(i) False: it needs a denser-to-rarer path. (ii) True. (iii) True. (iv) False: $\dfrac1f = \left(\dfrac{\mu_g}{\mu_m}-1\right)\left(\dfrac1{R_1}-\dfrac1{R_2}\right)$ depends on the medium. Two are correct.`),
+  // ---------- Level 4 ----------
+  n(4, 'lens displacement method', r`An object and a screen are 100 cm apart. A convex lens gives a sharp image at two positions 40 cm apart. Find its focal length (in cm).`, () => (100 ** 2 - 40 ** 2) / (4 * 100), 0, 0,
+    r`Bessel's method: $f = \dfrac{D^2 - d^2}{4D} = \dfrac{10000-1600}{400} = 21$ cm.`, { unit: 'cm' }),
+  n(4, 'silvered lens', r`A plano-convex lens ($\mu = 1.5$, radius of the curved face 30 cm) has its plane face silvered. It acts as a concave mirror. Find the focal length of the mirror (in cm).`, () => 30 / (2 * 0.5) / 1 * 1, 0, 0,
+    r`Light crosses the curved face (power $\dfrac{\mu-1}{R}$), reflects at the plane face and crosses the curved face again: $P = 2\times\dfrac{0.5}{0.3} = 3.33$ D, so $F = 0.3$ m $= 30$ cm.`, { unit: 'cm' }),
+  n(4, 'refraction at spherical surface', r`A point object in air is 30 cm from the vertex of a convex spherical glass surface of radius 10 cm ($\mu = 1.5$). Find the image distance (in cm) from the vertex.`, () => 1.5 / (0.5 / 10 - 1 / 30), 0, 0,
+    r`$\dfrac{\mu_2}{v} - \dfrac{\mu_1}{u} = \dfrac{\mu_2 - \mu_1}{R}$ with $u = -30$, $R = +10$: $\dfrac{1.5}{v} = 0.05 - \dfrac1{30} = \dfrac1{60}$. $v = 90$ cm, a real image inside the glass.`, { unit: 'cm' }),
+  n(4, 'ball lens', r`A solid glass sphere of radius 4 cm and $\mu = 1.5$ is placed in a parallel beam. At what distance (in cm) behind the back surface is the beam focused?`, () => 4 * (2 - 1.5) / (2 * 0.5), 0, 0,
+    r`Refraction at the first surface: $\dfrac{1.5}{v} = \dfrac{0.5}{4}$, $v = 12$ cm from the front. The back surface is 8 cm from the front, so the image is a virtual object at 4 cm beyond it for the second surface: $\dfrac1{v'} - \dfrac{1.5}{4} = \dfrac{1-1.5}{-4}$, giving $v' = 2$ cm. The image is 2 cm behind the sphere.`, { unit: 'cm' }),
+  n(4, 'telescope', r`An astronomical telescope has $f_o = 100$ cm and $f_e = 5$ cm. Find its magnifying power when the final image is formed at the near point of 25 cm.`, () => (100 / 5) * (1 + 5 / 25), 0, 0,
+    r`$M = \dfrac{f_o}{f_e}\left(1 + \dfrac{f_e}{D}\right) = 20\times1.2 = 24$. (It is 20 in normal adjustment.)`),
+  n(4, 'lenses', r`A convex lens of focal length 20 cm forms an image twice as large as the object. Find the sum (in cm) of the two possible object distances.`, () => 30 + 10, 0, 0,
+    r`Real image: $m = -2$, $v = 2|u|$: $\dfrac1{2u}+\dfrac1u = \dfrac1{20}$, so $u = 30$ cm. Virtual image: $m = +2$: $\dfrac{1}{u}-\dfrac1{2u} = \dfrac1{20}$, $u = 10$ cm. Sum $= 40$ cm.`, { unit: 'cm' }),
+  n(4, 'spherical mirrors', r`A concave mirror of focal length 15 cm forms an image three times the size of the object. Find the difference (in cm) between the two possible object distances.`, () => 20 - 10, 0, 0,
+    r`Real image ($m=-3$): $u = \tfrac43f = 20$ cm. Virtual image ($m=+3$): $u = \tfrac23f = 10$ cm. The difference is 10 cm.`, { unit: 'cm' }),
+  n(4, 'lens combinations', r`Thin lenses of focal lengths $+20$ cm and $-20$ cm are 10 cm apart. Find the effective focal length of the pair (in cm).`, () => 1 / (1 / 20 - 1 / 20 + 10 / 400), 0, 0,
+    r`$\dfrac1F = \dfrac1{f_1}+\dfrac1{f_2}-\dfrac d{f_1f_2} = 0 - \dfrac{10}{(20)(-20)} = \dfrac1{40}$. $F = 40$ cm. Separating a convex and a concave lens of equal strength makes a converging system.`, { unit: 'cm' }),
+  n(4, 'prism', r`The refractive index of a glass is 1.51 for red and 1.53 for violet light, with a mean of 1.52. Find its dispersive power (3 decimals).`, () => 0.02 / 0.52, 0.001, 3,
+    r`$\omega = \dfrac{\mu_v - \mu_r}{\mu - 1} = \dfrac{0.02}{0.52} = 0.038$.`),
+  n(4, 'refraction through a slab', r`A ray strikes a slab of glass ($\mu = \sqrt2$, thickness 3 cm) at $45^\circ$. Find its lateral displacement on emerging (in cm, 3 decimals).`, () => 3 * Math.sin(15 * Dg) / Math.cos(30 * Dg), 0.005, 3,
+    r`$\sin r = \dfrac{\sin45^\circ}{\sqrt2} = \dfrac12$, $r = 30^\circ$. $d = \dfrac{t\sin(i-r)}{\cos r} = \dfrac{3\sin15^\circ}{\cos30^\circ} = \dfrac{3\times0.2588}{0.866} = 0.897$ cm.`, { unit: 'cm' }),
+  n(4, 'optical fibre', r`An optical fibre has a core of refractive index 1.5 and a cladding of 1.4. Find its numerical aperture (2 decimals).`, () => Math.sqrt(1.5 ** 2 - 1.4 ** 2), 0.01, 2,
+    r`$\mathrm{NA} = \sqrt{\mu_1^2 - \mu_2^2} = \sqrt{2.25-1.96} = \sqrt{0.29} = 0.54$. Light entering within the acceptance angle $\sin^{-1}0.54$ (from air) is guided.`),
+  n(4, 'moving objects', r`An object moves towards a concave mirror ($f = 10$ cm) at $1\ \mathrm{cm\,s^{-1}}$ when it is 15 cm from it. Find the speed of its image (in cm/s).`, () => 4, 0, 0,
+    r`$u = -15$, $f = -10$: $\dfrac1v = \dfrac1f - \dfrac1u = -\dfrac1{10}+\dfrac1{15} = -\dfrac1{30}$, $v = -30$ cm, $m = -v/u = -2$. For a small motion along the axis $v_I = -m^2v_O$ in magnitude $m^2v_O = 4\times1 = 4\ \mathrm{cm\,s^{-1}}$ (the image moves away from the mirror).`, { unit: 'cm/s' }),
+);
+
+items.push(
+  s(4, 'spherical mirrors', r`Which statements about a concave mirror are correct?`,
+    ['An object beyond the centre of curvature has a real, inverted, diminished image.', 'The image can be larger than the object.', 'Every virtual image it forms is erect.', 'In the Cartesian sign convention the focal length of a concave mirror is positive.'], [0, 1, 2],
+    r`(A) True: image between $f$ and $2f$. (B) True: object between $f$ and $2f$ gives a larger real image. (C) True: virtual images of a mirror are erect. (D) False: with the pole as origin and the incident light's direction as positive, a concave mirror has $f<0$.`),
+  s(5, 'prism', r`A ray passes a prism at minimum deviation. Which statements are correct?`,
+    ['The angles of refraction $r_1$ and $r_2$ are equal.', 'The deviation is the largest possible for that prism.', 'The angle of incidence equals the angle of emergence.', r`$\mu = \sin\frac{A+\delta_m}2\Big/\sin\frac A2$.`], [0, 2, 3],
+    r`At minimum deviation the ray passes symmetrically: $i = e$ and $r_1 = r_2 = A/2$ (A, C), and the formula holds (D). The deviation is the smallest possible, not the largest (B false).`),
+  s(4, 'total internal reflection', r`Which statements about total internal reflection are correct?`,
+    ['Light must go from a denser to a rarer medium.', 'The angle of incidence must exceed the critical angle.', 'It can occur when light goes from air into glass.', 'The critical angle depends on the colour of the light.'], [0, 1, 3],
+    r`TIR needs a denser-to-rarer path and an incidence angle beyond $\theta_c$ (A, B). Going from air to glass cannot give it (C false). $\theta_c = \sin^{-1}(1/\mu)$ and $\mu$ depends on the colour (D true).`),
+  s(5, 'lenses', r`A convex lens is cut in two ways. Which statements are correct?`,
+    ['Cut into two halves along a plane containing the axis, each half has the same focal length as the whole lens.', 'In that case each half gives an image of the same size but less bright.', 'In that case each half forms only half the image.', 'Cut by a plane perpendicular to the axis into two thin plano-convex pieces, the focal length of each is twice the original.'], [0, 1, 3],
+    r`The half lens still has the same curvatures, so $f$ is unchanged (A). It receives half the light, so the image is dimmer but complete (B true, C false). A thin biconvex lens cut across is two plano-convex lenses each with one curved face: $P = P_0/2$, so $f' = 2f$ (D true).`),
+  s(4, 'eye defects', r`Which statements about myopia (short sight) are correct?`,
+    ['It is corrected with a convex lens.', 'It is corrected with a concave lens.', 'The image of a distant object forms in front of the retina.', 'The far point of the eye is nearer than infinity.'], [1, 2, 3],
+    r`A myopic eye is too strong, so parallel rays focus in front of the retina (C) and the far point is finite (D). A concave (diverging) lens corrects it (B true, A false).`),
+  s(5, 'telescope', r`Which statements about an astronomical telescope are correct?`,
+    ['A larger objective aperture gathers more light.', 'A longer objective focal length gives a larger magnifying power.', 'The eyepiece has a short focal length.', 'A longer eyepiece focal length gives a larger magnifying power.'], [0, 1, 2],
+    r`$M = f_o/f_e$: larger for large $f_o$ and small $f_e$ (B, C true; D false). The aperture sets the light-gathering power and resolution (A).`),
+  s(4, 'dispersion', r`Which statements about dispersion are correct?`,
+    ['Violet light is deviated more than red light by a glass prism.', 'Red light travels faster than violet light in glass.', 'The refractive index of a vacuum depends on the colour of the light.', 'A rainbow is formed by dispersion together with total internal reflection inside the drops.'], [0, 1, 3],
+    r`In glass $\mu_v>\mu_r$, so violet is slower and bends more (A, B). In vacuum all colours have the same speed $c$, so $\mu = 1$ (C false). In a drop, light is refracted, reflected once (internally) and refracted again, spreading the colours (D).`),
+  s(5, 'lens combinations', r`Two thin lenses of focal lengths $f_1$ and $f_2$ are in contact. Which statements are correct?`,
+    ['The power is $P_1 + P_2$.', r`The focal length satisfies $\dfrac1F = \dfrac1{f_1}+\dfrac1{f_2}$.`, r`The focal length is $f_1 + f_2$.`, 'A convex and a concave lens of equal numerical focal length have an infinite combined focal length.'], [0, 1, 3],
+    r`Powers add for thin lenses in contact, so $\dfrac1F = \dfrac1{f_1}+\dfrac1{f_2}$ (A, B). $F\ne f_1+f_2$ (C false). With $f_2 = -f_1$ the power is zero and the pair does not converge or diverge (D).`),
+  s(4, 'plane mirror', r`Which statements about a plane mirror are correct?`,
+    ['The image is as far behind the mirror as the object is in front.', 'The image of a real object is virtual.', 'The image is laterally inverted.', 'If the mirror turns through $\\theta$, the reflected ray turns through $\\theta$.'], [0, 1, 2],
+    r`The first three are properties of plane mirror images. A mirror turning by $\theta$ turns the reflected ray by $2\theta$ (D false).`),
+  s(5, 'apparent depth', r`An observer in air looks nearly vertically down at an object in water ($\mu = 4/3$). Which statements are correct?`,
+    ['The apparent depth is less than the real depth.', 'The apparent depth is $\\tfrac34$ of the real depth.', 'The apparent depth is $\\tfrac43$ of the real depth.', 'A fish looking up sees a bird higher than it really is.'], [0, 1, 3],
+    r`Real depth/apparent depth $= \mu$, so the apparent depth is $\tfrac34$ of the real (A, B true, C false). From the water the air object appears at $\mu\times$ its real height: higher (D true).`),
+  mt(4, 'lens in a liquid', 'xo4', ['s', 'p', 'q', 'r'], r`$\dfrac{f_m}{f_a} = \dfrac{\mu_g-1}{\mu_g/\mu_m - 1}$. Air: 10 cm (s). Water: $\dfrac{0.5}{0.125}\times10 = 40$ cm (p). $\mu_m = 1.5$: the denominator is 0, $f\to\infty$ (q). $\mu_m = 1.6$: $\dfrac{0.5}{-0.0625}\times10 = -80$ cm, a diverging lens (r).`),
+  mt(4, 'lens combinations', 'xo5', ['s', 'r', 'q', 'p'], r`$\dfrac1F = -\dfrac d{f_1f_2} = \dfrac d{400}$ (the powers cancel). $d=0$: infinite (s). $d=10$: 40 cm (r). $d=20$: 20 cm (q). $d=40$: 10 cm (p).`),
+  mt(4, 'prism', 'xo8', ['p', 'q', 'r', 's'], r`A: the ray meets the hypotenuse at $45^\circ$, above $41.8^\circ$: TIR, turned through $90^\circ$ (p). B: it meets each short face at $45^\circ$ and is totally reflected twice, leaving reversed (q). C: in water $\theta_c = 48.6^\circ>45^\circ$, so no TIR (r). D: TIR at $45^\circ$ needs $1/\mu\le\sin45^\circ$, i.e. $\mu\ge\sqrt2$ (s).`),
+  a(4, 'lens in a liquid', 'A glass lens placed in a liquid of the same refractive index does not bend light at all.', 'The relative refractive index of the lens material with respect to the liquid is then 1.', 0,
+    r`With $\mu_g/\mu_l = 1$, the factor $\left(\dfrac{\mu_g}{\mu_l}-1\right)$ in the lens maker's formula is 0, so $f\to\infty$. Both true, R explains A.`),
+  a(4, 'dispersion', 'The focal length of a glass lens is greater for red light than for violet light.', 'The refractive index of glass is smaller for red light than for violet light.', 0,
+    r`$\dfrac1f\propto(\mu-1)$, and $\mu_r<\mu_v$, so $f_r>f_v$. This is chromatic aberration. R explains A.`),
+  a(4, 'spherical mirrors', 'A convex mirror always forms a virtual, erect, diminished image of a real object.', 'The reflected rays from a convex mirror always diverge.', 0,
+    r`Parallel or diverging rays from a real object reflect as diverging rays, which seem to come from a point behind the mirror. Both true, and R explains A.`),
+  t(4, 'lens combinations', 'Two thin lenses of powers $+2$ D and $-2$ D in contact have zero power together.', 'The power of thin lenses in contact is the sum of their powers.', 0,
+    r`Both true. $P = 2 + (-2) = 0$: a plane parallel plate in effect.`),
+  t(4, 'telescope', 'The magnifying power of an astronomical telescope in normal adjustment is $f_o/f_e$.', 'The magnifying power increases if the diameter of the objective is increased.', 2,
+    r`I is true. II is false: the diameter affects brightness and resolution, not the angular magnification.`),
+  cn(4, 'spherical mirrors', 'How many of the following are correct?', ['A plane mirror always has a magnification of $+1$.', 'A convex mirror has a real focus.', 'A diverging lens has a positive power.', 'Optical fibres work by total internal reflection.'], 2,
+    r`(i) True. (ii) False: the focus of a convex mirror is virtual. (iii) False: a diverging lens has negative power. (iv) True. Two are correct.`),
+  // ---------- Level 5 ----------
+  n(5, 'lens-mirror system', r`A convex lens of focal length 20 cm has a plane mirror 25 cm behind it. An object is 40 cm in front of the lens. After the light has passed the lens, been reflected by the mirror and passed back through the lens, how far (in cm) from the lens is the final image?`, () => 20, 0, 0,
+    r`First pass: $\dfrac1v = \dfrac1{20}-\dfrac1{40} = \dfrac1{40}$, so the image would form 40 cm beyond the lens. The mirror is 25 cm behind the lens, so the light is reflected before reaching that point; the mirror makes an image 15 cm in front of it, that is 10 cm from the lens (between the lens and the mirror). For the return pass, this is a real object 10 cm from the lens: $\dfrac1{v'} = \dfrac1{20}-\dfrac1{10} = -\dfrac1{20}$, so $v' = -20$ cm. The final image is virtual, 20 cm from the lens, on the mirror side.`, { unit: 'cm', trap: 'Use the mirror image of the first image as the new object.' }),
+  n(5, 'prism', r`Find the least angle of incidence (in degrees, 1 decimal) on one face of a prism ($A = 60^\circ$, $\mu = 1.5$) for which the ray can emerge from the second face.`, () => asd(1.5 * Math.sin((60 - asd(1 / 1.5)) * Dg)), 0.1, 1,
+    r`Emergence needs $r_2<\theta_c = \sin^{-1}(1/1.5) = 41.8^\circ$. Then $r_1 = A - r_2>18.2^\circ$. $\sin i = 1.5\sin18.2^\circ = 0.468$, so $i = 27.9^\circ$. For smaller $i$ the ray is totally reflected at the second face.`, { unit: '°', trap: 'At the limit the ray grazes the second face.' }),
+  n(5, 'achromatism', r`A crown prism ($A = 10^\circ$, $\mu_r = 1.51$, $\mu_v = 1.53$, $\mu = 1.52$) is combined with a flint prism ($\mu_r = 1.62$, $\mu_v = 1.66$, $\mu = 1.64$) of angle $A'$ placed inverted, so that there is no net dispersion. Find the net deviation of the mean ray (in degrees, 1 decimal).`, () => 0.52 * 10 - 0.64 * (0.02 * 10 / 0.04), 0.05, 1,
+    r`No dispersion: $(\mu_v-\mu_r)A = (\mu_v'-\mu_r')A'$, so $A' = \dfrac{0.02\times10}{0.04} = 5^\circ$. Net deviation $= (\mu-1)A - (\mu'-1)A' = 0.52\times10 - 0.64\times5 = 5.2 - 3.2 = 2.0^\circ$.`, { unit: '°' }),
+  n(5, 'refraction through a slab', r`Light enters a prism of angle $60^\circ$ and $\mu = \sqrt2$ at grazing incidence ($i = 90^\circ$). Find the angle of deviation (in degrees, 1 decimal).`, () => 90 + asd(Math.SQRT2 * Math.sin(15 * Dg)) - 60, 0.1, 1,
+    r`$\sin r_1 = \dfrac{1}{\sqrt2}$, $r_1 = 45^\circ$. $r_2 = 60 - 45 = 15^\circ$. $\sin e = \sqrt2\sin15^\circ = 0.366$, $e = 21.5^\circ$. $\delta = i + e - A = 90+21.5-60 = 51.5^\circ$.`, { unit: '°' }),
+  n(5, 'mixed: lens and slab', r`A convex lens of focal length 10 cm forms a real image of a distant object on a screen. A glass slab 3 cm thick ($\mu = 1.5$) is placed between the lens and the screen. By how far (in cm) must the screen be moved away from the lens to refocus?`, () => 3 * (1 - 1 / 1.5), 0, 0,
+    r`A slab shifts the image away from the lens by $t\left(1-\dfrac1\mu\right) = 3\times\dfrac13 = 1$ cm, so the screen must move 1 cm further from the lens.`, { unit: 'cm' }),
+  s(5, 'refraction', r`A person looks down at an object under water ($\mu = 4/3$) through a flat surface. Which are correct for near-normal viewing?`,
+    ['The object appears nearer the surface than it is.', 'The image is virtual.', 'The apparent depth is $\\tfrac43$ of the real depth.', 'The image is laterally inverted.'], [0, 1],
+    r`Apparent depth $=$ real depth$/\mu = \tfrac34\times$ real (A true, C false). The rays reaching the eye diverge from a point, so the image is virtual (B). A plane refracting surface does not invert the image sideways (D false).`),
+  s(5, 'lens', r`A convex lens forms a real image of an object on a screen. The lower half of the lens is covered. Which are correct?`,
+    ['The whole image still forms.', 'The image is dimmer.', 'The focal length halves.', 'The image moves up.'], [0, 1],
+    r`Every part of a lens forms a complete image. Fewer rays reach the screen, so the image is dimmer (B). The focal length and the image position do not change (C, D false).`),
+  s(5, 'total internal reflection', r`A right-angled isosceles prism of $\mu = 1.5$ is used to turn a ray normal to one short face. Which are correct?`,
+    ['The ray is turned through $90^\circ$.', 'The prism must be in a medium of index less than $1.5/\\sqrt2 \\approx 1.06$ for TIR to occur.', 'Total internal reflection occurs if the prism is immersed in water.', 'The ray strikes the hypotenuse at $45^\circ$.'], [0, 1, 3],
+    r`The ray hits the long face at $45^\circ$ and is totally reflected if $\sin45^\circ>\mu_m/\mu_p$, i.e. $\mu_m<1.5/\sqrt2 = 1.06$ (B). It turns through $90^\circ$ (A). In water ($\mu_m = 1.33$) the condition fails (C false).`),
+);
+
+items.push(
+  pn(3, 'lens combinations', 'xop1', r`How far (in cm) from the convex lens is the image it forms alone?`, () => 1 / (1 / 15 - 1 / 30), 0, 0,
+    r`$\dfrac1v = \dfrac1{15} - \dfrac1{30} = \dfrac1{30}$. $v = 30$ cm (real, beyond the lens), with $m_1 = v/u = -1$.`, { unit: 'cm' }),
+  pn(4, 'lens combinations', 'xop1', r`How far (in cm) from the concave lens is the final image?`, () => 1 / (-1 / 30 + 1 / 20), 0, 0,
+    r`The first image is 30 cm from the convex lens, which is 20 cm beyond the concave lens (10 cm away): a virtual object for the concave lens, $u = +20$. $\dfrac1v = \dfrac1f + \dfrac1u = -\dfrac1{30}+\dfrac1{20} = \dfrac1{60}$. $v = 60$ cm, a real image beyond the concave lens.`, { unit: 'cm', trap: 'The image of the first lens is a virtual object for the second.' }),
+  pn(4, 'lens combinations', 'xop1', r`Find the overall linear magnification (with sign).`, () => (30 / -30) * (60 / 20), 0, 0,
+    r`$m_1 = v_1/u_1 = 30/(-30) = -1$. $m_2 = v_2/u_2 = 60/20 = +3$. Total $m = -3$: the final image is real, inverted and three times the size.`),
+  pn(3, 'prism', 'xop2', r`A ray is incident at $45^\circ$. Find the angle of deviation (in degrees).`, () => 2 * 45 - 60, 0, 0,
+    r`$\sin r_1 = \sin45^\circ/\sqrt2 = \tfrac12$, so $r_1 = 30^\circ$ and $r_2 = 60-30 = 30^\circ$. The ray leaves at $45^\circ$. $\delta = i + e - A = 45+45-60 = 30^\circ$. This is the minimum deviation (symmetrical passage).`, { unit: '°' }),
+  pn(5, 'prism', 'xop2', r`Find the least angle of incidence (in degrees, 1 decimal) for which a ray can emerge from the second face.`, () => asd(Math.SQRT2 * Math.sin(15 * Dg)), 0.1, 1,
+    r`The critical angle is $45^\circ$, so emergence needs $r_2<45^\circ$, i.e. $r_1>15^\circ$. $\sin i = \sqrt2\sin15^\circ = 0.366$, $i = 21.5^\circ$.`, { unit: '°' }),
+  pn(5, 'prism', 'xop2', r`Find the deviation (in degrees, 1 decimal) if the ray is incident at $90^\circ$ (grazing).`, () => 90 + asd(Math.SQRT2 * Math.sin(15 * Dg)) - 60, 0.1, 1,
+    r`$r_1 = 45^\circ$ ($\sin r_1 = 1/\sqrt2$), $r_2 = 15^\circ$, $\sin e = \sqrt2\sin15^\circ = 0.366$, $e = 21.5^\circ$. $\delta = 90+21.5-60 = 51.5^\circ$ (larger than the minimum deviation $30^\circ$).`, { unit: '°' }),
+);
+
+gens.push(
+  gx(3, 'nat', 'lenses', (rng) => {
+    const f = pick(rng, 10, 30, 5); const u = pick(rng, f + 5, 80, 5);
+    const v = u * f / (u - f);
+    return { f, u, q: `A convex lens of focal length ${f} cm forms an image of an object ${u} cm in front of it. Find the image distance (in cm, 2 decimals).`, answer: +v.toFixed(2), tol: 0.02, unit: 'cm',
+      sol: `$\\dfrac1v = \\dfrac1f + \\dfrac1u$ with $u = -${u}$: $\\dfrac1v = \\dfrac1{${f}} - \\dfrac1{${u}}$. $v = ${v.toFixed(2)}$ cm (real, on the far side).` };
+  }, (p) => { const x1 = p.u - p.f; return p.f * p.f / x1 + p.f; }),
+  gx(3, 'nat', 'spherical mirrors', (rng) => {
+    const f = pick(rng, 8, 25, 1); const u = pick(rng, f + 3, 70, 1);
+    const v = u * f / (u - f); const m = -v / u;
+    return { f, u, q: `A concave mirror of focal length ${f} cm forms a real image of an object ${u} cm from it. Find the magnification (3 decimals, with sign).`, answer: +m.toFixed(3), tol: 0.003,
+      sol: `$v = \\dfrac{uf}{u-f} = ${v.toFixed(2)}$ cm. $m = -\\dfrac vu = ${m.toFixed(3)}$. The minus sign means the image is inverted.` };
+  }, (p) => -p.f / (p.u - p.f)),
+  gx(3, 'nat', 'lens maker', (rng) => {
+    const mu = pick(rng, 1.4, 1.7, 0.1); const R1 = pick(rng, 10, 40, 5); const R2 = pick(rng, 10, 40, 5);
+    const f = 1 / ((mu - 1) * (1 / R1 + 1 / R2));
+    return { mu, R1, R2, q: `A biconvex lens of glass ($\\mu = ${mu}$) has radii of curvature ${R1} cm and ${R2} cm. Find its focal length (in cm, 2 decimals).`, answer: +f.toFixed(2), tol: 0.02, unit: 'cm',
+      sol: `$\\dfrac1f = (\\mu-1)\\left(\\dfrac1{R_1}+\\dfrac1{R_2}\\right) = ${mu - 1 > 0 ? +(mu - 1).toFixed(2) : 0}\\left(\\dfrac1{${R1}}+\\dfrac1{${R2}}\\right)$. $f = ${f.toFixed(2)}$ cm.` };
+  }, (p) => { const P1 = (p.mu - 1) / p.R1; const P2 = (p.mu - 1) / p.R2; return 1 / (P1 + P2); }),
+  gx(4, 'nat', 'lens in liquid', (rng) => {
+    const mg = pick(rng, 1.4, 1.7, 0.1); const ml = choose(rng, [1.2, 1.33, 1.36]); const fa = pick(rng, 10, 40, 5);
+    const fl = fa * (mg - 1) / (mg / ml - 1);
+    return { mg, ml, fa, q: `A thin glass lens ($\\mu = ${mg}$) has a focal length of ${fa} cm in air. Find its focal length (in cm, 1 decimal) in a liquid of index ${ml}. Give a negative sign if it becomes diverging.`, answer: +fl.toFixed(1), tol: 0.2, unit: 'cm',
+      sol: `$\\dfrac{f_l}{f_a} = \\dfrac{\\mu_g-1}{\\mu_g/\\mu_l - 1} = \\dfrac{${+(mg - 1).toFixed(2)}}{${+(mg / ml - 1).toFixed(4)}}$. $f_l = ${fl.toFixed(1)}$ cm.`, trap: 'If $\\mu_l>\\mu_g$ the lens reverses its nature.' };
+  }, (p) => { const K = 1 / ((p.mg - 1) * p.fa); const Pl = (p.mg / p.ml - 1) * K; return 1 / Pl; }),
+  gx(4, 'nat', 'prism', (rng) => {
+    const A = choose(rng, [40, 50, 60, 70]); const mu = pick(rng, 1.4, 1.7, 0.05);
+    const dm = 2 * asd(mu * sd(A / 2)) - A;
+    return { A, mu, q: `A prism of refracting angle ${A}° and refractive index ${mu} is used at minimum deviation. Find the angle of minimum deviation (in degrees, 1 decimal).`, answer: +dm.toFixed(1), tol: 0.1, unit: '°',
+      sol: `$\\sin\\dfrac{A+\\delta_m}2 = \\mu\\sin\\dfrac A2 = ${mu}\\times${+sd(A / 2).toFixed(4)} = ${+(mu * sd(A / 2)).toFixed(4)}$. $\\dfrac{A+\\delta_m}{2} = ${asd(mu * sd(A / 2)).toFixed(2)}^\\circ$, so $\\delta_m = ${dm.toFixed(1)}^\\circ$.` };
+  }, (p) => { let lo = 0; let hi = 90; for (let i = 0; i < 100; i++) { const d = (lo + hi) / 2; const mm = sd((p.A + d) / 2) / sd(p.A / 2); if (mm < p.mu) lo = d; else hi = d; } return (lo + hi) / 2; }),
+  gx(3, 'nat', 'total internal reflection', (rng) => {
+    const mu = pick(rng, 1.2, 1.6, 0.05); const h = pick(rng, 20, 100, 10);
+    const r2 = h / Math.sqrt(mu * mu - 1);
+    return { mu, h, q: `A point source lies at a depth of ${h} cm in a liquid of refractive index ${mu}. Find the radius (in cm, 1 decimal) of the circle on the surface through which light escapes.`, answer: +r2.toFixed(1), tol: 0.2, unit: 'cm',
+      sol: `$\\sin\\theta_c = 1/${mu}$, $\\tan\\theta_c = \\dfrac1{\\sqrt{${mu}^2-1}}$. $r = h\\tan\\theta_c = ${r2.toFixed(1)}$ cm.` };
+  }, (p) => p.h * Math.tan(Math.asin(1 / p.mu))),
+  gx(4, 'nat', 'lens displacement method', (rng) => {
+    const f = pick(rng, 10, 30, 2); const D = 4 * f + pick(rng, 10, 60, 10);
+    const d = Math.sqrt(D * D - 4 * D * f);
+    return { f, D, d, q: `A lens gives two sharp images of an object on a screen ${D} cm from it, with the lens positions ${d.toFixed(2)} cm apart. Find the focal length (in cm, 1 decimal).`, answer: +f.toFixed(1), tol: 0.1, unit: 'cm',
+      sol: `$f = \\dfrac{D^2-d^2}{4D} = \\dfrac{${D}^2-${d.toFixed(2)}^2}{4\\times${D}} = ${f}$ cm.` };
+  }, (p) => { const u1 = (p.D - p.d) / 2; const v1 = p.D - u1; return u1 * v1 / (u1 + v1); }),
+  gx(3, 'mcq', 'total internal reflection', (rng) => {
+    const M = [['glass of index 1.5', 1.5], ['water', 4 / 3], ['diamond', 2.42], ['a liquid of index 1.25', 1.25]];
+    const b = choose(rng, M); const th = asd(1 / b[1]);
+    const o = numOpts(rng, th, [asd(1 / b[1]) + 10, 90 - asd(1 / b[1]), asd(1 / b[1]) / 2], '°', 3);
+    return { th, q: `What is the critical angle for light going from ${b[0]} into air?`, options: o.options, answer: o.answer,
+      sol: `$\\sin\\theta_c = 1/\\mu = ${+(1 / b[1]).toFixed(4)}$, so $\\theta_c = ${th.toFixed(1)}^\\circ$. The other options use $90^\\circ-\\theta_c$, half of it, or shift it.`, trap: 'Use $\\sin\\theta_c = 1/\\mu$, not $\\cos$ or $\\tan$.', _mu: b[1] };
+  }, (p) => p.options.findIndex((x) => Math.abs(parseFloat(x) - p.th) < 0.06)),
+  gx(4, 'mcq', 'lens combinations', (rng) => {
+    let f1; let f2; let d; let P; let wr;
+    do { f1 = choose(rng, [10, 15, 20, 25]); f2 = choose(rng, [-10, -15, -20, -30]); d = choose(rng, [5, 10, 15]); P = 1 / f1 + 1 / f2 - d / (f1 * f2); wr = [1 / (1 / f1 + 1 / f2), f1 + f2 - d, (f1 * f2) / (f1 + f2 + d), f1 + f2]; } while (Math.abs(P) < 0.004 || wr.some((x) => !isFinite(x)) || wr.some((x) => Math.abs(x - 1 / P) < 0.01 * Math.abs(1 / P)));
+    const F = 1 / P;
+    const o = numOpts(rng, F, wr, 'cm', 3);
+    return { f1, f2, d, F, q: `A thin convex lens of focal length ${f1} cm and a thin concave lens of focal length ${-f2} cm are ${d} cm apart on the same axis. Find the effective focal length of the pair.`, options: o.options, answer: o.answer,
+      sol: `$\\dfrac1F = \\dfrac1{f_1}+\\dfrac1{f_2}-\\dfrac d{f_1f_2} = \\dfrac1{${f1}}+\\dfrac1{${f2}}-\\dfrac{${d}}{(${f1})(${f2})}$. $F = ${F.toFixed(2)}$ cm. The other options ignore the separation or use a wrong rule.`, trap: 'Do not drop the separation term.' };
+  }, (p) => p.options.findIndex((x) => Math.abs(parseFloat(x) - p.F) < 0.006 * Math.abs(p.F) + 1e-9)),
+  gx(5, 'nat', 'refraction at spherical surface', (rng) => {
+    let mu; let R; let u;
+    do { mu = pick(rng, 1.4, 1.8, 0.1); R = pick(rng, 5, 20, 5); u = pick(rng, 2, 6, 1) * R / 2 + R; } while (Math.abs((mu - 1) / R - 1 / u) < 0.006);
+    const v = mu / ((mu - 1) / R - 1 / u);
+    return { mu, R, u, q: `A point object in air is ${u} cm from the vertex of a convex spherical surface of radius ${R} cm bounding glass of index ${mu}. Find the image distance (in cm, 2 decimals) from the vertex.`, answer: +v.toFixed(2), tol: 0.02, unit: 'cm',
+      sol: `$\\dfrac{\\mu_2}v - \\dfrac{\\mu_1}u = \\dfrac{\\mu_2-\\mu_1}R$ with $u = -${u}$: $\\dfrac{${mu}}v = \\dfrac{${+(mu - 1).toFixed(2)}}{${R}} - \\dfrac1{${u}}$. $v = ${v.toFixed(2)}$ cm.` };
+  }, (p) => { const n1 = 1; const n2 = p.mu; const left = (n2 - n1) / p.R + n1 / (-p.u); return n2 / left; }),
+  gx(3, 'nat', 'apparent depth', (rng) => {
+    const t1 = pick(rng, 6, 20, 2); const t2 = pick(rng, 6, 20, 2); const m1 = choose(rng, [1.33, 1.5]); const m2 = choose(rng, [1.6, 1.7, 1.8]);
+    const a = t1 / m1 + t2 / m2;
+    return { t1, t2, m1, m2, q: `A layer of liquid of index ${m1} and thickness ${t1} cm lies on a layer of liquid of index ${m2} and thickness ${t2} cm. Looking straight down from air, at what apparent depth (in cm, 2 decimals) is the bottom seen?`, answer: +a.toFixed(2), tol: 0.02, unit: 'cm',
+      sol: `Apparent depth $= \\sum\\dfrac{t_i}{\\mu_i} = \\dfrac{${t1}}{${m1}}+\\dfrac{${t2}}{${m2}} = ${a.toFixed(2)}$ cm.` };
+  }, (p) => { const first = p.t1 / p.m1; const second = p.t2 / p.m2; return first + second; }),
+);
+
+}
+
 export default { topic: 'ray-optics', groups, items, gens };

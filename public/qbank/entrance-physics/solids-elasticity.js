@@ -566,4 +566,293 @@ gens.push(
     verify: (p) => (p.v === 0 ? 0.5 * p.Y * p.e * p.e / 1e3 : 0.5 * p.Y * p.e * p.e * p.V * 1e6) },
 );
 
-export default { topic: 'solids-elasticity', groups, items, gens };
+
+// ---------- Expansion (2026-11-22): more hard items, matches, passages and templates ----------
+const xs = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XCUET = false;
+const xex = (l, t) => (l <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet'] : l === 3 ? ['jee-main', 'neet', 'keam', 'comedk'] : l === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv']).concat(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : []);
+let xk = 0; let xc = 0;
+const xid = () => `se-x${String(++xk).padStart(3, '0')}`;
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type), sub, ...o });
+const xpos = () => [2, 0, 3, 1][xc++ % 4];
+const xmcq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('options not distinct: ' + q.slice(0, 60));
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xnat = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return xb(level, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol: typeof sol === 'function' ? sol(answer) : sol, ...o });
+};
+const xmsq = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAOPT = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xasrt = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAOPT, answer, sol, ...o });
+const XSOPT = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xstm = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSOPT, answer, sol, ...o });
+const xcnt = (level, sub, q, list, n, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((s, i) => `(${i + 1}) ${s}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: n - 1, sol, ...o });
+// match: correct code and three wrong codes
+const xmt = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('match options not distinct: ' + group);
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xpas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return { id: xid(), type: 'nat', level, format: 'passage', exams: xex(level, 'nat'), sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const xpasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: xid(), type: 'mcq', level, format: 'passage', exams: xex(level, 'mcq'), sub, group, q, options, answer: pos, sol, ...o };
+};
+// template: exams from level and type
+const xg = (id, level, type, sub, make, verify) => ({ id, type, level, exams: xex(level, type), sub, make, verify });
+const XG = 9.8; const XPI = Math.PI;
+
+const xgroups = {
+  ms1: { title: 'Quantities and their units',
+    list1: ['A. Stress', 'B. Strain', 'C. Elastic energy per unit volume', 'D. Compressibility'],
+    list2: [r`p. $\mathrm{Pa}$ ($\mathrm{N\,m^{-2}}$)`, 'q. no unit', r`r. $\mathrm{J\,m^{-3}}$`, r`s. $\mathrm{Pa^{-1}}$`, r`t. $\mathrm{N}$`] },
+  ms2: { title: 'Constants of elasticity',
+    list1: ["A. Young's modulus", 'B. Bulk modulus', 'C. Shear (rigidity) modulus', "D. Poisson's ratio"],
+    list2: ['p. connects stress with longitudinal strain', 'q. connects pressure with volume strain', 'r. connects tangential stress with the angle of shear', 's. ratio of lateral strain to longitudinal strain'] },
+  ms3: { title: 'Changing a loaded wire (same material and load)',
+    list1: ['A. The length is doubled: the extension', 'B. The radius is doubled: the extension', 'C. Length and radius are both doubled: the extension', 'D. The length is made 3 times and the radius $\\sqrt3$ times: the extension'],
+    list2: ['p. becomes 2 times', 'q. becomes $\\tfrac14$ times', 'r. becomes $\\tfrac12$ times', 's. is unchanged', 't. becomes 4 times'] },
+  ms4: { title: 'Energy stored in a loaded wire (same load $F$)',
+    list1: ['A. The length is doubled: the energy stored', 'B. The radius is doubled: the energy stored', 'C. Young\'s modulus is doubled: the energy stored', 'D. The load is doubled: the energy stored'],
+    list2: ['p. becomes 2 times', 'q. becomes $\\tfrac14$ times', 'r. becomes $\\tfrac12$ times', 's. becomes 4 times', 't. is unchanged'] },
+  ms5: { title: 'Points on a stress-strain curve of a ductile metal',
+    list1: ['A. Proportional limit', 'B. Yield point (elastic limit)', 'C. Ultimate tensile strength', 'D. Fracture point'],
+    list2: ['p. stress stops being proportional to strain', 'q. permanent deformation begins', 'r. greatest stress on the curve', 's. the wire breaks'] },
+  ms6: { title: 'A material with $Y = 2\\times10^{11}\\ \\mathrm{Pa}$ and $\\sigma = 0.25$',
+    list1: ['A. Shear modulus', 'B. Bulk modulus', 'C. Lateral strain when the longitudinal strain is $2\\times10^{-3}$ (magnitude)', 'D. Volume strain when the longitudinal strain is $2\\times10^{-3}$'],
+    list2: ['p. 80 GPa', 'q. 133 GPa', r`r. $5\times10^{-4}$`, r`s. $1\times10^{-3}$`, 't. 200 GPa'] },
+  ms7: { title: 'A steel rod and temperature change ($Y\\alpha = 2.4\\times10^{6}\\ \\mathrm{Pa\\,K^{-1}}$)',
+    list1: ['A. Held between rigid walls, heated by 10 K', 'B. Held between rigid walls, cooled by 10 K', 'C. Held between rigid walls, heated by 20 K', 'D. Free to expand and contract, heated by 10 K'],
+    list2: ['p. compressive stress 24 MPa', 'q. tensile stress 24 MPa', 'r. compressive stress 48 MPa', 's. no thermal stress'] },
+  ms8: { title: 'A uniform vertical rod hanging under its own weight (length $L$, density $\\rho$, area $A$)',
+    list1: ['A. Stress at the top', 'B. Stress at the middle', 'C. Total elongation', 'D. Elastic energy stored in the rod'],
+    list2: [r`p. $\rho gL$`, r`q. $\dfrac{\rho gL}{2}$`, r`r. $\dfrac{\rho gL^2}{2Y}$`, r`s. $\dfrac{\rho^2g^2AL^3}{6Y}$`, r`t. $\dfrac{\rho gL^2}{Y}$`] },
+  ps1: { title: 'A steel wire carrying a block',
+    passage: r`<p>A steel wire of length 2.0 m and diameter 1.0 mm hangs from a ceiling and carries a 10 kg block. For steel $Y = 2.0\times10^{11}\ \mathrm{N\,m^{-2}}$ and the breaking stress is $7.5\times10^{8}\ \mathrm{N\,m^{-2}}$. Take $g = 9.8\ \mathrm{m\,s^{-2}}$ and ignore the weight of the wire.</p>` },
+  ps2: { title: 'A rod heated between walls',
+    passage: r`<p>A steel rod 1.0 m long and of cross-section $4\ \mathrm{cm^2}$ is fitted exactly between two walls at 20 °C. For steel $Y = 2.0\times10^{11}\ \mathrm{N\,m^{-2}}$ and $\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$. The rod is heated to 70 °C.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xnat(2, 'extension of a wire', r`A steel wire of length 2 m and cross-section $1\ \mathrm{mm^2}$ carries a load of 98 N. Find its extension (in mm, 2 decimals; $Y = 2\times10^{11}\ \mathrm{N\,m^{-2}}$).`, 98 * 2 / (1e-6 * 2e11) * 1e3, 0.01, 2,
+    r`$\Delta L = \dfrac{FL}{AY} = \dfrac{98\times2}{10^{-6}\times2\times10^{11}} = 9.8\times10^{-4}$ m $= 0.98$ mm.`, { unit: 'mm' }),
+  xmcq(2, "Poisson's ratio", r`Poisson's ratio of a material is`, 'a pure number, with no unit', [r`measured in $\mathrm{N\,m^{-2}}$`, 'the ratio of stress to strain', 'always greater than 1'],
+    r`It is lateral strain divided by longitudinal strain: both are ratios of lengths, so it has no unit. For ordinary materials it lies between 0 and 0.5.`),
+  xnat(2, 'bulk modulus', r`A pressure increase of $2\times10^{7}\ \mathrm{Pa}$ reduces the volume of a liquid by 0.1 %. Find its bulk modulus (in GPa).`, 2e7 / 1e-3 / 1e9, 0, 0,
+    r`$B = \dfrac{\Delta P}{-\Delta V/V} = \dfrac{2\times10^{7}}{10^{-3}} = 2\times10^{10}$ Pa $= 20$ GPa.`, { unit: 'GPa' }),
+  xmcq(2, 'elasticity', r`Steel is more elastic than rubber because`, 'for the same strain steel develops a larger restoring stress', ['steel stretches more under the same load', 'rubber has a larger Young\'s modulus', 'steel can be stretched to a larger fraction of its length'],
+    r`Elasticity means the ability to resist deformation and regain shape: it is measured by $Y = \text{stress}/\text{strain}$. For the same strain steel needs far more stress, so $Y_{steel}\gg Y_{rubber}$.`, { trap: 'Rubber stretches more, but that makes it less stiff, not more elastic.' }),
+  xnat(2, 'elastic energy', r`A wire carries a stress of $2\times10^{8}\ \mathrm{N\,m^{-2}}$ and has a strain of $10^{-3}$. Find the elastic energy stored per unit volume (in $\mathrm{kJ\,m^{-3}}$).`, 0.5 * 2e8 * 1e-3 / 1e3, 0, 0,
+    r`$u = \tfrac12\times\text{stress}\times\text{strain} = \tfrac12\times2\times10^{8}\times10^{-3} = 10^{5}\ \mathrm{J\,m^{-3}} = 100\ \mathrm{kJ\,m^{-3}}$.`, { unit: 'kJ/m³' }),
+  xmcq(2, 'moduli', r`Which of these materials has a shear modulus of zero?`, 'A liquid', ['Steel', 'Rubber', 'Glass'],
+    r`Liquids and gases cannot resist a change of shape (they flow), so their modulus of rigidity is zero. They do have a bulk modulus.`),
+
+  // ---------- Level 3 ----------
+  xnat(3, "Poisson's ratio", r`A wire 2.0 mm in diameter is stretched so that its longitudinal strain is 0.002. Its Poisson's ratio is 0.3. Find the decrease in diameter (in $\mu$m, 1 decimal).`, 2e-3 * 0.3 * 0.002 * 1e6, 0.05, 1,
+    r`Lateral strain $= \sigma\times$ longitudinal strain $= 0.3\times0.002 = 6\times10^{-4}$. $\Delta d = 6\times10^{-4}\times2.0\ \mathrm{mm} = 1.2\times10^{-3}$ mm $= 1.2\ \mu$m.`, { unit: 'µm' }),
+  xnat(3, "Poisson's ratio", r`A wire is stretched by a strain of $10^{-3}$. Its Poisson's ratio is 0.25. Find the fractional increase in its volume (in units of $10^{-4}$).`, 1e-3 * (1 - 2 * 0.25) * 1e4, 0.01, 2,
+    r`$\dfrac{\Delta V}{V} = \varepsilon(1 - 2\sigma) = 10^{-3}\times(1 - 0.5) = 5\times10^{-4}$. A volume increase, since $\sigma < 0.5$.`, { trap: 'Both the length and the cross-section change.' }),
+  xnat(3, 'elastic energy', r`A wire is stretched by 2 mm by a load of 100 N, within the elastic limit. Find the energy stored in it (in J, 2 decimals).`, 0.5 * 100 * 2e-3, 0.005, 2,
+    r`$U = \tfrac12Fx = \tfrac12\times100\times2\times10^{-3} = 0.10$ J.`, { unit: 'J' }),
+  xnat(3, 'thermal stress', r`A steel rod is held between two rigid walls and heated by 50 K. Find the stress in it (in MPa). $Y = 2\times10^{11}\ \mathrm{Pa}$, $\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$.`, 2e11 * 1.2e-5 * 50 / 1e6, 0, 0,
+    r`The rod is not allowed to expand, so the strain is $\alpha\theta = 6\times10^{-4}$. $\sigma = Y\alpha\theta = 2\times10^{11}\times6\times10^{-4} = 1.2\times10^{8}$ Pa $= 120$ MPa (compressive).`, { unit: 'MPa', trap: 'The length does not matter.' }),
+  xnat(3, 'wires in parallel', r`A steel wire and a brass wire of equal length and cross-section carry a load together (they stretch equally). $Y_{steel} = 2\times10^{11}$, $Y_{brass} = 1\times10^{11}\ \mathrm{N\,m^{-2}}$. Find the ratio of the load on steel to that on brass.`, 2, 0, 0,
+    r`Equal extension $\Rightarrow$ equal strain, so stress $\propto Y$. Same area: $F\propto Y$. Ratio $= 2:1$.`),
+  xnat(3, 'breaking load', r`A wire of diameter 1.0 mm has a breaking stress of $7.5\times10^{8}\ \mathrm{N\,m^{-2}}$. Find the largest load it can carry (in N, nearest integer).`, XPI * (0.5e-3) ** 2 * 7.5e8, 1, 0,
+    r`$A = \pi r^2 = \pi\times(0.5\times10^{-3})^2 = 7.85\times10^{-7}\ \mathrm{m^2}$. $F_{max} = 7.5\times10^{8}\times7.85\times10^{-7} = 589$ N.`, { unit: 'N' }),
+  xnat(3, 'force constant of a wire', r`A steel wire 2 m long has cross-section $1\ \mathrm{mm^2}$ ($Y = 2\times10^{11}\ \mathrm{N\,m^{-2}}$). Find its force constant (in $\mathrm{N\,m^{-1}}$).`, 2e11 * 1e-6 / 2, 0, 0,
+    r`$F = \dfrac{YA}{L}\Delta L = k\,\Delta L$, so $k = \dfrac{YA}{L} = \dfrac{2\times10^{11}\times10^{-6}}{2} = 10^{5}\ \mathrm{N\,m^{-1}}$.`, { unit: 'N/m' }),
+  xnat(3, 'moduli relations', r`A material has $Y = 2\times10^{11}\ \mathrm{Pa}$ and Poisson's ratio 0.25. Find its shear modulus (in GPa).`, 2e11 / (2 * 1.25) / 1e9, 0, 0,
+    r`$Y = 2G(1 + \sigma)$, so $G = \dfrac{Y}{2(1 + \sigma)} = \dfrac{2\times10^{11}}{2.5} = 8\times10^{10}$ Pa $= 80$ GPa.`, { unit: 'GPa' }),
+  xnat(3, 'elastic energy', r`A wire is stretched 1 mm by a load. It is then stretched a further 1 mm (to 2 mm in all). Its force constant is $10^{5}\ \mathrm{N\,m^{-1}}$. Find the work done in the second stretch (in J, 2 decimals).`, 0.5 * 1e5 * (4e-6 - 1e-6), 0.005, 2,
+    r`$W = \tfrac12k(x_2^2 - x_1^2) = \tfrac12\times10^{5}\times(4 - 1)\times10^{-6} = 0.15$ J, three times the work of the first millimetre.`, { unit: 'J', trap: 'The second equal stretch costs more, not the same.' }),
+  xnat(3, 'wire under its own weight', r`Find the greatest length of a steel wire that can hang vertically without breaking under its own weight (in km, 2 decimals). Breaking stress $7.5\times10^{8}\ \mathrm{Pa}$, density $7800\ \mathrm{kg\,m^{-3}}$.`, 7.5e8 / (7800 * XG) / 1000, 0.02, 2,
+    r`At the top, the stress is $\rho gL$. Breaking: $L = \dfrac{\sigma_b}{\rho g} = \dfrac{7.5\times10^{8}}{7800\times9.8} = 9810$ m $= 9.81$ km.`, { unit: 'km' }),
+  xnat(3, 'bulk modulus', r`A solid steel sphere ($B = 1.6\times10^{11}\ \mathrm{Pa}$) sinks to the floor of an ocean 4.0 km deep (water density $1000\ \mathrm{kg\,m^{-3}}$). Find the fractional decrease in its volume (in units of $10^{-4}$, 2 decimals).`, 1000 * XG * 4000 / 1.6e11 * 1e4, 0.02, 2,
+    r`$P = \rho gh = 1000\times9.8\times4000 = 3.92\times10^{7}$ Pa. $\dfrac{\Delta V}{V} = \dfrac PB = \dfrac{3.92\times10^{7}}{1.6\times10^{11}} = 2.45\times10^{-4}$.`),
+  xnat(3, 'stress', r`A lift cable carries a lift of 500 kg that is accelerating upwards at $2\ \mathrm{m\,s^{-2}}$. The cable has a cross-section of $5\ \mathrm{cm^2}$. Find the stress in the cable (in MPa, 2 decimals). $g = 9.8\ \mathrm{m\,s^{-2}}$.`, 500 * (9.8 + 2) / 5e-4 / 1e6, 0.02, 2,
+    r`$T - mg = ma$, so $T = 500\times11.8 = 5900$ N. Stress $= \dfrac{5900}{5\times10^{-4}} = 1.18\times10^{7}$ Pa $= 11.80$ MPa.`, { unit: 'MPa' }),
+  xnat(3, 'shear', r`A tangential force of 1000 N is applied to the top face of a cube of side 10 cm, whose bottom face is fixed. The shear modulus is $4\times10^{10}\ \mathrm{Pa}$. Find the sideways displacement of the top face (in $\mu$m, 3 decimals).`, 1000 / (0.01 * 4e10) * 0.1 * 1e6, 0.002, 3,
+    r`Shear stress $= \dfrac{F}{A} = \dfrac{1000}{0.01} = 10^{5}$ Pa. Shear strain $= \dfrac{10^{5}}{4\times10^{10}} = 2.5\times10^{-6}$ rad. Displacement $= \text{strain}\times h = 2.5\times10^{-6}\times0.1 = 2.5\times10^{-7}$ m $= 0.250\ \mu$m.`, { unit: 'µm' }),
+  xnat(3, 'energy density', r`A wire is under a stress of $1.5\times10^{8}\ \mathrm{N\,m^{-2}}$ ($Y = 2\times10^{11}$). Find the elastic energy stored per unit volume (in $\mathrm{kJ\,m^{-3}}$, 2 decimals).`, (1.5e8) ** 2 / (2 * 2e11) / 1e3, 0.05, 2,
+    r`$u = \dfrac{\sigma^2}{2Y} = \dfrac{(1.5\times10^{8})^2}{2\times2\times10^{11}} = 5.625\times10^{4}\ \mathrm{J\,m^{-3}} = 56.25\ \mathrm{kJ\,m^{-3}}$.`, { unit: 'kJ/m³' }),
+  xnat(3, 'liquid compression', r`A liquid with $B = 2\times10^{9}\ \mathrm{Pa}$ fills a cylinder closed by a piston of area $10^{-3}\ \mathrm{m^2}$. Find the extra force on the piston needed to compress the liquid by 0.5 % (in N).`, 2e9 * 0.005 * 1e-3, 0, 0,
+    r`$\Delta P = B\dfrac{\Delta V}{V} = 2\times10^{9}\times0.005 = 10^{7}$ Pa. $F = \Delta P\times A = 10^{7}\times10^{-3} = 10^{4}$ N.`, { unit: 'N' }),
+  xmt(3, 'units', 'ms1', r`Match each quantity with its SI unit.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-t, B-q, C-r, D-s'],
+    r`Stress is force per area, Pa (p). Strain is a ratio, no unit (q). Energy per volume, $\mathrm{J\,m^{-3}}$, equals Pa dimensionally but is listed as (r). Compressibility is $1/B$: $\mathrm{Pa^{-1}}$ (s).`),
+  xmt(3, 'moduli', 'ms2', r`Match each constant with what it connects.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$Y$: stress vs longitudinal strain (p). $B$: pressure vs volume strain (q). $G$: tangential stress vs shear angle (r). $\sigma$: lateral to longitudinal strain (s).`),
+  xasrt(3, 'elasticity', r`The Young's modulus of a wire does not depend on its length or its thickness.`, r`Young's modulus is a property of the material, being the ratio of stress to strain.`, 0,
+    r`Both stress and strain are defined per unit area and per unit length, so geometry cancels. $Y$ is characteristic of the material. R explains A.`),
+  xstm(3, 'moduli', r`The bulk modulus of a gas is much smaller than that of a solid.`, r`Gases are easy to compress, so a given pressure change causes a large fractional change in volume.`, 0,
+    r`$B = \dfrac{\Delta P}{-\Delta V/V}$: a large $\Delta V/V$ means a small $B$. Both statements are true and II explains I.`),
+  xmcq(3, 'stress-strain curve', r`In the stress-strain curve of a ductile metal, the material is plastic between`, 'the elastic limit and the fracture point', ['the origin and the elastic limit', 'the proportional limit and the elastic limit only', 'the origin and the proportional limit'],
+    r`Up to the elastic limit the body regains its original shape. Beyond it, the deformation is permanent (plastic) until fracture.`),
+
+  // ---------- Level 4 ----------
+  xnat(4, 'thermal stress', r`A steel rod of cross-section $2\ \mathrm{cm^2}$ is held between rigid walls and heated by 40 K. Find the force it exerts on each wall (in N). $Y = 2\times10^{11}\ \mathrm{Pa}$, $\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$.`, 2e11 * 2e-4 * 1.2e-5 * 40, 0, 0,
+    r`$F = YA\alpha\theta = 2\times10^{11}\times2\times10^{-4}\times1.2\times10^{-5}\times40 = 19\,200$ N.`, { unit: 'N' }),
+  xnat(4, 'moduli relations', r`A material has $Y = 2\times10^{11}\ \mathrm{Pa}$ and Poisson's ratio 0.25. Find its bulk modulus (in GPa, 1 decimal).`, 2e11 / (3 * (1 - 0.5)) / 1e9, 0.1, 1,
+    r`$B = \dfrac{Y}{3(1 - 2\sigma)} = \dfrac{2\times10^{11}}{3\times0.5} = 1.333\times10^{11}$ Pa $= 133.3$ GPa.`, { unit: 'GPa' }),
+  xnat(4, 'oscillation of a load on a wire', r`A 2 kg mass hangs from a steel wire ($L = 1$ m, $A = 1\ \mathrm{mm^2}$, $Y = 2\times10^{11}$). It is pulled down slightly and released. Find the period of the vertical oscillation (in ms, 1 decimal).`, 2 * XPI * Math.sqrt(2 * 1 / (1e-6 * 2e11)) * 1e3, 0.2, 1,
+    r`The wire acts as a spring of constant $k = \dfrac{YA}{L} = 2\times10^{5}\ \mathrm{N\,m^{-1}}$. $T = 2\pi\sqrt{\dfrac mk} = 2\pi\sqrt{\dfrac{2}{2\times10^{5}}} = 2\pi\times3.16\times10^{-3} = 19.9$ ms.`, { unit: 'ms' }),
+  xnat(4, 'wire and buoyancy', r`A wire ($L = 2$ m, $A = 2\ \mathrm{mm^2}$, $Y = 2\times10^{11}\ \mathrm{Pa}$) holds a metal block of volume $10^{-3}\ \mathrm{m^3}$ and density $8000\ \mathrm{kg\,m^{-3}}$ completely under water. Find the extension of the wire (in mm, 3 decimals).`, (8000 * 1e-3 * XG - 1000 * 1e-3 * XG) * 2 / (2e-6 * 2e11) * 1e3, 0.003, 3,
+    r`Weight $= 8\times9.8 = 78.4$ N. Buoyancy $= 1000\times10^{-3}\times9.8 = 9.8$ N. Tension $= 68.6$ N. $\Delta L = \dfrac{TL}{AY} = \dfrac{68.6\times2}{2\times10^{-6}\times2\times10^{11}} = 3.43\times10^{-4}$ m $= 0.343$ mm.`, { unit: 'mm' }),
+  xnat(4, 'rotating rod', r`A steel rod 1.0 m long ($\rho = 7800\ \mathrm{kg\,m^{-3}}$) rotates in a horizontal plane about one end at $100\ \mathrm{rad\,s^{-1}}$. Find the largest tensile stress in it (in MPa).`, 7800 * 100 ** 2 * 1 / 2 / 1e6, 0.5, 0,
+    r`At distance $r$ from the axis the tension supplies the centripetal force for the part beyond it, giving $\sigma(r) = \dfrac{\rho\omega^2(L^2 - r^2)}{2}$. The greatest value is at the axis: $\dfrac{\rho\omega^2L^2}{2} = \dfrac{7800\times10^{4}\times1}{2} = 3.9\times10^{7}$ Pa $= 39$ MPa.`, { unit: 'MPa', trap: 'The stress varies along the rod; it is greatest at the pivot.' }),
+  xnat(4, 'cooling a stretched wire', r`A steel wire of cross-section $1\ \mathrm{mm^2}$ is just taut between two rigid supports at 40 °C. It is cooled to 10 °C. Find the tension in it (in N). $Y = 2\times10^{11}$, $\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$.`, 2e11 * 1e-6 * 1.2e-5 * 30, 0, 0,
+    r`The supports stop it from shortening: strain $= \alpha\theta = 1.2\times10^{-5}\times30 = 3.6\times10^{-4}$. $T = YA\times\text{strain} = 2\times10^{11}\times10^{-6}\times3.6\times10^{-4} = 72$ N.`, { unit: 'N' }),
+  xnat(4, 'torsion', r`A steel shaft 1.0 m long and 2.0 cm in radius carries a torque of 100 N m. Find the angle of twist (in milliradians, 2 decimals). $G = 8\times10^{10}\ \mathrm{Pa}$.`, 2 * 100 * 1 / (XPI * 8e10 * 0.02 ** 4) * 1e3, 0.03, 2,
+    r`The torque to twist a cylinder through $\theta$ is $\tau = \dfrac{\pi Gr^4}{2L}\theta$. $\theta = \dfrac{2\tau L}{\pi Gr^4} = \dfrac{2\times100\times1}{\pi\times8\times10^{10}\times(0.02)^4} = \dfrac{200}{4.02\times10^{4}} = 4.97\times10^{-3}$ rad $= 4.97$ mrad.`, { unit: 'mrad' }),
+  xnat(4, 'stress-strain graph', r`The stress-strain graph of a metal is a straight line from the origin to $(\varepsilon, \sigma) = (0.002, 2\times10^{8}\ \mathrm{Pa})$, after which the stress stays constant at $2\times10^{8}$ Pa until the strain reaches 0.1, where the wire breaks. Find the energy absorbed per unit volume up to breaking (in $\mathrm{MJ\,m^{-3}}$, 1 decimal).`, (0.5 * 2e8 * 0.002 + 2e8 * (0.1 - 0.002)) / 1e6, 0.1, 1,
+    r`Energy per volume is the area under the graph. Triangle: $\tfrac12\times0.002\times2\times10^{8} = 2\times10^{5}$ J/m³. Rectangle: $(0.1 - 0.002)\times2\times10^{8} = 1.96\times10^{7}$. Total $= 1.98\times10^{7}\ \mathrm{J\,m^{-3}} = 19.8\ \mathrm{MJ\,m^{-3}}$.`, { unit: 'MJ/m³' }),
+  xnat(4, 'wires in parallel', r`A load of 600 N hangs from two wires, both fixed at the ceiling and at the load, so that they stretch equally. Wire A: $Y = 2\times10^{11}$, $A = 1\ \mathrm{mm^2}$, $L = 1$ m. Wire B: $Y = 7\times10^{10}$, $A = 2\ \mathrm{mm^2}$, $L = 1.4$ m. Find the load carried by A (in N).`, 600 * (2e11 * 1e-6 / 1) / ((2e11 * 1e-6 / 1) + (7e10 * 2e-6 / 1.4)), 0, 0,
+    r`Equal extension means each carries $F = k\,x$ with $k = YA/L$. $k_A = \dfrac{2\times10^{11}\times10^{-6}}{1} = 2\times10^{5}$, $k_B = \dfrac{7\times10^{10}\times2\times10^{-6}}{1.4} = 10^{5}$. A takes $\dfrac{2}{3}$ of 600 N $= 400$ N.`, { unit: 'N' }),
+  xnat(4, 'thermal stress', r`A steel rod 1.0 m long is placed with a gap of 0.50 mm between its end and a rigid wall at 20 °C. It is heated by 100 K. Find the compressive stress that develops (in MPa; $\alpha = 1.2\times10^{-5}$, $Y = 2\times10^{11}$ SI).`, (1.2e-5 * 100 * 1 - 0.5e-3) / 1 * 2e11 / 1e6, 1, 0,
+    r`Free expansion $= 1.2\times10^{-5}\times100\times1.0 = 1.2$ mm. The gap takes 0.5 mm, so 0.7 mm must be absorbed by compression: strain $= 7\times10^{-4}$. $\sigma = Y\varepsilon = 2\times10^{11}\times7\times10^{-4} = 1.4\times10^{8}$ Pa $= 140$ MPa.`, { unit: 'MPa', trap: 'Only the expansion beyond the gap is resisted.' }),
+  xnat(4, 'rod fixed at both ends', r`A rod of length 1.0 m, cross-section $1\ \mathrm{cm^2}$ and $Y = 2\times10^{11}\ \mathrm{Pa}$ is fixed at both ends. A force of 1000 N is applied along its axis at its midpoint. Find the displacement of the midpoint (in $\mu$m, 2 decimals).`, 1000 / 2 * 0.5 / (1e-4 * 2e11) * 1e6, 0.02, 2,
+    r`The applied force splits equally into reactions of 500 N from each end (by symmetry). Each half (0.5 m) carries 500 N: $x = \dfrac{FL}{AY} = \dfrac{500\times0.5}{10^{-4}\times2\times10^{11}} = 1.25\times10^{-5}$ m $= 12.50\ \mu$m.`, { unit: 'µm', trap: 'Only half of the force acts on each half of the rod.' }),
+  xnat(4, 'elastic constants', r`The bulk modulus of a material is $1.2\times10^{11}\ \mathrm{Pa}$ and its shear modulus is $6\times10^{10}\ \mathrm{Pa}$. Using $Y = \dfrac{9BG}{3B + G}$, find its Young's modulus (in GPa, 1 decimal).`, 9 * 1.2e11 * 6e10 / (3 * 1.2e11 + 6e10) / 1e9, 0.2, 1,
+    r`$Y = \dfrac{9\times1.2\times10^{11}\times6\times10^{10}}{3.6\times10^{11} + 6\times10^{10}} = \dfrac{6.48\times10^{22}}{4.2\times10^{11}} = 1.543\times10^{11}$ Pa $= 154.3$ GPa.`, { unit: 'GPa' }),
+  xmsq(4, 'stress-strain curve', r`For a ductile metal, which are correct about its stress-strain curve?`, [r`Stress is proportional to strain up to the proportional limit.`, r`Beyond the elastic limit the wire does not fully regain its length when unloaded.`, r`The fracture stress can be less than the ultimate tensile stress.`, r`The slope of the straight part equals the bulk modulus.`], [0, 1, 2],
+    r`Hooke's law holds up to the proportional limit (A). Beyond the elastic limit the deformation is permanent (B). After necking the engineering stress falls before the wire breaks, so the breaking stress may be less than the ultimate one (C). The slope is Young's modulus, not the bulk modulus (D false).`),
+  xmsq(4, 'wire under its own weight', r`A uniform steel wire hangs from a ceiling under its own weight. Which are correct?`, [r`The stress is greatest at the top.`, r`The stress is zero at the free end.`, r`The extension of a small element is the same all along the wire.`, r`The total extension is $\dfrac{\rho gL^2}{2Y}$.`], [0, 1, 3],
+    r`At a distance $x$ from the bottom the stress is $\rho gx$: zero at the free end, greatest at the top (A, B). An element $dx$ stretches by $\dfrac{\rho gx}{Y}dx$, which grows with $x$ (C false). Total $= \int_0^L\dfrac{\rho gx}{Y}dx = \dfrac{\rho gL^2}{2Y}$ (D).`),
+  xmsq(4, 'thermal stress', r`A steel rod is clamped between two rigid walls at the same temperature and then heated. Which are correct?`, [r`A compressive stress develops in the rod.`, r`The stress does not depend on the length of the rod.`, r`The force on each wall is proportional to the cross-sectional area.`, r`The rod does not exert any force if its coefficient of expansion is small.`], [0, 1, 2],
+    r`$\sigma = Y\alpha\theta$ (A, B: no $L$). $F = \sigma A$ (C). However small $\alpha$ is, a non-zero $\alpha\theta$ gives a non-zero stress (D false).`),
+  xmsq(4, "Poisson's ratio", r`A wire is stretched within its elastic limit. Which are correct?`, [r`Its volume increases if Poisson's ratio is less than 0.5.`, r`Its volume stays constant if Poisson's ratio is 0.5.`, r`Its diameter increases.`, r`Its density decreases if Poisson's ratio is less than 0.5.`], [0, 1, 3],
+    r`$\dfrac{\Delta V}{V} = \varepsilon(1 - 2\sigma)$: positive for $\sigma < 0.5$ (A), zero at 0.5 (B). The diameter decreases (C false). Mass is the same and volume grows, so the density falls (D).`),
+  xmsq(4, 'elastic energy', r`Two wires of the same material, and the same load $F$: the first has length $L$ and radius $r$, the second $2L$ and $2r$. Which are correct?`, [r`The second wire's extension is half the first's.`, r`The energy stored in the second is $\tfrac12$ that of the first.`, r`The stress in the second is $\tfrac14$ that of the first.`, r`The energy stored per unit volume in the second is $\tfrac18$ that of the first.`], [0, 1, 2],
+    r`$x = \dfrac{FL}{\pi r^2Y}$: factor $\dfrac{2}{4} = \tfrac12$ (A). $U = \tfrac12Fx$: $\tfrac12$ (B). Stress $F/\pi r^2$: $\tfrac14$ (C). $u = \dfrac{\sigma^2}{2Y}$ falls as $\left(\tfrac14\right)^2 = \tfrac1{16}$, not $\tfrac18$ (D false).`),
+  xasrt(4, 'hysteresis', r`The energy lost as heat in one cycle of loading and unloading of a rubber band equals the area enclosed by its stress-strain loop.`, r`The unloading curve of rubber lies below the loading curve.`, 0,
+    r`Work done on loading is the area under the loading curve; work recovered on unloading is the smaller area under the unloading curve. The difference, the loop area, is dissipated as heat. R describes why the loop has area. Both true, R explains A.`),
+  xasrt(4, 'wire under its own weight', r`A long vertical wire is more likely to break near its upper end.`, r`The tension at the top of the wire is greater than anywhere else, while the cross-section is uniform.`, 0,
+    r`At a distance $x$ above the free end the stress is $\rho gx$, which is largest at the top, where the whole weight is held. R explains A.`),
+  xstm(4, 'thermal stress', r`For the same rise in temperature, a clamped steel rod ($Y = 2.0\times10^{11}$ Pa, $\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$) develops a greater stress than a clamped copper rod ($Y = 1.2\times10^{11}$ Pa, $\alpha = 1.7\times10^{-5}\ \mathrm{K^{-1}}$).`, r`The thermal stress of a clamped rod is $Y\alpha\theta$.`, 0,
+    r`II is the formula. Per kelvin, steel gives $2.0\times10^{11}\times1.2\times10^{-5} = 2.4\times10^{6}$ Pa and copper $1.2\times10^{11}\times1.7\times10^{-5} = 2.04\times10^{6}$ Pa. Steel is larger, so I is true too. Both are true.`),
+  xcnt(4, 'counting statements', r`How many of the following are correct?`, [r`The unit of Young's modulus is the same as that of pressure.`, r`The bulk modulus of a perfect gas under isothermal change equals its pressure.`, r`The shear modulus of a liquid is zero.`, r`The elastic energy per unit volume is $\tfrac12\times$ stress $\times$ strain.`], 4,
+    r`(1) both are $\mathrm{N\,m^{-2}}$. (2) $PV = $ const gives $B = P$. (3) liquids cannot sustain shear. (4) area under the stress-strain line. All four.`),
+  xmt(4, 'changing a wire', 'ms3', r`A wire of length $L$ and radius $r$ carries a load $F$. Match each change (other things fixed) with the effect on the extension.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$x = \dfrac{FL}{\pi r^2Y}\propto\dfrac{L}{r^2}$. (A) $2$ (p). (B) $\tfrac14$ (q). (C) $\dfrac{2}{4} = \tfrac12$ (r). (D) $\dfrac{3}{(\sqrt3)^2} = 1$ (s).`),
+  xmt(4, 'energy in a wire', 'ms4', r`A wire carries a load $F$; $U = \dfrac{F^2L}{2AY}$. Match each change with the effect on the stored energy.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`(A) $U\propto L$: 2 (p). (B) $U\propto1/A\propto1/r^2$: $\tfrac14$ (q). (C) $U\propto1/Y$: $\tfrac12$ (r). (D) $U\propto F^2$: 4 (s).`),
+  xmt(4, 'stress-strain curve', 'ms5', r`Match each point on the stress-strain graph of a ductile metal with its description.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`The proportional limit is where Hooke's law ends (p). The yield (elastic limit) is where permanent deformation begins (q). The ultimate tensile strength is the maximum stress (r). Fracture is where the wire breaks (s).`),
+  xmt(4, 'thermal stress', 'ms7', r`A steel rod with $Y\alpha = 2.4\times10^{6}\ \mathrm{Pa\,K^{-1}}$ is subjected to the following. Match each with the stress.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+    r`Clamped and heated: compressive $Y\alpha\theta = 2.4\times10^{6}\times10 = 24$ MPa (p). Clamped and cooled: tensile 24 MPa (q). Clamped, heated 20 K: compressive 48 MPa (r). Free: no stress (s).`),
+  xpas(3, 'stress', 'ps1', r`Find the stress in the wire (in MPa, 1 decimal).`, 10 * XG / (XPI * 0.5e-3 ** 2) / 1e6 * 1, 0.5, 1,
+    r`$A = \pi r^2 = \pi(0.5\times10^{-3})^2 = 7.85\times10^{-7}\ \mathrm{m^2}$. $F = mg = 98$ N. $\sigma = \dfrac{98}{7.85\times10^{-7}} = 1.248\times10^{8}$ Pa $= 124.8$ MPa.`, { unit: 'MPa' }),
+  xpas(3, 'extension', 'ps1', r`Find the extension of the wire (in mm, 2 decimals).`, 98 / (XPI * (0.5e-3) ** 2) * 2 / 2e11 * 1e3, 0.02, 2,
+    r`$\Delta L = \dfrac{\sigma L}{Y} = \dfrac{1.248\times10^{8}\times2}{2\times10^{11}} = 1.248\times10^{-3}$ m $= 1.25$ mm.`, { unit: 'mm' }),
+  xpas(5, 'lifting at the limit', 'ps1', r`The block is now pulled upwards with a constant acceleration so that the wire is just at the point of breaking. Find the acceleration (in $\mathrm{m\,s^{-2}}$, 1 decimal).`, 7.5e8 * XPI * (0.5e-3) ** 2 / 10 - XG, 0.3, 1,
+    r`Maximum tension $= 7.5\times10^{8}\times7.854\times10^{-7} = 589.0$ N. $T - mg = ma$, so $a = \dfrac{589.0}{10} - 9.8 = 49.1\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  xpas(3, 'thermal stress', 'ps2', r`Find the stress developed in the rod, assuming the walls do not move (in MPa).`, 2e11 * 1.2e-5 * 50 / 1e6, 0, 0,
+    r`Strain $= \alpha\theta = 1.2\times10^{-5}\times50 = 6\times10^{-4}$. $\sigma = Y\times\varepsilon = 1.2\times10^{8}$ Pa $= 120$ MPa.`, { unit: 'MPa' }),
+  xpas(4, 'force on the walls', 'ps2', r`Find the force the rod exerts on each wall (in kN).`, 1.2e8 * 4e-4 / 1e3, 0, 0,
+    r`$F = \sigma A = 1.2\times10^{8}\times4\times10^{-4} = 4.8\times10^{4}$ N $= 48$ kN.`, { unit: 'kN' }),
+  xpas(5, 'yielding walls', 'ps2', r`One of the walls moves back by 0.20 mm as the rod pushes on it. Find the new stress in the rod (in MPa).`, (1.2e-5 * 50 * 1 - 0.2e-3) / 1 * 2e11 / 1e6, 0, 0,
+    r`Free expansion $= \alpha\theta L = 6\times10^{-4}$ m $= 0.60$ mm. The wall yields 0.20 mm, leaving 0.40 mm to be absorbed: strain $= 4\times10^{-4}$. $\sigma = 2\times10^{11}\times4\times10^{-4} = 80$ MPa.`, { unit: 'MPa', trap: 'The wall is not rigid: only the leftover expansion is resisted.' }),
+
+  // ---------- Level 5 ----------
+  xnat(5, 'composite rod', r`A steel rod and a copper rod, each 0.50 m long and $1\ \mathrm{cm^2}$ in cross-section, are joined end to end and fitted between two rigid walls. The temperature rises by 50 K. Find the stress in the rods (in MPa, 1 decimal). Steel: $Y = 2.0\times10^{11}$, $\alpha = 1.2\times10^{-5}$. Copper: $Y = 1.2\times10^{11}$, $\alpha = 1.7\times10^{-5}$.`, (1.2e-5 + 1.7e-5) * 50 / (1 / 2e11 + 1 / 1.2e11) / 1e6, 0.2, 1,
+    r`Both carry the same force (they are in series), hence the same stress $\sigma$. Total free expansion $= (\alpha_sL + \alpha_cL)\theta$; compression $= \sigma L\left(\dfrac1{Y_s} + \dfrac1{Y_c}\right)$. These are equal: $\sigma = \dfrac{(\alpha_s + \alpha_c)\theta}{1/Y_s + 1/Y_c} = \dfrac{2.9\times10^{-5}\times50}{5\times10^{-12} + 8.33\times10^{-12}} = 1.0875\times10^{8}$ Pa $= 108.8$ MPa.`, { unit: 'MPa', trap: 'The walls fix the total length, not each rod separately.' }),
+  xnat(5, 'rotating ring', r`A thin steel ring of radius 0.50 m ($\rho = 7800\ \mathrm{kg\,m^{-3}}$) rotates in its own plane about its centre at $100\ \mathrm{rad\,s^{-1}}$. Find the tensile stress in the ring (in MPa, 1 decimal).`, 7800 * (100 * 0.5) ** 2 / 1e6, 0.1, 1,
+    r`Take a small piece of the ring subtending angle $d\theta$. Its mass is $\lambda R\,d\theta$ and it needs a centripetal force $\lambda R\,d\theta\,\omega^2R$. The two tensions $T$ at its ends supply a resultant $2T\sin\dfrac{d\theta}{2}\approx T\,d\theta$ towards the centre. So $T = \lambda\omega^2R^2 = \lambda v^2$ and the stress is $\dfrac{T}{A} = \rho v^2 = 7800\times(100\times0.5)^2 = 1.95\times10^{7}$ Pa $= 19.5$ MPa.`, { unit: 'MPa' }),
+  xnat(5, 'rotating rod', r`A steel rod of length 2.0 m rotates in a horizontal plane about one end at $300\ \mathrm{rad\,s^{-1}}$. Find the total elongation of the rod (in mm, 2 decimals). $\rho = 7800\ \mathrm{kg\,m^{-3}}$, $Y = 2\times10^{11}\ \mathrm{Pa}$.`, 7800 * 300 ** 2 * 8 / (3 * 2e11) * 1e3, 0.05, 2,
+    r`Tension at distance $r$: $T(r) = \dfrac{A\rho\omega^2(L^2 - r^2)}{2}$. Extension $= \int_0^L\dfrac{T}{AY}dr = \dfrac{\rho\omega^2}{2Y}\left(L^3 - \dfrac{L^3}{3}\right) = \dfrac{\rho\omega^2L^3}{3Y} = \dfrac{7800\times9\times10^{4}\times8}{6\times10^{11}} = 9.36\times10^{-3}$ m $= 9.36$ mm.`, { unit: 'mm' }),
+  xnat(5, 'tapered wire', r`A wire of length 2.0 m has a circular cross-section whose radius grows linearly from 1.0 mm at one end to 2.0 mm at the other. A load of 100 N pulls on it. Find its extension (in mm, 3 decimals). $Y = 2\times10^{11}\ \mathrm{Pa}$.`, 100 * 2 / (2e11 * XPI * 1e-6 * 2) * 1e3, 0.003, 3,
+    r`An element $dx$ at position $x$ stretches by $\dfrac{F\,dx}{\pi r(x)^2Y}$ with $r = r_0(1 + x/L)$ and $r_0 = 1$ mm. $\Delta L = \dfrac{F}{\pi Yr_0^2}\int_0^L\dfrac{dx}{(1 + x/L)^2} = \dfrac{FL}{\pi Yr_0^2}\left[1 - \dfrac12\right] = \dfrac{100\times2}{2\pi\times2\times10^{11}\times10^{-6}} = 1.59\times10^{-4}$ m $= 0.159$ mm.`, { unit: 'mm', trap: 'Using the average radius gives a different (wrong) answer.' }),
+  xnat(5, 'non-uniform modulus', r`A wire of length 2.0 m and cross-section $1\ \mathrm{mm^2}$ has a Young's modulus that increases linearly along its length: $Y = Y_0(1 + x/L)$ with $Y_0 = 1\times10^{11}\ \mathrm{Pa}$. A load of 100 N hangs from it (ignore its weight). Find the extension (in mm, 3 decimals).`, 100 * 2 / (1e-6 * 1e11) * Math.LN2 * 1e3, 0.003, 3,
+    r`$d(\Delta L) = \dfrac{F\,dx}{AY(x)}$. $\Delta L = \dfrac{F}{AY_0}\int_0^L\dfrac{dx}{1 + x/L} = \dfrac{FL}{AY_0}\ln2 = \dfrac{100\times2}{10^{-6}\times10^{11}}\times0.693 = 1.386\times10^{-3}$ m $= 1.386$ mm.`, { unit: 'mm' }),
+  xnat(5, 'energy in a hanging rod', r`A uniform steel rod 10 m long and $1\ \mathrm{mm^2}$ in cross-section hangs from its upper end. Find the elastic energy stored in it by its own weight (in $\mu$J, 2 decimals). $\rho = 7800$, $Y = 2\times10^{11}$ SI.`, 1e-6 * 7800 ** 2 * XG ** 2 * 1000 / (6 * 2e11) * 1e6, 0.03, 2,
+    r`At a distance $x$ from the free end, stress $= \rho gx$ and the energy density is $\dfrac{(\rho gx)^2}{2Y}$. $U = \int_0^LA\dfrac{\rho^2g^2x^2}{2Y}dx = \dfrac{A\rho^2g^2L^3}{6Y} = \dfrac{10^{-6}\times(7800)^2\times(9.8)^2\times1000}{1.2\times10^{12}} = 4.87\times10^{-6}$ J $= 4.87\ \mu$J.`, { unit: 'µJ' }),
+  xmsq(5, 'moduli', r`Which of these are correct for an isotropic solid, with $Y = 2G(1 + \sigma) = 3B(1 - 2\sigma)$?`, [r`$\sigma$ cannot exceed $0.5$ for a material with positive bulk modulus.`, r`If $\sigma = 0.5$ the material is incompressible.`, r`$G > Y/2$ whenever $\sigma > 0$.`, r`$B > Y/3$ whenever $\sigma > 0$.`], [0, 1, 3],
+    r`$B > 0$ requires $1 - 2\sigma > 0$, so $\sigma < 0.5$ (A). At 0.5, $B\to\infty$: incompressible (B). $G = \dfrac{Y}{2(1 + \sigma)}$ is less than $\dfrac Y2$ for $\sigma > 0$, so C is false. $B = \dfrac{Y}{3(1 - 2\sigma)} > \dfrac Y3$ for $\sigma > 0$ (D).`),
+  xmsq(5, 'sudden loading', r`A load $W$ is attached to a wire of force constant $k$ and released from rest when the wire is just taut (unstretched). Which are correct?`, [r`The maximum extension is $\dfrac{2W}{k}$.`, r`The equilibrium extension is $\dfrac Wk$.`, r`The maximum tension is $W$.`, r`The work done by gravity up to the maximum extension equals the elastic energy stored then.`], [0, 1, 3],
+    r`Energy: $Wx = \tfrac12kx^2$ gives $x = 2W/k$ (A, D), twice the equilibrium extension $W/k$ (B). The maximum tension is $kx = 2W$, not $W$ (C false). (Beyond the elastic limit the wire would be permanently stretched or break.)`),
+  xmsq(5, 'hysteresis', r`A rubber band is loaded and then unloaded. Which are correct?`, [r`The loading and unloading curves differ.`, r`The area of the loop equals the energy dissipated per unit volume per cycle.`, r`Rubber returns exactly to its original length immediately after unloading from a large strain.`, r`Rubber obeys Hooke's law up to large strains.`], [0, 1],
+    r`Hysteresis means the curves differ, with the loop area as dissipated energy density (A, B). The elastic after-effect means the original length is recovered only after some time (C false). Rubber is not linear; its stress-strain curve is a curve (D false).`),
+  xmt(5, 'moduli of a material', 'ms6', r`A solid has $Y = 2\times10^{11}$ Pa and Poisson's ratio 0.25. Match each quantity with its value.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-t, B-q, C-r, D-s'],
+    r`$G = \dfrac{Y}{2(1 + \sigma)} = 80$ GPa (p). $B = \dfrac{Y}{3(1 - 2\sigma)} = 133$ GPa (q). Lateral strain $= \sigma\varepsilon = 0.25\times2\times10^{-3} = 5\times10^{-4}$ (r). Volume strain $= \varepsilon(1 - 2\sigma) = 1\times10^{-3}$ (s).`),
+  xmt(5, 'a rod hanging under its weight', 'ms8', r`Match each item for a uniform rod hanging from its upper end.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-q, C-t, D-s'],
+    r`At a distance $x$ from the free end the stress is $\rho gx$: at the top $\rho gL$ (p), at the middle $\dfrac{\rho gL}{2}$ (q). Extension $\int\dfrac{\rho gx}{Y}dx = \dfrac{\rho gL^2}{2Y}$ (r). Energy $\int\dfrac{(\rho gx)^2}{2Y}A\,dx = \dfrac{\rho^2g^2AL^3}{6Y}$ (s). Option t is twice the correct elongation.`),
+
+];
+
+xitems.push(
+  xmsq(5, 'wires in series', r`Two wires of the same material are joined end to end and carry a load $F$. Wire A has twice the radius of wire B. Which are correct?`, [r`Both wires carry the same force $F$.`, r`Both wires have the same stress.`, r`The total extension is the sum of the two extensions.`, r`The effective force constant satisfies $\dfrac1k = \dfrac1{k_A} + \dfrac1{k_B}$.`], [0, 2, 3],
+    r`In series the same tension runs through both (A). The stress is $F/A$, so wire B (thinner) has 4 times the stress of A (B false). Extensions add (C), and the springs combine like capacitors in series (D).`),
+  xmsq(5, 'torsion', r`A solid cylindrical rod of length $L$, radius $r$ and shear modulus $G$ is twisted through angle $\theta$ about its axis. Which are correct?`, [r`The restoring torque is proportional to $\theta$.`, r`The torsional constant is proportional to $r^4$.`, r`The torsional constant is proportional to $1/L$.`, r`The torsional constant is proportional to $r^2$.`], [0, 1, 2],
+    r`$\tau = \dfrac{\pi Gr^4}{2L}\theta$: linear in $\theta$ (A), $\propto r^4$ (B), $\propto1/L$ (C), not $r^2$ (D false).`),
+);
+
+const xgens = [
+  xg('se-g23', 3, 'nat', 'extension of a wire', function make(rng) {
+    const L = pick(rng, 1, 4, 0.5); const d = pick(rng, 0.5, 2, 0.25); const m = pick(rng, 5, 40, 5); const Y = choose(rng, [2, 1.1, 0.7]);
+    const x = 4 * m * 9.8 * L / (XPI * (d * 1e-3) ** 2 * Y * 1e11) * 1e3;
+    return { L, d, m, Y, q: `A wire ${L} m long and ${d} mm in diameter ($Y = ${Y}\\times10^{11}\\ \\mathrm{N\\,m^{-2}}$) carries a ${m} kg load. Find its extension (in mm, 3 decimals; $g = 9.8$).`, answer: +x.toFixed(3), tol: Math.max(0.003, x * 0.005), unit: 'mm',
+      sol: `$A = \\pi d^2/4 = ${xs(XPI * (d * 1e-3) ** 2 / 4)}\\ \\mathrm{m^2}$, $F = ${m}\\times9.8 = ${xs(m * 9.8)}$ N. $\\Delta L = \\dfrac{FL}{AY} = ${xs(x)}$ mm.`, trap: 'Use the diameter to find the area: A = πd²/4, not πd².' };
+  }, (p) => { const A = XPI * (p.d * 1e-3) ** 2 / 4; return (p.m * 9.8 / A) / (p.Y * 1e11) * p.L * 1e3; }),
+  xg('se-g24', 3, 'mcq', 'changing a wire', function make(rng) {
+    const a = choose(rng, [2, 3, 4]); const b = choose(rng, [1, 2, 3]);
+    const ratio = a / (b * b);
+    const o = numOpts(rng, ratio, [a * b * b, a / b, a * b], '', 3);
+    return { a, b, q: `A wire carries a load. Its length is multiplied by ${a} and its radius by ${b} (same material, same load). The extension is multiplied by`, options: o.options, answer: o.answer,
+      sol: `$x = \\dfrac{FL}{\\pi r^2Y}\\propto\\dfrac{L}{r^2}$, so the factor is $\\dfrac{${a}}{${b}^2} = ${xs(ratio, 4)}$. Options with $r$ instead of $r^2$, or $r^2$ in the numerator, are the common slips.` };
+  }, (p) => p.options.findIndex((o) => o === fmt(p.a / (p.b * p.b), 3))),
+  xg('se-g25', 4, 'nat', 'thermal stress', function make(rng) {
+    const al = choose(rng, [1.2, 1.7, 2.3]); const Yv = choose(rng, [2.0, 1.2, 0.7]); const th = pick(rng, 20, 80, 10);
+    const s = Yv * 1e11 * al * 1e-5 * th / 1e6;
+    return { al, Yv, th, q: `A rod ($Y = ${Yv}\\times10^{11}$ Pa, $\\alpha = ${al}\\times10^{-5}\\ \\mathrm{K^{-1}}$) is clamped between rigid walls and its temperature rises by ${th} K. Find the compressive stress (in MPa, 1 decimal).`, answer: +s.toFixed(1), tol: 0.2, unit: 'MPa',
+      sol: `The strain that is prevented is $\\alpha\\theta = ${xs(al * 1e-5 * th, 4)}$. $\\sigma = Y\\alpha\\theta = ${Yv}\\times10^{11}\\times${xs(al * 1e-5 * th, 4)} = ${xs(s)}$ MPa.`, trap: 'The length of the rod does not enter.' };
+  }, (p) => { const L = 1; const free = p.al * 1e-5 * p.th * L; return (free / L) * p.Yv * 1e5; }),
+  xg('se-g26', 4, 'nat', 'wires in parallel', function make(rng) {
+    const F = pick(rng, 200, 800, 100); const kA = choose(rng, [1, 2, 3]); const kB = choose(rng, [1, 2, 4]);
+    const LA = 1; const AA = kA; const LB = choose(rng, [1, 2]); const AB = kB * LB;
+    const sh = F * (AA / LA) / (AA / LA + AB / LB);
+    return { F, AA, AB, LA, LB, q: `A load of ${F} N hangs from two wires of the same material that stretch equally. Wire A has length ${LA} m and cross-section ${AA} $\\mathrm{mm^2}$; wire B has length ${LB} m and cross-section ${AB} $\\mathrm{mm^2}$. Find the load on A (in N, 1 decimal).`, answer: +sh.toFixed(1), tol: 0.2, unit: 'N',
+      sol: `Equal extension: $F = k\\,x$ with $k\\propto A/L$. $k_A\\propto${xs(AA / LA, 4)}$, $k_B\\propto${xs(AB / LB, 4)}$. A takes $\\dfrac{${xs(AA / LA, 4)}}{${xs(AA / LA + AB / LB, 4)}}\\times${F} = ${xs(sh)}$ N.`, trap: 'The load divides in proportion to A/L (the stiffness), not equally.' };
+  }, (p) => { const x = p.F / (p.AA / p.LA + p.AB / p.LB); return x * p.AA / p.LA; }),
+  xg('se-g27', 4, 'nat', 'elastic energy', function make(rng) {
+    const F = pick(rng, 50, 300, 50); const L = pick(rng, 1, 3, 0.5); const A = pick(rng, 1, 4, 1); const Y = choose(rng, [2, 1]);
+    const U = F * F * L / (2 * A * 1e-6 * Y * 1e11) * 1e3;
+    return { F, L, A, Y, q: `A wire ${L} m long, cross-section ${A} $\\mathrm{mm^2}$ ($Y = ${Y}\\times10^{11}\\ \\mathrm{Pa}$), carries a load ${F} N within its elastic limit. Find the energy stored (in mJ, 2 decimals).`, answer: +U.toFixed(2), tol: Math.max(0.02, U * 0.01), unit: 'mJ',
+      sol: `$x = \\dfrac{FL}{AY} = ${xs(F * L / (A * 1e-6 * Y * 1e11) * 1e3)}$ mm. $U = \\tfrac12Fx = \\tfrac12\\times${F}\\times${xs(F * L / (A * 1e-6 * Y * 1e11), 4)} = ${xs(U)}$ mJ.`, trap: 'Half of F times x, not F times x.' };
+  }, (p) => { const A = p.A * 1e-6; const vol = A * p.L; const sig = p.F / A; return sig * sig / (2 * p.Y * 1e11) * vol * 1e3; }),
+  xg('se-g28', 5, 'nat', 'rotating rod', function make(rng) {
+    const L = pick(rng, 0.5, 2, 0.5); const w = pick(rng, 100, 400, 50); const rho = choose(rng, [7800, 2700, 8900]); const Y = choose(rng, [2.0, 0.7, 1.2]);
+    const e = rho * w * w * L ** 3 / (3 * Y * 1e11) * 1e3;
+    return { L, w, rho, Y, q: `A uniform rod ${L} m long ($\\rho = ${rho}\\ \\mathrm{kg\\,m^{-3}}$, $Y = ${Y}\\times10^{11}$ Pa) rotates in a horizontal plane about one end at ${w} $\\mathrm{rad\\,s^{-1}}$. Find its total elongation (in mm, 4 decimals).`, answer: +e.toFixed(4), tol: Math.max(0.0005, e * 0.005), unit: 'mm',
+      sol: `$T(r)/A = \\dfrac{\\rho\\omega^2(L^2 - r^2)}{2}$. Elongation $= \\int_0^L\\dfrac{\\rho\\omega^2(L^2 - r^2)}{2Y}dr = \\dfrac{\\rho\\omega^2L^3}{3Y} = ${xs(e)}$ mm.`, trap: 'The factor is 1/3, from integrating (L² − r²)/2.' };
+  }, (p) => { let s = 0; const n = 20000; for (let i = 0; i < n; i++) { const r = (i + 0.5) * p.L / n; s += p.rho * p.w ** 2 * (p.L ** 2 - r ** 2) / 2 / (p.Y * 1e11) * p.L / n; } return s * 1e3; }),
+  xg('se-g29', 4, 'nat', 'bulk modulus', function make(rng) {
+    const h = pick(rng, 1, 8, 1); const B = choose(rng, [2.2e9, 1.6e11, 1.4e11]); const Bs = B === 2.2e9 ? '2.2\\times10^{9}' : B === 1.6e11 ? '1.6\\times10^{11}' : '1.4\\times10^{11}';
+    const dv = 1025 * 9.8 * h * 1e3 / B * 100;
+    return { h, B, q: `A body of bulk modulus $${Bs}$ Pa is lowered ${h} km into the sea (density 1025 $\\mathrm{kg\\,m^{-3}}$; ignore the atmosphere). Find the percentage decrease in its volume (3 decimals).`, answer: +dv.toFixed(3), tol: Math.max(0.002, dv * 0.005),
+      sol: `$P = \\rho gh = 1025\\times9.8\\times${h * 1000} = ${xs(1025 * 9.8 * h * 1000)}$ Pa. $\\dfrac{\\Delta V}{V} = \\dfrac PB = ${xs(dv / 100, 4)}$, i.e. ${xs(dv)} %.`, trap: 'Convert km to m before using ρgh.' };
+  }, (p) => 100 * (1025 * 9.8 * p.h * 1000) / p.B),
+  xg('se-g30', 5, 'nat', 'tapered wire', function make(rng) {
+    const kk = choose(rng, [2, 3, 4]); const F = pick(rng, 50, 300, 50); const L = pick(rng, 1, 3, 1); const r0 = choose(rng, [0.5, 1.0]);
+    const ex = F * L / (2e11 * XPI * (r0 * 1e-3) ** 2 * kk) * 1e3;
+    return { kk, F, L, r0, q: `A wire of length ${L} m has a circular cross-section whose radius grows linearly from ${r0} mm at one end to ${xs(r0 * kk)} mm at the other. A load of ${F} N pulls on it ($Y = 2\\times10^{11}$ Pa). Find its extension (in mm, 4 decimals).`, answer: +ex.toFixed(4), tol: Math.max(0.0004, ex * 0.005), unit: 'mm',
+      sol: `$\\Delta L = \\int_0^L\\dfrac{F\\,dx}{\\pi Y r(x)^2}$ with $r = r_0\\left(1 + (${kk} - 1)\\dfrac xL\\right)$. The integral of $\\dfrac{dx}{r^2}$ is $\\dfrac{L}{r_0^2\\times${kk}}$, so $\\Delta L = \\dfrac{FL}{\\pi Yr_0^2\\times${kk}} = ${xs(ex)}$ mm.`, trap: 'Do not use the mean radius.' };
+  }, (p) => { let s = 0; const n = 20000; for (let i = 0; i < n; i++) { const x = (i + 0.5) / n; const r = p.r0 * 1e-3 * (1 + (p.kk - 1) * x); s += p.F * (p.L / n) / (XPI * r * r * 2e11); } return s * 1e3; }),
+  xg('se-g31', 3, 'mcq', 'wire under its own weight', function make(rng) {
+    const rho = choose(rng, [2700, 7800, 8900]); const sb = choose(rng, [1.0, 2.5, 4.0, 7.5]) * 1e8;
+    const Lm = sb / (rho * 9.8);
+    const o = numOpts(rng, Lm / 1000, [Lm / 2000, Lm / 500, Lm / 98], 'km', 3);
+    return { rho, sb, q: `A uniform wire of density ${rho} $\\mathrm{kg\\,m^{-3}}$ and breaking stress $${xs(sb / 1e8)}\\times10^{8}$ Pa hangs from its upper end. The greatest length that does not break under its own weight is (take $g = 9.8$)`, options: o.options, answer: o.answer,
+      sol: `At the top the stress is $\\rho gL$. $L = \\dfrac{\\sigma_b}{\\rho g} = \\dfrac{${xs(sb / 1e8)}\\times10^{8}}{${rho}\\times9.8} = ${xs(Lm / 1000)}$ km. Half of this comes from wrongly averaging the stress over the length.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt(p.sb / (p.rho * 9.8) / 1000, 3)} km`)),
+];
+
+export default { topic: 'solids-elasticity', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

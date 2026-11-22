@@ -486,4 +486,316 @@ const gens = [
     verify: (p) => (p.M * 9.8 * (p.b / 2)) / p.h },
 ];
 
+{ // ===== extension block (added 2026-11-22): harder items, new formats and templates =====
+const r = String.raw;
+const CUET = false; const PFX = 'rm'; const GN = 15;
+const F = (x, s = 3) => String(+Number(x).toPrecision(s));
+const XEB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xe = (l, type) => (CUET && type === 'mcq' && l <= 3 ? [...XEB[l], 'cuet'] : XEB[l]);
+let xk = 0; let xc = 0;
+const xb = (l, sub, o) => ({ id: `${PFX}-x${String(++xk).padStart(3, '0')}`, level: l, sub, ...o, exams: xe(l, o.type) });
+const m = (l, sub, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o }); };
+const n = (l, sub, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol, ...o }); };
+const s = (l, sub, q, options, answer, sol, o = {}) => xb(l, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const AO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const a = (l, sub, A, R, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AO, answer, sol, ...o });
+const SO = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const t = (l, sub, I, II, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SO, answer, sol, ...o });
+// "how many of these are correct": list = 4 statements, k = how many are correct (1-4)
+const cn = (l, sub, q, list, k, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((x, i) => `(${['i', 'ii', 'iii', 'iv'][i]}) ${x}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: k - 1, sol, ...o });
+// match item: letters = correct List II letter for A, B, C, D, e.g. ['q','r','p','s']
+const mt = (l, sub, group, letters, sol, o = {}) => {
+  const code = (L) => L.map((x, i) => `${'ABCD'[i]}-${x}`).join(', ');
+  const right = code(letters); const wr = [];
+  for (const [i, j] of [[0, 1], [1, 2], [2, 3], [0, 3], [0, 2], [1, 3]]) { const L = [...letters]; [L[i], L[j]] = [L[j], L[i]]; const c = code(L); if (c !== right && !wr.includes(c)) wr.push(c); }
+  const pos = (xc++ * 3 + 2) % 4; const options = wr.slice(0, 3); options.splice(pos, 0, right);
+  return xb(l, sub, { type: 'mcq', format: 'match', q: 'Match the entries of List I with List II and choose the correct code.', group, options, answer: pos, sol, ...o });
+};
+const pn = (l, sub, group, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: 'passage', group, q, answer, tol, calc: () => answer, sol, ...o }); };
+const pm = (l, sub, group, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'passage', group, q, options, answer: pos, sol, ...o }); };
+let xg = GN;
+const gx = (l, type, sub, make, verify) => ({ id: `${PFX}-g${String(++xg).padStart(2, '0')}`, type, level: l, exams: xe(l, type), sub, make, verify });
+const NG = {};
+Object.assign(groups, {
+  xm1: { title: 'Share of kinetic energy that is rotational',
+    list1: ['A. Ring rolling without slipping', 'B. Solid cylinder rolling without slipping', 'C. Solid sphere rolling without slipping', 'D. Hollow sphere rolling without slipping'],
+    list2: [r`p. $\tfrac13$`, r`q. $\tfrac27$`, r`r. $\tfrac12$`, r`s. $\tfrac25$`, r`t. $\tfrac37$`] },
+  xm2: { title: 'Moments of inertia about unusual axes',
+    list1: ['A. Thin rod (length $L$), axis through one end, perpendicular to the rod', 'B. Thin ring, axis along a diameter', 'C. Thin disc, axis along a tangent in its plane', 'D. Solid sphere, axis along a tangent'],
+    list2: [r`p. $\tfrac75MR^2$`, r`q. $\tfrac13ML^2$`, r`r. $\tfrac54MR^2$`, r`s. $\tfrac12MR^2$`, r`t. $\tfrac32MR^2$`] },
+  xm3: { title: 'Dimensions of rotational quantities',
+    list1: ['A. Torque', 'B. Angular momentum', 'C. Moment of inertia', 'D. Angular acceleration'],
+    list2: [r`p. $\mathrm{ML^2T^{-1}}$`, r`q. $\mathrm{T^{-2}}$`, r`r. $\mathrm{ML^2}$`, r`s. $\mathrm{ML^2T^{-2}}$`] },
+  xm4: { title: 'A uniform rod of mass $M$ and length $L$: moment of inertia about a perpendicular axis',
+    list1: ['A. Axis through the centre', 'B. Axis through one end', r`C. Axis at $L/4$ from the centre`, r`D. Axis at $L/6$ from the centre`],
+    list2: [r`p. $\tfrac19ML^2$`, r`q. $\tfrac7{48}ML^2$`, r`r. $\tfrac1{12}ML^2$`, r`s. $\tfrac13ML^2$`, r`t. $\tfrac16ML^2$`] },
+  xm5: { title: 'Rolling down a $37^\\circ$ incline ($\\sin37^\\circ=0.6$, $g=10\\ \\mathrm{m\\,s^{-2}}$)',
+    list1: ['A. Ring', 'B. Solid cylinder', 'C. Solid sphere', 'D. Hollow sphere'],
+    list2: [r`p. $3.0\ \mathrm{m\,s^{-2}}$`, r`q. $3.6\ \mathrm{m\,s^{-2}}$`, r`r. $4.0\ \mathrm{m\,s^{-2}}$`, r`s. $4.3\ \mathrm{m\,s^{-2}}$`, r`t. $5.0\ \mathrm{m\,s^{-2}}$`] },
+  xm6: { title: 'Speeds in a wheel rolling without slipping (centre speed $v$)',
+    list1: ['A. Centre of the wheel', 'B. Top of the wheel', 'C. Point of contact with the ground', 'D. Rim point level with the centre'],
+    list2: [r`p. $0$`, r`q. $v$`, r`r. $\sqrt2\,v$`, r`s. $2v$`] },
+  xm7: { title: 'Projectile: angular momentum and torque about the point of projection',
+    list1: ['A. Angular momentum at the instant of projection', 'B. Angular momentum at the highest point', 'C. Angular momentum at landing', 'D. Torque of gravity at time $t$'],
+    list2: [r`p. $0$`, r`q. $\dfrac{mu^3\sin^2\theta\cos\theta}{2g}$`, r`r. $\dfrac{2mu^3\sin^2\theta\cos\theta}{g}$`, r`s. $mgut\cos\theta$`, r`t. $\dfrac{mu^3\sin\theta\cos^2\theta}{g}$`] },
+  xm8: { title: 'A uniform rod (length $L$) hinged at one end, released from the horizontal: when it is vertical',
+    list1: ['A. Angular speed', 'B. Speed of the free end', 'C. Angular acceleration', 'D. Speed of the centre of mass'],
+    list2: [r`p. $\sqrt{3gL}$`, r`q. $0$`, r`r. $\tfrac12\sqrt{3gL}$`, r`s. $\sqrt{3g/L}$`] },
+  xp1: { title: 'Beads sliding on a spinning rod',
+    passage: r`<p>A uniform rod of mass 2 kg and length 3 m spins freely in a horizontal plane about a vertical axis through its centre at $6\ \mathrm{rad\,s^{-1}}$. Two small beads of mass 0.5 kg each sit at the centre, one on each side. They are nudged and slide outward along the smooth rod until they reach its ends. Treat the beads as point masses.</p>` },
+  xp2: { title: 'Blocks over a heavy pulley',
+    passage: r`<p>Blocks of mass 5 kg and 3 kg hang from a light string passing over a pulley, which is a uniform disc of mass 4 kg and radius 0.2 m. The string does not slip on the pulley. Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
+});
+
+items.push(
+  // ---------- Level 2 ----------
+  m(2, 'moment of inertia', r`A uniform rod of mass 3 kg and length 2 m is turned about an axis through one end, perpendicular to the rod. Its moment of inertia is`, r`$4\ \mathrm{kg\,m^2}$`, [r`$1\ \mathrm{kg\,m^2}$`, r`$2\ \mathrm{kg\,m^2}$`, r`$6\ \mathrm{kg\,m^2}$`],
+    r`About one end, $I = \tfrac13ML^2 = \tfrac13\times3\times4 = 4\ \mathrm{kg\,m^2}$. The value $\tfrac1{12}ML^2 = 1$ is for the axis through the centre. The other two options come from wrong fractions.`),
+  n(2, 'angular kinematics', r`A torque of 6 N m acts on a wheel of moment of inertia $2\ \mathrm{kg\,m^2}$, starting from rest. How long (in s) does it take to reach $12\ \mathrm{rad\,s^{-1}}$?`, () => 12 / (6 / 2), 0, 0,
+    r`$\alpha = \tau/I = 3\ \mathrm{rad\,s^{-2}}$. From $\omega = \alpha t$: $t = 12/3 = 4$ s.`, { unit: 's' }),
+  m(2, 'rolling', r`A ring and a solid disc of the same mass and radius are released together from the top of a rough incline and roll without slipping. Which reaches the bottom first?`, 'The disc, because a smaller share of its energy goes into spinning', ['The ring, because it has the larger moment of inertia', 'Both together, because mass and radius are equal', 'The ring, because friction acts on it for longer'],
+    r`For rolling, $a = \dfrac{g\sin\theta}{1+I/MR^2}$. The ring has $I/MR^2 = 1$ and the disc has $\tfrac12$, so the disc has the larger acceleration and wins. Mass and radius cancel, so equality of those does not make the times equal.`),
+  m(2, 'angular momentum', r`A 2 kg particle moves in a straight line at $3\ \mathrm{m\,s^{-1}}$. The line passes at a perpendicular distance of 4 m from a point O. Its angular momentum about O is`, r`$24\ \mathrm{kg\,m^2\,s^{-1}}$`, [r`$6\ \mathrm{kg\,m^2\,s^{-1}}$`, r`$12\ \mathrm{kg\,m^2\,s^{-1}}$`, r`$8\ \mathrm{kg\,m^2\,s^{-1}}$`],
+    r`$L = mv\,d = 2\times3\times4 = 24\ \mathrm{kg\,m^2\,s^{-1}}$, where $d$ is the perpendicular distance from O to the line of motion.`),
+  n(2, 'rotational energy', r`A flywheel of moment of inertia $0.4\ \mathrm{kg\,m^2}$ is slowed by a brake from $50$ to $30\ \mathrm{rad\,s^{-1}}$. How much work (in J) does the brake do on it (magnitude)?`, () => 0.5 * 0.4 * (2500 - 900), 0, 0,
+    r`Work done $=$ change in kinetic energy $= \tfrac12I(\omega_1^2-\omega_2^2) = \tfrac12\times0.4\times(2500-900) = 320$ J.`, { unit: 'J' }),
+  m(2, 'rolling', r`A solid sphere rolls without slipping on a horizontal floor. The fraction of its total kinetic energy that is rotational is`, r`$\tfrac27$`, [r`$\tfrac25$`, r`$\tfrac57$`, r`$\tfrac12$`],
+    r`$K_{rot} = \tfrac12\cdot\tfrac25MR^2\omega^2 = \tfrac15Mv^2$ and $K_{trans} = \tfrac12Mv^2$. Total $= \tfrac7{10}Mv^2$. Fraction $= \tfrac15\big/\tfrac7{10} = \tfrac27$. The value $\tfrac25$ is $I/MR^2$, not the energy fraction.`),
+  mt(2, 'dimensions', 'xm3', ['s', 'p', 'r', 'q'], r`Torque is force times distance, $\mathrm{ML^2T^{-2}}$ (s). Angular momentum $I\omega$ is $\mathrm{ML^2T^{-1}}$ (p). Moment of inertia is $\mathrm{ML^2}$ (r). Angular acceleration is rad s<sup>-2</sup>, $\mathrm{T^{-2}}$ (q). So A-s, B-p, C-r, D-q.`),
+  // ---------- Level 3 ----------
+  m(3, 'moment of inertia', r`A uniform square plate of mass $M$ and side $a$ has $I = \dfrac{Ma^2}{12}$ about an axis in its plane through the centre parallel to a side. Its moment of inertia about a diagonal is`, r`$\dfrac{Ma^2}{12}$`, [r`$\dfrac{Ma^2}{6}$`, r`$\dfrac{Ma^2}{3}$`, r`$\dfrac{Ma^2}{24}$`],
+    r`By symmetry (the square turned through $45^\circ$ looks the same), every axis in the plane through the centre has the same $I$. The diagonal is such an axis, so $I = \dfrac{Ma^2}{12}$. The value $\dfrac{Ma^2}{6}$ is for the axis perpendicular to the plate (perpendicular-axis theorem).`, { trap: 'Do not confuse the in-plane diagonal with the perpendicular axis.' }),
+  n(3, 'rolling', r`A solid cylinder of mass 10 kg rolls without slipping at $3\ \mathrm{m\,s^{-1}}$. Find its total kinetic energy (in J).`, () => 0.75 * 10 * 9, 0.1, 1,
+    r`$K = \tfrac12Mv^2 + \tfrac12\left(\tfrac12MR^2\right)\left(\dfrac vR\right)^2 = \tfrac34Mv^2 = 0.75\times10\times9 = 67.5$ J.`, { unit: 'J' }),
+  m(3, 'angular momentum conservation', r`A uniform horizontal turntable (disc) of mass 20 kg and radius 1 m spins freely at $2\ \mathrm{rad\,s^{-1}}$. A boy of mass 40 kg steps gently on to its rim from the ground, at rest. Find the new angular speed.`, r`$0.4\ \mathrm{rad\,s^{-1}}$`, [r`$0.5\ \mathrm{rad\,s^{-1}}$`, r`$0.8\ \mathrm{rad\,s^{-1}}$`, r`$1.0\ \mathrm{rad\,s^{-1}}$`],
+    r`No external torque about the axis, so $I_1\omega_1 = I_2\omega_2$. $I_1 = \tfrac12\times20\times1 = 10$, $I_2 = 10 + 40\times1^2 = 50$. $\omega_2 = 10\times2/50 = 0.4\ \mathrm{rad\,s^{-1}}$. The value 0.5 forgets the turntable's own $I$.`),
+  n(3, 'pulley', r`A 2 kg block hangs from a string wound on a uniform disc pulley of mass 4 kg that turns freely about its axis. Find the acceleration of the block (in $\mathrm{m\,s^{-2}}$, $g=10$).`, () => 2 * 10 / (2 + 4 / 2), 0, 0,
+    r`Block: $mg - T = ma$. Pulley: $TR = \tfrac12MR^2\cdot\dfrac aR \Rightarrow T = \tfrac12Ma$. So $a = \dfrac{mg}{m + M/2} = \dfrac{20}{2+2} = 5\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  m(3, 'rolling up an incline', r`A solid sphere rolls without slipping up a rough incline with a speed of $10\ \mathrm{m\,s^{-1}}$ at the bottom. To what vertical height does it rise before stopping ($g = 10\ \mathrm{m\,s^{-2}}$)?`, r`$7\ \mathrm{m}$`, [r`$5\ \mathrm{m}$`, r`$3.5\ \mathrm{m}$`, r`$10\ \mathrm{m}$`],
+    r`Energy: $\tfrac12mv^2\left(1+\tfrac25\right) = mgh$, so $h = \dfrac{7v^2}{10g} = \dfrac{7\times100}{100} = 7$ m. The value $v^2/2g = 5$ m would be for a sliding block.`),
+  n(3, 'parallel axis theorem', r`A uniform rod of mass 2 kg and length 1.5 m is pivoted at a point 0.5 m from one end, the axis being perpendicular to the rod. Find its moment of inertia about the pivot (in $\mathrm{kg\,m^2}$, 3 decimals).`, () => 2 * 1.5 ** 2 / 12 + 2 * 0.25 ** 2, 0.002, 3,
+    r`The pivot is $0.75 - 0.5 = 0.25$ m from the centre. $I = \dfrac{ML^2}{12} + Md^2 = \dfrac{2\times2.25}{12} + 2\times0.0625 = 0.375+0.125 = 0.500\ \mathrm{kg\,m^2}$.`, { unit: 'kg m²' }),
+  n(3, 'torque as a vector', r`A force $\vec F = (3\hat i + 4\hat j)$ N acts at the point $(2\hat i - \hat j)$ m. Find the $z$-component of its torque about the origin (in N m).`, () => 2 * 4 - (-1) * 3, 0, 0,
+    r`$\tau_z = xF_y - yF_x = 2\times4 - (-1)\times3 = 8+3 = 11$ N m. The sign of $y$ matters.`, { unit: 'N m', trap: 'The point has a negative $y$, which adds to the torque.' }),
+  n(3, 'rolling down an incline', r`A solid cylinder is released from rest on a rough incline with $\sin\theta = 0.6$ and rolls without slipping. How long (in s) does it take to travel 8 m along the incline ($g=10$)?`, () => Math.sqrt(2 * 8 / (10 * 0.6 / 1.5)), 0, 0,
+    r`$a = \dfrac{g\sin\theta}{1+\tfrac12} = \dfrac{6}{1.5} = 4\ \mathrm{m\,s^{-2}}$. $s = \tfrac12at^2 \Rightarrow t = \sqrt{16/4} = 2$ s.`, { unit: 's' }),
+  n(3, 'angular momentum conservation', r`Disc 1 (moment of inertia $2\ \mathrm{kg\,m^2}$) spins at $6\ \mathrm{rad\,s^{-1}}$. It is pressed against disc 2 (moment of inertia $4\ \mathrm{kg\,m^2}$, at rest, same axis) until they spin together. How much kinetic energy (in J) is lost?`, () => 36 - 12, 0, 0,
+    r`$\omega = \dfrac{2\times6}{2+4} = 2\ \mathrm{rad\,s^{-1}}$. $K_i = \tfrac12\times2\times36 = 36$ J, $K_f = \tfrac12\times6\times4 = 12$ J. Lost $= 24$ J (as heat in the friction between the discs).`, { unit: 'J' }),
+  m(3, 'rolling friction', r`A horizontal force $F$ is applied at the centre of a uniform solid cylinder lying on a rough floor, and the cylinder rolls without slipping. The force of friction on it is`, r`$F/3$, opposite to $F$`, [r`$F/3$, in the direction of $F$`, r`$F/2$, opposite to $F$`, 'zero, because the cylinder rolls without slipping'],
+    r`Let friction $f$ act backward. $F - f = Ma$ and the torque about the centre gives $fR = \tfrac12MR^2\cdot\dfrac aR$, so $f = \tfrac12Ma$. Then $F = \tfrac32Ma$, so $a = \dfrac{2F}{3M}$ and $f = \dfrac F3$ (positive, so it does act backward). Rolling without slipping does not mean friction is zero.`, { trap: 'Static friction can be non-zero in pure rolling when the body accelerates.' }),
+  mt(3, 'rolling', 'xm1', ['r', 'p', 'q', 's'], r`The rotational share is $\dfrac{k}{1+k}$ with $k = I/MR^2$. Ring: $k=1$, share $\tfrac12$ (r). Solid cylinder: $k=\tfrac12$, share $\tfrac13$ (p). Solid sphere: $k=\tfrac25$, share $\tfrac27$ (q). Hollow sphere: $k=\tfrac23$, share $\tfrac25$ (s). The entry $\tfrac37$ is not used.`),
+  mt(3, 'moment of inertia', 'xm2', ['q', 's', 'r', 'p'], r`Rod about an end: $\tfrac13ML^2$ (q). Ring about a diameter: $\tfrac12MR^2$ (s). Disc about a tangent in its plane: $\tfrac14MR^2 + MR^2 = \tfrac54MR^2$ (r). Solid sphere about a tangent: $\tfrac25MR^2 + MR^2 = \tfrac75MR^2$ (p). The entry $\tfrac32MR^2$ (t) would be a ring about an in-plane tangent, which is not in List I.`),
+  mt(3, 'rolling', 'xm6', ['q', 's', 'p', 'r'], r`Rolling is a turning about the contact point at angular speed $\omega = v/R$. Centre: $v$ (q). Top: $2R\omega = 2v$ (s). Contact point: 0 (p). A rim point level with the centre is at distance $\sqrt2R$ from the contact point: $\sqrt2\,v$ (r).`),
+  a(3, 'rolling', 'The top point of a wheel rolling without slipping moves at twice the speed of its centre.', 'The top point has the velocity $v$ of the centre plus the velocity $\\omega R = v$ due to spin, both in the same direction.', 0,
+    r`Both statements are true. Velocity of a point $=$ (velocity of centre) $+$ ($\omega\times$ position from the centre). At the top the spin part is also forward and equal to $v$, so the speed is $2v$. R explains A.`),
+  a(3, 'rolling', 'A hollow cylinder takes longer than a solid cylinder to roll down the same rough incline.', 'The hollow cylinder has a larger moment of inertia per unit $MR^2$, so a larger share of its energy is rotational.', 0,
+    r`$a = \dfrac{g\sin\theta}{1+k}$ with $k = 1$ (hollow) or $\tfrac12$ (solid). The hollow one has the smaller $a$ and takes longer. R correctly explains why.`),
+  t(3, 'angular momentum', 'A particle moving in a straight line at constant velocity has constant angular momentum about every fixed point.', 'The net force on it is zero, so its torque about any point is zero.', 0,
+    r`With no net force there is no torque about any point, and $\dfrac{d\vec L}{dt} = \vec\tau = 0$. So $\vec L = \vec r\times m\vec v$ is constant (as $\vec r$ changes along the line, its perpendicular part stays the same). Both true, and II explains I.`),
+  t(3, 'couple', 'A couple can change the angular momentum of a body without changing the motion of its centre of mass.', 'The net force of a couple is zero, but its torque is not.', 0,
+    r`A couple is two equal and opposite forces along different lines. Net force zero means $\vec a_{cm} = 0$, and the torque is $Fd \ne 0$, so $\vec L$ changes. Both true, II explains I.`),
+  cn(3, 'moment of inertia', 'How many of the following are correct?', ['The moment of inertia of a body depends on the axis chosen.', 'About a diameter, a hollow sphere has a larger moment of inertia than a solid sphere of the same mass and radius.', 'Two bodies of the same mass with the same moment of inertia about an axis must have the same shape.', 'Among all parallel axes, the one through the centre of mass gives the least moment of inertia.'], 3,
+    r`(i) True: $I = \sum mr^2$ depends on the distances from the axis. (ii) True: $\tfrac23MR^2 > \tfrac25MR^2$. (iii) False: a rod and a ring can be chosen with equal $I$. (iv) True: $I = I_{cm} + Md^2$. Three are correct.`),
+  m(3, 'moment of inertia', r`Four particles of mass $m$ each sit at the corners of a square of side $a$. The moment of inertia of the system about an axis along one diagonal is`, r`$ma^2$`, [r`$2ma^2$`, r`$4ma^2$`, r`$\tfrac12ma^2$`],
+    r`Two particles lie on the diagonal (distance 0). The other two are at $a/\sqrt2$ from it. $I = 2\times m\times\dfrac{a^2}{2} = ma^2$.`, { trap: 'Particles on the axis contribute nothing.' }),
+  n(3, 'rolling', r`A wheel of radius 0.5 m rolls without slipping at $4\ \mathrm{m\,s^{-1}}$. Find the speed of the rim point that is at the same height as the centre (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, () => 4 * Math.SQRT2, 0.01, 2,
+    r`The velocity is $v$ forward (translation) plus $v$ upward (spin) at that point. Speed $= \sqrt{v^2+v^2} = 4\sqrt2 = 5.66\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  n(3, 'mixed: angular momentum and orbits', r`A satellite in an elliptical orbit is 7000 km from the Earth's centre at its nearest point, moving at $8\ \mathrm{km\,s^{-1}}$. At its farthest point, 14000 km from the centre, how fast (in km/s) is it moving?`, () => 7000 * 8 / 14000, 0, 0,
+    r`Gravity is a central force, so angular momentum about the Earth's centre is conserved. At the extreme points the velocity is perpendicular to the radius: $r_1v_1 = r_2v_2$. $v_2 = \dfrac{7000\times8}{14000} = 4\ \mathrm{km\,s^{-1}}$.`, { unit: 'km/s' }),
+  n(3, 'angular momentum conservation', r`A man on a turntable holds dumbbells with his arms out, so that the system has $I = 5\ \mathrm{kg\,m^2}$ and spins at $2\ \mathrm{rad\,s^{-1}}$. He pulls the dumbbells in and $I$ falls to $2\ \mathrm{kg\,m^2}$. How much work (in J) does he do?`, () => 0.5 * 2 * 25 - 0.5 * 5 * 4, 0, 0,
+    r`$\omega_2 = 5\times2/2 = 5\ \mathrm{rad\,s^{-1}}$. Work $= \Delta K = \tfrac12(2)(25) - \tfrac12(5)(4) = 25 - 10 = 15$ J. Angular momentum is conserved but kinetic energy is not.`, { unit: 'J' }),
+  // ---------- Level 4 ----------
+  n(4, 'rod hinged at an end', r`A uniform rod of mass 4 kg and length $L$ is hinged at one end and released from the horizontal position. Just after release, what is the upward force (in N) the hinge exerts on it ($g=10$)?`, () => 4 * 10 / 4, 0, 0,
+    r`$I = \tfrac13ML^2$, so $\alpha = \dfrac{Mg\,L/2}{ML^2/3} = \dfrac{3g}{2L}$. The centre of mass accelerates downward at $\alpha\dfrac L2 = \dfrac{3g}{4}$. $Mg - N = M\cdot\dfrac{3g}{4}$, so $N = \dfrac{Mg}{4} = 10$ N.`, { unit: 'N', trap: 'The hinge carries only a quarter of the weight at the instant of release.' }),
+  n(4, 'billiard ball', r`A billiard ball of radius 7.5 cm, initially at rest on a rough table, is struck by a horizontal cue stroke along a line in the vertical plane through its centre. How high (in cm) above the centre must the line of the stroke be so that the ball starts rolling without slipping at once?`, () => 2 * 7.5 / 5, 0, 0,
+    r`Impulse $J$ at height $h$ above the centre: $v = J/m$ and $\omega = \dfrac{Jh}{\tfrac25mR^2}$. Rolling needs $v = \omega R$: $1 = \dfrac{hR}{\tfrac25R^2} \Rightarrow h = \dfrac{2R}{5} = 3$ cm.`, { unit: 'cm' }),
+  m(4, 'moment of inertia', r`A thin hollow sphere of mass $M$ and radius $R$ is turned about a tangent. Its moment of inertia is`, r`$\tfrac53MR^2$`, [r`$\tfrac75MR^2$`, r`$\tfrac32MR^2$`, r`$\tfrac23MR^2$`],
+    r`$I_{cm} = \tfrac23MR^2$ about a diameter. Parallel axes: $I = \tfrac23MR^2 + MR^2 = \tfrac53MR^2$. $\tfrac75$ is the solid sphere, $\tfrac32$ the ring about an in-plane tangent.`),
+  n(4, 'equilibrium', r`A uniform ladder of length 5 m and weight 100 N rests against a smooth vertical wall, its foot on rough ground 3 m from the wall. A man of weight 500 N stands 3.5 m up along the ladder. Find the push of the wall on the ladder (in N).`, () => (100 * 1.5 + 500 * 3.5 * 0.6) / 4, 0, 0,
+    r`Take torques about the foot. The ladder reaches a height of 4 m. Horizontal distance of the weights from the foot: $\tfrac52\times0.6 = 1.5$ m (ladder) and $3.5\times0.6 = 2.1$ m (man). $N_w\times4 = 100\times1.5 + 500\times2.1 = 1200$. $N_w = 300$ N.`, { unit: 'N' }),
+  n(4, 'rolling up an incline', r`A solid cylinder rolls without slipping up a rough $30^\circ$ incline, with a speed of $6\ \mathrm{m\,s^{-1}}$ at the bottom. How far (in m) along the incline does it travel before stopping ($g=10$)?`, () => 0.75 * 36 / 10 / 0.5, 0.01, 2,
+    r`$\tfrac34v^2 = gh \Rightarrow h = \dfrac{0.75\times36}{10} = 2.7$ m. Distance along the incline $= h/\sin30^\circ = 5.4$ m.`, { unit: 'm' }),
+  m(4, 'angular momentum', r`A particle of mass $m$ moves in a horizontal circle of radius $R$ at speed $v$. About a point on the axis at height $h$ above the plane of the circle, the component of its angular momentum along the axis is`, r`$mvR$`, [r`$mv\sqrt{R^2+h^2}$`, r`$mvh$`, r`$mvR\,\dfrac{h}{\sqrt{R^2+h^2}}$`],
+    r`$\vec L = \vec r\times m\vec v$ with $\vec r = (R\cos\phi,\ R\sin\phi,\ h)$ and $\vec v$ tangential. The axial ($z$) component is $m(xv_y - yv_x) = mvR$, whatever $h$ is. The magnitude $mv\sqrt{R^2+h^2}$ is larger, but its extra part is perpendicular to the axis and turns round with the particle.`, { trap: 'The question asks for the axial component, not the magnitude of $\\vec L$.' }),
+  n(4, 'moment of inertia of a body with a hole', r`A uniform disc of radius 1 m has a circular hole of radius 0.5 m cut out, the centre of the hole being 0.5 m from the centre of the disc. The remaining mass is 12 kg. Find its moment of inertia about the axis through the disc's centre, perpendicular to its plane (in $\mathrm{kg\,m^2}$).`, () => 0.5 * 16 * 1 - (0.5 * 4 * 0.25 + 4 * 0.25), 0.01, 2,
+    r`The hole's area is a quarter of the disc's, so the full disc would have mass 16 kg and the hole 4 kg. $I_{full} = \tfrac12\times16\times1 = 8$. $I_{hole} = \tfrac12\times4\times0.25 + 4\times0.5^2 = 0.5+1 = 1.5$. $I = 8 - 1.5 = 6.5\ \mathrm{kg\,m^2}$.`, { unit: 'kg m²' }),
+  n(4, 'torque as a vector', r`A force $\vec F = (2\hat i - \hat j + 4\hat k)$ N acts at $\vec r = (\hat i + 2\hat j + 3\hat k)$ m. Find $|\vec\tau|^2$ about the origin (in $\mathrm{N^2\,m^2}$).`, () => 11 ** 2 + 2 ** 2 + 5 ** 2, 0, 0,
+    r`$\vec\tau = \vec r\times\vec F = (2\cdot4 - 3(-1),\ 3\cdot2 - 1\cdot4,\ 1(-1) - 2\cdot2) = (11,\ 2,\ -5)$. $|\vec\tau|^2 = 121+4+25 = 150$.`),
+  s(4, 'rod hinged at an end', r`A uniform rod of length $L$ and mass $M$ is hinged at one end and released from rest in the horizontal position. When it passes through the vertical, which of these are correct?`,
+    [r`The speed of the free end is $\sqrt{3gL}$.`, 'Its angular acceleration is zero.', r`The hinge force is $\tfrac52Mg$ upward.`, r`The hinge also exerts a horizontal force of $Mg/2$.`], [0, 1, 2],
+    r`$\tfrac12\cdot\tfrac13ML^2\omega^2 = Mg\dfrac L2 \Rightarrow \omega^2 = \dfrac{3g}{L}$, so the end speed is $\omega L = \sqrt{3gL}$ (A true). Gravity's torque about the hinge is zero in the vertical position, so $\alpha=0$ (B true). With $\alpha = 0$ the centre has no tangential (horizontal) acceleration, so the horizontal hinge force is 0 (D false). $N - Mg = M\omega^2\dfrac L2 = \tfrac32Mg$, $N = \tfrac52Mg$ (C true).`),
+  s(4, 'theorems', r`Which of the following statements are correct?`,
+    ['The perpendicular-axis theorem holds only for planar (flat) bodies.', 'In the parallel-axis theorem, one of the two parallel axes must pass through the centre of mass.', r`For any solid body, $I_x + I_y = I_z$ for three perpendicular axes through a point.`, r`A thin ring has $I = \tfrac12MR^2$ about a diameter.`], [0, 1, 3],
+    r`(A) The theorem relies on all the mass lying in one plane ($z=0$). (B) $I = I_{cm}+Md^2$ needs the centre-of-mass axis. (C) False: for a solid body $I_x+I_y+I_z = 2\int r^2\,dm$, not $I_z$ alone. (D) Ring: $I_z = MR^2$ and $I_x = I_y$, so each is $\tfrac12MR^2$.`),
+  s(4, 'rolling', r`A wheel rolls without slipping on a horizontal road. Which statements are correct?`,
+    ['The acceleration of the contact point is zero.', 'The velocity of the contact point is zero.', r`The kinetic energy is $\tfrac12I_P\omega^2$, where $I_P$ is the moment of inertia about the contact point.`, 'Static friction does no net work on the wheel.'], [1, 2, 3],
+    r`(A) False: for a wheel rolling at constant speed, the contact point has an acceleration $v^2/R$ pointing up towards the centre. (B) True: no slipping. (C) True: the motion is instantaneously a pure rotation about the contact point. (D) True: the point of application is at rest, so the friction does no work (it only moves energy between the translation and spin).`, { trap: 'Zero velocity of the contact point does not mean zero acceleration.' }),
+  s(4, 'rolling with slipping', r`A uniform disc of radius $R$ is placed on a rough floor with its centre at rest and spinning at $\omega_0$ in the sense that would make it roll forward. The coefficient of friction is $\mu$. Which are correct?`,
+    ['Kinetic friction on the disc acts forward.', r`Rolling without slipping begins after a time $\omega_0R/(\mu g)$.`, r`The final speed of the centre is $\omega_0R/3$.`, 'The angular momentum about a point on the floor is conserved.'], [0, 2, 3],
+    r`Friction acts to remove the slipping: the contact point moves backward on the floor, so friction is forward (A true). $a = \mu g$ and $\alpha = \dfrac{\mu mgR}{\tfrac12mR^2} = \dfrac{2\mu g}{R}$. Rolling when $\mu gt = \omega_0R - 2\mu gt$, so $t = \dfrac{\omega_0R}{3\mu g}$ (B false) and $v = \dfrac{\omega_0R}{3}$ (C true). Friction's torque about a floor point is zero (it acts along the floor, at that point), and gravity and the normal force balance, so $L$ about it is conserved (D true).`),
+  mt(4, 'moment of inertia', 'xm4', ['r', 's', 'q', 'p'], r`$I = \tfrac1{12}ML^2 + Md^2$. $d=0$: $\tfrac1{12}$ (r). $d = L/2$: $\tfrac1{12}+\tfrac14 = \tfrac13$ (s). $d = L/4$: $\tfrac1{12}+\tfrac1{16} = \tfrac7{48}$ (q). $d = L/6$: $\tfrac1{12}+\tfrac1{36} = \tfrac19$ (p).`),
+  mt(4, 'rolling down an incline', 'xm5', ['p', 'r', 's', 'q'], r`$a = \dfrac{g\sin\theta}{1+k} = \dfrac{6}{1+k}$. Ring ($k=1$): 3.0 (p). Solid cylinder ($k=\tfrac12$): 4.0 (r). Solid sphere ($k=\tfrac25$): $6/1.4 = 4.29$ (s). Hollow sphere ($k=\tfrac23$): $6/(5/3) = 3.6$ (q).`),
+  mt(4, 'rod hinged at an end', 'xm8', ['s', 'p', 'q', 'r'], r`Energy: $\tfrac12\cdot\tfrac13ML^2\omega^2 = \tfrac12MgL$, so $\omega = \sqrt{3g/L}$ (s). Free end: $\omega L = \sqrt{3gL}$ (p). The torque of gravity about the hinge is zero in the vertical position, so $\alpha = 0$ (q). Centre: $\omega L/2 = \tfrac12\sqrt{3gL}$ (r).`),
+  a(4, 'work by friction', 'Static friction does no net work on a solid sphere rolling without slipping down an incline.', 'The point of the sphere that touches the incline is instantaneously at rest.', 0,
+    r`Work done by a force is $\vec F\cdot\vec v$ at its point of application. Friction acts at the contact point, whose velocity is zero, so its power is zero. (It reduces the growth of translational energy and adds equally to the rotational energy.) Both true, R explains A.`),
+  a(4, 'angular momentum', 'A rigid body rotating about a fixed axis can have an angular momentum vector that is not parallel to the axis.', r`$\vec L = I\vec\omega$ holds for every rigid body and every axis of rotation.`, 2,
+    r`A is true: for a body that is not symmetric about the axis (for example a dumbbell fixed obliquely on a spindle), $\vec L$ has a component perpendicular to the axis, which swings round. R is false: $\vec L = I\vec\omega$ with a single number $I$ holds only when the axis is a principal axis (such as a symmetry axis). So A is true and R is false.`, { trap: 'The component of $\\vec L$ along the axis is $I\\omega$ always; the full vector need not be along the axis.' }),
+  t(4, 'rolling race', 'A solid sphere and a ring of the same mass and radius are released from the top of the same rough incline. At the bottom, the sphere has the larger kinetic energy.', 'Both lose the same gravitational potential energy while rolling without slipping.', 3,
+    r`Both lose $mgh$ of potential energy and friction does no net work, so they both have kinetic energy $mgh$ at the bottom. I is false. II is true. The sphere is only faster.`),
+  cn(4, 'angular momentum', 'How many of the following are correct?', ['The angular momentum of a planet about the Sun is conserved.', 'The angular momentum of a particle depends on the point about which it is measured.', r`For a rigid body rotating about a fixed axis, $\vec L$ is always parallel to $\vec\omega$.`, 'If the net external force on a system is zero, its net external torque must also be zero.'], 2,
+    r`(i) True: gravity is a central force, so its torque about the Sun is zero. (ii) True: $\vec r$ is measured from the chosen point. (iii) False: not for a body that is unsymmetrical about the axis. (iv) False: a couple has zero net force but a torque. Two are correct.`),
+  m(4, 'impulse on a hinged rod', r`A uniform rod of length $L$ hangs vertically from a smooth hinge at its top. A horizontal impulse is given at a distance $x$ below the hinge. For the hinge to receive no impulse, $x$ must be`, r`$\dfrac{2L}{3}$`, [r`$\dfrac L2$`, r`$\dfrac{3L}{4}$`, r`$L$`],
+    r`Impulse $J$ at $x$: $J = Mv_{cm}$ (no hinge impulse) and $Jx = I\omega = \tfrac13ML^2\omega$ with $v_{cm} = \omega L/2$. So $Mv_{cm}x = \tfrac13ML^2\cdot\dfrac{2v_{cm}}{L}$, giving $x = \tfrac23L$ (the centre of percussion).`),
+  n(4, 'smooth and rough incline', r`A solid sphere rolls without slipping on a horizontal floor at $7\ \mathrm{m\,s^{-1}}$ and then goes up a smooth incline (no friction) to height $h_1$. A second identical sphere with the same speed goes up a rough incline, rolling, to height $h_2$. Find $h_2 - h_1$ (in m, $g=10$).`, () => 7 * 49 / 100 - 49 / 20, 0.01, 2,
+    r`Smooth: the spin stays constant, so only the translational energy is used: $h_1 = \dfrac{v^2}{2g} = 2.45$ m. Rough: $h_2 = \dfrac{7v^2}{10g} = 3.43$ m. Difference $= 0.98$ m.`, { unit: 'm', trap: 'On the smooth incline the spin does not change.' }),
+  // ---------- Level 5 ----------
+  n(5, 'impulse on a free rod', r`A uniform rod of length 1.2 m lies on a smooth horizontal table. A sharp blow is given perpendicular to the rod at 0.3 m from its centre. At the instant after the blow, how far (in m) from the centre, on the opposite side of the centre, is the point of the rod that is at rest?`, () => 1.2 ** 2 / (12 * 0.3), 0.005, 3,
+    r`$v_{cm} = J/M$ and $\omega = \dfrac{Jx}{ML^2/12}$. A point at distance $d$ on the other side has velocity $v_{cm} - \omega d = 0$. $d = \dfrac{v_{cm}}{\omega} = \dfrac{L^2}{12x} = \dfrac{1.44}{3.6} = 0.4$ m.`, { unit: 'm', trap: 'The rest point lies on the side opposite to the blow.' }),
+  n(5, 'collision with a rod', r`A uniform rod of mass 2 kg and length 1.2 m lies on a smooth table. A 0.5 kg lump of clay moving at $8\ \mathrm{m\,s^{-1}}$ perpendicular to the rod hits one end and sticks. Find the angular speed (in $\mathrm{rad\,s^{-1}}$) of the combination just after.`, () => {
+    const M = 2; const mm = 0.5; const L = 1.2; const v = 8; const d = mm * (L / 2) / (M + mm); const I = M * L * L / 12 + M * d * d + mm * (L / 2 - d) ** 2; return mm * v * (L / 2 - d) / I; }, 0, 0,
+    r`The centre of mass of the system is $d = \dfrac{0.5\times0.6}{2.5} = 0.12$ m from the rod's centre towards the clay. About that point, $L = 0.5\times8\times(0.6-0.12) = 1.92$ (the rod has no momentum). $I = \dfrac{2\times1.44}{12} + 2(0.12)^2 + 0.5(0.48)^2 = 0.24+0.0288+0.1152 = 0.384$. $\omega = 1.92/0.384 = 5\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s', trap: 'Take angular momentum about the new centre of mass, not about the old centre of the rod.' }),
+  n(5, 'toppling over a step', r`A wheel of mass 50 kg and radius 0.5 m is pulled over a step 0.1 m high by a horizontal force at its centre, with the wheel just touching the edge. What is the least force (in N) that lifts it over the step ($g=10$)?`, () => 500 * Math.sqrt(0.1 * (1 - 0.1)) / 0.4, 0, 0,
+    r`The wheel just leaves the ground and turns about the step's edge E. Torques about E: $F(R-h) = mg\sqrt{R^2-(R-h)^2} = mg\sqrt{h(2R-h)}$. $F = \dfrac{500\times\sqrt{0.1\times0.9}}{0.4} = \dfrac{500\times0.3}{0.4} = 375$ N.`, { unit: 'N' }),
+  n(5, 'rolling in a loop', r`A solid sphere (radius much smaller than the loop's) is released from rest on a rough track and rolls without slipping round a vertical loop of radius 0.5 m. What is the least release height above the bottom (in m) for it to stay on the track at the top?`, () => 2.7 * 0.5, 0.005, 3,
+    r`At the top it needs $v^2 = gR$. Energy: $mgh = 2mgR + \tfrac12mv^2\left(1+\tfrac25\right) = 2mgR + 0.7mgR$. $h = 2.7R = 1.35$ m. A sliding block would need only $2.5R$.`, { unit: 'm', trap: 'Include the rotational energy of the sphere.' }),
+  n(5, 'falling rod', r`A uniform rod of length 1.6 m stands vertically on a smooth floor and falls over. With what speed (in $\mathrm{m\,s^{-1}}$, 2 decimals) does its centre hit the floor, when the rod is horizontal ($g=10$)?`, () => Math.sqrt(3 * 10 * 1.6 / 4), 0.01, 2,
+    r`The floor is smooth, so there is no horizontal force and the centre falls straight down. When the rod is horizontal, its end is on the floor with zero vertical velocity, so $v_{cm} = \omega L/2$. Energy: $\tfrac12Mv^2 + \tfrac12\cdot\tfrac{ML^2}{12}\cdot\dfrac{4v^2}{L^2} = Mg\dfrac L2 \Rightarrow \tfrac23Mv^2 = \tfrac12MgL$. $v^2 = \tfrac34gL = 12$, $v = 3.46\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', trap: 'The centre of mass moves vertically only; do not treat the rod as hinged at the floor.' }),
+  s(5, 'rolling with slipping', r`A uniform solid sphere is thrown along a rough horizontal floor with speed $v_0$ and no spin. Which statements are correct?`,
+    [r`The final speed in rolling without slipping is $\tfrac57v_0$.`, 'Friction acts opposite to the velocity of the centre while slipping.', r`The angular momentum about a point on the floor is conserved.`, r`$\tfrac27$ of the initial kinetic energy is lost.`], [0, 1, 2, 3],
+    r`$mv_0R = mvR + \tfrac25mR^2\omega$ with $\omega R = v$ gives $v_0 = \tfrac75v$, so $v = \tfrac57v_0$ (A). The contact point moves forward on the floor, so friction is backward (B). Friction acts at floor level, so its torque about a floor point is zero and $L$ is conserved (C). $K_f/K_i = \tfrac{(7/10)(25/49)}{1/2} = \tfrac57$, so $\tfrac27$ is lost (D). All four are true.`),
+  s(5, 'conservation laws', r`A uniform rod rotates freely about a vertical axis through its centre. Two beads slide outward along the smooth rod. Which of the following are true during the motion?`,
+    ['The angular momentum of the rod plus beads is conserved.', 'The kinetic energy of the rod plus beads is conserved.', 'The angular speed of the rod increases.', 'The rotational kinetic energy of the rod and the beads decreases.'], [0, 1, 3],
+    r`No external torque about the axis, so $L$ is conserved (A). The rod is smooth, so no energy is lost; total kinetic energy (spin plus radial motion) is constant (B). As $I$ grows, $\omega$ falls (C false). The spin part of the energy $\dfrac{L^2}{2I}$ falls, and the lost amount appears as the beads' radial energy (D true).`),
+  mt(5, 'projectile angular momentum', 'xm7', ['p', 'q', 'r', 's'], r`About the point of projection the torque of gravity is $mg\,x = mg\,u\cos\theta\,t$ (s), so $L = \int\tau\,dt = \tfrac12mgu\cos\theta\,t^2$. At $t=0$, $L=0$ (p). At the highest point $t = \dfrac{u\sin\theta}{g}$: $L = \dfrac{mu^3\sin^2\theta\cos\theta}{2g}$ (q). At landing $t = \dfrac{2u\sin\theta}{g}$: $L = \dfrac{2mu^3\sin^2\theta\cos\theta}{g}$ (r).`),
+  a(5, 'rolling with slipping', 'In the pure rolling that follows slipping of a solid sphere thrown on a rough floor, the mechanical energy is smaller than at the start.', 'Kinetic friction does negative net work while there is slipping, because the contact point slides relative to the floor.', 0,
+    r`While slipping, the work done by friction on the centre's motion and on the spin does not cancel (the contact point moves relative to the floor), so mechanical energy is lost as heat ($\tfrac27$ of the initial for the sphere). R explains A.`),
+  t(5, 'rolling', 'A uniform ring rolls without slipping on a horizontal rough floor at constant speed. The force of friction on it is zero.', 'Rolling without slipping needs friction at all times.', 2,
+    r`At constant speed, with no other horizontal force, $a = 0$ and $\alpha = 0$, so friction must be zero (I true). II is false: friction is needed only when the rolling is accelerated or when slipping tends to start.`),
+  n(5, 'mixed: kinetic energy', r`A solid sphere of mass 2 kg rolls without slipping with its centre at $5\ \mathrm{m\,s^{-1}}$, and then runs on to a rough incline and reaches a vertical height $h$ before stopping. Find $h$ (in m, 2 decimals, $g = 9.8$).`, () => 7 * 25 / (10 * 9.8), 0.01, 2,
+    r`Energy: $\tfrac12mv^2\left(1+\tfrac25\right) = mgh$, so $h = \dfrac{7v^2}{10g} = \dfrac{175}{98} = 1.79$ m. The mass cancels.`, { unit: 'm' }),
+);
+
+items.push(
+  pn(4, 'rod with beads', 'xp1', r`Find the angular speed of the rod when the beads reach the ends (in $\mathrm{rad\,s^{-1}}$).`, () => 1.5 * 6 / 3.75, 0.01, 2,
+    r`Initially (beads at the centre) $I_1 = \dfrac{2\times3^2}{12} = 1.5\ \mathrm{kg\,m^2}$. At the ends $I_2 = 1.5 + 2\times0.5\times1.5^2 = 3.75$. $\omega_2 = \dfrac{I_1\omega_1}{I_2} = \dfrac{1.5\times6}{3.75} = 2.4\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s' }),
+  pn(4, 'rod with beads', 'xp1', r`Find the rotational kinetic energy of the rod and beads at that moment (in J).`, () => 0.5 * 3.75 * 2.4 ** 2, 0.05, 2,
+    r`$K = \tfrac12I_2\omega_2^2 = \tfrac12\times3.75\times5.76 = 10.8$ J. It is smaller than the initial $\tfrac12(1.5)(36) = 27$ J.`, { unit: 'J' }),
+  pn(5, 'rod with beads', 'xp1', r`Each bead also has a velocity along the rod when it leaves the end. Find that radial speed (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, () => Math.sqrt((27 - 10.8) / 0.5), 0.01, 2,
+    r`The rod is smooth, so total kinetic energy is conserved: 27 J. The two beads carry $27 - 10.8 = 16.2$ J as radial motion: $2\times\tfrac12(0.5)v_r^2 = 16.2$, $v_r^2 = 32.4$, $v_r = 5.69\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', trap: 'Energy is conserved here (smooth rod); only the rotational part drops.' }),
+  pn(3, 'pulley', 'xp2', r`Find the acceleration of the blocks (in $\mathrm{m\,s^{-2}}$).`, () => (5 - 3) * 10 / (5 + 3 + 2), 0, 0,
+    r`Treat the pulley's inertia as an extra mass $M/2 = 2$ kg: $a = \dfrac{(m_1-m_2)g}{m_1+m_2+M/2} = \dfrac{2\times10}{10} = 2\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  pn(4, 'pulley', 'xp2', r`Find the tension in the string on the 5 kg side (in N).`, () => 5 * (10 - 2), 0, 0,
+    r`$m_1g - T_1 = m_1a \Rightarrow T_1 = 5(10-2) = 40$ N. (The other side has $T_2 = 3(10+2) = 36$ N.)`, { unit: 'N' }),
+  pn(4, 'pulley', 'xp2', r`Find the net torque on the pulley (in N m).`, () => (40 - 36) * 0.2, 0.005, 3,
+    r`$\tau = (T_1 - T_2)R = 4\times0.2 = 0.8$ N m. Check: $I\alpha = \tfrac12(4)(0.04)\times\dfrac{2}{0.2} = 0.08\times10 = 0.8$ N m.`, { unit: 'N m' }),
+);
+
+gens.push(
+  gx(3, 'nat', 'parallel axis theorem', (rng) => {
+    const M = pick(rng, 1, 5, 0.5); const L = pick(rng, 1, 2, 0.2); const d = pick(rng, 0.1, 0.5, 0.1);
+    const I = M * L * L / 12 + M * d * d;
+    return { M, L, d, q: `A uniform rod of mass ${M} kg and length ${L} m is turned about an axis perpendicular to it, ${d} m from its centre. Find its moment of inertia (in kg m², 3 decimals).`, answer: +I.toFixed(3), tol: 0.002, unit: 'kg m²',
+      sol: `$I = \\dfrac{ML^2}{12} + Md^2 = \\dfrac{${M}\\times${L}^2}{12} + ${M}\\times${d}^2 = ${I.toFixed(3)}$ kg m².`, trap: 'Add $Md^2$ to the value about the centre.' };
+  }, (p) => { const lo = -p.L / 2 - p.d; const hi = p.L / 2 - p.d; return (p.M / p.L) * (hi ** 3 - lo ** 3) / 3; }),
+  gx(3, 'nat', 'angular momentum conservation', (rng) => {
+    const I1 = pick(rng, 1, 6, 0.5); const I2 = pick(rng, 1, 6, 0.5); const w = pick(rng, 4, 20, 2);
+    const wf = I1 * w / (I1 + I2);
+    return { I1, I2, w, q: `A disc of moment of inertia ${I1} kg m² spins at ${w} rad/s. A second disc of moment of inertia ${I2} kg m², at rest on the same axis, is joined to it. Find the common angular speed (in rad/s, 2 decimals).`, answer: +wf.toFixed(2), tol: 0.01, unit: 'rad/s',
+      sol: `$I_1\\omega_1 = (I_1+I_2)\\omega$, so $\\omega = \\dfrac{${I1}\\times${w}}{${I1}+${I2}} = ${wf.toFixed(2)}$ rad/s.` };
+  }, (p) => p.w / (1 + p.I2 / p.I1)),
+  gx(3, 'mcq', 'rolling race', (rng) => {
+    const B = [['ring', 1], ['hollow sphere', 2 / 3], ['solid cylinder', 0.5], ['solid sphere', 0.4]];
+    const i = int(rng, 0, 3); let j = int(rng, 0, 3); if (j === i) j = (i + 1) % 4;
+    const winner = B[i][1] < B[j][1] ? B[i][0] : B[j][0];
+    const loser = B[i][1] < B[j][1] ? B[j][0] : B[i][0];
+    const o = shuffleOpts(rng, winner, [loser, 'both together', 'the heavier one']);
+    return { winner, opts: o.options, q: `A ${B[i][0]} and a ${B[j][0]} of equal mass and radius are released together at the top of a rough incline and roll without slipping. Which reaches the bottom first?`, options: o.options, answer: o.answer,
+      sol: `$a = \\dfrac{g\\sin\\theta}{1+I/MR^2}$: the body with the smaller $I/MR^2$ accelerates more. Values: ring 1, hollow sphere $\\tfrac23$, solid cylinder $\\tfrac12$, solid sphere $\\tfrac25$. The ${winner} wins.`, trap: 'Mass and radius cancel.' };
+  }, (p) => p.opts.indexOf(p.winner)),
+  gx(4, 'nat', 'rolling down an incline', (rng) => {
+    const bodies = [['ring', 1], ['solid cylinder', 0.5], ['solid sphere', 0.4], ['hollow sphere', 2 / 3]]; const b = choose(rng, bodies);
+    const th = choose(rng, [30, 37, 53]); const sl = pick(rng, 2, 10, 1);
+    const acc = 9.8 * Math.sin(th * Math.PI / 180) / (1 + b[1]); const v = Math.sqrt(2 * acc * sl);
+    return { b, th, sl, q: `A ${b[0]} rolls from rest down ${sl} m of a rough incline of angle ${th}°, without slipping. Find its speed at the bottom of that stretch (in m/s, 2 decimals, $g=9.8$).`, answer: +v.toFixed(2), tol: 0.02, unit: 'm/s',
+      sol: `$a = \\dfrac{g\\sin\\theta}{1+k}$ with $k = ${+b[1].toFixed(3)}$: $a = ${acc.toFixed(3)}\\ \\mathrm{m\\,s^{-2}}$. $v = \\sqrt{2as} = ${v.toFixed(2)}$ m/s.` };
+  }, (p) => Math.sqrt(2 * 9.8 * p.sl * Math.sin(p.th * Math.PI / 180) / (1 + p.b[1]))),
+  gx(4, 'nat', 'pulley', (rng) => {
+    const m1 = pick(rng, 4, 10, 1); const m2 = pick(rng, 1, m1 - 1, 1); const M = pick(rng, 2, 8, 2);
+    const a = (m1 - m2) * 10 / (m1 + m2 + M / 2); const T1 = m1 * (10 - a);
+    return { m1, m2, M, a, q: `Blocks of ${m1} kg and ${m2} kg hang over a pulley that is a uniform disc of mass ${M} kg; the string does not slip. Find the tension in the string holding the ${m1} kg block (in N, 1 decimal, $g=10$).`, answer: +T1.toFixed(1), tol: 0.1, unit: 'N',
+      sol: `$a = \\dfrac{(m_1-m_2)g}{m_1+m_2+M/2} = ${a.toFixed(3)}$. $T_1 = m_1(g-a) = ${m1}\\times${(10 - a).toFixed(3)} = ${T1.toFixed(1)}$ N.`, trap: 'The two tensions are not equal when the pulley has mass.' };
+  }, (p) => p.m2 * (10 + p.a) + 0.5 * p.M * p.a),
+  gx(4, 'nat', 'friction in rolling', (rng) => {
+    const bodies = [['ring', 1], ['solid cylinder', 0.5], ['solid sphere', 0.4], ['hollow sphere', 2 / 3]]; const b = choose(rng, bodies); const th = choose(rng, [30, 37, 45]);
+    const mu = b[1] / (1 + b[1]) * Math.tan(th * Math.PI / 180);
+    return { b, th, q: `Find the least coefficient of friction that lets a ${b[0]} roll without slipping down an incline of ${th}° (3 decimals).`, answer: +mu.toFixed(3), tol: 0.002,
+      sol: `$f = \\dfrac{k}{1+k}mg\\sin\\theta$ and $N = mg\\cos\\theta$, with $k = ${+b[1].toFixed(3)}$. $\\mu_{min} = \\dfrac{k}{1+k}\\tan\\theta = ${mu.toFixed(3)}$.` };
+  }, (p) => { const g = 9.8; const th = p.th * Math.PI / 180; const a = g * Math.sin(th) / (1 + p.b[1]); const f = p.b[1] * a; return f / (g * Math.cos(th)); }),
+  gx(3, 'nat', 'angular momentum conservation', (rng) => {
+    const I1 = pick(rng, 3, 8, 1); const I2 = pick(rng, 1, I1 - 1, 1); const w = pick(rng, 2, 6, 1);
+    const W = 0.5 * I1 * w * w * (I1 / I2 - 1);
+    return { I1, I2, w, q: `A skater spins at ${w} rad/s with moment of inertia ${I1} kg m². She pulls her arms in so that it becomes ${I2} kg m². How much work (in J, 1 decimal) does she do?`, answer: +W.toFixed(1), tol: 0.1, unit: 'J',
+      sol: `$\\omega_2 = ${I1}\\times${w}/${I2} = ${+(I1 * w / I2).toFixed(3)}$ rad/s. $W = \\tfrac12I_2\\omega_2^2 - \\tfrac12I_1\\omega_1^2 = ${W.toFixed(1)}$ J.` };
+  }, (p) => { const w2 = p.I1 * p.w / p.I2; return 0.5 * p.I2 * w2 * w2 - 0.5 * p.I1 * p.w * p.w; }),
+  gx(5, 'nat', 'rolling in a loop', (rng) => {
+    const bodies = [['ring', 1], ['solid cylinder', 0.5], ['solid sphere', 0.4], ['hollow sphere', 2 / 3]]; const b = choose(rng, bodies); const R = pick(rng, 0.2, 1.2, 0.2);
+    const h = R * (2.5 + b[1] / 2);
+    return { b, R, q: `A ${b[0]} (radius much smaller than the loop) rolls without slipping from rest on a track that has a vertical loop of radius ${R} m. Find the least release height above the bottom of the loop (in m, 3 decimals) for it to just stay on the track at the top.`, answer: +h.toFixed(3), tol: 0.003, unit: 'm',
+      sol: `At the top $v^2 = gR$. Energy: $mgh = 2mgR + \\tfrac12mv^2(1+k)$ with $k=${+b[1].toFixed(3)}$. $h = R\\left(2.5 + \\tfrac k2\\right) = ${h.toFixed(3)}$ m.` };
+  }, (p) => { const g = 9.8; const v2 = g * p.R; const E = g * 2 * p.R + 0.5 * v2 * (1 + p.b[1]); return E / g; }),
+  gx(5, 'nat', 'impulse on a free rod', (rng) => {
+    const L = pick(rng, 0.6, 2, 0.2); const x = pick(rng, 0.1, L / 2 - 0.05, 0.05);
+    const d = L * L / (12 * x);
+    return { L, x, q: `A uniform rod of length ${L} m lies on a smooth table. A sharp blow perpendicular to it is given ${x} m from its centre. Just after, how far (in m, 3 decimals) from the centre, on the other side, is the point that is momentarily at rest?`, answer: +d.toFixed(3), tol: 0.003, unit: 'm',
+      sol: `$v_{cm} = J/M$, $\\omega = \\dfrac{12Jx}{ML^2}$. At distance $d$ on the far side: $v_{cm} = \\omega d \\Rightarrow d = \\dfrac{L^2}{12x} = ${d.toFixed(3)}$ m.` };
+  }, (p) => { const J = 1; const M = 1; const w = J * p.x / (M * p.L * p.L / 12); return (J / M) / w; }),
+  gx(4, 'nat', 'rolling with slipping', (rng) => {
+    const m1 = pick(rng, 1, 5, 0.5); const v0 = pick(rng, 3, 10, 1); const mu = pick(rng, 0.1, 0.4, 0.1);
+    const Q = m1 * v0 * v0 / 7;
+    return { m1, v0, mu, q: `A solid sphere of mass ${m1} kg is thrown with speed ${v0} m/s along a rough floor, with no spin. The coefficient of friction is ${mu}. How much mechanical energy (in J, 2 decimals) is turned into heat before it rolls without slipping?`, answer: +Q.toFixed(2), tol: 0.02, unit: 'J',
+      sol: `$v_f = \\tfrac57v_0$. $K_i = \\tfrac12mv_0^2$, $K_f = \\tfrac12mv_f^2\\left(1+\\tfrac25\\right)$. Lost $= \\tfrac17mv_0^2 = ${Q.toFixed(2)}$ J. The coefficient of friction does not change the answer.`, trap: 'The friction coefficient is a distractor.' };
+  }, (p) => { const g = 9.8; const vf = 5 * p.v0 / 7; const s1 = (p.v0 ** 2 - vf ** 2) / (2 * p.mu * g); const Rth = vf ** 2 / (5 * p.mu * g); return p.mu * p.m1 * g * (s1 - Rth); }),
+  gx(3, 'nat', 'torque as a vector', (rng) => {
+    const x = int(rng, -4, 5); const y = int(rng, -4, 5); const Fx = int(rng, -5, 6); const Fy = int(rng, -5, 6);
+    const tz = x * Fy - y * Fx;
+    return { x, y, Fx, Fy, q: `A force $(${Fx}\\hat i ${Fy < 0 ? '-' : '+'} ${Math.abs(Fy)}\\hat j)$ N acts at the point $(${x}\\hat i ${y < 0 ? '-' : '+'} ${Math.abs(y)}\\hat j)$ m. Find the torque about the origin along $\\hat k$ (in N m).`, answer: tz, tol: 0, unit: 'N m',
+      sol: `$\\tau_z = xF_y - yF_x = (${x})(${Fy}) - (${y})(${Fx}) = ${tz}$ N m.` };
+  }, (p) => { const th = Math.atan2(p.Fy, p.Fx) - Math.atan2(p.y, p.x); return Math.round(Math.hypot(p.x, p.y) * Math.hypot(p.Fx, p.Fy) * Math.sin(th) * 1e6) / 1e6; }),
+);
+items.push(
+  s(5, 'rolling down an incline', r`A uniform solid cylinder rolls without slipping down a rough incline of angle $\theta$. Which statements are correct?`,
+    [r`Its acceleration is $\tfrac12g\sin\theta$.`, r`The friction on it is $\tfrac13mg\sin\theta$, directed up the incline.`, r`The least coefficient of friction needed is $\tfrac13\tan\theta$.`, 'The friction does no net work on it.'], [1, 2, 3],
+    r`$a = \dfrac{g\sin\theta}{1+\tfrac12} = \tfrac23g\sin\theta$, so A is false. $mg\sin\theta - f = ma$ gives $f = \tfrac13mg\sin\theta$ up the slope (B true). $\mu\ge\dfrac{f}{mg\cos\theta} = \tfrac13\tan\theta$ (C true). The contact point is at rest, so friction does no net work (D true).`),
+  s(4, 'torque and equilibrium', r`Which of the following statements are correct?`,
+    ['In a uniform gravitational field, the torque of the weight of a body about its centre of mass is zero.', 'A body in translational equilibrium is always in rotational equilibrium.', 'The torque of a couple is the same about every point.', 'Internal forces can change the angular momentum of a system about its centre of mass.'], [0, 2],
+    r`(A) True: the weight acts as if at the centre of mass. (B) False: a couple gives zero net force but a non-zero torque. (C) True: the torque of a couple is $Fd$ whatever the reference point. (D) False: internal forces occur in equal and opposite pairs along the line joining the particles, so their torques cancel.`),
+  s(5, 'collisions', r`A lump of clay hits one end of a uniform rod lying on a smooth table, moving perpendicular to the rod, and sticks to it. Which statements are correct?`,
+    ['The linear momentum of the system is conserved.', 'The angular momentum about the original centre of the rod is conserved.', 'The kinetic energy of the system is the same before and after.', 'Some kinetic energy is changed into heat.'], [0, 1, 3],
+    r`No external force acts horizontally on the system, so linear momentum is conserved (A). Nor does any external torque act, so angular momentum about any fixed point, including the rod's original centre, is conserved (B). The collision is perfectly inelastic, so kinetic energy is lost as heat (D true, C false).`),
+  s(4, 'rolling race', r`A solid sphere and a hollow sphere of equal mass and radius roll without slipping from rest down the same rough incline. Which are correct?`,
+    ['The solid sphere reaches the bottom first.', 'At the bottom both have the same kinetic energy.', 'At the bottom the hollow sphere has the greater speed.', 'At the bottom a larger fraction of the hollow sphere\'s energy is rotational.'], [0, 1, 3],
+    r`$a = \dfrac{g\sin\theta}{1+k}$, with $k = \tfrac25$ (solid) and $\tfrac23$ (hollow), so the solid sphere is faster (A true, C false). Both lose the same $mgh$ and friction does no net work, so both have $K = mgh$ at the bottom (B true). Rotational shares are $\tfrac27$ and $\tfrac25$ (D true).`),
+  s(4, 'moment of inertia', r`For a uniform thin disc of mass $M$ and radius $R$, which of the following are correct?`,
+    [r`The moment of inertia about a diameter is $\tfrac12MR^2$.`, r`The moment of inertia about a tangent perpendicular to its plane is $\tfrac32MR^2$.`, r`Its radius of gyration about the axis through the centre perpendicular to the plane is $R/\sqrt2$.`, r`The moment of inertia about a tangent in its plane is $\tfrac54MR^2$.`], [1, 2, 3],
+    r`About a diameter $I = \tfrac14MR^2$ (A false). About a perpendicular tangent: $\tfrac12MR^2 + MR^2 = \tfrac32MR^2$ (B true). $k = \sqrt{I/M} = \sqrt{\tfrac12}R = R/\sqrt2$ (C true). About an in-plane tangent: $\tfrac14MR^2+MR^2 = \tfrac54MR^2$ (D true).`),
+);
+gens.push(
+  gx(4, 'mcq', 'rolling energy share', (rng) => {
+    const B = [['thin ring', 1, '1/2'], ['solid cylinder', 0.5, '1/3'], ['solid sphere', 0.4, '2/7'], ['hollow sphere', 2 / 3, '2/5']];
+    const b = choose(rng, B); const o = shuffleOpts(rng, b[2], B.filter((x) => x !== b).map((x) => x[2]));
+    return { k: b[1], opts: o.options, q: `A ${b[0]} rolls without slipping on a horizontal floor. What fraction of its total kinetic energy is rotational?`, options: o.options, answer: o.answer,
+      sol: `Share $= \\dfrac{k}{1+k}$ with $k = I/MR^2 = ${+b[1].toFixed(3)}$, which is ${b[2]}. The other options are the shares of the other bodies.`, trap: 'Do not quote $I/MR^2$ itself.' };
+  }, (p) => { const val = p.k / (1 + p.k); return p.opts.findIndex((x) => { const [u, v] = x.split('/').map(Number); return Math.abs(u / v - val) < 1e-9; }); }),
+  gx(4, 'mcq', 'moment of inertia about a tangent', (rng) => {
+    const B = [['thin ring', 1, '3/2', 'in its plane', 0.5], ['uniform disc', 0.5, '3/2', 'perpendicular to its plane', 0.5], ['solid sphere', 0.4, '7/5', '', 0.4], ['thin hollow sphere', 2 / 3, '5/3', '', 2 / 3]];
+    const b = choose(rng, B); const T = [['3/2'], ['7/5'], ['5/3'], ['5/4']];
+    const val = b[4] + 1; const ans = b[1] === 0.5 && b[3] === 'perpendicular to its plane' ? '3/2' : b[2];
+    const o = shuffleOpts(rng, `${ans} MR²`, ['3/2', '7/5', '5/3', '5/4', '2'].filter((x) => x !== ans).slice(0, 3).map((x) => `${x} MR²`));
+    return { val, ans, opts: o.options, q: `Find the moment of inertia of a ${b[0]} of mass $M$ and radius $R$ about a tangent${b[3] ? ' ' + b[3] : ''}.`, options: o.options, answer: o.answer,
+      sol: `Parallel-axis theorem: $I = I_{cm} + MR^2$ with $I_{cm} = ${+b[4].toFixed(3)}MR^2$ about the relevant axis through the centre. So $I = ${ans}\\,MR^2$.`, trap: 'Pick the correct $I_{cm}$ for the direction of the axis.' };
+  }, (p) => { const frac = (x) => { const [u, v] = x.replace(' MR²', '').split('/').map(Number); return v ? u / v : u; }; return p.opts.findIndex((x) => Math.abs(frac(x) - p.val) < 1e-9); }),
+);
+
+}
+
 export default { topic: 'rotational-motion', groups, items, gens };

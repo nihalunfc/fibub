@@ -6,6 +6,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './delta-greens-functions.more.gen.js';
 import more2 from './delta-greens-functions.more2.gen.js';
+import r4 from './delta-greens-functions.r4.gen.js';
 
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const tm = (c, v) => (c === 0 ? '' : ` ${c < 0 ? '-' : '+'} ${Math.abs(c) === 1 ? '' : Math.abs(c)}${v}`); // signed term
@@ -241,6 +242,7 @@ export default {
       sol: '$\\cos\\theta = 0$ at $\\theta = \\pi/2$ and $3\\pi/2$ in $[0, 2\\pi]$, each with $|\\sin\\theta| = 1$. So the integral is $(1 + \\frac\\pi2) + (1 + \\frac{3\\pi}{2}) = 2 + 2\\pi \\approx 8.283$.',
       trap: 'Missing the second zero at $3\\pi/2$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'dgf-g01', type: 'nat', level: 1, exams: ['gate', 'net', 'jam'], sub: 'sifting',
@@ -357,5 +359,6 @@ export default {
       },
       verify: (p) => rk4(() => p.F, 0, p.w0 * p.w0, 0, 0, p.t) },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -511,4 +511,307 @@ const gens = [
     verify: (p) => p.options.findIndex((o) => o === `${fmt(p.N, 4)} N`) },
 ];
 
+{ // ===== extension block (added 2026-11-22): harder items, new formats and templates =====
+const r = String.raw;
+const CUET = false; const PFX = 'lm'; const GN = 18;
+const F = (x, s = 3) => String(+Number(x).toPrecision(s));
+const XEB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xe = (l, type) => (CUET && type === 'mcq' && l <= 3 ? [...XEB[l], 'cuet'] : XEB[l]);
+let xk = 0; let xc = 0;
+const xb = (l, sub, o) => ({ id: `${PFX}-x${String(++xk).padStart(3, '0')}`, level: l, sub, ...o, exams: xe(l, o.type) });
+const m = (l, sub, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o }); };
+const n = (l, sub, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol, ...o }); };
+const s = (l, sub, q, options, answer, sol, o = {}) => xb(l, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const AO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const a = (l, sub, A, R, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AO, answer, sol, ...o });
+const SO = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const t = (l, sub, I, II, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SO, answer, sol, ...o });
+// "how many of these are correct": list = 4 statements, k = how many are correct (1-4)
+const cn = (l, sub, q, list, k, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((x, i) => `(${['i', 'ii', 'iii', 'iv'][i]}) ${x}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: k - 1, sol, ...o });
+// match item: letters = correct List II letter for A, B, C, D, e.g. ['q','r','p','s']
+const mt = (l, sub, group, letters, sol, o = {}) => {
+  const code = (L) => L.map((x, i) => `${'ABCD'[i]}-${x}`).join(', ');
+  const right = code(letters); const wr = [];
+  for (const [i, j] of [[0, 1], [1, 2], [2, 3], [0, 3], [0, 2], [1, 3]]) { const L = [...letters]; [L[i], L[j]] = [L[j], L[i]]; const c = code(L); if (c !== right && !wr.includes(c)) wr.push(c); }
+  const pos = (xc++ * 3 + 2) % 4; const options = wr.slice(0, 3); options.splice(pos, 0, right);
+  return xb(l, sub, { type: 'mcq', format: 'match', q: 'Match the entries of List I with List II and choose the correct code.', group, options, answer: pos, sol, ...o });
+};
+const pn = (l, sub, group, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: 'passage', group, q, answer, tol, calc: () => answer, sol, ...o }); };
+const pm = (l, sub, group, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'passage', group, q, options, answer: pos, sol, ...o }); };
+let xg = GN;
+const gx = (l, type, sub, make, verify) => ({ id: `${PFX}-g${String(++xg).padStart(2, '0')}`, type, level: l, exams: xe(l, type), sub, make, verify });
+const NG = {};
+Object.assign(groups, {
+  xl1: { title: 'Kinds of friction',
+    list1: ['A. Static friction on a body at rest under a small push', 'B. Limiting friction', 'C. Kinetic friction', 'D. Rolling friction'],
+    list2: [r`p. Equals the applied force`, r`q. Equals $\mu_sN$`, r`r. Equals $\mu_kN$`, 's. Much smaller than the others for the same load'] },
+  xl2: { title: 'Apparent weight of a 60 kg person in a lift ($g = 10\\ \\mathrm{m\\,s^{-2}}$)',
+    list1: ['A. Lift at rest', r`B. Lift accelerating up at $2\ \mathrm{m\,s^{-2}}$`, r`C. Lift accelerating down at $2\ \mathrm{m\,s^{-2}}$`, 'D. Lift in free fall'],
+    list2: ['p. 0 N', 'q. 480 N', 'r. 600 N', 's. 720 N'] },
+  xl3: { title: 'A ball on a string of length $l$ in a vertical circle, with the least speed that completes the circle (at the top $v^2 = gl$)',
+    list1: ['A. Tension at the lowest point', 'B. Tension when the string is horizontal', 'C. Tension at the highest point', r`D. Tension when the string makes $60^\circ$ with the downward vertical`],
+    list2: [r`p. $0$`, r`q. $3mg$`, r`r. $4.5\,mg$`, r`s. $6mg$`] },
+  xl4: { title: 'A block of mass $m$ on a smooth wedge of angle $\\theta$',
+    list1: ['A. Acceleration of the block when the wedge is fixed', 'B. Normal reaction when the wedge is fixed', 'C. Horizontal acceleration the wedge needs to keep the block at rest on it', 'D. Normal reaction when the wedge has that acceleration'],
+    list2: [r`p. $mg\cos\theta$`, r`q. $g\tan\theta$`, r`r. $g\sin\theta$`, r`s. $mg/\cos\theta$`] },
+  xl5: { title: 'Change of momentum of a ball (mass $m$, speed $v$) at a wall',
+    list1: ['A. Rebounds elastically along the normal', 'B. Sticks to the wall', r`C. Rebounds along the normal with $e = 0.5$`, r`D. Hits at $30^\circ$ to the normal and rebounds elastically from a smooth wall`],
+    list2: [r`p. $mv$`, r`q. $1.5\,mv$`, r`r. $2mv$`, r`s. $\sqrt3\,mv$`] },
+  xl6: { title: 'Turning a corner',
+    list1: ['A. Greatest speed on a level road (friction coefficient $\\mu$, radius $r$)', 'B. Speed on a frictionless banked road (angle $\\theta$) at which no friction is needed', 'C. Greatest safe speed on a banked road with friction', 'D. Angle of lean of a cyclist (speed $v$, radius $r$) from the vertical'],
+    list2: [r`p. $\sqrt{rg\tan\theta}$`, r`q. $\sqrt{\mu rg}$`, r`r. $\sqrt{\dfrac{rg(\mu+\tan\theta)}{1-\mu\tan\theta}}$`, r`s. $\tan^{-1}\dfrac{v^2}{rg}$`] },
+  xl7: { title: 'Pulley systems ($g = 10\\ \\mathrm{m\\,s^{-2}}$, light string and pulley, no friction)',
+    list1: ['A. Acceleration with masses 3 kg and 1 kg hanging on either side', 'B. Acceleration with 4 kg and 4 kg hanging', 'C. String tension in the case of A', 'D. Acceleration of a 2 kg block on a smooth table pulled by a 3 kg block hanging over the edge'],
+    list2: ['p. 0', r`q. $5\ \mathrm{m\,s^{-2}}$`, 'r. 15 N', r`s. $6\ \mathrm{m\,s^{-2}}$`] },
+  xl8: { title: 'Springs and strings cut ($P$ has mass $m$, $Q$ has mass $2m$); accelerations just after the cut',
+    list1: ['A. $P$ hangs from the ceiling by a spring, $Q$ hangs below $P$ by a string; the string is cut. Acceleration of $P$ (upward)', 'B. Same case: acceleration of $Q$ (downward)', 'C. $P$ hangs from the ceiling by a string, $Q$ hangs below $P$ by a spring; the ceiling string is cut. Acceleration of $P$ (downward)', 'D. Same case: acceleration of $Q$'],
+    list2: ['p. 0', 'q. $g$', 'r. $2g$', 's. $3g$'] },
+  xlp1: { title: 'A block on a plank',
+    passage: r`<p>A 2 kg block rests on a 4 kg plank of length 1 m. The plank lies on a smooth floor. The coefficient of friction between block and plank is 0.4. A horizontal force of 20 N is applied to the block (at the plank's left end, pulling it right). Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
+  xlp2: { title: 'A conical pendulum',
+    passage: r`<p>A 0.5 kg ball on a 1.0 m string moves in a horizontal circle, the string making $37^\circ$ with the vertical ($\sin37^\circ = 0.6$, $\cos37^\circ = 0.8$). Take $g = 10\ \mathrm{m\,s^{-2}}$.</p>` },
+});
+
+items.push(
+  // ---------- Level 2 ----------
+  n(2, 'Newton\'s second law', r`A 5 kg block is pulled along a rough floor by a horizontal force of 20 N. The friction is 5 N. Find its acceleration (in $\mathrm{m\,s^{-2}}$).`, () => (20 - 5) / 5, 0, 0,
+    r`Net force $= 20 - 5 = 15$ N. $a = 15/5 = 3\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  m(2, 'impulse', r`A 0.2 kg ball hits a wall at $10\ \mathrm{m\,s^{-1}}$ at right angles and rebounds at $10\ \mathrm{m\,s^{-1}}$. The impulse of the wall on the ball is`, r`$4\ \mathrm{N\,s}$`, [r`$2\ \mathrm{N\,s}$`, r`$0$`, r`$8\ \mathrm{N\,s}$`],
+    r`Take the incoming direction as positive: $\Delta p = (-0.2\times10) - (0.2\times10) = -4$ kg m/s. The impulse has magnitude 4 N s. The reversal of direction doubles the change.`),
+  n(2, 'banking', r`A road is banked at an angle $\theta$ for a design speed of $14\ \mathrm{m\,s^{-1}}$ on a curve of radius 20 m. Find $\theta$ in degrees ($g = 9.8$).`, () => Math.atan(14 * 14 / (20 * 9.8)) * 180 / Math.PI, 0, 0,
+    r`$\tan\theta = \dfrac{v^2}{rg} = \dfrac{196}{196} = 1$, so $\theta = 45^\circ$.`, { unit: '°' }),
+  m(2, 'lift', r`A 60 kg man stands in a lift that accelerates downward at $2\ \mathrm{m\,s^{-2}}$. What does a spring balance under his feet read (in N, $g = 9.8$)?`, '468 N', ['588 N', '708 N', '120 N'],
+    r`$mg - N = ma \Rightarrow N = m(g-a) = 60\times7.8 = 468$ N. $588$ N is his true weight; $708$ N would be for an upward acceleration.`),
+  m(2, 'Newton\'s third law', r`A book rests on a table. The reaction to the weight of the book (the pull of the Earth on it) is`, 'the pull of the book on the Earth', ['the push of the table on the book', 'the push of the book on the table', 'the force of friction'],
+    r`Action and reaction act on different bodies and are of the same kind. The Earth pulls the book; the book pulls the Earth. The push of the table balances the weight, but it is not its reaction (it is a different kind of force and acts on the same body).`),
+  m(2, 'friction', r`The maximum static friction between a block and a table depends on`, 'the normal reaction and the nature of the two surfaces', ['the area of contact and the normal reaction', 'the speed of the block', 'the mass of the block only'],
+    r`$f_{max} = \mu_sN$. $\mu_s$ depends on the surfaces; $N$ depends on the load. It does not depend on the apparent contact area or on speed.`),
+  // ---------- Level 3 ----------
+  n(3, 'contact forces', r`Blocks of 3 kg and 2 kg touch on a smooth table. A 10 N force pushes the 3 kg block towards the 2 kg block. Find the contact force between them (in N).`, () => 10 * 2 / 5, 0, 0,
+    r`$a = 10/5 = 2\ \mathrm{m\,s^{-2}}$. The 3 kg block pushes the 2 kg block with $N = 2\times2 = 4$ N.`, { unit: 'N' }),
+  n(3, 'heavy rope', r`A uniform rope of mass 4 kg and length 2 m lies on a smooth table and is pulled by a 20 N force at one end. Find the tension (in N) at a point 0.5 m from the free end.`, () => 20 * 0.5 / 2, 0, 0,
+    r`$a = F/M = 5\ \mathrm{m\,s^{-2}}$. The 0.5 m piece at the free end has mass $4\times0.5/2 = 1$ kg and is pulled by the tension: $T = 1\times5 = 5$ N.`, { unit: 'N', trap: 'The tension changes along a heavy rope.' }),
+  m(3, 'pseudo force', r`A plumb bob hangs in a trolley and makes $30^\circ$ with the vertical. The acceleration of the trolley is ($g = 9.8$)`, r`$5.66\ \mathrm{m\,s^{-2}}$`, [r`$4.90\ \mathrm{m\,s^{-2}}$`, r`$8.49\ \mathrm{m\,s^{-2}}$`, r`$16.97\ \mathrm{m\,s^{-2}}$`],
+    r`$T\sin\theta = ma$ and $T\cos\theta = mg$, so $a = g\tan30^\circ = 9.8\times0.577 = 5.66\ \mathrm{m\,s^{-2}}$. $g\sin\theta = 4.9$ and $g\tan60^\circ = 16.97$ are mistakes with the wrong trigonometric ratio.`),
+  n(3, 'friction on inclines', r`A block slides down a rough incline of angle $30^\circ$ with $\mu = 0.2$. Find its acceleration (in $\mathrm{m\,s^{-2}}$, 2 decimals, $g=9.8$).`, () => 9.8 * (0.5 - 0.2 * Math.cos(Math.PI / 6)), 0.01, 2,
+    r`$a = g(\sin\theta - \mu\cos\theta) = 9.8\times(0.5 - 0.2\times0.866) = 3.20\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  n(3, 'impulse', r`A force rises uniformly from 0 to 30 N in 0.2 s and then drops to zero. It acts on a 0.5 kg ball at rest. Find the speed gained (in $\mathrm{m\,s^{-1}}$).`, () => 0.5 * 30 * 0.2 / 0.5, 0, 0,
+    r`Impulse $=$ area under the $F$-$t$ graph $= \tfrac12\times30\times0.2 = 3$ N s. $v = J/m = 3/0.5 = 6\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  n(3, 'impulse', r`A hose sends 2 kg of water each second at $5\ \mathrm{m\,s^{-1}}$ against a wall, where it stops (and runs down). Find the force on the wall (in N).`, () => 2 * 5, 0, 0,
+    r`Force $=$ rate of change of momentum $= \dfrac{dm}{dt}\,v = 2\times5 = 10$ N.`, { unit: 'N' }),
+  n(3, 'circular motion dynamics', r`A conical pendulum has a string 1 m long making $60^\circ$ with the vertical. Find its period (in s, 3 decimals, $g=9.8$).`, () => 2 * Math.PI * Math.sqrt(0.5 / 9.8), 0.005, 3,
+    r`$T\sin\theta = m\omega^2L\sin\theta$ and $T\cos\theta = mg$ give $\omega^2 = \dfrac{g}{L\cos\theta}$. Period $= 2\pi\sqrt{\dfrac{L\cos\theta}{g}} = 2\pi\sqrt{\dfrac{0.5}{9.8}} = 1.419$ s.`, { unit: 's' }),
+  n(3, 'vertical circle', r`A stone on a 0.9 m string is whirled in a vertical circle. Find the least speed at the lowest point for it to complete the circle (in $\mathrm{m\,s^{-1}}$, 2 decimals, $g=10$).`, () => Math.sqrt(5 * 10 * 0.9), 0.01, 2,
+    r`At the top $v_t^2\ge gl$. Energy: $v_b^2 = v_t^2 + 4gl\ge5gl$. $v_b = \sqrt{5\times10\times0.9} = 6.71\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  n(3, 'lift', r`A 60 kg man in a lift moving up slows down at $3\ \mathrm{m\,s^{-2}}$. What force (in N) does the floor exert on him? ($g=9.8$)`, () => 60 * (9.8 - 3), 0, 0,
+    r`Slowing down while moving up means the acceleration is downward: $mg - N = ma \Rightarrow N = 60\times(9.8-3) = 408$ N.`, { unit: 'N', trap: 'Slowing down on the way up is a downward acceleration.' }),
+  n(3, 'circular motion dynamics', r`A block sits 0.5 m from the axis of a turntable with $\mu = 0.4$. At what angular speed (in rad/s, 2 decimals) does it begin to slip? ($g=9.8$)`, () => Math.sqrt(0.4 * 9.8 / 0.5), 0.01, 2,
+    r`Friction gives the centripetal force: $\mu mg = m\omega^2r \Rightarrow \omega = \sqrt{\mu g/r} = \sqrt{7.84} = 2.80$ rad/s.`, { unit: 'rad/s' }),
+  n(3, 'circular motion dynamics', r`A car moves at $10\ \mathrm{m\,s^{-1}}$ over the top of a circular bridge of radius 40 m. The normal reaction is what fraction of its weight (2 decimals, $g=10$)?`, () => 1 - 100 / (40 * 10), 0.005, 2,
+    r`$mg - N = \dfrac{mv^2}{r} \Rightarrow N = mg\left(1 - \dfrac{v^2}{rg}\right) = mg\times0.75$.`),
+  m(3, 'friction', r`A block is pressed against the front vertical face of a cart ($\mu = 0.4$). The least acceleration of the cart that stops the block from sliding down is ($g = 9.8$)`, r`$24.5\ \mathrm{m\,s^{-2}}$`, [r`$9.8\ \mathrm{m\,s^{-2}}$`, r`$3.92\ \mathrm{m\,s^{-2}}$`, r`$12.25\ \mathrm{m\,s^{-2}}$`],
+    r`The cart pushes the block with $N = ma$. Friction $\mu N$ must hold up the weight: $\mu ma\ge mg$, so $a\ge g/\mu = 9.8/0.4 = 24.5\ \mathrm{m\,s^{-2}}$.`),
+  n(3, 'pendulum in a lift', r`A simple pendulum of length 1 m is in a lift accelerating upward at $g$. Find its period (in s, 3 decimals, $g = 9.8$).`, () => 2 * Math.PI * Math.sqrt(1 / 19.6), 0.005, 3,
+    r`The effective gravity is $g + a = 2g$: $T = 2\pi\sqrt{\dfrac{l}{2g}} = 2\pi\sqrt{\dfrac1{19.6}} = 1.419$ s.`, { unit: 's' }),
+  n(3, 'inclined plane', r`What least force parallel to the incline (in N, 1 decimal) pushes a 5 kg block up a $30^\circ$ incline, $\mu = 0.3$, at constant speed? ($g=10$)`, () => 5 * 10 * (0.5 + 0.3 * Math.cos(Math.PI / 6)), 0.1, 1,
+    r`$F = mg\sin\theta + \mu mg\cos\theta = 25 + 0.3\times43.3 = 38.0$ N.`, { unit: 'N' }),
+  mt(3, 'friction', 'xl1', ['p', 'q', 'r', 's'], r`Static friction adjusts to the applied force (p). At the point of slipping it is limiting, $\mu_sN$ (q). Once sliding, it is $\mu_kN$ (r). Rolling friction is much smaller (s).`),
+  mt(3, 'lift', 'xl2', ['r', 's', 'q', 'p'], r`$N = m(g+a)$: at rest 600 N (r); up at 2: 720 N (s); down at 2: 480 N (q); free fall: 0 (p).`),
+  mt(3, 'impulse', 'xl5', ['r', 'p', 'q', 's'], r`Elastic rebound: $\Delta p = 2mv$ (r). Sticks: $mv$ (p). With $e = 0.5$: $mv + 0.5mv = 1.5mv$ (q). Glancing elastic: only the normal component reverses, so $\Delta p = 2mv\cos30^\circ = \sqrt3mv$ (s).`),
+  mt(3, 'banking', 'xl6', ['q', 'p', 'r', 's'], r`Level road: $\mu mg = mv^2/r$ (q). Frictionless banking: $v = \sqrt{rg\tan\theta}$ (p). With friction at the limit: (r). Cyclist: $\tan\phi = v^2/rg$ (s).`),
+  mt(3, 'pulleys', 'xl7', ['q', 'p', 'r', 's'], r`A: $a = \dfrac{(3-1)10}{4} = 5$ (q). B: equal masses, $a = 0$ (p). C: $T = 1\times(10+5) = 15$ N (r). D: $a = \dfrac{3\times10}{5} = 6$ (s).`),
+  a(3, 'lift', 'The apparent weight of a person in a freely falling lift is zero.', 'In free fall the person and the floor have the same acceleration, so the floor exerts no force on the person.', 0,
+    r`Both are true and R explains A: $mg - N = mg\Rightarrow N = 0$. The weight (the pull of the Earth) is still $mg$; it is the apparent weight (the reading) that is zero.`),
+  a(2, 'impulse', 'Impulse is a vector quantity.', 'Impulse equals the change in momentum, which is a vector.', 0,
+    r`$\vec J = \Delta\vec p$, and momentum is a vector, so impulse is a vector with the direction of the net force. R explains A.`),
+  t(3, 'momentum conservation', 'The momentum of a system is conserved when the net external force on it is zero.', 'Internal forces can change the momentum of the system.', 2,
+    r`I is true. II is false: internal forces occur in equal and opposite pairs and cancel in the sum, so they cannot change the total momentum.`),
+  cn(3, 'concepts', 'How many of the following are correct?', ['A body can move with constant velocity under several forces.', 'The apparent weight of a body in a freely falling lift is zero.', 'The coefficient of friction can be greater than 1.', 'The action and reaction forces act on the same body.'], 3,
+    r`(i) True: if the net force is zero. (ii) True. (iii) True: for rubber on dry surfaces $\mu$ can exceed 1. (iv) False: they act on different bodies. Three are correct.`),
+  // ---------- Level 4 ----------
+  n(4, 'wedge and block', r`A block rests on a smooth wedge of angle $37^\circ$. With what horizontal acceleration (in $\mathrm{m\,s^{-2}}$, 2 decimals) must the wedge be pushed so that the block does not slide on it? ($\tan37^\circ = 0.75$, $g=10$)`, () => 10 * 0.75, 0.01, 2,
+    r`The block moves with the wedge, so $N\sin\theta = ma$ and $N\cos\theta = mg$, giving $a = g\tan\theta = 7.5\ \mathrm{m\,s^{-2}}$ The wedge must accelerate towards the side on which its sloping face looks down (the horizontal direction of the normal force on the block).`, { unit: 'm/s²' }),
+  n(4, 'springs', r`A 2 kg block hangs from the ceiling by a spring, and a 3 kg block hangs below it from a string. The string is cut. Find the acceleration (in $\mathrm{m\,s^{-2}}$) of the 2 kg block just after the cut ($g=10$), upward positive.`, () => (50 - 20) / 2, 0, 0,
+    r`Before the cut the spring supports both: its force is $(2+3)\times10 = 50$ N. The spring force cannot change instantly. After the cut: $50 - 20 = 30$ N upward on the 2 kg block, so $a = 30/2 = 15\ \mathrm{m\,s^{-2}}$ upward.`, { unit: 'm/s²', trap: 'A spring force cannot jump; a string force can.' }),
+  n(4, 'banking', r`A road is banked at $\tan\theta = 0.2$, the coefficient of friction is 0.3 and the radius is 50 m. Find the greatest safe speed (in $\mathrm{m\,s^{-1}}$, 2 decimals, $g = 9.8$).`, () => Math.sqrt(50 * 9.8 * (0.3 + 0.2) / (1 - 0.3 * 0.2)), 0.02, 2,
+    r`At the limit friction acts down the slope: $N\cos\theta = mg + \mu N\sin\theta$ and $N\sin\theta + \mu N\cos\theta = mv^2/r$. Dividing: $v^2 = rg\dfrac{\tan\theta+\mu}{1-\mu\tan\theta} = 490\times\dfrac{0.5}{0.94} = 260.6$. $v = 16.14\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  n(4, 'friction', r`A 10 kg block is on a rough floor ($\mu = 0.5$, $g=10$) and is pulled by a force of 40 N at $37^\circ$ above the horizontal ($\sin37^\circ = 0.6$). Find the force of friction on it (in N).`, () => 40 * 0.8, 0, 0,
+    r`$N = mg - F\sin\theta = 100 - 24 = 76$ N, so the most friction possible is $0.5\times76 = 38$ N. The horizontal pull is $40\times0.8 = 32$ N, which is less, so the block stays at rest and static friction equals 32 N.`, { unit: 'N', trap: 'Do not just use $\\mu N$; check whether the block moves.' }),
+  n(4, 'vertical circle', r`A 0.5 kg ball on a 1 m string is whirled in a vertical circle and has a speed of $6\ \mathrm{m\,s^{-1}}$ at the lowest point. Find the tension (in N, 1 decimal) when the string is at $60^\circ$ to the downward vertical ($g=10$).`, () => 0.5 * (36 - 2 * 10 * 0.5) + 0.5 * 10 * 0.5, 0.05, 2,
+    r`Height gained $= l(1-\cos60^\circ) = 0.5$ m. $v^2 = 36 - 2\times10\times0.5 = 26$. Radial: $T - mg\cos60^\circ = mv^2/l \Rightarrow T = 0.5\times26 + 0.5\times10\times0.5 = 13 + 2.5 = 15.5$ N.`, { unit: 'N' }),
+  n(4, 'pulleys', r`A 5 kg block on a rough table ($\mu = 0.3$) is joined by a string over a pulley to a 3 kg block hanging at the edge ($g = 10$). Find the tension in the string (in N, 1 decimal).`, () => 3 * (10 - 15 / 8), 0.05, 2,
+    r`$a = \dfrac{3\times10 - 0.3\times5\times10}{5+3} = \dfrac{15}{8} = 1.875$. For the hanging block: $T = 3(10 - 1.875) = 24.4$ N.`, { unit: 'N' }),
+  n(4, 'friction', r`What least force (in N) pulls a 10 kg block along a rough floor ($\mu = 0.75$) at constant speed if the direction of the pull may be chosen freely? ($g=10$)`, () => 0.75 * 100 / Math.sqrt(1 + 0.75 ** 2), 0, 0,
+    r`$F\cos\phi = \mu(mg - F\sin\phi)\Rightarrow F = \dfrac{\mu mg}{\cos\phi+\mu\sin\phi}$. The denominator is largest ($\sqrt{1+\mu^2}$) when $\tan\phi = \mu$. $F_{min} = \dfrac{0.75\times100}{1.25} = 60$ N.`, { unit: 'N' }),
+  n(4, 'pulleys', r`A man of 60 kg sits on a 20 kg seat hanging from a rope that passes over a fixed pulley and is held by the man himself. With what force (in N) must he pull the rope to go up with $2\ \mathrm{m\,s^{-2}}$? ($g=10$)`, () => 80 * 12 / 2, 0, 0,
+    r`The rope pulls up on the man-and-seat system at both ends of the loop that holds them: $2T - (M+m)g = (M+m)a$. $T = \dfrac{80\times12}{2} = 480$ N.`, { unit: 'N' }),
+  n(4, 'impulse', r`A 0.5 kg bob hangs from a string 0.8 m long. What horizontal impulse (in N s) given to it will just make it swing up to the horizontal position? ($g=10$)`, () => 0.5 * Math.sqrt(2 * 10 * 0.8), 0, 0,
+    r`It rises 0.8 m: $v = \sqrt{2gl} = \sqrt{16} = 4\ \mathrm{m\,s^{-1}}$. Impulse $= mv = 0.5\times4 = 2$ N s.`, { unit: 'N s' }),
+  n(4, 'circular motion dynamics', r`A person rides a vertical-wall rotor of radius 2 m (cylinder spinning about its vertical axis). The friction coefficient between the person and the wall is 0.25. What is the least angular speed (in rad/s, 2 decimals) so that the person does not slide down? ($g=10$)`, () => Math.sqrt(10 / (0.25 * 2)), 0.01, 2,
+    r`The wall's push gives the centripetal force $N = m\omega^2r$. Friction holds the weight: $\mu N\ge mg$, so $\mu\omega^2r\ge g$. $\omega = \sqrt{\dfrac{g}{\mu r}} = \sqrt{20} = 4.47$ rad/s.`, { unit: 'rad/s' }),
+  s(4, 'friction', r`Which of the following statements about friction are correct?`,
+    [r`Static friction can be less than $\mu_sN$.`, 'Kinetic friction depends strongly on the area of contact.', 'Friction can act in the direction of motion of a body.', 'Friction always opposes the velocity of the body on which it acts.'], [0, 2],
+    r`(A) True: it adjusts up to the limit. (B) False: for ordinary surfaces it is nearly independent of area. (C) True: a box on an accelerating truck is carried forward by friction. (D) False: friction opposes the relative sliding (or tendency to slide) at the contact, not necessarily the velocity relative to the ground.`),
+  s(5, 'pulleys', r`Blocks of masses $m_1 > m_2$ hang on a light string over a frictionless pulley. Which of the following are correct?`,
+    [r`The tension is less than $m_1g$.`, r`The tension is greater than $m_2g$.`, 'If the pulley has mass, the acceleration of the blocks is smaller than for a massless pulley.', r`The tension equals $\dfrac{(m_1+m_2)g}{2}$.`], [0, 1, 2],
+    r`$T = \dfrac{2m_1m_2g}{m_1+m_2}$, which lies between $m_2g$ and $m_1g$ (A and B true). A massive pulley adds inertia, so $a = \dfrac{(m_1-m_2)g}{m_1+m_2+I/R^2}$ is smaller (C true). $\tfrac12(m_1+m_2)g$ is larger than $T$ unless $m_1=m_2$ (D false).`),
+  s(4, 'banking', r`A car moves on a frictionless banked road (angle $\theta$) at the design speed. Which are correct?`,
+    [r`The normal reaction is $mg/\cos\theta$.`, r`The normal reaction is $mg$.`, 'The net force is horizontal.', 'At a lower speed, friction would have to act up the slope to keep it from sliding down.'], [0, 2, 3],
+    r`$N\cos\theta = mg$ gives $N = mg/\cos\theta$ (A true, B false). The vertical forces balance, so the net force is horizontal, towards the centre (C true). Below the design speed the car tends to slip down the slope, so friction acts up the slope (D true).`),
+  s(5, 'pseudo force', r`A frame accelerates at $\vec a$ relative to an inertial frame. Which of these are correct?`,
+    [r`The pseudo force on a mass $m$ in it is $-m\vec a$.`, 'The pseudo force has no reaction force.', 'The pseudo force obeys Newton\'s third law.', 'A person in the inertial frame does not need a pseudo force.'], [0, 1, 3],
+    r`In the accelerating frame, $m\vec a' = \vec F - m\vec a$ (A true). The pseudo force is not exerted by any body, so it has no reaction partner (B true; C false). In the inertial frame $\vec F = m\vec a$ already works (D true).`),
+  s(4, 'lift', r`A person standing on a scale in a lift reads more than the true weight. The lift may be`,
+    ['accelerating upward', 'slowing down while moving downward', 'moving upward at constant speed', 'speeding up while moving downward'], [0, 1],
+    r`A larger reading needs an upward acceleration. That is true for speeding up while going up (A) and slowing down while going down (B). At constant speed the reading equals the weight (C false). Speeding up downward is a downward acceleration, which lowers the reading (D false).`),
+  s(5, 'impulse', r`A ball of mass $m$ and speed $v$ hits a smooth wall at $60^\circ$ to the normal and rebounds elastically. Which of these are correct?`,
+    ['The component of momentum along the normal reverses.', 'The component of momentum along the wall is unchanged.', r`The magnitude of the impulse is $2mv$.`, 'The speed after the collision is $v$.'], [0, 1, 3],
+    r`A smooth wall exerts only a normal force, so the tangential component is unchanged (B true) and the normal component reverses (A true). The impulse is $2mv\cos60^\circ = mv$, not $2mv$ (C false). Elastic means the speed is unchanged (D true).`),
+  s(5, 'vertical circle', r`A ball is whirled on a string in a vertical circle of radius $l$ and just completes the circle. Which are correct?`,
+    [r`The speed at the top is $\sqrt{gl}$.`, r`The tension at the bottom is $6mg$.`, 'The tension is greatest at the bottom.', r`The tension at the top is $mg$.`], [0, 1, 2],
+    r`At the top $T = 0$ and $mg = mv^2/l$, so $v = \sqrt{gl}$ (A true, D false). At the bottom $v^2 = 5gl$, so $T - mg = 5mg$, $T = 6mg$ (B true). The tension is largest at the lowest point (C true).`),
+  s(5, 'momentum conservation', r`Two blocks of masses $m$ and $2m$ are joined by a compressed light spring on a smooth table and released from rest. Which are correct?`,
+    ['Their initial accelerations are in the ratio $2:1$ (the lighter has the greater).', 'Their momenta are equal and opposite at every instant.', 'The centre of mass stays at rest.', 'Their kinetic energies are equal at every instant.'], [0, 1, 2],
+    r`The spring exerts equal forces, so $a_1/a_2 = 2m/m = 2$ (A true), $p_1 = -p_2$ (B true), and $\vec P = 0$ so the centre of mass does not move (C true). $K = p^2/2m$ is larger for the lighter block (D false).`),
+  s(5, 'friction on inclines', r`A block is placed on a rough incline of angle $\theta$ and coefficient of friction $\mu$. Which statements are correct?`,
+    [r`It stays at rest if $\tan\theta<\mu$.`, r`When at rest, the friction equals $mg\sin\theta$.`, r`The angle of repose is $\tan^{-1}\mu$.`, 'The angle of repose depends on the mass of the block.'], [0, 1, 2],
+    r`Rest needs $mg\sin\theta\le\mu mg\cos\theta$, i.e. $\tan\theta\le\mu$ (A true). Static friction then exactly balances $mg\sin\theta$ (B true). The limiting angle is $\tan^{-1}\mu$ (C true), independent of mass (D false).`),
+  s(4, 'Newton\'s third law', r`A horse pulls a cart along a level road and they accelerate forward. Which are correct?`,
+    ['The cart pulls back on the horse with a force equal to the horse\'s pull on the cart.', 'The horse moves forward because the ground pushes it forward (friction).', 'The cart accelerates because the horse\'s pull exceeds the cart\'s pull on the horse.', 'The net force on the cart is non-zero.'], [0, 1, 3],
+    r`Third-law pairs are always equal (A true, C false). The horse accelerates because the ground's friction on its hooves exceeds the cart's backward pull (B true). The cart accelerates, so its net force is non-zero (D true).`),
+  mt(4, 'vertical circle', 'xl3', ['s', 'q', 'p', 'r'], r`With $v_b^2 = 5gl$: bottom $T = mg + \dfrac{5mgl}{l} = 6mg$ (s). Horizontal: $v^2 = 5gl - 2gl = 3gl$, $T = 3mg$ (q). Top: $T = 0$ (p). At $60^\circ$ from the bottom: $v^2 = 5gl - gl = 4gl$ and $T = 4mg + mg\cos60^\circ = 4.5mg$ (r).`),
+  mt(4, 'wedge and block', 'xl4', ['r', 'p', 'q', 's'], r`Fixed wedge: $a = g\sin\theta$ (r), $N = mg\cos\theta$ (p). Accelerating wedge: $N\sin\theta = ma$, $N\cos\theta = mg$ gives $a = g\tan\theta$ (q) and $N = mg/\cos\theta$ (s).`),
+  a(4, 'friction', 'Static friction is not always equal to $\\mu_sN$.', 'The value $\\mu_sN$ is only the maximum (limiting) value of static friction.', 0,
+    r`Static friction adjusts itself to the applied force up to the limit $\mu_sN$. R explains A.`),
+  a(4, 'lift', 'A man in a lift moving upward at constant speed feels no change in his weight.', 'The net force on him is zero.', 0,
+    r`At constant velocity $a = 0$, so $N = mg$. Both true, R explains A.`),
+  a(4, 'vertical circle', r`A ball on a string needs a speed of at least $\sqrt{gl}$ at the top of a vertical circle.`, 'At the top the tension cannot be negative, so $mv^2/l\\ge mg$.', 0,
+    r`At the top $T + mg = mv^2/l$ with $T\ge0$, so $v^2\ge gl$. Both true, and R is the reason.`),
+  a(4, 'vertical circle', 'In a vertical circle the tension at the bottom is more than at the top for any speed.', 'The speed is greater at the bottom and the weight adds to the tension there.', 0,
+    r`$T_b - mg = mv_b^2/l$ and $T_t + mg = mv_t^2/l$, with $v_b>v_t$. So $T_b > T_t$. Both true, and R explains it.`),
+  t(4, 'pseudo force', 'A pseudo force exists in a non-inertial frame.', 'The pseudo force has a reaction force in that frame.', 2,
+    r`I is true. II is false: pseudo forces arise from the frame's acceleration, not from the interaction of two bodies, so they have no reaction.`),
+  t(4, 'impulse', 'A force of 10 N acting on a 2 kg body for 0.5 s changes its momentum by 5 kg m/s.', 'Impulse equals force multiplied by the time for which it acts (constant force).', 0,
+    r`$J = F\Delta t = 10\times0.5 = 5$ N s $=\Delta p$. Both true.`),
+  cn(4, 'circular motion dynamics', 'How many of the following are correct?', ['Centripetal force is an extra force on a body in circular motion, apart from the real forces.', 'In a conical pendulum the vertical component of the tension equals $mg$.', 'At the lowest point of a vertical circle the apparent weight is greater than $mg$.', 'A car moving at constant speed on a banked track has zero acceleration.'], 2,
+    r`(i) False: it is the resultant of real forces. (ii) True. (iii) True: $N = mg + mv^2/r$. (iv) False: its velocity changes direction. Two are correct.`),
+  // ---------- Level 5 ----------
+  n(5, 'chain on a table', r`A uniform chain of length 2 m lies partly on a rough table ($\mu = 0.5$) with the rest hanging over the edge. What is the greatest length (in m, 3 decimals) that can hang without the chain sliding off?`, () => 2 * 0.5 / 1.5, 0.003, 3,
+    r`Let $x$ hang and $\lambda$ be the mass per metre. The hanging part pulls with $x\lambda g$. Friction on the table part is at most $\mu(L-x)\lambda g$. At the limit $x = \mu(L-x)$, so $x = \dfrac{\mu L}{1+\mu} = \dfrac{0.5\times2}{1.5} = 0.667$ m.`, { unit: 'm' }),
+  n(5, 'bowl', r`A small block moves in a horizontal circle on the inside of a smooth hemispherical bowl of radius 0.5 m, turning at $8\ \mathrm{rad\,s^{-1}}$. How high (in m, 3 decimals) above the lowest point of the bowl is it? ($g=10$)`, () => 0.5 * (1 - 10 / (64 * 0.5)), 0.002, 3,
+    r`With $\theta$ the angle of the radius from the vertical: $N\cos\theta = mg$ and $N\sin\theta = m\omega^2R\sin\theta$, so $N = m\omega^2R$ and $\cos\theta = \dfrac{g}{\omega^2R} = \dfrac{10}{32} = 0.3125$. Height above the bottom $= R(1-\cos\theta) = 0.5\times0.6875 = 0.344$ m.`, { unit: 'm' }),
+  n(5, 'wedge and block', r`A 2 kg block is released on a smooth $30^\circ$ wedge of mass 6 kg, which rests on a smooth floor. Find the acceleration of the wedge (in $\mathrm{m\,s^{-2}}$, 2 decimals, $g=10$).`, () => 2 * 10 * 0.5 * Math.cos(Math.PI / 6) / (6 + 2 * 0.25), 0.01, 2,
+    r`The wedge moves horizontally under the horizontal component of the block's push, $N\sin\theta = Ma$. The block's normal force is reduced because the wedge gives way: $N = \dfrac{Mmg\cos\theta}{M+m\sin^2\theta}$. So $a = \dfrac{mg\sin\theta\cos\theta}{M+m\sin^2\theta} = \dfrac{2\times10\times0.5\times0.866}{6+0.5} = 1.33\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²', trap: 'The wedge is free to move, so $N \\ne mg\\cos\\theta$.' }),
+  n(5, 'circular motion dynamics', r`A small block starts from rest at the top of a smooth hemisphere of radius 1.5 m and slides down. Through what vertical distance (in m) has it fallen when it leaves the surface?`, () => 1.5 / 3, 0.005, 3,
+    r`At angle $\theta$ from the top: $mg\cos\theta - N = mv^2/R$ with $v^2 = 2gR(1-\cos\theta)$. It leaves when $N = 0$: $\cos\theta = 2(1-\cos\theta)$, so $\cos\theta = \tfrac23$. The drop is $R(1-\cos\theta) = R/3 = 0.5$ m.`, { unit: 'm' }),
+  m(5, 'pulleys', r`Two blocks $m_1$ and $m_2$ hang over a light frictionless pulley with $m_1 > m_2$. The pulley's support exerts a force on the pulley equal to`, r`$\dfrac{4m_1m_2g}{m_1+m_2}$`, [r`$(m_1+m_2)g$`, r`$\dfrac{(m_1+m_2)g}{2}$`, r`$(m_1-m_2)g$`],
+    r`The support holds up the two string tensions: $2T = \dfrac{4m_1m_2g}{m_1+m_2}$. It is less than $(m_1+m_2)g$ because the system is accelerating (the heavier block goes down), and equal to $(m_1+m_2)g$ only if $m_1 = m_2$.`, { trap: 'The support force is not the total weight when the blocks accelerate.' }),
+  n(5, 'friction on blocks', r`A 2 kg block lies on a 4 kg plank on a smooth floor; $\mu = 0.4$ between them ($g = 10$). What is the greatest horizontal force (in N) on the plank for which the block does not slip on it?`, () => (2 + 4) * 0.4 * 10, 0, 0,
+    r`The block's greatest acceleration is $\mu g = 4\ \mathrm{m\,s^{-2}}$ (friction is its only horizontal force). The two move together up to $a = 4$, so $F_{max} = (2+4)\times4 = 24$ N.`, { unit: 'N' }),
+  n(5, 'circular motion dynamics', r`A 0.5 kg ball swings on a 1.2 m string. When the string is horizontal the ball has a speed of $4\ \mathrm{m\,s^{-1}}$. Find the magnitude of its total acceleration (in $\mathrm{m\,s^{-2}}$, 2 decimals) at that moment. ($g = 10$)`, () => Math.hypot(16 / 1.2, 10), 0.02, 2,
+    r`Radial (centripetal) acceleration $= v^2/l = 16/1.2 = 13.33$, and the tangential acceleration is $g = 10$ (gravity is tangent to the circle at that point). $a = \sqrt{13.33^2 + 10^2} = 16.67\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²', trap: 'Include both the radial and tangential parts.' }),
+  n(5, 'inclined plane', r`A block is kept on a rough incline of angle $30^\circ$ and $\mu = 0.8$. What horizontal force (in N, nearest whole number) is just enough to make a 10 kg block start sliding up the incline? ($g = 10$)`, () => Math.round(100 * (Math.sin(Math.PI / 6) + 0.8 * Math.cos(Math.PI / 6)) / (Math.cos(Math.PI / 6) - 0.8 * Math.sin(Math.PI / 6))), 1, 0,
+    r`Let $F$ be horizontal, pushing in towards the incline. Along the slope: $F\cos\theta = mg\sin\theta + \mu N$. Normal: $N = mg\cos\theta + F\sin\theta$. So $F(\cos\theta - \mu\sin\theta) = mg(\sin\theta + \mu\cos\theta)$. $F = 100\times\dfrac{0.5+0.693}{0.866 - 0.4} = 100\times\dfrac{1.193}{0.466} = 256$ N.`, { unit: 'N', trap: 'The horizontal push also raises the normal reaction.' }),
+  n(5, 'springs', r`Two blocks, $P$ of 1 kg and $Q$ of 2 kg, are joined by a spring. $P$ hangs from the ceiling by a string, with $Q$ hanging below on the spring. The ceiling string is cut. Find the initial acceleration of $P$ (in $\mathrm{m\,s^{-2}}$, downward; $g=10$).`, () => (10 + 20) / 1, 0, 0,
+    r`Before the cut the spring is stretched by the weight of $Q$: its force is 20 N (it pulls $P$ down and $Q$ up). After the cut the spring force is unchanged. On $P$: down $= mg + 20 = 30$ N, so $a = 30\ \mathrm{m\,s^{-2}}$ downward ($3g$). $Q$ is still balanced: acceleration 0.`, { unit: 'm/s²' }),
+  mt(5, 'springs', 'xl8', ['r', 'q', 's', 'p'], r`Case 1: the spring holds both, force $3mg$. Cut the string: $P$ has $3mg - mg = 2mg$ up, so $2g$ (r). $Q$ falls freely, $g$ (q). Case 2: the spring is stretched by $Q$'s weight, force $2mg$. Cut the ceiling string: $P$ gets $mg + 2mg = 3mg$ down, so $3g$ (s). $Q$ has $2mg$ up from the spring and $2mg$ down: 0 (p).`),
+  a(5, 'pulleys', 'The tension in a light rope passing over a frictionless pulley is the same on both sides.', 'The net torque on a massless pulley must be zero.', 0,
+    r`For a massless pulley, $(T_1 - T_2)R = I\alpha = 0$, so $T_1 = T_2$ when there is no friction at the axle. Both true, and R explains A.`),
+  a(5, 'friction on blocks', 'In a system of two blocks, one on top of the other, friction on the lower block by the upper block can act in the direction of the lower block\'s motion.', 'Friction opposes the relative sliding between two surfaces in contact.', 0,
+    r`If the upper block slides forward relative to the lower block, friction on the lower block acts forward (it is the reaction of the backward friction on the upper block). Friction opposes relative motion, not necessarily the body's own motion. R explains A.`),
+  cn(5, 'inertial frames', 'How many of the following are correct?', ['Newton\'s first law defines inertial frames.', 'A frame in free fall near the Earth is, over a small region, inertial.', 'In a uniformly rotating frame there is a pseudo force even for a body at rest in it.', 'In an accelerating frame the sum of real forces is always equal to $ma$.'], 3,
+    r`(i) True. (ii) True: in free fall gravity is cancelled by the pseudo force (the principle of equivalence). (iii) True: the centrifugal force. (iv) False: in the accelerating frame $\sum F_{real} + F_{pseudo} = ma'$. Three are correct.`),
+);
+
+items.push(
+  pn(3, 'friction on blocks', 'xlp1', r`Find the acceleration of the block (in $\mathrm{m\,s^{-2}}$), assuming it slips on the plank.`, () => (20 - 0.4 * 2 * 10) / 2, 0, 0,
+    r`Is slipping certain? If they moved together, $a = 20/6 = 3.33$, requiring friction $4\times3.33 = 13.3$ N on the plank, more than the maximum $0.4\times20 = 8$ N. So the block slips. Friction on it is 8 N backward: $a_1 = (20-8)/2 = 6\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  pn(4, 'friction on blocks', 'xlp1', r`Find the acceleration of the plank (in $\mathrm{m\,s^{-2}}$).`, () => 8 / 4, 0, 0,
+    r`The only horizontal force on the plank is the friction from the block, 8 N forward. $a_2 = 8/4 = 2\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  pn(5, 'friction on blocks', 'xlp1', r`The block starts at the left end of the plank. How long (in s, 3 decimals) before it leaves the right end?`, () => Math.sqrt(2 * 1 / (6 - 2)), 0.005, 3,
+    r`Relative acceleration $= 6 - 2 = 4\ \mathrm{m\,s^{-2}}$. Relative distance $= 1$ m: $1 = \tfrac12\times4t^2$, $t = \sqrt{0.5} = 0.707$ s.`, { unit: 's' }),
+  pn(3, 'circular motion dynamics', 'xlp2', r`Find the tension in the string (in N, 2 decimals).`, () => 0.5 * 10 / 0.8, 0.01, 2,
+    r`$T\cos37^\circ = mg \Rightarrow T = \dfrac{5}{0.8} = 6.25$ N.`, { unit: 'N' }),
+  pn(4, 'circular motion dynamics', 'xlp2', r`Find the speed of the ball (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, () => Math.sqrt(10 * 0.6 * 0.75), 0.01, 2,
+    r`The circle has radius $r = l\sin37^\circ = 0.6$ m. $T\sin\theta = mv^2/r$ and $T\cos\theta = mg$ give $v^2 = rg\tan\theta = 0.6\times10\times0.75 = 4.5$, $v = 2.12\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  pn(4, 'circular motion dynamics', 'xlp2', r`The ball is made to go faster until the string makes $60^\circ$ with the vertical. Find the new tension (in N).`, () => 0.5 * 10 / 0.5, 0, 0,
+    r`The vertical balance is unchanged: $T\cos60^\circ = mg \Rightarrow T = 5/0.5 = 10$ N.`, { unit: 'N' }),
+);
+
+gens.push(
+  gx(3, 'nat', 'lift', (rng) => {
+    const mm = pick(rng, 40, 90, 5); const a = pick(rng, 0.5, 3, 0.5); const up = rng() < 0.5;
+    const N = mm * (9.8 + (up ? a : -a));
+    return { mm, a, up, q: `A ${mm} kg person stands on a scale in a lift that accelerates ${up ? 'upward' : 'downward'} at ${a} m/s². What does the scale read (in N, 1 decimal, $g=9.8$)?`, answer: +N.toFixed(1), tol: 0.1, unit: 'N',
+      sol: `${up ? `$N - mg = ma \\Rightarrow N = m(g+a)$` : `$mg - N = ma \\Rightarrow N = m(g-a)$`} $= ${mm}\\times${+(9.8 + (up ? a : -a)).toFixed(2)} = ${N.toFixed(1)}$ N.` };
+  }, (p) => { const net = p.up ? p.mm * p.a : -p.mm * p.a; return p.mm * 9.8 + net; }),
+  gx(3, 'nat', 'contact forces', (rng) => {
+    const m1 = pick(rng, 2, 8, 1); const m2 = pick(rng, 1, 6, 1); const F = pick(rng, 10, 60, 5);
+    const N = F * m2 / (m1 + m2);
+    return { m1, m2, F, q: `Blocks of ${m1} kg and ${m2} kg touch on a smooth table. A ${F} N force pushes the ${m1} kg block towards the ${m2} kg block. Find the contact force between them (in N, 2 decimals).`, answer: +N.toFixed(2), tol: 0.01, unit: 'N',
+      sol: `$a = \\dfrac{${F}}{${m1}+${m2}} = ${+(F / (m1 + m2)).toFixed(3)}$. The ${m1} kg block pushes the ${m2} kg block with $N = ${m2}a = ${N.toFixed(2)}$ N.` };
+  }, (p) => { const a = p.F / (p.m1 + p.m2); return p.F - p.m1 * a; }),
+  gx(4, 'nat', 'friction on blocks', (rng) => {
+    const mb = pick(rng, 1, 4, 1); const mp = pick(rng, 3, 8, 1); const mu = pick(rng, 0.2, 0.5, 0.1);
+    const F = (mb + mp) * mu * 10 + pick(rng, 4, 20, 2);
+    const a1 = (F - mu * mb * 10) / mb; const a2 = mu * mb * 10 / mp;
+    return { mb, mp, mu, F, q: `A ${mb} kg block lies on a ${mp} kg plank on a smooth floor; $\\mu = ${mu}$ between them. A horizontal force of ${F} N pulls the block. Find the acceleration of the block (in m/s², 2 decimals, $g=10$), given that it slips.`, answer: +a1.toFixed(2), tol: 0.01, unit: 'm/s²',
+      sol: `Friction on the block is $\\mu mg = ${+(mu * mb * 10).toFixed(2)}$ N backward, so $a_1 = \\dfrac{${F} - ${+(mu * mb * 10).toFixed(2)}}{${mb}} = ${a1.toFixed(2)}$ m/s². (The plank gets ${a2.toFixed(2)} m/s².)`, trap: 'Check that slipping really happens: the block needs more than $\\mu(m+M)g$.' };
+  }, (p) => { const f = p.mu * p.mb * 10; return (p.F - f) / p.mb; }),
+  gx(4, 'nat', 'banking', (rng) => {
+    const r2 = pick(rng, 30, 100, 10); const mu = pick(rng, 0.2, 0.5, 0.1); const tn = pick(rng, 0.1, 0.3, 0.05);
+    const v = Math.sqrt(r2 * 9.8 * (mu + tn) / (1 - mu * tn));
+    return { r2, mu, tn, q: `A banked road has $\\tan\\theta = ${tn}$ and radius ${r2} m, with $\\mu = ${mu}$. Find the greatest safe speed (in m/s, 2 decimals, $g=9.8$).`, answer: +v.toFixed(2), tol: 0.02, unit: 'm/s',
+      sol: `$v^2 = rg\\dfrac{\\tan\\theta+\\mu}{1-\\mu\\tan\\theta} = ${r2}\\times9.8\\times\\dfrac{${tn}+${mu}}{1-${+(mu * tn).toFixed(3)}} = ${(v * v).toFixed(1)}$. $v = ${v.toFixed(2)}$ m/s.` };
+  }, (p) => { const th = Math.atan(p.tn); let lo = 0; let hi = 200; for (let i = 0; i < 100; i++) { const vv = (lo + hi) / 2; const need = vv * vv / (p.r2 * 9.8); const lhs = (Math.sin(th) + p.mu * Math.cos(th)) / (Math.cos(th) - p.mu * Math.sin(th)); if (need < lhs) lo = vv; else hi = vv; } return (lo + hi) / 2; }),
+  gx(4, 'nat', 'vertical circle', (rng) => {
+    const l = pick(rng, 0.5, 1.5, 0.1); const mm = pick(rng, 0.2, 1, 0.1); const vb = pick(rng, 5, 9, 0.5); const th = choose(rng, [30, 45, 60, 90]);
+    const v2 = vb * vb - 2 * 10 * l * (1 - Math.cos(th * Math.PI / 180)); const T = mm * v2 / l + mm * 10 * Math.cos(th * Math.PI / 180);
+    return { l, mm, vb, th, q: `A ${mm} kg ball on a ${l} m string is whirled in a vertical circle with a speed of ${vb} m/s at the lowest point. Find the tension (in N, 2 decimals) when the string makes ${th}° with the downward vertical ($g=10$).`, answer: +T.toFixed(2), tol: 0.02, unit: 'N',
+      sol: `$v^2 = v_b^2 - 2gl(1-\\cos\\theta) = ${v2.toFixed(2)}$. $T - mg\\cos\\theta = mv^2/l$, so $T = ${mm}\\times${v2.toFixed(2)}/${l} + ${mm}\\times10\\times\\cos${th}^\\circ = ${T.toFixed(2)}$ N.`, trap: 'The weight component is $mg\\cos\\theta$ measured from the downward vertical.' };
+  }, (p) => { const h = p.l * (1 - Math.cos(p.th * Math.PI / 180)); const KE = 0.5 * p.mm * p.vb ** 2 - p.mm * 10 * h; const v2 = 2 * KE / p.mm; return p.mm * v2 / p.l + p.mm * 10 * Math.cos(p.th * Math.PI / 180); }),
+  gx(3, 'mcq', 'lift', (rng) => {
+    const mm = pick(rng, 40, 80, 10); const sign = rng() < 0.5 ? 1 : -1; const k = pick(rng, 0.1, 0.3, 0.05);
+    const reading = +(mm * (1 + sign * k)).toFixed(1); const a = +(k * 9.8).toFixed(2);
+    const ans = sign > 0 ? `accelerating upward at ${a} m/s², or slowing down while moving down` : `accelerating downward at ${a} m/s², or slowing down while moving up`;
+    const o = shuffleOpts(rng, ans, [sign > 0 ? `accelerating downward at ${a} m/s²` : `accelerating upward at ${a} m/s²`, 'moving at constant speed', 'in free fall']);
+    return { sign, opts: o.options, q: `A ${mm} kg man standing on a spring scale in a lift sees it read ${reading} kg-weight. The lift must be`, options: o.options, answer: o.answer,
+      sol: `The reading ${sign > 0 ? 'exceeds' : 'is below'} his true weight (${mm} kgf), so the acceleration is ${sign > 0 ? 'upward' : 'downward'}: $a = g\\times\\dfrac{${reading}-${mm}}{${mm}}$ in size $= ${a}$ m/s². A constant speed gives ${mm} kgf and free fall gives 0.`, trap: 'The reading depends on the direction of acceleration, not of velocity.' };
+  }, (p) => p.opts.findIndex((x) => x.startsWith(p.sign > 0 ? 'accelerating upward' : 'accelerating downward'))),
+  gx(3, 'mcq', 'pulleys', (rng) => {
+    const m1 = pick(rng, 3, 9, 1); const m2 = pick(rng, 1, m1 - 1, 1);
+    const T = 2 * m1 * m2 * 9.8 / (m1 + m2);
+    const o = numOpts(rng, T, [(m1 + m2) * 9.8 / 2, m1 * 9.8, m2 * 9.8], 'N', 3);
+    return { m1, m2, q: `Blocks of ${m1} kg and ${m2} kg hang over a light frictionless pulley. Find the tension in the string ($g=9.8$).`, options: o.options, answer: o.answer,
+      sol: `$a = \\dfrac{(${m1}-${m2})g}{${m1}+${m2}}$ and $T = m_2(g+a) = \\dfrac{2m_1m_2g}{m_1+m_2} = ${F(T)}$ N. The weights $${m1}g$ and $${m2}g$ are upper and lower bounds, and the average weight is not the tension.`, trap: 'The tension is the harmonic-type mean, not the average of the weights.', Tval: T };
+  }, (p) => { const a = (p.m1 - p.m2) * 9.8 / (p.m1 + p.m2); const T = p.m2 * (9.8 + a); const t2 = p.m1 * (9.8 - a); return Math.abs(T - t2) < 1e-9 ? (Math.abs(p.Tval - T) < 1e-9 ? p.answer : -1) : -1; }),
+  gx(5, 'nat', 'chain on a table', (rng) => {
+    const L = pick(rng, 1, 4, 0.5); const mu = pick(rng, 0.2, 0.8, 0.1);
+    const x = L * mu / (1 + mu);
+    return { L, mu, q: `A uniform chain of length ${L} m lies partly on a rough table ($\\mu = ${mu}$) with the rest hanging over the edge. Find the greatest hanging length (in m, 3 decimals) that does not make it slide.`, answer: +x.toFixed(3), tol: 0.003, unit: 'm',
+      sol: `At the limit: $x\\lambda g = \\mu(L-x)\\lambda g$, so $x = \\dfrac{\\mu L}{1+\\mu} = \\dfrac{${mu}\\times${L}}{${+(1 + mu).toFixed(2)}} = ${x.toFixed(3)}$ m.` };
+  }, (p) => { let lo = 0; let hi = p.L; for (let i = 0; i < 100; i++) { const x = (lo + hi) / 2; if (x > p.mu * (p.L - x)) hi = x; else lo = x; } return (lo + hi) / 2; }),
+  gx(5, 'nat', 'wedge and block', (rng) => {
+    const M = pick(rng, 3, 10, 1); const mm = pick(rng, 1, 4, 1); const th = choose(rng, [30, 37, 45, 53]);
+    const s2 = Math.sin(th * Math.PI / 180); const c2 = Math.cos(th * Math.PI / 180);
+    const a = mm * 10 * s2 * c2 / (M + mm * s2 * s2);
+    return { M, mm, th, q: `A ${mm} kg block is released on a smooth ${th}° wedge of mass ${M} kg that rests on a smooth floor. Find the acceleration of the wedge (in m/s², 2 decimals, $g=10$).`, answer: +a.toFixed(2), tol: 0.02, unit: 'm/s²',
+      sol: `$a_{wedge} = \\dfrac{mg\\sin\\theta\\cos\\theta}{M + m\\sin^2\\theta} = ${a.toFixed(2)}$ m/s².`, trap: 'The wedge moves, so $N \\ne mg\\cos\\theta$.' };
+  }, (p) => { const th = p.th * Math.PI / 180; const N = p.M * p.mm * 10 * Math.cos(th) / (p.M + p.mm * Math.sin(th) ** 2); return N * Math.sin(th) / p.M; }),
+  gx(4, 'nat', 'friction', (rng) => {
+    const mm = pick(rng, 5, 30, 5); const mu = pick(rng, 0.3, 1, 0.1);
+    const F = mu * mm * 10 / Math.sqrt(1 + mu * mu);
+    return { mm, mu, q: `A ${mm} kg block is dragged at constant speed on a rough floor ($\\mu = ${mu}$) by a force whose direction can be chosen freely. What is the least force (in N, 1 decimal, $g=10$)?`, answer: +F.toFixed(1), tol: 0.1, unit: 'N',
+      sol: `$F = \\dfrac{\\mu mg}{\\cos\\phi + \\mu\\sin\\phi}$, minimised when $\\tan\\phi = \\mu$: $F_{min} = \\dfrac{\\mu mg}{\\sqrt{1+\\mu^2}} = ${F.toFixed(1)}$ N.` };
+  }, (p) => { let best = 1e9; for (let d = 0; d <= 89.99; d += 0.01) { const ph = d * Math.PI / 180; const f = p.mu * p.mm * 10 / (Math.cos(ph) + p.mu * Math.sin(ph)); if (f < best) best = f; } return best; }),
+  gx(4, 'nat', 'circular motion dynamics', (rng) => {
+    const l = pick(rng, 0.5, 2, 0.1); const th = choose(rng, [30, 37, 45, 53, 60]);
+    const T = 2 * Math.PI * Math.sqrt(l * Math.cos(th * Math.PI / 180) / 9.8);
+    return { l, th, q: `A conical pendulum has a string of length ${l} m making ${th}° with the vertical. Find its period (in s, 3 decimals, $g=9.8$).`, answer: +T.toFixed(3), tol: 0.003, unit: 's',
+      sol: `$T = 2\\pi\\sqrt{\\dfrac{l\\cos\\theta}{g}} = 2\\pi\\sqrt{\\dfrac{${l}\\times${+Math.cos(th * Math.PI / 180).toFixed(4)}}{9.8}} = ${T.toFixed(3)}$ s.` };
+  }, (p) => { const th = p.th * Math.PI / 180; const w = Math.sqrt(9.8 * Math.tan(th) / (p.l * Math.sin(th))); return 2 * Math.PI / w; }),
+);
+
+}
+
 export default { topic: 'laws-of-motion', groups, items, gens };

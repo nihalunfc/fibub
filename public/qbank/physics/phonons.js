@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './phonons.more.gen.js';
 import more2 from './phonons.more2.gen.js';
+import r4 from './phonons.r4.gen.js';
 
 const PI = Math.PI, U = C.u;
 const HEV = C.h / C.e;                     // h in eV s
@@ -267,6 +268,7 @@ export default {
       sol: 'Boundary frequencies $\\sqrt{2K_1/m} = \\sqrt{4K/m} = 2\\sqrt{K/m}$ and $\\sqrt{2K_2/m} = \\sqrt2\\sqrt{K/m}$. Gap $= (2 - 1.414)\\sqrt{K/m} = 0.586\\sqrt{K/m}$.',
       trap: 'Taking the gap in $\\omega^2$ ($2K/m$) instead of in $\\omega$.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -391,5 +393,6 @@ export default {
       },
       verify: (p) => 1 / Math.expm1(p.E / (KBMEV * p.T)) },
     ...more,
+    ...r4.gens,
   ],
 };

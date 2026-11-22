@@ -9,6 +9,7 @@ const deg = Math.PI / 180;
 
 import * as Q5 from '../_util.js';
 import more2 from './polarisation.more2.gen.js';
+import r4 from './polarisation.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -213,6 +214,7 @@ export default {
       options: ['stays zero for all angles beyond Brewster', 'grows continuously without passing through zero', 'passes through zero and changes sign (a phase jump of $\\pi$)', 'becomes complex, as in total internal reflection'], answer: 2,
       sol: '$r_p = \\tan(\\theta_i - \\theta_t)/\\tan(\\theta_i + \\theta_t)$. The denominator\'s tangent passes through infinity at $\\theta_i + \\theta_t = 90^\\circ$, so $r_p$ passes through zero and changes sign: a phase jump of $\\pi$ in the reflected $p$ wave. Complex coefficients appear only beyond the critical angle, going from dense to rare.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'pol-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'brewster', unit: 'degrees',
@@ -350,5 +352,6 @@ export default {
           sol: `Split the field along the plate axes: components $E\\cos${th}^\\circ$ and $E\\sin${th}^\\circ$. ${th === 0 || th === 90 ? 'Only one component exists, so the plate changes nothing.' : plate === 'half' ? `A half-wave delay flips one component: the light stays linear, mirrored about the axis, turned through $2\\theta = ${2 * th}^\\circ$.` : th === 45 ? 'Equal components a quarter cycle apart: circular.' : 'Unequal components a quarter cycle apart: an ellipse with axes along the plate axes.'}`,
           trap: 'Circular light needs a quarter-wave plate and exactly $45^\\circ$.' };
       } },
+    ...r4.gens,
   ],
 };

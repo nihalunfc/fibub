@@ -598,4 +598,345 @@ gens.push(
   }, (p) => (p.v === 0 ? p.f * p.n * 8.31 * p.dT / 2 : p.v === 1 ? (p.f + 2) / p.f : p.Q / (p.n * (p.f + 2) / 2 * 8.31))),
 );
 
-export default { topic: 'thermodynamics-physics', groups, items, gens };
+// ======== Expansion block (added 2026-11-22): more hard items and templates, ids th-x001 onward ========
+import * as XH from '../_entrance.js';
+const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
+const xr = String.raw;
+const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xex = (level, type, neet) => { const e = [...XE[level]]; if (neet && level === 4) e.push('neet'); if (false && level <= 3 && type === 'mcq') e.push('cuet'); return e; };
+let xk = 0, xc = 0;
+const XPOS = [2, 0, 3, 1, 3, 1, 0, 2];
+const xb = (level, sub, o) => { const { neet, ...rest } = o; return { id: `th-x${String(++xk).padStart(3, '0')}`, level, exams: xex(level, o.type, neet), sub, ...rest }; };
+const xq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xn = (level, sub, q, ans, tol, calc, sol, o = {}) => {
+  const v = calc();
+  if (!(Math.abs(v - ans) <= Math.max(tol, 1e-9) + 1e-9)) throw new Error(`th item ${xk + 1}: calc ${v} vs answer ${ans}`);
+  return xb(level, sub, { type: 'nat', format: tol === 0 && Number.isInteger(ans) ? 'integer' : 'numeric', q, answer: ans, tol, calc, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAO, answer, sol, ...o });
+const XSO = ['Both Statement I and Statement II are true and II explains I', 'Both Statement I and Statement II are true but II does not explain I', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSO, answer, sol, ...o });
+const XSW = [['A', 'B'], ['C', 'D'], ['A', 'C'], ['B', 'D'], ['A', 'D'], ['B', 'C']];
+/** match item: map like {A:'q',B:'s',C:'p',D:'r'}; three wrong codes made by swapping two answers. */
+const xm = (level, sub, group, q, map, sol, o = {}) => {
+  const code = (m) => ['A', 'B', 'C', 'D'].map((l) => `${l}-${m[l]}`).join(', ');
+  const wrongs = [];
+  for (let i = 0; wrongs.length < 3; i++) { const [a, b] = XSW[(xc + i) % 6]; const m = { ...map }; [m[a], m[b]] = [m[b], m[a]]; wrongs.push(code(m)); }
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, code(map));
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const XMU = xr`\mathrm{m\,s^{-1}}`;
+
+const xgroups = {
+  xm1: { title: 'Molar heat capacity of one mole of a monatomic ideal gas', list1: ['A. Isothermal process', 'B. Adiabatic process', 'C. Isobaric process', 'D. Isochoric process'],
+    list2: ['p. 0', xr`q. $\tfrac32R$`, xr`r. $\tfrac52R$`, 's. Infinite', 't. $R$'] },
+  xm2: { title: 'Carnot engines', list1: ['A. Source 600 K, sink 300 K', 'B. Source 400 K, sink 300 K', 'C. Source 500 K, sink 400 K', 'D. Source 1000 K, sink 250 K'],
+    list2: ['p. 20%', 'q. 25%', 'r. 50%', 's. 75%', 't. 60%'] },
+  xm3: { title: 'One mole of a monatomic gas starts at $(P_0, V_0, T_0)$. Heat absorbed by the gas in each change', list1: [xr`A. Isobaric, volume doubled`, xr`B. Isochoric, pressure doubled`, xr`C. Isothermal, volume doubled`, xr`D. Reversible adiabatic, volume doubled`],
+    list2: ['p. 0', xr`q. $0.69\,RT_0$`, xr`r. $1.5\,RT_0$`, xr`s. $2.5\,RT_0$`, xr`t. $3\,RT_0$`] },
+  xm4: { title: 'Exponent $x$ in the adiabatic relations of ideal gases ($\\gamma = 5/3$ monatomic, $7/5$ diatomic)', list1: [xr`A. $TV^{x} = $ constant, monatomic gas`, xr`B. $TV^{x} = $ constant, rigid diatomic gas`, xr`C. $TP^{x} = $ constant, monatomic gas`, xr`D. $PV^{x} = $ constant, monatomic gas`],
+    list2: [xr`p. $2/3$`, xr`q. $2/5$`, xr`r. $-2/5$`, xr`s. $5/3$`, xr`t. $7/5$`] },
+  xm5: { title: 'Entropy change of the gas (take $R = 8.31$ J mol$^{-1}$K$^{-1}$)', list1: [xr`A. 1 mol, isothermal, volume doubled`, xr`B. 1 mol monatomic, heated at constant pressure from $T$ to $2T$`, xr`C. 1 mol monatomic, heated at constant volume from $T$ to $2T$`, xr`D. 1 mol, reversible adiabatic expansion`],
+    list2: ['p. 0', xr`q. 5.76 J K$^{-1}$`, xr`r. 8.64 J K$^{-1}$`, xr`s. 14.4 J K$^{-1}$`, xr`t. 11.5 J K$^{-1}$`] },
+  xm6: { title: 'Molar heat capacity of a monatomic ideal gas in the process shown', list1: [xr`A. $P \propto V$`, xr`B. $PV^2 = $ constant`, xr`C. $PV^3 = $ constant`, xr`D. $P = $ constant`],
+    list2: [xr`p. $\tfrac12R$`, xr`q. $R$`, xr`r. $\tfrac32R$`, xr`s. $2R$`, xr`t. $\tfrac52R$`] },
+  xm7: { title: 'One mole of a monatomic gas starts at $(P_0, V_0)$ and the volume is doubled. Work done by the gas, in units of $P_0V_0$', list1: ['A. Isobaric', 'B. Isothermal', 'C. Reversible adiabatic', xr`D. Along $P \propto V$`],
+    list2: ['p. 0.555', 'q. 0.693', 'r. 1.00', 's. 1.50', 't. 2.00'] },
+  xm8: { title: 'Coefficient of performance of ideal (Carnot) devices', list1: ['A. Refrigerator, inside 250 K, room 300 K', 'B. Refrigerator, inside 270 K, room 300 K', 'C. Heat pump, outside 270 K, room kept at 300 K', 'D. Heat pump, outside 280 K, room kept at 300 K'],
+    list2: ['p. 5', 'q. 9', 'r. 10', 's. 15', 't. 20'] },
+  xp1: { title: 'A triangular cycle',
+    passage: xr`<p>One mole of a monatomic ideal gas goes round the cycle $A\to B\to C\to A$ on a P-V diagram. $A$ is $(V_0, P_0)$. $A\to B$ is isochoric to $(V_0, 2P_0)$. $B\to C$ is isobaric to $(2V_0, 2P_0)$. $C\to A$ is the straight line back to $A$; this line, if extended, passes through the origin.</p>` },
+  xp2: { title: 'An isothermal step followed by an adiabatic step',
+    passage: xr`<p>Two moles of a monatomic ideal gas ($R = 8.31$ J mol$^{-1}$K$^{-1}$) at 300 K expand reversibly. In step $A\to B$ the temperature is held at 300 K and the volume doubles. In step $B\to C$ the gas expands reversibly with no heat flow until its volume is 8 times the volume at $B$.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xn(2, 'first law', xr`A gas is compressed: 300 J of work is done on it and it gives out 100 J of heat to its surroundings. Find the change in its internal energy (in J).`, 200, 0, () => -100 - (-300),
+    xr`Use $Q = \Delta U + W$ with $W$ the work done <i>by</i> the gas. Heat given out: $Q = -100$ J. Work done on the gas: $W = -300$ J. So $\Delta U = Q - W = -100 + 300 = 200$ J.`,
+    { trap: 'Work done on the gas has a negative sign in Q = ΔU + W.' }),
+  xq(2, 'specific heat in a process', 'The molar heat capacity of an ideal gas is infinite in', 'an isothermal process', ['an adiabatic process', 'an isochoric process', 'an isobaric process'],
+    xr`$C = Q/(n\Delta T)$. In an isothermal process the gas takes in heat while $\Delta T = 0$, so $C\to\infty$. In an adiabatic process $Q = 0$, so $C = 0$. The isochoric and isobaric values are $C_v$ and $C_p$, which are finite.`),
+  xn(2, 'Carnot engine', xr`A Carnot engine works between a source at $727\,^\circ$C and a sink at $27\,^\circ$C. Find its efficiency as a percentage.`, 70, 0, () => (1 - 300 / 1000) * 100,
+    xr`Change to kelvin: $T_1 = 1000$ K, $T_2 = 300$ K. $\eta = 1 - T_2/T_1 = 1 - 0.3 = 0.70$, which is 70%.`,
+    { trap: 'Using the Celsius values in the efficiency formula.' }),
+  xn(2, 'internal energy', xr`Find the rise in internal energy (in J) of 2 mol of a monatomic ideal gas heated through 50 K. Take $R = 8.31$ J mol$^{-1}$K$^{-1}$.`, 1246.5, 1, () => 1.5 * 2 * 8.31 * 50,
+    xr`$\Delta U = nC_v\Delta T = 2\times\tfrac32\times8.31\times50 = 1246.5$ J. The value is the same whatever the process, because $U$ of an ideal gas depends only on $T$.`),
+  xn(2, 'isobaric process', xr`A gas at a constant pressure of $2\times10^5$ Pa expands from 3 L to 5 L. Find the work done by the gas (in J).`, 400, 0, () => 2e5 * (5 - 3) * 1e-3,
+    xr`$W = P\Delta V = 2\times10^5\times(2\times10^{-3}\ \mathrm{m^3}) = 400$ J. Change litres to m$^3$ first: 1 L $= 10^{-3}$ m$^3$.`,
+    { trap: 'Forgetting that 1 L is 10^-3 m^3.' }),
+  xn(2, 'refrigerator', xr`A refrigerator with coefficient of performance 4 is supplied with 100 J of work in a cycle. How much heat (in J) does it release into the room in that cycle?`, 500, 0, () => 100 * 4 + 100,
+    xr`Heat taken from the cold space: $Q_2 = \text{COP}\times W = 4\times100 = 400$ J. Heat released to the room: $Q_1 = Q_2 + W = 400 + 100 = 500$ J.`,
+    { trap: 'Giving 400 J, the heat removed, instead of the heat released.' }),
+
+  // ---------- Level 3 ----------
+  xn(3, 'adiabatic process', xr`A monatomic ideal gas at 300 K is compressed reversibly and adiabatically until its pressure is 32 times the initial pressure. Find the final temperature (in K).`, 1200, 0, () => 300 * Math.pow(32, 0.4),
+    xr`For an adiabatic change $T^{\gamma}P^{1-\gamma} = $ constant, so $T_2/T_1 = (P_2/P_1)^{(\gamma-1)/\gamma}$. With $\gamma = 5/3$ the exponent is $\tfrac{2/3}{5/3} = 0.4$. $T_2 = 300\times32^{0.4} = 300\times4 = 1200$ K, because $32^{0.4} = (2^5)^{2/5} = 4$.`,
+    { trap: 'Using the exponent γ - 1 = 2/3 with pressure; that exponent goes with volume.' }),
+  xn(3, 'isothermal process', xr`One mole of an ideal gas at 600 K expands isothermally to four times its volume. Find the work done by the gas (in J). $R = 8.31$ J mol$^{-1}$K$^{-1}$.`, 6912, 5, () => 8.31 * 600 * Math.log(4),
+    xr`$W = nRT\ln(V_2/V_1) = 8.31\times600\times\ln4 = 4986\times1.3863 = 6912$ J.`,
+    { trap: 'Using log10 instead of the natural logarithm.' }),
+  xn(3, 'entropy', xr`Two moles of a monatomic ideal gas are heated in a rigid container from 300 K to 600 K. Find the increase in entropy of the gas (in J K$^{-1}$, 2 decimals). $R = 8.31$.`, 17.28, 0.05, () => 2 * 1.5 * 8.31 * Math.log(2),
+    xr`At constant volume $dS = nC_v\,dT/T$, so $\Delta S = nC_v\ln(T_2/T_1) = 2\times1.5\times8.31\times\ln2 = 24.93\times0.6931 = 17.28$ J K$^{-1}$.`),
+  xq(3, 'entropy', xr`One mole of an ideal gas expands freely into a vacuum, inside an insulated container, until its volume is doubled. The entropy change of the gas is`, xr`$R\ln2$`, [xr`zero, because no heat is exchanged`, xr`$-R\ln2$`, xr`$2R\ln2$`],
+    xr`Entropy is a state function, so find a reversible path between the same states. The final state has the same $T$ (no change in $U$) and twice the volume, which is the same as an isothermal expansion: $\Delta S = nR\ln(V_2/V_1) = R\ln2 > 0$. The free expansion itself is irreversible, and $Q/T = 0$ is not the entropy change for an irreversible path.`,
+    { trap: 'Using ΔS = Q/T with Q = 0 on the irreversible path.' }),
+  xn(3, 'Carnot engine', xr`A Carnot engine has a source at 500 K and an efficiency of 40%. By how many kelvin must the sink temperature be lowered to raise the efficiency to 60%?`, 100, 0, () => 500 * 0.6 - 500 * 0.4,
+    xr`First sink: $T_2 = T_1(1 - 0.40) = 300$ K. New sink: $T_2' = 500\times(1 - 0.60) = 200$ K. It is lowered by $300 - 200 = 100$ K.`),
+  xn(3, 'work from P-V graph', xr`A gas follows a cycle that is an ellipse on a P-V diagram. The pressure ranges from $1\times10^5$ Pa to $3\times10^5$ Pa and the volume from 2 L to 6 L. Find the work done by the gas in one cycle (in J, nearest whole number).`, 628, 1, () => Math.PI * 1e5 * 2e-3,
+    xr`The work is the area enclosed. The semi-axes are $\Delta P/2 = 1\times10^5$ Pa and $\Delta V/2 = 2\times10^{-3}$ m$^3$. Area $= \pi ab = \pi\times10^5\times2\times10^{-3} = 628$ J.`,
+    { trap: 'Using the full ranges (not half) as the semi-axes, which gives 4 times the area.' }),
+  xq(3, 'polytropic process', xr`A monatomic ideal gas follows the process $PV^2 = $ constant. Its molar heat capacity in this process is`, xr`$\tfrac12R$`, [xr`$\tfrac32R$`, xr`$\tfrac52R$`, xr`$-\tfrac12R$`],
+    xr`For $PV^n = $ constant, $C = C_v + \dfrac{R}{1-n}$. With $C_v = \tfrac32R$ and $n = 2$: $C = \tfrac32R - R = \tfrac12R$. Choosing $\tfrac52R$ comes from adding $R$ (the isobaric case, $n = 0$), and $-\tfrac12R$ from a sign slip in $1 - n$.`,
+    { trap: 'The sign in R/(1 - n).' }),
+  xn(3, 'refrigerator', xr`An ideal refrigerator keeps its inside at $0\,^\circ$C in a room at $27\,^\circ$C (take $0\,^\circ$C $= 273$ K). It removes heat from the inside at the rate of 1000 J every second. Find the electrical power it needs (in W, 1 decimal).`, 98.9, 0.1, () => 1000 * (300 - 273) / 273,
+    xr`$\text{COP} = T_2/(T_1 - T_2) = 273/27 = 10.11$. Power $= Q_2/\text{COP} = 1000/10.11 = 98.9$ W.`),
+  xn(3, 'adiabatic process', xr`One mole of a monatomic ideal gas expands adiabatically and its temperature falls from 600 K to 300 K. How much work does it do, in units of $R$ (that is, find $W/R$ in kelvin)?`, 450, 0, () => 1.5 * (600 - 300),
+    xr`$Q = 0$, so $W = -\Delta U = nC_v(T_1 - T_2) = \tfrac32R\times300 = 450R$. The answer is 450.`),
+  xn(3, 'adiabatic process', xr`A monatomic ideal gas expands adiabatically and its temperature falls to one quarter of its initial value. By what factor does its pressure fall? Give the factor $P_1/P_2$.`, 32, 0, () => Math.pow(4, 2.5),
+    xr`$T\propto P^{2/5}$ for $\gamma = 5/3$. So $P\propto T^{5/2}$ and $P_1/P_2 = 4^{5/2} = 2^5 = 32$.`,
+    { trap: 'Using P ∝ T, as at constant volume.' }),
+  xa(3, 'adiabatic process', xr`A gas heats up when it is compressed very rapidly in an insulated cylinder.`, xr`No heat can leave, so the work done on the gas increases its internal energy.`, 0,
+    xr`With $Q = 0$ the first law gives $\Delta U = -W$. Compression makes $W$ negative, so $\Delta U > 0$ and the temperature of an ideal gas rises. R is exactly the reason for A.`),
+  xt(3, 'PV curves', xr`At a given point of a P-V diagram the adiabatic curve of an ideal gas is steeper than the isothermal curve.`, xr`The slope of the adiabat is $\gamma$ times the slope of the isotherm at the same point, and $\gamma > 1$.`, 0,
+    xr`Isotherm: $dP/dV = -P/V$. Adiabat: $dP/dV = -\gamma P/V$. Because $\gamma > 1$, the adiabat is steeper, and Statement II is the reason.`),
+  xm(3, 'specific heats of gases', 'xm1', xr`Match each process in List I (for one mole of a monatomic ideal gas) with its molar heat capacity in List II.`, { A: 's', B: 'p', C: 'r', D: 'q' },
+    xr`Isothermal: $\Delta T = 0$ with $Q\neq0$, so $C\to\infty$ (s). Adiabatic: $Q = 0$, so $C = 0$ (p). Isobaric: $C_p = \tfrac52R$ (r). Isochoric: $C_v = \tfrac32R$ (q). So A-s, B-p, C-r, D-q.`),
+  xm(3, 'Carnot engine', 'xm2', xr`Match each pair of reservoir temperatures in List I with the efficiency of a Carnot engine in List II.`, { A: 'r', B: 'q', C: 'p', D: 's' },
+    xr`$\eta = 1 - T_2/T_1$. A: $1 - 300/600 = 50\%$ (r). B: $1 - 300/400 = 25\%$ (q). C: $1 - 400/500 = 20\%$ (p). D: $1 - 250/1000 = 75\%$ (s).`),
+  xq(3, 'cycle', xr`The net work in a closed cycle is the area enclosed on a P-V diagram. In which direction must the cycle be traversed for the gas to deliver net work?`, 'Clockwise', ['Anticlockwise', 'Either way, the work is the same', 'Along the isotherm only'],
+    xr`The upper path (expansion at higher pressure) gives more work than the lower return path takes, so a clockwise loop gives net positive work. An anticlockwise loop is a refrigerator or heat pump cycle, with net work done on the gas.`),
+
+  // ---------- Level 4 ----------
+  xn(4, 'general processes', xr`One mole of a monatomic ideal gas follows the process $P = aV$ ($a$ constant) from $(P_0, V_0)$ to volume $3V_0$. Find the heat absorbed in units of $P_0V_0$.`, 16, 0, () => 1.5 * (9 - 1) + 0.5 * (9 - 1),
+    xr`$P = aV$ gives $P_0 = aV_0$. At $3V_0$ the pressure is $3P_0$, so $PV$ goes from $P_0V_0$ to $9P_0V_0$. $\Delta U = \tfrac32\Delta(PV) = \tfrac32\times8P_0V_0 = 12P_0V_0$. Work $= \int aV\,dV = \tfrac12a(9V_0^2 - V_0^2) = 4P_0V_0$. $Q = 12 + 4 = 16P_0V_0$. Check with $C = 2R$: $Q = 2R\Delta T = 2\times8P_0V_0 = 16P_0V_0$.`,
+    { trap: 'Taking the work as the average pressure times ΔV by mistake of using P0 only.' }),
+  xn(4, 'refrigerator', xr`A Carnot engine of efficiency 20% is run backwards as a refrigerator between the same two reservoirs. It extracts 800 J from the cold reservoir per cycle. Find the work needed per cycle (in J).`, 200, 0, () => 800 / ((1 - 0.2) / 0.2),
+    xr`For the engine $T_2/T_1 = 0.8$. As a refrigerator $\text{COP} = T_2/(T_1 - T_2) = 0.8/0.2 = 4$. $W = Q_2/\text{COP} = 800/4 = 200$ J.`,
+    { trap: 'Using COP = 1/η = 5 or COP = η.' }),
+  xn(4, 'degrees of freedom', xr`An ideal gas is heated at constant pressure. One quarter of the heat absorbed is converted into work. How many degrees of freedom does each molecule have?`, 6, 0, () => 2 / 0.25 - 2,
+    xr`$W/Q = R/C_p = \dfrac{1}{f/2 + 1} = \dfrac{2}{f+2}$. Setting this equal to $\tfrac14$ gives $f + 2 = 8$, so $f = 6$ (a non-linear molecule with three translational and three rotational degrees).`),
+  xn(4, 'Carnot engine', xr`The efficiency of a Carnot engine is 40%. If the source temperature is raised by 100 K with the sink fixed, the efficiency becomes 50%. Find the sink temperature (in K).`, 300, 0, () => { const T1 = 100 * (1 - 0.5) / (0.5 - 0.4); return T1 * 0.6; },
+    xr`Let the source be $T_1$ and the sink $T_2$. $T_2 = 0.6T_1$ and $T_2 = 0.5(T_1 + 100)$. So $0.6T_1 = 0.5T_1 + 50$, giving $T_1 = 500$ K and $T_2 = 300$ K. Check: $1 - 300/600 = 0.5$.`),
+  xn(4, 'entropy', xr`One mole of a monatomic ideal gas is heated at constant volume until its temperature is four times the initial value. Find the entropy change in units of $R\ln2$.`, 3, 0, () => 1.5 * Math.log(4) / Math.log(2),
+    xr`$\Delta S = C_v\ln(T_2/T_1) = \tfrac32R\ln4 = \tfrac32R\times2\ln2 = 3R\ln2$. The answer is 3.`),
+  xn(4, 'adiabatic process', xr`A monatomic ideal gas is compressed adiabatically and reversibly so that its temperature becomes four times the initial value. By what factor does its volume decrease?`, 8, 0, () => Math.pow(4, 1.5),
+    xr`$TV^{\gamma-1} = $ constant with $\gamma - 1 = \tfrac23$. $V_1/V_2 = (T_2/T_1)^{3/2} = 4^{3/2} = 8$.`,
+    { trap: 'Using V ∝ 1/T, the isobaric relation.' }),
+  xn(4, 'refrigerator', xr`A Carnot refrigerator works between 250 K inside and 300 K outside, and 100 J of work is done on it in each cycle. Find the heat released to the surroundings per cycle (in J).`, 600, 0, () => 100 * (250 / 50) + 100,
+    xr`$\text{COP} = 250/(300 - 250) = 5$. $Q_2 = 5\times100 = 500$ J. $Q_1 = Q_2 + W = 600$ J. Check with $Q_1/Q_2 = T_1/T_2 = 300/250 = 1.2$: $500\times1.2 = 600$.`),
+  xn(4, 'heat pump', xr`A house loses heat at 6 kW. An ideal heat pump keeps it at 300 K when the outside air is at 270 K. Find the electrical power the pump needs (in W).`, 600, 0, () => 6000 / (300 / 30),
+    xr`In steady state the pump must deliver 6 kW to the house. $\text{COP}_{hp} = T_1/(T_1 - T_2) = 300/30 = 10$. $W = Q_1/\text{COP} = 6000/10 = 600$ W.`),
+  xn(4, 'entropy', xr`Three moles of an ideal gas expand freely into a vacuum from a volume $V$ to $4V$. Find the entropy increase (in J K$^{-1}$, 2 decimals). $R = 8.31$.`, 34.56, 0.05, () => 3 * 8.31 * Math.log(4),
+    xr`The gas is thermally isolated and does no work, so $\Delta T = 0$. Use a reversible isothermal path with the same end states: $\Delta S = nR\ln(V_2/V_1) = 3\times8.31\times\ln4 = 34.56$ J K$^{-1}$.`),
+  xn(4, 'Carnot cycle on T-S diagram', xr`On a T-S diagram, a cycle is the triangle $A(S = 1, T = 300)\to B(S = 1, T = 600)\to C(S = 3, T = 300)\to A$, with $S$ in J K$^{-1}$ and $T$ in K. Find its efficiency as a percentage (1 decimal).`, 33.3, 0.1, () => 100 * (0.5 * 2 * 300) / (0.5 * (600 + 300) * 2),
+    xr`$A\to B$ is vertical (constant $S$): no heat. $B\to C$: $T$ falls from 600 to 300 as $S$ rises, and $Q = \int T\,dS = 450\times2 = 900$ J absorbed. $C\to A$ at 300 K: $Q = 300\times(-2) = -600$ J. Net work $= 300$ J. $\eta = 300/900 = 33.3\%$. (The area of the triangle is the net work.)`),
+  xn(4, 'general processes', xr`One mole of a monatomic ideal gas follows $P\propto V$ while its temperature rises from 300 K to 400 K. Find the heat absorbed (in J). $R = 8.31$.`, 1662, 2, () => 2 * 8.31 * 100,
+    xr`$P\propto V$ means $PV^{-1} = $ constant, $n = -1$. $C = C_v + R/(1 - n) = \tfrac32R + \tfrac12R = 2R$. $Q = 2R\Delta T = 2\times8.31\times100 = 1662$ J. Check: $\Delta U = 1246.5$ J, $W = \tfrac12R\Delta T = 415.5$ J; the sum is 1662 J.`,
+    { neet: true }),
+  xa(4, 'specific heat in a process', xr`The molar heat capacity of an ideal gas is infinite in an isothermal process.`, xr`In an isothermal process the gas absorbs heat but its temperature does not change.`, 0,
+    xr`$C = Q/(n\Delta T)$. $Q\neq0$ and $\Delta T = 0$, so $C\to\infty$. R states exactly why.`),
+  xa(4, 'isotherms', xr`Two different isotherms of a fixed mass of ideal gas never cross on a P-V diagram.`, xr`At any point of the diagram $PV = nRT$ fixes a single temperature.`, 0,
+    xr`A crossing point would have one $(P, V)$ and so one value of $T$, but it would be on two different isotherms with two different $T$. That is impossible, so the isotherms (hyperbolas $PV = $ constant) never cross.`),
+  xa(4, 'entropy', xr`When 1 mol of the same ideal gas at 300 K and 1 mol at 400 K, each in a rigid insulated vessel, are connected so that they mix, the entropy of the universe increases.`, xr`Heat flows irreversibly from the hotter gas to the cooler gas.`, 0,
+    xr`The final temperature is 350 K. The 400 K gas loses entropy $C_v\ln(350/400)$ and the 300 K gas gains $C_v\ln(350/300)$. The sum is $C_v\ln(350^2/(400\times300)) = C_v\ln1.0208 > 0$. Heat flow across a finite temperature difference is the irreversible step, so R explains A.`),
+  xt(4, 'Carnot engine', xr`All reversible engines working between the same two temperatures have the same efficiency.`, xr`The efficiency of a reversible engine depends on the working substance used.`, 2,
+    xr`Carnot's theorem: $\eta = 1 - T_2/T_1$ for every reversible engine between $T_1$ and $T_2$, whatever the working substance. So I is true and II is false.`),
+  xb(4, 'mixed statements', { type: 'mcq', format: 'statements', neet: true,
+    q: xr`How many of these statements are correct?<br>(a) $\Delta U = nC_v\Delta T$ for an ideal gas in every process.<br>(b) The heat absorbed by an ideal gas in an isobaric process is $nC_p\Delta T$.<br>(c) The work done by an ideal gas in an isothermal expansion is zero.<br>(d) The temperature of an ideal gas does not change in a free expansion.<br>(e) The entropy of an isolated system never decreases.`,
+    options: ['Two', 'Three', 'Four', 'Five'], answer: 2,
+    sol: xr`(a) True: $U$ is a function of $T$ only, so the formula holds for any process. (b) True. (c) False: $\Delta U = 0$, but $W = Q = nRT\ln(V_2/V_1)\neq0$. (d) True: $Q = W = 0$ so $\Delta U = 0$. (e) True, the second law. Four are correct.`,
+    trap: 'Confusing ΔU = 0 with W = 0.' }),
+  xm(4, 'heat in processes', 'xm3', xr`Match each change in List I with the heat absorbed by the gas in List II.`, { A: 's', B: 'r', C: 'q', D: 'p' },
+    xr`Take $T_0 = P_0V_0/R$. A: isobaric, $V\to2V_0$ so $T\to2T_0$: $Q = C_p\Delta T = \tfrac52RT_0$ (s). B: isochoric, $P\to2P_0$ so $T\to2T_0$: $Q = \tfrac32RT_0$ (r). C: isothermal: $Q = W = RT_0\ln2 = 0.69RT_0$ (q). D: adiabatic: $Q = 0$ (p).`),
+  xm(4, 'adiabatic relations', 'xm4', xr`Match each relation in List I with its exponent $x$ in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$TV^{\gamma-1}$: monatomic $x = \tfrac53 - 1 = \tfrac23$ (p); diatomic $x = \tfrac75 - 1 = \tfrac25$ (q). $T^{\gamma}P^{1-\gamma}$ = constant gives $TP^{(1-\gamma)/\gamma}$: monatomic $x = (1 - \tfrac53)/\tfrac53 = -\tfrac25$ (r). $PV^{\gamma}$: $x = \tfrac53$ (s).`),
+  xm(4, 'entropy', 'xm5', xr`Match each change in List I with the entropy change of the gas in List II.`, { A: 'q', B: 's', C: 'r', D: 'p' },
+    xr`A: $R\ln2 = 8.31\times0.693 = 5.76$ (q). B: $C_p\ln2 = 2.5\times5.76 = 14.4$ (s). C: $C_v\ln2 = 1.5\times5.76 = 8.64$ (r). D: reversible adiabatic means $dQ = 0$, so $\Delta S = 0$ (p).`),
+  xm(4, 'COP', 'xm8', xr`Match each ideal device in List I with its coefficient of performance in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`Refrigerator: $\text{COP} = T_2/(T_1 - T_2)$. A: $250/50 = 5$ (p). B: $270/30 = 9$ (q). Heat pump: $\text{COP} = T_1/(T_1 - T_2)$ with $T_1 = 300$ K. C: $300/30 = 10$ (r). D: $300/20 = 15$ (s).`,
+    { trap: 'A heat pump is judged by the heat it delivers to the room, so its COP is the refrigerator value plus 1.' }),
+  xs(4, 'isobaric process', xr`A monatomic ideal gas expands at constant pressure $P_0$ from $V_0$ to $3V_0$. Which are correct?`,
+    [xr`The work done by the gas is $2P_0V_0$.`, xr`The rise in internal energy is $3P_0V_0$.`, xr`The heat absorbed is $5P_0V_0$.`, xr`The final temperature is twice the initial temperature.`], [0, 1, 2],
+    xr`$W = P_0(2V_0) = 2P_0V_0$. $\Delta U = \tfrac32\Delta(PV) = \tfrac32\times2P_0V_0 = 3P_0V_0$. $Q = 5P_0V_0$. The temperature is proportional to $V$ at constant $P$, so it becomes <i>three</i> times the initial value; the last option is false.`),
+  xs(4, 'isothermal process', xr`One mole of an ideal gas is compressed isothermally and reversibly while in contact with a heat reservoir. Which are correct?`,
+    [xr`The work done by the gas is positive.`, xr`The internal energy of the gas does not change.`, xr`The gas gives heat to the reservoir.`, xr`The entropy of the gas falls and the entropy of the reservoir rises by the same amount.`], [1, 2, 3],
+    xr`In compression the work done <i>by</i> the gas is negative, so the first option is false. $\Delta U = 0$ (true). $Q = W < 0$: the gas gives heat out (true). The reservoir gains $|Q|/T$ and the gas loses $|Q|/T$, so the total entropy is unchanged for a reversible process (true).`),
+  xs(4, 'general processes', xr`One mole of a monatomic ideal gas goes from $(P_0, V_0)$ to volume $2V_0$ along $P\propto V$. Which are correct?`,
+    [xr`The work done by the gas is $1.5P_0V_0$.`, xr`The temperature rises to four times its initial value.`, xr`The heat absorbed is $5P_0V_0$.`, xr`The rise in internal energy is $4.5P_0V_0$.`], [0, 1, 3],
+    xr`The pressure doubles to $2P_0$, so $PV$ rises from $P_0V_0$ to $4P_0V_0$ and $T$ becomes $4T_0$. $W = \tfrac12(4P_0V_0 - P_0V_0) = 1.5P_0V_0$. $\Delta U = \tfrac32\times3P_0V_0 = 4.5P_0V_0$. $Q = 4.5 + 1.5 = 6P_0V_0$, so the third option is false.`),
+  xs(4, 'free expansion', xr`One mole of an ideal gas in a thermally insulated container expands freely into a vacuum and its volume doubles. Which are correct?`,
+    ['The process can be drawn as an isothermal curve on a P-V diagram.', xr`$Q = 0$ and $W = 0$.`, 'The temperature of the gas does not change.', xr`The entropy of the gas increases by $R\ln2$.`], [1, 2, 3],
+    xr`Free expansion is irreversible, so it has no path on a P-V diagram (only the end states can be marked), which makes the first option false. $Q = 0$, $W = 0$, hence $\Delta U = 0$ and $T$ is unchanged. $\Delta S$ is found along a reversible isothermal path: $R\ln2$.`),
+  xs(4, 'isobaric process', xr`One mole of a rigid diatomic gas is heated at constant pressure, and its temperature rises from $T_0$ to $2T_0$. Which are correct?`,
+    [xr`The heat absorbed is $3.5RT_0$.`, xr`The rise in internal energy is $3.5RT_0$.`, xr`The work done is $\tfrac27$ of the heat absorbed.`, xr`The work done is $RT_0$.`], [0, 2, 3],
+    xr`$Q = C_p\Delta T = \tfrac72RT_0$. $\Delta U = C_v\Delta T = \tfrac52RT_0$ (so the second option is false). $W = R\Delta T = RT_0$, which is $\tfrac{R}{C_p} = \tfrac27$ of $Q$.`),
+  xb(3, 'passage', { type: 'mcq', format: 'passage', group: 'xp1',
+    q: xr`Find the heat absorbed by the gas in $A\to B$.`, options: [xr`$P_0V_0$`, xr`$1.5\,P_0V_0$`, xr`$2.5\,P_0V_0$`, xr`$3\,P_0V_0$`], answer: 1,
+    sol: xr`$A\to B$ is isochoric, so $W = 0$. $Q = \Delta U = \tfrac32\Delta(PV) = \tfrac32(2P_0V_0 - P_0V_0) = 1.5P_0V_0$.` }),
+  xn(4, 'cycle', xr`Find the total heat absorbed by the gas in one cycle, in units of $P_0V_0/2$. (In $C\to A$ the gas only loses heat.)`, 13, 0, () => (1.5 + 2.5 * 2) * 2,
+    xr`$A\to B$: $Q = 1.5P_0V_0$. $B\to C$ isobaric at $2P_0$: $\Delta(PV) = 4P_0V_0 - 2P_0V_0 = 2P_0V_0$, so $Q = \tfrac52\times2P_0V_0 = 5P_0V_0$. $C\to A$ is along $P\propto V$ with $C = 2R > 0$ while $T$ falls, so $Q < 0$ throughout. Heat absorbed $= 1.5 + 5 = 6.5P_0V_0 = 13\times(P_0V_0/2)$.`,
+    { format: 'passage', group: 'xp1', trap: 'Counting the heat given out in C→A as absorbed, or forgetting that B→C needs Cp, not Cv.' }),
+  xn(4, 'cycle', xr`Find the efficiency of the cycle as a percentage (2 decimals).`, 7.69, 0.05, () => 100 * 0.5 / 6.5,
+    xr`Net work = area of the triangle $= \tfrac12\times(2P_0 - P_0)\times(2V_0 - V_0) = 0.5P_0V_0$ (clockwise, so positive). Heat absorbed $= 6.5P_0V_0$. $\eta = 0.5/6.5 = 1/13 = 7.69\%$.`,
+    { format: 'passage', group: 'xp1' }),
+  xn(3, 'isothermal process', xr`Find the work done by the gas in $A\to B$ (in J, nearest whole number).`, 3456, 3, () => 2 * 8.31 * 300 * Math.log(2),
+    xr`$W = nRT\ln(V_B/V_A) = 2\times8.31\times300\times\ln2 = 4986\times0.6931 = 3456$ J.`,
+    { format: 'passage', group: 'xp2' }),
+  xn(4, 'adiabatic process', xr`Find the temperature of the gas at $C$ (in K).`, 75, 0, () => 300 * Math.pow(1 / 8, 2 / 3),
+    xr`$TV^{2/3} = $ constant, so $T_C = 300\times(V_B/V_C)^{2/3} = 300\times(1/8)^{2/3} = 300\times\tfrac14 = 75$ K.`,
+    { format: 'passage', group: 'xp2', trap: 'The volume ratio 8 is measured from B, not from A.' }),
+  xn(5, 'entropy', xr`Find the total entropy change of the gas from $A$ to $C$ (in J K$^{-1}$, 2 decimals).`, 11.52, 0.05, () => 2 * 8.31 * Math.log(2),
+    xr`Entropy is a state function, so add the changes of the two steps. $A\to B$ (isothermal): $\Delta S = nR\ln2 = 2\times8.31\times0.6931 = 11.52$ J K$^{-1}$. $B\to C$ is reversible and adiabatic, so $\Delta S = 0$. Total $= 11.52$ J K$^{-1}$. Check: $nC_v\ln(T_C/T_A) + nR\ln(V_C/V_A) = 3\times8.31\times\ln(1/4) + 2\times8.31\times\ln16 = -34.56 + 46.08 = 11.52$.`,
+    { format: 'passage', group: 'xp2' }),
+
+  // ---------- Level 5 ----------
+  xn(5, 'Carnot engine', xr`Two Carnot engines work in series. Engine 1 takes heat from a source at 800 K and rejects heat at temperature $T$. Engine 2 takes this rejected heat and works between $T$ and a sink at 200 K. The two engines do equal work. Find $T$ (in K).`, 500, 0, () => 500,
+    xr`Let engine 1 take $Q_1$. It rejects $Q_2 = Q_1T/800$. Engine 2 rejects $Q_3 = Q_2\cdot200/T = Q_1\cdot200/800$. Equal work means $Q_1 - Q_2 = Q_2 - Q_3$, so $Q_1(1 - T/800) = Q_1(T/800 - 200/800)$, which gives $800 - T = T - 200$ and $T = 500$ K. (It is the average of 800 and 200.)`,
+    { trap: 'Taking the geometric mean 400 K, which gives equal efficiencies, not equal work.' }),
+  xn(5, 'polytropic process', xr`A monatomic ideal gas is taken through the process $P\propto V^2$. If the heat absorbed is $Q$, the increase in internal energy is $\dfrac{a}{11}Q$. Find $a$.`, 9, 0, () => 1.5 / (1.5 + 1 / 3) * 11,
+    xr`$P\propto V^2$ means $PV^{-2} = $ constant, $n = -2$. $C = C_v + R/(1 - n) = \tfrac32R + \tfrac13R = \tfrac{11}{6}R$. $\Delta U = C_v\Delta T = \tfrac32R\Delta T$ and $Q = \tfrac{11}{6}R\Delta T$. So $\Delta U/Q = \tfrac{3/2}{11/6} = \tfrac{9}{11}$, giving $a = 9$.`),
+  xn(5, 'entropy', xr`0.5 kg of water at $20\,^\circ$C is mixed with 0.5 kg of water at $80\,^\circ$C in an insulated container. Find the total entropy increase (in J K$^{-1}$, 1 decimal). Take $c = 4200$ J kg$^{-1}$K$^{-1}$ and $T = t + 273$.`, 18.2, 0.1, () => 0.5 * 4200 * (Math.log(323 / 293) + Math.log(323 / 353)),
+    xr`Final temperature $= 50\,^\circ$C $= 323$ K. $\Delta S_{cold} = mc\ln(323/293) = 2100\times0.0974 = +204.5$ J K$^{-1}$. $\Delta S_{hot} = mc\ln(323/353) = 2100\times(-0.0889) = -186.4$ J K$^{-1}$. Total $= 18.2$ J K$^{-1}$. It is positive, as the second law requires.`,
+    { trap: 'Using Celsius temperatures in the logarithms.' }),
+  xn(5, 'Stirling cycle', xr`One mole of a monatomic ideal gas goes round a cycle of two isotherms (600 K and 300 K) and two isochores, the volume ratio being 2. There is no heat regeneration, so all heat absorbed from the hot side counts. Find the efficiency as a percentage (1 decimal).`, 24.0, 0.1, () => 100 * (300 * Math.log(2)) / (600 * Math.log(2) + 1.5 * 300),
+    xr`The work is $W = R(600 - 300)\ln2$ (isothermal work at 600 K minus the magnitude at 300 K). Heat absorbed: isothermal expansion at 600 K gives $R\times600\ln2$, and isochoric heating from 300 K to 600 K gives $\tfrac32R\times300$. $\eta = \dfrac{300\ln2}{600\ln2 + 450} = \dfrac{207.9}{865.9} = 24.0\%$. The Carnot value would be 50%; the isochoric heating is the cost.`,
+    { trap: 'Leaving out the heat needed for the isochoric step.' }),
+  xa(5, 'specific heat in a process', xr`For a monatomic ideal gas in the process $P\propto V$ the molar heat capacity is $2R$.`, xr`In the process $P\propto V$ the work done by the gas per unit rise in temperature is greater than in an isobaric process.`, 2,
+    xr`$P\propto V$ means $n = -1$ in $PV^n = $ constant. $C = C_v + R/(1 - n) = \tfrac32R + \tfrac12R = 2R$, so A is true. For R: $W = \int P\,dV = \tfrac12\Delta(PV) = \tfrac12nR\Delta T$ here, while an isobaric change gives $nR\Delta T$. The work per unit temperature rise is <i>smaller</i> (half), so R is false.`,
+    { trap: 'Assuming that a larger heat capacity means more of the heat becomes work.' }),
+  xa(5, 'polytropic process', xr`For a gas obeying $PV^n = $ constant with $1 < n < \gamma$ the molar heat capacity is negative.`, xr`In this range the gas absorbs heat during expansion although its temperature falls.`, 0,
+    xr`$C = C_v - R/(n - 1)$. For $n < \gamma$, $R/(n - 1) > R/(\gamma - 1) = C_v$, so $C < 0$. In an expansion $T$ falls ($TV^{n-1} = $ constant) but $Q = nC\Delta T > 0$, so heat is absorbed. R is what a negative heat capacity means here, and it explains A.`),
+  xt(5, 'second law', xr`An ideal gas can convert heat completely into work in a reversible isothermal expansion.`, xr`This process violates the Kelvin-Planck statement of the second law.`, 2,
+    xr`In an isothermal expansion of an ideal gas $\Delta U = 0$, so $Q = W$: all the heat absorbed becomes work. The Kelvin-Planck statement forbids this only for a <i>cyclic</i> process, whose final state equals its initial state. Here the gas has a larger volume at the end, so nothing is violated. I true, II false.`,
+    { trap: 'Forgetting the word "cycle" in the Kelvin-Planck statement.' }),
+  xb(5, 'mixed statements', { type: 'mcq', format: 'statements',
+    q: xr`How many of these statements are correct?<br>(a) For a monatomic gas in an adiabatic change, $P\propto T^{5/2}$.<br>(b) For a rigid diatomic gas in an adiabatic change, $V\propto T^{-5/2}$.<br>(c) In the isobaric expansion of a rigid diatomic gas, $2/7$ of the heat absorbed becomes work.<br>(d) In an adiabatic change of an ideal gas, $PV = $ constant.<br>(e) In the isothermal compression of an ideal gas, the internal energy falls.`,
+    options: ['Two', 'Three', 'Four', 'Five'], answer: 1,
+    sol: xr`(a) True: $P\propto T^{\gamma/(\gamma-1)} = T^{5/2}$. (b) True: $TV^{2/5} = $ constant, so $V\propto T^{-5/2}$. (c) True: $R/C_p = 2/7$. (d) False: it is $PV^{\gamma} = $ constant; $PV = $ constant is the isothermal case. (e) False: $\Delta U = 0$. Three are correct.`,
+    trap: 'Mixing the isothermal and adiabatic laws.' }),
+  xm(5, 'polytropic process', 'xm6', xr`Match each process in List I with the molar heat capacity of a monatomic ideal gas in List II.`, { A: 's', B: 'p', C: 'q', D: 't' },
+    xr`$C = C_v + R/(1 - n)$ for $PV^n = $ constant. A: $P\propto V$ is $n = -1$: $\tfrac32R + \tfrac12R = 2R$ (s). B: $n = 2$: $\tfrac32R - R = \tfrac12R$ (p). C: $n = 3$: $\tfrac32R - \tfrac12R = R$ (q). D: $n = 0$: $\tfrac32R + R = \tfrac52R$ (t).`),
+  xm(5, 'work in processes', 'xm7', xr`Match each process in List I with the work done by the gas in List II.`, { A: 'r', B: 'q', C: 'p', D: 's' },
+    xr`With $P_0V_0$ as the unit. A: $P_0\times V_0 = 1.00$ (r). B: $P_0V_0\ln2 = 0.693$ (q). C: $W = (P_1V_1 - P_2V_2)/(\gamma - 1)$ with $P_2V_2 = 2^{-2/3}P_0V_0 = 0.630P_0V_0$: $W = 0.370/(2/3) = 0.555$ (p). D: $P$ rises to $2P_0$; $W = \tfrac12(2P_0\cdot2V_0 - P_0V_0) = 1.50$ (s).`),
+  xs(5, 'cyclic process', xr`One mole of an ideal gas goes round $A\to B\to C\to A$. $A\to B$ is an isothermal expansion. $B\to C$ is an isobaric compression. $C\to A$ is an isochoric heating back to $A$. Which are correct?`,
+    ['The net work done by the gas in the cycle is positive.', xr`Heat is rejected during $C\to A$.`, xr`Heat is absorbed in $A\to B$ and in $C\to A$.`, 'State C has the lowest temperature of the three states.'], [0, 2, 3],
+    xr`On a P-V diagram $A$ is top-left, $B$ is to the right and lower, $C$ is below $A$ at the same volume. $A\to B\to C\to A$ goes clockwise, so the net work is positive. $A\to B$: isothermal expansion, $Q = W > 0$. $B\to C$: compression at constant $P$ with $T$ falling, $Q < 0$. $C\to A$: isochoric with $T$ rising, $Q > 0$, so heat is absorbed (second option false). $T_C = P_BV_A/nR < P_BV_B/nR = T_B = T_A$.`),
+  xs(5, 'second law', xr`Four inventors each claim an engine that works between 500 K and 300 K and takes 1000 J from the source in every cycle. Which claims are physically possible? (A reversible engine counts as possible.)`,
+    ['Work 400 J and heat rejected 600 J.', 'Work 450 J and heat rejected 550 J.', 'Work 300 J and heat rejected 700 J.', 'Work 400 J and heat rejected 500 J.'], [0, 2],
+    xr`The maximum efficiency is $1 - 300/500 = 40\%$, so the maximum work is 400 J. First: 400 J is the Carnot limit and $400 + 600 = 1000$, so it is possible if reversible. Second: 450 J exceeds the limit. Third: 300 J with $300 + 700 = 1000$ is an ordinary irreversible engine. Fourth: $400 + 500 = 900\neq1000$ breaks energy conservation.`),
+  xs(5, 'polytropic process', xr`One mole of a monatomic ideal gas, initially at $(P_0, V_0)$, expands along $PV^2 = $ constant to volume $2V_0$. Which are correct?`,
+    [xr`Its internal energy rises.`, xr`Its temperature becomes half of the initial temperature.`, xr`The work done by the gas is $\tfrac12P_0V_0$.`, 'The gas gives out heat.'], [1, 2, 3],
+    xr`$P_2 = P_0/4$, so $P_2V_2 = P_0V_0/2$ and $T_2 = T_0/2$. $\Delta U = \tfrac32(P_2V_2 - P_0V_0) = -0.75P_0V_0 < 0$. $W = (P_1V_1 - P_2V_2)/(n - 1) = 0.5P_0V_0$. $Q = \Delta U + W = -0.25P_0V_0 < 0$, so heat is given out (also $C = \tfrac12R > 0$ with $\Delta T < 0$).`),
+  xs(5, 'Carnot engine', xr`Two Carnot engines work in series between 800 K and 200 K. The first works between 800 K and $T$ and the second between $T$ and 200 K, using the heat the first rejects. They do equal work. Which are correct?`,
+    [xr`$T = 500$ K.`, 'The two engines have the same efficiency.', xr`The overall efficiency is 75%.`, 'The first engine has an efficiency of 37.5%.'], [0, 2, 3],
+    xr`Equal work gives $T = (800 + 200)/2 = 500$ K. Engine 1: $1 - 500/800 = 37.5\%$. Engine 2: $1 - 200/500 = 60\%$, so the efficiencies differ. Overall: both are reversible, so the combination is a Carnot engine between 800 K and 200 K: $1 - 200/800 = 75\%$.`),
+  xs(5, 'entropy', xr`Two identical blocks of heat capacity $C$ at $T_1$ and $T_2$ ($T_1 > T_2$) are placed in contact inside an insulated box. Which are correct?`,
+    ['Heat flows from the hotter block to the colder one.', xr`The final temperature is $(T_1 + T_2)/2$.`, 'The total entropy of the two blocks is unchanged.', 'The decrease in entropy of the hotter block is smaller in magnitude than the increase in entropy of the colder block.'], [0, 1, 3],
+    xr`The final temperature is the mean $T_f$. $\Delta S_{hot} = C\ln(T_f/T_1) < 0$, $\Delta S_{cold} = C\ln(T_f/T_2) > 0$, and the total is $C\ln\dfrac{T_f^2}{T_1T_2} > 0$ (since $T_f^2 > T_1T_2$ for unequal values, by the AM-GM inequality). So the total entropy rises, and the cold block's gain exceeds the hot block's loss.`),
+];
+
+const xgens = [
+  { id: 'th-g22', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'isothermal process',
+    make(rng) {
+      const n = xchoose(rng, [1, 2, 3]), T = xchoose(rng, [300, 400, 500, 600]), r = xchoose(rng, [2, 3, 4, 5]); const answer = +(n * 8.31 * T * Math.log(r)).toFixed(0);
+      return { n, T, r, answer, tol: Math.max(2, answer * 0.003), unit: 'J',
+        q: `${n} mol of an ideal gas at ${T} K expands isothermally to ${r} times its volume. Find the work done by the gas in J (nearest whole number). R = 8.31 J mol⁻¹K⁻¹.`,
+        sol: `W = nRT ln(V₂/V₁) = ${n} × 8.31 × ${T} × ln ${r} = ${xfmt(n * 8.31 * T, 5)} × ${xfmt(Math.log(r), 4)} = ${answer} J.` };
+    },
+    verify: (p) => { const N = 20000; let s = 0; for (let i = 0; i < N; i++) { const V = 1 + (p.r - 1) * (i + 0.5) / N; s += p.n * 8.31 * p.T / V * (p.r - 1) / N; } return s; } },
+  { id: 'th-g23', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'general processes',
+    make(rng) {
+      const k = xchoose(rng, [2, 3, 4, 5]); const answer = 2 * (k * k - 1);
+      return { k, answer, tol: 0,
+        q: `One mole of a monatomic ideal gas follows the process P = aV (a is constant) from (P₀, V₀) to a volume ${k}V₀. Find the heat absorbed in units of P₀V₀.`,
+        sol: `P₀ = aV₀, and at ${k}V₀ the pressure is ${k}P₀, so PV rises from P₀V₀ to ${k * k}P₀V₀. ΔU = 1.5 × ${k * k - 1} = ${xfmt(1.5 * (k * k - 1), 4)} P₀V₀. W = ½ × ${k * k - 1} = ${xfmt(0.5 * (k * k - 1), 4)} P₀V₀. Q = ΔU + W = ${answer} P₀V₀.` };
+    },
+    verify: (p) => { const N = 20000; let W = 0; for (let i = 0; i < N; i++) { const V = 1 + (p.k - 1) * (i + 0.5) / N; W += V * (p.k - 1) / N; } return Math.round(1.5 * (p.k * p.k - 1) + W); } },
+  { id: 'th-g24', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'refrigerator',
+    make(rng) {
+      const Tc = xchoose(rng, [250, 260, 270, 280]), Th = xchoose(rng, [300, 310]), W = xchoose(rng, [100, 200, 500]); const answer = +(W * Th / (Th - Tc)).toFixed(1);
+      return { Tc, Th, W, answer, tol: Math.max(0.1, answer * 0.005), unit: 'J',
+        q: `A Carnot refrigerator works between an inside temperature of ${Tc} K and a room at ${Th} K. In each cycle ${W} J of work is done on it. Find the heat released into the room per cycle, in J (1 decimal).`,
+        sol: `COP = Tc/(Th − Tc) = ${Tc}/${Th - Tc} = ${xfmt(Tc / (Th - Tc), 4)}. Heat taken from inside = COP × W = ${xfmt(Tc / (Th - Tc) * W, 5)} J. Heat released = that + W = ${answer} J. (Also Q₁ = W·Th/(Th − Tc).)` };
+    },
+    verify: (p) => { const q2 = p.W * p.Tc / (p.Th - p.Tc); return q2 + p.W; } },
+  { id: 'th-g25', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'Carnot engine',
+    make(rng) {
+      const [e1, e2, dT, T2] = xchoose(rng, [[40, 50, 100, 300], [25, 40, 100, 300], [50, 62.5, 200, 300], [33.3333333, 50, 100, 200]]);
+      const e1s = e1 === 33.3333333 ? '33.3' : String(e1);
+      return { e1, e2, dT, answer: T2, tol: 1, unit: 'K',
+        q: `A Carnot engine has an efficiency of ${e1s}%. Raising the source temperature by ${dT} K, with the sink unchanged, makes the efficiency ${e2}%. Find the sink temperature in K.`,
+        sol: `Let the source be T₁ and the sink T₂. T₂ = (1 − ${e1s}/100)T₁ and T₂ = (1 − ${e2}/100)(T₁ + ${dT}). Solving gives T₁ = ${xfmt(T2 / (1 - e1 / 100), 4)} K and T₂ = ${T2} K.` };
+    },
+    verify: (p) => { const a = p.e1 / 100, b = p.e2 / 100; const T1 = p.dT * (1 - b) / (b - a); return T1 * (1 - a); } },
+  { id: 'th-g26', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'cyclic process',
+    make(rng) {
+      const k = xchoose(rng, [2, 3, 4]); const answer = +(100 * 0.5 * (k - 1) / (1.5 + 2.5 * k)).toFixed(2);
+      return { k, answer, tol: 0.05, unit: '%',
+        q: `One mole of a monatomic ideal gas goes round A(V₀, P₀) → B(V₀, ${k}P₀) → C(${k}V₀, ${k}P₀) → A, where C → A is the straight line from C back to A (it passes through the origin of the P-V graph, and the gas only loses heat on it). Find the efficiency of the cycle as a percentage (2 decimals).`,
+        sol: `Work = area of triangle = ½(${k} − 1)(${k} − 1)P₀V₀ = ${xfmt(0.5 * (k - 1) ** 2, 4)}P₀V₀. A → B: Q = 1.5(${k} − 1) = ${xfmt(1.5 * (k - 1), 4)}P₀V₀. B → C: Q = 2.5 × ${k}(${k} − 1) = ${xfmt(2.5 * k * (k - 1), 4)}P₀V₀. Heat in = ${xfmt((k - 1) * (1.5 + 2.5 * k), 4)}P₀V₀. η = ${xfmt(0.5 * (k - 1) ** 2, 4)}/${xfmt((k - 1) * (1.5 + 2.5 * k), 4)} = ${answer}%.` };
+    },
+    verify: (p) => { const k = p.k; const UAB = 1.5 * (k - 1), QBC = 1.5 * k * (k - 1) + k * (k - 1); const UCA = 1.5 * (1 - k * k), WCA = 0.5 * (1 - k * k), QCA = UCA + WCA; const W = 0 + k * (k - 1) + WCA; const Qin = UAB + QBC; return 100 * (W / Qin) + (QCA < 0 ? 0 : 1e6); } },
+  { id: 'th-g27', type: 'mcq', level: 3, exams: xex(3, 'mcq'), sub: 'degrees of freedom',
+    make(rng) {
+      const f = xchoose(rng, [3, 5, 6, 7]); const ok = `2/${f + 2}`;
+      const o = xsh(rng, ok, [`${f}/${f + 2}`, `2/${f}`, `1/${f + 2}`]);
+      return { f, options: o.options, answer: o.answer,
+        q: `An ideal gas whose molecules have ${f} degrees of freedom is heated at constant pressure. What fraction of the heat absorbed is converted into work?`,
+        sol: `W/Q = R/Cp with Cp = (f/2 + 1)R = ${(f + 2) / 2}R, so W/Q = 2/(f + 2) = ${ok}. The fraction ${f}/${f + 2} is ΔU/Q, the share that raises the internal energy.` };
+    },
+    verify: (p) => p.options.indexOf(`2/${p.f + 2}`) },
+  { id: 'th-g28', type: 'mcq', level: 4, exams: xex(4, 'mcq'), sub: 'adiabatic process',
+    make(rng) {
+      const f = xchoose(rng, [3, 5, 6]); const ok = `$V^{-2/${f}}$`;
+      const o = xsh(rng, ok, [`$V^{2/${f}}$`, `$V^{-${f}/2}$`, `$V^{-2/${f + 2}}$`]);
+      return { f, options: o.options, answer: o.answer,
+        q: `For an ideal gas with ${f} degrees of freedom per molecule, a reversible adiabatic change obeys $T \\propto$ which power of volume?`,
+        sol: `TV^(γ−1) = constant with γ = 1 + 2/f, so γ − 1 = 2/${f}. Hence T ∝ V^(−2/${f}). The positive exponent has the wrong sign, V^(−${f}/2) is the inverse, and −2/${f + 2} uses 1 − 1/γ (the pressure relation).` };
+    },
+    verify: (p) => p.options.indexOf(`$V^{-2/${p.f}}$`) },
+  { id: 'th-g29', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'Carnot cycle on T-S diagram',
+    make(rng) {
+      const Tc = xchoose(rng, [200, 300, 400]), Th = Tc * xchoose(rng, [2, 3]), dS = xchoose(rng, [1, 2, 5]); const answer = +(100 * (Th - Tc) / (Th + Tc)).toFixed(1);
+      return { Tc, Th, dS, answer, tol: 0.1, unit: '%',
+        q: `On a T-S diagram a cycle is the triangle A(S = 0, T = ${Tc}) → B(S = 0, T = ${Th}) → C(S = ${dS}, T = ${Tc}) → A (S in J/K, T in K). Find its efficiency as a percentage (1 decimal).`,
+        sol: `A → B is at constant S, so there is no heat. B → C: Q = ∫T dS = ½(${Th} + ${Tc}) × ${dS} = ${xfmt(0.5 * (Th + Tc) * dS, 5)} J absorbed. C → A: Q = −${Tc} × ${dS} = −${Tc * dS} J. Work = area = ½(${Th} − ${Tc}) × ${dS} = ${xfmt(0.5 * (Th - Tc) * dS, 5)} J. η = ${answer}%.` };
+    },
+    verify: (p) => { const N = 10000; let qin = 0; for (let i = 0; i < N; i++) { const s = (i + 0.5) / N * p.dS; const T = p.Th + (p.Tc - p.Th) * s / p.dS; qin += T * p.dS / N; } const qout = p.Tc * p.dS; return 100 * (qin - qout) / qin; } },
+  { id: 'th-g30', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'Stirling cycle',
+    make(rng) {
+      const [Th, Tc] = xchoose(rng, [[600, 300], [800, 400], [500, 250], [900, 300], [600, 400]]); const r = xchoose(rng, [2, 3, 4]); const ln = Math.log(r);
+      const answer = +(100 * (Th - Tc) * ln / (Th * ln + 1.5 * (Th - Tc))).toFixed(1);
+      return { Th, Tc, r, answer, tol: 0.1, unit: '%',
+        q: `One mole of a monatomic ideal gas goes round a cycle of two isotherms (${Th} K and ${Tc} K) and two isochores, the volume ratio being ${r}. There is no regeneration, so the heat for the isochoric heating comes from the source too. Find the efficiency as a percentage (1 decimal).`,
+        sol: `Work per cycle = R(${Th} − ${Tc}) ln${r}. Heat absorbed = R × ${Th} × ln${r} (isothermal expansion) + 1.5R(${Th} − ${Tc}) (isochoric heating). With ln${r} = ${xfmt(ln, 4)}: η = ${xfmt((Th - Tc) * ln, 5)}/${xfmt(Th * ln + 1.5 * (Th - Tc), 5)} = ${answer}%.` };
+    },
+    verify: (p) => { const W = 8.31 * Math.log(p.r) * p.Th - 8.31 * Math.log(p.r) * p.Tc; const Qh = 8.31 * p.Th * Math.log(p.r); const Qc = 1.5 * 8.31 * (p.Th - p.Tc); return 100 * W / (Qh + Qc); } },
+  { id: 'th-g31', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'entropy',
+    make(rng) {
+      const m = xchoose(rng, [0.5, 1, 2]), T1 = xchoose(rng, [280, 290, 300]), T2 = xchoose(rng, [350, 360, 370]); const Tf = (T1 + T2) / 2; const answer = +(m * 4200 * (Math.log(Tf / T1) + Math.log(Tf / T2))).toFixed(1);
+      return { m, T1, T2, answer, tol: Math.max(0.1, answer * 0.01), unit: 'J/K',
+        q: `${m} kg of water at ${T1} K is mixed with ${m} kg of water at ${T2} K in an insulated container. Find the total entropy increase in J K⁻¹ (1 decimal). c = 4200 J kg⁻¹K⁻¹.`,
+        sol: `Equal masses, so T_f = (${T1} + ${T2})/2 = ${Tf} K. ΔS = mc[ln(T_f/${T1}) + ln(T_f/${T2})] = ${xfmt(m * 4200, 4)} × (${xfmt(Math.log(Tf / T1), 4)} − ${xfmt(-Math.log(Tf / T2), 4)}) = ${answer} J/K. It is positive, as the second law requires.` };
+    },
+    verify: (p) => { const Tf = (p.T1 + p.T2) / 2; const N = 20000; let s = 0; for (let i = 0; i < N; i++) { const a = p.T1 + (Tf - p.T1) * (i + 0.5) / N; s += p.m * 4200 / a * (Tf - p.T1) / N; const b = p.T2 + (Tf - p.T2) * (i + 0.5) / N; s += p.m * 4200 / b * (Tf - p.T2) / N; } return s; } },
+  { id: 'th-g32', type: 'mcq', level: 4, exams: xex(4, 'mcq'), sub: 'polytropic process',
+    make(rng) {
+      const [n, nl, C] = xchoose(rng, [[-1, '$P\\propto V$', 2], [2, '$PV^2 = $ constant', 0.5], [3, '$PV^3 = $ constant', 1], [0, '$P = $ constant', 2.5]]);
+      const fm = (c) => (Number.isInteger(c) ? `$${c}R$` : c === 0.5 ? '$\\tfrac12R$' : c === 2.5 ? '$\\tfrac52R$' : c === 1.5 ? '$\\tfrac32R$' : c === -0.5 ? '$-\\tfrac12R$' : `$${c}R$`);
+      const set = new Set([C]); const wr = []; for (const c of [1.5, 2.5, 2, 1, 0.5, -0.5, 3]) { if (wr.length < 3 && !set.has(c)) { set.add(c); wr.push(c); } }
+      const o = xsh(rng, fm(C), wr.map(fm));
+      return { n, C, options: o.options, answer: o.answer,
+        q: `A monatomic ideal gas undergoes the process ${nl}. Its molar heat capacity in this process is`,
+        sol: `For PV^n = constant, C = C_v + R/(1 − n). Here n = ${n}, so C = 1.5R + R/${1 - n} = ${xfmt(C, 3)}R.` };
+    },
+    verify: (p) => { const fm = (c) => (Number.isInteger(c) ? `$${c}R$` : c === 0.5 ? '$\\tfrac12R$' : c === 2.5 ? '$\\tfrac52R$' : `$${c}R$`); return p.options.indexOf(fm(1.5 + 1 / (1 - p.n))); } },
+];
+
+export default { topic: 'thermodynamics-physics', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

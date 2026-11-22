@@ -6,6 +6,7 @@
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './superconductivity.more.gen.js';
 import more2 from './superconductivity.more2.gen.js';
+import r4 from './superconductivity.r4.gen.js';
 
 const PHI0 = C.h / (2 * C.e); // flux quantum, Wb
 const kBe = C.kB / C.e;
@@ -197,6 +198,7 @@ export default {
       options: ['$2I_c$', '$\\sqrt2\\,I_c$', '$I_c$', 'zero'], answer: 3,
       sol: 'The maximum supercurrent is $I_{\\max} = 2I_c|\\cos(\\pi\\Phi/\\Phi_0)|$: the two junction currents interfere like two slits. At $\\Phi = \\Phi_0/2$ the cosine is zero, so the critical current vanishes; at $\\Phi = 0$ it is $2I_c$. $\\sqrt2I_c$ occurs at $\\Phi_0/4$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'scd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'critical field',
@@ -358,5 +360,6 @@ export default {
       },
       verify: (p) => (p.kind === 'lam' ? p.l0 / Math.sqrt(1 - p.t ** 4) : 1 - p.t ** 4) },
     ...more,
+    ...r4.gens,
   ],
 };

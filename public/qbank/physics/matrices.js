@@ -4,6 +4,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './matrices.more.gen.js';
 import more2 from './matrices.more2.gen.js';
+import r4 from './matrices.r4.gen.js';
 
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const mat2 = (a, b, c, d) => `\\begin{pmatrix} ${a} & ${b} \\\\ ${c} & ${d} \\end{pmatrix}`;
@@ -230,6 +231,7 @@ export default {
       sol: '$\\sigma_x\\sigma_y = i\\sigma_z$, so $\\sigma_x\\sigma_y\\sigma_z = i\\sigma_z^2 = iI$. The trace of $iI$ ($2\\times2$) is $2i$.',
       trap: 'Each Pauli matrix is traceless, but the trace of a product is not the product of traces.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'mx-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'determinants',
@@ -307,5 +309,6 @@ export default {
           trap: 'Adding the coefficients ($' + (a + b + c) + '$) treats the Pauli matrices as if they commuted.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

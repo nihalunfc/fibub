@@ -741,4 +741,315 @@ const gens = [
     },
     verify: (p) => (p.v === 0 ? p.V ** 2 / p.R : p.v === 1 ? (p.V / p.R) * p.V * p.t * 60 / 1e3 : Math.sqrt(2 * p.V ** 2)) },
 ];
+// ---------- expansion block: more hard items, matches, multi-correct, passages and templates ----------
+{
+const XR = String.raw;
+const XEXB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv', 'neet'], 5: ['jee-adv'] };
+let xk = 170; let xc = 0;
+const xid = () => `ac-${String(++xk).padStart(3, '0')}`;
+const XPOS = [2, 0, 3, 1, 1, 3, 0, 2];
+const xex = (level, type, sub) => (type === 'mcq' && level <= 3 && ((s)=>true)(sub) ? [...XEXB[level], 'cuet'] : XEXB[level]);
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type, sub), sub, ...o });
+const xm = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xi = (level, sub, q, value, sol, o = {}) => {
+  const answer = Math.round(value); if (Math.abs(value - answer) > 1e-6) throw new Error('not an integer: ' + value + ' ' + q.slice(0, 60));
+  return xb(level, sub, { type: 'nat', format: 'integer', q, answer, tol: 0, calc: () => answer, sol, ...o });
+};
+const xn = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  return xb(level, sub, { type: 'nat', format: 'numeric', q, answer, tol, calc: () => answer, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XA = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XA, answer, sol, ...o });
+const XS = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XS, answer, sol, ...o });
+const xmatch = (level, sub, group, q, correct, sol, o = {}) => {
+  const L = correct.split(', ').map((s) => s.split('-')); const rs = L.map((x) => x[1]);
+  const mk = (p) => L.map((x, i) => `${x[0]}-${p[i]}`).join(', ');
+  const swaps = [[0, 1], [2, 3], [1, 2], [0, 3], [0, 2], [1, 3]]; const wr = [];
+  for (let t = 0; t < 6 && wr.length < 3; t++) { const [i, j] = swaps[(t + xc) % 6]; const p = [...rs]; [p[i], p[j]] = [p[j], p[i]]; const s = mk(p); if (s !== correct && !wr.includes(s)) wr.push(s); }
+  if (wr.length < 3) throw new Error('match options');
+  const pos = XPOS[xc++ % 8]; const options = [...wr]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xp = (extra) => (level, sub, group, q, ...rest) => extra(level, sub, q, ...rest);
+const XG = (n, level, type, sub, make, verify) => ({ id: `ac-g${n}`, type, level, exams: xex(level, type, sub), sub, make, verify });
+const f3 = (v) => fmt(v, 3);
+const sg = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XPY = (o) => ({ format: 'passage', ...o });
+const XPI = Math.PI; const S2 = Math.SQRT2;
+Object.assign(groups, {
+  xm1: { title: 'Series LCR circuit: standard quantities',
+    list1: ['A. Inductive reactance', 'B. Capacitive reactance', 'C. Resonant frequency', 'D. Quality factor'],
+    list2: [r`p. $\omega L$`, r`q. $\dfrac{1}{\omega C}$`, r`r. $\dfrac{1}{2\pi\sqrt{LC}}$`, r`s. $\dfrac1R\sqrt{\dfrac LC}$`] },
+  xm2: { title: 'Phase of the current relative to the applied voltage',
+    list1: ['A. Pure resistor', 'B. Pure inductor', 'C. Pure capacitor', 'D. Series L and R with $X_L = R$'],
+    list2: [r`p. in phase`, r`q. lags by $90^\circ$`, r`r. leads by $90^\circ$`, r`s. lags by $45^\circ$`] },
+  xm3: { title: 'Mean values over a full cycle for a half-wave rectified current I = I0 sin(wt) for half a cycle, zero for the other half',
+    list1: ['A. Mean current', 'B. Rms current', 'C. Form factor (rms / mean)', 'D. Mean of the square of the current'],
+    list2: [r`p. $\dfrac{I_0}{\pi}$`, r`q. $\dfrac{I_0}{2}$`, r`r. $\dfrac{\pi}{2}$`, r`s. $\dfrac{I_0^2}{4}$`] },
+  xm4: { title: 'Energy and charge in an LC circuit (capacitor initially holds charge Q0, then oscillates)',
+    list1: ['A. Angular frequency of the charge', 'B. Maximum current', 'C. Angular frequency of the capacitor\'s energy', 'D. Charge when the energy is shared equally'],
+    list2: [r`p. $\dfrac{1}{\sqrt{LC}}$`, r`q. $\dfrac{Q_0}{\sqrt{LC}}$`, r`r. $\dfrac{2}{\sqrt{LC}}$`, r`s. $\dfrac{Q_0}{\sqrt2}$`] },
+  xm5: { title: 'Ideal transformer with N1 primary turns, N2 secondary turns',
+    list1: ['A. Step-up transformer', 'B. Step-down transformer', 'C. Ratio $V_2/V_1$', 'D. Ratio $I_2/I_1$'],
+    list2: [r`p. $N_2>N_1$, $I_2<I_1$`, r`q. $N_2<N_1$, $I_2>I_1$`, r`r. $\dfrac{N_2}{N_1}$`, r`s. $\dfrac{N_1}{N_2}$`] },
+  xm6: { title: 'Series LCR circuit at different frequencies',
+    list1: ['A. $\\omega<\\omega_0$', 'B. $\\omega = \\omega_0$', 'C. $\\omega>\\omega_0$', 'D. $\\omega\\to\\infty$'],
+    list2: [r`p. circuit is capacitive; current leads`, r`q. impedance is least, power factor is 1`, r`r. circuit is inductive; current lags`, r`s. current tends to zero`] },
+  xm7: { title: 'Power in AC circuits (rms values V, I; phase angle phi)',
+    list1: ['A. Average power', 'B. Pure resistor', 'C. Pure inductor or capacitor', 'D. Power factor of a series LR circuit'],
+    list2: [r`p. $VI\cos\phi$`, r`q. $VI$`, r`r. $0$`, r`s. $\dfrac{R}{\sqrt{R^2+\omega^2L^2}}$`] },
+  xm8: { title: 'RMS values of waves of peak value A',
+    list1: ['A. Sine wave', 'B. Square wave alternating between $+A$ and $-A$', 'C. Triangular wave between $-A$ and $+A$', 'D. Half-wave rectified sine (peak $A$, zero for half the cycle)'],
+    list2: [r`p. $\dfrac{A}{\sqrt2}$`, r`q. $A$`, r`r. $\dfrac{A}{\sqrt3}$`, r`s. $\dfrac{A}{2}$`] },
+  xp1: { title: 'A series LCR circuit',
+    passage: r`<p>A resistor of $30\ \Omega$, an inductor of 0.20 H and a capacitor of $100\ \mu$F are connected in series to a source of $100$ V rms at an angular frequency of 400 rad/s.</p>` },
+  xp2: { title: 'An LC oscillator',
+    passage: r`<p>A $2.0\ \mu$F capacitor is charged to 50 V and then connected across an ideal 0.50 H inductor at $t=0$.</p>` },
+});
+
+// ---------- L2 ----------
+items.push(
+  xm(2, 'peak and rms', XR`The mains voltage has a peak value of 311 V. Its rms value is about`, '220 V', ['311 V', '440 V', '155 V'],
+    XR`$V_{\mathrm{rms}} = \dfrac{V_0}{\sqrt2} = \dfrac{311}{1.414} = 220$ V.`),
+  xm(2, 'capacitive reactance', XR`The reactance of a $1.0\ \mu$F capacitor at 50 Hz is about`, '3.18 k$\\Omega$', ['31.8 $\\Omega$', '318 $\\Omega$', '0.314 M$\\Omega$'],
+    XR`$X_C = \dfrac{1}{2\pi fC} = \dfrac{1}{2\pi\times50\times10^{-6}} = 3183\ \Omega\approx3.18\ \mathrm{k\Omega}$.`),
+  xi(2, 'transformer', XR`An ideal transformer has a primary of 2000 turns and is connected to 220 V. For an output of 11 V the secondary needs how many turns?`, 2000 * 11 / 220,
+    XR`$\dfrac{N_s}{N_p} = \dfrac{V_s}{V_p}$, so $N_s = 2000\times\dfrac{11}{220} = 100$.`),
+  xa(2, 'capacitor and DC', XR`A capacitor blocks direct current but passes alternating current.`, XR`The reactance of a capacitor, $\dfrac{1}{\omega C}$, is infinite for $\omega=0$ and finite for $\omega\ne0$.`, 0,
+    XR`For DC ($\omega=0$) the reactance is infinite: no steady current. For AC the capacitor charges and discharges every cycle, so current flows in the circuit. R explains A.`),
+  xt(2, 'rms value', XR`The average value of a sinusoidal current over a full cycle is zero.`, XR`The rms value of a sinusoidal current is non-zero.`, 0,
+    XR`The positive and negative halves cancel in the mean of the current. The rms squares the current first, so it cannot cancel: $I_0/\sqrt2$. Both statements are true.`),
+  xm(2, 'resonant frequency', XR`A 1.0 mH inductor and a $1.0\ \mu$F capacitor are connected in series. The resonant frequency is about`, '5.03 kHz', ['159 Hz', '31.6 kHz', '0.503 kHz'],
+    XR`$f_0 = \dfrac{1}{2\pi\sqrt{LC}} = \dfrac{1}{2\pi\sqrt{10^{-3}\times10^{-6}}} = \dfrac{1}{2\pi\times3.16\times10^{-5}} = 5033$ Hz.`),
+  xmatch(2, 'LCR basics', 'xm1', XR`Match each quantity in List I with its expression in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$X_L = \omega L$ (p), $X_C = \dfrac{1}{\omega C}$ (q), $f_0 = \dfrac{1}{2\pi\sqrt{LC}}$ (r), $Q = \dfrac{\omega_0L}{R} = \dfrac1R\sqrt{\dfrac LC}$ (s).`),
+);
+
+// ---------- L3 ----------
+items.push(
+  xi(3, 'power in series LCR', XR`A series circuit has $R=30\ \Omega$, $X_L = 80\ \Omega$ and $X_C = 40\ \Omega$ on a 200 V rms source. The average power in W is`, (200 / Math.hypot(30, 40)) ** 2 * 30,
+    XR`$Z = \sqrt{30^2+(80-40)^2} = 50\ \Omega$. $I = \dfrac{200}{50} = 4$ A. $P = I^2R = 16\times30 = 480$ W. (Check: $VI\cos\phi = 200\times4\times0.6 = 480$ W.)`, { unit: 'W' }),
+  xm(3, 'voltages in a series circuit', XR`In a series LCR circuit the voltages across the inductor and the capacitor are`, 'in opposite phase (a phase difference of $180^\\circ$)', ['in phase', 'a quarter of a cycle apart', 'in phase with the voltage across the resistor'],
+    XR`The current is common. $V_L$ leads the current by $90^\circ$ and $V_C$ lags it by $90^\circ$, so they are $180^\circ$ apart and tend to cancel. $V_R$ is in phase with the current.`),
+  xn(3, 'Q factor', XR`A series circuit has $L = 50$ mH, $C = 2.0\ \mu$F and $R = 10\ \Omega$. Find its quality factor.`, Math.sqrt(0.05 / 2e-6) / 10, 0.1, 1,
+    XR`$Q = \dfrac1R\sqrt{\dfrac LC} = \dfrac{1}{10}\sqrt{\dfrac{0.05}{2\times10^{-6}}} = \dfrac{1}{10}\sqrt{25000} = 15.8$.`),
+  xi(3, 'average power', XR`A source $v = 100\sin\omega t$ V drives a current $i = 10\sin(\omega t-\pi/3)$ A. The average power is, in W,`, 100 * 10 / 2 * Math.cos(XPI / 3),
+    XR`$P = \dfrac{V_0I_0}{2}\cos\phi = \dfrac{100\times10}{2}\times\cos60^\circ = 500\times0.5 = 250$ W.`, { unit: 'W' }),
+  xm(3, 'transformer efficiency', XR`A transformer takes 5 A at 220 V and delivers 40 A at 22 V. Its efficiency is`, '80%', ['100%', '90%', '72%'],
+    XR`Input power $= 220\times5 = 1100$ W. Output power $= 22\times40 = 880$ W. Efficiency $=\dfrac{880}{1100} = 80\%$.`),
+  xa(3, 'resonance', XR`In a series LCR circuit, the current is greatest at resonance.`, XR`At resonance the impedance equals $R$, its least possible value.`, 0,
+    XR`$Z = \sqrt{R^2+(X_L-X_C)^2}$ is smallest when $X_L = X_C$, equal to $R$. Then $I = V/R$ is largest. R explains A.`),
+  xt(3, 'choke coil', XR`A choke coil is preferred to a resistor to reduce the current in an AC circuit.`, XR`A choke coil dissipates almost no average power because its current lags the voltage by nearly $90^\circ$.`, 0,
+    XR`A resistor wastes $I^2R$ as heat. A coil with low resistance and large $X_L$ cuts the current through its reactance, with $\cos\phi\approx0$, so it wastes almost nothing. Both are true and II explains I.`),
+  xmatch(3, 'phase of the current', 'xm2', XR`Match each circuit in List I with the phase of its current in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Resistor: in phase (p). Inductor: current lags by $90^\circ$ (q). Capacitor: current leads by $90^\circ$ (r). Series LR with $X_L = R$: $\tan\phi = X_L/R = 1$, lags by $45^\circ$ (s).`),
+  xmatch(3, 'power', 'xm7', XR`Match each item in List I with the result in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Average power $=VI\cos\phi$ (p). A pure resistor has $\phi=0$: $VI$ (q). A pure inductor or capacitor has $\cos\phi=0$, so zero (r). Series LR: $\cos\phi = R/Z = \dfrac{R}{\sqrt{R^2+\omega^2L^2}}$ (s).`),
+  xmatch(3, 'rms values', 'xm8', XR`Match each waveform in List I with its rms value in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Sine: $A/\sqrt2$. Square between $\pm A$: $i^2=A^2$ always, so $A$. Triangle: the mean of $i^2$ is $A^2/3$, so $A/\sqrt3$. Half-wave rectified sine: the mean of $i^2$ is $A^2/4$ (half of the sine's $A^2/2$), so $A/2$.`,
+    { trap: 'Cutting out half the cycle halves the mean square, so the rms is $A/2$, not $A/\sqrt2$.' }),
+  xi(3, 'rms of a mixed current', XR`A current $i = 3 + 4\sqrt2\sin\omega t$ (in A) flows through a resistor. Its rms value, in A, is`, Math.sqrt(9 + (4 * S2) ** 2 / 2),
+    XR`The mean of $i^2$ is $3^2 + \dfrac{(4\sqrt2)^2}{2} + $ (cross term averages to zero) $= 9+16 = 25$. $I_{\mathrm{rms}} = 5$ A.`, { unit: 'A', trap: 'rms values of the parts add as squares, not directly.' }),
+  xn(3, 'LC oscillation', XR`A $10\ \mu$F capacitor charged to 100 V is connected across a 40 mH inductor. Find the maximum current, in A.`, 100 * Math.sqrt(10e-6 / 0.04), 0.01, 2,
+    XR`Energy: $\tfrac12LI_0^2 = \tfrac12CV^2$, so $I_0 = V\sqrt{\dfrac CL} = 100\sqrt{\dfrac{10\times10^{-6}}{0.04}} = 100\times0.0158 = 1.58$ A.`, { unit: 'A' }),
+  xm(3, 'capacitor in series with a lamp', XR`A lamp is in series with a capacitor on an AC supply. A dielectric slab is slipped between the plates. The lamp`, 'glows brighter', ['glows dimmer', 'stays the same', 'goes out'],
+    XR`A dielectric increases $C$, which reduces $X_C = \dfrac{1}{\omega C}$, so impedance falls and the current rises. The lamp gets brighter. (With a DC supply the lamp would not light at all.)`),
+  xi(3, 'transmission', XR`A power of 100 kW is sent through a line of resistance $10\ \Omega$. At 10 kV the loss is 1 kW. The loss, in kW, if it is sent at 2 kV is`, 100e3 / 2e3 * 100e3 / 2e3 * 10 / 1e3,
+    XR`$I = \dfrac{P}{V} = \dfrac{100\ \mathrm{kW}}{2\ \mathrm{kV}} = 50$ A. Loss $=I^2R = 2500\times10 = 25$ kW.`, { unit: 'kW' }),
+  xi(3, 'transformer', XR`A step-up transformer has a 1:20 turns ratio and is connected to 220 V. A load of 4400 $\Omega$ is connected across its secondary. Assuming it is ideal, the primary current, in A, is`, 20,
+    XR`$V_s = 20\times220 = 4400$ V, so $I_s = \dfrac{4400}{4400} = 1$ A. Power in $=$ power out: $220I_p = 4400$, $I_p = 20$ A.`, { unit: 'A' }),
+  xi(3, 'LCR voltages', XR`In a series LCR circuit the voltmeters read $V_R = 60$ V, $V_L = 160$ V and $V_C = 80$ V (rms). The supply voltage, in V, is`, Math.hypot(60, 160 - 80),
+    XR`$V = \sqrt{V_R^2 + (V_L-V_C)^2} = \sqrt{3600+6400} = 100$ V. The readings do not add arithmetically ($60+160+80 = 300$).`, { unit: 'V', trap: 'Phasor addition, with $V_L$ and $V_C$ opposite.' }),
+  xn(3, 'coil on DC and AC', XR`A coil has resistance $20\ \Omega$ and inductance 0.20 H. It draws 5.0 A on 100 V DC. Find the current it draws from 100 V rms, 50 Hz AC, in A.`, 100 / Math.hypot(20, 2 * XPI * 50 * 0.2), 0.02, 2,
+    XR`$X_L = 2\pi\times50\times0.2 = 62.8\ \Omega$. $Z = \sqrt{20^2+62.8^2} = 65.9\ \Omega$. $I = \dfrac{100}{65.9} = 1.52$ A. The coil passes much less current on AC.`, { unit: 'A' }),
+  xn(3, 'form factor', XR`The form factor (rms value divided by mean value) of a full-wave rectified sine current is`, XPI / (2 * S2), 0.01, 2,
+    XR`Mean $=\dfrac{2I_0}{\pi}$, rms $=\dfrac{I_0}{\sqrt2}$. Form factor $=\dfrac{I_0/\sqrt2}{2I_0/\pi} = \dfrac{\pi}{2\sqrt2} = 1.11$.`),
+);
+
+// ---------- L4 ----------
+items.push(
+  xi(4, 'bandwidth', XR`A series circuit has $R = 20\ \Omega$ and $L = 0.10$ H. The bandwidth $\Delta\omega$, in rad/s, is`, 20 / 0.1,
+    XR`$\Delta\omega = \dfrac RL = \dfrac{20}{0.10} = 200$ rad/s. (This is the width between the half-power points.)`, { unit: 'rad/s', trap: 'This is a width in $\\omega$; dividing by $2\\pi$ gives the width in frequency.' }),
+  xi(4, 'LC energy', XR`An LC circuit has $L = 0.10$ H and $C = 10\ \mu$F. The energy stored in the capacitor oscillates at an angular frequency of $n$ rad/s. Find $n$.`, 2 / Math.sqrt(0.1 * 10e-6),
+    XR`The charge oscillates at $\omega_0 = \dfrac{1}{\sqrt{LC}} = \dfrac{1}{\sqrt{10^{-6}}} = 1000$ rad/s. The energy $\propto q^2\propto\cos^2\omega_0t$ oscillates at $2\omega_0 = 2000$ rad/s.`, { unit: 'rad/s', trap: 'Energy is a squared quantity, so it oscillates at twice the frequency.' }),
+  xi(4, 'resonance', XR`A series circuit has $R = 10\ \Omega$, $L = 0.20$ H and $C = 20\ \mu$F and is connected to a 5.0 V rms source at its resonant frequency. The rms voltage across the capacitor, in V, is`, 5 * (500 * 0.2) / 10,
+    XR`$\omega_0 = \dfrac{1}{\sqrt{0.2\times20\times10^{-6}}} = 500$ rad/s. $I = \dfrac VR = 0.5$ A. $X_C = \dfrac{1}{500\times20\times10^{-6}} = 100\ \Omega$. $V_C = IX_C = 50$ V, ten times the source voltage ($Q = 10$).`, { unit: 'V' }),
+  xi(4, 'LC oscillation', XR`A $2.0$ mH inductor and a $5.0\ \mu$F capacitor charged to 20 V form an LC circuit. When the current is 0.6 of its maximum value, the voltage across the capacitor, in V, is`, 20 * Math.sqrt(1 - 0.36),
+    XR`Energy conservation: $\tfrac12CV^2 + \tfrac12Li^2 = \tfrac12CV_0^2$. With $i = 0.6I_0$, the inductor holds $0.36$ of the total, so the capacitor holds $0.64$: $V^2 = 0.64V_0^2$, $V = 0.8\times20 = 16$ V.`, { unit: 'V' }),
+  xi(4, 'instantaneous power', XR`The instantaneous power in a pure inductor on a 50 Hz supply passes through zero how many times each second?`, 200,
+    XR`$p = vi\propto\sin\omega t\cos\omega t = \tfrac12\sin2\omega t$. $\sin2\omega t$ has frequency $2\times50 = 100$ Hz, and a sine wave is zero twice per cycle, so it is zero $2\times100 = 200$ times per second.`, { trap: 'Count the zeros of $\\sin2\\omega t$.' }),
+  xn(4, 'lamp with a choke', XR`A lamp rated 60 W, 120 V is run from a 240 V, 50 Hz supply with an ideal inductor in series. Find the inductance needed, in H.`, Math.sqrt((240 / 0.5) ** 2 - 240 ** 2) / (100 * XPI), 0.01, 3,
+    XR`$I = \dfrac{60}{120} = 0.5$ A and lamp resistance $R = \dfrac{120^2}{60} = 240\ \Omega$. Total impedance $Z = \dfrac{240}{0.5} = 480\ \Omega$. $X_L = \sqrt{480^2-240^2} = 415.7\ \Omega$. $L = \dfrac{X_L}{2\pi f} = \dfrac{415.7}{314.2} = 1.32$ H.`, { unit: 'H', trap: 'Reactance and resistance add as perpendicular phasors, so $Z\\ne R+X_L$.' }),
+  xn(4, 'power factor correction', XR`A load takes 2.0 kW at power factor 0.60 lagging from a 230 V, 50 Hz supply. The capacitor connected in parallel to bring the power factor to 1 has capacitance, in $\mu$F,`, 2000 * (0.8 / 0.6) / (2 * XPI * 50 * 230 ** 2) * 1e6, 1.5, 1,
+    XR`Reactive power of the load $Q = P\tan\phi = 2000\times\dfrac{0.8}{0.6} = 2667$ VAR. The capacitor must supply this: $\dfrac{V^2}{X_C} = V^2\omega C = 2667$. $C = \dfrac{2667}{314.16\times230^2} = 1.61\times10^{-4}$ F $= 160.5\ \mu$F.`, { unit: 'µF' }),
+  xn(4, 'half-power frequencies', XR`A series resonant circuit has $f_0 = 500$ Hz and $Q = 25$. Find its bandwidth in Hz.`, 500 / 25, 0.3, 1,
+    XR`$\Delta f = \dfrac{f_0}{Q} = \dfrac{500}{25} = 20$ Hz.`, { unit: 'Hz' }),
+  xs(4, 'series LCR', XR`A series LCR circuit is driven at a frequency above its resonant frequency. Choose the correct statements.`,
+    [XR`The circuit behaves as an inductive one.`, XR`The current lags the applied voltage.`, XR`The voltage across the inductor is larger than that across the capacitor.`, XR`The power factor is greater than 1.`],
+    [0, 1, 2],
+    XR`Above $\omega_0$, $X_L>X_C$: the net reactance is inductive and the current lags (A, B). With the same current, $V_L = IX_L > V_C = IX_C$ (C). The power factor $\cos\phi = R/Z\le1$ (D false).`),
+  xs(4, 'parallel resonance', XR`An ideal inductor and an ideal capacitor are in parallel across an AC source of the resonant frequency $\omega_0 = 1/\sqrt{LC}$. Choose the correct statements.`,
+    [XR`The current drawn from the source is zero.`, XR`The currents in the two branches are equal in size.`, XR`The currents in the two branches are opposite in phase.`, XR`The impedance of the combination is zero.`],
+    [0, 1, 2],
+    XR`At $\omega_0$ the branch currents $\dfrac{V}{X_L}$ and $\dfrac{V}{X_C}$ are equal in size and $180^\circ$ out of phase, so the line current is zero and the impedance is infinite, not zero (D false). The energy circulates between L and C.`),
+  xs(4, 'resistor on AC', XR`A pure resistor is connected to an AC source. Choose the correct statements.`,
+    [XR`The instantaneous power is never negative.`, XR`The average power is $V_{\mathrm{rms}}I_{\mathrm{rms}}$.`, XR`The current is in phase with the voltage.`, XR`The average power over a cycle is zero.`],
+    [0, 1, 2],
+    XR`$p = vi = \dfrac{v^2}{R}\ge0$. Average $=V_{\mathrm{rms}}I_{\mathrm{rms}}$ since $\cos\phi=1$. In phase. The average power is not zero (D false).`),
+  xs(4, 'transformer', XR`An ideal step-up transformer is connected to an AC supply. Choose the correct statements.`,
+    [XR`The secondary voltage is greater than the primary voltage.`, XR`The secondary current is smaller than the primary current.`, XR`The output power equals the input power.`, XR`It will work when the primary is connected to a battery.`],
+    [0, 1, 2],
+    XR`$\dfrac{V_s}{V_p} = \dfrac{N_s}{N_p}>1$, and $V_sI_s = V_pI_p$ so $I_s<I_p$. A battery gives a constant current and flux, so no emf is induced in the secondary (D false).`),
+  xs(4, 'LC oscillation', XR`Choose the correct statements about an ideal LC circuit that oscillates.`,
+    [XR`The total energy stays constant.`, XR`When the charge on the capacitor is greatest, the current is zero.`, XR`The energy passes back and forth between the electric and magnetic fields.`, XR`The oscillation frequency depends on the initial charge.`],
+    [0, 1, 2],
+    XR`No resistance, so no loss. At maximum charge all energy is in the capacitor and $i=0$. The frequency $\dfrac{1}{2\pi\sqrt{LC}}$ does not depend on the amplitude (D false).`),
+  xa(4, 'resonance', XR`At resonance in a series LCR circuit, the voltage across the inductor or the capacitor can be greater than the supply voltage.`, XR`At resonance, $V_L$ and $V_C$ are equal and opposite, so the net voltage across them is zero and the supply drops across $R$ alone.`, 1,
+    XR`Both are true. But R only explains why $V_R$ equals the supply voltage. The reason $V_L$ can be large is that $V_L = IX_L = \dfrac{V}{R}\omega_0L = QV$, which is more than $V$ when $Q>1$. So R is not the explanation of A.`),
+  xa(4, 'power in an inductor', XR`The average power consumed by an ideal inductor over a complete cycle is zero.`, XR`The current lags the voltage by $90^\circ$, so the product $vi$ is positive for a quarter cycle and negative for the next quarter.`, 0,
+    XR`$p = vi\propto\sin\omega t\cos\omega t = \tfrac12\sin2\omega t$, whose average is zero: the inductor stores energy and returns it. R explains A.`),
+  xt(4, 'rms value', XR`The rms value of an alternating current equals the DC that produces the same heating in a resistor in the same time.`, XR`The rms value of a symmetrical square wave alternating between $+A$ and $-A$ equals $A$.`, 0,
+    XR`Statement I is the definition. For the square wave $i^2 = A^2$ always, so the rms value is $A$. Both are true.`),
+  xt(4, 'series RC', XR`Increasing the frequency of the supply increases the impedance of a series RC circuit.`, XR`Increasing the frequency of the supply increases the impedance of a series RL circuit.`, 3,
+    XR`$X_C = \dfrac{1}{\omega C}$ falls as $\omega$ rises, so RC impedance falls (Statement I false). $X_L = \omega L$ rises, so RL impedance rises (Statement II true).`),
+  xm(4, 'resonance', XR`A series LCR circuit has resonance frequency $f_0$. If $C$ is made 4 times larger and $L$ is made 4 times smaller, the new resonance frequency is`, XR`$f_0$`, [XR`$4f_0$`, XR`$f_0/4$`, XR`$16f_0$`],
+    XR`$f = \dfrac{1}{2\pi\sqrt{LC}}$ depends on the product $LC$. The product is unchanged ($\tfrac{L}{4}\times4C = LC$), so the frequency is unchanged.`),
+);
+
+// ---------- L5 ----------
+items.push(
+  xs(5, 'Q factor', XR`Choose the correct statements about the resonance curve of a series LCR circuit.`,
+    [XR`A larger $Q$ gives a narrower curve.`, XR`The bandwidth is $\Delta\omega = R/L$.`, XR`At the half-power points the current is $I_{\max}/\sqrt2$.`, XR`The quality factor does not depend on $R$.`],
+    [0, 1, 2],
+    XR`$Q = \dfrac{\omega_0}{\Delta\omega}$, so large $Q$ means small bandwidth (A, B). Half power means $I^2 = \tfrac12I_{\max}^2$ (C). $Q = \dfrac{\omega_0L}{R}$ depends on $R$ (D false).`),
+  xs(5, 'rectified current', XR`A half-wave rectified current is $I_0\sin\omega t$ for half a cycle and zero for the other half. Choose the correct statements.`,
+    [XR`Its mean value is $\dfrac{I_0}{\pi}$.`, XR`Its rms value is $\dfrac{I_0}{2}$.`, XR`Its rms value divided by its mean value is $\dfrac\pi2$.`, XR`Its rms value is $\dfrac{I_0}{\sqrt2}$.`],
+    [0, 1, 2],
+    XR`Mean $=\dfrac{1}{T}\int_0^{T/2}I_0\sin\omega t\,dt = \dfrac{I_0}{\pi}$. Mean square $=\dfrac{I_0^2}{4}$, so rms $=\dfrac{I_0}{2}$. Ratio $\dfrac{I_0/2}{I_0/\pi} = \dfrac\pi2$. $I_0/\sqrt2$ is the value for a full sine wave (D false).`),
+  xs(5, 'series RC', XR`A resistor and a capacitor are in series across an AC source. Choose the correct statements.`,
+    [XR`The current leads the applied voltage.`, XR`The power factor is $R/Z$.`, XR`The average power taken by the capacitor is zero.`, XR`The impedance increases as the frequency increases.`],
+    [0, 1, 2],
+    XR`The current leads by $\phi$ with $\tan\phi = X_C/R$. $\cos\phi = R/Z$. An ideal capacitor takes no average power. $Z = \sqrt{R^2+1/\omega^2C^2}$ falls as $\omega$ rises (D false).`),
+  xs(5, 'resonance', XR`A series LCR circuit is at resonance, connected to a source of rms voltage $V$. Choose the correct statements.`,
+    [XR`The voltage across the resistor equals $V$.`, XR`The voltages across L and C are equal in size.`, XR`The voltage across L may be larger than $V$.`, XR`The three voltmeter readings $V_R$, $V_L$ and $V_C$ add up to $V$.`],
+    [0, 1, 2],
+    XR`At resonance $X_L = X_C$, $Z=R$ and $I = V/R$, so $V_R = V$. $V_L = V_C = QV$. The readings add as phasors, not numerically (D false).`),
+  xs(5, 'choke coil', XR`A coil of low resistance and large inductance is placed in series with a lamp on an AC supply. Choose the correct statements.`,
+    [XR`The average power wasted in the coil is small.`, XR`The current in the lamp is reduced.`, XR`The power factor of the circuit is less than 1.`, XR`The coil would reduce the current equally on a DC supply of the same voltage.`],
+    [0, 1, 2],
+    XR`Almost all the reduction comes from reactance, which does not dissipate power. The lamp's current falls and $\cos\phi = R/Z<1$. On DC there is no reactance, so the coil reduces nothing beyond its small resistance (D false).`),
+  xm(5, 'power factor correction', XR`A motor has an inductive power factor of 0.8. A capacitor is connected in parallel so that the power factor of the supply becomes 1. After this correction`,
+    'the line current falls and the power used by the motor stays the same', ['the line current rises and the motor power rises', 'the line current falls and the motor power falls', 'the line current stays the same and the motor power rises'],
+    XR`The motor's own current and power are unaffected (it still has the same voltage). The capacitor supplies the reactive current, so the line current falls to its in-phase part: from $\dfrac{P}{0.8V}$ to $\dfrac PV$ (a fall by the factor 0.8), because the line now carries only the in-phase component $I\cos\phi$.`),
+  xm(5, 'LC and mechanics', XR`The charge, current, inductance, and capacitance in an LC circuit correspond to displacement, velocity, mass and $1/\text{spring constant}$ in a spring and mass oscillator. If the capacitance is made 4 times larger, the period of the oscillation changes by the factor`,
+    '2', ['4', '1/2', '1/4'],
+    XR`$T = 2\pi\sqrt{LC}\propto\sqrt C$. Four times $C$ doubles $T$. (Analogously, a spring 4 times as soft doubles the period.)`),
+  xa(5, 'transformer and DC', XR`A transformer cannot work on direct current.`, XR`A steady current in the primary produces a constant flux, so no emf is induced in the secondary.`, 0,
+    XR`Induced emf is $-N\dfrac{d\Phi}{dt}$. With DC in steady state $\dfrac{d\Phi}{dt}=0$, so $\mathcal E=0$ (a momentary emf appears only when the DC is switched on or off). R explains A.`),
+  xt(5, 'frequency regimes', XR`At very high frequency an ideal capacitor behaves like a short circuit.`, XR`At very high frequency an ideal inductor behaves like an open circuit.`, 0,
+    XR`$X_C = \dfrac{1}{\omega C}\to0$ and $X_L = \omega L\to\infty$ as $\omega\to\infty$. Both are true.`),
+  xi(5, 'phase angle', XR`A series circuit has $R = 100\ \Omega$ and $X_L-X_C = 100\sqrt3\ \Omega$. The phase angle between the current and the voltage, in degrees, is`, Math.atan(Math.sqrt(3)) * 180 / XPI,
+    XR`$\tan\phi = \dfrac{X_L-X_C}{R} = \sqrt3$, so $\phi = 60^\circ$ (current lags).`, { unit: '°' }),
+  xmatch(5, 'half-wave rectified current', 'xm3', XR`Match each item for a half-wave rectified current in List I with its value in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Mean $\dfrac{I_0}{\pi}$ (p). Rms $\dfrac{I_0}{2}$ (q). Form factor $\dfrac{I_0/2}{I_0/\pi} = \dfrac\pi2$ (r). Mean square $\dfrac{I_0^2}{4}$ (s).`),
+  xmatch(5, 'LC oscillation', 'xm4', XR`Match each quantity in List I with the expression in List II.`, 'A-p, B-q, C-r, D-s',
+    XR`$\omega_0 = \dfrac{1}{\sqrt{LC}}$ (p). $I_{\max} = Q_0\omega_0 = \dfrac{Q_0}{\sqrt{LC}}$ (q). Energy oscillates at $2\omega_0 = \dfrac{2}{\sqrt{LC}}$ (r). Equal energy: $\dfrac{q^2}{2C} = \tfrac12\cdot\dfrac{Q_0^2}{2C}$, so $q = \dfrac{Q_0}{\sqrt2}$ (s).`),
+  xmatch(5, 'transformers', 'xm5', XR`Match each item in List I with List II.`, 'A-p, B-q, C-r, D-s',
+    XR`Step-up: more secondary turns, smaller secondary current (p). Step-down: fewer secondary turns, larger secondary current (q). $V_2/V_1 = N_2/N_1$ (r). $I_2/I_1 = N_1/N_2$ (s).`),
+  xmatch(5, 'frequency regimes', 'xm6', XR`Match each frequency range in List I with the behaviour in List II for a series LCR circuit.`, 'A-p, B-q, C-r, D-s',
+    XR`Below $\omega_0$: $X_C>X_L$, capacitive, current leads (p). At $\omega_0$: $Z=R$, $\cos\phi=1$ (q). Above: inductive, current lags (r). As $\omega\to\infty$, $X_L\to\infty$ and the current tends to zero (s).`),
+);
+
+// ---------- passages ----------
+items.push(
+  xn(3, 'impedance', XR`Find the impedance of the circuit, in $\Omega$.`, Math.hypot(30, 400 * 0.2 - 1 / (400 * 100e-6)), 0.3, 1,
+    XR`$X_L = \omega L = 400\times0.20 = 80\ \Omega$. $X_C = \dfrac{1}{\omega C} = \dfrac{1}{400\times100\times10^{-6}} = 25\ \Omega$. $Z = \sqrt{30^2+(80-25)^2} = \sqrt{900+3025} = 62.6\ \Omega$.`, XPY({ group: 'xp1', unit: 'Ω' })),
+  xn(4, 'power in series LCR', XR`Find the average power drawn from the source, in W.`, (100 / Math.hypot(30, 55)) ** 2 * 30, 0.5, 1,
+    XR`$I = \dfrac{100}{62.65} = 1.596$ A. $P = I^2R = 1.596^2\times30 = 76.4$ W.`, XPY({ group: 'xp1', unit: 'W' })),
+  xn(5, 'resonance', XR`The capacitor is replaced by one that makes the circuit resonant at 400 rad/s. Find its capacitance, in $\mu$F.`, 1 / (400 ** 2 * 0.2) * 1e6, 0.3, 2,
+    XR`Resonance: $\omega^2LC = 1$, so $C = \dfrac{1}{\omega^2L} = \dfrac{1}{160000\times0.20} = 3.125\times10^{-5}$ F $= 31.25\ \mu$F.`, XPY({ group: 'xp1', unit: 'µF', trap: 'At 400 rad/s the inductor has $X_L = 80\\ \\Omega$, so $X_C$ must also be $80\\ \\Omega$ (the old capacitor gave $25\\ \\Omega$).' })),
+  xn(3, 'LC oscillation', XR`Find the maximum current in the circuit, in mA.`, 50 * Math.sqrt(2e-6 / 0.5) * 1e3, 0.5, 1,
+    XR`$I_0 = V_0\sqrt{\dfrac CL} = 50\times\sqrt{\dfrac{2\times10^{-6}}{0.50}} = 50\times2\times10^{-3} = 0.100$ A $= 100$ mA.`, XPY({ group: 'xp2', unit: 'mA' })),
+  xn(4, 'LC timing', XR`Find the time after $t=0$ at which the energy is first shared equally between the capacitor and the inductor, in ms.`, XPI / 4 / 1000 * 1e3, 0.005, 3,
+    XR`$\omega_0 = \dfrac{1}{\sqrt{LC}} = \dfrac{1}{\sqrt{10^{-6}}} = 1000$ rad/s. The charge is $q = Q_0\cos\omega_0t$. Equal energies need $q = \dfrac{Q_0}{\sqrt2}$, i.e. $\omega_0t = \dfrac\pi4$. $t = \dfrac{\pi}{4000} = 0.785$ ms.`, XPY({ group: 'xp2', unit: 'ms' })),
+  xm(5, 'LC energy', XR`At the instant when the current is 60 mA, the voltage across the capacitor is`, '40 V', ['30 V', '50 V', '24 V'],
+    XR`$I_0 = 100$ mA. $\tfrac12Li^2 = \tfrac12(0.5)(0.06)^2 = 9\times10^{-4}$ J. Total energy $\tfrac12CV_0^2 = \tfrac12(2\times10^{-6})(2500) = 2.5\times10^{-3}$ J. Capacitor energy $= 1.6\times10^{-3}$ J $= \tfrac12CV^2$, so $V = \sqrt{\dfrac{2\times1.6\times10^{-3}}{2\times10^{-6}}} = 40$ V.`, XPY({ group: 'xp2' })),
+);
+
+// ---------- templates ----------
+gens.push(
+  XG(28, 3, 'mcq', 'power factor', (rng) => {
+    const R = pick(rng, 20, 60, 10); const XL = pick(rng, 20, 100, 10); const XC = pick(rng, 10, 90, 10);
+    if (XL === XC) return XGfix();
+    const Z = Math.hypot(R, XL - XC); const pf = R / Z;
+    const o = numOpts(rng, pf, [Math.min(0.99, (XL - XC) / Z), R / (R + Math.abs(XL - XC)), Z / R > 1 ? R * R / (Z * Z) : 0.5, Math.abs(XL - XC) / R / 10 + 0.05], '', 3);
+    return { R, XL, XC, pfv: f3(pf), q: XR`A series circuit has $R = ${R}\ \Omega$, $X_L = ${XL}\ \Omega$ and $X_C = ${XC}\ \Omega$. Its power factor is`, options: o.options, answer: o.answer,
+      sol: XR`$Z = \sqrt{${R}^2+(${XL}-${XC})^2} = ${f3(Z)}\ \Omega$. $\cos\phi = \dfrac RZ = ${f3(pf)}$. (Wrong choices: $\sin\phi$, $R/(R+X)$, $\cos^2\phi$.)`, trap: 'Use the net reactance $|X_L-X_C|$, not $X_L$ alone.' };
+    function XGfix() { return { R, XL, XC, pfv: '1', q: XR`A series circuit has $R = ${R}\ \Omega$, $X_L = X_C = ${XL}\ \Omega$. Its power factor is`, options: ['1', '0', '0.5', '0.707'], answer: 0, sol: XR`At resonance $Z = R$, so $\cos\phi = 1$.` }; }
+  }, (p) => { if (p.XL === p.XC) return 0; const Z = Math.hypot(p.R, p.XL - p.XC); return p.options.findIndex((o) => o === f3(p.R / Z)); }),
+  XG(29, 4, 'nat', 'Q factor', (rng) => {
+    const L = choose(rng, [0.02, 0.05, 0.1, 0.2]); const C = choose(rng, [1, 2, 5, 10, 20]) * 1e-6; const R = choose(rng, [5, 10, 20]);
+    const Q = Math.sqrt(L / C) / R;
+    return { L, C, R, q: XR`A series LCR circuit has $L = ${L * 1e3}$ mH, $C = ${C * 1e6}\ \mu$F and $R = ${R}\ \Omega$. Find its quality factor.`, answer: +Q.toFixed(3), tol: Math.max(0.02, Q * 0.01),
+      sol: XR`$Q = \dfrac1R\sqrt{\dfrac LC} = \dfrac{1}{${R}}\sqrt{\dfrac{${L}}{${sg(C)}}} = ${f3(Q)}$.` };
+  }, (p) => { const w0 = 1 / Math.sqrt(p.L * p.C); return w0 * p.L / p.R; }),
+  XG(30, 4, 'nat', 'rms of a mixed current', (rng) => {
+    const a = pick(rng, 1, 6); const b = pick(rng, 2, 8);
+    const I = Math.sqrt(a * a + b * b / 2);
+    return { a, b, q: XR`A current $i = ${a} + ${b}\sin\omega t$ (in A) flows through a resistor. Find its rms value, in A.`, answer: +I.toFixed(3), tol: Math.max(0.01, I * 0.005), unit: 'A',
+      sol: XR`Mean of $i^2$ $= ${a}^2 + \dfrac{${b}^2}{2} = ${f3(a * a + b * b / 2)}$ (the cross term averages to zero). $I_{\mathrm{rms}} = ${f3(I)}$ A.` };
+  }, (p) => { let s = 0; const n = 20000; for (let k = 0; k < n; k++) { const i = p.a + p.b * Math.sin(2 * Math.PI * (k + 0.5) / n); s += i * i; } return Math.sqrt(s / n); }),
+  XG(31, 4, 'nat', 'power factor correction', (rng) => {
+    const P = choose(rng, [1, 2, 3, 4]) * 1e3; const pf = choose(rng, [0.6, 0.8, 0.5]); const V = choose(rng, [220, 230, 240]); const f = choose(rng, [50, 60]);
+    const tan = Math.sqrt(1 - pf * pf) / pf; const C = P * tan / (2 * XPI * f * V * V) * 1e6;
+    return { P, pf, V, f, q: XR`A load takes ${P / 1000} kW at a lagging power factor of ${pf} from a ${V} V (rms), ${f} Hz supply. Find the capacitor, connected in parallel, that raises the power factor to 1, in $\mu$F.`, answer: +C.toFixed(2), tol: Math.max(0.3, C * 0.01), unit: 'µF',
+      sol: XR`$Q = P\tan\phi = ${P}\times${f3(tan)} = ${f3(P * tan)}$ VAR. The capacitor supplies this: $V^2\omega C = Q$, so $C = \dfrac{${f3(P * tan)}}{2\pi\times${f}\times${V}^2} = ${f3(C)}\ \mu$F.` };
+  }, (p) => { const phi = Math.acos(p.pf); const I = p.P / (p.V * p.pf); const Iq = I * Math.sin(phi); return Iq / (2 * XPI * p.f * p.V) * 1e6; }),
+  XG(32, 3, 'mcq', 'transformer', (rng) => {
+    const v = int(rng, 0, 2); const Vp = choose(rng, [110, 220, 230, 240]); const ratio = choose(rng, [2, 5, 10, 20, 0.5, 0.1, 0.05]); const Ip = choose(rng, [2, 4, 5, 10]); const eff = choose(rng, [1, 0.9, 0.8]);
+    const Vs = Vp * ratio; const Is = Ip * eff / ratio;
+    if (v === 0) { const o = numOpts(rng, Vs, [Vp / ratio, Vp * ratio * ratio, Vp + ratio], 'V', 3); return { v, Vp, ratio, Ip, eff, q: XR`A transformer has ${ratio > 1 ? 'a secondary with ' + ratio + ' times the turns of the primary' : 'a secondary with ' + 1 / ratio + ' times fewer turns than the primary'}. Its primary is connected to ${Vp} V. The secondary voltage (ideal) is`, options: o.options, answer: o.answer, sol: XR`$V_s = V_p\dfrac{N_s}{N_p} = ${Vp}\times${ratio} = ${f3(Vs)}$ V.`, trap: 'Voltage follows the turns ratio; current follows its inverse.' }; }
+    if (v === 1) { const o = numOpts(rng, Is, [Ip * ratio, Ip * eff, Ip / ratio / ratio], 'A', 3); return { v, Vp, ratio, Ip, eff, q: XR`The primary of a transformer takes ${Ip} A from ${Vp} V. The secondary has ${ratio} times the number of turns of the primary and the efficiency is ${eff * 100}%. The secondary current is`, options: o.options, answer: o.answer, sol: XR`$V_s = ${f3(Vs)}$ V. Output power $= ${eff}\times${Vp}\times${Ip} = ${f3(eff * Vp * Ip)}$ W. $I_s = \dfrac{P_{out}}{V_s} = ${f3(Is)}$ A.` }; }
+    const o = numOpts(rng, eff * 100, [eff * 100 * 0.9, 100, eff * 100 / 2], '%', 3); return { v, Vp, ratio, Ip, eff, q: XR`A transformer takes ${Ip} A at ${Vp} V and delivers ${f3(Is)} A at ${f3(Vs)} V. Its efficiency is`, options: o.options, answer: o.answer, sol: XR`Efficiency $=\dfrac{V_sI_s}{V_pI_p} = \dfrac{${f3(Vs)}\times${f3(Is)}}{${Vp}\times${Ip}} = ${f3(eff * 100)}\%$.` };
+  }, (p) => { const Vs = p.Vp * p.ratio; const Is = p.Ip * p.eff / p.ratio; const val = p.v === 0 ? `${f3(Vs)} V` : p.v === 1 ? `${f3(Is)} A` : `${f3(p.eff * 100)} %`; return p.options.findIndex((o) => o === val); }),
+  XG(33, 4, 'nat', 'LC oscillation', (rng) => {
+    const L = choose(rng, [0.02, 0.05, 0.1, 0.5]); const C = choose(rng, [1, 2, 5, 10]) * 1e-6; const V0 = pick(rng, 10, 60, 10); const k = choose(rng, [0.3, 0.5, 0.6, 0.8]);
+    const V = V0 * Math.sqrt(1 - k * k);
+    return { L, C, V0, k, q: XR`A ${C * 1e6} $\mu$F capacitor charged to ${V0} V is connected across a ${L * 1e3} mH inductor. When the current is ${k} of its maximum, find the voltage across the capacitor, in V.`, answer: +V.toFixed(3), tol: Math.max(0.02, V * 0.005), unit: 'V',
+      sol: XR`The inductor holds a fraction $k^2 = ${f3(k * k)}$ of the energy, so the capacitor holds $1-k^2 = ${f3(1 - k * k)}$. $V = V_0\sqrt{1-k^2} = ${f3(V)}$ V.` };
+  }, (p) => { const Im = p.V0 * Math.sqrt(p.C / p.L); const i = p.k * Im; return Math.sqrt((0.5 * p.C * p.V0 ** 2 - 0.5 * p.L * i * i) * 2 / p.C); }),
+  XG(34, 5, 'nat', 'half-power frequencies', (rng) => {
+    const f0 = choose(rng, [200, 500, 1000, 2000]); const Q = choose(rng, [5, 10, 20, 25, 50]);
+    const fh = f0 * (Math.sqrt(1 + 1 / (4 * Q * Q)) + 1 / (2 * Q));
+    return { f0, Q, q: XR`A series resonant circuit has $f_0 = ${f0}$ Hz and $Q = ${Q}$. Find the upper half-power frequency exactly, in Hz.`, answer: +fh.toFixed(3), tol: Math.max(0.05, fh * 0.0005), unit: 'Hz',
+      sol: XR`At the half-power points $|X_L-X_C| = R$. This gives $\dfrac{f}{f_0}-\dfrac{f_0}{f} = \pm\dfrac1Q$. The upper root is $f = f_0\left(\sqrt{1+\dfrac{1}{4Q^2}}+\dfrac{1}{2Q}\right) = ${f3(fh)}$ Hz (about $f_0+\dfrac{f_0}{2Q}$).` };
+  }, (p) => { const w0 = 1; const R = 1 / p.Q; const F = (w) => Math.abs(w - 1 / w) - R; let a = 1, b = 2; for (let i = 0; i < 200; i++) { const m = (a + b) / 2; if (F(m) < 0) a = m; else b = m; } return a * p.f0; }),
+  XG(35, 4, 'nat', 'transmission', (rng) => {
+    const P = choose(rng, [50, 100, 200]) * 1e3; const V = choose(rng, [2, 5, 10, 20]) * 1e3; const R = choose(rng, [5, 10, 20]);
+    const loss = (P / V) ** 2 * R; const pct = loss / P * 100;
+    return { P, V, R, q: XR`A power of ${P / 1000} kW is transmitted at ${V / 1000} kV through lines of total resistance ${R} $\Omega$. Find the percentage of the power lost in the lines.`, answer: +pct.toFixed(3), tol: Math.max(0.01, pct * 0.01), unit: '%',
+      sol: XR`$I = \dfrac PV = ${f3(P / V)}$ A. Loss $= I^2R = ${f3(loss)}$ W, which is $\dfrac{${f3(loss)}}{${P}}\times100 = ${f3(pct)}\%$.` };
+  }, (p) => p.R * p.P / (p.V * p.V) * 100),
+  XG(36, 4, 'nat', 'lamp with a choke', (rng) => {
+    const W = choose(rng, [40, 60, 100]); const Vr = choose(rng, [110, 120, 220]); const Vm = Vr * choose(rng, [2, 2]) ; const f = choose(rng, [50, 60]);
+    const R = Vr * Vr / W; const I = W / Vr; const X = Math.sqrt((Vm / I) ** 2 - R * R); const L = X / (2 * XPI * f);
+    return { W, Vr, Vm, f, q: XR`A lamp rated ${W} W, ${Vr} V is to be run from a ${Vm} V, ${f} Hz supply with an ideal inductor in series. Find the inductance needed, in H.`, answer: +L.toFixed(4), tol: Math.max(0.005, L * 0.01), unit: 'H',
+      sol: XR`$I = \dfrac{${W}}{${Vr}} = ${f3(I)}$ A, $R = \dfrac{${Vr}^2}{${W}} = ${f3(R)}\ \Omega$. $Z = \dfrac{${Vm}}{${f3(I)}} = ${f3(Vm / I)}\ \Omega$, $X_L = \sqrt{Z^2-R^2} = ${f3(X)}\ \Omega$, $L = \dfrac{X_L}{2\pi f} = ${f3(L)}$ H.` };
+  }, (p) => { const R = p.Vr * p.Vr / p.W; const I = p.W / p.Vr; const VL = Math.sqrt(p.Vm * p.Vm - (I * R) ** 2); return VL / I / (2 * XPI * p.f); }),
+  XG(37, 4, 'nat', 'instantaneous value', (rng) => {
+    const f = choose(rng, [50, 60, 100, 400]); const frac = choose(rng, [0.5, 0.707, 0.866, 1 / Math.SQRT2]);
+    const t = Math.asin(frac) / (2 * XPI * f) * 1e3;
+    return { f, frac, q: XR`A current $i = I_0\sin(2\pi ft)$ with $f = ${f}$ Hz starts from zero at $t=0$. At what time (in ms) does it first reach ${f3(frac)} of its peak value?`, answer: +t.toFixed(4), tol: Math.max(0.0005, t * 0.01), unit: 'ms',
+      sol: XR`$\sin(2\pi ft) = ${f3(frac)}$ gives $2\pi ft = ${f3(Math.asin(frac))}$ rad. $t = \dfrac{${f3(Math.asin(frac))}}{2\pi\times${f}} = ${f3(t)}$ ms.` };
+  }, (p) => { let t = 0; const dt = 1e-8; const w = 2 * XPI * p.f; let a = 0, b = 1 / (4 * p.f); for (let i = 0; i < 100; i++) { const m = (a + b) / 2; if (Math.sin(w * m) < p.frac) a = m; else b = m; } return a * 1e3; }),
+);
+
+}
+
 export default { topic: 'alternating-current', groups, items, gens };

@@ -6,6 +6,7 @@
 import { pick, int, choose, shuffle, mcqOptions, round } from '../_util.js';
 import more from './structure-factor.more.gen.js';
 import more2 from './structure-factor.more2.gen.js';
+import r4 from './structure-factor.r4.gen.js';
 
 const PI = Math.PI, D = PI / 180;
 const bar = (n) => (n < 0 ? `\\bar{${-n}}` : `${n}`);
@@ -274,6 +275,7 @@ export default {
       sol: 'Pairing $\\pm h$: $a\\rho(x) = F_0 + 2\\sum_{h>0}F_h\\cos(2\\pi hx/a)$. At $x = a/2$: $\\cos\\pi = -1$, $\\cos2\\pi = 1$, so $a\\rho = 10 + 2(3 + 2) = 20$. At $x = 0$ it is $10 + 2(-3 + 2) = 8$. The atom sits at the cell centre; the signs (phases) of $F$ decide where, which intensities alone could not tell.',
       trap: 'Forgetting the factor 2 from the $\\pm h$ pairs gives 15.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -412,5 +414,6 @@ export default {
       },
       verify: (p) => p.F0 + 2 * (p.F1 * Math.cos(2 * Math.PI * p.x0) + p.F2v * Math.cos(4 * Math.PI * p.x0)) },
     ...more,
+    ...r4.gens,
   ],
 };

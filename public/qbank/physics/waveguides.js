@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './waveguides.more.gen.js';
 import more2 from './waveguides.more2.gen.js';
+import r4 from './waveguides.r4.gen.js';
 
 const c = C.c;
 const ETA0 = Math.sqrt(C.mu0 / C.eps0);
@@ -283,6 +284,7 @@ export default {
       sol: '$k_c = 1.841/0.005 = 368.2$ m$^{-1}$, $k = 2\\pi f/c = 20.96$ m$^{-1}$, so $\\alpha = \\sqrt{k_c^2 - k^2} = 367.6$ Np/m $= 3.676$ Np/cm $= 8.686\\times3.676 = 31.9$ dB/cm. Far below cutoff the result hardly depends on frequency, which is what makes such attenuators precise.',
       trap: 'Using the TM$_{01}$ zero (2.405) gives a larger, wrong attenuation: the least-attenuated mode, TE$_{11}$, dominates.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -409,5 +411,6 @@ export default {
       },
       verify: (p) => (p.L * 1000 * p.n1 * (p.n1 - p.n2)) / (c * p.n2) * 1e9 },
     ...more,
+    ...r4.gens,
   ],
 };

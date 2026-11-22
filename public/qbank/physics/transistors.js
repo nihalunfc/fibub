@@ -8,6 +8,7 @@ const par = (a, b) => (a * b) / (a + b);
 
 import * as Q5 from '../_util.js';
 import more2 from './transistors.more2.gen.js';
+import r4 from './transistors.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -274,6 +275,7 @@ export default {
       sol: 'No gate current flows, so $V_G = 0$ and $V_{GS} = -I_DR_S = -I_D$ (volts, with $I_D$ in mA). Put this in Shockley\'s law: $I_D = 10(1 - I_D/5)^2$, i.e. $0.4I_D^2 - 5I_D + 10 = 0$, or $I_D^2 - 12.5I_D + 25 = 0$. The roots are $I_D = (12.5 \\pm 7.5)/2 = 10$ or $2.5$ mA. The root $10$ mA would make $V_{GS} = -10$ V, beyond pinch-off, where the device carries no current, so it is not physical. $I_D = 2.5$ mA ($V_{GS} = -2.5$ V).',
       trap: 'Both roots solve the quadratic; only the one with $|V_{GS}| < |V_P|$ is real.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -424,5 +426,6 @@ export default {
           trap: 'The middle of the DC load line is not optimal when the AC load line is steeper.' };
       },
       verify: (p) => p.VCC / (p.RC + p.RE + par(p.RC, p.RL)) },
+    ...r4.gens,
   ],
 };

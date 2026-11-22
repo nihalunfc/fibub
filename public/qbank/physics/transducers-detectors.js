@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './transducers-detectors.more.gen.js';
 import more2 from './transducers-detectors.more2.gen.js';
+import r4 from './transducers-detectors.r4.gen.js';
 
 const HC = 1239.84;          // eV nm
 const QE = 1.602176634e-19;  // C
@@ -224,6 +225,7 @@ export default {
       sol: '$x = 100\\times10^{-4} = 0.01$. The ratio exact/linear $= 4/(4 + 2x) = 1/(1 + x/2) \\approx 1 - x/2$, a shortfall of $x/2 = 0.5\\%$. High-gauge-factor sensors make the bridge non-linearity noticeable; a half or full bridge removes it.',
       trap: 'The non-linearity is set by $\\Delta R/R$, not by the strain alone.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'trd-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'thermocouples',
@@ -405,5 +407,6 @@ export default {
       },
       verify: (p) => (p.mode === 't' ? (p.V / p.S) * p.e * Math.LN10 : p.V * p.e * Math.LN10 / p.tr) },
     ...more,
+    ...r4.gens,
   ],
 };

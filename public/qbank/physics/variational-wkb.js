@@ -7,6 +7,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './variational-wkb.more.gen.js';
 import more2 from './variational-wkb.more2.gen.js';
+import r4 from './variational-wkb.r4.gen.js';
 
 const K1 = 5.1232; // sqrt(2 m_e · 1 eV)/ħ in nm⁻¹
 const U = 0.0381;  // ħ²/2m_e in eV nm²
@@ -194,6 +195,7 @@ export default {
       answer: 0.214, tol: 0.002, calc: () => 100 / Math.PI * Math.exp(-5),
       sol: '$\\Delta E = \\tfrac{0.10}{\\pi}e^{-5}$ eV $= 0.0318\\times0.00674$ eV $= 2.14\\times10^{-4}$ eV $= 0.214$ meV. A particle put in one well moves to the other in a time $\\pi\\hbar/\\Delta E$ (as in the ammonia inversion line), and the splitting depends on $e^{-\\theta}$, not $e^{-2\\theta}$, because it is an amplitude effect.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'qvw-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'tunnelling',
@@ -313,5 +315,6 @@ export default {
       },
       verify: (p) => (p.which === 'var' ? -(p.a ** 2) / (2 * Math.PI * U) : -(p.a ** 2) / (4 * U)) * 1000 },
     ...more,
+    ...r4.gens,
   ],
 };

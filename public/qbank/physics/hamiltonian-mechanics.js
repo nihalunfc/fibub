@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './hamiltonian-mechanics.more.gen.js';
 import more2 from './hamiltonian-mechanics.more2.gen.js';
+import r4 from './hamiltonian-mechanics.r4.gen.js';
 
 const g = 9.8;
 
@@ -215,6 +216,7 @@ export default {
       sol: 'Scaling the action integral: $J \\propto E^{1/2}\\cdot E^{1/n}$, so $T = dJ/dE \\propto E^{1/n - 1/2}$. Setting $1/n - 1/2 = -1/4$ gives $n = 4$.',
       trap: '$n = 4/3$ gives $T \\propto E^{+1/4}$: the sign of the exponent matters.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'ham-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Hamilton\'s equations',
@@ -351,5 +353,6 @@ export default {
           trap: 'Only the quadratic potential gives a period independent of amplitude.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

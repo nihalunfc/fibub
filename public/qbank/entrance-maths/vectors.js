@@ -849,4 +849,280 @@ itemsAll.forEach((it, i) => { it.id = `ve-${String(i + 1).padStart(3, '0')}`; })
 const RELEVEL = { 2: [28, 35, 36, 38, 40, 46, 53, 56, 59, 61, 74, 77], 5: [87, 92, 94, 98, 108, 118, 125, 168] };
 for (const [lv, ids] of Object.entries(RELEVEL)) for (const n of ids) { const it = itemsAll[n - 1]; it.level = +lv; it.exams = [...EXS[+lv], ...(it.type === 'mcq' && +lv <= 3 ? ['cuet'] : [])]; }
 const items = itemsAll;
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `ve-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const frac = (n, d) => { const g = ((a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; })(n, d); n /= g; d /= g; const sgn = n < 0 ? '-' : ''; n = Math.abs(n); return d === 1 ? `${sgn}${n}` : `${sgn}\\dfrac{${n}}{${d}}`; };
+const OPT = (c, w) => ({ c, w });
+Object.assign(groups, {
+  xm1: { title: 'Products of unit vectors', passage: XR`<p>$\hat i,\hat j,\hat k$ are the usual unit vectors. Match each expression in List I with its value in List II.</p>`,
+    list1: ['A. $\\hat i\\cdot(\\hat j\\times\\hat k)$', 'B. $\\hat i\\times(\\hat j\\times\\hat k)$', 'C. $\\hat i\\times\\hat j+\\hat j\\times\\hat k+\\hat k\\times\\hat i$', 'D. $(\\hat i+\\hat j)\\times(\\hat i-\\hat j)$'], list2: ['p. $\\vec 0$', 'q. $1$', 'r. $\\hat i+\\hat j+\\hat k$', 's. $-2\\hat k$'] },
+  xm2: { title: 'Quantities for two vectors', passage: XR`<p>$\vec a=\hat i+2\hat j+2\hat k$ and $\vec b=4\hat i+3\hat k$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $\\vec a\\cdot\\vec b$', 'B. $|\\vec a\\times\\vec b|^2$', 'C. $|\\vec a+\\vec b|^2$', 'D. the component of $\\vec a$ along $\\vec b$'], list2: ['p. $2$', 'q. $10$', 'r. $54$', 's. $125$'] },
+  xm3: { title: 'Scalar triple products', passage: XR`<p>$\vec a,\vec b,\vec c$ are vectors with $[\vec a\ \vec b\ \vec c]=3$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $[\\hat i\\ \\hat j\\ \\hat k]$', 'B. $[\\hat i\\ \\hat k\\ \\hat j]$', 'C. $[\\vec a\\ \\vec b\\ \\vec a]$', 'D. $[2\\vec a\\ \\vec b\\ \\vec c]$'], list2: ['p. $0$', 'q. $1$', 'r. $-1$', 's. $6$'] },
+  xm4: { title: 'Dividing a segment', passage: XR`<p>$A=(1,2,3)$ and $B=(7,8,9)$. Match each point $P$ on line $AB$ in List I with its coordinates in List II.</p>`,
+    list1: ['A. $P$ divides $AB$ internally in the ratio $1:2$', 'B. $P$ divides $AB$ externally in the ratio $3:1$', 'C. $P$ is the midpoint of $AB$', 'D. $P$ divides $AB$ internally in the ratio $2:1$'], list2: ['p. $(3,4,5)$', 'q. $(4,5,6)$', 'r. $(5,6,7)$', 's. $(10,11,12)$'] },
+  xm5: { title: 'Conditions on two vectors', passage: XR`<p>$\vec a,\vec b$ are non-zero vectors. Match each condition in List I with what it says in List II.</p>`,
+    list1: ['A. $|\\vec a+\\vec b|=|\\vec a-\\vec b|$', 'B. $|\\vec a+\\vec b|=|\\vec a|+|\\vec b|$', 'C. $\\vec a\\times\\vec b=\\vec 0$', 'D. $|\\vec a-\\vec b|=|\\vec a|+|\\vec b|$'], list2: ['p. $\\vec a\\perp\\vec b$', 'q. same direction', 'r. parallel (either direction)', 's. opposite directions'] },
+  xm6: { title: 'Vector identities', passage: XR`<p>Match each expression in List I with the equal expression in List II.</p>`,
+    list1: ['A. $\\vec a\\times(\\vec b\\times\\vec c)$', 'B. $(\\vec a\\times\\vec b)\\times\\vec c$', 'C. $|\\vec a\\times\\vec b|^2$', 'D. $[\\vec a\\ \\vec b\\ \\vec c]^2$'], list2: ['p. $|\\vec a|^2|\\vec b|^2-(\\vec a\\cdot\\vec b)^2$', 'q. the determinant of dot products $\\vec a\\cdot\\vec a,\\vec a\\cdot\\vec b,\\dots$', 'r. $(\\vec a\\cdot\\vec c)\\vec b-(\\vec b\\cdot\\vec c)\\vec a$', 's. $(\\vec a\\cdot\\vec c)\\vec b-(\\vec a\\cdot\\vec b)\\vec c$'] },
+  xm7: { title: 'Angles and lengths in a cube', passage: XR`<p>A cube has edge $1$ and one vertex at the origin, with edges along the axes. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. length of a body diagonal', 'B. angle between two body diagonals (acute)', 'C. angle between a body diagonal and an edge', 'D. angle between the body diagonal $(1,1,1)$ and the face diagonal $(1,-1,0)$'], list2: ['p. $\\cos^{-1}\\dfrac1{\\sqrt3}$', 'q. $\\sqrt3$', 'r. $90^\\circ$', 's. $\\cos^{-1}\\dfrac13$'] },
+  xm8: { title: 'Areas and volumes', passage: XR`<p>$\vec a=2\hat i$, $\vec b=\hat i+3\hat j$, $\vec c=\hat i+\hat j+4\hat k$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. volume of the parallelepiped on $\\vec a,\\vec b,\\vec c$', 'B. volume of the tetrahedron on $\\vec a,\\vec b,\\vec c$', 'C. area of the parallelogram on $\\vec a,\\vec b$', 'D. area of the triangle on $\\vec a,\\vec b$'], list2: ['p. $3$', 'q. $4$', 'r. $6$', 's. $24$'] },
+  xp1: { title: 'Passage: a corner tetrahedron', passage: XR`<p>$O$ is the origin and $A=(2,0,0)$, $B=(0,3,0)$, $C=(0,0,6)$.</p>` },
+  xp2: { title: 'Passage: a parallelogram with equal sides', passage: XR`<p>$ABCD$ is a parallelogram with $\vec{AB}=\vec a=2\hat i+\hat j+2\hat k$ and $\vec{AD}=\vec b=2\hat i+2\hat j-\hat k$. Its diagonals are $\vec{AC}=\vec a+\vec b$ and $\vec{BD}=\vec b-\vec a$.</p>` },
+});
+items.push(
+  // ---- L2 ----
+  M(2, 'dot product', XR`If $\vec a=2\hat i+3\hat j-\hat k$ and $\vec b=\hat i-\hat j+2\hat k$, then $\vec a\cdot\vec b$ equals`, '$-3$', ['$3$', '$7$', '$-7$'],
+    XR`<p>$\vec a\cdot\vec b=2(1)+3(-1)+(-1)(2)=2-3-2=-3$.</p>`, 'Multiply matching components and add.'),
+  M(2, 'magnitude', XR`The magnitude of $3\hat i-4\hat j+12\hat k$ is`, '$13$', ['$19$', '$5$', '$169$'],
+    XR`<p>$\sqrt{9+16+144}=\sqrt{169}=13$.</p>`, '169 is the square of the magnitude.'),
+  A(2, 'dot product', XR`$\hat i\cdot\hat j=0$.`, XR`The dot product of two perpendicular vectors is $0$.`, 0,
+    XR`<p>$\hat i$ and $\hat j$ are perpendicular, and $\vec a\cdot\vec b=|\vec a||\vec b|\cos90^\circ=0$. R is the reason.</p>`, 'cos 90° = 0.'),
+  S(2, 'vector algebra', XR`$\vec a\times\vec a=\vec 0$ for every vector $\vec a$.`, XR`$\vec a\cdot\vec a=|\vec a|^2$ for every vector $\vec a$.`, 0,
+    XR`<p>The angle between $\vec a$ and itself is $0$, so $|\vec a\times\vec a|=|\vec a|^2\sin0=0$ and $\vec a\cdot\vec a=|\vec a|^2\cos0=|\vec a|^2$. Both true.</p>`, 'A zero vector, not the number 0.'),
+  I(2, 'perpendicular vectors', XR`Find $\lambda$ so that $\lambda\hat i+2\hat j+\hat k$ is perpendicular to $\hat i-3\hat j+4\hat k$.`, 2,
+    XR`<p>Perpendicular means dot product $0$: $\lambda-6+4=0$, so $\lambda=2$.</p>`, 'Set the dot product to zero.', () => 6 - 4),
+  M(2, 'area', XR`The area of the parallelogram with adjacent sides $\hat i+\hat j$ and $\hat j+\hat k$ is`, XR`$\sqrt3$`, ['$3$', '$1$', XR`$\sqrt2$`],
+    XR`<p>$(\hat i+\hat j)\times(\hat j+\hat k)=\hat i-\hat j+\hat k$, with magnitude $\sqrt3$. The area is $\sqrt3$.</p>`, 'Area is the magnitude of the cross product.'),
+  // ---- L3 ----
+  I(3, 'Lagrange identity', XR`$|\vec a|=3$, $|\vec b|=4$ and $\vec a\cdot\vec b=6$. Find $|\vec a\times\vec b|^2$.`, 108,
+    XR`<p>$|\vec a\times\vec b|^2=|\vec a|^2|\vec b|^2-(\vec a\cdot\vec b)^2=144-36=108$.</p>`, 'Use the identity; do not look for the angle.', () => 9 * 16 - 36),
+  M(3, 'scalar triple product', XR`For $\vec a=\hat i+2\hat j+3\hat k$, $\vec b=2\hat i+\hat k$ and $\vec c=\hat j+4\hat k$, the value of $[\vec a\ \vec b\ \vec c]$ is`, '$-11$', ['$11$', '$-1$', '$13$'],
+    XR`<p>$\begin{vmatrix}1&2&3\\2&0&1\\0&1&4\end{vmatrix}=1(0-1)-2(8-0)+3(2-0)=-1-16+6=-11$.</p>`, 'Expand along the first row with alternating signs.'),
+  N(3, 'volume', XR`Find the volume of the tetrahedron with vertices $(0,0,0)$, $(1,2,3)$, $(2,0,1)$ and $(0,1,4)$ (2 decimal places).`, 1.83, 0.01,
+    XR`<p>Volume $=\dfrac16\big|[\vec a\ \vec b\ \vec c]\big|$ with $\vec a=(1,2,3)$, $\vec b=(2,0,1)$, $\vec c=(0,1,4)$. The triple product is $-11$, so the volume is $\dfrac{11}6\approx1.83$.</p>`, 'Divide by 6 for a tetrahedron.', () => Math.abs(trip([1, 2, 3], [2, 0, 1], [0, 1, 4])) / 6),
+  M(3, 'cross product', XR`The unit vector in the direction of $(\hat i+\hat j)\times(\hat j+\hat k)$ is`, XR`$\dfrac{\hat i-\hat j+\hat k}{\sqrt3}$`, [XR`$\hat i-\hat j+\hat k$`, XR`$\dfrac{\hat i+\hat j+\hat k}{\sqrt3}$`, XR`$\dfrac{\hat i-\hat j+\hat k}{3}$`],
+    XR`<p>The cross product is $\hat i-\hat j+\hat k$, with magnitude $\sqrt3$. Divide by the magnitude: $\dfrac{\hat i-\hat j+\hat k}{\sqrt3}$.</p>`, 'A unit vector needs division by the magnitude √3, not 3.'),
+  I(3, 'collinear points', XR`The points $A(1,2,3)$, $B(3,4,5)$ and $C(\lambda,6,7)$ are collinear. Find $\lambda$.`, 5,
+    XR`<p>$\vec{AB}=(2,2,2)$ and $\vec{AC}=(\lambda-1,4,4)$. For collinearity $\vec{AC}=2\vec{AB}=(4,4,4)$, so $\lambda-1=4$ and $\lambda=5$.</p>`, 'Match the ratio from the other two coordinates.', () => 5),
+  M(3, 'angle between vectors', XR`If $|\vec a|=|\vec b|=|\vec a+\vec b|$, the angle between $\vec a$ and $\vec b$ is`, XR`$\dfrac{2\pi}3$`, [XR`$\dfrac\pi3$`, XR`$\dfrac\pi2$`, XR`$\dfrac{\pi}6$`],
+    XR`<p>Let all three lengths be $1$. $|\vec a+\vec b|^2=1+1+2\cos\theta=1$, so $\cos\theta=-\dfrac12$ and $\theta=\dfrac{2\pi}3$.</p>`, 'Not π/3: that would make the sum √3 long.'),
+  I(3, 'dot product', XR`$|\vec a|=2$, $|\vec b|=3$ and the angle between them is $60^\circ$. Find $|2\vec a-\vec b|^2$.`, 13,
+    XR`<p>$\vec a\cdot\vec b=2\cdot3\cos60^\circ=3$. $|2\vec a-\vec b|^2=4|\vec a|^2+|\vec b|^2-4\vec a\cdot\vec b=16+9-12=13$.</p>`, 'The cross term is −4 a·b.', () => 16 + 9 - 12),
+  SC(3, 'vector algebra', ['$\\vec a\\cdot\\vec b=\\vec b\\cdot\\vec a$.', '$\\vec a\\times\\vec b=\\vec b\\times\\vec a$.', '$\\vec a\\times(\\vec b+\\vec c)=\\vec a\\times\\vec b+\\vec a\\times\\vec c$.', '$(\\vec a\\cdot\\vec b)\\vec c$ is a vector.'], '3', ['1', '2', '4'],
+    XR`<p>(1) true. (2) false: $\vec a\times\vec b=-\vec b\times\vec a$. (3) true. (4) true: a scalar times a vector. Three are correct.</p>`, 'The cross product is anticommutative.'),
+  A(3, 'dot product', XR`If $\vec a\cdot\vec b=\vec a\cdot\vec c$ and $\vec a\ne\vec 0$, then $\vec b=\vec c$.`, XR`$\vec a\cdot\vec b=\vec a\cdot\vec c$ means $\vec a\cdot(\vec b-\vec c)=0$.`, 3,
+    XR`<p>R is true, but it only says $\vec a$ is perpendicular to $\vec b-\vec c$, not that $\vec b-\vec c=\vec 0$. Example: $\vec a=\hat i$, $\vec b=\hat j$, $\vec c=\hat k$: both dot products are $0$ but $\vec b\ne\vec c$. So A is false and R is true.</p>`, 'There is no cancellation law for the dot product.'),
+  S(3, 'dot and cross', XR`$(\vec a+\vec b)\cdot(\vec a-\vec b)=0$ exactly when $|\vec a|=|\vec b|$.`, XR`$(\vec a+\vec b)\cdot(\vec a-\vec b)=0$ exactly when $\vec a\perp\vec b$.`, 1,
+    XR`<p>$(\vec a+\vec b)\cdot(\vec a-\vec b)=|\vec a|^2-|\vec b|^2$. So it is $0$ exactly when $|\vec a|=|\vec b|$: I true, II false.</p>`, 'The diagonals of a rhombus are perpendicular.'),
+  I(3, 'coplanar vectors', XR`$\vec a=(1,2,3)$, $\vec b=(1,-1,2)$ and $\vec c=(\lambda,1,5)$ are coplanar. Find $\lambda$.`, 2,
+    XR`<p>Coplanar means $\begin{vmatrix}1&2&3\\1&-1&2\\\lambda&1&5\end{vmatrix}=0$. Expanding: $1(-5-2)-2(5-2\lambda)+3(1+\lambda)=-7-10+4\lambda+3+3\lambda=7\lambda-14$. So $\lambda=2$.</p>`, 'Set the triple product to 0.', () => 2),
+  I(3, 'cross product', XR`$\vec a=\hat i+\hat j+\hat k$ and $\vec b=\hat i+2\hat j+3\hat k$. Find $|\vec a\times\vec b|^2$.`, 6,
+    XR`<p>$\vec a\times\vec b=(3-2,\ 1-3,\ 2-1)=(1,-2,1)$. Its square magnitude is $1+4+1=6$.</p>`, 'Square the magnitude, not the components of a and b.', () => n2(cross([1, 1, 1], [1, 2, 3]))),
+  N(3, 'projection', XR`$\vec a=\hat i-2\hat j+2\hat k$ and $\vec b=2\hat i+3\hat j+6\hat k$. Find the scalar projection of $\vec a$ on $\vec b$ (2 decimal places).`, 1.14, 0.01,
+    XR`<p>$\vec a\cdot\vec b=2-6+12=8$ and $|\vec b|=7$. The projection is $\dfrac87\approx1.14$.</p>`, 'Divide by |b|, not |a|.', () => 8 / 7),
+  N(3, 'angle between vectors', XR`The angle between $\vec a=\hat i+2\hat j+2\hat k$ and $\vec b=4\hat i+3\hat k$ is how many degrees (2 decimal places)?`, 48.19, 0.01,
+    XR`<p>$\vec a\cdot\vec b=4+6=10$, $|\vec a|=3$, $|\vec b|=5$. $\cos\theta=\dfrac{10}{15}=\dfrac23$ and $\theta=\cos^{-1}\dfrac23\approx48.19^\circ$.</p>`, 'Use arccos of 2/3.', () => deg(Math.acos(2 / 3))),
+  N(3, 'cross product', XR`$\vec a=\hat i+2\hat j+3\hat k$ and $\vec b=2\hat i-\hat j+\hat k$. Find $|\vec a\times\vec b|$ (2 decimal places).`, 8.66, 0.01,
+    XR`<p>$\vec a\times\vec b=(2\cdot1-3(-1),\ 3\cdot2-1\cdot1,\ 1(-1)-2\cdot2)=(5,5,-5)$. Its magnitude is $5\sqrt3\approx8.66$.</p>`, 'Expand carefully with signs.', () => nrm(cross([1, 2, 3], [2, -1, 1]))),
+  I(3, 'cross product', XR`The vertices of a triangle are $A(1,0,0)$, $B(0,2,0)$ and $C(0,0,3)$. Find $|\vec{AB}\times\vec{AC}|$.`, 7,
+    XR`<p>$\vec{AB}=(-1,2,0)$, $\vec{AC}=(-1,0,3)$. $\vec{AB}\times\vec{AC}=(6,3,2)$, magnitude $\sqrt{36+9+4}=7$. (The triangle's area is $\dfrac72$.)</p>`, 'The area is half of this.', () => nrm(cross([-1, 2, 0], [-1, 0, 3]))),
+  MT(3, 'unit vectors', 'xm1', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: $\hat i\cdot\hat i=1$. B: $\hat j\times\hat k=\hat i$, so $\hat i\times\hat i=\vec 0$. C: $\hat k+\hat i+\hat j$. D: $\hat i\times\hat i-\hat i\times\hat j+\hat j\times\hat i-\hat j\times\hat j=-\hat k-\hat k=-2\hat k$.</p>`, 'Cyclic products: i × j = k, j × k = i, k × i = j.'),
+  MT(3, 'dot and cross', 'xm2', 'A-q, B-s, C-r, D-p', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'],
+    XR`<p>A: $4+0+6=10$. B: $|\vec a|^2|\vec b|^2-(\vec a\cdot\vec b)^2=9\cdot25-100=125$. C: $9+25+2\cdot10=54$. D: $\dfrac{\vec a\cdot\vec b}{|\vec b|}=\dfrac{10}5=2$.</p>`, 'The component along b is the dot product divided by |b|.'),
+  MT(3, 'scalar triple product', 'xm3', 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    XR`<p>A: $\hat i\cdot(\hat j\times\hat k)=1$. B: swapping two vectors flips the sign: $-1$. C: two equal vectors: $0$. D: scaling one vector by 2 doubles the product: $6$.</p>`, 'Repeated vector gives 0; swap gives minus.'),
+  MT(3, 'section formula', 'xm4', 'A-p, B-s, C-q, D-r', ['A-p, B-s, C-r, D-q', 'A-s, B-p, C-q, D-r', 'A-p, B-q, C-s, D-r'],
+    XR`<p>Internal ratio $m:n$: $P=\dfrac{n\vec A+m\vec B}{m+n}$. A ($1:2$): $\dfrac{2(1,2,3)+(7,8,9)}3=(3,4,5)$. B (external $3:1$): $\dfrac{3\vec B-\vec A}{2}=\dfrac{(21,24,27)-(1,2,3)}2=(10,11,12)$. C: midpoint $(4,5,6)$. D ($2:1$): $\dfrac{(1,2,3)+2(7,8,9)}3=(5,6,7)$.</p>`, 'External division subtracts.'),
+  MT(3, 'areas and volumes', 'xm8', 'A-s, B-q, C-r, D-p', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-s, B-r, C-q, D-p'],
+    XR`<p>$[\vec a\ \vec b\ \vec c]=2\begin{vmatrix}3&0\\1&4\end{vmatrix}=24$. A: $24$. B: $\dfrac{24}6=4$. C: $\vec a\times\vec b=6\hat k$, area $6$. D: half of that: $3$.</p>`, 'Triangle = half the parallelogram; tetrahedron = one sixth of the parallelepiped.'),
+  // ---- L4 ----
+  X(4, 'vector algebra', XR`$\vec a,\vec b,\vec c$ are any vectors. Which statements are always true?`, ['$(\\vec a\\times\\vec b)\\cdot\\vec a=0$', '$|\\vec a\\times\\vec b|\\le|\\vec a||\\vec b|$', '$\\vec a\\times\\vec b=\\vec b\\times\\vec a$', '$(\\vec a\\cdot\\vec b)^2\\le|\\vec a|^2|\\vec b|^2$'], [0, 1, 3],
+    XR`<p>A: the cross product is perpendicular to $\vec a$. B: $|\vec a||\vec b|\sin\theta\le|\vec a||\vec b|$. C: false (sign flips). D: Cauchy–Schwarz.</p>`, 'Swapping flips the sign.'),
+  X(4, 'linear independence', XR`$\vec a=(1,2,3)$, $\vec b=(2,4,6)$, $\vec c=(0,1,1)$. Which statements are true?`, [XR`$\vec a\parallel\vec b$`, XR`$[\vec a\ \vec b\ \vec c]=0$`, XR`$\vec a,\vec b,\vec c$ are linearly independent`, XR`$\vec a\times\vec b=\vec 0$`], [0, 1, 3],
+    XR`<p>$\vec b=2\vec a$, so they are parallel, their cross product is $\vec 0$, and the triple product is $0$ (two parallel vectors). Hence the three are linearly dependent (C false).</p>`, 'Parallel vectors make any triple product zero.'),
+  X(4, 'area', XR`$A(1,2,3)$, $B(2,3,4)$, $C(3,4,6)$. Which statements are true?`, [XR`$\vec{AB}\times\vec{AC}=\hat i-\hat j$`, XR`the area of triangle $ABC$ is $\dfrac{\sqrt2}2$`, XR`$A,B,C$ are collinear`, XR`a unit vector perpendicular to the plane $ABC$ is $\pm\dfrac{\hat i-\hat j}{\sqrt2}$`], [0, 1, 3],
+    XR`<p>$\vec{AB}=(1,1,1)$, $\vec{AC}=(2,2,3)$. Cross product: $(1\cdot3-1\cdot2,\ 1\cdot2-1\cdot3,\ 1\cdot2-1\cdot2)=(1,-1,0)$. Area $=\dfrac12\sqrt2$. It is non-zero, so the points are not collinear. The normal is $\pm\dfrac{(1,-1,0)}{\sqrt2}$.</p>`, 'A non-zero cross product rules out collinearity.'),
+  X(4, 'vector triple product', XR`Which of these expressions equal $\vec a\times(\vec b\times\vec c)$?`, [XR`$(\vec a\cdot\vec c)\vec b-(\vec a\cdot\vec b)\vec c$`, XR`$-(\vec b\times\vec c)\times\vec a$`, XR`$(\vec a\cdot\vec b)\vec c-(\vec a\cdot\vec c)\vec b$`, XR`$(\vec a\times\vec b)\times\vec c$`], [0, 1],
+    XR`<p>BAC–CAB rule: $\vec a\times(\vec b\times\vec c)=(\vec a\cdot\vec c)\vec b-(\vec a\cdot\vec b)\vec c$ (A). Since $(\vec b\times\vec c)\times\vec a=-\vec a\times(\vec b\times\vec c)$, B is true. C has the opposite sign. D is generally different (it lies in the plane of $\vec a,\vec b$).</p>`, 'The cross product is not associative.'),
+  X(4, 'dot and cross', XR`Which of these always hold?`, [XR`$|\vec a+\vec b|^2+|\vec a-\vec b|^2=2(|\vec a|^2+|\vec b|^2)$`, XR`$(\vec a+\vec b)\cdot(\vec a-\vec b)=|\vec a|^2+|\vec b|^2$`, XR`$|\vec a\times\vec b|^2+(\vec a\cdot\vec b)^2=|\vec a|^2|\vec b|^2$`, XR`$\vec a\cdot\vec b=|\vec a||\vec b|\cos\theta$`], [0, 2, 3],
+    XR`<p>A is the parallelogram law. B is false: $(\vec a+\vec b)\cdot(\vec a-\vec b)=|\vec a|^2-|\vec b|^2$. C is Lagrange's identity. D is the definition.</p>`, 'Difference of squares gives a minus sign.'),
+  X(4, 'direction cosines', XR`A vector makes angles $\alpha,\beta,\gamma$ with the axes. Which are true?`, [XR`$\cos^2\alpha+\cos^2\beta+\cos^2\gamma=1$`, XR`$\sin^2\alpha+\sin^2\beta+\sin^2\gamma=2$`, XR`$\cos2\alpha+\cos2\beta+\cos2\gamma=-1$`, XR`$\alpha+\beta+\gamma=\pi$`], [0, 1, 2],
+    XR`<p>A: the direction cosines are the components of a unit vector. B: $3-1=2$. C: $\cos2x=2\cos^2x-1$, so the sum is $2\cdot1-3=-1$. D is false: for $\hat i$, $0+\frac\pi2+\frac\pi2=\pi$ happens to work, but for $\frac{(1,1,1)}{\sqrt3}$ the sum is $3\cos^{-1}\frac1{\sqrt3}\approx3.08\ne\pi$.</p>`, 'The angles do not add to π in general.'),
+  X(5, 'orthonormal vectors', XR`$\vec a,\vec b,\vec c$ are mutually perpendicular unit vectors. Which statements are true?`, [XR`$[\vec a\ \vec b\ \vec c]=\pm1$`, XR`$\vec a\times\vec b=\pm\vec c$`, XR`$|\vec a+\vec b+\vec c|=\sqrt3$`, XR`$\vec a\cdot(\vec b\times\vec c)=0$`], [0, 1, 2],
+    XR`<p>The three vectors form a unit cube, so the volume is $1$ (A) and $\vec a\times\vec b$ is a unit vector perpendicular to both, i.e. $\pm\vec c$ (B). $|\vec a+\vec b+\vec c|^2=3$ (C). D is the triple product, which is $\pm1$, not $0$.</p>`, 'Triple product is 0 only for coplanar vectors.'),
+  X(5, 'locus', XR`Which vector equations describe a sphere?`, [XR`$|\vec r-\vec c|=5$`, XR`$|\vec r-\vec a|=|\vec r-\vec b|$`, XR`$(\vec r-\vec a)\cdot(\vec r-\vec b)=0$`, XR`$\vec r\times\vec a=\vec 0$`], [0, 2],
+    XR`<p>A: points at distance 5 from $\vec c$. B: equidistant from two points: a plane. C: $\angle APB=90^\circ$, the sphere with diameter $AB$. D: $\vec r$ parallel to $\vec a$: a line.</p>`, 'Equal distances from two points give a plane.'),
+  X(5, 'linear independence', XR`$\vec a,\vec b,\vec c$ are three non-coplanar vectors. Which statements are true?`, ['they form a basis of space', XR`$[\vec a\ \vec b\ \vec c]\ne0$`, XR`$\vec a\cdot(\vec b\times\vec c)=\vec b\cdot(\vec c\times\vec a)$`, XR`$\vec a\times(\vec b\times\vec c)=(\vec a\times\vec b)\times\vec c$`], [0, 1, 2],
+    XR`<p>A, B: non-coplanar means linearly independent, triple product non-zero. C: the triple product is unchanged by cyclic shifts. D is false: the two sides lie in different planes in general.</p>`, 'Cyclic order keeps the sign.'),
+  X(5, 'parallelepiped', XR`$\vec a=(1,1,0)$, $\vec b=(0,1,1)$, $\vec c=(1,0,1)$. Which statements are true?`, [XR`$[\vec a\ \vec b\ \vec c]=2$`, 'the three vectors are coplanar', XR`$\vec a\times\vec b=\hat i-\hat j+\hat k$`, 'the tetrahedron on these vectors has volume $\\dfrac13$'], [0, 2, 3],
+    XR`<p>$\begin{vmatrix}1&1&0\\0&1&1\\1&0&1\end{vmatrix}=1(1-0)-1(0-1)+0=2$ (A true, B false). $\vec a\times\vec b=(1\cdot1-0\cdot1,\ 0\cdot0-1\cdot1,\ 1\cdot1-1\cdot0)=(1,-1,1)$ (C). Tetrahedron: $\dfrac26=\dfrac13$ (D).</p>`, 'Compute the triple product before judging coplanarity.'),
+  I(4, 'counting', XR`How many vectors $x\hat i+y\hat j+z\hat k$ with integer $x,y,z$ have magnitude $3$?`, 30,
+    XR`<p>We need $x^2+y^2+z^2=9$. The possibilities are $(\pm3,0,0)$ and permutations: $6$ vectors; $(\pm2,\pm2,\pm1)$ and permutations: $3\cdot8=24$ vectors. Total $30$.</p>`, 'Count the permutations and the sign choices separately.', () => { let c = 0; for (let x = -3; x <= 3; x++) for (let y = -3; y <= 3; y++) for (let z = -3; z <= 3; z++) if (x * x + y * y + z * z === 9) c++; return c; }),
+  I(4, 'scalar triple product', XR`$|\vec a|=1$, $|\vec b|=2$, $|\vec c|=3$. Find the greatest possible value of $[\vec a\ \vec b\ \vec c]$.`, 6,
+    XR`<p>$|[\vec a\ \vec b\ \vec c]|=|\vec a||\vec b\times\vec c|\,|\cos\phi|\le|\vec a||\vec b||\vec c|=6$, with equality when the three are mutually perpendicular.</p>`, 'The volume of a box is largest when the edges are perpendicular.', () => 1 * 2 * 3),
+  I(5, 'vector equations', XR`$\vec a=\hat i+\hat j+\hat k$. A vector $\vec x$ satisfies $\vec a\times\vec x=\hat i-2\hat j+\hat k$ and $\vec a\cdot\vec x=6$. Find $|\vec x|^2$.`, 14,
+    XR`<p>Since $\vec a\times\vec x=\vec b$ with $\vec a\cdot\vec b=1-2+1=0$ (consistent). Take $\times\vec a$: $\vec a\times\vec x=\vec b$ gives $\vec x=\dfrac{\vec b\times\vec a}{|\vec a|^2}+\dfrac{\vec a\cdot\vec x}{|\vec a|^2}\vec a$. $\vec b\times\vec a=(-3,0,3)$, $|\vec a|^2=3$, so $\vec x=(-1,0,1)+2(1,1,1)=(1,2,3)$. Check: $\vec a\times\vec x=(1\cdot3-1\cdot2,\ 1\cdot1-1\cdot3,\ 1\cdot2-1\cdot1)=(1,-2,1)$ and $\vec a\cdot\vec x=6$. So $|\vec x|^2=1+4+9=14$.</p>`, 'Use the formula x = (b × a + (a·x) a)/|a|².', () => { const a = [1, 1, 1], b = [1, -2, 1]; const x = add(sc(1 / 3, cross(b, a)), sc(6 / 3, a)); return n2(x); }),
+  I(4, 'dot product', XR`$|\vec a|=3$, $|\vec b|=4$, $|\vec c|=5$ and $\vec a+\vec b+\vec c=\vec 0$. Find $\vec a\cdot\vec b+\vec b\cdot\vec c+\vec c\cdot\vec a$.`, -25,
+    XR`<p>$0=|\vec a+\vec b+\vec c|^2=9+16+25+2S$, so $S=-25$.</p>`, 'Square the sum of the three vectors.', () => -(9 + 16 + 25) / 2),
+  I(5, 'Gram determinant', XR`$|\vec a|=|\vec b|=|\vec c|=2$ and every pair makes an angle of $60^\circ$. Find $[\vec a\ \vec b\ \vec c]^2$.`, 32,
+    XR`<p>$[\vec a\ \vec b\ \vec c]^2=\begin{vmatrix}\vec a\cdot\vec a&\vec a\cdot\vec b&\vec a\cdot\vec c\\\vec b\cdot\vec a&\vec b\cdot\vec b&\vec b\cdot\vec c\\\vec c\cdot\vec a&\vec c\cdot\vec b&\vec c\cdot\vec c\end{vmatrix}$. Each diagonal entry is $4$ and each other entry is $2\cdot2\cos60^\circ=2$. So the determinant is $\begin{vmatrix}4&2&2\\2&4&2\\2&2&4\end{vmatrix}=4(16-4)-2(8-4)+2(4-8)=48-8-8=32$.</p>`, 'The squared triple product is the Gram determinant.', () => dot([4, 2, 2], cross([2, 4, 2], [2, 2, 4]))),
+  I(5, 'vector equations', XR`Mutually perpendicular vectors $\vec a,\vec b,\vec c$ satisfy $\vec a\times\vec b=\vec c$ and $\vec b\times\vec c=\vec a$, with $|\vec a|=3$. Find $|\vec a|^2+|\vec b|^2+|\vec c|^2$.`, 19,
+    XR`<p>$|\vec c|=|\vec a||\vec b|$ and $|\vec a|=|\vec b||\vec c|=|\vec b|^2|\vec a|$ (perpendicular vectors), so $|\vec b|=1$. Then $|\vec c|=|\vec a|=3$. The sum is $9+1+9=19$.</p>`, 'Perpendicularity makes |x × y| = |x||y|.', () => 9 + 1 + 9),
+  MT(4, 'conditions on vectors', 'xm5', 'A-p, B-q, C-r, D-s', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-r, B-q, C-p, D-s'],
+    XR`<p>A: squaring both sides gives $4\vec a\cdot\vec b=0$, so perpendicular. B: equality in the triangle inequality means the same direction. C: the cross product is zero for parallel vectors. D: $|\vec a-\vec b|=|\vec a|+|\vec b|$ is equality in the triangle inequality for $\vec a$ and $-\vec b$, so $\vec a$ and $\vec b$ point in opposite directions.</p>`, 'Equal lengths of the sum and the difference means a right angle, not equal vectors.'),
+  MT(4, 'identities', 'xm6', 'A-s, B-r, C-p, D-q', ['A-s, B-r, C-q, D-p', 'A-r, B-s, C-p, D-q', 'A-s, B-p, C-r, D-q'],
+    XR`<p>A: BAC minus CAB, $\vec a\times(\vec b\times\vec c)=(\vec a\cdot\vec c)\vec b-(\vec a\cdot\vec b)\vec c$. B: $(\vec a\times\vec b)\times\vec c=(\vec a\cdot\vec c)\vec b-(\vec b\cdot\vec c)\vec a$. C: Lagrange's identity. D: the squared triple product is the Gram determinant of dot products.</p>`, 'The two triple products differ: the middle vector keeps the positive sign in both, but the other term changes.'),
+  MT(4, 'cube', 'xm7', 'A-q, B-s, C-p, D-r', ['A-q, B-s, C-r, D-p', 'A-p, B-s, C-q, D-r', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: $|(1,1,1)|=\sqrt3$. B: diagonals $(1,1,1)$ and $(1,1,-1)$ give $\cos\theta=\dfrac{1}{3}$. C: with $(1,0,0)$: $\cos\theta=\dfrac1{\sqrt3}$. D: $(1,1,1)\cdot(1,-1,0)=0$, so $90^\circ$.</p>`, 'Do not confuse 1/3 (two diagonals) with 1/√3 (diagonal and edge).'),
+  // ---- passage xp1: corner tetrahedron ----
+  PI(3, 'volume', 'xp1', XR`The volume of the tetrahedron $OABC$ is`, 6,
+    XR`<p>$\dfrac16\begin{vmatrix}2&0&0\\0&3&0\\0&0&6\end{vmatrix}=\dfrac{36}6=6$.</p>`, 'Divide the triple product by 6.', () => trip([2, 0, 0], [0, 3, 0], [0, 0, 6]) / 6),
+  PN(4, 'area', 'xp1', XR`The area of triangle $ABC$ is (2 decimal places)`, 11.22, 0.01,
+    XR`<p>$\vec{AB}=(-2,3,0)$, $\vec{AC}=(-2,0,6)$. $\vec{AB}\times\vec{AC}=(18,12,6)$ with magnitude $\sqrt{504}=6\sqrt{14}$. The area is $3\sqrt{14}\approx11.22$.</p>`, 'Half the cross product.', () => nrm(cross([-2, 3, 0], [-2, 0, 6])) / 2),
+  PN(5, 'distance to a plane', 'xp1', XR`The perpendicular distance from $O$ to the plane $ABC$ is (4 decimal places)`, 1.6036, 0.0005,
+    XR`<p>The volume is also $\dfrac13\cdot(\text{area of }ABC)\cdot h$. So $h=\dfrac{3\cdot6}{3\sqrt{14}}=\dfrac6{\sqrt{14}}\approx1.6036$. (Check with the plane $\dfrac x2+\dfrac y3+\dfrac z6=1$, i.e. $3x+2y+z=6$: distance $\dfrac6{\sqrt{14}}$.)</p>`, 'Equate two expressions for the same volume.', () => 18 / (nrm(cross([-2, 3, 0], [-2, 0, 6])) / 2)),
+  // ---- passage xp2: rhombus ----
+  PM(4, 'diagonals', 'xp2', XR`The angle between the diagonals $\vec{AC}$ and $\vec{BD}$ is`, XR`$90^\circ$`, [XR`$60^\circ$`, XR`$45^\circ$`, XR`$\cos^{-1}\dfrac49$`],
+    XR`<p>$|\vec a|=|\vec b|=3$. $(\vec a+\vec b)\cdot(\vec b-\vec a)=|\vec b|^2-|\vec a|^2=0$. The diagonals of a rhombus are perpendicular. (Check: $(4,3,1)\cdot(0,1,-3)=0$.)</p>`, 'cos⁻¹(4/9) is the angle between the sides.'),
+  PI(4, 'area', 'xp2', XR`The square of the area of the parallelogram is`, 65,
+    XR`<p>$\vec a\times\vec b=(-5,6,2)$, so $|\vec a\times\vec b|^2=25+36+4=65$. (Lagrange: $81-4^2=65$.)</p>`, 'The cross product, not the dot product, gives the area.', () => n2(cross([2, 1, 2], [2, 2, -1]))),
+  PN(4, 'height', 'xp2', XR`The distance between the parallel sides $AB$ and $DC$ is (2 decimal places)`, 2.69, 0.01,
+    XR`<p>Area $=\sqrt{65}$ and base $|\vec a|=3$, so the height is $\dfrac{\sqrt{65}}3\approx2.69$.</p>`, 'Height = area ÷ base.', () => Math.sqrt(65) / 3),
+  // ---- more L4-5 ----
+  N(4, 'distance from a point to a line', XR`The line $L$ passes through $A(1,0,0)$ with direction $\hat i+2\hat j+2\hat k$. Find the distance of $P(2,3,1)$ from $L$ (2 decimal places).`, 1.41, 0.01,
+    XR`<p>$\vec{AP}=(1,3,1)$. $\vec{AP}\times\vec d=(4,-1,-1)$, magnitude $\sqrt{18}$. Distance $=\dfrac{\sqrt{18}}{|\vec d|}=\dfrac{\sqrt{18}}3=\sqrt2\approx1.41$.</p>`, 'Divide by the length of the direction vector.', () => nrm(cross([1, 3, 1], [1, 2, 2])) / 3),
+  N(4, 'shortest distance between lines', XR`Find the shortest distance between the lines $\vec r=t(\hat i+\hat j)$ and $\vec r=(\hat i+\hat k)+s(\hat j+\hat k)$ (2 decimal places).`, 1.15, 0.01,
+    XR`<p>$\vec n=(1,1,0)\times(0,1,1)=(1,-1,1)$, $|\vec n|=\sqrt3$. The vector between points is $(1,0,1)$, and $(1,0,1)\cdot\vec n=2$. Distance $=\dfrac2{\sqrt3}\approx1.15$.</p>`, 'Project the joining vector on the common perpendicular.', () => Math.abs(dot([1, 0, 1], cross([1, 1, 0], [0, 1, 1]))) / nrm(cross([1, 1, 0], [0, 1, 1]))),
+  N(5, 'minimum magnitude', XR`$\vec a=\hat i+2\hat j+3\hat k$ and $\vec b=2\hat i-\hat j+\hat k$. As $t$ varies over the reals, find the least value of $|\vec a+t\vec b|$ (2 decimal places).`, 3.54, 0.01,
+    XR`<p>$|\vec a+t\vec b|^2=14+2t(\vec a\cdot\vec b)+6t^2=14+6t+6t^2$, least at $t=-\dfrac12$: $14-3+1.5=12.5$. The least value is $\sqrt{12.5}\approx3.54$. (Same as $|\vec a\times\vec b|/|\vec b|=5\sqrt3/\sqrt6$.)</p>`, 'The least length is the perpendicular distance.', () => nrm(cross([1, 2, 3], [2, -1, 1])) / nrm([2, -1, 1])),
+  N(5, 'diagonals', XR`The sides of a parallelogram are $\vec a=\hat i+2\hat j+2\hat k$ and $\vec b=2\hat i+3\hat j+6\hat k$. Find the acute angle between its diagonals in degrees (2 decimal places).`, 17.75, 0.01,
+    XR`<p>Diagonals: $\vec a+\vec b=(3,5,8)$ and $\vec b-\vec a=(1,1,4)$. Dot product $=3+5+32=40$, lengths $\sqrt{98}$ and $\sqrt{18}$, whose product is $42$. $\cos\theta=\dfrac{40}{42}$, so $\theta\approx17.75^\circ$.</p>`, 'The diagonals are the sum and difference.', () => deg(Math.acos(40 / Math.sqrt(98 * 18)))),
+  I(4, 'projection', XR`The scalar projection of $\lambda\hat i+\hat j+2\hat k$ on $2\hat i-2\hat j+\hat k$ is $2$. Find $\lambda$.`, 3,
+    XR`<p>$\dfrac{2\lambda-2+2}{3}=2$, so $\lambda=3$.</p>`, 'Divide by the length of the vector projected on.', () => (2 * 3 - 2 + 2) / 3 === 2 ? 3 : NaN),
+  I(4, 'coplanar vectors', XR`$\vec a=\hat i+k\hat j+2\hat k$, $\vec b=2\hat i-\hat j+\hat k$ and $\vec c=\hat i+2\hat j+k\hat k$ are coplanar. Find the sum of the squares of all possible values of $k$.`, 8,
+    XR`<p>$\begin{vmatrix}1&k&2\\2&-1&1\\1&2&k\end{vmatrix}=1(-k-2)-k(2k-1)+2(4+1)=-2k^2+8=0$, so $k=\pm2$. The sum of squares is $4+4=8$.</p>`, 'There are two values of k.', () => [-2, 2].reduce((s, k) => { const d = trip([1, k, 2], [2, -1, 1], [1, 2, k]); return d === 0 ? s + k * k : NaN; }, 0)),
+  I(4, 'coplanar points', XR`The points $A(0,1,2)$, $B(3,\lambda,1)$, $C(1,2,0)$ and $D(2,0,1)$ are coplanar. Find $\lambda$.`, -1,
+    XR`<p>$\vec{AB}=(3,\lambda-1,-1)$, $\vec{AC}=(1,1,-2)$, $\vec{AD}=(2,-1,-1)$. $\begin{vmatrix}3&\lambda-1&-1\\1&1&-2\\2&-1&-1\end{vmatrix}=3(-1-2)-(\lambda-1)(-1+4)-1(-1-2)=-9-3\lambda+3+3=-3\lambda-3=0$. So $\lambda=-1$.</p>`, 'Use three edge vectors from the same point.', () => trip([3, -2, -1], [1, 1, -2], [2, -1, -1]) === 0 ? -1 : NaN),
+  I(4, 'angle between vectors', XR`$|\vec a|=|\vec b|=1$ and $(\vec a+2\vec b)\perp(5\vec a-4\vec b)$. Find the angle between $\vec a$ and $\vec b$ in degrees.`, 60,
+    XR`<p>$(\vec a+2\vec b)\cdot(5\vec a-4\vec b)=5-4\vec a\cdot\vec b+10\vec a\cdot\vec b-8=6\vec a\cdot\vec b-3=0$, so $\cos\theta=\dfrac12$ and $\theta=60^\circ$.</p>`, 'Expand the dot product fully; the cross terms add.', () => Math.round(deg(Math.acos(0.5)))),
+  I(4, 'unit vectors', XR`$\vec a,\vec b,\vec c$ are unit vectors with $\vec a+\vec b+\vec c=\vec 0$. Find $|\vec a-\vec b|^2+|\vec b-\vec c|^2+|\vec c-\vec a|^2$.`, 9,
+    XR`<p>$0=3+2S$ so $S=\vec a\cdot\vec b+\vec b\cdot\vec c+\vec c\cdot\vec a=-\dfrac32$. The required sum is $3\cdot2-2S=6+3=9$.</p>`, 'Each |x − y|² is 2 − 2 x·y.', () => 6 - 2 * (-(3) / 2)),
+  I(5, 'vector triple product', XR`$\vec a=(1,2,3)$, $\vec b=(2,0,1)$ and $\vec c=(0,1,4)$. Find $|\vec a\times(\vec b\times\vec c)|^2$.`, 845,
+    XR`<p>$\vec a\times(\vec b\times\vec c)=(\vec a\cdot\vec c)\vec b-(\vec a\cdot\vec b)\vec c=14(2,0,1)-5(0,1,4)=(28,-5,-6)$. Its squared length is $784+25+36=845$.</p>`, 'Use BAC − CAB with the correct pairs of dot products.', () => n2(cross([1, 2, 3], cross([2, 0, 1], [0, 1, 4])))),
+  I(5, 'counting', XR`How many vectors $x\hat i+y\hat j+z\hat k$ with integer $x,y,z$ have magnitude $\sqrt{14}$?`, 48,
+    XR`<p>$x^2+y^2+z^2=14$ only as $9+4+1$. Choose which coordinate is $\pm3$, $\pm2$, $\pm1$: $3!=6$ arrangements and $2^3=8$ sign choices, so $48$.</p>`, 'Count arrangements and signs.', () => { let c = 0; for (let x = -4; x <= 4; x++) for (let y = -4; y <= 4; y++) for (let z = -4; z <= 4; z++) if (x * x + y * y + z * z === 14) c++; return c; }),
+  X(4, 'square', XR`$\vec a=(1,2,2)$ and $\vec b=(2,1,-2)$ are adjacent sides of a parallelogram. Which statements are true?`, [XR`$\vec a\perp\vec b$`, XR`$|\vec a|=|\vec b|=3$`, XR`$|\vec a\times\vec b|=9$`, XR`$|\vec a+\vec b|=6$`], [0, 1, 2],
+    XR`<p>$\vec a\cdot\vec b=2+2-4=0$, $|\vec a|=|\vec b|=3$, so it is a square of side $3$. The area is $9=|\vec a\times\vec b|$ (the cross product is $(-6,6,-3)$). The diagonal is $\sqrt{18}=3\sqrt2$, not $6$: $|\vec a+\vec b|=|(3,3,0)|$.</p>`, 'The diagonal of a square of side s is s√2.'),
+  X(5, 'lines in space', XR`Line $L_1$: $\vec r=(1,2,3)+t(1,1,1)$. Line $L_2$: $\vec r=(2,3,4)+s(1,2,3)$. Which statements are true?`, ['they meet at the point $(2,3,4)$', 'they are skew', 'they are perpendicular', XR`the plane containing both has normal $\parallel(1,-2,1)$`], [0, 3],
+    XR`<p>At $t=1$, $L_1$ is at $(2,3,4)$, which is on $L_2$ at $s=0$. They meet, so they are not skew. $\cos\theta=\dfrac{1+2+3}{\sqrt3\sqrt{14}}\ne0$, so not perpendicular. Normal: $(1,1,1)\times(1,2,3)=(1,-2,1)$.</p>`, 'Meeting means not skew.'),
+  A(4, 'coplanar vectors', XR`The vectors $(1,2,3)$, $(2,4,6)$ and $(5,1,0)$ are coplanar.`, XR`If two of three vectors are parallel, the three vectors are coplanar.`, 0,
+    XR`<p>$(2,4,6)=2(1,2,3)$, so the triple product is $0$. R explains it: parallel vectors span at most a plane together with any third vector.</p>`, 'The determinant has proportional rows.'),
+  A(5, 'cross and dot together', XR`If $\vec a\ne\vec 0$, $\vec a\times\vec b=\vec a\times\vec c$ and $\vec a\cdot\vec b=\vec a\cdot\vec c$, then $\vec b=\vec c$.`, XR`$\vec b-\vec c$ would be both parallel and perpendicular to $\vec a$.`, 0,
+    XR`<p>$\vec a\times(\vec b-\vec c)=\vec 0$ and $\vec a\cdot(\vec b-\vec c)=0$. A non-zero vector $\vec d=\vec b-\vec c$ cannot be both parallel and perpendicular to $\vec a\neq\vec 0$, so $\vec d=\vec 0$. Both true, and R is the reason.</p>`, 'One condition alone is not enough; both are needed.'),
+  S(4, 'vector triple product', XR`$\vec a\times(\vec b\times\vec c)=(\vec a\times\vec b)\times\vec c$ for all vectors.`, XR`The cross product is not associative.`, 2,
+    XR`<p>Take $\vec a=\vec b=\hat i$, $\vec c=\hat j$. Then $\vec a\times(\vec b\times\vec c)=\hat i\times\hat k=-\hat j$ but $(\vec a\times\vec b)\times\vec c=\vec 0$. So I is false and II is true.</p>`, 'Test with unit vectors.'),
+  SC(4, 'vector algebra', [XR`$[\vec a\ \vec b\ \vec c]=0$ if two of the vectors are equal.`, XR`$\vec a\times\vec b=\vec a\times\vec c$ implies $\vec b=\vec c$.`, XR`$|\vec a+\vec b|\ge\big||\vec a|-|\vec b|\big|$.`, XR`$\vec a\cdot\vec b=0$ implies $\vec a=\vec 0$ or $\vec b=\vec 0$.`], '2', ['1', '3', '4'],
+    XR`<p>(1) true. (2) false: $\vec b-\vec c$ may be parallel to $\vec a$. (3) true (triangle inequality). (4) false: perpendicular vectors are not zero. Two are correct.</p>`, 'Perpendicular is not the same as zero.'),
+  SC(5, 'vector identities', [XR`$|\vec a\times\vec b|=|\vec a||\vec b|$ exactly when $\vec a\perp\vec b$.`, XR`$(\vec a\times\vec b)\cdot(\vec c\times\vec d)=(\vec a\cdot\vec c)(\vec b\cdot\vec d)-(\vec a\cdot\vec d)(\vec b\cdot\vec c)$.`, XR`$\vec a\times(\vec b\times\vec c)+\vec b\times(\vec c\times\vec a)+\vec c\times(\vec a\times\vec b)=\vec 0$.`, XR`$[\vec a\times\vec b\ \ \vec b\times\vec c\ \ \vec c\times\vec a]=[\vec a\ \vec b\ \vec c]$.`], '3', ['1', '2', '4'],
+    XR`<p>(1) true: $\sin\theta=1$ (for non-zero vectors). (2) true: Binet–Cauchy. (3) true: the Jacobi identity (expand each by BAC–CAB and everything cancels). (4) false: the left side equals $[\vec a\ \vec b\ \vec c]^2$. Three are correct.</p>`, 'The reciprocal-style triple product gives the square.'),
+);
+items.push(
+  N(4, 'volume', XR`The vertices of a tetrahedron are $(1,1,1)$, $(2,3,1)$, $(4,2,3)$ and $(3,5,6)$. Find its volume (2 decimal places).`, 4.17, 0.01,
+    XR`<p>Edges from $(1,1,1)$: $(1,2,0)$, $(3,1,2)$, $(2,4,5)$. $\begin{vmatrix}1&2&0\\3&1&2\\2&4&5\end{vmatrix}=1(5-8)-2(15-4)+0=-25$. Volume $=\dfrac{25}6\approx4.17$.</p>`, 'Take edges from one vertex and divide by 6.', () => Math.abs(trip([1, 2, 0], [3, 1, 2], [2, 4, 5])) / 6),
+  N(5, 'height of a parallelepiped', XR`A parallelepiped has edges $\vec a=(1,2,3)$, $\vec b=(2,0,1)$ and $\vec c=(0,1,4)$ from one vertex. Find the height of the solid when the face spanned by $\vec a$ and $\vec b$ is the base (2 decimal places).`, 1.64, 0.01,
+    XR`<p>$\vec a\times\vec b=(2,5,-4)$, magnitude $\sqrt{45}$. The volume is $|[\vec a\ \vec b\ \vec c]|=11$. Height $=\dfrac{11}{\sqrt{45}}\approx1.64$.</p>`, 'Volume divided by base area.', () => Math.abs(trip([1, 2, 3], [2, 0, 1], [0, 1, 4])) / nrm(cross([1, 2, 3], [2, 0, 1]))),
+);
+const vv = (v) => `(${v.join(', ')})`;
+gens.push(
+  GX('ve-g26', 4, 'nat', 'integer', 'Gram form', (rng) => {
+    const P = int(rng, 2, 5), Q = int(rng, 2, 5), d = int(rng, -3, 3), m = int(rng, 1, 4); let n = int(rng, -4, 4); if (n === 0) n = 2;
+    const ans = m * m * P * P + n * n * Q * Q + 2 * m * n * d;
+    const co = (k) => (Math.abs(k) === 1 ? '' : Math.abs(k));
+    return { P, Q, d, m, n, answer: ans, tol: 0, q: XR`$|\vec a|=${P}$, $|\vec b|=${Q}$ and $\vec a\cdot\vec b=${d}$. Find $|${co(m)}\vec a${n < 0 ? '-' : '+'}${co(n)}\vec b|^2$.`,
+      sol: XR`<p>$|m\vec a+n\vec b|^2=m^2|\vec a|^2+n^2|\vec b|^2+2mn\,\vec a\cdot\vec b$ with $m=${m}$, $n=${n}$: $${m * m}\cdot${P * P}+${n * n}\cdot${Q * Q}+2(${m * n})(${d})=${ans}$.</p>`, trap: 'The cross term has the sign of m times n.' };
+  }, (p) => { const G = [[p.P * p.P, p.d], [p.d, p.Q * p.Q]]; const x = [p.m, p.n]; return x[0] * (G[0][0] * x[0] + G[0][1] * x[1]) + x[1] * (G[1][0] * x[0] + G[1][1] * x[1]); }),
+
+  GX('ve-g27', 4, 'mcq', 'single', 'distance from a point to a line', (rng) => {
+    let A, d, P, cr, AP; do { A = rv(rng, -3, 3); d = rv(rng, -3, 3); P = rv(rng, -3, 3); AP = sub(P, A); cr = cross(AP, d); } while (n2(cr) === 0);
+    const ok = frac(n2(cr), n2(d));
+    const cands = [frac(dot(AP, d) ** 2, n2(d)), frac(n2(cr), n2(AP)), `${n2(cr)}`, `${n2(AP)}`, frac(n2(cr), n2(d) + 1), frac(n2(cr), 2 * n2(d))];
+    const wr = [...new Set(cands)].filter((x) => x !== ok).slice(0, 3);
+    const { options, answer } = shuffleOpts(rng, `$${ok}$`, wr.map((x) => `$${x}$`));
+    return { A, d, P, options, answer, q: XR`The square of the distance of $P${vv(P)}$ from the line through $A${vv(A)}$ with direction $\vec d=${vt(d)}$ is`,
+      sol: XR`<p>$\overrightarrow{AP}=${vt(AP)}$. $\overrightarrow{AP}\times\vec d=${vt(cr)}$, with squared length $${n2(cr)}$. Also $|\vec d|^2=${n2(d)}$. The squared distance is $\dfrac{|\overrightarrow{AP}\times\vec d|^2}{|\vec d|^2}=${ok}$.</p>`, trap: 'Divide by the squared length of the direction vector.' };
+  }, (p) => { const AP = sub(p.P, p.A); const e = frac(n2(AP) * n2(p.d) - dot(AP, p.d) ** 2, n2(p.d)); return p.options[p.answer] === `$${e}$` ? p.answer : -1; }),
+
+  GX('ve-g28', 5, 'nat', 'numeric', 'minimum magnitude', (rng) => {
+    let a, b; do { a = rv(rng, -4, 4); b = rv(rng, -4, 4); } while (n2(cross(a, b)) === 0);
+    const val = Math.sqrt(n2(a) - dot(a, b) ** 2 / n2(b));
+    return { a, b, answer: +val.toFixed(2), tol: 0.01, q: XR`$\vec a=${vt(a)}$ and $\vec b=${vt(b)}$. As $t$ runs over the reals, find the least value of $|\vec a+t\vec b|$ (2 decimal places).`,
+      sol: XR`<p>$|\vec a+t\vec b|^2=${n2(a)}+${2 * dot(a, b)}t+${n2(b)}t^2$ is least at $t=-\dfrac{\vec a\cdot\vec b}{|\vec b|^2}=-\dfrac{${dot(a, b)}}{${n2(b)}}$. The least value is $\sqrt{|\vec a|^2-\dfrac{(\vec a\cdot\vec b)^2}{|\vec b|^2}}\approx${val.toFixed(2)}$.</p>`, trap: 'It is the distance from the origin to the line, not |a|.' };
+  }, (p) => { let lo = -200, hi = 200; const f = (t) => nrm(add(p.a, sc(t, p.b))); for (let i = 0; i < 200; i++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (f(m1) < f(m2)) hi = m2; else lo = m1; } return f((lo + hi) / 2); }),
+
+  GX('ve-g29', 4, 'nat', 'integer', 'coplanar vectors', (rng) => {
+    let a, b, c, j, lam, tries = 0;
+    for (;;) { b = rv(rng, -3, 3); c = rv(rng, -3, 3); a = rv(rng, -3, 3); j = int(rng, 0, 2); const a0 = [...a]; a0[j] = 0; const D0 = trip(a0, b, c), C = cross(b, c)[j]; if (C !== 0 && D0 % C === 0 && Math.abs(D0 / C) <= 9 && ++tries >= 0) { lam = -D0 / C; if (lam === 0) lam = 0; break; } }
+    const shown = a.map((x, i) => (i === j ? '\\lambda' : x));
+    return { a, b, c, j, answer: lam, tol: 0, q: XR`The vectors $\vec a=(${shown.join(',')})$, $\vec b=${vv(b).replace(/ /g, '')}$ and $\vec c=${vv(c).replace(/ /g, '')}$ are coplanar. Find $\lambda$.`,
+      sol: XR`<p>Coplanar means $[\vec a\ \vec b\ \vec c]=0$. The determinant is linear in $\lambda$: it equals $${trip((() => { const t = [...a]; t[j] = 0; return t; })(), b, c)}+${cross(b, c)[j]}\lambda$. Setting it to $0$ gives $\lambda=${lam}$.</p>`, trap: 'Expand with the row containing lambda; the other terms are constants.' };
+  }, (p) => { const t = [...p.a]; t[p.j] = p.answer; return trip(t, p.b, p.c) === 0 ? p.answer : NaN; }),
+
+  GX('ve-g30', 5, 'nat', 'integer', 'integer vectors', (rng) => {
+    const T = { 3: 8, 5: 24, 6: 24, 9: 30, 11: 24, 14: 48 }; const N = choose(rng, [3, 5, 6, 9, 11, 14]);
+    return { N, answer: T[N], tol: 0, q: XR`How many vectors $x\hat i+y\hat j+z\hat k$ with integer $x,y,z$ have $|\vec v|^2=${N}$?`,
+      sol: XR`<p>List the ways to write ${N} as a sum of three squares, then count arrangements and signs: the answer is $${T[N]}$.</p>`, trap: 'Count each arrangement and each sign choice (a zero coordinate has one sign).' };
+  }, (p) => { let c = 0; for (let x = -4; x <= 4; x++) for (let y = -4; y <= 4; y++) for (let z = -4; z <= 4; z++) if (x * x + y * y + z * z === p.N) c++; return c; }),
+
+  GX('ve-g31', 3, 'mcq', 'single', 'unit vector along a cross product', (rng) => {
+    let a, b, cr, m, tries = 0;
+    do { a = rv(rng, -3, 3); b = rv(rng, -3, 3); cr = cross(a, b); m = Math.round(nrm(cr)); } while ((n2(cr) === 0 || m * m !== n2(cr) || m < 2) && ++tries < 100000);
+    const tex = (v) => XR`\dfrac{${vt(v)}}{${m}}`;
+    const ok = tex(cr);
+    const wr = [...new Set([tex(sc(-1, cr)), XR`\dfrac{${vt(cr)}}{${m * m}}`, XR`\dfrac{${vt(cr)}}{${m + 1}}`, XR`\dfrac{${vt(cr)}}{${2 * m}}`])].filter((x) => x !== ok).slice(0, 3);
+    const { options, answer } = shuffleOpts(rng, `$${ok}$`, wr.map((x) => `$${x}$`));
+    return { a, b, m, options, answer, q: XR`The unit vector in the direction of $(${vt(a)})\times(${vt(b)})$ is`,
+      sol: XR`<p>$\vec a\times\vec b=${vt(cr)}$, with magnitude $\sqrt{${n2(cr)}}=${m}$. Divide by it: $${ok}$.</p>`, trap: 'The unit vector needs division by the magnitude; b × a points the other way.' };
+  }, (p) => { const cr = [p.a[1] * p.b[2] - p.a[2] * p.b[1], p.a[2] * p.b[0] - p.a[0] * p.b[2], p.a[0] * p.b[1] - p.a[1] * p.b[0]]; const u = sc(1 / p.m, cr); const e = XR`\dfrac{${vt(cr)}}{${p.m}}`; return Math.abs(nrm(u) - 1) < 1e-9 && p.options[p.answer] === `$${e}$` ? p.answer : -1; }),
+
+  GX('ve-g32', 4, 'nat', 'numeric', 'shortest distance between lines', (rng) => {
+    let A1, d1, A2, d2, n, val; do { A1 = rv(rng, -3, 3); d1 = rv(rng, -3, 3); A2 = rv(rng, -3, 3); d2 = rv(rng, -3, 3); n = cross(d1, d2); val = n2(n) === 0 ? 0 : Math.abs(dot(sub(A2, A1), n)) / nrm(n); } while (val < 0.3);
+    return { A1, d1, A2, d2, answer: +val.toFixed(2), tol: 0.01, q: XR`Find the shortest distance between the lines $\vec r=${vt(A1)}+t(${vt(d1)})$ and $\vec r=${vt(A2)}+s(${vt(d2)})$ (2 decimal places).`,
+      sol: XR`<p>$\vec n=\vec d_1\times\vec d_2=${vt(n)}$, $|\vec n|=\sqrt{${n2(n)}}$. $\overrightarrow{A_1A_2}=${vt(sub(A2, A1))}$, and $\overrightarrow{A_1A_2}\cdot\vec n=${dot(sub(A2, A1), n)}$. Distance $=\dfrac{${Math.abs(dot(sub(A2, A1), n))}}{\sqrt{${n2(n)}}}\approx${val.toFixed(2)}$.</p>`, trap: 'Use the absolute value of the projection on the common perpendicular.' };
+  }, (p) => { const w = sub(p.A1, p.A2); const a = n2(p.d1), b = -dot(p.d1, p.d2), c = n2(p.d2); const r1 = -dot(w, p.d1), r2 = dot(w, p.d2); const det = a * c - b * b; const t = (r1 * c - b * r2) / det, s = (a * r2 - b * r1) / det; return nrm(add(w, sub(sc(t, p.d1), sc(s, p.d2)))); }),
+
+  GX('ve-g33', 4, 'mcq', 'single', 'tetrahedron volume', (rng) => {
+    let a, b, c, D; do { a = rv(rng, -3, 3); b = rv(rng, -3, 3); c = rv(rng, -3, 3); D = Math.abs(trip(a, b, c)); } while (D === 0);
+    const ok = frac(D, 6); const wr = [frac(D, 3), `${D}`, frac(D, 2), frac(D, 12)];
+    const { options, answer } = shuffleOpts(rng, `$${ok}$`, wr.map((x) => `$${x}$`));
+    return { a, b, c, D, options, answer, q: XR`The volume of the tetrahedron with one vertex at the origin and the other three at $${vv(a)}$, $${vv(b)}$ and $${vv(c)}$ is`,
+      sol: XR`<p>$[\vec a\ \vec b\ \vec c]=${trip(a, b, c)}$. Volume of a tetrahedron $=\dfrac16|[\vec a\ \vec b\ \vec c]|=${ok}$.</p>`, trap: 'Divide by 6; dividing by 3 is for a pyramid with a parallelogram base.' };
+  }, (p) => { const [x, y, z] = [p.a, p.b, p.c]; const det = x[0] * (y[1] * z[2] - y[2] * z[1]) - y[0] * (x[1] * z[2] - x[2] * z[1]) + z[0] * (x[1] * y[2] - x[2] * y[1]); return p.options[p.answer] === `$${frac(Math.abs(det), 6)}$` ? p.answer : -1; }),
+
+  GX('ve-g34', 5, 'nat', 'integer', 'vectors summing to zero', (rng) => {
+    let P, Q, R2; do { P = int(rng, 2, 9); Q = int(rng, 2, 9); R2 = int(rng, 2, 9); } while ((P * P + Q * Q + R2 * R2) % 2 !== 0 || R2 >= P + Q || P >= Q + R2 || Q >= P + R2);
+    const ans = -(P * P + Q * Q + R2 * R2) / 2;
+    return { P, Q, R2, answer: ans, tol: 0, q: XR`$\vec a,\vec b,\vec c$ are vectors with $|\vec a|=${P}$, $|\vec b|=${Q}$, $|\vec c|=${R2}$ and $\vec a+\vec b+\vec c=\vec 0$. Find $\vec a\cdot\vec b+\vec b\cdot\vec c+\vec c\cdot\vec a$.`,
+      sol: XR`<p>$0=|\vec a+\vec b+\vec c|^2=${P * P}+${Q * Q}+${R2 * R2}+2S$, so $S=${ans}$.</p>`, trap: 'Square the sum; do not look for angles.' };
+  }, (p) => { const ab = (p.R2 ** 2 - p.P ** 2 - p.Q ** 2) / 2, bc = (p.P ** 2 - p.Q ** 2 - p.R2 ** 2) / 2, ca = (p.Q ** 2 - p.R2 ** 2 - p.P ** 2) / 2; return ab + bc + ca; }),
+);
+
+}
+// ==XP-END
 export default { topic: 'vectors', groups, items, gens };

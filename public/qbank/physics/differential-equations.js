@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './differential-equations.more.gen.js';
 import more2 from './differential-equations.more2.gen.js';
+import r4 from './differential-equations.r4.gen.js';
 
 export default {
   topic: 'differential-equations',
@@ -214,6 +215,7 @@ export default {
       sol: 'The amplitude is $F/\\sqrt{(\\omega_0^2 - \\omega^2)^2 + 4\\beta^2\\omega^2}$ with $\\omega_0^2 = 10$, $\\beta = 1$. Minimise the square root\'s argument in $u = \\omega^2$: derivative $-2(\\omega_0^2 - u) + 4\\beta^2 = 0$, so $u = \\omega_0^2 - 2\\beta^2 = 8$ and $\\omega = \\sqrt8 \\approx 2.83$.',
       trap: 'Three different frequencies: natural $\\sqrt{10} = 3.16$, free damped $\\sqrt{10 - 1} = 3$, and amplitude resonance $\\sqrt{10 - 2} = 2.83$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'de-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'separable',
@@ -303,5 +305,6 @@ export default {
       },
       verify: (p) => 2 ** (p.m + 1) / (p.m + p.n + 1) + (p.y1 - 1 / (p.m + p.n + 1)) * 2 ** -p.n },
     ...more,
+    ...r4.gens,
   ],
 };

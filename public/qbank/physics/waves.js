@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 import * as Q5 from '../_util.js';
 import more2 from './waves.more2.gen.js';
+import r4 from './waves.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -224,6 +225,7 @@ export default {
       sol: 'D\'Alembert: $y = \\tfrac12[f(x - vt) + f(x + vt)] + \\frac{1}{2v}\\int_{x - vt}^{x + vt}g\\,ds$, which gives the first two. A fixed end inverts a pulse. With both ends fixed every mode has a frequency that is a multiple of $v/2L$, so the motion repeats after $2L/v$, not $L/v$ (after $L/v$ the shape is inverted and mirrored).',
       trap: 'Forgetting that each copy must make a round trip and be inverted twice to come back as it started.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'wav-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'travelling waves',
@@ -367,5 +369,6 @@ export default {
           sol: `$f_1 = \\dfrac1{2L}\\sqrt{T/\\mu} \\propto \\sqrt T$, so the factor is $\\sqrt{${show}}$.`,
           trap: 'Frequency goes as the square root of tension.' };
       } },
+    ...r4.gens,
   ],
 };

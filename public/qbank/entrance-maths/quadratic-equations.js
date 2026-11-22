@@ -692,4 +692,265 @@ const gens = [
   },
 ];
 
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = false;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `qe-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const frac = (n, d) => { const g = ((a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; })(n, d); n /= g; d /= g; const sgn = n < 0 ? '-' : ''; n = Math.abs(n); return d === 1 ? `${sgn}${n}` : `${sgn}\\dfrac{${n}}{${d}}`; };
+const OPT = (c, w) => ({ c, w });
+Object.assign(groups, {
+  xm1: { title: 'Nature of roots', passage: XR`<p>Match each equation in List I with the nature of its roots in List II.</p>`,
+    list1: ['A. $x^2-6x+9=0$', 'B. $x^2+x+1=0$', 'C. $x^2-5x+6=0$', 'D. $x^2-2x-1=0$'], list2: ['p. real and equal', 'q. real, distinct and irrational', 'r. non-real', 's. real, distinct and rational'] },
+  xm2: { title: 'Number of real solutions', passage: XR`<p>Match each equation in List I with the number of its real solutions in List II.</p>`,
+    list1: ['A. $x^2-2|x|-3=0$', 'B. $x^2-4|x|+3=0$', 'C. $x^2+|x|+1=0$', 'D. $x^2-|x|=0$'], list2: ['p. 0', 'q. 2', 'r. 3', 's. 4'] },
+  xm3: { title: 'Sum of the real roots', passage: XR`<p>Match each equation in List I with the sum of its real roots in List II.</p>`,
+    list1: ['A. $2^{2x}-5\\cdot2^x+4=0$', 'B. $(\\log_2x)^2-3\\log_2x+2=0$', 'C. $x^4-5x^2+4=0$', 'D. $x-5\\sqrt x+6=0$'], list2: ['p. 0', 'q. 2', 'r. 6', 's. 13'] },
+  xm4: { title: 'Greatest and least values', passage: XR`<p>Match each quantity in List I with its value in List II ($x$ is real).</p>`,
+    list1: ['A. least value of $x^2-4x+7$', 'B. greatest value of $9+2x-x^2$', 'C. least value of $x^2+\\dfrac1{x^2}$', 'D. greatest value of $\\dfrac1{x^2+2x+3}$'], list2: ['p. $2$', 'q. $3$', 'r. $10$', 's. $\\dfrac12$'] },
+  xm5: { title: 'Conditions on coefficients', passage: XR`<p>For $ax^2+bx+c=0$ ($a\ne0$), match each property of the roots in List I with the condition in List II.</p>`,
+    list1: ['A. one root is twice the other', 'B. the roots are reciprocals of each other', 'C. the roots are equal in size and opposite in sign', 'D. one root is zero'], list2: ['p. $a=c$', 'q. $b=0$', 'r. $c=0$', 's. $2b^2=9ac$'] },
+  xm6: { title: 'Trigonometric quadratics', passage: XR`<p>Match each equation in List I with the number of solutions in $[0,2\pi]$ in List II.</p>`,
+    list1: ['A. $2\\sin^2x-3\\sin x+1=0$', 'B. $2\\cos^2x-\\cos x-1=0$', 'C. $(\\sin x-1)^2=0$', 'D. $\\sin^2x+\\sin x+1=0$'], list2: ['p. 0', 'q. 1', 'r. 3', 's. 4'] },
+  xm7: { title: 'Symmetric functions', passage: XR`<p>$\alpha,\beta$ are the roots of $x^2-5x+3=0$. Match each expression in List I with its value in List II.</p>`,
+    list1: ['A. $\\alpha^2+\\beta^2$', 'B. $\\dfrac1\\alpha+\\dfrac1\\beta$', 'C. $\\alpha^3+\\beta^3$', 'D. $(\\alpha-\\beta)^2$'], list2: ['p. $13$', 'q. $\\dfrac53$', 'r. $19$', 's. $80$'] },
+  xm8: { title: 'Inequalities and solution sets', passage: XR`<p>Match each inequality in List I with its solution set in List II.</p>`,
+    list1: ['A. $x^2-5x+6<0$', 'B. $x^2-5x+6>0$', 'C. $(x-2)^2\\le0$', 'D. $x^2-4x+5>0$'], list2: ['p. $(2,3)$', 'q. all real numbers', 'r. $\\{2\\}$', 's. $(-\\infty,2)\\cup(3,\\infty)$'] },
+  xp1: { title: 'Passage: a parabola', passage: XR`<p>Let $f(x)=x^2-6x+5$. Its graph is a parabola opening upwards.</p>` },
+  xp2: { title: 'Passage: roots that differ by one', passage: XR`<p>The equation $x^2-(2p+1)x+p(p+1)=0$ has real $p$. Its roots turn out to be $p$ and $p+1$ (check: sum $2p+1$, product $p(p+1)$).</p>` },
+});
+items.push(
+  // ---- L2 ----
+  M(2, 'symmetric functions', XR`If $\alpha,\beta$ are the roots of $2x^2-7x+3=0$, then $\dfrac1\alpha+\dfrac1\beta$ equals`, XR`$\dfrac73$`, [XR`$\dfrac37$`, XR`$\dfrac72$`, XR`$-\dfrac73$`],
+    XR`<p>$\alpha+\beta=\dfrac72$ and $\alpha\beta=\dfrac32$. So $\dfrac1\alpha+\dfrac1\beta=\dfrac{\alpha+\beta}{\alpha\beta}=\dfrac{7/2}{3/2}=\dfrac73$.</p>`, 'Sum over product, not product over sum.'),
+  M(2, 'forming equations', XR`The quadratic whose roots are three times the roots of $x^2-5x+2=0$ is`, '$x^2-15x+18=0$', ['$x^2-15x+6=0$', '$x^2-5x+18=0$', '$x^2-15x+54=0$'],
+    XR`<p>Old roots: sum 5, product 2. New roots $3\alpha,3\beta$: sum $15$, product $9\cdot2=18$. The equation is $x^2-15x+18=0$. (A quicker way: replace $x$ by $\dfrac x3$: $\dfrac{x^2}9-\dfrac{5x}3+2=0$.)</p>`, 'The product is multiplied by 9, not 3.'),
+  I(2, 'roots', XR`One root of $x^2+kx+12=0$ is $3$. Find $k$.`, -7,
+    XR`<p>Put $x=3$: $9+3k+12=0$, so $3k=-21$ and $k=-7$. (Check: the other root is $12/3=4$ and the sum $3+4=7=-k$.)</p>`, 'The sum of the roots is −k.', () => -(9 + 12) / 3),
+  A(2, 'nature of roots', XR`The equation $x^2+x+1=0$ has no real root.`, XR`Its discriminant $1-4=-3$ is negative.`, 0,
+    XR`<p>A quadratic with real coefficients has real roots only if $b^2-4ac\ge0$. Here the discriminant is $-3<0$, so there is no real root. R explains A.</p>`, 'Compare b² with 4ac, not b with 4ac.'),
+  S(2, 'special cases', XR`If $a+b+c=0$ then $x=1$ is a root of $ax^2+bx+c=0$.`, XR`If $a-b+c=0$ then $x=-1$ is a root of $ax^2+bx+c=0$.`, 0,
+    XR`<p>Put $x=1$: the value is $a+b+c$. Put $x=-1$: the value is $a-b+c$. If they are zero, the number is a root. Both true.</p>`, 'A quick check of the other root: c/a in the first case, −c/a in the second.'),
+  M(2, 'nature of roots', XR`For which value of $k$ does $x^2-6x+k=0$ have equal roots?`, '$9$', ['$3$', '$36$', '$-9$'],
+    XR`<p>Equal roots need $b^2-4ac=0$: $36-4k=0$, so $k=9$ (the equation is $(x-3)^2=0$).</p>`, 'Do not use k = 6 (the coefficient of x).'),
+  // ---- L3 ----
+  I(3, 'symmetric functions', XR`If $\alpha,\beta$ are the roots of $x^2-4x+1=0$, find $\alpha^3+\beta^3$.`, 52,
+    XR`<p>$\alpha+\beta=4$, $\alpha\beta=1$. $\alpha^3+\beta^3=(\alpha+\beta)^3-3\alpha\beta(\alpha+\beta)=64-12=52$.</p>`, 'The identity has a minus sign before 3αβ(α + β).', () => 64 - 3 * 1 * 4),
+  M(3, 'nature of roots', XR`The equation $x^2-(m+1)x+(m+4)=0$ has real roots for`, XR`$m\le-3$ or $m\ge5$`, [XR`$-3\le m\le5$`, XR`$m\le-5$ or $m\ge3$`, XR`$m\ge5$ only`],
+    XR`<p>Discriminant $=(m+1)^2-4(m+4)=m^2-2m-15=(m-5)(m+3)$. We need $(m-5)(m+3)\ge0$, which holds outside the roots: $m\le-3$ or $m\ge5$.</p>`, 'A product that is ≥ 0 is satisfied outside the two roots.'),
+  I(3, 'reducible equations', XR`Find the sum of the squares of all real roots of $x^4-5x^2+4=0$.`, 10,
+    XR`<p>Let $t=x^2$: $t^2-5t+4=0$ gives $t=1$ or $4$. So $x=\pm1,\pm2$. The sum of squares is $1+1+4+4=10$. (Also: $2(t_1+t_2)=2\cdot5=10$.)</p>`, 'Each value of t gives two roots.', () => 1 + 1 + 4 + 4),
+  I(3, 'irrational and log equations', XR`Find the solution of $\log_2x+\log_2(x-2)=3$.`, 4,
+    XR`<p>Domain: $x>2$. Then $\log_2\big(x(x-2)\big)=3$, so $x^2-2x=8$, i.e. $(x-4)(x+2)=0$. $x=-2$ is outside the domain, so $x=4$.</p>`, 'Reject the root that makes a logarithm not defined.', () => 4),
+  I(3, 'reducible equations', XR`Find the sum of all real roots of $4^x-6\cdot2^x+8=0$.`, 3,
+    XR`<p>Let $t=2^x$: $t^2-6t+8=0$, so $t=2$ or $4$. Then $x=1$ or $2$. Sum $=3$.</p>`, 'Add the values of x, not t.', () => 1 + 2),
+  I(3, 'trigonometric quadratics', XR`How many solutions does $2\sin^2x-3\sin x+1=0$ have in $[0,2\pi]$?`, 3,
+    XR`<p>$(2\sin x-1)(\sin x-1)=0$: $\sin x=\dfrac12$ gives $x=\dfrac\pi6,\dfrac{5\pi}6$; $\sin x=1$ gives $x=\dfrac\pi2$. Total $3$.</p>`, 'sin x = 1 gives only one solution in a turn.'),
+  M(3, 'special cases', XR`If $a,b,c$ are in A.P. ($a\ne0$), the other root of $ax^2+2bx+c=0$ (one root is $-1$) is`, XR`$-\dfrac ca$`, [XR`$\dfrac ca$`, XR`$-\dfrac ac$`, XR`$\dfrac{2b}a$`],
+    XR`<p>$2b=a+c$, so $a-2b+c=a-(a+c)+c=0$ and $x=-1$ is a root. The product of the roots is $\dfrac ca$, so the other root is $\dfrac{c/a}{-1}=-\dfrac ca$.</p>`, 'The product of roots is c/a, and one root is −1.'),
+  S(3, 'sign of expression', XR`The solution of $x^2-5x+6>0$ is $2<x<3$.`, XR`A quadratic with positive leading coefficient has the sign of the leading coefficient outside its roots.`, 2,
+    XR`<p>$x^2-5x+6=(x-2)(x-3)$. It is positive outside the roots, so $x<2$ or $x>3$. Statement I is false (it describes where the expression is negative). Statement II is true.</p>`, '"&gt; 0" is outside the roots; "&lt; 0" is between them.'),
+  SC(3, 'nature of roots', ['If $D>0$ and $a>0$, then $ax^2+bx+c>0$ between the roots.', 'For real coefficients, non-real roots occur in conjugate pairs.', '$x^2+1>0$ for every real $x$.', 'If $\\alpha,\\beta$ are the roots of $ax^2+bx+c=0$ and $c\\ne0$, then $\\dfrac1\\alpha,\\dfrac1\\beta$ are the roots of $cx^2+bx+a=0$.'], '3', ['1', '2', '4'],
+    XR`<p>(1) false: with $a>0$ the expression is negative between the roots. (2) true. (3) true. (4) true: replace $x$ by $\dfrac1x$ and multiply by $x^2$. Three are correct.</p>`, 'Between the roots the sign is opposite to the sign of a.'),
+  MT(3, 'nature of roots', 'xm1', 'A-p, B-r, C-s, D-q', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-q, B-r, C-s, D-p'],
+    XR`<p>A: $(x-3)^2=0$, equal roots. B: $D=-3<0$, non-real. C: $(x-2)(x-3)$, rational and distinct. D: $D=4+4=8$, not a perfect square, irrational and distinct.</p>`, 'Distinguish a perfect-square discriminant (rational) from other positive ones.'),
+  MT(3, 'conditions on coefficients', 'xm5', 'A-s, B-p, C-q, D-r', ['A-s, B-p, C-r, D-q', 'A-p, B-s, C-q, D-r', 'A-s, B-q, C-p, D-r'],
+    XR`<p>A: roots $\alpha,2\alpha$: $3\alpha=-\dfrac ba$, $2\alpha^2=\dfrac ca$, giving $2b^2=9ac$. B: product $\dfrac ca=1$, so $a=c$. C: sum $-\dfrac ba=0$, so $b=0$. D: $x=0$ satisfies it only if $c=0$.</p>`, 'Eliminate α between the sum and the product.'),
+  MT(3, 'symmetric functions', 'xm7', 'A-r, B-q, C-s, D-p', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-s, C-q, D-p'],
+    XR`<p>$\alpha+\beta=5$, $\alpha\beta=3$. A: $25-6=19$. B: $\dfrac53$. C: $125-3\cdot3\cdot5=80$. D: $25-12=13$.</p>`, 'Use (α − β)² = (α + β)² − 4αβ.'),
+  MT(3, 'inequalities', 'xm8', 'A-p, B-s, C-r, D-q', ['A-p, B-s, C-q, D-r', 'A-s, B-p, C-r, D-q', 'A-p, B-q, C-r, D-s'],
+    XR`<p>A: between the roots 2 and 3. B: outside them. C: a square is never negative, so $\le0$ only at $x=2$. D: $D=16-20<0$ and the leading coefficient is positive, so the expression is always positive.</p>`, 'A perfect square is ≥ 0, so "≤ 0" collapses to a single point.'),
+  I(3, 'roots', XR`The roots of $x^2-8x+k=0$ differ by $2$. Find $k$.`, 15,
+    XR`<p>$(\alpha-\beta)^2=(\alpha+\beta)^2-4\alpha\beta=64-4k=4$, so $k=15$. (Roots $3$ and $5$.)</p>`, 'Square the difference first.', () => (64 - 4) / 4),
+  I(3, 'modulus equations', XR`Find the number of real solutions of $x^2-4x+3=|x-1|$.`, 2,
+    XR`<p>$x^2-4x+3=(x-1)(x-3)$. Case $x\ge1$: $(x-1)(x-3)=x-1$ gives $x=1$ or $x-3=1$, so $x=1,4$. Case $x<1$: $(x-1)(x-3)=1-x$ gives $(x-1)(x-2)=0$, but neither $1$ nor $2$ is less than $1$. So the solutions are $1$ and $4$: 2 solutions.</p>`, 'Check each root against the case it came from.', () => 2),
+  N(3, 'roots', XR`If $\alpha>\beta$ are the roots of $2x^2-6x+1=0$, find $\alpha-\beta$ (2 decimal places).`, 2.65, 0.01,
+    XR`<p>$(\alpha-\beta)^2=9-4\cdot\dfrac12=7$, so $\alpha-\beta=\sqrt7\approx2.65$ (positive since $\alpha>\beta$).</p>`, 'The product of roots is 1/2.', () => Math.sqrt(7)),
+  N(3, 'special cases', XR`The value of $1+\dfrac1{1+\dfrac1{1+\dfrac1{1+\cdots}}}$ (an endless continued fraction) is (2 decimal places)`, 1.62, 0.01,
+    XR`<p>Call it $x$. Then $x=1+\dfrac1x$, so $x^2-x-1=0$ and $x=\dfrac{1+\sqrt5}2\approx1.62$ (the positive root, since $x>1$).</p>`, 'Reject the negative root.', () => (1 + Math.sqrt(5)) / 2),
+  // ---- L4 ----
+  X(4, 'sign of expression', XR`$f(x)=ax^2+bx+c$ has real coefficients, $a>0$, and $f(x)>0$ for all real $x$. Which of these must hold?`,
+    ['$c>0$', '$a+c>b$', '$b>0$', '$b^2<4ac$'], [0, 1, 3],
+    XR`<p>Positive for all $x$ means $D<0$ (D) and $a>0$. Then $f(0)=c>0$ (A) and $f(-1)=a-b+c>0$ (B). The sign of $b$ is free (C is false): for $x^2-x+1$, $b<0$.</p>`, 'Check each statement with f(0) and f(−1).'),
+  X(4, 'roots', XR`The equation $x^2-2kx+k^2-1=0$ has real $k$. Which statements are true for every real $k$?`,
+    ['the roots are real', 'the roots differ by $2$', 'both roots are positive', 'the sum of the roots is $2k$'], [0, 1, 3],
+    XR`<p>$(x-k)^2=1$, so $x=k\pm1$: real (A), differing by 2 (B), sum $2k$ (D). Both positive only when $k>1$, so C fails (for $k=0$ the roots are $\pm1$).</p>`, 'Factorise instead of using the formula.'),
+  X(4, 'location of roots', XR`For which of these values of $a$ are both roots of $x^2-2(a-1)x+(2a+1)=0$ real and positive?`,
+    ['$a=3$', '$a=4$', '$a=6$', '$a=0$'], [1, 2],
+    XR`<p>Real: $(a-1)^2-(2a+1)=a^2-4a\ge0$, so $a\le0$ or $a\ge4$. Positive sum: $2(a-1)>0$, so $a>1$. Positive product: $2a+1>0$. Together $a\ge4$. So $a=4,6$ work. $a=3$ gives $D<0$; $a=0$ has a negative sum.</p>`, 'Both-positive needs three conditions at once: D, sum, product.'),
+  X(4, 'symmetric functions', XR`$\alpha,\beta$ are the roots of $x^2-x-1=0$. Which of these are true?`,
+    ['$\\alpha^2=\\alpha+1$', '$\\alpha^3+\\beta^3=4$', '$\\alpha^5+\\beta^5=12$', '$|\\alpha-\\beta|=\\sqrt5$'], [0, 1, 3],
+    XR`<p>A: from the equation. B: $1^3-3(-1)(1)=4$. C: the power sums are $1,3,4,7,11$, so $\alpha^5+\beta^5=11$. D: $(\alpha-\beta)^2=1+4=5$.</p>`, 'Use s_n = s_(n−1) + s_(n−2).'),
+  X(4, 'modulus inequalities', XR`Which of these numbers satisfy $x^2-|x|-6<0$?`, ['$0$', '$-2.5$', '$3$', '$-3$'], [0, 1],
+    XR`<p>$|x|^2-|x|-6=(|x|-3)(|x|+2)<0$ gives $|x|<3$. So $0$ and $-2.5$ satisfy it. At $x=\pm3$ the left side is exactly $0$, which is not $<0$.</p>`, 'The inequality is strict.'),
+  X(4, 'common roots', XR`The equations $x^2+ax+1=0$ and $x^2+x+a=0$ have a common root (real or non-real). Which values of $a$ are possible?`, ['$a=-2$', '$a=1$', '$a=2$', '$a=0$'], [0, 1],
+    XR`<p>Subtract: $(a-1)x+(1-a)=0$, i.e. $(a-1)(x-1)=0$. Either $a=1$ (the two equations are the same, $x^2+x+1=0$, so they share both non-real roots) or $x=1$, giving $1+a+1=0$, $a=-2$.</p>`, 'a = 1 gives identical equations, not "no common root".'),
+  X(5, 'location of roots', XR`For which of these values of $m$ does $x^2-2mx+m^2-4=0$ have exactly one root in the open interval $(-1,3)$?`, ['$m=0$', '$m=1$', '$m=4$', '$m=-3$'], [0, 2],
+    XR`<p>The roots are $m\pm2$. $m=0$: $\{-2,2\}$, only $2$ is inside. $m=1$: $\{-1,3\}$, both on the boundary, none inside. $m=4$: $\{2,6\}$, one inside. $m=-3$: $\{-5,-1\}$, none inside.</p>`, 'The interval is open, so −1 and 3 do not count.'),
+  X(5, 'complex roots', XR`$\alpha,\beta$ are the roots of $x^2-2x+2=0$. Which statements are true?`, ['$\\alpha^4=4$', '$|\\alpha|=\\sqrt2$', '$\\alpha/\\beta$ is purely imaginary', '$\\alpha^2+\\beta^2=0$'], [1, 2, 3],
+    XR`<p>$\alpha=1+i$, $\beta=1-i$. $\alpha^2=2i$, so $\alpha^4=-4$ (A false). $|\alpha|=\sqrt2$ (B). $\dfrac{1+i}{1-i}=i$ (C). $\alpha^2+\beta^2=2i-2i=0$ (D), also $(\alpha+\beta)^2-2\alpha\beta=4-4=0$.</p>`, 'α⁴ = −4, not +4.'),
+  I(4, 'integer roots', XR`For how many integers $k$ does $x^2-kx+k+3=0$ have two integer roots?`, 4,
+    XR`<p>Let the roots be $a,b$: $a+b=k$, $ab=k+3$. Then $ab-a-b=3$, i.e. $(a-1)(b-1)=4$. The factor pairs of 4: $(1,4),(2,2),(-1,-4),(-2,-2)$ and their swaps. They give $(a,b)=(2,5),(3,3),(0,-3),(-1,-1)$ and $k=a+b=7,6,-3,-2$. That is $4$ values.</p>`, 'Swapped pairs give the same k.', () => { const s = new Set(); for (let a = -30; a <= 30; a++) for (let b = -30; b <= 30; b++) if (a * b === a + b + 3) s.add(a + b); return s.size; }),
+  I(4, 'exponential equations', XR`Find the number of real values of $x$ with $x^{\,x^2-6x+8}=1$.`, 3,
+    XR`<p>$a^b=1$ happens when $a=1$, or $b=0$ with $a\ne0$, or $a=-1$ with $b$ even.</p><p>$x=1$: base 1, works. Exponent $0$: $x^2-6x+8=0$ gives $x=2,4$ (bases non-zero), both work. $x=-1$: exponent $1+6+8=15$ is odd, so $(-1)^{15}=-1$: does not work. Total: $\{1,2,4\}$, so $3$.</p>`, 'Check the parity of the exponent when the base is −1.', () => { let c = 0; for (let x = -20; x <= 20; x++) { if (x === 0) continue; if (Math.abs(Math.pow(x, x * x - 6 * x + 8) - 1) < 1e-9) c++; } return c; }),
+  I(4, 'power sums', XR`If $\alpha,\beta$ are the roots of $x^2-3x+1=0$, find $\alpha^4+\beta^4$.`, 47,
+    XR`<p>$\alpha+\beta=3$, $\alpha\beta=1$. $\alpha^2+\beta^2=9-2=7$. $\alpha^4+\beta^4=(\alpha^2+\beta^2)^2-2(\alpha\beta)^2=49-2=47$.</p>`, 'Square the sum of squares and subtract 2(αβ)².', () => 49 - 2),
+  I(4, 'integer roots', XR`Find the number of ordered pairs $(x,y)$ of positive integers with $x^2-y^2=105$.`, 4,
+    XR`<p>$(x-y)(x+y)=105$ with $x+y>x-y>0$. The factor pairs of $105$: $(1,105),(3,35),(5,21),(7,15)$. All have two odd factors, so $x=\dfrac{a+b}2$ and $y=\dfrac{b-a}2$ are integers: $(53,52),(19,16),(13,8),(11,4)$. That is $4$ pairs.</p>`, 'Both factors must have the same parity; here they are all odd.', () => { let c = 0; for (let x = 1; x < 200; x++) for (let y = 1; y < x; y++) if (x * x - y * y === 105) c++; return c; }),
+  I(4, 'minimum', XR`Find the least value of $(x+1)(x+2)(x+3)(x+4)$ for real $x$.`, -1,
+    XR`<p>Pair the factors: $(x+1)(x+4)=x^2+5x+4$ and $(x+2)(x+3)=x^2+5x+6$. Let $t=x^2+5x+5$. The product is $(t-1)(t+1)=t^2-1$. Since $t=\left(x+\dfrac52\right)^2-\dfrac54$ takes every value $\ge-\dfrac54$, including $0$, the least value of $t^2$ is $0$. So the least product is $-1$.</p>`, 'The minimum of t² − 1 is at t = 0, not at the minimum of t.', () => { let m = 1e9; for (let x = -10; x <= 10; x += 0.0005) m = Math.min(m, (x + 1) * (x + 2) * (x + 3) * (x + 4)); return Math.round(m); }),
+  I(4, 'integer roots', XR`If $a,b,c$ are integers and $f(x)=ax^2+bx+c$ has $f(0)$ and $f(1)$ both odd, how many integer roots can $f(x)=0$ have?`, 0,
+    XR`<p>$f(0)=c$ is odd and $f(1)=a+b+c$ is odd, so $a+b$ is even. If $x$ is even, $f(x)\equiv c\equiv1\pmod2$. If $x$ is odd, $f(x)\equiv a+b+c\equiv1\pmod2$. So $f(x)$ is odd for every integer $x$ and can never be $0$: no integer root.</p>`, 'Test even and odd x separately.', () => 0),
+  I(4, 'symmetric functions', XR`If $\alpha,\beta$ are the roots of $x^2-x-1=0$, find $\alpha^{10}+\beta^{10}$.`, 123,
+    XR`<p>Let $s_n=\alpha^n+\beta^n$. From $x^2=x+1$ we get $s_{n}=s_{n-1}+s_{n-2}$ with $s_0=2,\ s_1=1$. So $s_2=3,s_3=4,s_4=7,s_5=11,s_6=18,s_7=29,s_8=47,s_9=76,s_{10}=123$.</p>`, 's0 is 2 (not 1).', () => { let a = 2, b = 1; for (let n = 2; n <= 10; n++) [a, b] = [b, a + b]; return b; }),
+  I(4, 'integer roots', XR`The roots of $x^2-px+q=0$ are positive integers and $p+q=17$. Find the sum of all possible values of $q$.`, 18,
+    XR`<p>Let the roots be $r,s$: $p=r+s$, $q=rs$. Then $rs+r+s=17$, so $(r+1)(s+1)=18$. With $r+1,s+1\ge2$: $(2,9)$ and $(3,6)$. So $(r,s)=(1,8)$ giving $q=8$, and $(2,5)$ giving $q=10$. Sum $=18$.</p>`, 'Add 1 to both sides to factorise.', () => 8 + 10),
+  I(4, 'symmetric functions', XR`The roots of $x^2-(k-2)x-(k+1)=0$ are $\alpha,\beta$. Find the least value of $\alpha^2+\beta^2$ over all real $k$.`, 5,
+    XR`<p>$\alpha^2+\beta^2=(k-2)^2+2(k+1)=k^2-2k+6=(k-1)^2+5$. Its least value is $5$, at $k=1$. (The formula holds for complex roots too.)</p>`, 'Complete the square in k.', () => 5),
+  I(4, 'nested radicals', XR`Find the value of $\sqrt{6+\sqrt{6+\sqrt{6+\cdots}}}$.`, 3,
+    XR`<p>Let $x$ be the value. Then $x=\sqrt{6+x}$, so $x^2=x+6$, i.e. $(x-3)(x+2)=0$. Since $x>0$, $x=3$.</p>`, 'Reject −2: a square root is non-negative.', () => 3),
+  I(4, 'sum of squares', XR`If real $x,y$ satisfy $x^2+4y^2+6x-8y+13=0$, find $x+y$.`, -2,
+    XR`<p>$(x+3)^2+4(y-1)^2=x^2+6x+9+4y^2-8y+4=x^2+4y^2+6x-8y+13$. So the equation says $(x+3)^2+4(y-1)^2=0$, and each square is $0$: $x=-3$, $y=1$, $x+y=-2$.</p>`, 'A sum of squares equal to 0 forces each term to be 0.', () => -3 + 1),
+  I(5, 'maximum', XR`Real numbers $x,y$ satisfy $x^2+xy+y^2=3$. Find the greatest value of $x+y$.`, 2,
+    XR`<p>Let $s=x+y$ and $p=xy$. Then $s^2-p=3$, so $p=s^2-3$. Real $x,y$ need $s^2\ge4p=4s^2-12$, i.e. $s^2\le4$. So $s\le2$. It is reached at $x=y=1$: $1+1+1=3$.</p>`, 'x and y are roots of t² − st + p = 0, which needs D ≥ 0.', () => 2),
+  I(5, 'functional iteration', XR`Let $f(x)=x^2-2x$. Find the number of real solutions of $f(f(x))=x$.`, 4,
+    XR`<p>$f(f(x))-x=(f(x)-x)\big(f(x)+x-1\big)$ for this $f$ (check by expansion: both sides equal $x^4-4x^3+2x^2+3x$). Here $f(x)-x=x^2-3x$ gives $x=0,3$, and $f(x)+x-1=x^2-x-1$ gives $x=\dfrac{1\pm\sqrt5}2$. These four values are distinct, so there are $4$ real solutions.</p>`, 'Fixed points of f are always solutions of f(f(x)) = x.', () => 4),
+  I(5, 'exponential equations', XR`Find the sum of all real $x$ with $(x^2-5x+5)^{x^2-9x+20}=1$.`, 15,
+    XR`<p>Base $=1$: $x^2-5x+4=0$ gives $x=1,4$. Exponent $=0$ with a non-zero base: $x^2-9x+20=0$ gives $x=4,5$ (bases $1$ and $5$). Base $=-1$ with an even exponent: $x^2-5x+6=0$ gives $x=2,3$; the exponents are $4-18+20=6$ and $9-27+20=2$, both even, so both work. The solutions are $1,2,3,4,5$ (the value 4 appears twice but is one solution). Sum $=15$.</p>`, 'List the solutions as a set before adding.', () => 1 + 2 + 3 + 4 + 5),
+  I(5, 'symmetric functions', XR`If $\alpha,\beta$ are the roots of $x^2-2\sqrt2\,x+1=0$, find $\alpha^8+\beta^8$.`, 1154,
+    XR`<p>$\alpha+\beta=2\sqrt2$, $\alpha\beta=1$. $\alpha^2+\beta^2=8-2=6$. $\alpha^4+\beta^4=36-2=34$. $\alpha^8+\beta^8=34^2-2=1156-2=1154$.</p>`, 'Keep squaring: each step subtracts 2(αβ)^k = 2.', () => 34 * 34 - 2),
+  N(4, 'range', XR`For real $x$, find the least value of $\dfrac{x^2-x+1}{x^2+x+1}$ (2 decimal places).`, 0.33, 0.01,
+    XR`<p>Put $y=\dfrac{x^2-x+1}{x^2+x+1}$. Then $(y-1)x^2+(y+1)x+(y-1)=0$ must have a real $x$: $(y+1)^2-4(y-1)^2\ge0$, i.e. $(3-y)(3y-1)\ge0$, so $\dfrac13\le y\le3$. The least value is $\dfrac13\approx0.33$ (at $x=1$).</p>`, 'The denominator is never zero, so no value is lost.', () => 1 / 3),
+  N(4, 'parabola', XR`Find the shortest distance from the parabola $y=x^2$ to the line $y=2x-5$ (2 decimal places).`, 1.79, 0.01,
+    XR`<p>Distance from $(x,x^2)$ to the line $2x-y-5=0$ is $\dfrac{|2x-x^2-5|}{\sqrt5}=\dfrac{x^2-2x+5}{\sqrt5}$. The numerator is $(x-1)^2+4\ge4$. So the least distance is $\dfrac4{\sqrt5}\approx1.79$ (at $x=1$).</p>`, 'The numerator never changes sign, so the modulus can be dropped.', () => 4 / Math.sqrt(5)),
+  N(4, 'area', XR`Find the area of the region enclosed by $y=x^2$ and $y=6-x$ (2 decimal places).`, 20.83, 0.01,
+    XR`<p>The curves meet where $x^2=6-x$: $x^2+x-6=0$, $x=-3,2$. Area $=\int_{-3}^{2}(6-x-x^2)\,dx=\left[6x-\dfrac{x^2}2-\dfrac{x^3}3\right]_{-3}^{2}=\left(12-2-\dfrac83\right)-\left(-18-\dfrac92+9\right)=\dfrac{22}3+\dfrac{27}2=\dfrac{125}6\approx20.83$. (Shortcut: $\dfrac{|a|(\beta-\alpha)^3}6=\dfrac{5^3}6$.)</p>`, 'Subtract the lower curve from the upper one.', () => 125 / 6),
+  N(4, 'minimum', XR`If $a+b=5$ for real $a,b$, find the least value of $a^3+b^3$ (2 decimal places).`, 31.25, 0.01,
+    XR`<p>$a^3+b^3=(a+b)^3-3ab(a+b)=125-15ab$. For real $a,b$ with $a+b=5$, $ab\le\dfrac{25}4$ (AM-GM, or $D\ge0$ for $t^2-5t+ab=0$). So $a^3+b^3\ge125-15\cdot\dfrac{25}4=31.25$, reached at $a=b=2.5$.</p>`, 'To make the sum small, make ab large.', () => 125 - 15 * 25 / 4),
+  N(4, 'exponential equations', XR`Solve $2^x+2^{-x}=3$ for the positive $x$ (2 decimal places).`, 1.39, 0.01,
+    XR`<p>Let $t=2^x$: $t+\dfrac1t=3$, so $t^2-3t+1=0$ and $t=\dfrac{3\pm\sqrt5}2$. For positive $x$ we need $t>1$: $t=\dfrac{3+\sqrt5}2\approx2.618$. Then $x=\log_2 2.618=\dfrac{\ln2.618}{\ln2}\approx1.39$.</p>`, 'The other root gives the negative solution −1.39.', () => Math.log2((3 + Math.sqrt(5)) / 2)),
+  N(4, 'roots', XR`If $\alpha>\beta$ are the roots of $x^2-6x+1=0$, find $\alpha-\beta$ (2 decimal places).`, 5.66, 0.01,
+    XR`<p>$(\alpha-\beta)^2=36-4=32$, so $\alpha-\beta=4\sqrt2\approx5.66$.</p>`, 'Take the positive square root.', () => Math.sqrt(32)),
+  M(4, 'symmetric expressions', XR`For real numbers $a,b,c$, the equation $(x-a)(x-b)+(x-b)(x-c)+(x-c)(x-a)=0$`, 'has real roots, which are equal only when $a=b=c$', ['can have non-real roots', 'has real roots only when $a<b<c$', 'has two equal roots for every $a,b,c$'],
+    XR`<p>Expanding: $3x^2-2(a+b+c)x+(ab+bc+ca)=0$. The discriminant is $4(a+b+c)^2-12(ab+bc+ca)=4\big[(a+b+c)^2-3(ab+bc+ca)\big]=2\big[(a-b)^2+(b-c)^2+(c-a)^2\big]\ge0$. So the roots are always real, and equal only if $a=b=c$.</p>`, 'The discriminant is a sum of squares.'),
+  M(4, 'sum of squares', XR`The number of real pairs $(x,y)$ satisfying $x^2+y^2-2x+4y+5=0$ is`, 'exactly one', ['none', 'two', 'infinitely many'],
+    XR`<p>$x^2-2x+1+y^2+4y+4=0$, i.e. $(x-1)^2+(y+2)^2=0$. Each square must be $0$, so $(x,y)=(1,-2)$ only: one pair. (It is a circle of radius $0$.)</p>`, 'A circle equation with radius 0 is a single point.'),
+  A(3, 'nature of roots', XR`$x^2-3x+4>0$ for every real $x$.`, XR`Its discriminant is negative and the coefficient of $x^2$ is positive.`, 0,
+    XR`<p>$D=9-16=-7<0$ and $a=1>0$, so the parabola lies above the $x$-axis. R explains A.</p>`, 'Both conditions are needed: D < 0 and a > 0.'),
+  A(4, 'modulus equations', XR`The equation $x^2+2|x|+3=0$ has no real root.`, XR`For every real $x$, $x^2+2|x|+3\ge3$.`, 0,
+    XR`<p>$x^2\ge0$ and $|x|\ge0$, so the left side is at least $3>0$. No real $x$ makes it $0$. R is the reason.</p>`, 'Every term is non-negative.'),
+  A(4, 'nature of roots', XR`The equation $x^2-kx+1=0$ has real roots for every real $k$.`, XR`The product of the roots of $x^2-kx+1=0$ is $1$.`, 3,
+    XR`<p>$D=k^2-4$ is negative for $|k|<2$, so A is false (for example $k=1$). R is true, but it does not help with reality of the roots.</p>`, 'Product 1 does not mean real roots.'),
+  A(5, 'rational roots', XR`If $a,b,c$ are odd integers, $ax^2+bx+c=0$ has no rational root.`, XR`If $\dfrac pq$ (in lowest terms) is a root of an integer-coefficient quadratic, then $p\mid c$ and $q\mid a$.`, 1,
+    XR`<p>Suppose $\dfrac pq$ is a root in lowest terms: $ap^2+bpq+cq^2=0$. If $p,q$ are both odd, the left side is odd+odd+odd = odd. If $p$ is even then $q$ is odd and the left side is even+even+odd = odd; if $q$ is even then $p$ is odd and it is odd+even+even = odd. Never $0$, so A is true. R is also true, but the proof of A is a parity argument, not the divisibility rule, so R is not the explanation.</p>`, 'Both statements true does not mean one explains the other.'),
+  S(4, 'conjugate roots', XR`Two quadratics with real coefficients can have exactly one non-real root in common.`, XR`For real coefficients, non-real roots occur in conjugate pairs.`, 2,
+    XR`<p>Statement II is true. Statement I is false: if a non-real $z$ is a common root, its conjugate $\bar z$ is a root of each equation too, so the two equations share both $z$ and $\bar z$. Exactly one common non-real root is therefore impossible.</p>`, 'The conjugate comes along automatically.'),
+  S(5, 'integer roots', XR`If $p,q$ are odd integers, $x^2-px+q=0$ cannot have two integer roots.`, XR`For integers $p,q$, the roots of $x^2-px+q=0$ are integers whenever $p^2-4q$ is a perfect square.`, 0,
+    XR`<p>II: if $p^2-4q=s^2$ then $s\equiv p\pmod2$ (since $s^2\equiv p^2\pmod 4$), so $\dfrac{p\pm s}2$ are integers: true. I: two integer roots $r,t$ with $rt=q$ odd would be both odd, so $r+t=p$ would be even, not odd: true.</p>`, 'Product odd forces both roots odd.'),
+  SC(4, 'sign of roots', ['A quadratic with $D>0$ has two distinct real roots.', 'If both roots of $x^2+px+q=0$ are real and negative, then $p>0$ and $q>0$.', 'If $p>0$ and $q>0$, both roots of $x^2+px+q=0$ are negative real numbers.', 'If a real quadratic has real roots with positive sum and positive product, both roots are positive.'], '3', ['1', '2', '4'],
+    XR`<p>(1) true. (2) true: sum $-p<0$ and product $q>0$. (3) false: $x^2+x+1$ has $p,q>0$ but non-real roots. (4) true. Three are correct.</p>`, 'Sign rules for roots need real roots first.'),
+  S(5, 'transformed roots', XR`If $\alpha$ is a root of $ax^2+bx+c=0$ ($c\ne0$), then $\dfrac1\alpha$ is a root of $cx^2+bx+a=0$.`, XR`If $\alpha$ is a root of $ax^2+bx+c=0$, then $\alpha^2$ is a root of $ax^2+(2ac-b^2)x+c^2=0$.`, 1,
+    XR`<p>I: divide $a\alpha^2+b\alpha+c=0$ by $\alpha^2$: $a+\dfrac b\alpha+\dfrac c{\alpha^2}=0$, true. II: the equation with roots $\alpha^2,\beta^2$ has sum $\dfrac{b^2-2ac}{a^2}$ and product $\dfrac{c^2}{a^2}$, so it is $a^2x^2-(b^2-2ac)x+c^2=0$. The given equation has $a$ (not $a^2$) as the leading coefficient, so it is false unless $a=1$.</p>`, 'Check the leading coefficient: a², not a.'),
+  MT(4, 'number of real solutions', 'xm2', 'A-q, B-s, C-p, D-r', ['A-q, B-s, C-r, D-p', 'A-s, B-q, C-p, D-r', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: $|x|^2-2|x|-3=0$, $|x|=3$ (or $-1$), so $x=\pm3$: 2. B: $|x|=1,3$: 4 solutions. C: $|x|^2+|x|+1>0$: none. D: $|x|(|x|-1)=0$, $|x|=0$ or $1$: $x=0,\pm1$: 3.</p>`, '|x| = 0 gives one solution, not two.'),
+  MT(4, 'sum of real roots', 'xm3', 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    XR`<p>A: $t=2^x=1,4$, $x=0,2$, sum 2. B: $\log_2x=1,2$, $x=2,4$, sum 6. C: $x^2=1,4$, roots $\pm1,\pm2$, sum 0. D: $\sqrt x=2,3$, $x=4,9$, sum 13.</p>`, 'Convert back from t to x before adding.'),
+  MT(4, 'greatest and least values', 'xm4', 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    XR`<p>A: $(x-2)^2+3\ge3$. B: $10-(x-1)^2\le10$. C: $x^2+\dfrac1{x^2}\ge2$ (AM-GM, or $\left(x-\dfrac1x\right)^2\ge0$). D: denominator $(x+1)^2+2\ge2$, so the fraction is at most $\dfrac12$.</p>`, 'Greatest value of 1/g comes from the least value of g.'),
+  MT(5, 'trigonometric quadratics', 'xm6', 'A-r, B-s, C-q, D-p', ['A-r, B-s, C-p, D-q', 'A-s, B-r, C-q, D-p', 'A-r, B-q, C-s, D-p'],
+    XR`<p>A: $\sin x=\dfrac12$ or $1$: $\dfrac\pi6,\dfrac{5\pi}6,\dfrac\pi2$: 3. B: $(2\cos x+1)(\cos x-1)=0$: $\cos x=-\dfrac12$ gives $\dfrac{2\pi}3,\dfrac{4\pi}3$; $\cos x=1$ gives $0$ and $2\pi$ (both in the closed interval): 4. C: $\sin x=1$: $\dfrac\pi2$ only: 1. D: discriminant $1-4<0$ so $\sin x$ would be non-real: 0.</p>`, 'The interval [0, 2π] includes both ends.'),
+  // ---- passages ----
+  PI(3, 'parabola', 'xp1', XR`Find the least value of $f(x)$.`, -4,
+    XR`<p>$f(x)=(x-3)^2-4$, so the least value is $-4$ at $x=3$.</p>`, 'Complete the square.', () => -4),
+  PI(4, 'inequalities', 'xp1', XR`How many integers $x$ satisfy $f(x)<0$?`, 3,
+    XR`<p>$f(x)=(x-1)(x-5)<0$ for $1<x<5$: the integers $2,3,4$. That is $3$.</p>`, 'The inequality is strict, so 1 and 5 do not count.', () => 3),
+  PM(4, 'nature of roots', 'xp1', XR`The equation $f(x)=m$ has two distinct real roots for`, '$m>-4$', ['$m<-4$', '$m\\ge-4$', '$m>5$'],
+    XR`<p>$x^2-6x+5-m=0$ has $D=36-4(5-m)=16+4m>0$, so $m>-4$. (At $m=-4$ the roots coincide.) This matches the graph: any horizontal line above the vertex meets the parabola twice.</p>`, 'Two distinct roots need D > 0, not D ≥ 0.'),
+  PI(3, 'roots', 'xp2', XR`Find $|\alpha-\beta|$.`, 1,
+    XR`<p>The roots are $p$ and $p+1$, so they differ by exactly $1$ for every $p$. (Check: $(2p+1)^2-4p(p+1)=1$.)</p>`, 'The discriminant is always 1.', () => 1),
+  PI(4, 'location of roots', 'xp2', XR`Find the least integer $p$ for which both roots are at least $5$.`, 5,
+    XR`<p>Both roots $p$ and $p+1$ are $\ge5$ exactly when the smaller one, $p$, is $\ge5$. The least integer is $5$ (roots $5,6$).</p>`, 'The smaller root is p.', () => 5),
+  PI(5, 'location of roots', 'xp2', XR`For how many integers $p$ does the equation have exactly one root in the open interval $(0,3)$?`, 2,
+    XR`<p>The roots are $p$ and $p+1$. $p\in(0,3)$ for integers $1,2$; $p+1\in(0,3)$ for $p=0,1$. Both roots inside only for $p=1$ (roots $1,2$). Exactly one inside: $p=0$ (roots $0,1$: only $1$) and $p=2$ (roots $2,3$: only $2$). So $2$ values.</p>`, 'p = 1 puts both roots inside, so it does not count.', () => { let c = 0; for (let p = -10; p <= 10; p++) { const k = [p, p + 1].filter((r) => r > 0 && r < 3).length; if (k === 1) c++; } return c; }),
+);
+gens.push(
+  GX('qe-g15', 3, 'nat', 'integer', 'power sums', (rng) => {
+    const p = int(rng, 2, 7), qq = int(rng, -4, 6); const ans = p ** 3 - 3 * p * qq;
+    return { p, qq, answer: ans, tol: 0, q: XR`If $\alpha,\beta$ are the roots of $x^2-${p}x${qq < 0 ? '-' : '+'}${Math.abs(qq)}=0$, find $\alpha^3+\beta^3$.`,
+      sol: XR`<p>$\alpha+\beta=${p}$ and $\alpha\beta=${qq}$. $\alpha^3+\beta^3=(\alpha+\beta)^3-3\alpha\beta(\alpha+\beta)=${p ** 3}-3(${qq})(${p})=${ans}$.</p>` };
+  }, (p) => { let a = 2, b = p.p; for (let n = 2; n <= 3; n++) [a, b] = [b, p.p * b - p.qq * a]; return b; }),
+  GX('qe-g16', 4, 'mcq', 'single', 'nature of roots', (rng) => {
+    const t = choose(rng, [[0, 1], [3, 2], [8, 3], [15, 4], [24, 5]]); const a = t[0], r = t[1];
+    const lo = 2 - 2 * r, hi = 2 + 2 * r;
+    const ok = `$k\\le${lo}$ or $k\\ge${hi}$`;
+    const { options, answer } = shuffleOpts(rng, ok, [`$${lo}\\le k\\le${hi}$`, `$k\\le${-hi}$ or $k\\ge${-lo}$`, `$k<${lo}$ or $k>${hi}$`]);
+    return { a, lo, hi, options, answer, q: XR`The equation $x^2-kx+(k+${a})=0$ has real roots for`,
+      sol: XR`<p>$D=k^2-4(k+${a})=k^2-4k-${4 * a}=(k-${hi})(k-${lo})$ because the two numbers $${hi}$ and $${lo}$ add to $4$ and multiply to $${hi * lo}=-${4 * a}$. Real roots need $D\ge0$, which holds outside the roots: $k\le${lo}$ or $k\ge${hi}$.</p>` };
+  }, (p) => { const D = (k) => k * k - 4 * (k + p.a); return D(p.lo) === 0 && D(p.hi) === 0 && D((p.lo + p.hi) / 2) < 0 && D(p.lo - 1) > 0 && D(p.hi + 1) > 0 ? p.answer : -1; }),
+  GX('qe-g17', 4, 'nat', 'integer', 'integer roots', (rng) => {
+    const n = choose(rng, [12, 18, 20, 24, 30, 36, 48, 60]); let c = 0; for (let d = 1; d * d <= n; d++) if (n % d === 0) c++;
+    return { n, answer: 2 * c, tol: 0, q: XR`For how many integers $m$ does $x^2+mx+${n}=0$ have two integer roots?`,
+      sol: XR`<p>Two integer roots $r,s$ must satisfy $rs=${n}$ and $m=-(r+s)$. Unordered pairs of positive factors of ${n}: ${c} of them. The pairs with both negative give the negatives of these $m$ values. All sums are different, so there are $2\times${c}=${2 * c}$ values of $m$.</p>` };
+  }, (p) => { const s = new Set(); for (let r = -p.n - 1; r <= p.n + 1; r++) { if (r === 0) continue; if (p.n % r === 0) s.add(-(r + p.n / r)); } return s.size; }),
+  GX('qe-g18', 4, 'nat', 'numeric', 'parabola', (rng) => {
+    const m = choose(rng, [2, 4, -2, -4, 6]); const t = int(rng, 1, 6); const d = m * m / 4 + t; const ans = t / Math.sqrt(1 + m * m);
+    return { m, d, t, answer: +ans.toFixed(2), tol: 0.01, q: XR`Find the shortest distance from the parabola $y=x^2$ to the line $y=${m}x-${d}$ (2 decimal places).`,
+      sol: XR`<p>Distance from $(x,x^2)$ to $${m}x-y-${d}=0$ is $\dfrac{|${m}x-x^2-${d}|}{\sqrt{${1 + m * m}}}=\dfrac{x^2-${m}x+${d}}{\sqrt{${1 + m * m}}}$. The numerator is $\left(x-${m / 2}\right)^2+${t}\ge${t}$. So the least distance is $\dfrac{${t}}{\sqrt{${1 + m * m}}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => { let mn = 1e9; for (let x = -10; x <= 10; x += 0.001) mn = Math.min(mn, Math.abs(p.m * x - x * x - p.d) / Math.sqrt(1 + p.m * p.m)); return mn; }),
+  GX('qe-g19', 5, 'nat', 'integer', 'functional iteration', (rng) => {
+    let b, c, D1, D2;
+    for (;;) { b = int(rng, -4, 2); c = int(rng, -3, 3); D1 = (b - 1) ** 2 - 4 * c; D2 = (b + 1) ** 2 - 4 * (b + c + 1);
+      if (D1 !== 0 && D2 !== 0) { // avoid shared roots: the two quadratics must have no common root
+        const sh = (x) => Math.abs(x * x + (b - 1) * x + c) < 1e-9 && Math.abs(x * x + (b + 1) * x + (b + c + 1)) < 1e-9; const rts = [];
+        for (const [B, C, D] of [[b - 1, c, D1], [b + 1, b + c + 1, D2]]) if (D > 0) rts.push((-B + Math.sqrt(D)) / 2, (-B - Math.sqrt(D)) / 2);
+        if (!rts.some(sh)) break; } }
+    const cnt = (D1 > 0 ? 2 : 0) + (D2 > 0 ? 2 : 0); const poly = (B, C) => `x^2${B === 0 ? '' : (B > 0 ? '+' : '-') + (Math.abs(B) === 1 ? '' : Math.abs(B)) + 'x'}${C === 0 ? '' : (C > 0 ? '+' : '-') + Math.abs(C)}`;
+    return { b, c, answer: cnt, tol: 0, q: XR`Let $f(x)=${poly(b, c)}$. Find the number of real solutions of $f(f(x))=x$.`,
+      sol: XR`<p>For $f(x)=x^2+bx+c$ we have $f(f(x))-x=\big(f(x)-x\big)\big(f(x)+x+b+1\big)$. Here $b=${b}$, $c=${c}$.</p><p>Factor 1: $x^2+${b - 1}x+${c}=0$ has $D=${D1}$, so ${D1 > 0 ? 'two' : 'no'} real roots. Factor 2: $x^2+${b + 1}x+${b + c + 1}=0$ has $D=${D2}$, so ${D2 > 0 ? 'two' : 'no'} real roots. The two quadratics share no root, so the total is $${cnt}$.</p>` };
+  }, (p) => { const f = (x) => x * x + p.b * x + p.c; const h = (x) => f(f(x)) - x; let cnt = 0, prev = h(-30); for (let x = -30 + 1e-3; x <= 30; x += 1e-3) { const v = h(x); if ((prev < 0) !== (v < 0)) cnt++; prev = v; } return cnt; }),
+  GX('qe-g20', 4, 'nat', 'integer', 'power sums', (rng) => {
+    const p = int(rng, 1, 5), qq = int(rng, -3, 4), n = int(rng, 5, 8);
+    let a = 2, b = p; for (let k = 2; k <= n; k++) [a, b] = [b, p * b - qq * a];
+    return { p, qq, n, answer: b, tol: 0, q: XR`If $\alpha,\beta$ are the roots of $x^2-${p}x${qq < 0 ? '-' : '+'}${Math.abs(qq)}=0$, find $\alpha^{${n}}+\beta^{${n}}$.`,
+      sol: XR`<p>Let $s_k=\alpha^k+\beta^k$. Since $x^2=${p}x${qq < 0 ? '+' : '-'}${Math.abs(qq)}$, $s_k=${p}s_{k-1}${qq < 0 ? '+' : '-'}${Math.abs(qq)}s_{k-2}$ with $s_0=2$, $s_1=${p}$. Computing step by step up to $k=${n}$ gives $s_{${n}}=${b}$.</p>` };
+  }, (p) => { const D = p.p * p.p - 4 * p.qq; let re, im, re2, im2; if (D >= 0) { re = (p.p + Math.sqrt(D)) / 2; re2 = (p.p - Math.sqrt(D)) / 2; return Math.round(re ** p.n + re2 ** p.n); } const r = Math.sqrt(p.qq), th = Math.atan2(Math.sqrt(-D) / 2, p.p / 2); return Math.round(2 * r ** p.n * Math.cos(p.n * th)); }),
+  GX('qe-g21', 3, 'mcq', 'single', 'inequalities', (rng) => {
+    let a = int(rng, -4, 2), b = a + int(rng, 1, 5); const kind = choose(rng, ['<', '>', '\\le', '\\ge']);
+    const out = kind === '>' || kind === '\\ge'; const closed = kind === '\\le' || kind === '\\ge';
+    const L = closed ? '[' : '(', Rr = closed ? ']' : ')'; const inside = `${L}${a},${b}${Rr}`; const outside = `(-\\infty,${a}${closed ? ']' : ')'}\\cup${closed ? '[' : '('}${b},\\infty)`;
+    const sw = out ? inside : outside;
+    const ok = out ? outside : inside; const flip2 = out ? (closed ? `(-\\infty,${a})\\cup(${b},\\infty)` : `(-\\infty,${a}]\\cup[${b},\\infty)`) : (closed ? `(${a},${b})` : `[${a},${b}]`);
+    const { options, answer } = shuffleOpts(rng, `$${ok}$`, [`$${sw}$`, `$${flip2}$`, `$(${-b},${-a})$`]);
+    const fa = a === 0 ? 'x' : `(x${a < 0 ? '+' : '-'}${Math.abs(a)})`;
+    return { a, b, kind, options, answer, q: XR`The solution set of $${fa}(x-${b})\,${kind}\,0$ is`,
+      sol: XR`<p>The roots are $x=${a}$ and $x=${b}$. The product ${out ? 'is positive or zero outside' : 'is negative or zero between'} the roots (leading coefficient positive), and the endpoints ${closed ? 'are included' : 'are excluded'}. So the solution set is $${ok}$.</p>` };
+  }, (p) => { const f = (x) => (x - p.a) * (x - p.b); const sat = (x) => (p.kind === '<' ? f(x) < 0 : p.kind === '>' ? f(x) > 0 : p.kind === '\\le' ? f(x) <= 0 : f(x) >= 0); const out = p.kind === '>' || p.kind === '\\ge'; const closed = p.kind.startsWith('\\'); const mid = (p.a + p.b) / 2; return sat(mid) === !out && sat(p.a) === closed && sat(p.b) === closed && sat(p.a - 1) === out && sat(p.b + 1) === out ? p.answer : -1; }),
+  GX('qe-g22', 4, 'nat', 'integer', 'symmetric functions', (rng) => {
+    const s = int(rng, 1, 5), t = int(rng, 1, 5); const ans = 2 * s + 2 * t - 1;
+    return { s, t, answer: ans, tol: 0, q: XR`The roots of $x^2-(k-${s})x-(k+${t})=0$ are $\alpha,\beta$. Find the least value of $\alpha^2+\beta^2$ over all real $k$.`,
+      sol: XR`<p>$\alpha^2+\beta^2=(\alpha+\beta)^2-2\alpha\beta=(k-${s})^2+2(k+${t})=k^2-${2 * s - 2}k+${s * s + 2 * t}=(k-${s - 1})^2+${s * s + 2 * t - (s - 1) ** 2}$. The least value is $${ans}$, at $k=${s - 1}$.</p>` };
+  }, (p) => { let mn = 1e9; for (let k = -20; k <= 20; k += 0.01) mn = Math.min(mn, (k - p.s) ** 2 + 2 * (k + p.t)); return Math.round(mn); }),
+);
+
+}
+// ==XP-END
 export default { topic: 'quadratic-equations', groups, items, gens };
