@@ -37,6 +37,11 @@ Temperature tells which way heat will flow: from hot to cold. Two fixed points d
 
 A change of 1 °C equals a change of 1 K and of 1.8 °F. −40° is the same on the Celsius and Fahrenheit scales. For a faulty thermometer with fixed points at a and b, use (reading − a)/(b − a) in the same way.
 
+Heat and temperature are about how fast molecules move and how strongly they hold each other. Step through a model solid, liquid and gas and watch what raising the temperature does.
+
+<div class="steps" data-fig="@wt-states-of-matter"><div class="step"><b>Cold, close together.</b> The molecules vibrate about fixed places in a regular pattern: a solid.</div><div class="step"><b>Warm it.</b> They shake harder, the pattern starts to break, and they slide past one another: the solid melts into a liquid.</div><div class="step"><b>Hotter, a little more room.</b> Fewer molecules stay in contact, and the ones that do keep changing partners.</div><div class="step"><b>Give them space and heat.</b> The attraction is no longer enough to hold them: a gas, with free flight between rare collisions.</div></div>
+
+
 ## 2. Thermal expansion
 
 When heated by ΔT, lengths, areas and volumes grow:
@@ -96,6 +101,11 @@ k is the thermal conductivity (W/m K): silver about 400, glass about 1, air 0.02
 - **Parallel** (side by side, same ΔT): `$1/R = 1/R_1 + 1/R_2$`.
 - **Equivalent conductivity** of two equal-length slabs in series: `$\dfrac{2k_1k_2}{k_1 + k_2}$`; in parallel with equal areas: `$\dfrac{k_1 + k_2}{2}$`.
 - **Ice growing on a pond** (air at −θ): thickness x grows as `$\dfrac{dx}{dt} = \dfrac{k\theta}{\rho L x}$`, so the time to grow from x₁ to x₂ is `$\dfrac{\rho L}{2k\theta}(x_2^2 - x_1^2)$`. The second centimetre takes three times as long as the first.
+
+Heat a rod at one end and watch it creep along. Then switch to Newton's cooling to see the next section's law as a curve. Change the material to see why metals feel cold and wood feels warm.
+
+<figure class="fig" data-fig="@wt-heat-flow"><figcaption>In the rod, heat flows from hot to cold at a rate Q/t = kA(T₁ − T₂)/L, and the temperature profile settles to a straight line. Notice that copper gets there much faster than glass. In Newton's cooling, the hot body's excess temperature falls by the same fraction in every equal time.</figcaption></figure>
+
 
 ## 5. Convection and radiation
 

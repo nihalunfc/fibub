@@ -40,6 +40,11 @@ Where two `$g$` surfaces cross, both phases have the same `$g$`, and a mole can 
 - **Critical point:** the liquid–vapour line ends. Beyond it there is a single fluid; no amount of squeezing makes a meniscus. Water: 647 K and 22.1 MPa.
 - **The melting line** of water leans to the left (pressure lowers the melting point). For almost everything else it leans right.
 
+Warm the molecules and watch the crystal melt, then give them room and watch them evaporate.
+
+<figure class="fig" data-fig="@wt-states-of-matter"><figcaption>The phases differ in how strongly the attraction competes with the thermal motion kT. Notice the number of close neighbours dropping from solid to liquid to gas, and the potential energy per molecule rising as bonds break (the latent heat).</figcaption></figure>
+
+
 ## 2. Latent heat and the entropy jump
 
 At a coexistence line the Gibbs energy is continuous but its slopes are not. Since `$s = -(\partial g/\partial T)_P$` and `$v = (\partial g/\partial P)_T$`, the entropy and volume jump. The heat taken in at constant `$T$` to turn one mole into the other phase is the **latent heat**:
@@ -181,6 +186,11 @@ Real numbers for water and steam at any temperature are in fibub's [steam tables
 - Second order: no latent heat, `$C_P$` jumps; Ehrenfest `$dP/dT = \Delta C_P/(Tv\Delta\alpha)$`.
 
 </div>
+
+See why a transition can be continuous or jump: step the temperature through the critical point of a Landau free energy.
+
+<div class="steps" data-fig="@wt-landau-wells"><div class="step"><b>Hot (T = 1.5 T_c).</b> One valley at m = 0: no order.</div><div class="step"><b>At T ≈ T_c.</b> The bottom is flat: the response to a small field is huge and the ball moves slowly (critical slowing down).</div><div class="step"><b>Just below T_c.</b> Two shallow valleys: the ball must choose a side. The order parameter grows continuously as √(1 − T/T_c).</div><div class="step"><b>Far below.</b> Deep valleys at ±m₀ near 1. Try the field slider: it tips the landscape and the deeper side wins.</div></div>
+
 
 ## Practise: exam questions on this lesson
 

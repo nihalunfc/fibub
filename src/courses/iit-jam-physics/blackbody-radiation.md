@@ -107,6 +107,11 @@ Set `$du_\lambda/d\lambda = 0$`. With `$x = hc/(\lambda kT)$` this gives `$x = 5
 
 Maximising `$u_\nu$` instead gives `$h\nu_{\max} = 2.821kT$`. The two peaks do **not** correspond: `$c/\lambda_{\max} = 1.76\,\nu_{\max}$`. For the Sun, `$\nu_{\max} = 3.4\times10^{14}$` Hz, a wavelength of 880 nm, not 500 nm. Where a curve peaks depends on whether you count energy per nanometre or per hertz; only the total is the same.
 
+Slide the temperature, or jump to a lamp, the Sun and a hot star, and watch the peak and the area under the curve.
+
+<figure class="fig" data-fig="@wt-wien-glow"><figcaption>λ_max T = 2898 µm K, and the total power per area is σT⁴. Notice the peak sliding left and the visible fraction changing; the Sun's peak is in the green but a bulb's is deep in the infrared.</figcaption></figure>
+
+
 ## 5. Stefan–Boltzmann: total energy and power
 
 Integrate Planck's law over all frequencies, using `$\int_0^\infty x^3/(e^x - 1)\,dx = \pi^4/15$`:
