@@ -32,5 +32,11 @@ export default {
       { id: 'magnetostatics', name: 'Magnetic fields: Biot-Savart and Ampère' },
       { id: 'induction', name: 'Electromagnetic induction and inductance' },
     ] },
+    { id: 'solid-state', name: 'Solid state physics and devices', topics: [
+      { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
+      { id: 'x-ray-diffraction', name: 'X-ray diffraction and Bragg\'s law' },
+      { id: 'semiconductors', name: 'Semiconductors and the Fermi level' },
+      { id: 'diodes', name: 'p-n junctions, diodes and Zener diodes' },
+    ] },
   ],
 };
