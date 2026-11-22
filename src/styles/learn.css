@@ -7,7 +7,8 @@
 /* Category tiles: 2 across on phones, 3 on tablets, 6 on computers. */
 .lh-hubs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 6px; }
 @media (min-width: 640px) { .lh-hubs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } }
-@media (min-width: 1000px) { .lh-hubs { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .lh-hubs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 639px) { .lh-hub:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 .lh-hub { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 1px; align-items: center; padding: 9px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0; transition: border-color .15s, transform .15s; }
 .lh-hub:hover, .lh-hub:focus-visible { border-color: var(--accent); }
 .lh-hub.on { border-color: var(--accent); background: var(--accent-soft); }
@@ -124,3 +125,14 @@ a.lc:hover, a.lc:focus-visible { border-color: var(--accent); }
     a:hover .lh-ico .a-bar, a:hover .lh-ico .a-orbit, a:hover .lh-ico .a-rock, a:hover .lh-ico .a-page, a:hover .lh-ico .a-bub, a:hover .lh-ico .a-dot { animation-iteration-count: infinite; }
   }
 }
+
+/* Course pages: the "Start / Continue" button on a course home, and the bar that offers to keep progress. */
+.cs-go { margin: 4px 0 14px; max-width: 100%; white-space: normal; text-align: left; }
+.cs-go[hidden] { display: none; }
+.cs-keep { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tb-h, 64px) + var(--sub-h, 0px) + env(safe-area-inset-bottom, 0px) + 8px); z-index: 40; width: min(560px, calc(100% - 24px)); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); font-size: 14.5px; }
+.cs-keep[hidden] { display: none; }
+.cs-keep p { margin: 0; flex: 1 1 220px; line-height: 1.4; }
+.cs-keep div { display: flex; gap: 8px; align-items: center; }
+.cs-keep .btn { padding: 8px 14px; font-size: 14.5px; }
+.cs-keep-x { border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; padding: 8px; }
+@media (prefers-reduced-motion: no-preference) { .cs-keep:not([hidden]) { animation: lh-rise .3s ease both; } }

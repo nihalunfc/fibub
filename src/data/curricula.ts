@@ -44,6 +44,7 @@ export const CURRICULA: Curriculum[] = [
 export const COURSE_CATS = [
   { id: 'data-ai', name: 'Data and AI', short: 'Data & AI', href: '/learn/data-ai/', blurb: 'Statistics, SQL, dashboards, machine learning and running AI on your own computer.' },
   { id: 'science', name: 'Science and space', short: 'Science', href: '/learn/science/', blurb: 'Astronomy, cosmology, climate and how scientists work things out.' },
+  { id: 'exams', name: 'Exam prep', short: 'Exam prep', href: '/learn/exam-prep/', blurb: 'Practice and strategy for entrance and admission tests such as the SAT and LSAT.' },
   { id: 'life', name: 'Life, money and business', short: 'Life & business', href: '/learn/life-skills/', blurb: 'Home skills like tyres, tools and carpentry, plus money and starting a business.' },
 ] as const;
 export type CourseCat = (typeof COURSE_CATS)[number]['id'];
