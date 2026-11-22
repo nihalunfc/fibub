@@ -849,4 +849,128 @@ export default {
     },
     verify: (p) => (p.d / p.b) * Math.sqrt(1 - p.b ** 2),
   },
+  // ---- 5.5 phase changes, 5.6 blackbody radiation, 6.6 nuclear reactions, 8.1 exam pattern, 8.2 tricks ----
+  'boiling-pressure': {
+    title: 'boiling point at a different pressure',
+    make(r) {
+      const P = [0.3, 0.5, 0.6, 0.7, 0.8, 1.5, 2, 2.5, 3][int(r, 0, 8)], L = int(r, 30, 45), Tb = int(r, 320, 390);
+      const inv = 1 / Tb - (8.314 / (L * 1000)) * Math.log(P), answer = 1 / inv;
+      return {
+        q: `<p>A liquid boils at ${Tb} K under 1 atm; its molar latent heat of vaporisation is ${L} kJ/mol. Treat the vapour as an ideal gas, neglect the liquid's volume and take L as constant. At what temperature does it boil under ${P} atm? (R = 8.314 J mol⁻¹ K⁻¹)</p>`,
+        answer, unit: 'K', tol: 0.002,
+        hint: 'Integrated Clausius–Clapeyron: ln(P₂/P₁) = −(L/R)(1/T₂ − 1/T₁). Solve for 1/T₂.',
+        solution: steps(`ln(${P}/1) = ${Math.log(P).toFixed(4)}.`, `1/T₂ = 1/${Tb} − (8.314/${L * 1000}) × ${Math.log(P).toFixed(4)} = ${inv.toExponential(5)} K⁻¹.`, `T₂ = <b>${answer.toFixed(1)} K</b> (${P < 1 ? 'lower pressure, lower boiling point' : 'higher pressure, higher boiling point'}).`),
+        P, L, Tb,
+      };
+    },
+    verify: (p) => { const a = p.L * 1000 / 8.314; return a / (a / p.Tb - Math.log(p.P)); },
+  },
+  'ice-melt-pressure': {
+    title: 'melting point of ice under a skate',
+    make(r) {
+      const m = int(r, 40, 100), A = int(r, 5, 40);   // kg, mm²
+      const P = m * 9.8 / (A * 1e-6), dv = 1 / 1000 - 1 / 917, answer = Math.abs(273.15 * dv * P / 3.34e5);
+      return {
+        q: `<p>A ${m} kg skater stands on one blade touching the ice over ${A} mm². How far does the melting point of the ice under the blade drop? Use g = 9.8 m/s², L = 3.34 × 10⁵ J/kg, T = 273.15 K and densities 917 kg/m³ (ice) and 1000 kg/m³ (water).</p>`,
+        answer, unit: 'K', tol: 0.01,
+        hint: 'Find the pressure mg/A, then use ΔT = TΔv ΔP / L with Δv = 1/ρ<sub>water</sub> − 1/ρ<sub>ice</sub> per kilogram.',
+        solution: steps(`Pressure: ${m} × 9.8 / (${A} × 10⁻⁶) = ${(P / 1e6).toFixed(2)} MPa.`, `Δv = 1/1000 − 1/917 = −9.05 × 10⁻⁵ m³/kg (water is denser, so melting shrinks the volume).`, `ΔT = 273.15 × (−9.05 × 10⁻⁵) × ${P.toExponential(3)} / 3.34 × 10⁵ = −${answer.toFixed(2)} K.`, `The melting point drops by <b>${answer.toFixed(2)} K</b>, ${answer < 15 ? 'not enough on its own to explain skating at −20 °C' : 'a big shift because the area is so small'}.`),
+        m, A,
+      };
+    },
+    verify: (p) => 273.15 * (1 / 917 - 1 / 1000) * (p.m * 9.8 / (p.A * 1e-6)) / 3.34e5,
+  },
+  'wien-star': {
+    title: 'a star\'s temperature and power from its colour',
+    make(r) {
+      const lam = int(r, 12, 120) * 10;   // nm
+      const T = 2.898e-3 / (lam * 1e-9), answer = 5.67e-8 * T ** 4 / 1e6;
+      return {
+        q: `<p>A star's spectrum peaks (per unit wavelength) at ${lam} nm. Treating it as a blackbody, find the power radiated by each square metre of its surface, in MW/m². (b = 2.898 × 10⁻³ m K, σ = 5.67 × 10⁻⁸ W m⁻² K⁻⁴)</p>`,
+        answer, unit: 'MW/m²', tol: 0.005,
+        hint: 'Wien first: T = b/λ<sub>max</sub>. Then Stefan–Boltzmann: σT⁴.',
+        solution: steps(`T = 2.898 × 10⁻³ / (${lam} × 10⁻⁹) = ${T.toFixed(0)} K.`, `σT⁴ = 5.67 × 10⁻⁸ × ${T.toFixed(0)}⁴ = ${(answer * 1e6).toExponential(3)} W/m².`, `That is <b>${answer.toPrecision(3)} MW/m²</b> (the Sun: 63 MW/m²).`),
+        lam,
+      };
+    },
+    verify: (p) => 5.67e-8 * (2.898e-3 / (p.lam * 1e-9)) ** 4 / 1e6,
+  },
+  'star-luminosity': {
+    title: 'luminosity from radius and temperature',
+    make(r) {
+      const R = [0.1, 0.3, 0.5, 0.8, 1.5, 2, 3, 5, 10, 50][int(r, 0, 9)], T = int(r, 30, 250) * 100;
+      const answer = R * R * (T / 5772) ** 4;
+      return {
+        q: `<p>A star has ${R} times the Sun's radius and a surface temperature of ${T} K. Taking the Sun as a 5772 K blackbody, how many times the Sun's luminosity does it give out?</p>`,
+        answer, unit: 'L☉', tol: 0.005,
+        hint: 'L = 4πR²σT⁴, so in solar units L/L☉ = (R/R☉)² (T/T☉)⁴. The constants cancel.',
+        solution: steps(`(R/R☉)² = ${R}² = ${(R * R).toFixed(3)}.`, `(T/T☉)⁴ = (${T}/5772)⁴ = ${((T / 5772) ** 4).toPrecision(4)}.`, `L/L☉ = <b>${answer.toPrecision(3)}</b>.`),
+        R, T,
+      };
+    },
+    verify: (p) => p.R ** 2 * (p.T / 5772) ** 4,
+  },
+  'reaction-q': {
+    title: 'Q-value of a nuclear reaction',
+    make(r) {
+      const MS = { n: 1.008665, '¹H': 1.007825, '²H': 2.014102, '³H': 3.016049, '³He': 3.016029, '⁴He': 4.002603, '⁶Li': 6.015123, '⁷Li': 7.016003, '⁷Be': 7.016929, '⁹Be': 9.012183, '¹⁰B': 10.012937, '¹²C': 12, '¹⁴N': 14.003074, '¹⁷O': 16.999132 };
+      const RX = [[['²H', '³H'], ['⁴He', 'n']], [['²H', '²H'], ['³He', 'n']], [['²H', '²H'], ['³H', '¹H']], [['¹H', '⁷Li'], ['⁴He', '⁴He']], [['⁶Li', 'n'], ['³H', '⁴He']], [['¹⁰B', 'n'], ['⁷Li', '⁴He']], [['⁹Be', '⁴He'], ['¹²C', 'n']], [['⁴He', '¹⁴N'], ['¹⁷O', '¹H']], [['¹H', '⁷Li'], ['⁷Be', 'n']]];
+      const i = int(r, 0, RX.length - 1), [a, b] = RX[i];
+      const mi = a.reduce((s, k) => s + MS[k], 0), mf = b.reduce((s, k) => s + MS[k], 0), answer = (mi - mf) * 931.5;
+      const list = [...new Set([...a, ...b])].map((k) => `${k} ${MS[k].toFixed(6)} u`).join(', ');
+      return {
+        q: `<p>Find the Q-value of ${a.join(' + ')} → ${b.join(' + ')}, with its sign. Atomic masses: ${list}. Take 1 u = 931.5 MeV/c².</p>`,
+        answer, unit: 'MeV', tol: 0.003, abs: 0.005,
+        hint: 'Q = (total mass before − total mass after) × 931.5 MeV/u. Atomic masses are fine because the electrons balance.',
+        solution: steps(`Before: ${mi.toFixed(6)} u. After: ${mf.toFixed(6)} u.`, `Δm = ${(mi - mf).toFixed(6)} u.`, `Q = Δm × 931.5 = <b>${answer.toFixed(2)} MeV</b>: ${answer > 0 ? 'exothermic, energy is released' : 'endothermic, the projectile must bring energy (above the threshold)'}.`),
+        i, mi, mf,
+      };
+    },
+    verify: (p) => (p.mi - p.mf) * 931.5,
+  },
+  'fission-fuel': {
+    title: 'uranium burned by a reactor',
+    make(r) {
+      const P = [50, 100, 300, 500, 1000, 2000, 3000][int(r, 0, 6)], days = [1, 10, 30, 100, 365][int(r, 0, 4)];
+      const N = P * 1e6 * days * 86400 / (200 * 1.602e-13), answer = N / 6.022e23 * 0.235;
+      return {
+        q: `<p>A reactor produces ${P} MW of heat for ${days} day${days > 1 ? 's' : ''}. Each uranium-235 fission gives 200 MeV (1 MeV = 1.602 × 10⁻¹³ J). What mass of uranium-235 is fissioned? (N<sub>A</sub> = 6.022 × 10²³ mol⁻¹)</p>`,
+        answer, unit: 'kg', tol: 0.005,
+        hint: 'Total energy = power × time. Divide by the energy per fission to count fissions, then convert to moles and kilograms.',
+        solution: steps(`Energy: ${P} × 10⁶ W × ${days * 86400} s = ${(P * 1e6 * days * 86400).toExponential(3)} J.`, `Fissions: ÷ 3.204 × 10⁻¹¹ J = ${N.toExponential(3)}.`, `Moles: ÷ 6.022 × 10²³ = ${(N / 6.022e23).toPrecision(4)}; mass × 0.235 kg/mol = <b>${answer.toPrecision(3)} kg</b>.`),
+        P, days,
+      };
+    },
+    verify: (p) => p.P * 1e6 * p.days * 86400 / (200 * 1.602e-13) / 6.022e23 * 0.235,
+  },
+  'guess-expected': {
+    title: 'expected marks from guessing under negative marking',
+    make(r) {
+      const n = int(r, 3, 15), e = int(r, 1, 2), m = int(r, 1, 2);
+      const p = 1 / (4 - e), answer = n * (p * m - (1 - p) * m / 3);
+      return {
+        q: `<p>In JAM Section A a wrong ${m}-mark MCQ costs ${m === 1 ? '1/3' : '2/3'} mark. On ${n} such questions you can rule out ${e} of the four options with certainty, then guess at random among the rest. What is your expected total from these questions?</p>`,
+        answer, unit: 'marks', tol: 0.005,
+        hint: 'Chance of being right p = 1/(options left). Expected marks per question = p × m − (1 − p) × m/3. Multiply by the number of questions.',
+        solution: steps(`Options left: ${4 - e}, so p = 1/${4 - e} = ${p.toFixed(3)}.`, `Per question: ${p.toFixed(3)} × ${m} − ${(1 - p).toFixed(3)} × ${m}/3 = ${(p * m - (1 - p) * m / 3).toFixed(3)} marks.`, `Over ${n} questions: <b>${answer.toFixed(2)} marks</b>. A blind guess (nothing ruled out) is worth exactly 0 on average.`),
+        n, e, m,
+      };
+    },
+    verify: (p) => { const q = 1 / (4 - p.e); return p.n * p.m * (q - (1 - q) / 3); },
+  },
+  'dimension-exponent': {
+    title: 'find a power by dimensions',
+    make(r) {
+      const S = [
+        ['The period T of small oscillations of a liquid drop held together by surface tension depends only on its density ρ, radius r and surface tension σ (units N/m). If T ∝ ρ<sup>a</sup> r<sup>b</sup> σ<sup>c</sup>, find b.', 1.5, 'σ has dimensions M T⁻². Matching M: a + c = 0. L: −3a + b = 0. T: −2c = 1, so c = −1/2, a = 1/2, b = 3a = <b>3/2</b>. So T ∝ √(ρr³/σ).'],
+        ['The speed v of deep-water waves depends only on g and the wavelength λ. If v ∝ g<sup>a</sup> λ<sup>b</sup>, find b.', 0.5, 'L T⁻¹ = (L T⁻²)<sup>a</sup> L<sup>b</sup>. Time: −1 = −2a, so a = 1/2. Length: 1 = a + b, so b = <b>1/2</b>. So v ∝ √(gλ).'],
+        ['The radius R of the fireball of a strong explosion releasing energy E into air of density ρ grows with time t as R ∝ E<sup>a</sup> t<sup>b</sup> ρ<sup>c</sup>. Find b.', 0.4, 'L = (M L² T⁻²)<sup>a</sup> T<sup>b</sup> (M L⁻³)<sup>c</sup>. M: a + c = 0. T: −2a + b = 0. L: 2a − 3c = 1, so 5a = 1, a = 1/5, b = <b>2/5</b>. (G. I. Taylor\'s famous estimate.)'],
+        ['The energy density u of blackbody radiation depends only on kT, h and c. If u ∝ (kT)<sup>a</sup> h<sup>b</sup> c<sup>d</sup>, find a.', 4, 'u is energy per volume, E L⁻³; h is E T and c is L T⁻¹. Time appears only in h and c, so b = d and they enter as (hc)<sup>b</sup>, with hc = E L. Length: −3 = b, so b = −3. Energy: 1 = a + b, so a = <b>4</b>: u ∝ (kT)⁴/(hc)³, the T⁴ law.'],
+        ['The frequency f of a stretched string depends on its tension F, length L and mass per unit length μ. If f ∝ F<sup>a</sup> L<sup>b</sup> μ<sup>c</sup>, find b.', -1, 'T⁻¹ = (M L T⁻²)<sup>a</sup> L<sup>b</sup> (M L⁻¹)<sup>c</sup>. T: a = 1/2. M: a + c = 0, c = −1/2. L: a + b − c = 0, b = −1/2 − 1/2 = <b>−1</b>. So f ∝ √(F/μ)/L.'],
+      ];
+      const i = int(r, 0, S.length - 1), [q, answer, sol] = S[i];
+      return { q: `<p>${q}</p>`, answer, unit: '', tol: 0.001, hint: 'Write every quantity in powers of M, L and T, then match the powers of each on both sides: three equations for three unknowns.', solution: `<p>${sol}</p>`, i };
+    },
+    verify: (p) => [1.5, 0.5, 0.4, 4, -1][p.i],
+  },
 };
