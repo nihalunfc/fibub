@@ -347,4 +347,137 @@ export default {
       const E = (T) => 3 * R * p.th / Math.expm1(p.th / T), h = 1e-3 * p.T; return (E(p.T + h) - E(p.T - h)) / (2 * h);
     },
   },
+  // ---- 8.1 to 8.7 Nuclear and particle physics ----
+  'charge-radius-mirror': {
+    title: 'nuclear radius from a mirror-nucleus beta+ decay',
+    make(r) {
+      const L = [['¹¹C', '¹¹B', 11, 0.960], ['¹³N', '¹³C', 13, 1.199], ['¹⁵O', '¹⁵N', 15, 1.732], ['¹⁷F', '¹⁷O', 17, 1.738], ['¹⁹Ne', '¹⁹F', 19, 2.216], ['⁴¹Sc', '⁴¹Ca', 41, 5.474]];
+      const [par, dau, A, Em] = L[int(r, 0, L.length - 1)], Z = (A - 1) / 2, dEC = Em + 1.804, answer = 1.2 * Z * 1.44 / dEC;
+      return {
+        q: `<p>The mirror pair ${par} → ${dau} decays by β⁺ emission with end-point energy ${Em} MeV. Treat each nucleus as a uniformly charged sphere of the same radius R, with Coulomb energy (3/5)Z(Z − 1)e²/(4πε₀R). Find R in fm, and r₀ = R/A<sup>1/3</sup>. (Use e²/4πε₀ = 1.44 MeV fm, (m_n − m_H)c² = 0.782 MeV and 2m_ec² = 1.022 MeV.)</p>`,
+        answer, unit: 'fm', tol: 0.005,
+        hint: 'Mirror nuclei have the same strong binding, so their mass difference is the Coulomb difference minus (m_n − m_H)c². The β⁺ end point is that mass difference minus 2m_ec².',
+        solution: steps(`ΔE_C = E_max + 0.782 + 1.022 = ${dEC.toFixed(3)} MeV.`, `ΔE_C = (3/5)(e²/R)[(Z+1)Z − Z(Z−1)] = (6/5)Z e²/R with Z = ${Z}.`, `R = 1.2 × ${Z} × 1.44 / ${dEC.toFixed(3)} = <b>${answer.toFixed(3)} fm</b>, so r₀ = ${(answer / Math.cbrt(A)).toFixed(3)} fm.`),
+        A, Z, Em,
+      };
+    },
+    // independent check: Coulomb energies of the two members computed separately
+    verify: (p) => { const EC = (z, R) => 0.6 * z * (z - 1) * 1.44 / R; const dE = p.Em + 1.804; return (EC(p.Z + 1, 1) - EC(p.Z, 1)) / dE; },
+  },
+  'semf-most-stable': {
+    title: 'most stable isobar from the mass formula',
+    make(r) {
+      const A = int(r, 20, 240), ac = 0.714, aa = 23.2, answer = A / (2 + ac / (2 * aa) * A ** (2 / 3));
+      return {
+        q: `<p>Using the asymmetry and Coulomb terms of the semi-empirical mass formula (a_A = 23.2 MeV, a_C = 0.714 MeV, Coulomb term a_C Z²/A<sup>1/3</sup>), find the proton number Z₀ of the most strongly bound isobar with A = ${A}. Ignore the neutron-proton mass difference.</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'Only the Coulomb and asymmetry terms depend on Z at fixed A. Set ∂B/∂Z = 0.',
+        solution: steps('∂/∂Z [a_C Z²/A<sup>1/3</sup> + a_A(A − 2Z)²/A] = 0 gives 2a_C Z/A<sup>1/3</sup> = 4a_A(A − 2Z)/A.', `Z₀ = A/(2 + (a_C/2a_A)A<sup>2/3</sup>) = ${A}/(2 + ${(ac / (2 * aa)).toFixed(5)} × ${(A ** (2 / 3)).toFixed(3)}).`, `Z₀ = <b>${answer.toFixed(2)}</b>, so the stable isobar has Z = ${Math.round(answer)} (N/Z = ${((A - answer) / answer).toFixed(3)}).`),
+        A,
+      };
+    },
+    // independent check: minimise the Z-dependent energy numerically (golden-section search)
+    verify: (p) => { const f = (Z) => 0.714 * Z * Z / Math.cbrt(p.A) + 23.2 * (p.A - 2 * Z) ** 2 / p.A; let a = 1, b = p.A / 2; for (let i = 0; i < 200; i++) { const c = b - (b - a) * 0.618, d = a + (b - a) * 0.618; if (f(c) < f(d)) b = d; else a = c; } return (a + b) / 2; },
+  },
+  'schmidt-moment': {
+    title: 'Schmidt magnetic moment of an odd-A nucleus',
+    make(r) {
+      const L = 'spdfgh', l = int(r, 1, 5), up = int(r, 0, 1), pr = int(r, 0, 1), j = up ? l + 0.5 : l - 0.5;
+      const gl = pr ? 1 : 0, gs = pr ? 5.586 : -3.826;
+      const answer = up ? (j - 0.5) * gl + gs / 2 : j / (j + 1) * ((j + 1.5) * gl - gs / 2);
+      return {
+        q: `<p>The odd ${pr ? 'proton' : 'neutron'} of an odd-A nucleus sits in a ${L[l]}<sub>${2 * j}/2</sub> orbit. Find the Schmidt (single-particle) magnetic moment in nuclear magnetons. Use g_s = ${gs} and g_l = ${gl}.</p>`,
+        answer, unit: 'μ_N', tol: 0.005,
+        hint: up ? 'For j = l + ½: μ = (j − ½)g_l + g_s/2.' : 'For j = l − ½: μ = [j/(j + 1)][(j + 3/2)g_l − g_s/2].',
+        solution: steps(`l = ${l}, j = ${2 * j}/2 = l ${up ? '+' : '−'} ½.`, up ? `μ = (${j} − 0.5)(${gl}) + ${gs}/2.` : `μ = (${j}/${j + 1})[(${j} + 1.5)(${gl}) − ${gs}/2].`, `μ = <b>${answer.toFixed(3)} μ_N</b>.`),
+        l, j, pr,
+      };
+    },
+    // independent check: Lande formula for g_j, then mu = g_j j
+    verify: (p) => { const gl = p.pr ? 1 : 0, gs = p.pr ? 5.586 : -3.826, J = p.j * (p.j + 1), Lq = p.l * (p.l + 1), S = 0.75; return p.j * (gl * (J + Lq - S) + gs * (J - Lq + S)) / (2 * J); },
+  },
+  'alpha-gamow': {
+    title: 'Gamow factor for alpha decay',
+    make(r) {
+      const Zd = int(r, 78, 92), A = 2 * Zd + int(r, 42, 56), T = int(r, 40, 90) / 10, R = +(1.2 * (Math.cbrt(A - 4) + Math.cbrt(4))).toFixed(2);
+      const B = 2 * Zd * 1.44 / R, x = T / B, k = Math.sqrt(2 * 3727.379 * T) / 197.327;
+      const answer = 2 * k * (2 * Zd * 1.44 / T) * (Math.acos(Math.sqrt(x)) - Math.sqrt(x * (1 - x)));
+      return {
+        q: `<p>An alpha particle of kinetic energy ${T} MeV leaves a daughter nucleus of charge Z = ${Zd}. The nuclear radius is R = ${R} fm. Find the Gamow exponent 2G in the tunnelling probability e<sup>−2G</sup>. (m_αc² = 3727.4 MeV, ħc = 197.33 MeV fm, e²/4πε₀ = 1.44 MeV fm.)</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: '2G = (2/ħ)∫√(2m(V − T)) dr from R to the turning point b = 2Ze²/(4πε₀T). The integral has the closed form 2G = 2kb[arccos√x − √(x(1 − x))], with x = R/b and k = √(2mT)/ħ.',
+        solution: steps(`b = 2 × ${Zd} × 1.44 / ${T} = ${(2 * Zd * 1.44 / T).toFixed(2)} fm, so x = R/b = ${x.toFixed(4)} (barrier height ${B.toFixed(2)} MeV).`, `k = √(2 × 3727.4 × ${T})/197.33 = ${k.toFixed(4)} fm⁻¹.`, `2G = 2kb[arccos√x − √(x(1 − x))] = <b>${answer.toFixed(2)}</b>, so e<sup>−2G</sup> = ${Math.exp(-answer).toExponential(2)}.`),
+        Zd, T, R,
+      };
+    },
+    // independent check: numerical integral of the WKB exponent (midpoint rule with a substitution near the turning point)
+    verify: (p) => { const b = 2 * p.Zd * 1.44 / p.T, n = 20000; let s = 0; for (let i = 0; i < n; i++) { const u = (i + 0.5) / n, rr = b - (b - p.R) * u * u, V = 2 * p.Zd * 1.44 / rr; s += Math.sqrt(Math.max(0, 2 * 3727.379 * (V - p.T))) / 197.327 * 2 * u * (b - p.R) / n; } return 2 * s; },
+  },
+  'reaction-threshold-rel': {
+    title: 'relativistic threshold of a fixed-target reaction',
+    make(r) {
+      const L = [['p + p → p + p + π⁰', 938.272, 938.272, [938.272, 938.272, 134.977]], ['p + p → p + p + p + p̄', 938.272, 938.272, [938.272, 938.272, 938.272, 938.272]], ['γ + p → p + π⁰', 0, 938.272, [938.272, 134.977]], ['π⁻ + p → K⁰ + Λ⁰', 139.570, 938.272, [497.611, 1115.683]], ['γ + p → K⁺ + Λ⁰', 0, 938.272, [493.677, 1115.683]], ['p + p → p + Λ⁰ + K⁺', 938.272, 938.272, [938.272, 1115.683, 493.677]], ['π⁻ + p → η + n', 139.570, 938.272, [547.862, 939.565]]];
+      const [rx, ma, mX, mf] = L[int(r, 0, L.length - 1)], M = mf.reduce((s, x) => s + x, 0), answer = (M * M - (ma + mX) ** 2) / (2 * mX);
+      return {
+        q: `<p>Find the threshold kinetic energy of the beam particle (in MeV) for ${rx} on a target at rest. Masses (MeV/c²): ${[...new Set([ma, mX, ...mf])].filter((x) => x > 0).join(', ')}.</p>`,
+        answer, unit: 'MeV', tol: 0.005,
+        hint: 'At threshold the products are at rest in the centre-of-mass frame, so √s = Σm_f. With the target at rest, s = m_a² + m_X² + 2m_X E_a.',
+        solution: steps(`Σm_f = ${M.toFixed(3)} MeV.`, `T_th = [(Σm_f)² − (m_a + m_X)²]/(2m_X) = (${(M * M).toFixed(0)} − ${((ma + mX) ** 2).toFixed(0)})/${(2 * mX).toFixed(3)}.`, `T_th = <b>${answer.toFixed(1)} MeV</b>, far more than the mass gained (${(M - ma - mX).toFixed(1)} MeV), because the centre of mass keeps moving.`),
+        ma, mX, M,
+      };
+    },
+    // independent check: solve for the beam energy that makes the CM energy equal the final masses (bisection on E_a)
+    verify: (p) => { let lo = p.ma, hi = p.ma + 1e6; for (let i = 0; i < 200; i++) { const E = (lo + hi) / 2, pa = Math.sqrt(Math.max(0, E * E - p.ma * p.ma)), s = (E + p.mX) ** 2 - pa * pa; if (Math.sqrt(s) < p.M) lo = E; else hi = E; } return (lo + hi) / 2 - p.ma; },
+  },
+  'breit-wigner': {
+    title: 'Breit-Wigner resonance: cross-section away from the peak',
+    make(r) {
+      const L = [['Δ(1232)', 1232, 117], ['ρ(770)', 775.3, 149], ['K*(892)', 891.7, 51.4], ['Σ(1385)', 1383.7, 36], ['Z⁰', 91188, 2495]];
+      const [n, M, G] = L[int(r, 0, L.length - 1)], f = int(r, 1, 30) / 10 * (int(r, 0, 1) ? 1 : -1), E = +(M + f * G / 2).toFixed(1);
+      const answer = 100 * (G * G / 4) / ((E - M) ** 2 + G * G / 4);
+      return {
+        q: `<p>The ${n} has mass ${M} MeV/c² and width Γ = ${G} MeV. Using the Breit-Wigner shape, what percentage of the peak cross-section is reached at E = ${E} MeV? Also find its mean life.</p>`,
+        answer, unit: '%', tol: 0.005,
+        hint: 'σ(E)/σ_peak = (Γ/2)² / [(E − M)² + (Γ/2)²]. At E = M ± Γ/2 it is exactly one half. The mean life is ħ/Γ.',
+        solution: steps(`E − M = ${(E - M).toFixed(1)} MeV, Γ/2 = ${(G / 2).toFixed(2)} MeV.`, `σ/σ_peak = ${(G * G / 4).toFixed(1)}/(${((E - M) ** 2).toFixed(1)} + ${(G * G / 4).toFixed(1)}) = <b>${answer.toFixed(2)}%</b>.`, `τ = ħ/Γ = 6.582×10⁻²² MeV s / ${G} MeV = ${(6.582e-22 / G).toExponential(2)} s.`),
+        M, G, E,
+      };
+    },
+    // independent check: the same shape written as 1/(1 + x^2), x = 2(E - M)/Gamma
+    verify: (p) => 100 / (1 + (2 * (p.E - p.M) / p.G) ** 2),
+  },
+  'invariant-mass': {
+    title: 'invariant mass of a decay pair',
+    make(r) {
+      const L = [['π⁺', 'π⁻', 139.570, 139.570], ['p', 'π⁻', 938.272, 139.570], ['K⁺', 'K⁻', 493.677, 493.677], ['μ⁺', 'μ⁻', 105.658, 105.658], ['γ', 'γ', 0, 0]];
+      const [a, b, m1, m2] = L[int(r, 0, L.length - 1)], p1 = int(r, 2, 40) * 50, p2 = int(r, 2, 40) * 50, th = int(r, 3, 60);
+      const E1 = Math.hypot(p1, m1), E2 = Math.hypot(p2, m2), c = Math.cos(th * Math.PI / 180), answer = Math.sqrt(m1 * m1 + m2 * m2 + 2 * (E1 * E2 - p1 * p2 * c));
+      return {
+        q: `<p>A neutral particle decays in flight to ${a} and ${b}. They are measured with momenta ${p1} MeV/c and ${p2} MeV/c and an opening angle of ${th}°. Find the invariant mass of the pair in MeV/c². (Masses: ${a} ${m1}, ${b} ${m2} MeV/c².)</p>`,
+        answer, unit: 'MeV/c²', tol: 0.005,
+        hint: 'M²c⁴ = (E₁ + E₂)² − |p⃗₁ + p⃗₂|²c² = m₁² + m₂² + 2(E₁E₂ − p₁p₂ cos θ) in MeV units.',
+        solution: steps(`E₁ = √(${p1}² + ${m1}²) = ${E1.toFixed(2)} MeV, E₂ = ${E2.toFixed(2)} MeV.`, `M² = ${m1}² + ${m2}² + 2(${E1.toFixed(2)} × ${E2.toFixed(2)} − ${p1} × ${p2} × cos ${th}°) = ${(answer * answer).toFixed(0)} MeV².`, `M = <b>${answer.toFixed(1)} MeV/c²</b>.`),
+        m1, m2, p1, p2, th,
+      };
+    },
+    // independent check: build the two four-vectors and take the length of their sum
+    verify: (p) => { const t = p.th * Math.PI / 180, E = Math.hypot(p.p1, p.m1) + Math.hypot(p.p2, p.m2), px = p.p1 + p.p2 * Math.cos(t), py = p.p2 * Math.sin(t); return Math.sqrt(E * E - px * px - py * py); },
+  },
+  'survival-flight': {
+    title: 'fraction of unstable particles surviving a flight path',
+    make(r) {
+      const L = [['K⁰_S', 497.611, 8.954e-11], ['Λ⁰', 1115.683, 2.632e-10], ['π⁺', 139.570, 2.6033e-8], ['K⁺', 493.677, 1.238e-8], ['μ⁺', 105.658, 2.1970e-6], ['Ξ⁻', 1321.71, 1.639e-10]];
+      const [n, m, tau] = L[int(r, 0, L.length - 1)], p = int(r, 1, 30) * 100, ctau = 2.99792458e8 * tau, Ld = p / m * ctau, d = +(Ld * int(r, 2, 25) / 10).toPrecision(2);
+      const answer = 100 * Math.exp(-d / Ld);
+      return {
+        q: `<p>A beam of ${n} (mc² = ${m} MeV, mean life ${tau.toExponential(3)} s) has momentum ${p} MeV/c. What percentage of the particles survive a flight of ${d} m?</p>`,
+        answer, unit: '%', tol: 0.005,
+        hint: 'The mean decay length is βγcτ = (p/mc)cτ. Survival follows exp(−d/βγcτ).',
+        solution: steps(`cτ = ${ctau.toPrecision(4)} m and βγ = p/mc = ${(p / m).toFixed(4)}.`, `Mean decay length = ${Ld.toPrecision(4)} m.`, `Survival = exp(−${d}/${Ld.toPrecision(4)}) = <b>${answer.toFixed(2)}%</b>.`),
+        m, tau, p, d,
+      };
+    },
+    // independent check: lab flight time against the dilated lifetime
+    verify: (p) => { const E = Math.hypot(p.p, p.m), beta = p.p / E, gamma = E / p.m, t = p.d / (beta * 2.99792458e8); return 100 * Math.exp(-t / (gamma * p.tau)); },
+  },
 };
