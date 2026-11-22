@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 const DEG = Math.PI / 180;
 
 import * as Q5 from '../_util.js';
+import more2 from './diffraction.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -223,6 +224,7 @@ export default {
       answer: 7, tol: 0, calc: () => [-4, -3, -2, -1, 0, 1, 2, 3, 4].filter((m) => m % 3 !== 0 || m === 0).length,
       sol: '$\\sin\\theta = m/5 < 1$ allows $m = 0, \\pm1, \\pm2, \\pm3, \\pm4$ ($m = \\pm5$ would be at $90^\\circ$, along the grating, and is not seen). Orders that are multiples of $d/a = 3$ are missing: $\\pm3$. That leaves $0, \\pm1, \\pm2, \\pm4$: $7$ maxima.',
       trap: 'Counting $m = \\pm5$ (grazing) or forgetting the missing orders.' },
+    ...more2,
   ],
   gens: [
     { id: 'dfr-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'single slit', format: 'comparison',

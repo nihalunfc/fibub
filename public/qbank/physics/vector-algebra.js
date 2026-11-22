@@ -5,6 +5,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './vector-algebra.more.gen.js';
+import more2 from './vector-algebra.more2.gen.js';
 
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -236,6 +237,7 @@ export default {
       options: ['Its equation is $x + y + z = 1$.', 'It contains the point $(1, 1, 1)$.', 'Its distance from the origin is $1/\\sqrt3$.', 'The vector $(1, -1, 0)$ is parallel to the plane.'], answer: [0, 2, 3],
       sol: 'The edge vectors $(-1, 1, 0)$ and $(-1, 0, 1)$ have cross product $(1, 1, 1)$, the normal. Through $(1, 0, 0)$: $x + y + z = 1$. The point $(1, 1, 1)$ gives $3\\ne1$: not on it. Distance from the origin: $|0 - 1|/\\sqrt3 = 1/\\sqrt3$. $(1, -1, 0)\\cdot(1, 1, 1) = 0$, so it is perpendicular to the normal, that is, parallel to the plane.',
       trap: 'Confusing the normal $(1, 1, 1)$ with a point on the plane.' },
+    ...more2,
   ],
   gens: [
     { id: 'va-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'dot product',

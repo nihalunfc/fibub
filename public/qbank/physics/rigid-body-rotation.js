@@ -4,6 +4,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './rigid-body-rotation.more.gen.js';
+import more2 from './rigid-body-rotation.more2.gen.js';
 
 const G0 = 9.8;
 const BODIES = [
@@ -219,6 +220,7 @@ export default {
       q: 'Which statements about torque are correct?',
       options: ['Torque about a point O is $\\vec r\\times\\vec F$, with $\\vec r$ from O to where the force acts.', 'A force whose line of action passes through an axis has no torque about that axis.', 'The torque of a single force depends on the point about which it is taken.', 'The torque of a couple (two equal and opposite forces not in line) depends on the point about which it is taken.'], answer: [0, 1, 2],
       sol: 'First and second: the definition, and a zero lever arm. Third: moving O changes $\\vec r$ and so $\\vec r\\times\\vec F$. Fourth is false: for a couple, $(\\vec r_1 - \\vec r_2)\\times\\vec F$ involves only the separation of the two forces, so it is the same about every point.' },
+    ...more2,
   ],
   gens: [
     { id: 'rbr-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'torque',

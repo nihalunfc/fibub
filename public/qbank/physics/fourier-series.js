@@ -5,6 +5,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './fourier-series.more.gen.js';
+import more2 from './fourier-series.more2.gen.js';
 
 const simpson = (f, a, b, n = 4000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return (s * h) / 3; };
 const PI = Math.PI;
@@ -232,6 +233,7 @@ export default {
       options: ['Integrating it term by term', 'Differentiating it term by term', 'Squaring it term by term', 'Multiplying every coefficient by $n$'], answer: 0,
       sol: 'Integrating term by term works for the Fourier series of any piecewise continuous function (integration smooths, and the coefficients get an extra $1/n$). Differentiating here gives $2\\sum(-1)^{n+1}\\cos nx$, whose terms do not even go to zero, so it diverges: the periodic sawtooth has jumps, whose derivative is not an ordinary function. Multiplying the coefficients by $n$ is the same mistake. Squaring term by term misses all the cross terms.',
       trap: 'Differentiating a series with jumps; it only works when the periodic extension is continuous and piecewise smooth.' },
+    ...more2,
   ],
   gens: [
     { id: 'fs-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'coefficients',

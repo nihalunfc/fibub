@@ -5,6 +5,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './partial-derivatives.more.gen.js';
+import more2 from './partial-derivatives.more2.gen.js';
 
 const R_GAS = 8.314;
 
@@ -235,6 +236,7 @@ export default {
       answer: 108, tol: 0, calc: () => 1 * 2 ** 2 * 3 ** 3,
       sol: 'Maximise $\\ln f = \\ln x + 2\\ln y + 3\\ln z$ with the constraint: $1/x = 2/y = 3/z = \\lambda$. So $x : y : z = 1 : 2 : 3$, and with sum 6: $x = 1$, $y = 2$, $z = 3$. Then $f = 1\\times4\\times27 = 108$.',
       trap: 'Splitting equally ($x = y = z = 2$ gives 64): the powers weight the shares.' },
+    ...more2,
   ],
   gens: [
     { id: 'pd-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'partial derivatives',

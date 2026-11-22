@@ -3,6 +3,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './variable-mass.more.gen.js';
+import more2 from './variable-mass.more2.gen.js';
 
 const G0 = 9.8;
 
@@ -215,6 +216,7 @@ export default {
       q: 'Here $\\mu$ is a mass flow rate (kg/s), $u$ and $v$ are speeds, $\\rho$ a density, $A$ an area and $\\lambda$ a mass per unit length. Which expressions have the unit of force (newton)?',
       options: ['$\\mu u$', '$\\rho Av^2$', '$\\tfrac12\\mu u^2$', '$\\lambda v^2$'], answer: [0, 1, 3],
       sol: '$\\mu u$: kg/s × m/s = kg m/s² = N. $\\rho Av^2$: kg/m³ × m² × m²/s² = kg m/s² = N. $\\lambda v^2$: kg/m × m²/s² = kg m/s² = N. $\\tfrac12\\mu u^2$: kg/s × m²/s² = J/s = W, a power.' },
+    ...more2,
   ],
   gens: [
     { id: 'vms-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'thrust',
