@@ -70,6 +70,8 @@ export default {
       { id: 'multipoles', name: 'Multipole expansion' },
       { id: 'fields-in-matter', name: 'Fields in matter: polarisation and magnetisation' },
       { id: 'potentials-gauges', name: 'Potentials, gauges and Maxwell\'s equations' },
+      { id: 'retarded-potentials', name: 'Liénard-Wiechert fields and radiation (NET)' },
+      { id: 'plasma-dispersion', name: 'Plasma oscillations and dispersion (NET)' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
@@ -100,6 +102,8 @@ export default {
       { id: 'one-dimensional-potentials', name: 'One-dimensional potentials: wells, barriers and delta potentials' },
       { id: 'harmonic-oscillator', name: 'The quantum harmonic oscillator and ladder operators' },
       { id: 'angular-momentum', name: 'Angular momentum' },
+      { id: 'scattering-theory', name: 'Scattering: Born approximation and partial waves (NET)' },
+      { id: 'relativistic-quantum', name: 'Klein-Gordon and Dirac equations (NET)' },
     ] },
     { id: 'atomic', name: 'Atomic and molecular physics', topics: [
       { id: 'fine-structure', name: 'Hydrogen spectra and fine structure' },
