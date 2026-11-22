@@ -43,7 +43,7 @@ sources:
 
 **Worked examples.** A difference amplifier with `$R_1 = 10$` kΩ, `$R_2 = 100$` kΩ gives `$10(V_2 - V_1)$`; a 1% mismatch in one resistor lets a common-mode signal through with gain of order `$0.01\times R_2/(R_1 + R_2) \approx 0.009$`, so CMRR is only about 60 dB. That is why the instrumentation amplifier, whose gain is set by one resistor `$R_G$` and whose first stage passes common-mode signals at unity gain, is used for small differential signals. An integrator with `$R = 10$` kΩ and `$C = 0.1$` µF fed a 1 V step ramps at −1000 V/s and reaches −10 V after 10 ms. A real integrator needs a large resistor across `$C$`, or its own offset ramps it into saturation.
 
-**Active filters.** A resistor `$R_f$` in parallel with `$C$` in the feedback path of an inverting amplifier makes a first-order low-pass with DC gain `$-R_f/R_1$` and corner `$1/2\pi R_fC$`. Second-order sections such as the **Sallen-Key** low-pass place the poles anywhere: with equal resistors `$R$` and capacitors `$C$` and amplifier gain `$K$`, `$\omega_0 = 1/RC$` and `$Q = 1/(3 - K)$`. At `$K = 3$` the poles reach the imaginary axis: the same condition as the Wien oscillator of lesson 9.4.
+**Active filters.** A resistor `$R_f$` in parallel with `$C$` in the feedback path of an inverting amplifier makes a first-order low-pass with DC gain `$-R_f/R_1$` and corner `$1/2\pi R_fC$`. Second-order sections such as the **Sallen-Key** low-pass place the poles anywhere: with equal resistors `$R$` and capacitors `$C$` and amplifier gain `$K$`, `$\omega_0 = 1/RC$` and `$Q = 1/(3 - K)$`. At `$K = 3$` the poles reach the imaginary axis: the same condition as the Wien oscillator of [lesson 9.4](/learn/courses/gate-physics/oscillators/).
 
 ## 2. Real op-amps
 

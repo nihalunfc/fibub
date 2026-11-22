@@ -62,7 +62,7 @@ The core quantum unit ([roadmap 5.1](/learn/courses/csir-net-physics/quantum-roa
 3. **Atoms in fields**: GATE [Zeeman and Stark effects](/learn/courses/gate-physics/zeeman-stark/).
 4. **Molecules**: GATE [rotational spectra](/learn/courses/gate-physics/rotational-spectra/), [vibrational spectra](/learn/courses/gate-physics/vibrational-spectra/) and [Raman spectroscopy](/learn/courses/gate-physics/raman/).
 5. **Lasers**: GATE [Einstein coefficients and lasers](/learn/courses/gate-physics/lasers/).
-6. **NET extras in this course**: lesson 8.2 (magnetic resonance: ESR and NMR) and lesson 8.3 (electronic spectra and the Franck-Condon principle).
+6. **NET extras in this course**: [lesson 8.2](/learn/courses/csir-net-physics/esr-nmr/) (magnetic resonance: ESR and NMR) and [lesson 8.3](/learn/courses/csir-net-physics/electronic-spectra/) (electronic spectra and the Franck-Condon principle).
 
 ## 3. Where each topic is taught
 
@@ -75,8 +75,8 @@ The core quantum unit ([roadmap 5.1](/learn/courses/csir-net-physics/quantum-roa
 | Vibrational spectra | [GATE 6.5](/learn/courses/gate-physics/vibrational-spectra/) | anharmonicity, dissociation energy, P and R branches |
 | Raman | [GATE 6.6](/learn/courses/gate-physics/raman/) | Stokes and anti-Stokes, 4B spacing, mutual exclusion |
 | Lasers | [GATE 6.7](/learn/courses/gate-physics/lasers/) | A/B ratio ∝ ν³, three- and four-level schemes, mode spacing c/2L |
-| ESR, NMR | lesson 8.2 | resonance frequency from g and B, chemical shift in ppm |
-| Electronic spectra, Franck-Condon | lesson 8.3 | vibrational progressions, Born-Oppenheimer separation |
+| ESR, NMR | [lesson 8.2](/learn/courses/csir-net-physics/esr-nmr/) | resonance frequency from g and B, chemical shift in ppm |
+| Electronic spectra, Franck-Condon | [lesson 8.3](/learn/courses/csir-net-physics/electronic-spectra/) | vibrational progressions, Born-Oppenheimer separation |
 
 ## 4. A worked NET-style example
 

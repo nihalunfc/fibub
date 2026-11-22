@@ -63,8 +63,8 @@ Described from the published syllabus (check the current one):
 2. **Op-amps**: JAM [operational amplifiers](/learn/courses/iit-jam-physics/op-amps/), then the GATE lessons on amplifiers and feedback, op-amp circuits and oscillators.
 3. **Digital**: JAM [logic gates and Boolean algebra](/learn/courses/iit-jam-physics/digital-logic/), then the GATE lessons on combinational logic, flip-flops and counters, and ADCs and DACs.
 4. **Circuits** refresher where needed: JAM [DC transients and AC circuits](/learn/courses/iit-jam-physics/circuits/) (filters and time constants).
-5. **Errors and statistics**: GATE [probability and statistics](/learn/courses/gate-physics/probability/), then lesson 7.2 of this course (measurement, errors and fitting data).
-6. **NET extras in this course**: lesson 7.3 (transducers and detectors) and lesson 7.4 (noise, filtering and lock-in detection).
+5. **Errors and statistics**: GATE [probability and statistics](/learn/courses/gate-physics/probability/), then [lesson 7.2](/learn/courses/csir-net-physics/errors-data-fitting/) of this course (measurement, errors and fitting data).
+6. **NET extras in this course**: [lesson 7.3](/learn/courses/csir-net-physics/transducers-detectors/) (transducers and detectors) and [lesson 7.4](/learn/courses/csir-net-physics/noise-lock-in/) (noise, filtering and lock-in detection).
 
 ## 3. Where each topic is taught
 
@@ -76,9 +76,9 @@ Described from the published syllabus (check the current one):
 | Op-amps | [JAM op-amps](/learn/courses/iit-jam-physics/op-amps/), GATE op-amp lessons | summers, integrators, differentiators, active filters, comparators |
 | Digital circuits, converters | [JAM logic](/learn/courses/iit-jam-physics/digital-logic/), GATE digital lessons | Karnaugh maps, counters, R-2R DAC, ADC resolution |
 | Filters, time constants | [JAM circuits](/learn/courses/iit-jam-physics/circuits/) | RC cut-off frequency, phase shift |
-| Errors, least squares, chi-square | [GATE probability](/learn/courses/gate-physics/probability/), lesson 7.2 | propagation, weighted fits, degrees of freedom |
-| Transducers, detectors | lesson 7.3 | thermocouples, RTDs, Hall probes, photomultipliers, vacuum gauges |
-| Noise, lock-in | lesson 7.4 | Johnson noise `$4kTR\Delta f$`, signal-to-noise gain from averaging |
+| Errors, least squares, chi-square | [GATE probability](/learn/courses/gate-physics/probability/), [lesson 7.2](/learn/courses/csir-net-physics/errors-data-fitting/) | propagation, weighted fits, degrees of freedom |
+| Transducers, detectors | [lesson 7.3](/learn/courses/csir-net-physics/transducers-detectors/) | thermocouples, RTDs, Hall probes, photomultipliers, vacuum gauges |
+| Noise, lock-in | [lesson 7.4](/learn/courses/csir-net-physics/noise-lock-in/) | Johnson noise `$4kTR\Delta f$`, signal-to-noise gain from averaging |
 
 ## 4. A worked NET-style example
 

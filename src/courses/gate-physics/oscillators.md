@@ -98,7 +98,7 @@ f_s = \frac1{2\pi\sqrt{LC}}, \qquad f_p = f_s\sqrt{1 + \frac C{C_0}} \approx f_s
 
 </div>
 
-**Worked example.** `$L = 0.5$` H, `$C = 0.05$` pF, `$R = 50$` Ω, `$C_0 = 5$` pF: `$f_s = 1.0066$` MHz, `$f_p - f_s = 5.0$` kHz, and `$Q = 63\,000$`. Watch crystals use 32 768 Hz = 2¹⁵ Hz, so a chain of 15 flip-flops (lesson 9.6) divides it to exactly 1 Hz.
+**Worked example.** `$L = 0.5$` H, `$C = 0.05$` pF, `$R = 50$` Ω, `$C_0 = 5$` pF: `$f_s = 1.0066$` MHz, `$f_p - f_s = 5.0$` kHz, and `$Q = 63\,000$`. Watch crystals use 32 768 Hz = 2¹⁵ Hz, so a chain of 15 flip-flops ([lesson 9.6](/learn/courses/gate-physics/sequential-logic/)) divides it to exactly 1 Hz.
 
 **Relaxation oscillators** (astable multivibrators, 555 timers, the UJT oscillator) charge a capacitor until a threshold switches the circuit, then discharge it. They give square or triangle waves, and their frequency depends on an RC time constant and two thresholds rather than on a resonance; their frequency stability is much worse than a crystal's. A **voltage-controlled oscillator** makes the charging current proportional to an input voltage, so the frequency follows the voltage.
 

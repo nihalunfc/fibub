@@ -118,7 +118,7 @@ I_D = \begin{cases} k_n\left[(V_{GS} - V_T)V_{DS} - \tfrac12V_{DS}^2\right] & V_
 
 <div class="problem" data-problem="mosfet-bias"></div>
 
-A depletion-mode MOSFET has a channel built in, so it conducts at `$V_{GS} = 0$` and its `$V_T$` is negative. **CMOS** pairs an n-channel and a p-channel device: in either logic state one is off, so the static current is only leakage, and power is spent mainly in charging load capacitance (lesson 9.5).
+A depletion-mode MOSFET has a channel built in, so it conducts at `$V_{GS} = 0$` and its `$V_T$` is negative. **CMOS** pairs an n-channel and a p-channel device: in either logic state one is off, so the static current is only leakage, and power is spent mainly in charging load capacitance ([lesson 9.5](/learn/courses/gate-physics/combinational-logic/)).
 
 ## 4. Optoelectronic devices
 

@@ -104,7 +104,7 @@ The rule: series connections raise the resistance at that port, shunt connection
 
 ## 4. Stability
 
-A real amplifier has several poles. Each contributes up to −90° of phase, so with two or more the loop gain `$A(j\omega)\beta$` can reach −180°. There the "negative" feedback has become positive. If `$|A\beta| \ge 1$` at that frequency, the loop sustains a signal by itself: oscillation (lesson 9.4 uses this on purpose).
+A real amplifier has several poles. Each contributes up to −90° of phase, so with two or more the loop gain `$A(j\omega)\beta$` can reach −180°. There the "negative" feedback has become positive. If `$|A\beta| \ge 1$` at that frequency, the loop sustains a signal by itself: oscillation ([lesson 9.4](/learn/courses/gate-physics/oscillators/) uses this on purpose).
 
 ```math
 \text{phase margin} = 180^\circ + \angle A\beta \ \text{ at } |A\beta| = 1, \qquad \text{gain margin} = -20\log_{10}|A\beta| \ \text{ at } \angle A\beta = -180^\circ
