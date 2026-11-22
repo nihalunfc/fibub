@@ -12,6 +12,7 @@ const deg = Math.PI / 180;
 import * as Q5 from '../_util.js';
 import more2 from './geometrical-optics.more2.gen.js';
 import r4 from './geometrical-optics.r4.gen.js';
+import r5 from './geometrical-optics.r5.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -226,6 +227,7 @@ export default {
       sol: 'Each drop sends light back most strongly at its angle of minimum deviation: about $42^\\circ$ (red) and $40^\\circ$ (violet) from the antisolar point for one internal reflection, so red is outside. The secondary bow (about $51^\\circ$) comes from two internal reflections, which reverses the colours.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'gop-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'images',
@@ -367,5 +369,6 @@ export default {
           trap: 'Compare the object distance with $f$ and $2f$ first.' };
       } },
     ...r4.gens,
+    ...r5.gens,
   ],
 };

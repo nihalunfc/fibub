@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './multipoles.more.gen.js';
 import more2 from './multipoles.more2.gen.js';
 import r4 from './multipoles.r4.gen.js';
+import r5 from './multipoles.r5.gen.js';
 
 const K = 8.9875517923e9, D = 3.33564e-30, E = 1.602176634e-19, PI = Math.PI;
 
@@ -207,6 +208,7 @@ export default {
       trap: 'Only the $P_2$ part of $\\cos^2\\theta$ contributes; the $\\tfrac13$ part is a monopole.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -350,5 +352,6 @@ export default {
       verify: (p) => { const c = Math.cos(p.b * PI / 180); return -p.qc * 1e-9 * (p.a * 1e-3) ** 2 * p.G * 1e8 * (1.5 * c * c - 0.5) * 1e6; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
