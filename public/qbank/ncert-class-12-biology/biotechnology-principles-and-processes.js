@@ -1,0 +1,52 @@
+// Class 12 Biology, Chapter 9 Biotechnology: Principles and Processes: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('bp');
+
+export default {
+  topic: 'biotechnology-principles-and-processes', name: 'Biotechnology: Principles and Processes', n: 9,
+  items: [
+    m.mcq(1, 'tools', '<p>The enzymes that cut DNA at specific recognition sequences are called:</p>', 'restriction endonucleases', ['DNA ligases', 'exonucleases only', 'DNA polymerases'], '<p>Restriction enzymes are endonucleases that cut inside DNA at specific sites. Ligases join; polymerases copy.</p>'),
+    m.mcq(1, 'tools', '<p>The enzyme that joins the cut fragments of DNA is:</p>', 'DNA ligase', ['restriction endonuclease', 'Taq polymerase', 'lysozyme'], '<p>DNA ligase seals the sugar-phosphate backbone to make recombinant DNA.</p>'),
+    m.mcq(2, 'tools', '<p>In the name EcoRI, the letters “co” stand for:</p>', 'the species coli', ['the genus Escherichia', 'the strain RY13', 'the order of discovery'], '<p>E = Escherichia (genus), co = coli (species), R = strain RY13, I = first enzyme found in it.</p>'),
+    m.mcq(2, 'tools', '<p>A palindromic DNA sequence is one that:</p>', 'reads the same on both strands when read 5′ to 3′', ['is the same on both strands in the 5′ to 3′ and 3′ to 5′ direction of one strand', 'has only A and T', 'contains no cytosine'], '<p>GAATTC on the top strand and 3′-CTTAAG-5′ on the bottom, which also reads GAATTC from 5′.</p>'),
+    m.mcq(2, 'tools', '<p>Sticky ends are useful in cloning because they:</p>', 'pair by complementary base pairing with ends cut by the same enzyme', ['are made of RNA', 'cannot be joined by ligase', 'prevent a plasmid from replicating'], '<p>Single-stranded overhangs of fragments cut with the same enzyme are complementary, so the pieces anneal before ligase joins them.</p>'),
+    m.mcq(3, 'tools', '<p>A linear DNA is cut at 3 sites by a restriction enzyme. How many fragments result?</p>', '4', ['3', '2', '5'], '<p>A linear molecule gives n + 1 fragments for n cuts: 3 + 1 = 4.</p>', { trap: 'Using the rule for circular DNA.' }),
+    m.mcq(3, 'tools', '<p>A circular plasmid is cut at 3 sites. How many fragments result?</p>', '3', ['4', '2', '1'], '<p>A ring gives n fragments for n cuts (n ≥ 1).</p>'),
+    m.mcq(1, 'gel', '<p>In gel electrophoresis, DNA fragments move toward the:</p>', 'anode (positive electrode)', ['cathode (negative electrode)', 'middle of the gel', 'well that was loaded first'], '<p>DNA carries negative charges from its phosphate groups, so it migrates to the anode.</p>'),
+    m.mcq(2, 'gel', '<p>In an agarose gel, the fragments that travel the shortest distance are the:</p>', 'largest', ['smallest', 'those with the most A–T pairs', 'single-stranded ones only'], '<p>The gel is a mesh. Large fragments are held back most, so they stay near the wells.</p>'),
+    m.mcq(2, 'gel', '<p>The dye used to stain DNA in a gel, which glows under UV, is:</p>', 'ethidium bromide', ['methylene blue', 'iodine', 'Fehling’s reagent'], '<p>Ethidium bromide intercalates between base pairs and fluoresces orange under UV.</p>'),
+    m.mcq(2, 'vectors', '<p>The part of a vector that is responsible for controlling the copy number is:</p>', 'ori (origin of replication)', ['the selectable marker', 'the cloning site', 'the promoter only'], '<p>Replication starts at ori, and its sequence sets how many copies of the vector each cell holds.</p>'),
+    m.mcq(2, 'vectors', '<p>Which is used as a selectable marker in plasmids?</p>', 'antibiotic resistance genes', ['the ori', 'a restriction site', 'a stop codon'], '<p>A resistance gene lets only the transformed cells grow on the antibiotic.</p>'),
+    m.mcq(3, 'vectors', '<p>A gene is inserted at the BamHI site of pBR322, inside tetR. The recombinant bacteria will:</p>', 'grow on ampicillin but not on tetracycline', ['grow on tetracycline but not on ampicillin', 'grow on both', 'die on both'], '<p>tetR is broken; ampR still works.</p>'),
+    m.mcq(3, 'vectors', '<p>In blue-white screening, recombinant colonies are:</p>', 'white, because the β-galactosidase gene is inactivated', ['blue, because β-galactosidase is overproduced', 'white, because ori is lost', 'blue, because they carry an antibiotic gene'], '<p>An insert in the lacZ gene stops the enzyme, so the chromogenic substrate is not turned blue.</p>'),
+    m.mcq(1, 'host', '<p>Bacterial cells are made competent for DNA uptake by treating them with:</p>', 'calcium chloride followed by a heat shock', ['ethanol at 4 °C', 'a gene gun', 'lysozyme and cellulase'], '<p>Ca²⁺ makes pores in the cell wall; the 42 °C shock lets DNA in.</p>'),
+    m.mcq(2, 'host', '<p>Biolistics, or the gene gun, is mostly used for:</p>', 'plant cells', ['bacteria', 'animal egg cells', 'viruses'], '<p>Gold or tungsten particles coated with DNA are shot through the plant cell wall.</p>'),
+    m.mcq(2, 'host', '<p>Injecting DNA straight into the nucleus of an animal cell with a fine needle is called:</p>', 'micro-injection', ['biolistics', 'electroporation of bacteria', 'transduction by Agrobacterium'], '<p>This is the micro-injection method.</p>'),
+    m.mcq(2, 'isolate', '<p>Which enzyme is used to break the cell wall of a fungus while isolating DNA?</p>', 'chitinase', ['cellulase', 'lysozyme', 'ligase'], '<p>Fungal walls contain chitin. Cellulase is for plants and lysozyme for bacteria.</p>'),
+    m.mcq(2, 'isolate', '<p>DNA is separated as white threads by adding:</p>', 'chilled ethanol', ['concentrated acid', 'protease', 'hot water'], '<p>DNA is insoluble in cold ethanol and precipitates as fine threads.</p>'),
+    m.mcq(1, 'pcr', '<p>PCR was made practical by the use of a polymerase from:</p>', 'Thermus aquaticus', ['Escherichia coli', 'Bacillus thuringiensis', 'Agrobacterium tumefaciens'], '<p>Taq polymerase from <i>Thermus aquaticus</i> is stable at 94 °C.</p>'),
+    m.mcq(2, 'pcr', '<p>The correct order of the PCR steps in one cycle is:</p>', 'denaturation, annealing, extension', ['annealing, denaturation, extension', 'extension, annealing, denaturation', 'denaturation, extension, annealing'], '<p>Heat to separate strands, cool to bind primers, then warm to 72 °C for synthesis.</p>'),
+    m.mcq(2, 'pcr', '<p>Primers in PCR are:</p>', 'short single-stranded DNA pieces complementary to the ends of the target', ['long double-stranded DNA', 'RNA polymerases', 'proteins that bind to gels'], '<p>Each primer anneals to the 3′ end of one strand and gives the polymerase a start point.</p>'),
+    m.mcq(3, 'pcr', '<p>Starting with a single DNA molecule, the number of copies after 10 perfect PCR cycles is:</p>', '1024', ['100', '512', '2048'], '<p>2¹⁰ = 1024.</p>'),
+    m.mcq(2, 'bio', '<p>The role of the sparger in a stirred-tank bioreactor is to:</p>', 'bubble sterile air through the culture', ['stir the culture', 'control foam', 'sample the culture'], '<p>The sparger supplies oxygen; the stirrer mixes; a foam breaker controls foam.</p>'),
+    m.mcq(2, 'bio', '<p>All the steps after fermentation, such as separation, purification and formulation, are called:</p>', 'downstream processing', ['upstream processing', 'transformation', 'amplification'], '<p>Downstream processing prepares the product for use and includes quality-control tests.</p>'),
+    m.ar(2, 'tools', 'Restriction enzymes are called molecular scissors.', 'They cut DNA at specific recognition sequences.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'pcr', 'Taq polymerase is added only once at the start of PCR.', 'Taq polymerase is stable at the high temperature used for denaturation.', 0, '<p>Both true and R explains A: the enzyme survives every 94 °C step, so it need not be re-added.</p>'),
+    m.ar(3, 'vectors', 'An insert in the tetracycline gene lets recombinant cells grow on tetracycline.', 'Insertional inactivation breaks the resistance gene.', 3, '<p>A is false (recombinant cells are sensitive); R is true. Answer: A false, R true.</p>'),
+    m.nat(2, 'pcr', '<p>A PCR starts with 5 copies of a target and runs for 6 cycles. How many copies are there (perfect doubling)?</p>', () => 5 * 64, 0, '<p>5 × 2⁶ = 5 × 64 = 320.</p>'),
+    m.nat(3, 'tools', '<p>A random DNA of 81 920 bp has an enzyme that recognises a 4-base sequence. About how many sites are expected?</p>', () => 81920 / 256, 0.02, '<p>4⁴ = 256, so 81 920 ÷ 256 = 320 sites.</p>'),
+    m.msq(3, 'tools', '<p>Which of these are needed to make recombinant DNA? (Choose all that apply.)</p>', ['A restriction enzyme', 'DNA ligase', 'A vector', 'A ribosome-inactivating protein'], [0, 1, 2], '<p>Cut with the restriction enzyme, join with ligase, carry by a vector. The fourth option has nothing to do with cloning.</p>'),
+  ],
+  gens: [
+    { id: 'bp-g01', type: 'nat', level: 2, exams: ['board'], sub: 'pcr',
+      make(rng) { const c = pick(rng, 6, 25, 1), s = choose(rng, [1, 2, 3, 5]); return { c, s, q: `<p>A PCR starts with ${s} copy${s > 1 ? 'ies' : ''} of the target. How many copies after ${c} cycles with perfect doubling?</p>`, answer: s * Math.pow(2, c), tol: 0.01, unit: '', sol: `<p>${s} × 2^${c} = ${s * Math.pow(2, c)}.</p>` }; },
+      verify: (p) => { let x = p.s; for (let i = 0; i < p.c; i++) x += x; return x; } },
+    { id: 'bp-g02', type: 'nat', level: 2, exams: ['board'], sub: 'tools',
+      make(rng) { const k = pick(rng, 1, 8, 1), lin = choose(rng, [true, false]); return { k, lin, q: `<p>A ${lin ? 'linear' : 'circular'} DNA has ${k} recognition site${k > 1 ? 's' : ''} for an enzyme. How many fragments will it give when fully cut?</p>`, answer: lin ? k + 1 : k, tol: 0, unit: '', sol: `<p>${lin ? 'Linear: cuts + 1' : 'Circular: equal to the number of cuts'} = ${lin ? k + 1 : k}.</p>` }; },
+      verify: (p) => (p.lin ? p.k + 1 : p.k) },
+    { id: 'bp-g03', type: 'nat', level: 3, exams: ['board'], sub: 'tools',
+      make(rng) { const nt = choose(rng, [4, 6]), L = choose(rng, [4096, 16384, 65536, 262144]); return { nt, L, q: `<p>A ${nt}-base restriction site: about how many sites would you expect in a random DNA of ${L} bp?</p>`, answer: L / Math.pow(4, nt), tol: 0.02, unit: '', sol: `<p>Sites ≈ L ÷ 4^${nt} = ${L} ÷ ${Math.pow(4, nt)} = ${L / Math.pow(4, nt)}.</p>` }; },
+      verify: (p) => p.L * Math.pow(1 / 4, p.nt) },
+  ],
+};
