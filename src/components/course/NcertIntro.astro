@@ -1,0 +1,18 @@
+---
+// The top of an NCERT study course's home page: how the course works and a link to the class page with every tool.
+import type { CourseSyllabus } from '../../courses/types';
+interface Props { course: CourseSyllabus }
+const { course } = Astro.props;
+const cls = course.id.match(/class-\d+/)?.[0] ?? '';
+const subject = course.id.split('-').pop();
+---
+<section class="cs-builds">
+  <h2>How to use these notes</h2>
+  <ul>
+    <li><strong>Go in NCERT order.</strong> Each chapter has two pages: the chapter itself, then its practice questions. Read the chapter, try every animation and tool, then do the practice page.</li>
+    <li><strong>See it, then learn the rule.</strong> Every idea starts with something you can watch or move: step-by-step animations, live diagrams with sliders, and the fibub tools for the chapter built right into the page.</li>
+    <li><strong>Practise until it is easy.</strong> Live problems give fresh numbers every time with a hint and a full worked answer. Practice pages have board-style questions (1, 2, 3 and 5 marks, case-based, assertion-reason) with model answers, and a question set you can check one by one.</li>
+    <li><strong>Revise in minutes.</strong> Every chapter ends with key points and a 3-question check, and the Summary sheet button prints the chapter's key points on one page.</li>
+  </ul>
+  <p>All the tools for each chapter are also listed on the <a href={`/learn/${cls}/#${subject}`}>class page</a>. Free, no sign-up. Your progress stays in this browser: tick "Remember my progress" below, or save it as a file.</p>
+</section>
