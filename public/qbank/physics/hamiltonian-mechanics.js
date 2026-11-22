@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './hamiltonian-mechanics.more.gen.js';
 import more2 from './hamiltonian-mechanics.more2.gen.js';
 import r4 from './hamiltonian-mechanics.r4.gen.js';
+import r5 from './hamiltonian-mechanics.r5.gen.js';
 
 const g = 9.8;
 
@@ -217,6 +218,7 @@ export default {
       trap: '$n = 4/3$ gives $T \\propto E^{+1/4}$: the sign of the exponent matters.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'ham-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Hamilton\'s equations',
@@ -354,5 +356,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

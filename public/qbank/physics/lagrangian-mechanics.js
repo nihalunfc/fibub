@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './lagrangian-mechanics.more.gen.js';
 import more2 from './lagrangian-mechanics.more2.gen.js';
 import r4 from './lagrangian-mechanics.r4.gen.js';
+import r5 from './lagrangian-mechanics.r5.gen.js';
 
 const g = 9.8;
 
@@ -226,6 +227,7 @@ export default {
       trap: 'The by-parts trick avoids integrating $\\sinh^2$ and $\\cosh^2$ separately.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'lag-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'simple systems',
@@ -357,5 +359,6 @@ export default {
       verify: (p) => { const mu = 4 * p.m2 * p.m3 / (p.m2 + p.m3); return Math.abs(g * (p.m1 - mu) / (p.m1 + mu)); } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
