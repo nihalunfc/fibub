@@ -145,5 +145,8 @@ export default {
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
       { id: 'nuclear-reactions', name: 'Nuclear reactions, fission and fusion' },
     ] },
+    { id: 'aptitude', name: 'General aptitude (NET Part A)', topics: [
+      { id: 'part-a-aptitude', name: 'Part A: series, percentages, data, geometry, puzzles, graphs and estimation' },
+    ] },
   ],
 };
