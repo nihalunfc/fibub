@@ -2,7 +2,7 @@
 title: Vectors and the dot product
 summary: A vector is a list of numbers, such as one row of a table. The dot product multiplies two lists item by item and adds the results. It powers linear models, neurons and the attention inside language models.
 minutes: 20
-updated: 2026-11-21
+updated: 2026-11-22
 quiz:
   - q: What is the dot product of (2, 3) and (4, −1)?
     choices: ['5', '11', '8']
@@ -16,13 +16,19 @@ quiz:
     choices: ['320', '310', '120']
     ans: 0
     why: w · x = 3 × 100 + 0.5 × 20 = 310, then add b = 10 to get 320.
+sources:
+  - 'Strang, G. (2016), Introduction to Linear Algebra, 5th ed., Wellesley-Cambridge Press, Chapter 1 (vectors, lengths and dot products)'
+  - 'Goodfellow, I., Bengio, Y. and Courville, A. (2016), Deep Learning, MIT Press, Chapter 2 (linear algebra) https://www.deeplearningbook.org/'
+  - 'Manning, C. D., Raghavan, P. and Schütze, H. (2008), Introduction to Information Retrieval, Cambridge University Press, Chapter 6 (cosine similarity)'
 ---
 
 **Module 1 · about 20 minutes · read first: 1.3.** You'll be able to add and scale vectors, compute a dot product two ways, measure the length of a vector, and write a linear model in one line.
 
+<div class="bigidea">A vector is a list of numbers; the dot product multiplies two lists item by item and adds up, giving one number that says how much they agree.</div>
+
 ## 1. Why this matters
 
-A row of a data table is a list of numbers. Machine learning treats that list as a single object, a **vector**, and the most important thing it does with vectors is the **dot product**. A linear model is a dot product plus a number. A neuron is a dot product passed through a bend. Attention in a language model is a table of dot products between words. Learn this one operation well and you have the main tool of the whole subject.
+A row of a data table is a list of numbers. Machine learning treats that list as one object, a **vector**, and the most important thing it does with vectors is the **dot product**. A linear model is a dot product plus a number. A neuron is a dot product passed through a bend. Attention in a language model is a table of dot products between words. Learn this one operation well and you hold the main tool of the whole subject.
 
 ## 2. A vector is a list of numbers
 
@@ -32,11 +38,11 @@ A home with floor area 95 m², 3 bedrooms and age 40 years is the vector
 \mathbf{x} = (95,\ 3,\ 40)
 ```
 
-It has 3 **components** (or dimensions). Vectors are written in bold. With 2 components you can draw a vector as an arrow from the origin (0, 0) to the point. With 3 you need a 3-D picture, and with 300 you can't draw it at all, but the arithmetic is exactly the same. That is the beauty of vectors: draw ideas in 2-D, then trust them in any number of dimensions.
+Each number is a **component** (or dimension), and vectors are written in bold. With 2 components you can draw a vector as an arrow from (0, 0) to the point, like directions on a map: "3 blocks east, 4 blocks north". With 3 you need a 3-D picture, and with 300 you can't draw it at all, but the arithmetic is exactly the same. That is the beauty of vectors: picture ideas in 2-D, then trust them in any number of dimensions.
 
 Two simple operations:
 
-- **Add** vectors component by component: `$(1, 2) + (3, 1) = (4, 3)$`. As arrows, put the second on the tip of the first.
+- **Add** vectors component by component: `$(1, 2) + (3, 1) = (4, 3)$`. As arrows, walk the first, then the second.
 - **Scale** by a number: `$2 \times (1, 2) = (2, 4)$`. The arrow keeps its direction and doubles in length.
 
 ## 3. The dot product
@@ -47,7 +53,16 @@ Multiply matching components, then add:
 \mathbf{a} \cdot \mathbf{b} = a_1 b_1 + a_2 b_2 + \dots + a_d b_d = \sum_{j=1}^{d} a_j b_j
 ```
 
-The answer is one number, not a vector. Drag the arrows:
+The answer is one number, not a vector. You already do this at the shop till:
+
+<div class="steps">
+<div class="step"><b>Two lists.</b> Quantities q = (2 loaves, 3 litres of milk, 4 apples). Prices p = ($3, $2, $0.50).</div>
+<div class="step"><b>Multiply matching items.</b> 2 × 3 = 6; 3 × 2 = 6; 4 × 0.50 = 2.</div>
+<div class="step"><b>Add them up.</b> 6 + 6 + 2 = 14. So q · p = 14: the bill is $14.</div>
+<div class="step"><b>The model view.</b> A linear model works the same way. The features are the quantities, the weights are the prices of each feature, and the prediction is the bill (plus a fixed charge, the bias).</div>
+</div>
+
+Now drag the arrows:
 
 <!--fig:dot-product-->
 
@@ -59,13 +74,13 @@ The same number can be found from lengths and the angle between the arrows:
 \mathbf{a} \cdot \mathbf{b} = \lVert \mathbf{a} \rVert \, \lVert \mathbf{b} \rVert \cos\theta
 ```
 
-where `$\lVert \mathbf{a} \rVert$` is the length of `$\mathbf{a}$` and `$\theta$` the angle between them. Since `$\cos\theta$` is 1 at 0°, 0 at 90° and −1 at 180°:
+Here `$\lVert \mathbf{a} \rVert$` is the length of `$\mathbf{a}$` and `$\theta$` (theta) is the angle between the arrows. Since `$\cos\theta$` is 1 at 0°, 0 at 90° and −1 at 180°:
 
 - **Large positive:** the arrows point the same way. They "agree".
 - **Zero:** at right angles. They share nothing.
 - **Negative:** they point apart. They "disagree".
 
-This is why the dot product is used to measure **similarity**. In Lesson 10.2, words become vectors, and words with similar meanings have arrows pointing the same way, so their dot product is large.
+This is why the dot product measures **similarity**. In Lesson 10.2, words become vectors, and words with similar meanings have arrows pointing the same way, so their dot product is large.
 
 ## 5. Length and the angle
 
@@ -81,6 +96,14 @@ Rearranging the formula of section 4 gives the **cosine similarity**, a score fr
 \cos\theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\lVert \mathbf{a} \rVert \, \lVert \mathbf{b} \rVert}
 ```
 
+<div class="myth">
+
+**"A bigger dot product always means more alike."** Only if the lengths are equal. A huge basket and a small basket can have a big dot product just because the huge one has big numbers. Cosine similarity divides out the lengths, so a family's weekly shop and a single person's can still score close to 1 if they buy things in the same proportions.
+
+</div>
+
+<div class="problem" data-problem="vectors-dot-product-cosine"></div>
+
 ## 6. A linear model is a dot product
 
 The many-input line from Lesson 1.3, `$\hat y = w_1 x_1 + w_2 x_2 + \dots + w_d x_d + b$`, is just
@@ -90,6 +113,19 @@ The many-input line from Lesson 1.3, `$\hat y = w_1 x_1 + w_2 x_2 + \dots + w_d 
 ```
 
 The **weight vector** `$\mathbf{w}$` says how much each feature counts. Training finds `$\mathbf{w}$` and `$b$`. Seen as arrows, the prediction is large when the example points in the direction the weights "like".
+
+<div class="meaning">
+
+<dl>
+<dt>x</dt><dd>The features of one example, as a list: (floor area, bedrooms, age).</dd>
+<dt>w</dt><dd>The weights: how much each feature is "worth" in the prediction. A negative weight pulls the prediction down.</dd>
+<dt>w · x</dt><dd>Multiply each feature by its weight and add: one number.</dd>
+<dt>b</dt><dd>The bias: a fixed amount added at the end.</dd>
+<dt>cos θ</dt><dd>How much two lists point the same way, from −1 (opposite) to 1 (same direction), ignoring size.</dd>
+<dt>Physical meaning</dt><dd>The dot product is a weighted vote. Each feature casts a vote of its size times its importance, and the votes are added. A till adding up a bill, a judge totalling marks with different weights per round, and a neuron deciding whether to fire all do exactly this.</dd>
+</dl>
+
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -113,6 +149,8 @@ The **weight vector** `$\mathbf{w}$` says how much each feature counts. Training
 
 So the model predicts about $354,500. The negative weight on age says older homes sell for less, other things being equal. Computers do this for millions of rows at once by stacking rows into a matrix (Lesson 3.4).
 
+<div class="problem" data-problem="vectors-dot-product-price"></div>
+
 ## 8. Practice
 
 1. Compute `$(1, 2, 3) \cdot (4, 0, -1)$`.
@@ -130,3 +168,13 @@ So the model predicts about $354,500. The negative weight on age says older home
 **Try it on your own data:** the [[embedding-visualiser]] places text as vectors and compares them with cosine similarity.
 
 **New words:** *vector*, *component* or *dimension*, *dot product*, *length* or *norm*, *cosine similarity*, *weight vector*.
+
+<div class="keypoints">
+
+- A vector is a list of numbers, such as one row of a data table.
+- Dot product: multiply matching items and add; the answer is one number.
+- It also equals length × length × cos(angle), so it measures how much two vectors agree.
+- Cosine similarity divides out the lengths and keeps only direction, from −1 to 1.
+- A linear model is ŷ = w · x + b: a weighted vote of the features plus a fixed amount.
+
+</div>
