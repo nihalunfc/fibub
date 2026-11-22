@@ -58,6 +58,15 @@ export default {
       { id: 'second-law-entropy', name: 'The second law, engines and entropy' },
       { id: 'thermodynamic-potentials', name: 'Thermodynamic potentials and Maxwell relations' },
     ] },
+    { id: 'statistical', name: 'Statistical physics', topics: [
+      { id: 'ensembles', name: 'Microstates, entropy and the statistical ensembles' },
+      { id: 'partition-functions', name: 'Partition functions and thermodynamics' },
+      { id: 'classical-gas-equipartition', name: 'The classical ideal gas and equipartition' },
+      { id: 'quantum-statistics', name: 'Bose-Einstein and Fermi-Dirac statistics' },
+      { id: 'photon-phonon-gases', name: 'Photon and phonon gases, Bose-Einstein condensation' },
+      { id: 'fermi-gas', name: 'The degenerate Fermi gas' },
+      { id: 'phase-transitions', name: 'Phase transitions and critical phenomena' },
+    ] },
     { id: 'modern', name: 'Modern physics', topics: [
       { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
       { id: 'matter-waves', name: 'Matter waves and the uncertainty principle' },
