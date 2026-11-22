@@ -2,7 +2,11 @@
 title: What "offline" really means
 summary: Download once, run forever. What needs the internet during setup, what never does, and what always will.
 minutes: 20
-updated: 2026-11-18
+updated: 2026-11-22
+sources:
+  - 'Ollama FAQ (where models are stored, running without a connection) https://github.com/ollama/ollama/blob/main/docs/faq.md'
+  - 'LM Studio documentation (offline operation and downloads) https://lmstudio.ai/docs'
+  - 'Hugging Face Hub documentation, downloading files and offline mode https://huggingface.co/docs/huggingface_hub/guides/download'
 quiz:
   - q: You have downloaded a model and its app. The Wi-Fi goes down. What happens when you ask it a question?
     choices: ['It stops working until the Wi-Fi is back', 'It answers as normal', 'It answers, but only in short sentences']
@@ -20,6 +24,8 @@ quiz:
 
 **Module 1 · about 20 minutes · read first: 1.2.** You'll be able to say exactly which steps need the internet, and plan a setup that keeps working when the connection does not.
 
+<div class="bigidea">You need the internet once, to download the app and the model; after that, answering questions happens entirely on your own machine.</div>
+
 ## 1. Why this matters
 
 "Offline" is the reason many people want local AI: on a plane, at a remote site, in a secure office, or simply when the broadband drops. But "offline" has fine print. Knowing it saves you from finding out at the worst moment that one piece still wanted the internet.
@@ -28,15 +34,23 @@ quiz:
 
 Local AI has two phases.
 
-**Setup (online, once).** You download the program that runs models (an app such as LM Studio or Ollama) and one or more model files. A small model is 1 to 3 GB; a good laptop model is about 5 to 10 GB; the largest you might run at home are 60 GB or more. Downloading them is the only heavy internet use.
+**Setup (online, once).** You download two things: the program that runs models (an app such as LM Studio or Ollama) and one or more model files. Sizes:
 
-**Use (offline, every day).** You type, the program loads the model into memory, and the answer is worked out by your own processor. No connection is needed and nothing is sent anywhere.
+- a small model is 1 to 3 GB;
+- a good laptop model is about 5 to 10 GB;
+- the largest you might run at home are 60 GB or more.
+
+Downloading them is the only heavy internet use.
+
+**Use (offline, every day).** You type. The program loads the model into memory, and your own processor works out the answer. No connection is needed and nothing is sent anywhere.
+
+It is like buying a cookbook. You need the shop once. After that you can cook from it in a cabin with no signal for years.
 
 <!--fig:what-travels-->
 
 ## 3. What still needs the internet
 
-A model is frozen at the moment it was trained. It cannot know what happened after that date (its **knowledge cut-off**), and it cannot reach out to the world unless you connect it to something that can. So these still need a connection:
+A model is frozen at the moment it was trained, like a printed encyclopedia. It cannot know what happened after that date (its **knowledge cut-off**). It also cannot reach out to the world unless you connect it to something that can. So these still need a connection:
 
 - searching the web, reading live prices, news or weather;
 - sending email or messages on your behalf;
@@ -53,6 +67,12 @@ Some setups look offline but quietly are not:
 - **Models that are not fully downloaded.** Some programs fetch parts of a model the first time you use it. Run each model once before you go offline.
 - **Python libraries** that download extra files on first use. Lesson 9.6 shows how to pre-fetch them.
 
+<div class="myth">
+
+**"My local model is on my computer today, so it knows today's news."** It doesn't. The model knows only what was in its training data up to its knowledge cut-off, which is often months before it was released. Being on your machine changes where it runs, not what it knows. For anything recent, give it the facts yourself (paste them in, or use your own documents as in Module 12).
+
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -65,9 +85,31 @@ Some setups look offline but quietly are not:
 **Try it:** an 8 GB model on a 50 Mbit/s connection? (8 × 8,000 ÷ 50 = 1,280 seconds, about 21 minutes.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>size (GB)</dt><dd>how big the files are, in gigabytes; the model file is nearly all of it</dd>
+<dt>× 8,000</dt><dd>turns gigabytes into megabits: 1 byte is 8 bits, and 1 GB is 1,000 MB</dd>
+<dt>speed (Mbit/s)</dt><dd>your connection speed, in megabits per second, the number broadband plans quote</dd>
+<dt>time (s)</dt><dd>how long the download takes in seconds; divide by 60 for minutes</dd>
+<dt>Physical meaning</dt><dd>The download is the one moment you need the internet. Do it at home or the office on a fast line, check everything works with Wi-Fi off, and then the setup works anywhere for as long as you like.</dd>
+</dl>
+
+</div>
+
 ## 5. Worked example
 
-*Made-up numbers.* Tom is a field engineer who spends weeks on a site with no signal. Before leaving he downloads an app (0.5 GB), a general model (7 GB) and an offline speech-to-text model (1.5 GB): 9 GB in all. On his home connection of 100 Mbit/s that takes 9 × 8,000 ÷ 100 = 720 seconds, 12 minutes. He then switches Wi-Fi off and checks each tool works before he goes. On site he dictates notes, and the laptop turns them into tidy reports, with nothing sent anywhere.
+*Made-up numbers.* Tom is a field engineer who spends weeks on a site with no signal. Watch him get ready.
+
+<div class="steps">
+<div class="step"><p><b>Add up the files.</b> An app (0.5 GB), a general model (7 GB) and an offline speech-to-text model (1.5 GB): 0.5 + 7 + 1.5 = <b>9 GB</b>.</p></div>
+<div class="step"><p><b>Turn gigabytes into megabits.</b> 9 × 8,000 = <b>72,000 megabits</b>.</p></div>
+<div class="step"><p><b>Divide by the connection speed.</b> His home line is 100 Mbit/s: 72,000 ÷ 100 = <b>720 seconds</b>, which is 12 minutes.</p></div>
+<div class="step"><p><b>Test with Wi-Fi off.</b> He runs each model once (so nothing is still half-downloaded), switches Wi-Fi off and checks every tool answers.</p></div>
+<div class="step"><p><b>On site.</b> He dictates notes, and the laptop turns them into tidy reports, with nothing sent anywhere.</p></div>
+</div>
+
+<div class="problem" data-problem="what-offline-means-download"></div>
 
 ## 6. Practice
 
@@ -84,3 +126,13 @@ Some setups look offline but quietly are not:
 </details>
 
 **New words:** *knowledge cut-off* (the last date the model learned about), *setup phase* and *use phase*, *Mbit/s* (megabits per second, how internet speed is quoted).
+
+<div class="keypoints">
+
+- Setup needs the internet once: the app and the model files (1 to 10 GB for most laptops, 60 GB or more for the biggest).
+- Everyday use needs no connection; the answer is worked out by your own processor.
+- Live news, web search, sending messages and updates still need the internet.
+- Download time (s) = size (GB) × 8,000 ÷ speed (Mbit/s).
+- Before you rely on it, run each model once, then test everything with Wi-Fi off.
+
+</div>

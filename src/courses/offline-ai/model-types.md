@@ -2,7 +2,11 @@
 title: Base, instruct, reasoning and multimodal models
 summary: The same family often comes in several versions. What base, instruct (chat), reasoning (thinking) and multimodal models are, and which one to download.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
+sources:
+  - 'Ouyang, L. et al. (2022), Training language models to follow instructions with human feedback (how base models become instruct models) https://arxiv.org/abs/2203.02155'
+  - 'Wei, J. et al. (2022), Chain-of-Thought Prompting Elicits Reasoning in Large Language Models https://arxiv.org/abs/2201.11903'
+  - 'Hugging Face Hub documentation, model cards https://huggingface.co/docs/hub/model-cards'
 quiz:
   - q: You want a model to chat and follow instructions. Which version do you download?
     choices: ['Base', 'Instruct (also called chat or it)', 'Embedding']
@@ -20,6 +24,8 @@ quiz:
 
 **Module 2 · about 20 minutes · read first: 2.3.** You'll be able to pick the right version of a model from a list of downloads.
 
+<div class="bigidea">One family of models comes in versions trained for different jobs, and a few letters in the file name tell you which one you are getting.</div>
+
 ## 1. Why this matters
 
 Search for a model and you will see names ending in -base, -it, -instruct, -thinking, -vision. Download the wrong one and it will ramble, ignore instructions or refuse your image.
@@ -36,6 +42,34 @@ Search for a model and you will see names ending in -base, -it, -instruct, -thin
 
 Many recent models combine these: Gemma 4 instruct models take images, and several families let you switch thinking on or off per request (Lesson 10.4).
 
+Here is how to read a typical download name, piece by piece. The pattern is common on Hugging Face, though every publisher varies it a little.
+
+<div class="steps">
+<div class="step"><p>The file is called <code>gemma-4-12b-it-Q4_K_M.gguf</code>. Read it left to right.</p></div>
+<div class="step"><p><b>gemma-4</b> is the family and generation: who made it and which release.</p></div>
+<div class="step"><p><b>12b</b> is the size: 12 billion parameters (Lesson 2.2).</p></div>
+<div class="step"><p><b>it</b> means instruction-tuned: the chat version, the one most people want. If it said <b>pt</b> (pre-trained) it would be the base model.</p></div>
+<div class="step"><p><b>Q4_K_M</b> is how tightly the numbers are squeezed, about 4 to 5 bits each (Module 8), and <b>.gguf</b> is the file format (Lesson 7.5). So: a chat model, about 7 GB, ready for llama.cpp, Ollama or LM Studio.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>base (pt)</dt><dd>the model straight after its main training: it continues text but does not follow instructions well</dd>
+<dt>instruct (it, chat)</dt><dd>the base model after extra training on instructions and good answers, plus feedback</dd>
+<dt>thinking</dt><dd>trained to write out its working before the answer; slower, better at hard problems</dd>
+<dt>vision, vl, omni</dt><dd>can read images (and sometimes audio) as well as text</dd>
+<dt>Physical meaning</dt><dd>It is one education with different job training on top. Pick by the job: instruct for nearly everything, thinking for hard multi-step problems, vision for photos and scans, base only if you plan to train it further yourself.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The base model is the pure, smarter version, and instruct is a watered-down copy."** They know about the same; the instruct version has extra training that teaches it to understand a request and answer it. Ask a base model to summarise an email and it may just write more emails, because "continue the text" is all it was trained to do.
+
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -47,6 +81,10 @@ Many recent models combine these: Gemma 4 instruct models take images, and sever
 
 **Try it:** you need to read text from photographed receipts and return JSON. Which two properties do you need? (Instruct and multimodal.)
 </details>
+
+Thinking has a price in time. A reasoning model writes its working as tokens before the answer, at the same speed as the answer itself.
+
+<div class="problem" data-problem="model-types-thinking-time"></div>
 
 ## 3. Worked example
 
@@ -67,3 +105,13 @@ Many recent models combine these: Gemma 4 instruct models take images, and sever
 </details>
 
 **New words:** *base model*, *instruct model*, *reasoning model*, *multimodal*, *embedding model*.
+
+<div class="keypoints">
+
+- Base (pt) models continue text; instruct (it, chat) models follow instructions and hold a conversation.
+- Reasoning (thinking) models write out their working first: better on hard problems, slower and more tokens.
+- Multimodal (vision, vl, omni) models take images and sometimes audio; embedding models turn text into numbers for search.
+- Read the file name: family, size, version tag (it or pt), squeeze level (Q4_K_M) and format (.gguf).
+- For almost every job, download the instruct version.
+
+</div>
