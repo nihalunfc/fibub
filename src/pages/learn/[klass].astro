@@ -18,11 +18,13 @@ const subjects = cls.subjects.map((s) => ({ ...s, chapters: s.chapters.map((ch) 
 const count = new Set(subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.live.map((t) => t!.id)))).size;
 const names = cls.subjects.map((s) => s.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1');
 const title = `Learn: ${cls.name}`;
+// Search titles stay at 60 characters or less: longer state names drop the word "tools".
+const docTitle = [`${cls.name} science and maths tools by chapter | fibub`, `${cls.name} science and maths by chapter | fibub`].find((t) => t.length <= 60) ?? `${cls.name} by chapter | fibub`;
 const desc = `Interactive ${names} tools for ${cls.name}, chapter by chapter, following the ${cur.name} topics. Free, in your browser, no sign-up.`;
 const others = cur.classes.filter((k) => k.id !== cls.id);
 const range = cur.id === 'ncert' ? 'Class 8 to 12' : `${cur.name}, ${cur.grades}`;
 ---
-<Base title={title} docTitle={`${cls.name} science and maths tools by chapter | fibub`} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'School', url: `/learn/school/#${cur.id}` }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
+<Base title={title} docTitle={docTitle} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'School', url: `/learn/school/#${cur.id}` }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href={`/learn/school/#${cur.id}`}>{range}</a> / {cls.name}</div>
   <div class="ar-head">
     <h1>{cls.name}: {names}</h1>

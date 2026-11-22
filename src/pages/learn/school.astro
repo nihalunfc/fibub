@@ -4,7 +4,7 @@
 // /learn/school/#canada opens the Canada tab.
 import Base from '../../layouts/Base.astro';
 import LearnMore from '../../components/learn/LearnMore.astro';
-import { CURRICULA } from '../../data/curricula';
+import { CURRICULA, INDIA_NCERT_BOARDS } from '../../data/curricula';
 import { SECTIONS } from '../../site';
 import { allTools, toolUrl } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
@@ -28,10 +28,10 @@ const groups = (SECTIONS.learn ?? []).filter((sec) => sec.id !== 'home-skills').
 const css = countries.map((c) => `.lh-cur:has(#c-${c.id}:checked) [data-panel]:not([data-panel="${c.id}"]){display:none}`).join('')
   + groups.map((g) => `.lh-sub-t:has(#s-${g.id}:checked) [data-group]:not([data-group="${g.id}"]){display:none}`).join('');
 const title = 'Learn: School';
-const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by chapter: NCERT and CBSE, Kerala SCERT, Canada (Ontario), the USA and the UK. Free, in your browser.';
+const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by chapter: NCERT and CBSE, Kerala, Tamil Nadu, Telangana and West Bengal state boards, Canada, the USA and the UK. Free, in your browser.';
 ---
 <Base title={title} docTitle="Class 8 to 12 science and maths tools by chapter | fibub" description={desc} ld={collectionLd('School', desc, '/learn/school/', [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'School', url: '/learn/school/' }])}>
-  <style is:inline set:html={css}></style>
+  <style is:inline set:html={css + '.lh-jump{margin:0 0 10px}.lh-jump a{text-decoration:none}.lh-note{margin:4px 0 8px;color:var(--muted);font-size:14px}.lh-states{list-style:none;margin:0;padding:0;display:grid;gap:6px}.lh-states li{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px;overflow-wrap:anywhere}.lh-states small{color:var(--muted)}'}></style>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / School</div>
   <div class="lh-head">
     <h1>School, Class 8 to 12</h1>
@@ -43,6 +43,7 @@ const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by 
     </div>
     {countries.map((co) => (
       <div data-panel={co.id}>
+        {co.curricula.length > 2 && <nav class="lh-chips lh-jump" aria-label={`${co.name} syllabuses`}>{co.curricula.map((c) => <a href={`#${c.id}`}>{c.name.replace(/ state syllabus.*| \(India\)/, '')}</a>)}{co.name === 'India' && <a href="#ncert-states">Other states</a>}</nav>}
         {co.curricula.map((c) => (
           <section id={c.id} class="lh-curblock" aria-label={c.name}>
             {co.curricula.length > 1 && <h2 class="lh-curh">{c.name} <small>{c.grades}</small></h2>}
@@ -52,6 +53,13 @@ const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by 
             <details class="lh-about"><summary>About this syllabus</summary><p class="ar-note">{c.note}</p></details>
           </section>
         ))}
+        {co.name === 'India' && (
+          <section id="ncert-states" class="lh-curblock" aria-label="States that use the NCERT books">
+            <h2 class="lh-curh">Other states: use the NCERT pages</h2>
+            <p class="lh-note">These state boards teach science and maths from the NCERT books (or books that follow them closely), so their students can use the <a href="#ncert">NCERT and CBSE</a> class pages. Chapter numbers can differ a little, so match by chapter name.</p>
+            <ul class="lh-states">{INDIA_NCERT_BOARDS.map((b) => <li><strong>{b.name}</strong> <small>({b.board})</small>: {b.text} <a href={b.source} rel="nofollow noopener" target="_blank">Source</a></li>)}</ul>
+          </section>
+        )}
       </div>
     ))}
   </div>
