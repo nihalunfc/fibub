@@ -43,9 +43,17 @@ Click a store row and press **Show me what happened**: the filter on Store reach
 
 <!--fig:dax-pad m-min-max-->
 
+Try it: press Play in column mode, then switch to Measure and use the Store slicer.
+
+<figure class="fig" data-fig="@biz-row-vs-filter"><figcaption>Notice that a column is worked out row by row and stored, and a measure is worked out for whatever the filters leave.</figcaption></figure>
+
 ## 3. Blanks
 
 Aggregating no rows gives **BLANK**, not zero. Visuals hide rows where all measures are blank, which keeps tables tidy: Forks Market doesn't show for 2024 because it had no sales. `AVERAGE` skips blanks rather than counting them as 0, so missing quantities don't drag the average down.
+
+Try it: make the big store bigger and see the two ways of combining margins drift apart.
+
+<figure class="fig" data-fig="@biz-ratio-of-sums"><figcaption>Notice that the real margin is a ratio of totals, not an average of percentages.</figcaption></figure>
 
 ## 4. Habits that make you look experienced
 

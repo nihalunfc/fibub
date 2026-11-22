@@ -52,6 +52,10 @@ A **dashboard** sits between the two: it is designed (explanatory work on layout
 **Analogy:** a film editor shoots hours of footage and shows you 90 minutes. The cut footage was needed to find the film.
 </details>
 
+Try it: switch from one crowded chart to small panels, then change the scale.
+
+<figure class="fig" data-fig="@biz-small-multiples"><figcaption>Notice that shared scales are fair, and separate scales show shape but hide size.</figcaption></figure>
+
 ## 4. Worked example
 
 Exploring Northbay's 2025 data, an analyst makes charts of: sales by month, by store, by category, by weekday, by product, margin by category, store vs target, growth by store, line amount spread. Nine charts. The message they settle on is about like-for-like growth and February. For the presentation they keep three:

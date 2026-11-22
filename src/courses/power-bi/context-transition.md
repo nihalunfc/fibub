@@ -31,6 +31,10 @@ Context transition is the idea that separates people who copy DAX from people wh
 
 Trace **With** on the Home row: SUMX goes through the 3 Home products, and for each one CALCULATE turns the product row into a filter, so `[Total Sales]` gives that product's sales. Now move `Without` to the last line and trace it: SUM ignores the product row and sees all Home sales each time, so the answer is 3 × Home's sales.
 
+Try it: press Play in column mode, then switch to Measure and use the Store slicer.
+
+<figure class="fig" data-fig="@biz-row-vs-filter"><figcaption>Notice that a column is worked out row by row and stored, and a measure is worked out for whatever the filters leave.</figcaption></figure>
+
 ## 3. The rule
 
 - A **row context** (from an iterator or a calculated column) gives you a current row, but **filters nothing**.

@@ -53,6 +53,10 @@ A useful test is whether it is:
 **Analogy:** a car dashboard. A few gauges (speed, fuel, warning lights) you can act on while driving. Not the tyre pressure history of the last five years.
 </details>
 
+Try it: change the sales figure, then switch what it is compared with.
+
+<figure class="fig" data-fig="@biz-baseline-toggle"><figcaption>Notice that the number never changes while the verdict does.</figcaption></figure>
+
 ## 4. Worked example
 
 *Northbay's regional manager wants a weekly dashboard.* Candidate KPIs:

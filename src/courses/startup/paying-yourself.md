@@ -72,6 +72,10 @@ In an **S corp**, pay a **reasonable salary** for your role through payroll, the
 
 </div>
 
+Try it: change the cash you have and the monthly costs, then see the month the money runs out.
+
+<figure class="fig" data-fig="@biz-runway-burn"><figcaption>Notice that a cut in costs buys months in a way you can count.</figcaption></figure>
+
 ## 3. Loans from your company: careful
 
 Taking money from your company as a "loan" to avoid tax does not work:

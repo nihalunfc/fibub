@@ -48,6 +48,10 @@ Founders get all their shares on day one, but the company can buy back **unveste
 
 Why a cliff? Teams usually find out within a year whether they work together. The cliff means someone who leaves at month 7 walks away without a quarter of the company.
 
+Try it: move the cliff and the months worked, or press Play, and see how many shares are vested if someone leaves then.
+
+<figure class="fig" data-fig="@biz-vesting"><figcaption>Notice that before the cliff the vested amount is zero, then a block arrives at once.</figcaption></figure>
+
 ## 2. Acceleration
 
 - **Single trigger:** unvested shares vest when the company is sold. Buyers dislike it: the team they bought can leave at once.

@@ -46,6 +46,20 @@ Each part gets one or two charts at most. The complication usually needs the str
 **Analogy:** every film has the same skeleton: normal life, then a problem, then how it's solved. Your audience follows a data story the same way.
 </details>
 
+Step through a dashboard from the top block to the bottom.
+
+<div class="steps" data-fig="@biz-dashboard-arc">
+
+<div class="step">Headline: what happened?</div>
+
+<div class="step">Trend: better or worse?</div>
+
+<div class="step">Breakdown: where is it coming from?</div>
+
+<div class="step">Action: what do we do?</div>
+
+</div>
+
 ## 4. Worked example
 
 *The Northbay 2025 review, in three slides:*

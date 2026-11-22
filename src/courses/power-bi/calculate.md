@@ -37,6 +37,10 @@ Trace a store: the filter context starts with that store, then CALCULATE **adds*
 
 On the Grocery row, the visual says Category = Grocery. CALCULATE's filter is also on Category, so it **replaces** Grocery with Home: every row shows Home's sales. That's usually what you want for a fixed comparison ("Home sales next to each category"). `KEEPFILTERS` keeps both filters, so only the Home row passes.
 
+Try it: set a Category slicer, then compare the plain measure with the CALCULATE versions.
+
+<figure class="fig" data-fig="@biz-calculate-modes"><figcaption>Notice that CALCULATE with a column filter overrides the slicer, KEEPFILTERS keeps both, and ALL removes it.</figcaption></figure>
+
 ## 4. Several filters, and IN
 
 <!--fig:dax-pad c-weekend-->
