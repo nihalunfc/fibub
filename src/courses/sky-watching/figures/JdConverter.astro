@@ -1,0 +1,42 @@
+---
+// SIM for 2.4: type a date and time in UT and see the Julian date worked out step by step (Meeus's method),
+// with the modified Julian date and Greenwich sidereal time.
+---
+<figure class="cs-fig mlf" data-jd>
+  <span class="cs-figtag">Try it: any date and time (UT)</span>
+  <div class="mlf-ctl">
+    <label>Date <input type="date" name="d" value="2000-01-01"></label>
+    <label>Time (UT) <input type="time" name="t" value="12:00" step="60"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>Julian date</span><b data-jdv></b></div>
+    <div><span>modified Julian date</span><b data-mjd></b></div>
+    <div><span>Greenwich sidereal time</span><b data-gst></b></div>
+  </div>
+  <ol class="mlf-hint" data-steps></ol>
+  <figcaption>The Julian date counts days, and fractions of a day, from noon UT on 1 January 4713 BC. 1 January 2000 at 12:00 UT is JD 2451545.0, the reference moment J2000.0 used by star catalogues. The method works for Gregorian dates (after 15 October 1582).</figcaption>
+</figure>
+<script>
+  import { julianDate, mjd, gmst } from '../../../lib/astrocourse/sky';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-jd]')) {
+    const D = fig.querySelector<HTMLInputElement>('input[name=d]')!, T = fig.querySelector<HTMLInputElement>('input[name=t]')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const run = () => {
+      const [y0, m0, d] = D.value.split('-').map(Number), [hh, mm] = (T.value || '0:0').split(':').map(Number);
+      if (!y0 || !m0 || !d) return;
+      const h = hh + mm / 60, jd = julianDate(y0, m0, d, h);
+      let y = y0, m = m0; if (m <= 2) { y -= 1; m += 12; }
+      const A = Math.floor(y / 100), B = 2 - A + Math.floor(A / 4);
+      q('[data-jdv]').textContent = jd.toFixed(5); q('[data-mjd]').textContent = mjd(jd).toFixed(5);
+      const g = gmst(jd); q('[data-gst]').textContent = `${Math.floor(g)} h ${String(Math.floor((g % 1) * 60)).padStart(2, '0')} m ${String(Math.floor(((g * 60) % 1) * 60)).padStart(2, '0')} s`;
+      const steps = [
+        m0 <= 2 ? `January and February count as months 13 and 14 of the year before: Y = ${y}, M = ${m}.` : `Y = ${y}, M = ${m}.`,
+        `A = floor(Y / 100) = ${A}; B = 2 − A + floor(A / 4) = ${B} (the Gregorian calendar correction).`,
+        `floor(365.25 (Y + 4716)) = ${Math.floor(365.25 * (y + 4716))}; floor(30.6001 (M + 1)) = ${Math.floor(30.6001 * (m + 1))}.`,
+        `Day with time: ${d} + ${(h / 24).toFixed(5)} = ${(d + h / 24).toFixed(5)}.`,
+        `JD = ${Math.floor(365.25 * (y + 4716))} + ${Math.floor(30.6001 * (m + 1))} + ${(d + h / 24).toFixed(5)} + ${B} − 1524.5 = ${jd.toFixed(5)}.`,
+      ];
+      const ol = q('[data-steps]'); ol.replaceChildren(...steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    };
+    D.addEventListener('input', run); T.addEventListener('input', run); run();
+  }
+</script>

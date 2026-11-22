@@ -1,0 +1,47 @@
+---
+// SIM for 7.3: hydrogen's energy levels and the lines they make. Pick a jump; see its wavelength in the
+// spectrum, as an emission line (hot thin gas) or an absorption line (cooler gas in front of a hot source).
+---
+<figure class="cs-fig mlf" data-hlines>
+  <span class="cs-figtag">Try it: make an electron jump</span>
+  <canvas aria-label="Hydrogen energy level ladder with a jump marked, and the visible spectrum with the resulting line"></canvas>
+  <div class="mlf-ctl">
+    <label>From level <output data-v="u"></output><input type="range" name="u" min="3" max="7" step="1" value="3"></label>
+    <label>Spectrum <select name="k"><option value="em">Emission (glowing gas)</option><option value="ab">Absorption (gas in front of a star)</option></select></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>line</span><b data-name></b></div>
+    <div><span>wavelength (in air)</span><b data-lam></b></div>
+    <div><span>photon energy</span><b data-e></b></div>
+  </div>
+  <figcaption>These are the Balmer lines: jumps down to (or up from) level 2, the ones that fall in visible light. Wavelengths from the Rydberg formula with hydrogen's reduced mass, shifted from vacuum to air (about 0.03% shorter). All Balmer lines are shown faintly; the chosen one is bold.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { hydrogenLine, hydrogenLevel } from '../../../lib/astrocourse/physics';
+  const NAMES = ['', '', '', 'H-alpha', 'H-beta', 'H-gamma', 'H-delta', 'H-epsilon'];
+  const air = (l: number) => l / 1.000277; // a simple constant refractive index of air at these wavelengths
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-hlines]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const p = new Plot(cv, { x: [0, 10], y: [0, 10], h: 280, bare: true });
+    const draw = () => {
+      const u = gu(), em = sel.value === 'em', lam = air(hydrogenLine(2, u)) * 1e9;
+      p.begin(); const c = p.ctx;
+      // Energy ladder on the left: y from level energy (−13.6 to 0 eV) mapped to 1.5..9.5.
+      const Y = (n: number) => 9.5 - (hydrogenLevel(n) / hydrogenLevel(1)) * 8;
+      for (let n = 1; n <= 7; n++) { p.line(0.3, Y(n), 3.4, Y(n), { color: p.pal.line, width: 1.5 }); if (n <= 4) p.text(3.5, Y(n), `n=${n}  ${fmt(hydrogenLevel(n), 2)} eV`, { size: 10, color: p.pal.muted }); else if (n === 5) p.text(3.5, Y(7), 'n=5, 6, 7 …', { size: 10, color: p.pal.muted, dy: -6 }); }
+      p.arrow(1.8, Y(em ? u : 2), 1.8, Y(em ? 2 : u), { color: p.pal.accent2, width: 2.5 });
+      // Spectrum strip on the right half, 380-700 nm.
+      const X0 = 6.2, X1 = 9.9, lx = (l: number) => X0 + ((l - 380) / 320) * (X1 - X0);
+      for (let l = 380; l < 700; l += 2) p.rect(lx(l), 3, (X1 - X0) / 160 + 0.01, 4, { fill: em ? p.pal.night : (p.pal.red ? p.pal.ink : `hsl(${270 - ((l - 380) / 320) * 270},85%,55%)`), alpha: em ? 1 : 0.9 });
+      for (let n = 3; n <= 7; n++) { const L = air(hydrogenLine(2, n)) * 1e9; p.rect(lx(L) - 0.03, 3, 0.06, 4, { fill: em ? (p.pal.red ? p.pal.ink : `hsl(${270 - ((L - 380) / 320) * 270},90%,60%)`) : '#000000', alpha: n === u ? 1 : 0.45 }); }
+      p.text(lx(lam), 7.4, `${fmt(lam, 1)} nm`, { align: 'center', size: 11, bold: true });
+      p.text(X0, 2.4, '380 nm', { size: 10, color: p.pal.muted }).text(X1, 2.4, '700 nm', { size: 10, color: p.pal.muted, align: 'right' });
+      p.end();
+      q('[data-name]').textContent = NAMES[u]; q('[data-lam]').textContent = `${fmt(lam, 1)} nm`; q('[data-e]').textContent = `${fmt(hydrogenLevel(u) - hydrogenLevel(2), 2)} eV`;
+      void c;
+    };
+    const gu = slider(fig, 'u', () => go(), (v) => `n = ${v}`); sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

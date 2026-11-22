@@ -1,0 +1,39 @@
+---
+// SIM for 2.6: airmass against altitude (flat-atmosphere sec z and the Kasten-Young curve that stays finite at
+// the horizon) and how much a star dims for a chosen extinction.
+---
+<figure class="cs-fig mlf" data-airmass>
+  <span class="cs-figtag">Try it: lower the star</span>
+  <canvas aria-label="Airmass against altitude: two curves rising steeply near the horizon"></canvas>
+  <div class="mlf-ctl">
+    <label>Star's altitude <output data-v="alt"></output><input type="range" name="alt" min="2" max="90" step="1" value="30"></label>
+    <label>Extinction k (mag per airmass) <output data-v="k"></output><input type="range" name="k" min="0.1" max="0.6" step="0.01" value="0.2"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>airmass X</span><b data-x></b></div>
+    <div><span>dimmed by (k × X)</span><b data-dim></b></div>
+    <div><span>extra dimming vs overhead</span><b data-extra></b></div>
+  </div>
+  <figcaption>Airmass is how much air the light crosses, counting straight up as 1. The simple formula 1 / sin(altitude) assumes a flat atmosphere and blows up at the horizon; the Kasten and Young (1989) formula allows for Earth's curve. A k of 0.2 is typical for green light at a good site; hazy or low sites can be twice that, and blue light dims more than red.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { airmassSec, airmassKY } from '../../../lib/astrocourse/sky';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-airmass]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 90], y: [0, 12], h: 260, xLabel: 'altitude (°)', yLabel: 'airmass' });
+    const draw = () => {
+      const a = ga(), k = gk(), X = airmassKY(a);
+      p.begin();
+      p.fn((x) => airmassSec(x), { color: p.pal.muted, width: 1.5, dash: [5, 4], from: 1 });
+      p.fn((x) => airmassKY(x), { color: p.pal.accent, width: 2.5 });
+      p.line(a, 0, a, Math.min(12, X), { color: p.pal.accent2, width: 1.5, dash: [3, 3] });
+      p.dot(a, Math.min(12, X), { r: 6, color: p.pal.accent2 });
+      p.text(60, 3, 'dashed: 1 / sin(alt)', { size: 11, color: p.pal.muted }).text(60, 4.2, 'solid: Kasten-Young', { size: 11, color: p.pal.accent });
+      p.end();
+      q('[data-x]').textContent = fmt(X, 2); q('[data-dim]').textContent = `${fmt(k * X, 2)} mag`; q('[data-extra]').textContent = `${fmt(k * (X - 1), 2)} mag`;
+    };
+    const ga = slider(fig, 'alt', () => go(), (v) => `${v}°`), gk = slider(fig, 'k', () => go(), (v) => fmt(v, 2));
+    const go = live(cv, draw);
+  }
+</script>

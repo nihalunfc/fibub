@@ -1,0 +1,41 @@
+---
+// SIM for 6.5: on a fixed tripod, how long can you expose before stars trail? Compares the old 500 rule with
+// the stricter NPF rule, across focal lengths, for your camera.
+---
+<figure class="cs-fig mlf" data-trailrule>
+  <span class="cs-figtag">Try it: your lens and camera</span>
+  <canvas aria-label="Longest untrailed exposure against focal length by the 500 rule and the NPF rule"></canvas>
+  <div class="mlf-ctl">
+    <label>Focal length <output data-v="F"></output><input type="range" name="F" min="10" max="200" step="1" value="24"></label>
+    <label>Lens f-number <output data-v="N"></output><input type="range" name="N" min="1.4" max="5.6" step="0.1" value="2.8"></label>
+    <label>Pixel size <output data-v="p"></output><input type="range" name="p" min="2" max="8.5" step="0.1" value="4.3"></label>
+    <label>Target's declination <output data-v="d"></output><input type="range" name="d" min="0" max="80" step="1" value="0"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>500 rule (full frame)</span><b data-r500></b></div>
+    <div><span>NPF rule</span><b data-npf></b></div>
+    <div><span>trail on the sky in that time</span><b data-tr></b></div>
+  </div>
+  <figcaption>The 500 rule was made for film and shows trails on today's high-resolution sensors; the NPF rule (Frédéric Michaud, Société Astronomique de France) also uses the lens's f-number and the pixel size. Stars near the celestial pole move slower, so you can expose longer there (both rules shown for the chosen declination). For longer exposures you need a tracking mount.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rule500, npfRule, trailArcsec } from '../../../lib/astrocourse/optics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-trailrule]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [10, 200], y: [0, 40], h: 240, xLabel: 'focal length (mm)', yLabel: 'seconds' });
+    const draw = () => {
+      const F = gF(), N = gN(), px = gp(), d = gd(), c = 1 / Math.cos((d * Math.PI) / 180);
+      p.begin();
+      p.fn((f) => rule500(f) * c, { color: p.pal.muted, width: 2, dash: [5, 4] });
+      p.fn((f) => npfRule(N, px, f, d), { color: p.pal.accent, width: 2.5 });
+      p.dot(F, Math.min(40, npfRule(N, px, F, d)), { r: 6, color: p.pal.accent2 });
+      p.text(198, 32, 'dashed: 500 rule', { size: 11, align: 'right', color: p.pal.muted }).text(198, 28, 'solid: NPF', { size: 11, align: 'right', color: p.pal.accent });
+      p.end();
+      const t = npfRule(N, px, F, d);
+      q('[data-r500]').textContent = `${fmt(rule500(F) * c, 1)} s`; q('[data-npf]').textContent = `${fmt(t, 1)} s`; q('[data-tr]').textContent = `${fmt(trailArcsec(t, d), 0)}″`;
+    };
+    const gF = slider(fig, 'F', () => go(), (v) => `${v} mm`), gN = slider(fig, 'N', () => go(), (v) => `f/${fmt(v, 1)}`), gp = slider(fig, 'p', () => go(), (v) => `${fmt(v, 1)} µm`), gd = slider(fig, 'd', () => go(), (v) => `${v}°`);
+    const go = live(cv, draw);
+  }
+</script>

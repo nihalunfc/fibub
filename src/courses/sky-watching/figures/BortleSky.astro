@@ -1,0 +1,43 @@
+---
+// SIM for 3.2: how sky brightness hides stars. Slide from a city sky to a truly dark site and watch the
+// faintest visible stars, the limiting magnitude and the rough Bortle class change.
+---
+<figure class="cs-fig mlf" data-bortle>
+  <span class="cs-figtag">Try it: drive away from the city</span>
+  <canvas aria-label="A patch of night sky whose background brightens and loses faint stars as light pollution grows"></canvas>
+  <div class="mlf-ctl">
+    <label>Sky brightness (mag/arcsec²) <output data-v="sqm"></output><input type="range" name="sqm" min="16" max="22" step="0.05" value="19.5"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>Bortle class (rough)</span><b data-b></b></div>
+    <div><span>faintest star by eye</span><b data-lim></b></div>
+    <div><span>stars you could see now</span><b data-n></b></div>
+  </div>
+  <figcaption>Sky brightness is measured with a sky quality meter in magnitudes per square arcsecond: bigger numbers mean darker skies (about 22 at the darkest sites, 17 to 18 in a city). The limiting magnitude uses a common fit after Schaefer (1990); the star count is a rough teaching fit for the half of the sky above the horizon. Made-up star field.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { nelm, bortle, starsBrighter, rng } from '../../../lib/astrocourse/sky';
+  const R = rng(11), K = 0.41 * Math.LN10, N = 900;
+  // Magnitudes drawn so that counts grow by 10^0.41 per magnitude, down to 7.5.
+  const ST = Array.from({ length: N }, () => [R(), R(), Math.log(Math.exp(K * 7.5) * R() + 1e-9) / K]);
+  const LABEL = ['', 'excellent dark site', 'truly dark site', 'rural sky', 'rural/suburban edge', 'suburban sky', 'bright suburban sky', 'suburban/urban edge', 'city sky', 'inner-city sky'];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bortle]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 1], y: [0, 1], h: 240, bare: true });
+    const draw = () => {
+      const sqm = gs(), lim = nelm(sqm), c = p.begin().ctx;
+      const glow = Math.max(0, Math.min(1, (22 - sqm) / 6));
+      if (p.pal.red) c.fillStyle = `rgb(${Math.round(8 + 50 * glow)},0,0)`;
+      else c.fillStyle = `rgb(${Math.round(10 + 95 * glow)},${Math.round(14 + 80 * glow)},${Math.round(30 + 60 * glow)})`;
+      c.fillRect(0, 0, p.W, p.H);
+      for (const [x, y, m] of ST) if (m < lim) p.dot(x, y, { r: Math.max(0.6, (lim - m) * 0.55), color: p.pal.red ? p.pal.ink : '#f2f4fa', alpha: Math.min(1, 0.35 + (lim - m) / 2) });
+      c.save(); c.globalAlpha = 0.5; c.fillStyle = '#ffffff'; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('fibub.com', p.W - 8, p.H - 8); c.restore();
+      const b = bortle(sqm);
+      q('[data-b]').textContent = `${b}: ${LABEL[b]}`; q('[data-lim]').textContent = `magnitude ${fmt(lim, 1)}`;
+      q('[data-n]').textContent = `about ${Math.round(starsBrighter(lim) / 2 / 50) * 50 || Math.round(starsBrighter(lim) / 2)}`;
+    };
+    const gs = slider(fig, 'sqm', () => go(), (v) => fmt(v, 2));
+    const go = live(cv, draw);
+  }
+</script>

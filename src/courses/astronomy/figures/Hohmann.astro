@@ -1,0 +1,51 @@
+---
+// SIM for 8.4: a Hohmann transfer from Earth's orbit to another circular orbit round the Sun, the two burns,
+// the flight time, and the rocket equation's price in fuel.
+---
+<figure class="cs-fig mlf" data-hohmann>
+  <span class="cs-figtag">Try it: pick a destination</span>
+  <canvas aria-label="Earth's orbit, a target orbit and the half-ellipse transfer between them"></canvas>
+  <div class="mlf-ctl">
+    <label>Target orbit radius <output data-v="r2"></output><input type="range" name="r2" min="-0.45" max="1.5" step="0.005" value="0.183"></label>
+    <label>Engine exhaust speed <output data-v="ve"></output><input type="range" name="ve" min="2.5" max="4.5" step="0.1" value="3.5"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>first burn</span><b data-dv1></b></div>
+    <div><span>second burn</span><b data-dv2></b></div>
+    <div><span>flight time</span><b data-t></b></div>
+    <div><span>start mass ÷ end mass</span><b data-mr></b></div>
+  </div>
+  <figcaption>Radius on a log slider: 1.52 AU is about Mars, 5.2 AU about Jupiter, 0.72 AU about Venus. The burns are speed changes measured in the Sun's frame, from one circular orbit to the other; climbing out of Earth's own gravity first, and slowing into orbit at the end, cost extra. The mass ratio uses Tsiolkovsky's equation for the two burns together.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { AU, GM_SUN, hohmann, massRatio } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-hohmann]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.1, 1.1], y: [-1.1, 1.1], h: 300, bare: true, equal: true });
+    const draw = () => {
+      const r2 = 10 ** gr(), ve = gve() * 1000, h = hohmann(GM_SUN, AU, r2 * AU), k = 1 / Math.max(1, r2);
+      const circ = (r: number, color: string) => { const pts: [number, number][] = []; for (let j = 0; j <= 120; j++) pts.push([r * k * Math.cos((j / 120) * 2 * Math.PI), r * k * Math.sin((j / 120) * 2 * Math.PI)]); p.path(pts, { color, width: 1.5 }); };
+      p.begin();
+      circ(1, p.pal.accent); circ(r2, p.pal.muted);
+      const a = (1 + r2) / 2, e = Math.abs(r2 - 1) / (1 + r2), out = r2 >= 1, tr: [number, number][] = [];
+      for (let j = 0; j <= 120; j++) {
+        const nu = (j / 120) * Math.PI, r = (a * (1 - e * e)) / (1 + e * Math.cos(nu));
+        const ang = out ? nu : nu + Math.PI; tr.push([r * k * Math.cos(ang), r * k * Math.sin(ang)]);
+      }
+      // The inward transfer starts at Earth (aphelion), which sits at angle 0 here.
+      const T = out ? tr : tr.map(([x, y]) => [-x, -y] as [number, number]);
+      p.path(T, { color: p.pal.accent2, width: 2.5 });
+      p.dot(0, 0, { r: 7, color: p.pal.warn });
+      p.dot(k, 0, { r: 5, color: p.pal.accent }); p.text(k, 0, 'burn 1', { dx: 7, dy: -9, size: 11, color: p.pal.muted });
+      p.dot(-r2 * k, 0, { r: 5, color: p.pal.ink }); p.text(-r2 * k, 0, 'burn 2', { dx: 7, dy: 11, size: 11, color: p.pal.muted });
+      p.end();
+      const days = h.time / 86400;
+      q('[data-dv1]').textContent = `${fmt(h.dv1 / 1000, 2)} km/s`; q('[data-dv2]').textContent = `${fmt(h.dv2 / 1000, 2)} km/s`;
+      q('[data-t]').textContent = days < 730 ? `${fmt(days, 0)} days` : `${fmt(days / 365.25, 1)} years`;
+      q('[data-mr]').textContent = `${fmt(massRatio(h.total, ve), 1)}`;
+    };
+    const gr = slider(fig, 'r2', () => go(), (v) => `${fmt(10 ** v, 2)} AU`), gve = slider(fig, 've', () => go(), (v) => `${fmt(v, 1)} km/s`);
+    const go = live(cv, draw);
+  }
+</script>

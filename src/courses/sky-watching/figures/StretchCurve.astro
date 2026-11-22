@@ -1,0 +1,44 @@
+---
+// SIM for 6.7: a linear astronomical image is almost all dark. A stretch lifts the faint parts; compare a
+// linear, gamma and arcsinh stretch on the same made-up data and see the curve that does it.
+---
+<figure class="cs-fig mlf" data-stretch>
+  <span class="cs-figtag">Try it: stretch the data</span>
+  <div class="bw-two">
+    <canvas data-img aria-label="A made-up galaxy image shown with the chosen stretch"></canvas>
+    <canvas data-curve aria-label="The stretch curve from input brightness to output brightness"></canvas>
+  </div>
+  <div class="mlf-ctl">
+    <label>Stretch <select name="k"><option value="linear">Linear (no stretch)</option><option value="gamma">Gamma</option><option value="asinh" selected>Arcsinh</option></select></label>
+    <label>Strength <output data-v="s"></output><input type="range" name="s" min="1" max="200" step="1" value="40"></label>
+    <label>Black point <output data-v="b"></output><input type="range" name="b" min="0" max="0.1" step="0.002" value="0.01"></label>
+  </div>
+  <figcaption>The camera records light linearly: twice the photons, twice the number. Faint outer arms may hold under 1 % of the core's signal, so a linear display shows only the core. A stretch is a curve applied to every pixel the same way; it changes how the data look, not what was recorded. Honest processing applies the same curve everywhere, says what was done, and never paints in detail that is not in the data. Made-up galaxy.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { stretch } from '../../../lib/astrocourse/optics';
+  import { rng } from '../../../lib/astrocourse/sky';
+  import { pagePalette } from '../../../lib/report';
+  const N = 110, R = rng(21), D = new Float32Array(N * N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const x = (i - 55) / 25, y = (j - 55) / 25, r = Math.hypot(x, y * 1.6), th = Math.atan2(y * 1.6, x);
+    D[j * N + i] = Math.min(1, 0.9 * Math.exp(-r * r * 30) + 0.04 * Math.exp(-r * 1.6) * (1 + 0.8 * Math.cos(2 * th - 4 * r)) + 0.004 + 0.002 * (R() - 0.5));
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-stretch]')) {
+    const ci = fig.querySelector<HTMLCanvasElement>('[data-img]')!, cc = fig.querySelector<HTMLCanvasElement>('[data-curve]')!, sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const p = new Plot(cc, { x: [0, 1], y: [0, 1], h: 220, xLabel: 'recorded', yLabel: 'shown' });
+    const f = () => { const s = gs(), b = gb(), k = sel.value; return (x: number) => { const v = Math.max(0, (x - b) / (1 - b)); return k === 'linear' ? Math.min(1, v) : k === 'gamma' ? stretch.gamma(v, 1 + s / 20) : stretch.asinh(v, s); }; };
+    const draw = () => {
+      const g = f(), red = pagePalette().red, ctx = ci.getContext('2d')!;
+      ci.width = N; ci.height = N; ci.style.height = Math.min(220, ci.clientWidth || 220) + 'px'; ci.style.maxWidth = '220px'; ci.style.margin = '0 auto';
+      const img = ctx.createImageData(N, N);
+      for (let k = 0; k < N * N; k++) { const L = g(D[k]) * 255; img.data[4 * k] = L; img.data[4 * k + 1] = red ? 0 : L; img.data[4 * k + 2] = red ? 0 : L; img.data[4 * k + 3] = 255; }
+      ctx.putImageData(img, 0, 0);
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffffff'; ctx.font = '7px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('fibub.com', N - 3, N - 3); ctx.globalAlpha = 1;
+      p.begin(); p.line(0, 0, 1, 1, { color: p.pal.line, width: 1, dash: [3, 3] }); p.fn(g, { color: p.pal.accent, width: 2.5 }); p.end();
+    };
+    const gs = slider(fig, 's', () => go(), (v) => `${v}`), gb = slider(fig, 'b', () => go(), (v) => fmt(v, 3)); sel.addEventListener('change', () => go());
+    const go = live(cc, draw); live(ci, draw);
+  }
+</script>

@@ -1,0 +1,38 @@
+---
+// SIM for 11.5: an image is a grid of numbers. Move a box over a simulated star field and see the NumPy slice that
+// selects it, with the statistics a script would print.
+---
+<figure class="cs-fig mlf" data-slice>
+  <span class="cs-figtag">Try it: slice an image like NumPy</span>
+  <canvas aria-label="A simulated star field with a movable box, and the pixel values inside it"></canvas>
+  <div class="mlf-ctl">
+    <label>Box x (column) <output data-v="x"></output><input type="range" name="x" min="0" max="56" step="1" value="10"></label>
+    <label>Box y (row) <output data-v="y"></output><input type="range" name="y" min="0" max="40" step="1" value="8"></label>
+  </div>
+  <pre class="mlf-say" data-code style="font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+  <figcaption>A made-up 64 × 48 image with a sky level of about 200 counts and a few stars. In NumPy, rows come first: data[y0:y1, x0:x1], and row 0 is at the top when you print the array but at the bottom when astronomy software draws it (as here). The median ignores stars better than the mean, which is why it is used for the sky.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const W = 64, H = 48, B = 8, R = rng(8), img: number[] = [];
+  const stars = Array.from({ length: 9 }, () => [R() * W, R() * H, 500 + R() * 6000]);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let v = 200 + (R() + R() + R() - 1.5) * 20; for (const [sx, sy, f] of stars) v += (f / 10) * Math.exp(-((x - sx) ** 2 + (y - sy) ** 2) / 3); img.push(Math.round(v)); }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-slice]')) {
+    const cv = fig.querySelector('canvas')!, code = fig.querySelector<HTMLElement>('[data-code]')!;
+    const p = new Plot(cv, { x: [0, W], y: [0, H], h: 260, bare: true, equal: true });
+    const draw = () => {
+      const x0 = gx(), y0 = gy(), red = document.documentElement.classList.contains('red-mode');
+      p.begin();
+      const c = p.ctx, w = p.px(1) - p.px(0);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const g = Math.round(255 * Math.min(1, Math.asinh(Math.max(0, img[y * W + x] - 180) / 40) / 4)); c.fillStyle = red ? `rgb(${g},0,0)` : `rgb(${g},${g},${g})`; c.fillRect(p.px(x), p.py(y + 1), w + 0.5, w + 0.5); }
+      p.rect(x0, y0, B, B, { color: p.pal.accent2, width: 2.5 });
+      p.end();
+      const box: number[] = []; for (let y = y0; y < y0 + B; y++) for (let x = x0; x < x0 + B; x++) box.push(img[y * W + x]);
+      const mean = box.reduce((a, b) => a + b, 0) / box.length, srt = [...box].sort((a, b) => a - b), med = (srt[31] + srt[32]) / 2, sd = Math.sqrt(box.reduce((a, b) => a + (b - mean) ** 2, 0) / box.length);
+      code.textContent = `box = data[${y0}:${y0 + B}, ${x0}:${x0 + B}]   # rows ${y0}-${y0 + B - 1}, columns ${x0}-${x0 + B - 1}\nbox.mean()     -> ${fmt(mean, 1)}\nnp.median(box) -> ${fmt(med, 1)}\nbox.std()      -> ${fmt(sd, 1)}\nbox.max()      -> ${srt[63]}`;
+    };
+    const gx = slider(fig, 'x', () => go(), (v) => String(v)), gy = slider(fig, 'y', () => go(), (v) => String(v));
+    const go = live(cv, draw);
+  }
+</script>

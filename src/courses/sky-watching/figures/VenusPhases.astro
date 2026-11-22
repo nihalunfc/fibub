@@ -1,0 +1,49 @@
+---
+// SIM for 5.1: Venus through one synodic cycle: its phase and apparent size seen from Earth. Galileo's
+// observation of this cycle in 1610 was strong evidence that Venus orbits the Sun.
+---
+<figure class="cs-fig mlf" data-venus>
+  <span class="cs-figtag">Try it: follow Venus for 19 months</span>
+  <canvas aria-label="Venus's phase and size as seen from Earth at a chosen point in its cycle, beside the orbits"></canvas>
+  <div class="mlf-ctl"><label>Days after superior conjunction <output data-v="d"></output><input type="range" name="d" min="0" max="584" step="2" value="440"></label></div>
+  <div class="mlf-read">
+    <div><span>distance from Earth</span><b data-r></b></div>
+    <div><span>apparent size</span><b data-s></b></div>
+    <div><span>disc lit</span><b data-k></b></div>
+  </div>
+  <figcaption>Circular orbits (Venus at 0.723 AU) and Venus's real diameter (12,104 km). Near superior conjunction (behind the Sun) Venus is small and full; near inferior conjunction (between us and the Sun) it is a huge thin crescent. It is brightest as a wide crescent about five weeks either side of inferior conjunction.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { angularSize } from '../../../lib/astrocourse/optics';
+  const AU = 149597870.7, a = 0.723, S = 583.9;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-venus]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.25, 2.9], y: [-1.15, 1.15], h: 240, bare: true, equal: true });
+    const draw = () => {
+      const d = gd(), E: [number, number] = [-1, 0], th = (2 * Math.PI * d) / S; // Venus angle relative to the Sun-Earth line, starting behind the Sun
+      const V: [number, number] = [a * Math.cos(th), a * Math.sin(th)], r = Math.hypot(V[0] - E[0], V[1] - E[1]);
+      // Phase angle at Venus between the Sun and Earth.
+      const toS = [-V[0], -V[1]], toE = [E[0] - V[0], E[1] - V[1]], cosi = (toS[0] * toE[0] + toS[1] * toE[1]) / (Math.hypot(toS[0], toS[1]) * r), k = (1 + cosi) / 2;
+      const size = angularSize(12104, r * AU);
+      p.begin(); const c = p.ctx;
+      const ring = (R: number) => Array.from({ length: 81 }, (_, i) => [R * Math.cos(i / 80 * 6.283), R * Math.sin(i / 80 * 6.283)] as [number, number]);
+      p.path(ring(a), { color: p.pal.line, width: 1 }); p.path(ring(1), { color: p.pal.line, width: 1, dash: [3, 4] });
+      p.dot(0, 0, { r: 8, color: p.pal.accent2 }); p.dot(E[0], E[1], { r: 6, color: p.pal.accent }); p.text(E[0], E[1], 'Earth', { dy: 14, align: 'center', size: 11 });
+      p.dot(V[0], V[1], { r: 5, color: p.pal.ink }); p.text(V[0], V[1], 'Venus', { dx: 7, size: 11 });
+      p.line(E[0], E[1], V[0], V[1], { color: p.pal.muted, width: 1, dash: [3, 3] });
+      // Disc as seen from Earth, scaled by apparent size (66″ fills the box).
+      const DX = p.px(2.05), DY = p.py(0), DR = Math.max(4, (size / 66) * 62), lit = p.pal.red ? p.pal.ink : '#efe6c4', dark = p.pal.red ? '#1a0000' : '#3a3f4a';
+      // Which limb is lit: the side towards the Sun as seen from Earth.
+      const right = V[1] >= 0; // east of the Sun (evening sky): the Sun is to its right (west) when you face south
+      c.fillStyle = dark; c.beginPath(); c.arc(DX, DY, DR, 0, 6.283); c.fill();
+      c.fillStyle = lit; c.beginPath(); c.arc(DX, DY, DR, -Math.PI / 2, Math.PI / 2, !right);
+      c.ellipse(DX, DY, DR * Math.abs(1 - 2 * k), DR, 0, Math.PI / 2, -Math.PI / 2, k > 0.5 ? !right : right); c.fill();
+      p.text(2.05, -1.08, 'seen from Earth (to scale)', { align: 'center', size: 10.5, color: p.pal.muted });
+      p.end();
+      q('[data-r]').textContent = `${fmt(r, 2)} AU`; q('[data-s]').textContent = `${fmt(size, 0)}″`; q('[data-k]').textContent = `${fmt(k * 100, 0)} %`;
+    };
+    const gd = slider(fig, 'd', () => go(), (v) => `${v}`);
+    const go = live(cv, draw);
+  }
+</script>

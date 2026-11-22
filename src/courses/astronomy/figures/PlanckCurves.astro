@@ -1,0 +1,40 @@
+---
+// SIM for 7.2: blackbody spectra at a chosen temperature, with the Sun's for comparison, Wien's peak and the
+// colour the eye would see.
+---
+<figure class="cs-fig mlf" data-planck>
+  <span class="cs-figtag">Try it: heat the star</span>
+  <canvas aria-label="Blackbody curves: brightness against wavelength, with the visible band shaded"></canvas>
+  <div class="mlf-ctl"><label>Temperature <output data-v="t"></output><input type="range" name="t" min="2500" max="30000" step="100" value="5800"></label></div>
+  <div class="mlf-read">
+    <div><span>peak wavelength (Wien)</span><b data-peak></b></div>
+    <div><span>power per m² vs the Sun</span><b data-pow></b></div>
+    <div><span>looks</span><b data-col><span class="pk-sw"></span></b></div>
+  </div>
+  <figcaption>Each curve is the light given off per square metre of surface at each wavelength by a perfect emitter (a blackbody). Dashed: the Sun's surface temperature, 5,772 K (IAU). The rainbow band is visible light. Hotter bodies are brighter at every wavelength and peak at shorter (bluer) wavelengths. Star colours are approximate; screens can't show them exactly.</figcaption>
+</figure>
+<style is:inline>.pk-sw { display: inline-block; width: 1.4em; height: 1.4em; border-radius: 50%; border: 1px solid var(--line); vertical-align: middle; margin-right: 6px; }</style>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { planck, wienPeak, bbColour, TSUN } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-planck]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [100, 2400], y: [0, 1.05], h: 260, xLabel: 'wavelength (nm)', yLabel: 'brightness', noYTicks: true });
+    const draw = () => {
+      const T = gt(), top = Math.max(planck(wienPeak(T), T), planck(wienPeak(TSUN), TSUN));
+      p.begin();
+      for (let l = 400; l < 700; l += 5) { const h = (270 - ((l - 400) / 300) * 270); p.rect(l, 0, 5, 1.05, { fill: p.pal.red ? p.pal.grid : `hsl(${h},80%,60%)`, alpha: 0.18 }); }
+      p.fn((l) => planck(l * 1e-9, TSUN) / top, { color: p.pal.muted, width: 1.5, dash: [5, 4] });
+      p.fn((l) => planck(l * 1e-9, T) / top, { color: p.pal.accent, width: 2.5 });
+      const pk = wienPeak(T) * 1e9; if (pk > 100 && pk < 2500) p.line(pk, 0, pk, planck(wienPeak(T), T) / top, { color: p.pal.accent2, width: 1.5, dash: [3, 3] });
+      p.end();
+      const [r, g, b] = bbColour(T);
+      q('[data-peak]').textContent = `${fmt(wienPeak(T) * 1e9, 0)} nm`; q('[data-pow]').textContent = `${fmt((T / TSUN) ** 4, 2)} ×`;
+      const sw = q('.pk-sw'); sw.style.background = `rgb(${r},${g},${b})`; q('[data-col]').lastChild!.textContent = T < 3500 ? 'orange-red' : T < 5000 ? 'orange' : T < 6500 ? 'yellow-white' : T < 10000 ? 'white' : 'blue-white';
+      if (q('[data-col]').childNodes.length < 2) q('[data-col]').append('');
+    };
+    q('[data-col]').append('');
+    const gt = slider(fig, 't', () => go(), (v) => `${Math.round(v).toLocaleString('en')} K`);
+    const go = live(cv, draw);
+  }
+</script>

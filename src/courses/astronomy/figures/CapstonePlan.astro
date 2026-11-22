@@ -1,0 +1,51 @@
+---
+// DIAGRAM for 11.10: pick a capstone project and see its steps, each linked to the lesson and the fibub tool that
+// does it.
+---
+<figure class="cs-fig mlf" data-capstone>
+  <span class="cs-figtag">Try it: choose your project</span>
+  <div class="mlf-btns" data-btns></div>
+  <ol data-steps style="margin:10px 0 0;padding-left:1.4em;line-height:1.55"></ol>
+  <figcaption>Three starter projects, each a real piece of research an amateur can finish in a few clear nights or with archive data alone. Every step names the lesson that teaches it and the fibub tool that does the sums.</figcaption>
+</figure>
+<script>
+  const SKY = new Set(['planning-a-night', 'calibration-frames', 'signal-to-noise']);
+  type Step = [string, string, string, string]; // what, lesson slug, lesson label, tool id
+  const PROJECTS: [string, Step[]][] = [
+    ['Variable star period', [
+      ['Pick a variable from a public list and plan when it is up', 'planning-a-night', '3.4', 'object-altitude'],
+      ['Take short exposures for several nights, with darks and flats', 'calibration-frames', '6.3', 'calibration-frames'],
+      ['Measure the star and two comparison stars', 'aperture-photometry', '5.1', 'fits-viewer'],
+      ['Find the period', 'periodograms', '5.2', 'period-finder'],
+      ['Fit, give the uncertainty, compare with the catalogue', 'fitting-errors', '5.7', 'variable-star-log'],
+    ]],
+    ['Exoplanet transit', [
+      ['Choose a known transit visible from your site', 'exoplanet-methods', '5.3', 'transit-planner'],
+      ['Check exposure length and focus for good signal-to-noise', 'signal-to-noise', '6.2', 'sub-exposure-calculator'],
+      ['Measure the star against comparison stars all night', 'aperture-photometry', '5.1', 'fits-viewer'],
+      ['Fit depth and mid-time; get the planet\'s size', 'fitting-errors', '5.7', 'transit-light-curve-fitter'],
+      ['Share the result with a pro-am campaign', 'pro-am-science', '5.9', 'observing-log'],
+    ]],
+    ['Galaxy rotation from archive data', [
+      ['Find a 21 cm or optical spectrum survey in an open archive', 'open-archives', '5.6', 'hydrogen-line-analyser'],
+      ['Turn line shifts into speeds', 'doppler-shift', '1.4', 'redshift-calculator'],
+      ['Plot speed against radius', 'newtons-gravity', '2.2', 'rotation-curve-fitter'],
+      ['Fit visible matter plus a dark halo, with errors', 'fitting-errors', '5.7', 'rotation-curve-fitter'],
+      ['Write it up like a short paper', 'papers-arxiv', '5.8', 'observing-log'],
+    ]],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-capstone]')) {
+    const box = fig.querySelector<HTMLElement>('[data-btns]')!, ol = fig.querySelector<HTMLElement>('[data-steps]')!;
+    const btns = PROJECTS.map(([name], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary'; b.textContent = name; b.setAttribute('aria-pressed', String(i === 0)); box.append(b); return b; });
+    const pick = (k: number) => {
+      btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === k)));
+      ol.replaceChildren(...PROJECTS[k][1].map(([what, slug, n, tool]) => {
+        const li = document.createElement('li'), a = document.createElement('a'), t = document.createElement('a');
+        a.href = `/learn/courses/${SKY.has(slug) ? 'sky-watching' : 'astronomy'}/${slug}/`; a.textContent = `${SKY.has(slug) ? 'Sky watching' : 'Lesson'} ${n}`; t.href = `/science/${tool}/`; t.textContent = 'tool';
+        li.append(`${what} (`, a, ', ', t, ')'); return li;
+      }));
+    };
+    btns.forEach((b, i) => b.addEventListener('click', () => pick(i)));
+    pick(0);
+  }
+</script>

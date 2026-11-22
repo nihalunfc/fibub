@@ -1,0 +1,46 @@
+---
+// SIM for 3.3: a close double star through a telescope. Diffraction (set by aperture) and seeing (set by the air)
+// blur each star; when the blur is wider than the gap, the pair merges.
+---
+<figure class="cs-fig mlf" data-seeing>
+  <span class="cs-figtag">Try it: split the double star</span>
+  <canvas aria-label="Two close stars, blurred by the telescope and by the atmosphere"></canvas>
+  <div class="mlf-ctl">
+    <label>Seeing (arcsec) <output data-v="s"></output><input type="range" name="s" min="0" max="5" step="0.1" value="2"></label>
+    <label>Aperture (mm) <output data-v="d"></output><input type="range" name="d" min="50" max="400" step="10" value="150"></label>
+    <label>Gap between the stars (arcsec) <output data-v="g"></output><input type="range" name="g" min="0.3" max="6" step="0.1" value="1.6"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>telescope's own limit (Rayleigh)</span><b data-ray></b></div>
+    <div><span>blur of each star</span><b data-fw></b></div>
+    <div><span>result</span><b data-res></b></div>
+  </div>
+  <figcaption>Seeing is the blur from moving pockets of air of different temperature: 1″ is excellent, 2″ to 3″ ordinary, 4″ or more poor. Each star is drawn as a Gaussian whose width combines the telescope's diffraction blur and the seeing. Transparency, how clear the air is, is a separate thing: a hazy night can have steady seeing. Made-up double star.</figcaption>
+</figure>
+<script>
+  import { live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rayleighArcsec } from '../../../lib/astrocourse/sky';
+  import { pagePalette } from '../../../lib/report';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-seeing]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const s = gs(), D = gd() / 1000, gap = gg(), ray = rayleighArcsec(D), diff = 1.03 * ray / 1.22, fw = Math.hypot(s, diff);
+      const W = Math.max(240, cv.clientWidth || 300), H = Math.min(320, Math.round(W / 1.6)), n = 160, m = 100, sc = 8 / n; // 8″ across
+      cv.width = n; cv.height = m; cv.style.height = H + 'px'; cv.style.imageRendering = 'auto';
+      const ctx = cv.getContext('2d')!, img = ctx.createImageData(n, m), sg = fw / 2.355, red = pagePalette().red;
+      for (let j = 0; j < m; j++) for (let i = 0; i < n; i++) {
+        const x = (i - n / 2) * sc, y = (j - m / 2) * sc;
+        const v = Math.exp(-((x + gap / 2) ** 2 + y * y) / (2 * sg * sg)) + 0.7 * Math.exp(-((x - gap / 2) ** 2 + y * y) / (2 * sg * sg));
+        const b = Math.min(255, 255 * v), k = (j * n + i) * 4;
+        img.data[k] = red ? b : 10 + b * 0.95; img.data[k + 1] = red ? 0 : 14 + b * 0.94; img.data[k + 2] = red ? 0 : 30 + b * 0.88; img.data[k + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffffff'; ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('fibub.com', n - 3, m - 3); ctx.globalAlpha = 1;
+      q('[data-ray]').textContent = `${fmt(ray, 2)}″`; q('[data-fw]').textContent = `${fmt(fw, 2)}″ wide`;
+      q('[data-res]').textContent = gap > fw ? 'split: two stars' : gap > 0.8 * fw ? 'just touching (elongated)' : 'one blob';
+      void W;
+    };
+    const gs = slider(fig, 's', () => go(), (v) => `${fmt(v, 1)}″`), gd = slider(fig, 'd', () => go(), (v) => `${v} mm`), gg = slider(fig, 'g', () => go(), (v) => `${fmt(v, 1)}″`);
+    const go = live(cv, draw);
+  }
+</script>

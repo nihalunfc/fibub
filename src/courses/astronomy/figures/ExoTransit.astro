@@ -1,0 +1,60 @@
+---
+// SIM for 11.3: a planet crossing its star. Top: the view, with the planet moving across. Bottom: the star's light
+// dipping by (Rp/Rs)². Readouts: depth, duration and the star's radial-velocity wobble from the planet's mass.
+---
+<figure class="cs-fig mlf" data-exo>
+  <span class="cs-figtag">Try it: detect a planet</span>
+  <canvas data-top aria-label="A planet crossing in front of its star"></canvas>
+  <canvas data-low aria-label="The star's brightness dipping as the planet passes"></canvas>
+  <div class="mlf-ctl">
+    <label>Planet radius <output data-v="rp"></output><input type="range" name="rp" min="0.5" max="15" step="0.1" value="1"></label>
+    <label>Planet mass <output data-v="mp"></output><input type="range" name="mp" min="-0.5" max="3.5" step="0.01" value="0"></label>
+    <label>Orbit size a <output data-v="a"></output><input type="range" name="a" min="0.02" max="1.5" step="0.01" value="1"></label>
+    <label>Where the planet is <output data-v="x"></output><input type="range" name="x" min="-1.6" max="1.6" step="0.01" value="-1.4"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-play>Play</button></div>
+  <div class="mlf-read">
+    <div><span>transit depth (Rp/Rs)²</span><b data-dep></b></div>
+    <div><span>transit lasts about</span><b data-dur></b></div>
+    <div><span>period</span><b data-P></b></div>
+    <div><span>star's wobble K</span><b data-K></b></div>
+  </div>
+  <figcaption>A Sun-like star (1 solar mass and radius), circular orbit seen edge-on, planet radius in Earth radii (Jupiter is about 11) and mass in Earth masses on a log slider (Jupiter is about 318). The planet is drawn bigger than life so you can see it. Earth's transit is only 0.008% deep; its pull moves the Sun by 9 cm/s.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { periodYears, AU, RSUN, MSUN, G } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-exo]')) {
+    const top = fig.querySelector<HTMLCanvasElement>('[data-top]')!, low = fig.querySelector<HTMLCanvasElement>('[data-low]')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const pt = new Plot(top, { x: [-2.4, 2.4], y: [-1.15, 1.15], h: 190, bare: true, equal: true });
+    const draw = () => {
+      const k = (gr() * 6.371e6) / RSUN, mp = 10 ** gm() * 5.972e24, a = ga(), x = gx();
+      const P = periodYears(a), dep = k * k, dur = (P * 365.25 * 24 * RSUN) / (Math.PI * a * AU);
+      const K = ((2 * Math.PI * G) / (P * 3.15576e7)) ** (1 / 3) * mp / MSUN ** (2 / 3);
+      pt.begin();
+      const disc: [number, number][] = []; for (let j = 0; j <= 90; j++) disc.push([Math.cos((j / 90) * 2 * Math.PI), Math.sin((j / 90) * 2 * Math.PI)]);
+      pt.poly(disc, { fill: pt.pal.warn, alpha: 0.85, color: pt.pal.warn, width: 1 });
+      const vis = Math.max(k, 0.06), pl: [number, number][] = []; for (let j = 0; j <= 40; j++) pl.push([x + vis * Math.cos((j / 40) * 2 * Math.PI), vis * Math.sin((j / 40) * 2 * Math.PI)]);
+      pt.poly(pl, { fill: pt.pal.ink, color: pt.pal.ink, width: 1 });
+      pt.end();
+      // Depth of the dip at planet position x (uniform disc, planet small): overlap fraction.
+      const over = (xx: number) => { const d = Math.abs(xx); if (d >= 1 + k) return 0; if (d <= 1 - k) return k * k; const r = k, R2 = 1; const a1 = r * r * Math.acos((d * d + r * r - R2) / (2 * d * r)), a2 = R2 * Math.acos((d * d + R2 - r * r) / (2 * d)), a3 = 0.5 * Math.sqrt(Math.max(0, (-d + r + 1) * (d + r - 1) * (d - r + 1) * (d + r + 1))); return (a1 + a2 - a3) / Math.PI; };
+      const ymin = 1 - Math.max(dep * 1.4, 0.002);
+      const pl2 = new Plot(low, { x: [-1.7, 1.7], y: [ymin, 1 + (1 - ymin) * 0.15], h: 150, xLabel: 'planet position (star radii)', yLabel: 'brightness' });
+      pl2.begin(); pl2.fn((xx) => 1 - over(xx), { color: pl2.pal.accent, width: 2.5 }); pl2.dot(x, 1 - over(x), { r: 5, color: pl2.pal.accent2 }); pl2.end();
+      q('[data-dep]').textContent = dep < 0.001 ? `${fmt(dep * 1e6, 0)} ppm (${fmt(dep * 100, 4)}%)` : `${fmt(dep * 100, 2)}%`;
+      q('[data-dur]').textContent = `${fmt(dur, 1)} hours`; q('[data-P]').textContent = P < 1 ? `${fmt(P * 365.25, 1)} days` : `${fmt(P, 2)} year${fmt(P, 2) === '1' ? '' : 's'}`;
+      q('[data-K]').textContent = K < 1 ? `${fmt(K * 100, 1)} cm/s` : `${fmt(K, 1)} m/s`;
+    };
+    const gr = slider(fig, 'rp', () => go(), (v) => `${fmt(v, 1)} Earths`), gm = slider(fig, 'mp', () => go(), (v) => `${fmt(10 ** v, 10 ** v < 10 ? 1 : 0)} Earths`), ga = slider(fig, 'a', () => go(), (v) => `${fmt(v, 2)} AU`), gx = slider(fig, 'x', () => go(), (v) => fmt(v, 2));
+    const go = () => draw();
+    live(top, draw); live(low, draw);
+    let timer = 0;
+    const btn = q('[data-play]') as HTMLButtonElement, inp = fig.querySelector<HTMLInputElement>('input[name=x]')!;
+    btn.addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = 0; btn.textContent = 'Play'; return; }
+      btn.textContent = 'Pause'; if (+inp.value >= 1.6) inp.value = '-1.6';
+      timer = window.setInterval(() => { inp.value = String(Math.min(1.6, +inp.value + 0.01)); inp.dispatchEvent(new Event('input')); if (+inp.value >= 1.6) btn.click(); }, 30);
+    });
+  }
+</script>

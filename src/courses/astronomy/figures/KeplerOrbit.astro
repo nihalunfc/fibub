@@ -1,0 +1,64 @@
+---
+// SIM for 8.1: an ellipse with the Sun at one focus. The planet moves by Kepler's equation, so it sweeps equal
+// areas in equal times; two shaded wedges each cover the same stretch of time.
+---
+<figure class="cs-fig mlf" data-kepler>
+  <span class="cs-figtag">Try it: stretch the orbit</span>
+  <canvas aria-label="An elliptical orbit with the Sun at one focus and two equal-time wedges"></canvas>
+  <div class="mlf-ctl">
+    <label>Eccentricity e <output data-v="e"></output><input type="range" name="e" min="0" max="0.9" step="0.01" value="0.5"></label>
+    <label>Size a (AU) <output data-v="a"></output><input type="range" name="a" min="0.4" max="40" step="0.1" value="1"></label>
+    <label>Time through the orbit <output data-v="t"></output><input type="range" name="t" min="0" max="1" step="0.005" value="0.1"></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-play>Play</button></div>
+  <div class="mlf-read">
+    <div><span>period P = a^1.5</span><b data-p></b></div>
+    <div><span>closest (perihelion)</span><b data-q></b></div>
+    <div><span>furthest (aphelion)</span><b data-aph></b></div>
+    <div><span>speed now ÷ slowest</span><b data-spd></b></div>
+  </div>
+  <figcaption>The two shaded wedges each take one tenth of the orbit. Near the Sun the wedge is short and fat, far away it is long and thin, but the areas match: that is Kepler's second law. The size slider only changes the numbers; the shape depends on e alone.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { orbitPos, periodYears } from '../../../lib/astrocourse/physics';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-kepler]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-2, 1.1], y: [-1.05, 1.05], h: 280, bare: true, equal: true });
+    const wedge = (e: number, t0: number, t1: number, color: string) => {
+      const pts: [number, number][] = [[0, 0]];
+      for (let k = 0; k <= 40; k++) { const o = orbitPos(2 * Math.PI * (t0 + ((t1 - t0) * k) / 40), e); pts.push([o.x, o.y]); }
+      p.poly(pts, { fill: color, alpha: 0.35, color, width: 1 });
+    };
+    const draw = () => {
+      const e = ge(), a = ga(), t = gt();
+      p.begin();
+      const ring: [number, number][] = [];
+      for (let k = 0; k <= 200; k++) { const o = orbitPos((2 * Math.PI * k) / 200, e); ring.push([o.x, o.y]); }
+      p.path(ring, { color: p.pal.muted, width: 1.5 });
+      wedge(e, -0.05, 0.05, p.pal.accent); wedge(e, 0.45, 0.55, p.pal.accent2);
+      p.line(-2 * e, 0, 0, 0, { color: p.pal.grid, width: 1, dash: [3, 3] });
+      p.dot(-2 * e, 0, { r: 3, color: p.pal.muted, shape: 'cross' });
+      p.dot(0, 0, { r: 8, color: p.pal.warn });
+      const o = orbitPos(2 * Math.PI * t, e);
+      p.dot(o.x, o.y, { r: 6, color: p.pal.ink });
+      p.text(0, -0.12, 'Sun', { align: 'center', color: p.pal.muted, size: 11 });
+      p.text(1 - e, 0, 'perihelion', { dy: 14, align: 'center', color: p.pal.muted, size: 11 });
+      p.text(-1 - e, 0, 'aphelion', { dy: 14, align: 'center', color: p.pal.muted, size: 11 });
+      p.end();
+      const P = periodYears(a);
+      q('[data-p]').textContent = P < 2 ? `${fmt(P * 365.25, 0)} days` : `${fmt(P, 1)} years`;
+      q('[data-q]').textContent = `${fmt(a * (1 - e), 2)} AU`; q('[data-aph]').textContent = `${fmt(a * (1 + e), 2)} AU`;
+      q('[data-spd]').textContent = `${fmt(Math.sqrt((2 / o.r - 1) / ((1 - e) / (1 + e))), 2)} ×`;
+    };
+    const ge = slider(fig, 'e', () => go()), ga = slider(fig, 'a', () => go(), (v) => fmt(v, 1)), gt = slider(fig, 't', () => go(), (v) => `${fmt(v * 100, 0)}%`);
+    const go = live(cv, draw);
+    let timer = 0;
+    const btn = q('[data-play]') as HTMLButtonElement, inp = fig.querySelector<HTMLInputElement>('input[name=t]')!;
+    btn.addEventListener('click', () => {
+      if (timer) { clearInterval(timer); timer = 0; btn.textContent = 'Play'; return; }
+      btn.textContent = 'Pause';
+      timer = window.setInterval(() => { inp.value = String((+inp.value + 0.004) % 1); inp.dispatchEvent(new Event('input')); }, 40);
+    });
+  }
+</script>
