@@ -5,7 +5,7 @@ export default {
   'c10s-repr-fission': {
     title: 'bacteria dividing by binary fission',
     make(r) {
-      const T = choose(r, [20, 30, 40, 60]), H = choose(r, [2, 3, 4, 5]), k = (H * 60) / T;
+      const T = choose(r, [20, 30, 60]), H = choose(r, [2, 3, 4, 5]), k = (H * 60) / T;
       return { T, H, k, q: `<p>A bacterium divides by binary fission once every ${T} minutes and every daughter keeps dividing at the same rate. Starting from one bacterium, how many bacteria are there after ${H} hours?</p>`, answer: Math.pow(2, k), unit: 'bacteria', tol: 0.01,
         hint: 'Each division doubles the number. Count how many divisions fit in the time.',
         solution: steps(`Number of divisions = ${H} × 60 ÷ ${T} = ${k}.`, `Each division doubles the count, so after ${k} divisions: 2<sup>${k}</sup> = <b>${n(Math.pow(2, k))}</b> bacteria.`) };
