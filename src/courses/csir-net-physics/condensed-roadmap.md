@@ -62,7 +62,7 @@ Basic magnetism (dia-, para- and ferromagnetism) is listed under statistical phy
 4. **Electrons**: GATE [free electron model](/learn/courses/gate-physics/free-electron-model/) (Drude, Sommerfeld, Hall effect), then [band theory](/learn/courses/gate-physics/band-theory/).
 5. **Semiconductors**: GATE [semiconductors, Landau levels and the Hall effect](/learn/courses/gate-physics/semiconductors-hall/).
 6. **Magnetism and superconductivity**: GATE [magnetism](/learn/courses/gate-physics/magnetism/) and [superconductivity](/learn/courses/gate-physics/superconductivity/).
-7. **NET extras in this course**: lesson 9.2 (defects and dislocations), lesson 9.3 (dielectric and optical properties of solids) and lesson 9.4 (the quantum Hall effect and low-dimensional systems).
+7. **NET extras in this course**: [lesson 9.2](/learn/courses/csir-net-physics/defects-dislocations/) (defects and dislocations), [lesson 9.3](/learn/courses/csir-net-physics/dielectric-optical/) (dielectric and optical properties of solids) and [lesson 9.4](/learn/courses/csir-net-physics/quantum-hall/) (the quantum Hall effect and low-dimensional systems).
 
 Liquid crystals, quasicrystals and superfluidity appear rarely and at a descriptive level: know the kinds of order (nematic, smectic, cholesteric), what makes a quasicrystal (long-range order without periodicity, forbidden rotational symmetries such as fivefold), and the lambda transition of helium-4.
 

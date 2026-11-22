@@ -69,7 +69,7 @@ Described from the published syllabus (check the current one):
 5. **Approximation methods**: the GATE lessons on time-independent perturbation theory, the variational method and WKB, and time-dependent perturbation theory.
 6. **Identical particles**: the GATE lesson on identical particles.
 7. **Fine structure** (Part C): GATE [hydrogen spectra and fine structure](/learn/courses/gate-physics/fine-structure/).
-8. **NET extras in this course**: lesson 5.2 (scattering: Born approximation and partial waves) and lesson 5.3 (Klein-Gordon and Dirac equations).
+8. **NET extras in this course**: [lesson 5.2](/learn/courses/csir-net-physics/scattering-theory/) (scattering: Born approximation and partial waves) and [lesson 5.3](/learn/courses/csir-net-physics/relativistic-quantum/) (Klein-Gordon and Dirac equations).
 
 Some GATE quantum lessons in steps 4 to 6 are still being written; until they appear, the practice sets and the textbooks in the sources cover them.
 
@@ -87,8 +87,8 @@ Some GATE quantum lessons in steps 4 to 6 are still being written; until they ap
 | Golden rule, selection rules | GATE lesson 4.10 | Δl = ±1, transition rates |
 | Identical particles | GATE lesson 4.11 | symmetric and antisymmetric states, exchange |
 | Fine structure | [GATE 6.1](/learn/courses/gate-physics/fine-structure/) | spin-orbit splitting, j quantum numbers |
-| Scattering | lesson 5.2 | Born amplitude of a Yukawa potential, s-wave phase shift |
-| Relativistic QM | lesson 5.3 | Dirac matrices, negative energies, spin from the Dirac equation |
+| Scattering | [lesson 5.2](/learn/courses/csir-net-physics/scattering-theory/) | Born amplitude of a Yukawa potential, s-wave phase shift |
+| Relativistic QM | [lesson 5.3](/learn/courses/csir-net-physics/relativistic-quantum/) | Dirac matrices, negative energies, spin from the Dirac equation |
 
 ## 4. A worked NET-style example
 

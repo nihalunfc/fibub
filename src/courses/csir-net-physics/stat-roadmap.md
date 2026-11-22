@@ -67,7 +67,7 @@ Described from the published syllabus (check the current one):
 6. **Photons, phonons, condensation**: GATE [blackbody radiation and Bose-Einstein condensation](/learn/courses/gate-physics/photon-phonon-gases/); JAM [blackbody radiation](/learn/courses/iit-jam-physics/blackbody-radiation/) for the basics.
 7. **Fermi gas**: GATE [the Fermi gas](/learn/courses/gate-physics/fermi-gas/).
 8. **Phase transitions** (Part C): GATE [phase transitions](/learn/courses/gate-physics/phase-transitions/), and [magnetism](/learn/courses/gate-physics/magnetism/) for dia-, para- and ferromagnetism.
-9. **NET extras in this course**: lesson 6.2 (fluctuations, diffusion and Brownian motion), lesson 6.3 (the Ising model and Landau theory) and lesson 6.4 (kinetic theory of transport).
+9. **NET extras in this course**: [lesson 6.2](/learn/courses/csir-net-physics/fluctuations-brownian/) (fluctuations, diffusion and Brownian motion), [lesson 6.3](/learn/courses/csir-net-physics/ising-landau/) (the Ising model and Landau theory) and [lesson 6.4](/learn/courses/csir-net-physics/transport/) (kinetic theory of transport).
 
 ## 3. Where each topic is taught
 

@@ -62,7 +62,7 @@ Described from the published syllabus (check the current one). All of it is **Pa
 4. **Decays and reactions**: the GATE lessons on alpha, beta and gamma decay and on nuclear reactions and Q values.
 5. **Particles**: the GATE lessons on elementary particles and quarks and on conservation laws and symmetries.
 6. **Relativistic kinematics**: GATE [four-vectors and relativistic kinematics](/learn/courses/gate-physics/relativistic-kinematics/) (thresholds and invariant mass).
-7. **NET extras in this course**: lesson 10.2 (the deuteron and the nuclear force), lesson 10.3 (the collective model and nuclear deformation) and lesson 10.4 (isospin, strangeness and the quark model).
+7. **NET extras in this course**: [lesson 10.2](/learn/courses/csir-net-physics/deuteron-nuclear-force/) (the deuteron and the nuclear force), [lesson 10.3](/learn/courses/csir-net-physics/collective-model/) (the collective model and nuclear deformation) and [lesson 10.4](/learn/courses/csir-net-physics/quark-model/) (isospin, strangeness and the quark model).
 
 Several GATE nuclear lessons are still being written; until they appear, use the JAM lessons, the practice sets and the textbooks in the sources.
 
@@ -76,9 +76,9 @@ Several GATE nuclear lessons are still being written; until they appear, use the
 | Mass formula | GATE mass formula lesson | most stable Z for given A, mirror-nucleus energies |
 | Shell model | GATE shell model lesson | magic numbers, spin-parity, Schmidt lines |
 | Decays and selection rules | GATE decays lesson | Gamow factor, Fermi and Gamow-Teller rules, multipolarity of gamma rays |
-| Particles, quarks, symmetries | GATE particles and conservation lessons, lesson 10.4 | quark content, which force, allowed or forbidden reactions |
-| Deuteron, nuclear force | lesson 10.2 | tensor force, mixed ³S₁ and ³D₁ ground state, only one bound state |
-| Collective model | lesson 10.3 | rotational bands E ∝ J(J + 1), ratio E(4⁺)/E(2⁺) = 10/3 |
+| Particles, quarks, symmetries | GATE particles and conservation lessons, [lesson 10.4](/learn/courses/csir-net-physics/quark-model/) | quark content, which force, allowed or forbidden reactions |
+| Deuteron, nuclear force | [lesson 10.2](/learn/courses/csir-net-physics/deuteron-nuclear-force/) | tensor force, mixed ³S₁ and ³D₁ ground state, only one bound state |
+| Collective model | [lesson 10.3](/learn/courses/csir-net-physics/collective-model/) | rotational bands E ∝ J(J + 1), ratio E(4⁺)/E(2⁺) = 10/3 |
 | Relativistic kinematics | [GATE 2.7](/learn/courses/gate-physics/relativistic-kinematics/) | thresholds, two-body decays at rest |
 
 ## 4. A worked NET-style example

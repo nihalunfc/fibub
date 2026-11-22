@@ -70,7 +70,7 @@ Part B questions are typically a field, a potential, a boundary condition or a r
 7. **Guided waves**: GATE [waveguides, transmission lines and cavities](/learn/courses/gate-physics/waveguides/).
 8. **Radiation**: GATE [radiation from dipoles and accelerated charges](/learn/courses/gate-physics/radiation/).
 9. **Relativity and fields**: GATE [covariant electrodynamics](/learn/courses/gate-physics/covariant-electrodynamics/).
-10. **NET extras in this course**: lesson 4.2 (retarded and Liénard-Wiechert potentials) and lesson 4.3 (plasma oscillations and dispersion).
+10. **NET extras in this course**: [lesson 4.2](/learn/courses/csir-net-physics/retarded-potentials/) (retarded and Liénard-Wiechert potentials) and [lesson 4.3](/learn/courses/csir-net-physics/plasma-dispersion/) (plasma oscillations and dispersion).
 
 ## 3. Where each topic is taught
 
@@ -83,9 +83,9 @@ Part B questions are typically a field, a potential, a boundary condition or a r
 | Waves in media, skin depth | [GATE 3.6](/learn/courses/gate-physics/em-waves-media/) | complex refractive index, skin depth, plasma cut-off |
 | Fresnel, Brewster, total reflection | [GATE 3.7](/learn/courses/gate-physics/fresnel-equations/) | reflectance at normal incidence, Brewster angle, evanescent waves |
 | Waveguides, transmission lines | [GATE 3.8](/learn/courses/gate-physics/waveguides/) | cut-off frequency, group velocity, characteristic impedance, matching |
-| Radiation | [GATE 3.9](/learn/courses/gate-physics/radiation/), lesson 4.2 | Larmor formula, dipole pattern, ω⁴ scaling |
+| Radiation | [GATE 3.9](/learn/courses/gate-physics/radiation/), [lesson 4.2](/learn/courses/csir-net-physics/retarded-potentials/) | Larmor formula, dipole pattern, ω⁴ scaling |
 | Covariant form | [GATE 3.10](/learn/courses/gate-physics/covariant-electrodynamics/) | field tensor, invariants E·B and E² − c²B² |
-| Plasma dispersion | lesson 4.3, [GATE 3.6](/learn/courses/gate-physics/em-waves-media/) | ω² = ω_p² + c²k², phase and group velocity |
+| Plasma dispersion | [lesson 4.3](/learn/courses/csir-net-physics/plasma-dispersion/), [GATE 3.6](/learn/courses/gate-physics/em-waves-media/) | ω² = ω_p² + c²k², phase and group velocity |
 
 ## 4. A worked NET-style example
 
