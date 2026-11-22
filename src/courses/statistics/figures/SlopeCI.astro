@@ -1,0 +1,42 @@
+---
+// SIM for 8.2: inference for a regression slope. A sample from a known line plus noise; the fitted line,
+// a band of lines drawn from the slope's uncertainty, and the slope's 95 % CI, t, p and R².
+---
+<figure class="cs-fig mlf" data-slopeci>
+  <span class="cs-figtag">Try it: how sure is the slope?</span>
+  <canvas aria-label="Scatter of ad spend against sales with the fitted line and a fan of plausible lines"></canvas>
+  <div class="mlf-ctl">
+    <label>True slope (sales per $1 of ads): <output data-v="b"></output><input type="range" name="b" min="0" max="4" step="0.25" value="1.5" /></label>
+    <label>Noise (SD of sales): <output data-v="s"></output><input type="range" name="s" min="5" max="60" step="5" value="25" /></label>
+    <label>Weeks of data: <output data-v="n"></output><input type="range" name="n" min="5" max="100" step="1" value="20" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-new>New sample</button></div>
+  <div class="mlf-read"><div><span>fitted slope (95 % CI)</span><b data-fit></b></div><div><span>t, p for slope = 0</span><b data-tp></b></div><div><span>R²</span><b data-r2></b></div></div>
+  <figcaption>Each dot is a week: ad spend ($) and extra sales ($). The dark line is the least-squares fit (ML foundations Lesson 3.2); the pale lines are slopes picked from inside its 95 % interval. More weeks or less noise narrow the fan. A slope can be clearly real while R² stays low: noise hides individual weeks, not the trend. Made-up numbers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, fmt } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  import { regress } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-slopeci]')) {
+    const cv = fig.querySelector('canvas')!; let seed = 5;
+    const p = new Plot(cv, { x: [0, 100], y: [0, 500], h: 250, xLabel: 'ad spend ($)', yLabel: 'sales ($)' });
+    const B = slider(fig, 'b', () => draw()), S = slider(fig, 's', () => draw(), (v) => fmt(v, 0)), N = slider(fig, 'n', () => draw(), (v) => fmt(v, 0));
+    function draw() {
+      const R = rng(seed), n = N(), xs: number[] = [], ys: number[] = [];
+      for (let i = 0; i < n; i++) { const x = R.uniform(5, 95); xs.push(x); ys.push(60 + B() * x + R.normal(0, S())); }
+      const r = regress(xs, ys), mx = xs.reduce((a, v) => a + v, 0) / n, my = ys.reduce((a, v) => a + v, 0) / n;
+      p.begin();
+      for (let k = 0; k <= 10; k++) { const b = r.bLo + ((r.bHi - r.bLo) * k) / 10; p.fn((x) => my + b * (x - mx), { color: p.pal.accent, width: 1, alpha: 0.25 }); }
+      xs.forEach((x, i) => p.dot(x, ys[i], { r: 3.5, color: p.pal.ink, alpha: 0.75 }));
+      p.fn((x) => r.a + r.b * x, { color: p.pal.accent, width: 2.5 });
+      p.fn((x) => 60 + B() * x, { color: p.pal.accent2, width: 1.5, dash: [6, 4] });
+      p.text(4, 480, 'dashed: true line', { color: p.pal.accent2, size: 11 }).end();
+      put(fig, 'fit', `${fmt(r.b, 2)} (${fmt(r.bLo, 2)} to ${fmt(r.bHi, 2)})`);
+      put(fig, 'tp', `${fmt(r.t, 2)}, ${r.p < 0.0001 ? '< 0.0001' : fmt(r.p, 4)}`);
+      put(fig, 'r2', `${fmt(100 * r.r2, 0)} %`);
+    }
+    fig.querySelector('[data-new]')!.addEventListener('click', () => { seed++; draw(); });
+    live(cv, draw);
+  }
+</script>

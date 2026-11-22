@@ -1,0 +1,40 @@
+---
+// SIM for 8.6: an individuals control chart. Limits come from the first 20 days (mean ± 3 sigma from the
+// average moving range); points outside the limits or runs of 8 on one side of the centre are flagged.
+---
+<figure class="cs-fig mlf" data-cchart>
+  <span class="cs-figtag">Try it: signal or noise?</span>
+  <canvas aria-label="Forty days of a daily metric with a centre line and upper and lower control limits"></canvas>
+  <div class="mlf-ctl">
+    <label>Shift in the process from day 25: <output data-v="d"></output><input type="range" name="d" min="-3" max="3" step="0.25" value="0" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-new>New 40 days</button></div>
+  <div class="mlf-read"><div><span>centre / limits (from days 1 to 20)</span><b data-lim></b></div><div><span>signals</span><b data-sig></b></div></div>
+  <figcaption>A daily metric, such as the share of orders shipped late (%). The limits are set from a calm baseline (days 1 to 20) at the mean ± 3 sigma, with sigma estimated from the day-to-day changes. Points outside the limits, or 8 in a row on one side of the centre, are signals worth investigating; everything else is ordinary variation, and reacting to it (the "why was Tuesday bad?" meeting) only adds noise. Slide the shift and see how big a change must be before it is caught. Made-up numbers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, fmt } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  import { controlLimits } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cchart]')) {
+    const cv = fig.querySelector('canvas')!, D = 40; let seed = 3;
+    const p = new Plot(cv, { x: [1, D], y: [0, 10], h: 250, xLabel: 'day', yLabel: 'late orders (%)' });
+    const S = slider(fig, 'd', () => draw(), (v) => `${v > 0 ? '+' : ''}${fmt(v, 2)} points`);
+    function draw() {
+      const R = rng(seed), ys = Array.from({ length: D }, (_, i) => Math.max(0, 4 + 0.6 * R.normal() + (i >= 24 ? S() : 0)));
+      const L = controlLimits(ys.slice(0, 20)), flag = ys.map((y) => y > L.ucl || y < L.lcl);
+      for (let i = 7; i < D; i++) { const run = ys.slice(i - 7, i + 1); if (run.every((v) => v > L.centre) || run.every((v) => v < L.centre)) for (let j = i - 7; j <= i; j++) flag[j] = true; }
+      p.begin();
+      p.line(1, L.ucl, D, L.ucl, { color: p.pal.accent2, width: 1.5, dash: [6, 4] }); p.line(1, L.lcl, D, L.lcl, { color: p.pal.accent2, width: 1.5, dash: [6, 4] });
+      p.line(1, L.centre, D, L.centre, { color: p.pal.muted, width: 1 }); p.line(24.5, 0, 24.5, 10, { color: p.pal.grid, width: 1 });
+      p.path(ys.map((y, i) => [i + 1, y] as [number, number]), { color: p.pal.ink, width: 1, alpha: 0.5 });
+      ys.forEach((y, i) => p.dot(i + 1, y, { r: flag[i] ? 5 : 3, color: flag[i] ? p.pal.accent2 : p.pal.ink, shape: flag[i] ? 'square' : 'circle' }));
+      p.text(D, L.ucl, 'UCL', { align: 'right', base: 'bottom', dy: -2, size: 11, color: p.pal.accent2 }); p.text(D, L.lcl, 'LCL', { align: 'right', base: 'top', dy: 2, size: 11, color: p.pal.accent2 });
+      p.end();
+      put(fig, 'lim', `${fmt(L.centre, 2)} / ${fmt(L.lcl, 2)} to ${fmt(L.ucl, 2)}`);
+      const n = flag.filter(Boolean).length; put(fig, 'sig', n ? `${n} flagged point${n > 1 ? 's' : ''}` : 'none: ordinary variation');
+    }
+    fig.querySelector('[data-new]')!.addEventListener('click', () => { seed++; draw(); });
+    live(cv, draw);
+  }
+</script>
