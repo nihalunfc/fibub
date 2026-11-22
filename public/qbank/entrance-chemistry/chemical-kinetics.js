@@ -371,9 +371,287 @@ const gens = [
     }, verify: (p) => (p.n === 0 ? p.A0 / (2 * p.k) : p.n === 1 ? 0.693 / p.k : 1 / (p.k * p.A0)) },
 ];
 
+const XP = 'ck', XCUET = true, GBASE = 24;
+// ===== expansion block (added) =====
+const XI = [], XGRP = {}, XGENS = []; let _xn = 0, _xc = 0;
+const XA4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XS4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const xex = (level, mcq) => level <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet', ...(XCUET && mcq ? ['cuet'] : [])] : level === 3 ? ['jee-main', 'neet', 'comedk', ...(XCUET && mcq ? ['cuet'] : [])] : level === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv'];
+const xid = () => `${XP}-x${String(++_xc).padStart(3, '0')}`;
+const xmk = (level, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_xn++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, ...(group ? { group } : {}), q, options, answer: pos, sol, ...(trap ? { trap } : {}) });
+};
+const xnat = (level, sub, q, answer, tol, unit, sol, trap, calc, format, group) => { XI.push({ id: xid(), type: 'nat', level, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: xex(level, false), sub, ...(group ? { group } : {}), q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(calc ? { calc } : {}) }); };
+const xmsq = (level, sub, q, options, answer, sol, trap) => { XI.push({ id: xid(), type: 'msq', level, format: 'multi', exams: ['jee-adv'], sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xmk2 = (level, sub, q, options, answer, sol, trap, format) => { XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xasr = (level, sub, A, R, answer, sol, trap) => xmk2(level, sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, XA4, answer, sol, trap, 'assertion');
+const xstm = (level, sub, s1, s2, answer, sol, trap) => xmk2(level, sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, XS4, answer, sol, trap, 'statements');
+const xmat = (level, sub, title, list1, list2, correct, wrongs, sol, trap) => {
+  const gid = `xm${String(Object.keys(XGRP).length + 1).padStart(2, '0')}`; XGRP[gid] = { title, list1, list2 };
+  xmk(level, sub, 'Match each entry of List I with the correct entry of List II.', correct, wrongs, sol, trap, 'match', gid);
+};
+const xpassage = (gid, title, passage) => { XGRP[gid] = { title, passage }; };
+const xgen = (g) => XGENS.push({ ...g, id: `${XP}-g${String(GBASE + XGENS.length + 1).padStart(2, '0')}`, exams: xex(g.level, g.type === 'mcq') });
+
+const _R = 8.314;
+// ---------- matches ----------
+xmat(3, 'straight-line plots', 'Plots and their slopes', ['A. [A] against t (zero order)', 'B. log<sub>10</sub>[A] against t (first order)', 'C. 1/[A] against t (second order)', 'D. log<sub>10</sub> k against 1/T (Arrhenius)'],
+  ['p. slope = -k', 'q. slope = -k/2.303', 'r. slope = +k', 's. slope = -E<sub>a</sub>/(2.303 R)', 't. slope = -E<sub>a</sub>/R'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>Zero order: [A] = [A]<sub>0</sub> - kt, slope -k (p). First order: log [A] = log [A]<sub>0</sub> - kt/2.303, slope -k/2.303 (q). Second order: 1/[A] = 1/[A]<sub>0</sub> + kt, slope +k (r). Arrhenius: log k = log A - E<sub>a</sub>/(2.303 R T), slope -E<sub>a</sub>/(2.303R) (s). Entry t is the slope of ln k against 1/T, which is not asked.</p>',
+  'The slope changes with the base of the logarithm: ln gives -k, log<sub>10</sub> gives -k/2.303.');
+xmat(4, 'mechanism and rate law', 'Mechanisms and overall order', ['A. Slow: A &rarr; I; fast: I + C &rarr; P', 'B. Fast: 2A &rlhar; I; slow: I + B &rarr; P', 'C. Slow: A + B &rarr; I; fast: I + C &rarr; P', 'D. Fast: A<sub>2</sub> &rlhar; 2A; slow: A + B &rarr; P'],
+  ['p. 1', 'q. 1.5', 'r. 2', 's. 3'],
+  'A-p, B-s, C-r, D-q', ['A-p, B-r, C-s, D-q', 'A-r, B-s, C-p, D-q', 'A-p, B-s, C-q, D-r'],
+  '<p>The rate is that of the slow step, with any intermediate replaced through the fast equilibrium.</p><p>A: rate = k[A], order 1 (p). B: [I] = K[A]<sup>2</sup>, rate = kK[A]<sup>2</sup>[B], order 3 (s). C: rate = k[A][B], order 2 (r). D: [A] = (K[A<sub>2</sub>])<sup>1/2</sup>, rate = kK<sup>1/2</sup>[A<sub>2</sub>]<sup>1/2</sup>[B], order 1.5 (q).</p>',
+  'Never put an intermediate in the final rate law; remove it with the fast pre-equilibrium.');
+xmat(3, 'half-life and fraction left', 'Time for a first order reaction (k = 0.0693 min<sup>-1</sup>)', ['A. Fraction left 1/8', 'B. Fraction left 1/2', 'C. Fraction left 1/16', 'D. Fraction left 1/4'],
+  ['p. 10 min', 'q. 20 min', 'r. 30 min', 's. 40 min'],
+  'A-r, B-p, C-s, D-q', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-q, D-s', 'A-s, B-p, C-r, D-q'],
+  '<p>t<sub>1/2</sub> = 0.693/0.0693 = 10 min. Fraction 1/8 = (1/2)<sup>3</sup> takes 3 half-lives = 30 min (r). 1/2 takes 10 min (p). 1/16 takes 4 half-lives = 40 min (s). 1/4 takes 2 half-lives = 20 min (q).</p>');
+xmat(3, 'energy profile', 'Energy profile numbers (forward E<sub>a</sub> = 80 kJ/mol, reverse E<sub>a</sub> = 120 kJ/mol)', ['A. Forward activation energy', 'B. Reverse activation energy', 'C. &Delta;H of the forward reaction', 'D. Forward E<sub>a</sub> after a catalyst lowers every barrier by 20 kJ/mol'],
+  ['p. -40 kJ/mol', 'q. 80 kJ/mol', 'r. 120 kJ/mol', 's. 60 kJ/mol', 't. +40 kJ/mol'],
+  'A-q, B-r, C-p, D-s', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-t, D-s', 'A-q, B-s, C-p, D-r'],
+  '<p>A = 80 (q), B = 120 (r). &Delta;H = E<sub>a</sub>(forward) - E<sub>a</sub>(reverse) = 80 - 120 = -40 kJ/mol (p): exothermic. With the catalyst the forward E<sub>a</sub> is 80 - 20 = 60 kJ/mol (s). The sign of &Delta;H is forward minus reverse, so t (+40) is the usual wrong pick.</p>',
+  '&Delta;H = E<sub>a,f</sub> - E<sub>a,r</sub>; a catalyst does not change it.');
+xmat(3, 'order from half-life behaviour', 'What happens to t<sub>1/2</sub> when [A]<sub>0</sub> is doubled', ['A. t<sub>1/2</sub> doubles', 'B. t<sub>1/2</sub> does not change', 'C. t<sub>1/2</sub> becomes half', 'D. t<sub>1/2</sub> becomes one-quarter'],
+  ['p. Second order', 'q. Zero order', 'r. Third order', 's. First order'],
+  'A-q, B-s, C-p, D-r', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-p, B-s, C-q, D-r'],
+  '<p>t<sub>1/2</sub> &prop; [A]<sub>0</sub><sup>1-n</sup>. Doubling [A]<sub>0</sub> multiplies t<sub>1/2</sub> by 2<sup>1-n</sup>. Doubling: n = 0 (q). Unchanged: n = 1 (s). Half: 2<sup>1-n</sup> = 1/2, n = 2 (p). Quarter: 1 - n = -2, n = 3 (r).</p>');
+xmat(4, 'integrated laws', 'After 20 min, with t<sub>1/2</sub> = 10 min and [A]<sub>0</sub> = 1 M (single reactant)', ['A. Zero order', 'B. First order', 'C. Second order', 'D. First order, after 30 min'],
+  ['p. 0 M', 'q. 0.125 M', 'r. 0.25 M', 's. 0.33 M'],
+  'A-p, B-r, C-s, D-q', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-s, B-r, C-p, D-q'],
+  '<p>Zero order: t<sub>1/2</sub> = [A]<sub>0</sub>/2k gives k = 0.05 M/min, so [A] = 1 - 0.05 &times; 20 = 0 (p): finished in 2 half-lives. First order: 2 half-lives leave 1/4 = 0.25 M (r); 30 min is 3 half-lives, 0.125 M (q). Second order: t<sub>1/2</sub> = 1/(k[A]<sub>0</sub>) gives k = 0.1 M<sup>-1</sup> min<sup>-1</sup>; [A] = 1/(1 + 0.1 &times; 20) = 1/3 = 0.33 M (s).</p>',
+  'A zero order reaction does not leave a half of a half: it ends in finite time.');
+xmat(3, 'catalysis', 'Type of catalysis', ['A. Acid hydrolysis of an ester in water', 'B. Haber process with iron', 'C. Urea &rarr; ammonia with urease', 'D. SO<sub>2</sub> oxidised with NO in the lead-chamber process'],
+  ['p. Heterogeneous catalysis', 'q. Homogeneous catalysis in solution', 'r. Enzyme catalysis', 's. Homogeneous catalysis in the gas phase'],
+  'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'],
+  '<p>H<sup>+</sup> and the ester are both in the solution (q). Solid iron with gaseous N<sub>2</sub> and H<sub>2</sub> is a different phase (p). Urease is an enzyme (r). NO and SO<sub>2</sub> are both gases (s).</p>');
+xmat(5, 'Arrhenius numbers', 'Ratio k(310 K)/k(300 K) for different activation energies (R = 8.314)', ['A. E<sub>a</sub> = 30 kJ/mol', 'B. E<sub>a</sub> = 60 kJ/mol', 'C. E<sub>a</sub> = 80 kJ/mol', 'D. E<sub>a</sub> = 120 kJ/mol'],
+  ['p. 2.8', 'q. 4.7', 'r. 1.5', 's. 2.2'],
+  'A-r, B-s, C-p, D-q', ['A-r, B-p, C-s, D-q', 'A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p'],
+  '<p>ln(k<sub>2</sub>/k<sub>1</sub>) = (E<sub>a</sub>/R)(1/300 - 1/310) = E<sub>a</sub> &times; 1.0753 &times; 10<sup>-4</sup>/8.314 per J. For 30 kJ: 0.388, ratio 1.47 &asymp; 1.5 (r). 60 kJ: 0.776, ratio 2.17 &asymp; 2.2 (s). 80 kJ: 1.035, ratio 2.81 &asymp; 2.8 (p). 120 kJ: 1.552, ratio 4.72 &asymp; 4.7 (q).</p>',
+  'The ratio grows faster than linearly with E<sub>a</sub> because E<sub>a</sub> sits in an exponent.');
+
+// ---------- msq ----------
+xmsq(4, 'first order', 'For a first order reaction A &rarr; products, which statements are correct?',
+  ['The time for 75% completion is twice t<sub>1/2</sub>', 'The time for 99.9% completion is close to 10 t<sub>1/2</sub>', 't<sub>1/2</sub> doubles when [A]<sub>0</sub> is doubled', 'The unit of k is mol L<sup>-1</sup> s<sup>-1</sup>'], [0, 1],
+  '<p>75% done means 25% left = (1/2)<sup>2</sup>, two half-lives (true). 99.9% done means 0.1% left, (1/2)<sup>n</sup> = 10<sup>-3</sup>, n = 3/0.301 = 9.97 &asymp; 10 (true). t<sub>1/2</sub> = 0.693/k does not depend on [A]<sub>0</sub> (false). k for first order is in s<sup>-1</sup> (false).</p>');
+xmsq(4, 'Arrhenius plot', 'A graph of ln k (y-axis) against 1/T (x-axis) is drawn for a reaction. Which statements are correct?',
+  ['The slope is -E<sub>a</sub>/R', 'The intercept on the y-axis is ln A', 'A reaction with larger E<sub>a</sub> gives a steeper line', 'Adding a catalyst makes the line steeper'], [0, 1, 2],
+  '<p>ln k = ln A - (E<sub>a</sub>/R)(1/T): slope -E<sub>a</sub>/R, intercept ln A, and a larger E<sub>a</sub> means a steeper (more negative) slope. A catalyst lowers E<sub>a</sub>, so the line becomes less steep, not steeper.</p>');
+xmsq(4, 'molecularity', 'Which of the following can be the molecularity of an elementary step?', ['0', '1', '2', '3', '1/2'], [1, 2, 3],
+  '<p>Molecularity counts the molecules colliding in one elementary step: it is a whole number from 1 upwards. 1 (unimolecular) and 2 (bimolecular) are common; 3 (termolecular) is possible but rare because three-body collisions are improbable. Zero and fractions cannot occur.</p>', 'Order can be zero or fractional; molecularity cannot.');
+xmsq(4, 'pseudo first order', 'Which of these are pseudo first order under the stated conditions?',
+  ['Hydrolysis of ethyl ethanoate in dilute acid with a large excess of water', 'Inversion of cane sugar in water with dilute acid', 'Decomposition of N<sub>2</sub>O<sub>5</sub> in CCl<sub>4</sub>, which is first order in N<sub>2</sub>O<sub>5</sub> alone', 'A + B &rarr; P, rate = k[A][B], with [B] 500 times [A]'], [0, 1, 3],
+  '<p>A pseudo first order reaction is really of higher order but behaves as first order because one reagent is in large excess or is a catalyst. The ester hydrolysis (water in excess) and inversion of sugar do. So does A + B with B in large excess: rate = k[B]<sub>0</sub>[A] = k\'[A]. N<sub>2</sub>O<sub>5</sub> decomposition is truly first order, not pseudo.</p>');
+xmsq(4, 'catalyst and energy profile', 'A catalyst is added to an exothermic reaction at constant temperature. Which statements are correct?',
+  ['E<sub>a</sub> of the forward reaction decreases', 'E<sub>a</sub> of the reverse reaction decreases', '&Delta;H of the reaction does not change', 'The equilibrium constant increases'], [0, 1, 2],
+  '<p>A catalyst provides a new path with a lower barrier in both directions, so both activation energies fall, by the same amount. &Delta;H depends only on the reactants and products, so it stays. Since the rates of both directions rise equally, K is unchanged.</p>');
+xmsq(4, 'second order', 'For 2A &rarr; P with -d[A]/dt = k[A]<sup>2</sup>, which statements are correct?', ['1/[A] is a straight line against t', 't<sub>1/2</sub> doubles when [A]<sub>0</sub> is doubled', 'The unit of k is L mol<sup>-1</sup> s<sup>-1</sup>', 't<sub>1/2</sub> = 1/(k[A]<sub>0</sub>)'], [0, 2, 3],
+  '<p>Integrating gives 1/[A] = 1/[A]<sub>0</sub> + kt (true). Setting [A] = [A]<sub>0</sub>/2 gives t<sub>1/2</sub> = 1/(k[A]<sub>0</sub>) (true); so doubling [A]<sub>0</sub> halves it (false). Unit of k = (mol L<sup>-1</sup>)<sup>-1</sup> s<sup>-1</sup> = L mol<sup>-1</sup> s<sup>-1</sup> (true).</p>');
+xmsq(5, 'zero order on a surface', 'Ammonia decomposes on hot tungsten with zero order kinetics at high pressure. Which statements are correct?',
+  ['The rate does not depend on the pressure of NH<sub>3</sub>', 't<sub>1/2</sub> is proportional to the initial pressure', 'The reaction is complete in 2 t<sub>1/2</sub>', 'A plot of ln p against t is a straight line'], [0, 1, 2],
+  '<p>The metal surface is saturated, so the rate is constant (true). t<sub>1/2</sub> = p<sub>0</sub>/2k &prop; p<sub>0</sub> (true). Completion needs p<sub>0</sub>/k = 2 t<sub>1/2</sub> (true). ln p against t is linear only for first order (false); here p against t is linear.</p>');
+xmsq(5, 'collision theory', 'In k = A e<sup>-E<sub>a</sub>/RT</sup>, which of these are contained in the pre-exponential factor A?',
+  ['The requirement of proper orientation of colliding molecules', 'The frequency of collisions', 'The activation energy', 'The fraction of molecules with energy at least E<sub>a</sub>'], [0, 1],
+  '<p>A = (collision frequency) &times; (steric or orientation factor). The fraction of molecules having enough energy is the exponential e<sup>-E<sub>a</sub>/RT</sup> itself, and E<sub>a</sub> appears inside that exponential, not in A.</p>');
+xmsq(5, 'parallel reactions', 'A reacts by two parallel first order paths: A &rarr; B (k<sub>1</sub>) and A &rarr; C (k<sub>2</sub>) with k<sub>1</sub> = 3k<sub>2</sub>. Which statements are correct?',
+  ['A decays with rate constant k<sub>1</sub> + k<sub>2</sub>', '[B]/[C] = 3 at every time', 't<sub>1/2</sub> of A = 0.693/(k<sub>1</sub> + k<sub>2</sub>)', 'At the end [B]:[C] = 1:3'], [0, 1, 2],
+  '<p>d[A]/dt = -(k<sub>1</sub> + k<sub>2</sub>)[A], so A is first order with k = k<sub>1</sub> + k<sub>2</sub> and t<sub>1/2</sub> = 0.693/(k<sub>1</sub> + k<sub>2</sub>). The products form in the ratio of their rate constants at all times: [B]/[C] = k<sub>1</sub>/k<sub>2</sub> = 3, so the final ratio is 3:1, not 1:3.</p>');
+xmsq(4, 'initial rates', 'For rate = k[A]<sup>m</sup>[B]<sup>n</sup>: doubling [A] alone makes the rate 4 times, and doubling both [A] and [B] makes the rate 8 times. Which are correct?',
+  ['m = 2', 'n = 1', 'The overall order is 3', 'The unit of k is L mol<sup>-1</sup> s<sup>-1</sup>'], [0, 1, 2],
+  '<p>2<sup>m</sup> = 4 gives m = 2. Both doubled: 2<sup>m+n</sup> = 8, m + n = 3, n = 1. The overall order is 3, so k has unit L<sup>2</sup> mol<sup>-2</sup> s<sup>-1</sup>, not L mol<sup>-1</sup> s<sup>-1</sup>.</p>');
+xmsq(5, 'two first order reactions', 'Reaction P (t<sub>1/2</sub> = 10 min) and reaction Q (t<sub>1/2</sub> = 20 min) are both first order, started with equal concentrations. Which are correct?',
+  ['k<sub>P</sub> = 2k<sub>Q</sub>', 'After 40 min [P]/[Q] = 1/4', 'After 40 min P has more left than Q', 'Q reaches 50% completion after 20 min'], [0, 1, 3],
+  '<p>k = 0.693/t<sub>1/2</sub>, so k<sub>P</sub> = 2k<sub>Q</sub>. At 40 min P has gone through 4 half-lives, 1/16 left; Q through 2, 1/4 left; ratio (1/16)/(1/4) = 1/4. Q has more left, so option C is false. Q is 50% done at 20 min.</p>');
+xmsq(5, 'radioactive decay', 'A radionuclide has half-life 6 h. Which are correct?', ['Its activity is proportional to the number of undecayed nuclei', 'Its average life is about 1.44 &times; 6 = 8.7 h', 'After 18 h, 12.5% of the nuclei are left', 'All nuclei have decayed after 12 h'], [0, 1, 2],
+  '<p>Activity = &lambda;N (true). Average life = 1/&lambda; = t<sub>1/2</sub>/0.693 = 1.44 t<sub>1/2</sub> = 8.7 h (true). 18 h is 3 half-lives: (1/2)<sup>3</sup> = 12.5% (true). After 2 half-lives 25% remain; decay never reaches zero in finite time (false).</p>');
+
+// ---------- integer ----------
+xnat(4, 'half-lives', 'A first order reaction is allowed to run until less than 1% of the reactant is left. What is the minimum whole number of half-lives that must pass?', 7, 0, '',
+  '<p>Need (1/2)<sup>n</sup> &lt; 0.01, i.e. 2<sup>n</sup> &gt; 100. 2<sup>6</sup> = 64 is not enough (1.56% left); 2<sup>7</sup> = 128 gives 0.78%. So <b>7</b>.</p>', 'Rounding 6.64 down to 6 leaves 1.56%, which is still more than 1%.', () => Math.ceil(Math.log2(100)));
+xnat(4, 'initial rate method', '<p>Initial rates of A + B + C &rarr; products:</p><table><tr><th>Exp</th><th>[A] (M)</th><th>[B] (M)</th><th>[C] (M)</th><th>rate (M s<sup>-1</sup>)</th></tr><tr><td>1</td><td>0.1</td><td>0.1</td><td>0.1</td><td>1.0 &times; 10<sup>-3</sup></td></tr><tr><td>2</td><td>0.2</td><td>0.1</td><td>0.1</td><td>4.0 &times; 10<sup>-3</sup></td></tr><tr><td>3</td><td>0.1</td><td>0.3</td><td>0.1</td><td>1.0 &times; 10<sup>-3</sup></td></tr><tr><td>4</td><td>0.1</td><td>0.1</td><td>0.3</td><td>3.0 &times; 10<sup>-3</sup></td></tr></table><p>The rate law is rate = k[A]<sup>x</sup>[B]<sup>y</sup>[C]<sup>z</sup>. Find 100x + 10y + z.</p>', 201, 0, '',
+  '<p>Change one concentration at a time. Exp 1 to 2: [A] doubles, rate &times;4, so x = 2. Exp 1 to 3: [B] triples, rate unchanged, y = 0. Exp 1 to 4: [C] triples, rate &times;3, z = 1. So 100(2) + 10(0) + 1 = <b>201</b>.</p>', 'y = 0 is a valid order: the reagent is needed but does not appear in the rate law.',
+  () => { const x = Math.log(4) / Math.log(2), y = Math.log(1) / Math.log(3), z = Math.log(3) / Math.log(3); return Math.round(100 * x + 10 * y + z); });
+xnat(4, 'total pressure', 'N<sub>2</sub>O<sub>5</sub>(g) &rarr; 2NO<sub>2</sub>(g) + &frac12;O<sub>2</sub>(g) is first order. Starting with pure N<sub>2</sub>O<sub>5</sub> at 60 kPa in a closed rigid vessel, the total pressure is 105 kPa after 25 min. Find the half-life in minutes.', 25, 0, 'min',
+  '<p>If x kPa of N<sub>2</sub>O<sub>5</sub> reacts, the total pressure = (60 - x) + 2x + 0.5x = 60 + 1.5x. So 60 + 1.5x = 105 gives x = 30 kPa. Half of the 60 kPa has reacted, so 25 min is exactly one half-life: <b>25 min</b>.</p>', 'Using total pressure as if it were the pressure of N<sub>2</sub>O<sub>5</sub>, or forgetting the 1.5 factor from the 2.5 gas moles formed per mole.', () => { const P0 = 60, x = (105 - P0) / 1.5; return 25 * Math.log(2) / Math.log(P0 / (P0 - x)); });
+xnat(4, 'parallel reactions', 'A decomposes by two parallel first order paths to B (k<sub>1</sub> = 0.03 min<sup>-1</sup>) and C (k<sub>2</sub> = 0.01 min<sup>-1</sup>). What percentage of the A ends up as B?', 75, 0, '%',
+  '<p>Parallel products are formed in the ratio of their rate constants: B : C = 0.03 : 0.01 = 3 : 1. B is 3/(3 + 1) = <b>75%</b>.</p>', 'Using the half-life or the time elapsed: the final split does not depend on time.', () => 100 * 0.03 / (0.03 + 0.01));
+xnat(4, 'zero order with stoichiometry', 'On a hot tungsten wire 2NH<sub>3</sub> &rarr; N<sub>2</sub> + 3H<sub>2</sub> is zero order in NH<sub>3</sub>. H<sub>2</sub> forms at 3.0 &times; 10<sup>-4</sup> mol L<sup>-1</sup> s<sup>-1</sup>. How many seconds are needed to decompose 0.30 M NH<sub>3</sub> completely?', 1500, 0, 's',
+  '<p>Rate of NH<sub>3</sub> disappearance = (2/3) &times; rate of H<sub>2</sub> formation = (2/3)(3.0 &times; 10<sup>-4</sup>) = 2.0 &times; 10<sup>-4</sup> M s<sup>-1</sup>. Zero order, so time = 0.30/(2.0 &times; 10<sup>-4</sup>) = <b>1500 s</b>.</p>', 'Using the H<sub>2</sub> rate directly for NH<sub>3</sub> gives 1000 s.', () => 0.30 / ((2 / 3) * 3.0e-4));
+xnat(4, 'order from half-life', 'The half-life of a reaction (single reactant) becomes one-quarter of its value when the initial concentration is doubled. What is the order of the reaction?', 3, 0, '',
+  '<p>t<sub>1/2</sub> &prop; [A]<sub>0</sub><sup>1-n</sup>. Doubling gives 2<sup>1-n</sup> = 1/4 = 2<sup>-2</sup>, so 1 - n = -2 and n = <b>3</b>.</p>', 'Taking the answer as 2 because "inverse" suggests second order: second order only halves t<sub>1/2</sub>.', () => 1 + Math.log(4) / Math.log(2));
+xnat(4, 'two isotopes', 'Isotope X has half-life 10 days and isotope Y has half-life 20 days. A sample starts with equal numbers of atoms of X and Y. After 40 days, what is N<sub>Y</sub>/N<sub>X</sub>?', 4, 0, '',
+  '<p>After 40 days X has gone through 4 half-lives: N<sub>X</sub> = N<sub>0</sub>/16. Y has gone through 2: N<sub>Y</sub> = N<sub>0</sub>/4. Ratio N<sub>Y</sub>/N<sub>X</sub> = 16/4 = <b>4</b>.</p>', 'Comparing the half-lives (ratio 2) instead of the numbers left after the same time.', () => Math.pow(2, -2) / Math.pow(2, -4));
+xnat(4, 'catalyst and rate', 'At 300 K a catalyst lowers the activation energy of a reaction by 17.2 kJ/mol, with the pre-exponential factor unchanged. The rate constant rises by a factor of 10<sup>x</sup>. Find x to the nearest whole number (R = 8.314 J/(mol K)).', 3, 0, '',
+  '<p>k<sub>cat</sub>/k = e<sup>&Delta;E<sub>a</sub>/RT</sup>, so log<sub>10</sub>(ratio) = &Delta;E<sub>a</sub>/(2.303RT) = 17200/(2.303 &times; 8.314 &times; 300) = 17200/5744 = 2.99. Nearest integer: <b>3</b>.</p>', 'Leaving out the 2.303 gives 6.9, which is the exponent of e (ln of the ratio), not the power of ten.', () => Math.round(17200 / (2.303 * _R * 300)));
+xnat(5, 'fractional order', 'A reaction has rate = k[A]<sup>3/2</sup>. If the concentration of A is made four times as large, by what factor does the rate increase?', 8, 0, '',
+  '<p>Rate &prop; [A]<sup>3/2</sup>, so the factor is 4<sup>3/2</sup> = (&radic;4)<sup>3</sup> = 2<sup>3</sup> = <b>8</b>.</p>', 'Computing 4 &times; 1.5 = 6.', () => Math.pow(4, 1.5));
+xnat(5, 'true or false count', '<p>How many of these five statements are correct?</p><ol><li>A reaction can have zero order.</li><li>The molecularity of an elementary step can be 1/2.</li><li>The unit of k for a second order reaction is L mol<sup>-1</sup> s<sup>-1</sup>.</li><li>A catalyst changes &Delta;H of a reaction.</li><li>The unit of k for a first order reaction is s<sup>-1</sup> whatever concentration unit is used.</li></ol>', 3, 0, '',
+  '<p>(1) True: zero order exists, for example surface-saturated reactions. (2) False: molecularity is a whole number. (3) True. (4) False: &Delta;H is a state function and a catalyst leaves it unchanged. (5) True: k = rate/[A], concentration cancels. Correct: 1, 3, 5, so <b>3</b>.</p>', 'Confusing order with molecularity for item 2.', () => [true, false, true, false, true].filter(Boolean).length);
+xnat(5, 'mass remaining', 'A radioactive isotope has a half-life of 20 min. How many minutes does it take for 8 g of it to fall to 0.25 g?', 100, 0, 'min',
+  '<p>8 g to 0.25 g is a factor of 32 = 2<sup>5</sup>, so 5 half-lives: 5 &times; 20 = <b>100 min</b>.</p>', 'Counting 8 &rarr; 4 &rarr; 2 &rarr; 1 &rarr; 0.5 &rarr; 0.25 as six steps (one step too many).', () => 20 * Math.log2(8 / 0.25));
+
+// ---------- numeric ----------
+xnat(4, 'gaseous first order', 'A(g) &rarr; 3B(g) is first order. Starting with pure A at 100 kPa, the total pressure is 175 kPa after 10 min. Find k in min<sup>-1</sup> (ln 1.6 = 0.470).', 0.047, 0.001, 'min<sup>-1</sup>',
+  '<p>If x kPa of A reacts, total = (100 - x) + 3x = 100 + 2x = 175, so x = 37.5 and p<sub>A</sub> = 62.5 kPa. k = (1/t) ln(p<sub>0</sub>/p<sub>A</sub>) = (1/10) ln(100/62.5) = 0.1 &times; ln 1.6 = <b>0.047 min<sup>-1</sup></b>.</p>', 'Using the total pressure (175) as p<sub>A</sub> gives a negative ln.', () => Math.log(100 / 62.5) / 10);
+xnat(4, 'Arrhenius from log k', 'For a reaction, log<sub>10</sub> k = 14 - 6000/T (k in s<sup>-1</sup>, T in kelvin). Find E<sub>a</sub> in kJ/mol (R = 8.314 J/(mol K)).', 114.9, 0.3, 'kJ/mol',
+  '<p>log k = log A - E<sub>a</sub>/(2.303 R T), so E<sub>a</sub>/(2.303R) = 6000. E<sub>a</sub> = 6000 &times; 2.303 &times; 8.314 = 114 885 J = <b>114.9 kJ/mol</b>.</p>', 'Using R &times; 6000 = 49.9 kJ/mol forgets that the slope is of log<sub>10</sub>.', () => 6000 * 2.303 * _R / 1000);
+xnat(4, 'Arrhenius from log k', 'For log<sub>10</sub> k = 14 - 6000/T with k in s<sup>-1</sup>, the reaction is first order. Find its half-life at 300 K in days (ln 2 = 0.693).', 8.02, 0.05, 'days',
+  '<p>log k = 14 - 6000/300 = 14 - 20 = -6, so k = 10<sup>-6</sup> s<sup>-1</sup>. t<sub>1/2</sub> = 0.693/10<sup>-6</sup> = 6.93 &times; 10<sup>5</sup> s = 6.93 &times; 10<sup>5</sup>/86 400 = <b>8.02 days</b>.</p>', 'Leaving the answer in seconds, or using 3600 instead of 86 400.', () => 0.693 / Math.pow(10, 14 - 6000 / 300) / 86400);
+xnat(4, 'second order', 'For 2A &rarr; P with -d[A]/dt = k[A]<sup>2</sup>, the half-life with [A]<sub>0</sub> = 0.5 M is 10 min. Find [A] in mol/L after 50 min.', 0.0833, 0.0005, 'M',
+  '<p>t<sub>1/2</sub> = 1/(k[A]<sub>0</sub>) gives k = 1/(10 &times; 0.5) = 0.2 M<sup>-1</sup> min<sup>-1</sup>. Then 1/[A] = 1/[A]<sub>0</sub> + kt = 2 + 0.2 &times; 50 = 12 M<sup>-1</sup>, so [A] = <b>0.0833 M</b>.</p>', 'Treating 50 min as 5 half-lives (first order): (1/2)<sup>5</sup> &times; 0.5 = 0.0156 M. Second order half-lives lengthen.', () => 1 / (1 / 0.5 + (1 / (10 * 0.5)) * 50));
+xnat(5, 'consecutive reactions', 'A &rarr; B &rarr; C, both steps first order, k<sub>1</sub> = 0.2 min<sup>-1</sup> and k<sub>2</sub> = 0.1 min<sup>-1</sup>. B reaches its maximum concentration at t<sub>max</sub> = ln(k<sub>1</sub>/k<sub>2</sub>)/(k<sub>1</sub> - k<sub>2</sub>). Find t<sub>max</sub> in minutes (ln 2 = 0.693).', 6.93, 0.05, 'min',
+  '<p>At the maximum, the rate of formation of B equals its rate of loss: k<sub>1</sub>[A] = k<sub>2</sub>[B], which gives the stated formula. t<sub>max</sub> = ln 2/(0.2 - 0.1) = 0.693/0.1 = <b>6.93 min</b>.</p>', 'Using 1/(k<sub>1</sub>+k<sub>2</sub>) or the half-life of A (3.47 min).', () => Math.log(2) / 0.1);
+xnat(5, 'opposing reactions', 'A &rlhar; B is first order in both directions, k<sub>f</sub> = 0.03 min<sup>-1</sup> and k<sub>b</sub> = 0.01 min<sup>-1</sup>. Starting from pure A, the distance from equilibrium decays with rate constant k<sub>f</sub> + k<sub>b</sub>. How long (min) until the system is halfway to equilibrium? (ln 2 = 0.693)', 17.3, 0.1, 'min',
+  '<p>[A] - [A]<sub>eq</sub> decays as e<sup>-(k<sub>f</sub> + k<sub>b</sub>)t</sup>. Halfway: t = 0.693/(0.03 + 0.01) = 0.693/0.04 = <b>17.3 min</b>.</p>', 'Using k<sub>f</sub> alone gives 23.1 min.', () => 0.693 / (0.03 + 0.01));
+xnat(4, 'activation energy', 'The rate of a reaction doubles when the temperature is raised from 300 K to 310 K. Estimate E<sub>a</sub> in kJ/mol (R = 8.314 J/(mol K), ln 2 = 0.693).', 53.6, 0.3, 'kJ/mol',
+  '<p>ln(k<sub>2</sub>/k<sub>1</sub>) = (E<sub>a</sub>/R)(T<sub>2</sub> - T<sub>1</sub>)/(T<sub>1</sub>T<sub>2</sub>). E<sub>a</sub> = 8.314 &times; 0.693 &times; (300 &times; 310)/10 = 8.314 &times; 0.693 &times; 9300 = 53 583 J = <b>53.6 kJ/mol</b>.</p>', 'Using the temperatures in Celsius instead of kelvin changes the 300 &times; 310 product.', () => _R * 0.693 * (300 * 310) / 10 / 1000);
+xnat(5, 'fraction with enough energy', 'Estimate the fraction of molecules with energy at least E<sub>a</sub> = 50 kJ/mol at 300 K, e<sup>-E<sub>a</sub>/RT</sup>. Give the answer in units of 10<sup>-9</sup> (R = 8.314 J/(mol K)).', 1.97, 0.03, '&times; 10<sup>-9</sup>',
+  '<p>E<sub>a</sub>/RT = 50 000/(8.314 &times; 300) = 20.05. e<sup>-20.05</sup> = 1.97 &times; 10<sup>-9</sup>. So about <b>1.97</b> molecules in a billion have enough energy.</p>', 'Using kJ and J together: E<sub>a</sub> must be in J when R is in J.', () => Math.exp(-50000 / (_R * 300)) * 1e9);
+
+// ---------- passages ----------
+xpassage('xp1', 'Pressure and a first order gas reaction', '<p>The gas-phase reaction A(g) &rarr; 2B(g) is first order. It is run in a closed rigid vessel at constant temperature, starting with pure A at 100 kPa. After 20 min the total pressure is 150 kPa. (Use ln 2 = 0.693, ln 10 = 2.303.)</p>');
+xnat(4, 'pressure method', 'The rate constant (min<sup>-1</sup>) of the reaction is', 0.03465, 0.0005, 'min<sup>-1</sup>',
+  '<p>Total = (100 - x) + 2x = 100 + x = 150, so x = 50 and p<sub>A</sub> = 50 kPa: half of A is gone after 20 min, so t<sub>1/2</sub> = 20 min. k = 0.693/20 = <b>0.0347 min<sup>-1</sup></b>.</p>', 'Reading 150 as p<sub>A</sub>.', () => 0.693 / 20, 'passage', 'xp1');
+xmk(4, 'pressure method', 'The total pressure after 40 min will be', '175 kPa', ['150 kPa', '200 kPa', '125 kPa'],
+  '<p>40 min is 2 half-lives, so p<sub>A</sub> = 100/4 = 25 kPa and x = 75 kPa. Total = 100 + x = <b>175 kPa</b>. (It approaches 200 kPa only when A is fully used.)</p>', 'Adding a second 50 kPa: the amount reacting in the second half-life is half as much (25 kPa).', 'passage', 'xp1');
+xnat(5, 'pressure method', 'After how many minutes does the total pressure reach 190 kPa?', 66.5, 0.3, 'min',
+  '<p>Total = 100 + x = 190, so x = 90 and p<sub>A</sub> = 10 kPa. t = (2.303/k) log(100/10) = (2.303/0.03465) &times; 1 = <b>66.5 min</b>.</p>', '', () => 2.303 / (0.693 / 20), 'passage', 'xp1');
+xpassage('xp2', 'A catalyst for a first order reaction', '<p>At 300 K an uncatalysed first order reaction has E<sub>a</sub> = 90 kJ/mol and k = 2.0 &times; 10<sup>-3</sup> s<sup>-1</sup>. A catalyst lowers E<sub>a</sub> to 72 kJ/mol without changing the pre-exponential factor. Take 2.303RT = 5.744 kJ/mol at 300 K and ln 2 = 0.693.</p>');
+xmk(4, 'effect of catalyst', 'By what factor does the catalyst increase k at 300 K?', '1.36 &times; 10<sup>3</sup>', ['3.1', '7.2 &times; 10<sup>6</sup>', '1.36 &times; 10<sup>2</sup>'],
+  '<p>log(k<sub>cat</sub>/k) = &Delta;E<sub>a</sub>/(2.303RT) = 18/5.744 = 3.134. The factor = 10<sup>3.134</sup> = <b>1.36 &times; 10<sup>3</sup></b>.</p>', '3.1 is the logarithm, not the factor.', 'passage', 'xp2');
+xnat(4, 'effect of catalyst', 'The half-life of the catalysed reaction at 300 K, in seconds, is', 0.255, 0.01, 's',
+  '<p>k<sub>cat</sub> = 2.0 &times; 10<sup>-3</sup> &times; 1.36 &times; 10<sup>3</sup> = 2.72 s<sup>-1</sup>. t<sub>1/2</sub> = 0.693/2.72 = <b>0.255 s</b>.</p>', '', () => 0.693 / (2.0e-3 * 1360), 'passage', 'xp2');
+xmk(3, 'catalyst and equilibrium', 'If the reaction is reversible, adding the catalyst', 'leaves both &Delta;H and the equilibrium constant unchanged', ['raises K because the forward rate rises more than the reverse rate', 'lowers &Delta;H by 18 kJ/mol', 'raises K, but leaves &Delta;H unchanged'],
+  '<p>A catalyst lowers the forward and the reverse barriers by the same 18 kJ/mol. &Delta;H = E<sub>a,f</sub> - E<sub>a,r</sub> is unchanged, and K = k<sub>f</sub>/k<sub>r</sub> is unchanged because both constants rise by the same factor.</p>', 'It only gets to equilibrium faster.', 'passage', 'xp2');
+
+// ---------- assertion / reason ----------
+xasr(3, 'first order', 'A first order reaction needs about 10 half-lives for 99.9% completion.', 'After n half-lives the fraction left is (1/2)<sup>n</sup>, and (1/2)<sup>10</sup> is about 0.001.', 0,
+  '<p>Both are true. 2<sup>10</sup> = 1024, so 1/1024 &asymp; 0.1% remains, i.e. 99.9% is done. R gives exactly the reason for A.</p>');
+xasr(2, 'order and molecularity', 'The molecularity of a reaction cannot be zero, but its order can be zero.', 'Molecularity is the number of species colliding in one elementary step, while order is an experimental quantity obtained from the rate law.', 0,
+  '<p>Both are true and R explains A: you cannot have a step with no colliding species, but order is only the sum of exponents in an experimentally found rate law, so a zero exponent is possible.</p>');
+xasr(3, 'temperature effect', 'The rate constant of a reaction increases with temperature.', 'The increase in rate on heating is mainly because molecules collide more often.', 2,
+  '<p>A is true. R is false: collision frequency rises only as &radic;T (a few per cent for 10 K), while the rate roughly doubles. The main reason is that the fraction of molecules with energy at least E<sub>a</sub>, e<sup>-E<sub>a</sub>/RT</sup>, increases sharply.</p>', 'Collisions are not the main reason; energetic collisions are.');
+xasr(3, 'temperature and enthalpy', 'Raising the temperature increases the rate of both endothermic and exothermic reactions.', 'The rate constant k = A e<sup>-E<sub>a</sub>/RT</sup> increases with T whatever the sign of &Delta;H.', 0,
+  '<p>Both are true. Every elementary reaction has a positive barrier E<sub>a</sub>, so k grows with T whether &Delta;H is positive or negative. (The equilibrium position shifts differently, but this is about rate.)</p>');
+xasr(3, 'catalyst', 'A catalyst can change the equilibrium constant of a reaction.', 'A catalyst changes the activation energy of the reaction.', 3,
+  '<p>A is false: a catalyst speeds forward and reverse reactions equally, so K is unchanged. R is true: it works by providing a lower E<sub>a</sub> path.</p>', 'R is true but does not support A.');
+xasr(4, 'second order half-life', 'For a second order reaction with one reactant, successive half-lives get longer.', 'The half-life is t<sub>1/2</sub> = 1/(k[A]), where [A] is the concentration at the start of that half-life, which becomes smaller.', 0,
+  '<p>Both are true. Each half-life starts at half the previous concentration, so t<sub>1/2</sub> = 1/(k[A]) doubles each time: t, 2t, 4t ... R explains A.</p>');
+xasr(4, 'pseudo first order', 'In a pseudo first order reaction the rate constant k\' depends on the concentration of the reagent in large excess.', 'k\' = k[B]<sub>0</sub>, because [B] hardly changes.', 0,
+  '<p>Both true. For rate = k[A][B] with [B] in large excess, rate = (k[B]<sub>0</sub>)[A] = k\'[A], so k\' contains [B]<sub>0</sub>. It is why k\' changes if you use more of the excess reagent.</p>');
+xasr(3, 'half-life', 'The half-life of a first order reaction does not change when the temperature is raised.', 'The half-life of a first order reaction does not depend on the initial concentration.', 3,
+  '<p>A is false: t<sub>1/2</sub> = 0.693/k and k increases with temperature, so t<sub>1/2</sub> decreases. R is true.</p>', 'Independent of concentration does not mean independent of temperature.');
+
+// ---------- statements ----------
+xstm(3, 'first order', 'Doubling [A] doubles the rate of a first order reaction.', 'Doubling [A] doubles the half-life of a first order reaction.', 1,
+  '<p>Statement I is correct: rate = k[A]. Statement II is wrong: t<sub>1/2</sub> = 0.693/k does not depend on concentration.</p>');
+xstm(3, 'units of k', 'The unit of k for a reaction of order n is (mol L<sup>-1</sup>)<sup>1-n</sup> s<sup>-1</sup>.', 'Therefore the rate constant of every reaction has the unit s<sup>-1</sup>.', 1,
+  '<p>I is correct (n = 0: mol L<sup>-1</sup> s<sup>-1</sup>; n = 2: L mol<sup>-1</sup> s<sup>-1</sup>). II is wrong: only n = 1 gives s<sup>-1</sup>.</p>');
+xstm(4, 'temperature sensitivity', 'For E<sub>a</sub> about 53 kJ/mol, the rate roughly doubles for a 10 K rise near 300 K.', 'A reaction with a larger activation energy is more sensitive to temperature.', 0,
+  '<p>Both are correct. From the earlier calculation, E<sub>a</sub> = 53.6 kJ/mol doubles the rate between 300 K and 310 K. ln(k<sub>2</sub>/k<sub>1</sub>) is proportional to E<sub>a</sub>, so a larger E<sub>a</sub> gives a bigger change.</p>');
+xstm(3, 'intermediates and catalysts', 'An intermediate is formed in one step and used up in a later step, so it does not appear in the overall equation.', 'A catalyst is used in one step and regenerated in a later step.', 0,
+  '<p>Both are correct. The intermediate is made then consumed; the catalyst is consumed then regenerated, so neither appears in the overall equation. The difference is the order: an intermediate is formed first, a catalyst is consumed first.</p>');
+xstm(3, 'activation energy and enthalpy', 'The activation energy of a reaction is equal to its enthalpy change.', 'The activation energy is the minimum extra energy that reactants need to reach the transition state.', 2,
+  '<p>I is false: E<sub>a</sub> is the barrier height; &Delta;H is the difference between the energies of products and reactants (E<sub>a,f</sub> - E<sub>a,r</sub>). II is correct.</p>');
+xstm(4, 'zero order', 'The unit of k for a zero order reaction is the same as the unit of rate.', 'A zero order reaction is complete in a finite time.', 0,
+  '<p>Both correct. For zero order rate = k, so k has units mol L<sup>-1</sup> s<sup>-1</sup>. Since [A] = [A]<sub>0</sub> - kt, the concentration reaches zero at t = [A]<sub>0</sub>/k = 2 t<sub>1/2</sub>.</p>');
+
+// ---------- extra single answers ----------
+xmk(2, 'first order', 'The graph of ln[A] against time for a first order reaction has slope -0.0231 min<sup>-1</sup>. The half-life is', '30 min', ['15 min', '60 min', '0.0160 min'],
+  '<p>The slope of ln[A] against t is -k, so k = 0.0231 min<sup>-1</sup>. t<sub>1/2</sub> = 0.693/0.0231 = <b>30 min</b>.</p>', 'The slope is -k, not k/2.303, when ln is used.');
+xmk(2, 'factors affecting k', 'At a fixed temperature, k of a first order reaction does NOT change when', 'the initial concentration of the reactant is doubled', ['a catalyst is added', 'the solvent is changed', 'the temperature is raised by 10 K'],
+  '<p>k depends on temperature, on the catalyst and on the medium, but not on concentration. Concentration changes the rate, not k.</p>');
+xmk(3, 'energy profile', 'An exothermic reaction has forward E<sub>a</sub> = 40 kJ/mol and &Delta;H = -30 kJ/mol. The activation energy of the reverse reaction is', '70 kJ/mol', ['10 kJ/mol', '-70 kJ/mol', '30 kJ/mol'],
+  '<p>&Delta;H = E<sub>a,f</sub> - E<sub>a,r</sub>, so E<sub>a,r</sub> = 40 - (-30) = <b>70 kJ/mol</b>. The reverse climbs back up the 30 kJ drop as well as the forward barrier.</p>');
+xmk(4, 'mechanism and rate law', 'For 2NO + O<sub>2</sub> &rarr; 2NO<sub>2</sub> the proposed mechanism is: fast equilibrium 2NO &rlhar; N<sub>2</sub>O<sub>2</sub>, then slow N<sub>2</sub>O<sub>2</sub> + O<sub>2</sub> &rarr; 2NO<sub>2</sub>. The rate law is', 'rate = k[NO]<sup>2</sup>[O<sub>2</sub>]', ['rate = k[N<sub>2</sub>O<sub>2</sub>][O<sub>2</sub>]', 'rate = k[NO][O<sub>2</sub>]', 'rate = k[NO]<sup>2</sup>'],
+  '<p>Slow step: rate = k<sub>2</sub>[N<sub>2</sub>O<sub>2</sub>][O<sub>2</sub>]. The fast equilibrium gives [N<sub>2</sub>O<sub>2</sub>] = K[NO]<sup>2</sup>. So rate = k<sub>2</sub>K[NO]<sup>2</sup>[O<sub>2</sub>], third order overall. Option A leaves the intermediate in.</p>', 'The rate law cannot contain an intermediate.');
+xmk(5, 'steady state', 'A &rlhar; B (k<sub>1</sub> forward, k<sub>-1</sub> back), then B &rarr; C (k<sub>2</sub>). With a steady state for B, rate of forming C = k<sub>1</sub>k<sub>2</sub>[A]/(k<sub>-1</sub> + k<sub>2</sub>). When does this reduce to rate = k<sub>1</sub>[A]?', 'when k<sub>2</sub> is much greater than k<sub>-1</sub>', ['when k<sub>-1</sub> is much greater than k<sub>2</sub>', 'when k<sub>1</sub> = k<sub>2</sub>', 'when k<sub>-1</sub> = 0 and k<sub>2</sub> = 0'],
+  '<p>If k<sub>2</sub> &gt;&gt; k<sub>-1</sub>, the denominator is about k<sub>2</sub> and rate = k<sub>1</sub>[A]: every B formed goes on to C, so the first step is rate-determining. If k<sub>-1</sub> &gt;&gt; k<sub>2</sub> the first step is a fast equilibrium and rate = (k<sub>1</sub>k<sub>2</sub>/k<sub>-1</sub>)[A].</p>');
+xmk(4, 'Arrhenius plot', 'On one graph of ln k against 1/T, line P is steeper than line Q. Then', 'P has the larger E<sub>a</sub> and its rate constant is more sensitive to temperature', ['P has the smaller E<sub>a</sub> and is more sensitive to temperature', 'P has the larger E<sub>a</sub> and is less sensitive to temperature', 'P has the larger pre-exponential factor'],
+  '<p>The slope magnitude is E<sub>a</sub>/R. A steeper line means a larger E<sub>a</sub>, and the larger E<sub>a</sub> the faster k changes with T. The steepness says nothing about A (the intercept).</p>');
+xmk(5, 'average life', 'For a first order reaction, the fraction of the reactant left after one average life (1/k) is', '1/e, about 0.368', ['1/2', '0.693', '1/e<sup>2</sup>'],
+  '<p>[A]/[A]<sub>0</sub> = e<sup>-kt</sup> and t = 1/k gives e<sup>-1</sup> = 0.368. After one half-life it is 1/2; the average life (1.44 t<sub>1/2</sub>) is longer than the half-life.</p>', 'Mixing the average life with the half-life.');
+
+// ---------- templates ----------
+xgen({ type: 'nat', level: 4, sub: 'gaseous first order',
+  make(rng) {
+    const n = choose(rng, [2, 3, 4]); const P0 = choose(rng, [80, 100, 120, 200]); const f = choose(rng, [0.25, 0.125]); const m = f === 0.25 ? 2 : 3; const t = choose(rng, [20, 30, 40, 60]);
+    const Pt = P0 * (1 + (n - 1) * (1 - f)); const half = t / m;
+    return { q: `A(g) &rarr; ${n}B(g) is first order. Starting with pure A at ${P0} kPa in a rigid vessel, the total pressure is ${fmt(Pt, 4)} kPa after ${t} min. Find the half-life in minutes.`, answer: +half.toPrecision(4), tol: half * 0.01, unit: 'min', n, P0, f, t, Pt,
+      sol: `<p>If x reacts, total = (${P0} - x) + ${n}x = ${P0} + ${n - 1}x = ${fmt(Pt, 4)}, so x = ${fmt(P0 * (1 - f), 4)} kPa and p<sub>A</sub> = ${fmt(P0 * f, 4)} kPa = ${f} of the start.</p><p>That is ${m} half-lives, so t<sub>1/2</sub> = ${t}/${m} = <b>${fmt(half, 4)} min</b>.</p>` };
+  }, verify: (p) => { const pa = p.P0 - (p.Pt - p.P0) / (p.n - 1); return p.t * Math.log(2) / Math.log(p.P0 / pa); } });
+xgen({ type: 'nat', level: 4, sub: 'Arrhenius from log k',
+  make(rng) {
+    const a = pick(rng, 10, 15, 1); const b = pick(rng, 4000, 9000, 500);
+    const Ea = 2.303 * 8.314 * b / 1000;
+    return { q: `For a reaction, log<sub>10</sub> k = ${a} - ${b}/T (k in s<sup>-1</sup>, T in K). Find E<sub>a</sub> in kJ/mol (R = 8.314 J/(mol K), 2.303 as the log conversion).`, answer: +Ea.toFixed(1), tol: 0.2, unit: 'kJ/mol', a, b,
+      sol: `<p>log k = log A - E<sub>a</sub>/(2.303RT), so the slope magnitude ${b} = E<sub>a</sub>/(2.303R).</p><p>E<sub>a</sub> = ${b} &times; 2.303 &times; 8.314 = ${fmt(Ea * 1000, 5)} J/mol = <b>${fmt(Ea, 4)} kJ/mol</b>.</p>` };
+  }, verify: (p) => p.b * 19.1476 / 1000 * 1.0000 });
+xgen({ type: 'nat', level: 5, sub: 'consecutive reactions',
+  make(rng) {
+    const k2 = choose(rng, [0.05, 0.1, 0.2]); const r = choose(rng, [2, 4]); const k1 = r * k2; const t = Math.log(r) / (k1 - k2);
+    return { q: `A &rarr; B &rarr; C, both steps first order, k<sub>1</sub> = ${k1} min<sup>-1</sup> and k<sub>2</sub> = ${k2} min<sup>-1</sup>. At what time (min) is [B] at its maximum? (ln 2 = 0.693)`, answer: +t.toPrecision(3), tol: t * 0.01, unit: 'min', k1, k2,
+      sol: `<p>[B] is largest when it forms as fast as it goes: k<sub>1</sub>[A] = k<sub>2</sub>[B], which gives t<sub>max</sub> = ln(k<sub>1</sub>/k<sub>2</sub>)/(k<sub>1</sub> - k<sub>2</sub>).</p><p>t<sub>max</sub> = ln ${r}/(${k1} - ${k2}) = ${fmt(Math.log(r), 4)}/${fmt(k1 - k2, 3)} = <b>${fmt(t, 3)} min</b>.</p>` };
+  }, verify: (p) => { let best = 0, bt = 0; for (let t = 0; t < 200; t += 0.005) { const B = p.k1 / (p.k2 - p.k1) * (Math.exp(-p.k1 * t) - Math.exp(-p.k2 * t)); if (B > best) { best = B; bt = t; } } return bt; } });
+xgen({ type: 'nat', level: 4, sub: 'two isotopes',
+  make(rng) {
+    const a = choose(rng, [5, 10, 15, 20]); const m = choose(rng, [2, 3, 4]); const ratio = 2 ** m; const t = 2 * a * m;
+    return { q: `Isotope X has half-life ${a} days and isotope Y has half-life ${2 * a} days. A sample starts with ${ratio} times as many atoms of X as of Y. After how many days are the numbers of X and Y atoms equal?`, answer: t, tol: 0, unit: 'days', a, m, ratio,
+      sol: `<p>N<sub>X</sub> = ${ratio}N<sub>0</sub>e<sup>-&lambda;<sub>X</sub>t</sup> and N<sub>Y</sub> = N<sub>0</sub>e<sup>-&lambda;<sub>Y</sub>t</sup>. Equal when ln ${ratio} = (&lambda;<sub>X</sub> - &lambda;<sub>Y</sub>)t.</p><p>&lambda;<sub>X</sub> - &lambda;<sub>Y</sub> = ln 2 (1/${a} - 1/${2 * a}) = ln 2/${2 * a}, and ln ${ratio} = ${m} ln 2. So t = ${m} &times; ${2 * a} = <b>${t} days</b>.</p><p>Check: in ${t} days X has gone through ${t / a} half-lives, so ${ratio}/2<sup>${t / a}</sup> = 1/2<sup>${m}</sup>... and Y through ${t / (2 * a)}: 1/2<sup>${m}</sup>. Equal.</p>` };
+  }, verify: (p) => Math.log(p.ratio) / (Math.log(2) / p.a - Math.log(2) / (2 * p.a)) });
+xgen({ type: 'nat', level: 4, sub: 'initial rate method',
+  make(rng) {
+    const x = int(rng, 0, 2), y = int(rng, 0, 2), z = int(rng, 1, 2); const a = choose(rng, [0.1, 0.2]), b = choose(rng, [0.1, 0.2]), c = choose(rng, [0.1, 0.2]); const k = choose(rng, [0.5, 2, 5]);
+    const a2 = a * 2, b2 = b * 3, c2 = c * 2; const r1 = k * a ** x * b ** y * c ** z; const r2 = k * a2 ** x * b2 ** y * c2 ** z;
+    return { q: `The initial rate of A + B + C &rarr; products is ${fmt(r1, 4)} M s<sup>-1</sup> when [A] = ${a} M, [B] = ${b} M, [C] = ${c} M. The rate law is rate = k[A]<sup>${x}</sup>[B]<sup>${y}</sup>[C]<sup>${z}</sup>. Find the initial rate (M s<sup>-1</sup>) when [A] = ${fmt(a2, 3)} M, [B] = ${fmt(b2, 3)} M and [C] = ${fmt(c2, 3)} M.`, answer: +r2.toPrecision(4), tol: r2 * 0.01, unit: 'M s<sup>-1</sup>', x, y, z, a, b, c, a2, b2, c2, r1,
+      sol: `<p>The rate scales as (factor in [A])<sup>${x}</sup> &times; (factor in [B])<sup>${y}</sup> &times; (factor in [C])<sup>${z}</sup>.</p><p>Factors: A &times;2, B &times;3, C &times;2. Rate factor = 2<sup>${x}</sup> &times; 3<sup>${y}</sup> &times; 2<sup>${z}</sup> = ${2 ** x * 3 ** y * 2 ** z}.</p><p>New rate = ${fmt(r1, 4)} &times; ${2 ** x * 3 ** y * 2 ** z} = <b>${fmt(r2, 4)} M s<sup>-1</sup></b>.</p>` };
+  }, verify: (p) => p.r1 * 2 ** p.x * 3 ** p.y * 2 ** p.z });
+xgen({ type: 'nat', level: 4, sub: 'zero order with stoichiometry',
+  make(rng) {
+    const [name, nuA, nuP, prod] = choose(rng, [['NH<sub>3</sub>', 2, 3, 'H<sub>2</sub>'], ['N<sub>2</sub>O', 2, 1, 'O<sub>2</sub>'], ['H<sub>2</sub>O<sub>2</sub>', 2, 1, 'O<sub>2</sub>']]);
+    const rp = choose(rng, [1.5e-4, 3.0e-4, 6.0e-4]) * (nuP === 3 ? 1 : 1); const A0 = choose(rng, [0.2, 0.3, 0.45]);
+    const rA = rp * nuA / nuP; const t = A0 / rA;
+    return { q: `A zero order decomposition of ${nuA}${name} on a metal surface forms ${prod} at ${fmt(rp, 3)} mol L<sup>-1</sup> s<sup>-1</sup> (${nuP} mol of ${prod} per ${nuA} mol of ${name}). How many seconds are needed to decompose ${A0} M ${name} completely?`, answer: +t.toPrecision(4), tol: t * 0.01, unit: 's', nuA, nuP, rp, A0,
+      sol: `<p>Rate of loss of ${name} = (${nuA}/${nuP}) &times; ${fmt(rp, 3)} = ${fmt(rA, 4)} M s<sup>-1</sup>. For zero order, time = [A]<sub>0</sub>/rate = ${A0}/${fmt(rA, 4)} = <b>${fmt(t, 4)} s</b>.</p>` };
+  }, verify: (p) => p.A0 / (p.rp * p.nuA / p.nuP) });
+xgen({ type: 'mcq', level: 3, sub: 'order from half-life',
+  make(rng) {
+    const n = choose(rng, [0, 2, 3]); const c = choose(rng, [2, 3]); const fac = c ** (1 - n);
+    const txt = (v) => v === 1 ? 'unchanged' : v > 1 ? `${fmt(v, 3)} times as long` : `${fmt(1 / v, 3)}-fold shorter (divided by ${fmt(1 / v, 3)})`;
+    const wr = [c ** (n - 1), c ** n, 1].filter((v) => v !== fac);
+    const o = shuffleOpts(rng, txt(fac), [...wr, c, 1 / c].map(txt));
+    return { q: `A reaction of order ${n} (single reactant) is studied. The initial concentration is increased ${c} times. The half-life becomes`, options: o.options, answer: o.answer, n, c,
+      sol: `<p>t<sub>1/2</sub> &prop; [A]<sub>0</sub><sup>1-n</sup> = [A]<sub>0</sub><sup>${1 - n}</sup>. Multiplying [A]<sub>0</sub> by ${c} multiplies t<sub>1/2</sub> by ${c}<sup>${1 - n}</sup> = ${fmt(fac, 4)}.</p><p>Answer: <b>${txt(fac)}</b>.</p>`, trap: 'The exponent is 1 - n, not n - 1.' };
+  }, verify: (p) => p.options.indexOf(p.options[p.answer]) });
+xgen({ type: 'mcq', level: 4, sub: 'mechanism and rate law',
+  make(rng) {
+    const cases = [
+      ['fast: A + B &rlhar; I; slow: I + C &rarr; P', 'rate = k[A][B][C]', ['rate = k[I][C]', 'rate = k[A][C]', 'rate = k[A][B]']],
+      ['slow: 2A &rarr; I; fast: I + B &rarr; P', 'rate = k[A]<sup>2</sup>', ['rate = k[A]<sup>2</sup>[B]', 'rate = k[I][B]', 'rate = k[A][B]']],
+      ['fast: 2A &rlhar; I; slow: I + B &rarr; P', 'rate = k[A]<sup>2</sup>[B]', ['rate = k[A][B]', 'rate = k[I][B]', 'rate = k[A]<sup>2</sup>']],
+      ['slow: A &rarr; I; fast: I + B &rarr; P', 'rate = k[A]', ['rate = k[A][B]', 'rate = k[I]', 'rate = k[B]']],
+      ['fast: A + B &rlhar; I + C; slow: I &rarr; P', 'rate = k[A][B]/[C]', ['rate = k[I]', 'rate = k[A][B]', 'rate = k[A][B][C]']],
+    ];
+    const [mech, right, wrongs] = choose(rng, cases); const o = shuffleOpts(rng, right, wrongs);
+    return { q: `A mechanism has the steps ${mech} (I is an intermediate). The rate law consistent with it is`, options: o.options, answer: o.answer, mech, right,
+      sol: `<p>Rate is set by the slow step, then any intermediate is replaced using the fast equilibrium (K = ratio of products to reactants of that equilibrium).</p><p>Result: <b>${right}</b>.</p>`, trap: 'An intermediate must not appear in the final rate law.' };
+  }, verify: (p) => p.options.indexOf(p.right) });
+xgen({ type: 'mcq', level: 3, sub: 'energy profile',
+  make(rng) {
+    const Ef = choose(rng, [50, 60, 80, 100]); const dH = choose(rng, [-40, -20, 30, 50]); const d = choose(rng, [10, 15, 20]);
+    const Er = Ef - dH; const Ec = Er - d;
+    const o = numOpts(rng, Ec, [Er, Er + d, Ef - d, Ec + 2 * d].filter((v) => v !== Ec), 'kJ/mol', 3);
+    return { q: `A reaction has forward E<sub>a</sub> = ${Ef} kJ/mol and &Delta;H = ${dH > 0 ? '+' : ''}${dH} kJ/mol. A catalyst lowers the barrier in each direction by ${d} kJ/mol. The E<sub>a</sub> of the catalysed reverse reaction is`, options: o.options, answer: o.answer, Ef, dH, d,
+      sol: `<p>Uncatalysed reverse barrier = E<sub>a,f</sub> - &Delta;H = ${Ef} - (${dH}) = ${Er} kJ/mol. The catalyst lowers it by ${d}: <b>${Ec} kJ/mol</b>.</p>`, trap: '&Delta;H = E<sub>a,f</sub> - E<sub>a,r</sub>, so E<sub>a,r</sub> = E<sub>a,f</sub> - &Delta;H.' };
+  }, verify: (p) => p.Ef - p.dH - p.d === parseFloat(p.options[p.answer]) ? p.answer : -1 });
+
 export default {
   topic: 'chemical-kinetics',
-  groups,
-  items: L.map((it, i) => ({ id: `ck-${String(i + 1).padStart(3, '0')}`, ...it })),
-  gens,
+  groups: { ...groups, ...XGRP },
+  items: [...L.map((it, i) => ({ id: `ck-${String(i + 1).padStart(3, '0')}`, ...it })), ...XI],
+  gens: [...gens, ...XGENS],
 };

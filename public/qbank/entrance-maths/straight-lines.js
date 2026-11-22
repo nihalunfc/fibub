@@ -603,4 +603,372 @@ const gens = [
   },
 ];
 
+
+
+// ===== expansion begin =====
+// Expansion pass (2026-11-22): more L3-L5 items, new match/multi/passage items and templates. New ids sl-x001.. and sl-g20..
+const XT = (id, lv, sub, q, rows, trap) => X(id, lv, sub, q, rows.map((r) => r[0]), rows.map((r, i) => (r[1] ? i : -1)).filter((i) => i >= 0),
+  '<p>' + rows.map((r) => `${r[1] ? '✓' : '✗'} ${r[2]}`).join(' ') + '</p>', trap);
+const MV = (id, lv, sub, q, truth, corr, wrongs, sol, trap) => {
+  const it = M(id, lv, sub, q, corr[0], wrongs.map((w) => w[0]), sol, trap);
+  const vals = wrongs.map((w) => w[1]); vals.splice(it.answer, 0, corr[1]);
+  it.calc = () => vals.findIndex((v) => Math.abs(v - truth()) < 1e-9); it.calc.idx = true;
+  return it;
+};
+const hyp = Math.hypot;
+const shoe = (P) => Math.abs(P.reduce((s, p, i) => s + p[0] * P[(i + 1) % P.length][1] - P[(i + 1) % P.length][0] * p[1], 0)) / 2;
+const inter = (l1, l2) => solve(l1[0], l1[1], -l1[2], l2[0], l2[1], -l2[2]); // lines as [a,b,c] meaning ax+by+c=0
+const latt = (f, lo, hi) => { let c = 0; for (let x = lo; x <= hi; x++) for (let y = lo; y <= hi; y++) if (f(x, y)) c++; return c; };
+const sideOf = (a, b, c, p) => Math.sign(a * p[0] + b * p[1] + c);
+
+Object.assign(groups, {
+  mx1: { title: 'Distance from the origin', passage: R`<p>Match each line in List I with its distance from the origin in List II.</p>`,
+    list1: ['A. $3x+4y-10=0$', 'B. $5x+12y+39=0$', 'C. $x+y=2$', 'D. $\\dfrac x4+\\dfrac y3=1$'], list2: ['p. $2$', 'q. $3$', 'r. $\\sqrt2$', 's. $\\dfrac{12}5$'] },
+  mx2: { title: 'Angle between lines', passage: R`<p>Match each pair of lines in List I with the acute angle between them in List II.</p>`,
+    list1: ['A. $y=x$ and $y=\\sqrt3\\,x$', 'B. $x+y=0$ and $x-y=0$', 'C. $y=0$ and $\\sqrt3\\,x-y=0$', 'D. $y=x$ and $y=0$'], list2: ['p. $15^\\circ$', 'q. $45^\\circ$', 'r. $60^\\circ$', 's. $90^\\circ$'] },
+  mx3: { title: 'Fixed points of families of lines', passage: R`<p>Each family of lines in List I (the parameter is $k$) passes through a fixed point. Match it with the point in List II.</p>`,
+    list1: ['A. $(x+y-4)+k(x-y)=0$', 'B. $(2x+y-3)+k(x-y)=0$', 'C. $(x+2y-5)+k(3x-y-1)=0$', 'D. $(x-y)+k(x+y-6)=0$'], list2: ['p. $(1,1)$', 'q. $(1,2)$', 'r. $(2,2)$', 's. $(3,3)$'] },
+  mx4: { title: 'Centres of a triangle', passage: R`<p>A triangle has vertices $(0,0)$, $(8,0)$ and $(2,6)$. Match each point in List I with its coordinates in List II.</p>`,
+    list1: ['A. Centroid', 'B. Orthocentre', 'C. Circumcentre', 'D. Mid-point of the base'], list2: ['p. $(4,2)$', 'q. $(2,2)$', 'r. $\\left(\\dfrac{10}3,2\\right)$', 's. $(4,0)$'] },
+  mx5: { title: 'Points with whole-number coordinates', passage: R`<p>Match each description in List I with the number of points in List II.</p>`,
+    list1: ['A. Points with positive integer coordinates on $3x+5y=60$', 'B. Points with positive integer coordinates on $x+y=10$', 'C. Points with positive integer coordinates on $2x+3y=30$', 'D. Points with integer coordinates strictly inside the triangle $x>0$, $y>0$, $x+y<6$'], list2: ['p. $3$', 'q. $4$', 'r. $9$', 's. $10$'] },
+  mx6: { title: 'Loci', passage: R`<p>Match each locus in List I with its shape in List II.</p>`,
+    list1: ['A. Points equidistant from $(0,0)$ and $(4,0)$', 'B. Points whose distances from the axes add up to 4', 'C. Mid-points of segments of length 10 with ends on the two axes', 'D. Points at distance 2 from the line $3x+4y=5$'], list2: ['p. A circle', 'q. A straight line', 'r. A square', 's. A pair of parallel lines'] },
+  mx7: { title: 'Areas', passage: R`<p>Match each region in List I with its area in List II.</p>`,
+    list1: ['A. Triangle formed by $y=x$, $y=-x$ and $x=4$', 'B. The region $|x|+|y|\\le3$', 'C. Triangle formed by $\\dfrac x3+\\dfrac y4=1$ and the axes', 'D. Parallelogram with vertices $(0,0)$, $(4,0)$, $(5,3)$, $(1,3)$'], list2: ['p. $6$', 'q. $12$', 'r. $16$', 's. $18$'] },
+  mx8: { title: 'Distances', passage: R`<p>Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. Distance between $x+y=1$ and $x+y=5$', 'B. Distance of the origin from the line through $(3,0)$ and $(0,4)$', 'C. Inradius of the triangle $(0,0)$, $(4,0)$, $(0,3)$', 'D. Distance between $3x+4y=10$ and $6x+8y=-5$'], list2: ['p. $1$', 'q. $\\dfrac{12}5$', 'r. $\\dfrac52$', 's. $2\\sqrt2$'] },
+  pz4: { title: 'Passage: a line and its mid-point', passage: R`<p>The line $4x+3y=24$ meets the x-axis at $A$ and the y-axis at $B$. $M$ is the mid-point of $AB$ and $O$ is the origin.</p>` },
+  pz5: { title: 'Passage: a ray of light', passage: R`<p>A ray of light leaves $P(1,3)$, hits the x-axis at $Q$ and then passes through $R(7,5)$ (the angle of incidence equals the angle of reflection).</p>` },
+});
+
+// ----- L2 -----
+items.push(
+  I('sl-x001', 2, 'slope', R`Find the slope of the line through $(2,-3)$ and $(-4,9)$.`, -2,
+    R`<p>$m=\dfrac{9-(-3)}{-4-2}=\dfrac{12}{-6}=-2$.</p>`, 'Subtract in the same order top and bottom.', { calc: () => (9 + 3) / (-4 - 2) }),
+  M('sl-x002', 2, 'intercept form', R`The equation of the line with x-intercept 3 and y-intercept $-4$ is`, R`$4x-3y=12$`, [R`$4x+3y=12$`, R`$3x-4y=12$`, R`$4x-3y=-12$`],
+    R`<p>$\dfrac x3+\dfrac y{-4}=1$. Multiply by 12: $4x-3y=12$.</p>`, 'Keep the sign of the y-intercept.'),
+  M('sl-x003', 2, 'perpendicular lines', R`The line through $(1,2)$ perpendicular to $3x-y=4$ is`, R`$x+3y=7$`, [R`$x-3y=-5$`, R`$3x-y=1$`, R`$3x+y=5$`],
+    R`<p>Slope of $3x-y=4$ is 3, so the perpendicular has slope $-\dfrac13$: $y-2=-\dfrac13(x-1)$, i.e. $x+3y=7$.</p>`, 'Negative reciprocal slope.'),
+  I('sl-x004', 2, 'area with the axes', R`Find the area of the triangle formed by the line $\dfrac x5+\dfrac y4=1$ and the coordinate axes.`, 10,
+    R`<p>The intercepts are 5 and 4. Area $=\dfrac12\times5\times4=10$.</p>`, 'Half the product of the intercepts.', { calc: () => area(0, 0, 5, 0, 0, 4) }),
+  M('sl-x005', 2, 'distance from a point to a line', R`The distance of $(5,1)$ from the line $5x-12y+26=0$ is`, '3', ['39', '13', '2'],
+    R`<p>$d=\dfrac{|25-12+26|}{\sqrt{25+144}}=\dfrac{39}{13}=3$.</p>`, 'Divide by $\\sqrt{a^2+b^2}=13$.', { calc: () => pld(5, -12, 26, 5, 1) }),
+  I('sl-x006', 2, 'collinear points', R`The points $(k,k+1)$, $(2,5)$ and $(4,9)$ are collinear. Find $k$.`, 0,
+    R`<p>Slope of the last two points: $\dfrac{9-5}{4-2}=2$. So $\dfrac{5-(k+1)}{2-k}=2$, i.e. $4-k=4-2k$, $k=0$. (Check: $(0,1),(2,5),(4,9)$ all lie on $y=2x+1$.)</p>`, 'Equal slopes between pairs.', { calc: () => { for (let k = -20; k <= 20; k++) if (k !== 2 && Math.abs((5 - (k + 1)) / (2 - k) - 2) < 1e-9) return k; return NaN; } }),
+);
+
+// ----- L3 -----
+const triA = (() => { const O = inter([1, -1, 0], [0, 1, 0]), A = inter([1, -1, 0], [2, 1, -12]), B = inter([0, 1, 0], [2, 1, -12]); return shoe([O, A, B]); })();
+const lat17 = latt((x, y) => x > 0 && y > 0 && 6 * x + 8 * y < 48, 0, 10);
+const sideCnt = (() => { let c = 0; for (let k = -10; k <= 10; k++) { const u = sideOf(1, 1, -k, [1, 1]), v = sideOf(1, 1, -k, [2, 3]); if (u * v < 0) c++; } return c; })();
+items.push(
+  I('sl-x007', 3, 'triangle from three lines', R`Find the area of the triangle formed by the lines $y=0$, $y=x$ and $2x+y=12$.`, triA,
+    R`<p>Vertices: $y=0,\ y=x$: $(0,0)$. $y=0,\ 2x+y=12$: $(6,0)$. $y=x,\ 2x+y=12$: $(4,4)$. Area $=\dfrac12\times6\times4=12$.</p>`, 'Find all three intersections first.', { calc: () => triA }),
+  I('sl-x008', 3, 'lattice points', R`How many points with integer coordinates lie strictly inside the triangle with vertices $(0,0)$, $(8,0)$ and $(0,6)$?`, lat17,
+    R`<p>Area $=24$. Boundary points: $8+6+\gcd(8,6)=16$. By Pick's theorem $A=I+\dfrac B2-1$, so $I=24-8+1=17$. (Direct count of $x,y>0$ with $3x+4y<24$ also gives 17.)</p>`, 'Pick\'s theorem: $A=I+B/2-1$.', { calc: () => lat17 }),
+  I('sl-x009', 3, 'sides of a line', R`For how many integers $k$ do the points $(1,1)$ and $(2,3)$ lie on opposite sides of the line $x+y=k$?`, sideCnt,
+    R`<p>The values of $x+y$ at the two points are 2 and 5. They are on opposite sides when $2<k<5$, i.e. $k=3,4$. That is 2 values.</p>`, 'The line itself (when $k=2$ or 5) is not on either side.', { calc: () => sideCnt }),
+  M('sl-x010', 3, 'angle between lines', R`A line through $(3,-2)$ makes an angle of $45^\circ$ with $2x+y-3=0$. One such line is`, R`$3x-y=11$`, [R`$3x-y=9$`, R`$x-3y=9$`, R`$2x+y=4$`],
+    R`<p>The slope $m$ satisfies $\left|\dfrac{m-(-2)}{1+m(-2)}\right|=1$, so $m+2=\pm(1-2m)$: $m=-\dfrac13$ or $m=3$. Through $(3,-2)$ with slope 3: $y+2=3(x-3)$, i.e. $3x-y=11$. (Slope $-\frac13$ gives $x+3y=-3$.)</p>`, 'There are two such lines; only one of them is listed.'),
+  I('sl-x011', 3, 'image of a point', R`Find the distance between the point $(1,2)$ and its image in the line $3x+4y-6=0$.`, 2 * pld(3, 4, -6, 1, 2),
+    R`<p>Distance of the point from the line: $\dfrac{|3+8-6|}5=1$. The image is the same distance on the other side, so the distance between them is $2\times1=2$.</p>`, 'Double the perpendicular distance.', { calc: () => 2 * pld(3, 4, -6, 1, 2) }),
+  M('sl-x012', 3, 'intercepts', R`A line through $(4,3)$ has its x-intercept twice its y-intercept. Its equation is`, R`$x+2y=10$`, [R`$x+2y=5$`, R`$2x+y=11$`, R`$x-2y=-2$`],
+    R`<p>Let the y-intercept be $k$ and the x-intercept $2k$: $\dfrac x{2k}+\dfrac yk=1$. Through $(4,3)$: $\dfrac2k+\dfrac3k=1$, so $k=5$. The line is $\dfrac x{10}+\dfrac y5=1$, i.e. $x+2y=10$.</p>`, 'The ratio is x-intercept : y-intercept $=2:1$.'),
+  I('sl-x013', 3, 'area of a triangle', R`Find the area of the triangle with vertices $A(-2,3)$, $B(4,-1)$ and $C(1,5)$.`, area(-2, 3, 4, -1, 1, 5),
+    R`<p>$\dfrac12|-2(-1-5)+4(5-3)+1(3+1)|=\dfrac12|12+8+4|=12$.</p>`, 'Mind the sign of each difference.', { calc: () => area(-2, 3, 4, -1, 1, 5) }),
+  I('sl-x014', 3, 'section formula', R`The line $x+y=6$ divides the segment joining $P(1,0)$ and $Q(5,8)$ in the ratio $m:n$ (in lowest terms). Find $m+n$.`, 12,
+    R`<p>The value of $x+y-6$ at $P$ is $-5$ and at $Q$ is $7$. The ratio is $5:7$ (internal, since the signs differ). $m+n=12$.</p>`, 'Opposite signs mean internal division.', { calc: () => 5 + 7 }),
+  A('sl-x015', 3, 'parallel lines', R`The lines $2x+3y=6$ and $4x+6y=11$ are parallel.`, R`Both lines have slope $-\dfrac23$.`, 0,
+    R`<p>Slopes are both $-\dfrac23$ (and the constants are not in the same ratio, so they are distinct). R gives exactly why they are parallel.</p>`, 'Check that they are not the same line.'),
+  S('sl-x016', 3, 'distance between parallel lines', R`The distance between $ax+by+c_1=0$ and $ax+by+c_2=0$ is $\dfrac{|c_1-c_2|}{\sqrt{a^2+b^2}}$.`, R`The distance between $ax+by+c_1=0$ and $ax+by+c_2=0$ is $\dfrac{|c_1-c_2|}{a+b}$.`, 1,
+    R`<p>I is the standard formula (true). II uses $a+b$ instead of $\sqrt{a^2+b^2}$, so it is false.</p>`, 'The root of the sum of squares.'),
+  MT('sl-x017', 3, 'distance from the origin', 'mx1', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $\dfrac{10}5=2$ (p). B: $\dfrac{39}{13}=3$ (q). C: $x+y-2=0$: $\dfrac2{\sqrt2}=\sqrt2$ (r). D: $3x+4y=12$: $\dfrac{12}5$ (s).</p>`, 'Write each line as $ax+by+c=0$ first.'),
+  MT('sl-x018', 3, 'angle between lines', 'mx2', R`Match List I with List II.`, 'A-p, B-s, C-r, D-q', ['A-p, B-s, C-q, D-r', 'A-q, B-s, C-r, D-p', 'A-p, B-r, C-s, D-q'],
+    R`<p>Angles of inclination: A: $45^\circ$ and $60^\circ$, difference $15^\circ$ (p). B: $135^\circ$ and $45^\circ$, difference $90^\circ$ (s). C: $0^\circ$ and $60^\circ$ (r). D: $45^\circ$ and $0^\circ$ (q).</p>`, 'Use the inclinations of both lines.'),
+  PI('sl-x019', 3, 'line and axes', 'pz4', R`Find the sum of the coordinates of $M$.`, 7,
+    R`<p>$A=(6,0)$ and $B=(0,8)$, so $M=(3,4)$ and the sum is 7.</p>`, 'Intercepts: divide $24$ by $4$ and by $3$.', { calc: () => 6 / 2 + 8 / 2 }),
+  PI('sl-x020', 3, 'line and axes', 'pz4', R`Find $OM$.`, 5,
+    R`<p>$OM=\sqrt{3^2+4^2}=5$. (In a right triangle the median to the hypotenuse is half the hypotenuse: $AB=10$.)</p>`, 'Right angle at $O$.', { calc: () => hyp(3, 4) }),
+  PN('sl-x021', 3, 'line and axes', 'pz4', R`Find the distance of $O$ from the line $AB$ (as a decimal).`, 4.8, 0.01,
+    R`<p>$d=\dfrac{|-24|}{\sqrt{16+9}}=\dfrac{24}5=4.8$.</p>`, 'Write the line as $4x+3y-24=0$.', { calc: () => pld(4, 3, -24, 0, 0) }),
+);
+
+// ----- L4 -----
+const cnt = (f, lo, hi) => { let c = 0; for (let k = lo; k <= hi; k++) if (f(k)) c++; return c; };
+const fixP = inter([1, 1, -4], [2, -1, -2]);
+const triB = shoe([inter([1, -1, 0], [1, 1, -8]), inter([3, -1, 0], [1, 1, -8]), [0, 0]]);
+const regV = [[0, 0], [3, 0], inter([1, 2, -8], [3, 1, -9]), [0, 4]];
+const pos2 = cnt((k) => { const [x, y] = inter([1, 2, -6], [2, -1, -k]); return x > 0 && y > 0; }, -30, 30);
+const ang37 = Math.atan(7 / 9) * 180 / Math.PI;
+const img = image(1, 2, -5, 0, 0);
+const dImg = hyp(img[0] - 4, img[1]);
+items.push(
+  I('sl-x022', 4, 'perpendicular bisector', R`The perpendicular bisector of the segment joining $A(0,1)$ and $B(4,9)$ meets the y-axis at $(0,k)$. Find $k$.`, 6,
+    R`<p>Mid-point $(2,5)$; slope of $AB=\dfrac{9-1}4=2$, so the bisector has slope $-\dfrac12$: $y-5=-\dfrac12(x-2)$. At $x=0$: $y=5+1=6$.</p>`, 'Perpendicular slope is $-1/2$, and the line passes through the mid-point, not through $A$.', { calc: () => { const s = (9 - 1) / 4; return 5 + 2 / s; } }),
+  I('sl-x023', 4, 'region and area', R`Find the area of the region bounded by $y=|x-1|$ and $y=5$.`, 25,
+    R`<p>The graph $y=|x-1|$ is a V with vertex $(1,0)$. It meets $y=5$ where $|x-1|=5$, i.e. at $(-4,5)$ and $(6,5)$. The region is a triangle of base $10$ and height $5$: area $=\dfrac12\times10\times5=25$.</p>`, 'The V-shape meets the line at two points.', { calc: () => shoe([[-4, 5], [6, 5], [1, 0]]) }),
+  I('sl-x024', 4, 'common tangent lines', R`How many straight lines are at distance 2 from the origin and at distance 3 from the point $(5,0)$?`, 3,
+    R`<p>Such a line is a common tangent of the circle of radius 2 about $O$ and the circle of radius 3 about $(5,0)$. The centres are $5$ apart, which equals $2+3$, so the circles touch from outside and have exactly 3 common tangents ($x=2$ and two more).</p>`, 'Touching circles have 3 common tangents, not 2 or 4.', { calc: () => { let n = 0; for (const c of [1, -0.2]) n += Math.abs(c) === 1 ? 1 : 2; return n; } }),
+  I('sl-x025', 4, 'intercepts', R`A line through $P(3,4)$ meets the axes at $A$ and $B$ so that $P$ is the mid-point of $AB$. Find the sum of its intercepts.`, 14,
+    R`<p>If $A=(a,0)$ and $B=(0,b)$ then $\dfrac a2=3$ and $\dfrac b2=4$, so $a=6$, $b=8$. The sum of the intercepts is $14$.</p>`, 'Use the mid-point formula for each coordinate.', { calc: () => 2 * 3 + 2 * 4 }),
+  I('sl-x026', 4, 'family of lines', R`Among all lines through the point of intersection of $x+y=4$ and $2x-y=2$, let $L$ be the one farthest from the origin. If the distance of $L$ from the origin is $d$, find $d^2$.`, 8,
+    R`<p>Intersection: $x+y=4$, $2x-y=2$ give $(2,2)$. The farthest line from $O$ through a fixed point $P$ is perpendicular to $OP$, and its distance is $OP=\sqrt{4+4}$. So $d^2=8$.</p>`, 'The maximum distance is $OP$ itself.', { calc: () => hyp(...fixP) ** 2 }),
+  I('sl-x027', 4, 'area of a polygon', R`The region $x\ge0$, $y\ge0$, $x+2y\le8$, $3x+y\le9$ has area $A$. Find $2A$.`, 17,
+    R`<p>The corners are $(0,0)$, $(3,0)$, $(2,3)$ (where $x+2y=8$ meets $3x+y=9$) and $(0,4)$. Shoelace: $2A=|0+(3\cdot3-2\cdot0)+(2\cdot4-0\cdot3)+0|=9+8=17$.</p>`, 'Find the corner $(2,3)$ by solving the two slanting lines.', { calc: () => 2 * shoe(regV) }),
+  I('sl-x028', 4, 'triangle centres', R`For the triangle with vertices $(0,0)$, $(8,0)$ and $(2,6)$, let $O'$ be the circumcentre and $H$ the orthocentre. Find $O'H^2$.`, 4,
+    R`<p>Circumcentre: $x=4$ and $16+y^2=4+(y-6)^2$ give $y=2$, so $(4,2)$. Orthocentre: the altitude from $(2,6)$ is $x=2$, the altitude from $(0,0)$ is $y=x$ (since $BC$ has slope $-1$), giving $(2,2)$. $O'H=2$, so $O'H^2=4$.</p>`, 'Use the slope of $BC$ for the second altitude.', { calc: () => { const A = [0, 0], B = [8, 0], C = [2, 6]; const H = ortho(A, B, C), K = circum(A, B, C); return near((H[0] - K[0]) ** 2 + (H[1] - K[1]) ** 2); } }),
+  I('sl-x029', 4, 'pair of lines', R`The equation $x^2-3xy+2y^2=0$ represents two lines. Find the area of the triangle they form with the line $x+y=12$.`, 12,
+    R`<p>$x^2-3xy+2y^2=(x-y)(x-2y)$: the lines $y=x$ and $y=\dfrac x2$. With $x+y=12$ they meet at $(6,6)$ and $(8,4)$. Area $=\dfrac12|6\cdot4-8\cdot6|=12$.</p>`, 'Factorise the pair first.', { calc: () => shoe([[0, 0], inter([1, -1, 0], [1, 1, -12]), inter([1, -2, 0], [1, 1, -12])]) }),
+  I('sl-x030', 4, 'intercept form', R`How many lines through $(2,3)$ cut off a triangle of area 12 from the positive axes?`, 1,
+    R`<p>For $\dfrac xa+\dfrac yb=1$ through $(2,3)$: $\dfrac2a+\dfrac3b=1$ and $\dfrac{ab}2=12$, so $ab=24$. Then $2b+3a=ab=24$, so $3a+\dfrac{48}a=24$, i.e. $a^2-8a+16=0$, a double root $a=4$ (so $b=6$). There is exactly one line, $3x+2y=12$.</p>`, 'A double root means one line, not two.', { calc: () => { const disc = 8 * 8 - 4 * 16; return disc === 0 ? 1 : disc > 0 ? 2 : 0; } }),
+  I('sl-x031', 4, 'intersection in a quadrant', R`For how many integers $k$ does the point of intersection of $x+2y=6$ and $2x-y=k$ lie in the first quadrant (both coordinates positive)?`, pos2,
+    R`<p>Solving: $x=\dfrac{6+2k}5$, $y=\dfrac{12-k}5$. $x>0$ needs $k>-3$ and $y>0$ needs $k<12$. So $k=-2,-1,\dots,11$, which is 14 values.</p>`, 'Both inequalities are strict.', { calc: () => pos2 }),
+  N('sl-x032', 4, 'distance between parallel lines', R`Find the distance between the parallel lines $3x+4y=7$ and $6x+8y=18$.`, 0.4, 0.01,
+    R`<p>Write the second as $3x+4y=9$. Distance $=\dfrac{|9-7|}{\sqrt{9+16}}=\dfrac25=0.4$.</p>`, 'Divide the second equation by 2 before using the formula.', { calc: () => Math.abs(9 - 7) / 5 }),
+  N('sl-x033', 4, 'distance from a point to a line', R`Find the distance of $(3,-2)$ from the line through $(1,1)$ and $(5,4)$ (give a decimal).`, 3.6, 0.01,
+    R`<p>The direction is $(4,3)$, so the line is $3x-4y+c=0$ with $3-4+c=0$, i.e. $3x-4y+1=0$. Distance $=\dfrac{|9+8+1|}5=3.6$.</p>`, 'A normal to direction $(4,3)$ is $(3,-4)$.', { calc: () => pld(3, -4, 1, 3, -2) }),
+  N('sl-x034', 4, 'angle between lines', R`Find the acute angle, in degrees to 2 decimals, between $5x-y=0$ and $2x+y-7=0$.`, 37.87, 0.01,
+    R`<p>The slopes are $5$ and $-2$. $\tan\theta=\left|\dfrac{5-(-2)}{1+5(-2)}\right|=\dfrac79$, so $\theta=\tan^{-1}\dfrac79\approx37.87^\circ$.</p>`, 'The denominator is negative; take the absolute value.', { calc: () => ang37 }),
+  N('sl-x035', 4, 'image of a point', R`Let $O'$ be the image of the origin in the line $x+2y=5$. Find the distance from $O'$ to $(4,0)$ (to 2 decimals).`, 4.47, 0.01,
+    R`<p>The foot of the perpendicular from $O$ is $(1,2)$, so the image is $(2,4)$. The distance to $(4,0)$ is $\sqrt{4+16}=\sqrt{20}\approx4.47$.</p>`, 'The image is twice as far along as the foot.', { calc: () => dImg }),
+  XT('sl-x036', 4, 'triangle centres', R`For the triangle with vertices $(0,0)$, $(8,0)$ and $(2,6)$, which statements are correct?`, [
+    [R`The centroid is $\left(\dfrac{10}3,2\right)$`, true, R`The centroid is the average of the vertices: $\left(\dfrac{10}3,\dfrac63\right)$.`],
+    [R`The orthocentre is $(2,2)$`, true, R`Altitudes $x=2$ and $y=x$ meet at $(2,2)$.`],
+    [R`The circumcentre is $(4,2)$`, true, R`The perpendicular bisector of the base is $x=4$, and $(4,2)$ is equidistant from all vertices ($\sqrt{20}$).`],
+    [R`The circumradius is $4$`, false, R`It is $\sqrt{16+4}=\sqrt{20}\approx4.47$.`],
+  ], 'Check the circumradius by distance, not by guessing.'),
+  XT('sl-x037', 4, 'forms of a line', R`Which of these are equations of the line through $(1,2)$ and $(3,6)$?`, [
+    [R`$y=2x$`, true, R`Slope $2$ and it passes through $(1,2)$.`],
+    [R`$2x+y=4$`, false, R`$(3,6)$ gives $12\ne4$.`],
+    [R`$y-6=2(x-3)$`, true, R`The point-slope form with the second point.`],
+    [R`$\dfrac xa+\dfrac yb=1$ for some $a,b$`, false, R`The line passes through the origin, so it has no intercept form.`],
+  ], 'A line through the origin has no intercept form.'),
+  XT('sl-x038', 4, 'sides of a line', R`The line is $x+2y=6$. Which of these points lie strictly on the same side as the origin?`, [
+    [R`$(1,1)$`, true, R`$1+2=3<6$.`],
+    [R`$(-2,3)$`, true, R`$-2+6=4<6$.`],
+    [R`$(4,1)$`, false, R`$4+2=6$: on the line.`],
+    [R`$(2,3)$`, false, R`$2+6=8>6$: the other side.`],
+  ], 'A point on the line is on neither side.'),
+  XT('sl-x039', 4, 'pair of lines', R`The equation $3x^2-10xy+3y^2=0$ represents two lines. Which are correct?`, [
+    [R`The lines are $y=3x$ and $y=\dfrac x3$`, true, R`$3x^2-10xy+3y^2=(3x-y)(x-3y)$.`],
+    [R`The lines are perpendicular`, false, R`The product of slopes is $3\cdot\dfrac13=1$, not $-1$.`],
+    [R`Their angle bisectors are $y=\pm x$`, true, R`The slopes are reciprocals, so the lines are symmetric about $y=x$ (and $a=b$).`],
+    [R`$\tan$ of the acute angle between them is $\dfrac43$`, true, R`$\tan\theta=\dfrac{3-\frac13}{1+1}=\dfrac43$.`],
+  ], 'Slopes with product 1 are not perpendicular.'),
+  XT('sl-x040', 4, 'a line and the axes', R`For the line $2x+3y=12$, which are correct?`, [
+    [R`The intercepts are $6$ and $4$`, true, R`Put $y=0$ then $x=0$.`],
+    [R`It forms a triangle of area $12$ with the axes`, true, R`$\dfrac12\times6\times4=12$.`],
+    [R`It is perpendicular to $3x-2y=5$`, true, R`Slopes $-\dfrac23$ and $\dfrac32$ multiply to $-1$.`],
+    [R`It passes through $(3,3)$`, false, R`$6+9=15\ne12$.`],
+  ], 'Use the product of slopes $=-1$ for perpendicular lines.'),
+  XT('sl-x041', 4, 'reflection', R`The point $P(3,1)$ and the line $x-y+1=0$. Which are correct?`, [
+    [R`The image of $P$ in the line is $(0,4)$`, true, R`$t=\dfrac{2(3-1+1)}2=3$, image $=(3-3,1+3)=(0,4)$.`],
+    [R`The foot of the perpendicular from $P$ is $\left(\dfrac32,\dfrac52\right)$`, true, R`The foot is the mid-point of $P$ and its image.`],
+    [R`The distance of $P$ from the line is $\dfrac3{\sqrt2}$`, true, R`$\dfrac{|3-1+1|}{\sqrt2}$.`],
+    [R`The image of $P$ is $(-1,3)$`, false, R`$(-1,3)$ is not on the perpendicular through $P$.`],
+  ], 'The image is as far beyond the line as $P$ is before it.'),
+  A('sl-x042', 4, 'concurrent lines', R`The lines $2x+y-4=0$, $x-y-2=0$ and $3x+2y-6=0$ are concurrent.`, R`Three lines $a_ix+b_iy+c_i=0$ are concurrent when the determinant of their nine coefficients is $0$.`, 0,
+    R`<p>The first two lines meet at $(2,0)$, which satisfies $3x+2y-6=0$. The determinant is $2(6+4)-1(-6+6)-4(2+3)=20-0-20=0$. Both statements are true and R is the criterion that explains A.</p>`, 'Check the third line at the intersection of the first two.'),
+  A('sl-x043', 4, 'distance between parallel lines', R`The distance between $2x+3y=5$ and $4x+6y=7$ is $\dfrac{|5-7|}{\sqrt{13}}$.`, R`The formula $\dfrac{|c_1-c_2|}{\sqrt{a^2+b^2}}$ is valid only when the two equations have the same $a$ and $b$.`, 3,
+    R`<p>The lines have different coefficients, so A is wrong. Writing the second as $2x+3y=\dfrac72$ gives $\dfrac{|5-3.5|}{\sqrt{13}}=\dfrac{3}{2\sqrt{13}}$. R states the condition correctly, so R is true.</p>`, 'Make the coefficients equal first.'),
+  SC('sl-x044', 4, 'checking statements', [R`$2x+3y=6$ and $4x+6y=7$ are parallel.`, R`The slope of $\dfrac x3-\dfrac y4=1$ is $\dfrac43$.`, R`The distance of $(1,1)$ from $x+y=1$ is $1$.`, R`$x+y=0$ and $x-y=0$ are perpendicular.`], '3', ['1', '2', '4'],
+    R`<p>(1) both have slope $-\dfrac23$, true. (2) $y=\dfrac43x-4$, true. (3) the distance is $\dfrac{|1+1-1|}{\sqrt2}=\dfrac1{\sqrt2}$, false. (4) slopes $-1$ and $1$, true. So 3 are correct.</p>`, 'Remember to divide by $\\sqrt{a^2+b^2}$.'),
+  S('sl-x045', 4, 'triangle centroid', R`The centroid divides each median in the ratio $1:2$ measured from the vertex.`, R`The centroid of a triangle with vertices $(x_i,y_i)$ is $\left(\dfrac{x_1+x_2+x_3}3,\dfrac{y_1+y_2+y_3}3\right)$.`, 2,
+    R`<p>The centroid divides each median $2:1$ from the vertex, so Statement I is false. Statement II is the standard formula (true).</p>`, 'The longer part is next to the vertex.'),
+  MT('sl-x046', 4, 'family of lines', 'mx3', R`Match List I with List II.`, 'A-r, B-p, C-q, D-s', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-q, B-p, C-r, D-s'],
+    R`<p>A: $x+y=4$ and $x=y$ give $(2,2)$ (r). B: $2x+y=3$ and $x=y$ give $(1,1)$ (p). C: $x+2y=5$ and $3x-y=1$ give $(1,2)$ (q). D: $x=y$ and $x+y=6$ give $(3,3)$ (s).</p>`, 'Set each bracket to zero separately.'),
+  MT('sl-x047', 4, 'triangle centres', 'mx4', R`Match List I with List II.`, 'A-r, B-q, C-p, D-s', ['A-r, B-p, C-q, D-s', 'A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p'],
+    R`<p>Centroid $\left(\dfrac{10}3,2\right)$ (r), orthocentre $(2,2)$ (q), circumcentre $(4,2)$ (p), mid-point of the base $(4,0)$ (s).</p>`, 'Do not confuse circumcentre and orthocentre.'),
+  MT('sl-x048', 4, 'lattice points', 'mx5', R`Match List I with List II.`, 'A-p, B-r, C-q, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s', 'A-p, B-r, C-s, D-q'],
+    R`<p>A: $3x+5y=60$ with $x,y>0$ needs $y$ a multiple of 3: $y=3,6,9$, so 3 points (p). B: $x=1,\dots,9$, 9 points (r). C: $y$ even, $y=2,4,6,8$, 4 points (q). D: $(1,1),(1,2),(1,3),(1,4),(2,1),(2,2),(2,3),(3,1),(3,2),(4,1)$, 10 points (s).</p>`, 'Count carefully at the boundary.'),
+  PN('sl-x049', 4, 'reflection of a ray', 'pz5', R`Find the x-coordinate of $Q$ (as a decimal).`, 3.25, 0.001,
+    R`<p>Reflect $P$ in the x-axis to get $P'(1,-3)$. $P'$, $Q$ and $R$ are collinear. The line $P'R$ has slope $\dfrac{5+3}{7-1}=\dfrac43$ and meets $y=0$ where $3=\dfrac43(x-1)$, so $x=1+\dfrac94=3.25$.</p>`, 'Reflect one point, then join to the other.', { calc: () => { const m = (5 + 3) / (7 - 1); return 1 + 3 / m; } }),
+  PI('sl-x050', 4, 'reflection of a ray', 'pz5', R`Find the total length of the path $PQ+QR$.`, 10,
+    R`<p>$PQ+QR=P'Q+QR=P'R=\sqrt{6^2+8^2}=10$.</p>`, 'The path length equals the straight distance $P^\\prime R$.', { calc: () => hyp(7 - 1, 5 + 3) }),
+  PN('sl-x051', 4, 'reflection of a ray', 'pz5', R`Find the slope of the reflected ray $QR$ (to 2 decimals).`, 1.33, 0.01,
+    R`<p>$Q=(3.25,0)$ and $R=(7,5)$: slope $=\dfrac5{3.75}=\dfrac43\approx1.33$.</p>`, 'The incident ray has slope $-\\dfrac43$.', { calc: () => 5 / (7 - 3.25) }),
+);
+
+// ----- L5 -----
+const latR = (() => { let c = 0; for (let x = 0; x <= 3; x++) for (let y = 0; y <= 4; y++) if (x + 2 * y <= 8 && 3 * x + y <= 9) c++; return c; })();
+const minPath = (() => { let m = Infinity; for (let x = -50; x <= 50; x += 1e-3) m = Math.min(m, hyp(x - 1, 3) + hyp(x - 7, 5)); return Math.round(m); })();
+const slopeSum = (() => { const f = (m) => Math.abs(1 - 3 * m) / hyp(m, 1) - 2; const r = []; for (let m = -50; m < 50; m += 1e-4) if (f(m) * f(m + 1e-4) < 0) r.push(m); return Math.round(5 * r.reduce((a, b) => a + b)); })();
+const refl2 = (() => { const p = image(1, -1, 0, 2, 3); const q = image(1, 1, -1, p[0], p[1]); return Math.round(q[0] + q[1]); })();
+const areaCnt = cnt((A) => 4 * A * A - 8 * A >= 0, 1, 10);
+const circR = (() => { const K = circum([0, 0], [6, 0], [2, 5]); return hyp(K[0], K[1]); })();
+const ang61 = Math.atan(Math.abs((7 + 0.75) / (1 - 5.25))) * 180 / Math.PI;
+items.push(
+  I('sl-x052', 5, 'minimum of a sum of distances', R`Find the minimum value of $\sqrt{(x-1)^2+9}+\sqrt{(x-7)^2+25}$ over real $x$.`, 10,
+    R`<p>The expression is the distance from $(x,0)$ to $(1,3)$ plus its distance to $(7,5)$. Reflect $(7,5)$ in the x-axis to get $(7,-5)$. The minimum is the straight distance from $(1,3)$ to $(7,-5)$: $\sqrt{6^2+8^2}=10$ (attained at $x=\dfrac{13}4$, where the segment crosses the x-axis).</p>`, 'Reflect only one of the two points.', { calc: () => minPath }),
+  I('sl-x053', 5, 'lattice points in a region', R`How many points with integer coordinates lie in the region $x\ge0$, $y\ge0$, $x+2y\le8$, $3x+y\le9$ (boundary included)?`, latR,
+    R`<p>Take $x=0,1,2,3$. $x=0$: $y\le4$ and $y\le9$, so $y=0..4$ (5 points). $x=1$: $y\le3.5$ and $y\le6$, so 4 points. $x=2$: $y\le3$ and $y\le3$, so 4 points. $x=3$: $y\le2.5$ and $y\le0$, so 1 point. Total $5+4+4+1=14$.</p>`, 'Use the tighter of the two upper limits for each $x$.', { calc: () => latR }),
+  I('sl-x054', 5, 'lines at a given distance', R`Two lines pass through $(3,1)$ and are at distance 2 from the origin. If $m_1$ and $m_2$ are their slopes, find $5(m_1+m_2)$.`, 6,
+    R`<p>The line is $mx-y+1-3m=0$. Distance from the origin: $\dfrac{|1-3m|}{\sqrt{m^2+1}}=2$. Squaring: $9m^2-6m+1=4m^2+4$, i.e. $5m^2-6m-3=0$. The sum of the roots is $\dfrac65$, so $5(m_1+m_2)=6$. (The vertical line $x=3$ is at distance 3, so it is not one of them.)</p>`, 'Check the vertical line separately.', { calc: () => slopeSum }),
+  I('sl-x055', 5, 'reflections', R`The point $(2,3)$ is reflected in the line $y=x$ and the result is then reflected in the line $x+y=1$. Find the sum of the coordinates of the final point.`, -3,
+    R`<p>First image: $(3,2)$. For the line $x+y-1=0$: $t=\dfrac{2(3+2-1)}2=4$, so the image is $(3-4,2-4)=(-1,-2)$. The sum is $-3$.</p>`, 'Apply the second reflection to the first image, not to the original point.', { calc: () => refl2 }),
+  I('sl-x056', 5, 'triangle area with the axes', R`A line through $(1,1)$ cuts the positive axes forming a triangle of area $A$. For how many integers $A$ in $1\le A\le10$ does such a line exist?`, 9,
+    R`<p>With intercepts $a,b$: $\dfrac1a+\dfrac1b=1$ and $A=\dfrac{ab}2$, so $b=\dfrac a{a-1}$ and $A=\dfrac{a^2}{2(a-1)}$. This gives $a^2-2Aa+2A=0$, which has real roots when $4A^2-8A\ge0$, i.e. $A\ge2$ (and then $a>1$ holds). So $A=2,3,\dots,10$: 9 values.</p>`, 'The minimum area is 2, reached when $a=b=2$.', { calc: () => areaCnt }),
+  N('sl-x057', 5, 'circumradius', R`Find the circumradius of the triangle with vertices $(0,0)$, $(6,0)$ and $(2,5)$ (to 3 decimals).`, 3.448, 0.001,
+    R`<p>The circumcentre lies on $x=3$. From $9+y^2=1+(y-5)^2$ we get $10y=17$, so $y=1.7$. $R=\sqrt{9+2.89}=\sqrt{11.89}\approx3.448$.</p>`, 'Use equal distances to two vertices.', { calc: () => circR }),
+  N('sl-x058', 5, 'angle between lines', R`Find the acute angle, in degrees to 2 decimals, between $7x-y+3=0$ and $3x+4y-1=0$.`, 61.26, 0.01,
+    R`<p>Slopes $7$ and $-\dfrac34$. $\tan\theta=\left|\dfrac{7+\frac34}{1-\frac{21}4}\right|=\dfrac{7.75}{4.25}=\dfrac{31}{17}$, so $\theta\approx61.26^\circ$.</p>`, 'Take the absolute value of the denominator.', { calc: () => ang61 }),
+  XT('sl-x059', 5, 'minimum area', R`A line through $(1,2)$ meets the positive axes at $(a,0)$ and $(0,b)$. Which statements about the triangle area are correct?`, [
+    [R`The minimum area is $4$`, true, R`$b=\dfrac{2a}{a-1}$, area $=\dfrac{a^2}{a-1}$, minimised at $a=2$ with value $4$.`],
+    [R`The minimum occurs for the line $2x+y=4$`, true, R`$a=2$, $b=4$.`],
+    [R`The area has no upper bound`, true, R`As $a\to1^+$ or $a\to\infty$ the area grows without limit.`],
+    [R`An area of $3$ is possible`, false, R`$a^2-3a+3=0$ has negative discriminant.`],
+  ], 'Set the area equal to a value and check the discriminant.'),
+  XT('sl-x060', 5, 'angle bisectors', R`Consider points equidistant from the lines $3x+4y-5=0$ and $4x-3y+10=0$. Which are correct?`, [
+    [R`The locus is a pair of lines`, true, R`$|3x+4y-5|=|4x-3y+10|$ (both have norm 5) gives two lines.`],
+    [R`One of them is $x-7y+15=0$`, true, R`From $3x+4y-5=4x-3y+10$.`],
+    [R`The other is $7x+y+5=0$`, true, R`From $3x+4y-5=-(4x-3y+10)$.`],
+    [R`The two lines are parallel`, false, R`Their slopes are $\dfrac17$ and $-7$: product $-1$, so they are perpendicular.`],
+  ], 'The two bisectors of two lines are perpendicular.'),
+  XT('sl-x061', 5, 'concurrent lines', R`Which sets of three lines are concurrent?`, [
+    [R`$x+y=2,\ 2x-y=1,\ x+2y=3$`, true, R`All pass through $(1,1)$ (determinant $0$).`],
+    [R`$x+y=5,\ x-y=1,\ 2x+y=7$`, false, R`The first two meet at $(3,2)$, but $6+2=8\ne7$.`],
+    [R`$x+2y=7,\ 2x+y=8,\ x-y=1$`, true, R`All pass through $(3,2)$.`],
+    [R`$3x+y=10,\ x+3y=6,\ x-y=1$`, false, R`The first two meet at $(3,1)$, and $3-1=2\ne1$.`],
+  ], 'Find the meeting point of two lines, then test the third.'),
+  XT('sl-x062', 5, 'triangle centres', R`For the triangle with vertices $A(0,0)$, $B(6,0)$ and $C(2,5)$, which are correct?`, [
+    [R`The area is $15$`, true, R`$\dfrac12\times6\times5$.`],
+    [R`The circumcentre is $(3,1.7)$`, true, R`$x=3$ and $y=1.7$ from equal distances.`],
+    [R`The orthocentre is $(2,1.6)$`, true, R`The altitude from $C$ is $x=2$; the altitude from $A$ is perpendicular to $BC=(-4,5)$, i.e. $-4x+5y=0$, so $y=1.6$.`],
+    [R`The centroid is $\left(3,\dfrac53\right)$`, false, R`The centroid is $\left(\dfrac83,\dfrac53\right)$.`],
+  ], 'Average all three $x$-coordinates for the centroid.'),
+  A('sl-x063', 5, 'fixed point', R`If $a$, $b$, $c$ are in AP, the line $ax+by+c=0$ always passes through the point $(1,-2)$.`, R`When $a$, $b$, $c$ are in AP, $a-2b+c=0$.`, 0,
+    R`<p>AP means $2b=a+c$, i.e. $a-2b+c=0$. Substituting $x=1$, $y=-2$ in $ax+by+c$ gives $a-2b+c=0$. So R explains A.</p>`, 'Read the condition as an equation satisfied by $(1,-2)$.'),
+  S('sl-x064', 5, 'fixed point', R`If $3a+2b+4c=0$, the line $ax+by+c=0$ passes through $\left(\dfrac34,\dfrac12\right)$.`, R`There are exactly two lines through $(1,1)$ at distance $2$ from the origin.`, 1,
+    R`<p>Statement I: $\dfrac34a+\dfrac12b+c=\dfrac{3a+2b+4c}4=0$, true. Statement II: $(1,1)$ is at distance $\sqrt2<2$ from the origin, so no line through it can be at distance $2$ from the origin (the distance of a line from $O$ is at most $O$ to the point). It is false.</p>`, 'A line through a point is never farther from $O$ than the point itself.'),
+  MT('sl-x065', 5, 'loci', 'mx6', R`Match List I with List II.`, 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    R`<p>A: perpendicular bisector, a straight line (q). B: $|x|+|y|=4$ is a square (r). C: the mid-point $M$ of a segment of length 10 whose ends are on the axes satisfies $OM=5$, a circle (p). D: parallel lines on each side of $3x+4y=5$ (s).</p>`, 'The mid-point of the hypotenuse is at half its length from the right angle.'),
+  MT('sl-x066', 5, 'areas', 'mx7', R`Match List I with List II.`, 'A-r, B-s, C-p, D-q', ['A-r, B-q, C-p, D-s', 'A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p'],
+    R`<p>A: vertices $(0,0)$, $(4,4)$, $(4,-4)$: $\dfrac12\times8\times4=16$ (r). B: a square of diagonal 6, area $18$ (s). C: $\dfrac12\times3\times4=6$ (p). D: base 4, height 3: $12$ (q).</p>`, 'A parallelogram has area base times height.'),
+  MT('sl-x067', 5, 'distances', 'mx8', R`Match List I with List II.`, 'A-s, B-q, C-p, D-r', ['A-s, B-q, C-r, D-p', 'A-q, B-s, C-p, D-r', 'A-s, B-p, C-q, D-r'],
+    R`<p>A: $\dfrac{|5-1|}{\sqrt2}=2\sqrt2$ (s). B: the line is $4x+3y=12$, distance $\dfrac{12}5$ (q). C: inradius $=\dfrac{3+4-5}2=1$ (p). D: write the second as $3x+4y=-\dfrac52$; distance $=\dfrac{|10+2.5|}5=\dfrac52$ (r).</p>`, 'Make the coefficients equal before using the parallel-lines formula.'),
+);
+
+// ----- new templates -----
+const gcdS = (a, b) => (b ? gcdS(b, a % b) : a);
+const frS = (n, d) => { const g = gcdS(Math.abs(n), d); const a = n / g, b = d / g; return b === 1 ? `$${a}$` : `$\\dfrac{${a}}{${b}}$`; };
+gens.push(
+  { id: 'sl-g20', type: 'nat', format: 'numeric', level: 4, exams: EXS[4], sub: 'triangle from three lines',
+    make(rng) {
+      let a, b; do { a = int(rng, -4, 4); b = int(rng, -4, 4); } while (a === b);
+      const k = int(rng, 2, 7);
+      const answer = (k * k * Math.abs(a - b)) / 2;
+      return { a, b, k, answer, tol: 0.01,
+        q: `Find the area of the triangle formed by the lines $y=${a === 0 ? '0' : a === 1 ? 'x' : a === -1 ? '-x' : a + 'x'}$, $y=${b === 0 ? '0' : b === 1 ? 'x' : b === -1 ? '-x' : b + 'x'}$ and $x=${k}$.`,
+        sol: R`<p>The lines through the origin meet $x=${k}$ at $(${k},${a * k})$ and $(${k},${b * k})$. The base on $x=${k}$ is $|${a * k}-(${b * k})|=${k * Math.abs(a - b)}$ and the height (distance of $O$ from $x=${k}$) is ${k}. Area $=\dfrac12\times${k * Math.abs(a - b)}\times${k}=${answer}$.</p>` };
+    },
+    verify(p) { const P = [[0, 0], [p.k, p.a * p.k], [p.k, p.b * p.k]]; let s = 0; for (let i = 0; i < 3; i++) s += P[i][0] * P[(i + 1) % 3][1] - P[(i + 1) % 3][0] * P[i][1]; return Math.abs(s) / 2; } },
+  { id: 'sl-g21', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'lattice points',
+    make(rng) {
+      const u = int(rng, 6, 14), w = int(rng, 6, 14), g = gcdS(u, w);
+      const answer = (u * w - u - w - g + 2) / 2;
+      return { u, w, answer, tol: 0,
+        q: `How many points with integer coordinates lie strictly inside the triangle with vertices $(0,0)$, $(${u},0)$ and $(0,${w})$?`,
+        sol: R`<p>Area $=\dfrac{${u}\times${w}}2=${u * w / 2}$. Boundary points: $${u}+${w}+\gcd(${u},${w})=${u + w + g}$. By Pick's theorem $I=A-\dfrac B2+1=${u * w / 2}-${(u + w + g) / 2}+1=${answer}$.</p>` };
+    },
+    verify(p) { let c = 0; for (let x = 1; x < p.u; x++) for (let y = 1; y < p.w; y++) if (p.w * x + p.u * y < p.u * p.w) c++; return c; } },
+  { id: 'sl-g22', type: 'mcq', format: 'single', level: 3, exams: EXS[3], sub: 'intercept form',
+    make(rng) {
+      let a, b; do { a = choose(rng, [-6, -5, -4, -3, -2, 2, 3, 4, 5, 6]); b = choose(rng, [-6, -5, -4, -3, -2, 2, 3, 4, 5, 6]); } while (Math.abs(a) === Math.abs(b));
+      const eq = (A, B, C) => `$${lin(A, B, -C)}=0$`;
+      const trip = [[b, a, a * b], [b, -a, a * b], [-b, a, a * b], [a, b, a * b]];
+      const map = {}; const txt = trip.map(([A, B, C]) => { const t = eq(A, B, C); map[t] = [A, B, C]; return t; });
+      const o = shuffleOpts(rng, txt[0], txt.slice(1));
+      return { a, b, map, ...o,
+        q: `The equation of the line with x-intercept $${a}$ and y-intercept $${b}$ is`,
+        sol: R`<p>$\dfrac x{${a}}+\dfrac y{${b}}=1$. Multiply by $${a * b}$: $${b}x+${a < 0 ? `(${a})` : a}y=${a * b}$, i.e. $${lin(b, a, -a * b)}=0$.</p>` };
+    },
+    verify(p) { return p.options.findIndex((o) => { const [A, B, C] = p.map[o]; return Math.abs(C / A - p.a) < 1e-9 && Math.abs(C / B - p.b) < 1e-9; }); } },
+  { id: 'sl-g23', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'intercepts',
+    make(rng) {
+      const h = int(rng, 2, 9), k = int(rng, 2, 9);
+      const answer = 2 * h * k;
+      return { h, k, answer, tol: 0,
+        q: `A line through $P(${h},${k})$ meets the positive axes at $A$ and $B$ so that $P$ is the mid-point of $AB$. Find the area of triangle $OAB$.`,
+        sol: R`<p>$A=(${2 * h},0)$ and $B=(0,${2 * k})$. Area $=\dfrac12\times${2 * h}\times${2 * k}=${answer}$.</p>` };
+    },
+    verify(p) { const P = [[0, 0], [2 * p.h, 0], [0, 2 * p.k]]; let s = 0; for (let i = 0; i < 3; i++) s += P[i][0] * P[(i + 1) % 3][1] - P[(i + 1) % 3][0] * P[i][1]; return Math.abs(s) / 2; } },
+  { id: 'sl-g24', type: 'nat', format: 'integer', level: 5, exams: EXS[5], sub: 'lines at a given distance',
+    make(rng) {
+      const [px, py, r] = choose(rng, [[5, 8, 3], [5, 9, 4], [4, 3, 2], [6, 8, 2], [3, 4, 1], [7, 12, 5]]);
+      const answer = (2 * px * py) / (px * px - r * r);
+      return { px, py, r, answer, tol: 0,
+        q: `Two lines through $(${px},${py})$ are at distance ${r} from the origin. Find the sum of their slopes.`,
+        sol: R`<p>The line is $mx-y+${py}-${px}m=0$. Distance from $O$: $\dfrac{|${py}-${px}m|}{\sqrt{m^2+1}}=${r}$. Squaring: $${py * py}-${2 * px * py}m+${px * px}m^2=${r * r}m^2+${r * r}$, i.e. $${px * px - r * r}m^2-${2 * px * py}m+${py * py - r * r}=0$. The sum of the roots is $\dfrac{${2 * px * py}}{${px * px - r * r}}=${answer}$. (The vertical line $x=${px}$ is at distance ${px}, not ${r}.)</p>` };
+    },
+    verify(p) { const f = (m) => Math.abs(p.py - p.px * m) / Math.hypot(m, 1) - p.r; let s = 0; const st = 1e-3; for (let m = -60; m < 60; m += st) if (f(m) * f(m + st) < 0) s += m + st / 2; return Math.round(s); } },
+  { id: 'sl-g25', type: 'mcq', format: 'single', level: 3, exams: EXS[3], sub: 'image of a point',
+    make(rng) {
+      const x0 = int(rng, -5, 5), y0 = int(rng, -5, 5), k = int(rng, 1, 7), sgn = choose(rng, [1, -1]);
+      if (x0 === y0 || x0 + y0 === k || x0 - y0 === k) return this.make(rng);
+      const pt = (x, y) => `$(${x},${y})$`;
+      let ans, wr, name;
+      if (sgn === 1) { name = `x+y=${k}`; ans = [k - y0, k - x0]; wr = [[k - x0, k - y0], [y0, x0], [-y0, -x0]]; }
+      else { name = `x-y=${k}`; ans = [y0 + k, x0 - k]; wr = [[y0 - k, x0 + k], [y0, x0], [x0 + k, y0 + k]]; }
+      const map = {}; [ans, ...wr].forEach((v) => { map[pt(v[0], v[1])] = v; });
+      if (new Set(Object.keys(map)).size < 4) return this.make(rng);
+      const o = shuffleOpts(rng, pt(...ans), wr.map((v) => pt(v[0], v[1])));
+      return { x0, y0, k, sgn, map, ...o,
+        q: `The image of the point $(${x0},${y0})$ in the line $${name}$ is`,
+        sol: sgn === 1
+          ? R`<p>The perpendicular direction is $(1,1)$. The image $(x',y')$ satisfies $x'-${x0}=y'-${y0}$ and $\dfrac{x'+${x0}}2+\dfrac{y'+${y0}}2=${k}$. Solving gives $(${ans[0]},${ans[1]})$ (in general the image is $(k-y_0,\,k-x_0)$).</p>`
+          : R`<p>The perpendicular direction is $(1,-1)$. The image of $(x_0,y_0)$ in $x-y=k$ is $(y_0+k,\,x_0-k)$, which is $(${ans[0]},${ans[1]})$. Check: the mid-point $\left(\dfrac{${x0}+${ans[0]}}2,\dfrac{${y0}+${ans[1]}}2\right)$ lies on the line.</p>` };
+    },
+    verify(p) { const [a, b, c] = p.sgn === 1 ? [1, 1, -p.k] : [1, -1, -p.k]; const im = image(a, b, c, p.x0, p.y0); return p.options.findIndex((o) => Math.abs(p.map[o][0] - im[0]) < 1e-9 && Math.abs(p.map[o][1] - im[1]) < 1e-9); } },
+  { id: 'sl-g26', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'locus',
+    make(rng) {
+      const a = int(rng, 2, 9); let b; do { b = int(rng, 2, 9); } while (a === b);
+      return { a, b, answer: 2 * a * b, tol: 0,
+        q: `Find the area enclosed by $\\dfrac{|x|}{${a}}+\\dfrac{|y|}{${b}}=1$.`,
+        sol: R`<p>The curve is a rhombus with vertices $(\pm${a},0)$ and $(0,\pm${b})$. The diagonals are ${2 * a} and ${2 * b}, so the area is $\dfrac12\times${2 * a}\times${2 * b}=${2 * a * b}$.</p>` };
+    },
+    verify(p) { const v = [[p.a, 0], [0, p.b], [-p.a, 0], [0, -p.b]]; let t = 0; for (let k = 0; k < 4; k++) { const [x1, y1] = v[k], [x2, y2] = v[(k + 1) % 4]; t += x1 * y2 - x2 * y1; } return Math.abs(t) / 2; } },
+  { id: 'sl-g27', type: 'nat', format: 'integer', level: 5, exams: EXS[5], sub: 'reflections',
+    make(rng) {
+      const x0 = int(rng, -6, 6), y0 = int(rng, -6, 6), m = int(rng, -4, 4), k = int(rng, -5, 8);
+      const answer = 2 * k - x0 - y0;
+      return { x0, y0, m, k, answer, tol: 0,
+        q: `The point $(${x0},${y0})$ is reflected in the line $x-y=${m}$ and the image is then reflected in the line $x+y=${k}$. Find the sum of the coordinates of the final point.`,
+        sol: R`<p>Image in $x-y=${m}$: $(y+${m},\,x-${m})$ gives $(${y0 + m},${x0 - m})$. Image of $(u,v)$ in $x+y=${k}$: $(${k}-v,\,${k}-u)$, so the final point is $(${k - (x0 - m)},${k - (y0 + m)})$. The sum is $${answer}$. (The first line cancels out of the sum.)</p>` };
+    },
+    verify(p) { const a = image(1, -1, -p.m, p.x0, p.y0); const b = image(1, 1, -p.k, a[0], a[1]); return Math.round(b[0] + b[1]); } },
+  { id: 'sl-g28', type: 'mcq', format: 'single', level: 4, exams: EXS[4], sub: 'distance between parallel lines',
+    make(rng) {
+      const [a, b, h] = choose(rng, [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17]]);
+      const k = choose(rng, [2, 3]), c1 = int(rng, 1, 12), c1b = int(rng, -12, -1) + (int(rng, 0, 1) ? 13 : 0);
+      if (c1 === c1b) return this.make(rng);
+      const n = Math.abs(c1 - c1b);
+      const cand = [[n, h], [Math.abs(c1 - k * c1b), h], [n, k * h], [n * k, h]];
+      const strs = cand.map(([u, v]) => frS(u, v)); const val = {}; strs.forEach((s, i) => { val[s] = cand[i][0] / cand[i][1]; });
+      if (new Set(strs).size < 4) return this.make(rng);
+      const o = shuffleOpts(rng, strs[0], strs.slice(1));
+      return { a, b, h, k, c1, c1b, val, ...o,
+        q: `The distance between the parallel lines $${a}x+${b}y=${c1}$ and $${k * a}x+${k * b}y=${k * c1b}$ is`,
+        sol: R`<p>Divide the second line by ${k}: $${a}x+${b}y=${c1b}$. Distance $=\dfrac{|${c1}-(${c1b})|}{\sqrt{${a}^2+${b}^2}}=\dfrac{${n}}{${h}}$.</p>`, trap: 'Make the coefficients equal before using the formula.' };
+    },
+    verify(p) { // distance from a point on line 1 to line 2
+      const pt = [p.c1 / p.a, 0]; const d = Math.abs(p.k * p.a * pt[0] + p.k * p.b * pt[1] - p.k * p.c1b) / Math.hypot(p.k * p.a, p.k * p.b);
+      return p.options.findIndex((o) => Math.abs(p.val[o] - d) < 1e-9); } },
+  { id: 'sl-g29', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'common tangent lines',
+    make(rng) {
+      const r1 = int(rng, 1, 5), r2 = int(rng, 1, 5), d = int(rng, 1, 12);
+      const lo = Math.abs(r1 - r2), hi = r1 + r2;
+      const answer = d > hi ? 4 : d === hi ? 3 : d > lo ? 2 : d === lo ? 1 : 0;
+      return { r1, r2, d, answer, tol: 0,
+        q: `How many straight lines are at distance ${r1} from the origin and at distance ${r2} from the point $(${d},0)$?`,
+        sol: R`<p>Such lines are the common tangents of a circle of radius ${r1} about $O$ and a circle of radius ${r2} about $(${d},0)$. The centres are ${d} apart; $|r_1-r_2|=${lo}$ and $r_1+r_2=${hi}$. ${d > hi ? 'The circles are apart: 4 common tangents.' : d === hi ? 'The circles touch from outside: 3 common tangents.' : d > lo ? 'The circles cross: 2 common tangents.' : d === lo ? 'One circle touches the other from inside: 1 common tangent.' : 'One circle is inside the other: no common tangent.'} Answer ${answer}.</p>` };
+    },
+    verify(p) { // line x cos t + y sin t = r1 ; need |d cos t - r1| = r2
+      let n = 0; for (const c of [(p.r1 + p.r2) / p.d, (p.r1 - p.r2) / p.d]) { const s = Math.abs(c); if (Math.abs(s - 1) < 1e-12) n += 1; else if (s < 1) n += 2; }
+      return n; } },
+);
+
+// ===== expansion end =====
+
 export default { topic: 'straight-lines', groups, items, gens };

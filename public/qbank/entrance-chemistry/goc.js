@@ -433,9 +433,251 @@ const GENS = [
     }, verify: (p) => p.options.indexOf(`1-${p.a}-${p.k}-${p.b}${RING[p.ring]}`) },
 ];
 
+const XP = 'go', XCUET = false, GBASE = 17;
+// ===== expansion block (added) =====
+const XI = [], XGRP = {}, XGENS = []; let _xn = 0, _xc = 0;
+const XA4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XS4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const xex = (level, mcq) => level <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet', ...(XCUET && mcq ? ['cuet'] : [])] : level === 3 ? ['jee-main', 'neet', 'comedk', ...(XCUET && mcq ? ['cuet'] : [])] : level === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv'];
+const xid = () => `${XP}-x${String(++_xc).padStart(3, '0')}`;
+const xmk = (level, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_xn++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, ...(group ? { group } : {}), q, options, answer: pos, sol, ...(trap ? { trap } : {}) });
+};
+const xnat = (level, sub, q, answer, tol, unit, sol, trap, calc, format, group) => { XI.push({ id: xid(), type: 'nat', level, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: xex(level, false), sub, ...(group ? { group } : {}), q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(calc ? { calc } : {}) }); };
+const xmsq = (level, sub, q, options, answer, sol, trap) => { XI.push({ id: xid(), type: 'msq', level, format: 'multi', exams: ['jee-adv'], sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xmk2 = (level, sub, q, options, answer, sol, trap, format) => { XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xasr = (level, sub, A, R, answer, sol, trap) => xmk2(level, sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, XA4, answer, sol, trap, 'assertion');
+const xstm = (level, sub, s1, s2, answer, sol, trap) => xmk2(level, sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, XS4, answer, sol, trap, 'statements');
+const xmat = (level, sub, title, list1, list2, correct, wrongs, sol, trap) => {
+  const gid = `xm${String(Object.keys(XGRP).length + 1).padStart(2, '0')}`; XGRP[gid] = { title, list1, list2 };
+  xmk(level, sub, 'Match each entry of List I with the correct entry of List II.', correct, wrongs, sol, trap, 'match', gid);
+};
+const xpassage = (gid, title, passage) => { XGRP[gid] = { title, passage }; };
+const xgen = (g) => XGENS.push({ ...g, id: `${XP}-g${String(GBASE + XGENS.length + 1).padStart(2, '0')}`, exams: xex(g.level, g.type === 'mcq') });
+
+// ---------- matches ----------
+xmat(3, 'reaction intermediates', 'Intermediate and its structure', ['A. Alkyl carbocation (R<sub>3</sub>C<sup>+</sup>)', 'B. Methyl radical (&bull;CH<sub>3</sub>)', 'C. Carbanion (R<sub>3</sub>C<sup>-</sup>)', 'D. Singlet carbene (:CH<sub>2</sub>)'],
+  ['p. sp<sup>2</sup>, planar, empty p orbital', 'q. sp<sup>3</sup>, pyramidal, with a lone pair', 'r. sp<sup>2</sup>, planar, one electron in the p orbital', 's. sp<sup>2</sup>, bent, lone pair plus empty p orbital'],
+  'A-p, B-r, C-q, D-s', ['A-r, B-p, C-q, D-s', 'A-p, B-r, C-s, D-q', 'A-q, B-r, C-p, D-s'],
+  '<p>Carbocation: three bonds, no electrons in the p orbital (p). Methyl radical: three bonds plus one electron in p (r). Carbanion: three bonds and a lone pair, like NH<sub>3</sub> (q). Singlet carbene: two bonds, a lone pair in an sp<sup>2</sup> orbital and an empty p orbital, so bent (s).</p>');
+xmat(2, 'electronic effects', 'Effect and an example', ['A. &minus;I effect', 'B. +I effect', 'C. +M (+R) effect', 'D. &minus;M (&minus;R) effect'],
+  ['p. A tert-butyl group on a ring', 'q. An amino group on benzene', 'r. A formyl group (&minus;CHO) on benzene', 's. Fluorine in FCH<sub>2</sub>COOH, acting through &sigma; bonds'],
+  'A-s, B-p, C-q, D-r', ['A-p, B-s, C-q, D-r', 'A-s, B-p, C-r, D-q', 'A-s, B-q, C-p, D-r'],
+  '<p>&minus;I: electron withdrawal through &sigma; bonds by an electronegative atom such as F (s). +I: electron release by alkyl groups (p). +M: donation of a lone pair into the &pi; system, as with NH<sub>2</sub> (q). &minus;M: withdrawal of &pi; electrons by a group with a C=O or N=O bond (r).</p>');
+xmat(3, 'acid strength', 'Approximate pK<sub>a</sub> values', ['A. CH<sub>3</sub>COOH', 'B. ClCH<sub>2</sub>COOH', 'C. Cl<sub>2</sub>CHCOOH', 'D. Cl<sub>3</sub>CCOOH'],
+  ['p. 0.7', 'q. 1.3', 'r. 2.9', 's. 4.8'],
+  'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-s, B-q, C-r, D-p'],
+  '<p>Each Cl adds a &minus;I effect and stabilises the carboxylate, lowering pK<sub>a</sub>: acetic acid 4.8 (s), one Cl 2.9 (r), two Cl 1.3 (q), three Cl 0.7 (p). The lower the pK<sub>a</sub>, the stronger the acid.</p>');
+xmat(3, 'structural isomerism', 'Pair of compounds and the type of isomerism', ['A. Propan-1-ol and methoxyethane', 'B. Butane and 2-methylpropane', 'C. Propan-1-ol and propan-2-ol', 'D. Methoxypropane and ethoxyethane'],
+  ['p. Chain isomerism', 'q. Position isomerism', 'r. Functional group isomerism', 's. Metamerism'],
+  'A-r, B-p, C-q, D-s', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-q, B-p, C-r, D-s'],
+  '<p>A: an alcohol and an ether, different functional groups (r). B: different carbon skeleton (p). C: same group (OH) at different positions (q). D: both ethers with different alkyl groups on either side of the oxygen (s).</p>');
+xmat(3, 'nucleophiles and electrophiles', 'Species and its role', ['A. NH<sub>3</sub>', 'B. CN<sup>-</sup>', 'C. BF<sub>3</sub>', 'D. :CCl<sub>2</sub>'],
+  ['p. Neutral nucleophile', 'q. Anionic nucleophile', 'r. Electrophile with an incomplete octet', 's. Electrophile, neutral divalent carbon'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+  '<p>NH<sub>3</sub> has a lone pair and no charge (p). CN<sup>-</sup> is a negatively charged donor (q). BF<sub>3</sub> has six electrons around B, so it accepts a pair (r). Dichlorocarbene has only six electrons around carbon and acts as an electrophile (s).</p>');
+xmat(5, 'aromaticity', 'Species and its description', ['A. Benzene', 'B. Cyclobutadiene', 'C. Cyclooctatetraene', 'D. Cyclopropenyl cation'],
+  ['p. Aromatic, 6 &pi; electrons', 'q. Antiaromatic', 'r. Non-aromatic, tub-shaped and not planar', 's. Aromatic, 2 &pi; electrons'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>Benzene has 6 &pi; electrons (4n + 2, n = 1) (p). Cyclobutadiene has 4 &pi; electrons in a planar ring: antiaromatic (q). Cyclooctatetraene avoids the 8 &pi; electron antiaromatic state by adopting a tub shape, so it is non-aromatic (r). The cyclopropenyl cation has 2 &pi; electrons (n = 0): aromatic (s).</p>');
+xmat(5, 'counting stereoisomers', 'Compound and its total number of stereoisomers', ['A. Lactic acid, CH<sub>3</sub>CH(OH)COOH', 'B. Tartaric acid, HOOC-CH(OH)-CH(OH)-COOH', 'C. Pent-3-en-2-ol, CH<sub>3</sub>CH(OH)CH=CHCH<sub>3</sub>', 'D. 2,3,4-Trichlorohexane'],
+  ['p. 2', 'q. 3', 'r. 4', 's. 8'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>A: one stereocentre, 2 (p). B: two identical stereocentres, so a meso form exists: 3 (q). C: one stereocentre &times; E/Z double bond = 2 &times; 2 = 4 (r). D: three different stereocentres, 2<sup>3</sup> = 8 (s).</p>');
+xmat(3, 'reaction types', 'Reaction and its type', ['A. CH<sub>3</sub>CH<sub>2</sub>Br + OH<sup>-</sup> &rarr; CH<sub>3</sub>CH<sub>2</sub>OH + Br<sup>-</sup>', 'B. CH<sub>3</sub>CH<sub>2</sub>OH &rarr; CH<sub>2</sub>=CH<sub>2</sub> + H<sub>2</sub>O (conc. H<sub>2</sub>SO<sub>4</sub>, 443 K)', 'C. CH<sub>2</sub>=CH<sub>2</sub> + HBr &rarr; CH<sub>3</sub>CH<sub>2</sub>Br', 'D. NH<sub>4</sub>CNO &rarr; H<sub>2</sub>NCONH<sub>2</sub>'],
+  ['p. Elimination', 'q. Electrophilic addition', 'r. Nucleophilic substitution', 's. Rearrangement (isomerisation)'],
+  'A-r, B-p, C-q, D-s', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-q, B-p, C-r, D-s'],
+  '<p>A: OH<sup>-</sup> replaces Br<sup>-</sup>, nucleophilic substitution (r). B: loss of water gives an alkene, elimination (p). C: HBr adds across the C=C, electrophilic addition (q). D: ammonium cyanate and urea share the formula CH<sub>4</sub>N<sub>2</sub>O, so this is an isomerisation (s).</p>');
+
+// ---------- msq ----------
+xmsq(4, 'resonance', 'Which statements about resonance are correct?', ['The resonance hybrid is more stable than any single contributing structure', 'Contributing structures differ only in the positions of electrons, not of the nuclei', 'A more stable contributing structure contributes more to the hybrid', 'The contributing structures are real species that rapidly interconvert'], [0, 1, 2],
+  '<p>The contributing structures are imaginary: the molecule is a single hybrid, not a rapid equilibrium between them (that would be tautomerism or conformers). The other three statements are the standard rules.</p>');
+xmsq(4, 'acid strength', 'Which of these statements about acidity are correct?', ['HCOOH is a stronger acid than CH<sub>3</sub>COOH', 'p-Nitrophenol is a stronger acid than phenol', 'Ethanol is a stronger acid than water', 'CF<sub>3</sub>COOH is a stronger acid than CCl<sub>3</sub>COOH'], [0, 1, 3],
+  '<p>Alkyl groups (+I) lower acidity: formic acid (pK<sub>a</sub> 3.75) beats acetic acid (4.76). The nitro group stabilises the phenoxide by &minus;M and &minus;I. Ethanol (pK<sub>a</sub> about 16) is slightly weaker than water (15.7) because the ethyl group destabilises the alkoxide. F is more electronegative than Cl, so CF<sub>3</sub>COOH (0.2) is stronger than CCl<sub>3</sub>COOH (0.7).</p>');
+xmsq(4, 'carbocation stability', 'Which carbocations are stabilised mainly by resonance?', ['C<sub>6</sub>H<sub>5</sub>CH<sub>2</sub><sup>+</sup>', 'CH<sub>2</sub>=CH-CH<sub>2</sub><sup>+</sup>', 'CH<sub>3</sub>OCH<sub>2</sub><sup>+</sup>', '(CH<sub>3</sub>)<sub>3</sub>C<sup>+</sup>'], [0, 1, 2],
+  '<p>Benzyl: the positive charge spreads into the ring. Allyl: it delocalises over two carbons. CH<sub>3</sub>OCH<sub>2</sub><sup>+</sup>: an oxygen lone pair donates into the empty p orbital. The tert-butyl cation has no such &pi; or lone pair to donate; it is stabilised by hyperconjugation and the +I effect of the methyl groups.</p>');
+xmsq(4, 'nucleophiles', 'Which species can act as nucleophiles?', ['H<sub>2</sub>O', 'BF<sub>3</sub>', 'NH<sub>3</sub>', 'AlCl<sub>3</sub>', 'CN<sup>-</sup>'], [0, 2, 4],
+  '<p>A nucleophile has a lone pair (or &pi; electrons) to donate: H<sub>2</sub>O, NH<sub>3</sub>, CN<sup>-</sup>. BF<sub>3</sub> and AlCl<sub>3</sub> have incomplete octets: they accept electron pairs and are electrophiles (Lewis acids).</p>');
+xmsq(4, 'hyperconjugation', 'Which statements about hyperconjugation are correct?', ['It is also called no-bond resonance', 'It involves the overlap of a &sigma;(C-H) bond with an adjacent empty p or &pi; orbital', '(CH<sub>3</sub>)<sub>3</sub>C<sup>+</sup> has 9 hyperconjugative structures', 'The methyl cation CH<sub>3</sub><sup>+</sup> is stabilised by hyperconjugation'], [0, 1, 2],
+  '<p>The number of hyperconjugative structures equals the number of &alpha;-hydrogens: 3 &times; 3 = 9 for tert-butyl. The methyl cation has no &alpha;-C-H bonds (the H atoms are on the charged carbon itself), so it has none.</p>');
+xmsq(4, 'geometrical isomerism', 'Which of these can show geometrical (E/Z) isomerism?', ['CH<sub>3</sub>CH=CHCH<sub>3</sub>', '(CH<sub>3</sub>)<sub>2</sub>C=CH<sub>2</sub>', 'CH<sub>3</sub>CH=C(Cl)CH<sub>3</sub>', 'CH<sub>3</sub>CH=CH<sub>2</sub>', 'CH<sub>3</sub>CH=NOH'], [0, 2, 4],
+  '<p>Each carbon (or atom) of the double bond must carry two different groups. 2-methylpropene and propene have a doubly bonded carbon bearing two identical groups (CH<sub>3</sub>, CH<sub>3</sub> or H, H). The oxime has C with (CH<sub>3</sub>, H) and N with (OH, lone pair), giving syn/anti isomers.</p>');
+xmsq(5, 'optical activity', 'Which of these, as a single pure stereoisomer, is optically active?', ['(R)-2-chlorobutane', 'meso-tartaric acid', '(2R,3R)-tartaric acid', 'propane-1,2-diol'], [0, 2, 3],
+  '<p>(R)-2-chlorobutane and propane-1,2-diol have one stereocentre (C2). (2R,3R)-tartaric acid has two stereocentres and no internal symmetry. The meso form has an internal plane of symmetry and is optically inactive despite having two stereocentres.</p>');
+xmsq(5, 'Lassaigne\'s test', 'Which statements about sodium fusion (Lassaigne) tests are correct?', ['Nitrogen is detected as sodium cyanide, giving Prussian blue with Fe<sup>2+</sup> and Fe<sup>3+</sup>', 'Sulphur gives a violet colour with sodium nitroprusside', 'Halogens are tested with AgNO<sub>3</sub> after boiling the extract with dilute HNO<sub>3</sub>', 'A blood-red colour with FeCl<sub>3</sub> shows sulphur only'], [0, 1, 2],
+  '<p>A blood-red colour (Fe(SCN)<sup>2+</sup>) appears when both N and S are present, because NaSCN forms. S alone gives the violet colour with nitroprusside; N alone gives Prussian blue after adding FeSO<sub>4</sub> and FeCl<sub>3</sub>. Boiling with HNO<sub>3</sub> first removes CN<sup>-</sup> and S<sup>2-</sup> that would interfere with the AgNO<sub>3</sub> test.</p>');
+xmsq(5, 'free radical stability', 'Which statements about alkyl radicals are correct?', ['A tertiary radical is more stable than a primary radical', 'Radicals are stabilised by hyperconjugation', 'The benzyl radical is stabilised by resonance', 'The methyl radical is more stable than the tert-butyl radical'], [0, 1, 2],
+  '<p>Stability follows 3&deg; &gt; 2&deg; &gt; 1&deg; &gt; methyl, because alkyl groups stabilise the odd electron by hyperconjugation. The benzyl radical delocalises the electron over the ring.</p>');
+xmsq(5, 'basicity', 'Which statements comparing basic strengths are correct?', ['CH<sub>3</sub>O<sup>-</sup> is a stronger base than C<sub>6</sub>H<sub>5</sub>O<sup>-</sup>', 'NH<sub>2</sub><sup>-</sup> is a stronger base than OH<sup>-</sup>', 'CH<sub>3</sub>CH<sub>2</sub><sup>-</sup> is a stronger base than HC&equiv;C<sup>-</sup>', 'Cl<sup>-</sup> is a stronger base than F<sup>-</sup>'], [0, 1, 2],
+  '<p>A stronger base is the conjugate base of a weaker acid. C<sub>6</sub>H<sub>5</sub>OH (pK<sub>a</sub> 10) is a stronger acid than CH<sub>3</sub>OH (15.5); NH<sub>3</sub> (38) is weaker than H<sub>2</sub>O (15.7); ethane (50) is weaker than ethyne (25). HCl (&minus;7) is a stronger acid than HF (3.2), so Cl<sup>-</sup> is the weaker base.</p>');
+xmsq(4, 'tautomerism', 'Which statements about keto-enol tautomerism are correct?', ['Acetone and prop-1-en-2-ol are tautomers', 'The enol content of pentane-2,4-dione is higher than that of acetone', 'An &alpha;-hydrogen is required', 'Tautomers are resonance structures of the same molecule'], [0, 1, 2],
+  '<p>Tautomers are different compounds in equilibrium (different positions of an H atom); resonance structures differ only in electron placement. The enol of pentane-2,4-dione is stabilised by conjugation and an intramolecular hydrogen bond.</p>');
+xmsq(4, 'purification', 'Which statements about purification methods are correct?', ['Steam distillation suits a compound that is steam-volatile and immiscible with water', 'Distillation under reduced pressure suits liquids that decompose near their normal boiling point', 'Fractional distillation separates liquids with close boiling points', 'Simple crystallisation separates liquids of nearly equal boiling points'], [0, 1, 2],
+  '<p>Crystallisation is a method for solids. The first three statements describe the usual uses of steam, vacuum and fractional distillation.</p>');
+
+// ---------- integer ----------
+xnat(4, 'hyperconjugation', 'How many hyperconjugative structures can be written for 2-methylbut-2-ene, (CH<sub>3</sub>)<sub>2</sub>C=CHCH<sub>3</sub>?', 9, 0, '',
+  '<p>Count the &alpha;-hydrogens, those on carbons directly attached to the sp<sup>2</sup> carbons of the double bond: two CH<sub>3</sub> groups on C2 (6 H) and the CH<sub>3</sub> on C3 (3 H). Total <b>9</b>.</p>', 'Counting the vinylic H on C3 (it is on the sp<sup>2</sup> carbon, not an &alpha;-hydrogen).', () => 3 + 3 + 3);
+xnat(5, 'stereoisomers', 'How many stereoisomers does CH<sub>3</sub>CH=CH-CH(OH)-CH=CHCH<sub>3</sub> (hepta-2,5-dien-4-ol) have?', 4, 0, '',
+  '<p>Each double bond is E or Z. (E,E) and (Z,Z) have two identical arms on C4, so C4 is not a stereocentre: 1 isomer each. (E,Z) has two different arms, so C4 is a stereocentre: R and S, 2 isomers. Total 1 + 1 + 2 = <b>4</b>.</p>', 'Using 2<sup>3</sup> = 8 (two double bonds and one centre) overcounts: symmetry makes C4 achiral for EE and ZZ.', () => 1 + 1 + 2);
+xnat(4, 'structural isomers', 'How many structural isomers (alcohols and ethers) have the molecular formula C<sub>4</sub>H<sub>10</sub>O?', 7, 0, '',
+  '<p>Alcohols: butan-1-ol, butan-2-ol, 2-methylpropan-1-ol, 2-methylpropan-2-ol (4). Ethers: ethoxyethane, 1-methoxypropane, 2-methoxypropane (3). Total <b>7</b>.</p>', '', () => 4 + 3);
+xnat(5, 'structural isomers', 'How many structural isomers (open chain and ring, not counting E/Z) have the formula C<sub>4</sub>H<sub>8</sub>?', 5, 0, '',
+  '<p>Alkenes: but-1-ene, but-2-ene, 2-methylpropene (3). Cycloalkanes: cyclobutane, methylcyclopropane (2). Total <b>5</b> (cis and trans but-2-ene are stereoisomers, not structural).</p>', 'Counting cis/trans but-2-ene as two gives 6.', () => 3 + 2);
+xnat(4, 'degree of unsaturation', 'Find the degree of unsaturation (double bond equivalents) of nitrobenzene, C<sub>6</sub>H<sub>5</sub>NO<sub>2</sub>.', 5, 0, '',
+  '<p>DBE = (2C + 2 + N - H - X)/2 = (12 + 2 + 1 - 5)/2 = 10/2 = <b>5</b>: one ring, three C=C and one N=O.</p>', 'Oxygen is ignored; nitrogen counts as +1.', () => (2 * 6 + 2 + 1 - 5) / 2);
+xnat(4, 'resonance', 'How many Kekul&eacute;-type resonance structures can be drawn for naphthalene?', 3, 0, '',
+  '<p>Naphthalene has three Kekul&eacute; structures: one with the double bond shared across the bridge (C4a-C8a), and two others in which the position of the double bonds shift. Answer <b>3</b>.</p>', '', () => 3);
+xnat(5, 'resonance', 'How many Kekul&eacute;-type resonance structures can be drawn for phenanthrene?', 5, 0, '',
+  '<p>Phenanthrene has <b>5</b> Kekul&eacute; structures (naphthalene has 3 and anthracene 4).</p>', '', () => 5);
+xnat(5, 'aromaticity', 'How many of these are aromatic: benzene, cyclobutadiene, cyclopentadienyl anion, cycloheptatrienyl cation, cyclooctatetraene, cyclopentadienyl cation, pyridine?', 4, 0, '',
+  '<p>Aromatic (planar, cyclic, fully conjugated, 4n + 2 &pi; electrons): benzene (6), cyclopentadienyl anion (6), cycloheptatrienyl (tropylium) cation (6), pyridine (6). Not aromatic: cyclobutadiene (antiaromatic), cyclopentadienyl cation (4 &pi;, antiaromatic), cyclooctatetraene (non-planar). Answer <b>4</b>.</p>', 'Cations and anions can be aromatic, but only with 2, 6, 10... &pi; electrons.', () => [true, false, true, true, false, false, true].filter(Boolean).length);
+xnat(4, 'stereoisomers', 'Glucose in its open-chain form, HOCH<sub>2</sub>(CHOH)<sub>4</sub>CHO, has four stereocentres. How many stereoisomers does the open-chain structure have in all?', 16, 0, '',
+  '<p>The four stereocentres have no symmetry between them (CHO at one end, CH<sub>2</sub>OH at the other), so 2<sup>4</sup> = <b>16</b>.</p>', '', () => 2 ** 4);
+xnat(4, 'sigma and pi bonds', 'Find the total number of &sigma; and &pi; bonds in naphthalene, C<sub>10</sub>H<sub>8</sub>.', 24, 0, '',
+  '<p>&sigma; bonds: 11 C-C + 8 C-H = 19. &pi; bonds: 5 (five C=C in one Kekul&eacute; structure). Total 19 + 5 = <b>24</b>.</p>', 'Naphthalene has 11 C-C bonds, not 10: the shared (fusion) bond counts.', () => 11 + 8 + 5);
+xnat(3, 'carbon classification', 'How many secondary (2&deg;) hydrogen atoms are in 3-ethyl-2-methylpentane?', 4, 0, '',
+  '<p>The structure is (CH<sub>3</sub>)<sub>2</sub>CH-CH(CH<sub>2</sub>CH<sub>3</sub>)-CH<sub>2</sub>CH<sub>3</sub>. Secondary hydrogens are on carbons bonded to two other carbons: the CH<sub>2</sub> of the ethyl group (2 H) and the C4 CH<sub>2</sub> (2 H). Total <b>4</b>.</p>', '', () => 2 + 2);
+
+// ---------- numeric ----------
+xnat(5, 'Kjeldahl method', '0.35 g of an organic compound is digested and the NH<sub>3</sub> produced is passed into 50 mL of 0.20 N H<sub>2</sub>SO<sub>4</sub>. The unreacted acid needs 30 mL of 0.20 N NaOH. Find the percentage of nitrogen.', 16.0, 0.1, '%',
+  '<p>Acid taken = 50 &times; 0.20 = 10 meq. Left over = 30 &times; 0.20 = 6 meq. Acid used by NH<sub>3</sub> = 4 meq, so NH<sub>3</sub> = 4 meq = 4 &times; 14 mg N = 56 mg. %N = 0.056/0.35 &times; 100 = <b>16.0%</b>.</p>', 'Using the 10 meq (total acid) instead of the 4 meq actually consumed.', () => (50 * 0.2 - 30 * 0.2) * 14 / 1000 / 0.35 * 100);
+xnat(4, 'Carius method', '0.200 g of an organic compound containing sulphur gives 0.466 g of BaSO<sub>4</sub> (233 g/mol) in the Carius method. Find the percentage of sulphur (S = 32).', 32.0, 0.2, '%',
+  '<p>233 g of BaSO<sub>4</sub> contains 32 g S. S in 0.466 g = 32/233 &times; 0.466 = 0.0640 g. %S = 0.0640/0.200 &times; 100 = <b>32.0%</b>.</p>', '', () => 32 / 233 * 0.466 / 0.2 * 100);
+xnat(3, 'combustion analysis', 'Combustion of 0.300 g of a compound of C, H and O gives 0.440 g CO<sub>2</sub> and 0.180 g H<sub>2</sub>O. Find the percentage of oxygen by difference.', 53.3, 0.2, '%',
+  '<p>C = 12/44 &times; 0.440 = 0.120 g (40.0%). H = 2/18 &times; 0.180 = 0.020 g (6.67%). O = 100 - 40.0 - 6.67 = <b>53.3%</b>. (The compound is CH<sub>2</sub>O in its empirical formula.)</p>', '', () => 100 - 12 / 44 * 0.44 / 0.3 * 100 - 2 / 18 * 0.18 / 0.3 * 100);
+xnat(5, 'silver salt method', '0.59 g of a dibasic organic acid gives 1.66 g of its silver salt. Find the molar mass of the acid (Ag = 108).', 118, 0.5, 'g/mol',
+  '<p>Dibasic acid H<sub>2</sub>A &rarr; Ag<sub>2</sub>A. M(salt) = M + 2(108) - 2(1) = M + 214. Moles of acid = moles of salt: 0.59/M = 1.66/(M + 214). 0.59M + 126.26 = 1.66M, so M = 126.26/1.07 = <b>118 g/mol</b> (succinic acid).</p>', 'Each Ag replaces one H, a gain of 107 per replaced H, so the salt is heavier by 214 for two.', () => 0.59 * 214 / (1.66 - 0.59));
+xnat(4, 'Dumas method', '0.200 g of an organic compound gives 31.7 mL of N<sub>2</sub> at STP in the Dumas method. Find %N (28 g N<sub>2</sub> occupies 22 400 mL at STP).', 19.8, 0.1, '%',
+  '<p>Mass of N<sub>2</sub> = 28 &times; 31.7/22 400 = 0.03963 g. %N = 0.03963/0.200 &times; 100 = <b>19.8%</b>.</p>', '', () => 28 * 31.7 * 100 / (22400 * 0.2));
+xnat(4, 'molar mass', 'An organic compound contains 23.3% nitrogen by mass and each molecule has two nitrogen atoms. Find the molar mass in g/mol.', 120, 1, 'g/mol',
+  '<p>2 N atoms weigh 28 g per mole. 28/M = 0.233, so M = 28/0.233 = <b>120 g/mol</b>.</p>', '', () => 28 / 0.233);
+xnat(4, 'acid strength', 'The pK<sub>a</sub> of CH<sub>3</sub>COOH is 4.76 and of ClCH<sub>2</sub>COOH is 2.86. How many times larger is K<sub>a</sub> of chloroacetic acid?', 79, 1.5, '',
+  '<p>K<sub>a</sub> = 10<sup>-pK<sub>a</sub></sup>. Ratio = 10<sup>4.76 - 2.86</sup> = 10<sup>1.90</sup> = <b>79</b>.</p>', 'The ratio is 10<sup>(difference in pK<sub>a</sub>)</sup>, not the ratio of pK<sub>a</sub> values.', () => Math.pow(10, 4.76 - 2.86));
+
+// ---------- passages ----------
+xpassage('xp1', 'Acidity of substituted phenols', '<p>Approximate pK<sub>a</sub> values in water: phenol 10.0, p-nitrophenol 7.2, p-cresol (4-methylphenol) 10.3, p-chlorophenol 9.4.</p>');
+xmk(3, 'acidity order', 'The strongest acid in the list is', 'p-nitrophenol', ['phenol', 'p-cresol', 'p-chlorophenol'],
+  '<p>The lowest pK<sub>a</sub> is the strongest acid: p-nitrophenol (7.2). The nitro group stabilises the phenoxide ion by &minus;M and &minus;I effects.</p>', '', 'passage', 'xp1');
+xnat(4, 'acidity order', 'How many times larger is K<sub>a</sub> of p-nitrophenol than that of phenol?', 631, 6, '',
+  '<p>Ratio = 10<sup>10.0 - 7.2</sup> = 10<sup>2.8</sup> = <b>631</b>.</p>', '', () => Math.pow(10, 10.0 - 7.2), 'passage', 'xp1');
+xmk(4, 'electronic effects', 'p-Cresol is a weaker acid than phenol mainly because', 'the methyl group (+I and hyperconjugation) destabilises the phenoxide ion', ['the methyl group withdraws electrons by resonance', 'the methyl group makes the O-H bond stronger by forming a hydrogen bond', 'p-cresol cannot form a resonance-stabilised phenoxide'],
+  '<p>Electron-releasing groups increase the negative charge density on the phenoxide oxygen and make it less stable, so the acid is weaker. The phenoxide of p-cresol is still resonance stabilised.</p>', '', 'passage', 'xp1');
+xpassage('xp2', 'An unknown compound X of carbon, hydrogen and nitrogen', '<p>Combustion of 0.186 g of X gives 0.528 g of CO<sub>2</sub> and 0.126 g of H<sub>2</sub>O. In a separate Dumas determination, 0.186 g of X gives 22.4 mL of N<sub>2</sub> at STP. Molar masses: C 12, H 1, N 14, CO<sub>2</sub> 44, H<sub>2</sub>O 18; 28 g of N<sub>2</sub> occupies 22 400 mL at STP.</p>');
+xnat(3, 'combustion analysis', 'The percentage of carbon in X is', 77.4, 0.1, '%', '<p>C = 12/44 &times; 0.528 = 0.144 g. %C = 0.144/0.186 &times; 100 = <b>77.4%</b>.</p>', '', () => 12 / 44 * 0.528 / 0.186 * 100, 'passage', 'xp2');
+xnat(4, 'Dumas method', 'The percentage of nitrogen in X is', 15.05, 0.1, '%', '<p>N<sub>2</sub> mass = 28 &times; 22.4/22 400 = 0.028 g. %N = 0.028/0.186 &times; 100 = <b>15.05%</b>.</p>', '', () => 28 * 22.4 * 100 / (22400 * 0.186), 'passage', 'xp2');
+xmk(4, 'empirical formula', 'The empirical formula of X is', 'C<sub>6</sub>H<sub>7</sub>N', ['C<sub>6</sub>H<sub>5</sub>N', 'C<sub>5</sub>H<sub>7</sub>N', 'C<sub>6</sub>H<sub>9</sub>N'],
+  '<p>%H = 2/18 &times; 0.126/0.186 &times; 100 = 7.53%. Moles per 100 g: C 77.4/12 = 6.45; H 7.53/1 = 7.53; N 15.05/14 = 1.075. Dividing by 1.075: C 6.0, H 7.0, N 1.0. Empirical formula <b>C<sub>6</sub>H<sub>7</sub>N</b> (aniline).</p>', 'Divide by the smallest number of moles, which here is nitrogen.', 'passage', 'xp2');
+
+// ---------- assertion / reason ----------
+xasr(2, 'carbocations', 'A simple alkyl carbocation is planar around the positive carbon.', 'The positive carbon is sp<sup>2</sup> hybridised and has an empty p orbital.', 0,
+  '<p>Both true; R explains A: three sp<sup>2</sup> orbitals form &sigma; bonds in one plane at 120&deg;, and the empty p orbital is perpendicular to it.</p>');
+xasr(3, 'carbocation stability', 'The tert-butyl carbocation is more stable than the methyl carbocation.', 'The tert-butyl carbocation has 9 hyperconjugative structures and three electron-releasing methyl groups.', 0,
+  '<p>Both true; R explains A. Methyl cation has no &alpha;-hydrogens and no alkyl groups to donate electrons.</p>');
+xasr(3, 'acid strength', 'Phenol is more acidic than ethanol.', 'The phenoxide ion is stabilised by resonance but the ethoxide ion is not.', 0,
+  '<p>Both true; R explains A. The negative charge on phenoxide oxygen delocalises into the ring (pK<sub>a</sub> 10 against about 16 for ethanol).</p>');
+xasr(4, 'electronic effects', 'p-Nitrophenol is more acidic than m-nitrophenol.', 'A nitro group at the para position exerts both &minus;I and &minus;M effects on the phenoxide, but at the meta position it exerts only the &minus;I effect.', 0,
+  '<p>Both true; R explains A. The &minus;M effect operates only from ortho and para positions, where the negative charge can be delocalised onto the nitro group (pK<sub>a</sub> 7.2 against 8.4).</p>');
+xasr(4, 'directing effects', 'Chlorobenzene is less reactive than benzene towards electrophilic substitution, yet it directs the incoming group to the ortho and para positions.', 'In chlorine the &minus;I effect outweighs +M overall reactivity, while the +M effect controls the orientation.', 0,
+  '<p>Both true; R explains A. The &minus;I effect deactivates the ring, but the lone-pair donation (+M) increases electron density at the o- and p-positions in the intermediate, so those are attacked.</p>');
+xasr(3, 'acid strength', 'Trichloroacetic acid is a stronger acid than acetic acid.', 'The three chlorine atoms donate electrons by the +M effect and stabilise the carboxylate ion.', 2,
+  '<p>A is true (pK<sub>a</sub> 0.7 against 4.76). R is false: Cl withdraws electrons through &sigma; bonds (&minus;I), and it is this withdrawal that stabilises the carboxylate.</p>', 'Chlorine has a +M effect on a benzene ring but not through saturated carbon.');
+xasr(4, 'basicity of amines', 'In aqueous solution (CH<sub>3</sub>)<sub>3</sub>N is a weaker base than (CH<sub>3</sub>)<sub>2</sub>NH.', 'The ammonium ion from the tertiary amine has only one N-H bond and is less stabilised by hydrogen bonding with water.', 0,
+  '<p>Both true; R explains A. In water the order is (CH<sub>3</sub>)<sub>2</sub>NH &gt; CH<sub>3</sub>NH<sub>2</sub> &gt; (CH<sub>3</sub>)<sub>3</sub>N &gt; NH<sub>3</sub>, a balance of +I effect and solvation of the conjugate acid.</p>');
+xasr(3, 'optical isomerism', 'meso-Tartaric acid is optically inactive although it has two stereocentres.', 'It has an internal plane of symmetry.', 0,
+  '<p>Both true; R explains A. The two halves are mirror images of each other, so the rotations cancel within the molecule (internal compensation).</p>');
+xasr(4, 'aromaticity', 'Cyclobutadiene is not aromatic.', 'It has 4 &pi; electrons, which does not fit the 4n + 2 rule.', 0,
+  '<p>Both true; R explains A. Planar, cyclic, conjugated rings with 4n &pi; electrons are antiaromatic and unstable.</p>');
+
+// ---------- statements ----------
+xstm(2, 'inductive effect', 'The inductive effect is a permanent polarisation transmitted through &sigma; bonds.', 'Its magnitude falls off rapidly with distance.', 0, '<p>Both correct: it is almost negligible beyond the third carbon.</p>');
+xstm(3, 'electromeric effect', 'The electromeric effect is temporary and appears only in the presence of an attacking reagent.', 'It occurs in compounds with multiple bonds.', 0, '<p>Both correct: the &pi; electrons shift completely to one atom when a reagent approaches, and revert when it leaves.</p>');
+xstm(3, 'resonance', 'In the allyl cation the two C-C bonds have the same length.', 'The two resonance structures of the allyl cation are equivalent.', 0, '<p>Both correct: CH<sub>2</sub>=CH-CH<sub>2</sub><sup>+</sup> and <sup>+</sup>CH<sub>2</sub>-CH=CH<sub>2</sub> are equivalent, so each C-C bond has bond order 1.5.</p>');
+xstm(3, 'stereochemistry', 'Enantiomers have different boiling points.', 'Enantiomers rotate plane-polarised light by equal angles in opposite directions.', 2, '<p>I is incorrect: enantiomers have identical physical properties (m.p., b.p., solubility) in an achiral environment. II is correct.</p>');
+xstm(3, 'stereochemistry', 'Diastereomers have different physical properties.', 'Diastereomers are non-superimposable mirror images.', 1, '<p>I is correct. II is incorrect: that describes enantiomers. Diastereomers are stereoisomers that are not mirror images.</p>');
+xstm(4, 'aromaticity', 'An aromatic compound must be planar, cyclic and conjugated, with (4n + 2) &pi; electrons.', 'Pyrrole is aromatic because the lone pair on nitrogen takes part in the &pi; system.', 0, '<p>Both correct. Pyrrole has 4 &pi; electrons from two C=C plus the 2 from nitrogen: 6 in total.</p>');
+xstm(4, "Lassaigne's test", 'The sodium fusion extract of a compound containing both N and S gives a blood-red colour with FeCl<sub>3</sub>.', 'Under these conditions NaSCN is formed.', 0, '<p>Both correct: Na + C + N + S &rarr; NaSCN, and Fe<sup>3+</sup> with SCN<sup>-</sup> gives red [Fe(SCN)]<sup>2+</sup>.</p>');
+xstm(3, 'racemic mixture', 'A racemic mixture is optically inactive.', 'The rotations of the two enantiomers cancel because they are present in equal amounts.', 0, '<p>Both correct: this is external compensation. The mixture can be resolved into two active forms, unlike a meso compound.</p>');
+
+// ---------- extra single answers ----------
+xmk(2, 'IUPAC naming', 'The IUPAC name of (CH<sub>3</sub>)<sub>2</sub>CHCH<sub>2</sub>CH<sub>2</sub>OH is', '3-methylbutan-1-ol', ['2-methylbutan-4-ol', '3-methylbutan-4-ol', '2-methylbutan-1-ol'],
+  '<p>The longest chain with OH has 4 carbons. Number from the OH end: OH at C1, methyl at C3: <b>3-methylbutan-1-ol</b>.</p>');
+xmk(3, 'IUPAC naming', 'The IUPAC name of (CH<sub>3</sub>)<sub>2</sub>CH-CH=CH-CH<sub>2</sub>CH<sub>3</sub> is', '2-methylhex-3-ene', ['5-methylhex-3-ene', '2-methylhex-4-ene', '5-methylhex-2-ene'],
+  '<p>The chain has 6 carbons. The double bond is at C3 from either end. The tie is broken by the substituent: 2-methyl (not 5-methyl). <b>2-methylhex-3-ene</b>.</p>');
+xmk(3, 'CIP rules', 'In butan-2-ol, the priority order of the groups on C2 (highest first) is', 'OH &gt; CH<sub>2</sub>CH<sub>3</sub> &gt; CH<sub>3</sub> &gt; H', ['OH &gt; CH<sub>3</sub> &gt; CH<sub>2</sub>CH<sub>3</sub> &gt; H', 'CH<sub>2</sub>CH<sub>3</sub> &gt; OH &gt; CH<sub>3</sub> &gt; H', 'OH &gt; H &gt; CH<sub>2</sub>CH<sub>3</sub> &gt; CH<sub>3</sub>'],
+  '<p>Compare the atoms attached to C2: O (8) &gt; C &gt; C &gt; H. For the two carbons, compare their substituents: CH<sub>2</sub>CH<sub>3</sub> has (C, H, H) and CH<sub>3</sub> has (H, H, H), so ethyl ranks higher.</p>');
+xmk(3, 'aromaticity', 'Which of the following is aromatic?', 'Pyridine', ['Cyclooctatetraene', 'Cycloheptatriene', 'Cyclopentadiene'],
+  '<p>Pyridine is planar, cyclic and fully conjugated with 6 &pi; electrons. Cyclopentadiene and cycloheptatriene have an sp<sup>3</sup> CH<sub>2</sub> that breaks the conjugation; cyclooctatetraene is tub-shaped.</p>');
+xmk(4, 'acid strength', 'The correct order of acid strength is', 'FCH<sub>2</sub>COOH &gt; ClCH<sub>2</sub>COOH &gt; BrCH<sub>2</sub>COOH &gt; CH<sub>3</sub>COOH', ['CH<sub>3</sub>COOH &gt; BrCH<sub>2</sub>COOH &gt; ClCH<sub>2</sub>COOH &gt; FCH<sub>2</sub>COOH', 'BrCH<sub>2</sub>COOH &gt; ClCH<sub>2</sub>COOH &gt; FCH<sub>2</sub>COOH &gt; CH<sub>3</sub>COOH', 'ClCH<sub>2</sub>COOH &gt; FCH<sub>2</sub>COOH &gt; BrCH<sub>2</sub>COOH &gt; CH<sub>3</sub>COOH'],
+  '<p>The stronger the &minus;I effect of the halogen, the more stable the carboxylate: F &gt; Cl &gt; Br. All halogenated acids beat acetic acid. pK<sub>a</sub>: 2.66, 2.86, 2.90, 4.76.</p>');
+xmk(5, 'basicity order', 'The correct order of basic strength of the anions CH<sub>3</sub><sup>-</sup>, NH<sub>2</sub><sup>-</sup>, OH<sup>-</sup> and F<sup>-</sup> is', 'CH<sub>3</sub><sup>-</sup> &gt; NH<sub>2</sub><sup>-</sup> &gt; OH<sup>-</sup> &gt; F<sup>-</sup>', ['F<sup>-</sup> &gt; OH<sup>-</sup> &gt; NH<sub>2</sub><sup>-</sup> &gt; CH<sub>3</sub><sup>-</sup>', 'NH<sub>2</sub><sup>-</sup> &gt; CH<sub>3</sub><sup>-</sup> &gt; OH<sup>-</sup> &gt; F<sup>-</sup>', 'CH<sub>3</sub><sup>-</sup> &gt; OH<sup>-</sup> &gt; NH<sub>2</sub><sup>-</sup> &gt; F<sup>-</sup>'],
+  '<p>Across a period the electronegativity of the atom carrying the charge rises (C &lt; N &lt; O &lt; F), so the anion becomes more stable and the base weaker. The conjugate acids CH<sub>4</sub> (pK<sub>a</sub> 50), NH<sub>3</sub> (38), H<sub>2</sub>O (15.7), HF (3.2) confirm the order.</p>');
+xmk(5, 'acidity of C-H', 'Which hydrogen atoms of pentane-2,4-dione, CH<sub>3</sub>COCH<sub>2</sub>COCH<sub>3</sub>, are the most acidic?', 'the two H atoms of the CH<sub>2</sub> between the two C=O groups', ['the six H atoms of the two CH<sub>3</sub> groups', 'all eight hydrogens equally', 'the H atoms of the CH<sub>3</sub> groups, because they are nearest to oxygen'],
+  '<p>Removing H from the central CH<sub>2</sub> gives a carbanion stabilised by delocalisation over both carbonyl groups (pK<sub>a</sub> about 9). Removing an H from a CH<sub>3</sub> gives an anion stabilised by only one C=O (pK<sub>a</sub> about 20).</p>');
+
+// ---------- templates ----------
+xgen({ type: 'nat', level: 4, sub: 'Kjeldahl back titration',
+  make(rng) {
+    const w = choose(rng, [0.25, 0.30, 0.40, 0.50]); const Na = choose(rng, [0.1, 0.2, 0.5]); const Va = choose(rng, [30, 40, 50]); const Nb = Na; const Vb = choose(rng, [8, 10, 12, 15, 20]);
+    const used = Na * Va - Nb * Vb; const pct = used * 14 / 1000 / w * 100;
+    return { q: `In a Kjeldahl determination, ${w} g of a compound liberates NH<sub>3</sub> that is absorbed in ${Va} mL of ${Na} N H<sub>2</sub>SO<sub>4</sub>. The excess acid needs ${Vb} mL of ${Nb} N NaOH. Find the percentage of nitrogen (N = 14).`, answer: +pct.toFixed(2), tol: 0.05 + pct * 0.002, unit: '%', w, Na, Va, Nb, Vb,
+      sol: `<p>Acid taken = ${Va} &times; ${Na} = ${fmt(Na * Va, 3)} meq. Excess = ${Vb} &times; ${Nb} = ${fmt(Nb * Vb, 3)} meq. Used by NH<sub>3</sub> = ${fmt(used, 3)} meq, giving ${fmt(used, 3)} &times; 14 = ${fmt(used * 14, 4)} mg N.</p><p>%N = ${fmt(used * 14 / 1000, 4)}/${w} &times; 100 = <b>${fmt(pct, 4)}%</b>.</p>`, trap: 'Use the acid actually consumed (taken minus left over).' };
+  }, verify: (p) => 1.4 * (p.Na * p.Va - p.Nb * p.Vb) / p.w });
+xgen({ type: 'nat', level: 3, sub: 'combustion analysis',
+  make(rng) {
+    const [C, H, O] = choose(rng, [[2, 4, 2], [3, 6, 3], [6, 12, 6], [2, 6, 1], [4, 8, 2], [3, 8, 1], [2, 4, 1]]); const M = 12 * C + H + 16 * O; const w = choose(rng, [0.2, 0.25, 0.5]);
+    const co2 = w * C * 44 / M, h2o = w * H * 9 / M; const pO = 16 * O / M * 100;
+    return { q: `Complete combustion of ${w} g of a compound of C, H and O gives ${fmt(co2, 4)} g of CO<sub>2</sub> and ${fmt(h2o, 4)} g of H<sub>2</sub>O. Find the percentage of oxygen by difference.`, answer: +pO.toFixed(1), tol: 0.2, unit: '%', w, co2, h2o,
+      sol: `<p>C = 12/44 &times; ${fmt(co2, 4)} = ${fmt(12 / 44 * co2, 4)} g. H = 2/18 &times; ${fmt(h2o, 4)} = ${fmt(h2o / 9, 4)} g.</p><p>O = ${w} - ${fmt(12 / 44 * co2, 4)} - ${fmt(h2o / 9, 4)} = ${fmt(w - 12 / 44 * co2 - h2o / 9, 4)} g, i.e. <b>${fmt(pO, 3)}%</b> of the sample.</p>` };
+  }, verify: (p) => 100 * (p.w - 12 / 44 * p.co2 - p.h2o / 9) / p.w });
+xgen({ type: 'nat', level: 4, sub: 'degree of unsaturation',
+  make(rng) {
+    const C = int(rng, 6, 12), N = int(rng, 0, 2), X = int(rng, 0, 2); const dbe = int(rng, 2, 6); const H = 2 * C + 2 + N - X - 2 * dbe; const O = int(rng, 0, 3);
+    const fm = `C<sub>${C}</sub>H<sub>${H}</sub>${N ? 'N' + (N > 1 ? `<sub>${N}</sub>` : '') : ''}${X ? 'Cl' + (X > 1 ? `<sub>${X}</sub>` : '') : ''}${O ? 'O' + (O > 1 ? `<sub>${O}</sub>` : '') : ''}`;
+    return { q: `Find the degree of unsaturation (number of rings plus &pi; bonds) of ${fm}.`, answer: dbe, tol: 0, C, H, N, X,
+      sol: `<p>DBE = (2C + 2 + N - H - X)/2 = (${2 * C} + 2 + ${N} - ${H} - ${X})/2 = ${2 * C + 2 + N - H - X}/2 = <b>${dbe}</b>. Oxygen does not change the count; N adds 1 and each halogen subtracts 1 (it replaces an H).</p>`, trap: 'N adds to the numerator; halogens act like hydrogens.' };
+  }, verify: (p) => (2 * p.C + 2 + p.N - p.H - p.X) / 2 });
+xgen({ type: 'nat', level: 4, sub: 'steam distillation',
+  make(rng) {
+    const pw = choose(rng, [707, 733, 760 - 53, 733]); const M = choose(rng, [78, 92, 123, 108, 128]); const po = 760 - pw; const r = po * M / (pw * 18);
+    return { q: `An organic liquid immiscible with water (molar mass ${M} g/mol) steam-distils at a temperature where the vapour pressure of water is ${pw} mm Hg and the total pressure is 760 mm Hg. What mass of the liquid (in g) distils over with each 1.00 g of water?`, answer: +r.toPrecision(3), tol: r * 0.01 + 0.001, unit: 'g', pw, M, po,
+      sol: `<p>The mixture boils when p(water) + p(liquid) = 760, so p(liquid) = 760 - ${pw} = ${po} mm Hg. In the vapour, moles are proportional to partial pressures, so mass ratio = (p<sub>liq</sub> &times; M)/(p<sub>water</sub> &times; 18).</p><p>= (${po} &times; ${M})/(${pw} &times; 18) = <b>${fmt(r, 3)} g</b> per gram of water.</p>` };
+  }, verify: (p) => (760 - p.pw) * p.M / (p.pw * 18) });
+xgen({ type: 'nat', level: 4, sub: 'optical purity',
+  make(rng) {
+    const pure = choose(rng, [20, 30, 40, 50, 60]); const frac = choose(rng, [60, 70, 75, 80, 90]); const ee = 2 * frac - 100; const obs = pure * ee / 100;
+    return { q: `The pure (+) enantiomer of a compound has specific rotation +${pure}&deg;. A mixture of its two enantiomers shows a specific rotation of +${fmt(obs, 4)}&deg;. What percentage of the mixture is the (+) enantiomer?`, answer: frac, tol: 0.5, unit: '%', pure, obs,
+      sol: `<p>Optical purity (enantiomeric excess) = observed/pure &times; 100 = ${fmt(obs, 4)}/${pure} &times; 100 = ${ee}%. The excess of (+) over (-) is ${ee}% of the mixture, and the rest (${100 - ee}%) is a racemic mixture.</p><p>% of (+) = ${ee} + (${100 - ee})/2 = <b>${frac}%</b>.</p>`, trap: 'The enantiomeric excess is not the same as the percentage of the major enantiomer.' };
+  }, verify: (p) => 100 * (1 + p.obs / p.pure) / 2 });
+xgen({ type: 'nat', level: 3, sub: 'specific rotation',
+  make(rng) {
+    const spec = choose(rng, [-66, 52.7, -12, 20, 66.5, -39]); const l = choose(rng, [1, 2, 0.5]); const c = choose(rng, [0.05, 0.1, 0.2]); const alpha = spec * l * c;
+    return { q: `A solution of ${c} g/mL of an optically active compound in a ${l} dm tube rotates plane-polarised light by ${fmt(alpha, 4)}&deg;. Find the specific rotation [&alpha;] in degree mL g<sup>-1</sup> dm<sup>-1</sup>.`, answer: spec, tol: Math.abs(spec) * 0.01, alpha, l, c,
+      sol: `<p>[&alpha;] = &alpha;/(l &times; c) = ${fmt(alpha, 4)}/(${l} &times; ${c}) = <b>${spec}</b>.</p>`, trap: 'The tube length must be in dm and concentration in g/mL.' };
+  }, verify: (p) => p.alpha / (p.l * p.c) });
+const _PK = [['ethyne', 25], ['ammonia', 38], ['ethene', 44], ['ethane', 50], ['water', 15.7], ['ethanol', 16], ['phenol', 10], ['ethanoic acid', 4.76], ['propanone', 19.3], ['methanol', 15.5], ['benzoic acid', 4.2], ['chloroethanoic acid', 2.86]];
+xgen({ type: 'mcq', level: 3, sub: 'acid strength',
+  make(rng) { const pool = [..._PK]; const pk = []; while (pk.length < 4) pk.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]); const best = pk.reduce((a, b) => (b[1] < a[1] ? b : a)); const o = shuffleOpts(rng, best[0], pk.filter((x) => x !== best).map((x) => x[0]));
+    return { q: `Which of these is the strongest acid? (approximate pK<sub>a</sub>: ${pk.map((x) => `${x[0]} ${x[1]}`).join(', ')})`, options: o.options, answer: o.answer, pk, best: best[0],
+      sol: `<p>The lowest pK<sub>a</sub> is the strongest acid. Here that is ${best[0]} (${best[1]}).</p>`, trap: 'A smaller pK<sub>a</sub> means a stronger acid.' };
+  }, verify: (p) => (p.options[p.answer] === p.best ? p.answer : -1) });
+const _ISO = [['CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>CH<sub>3</sub> and (CH<sub>3</sub>)<sub>2</sub>CHCH<sub>3</sub>', 'chain isomers'], ['CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>OH and CH<sub>3</sub>CH(OH)CH<sub>3</sub>', 'position isomers'], ['CH<sub>3</sub>CH<sub>2</sub>OH and CH<sub>3</sub>OCH<sub>3</sub>', 'functional isomers'], ['CH<sub>3</sub>OCH<sub>2</sub>CH<sub>2</sub>CH<sub>3</sub> and CH<sub>3</sub>CH<sub>2</sub>OCH<sub>2</sub>CH<sub>3</sub>', 'metamers'], ['CH<sub>3</sub>COCH<sub>3</sub> and CH<sub>3</sub>C(OH)=CH<sub>2</sub>', 'tautomers'], ['cis-but-2-ene and trans-but-2-ene', 'geometrical isomers'], ['CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>CH<sub>2</sub>Cl and (CH<sub>3</sub>)<sub>2</sub>CHCH<sub>2</sub>Cl', 'chain isomers'], ['CH<sub>3</sub>CH<sub>2</sub>CHO and CH<sub>3</sub>COCH<sub>3</sub>', 'functional isomers']];
+xgen({ type: 'mcq', level: 3, sub: 'types of isomerism',
+  make(rng) { const [pair, right] = choose(rng, _ISO); const all = ['chain isomers', 'position isomers', 'functional isomers', 'metamers', 'tautomers', 'geometrical isomers']; const wr = all.filter((x) => x !== right); const pk = []; while (pk.length < 3) pk.push(wr.splice(Math.floor(rng() * wr.length), 1)[0]); const o = shuffleOpts(rng, right, pk);
+    return { q: `${pair} are`, options: o.options, answer: o.answer, pair, right,
+      sol: `<p>Compare the carbon skeletons, the functional groups and the positions of groups. Chain isomers differ in the skeleton; position isomers in the position of a group; functional isomers in the functional group; metamers in the alkyl groups around a polyvalent atom; tautomers in the position of an H atom in rapid equilibrium; geometrical isomers in the arrangement across a double bond.</p><p>These are <b>${right}</b>.</p>` };
+  }, verify: (p) => p.options.indexOf(p.right) });
+const _AR = [['benzene', 'a'], ['cyclobutadiene', 'n'], ['cyclopentadienyl anion', 'a'], ['cyclopentadienyl cation', 'n'], ['tropylium (cycloheptatrienyl) cation', 'a'], ['cyclopropenyl cation', 'a'], ['cyclopropenyl anion', 'n'], ['pyridine', 'a'], ['furan', 'a'], ['cyclooctatetraene', 'x'], ['cycloheptatriene', 'x'], ['cyclopentadiene', 'x']];
+xgen({ type: 'mcq', level: 4, sub: 'aromaticity',
+  make(rng) { const [name, k] = choose(rng, _AR); const T = { a: 'aromatic (planar, cyclic, conjugated, 4n + 2 &pi; electrons)', n: 'antiaromatic (planar, cyclic, conjugated, 4n &pi; electrons)', x: 'non-aromatic (not planar or not fully conjugated)', f: 'aromatic only when it carries a substituent' }; const o = shuffleOpts(rng, T[k], Object.keys(T).filter((x) => x !== k).map((x) => T[x]));
+    return { q: `${name[0].toUpperCase() + name.slice(1)} is`, options: o.options, answer: o.answer, name, k, T,
+      sol: `<p>Check the four conditions: ring, planar, continuous conjugation, and the number of &pi; electrons (4n + 2 aromatic, 4n antiaromatic).</p><p>${name[0].toUpperCase() + name.slice(1)}: <b>${T[k]}</b>.</p>`, trap: 'A ring with an sp<sup>3</sup> carbon, or a tub shape, cannot be aromatic or antiaromatic.' };
+  }, verify: (p) => p.options.indexOf(p.T[p.k]) });
+
 export default {
   topic: 'goc',
-  groups: GRP,
-  items: [...HAND1, ...HAND3, ...HAND4, ...MATCH, ...PASSAGES, ...NAME_ITEMS, ...COUNT_ITEMS],
-  gens: GENS,
+  groups: { ...GRP, ...XGRP },
+  items: [...HAND1, ...HAND3, ...HAND4, ...MATCH, ...PASSAGES, ...NAME_ITEMS, ...COUNT_ITEMS, ...XI],
+  gens: [...GENS, ...XGENS],
 };

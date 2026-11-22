@@ -615,4 +615,277 @@ const gens = [
   }, (p) => { const x = 1e-3; return simp((t) => t ** p.n * cos(t), 0, x, 400) / x ** (p.n + 1); }),
 ];
 
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `di-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const frac = (n, d) => { const g = ((a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; })(n, d); n /= g; d /= g; const sgn = n < 0 ? '-' : ''; n = Math.abs(n); return d === 1 ? `${sgn}${n}` : `${sgn}\\dfrac{${n}}{${d}}`; };
+const OPT = (c, w) => ({ c, w });
+const rie = (f, a, b, n = 2000000) => { const h = (b - a) / n; let s = 0; for (let i = 0; i < n; i++) s += f(a + (i + 0.5) * h); return s * h; };
+const D = (l, s, q, val, sol, trap, calc) => N(l, s, `${q} (2 decimal places)`, +val.toFixed(4), 0.01, sol, trap, calc || (() => val));
+const D4 = (l, s, q, val, sol, trap, calc) => N(l, s, `${q} (4 decimal places)`, +val.toFixed(4), 0.0005, sol, trap, calc || (() => val));
+const Pi = Math.PI;
+Object.assign(groups, {
+  xm1: { title: 'Simple integrals', passage: XR`<p>Match each integral in List I with its value in List II.</p>`,
+    list1: ['A. $\\displaystyle\\int_0^{\\pi/2}\\cos x\\,dx$', 'B. $\\displaystyle\\int_0^1\\frac{dx}{1+x^2}$', 'C. $\\displaystyle\\int_0^1\\frac{dx}{1+x}$', 'D. $\\displaystyle\\int_0^2x\\,dx$'], list2: ['p. $1$', 'q. $2$', 'r. $\\dfrac\\pi4$', 's. $\\ln2$'] },
+  xm2: { title: 'Powers of sine', passage: XR`<p>Match each integral in List I with its value in List II.</p>`,
+    list1: ['A. $\\displaystyle\\int_{-\\pi}^{\\pi}\\sin^3x\\,dx$', 'B. $\\displaystyle\\int_0^{\\pi}\\sin^3x\\,dx$', 'C. $\\displaystyle\\int_0^{\\pi/2}\\sin^3x\\,dx$', 'D. $\\displaystyle\\int_0^{2\\pi}|\\sin^3x|\\,dx$'], list2: ['p. $0$', 'q. $\\dfrac23$', 'r. $\\dfrac43$', 's. $\\dfrac83$'] },
+  xm3: { title: 'Areas', passage: XR`<p>Match each region in List I with its area in List II.</p>`,
+    list1: ['A. under $y=x^2$ above the $x$-axis, $0\\le x\\le3$', 'B. between $y=x$ and $y=x^2$', 'C. under $y=\\sin x$, $0\\le x\\le\\pi$', 'D. between $y=\\sqrt x$ and $y=x^2$'], list2: ['p. $\\dfrac16$', 'q. $\\dfrac13$', 'r. $2$', 's. $9$'] },
+  xm4: { title: 'Derivatives of integrals at x = 1', passage: XR`<p>Match each derivative in List I (evaluated at $x=1$) with its value in List II.</p>`,
+    list1: ['A. $\\dfrac{d}{dx}\\displaystyle\\int_0^{x}e^{t^2}dt$', 'B. $\\dfrac{d}{dx}\\displaystyle\\int_x^{x^2}t\\,dt$', 'C. $\\dfrac{d}{dx}\\displaystyle\\int_1^{x^3}\\dfrac{dt}t$', 'D. $\\dfrac{d}{dx}\\displaystyle\\int_{-x}^{x}t^2\\,dt$'], list2: ['p. $1$', 'q. $2$', 'r. $3$', 's. $e$'] },
+  xm5: { title: 'Wallis and Beta values', passage: XR`<p>Match each integral in List I with its value in List II.</p>`,
+    list1: ['A. $\\displaystyle\\int_0^{\\pi/2}\\sin^4x\\,dx$', 'B. $\\displaystyle\\int_0^{\\pi/2}\\sin^5x\\,dx$', 'C. $\\displaystyle\\int_0^1x(1-x)^3\\,dx$', 'D. $\\displaystyle\\int_0^{\\pi/2}\\sin^2x\\cos^2x\\,dx$'], list2: ['p. $\\dfrac\\pi{16}$', 'q. $\\dfrac{3\\pi}{16}$', 'r. $\\dfrac8{15}$', 's. $\\dfrac1{20}$'] },
+  xm6: { title: 'Limits of sums', passage: XR`<p>Match each limit in List I with its value in List II.</p>`,
+    list1: ['A. $\\displaystyle\\lim_{n\\to\\infty}\\frac1n\\sum_{r=1}^n\\frac rn$', 'B. $\\displaystyle\\lim_{n\\to\\infty}\\frac1n\\sum_{r=1}^n\\left(\\frac rn\\right)^2$', 'C. $\\displaystyle\\lim_{n\\to\\infty}\\sum_{r=1}^n\\frac1{n+r}$', 'D. $\\displaystyle\\lim_{n\\to\\infty}\\frac1n\\sum_{r=1}^n\\sin\\frac{r\\pi}n$'], list2: ['p. $\\dfrac12$', 'q. $\\dfrac13$', 'r. $\\ln2$', 's. $\\dfrac2\\pi$'] },
+  xm7: { title: 'Even and odd integrands', passage: XR`<p>Match each integral in List I with its value in List II.</p>`,
+    list1: ['A. $\\displaystyle\\int_{-1}^{1}(x^3+x^2)\\,dx$', 'B. $\\displaystyle\\int_{-1}^{1}|x|^3\\,dx$', 'C. $\\displaystyle\\int_{-\\pi}^{\\pi}\\sin x\\cos x\\,dx$', 'D. $\\displaystyle\\int_{-2}^{2}(x^4+x)\\,dx$'], list2: ['p. $0$', 'q. $\\dfrac23$', 'r. $\\dfrac12$', 's. $\\dfrac{64}5$'] },
+  xm8: { title: 'Mean values over [0, pi]', passage: XR`<p>The mean value of $f$ on $[0,\pi]$ is $\dfrac1\pi\int_0^\pi f(x)\,dx$. Match each function in List I with its mean value in List II.</p>`,
+    list1: ['A. $\\sin x$', 'B. $\\sin^2x$', 'C. $\\cos x$', 'D. $x$'], list2: ['p. $0$', 'q. $\\dfrac12$', 'r. $\\dfrac2\\pi$', 's. $\\dfrac\\pi2$'] },
+  xp1: { title: 'Passage: an integral function', passage: XR`<p>Let $g(x)=\displaystyle\int_0^x t(t-3)\,dt$ for $x\ge0$. Note that $g'(x)=x(x-3)$.</p>` },
+  xp2: { title: 'Passage: the a + b - x trick', passage: XR`<p>Let $f(x)=\dfrac{\ln(6-x)}{\ln x+\ln(6-x)}$ on $[1,5]$. For $x\in[1,5]$ we have $x(6-x)\ge5>1$, so the denominator $\ln x+\ln(6-x)$ is positive. Using $x\to6-x$ turns $\ln x$ into $\ln(6-x)$ and back.</p>` },
+});
+items.push(
+  // ---- L2 ----
+  M(2, 'basic integrals', XR`$\displaystyle\int_0^2(3x^2-2x)\,dx$ equals`, '$4$', ['$8$', '$12$', '$2$'],
+    XR`<p>$\left[x^3-x^2\right]_0^2=(8-4)-0=4$.</p>`, 'Do not forget to subtract the lower limit.'),
+  M(2, 'basic integrals', XR`$\displaystyle\int_0^1e^{2x}\,dx$ equals`, XR`$\dfrac{e^2-1}2$`, [XR`$e^2-1$`, XR`$\dfrac{e^2}2$`, XR`$2(e^2-1)$`],
+    XR`<p>$\int e^{2x}dx=\dfrac{e^{2x}}2$, so the value is $\dfrac{e^2-1}2$.</p>`, 'The chain rule factor 2 goes in the denominator.'),
+  A(2, 'odd functions', XR`$\displaystyle\int_{-3}^{3}x^3\,dx=0$.`, XR`$x^3$ is an odd function.`, 0,
+    XR`<p>For an odd function the area to the left of $0$ cancels the area to the right: $\int_{-a}^af=0$. R is exactly the reason.</p>`, 'The integral of an odd function over a symmetric interval is 0.'),
+  S(2, 'basic properties', XR`$\displaystyle\int_a^bf(x)\,dx=-\int_b^af(x)\,dx$.`, XR`$\displaystyle\int_0^2|x-1|\,dx=0$.`, 1,
+    XR`<p>I is true (swapping limits changes the sign). II is false: $|x-1|\ge0$ and is not identically $0$, so the integral is positive: $\int_0^1(1-x)dx+\int_1^2(x-1)dx=\tfrac12+\tfrac12=1$.</p>`, 'An integral of a non-negative function is never negative.'),
+  I(2, 'modulus integrand', XR`Find $\displaystyle\int_0^4|x-2|\,dx$.`, 4,
+    XR`<p>The graph of $|x-2|$ forms two triangles, each with base $2$ and height $2$: area $\tfrac12\cdot2\cdot2=2$ each. Total $4$.</p>`, 'Split at x = 2.', () => rie((x) => Math.abs(x - 2), 0, 4)),
+  M(2, 'mean value', XR`The mean value of $f(x)=x^2$ on $[0,3]$ is`, '$3$', ['$9$', XR`$\dfrac92$`, XR`$\dfrac13$`],
+    XR`<p>Mean value $=\dfrac1{3-0}\int_0^3x^2dx=\dfrac13\cdot\dfrac{27}3=3$.</p>`, 'Divide the integral by the length of the interval.'),
+  // ---- L3 ----
+  I(3, 'odd functions', XR`Find $\displaystyle\int_{-2}^{2}\left(x^7+x^3-x+5\right)dx$.`, 20,
+    XR`<p>The terms $x^7,x^3,-x$ are odd, so they integrate to $0$ over $[-2,2]$. What is left is $\int_{-2}^25\,dx=5\cdot4=20$.</p>`, 'Spot the odd terms first.', () => rie((x) => x ** 7 + x ** 3 - x + 5, -2, 2)),
+  I(3, 'modulus integrand', XR`Find $\displaystyle\int_0^4|x^2-4x+3|\,dx$.`, 4,
+    XR`<p>$x^2-4x+3=(x-1)(x-3)$ is positive on $[0,1]$ and $[3,4]$, negative on $[1,3]$. With $F(x)=\dfrac{x^3}3-2x^2+3x$: $F(1)=\dfrac43$, $F(3)=0$, $F(4)=\dfrac43$, $F(0)=0$. So the integral is $\left(\dfrac43-0\right)+\left|0-\dfrac43\right|+\left(\dfrac43-0\right)=4$.</p>`, 'Integrate |f| piece by piece.', () => rie((x) => Math.abs(x * x - 4 * x + 3), 0, 4)),
+  I(3, 'King\'s rule', XR`Find $\displaystyle\int_1^3\frac{\sqrt x}{\sqrt x+\sqrt{4-x}}\,dx$.`, 1,
+    XR`<p>Here $a+b=4$. Let $I$ be the integral. Replacing $x$ by $4-x$ gives $I=\int_1^3\dfrac{\sqrt{4-x}}{\sqrt{4-x}+\sqrt x}dx$. Adding: $2I=\int_1^31\,dx=2$, so $I=1$.</p>`, 'The pair adds to the whole length.', () => rie((x) => Math.sqrt(x) / (Math.sqrt(x) + Math.sqrt(4 - x)), 1, 3)),
+  I(3, 'Leibniz rule', XR`Let $F(x)=\displaystyle\int_x^{x^2}(3t^2+1)\,dt$. Find $F'(1)$.`, 4,
+    XR`<p>$F'(x)=(3x^4+1)\cdot2x-(3x^2+1)\cdot1$. At $x=1$: $4\cdot2-4=4$.</p>`, 'Both limits depend on x.', () => 4 * 2 - 4),
+  I(3, 'greatest integer function', XR`Find $\displaystyle\int_0^{10}[x]\,dx$, where $[x]$ is the greatest integer function.`, 45,
+    XR`<p>On $[k,k+1)$ the function equals $k$. So the integral is $0+1+2+\dots+9=45$.</p>`, 'The last interval is [9, 10).', () => rie((x) => Math.floor(x), 0, 10)),
+  I(3, 'integral equations', XR`A continuous $f$ satisfies $f(x)=1+\displaystyle\int_0^xf(t)\,dt$. Find $f(\ln3)$.`, 3,
+    XR`<p>Differentiate: $f'(x)=f(x)$, so $f(x)=Ce^x$. Putting $x=0$ in the equation gives $f(0)=1$, so $C=1$ and $f(x)=e^x$. Then $f(\ln3)=3$.</p>`, 'The equation gives the starting value f(0).', () => 3),
+  I(3, 'estimation', XR`For how many positive integers $n$ is $\displaystyle\int_0^1x^n\,dx\ge\frac1{100}$?`, 99,
+    XR`<p>$\int_0^1x^ndx=\dfrac1{n+1}\ge\dfrac1{100}$ means $n+1\le100$, so $n\le99$. The positive integers $1,\dots,99$: $99$ values.</p>`, 'n starts from 1.', () => 99),
+  N(3, 'Wallis formula', XR`Find $\displaystyle\int_0^{\pi/2}\cos^3x\,dx$ (2 decimal places).`, 0.67, 0.01,
+    XR`<p>Wallis formula: $\int_0^{\pi/2}\cos^3x\,dx=\dfrac{2}{3}\approx0.67$. (Or: $\int(1-\sin^2x)\cos x\,dx=\sin x-\dfrac{\sin^3x}3$, which gives $1-\dfrac13$.)</p>`, 'For odd powers there is no π in the answer.', () => simp((x) => Math.cos(x) ** 3, 0, Pi / 2)),
+  N(3, 'Wallis formula', XR`Find $\displaystyle\int_0^{2\pi}\cos^4x\,dx$ (2 decimal places).`, 2.36, 0.01,
+    XR`<p>$\int_0^{2\pi}\cos^4xdx=4\int_0^{\pi/2}\cos^4xdx=4\cdot\dfrac{3\pi}{16}=\dfrac{3\pi}4\approx2.36$.</p>`, 'Four quarter-periods fit in 2π.', () => simp((x) => Math.cos(x) ** 4, 0, 2 * Pi)),
+  D(3, 'Leibniz rule', XR`$F(x)=\displaystyle\int_x^{x^2}e^{-t^2}\,dt$. Find $F'(1)$`, 1 / Math.E,
+    XR`<p>$F'(x)=e^{-x^4}\cdot2x-e^{-x^2}$. At $x=1$: $2e^{-1}-e^{-1}=e^{-1}\approx0.37$.</p>`, 'Chain rule factor 2x on the upper limit.', () => { const f = (x) => simp((t) => Math.exp(-t * t), x, x * x, 4000); return (f(1 + 1e-5) - f(1 - 1e-5)) / 2e-5; }),
+  D(3, 'area between curves', XR`Find the area bounded by $y=x^2$ and $y=2-|x|$`, 7 / 3,
+    XR`<p>By symmetry take $x\ge0$: the curves $y=x^2$ and $y=2-x$ meet at $x=1$. Area $=2\int_0^1(2-x-x^2)dx=2\left(2-\dfrac12-\dfrac13\right)=\dfrac73\approx2.33$.</p>`, 'Double the right-hand half.', () => simp((x) => 2 - Math.abs(x) - x * x, -1, 1)),
+  D(3, 'area between curves', XR`Find the area enclosed by the parabola $y^2=4x$ and the line $y=x$`, 8 / 3,
+    XR`<p>They meet at $(0,0)$ and $(4,4)$. For $0\le x\le4$ the parabola ($y=2\sqrt x$) is above the line. Area $=\int_0^4(2\sqrt x-x)dx=\left[\dfrac43x^{3/2}-\dfrac{x^2}2\right]_0^4=\dfrac{32}3-8=\dfrac83\approx2.67$.</p>`, 'Check which curve is on top.', () => simp((x) => 2 * Math.sqrt(x) - x, 0, 4)),
+  D4(3, 'Beta integrals', XR`Find $\displaystyle\int_0^1x(1-x)^{10}\,dx$`, 1 / 132,
+    XR`<p>$\int_0^1x^{m}(1-x)^ndx=\dfrac{m!\,n!}{(m+n+1)!}$. With $m=1$, $n=10$: $\dfrac{1!\,10!}{12!}=\dfrac1{11\cdot12}=\dfrac1{132}\approx0.0076$.</p>`, '12! cancels with 10!, leaving 11 × 12.', () => simp((x) => x * (1 - x) ** 10, 0, 1)),
+  A(3, 'basic properties', XR`$\displaystyle\int_0^\pi\sin^2x\,dx=\dfrac\pi2$.`, XR`$\sin^2x=\dfrac{1-\cos2x}2$ and $\displaystyle\int_0^\pi\cos2x\,dx=0$.`, 0,
+    XR`<p>$\int_0^\pi\dfrac{1-\cos2x}2dx=\dfrac\pi2-\dfrac12\left[\dfrac{\sin2x}2\right]_0^\pi=\dfrac\pi2$. R gives exactly this calculation.</p>`, 'cos 2x completes two full half-waves on [0, π].'),
+  A(3, 'area under a curve', XR`The area between $y=\sin x$ and the $x$-axis from $0$ to $2\pi$ equals $\displaystyle\int_0^{2\pi}\sin x\,dx$.`, XR`A definite integral gives signed area: parts below the $x$-axis count as negative.`, 3,
+    XR`<p>The integral is $0$ but the area is $4$ ($2$ above and $2$ below). So A is false. R is true and is the reason the integral differs from the area.</p>`, 'Area needs |sin x|.'),
+  S(3, 'odd functions', XR`$\displaystyle\int_{-1}^{1}x^2\sin x\,dx=0$.`, XR`$\displaystyle\int_{-1}^{1}x\sin x\,dx=0$.`, 1,
+    XR`<p>I: $x^2\sin x$ is odd, so the integral is $0$. II: $x\sin x$ is even and positive on $(0,1]$, so the integral is $2\int_0^1x\sin xdx=2(\sin1-\cos1)\approx0.60\ne0$.</p>`, 'Even × odd is odd; odd × odd is even.'),
+  SC(3, 'mixed properties', ['If $f$ is odd, $\\displaystyle\\int_{-a}^af\\,dx=0$.', 'If $f$ is even, $\\displaystyle\\int_{-a}^af\\,dx=2\\int_0^af\\,dx$.', '$\\displaystyle\\int_0^af(x)dx=\\int_0^af(a-x)dx$.', '$\\displaystyle\\int_a^bf(x)g(x)dx=\\int_a^bf\\,dx\\cdot\\int_a^bg\\,dx$.'], '3', ['1', '2', '4'],
+    XR`<p>(1), (2), (3) are standard properties. (4) is false: $\int_0^1x\cdot x\,dx=\tfrac13$ but $\int_0^1x\,dx\cdot\int_0^1x\,dx=\tfrac14$. Three statements are correct.</p>`, 'An integral of a product is not the product of integrals.'),
+  MT(3, 'simple integrals', 'xm1', 'A-p, B-r, C-s, D-q', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-p, B-s, C-r, D-q'],
+    XR`<p>A: $[\sin x]_0^{\pi/2}=1$. B: $[\tan^{-1}x]_0^1=\dfrac\pi4$. C: $[\ln(1+x)]_0^1=\ln2$. D: $\left[\dfrac{x^2}2\right]_0^2=2$.</p>`, 'Match each antiderivative to its value.'),
+  MT(3, 'areas', 'xm3', 'A-s, B-p, C-r, D-q', ['A-s, B-p, C-q, D-r', 'A-p, B-s, C-r, D-q', 'A-s, B-q, C-r, D-p'],
+    XR`<p>A: $\int_0^3x^2dx=9$. B: $\int_0^1(x-x^2)dx=\dfrac16$. C: $\int_0^\pi\sin x\,dx=2$. D: $\int_0^1(\sqrt x-x^2)dx=\dfrac23-\dfrac13=\dfrac13$.</p>`, 'The curves meet at x = 0 and x = 1 in B and D.'),
+  MT(3, 'even and odd', 'xm7', 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    XR`<p>A: only the even term $x^2$ survives: $2\cdot\dfrac13=\dfrac23$. B: $|x|^3$ is even: $2\int_0^1x^3dx=\dfrac12$. C: $\sin x\cos x$ is odd: $0$. D: $x^4$ even, $x$ odd: $2\cdot\dfrac{32}5=\dfrac{64}5$.</p>`, 'Only the even part counts over a symmetric interval.'),
+  MT(3, 'limit of a sum', 'xm6', 'A-p, B-q, C-r, D-s', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-p, B-r, C-q, D-s'],
+    XR`<p>Each limit is $\int_0^1$ of a function. A: $\int_0^1x\,dx=\dfrac12$. B: $\int_0^1x^2dx=\dfrac13$. C: $\int_0^1\dfrac{dx}{1+x}=\ln2$. D: $\int_0^1\sin\pi x\,dx=\dfrac2\pi$.</p>`, 'Replace r/n by x and 1/n by dx.'),
+  // ---- L4 ----
+  X(4, 'King\'s rule', XR`Which of these statements are true?`, ['$\\displaystyle\\int_0^{\\pi/2}\\sin^8x\\,dx=\\int_0^{\\pi/2}\\cos^8x\\,dx$', '$\\displaystyle\\int_0^{\\pi}\\sin^3x\\,dx=2\\int_0^{\\pi/2}\\sin^3x\\,dx$', '$\\displaystyle\\int_0^{2\\pi}\\sin^3x\\,dx=2\\int_0^{\\pi}\\sin^3x\\,dx$', '$\\displaystyle\\int_{-\\pi}^{\\pi}\\sin^3x\\,dx=0$'], [0, 1, 3],
+    XR`<p>(A) true by $x\to\frac\pi2-x$. (B) true since $\sin^3(\pi-x)=\sin^3x$. (C) false: over $[\pi,2\pi]$ the function is negative, so $\int_0^{2\pi}\sin^3x\,dx=0$. (D) true: odd function.</p>`, 'sin³ x changes sign on [π, 2π].'),
+  X(4, 'odd functions', XR`Which of these integrals are equal to $0$?`, ['$\\displaystyle\\int_{-1}^{1}x^3e^{x^2}\\,dx$', '$\\displaystyle\\int_{-\\pi}^{\\pi}x\\sin^2x\\,dx$', '$\\displaystyle\\int_0^{\\pi}\\cos x\\,dx$', '$\\displaystyle\\int_{-1}^{1}x^2\\,dx$'], [0, 1, 2],
+    XR`<p>A: odd integrand. B: $x\sin^2x$ is odd. C: $[\sin x]_0^\pi=0$. D: even and positive, equals $\dfrac23$.</p>`, 'The last one is the integral of a positive function.'),
+  X(4, 'Leibniz rule', XR`Let $F(x)=\displaystyle\int_0^x(t-1)(t-3)\,dt$. Which statements are true?`, ['$F$ has a local maximum at $x=1$', '$F$ has a local maximum at $x=3$', '$F(3)=0$', '$F$ is increasing on $(1,3)$'], [0, 2],
+    XR`<p>$F'(x)=(x-1)(x-3)$: positive for $x<1$, negative on $(1,3)$, positive for $x>3$. So $F$ rises then falls then rises: local max at $1$, local min at $3$; $F$ is decreasing on $(1,3)$. $F(3)=\left[\dfrac{t^3}3-2t^2+3t\right]_0^3=9-18+9=0$.</p>`, 'The sign of F′ decides, not the sign of F.'),
+  X(4, 'estimation', XR`Which of these inequalities are true?`, ['$\\displaystyle\\int_0^1e^{-x^2}dx\\ge\\dfrac1e$', '$\\displaystyle\\int_0^1e^{-x^2}dx\\le1$', '$\\displaystyle\\int_0^{\\pi/2}\\dfrac{\\sin x}x\\,dx\\le\\dfrac\\pi2$', '$\\displaystyle\\int_0^1x^2dx\\ge\\dfrac12$'], [0, 1, 2],
+    XR`<p>(A) $e^{-x^2}\ge e^{-1}$ on $[0,1]$. (B) $e^{-x^2}\le1$. (C) $\dfrac{\sin x}x\le1$ on the interval of length $\dfrac\pi2$. (D) $\int_0^1x^2dx=\dfrac13<\dfrac12$.</p>`, 'Compare the integrand with a constant.'),
+  X(4, 'limit of a sum', XR`Which of these limits equal $\ln2$?`, ['$\\displaystyle\\lim_{n\\to\\infty}\\sum_{r=1}^n\\frac1{n+r}$', '$\\displaystyle\\lim_{n\\to\\infty}\\sum_{r=1}^n\\frac n{(n+r)^2}$', '$\\displaystyle\\int_1^2\\frac{dx}x$', '$\\displaystyle\\lim_{n\\to\\infty}\\frac1n\\sum_{r=1}^n\\frac1{1+r/n}$'], [0, 2, 3],
+    XR`<p>(A) $\int_0^1\dfrac{dx}{1+x}=\ln2$. (B) $\int_0^1\dfrac{dx}{(1+x)^2}=\dfrac12$, not $\ln2$. (C) $[\ln x]_1^2=\ln2$. (D) is the same sum as (A).</p>`, 'Squaring the denominator changes the antiderivative.'),
+  X(4, 'area between curves', XR`Which expressions give the area enclosed by $y=x$ and $y=x^3$ between $x=-1$ and $x=1$?`, ['$2\\displaystyle\\int_0^1(x-x^3)\\,dx$', '$\\displaystyle\\int_{-1}^{1}|x-x^3|\\,dx$', '$\\displaystyle\\int_{-1}^{1}(x-x^3)\\,dx$', '$\\displaystyle\\int_{-1}^{0}(x^3-x)\\,dx+\\int_0^1(x-x^3)\\,dx$'], [0, 1, 3],
+    XR`<p>$x-x^3\ge0$ on $[0,1]$ and $\le0$ on $[-1,0]$. The area is $\int_{-1}^1|x-x^3|dx=2\int_0^1(x-x^3)dx=\dfrac12$. (C) is the signed integral of an odd function: $0$.</p>`, 'Odd integrands cancel; areas do not.'),
+  X(5, 'Beta integrals', XR`Which of these integrals equal $\dfrac1{30}$?`, ['$\\displaystyle\\int_0^1x^2(1-x)^2dx$', '$\\displaystyle\\int_0^1x^4(1-x)\\,dx$', '$\\displaystyle\\int_0^1x(1-x)^4\\,dx$', '$\\displaystyle\\int_0^1x^3(1-x)^2\\,dx$'], [0, 1, 2],
+    XR`<p>Using $\int_0^1x^m(1-x)^ndx=\dfrac{m!\,n!}{(m+n+1)!}$: A: $\dfrac{2!2!}{5!}=\dfrac4{120}=\dfrac1{30}$. B: $\dfrac{4!1!}{6!}=\dfrac{24}{720}=\dfrac1{30}$. C: same as B. D: $\dfrac{3!2!}{6!}=\dfrac{12}{720}=\dfrac1{60}$.</p>`, 'The factorial in the denominator is (m + n + 1)!.'),
+  X(5, 'greatest integer function', XR`Which of these are correct?`, ['$\\displaystyle\\int_0^4[x]\\,dx=6$', '$\\displaystyle\\int_0^{3.5}[x]\\,dx=4.5$', '$\\displaystyle\\int_0^3\\{x\\}\\,dx=\\dfrac32$', '$\\displaystyle\\int_0^3\\big([x]+\\{x\\}\\big)dx=3$'], [0, 1, 2],
+    XR`<p>(A) $0+1+2+3=6$. (B) $\int_0^3=3$ and $\int_3^{3.5}3\,dx=1.5$: $4.5$. (C) $\{x\}$ has mean $\tfrac12$ on each unit interval: $\tfrac32$. (D) $[x]+\{x\}=x$, so the integral is $\dfrac92$, not $3$.</p>`, '[x] + {x} is just x.'),
+  X(5, 'Leibniz rule', XR`For $x>0$ let $F(x)=\displaystyle\int_x^{x^2}e^{-t^2}\,dt$. Which statements are true?`, ['$F\'(x)=2xe^{-x^4}-e^{-x^2}$', '$F(1)=0$', '$F\'(1)=\\dfrac1e$', '$F$ has a stationary point at $x=1$'], [0, 1, 2],
+    XR`<p>(A) Leibniz rule. (B) Both limits are $1$ at $x=1$. (C) $2e^{-1}-e^{-1}=e^{-1}$. (D) false: $F'(1)=\dfrac1e\ne0$.</p>`, 'F(1) = 0 does not mean F′(1) = 0.'),
+  X(4, 'basic properties', XR`$f$ is continuous. Which of these statements are always true?`, ['$\\displaystyle\\int_0^af(x)\\,dx=\\int_0^af(a-x)\\,dx$', '$\\displaystyle\\int_0^{2a}f\\,dx=2\\int_0^af\\,dx$ if $f(2a-x)=f(x)$', '$\\displaystyle\\int_0^{2a}f\\,dx=0$ if $f(2a-x)=-f(x)$', '$\\displaystyle\\int_{-a}^af\\,dx=2\\int_0^af\\,dx$'], [0, 1, 2],
+    XR`<p>(A), (B), (C) are the standard symmetry properties. (D) holds only for even $f$.</p>`, 'Option D needs f even.'),
+  I(4, 'integral functions', XR`How many real solutions does $\displaystyle\int_0^x(t-1)(t-4)\,dt=0$ have?`, 3,
+    XR`<p>$G(x)=\dfrac{x^3}3-\dfrac52x^2+4x=\dfrac x6(2x^2-15x+24)$. $x=0$ is a root, and $2x^2-15x+24=0$ has discriminant $225-192=33>0$, giving two more distinct roots (both positive, since the product and sum are positive). Total: $3$ solutions.</p>`, 'Count x = 0 as well.', () => 3),
+  I(4, 'integral equations', XR`A continuous $f$ satisfies $\displaystyle\int_0^{x^2}f(t)\,dt=x^2(1+x)$ for all $x>0$. Find $f(4)$.`, 4,
+    XR`<p>Differentiate both sides: $f(x^2)\cdot2x=2x+3x^2$, so $f(x^2)=1+\dfrac{3x}2$. Put $x=2$: $f(4)=1+3=4$.</p>`, 'Use the chain rule on the upper limit.', () => 1 + 3 * 2 / 2),
+  I(4, 'symmetry', XR`$f$ is continuous on $[0,6]$, $f(6-x)=f(x)$ and $\displaystyle\int_0^6f(x)\,dx=14$. Find $\displaystyle\int_0^6x\,f(x)\,dx$.`, 42,
+    XR`<p>Let $I=\int_0^6xf(x)dx$. Replacing $x$ by $6-x$: $I=\int_0^6(6-x)f(6-x)dx=\int_0^6(6-x)f(x)dx=6\cdot14-I$. So $2I=84$ and $I=42$.</p>`, 'The answer is (half the length) × (the integral of f).', () => 3 * 14),
+  I(4, 'symmetry', XR`$f$ is continuous on $[0,2]$, $f(2-x)=f(x)$ and $\displaystyle\int_0^2x\,f(x)\,dx=5$. Find $\displaystyle\int_0^2f(x)\,dx$.`, 5,
+    XR`<p>By the same trick, $\int_0^2xf(x)dx=\dfrac{2}{2}\int_0^2f(x)dx=\int_0^2f(x)dx$. So the answer is $5$.</p>`, 'Half the length is 1 here.', () => 5),
+  I(4, 'integral equations', XR`A continuous $f$ satisfies $f(x)=3x^2+\displaystyle\int_0^2f(t)\,dt$. Find $f(1)$.`, -5,
+    XR`<p>Let $c=\int_0^2f(t)dt$, a constant. Then $f(x)=3x^2+c$ and $c=\int_0^2(3t^2+c)dt=8+2c$, so $c=-8$. Hence $f(1)=3-8=-5$.</p>`, 'The integral on the right is a constant.', () => 3 - 8),
+  I(4, 'modulus integrand', XR`Find $\displaystyle\int_{-2}^{2}|x^2-1|\,dx$.`, 4,
+    XR`<p>The integrand is even, so double $\int_0^2|x^2-1|dx=\int_0^1(1-x^2)dx+\int_1^2(x^2-1)dx=\dfrac23+\dfrac43=2$. Total $4$.</p>`, 'Split at x = 1 and use evenness.', () => rie((x) => Math.abs(x * x - 1), -2, 2)),
+  I(4, 'periodic functions', XR`For how many integers $k$ with $1\le k\le20$ is $\displaystyle\int_0^{\pi}\sin kx\,dx=0$?`, 10,
+    XR`<p>$\int_0^\pi\sin kx\,dx=\dfrac{1-\cos k\pi}k=\dfrac{1-(-1)^k}k$. It is $0$ exactly when $k$ is even: $2,4,\dots,20$, that is $10$ values.</p>`, 'Odd k give 2/k, which is not 0.', () => { let c = 0; for (let k = 1; k <= 20; k++) if (Math.abs(simp((x) => Math.sin(k * x), 0, Pi, 2000)) < 1e-9) c++; return c; }),
+  I(4, 'orthogonality', XR`For how many ordered pairs $(k,l)$ of integers with $1\le k,l\le5$ is $\displaystyle\int_0^\pi\sin kx\,\sin lx\,dx\ne0$?`, 5,
+    XR`<p>$\sin kx\sin lx=\tfrac12[\cos(k-l)x-\cos(k+l)x]$. For $k\ne l$ both terms integrate to $0$ over $[0,\pi]$. For $k=l$ the integral is $\dfrac\pi2$. So only $k=l$ counts: $5$ pairs.</p>`, 'The sines are orthogonal on [0, π].', () => { let c = 0; for (let k = 1; k <= 5; k++) for (let l = 1; l <= 5; l++) if (Math.abs(simp((x) => Math.sin(k * x) * Math.sin(l * x), 0, Pi, 2000)) > 1e-6) c++; return c; }),
+  I(4, 'King\'s rule', XR`Let $I=\displaystyle\int_0^{\pi/2}\frac{\sin^{99}x}{\sin^{99}x+\cos^{99}x}\,dx$. Find $\dfrac8\pi\,I$.`, 2,
+    XR`<p>By $x\to\dfrac\pi2-x$, $I=\int_0^{\pi/2}\dfrac{\cos^{99}x}{\sin^{99}x+\cos^{99}x}dx$. Adding: $2I=\dfrac\pi2$, so $I=\dfrac\pi4$ and $\dfrac8\pi I=2$.</p>`, 'The power 99 does not matter.', () => 2),
+  I(4, 'Leibniz rule', XR`How many local extrema does $F(x)=\displaystyle\int_0^x(t-1)(t-2)^2(t-3)\,dt$ have?`, 2,
+    XR`<p>$F'(x)=(x-1)(x-2)^2(x-3)$. $F'$ changes sign at $x=1$ and $x=3$ (odd multiplicity) but not at $x=2$ (the factor is squared). So there are $2$ local extrema.</p>`, 'A squared factor does not change the sign.', () => 2),
+  I(5, 'integral functions', XR`How many real solutions does $\displaystyle\int_0^x(t^4-5t^2+4)\,dt=0$ have?`, 1,
+    XR`<p>$G(x)=\dfrac{x^5}5-\dfrac{5x^3}3+4x=\dfrac x{15}(3x^4-25x^2+60)$. The quartic factor in $x^2$ has discriminant $625-720<0$, so it never vanishes. Only $x=0$ works: $1$ solution.</p>`, 'Check the discriminant of the quartic factor.', () => 1),
+  D(4, 'King\'s rule', XR`Find $\displaystyle\int_0^\pi\frac{x\sin x}{1+\cos^2x}\,dx$`, Pi * Pi / 4,
+    XR`<p>Use $x\to\pi-x$: $I=\dfrac\pi2\int_0^\pi\dfrac{\sin x}{1+\cos^2x}dx$. With $u=\cos x$: $\int_0^\pi\dfrac{\sin x}{1+\cos^2x}dx=\int_{-1}^1\dfrac{du}{1+u^2}=\dfrac\pi2$. So $I=\dfrac{\pi^2}4\approx2.47$.</p>`, 'The (π/2) factor comes from the symmetry step.', () => simp((x) => x * Math.sin(x) / (1 + Math.cos(x) ** 2), 0, Pi)),
+  D(4, 'integration by parts', XR`Find $\displaystyle\int_0^{\pi/2}x\cot x\,dx$`, Pi / 2 * Math.log(2),
+    XR`<p>By parts: $\int x\cot x\,dx=x\ln\sin x-\int\ln\sin x\,dx$. The boundary term vanishes at both ends ($x\ln\sin x\to0$ at $0$, $\ln1=0$ at $\frac\pi2$). Then $-\int_0^{\pi/2}\ln\sin x\,dx=\dfrac\pi2\ln2\approx1.09$.</p>`, 'Use the known value of ∫ ln sin x.', () => simp((x) => (x === 0 ? 1 : x / Math.tan(x)), 0, Pi / 2)),
+  D4(4, 'Wallis formula', XR`Find $\displaystyle\int_0^{\pi/2}\sin^5x\cos^2x\,dx$`, 8 / 105,
+    XR`<p>Wallis: $\int_0^{\pi/2}\sin^m\cos^n=\dfrac{[(m-1)(m-3)\cdots][(n-1)(n-3)\cdots]}{(m+n)(m+n-2)\cdots}\times\dfrac\pi2$ only if both $m,n$ are even. Here $m=5$ is odd: numerator $(4\cdot2)(1)=8$, denominator $7\cdot5\cdot3\cdot1=105$. So the value is $\dfrac8{105}\approx0.0762$.</p>`, 'No π appears when one power is odd.', () => simp((x) => Math.sin(x) ** 5 * Math.cos(x) ** 2, 0, Pi / 2)),
+  D(4, 'greatest integer function', XR`Find $\displaystyle\int_0^\pi[\cos x]\,dx$`, -Pi / 2,
+    XR`<p>For $x\in(0,\frac\pi2]$, $0\le\cos x<1$, so $[\cos x]=0$. For $x\in(\frac\pi2,\pi]$, $-1\le\cos x<0$, so $[\cos x]=-1$. Integral $=-\left(\pi-\dfrac\pi2\right)=-\dfrac\pi2\approx-1.57$.</p>`, 'Between −1 and 0 the floor is −1.', () => rie((x) => Math.floor(Math.cos(x)), 0, Pi)),
+  D(4, 'King\'s rule', XR`Find $\displaystyle\int_0^{\pi/2}\frac{\sin^2x}{\sin x+\cos x}\,dx$`, Math.SQRT2 / 2 * Math.log(1 + Math.SQRT2),
+    XR`<p>Let $I=\int\dfrac{\sin^2x}{\sin x+\cos x}$ and $J=\int\dfrac{\cos^2x}{\sin x+\cos x}$ over $[0,\frac\pi2]$. By $x\to\frac\pi2-x$, $I=J$. Then $2I=I+J=\int_0^{\pi/2}\dfrac{dx}{\sin x+\cos x}=\dfrac1{\sqrt2}\int_0^{\pi/2}\dfrac{dx}{\sin(x+\pi/4)}=\dfrac1{\sqrt2}\Big[\ln\tan\Big(\dfrac x2+\dfrac\pi8\Big)\Big]_0^{\pi/2}=\dfrac1{\sqrt2}\ln\dfrac{\tan(3\pi/8)}{\tan(\pi/8)}=\dfrac{2\ln(1+\sqrt2)}{\sqrt2}$. So $I=\dfrac{\ln(1+\sqrt2)}{\sqrt2}\approx0.62$.</p>`, 'Two integrals equal by symmetry: find their sum.', () => simp((x) => Math.sin(x) ** 2 / (Math.sin(x) + Math.cos(x)), 0, Pi / 2)),
+  D(4, 'limit of a sum', XR`Find $\displaystyle\lim_{n\to\infty}\sum_{r=1}^{2n}\frac r{n^2+r^2}$`, Math.log(5) / 2,
+    XR`<p>Write $\dfrac r{n^2+r^2}=\dfrac1n\cdot\dfrac{r/n}{1+(r/n)^2}$. With $x=\dfrac rn$ running from $0$ to $2$: the limit is $\int_0^2\dfrac x{1+x^2}dx=\dfrac12\ln(1+x^2)\Big|_0^2=\dfrac{\ln5}2\approx0.80$.</p>`, 'r goes up to 2n, so the upper limit is 2.', () => simp((x) => x / (1 + x * x), 0, 2)),
+  D4(4, 'King\'s rule', XR`Find $\displaystyle\int_{\pi/6}^{\pi/3}\frac{dx}{1+\sqrt{\tan x}}$`, Pi / 12,
+    XR`<p>Here $a+b=\dfrac\pi2$. Under $x\to\dfrac\pi2-x$, $\tan x\to\cot x$ and the integrand becomes $\dfrac{\sqrt{\tan x}}{1+\sqrt{\tan x}}$. Adding gives $2I=\dfrac\pi3-\dfrac\pi6=\dfrac\pi6$, so $I=\dfrac\pi{12}\approx0.2618$.</p>`, 'The limits add to π/2.', () => simp((x) => 1 / (1 + Math.sqrt(Math.tan(x))), Pi / 6, Pi / 3)),
+  D(4, 'greatest integer function', XR`Find $\displaystyle\int_0^\pi[2\sin x]\,dx$`, 2 * Pi / 3,
+    XR`<p>$[2\sin x]=1$ when $1\le2\sin x<2$, i.e. $\dfrac\pi6\le x\le\dfrac{5\pi}6$ except $x=\dfrac\pi2$ (a single point). It is $0$ elsewhere in $[0,\pi]$. So the integral is $\dfrac{5\pi}6-\dfrac\pi6=\dfrac{2\pi}3\approx2.09$.</p>`, 'The value 2 is reached only at one point.', () => rie((x) => Math.floor(2 * Math.sin(x)), 0, Pi)),
+  D(4, 'integral functions', XR`Let $F(x)=\displaystyle\int_0^x(t^2-3t+2)\,dt$. Find the greatest value of $F$ on $[0,3]$`, 1.5,
+    XR`<p>$F(x)=\dfrac{x^3}3-\dfrac{3x^2}2+2x$. $F'(x)=(x-1)(x-2)$. Candidates: $F(0)=0$, $F(1)=\dfrac56\approx0.83$ (local maximum), $F(2)=\dfrac23$ (local minimum), $F(3)=9-13.5+6=1.5$. The greatest value is $F(3)=1.5$ at the endpoint.</p>`, 'The endpoint beats the local maximum.', () => simp((t) => t * t - 3 * t + 2, 0, 3)),
+  D(4, 'even and odd', XR`Find $\displaystyle\int_{-\pi/2}^{\pi/2}\left(x^2+\ln\frac{2-x}{2+x}\right)\cos x\,dx$`, Pi * Pi / 2 - 4,
+    XR`<p>$\ln\dfrac{2-x}{2+x}$ is odd, and $\cos x$ is even, so that part integrates to $0$. What remains: $2\int_0^{\pi/2}x^2\cos x\,dx=2\left[x^2\sin x+2x\cos x-2\sin x\right]_0^{\pi/2}=2\left(\dfrac{\pi^2}4-2\right)=\dfrac{\pi^2}2-4\approx0.93$.</p>`, 'Odd × even is odd.', () => simp((x) => (x * x + Math.log((2 - x) / (2 + x))) * Math.cos(x), -Pi / 2, Pi / 2)),
+  D(4, 'periodic functions', XR`Find $\displaystyle\int_0^{10\pi+\pi/3}|\sin x|\,dx$`, 20.5,
+    XR`<p>$|\sin x|$ has period $\pi$ and $\int_0^\pi|\sin x|dx=2$, so $\int_0^{10\pi}=20$. The remaining $\int_0^{\pi/3}\sin x\,dx=1-\cos\dfrac\pi3=\dfrac12$. Total $20.5$.</p>`, 'Use the period π, not 2π.', () => simp((x) => Math.abs(Math.sin(x)), 0, 10 * Pi + Pi / 3, 400000)),
+  D(5, 'King\'s rule', XR`Find $\displaystyle\int_{-\pi/4}^{\pi/4}\frac{x+\pi/4}{2-\cos2x}\,dx$`, Pi * Pi / (6 * Math.sqrt(3)),
+    XR`<p>Split the numerator: $\dfrac x{2-\cos2x}$ is odd, so it integrates to $0$. What remains: $\dfrac\pi4\int_{-\pi/4}^{\pi/4}\dfrac{dx}{2-\cos2x}=\dfrac\pi4\cdot2\int_0^{\pi/4}\dfrac{dx}{2-\cos2x}$. With $t=\tan x$, $\cos2x=\dfrac{1-t^2}{1+t^2}$ and $2-\cos2x=\dfrac{1+3t^2}{1+t^2}$, $dx=\dfrac{dt}{1+t^2}$, so $\int_0^{\pi/4}\dfrac{dx}{2-\cos2x}=\int_0^1\dfrac{dt}{1+3t^2}=\dfrac1{\sqrt3}\tan^{-1}\sqrt3=\dfrac\pi{3\sqrt3}$. Total: $\dfrac\pi4\cdot2\cdot\dfrac\pi{3\sqrt3}=\dfrac{\pi^2}{6\sqrt3}\approx0.95$.</p>`, 'Remove the odd part first.', () => simp((x) => (x + Pi / 4) / (2 - Math.cos(2 * x)), -Pi / 4, Pi / 4)),
+  D(5, 'Leibniz rule', XR`Find $\displaystyle\int_0^1\frac{x^2-1}{\ln x}\,dx$`, Math.log(3),
+    XR`<p>Let $I(a)=\int_0^1\dfrac{x^a-1}{\ln x}dx$. Differentiating under the integral sign: $I'(a)=\int_0^1x^a\,dx=\dfrac1{a+1}$ (since $\frac{d}{da}x^a=x^a\ln x$). Also $I(0)=0$. So $I(a)=\ln(a+1)$ and $I(2)=\ln3\approx1.10$.</p>`, 'Differentiate with respect to the parameter a.', () => simp((x) => (x <= 1e-12 ? 0 : Math.abs(1 - x) < 1e-9 ? 2 : (x * x - 1) / Math.log(x)), 0, 1)),
+  A(3, 'periodic functions', XR`$\displaystyle\int_0^{2\pi}|\sin x|\,dx=4$.`, XR`$|\sin x|$ has period $\pi$ and $\displaystyle\int_0^\pi\sin x\,dx=2$.`, 0,
+    XR`<p>$[0,2\pi]$ holds two periods of $|\sin x|$, each contributing $2$. So the integral is $4$. R gives exactly this.</p>`, 'The period of |sin x| is π.'),
+  A(4, 'mean value theorem', XR`If $f$ is continuous on $[0,1]$ and $\displaystyle\int_0^1f(x)\,dx=0$, then $f(c)=0$ for some $c\in[0,1]$.`, XR`A continuous function that is positive everywhere on $[0,1]$ has a positive integral.`, 0,
+    XR`<p>If $f$ had no zero, being continuous it would keep one sign on $[0,1]$ (intermediate value theorem), so either $f>0$ everywhere or $f<0$ everywhere. Then the integral is positive (R) or negative, never $0$. So A is true and R supplies the key step.</p>`, 'A continuous function without zeros keeps one sign.'),
+  A(5, 'limit using the Leibniz rule', XR`$\displaystyle\lim_{x\to0}\frac1x\int_0^xe^{t^2}\,dt=1$.`, XR`By L'Hôpital's rule and the fundamental theorem, the limit equals $\displaystyle\lim_{x\to0}e^{x^2}$.`, 0,
+    XR`<p>The limit has the form $\frac00$. Differentiating the numerator gives $e^{x^2}$ and the denominator gives $1$, so the limit is $e^0=1$. R is that argument.</p>`, 'The derivative of the integral is the integrand at the upper limit.'),
+  A(3, 'greatest integer function', XR`$\displaystyle\int_0^2[x]\,dx=1$.`, XR`$[x]=0$ on $[0,1)$ and $[x]=1$ on $[1,2)$.`, 0,
+    XR`<p>$\int_0^1 0\,dx+\int_1^21\,dx=1$. R is exactly this split.</p>`, 'The value at the single point 2 does not matter.'),
+  S(4, 'King\'s rule', XR`$\displaystyle\int_0^{\pi/2}\ln(\sin x)\,dx=-\dfrac\pi2\ln2$.`, XR`$\displaystyle\int_0^{\pi/2}\ln(\sin x)\,dx=\int_0^{\pi/2}\ln(\cos x)\,dx$.`, 0,
+    XR`<p>II follows from $x\to\frac\pi2-x$. Adding the two gives $2I=\int_0^{\pi/2}\ln\left(\dfrac{\sin2x}2\right)dx=\int_0^{\pi/2}\ln\sin2x\,dx-\dfrac\pi2\ln2=I-\dfrac\pi2\ln2$, so $I=-\dfrac\pi2\ln2$. Both true.</p>`, 'The substitution 2x turns the sum back into I.'),
+  S(4, 'Leibniz rule', XR`$\dfrac{d}{dx}\displaystyle\int_x^{2x}f(t)\,dt=2f(2x)-f(x)$.`, XR`$\dfrac{d}{dx}\displaystyle\int_x^{2x}f(t)\,dt=f(2x)-f(x)$.`, 1,
+    XR`<p>Leibniz rule: derivative of the upper limit $2x$ is $2$, so the term is $f(2x)\cdot2$; the lower limit contributes $-f(x)\cdot1$. Statement I is true, II is false (it misses the factor 2).</p>`, 'Multiply by the derivative of each limit.'),
+  S(4, 'inequalities', XR`$\displaystyle\int_0^1x^{2024}\,dx<\int_0^1x^{2023}\,dx$.`, XR`$x^{2024}\le x^{2023}$ for $0\le x\le1$.`, 0,
+    XR`<p>II is true because $x^{2023}(x-1)\le0$. Then $\int_0^1x^{2024}dx=\dfrac1{2025}<\dfrac1{2024}=\int_0^1x^{2023}dx$: I is true, and II is the reason.</p>`, 'Higher powers are smaller on [0, 1].'),
+  S(5, 'periodic functions', XR`$\displaystyle\int_0^{2\pi}f(\sin x)\,dx=2\int_0^{\pi}f(\sin x)\,dx$ for every continuous $f$.`, XR`$\displaystyle\int_0^{2\pi}f(\cos x)\,dx=2\int_0^{\pi}f(\cos x)\,dx$ for every continuous $f$.`, 2,
+    XR`<p>II is true: $\cos(2\pi-x)=\cos x$, so the integrand is symmetric about $x=\pi$. I is false: $\sin(2\pi-x)=-\sin x$; for $f(t)=t$, the left side is $0$ and the right side is $2\cdot2=4$.</p>`, 'sin changes sign across x = π, cos does not mirror it.'),
+  SC(5, 'mixed properties', ['If $f$ is continuous and $\\displaystyle\\int_a^bf\\,dx=0$ then $f(c)=0$ for some $c\\in[a,b]$.', '$\\left|\\displaystyle\\int_a^bf\\,dx\\right|\\le\\displaystyle\\int_a^b|f|\\,dx$.', 'If $f\\le g$ on $[a,b]$ then $\\displaystyle\\int_a^bf\\le\\int_a^bg$.', '$\\displaystyle\\int_0^{2a}f(x)\\,dx=2\\int_0^af(x)\\,dx$ for every continuous $f$.'], '3', ['1', '2', '4'],
+    XR`<p>(1) true (the intermediate value argument). (2) true. (3) true (monotonicity of the integral). (4) false: it needs $f(2a-x)=f(x)$. Three are correct.</p>`, 'The last needs a symmetry condition.'),
+  MT(4, 'powers of sine', 'xm2', 'A-p, B-r, C-q, D-s', ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-p, B-q, C-r, D-s'],
+    XR`<p>A: odd function: $0$. B: $\int_0^\pi\sin^3=2\int_0^{\pi/2}\sin^3=2\cdot\dfrac23=\dfrac43$. C: $\dfrac23$. D: $|\sin^3x|$ has period $\pi$, and over $[0,2\pi]$ gives twice $\dfrac43=\dfrac83$.</p>`, '|sin³ x| is positive everywhere.'),
+  MT(4, 'derivatives of integrals', 'xm4', 'A-s, B-p, C-r, D-q', ['A-s, B-p, C-q, D-r', 'A-p, B-s, C-r, D-q', 'A-s, B-r, C-p, D-q'],
+    XR`<p>A: $e^{x^2}$ at $1$: $e$. B: $f(t)=t$: $x^2\cdot2x-x\cdot1=2x^3-x$, at $1$: $1$. C: $\dfrac1{x^3}\cdot3x^2=\dfrac3x$: $3$. D: $\int_{-x}^xt^2dt=\dfrac{2x^3}3$, derivative $2x^2=2$.</p>`, 'Evaluate after differentiating.'),
+  MT(4, 'Wallis and Beta values', 'xm5', 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    XR`<p>A: $\dfrac{3\cdot1}{4\cdot2}\cdot\dfrac\pi2=\dfrac{3\pi}{16}$. B: $\dfrac{4\cdot2}{5\cdot3}=\dfrac8{15}$. C: $\dfrac{1!\,3!}{5!}=\dfrac1{20}$. D: $\dfrac{1\cdot1}{4\cdot2}\cdot\dfrac\pi2=\dfrac\pi{16}$.</p>`, 'For two even powers there is a π.'),
+  MT(4, 'mean values', 'xm8', 'A-r, B-q, C-p, D-s', ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-r, B-p, C-q, D-s'],
+    XR`<p>Mean value $=\dfrac1\pi\int_0^\pi f$. A: $\dfrac2\pi$. B: $\dfrac1\pi\cdot\dfrac\pi2=\dfrac12$. C: $0$. D: $\dfrac1\pi\cdot\dfrac{\pi^2}2=\dfrac\pi2$.</p>`, 'Divide the integral by the length π.'),
+  // ---- passages ----
+  PI(3, 'integral functions', 'xp1', XR`Find $g(6)$.`, 18,
+    XR`<p>$g(x)=\dfrac{x^3}3-\dfrac{3x^2}2$. $g(6)=72-54=18$.</p>`, 'Expand t(t − 3) first.', () => simp((t) => t * (t - 3), 0, 6)),
+  PN(4, 'integral functions', 'xp1', XR`Find the least value of $g$ on $[0,6]$ (1 decimal place).`, -4.5, 0.05,
+    XR`<p>$g'(x)=x(x-3)$ is negative on $(0,3)$ and positive after, so $g$ decreases until $x=3$ and then increases. The least value is $g(3)=9-\dfrac{27}2=-4.5$ (the endpoints give $g(0)=0$, $g(6)=18$).</p>`, 'Compare with the endpoints.', () => simp((t) => t * (t - 3), 0, 3)),
+  PI(5, 'integral functions', 'xp1', XR`How many $x\in[0,6]$ satisfy $g(x)=0$?`, 2,
+    XR`<p>$g(x)=\dfrac{x^2}6(2x-9)$, which is $0$ at $x=0$ and $x=4.5$. Both lie in $[0,6]$: $2$ solutions.</p>`, 'x = 0 counts.', () => 2),
+  PI(4, 'King\'s rule', 'xp2', XR`Find $\displaystyle\int_1^5f(x)\,dx$.`, 2,
+    XR`<p>Let $I=\int_1^5\dfrac{\ln(6-x)}{\ln x+\ln(6-x)}dx$. Replace $x$ by $6-x$: $I=\int_1^5\dfrac{\ln x}{\ln(6-x)+\ln x}dx$. Adding the two forms: $2I=\int_1^51\,dx=4$, so $I=2$.</p>`, 'The two forms add to the integral of 1.', () => simp((x) => Math.log(6 - x) / (Math.log(x) + Math.log(6 - x)), 1, 5)),
+  PI(5, 'King\'s rule', 'xp2', XR`Find $\displaystyle\int_1^5\frac{3\ln x+5\ln(6-x)}{\ln x+\ln(6-x)}\,dx$.`, 16,
+    XR`<p>The integral of $\dfrac{\ln x}{\ln x+\ln(6-x)}$ over $[1,5]$ is $2$ (by the same pairing), and so is the integral of $\dfrac{\ln(6-x)}{\ldots}$. The required integral is $3\cdot2+5\cdot2=16$.</p>`, 'Each part is worth half the length of the interval.', () => simp((x) => (3 * Math.log(x) + 5 * Math.log(6 - x)) / (Math.log(x) + Math.log(6 - x)), 1, 5)),
+  PM(5, 'King\'s rule', 'xp2', XR`$\displaystyle\int_1^5\frac{\ln x-\ln(6-x)}{\ln x+\ln(6-x)}\,dx$ equals`, '$0$', ['$2$', '$4$', '$-2$'],
+    XR`<p>This is $\int\dfrac{\ln x}{\ldots}-\int\dfrac{\ln(6-x)}{\ldots}=2-2=0$. Equivalently, under $x\to6-x$ the integrand changes sign, so the integral equals its own negative.</p>`, 'The integrand is odd about x = 3.'),
+);
+gens.push(
+  GX('di-g23', 3, 'nat', 'numeric', 'Wallis formula', (rng) => {
+    const m = int(rng, 1, 6), n = int(rng, 0, 6); const dfac = (k) => { let r = 1; for (let i = k; i > 1; i -= 2) r *= i; return r; };
+    const val = (dfac(m - 1) * dfac(n - 1)) / dfac(m + n) * (m % 2 === 0 && n % 2 === 0 ? Math.PI / 2 : 1);
+    const both = m % 2 === 0 && n % 2 === 0;
+    return { m, n, answer: +val.toFixed(4), tol: 0.0005, q: XR`Find $\displaystyle\int_0^{\pi/2}\sin^{${m}}x\cos^{${n}}x\,dx$ (4 decimal places).`,
+      sol: XR`<p>Wallis formula with $m=${m}$, $n=${n}$: $\dfrac{(${m - 1})!!\,(${n - 1})!!}{(${m + n})!!}${both ? '\\cdot\\dfrac\\pi2' : ''}\approx${val.toFixed(4)}$. ${both ? 'Both powers are even, so $\\frac\\pi2$ appears.' : 'At least one power is odd, so there is no $\\pi$.'} (Here $k!!$ is the product $k(k-2)(k-4)\\cdots$ down to 1 or 2, with $(-1)!!=(0)!!=1$.)</p>` };
+  }, (p) => simp((x) => Math.sin(x) ** p.m * Math.cos(x) ** p.n, 0, Math.PI / 2)),
+  GX('di-g24', 3, 'nat', 'integer', 'greatest integer function', (rng) => {
+    const k = int(rng, 4, 12), c = int(rng, 1, 3);
+    return { k, c, answer: c * k * (k - 1) / 2, tol: 0, q: XR`Find $\displaystyle\int_0^{${k}}${c === 1 ? '' : c}[x]\,dx$, where $[x]$ is the greatest integer function.`,
+      sol: XR`<p>On $[j,j+1)$ the integrand is $${c === 1 ? '' : c + '\\cdot '}j$. So the integral is $${c === 1 ? '' : c + '\\cdot '}(0+1+\dots+${k - 1})=${c === 1 ? '' : c + '\\cdot ' + k * (k - 1) / 2 + '='}${c * k * (k - 1) / 2}$.</p>` };
+  }, (p) => { let s = 0; for (let j = 0; j < p.k; j++) s += p.c * j; return s; }),
+  GX('di-g25', 4, 'nat', 'numeric', 'King\'s rule', (rng) => {
+    const a = int(rng, 1, 4), b = a + int(rng, 2, 6), pw = int(rng, 1, 3); const ans = (b - a) / 2;
+    return { a, b, pw, answer: ans, tol: 0.01, q: XR`Find $\displaystyle\int_{${a}}^{${b}}\frac{x^{${pw}}}{x^{${pw}}+(${a + b}-x)^{${pw}}}\,dx$ (2 decimal places).`,
+      sol: XR`<p>Here $a+b=${a + b}$. Let $I$ be the integral. Replacing $x$ by $${a + b}-x$ gives $I=\int_{${a}}^{${b}}\dfrac{(${a + b}-x)^{${pw}}}{(${a + b}-x)^{${pw}}+x^{${pw}}}dx$. Adding the two forms: $2I=\int_{${a}}^{${b}}1\,dx=${b - a}$, so $I=${ans}$.</p>` };
+  }, (p) => simp((x) => x ** p.pw / (x ** p.pw + (p.a + p.b - x) ** p.pw), p.a, p.b)),
+  GX('di-g26', 4, 'nat', 'integer', 'odd functions', (rng) => {
+    const a = choose(rng, [3, 6]); const c0 = int(rng, 1, 5), c1 = int(rng, 1, 6), c2 = int(rng, 1, 4), c3 = int(rng, 1, 5);
+    const ans = 2 * (c0 * a + c2 * a ** 3 / 3);
+    return { a, c0, c1, c2, c3, answer: ans, tol: 0, q: XR`Find $\displaystyle\int_{-${a}}^{${a}}\left(${c3}x^3+${c2}x^2+${c1}x+${c0}\right)dx$.`,
+      sol: XR`<p>The terms $${c3}x^3$ and $${c1}x$ are odd and integrate to $0$. The even part gives $2\int_0^{${a}}(${c2}x^2+${c0})dx=2\left[\dfrac{${c2}x^3}3+${c0}x\right]_0^{${a}}=2\left(${c2 * a ** 3 / 3}+${c0 * a}\right)=${ans}$.</p>` };
+  }, (p) => Math.round(rie((x) => p.c3 * x ** 3 + p.c2 * x ** 2 + p.c1 * x + p.c0, -p.a, p.a, 200000))),
+  GX('di-g27', 4, 'mcq', 'single', 'Leibniz rule', (rng) => {
+    const c = int(rng, 1, 2), k = int(rng, 1, 4); const f = (t) => t * t + k;
+    const Fp = (x) => 2 * x * f(x * x) - f(x); const ok = Fp(c);
+    const wrongs = [f(c * c) - f(c), 2 * c * f(c * c), 2 * c * f(c * c) + f(c)];
+    const { options, answer } = shuffleOpts(rng, `${ok}`, wrongs.map(String));
+    return { c, k, ok, options, answer, q: XR`$F(x)=\displaystyle\int_x^{x^2}(t^2+${k})\,dt$. Then $F'(${c})$ equals`,
+      sol: XR`<p>Leibniz rule: $F'(x)=f(x^2)\cdot2x-f(x)\cdot1$ with $f(t)=t^2+${k}$. So $F'(x)=2x(x^4+${k})-(x^2+${k})$. At $x=${c}$: $${2 * c}(${c ** 4 + k})-(${c * c + k})=${ok}$.</p>` };
+  }, (p) => { const F = (x) => simp((t) => t * t + p.k, x, x * x, 2000); const d = (F(p.c + 1e-4) - F(p.c - 1e-4)) / 2e-4; return Math.abs(d - p.ok) < 1e-4 ? p.answer : -1; }),
+  GX('di-g28', 4, 'nat', 'numeric', 'area between curves', (rng) => {
+    const a = int(rng, 2, 7); const ans = a ** 3 / 6;
+    return { a, answer: +ans.toFixed(3), tol: 0.01, q: XR`Find the area enclosed by $y=x^2$ and $y=${a}x$ (2 decimal places).`,
+      sol: XR`<p>They meet where $x^2=${a}x$, i.e. $x=0$ and $x=${a}$. Area $=\int_0^{${a}}(${a}x-x^2)\,dx=\dfrac{${a}\cdot${a * a}}2-\dfrac{${a ** 3}}3=\dfrac{${a ** 3}}6\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => simp((x) => p.a * x - x * x, 0, p.a)),
+  GX('di-g29', 4, 'nat', 'integer', 'periodic functions', (rng) => {
+    const n = int(rng, 2, 25), k = int(rng, 1, 5);
+    return { n, k, answer: 2 * n, tol: 0, q: XR`Find $\displaystyle\int_0^{${n}\pi}|\sin ${k === 1 ? '' : k}x|\,dx$.`,
+      sol: XR`<p>The function $|\sin ${k === 1 ? '' : k}x|$ has ${k} equal humps on $[0,\pi]$, each of area $\dfrac2${k}$, so $\int_0^\pi|\sin ${k === 1 ? '' : k}x|\,dx=2$. The interval $[0,${n}\pi]$ holds ${n} such blocks: $2\cdot${n}=${2 * n}$.</p>` };
+  }, (p) => Math.round(simp((x) => Math.abs(Math.sin(p.k * x)), 0, p.n * Math.PI, 400000))),
+  GX('di-g30', 5, 'nat', 'numeric', 'King\'s rule', (rng) => {
+    const a = choose(rng, [1, 2, 3, 4]); const ans = Math.PI * Math.atan(1 / Math.sqrt(a)) / Math.sqrt(a);
+    return { a, answer: +ans.toFixed(3), tol: 0.01, q: XR`Find $\displaystyle\int_0^\pi\frac{x\sin x}{${a}+\cos^2x}\,dx$ (2 decimal places).`,
+      sol: XR`<p>Use $x\to\pi-x$: $I=\dfrac\pi2\int_0^\pi\dfrac{\sin x}{${a}+\cos^2x}dx$. With $u=\cos x$: $\int_{-1}^{1}\dfrac{du}{${a}+u^2}=\dfrac2{\sqrt{${a}}}\tan^{-1}\dfrac1{\sqrt{${a}}}$. So $I=\dfrac{\pi}{\sqrt{${a}}}\tan^{-1}\dfrac1{\sqrt{${a}}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => simp((x) => x * Math.sin(x) / (p.a + Math.cos(x) ** 2), 0, Math.PI)),
+  GX('di-g31', 3, 'mcq', 'single', 'modulus integrand', (rng) => {
+    const a = int(rng, 0, 3), c = a + int(rng, 1, 4), b = c + int(rng, 1, 4); const ans = ((c - a) ** 2 + (b - c) ** 2) / 2;
+    const { options, answer } = shuffleOpts(rng, fmt(ans), [fmt((b - a) ** 2 / 2), fmt(0), fmt(((c - a) ** 2 - (b - c) ** 2) / 2 === ans ? ans + 1 : ((c - a) ** 2 - (b - c) ** 2) / 2)]);
+    return { a, b, c, ans, options, answer, q: XR`$\displaystyle\int_{${a}}^{${b}}|x-${c}|\,dx$ equals`,
+      sol: XR`<p>The graph of $|x-${c}|$ makes two triangles: one on $[${a},${c}]$ with area $\dfrac{(${c - a})^2}2$ and one on $[${c},${b}]$ with area $\dfrac{(${b - c})^2}2$. Total $=${fmt(ans)}$.</p>` };
+  }, (p) => (Math.abs(rie((x) => Math.abs(x - p.c), p.a, p.b, 100000) - p.ans) < 1e-3 ? p.answer : -1)),
+);
+
+}
+// ==XP-END
 export default { topic: 'definite-integrals', groups, items, gens };

@@ -289,6 +289,179 @@ const items = [
     q: 'Which measurement contributes the larger share to the error in the volume?',
     options: ['The length, because it is the longest quantity', 'The diameter, because it appears squared and is the smaller measurement', 'Both equally', 'Neither, since the least counts are small'],
     sol: r`The diameter contributes $2\times0.704 = 1.41\%$, while the length contributes only $0.2\%$. A small quantity measured with a fixed least count has a big relative error, and the square doubles it.`, trap: 'Small quantities carry larger relative errors even if the instrument is more precise.' },
+
+  // ================= Added 2026-11-22: harder and more varied questions =================
+  // ---------- Level 2 ----------
+  mcq(2, 'dimensions', r`The coefficient of viscosity $\eta$ has the dimensions`, r`$[ML^{-1}T^{-1}]$`, [r`$[MLT^{-1}]$`, r`$[ML^{-1}T^{-2}]$`, r`$[MT^{-2}]$`],
+    r`From Stokes' law $F = 6\pi\eta rv$, $\eta = F/(rv) = [MLT^{-2}]/([L][LT^{-1}]) = [ML^{-1}T^{-1}]$. $[ML^{-1}T^{-2}]$ is pressure and $[MT^{-2}]$ is surface tension.`),
+  mcq(2, 'dimensions', r`Surface tension has the same dimensions as`, 'spring constant', ['force', 'pressure', 'energy'],
+    r`Surface tension is force per unit length, $[MLT^{-2}]/[L] = [MT^{-2}]$. The spring constant is force per unit extension, also $[MT^{-2}]$. Force is $[MLT^{-2}]$, pressure is $[ML^{-1}T^{-2}]$ and energy is $[ML^{2}T^{-2}]$.`),
+  nat(2, 'SI units', r`Light takes how many minutes to travel $1\ \mathrm{AU} = 1.5\times10^{11}$ m? Use $c = 3\times10^{8}$ m/s. Give the answer to 2 decimals.`, 8.33, 0.01,
+    r`Time $= d/c = 1.5\times10^{11}/3\times10^{8} = 500$ s. In minutes, $500/60 = 8.33$ min.`, { unit: 'min', calc: () => 1.5e11 / 3e8 / 60 }),
+  nat(2, 'significant figures', r`The product $12.5 \times 0.40$ is worked out on a calculator. How many significant figures should the answer have?`, 2, 0,
+    r`In a product the answer keeps as many significant figures as the factor with the fewest. $12.5$ has 3 and $0.40$ has 2, so the answer ($5.0$) keeps 2.`, { trap: 'Counting decimal places (as for addition) instead of significant figures.' }),
+  mcq(2, 'vernier', r`A vernier caliper has $1\ \mathrm{MSD} = 1$ mm and $10\ \mathrm{VSD} = 9$ mm. With the jaws closed, the vernier zero lies just to the <b>left</b> of the main zero and the 6th vernier division coincides with a main scale line. A rod reads main scale $12$ mm and vernier $3$. The correct length is`, '12.7 mm', ['12.3 mm', '11.9 mm', '12.9 mm'],
+    r`LC $= 0.1$ mm. The vernier zero is left of the main zero, so the error is negative: $-(10-6)\times0.1 = -0.4$ mm. Observed length $= 12 + 3\times0.1 = 12.3$ mm. Correct length $=$ observed $-$ error $= 12.3 + 0.4 = 12.7$ mm.`, { trap: 'For a negative zero error the correction is <i>added</i>.' }),
+  mcq(2, 'unit conversion', r`Which of the following is <b>not</b> a unit of energy?`, 'kilowatt', ['electron volt', 'kilowatt hour', 'newton metre'],
+    r`A kilowatt is a unit of power (energy per time). The eV, the kWh and the N m are all units of energy ($1\ \mathrm{N\,m} = 1$ J).`),
+
+  // ---------- Level 3 ----------
+  mcq(3, 'dimensions', r`The quantity $h/(mc)$, where $h$ is Planck's constant, $m$ a mass and $c$ the speed of light, has the dimensions of`, 'length', ['time', 'velocity', 'momentum'],
+    r`$[h] = [ML^2T^{-1}]$. So $h/(mc) = [ML^2T^{-1}]/([M][LT^{-1}]) = [L]$. It is the Compton wavelength of the particle.`),
+  mcq(3, 'dimensions', r`In the law $P = \sigma A T^{4}$ for the power radiated by a black body of area $A$ at temperature $T$, the dimensions of the Stefan constant $\sigma$ are`, r`$[MT^{-3}K^{-4}]$`, [r`$[ML^{2}T^{-3}K^{-4}]$`, r`$[MT^{-2}K^{-4}]$`, r`$[ML^{2}T^{-2}K^{-4}]$`],
+    r`$\sigma = P/(AT^4) = [ML^2T^{-3}]/([L^2][K^4]) = [MT^{-3}K^{-4}]$.`, { trap: 'Forgetting to divide by the area $[L^2]$.' }),
+  mcq(3, 'dimensions', r`The Boltzmann constant $k_B$ appears in $E = k_BT$. Its dimensions are`, r`$[ML^{2}T^{-2}K^{-1}]$`, [r`$[ML^{2}T^{-2}]$`, r`$[MLT^{-2}K^{-1}]$`, r`$[ML^{2}T^{-1}K^{-1}]$`],
+    r`$k_B = E/T = [ML^2T^{-2}]/[K] = [ML^2T^{-2}K^{-1}]$.`),
+  nat(3, 'errors', r`The density of a solid sphere is found from $\rho = 6m/(\pi d^{3})$. The mass has a $1\%$ error and the diameter a $0.5\%$ error. Find the maximum percentage error in $\rho$.`, 2.5, 0.01,
+    r`$\dfrac{\Delta\rho}{\rho} = \dfrac{\Delta m}{m} + 3\dfrac{\Delta d}{d} = 1 + 3(0.5) = 2.5\%$.`, { unit: '%', calc: () => 1 + 3 * 0.5, trap: 'The cube on $d$ triples its error.' }),
+  nat(3, 'errors', r`Two resistors $R_1 = 50\pm1\ \Omega$ and $R_2 = 25\pm1\ \Omega$ are joined in series. Find the percentage error in the equivalent resistance (2 decimals).`, 2.67, 0.01,
+    r`$R = 75\ \Omega$ and the absolute errors add: $\Delta R = 1+1 = 2\ \Omega$. Percentage error $= 2/75\times100 = 2.67\%$.`, { unit: '%', calc: () => 2 / 75 * 100 }),
+  mcq(3, 'significant figures', r`A balance reads $4.237$ g with an uncertainty of $0.05$ g. The result is correctly reported as`, r`$4.24\pm0.05$ g`, [r`$4.237\pm0.05$ g`, r`$4.2\pm0.05$ g`, r`$4\pm0.05$ g`],
+    r`A result should be written to the same decimal place as its uncertainty. The uncertainty $0.05$ is in the second decimal, so $4.237$ is rounded to $4.24$.`),
+  nat(3, 'significant figures', r`The sum $12.11 + 18.0 + 1.013$ is worked out. To how many decimal places should the answer be given?`, 1, 0,
+    r`In a sum, the answer is limited by the number with the fewest decimal places. $18.0$ has one, so the sum $31.123$ is rounded to $31.1$: 1 decimal place.`, { trap: 'Using significant figures (the rule for products) instead of decimal places.' }),
+  mcq(3, 'unit conversion', r`The gravitational constant is $6.67\times10^{-11}\ \mathrm{N\,m^{2}\,kg^{-2}}$. In CGS units ($\mathrm{dyne\,cm^{2}\,g^{-2}}$) its value is`, r`$6.67\times10^{-8}$`, [r`$6.67\times10^{-14}$`, r`$6.67\times10^{-5}$`, r`$6.67\times10^{-11}$`],
+    r`$G$ has dimensions $[M^{-1}L^{3}T^{-2}]$. $1\ \mathrm{m^3} = 10^{6}\ \mathrm{cm^3}$ and $1\ \mathrm{kg}^{-1} = 10^{-3}\ \mathrm{g^{-1}}$. So the number is multiplied by $10^{6}\times10^{-3} = 10^{3}$: $6.67\times10^{-11}\times10^{3} = 6.67\times10^{-8}$.`),
+  nat(3, 'unit conversion', r`Express $g = 9.8\ \mathrm{m\,s^{-2}}$ in $\mathrm{km\,h^{-2}}$. Give the nearest whole number.`, 127008, 50,
+    r`$1\ \mathrm{m} = 10^{-3}$ km and $1\ \mathrm{s} = 1/3600$ h, so $1\ \mathrm{s^{-2}} = 3600^{2}\ \mathrm{h^{-2}} = 1.296\times10^{7}\ \mathrm{h^{-2}}$. Then $g = 9.8\times10^{-3}\times1.296\times10^{7} = 127\,008\ \mathrm{km\,h^{-2}}$.`, { unit: 'km/h²', calc: () => 9.8e-3 * 3600 ** 2, trap: 'The time conversion factor must be squared.' }),
+  mcq(3, 'dimensions', r`If $E$ is the electric field and $B$ the magnetic field, the ratio $E/B$ has the dimensions of`, 'velocity', ['acceleration', 'momentum', 'force'],
+    r`The magnetic force is $qvB$ and the electric force is $qE$, so $E$ and $vB$ have the same dimensions. Hence $E/B = [LT^{-1}]$, a velocity (in an electromagnetic wave it is the speed $c$).`),
+  mcq(3, 'SI units', r`A star shows a parallax angle of $0.5$ arc-second. Its distance is`, '2 parsec', ['0.5 parsec', '5 parsec', '0.2 parsec'],
+    r`By definition, a star at 1 parsec has a parallax of 1 arc-second, so $d\ (\mathrm{pc}) = 1/p\ (\text{arcsec}) = 1/0.5 = 2$ pc. A smaller parallax means a larger distance.`),
+  asrt(3, 'dimensional analysis', r`Dimensional analysis cannot be used to derive $s = ut + \tfrac12at^{2}$.`, r`The method assumes the quantity is a single product of powers of the variables, and it cannot handle a sum of terms.`, 0,
+    r`Both are true and R explains A. The sum of two terms (each with the dimensions of length) cannot be produced by a single product-of-powers assumption, so only a check (not a derivation) is possible.`),
+  stm(3, 'dimensions', r`Planck's constant has the same dimensions as angular momentum.`, r`The energy of a photon is $E = hf$ and the energy of a body rotating at angular speed $\omega$ is $\tfrac12I\omega^2$, so $h \sim I\omega$.`, 0,
+    r`$[h] = [E]/[f] = [ML^2T^{-2}]/[T^{-1}] = [ML^2T^{-1}]$ and $[L] = [mvr] = [ML^2T^{-1}]$, so Statement I is true. Statement II is also true: $I\omega$ has dimensions $[ML^2T^{-1}]$. Both true.`),
+  stm(3, 'dimensions', r`Torque and work have the same dimensions.`, r`Torque and work are both scalar quantities.`, 2,
+    r`Both are $[ML^2T^{-2}]$, so I is true. Torque is a vector ($\vec r\times\vec F$) while work is a scalar, so II is false.`, { trap: 'Same dimensions does not mean same kind of quantity.' }),
+  { id: nid(), type: 'mcq', level: 3, format: 'match', exams: EX[3], sub: 'dimensions', group: 'm4',
+    q: 'Match each constant or coefficient in List I with its dimensions in List II.',
+    options: ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-p, C-r, D-s', 'A-s, B-r, C-p, D-q'], answer: 0,
+    sol: r`Viscosity: $[ML^{-1}T^{-1}]$ (q). Surface tension: $[MT^{-2}]$ (r). Planck constant: $[ML^2T^{-1}]$ (p). Boltzmann constant: $[ML^2T^{-2}K^{-1}]$ (s). So A-q, B-r, C-p, D-s.` },
+  { id: nid(), type: 'mcq', level: 3, format: 'match', exams: EX[3], sub: 'SI units', group: 'm5',
+    q: 'Match each SI derived unit in List I with an equivalent expression in List II.',
+    options: ['A-p, B-q, C-r, D-s', 'A-s, B-r, C-p, D-q', 'A-s, B-q, C-p, D-r', 'A-r, B-s, C-q, D-p'], answer: 1,
+    sol: r`Henry: $\mathrm{V\,s\,A^{-1}}$ (s), since $\varepsilon = L\,dI/dt$. Tesla: $\mathrm{Wb\,m^{-2}}$ (r), flux per area. Weber: $\mathrm{V\,s}$ (p), since $\varepsilon = d\Phi/dt$. Farad: $\mathrm{C\,V^{-1}}$ (q), since $C = Q/V$. So A-s, B-r, C-p, D-q.` },
+  { id: nid(), type: 'mcq', level: 3, format: 'match', exams: EX[3], sub: 'significant figures', group: 'm6',
+    q: 'Match each number in List I with the number of significant figures in List II.',
+    options: ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-s, D-p', 'A-r, B-s, C-q, D-p', 'A-r, B-q, C-p, D-s'], answer: 0,
+    sol: r`$0.0120$: the digits 1, 2 and the trailing 0 give 3 (r). $5.0\times10^{3}$: 2 (q). $100.0$: the zeros are between and after the decimal point, so 4 (s). $0.0007$: only the 7 counts, so 1 (p). So A-r, B-q, C-s, D-p.` },
+  { id: nid(), type: 'mcq', level: 3, format: 'match', exams: EX[3], sub: 'SI units', group: 'm8',
+    q: 'Match each length unit in List I with its size in List II.',
+    options: ['A-q, B-s, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'], answer: 1,
+    sol: r`1 parsec $\approx 3.08\times10^{16}$ m (q). 1 AU $\approx 1.5\times10^{11}$ m (s). 1 fermi $=10^{-15}$ m (r). 1 angstrom $=10^{-10}$ m (p). So A-q, B-s, C-r, D-p.` },
+  { id: nid(), type: 'nat', level: 3, format: 'passage', exams: EX[3], sub: 'errors', group: 'p3',
+    q: 'Find the resistance $R = V/I$ in ohm (one decimal place).', answer: 12, tol: 0.05, unit: 'Ω',
+    sol: r`$R = 6.0/0.50 = 12.0\ \Omega$.`, calc: () => 6.0 / 0.5 },
+  { id: nid(), type: 'nat', level: 4, format: 'passage', exams: EX[4], sub: 'errors', group: 'p3',
+    q: 'Find the maximum percentage error in $R$ (2 decimals).', answer: 3.67, tol: 0.02, unit: '%',
+    sol: r`$\Delta V/V = 0.1/6.0 = 1.667\%$ and $\Delta I/I = 0.01/0.50 = 2\%$. For a quotient the relative errors add: $1.667 + 2 = 3.67\%$.`, calc: () => 0.1 / 6 * 100 + 0.01 / 0.5 * 100, trap: 'Subtracting the errors because $R$ is a ratio.' },
+  mcq(4, 'significant figures', r`Using the passage data, the best way to write the result is`, r`$R = 12.0\pm0.4\ \Omega$`, [r`$R = 12\pm0.44\ \Omega$`, r`$R = 12.00\pm0.4\ \Omega$`, r`$R = 12\pm4\ \Omega$`],
+    r`$\Delta R = 0.0367\times12.0 = 0.44\ \Omega$. An uncertainty is normally kept to 1 significant figure: $0.4$. The result is then written to the same decimal place: $12.0$. So $12.0\pm0.4\ \Omega$.`, { group: 'p3', format: 'passage' }),
+
+  // ---------- Level 4 ----------
+  msq(4, 'dimensional analysis', r`Which of the following pairs have the <b>same</b> dimensions?`,
+    ['Latent heat per unit mass and (speed)<sup>2</sup>', 'Surface tension and spring constant', 'Torque and angular momentum', 'Gravitational potential and specific heat capacity'], [0, 1],
+    r`Latent heat per unit mass is $\mathrm{J/kg} = [L^2T^{-2}]$, same as speed squared (A true). Surface tension and spring constant are both $[MT^{-2}]$ (B true). Torque is $[ML^2T^{-2}]$ and angular momentum $[ML^2T^{-1}]$ (C false). Gravitational potential is $[L^2T^{-2}]$ but specific heat is $[L^2T^{-2}K^{-1}]$ (D false).`, { trap: 'Specific heat capacity carries a $K^{-1}$.' }),
+  msq(4, 'errors', r`$a = 20.0\pm0.2$ and $b = 15.0\pm0.1$. For $x = a - b$, which statements are correct?`,
+    [r`The absolute error in $x$ is $0.3$`, r`The percentage error in $x$ is $6\%$`, r`The absolute error in $x$ is $0.1$`, r`The relative error in $x$ is smaller than that in $a$`], [0, 1],
+    r`Absolute errors add even for a difference: $0.2+0.1 = 0.3$ (A true, C false). $x = 5.0$, so the relative error is $0.3/5.0 = 6\%$ (B true). The relative error in $a$ is only $1\%$, so the error in $x$ is larger (D false).`, { trap: 'Subtraction makes the relative error worse.' }),
+  msq(4, 'dimensional analysis', r`Which of the following are dimensionless? ($\rho$ density, $v$ speed, $\eta$ viscosity, $d$ length, $\sigma$ surface tension, $h$ height)`,
+    [r`$\rho v d/\eta$`, r`$v^{2}/(gh)$`, r`$\sigma/(\rho g d^{2})$`, r`$\eta v d/\sigma$`], [0, 1, 2],
+    r`A: $(ML^{-3})(LT^{-1})(L)/(ML^{-1}T^{-1}) = 1$ (Reynolds number). B: $L^2T^{-2}/(LT^{-2}\cdot L) = 1$. C: $[MT^{-2}]/[ML^{-3}\cdot LT^{-2}\cdot L^{2}] = 1$. D: $(ML^{-1}T^{-1})(LT^{-1})(L)/[MT^{-2}] = [L]$, so not dimensionless ($\eta v/\sigma$ would be).`),
+  msq(4, 'screw gauge', r`A screw gauge has pitch 1 mm and 100 circular divisions. With the jaws closed, the reading is $+7$ divisions. A wire reads $3$ mm on the main scale and $45$ on the circular scale. Which statements are correct?`,
+    ['The least count is 0.01 mm', 'The zero error is +0.07 mm', 'The correct diameter is 3.38 mm', 'The correct diameter is 3.52 mm'], [0, 1, 2],
+    r`LC $= 1/100 = 0.01$ mm (A true). The zero error is $+7\times0.01 = +0.07$ mm (B true). Observed $= 3 + 0.45 = 3.45$ mm, so the correct diameter is $3.45 - 0.07 = 3.38$ mm (C true, D false: that would be adding the error).`),
+  msq(4, 'SI units', r`Which of the following equivalences are correct?`,
+    [r`$1\ \mathrm{T} = 1\ \mathrm{N\,A^{-1}\,m^{-1}}$`, r`$1\ \mathrm{H} = 1\ \mathrm{Wb\,A^{-1}}$`, r`$1\ \mathrm{F} = 1\ \mathrm{C^{2}\,J^{-1}}$`, r`$1\ \mathrm{Pa\,s} = 1\ \mathrm{N\,m^{-2}\,s^{-1}}$`], [0, 1, 2],
+    r`From $F = BIl$: $B = F/(Il)$ in $\mathrm{N\,A^{-1}\,m^{-1}}$ (A). $\Phi = LI$ gives H $=$ Wb/A (B). $C = Q/V$ and $V = J/C$, so F $=\mathrm{C^2/J}$ (C). The unit of viscosity is Pa s $=\mathrm{N\,m^{-2}\,s}$ (with $s$ in the numerator), so D is false.`, { trap: 'Viscosity unit has seconds in the numerator.' }),
+  nat(4, 'dimensional analysis', r`The magnetic field has dimensions $[M^{a}T^{b}A^{c}]$ (mass, time, current). Find $a+b+c$.`, -2, 0,
+    r`From $F = qvB$ with $q = AT$: $[MLT^{-2}] = [AT][LT^{-1}][B]$, so $[B] = [MT^{-2}A^{-1}]$. Then $a = 1$, $b = -2$, $c = -1$ and $a+b+c = -2$.`, { calc: () => 1 - 2 - 1 }),
+  nat(4, 'dimensional analysis', r`The Stefan constant has dimensions $[M^{a}T^{b}K^{c}]$. Find the product $abc$.`, 12, 0,
+    r`$\sigma = P/(AT^4) = [ML^2T^{-3}]/([L^2][K^4]) = [MT^{-3}K^{-4}]$, so $a = 1, b = -3, c = -4$ and $abc = 12$.`, { calc: () => 1 * -3 * -4 }),
+  nat(4, 'errors', r`The specific heat is found from $s = Q/(m\,\Delta T)$ with $Q = 4000\pm40$ J, $m = 0.50\pm0.01$ kg and $\Delta T = 10.0\pm0.5$ K. Find the maximum percentage error in $s$.`, 8, 0,
+    r`Relative errors add for a quotient: $40/4000 = 1\%$, $0.01/0.50 = 2\%$, $0.5/10.0 = 5\%$. Total $= 1+2+5 = 8\%$.`, { unit: '%', calc: () => 1 + 2 + 5 }),
+  nat(4, 'screw gauge', r`A screw gauge has pitch $0.5$ mm and 50 circular divisions. With the jaws closed, the 46th division is on the reference line (the zero is below the line). A wire reads $3.5$ mm on the main scale and $28$ on the circular scale. Find its correct diameter in mm (2 decimals).`, 3.82, 0.005,
+    r`LC $= 0.5/50 = 0.01$ mm. The zero is 4 divisions short of the line (46 of 50), so the zero error is $-4\times0.01 = -0.04$ mm. Observed $= 3.5 + 28\times0.01 = 3.78$ mm. Correct $= 3.78 - (-0.04) = 3.82$ mm.`, { unit: 'mm', calc: () => 3.5 + 0.28 + 0.04, trap: 'A reading just below the line is a negative zero error, so add the correction.' }),
+  nat(4, 'errors', r`Young's modulus is $Y = \dfrac{4FL}{\pi d^{2}\,l}$ where $F$, $L$, $d$ and the extension $l$ have percentage errors $1\%$, $0.5\%$, $1\%$ and $3\%$. Find the maximum percentage error in $Y$.`, 6.5, 0.01,
+    r`$\dfrac{\Delta Y}{Y} = \dfrac{\Delta F}{F} + \dfrac{\Delta L}{L} + 2\dfrac{\Delta d}{d} + \dfrac{\Delta l}{l} = 1 + 0.5 + 2 + 3 = 6.5\%$.`, { unit: '%', calc: () => 1 + 0.5 + 2 * 1 + 3 }),
+  nat(4, 'errors', r`$x = \dfrac{a}{b-c}$ with $a = 10.0\pm0.1$, $b = 6.0\pm0.1$ and $c = 4.0\pm0.1$. Find the percentage error in $x$.`, 11, 0,
+    r`$b - c = 2.0$ with absolute error $0.1+0.1 = 0.2$, a relative error of $10\%$. The error in $a$ is $1\%$. For a quotient the relative errors add: $1+10 = 11\%$.`, { unit: '%', calc: () => 0.1 / 10 * 100 + 0.2 / 2 * 100, trap: 'The difference $b-c$ is small, so its error dominates.' }),
+  nat(4, 'unit conversion', r`A system has units of length $0.5$ m, mass $4$ kg and time $2$ s. A quantity of $1$ joule is expressed in this system. Find its numerical value.`, 4, 0,
+    r`The unit of energy is $[ML^2T^{-2}] = 4\times(0.5)^2\times2^{-2} = 4\times0.25\times0.25 = 0.25$ J. So $1\ \mathrm{J} = 1/0.25 = 4$ units.`, { calc: () => 1 / (4 * 0.5 ** 2 / 2 ** 2) }),
+  nat(4, 'dimensional analysis', r`The escape speed depends on $G$, the mass $M$ and the radius $R$ as $v\propto G^{a}M^{b}R^{c}$. Find $a+b+c$.`, 0.5, 0.01,
+    r`Using $[G] = [M^{-1}L^3T^{-2}]$: time: $-2a = -1$, so $a = \tfrac12$. Mass: $-a + b = 0$, so $b = \tfrac12$. Length: $3a + c = 1$, so $c = -\tfrac12$. Sum $= \tfrac12+\tfrac12-\tfrac12 = 0.5$.`, { calc: () => 0.5 + 0.5 - 0.5 }),
+  nat(4, 'dimensional analysis', r`The intensity of a wave (power per unit area) has dimensions $[M^{a}L^{b}T^{c}]$. Find $a - c$.`, 4, 0,
+    r`Intensity $= [ML^2T^{-3}]/[L^2] = [MT^{-3}]$, so $a = 1$, $b = 0$, $c = -3$ and $a - c = 4$.`, { calc: () => 1 - -3 }),
+  nat(4, 'significant figures', r`How many of these numbers have exactly two significant figures? $0.050,\ 5.00\times10^{1},\ 3.0\times10^{-2},\ 0.0072,\ 8.10,\ 6\times10^{2}$`, 3, 0,
+    r`$0.050$: 5 and the trailing 0, so 2. $5.00\times10^1$: 3. $3.0\times10^{-2}$: 2. $0.0072$: 2. $8.10$: 3. $6\times10^2$: 1. Exactly two: $0.050$, $3.0\times10^{-2}$ and $0.0072$, so 3.`),
+  nat(4, 'vernier', r`A vernier caliper has $1\ \mathrm{MSD} = 0.5$ mm and 50 VSD $=$ 49 MSD. Find its least count in micrometres.`, 10, 0,
+    r`LC $= 1\ \mathrm{MSD}/50 = 0.5/50 = 0.01$ mm $= 10\ \mu$m.`, { unit: 'μm', calc: () => 0.5 / 50 * 1000 }),
+  nat(4, 'screw gauge', r`A screw gauge has pitch $0.75$ mm and 150 circular divisions. Find its least count in micrometres.`, 5, 0,
+    r`LC $= \text{pitch}/\text{divisions} = 0.75/150 = 0.005$ mm $= 5\ \mu$m.`, { unit: 'μm', calc: () => 0.75 / 150 * 1000 }),
+  nat(4, 'unit conversion', r`A $2$ hp pump runs for $3$ hours. With $1\ \mathrm{hp} = 746$ W, find the energy used in kWh (2 decimals).`, 4.48, 0.01,
+    r`Power $= 2\times746 = 1492$ W $= 1.492$ kW. Energy $= 1.492\times3 = 4.476\approx4.48$ kWh.`, { unit: 'kWh', calc: () => 2 * 0.746 * 3 }),
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'errors', group: 'm7',
+    q: 'The measured quantities $x$ and $y$ have percentage errors of $2\\%$ and $1\\%$. Match each expression in List I with the maximum percentage error in List II.',
+    options: ['A-r, B-p, C-q, D-s', 'A-s, B-p, C-q, D-r', 'A-s, B-q, C-p, D-r', 'A-p, B-s, C-q, D-r'], answer: 1,
+    sol: r`A: $x^2y$: $2\times2+1 = 5\%$ (s). B: $x/\sqrt y$: $2+\tfrac12 = 2.5\%$ (p). C: $\sqrt{xy}$: $\tfrac12(2+1) = 1.5\%$ (q). D: $x^2/y^2$: $4+2 = 6\%$ (r). So A-s, B-p, C-q, D-r.` },
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'dimensional analysis', group: 'm9',
+    q: r`Match each expression in List I with the quantity that has the same dimensions in List II. ($L$ inductance, $C$ capacitance, $R$ resistance, $\mu_0$, $\varepsilon_0$ free-space constants.)`,
+    options: ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-q, C-s, D-p', 'A-p, B-s, C-q, D-r'], answer: 0,
+    sol: r`$1/\sqrt{\mu_0\varepsilon_0}$ is the speed of light, a speed (r). $\sqrt{L/C}$ has the dimensions of resistance (s). $1/\sqrt{LC}$ is the resonant angular frequency, a frequency (q). $L/R$ is a time (p). So A-r, B-s, C-q, D-p.` },
+  { id: nid(), type: 'mcq', level: 4, format: 'match', exams: EX[4], sub: 'errors', group: 'm10',
+    q: r`A length $l$ and an acceleration $g$ are measured with percentage errors $1\%$ and $3\%$. Match each expression in List I with its maximum percentage error in List II.`,
+    options: ['A-p, B-s, C-r, D-q', 'A-r, B-s, C-p, D-q', 'A-r, B-q, C-p, D-s', 'A-s, B-r, C-p, D-q'], answer: 1,
+    sol: r`A: $\sqrt{l/g}$: $\tfrac12(1+3) = 2\%$ (r). B: $lg$: $1+3 = 4\%$ (s). C: $l^2/g$: $2+3 = 5\%$ (p). D: $l/g^2$: $1+6 = 7\%$ (q). So A-r, B-s, C-p, D-q.` },
+  { id: nid(), type: 'nat', level: 4, format: 'passage', exams: EX[4], sub: 'dimensional analysis', group: 'p4',
+    q: r`Writing $F = k\,\eta^{a}r^{b}v^{c}$, find $a+b+c$.`, answer: 3, tol: 0,
+    sol: r`$[MLT^{-2}] = [ML^{-1}T^{-1}]^a[L]^b[LT^{-1}]^c$. Mass: $a = 1$. Time: $-a - c = -2$, so $c = 1$. Length: $-a + b + c = 1$, so $b = 1$. Sum $= 3$.`, calc: () => 3 },
+  { id: nid(), type: 'nat', level: 4, format: 'passage', exams: EX[4], sub: 'dimensional analysis', group: 'p4',
+    q: r`Take $k = 6\pi$. Find the drag force on a sphere of radius $1.0$ mm moving at $0.10\ \mathrm{m\,s^{-1}}$ in water ($\eta = 1.0\times10^{-3}$ Pa s) in micronewtons (2 decimals).`, answer: 1.88, tol: 0.02, unit: 'μN',
+    sol: r`$F = 6\pi\eta rv = 18.85\times10^{-3}\times10^{-3}\times0.10 = 1.885\times10^{-6}$ N $\approx1.88\ \mu$N.`, calc: () => 6 * Math.PI * 1e-3 * 1e-3 * 0.1 * 1e6 },
+  mcq(5, 'dimensional analysis', r`Why can dimensional analysis not give the value of $k$ in $F = k\eta rv$?`, r`$k$ is a dimensionless constant, so any value gives the same dimensions`, [r`$k$ has the dimensions of force`, 'The method fails for more than two variables', r`$k$ must always equal 1`],
+    r`Dimensions fix the exponents of the variables but any pure number multiplies the result without changing its dimensions. The value $6\pi$ comes from solving the fluid equations (Stokes) or from experiment.`, { group: 'p4', format: 'passage' }),
+  asrt(4, 'errors', r`If $x = a - b$, then $\Delta x = \Delta a - \Delta b$.`, r`In the worst case, errors in measured quantities always add up in the final result.`, 3,
+    r`A is false: for a difference the <i>absolute errors add</i>, $\Delta x = \Delta a + \Delta b$. R is true as the maximum possible error. So A false, R true.`, { trap: 'The sign in the formula for $x$ does not carry to the error.' }),
+  asrt(4, 'errors', r`A vernier caliper with a smaller least count is always more accurate.`, r`The least count sets the finest reading, but a zero error or poor technique can still make the result inaccurate.`, 3,
+    r`A is false: smaller least count means higher <i>precision</i>, not necessarily accuracy, because systematic errors may remain. R is a true statement. So A false, R true.`),
+  asrt(4, 'dimensional analysis', r`The argument of $\sin(\omega t)$ must be dimensionless.`, r`The sine function is defined by a power series $x - x^3/3! + \dots$ whose terms would have different dimensions otherwise.`, 0,
+    r`Both are true. The series adds $x$, $x^3$, $x^5$, ... and terms of different dimensions cannot be added, so $x$ must be dimensionless. R correctly explains A.`),
+  stm(4, 'SI units', r`One parsec is larger than one light year.`, r`One parsec is about $3.26$ light years.`, 0,
+    r`A parsec is $3.08\times10^{16}$ m and a light year $9.46\times10^{15}$ m, ratio about $3.26$. Both statements are true.`),
+  stm(4, 'dimensions', r`A quantity can have a unit but be dimensionless.`, r`Strain has no unit and no dimensions, while angle has a unit (radian) but no dimensions.`, 0,
+    r`Angle (radian) and solid angle (steradian) have units but are dimensionless. Strain is a ratio with neither. Both statements are true and consistent.`),
+
+  // ---------- Level 5 ----------
+  msq(5, 'significant figures', r`Which of the following are correctly rounded results of arithmetic with measured numbers?`,
+    [r`$25.0 + 1.27 = 26.3$`, r`$2.0\times1.23 = 2.5$`, r`$12.50/2.5 = 5.0$`, r`$6.0\times1.5 = 9.00$`], [0, 1, 2],
+    r`A: the sum $26.27$ is limited to the first decimal (from $25.0$), so $26.3$. B: the product $2.46$ keeps 2 significant figures (from $2.0$), so $2.5$. C: $5.00$ keeps 2 significant figures (from $2.5$), so $5.0$. D: the product $9.0$ should keep 2 significant figures, not 3.`),
+  msq(5, 'dimensional analysis', r`A wave is $y = A\sin(kx - \omega t)$. Which statements about dimensions are correct?`,
+    [r`$[k] = [L^{-1}]$`, r`$\omega/k$ has the dimensions of speed`, r`$kA$ has the dimensions of length`, r`$\omega t$ is dimensionless`], [0, 1, 3],
+    r`$kx$ must be dimensionless, so $[k] = L^{-1}$ (A true). $\omega t$ is dimensionless, so $[\omega] = T^{-1}$ (D true) and $\omega/k = LT^{-1}$ (B true). $kA = L^{-1}\cdot L$ is dimensionless, not length (C false).`),
+  msq(5, 'dimensional analysis', r`Which of these can dimensional analysis do?`,
+    ['Check whether an equation is dimensionally consistent', 'Convert a quantity from one system of units to another', r`Find the value of a dimensionless constant such as $2\pi$`, 'Derive a relation containing a sum of terms'], [0, 1],
+    r`Consistency checks (A) and conversions (B) are standard uses. The method cannot fix pure numbers like $2\pi$ (C) and cannot derive a relation where the quantity is a sum of different terms (D).`),
+  msq(5, 'errors', r`A student takes many readings of the same length with a vernier caliper that has a positive zero error. Which statements are correct?`,
+    ['Averaging reduces the random error', 'Averaging does not remove the zero error', 'The mean absolute error is always smaller than the least count', 'If all readings are identical, the result can still be inaccurate'], [0, 1, 3],
+    r`Averaging reduces random scatter (A) but a systematic zero error appears in every reading and survives averaging (B). The mean absolute error can exceed the least count (C false). Identical readings show high precision, yet the zero error still shifts the result (D true).`),
+  msq(5, 'dimensional analysis', r`A system uses length $[L]$, velocity $[V]$ and force $[F]$ as fundamental quantities (so time is $L/V$). Which of these are correct?`,
+    [r`$[\text{mass}] = [FLV^{-2}]$`, r`$[\text{energy}] = [FL]$`, r`$[\text{momentum}] = [FLV]$`, r`$[\text{power}] = [FV]$`], [0, 1, 3],
+    r`Time $=L/V$. Mass $= FT^2/L = FL^2V^{-2}/L = FLV^{-2}$ (A true). Energy $= FL$ (B true). Momentum $= $ mass $\times V = FLV^{-1}$, not $FLV$ (C false). Power $=$ force $\times$ velocity $=FV$ (D true).`),
+  nat(5, 'errors', r`A pendulum has $L = 1.00\pm0.01$ m and period $T = 2.0\pm0.1$ s. Find the absolute error in $g = 4\pi^2L/T^2$ in $\mathrm{m\,s^{-2}}$ (2 decimals).`, 1.09, 0.02,
+    r`$g = 4\pi^2(1.00)/2.0^2 = 9.87\ \mathrm{m\,s^{-2}}$. Relative error $= \Delta L/L + 2\Delta T/T = 1\% + 2\times5\% = 11\%$. So $\Delta g = 0.11\times9.87 = 1.09\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²', calc: () => 0.11 * 4 * Math.PI ** 2 / 4, trap: 'The period error is doubled because of $T^2$, and it is the largest contribution.' }),
+  nat(5, 'dimensional analysis', r`A mass is built from $\hbar$, $c$ and $G$: $m\propto\hbar^{a}c^{b}G^{d}$. Find $2(a+b+d)$.`, 1, 0,
+    r`With $[\hbar] = [ML^2T^{-1}]$, $[c] = [LT^{-1}]$ and $[G] = [M^{-1}L^3T^{-2}]$: mass: $a - d = 1$; length: $2a + b + 3d = 0$; time: $-a - b - 2d = 0$. Adding the last two gives $a + d = 0$, so $a = \tfrac12$, $d = -\tfrac12$ and $b = \tfrac12$. Then $a+b+d = \tfrac12$ and $2(a+b+d) = 1$. This is the Planck mass $\sqrt{\hbar c/G}$.`, { calc: () => 2 * (0.5 + 0.5 - 0.5) }),
+  nat(5, 'unit conversion', r`Using $1\ \mathrm{ly} = 9.46\times10^{15}$ m and $1\ \mathrm{AU} = 1.50\times10^{11}$ m, find how many astronomical units make one light year (nearest hundred).`, 63067, 200,
+    r`$1\ \mathrm{ly}/1\ \mathrm{AU} = 9.46\times10^{15}/1.50\times10^{11} = 6.31\times10^{4}$, about $63\,100$ AU.`, { calc: () => 9.46e15 / 1.5e11 }),
+  { id: nid(), type: 'mcq', level: 5, format: 'match', exams: EX[5], sub: 'dimensional analysis', group: 'm11',
+    q: r`Match each combination of $G$, $\hbar$ and $c$ in List I with the quantity it represents in List II.`,
+    options: ['A-r, B-s, C-p, D-q', 'A-s, B-r, C-p, D-q', 'A-s, B-p, C-r, D-q', 'A-s, B-r, C-q, D-p'], answer: 1,
+    sol: r`$\sqrt{\hbar G/c^3}$ has the dimensions of length (s): Planck length. $\sqrt{\hbar c/G}$ is a mass (r). $\sqrt{\hbar G/c^5}$ is a time (p). $c^5/G$ is $[ML^2T^{-3}]$, a power (q). So A-s, B-r, C-p, D-q.` },
+  asrt(5, 'errors', r`Subtracting two nearly equal measured lengths gives a result with a large relative error.`, r`The absolute errors add while the difference itself is small.`, 0,
+    r`Both are true and R explains A: relative error $=(\Delta a+\Delta b)/(a-b)$, and a small denominator makes it large.`),
+  stm(5, 'significant figures', r`$0.0030$ and $3.0\times10^{-3}$ have the same number of significant figures.`, r`Writing a number in scientific notation changes the number of its significant figures.`, 2,
+    r`Both have 2 significant figures, so I is true. Scientific notation only moves the decimal point: it does not change significant figures. II is false.`),
 ];
 
 const groups = {
@@ -305,6 +478,34 @@ const groups = {
     passage: r`<p>A student measures the length of a simple pendulum as $L = 90.0\pm0.1$ cm with a metre scale. With a stopwatch of least count $0.1$ s she times 20 oscillations as $t = 38.0\pm0.1$ s. She uses $g = 4\pi^2L/T^2$.</p>` },
   p2: { title: 'Measuring a wire',
     passage: r`<p>A screw gauge has pitch 1 mm and 100 circular divisions. With the jaws closed, the circular reading is $+5$ (a positive zero error). For a wire, the main scale shows 1 mm and the circular scale reads 47. The length of the wire is measured as $50.0\pm0.1$ cm with a metre scale. Its volume is $V = \frac{\pi}{4}d^2L$.</p>` },
+  m4: { title: 'Constants and coefficients',
+    list1: ['A. Coefficient of viscosity', 'B. Surface tension', "C. Planck's constant", 'D. Boltzmann constant'],
+    list2: [r`p. $[ML^{2}T^{-1}]$`, r`q. $[ML^{-1}T^{-1}]$`, r`r. $[MT^{-2}]$`, r`s. $[ML^{2}T^{-2}K^{-1}]$`] },
+  m5: { title: 'Equivalent units',
+    list1: ['A. henry', 'B. tesla', 'C. weber', 'D. farad'],
+    list2: [r`p. $\mathrm{V\,s}$`, r`q. $\mathrm{C\,V^{-1}}$`, r`r. $\mathrm{Wb\,m^{-2}}$`, r`s. $\mathrm{V\,s\,A^{-1}}$`] },
+  m6: { title: 'Significant figures',
+    list1: [r`A. $0.0120$`, r`B. $5.0\times10^{3}$`, r`C. $100.0$`, r`D. $0.0007$`],
+    list2: ['p. 1', 'q. 2', 'r. 3', 's. 4'] },
+  m7: { title: 'Combined errors',
+    list1: [r`A. $x^{2}y$`, r`B. $x/\sqrt{y}$`, r`C. $\sqrt{xy}$`, r`D. $x^{2}/y^{2}$`],
+    list2: ['p. 2.5 %', 'q. 1.5 %', 'r. 6 %', 's. 5 %'] },
+  m8: { title: 'Length units',
+    list1: ['A. 1 parsec', 'B. 1 astronomical unit', 'C. 1 fermi', 'D. 1 angstrom'],
+    list2: [r`p. $10^{-10}$ m`, r`q. $3.08\times10^{16}$ m`, r`r. $10^{-15}$ m`, r`s. $1.5\times10^{11}$ m`] },
+  m9: { title: 'Same dimensions',
+    list1: [r`A. $1/\sqrt{\mu_0\varepsilon_0}$`, r`B. $\sqrt{L/C}$`, r`C. $1/\sqrt{LC}$`, r`D. $L/R$`],
+    list2: ['p. time', 'q. frequency', 'r. speed', 's. resistance'] },
+  m10: { title: 'Errors in l and g',
+    list1: [r`A. $\sqrt{l/g}$`, r`B. $lg$`, r`C. $l^{2}/g$`, r`D. $l/g^{2}$`],
+    list2: ['p. 5 %', 'q. 7 %', 'r. 2 %', 's. 4 %'] },
+  m11: { title: 'Natural units',
+    list1: [r`A. $\sqrt{\hbar G/c^{3}}$`, r`B. $\sqrt{\hbar c/G}$`, r`C. $\sqrt{\hbar G/c^{5}}$`, r`D. $c^{5}/G$`],
+    list2: ['p. time', 'q. power', 'r. mass', 's. length'] },
+  p3: { title: 'Resistance from V and I',
+    passage: r`<p>In a lab a student finds the resistance of a coil using $R = V/I$. The voltmeter reads $V = 6.0\pm0.1$ V and the ammeter reads $I = 0.50\pm0.01$ A.</p>` },
+  p4: { title: 'Drag on a sphere',
+    passage: r`<p>A small sphere of radius $r$ moves slowly at speed $v$ through a liquid of viscosity $\eta$. Using only dimensions, a student assumes that the drag force is $F = k\,\eta^{a}r^{b}v^{c}$, where $k$ is a pure number.</p>` },
 };
 
 // ---------- Number templates ----------
@@ -472,6 +673,92 @@ const gens = [
         sol: `Relative error = Δm/m + 2Δv/v = ${fmt(dm, 2)}/${m} + 2×${dv}/${v} = ${fmt(dm / m + 2 * dv / v, 4)}, which is ${fmt(answer, 3)}%.` };
     },
     verify: (p) => 100 * p.dm / p.m + 200 * p.dv / p.v },
+  // ---- added 2026-11-22 ----
+  { id: 'um-g16', type: 'nat', level: 3, exams: EX[3], sub: 'errors',
+    make(rng) {
+      const m = pick(rng, 20, 60, 5), dm = pick(rng, 0.2, 0.6, 0.1), rr = pick(rng, 1.0, 2.0, 0.5), dr = pick(rng, 0.01, 0.03, 0.01), h = pick(rng, 5, 10, 1), dh = pick(rng, 0.05, 0.1, 0.05);
+      const answer = (dm / m + 2 * dr / rr + dh / h) * 100;
+      return { m, dm, rr, dr, h, dh, answer, tol: Math.max(0.02, answer * 0.01), unit: '%',
+        q: `The density of a solid cylinder is $\\rho = m/(\\pi r^2h)$. Measured: $m = ${m}\\pm${dm}$ g, $r = ${rr}\\pm${dr}$ cm, $h = ${h}\\pm${dh}$ cm. Find the maximum percentage error in $\\rho$.`,
+        sol: `Relative error $=\\Delta m/m + 2\\Delta r/r + \\Delta h/h = ${fmt(dm / m, 3)} + 2(${fmt(dr / rr, 3)}) + ${fmt(dh / h, 3)} = ${fmt(answer / 100, 4)}$, which is ${fmt(answer, 3)}%.` };
+    },
+    verify: (p) => 100 * p.dm / p.m + 200 * p.dr / p.rr + 100 * p.dh / p.h },
+  { id: 'um-g17', type: 'mcq', level: 3, exams: EX[3], sub: 'dimensional analysis',
+    make(rng) {
+      const Q = [['force', [1, 1, -2]], ['velocity', [0, 1, -1]], ['density', [1, -3, 0]], ['pressure', [1, -1, -2]], ['energy', [1, 2, -2]], ['momentum', [1, 1, -1]], ['acceleration', [0, 1, -2]], ['area', [0, 2, 0]], ['frequency', [0, 0, -1]], ['mass', [1, 0, 0]]];
+      const i = int(rng, 0, Q.length - 1); let j = int(rng, 0, Q.length - 1); if (j === i) j = (j + 3) % Q.length;
+      const pp = int(rng, 1, 2), qq = int(rng, 1, 2);
+      const dA = Q[i][1], dB = Q[j][1];
+      const ds = (d) => { const parts = [['M', d[0]], ['L', d[1]], ['T', d[2]]].filter((x) => x[1] !== 0).map(([s, e]) => (e === 1 ? s : `${s}^{${e}}`)); return parts.length ? `$[${parts.join('')}]$` : 'dimensionless'; };
+      const calc = (a, b) => [0, 1, 2].map((t) => a * dA[t] - b * dB[t]);
+      const cand = [calc(-pp, -qq), calc(pp, -qq), calc(pp, qq), calc(qq, pp), calc(pp, qq + 1)];
+      const ans = ds(calc(pp, qq));
+      const { options, answer } = shuffleOpts(rng, ans, cand.map(ds));
+      return { dA, dB, pp, qq, options, answer, ds,
+        q: `Find the dimensions of $X = \\dfrac{(\\text{${Q[i][0]}})^{${pp}}}{(\\text{${Q[j][0]}})^{${qq}}}$.`,
+        sol: `Dimensions: ${Q[i][0]} is ${ds(dA)} and ${Q[j][0]} is ${ds(dB)}. Raise to the given powers and divide, so each exponent is $${pp}\\times$(exponent of ${Q[i][0]}) $-\\ ${qq}\\times$(exponent of ${Q[j][0]}). That gives ${ans}.`, ans };
+    },
+    verify: (p) => p.options.indexOf(p.ds([0, 1, 2].map((t) => p.pp * p.dA[t] - p.qq * p.dB[t]).map((x) => x + 0))) },
+  { id: 'um-g18', type: 'nat', level: 4, exams: EX[4], sub: 'unit conversion',
+    make(rng) {
+      const a = choose(rng, [0.5, 2, 5, 10]), b = choose(rng, [2, 4, 5, 10]), t = choose(rng, [2, 5, 10]);
+      const answer = t * t / (b * a * a);
+      return { a, b, t, answer, tol: Math.max(0.005, answer * 0.01),
+        q: `A system of units has length unit ${a} m, mass unit ${b} kg and time unit ${t} s. Find the numerical value of $1$ joule in this system.`,
+        sol: `The unit of energy is $[ML^2T^{-2}] = ${b}\\times${a}^2\\times${t}^{-2} = ${fmt(b * a * a / (t * t), 4)}$ J. So $1\\ \\mathrm{J} = 1/${fmt(b * a * a / (t * t), 4)} = ${fmt(answer, 4)}$ units.` };
+    },
+    verify: (p) => 1 / (p.b * p.a ** 2 * p.t ** -2) },
+  { id: 'um-g19', type: 'nat', level: 3, exams: EX[3], sub: 'errors',
+    make(rng) {
+      const a = pick(rng, 12, 20, 0.5), b = pick(rng, 8, 11.5, 0.5), da = pick(rng, 0.1, 0.3, 0.1), db = pick(rng, 0.1, 0.3, 0.1);
+      const answer = (da + db) / (a - b) * 100;
+      return { a, b, da, db, answer, tol: Math.max(0.02, answer * 0.01), unit: '%',
+        q: `Two lengths are measured as $a = ${a}\\pm${da}$ cm and $b = ${b}\\pm${db}$ cm. Find the percentage error in the difference $a - b$.`,
+        sol: `$a - b = ${fmt(a - b, 4)}$ cm. The absolute errors add: $${da}+${db} = ${fmt(da + db, 3)}$ cm. Percentage error $= ${fmt(da + db, 3)}/${fmt(a - b, 4)}\\times100 = ${fmt(answer, 3)}\\%$.` };
+    },
+    verify: (p) => (p.da + p.db) * 100 / (p.a - p.b) },
+  { id: 'um-g20', type: 'mcq', level: 4, exams: EX[4], sub: 'vernier',
+    make(rng) {
+      const N = choose(rng, [10, 20]), lc = 1 / N, neg = rng() < 0.5;
+      const k = int(rng, 1, N - 1) < N / 2 ? int(rng, 1, 4) : int(rng, 1, 4); // coinciding division when closed
+      const err = neg ? -(N - (N - k)) * lc : k * lc; // k counted as below
+      const kk = neg ? int(rng, 5, N - 1) : k;
+      const e2 = neg ? -(N - kk) * lc : kk * lc;
+      const M = int(rng, 10, 40), j = int(rng, 1, N - 1);
+      const obs = M + j * lc, corr = obs - e2;
+      const f = (v) => `${fmt(v, 4)} mm`;
+      const { options, answer } = shuffleOpts(rng, f(corr), [f(obs), f(obs + e2), f(M + j * lc - Math.abs(e2) * (neg ? -1 : 1) + 2 * lc)]);
+      return { N, lc, neg, kk, e2, M, j, obs, corr, options, answer, f,
+        q: `A vernier caliper has $1\\ \\mathrm{MSD} = 1$ mm and $${N}\\ \\mathrm{VSD} = ${N - 1}$ mm. With the jaws closed the vernier zero is to the ${neg ? 'left' : 'right'} of the main zero and the ${kk}${kk === 1 ? 'st' : kk === 2 ? 'nd' : kk === 3 ? 'rd' : 'th'} vernier division coincides with a main scale line. A rod gives main scale reading ${M} mm and the ${j}${j === 1 ? 'st' : j === 2 ? 'nd' : j === 3 ? 'rd' : 'th'} vernier division coincides. The correct length is`,
+        sol: `LC $= 1/${N} = ${fmt(lc, 3)}$ mm. Zero error $= ${neg ? '-' : '+'}${neg ? `(${N}-${kk})` : kk}\\times${fmt(lc, 3)} = ${fmt(e2, 3)}$ mm. Observed $= ${M} + ${j}\\times${fmt(lc, 3)} = ${fmt(obs, 4)}$ mm. Correct $=$ observed $-$ zero error $= ${fmt(corr, 4)}$ mm.` };
+    },
+    verify: (p) => p.options.indexOf(p.f(p.M + p.j * p.lc - (p.neg ? -(p.N - p.kk) : p.kk) * p.lc)) },
+  { id: 'um-g21', type: 'nat', level: 5, exams: EX[5], sub: 'errors',
+    make(rng) {
+      const L = pick(rng, 0.80, 1.20, 0.05), dL = pick(rng, 0.005, 0.01, 0.005), T = pick(rng, 1.8, 2.4, 0.2), dT = pick(rng, 0.02, 0.1, 0.02);
+      const gg = 4 * Math.PI ** 2 * L / (T * T), answer = gg * (dL / L + 2 * dT / T);
+      return { L, dL, T, dT, gg, answer, tol: Math.max(0.005, answer * 0.02), unit: 'm/s²',
+        q: `For a simple pendulum $L = ${L}\\pm${dL}$ m and $T = ${T}\\pm${dT}$ s. Find the absolute error in $g = 4\\pi^2L/T^2$ in $\\mathrm{m\\,s^{-2}}$ (2 decimals).`,
+        sol: `$g = 4\\pi^2(${L})/${T}^2 = ${fmt(gg, 4)}$. Relative error $=\\Delta L/L + 2\\Delta T/T = ${fmt(dL / L, 3)} + ${fmt(2 * dT / T, 3)} = ${fmt(dL / L + 2 * dT / T, 3)}$. Absolute error $= ${fmt(gg, 4)}\\times${fmt(dL / L + 2 * dT / T, 3)} = ${fmt(answer, 3)}\\ \\mathrm{m\\,s^{-2}}$.` };
+    },
+    verify: (p) => 4 * Math.PI ** 2 * (p.dL / p.T ** 2 + 2 * p.L * p.dT / p.T ** 3) },
+  { id: 'um-g22', type: 'nat', level: 4, exams: EX[4], sub: 'unit conversion',
+    make(rng) {
+      const x = pick(rng, 40, 80, 5), answer = x * 0.4536 / 0.3048 ** 3;
+      return { x, answer, tol: answer * 0.005, unit: 'kg/m³',
+        q: `The density of a material is ${x} lb per cubic foot. Convert to $\\mathrm{kg\\,m^{-3}}$. Use $1\\ \\mathrm{lb} = 0.4536$ kg and $1\\ \\mathrm{ft} = 0.3048$ m.`,
+        sol: `$1\\ \\mathrm{ft^3} = 0.3048^3 = ${fmt(0.3048 ** 3, 4)}\\ \\mathrm{m^3}$. So density $= ${x}\\times0.4536/${fmt(0.3048 ** 3, 4)} = ${fmt(answer, 4)}\\ \\mathrm{kg\\,m^{-3}}$.` };
+    },
+    verify: (p) => p.x * 16.0185 },
+  { id: 'um-g23', type: 'nat', level: 5, exams: EX[5], sub: 'errors',
+    make(rng) {
+      const a = pick(rng, 8, 12, 1), da = pick(rng, 0.1, 0.2, 0.1), b = pick(rng, 7, 9, 0.5), db = pick(rng, 0.1, 0.2, 0.1), c = pick(rng, 4, 6, 0.5), dc = pick(rng, 0.1, 0.2, 0.1);
+      const answer = (da / a + (db + dc) / (b - c)) * 100;
+      return { a, da, b, db, c, dc, answer, tol: Math.max(0.05, answer * 0.01), unit: '%',
+        q: `$x = \\dfrac{a}{b-c}$ with $a = ${a}\\pm${da}$, $b = ${b}\\pm${db}$ and $c = ${c}\\pm${dc}$. Find the maximum percentage error in $x$.`,
+        sol: `$b - c = ${fmt(b - c, 3)}$ with absolute error $${db}+${dc} = ${fmt(db + dc, 3)}$, a relative error of ${fmt((db + dc) / (b - c) * 100, 3)}%. The error in $a$ is ${fmt(da / a * 100, 3)}%. For a quotient the relative errors add: ${fmt(answer, 3)}%.` };
+    },
+    verify: (p) => 100 * p.da / p.a + 100 * (p.db + p.dc) / (p.b - p.c) },
 ];
 
 export default { topic: 'units-measurements', groups, items, gens };

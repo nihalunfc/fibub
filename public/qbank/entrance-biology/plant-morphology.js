@@ -183,4 +183,147 @@ pass('pp2', 'Passage: two seeds', 'Seed X, soaked and cut open, shows a hard out
 pq('pp2', 3, 'seed', 'Seed X is', 'a dicot, non-endospermic, such as gram', ['a monocot, endospermic, such as maize', 'a dicot, endospermic, such as castor', 'a monocot, non-endospermic'], 'Two thick cotyledons fill the seed, which suggests a non-endospermic dicot. The scar is the hilum.');
 pq('pp2', 3, 'seed', 'The shield-shaped structure of seed Y and the protein layer are', 'scutellum and aleurone layer', ['coleoptile and coleorhiza', 'testa and tegmen', 'plumule and radicle'], 'Maize-like monocot grain: scutellum is the single cotyledon, aleurone layer the outer endosperm layer.');
 pq('pp2', 4, 'seed', 'Which sheath covers the radicle of seed Y?', 'Coleorhiza', ['Coleoptile', 'Tegmen', 'Scutellum'], 'The coleorhiza covers the radicle. The coleoptile covers the plumule.', 'Coleoptile is the shoot sheath.');
+
+// ---------------------------------------------------------------- Expansion (added 2026-11-22)
+// ---- Level 2
+mc(2, 'root', 'The region of the root where cells are rapidly elongating is behind', 'the region of meristematic activity', ['the root cap', 'the root hairs', 'the region of maturation'], 'Order from the apex: root cap, meristematic zone, elongation zone, maturation zone.');
+mc(2, 'root', 'Which of these roots comes out of the nodes of the stem of a banyan to support the branch?', 'Prop roots', ['Stilt roots', 'Pneumatophores', 'Tap roots'], 'Prop roots hang from branches. Stilt roots arise from lower nodes of maize and sugarcane.');
+mc(2, 'root', 'A turnip is a modified', 'tap root', ['stem', 'leaf', 'adventitious root only'], 'The tap root becomes swollen for food storage.');
+mc(2, 'stem', 'The underground stem of ginger is called a', 'rhizome', ['tuber', 'bulb', 'corm'], 'Rhizomes are underground stems with nodes and scale leaves.');
+mc(2, 'stem', 'Which of these is a stem tendril plant?', 'Cucumber', ['Pea', 'Opuntia', 'Citrus'], 'In cucumber, axillary buds become tendrils. In pea, leaflets become tendrils.');
+mc(2, 'leaf', 'The leaf of a monocot has a base that', 'expands into a sheath that clasps the stem', ['forms a pulvinus', 'forms stipules', 'is absent'], 'Grass leaves have a sheathing leaf base.');
+mc(2, 'leaf', 'Alternate phyllotaxy is seen in', 'china rose', ['guava', 'Calotropis', 'Alstonia'], 'Guava and Calotropis show opposite phyllotaxy; Alstonia has whorled leaves.');
+mc(2, 'inflorescence', 'The inflorescence in which the main axis terminates in a flower is', 'cymose', ['racemose', 'spadix', 'catkin'], 'Cymose is determinate; flowers open basipetally.');
+mc(2, 'flower', 'The female reproductive organ of a flower is the', 'gynoecium', ['androecium', 'calyx', 'corolla'], 'The gynoecium is made of carpels.');
+mc(2, 'flower', 'The essential whorls of a flower are', 'androecium and gynoecium', ['calyx and corolla', 'calyx and androecium', 'corolla and gynoecium'], 'Calyx and corolla are accessory whorls.');
+mc(2, 'fruit', 'The part of the fruit that develops from the ovary wall is the', 'pericarp', ['testa', 'tegmen', 'plumule'], 'The pericarp may have epicarp, mesocarp and endocarp.');
+mc(2, 'seed', 'The two protective coats of a seed are', 'testa and tegmen', ['epicarp and endocarp', 'sepal and petal', 'coleoptile and coleorhiza'], 'The outer is testa and the inner is tegmen.');
+mc(2, 'families', 'Brinjal, tomato and potato belong to', 'Solanaceae', ['Fabaceae', 'Liliaceae', 'Poaceae'], 'The potato family.');
+mc(2, 'families', 'The fruit of the pea family is a', 'legume', ['drupe', 'berry only', 'capsule only'], 'A legume (pod) is typical of Fabaceae.');
+
+// ---- Level 3
+mc(3, 'root', 'The root cap protects', 'the delicate root tip as it moves through the soil', ['the root hairs only', 'the stem', 'the leaf'], 'It is a thimble-like structure.');
+mc(3, 'root', 'Which of these is NOT a function of roots?', 'Photosynthesis in all plants', ['Absorption of water', 'Anchorage', 'Storage of food'], 'Roots may also give support and conduct. Photosynthesis is a function of leaves and green stems.', 'Some aerial roots are green, but it is not a general function.');
+mc(3, 'root', 'Which of these is an adventitious root system?', 'The root system of grasses', ['The root system of mustard', 'The root of gram', 'The root of mango seedling'], 'Grass roots arise from the base of the stem, not from the radicle.');
+mc(3, 'root', 'Pneumatophores are modified', 'roots that grow upwards out of the mud in mangrove', ['stems of cacti', 'leaves of Nepenthes', 'petioles of Acacia'], 'They help to get oxygen for respiration.');
+mc(3, 'root', 'Carrot, turnip and radish are adaptations for', 'food storage in the tap root', ['support', 'respiration', 'water collection'], 'Carrot is conical, turnip is napiform and radish is fusiform.');
+mc(3, 'stem', 'Which of these is a stem?', 'Potato tuber', ['Sweet potato', 'Carrot', 'Radish'], 'Potato has eyes (nodes with buds). Sweet potato is an adventitious root.', 'Both potato and sweet potato are underground but different organs.');
+mc(3, 'stem', 'The thorns of Bougainvillea and Citrus are', 'modified axillary buds, that is, stem', ['modified leaves', 'modified roots', 'modified stipules'], 'Stem thorns arise from axillary buds, are woody and protect against herbivores.', 'Thorns are stem; the spines of a cactus are leaf.');
+mc(3, 'stem', 'The flattened green stem of Opuntia performs', 'photosynthesis', ['absorption', 'respiration only', 'flowering only'], 'Its leaves are reduced to spines.');
+mc(3, 'leaf', 'The leaf of Australian Acacia has', 'a flattened green petiole called phyllode', ['a swollen leaf base', 'tendrils at the tips', 'spines at the nodes'], 'The petiole expands, turns green and makes food.');
+mc(3, 'leaf', 'Which of these is a plant with a pinnately compound leaf?', 'Neem', ['Silk cotton', 'Mango', 'Banyan'], 'Neem has leaflets on a common axis (rachis). Silk cotton is palmately compound.');
+mc(3, 'leaf', 'Pitcher of Nepenthes is a modification of', 'the leaf', ['the stem', 'the root', 'the stipule'], 'Leaf lamina forms a pitcher to trap insects.');
+mc(3, 'leaf', 'Fleshy leaves for food storage are seen in', 'onion and garlic', ['pea and sweet pea', 'cactus', 'Opuntia'], 'Onion and garlic leaves store food.');
+mc(3, 'leaf', 'Whorled phyllotaxy is seen in', 'Alstonia', ['Mustard', 'Sunflower', 'Guava'], 'More than two leaves arise at a node.');
+mc(3, 'inflorescence', 'In racemose inflorescence, the flowers are arranged', 'in acropetal succession', ['in basipetal succession', 'in a single whorl', 'at the base only'], 'Older flowers are at the base and younger ones at the tip.');
+mc(3, 'inflorescence', 'A flower with a short stalk and a leaf-like bract below it is', 'bracteate', ['ebracteate', 'bracteolate only', 'actinomorphic'], 'Bracteate flowers have bracts.');
+mc(3, 'flower', 'A flower that cannot be divided into two equal halves by any vertical plane is', 'asymmetric', ['actinomorphic', 'zygomorphic', 'trimerous'], 'Canna is an asymmetric flower.');
+mc(3, 'flower', 'A flower in which the gynoecium occupies the highest position and the other parts lie below it is', 'hypogynous', ['epigynous', 'perigynous', 'zygomorphic'], 'Mustard, china rose and brinjal have a superior ovary.');
+mc(3, 'flower', 'In epigynous flowers, the ovary is', 'inferior', ['superior', 'half-superior', 'absent'], 'The other whorls arise above the ovary.');
+mc(3, 'flower', 'Imbricate aestivation is shown by', 'Cassia', ['Calotropis', 'pea', 'cotton'], 'Pea shows vexillary; cotton shows twisted; Calotropis shows valvate.');
+mc(3, 'flower', 'Twisted aestivation is seen in', 'cotton', ['Calotropis', 'Cassia', 'pea'], 'Each petal overlaps the next in one direction; also in china rose and lady finger.');
+mc(3, 'flower', 'Epiphyllous stamens are attached to', 'the perianth', ['the petals only', 'the thalamus', 'the carpels'], 'They are found in the lily.');
+mc(3, 'flower', 'Stamens are united in several bundles in', 'citrus', ['china rose', 'pea', 'brinjal'], 'This is the polyadelphous condition.');
+mc(3, 'flower', 'The pistil of lotus and rose is', 'apocarpous', ['syncarpous', 'epipetalous', 'monoadelphous'], 'The carpels are free.');
+mc(3, 'flower', 'Axile placentation is characteristic of', 'tomato', ['pea', 'mustard', 'sunflower'], 'Placenta is axial in a multilocular ovary.');
+mc(3, 'flower', 'Basal placentation occurs in', 'sunflower', ['pea', 'tomato', 'Dianthus'], 'The placenta develops at the base of the ovary with a single ovule.');
+mc(3, 'flower', 'Free central placentation occurs in', 'Dianthus', ['mustard', 'tomato', 'pea'], 'Ovules are borne on a central axis lacking septa.');
+mc(3, 'fruit', 'The fleshy edible part of a mango is the', 'mesocarp', ['epicarp', 'endocarp', 'seed coat'], 'The endocarp is stony.');
+mc(3, 'fruit', 'Parthenocarpic fruits like banana develop', 'without fertilisation', ['after double fertilisation', 'from the stem', 'from several flowers'], 'Such fruits are seedless.');
+mc(3, 'fruit', 'Which of these is a drupe?', 'Mango', ['Tomato', 'Pea pod', 'Gram pod'], 'Drupes have a stony endocarp.');
+mc(3, 'seed', 'The embryo of a dicot seed consists of', 'an embryonal axis and two cotyledons', ['a plumule and one scutellum', 'coleoptile and coleorhiza', 'endosperm and testa'], 'Monocots have one cotyledon.');
+mc(3, 'seed', 'The seed of castor is', 'endospermic', ['non-endospermic', 'without a seed coat', 'monocot'], 'Castor is a dicot with an endospermic seed.');
+mc(3, 'seed', 'The covering of the radicle in a monocot embryo is the', 'coleorhiza', ['coleoptile', 'scutellum', 'aleurone'], 'The coleoptile covers the plumule.');
+mc(3, 'seed', 'Which seed is non-endospermic?', 'Gram', ['Castor', 'Maize', 'Wheat'], 'Gram, bean and pea are non-endospermic. Cereals are endospermic.');
+mc(3, 'families', 'Sesbania is used as', 'green manure, in Fabaceae', ['an ornamental, in Solanaceae', 'a medicine, in Liliaceae', 'a fibre, in Fabaceae'], 'It is a Fabaceae plant used as green manure.');
+mc(3, 'families', 'Belladonna is a medicinal plant of', 'Solanaceae', ['Fabaceae', 'Liliaceae', 'Poaceae'], 'Atropa belladonna is in the potato family.');
+mc(3, 'families', 'Which of these belongs to Liliaceae?', 'Aloe', ['Datura', 'Lupin', 'Petunia'], 'Datura and Petunia belong to Solanaceae; Lupin to Fabaceae.');
+mc(3, 'families', 'The stem of Liliaceae is usually', 'an underground bulb, corm or rhizome', ['a tendril', 'a woody trunk', 'a pneumatophore'], 'They are perennial herbs.');
+
+asr(2, 'root', 'The root cap is present at the tip of a root.', 'It protects the tender apical meristem.', 0, 'The cap shields the growing point.');
+asr(3, 'root', 'Mangrove plants possess pneumatophores.', 'Pneumatophores help to take in oxygen from the air.', 0, 'The soil is waterlogged and has little oxygen.');
+asr(3, 'stem', 'Potato is a root tuber.', 'Potato has eyes.', 3, 'A is false: potato is a stem tuber. R is true: eyes are nodes with axillary buds.');
+asr(3, 'leaf', 'Leaves of a monocot show parallel venation.', 'Veins run parallel to each other within the lamina.', 0, 'This is the definition of parallel venation.');
+asr(4, 'flower', 'In a pea flower the placentation is marginal.', 'The ovary is monocarpellary and unilocular.', 0, 'A single carpel with the placenta along the ventral suture gives marginal placentation.');
+asr(4, 'flower', 'The stamens of brinjal are epipetalous.', 'Epipetalous stamens are attached to the petals.', 0, 'Attachment to the petals is the meaning of epipetalous, so R explains A.');
+asr(4, 'seed', 'Maize grain is a fruit.', 'The seed coat is fused with the fruit wall.', 0, 'The grain is a caryopsis where seed coat and pericarp are fused.');
+asr(5, 'fruit', 'Coconut is a drupe.', 'Its mesocarp is fibrous and its endocarp is hard.', 0, 'A drupe has a hard endocarp and a fleshy or fibrous mesocarp.');
+asr(5, 'floral formula', 'In a floral formula, G with a line above it represents an inferior ovary.', 'G with a line below it represents a superior ovary.', 1, 'Both are the NCERT conventions, but one does not explain the other.', 'Both are true; they are separate symbols.');
+asr(5, 'families', 'Fabaceae is a monocot family.', 'The fruit of Fabaceae is a legume.', 3, 'A is false: Fabaceae are dicots. R is true.');
+
+stm(3, 'root', 'Fibrous roots arise from the base of the stem in monocots.', 'The radicle persists as the primary root in dicots.', 0, 'Both are correct.');
+stm(3, 'leaf', 'Alternate phyllotaxy has one leaf at each node.', 'Opposite phyllotaxy has two leaves at each node.', 0, 'Both are correct.');
+stm(3, 'flower', 'Superior ovary is hypogynous.', 'Inferior ovary is hypogynous.', 2, 'Inferior is epigynous.');
+stm(4, 'flower', 'Polyadelphous stamens are in many bundles.', 'Monoadelphous stamens are in two bundles.', 2, 'Monoadelphous means one bundle; diadelphous is two.');
+stm(4, 'seed', 'Bean is a non-endospermic seed.', 'Maize is an endospermic seed.', 0, 'Both are correct.');
+stm(4, 'fruit', 'Mesocarp of coconut is fibrous.', 'Edible part of coconut is the mesocarp.', 2, 'The edible part is the endosperm (coconut water is free nuclear endosperm).');
+stm(4, 'inflorescence', 'Racemose inflorescence has unlimited growth of the main axis.', 'Cymose inflorescence has an unlimited main axis.', 2, 'Cymose is limited.');
+mc(4, 'flower', 'Consider: (i) China rose is hypogynous. (ii) Guava is epigynous. (iii) Rose is perigynous. (iv) Mustard is epigynous. How many are correct?', 'Three', ['Two', 'Four', 'One'], '(i), (ii), (iii) are right. Mustard is hypogynous.', null, 'statements');
+mc(4, 'stem', 'Consider: (i) Ginger is a rhizome. (ii) Potato is a stem tuber. (iii) Carrot is a stem. (iv) Opuntia stem is flattened. How many are correct?', 'Three', ['Two', 'Four', 'One'], '(i), (ii), (iv) are right. Carrot is a modified tap root.', null, 'statements');
+mc(5, 'leaf', 'Consider: (i) Pea tendrils are leaf modifications. (ii) Cucumber tendrils are stem modifications. (iii) Cactus spines are leaf modifications. (iv) Citrus thorns are leaf modifications. (v) Nepenthes pitcher is a leaf modification. How many are correct?', 'Four', ['Three', 'Five', 'Two'], '(i), (ii), (iii), (v) are right. Citrus thorns are stem.', 'Thorns are stems and spines are leaves.', 'statements');
+mc(5, 'families', 'Consider: (i) Fabaceae: papilionaceous corolla. (ii) Solanaceae: epipetalous stamens. (iii) Liliaceae: six tepals. (iv) Fabaceae: axile placentation. (v) Solanaceae: bicarpellary ovary. How many are correct?', 'Four', ['Three', 'Five', 'Two'], '(i), (ii), (iii), (v) are right. Fabaceae has marginal placentation.', null, 'statements');
+stm(5, 'seed', 'The aleurone layer is found in the maize grain.', 'The aleurone layer is rich in starch.', 2, 'It is rich in protein.');
+
+// ---- Matches
+match(2, 'root', 'pmx1', 'Root and plant', ['A. Prop root', 'B. Stilt root', 'C. Pneumatophore', 'D. Tap root storage'], ['p. Rhizophora', 'q. Banyan', 'r. Maize', 's. Carrot'], 'A-q, B-r, C-p, D-s', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-p, B-r, C-q, D-s'], 'Banyan: prop roots. Maize: stilt roots. Rhizophora: pneumatophores. Carrot: storage tap root.');
+match(3, 'stem', 'pmx2', 'Modified organ and plant', ['A. Stem tendril', 'B. Stem thorn', 'C. Leaf tendril', 'D. Rhizome'], ['p. Pea', 'q. Cucumber', 'r. Citrus', 's. Ginger'], 'A-q, B-r, C-p, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s'], 'Cucumber: stem tendril. Citrus: thorn. Pea: leaf tendril. Ginger: rhizome.');
+match(3, 'flower', 'pmx3', 'Position of ovary and example', ['A. Hypogynous', 'B. Perigynous', 'C. Epigynous', 'D. Zygomorphic'], ['p. Mustard', 'q. Rose', 'r. Guava', 's. Pea'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'], 'Mustard: hypogynous. Rose: perigynous. Guava: epigynous. Pea: zygomorphic.');
+match(3, 'flower', 'pmx4', 'Aestivation and example', ['A. Valvate', 'B. Twisted', 'C. Imbricate', 'D. Vexillary'], ['p. Cassia', 'q. Pea', 'r. Calotropis', 's. China rose'], 'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-p, B-s, C-r, D-q'], 'Calotropis: valvate. China rose: twisted. Cassia: imbricate. Pea: vexillary.');
+match(4, 'flower', 'pmx5', 'Placentation and plant', ['A. Marginal', 'B. Axile', 'C. Parietal', 'D. Basal'], ['p. Mustard', 'q. Pea', 'r. Sunflower', 's. Lemon'], 'A-q, B-s, C-p, D-r', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-p, B-s, C-q, D-r'], 'Pea: marginal. Lemon: axile. Mustard: parietal. Sunflower: basal.');
+match(4, 'flower', 'pmx6', 'Androecium and example', ['A. Monoadelphous', 'B. Diadelphous', 'C. Polyadelphous', 'D. Epipetalous'], ['p. Pea', 'q. China rose', 'r. Citrus', 's. Brinjal'], 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'], 'China rose has one bundle, pea two, citrus many; brinjal stamens are on the petals.');
+match(4, 'seed', 'pmx7', 'Seed part and function or position', ['A. Scutellum', 'B. Coleoptile', 'C. Coleorhiza', 'D. Aleurone layer'], ['p. Covers the radicle', 'q. Covers the plumule', 'r. Single cotyledon of a monocot', 's. Protein-rich layer of endosperm'], 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-p, C-q, D-s', 'A-r, B-q, C-s, D-p'], 'Scutellum is the single cotyledon; coleoptile covers the plumule; coleorhiza covers the radicle; aleurone is protein rich.');
+match(4, 'inflorescence', 'pmx8', 'Type and feature', ['A. Racemose', 'B. Cymose', 'C. Head or capitulum', 'D. Spadix'], ['p. Main axis terminates in a flower', 'q. Acropetal succession of flowers', 'r. Sunflower', 's. Fleshy axis, e.g. banana'], 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'], 'Racemose is acropetal; cymose terminates in a flower; capitulum e.g. sunflower; spadix is a fleshy axis.');
+match(5, 'floral formula', 'pmx9', 'Family and formula part', ['A. Fabaceae', 'B. Solanaceae', 'C. Liliaceae', 'D. Fabaceae ovary'], ['p. P(3+3)', 'q. K(5) C(5)', 'r. K(5) C 1+2+(2)', 's. G1 superior'], 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-p, B-q, C-r, D-s'], 'Fabaceae: K(5) C 1+2+(2). Solanaceae: K(5) C(5). Liliaceae: P(3+3). Fabaceae ovary: one carpel superior.');
+match(5, 'families', 'pmx10', 'Plant and use', ['A. Colchicum', 'B. Atropa', 'C. Sesbania', 'D. Petunia'], ['p. Source of colchicine', 'q. Belladonna, medicinal', 'r. Green manure', 's. Ornamental'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'], 'Colchicum: colchicine; Atropa: belladonna; Sesbania: green manure; Petunia: ornamental.');
+
+// ---- Passages
+pass('pmx11', 'Passage: a flower dissected', 'A flower has five fused sepals and five fused petals. The five stamens are attached to the petals. The ovary is superior and has two chambers with swollen placenta bearing many ovules. The fruit is a berry. The flower is radially symmetrical and bisexual.');
+pq('pmx11', 3, 'families', 'The flower is most probably of', 'Solanaceae', ['Fabaceae', 'Liliaceae', 'Poaceae'], 'Epipetalous stamens and a bilocular superior ovary with swollen placenta are features of Solanaceae.');
+pq('pmx11', 4, 'floral formula', 'Its floral formula would be', '⊕ ⚥ K(5) C(5) A5 G(2)', ['% ⚥ K(5) C 1+2+(2) A(9)+1 G1', 'Br ⊕ ⚥ P(3+3) A3+3 G(3)', '⊕ ⚥ K5 C5 A10 G5'], 'It is actinomorphic, bisexual, with five fused sepals and petals, five stamens and two fused carpels.');
+pq('pmx11', 4, 'flower', 'The stamens are described as', 'epipetalous', ['epiphyllous', 'diadelphous', 'polyadelphous'], 'Attached to the petals.');
+pass('pmx12', 'Passage: two seeds', 'Seed M is kidney-shaped with a hilum and a micropyle. Soaked, its coat peels off easily to show two fleshy halves and no extra food tissue. Seed N is a small grain whose coat is fused with the fruit wall. It has a large starchy tissue and a shield-shaped structure at the side.');
+pq('pmx12', 3, 'seed', 'Seed M is', 'a dicot, non-endospermic', ['a monocot, endospermic', 'a dicot, endospermic', 'a monocot, non-endospermic'], 'Two cotyledons with no endosperm.');
+pq('pmx12', 4, 'seed', 'The shield-shaped structure in seed N is the', 'scutellum', ['coleoptile', 'testa', 'hilum'], 'It is the single cotyledon of a monocot.');
+pq('pmx12', 5, 'seed', 'Which statement is true?', 'Seed N is a caryopsis, a fruit with a fused seed coat and pericarp', ['Seed M is a monocot', 'Seed N has no endosperm', 'Seed N has two cotyledons'], 'Maize or wheat grain is such a fruit.');
+pass('pmx13', 'Passage: leaves of three plants', 'Plant A has leaves with a swollen base at the point of attachment. Plant B has leaves that arise one at each node. Plant C has narrow leaves whose bases form a sheath around the stem.');
+pq('pmx13', 3, 'leaf', 'The swollen leaf base of A is', 'a pulvinus', ['a stipule', 'a phyllode', 'a tendril'], 'It is found in leguminous plants.');
+pq('pmx13', 4, 'phyllotaxy', 'Plant B shows', 'alternate phyllotaxy', ['opposite phyllotaxy', 'whorled phyllotaxy', 'no phyllotaxy'], 'One leaf per node.');
+pq('pmx13', 5, 'leaf', 'Which statement about C is likely?', 'It is a monocot with parallel venation', ['It is a dicot with reticulate venation', 'It is a pteridophyte', 'It has a pulvinus at its leaf base'], 'A sheathing leaf base points to a monocot, with parallel veins.');
+
+// ---- Level 4
+mc(4, 'root', 'Which of the following correctly lists the zones of a root from the tip?', 'Root cap, meristematic, elongation, maturation', ['Root cap, elongation, meristematic, maturation', 'Meristematic, root cap, maturation, elongation', 'Maturation, elongation, meristematic, root cap'], 'Cells divide in the meristematic zone, elongate, then mature with root hairs.');
+mc(4, 'root', 'Which of these roots is a modified adventitious root?', 'Sweet potato', ['Carrot', 'Turnip', 'Radish'], 'Sweet potato is a modified adventitious root; the others are tap roots.');
+mc(4, 'stem', 'In Opuntia the spines are modified', 'leaves', ['stems', 'roots', 'stipules only'], 'The stem is flattened and green and does the photosynthesis; the leaves are reduced to spines.');
+mc(4, 'stem', 'Which of these helps a plant to climb by stem tendrils?', 'Watermelon', ['Pea', 'Lathyrus', 'Sweet pea'], 'Pea and sweet pea use leaf tendrils.');
+mc(4, 'leaf', 'In peas the leaflets are modified into tendrils to', 'climb', ['store food', 'fix nitrogen', 'trap insects'], 'This leaf modification helps climbing.');
+mc(4, 'leaf', 'Which of these is correct about a pulvinus?', 'It is the swollen leaf base in legumes', ['It is the leaf apex in monocots', 'It is a stipule', 'It is an ovule'], 'Pulvinus is the swollen base of the leaf in Fabaceae.');
+mc(4, 'inflorescence', 'Which of the following is NOT a racemose inflorescence?', 'Monochasial cyme', ['Raceme', 'Spike', 'Catkin'], 'Cymose types include uniparous, biparous and multiparous cymes.');
+mc(4, 'flower', 'The flowers of sunflower are', 'borne on a head or capitulum with ray and disc florets', ['borne singly', 'borne on a spadix', 'in a spike only'], 'Ray florets are zygomorphic and disc florets are actinomorphic.');
+mc(4, 'flower', 'The pea flower has', 'a standard, two wings and two fused keel petals', ['three sepals only', 'a single large petal', 'six free petals'], 'This is the papilionaceous corolla.');
+mc(4, 'flower', 'In a syncarpous gynoecium the carpels are', 'fused', ['free', 'absent', 'only one'], 'As in mustard and tomato.');
+mc(4, 'flower', 'Axile placentation needs an ovary that is', 'multilocular, with septa', ['unilocular', 'monocarpellary', 'without septa'], 'Tomato, lemon and china rose have several chambers and a central axis.');
+mc(4, 'fruit', 'In a drupe like mango, the stony part around the seed is', 'the endocarp', ['the epicarp', 'the mesocarp', 'the testa'], 'The endocarp is hard and stony.');
+mc(4, 'fruit', 'The coconut shell is the', 'endocarp', ['epicarp', 'mesocarp', 'testa'], 'The mesocarp is fibrous (coir).');
+mc(4, 'seed', 'The seed coat has two layers called', 'testa and tegmen', ['coleoptile and coleorhiza', 'epicarp and mesocarp', 'plumule and radicle'], 'The testa is outer.');
+mc(4, 'seed', 'The embryonal axis of a dicot seed above the cotyledon is called', 'epicotyl ending in the plumule', ['hypocotyl ending in the radicle', 'scutellum', 'aleurone layer'], 'Hypocotyl lies below the cotyledons.');
+mc(4, 'families', 'The root nodules in plants of Fabaceae contain', 'nitrogen-fixing bacteria', ['mycorrhiza', 'cyanobacteria only', 'algae'], 'The bacteria are Rhizobium.');
+mc(4, 'families', 'The ovary of Fabaceae has', 'one chamber with many ovules and marginal placentation', ['two chambers with swollen placenta', 'three chambers with axile placentation', 'one chamber, basal placenta'], 'Compare with Solanaceae and Liliaceae.');
+mc(4, 'families', 'The ovary of Liliaceae is', 'superior and trilocular with axile placentation', ['inferior with marginal placentation', 'superior and unilocular', 'half-inferior'], 'Liliaceae has a trilocular superior ovary.');
+mc(4, 'floral formula', 'In a floral formula, K stands for', 'calyx', ['corolla', 'androecium', 'gynoecium'], 'K comes from the German Kelch.');
+mc(4, 'floral formula', 'In the floral formula the symbol % indicates', 'a zygomorphic flower', ['an actinomorphic flower', 'a unisexual flower', 'a bracteate flower'], 'Zygomorphic is shown by %; actinomorphic by ⊕.');
+mc(4, 'floral formula', 'A line drawn between two whorls in a floral formula shows', 'adhesion of whorls', ['cohesion within a whorl', 'a bracteate flower', 'a unisexual flower'], 'Brackets show cohesion (fusion within a whorl); a line shows adhesion.');
+mc(4, 'floral formula', 'The symbol ♀ indicates', 'a female (pistillate) flower', ['a bisexual flower', 'a male flower', 'a neutral flower'], 'The symbol ⚥ shows bisexual.');
+mc(4, 'phyllotaxy', 'In a plant the leaves arise in a whorl of five at each node. This is called', 'whorled', ['alternate', 'opposite', 'imbricate'], 'More than two leaves per node.');
+
+// ---- Level 5
+mc(5, 'root', 'Which of these is correct for a monocot such as wheat?', 'Fibrous root system arising from the base of the stem', ['Tap root system with a persistent radicle', 'Adventitious roots with reticulate venation', 'A pneumatophore'], 'Monocots typically have fibrous roots; the radicle is short-lived.');
+mc(5, 'stem', 'Which pair has the same function but a different origin?', 'Stem tendril of cucumber and leaf tendril of pea', ['Thorn of Citrus and thorn of Bougainvillea', 'Rhizome of ginger and rhizome of turmeric', 'Tuber of potato and tuber of sweet potato'], 'Both tendrils help climbing but one is stem, the other leaf.');
+mc(5, 'stem', 'Which of these is correct for thorns and spines?', 'Thorns are stem, spines are leaf modifications', ['Thorns are leaf, spines are stem', 'Both are root', 'Both are leaf'], 'A thorn arises from an axillary bud; the cactus spine is a leaf.');
+mc(5, 'flower', 'A flower with the gynoecium of a single carpel and the stamens in two bundles is typical of', 'pea', ['china rose', 'mustard', 'lily'], 'Pea has diadelphous stamens and a monocarpellary ovary.');
+mc(5, 'flower', 'Which placentation is found in a monocarpellary, unilocular ovary?', 'Marginal', ['Axile', 'Free central', 'Parietal'], 'A single carpel gives marginal placentation as in pea. Parietal needs more than one carpel.', 'Parietal also has one chamber, but needs fused carpels.');
+mc(5, 'fruit', 'A fruit in which the thalamus also contributes, as in apple, is called', 'a false fruit', ['a true fruit', 'a parthenocarpic fruit', 'a drupe'], 'In most plants only the ovary becomes the fruit; in apple, strawberry and cashew the thalamus also takes part.');
+mc(5, 'seed', 'In which of these does the coleoptile protect the plumule?', 'Maize', ['Castor', 'Gram', 'Bean'], 'A coleoptile is found in monocots.');
+mc(5, 'seed', 'A seed with two cotyledons and abundant endosperm is', 'castor', ['pea', 'gram', 'bean'], 'Castor is an endospermic dicot.');
+mc(5, 'families', 'Which of these is NOT correct for Solanaceae?', 'Fruit is a legume', ['Stamens are epipetalous', 'Ovary is superior', 'Seeds are endospermous'], 'Fruit is a berry or capsule.');
+mc(5, 'families', 'A plant with underground bulb, parallel venation, trimerous flowers and a capsule fruit most probably belongs to', 'Liliaceae', ['Solanaceae', 'Fabaceae', 'Poaceae'], 'These are the key features of lily family.');
 export default { topic: 'plant-morphology', groups, items, gens: [] };

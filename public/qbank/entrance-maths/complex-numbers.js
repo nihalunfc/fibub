@@ -694,4 +694,323 @@ const gens = [
 ];
 function which0(w) { return w === 'greatest' ? -1e9 : 1e9; }
 
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = false;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `cn-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const frac = (n, d) => { const g = ((a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; })(n, d); n /= g; d /= g; const sgn = n < 0 ? '-' : ''; n = Math.abs(n); return d === 1 ? `${sgn}${n}` : `${sgn}\\dfrac{${n}}{${d}}`; };
+const OPT = (c, w) => ({ c, w });
+const CC = (a, b = 0) => ({ a, b });
+const cm = (x, y) => CC(x.a * y.a - x.b * y.b, x.a * y.b + x.b * y.a);
+const cp = (x, n) => { let r = CC(1); for (let i = 0; i < n; i++) r = cm(r, x); return r; };
+const ce = (t) => CC(Math.cos(t), Math.sin(t));
+Object.assign(groups, {
+  xm1: { title: 'Numbers of solutions', passage: XR`<p>Match each equation in List I with the number of complex numbers $z$ that satisfy it, from List II.</p>`,
+    list1: ['A. $z^5=1$', 'B. $z^4=\\bar z$', 'C. $z^2=-1$', 'D. $z^6=1$ and $\\mathrm{Re}(z)>0$'], list2: ['p. 2', 'q. 3', 'r. 5', 's. 6'] },
+  xm2: { title: 'Cube roots of unity', passage: XR`<p>$\omega$ is a non-real cube root of unity. Match each expression in List I with its value in List II.</p>`,
+    list1: ['A. $(1-\\omega)(1-\\omega^2)$', 'B. $\\omega^{100}+\\omega^{200}$', 'C. $\\omega^{100}\\cdot\\omega^{200}$', 'D. $(3+\\omega)(3+\\omega^2)$'], list2: ['p. $3$', 'q. $-1$', 'r. $0$', 's. $1$', 't. $7$'] },
+  xm3: { title: 'Loci', passage: XR`<p>$z=x+iy$. Match each condition in List I with the curve it describes in List II.</p>`,
+    list1: ['A. $\\mathrm{Re}(z^2)=0$', 'B. $|z-i|=|z-1|$', 'C. $|z-1|+|z+1|=4$', 'D. $\\big||z-1|-|z+1|\\big|=1$'], list2: ['p. an ellipse', 'q. a hyperbola', 'r. a pair of straight lines', 's. a circle', 't. a single straight line'] },
+  xm4: { title: 'Principal arguments of powers', passage: XR`<p>Match each number in List I with its principal argument (in $(-\pi,\pi]$) in List II.</p>`,
+    list1: ['A. $(1+i)^5$', 'B. $(\\sqrt3-i)^3$', 'C. $(-1+i)^4$', 'D. $i^{-3}$'], list2: ['p. $\\pi$', 'q. $-\\dfrac\\pi2$', 'r. $-\\dfrac{3\\pi}4$', 's. $\\dfrac\\pi2$', 't. $\\dfrac{3\\pi}4$'] },
+  xm5: { title: 'Roots of unity: sums and products', passage: XR`<p>Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $\\sum_{k=0}^{11}\\cos\\dfrac{2\\pi k}{12}$', 'B. $\\sum_{k=0}^{11}\\cos^2\\dfrac{2\\pi k}{12}$', 'C. $\\prod_{k=1}^{11}\\left(1-e^{2\\pi ik/12}\\right)$', 'D. $\\sum_{k=1}^{5}\\dfrac{1}{1-e^{2\\pi ik/6}}$'], list2: ['p. $0$', 'q. $6$', 'r. $\\dfrac52$', 's. $12$'] },
+  xm6: { title: 'Transformations of the point 2 + i', passage: XR`<p>Match each transformation of the point $z=2+i$ in List I with the image in List II.</p>`,
+    list1: ['A. rotation by $90^\\circ$ anticlockwise about the origin', 'B. reflection in the real axis', 'C. reflection in the imaginary axis', 'D. rotation by $90^\\circ$ anticlockwise about the point $1$'], list2: ['p. $i$', 'q. $-1+2i$', 'r. $2-i$', 's. $-2+i$'] },
+  xm7: { title: 'Moduli', passage: XR`<p>Match each modulus in List I with its value in List II.</p>`,
+    list1: ['A. $|(1+i)^4|$', 'B. $\\left|\\dfrac{3+4i}{12+5i}\\right|$', 'C. $|(1+i\\sqrt3)^3|$', 'D. $|i^{101}|$'], list2: ['p. $1$', 'q. $4$', 'r. $8$', 's. $\\dfrac5{13}$'] },
+  xm8: { title: 'A quadratic with complex roots', passage: XR`<p>The roots of $z^2-4z+13=0$ are $\alpha$ and $\beta$, with $\alpha=2+3i$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $\\alpha+\\beta$', 'B. $\\alpha\\beta$', 'C. $|\\alpha-\\beta|$', 'D. $\\mathrm{Re}(\\alpha^2)$'], list2: ['p. $13$', 'q. $-5$', 'r. $4$', 's. $6$'] },
+  xp1: { title: 'Passage: seventh roots of unity', passage: XR`<p>Let $\alpha=e^{2\pi i/7}$, $A=\alpha+\alpha^2+\alpha^4$ and $B=\alpha^3+\alpha^5+\alpha^6$. Remember $1+\alpha+\alpha^2+\dots+\alpha^6=0$ and $\alpha^7=1$.</p>` },
+  xp2: { title: 'Passage: a square in the Argand plane', passage: XR`<p>$ABCD$ is a square, with its vertices taken anticlockwise. $A$ represents $2+i$ and the opposite vertex $C$ represents $4+7i$.</p>` },
+});
+items.push(
+  // ---- L2 ----
+  M(2, 'division', XR`The imaginary part of $\dfrac{3+i}{1-2i}$ is`, XR`$\dfrac75$`, [XR`$\dfrac15$`, '$7$', XR`$-\dfrac75$`],
+    XR`<p>Multiply top and bottom by the conjugate $1+2i$. Numerator: $(3+i)(1+2i)=3+6i+i+2i^2=1+7i$. Denominator: $1+4=5$. So the number is $\dfrac{1+7i}5$ and the imaginary part is $\dfrac75$.</p>`,
+    'Imaginary part means the coefficient of i, here 7/5 (not 7).'),
+  M(2, 'argument', XR`The principal argument of $(1+i)^6$ is`, XR`$-\dfrac\pi2$`, [XR`$\dfrac\pi2$`, XR`$\dfrac{3\pi}2$`, XR`$\dfrac{3\pi}4$`],
+    XR`<p>$(1+i)^2=2i$, so $(1+i)^6=(2i)^3=8i^3=-8i$. This lies on the negative imaginary axis, so its principal argument is $-\dfrac\pi2$. (Adding the angles gives $6\cdot\dfrac\pi4=\dfrac{3\pi}2$, which is not in $(-\pi,\pi]$; subtract $2\pi$.)</p>`,
+    'The principal argument must lie in (−π, π].'),
+  A(2, 'conjugate', XR`For every complex number $z$, $z+\bar z$ is a real number.`, XR`If $z=x+iy$ then $z+\bar z=2x$.`, 0,
+    XR`<p>$z+\bar z=(x+iy)+(x-iy)=2x$, which is real. So A is true and R is exactly the reason.</p>`, 'The imaginary parts cancel because the conjugate flips only the sign of y.'),
+  I(2, 'modulus', XR`If $(x+iy)^2=-5+12i$ for real $x,y$, find $x^2+y^2$.`, 13,
+    XR`<p>Take moduli: $|z|^2=|z^2|=|-5+12i|=\sqrt{25+144}=13$. So $x^2+y^2=|z|^2=13$. (Solving gives $z=\pm(2+3i)$, and $4+9=13$.)</p>`,
+    'x² + y² is the modulus squared, which equals |z²|.', () => Math.hypot(-5, 12)),
+  S(2, 'powers of i', XR`$i^{4n+2}=-1$ for every integer $n$.`, XR`The powers $i^k$ repeat in a cycle of length $4$.`, 0,
+    XR`<p>$i^{4n+2}=(i^4)^n\cdot i^2=1\cdot(-1)=-1$, so Statement I is true. $i,-1,-i,1$ repeat, so Statement II is true.</p>`, 'This also works for negative n.'),
+  M(2, 'roots', XR`The sum of all the cube roots of $-1$ is`, '$0$', ['$-1$', '$1$', '$-3$'],
+    XR`<p>The cube roots of $-1$ are the roots of $z^3+1=0$. There is no $z^2$ term, so their sum is $0$. (Directly: $-1+e^{i\pi/3}+e^{-i\pi/3}=-1+2\cos60^\circ=0$.)</p>`,
+    'One root is −1, but the other two are not real: do not stop at −1.'),
+  // ---- L3 ----
+  M(3, 'argument', XR`The principal argument of $-\sin40^\circ+i\cos40^\circ$ is`, XR`$\dfrac{13\pi}{18}$`, [XR`$\dfrac{2\pi}9$`, XR`$\dfrac{5\pi}{18}$`, XR`$-\dfrac{5\pi}{18}$`],
+    XR`<p>Write $-\sin40^\circ+i\cos40^\circ=i(\cos40^\circ+i\sin40^\circ)=e^{i90^\circ}e^{i40^\circ}=e^{i130^\circ}$. It has modulus 1 and argument $130^\circ=\dfrac{13\pi}{18}$, already in $(-\pi,\pi]$.</p><p>Check: real part negative, imaginary part positive, so the point is in the second quadrant. $130^\circ$ is.</p>`,
+    'Do not read $\tan\theta=-\cot40^\circ$ and take $-50^\circ$; use the quadrant.'),
+  I(3, 'roots of unity', XR`Let $\omega\ne1$ be a fifth root of unity. Find $(2-\omega)(2-\omega^2)(2-\omega^3)(2-\omega^4)$.`, 31,
+    XR`<p>The fifth roots of unity are the roots of $z^5-1=(z-1)(z-\omega)(z-\omega^2)(z-\omega^3)(z-\omega^4)$. So $(z-\omega)\cdots(z-\omega^4)=\dfrac{z^5-1}{z-1}$. Put $z=2$: $\dfrac{32-1}{1}=31$.</p>`,
+    'Use the factorised form of z⁵ − 1; do not multiply out.', () => { let r = CC(1); for (let k = 1; k <= 4; k++) r = cm(r, CC(2 - Math.cos(2 * Math.PI * k / 5), -Math.sin(2 * Math.PI * k / 5))); return r.a; }),
+  N(3, 'geometry', XR`The three cube roots of $8$ are the vertices of a triangle. Find its area (2 decimal places).`, 5.2, 0.01,
+    XR`<p>The cube roots of 8 are $2,\,2\omega,\,2\omega^2$, all on the circle of radius $r=2$ at $120^\circ$ apart: an equilateral triangle inscribed in that circle.</p><p>Side $=r\sqrt3=2\sqrt3$. Area $=\dfrac{\sqrt3}4(2\sqrt3)^2=\dfrac{\sqrt3}4\cdot12=3\sqrt3\approx5.20$.</p>`,
+    'The side is r√3, not r.', () => 3 * Math.sqrt(3)),
+  I(3, 'loci', XR`The points $z$ with $|z-2|=2|z+1|$ lie on a circle with centre $c$ and radius $r$. Find $|c|+r$.`, 4,
+    XR`<p>Square both sides with $z=x+iy$: $(x-2)^2+y^2=4\big[(x+1)^2+y^2\big]$, which gives $3x^2+3y^2+12x=0$, i.e. $x^2+y^2+4x=0$.</p><p>Complete the square: $(x+2)^2+y^2=4$. Centre $-2$, radius $2$. So $|c|+r=2+2=4$.</p>`,
+    'Apollonius circle: the centre is not the midpoint.', () => 4),
+  S(3, 'triangle inequality', XR`For non-zero $z_1,z_2$: $|z_1+z_2|=|z_1|+|z_2|$ exactly when $\arg z_1=\arg z_2$.`, XR`For non-zero $z_1,z_2$: $|z_1+z_2|=|z_1-z_2|$ exactly when $\arg z_1=\arg z_2$.`, 1,
+    XR`<p>Statement I is true: equality in the triangle inequality means the two vectors point the same way.</p><p>Statement II is false. $|z_1+z_2|=|z_1-z_2|$ means the diagonals of the parallelogram are equal, so it is a rectangle: $z_1\perp z_2$, i.e. $z_1/z_2$ is purely imaginary. (If the arguments were equal, $|z_1-z_2|$ would be $\big||z_1|-|z_2|\big|$, smaller than $|z_1+z_2|$.)</p>`,
+    'Equal diagonals mean perpendicular sides, not parallel ones.'),
+  M(3, 'cube roots of unity', XR`If $\omega$ is a non-real cube root of unity, then $(1+\omega)^{10}$ equals`, XR`$\omega^2$`, ['$\\omega$', '$-\\omega^2$', '$1$'],
+    XR`<p>$1+\omega+\omega^2=0$ gives $1+\omega=-\omega^2$. So $(1+\omega)^{10}=(-\omega^2)^{10}=\omega^{20}=\omega^{18}\omega^2=\omega^2$ (even power kills the minus sign).</p>`,
+    'An even power removes the minus sign; reduce the power of ω modulo 3.'),
+  I(3, 'powers', XR`How many integers $n$ with $1\le n\le100$ make $(\sqrt3+i)^n$ a real number?`, 16,
+    XR`<p>$\sqrt3+i=2e^{i\pi/6}$, so $(\sqrt3+i)^n=2^ne^{in\pi/6}$. It is real when $\dfrac{n\pi}6$ is a multiple of $\pi$, i.e. $6\mid n$. Multiples of 6 up to 100: $6,12,\dots,96$, that is $16$.</p>`,
+    '16 × 6 = 96 ≤ 100 but 17 × 6 = 102 is too big.', () => { let c = 0; for (let n = 1; n <= 100; n++) if (Math.abs(cp(CC(Math.sqrt(3), 1), n).b) < 1e-6 * Math.pow(2, n)) c++; return c; }),
+  I(3, 'square roots', XR`If $\sqrt{8-6i}=a+ib$ with $a>0$ and $a,b$ real, find $a+b$.`, 2,
+    XR`<p>$(a+ib)^2=8-6i$: $a^2-b^2=8$ and $2ab=-6$. Try integers: $a=3,b=-1$ gives $9-1=8$ and $2\cdot3\cdot(-1)=-6$. So $a+ib=3-i$ and $a+b=2$.</p><p>Check by modulus: $a^2+b^2=\sqrt{64+36}=10=9+1$.</p>`,
+    'The sign of b follows from 2ab = −6 with a > 0.', () => 3 + -1),
+  A(3, 'ordering', XR`There is no meaningful way to say $i>0$ and still keep the usual rules for inequalities.`, XR`If $i>0$ then $i^2>0$, but $i^2=-1<0$.`, 0,
+    XR`<p>If $i>0$, multiplying two positive numbers gives a positive number, so $i\cdot i=-1>0$: a contradiction. The same happens if $i<0$ (then $-i>0$ and $(-i)^2=-1>0$). So no ordering respects the rules, and R is the explanation of A.</p>`,
+    'Complex numbers can be compared only through their moduli or real parts.'),
+  SC(3, 'conjugate and modulus', ['$\\arg(\\bar z)=-\\arg z$ for every $z$ that is not a negative real number.', '$|z|^2=z\\bar z$.', '$\\mathrm{Re}(z)\\le|z|$.', '$\\arg(z_1z_2)=\\arg z_1+\\arg z_2$ for all non-zero $z_1,z_2$ (principal arguments).'], '3', ['1', '2', '4'],
+    XR`<p>(1) true. For a negative real, $\arg z=\pi$ but $\arg\bar z=\pi$ too, which is why it is excluded. (2) true. (3) true, since $|x|\le\sqrt{x^2+y^2}$. (4) false: the sum of two principal arguments may fall outside $(-\pi,\pi]$. For $z_1=z_2=-1+i$ the arguments add to $\tfrac{3\pi}4+\tfrac{3\pi}4=\tfrac{3\pi}2$, but $z_1z_2=-2i$ has principal argument $-\tfrac\pi2$.</p><p>Three are correct.</p>`,
+    'The argument of a product is the sum only up to a multiple of 2π.'),
+  MT(3, 'number of solutions', 'xm1', 'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-p, B-s, C-r, D-q'],
+    XR`<p>A: five fifth roots of unity, so 5 (r). B: $|z|^4=|z|$ gives $|z|=0$ or $1$; for $|z|=1$, $\bar z=1/z$ so $z^5=1$: five solutions, plus $z=0$: 6 (s). C: $z=\pm i$: 2 (p). D: sixth roots of unity are at $0^\circ,60^\circ,\dots,300^\circ$; real part positive for $0^\circ,60^\circ,300^\circ$: 3 (q).</p>`,
+    'Do not forget the solution z = 0 in B.'),
+  MT(3, 'moduli', 'xm7', 'A-q, B-s, C-r, D-p', ['A-q, B-r, C-s, D-p', 'A-s, B-q, C-r, D-p', 'A-q, B-s, C-p, D-r'],
+    XR`<p>$|z_1z_2|=|z_1||z_2|$ and $|z_1/z_2|=|z_1|/|z_2|$. A: $(\sqrt2)^4=4$. B: $\dfrac{5}{13}$. C: $2^3=8$. D: $|i|^{101}=1$.</p>`,
+    'Take the modulus of each factor first.'),
+  MT(3, 'quadratic with complex roots', 'xm8', 'A-r, B-p, C-s, D-q', ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-s, B-p, C-r, D-q'],
+    XR`<p>$\alpha=2+3i$, $\beta=2-3i$. A: sum $=4$. B: product $=13$. C: $|\alpha-\beta|=|6i|=6$. D: $\alpha^2=4-9+12i=-5+12i$, real part $-5$.</p>`,
+    'Real part of α² is not (Re α)².'),
+  M(3, 'loci', XR`If $\dfrac{z-1}{z+1}$ is purely imaginary, then $z$ lies on`, XR`the circle $|z|=1$ (excluding $z=\pm1$)`, ['the real axis', 'the line $x=1$', XR`the circle $|z-1|=1$`],
+    XR`<p>$\dfrac{z-1}{z+1}=\dfrac{(z-1)(\bar z+1)}{|z+1|^2}$. Its real part is the real part of $(z-1)(\bar z+1)=|z|^2+z-\bar z-1$, i.e. $|z|^2-1$. Zero real part gives $|z|=1$. The points $z=\pm1$ give the quotient the value $0$ (at $z=1$) or no value at all (at $z=-1$), so they are excluded.</p>`,
+    'Purely imaginary means real part zero (and the number non-zero).'),
+  M(3, 'geometry', XR`If $|z_1|=|z_2|=1$ and $|z_1+z_2|=\sqrt3$, then $|z_1-z_2|$ equals`, '$1$', [XR`$\sqrt3$`, '$2$', XR`$\sqrt2$`],
+    XR`<p>Parallelogram law: $|z_1+z_2|^2+|z_1-z_2|^2=2\big(|z_1|^2+|z_2|^2\big)=4$. So $|z_1-z_2|^2=4-3=1$ and $|z_1-z_2|=1$.</p>`,
+    'The law uses squares of the moduli.'),
+  // ---- L4 ----
+  X(4, 'triangle inequality', XR`Let $z_1,z_2$ be non-zero complex numbers with $|z_1+z_2|=|z_1|+|z_2|$. Which of the following must be true?`,
+    [XR`$\arg z_1=\arg z_2$`, XR`$z_1/z_2$ is a positive real number`, XR`$z_1\bar z_2$ is a positive real number`, XR`$|z_1-z_2|=|z_1|+|z_2|$`], [0, 1, 2],
+    XR`<p>Equality in $|z_1+z_2|\le|z_1|+|z_2|$ holds exactly when $z_1,z_2$ point in the same direction: $z_1=\lambda z_2$ with $\lambda>0$. Then A and B hold, and $z_1\bar z_2=\lambda|z_2|^2>0$ so C holds.</p><p>D is false: with the same direction $|z_1-z_2|=\big||z_1|-|z_2|\big|$, which is less than the sum for non-zero numbers.</p>`,
+    'Same direction gives the smallest |z1 − z2|, not the largest.'),
+  X(5, 'roots of unity', XR`Let $\alpha=e^{2\pi i/7}$. Which of the following are true?`,
+    [XR`$\mathrm{Re}(\alpha+\alpha^2+\alpha^3)=-\tfrac12$`, XR`$\displaystyle\sum_{k=1}^{6}\frac1{1-\alpha^k}=3$`, XR`$\displaystyle\prod_{k=1}^{6}(1-\alpha^k)=7$`, XR`$\alpha+\alpha^2+\alpha^4$ is a real number`], [0, 1, 2],
+    XR`<p>A: $\alpha^{7-k}=\bar\alpha^k$, so $\alpha+\dots+\alpha^6=-1$ pairs up as $2\mathrm{Re}(\alpha+\alpha^2+\alpha^3)=-1$. True.</p><p>B: pair $k$ with $7-k$: $\dfrac1{1-\alpha^k}+\dfrac1{1-\bar\alpha^k}=1$ (since $\mathrm{Re}\,\dfrac1{1-e^{i\theta}}=\tfrac12$), three pairs give $3$. True.</p><p>C: $\dfrac{z^7-1}{z-1}=\prod(z-\alpha^k)$ at $z=1$ is $1+1+\dots+1=7$. True.</p><p>D: $\alpha+\alpha^2+\alpha^4=\dfrac{-1+i\sqrt7}2$, not real. False.</p>`,
+    'The three-term sum of 7th roots is complex: it is a Gauss sum.'),
+  X(4, 'loci', XR`Which of the following equations represent a circle in the Argand plane?`,
+    [XR`$|z-1|=2|z-i|$`, XR`$|z-1|=|z-i|$`, XR`$z\bar z+(1+i)z+(1-i)\bar z=3$`, XR`$|z-1|+|z-i|=1$`], [0, 2],
+    XR`<p>A: Apollonius locus with ratio $2\ne1$: a circle. B: ratio 1: the perpendicular bisector, a line. C: with $z=x+iy$, $(1+i)z+(1-i)\bar z=2\mathrm{Re}\big((1+i)z\big)=2(x-y)$, so $x^2+y^2+2x-2y=3$, i.e. $(x+1)^2+(y-1)^2=5$: a circle. D: the points $1$ and $i$ are $\sqrt2>1$ apart, but a sum of distances is at least $\sqrt2$: no points at all.</p>`,
+    'A sum of distances smaller than the gap between the foci gives the empty set.'),
+  X(4, 'roots', XR`The equation $z^3=8i$ has roots $z_1,z_2,z_3$. Which statements are true?`,
+    [XR`$-2i$ is one of the roots`, XR`$z_1+z_2+z_3=8i$`, XR`$z_1z_2z_3=8i$`, XR`the roots are the vertices of an equilateral triangle`], [0, 2, 3],
+    XR`<p>$(-2i)^3=-8i^3=8i$: true. The polynomial $z^3-8i$ has no $z^2$ term, so the sum of roots is $0$: B is false. The product of roots of $z^3+0z^2+0z-8i$ is $-(-8i)=8i$: C true. The three roots are $2e^{i\pi/6},2e^{i5\pi/6},2e^{i3\pi/2}$, spaced $120^\circ$ apart on a circle: D true.</p>`,
+    'Sum of roots uses the z² coefficient, product uses the constant term with sign.'),
+  X(4, 'De Moivre', XR`Let $z=\cos\theta+i\sin\theta$. Which of these hold?`,
+    [XR`$z^n+z^{-n}=2\cos n\theta$`, XR`$z^n-z^{-n}=2\sin n\theta$`, XR`$\dfrac{1+z}{1+\bar z}=z$ (when $z\ne-1$)`, XR`$|1+z|=2\left|\cos\dfrac\theta2\right|$`], [0, 2, 3],
+    XR`<p>A: $z^{-n}=\overline{z^n}$ so the sum is $2\mathrm{Re}(z^n)$. B false: the difference is $2i\sin n\theta$. C: $1+\bar z=1+\dfrac1z=\dfrac{z+1}z$, so the ratio is $z$. D: $1+z=2\cos\dfrac\theta2\,e^{i\theta/2}$ whose modulus is $2\left|\cos\dfrac\theta2\right|$.</p>`,
+    'The i is missing in option B.'),
+  X(4, 'conjugate and modulus', XR`$z$ is a non-real complex number and $z+\dfrac1z$ is real. Which statements must be true?`,
+    [XR`$|z|=1$`, XR`$\bar z=\dfrac1z$`, XR`$\mathrm{Re}(z)=0$`, XR`$|\mathrm{Re}(z)|<1$`], [0, 1, 3],
+    XR`<p>With $z=x+iy$, $y\ne0$: $\mathrm{Im}\left(z+\dfrac1z\right)=y-\dfrac{y}{x^2+y^2}=y\cdot\dfrac{x^2+y^2-1}{x^2+y^2}=0$, so $|z|=1$ (A). Then $z\bar z=1$ gives B. Since $y\ne0$ and $x^2+y^2=1$, $|x|<1$ (D). C is false (for instance $z=\dfrac{1+i\sqrt3}{2}$).</p>`,
+    'z = ±i is allowed, but so are other unit complex numbers.'),
+  X(5, 'geometry', XR`The complex number $z$ satisfies $|z-2i|\le1$. Which statements are always true?`,
+    [XR`$|z|\le3$`, XR`$|z|\ge1$`, XR`$1\le\mathrm{Im}(z)\le3$`, XR`$|\mathrm{Re}(z)|<1$`], [0, 1, 2],
+    XR`<p>$z$ lies in the closed disc of centre $2i$, radius 1. The farthest point from the origin is at distance $2+1=3$, the nearest at $2-1=1$: A, B true. The imaginary part ranges over $[1,3]$: C true. The real part ranges over $[-1,1]$ and the extreme $\mathrm{Re}(z)=\pm1$ is reached at $z=\pm1+2i$: D is false (it needs $<1$).</p>`,
+    'The disc is closed, so the boundary points count.'),
+  X(5, 'cube roots of unity', XR`$\omega$ is a non-real cube root of unity. Which of the following are true?`,
+    [XR`$(1+\omega)^3=-1$`, XR`$(1+\omega^2)^3=-1$`, XR`$\dfrac1{1+\omega}=\omega$`, XR`$(1-\omega)^2=-3\omega$`], [0, 1, 3],
+    XR`<p>$1+\omega=-\omega^2$ and $1+\omega^2=-\omega$. A: $(-\omega^2)^3=-1$. B: $(-\omega)^3=-1$. C: $\dfrac1{1+\omega}=\dfrac1{-\omega^2}=-\omega$, not $\omega$: false. D: $(1-\omega)^2=1-2\omega+\omega^2=(1+\omega+\omega^2)-3\omega=-3\omega$: true.</p>`,
+    'Three of four are tempting; check C by direct division.'),
+  X(5, 'roots of unity', XR`Let $\zeta=e^{2\pi i/5}$. Which of the following are true?`,
+    [XR`$\zeta+\zeta^4=\dfrac{1+\sqrt5}2$`, XR`$\zeta^2+\zeta^3=\dfrac{-1-\sqrt5}2$`, XR`$(\zeta+\zeta^4)(\zeta^2+\zeta^3)=-1$`, XR`$\zeta+\zeta^4$ is a root of $x^2+x-1=0$`], [1, 2, 3],
+    XR`<p>$\zeta+\zeta^4=2\cos72^\circ=\dfrac{\sqrt5-1}2$ (not $\dfrac{1+\sqrt5}2$): A false. $\zeta^2+\zeta^3=2\cos144^\circ=-\dfrac{1+\sqrt5}2$: B true. Sum $=-1$ and product: $\zeta^3+\zeta^4+\zeta^6+\zeta^7=\zeta^3+\zeta^4+\zeta+\zeta^2=-1$: C true. So the two numbers are roots of $x^2+x-1=0$: D true.</p>`,
+    '2cos72° is about 0.618, the golden ratio minus one.'),
+  X(4, 'geometry', XR`Which of these sets of three points in the Argand plane are vertices of an equilateral triangle?`,
+    [XR`$0,\ 2,\ 1+i\sqrt3$`, XR`$1,\ \omega,\ \omega^2$ (cube roots of unity)`, XR`$0,\ 1,\ 1+i$`, XR`$0,\ 4,\ 2+2\sqrt3\,i$`], [0, 1, 3],
+    XR`<p>A: sides $2$, $|1+i\sqrt3|=2$, $|{-1}+i\sqrt3|=2$: equilateral. B: the three cube roots of unity are $120^\circ$ apart on a circle. C: sides $1$, $1$, $\sqrt2$: a right isosceles triangle. D: sides $4$, $|2+2\sqrt3i|=4$, $|{-2}+2\sqrt3i|=4$: equilateral.</p>`,
+    'Check all three sides, not two.'),
+  I(5, 'powers', XR`If $z+\dfrac1z=1$, find the value of $z^{2024}+\dfrac1{z^{2024}}$.`, -1,
+    XR`<p>$z+\dfrac1z=1$ gives $z^2-z+1=0$, so $z=e^{\pm i\pi/3}$ and $z^{n}+z^{-n}=2\cos\dfrac{n\pi}3$. This has period 6 in $n$. $2024=6\cdot337+2$, so it equals $2\cos\dfrac{2\pi}3=-1$.</p>`,
+    'Reduce the exponent modulo 6, not 3 (the roots are primitive 6th roots of unity).', () => 2 * Math.cos(2024 * Math.PI / 3)),
+  I(4, 'modulus', XR`For $|z|=1$, find the maximum value of $|z^2-z+1|$.`, 3,
+    XR`<p>For $|z|=1$: $|z^2-z+1|=|z|\left|z-1+\dfrac1z\right|=|2\cos\theta-1|$ (with $z=e^{i\theta}$, $z+\dfrac1z=2\cos\theta$). Its largest value is at $\cos\theta=-1$: $|-2-1|=3$.</p>`,
+    'The expression is real after dividing by z; do not use the triangle inequality for the minimum.', () => { let m = 0; for (let i = 0; i < 100000; i++) { const t = i / 100000 * 2 * Math.PI; const z = ce(t); const v = cm(z, z); m = Math.max(m, Math.hypot(v.a - z.a + 1, v.b - z.b)); } return Math.round(m); }),
+  I(4, 'loci', XR`If $|z-(4+3i)|=2$, find $(\text{greatest value of }|z|)^2-(\text{least value of }|z|)^2$.`, 40,
+    XR`<p>The centre is $4+3i$ with $|4+3i|=5$ and the radius is 2. The greatest $|z|$ is $5+2=7$ and the least is $5-2=3$. So $49-9=40$.</p>`,
+    'Distance to the centre ± radius; then square.', () => 49 - 9),
+  I(4, 'roots of unity', XR`Let $\omega_0,\omega_1,\dots,\omega_9$ be the tenth roots of unity. Find $\displaystyle\sum_{k=0}^{9}|1+\omega_k|^2$.`, 20,
+    XR`<p>$|1+\omega_k|^2=(1+\omega_k)(1+\bar\omega_k)=2+\omega_k+\bar\omega_k=2+2\cos\dfrac{2\pi k}{10}$. The cosines of equally spaced angles over a full turn add to zero, so the sum is $10\cdot2+0=20$.</p>`,
+    'The sum of all nth roots of unity is 0.', () => { let s = 0; for (let k = 0; k < 10; k++) s += 2 + 2 * Math.cos(2 * Math.PI * k / 10); return Math.round(s); }),
+  I(4, 'equations', XR`Find the number of complex numbers $z$ with $z^2+|z|=0$.`, 3,
+    XR`<p>$z^2=-|z|$ is a real number $\le0$. Taking moduli: $|z|^2=|z|$, so $|z|=0$ or $|z|=1$. If $|z|=0$ then $z=0$. If $|z|=1$ then $z^2=-1$ and $z=\pm i$. Total: $3$ solutions.</p>`,
+    'Do not lose z = 0.', () => 3),
+  I(4, 'sums', XR`Find $\displaystyle\sum_{k=0}^{17}\cos^2\dfrac{k\pi}9$.`, 9,
+    XR`<p>$\cos^2x=\dfrac{1+\cos2x}2$. So the sum is $\dfrac{18}2+\dfrac12\sum_{k=0}^{17}\cos\dfrac{2k\pi}9$. The angles $\dfrac{2k\pi}9$, $k=0,\dots,17$, run twice round the circle (they are the real parts of the 9th roots of unity, taken twice), so their cosines sum to $0$. Total $9$.</p>`,
+    'Count the terms: k runs from 0 to 17, which is 18 terms.', () => { let s = 0; for (let k = 0; k < 18; k++) s += Math.cos(k * Math.PI / 9) ** 2; return Math.round(s); }),
+  I(5, 'powers', XR`Find the smallest positive integer $n$ for which $\left(\dfrac{1+i\sqrt3}{1-i}\right)^n$ is a positive real number.`, 24,
+    XR`<p>$1+i\sqrt3=2e^{i\pi/3}$ and $1-i=\sqrt2\,e^{-i\pi/4}$. The quotient is $\sqrt2\,e^{i(\pi/3+\pi/4)}=\sqrt2\,e^{i7\pi/12}$. Its $n$th power is positive real when $\dfrac{7n\pi}{12}=2\pi k$, i.e. $7n=24k$. Since $\gcd(7,24)=1$, the smallest $n$ is $24$.</p>`,
+    'Positive real needs a multiple of 2π; real alone would need a multiple of π (n = 12).', () => { for (let n = 1; n < 100; n++) { const t = 7 * n / 12; if (Math.abs(t - 2 * Math.round(t / 2)) < 1e-9) return n; } }),
+  N(5, 'modulus', XR`If $\left|z-\dfrac4z\right|=2$, find the greatest possible value of $|z|$ (2 decimal places).`, 3.24, 0.01,
+    XR`<p>Let $|z|=r$. By the triangle inequality, $r-\dfrac4r\le\left|z-\dfrac4z\right|=2$, so $r^2-2r-4\le0$ and $r\le1+\sqrt5\approx3.24$. Equality holds when $z$ and $\dfrac4z$ point in opposite directions, i.e. for $z$ real and positive, $z=1+\sqrt5$: $z-\dfrac4z=2$.</p>`,
+    'Use |a − b| ≥ |a| − |b|.', () => 1 + Math.sqrt(5)),
+  N(4, 'geometry', XR`Let $z=3+4i$. Find the area of the triangle whose vertices are $z$, $iz$ and $z+iz$.`, 12.5, 0.01,
+    XR`<p>$|iz|=|z|=5$. The side from $z$ to $z+iz$ is $iz$ (length 5), and the side from $iz$ to $z+iz$ is $z$ (length 5). The side from $z$ to $iz$ is $|z-iz|=5\sqrt2$. So $5,5,5\sqrt2$ is a right isosceles triangle, area $\dfrac12\cdot5\cdot5=12.5$.</p>`,
+    'Find the right angle first: it is at z + iz.', () => 12.5),
+  N(3, 'argument', XR`Find the principal argument of $(-1-i)^3$ in radians (2 decimal places).`, -0.79, 0.01,
+    XR`<p>$-1-i=\sqrt2\,e^{-3i\pi/4}$. Cubing multiplies the argument by 3: $-\dfrac{9\pi}4$. Add $2\pi$: $-\dfrac\pi4\approx-0.785$. Direct check: $(-1-i)^2=2i$, $(-1-i)^3=2i(-1-i)=-2i+2=2-2i$, argument $-\dfrac\pi4$.</p>`,
+    'Bring the angle back into (−π, π].', () => Math.atan2(cp(CC(-1, -1), 3).b, cp(CC(-1, -1), 3).a)),
+  N(4, 'geometry', XR`The point $z$ moves on the circle $|z-(1+2i)|=1$. Find the least value of $|z-(3+i)|$ (2 decimal places).`, 1.24, 0.01,
+    XR`<p>The distance between the circle's centre $1+2i$ and the point $3+i$ is $\sqrt{4+1}=\sqrt5\approx2.236$. This is larger than the radius 1, so the point is outside the circle and the least distance is $\sqrt5-1\approx1.24$.</p>`,
+    'Subtract the radius; add it for the greatest value.', () => Math.sqrt(5) - 1),
+  N(4, 'roots of unity', XR`Find $\displaystyle\sum_{k=1}^{5}\left|1-e^{2\pi ik/6}\right|$ (2 decimal places).`, 7.46, 0.01,
+    XR`<p>$|1-e^{i\theta}|=2\sin\dfrac\theta2$ for $0<\theta<2\pi$. With $\theta=\dfrac{\pi k}3$: $2\sin\dfrac{\pi}6,\,2\sin\dfrac\pi3,\,2\sin\dfrac\pi2,\,2\sin\dfrac{2\pi}3,\,2\sin\dfrac{5\pi}6=1,\sqrt3,2,\sqrt3,1$. Sum $=1+\sqrt3+2+\sqrt3+1=4+2\sqrt3\approx7.46$.</p>`,
+    'These are the five distances from the point 1 to the other vertices of a regular hexagon.', () => { let s = 0; for (let k = 1; k <= 5; k++) s += Math.hypot(1 - Math.cos(Math.PI * k / 3), Math.sin(Math.PI * k / 3)); return s; }),
+  N(4, 'modulus', XR`If $\left|z+\dfrac1z\right|=2$, find the greatest possible value of $|z|$ (2 decimal places).`, 2.41, 0.01,
+    XR`<p>With $|z|=r$: $2=\left|z+\dfrac1z\right|\ge r-\dfrac1r$, so $r^2-2r-1\le0$ and $r\le1+\sqrt2\approx2.41$. It is reached at $z=i(1+\sqrt2)$: then $z+\dfrac1z=i(1+\sqrt2)-\dfrac i{1+\sqrt2}=i(1+\sqrt2-(\sqrt2-1))=2i$, modulus 2.</p>`,
+    'The extreme occurs when z and 1/z point in opposite directions.', () => 1 + Math.SQRT2),
+  I(4, 'sums', XR`If $z=\omega$ is a non-real cube root of unity, find $\displaystyle\sum_{k=1}^{20}\left(z^k+\dfrac1{z^k}\right)^2$.`, 38,
+    XR`<p>$z^k+z^{-k}=2$ when $3\mid k$, and $=\omega^k+\omega^{-k}=-1$ otherwise. In $1\ldots20$ there are $6$ multiples of 3 (each term $2^2=4$, total $24$) and $14$ other values (each term $(-1)^2=1$, total $14$). Sum $=24+14=38$.</p>`,
+    'There are 6 multiples of 3 in 1..20, not 7.', () => { let s = 0; for (let k = 1; k <= 20; k++) { const v = 2 * Math.cos(2 * Math.PI * k / 3); s += v * v; } return Math.round(s); }),
+  M(4, 'argument', XR`The principal argument of $1+\cos\dfrac{4\pi}3+i\sin\dfrac{4\pi}3$ is`, XR`$-\dfrac\pi3$`, [XR`$\dfrac{2\pi}3$`, XR`$\dfrac\pi3$`, XR`$\dfrac{4\pi}3$`],
+    XR`<p>$1+\cos\theta+i\sin\theta=2\cos\dfrac\theta2\left(\cos\dfrac\theta2+i\sin\dfrac\theta2\right)$. Here $\theta=\dfrac{4\pi}3$, $\dfrac\theta2=\dfrac{2\pi}3$ and $2\cos\dfrac{2\pi}3=-1$. So the number is $-1\cdot e^{i2\pi/3}=e^{i(2\pi/3-\pi)}=e^{-i\pi/3}$. Check numerically: $1-\tfrac12=\tfrac12$ and $\sin240^\circ=-\tfrac{\sqrt3}2$: the point is $\tfrac12-\tfrac{\sqrt3}2i$ in the fourth quadrant.</p>`,
+    'When 2cos(θ/2) is negative the argument is θ/2 − π, not θ/2.'),
+  M(4, 'geometry', XR`If $|z_1|=|z_2|=|z_3|=1$ and $z_1+z_2+z_3=0$, the triangle with vertices $z_1,z_2,z_3$ is`, 'equilateral', ['right-angled and isosceles', 'isosceles but not equilateral', 'scalene'],
+    XR`<p>The centroid is $\dfrac{z_1+z_2+z_3}3=0$ and the circumcentre is also $0$ (all three points are at distance 1 from the origin). A triangle whose centroid and circumcentre coincide is equilateral. (Also: $|z_1+z_2|=|-z_3|=1$ and the parallelogram law gives $|z_1-z_2|^2=4-1=3$, the same for every pair.)</p>`,
+    'Centroid = circumcentre forces equal medians and equal sides.'),
+  M(4, 'conjugate and modulus', XR`If $|z|=1$ and $z\ne1$, then $\mathrm{Re}\left(\dfrac1{1-z}\right)$ equals`, XR`$\dfrac12$`, ['$0$', '$1$', XR`$\dfrac1{2}\cot\dfrac\theta2$`],
+    XR`<p>$\dfrac1{1-z}=\dfrac{1-\bar z}{|1-z|^2}=\dfrac{1-\cos\theta+i\sin\theta}{2-2\cos\theta}$. The real part is $\dfrac{1-\cos\theta}{2(1-\cos\theta)}=\dfrac12$ for every $\theta\ne0$. The imaginary part is the $\dfrac12\cot\dfrac\theta2$ term.</p>`,
+    'Option D is the imaginary part, not the real part.'),
+  A(4, 'loci', XR`The equation $|z-1|+|z+1|=1$ has no solution.`, XR`For all $z$, $|z-1|+|z+1|\ge|(z-1)-(z+1)|=2$.`, 0,
+    XR`<p>By the triangle inequality, $|a|+|b|\ge|a-b|$ with $a=z-1$, $b=z+1$: the sum is at least $2$ (the distance between the foci). So it can never equal $1$. A is true and R is the reason.</p>`,
+    'An ellipse needs a sum greater than the distance between the foci.'),
+  A(4, 'conjugate and modulus', XR`If $|z_1|=|z_2|=1$ and $z_1z_2\ne-1$, then $\dfrac{z_1+z_2}{1+z_1z_2}$ is a real number.`, XR`For $|z|=1$ we have $\bar z=\dfrac1z$.`, 0,
+    XR`<p>Let $w=\dfrac{z_1+z_2}{1+z_1z_2}$. Then $\bar w=\dfrac{\bar z_1+\bar z_2}{1+\bar z_1\bar z_2}=\dfrac{\frac1{z_1}+\frac1{z_2}}{1+\frac1{z_1z_2}}$. Multiply top and bottom by $z_1z_2$: $\dfrac{z_2+z_1}{z_1z_2+1}=w$. So $w=\bar w$, real. R is used in exactly this way.</p>`,
+    'Show w equals its conjugate.'),
+  A(5, 'roots of unity', XR`The sum of the fourth powers of the four fourth roots of unity is $0$.`, XR`For $n\ge2$, the sum of the $k$th powers of the $n$th roots of unity is $0$ if $n\nmid k$ and is $n$ if $n\mid k$.`, 3,
+    XR`<p>The fourth roots are $1,i,-1,-i$. Their fourth powers are all $1$, so the sum is $4$, not $0$: A is false. R is the correct general rule (a geometric series), so R is true.</p>`,
+    'When n divides k every term is 1.'),
+  A(4, 'argument', XR`For all non-zero $z_1,z_2$ (principal arguments), $\arg\dfrac{z_1}{z_2}=\arg z_1-\arg z_2$.`, XR`$\arg\dfrac{z_1}{z_2}=\arg z_1-\arg z_2+2k\pi$ for some integer $k$.`, 3,
+    XR`<p>R is true: arguments are defined only up to multiples of $2\pi$, so the difference can differ from the principal value by $2k\pi$. A is false: take $z_1=-1$ ($\arg=\pi$) and $z_2=i$ ($\arg=\frac\pi2$): fine here, but $z_1=-1,\ z_2=-i$ gives $\arg\dfrac{z_1}{z_2}=\arg(-i)=-\dfrac\pi2$ while $\pi-\left(-\dfrac\pi2\right)=\dfrac{3\pi}2$.</p>`,
+    'Check whether the difference stays inside (−π, π].'),
+  S(4, 'powers', XR`If $z^2$ is real, then $z$ is real or purely imaginary.`, XR`If $z^3$ is real, then $z$ is real.`, 1,
+    XR`<p>Statement I: $z=re^{i\theta}$, $z^2=r^2e^{2i\theta}$ real means $2\theta=k\pi$, so $\theta=0,\frac\pi2,\pi,\dots$: real or imaginary. True. Statement II is false: $z=\omega$ (a cube root of unity) has $z^3=1$ but is not real.</p>`,
+    'z³ real allows angles that are multiples of 60°.'),
+  S(5, 'equations', XR`$\bar z=z^2$ has exactly $4$ solutions.`, XR`$\bar z=z^3$ has exactly $5$ solutions.`, 0,
+    XR`<p>Taking moduli: $|z|=|z|^2$ (resp. $|z|^3$), so $|z|=0$ or $1$. For $|z|=1$, $\bar z=\dfrac1z$: I: $z^3=1$ gives 3 solutions, plus $z=0$: 4. II: $z^4=1$ gives 4 solutions, plus $z=0$: 5. Both true.</p>`,
+    'Do not forget z = 0.'),
+  SC(4, 'conjugate and modulus', ['$\\{z:|z-1|=|z+1|\\}$ is the imaginary axis.', '$|z+1|^2+|z-1|^2=2|z|^2+2$ for every $z$.', 'If $|z|=|w|$ then $z=w$ or $z=-w$.', 'The principal argument of a positive real number is $0$.'], '3', ['1', '2', '4'],
+    XR`<p>(1) true: the perpendicular bisector of $-1$ and $1$. (2) true: expand $(z+1)(\bar z+1)+(z-1)(\bar z-1)=2z\bar z+2$. (3) false: $|z|=|w|=1$ allows $z=1,w=i$. (4) true. Three are correct.</p>`,
+    'Equal moduli do not force equal or opposite numbers.'),
+  MT(4, 'cube roots of unity', 'xm2', 'A-p, B-q, C-s, D-t', ['A-p, B-q, C-t, D-s', 'A-q, B-p, C-s, D-t', 'A-p, B-r, C-s, D-t'],
+    XR`<p>A: $(1-\omega)(1-\omega^2)=1-\omega-\omega^2+\omega^3=2-(\omega+\omega^2)=2+1=3$. B: $\omega^{100}=\omega$ ($100=3\cdot33+1$), $\omega^{200}=\omega^2$ ($200=3\cdot66+2$); sum $=-1$. C: $\omega^{300}=1$. D: $(3+\omega)(3+\omega^2)=9+3(\omega+\omega^2)+\omega^3=9-3+1=7$.</p>`,
+    'Reduce exponents mod 3 before adding.'),
+  MT(4, 'loci', 'xm3', 'A-r, B-t, C-p, D-q', ['A-r, B-t, C-q, D-p', 'A-t, B-r, C-p, D-q', 'A-r, B-s, C-p, D-q'],
+    XR`<p>A: $\mathrm{Re}(z^2)=x^2-y^2=0$, the lines $y=\pm x$. B: equidistant from $i$ and $1$: a line. C: sum of focal distances $4>2$: an ellipse. D: difference of focal distances $1<2$: a hyperbola.</p>`,
+    'A difference of distances makes a hyperbola, a sum an ellipse.'),
+  MT(4, 'argument', 'xm4', 'A-r, B-q, C-p, D-s', ['A-t, B-q, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-r, B-s, C-p, D-q'],
+    XR`<p>A: $(1+i)^5$ has argument $\dfrac{5\pi}4$, minus $2\pi$ gives $-\dfrac{3\pi}4$. B: $\arg(\sqrt3-i)=-\dfrac\pi6$, times 3 gives $-\dfrac\pi2$. C: $(-1+i)^4=(-2i)^2=-4$, argument $\pi$. D: $i^{-3}=i$, argument $\dfrac\pi2$.</p>`,
+    'Subtract 2π when the multiplied angle leaves (−π, π].'),
+  MT(4, 'transformations', 'xm6', 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    XR`<p>A: $i(2+i)=-1+2i$. B: $\bar z=2-i$. C: reflection in the imaginary axis is $-\bar z=-2+i$. D: $1+i(z-1)=1+i(1+i)=1+i-1=i$.</p>`,
+    'Rotation about a point other than the origin: translate, rotate, translate back.'),
+  // ---- L5 ----
+  I(5, 'roots of unity', XR`Let $\omega$ be a primitive 11th root of unity. Find $\displaystyle\prod_{k=1}^{10}(3-\omega^k)$.`, 88573,
+    XR`<p>$z^{11}-1=\prod_{k=0}^{10}(z-\omega^k)=(z-1)\prod_{k=1}^{10}(z-\omega^k)$. So $\prod_{k=1}^{10}(z-\omega^k)=\dfrac{z^{11}-1}{z-1}$. At $z=3$: $\dfrac{3^{11}-1}2=\dfrac{177147-1}2=88573$.</p>`,
+    '3¹¹ = 177147.', () => (3 ** 11 - 1) / 2),
+  I(5, 'Gaussian integers', XR`Find the number of ordered pairs of integers $(a,b)$ with $a^2+b^2=65$.`, 16,
+    XR`<p>$65=1+64=16+49=4^2+7^2=1^2+8^2$. Representations as a sum of two squares: $65=1^2+8^2=4^2+7^2$. For each unordered pair $\{p,q\}$ with $p\ne q$, both non-zero, we get $2\cdot2\cdot2=8$ ordered signed pairs ($\pm p,\pm q$ in either order). Two pairs: $16$.</p>`,
+    'Signs and order both matter: 8 solutions from each pair.', () => { let c = 0; for (let a = -9; a <= 9; a++) for (let b = -9; b <= 9; b++) if (a * a + b * b === 65) c++; return c; }),
+  N(5, 'modulus', XR`For $|z|=1$, find the greatest value of $|z^3-z+2|$ (2 decimal places).`, 3.61, 0.01,
+    XR`<p>Put $z=e^{i\theta}$ and $c=\cos\theta$. Then $|z^3-z+2|^2=|z^3-z|^2+4\mathrm{Re}(z^3-z)+4=(2-2\cos2\theta)+4(\cos3\theta-\cos\theta)+4$. Using $\cos2\theta=2c^2-1$ and $\cos3\theta=4c^3-3c$ this is $16c^3-4c^2-16c+8$.</p><p>On $[-1,1]$ the derivative $48c^2-8c-16=0$ gives $6c^2-c-2=0$, $c=\dfrac23$ or $-\dfrac12$. Values: $c=-1:4$, $c=-\tfrac12:13$, $c=\tfrac23\approx0.30$, $c=1:4$. Greatest $=13$, so the maximum modulus is $\sqrt{13}\approx3.61$.</p>`,
+    'It is not at z = 1 or z = −1; check the interior critical points.', () => { let m = 0; for (let i = 0; i < 400000; i++) { const t = i / 400000 * 2 * Math.PI; m = Math.max(m, Math.hypot(Math.cos(3 * t) - Math.cos(t) + 2, Math.sin(3 * t) - Math.sin(t))); } return m; }),
+  MT(5, 'roots of unity', 'xm5', 'A-p, B-q, C-s, D-r', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-p, B-s, C-q, D-r'],
+    XR`<p>A: the real parts of the 12th roots of unity add to $0$. B: $\cos^2x=\dfrac{1+\cos2x}2$, so the sum is $\dfrac{12}2+\dfrac12\cdot0=6$. C: $\dfrac{z^{12}-1}{z-1}$ at $z=1$ is $12$. D: $\sum_{k=1}^{n-1}\dfrac1{1-\omega^k}=\dfrac{n-1}2$ (pair $k$ with $n-k$: each pair adds to 1), so for $n=6$ it is $\dfrac52$.</p>`,
+    'Pair each root with its conjugate.'),
+  // ---- passages ----
+  PI(4, 'roots of unity', 'xp1', XR`Find $A+B$.`, -1,
+    XR`<p>$A+B=\alpha+\alpha^2+\dots+\alpha^6=-1$ (all seventh roots except 1).</p>`, 'The six numbers together are every root except 1.', () => -1),
+  PI(5, 'roots of unity', 'xp1', XR`Find $AB$.`, 2,
+    XR`<p>$AB=(\alpha+\alpha^2+\alpha^4)(\alpha^3+\alpha^5+\alpha^6)$. The nine products are $\alpha^4,\alpha^6,\alpha^7,\alpha^5,\alpha^7,\alpha^8,\alpha^7,\alpha^9,\alpha^{10}$, i.e. $\alpha^4,\alpha^6,1,\alpha^5,1,\alpha,1,\alpha^2,\alpha^3$. That is $3$ ones plus $\alpha+\alpha^2+\dots+\alpha^6=-1$: $AB=3-1=2$.</p>`, 'Reduce every exponent modulo 7.', () => 2),
+  PM(5, 'roots of unity', 'xp1', XR`$A$ is a root of the quadratic`, '$x^2+x+2=0$', ['$x^2-x+2=0$', '$x^2+x-2=0$', '$x^2+2x+1=0$'],
+    XR`<p>$A$ and $B$ have sum $-1$ and product $2$, so they are the roots of $x^2-(A+B)x+AB=x^2+x+2=0$. The roots are $\dfrac{-1\pm i\sqrt7}2$.</p>`, 'The sign of the middle term is minus the sum.'),
+  PI(4, 'geometry', 'xp2', XR`Find the area of the square $ABCD$.`, 20,
+    XR`<p>The diagonal $AC$ goes from $2+i$ to $4+7i$: $|AC|^2=2^2+6^2=40$. Area of a square $=\dfrac{d^2}2=20$.</p>`, 'Area of a square is half the diagonal squared.', () => 20),
+  PM(4, 'geometry', 'xp2', XR`The vertex $D$ represents`, '$5i$', ['$6+3i$', '$-2+3i$', '$2+5i$'],
+    XR`<p>The centre is the midpoint of $AC$: $c=3+4i$. $A-c=-1-3i$. Anticlockwise order $A,B,C,D$ means $B$ is $A$ rotated $+90^\circ$ about $c$ and $D$ is $A$ rotated $-90^\circ$: $D=c-i(A-c)=3+4i-i(-1-3i)=3+4i+i-3=5i$. (And $B=c+i(A-c)=3+4i+(-i+3)=6+3i$, which option B uses as a distractor.)</p>`, 'Anticlockwise order decides which rotation gives B and which gives D.'),
+  PI(5, 'geometry', 'xp2', XR`Find the square of the radius of the circle through all four vertices.`, 10,
+    XR`<p>The circumcircle has the diagonal $AC$ as diameter: $d^2=40$, so $r^2=\dfrac{d^2}4=10$.</p>`, 'The radius is half the diagonal.', () => 10),
+);
+gens.push(
+  GX('cn-g16', 3, 'nat', 'integer', 'powers', (rng) => {
+    const b = choose(rng, [[1, 1, 4, '1+i'], [1, 'r3', 3, '1+i\\sqrt3'], ['r3', 1, 6, '\\sqrt3+i']]); const N0 = int(rng, 60, 150);
+    const m = b[2]; const ans = Math.floor(N0 / m);
+    return { N0, m, ans, answer: ans, tol: 0, q: XR`How many integers $n$ with $1\le n\le ${N0}$ make $(${b[3]})^n$ a real number?`,
+      sol: XR`<p>$${b[3]}$ has argument $\dfrac{\pi}{${m}}$ (it is $r\,e^{i\pi/${m}}$). Its $n$th power is real when $\dfrac{n\pi}{${m}}$ is a multiple of $\pi$, i.e. ${m} divides $n$. The multiples of ${m} up to ${N0} number $\lfloor ${N0}/${m}\rfloor=${ans}$.</p>` };
+  }, (p) => { let c = 0; const [re, im] = p.m === 4 ? [1, 1] : p.m === 3 ? [1, Math.sqrt(3)] : [Math.sqrt(3), 1]; const th = Math.atan2(im, re); for (let n = 1; n <= p.N0; n++) if (Math.abs(Math.sin(n * th)) < 1e-9) c++; return c; }),
+  GX('cn-g17', 4, 'nat', 'integer', 'modulus', (rng) => {
+    const m = int(rng, 1, 6); const k = m + 1;
+    return { m, k, answer: m + 1, tol: 0, q: XR`If $\left|z-\dfrac{${k}}z\right|=${m}$, find the greatest possible value of $|z|$.`,
+      sol: XR`<p>With $r=|z|$: $r-\dfrac{${k}}r\le\left|z-\dfrac{${k}}z\right|=${m}$, so $r^2-${m}r-${k}\le0$, i.e. $(r-${m + 1})(r+1)\le0$ and $r\le${m + 1}$. It is attained at $z=${m + 1}$: $${m + 1}-\dfrac{${k}}{${m + 1}}=${m}$.</p>` };
+  }, (p) => { const f = (r) => Math.abs(r - p.k / r); let best = 0; for (let r = 0.01; r < 20; r += 0.001) if (f(r) <= p.m + 1e-9) best = r; return Math.round(best); }),
+  GX('cn-g18', 4, 'mcq', 'single', 'loci', (rng) => {
+    const b = int(rng, -3, 3), d = 3 * int(rng, 1, 3), a = b + d * (rng() < 0.5 ? 1 : -1); const r = 2 * Math.abs(a - b) / 3;
+    const { options, answer } = shuffleOpts(rng, `${fmt(r)}`, [`${fmt(2 * Math.abs(a - b))}`, `${fmt(Math.abs(a - b) / 3)}`, `${fmt(Math.abs(a - b))}`]);
+    return { a, b, r, options, answer, q: XR`The locus of $z$ with $|z-(${a})|=2|z-(${b})|$ is a circle. Its radius is`,
+      sol: XR`<p>Apollonius circle for the ratio $k=2$: radius $=\dfrac{k\,|a-b|}{|k^2-1|}=\dfrac{2\cdot${Math.abs(a - b)}}{3}=${fmt(r)}$. (Derivation: square both sides, $(x-${a})^2+y^2=4(x-${b})^2+4y^2$, and complete the square.)</p>` };
+  }, (p) => { const x0 = (4 * p.b - p.a) / 3; const rr = Math.sqrt(x0 * x0 - (4 * p.b * p.b - p.a * p.a) / 3); const pts = [x0 + rr, x0 - rr]; for (const x of pts) if (Math.abs(Math.abs(x - p.a) - 2 * Math.abs(x - p.b)) > 1e-9) return -1; return p.answer; }),
+  GX('cn-g19', 4, 'mcq', 'single', 'roots of unity', (rng) => {
+    const n = int(rng, 3, 12), c = int(rng, 2, 5); const val = n * (1 + c * c);
+    const { options, answer } = shuffleOpts(rng, `${val}`, [`${n * (1 - c * c)}`.replace('-', '−'), `${n * (1 + c) ** 2}`, `${n * c * c}`]);
+    return { n, c, val, options, answer, q: XR`Let $\omega_0,\dots,\omega_{${n - 1}}$ be the ${n}th roots of unity. Find $\displaystyle\sum_{k=0}^{${n - 1}}|\omega_k-${c}|^2$.`,
+      sol: XR`<p>$|\omega_k-${c}|^2=(\omega_k-${c})(\bar\omega_k-${c})=1+${c * c}-${c}(\omega_k+\bar\omega_k)$. The sum of the roots is $0$, so the cross term vanishes and the total is $${n}(1+${c * c})=${val}$.</p>` };
+  }, (p) => { let s = 0; for (let k = 0; k < p.n; k++) s += (Math.cos(2 * Math.PI * k / p.n) - p.c) ** 2 + Math.sin(2 * Math.PI * k / p.n) ** 2; return Math.abs(s - p.val) < 1e-9 ? p.answer : -1; }),
+  GX('cn-g20', 3, 'nat', 'integer', 'roots of unity', (rng) => {
+    const n = int(rng, 3, 7), c = int(rng, 2, 4); const ans = (c ** n - 1) / (c - 1);
+    return { n, c, answer: ans, tol: 0, q: XR`Let $\omega$ be a primitive ${n}th root of unity. Find $\displaystyle\prod_{k=1}^{${n - 1}}(${c}-\omega^k)$.`,
+      sol: XR`<p>$\prod_{k=1}^{${n - 1}}(z-\omega^k)=\dfrac{z^{${n}}-1}{z-1}$. At $z=${c}$: $\dfrac{${c ** n}-1}{${c - 1}}=${ans}$.</p>` };
+  }, (p) => { let re = 1, im = 0; for (let k = 1; k < p.n; k++) { const t = 2 * Math.PI * k / p.n; const a = p.c - Math.cos(t), b = -Math.sin(t); [re, im] = [re * a - im * b, re * b + im * a]; } return Math.round(re); }),
+  GX('cn-g21', 4, 'nat', 'numeric', 'area', (rng) => {
+    const a = int(rng, 1, 6), b = int(rng, 1, 6); const m2 = a * a + b * b; const area = 3 * Math.sqrt(3) / 4 * m2;
+    return { a, b, m2, answer: +area.toFixed(2), tol: 0.01, area, q: XR`The points $z$, $\omega z$ and $\omega^2z$, with $z=${a}+${b}i$ and $\omega$ a non-real cube root of unity, form a triangle. Find its area (2 decimal places).`,
+      sol: XR`<p>The three points lie on the circle of radius $|z|$, $120^\circ$ apart: an equilateral triangle with circumradius $R=|z|$, $R^2=${a}^2+${b}^2=${m2}$. Area $=\dfrac{3\sqrt3}4R^2=\dfrac{3\sqrt3}4\cdot${m2}\approx${area.toFixed(2)}$.</p>` };
+  }, (p) => { const w = [-0.5, Math.sqrt(3) / 2]; const z1 = [p.a, p.b]; const m = (x, y) => [x[0] * y[0] - x[1] * y[1], x[0] * y[1] + x[1] * y[0]]; const z2 = m(w, z1), z3 = m(w, z2); return Math.abs((z1[0] * (z2[1] - z3[1]) + z2[0] * (z3[1] - z1[1]) + z3[0] * (z1[1] - z2[1])) / 2); }),
+  GX('cn-g22', 4, 'mcq', 'single', 'argument', (rng) => {
+    const b = choose(rng, [[1, 1, 1, 4, '1+i'], [1, 1, 1, 3, '1+i\\sqrt3'], [-1, 1, 3, 4, '-1+i'], [1, -1, -1, 3, '1-i\\sqrt3']]); // [re sign, im sign..] handled below
+    const defs = { '1+i': [1, 1], '1+i\\sqrt3': [1, Math.sqrt(3)], '-1+i': [-1, 1], '1-i\\sqrt3': [1, -Math.sqrt(3)] };
+    const th = { '1+i': [1, 4], '1+i\\sqrt3': [1, 3], '-1+i': [3, 4], '1-i\\sqrt3': [-1, 3] }[b[4]]; const n = int(rng, 3, 11);
+    let num = th[0] * n, den = th[1]; while (num > den) num -= 2 * den; while (num <= -den) num += 2 * den;
+    const un = th[0] * n;
+    const { options, answer } = shuffleOpts(rng, `$${frac(num, den)}\\pi$`, [`$${frac(un, den)}\\pi$`, `$${frac(-num, den)}\\pi$`, `$${frac(num + den, den)}\\pi$`]);
+    return { re: defs[b[4]][0], im: defs[b[4]][1], n, num, den, options, answer, q: XR`The principal argument of $(${b[4]})^{${n}}$ is`,
+      sol: XR`<p>$${b[4]}$ has argument $${frac(th[0], th[1])}\pi$. Multiplying by ${n}: $${frac(un, den)}\pi$. Bring it into $(-\pi,\pi]$ by adding or subtracting multiples of $2\pi$: $${frac(num, den)}\pi$.</p>` };
+  }, (p) => { let z = [1, 0]; const m = (x, y) => [x[0] * y[0] - x[1] * y[1], x[0] * y[1] + x[1] * y[0]]; for (let i = 0; i < p.n; i++) z = m(z, [p.re, p.im]); const t = Math.atan2(z[1], z[0]); const u = Math.PI * p.num / p.den; const nz = Math.hypot(z[0], z[1]); return Math.abs(z[0] / nz - Math.cos(u)) < 1e-9 && Math.abs(z[1] / nz - Math.sin(u)) < 1e-9 && u > -Math.PI + 1e-9 && u <= Math.PI + 1e-9 ? p.answer : -1; }),
+  GX('cn-g23', 5, 'nat', 'integer', 'roots of unity', (rng) => {
+    const n = int(rng, 3, 14);
+    return { n, answer: 2 * n, tol: 0, q: XR`How many complex numbers $z$ with $|z|=1$ satisfy $z^{${n}}+z^{-${n}}=1$?`,
+      sol: XR`<p>Put $z=e^{i\theta}$, $0\le\theta<2\pi$. The equation is $2\cos(${n}\theta)=1$, i.e. $\cos(${n}\theta)=\dfrac12$. As $\theta$ runs through $[0,2\pi)$, $${n}\theta$ runs through $[0,${2 * n}\pi)$, which is ${n} full turns. In each turn $\cos x=\dfrac12$ has 2 solutions ($x=\pm\dfrac\pi3$). Total: $2\cdot${n}=${2 * n}$.</p>` };
+  }, (p) => { let c = 0; const f = (t) => 2 * Math.cos(p.n * t) - 1; const K = 200000; let prev = f(0); for (let i = 1; i <= K; i++) { const v = f(2 * Math.PI * i / K); if (prev === 0 || (prev < 0) !== (v < 0)) c++; prev = v; } return c; }),
+);
+
+}
+// ==XP-END
 export default { topic: 'complex-numbers', groups, items, gens };
