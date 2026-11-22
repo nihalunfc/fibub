@@ -18,6 +18,11 @@ export default {
       { id: 'matrices', name: 'Matrices, determinants and eigenvalues' },
       { id: 'complex-numbers', name: 'Complex numbers' },
       { id: 'fourier-series', name: 'Fourier series' },
+      { id: 'linear-vector-spaces', name: 'Linear vector spaces and Dirac notation' },
+      { id: 'matrices-eigenvalues', name: 'Hermitian and unitary matrices, diagonalisation' },
+      { id: 'complex-analysis', name: 'Analytic functions and Cauchy\'s theorem' },
+      { id: 'residues', name: 'The residue theorem and real integrals' },
+      { id: 'fourier-laplace-transforms', name: 'Fourier and Laplace transforms' },
     ] },
     { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
       { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
