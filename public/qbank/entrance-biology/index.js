@@ -99,6 +99,14 @@ export default {
         {
           "id": "molecular-inheritance",
           "name": "Molecular basis of inheritance"
+        },
+        {
+          "id": "evolution",
+          "name": "Evolution"
+        },
+        {
+          "id": "health-disease",
+          "name": "Human health and disease"
         }
       ]
     }
