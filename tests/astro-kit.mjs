@@ -45,7 +45,19 @@ for (const course of ['astronomy', 'sky-watching']) {
     ok(`${course}/${f}: has sources`, /\nsources:\n\s+- /.test(md));
     ok(`${course}/${f}: says what to read first`, /read first/i.test(md.slice(0, md.indexOf('class="bigidea"'))));
   }
-  console.log(`astro-kit ${course}: ${upgraded}/${total} lessons upgraded`);
+
+  // Glossary and cheat sheet: every term and formula must point at a real lesson.
+  const syl = readFileSync(new URL(`../src/courses/${course}/syllabus.ts`, import.meta.url), 'utf8');
+  const slugs = new Set([...syl.matchAll(/\['[\d.]+', '([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const gl = readFileSync(new URL(`../src/courses/${course}/glossary.ts`, import.meta.url), 'utf8');
+  const glSlugs = [...gl.matchAll(/'([a-z0-9-]+)'\],\n/g)].map((m) => m[1]);
+  ok(`${course} glossary has terms`, glSlugs.length > 50);
+  for (const s of glSlugs) ok(`${course} glossary lesson ${s} exists`, slugs.has(s));
+  const cs = readFileSync(new URL(`../src/pages/learn/courses/${course}/cheat-sheet.astro`, import.meta.url), 'utf8');
+  const csSlugs = [...cs.matchAll(/"([a-z0-9-]+)"\],\n/g)].map((m) => m[1]);
+  ok(`${course} cheat sheet has formulas`, csSlugs.length > 30);
+  for (const s of csSlugs) ok(`${course} cheat sheet lesson ${s} exists`, slugs.has(s));
+  console.log(`astro-kit ${course}: ${upgraded}/${total} lessons upgraded, ${glSlugs.length} glossary terms, ${csSlugs.length} formulas`);
 }
 console.log(`astro-kit: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
