@@ -477,4 +477,156 @@ export default {
     },
     verify: (p) => 13.6 * 0.75 * (p.Z - 1) ** 2 / 1000,
   },
+  'rocket-delta-v': {
+    title: 'speed gained by a rocket (Tsiolkovsky)',
+    make(r) {
+      const m0 = 100 * int(r, 5, 50), f = int(r, 30, 90) / 100, u = int(r, 15, 45) / 10;
+      const fuel = Math.round(m0 * f), m = m0 - fuel, answer = u * Math.log(m0 / m);
+      return {
+        q: `<p>A probe of mass ${m0} kg, of which ${fuel} kg is fuel, fires its engine in deep space starting from rest. The exhaust leaves at ${u} km/s relative to the probe. Find its final speed in km/s.</p>`,
+        answer, unit: 'km/s', tol: 0.01,
+        hint: 'Δv = u ln(m₀/m), where m is the mass left when the fuel is gone (not the fuel mass). Use the natural log.',
+        solution: steps(`Final mass m = ${m0} − ${fuel} = ${m} kg.`, `Mass ratio m₀/m = ${(m0 / m).toFixed(4)}.`, `Δv = ${u} × ln(${(m0 / m).toFixed(4)}) = ${u} × ${Math.log(m0 / m).toFixed(4)} = <b>${answer.toFixed(3)} km/s</b>.`),
+        m0, fuel, u,
+      };
+    },
+    verify: (p) => p.u * Math.log(p.m0 / (p.m0 - p.fuel)),
+  },
+  'chain-lift': {
+    title: 'force to lift a chain from a heap',
+    make(r) {
+      const lam = int(r, 1, 8) / 2, v = int(r, 1, 8) / 2, y = int(r, 2, 12) / 4;
+      const answer = lam * y * 9.8 + lam * v * v;
+      return {
+        q: `<p>A chain of ${lam} kg/m lies in a heap on the floor. One end is pulled straight up at a steady ${v} m/s. Find the pulling force, in N, when ${y} m of chain is off the floor (g = 9.8 m/s²).</p>`,
+        answer, unit: 'N', tol: 0.01,
+        hint: 'Two jobs: hold up the weight λyg of the lifted part, and give new links momentum at the rate d(λyv)/dt = λv².',
+        solution: steps(`Weight of the lifted part: λyg = ${lam} × ${y} × 9.8 = ${(lam * y * 9.8).toFixed(3)} N.`, `Momentum per second given to new links: λv² = ${lam} × ${v}² = ${(lam * v * v).toFixed(3)} N.`, `Total F = <b>${answer.toFixed(3)} N</b>.`),
+        lam, v, y,
+      };
+    },
+    verify: (p) => p.lam * p.y * 9.8 + p.lam * p.v ** 2,
+  },
+  'rolling-incline-speed': {
+    title: 'speed at the bottom of a slope when rolling',
+    make(r) {
+      const bodies = [['thin ring', 1, '1'], ['solid disc', 0.5, '1/2'], ['solid sphere', 0.4, '2/5'], ['hollow sphere', 2 / 3, '2/3']];
+      const [name, k, kt] = bodies[int(r, 0, 3)], h = int(r, 2, 40) / 10;
+      const answer = Math.sqrt(2 * 9.8 * h / (1 + k));
+      return {
+        q: `<p>A ${name} rolls without slipping, from rest, down a slope through a vertical drop of ${h} m. Find its speed at the bottom in m/s (g = 9.8 m/s²).</p>`,
+        answer, unit: 'm/s', tol: 0.01,
+        hint: `Energy: mgh = ½mv² + ½Iω² with ω = v/R and I = ${kt} mR² for this body. Static friction does no work.`,
+        solution: steps(`mgh = ½mv²(1 + ${kt}).`, `v = √(2gh / (1 + ${kt})) = √(${(2 * 9.8 * h).toFixed(2)} / ${(1 + k).toFixed(4)}).`, `v = <b>${answer.toFixed(3)} m/s</b> (sliding without friction would give ${Math.sqrt(2 * 9.8 * h).toFixed(3)} m/s).`),
+        h, k,
+      };
+    },
+    verify: (p) => Math.sqrt(2 * 9.8 * p.h / (1 + p.k)),
+  },
+  'skid-to-roll': {
+    title: 'a bowling ball stops skidding',
+    make(r) {
+      const v0 = int(r, 3, 12), mu = int(r, 5, 30) / 100;
+      const answer = 2 * v0 / (7 * mu * 9.8);
+      return {
+        q: `<p>A bowling ball (uniform solid sphere) is released sliding at ${v0} m/s with no spin. The coefficient of kinetic friction with the lane is ${mu}. After how many seconds does it roll without slipping? (g = 9.8 m/s²)</p>`,
+        answer, unit: 's', tol: 0.01,
+        hint: 'Friction μmg slows the centre (v = v₀ − μgt) and spins the ball up (ωR = (5μg/2)t, using I = 2/5 mR²). Set v = ωR.',
+        solution: steps(`v = ${v0} − ${(mu * 9.8).toFixed(3)} t and ωR = ${(2.5 * mu * 9.8).toFixed(3)} t.`, `Equal when ${v0} = ${(3.5 * mu * 9.8).toFixed(3)} t.`, `t = 2v₀/(7μg) = <b>${answer.toFixed(3)} s</b>; its speed is then 5v₀/7 = ${(5 * v0 / 7).toFixed(3)} m/s.`),
+        v0, mu,
+      };
+    },
+    verify: (p) => p.v0 / (3.5 * p.mu * 9.8),
+  },
+  'wire-extension': {
+    title: 'stretch of a loaded wire',
+    make(r) {
+      const mats = [['steel', 200], ['copper', 120], ['brass', 100], ['aluminium', 70]];
+      const [mat, Y] = mats[int(r, 0, 3)], L = int(r, 1, 8) / 2, d = int(r, 4, 20) / 10, m = int(r, 1, 20);
+      const A = Math.PI * (d / 2 * 1e-3) ** 2, answer = m * 9.8 * L / (A * Y * 1e9) * 1000;
+      return {
+        q: `<p>A ${mat} wire (Y = ${Y} GPa), ${L} m long and ${d} mm in diameter, carries a ${m} kg mass. Find its extension in mm (g = 9.8 m/s²).</p>`,
+        answer, unit: 'mm', tol: 0.01,
+        hint: 'ΔL = FL/(AY) with A = πr², r = half the diameter, all in metres and newtons.',
+        solution: steps(`F = ${m} × 9.8 = ${(m * 9.8).toFixed(2)} N.`, `A = π × (${(d / 2).toFixed(2)}×10⁻³)² = ${A.toExponential(4)} m².`, `ΔL = ${(m * 9.8).toFixed(2)} × ${L} / (${A.toExponential(4)} × ${Y}×10⁹) = <b>${answer.toFixed(4)} mm</b>.`),
+        Y, L, d, m,
+      };
+    },
+    verify: (p) => p.m * 9.8 * p.L / (Math.PI * (p.d / 2 * 1e-3) ** 2 * p.Y * 1e9) * 1000,
+  },
+  'moduli-relation': {
+    title: 'shear and bulk moduli from Y and Poisson\'s ratio',
+    make(r) {
+      const Y = 10 * int(r, 5, 22), s = int(r, 20, 45) / 100, want = r() < 0.5 ? 'G' : 'K';
+      const answer = want === 'G' ? Y / (2 * (1 + s)) : Y / (3 * (1 - 2 * s));
+      return {
+        q: `<p>A metal has Young's modulus ${Y} GPa and Poisson's ratio ${s}. Find its ${want === 'G' ? 'shear (rigidity)' : 'bulk'} modulus in GPa.</p>`,
+        answer, unit: 'GPa', tol: 0.005,
+        hint: 'Y = 2G(1 + σ) and Y = 3K(1 − 2σ).',
+        solution: want === 'G' ? steps(`G = Y / (2(1 + σ)) = ${Y} / ${(2 * (1 + s)).toFixed(2)}.`, `G = <b>${answer.toFixed(2)} GPa</b>.`) : steps(`K = Y / (3(1 − 2σ)) = ${Y} / ${(3 * (1 - 2 * s)).toFixed(2)}.`, `K = <b>${answer.toFixed(2)} GPa</b>.`),
+        Y, s, want,
+      };
+    },
+    verify: (p) => (p.want === 'G' ? p.Y / (2 * (1 + p.s)) : p.Y / (3 * (1 - 2 * p.s))),
+  },
+  'capillary-height': {
+    title: 'capillary rise in a glass tube',
+    make(r) {
+      const T = int(r, 20, 75) / 1000, rr = int(r, 1, 20) / 20, rho = [800, 1000, 1260][int(r, 0, 2)];
+      const answer = 2 * T / (rho * 9.8 * rr * 1e-3) * 100;
+      return {
+        q: `<p>A liquid of density ${rho} kg/m³ and surface tension ${T} N/m wets glass completely (contact angle 0). How high, in cm, does it rise in a glass tube of radius ${rr} mm? (g = 9.8 m/s²)</p>`,
+        answer, unit: 'cm', tol: 0.01,
+        hint: 'Jurin\'s law: h = 2T cos θ / (ρgr). Put r in metres.',
+        solution: steps(`h = 2 × ${T} / (${rho} × 9.8 × ${rr}×10⁻³).`, `h = ${(answer / 100).toFixed(5)} m = <b>${answer.toFixed(3)} cm</b>.`),
+        T, rr, rho,
+      };
+    },
+    verify: (p) => 2 * p.T / (p.rho * 9.8 * p.rr * 1e-3) * 100,
+  },
+  'stokes-terminal': {
+    title: 'terminal speed of a falling ball (Stokes)',
+    make(r) {
+      const rr = int(r, 2, 20) / 10, rho = [2500, 7800, 11300][int(r, 0, 2)], eta = int(r, 2, 20) / 10;
+      const sig = 1260, answer = 2 * (rr * 1e-3) ** 2 * (rho - sig) * 9.8 / (9 * eta) * 1000;
+      return {
+        q: `<p>A ball of radius ${rr} mm and density ${rho} kg/m³ is dropped into glycerine (density ${sig} kg/m³, viscosity ${eta} Pa s). Find its terminal speed in mm/s (g = 9.8 m/s²).</p>`,
+        answer, unit: 'mm/s', tol: 0.01,
+        hint: 'At terminal speed: weight − buoyancy = 6πηrv, so v = 2r²(ρ − σ)g / (9η).',
+        solution: steps(`ρ − σ = ${rho - sig} kg/m³.`, `v = 2 × (${rr}×10⁻³)² × ${rho - sig} × 9.8 / (9 × ${eta}).`, `v = <b>${answer.toFixed(3)} mm/s</b>.`),
+        rr, rho, eta,
+      };
+    },
+    verify: (p) => 2 * (p.rr * 1e-3) ** 2 * (p.rho - 1260) * 9.8 / (9 * p.eta) * 1000,
+  },
+  'add-velocities': {
+    title: 'relativistic velocity addition',
+    make(r) {
+      const v = int(r, 1, 18) / 20, u = int(r, 1, 18) / 20;
+      const answer = (u + v) / (1 + u * v);
+      return {
+        q: `<p>A spaceship moves at ${v}c relative to a planet and fires a probe straight ahead at ${u}c relative to the ship. Find the probe's speed relative to the planet, in units of c.</p>`,
+        answer, unit: 'c', tol: 0.002,
+        hint: 'u = (u′ + v) / (1 + u′v/c²). The answer must stay below 1.',
+        solution: steps(`Top: ${u} + ${v} = ${(u + v).toFixed(3)}.`, `Bottom: 1 + ${u} × ${v} = ${(1 + u * v).toFixed(4)}.`, `u = <b>${answer.toFixed(4)}c</b> (simply adding would give ${(u + v).toFixed(2)}c).`),
+        u, v,
+      };
+    },
+    verify: (p) => (p.u + p.v) / (1 + p.u * p.v),
+  },
+  'trip-proper-time': {
+    title: 'crew time for a fast trip',
+    make(r) {
+      const d = int(r, 2, 40), b = int(r, 10, 99) / 100;
+      const g = 1 / Math.sqrt(1 - b * b), answer = d / b / g;
+      return {
+        q: `<p>A ship travels at ${b}c to a star ${d} light-years away (distance in the Earth's frame). How many years does the trip take by the crew's own clocks?</p>`,
+        answer, unit: 'years', tol: 0.005,
+        hint: 'Earth time is distance ÷ speed. The crew\'s clocks run slow by γ = 1/√(1 − β²). (Or: in the crew\'s frame the distance is contracted by γ.)',
+        solution: steps(`Earth time: ${d} / ${b} = ${(d / b).toFixed(3)} years.`, `γ = 1/√(1 − ${b}²) = ${g.toFixed(4)}.`, `Crew time = ${(d / b).toFixed(3)} / ${g.toFixed(4)} = <b>${answer.toFixed(3)} years</b>.`),
+        d, b,
+      };
+    },
+    verify: (p) => (p.d / p.b) * Math.sqrt(1 - p.b ** 2),
+  },
 };
