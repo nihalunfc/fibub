@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './special-functions.more.gen.js';
 import more2 from './special-functions.more2.gen.js';
 import r4 from './special-functions.r4.gen.js';
+import r5 from './special-functions.r5.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 // Legendre P_n(x) by Bonnet's recurrence (n+1)P_{n+1} = (2n+1)xP_n - nP_{n-1}
@@ -247,6 +248,7 @@ export default {
       trap: 'Sign: the order $J_{1/2}J_{-1/2}\' - \\ldots$ makes it negative.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'sfn-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'orthogonality',
@@ -372,5 +374,6 @@ export default {
       verify: (p) => J(1.5, p.x) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
