@@ -130,6 +130,9 @@ export default {
       { id: 'bonding', name: 'Bonding in solids' },
       { id: 'phonons', name: 'Lattice vibrations and phonons' },
       { id: 'heat-capacity', name: 'Heat capacity: Einstein and Debye' },
+      { id: 'defects-dislocations', name: 'Defects and dislocations' },
+      { id: 'dielectric-optical', name: 'Dielectric and optical properties of solids' },
+      { id: 'quantum-hall', name: 'The quantum Hall effect and low-dimensional systems' },
     ] },
     { id: 'electronics', name: 'Electronics', topics: [
       { id: 'transistors', name: 'Transistors and amplifiers' },
@@ -139,6 +142,9 @@ export default {
     { id: 'nuclear', name: 'Nuclear physics', topics: [
       { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
       { id: 'nuclear-reactions', name: 'Nuclear reactions, fission and fusion' },
+      { id: 'deuteron-nuclear-force', name: 'The deuteron and the nuclear force' },
+      { id: 'collective-model', name: 'The collective model and nuclear deformation' },
+      { id: 'quark-model', name: 'Isospin, strangeness and the quark model' },
     ] },
   ],
 };
