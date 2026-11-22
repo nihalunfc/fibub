@@ -63,6 +63,10 @@ Pigments are grouped into **light-harvesting complexes** around a reaction centr
 
 **Chemiosmosis** (Peter Mitchell). ATP is made because protons pile up in the lumen: (1) water splitting releases H⁺ inside; (2) an electron carrier picks up H⁺ from the stroma and drops it inside as electrons move along; (3) NADP reductase, on the stroma side, uses up H⁺ from the stroma. The gradient drives protons back out through **ATP synthase**, which has a channel part in the membrane (**CF₀**) and a knob in the stroma (**CF₁**) that makes ATP.
 
+Try both kinds of flow and move the light slider: follow the red electrons uphill at each photosystem and downhill between them.
+
+<figure class="fig" data-fig="@bio-z-scheme"><figcaption>Notice what each route makes: non-cyclic gives ATP, NADPH and O₂; cyclic gives only ATP.</figcaption></figure>
+
 ## 4. The Calvin cycle (C3 pathway)
 
 Melvin Calvin traced radioactive ¹⁴C in the alga *Chlorella* and found the first product to be **3-phosphoglyceric acid** (3-PGA, three carbons). The CO₂ acceptor is the five-carbon **RuBP**.
@@ -74,6 +78,16 @@ Melvin Calvin traced radioactive ¹⁴C in the alga *Chlorella* and found the fi
 So each CO₂ costs **3 ATP + 2 NADPH**, and one glucose (6 CO₂, six turns) costs **18 ATP + 12 NADPH**.
 
 <div class="problem" data-problem="phs-atp-cost"></div>
+
+Step through three turns of the Calvin cycle and count the carbon atoms (each dot is one C).
+
+<div class="steps" data-fig="@bio-calvin-steps">
+<div class="step"><b>Fixation.</b> RuBisCO joins each CO₂ to a 5-carbon RuBP: 3 RuBP + 3 CO₂ = 18 carbons.</div>
+<div class="step"><b>The first product.</b> The unstable 6-carbon compound splits into 6 molecules of PGA (3 C each).</div>
+<div class="step"><b>Reduction.</b> 6 ATP and 6 NADPH turn the 6 PGA into 6 G3P.</div>
+<div class="step"><b>The net gain.</b> One G3P leaves the cycle (3 C); five G3P stay.</div>
+<div class="step"><b>Regeneration.</b> 3 more ATP rearrange the five G3P into three RuBP. The cycle is ready again.</div>
+</div>
 
 ## 5. The C4 pathway and photorespiration
 
@@ -92,6 +106,10 @@ C4 plants have no photorespiration, tolerate higher temperatures and are more pr
 **"C4 plants do not use the Calvin cycle."** They do, in the bundle sheath cells. The C4 cycle is a pump that feeds CO₂ to the Calvin cycle, not a replacement for it.
 
 </div>
+
+Switch between C3 and C4 and slide the temperature: follow the carbon in the leaf diagram and compare the two rate curves.
+
+<figure class="fig" data-fig="@bio-c3-c4"><figcaption>Notice that the C3 rate peaks near 25 °C and falls as photorespiration grows, while the C4 plant keeps rising to about 35 °C because CO₂ is concentrated around RuBisCO.</figcaption></figure>
 
 ## 6. Limiting factors
 

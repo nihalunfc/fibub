@@ -47,6 +47,11 @@ A shop till is like a cashier's drawer: quick to put one note in or take one out
 
 Azure SQL and Postgres are **general purpose**. They are excellent for small and medium analytics (up to hundreds of GB) when the tables are modelled well, and they get column-store speed from columnstore indexes (SQL Server) or extensions (Postgres has several; check which are maintained when you choose).
 
+Drag the row count up, then tap columns to switch them to a smaller dtype.
+
+<figure class="fig" data-fig="@data-dtype-memory"><figcaption>Notice that number columns shrink a little but text columns shrink a lot when they become category or datetime.</figcaption></figure>
+
+
 ## 3. Row store or column store
 
 <div class="steps" data-fig="where-data-lives-rowcol">

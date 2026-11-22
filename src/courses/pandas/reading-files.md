@@ -72,6 +72,11 @@ df
 
 Remove the options one at a time and run again to see what each fixes.
 
+Drag the row count up, then tap columns to switch them to a smaller dtype.
+
+<figure class="fig" data-fig="@data-dtype-memory"><figcaption>Notice that number columns shrink a little but text columns shrink a lot when they become category or datetime.</figcaption></figure>
+
+
 ## 3. Excel files
 
 ```py

@@ -116,6 +116,18 @@ Watch it happen, one step at a time:
 **In this course:** Python and pandas are [Pyodide](https://pyodide.org), a build of Python for web browsers, served from fibub itself. Your code runs on your device; nothing is uploaded. The datasets (a made-up shop's stores, products, customers and orders) are small CSV files the page reads when a box needs them.
 </details>
 
+Step through the chain one link at a time and watch the shape change.
+
+<div class="steps" data-fig="@data-chain-pipeline">
+<div class="step">Start: the raw DataFrame.</div>
+<div class="step">query: fewer rows, same columns.</div>
+<div class="step">assign: one new column, same rows.</div>
+<div class="step">groupby and sum: many rows collapse to one per region.</div>
+<div class="step">sort_values: same rows, new order.</div>
+<div class="step">head: only the top rows are kept.</div>
+</div>
+
+
 ## 4. The data we'll use
 
 A made-up retail chain with six stores and a website:

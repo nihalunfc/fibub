@@ -52,9 +52,17 @@ An everyday picture: instead of rewriting a 500-page manual, you clip a few page
 
 <!--fig:lora-size-->
 
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
+
 ## 3. QLoRA: LoRA on a 4-bit model
 
 **QLoRA** stores the frozen base model in 4-bit (Lesson 8.2), while the small LoRA pairs train in 16-bit. The base model takes about a quarter of the memory, the adapter is small, and quality ends up close to full 16-bit fine-tuning. This is the default for home fine-tuning.
+
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
 
 ## 4. The settings you will meet
 
@@ -95,6 +103,10 @@ An everyday picture: instead of rewriting a 500-page manual, you clip a few page
 **"LoRA makes a small model of my own."** The adapter is not a model on its own. It is a set of corrections that only works on top of the exact base model it was trained with. You still need the base model (or a merged copy, Lesson 14.5) to run it.
 
 </div>
+
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
 
 ## 5. Worked example
 

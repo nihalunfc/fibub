@@ -34,6 +34,10 @@ Comets shed dust as they near the Sun. Over many orbits the dust spreads along t
 
 Because the grains travel in parallel, perspective makes them seem to fan out from one point: the **radiant**. Each shower is named after the constellation of its radiant: Perseids (Perseus) in August, Geminids (Gemini) in December.
 
+Slide the radiant's height, pick a shower, and press Play to watch trails appear in the all-sky view.
+
+<figure class="fig" data-fig="@astro-meteor-radiant"><figcaption>The particles travel in parallel but perspective makes the trails radiate from one point. A low radiant meets fewer particles per patch of sky, so the hourly rate is ZHR × sin(height): that is why showers are best after the radiant has climbed.</figcaption></figure>
+
 ## 3. Watching
 
 - Lie back and look about 40° to 60° up, some 30° to 50° away from the radiant: meteors there have longer trails.

@@ -76,6 +76,10 @@ Mixing atomic orbitals of one atom gives equal **hybrid orbitals** pointing in t
 
 Example: in CH₂=CH-C≡N there are 6 σ bonds and 3 π bonds; the carbons are sp², sp², sp.
 
+**Try it:** compare "Before mixing" and "After mixing" for sp, sp² and sp³, then add lone pairs to sp³ to see NH₃ and H₂O.
+
+<figure class="fig" data-fig="@chem-hybrid-lobes"><figcaption>The hybrid lobes are all alike and point at the corners of a line, triangle or tetrahedron. The tiny back lobe is the opposite-sign part. Lone pairs sit in fatter lobes, which push the bond angle below 109.5°.</figcaption></figure>
+
 ## 6. Molecular orbital theory
 
 In MO theory, atomic orbitals combine into **bonding** orbitals (lower energy, electron density between the nuclei) and **antibonding** orbitals (marked *, higher energy). Filling order for up to 14 electrons: σ1s, σ*1s, σ2s, σ*2s, **π2p (two orbitals), σ2p**, π*2p, σ*2p. From O₂ onwards (more than 14 electrons) σ2p drops below π2p, because the 2s-2p mixing that pushes it up becomes weak.
@@ -89,6 +93,10 @@ Bond order = (N<sub>b</sub> − N<sub>a</sub>)/2. **Unpaired electrons** make a 
 **"Removing an electron always weakens a bond."** Only if it comes from a bonding orbital. N₂ → N₂⁺ loses a bonding electron (bond order 3 → 2.5), but O₂ → O₂⁺ loses an antibonding one, so O₂⁺ has the stronger, shorter bond.
 
 </div>
+
+**Try it:** step through H₂ to Ne₂. Read off the bond order and the number of unpaired electrons, then add or remove an electron with the charge buttons (O₂⁺, O₂⁻, N₂⁺).
+
+<figure class="fig" data-fig="@chem-mo-diagram"><figcaption>Bond order peaks at N₂ (3) and falls to 0 at Be₂ and Ne₂. O₂ has two unpaired π* electrons, so it is paramagnetic; look for the σ2p and π2p levels swapping order after N₂.</figcaption></figure>
 
 ## 7. Hydrogen bonding and beyond
 

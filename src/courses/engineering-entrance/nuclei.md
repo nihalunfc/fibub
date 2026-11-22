@@ -31,6 +31,10 @@ sources:
 
 A nucleus `$^{A}_{Z}\text{X}$` has Z protons and N = A − Z neutrons. **Isotopes:** same Z (¹²C, ¹⁴C). **Isobars:** same A (¹⁴C, ¹⁴N). **Isotones:** same N.
 
+Drag the exchanged mass up to the pion value (140 MeV) and move the nucleon separation across the range R.
+
+<figure class="fig" data-fig="@qm-yukawa"><figcaption>A heavier exchanged particle lives for a shorter time, so the force reaches less far: Yukawa's e^(−r/R)/r collapses where Coulomb's 1/r only fades.</figcaption></figure>
+
 - Radius `$R = R_0A^{1/3}$`, R₀ ≈ 1.2 fm (1 fm = 10⁻¹⁵ m). So volume ∝ A and **density is the same for all nuclei**, about 2.3 × 10¹⁷ kg/m³.
 - The **nuclear force** holds nucleons together against proton repulsion. It is much stronger than the electric force, very short range (a few fm), almost the same between p-p, n-n and n-p, and repulsive at very short distances.
 
@@ -68,6 +72,10 @@ With atomic masses, use m(¹H) in place of m_p so the electron masses cancel.
 
 Charge, nucleon number, energy and momentum are always conserved. The continuous beta spectrum led Pauli to predict the **neutrino**, which carries off the missing energy. In alpha decay, momentum conservation shares Q as `$K_\alpha = Q\,\dfrac{A - 4}{A}$`.
 
+Click cells in the three regions, or pick an example such as C-14 or U-238.
+
+<figure class="fig" data-fig="@qm-nuclide-chart"><figcaption>The stable band bends away from N = Z because of proton repulsion. Colours show the predicted decay, and the dashed lines mark the magic numbers the plain formula cannot explain.</figcaption></figure>
+
 Penetrating power: α (stopped by paper), β (a few mm of aluminium), γ (cm of lead). Ionising power is the other way round.
 
 ## 4. The decay law
@@ -99,15 +107,27 @@ Each nucleus has the same chance of decaying per second, λ, whatever its age. S
 
 </div>
 
+Press Play with 'One kind', then try 'Parent → daughter' and change the half-lives.
+
+<figure class="fig" data-fig="@qm-decay-atoms"><figcaption>Every square decays at random, yet the counts trace the exponential. In a chain the daughter first rises and then follows the parent when the parent lives longer.</figcaption></figure>
+
 ## 5. Fission, chain reactions and reactors
 
 A slow neutron absorbed by ²³⁵U makes it split into two medium nuclei, 2 or 3 neutrons, and about **200 MeV**, roughly 0.9 MeV per nucleon. Those neutrons can split more nuclei: a **chain reaction**. If each fission leads to k more (multiplication factor), the reaction dies (k < 1), runs steadily (k = 1, a reactor) or runs away (k > 1, a bomb).
+
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-fission-steps"><div class="step">A slow neutron approaches U-235 and is absorbed.</div><div class="step">U-236 forms in an excited state and starts to wobble like a charged liquid drop.</div><div class="step">The drop stretches into a peanut: surface tension pulls back, Coulomb repulsion pushes out.</div><div class="step">Past the fission barrier the neck thins out.</div><div class="step">Scission: the neck snaps and two fragments form.</div><div class="step">The fragments fly apart and 2 to 3 prompt neutrons escape to carry on the chain.</div><div class="step">Energy tally: about 200 MeV per fission, mostly fragment motion.</div></div>
 
 A reactor has: fuel (enriched uranium), a **moderator** (water, heavy water or graphite) to slow neutrons (fast neutrons are rarely captured by ²³⁵U; light nuclei take the most energy per collision), **control rods** (cadmium or boron) to absorb neutrons, a **coolant**, and shielding. Fission of 1 kg of ²³⁵U gives about 8 × 10¹³ J.
 
 ## 6. Fusion
 
 Joining light nuclei (deuterium and tritium, or four protons into helium) releases more energy per nucleon than fission. The nuclei must get close enough to overcome their electric repulsion, which needs temperatures of about 10⁷ to 10⁸ K: **thermonuclear fusion**. The Sun turns hydrogen into helium by the proton-proton cycle: net `$4\,^1\text{H} \to {}^4\text{He} + 2e^+ + 2\nu + 26.7\ \text{MeV}$`.
+
+Pick D + T, then C + C, and slide the temperature from 1 to 100 keV.
+
+<figure class="fig" data-fig="@qm-fusion-barrier"><figcaption>Thermal energies are far below the barrier. The few fusions that happen come from the Gamow peak, where the thinning Maxwell tail meets the rising tunnelling chance; heavier nuclei need much hotter plasma.</figcaption></figure>
 
 **Worked example (level 4).** Radium-226 (atomic mass 226.0254 u) decays to radon-222 (222.0176 u) plus helium-4 (4.0026 u). Q = (226.0254 − 222.0176 − 4.0026) × 931.5 = 0.0052 × 931.5 ≈ **4.84 MeV**. The alpha carries Q × 222/226 ≈ 4.76 MeV; the recoiling radon takes the rest.
 

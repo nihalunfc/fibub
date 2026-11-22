@@ -54,6 +54,11 @@ log.info("read %.1fs, clean %.1fs", t1 - t0, t2 - t1)
 
 The usual findings, roughly in order: re-reading all history on every run; row-by-row Python loops; SQL filters that cannot use an index (such as `where year(order_date) = 2026`, see [Lesson 4.5](/learn/courses/etl/tsql-for-warehouses/)); many small network round trips; thousands of tiny files.
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Incremental everything
 
 | Layer | Full approach | Incremental approach |

@@ -47,6 +47,11 @@ Reading it:
 
 The name comes from electronics: a *bus* is a shared connector that many parts plug into. Conformed dimensions are the warehouse's bus.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Conformed dimensions
 
 A dimension is *conformed* when every fact table that uses it uses the **same** one: the same keys, the same attribute names, the same spellings. "Ontario South" means the same stores in the sales report and the returns report. A fact table can also use an exact subset of a conformed dimension, such as a month-level slice of the date dimension; [Lesson 4.3](/learn/courses/data-modelling/conformed-dimensions/) goes further.

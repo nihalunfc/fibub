@@ -31,6 +31,10 @@ sources:
 
 For an `$n$`-bit code `$D = b_{n-1}2^{n-1} + \cdots + b_0$` and reference `$V_{ref}$`:
 
+Set the bits of an R-2R ladder and see the output voltage.
+
+<figure class="fig" data-fig="@sx-dac-ladder"><figcaption>Each bit adds V<sub>ref</sub>/2, /4, /8, /16. The staircase of all sixteen outputs shows why a counter gives a ramp.</figcaption></figure>
+
 ```math
 V_{out} = V_{ref}\frac D{2^n}, \qquad 1\ \text{LSB} = \frac{V_{ref}}{2^n}, \qquad V_{FS} = V_{ref}\frac{2^n - 1}{2^n}
 ```
@@ -85,6 +89,16 @@ for a full-scale sine of amplitude `$A$`. A 12-bit converter gives at most 74.0 
 | sigma-delta | 1-bit converter at a very high rate in a feedback loop, then digital filtering | many clocks per output | audio, sensors, 16 to 24 bits |
 
 **Successive approximation.** Try the MSB: set it to 1, compare the DAC output with the input, keep it if the DAC is below, clear it otherwise; then the next bit. A 4-bit SAR with a 0 to 8 V range (LSB = 0.5 V) converting 5.3 V tries 1000 (4 V, keep), 1100 (6 V, clear), 1010 (5 V, keep), 1011 (5.5 V, clear): the result is 1010 = 5.0 V, the input truncated to a whole LSB. (Adding half an LSB of offset to the DAC makes it round instead.)
+
+Step through a successive-approximation conversion: it is a binary search.
+
+<div class="steps" data-fig="@sx-sar-adc">
+<div class="step"><b>Start.</b> All bits 0. The input voltage is held steady.</div>
+<div class="step"><b>Top bit.</b> Try half of full scale and compare.</div>
+<div class="step"><b>Next bit.</b> Keep or drop the previous bit, then try the next one down.</div>
+<div class="step"><b>Continue.</b> Each comparison halves the remaining range.</div>
+<div class="step"><b>Done.</b> n bits need n comparisons; the result is within one LSB of the input.</div>
+</div>
 
 **Dual slope.** Integrate `$V_{in}$` for a fixed time `$T_1$` (a fixed count), then integrate `$-V_{ref}$` until the integrator returns to zero, which takes `$T_2$`:
 

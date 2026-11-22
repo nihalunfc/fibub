@@ -66,6 +66,10 @@ Watch signal and noise grow during an exposure:
 **Try it:** a star giving 50 e⁻/s, with 20 pixels of sky at 5 e⁻/s each, no read noise, 60 s: `$\text{SNR} = 3000/\sqrt{3000 + 6000} = 3000/94.9 = 31.6$`.
 </details>
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<figure class="fig" data-fig="@astro-ccd-steps"><figcaption>Subtracting bias and dark removes the offset and hot pixels. Dividing by the flat removes vignetting and dust shadows. After both, equal stars read equal counts anywhere on the chip, and the real signal stands above a flat sky.</figcaption></figure>
+
 ## 3. What helps
 
 - **Longer total exposure** (one long or many short; Lesson 6.4).

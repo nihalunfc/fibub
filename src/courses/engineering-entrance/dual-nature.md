@@ -37,6 +37,10 @@ E = h\nu = \frac{hc}{\lambda}, \qquad p = \frac{E}{c} = \frac{h}{\lambda}
 
 A handy number: `$E\,(\text{eV}) = \dfrac{1240}{\lambda\,(\text{nm})}$`. A 620 nm photon carries 2 eV. Photons have zero rest mass, always move at c in vacuum, and are neither made nor destroyed in collisions with electrons, only absorbed or scattered. A source of power P emitting wavelength λ sends out `$N = \dfrac{P\lambda}{hc}$` photons per second.
 
+A photon also carries momentum p = h/λ, and it shows when it hits a free electron. Slide the scattering angle and the photon energy and watch the photon bounce off the electron.
+
+<figure class="fig" data-fig="@qm-compton-geometry"><figcaption>The wavelength grows by λc(1 − cos θ) whatever the photon energy, but you only see it when λ is comparable with 2.4 pm. The three momentum arrows always close into a triangle.</figcaption></figure>
+
 <div class="problem" data-problem="dn-photon-rate"></div>
 
 **Radiation pressure** follows from photon momentum: a beam of power P falling on a black surface pushes with P/c; a perfect mirror, 2P/c.
@@ -74,6 +78,10 @@ Explore both graphs together.
 
 <figure class="fig" data-fig="photoelectric-kv"><figcaption>Top: maximum kinetic energy against frequency, one straight line per metal, all with slope h, starting at each threshold. Bottom: photocurrent against anode voltage. The current stops at −V₀; brighter light raises the flat (saturation) part but leaves V₀ the same.</figcaption></figure>
 
+Now run the experiment yourself in five steps. Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-photo-gun"><div class="step">Sodium, red light (700 nm): each photon has less energy than the work function, so nothing is emitted, however bright.</div><div class="step">Blue light (400 nm): photons now exceed φ, and electrons appear at once, with no delay.</div><div class="step">Double the brightness: twice as many photons, so twice as many electrons, at the same speeds.</div><div class="step">Shorter wavelength (250 nm): each photon carries more energy, so the electrons leave faster (larger K_max).</div><div class="step">Make the collector negative by exactly K_max/e: the fastest electrons just fail to arrive and the current drops to zero (the stopping potential).</div></div>
+
 <div class="problem" data-problem="dn-stopping"></div>
 
 **Graphs to know.** V₀ against ν: straight line, slope h/e, cutting the ν axis at ν₀ and the V₀ axis at −φ/e. Current against voltage: same V₀ for the same frequency, higher saturation for higher intensity; higher frequency gives a more negative stopping voltage. Current against intensity: a straight line through the origin.
@@ -93,6 +101,10 @@ De Broglie proposed that every moving particle has a wavelength
 ```
 
 For a charge q accelerated through V volts, K = qV, so `$\lambda = \dfrac{h}{\sqrt{2mqV}}$`. For an electron this becomes `$\lambda \approx \dfrac{1.227}{\sqrt V}$` nm. For a particle in thermal motion at temperature T, `$\lambda = \dfrac{h}{\sqrt{3mkT}}$`.
+
+Matter waves are not just a formula: they make fringes. Press Play and watch electrons arrive one at a time, then change the slit gap and wavelength and switch on 'Watch which slit'.
+
+<figure class="fig" data-fig="@qm-double-slit"><figcaption>Each electron makes one dot, yet the pile of dots draws fringes of spacing λL/d. Looking at which slit it used washes the fringes out.</figcaption></figure>
 
 <div class="problem" data-problem="dn-debroglie-v"></div>
 

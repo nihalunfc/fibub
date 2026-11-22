@@ -65,6 +65,10 @@ Rules that save time: `$\langle aX + b\rangle = a\langle X\rangle + b$`; `$\math
 
 **The two limits.** For large `$n$` and small `$p$` with `$np = \lambda$` fixed, the binomial becomes Poisson. For large mean (`$np(1-p) \gtrsim 10$`, or `$\lambda \gtrsim 10$`), both become Gaussian with the same mean and variance. The Gaussian gives the familiar 68%, 95.5% and 99.7% within `$1\sigma$`, `$2\sigma$`, `$3\sigma$`.
 
+Pick a die, choose how many to add and press 'Roll 500 sets' or Play.
+
+<figure class="fig" data-fig="@math-clt-dice"><figcaption>Notice that one die gives a flat heap, but sums of a few dice (even loaded ones) look like the bell curve, centred on n × mean with spread σ√n.</figcaption></figure>
+
 <figure class="fig" data-fig="distribution-explorer"><figcaption>Bars: the binomial distribution. Dots: the Poisson distribution with the same mean. Curve: the Gaussian with the same mean and variance. Make p small and n large to see the Poisson limit; make np(1 − p) large to see everything turn Gaussian.</figcaption></figure>
 
 **Worked example.** 1000 nuclei, each decaying in a minute with probability 0.002. With `$\lambda = 2$`: `$P(0) = e^{-2} = 0.135$`, `$P(1) = 2e^{-2} = 0.271$`, `$P(\geq2) = 1 - 3e^{-2} = 0.594$`. The exact binomial differs only in the fourth decimal place.
@@ -116,6 +120,10 @@ P(A\mid B) = \frac{P(B\mid A)\,P(A)}{P(B)}, \qquad P(B) = P(B\mid A)P(A) + P(B\m
 ```
 
 **Worked example.** A detector flags a rare event type (1% of events) with probability 0.99, and wrongly flags 1% of ordinary events. Then `$P(\text{true}\mid\text{flag}) = \dfrac{0.99\times0.01}{0.99\times0.01 + 0.01\times0.99} = 0.5$`. Half the flags are false, because the background is 99 times more common.
+
+Slide the prevalence, sensitivity and false-alarm rate and count the circled dots that really have the condition.
+
+<figure class="fig" data-fig="@math-bayes-dots"><figcaption>Notice that when the condition is rare most positives are false alarms, so P(condition | positive) can be small even for a good test.</figcaption></figure>
 
 <div class="myth">
 

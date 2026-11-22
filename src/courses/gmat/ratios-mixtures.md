@@ -87,6 +87,10 @@ The strength of a mixture is a **weighted average**: total amount of the ingredi
 
 </div>
 
+**Try it:** Change the two strengths and the litres, press Pour, then try Hit a target.
+
+<figure class="fig" data-fig="@tp-mixture-vessel"><figcaption>The mixture always lands between the two strengths, nearer the one you used more of.</figcaption></figure>
+
 ## Practise: GMAT-style questions on this lesson
 
 Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.

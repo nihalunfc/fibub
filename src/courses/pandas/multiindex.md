@@ -55,6 +55,11 @@ display(t.xs(2025, level='year'))           # every store, 2025 only
 t[('qty', 'sum')].head(3)                   # one column: a tuple too
 ```
 
+Drag the slider between wide and long, or press Play, and follow one number as it moves.
+
+<figure class="fig" data-fig="@data-reshape"><figcaption>Notice that no value changes, only its position: month names become values in a column.</figcaption></figure>
+
+
 ## 3. Flatten when done
 
 ```python data=orders.csv

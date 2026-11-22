@@ -56,6 +56,10 @@ Never use 3D, exploded slices, or a legend far from the slices.
 **Physical meaning:** a quarter of a pie is a right angle, a corner we see every day. A 17 % slice is an odd angle with nothing to compare it to.
 </details>
 
+Try it: narrow the gap between B and C and decide which is bigger in the pie, then in the bars.
+
+<figure class="fig" data-fig="@biz-pie-vs-bar"><figcaption>Notice that lengths on a shared baseline are much easier to compare than angles.</figcaption></figure>
+
 ## 4. Worked example
 
 *A manager asks for "a pie of sales by store".* Five stores, 30 % down to 12 %. Three of them (Falls Centre 22 %, Rideau 19 %, Harbour Front 17 %) are close in size, so in a pie they look almost the same.

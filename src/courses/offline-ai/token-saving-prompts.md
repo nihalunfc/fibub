@@ -40,6 +40,10 @@ Output costs most (Lesson 3.4). Say exactly what shape you want, the way you wou
 - "Answer **yes or no**, then one sentence why."
 - Set a **maximum tokens** limit in the request as a safety net (Lesson 3.8).
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. Send less input
 
 - **Cut the padding:** "I was wondering if you could possibly help me to..." adds nothing; "Summarise:" works.

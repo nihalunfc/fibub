@@ -80,6 +80,10 @@ A 2D electron in field `$B$` circles at the cyclotron frequency `$\omega_c = eB/
 <div class="step"><p><b>Same states, regrouped.</b> The 2D density of states m*/2πħ² per spin, times the spacing ħω<sub>c</sub>, is exactly eB/h: the field gathers the states of each slice into one level.</p></div>
 </div>
 
+Raise B at fixed density and watch the Fermi level step down, then try the spin split.
+
+<figure class="fig" data-fig="@qm-landau-levels"><figcaption>The filling factor is ν = n_s h/eB. Plateaus in ρ_xy and zeros of ρ_xx occur when the Fermi level lies in a gap between Landau levels.</figcaption></figure>
+
 ```math
 E_n = \hbar\omega_c\left(n + \tfrac12\right), \qquad \frac{N}{A} = \frac{eB}{h}\ \text{per level}, \qquad \nu = \frac{nh}{eB}, \qquad \ell_B = \sqrt{\frac{\hbar}{eB}}
 ```

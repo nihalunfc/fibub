@@ -53,6 +53,10 @@ In Canada and the UK, use the same structure: most plans are charged in US$ plus
 <div class="step"><p><b>The saving.</b> ₹1,950 a month × 12 = about <b>₹23,000 a year</b>, and her Plus allowance now lasts longer, because it only gets the hard jobs.</p></div>
 </div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Rules that keep it under control
 
 1. **Local by default.** Every new job tries local first (Lesson 15.6).

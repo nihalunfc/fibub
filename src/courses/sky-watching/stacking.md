@@ -40,6 +40,10 @@ Things to notice:
 - 4 frames halve the noise; to halve it again you need 16, then 64. Returns diminish: plan total time, not frame count.
 - The galaxy itself never changes; only the noise around it fades.
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<figure class="fig" data-fig="@astro-ccd-steps"><figcaption>Subtracting bias and dark removes the offset and hot pixels. Dividing by the flat removes vignetting and dust shadows. After both, equal stars read equal counts anywhere on the chip, and the real signal stands above a flat sky.</figcaption></figure>
+
 ## 3. The steps
 
 1. **Calibrate** each frame (Lesson 6.3).

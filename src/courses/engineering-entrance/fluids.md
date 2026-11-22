@@ -42,6 +42,11 @@ P₀ is the atmospheric pressure (1 atm = 1.013 × 10⁵ Pa ≈ 76 cm of mercury
 - **U-tube with two liquids:** equate pressures at the level of the lower interface: `$\rho_1 h_1 = \rho_2 h_2$`.
 - **Force on a dam** of width w and depth H (gauge only): `$\tfrac12\rho g w H^2$`, acting H/3 above the bottom.
 
+Try the hydraulic lift: change the area ratio, the load and the push, and see what the pressure, the output force and the distances do.
+
+<figure class="fig" data-fig="@wt-pascal-lift"><figcaption>The pressure P = F₁/A₁ is the same everywhere in the liquid, so F₂ = P A₂ is bigger by the area ratio. Notice that the big piston rises less than the small one falls: force is gained, work (F × distance) is not.</figcaption></figure>
+
+
 ## 2. Buoyancy and floating
 
 **Archimedes' principle:** a body in a fluid feels an upward buoyant force equal to the weight of fluid it pushes aside: `$F_B = \rho_{fluid}V_{sub}\,g$`. The cause is the pressure difference between the bottom and top of the body.
@@ -57,6 +62,11 @@ P₀ is the atmospheric pressure (1 atm = 1.013 × 10⁵ Pa ≈ 76 cm of mercury
 **"Heavy things sink and light things float."** It is density that decides, not weight. A steel ship floats because its hull encloses so much air that its average density is less than water's. A small pebble sinks.
 
 </div>
+
+Drop the cube into a liquid and slide its density. Find the density at which it just floats, and see what fraction is under the surface.
+
+<figure class="fig" data-fig="@wt-buoyancy"><figcaption>The buoyant force is the weight of the liquid displaced. Notice that a floating cube sinks until buoyancy equals weight, so the submerged fraction is ρ_cube/ρ_liquid, and that a steel-like cube floats in mercury.</figcaption></figure>
+
 
 ## 3. Accelerating and rotating liquids (JEE)
 
@@ -108,6 +118,11 @@ Applications:
 - **Reynolds number** `$R_e = \rho v D/\eta$`: below about 2000 the flow is streamline, above about 3000 turbulent.
 
 <div class="problem" data-problem="fl-terminal"></div>
+
+Drop a steel ball through the liquids and change its radius. Which matters more: the radius or the liquid?
+
+<figure class="fig" data-fig="@wt-terminal-velocity"><figcaption>Weight minus buoyancy is constant while drag grows with speed, so the ball speeds up and then settles at v_t = 2r²(ρ−σ)g/9η. Notice that the speed graph levels off, that doubling the radius quadruples v_t, and that Stokes' law is flagged as invalid when the Reynolds number is large.</figcaption></figure>
+
 
 ## 6. Surface tension
 

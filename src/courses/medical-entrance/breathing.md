@@ -46,6 +46,10 @@ Five steps of respiration: breathing (pulmonary ventilation), diffusion across t
 <div class="step"><b>Rate.</b> A healthy adult breathes 12 to 16 times a minute. A <b>spirometer</b> measures the volumes of air moved.</div>
 </div>
 
+Press play, then switch to forced breathing to see how a bigger volume change gives a bigger pressure swing.
+
+<figure class="fig" data-fig="@bio-breathing-mechanics"><figcaption>Volume and pressure move in opposite directions (Boyle's law). Air flows in while the pressure inside is below atmospheric.</figcaption></figure>
+
 ## 3. Lung volumes and capacities
 
 | Volume | Meaning | Typical |
@@ -77,6 +81,10 @@ Gases diffuse down their **partial pressure** gradients (pO₂, pCO₂: the shar
 | CO₂ | 0.3 | 40 | 45 | 40 | 45 |
 
 The diffusion membrane has three layers: the thin squamous epithelium of the alveolus, the endothelium of the capillary, and the basement substance between them. Its total thickness is much less than a millimetre.
+
+Switch between rest and exercise, a thick membrane and thin air at 5000 m, and read the oxygen level at the end of the capillary.
+
+<figure class="fig" data-fig="@bio-alveolar-exchange"><figcaption>In a healthy lung at rest the blood equilibrates well before it leaves. Anything that raises the diffusion distance or lowers alveolar pO₂ lowers the exit value.</figcaption></figure>
 
 ## 5. Transport of gases
 

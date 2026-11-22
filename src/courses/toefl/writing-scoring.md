@@ -42,6 +42,11 @@ The three task types are not marked the same way:
 
 ETS has long used a combination of trained human raters and automated scoring for TOEFL writing, and it publishes **scoring guides** (sometimes called rubrics) and sample materials on its TOEFL pages at ets.org. Read them there: they are the official description, and this lesson does not reproduce them. What follows is fibub's plain-language summary, made to help you practice and check your own work.
 
+
+Switch between Version A and Version B of the same paragraph.
+
+<figure class="fig" data-fig="@lang-sentence-rhythm"><figcaption>Notice that Version B mixes short and long sentences and three types, which is what a range of structures looks like.</figcaption></figure>
+
 ## 2. The four areas, in plain words
 
 For the email and discussion tasks, it helps to think about four areas. They overlap, but each one points to a different kind of fix.

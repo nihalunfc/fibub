@@ -36,6 +36,11 @@ ETS does not publish the exact preparation and speaking time for each question o
 
 The whole Speaking section is about 8 minutes, so each answer is short. That is why structure matters: you have no time to wander.
 
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
+
 ## 2. What it really tests
 
 Three things, which match the way speaking has long been described in TOEFL scoring (see [How TOEFL speaking is scored](/learn/courses/toefl/speaking-scoring/)):

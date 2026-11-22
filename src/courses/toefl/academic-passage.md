@@ -34,6 +34,11 @@ Read an Academic Passage is the third task type in the 2026 TOEFL Reading sectio
 
 You do not need any knowledge of the subject. Everything you need is in the passage, and questions that seem to need outside knowledge are really testing whether you stick to the text.
 
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
+
 ## 2. What it really tests
 
 Academic reading questions test four skills:

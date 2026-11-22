@@ -31,6 +31,10 @@ sources:
 
 With the hybrid-π model, three BJT configurations (and their FET twins) cover nearly every question:
 
+Change the Q-point and the input size and watch a common-emitter stage start to clip.
+
+<figure class="fig" data-fig="@sx-amp-clip"><figcaption>A larger bias current gives a larger g<sub>m</sub> and gain but moves V<sub>CE</sub> towards saturation; the exponential characteristic also distorts large inputs.</figcaption></figure>
+
 | Stage | Voltage gain | Input resistance | Output resistance | Use |
 |---|---|---|---|---|
 | common emitter (source) | `$-g_m(R_C\parallel r_o)$` | `$r_\pi$` (FET: ∞) | `$R_C\parallel r_o$` | voltage gain |
@@ -70,6 +74,10 @@ A common-base stage or a cascode (common emitter feeding common base) avoids it:
 ## 3. The feedback equation
 
 Feed a fraction β of the output back and subtract it from the input. With forward gain `$A$`:
+
+See what negative feedback does to gain and distortion.
+
+<figure class="fig" data-fig="@sx-feedback-distortion"><figcaption>Closed-loop gain A/(1 + Aβ) and distortion both fall by about the same factor 1 + Aβ. Raise β and the waveform becomes cleaner but needs more drive.</figcaption></figure>
 
 ```math
 A_f = \frac A{1 + A\beta} \xrightarrow{A\beta \gg 1} \frac1\beta, \qquad \frac{dA_f}{A_f} = \frac1{1 + A\beta}\frac{dA}A

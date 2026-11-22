@@ -60,6 +60,10 @@ Halogens (chloro, bromo), nitro and alkoxy groups are always prefixes. Example: 
 
 **Counting stereoisomers.** With n different chiral centres (and no symmetry), there are 2ⁿ stereoisomers. Symmetry lowers the count: tartaric acid has 2 centres but only 3 stereoisomers (d, l and meso). Each C=C that can show cis-trans also doubles the count.
 
+**Try it:** choose a molecule, press "H at the back" so the lowest priority group points away, then read 1 → 2 → 3. Press "Swap 1 and 2" to see the mirror image flip the label.
+
+<figure class="fig" data-fig="@chem-stereo-rs"><figcaption>Clockwise is R, anticlockwise is S. Swapping any two groups gives the enantiomer, so R becomes S: the two mirror images are different molecules even though every bond and angle is the same.</figcaption></figure>
+
 ## 4. Breaking bonds and reactive intermediates
 
 A covalent bond can break **homolytically** (one electron to each atom, giving **free radicals**) or **heterolytically** (both to one atom, giving ions). Heterolysis at carbon gives a **carbocation** (6 electrons, sp², planar) or a **carbanion** (8 electrons, sp³, pyramidal). A **carbene** (:CH₂) has a carbon with two bonds and two non-bonding electrons.

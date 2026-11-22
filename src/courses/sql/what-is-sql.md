@@ -47,6 +47,11 @@ SELECT * FROM mini_customers
 
 You've just run a *query*: a question written in SQL. `SELECT *` means "all the columns", and `FROM mini_customers` names the table. The answer comes back as a table too.
 
+Press Play to watch each row being tested, then move the slider and switch between AND, OR and NOT.
+
+<figure class="fig" data-fig="@data-where-flow"><figcaption>Notice that every row is judged on its own, and that a row exactly on the boundary is dropped by a strict greater-than.</figcaption></figure>
+
+
 ## 3. SQL says what, not how
 
 SQL stands for Structured Query Language (people say "S-Q-L" or "sequel"; both are fine). It is *declarative*: you describe the answer you want, and the database works out how to find it. You never write loops or open files.

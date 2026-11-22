@@ -71,6 +71,10 @@ With r = |z| and θ = arg z,
 z = r(\cos\theta + i\sin\theta) = re^{i\theta}
 ```
 
+Drag z₁ and z₂ on the Argand plane and press Animate to watch multiplication turn and stretch.
+
+<figure class="fig" data-fig="@math-complex-mult"><figcaption>Notice that |z₁z₂| = |z₁||z₂| and arg(z₁z₂) = arg z₁ + arg z₂: multiplying by z₂ rotates by its argument and scales by its modulus.</figcaption></figure>
+
 To find the principal argument, work out the acute angle α = tan⁻¹|y/x|, then place it by quadrant: α in the first, π − α in the second, −(π − α) in the third, −α in the fourth.
 
 Because `$e^{i\alpha}e^{i\beta} = e^{i(\alpha+\beta)}$`, `$\arg(z_1 z_2) = \arg z_1 + \arg z_2$` and `$\arg(z_1/z_2) = \arg z_1 - \arg z_2$`, up to adding a multiple of 2π to bring the answer back to the principal range.
@@ -80,6 +84,10 @@ Because `$e^{i\alpha}e^{i\beta} = e^{i(\alpha+\beta)}$`, `$\arg(z_1 z_2) = \arg 
 ## 4. De Moivre and the roots of unity
 
 **De Moivre's theorem:** `$(\cos\theta + i\sin\theta)^n = \cos n\theta + i\sin n\theta$` for any integer n. So to raise z to a power, raise the modulus to that power and multiply the argument.
+
+Change n and the angle of z. Then press 'Add them up' to lay the roots head to tail.
+
+<figure class="fig" data-fig="@math-roots-unity"><figcaption>Notice that the n roots form a regular polygon on a circle of radius |z|^(1/n), and that the arrows always close into a loop, so the roots add up to zero.</figcaption></figure>
 
 <div class="problem" data-problem="cx-power"></div>
 

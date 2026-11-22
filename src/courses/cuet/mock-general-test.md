@@ -37,6 +37,10 @@ The paper mixes numerical ability, logical and analytical reasoning and general 
 <div class="step"><b>Go back to the lesson</b> for any topic where you lost three or more questions, and do one practice set before your next mock.</div>
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="cuet"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## The test
 
 <div class="qbank" data-bank="cuet-general-test" data-mode="mock" data-pattern="cuet"></div>

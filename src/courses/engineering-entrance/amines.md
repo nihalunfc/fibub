@@ -69,6 +69,10 @@ Basicity is how readily the N lone pair takes H⁺. **pKb** measures it: lower p
 
 </div>
 
+**Try it:** let the nitrogen flip, then switch to the quaternary ammonium ion and the strained N-chloro aziridine.
+
+<figure class="fig" data-fig="@chem-amine-inversion"><figcaption>A simple amine flips through a flat state about 10¹⁰ times a second, so its two mirror-image pyramids cannot be separated even with three different groups on N. A quaternary ammonium ion has no lone pair to flip, so such an ion can be chiral.</figcaption></figure>
+
 ## 4. Reactions of amines
 
 - **Salt formation:** with acids, amines give ammonium salts (anilinium chloride), which dissolve in water; NaOH sets the amine free again.

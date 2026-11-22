@@ -52,6 +52,19 @@ JOIN mini_customers c ON c.id = b.customer_id
 
 Press **Show how it runs**: `big_orders` is built first (four orders of $45 or more), then joined to the customers. Order 106 has no customer, so the inner join drops it and three rows are left. The CTE exists only while this one statement runs; nothing is saved in the database.
 
+Step through the clauses in the order SQL really runs them and move the three sliders.
+
+<div class="steps" data-fig="@data-query-order">
+<div class="step">FROM: the whole table is the starting point.</div>
+<div class="step">WHERE: rows are dropped before any grouping.</div>
+<div class="step">GROUP BY: the surviving rows become one row per region.</div>
+<div class="step">HAVING: whole groups are dropped by their aggregate.</div>
+<div class="step">SELECT: columns are computed here, so the alias total exists only from now on.</div>
+<div class="step">ORDER BY: now the alias can be used to sort.</div>
+<div class="step">LIMIT: finally only the first rows are kept.</div>
+</div>
+
+
 ## 3. The same query, nested and with WITH
 
 Here is the average-orders-per-customer question from [Lesson 5.1](/learn/courses/sql/subqueries/), rewritten. Compare how it reads:

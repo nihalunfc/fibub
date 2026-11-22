@@ -51,6 +51,11 @@ Two habits keep you safe in every database:
 - Write dates as `'YYYY-MM-DD'` in queries.
 - When a column has a time as well (a *timestamp*), `BETWEEN '2025-01-01' AND '2025-01-31'` misses the last day after midnight. Use `>= '2025-01-01' AND < '2025-02-01'` instead.
 
+Switch the rule between daily, weekly and monthly and change the aggregate.
+
+<figure class="fig" data-fig="@data-resample"><figcaption>Notice how the bars change count and height, and what happens in the last, shorter period.</figcaption></figure>
+
+
 ## 3. Pulling out a part
 
 `strftime(format, date)` writes a date in the format you ask for. The most useful codes:

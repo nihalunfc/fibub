@@ -41,6 +41,10 @@ sources:
 
 </div>
 
+Switch between the three kinds of body cavity and the symmetry lines to see the germ layers in cross-section.
+
+<figure class="fig" data-fig="@bio-body-plan"><figcaption>Look at where the mesoderm (orange) sits: filling the body (acoelomate), only outside the cavity (pseudocoelomate) or lining it on both sides (coelomate).</figcaption></figure>
+
 ## 2. Non-chordate phyla
 
 Pick a phylum and read its six features and hallmark.

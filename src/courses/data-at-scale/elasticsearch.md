@@ -45,6 +45,11 @@ Three products go into a tiny index: doc 1 "Blue Rain Jacket", doc 2 "Rain Boots
 <div class="step"><b>Filter and count.</b> Filters (size M, price ≤ 80) are exact yes/no checks on keyword and number fields, and counts by brand for the side panel come from the same index. All of this takes milliseconds, even on millions of products.</div>
 </div>
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Core ideas
 
 - **Index:** a collection of documents (like a table). **Document:** one JSON object. **Mapping:** field types: `text` for full-text search, `keyword` for exact filters and counts, numbers, dates, and `dense_vector` for embeddings.

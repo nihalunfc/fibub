@@ -41,6 +41,11 @@ The *grain* of a fact table is what one row stands for. Write it as one sentence
 
 A good grain statement is about the real world (a product on an order), not about columns (order_id and product_id). The columns follow from it. A vague statement like "sales data" is not a grain.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Four candidate grains
 
 The same selling process could be stored at many grains. Count the rows each would have:

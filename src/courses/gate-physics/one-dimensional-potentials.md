@@ -78,6 +78,10 @@ t = \frac{1}{1 + i\beta}, \qquad r = \frac{-i\beta}{1 + i\beta}, \qquad T = |t|^
 
 `$T$` rises from 0 at low energy to 1 at high energy and is the same for a well (`$\alpha \to -\alpha$`) as for a barrier, although the phases differ. For the well, `$t$` blows up at `$k = im\alpha/\hbar^2$`, which is exactly the bound-state energy: bound states are poles of the scattering amplitude.
 
+Watch the packet hit the barrier, then lower the energy, thicken the barrier, and raise E above the top.
+
+<figure class="fig" data-fig="@qm-packet-barrier"><figcaption>When E < V₀ part of the wave still gets through (tunnelling), and part reflects even when E > V₀. A thicker barrier cuts the transmission sharply.</figcaption></figure>
+
 **Worked example.** Electrons of `$0.50$` eV on `$0.20$` eV nm `$\times\,\delta(x)$`: `$\dfrac{m\alpha^2}{2\hbar^2E} = \dfrac{\alpha^2}{4(0.0381)E} = \dfrac{0.04}{0.0762} = 0.525$`, so `$T = 1/1.525 = 0.656$`. Reflection and transmission are equal at `$E = \alpha^2/(4\times0.0381) = 0.262$` eV.
 
 ## 4. The finite square well
@@ -105,6 +109,10 @@ N_{\text{bound}} = 1 + \left\lfloor\frac{2z_0}{\pi}\right\rfloor, \qquad E_n = -
 
 1. Three states need `$z_0 \ge \pi$`: `$\tfrac a2\sqrt{V_0/0.0381} \ge \pi$`, so `$V_0 \ge 0.0381(2\pi)^2 = 1.50$` eV.
 2. Halfway, `$E = -V_0/2$`, means `$k = \kappa$`, so `$\tan z = 1$`, `$z = \pi/4$` and `$z_0 = \sqrt2\,z$`. Then `$V_0 = 0.0381(2z_0/a)^2 = 0.0381\,\pi^2/2 = 0.188$` eV.
+
+Start at 50% with the pair 1 + 2 and press Play, then set the share to 0% or 100% and try other pairs.
+
+<figure class="fig" data-fig="@qm-sloshing"><figcaption>A single energy state never changes, but two states beat at (Eₙ − Eₘ)/ħ and the probability sloshes. The lower graph follows ⟨x⟩ against time.</figcaption></figure>
 
 ## 5. Above the top: resonances and the Ramsauer effect
 

@@ -33,6 +33,11 @@ In Build a Sentence (lesson 4.1), the reply you build is often a question, or a 
 
 The good news: there are only five patterns to learn. Once you know them, these items become some of the fastest on the test.
 
+
+Tap the chunks in order to build a correct sentence. The coloured picture shows each chunk's job.
+
+<figure class="fig" data-fig="@lang-order-sentence"><figcaption>Notice that after a question word the subject comes before the verb: "where the library is".</figcaption></figure>
+
 ## 2. Pattern 1: direct questions
 
 A direct question uses this frame:

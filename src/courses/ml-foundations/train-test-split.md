@@ -52,6 +52,10 @@ With small datasets, setting aside a fixed validation set wastes rows. **Cross-v
 
 <div class="problem" data-problem="train-test-split-rows"></div>
 
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
 ## 3. Try it
 
 <!--fig:split-shuffler-->
@@ -60,6 +64,10 @@ Things to notice:
 
 - The **training error** is usually lower than the **test error**. The line was chosen to suit the training points.
 - Each shuffle gives a different test error. With 10 test rows, a couple of unusual flats can swing the score. Bigger test sets are steadier, but leave less for training: a trade-off.
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 4. Choosing how to split
 

@@ -69,6 +69,11 @@ ORDER BY store_id, rn
 
 Four rows: the two best-paid people at each store. Change `2` to `1` and you get each store's top earner.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. Why the CTE is needed
 
 You might try to skip the CTE. It fails, because WHERE runs before window functions exist:

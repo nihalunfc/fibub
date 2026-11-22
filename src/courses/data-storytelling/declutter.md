@@ -49,6 +49,10 @@ Then add back only what helps: a highlight colour and an action title (next less
 **Analogy:** a cluttered desk. Everything on it might be useful, but finding the one paper you need takes longer with every extra item.
 </details>
 
+Try it: flip between a colour for every line and grey with one highlighted.
+
+<figure class="fig" data-fig="@biz-highlight-colour"><figcaption>Notice where your eye goes first in each version.</figcaption></figure>
+
 ## 4. Worked example
 
 *Northbay's default "Sum of Amount by Store" column chart* has: a border, 5 gridlines, a 5-colour legend, slanted store names, an axis from 0 to 80k, and the title "Sum of Amount by Store".

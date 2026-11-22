@@ -47,6 +47,10 @@ People mix up "data analytics", "data science" and "machine learning". The easie
 
 The first two look backwards. They use summaries, charts and careful comparisons (Module 2). The third looks forwards. It needs a **model**: a rule that turns inputs (what you know) into a prediction (what you want to know). Machine learning is the craft of finding that rule from data.
 
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
 ## 3. Rules written by people, or rules found by the machine
 
 <!--fig:rules-vs-learning-->
@@ -60,6 +64,10 @@ Machine learning turns this round. You give the computer many **examples** toget
 **"A model that has learned is always right."** No. A model is a summary of past examples, and real life is noisy. Even the best rule in the simulation below gets some students wrong, because hours of study don't decide everything. A good model is right *more often* than a simple guess, and you measure how often on cases it has never seen (Lesson 2.5).
 
 </div>
+
+Try it: press New start a few times with random starts, then with k-means++, then Run 30 starts for each.
+
+<figure class="fig" data-fig="@ai-kmeans-init"><figcaption>k-means only finds a nearby good answer, so a bad start can strand two centres in one blob. Spreading the starting centres out (k-means++) and trying several starts both help.</figcaption></figure>
 
 ## 4. The smallest possible learning machine
 

@@ -35,6 +35,10 @@ sources:
 
 If you signed vesting and leaver terms (Lessons 10.1 and 10.3), most of the hard questions are already answered: how many shares the leaver keeps, at what price the rest come back, and by when. Without them, the leaver keeps every share and every right a shareholder has, and the remaining founders work for them.
 
+Try it: move the cliff and the months worked, or press Play, and see how many shares are vested if someone leaves then.
+
+<figure class="fig" data-fig="@biz-vesting"><figcaption>Notice that before the cliff the vested amount is zero, then a block arrives at once.</figcaption></figure>
+
 ## 2. The exit checklist
 
 <div class="su-steps">

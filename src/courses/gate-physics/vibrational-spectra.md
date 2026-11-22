@@ -117,6 +117,10 @@ A vibrational transition in a diatomic comes with `$\Delta J = \pm1$` (for a ¹�
 
 If `$B' = B'' = B$`, lines sit at `$\tilde\nu_0 \pm 2B, \pm4B, \dots$` with a gap of `$4B$` at the origin. Because `$B' < B''$` (the molecule is slightly longer in `$v = 1$`), R-branch lines crowd together and P-branch lines spread out.
 
+Step the lower J, switch between R and P, raise the temperature, and turn on 'B(v=1) < B(v=0)'.
+
+<figure class="fig" data-fig="@qm-rovib-spectrum"><figcaption>R lines sit above the band centre, P lines below, and nothing sits at the centre. Heights follow the populations; unequal rotational constants squeeze one branch together.</figcaption></figure>
+
 **Combination differences** separate the two constants cleanly. Pairs of lines that share an upper or lower level give
 
 ```math
@@ -144,6 +148,10 @@ In a perpendicular band (dipole change perpendicular to the axis, like the CO₂
 ## 5. Electronic transitions and Franck-Condon
 
 An electronic transition is so fast that the nuclei do not move during it: it is a vertical line on the potential-curve diagram. Its intensity to each upper vibrational level `$v'$` is set by the overlap of the vibrational wavefunctions, `$|\langle v'|v''\rangle|^2$`, the **Franck-Condon factor**. If the upper curve is shifted to longer `$r$`, the strongest band is to a high `$v'$`, and the band series (a progression) maps the upper well, ending in a continuum above its dissociation limit.
+
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-jablonski"><div class="step">Ground state S₀: the electron pair is in the lowest level.</div><div class="step">Absorption S₀ to S₂ in about 10⁻¹⁵ s, vertical on the diagram.</div><div class="step">Vibrational relaxation to the bottom of S₂ in picoseconds, giving heat to neighbours.</div><div class="step">Internal conversion S₂ to S₁ without any light.</div><div class="step">Fluorescence S₁ to S₀: a photon of lower energy than the one absorbed, in nanoseconds.</div><div class="step">Intersystem crossing: a spin flip traps the electron in the triplet T₁.</div><div class="step">Phosphorescence T₁ to S₀: forbidden, so slow, milliseconds to seconds.</div></div>
 
 <div class="myth">
 

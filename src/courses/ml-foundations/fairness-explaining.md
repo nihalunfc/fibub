@@ -39,6 +39,10 @@ Models now help decide who gets a loan, a job interview, extra medical care or a
 - **Proxies:** a proxy is a stand-in. Dropping a sensitive column doesn't help if postcode, name or hobbies carry the same information.
 - **One threshold for groups that differ:** the same cut-off can mean different error rates for different groups.
 
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
+
 ## 3. Measuring it
 
 Compute the confusion matrix (Lesson 4.5) separately for each group, then compare:
@@ -59,6 +63,10 @@ When groups differ in their base rates (how common the outcome is) or in how wel
 **"We removed the sensitive column, so the model is fair."** Other columns can stand in for it: postcode for ethnicity, career gaps for gender. And even with no proxy at all, a model can simply be less accurate for a group it has seen less data about. Fairness is checked on the model's **outputs**, group by group, not by what columns went in.
 
 </div>
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 4. Explaining a prediction
 

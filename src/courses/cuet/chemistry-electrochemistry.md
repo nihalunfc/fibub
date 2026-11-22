@@ -43,6 +43,10 @@ Standard potentials are measured against the standard hydrogen electrode (0 V). 
 
 <div class="problem" data-problem="cell-emf"></div>
 
+**Try it:** Watch the electrons and ions move in the cell.
+
+<figure class="fig" data-fig="@chem-galvanic-cell"><figcaption>Electrons run through the wire; ions move in the salt bridge to keep charge balanced.</figcaption></figure>
+
 ## 2. Nernst equation and Gibbs energy
 
 ```math

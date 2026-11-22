@@ -55,6 +55,11 @@ sales[sales > 100]           # keep only the days over 100
 
 The last line is **filtering**: a True/False Series inside the brackets keeps the True rows. You'll use it constantly (Lesson 2.3).
 
+Drag the row count up, then tap columns to switch them to a smaller dtype.
+
+<figure class="fig" data-fig="@data-dtype-memory"><figcaption>Notice that number columns shrink a little but text columns shrink a lot when they become category or datetime.</figcaption></figure>
+
+
 ## 3. Summaries
 
 ```python

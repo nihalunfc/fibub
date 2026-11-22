@@ -43,6 +43,10 @@ About one hour a day, five or six days a week. Shorter time? Squeeze the lessons
 
 Each lesson ends with a three-question check: if you miss one, read that section again before moving on.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="satrw"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Review that actually raises your score
 
 Psychologists have shown that testing yourself makes learning stick far better than rereading. So after every practice set, sort each mistake into one of three bins:

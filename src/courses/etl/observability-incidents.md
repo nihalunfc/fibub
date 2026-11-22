@@ -69,6 +69,11 @@ The **error budget** is the number of misses the promise allows. 98% over 30 day
 
 </div>
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. The health board
 
 You do not need a new tool. Build a pipeline health dashboard from tables you already have:

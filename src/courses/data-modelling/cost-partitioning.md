@@ -64,6 +64,11 @@ Either way: **read less data.** Four tools do it.
 
 <!--fig:partition-pruning-->
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Columnar storage
 
 A **columnar** warehouse stores each column separately (and compresses it), instead of storing whole rows together. A query that uses 3 columns of a 20-column fact table reads roughly 3/20 of it. BigQuery, Snowflake, Redshift, Databricks (Parquet/Delta), DuckDB and SQL Server's columnstore indexes all work this way.

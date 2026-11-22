@@ -45,6 +45,11 @@ The idea: the sample is your best picture of the population, so resampling from 
 
 Try the median, then the mean, then the 90th percentile. The P90's interval is wide and lumpy: with only 20 orders, two values (98 and 140) decide it. That is honest: you really don't know the 90th percentile well from 20 orders.
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. Uses at work
 
 - Uncertainty for **medians and percentiles** (P95 page load, median basket).

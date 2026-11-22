@@ -56,6 +56,11 @@ A prefix goes at the start of a word and changes its meaning, but not usually it
 
 A tip on the "not" prefixes: **im-** comes before b, m and p (impossible, imbalance), **il-** before l (illegal), **ir-** before r (irregular). Most others take **un-** or **in-**, and you simply have to learn which.
 
+
+Pick a root, then a prefix and a suffix, and see the word and its job.
+
+<figure class="fig" data-fig="@lang-word-builder"><figcaption>Notice that a suffix usually changes the word class, while a prefix changes the meaning.</figcaption></figure>
+
 ## 3. Suffixes: the back piece changes the job
 
 A suffix goes at the end and usually changes the part of speech. This is the key to Complete the Words, because the grammar slot tells you which job the word must do.

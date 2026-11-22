@@ -61,6 +61,15 @@ If dy/dx = f(x)g(y), separate and integrate both sides:
 \int \frac{dy}{g(y)} = \int f(x)\,dx + C
 ```
 
+Step through the zig-zag, then shrink the step size h.
+
+<div class="steps" data-fig="@math-euler-method">
+<div class="step"><p><b>Start.</b> The curve must pass through the starting point; the slope there is f(x₀, y₀).</p></div>
+<div class="step"><p><b>One step.</b> Walk along that slope for a width h to the point (x₁, y₁).</p></div>
+<div class="step"><p><b>Next step.</b> Read the new slope at (x₁, y₁) and walk again.</p></div>
+<div class="step"><p><b>The whole path.</b> A chain of short straight pieces that follows the exact curve; smaller h gives a closer fit.</p></div>
+</div>
+
 Example: dy/dx = (1 + y²)/(1 + x²) gives tan⁻¹y = tan⁻¹x + C. Sometimes a substitution makes it separable: for dy/dx = f(ax + by + c), put t = ax + by + c.
 
 **Growth and decay.** dN/dt = kN separates to N = N₀eᵏᵗ: growth for k > 0, decay for k < 0. For decay with half-life T, k = (log 2)/T, and after time t the fraction left is (1/2)^(t/T).

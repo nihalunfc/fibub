@@ -37,6 +37,10 @@ The patterns most people recognise are often not official constellations but **a
 
 Stars in a constellation are usually not near each other in space. They only lie in the same direction. Orion's Belt stars, for example, are roughly 700 to 2,000 light-years from us.
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 3. Reading an all-sky chart
 
 A planisphere or a printed monthly chart shows the whole visible sky as a circle:

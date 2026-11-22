@@ -71,6 +71,11 @@ Think of a newspaper and a live radio feed. Batch is the morning paper: everythi
 
 </div>
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. How big is the stream? Size for the peak
 
 Events per day sound huge but are spread over 86,400 seconds. The trouble is that they are not spread evenly: lunch, payday and Black Friday all bunch them up. A system sized for the average falls over at the peak.

@@ -40,6 +40,14 @@ An **option** is the right to buy a share later at a fixed **strike price**, usu
 
 Set up an **option pool** (10 % to 20 % of the company) and a written **plan** approved by the board and shareholders before you promise options to anyone.
 
+Try it: change the strike and drag the share price at exit.
+
+<figure class="fig" data-fig="@biz-option-payoff"><figcaption>Notice that below the strike the options are worth nothing, and above it each extra dollar adds the same amount.</figcaption></figure>
+
+Try it: move the cliff and the months worked, or press Play, and see how many shares are vested if someone leaves then.
+
+<figure class="fig" data-fig="@biz-vesting"><figcaption>Notice that before the cliff the vested amount is zero, then a block arrives at once.</figcaption></figure>
+
 ## 2. When the tax comes
 
 <!--fig:esop-tax-->

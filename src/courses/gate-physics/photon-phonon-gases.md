@@ -74,6 +74,11 @@ and, since `$\mu = 0$` means `$G = 0$`:
 
 <div class="problem" data-problem="stat-photon-gas"></div>
 
+Heat a black body and watch the Wien peak and the total power.
+
+<figure class="fig" data-fig="@wt-wien-glow"><figcaption>Planck's law gives u(ν, T), whose maximum moves ∝ T and whose integral gives u ∝ T⁴. Notice the peak moving left and the visible fraction shifting as T rises.</figcaption></figure>
+
+
 ## 3. Phonons: the same physics with a cut-off
 
 Lattice vibrations of a crystal are bosons with `$\mu = 0$` too. At low `$T$` only long-wavelength acoustic phonons with `$\omega = v_sk$` are excited: a photon gas with three polarisations and the sound speed instead of `$c$`. So `$U \propto T^4$` and

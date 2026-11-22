@@ -35,6 +35,11 @@ Rating yourself is like checking your own car before a long drive. You are not a
 
 Two warnings. First, the checklist below is **our own**, written in plain words to help you practise. It is not the official CELPIP scale, and it cannot give you an official level. Second, most learners are either too kind or too harsh to themselves. The fix is to rate one area at a time and only tick a line when you can point to the proof in your answer.
 
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
+
 ## 2. The self-rating checklist
 
 Give each area a mark from 1 to 4 using these plain descriptions: **4** = strong, nothing obvious to fix; **3** = good, one clear weakness; **2** = uneven, several weaknesses; **1** = hard to follow or mostly missing.

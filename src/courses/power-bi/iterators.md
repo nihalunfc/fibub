@@ -69,6 +69,10 @@ Inside an iterator (and in a calculated column), there is a **current row**, so 
 **Speed:** iterators over millions of rows are fast when the expression only uses the row's own columns. Avoid calling complex measures inside SUMX over a big fact table; iterate a smaller table (like VALUES of a dimension) instead.
 </details>
 
+Try it: press Play in column mode, then switch to Measure and use the Store slicer.
+
+<figure class="fig" data-fig="@biz-row-vs-filter"><figcaption>Notice that a column is worked out row by row and stored, and a measure is worked out for whatever the filters leave.</figcaption></figure>
+
 ## 6. Worked example
 
 *Total cost when the cost is stored per unit.* `Total Cost = SUMX(Sales, Sales[Quantity] * Sales[UnitCost])`. For Northbay that's about $229,000 against $466,000 of sales, a margin of about 51 %. Store the per-row result as a column only if you need to slice by it.

@@ -58,6 +58,10 @@ Under a rotation `$x'_i = R_{ij}x_j$` (with `$RR^{\mathsf T} = 1$`), each index 
 v'_i = R_{ij}v_j, \qquad T'_{ij} = R_{ik}R_{jl}T_{kl} \;\;(T' = RTR^{\mathsf T}), \qquad T'_{ijk} = R_{il}R_{jm}R_{kn}T_{lmn}
 ```
 
+Turn the axes with the θ slider and change σx, σy and τ.
+
+<figure class="fig" data-fig="@math-mohr-tensor"><figcaption>Notice that the components change as the axes turn but the trace does not, and that the point on the Mohr circle meets the horizontal axis at the principal (eigen) values.</figcaption></figure>
+
 So a rank-`$r$` tensor in `$n$` dimensions has `$n^r$` components. The **quotient law** turns this around: if `$T_{ij}B_j$` is a vector for every vector `$B$`, then `$T$` is a rank-2 tensor. That is how we know the inertia tensor is a tensor (`$L_i = I_{ij}\omega_j$`), and the conductivity (`$J_i = \sigma_{ij}E_j$`).
 
 **Invariants.** `$T' = RTR^{-1}$` is a similarity transformation, so the eigenvalues, the trace `$T_{ii}$` and the determinant do not change. Single components do.

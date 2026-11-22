@@ -40,6 +40,10 @@ Between the plates I_d equals the charging current exactly, so current is contin
 
 **Maxwell's four equations** sum up all of electromagnetism: Gauss's law for E (charges make E), Gauss's law for B (no monopoles), Faraday's law (changing B makes E) and the Ampère-Maxwell law (currents and changing E make B).
 
+Slide the loop radius and switch between the flat and the bag-shaped surface. See that both give the same B.
+
+<figure class="fig" data-fig="@em-displacement"><figcaption>Without the displacement current the two surfaces would disagree. Inside the plates B grows with r; outside it falls as 1/r.</figcaption></figure>
+
 ## 2. How EM waves are made
 
 A charge at rest makes only E; a steady current makes a steady B. An **accelerating charge** makes changing fields that break away and travel: that is radiation. An electron oscillating at frequency f in an antenna sends out waves of the same frequency. An LC circuit oscillating at `$f = \dfrac{1}{2\pi\sqrt{LC}}$` can drive such an antenna.
@@ -74,6 +78,10 @@ E_y = E_0\sin(kx - \omega t), \qquad B_z = B_0\sin(kx - \omega t), \qquad \frac{
 
 </div>
 
+Drag to turn the view. Change the plane of E, or choose circular polarisation, and see that E and B stay perpendicular to each other and to the direction of travel.
+
+<figure class="fig" data-fig="@em-wave-3d"><figcaption>E and B rise and fall together, in phase; E × B points along the motion; E/B = c.</figcaption></figure>
+
 ## 4. Energy, intensity and momentum
 
 - Energy density: `$u = \tfrac12\varepsilon_0E^2 + \dfrac{B^2}{2\mu_0}$`, with equal shares; average `$\bar u = \tfrac12\varepsilon_0E_0^2$`.
@@ -86,6 +94,10 @@ E_y = E_0\sin(kx - \omega t), \qquad B_z = B_0\sin(kx - \omega t), \qquad \frac{
 <div class="problem" data-problem="emw-pressure"></div>
 
 **In a medium** of relative permittivity ε_r and permeability μ_r, the speed is `$v = \dfrac{c}{\sqrt{\mu_r\varepsilon_r}}$`, so the refractive index is `$n = \sqrt{\mu_r\varepsilon_r}$`. The frequency stays the same; the wavelength shrinks to λ/n.
+
+Switch between a current-carrying wire and a charging capacitor. Follow the green arrows: they show where the energy flows.
+
+<figure class="fig" data-fig="@em-poynting-flow"><figcaption>The Poynting vector E × B/μ₀ points into the wire (to be turned into heat) and into the gap of the capacitor (to be stored as field energy).</figcaption></figure>
 
 ## 5. The electromagnetic spectrum
 

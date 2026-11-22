@@ -56,6 +56,11 @@ pt.round(0)
 
 Several measures at once: `values=['revenue', 'qty'], aggfunc={'revenue': 'sum', 'qty': 'mean'}`. The result has two-level column names (Lesson 6.4).
 
+Drag the slider between wide and long, or press Play, and follow one number as it moves.
+
+<figure class="fig" data-fig="@data-reshape"><figcaption>Notice that no value changes, only its position: month names become values in a column.</figcaption></figure>
+
+
 ## 3. Percentages
 
 ```python data=orders.csv

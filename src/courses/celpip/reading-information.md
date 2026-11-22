@@ -46,6 +46,11 @@ Part 3 tests two skills at the same time:
 
 **An everyday analogy.** Picture a grocery store with four aisles: fruit, bread, dairy and cleaning products. Someone asks where to find "something to spread on toast". You do not need to read every label; you know butter is in dairy. A statement is the shopping request, and each paragraph is an aisle with a clear sign. Once the signs are clear in your head, matching is fast. E is the item the store does not sell at all.
 
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
+
 ## 3. The method
 
 <div class="steps">

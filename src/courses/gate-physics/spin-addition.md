@@ -37,6 +37,10 @@ Spin obeys `$[S_i, S_j] = i\hbar\epsilon_{ijk}S_k$`. For `$s = \tfrac12$` the sp
 
 Each is Hermitian, traceless and squares to 1 (eigenvalues `$\pm1$`, determinant `$-1$`). Two consequences used constantly: `$(\vec\sigma\cdot\vec a)(\vec\sigma\cdot\vec b) = \vec a\cdot\vec b + i\vec\sigma\cdot(\vec a\times\vec b)$` and `$e^{i\alpha\,\hat n\cdot\vec\sigma} = \cos\alpha + i\,\hat n\cdot\vec\sigma\sin\alpha$`. The magnitude `$|\vec S| = \sqrt{s(s+1)}\,\hbar = \tfrac{\sqrt3}{2}\hbar$` is larger than any component.
 
+Press Play with silver atoms, then try classical magnets, an l = 1 atom and j = 3/2.
+
+<figure class="fig" data-fig="@qm-stern-gerlach"><figcaption>Real atoms land only in 2j + 1 spots where classical magnets would smear into a band; the spots move apart as the field gradient grows.</figcaption></figure>
+
 **Spin along any direction.** The eigenstate of `$\hat n\cdot\vec\sigma$` with eigenvalue `$+1$`, for `$\hat n$` at polar angles `$(\theta, \phi)$`, is
 
 ```math
@@ -54,6 +58,10 @@ So a spin prepared along `$\hat n$` gives `$S_z = +\hbar/2$` with probability `$
 ## 2. Adding two angular momenta
 
 Combine `$\vec J = \vec J_1 + \vec J_2$` (two spins, or `$\vec L$` and `$\vec S$`). The product basis `$|j_1m_1\rangle|j_2m_2\rangle$` diagonalises `$J_{1z}, J_{2z}$`; the coupled basis `$|j\,m\rangle$` diagonalises `$J^2$` and `$J_z$` (with `$J_1^2$`, `$J_2^2$`). Both span the same `$(2j_1 + 1)(2j_2 + 1)$`-dimensional space.
+
+Pick l, s, j and m_j, switch the field on and off, and drag the picture to turn it.
+
+<figure class="fig" data-fig="@qm-vector-model"><figcaption>L and S circle quickly about J while J circles slowly about B. Only the lengths √(x(x+1)) and the z-component m_j are fixed, and g_J sets the Zeeman splitting.</figcaption></figure>
 
 ```math
 j = |j_1 - j_2|, \ |j_1 - j_2| + 1, \ \dots, \ j_1 + j_2, \qquad m = m_1 + m_2, \qquad \sum_j(2j + 1) = (2j_1 + 1)(2j_2 + 1)

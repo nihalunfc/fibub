@@ -71,6 +71,10 @@ sources:
 
 </div>
 
+**Try it:** Turn the 3D view and move the line and plane.
+
+<figure class="fig" data-fig="@math-plane-line-3d"><figcaption>Look at how the direction vector and the normal relate.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-maths" data-topics="vectors,three-d-geometry" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

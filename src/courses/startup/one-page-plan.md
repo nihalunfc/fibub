@@ -37,6 +37,10 @@ A one-page plan (often called a lean canvas) fits the whole business on a sheet.
 
 > **Key idea:** The box you find hardest to fill is the riskiest part of your idea. Test that next.
 
+Try it: size a market top-down, then switch to bottom-up and compare the two answers.
+
+<figure class="fig" data-fig="@biz-tam-sam-som"><figcaption>Notice how small SOM is next to TAM, and how a bottom-up number is limited by the sales you can really make.</figcaption></figure>
+
 ## 2. When you need a full plan
 
 | Who asks | What they want |

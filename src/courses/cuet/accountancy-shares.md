@@ -40,6 +40,10 @@ sources:
 
 </div>
 
+**Try it:** Press Next entry and watch the two accounts named in each entry change.
+
+<figure class="fig" data-fig="@tp-ledger-balance"><figcaption>Whatever the entry, the debit and the credit are equal, so assets (left) always match liabilities plus capital (right).</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-accountancy" data-topics="share-capital" data-n="10" data-mode="practice" data-type="mcq"></div>

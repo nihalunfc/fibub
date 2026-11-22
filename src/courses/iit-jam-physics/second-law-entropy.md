@@ -80,6 +80,11 @@ Petrol engines approximate the **Otto cycle**: two adiabats and two constant-vol
 
 where `$\rho$` is the Diesel cut-off ratio (the volume ratio over which fuel burns at constant pressure). The extra factor is larger than 1, so at the same `$r$` a Diesel is less efficient; it wins in practice because it can use much higher `$r$` without knocking. For `$r = 8$`, `$\gamma = 1.4$`: `$\eta_{\rm Otto} = 1 - 8^{-0.4} \approx 56.5\%$`. They fall short of Carnot because heat enters over a range of temperatures, not all at the top. Try them all in fibub's [heat engine cycles tool](/science/heat-engine-cycles/) and the classroom [Carnot engine](/learn/carnot-engine/).
 
+Step through a petrol-engine cycle and see which strokes exchange heat.
+
+<div class="steps" data-fig="@wt-engine-cycle"><div class="step"><b>1 to 2: adiabatic compression.</b> Q = 0, so the work done on the gas raises T by a factor r^(γ−1).</div><div class="step"><b>2 to 3: heat in at constant volume.</b> Q<sub>h</sub> = C<sub>V</sub>(T₃ − T₂), the only place heat enters.</div><div class="step"><b>3 to 4: adiabatic expansion.</b> The gas does work; T falls by the same factor.</div><div class="step"><b>4 to 1: heat out at constant volume.</b> Q<sub>c</sub> = C<sub>V</sub>(T₄ − T₁). Efficiency = 1 − r^(1−γ), which depends only on the compression ratio.</div></div>
+
+
 ## 4. Entropy
 
 For any reversible cycle, the Carnot result `$Q_h/T_h = Q_c/T_c$` generalises to `$\oint dQ_{\rm rev}/T = 0$`. So `$dQ_{\rm rev}/T$` is the change of a state function, the **entropy** `$S$`. For any real cycle the **Clausius inequality** `$\oint dQ/T \le 0$` holds, which leads to:
@@ -109,6 +114,11 @@ dS = \frac{dQ_{\rm rev}}{T}, \qquad \Delta S_{\rm isolated} \ge 0 \quad(\text{ze
 </div>
 
 **Statistical meaning.** Boltzmann's `$S = k\ln W$` counts the microstates `$W$` consistent with what we see. `$N$` free two-state spins have `$W = 2^N$`, so `$S = Nk\ln2$`. Entropy increases because there are vastly more disordered arrangements than ordered ones. Calculate entropy for real substances with fibub's [entropy calculator](/science/entropy-calculator/).
+
+Remove the partition and watch the entropy rise; then try the same gas on both sides.
+
+<div class="steps" data-fig="@wt-mixing-entropy"><div class="step"><b>Two gases, a partition between them.</b> Each gas occupies half the box, so each is well ordered in space.</div><div class="step"><b>Partition removed.</b> Every molecule wanders into the whole box; the number of ways to arrange them climbs.</div><div class="step"><b>Mixed.</b> Entropy has gained N k ln 2 per gas worth in total (ln 2 per molecule); the chance of finding them sorted again is negligible. Try "The same gas": no gain, because nothing distinguishable has changed.</div></div>
+
 
 ## 5. The third law
 

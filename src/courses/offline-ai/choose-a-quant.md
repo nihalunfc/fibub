@@ -54,6 +54,10 @@ It is like packing a suitcase for a flight: you want the most useful things insi
 <div class="step"><p><b>Check speed and test.</b> The 12B writes about 9 tokens per second: fine for a summary script. For quick questions she keeps E4B too, which is twice as fast.</p></div>
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Quick picks (November 2026)
 
 | Usable fast memory | First choice | Also try |
@@ -99,6 +103,10 @@ It is like packing a suitcase for a flight: you want the most useful things insi
 **"If the file is smaller than my memory, it will run fine."** The file is only the weights. The context's cache, the engine and your other apps need memory too, and a model that "just fits" can still run painfully slowly. Add them up and keep 10% to 20% free.
 
 </div>
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 4. Worked example
 

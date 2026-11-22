@@ -46,6 +46,14 @@ An **MVP (minimum viable product)** is not a cheap version of the final product.
 5. **Clickable prototype.** A tap-through design. Tests whether people understand it.
 6. **Single-feature product.** Real software that does one job. Tests retention.
 
+Try it: set the share that moves on at each step, then add five points to one step at a time.
+
+<figure class="fig" data-fig="@biz-funnel"><figcaption>Notice that overall conversion is the three steps multiplied, so a weak early step limits everything after it.</figcaption></figure>
+
+Try it: switch between the leaky, flattening and sticky examples and compare the curves.
+
+<figure class="fig" data-fig="@biz-cohort-retention"><figcaption>Notice that a curve which flattens means some customers stay; one that reaches zero means a leaky bucket.</figcaption></figure>
+
 ## 3. Pre-sales: the legal care
 
 Taking money before you can deliver is legal in all three countries if you are honest about it:

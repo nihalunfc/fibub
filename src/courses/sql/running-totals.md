@@ -57,6 +57,11 @@ FROM daily
 
 Press **Show how it runs** and step through **OVER** row by row. What to watch: the highlighted window always starts at 1 December and its bottom edge moves down one row each time, so the sum grows: 150.87, then 150.87 + 356.18 = 507.05, then 754.10, and so on to **1,439.32** on 7 December.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. The window frame
 
 The *frame* is the part of the partition that the function adds up for the current row. You can write it out:

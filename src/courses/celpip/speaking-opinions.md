@@ -48,6 +48,11 @@ Task 7 is the most "academic" speaking task. It checks whether you can:
 
 **Everyday analogy.** Think of a friend asking, "Should I buy an electric car?" A helpful answer is not "Yes, they’re good." It is: "Yes, I think so. First, you’ll save a lot on gas; my neighbour pays about thirty dollars a month to charge hers. Second, ... Sure, they cost more upfront, but... So yes, go for it." That shape is Task 7.
 
+
+Test your linking words: tap the job each card does. A wrong tap tells you why.
+
+<figure class="fig" data-fig="@lang-linkers-sort"><figcaption>Notice that linking words work in families (adding, contrast, cause, result, example). Pick one from each family and you already sound organised.</figcaption></figure>
+
 ## 3. Thirty seconds of planning
 
 Thirty seconds is very short, so use a fixed routine:

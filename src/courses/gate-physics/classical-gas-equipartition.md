@@ -57,6 +57,11 @@ The last one is the **Sackur-Tetrode equation**. It contains `$h$`, yet it is a 
 
 <div class="problem" data-problem="stat-sackur-tetrode"></div>
 
+Hit the walls first: see where the pressure comes from for the gas whose partition function you are about to write down.
+
+<figure class="fig" data-fig="@wt-gas-box"><figcaption>The partition function says P = NkT/V; the box shows it microscopically as wall hits. Notice that ⟨v_x²⟩ = kT/m and the Maxwell histogram matches the curve.</figcaption></figure>
+
+
 ## 2. The Gibbs paradox and mixing
 
 Leave out the `$N!$` and the entropy has `$\ln V$` instead of `$\ln(V/N)$`. Joining two identical boxes of the same gas would then "create" `$2Nk\ln2$` of entropy although nothing changed. Gibbs resolved this by dividing by `$N!$`: identical particles cannot be labelled, a point quantum mechanics later made exact.
@@ -68,6 +73,11 @@ For genuinely different gases the mixing entropy is real:
 ```
 
 **Worked example.** 1 mol of He and 3 mol of Ne: `$\Delta S = -R[\ln\tfrac14 + 3\ln\tfrac34] = 18.7$` J/K.
+
+Mix two gases and then the same gas to see where the Gibbs paradox comes from.
+
+<div class="steps" data-fig="@wt-mixing-entropy"><div class="step"><b>Different gases, partition in.</b> Each species fills half the box.</div><div class="step"><b>Partition out.</b> Every molecule can now be anywhere; the entropy rises.</div><div class="step"><b>Mixed.</b> ΔS = N k ln 2 for distinguishable gases (about 0.69 k per molecule). Now switch to "The same gas": the picture is the same but ΔS = 0 because the 1/N! in the partition function counts permutations of identical molecules only once.</div></div>
+
 
 ## 3. Equipartition, generalised
 
@@ -88,6 +98,11 @@ provided `$x_ie^{-\beta H}$` vanishes at the ends of the range. Consequences:
 So an ultra-relativistic gas (`$H = c|\mathbf p|$`) has `$U = 3NkT$`, yet still `$PV = NkT$`, because `$Z_1 \propto V$` whatever the dispersion relation. And a fully classical linear triatomic like CO₂ would have `$C_V = (3 + 2 + 2\times4)R/2 = 6.5R$`; the measured 3.5R near room temperature shows most vibrations frozen ([lesson 5.2](/learn/courses/gate-physics/partition-functions/)).
 
 **Virial theorem.** Summing over coordinates, `$2\langle K\rangle = \langle\mathbf r\cdot\nabla V\rangle$`. For `$V \propto r^n$`: `$2\langle K\rangle = n\langle V\rangle$`. For the walls of a box it gives `$PV = \tfrac23\langle K\rangle$`; for a self-gravitating star (`$n = -1$`) `$E = -K$`, so a star that radiates energy heats up: a negative heat capacity.
+
+See which quadratic terms are really active as the temperature changes.
+
+<figure class="fig" data-fig="@wt-dof-freeze"><figcaption>Generalised equipartition holds only for modes that are classical: kT ≫ level spacing. Notice the heat capacity steps and the freeze-out of rotation and vibration.</figcaption></figure>
+
 
 ## 4. Gases in external fields
 

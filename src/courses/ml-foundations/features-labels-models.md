@@ -44,6 +44,10 @@ Tap the column headings below to choose different labels.
 
 The same table can answer different questions. If the label is sale price, you are predicting a number. If the label is "sold within 30 days?", you are predicting yes or no. If you pick no label at all, you can still ask "which homes are alike?".
 
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
+
 ## 3. Three kinds of learning
 
 | Kind | What you have | What it predicts | Examples | In this course |

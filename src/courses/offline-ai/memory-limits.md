@@ -53,6 +53,10 @@ And the KV cache on its own, from real model designs:
 <div class="step"><p><b>Shrink the cache.</b> An 8-bit cache halves it to <b>2 GB</b>. Total about 11.2 GB, leaving room for the system, with little loss of quality.</p></div>
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Ways to make it fit, cheapest first
 
 1. **Use only the context you need.** Engines reserve memory for the full context you set (Lesson 10.3).
@@ -62,6 +66,10 @@ And the KV cache on its own, from real model designs:
 5. **A smaller or MoE model** whose active part fits (Lesson 2.5).
 6. **Offload some layers** to normal memory: it fits, but it is much slower.
 7. **More memory:** a bigger card, a second card (Lesson 15.3) or a unified-memory machine.
+
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
 
 ## 4. Hard limits
 
@@ -104,6 +112,10 @@ Some things memory cannot fix at home. Frontier-scale open models at full qualit
 **"If the model file fits in memory, the model fits."** The file is only the weights. The KV cache for your context and the engine's working space come on top, and at long contexts the cache can be as big as the model itself. Leave room, or set a smaller context.
 
 </div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 5. Worked example
 

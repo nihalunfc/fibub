@@ -106,6 +106,10 @@ At cutoff `$\theta = 90^\circ$`: the waves bounce straight across and get nowher
 
 </div>
 
+Change the width, the frequency and the mode. Watch the ray angle and the two speeds, and see what happens as f falls to the cutoff.
+
+<figure class="fig" data-fig="@em-guide-zigzag"><figcaption>The slower the sideways bounce lets the wave go forward, the smaller v_g; at cutoff the ray goes straight across and nothing travels.</figcaption></figure>
+
 ## 4. Circular guides, TEM lines and transmission lines
 
 **Circular guide** (radius `$R$`): the modes involve Bessel functions. TM modes use zeros of `$J_n$`, TE modes zeros of `$J_n'$`: `$f_c = \frac{v\,x}{2\pi R}$` with `$x$` = 1.841 (TE₁₁, dominant), 2.405 (TM₀₁), 3.054 (TE₂₁), 3.832 (TE₀₁ and TM₁₁, degenerate because `$J_0' = -J_1$`). The single-mode band is only a factor 1.31 wide. A 1.0 cm radius air guide has TE₁₁ cutoff 8.78 GHz.
@@ -163,6 +167,10 @@ The fibre is **single-mode** for `$V < 2.405$` (the first zero of `$J_0$`, again
 - Fibre: NA `$= \sqrt{n_1^2 - n_2^2}$`, single-mode for `$V < 2.405$`, about `$V^2/2$` modes, intermodal spread `$\frac{Ln_1}{c}(\frac{n_1}{n_2} - 1)$`.
 
 </div>
+
+Raise the angle of incidence until the refracted ray disappears. Then switch to the optical fibre and find the largest entry angle that stays trapped.
+
+<figure class="fig" data-fig="@em-snell-tir"><figcaption>Past the critical angle all the light is reflected. A fibre uses this over and over; its acceptance angle depends on the two refractive indices.</figcaption></figure>
 
 ## Practise: exam questions on this lesson
 

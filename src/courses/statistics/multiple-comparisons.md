@@ -50,6 +50,11 @@ The **family-wise error rate (FWER)** is the chance of at least one false positi
 
 When you're screening many things and can tolerate some false leads (which 50 products to look at more closely), control the **false discovery rate (FDR)** instead: the expected share of your "discoveries" that are false. The **Benjamini-Hochberg** procedure does this and is far less strict than Bonferroni.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Habits that help more than formulas
 
 1. **Decide before you look:** one primary metric, a short list of secondary metrics and segments, written down before the test starts.

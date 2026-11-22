@@ -78,6 +78,18 @@ WHERE 1 = CONTAINS(POINT(ra, dec), CIRCLE(83.82, -5.39, 0.05))
 ```
 </details>
 
+Click through the seven steps of a small project, from question to result.
+
+<div class="steps" data-fig="@astro-research-steps">
+<div class="step">Question: write one question you can answer with data.</div>
+<div class="step">Find data: search an open archive by position.</div>
+<div class="step">Read it: open the file and read the header.</div>
+<div class="step">Clean it: calibrate and check the picture.</div>
+<div class="step">Measure: photometry against a comparison star.</div>
+<div class="step">Uncertainty: error bars decide what counts as a change.</div>
+<div class="step">Share: plot, method, caveats and data.</div>
+</div>
+
 ## 3. What it means physically
 
 An archive is the shared memory of astronomy. Every photon a big telescope catches is stored with its calibration, so a question nobody asked in 2015 can be answered from 2015 data today. Because the data are public, anyone can check a published result, which is how science stays honest.

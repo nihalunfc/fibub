@@ -44,6 +44,11 @@ Business costs differ: a false positive ships a useless change (wasted build, po
 
 Left curve: where your measured difference lands if there's no effect. Right curve: where it lands if the effect is real. The cut-off is set by α on the left curve. Power is the share of the right curve beyond the cut-off. Pull the curves apart (bigger effect) or make them narrower (more people, less noise) and power rises.
 
+Raise the sample size, then shrink the effect size, and watch the two bells and the shaded areas.
+
+<figure class="fig" data-fig="@data-power-overlap"><figcaption>Notice that alpha comes from the null bell, beta from the real-effect bell, and power is what is left of the real bell beyond the cut-off.</figcaption></figure>
+
+
 ## 3. What sets power
 
 1. **Effect size** (bigger is easier to detect). You don't choose the truth, but you choose the **smallest effect worth detecting**.

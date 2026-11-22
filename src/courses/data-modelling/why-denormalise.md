@@ -54,6 +54,16 @@ ORDER BY r.region_name, c.department
 
 It works, but notice the trap on the way: the online store has no region, so an inner join to `regions` would have silently dropped all online sales. The LEFT JOIN keeps them, with a blank region. Every analyst writing this query has to remember that.
 
+Step from the messy sheet to clean tables.
+
+<div class="steps" data-fig="@data-normalize-steps">
+<div class="step">One messy sheet: a list in one cell and repeated customer details.</div>
+<div class="step">1NF: every cell holds one value; each row is one order line.</div>
+<div class="step">2NF: details that depend on only part of the key move to their own table.</div>
+<div class="step">3NF: details that depend on a non-key column (city via customer) move out too.</div>
+</div>
+
+
 ## 3. Join once, at load time
 
 *Denormalising* means storing the result of joins so readers don't have to repeat them. Here is a wide table with one row per completed order line and every descriptive column already attached. The blank region is fixed once, for everyone, with COALESCE.

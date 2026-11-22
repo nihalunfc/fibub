@@ -49,6 +49,10 @@ Two numbers set the scale of what follows. The electron's speed in the ground st
 
 Expanding the Dirac equation to order `$(v/c)^2$` gives three extra terms in the Hamiltonian. Each is treated in first-order perturbation theory with the hydrogen wavefunctions.
 
+Pick l, s, j and m_j, switch the field on and off, and drag the picture to turn it.
+
+<figure class="fig" data-fig="@qm-vector-model"><figcaption>L and S circle quickly about J while J circles slowly about B. Only the lengths √(x(x+1)) and the z-component m_j are fixed, and g_J sets the Zeeman splitting.</figcaption></figure>
+
 **Relativistic kinetic energy.** `$\sqrt{p^2c^2 + m^2c^4} - mc^2 = p^2/2m - p^4/8m^3c^2 + \dots$` The second term lowers every level, most strongly for low `$l$`, whose electrons come closest to the nucleus and move fastest:
 
 ```math

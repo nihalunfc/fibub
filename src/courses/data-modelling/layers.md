@@ -63,6 +63,11 @@ Open any real warehouse project, whether built with dbt, stored procedures or a 
 
 The one rule: **each layer reads only from the layer below it.** Staging reads sources, core reads staging, marts read core. In a lakehouse the same layers are called bronze, silver and gold ([Lesson 6.4](/learn/courses/data-modelling/lakehouse/)). Some teams add an **intermediate** layer between staging and core for reusable steps, such as order totals, that several core tables need.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Staging: tidy each source
 
 Each staging view mirrors one Northbay table. Note what happens: renamed columns, trimmed cities, one case for emails, and a computed line value with the formula written once.

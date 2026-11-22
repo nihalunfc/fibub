@@ -36,6 +36,11 @@ You see a plan (a park, a museum floor, a campus, a town centre) with some place
 3. **Read the list of places** you must find, in order. The answers come in that order.
 4. **Notice the shape**: paths, corners, a lake, a central building. Speakers use them.
 
+
+Pick a tense and watch it drawn on a timeline from past to future.
+
+<figure class="fig" data-fig="@lang-tense-timeline"><figcaption>Notice that the perfect tenses all connect two times, while the simple tenses name just one.</figcaption></figure>
+
 ## 3. Watch it happen: following a route
 
 <div class="steps" data-fig="park-map">

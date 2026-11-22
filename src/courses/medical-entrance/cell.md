@@ -71,6 +71,14 @@ Choose a cell and an organelle. The line under the drawing gives its membranes, 
 <div class="step"><b>Nucleus.</b> Robert Brown (1831) described it. Double envelope with pores; inside, chromatin (DNA with histone proteins) and one or more nucleoli where ribosomal RNA is made. Mature red blood cells of mammals and the sieve tube cells of plants have no nucleus.</div>
 </div>
 
+Choose each kind of transport, then try blocking the carrier protein.
+
+<figure class="fig" data-fig="@bio-membrane-transport"><figcaption>Diffusion and facilitated diffusion only move particles down the gradient. Only the pump moves them from low to high concentration, and that costs ATP.</figcaption></figure>
+
+Slide the outside solution from pure water to very salty and watch how a plant cell responds.
+
+<figure class="fig" data-fig="@bio-plasmolysis"><figcaption>The cell wall stops the cell from bursting in pure water; in strong solution the membrane pulls away from the wall (plasmolysis).</figcaption></figure>
+
 ## 4. Chromosomes by centromere position
 
 At division, chromatin condenses into chromosomes. Each has a **centromere** (primary constriction) with disc-shaped **kinetochores** where spindle fibres attach.

@@ -49,6 +49,10 @@ k = \frac{\Delta Y}{\Delta I} = \frac{1}{1 - MPC} = \frac{1}{MPS}
 
 <div class="problem" data-problem="multiplier"></div>
 
+**Try it:** Move investment or the MPC and see where aggregate demand meets the 45-degree line.
+
+<figure class="fig" data-fig="@tp-income-expenditure"><figcaption>A steeper AD line (higher MPC) gives a bigger multiplier; the dashed line marks full employment.</figcaption></figure>
+
 ## 3. Excess and deficient demand
 
 **Excess demand** (spending above full-employment output) raises prices: an inflationary gap. **Deficient demand** leaves output and jobs below full employment: a deflationary gap. Governments and central banks use fiscal and monetary policy to close the gaps.

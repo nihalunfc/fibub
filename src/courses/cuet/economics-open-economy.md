@@ -32,6 +32,10 @@ sources:
 <div class="step"><b>Official reserves:</b> when the two do not balance, the RBI's foreign exchange reserves make up the difference.</div>
 </div>
 
+**Try it:** Slide each flow and watch the current account, capital account and overall balance.
+
+<figure class="fig" data-fig="@tp-bop"><figcaption>A current account deficit has to be matched by capital inflows or a fall in reserves.</figcaption></figure>
+
 ## Exchange rates
 
 Under a **flexible** rate, demand and supply of foreign currency set the price. Higher imports or capital outflows raise demand for dollars and **depreciate** the rupee; higher exports or inflows **appreciate** it. Under a **fixed** rate, the government holds the rate; under a **managed float** (India's system), the market sets it but the RBI steps in to calm sharp swings.
@@ -41,6 +45,10 @@ Under a **flexible** rate, demand and supply of foreign currency set the price. 
 **"A falling rupee is always bad."** Depreciation makes imports dearer, but it also makes exports cheaper for foreign buyers, which can help exporters and jobs.
 
 </div>
+
+**Try it:** Shift the demand and supply sliders and watch the equilibrium move; then try a price ceiling or floor.
+
+<figure class="fig" data-fig="@tp-demand-supply" data-market="forex"><figcaption>The dot is equilibrium; a fixed price away from it leaves a shortage or a surplus.</figcaption></figure>
 
 ## Practice
 

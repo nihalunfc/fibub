@@ -32,6 +32,10 @@ sources:
 
 An isolated atom has sharp energy levels. Bring `$N$` atoms together into a crystal and each level spreads into a **band** of `$N$` closely spaced states, because neighbouring electron waves overlap. Between bands there can be **gaps** with no states at all ([lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/) hinted why: electron waves with `$2d\sin\theta = n\lambda$` are Bragg-reflected by the lattice and cannot travel).
 
+Open and close the gap and heat the crystal: see how many carriers the gap lets through.
+
+<figure class="fig" data-fig="@sx-band-fill"><figcaption>The number of thermally excited carriers is n<sub>i</sub> ∝ T<sup>3/2</sup> e<sup>−E<sub>g</sub>/2kT</sup>. Compare Ge, Si, GaAs and diamond at the same temperature, then try a photon with hν below and above the gap.</figcaption></figure>
+
 What matters is how the highest bands are filled at `$T = 0$`:
 
 - **Metal:** the top band is partly filled. Electrons can move into empty states just above them, so even a tiny field drives a current.
@@ -155,6 +159,10 @@ A surprise for strong students: intrinsic material is not the most resistive. Si
 ## 6. The Hall effect: counting carriers and their sign
 
 Send a current along a bar in a magnetic field `$B$` perpendicular to it. The magnetic force pushes the carriers to one side until the charge piled up there makes a transverse field that balances it. That side voltage is the **Hall voltage**:
+
+Switch between electrons and holes and change B, I and n in the next picture to see the Hall voltage build up.
+
+<figure class="fig" data-fig="@sx-hall-bar"><figcaption>Both kinds of carrier are pushed to the same edge, but the charge that piles up there has the opposite sign, so the sign of V<sub>H</sub> tells you who carries the current. A bigger n shrinks V<sub>H</sub>.</figcaption></figure>
 
 ```math
 V_H = \frac{IB}{nqt}, \qquad R_H = \frac{1}{nq}

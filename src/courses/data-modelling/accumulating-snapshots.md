@@ -43,6 +43,11 @@ An *accumulating snapshot fact table* has one row for each thing that goes throu
 
 Northbay's lifecycle has three milestones per order line: **sold** (order date), **return window closes** (30 days later), and **returned** (if it comes back). An order line ends its life either returned or kept once the window closes.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Load it as of a date
 
 Pretend tonight is 15 December 2025. The table holds every completed order line sold so far, with any return that has happened so far. Lines still inside their 30-day window are "window open".

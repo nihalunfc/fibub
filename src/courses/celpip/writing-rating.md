@@ -54,6 +54,11 @@ Each answer is rated on four areas. Learn what each one includes, because every 
 
 **Everyday analogy.** Think of a restaurant review with four stars to give. One star for the food (content), one for the menu choices (vocabulary), one for the clean, comfortable room (readability) and one for getting exactly the meal you ordered (task fulfillment). A beautiful room cannot save the wrong dish, and a great dish in a dirty room still loses a star.
 
+
+Switch between Version A and Version B of the same paragraph.
+
+<figure class="fig" data-fig="@lang-sentence-rhythm"><figcaption>Notice that Version B mixes short and long sentences and three types, which is what a range of structures looks like.</figcaption></figure>
+
 ## 3. Turning the four areas into a method
 
 <div class="steps">

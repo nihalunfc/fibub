@@ -39,6 +39,10 @@ Researchers read more than anyone, write a lot of analysis code, and often hold 
 4. **Lab notes search:** "when did we last change the buffer recipe?"
 5. **Writing help:** clearer methods and abstracts, with AI use described as the journal asks.
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Repeatability
 
 Record: model file name and checksum, quantisation, engine and version, settings (temperature 0 or a fixed seed), and the full prompt. With these, someone else can rerun your pipeline. Note that the same settings can still give tiny differences across different hardware or engine versions; report them.

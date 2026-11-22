@@ -50,6 +50,19 @@ ORDER BY amount DESC
 
 Read it from the inside out. The inner query gives one number, about $44.17. The outer query keeps orders above it: 104 ($90), 106 ($60), 101 and 105 ($45 each). You can't write `WHERE amount > AVG(amount)`, because WHERE looks at one row at a time ([Lesson 1.4](/learn/courses/sql/how-a-query-runs/)). The subquery gets around that by working out the average separately.
 
+Step through the clauses in the order SQL really runs them and move the three sliders.
+
+<div class="steps" data-fig="@data-query-order">
+<div class="step">FROM: the whole table is the starting point.</div>
+<div class="step">WHERE: rows are dropped before any grouping.</div>
+<div class="step">GROUP BY: the surviving rows become one row per region.</div>
+<div class="step">HAVING: whole groups are dropped by their aggregate.</div>
+<div class="step">SELECT: columns are computed here, so the alias total exists only from now on.</div>
+<div class="step">ORDER BY: now the alias can be used to sort.</div>
+<div class="step">LIMIT: finally only the first rows are kept.</div>
+</div>
+
+
 ## 3. A scalar subquery in SELECT
 
 The same kind of subquery can go in SELECT, to show a fixed reference number on every row:

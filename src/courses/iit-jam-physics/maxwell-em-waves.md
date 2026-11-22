@@ -42,6 +42,10 @@ Look at it with a loop round the wire. A flat surface bounded by the loop is cro
 
 **Worked example.** Circular plates of radius 5.0 cm with `$dE/dt = 2.0\times10^{12}$` V m⁻¹ s⁻¹: the Ampère-Maxwell law on a circle of radius `$r < R$` gives `$B = \dfrac{\mu_0\epsilon_0r}{2}\dfrac{dE}{dt}$`, so at the rim `$B = \dfrac{0.05\times2\times10^{12}}{2c^2} = 0.56\ \mu$`T. Inside it grows as `$r$`; outside it falls as `$1/r$`, just as round a thick wire.
 
+Slide the loop radius and switch between the flat and the bag-shaped surface. See that both give the same B.
+
+<figure class="fig" data-fig="@em-displacement"><figcaption>Without the displacement current the two surfaces would disagree. Inside the plates B grows with r; outside it falls as 1/r.</figcaption></figure>
+
 ## 2. Maxwell's equations
 
 | | Differential form | What it says |
@@ -81,6 +85,10 @@ Reading the direction: `$\cos(kz - \omega t)$` travels along `$+z$`, `$\cos(kz +
 
 <figure class="fig" data-fig="em-wave"><figcaption>A plane wave travelling to the right: E (vertical) and B (at right angles) oscillate together, and the Poynting vector S points forward, pulsing at twice the frequency. With circular polarisation E turns at constant length and S is steady.</figcaption></figure>
 
+Drag to turn the view. Change the plane of E, or choose circular polarisation, and see that E and B stay perpendicular to each other and to the direction of travel.
+
+<figure class="fig" data-fig="@em-wave-3d"><figcaption>E and B rise and fall together, in phase; E × B points along the motion; E/B = c.</figcaption></figure>
+
 ## 4. Energy, intensity and the Poynting vector
 
 The energy density is `$u = \tfrac12\epsilon_0E^2 + \dfrac{B^2}{2\mu_0}$`. In a wave the two halves are **equal** (`$B = E/c$` and `$c^2 = 1/\mu_0\epsilon_0$`), so `$u = \epsilon_0E^2$`. The energy flow per unit area is the **Poynting vector**
@@ -108,6 +116,10 @@ and Poynting's theorem, `$\nabla\cdot\vec S + \partial u/\partial t = -\vec J\cd
 <div class="problem" data-problem="laser-field"></div>
 
 **Energy does not flow along wires.** In a resistor carrying `$I$`, `$E$` points along the wire and `$B$` circles it, so `$\vec S$` points radially **into** the wire; over its surface `$S\cdot2\pi aL = I^2R$`, exactly the heating. Charging a capacitor, `$\vec S$` points inward through the open edge of the gap, and its flux equals the rate of growth of `$\tfrac12\epsilon_0E^2$` inside. The energy travels through the space around the conductors.
+
+Switch between a current-carrying wire and a charging capacitor. Follow the green arrows: they show where the energy flows.
+
+<figure class="fig" data-fig="@em-poynting-flow"><figcaption>The Poynting vector E × B/μ₀ points into the wire (to be turned into heat) and into the gap of the capacitor (to be stored as field energy).</figcaption></figure>
 
 ## 5. Momentum and radiation pressure
 
@@ -151,6 +163,10 @@ and `$\vec B$` lags `$\vec E$` by `$45^\circ$`, with the wave mostly magnetic. C
 - `$v = c/n$`, `$\lambda = \lambda_0/n$`; `$R = ((n_1 - n_2)/(n_1 + n_2))^2$`; Brewster `$\tan\theta_B = n_2/n_1$`; skin depth `$\sqrt{2/\omega\mu_0\sigma}$`; plasma cut-off `$\omega_p = \sqrt{ne^2/\epsilon_0m_e}$`.
 
 </div>
+
+Choose a metal and slide the frequency from mains to microwaves. Watch the depth that the wave reaches.
+
+<figure class="fig" data-fig="@em-skin-depth"><figcaption>The field decays as e^(−z/δ), with δ = 1/√(πfμσ); the higher the frequency the thinner the skin.</figcaption></figure>
 
 ## Practise: exam questions on this lesson
 

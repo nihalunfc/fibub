@@ -102,6 +102,10 @@ For NaCl, `$\sqrt{5.9/2.25} = 1.62$`. Between `$\omega_{TO}$` and `$\omega_{LO}$
 
 Quantising each mode gives energies `$(n + \tfrac12)\hbar\omega$`. A phonon is one quantum. Phonons are bosons whose number is not conserved, so their chemical potential is zero and the mean occupation is the Planck form
 
+A bond is not a perfect spring. Raise the vibration energy and watch the mean separation grow.
+
+<figure class="fig" data-fig="@sx-bond-well"><figcaption>The harmonic (parabola) well has no thermal expansion; the real, lopsided well does. The same anharmonic term lets phonons scatter each other and gives a finite thermal conductivity.</figcaption></figure>
+
 ```math
 \langle n\rangle = \frac1{e^{\hbar\omega/k_BT} - 1}
 ```

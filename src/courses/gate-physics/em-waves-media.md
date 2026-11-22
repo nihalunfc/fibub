@@ -83,6 +83,10 @@ The surface impedance of a good conductor is `$\eta_c = R_s(1 - i)$` (with `$e^{
 
 **Charge relaxation.** Gauss plus continuity plus Ohm give `$\partial\rho_f/\partial t = -(\sigma/\epsilon)\rho_f$`. Free charge inside a conductor disappears with time constant `$\tau = \epsilon/\sigma$` (`$1.5\times10^{-19}$` s for copper, far shorter than any wave period), which is why we set `$\rho_f = 0$` inside metals.
 
+Choose a metal and slide the frequency from mains to microwaves. Watch the depth that the wave reaches.
+
+<figure class="fig" data-fig="@em-skin-depth"><figcaption>The field decays as e^(−z/δ), with δ = 1/√(πfμσ); the higher the frequency the thinner the skin.</figcaption></figure>
+
 ## 3. Cold plasmas: dispersion, cutoff and the ionosphere
 
 Free electrons obey `$m\dot{\vec v} = -e\vec E$`, so for `$e^{-i\omega t}$`, `$\vec J = \frac{ine^2}{m\omega}\vec E$`: a purely imaginary conductivity, current 90° out of phase, no loss. Then
@@ -101,6 +105,10 @@ Numerically `$f_p \approx 8.98\sqrt{n}$` Hz (with `$n$` in m⁻³). The dispersi
 **Worked example: oblique reflection.** An ionospheric layer with peak density `$2.5\times10^{12}$` m⁻³ has `$f_p = 14.2$` MHz. A ray entering at angle `$\theta$` from the vertical turns back where `$n = \sin\theta$` (Snell in a flat, layered medium), i.e. where `$f_p = f\cos\theta$`. At `$\theta = 70^\circ$` the layer reflects up to `$14.2/\cos70^\circ = 42$` MHz, which is why short-wave radio reaches beyond the horizon while FM (100 MHz) does not.
 
 **Worked example: dispersion of pulsar signals.** For `$f \gg f_p$` the extra group delay over a path is `$t = \frac{e^2}{8\pi^2\epsilon_0m_ec}\frac{\int n\,dl}{f^2}$`. With 30 pc cm⁻³ of electrons, the 400 MHz pulse lags the 800 MHz pulse by 0.58 s; astronomers read the electron column straight off the sweep.
+
+Slide the electron density and the frequency of a test wave. Check whether it is reflected or transmitted.
+
+<figure class="fig" data-fig="@em-plasma-slab"><figcaption>The slab oscillates at ω_p = √(ne²/ε₀m); waves below that frequency are reflected, those above pass.</figcaption></figure>
 
 ## 4. Drude and Lorentz: metals and dielectrics as driven oscillators
 

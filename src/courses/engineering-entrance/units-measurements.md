@@ -126,6 +126,10 @@ The quantity with the **highest power** contributes most, so measure it most car
 
 </div>
 
+Pick an operation and move the sliders for the two measurements and their errors. Compare the green bar made from the rule with the grey bar found by trying all extreme values.
+
+<figure class="fig" data-fig="@mech-error-prop"><figcaption>For a + b and a − b the absolute errors add; for a × b and a ÷ b the relative errors add. Try a − b with a close to b: the result is tiny but its error is not, so its relative error explodes.</figcaption></figure>
+
 ## 6. Reading a vernier caliper and a screw gauge
 
 A **vernier** has N divisions that span N − 1 main-scale divisions. Its **least count** is 1 main division − 1 vernier division = (1/N) main division, 0.1 mm for the usual 10-division vernier.

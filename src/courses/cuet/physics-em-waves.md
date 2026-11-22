@@ -67,6 +67,12 @@ c = \frac{1}{\sqrt{\mu_0\varepsilon_0}} = 3\times10^8\ \text{m/s} \qquad c = f\l
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@em-wave-3d"><figcaption>Electromagnetic wave in 3D with linear or circular polarisation (drag to turn).</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="em-waves" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

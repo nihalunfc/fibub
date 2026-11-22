@@ -55,6 +55,11 @@ The t multiplier is bigger than 1.96 for small samples and settles to 1.96 as `$
 
 Move n and the level. Three things set the width: **spread** (s), **sample size** (n, through √n) and **confidence level** (the multiplier).
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. Reporting
 
 - Give the estimate, the interval and the level: "Mean 32.4 min (95 % CI 28.3 to 36.5, n = 25)."

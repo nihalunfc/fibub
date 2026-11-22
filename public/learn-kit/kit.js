@@ -308,3 +308,16 @@ export function rng(seed = 1) {
   let s = seed >>> 0 || 1;
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
+
+/**
+ * Let a finger drag things on a canvas without blocking page scroll elsewhere: touches that start where onHandle(x, y)
+ * is true (canvas pixels) stop the page from scrolling; all other touches scroll the page as usual.
+ * Use instead of canvas.style.touchAction = 'none'.
+ */
+export function touchGuard(c, onHandle) {
+  c.style.touchAction = '';
+  c.addEventListener('touchstart', (e) => {
+    const t = e.touches[0], b = c.getBoundingClientRect();
+    if (t && onHandle(t.clientX - b.left, t.clientY - b.top)) e.preventDefault();
+  }, { passive: false });
+}

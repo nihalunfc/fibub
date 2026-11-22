@@ -69,6 +69,16 @@ His design, often called the **Corporate Information Factory**, builds one centr
 
 People call them **top-down** (Inmon: design the enterprise model, then the marts) and **bottom-up** (Kimball: deliver marts, and the warehouse is their sum). Both end in stars for reporting. The real difference is what sits in the middle.
 
+Step from the messy sheet to clean tables.
+
+<div class="steps" data-fig="@data-normalize-steps">
+<div class="step">One messy sheet: a list in one cell and repeated customer details.</div>
+<div class="step">1NF: every cell holds one value; each row is one order line.</div>
+<div class="step">2NF: details that depend on only part of the key move to their own table.</div>
+<div class="step">3NF: details that depend on a non-key column (city via customer) move out too.</div>
+</div>
+
+
 ## 3. Build a tiny EDW
 
 Northbay's own tables are already normalised: orders point to stores, stores to regions, products to categories. An Inmon EDW keeps that shape, but **integrates** the data on the way in. Two things in Northbay need integrating: emails written in capitals, and cities with stray spaces. Run this to build the EDW layer:

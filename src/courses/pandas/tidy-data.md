@@ -53,6 +53,11 @@ wide.iloc[:, -6:]
 
 Analyse in the long shape (filter, group, join, model), then pivot to wide at the very end for the table people read.
 
+Drag the slider between wide and long, or press Play, and follow one number as it moves.
+
+<figure class="fig" data-fig="@data-reshape"><figcaption>Notice that no value changes, only its position: month names become values in a column.</figcaption></figure>
+
+
 ## 3. Choose the grain on purpose
 
 | Question | Grain you need |

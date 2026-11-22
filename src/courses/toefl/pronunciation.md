@@ -36,6 +36,11 @@ Good news: you do not need a native accent. Speakers with many different accents
 
 Everyday analogy: think of music. You can play a song on a cheap keyboard with a few wrong notes and people still recognise it, as long as the rhythm is right. Play every note perfectly at the same length and loudness, and nobody knows the tune.
 
+
+Tap the syllable you think is stressed, then see the answer. Press Next word to continue.
+
+<figure class="fig" data-fig="@lang-syllable-beats"><figcaption>Notice the patterns: -tion and -ic pull the stress to the syllable before them.</figcaption></figure>
+
 ## 2. Word stress: one strong syllable
 
 Every English word with two or more syllables has **one syllable that is longer, louder and higher**: PHO-to-graph, pho-TOG-ra-pher, pho-to-GRAPH-ic. Stressing the wrong syllable can make a word impossible to recognise, even when every sound is correct.
@@ -51,6 +56,11 @@ Useful patterns (with exceptions, but they help):
 | Two-syllable noun / verb pairs | a REC-ord / to re-CORD, a PRES-ent / to pre-SENT |
 
 Unstressed syllables are not just quieter. Their vowel often shrinks to a short "uh" sound (called schwa): the "o" in "today", the "a" in "about". Shrinking these vowels is what makes the stressed one stand out.
+
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
 
 ## 3. Sentence stress and rhythm
 

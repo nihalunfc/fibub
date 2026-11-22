@@ -33,6 +33,11 @@ Both CELPIP writing tasks are rated on **Readability**, which includes *format a
 
 On the test, you type into a plain box. Press Enter twice to leave a **blank line** between paragraphs. That is the clearest signal of structure.
 
+
+Test your linking words: tap the job each card does. A wrong tap tells you why.
+
+<figure class="fig" data-fig="@lang-linkers-sort"><figcaption>Notice that linking words work in families (adding, contrast, cause, result, example). Pick one from each family and you already sound organised.</figcaption></figure>
+
 ## 2. What a good paragraph looks like
 
 A good CELPIP paragraph is short (2 to 5 sentences) and does one job:
@@ -43,6 +48,17 @@ A good CELPIP paragraph is short (2 to 5 sentences) and does one job:
 4. **Link (optional):** a sentence that ties back or leads on. *This kind of connection is exactly what our area needs.*
 
 **Everyday analogy.** A paragraph is a box when you move house. Each box holds one room’s things and has a label on top (the topic sentence). Connectors are the arrows on the boxes: *this way up, kitchen, fragile*. Without labels and arrows, everything arrives but nobody knows where it goes.
+
+Step through a body paragraph and watch each move (Point, Explain, Example, Link) add one sentence.
+
+<div class="steps" data-fig="@lang-peel-steps">
+<div class="step"><p><strong>Point.</strong> Open with one sentence that states the idea of the paragraph.</p></div>
+<div class="step"><p><strong>Explain.</strong> Say why it is true or how it works, in one or two sentences.</p></div>
+<div class="step"><p><strong>Example.</strong> Give one specific example that proves the point.</p></div>
+<div class="step"><p><strong>Link.</strong> Close by tying the paragraph back to the question.</p></div>
+</div>
+
+Notice that the Point and the Link say nearly the same thing; the Explain and Example in between do the proving.
 
 ## 3. The method: build, link, check
 

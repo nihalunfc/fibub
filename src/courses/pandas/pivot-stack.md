@@ -91,6 +91,11 @@ Watch it happen, one step at a time:
 
 <div class="problem" data-problem="pd-unstack-cells"></div>
 
+Drag the slider between wide and long, or press Play, and follow one number as it moves.
+
+<figure class="fig" data-fig="@data-reshape"><figcaption>Notice that no value changes, only its position: month names become values in a column.</figcaption></figure>
+
+
 ## 3. Your turn
 
 ```python exercise data=orders.csv

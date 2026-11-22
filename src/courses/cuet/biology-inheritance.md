@@ -71,6 +71,16 @@ Humans: XX female, XY male (the father decides the child's sex). Birds: ZW femal
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-dihybrid-sim"><figcaption>Simulated offspring counts for dihybrid, test and linked crosses against 9:3:3:1, 1:1:1:1, 3:1; offspring slider.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-pedigree"><figcaption>Three-generation pedigrees for autosomal recessive, autosomal dominant and X-linked recessive traits, genotypes on or off.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-blood-groups"><figcaption>ABO inheritance: pick both parents' genotypes, 2 × 2 square and chance bars for A, B, AB, O.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="inheritance" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

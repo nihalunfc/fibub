@@ -46,6 +46,11 @@ Always window by **event time** (when it happened), not processing time (when yo
 
 <div class="problem" data-problem="stream-processing-windows"></div>
 
+Slide the window size and switch between trailing and centred.
+
+<figure class="fig" data-fig="@data-rolling-window"><figcaption>Notice that a bigger window is smoother but later, and where the NaN values appear.</figcaption></figure>
+
+
 ## 3. Watermarks and late data
 
 A **watermark** is the engine saying "I believe every event up to time T has now arrived." A common rule is T = latest event time seen − allowed lateness. When the watermark passes the end of a window, the window is **final** and its result is sent. Events that turn up after that are dropped, sent to a side output, or used to update a result already sent, depending on the engine and your settings.

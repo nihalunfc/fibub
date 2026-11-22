@@ -47,6 +47,10 @@ It is like learning to throw darts. Each throw, you see how far you missed and a
 
 This takes data centres with thousands of specialised chips running for weeks or months. Afterwards, **post-training** teaches the model to follow instructions, chat and refuse harmful requests, using examples and feedback.
 
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
+
 ## 3. Inference: using the model
 
 **Inference** is running the finished model: read the input, predict tokens, done. The weights do not change. It takes one machine and seconds. This is all you do at home (and all a cloud chatbot does when you use it).
@@ -56,6 +60,10 @@ This takes data centres with thousands of specialised chips running for weeks or
 **"If I chat with my local model every day, it will learn my business."** It won't. Its parameters are frozen; chatting is inference, and inference never changes them. Within one chat it can use what you told it, because that text is in its context window (Lesson 3.3). Start a new chat and it is gone. Some apps add a "memory" feature, but that just saves notes and pastes them back into the context.
 
 </div>
+
+Try it: press Generate from noise, then raise Guess error and generate again.
+
+<figure class="fig" data-fig="@ai-diffusion-denoise"><figcaption>An image model starts from pure noise and repeatedly guesses and removes noise. Better guesses and more steps give a cleaner picture; poor guesses leave artefacts.</figcaption></figure>
 
 ## 4. So how does it "know" my stuff?
 
@@ -88,6 +96,22 @@ This takes data centres with thousands of specialised chips running for weeks or
 </div>
 
 <div class="problem" data-problem="training-vs-inference-compute"></div>
+
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
+
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
+Try it: move the two inputs, tap a line or neuron and change its weight or bias with the slider, and switch the activation.
+
+<figure class="fig" data-fig="@ai-forward-pass"><figcaption>Every neuron does the same small job: add up weight times input over its lines, add its bias, apply the activation. A network is just many of these. Learning means moving the weights and biases until the output is right.</figcaption></figure>
+
+Step through one training step of the smallest possible network, forward first, then backwards.
+
+<figure class="fig" data-fig="@ai-backprop-player"><figcaption>The forward pass makes the prediction and the loss. The backward pass multiplies slopes link by link (the chain rule) so every weight learns how it should change. Then each weight takes a small step against its slope.</figcaption></figure>
 
 ## 5. Worked example
 

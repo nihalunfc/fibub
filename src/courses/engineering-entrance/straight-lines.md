@@ -61,6 +61,10 @@ The slope of a line is `$m = \tan\theta$`, where θ is the angle it makes with t
 \tan\phi = \left|\frac{m_1 - m_2}{1 + m_1m_2}\right| \quad \text{(acute angle between two lines)}
 ```
 
+Slide the slopes and intercepts of the two lines, then press 'Make parallel' and 'Make perpendicular'.
+
+<figure class="fig" data-fig="@math-two-lines"><figcaption>Notice that the angle follows tan θ = |(m₁ − m₂)/(1 + m₁m₂)|, that equal slopes never meet, and that m₁m₂ = −1 gives 90°.</figcaption></figure>
+
 Parallel lines have m₁ = m₂. Perpendicular lines have m₁m₂ = −1 (or one is vertical and the other horizontal).
 
 <div class="problem" data-problem="sl-angle"></div>

@@ -38,6 +38,10 @@ When a local job feels slow, or a cloud plan runs out early, the cause is usuall
 
 Think of a letter. Reading the letter you received takes a minute; writing your reply by hand takes much longer; and any rough draft you throw away still took writing time.
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. Why the difference matters
 
 On your machine, input is cheap in time and output is expensive. In the cloud, output tokens usually cost several times more than input tokens, and plan limits drain fastest with long answers and heavy thinking. Either way, the biggest savings come from **shorter outputs** and **thinking only when needed** (Lessons 3.6 and 10.4).
@@ -83,6 +87,10 @@ Here is that request, step by step.
 </div>
 
 <div class="problem" data-problem="input-output-thinking-time"></div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 4. Worked example
 

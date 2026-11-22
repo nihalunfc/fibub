@@ -53,6 +53,11 @@ A quick test for any column: **would you add it up, or group by it?** Add up →
 | size_sqft | dimension attribute | a number, but it describes the store |
 | unit_price, discount | neither, as stored | turn them into amounts (section 4) |
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Facts at the grain
 
 Here are the facts for one order, worked out line by line from the source columns:

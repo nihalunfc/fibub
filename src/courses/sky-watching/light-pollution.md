@@ -41,6 +41,10 @@ Sky brightness is spread out, so it is given per unit area of sky: **magnitudes 
 
 A hand-held **sky quality meter (SQM)** or a calibrated camera gives these numbers. Each step of 1 mag/arcsec² is a factor of 2.5 in sky glow.
 
+Choose a star and slide its distance. Watch where the black curve crosses the naked-eye, binocular and telescope lines.
+
+<figure class="fig" data-fig="@astro-magnitude-reach"><figcaption>Every 5 magnitudes is a factor 100 in brightness and the apparent magnitude gets 5 larger for every ten times the distance. A star's absolute magnitude (its brightness at 10 pc) tells you how far away it can still be seen.</figcaption></figure>
+
 ## 3. The Bortle scale
 
 In 2001 John Bortle described nine classes of sky by what an observer can see: Class 1 (excellent dark site: zodiacal light, airglow, the Milky Way casts shadows) to Class 9 (inner city: only the Moon, planets and a few bright stars). The classes are descriptions, so conversions to SQM are approximate.

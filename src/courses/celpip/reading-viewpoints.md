@@ -38,6 +38,11 @@ Then come two kinds of questions:
 
 The part has its own timer; the test screen shows the exact time. Because the text is long, timing matters more here than anywhere else.
 
+
+Try matching: read each one-line summary and tap the heading that gives its main idea.
+
+<figure class="fig" data-fig="@lang-heading-match"><figcaption>Notice that a shared word is not enough. The heading must match what the whole paragraph is about.</figcaption></figure>
+
 ## 2. What it really tests
 
 Part 4 tests whether you can follow an argument. That means more than understanding sentences. You need to:

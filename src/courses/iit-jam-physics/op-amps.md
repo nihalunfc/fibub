@@ -65,6 +65,10 @@ The source sees just `$R_{in}$`, because its far end sits at 0 V. Note that the 
 
 <figure class="fig" data-fig="opamp-gain"><figcaption>Switch between the inverting and non-inverting circuits and change the resistors. The transfer curve is a straight line through the origin until the output reaches the ±11 V it can swing to, then it flattens: the op-amp saturates and the golden rules stop working.</figcaption></figure>
 
+Why does negative feedback make the gain depend only on resistors? Try the picture below: a distorted amplifier cleaned up by feedback.
+
+<figure class="fig" data-fig="@sx-feedback-distortion"><figcaption>Same output size in both traces, but the one with feedback is much closer to a pure sine. The cost is a lower closed-loop gain, about 1/β when Aβ is large.</figcaption></figure>
+
 **Worked example.** An inverting amplifier has `$R_{in} = 4.7$` kΩ and `$R_f = 47$` kΩ, on ±12 V supplies (output swing ±11 V).
 
 1. Gain `$= -47/4.7 = -10$`.
@@ -126,6 +130,10 @@ That is the **difference amplifier**. It ignores anything common to both inputs,
 ## 5. Integrator and differentiator
 
 Replace `$R_f$` by a capacitor `$C$`. The input current `$V_{in}/R$` still flows on, now charging the capacitor, and `$C\,dV_o/dt = -V_{in}/R$`:
+
+Feed a sine, square and triangle wave into each circuit and watch what comes out.
+
+<figure class="fig" data-fig="@sx-opamp-waves"><figcaption>An integrator turns a square wave into a triangle and a differentiator turns a triangle into a square wave. Inverting and non-inverting amplifiers simply scale the input, and the output clips at the supply rails.</figcaption></figure>
 
 ```math
 V_o = -\frac{1}{RC}\int V_{in}\,dt \quad\text{(integrator)}, \qquad V_o = -RC\frac{dV_{in}}{dt} \quad\text{(differentiator: } C \text{ and } R \text{ swapped)}

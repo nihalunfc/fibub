@@ -112,6 +112,10 @@ For one degree of freedom, `$\{Q, P\}$` is the Jacobian `$\partial(Q, P)/\partia
 
 **Worked example.** Is `$Q = q\cos\alpha + p\sin\alpha$`, `$P = -q\sin\alpha + p\cos\alpha$` canonical? `$\{Q, P\} = \cos\alpha\cos\alpha - \sin\alpha(-\sin\alpha) = 1$`, yes, for every `$\alpha$`. At `$\alpha = \pi/2$` it is `$Q = p$`, `$P = -q$`: coordinates and momenta can be swapped (with a sign), so in Hamiltonian mechanics there is nothing special about which is which. Without the minus sign, `$Q = p$`, `$P = q$` gives `$\{Q, P\} = -1$` and is not canonical.
 
+Press Play and watch the blob of starting states stretch, then switch on friction.
+
+<figure class="fig" data-fig="@mech-liouville"><figcaption>The shape distorts enormously, but with no friction its area stays the same. This is Liouville's theorem; friction compresses phase space.</figcaption></figure>
+
 ## 5. Generating functions
 
 Canonical transformations can be built from one function of one old and one new variable. Requiring `$p\dot q - H$` and `$P\dot Q - K$` to differ by a total time derivative `$dF/dt$` gives four types:

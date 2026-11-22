@@ -52,6 +52,10 @@ Try it below. This is a toy with a few hundred pieces; real tokenizers learn 100
 
 <!--fig:toy-tokenizer-->
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. The rule of thumb
 
 For ordinary English with a modern tokenizer:

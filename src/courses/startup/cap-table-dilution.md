@@ -83,6 +83,20 @@ Every new share issued shrinks everyone else's percentage. The questions that ma
 
 <div class="problem" data-problem="cap-table-dilution-after"></div>
 
+Watch the founders' share fall round by round, then compare it with what the stake is worth.
+
+<div class="steps" data-fig="@biz-dilution-steps">
+
+<div class="step">Two founders hold the shares, 60% and 40%.</div>
+
+<div class="step">An option pool of 10% is created before the investor arrives. Only the existing holders are diluted.</div>
+
+<div class="step">Seed round: $1M buys 20% of the company, and the price per share is set.</div>
+
+<div class="step">Series A: $5M for 25%. Founder A holds less than a third, but the stake is worth much more.</div>
+
+</div>
+
 ## 3. Worked example
 
 Default numbers in the simulator: 8,000,000 founder shares; 10 % pool; seed of 1,000,000 at 4,000,000 pre-money; Series A of 5,000,000 at 20,000,000 pre-money.

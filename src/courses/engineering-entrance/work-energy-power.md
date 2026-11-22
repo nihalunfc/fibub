@@ -48,6 +48,10 @@ where θ is the angle between the force and the displacement. Work is a scalar, 
 
 </div>
 
+Slide the rope angle and watch the work done by the pull. Then raise the friction μ and see which angle gives the largest net push.
+
+<figure class="fig" data-fig="@mech-work-angle"><figcaption>Work is F d cos φ, so only the part of the pull along the motion counts. The upward part reduces the normal force and friction: the best angle satisfies tan φ = μ.</figcaption></figure>
+
 ## 2. Kinetic energy and the work-energy theorem
 
 A body of mass m moving at v has **kinetic energy** `$K = \tfrac12 mv^2 = \dfrac{p^2}{2m}$`. The **work-energy theorem** says:
@@ -109,6 +113,10 @@ The curve U(x) tells the whole story of a one-dimensional motion for a given tot
 <div class="step"><b>Turning points.</b> Where the energy line meets the curve, K = 0 and the particle reverses. Between two turning points it oscillates; with only one it escapes.</div>
 <div class="step"><b>Bonds.</b> Two atoms have a U curve with a valley at the bond length. The depth of the valley is the energy needed to break the bond.</div>
 </div>
+
+Drag the ball to a new starting point, press Play, and then switch the friction on.
+
+<figure class="fig" data-fig="@mech-potential-landscape"><figcaption>The force is the downhill slope of U. The ball can only go where U ≤ E, so it turns back at the dots; valleys are stable, hilltops unstable.</figcaption></figure>
 
 ## 6. Power
 

@@ -50,6 +50,10 @@ Most new businesses fail because they build something nobody needs badly enough 
 3. **Rules and changes.** New laws (e-invoicing, privacy rules, new tax forms) create problems overnight for thousands of businesses.
 4. **Workarounds you see.** Whenever people glue three tools together, there's a product.
 
+Try it: size a market top-down, then switch to bottom-up and compare the two answers.
+
+<figure class="fig" data-fig="@biz-tam-sam-som"><figcaption>Notice how small SOM is next to TAM, and how a bottom-up number is limited by the sales you can really make.</figcaption></figure>
+
 ## 3. Country notes
 
 <div class="cc" data-cc="in">

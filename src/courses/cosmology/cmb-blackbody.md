@@ -45,6 +45,10 @@ T_0 = 2.7255 \pm 0.0006\ \text{K}
 
 From that one number follow the rest: it is brightest per unit frequency at **160.2 GHz**, its Wien peak wavelength is **1.06 mm**, and there are about **411 CMB photons in every cubic centimetre** of space, more than a billion for every atom.
 
+Slide the temperature and the radius. Watch the colour, the curve's peak and the luminosity.
+
+<figure class="fig" data-fig="@astro-star-colour"><figcaption>Hotter stars are bluer and peak at shorter wavelengths (Wien's law), and each square metre of a hot star shines far more (T⁴). A star's power also grows with its surface area (R²), so a cool giant can outshine a hot dwarf.</figcaption></figure>
+
 ## 2. Why a perfect blackbody means a hot, dense past
 
 A blackbody is what you get when light and matter have exchanged energy back and forth so many times that they share one temperature: thermal equilibrium. Think of a pot of soup simmered for hours. Every spoonful is the same temperature; you could not tell where any bit of heat came from.

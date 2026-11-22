@@ -31,6 +31,11 @@ sources:
 - Paragraphs in a logical order (the weaker view, then the stronger; problems, then matching solutions).
 - Inside a paragraph: point → explanation → example → link.
 
+
+Test your linking words: tap the job each card does. A wrong tap tells you why.
+
+<figure class="fig" data-fig="@lang-linkers-sort"><figcaption>Notice that linking words work in families (adding, contrast, cause, result, example). Pick one from each family and you already sound organised.</figcaption></figure>
+
 ## 2. Cohesion: four kinds of glue
 
 | Glue | Example |

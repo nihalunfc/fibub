@@ -53,6 +53,10 @@ P(\text{spam} \mid \text{word}) = \frac{P(\text{word} \mid \text{spam}) \; P(\te
 
 <div class="problem" data-problem="naive-bayes-test"></div>
 
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
+
 ## 3. Many words: the naive step
 
 An email has many words. Assume, naively, that each word appears independently of the others once we know the class. Then the likelihoods simply multiply (the symbol `$\propto$` means "is proportional to", and `$\prod$` means "multiply all of these"):
@@ -73,6 +77,10 @@ Do the same for "normal", then scale the two answers so they add to 1.
 The independence assumption is plainly false ("free" makes "prize" more likely), so the probabilities come out too extreme. But the **ranking** of spam over normal is usually right, and that is what classification needs.
 
 <!--fig:spam-bayes-->
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. Two practical fixes
 

@@ -58,6 +58,11 @@ df
 
 **Regular expressions** (`regex=True`, or always in `extract` and `contains`) describe patterns: `\d` a digit, `\D` a non-digit, `+` one or more, `^` start, `$` end, brackets capture a part. You only need a handful; look up the rest when you need them.
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Standardise variants with a mapping
 
 When cleaning leaves known variants (abbreviations, old names), map them to one form:

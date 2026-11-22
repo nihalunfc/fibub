@@ -51,6 +51,10 @@ That is all. Nothing says a vector must be an arrow. Spaces you will meet in GAT
 
 Vectors `$\vec v_1, \dots, \vec v_k$` are **linearly independent** if `$c_1\vec v_1 + \dots + c_k\vec v_k = 0$` forces every `$c_i = 0$`. A **basis** is an independent set that spans the space; every basis has the same number of vectors, the **dimension**. Once a basis is chosen, each vector is a list of numbers, its **components**.
 
+Drag v, b₁ and b₂, then press 'Orthonormal basis'.
+
+<figure class="fig" data-fig="@math-basis-change"><figcaption>Notice that the same arrow v has different coordinates in different bases, and that with an orthonormal basis each coordinate is just a dot product.</figcaption></figure>
+
 For numerical vectors, independence is a determinant (or rank) question. For functions, look for hidden relations first: `$\cosh x = \tfrac12 e^x + \tfrac12 e^{-x}$` makes `$\{e^x, e^{-x}, \cosh x\}$` dependent, and `$\{\sin^2 x, \cos^2 x, 1\}$` is dependent too. The Wronskian determinant settles harder cases.
 
 **Counting dimensions** is a favourite NAT question. Count free real (or complex) parameters:
@@ -72,6 +76,10 @@ An **inner product** assigns a number `$\langle u|v\rangle$` to each pair of vec
 ```math
 \langle u|v\rangle = \langle v|u\rangle^*, \qquad \langle u|\,(a v + b w)\rangle = a\langle u|v\rangle + b\langle u|w\rangle, \qquad \langle v|v\rangle > 0 \text{ for } v \ne 0
 ```
+
+Drag the tips of a and b, then press 'Make perpendicular'.
+
+<figure class="fig" data-fig="@math-vec-projection"><figcaption>Notice that the shadow of a on b has length |a|cos θ, that a·b = |b| times that shadow, and that the leftover part is perpendicular to b.</figcaption></figure>
 
 Physics puts the complex conjugate on the **left** slot: `$\langle a u|v\rangle = a^*\langle u|v\rangle$`. The standard examples are
 

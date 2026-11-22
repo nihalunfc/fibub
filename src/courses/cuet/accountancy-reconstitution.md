@@ -36,6 +36,10 @@ sources:
 
 <div class="problem" data-problem="sacrifice-share"></div>
 
+**Try it:** Set how much the new partner takes and read the sacrificing ratio.
+
+<figure class="fig" data-fig="@tp-profit-share" data-mode="admit"><figcaption>Each old partner gives up a share of their own share, so the sacrifice is in the old ratio.</figcaption></figure>
+
 ## 2. The three adjustments
 
 - **Goodwill:** the new partner's share of goodwill (premium) goes to the old partners in the **sacrificing ratio**. Existing goodwill in the books is first written off in the old ratio.

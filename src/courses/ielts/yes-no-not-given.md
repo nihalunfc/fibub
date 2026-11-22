@@ -41,6 +41,11 @@ The method is the same as TFNG (Lesson 4.1). The new skill is recognising whose 
 <div class="step"><p><b>Attitude words:</b> adjectives and adverbs that judge: "a welcome change", "a costly mistake", "rightly", "wrongly", "sadly". They show the writer's view in a single word.</p></div>
 </div>
 
+
+Pick a statement and walk it through the two questions. Press Next statement for a new one.
+
+<figure class="fig" data-fig="@lang-tfng-flow"><figcaption>Notice that Not Given is decided at the first question: if the passage is silent, stop there. False needs the passage to say the opposite.</figcaption></figure>
+
 ## 3. Worked example
 
 > *Critics of rooftop beekeeping often say that it should simply be banned. This goes too far. Experienced keepers who limit their hives cause little harm, and the real priority, as ecologists rightly point out, is planting more flowers.*

@@ -37,6 +37,10 @@ Small businesses have the same paperwork as big ones but no IT department and ti
 - **Logistics:** reading delivery notes and invoices into a spreadsheet, drafting delay notices, summarising driver reports.
 - **Everyone:** emails, social posts, simple policies, translating messages.
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Mini project 9: a reply drafter
 
 Save your business's facts in `faq.txt` (hours, prices, delivery, returns, allergens). The script drafts a reply to a customer message using only those facts.
@@ -110,6 +114,10 @@ The money is in staff time:
 **"The model already knows my business."** It knows nothing about your prices, hours or policies. Without your facts it will guess, confidently and often wrongly. Give it the FAQ every time, tell it to say "a staff member will reply" when the answer is not there, and have a person check before sending.
 
 </div>
+
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
 
 ## 4. Worked scenario
 

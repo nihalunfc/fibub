@@ -53,6 +53,10 @@ A quick memory aid: sin, tan and cosec keep the **right half** of the circle (an
 
 The graph of an inverse is the mirror image of the branch in the line y = x. Switch to the composite and drag x past π/2: the graph of sin⁻¹(sin x) climbs with slope 1, then turns and falls with slope −1, a zig-zag that never leaves [−π/2, π/2].
 
+Pick a function, drag the point along it and fold the paper with the slider to see its inverse appear.
+
+<figure class="fig" data-fig="@math-inverse-mirror"><figcaption>Notice that every point (a, f(a)) lands on (f(a), a), a mirror image in y = x, and that x² on all of R has no inverse until you restrict it.</figcaption></figure>
+
 <figure class="fig" data-fig="itrig-branches"><figcaption>Left choice: the principal branch. Right choice: y = f⁻¹(f(x)), which agrees with y = x (dashed) only inside the principal range.</figcaption></figure>
 
 To evaluate sin⁻¹(sin θ) for any θ: write θ = kπ + φ with |φ| ≤ π/2 (k the nearest whole number to θ/π); then the answer is (−1)ᵏφ. For cos⁻¹(cos θ) use cos θ = cos(2kπ ± θ) and pick the version in [0, π]. For tan⁻¹(tan θ), subtract the multiple of π that lands in (−π/2, π/2).

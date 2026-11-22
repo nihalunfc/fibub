@@ -60,6 +60,11 @@ Two sentence patterns, and you should use both:
 - **Verb + adverb:** *Visitor numbers rose sharply between 2015 and 2020.*
 - **There was + adjective + noun:** *There was a sharp rise in visitor numbers between 2015 and 2020.*
 
+
+Tap a stretch of the line (or its button) and pick the words that describe it.
+
+<figure class="fig" data-fig="@lang-writing-trend"><figcaption>Notice that the size of the change picks the word: "sharply" for big and fast, "slightly" for small, "levelled off" for flat.</figcaption></figure>
+
 ## 3. Prepositions that carry the numbers
 
 | Preposition | Use | Example |

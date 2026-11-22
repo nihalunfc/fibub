@@ -41,6 +41,11 @@ Following the four steps from [Lesson 2.1](/learn/courses/data-modelling/busines
 
 Every lesson's boxes share one database, so run the blocks below in order. Each starts with `DROP TABLE IF EXISTS`, so you can run them again safely.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. The date dimension
 
 Dates get their own dimension so reports can group by month, quarter, weekday or holiday without date functions. We need one row per calendar day, even days with no sales, so we generate the days with a recursive CTE rather than taking them from `orders`.

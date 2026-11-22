@@ -49,6 +49,10 @@ Picture a translator with a long letter. Reading it through takes a few seconds,
 <div class="step"><p><b>Total: 41 seconds.</b> To cut the 16-second wait, more compute (a graphics card) helps. To speed up the writing, a smaller or more tightly squeezed model helps.</p></div>
 </div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. What good looks like
 
 - **Reading along:** 10 tokens per second or more feels smooth; people read about 4 to 8.
@@ -88,6 +92,10 @@ Speeds fall as the context grows, because there is more to look back over (often
 </div>
 
 <div class="problem" data-problem="tokens-per-second-ceiling"></div>
+
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
 
 ## 4. Worked example
 

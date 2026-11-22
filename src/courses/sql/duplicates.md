@@ -53,6 +53,11 @@ HAVING COUNT(*) > 1
 
 Press **Show how it runs** and watch GROUP BY: orders 101 and 104 form groups of 2, and HAVING keeps only those. To remove exact copies, `SELECT DISTINCT *` is enough, because DISTINCT drops rows that are copies of an earlier row.
 
+Switch between the four operations and add ids to either list to see how duplicates are handled.
+
+<figure class="fig" data-fig="@data-set-ops"><figcaption>Notice that UNION removes duplicates, UNION ALL keeps them, and EXCEPT depends on which list comes first.</figcaption></figure>
+
+
 ## 3. Duplicates of a key
 
 More often the rows differ a little, but they should be one: the same *key* (the thing that should be unique) appears twice. Is any email used by two customers?

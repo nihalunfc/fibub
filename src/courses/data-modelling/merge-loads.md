@@ -60,6 +60,11 @@ Rebuilding every table from scratch each night works while the data is small. So
 
 An **upsert** ("update or insert") is the core of an incremental load: for each source row, if its key already exists in the target, update it; otherwise insert it. MERGE is the general form, which can also delete.
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Set up a target and a new batch
 
 The target is dim_product, loaded yesterday. It has a primary key on product_id, which an upsert needs.

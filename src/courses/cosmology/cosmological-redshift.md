@@ -64,6 +64,10 @@ Physicists also show that cosmological redshift can be thought of as many small 
 
 </div>
 
+Slide the radial velocity, or press a preset (a star, a spinning galaxy, a quasar), and watch the lines in the lower spectrum move.
+
+<figure class="fig" data-fig="@astro-redshift-lines"><figcaption>Every line moves by the same fraction, z = Δλ/λ. A star at 30 km/s moves Hα by only 0.07 nm; a distant galaxy at 100,000 km/s pushes it into the infrared. Negative velocities (moving towards us) shift lines to the blue.</figcaption></figure>
+
 ## 3. Redshift as a time machine
 
 Because redshift tells us the size of the universe when the light left, astronomers use it as a clock. "z = 1" means "when the universe was half its present size", about 8 billion years ago. Some landmarks:

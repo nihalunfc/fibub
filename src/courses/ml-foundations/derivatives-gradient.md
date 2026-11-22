@@ -43,6 +43,10 @@ f'(x) \approx \frac{f(x + h) - f(x)}{h} \quad \text{for a tiny } h
 
 This is just rise ÷ run (Lesson 1.3) over a tiny run. As `$h$` shrinks to zero, the estimate becomes exact.
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. Rules you'll use
 
 You don't need to compute limits each time. A few rules cover this course:
@@ -58,6 +62,10 @@ You don't need to compute limits each time. A few rules cover this course:
 | `$g(h(x))$` (chain rule) | `$g'(h(x)) \cdot h'(x)$` | `$(x - 2)^2$` → `$2(x - 2)$` |
 
 The **chain rule** in the last row says: for a function inside a function, multiply the outer slope by the inner slope. It is the heart of backpropagation in neural networks (Lesson 9.4).
+
+Step through one training step of the smallest possible network, forward first, then backwards.
+
+<figure class="fig" data-fig="@ai-backprop-player"><figcaption>The forward pass makes the prediction and the loss. The backward pass multiplies slopes link by link (the chain rule) so every weight learns how it should change. Then each weight takes a small step against its slope.</figcaption></figure>
 
 ## 4. Walking downhill: gradient descent
 

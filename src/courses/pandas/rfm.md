@@ -67,6 +67,16 @@ rfm[['recency', 'frequency', 'monetary', 'R', 'F', 'M']].head(8)
 
 `qcut` makes 5 groups of equal size (quintiles). Recency is reversed: fewer days since the last order is better, so it gets 5.
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Named segments
 
 ```python data=orders.csv

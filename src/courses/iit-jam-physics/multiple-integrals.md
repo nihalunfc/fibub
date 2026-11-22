@@ -36,6 +36,10 @@ A double integral `$\iint_Df\,dA$` cuts the region `$D$` into tiny patches of ar
 \iint_Df\,dA = \int_a^b\left(\int_{y_1(x)}^{y_2(x)}f(x, y)\,dy\right)dx
 ```
 
+Choose a shape, slide the number of discs and drag the picture round.
+
+<figure class="fig" data-fig="@math-revolve-volume"><figcaption>Notice that each disc has volume π f(x)² Δx, and that the disc total closes in on the exact volume (the semicircle gives a sphere, 4πR³/3).</figcaption></figure>
+
 The inner integral runs along a vertical strip at fixed `$x$`, from the bottom edge `$y_1(x)$` to the top edge `$y_2(x)$`. The outer one adds the strips from `$x = a$` to `$x = b$`. **The inner limits may depend on the outer variable; the outer limits must be numbers.**
 
 **Worked example.** Find the area between `$y = x^2$` and `$y = x$`.
@@ -49,6 +53,10 @@ See areas built from strips in the [Riemann sums tool](/learn/riemann-sums/).
 ## 2. Changing the order of integration
 
 Sometimes the inner integral cannot be done as written, but the other order is easy. The recipe is always the same: **sketch the region, then describe it the other way.**
+
+Slide the number of columns, choose a region and turn the solid with a drag.
+
+<figure class="fig" data-fig="@math-double-integral"><figcaption>Notice that the column total closes in on the exact double integral, and that the orange slab at one x is the cross-section you integrate first when you do y before x.</figcaption></figure>
 
 **Worked example.** Evaluate `$\displaystyle\int_0^1\int_y^1e^{x^2}dx\,dy$`.
 

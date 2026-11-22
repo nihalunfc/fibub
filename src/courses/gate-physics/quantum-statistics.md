@@ -82,6 +82,11 @@ The same counting gives the entropy: `$S = -k\sum[f\ln f + (1 - f)\ln(1 - f)]$` 
 
 <div class="problem" data-problem="stat-occupation"></div>
 
+Fill eight levels with classical particles, fermions and bosons and compare.
+
+<figure class="fig" data-fig="@wt-boltzmann-levels"><figcaption>Fermions fill one per level up to the Fermi level, bosons pile into the ground level, classical particles spread by e^(−E/kT). Notice that raising T makes all three look alike.</figcaption></figure>
+
+
 ## 4. Density of states
 
 Sums over states become integrals. In a box of side `$L$`, allowed wavevectors fill `$k$`-space with density `$(L/2\pi)^d$`. For `$\varepsilon = \hbar^2k^2/2m$` and spin degeneracy `$g_s$`:
@@ -93,6 +98,11 @@ g(\varepsilon) = g_s\frac{V}{4\pi^2}\left(\frac{2m}{\hbar^2}\right)^{3/2}\sqrt\v
 In general `$g \propto \varepsilon^{d/2 - 1}$`. Massless particles (`$\varepsilon = pc$`) in 3D have `$g \propto \varepsilon^2$`; a 3D harmonic trap also gives `$\varepsilon^2$`. These powers decide whether Bose condensation can happen ([lesson 5.5](/learn/courses/gate-physics/photon-phonon-gases/)) and how the Fermi level moves with temperature ([lesson 5.6](/learn/courses/gate-physics/fermi-gas/)).
 
 **Worked example.** Electron states (both spins) below 1.0 meV in a 1 μm cube: `$N = g_sVk^3/6\pi^2$` with `$k = \sqrt{2m\varepsilon}/\hbar = 1.62\times10^8$` m⁻¹ gives `$1.4\times10^5$`.
+
+Now count states in k-space: see how many fit under a given energy and why g(E) ∝ √E.
+
+<figure class="fig" data-fig="@wt-fermi-sphere"><figcaption>States are evenly spaced in k, so the number below energy E is the volume of a sphere in k-space, N ∝ k³ ∝ E^(3/2), and g(E) ∝ √E. Notice the sphere growing as electrons are added.</figcaption></figure>
+
 
 ## 5. The classical limit and the first quantum correction
 

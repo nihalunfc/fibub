@@ -89,6 +89,11 @@ the number of rows equals the number of distinct values of `$K$` (written `$\pi_
 
 <div class="problem" data-problem="profiling-contracts-repeats"></div>
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Contracts as code
 
 A contract lives next to the code and runs on every load. **pandera** is a Python library for this that works with pandas and Polars:

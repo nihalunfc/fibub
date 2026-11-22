@@ -114,6 +114,10 @@ Bessel's equation of order `$\nu$` has indicial roots `$\pm\nu$`. The Frobenius 
 J_\nu(x) = \sum_{m=0}^{\infty}\frac{(-1)^m}{m!\,\Gamma(m + \nu + 1)}\left(\frac x2\right)^{2m + \nu}
 ```
 
+Choose m and n, then press Play to see the drum vibrate in that mode.
+
+<figure class="fig" data-fig="@math-bessel-drum"><figcaption>Notice that the colours swap between up and down, that the nodal lines (circles and diameters) never move, and that the rim is always still because kR is a zero of J_m.</figcaption></figure>
+
 so `$J_0(0) = 1$` and `$J_n(0) = 0$` for `$n \ge 1$`. For non-integer `$\nu$`, `$J_{-\nu}$` is a second solution. For integer `$n$`, `$J_{-n} = (-1)^nJ_n$` is not new, and the second solution `$Y_n$` (Neumann) is singular at the origin: `$Y_0 \sim \frac2\pi\ln x$`, `$Y_n \sim -\frac{(n - 1)!}{\pi}\left(\frac2x\right)^n$`. Problems that include the axis keep only `$J_n$`.
 
 - **Generating function:** `$e^{(x/2)(t - 1/t)} = \sum_{n=-\infty}^{\infty}J_n(x)t^n$`.

@@ -44,6 +44,11 @@ sources:
 <div class="step"><p><b>Choosing:</b> multiple choice with one or more answers (4.8), and short answers to questions (4.9).</p></div>
 </div>
 
+
+Choose a way of reading and press Play. Compare how many words the eye lands on.
+
+<figure class="fig" data-fig="@lang-skim-scan"><figcaption>Notice that skimming reads only the first line of each paragraph, while scanning looks only for the shape of one keyword.</figcaption></figure>
+
 ## 3. Three rules for every answer
 
 1. **Word limits are strict.** "NO MORE THAN TWO WORDS FROM THE PASSAGE" means two words, copied exactly from the text.

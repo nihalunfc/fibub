@@ -91,6 +91,10 @@ The criteria were **cell type** (prokaryote or eukaryote), **body organisation**
 
 </div>
 
+Try this: answer the four questions for a bacterium, a mushroom, an oak tree and a human, and watch the kingdoms drop out one by one.
+
+<figure class="fig" data-fig="@bio-kingdom-key"><figcaption>Each answer removes the kingdoms that do not fit. Notice that "no nucleus" leaves only Monera, and that fungi and animals share heterotrophy but differ in the cell wall.</figcaption></figure>
+
 ## 6. Worked example
 
 **Sort these:** *Nostoc*, *Euglena*, *Agaricus*, *Gonyaulax*, *Trypanosoma*. *Method:* first ask prokaryote or eukaryote; then one cell or many; then nutrition. *Nostoc* is a prokaryote: Monera. *Euglena*, *Gonyaulax* and *Trypanosoma* are single-celled eukaryotes: Protista (euglenoid, dinoflagellate, flagellated protozoan). *Agaricus* is multicellular with a chitin wall: Fungi, Basidiomycetes.

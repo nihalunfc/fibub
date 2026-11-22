@@ -43,6 +43,11 @@ A table is the same as a bar chart without the picture. It is harder only becaus
 <div class="step"><p><b>4. Group.</b> Rows with the same arrow go together. That grouping is your paragraph plan, and the arrows give you the overview.</p></div>
 </div>
 
+
+Tap a stretch of the line (or its button) and pick the words that describe it.
+
+<figure class="fig" data-fig="@lang-writing-trend"><figcaption>Notice that the size of the change picks the word: "sharply" for big and fast, "slightly" for small, "levelled off" for flat.</figcaption></figure>
+
 ## 3. Comparison language
 
 | Pattern | Example |

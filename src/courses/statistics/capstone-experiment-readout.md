@@ -57,6 +57,11 @@ sources:
 
 **Tools that do each step in your browser:** [[csv-profiler]] to look at the file first; [[grouped-data-stats]] for counts and means by group; [[hypothesis-tests]] for the proportion and Welch tests; [[bootstrap-permutation]] for revenue; [[bayesian-ab-test]] for the chance B is better. Or use Python: [pandas Lesson 8.6](/learn/courses/pandas/ab-test-pandas/) does this whole readout in code.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. What a strong analysis shows
 
 - Numbers with **units and intervals**, never a bare p-value.

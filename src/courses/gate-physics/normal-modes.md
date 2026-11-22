@@ -150,6 +150,11 @@ Three lessons sit in this formula.
 
 </div>
 
+As the number of beads grows, the beaded string becomes a continuous one. Pluck a continuous string and see it as a sum of its normal modes.
+
+<figure class="fig" data-fig="@wt-string-modes"><figcaption>Each normal mode oscillates at its own frequency, and any motion is the sum of modes with weights set by the initial shape: b_n ∝ sin(nπx₀/L)/n². Notice which modes are absent when you pluck at a node of that mode.</figcaption></figure>
+
+
 ## Practise: exam questions on this lesson
 
 They start easy and climb to top-rank level. More on the [normal modes practice page](/learn/courses/gate-physics/practice/normal-modes/).

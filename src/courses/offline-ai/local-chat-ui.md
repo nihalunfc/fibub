@@ -37,6 +37,10 @@ The terminal is fine for testing, but for daily use you want what the cloud site
 2. **llama.cpp's own page.** `llama-server` serves a clean chat page at `http://localhost:8080` (Lesson 9.3).
 3. **Open WebUI**, a free, open-source interface that looks and feels like the cloud chat sites, with chat history, several models, document upload and user accounts for a team. It talks to Ollama, or to any server that speaks the OpenAI-style API (Lesson 11.1).
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Install Open WebUI
 
 It is a Python program. It needs a recent Python (its install page names the version; at the time of writing it asks for Python 3.11). With Ollama already running:
@@ -96,6 +100,10 @@ Its pages also explain a **Docker** install (Docker runs a program in a sealed b
 **"A chat window that looks like ChatGPT must be sending my chats to the cloud."** Looks say nothing about where the data goes. Run locally and connected only to Ollama, Open WebUI keeps every chat in a file on your own disk. Test it: pull the cable and it keeps working (Lesson 9.6).
 
 </div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 4. Worked example
 

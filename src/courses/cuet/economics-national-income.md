@@ -35,6 +35,10 @@ sources:
 <div class="step">All three measure the same flow round the circular flow of income: households sell factor services to firms and buy their output.</div>
 </div>
 
+**Try it:** Switch on saving, government and the rest of the world and watch the coins leak out and come back in.
+
+<figure class="fig" data-fig="@tp-circular-flow"><figcaption>Steady flow needs leakages to equal injections.</figcaption></figure>
+
 ## 2. From GDP to national income
 
 ```math

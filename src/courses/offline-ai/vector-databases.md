@@ -47,6 +47,10 @@ It is like a library card catalogue. Making the cards takes an afternoon. After 
 <div class="step"><p><b>Search later.</b> A question is embedded once and compared with all 10,000 vectors: 10,000 × 768 ≈ 7.7 million multiply-adds, about a millisecond on a laptop. The closest rows, with their file and page, come back.</p></div>
 </div>
 
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
 ## 3. The index builder
 
 In your `askdocs` folder, make a subfolder called `docs` and put some files in it (`.txt` and `.md` for now; Lesson 12.6 adds PDFs, Word, spreadsheets and email). Then save `readers.py` from Lesson 12.6 (or, for now, a two-line version that reads text files) and this as `index_docs.py`:
@@ -93,6 +97,10 @@ def read_any(path):
 ```
 
 Run `pip install numpy` once, then `python index_docs.py`. SQLite is built into Python, and `index.db` is an ordinary file you can back up, copy or delete. The script rebuilds the whole index each run, which is simplest; for big folders, skip files whose modified time has not changed.
+
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
 
 ## 4. When to use a real vector database
 
@@ -144,6 +152,18 @@ N = 100,000 chunks, d = 768: about 77 million multiply-adds, a few milliseconds 
 **"RAG needs a special vector database server."** For personal and small-office use, a SQLite file and NumPy are plenty: they compare against 100,000 vectors in milliseconds, with no server and no internet. Add Chroma, LanceDB, sqlite-vec or DuckDB when you reach millions of chunks or need filters and frequent updates.
 
 </div>
+
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
+
+Try it: press New start a few times with random starts, then with k-means++, then Run 30 starts for each.
+
+<figure class="fig" data-fig="@ai-kmeans-init"><figcaption>k-means only finds a nearby good answer, so a bad start can strand two centres in one blob. Spreading the starting centres out (k-means++) and trying several starts both help.</figcaption></figure>
 
 ## 5. Worked example
 

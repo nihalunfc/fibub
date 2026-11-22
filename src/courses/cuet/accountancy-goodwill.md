@@ -58,6 +58,10 @@ sources:
 
 </div>
 
+**Try it:** Change the profit, capital and normal rate and compare what each method says.
+
+<figure class="fig" data-fig="@tp-goodwill-methods"><figcaption>Super profit is the part of profit above normal: no super profit, no goodwill by two of the methods.</figcaption></figure>
+
 ## 2. Practice
 
 <div class="qbank" data-bank="cuet-accountancy" data-topics="goodwill" data-n="10" data-mode="practice" data-type="mcq"></div>

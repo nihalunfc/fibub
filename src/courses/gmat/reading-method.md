@@ -69,6 +69,10 @@ The right answer is always supported by specific words in the passage. For each 
 
 About 2.5 to 3 minutes to read and map, then about 1 to 1.5 minutes per question. A four-question passage takes about 7 to 8 minutes.
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## 6. Practice
 
 <div class="qbank" data-bank="grad-verbal" data-topics="rc-passages" data-mode="practice" data-n="4" data-exam="gmat"></div>

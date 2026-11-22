@@ -53,6 +53,10 @@ Here is the clinic from section 6, solved by reading the numbers in order:
 <div class="step"><p><b>Fix and confirm.</b> The server cupboard door is shut after lunch. A vent brings the card back to 70 °C and 40 tokens a second. No software change at all.</p></div>
 </div>
 
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
+
 ## 3. Where to read them
 
 ```bash

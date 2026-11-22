@@ -49,6 +49,10 @@ The same happens with classifiers. Suppose each of `$n$` models is right with pr
 
 <div class="problem" data-problem="wisdom-of-crowds-majority"></div>
 
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
+
 ## 3. The catch: independence
 
 Real models trained on the same data make many of the same mistakes. In the simulation, "copying" is the chance that the whole crowd simply follows one shared vote. At 100 % copying, 101 voters are no better than one.

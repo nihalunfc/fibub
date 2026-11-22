@@ -74,6 +74,10 @@ You choose the order of the three sections. Many people start with their stronge
 
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="gmatq"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## Practise: a timed mixed set
 
 Ten mixed quant questions. Give yourself 21 minutes and use the checkpoints.

@@ -69,6 +69,10 @@ With `$n$` users, each busy a share `$p$` of the time:
 
 </div>
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Sizing
 
 - **2 to 5 light users, 12B to 27B model:** a desktop with a 24 to 32 GB card, or a 48 to 64 GB Mac mini.

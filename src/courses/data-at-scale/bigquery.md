@@ -45,6 +45,16 @@ Picture a giant library with instant helpers. You hand your question to the desk
 
 Check today's prices on Google's pricing page. The shape of the bill matters more than the exact number, and it is always the same: **bytes scanned × rate**.
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Partitioning and clustering
 
 ```sql

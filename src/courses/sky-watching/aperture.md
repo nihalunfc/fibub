@@ -82,6 +82,10 @@ Real limits are a few tenths higher or lower: high magnification darkens the sky
 **Try it:** a 10×50 binocular (50 mm lenses) under a sky with NELM 6: `$6 + 5\log_{10}(50/7) = 6 + 4.3 = 10.3$`.
 </details>
 
+Slide the aperture and the eyepiece, and watch the star field and the limiting magnitude.
+
+<figure class="fig" data-fig="@astro-light-gather"><figcaption>The aperture sets how faint you can see (light grows with area, so doubling the diameter gives 4 times the light and about 1.5 magnitudes deeper). The eyepiece only sets the magnification, the true field and the exit pupil: a higher power does not show fainter stars.</figcaption></figure>
+
 ## 3. What aperture does not change
 
 - **Surface brightness of extended objects.** A nebula never looks brighter per unit area through a telescope than with the naked eye at the same exit pupil (Lesson 4.3). Aperture lets you use more magnification at the same brightness, so you see the object bigger.

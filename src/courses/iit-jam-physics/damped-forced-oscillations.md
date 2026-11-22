@@ -116,6 +116,11 @@ Check the limits, which examiners love to ask:
 
 <div class="problem" data-problem="steady-amplitude"></div>
 
+Drive the oscillator from rest. First there is a transient, then the steady state described by the formulas below.
+
+<figure class="fig" data-fig="@wt-driven-oscillator"><figcaption>After the transient dies away the block follows the drive at the drive frequency with amplitude 1/√((1 − r²)² + (2ζr)²) and phase lag tan δ = 2ζr/(1 − r²). Notice the lag passing through 90° at resonance and how ζ changes the height of the peak.</figcaption></figure>
+
+
 ## 4. Resonance: three peaks that are almost the same
 
 Move the sliders below. The amplitude curve rises to a peak and the phase swings from 0 to 180°; the sharper the peak, the higher the Q.

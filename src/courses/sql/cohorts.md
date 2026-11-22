@@ -44,6 +44,16 @@ A **cohort** is a group of customers who share a starting point. **Retention** i
 
 Keep each step in its own CTE ([Lesson 5.4](/learn/courses/sql/cte/)). It is far easier to check.
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Step 1: each customer's cohort
 
 Guests have no customer_id and cancelled orders don't count, so filter both out first.

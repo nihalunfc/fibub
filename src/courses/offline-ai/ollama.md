@@ -44,6 +44,10 @@ Then open a **terminal** (a window where you type commands; Windows: Terminal or
 ollama --version
 ```
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Get Gemma 4 and chat
 
 ```
@@ -54,6 +58,10 @@ ollama run gemma4:e4b
 The first command downloads about 6.6 GB. The second opens a chat: type a question and press Enter. Type `/bye` to leave.
 
 Pick the tag that fits your memory, as in Lesson 9.1: `gemma4:e2b` (8 GB machines), `gemma4:e4b` or `gemma4:12b` (16 GB), `gemma4:26b-a4b` or `gemma4:31b` (24 GB graphics card or 32 GB Mac). The **tag** is the part after the colon: it picks the size or version.
+
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
 
 ## 4. The six everyday commands
 

@@ -54,6 +54,10 @@ print()
 
 <div class="problem" data-problem="streaming-json-tools-first-word"></div>
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. JSON you can rely on
 
 Describe the fields with **Pydantic** (installed with the ollama library) and pass the schema as `format`. A **schema** is a description of the fields and their types: "summary is text, action_needed is true or false, keywords is a list of words". The engine then only produces text that fits it, like a paper form with labelled boxes.

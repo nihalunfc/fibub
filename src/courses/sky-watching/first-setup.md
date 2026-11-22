@@ -62,6 +62,10 @@ Things to notice:
 
 </div>
 
+Slide the aperture and the eyepiece, and watch the star field and the limiting magnitude.
+
+<figure class="fig" data-fig="@astro-light-gather"><figcaption>The aperture sets how faint you can see (light grows with area, so doubling the diameter gives 4 times the light and about 1.5 magnitudes deeper). The eyepiece only sets the magnification, the true field and the exit pupil: a higher power does not show fainter stars.</figcaption></figure>
+
 ## 4. Matching setup to goals
 
 | Goal | Good first choice | Why |

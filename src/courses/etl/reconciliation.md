@@ -42,6 +42,11 @@ Almost every difference is one of these, in roughly this order of how often it h
 4. **Data errors:** duplicates, missing files, a bad join (fan-out), quarantined rows.
 5. **Rounding:** per line, per receipt or per day.
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. The bridge
 
 Start from number A, apply each explained difference as a step, and arrive at number B. What is left unexplained is the residual: the real problem.

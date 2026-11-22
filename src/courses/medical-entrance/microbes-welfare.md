@@ -61,6 +61,10 @@ Industrial production needs very large vessels called **fermentors**.
 
 </div>
 
+Change the temperature and the sugar and watch the CO₂ rate.
+
+<figure class="fig" data-fig="@bio-yeast-fermentation"><figcaption>Yeast makes ethanol and CO₂ without oxygen; this is the basis of bread, wine and beer.</figcaption></figure>
+
 ## 3. Sewage treatment
 
 Towns make large amounts of **sewage**: waste water with human excreta and organic matter, full of disease-causing microbes. It cannot go straight into rivers. **Sewage treatment plants (STPs)** clean it in two stages.
@@ -107,6 +111,18 @@ India's Ministry of Environment and Forests started the **Ganga Action Plan** an
 <dt>Methanogens</dt><dd>anaerobic bacteria that make methane from cellulose-rich waste</dd>
 <dt>Physical meaning</dt><dd>Microbes do the same chemistry in a curd pot, a fermentor, a sewage tank and the soil: they eat one thing and give off another. We just pick the microbe whose waste we want.</dd>
 </dl>
+</div>
+
+Step around the nitrogen cycle to see which microbe does each job.
+
+<div class="steps" data-fig="@bio-nitrogen-cycle">
+<div class="step"><b>Fixation.</b> N₂ becomes NH₃ (Rhizobium, Azotobacter, Anabaena).</div>
+<div class="step"><b>Nitrification, 1.</b> NH₃ becomes NO₂⁻ (Nitrosomonas).</div>
+<div class="step"><b>Nitrification, 2.</b> NO₂⁻ becomes NO₃⁻ (Nitrobacter).</div>
+<div class="step"><b>Assimilation.</b> Plants take up nitrate; animals eat the plants.</div>
+<div class="step"><b>Ammonification.</b> Decomposers return nitrogen as ammonia.</div>
+<div class="step"><b>Ammonia again</b> enters the pool and is nitrified.</div>
+<div class="step"><b>Denitrification.</b> NO₃⁻ becomes N₂ (Pseudomonas) and returns to the air.</div>
 </div>
 
 <div class="keypoints">

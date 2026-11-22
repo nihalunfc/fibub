@@ -57,6 +57,11 @@ display(long.groupby('month', observed=True)['sales'].sum())
 long[long['sales'] >= 400].sort_values(['store', 'month'])
 ```
 
+Drag the slider between wide and long, or press Play, and follow one number as it moves.
+
+<figure class="fig" data-fig="@data-reshape"><figcaption>Notice that no value changes, only its position: month names become values in a column.</figcaption></figure>
+
+
 ## 3. Headers that hold two things
 
 When column names combine two facts (`sales_2025`, `sales_2026`, `units_2025`...), melt, then split the name:

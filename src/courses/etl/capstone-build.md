@@ -54,6 +54,11 @@ BI: Power BI (PBIP) + Metabase on Postgres · Health: ops board · CI: GitHub Ac
 
 Every box is something you built in Modules 1 to 7. The capstone is mostly **wiring and proving**, not new ideas.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. The demo morning
 
 Script a morning you can replay on camera. It shows every safety net working at once.

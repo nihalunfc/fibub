@@ -147,6 +147,10 @@ Applying it to `$N$` and `$U$` gives, in 3D,
 
 In a field the whole Fermi sphere shifts by `$\delta\mathbf k = -e\mathbf E\tau/\hbar$`, so `$\sigma = ne^2\tau/m$` survives, with `$\tau$` now the relaxation time of electrons at the Fermi surface. Heat is carried by the same electrons, with `$\kappa = \tfrac13c_vv_F^2\tau$`. Dividing:
 
+Switch the electric field on and watch the Fermi disc shift.
+
+<figure class="fig" data-fig="@sx-fermi-sea"><figcaption>Only a thin crescent of states at the Fermi surface changes when the field is on, so only electrons near E<sub>F</sub> carry the current, with velocity v<sub>F</sub>. The shift δk = −eEτ/ħ is exaggerated here.</figcaption></figure>
+
 ```math
 \frac{\kappa}{\sigma T} = L = \frac{\pi^2}{3}\left(\frac{k_B}{e}\right)^2 = 2.44\times10^{-8}\ \text{W}\,\Omega\,\text{K}^{-2}
 ```

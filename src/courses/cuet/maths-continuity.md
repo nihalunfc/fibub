@@ -35,6 +35,10 @@ f is continuous at x = a when the left limit, the right limit and f(a) all exist
 
 <div class="problem" data-problem="piecewise-k"></div>
 
+**Try it:** Shrink the interval around the point.
+
+<figure class="fig" data-fig="@math-delta-limit"><figcaption>A limit asks what the values approach, not what happens at the point.</figcaption></figure>
+
 ## 2. Differentiation rules
 
 | Rule | Formula |

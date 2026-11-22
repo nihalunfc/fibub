@@ -31,6 +31,10 @@ Daily sales jump around with weekdays, weather and holidays. Operations managers
 
 On each month's row, `MAX('Date'[Date])` is that month's last day, and the window is the 28 days ending there. Trace a row to see the dates CALCULATE keeps. Every 28-day window has exactly four of each weekday, so a window ending on a Tuesday compares fairly with one ending on a Sunday.
 
+Try it: pick a time function and move the month, and see which months are selected.
+
+<figure class="fig" data-fig="@biz-time-intel"><figcaption>Notice that YTD restarts every January and that last year's version is blank in the first year.</figcaption></figure>
+
 ## 3. Moving average
 
 <!--fig:dax-pad ti-3m-avg-->

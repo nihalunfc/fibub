@@ -34,6 +34,11 @@ You hear **one short sentence**, spoken by one person. Then you see **four writt
 
 ETS lists this task first among the Listening tasks. ETS does not publish how many of these items each person gets, and because the test adapts, it varies. What we know: each item is quick, so steady accuracy across many of them adds up.
 
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
+
 ## 2. What it really tests
 
 It tests whether you understand **spoken English in social use**: the polite, indirect way people actually talk on campus and in daily life. Three things make it harder than it looks:

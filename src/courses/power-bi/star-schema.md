@@ -48,6 +48,20 @@ How to sort a column:
 | Does it describe a thing that appears in many events? (product details) | a dimension column, in that thing's table |
 | Is it a key linking an event to a thing? (ProductKey in Sales) | a foreign key in the fact table |
 
+Follow the filters from the slicers down to the rows that the measure adds up.
+
+<div class="steps" data-fig="@biz-filter-steps">
+
+<div class="step">No filter: every row counts and the total is $870.</div>
+
+<div class="step">Store = Rideau: the slicer filters the Store table, and the filter flows to Sales. Only Rideau rows remain.</div>
+
+<div class="step">Category = Home as well: both filters apply together, so only Rideau AND Home rows remain.</div>
+
+<div class="step">The measure SUM(Sales[Amount]) adds the amounts of the rows left. Now change the slicers yourself.</div>
+
+</div>
+
 ## 4. Snowflakes and why to avoid them
 
 A **snowflake** splits dimensions further: Product → Subcategory → Category tables. It saves a little space but adds relationships, slows filtering and confuses report users. In Power BI, **flatten** these back into one Product table with Power Query merges (Lesson 2.3). Keep the star.

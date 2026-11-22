@@ -46,6 +46,10 @@ A **licence** is the permission slip that comes with a model: what you may do wi
 
 Check the licence file on the model page every time, including for fine-tuned versions, which inherit their base model's terms (Lesson 7.2).
 
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
+
 ## 3. Who owns the output
 
 In the USA, the Copyright Office said in 2025 that purely AI-generated material is not protected; human creative input (choosing, arranging, editing) can be. The UK has an unusual rule for "computer-generated works" with no human author, which is under review. India and Canada have no settled answer yet. Practical rule: if ownership matters, make sure a person does real creative work on the result and keep records.
