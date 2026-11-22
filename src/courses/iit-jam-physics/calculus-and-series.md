@@ -42,6 +42,10 @@ A limit asks what `$f(x)$` heads towards as `$x$` approaches a point, whether or
 \lim_{x\to0}\frac{\sin x}{x} = 1, \qquad \lim_{x\to0}\frac{e^x - 1}{x} = 1, \qquad \lim_{x\to\infty}\left(1 + \frac ax\right)^{x} = e^a
 ```
 
+Make the ε band narrower and find a δ that keeps the graph inside it; then switch to the jump.
+
+<figure class="fig" data-fig="@math-epsilon-delta"><figcaption>Notice that a smaller ε needs a smaller δ, and that for the jump no δ works once ε is small, which is exactly why that limit does not exist.</figcaption></figure>
+
 For anything harder, **expand everything in series and keep the first term that does not cancel**. It is faster and safer than L'Hôpital's rule, which often needs three or four rounds of differentiation.
 
 **Worked example.** Find `$\displaystyle\lim_{x\to0}\frac{\tan x - \sin x}{x^3}$`.
@@ -138,6 +142,10 @@ A series `$\sum a_n$` converges if its partial sums settle to a limit. The tests
 - **Ratio test:** if `$|a_{n+1}/a_n|\to L$`, the series converges for `$L < 1$` and diverges for `$L > 1$` (no verdict at `$L = 1$`). It gives the radius of convergence of a power series.
 - **Alternating series:** if the terms alternate in sign and shrink steadily to zero, the series converges, and the error after stopping is smaller than the first term left out.
 - **Geometric series:** `$\sum_{n\ge0}r^n = 1/(1-r)$` for `$|r| < 1$`. Differentiating it gives `$\sum nr^n = r/(1-r)^2$`, the trick behind the mean energy of a quantum oscillator.
+
+Choose a series and press Play, or slide the number of terms, to watch the partial sums Sₙ.
+
+<figure class="fig" data-fig="@math-series-converge"><figcaption>Notice that the geometric series settles on a/(1 − r), the harmonic series never settles even though its terms shrink, and the alternating one wobbles in to ln 2.</figcaption></figure>
 
 **Absolute and conditional.** `$1 - \tfrac12 + \tfrac13 - \dots = \ln2$` converges, but `$\sum|a_n|$` does not: the convergence is *conditional*, and reordering the terms can change the sum. Absolutely convergent series can be reordered freely.
 

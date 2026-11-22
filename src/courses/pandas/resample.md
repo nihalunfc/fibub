@@ -56,6 +56,11 @@ per_store
 
 `pd.Grouper(key='date', freq='QS')` is a date bucket you can use inside an ordinary groupby next to other keys.
 
+Switch the rule between daily, weekly and monthly and change the aggregate.
+
+<figure class="fig" data-fig="@data-resample"><figcaption>Notice how the bars change count and height, and what happens in the last, shorter period.</figcaption></figure>
+
+
 ## 3. Partial periods
 
 The first and last buckets may be incomplete (the data starts mid-week, or the current month isn't over). Comparing a partial month with full ones is a classic dashboard mistake. Check the number of days in each bucket:

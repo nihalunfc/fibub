@@ -40,6 +40,11 @@ In the real test you get about 30 seconds before each part (and a short pause ha
 <div class="step"><p><b>3. How might it be said?</b> Think of one or two other ways the speaker could express the words near the gap. "Cost" might be "you'll pay", "it comes to" or "the fee is". This is the paraphrase you will actually hear.</p></div>
 </div>
 
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
+
 ## 3. Worked example
 
 Here are notes from a Part 2 question about a nature reserve. Before reading the predictions, try them yourself.

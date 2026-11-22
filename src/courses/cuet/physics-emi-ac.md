@@ -75,6 +75,22 @@ An ideal transformer keeps power the same: V_s/V_p = N_s/N_p = I_p/I_s. Power li
 
 </div>
 
+**Try it:** Watch the oscillation build.
+
+<figure class="fig" data-fig="@sx-lc-tank"><figcaption>Energy swings between the coil and the capacitor.</figcaption></figure>
+
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@em-lenz-fall"><figcaption>Animated magnet drop through a closed or open coil with the EMF graph and fall time.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-generator"><figcaption>3D rotating coil generator with flux and EMF graphs (drag to turn).</figcaption></figure>
+
+<figure class="fig" data-fig="@em-phasor-rlc"><figcaption>Turning phasors and waveforms for R, L, C and series LCR with phase and impedance.</figcaption></figure>
+
+<figure class="fig" data-fig="@em-transformer"><figcaption>Transformer with turns, load and efficiency sliders, animated core flux and primary and secondary waveforms.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="electromagnetic-induction,alternating-current" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

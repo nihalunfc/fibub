@@ -59,6 +59,10 @@ sources:
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## Practise: reading passages
 
 <div class="qbank" data-bank="grad-verbal" data-topics="rc-passages" data-exam="gre" data-mode="practice" data-n="8"></div>

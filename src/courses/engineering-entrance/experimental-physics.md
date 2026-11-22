@@ -39,6 +39,10 @@ The lesson [Units and measurements](/learn/courses/engineering-entrance/units-me
 
 <div class="problem" data-problem="ex-screw-gauge"></div>
 
+Every repeated reading carries random error. Press Play to average more and more sweeps of a noisy signal and see how fast the scatter shrinks.
+
+<figure class="fig" data-fig="@sx-signal-average"><figcaption>Averaging N readings cuts the random error by √N: 100 readings are 10 times better than one. Systematic errors (a zero error, a wrong scale) do not average away.</figcaption></figure>
+
 ## 2. Mechanics and properties of matter
 
 | Experiment | Formula | Graph and key error |
@@ -84,6 +88,10 @@ The end correction e accounts for the air just above the open end vibrating too;
 **"More readings always reduce every error."** Repeating a measurement reduces **random** errors only. A **systematic** error, such as a zero error, a wrong scale or a constant end correction, is the same every time; averaging cannot remove it. You must correct it, or design it away (two-point slopes, swapping positions).
 
 </div>
+
+The resistance of a strain gauge changes by a tiny fraction; a bridge circuit turns that into a measurable voltage. Bend the beam and compare one, two and four active gauges.
+
+<figure class="fig" data-fig="@sx-wheatstone-strain"><figcaption>The bridge is balanced (zero output) with no load. Bending changes only the gauge arms, so V<sub>out</sub> appears. More active gauges give a larger signal, and equal temperature changes in every arm cancel.</figcaption></figure>
 
 ## 5. Optics
 

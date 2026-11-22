@@ -47,6 +47,10 @@ Here is the surprise: the two pictures predict the **same loop**. Mars's epicycl
 
 Copernicus's picture was simpler in one way: it explained naturally why Mercury and Venus never stray far from the Sun, and why the loops happen when a planet is opposite the Sun in our sky. (Kepler later replaced the circles with ellipses, which you can explore in the Astronomy course: [Kepler's laws](/learn/courses/astronomy/keplers-laws/).)
 
+Pick a planet and press Play. Compare how far from the Sun it can appear in our sky, and how much of it is lit.
+
+<figure class="fig" data-fig="@astro-synodic"><figcaption>An inner planet (Mercury, Venus) never strays far from the Sun: it has a largest elongation and shows phases. An outer planet can stand opposite the Sun (opposition), when it is closest, brightest and up all night. The time between repeats (the synodic period) is longer than the planet's year.</figcaption></figure>
+
 ## 3. Galileo's test: the phases of Venus
 
 In 1610 Galileo turned one of the first telescopes on Venus. He saw it go through **phases like the Moon**, and he saw that it looked **small when nearly full and large when a thin crescent**.

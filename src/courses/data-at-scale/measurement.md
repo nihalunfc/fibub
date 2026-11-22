@@ -59,6 +59,11 @@ Each rule also has an **attribution window** (for example a purchase within 14 d
 
 The rooster crows every morning just before the sun rises. Attribution would give the rooster full credit for the sunrise. To know whether the rooster matters, you need a morning without the rooster. That is an incrementality test.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Level 3: incrementality
 
 **Incrementality** asks: how many extra sales happened **because** of the ads? It needs a **counterfactual**, what would have happened without them, and the cleanest way to get one is an experiment.

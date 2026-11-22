@@ -48,6 +48,10 @@ Iron pyrites is not used for iron (too much sulphur). Reactive metals (Na, Mg, A
 - **Froth flotation:** for **sulphide** ores. Oil (pine oil) with **collectors** (xanthates) wets the sulphide, **froth stabilisers** (cresols) hold the foam, and air bubbles carry the ore up. **Depressants** separate two sulphides: NaCN stops ZnS from frothing, so PbS can be floated off first.
 - **Leaching:** dissolving the ore chemically. Bauxite in hot NaOH (**Bayer process**): Al₂O₃ dissolves as Na[Al(OH)₄], silica and iron oxide stay behind; CO₂ then precipitates pure Al(OH)₃. Gold and silver in dilute NaCN with air (**cyanide process**), then displaced by zinc: 2[Au(CN)₂]⁻ + Zn → [Zn(CN)₄]²⁻ + 2Au.
 
+**Try it:** switch the collector, frother and NaCN on and off and watch which grains reach the froth.
+
+<figure class="fig" data-fig="@chem-froth-flotation"><figcaption>The collector makes the sulphide grains water-repellent so they cling to bubbles; the frother makes a stable froth that can be skimmed; NaCN keeps ZnS from floating so PbS and ZnS can be separated one after the other.</figcaption></figure>
+
 ## 3. Calcination and roasting
 
 **Calcination:** heating in limited or no air to drive off water or CO₂: ZnCO₃ → ZnO + CO₂; Al₂O₃·xH₂O → Al₂O₃ + xH₂O.

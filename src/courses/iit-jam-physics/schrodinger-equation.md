@@ -80,6 +80,10 @@ For an electron, `$h^2/8m_e = 0.376$` eV nm², so a 1 nm box has `$E_1 = 0.376$`
 
 <figure class="fig" data-fig="box-states"><figcaption>The five lowest states, each drawn on its own energy line. Energy grows as n², the n-th state has n − 1 nodes inside, and the ground state crowds into the middle. Change the box width to see the energies and the emitted wavelength.</figcaption></figure>
 
+Start at 50% with the pair 1 + 2 and press Play, then set the share to 0% or 100% and try other pairs.
+
+<figure class="fig" data-fig="@qm-sloshing"><figcaption>A single energy state never changes, but two states beat at (Eₙ − Eₘ)/ħ and the probability sloshes. The lower graph follows ⟨x⟩ against time.</figcaption></figure>
+
 - `$E_1 \ne 0$`: the **zero-point energy**. A particle in a box can never be still (the uncertainty principle again).
 - Levels spread out as `$n^2$`: `$E_2 = 4E_1$`, `$E_3 = 9E_1$`. The fractional gap `$(2n + 1)/n^2$` shrinks at large `$n$`, which is how the classical continuum returns.
 - Different states are orthogonal: `$\int\psi_m\psi_n dx = 0$` for `$m \ne n$`.
@@ -100,6 +104,10 @@ In three dimensions a cubic box has `$E = E_0(n_x^2 + n_y^2 + n_z^2)$`, and diff
 ## 3. The finite well and the harmonic oscillator
 
 If the walls have finite height `$V_0$`, the wave leaks into them as `$e^{-\kappa|x|}$`, with `$\kappa = \sqrt{2m(V_0 - E)}/\hbar$`. The wave is effectively a little longer, so every level is a little **lower** than in the infinite well of the same width. There are only finitely many bound states: with `$z_0 = (a/2)\sqrt{2mV_0}/\hbar$` for a well of width `$a$`, the number is `$1 + \lfloor 2z_0/\pi\rfloor$`. In one dimension there is always at least one, however shallow the well.
+
+Slide n from 0 up to 30 and switch between the density and ψ itself.
+
+<figure class="fig" data-fig="@qm-ho-classical"><figcaption>The quantum density has n nodes and leaks past the classical turning points; at large n it averages out to the classical curve, which piles up at the ends where the ball moves slowest.</figcaption></figure>
 
 For a potential `$V = \tfrac12m\omega^2x^2$` (any smooth minimum, close enough to the bottom, as in the [SHM lesson](/learn/courses/iit-jam-physics/simple-harmonic-motion/)):
 
@@ -134,6 +142,10 @@ T = \left[1 + \frac{V_0^2\sinh^2(\kappa a)}{4E(V_0 - E)}\right]^{-1} \;\approx\;
 For rough work, `$T \approx e^{-2\kappa a}$`: **exponential** in the width and in the square root of mass times energy deficit.
 
 <figure class="fig" data-fig="barrier-tunnel"><figcaption>The exact stationary wave for an electron meeting a rectangular barrier. Make the barrier wider or taller and watch the transmitted wave fade exponentially; raise the energy above the top and some of the wave is still reflected.</figcaption></figure>
+
+Watch the packet hit the barrier, then lower the energy, thicken the barrier, and raise E above the top.
+
+<figure class="fig" data-fig="@qm-packet-barrier"><figcaption>When E < V₀ part of the wave still gets through (tunnelling), and part reflects even when E > V₀. A thicker barrier cuts the transmission sharply.</figcaption></figure>
 
 **Worked example.** An electron of 1.0 eV meets a 5.0 eV barrier 0.50 nm wide.
 

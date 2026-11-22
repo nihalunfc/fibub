@@ -79,6 +79,10 @@ Follow energy from the Sun's core to Earth:
 of the light per area: still very bright, just dark next to the rest.
 </details>
 
+Slide the temperature and the radius. Watch the colour, the curve's peak and the luminosity.
+
+<figure class="fig" data-fig="@astro-star-colour"><figcaption>Hotter stars are bluer and peak at shorter wavelengths (Wien's law), and each square metre of a hot star shines far more (T⁴). A star's power also grows with its surface area (R²), so a cool giant can outshine a hot dwarf.</figcaption></figure>
+
 ## 3. What it means physically
 
 The Sun is a balance. Gravity squeezes it inward; the heat from fusion pushes outward. If fusion sped up, the core would expand, cool and slow it down again, so the Sun is a self-regulating furnace that has shone steadily for 4.6 billion years. Its outer layers spin faster at the equator than near the poles, which winds up its magnetic field like an elastic band until it bursts out as spots, flares and mass ejections. Each cycle the field flips, so the full magnetic cycle is about 22 years.

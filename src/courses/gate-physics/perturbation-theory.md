@@ -34,6 +34,10 @@ Write `$H = H_0 + \lambda H'$`, with known `$H_0|n^{(0)}\rangle = E_n^{(0)}|n^{(
 <div class="steps">
 <div class="step">
 
+Pick a bump or a tilt, raise λ slowly, and compare the exact answer with first and second order for n = 1, 2, 3.
+
+<figure class="fig" data-fig="@qm-perturbed-well"><figcaption>First order is the average of the perturbation in the unperturbed state, and second order mends most of the rest until λV is comparable with the level spacing.</figcaption></figure>
+
 **First order.** `$(H_0 - E_n^{(0)})|n^{(1)}\rangle = (E_n^{(1)} - H')|n^{(0)}\rangle$`. Project on `$\langle n^{(0)}|$`: the left side vanishes because `$H_0$` is Hermitian, so `$E_n^{(1)} = \langle n^{(0)}|H'|n^{(0)}\rangle = H'_{nn}$`.
 
 </div>
@@ -94,6 +98,10 @@ For `$|V| \ll |E_1 - E_2|$`, expanding the root gives back `$E_1 + |V|^2/(E_1 - 
 ## 3. Degenerate levels
 
 If `$E_n^{(0)}$` is `$g$`-fold degenerate, the formulas divide by zero. The cure: first-order theory inside the level is an eigenvalue problem. Form the `$g\times g$` matrix `$W_{ij} = \langle i|H'|j\rangle$` in any basis of the level and diagonalise it. Its eigenvalues are the first-order shifts; its eigenvectors are the **good** zeroth-order states, the ones the perturbation picks out (often fixed by a symmetry that `$H'$` keeps, such as `$L_z$` or parity).
+
+Pick the lower, upper and 2p±1 states of n = 2, raise the field, then switch to n = 1.
+
+<figure class="fig" data-fig="@qm-stark"><figcaption>The n = 2 levels shift in straight lines because 2s and 2p mix into states with permanent dipoles; the ground state bends down as F² (induced dipole).</figcaption></figure>
 
 **Worked example (2D oscillator).** The level `$n_x + n_y = 1$` holds `$|10\rangle, |01\rangle$`. With `$H' = \lambda xy$`, `$W = \dfrac{\lambda\hbar}{2m\omega}\begin{pmatrix}0&1\\1&0\end{pmatrix}$`, so the shifts are `$\pm\lambda\hbar/2m\omega$` for vibrations along the diagonals `$x = \pm y$`.
 

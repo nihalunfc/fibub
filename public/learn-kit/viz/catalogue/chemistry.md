@@ -1,0 +1,35 @@
+# Chemistry
+
+- `@chem-orbital-3d`: s, p and d orbitals as 3D dot clouds (drag to turn, auto-spin), sign colours and switchable nodal surfaces; counts radial and angular nodes. Used in: engineering-entrance/atomic-structure.
+- `@chem-aufbau-steps`: electrons dropping into orbital boxes for Z = 1 to 36 (play or slide), Hund's rule, unpaired count, Cr and Cu exceptions. Used in: engineering-entrance/atomic-structure.
+- `@chem-limiting-reagent`: N₂ + 3H₂ → 2NH₃ with molecules as dots; set the moles, press React, watch the limiting reagent run out; yield in mol and g. Used in: engineering-entrance/mole-concept.
+- `@chem-zeff-shield`: Slater's-rule shielding and Z* for Z = 3 to 20 with shells drawn, bars of Z* and a size line across periods 2 to 4. Used in: engineering-entrance/periodic-table.
+- `@chem-hybrid-lobes`: sp, sp² and sp³ hybrid lobes in 3D before and after mixing (drag to turn), with lone pairs for NH₃ and H₂O. Used in: engineering-entrance/chemical-bonding.
+- `@chem-mo-diagram`: MO energy diagrams for H₂ to Ne₂ and their ions, electrons filled by Hund, bond order and magnetism, σ2p/π2p swap. Used in: engineering-entrance/chemical-bonding.
+- `@chem-gas-piston`: animated gas particles in a cylinder with a piston; pressure measured from real hits against P = NkT/V for T, V and N sliders. Used in: engineering-entrance/states-of-matter.
+- `@chem-real-gas-z`: compressibility factor Z against P for He, H₂, N₂, CH₄ and CO₂ from the van der Waals equation, T slider, Boyle temperature. Used in: engineering-entrance/states-of-matter.
+- `@chem-entropy-spread`: animated free expansion of N particles with a live histogram of microstates, S = k ln W. Used in: engineering-entrance/chemical-thermodynamics.
+- `@chem-le-chatelier`: N₂O₄ ⇌ 2NO₂ with buttons to add reactant, squeeze, expand, heat or cool; live concentration plot, Q against K. Used in: engineering-entrance/chemical-equilibrium.
+- `@chem-buffer-ph`: pH of a buffer against water as strong acid or base is added, with Henderson-Hasselbalch, ratio and capacity sliders. Used in: engineering-entrance/ionic-equilibrium.
+- `@chem-redox-steps`: step player balancing MnO₄⁻ + Fe²⁺ in acid with an atoms and charge ledger. Used in: engineering-entrance/redox.
+- `@chem-flame-test`: animated flame, electron jump and photon, and emission lines for eight metals with E = hc/λ. Used in: engineering-entrance/s-block.
+- `@chem-stereo-rs`: tetrahedral stereocentre in 3D with priorities, an "H at the back" view button and a mirror swap; R/S worked out from the geometry. Used in: engineering-entrance/goc.
+- `@chem-newman-ethane`: Newman projection of ethane turning with the torsional energy curve and barrier. Used in: engineering-entrance/hydrocarbons.
+- `@chem-chair-flip`: 3D cyclohexane chair that flips; axial and equatorial bonds swap, methyl group preference. Used in: engineering-entrance/hydrocarbons.
+- `@chem-markovnikov`: energy race of the two HBr addition paths for four alkenes, polar or with peroxide, giving the major product and ratio. Used in: engineering-entrance/hydrocarbons.
+- `@chem-eas-nitration`: step player for the nitration of benzene (NO₂⁺, arenium ion, loss of H⁺) plus the directing effect of OH, CH₃, Cl and NO₂. Used in: engineering-entrance/hydrocarbons.
+- `@chem-osmosis`: solution and pure water across a semipermeable membrane with a piston; π = CRT, osmosis and reverse osmosis. Used in: engineering-entrance/solutions.
+- `@chem-galvanic-cell`: animated Daniell cell with electrons in the wire, ions in the salt bridge, Nernst voltage and concentration sliders. Used in: engineering-entrance/electrochemistry.
+- `@chem-half-life`: 100 decaying particles for zero, first and second order with measured successive half-lives. Used in: engineering-entrance/chemical-kinetics.
+- `@chem-arrhenius-tail`: energy distribution (log scale) with the Ea tail shaded plus the reaction path, T and catalyst controls and the rate factor. Used in: engineering-entrance/chemical-kinetics.
+- `@chem-fcc-voids`: fcc cell in 3D with octahedral and tetrahedral voids and counts, atom size slider. Used in: engineering-entrance/solid-state-surface.
+- `@chem-haber-conditions`: equilibrium yield and relative rate against T for the Haber and contact processes with P and catalyst controls. Used in: engineering-entrance/p-block.
+- `@chem-lanthanide-contraction`: Ln³⁺ radii from La to Lu with 4f electrons shown, and a Zr/Hf, Nb/Ta, Mo/W radius comparison. Used in: engineering-entrance/d-f-block.
+- `@chem-complex-isomers`: octahedral complexes in 3D: cis, trans, fac, mer and the five MA₂B₂C₂ isomers, with a mirror-image button. Used in: engineering-entrance/coordination-compounds.
+- `@chem-froth-flotation`: animated flotation cell where collector, frother and NaCN decide which sulphide grains rise into the froth. Used in: engineering-entrance/metallurgy.
+- `@chem-sn-mechanism`: SN2 and SN1 on one carbon in 3D (umbrella inversion, planar carbocation, either-face attack) with the energy profile; step player. Used in: engineering-entrance/haloalkanes-haloarenes.
+- `@chem-alcohol-dehydration`: step player for E1 dehydration of tert-butyl alcohol with curved arrows. Used in: engineering-entrance/alcohols-phenols-ethers.
+- `@chem-carbonyl-addition`: step player for nucleophilic addition to C=O with a choice of nucleophile and carbonyl compound and a reactivity chart. Used in: engineering-entrance/aldehydes-ketones-acids.
+- `@chem-amine-inversion`: the nitrogen of an amine flipping through a flat state in 3D with the energy barrier; NH₃, quaternary ammonium and strained N. Used in: engineering-entrance/amines.
+- `@chem-dna-helix`: 3D double helix with 2 and 3 hydrogen bonds per pair and a melting curve for AT-rich, balanced and GC-rich DNA. Used in: engineering-entrance/biomolecules.
+- `@chem-salt-analysis`: salt-analysis game with a hidden anion, five standard tests shown in a test tube and a notebook, then guess. Used in: engineering-entrance/practical-chemistry.

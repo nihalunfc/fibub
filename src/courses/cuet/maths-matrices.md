@@ -53,6 +53,10 @@ sources:
 
 Area of a triangle with corners (x₁, y₁), (x₂, y₂), (x₃, y₃) = ½ |det of rows (x, y, 1)|. Zero area means the points are collinear.
 
+**Try it:** Compose two matrices and watch the transformation.
+
+<figure class="fig" data-fig="@math-matrix-compose"><figcaption>Order matters: AB is usually not BA.</figcaption></figure>
+
 ## 3. Inverse and equations
 
 ```math

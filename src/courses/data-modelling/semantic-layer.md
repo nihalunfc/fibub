@@ -64,6 +64,11 @@ A **semantic layer** is a model that sits between the warehouse and the reports 
 
 Examples: a Power BI **semantic model** (called a dataset until 2023), dbt's Semantic Layer, Looker's LookML, Cube. The star schema you have built in this course is what each of them wants to sit on.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. What Power BI wants
 
 Microsoft's own modelling guidance is plain about it ([Understand star schema and the importance for Power BI](https://learn.microsoft.com/en-us/power-bi/guidance/star-schema) and [bi-directional relationship guidance](https://learn.microsoft.com/en-us/power-bi/guidance/relationships-bidirectional-filtering), checked 22 Nov 2026, check the official page). In short:

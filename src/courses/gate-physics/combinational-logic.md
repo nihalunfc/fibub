@@ -60,6 +60,10 @@ A function can be written as a **sum of minterms** (one product term per 1 in th
 
 **Adders.** A half adder gives `$S = A\oplus B$`, `$C = AB$`. A full adder adds a carry in:
 
+Switch the inputs of an adder and watch the carry.
+
+<figure class="fig" data-fig="@sx-adders"><figcaption>Half adder, full adder and a 4-bit ripple-carry adder; in the ripple adder the sum is correct only after the carry has passed through every stage.</figcaption></figure>
+
 ```math
 S = A\oplus B\oplus C_{in}, \qquad C_{out} = AB + C_{in}(A\oplus B)
 ```

@@ -64,6 +64,14 @@ Biogas plants (developed in India by IARI and KVIC) feed cattle dung into a tank
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-yeast-fermentation"><figcaption>Flask of yeast giving CO2 bubbles; temperature and sugar sliders with the rate curve.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-nitrogen-cycle"><figcaption>Seven-step nitrogen cycle ring with the microbe for each step and a moving marker.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="microbes-welfare" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

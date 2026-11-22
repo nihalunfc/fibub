@@ -47,6 +47,11 @@ sources:
 | Deadline | ...by the end of this month / ...within 14 days |
 | Close | I look forward to your prompt reply. / I trust this matter will be resolved quickly. |
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 3. Model answer
 
 Task: the coffee machine in [Choosing the tone](/learn/courses/ielts/letter-tone/).

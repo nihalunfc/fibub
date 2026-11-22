@@ -76,6 +76,14 @@ India has about 2.4% of the world's land but roughly 8% of its recorded species,
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-diversity-index"><figcaption>Richness, Shannon and Simpson indices from five species sliders and presets.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-food-web"><figcaption>Seven-species food web; remove one and see the likely rise and fall of the others.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="biodiversity" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

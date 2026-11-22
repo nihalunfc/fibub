@@ -89,9 +89,19 @@ v = 2f(l_2 - l_1), \qquad e = \frac{l_2 - 3l_1}{2}
 
 **Kundt's tube.** A rod clamped at its middle rings in its fundamental (`$\lambda_{rod} = 2L$`) and drives the air in a tube, where powder gathers at displacement nodes `$\lambda_{air}/2$` apart. Same frequency in both, so `$v_{rod}/v_{air} = \lambda_{rod}/\lambda_{air}$`.
 
+Choose a pipe type and a harmonic, and watch both the air motion and the pressure.
+
+<figure class="fig" data-fig="@wt-pipe-resonance"><figcaption>Open pipe: f = nv/2L. Closed pipe: f = (2n − 1)v/4L. Notice the displacement antinode at every open end and the displacement node at a closed end, where the pressure swing is biggest.</figcaption></figure>
+
+
 ## 4. Beats and tuning forks
 
 Two sounds of frequencies `$f_1$` and `$f_2$` give `$|f_1 - f_2|$` beats per second ([lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/)). The classic puzzle: a 512 Hz fork and an unknown give 4 beats; with wax on the unknown, 6 beats. The unknown was 508 or 516 Hz. **Wax lowers** a fork's frequency (more mass) and **filing raises** it. Lowering 516 would bring it closer to 512 and reduce the beats; the beats grew, so it was **508 Hz**.
+
+Slide the two frequencies together and watch the beats disappear.
+
+<figure class="fig" data-fig="@wt-beats"><figcaption>The beat frequency |f₁ − f₂| is how fast the combined tone swells and fades. Notice how a tiny difference gives slow, easy-to-count beats.</figcaption></figure>
+
 
 ## 5. The Doppler effect for sound
 
@@ -121,6 +131,11 @@ Use the upper signs when moving **towards** the other, the lower signs when movi
 - **Not along the line**: use the component of velocity along the line of sight at the moment of emission. A whistle whirled in a circle round you gives no shift; a train at closest approach is still heard slightly high (that sound left earlier).
 
 The [Doppler and beats](/science/doppler-beats/) tool works these out with your own numbers.
+
+Set a source speed and an observer speed separately and compare with the formula.
+
+<figure class="fig" data-fig="@wt-doppler-observer"><figcaption>f′ = f (v ± v_o)/(v ∓ v_s). Notice that source motion and observer motion are not equivalent: the medium is the reference frame for sound.</figcaption></figure>
+
 
 ## 6. Shock waves
 

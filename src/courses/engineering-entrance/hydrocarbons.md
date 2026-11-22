@@ -58,6 +58,14 @@ sources:
 </dl>
 </div>
 
+**Try it:** press Play (or slide) to turn the back carbon of ethane, then jump to the staggered and eclipsed forms.
+
+<figure class="fig" data-fig="@chem-newman-ethane"><figcaption>Staggered (60°, 180°, 300°) is lowest in energy. The three-fold curve has a barrier of about 12 kJ/mol, small enough that rotation about the C–C single bond is fast at room temperature.</figcaption></figure>
+
+**Try it:** drag to look at the chair from several sides, then slide the ring flip from 0 to 100%. Watch the orange methyl group go from equatorial to axial.
+
+<figure class="fig" data-fig="@chem-chair-flip"><figcaption>Every axial bond becomes equatorial after a flip and vice versa. A substituent prefers the equatorial position because an axial one is crowded by the two axial H atoms on the same side (1,3-diaxial strain).</figcaption></figure>
+
 ## 3. Alkenes
 
 **Preparation**: dehydration of alcohols with hot concentrated H₂SO₄ (or Al₂O₃), and **dehydrohalogenation** of alkyl halides with alcoholic KOH. When two alkenes can form, the more substituted (more stable) one usually wins: **Saytzeff (Zaitsev) rule**. A bulky base like (CH₃)₃CO⁻ gives the less substituted **Hofmann** product. Partial reduction of alkynes also gives alkenes (section 4).
@@ -77,6 +85,10 @@ sources:
 **"Markovnikov's rule is about where the X goes."** The rule is really about the carbocation. H⁺ adds first, to whichever carbon leaves the more stable carbocation; X⁻ then joins the positive carbon. When a group like CF₃ makes the "Markovnikov" cation unstable, the product goes the other way.
 
 </div>
+
+**Try it:** pick an alkene and compare the two energy paths with and without peroxide. Which path is lower? Which product does it lead to?
+
+<figure class="fig" data-fig="@chem-markovnikov"><figcaption>The lower barrier belongs to the more stable carbocation (polar) or radical (with peroxide). H⁺ goes to the carbon with more H atoms in the polar reaction; with peroxide Br• goes to the less substituted carbon, so the product reverses.</figcaption></figure>
 
 ## 4. Alkynes
 
@@ -112,6 +124,16 @@ Ethyne is made from calcium carbide and water (CaC₂ + 2H₂O → C₂H₂ + Ca
 - **Meta directors, deactivating**: -NO₂, -CN, -CHO, -COR, -COOH, -SO₃H, -NR₃⁺ (they pull electrons out and make the o and p positions most positive).
 
 Friedel-Crafts reactions fail on rings with strong meta directors such as nitrobenzene. **Side-chain oxidation**: hot KMnO₄ turns any alkyl group with at least one benzylic H into -COOH (toluene to benzoic acid); tert-butylbenzene is not oxidised.
+
+**Watch it happen:** nitration of benzene, step by step, and then the directing effect of a group already on the ring.
+
+<div class="steps" data-fig="@chem-eas-nitration" data-title="Electrophilic substitution" data-ms="7000">
+<div class="step"><b>Make the electrophile.</b> The nitrating mixture produces NO₂⁺.</div>
+<div class="step"><b>The ring attacks.</b> Two π electrons form a bond to N: the slow step.</div>
+<div class="step"><b>The arenium ion.</b> The + is spread over the o and p carbons.</div>
+<div class="step"><b>Lose H⁺.</b> Aromaticity returns: nitrobenzene.</div>
+<div class="step"><b>Directing effects.</b> Pick OH, CH₃, Cl or NO₂ to see where the next NO₂ goes.</div>
+</div>
 
 <div class="myth">
 

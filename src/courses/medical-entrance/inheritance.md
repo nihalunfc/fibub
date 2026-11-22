@@ -43,6 +43,10 @@ The dihybrid cross RRYY × rryy gives all round yellow F1 (RrYy); F2 shows **9:3
 
 <div class="problem" data-problem="inh-cross"></div>
 
+Choose the cross, set the number of offspring and press Run again several times. Then try the linked cross.
+
+<figure class="fig" data-fig="@bio-dihybrid-sim"><figcaption>Small samples wobble around the ratio; large ones settle near it. The 9:3:3:1 ratio needs independent genes: linked genes give only the parental classes.</figcaption></figure>
+
 ## 2. When the 3:1 changes
 
 - **Incomplete dominance**: the heterozygote is in between. Snapdragon (dog flower): RR red × rr white → Rr pink; F2 is **1 red : 2 pink : 1 white**, so phenotype and genotype ratios are the same.
@@ -55,6 +59,10 @@ The dihybrid cross RRYY × rryy gives all round yellow F1 (RrYy); F2 shows **9:3
 **"A dominant allele is the common or stronger one."** Dominance only means it shows in the heterozygote, often because the recessive allele makes a faulty or no product. Many dominant alleles are rare, and many recessive ones are common.
 
 </div>
+
+Pick parent genotypes and see which blood groups the children can have.
+
+<figure class="fig" data-fig="@bio-blood-groups"><figcaption>IA and IB are codominant (the heterozygote shows both), and i is recessive: this is multiple alleles plus codominance in one example.</figcaption></figure>
 
 ## 3. Chromosomes, linkage and recombination
 
@@ -82,6 +90,10 @@ In humans the father's sperm decides the sex. A male honey bee (drone) has no fa
 A **mutation** changes the DNA. A **point mutation** changes one base, as in sickle cell anaemia; **frameshift** mutations come from inserting or deleting bases. Chromosomal changes (loss, gain or rearrangement of segments) are often linked to cancer. **Mutagens** include UV light and chemicals.
 
 **Pedigree analysis** traces a trait through a family with standard symbols: squares for males, circles for females, filled for affected, a horizontal line for mating, and a double line for marriage between relatives (consanguineous). A trait that skips generations and appears in children of unaffected parents is recessive; one that appears in every generation with every affected child having an affected parent is usually dominant; one seen mostly in males and passed through carrier mothers is X-linked recessive.
+
+Switch between the three modes of inheritance and turn on the genotypes.
+
+<figure class="fig" data-fig="@bio-pedigree"><figcaption>Look for the clue in each: two normal parents with an affected child (autosomal recessive), an affected parent in every generation (dominant), mainly affected sons through carrier mothers (X-linked recessive).</figcaption></figure>
 
 ## 6. Genetic disorders
 

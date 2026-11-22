@@ -74,6 +74,15 @@ Grind living tissue in trichloroacetic acid and filter it. The **acid-soluble** 
 
 <div class="problem" data-problem="bmol-dna-hbonds"></div>
 
+Step through the four levels of protein structure.
+
+<div class="steps" data-fig="@bio-protein-folding">
+<div class="step"><b>Primary.</b> A chain of amino acids joined by peptide bonds; the order is set by the gene.</div>
+<div class="step"><b>Secondary.</b> Hydrogen bonds fold parts of the chain into an α-helix or a β-pleated sheet.</div>
+<div class="step"><b>Tertiary.</b> The whole chain folds into one 3D shape held by R-group interactions and disulphide bridges.</div>
+<div class="step"><b>Quaternary.</b> Several folded chains join; haemoglobin has four subunits.</div>
+</div>
+
 ## 4. Enzymes
 
 Almost all enzymes are proteins; some nucleic acids act as enzymes too (**ribozymes**). An enzyme's folded shape makes a pocket, the **active site**, where the substrate fits. Inorganic catalysts often need high temperature and pressure; most enzymes are damaged (**denatured**) above about 40 °C, but enzymes from thermophilic organisms in hot springs stay stable up to 80 to 90 °C.

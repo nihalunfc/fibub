@@ -41,6 +41,10 @@ That is why a mixture-of-experts model (Lesson 2.5) with few active weights can 
 
 <div class="problem" data-problem="speed-limits-ceiling"></div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Two phases: reading and writing
 
 - **Prefill** (reading your prompt): all prompt tokens go through at once. Limited by the chip's raw arithmetic (**compute-bound**), so a graphics card reads a long prompt far faster than a laptop CPU. This sets the **time to first token**.

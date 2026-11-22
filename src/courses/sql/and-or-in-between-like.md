@@ -46,6 +46,11 @@ WHERE channel = 'online' AND status = 'cancelled'
 
 29 online orders were cancelled. Each extra AND can only keep the same rows or fewer.
 
+Press Play to watch each row being tested, then move the slider and switch between AND, OR and NOT.
+
+<figure class="fig" data-fig="@data-where-flow"><figcaption>Notice that every row is judged on its own, and that a row exactly on the boundary is dropped by a strict greater-than.</figcaption></figure>
+
+
 ## 3. OR: either will do
 
 `OR` keeps a row if at least one side is true. Run this, then press **Show how it runs** and watch which mini orders survive the WHERE step:

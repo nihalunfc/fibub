@@ -47,6 +47,11 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Str0ng!Passw0rd" \
 
 Everything in this module works on both. Use B for heavy experiments; use A for Entra sign-in and your portfolio screenshots. (The password above is for a throwaway local container only.)
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. Connect from Python
 
 Install the **Microsoft ODBC Driver 18 for SQL Server** (follow Microsoft's install page for your system), then:

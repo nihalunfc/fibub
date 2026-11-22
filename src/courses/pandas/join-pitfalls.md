@@ -55,6 +55,11 @@ orders.merge(products, on='product_id', how='left', validate='many_to_one')
 
 `validate` takes `'one_to_one'`, `'one_to_many'`, `'many_to_one'` or `'many_to_many'` and raises a clear error when the data doesn't fit. Use it on every join where you expect a lookup to be unique. Then fix the lookup (keep one row per key, Lesson 3.2) and join again.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. Keys that should match but don't
 
 ```python

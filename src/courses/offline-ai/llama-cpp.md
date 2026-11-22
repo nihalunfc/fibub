@@ -40,12 +40,20 @@ If a desktop app is a car with an automatic gearbox, llama.cpp is the same engin
 
 Check it: `llama-cli --version`.
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Get a model file
 
 llama.cpp runs **GGUF** files. Two ways to get one:
 
 - Reuse a file you already downloaded in an app (Lesson 9.1 shows where the app keeps them).
 - Let llama.cpp download one from Hugging Face with `-hf <publisher>/<model>-GGUF`. Search Hugging Face for "gemma 4 gguf" and pick a repository from Google or a well-known publisher (Lesson 7.6 covers safe downloads). Copy its exact name.
+
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
 
 ## 4. Run it
 

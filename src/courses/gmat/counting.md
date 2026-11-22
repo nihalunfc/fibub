@@ -86,6 +86,10 @@ Arrangements of a word with repeated letters: divide by the factorial of each re
 
 </div>
 
+**Try it:** Change the three probabilities and light up each event.
+
+<figure class="fig" data-fig="@tp-prob-tree"><figcaption>Multiply down a path, add across paths; A given B is one leaf divided by the total of B's leaves.</figcaption></figure>
+
 ## Practise: GMAT-style questions on this lesson
 
 Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.

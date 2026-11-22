@@ -65,6 +65,10 @@ With that map you can answer the main point, the organisation and the attitude q
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## Practice set
 
 The night-markets passage with five questions. Map it first, then answer from your map.

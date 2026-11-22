@@ -44,6 +44,10 @@ sources:
 
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="cuet"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Three ready plans
 
 **12 weeks (the comfortable plan).** Weeks 1 to 7: one module a week per subject, rotating subjects daily. Weeks 8 to 9: revise every topic where your practice score was under 80%. Weeks 10 to 12: one full mock per test every two days, and a full review of every mistake the day after.

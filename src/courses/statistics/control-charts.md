@@ -45,6 +45,11 @@ With no shift, the points wander inside the limits. Slide a shift of +1 point fr
 4. **Limits** = centre ± 3 sigma (lower limit at 0 if the metric can't go negative).
 5. Plot new points against these fixed limits. Recompute only after a confirmed, lasting change.
 
+Slide the window size and switch between trailing and centred.
+
+<figure class="fig" data-fig="@data-rolling-window"><figcaption>Notice that a bigger window is smoother but later, and where the NaN values appear.</figcaption></figure>
+
+
 ## 3. Reading the signals
 
 Common rules (Western Electric / Nelson, simplified):

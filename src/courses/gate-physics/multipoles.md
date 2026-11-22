@@ -53,6 +53,10 @@ The `$l$`-th term falls as `$1/r^{l+1}$` and has the angular shape of `$P_l$`.
 
 <figure class="fig" data-fig="multipole-falloff"><figcaption>Left: field lines of a point charge, a dipole and two kinds of quadrupole. Right: the potential along the dashed ray on log-log axes. The exact curve (solid) joins the leading multipole term (dashed, slope −1, −2 or −3) once you are a few charge spacings away.</figcaption></figure>
 
+Choose a set of charges, then raise l one step at a time. Move r closer and see how many terms you need.
+
+<figure class="fig" data-fig="@em-multipole-angles"><figcaption>Each extra multipole term improves the match; far from the charges only the first non-zero terms matter.</figcaption></figure>
+
 ## 2. The quadrupole tensor
 
 `$Q_{ij}$` is symmetric and **traceless** (`$Q_{xx} + Q_{yy} + Q_{zz} = 0$`): the `$-r'^2\delta_{ij}$` is there exactly to remove the trace, which would only contribute `$\nabla^2(1/r) = 0$` outside. So it has `$9 - 3 - 1 = 5$` independent components, matching the `$2l + 1 = 5$` spherical moments of `$l = 2$`.

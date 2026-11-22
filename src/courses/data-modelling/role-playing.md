@@ -68,6 +68,11 @@ SELECT * FROM fact_returns ORDER BY return_id LIMIT 3;
 
 Each of the 204 rows has an `order_date_key` and a `return_date_key`. Both are foreign keys to the same `dim_date`. `days_to_return` is a measure worked out at load time, so nobody has to subtract dates in a report.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Join the same table twice
 
 A **role-playing dimension** is one dimension table joined to a fact more than once, each join giving it a different meaning. In SQL you simply join it twice with two aliases. Press **Run**, then **Show how it runs**: you will see two separate join steps, one per role.

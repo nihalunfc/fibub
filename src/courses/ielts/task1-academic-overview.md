@@ -55,6 +55,11 @@ You have about **20 minutes** and must write **at least 150 words**. Task 2 coun
 
 Some tests combine two, such as a bar chart and a table ([5.8](/learn/courses/ielts/mixed-charts/)).
 
+
+Tap a stretch of the line (or its button) and pick the words that describe it.
+
+<figure class="fig" data-fig="@lang-writing-trend"><figcaption>Notice that the size of the change picks the word: "sharply" for big and fast, "slightly" for small, "levelled off" for flat.</figcaption></figure>
+
 ## 3. How it is marked, in plain words
 
 Examiners score four areas equally. These are our own explanations of what each area looks at; the official public descriptions are on the IELTS website (see the sources).

@@ -52,6 +52,11 @@ A big biased sample is worse than a small fair one, because it looks convincing.
 
 **Time-window bias.** A "last 30 days" window that includes a holiday, or a cohort that hasn't had time to churn yet.
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. Catching bias: questions to ask
 
 1. **Who is not in this data?** And could they differ on what you measure?

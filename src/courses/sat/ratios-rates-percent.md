@@ -85,6 +85,14 @@ Multiply the multipliers: up a% then down b% is × (1 + a/100)(1 − b/100). Nev
 - Unit rates to compare deals or speeds.
 - Two percents in a row: multiply, never add.
 
+**Try it:** Set three percent changes in a row and compare the result with the sum of the percents.
+
+<figure class="fig" data-fig="@tp-percent-chain"><figcaption>The result is a product of multipliers, which is why +20% then −20% is not zero.</figcaption></figure>
+
+**Try it:** Change the two strengths and the litres, press Pour, then try Hit a target.
+
+<figure class="fig" data-fig="@tp-mixture-vessel"><figcaption>The mixture always lands between the two strengths, nearer the one you used more of.</figcaption></figure>
+
 ## Practice set
 
 Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.

@@ -34,6 +34,10 @@ Split [a, b] into n strips of width h = (b − a)/n. Then
 \int_a^b f(x)\,dx = \lim_{n \to \infty} \sum_{r=1}^{n} h\, f(a + rh) = F(b) - F(a), \qquad F' = f
 ```
 
+Slide x to sweep out area under f, and watch the running total F(x) below.
+
+<figure class="fig" data-fig="@math-ftc-accumulator"><figcaption>Notice that F rises where f is positive and falls where it is negative, that the slope of F equals the height of f, and that changing the start a only shifts F up or down (the constant C).</figcaption></figure>
+
 <figure class="fig" data-fig="di-riemann"><figcaption>Rectangles below the axis count as negative. Increase n and watch the sum close in on F(b) − F(a), whichever height rule you choose.</figcaption></figure>
 
 <div class="meaning">
@@ -118,6 +122,10 @@ If r runs from 1 to 2n, the upper limit becomes 2.
 </div>
 
 Next: [Definite integrals and area: question types and traps](/learn/courses/engineering-entrance/definite-integrals-questions/).
+
+Choose a pair of curves and slide the number of strips.
+
+<figure class="fig" data-fig="@math-area-between"><figcaption>Notice that each strip has height (top − bottom), and that the strip total closes in on the exact area as the strips get thinner.</figcaption></figure>
 
 <div class="keypoints">
 

@@ -40,6 +40,10 @@ Most bad purchases come from choosing a machine type that cannot grow with your 
 | Mini PC | Shared, usually slow | Small, cheap, quiet | Slow unless it is an AI-class chip |
 | 128 GB AI box (DGX Spark, Ryzen AI Max class) | 128 GB unified | Very large models at a fixed price | Medium bandwidth; newer software |
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. How to choose
 
 1. Write down the largest model you need (Lesson 4.1 simulation).

@@ -35,6 +35,11 @@ sources:
 | Sign-off | Yours faithfully, (Sir or Madam) / Yours sincerely, (name) | Kind regards, / Best regards, | Best wishes, / Love, / Take care, |
 | Name | full name | full name or first name | first name |
 
+
+Test your linking words: tap the job each card does. A wrong tap tells you why.
+
+<figure class="fig" data-fig="@lang-linkers-sort"><figcaption>Notice that linking words work in families (adding, contrast, cause, result, example). Pick one from each family and you already sound organised.</figcaption></figure>
+
 ## 2. Phrases by purpose
 
 | Purpose | Formal | Informal |

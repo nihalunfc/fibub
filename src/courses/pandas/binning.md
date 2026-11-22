@@ -85,6 +85,11 @@ Watch it happen, one step at a time:
 
 <div class="problem" data-problem="pd-cut-band"></div>
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. Your turn
 
 ```python exercise data=customers.csv

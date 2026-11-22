@@ -45,6 +45,16 @@ The second form says what `$\kappa$` means: a stretch of the charge's history `$
 
 <figure class="fig" data-fig="retarded-time"><figcaption>Light spheres sent out by a moving charge. The sphere that passes through the observer now was emitted from the retarded position. Push β up and the spheres crowd ahead of the charge, so κ = 1 − n̂·β falls and the field ahead grows.</figcaption></figure>
 
+Step through, or slide the time since the push. Look at the kink in the field lines spreading out as a shell.
+
+<div class="steps" data-fig="@em-radiation-kink">
+<div class="step">The charge at rest: field lines straight out, strength falling as 1/r².</div>
+<div class="step">At t = 0 it is pushed. The news has only just started to spread.</div>
+<div class="step">A shell of radius ct has spread out. Inside it the lines point away from the new position, outside from the old one.</div>
+<div class="step">The kink has grown. At right angles to the push it is largest; along the push there is none.</div>
+<div class="step">The sideways field at the kink falls only as 1/r. This is the radiation field: it carries energy to infinity.</div>
+</div>
+
 ## 2. The Liénard-Wiechert fields
 
 Differentiating the Liénard-Wiechert potentials (the retarded time depends on position, which is where the work lies) gives, with `$\vec u = c\hat n - \vec v$`,
@@ -121,6 +131,10 @@ For a ring of radius `$R$`, `$a = v^2/R$`, and the energy lost per turn is `$P \
 A 3 GeV electron ring with a 10 m bending radius loses about 717 keV a turn, supplied by RF cavities. The light comes out in a forward cone of half-angle about `$1/\gamma$` (the `$\kappa^{-5}$` factor in the relativistic angular distribution), so an observer sees a flash lasting about `$R/(c\gamma^3)$` and a spectrum reaching up to the critical frequency `$\omega_c = \tfrac32\gamma^3c/R$`: from a 3 GeV ring with R = 10 m, ħω<sub>c</sub> ≈ 6 keV, X-rays.
 
 <div class="problem" data-problem="larmor-power"></div>
+
+Raise the speed and compare the two kinds of acceleration. Watch the lobes swing forward.
+
+<figure class="fig" data-fig="@em-beaming"><figcaption>At high speed the radiation is squeezed into a narrow forward cone of half-angle about 1/γ.</figcaption></figure>
 
 ## 4. Dipoles and antennas
 

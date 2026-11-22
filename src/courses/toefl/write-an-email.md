@@ -34,6 +34,11 @@ Write an Email is one of the three task types in the Writing section of the 2026
 
 ETS does not publish the exact time or a word limit for this task on the pages we checked; the test screen shows the time you have. For **practice**, this lesson uses **7 minutes** and a target of about **80 to 150 words**. These are fibub's practice settings, not official rules. They are enough to cover three points properly without padding.
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 2. What it really tests
 
 The email task checks whether you can use written English to get something done:

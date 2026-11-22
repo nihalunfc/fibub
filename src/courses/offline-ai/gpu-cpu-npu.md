@@ -44,6 +44,10 @@ Think of an office. The CPU is the manager: clever, does everything, but only a 
 
 </div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Unified memory
 
 On Apple Silicon Macs and the new AI boxes, the CPU, GPU and NPU share one large, fairly fast memory pool. A 64 GB Mac can give the graphics side about 48 GB, which no consumer graphics card offers. The trade: bandwidth is lower than a top graphics card, and reading prompts is slower. Lesson 4.5 compares the machine types.

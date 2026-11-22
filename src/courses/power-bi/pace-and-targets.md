@@ -33,6 +33,10 @@ On the March 2025 row, `YTD` covers 1 January to 31 March 2025. `YTD LY` shifts 
 
 Pace is a better headline than a single month's growth, because one bad month (a snowstorm, a holiday moving) doesn't swing it.
 
+Try it: pick a time function and move the month, and see which months are selected.
+
+<figure class="fig" data-fig="@biz-time-intel"><figcaption>Notice that YTD restarts every January and that last year's version is blank in the first year.</figcaption></figure>
+
 ## 3. Targets at a different grain
 
 Targets is monthly per store, with a `YearMonth` text column and no relationship to the daily Date table. Rather than a messy many-to-many relationship, move the filter inside the measure:

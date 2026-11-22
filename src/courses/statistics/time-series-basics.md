@@ -49,6 +49,11 @@ A **moving average** of k periods replaces each point with the mean of the last 
 - A trailing average **lags**: it reacts to a change about k/2 periods late. A centred one doesn't lag but needs future data, so it's for history only.
 - **Exponential smoothing** weights recent values more and reacts faster (next lesson).
 
+Slide the window size and switch between trailing and centred.
+
+<figure class="fig" data-fig="@data-rolling-window"><figcaption>Notice that a bigger window is smoother but later, and where the NaN values appear.</figcaption></figure>
+
+
 ## 3. Fair comparisons
 
 - **Week over week, same weekday:** this Tuesday vs last Tuesday.

@@ -51,6 +51,10 @@ A **partnership deed** records the ratio, interest, salaries and other terms. Wh
 
 <div class="problem" data-problem="interest-drawings"></div>
 
+**Try it:** Change the sliders and read how the profit or the ratio is divided.
+
+<figure class="fig" data-fig="@tp-profit-share" data-mode="share"><figcaption>The bars show the order of the steps: fixed items first, then the ratio.</figcaption></figure>
+
 ## 3. Fixed or fluctuating capital
 
 With **fixed capital**, the capital account holds only the capital put in or taken out; interest, salary, drawings and profit go to a separate **current account**. With **fluctuating capital**, everything goes through the one capital account, so its balance changes every year.

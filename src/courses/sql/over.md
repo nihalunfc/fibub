@@ -56,6 +56,11 @@ All 6 rows come back, and each carries the same total, 265. Press **Show how it 
 
 A *window function* is any function followed by OVER. SUM, AVG, COUNT, MIN and MAX all work this way, and later lessons add ranking and LAG.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. PARTITION BY: one window per group
 
 `PARTITION BY` splits the rows into groups, and each row's window holds only the rows of its own group. It is GROUP BY's idea without the squeezing.

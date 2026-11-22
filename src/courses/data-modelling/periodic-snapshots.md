@@ -43,6 +43,11 @@ A *periodic snapshot fact table* has one row for each thing (store, product, acc
 
 The textbook example is a nightly inventory snapshot: units on hand per product per store. Northbay's practice data has no stock table, so we'll build the same shape from sales and from membership.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Build a daily store sales snapshot
 
 The grain: **one row per store per day**. Step one is the frame of every store-day, a CROSS JOIN of all days with all stores. Step two attaches the day's totals with a LEFT JOIN, and COALESCE turns "no sales" into 0.

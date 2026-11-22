@@ -60,6 +60,10 @@ For silicon (`$m_e^* = 1.08$`, `$m_h^* = 0.56$`) at 300 K, `$E_i$` lies 12.7 meV
 
 Follow an n-type sample (donors `$N_d$`, binding energy `$E_d$`) as it warms:
 
+Heat the crystal in the picture and compare gaps to see why intrinsic carriers take over.
+
+<figure class="fig" data-fig="@sx-band-fill"><figcaption>Raise T: n<sub>i</sub> ∝ T<sup>3/2</sup>e<sup>−E<sub>g</sub>/2kT</sup> climbs steeply. A bigger gap needs a much higher temperature to matter.</figcaption></figure>
+
 <div class="steps">
 <div class="step">
 
@@ -91,6 +95,10 @@ When `$\tau$` depends on energy, the Hall coefficient picks up a factor `$r_H = 
 Current `$I$` along `$x$`, field `$B$` along `$z$`. Electrons drifting along `$-x$` and holes along `$+x$` are both pushed towards `$-y$`; the sign of the charge that piles up there, and of the Hall voltage, tells you which carrier you have.
 
 <figure class="fig" data-fig="hall-sign"><figcaption>A Hall bar with current to the right and B out of the page. Both electrons and holes are deflected to the bottom edge, so the bottom becomes negative for n-type and positive for p-type: the Hall voltage reverses sign. The readout gives V_H = IB/net for the chosen density. With both carriers present (b = μ_e/μ_h = 3) the electrons win even in equal numbers.</figcaption></figure>
+
+Watch the Hall field build up and settle in the next picture.
+
+<figure class="fig" data-fig="@sx-hall-bar"><figcaption>Charge piles up on one edge until the electric force cancels the magnetic force; then V<sub>H</sub> = IB/(nqt) stays. Change the carrier type and the sign flips.</figcaption></figure>
 
 For one carrier, `$V_H = IB/(net)$` and in a 2D sheet `$V_H = IB/n_se$`, independent of the sample size. With electrons and holes together, adding the two conductivity tensors gives, at weak field,
 

@@ -40,6 +40,10 @@ Here α is the angle the sum makes with A. The sum is largest (A + B) at θ = 0 
 
 **Components.** A vector of size A at angle θ to the x axis is `$\vec A = A\cos\theta\,\hat i + A\sin\theta\,\hat j$`. Unit vectors `$\hat i, \hat j, \hat k$` have size 1 and point along x, y, z. To add vectors, add their components. A unit vector along any vector is `$\hat A = \vec A / A$`.
 
+Drag the two round tips to change the vectors, then switch the view to see the parallelogram and the components. Notice that R = A + B is the same whichever way you draw it.
+
+<figure class="fig" data-fig="@mech-vector-add"><figcaption>Head to tail: B starts where A ends, and R runs from the start of A to the end of B. In the components view Rx and Ry are just the sums of the x parts and the y parts.</figcaption></figure>
+
 ## 2. Dot and cross products
 
 | Product | Formula | Result | Use |
@@ -94,6 +98,10 @@ Useful results: the range is greatest at 45°, `$R_{max} = u^2/g$`, where H = R/
 
 </div>
 
+Compare the two paths for the same launch, then change the ground to a slope and move the angle to find the best range with and without air.
+
+<figure class="fig" data-fig="@mech-projectile-drag"><figcaption>Air drag makes the path steeper on the way down and shortens the range, so the best angle falls below 45° for a level field. With the ground sloping down, the best angle rises.</figcaption></figure>
+
 ## 4. Relative velocity in two dimensions
 
 The velocity of A as seen by B is `$\vec v_{AB} = \vec v_A - \vec v_B$`, now as vectors. Three classic settings:
@@ -105,6 +113,10 @@ The velocity of A as seen by B is `$\vec v_{AB} = \vec v_A - \vec v_B$`, now as 
 <div class="problem" data-problem="mp-river"></div>
 
 **Closest approach (JEE Advanced).** For two bodies moving at constant velocities, sit on one of them. The other moves in a straight line with the relative velocity. The closest distance is the perpendicular distance from you to that line, and it happens after time = (component of the initial separation along the relative velocity) ÷ (relative speed).
+
+Try both pictures. On the river, set the heading to 0° (fastest crossing) and then press Straight across; in the rain picture, raise your walking speed and watch the tilt.
+
+<figure class="fig" data-fig="@mech-relative-velocity"><figcaption>Ground velocity is always the vector sum of velocity in the medium and velocity of the medium. Fastest crossing and shortest path are different headings.</figcaption></figure>
 
 ## 5. Circular motion
 

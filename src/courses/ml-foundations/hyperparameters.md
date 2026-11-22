@@ -54,6 +54,10 @@ A tiny grid search: two depths, two leaf sizes, 5-fold cross-validation, accurac
 
 <div class="problem" data-problem="hyperparameters-grid-count"></div>
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. Search strategies
 
 - **Grid search:** pick a few values for each setting and try every combination. Clear, and easy to show as a heat map. But the count multiplies: 5 settings with 5 values each is 3,125 combinations.
@@ -108,6 +112,18 @@ over a set of candidates `$\Lambda$` (a grid, or random draws).
 **"Keep tuning until the score stops going up."** After a point, the gains you see are luck: with 200 tries, some setting will score well on these particular folds by chance. If several settings are within the fold-to-fold spread, they are a tie. Pick the simplest and stop. The hours are better spent on better data or features.
 
 </div>
+
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
+
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 4. Worked example
 

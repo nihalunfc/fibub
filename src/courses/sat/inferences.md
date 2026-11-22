@@ -57,6 +57,10 @@ The route was probably used in some winters too. Not that it was used every wint
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="0"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## Practice set
 
 Original SAT-style questions with full explanations. Answer each one before you check it.

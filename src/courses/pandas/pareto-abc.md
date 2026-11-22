@@ -63,6 +63,11 @@ by.groupby('class', observed=True)['revenue'].agg(['size', 'sum']).assign(share=
 - **B**: the next 15 %. Normal care.
 - **C**: the last 5 %, often many items. Candidates for a smaller range or ordering less often.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. The Pareto curve
 
 <!--fig:pareto-curve-->

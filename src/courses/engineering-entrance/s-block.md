@@ -64,6 +64,10 @@ Hydrogen is made in the laboratory from zinc and dilute acid, and industrially b
 </dl>
 </div>
 
+**Try it:** pick each metal, watch the electron jump up (heat) and fall back (photon), and compare the colour of the flame and the position of its emission lines.
+
+<figure class="fig" data-fig="@chem-flame-test"><figcaption>The colour of a flame is the colour of the photon energy that electron falls: E = hc/λ. Na's yellow line near 589 nm is the strongest; Li's red and Ba's green are the ones to recognise in a test.</figcaption></figure>
+
 ## 3. Reactions of the metals
 
 - **With water**: 2M + 2H₂O → 2MOH + H₂, more violent down group 1 (Li calm, K catches fire). Group 2: Be does not react, Mg only with hot water or steam, Ca to Ba with cold water.

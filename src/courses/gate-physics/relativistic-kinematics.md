@@ -50,6 +50,10 @@ With the metric `$\eta = {\rm diag}(+1, -1, -1, -1)$`, the **scalar product** `$
 
 Here `$\tau$` is **proper time**, the time on a clock carried by the particle: `$d\tau = dt/\gamma$`.
 
+Raise the speed and watch the clock ticks, then switch to length contraction.
+
+<figure class="fig" data-fig="@mech-light-clock"><figcaption>Because light's speed is the same for everyone, a moving light clock ticks slower by γ in the lab. Lengths along the motion shrink by the same factor.</figcaption></figure>
+
 ## 2. Energy, momentum and invariant mass
 
 The square of the four-momentum gives the energy-momentum relation, and from it the speed:

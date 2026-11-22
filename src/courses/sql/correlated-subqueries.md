@@ -59,6 +59,11 @@ Two orders survive: 101 and 104. With the overall average ($44.17) you got four.
 
 Notice the two aliases, `o` and `o2`, for the same table, just like a self-join ([Lesson 4.6](/learn/courses/sql/self-join/)). Without them, `customer_id = customer_id` would compare the inner row with itself and always be true.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. Each row against its own group
 
 *Question:* which Kitchen and Electronics products cost more than the average for their own category?

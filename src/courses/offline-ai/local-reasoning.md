@@ -43,6 +43,10 @@ It is like a student doing rough work on scrap paper before writing the final an
 <div class="step"><p><b>The answer.</b> After <code>&lt;/think&gt;</code> comes the short reply: "12 pens cost $8." The engine shows only this part, or puts the thinking in a fold-out box.</p></div>
 </div>
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. Controlling it
 
 - **Ollama:** `ollama run <model> --think=false` (or `/set nothink` in the chat); in code, `think=False`. For gpt-oss, choose a level: `think="low"`, `"medium"` or `"high"`.

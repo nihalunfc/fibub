@@ -46,6 +46,11 @@ Task 5 checks three things at once:
 
 **Everyday analogy.** Think of choosing a restaurant with a friend who wants pizza when you want sushi. You would not say "Pizza is bad." You would say "Pizza sounds good, but the sushi place is closer and they have that lunch deal you liked." That small speech is exactly Task 5.
 
+
+Test your linking words: tap the job each card does. A wrong tap tells you why.
+
+<figure class="fig" data-fig="@lang-linkers-sort"><figcaption>Notice that linking words work in families (adding, contrast, cause, result, example). Pick one from each family and you already sound organised.</figcaption></figure>
+
 ## 3. Choosing on Screen 1
 
 Pick the option that gives you **more to say**, not the one you personally like. Look for the option with clear numbers and features you can turn into benefits. If both look equal, choose the first one and move on; the time you save is better spent planning on Screen 2. Remember that the second screen shows a different option from the other person, so you will compare your choice with that one.

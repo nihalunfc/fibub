@@ -31,6 +31,10 @@ sources:
 
 Let a plane wave `$\vec k$` scatter elastically into `$\vec k\,'$`. Two scatterers a lattice vector `$\vec R$` apart contribute with relative phase `$e^{-i\Delta\vec k\cdot\vec R}$`, where `$\Delta\vec k = \vec k\,' - \vec k$`. Summed over `$N$` cells this is large only when every phase is 1:
 
+Use the Ewald circle to see how many reflections you can reach at a given wavelength.
+
+<figure class="fig" data-fig="@sx-ewald"><figcaption>The Laue condition k′ − k = G means k′ ends on a reciprocal-lattice point; since |k′| = |k|, the point must be on the sphere of radius 1/λ about the tail of k.</figcaption></figure>
+
 ```math
 \Delta\vec k = \vec G \qquad\Longleftrightarrow\qquad \vec a_i\cdot\Delta\vec k = 2\pi h_i \ \ (i = 1, 2, 3)
 ```
@@ -87,6 +91,10 @@ It is `$4f^2$` when `$h + 2k = 3n$` and `$l$` even, **zero when `$h + 2k = 3n$` 
 Pick a structure and set the form factors in the figure: equal ions in rock salt reproduce KCl (looks simple cubic of half the size), equal ions in CsCl turn it into bcc.
 
 <figure class="fig" data-fig="allowed-reflections"><figcaption>Top: two layers of the reciprocal lattice in simple cubic indexing, each spot with area proportional to |F|² (rings: F = 0; colours: h+k+l even or odd). Bottom: the powder stick pattern with multiplicities.</figcaption></figure>
+
+See the extinction rules as missing lines in a powder pattern.
+
+<figure class="fig" data-fig="@sx-xrd-powder"><figcaption>Dashed lines are reflections the structure factor forbids. Compare sc, bcc and fcc for the same a and λ.</figcaption></figure>
 
 <div class="problem" data-problem="structure-factor-ab"></div>
 

@@ -48,6 +48,10 @@ Use the language buttons in the toy tokenizer in Lesson 3.1 to see the effect (e
 
 </div>
 
+Step through a few merges and watch letters become chunks.
+
+<figure class="fig" data-fig="@ai-bpe-merge"><figcaption>A tokeniser is built by repeatedly merging the commonest neighbouring pair. Common chunks become single tokens (cheap), rare words stay in several pieces (costly). This is why token counts differ from word counts.</figcaption></figure>
+
 ## 3. What to do about it
 
 - Measure, do not guess: Lesson 3.10 shows how to get exact counts from your engine.

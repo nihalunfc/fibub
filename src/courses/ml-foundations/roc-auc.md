@@ -54,6 +54,10 @@ Plot TPR going up against FPR going across. A threshold above every score flags 
 - **Random guessing** follows the diagonal. AUC = 0.5.
 - **Real models** bow towards the top-left corner. The more the two groups overlap, the closer the curve hugs the diagonal.
 
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
+
 ## 3. What AUC means
 
 AUC has a neat everyday meaning: it is the **chance that a randomly picked positive gets a higher score than a randomly picked negative**. So it measures how well the model **ranks** cases, whatever threshold you choose later. Rough guide: 0.5 to 0.7 weak, 0.7 to 0.8 fair, 0.8 to 0.9 good, above 0.9 excellent (and above 0.99, check for leakage, Lesson 7.4).

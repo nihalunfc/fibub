@@ -48,6 +48,10 @@ List action items with the person's name. If something is unclear, say so.
 
 Set it in LM Studio's system prompt box, in Ollama with `/set system ...` or a Modelfile `SYSTEM` line, or as the first message with `"role": "system"` in code (Lesson 11.2). It is sent again with every request, so it costs tokens every time. Keep it lean (Lesson 3.6).
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. Chat templates
 
 The model never sees a neat list of messages. Under the hood, the engine joins them into one long text with special markers between turns, for example `<start_of_turn>user ... <end_of_turn>`. Each model family learned its own markers in training. The **chat template** is the recipe that adds them. It ships inside modern GGUF files and is applied automatically.
@@ -100,6 +104,10 @@ for a system prompt of `$S$` tokens, `$R$` requests a day and `$D$` days.
 </div>
 
 <div class="problem" data-problem="system-prompts-monthly-tokens"></div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 4. Worked example
 

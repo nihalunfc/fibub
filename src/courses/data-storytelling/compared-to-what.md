@@ -52,6 +52,10 @@ Like-for-like (the 4 stores open in both years): 2025 = 78,295 + 57,838 + 50,727
 **Principle:** a comparison is a choice of question. State it in the label ("vs same month last year", "like-for-like") so the reader knows which question was answered.
 </details>
 
+Try it: change the sales figure, then switch what it is compared with.
+
+<figure class="fig" data-fig="@biz-baseline-toggle"><figcaption>Notice that the number never changes while the verdict does.</figcaption></figure>
+
 ## 4. Try it
 
 Set the measure to Sales and the period to **2025, full year**, then compare with **Last year**. Read the note under the card. Then try **February 2025** with **Target and last year**.

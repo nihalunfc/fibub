@@ -49,6 +49,8 @@ Here `$r$` is the **perpendicular distance from the axis**, not the distance fro
 
 </div>
 
+<figure class="fig" data-fig="@moi-shapes"><figcaption>Every standard body about every standard axis, spinning in 3D (drag to turn). Each dot is a bit of mass drawn by its r²; the readout adds the dots up and compares with the formula, which is exactly what the slicing below does with an integral.</figcaption></figure>
+
 ## 2. Computing I by slicing
 
 The strategy is always the same: cut the body into pieces whose moment of inertia you already know, and add them up.
@@ -114,6 +116,10 @@ It follows from `$x^2 + y^2 = r^2$` when every particle has `$z = 0$`. It is the
 **"The perpendicular axis theorem works for a sphere or a cube."** It does not. For a solid body `$I_x + I_y = I_z + 2\int z^2\,dm$`, which is larger than `$I_z$`. For a sphere, `$\tfrac25MR^2 + \tfrac25MR^2 \neq \tfrac25MR^2$`. Use it only for flat bodies, and use the parallel axis theorem only from the centre of mass.
 
 </div>
+
+Choose a shape, slide the axis away from the centre, then switch to the perpendicular-axis view.
+
+<figure class="fig" data-fig="@mech-axis-theorems"><figcaption>Parallel axis: I = I_cm + Md², a parabola with its minimum at the centre. Perpendicular axis: for a flat shape I_z = I_x + I_y. The values come from the dots, not from the formulas.</figcaption></figure>
 
 ## 5. Composite bodies and holes
 

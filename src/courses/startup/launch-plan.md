@@ -145,6 +145,10 @@ Runway is your cash divided by your net monthly burn (costs minus revenue), from
 
 <div class="problem" data-problem="launch-plan-runway"></div>
 
+Try it: set the share that moves on at each step, then add five points to one step at a time.
+
+<figure class="fig" data-fig="@biz-funnel"><figcaption>Notice that overall conversion is the three steps multiplied, so a weak early step limits everything after it.</figcaption></figure>
+
 ## 4. Worked example
 
 *Made-up founders.* Arjun and Priya plan a home-cooked meal subscription in Hyderabad, ₹3,000 a month per family. Their plan: 20 family interviews in month 1; a private limited company because they will raise money; SPICe+ with GST (they will deliver food, so FSSAI registration too); a co-founder agreement with 4-year vesting; a trademark in classes 29 and 43; a privacy notice and legal pages; a compliance calendar; and ₹6 lakh cash against ₹75,000 a month of costs: 8 months of runway. Their 90-day goal is 50 paying families. They download the India checklist and tick the first three items in week 2.

@@ -67,6 +67,11 @@ Loads fail halfway. Schedulers retry. Someone re-runs last Tuesday by hand. If a
 
 They cost a few bytes per row and answer most "what happened?" questions without digging through job logs.
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. A load log
 
 A **load log** (or audit table) has one row per load run: what it loaded, the window of data, how many rows it read, deleted and inserted, and whether it finished. Build it and a fact table with audit columns:

@@ -109,6 +109,10 @@ For a **non-volatile** solute in a dilute solution:
 
 **Worked example (level 3).** 18 g of glucose in 1 kg of water: m = 0.1 mol/kg, so ΔT_b = 0.52 × 0.1 = 0.052 K (boils at 100.052 °C) and ΔT_f = 1.86 × 0.1 = 0.186 K (freezes at −0.186 °C). The relative lowering of vapour pressure is x = 0.1/(0.1 + 55.5) = 0.0018.
 
+**Try it:** let the solution take in water, then push on the piston with a pressure larger than π (reverse osmosis).
+
+<figure class="fig" data-fig="@chem-osmosis"><figcaption>Water crosses the membrane toward the more concentrated side until the piston pressure matches π = CRT. Push harder than that and the flow reverses: this is how reverse-osmosis plants make fresh water from seawater.</figcaption></figure>
+
 ## 6. The van't Hoff factor: dissociation and association
 
 Electrolytes split into ions; some solutes stick together. Colligative properties count the **actual** particles, so every formula gets a factor i:

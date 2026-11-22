@@ -54,6 +54,10 @@ Picture a hill whose height is `$\phi(x, y)$`. At each point, the gradient is an
 \nabla\phi = \frac{\partial\phi}{\partial x}\hat i + \frac{\partial\phi}{\partial y}\hat j + \frac{\partial\phi}{\partial z}\hat k
 ```
 
+Drag the probe over the contour map and turn the direction slider.
+
+<figure class="fig" data-fig="@math-gradient-contour"><figcaption>Notice that the gradient arrow always stands at right angles to the contour, that it points uphill, and that the slope in your direction is largest when you face the same way.</figcaption></figure>
+
 The rate of change of `$\phi$` in any direction `$\hat n$` (a unit vector) is the **directional derivative** `$\nabla\phi\cdot\hat n$`. It is largest along `$\nabla\phi$` and zero along a level surface, so **the gradient is always perpendicular to the surfaces `$\phi$` = constant**. That single fact gives you normals to surfaces for free: the normal to `$x^2 + y^2 + z^2 = 9$` at any point is along `$\nabla(x^2+y^2+z^2) = 2\vec r$`, straight out from the centre.
 
 <div class="meaning">
@@ -78,6 +82,10 @@ The most common slip is step 2: forgetting to turn the direction into a unit vec
 ## 3. Divergence: how much flows out
 
 Now think of `$\vec F$` as the velocity of a fluid. Put a tiny imaginary box at a point and ask: **does more fluid leave the box than enter it?** The net outflow per unit volume is the divergence. Tap the picture below to move the probe square to different points and try each field.
+
+Drag the paddle wheel around, switch fields, and press Play to let dots drift with the flow.
+
+<figure class="fig" data-fig="@math-field-flow"><figcaption>Notice that the wheel turns only where the curl is not zero, and the dots spread out only where the divergence is positive.</figcaption></figure>
 
 <figure class="fig" data-fig="field-probe"><figcaption>The square measures net outflow (divergence); the paddle wheel measures spin (curl). The source spreads out everywhere; the rotation only spins.</figcaption></figure>
 

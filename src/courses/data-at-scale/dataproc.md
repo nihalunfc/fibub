@@ -51,6 +51,16 @@ Watch one night of an ephemeral cluster:
 <div class="step"><b>02:42, delete.</b> Airflow deletes the cluster. If anything had gone wrong, <code>--max-idle=15m</code> would have deleted it anyway after 15 idle minutes. The bill stops.</div>
 </div>
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. Run a job three ways
 
 ```bash

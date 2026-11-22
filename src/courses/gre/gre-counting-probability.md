@@ -64,6 +64,10 @@ sources:
 
 </div>
 
+**Try it:** Change the three probabilities and light up each event.
+
+<figure class="fig" data-fig="@tp-prob-tree"><figcaption>Multiply down a path, add across paths; A given B is one leaf divided by the total of B's leaves.</figcaption></figure>
+
 ## Practise: counting and probability
 
 <div class="qbank" data-bank="grad-quant" data-topics="counting,probability" data-exam="gre" data-mode="practice" data-n="10"></div>

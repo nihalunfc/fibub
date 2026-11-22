@@ -35,6 +35,10 @@ Text, speech, prices, sensor readings and clickstreams are **sequences**: their 
 
 The models so far take a fixed set of columns. A sentence or a price history has a variable length and an order. Counting words (Lesson 4.8) loses the order: "not good, actually bad" and "not bad, actually good" have the same words. Taking only the last few values of a time series ignores what came before.
 
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
+
 ## 3. A recurrent cell
 
 A **recurrent neural network** (RNN) reads one item at a time and keeps a **hidden state** `$\mathbf{h}$`, a running summary of everything so far. You do the same when reading: you don't hold every earlier word in mind, just a running sense of the story, updated word by word.
@@ -73,6 +77,10 @@ A one-number cell with w = 1 (weight on the new input) and u = 0.7 (weight on th
 </dl>
 
 </div>
+
+Try it: press Generate 20 with 1 word of memory, then with 2 words.
+
+<figure class="fig" data-fig="@ai-bigram-gen"><figcaption>A language model is a table of what tends to come next. More memory gives more sensible text but copies the source, because there is only one continuation. Real models do this with billions of numbers instead of a table.</figcaption></figure>
 
 ## 4. Fading memory, and the fixes
 

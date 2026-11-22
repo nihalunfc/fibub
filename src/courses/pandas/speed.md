@@ -75,6 +75,11 @@ Rules of thumb:
 - Text: the `.str` methods.
 - Only when nothing else fits: `apply`, and preferably on a groupby, not on every row.
 
+Drag the row count up, then tap columns to switch them to a smaller dtype.
+
+<figure class="fig" data-fig="@data-dtype-memory"><figcaption>Notice that number columns shrink a little but text columns shrink a lot when they become category or datetime.</figcaption></figure>
+
+
 ## 3. Memory: categories and fewer columns
 
 ```python data=orders.csv

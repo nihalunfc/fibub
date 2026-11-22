@@ -47,6 +47,10 @@ Every business, online or offline, goes through the same core: **register it, ge
 
 > **Key idea:** Think in activities, not channels. "Do I store customer data? Do I have premises? Do I ship? Do I sell abroad?" Each "yes" adds a rule set covered later in the course.
 
+Try it: slide the price up and the cost to make one down, and watch the break-even point move.
+
+<figure class="fig" data-fig="@biz-breakeven"><figcaption>Notice that break-even moves right when fixed costs rise and left when each sale leaves more money over.</figcaption></figure>
+
 ## 2. Where online businesses get caught out
 
 <div class="cc" data-cc="in">

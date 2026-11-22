@@ -69,6 +69,11 @@ ROW_NUMBER(r) = position of r in one chosen total order, so it is a bijection fr
 **Try it:** values 90, 60, 45, 45, 20, 5. What is DENSE_RANK of the 5? (Distinct values ahead: 90, 60, 45, 20, so 5.)
 </details>
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. Make ROW_NUMBER repeatable
 
 When two rows tie, which gets row number 3 is up to the database. It may change after an update or on another server. Add a *tie-breaker*, a second ORDER BY column that is unique, so the answer is always the same:

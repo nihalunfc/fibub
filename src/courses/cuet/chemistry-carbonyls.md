@@ -50,6 +50,10 @@ sources:
 
 Preparation in brief: Rosenmund (acid chloride + H₂/Pd-BaSO₄ → aldehyde), Etard (toluene + CrO₂Cl₂ → benzaldehyde), Stephen (nitrile + SnCl₂/HCl), ozonolysis of alkenes, and Friedel-Crafts acylation for aromatic ketones.
 
+**Try it:** Step through the addition to the carbonyl group.
+
+<figure class="fig" data-fig="@chem-carbonyl-addition"><figcaption>The carbon is positive, so the nucleophile attacks it.</figcaption></figure>
+
 ## 3. Acid strength
 
 Carboxylic acids are stronger than phenols because the carboxylate's charge is shared equally by two oxygens. Electron-pulling groups (−Cl, −NO₂, −F) near the COOH raise strength; electron-pushing alkyl groups lower it. Order: HCOOH &gt; CH₃COOH; FCH₂COOH &gt; ClCH₂COOH.

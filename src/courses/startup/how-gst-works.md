@@ -64,6 +64,20 @@ Three things follow from the chain:
 2. **Registered businesses are not out of pocket.** They get back the tax on what they buy (as long as they hold valid invoices).
 3. **Unregistered businesses are.** A small business that is not registered cannot claim credits, so the tax on its costs becomes a real cost. That is why business buyers prefer registered suppliers.
 
+Walk along a supply chain and watch who sends how much tax.
+
+<div class="steps" data-fig="@biz-gst-chain">
+
+<div class="step">Nothing sold yet.</div>
+
+<div class="step">Grower: sells for $100 plus $10 tax, sends $10.</div>
+
+<div class="step">Maker: buys for $100 (paid $10), sells for $160 (charges $16), sends only $6.</div>
+
+<div class="step">Shop: buys for $160, sells for $250, sends $9. The total is $25, which is 10% of $250.</div>
+
+</div>
+
 ## 3. Retail sales tax: the US way
 
 The USA has no national GST or VAT. Instead, 45 states and Washington DC (and thousands of cities and counties) charge **sales tax** on retail sales to the end user. Businesses that buy to resell give the seller a **resale certificate** and pay no tax; the shop charges the full rate at the till. Equipment a business uses itself is usually taxable to the business, with no credit to claim.

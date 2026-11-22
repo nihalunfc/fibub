@@ -62,6 +62,11 @@ SELECT 'web', 2, 'Omar'
 
 `customer_id` alone can't tell Hiro from Tess. The pair (source, customer_id) can, and the warehouse then gives each pair one simple number.
 
+Switch between Type 1, 2 and 3 and read the sales-by-city report each time.
+
+<figure class="fig" data-fig="@data-scd-types"><figcaption>Notice which method keeps last year's sales in Pune and which rewrites history.</figcaption></figure>
+
+
 ## 3. Making keys with ROW_NUMBER
 
 `ROW_NUMBER() OVER (ORDER BY ...)` numbers rows 1, 2, 3 in the order you choose. That is all a surrogate key needs. Press **Run**, then **Show how it runs**, and notice that the key has nothing to do with the id: sorting by name gives Eli key 1.

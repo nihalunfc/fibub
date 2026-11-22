@@ -47,6 +47,11 @@ On this page the scenes are described in words, because the skill is the same: n
 - **Listenability:** present continuous used correctly (is carrying, are waiting), place phrases, a mix of short and longer sentences.
 - **Task Fulfillment:** describe the scene, not your opinion of it; cover the main parts of the picture; use most of the 60 seconds.
 
+
+Tap a word on the left, then the word it usually goes with on the right.
+
+<figure class="fig" data-fig="@lang-collocation-match"><figcaption>Notice that these pairs are fixed by habit, not logic, so learn them as whole chunks.</figcaption></figure>
+
 ## 3. The method: overview, route, people, close
 
 <div class="steps">

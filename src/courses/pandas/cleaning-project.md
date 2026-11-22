@@ -50,6 +50,11 @@ Problems spotted: awkward column names, exact duplicate rows, store names with s
 7. **Rules**: drop or flag rows that break them.
 8. **Check** with assertions, and **log** every step.
 
+Try each way of handling the three missing values and watch the mean line.
+
+<figure class="fig" data-fig="@data-missing-fill"><figcaption>Notice that every fill changes the picture a little, and zero is the worst because it invents data.</figcaption></figure>
+
+
 ## 3. One cleaning function
 
 ```python data=orders_messy.csv

@@ -40,6 +40,10 @@ World population was about 2 billion in 1900 and about 6 billion by 2000. India'
 
 An ideal contraceptive is **user-friendly, easily available, effective, reversible, with few or no side effects, and does not interfere with sexual drive or the act**.
 
+Slide the number of children per woman and the life expectancy and watch the shape of the pyramid change.
+
+<figure class="fig" data-fig="@bio-age-pyramid"><figcaption>A wide base (many children) means fast growth; sides that are nearly straight mean a stable population (about 2.1 children per woman); a narrow base means decline.</figcaption></figure>
+
 ## 3. Contraceptive methods
 
 Choose a method below and see which link in the chain to pregnancy it breaks.
@@ -96,6 +100,16 @@ Fertilisation inside the body (in vivo) can also be followed by embryo transfer.
 <dt>Not curable</dt><dd>hepatitis B, genital herpes, HIV</dd>
 <dt>Physical meaning</dt><dd>Every method either keeps the gametes apart, stops one being made or released, or makes the uterus refuse the embryo. Ask which, and the question answers itself.</dd>
 </dl>
+</div>
+
+ART transfers an early embryo, so it helps to know the stages. Step from zygote to implantation.
+
+<div class="steps" data-fig="@bio-embryo-stages">
+<div class="step"><b>Zygote.</b> In IVF this fertilisation happens in the laboratory.</div>
+<div class="step"><b>Cleavage.</b> The embryo divides to 2 and 4 cells. ZIFT transfers a zygote or up to 8 blastomeres into the fallopian tube.</div>
+<div class="step"><b>Morula.</b> 8 to 16 cells.</div>
+<div class="step"><b>Blastocyst.</b> An embryo with more than 8 blastomeres is placed in the uterus (IUT).</div>
+<div class="step"><b>Implantation.</b> The embryo attaches to the endometrium and pregnancy begins.</div>
 </div>
 
 <div class="keypoints">

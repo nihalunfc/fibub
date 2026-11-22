@@ -80,6 +80,10 @@ The stopping potential `$V_0$` is the retarding voltage that just stops the fast
 
 <figure class="fig" data-fig="photoelectric-line"><figcaption>Stopping potential against frequency for three metals. Every line has the same slope, h/e; the work function only moves the line sideways. Below its threshold a metal emits nothing at all.</figcaption></figure>
 
+Run the photocell: change the metal, the wavelength and the brightness, then push the collector voltage negative until the current stops.
+
+<figure class="fig" data-fig="@qm-photo-gun"><figcaption>Brightness changes how many electrons leave; colour changes how fast. Below the threshold wavelength nothing comes out, and the current stops at −V₀ = −(hf − φ)/e.</figcaption></figure>
+
 Try it: pick zinc and slide the frequency down past `$10.4\times10^{14}$` Hz. The readout says "no electrons", even though caesium, with its smaller work function, still emits. Millikan used exactly this straight line (1916) to measure `$h$`, trying hard to prove Einstein wrong and finding him right.
 
 **Worked example.** Light of 300 nm falls on sodium (`$\phi = 2.3$` eV). Find the stopping potential and the threshold wavelength.
@@ -128,6 +132,10 @@ Sunlight (about 1.36 kW/m² above the atmosphere) presses on a mirror with only 
 ## 4. Compton scattering: photons collide like billiard balls
 
 In 1923 Compton sent X-rays of a single wavelength into graphite and looked at what came out at an angle `$\theta$`. Besides X-rays of the original wavelength, he found a second peak at a **longer** wavelength, shifted more at larger angles. A classical wave would make the electrons vibrate at its own frequency and re-radiate at that same frequency: no shift.
+
+Slide the scattering angle and the photon energy and watch the photon bounce off the electron.
+
+<figure class="fig" data-fig="@qm-compton-geometry"><figcaption>The wavelength grows by λc(1 − cos θ) whatever the photon energy, but you only see it when λ is comparable with 2.4 pm. The three momentum arrows always close into a triangle.</figcaption></figure>
 
 Treat the X-ray as a particle of energy `$hc/\lambda$` and momentum `$h/\lambda$` hitting a free electron at rest, and use relativistic energy and momentum conservation:
 

@@ -38,6 +38,10 @@ Mobility `$\mu = v_d/E = e\tau/m$` is drift speed per unit field. Drift speeds a
 
 <div class="problem" data-problem="ce-drift"></div>
 
+Slide the current from zero upward. At zero the electrons only jiggle; with a field they also creep along. Compare the real drift speed in the readout.
+
+<figure class="fig" data-fig="@em-drift"><figcaption>The random thermal motion is enormous (about 10⁶ m/s) compared with the drift (a fraction of a millimetre per second), yet the drift is the current.</figcaption></figure>
+
 ## 2. Ohm's law, resistance and resistivity
 
 For metals at a fixed temperature, V = IR. Resistance depends on shape and material: `$R = \dfrac{\rho L}{A}$`, where the resistivity `$\rho = \dfrac{m}{ne^2\tau}$` belongs to the material alone.
@@ -75,6 +79,10 @@ A real cell has emf E and internal resistance r. Current `$I = \dfrac{E}{R + r}$
 
 Method: mark unknown currents with arrows (guess directions; a negative answer just means the other way), use the junction law to reduce unknowns, then write one loop equation per remaining unknown.
 
+Pick a loop and press play: a walker goes round it while the graph records the potential. Change the batteries and resistors and check that the sum round the loop is always zero.
+
+<figure class="fig" data-fig="@em-kirchhoff"><figcaption>The potential climbs across each battery and falls across each resistor, and returns to its start: that is Kirchhoff's loop rule.</figcaption></figure>
+
 ## 6. Bridges and the potentiometer
 
 A **Wheatstone bridge** P, Q, R, S is balanced (no current through the galvanometer) when `$\dfrac PQ = \dfrac RS$`. The **metre bridge** uses a 100 cm wire for two arms: with X in the left gap, S in the right and balance at l cm, `$X = S\,\dfrac{l}{100 - l}$`. Swapping X and S and averaging removes end errors; balance near the middle gives the least error.
@@ -82,6 +90,10 @@ A **Wheatstone bridge** P, Q, R, S is balanced (no current through the galvanome
 <div class="problem" data-problem="ce-metre-bridge"></div>
 
 A **potentiometer** is a long uniform wire carrying a steady current, so potential falls evenly along it (potential gradient k volts per cm). At balance no current flows from the cell being tested, so it measures the **emf** itself: `$\dfrac{E_1}{E_2} = \dfrac{l_1}{l_2}$`. Internal resistance: `$r = R\left(\dfrac{l_1}{l_2} - 1\right)$`, with l₁ the open-circuit and l₂ the shunted balance length.
+
+Slide the resistances (or the jockey on the metre wire) until the galvanometer reads zero, then see which ratio is equal.
+
+<figure class="fig" data-fig="@em-bridge"><figcaption>At balance V_B = V_D, so no current flows through G and P/Q = R/S (or R/X = l/(100 − l) for the meter bridge).</figcaption></figure>
 
 ## 7. Meters, power and heating
 

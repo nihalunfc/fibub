@@ -71,6 +71,10 @@ m - M = 5\log_{10}\left(\frac{d}{10\ \text{pc}}\right) \quad\Longleftrightarrow\
 **Try it:** the Sun at 1 AU: `$F = 3.83\times10^{26}/(4\pi\times(1.496\times10^{11})^2) = 1361$` W/m², the solar constant.
 </details>
 
+Choose a star and slide its distance. Watch where the black curve crosses the naked-eye, binocular and telescope lines.
+
+<figure class="fig" data-fig="@astro-magnitude-reach"><figcaption>Every 5 magnitudes is a factor 100 in brightness and the apparent magnitude gets 5 larger for every ten times the distance. A star's absolute magnitude (its brightness at 10 pc) tells you how far away it can still be seen.</figcaption></figure>
+
 ## 3. What it means physically
 
 Nothing is lost on the way. The light is just shared out over a bigger and bigger sphere, so each square metre (or each telescope mirror) catches a smaller share. That is why a distance-free number like luminosity, or absolute magnitude, is the fair way to compare stars. If you know a star's true power from its type (Lesson 3.2), its faintness tells you how far away it is.

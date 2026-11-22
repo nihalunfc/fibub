@@ -76,6 +76,10 @@ t \approx 10^{10}\ \text{yr}\times\frac{M/M_\odot}{L/L_\odot} \approx 10^{10}\ \
 ```
 </details>
 
+Pick a mass and press Play or slide the stage. The dot follows the star's track across the HR diagram.
+
+<figure class="fig" data-fig="@astro-hr-evolve"><figcaption>A star spends most of its life on the main sequence, then swells into a giant as hydrogen runs out. The 20 solar-mass star lives about a million times faster than a red dwarf, and its end is a supernova; the 1 and 5 solar-mass stars end as white dwarfs. Tracks are schematic.</figcaption></figure>
+
 ## 3. What it means physically
 
 A star controls itself. If its core gets too hot, fusion speeds up, the extra heat makes the core expand and cool, and fusion slows again. A heavier star needs more pressure to hold up its greater weight, so its core is hotter and denser; fusion rates rise very steeply with temperature, so it burns far faster than its extra fuel can make up for. That is why the brightest stars in the sky are short-lived.

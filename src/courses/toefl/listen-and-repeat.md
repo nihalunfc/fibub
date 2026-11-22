@@ -36,6 +36,11 @@ ETS does not publish the exact time per sentence on the pages we checked, so thi
 
 Because the test adapts and later items can be harder, expect sentences to vary in length. Short sentences test clear sounds. Longer ones test whether you can hold a whole idea in your head.
 
+
+Pick a sentence and press Play: the ball lands on every stressed syllable.
+
+<figure class="fig" data-fig="@lang-stress-rhythm"><figcaption>Notice that the beats stay evenly spaced however many weak syllables sit between them, so the small words get squeezed.</figcaption></figure>
+
 ## 2. What it really tests
 
 It looks like a memory game. It is really a **listening and pronunciation** task.
@@ -45,6 +50,11 @@ It looks like a memory game. It is really a **listening and pronunciation** task
 3. **Clear, natural speech.** Stress on the right words, smooth linking, endings you can hear and a natural fall at the end of a statement.
 
 Everyday analogy: a waiter takes an order for a table of four without writing it down. They do not memorise sounds; they remember "two pastas, one salad, one soup, no onions". Meaning is much easier to carry than noise.
+
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
 
 ## 3. The method
 

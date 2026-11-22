@@ -56,6 +56,11 @@ from daily;
 - `rows between 6 preceding and current row` counts **rows**. `range between interval 6 days preceding and current row` counts **time**. They give different answers as soon as a day is missing, which is the next topic.
 - `nullif(x, 0)` avoids dividing by zero.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. Date spines: zero or missing?
 
 A moving average over rows silently skips days with no rows. Build a **spine**, every restaurant times every date, and left-join the data to it. Then decide for each empty cell: closed (exclude), not received (flag it), or genuinely zero sales (0).

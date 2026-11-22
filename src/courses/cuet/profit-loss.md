@@ -62,6 +62,10 @@ sources:
 
 </div>
 
+**Try it:** Set three percent changes in a row and compare the result with the sum of the percents.
+
+<figure class="fig" data-fig="@tp-percent-chain"><figcaption>The result is a product of multipliers, which is why +20% then −20% is not zero.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="cuet-general-test" data-topics="profit-loss" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -42,6 +42,10 @@ Better still, cut along the document's own seams: headings, then paragraphs, and
 
 <!--fig:chunk-size-->
 
+Try it: choose an analogy, then drag one word and watch the answer move.
+
+<figure class="fig" data-fig="@ai-embedding-analogy"><figcaption>Directions in an embedding space carry meaning: the step from man to king is much like the step from woman to queen. Words are points; meaning is geometry, so nearness and arrows can be measured.</figcaption></figure>
+
 ## 3. A chunker in ten lines
 
 Save this as `chunker.py` in a new folder called `askdocs`. The next lessons build the rest of the project beside it.
@@ -106,6 +110,18 @@ It counts words, not tokens, because that needs no tokenizer; 300 English words 
 **"Bigger chunks give the model more context, so they are always better."** One vector has to stand for the whole chunk. Mix ten topics into it and it matches none of them well, and five big chunks may not fit in your context window. Test sizes with your own questions (Lesson 12.7); 200 to 500 words is a good start.
 
 </div>
+
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
+
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 4. Worked example
 

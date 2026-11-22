@@ -48,6 +48,20 @@ Even with perfect charts, a dashboard fails if the headline numbers are buried a
 **Physical meaning:** your eyes jump (saccades) and stop (fixations) a few times a second. In the first five seconds you get maybe 10 to 15 stops. Make sure they land on the answers.
 </details>
 
+Step through a dashboard from the top block to the bottom.
+
+<div class="steps" data-fig="@biz-dashboard-arc">
+
+<div class="step">Headline: what happened?</div>
+
+<div class="step">Trend: better or worse?</div>
+
+<div class="step">Breakdown: where is it coming from?</div>
+
+<div class="step">Action: what do we do?</div>
+
+</div>
+
 ## 4. The five-second test
 
 Show the page to someone for five seconds, hide it, and ask: "What was it about? What was the main number? Is it good or bad?" If they can't say, change the layout or the design, then test again. It's the quickest usability test there is, and you can do it with any colleague.

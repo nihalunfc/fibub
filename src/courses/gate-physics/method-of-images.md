@@ -39,6 +39,15 @@ The method rests on the uniqueness theorem from [boundary value problems](/learn
 
 Forces, energies and induced charge densities then follow from the image picture, with one caution: the energy is **half** the naive `$q\,V_{\rm image}$`, because the image moves and grows as the real charge is brought in.
 
+Step through the method of images, or press the numbers. Change d to see the induced charge and the force change.
+
+<div class="steps" data-fig="@em-image-steps">
+<div class="step">A charge above a grounded conducting plane pulls opposite charge up out of the metal.</div>
+<div class="step">Replace the metal by an image charge of −q at the same depth below. Above the plane the field does not change.</div>
+<div class="step">Every point of the plane is equally far from +q and −q, so V = 0 there and the field meets it at right angles.</div>
+<div class="step">The field at the surface gives the induced charge σ = −qd/2π(ρ² + d²)^(3/2); the total is −q. The force is that of the image.</div>
+</div>
+
 ## 2. Spheres
 
 **Where the sphere image comes from.** Take a charge `$q$` at distance `$d$` from the centre and a trial image `$q'$` at distance `$b$` on the same ray. A point on the sphere sees them at distances `$r_1$` and `$r_2$`; the sphere is at zero potential if `$q/r_1 + q'/r_2 = 0$`, i.e. if `$r_2/r_1$` is the same for every point of the sphere. The locus of points with a fixed distance ratio from two points is a sphere (Apollonius), and it is our sphere of radius `$R$` exactly when `$b = R^2/d$` (the two points are *inverse* in the sphere) and the ratio is `$R/d$`. So

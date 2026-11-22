@@ -57,6 +57,11 @@ The parts get harder as you go. Part 1 often asks you to write names, numbers an
 
 **Question types:** True / False / Not Given, Yes / No / Not Given, matching headings, matching information to paragraphs, matching features (such as people to ideas), matching sentence endings, sentence, summary, note, table and flow-chart completion, diagram labels, multiple choice and short answers.
 
+
+Pick a paper and press Play: the clock runs one minute per second.
+
+<figure class="fig" data-fig="@lang-reading-pacer"><figcaption>Notice which part you should be on at each minute. If you are behind at a checkpoint, skip and come back.</figcaption></figure>
+
 ## 3. Writing: 60 minutes, 2 tasks
 
 | | Task 1 | Task 2 |

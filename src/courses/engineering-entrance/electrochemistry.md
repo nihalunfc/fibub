@@ -35,6 +35,10 @@ Cell notation puts the anode on the left: **Zn(s) | Zn²⁺(aq) || Cu²⁺(aq) |
 
 Memory aid: **An Ox, Red Cat** (anode oxidation, reduction cathode). In a galvanic cell the anode is **negative**; in an electrolytic cell it is **positive**. Oxidation always happens at the anode in both.
 
+**Try it:** press Run and watch the electrons, the salt-bridge ions and the voltmeter. Then slide [Zn²⁺] and [Cu²⁺] yourself and see how E changes.
+
+<figure class="fig" data-fig="@chem-galvanic-cell"><figcaption>Electrons flow from Zn (anode, −) through the wire to Cu (cathode, +); anions in the salt bridge drift toward the Zn half-cell and cations toward the Cu half-cell. As the cell is used, [Zn²⁺] rises and [Cu²⁺] falls, so E drops.</figcaption></figure>
+
 ## 2. Electrode potentials
 
 A single electrode's potential cannot be measured alone, so all are measured against the **standard hydrogen electrode** (SHE: Pt, H₂ at 1 bar, H⁺ at 1 M), given 0 V by agreement. **Standard reduction potentials** E° (298 K, 1 M, 1 bar) form the **electrochemical series**:

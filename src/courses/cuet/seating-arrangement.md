@@ -55,6 +55,10 @@ Total in a row = position from left + position from right − 1. Between two peo
 
 </div>
 
+**Try it:** Place people in seats and watch the counter of orders that still obey every rule.
+
+<figure class="fig" data-fig="@tp-logic-board"><figcaption>When the count reaches one, the rest of the board is forced.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="cuet-general-test" data-topics="seating-arrangement" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -42,6 +42,16 @@ python -c "import pyspark; print(pyspark.__version__)"
 
 No Java, or a locked-down work laptop? Use a free Google Colab notebook and run `!pip install pyspark`, or another option from [Free sandboxes](/learn/courses/data-at-scale/free-sandboxes/).
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. Make some data
 
 ```python

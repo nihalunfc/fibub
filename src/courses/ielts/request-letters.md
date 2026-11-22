@@ -45,6 +45,11 @@ sources:
 
 Indirect questions are polite too: *Could you tell me **when the course starts**?* (not "when does the course start").
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 3. Model answer: semi-formal request
 
 Task: *You need to take a week off work next month. Write a letter to your manager. In your letter, explain why you need the time off, say what dates you need, and explain how your work will be covered while you are away.* Begin: Dear Ms Rahman,

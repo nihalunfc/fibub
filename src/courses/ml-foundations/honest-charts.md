@@ -52,6 +52,10 @@ Here is how a box plot is built from eight waiting times, in minutes:
 
 <div class="problem" data-problem="honest-charts-fence"></div>
 
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
+
 ## 3. Four charts worth knowing
 
 | Chart | Shows | Use it for |

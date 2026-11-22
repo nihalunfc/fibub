@@ -79,6 +79,10 @@ Aristarchus measured about 87° and concluded that the Sun is about 19 times far
 
 </div>
 
+Drag the Moon's age to any phase, then turn the Earth with the time slider (or press Play). The flag is you.
+
+<figure class="fig" data-fig="@astro-moon-clock"><figcaption>Full Moon rises as the Sun sets and is high at midnight; a first-quarter Moon is high at sunset and sets around midnight. The phase decides when the Moon is up, and each night it rises about 50 minutes later.</figcaption></figure>
+
 ## 3. The Moon's distance, from an eclipse
 
 Aristarchus also watched lunar eclipses. The Earth's shadow on the Moon is curved, and he could compare the size of the shadow with the size of the Moon. Together with Eratosthenes' Earth size, that put the Moon at about 60 Earth radii away, close to the modern 60.3. This "60" will matter again in Lesson 1.5, when Newton uses it to show that the same gravity pulls apples and the Moon.

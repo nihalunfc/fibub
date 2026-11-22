@@ -58,6 +58,11 @@ The derivatives you need, all from `$F = -kT\ln Z$`:
 
 **Factorisation.** If the energy is a sum of independent parts, `$Z$` is a product, and `$\ln Z$`, `$F$`, `$U$`, `$S$`, `$C$` are sums. `$N$` independent distinguishable units (spins on lattice sites): `$Z = Z_1^N$`. A dilute gas of identical molecules: `$Z = Z_1^N/N!$`, with `$Z_1 = Z_{\rm trans}Z_{\rm rot}Z_{\rm vib}Z_{\rm el}$`. Only `$Z_{\rm trans} = V/\lambda^3$` depends on volume, so internal motions never change `$PV = NkT$` ([lesson 5.3](/learn/courses/gate-physics/classical-gas-equipartition/)).
 
+Move the temperature and watch Z and the occupation of the levels change; it is the partition function in pictures.
+
+<figure class="fig" data-fig="@wt-boltzmann-levels"><figcaption>Every thermodynamic quantity comes from the level populations p_i = e^(−E_i/kT)/Z. Notice that at low T only the ground level matters and at high T all levels fill, so ⟨E⟩ rises.</figcaption></figure>
+
+
 ## 2. The two-level system and the Schottky anomaly
 
 Levels `$0$` (degeneracy 1) and `$\varepsilon$` (degeneracy `$g$`), `$x = \varepsilon/kT$`:

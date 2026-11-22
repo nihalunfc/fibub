@@ -105,6 +105,11 @@ Gurpreet Wilson (customer 8) was Bronze under key 8 until 1 July 2025 and is Sil
 
 <!--fig:as-was-as-is-->
 
+Switch between Type 1, 2 and 3 and read the sales-by-city report each time.
+
+<figure class="fig" data-fig="@data-scd-types"><figcaption>Notice which method keeps last year's sales in Pune and which rewrites history.</figcaption></figure>
+
+
 ## 3. As it was
 
 The fact already stores the key of the version that was true on the order date. So "as it was" is just the ordinary join:

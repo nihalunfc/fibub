@@ -37,6 +37,11 @@ A store that sells 100 units every single day and a store that sells 40 one day 
 
 Largest minus smallest. Easy, but it depends on only two values, the two most unusual ones, and it grows as you collect more data. Use it to show limits ("deliveries took between 18 and 64 minutes"), not to compare spreads.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. Interquartile range (IQR)
 
 Sort the data and cut it into four equal parts. The cut points are the **quartiles**: Q1 (25 % of values below), Q2 (the median) and Q3 (75 % below). The IQR is

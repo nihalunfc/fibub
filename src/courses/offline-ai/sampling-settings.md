@@ -55,6 +55,10 @@ Think of a waiter suggesting a dish. Temperature is how adventurous the waiter i
 
 <!--fig:next-word-->
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. Starting points
 
 | Job | Temperature | Other |
@@ -72,6 +76,10 @@ Always check the model card first. Makers publish recommended settings, and they
 **"Temperature 0 makes the model tell the truth."** It only makes the model repeat its single most likely answer. If that answer is wrong, you get the same wrong answer every time. Low temperature buys consistency, not accuracy. For facts, give the model the source text (Lesson 10.5 and Module 12).
 
 </div>
+
+Try it: drag the score bars, press Add 2 to all, and move the temperature.
+
+<figure class="fig" data-fig="@ai-softmax-lab"><figcaption>Softmax turns any scores into probabilities that are positive and add to 100%. Adding the same number to every score changes nothing; a low temperature makes the leader win nearly everything and a high one flattens the odds.</figcaption></figure>
 
 ## 4. Where to set them
 

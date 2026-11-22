@@ -72,6 +72,10 @@ There are n + 1 terms. Coefficients equally far from the two ends are equal, bec
 
 The greatest **coefficient** of `$(a+b)^n$` is the middle one: `$\binom n{n/2}$` for even n, `$\binom n{(n-1)/2}$` for odd n.
 
+Slide n and x and watch the bar for each term ⁿCₖxᵏ of (1 + x)ⁿ.
+
+<figure class="fig" data-fig="@math-binomial-terms"><figcaption>Notice that the tallest bar (the greatest term) moves right as x grows, and that with x = 1 the bars are the coefficients and add up to 2ⁿ.</figcaption></figure>
+
 The greatest **term** depends on the actual values. For `$(1+x)^n$` with x > 0, compare consecutive terms:
 
 ```math

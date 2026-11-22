@@ -52,6 +52,11 @@ N = 2\cdot\frac{V}{(2\pi)^3}\cdot\frac43\pi k_F^3 \;\Rightarrow\; k_F = (3\pi^2n
 
 <div class="problem" data-problem="stat-fermi-energy"></div>
 
+Fill the lowest states with two electrons each and watch the Fermi sphere grow.
+
+<div class="steps" data-fig="@wt-fermi-sphere"><div class="step"><b>2 electrons.</b> One state (n = 0) holds both, spin up and down. The Pauli principle forbids a third.</div><div class="step"><b>8 electrons.</b> The next shell of states fills; each grid point still holds just two electrons.</div><div class="step"><b>40 electrons.</b> The filled points form a sphere. The edge is the Fermi surface and its energy is E_F.</div><div class="step"><b>200 electrons.</b> k_F = (3π²n)^(1/3): the radius grows only as N^(1/3), so E_F ∝ n^(2/3). The density of states plot shows the filled area up to E_F.</div></div>
+
+
 ## 2. Energy, pressure and stiffness at T = 0
 
 With `$g(E) \propto \sqrt E$` filled to `$E_F$`:

@@ -45,6 +45,11 @@ Drag B's top value to 300. The mean difference balloons, yet the t-test's p-valu
 
 **Mann-Whitney U, in words:** pool both groups and rank everything. If the groups are alike, their average ranks should be similar. U counts, over all pairs (one from each group), how often a value from one group beats one from the other. U / (n₁n₂) is directly "the chance a random B beats a random A", a handy effect size.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. What they test (careful)
 
 Rank tests don't test means. Mann-Whitney tests whether values in one group tend to be larger than in the other (**stochastic dominance**). If the two groups have the same shape and spread, that's the same as a difference in medians. Report medians and the "probability of superiority", not means.

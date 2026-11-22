@@ -85,6 +85,11 @@ Watch the join above run, one step at a time (the live box's **Show how it runs*
 
 <div class="problem" data-problem="sql-inner-join-rows"></div>
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. When the columns share a name: USING
 
 If both tables call the key column the same thing, `USING` is a shorter way to say it. In Northbay, `orders.store_id` and `stores.store_id` match:

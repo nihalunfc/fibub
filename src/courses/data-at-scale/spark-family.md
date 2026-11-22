@@ -48,6 +48,16 @@ sources:
 
 Think of vehicles. DuckDB and Polars are a fast car: perfect for one person and most trips. Spark is a fleet of lorries: overkill for groceries, essential for moving a warehouse. Flink is a motorbike courier: carries small things constantly and never stops. Trino is a taxi that comes to you: it goes to where the data already is. Ray is a team of specialist movers for awkward heavy items such as model training.
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. Choosing an engine: four questions
 
 1. **How big?** Up to roughly 100 GB: DuckDB or Polars on one machine. Bigger, or growing fast: Spark, Dataflow, or the warehouse itself.

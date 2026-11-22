@@ -80,6 +80,10 @@ Since P is on the circle, `$\sin^2\theta + \cos^2\theta = 1$`. Dividing by `$\co
 
 Rules for periods: sin(kx) has period 2π/|k|. |sin x| and sin²x have period π, because the negative half becomes a copy of the positive half. The period of a sum is the LCM of the periods, but check for a smaller one: |sin x| + |cos x| has period π/2, not π.
 
+Press Play and watch the point on the circle draw the wave, then change the amplitude, ω and phase.
+
+<figure class="fig" data-fig="@math-wave-trace"><figcaption>Notice that the height of the point is the sine value, that a bigger ω squeezes the wave (period 2π/ω), and that cosine is just sine started a quarter turn earlier.</figcaption></figure>
+
 ## 4. Compound angles
 
 ```math

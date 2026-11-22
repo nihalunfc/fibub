@@ -97,6 +97,10 @@ Let d be the distance between the centres and r₁, r₂ the radii.
 | touching from inside | d = \|r₁ − r₂\| | 1 |
 | one inside the other | d < \|r₁ − r₂\| | 0 |
 
+Slide the distance between the centres and the two radii and count the common tangents.
+
+<figure class="fig" data-fig="@math-circle-pair"><figcaption>Notice how d compared with r₁ + r₂ and |r₁ − r₂| decides the case: 4, 3, 2, 1 or 0 common tangents, and the radical axis appears only when the circles cut.</figcaption></figure>
+
 **Orthogonal circles** cut at right angles, so the radii to a common point are perpendicular and d² = r₁² + r₂². In terms of the general forms:
 
 ```math

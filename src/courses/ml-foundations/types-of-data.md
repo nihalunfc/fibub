@@ -56,6 +56,10 @@ Numbers are also called **quantitative** or **numerical** data; categories are *
 
 </div>
 
+Try it: slide the number of features from 2 up to 1000 and watch the histogram squeeze.
+
+<figure class="fig" data-fig="@ai-dim-curse"><figcaption>With many features all points become about equally far apart, so nearest-neighbour ideas lose meaning. The cure is fewer, better features or far more data.</figcaption></figure>
+
 ## 3. Test yourself
 
 <!--fig:data-types-->

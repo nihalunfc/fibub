@@ -91,6 +91,11 @@ For electrons in a semiconductor, `$D/\mu_e = k_BT/e$` (about 26 mV at room temp
 
 <div class="problem" data-problem="stokes-einstein-rms"></div>
 
+Let a crowd of pollen grains jiggle and watch the mean-square distance grow.
+
+<figure class="fig" data-fig="@wt-brownian"><figcaption>Random kicks give ⟨r²⟩ = 4Dt in two dimensions. Notice the straight line in time (so the typical distance grows as √t) and that stronger kicks give a steeper line.</figcaption></figure>
+
+
 ## 3. The Langevin equation
 
 Newton's law for a particle of mass `$m$` in a fluid, with friction and random kicks:

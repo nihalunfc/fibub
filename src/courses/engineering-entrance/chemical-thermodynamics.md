@@ -97,6 +97,10 @@ The **third law**: the entropy of a perfect crystal at 0 K is zero. That gives a
 
 </div>
 
+**Try it:** with N = 20, press "Remove partition" and watch the histogram. Then reset with N = 100 and ask how likely it is that all the particles gather on one side.
+
+<figure class="fig" data-fig="@chem-entropy-spread"><figcaption>Entropy is a count of arrangements: S = k ln W. The even split has overwhelmingly more arrangements than "all on the left", so a spreading gas never un-spreads on its own. The larger N is, the surer this becomes.</figcaption></figure>
+
 ## 6. Gibbs energy and spontaneity
 
 At constant T and P, the test for spontaneity is the **Gibbs energy change**:

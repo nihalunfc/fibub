@@ -40,6 +40,10 @@ A **group** is a set `$G$` with a product that obeys four rules:
 | identity | there is an `$e$` with `$ea = ae = a$` |
 | inverse | every `$a$` has an `$a^{-1}$` with `$aa^{-1} = e$` |
 
+Press 'Turn r' and 'Flip s' to move the square around and watch the Cayley table.
+
+<figure class="fig" data-fig="@math-cayley-square"><figcaption>Notice that r then s gives a different result from s then r (the group is not commutative), and that every row and column of the table holds each element once.</figcaption></figure>
+
 The product need not commute. If `$ab = ba$` for all elements the group is **abelian**. The number of elements is the **order** `$|G|$`; the **order of an element** `$g$` is the smallest `$n$` with `$g^n = e$`.
 
 Examples you will meet: the integers under addition (infinite, abelian); `$\mathbb Z_n$`, the integers mod `$n$` (cyclic, abelian); the **symmetric group** `$S_n$` of all `$n!$` permutations; the **dihedral group** `$D_n$` of `$2n$` symmetries of a regular `$n$`-gon; rotation groups `$SO(3)$`, `$SU(2)$`.

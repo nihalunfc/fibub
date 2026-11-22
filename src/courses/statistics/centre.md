@@ -43,6 +43,11 @@ Add up all the values and divide by how many there are:
 
 Its weakness: every value pulls on it, so a single extreme value can drag it a long way.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. The median
 
 Sort the values and take the middle one. With an even number of values, take the mean of the two middle ones. Half the values are below the median and half above, however extreme the ends are.

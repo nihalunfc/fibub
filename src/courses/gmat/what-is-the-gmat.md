@@ -32,6 +32,10 @@ The GMAT (Graduate Management Admission Test) is the entrance test most business
 
 The test you will sit is the one GMAC launched in 2023 as the "GMAT Focus Edition"; since 2024 it is simply called the GMAT. If you see old books with Sentence Correction, geometry or an essay, they describe the older test. This course teaches only the current one.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="gmatv"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. The three sections
 
 <figure class="fig" data-fig="gmat-map"><figcaption>Pick an order and a section to read what is in it. Every section is 45 minutes.</figcaption></figure>

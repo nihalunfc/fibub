@@ -61,6 +61,16 @@ LIMIT 10
 
 Note `COUNT(DISTINCT o.order_id)`: the join to order_items gives one row per line, so a plain `COUNT(*)` would count lines, not orders. This is the fan-out trap from [Lesson 4.5](/learn/courses/sql/fan-out/).
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Scores from 1 to 5 with NTILE
 
 Raw numbers are on different scales: days, counts and dollars. RFM turns each one into a score from 1 to 5 by splitting customers into five equal-sized groups, called **quintiles**. `NTILE(5) OVER (ORDER BY x)` does exactly that ([Lesson 6.7](/learn/courses/sql/share-of-total/)): the first fifth in the sort order gets 1, the last fifth gets 5.

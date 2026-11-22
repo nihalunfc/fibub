@@ -57,6 +57,10 @@ sources:
 
 </div>
 
+**Try it:** Drag A and B and read the distance, midpoint and slope.
+
+<figure class="fig" data-fig="@tp-coord-points"><figcaption>The dashed legs form a right triangle; the distance is its hypotenuse.</figcaption></figure>
+
 ## Practise: geometry
 
 <div class="qbank" data-bank="gre-quant" data-topics="geometry" data-exam="gre" data-mode="practice" data-n="6"></div>

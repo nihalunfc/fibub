@@ -54,6 +54,10 @@ You met one round of this in Lesson 11.3. An agent simply keeps going. Here is o
 <div class="step"><p><b>Done.</b> This time the model replies with plain text and no tool call: "brief-b.txt has a deadline of 12 December." No tool call means the loop stops and the text is the answer.</p></div>
 </div>
 
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
+
 ## 3. A small agent in Python
 
 Make a folder `agent`, and inside it a folder `workspace` with a few text files. Save as `agent.py`:

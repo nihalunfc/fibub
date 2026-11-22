@@ -59,6 +59,10 @@ Composition: (g ∘ f)(x) = g(f(x)), apply f first. If f and g are both bijectio
 
 </div>
 
+**Try it:** Drag a point on the function and watch its mirror image.
+
+<figure class="fig" data-fig="@math-inverse-mirror"><figcaption>The inverse is the reflection in the line y = x.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-maths" data-topics="sets-relations-functions" data-level="1,2,3" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -38,6 +38,10 @@ A beam `$e^{ikz}$` with energy `$E = \hbar^2k^2/2m$` hits a potential of finite 
 
 `$f$` has dimensions of length; `$d\sigma/d\Omega$` is the number scattered into `$d\Omega$` per second divided by the incident flux. Nuclear cross-sections come in barns (1 b = 10⁻²⁸ m² = 100 fm²).
 
+Move the impact parameter, then switch on the whole beam and change the target and the energy.
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>A small impact parameter means a large deflection, and only an almost head-on α comes straight back. The counts fall as 1/sin⁴(θ/2).</figcaption></figure>
+
 ## 2. The first Born approximation
 
 The integral form of the Schrödinger equation, with the outgoing Green's function, is
@@ -53,6 +57,10 @@ f_B(\theta) = -\frac{m}{2\pi\hbar^2}\int e^{-i\vec q\cdot\vec r}\,V(\vec r)\,d^3
 ```
 
 the second form for a central potential. `$\hbar\vec q$` is the momentum transfer. The Born amplitude is real, depends on `$\theta$` and `$k$` only through `$q$`, and does not care about the sign of `$V$`.
+
+Drag the exchanged mass up to the pion value (140 MeV) and move the nucleon separation across the range R.
+
+<figure class="fig" data-fig="@qm-yukawa"><figcaption>A heavier exchanged particle lives for a shorter time, so the force reaches less far: Yukawa's e^(−r/R)/r collapses where Coulomb's 1/r only fades.</figcaption></figure>
 
 | Potential | Born amplitude `$f_B(q)$` | Remarks |
 |---|---|---|

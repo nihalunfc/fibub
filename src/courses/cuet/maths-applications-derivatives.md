@@ -33,6 +33,10 @@ sources:
 
 Related rates: if two quantities are linked, differentiate the link with respect to time (dA/dt = 2πr dr/dt). A function is increasing where f′ &gt; 0 and decreasing where f′ &lt; 0; find where f′ = 0, split the number line there, and test the sign in each piece.
 
+**Try it:** Slide the second point towards the first.
+
+<figure class="fig" data-fig="@math-secant-tangent"><figcaption>The secant slope settles on the derivative.</figcaption></figure>
+
 ## 2. Maxima and minima
 
 <div class="steps" data-title="The recipe for any optimisation problem">

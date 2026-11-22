@@ -101,6 +101,10 @@ Everything above is **apparent magnitude** `$m$`: how bright an object *looks* f
 
 </div>
 
+Choose a star and slide its distance. Watch where the black curve crosses the naked-eye, binocular and telescope lines.
+
+<figure class="fig" data-fig="@astro-magnitude-reach"><figcaption>Every 5 magnitudes is a factor 100 in brightness and the apparent magnitude gets 5 larger for every ten times the distance. A star's absolute magnitude (its brightness at 10 pc) tells you how far away it can still be seen.</figcaption></figure>
+
 ## 4. Worked example
 
 *How faint can a telescope go?* Your eye's pupil is at most about 7 mm wide when dark-adapted. A 200 mm telescope collects light over an area `$(200/7)^2 = 816$` times larger. The gain in magnitudes:

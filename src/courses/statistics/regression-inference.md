@@ -49,6 +49,11 @@ With 20 weeks and noise 25, the slope's interval is wide. Push the weeks to 100:
 - **95 % CI**: coefficient ± t-critical × SE.
 - **Intercept**: the predicted Y when every X is 0; often meaningless (zero ad spend may be outside the data).
 
+Move the intercept and slope until the total square area is as small as you can get it, then press Best fit.
+
+<figure class="fig" data-fig="@data-regression-fit"><figcaption>Notice that least squares is just the line with the smallest total of these squares.</figcaption></figure>
+
+
 ## 3. Controlling for other variables
 
 With several inputs, each coefficient is the change in Y for one more unit of that X **holding the others fixed**. Adding a confounder (store size) can shrink or even flip a coefficient (next lesson). It's a powerful tool, but only for confounders you've measured.

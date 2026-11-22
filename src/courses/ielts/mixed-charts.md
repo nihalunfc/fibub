@@ -41,6 +41,11 @@ sources:
 - *This pattern is also reflected in the table, which...*
 - *In contrast to the growth shown in the bar chart, the table reveals...*
 
+
+Tap a stretch of the line (or its button) and pick the words that describe it.
+
+<figure class="fig" data-fig="@lang-writing-trend"><figcaption>Notice that the size of the change picks the word: "sharply" for big and fast, "slightly" for small, "levelled off" for flat.</figcaption></figure>
+
 ## 3. Worked example
 
 *The bar chart shows the number of international students at one university from 2015 to 2025 (in thousands): 2015: 4.0, 2020: 5.5, 2025: 8.2. The table shows the top four subjects these students chose in 2025: Business 34%, Engineering 26%, Computing 22%, Health 9%.*

@@ -91,6 +91,10 @@ What happens at 6 AM, with made-up but typical numbers:
 <div class="step"><p><b>Report and log.</b> <code>reports/2026-11-20.md</code> is written, and anything the script printed (including errors) is added to <code>nightly.log</code>, so you can see what happened while you slept.</p></div>
 </div>
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Run it every night
 
 Use the full path to the Python inside your virtual environment, so the job finds the libraries.

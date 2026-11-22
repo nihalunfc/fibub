@@ -31,6 +31,10 @@ sources:
 
 **The golden rules** (ideal op-amp, negative feedback, output not saturated): `$V_+ = V_-$`, and no current flows into either input. Write KCL at the inverting input and the gain drops out.
 
+See the outputs of the linear circuits for different input shapes.
+
+<figure class="fig" data-fig="@sx-opamp-waves"><figcaption>Inverting and non-inverting gain, the integrator (−1/RC ∫V<sub>in</sub> dt) and the differentiator (−RC dV<sub>in</sub>/dt) with live waveforms and rail clipping.</figcaption></figure>
+
 | Circuit | Output | Input resistance |
 |---|---|---|
 | inverting | `$-\dfrac{R_f}{R_1}V_{in}$` | `$R_1$` |

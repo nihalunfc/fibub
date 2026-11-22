@@ -78,6 +78,11 @@ defs = dg.Definitions(
 
 `dg.EnvVar` is read when the run starts and is **not shown in the UI**. `os.environ[...]` is read the moment Python imports the file, so its value is fixed early and can leak into displayed config. Use `EnvVar` for anything secret.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Environments with one switch
 
 Choose the resources by a deployment name:

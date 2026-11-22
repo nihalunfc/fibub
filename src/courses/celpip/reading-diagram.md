@@ -36,6 +36,11 @@ Reading Part 2, **Reading to Apply a Diagram**, has **8 questions**. You see two
 
 After the email there are usually one or two more multiple-choice questions about the diagram or the situation. The part has its own timer; the test screen shows the exact time.
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 2. What it really tests
 
 This part tests something you do every week in Canada: read a timetable, compare prices, choose a plan, find a room on a map. The skill is **combining two sources**. Neither the diagram nor the email alone gives the answer. The email says *what the person needs* (a child's age, a budget, a day, a time limit). The diagram says *what is available*. You find the one option that satisfies all the needs.

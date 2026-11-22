@@ -109,6 +109,10 @@ The pendulum has `$H = \dfrac{p^2}{2ml^2} - mgl\cos\theta$`:
 
 The exact period for amplitude `$\theta_0$` is `$T = 4\sqrt{l/g}\,K(\sin^2(\theta_0/2))$`, with `$K$` the complete elliptic integral. For small amplitudes, `$T \approx 2\pi\sqrt{l/g}\,(1 + \theta_0^2/16)$`. At 30° the correction is about 1.7%.
 
+Drag the red handle anywhere to choose a start, then change the system.
+
+<figure class="fig" data-fig="@mech-phase-drag"><figcaption>Each curve is one motion: closed loops are oscillations, spirals are damped, a limit cycle attracts every nearby start. Fixed points and the separatrix organise the whole picture.</figcaption></figure>
+
 ## 5. Liouville's theorem
 
 Think of many copies of the same system, started at slightly different points: a cloud of points in phase space. Hamilton's equations make the cloud flow like a fluid, and that fluid is incompressible:
@@ -124,6 +128,10 @@ The density of points along any flow line stays fixed, so **phase-space volume i
 - In statistical mechanics, a density that depends only on `$H$` is unchanged by the motion. This is why the microcanonical and canonical ensembles are equilibrium states.
 
 **Worked example.** Particles in free fall, `$H = p^2/2m + mgq$`, start in the square `$0 < q < a$`, `$0 < p < b$`. After time `$t$`, `$p \to p - mgt$` and `$q \to q + pt/m - \tfrac12gt^2$`. The square becomes a parallelogram sheared by `$t/m$`: same base `$b$`, same height `$a$`, so the area `$ab$` is unchanged.
+
+Press Play and watch the blob of starting states stretch, then switch on friction.
+
+<figure class="fig" data-fig="@mech-liouville"><figcaption>The shape distorts enormously, but with no friction its area stays the same. This is Liouville's theorem; friction compresses phase space.</figcaption></figure>
 
 ## 6. The Routhian
 

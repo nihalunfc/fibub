@@ -82,6 +82,11 @@ An ML pipeline is a DAG like the ones you built with [Airflow](/learn/courses/da
 
 Tools: **Vertex AI Pipelines** (runs Kubeflow Pipelines definitions), **Kubeflow**, **Airflow** (common for batch retraining), **Metaflow**, **ZenML** and **Databricks** workflows.
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Tracking, registry and serving
 
 | Need | Google Cloud | Open source and others |

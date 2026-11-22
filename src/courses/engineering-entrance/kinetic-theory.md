@@ -79,6 +79,11 @@ So pressure is `$\tfrac23$` of the translational kinetic energy per unit volume:
 
 </div>
 
+Heat the gas, then squeeze the box and see how the pressure measured from wall hits matches N k T / V.
+
+<figure class="fig" data-fig="@wt-gas-box"><figcaption>Each bounce gives the wall a push of 2 m v_x; many bounces per second make a steady pressure. Notice that higher T gives harder hits and that a smaller box gives more frequent hits, and that the speed histogram stays close to the Maxwell curve.</figcaption></figure>
+
+
 ## 3. Molecular speeds and the Maxwell distribution
 
 Molecules do not all move at one speed. The Maxwell distribution gives the fraction at each speed. Three typical speeds:
@@ -110,6 +115,11 @@ A **degree of freedom** is an independent way a molecule can hold energy. **Equi
 Each vibration mode adds 2 (kinetic and potential), but vibrations wake up only at high temperatures. Internal energy of n moles: `$U = \tfrac f2 nRT$`. Then `$C_v = \tfrac f2R$`, `$C_p = C_v + R$` and `$\gamma = 1 + \tfrac2f$`.
 
 <div class="problem" data-problem="kt-mixture-energy"></div>
+
+Choose a gas and slide the temperature to see which kinds of motion are switched on and how C_v steps up.
+
+<figure class="fig" data-fig="@wt-dof-freeze"><figcaption>Each active degree of freedom holds ½kT per molecule, but spinning and vibrating switch on only at higher temperatures. Notice that room temperature gives 5/2 R for H₂ and N₂ (vibration still frozen) and a larger value for CO₂.</figcaption></figure>
+
 
 ## 5. Mean free path
 

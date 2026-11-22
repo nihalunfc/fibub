@@ -91,6 +91,10 @@ A **driver** is the small program that lets the operating system talk to the gra
 
 </div>
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Worked example
 
 *Made-up office.* A dental clinic's AI machine stopped working one Monday after Windows installed a new graphics driver overnight. Fix: roll back the driver, then set Windows to stop installing drivers automatically, and put "AI machine updates" in the calendar for the first Friday of each month. No more surprise Mondays.

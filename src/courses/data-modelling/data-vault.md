@@ -65,6 +65,16 @@ Data Vault was created by Dan Linstedt in the 1990s. Its current version, Data V
 
 Every table is **insert-only**. Nothing is updated or deleted. A new source system adds new satellites without touching what is there, which is why vaults cope well with change.
 
+Step from the messy sheet to clean tables.
+
+<div class="steps" data-fig="@data-normalize-steps">
+<div class="step">One messy sheet: a list in one cell and repeated customer details.</div>
+<div class="step">1NF: every cell holds one value; each row is one order line.</div>
+<div class="step">2NF: details that depend on only part of the key move to their own table.</div>
+<div class="step">3NF: details that depend on a non-key column (city via customer) move out too.</div>
+</div>
+
+
 ## 3. Hash keys, and a stand-in for this course
 
 Instead of numbering rows, Data Vault 2.0 computes each hub's key from the business key with a hash function, usually **MD5** or **SHA-1/SHA-256**, applied to the cleaned key (for example `MD5(UPPER(TRIM(customer_id)))`). The same business key always gives the same hash, in any system, so tables can be loaded in parallel without looking each other up.

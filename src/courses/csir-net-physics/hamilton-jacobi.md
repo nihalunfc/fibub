@@ -54,6 +54,10 @@ H\left(q, \frac{\partial W}{\partial q}\right) = E
 <div class="step"><p><b>Solve.</b> q = √(2E/mω²) sin ω(t + β): the familiar motion, with the constants E and β as amplitude and time origin.</p></div>
 </div>
 
+Move the two wobble sliders away from zero and watch the action, then press True path.
+
+<figure class="fig" data-fig="@mech-action-path"><figcaption>Any wobble with the same start and end raises the action, so the true path is where the action is stationary (here a minimum).</figcaption></figure>
+
 ## 2. Separation of variables
 
 The equation is a nonlinear PDE, but it is often **separable**: try `$W = W_1(q_1) + W_2(q_2) + \dots$`. Each piece then obeys an ordinary equation with its own separation constant.

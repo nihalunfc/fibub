@@ -90,6 +90,10 @@ A buffer works best (highest **buffer capacity**) when salt and acid are equal (
 
 <div class="problem" data-problem="ie-buffer-ph"></div>
 
+**Try it:** slide the strong acid added from 0 to 40 mmol and compare water with the buffer. Then change the ratio A⁻ : HA and the buffer amount.
+
+<figure class="fig" data-fig="@chem-buffer-ph"><figcaption>Water changes by several pH units for a small addition, while the buffer moves only a little until one partner is used up. The buffer is best where the ratio is 1 (pH = pKa) and its capacity grows with the amount of buffer.</figcaption></figure>
+
 ## 7. Titration curves and indicators
 
 During a titration the pH changes slowly at first, then **jumps** near the equivalence point. For a strong acid with a strong base the jump runs from about pH 4 to 10 and the equivalence pH is 7. For a weak acid with a strong base, the curve starts higher, passes pH = pK<sub>a</sub> at half-neutralisation, and the equivalence pH is above 7 (the salt hydrolyses). An **indicator** is itself a weak acid whose two forms have different colours; it changes over about pK<sub>In</sub> ± 1. Pick one whose range sits inside the jump: **phenolphthalein** (8.3 to 10) for weak acid with strong base, **methyl orange** (3.1 to 4.4) for strong acid with weak base. A weak acid with a weak base has no sharp jump.

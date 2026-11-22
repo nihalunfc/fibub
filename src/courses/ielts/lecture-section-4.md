@@ -44,6 +44,11 @@ Topics are chosen so that no special knowledge is needed: everything you need is
 | emphasising | "What's really important here is...", "The key point is..." |
 | ending | "To sum up...", "So, in conclusion..." |
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 3. Watch it happen
 
 <div class="steps">

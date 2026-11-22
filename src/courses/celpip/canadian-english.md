@@ -45,6 +45,11 @@ Canadian spelling is a mix: mostly British for some word families, mostly Americ
 
 </div>
 
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
+
 ## 2. Words by situation
 
 <div class="steps">

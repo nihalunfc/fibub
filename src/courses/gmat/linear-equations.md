@@ -101,6 +101,10 @@ Set everyone's age **now** with letters, then add the same number of years to ea
 
 </div>
 
+**Try it:** Drag A and B and read the distance, midpoint and slope.
+
+<figure class="fig" data-fig="@tp-coord-points"><figcaption>The dashed legs form a right triangle; the distance is its hypotenuse.</figcaption></figure>
+
 ## Practise: GMAT-style questions on this lesson
 
 Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.

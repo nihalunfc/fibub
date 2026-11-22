@@ -92,6 +92,17 @@ Both fusions together are **double fertilisation**. The synergids and antipodals
 
 **Embryo**: the zygote divides at the micropylar end. A dicot embryo has an **embryonal axis** with two **cotyledons**: above them the **epicotyl** ending in the **plumule**, below the **hypocotyl** ending in the **radicle** with its root cap. A monocot (grass) embryo has one cotyledon, the **scutellum**; the radicle is covered by the **coleorhiza** and the plumule by the **coleoptile**.
 
+Step from the pollen grain to the seed.
+
+<div class="steps" data-fig="@bio-double-fert-steps">
+<div class="step"><b>Pollen lands</b> on the stigma and germinates.</div>
+<div class="step"><b>The pollen tube grows</b> down the style carrying the two male gametes.</div>
+<div class="step"><b>Entry.</b> The tube enters the embryo sac through the micropyle and releases both gametes.</div>
+<div class="step"><b>Syngamy.</b> One male gamete fuses with the egg: the zygote (2n).</div>
+<div class="step"><b>Triple fusion.</b> The other fuses with the two polar nuclei: the primary endosperm nucleus (3n).</div>
+<div class="step"><b>The result.</b> Zygote becomes the embryo, PEN the endosperm, the ovule the seed and the ovary the fruit.</div>
+</div>
+
 ## 6. Seed and fruit
 
 The **ovule becomes the seed**: integuments harden into seed coats, and the micropyle stays as a small pore that lets in oxygen and water during germination. The **ovary becomes the fruit**: its wall becomes the **pericarp**. Most seeds dry to 10 to 15% moisture and go **dormant**. Fruits from the thalamus as well (apple, strawberry, cashew) are **false fruits**; fruits formed without fertilisation are **parthenocarpic** (banana), and growth hormones can induce them. Seeds can last very long: a date palm seed about 2000 years old from King Herod's palace (Masada) and a lupine seed about 10,000 years old have germinated.

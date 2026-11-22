@@ -77,6 +77,10 @@ C_{\text{parallel plate}} = \frac{\varepsilon_0 A}{d}, \qquad C_{\text{sphere}} 
 
 **Combinations.** Parallel: `$C = C_1 + C_2 + \dots$` (same V, charges add). Series: `$\dfrac1C = \dfrac1{C_1} + \dfrac1{C_2} + \dots$` (same Q, voltages add). For two in series, `$C = \dfrac{C_1C_2}{C_1 + C_2}$`, and the smaller capacitor takes the larger voltage.
 
+Switch between series and parallel and change C₁, C₂ and the battery. Watch which quantity is shared and which one adds.
+
+<figure class="fig" data-fig="@em-cap-network"><figcaption>Series: the same charge on both, voltages share (smaller C takes more). Parallel: the same voltage, charges add.</figcaption></figure>
+
 ## 5. Dielectrics and slabs
 
 A dielectric's molecules polarise and set up a small opposite field inside it, cutting the field to E/K. A slab of thickness t and constant K in a gap d acts like an air gap of only t/K:
@@ -97,6 +101,10 @@ A metal slab is the case K → ∞: `$C = \varepsilon_0A/(d - t)$`. Try it here,
 | Double the gap | C ÷ 2, Q ÷ 2, U ÷ 2, E ÷ 2 | C ÷ 2, V × 2, U × 2, E same |
 
 A slab partly across the plate area (side by side) makes **parallel** capacitors; a slab partly through the gap (layered) makes **series** capacitors.
+
+Slide κ and switch between stretched (non-polar) and turned (polar) molecules. See how the bound charge on the faces weakens the field inside.
+
+<figure class="fig" data-fig="@em-dielectric-polarise"><figcaption>The bound surface charge cancels part of E₀, so E = E₀/κ inside while the plates' free charge stays the same.</figcaption></figure>
 
 ## 6. Energy stored, energy lost
 
@@ -127,6 +135,10 @@ With a resistor R in series, charge does not appear at once. **Charging:** `$q =
 <div class="problem" data-problem="pc-rc-charge"></div>
 
 **Worked example (level 4).** A 2 µF capacitor at 100 V is connected across an uncharged 3 µF capacitor. Common voltage = 200/5 = 40 V. Loss = (2 × 3)/(2 × 5) × 100² µJ = 6000 µJ = 6 mJ. Check: before ½ × 2 × 10⁴ = 10 mJ; after ½ × 5 × 1600 = 4 mJ. ✓
+
+Choose charging or discharging and change R and C. The dots are charge carriers moving round the loop; the graph is in units of τ = RC.
+
+<figure class="fig" data-fig="@em-rc-flow"><figcaption>The current starts biggest and dies away exponentially. After one τ the capacitor has reached 63% (charging) or fallen to 37% (discharging).</figcaption></figure>
 
 <div class="keypoints">
 

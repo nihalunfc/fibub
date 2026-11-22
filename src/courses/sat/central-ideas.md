@@ -63,6 +63,10 @@ It is too narrow: it leaves out the energy bills. A better summary is "city tree
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## Practice set
 
 Original SAT-style questions with full explanations. Answer each one before you check it.

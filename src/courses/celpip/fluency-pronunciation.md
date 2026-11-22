@@ -43,6 +43,11 @@ Notice what is *not* on that list: a Canadian accent. Many high scorers have a c
 
 This lesson covers six habits. Work on **one habit a week** while you practise the speaking tasks in this module.
 
+
+Pick a sentence and press Play: the ball lands on every stressed syllable.
+
+<figure class="fig" data-fig="@lang-stress-rhythm"><figcaption>Notice that the beats stay evenly spaced however many weak syllables sit between them, so the small words get squeezed.</figcaption></figure>
+
 ## 2. Habit 1: word stress
 
 In every English word with two or more syllables, **one syllable is stronger**: longer, louder and a little higher. If you stress the wrong syllable, listeners may not recognise the word even if every sound is correct. *a-PART-ment*, not *A-part-ment*; *de-VEL-op*, not *DE-vel-op*.
@@ -58,6 +63,11 @@ Useful patterns (they have exceptions, so check a dictionary when unsure):
 | Words ending in *-ity, -ify*: two before | com-**MU**-ni-ty, i-**DEN**-ti-fy |
 
 **How to check yourself.** Most free online dictionaries show stress with a mark (ˈ) before the stressed syllable and play the word aloud. Make a list of the words you use often in answers (*neighbourhood, recommend, comfortable, environment*) and check each one once.
+
+
+Pick a sentence type and press Play to follow the pitch line. Press Hear it to try your device's voice.
+
+<figure class="fig" data-fig="@lang-intonation"><figcaption>Notice where the line falls (finished, sure) and where it rises (a question, or more to come).</figcaption></figure>
 
 ## 3. Habit 2: sentence stress and rhythm
 

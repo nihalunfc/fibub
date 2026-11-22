@@ -97,6 +97,10 @@ Fewer than about 1.5 pixels across the FWHM is undersampled; more than about 4 o
 
 </div>
 
+Pick a sky object and a hand measure, then change your arm length.
+
+<figure class="fig" data-fig="@astro-angular-size"><figcaption>Compare the object's angular size with the hand ruler: a pinky is about 1°, three fingers 5°, a fist 10°, an open hand 20°. The ruler depends on your arm, so calibrate it once on stars with known separation.</figcaption></figure>
+
 ## 4. Worked example
 
 *A full-frame camera (36 × 24 mm, 6 µm pixels) on a 600 mm lens, typical seeing 2.5″.*

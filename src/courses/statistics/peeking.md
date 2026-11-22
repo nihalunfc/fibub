@@ -88,6 +88,11 @@ Watch it happen, one step at a time:
 **Analogy:** asking "is it raining?" every five minutes all week; sooner or later you'll see a shower, even in a dry week.
 </details>
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Worked example
 
 *Made-up story.* A team runs a 4-week test of a new banner. On day 5, B is ahead with p = 0.03. They stop and ship. Over the next month, conversion is unchanged.

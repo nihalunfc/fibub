@@ -51,6 +51,16 @@ ORDER BY month
 
 You get 24 rows, January 2024 to December 2025. `strftime('%Y-%m', ...)` turns a date into its month, like `2025-12`. (SQL Server: `FORMAT(order_date, 'yyyy-MM')` or `DATETRUNC(month, order_date)`; PostgreSQL: `date_trunc('month', order_date)`.)
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Month-over-month growth with LAG
 
 **Month-over-month growth** is the change since the month before, as a share of the month before. `LAG(revenue)` fetches the previous row's revenue ([Lesson 6.4](/learn/courses/sql/lag-lead/)), so put the monthly table in a CTE and add the window on top.

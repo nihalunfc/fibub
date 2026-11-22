@@ -58,6 +58,10 @@ sources:
 
 </div>
 
+Pick a planet and press Play. Compare how far from the Sun it can appear in our sky, and how much of it is lit.
+
+<figure class="fig" data-fig="@astro-synodic"><figcaption>An inner planet (Mercury, Venus) never strays far from the Sun: it has a largest elongation and shows phases. An outer planet can stand opposite the Sun (opposition), when it is closest, brightest and up all night. The time between repeats (the synodic period) is longer than the planet's year.</figcaption></figure>
+
 ## 4. Retrograde loops
 
 Most of the time an outer planet drifts eastward against the stars, as it moves along its orbit. But around opposition it seems to stop, drift *westward* for a few weeks, stop again, and resume. Ancient astronomers built complicated systems of circles on circles to copy this.
@@ -96,6 +100,10 @@ Watch Mars over four months around opposition:
 
 **Try it:** Jupiter, `$P = 11.86$` years: `$1/S = 1 - 1/11.86 = 0.9157$`, so `$S = 1.092$` years: opposition comes about 33 days later each year.
 </details>
+
+Press Play and switch between the inner planets and all eight. Read the table of a³ and T² while they move.
+
+<figure class="fig" data-fig="@astro-solar-orbits"><figcaption>Inner planets lap the outer ones: Mercury goes round about four times while Earth goes once. For every planet T² (years) equals a³ (AU), and the speed falls as 1/√a.</figcaption></figure>
 
 ## 5. Worked example
 

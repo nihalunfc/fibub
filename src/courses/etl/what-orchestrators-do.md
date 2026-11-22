@@ -59,6 +59,11 @@ Think of a recipe card. You must chop before you fry, but you can chop onions an
 
 <div class="problem" data-problem="what-orchestrators-do-critical-path"></div>
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Tasks or assets
 
 There are two ways to describe the graph.

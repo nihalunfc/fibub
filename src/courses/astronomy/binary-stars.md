@@ -71,6 +71,10 @@ M_A + M_B = \frac{a^3}{P^2}
 **Visual binary distance:** if the orbit spans `$\alpha$` arcseconds at `$d$` parsecs, then `$a = \alpha\times d$` AU.
 </details>
 
+Change the planet's mass, period and orbit shape, then watch the star and its velocity curve.
+
+<figure class="fig" data-fig="@astro-rv-wobble"><figcaption>The star orbits the common centre of mass and its light is blue-shifted when it comes towards us and red-shifted when it moves away. Heavier planets and shorter periods give bigger wobbles; an elliptical orbit makes a lopsided curve. Jupiter makes the Sun wobble only 12.5 m/s.</figcaption></figure>
+
 ## 3. What it means physically
 
 Each star pulls the other, so neither stays still: they balance like two children on a seesaw, the heavier one sitting closer to the middle. Gravity needs a certain amount of mass to keep a pair of a given size going round in a given time; that is all Kepler's law says. Measuring the size and the time therefore weighs the pair, and the seesaw balance tells you how the weight is shared.

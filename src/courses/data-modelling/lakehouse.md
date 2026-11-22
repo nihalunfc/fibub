@@ -61,6 +61,16 @@ Job adverts for data engineers and BI developers now mention "lakehouse", "Datab
 
 Sources: [Delta Lake](https://delta.io/), [Apache Iceberg](https://iceberg.apache.org/) and [Apache Hudi](https://hudi.apache.org/) project pages (checked 22 Nov 2026, check the official page for current features).
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. Medallion layers: bronze, silver, gold
 
 Most lakehouses organise tables into three layers, named after medals. Databricks, which popularised the names, describes the medallion architecture as a design pattern for organising data logically, and says following it is recommended but not required ([Databricks documentation](https://docs.databricks.com/aws/en/lakehouse/medallion), checked 22 Nov 2026, check the official page).

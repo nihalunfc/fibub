@@ -74,6 +74,10 @@ m = \frac{\sum (x_i - \bar x)(y_i - \bar y)}{\sum (x_i - \bar x)^2}, \qquad b = 
 - mean of `$N$` equal measurements: `$\sigma_{\bar x} = \sigma/\sqrt N$`
 </details>
 
+Slide the planet's radius, impact parameter and period, or press a preset (Jupiter, Neptune, Earth).
+
+<figure class="fig" data-fig="@astro-transit-curve"><figcaption>The dip depth is about (Rp/Rs)²: Jupiter gives about 1%, Earth only 0.008%. The curve is rounded because the star's edge is dimmer (limb darkening), and a path near the edge gives a shorter, shallower dip. A longer period makes a longer transit.</figcaption></figure>
+
 ## 3. What it means physically
 
 Squaring the misses treats overshooting and undershooting alike and punishes big misses most. Dividing by `$\sigma$` means a point you measured carefully counts more than a rough one. If your error bars are right and your model is right, each point should miss by about one error bar on average, so χ² comes out near the number of points: that is the whole idea behind "reduced χ² ≈ 1".

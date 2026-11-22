@@ -80,6 +80,20 @@ The **place of supply** rules decide the rate, not where you live: goods are usu
 
 Each return you subtract the GST/HST you paid on business costs (rent, equipment, software, phone, professional fees) from what you collected. You need an invoice with the supplier's GST/HST number for anything over $100 (Lesson 7.6). Provincial PST is not recoverable; QST has its own credits (ITRs).
 
+Walk along a supply chain and watch who sends how much tax.
+
+<div class="steps" data-fig="@biz-gst-chain">
+
+<div class="step">Nothing sold yet.</div>
+
+<div class="step">Grower: sells for $100 plus $10 tax, sends $10.</div>
+
+<div class="step">Maker: buys for $100 (paid $10), sells for $160 (charges $16), sends only $6.</div>
+
+<div class="step">Shop: buys for $160, sells for $250, sends $9. The total is $25, which is 10% of $250.</div>
+
+</div>
+
 ## 4. The quick method
 
 Businesses with taxable sales up to **$400,000** can elect the **quick method**: remit a fixed lower percentage of tax-included sales instead of tracking each input credit (you can still claim credits on equipment and other capital purchases). It often saves time, and money, for service businesses with few costs. Check the rates for your province in CRA guide RC4058.

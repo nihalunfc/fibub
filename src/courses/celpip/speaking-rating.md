@@ -65,6 +65,11 @@ Raters listen to your recordings and judge four areas. Learn what each one means
 
 **Task Fulfillment: doing the job you were given.** Is your answer **relevant** (on the topic), **complete** (every part of the task covered), in the right **tone** (friendly to a friend, polite to a manager) and the right **length** (using most of the time)? *Analogy:* a delivery driver. A beautiful drive is worthless if the parcel goes to the wrong house or half of it is missing.
 
+
+Load the two samples, then type your own. Less common words are highlighted.
+
+<figure class="fig" data-fig="@lang-lexical-meter"><figcaption>Notice that the richer sample uses more less-common words, but every one is exact. Range matters only when the word is right.</figcaption></figure>
+
 ## 3. The method: the same 30 seconds every time
 
 For Tasks 1 to 4 you get about 30 seconds to prepare. That is enough for a plan, not a script. Use the same routine every time so you never freeze.

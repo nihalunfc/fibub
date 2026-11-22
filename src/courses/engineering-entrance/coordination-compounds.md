@@ -67,6 +67,10 @@ Examples: [Co(NH₃)₅Cl]Cl₂ is pentaamminechloridocobalt(III) chloride. K₄
 
 </div>
 
+**Try it:** pick each isomer, drag it round, and press "Mirror image". Then count the isomers of MA₄B₂ (2), MA₃B₃ (2) and MA₂B₂C₂ (5 geometrical, 6 stereo).
+
+<figure class="fig" data-fig="@chem-complex-isomers"><figcaption>Isomers differ only in where the ligands sit around the metal. If the mirror image can be turned to match the original (a mirror plane exists) the complex is achiral; the all-cis MA₂B₂C₂ has no mirror plane and comes as two enantiomers.</figcaption></figure>
+
 ## 4. Valence bond theory
 
 The metal mixes empty orbitals into hybrids that take the ligands' lone pairs:

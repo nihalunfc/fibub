@@ -31,6 +31,10 @@ sources:
 
 Take a crystal of `$N$` sites and remove `$n$` atoms to the surface. Each vacancy costs `$E_v$`; the `$n$` vacancies can sit in `$N!/[n!(N-n)!]$` ways.
 
+Click through the point defects and see how the lattice around each one relaxes.
+
+<figure class="fig" data-fig="@sx-defects-2d"><figcaption>Vacancy, interstitial, big and small substitutional atoms in a metal, and Schottky and Frenkel pairs in an ionic crystal. Play the vacancy to watch it hop.</figcaption></figure>
+
 <div class="steps">
 <div class="step"><p><b>Free energy.</b> F = nE<sub>v</sub> − kT ln[N!/(n!(N − n)!)].</p></div>
 <div class="step"><p><b>Stirling.</b> ln N! ≈ N ln N − N, so ∂F/∂n = E<sub>v</sub> − kT ln[(N − n)/n].</p></div>

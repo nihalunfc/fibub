@@ -51,6 +51,11 @@ People spelling on the phone often say **"double"** for two same letters ("doubl
 <div class="step"><p><b>Prices.</b> "Nine ninety-nine" = £9.99. "Twelve fifty" = £12.50. "A hundred and twenty" = 120. Write the currency only if the sign is not already printed next to the gap.</p></div>
 </div>
 
+
+Pick a root, then a prefix and a suffix, and see the word and its job.
+
+<figure class="fig" data-fig="@lang-word-builder"><figcaption>Notice that a suffix usually changes the word class, while a prefix changes the meaning.</figcaption></figure>
+
 ## 3. Dates and times
 
 **Dates** can be said "the fifth of May" or "May the fifth" (British), or "May fifth" (American). Write **5 May** or **May 5**: both are accepted. Avoid 5/5, which is ambiguous.

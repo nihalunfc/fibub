@@ -30,6 +30,10 @@ sources:
 
 F is an **antiderivative** of f if F′(x) = f(x). Then every antiderivative is F(x) + C, and we write `$\int f(x)\,dx = F(x) + C$`. Check any answer by differentiating it: you must get the integrand back.
 
+Slide x to sweep out area under f, and watch the running total F(x) below.
+
+<figure class="fig" data-fig="@math-ftc-accumulator"><figcaption>Notice that F rises where f is positive and falls where it is negative, that the slope of F equals the height of f, and that changing the start a only shifts F up or down (the constant C).</figcaption></figure>
+
 <figure class="fig" data-fig="int-family"><figcaption>The dashes show the slope f(x) at each point. Each faint curve is F(x) + C for a different C; the bold one goes through the point you choose, which fixes C.</figcaption></figure>
 
 **Finding f from f′.** Integrate, then use the given value: f′(x) = 6x² − 4x + 1 and f(0) = 2 give f(x) = 2x³ − 2x² + x + C, and C = 2. In motion, velocity is the integral of acceleration and position the integral of velocity, each with its own constant from the starting conditions.

@@ -79,6 +79,10 @@ All three come straight out of the transformation.
 
 </div>
 
+Raise the speed and watch the clock ticks, then switch to length contraction.
+
+<figure class="fig" data-fig="@mech-light-clock"><figcaption>Because light's speed is the same for everyone, a moving light clock ticks slower by γ in the lab. Lengths along the motion shrink by the same factor.</figcaption></figure>
+
 ## 4. Adding velocities
 
 A body moving at `$u'$` along `$x$` in S′ moves in S at

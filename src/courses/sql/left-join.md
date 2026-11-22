@@ -94,6 +94,11 @@ Watch the left join above run, one step at a time (the live box's **Show how it 
 
 <div class="problem" data-problem="sql-left-join-count"></div>
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. Finding what is missing
 
 The NULLs are a feature. Rows with NULL in the right table's key are exactly the rows that found no match. Add `WHERE <right key> IS NULL` and you have a list of what is missing:

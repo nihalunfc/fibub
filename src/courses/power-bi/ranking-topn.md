@@ -62,6 +62,10 @@ so ties share a rank and the next one skips. DENSE counts distinct larger values
 **Try it:** sales 90, 70, 70, 40. Default ranks: 1, 2, 2, 4. Dense: 1, 2, 2, 3.
 </details>
 
+Try it: slide N and switch how ties are ranked.
+
+<figure class="fig" data-fig="@biz-rank-topn"><figcaption>Notice that TOPN returns ties, so you can get more rows than N.</figcaption></figure>
+
 ## 4. Worked example
 
 *Rank stores within the selected region.* `Store Rank = IF(ISINSCOPE(Store[Store]), RANKX(ALLSELECTED(Store[Store]), [Total Sales]))`. With the Region slicer on West, Falls Centre is 1, Harbour Front 2, Forks Market 3; clear the slicer and Queen Street jumps to 1. ALLSELECTED makes the ranking follow the slicer, and ISINSCOPE hides the meaningless total.

@@ -76,6 +76,11 @@ SELECT COUNT(*) AS rows_now FROM dim_customer;
 
 604 rows. We track `city` and `loyalty_tier` as type 2. (The name could be type 1; we leave it alone to keep the lesson short.)
 
+Switch between Type 1, 2 and 3 and read the sales-by-city report each time.
+
+<figure class="fig" data-fig="@data-scd-types"><figcaption>Notice which method keeps last year's sales in Pune and which rewrites history.</figcaption></figure>
+
+
 ## 3. The staging change set
 
 On 1 June 2025 the source sends the customers that changed or are new. Loads normally land data in a **staging table** first, cleaned but not yet merged into the warehouse:

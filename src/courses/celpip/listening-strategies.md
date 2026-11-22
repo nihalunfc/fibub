@@ -49,6 +49,11 @@ Three facts shape everything in this module:
 
 Before each recording, the screen shows a short line such as "Listen to a conversation between two neighbours." That line is your only preview, and it is more useful than most people think.
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 2. What the section really tests
 
 CELPIP does not test whether you can catch every word. It tests whether you can follow **what people mean**: the problem, the plan, the decision, the feeling, the reason. Listening researchers such as John Field describe two jobs your brain does at once: *decoding* (turning sounds into words) and *meaning building* (connecting the words to the situation and to what you already know). Learners often spend all their energy on decoding and run out of attention for meaning. The method below protects your attention for meaning.

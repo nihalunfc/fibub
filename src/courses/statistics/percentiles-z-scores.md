@@ -41,6 +41,11 @@ Percentiles are the language of service levels, because they describe the slow t
 - **Delivery promise**: "95 % of orders arrive within 3 days" is the 95th percentile.
 - **Growth charts and test scores** are reported as percentile ranks.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. z-scores
 
 A **z-score** says how many standard deviations a value is from the mean:

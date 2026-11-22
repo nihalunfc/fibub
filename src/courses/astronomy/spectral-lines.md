@@ -73,6 +73,10 @@ E_n = -\frac{13.6\ \text{eV}}{n^2}, \qquad n = 1, 2, 3, \dots
 **Kirchhoff's three rules:** a hot dense object gives a smooth (continuous) spectrum; a hot thin gas gives bright emission lines; a cooler thin gas in front of a hot source gives dark absorption lines.
 </details>
 
+Slide the radial velocity, or press a preset (a star, a spinning galaxy, a quasar), and watch the lines in the lower spectrum move.
+
+<figure class="fig" data-fig="@astro-redshift-lines"><figcaption>Every line moves by the same fraction, z = Δλ/λ. A star at 30 km/s moves Hα by only 0.07 nm; a distant galaxy at 100,000 km/s pushes it into the infrared. Negative velocities (moving towards us) shift lines to the blue.</figcaption></figure>
+
 ## 3. What it means physically
 
 The rungs exist because an electron bound to an atom behaves like a wave that must fit neatly around the nucleus; only certain patterns fit, and each has its own energy. So a spectral line is a direct message from inside an atom: this exact jump happened here. The red glow of nebulae in photographs is H-alpha, hydrogen atoms whose electrons were knocked loose by ultraviolet starlight and are falling back down the ladder.

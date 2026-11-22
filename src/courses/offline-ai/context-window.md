@@ -55,6 +55,10 @@ Watch an 8,192-token window fill up, with the numbers from the box below.
 <div class="step"><p><b>Overflow.</b> Paste a 9,000-token contract instead and it cannot all fit. The engine drops the oldest text first: the start of the chat, then the start of the contract. The model never sees them.</p></div>
 </div>
 
+Try it: tap the word "it" in the Meaning link head, then switch the mask between causal and full.
+
+<figure class="fig" data-fig="@ai-attention-heads"><figcaption>Each head learns its own pattern of who looks at whom, and a weight row always adds to 100%. In a text generator the causal mask hides later words, because they have not been written yet.</figcaption></figure>
+
 ## 3. When it is full
 
 When the conversation grows past the context length, engines drop the oldest text. The model is not being careless; it simply can no longer see it. Two fixes: a longer window (if memory allows), or a short summary of the old conversation at the start of a new one (Lesson 3.7).
@@ -66,6 +70,10 @@ Even inside the window, very long contexts have a known weakness: models pay les
 **"My model supports 256K tokens, so my app gives it 256K."** Often it doesn't. The 256K is what the model was trained to handle; the engine sets what it actually uses, and many start at 4K or 8K because every extra token of window needs memory. If a long document seems ignored, check the context length setting first.
 
 </div>
+
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
 
 ## 4. Setting it
 

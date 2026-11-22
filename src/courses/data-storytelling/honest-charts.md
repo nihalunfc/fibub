@@ -51,6 +51,10 @@ Falls Centre: *a* = 53,199, *b* = 57,838, real change = 8.7 %. With *m* = 50,000
 **Physical meaning:** our eyes read the whole bar as the value. Cutting the bottom off is like measuring two people's height from their waists up: the taller one looks huge.
 </details>
 
+Try it: move the right-hand axis until the two lines seem to move together.
+
+<figure class="fig" data-fig="@biz-dual-axis"><figcaption>Notice that a second axis lets the chart maker decide how related two series look.</figcaption></figure>
+
 ## 4. Worked example
 
 *A slide says "Sunday sales double Wednesday's!" with columns starting at 50,000.* Real numbers: Sunday 86,285, Wednesday 55,998, so Sunday is 54 % higher. On the cut axis the Sunday bar looks about 6 times taller. The fix: start at zero and title it honestly: "Sunday sales are about 1.5 times Wednesday's."

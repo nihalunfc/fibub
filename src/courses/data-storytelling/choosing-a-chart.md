@@ -49,6 +49,10 @@ Pick a question. The left card shows the chart that answers it best, using North
 **Physical meaning:** your eye compares the ends of two bars against the same baseline almost like a ruler. With two pie slices it has to compare curved wedges at different angles, and it guesses.
 </details>
 
+Try it: pick a question, then try every chart on the same data.
+
+<figure class="fig" data-fig="@biz-five-charts"><figcaption>Notice that the best chart is the one where the answer is the easiest thing to see.</figcaption></figure>
+
 ## 4. Worked example
 
 *Question from the regional manager: "Did each store hit target?"*

@@ -54,6 +54,11 @@ The grain sentence is the most useful line in the whole model. Put it in the tab
 
 When someone asks for a column that does not fit the grain, such as an order-level delivery fee on a line-level table, the answer is a second fact table at order grain (`fct_orders`), not a trick that repeats or splits the fee across lines.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Four kinds of fact table
 
 | Kind | Grain | Example | Add up over time? |

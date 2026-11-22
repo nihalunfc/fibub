@@ -42,6 +42,10 @@ The celestial sphere borrows Earth's own geography:
 
 The zenith and horizon belong to *you*: move to another town and they move too. The poles and equator belong to the *sky*: they are the same for everyone.
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 3. The pole stands at your latitude
 
 Here is the single most useful fact in naked-eye astronomy:

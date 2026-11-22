@@ -75,6 +75,10 @@ What to read off:
 
 Now take a weak potential `$V(\mathbf r) = \sum_{\mathbf G}U_{\mathbf G}e^{i\mathbf G\cdot\mathbf r}$`. Away from zone boundaries, perturbation theory changes free energies only at second order. But on a Bragg plane, where `$|\mathbf k| = |\mathbf k - \mathbf G|$`, the two plane waves are degenerate and mix strongly:
 
+Switch on the lattice potential and slide k to the zone edge to see the gap open and the two standing waves part ways.
+
+<figure class="fig" data-fig="@sx-nfe-gap"><figcaption>Grey: free electrons. Colour: bands with a weak periodic potential U. At k = π/a the lower state piles up on the ions and the upper one sits between them, which is why the energies differ by 2U.</figcaption></figure>
+
 ```math
 \begin{pmatrix} E^0_{\mathbf k} & U_{\mathbf G}^* \\ U_{\mathbf G} & E^0_{\mathbf k - \mathbf G}\end{pmatrix}, \qquad E_\pm = \frac{E^0_{\mathbf k} + E^0_{\mathbf k - \mathbf G}}{2} \pm \sqrt{\left(\frac{E^0_{\mathbf k} - E^0_{\mathbf k - \mathbf G}}{2}\right)^2 + |U_{\mathbf G}|^2}
 ```
@@ -131,6 +135,10 @@ On lattices where every neighbour phase can be `$-1$` at once (bipartite), the w
 ## 5. Electrons, holes and fields
 
 A wave packet built from one band moves at the group velocity and responds to an external force through its crystal momentum:
+
+Slide the gap and temperature to compare a metal, a semiconductor and an insulator.
+
+<figure class="fig" data-fig="@sx-band-fill"><figcaption>The same band picture, now with carriers: thermal excitation across the gap gives n = p ≈ n<sub>i</sub>; a zero-gap or half-filled band is a metal.</figcaption></figure>
 
 ```math
 \mathbf v = \frac1\hbar\nabla_{\mathbf k}E, \qquad \hbar\dot{\mathbf k} = \mathbf F = -e(\mathbf E + \mathbf v\times\mathbf B), \qquad \left(\frac1{m^*}\right)_{ij} = \frac1{\hbar^2}\frac{\partial^2E}{\partial k_i\partial k_j}

@@ -46,6 +46,10 @@ P(A\mid B) = \frac{P(A\cap B)}{P(B)} \qquad P(A\cap B) = P(A)\,P(B\mid A) \qquad
 
 <div class="problem" data-problem="bayes"></div>
 
+**Try it:** Change the three probabilities and light up each event.
+
+<figure class="fig" data-fig="@tp-prob-tree"><figcaption>Multiply down a path, add across paths; A given B is one leaf divided by the total of B's leaves.</figcaption></figure>
+
 ## 3. Random variables
 
 | Idea | Formula |
@@ -70,6 +74,10 @@ P(A\mid B) = \frac{P(A\cap B)}{P(B)} \qquad P(A\cap B) = P(A)\,P(B\mid A) \qquad
 **"After five heads, tails is due."** Coin tosses are independent; the coin has no memory. The chance of tails on the next toss is still ½.
 
 </div>
+
+**Try it:** Change prevalence and test accuracy and count the dots.
+
+<figure class="fig" data-fig="@math-bayes-dots"><figcaption>A positive result from a rare condition is often a false alarm.</figcaption></figure>
 
 ## 4. Practice
 

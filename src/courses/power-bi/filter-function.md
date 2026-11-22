@@ -33,6 +33,10 @@ Trace a category: after the filter context, FILTER goes through the visible Sale
 
 `FILTER(table, condition)` is an **iterator**: it creates a row context for each row of the table, tests the condition, and returns the rows that pass. It returns a table, so it's used inside CALCULATE, COUNTROWS, SUMX and other functions that take a table.
 
+Try it: set a Category slicer, then compare the plain measure with the CALCULATE versions.
+
+<figure class="fig" data-fig="@biz-calculate-modes"><figcaption>Notice that CALCULATE with a column filter overrides the slicer, KEEPFILTERS keeps both, and ALL removes it.</figcaption></figure>
+
 ## 3. Filtering with a measure
 
 <!--fig:dax-pad f-top-products-->
