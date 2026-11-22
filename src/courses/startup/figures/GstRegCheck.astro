@@ -1,0 +1,45 @@
+---
+// 7.2: must I register for GST in India, and could I use the composition scheme? Turnover limits from the CBIC (as of late 2026).
+---
+<figure class="cs-fig su-fig" data-gr>
+  <span class="cs-figtag">Checker: do I need GST registration?</span>
+  <div class="su-row">
+    <label>I sell<select name="w"><option value="s">Services</option><option value="g">Goods only</option><option value="b">Goods and services</option></select></label>
+    <label>Turnover this year (₹ lakh)<input type="number" name="t" min="0" step="any" value="15" /></label>
+    <label>My state<select name="st"><option value="n">Most states</option><option value="x">Manipur, Mizoram, Nagaland, Tripura (lower limits)</option></select></label>
+  </div>
+  <div data-qs></div>
+  <div class="su-out"><div><span>GST registration</span><b data-reg></b></div><div><span>Composition scheme</span><b data-comp></b></div><div><span>Returns</span><b data-ret></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Turnover means aggregate turnover for the whole PAN across India: taxable, exempt and export sales together, before GST. Limits from the CBIC as of November 2026; a few states kept the lower ₹20 lakh limit for goods, so check your state. Not tax advice.</figcaption>
+</figure>
+<script>
+  import { num } from './fmt';
+  const Q: [string, string][] = [['inter', 'I send goods to buyers in other states'], ['eco', 'I sell goods through a marketplace (Amazon, Flipkart, Meesho)'], ['exp', 'I export (clients or buyers outside India)'], ['b2b', 'Most of my buyers are GST-registered businesses']];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-gr]')) {
+    const box = fig.querySelector('[data-qs]')!;
+    box.innerHTML = Q.map(([k, q]) => `<label style="display:flex;gap:8px;align-items:center;font-weight:500;font-size:14.5px;margin:4px 0"><input type="checkbox" data-k="${k}"> ${q}</label>`).join('');
+    const on = (k: string) => !!box.querySelector<HTMLInputElement>(`[data-k=${k}]:checked`);
+    function draw() {
+      const w = fig.querySelector<HTMLSelectElement>('[name=w]')!.value, low = fig.querySelector<HTMLSelectElement>('[name=st]')!.value === 'x', t = num(fig, 't') * 1e5;
+      const limit = w === 'g' ? (low ? 20e5 : 40e5) : (low ? 10e5 : 20e5);
+      const goods = w !== 's', reasons: string[] = [];
+      if (t > limit) reasons.push(`turnover is over the ₹${limit / 1e5} lakh limit`);
+      if (goods && on('inter')) reasons.push('you make inter-state sales of goods (registration is compulsory whatever the turnover)');
+      const must = reasons.length > 0;
+      const compLimit = w === 's' ? 50e5 : low ? 75e5 : 150e5;
+      const compOk = !(goods && on('inter')) && !on('exp') && t <= compLimit;
+      fig.querySelector('[data-reg]')!.textContent = must ? 'Required' : 'Optional (voluntary)';
+      fig.querySelector('[data-comp]')!.textContent = !must && t <= limit ? 'Not needed yet' : compOk ? (w === 's' ? 'Possible: 6 % of turnover' : 'Possible: 1 % (5 % restaurants)') : 'Not available';
+      fig.querySelector('[data-ret]')!.textContent = !must ? 'None until registered' : compOk ? 'CMP-08 quarterly + GSTR-4 yearly (if composition)' : t <= 5e7 ? 'GSTR-1 + GSTR-3B (quarterly allowed under QRMP)' : 'GSTR-1 + GSTR-3B monthly, e-invoices';
+      const notes: string[] = [];
+      if (must) notes.push(`Register within 30 days of becoming liable: ${reasons.join('; ')}.`);
+      else notes.push(`Below the ₹${limit / 1e5} lakh limit you need not register.`);
+      if (!must && on('b2b')) notes.push('Your business buyers can claim input credit only on a GST invoice, so registering voluntarily can win orders.');
+      if (on('exp')) notes.push('Exports are zero-rated: file a Letter of Undertaking (LUT) each year to export without paying IGST, or pay and claim a refund.');
+      if (goods && on('eco') && !on('inter')) notes.push('Small sellers supplying goods only within their own state through a marketplace may sell without registration if under the limit (rule from October 2023, with conditions; the marketplace will ask).');
+      fig.querySelector('[data-say]')!.textContent = notes.join(' ');
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+  }
+</script>

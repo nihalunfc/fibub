@@ -1,0 +1,41 @@
+---
+// 9.5: the true yearly cost of one hire: salary, the employer's payroll costs, benefits, tools, space and recruiting,
+// compared with a contractor's day rate.
+---
+<figure class="cs-fig su-fig" data-hc>
+  <span class="cs-figtag">Calculator: the true cost of a hire</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada, Ontario (C$)</option><option value="us">USA ($)</option></select></label>
+    <label>Yearly salary<input type="number" name="s" min="0" step="any" /></label>
+    <label>Health and other benefits a year<input type="number" name="b" min="0" step="any" /></label>
+    <label>Laptop, software and phone a year<input type="number" name="e" min="0" step="any" /></label>
+    <label>Desk or co-working a year<input type="number" name="o" min="0" step="any" /></label>
+    <label>Recruiting (one-off, spread over 2 years)<input type="number" name="r" min="0" step="any" /></label>
+    <label>Or a contractor’s day rate<input type="number" name="d" min="0" step="any" /></label>
+    <label>Contractor days a year<input type="number" name="n" min="0" step="1" value="220" /></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Payroll costs from the Module 9 payslip engine (India: PF, admin and gratuity at 50 % wages; Canada: CPP, EI and 4 % vacation pay; USA: FICA, FUTA and state unemployment at 3.4 % of $7,000). Benefits, tools and space are typical starting guesses: replace them with your quotes. A contractor carries their own taxes, tools and gaps between contracts, which is why the day rate is higher than salary ÷ working days.</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  import { india, canada, usa } from './payroll';
+  const DEF: Record<CC, number[]> = { in: [900000, 15000, 60000, 72000, 75000, 6000], ca: [70000, 3000, 3000, 4800, 6000, 450], us: [75000, 8000, 3000, 4800, 7500, 500] };
+  const KEYS = ['s', 'b', 'e', 'o', 'r', 'd'];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-hc]')) {
+    let touched = false;
+    fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', () => { touched = true; draw(); }));
+    const cc = followCountry(fig, (c) => { if (!touched) KEYS.forEach((k, i) => { (fig.querySelector(`[name=${k}]`) as HTMLInputElement).value = String(DEF[c][i]); }); draw(); });
+    function draw() {
+      const c = cc(), s = num(fig, 's');
+      const p = c === 'in' ? india(s / 12, 0.5, true, 200) : c === 'ca' ? canada(s, 'ON', 0.04) : usa(s, 0, 0.034, 7000);
+      const pay = p.cost - s, b = num(fig, 'b'), e = num(fig, 'e'), o = num(fig, 'o'), r = num(fig, 'r') / 2;
+      const total = s + pay + b + e + o + r, ctr = num(fig, 'd') * num(fig, 'n');
+      const rows: [string, number, string][] = [['Salary', s, ''], [c === 'ca' ? 'Vacation pay, CPP, EI' : 'Payroll taxes and funds', pay, 'w'], ['Benefits', b, 'w'], ['Tools', e, 'w'], ['Space', o, 'w'], ['Recruiting (per year)', r, 'w'], ['Total for an employee', total, ''], ['Contractor for the year', ctr, 'g']];
+      const max = Math.max(total, ctr, 1);
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([t, v, k]) => `<div><span>${t}</span><span class="t"><i class="${k}" style="width:${Math.max(1, (v / max) * 100)}%"></i></span><b>${money(c, v)}</b></div>`).join('');
+      fig.querySelector('[data-say]')!.textContent = s ? `An employee on ${money(c, s)} really costs about ${money(c, total)} a year: ${(total / s).toFixed(2)} times the salary. ${ctr ? (ctr < total ? `The contractor costs ${money(c, total - ctr)} less for the year, but you get no long-term commitment, less control over how they work, and must make sure they really are a contractor (Lesson 9.1).` : `The contractor costs ${money(c, ctr - total)} more for a full year; contractors pay off for short or uncertain work.`) : ''}` : 'Enter a salary.';
+    }
+  }
+</script>

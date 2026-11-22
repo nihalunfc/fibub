@@ -1,0 +1,32 @@
+---
+// 8.4: USA, the same profit as a single-member LLC (sole proprietor), an S corporation with a salary, or a C corporation.
+---
+<figure class="cs-fig su-fig" data-ubt>
+  <span class="cs-figtag">Calculator: LLC, S corp or C corp? (USA, federal)</span>
+  <div class="su-row">
+    <label>Business profit for the year ($)<input type="number" name="x" min="0" step="any" value="120000" /></label>
+    <label>S corp salary you would pay yourself ($)<input type="number" name="s" min="0" step="any" value="60000" /></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <div class="su-out"><div><span>LLC: self-employment tax</span><b data-se></b></div><div><span>LLC: federal income tax</span><b data-inc></b></div><div><span>Quarterly estimated payment</span><b data-q></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>2026 federal rules for a single filer with no other income, from fibub's US paycheck engine: standard deduction $16,100; self-employment tax 15.3 % on 92.35 % of profit (Social Security part up to $184,500); the 20 % qualified business income deduction (simplified, no wage or service-business limits); C corporation 21 %, before any dividend tax. State income tax, state LLC fees and S corp payroll costs are left out. The IRS expects an S corp salary to be reasonable for the work you do.</figcaption>
+</figure>
+<script>
+  import { money, num } from './fmt';
+  import { usProp, usScorp, US_CCORP } from './biztax';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ubt]')) {
+    function draw() {
+      const x = num(fig, 'x'), s = num(fig, 's'), llc = usProp(x), sc = usScorp(x, s), cc = x * US_CCORP;
+      const rows: [string, number, string][] = [['Single-member LLC (sole proprietor)', llc.total, 'SE tax + income tax'], [`S corp, ${money('us', sc.salary)} salary`, sc.total, 'payroll tax on salary + income tax'], ['C corp keeps the profit', cc, 'dividends taxed again when paid out']];
+      const max = Math.max(...rows.map((r) => r[1]), 1), min = Math.min(...rows.map((r) => r[1]));
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([n, v, note]) => `<div style="grid-template-columns:1fr"><span>${n} <small style="color:var(--muted)">(${note})</small></span><span style="display:grid;grid-template-columns:1fr 6.5em;gap:8px;align-items:center"><span class="t"><i class="${v === min ? 'g' : 'w'}" style="width:${Math.max(1, (v / max) * 100)}%"></i></span><b>${money('us', v)}</b></span></div>`).join('');
+      fig.querySelector('[data-se]')!.textContent = money('us', llc.se);
+      fig.querySelector('[data-inc]')!.textContent = money('us', llc.income);
+      fig.querySelector('[data-q]')!.textContent = money('us', llc.total / 4);
+      const save = llc.total - sc.total;
+      fig.querySelector('[data-say]')!.textContent = save > 0 ? `The S corp saves about ${money('us', save)} a year because profit above your salary avoids the 15.3 % self-employment tax. Payroll software, a separate business tax return (Form 1120-S) and state fees often cost $1,500 to $3,000 a year, so the switch usually pays only once profit is well above a reasonable salary.` : 'No saving here: the salary takes most of the profit. An S corp makes sense only when profit is well above a reasonable salary.';
+    }
+    fig.addEventListener('input', draw); draw();
+  }
+</script>
