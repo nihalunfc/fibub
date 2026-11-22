@@ -24,6 +24,8 @@ for (const course of ['sql', 'data-modelling']) {
   for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.md')).sort()) {
     const slug = f.slice(0, -3); if (only.length && !only.includes(slug)) continue;
     const md = fs.readFileSync(`${dir}/${f}`, 'utf8');
+    const seo = /^seoTitle:\s*['"]?(.*?)['"]?\s*$/m.exec(md)?.[1]; if (seo && seo.length > 60) bad(`${course}/${slug}: seoTitle is ${seo.length} characters (60 max)`);
+    if ((md.match(/^  - q:/gm) ?? []).length !== 3) bad(`${course}/${slug}: quiz needs exactly 3 questions`);
     const db = fresh();
     const exec = async (q) => { const st = db.prepare(q); const columns = st.getColumnNames(); const values = []; while (st.step()) values.push(st.get()); st.free(); return { columns, values }; };
     for (const m of md.matchAll(/```sql\n([\s\S]*?)```/g)) {

@@ -63,6 +63,12 @@ ok(kinds(t) === 'source group aggregate result', `cte: ${kinds(t)}`);
 t = await traceSql('SELECT * FROM orders LIMIT 2 OFFSET 1', exec);
 ok(kinds(t) === 'source limit result' && last(t).table.rows[0][0] === 11, `limit: ${kinds(t)}`);
 
+
+t = await traceSql('SELECT id, ROUND(AVG(amount) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 1) AS avg2 FROM orders', exec);
+ok(t.steps[1]?.kind === 'window' && t.steps[1].frames[1].join() === '0,1', `wrapped window ${kinds(t)}`);
+t = await traceSql('SELECT day, amount, SUM(amount) OVER (ORDER BY day) AS run FROM orders', exec);
+ok(t.steps[1].frames[1].join() === '0,2' && t.steps[1].frames[2].join() === '0,2', `range peers ${t.steps[1].frames.map(String)}`);
+
 // Sampling big tables: joins pick matching partners.
 db.run('CREATE TABLE big (k INTEGER, v INTEGER)'); for (let i = 0; i < 200; i++) db.run('INSERT INTO big VALUES (?, ?)', [i, i * 2]);
 db.run('CREATE TABLE big2 (k INTEGER, w TEXT)'); for (let i = 199; i >= 0; i--) db.run('INSERT INTO big2 VALUES (?, ?)', [i, 'w' + i]);

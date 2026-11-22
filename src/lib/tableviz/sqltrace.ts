@@ -147,6 +147,18 @@ function onPairs(cond: string, alias: string): [string, string][] {
   return out;
 }
 
+
+/** The window call inside an expression: [function call, OVER (...) contents], even when wrapped (ROUND(AVG(x) OVER (...), 2)). */
+function windowCall(expr: string): [string, string, string] | null {
+  const toks = tokenize(expr); const o = toks.findIndex((k, i) => k.u === 'OVER' && toks[i + 1]?.t === '(');
+  if (o < 1 || toks[o - 1].t !== ')') return null;
+  let i = o - 1; const d = toks[i].d; while (i > 0 && !(toks[i].t === '(' && toks[i].d === d)) i--;
+  if (i < 1) return null; const fnStart = toks[i - 1].s;
+  const open = toks[o + 1]; let j = o + 2; while (j < toks.length && !(toks[j].t === ')' && toks[j].d === open.d)) j++;
+  if (j >= toks.length) return null;
+  return [expr, expr.slice(fnStart, toks[o - 1].e), expr.slice(open.e, toks[j].s)];
+}
+
 const stripR = (r: ExecResult) => {
   const keep = r.columns.map((c, j) => (/^__\w+$/.test(c) ? -1 : j)).filter((j) => j >= 0);
   return { columns: keep.map((j) => r.columns[j]), values: r.values.map((row) => keep.map((j) => row[j])) };
@@ -290,14 +302,18 @@ async function build(p: Parsed, srcs: Source[], exec: Exec, cap: number): Promis
     const out: VTable = { name: 'selected', cols: r.columns, rows: r.values };
     const win = items.findIndex((it) => /\bOVER\s*\(/i.test(it.expr));
     if (win >= 0) {
-      const it = items[win]; const m = /^([\s\S]*?)\bOVER\s*\(([\s\S]*)\)\s*$/i.exec(it.expr);
+      const it = items[win]; const wc = windowCall(it.expr); const m = wc ? [wc[0], wc[1], wc[2]] : null;
       if (m) {
         const spec = m[2]; const fn = (/^\s*(\w+)/.exec(m[1])?.[1] ?? '').toLowerCase();
         const part = /PARTITION\s+BY\s+([\s\S]*?)(?=\bORDER\s+BY\b|\bROWS\b|\bRANGE\b|\bGROUPS\b|$)/i.exec(spec)?.[1]?.trim() ?? '';
         const ord = /ORDER\s+BY\s+([\s\S]*?)(?=\bROWS\b|\bRANGE\b|\bGROUPS\b|$)/i.exec(spec)?.[1]?.trim() ?? '';
         const frame = /\b(ROWS|RANGE|GROUPS)\s+([\s\S]*)$/i.exec(spec)?.[2] ?? '';
-        const wr = await exec(`${W}SELECT ROW_NUMBER() OVER (${part ? `PARTITION BY ${part} ` : ''}${ord ? `ORDER BY ${ord}` : ''}) AS __n${part ? `, ${part} AS __p` : ''} FROM ${fromAll}${whereSql} ORDER BY ${order}`);
-        const pid = new Map<string, number>(); const partitionOf = wr.values.map((v) => { const kk = part ? key(v.slice(1)) : '0'; if (!pid.has(kk)) pid.set(kk, pid.size); return pid.get(kk)!; });
+        const ordExprs = ord ? splitCommas(ord).map((o) => o.replace(/\s+(ASC|DESC)?\s*(NULLS\s+(FIRST|LAST))?\s*$/i, '').trim()) : [];
+        const wr = await exec(`${W}SELECT ROW_NUMBER() OVER (${part ? `PARTITION BY ${part} ` : ''}${ord ? `ORDER BY ${ord}` : ''}) AS __n${ordExprs.map((o, q) => `, ${o} AS __o${q}`).join('')}${part ? `, ${part} AS __p` : ''} FROM ${fromAll}${whereSql} ORDER BY ${order}`);
+        const no = ordExprs.length;
+        const pid = new Map<string, number>(); const partitionOf = wr.values.map((v) => { const kk = part ? key(v.slice(1 + no)) : '0'; if (!pid.has(kk)) pid.set(kk, pid.size); return pid.get(kk)!; });
+        const peerKey = wr.values.map((v, i) => `${partitionOf[i]}|${key(v.slice(1, 1 + no))}`);
+        const isRange = !frame || /^\s*RANGE\b/i.test(/\b(ROWS|RANGE|GROUPS)\b[\s\S]*$/i.exec(spec)?.[0] ?? '');
         const rn = wr.values.map((v) => v[0] as number);
         const ordIdx = wr.values.map((_, i) => i).sort((a, b) => partitionOf[a] - partitionOf[b] || rn[a] - rn[b]);
         const start = new Map<number, number>(), end = new Map<number, number>(); ordIdx.forEach((i, k) => { const pp = partitionOf[i]; if (!start.has(pp)) start.set(pp, k); end.set(pp, k); });
@@ -311,8 +327,14 @@ async function build(p: Parsed, srcs: Source[], exec: Exec, cap: number): Promis
         const frames: [number, number][] = ordIdx.map((i, k) => {
           const pp = partitionOf[i], a = start.get(pp)!, b = end.get(pp)!;
           if (fn === 'lag') return [Math.max(a, k - off), k]; if (fn === 'lead') return [k, Math.min(b, k + off)];
-          if (frame) { const bt = /BETWEEN\s+([\s\S]+?)\s+AND\s+([\s\S]+)$/i.exec(frame); return bt ? [bound(bt[1], k, pp, false), bound(bt[2], k, pp, true)] : [bound(frame, k, pp, false), k]; }
-          return ord ? [a, k] : [a, b];
+          const peerEnd = (q: number) => { let e = q; while (e + 1 <= b && peerKey[ordIdx[e + 1]] === peerKey[ordIdx[q]]) e++; return e; };
+          const peerStart = (q: number) => { let e = q; while (e - 1 >= a && peerKey[ordIdx[e - 1]] === peerKey[ordIdx[q]]) e--; return e; };
+          if (frame) {
+            const bt = /BETWEEN\s+([\s\S]+?)\s+AND\s+([\s\S]+)$/i.exec(frame); let [x, y] = bt ? [bound(bt[1], k, pp, false), bound(bt[2], k, pp, true)] : [bound(frame, k, pp, false), k];
+            if (isRange && ord) { if (/^\s*CURRENT/i.test(bt ? bt[2] : 'CURRENT')) y = peerEnd(k); if (bt && /^\s*CURRENT/i.test(bt[1])) x = peerStart(k); }
+            return [x, y];
+          }
+          return ord ? [a, peerEnd(k)] : [a, b];
         });
         const j = r.columns.indexOf(it.alias) >= 0 ? r.columns.indexOf(it.alias) : win;
         steps.push({ kind: 'window', label: 'OVER', note: `${it.alias} = ${m[1].trim()} OVER (${spec.trim()}): each row looks at its own window of rows${part ? `, inside its ${part} group` : ''}, and no rows are merged.`, input: Wt, col: it.alias, expr: it.expr, partitionOf, order: ordIdx, frames, values: r.values.map((v) => v[j]) });

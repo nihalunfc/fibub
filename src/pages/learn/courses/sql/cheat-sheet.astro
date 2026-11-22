@@ -1,0 +1,341 @@
+---
+// SQL cheat sheet: the SQL of the course on one page, grouped by topic, each item with a short static code sample,
+// a one-line meaning and the lesson that explains it. Plus a table of date and text functions in SQLite, SQL Server
+// and PostgreSQL. Code is plain <pre><code> (no script); to run it, use the sandbox.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { SQL_COURSE } from '../../../../courses/sql/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+const live = new Set((await courseLessons(SQL_COURSE)).keys());
+const num = new Map(flatLessons(SQL_COURSE).map((l) => [l.slug, l.n]));
+type C = [name: string, code: string, meaning: string, lesson: string];
+// One row of the dialect table: task, SQLite, SQL Server (T-SQL), PostgreSQL, lesson.
+type D = [task: string, sqlite: string, mssql: string, pg: string, lesson: string];
+
+const SECTIONS: { h: string; id: string; rows: C[] }[] = [
+  { h: 'How a query runs', id: 'order', rows: [
+    ['Order you write it', `SELECT … FROM … JOIN … WHERE … GROUP BY … HAVING … ORDER BY … LIMIT …`, 'The clauses always go in this order.', 'how-a-query-runs'],
+    ['Order it runs', `1 FROM and JOIN    pick the tables, match rows
+2 WHERE            keep rows
+3 GROUP BY         form groups
+4 HAVING           keep groups
+5 SELECT           work out columns (window functions here)
+6 DISTINCT         drop repeated rows
+7 ORDER BY         sort
+8 LIMIT / OFFSET   keep the first few`, 'So WHERE cannot use a SELECT alias or an aggregate, but ORDER BY can use both.', 'how-a-query-runs'],
+  ] },
+  { h: 'SELECT and WHERE', id: 'select', rows: [
+    ['Choose columns', `SELECT product_name, unit_price * 1.13 AS with_tax
+FROM products`, 'Columns, expressions and literals; AS gives a name.', 'select'],
+    ['Unique rows', `SELECT DISTINCT city FROM customers`, 'Each combination of the chosen columns once.', 'select'],
+    ['Comparison', `WHERE unit_price >= 50      -- =  <> (or !=)  <  <=  >  >=
+WHERE status = 'completed'  -- text in single quotes`, 'Keeps rows where the condition is true.', 'where'],
+    ['AND, OR, NOT', `WHERE channel = 'online' AND (city = 'Toronto' OR city = 'Ottawa')`, 'AND runs before OR, so always bracket mixed conditions.', 'and-or-in-between-like'],
+    ['IN, BETWEEN', `WHERE store_id IN (1, 2, 5)
+WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31'`, 'A list of values; a range with both ends included.', 'and-or-in-between-like'],
+    ['LIKE', `WHERE product_name LIKE '%pack%'   -- % any run of characters
+WHERE code LIKE 'A_1'              -- _ exactly one`, 'Text patterns. SQLite ignores case for A–Z; PostgreSQL needs ILIKE.', 'and-or-in-between-like'],
+    ['Sort and take the top', `ORDER BY unit_price DESC, product_id   -- tie-breaker last
+LIMIT 10 OFFSET 20`, 'ASC is the default. Without ORDER BY, row order is not guaranteed.', 'order-by-limit'],
+    ['CASE', `CASE WHEN amount >= 100 THEN 'large'
+     WHEN amount >= 40  THEN 'medium'
+     ELSE 'small' END AS size_band`, 'If-then-else per row; the first true WHEN wins. No ELSE means NULL.', 'case'],
+  ] },
+  { h: 'NULL rules', id: 'null', rows: [
+    ['Test for blanks', `WHERE email IS NULL
+WHERE email IS NOT NULL`, 'Never write = NULL: it is never true.', 'null'],
+    ['Three-valued logic', `NULL = NULL      -- unknown, not true
+5 + NULL         -- NULL
+'a' || NULL      -- NULL
+NOT (unknown)    -- unknown`, 'WHERE keeps only true rows, so unknown rows quietly vanish.', 'null'],
+    ['Fill or guard', `COALESCE(loyalty_tier, 'None')    -- first non-NULL value
+total / NULLIF(orders, 0)         -- NULL instead of divide-by-zero`, 'COALESCE fills blanks; NULLIF turns a value into NULL.', 'null'],
+    ['Aggregates skip NULL', `COUNT(*)      -- every row
+COUNT(email)  -- rows where email is not NULL
+AVG(x)        -- average of non-NULL x only`, 'Only COUNT(*) counts NULLs.', 'aggregates'],
+    ['The NOT IN trap', `SELECT * FROM customers
+WHERE customer_id NOT IN (SELECT customer_id FROM orders)
+-- returns nothing: guest orders have a NULL customer_id. Use NOT EXISTS`, 'One NULL in the list makes every NOT IN test unknown.', 'anti-join'],
+  ] },
+  { h: 'Aggregates, GROUP BY and HAVING', id: 'group', rows: [
+    ['Aggregates', `SELECT COUNT(*), COUNT(DISTINCT customer_id),
+       SUM(amount), AVG(amount), MIN(amount), MAX(amount)
+FROM mini_orders`, 'Many rows in, one row out.', 'aggregates'],
+    ['One row per group', `SELECT store_id, channel, COUNT(*) AS orders
+FROM orders
+GROUP BY store_id, channel`, 'Every non-aggregated column in SELECT goes in GROUP BY.', 'group-by'],
+    ['Filter groups', `SELECT customer_id, COUNT(*) AS orders
+FROM orders
+WHERE status = 'completed'   -- rows, before grouping
+GROUP BY customer_id
+HAVING COUNT(*) >= 5         -- groups, after grouping`, 'WHERE filters rows; HAVING filters groups using aggregates.', 'having'],
+    ['Count the right thing', `COUNT(DISTINCT customer_id)   -- people, not orders`, 'Distinct counts do not add up across groups; recalculate the total.', 'count-distinct'],
+    ['Conditional count', `SUM(CASE WHEN channel = 'online' THEN 1 ELSE 0 END) AS online_orders`, 'Count or add only the rows you want, inside one GROUP BY.', 'case'],
+    ['Check the grain', `SELECT order_id, COUNT(*) FROM order_items
+GROUP BY order_id HAVING COUNT(*) > 1`, 'Know what one row means before you add anything up.', 'grain'],
+  ] },
+  { h: 'Joins', id: 'joins', rows: [
+    ['INNER JOIN', `FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id`, 'Only rows that match on both sides.', 'inner-join'],
+    ['LEFT JOIN', `FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id`, 'Every left row; NULLs where the right has no match.', 'left-join'],
+    ['RIGHT JOIN', `FROM orders o RIGHT JOIN customers c ON …`, 'Every right row. Usually written as a LEFT JOIN with the tables swapped.', 'left-join'],
+    ['FULL JOIN', `FROM a FULL JOIN b ON a.id = b.id`, 'Every row from both sides, matched where possible.', 'left-join'],
+    ['CROSS JOIN', `FROM stores CROSS JOIN months`, 'Every row with every row. Handy with a one-row totals CTE.', 'cte'],
+    ['Anti-join', `SELECT c.* FROM customers c
+WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id)
+-- or: LEFT JOIN orders o ON … WHERE o.order_id IS NULL`, 'Rows with no match: customers who never ordered.', 'anti-join'],
+    ['Semi-join', `WHERE EXISTS (SELECT 1 FROM returns r WHERE r.order_id = o.order_id)`, 'Rows with at least one match, without copying them.', 'anti-join'],
+    ['Self-join', `FROM employees e
+LEFT JOIN employees m ON m.employee_id = e.manager_id`, 'A table joined to itself under two aliases.', 'self-join'],
+    ['USING', `FROM orders JOIN order_items USING (order_id)`, 'Short form when both sides name the key the same.', 'inner-join'],
+    ['Fan-out', `-- orders 1→many order_items: an order-level number summed after the join counts once per line
+-- fix: aggregate order_items first, then join`, 'A one-to-many join copies rows and inflates totals.', 'fan-out'],
+    ['Stack results', `SELECT … UNION ALL SELECT …   -- keep every row
+SELECT … UNION SELECT …       -- remove duplicates
+SELECT … INTERSECT SELECT …   -- in both
+SELECT … EXCEPT SELECT …      -- in the first, not the second`, 'Same number of columns, same order, matching types.', 'union'],
+  ] },
+  { h: 'Subqueries and CTEs', id: 'cte', rows: [
+    ['Scalar subquery', `WHERE amount > (SELECT AVG(amount) FROM mini_orders)`, 'Returns one value, used like a number.', 'subqueries'],
+    ['Derived table', `SELECT AVG(n) FROM (
+  SELECT customer_id, COUNT(*) AS n FROM orders GROUP BY customer_id
+) AS per_customer`, 'A subquery in FROM; give it an alias.', 'subqueries'],
+    ['IN and EXISTS', `WHERE order_id IN (SELECT order_id FROM returns)
+WHERE EXISTS (SELECT 1 FROM returns r WHERE r.order_id = o.order_id)`, 'Membership tests against another query.', 'in-exists'],
+    ['Correlated subquery', `SELECT o.*, (SELECT MAX(o2.amount) FROM mini_orders o2
+             WHERE o2.customer_id = o.customer_id) AS their_max
+FROM mini_orders o`, 'Uses the outer row, so it runs once per row.', 'correlated-subqueries'],
+    ['CTE', `WITH monthly AS (
+  SELECT strftime('%Y-%m', order_date) AS month, COUNT(*) AS orders
+  FROM orders GROUP BY month
+),
+best AS (SELECT MAX(orders) AS top FROM monthly)
+SELECT m.* FROM monthly m CROSS JOIN best b WHERE m.orders = b.top`, 'Named steps at the top, read top to bottom.', 'cte'],
+    ['Recursive CTE', `WITH RECURSIVE cal(d) AS (
+  SELECT '2025-01-01'                    -- anchor
+  UNION ALL
+  SELECT date(d, '+1 day') FROM cal      -- step
+  WHERE d < '2025-12-31'                 -- stop
+)
+SELECT d FROM cal`, 'Anchor, then a step repeated until it adds nothing. Calendars and org charts.', 'recursive-cte'],
+  ] },
+  { h: 'Window functions', id: 'window', rows: [
+    ['The shape', `function(…) OVER (
+  PARTITION BY group_cols      -- optional: restart per group
+  ORDER BY sort_cols           -- optional: order inside the group
+  ROWS BETWEEN … AND …         -- optional: the frame
+)`, 'Works over related rows but keeps every row.', 'over'],
+    ['Group total on every row', `SUM(amount) OVER (PARTITION BY customer_id) AS customer_total`, 'Like GROUP BY without collapsing the rows.', 'over'],
+    ['Ranking', `ROW_NUMBER() OVER (ORDER BY sales DESC, id)  -- 1 2 3 4
+RANK()       OVER (ORDER BY sales DESC)      -- 1 1 3 4
+DENSE_RANK() OVER (ORDER BY sales DESC)      -- 1 1 2 3`, 'ROW_NUMBER never ties; add a tie-breaker so it is repeatable.', 'ranking'],
+    ['LAG and LEAD', `LAG(revenue)     OVER (ORDER BY month)  -- previous row
+LAG(revenue, 12) OVER (ORDER BY month)  -- 12 rows back
+LEAD(order_date) OVER (PARTITION BY customer_id ORDER BY order_date)`, 'Compare with the row before or after.', 'lag-lead'],
+    ['Frames', `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW   -- running total
+ROWS BETWEEN 6 PRECEDING AND CURRENT ROW           -- last 7 rows
+ROWS BETWEEN 3 PRECEDING AND 3 FOLLOWING           -- centred 7
+RANGE …                                            -- ties count together`, 'With ORDER BY and no frame, the default is RANGE up to the current row.', 'running-totals'],
+    ['Moving average', `AVG(sales) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)`, 'Smooths daily noise. Fill missing days first, or 7 rows is not 7 days.', 'moving-averages'],
+    ['Share, buckets, percentiles', `1.0 * amount / SUM(amount) OVER ()      -- share of total
+NTILE(4) OVER (ORDER BY spend)           -- quartile 1–4
+PERCENT_RANK() OVER (ORDER BY spend)     -- 0 to 1
+CUME_DIST() OVER (ORDER BY spend)        -- share at or below`, 'OVER () with nothing inside is the whole result.', 'share-of-total'],
+    ['FIRST_VALUE', `FIRST_VALUE(email) OVER (PARTITION BY customer_id ORDER BY joined_on)`, 'The value from the first row of the window.', 'duplicates'],
+    ['Filtering a window', `-- not allowed in WHERE: wrap it
+WITH r AS (SELECT *, ROW_NUMBER() OVER (…) AS rn FROM t)
+SELECT * FROM r WHERE rn = 1
+-- BigQuery and Snowflake: QUALIFY ROW_NUMBER() OVER (…) = 1`, 'Windows run after WHERE, so filter them in an outer query.', 'top-n-per-group'],
+  ] },
+  { h: 'Types and cleaning', id: 'clean', rows: [
+    ['CAST', `CAST('42' AS INTEGER)   CAST(amount AS REAL)   CAST(12.7 AS INTEGER) -- 12`, 'Change type. CAST to INTEGER drops the fraction.', 'types-casting'],
+    ['Whole-number division', `7 / 2          -- 3
+7 / 2.0        -- 3.5
+100.0 * a / b  -- a percentage that keeps decimals`, 'Two integers give an integer in SQLite, SQL Server and PostgreSQL.', 'types-casting'],
+    ['Money and rounding', `ROUND(0.1 + 0.2, 2) = 0.3   -- compare after rounding`, 'Decimals are stored inexactly; round before comparing.', 'types-casting'],
+    ['Find duplicates', `SELECT LOWER(TRIM(email)) AS k, COUNT(*)
+FROM customers GROUP BY k HAVING COUNT(*) > 1`, 'Group on a cleaned key and look for counts above 1.', 'duplicates'],
+    ['Quality checks', `-- orphans: should return no rows
+SELECT o.* FROM orders o
+LEFT JOIN customers c ON c.customer_id = o.customer_id
+WHERE o.customer_id IS NOT NULL AND c.customer_id IS NULL`, 'A healthy check returns nothing.', 'data-quality'],
+  ] },
+];
+
+const DATES: D[] = [
+  ['Today', `date('now')`, `CAST(GETDATE() AS date)`, `CURRENT_DATE`, 'dialects'],
+  ['Year, month', `strftime('%Y', d), strftime('%m', d)`, `YEAR(d), MONTH(d)`, `EXTRACT(YEAR FROM d)`, 'dates'],
+  ['Month label', `strftime('%Y-%m', d)`, `FORMAT(d, 'yyyy-MM')`, `to_char(d, 'YYYY-MM')`, 'dates'],
+  ['Weekday', `strftime('%w', d)  -- 0 = Sunday`, `DATEPART(weekday, d)`, `EXTRACT(DOW FROM d)  -- 0 = Sunday`, 'dates'],
+  ['Start of month', `date(d, 'start of month')`, `DATETRUNC(month, d)`, `date_trunc('month', d)`, 'dates'],
+  ['Add days', `date(d, '+7 days')`, `DATEADD(day, 7, d)`, `d + INTERVAL '7 days'`, 'dates'],
+  ['End of month', `date(d, 'start of month', '+1 month', '-1 day')`, `EOMONTH(d)`, `(date_trunc('month', d) + INTERVAL '1 month - 1 day')::date`, 'dates'],
+  ['Days between', `julianday(b) - julianday(a)`, `DATEDIFF(day, a, b)`, `b - a`, 'dates'],
+  ['Join text', `a || ' ' || b`, `a + ' ' + b  or  CONCAT(a, ' ', b)`, `a || ' ' || b  or  CONCAT(…)`, 'text'],
+  ['Trim spaces', `TRIM(x)`, `TRIM(x)  (2017+)  or  LTRIM(RTRIM(x))`, `TRIM(x)`, 'text'],
+  ['Part of text', `SUBSTR(x, 1, 3)`, `SUBSTRING(x, 1, 3)  or  LEFT(x, 3)`, `SUBSTR(x, 1, 3)  or  LEFT(x, 3)`, 'text'],
+  ['Find text', `INSTR(email, '@')`, `CHARINDEX('@', email)`, `STRPOS(email, '@')`, 'text'],
+  ['Length', `LENGTH(x)`, `LEN(x)  -- ignores trailing spaces`, `LENGTH(x)`, 'text'],
+  ['Upper, lower, replace', `UPPER(x) LOWER(x) REPLACE(x, 'a', 'b')`, `same`, `same`, 'text'],
+  ['First 10 rows', `LIMIT 10`, `SELECT TOP (10) …`, `LIMIT 10`, 'dialects'],
+  ['Replace NULL', `COALESCE(x, 0)  or  IFNULL(x, 0)`, `COALESCE(x, 0)  or  ISNULL(x, 0)`, `COALESCE(x, 0)`, 'dialects'],
+  ['Safe conversion', `CAST(x AS INTEGER)  -- never errors`, `TRY_CAST(x AS int)`, `no TRY_CAST: check with a regex first`, 'types-casting'],
+];
+
+const PATTERNS: C[] = [
+  ['Top N per group', `WITH ranked AS (
+  SELECT store_id, name, salary,
+         ROW_NUMBER() OVER (PARTITION BY store_id ORDER BY salary DESC, employee_id) AS rn
+  FROM employees
+)
+SELECT * FROM ranked WHERE rn <= 2`, 'Use RANK instead of ROW_NUMBER to keep ties.', 'top-n-per-group'],
+  ['Latest row per key', `WITH r AS (
+  SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_id
+                               ORDER BY order_date DESC, order_id DESC) AS rn
+  FROM orders
+)
+SELECT * FROM r WHERE rn = 1`, 'Each customer\'s most recent order.', 'top-n-per-group'],
+  ['Month-over-month and YoY growth', `WITH monthly AS (
+  SELECT strftime('%Y-%m', o.order_date) AS month,
+         SUM(i.quantity * i.unit_price * (1 - i.discount)) AS revenue
+  FROM orders o JOIN order_items i ON i.order_id = o.order_id
+  WHERE o.status = 'completed' GROUP BY month
+)
+SELECT month, revenue,
+       100.0 * (revenue - LAG(revenue) OVER (ORDER BY month))
+             / NULLIF(LAG(revenue) OVER (ORDER BY month), 0) AS mom_pct,
+       100.0 * (revenue - LAG(revenue, 12) OVER (ORDER BY month))
+             / NULLIF(LAG(revenue, 12) OVER (ORDER BY month), 0) AS yoy_pct
+FROM monthly`, 'LAG 12 assumes no missing months; join to a calendar to be sure.', 'growth'],
+  ['Running total and year-to-date', `SELECT day, sales,
+       SUM(sales) OVER (ORDER BY day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running,
+       SUM(sales) OVER (PARTITION BY substr(day, 1, 4) ORDER BY day) AS ytd
+FROM daily`, 'Spell out ROWS so ties on day are not added together.', 'running-totals'],
+  ['Remove duplicates, keep the first', `WITH r AS (
+  SELECT customer_id,
+         ROW_NUMBER() OVER (PARTITION BY LOWER(TRIM(email))
+                            ORDER BY joined_on, customer_id) AS rn
+  FROM customers WHERE email IS NOT NULL
+)
+SELECT customer_id FROM r WHERE rn > 1   -- the copies to drop`, 'Number the copies within each key; keep rn = 1.', 'duplicates'],
+  ['Pivot rows into columns', `SELECT department,
+       SUM(CASE WHEN year = '2024' THEN revenue ELSE 0 END) AS rev_2024,
+       SUM(CASE WHEN year = '2025' THEN revenue ELSE 0 END) AS rev_2025
+FROM dept_year
+GROUP BY department`, 'One SUM(CASE …) per new column. Unpivot back with UNION ALL.', 'pivot'],
+  ['Gaps and islands', `WITH d AS (
+  SELECT DISTINCT order_date AS day FROM orders WHERE customer_id = 17
+), g AS (
+  SELECT day, julianday(day) - ROW_NUMBER() OVER (ORDER BY day) AS grp FROM d
+)
+SELECT MIN(day) AS start, MAX(day) AS finish, COUNT(*) AS days
+FROM g GROUP BY grp`, 'Date minus row number is constant inside a streak.', 'gaps-islands'],
+  ['Cohort retention', `WITH firsts AS (
+  SELECT customer_id, MIN(strftime('%Y-%m', order_date)) AS cohort
+  FROM orders GROUP BY customer_id
+)
+SELECT f.cohort,
+       (CAST(strftime('%Y', o.order_date) AS INTEGER) - CAST(substr(f.cohort, 1, 4) AS INTEGER)) * 12
+     + CAST(strftime('%m', o.order_date) AS INTEGER) - CAST(substr(f.cohort, 6, 2) AS INTEGER) AS month_no,
+       COUNT(DISTINCT o.customer_id) AS active
+FROM orders o JOIN firsts f USING (customer_id)
+GROUP BY f.cohort, month_no`, 'Divide each cell by month 0 of its cohort for the retention rate.', 'cohorts'],
+  ['Days with no sales still showing', `WITH RECURSIVE cal(d) AS (…)   -- the recursive CTE above
+SELECT cal.d, COUNT(o.order_id) AS orders
+FROM cal LEFT JOIN orders o ON o.order_date = cal.d
+GROUP BY cal.d`, 'Count a right-side column, so empty days give 0, not 1.', 'recursive-cte'],
+];
+
+const DML: C[] = [
+  ['Change data safely', `BEGIN;
+UPDATE products SET unit_price = unit_price * 1.05 WHERE category_id = 10;
+SELECT COUNT(*) FROM products WHERE category_id = 10;   -- check
+COMMIT;   -- or ROLLBACK; to undo`, 'Run the matching SELECT first. No WHERE means every row.', 'changing-data'],
+  ['Insert, delete, upsert', `INSERT INTO t (a, b) VALUES (1, 'x');
+DELETE FROM t WHERE a = 1;
+INSERT INTO t (a, b) VALUES (1, 'y') ON CONFLICT (a) DO UPDATE SET b = excluded.b;`, 'Upsert: SQLite and PostgreSQL use ON CONFLICT; SQL Server uses MERGE.', 'changing-data'],
+  ['Speed', `EXPLAIN QUERY PLAN SELECT … ;           -- SCAN = whole table, SEARCH = index
+CREATE INDEX idx_orders_store_date ON orders (store_id, order_date);`, 'Equality column first, range column last. Keep filters sargable: no function around the column.', 'indexes'],
+];
+const link = (slug: string) => `/learn/courses/sql/${slug}/`;
+---
+<Base title="SQL cheat sheet: queries, joins and window functions" description="The SQL analysts use on one free page: order of execution, NULL rules, joins, CTEs, window functions, dates in SQLite, SQL Server and PostgreSQL, and top N per group.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/sql/">SQL for analysts</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={SQL_COURSE} live={live} />
+    <div class="cs-main ch">
+      <h1>SQL cheat sheet</h1>
+      <p class="lead">The SQL of the course on one page, each item with a short example, what it does in one line and the lesson that explains it. Examples use SQLite and the Northbay tables (mini_orders where you see amount). Print it or keep it open while you work.</p>
+      <p class="ch-try"><strong>Try any of these in the <a href="/learn/courses/sql/sandbox/">SQL sandbox</a>.</strong></p>
+      <nav class="ch-toc" aria-label="On this page">
+        {SECTIONS.map((s) => <a href={`#${s.id}`}>{s.h}</a>)}
+        <a href="#dialects">Dates and text in three databases</a>
+        <a href="#patterns">Analyst patterns</a>
+        <a href="#changes">Changing data and speed</a>
+      </nav>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2 id={s.id}>{s.h}</h2>
+          {s.rows.map(([name, code, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={link(slug)}>Lesson {num.get(slug)}</a></h3>
+              <pre><code>{code}</code></pre>
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <section>
+        <h2 id="dialects">Dates and text in SQLite, SQL Server and PostgreSQL</h2>
+        <p>Dates are stored as ISO text (<code>'2025-03-07'</code>) in SQLite, so they sort and compare correctly. Functions change between versions: check the official documentation for yours.</p>
+        <div class="ch-tw">
+          <table class="ch-t">
+            <thead><tr><th>Task</th><th>SQLite</th><th>SQL Server</th><th>PostgreSQL</th><th>Lesson</th></tr></thead>
+            <tbody>
+              {DATES.map(([task, a, b, c, slug]) => (
+                <tr><th scope="row">{task}</th><td><code>{a}</code></td><td><code>{b}</code></td><td><code>{c}</code></td><td><a href={link(slug)}>{num.get(slug)}</a></td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 id="patterns">Analyst patterns</h2>
+        {PATTERNS.map(([name, code, meaning, slug]) => (
+          <div class="ch-f">
+            <h3>{name} <a class="ch-l" href={link(slug)}>Lesson {num.get(slug)}</a></h3>
+            <pre><code>{code}</code></pre>
+            <p>{meaning}</p>
+          </div>
+        ))}
+      </section>
+      <section>
+        <h2 id="changes">Changing data and speed</h2>
+        {DML.map(([name, code, meaning, slug]) => (
+          <div class="ch-f">
+            <h3>{name} <a class="ch-l" href={link(slug)}>Lesson {num.get(slug)}</a></h3>
+            <pre><code>{code}</code></pre>
+            <p>{meaning}</p>
+          </div>
+        ))}
+      </section>
+      <p class="cs-meta">See also the <a href="/learn/courses/sql/glossary/">SQL glossary</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-try { margin: 4px 0 12px; }
+  .ch-toc { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 8px; font-weight: 600; }
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-f pre { margin: 6px 0 4px; padding: 8px 10px; overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; font-size: 13.5px; line-height: 1.45; }
+  .ch-f p { margin: 2px 0 0; }
+  .ch-tw { overflow-x: auto; }
+  .ch-t { border-collapse: collapse; font-size: 14px; min-width: 640px; }
+  .ch-t th, .ch-t td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .ch-t code { white-space: pre-wrap; }
+</style>
