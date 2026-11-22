@@ -2,7 +2,7 @@
 title: Watching speed, memory and errors
 summary: The five numbers to watch on a shared AI machine, the commands that show them, and simple alerts and logs that tell you something is wrong before your users do.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'NVIDIA System Management Interface (nvidia-smi) documentation (official page), https://developer.nvidia.com/system-management-interface'
   - 'llama.cpp server: /health and /metrics endpoints (official README), https://github.com/ggml-org/llama.cpp/tree/master/tools/server'
@@ -25,9 +25,11 @@ quiz:
 
 **Module 15 · about 20 minutes · read first: 15.2.** You'll be able to see how your AI server is doing and spot trouble early.
 
+<div class="bigidea">Watch five numbers (time to first token, tokens per second, memory, queue and errors) and you will spot trouble before your users do.</div>
+
 ## 1. Why this matters
 
-A shared machine fails quietly: answers get slower, a card overheats and throttles, memory fills and requests start failing. If you watch a few numbers, you fix these in minutes. If you don't, users stop trusting the service.
+A shared machine fails quietly: answers get slower, a card overheats and slows itself down, memory fills and requests start failing. If you watch a few numbers, you fix these in minutes. If you don't, users stop trusting the service. It is like the dashboard in a car: you glance at fuel and temperature so you never meet the problem on the motorway.
 
 ## 2. The five numbers
 
@@ -40,6 +42,16 @@ A shared machine fails quietly: answers get slower, a card overheats and throttl
 | **Errors** | Near 0 | Out of memory, timeouts, crashes |
 
 Add **temperature** and **power** for the hardware: a card that sits at its temperature limit slows itself down.
+
+Here is the clinic from section 6, solved by reading the numbers in order:
+
+<div class="steps">
+<div class="step"><p><b>The complaint.</b> "The AI is slow every afternoon." Mornings are fine.</p></div>
+<div class="step"><p><b>Check the start.</b> Time to first token is about 1 second and the queue is 0. So nobody is waiting in line; the problem is elsewhere.</p></div>
+<div class="step"><p><b>Check the writing.</b> Tokens per second per user has dropped from 40 in the morning to about 22. Writing has slowed down.</p></div>
+<div class="step"><p><b>Check the hardware.</b> <code>nvidia-smi</code> shows the card at 83 °C with its clock speed falling: it is <b>throttling</b>, slowing itself down to stay cool.</p></div>
+<div class="step"><p><b>Fix and confirm.</b> The server cupboard door is shut after lunch. A vent brings the card back to 70 °C and 40 tokens a second. No software change at all.</p></div>
+</div>
 
 ## 3. Where to read them
 
@@ -82,6 +94,25 @@ Logs are for running the service: time, user name or ID, model, tokens in and ou
 **Try it:** 0 s wait, 6,000-token prompt at 1,500 tokens/s prefill, 400-token answer at 30 tokens/s? (0 + 4 + 13.3 ≈ 17 seconds, first word after about 4 seconds.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>queue wait</dt><dd>time a request waits before the engine starts on it; high means not enough capacity at busy times</dd>
+<dt>prompt tokens ÷ prefill speed</dt><dd>time spent reading the prompt; queue wait plus this is the time to first token</dd>
+<dt>answer tokens ÷ writing speed</dt><dd>time spent writing; slow writing points at heat, too big a batch, or memory spilling over</dd>
+<dt>Physical meaning</dt><dd>A takeaway order: the queue at the counter, the cook reading the ticket, then the cooking. If customers complain, you ask which of the three got slow, and each one points to a different fix.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="monitoring-answer-time"></div>
+
+<div class="myth">
+
+**"If the server has not crashed, it is fine."** AI servers rarely fall over; they get slower. A hot card throttles, a second model loads and pushes the first onto the CPU, the queue grows at lunchtime. Users notice long before anything crashes, so watch the numbers, not just whether it is on.
+
+</div>
+
 ## 6. Worked example
 
 *Made-up numbers.* A clinic's AI server becomes slow every afternoon. `nvidia-smi` shows the card at 83 °C and its clock dropping. The server cupboard has no airflow after the door is shut at lunch. A vent in the door brings it back to 70 °C and full speed. No software change needed: the numbers pointed straight at it.
@@ -101,3 +132,13 @@ Logs are for running the service: time, user name or ID, model, tokens in and ou
 </details>
 
 **New words:** *time to first token*, *prefill*, *throttling*, *metrics*, *Prometheus and Grafana*, *alert*.
+
+<div class="keypoints">
+
+- Watch time to first token, tokens per second per user, memory used, queue length and errors, plus temperature and power.
+- Slow starts point to the queue or long prompts; slow writing points to heat, batch size or memory spilling over.
+- `nvidia-smi`, `ollama ps` and the engine's `/metrics` endpoint show these numbers; Activity Monitor and Task Manager do on Mac and Windows.
+- Start simple (a timed test question every five minutes) and grow to Prometheus and Grafana for many users.
+- Log times, sizes and errors, not the full text of prompts, unless you have a reason and have told users.
+
+</div>

@@ -1,0 +1,51 @@
+---
+// 10.1: a co-founder agreement outline. Fill in the blanks and choices; the outline updates and downloads as a text file
+// to take to a lawyer. Nothing is sent or stored.
+---
+<figure class="cs-fig su-fig" data-ab>
+  <span class="cs-figtag">Builder: our co-founder agreement outline</span>
+  <div class="su-row">
+    <label>Company name<input type="text" name="co" value="Acme Labs" /></label>
+    <label>Founders (comma separated)<input type="text" name="f" value="Asha, Ben" /></label>
+    <label>Equity split (%, same order)<input type="text" name="e" value="55, 45" /></label>
+    <label>Vesting<select name="v"><option value="4y1">4 years, 1-year cliff, monthly</option><option value="3y1">3 years, 1-year cliff, monthly</option><option value="4y0">4 years, no cliff</option></select></label>
+    <label>Big decisions need<select name="d"><option value="all">All founders</option><option value="maj">A majority of founders</option><option value="ceo">The CEO, after consulting the others</option></select></label>
+    <label>If we deadlock<select name="k"><option value="med">Mediation, then arbitration</option><option value="adv">An agreed adviser decides</option><option value="ceo">The CEO has the casting vote</option></select></label>
+  </div>
+  <div class="su-inv" data-out style="white-space:pre-wrap;font-size:13.5px"></div>
+  <div class="su-btns" style="margin-top:8px"><button type="button" class="btn secondary" data-dl>Download outline (.txt)</button></div>
+  <figcaption>An outline to discuss and take to a lawyer, not a contract. Put the final version in the shareholders’ agreement and the share documents (India: shareholders’ agreement and articles; Canada: unanimous shareholder agreement; USA: stock purchase agreements with vesting and the bylaws).</figcaption>
+</figure>
+<style is:inline>
+  .su-inv { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; background: var(--bg); }
+</style>
+<script>
+  import { download } from './su';
+  const V: Record<string, string> = { '4y1': '4 years, with a 1-year cliff, then monthly', '3y1': '3 years, with a 1-year cliff, then monthly', '4y0': '4 years, monthly from day one' };
+  const D: Record<string, string> = { all: 'all founders agree', maj: 'a majority of founders agree', ceo: 'the CEO decides after consulting the other founders' };
+  const K: Record<string, string> = { med: 'mediation for 30 days, then binding arbitration', adv: 'a named independent adviser decides', ceo: 'the CEO has a casting vote' };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ab]')) {
+    const val = (n: string) => (fig.querySelector(`[name=${n}]`) as HTMLInputElement).value.trim();
+    let text = '';
+    function draw() {
+      const fs = val('f').split(',').map((s) => s.trim()).filter(Boolean), es = val('e').split(',').map((s) => Number(s.trim()));
+      const sum = es.reduce((a, b) => a + (b || 0), 0);
+      text = [`CO-FOUNDER AGREEMENT OUTLINE: ${val('co') || 'our company'}`, '',
+        `1. Founders and roles: ${fs.map((f, i) => `${f} (role: ______, time: full-time from ______)`).join('; ')}.`,
+        `2. Equity: ${fs.map((f, i) => `${f} ${es[i] || '?'} %`).join(', ')}.${Math.abs(sum - 100) > 0.01 ? ` (Check: adds to ${sum} %, not 100 %.)` : ''} An option pool of ___ % is created before the first outside investment.`,
+        `3. Vesting: every founder's shares vest over ${V[val('v')]}, counted from ______. Unvested shares can be bought back at the price paid if a founder leaves.`,
+        `4. Leaving: a good leaver (illness, mutual agreement, dismissal without cause) keeps vested shares; a bad leaver (breach, fraud, joining a competitor) must sell vested shares back at the lower of cost and fair value.`,
+        `5. Intellectual property: everything each founder made for the business, before or after today, is assigned to the company.`,
+        `6. Decisions: day-to-day by the person in charge of that area; big decisions (raising money, selling the company, hiring or firing a founder, budgets over ______) only if ${D[val('d')]}.`,
+        `7. Deadlock: ${K[val('k')]}.`,
+        '8. Pay: founders take salary of ______ from ______ (or when the company has raised or earns ______).',
+        '9. Money put in: founder loans or capital of ______ are recorded as ______ (shares at the same price as others, or a loan with terms).',
+        '10. Confidentiality and non-solicitation: no founder shares confidential information or recruits staff or customers away for 12 months after leaving (non-competes are not enforceable in India, Ontario or California).',
+        '11. Review: we review roles and this agreement every 12 months.',
+        '', 'Signed: ' + fs.map((f) => `${f} ______`).join('   '), '', 'Made with fibub.com (Start a startup course). Not legal advice: have a lawyer turn this into the shareholders’ agreement.'].join('\n');
+      fig.querySelector('[data-out]')!.textContent = text;
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+    fig.querySelector('[data-dl]')!.addEventListener('click', () => download('co-founder-agreement-outline.txt', text));
+  }
+</script>

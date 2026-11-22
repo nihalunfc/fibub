@@ -1,0 +1,34 @@
+---
+// 8.2: India, the same business under four tax routes: proprietor on actual profit, presumptive 44AD/44ADA, LLP, company.
+---
+<figure class="cs-fig su-fig" data-ibt>
+  <span class="cs-figtag">Calculator: which route costs least tax? (India)</span>
+  <div class="su-row">
+    <label>Receipts in the year (₹)<input type="number" name="t" min="0" step="any" value="4000000" /></label>
+    <label>Real profit after costs (₹)<input type="number" name="p" min="0" step="any" value="2600000" /></label>
+    <label>Business type<select name="k"><option value="ada">Profession (IT, design, consulting…)</option><option value="ad">Trade or other business</option></select></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>New tax regime for an individual with no other income, FY 2025-26 slabs (₹12 lakh rebate, 4 % cess), from fibub's India income tax engine. Presumptive limits: 44ADA up to ₹75 lakh receipts and 44AD up to ₹3 crore when cash receipts are 5 % or less (₹50 lakh and ₹2 crore otherwise); 44AD here assumes all receipts are digital (6 %). Company: section 115BAA, 25.17 % on profit, before any salary or dividend to you. LLP: 30 % plus cess (and surcharge over ₹1 crore). Not tax advice.</figcaption>
+</figure>
+<script>
+  import { money, num } from './fmt';
+  import { inPersonal, IN_CO, inLlp, in44 } from './biztax';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ibt]')) {
+    function draw() {
+      const t = num(fig, 't'), p = num(fig, 'p'), k = (fig.querySelector('[name=k]') as HTMLSelectElement).value as 'ad' | 'ada';
+      const lim = k === 'ada' ? 7.5e6 : 3e7, pres = in44(t, k), presOk = t <= lim;
+      const rows: [string, number | null, string][] = [
+        ['Proprietor, tax on real profit (books)', inPersonal(0, p), ''],
+        [`Proprietor, presumptive ${k === 'ada' ? '44ADA (50 %)' : '44AD (6 %)'}`, presOk ? inPersonal(0, Math.max(pres, 0)) : null, presOk ? '' : `Not available over ${money('in', lim)}`],
+        ['LLP (30 % + cess)', inLlp(p), ''],
+        ['Private limited, 115BAA (25.17 %)', p * IN_CO, 'then tax again on salary or dividends'],
+      ];
+      const vals = rows.filter((r) => r[1] !== null).map((r) => r[1] as number), max = Math.max(...vals, 1), min = Math.min(...vals);
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([n, v, note]) => `<div style="grid-template-columns:1fr"><span>${n}${note ? ` <small style="color:var(--muted)">(${note})</small>` : ''}</span><span style="display:grid;grid-template-columns:1fr 6.5em;gap:8px;align-items:center"><span class="t"><i class="${v === min ? 'g' : 'w'}" style="width:${v === null ? 0 : Math.max(1, (v / max) * 100)}%"></i></span><b>${v === null ? 'n/a' : money('in', v)}</b></span></div>`).join('');
+      fig.querySelector('[data-say]')!.textContent = presOk && pres < p ? `Presumptive tax counts only ${money('in', pres)} as profit, less than your real ${money('in', p)}, and you skip detailed books and audit. You cannot claim your actual costs on top, and if you declare less than the presumed profit later you must keep books and may need an audit.` : 'Here the presumed profit is not lower than your real profit, so normal books may cost less tax. A tax audit is needed above ₹1 crore turnover (₹10 crore if cash is 5 % or less) when you are not on presumptive tax.';
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+  }
+</script>

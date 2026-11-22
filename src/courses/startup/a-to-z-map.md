@@ -27,6 +27,8 @@ sources:
 
 **Module 1 · about 12 minutes.** You'll see the whole journey in one picture and know which lesson to open at each step.
 
+<div class="bigidea">Starting a business is a road with ten stops in a sensible order: test the idea first, then make it official, then add tax, people, protection and yearly upkeep as they become needed.</div>
+
 ## 1. The road
 
 <!--fig:az-map-->
@@ -93,11 +95,41 @@ Startup master checklist
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Weeks 1 to 6:</b> a founder interviews gyms and pre-sells to 12 of them, before spending on filings.</p></div>
+<div class="step"><p><b>Week 7:</b> files an LLC, gets an EIN the same day, then opens a business bank account.</p></div>
+<div class="step"><p><b>Week 8:</b> registers for sales tax after checking the state’s rules for software.</p></div>
+<div class="step"><p><b>Month 6:</b> registers for payroll <i>before</i> the first hire, then puts every yearly deadline in a calendar.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>CIN / LLPIN</dt><dd>India: the identity number of a company or LLP</dd>
+<dt>PAN and TAN</dt><dd>India: income tax ID and the number for deducting tax at source</dd>
+<dt>Business Number</dt><dd>Canada: the CRA number, with program accounts such as RT and RP</dd>
+<dt>EIN</dt><dd>USA: the IRS number for a business, free</dd>
+<dt>Program account</dt><dd>Canada: a CRA account for one tax (GST/HST, payroll, corporate tax)</dd>
+<dt>What it means for you</dt><dd>Use the map to see which step you are on, and do the next step only when you need it: test before you register, register payroll before you hire.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="a-to-z-map-fees"></div>
+
 ## 5. Worked example
 
 *Made-up founder.* Sam in Austin, Texas, sells a scheduling app.
 
 Weeks 1 to 6: interviews and a pre-sale to 12 gyms. Week 7: single-member LLC filed with the Texas Secretary of State, EIN from irs.gov the same day, business checking opened. Week 8: Texas sales tax permit (Texas taxes many software subscriptions as data processing; checked with the Comptroller). Month 6: first hire, after registering with the Texas Workforce Commission and setting up payroll.
+
+<div class="myth">
+
+**"Register the company first; customers come later."** Registering takes days and can wait until you take money or sign contracts. Testing whether anyone wants the product takes longer and matters more.
+
+</div>
 
 ## 6. Practice
 
@@ -112,6 +144,16 @@ Weeks 1 to 6: interviews and a pre-sale to 12 gyms. Week 7: single-member LLC fi
 2. RP.
 3. PAN and TAN.
 </details>
+
+<div class="keypoints">
+
+- The ten stops: idea, test, structure, register, licences, bank, sales tax, people, protect, keep going.
+- Order matters: test before filing, payroll before the first hire.
+- India numbers: CIN or LLPIN, PAN, TAN, GSTIN, Udyam.
+- Canada: corporation number or name registration, Business Number with RT, RP, RC and RM accounts.
+- USA: state file number, EIN, sales tax permit, state payroll accounts.
+
+</div>
 
 **Next:** [Finding the official rule](/learn/courses/startup/official-sources/).
 

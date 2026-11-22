@@ -16,9 +16,16 @@ quiz:
     choices: ['Customers with at least 5 rows, with all their rows', 'The first 5 rows', 'Only one row per customer']
     ans: 0
     why: 'filter keeps or drops whole groups.'
+sources:
+  - 'pandas documentation, User Guide: Group by (transformation, filtration) https://pandas.pydata.org/docs/user_guide/groupby.html#transformation'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 4 · about 20 minutes · uses Lesson 4.2.** You'll be able to compare each row with its group, and keep only the groups you want.
+
+<div class="bigidea">transform puts a group's result back on every row of the group; filter keeps or drops whole groups by a rule.</div>
+
+**In everyday terms:** a teacher writes each class's average on every pupil's report (transform), so each pupil can be compared with their class; then sends a note only to classes with more than 30 pupils (filter).
 
 ## 1. transform: a group value on every row
 
@@ -64,6 +71,35 @@ loyal.head()
 ```
 
 The same with `transform`, often faster: `orders[orders.groupby('customer_id')['order_id'].transform('nunique') >= 10]`.
+
+<div class="meaning">
+
+<dl>
+<dt>groupby(k)[c].transform('sum')</dt><dd>Same length as the table: each row gets its group's sum.</dd>
+<dt>x / transform('sum')</dt><dd>Each row's share of its group.</dd>
+<dt>groupby(k).filter(lambda g: len(g) >= 10)</dt><dd>Keep all rows of groups that pass.</dd>
+<dt>cumsum(), rank() per group</dt><dd>Running totals and ranks that restart in each group.</dd>
+<dt>Physical meaning</dt><dd>transform keeps the row grain while adding group context, which is what "share of store", "difference from the customer's average" and "fill with the group median" all need.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"agg and transform do the same thing."** agg gives one row per group; transform gives one value per original row. Use transform when the answer has to sit next to each row.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The rows.</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td>S01</td><td>2</td></tr><tr><td>S01</td><td>6</td></tr><tr><td>WEB</td><td>4</td></tr><tr><td>WEB</td><td>4</td></tr></table></div>
+<div class="step"><b>Group totals.</b> S01 → 8, WEB → 8.</div>
+<div class="step"><b>transform('sum') puts them back on each row.</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th><th>store_total</th></tr><tr><td>S01</td><td>2</td><td><mark>8</mark></td></tr><tr><td>S01</td><td>6</td><td><mark>8</mark></td></tr><tr><td>WEB</td><td>4</td><td><mark>8</mark></td></tr><tr><td>WEB</td><td>4</td><td><mark>8</mark></td></tr></table></div>
+<div class="step"><b>Share.</b> qty ÷ store_total → 0.25, 0.75, 0.5, 0.5.</div>
+</div>
+
+<div class="problem" data-problem="pd-transform-share"></div>
 
 ## 4. Your turn
 
@@ -137,3 +173,12 @@ orders.groupby('product_id').filter(lambda g: len(g) >= 320), then ['product_id'
 </details>
 
 **New words:** *transform*, *broadcast*, *group filter*, *cumsum*, *rank within group*.
+
+<div class="keypoints">
+
+- transform returns one value per row, aligned with the table.
+- Use it for shares, differences from group means and group-based fills.
+- filter keeps or drops whole groups.
+- cumsum, cumcount and rank on a groupby restart per group.
+
+</div>

@@ -1,0 +1,53 @@
+---
+// 12.2: build a 12-month compliance calendar from what applies to you, and download it as a calendar file (.ics) for any calendar app.
+---
+<figure class="cs-fig su-fig" data-cal>
+  <span class="cs-figtag">Build it: my compliance calendar</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+  </div>
+  <div data-qs></div>
+  <ol data-out style="padding-left:20px;margin:10px 0;font-size:14.5px"></ol>
+  <button type="button" class="btn secondary" data-dl>Download calendar (.ics)</button>
+  <p class="su-fine" data-n></p>
+  <figcaption>Typical due dates as of November 2026 for a monthly payroll remitter, a GST filer with monthly returns in India and quarterly returns in Canada, and a December year-end in Canada and the USA (March in India). Your own dates can differ: check the official calendars (GST portal, Income Tax India, CRA, IRS, your state). The file is made in your browser; nothing is sent anywhere.</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  import { download } from './su';
+  type Ev = [m: number | 'all' | number[], day: number, title: string, need: string];
+  const Q: [string, string][] = [['co', 'It is a company or corporation'], ['tax', 'Registered for GST, HST or sales tax'], ['pay', 'Has employees on payroll']];
+  const E: Record<CC, Ev[]> = {
+    in: [['all', 7, 'Pay TDS deducted last month', 'pay'], ['all', 11, 'GSTR-1: last month’s sales', 'tax'], ['all', 15, 'PF and ESI for last month', 'pay'], ['all', 20, 'GSTR-3B and GST payment', 'tax'], [[6, 9, 12, 3], 15, 'Advance tax instalment', ''], [6, 30, 'DPT-3 return of deposits', 'co'], [9, 30, 'AGM deadline', 'co'], [10, 30, 'AOC-4 financial statements (30 days after AGM)', 'co'], [10, 31, 'Income tax return (audited)', ''], [11, 29, 'MGT-7 annual return (60 days after AGM)', 'co'], [12, 31, 'GSTR-9 annual return', 'tax'], [5, 31, 'TDS return for Q4 and Form 16 to staff by 15 June', 'pay']],
+    ca: [['all', 15, 'Payroll source deductions remittance', 'pay'], [[1, 4, 7, 10], 31, 'GST/HST return and payment for last quarter', 'tax'], [2, 28, 'T4 and T5 slips to CRA and staff', 'pay'], [3, 31, 'Corporate tax balance (2 or 3 months after year-end)', 'co'], [4, 30, 'Personal tax payment for owners', ''], [6, 15, 'Sole proprietor T1 return', ''], [6, 30, 'T2 corporate return and Ontario annual return', 'co'], [[3, 6, 9, 12], 15, 'Tax instalment (if required)', '']],
+    us: [['all', 15, 'Federal payroll tax deposit (monthly depositor)', 'pay'], ['all', 20, 'State sales tax return (many states)', 'tax'], [[1, 4, 7, 10], 31, 'Form 941 quarterly payroll return', 'pay'], [1, 31, 'W-2 and 1099-NEC forms', ''], [3, 1, 'Delaware annual report and franchise tax', 'co'], [3, 15, 'S corp (1120-S) and partnership (1065) returns', ''], [4, 15, 'C corp Form 1120 or personal 1040', ''], [[4, 6, 9, 12], 15, 'Estimated tax payment', '']],
+  };
+  const pad = (x: number) => String(x).padStart(2, '0');
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cal]')) {
+    const qs = fig.querySelector('[data-qs]')!, out = fig.querySelector('[data-out]')!;
+    qs.innerHTML = Q.map(([k, t]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-weight:500;font-size:14.5px;margin:5px 0"><input type="checkbox" data-k="${k}" checked style="margin-top:3px"> <span>${t}</span></label>`).join('');
+    let list: [Date, string][] = [];
+    const cc = followCountry(fig, draw); qs.addEventListener('change', draw);
+    function draw() {
+      const on = new Set([...qs.querySelectorAll<HTMLInputElement>('input:checked')].map((i) => i.dataset.k!));
+      const now = new Date(), y0 = now.getFullYear(), m0 = now.getMonth();
+      list = [];
+      for (let k = 0; k < 12; k++) {
+        const y = y0 + Math.floor((m0 + k) / 12), mo = ((m0 + k) % 12) + 1;
+        for (const [m, d, t, need] of E[cc()]) {
+          if (need && !on.has(need)) continue;
+          if (m === 'all' || m === mo || (Array.isArray(m) && m.includes(mo))) list.push([new Date(y, mo - 1, Math.min(d, new Date(y, mo, 0).getDate())), t]);
+        }
+      }
+      list = list.filter(([d]) => d >= new Date(y0, m0, now.getDate())).sort((a, b) => +a[0] - +b[0]);
+      out.innerHTML = '';
+      list.slice(0, 10).forEach(([d, t]) => { const li = document.createElement('li'); li.innerHTML = '<b></b> '; li.querySelector('b')!.textContent = d.toLocaleDateString('en-CA', { day: 'numeric', month: 'short', year: 'numeric' }) + ':'; li.append(t); out.append(li); });
+      fig.querySelector('[data-n]')!.textContent = `${list.length} dates in the next 12 months; the first 10 are shown, the download has them all.`;
+    }
+    fig.querySelector<HTMLButtonElement>('[data-dl]')!.onclick = () => {
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+      const ev = list.map(([d, t], i) => { const ds = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`; return ['BEGIN:VEVENT', `UID:fibub-startup-${ds}-${i}@fibub.com`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ds}`, `SUMMARY:${t.replace(/[,;]/g, ' ')}`, 'DESCRIPTION:From fibub.com startup course. Check the official due date.', 'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in 3 days', 'END:VALARM', 'END:VEVENT'].join('\r\n'); });
+      download('compliance-calendar.ics', ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fibub//startup course//EN', ...ev, 'END:VCALENDAR'].join('\r\n') + '\r\n', 'text/calendar');
+    };
+  }
+</script>

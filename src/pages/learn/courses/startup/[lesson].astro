@@ -4,6 +4,7 @@ import { STARTUP } from '../../../../courses/startup/syllabus';
 import { FIGURES } from '../../../../courses/startup/figures';
 import { courseLessons, type LessonEntry } from '../../../../lib/course';
 import '../../../../styles/math.css';
+import '../../../../styles/lesson-kit.css';
 import '../../../../courses/startup/figures/startup.css';
 export async function getStaticPaths() {
   const written = await courseLessons(STARTUP);

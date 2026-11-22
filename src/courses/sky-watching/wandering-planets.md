@@ -20,7 +20,9 @@ sources:
   - "Planetary orbital periods and distances: NASA Planetary Fact Sheet, nssdc.gsfc.nasa.gov"
 ---
 
-**Module 1 · about 25 minutes · a little algebra.** You'll be able to tell planets from stars, explain retrograde motion, and work out how often a planet returns to its best position.
+**Module 1 · about 25 minutes · read first: [1.2 Why the sky turns: daily motion and circumpolar stars](/learn/courses/sky-watching/turning-sky/), [1.4 Moon phases and eclipses](/learn/courses/sky-watching/moon-phases/) · maths: a little algebra.** You'll be able to tell planets from stars, explain retrograde motion, and work out how often a planet returns to its best position.
+
+<div class="bigidea">Planets drift slowly against the stars along the ecliptic and sometimes seem to loop backwards; that loop is Earth overtaking an outer planet, and it gave an early clue that Earth goes round the Sun.</div>
 
 ## 1. Why this matters
 
@@ -38,6 +40,24 @@ sources:
 
 **Mars, Jupiter, Saturn, Uranus and Neptune** orbit outside. They can be anywhere along the ecliptic, including opposite the Sun. That point, **opposition**, is when an outer planet is closest, brightest and up all night.
 
+
+<div class="meaning">
+
+<dl>
+<dt>Ecliptic</dt><dd>The Sun's yearly path; planets stay near it.</dd>
+<dt>Retrograde</dt><dd>Apparent backward (westward) motion against the stars.</dd>
+<dt>1/S = 1/E − 1/P</dt><dd>Synodic period S between oppositions of an outer planet of period P.</dd>
+<dt>Physical meaning</dt><dd>Overtake a slower car on a motorway and, against the distant hills, it seems to slide backwards for a moment, though it never reverses. Planets do the same when faster Earth passes them on the inside track.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Planets twinkle like stars."** Planets usually shine with a steadier light, because they are tiny discs rather than points, and the air's wobble averages out across the disc. Low in the sky even planets can twinkle a little.
+
+</div>
+
 ## 4. Retrograde loops
 
 Most of the time an outer planet drifts eastward against the stars, as it moves along its orbit. But around opposition it seems to stop, drift *westward* for a few weeks, stop again, and resume. Ancient astronomers built complicated systems of circles on circles to copy this.
@@ -50,6 +70,16 @@ Things to notice:
 
 - Retrograde motion happens only around opposition, when Earth passes between the Sun and Mars.
 - Mars's loop lasts about 10 weeks. Jupiter and Saturn, further away and slower, loop for about 4 months each year.
+
+Watch Mars over four months around opposition:
+
+<div class="steps">
+<div class="step"><b>Months before.</b> Mars drifts eastward against the stars night by night, like the Sun and Moon.</div>
+<div class="step"><b>Earth catches up.</b> Earth, on its faster inside track, approaches Mars.</div>
+<div class="step"><b>Overtaking.</b> As Earth passes, Mars seems to stop and slide westward for about two months: retrograde motion.</div>
+<div class="step"><b>Opposition.</b> In the middle of the loop, Mars is opposite the Sun, up all night, closest and brightest.</div>
+<div class="step"><b>Back to normal.</b> Earth pulls ahead; Mars resumes its eastward drift. The next opposition comes about 780 days later.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -79,6 +109,10 @@ So Mars reaches opposition about every 2 years and 50 days. Between oppositions 
 
 ## 6. Practice
 
+<div class="problem" data-problem="synodic-period"></div>
+
+**More practice** (answers below):
+
 1. Saturn's period is 29.46 years. How many days between oppositions?
 2. Venus's period is 224.7 days. How often does it return to the same phase in our sky?
 3. Why can Venus never be seen opposite the Sun at midnight?
@@ -90,6 +124,15 @@ So Mars reaches opposition about every 2 years and 50 days. Between oppositions 
 2. Inner planet: `$1/S = 1/224.7 - 1/365.26$`, giving `$S \approx 584$` days.
 3. Its orbit is inside ours, so from Earth it can never appear more than about 47° from the Sun.
 </details>
+
+<div class="keypoints">
+
+- Planets wander along the ecliptic against the fixed stars.
+- Retrograde loops happen when Earth overtakes an outer planet.
+- Outer planets are best at opposition: up all night, closest, brightest.
+- Synodic period: 1/S = 1 − 1/P (years).
+
+</div>
 
 **Try it on the real sky:** see where every planet is tonight with [[sky-tonight]], or compare their sizes, orbits and moons in the [[planet-data-explorer]].
 

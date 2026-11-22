@@ -16,9 +16,16 @@ quiz:
     choices: ['None', 'len is a function you pass x to; upper is a method that belongs to text and is called on it with a dot', 'upper is faster']
     ans: 1
     why: 'pandas is mostly methods: df.head(), df.groupby(...), s.sum().'
+sources:
+  - 'The Python Tutorial, sections 3-5 https://docs.python.org/3/tutorial/'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 1 · about 20 minutes · no Python needed.** You'll be able to read and write the small amount of Python that pandas code uses.
+
+<div class="bigidea">Just enough Python for pandas: names that hold values, lists and dictionaries, and calling functions and methods.</div>
+
+**In everyday terms:** a variable is a labelled jar: put a value in, and use the label to get it back. A list is a row of jars in order; a dictionary is a set of jars with name tags you look up by name.
 
 ## 1. Values and variables
 
@@ -81,6 +88,36 @@ for p in prices:
 ```
 
 You'll rarely loop over rows in pandas: whole-column operations are shorter and much faster (Lesson 8.8). But it helps to read loops.
+
+<div class="meaning">
+
+<dl>
+<dt>x = 5</dt><dd>Put 5 in a jar labelled x (assignment, not "equals").</dd>
+<dt>[1, 2, 3]</dt><dd>A list: values in order, counted from 0.</dd>
+<dt>{'S01': 'Harbourview'}</dt><dd>A dictionary: look up a value by its key.</dd>
+<dt>f(x) and x.method()</dt><dd>A function takes inputs; a method is a function that belongs to a value, such as text.upper().</dd>
+<dt>Physical meaning</dt><dd>Python reads top to bottom and remembers every name you created. In pandas you keep reassigning tables to names (orders, clean, monthly), so the name always points at the latest version.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"= means equal."** In Python <code>=</code> means "store this under that name". Comparing uses <code>==</code>. Writing <code>if qty = 3</code> is an error; <code>if qty == 3</code> asks the question.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Store.</b> <code>price = 18.99</code> and <code>qty = 3</code>.</div>
+<div class="step"><b>Compute.</b> <code>total = price * qty</code> → 56.97.</div>
+<div class="step"><b>List.</b> <code>stores = ['S01', 'S02', 'WEB']</code>; <code>stores[0]</code> is 'S01' (counting starts at 0).</div>
+<div class="step"><b>Dictionary.</b> <code>names = {'S01': 'Harbourview'}</code>; <code>names['S01']</code> → 'Harbourview'.</div>
+<div class="step"><b>Method.</b> <code>'harbourview'.title()</code> → 'Harbourview'. pandas works the same way: <code>orders.head()</code>.</div>
+</div>
+
+<div class="problem" data-problem="pd-list-index"></div>
 
 ## 5. Your turn
 
@@ -155,3 +192,12 @@ message
 </details>
 
 **New words:** *variable*, *int*, *float*, *str*, *list*, *dictionary*, *function*, *method*, *f-string*, *comment*.
+
+<div class="keypoints">
+
+- = stores a value under a name; == compares.
+- Lists are ordered and counted from 0; negative numbers count from the end.
+- Dictionaries map keys to values.
+- Methods are called with a dot: value.method().
+
+</div>

@@ -17,10 +17,14 @@ quiz:
     choices: ["Dark matter", "Bigger stars", "Errors in Newton's law at small scales"]
     ans: 0
     why: "Extra unseen mass is needed to hold them in orbit."
-sources: []
+sources:
+  - "Hubble, E. P. (1929), A relation between distance and radial velocity among extra-galactic nebulae, PNAS 15, 168"
+  - "Rubin, V. C. and Ford, W. K. (1970), Rotation of the Andromeda Nebula from a spectroscopic survey of emission regions, Astrophysical Journal 159, 379"
 ---
 
-**Module 4 · about 10 minutes · no new maths.** You'll be able to name the big questions beyond our galaxy, see which tools from this course answer them, and know where to go deeper.
+**Module 4 · about 10 minutes · read first: [4.2 Galaxy types](/learn/courses/astronomy/galaxy-types/), [3.5 Pulsating stars and the period-luminosity law](/learn/courses/astronomy/variable-stars/) · maths: no new maths.** You'll be able to name the big questions beyond our galaxy, see which tools from this course answer them, and know where to go deeper.
+
+<div class="bigidea">Beyond the Milky Way, astronomy hands over to cosmology: the same light, orbits and distance tricks from this course become the tools for measuring the whole universe.</div>
 
 ## 1. Why this matters
 
@@ -35,9 +39,37 @@ Things to notice:
 - Every answer uses something you have already learned: light and spectra (Module 1), orbits (Module 2), distances and standard candles (Module 3).
 - Nothing new is needed to start the cosmology course; it picks up exactly here.
 
+Carry your toolkit past the edge of our galaxy:
+
+<div class="steps">
+<div class="step"><b>Light (Module 1).</b> Spectral lines in galaxies are shifted to the red. The shift z = Δλ/λ is the first clue that the universe is expanding.</div>
+<div class="step"><b>Orbits (Module 2).</b> Stars and gas in galaxies orbit faster than their visible mass allows. That is the first clue to dark matter.</div>
+<div class="step"><b>Distances (Module 3).</b> Parallax reaches a few thousand light-years, Cepheids tens of millions. Further rungs (supernovae and more) are built in cosmology.</div>
+<div class="step"><b>Galaxies (Module 4).</b> Look-back time means distant galaxies show the universe young.</div>
+<div class="step"><b>Next.</b> The cosmology course starts exactly here, with the distance ladder, expansion, dark matter and the Big Bang.</div>
+</div>
+
 ## 3. What it means physically
 
 The physics doesn't change at the edge of the Milky Way: the same gravity holds galaxies together, the same atoms make the same spectral lines, and the same light carries the news. What changes is that distances become so large that light's travel time matters, so looking far away means looking back in time, and the universe itself is no longer a fixed stage.
+
+
+<div class="meaning">
+
+<dl>
+<dt>z = (λ<sub>obs</sub> − λ<sub>rest</sub>)/λ<sub>rest</sub></dt><dd>Redshift: how much a galaxy's light has been stretched.</dd>
+<dt>v ≈ cz</dt><dd>For small z, a line-of-sight speed (Lesson 1.4).</dd>
+<dt>Distance ladder</dt><dd>Each method calibrates the next: parallax, then Cepheids, then more.</dd>
+<dt>Physical meaning</dt><dd>Astronomy studies the things in the universe; cosmology studies the universe as one thing. The handover point is where single galaxies become test particles for the whole, and where effects like expansion, too small to see inside a galaxy, take over.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Galaxies are flying away from us because we are at the centre."** Every galaxy sees the others moving away, like raisins in rising bread dough. There is no centre; the cosmology course shows why.
+
+</div>
 
 ## 4. Your toolkit, and where it leads
 
@@ -47,6 +79,10 @@ The physics doesn't change at the edge of the Milky Way: the same gravity holds 
 - **Temperature**: blackbody light (Lesson 1.2) becomes the afterglow of the Big Bang.
 
 ## 5. Practice
+
+<div class="problem" data-problem="galaxy-redshift"></div>
+
+**More practice** (answers below):
 
 1. Which lesson's method would you use to measure the speed of a galaxy moving away from us?
 2. Why can't parallax measure the distance to another galaxy?
@@ -59,6 +95,15 @@ The physics doesn't change at the edge of the Milky Way: the same gravity holds 
 2. The angle would be far too small to measure, under a microarcsecond.
 3. Gas, and above all dark matter.
 </details>
+
+<div class="keypoints">
+
+- Redshifts, rotation speeds and distance methods from this course lead straight into cosmology.
+- Redshift z = Δλ/λ; for small z, v ≈ cz.
+- Galaxy rotation hints at dark matter; galaxy redshifts hint at expansion.
+- Continue with the cosmology course for the universe as a whole.
+
+</div>
 
 **Try it with real numbers:** turn a redshift into a distance and age with the [[cosmology-calculator]], or practise sorting galaxies with [[galaxy-morphology-practice]].
 

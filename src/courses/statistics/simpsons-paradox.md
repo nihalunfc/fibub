@@ -16,9 +16,16 @@ quiz:
     choices: ['Always the total', 'Always the segments', 'Whichever matches the causal story: split by a confounder that affects both who gets what and the outcome']
     ans: 2
     why: 'Splitting by a confounder (device, severity) usually gives the fair comparison; splitting by something the treatment itself changed can mislead.'
+sources:
+  - 'Bickel, P. J., Hammel, E. A. and O''Connell, J. W. (1975), Sex Bias in Graduate Admissions: Data from Berkeley, Science 187(4175), 398-404 https://doi.org/10.1126/science.187.4175.398'
+  - 'Pearl, J. (2014), Comment: Understanding Simpson''s Paradox, The American Statistician 68(1), 8-13 https://doi.org/10.1080/00031305.2014.876829'
 ---
 
 **Module 8 · about 20 minutes · no new maths.** You'll be able to explain Simpson's paradox with a weighted average, spot when a comparison is confounded, and choose the right level to report.
+
+<div class="bigidea">A trend inside every group can reverse when the groups are added together, because the mix of groups changed; always ask what else differs.</div>
+
+**In everyday terms:** a school's average grade can fall even though every class improved, if more pupils joined the class that always scores lower. Nobody got worse; the mix moved.
 
 ## 1. Win every segment, lose overall
 
@@ -42,6 +49,35 @@ There's no purely statistical answer; it depends on what causes what.
 - If the segment variable is a **confounder** (it affects both who got the treatment and the outcome, and the treatment didn't change it), compare **within segments** and combine with the same weights for both (standardisation).
 - If the segment variable is **caused by the treatment** (a new page changes which device people finish on), splitting by it can mislead; use the overall comparison.
 - In a clean randomised test the mix is equal by design, so the overall number is fine; segments are for exploring.
+
+<div class="meaning">
+
+<dl>
+<dt>Confounder</dt><dd>A third variable linked to both the grouping and the outcome (customer type, store size).</dd>
+<dt>Mix shift</dt><dd>The share of each segment changes between periods or groups.</dd>
+<dt>Weighted average</dt><dd>The overall number is each segment's value weighted by its share, so it moves with the shares.</dd>
+<dt>Physical meaning</dt><dd>An overall average is a blend. Change the recipe (more new customers, who spend less) and the blend changes even if every ingredient got better.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The overall number tells the true story."** Sometimes it does, sometimes the segments do. Which one answers your question depends on the cause: if the mix shift is the result of your change, the overall number matters; if it is outside noise, compare within segments.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The headline.</b> Average order value fell from $62 to $58.</div>
+<div class="step"><b>Segments.</b> Returning customers: $70 → $72. New customers: $50 → $48.67. Returning went up.</div>
+<div class="step"><b>Mix.</b> Returning were 60 % of orders, now 40 %; new were 40 %, now 60 %.</div>
+<div class="step"><b>Recompute.</b> 0.4 × 72 + 0.6 × 48.67 ≈ $58: the drop is the shift towards new customers.</div>
+<div class="step"><b>Report.</b> "AOV fell because the customer mix shifted towards new customers, which the campaign intended."</div>
+</div>
+
+<div class="problem" data-problem="simpson-mix"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -91,3 +127,12 @@ p_{\text{overall}} = w \, p_{\text{phone}} + (1 - w)\, p_{\text{computer}}
 **Try it on your own data:** the [[crosstab-chi-square]] tool builds the segment tables; [[grouped-data-stats]] gives rates and means per group so you can compare the mix.
 
 **New words:** *Simpson's paradox*, *confounder*, *mix shift*, *weighted average*, *standardisation*.
+
+<div class="keypoints">
+
+- A total can move opposite to every segment when the mix changes.
+- Overall value = Σ segment share × segment value.
+- Always break key metrics down by the main segments.
+- Decide from the causal story whether the overall or segment view answers your question.
+
+</div>

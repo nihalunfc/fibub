@@ -16,9 +16,16 @@ quiz:
     choices: ['Raising the confidence level from 95 % to 99 %', 'Collecting more data', 'Using the sample SD instead of the population SD']
     ans: 1
     why: 'More data shrinks the standard error. A higher confidence level makes the interval wider, not narrower.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 7.1 One-sample means with the t-distribution https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 7.2.2.1 Confidence interval approach https://www.itl.nist.gov/div898/handbook/prc/section2/prc221.htm'
 ---
 
 **Module 5 · about 25 minutes · school maths.** You'll be able to compute a t confidence interval for a mean, explain where its parts come from, and report it clearly.
+
+<div class="bigidea">A confidence interval is your estimate plus or minus a margin of error: the range of true values that fit your data.</div>
+
+**In everyday terms:** a weather forecast that says "18 to 22 degrees" is more honest and more useful than "20 degrees". The width of the range tells you how sure the forecaster is.
 
 ## 1. From a number to a range
 
@@ -54,6 +61,36 @@ Move n and the level. Three things set the width: **spread** (s), **sample size*
 - Round sensibly: an interval of ±4 doesn't need two decimals.
 - For skewed data, consider a CI for the median via the bootstrap (Lesson 4.5), or work on log values.
 - Assumptions: a random (or at least representative) sample of independent values; with small n, data that isn't wildly skewed.
+
+<div class="meaning">
+
+<dl>
+<dt>x̄</dt><dd>Your sample mean: the centre of the interval.</dd>
+<dt>SE = s/√n</dt><dd>How much x̄ wobbles from sample to sample.</dd>
+<dt>t* (or 1.96)</dt><dd>How many SEs to go each way for 95 %; small samples use the t distribution, which is a bit wider.</dd>
+<dt>x̄ ± t*·SE</dt><dd>The interval.</dd>
+<dt>Physical meaning</dt><dd>The interval is a net. The method that builds it catches the true mean in 95 % of samples; a wider net (more confidence) or a steadier estimate (more data) changes how big it must be.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"There is a 95 % chance the true mean is in my interval."** The true mean is fixed; your interval either contains it or not. The 95 % describes the method across many samples (Lesson 5.3). In practice, "we are 95 % confident" is the accepted wording.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> 12 stores, weekly sales lift (%): mean 2.77, SD 2.39.</div>
+<div class="step"><b>SE.</b> 2.39 ÷ √12 ≈ 0.69.</div>
+<div class="step"><b>Multiplier.</b> n = 12 is small, so use t with 11 degrees of freedom: 2.201 (not 1.96).</div>
+<div class="step"><b>Margin.</b> 2.201 × 0.69 ≈ 1.52.</div>
+<div class="step"><b>Interval.</b> 2.77 ± 1.52 = 1.25 % to 4.28 %. The whole range is above 0, so the display really lifts sales.</div>
+</div>
+
+<div class="problem" data-problem="ci-mean"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -96,3 +133,12 @@ Report: "The display lifted weekly sales by about 2.8 % (95 % CI 1.2 % to 4.3 %,
 **Try it on your own data:** the [[hypothesis-tests]] tool gives t intervals for a column of numbers; the [[bootstrap-permutation]] tool gives bootstrap intervals for skewed data.
 
 **New words:** *confidence interval*, *margin of error*, *confidence level*, *Student's t distribution*, *degrees of freedom*.
+
+<div class="keypoints">
+
+- Interval = estimate ± multiplier × SE.
+- For a mean: x̄ ± t*·s/√n, with n − 1 degrees of freedom.
+- More data or less variation narrows it; more confidence widens it.
+- Report the interval with the estimate and n, and say what range would change the decision.
+
+</div>

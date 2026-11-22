@@ -16,9 +16,16 @@ quiz:
     choices: ['It is slow', 'It shrinks the spread and can hide that the missing people differ from the rest', 'pandas cannot do it']
     ans: 1
     why: 'Filled values all sit at the centre, so variance falls and any pattern in who is missing is erased.'
+sources:
+  - 'pandas documentation, User Guide: Working with missing data https://pandas.pydata.org/docs/user_guide/missing_data.html'
+  - 'Little, R. J. A. and Rubin, D. B. (2019), Statistical Analysis with Missing Data, 3rd edition, Wiley'
 ---
 
 **Module 3 · about 20 minutes · uses Lesson 1.6.** You'll be able to find missing values, choose a sensible fix for each column, and apply it.
+
+<div class="bigidea">A missing value is a question before it is a problem: find out why it is missing, then drop it, fill it, or keep it and say so.</div>
+
+**In everyday terms:** a gap in a till receipt could be a smudge (unknown), an item the customer did not buy (zero) or a till fault (needs fixing). Treating all three the same gives wrong totals.
 
 ## 1. Find them
 
@@ -80,6 +87,36 @@ df
 - **Group mean or median** beats the overall mean when groups differ.
 - **Interpolation** suits smooth measurements over time.
 - Add a flag column (`df['price_was_missing'] = df['price'].isna()`) before filling, so the change is traceable.
+
+<div class="meaning">
+
+<dl>
+<dt>NaN / None / NaT</dt><dd>pandas markers for "no value" in numbers, objects and dates.</dd>
+<dt>isna().sum()</dt><dd>Missing count per column.</dd>
+<dt>dropna(subset=[...])</dt><dd>Remove rows missing in those columns.</dd>
+<dt>fillna(value)</dt><dd>Replace gaps with a value, or with group values via transform.</dd>
+<dt>Physical meaning</dt><dd>A gap is information: "not recorded" is different from "zero". Sums skip NaN, so an unfilled gap quietly lowers totals; a gap filled with 0 states that nothing happened. Pick the one that is true.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Fill every gap with 0 so the maths works."** If qty was not recorded, 0 claims the customer bought nothing and drags averages down. Fill with 0 only when "nothing" is the true meaning; otherwise drop, fill from a sensible group value, or keep and flag.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> <table class="lk-tbl"><tr><th>order</th><th>store</th><th>qty</th></tr><tr><td>1</td><td>S01</td><td>2</td></tr><tr><td>2</td><td>S01</td><td><mark>NaN</mark></td></tr><tr><td>3</td><td>S02</td><td>4</td></tr><tr><td>4</td><td>S02</td><td><mark>NaN</mark></td></tr><tr><td>5</td><td>S02</td><td>6</td></tr></table></div>
+<div class="step"><b>Count.</b> <code>df['qty'].isna().sum()</code> → 2.</div>
+<div class="step"><b>Why?</b> The till export dropped qty on two lines; the orders did happen.</div>
+<div class="step"><b>Fill from the store's median.</b> <code>df['qty'].fillna(df.groupby('store')['qty'].transform('median'))</code></div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>order</th><th>store</th><th>qty</th></tr><tr><td>1</td><td>S01</td><td>2</td></tr><tr><td>2</td><td>S01</td><td><mark>2</mark></td></tr><tr><td>3</td><td>S02</td><td>4</td></tr><tr><td>4</td><td>S02</td><td><mark>5</mark></td></tr><tr><td>5</td><td>S02</td><td>6</td></tr></table> Flag the filled rows in a column so readers know.</div>
+</div>
+
+<div class="problem" data-problem="pd-missing-mean"></div>
 
 ## 5. Your turn
 
@@ -149,3 +186,12 @@ df.groupby('region')['sales'].transform('median') gives each row its region's me
 **Try it on your own data:** [[csv-profiler]] counts missing values per column in any CSV.
 
 **New words:** *NaN*, *isna*, *dropna*, *fillna*, *forward fill*, *interpolate*, *missing at random*.
+
+<div class="keypoints">
+
+- Find gaps with isna().sum() before analysing.
+- Decide what each gap means: unknown, zero, or an error.
+- Drop, fill with a fixed value, fill from a group (transform), or keep and flag.
+- Sums and means skip NaN, so gaps change results silently.
+
+</div>

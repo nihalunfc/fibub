@@ -16,9 +16,16 @@ quiz:
     choices: ['A sequential test designed for repeated looks', 'A lower p-value threshold chosen after looking', 'Nothing, just stop']
     ans: 0
     why: 'Group sequential designs (e.g. O''Brien-Fleming boundaries) or always-valid methods keep the false positive rate at 5 % across planned looks.'
+sources:
+  - 'Johari, R., Koomen, P., Pekelis, L. and Walsh, D. (2017), Peeking at A/B Tests: Why it matters, and what to do about it, KDD 2017 https://doi.org/10.1145/3097983.3097992'
+  - 'O''Brien, P. C. and Fleming, T. R. (1979), A Multiple Testing Procedure for Clinical Trials, Biometrics 35(3), 549-556 https://doi.org/10.2307/2530245'
 ---
 
 **Module 7 · about 20 minutes · no new maths.** You'll be able to explain why stopping on a peek inflates false positives, and choose an honest way to monitor a test.
+
+<div class="bigidea">Checking a test every day and stopping at the first "significant" result multiplies the false-alarm rate, because you give chance many tries.</div>
+
+**In everyday terms:** flipping a coin and stopping the moment heads are "ahead by a lot". Keep checking and sooner or later they will be, even with a fair coin. Stopping then proves nothing.
 
 ## 1. Each look is another lottery ticket
 
@@ -41,6 +48,35 @@ The same problem in reverse: **extending** a test because p = 0.07 "is nearly th
 **4. Bayesian monitoring** (Lesson 7.7) with a decision rule based on expected loss. It's less sensitive to peeking in practice, but it isn't magic: repeatedly stopping on "P(B better) > 95 %" still raises the false win rate for null effects.
 
 **Stopping for harm** is different: if a guardrail shows clear damage (errors spike, revenue drops sharply), stop. Protecting users matters more than a clean experiment; just don't then claim the test "proved" anything about the primary metric.
+
+<div class="meaning">
+
+<dl>
+<dt>Fixed-horizon test</dt><dd>Look once, at the planned size. False-alarm rate α.</dd>
+<dt>Peeking</dt><dd>Many looks, stop at the first p < 0.05: false-alarm rate 20 % or more.</dd>
+<dt>Sequential design</dt><dd>Planned looks with stricter thresholds early on (for example O'Brien-Fleming), keeping α at 5 % overall.</dd>
+<dt>Physical meaning</dt><dd>Early in a test the estimate swings wildly because few users are in. Each look is another chance to catch it at the top of a swing. The p-value assumes one look; with many looks it is too small.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"It was significant on day 5, so the effect is real and we saved time."** On day 5 of 28 the estimate is noisy and the effect often shrinks or vanishes later. Decide in advance when you will look and what threshold each look needs.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The plan.</b> A 4-week banner test.</div>
+<div class="step"><b>Day 5.</b> B is ahead with p = 0.03. Only 18 % of the planned sample is in.</div>
+<div class="step"><b>The temptation.</b> Stop and ship.</div>
+<div class="step"><b>The maths.</b> Looking every day and stopping at the first p < 0.05 gives roughly a 20 % chance of a false win, not 5 %.</div>
+<div class="step"><b>The outcome.</b> Over the next month conversion is unchanged. A sequential plan would have needed p below about 0.0001 on day 5.</div>
+</div>
+
+<div class="problem" data-problem="peeking-looks"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -77,3 +113,12 @@ The same problem in reverse: **extending** a test because p = 0.07 "is nearly th
 **Try it on your own data:** the [[bayesian-ab-test]] tool shows how the chance that B beats A moves as data arrives; watch it, but decide at the planned end.
 
 **New words:** *peeking*, *optional stopping*, *fixed horizon*, *group sequential design*, *O'Brien-Fleming boundary*, *always-valid inference*, *confidence sequence*.
+
+<div class="keypoints">
+
+- Every extra look at an A/B test is another chance for a false win.
+- Daily peeking can push the false-positive rate from 5 % to 20 % or more.
+- Either look once at the planned size, or use a sequential design with stricter early thresholds.
+- Early estimates are noisy and often shrink later.
+
+</div>

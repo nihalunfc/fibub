@@ -16,9 +16,16 @@ quiz:
     choices: ['Only the hypothesis', 'Hypothesis, primary metric, sample size and duration, and the decision rule', 'Nothing, it is better to stay flexible']
     ans: 1
     why: 'Fixing these in advance prevents peeking, metric shopping and moving goalposts, the commonest ways tests go wrong.'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments: A Practical Guide to A/B Testing, Cambridge University Press, Chapters 2-3'
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 1.4 Experiments https://www.openintro.org/book/os/'
 ---
 
 **Module 7 · about 25 minutes · no new maths.** You'll be able to design an A/B test: state a hypothesis, choose the randomisation unit and metric, and write a plan that holds up when the results come in.
+
+<div class="bigidea">A good A/B test is planned before it starts: one hypothesis, a fair random split, one deciding metric, a size and a duration, and a decision rule written down.</div>
+
+**In everyday terms:** a fair taste test. You decide in advance which two recipes, who tastes (picked at random, not friends), what counts as "better", how many tasters, and what you will do with the answer, before anyone takes a bite.
 
 ## 1. Why experiments
 
@@ -47,6 +54,36 @@ Observational data (Lesson 4.2) is full of self-selection: customers who use a f
 - **A/A test** (both groups get the same version) to check the pipeline: you should see no difference and a correct split.
 - **Check the assignment** is random and stable: the split should match the plan (Lesson 7.6).
 - **Freeze** the plan in a document with a date.
+
+<div class="meaning">
+
+<dl>
+<dt>Hypothesis</dt><dd>What will change, for whom, and why.</dd>
+<dt>Unit of randomisation</dt><dd>What gets assigned to A or B: a user, a session, a store. Analyse at the same level.</dd>
+<dt>Primary metric</dt><dd>The one number that decides.</dd>
+<dt>Decision rule</dt><dd>Written before launch: "ship if the 95 % CI for the lift is above 0 and no guardrail is breached".</dd>
+<dt>Physical meaning</dt><dd>Randomisation is what lets you say "caused". Because chance alone decides who sees B, the two groups are alike in everything except the change, so a difference in results can only come from the change or from luck, and statistics measures the luck.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"We can decide what success means after we see the data."** Choosing the metric, segment or end date after looking lets luck pick your winner. Write the plan first and keep extra findings as ideas for the next test.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Hypothesis.</b> Showing delivery dates raises purchase conversion because it removes uncertainty.</div>
+<div class="step"><b>Unit.</b> Logged-in users, split 50/50 by a hash of their ID, so each person always sees the same version.</div>
+<div class="step"><b>Metric.</b> Primary: share of users who buy. Guardrails: page load time, returns.</div>
+<div class="step"><b>Size.</b> Enough users to detect +5 % relative with 80 % power: work it out (Lesson 7.3), round up to whole weeks.</div>
+<div class="step"><b>Rule.</b> Ship if the 95 % CI for the lift is above 0 and no guardrail is breached. Written down before launch.</div>
+</div>
+
+<div class="problem" data-problem="ab-weeks"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -97,3 +134,12 @@ estimated by `$\bar{y}_B - \bar{y}_A$` with standard error `$\sqrt{s_A^2/n_A + s
 **Try it on your own data:** the [[sample-size]] calculator plans the test size; the [[bayesian-ab-test]] tool reads finished tests.
 
 **New words:** *A/B test*, *randomised controlled experiment*, *randomisation unit*, *trigger*, *A/A test*, *decision rule*, *average treatment effect*, *non-inferiority*.
+
+<div class="keypoints">
+
+- Write the hypothesis, unit, metrics, size, duration and decision rule before launch.
+- Randomise the same unit you analyse (usually the user).
+- Run whole weeks to cover weekday patterns.
+- Randomisation is what turns a difference into evidence of cause.
+
+</div>

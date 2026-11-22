@@ -16,9 +16,16 @@ quiz:
     choices: ['Guess confidently', 'Say what you would check and how you would reason about it', 'Refuse']
     ans: 1
     why: 'Interviewers value clear reasoning and honesty about uncertainty, which is the whole point of statistics.'
+sources:
+  - 'Wasserstein, R. L. and Lazar, N. A. (2016), The ASA Statement on p-Values, The American Statistician 70(2), 129-133 https://doi.org/10.1080/00031305.2016.1154108'
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr) https://www.openintro.org/book/os/'
 ---
 
 **Module 9 · about 45 minutes · revision.** Read each question, answer it out loud in under a minute, then open the answer. The lesson number tells you where to go deeper.
+
+<div class="bigidea">Good interview answers give the one-line definition, a business example and the trap, in under a minute.</div>
+
+**In everyday terms:** like explaining a recipe to a friend: what it is, when you would make it, and the one mistake that ruins it.
 
 **How to answer:** give the one-line definition, an example from business data, and the trap. "The median is the middle value. For order values it's better than the mean because a few huge orders drag the mean up. I'd report both if they differ a lot."
 
@@ -234,6 +241,35 @@ Start with a seasonal naive baseline, try exponential smoothing or regression wi
 The share of the variation in Y explained by the model. A low R² is fine when you're estimating an effect (a slope can be clearly real) but poor for prediction of individual values. (Lesson 8.2)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Definition</dt><dd>One sentence, plain words.</dd>
+<dt>Example</dt><dd>A real analyst situation: orders, conversion, stores.</dd>
+<dt>Trap</dt><dd>The common misreading, and how you avoid it.</dd>
+<dt>Physical meaning</dt><dd>Interviewers test whether you can use statistics to make a decision safely, not whether you remember formulas. Showing the trap shows judgement.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"I must know every formula by heart."** Interviewers care more that you know which tool fits and what can go wrong. Saying "I would check the formula, but the idea is..." is fine.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The question.</b> "What is a p-value?"</div>
+<div class="step"><b>Definition.</b> The chance of data at least this extreme if there were no real effect.</div>
+<div class="step"><b>Example.</b> Our checkout test had p = 0.005: a gap this big would be rare if the forms converted equally.</div>
+<div class="step"><b>Trap.</b> It is not the chance the effect is real, and it says nothing about size, so I report the interval too.</div>
+<div class="step"><b>Close.</b> "So we shipped, because the whole interval for the lift was above zero."</div>
+</div>
+
+<div class="problem" data-problem="interview-margin"></div>
+
 <details class="maths" open>
 <summary>Maths and principle: the five formulas worth knowing by heart</summary>
 
@@ -271,3 +307,12 @@ Standard error, a 95 % interval, a test statistic, Lehr's rule for sample size (
 **Try it on your own data:** practise questions 17 to 25 with [[hypothesis-tests]], and 28 with [[sample-size]].
 
 **New words:** none; this lesson revises the course.
+
+<div class="keypoints">
+
+- Answer in three parts: definition, example, trap.
+- Use business examples: orders, conversion, stores.
+- Mention uncertainty (intervals) whenever you give a number.
+- It is fine to say what you would check if unsure.
+
+</div>

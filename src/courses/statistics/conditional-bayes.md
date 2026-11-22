@@ -16,9 +16,16 @@ quiz:
     choices: ['Catching a few more fraud cases (higher sensitivity)', 'Fewer false alarms on honest transactions', 'Neither matters']
     ans: 1
     why: 'When fraud is rare, honest transactions vastly outnumber fraud, so even a small false alarm rate dominates the flagged pile. Cutting false alarms helps most.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 3.2 Conditional probability https://www.openintro.org/book/os/'
+  - 'Gigerenzer, G. and Hoffrage, U. (1995), How to improve Bayesian reasoning without instruction: frequency formats, Psychological Review 102(4), 684-704 https://doi.org/10.1037/0033-295X.102.4.684'
 ---
 
 **Module 2 · about 25 minutes · school maths.** You'll be able to explain the base-rate trap, apply Bayes' rule with a table of counts, and judge alerts, tests and models by the number that matters.
+
+<div class="bigidea">How often an alert is right depends as much on how rare the problem is as on how good the alert is.</div>
+
+**In everyday terms:** a smoke alarm that goes off whenever you make toast catches every fire, yet most of its alarms are toast. When fires are rare, even a good alarm cries wolf more often than not.
 
 ## 1. Two different questions
 
@@ -71,6 +78,36 @@ P(B) = P(B \mid A)\,P(A) + P(B \mid \text{not } A)\,P(\text{not } A)
 - **"Most X are Y" claims:** "most accidents happen near home" mostly reflects that most driving happens near home. Always ask for the base rate.
 - **A/B testing:** Lesson 7.7 uses Bayes to turn test data into "the chance B is better than A".
 
+<div class="meaning">
+
+<dl>
+<dt>Base rate P(fraud)</dt><dd>How common the thing is before any test: 1 in 100, 1 in 1,000.</dd>
+<dt>Sensitivity P(flag | fraud)</dt><dd>Share of real cases the test catches.</dd>
+<dt>False positive rate P(flag | no fraud)</dt><dd>Share of innocent cases the test wrongly flags.</dd>
+<dt>P(fraud | flag)</dt><dd>What the person holding the alert wants to know: given a flag, how likely is it real?</dd>
+<dt>Physical meaning</dt><dd>Bayes' rule is a head count. Out of everyone flagged, how many are real cases and how many are innocent ones caught by mistake? When innocents vastly outnumber cases, even a small mistake rate floods the flagged pile with them.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The test is 95 % accurate, so a flag is 95 % likely to be right."** With 3 % faulty units, a flag is right only about 59 % of the time in the worked example, because 2 % of the huge pile of good units is still a lot of units.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Start with 10,000 units.</b> 3 % are faulty: 300 faulty, 9,700 good.</div>
+<div class="step"><b>Run the check on the faulty ones.</b> It catches 95 %: 285 flagged, 15 missed.</div>
+<div class="step"><b>Run it on the good ones.</b> It wrongly flags 2 %: 194 good units flagged.</div>
+<div class="step"><b>Gather everything flagged.</b> 285 + 194 = 479 units in the flagged pile.</div>
+<div class="step"><b>Ask the real question.</b> Of the 479 flagged, 285 are faulty: 285 ÷ 479 ≈ 59.5 %. Four flags in ten are false alarms.</div>
+</div>
+
+<div class="problem" data-problem="bayes-flag"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -113,3 +150,12 @@ So about 4 in 10 flagged units are fine. If scrapping a unit is expensive, add a
 **Try it on your own data:** the [[probability-tree]] draws Bayes problems as branches; the confusion matrix in the ML course ([precision and recall](/learn/courses/ml-foundations/confusion-matrix/)) is the same table for model predictions.
 
 **New words:** *sensitivity*, *false alarm (false positive) rate*, *precision*, *base rate*, *prior*, *likelihood*, *posterior*, *Bayes' rule*, *base-rate fallacy*.
+
+<div class="keypoints">
+
+- P(flag | fraud) and P(fraud | flag) are different numbers; reports often confuse them.
+- Work Bayes with counts: imagine 10,000 cases and split them by the base rate first.
+- Rare problems make false alarms common, even for accurate tests.
+- Judge alerts and models by precision (share of flags that are real) as well as by accuracy.
+
+</div>

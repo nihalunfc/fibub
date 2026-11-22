@@ -27,6 +27,8 @@ sources:
 
 **Module 6 · about 15 minutes.** You'll understand what bookkeeping records, read the three main reports, and set up a routine that keeps tax time calm.
 
+<div class="bigidea">Every money event has two sides, and profit and cash move separately: record each sale, cost and transfer, close the month, and read the three reports.</div>
+
 ## 1. Every event, two sides
 
 Bookkeeping records each money event. **Double entry** means every event changes two things: a sale raises cash *and* revenue; buying a laptop lowers cash *and* raises equipment. That is why the books always balance:
@@ -86,9 +88,39 @@ Small businesses can usually use the cash method. Equipment can often be expense
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Sale:</b> an invoice for $5,000 is sent: revenue and money owed both go up, but no cash yet.</p></div>
+<div class="step"><p><b>Purchase:</b> a $3,000 laptop is bought: cash goes down, equipment goes up, spread as expense over its life.</p></div>
+<div class="step"><p><b>Tax:</b> $650 of HST collected is a debt to the government, not income.</p></div>
+<div class="step"><p><b>Month-end:</b> bank reconciled, the profit and loss, balance sheet and cash flow read in ten minutes.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Double entry</dt><dd>every transaction recorded on two sides that balance</dd>
+<dt>Accrual</dt><dd>income and costs counted when earned or incurred</dd>
+<dt>Cash basis</dt><dd>income and costs counted when money moves</dd>
+<dt>Profit and loss</dt><dd>revenue minus costs for a period</dd>
+<dt>Balance sheet</dt><dd>what the business owns and owes on a date</dd>
+<dt>What it means for you</dt><dd>Set up bookkeeping software on day one, connect the bank, and do a 30-minute month-end every month.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="bookkeeping-accrual"></div>
+
 ## 5. Worked example
 
 Use the simulator above: owner invests, a cash sale, an invoice, rent, a laptop, then remitting tax. Notice after "Buy a laptop" that cash falls a lot but profit doesn't move, and after "Invoice sent" that profit rises with no cash.
+
+<div class="myth">
+
+**"If there is money in the bank, the business is making a profit."** The bank holds tax you owe, deposits, loans and unpaid bills too. Profit comes from the profit and loss, not the balance.
+
+</div>
 
 ## 6. Practice
 
@@ -103,6 +135,16 @@ Use the simulator above: owner invests, a cash sale, an invoice, rent, a laptop,
 2. Profit and loss, balance sheet, cash flow statement.
 3. To catch missing or duplicate entries, bank errors and fraud early, while you still remember the details.
 </details>
+
+<div class="keypoints">
+
+- Every event has two sides; the books always balance.
+- Accrual counts revenue when invoiced; cash basis when paid.
+- Three reports: profit and loss, balance sheet, cash flow.
+- Month-end: reconcile the bank, chase unpaid invoices, file receipts, check tax owed.
+- Equipment is spread over years; collected tax is owed, not earned.
+
+</div>
 
 **Next:** [Loans, grants and government schemes](/learn/courses/startup/loans-grants/). Spread equipment costs with [[depreciation]].
 

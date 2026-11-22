@@ -2,10 +2,12 @@
 title: Local AI skills in job ads
 summary: The local AI skills employers ask for in data, software, IT and research roles, the words they use in job ads, and how to show them with projects from this course.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Job boards searched for terms such as "Ollama", "vLLM", "RAG", "LLM" and "on-premise AI" (Indeed, LinkedIn Jobs, Naukri, Job Bank), November 2026; counts change daily, so search them yourself'
   - 'Lessons in Modules 9 to 15 of this course'
+  - 'World Economic Forum, The Future of Jobs Report 2025 (AI and big data among the fastest-growing skills), https://www.weforum.org/publications/the-future-of-jobs-report-2025/'
+  - 'U.S. Bureau of Labor Statistics, Occupational Outlook Handbook: Software Developers (official page), https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm'
 quiz:
   - q: Which project best shows local AI skill to an employer?
     choices: ['A working document search over real-style files, with a test set and a short write-up', 'A screenshot of a chat', 'A list of models you have heard of']
@@ -22,6 +24,8 @@ quiz:
 ---
 
 **Module 18 · about 20 minutes · read first: any of Modules 9 to 15.** You'll be able to describe your local AI skills in the words employers use, with projects to prove them.
+
+<div class="bigidea">Organisations that cannot send data out need people who can run AI in-house, and the way to show you can is a working, tested project described as an action, a tool and a measured result.</div>
 
 ## 1. Why this matters
 
@@ -45,7 +49,7 @@ Many organisations want AI but cannot send data to outside services. They need p
 
 ## 3. Projects that prove it
 
-Pick two or three, put the code on GitHub with a clear README, and write a short post about each:
+Pick two or three, put the code on GitHub with a clear README (the front page that explains what a project does and how to run it), and write a short post about each:
 
 1. **Private document search** over a public document set (Mini projects in Module 12), with a test set and accuracy.
 2. **SQL helper** (mini project 8) against a sample database, with the questions it got right and wrong.
@@ -56,6 +60,13 @@ Pick two or three, put the code on GitHub with a clear README, and write a short
 ## 4. Writing it on a CV
 
 Lead with the result, then the tools: "Built a private document search over 2,000 policy PDFs with Ollama and a local vector index; 88% of test questions answered with correct citations." Use only numbers you measured.
+
+<div class="steps">
+<div class="step"><p><b>Start weak.</b> "Used AI for SQL." True, but it says nothing a hiring manager can picture.</p></div>
+<div class="step"><p><b>Add the action.</b> "Built a local SQL assistant..." Now it is something you made.</p></div>
+<div class="step"><p><b>Add the tools.</b> "...with Gemma 4, Ollama and SQLite..." These are the words in the job ad.</p></div>
+<div class="step"><p><b>Add a measured result.</b> "...17 of 20 test questions correct on first try." Now it is evidence, and it starts a technical conversation in the interview.</p></div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -68,6 +79,27 @@ Lead with the result, then the tools: "Built a private document search over 2,00
 
 **Try it:** turn "used AI for SQL" into a strong bullet. (For example: "Built a local SQL assistant with Gemma 4 and SQLite; 17 of 20 test questions correct on first try.")
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>action</dt><dd>what you did, with a strong verb: built, cut, set up, tested</dd>
+<dt>tool</dt><dd>the named tools, in the words job ads use (Ollama, RAG, Docker)</dd>
+<dt>measured result</dt><dd>a number you measured yourself: accuracy, time saved, cost</dd>
+<dt>Physical meaning</dt><dd>A hiring manager reads a CV in under a minute. A measured result is the part they remember and ask about, because it shows that the thing worked and that you know how to test it.</dd>
+</dl>
+
+</div>
+
+A percentage cut is often the clearest result. Divide by the old time, not the new one:
+
+<div class="problem" data-problem="careers-result"></div>
+
+<div class="myth">
+
+**"A long list of models and tools shows I know local AI."** Names without results show only that you have read about them. One working project with a test set and an honest number beats ten logos. Employers ask what you built and how well it worked.
+
+</div>
 
 ## 5. Worked scenario
 
@@ -88,3 +120,12 @@ Lead with the result, then the tools: "Built a private document search over 2,00
 </details>
 
 **New words:** *on-premise*, *self-hosted*, *portfolio project*, *README*.
+
+<div class="keypoints">
+
+- Job ads for in-house AI use words like on-premise, self-hosted, RAG, Ollama, vLLM, agents, LoRA and model evaluation.
+- Each of those maps to a module of this course.
+- Prove skills with two or three working projects on GitHub, each with a README, a test set and an honest result.
+- A strong CV bullet = action + tool + measured result; use only numbers you measured.
+
+</div>

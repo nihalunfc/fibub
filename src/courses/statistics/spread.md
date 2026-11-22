@@ -16,9 +16,16 @@ quiz:
     choices: ['The range', 'The standard deviation', 'The interquartile range']
     ans: 2
     why: 'The IQR uses only the middle half of the data (Q3 − Q1), so the extremes do not touch it. The range uses only the extremes, and the SD squares them.'
+sources:
+  - 'OpenIntro Statistics, 4th edition, Section 2.1.4 Variance and standard deviation https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 1.3.5.6 Measures of Scale https://www.itl.nist.gov/div898/handbook/eda/section3/eda356.htm'
 ---
 
 **Module 1 · about 25 minutes · school maths.** You'll be able to compute the range, IQR, variance and standard deviation, explain the n − 1, and choose a measure of spread for a report.
+
+<div class="bigidea">Two shops can have the same average and very different days; spread measures how far values usually sit from the centre.</div>
+
+**In everyday terms:** two buses both arrive on average at 8:00. One is always within a minute; the other comes any time from 7:45 to 8:15. Same average, and only one of them gets you to work on time. The standard deviation is the "how late or early, usually" number.
 
 ## 1. Why the average is not enough
 
@@ -59,6 +66,37 @@ Why `$n - 1$`? For a **sample**, the gaps are measured from the sample's own mea
 ## 5. Coefficient of variation
 
 To compare spreads on different scales, divide the SD by the mean: **CV = s ÷ x̄**. A product selling 1,000 ± 100 a day (CV 10 %) is steadier than one selling 50 ± 15 (CV 30 %), even though its SD is bigger.
+
+<div class="meaning">
+
+<dl>
+<dt>Range</dt><dd>Largest minus smallest. Easy, but decided by two values only.</dd>
+<dt>IQR</dt><dd>Q3 − Q1: the width of the middle half of the data. Ignores the tails.</dd>
+<dt>Variance s²</dt><dd>The average squared gap from the mean (dividing by n − 1 for a sample).</dd>
+<dt>Standard deviation s</dt><dd>The square root of the variance, back in the data's own units: the typical distance from the mean.</dd>
+<dt>Physical meaning</dt><dd>The SD is a ruler for "unusual". A day 1 SD from normal happens all the time; 3 SDs is rare. Squaring makes big gaps count more, like how a pothole jolts you far more than two small bumps.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Divide by n − 1 is a fussy detail."** A sample's own mean sits closer to its values than the true mean does, so gaps measured from it are a bit too small. Dividing by n − 1 instead of n corrects exactly that. With 6 values it changes the SD by about 10 %.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> Daily returns at a store over 6 days: 4, 7, 5, 9, 6, 11.</div>
+<div class="step"><b>Mean.</b> 42 ÷ 6 = 7.</div>
+<div class="step"><b>Gaps from the mean.</b> −3, 0, −2, 2, −1, 4. They always add up to 0, which is why we cannot just average them.</div>
+<div class="step"><b>Square the gaps.</b> 9, 0, 4, 4, 1, 16. Now every gap counts as positive, and big gaps count more. Sum = 34.</div>
+<div class="step"><b>Variance.</b> 34 ÷ (6 − 1) = 6.8 (in returns squared, an awkward unit).</div>
+<div class="step"><b>Standard deviation.</b> √6.8 ≈ 2.61 returns: a usual day is about 2.6 returns away from 7.</div>
+</div>
+
+<div class="problem" data-problem="spread-sd"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -101,3 +139,13 @@ Report: "about 7 returns a day, typically within 2 or 3 of that".
 **Try it on your own data:** the [[csv-profiler]] reports the SD, quartiles and IQR of every number column; the [[grouped-data-stats]] tool works them out from a frequency table, step by step.
 
 **New words:** *spread*, *range*, *quartile*, *interquartile range (IQR)*, *variance*, *standard deviation*, *Bessel's correction*, *coefficient of variation*.
+
+<div class="keypoints">
+
+- Range is simple but set by two extreme values.
+- IQR (Q3 − Q1) is the spread of the middle half and ignores outliers.
+- Variance averages squared gaps; the SD is its square root, in the data's units.
+- Samples divide by n − 1 because the sample mean sits too close to its own data.
+- Coefficient of variation = SD ÷ mean compares spread across different scales.
+
+</div>

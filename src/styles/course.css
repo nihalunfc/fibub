@@ -101,6 +101,3 @@ a[aria-current="page"].done::after { color: inherit; }
   .cs-prog { padding: 10px 12px; margin: 14px 0; }
 }
 
-/* Save reminder under each lesson while progress lives only in this tab (src/scripts/course.ts). */
-.cs-nudge { border: 1px solid var(--line); border-left: 4px solid var(--warn, #b45309); border-radius: 8px; padding: 10px 12px; margin: 12px 0; display: grid; gap: 8px; justify-items: start; }
-.cs-nudge p { margin: 0; }

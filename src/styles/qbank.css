@@ -1,0 +1,88 @@
+/* Shared question bank (src/scripts/qbank.ts). Plain, phone first; colour only for right/wrong and levels. */
+.qbank { margin: 18px 0; }
+.qb-tools { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 8px; }
+.qb-sel { display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
+.qb-sel select { font: inherit; font-size: 15px; color: var(--ink, inherit); background: var(--bg, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; max-width: 100%; }
+.qb-count, .qb-hint, .qb-wait { font-size: 14px; color: var(--muted); margin: 6px 0; }
+.qb-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 10px 0; background: var(--surface, transparent); overflow-wrap: anywhere; }
+.qb-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.qb-badges span { font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
+.qb-lv1, .qb-lv2 { color: var(--good, #1a7f37) !important; }
+.qb-lv4, .qb-lv5 { color: var(--bad, #b42318) !important; }
+.qb-fresh { border-style: dashed !important; }
+.qb-q { font-size: 16.5px; line-height: 1.55; margin-bottom: 10px; }
+.qb-q math, .qb-opt math, .qb-sol math { font-size: 1.08em; }
+.qb-q math.tml-display, .qb-sol math.tml-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.qb-group { border-left: 3px solid var(--line); padding: 4px 0 4px 12px; margin: 0 0 10px; }
+.qb-gtitle { font-weight: 600; margin: 0 0 4px; }
+.qb-match { border-collapse: collapse; width: 100%; font-size: 15px; }
+.qb-match td, .qb-match th { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.qb-ans { display: grid; gap: 6px; }
+.qb-opt { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
+.qb-opt input { margin-top: 4px; flex: none; }
+.qb-key { font-weight: 600; flex: none; }
+.qb-opt.right { border-color: var(--good, #1a7f37); box-shadow: inset 3px 0 0 var(--good, #1a7f37); }
+.qb-opt.wrong { border-color: var(--bad, #b42318); box-shadow: inset 3px 0 0 var(--bad, #b42318); }
+.qb-nat { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qb-nat input, .qb-open { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; min-width: 0; }
+.qb-nat input { width: 12em; max-width: 100%; }
+.qb-open { width: 100%; }
+.qb-bar, .qb-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 0; }
+.qb-nav { justify-content: space-between; }
+.qb-nav span { font-size: 14px; color: var(--muted); }
+.qb-out { margin: 8px 0 0; font-weight: 600; }
+.qb-out.ok { color: var(--good, #1a7f37); }
+.qb-out.bad { color: var(--bad, #b42318); }
+.qb-sol { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 8px; line-height: 1.55; }
+.qb-answer { font-weight: 600; margin: 0 0 6px; }
+.qb-trap { font-size: 15px; border-left: 3px solid var(--warn, #b54708); padding-left: 10px; }
+.qb-foot { font-size: 14px; color: var(--muted); margin-top: 10px; display: grid; gap: 6px; justify-items: start; }
+.qb-rem { display: flex; gap: 6px; align-items: flex-start; }
+.qb-mockhead { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg, Canvas); padding: 6px 0; z-index: 2; border-bottom: 1px solid var(--line); }
+.qb-timer { font-variant-numeric: tabular-nums; font-weight: 600; }
+.qb-palette { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0; }
+.qb-pb { width: 34px; height: 30px; font: inherit; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.qb-pb.done { background: var(--accent, #1f4fd1); color: #fff; border-color: transparent; }
+.qb-pb.flag { box-shadow: inset 0 -3px 0 var(--warn, #b54708); }
+.qb-pb.cur { outline: 2px solid currentColor; }
+.qb-sec { font-size: 14px; color: var(--muted); margin: 6px 0; }
+.qb-result { border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.qb-big { font-size: 32px; font-weight: 700; margin: 0; }
+.qb-topics { border-collapse: collapse; margin: 10px 0; font-size: 15px; }
+.qb-topics td, .qb-topics th { border-bottom: 1px solid var(--line); padding: 4px 12px 4px 0; text-align: left; }
+.qb-static { padding-left: 22px; }
+.qb-static > li { margin: 0 0 18px; }
+.qb-static details { margin-top: 6px; }
+.qb-static summary { cursor: pointer; color: var(--accent); }
+@media print { .qb-tools, .qb-bar, .qb-nav, .qb-foot { display: none; } }
+/* Sets (a passage or recording with its questions), listening player, writing and speaking tools (IELTS and other language exams) */
+.qb-set { display: grid; gap: 12px; margin: 10px 0; }
+.qb-setside .qb-group { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0; }
+.qb-setqs .qb-card { margin: 8px 0; }
+.qb-passage { line-height: 1.6; }
+.qb-passage h3 { margin: 4px 0 8px; }
+.qb-passage table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 6px 0; }
+.qb-passage td, .qb-passage th { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.qb-passage caption { font-weight: 600; text-align: left; padding: 4px 0; }
+.qb-passage svg { display: block; margin: 8px 0; }
+@media (min-width: 1000px) {
+  .qb-set { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+  .qb-setside { position: sticky; top: 8px; max-height: calc(100vh - 100px); overflow: auto; }
+}
+.qb-audio { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; margin: 6px 0 10px; display: grid; gap: 8px; }
+.qb-abar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; }
+.qb-astatus { font-size: 14px; color: var(--muted); }
+.qb-script summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+.qb-script p { margin: 4px 0; font-size: 15px; }
+.qb-wc { font-variant-numeric: tabular-nums; }
+.qb-wc.short { color: var(--warn, #b54708); }
+.qb-model { border-left: 3px solid var(--good, #1a7f37); padding-left: 10px; margin: 8px 0; }
+.qb-check ul { list-style: none; padding: 0; margin: 6px 0; }
+.qb-check li { margin: 4px 0; }
+/* order: word chips (TOEFL Build a Sentence and similar) */
+.qb-built, .qb-pool { display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px; padding: 6px; border-radius: 8px; }
+.qb-built { border: 2px dashed var(--line); margin-bottom: 6px; }
+.qb-pool { background: var(--bg); }
+.qb-chip { font: 600 14.5px system-ui, sans-serif; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.qb-built .qb-chip { border-color: var(--accent); }
+.qb-clear { font: 600 13px system-ui, sans-serif; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }

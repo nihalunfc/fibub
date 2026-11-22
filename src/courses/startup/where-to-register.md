@@ -30,6 +30,8 @@ sources:
 
 **Module 3 · about 13 minutes.** You'll choose where to register your company or LLC and know the extra registrations that follow.
 
+<div class="bigidea">You register where you form the business and also wherever you actually operate. Pick the place your investors, customers and staff need, not the one with the best advertising.</div>
+
 ## 1. Why the place matters
 
 Where you register decides **which law governs** the company's inside workings (shareholder rights, director duties), **which registry** you file with every year, and **which fees and taxes** you pay. Where you *operate* adds more registrations on top.
@@ -61,9 +63,39 @@ There is one company law for the whole country (the Companies Act, 2013, run by 
 
 > **Key idea:** You register where you form, and *also* where you physically operate. "Selling to customers in a place" usually doesn't count as operating there for company law, but it can for sales tax (Module 7).
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Seattle team raising a seed round:</b> forms a Delaware C corp, then registers it in Washington as a foreign corporation.</p></div>
+<div class="step"><p><b>Vancouver café:</b> incorporates provincially in BC: cheaper, and it will never operate elsewhere.</p></div>
+<div class="step"><p><b>Toronto SaaS selling nationwide:</b> incorporates federally to protect its name across Canada.</p></div>
+<div class="step"><p><b>Pune company opening a Bengaluru office:</b> stays one company, and adds a GST registration in Karnataka.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Domestic entity</dt><dd>a company in the place where it was formed</dd>
+<dt>Foreign qualification</dt><dd>USA: registering an out-of-state company where you operate</dd>
+<dt>Extra-provincial registration</dt><dd>Canada: registering a corporation in another province</dd>
+<dt>Registered agent</dt><dd>USA: the in-state address that receives legal papers</dd>
+<dt>Franchise tax</dt><dd>a yearly state charge for existing there</dd>
+<dt>What it means for you</dt><dd>Form where your investors or customers need you to be, then register wherever you have staff, an office or a warehouse.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="where-to-register-delaware"></div>
+
 ## 3. Worked example
 
 *Made-up founders.* A team in Seattle raising a seed round forms a **Delaware C corp** and qualifies it in **Washington** as a foreign corporation. A café owner in Vancouver incorporates **provincially in BC**. A SaaS team in Pune puts its registered office at their **Pune** flat with the owner's no-objection letter, under the **ROC Pune**, and registers GST in Maharashtra.
+
+<div class="myth">
+
+**"Forming in Delaware or Wyoming means I avoid my home state’s taxes."** Wherever you form, the state where you live and work still registers, taxes and regulates you. Delaware is about investors and corporate law, not lower tax for a small business.
+
+</div>
 
 ## 4. Practice
 
@@ -78,6 +110,16 @@ There is one company law for the whole country (the Companies Act, 2013, run by 
 2. When you'll operate in several provinces, want the name protected nationally, or expect investors who prefer it.
 3. Yes. Company registration covers all of India; GST rules decide whether it needs another state registration (only for a place of business there).
 </details>
+
+<div class="keypoints">
+
+- Register where you form and where you operate.
+- India: one company covers all of India; GST registration is per state of business.
+- Canada: federal (name protected nationally, 25 % resident directors) or provincial (cheaper for one province).
+- USA: Delaware for venture capital; otherwise usually your home state.
+- Selling to customers somewhere rarely needs company registration there, but may need sales tax registration.
+
+</div>
 
 **Next:** [Changing structure later](/learn/courses/startup/changing-structure/).
 

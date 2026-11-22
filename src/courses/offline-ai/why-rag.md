@@ -3,7 +3,7 @@ title: Why the model cannot read your files by itself
 seoTitle: Why AI cannot read your files (RAG explained) | Offline AI
 summary: A model only knows what it learned in training and what is in its context window. Learn why that leaves your own files out, and how retrieval (RAG) fixes it without uploading anything.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Lewis et al. (2020), Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks, https://arxiv.org/abs/2005.11401'
   - 'Liu et al. (2023), Lost in the Middle: How Language Models Use Long Contexts, https://arxiv.org/abs/2307.03172'
@@ -24,6 +24,8 @@ quiz:
 
 **Module 12 · about 20 minutes · read first: 3.3 and 11.2.** You'll be able to explain why a model cannot see your files, and what each step of a private document search pipeline does.
 
+<div class="bigidea">A model only knows its training and the text in front of it, so to answer from your files you first look up the few right passages and hand it just those.</div>
+
 ## 1. Why this matters
 
 The most common reason people want local AI is private documents: contracts, patient letters, research notes, policies. "Ask my documents" is also the most asked-for feature at work. This module builds it, fully offline, in about 150 lines of Python.
@@ -37,6 +39,14 @@ A model knows two things:
 
 That is all. It cannot open a folder, and it does not remember last week's chat unless the app pastes it back in. So "make the model know my files" really means "get the right text into the context window at the right moment".
 
+Picture a very well-read consultant locked in a room with no filing cabinet. They know a lot in general, but about your company they know only the papers you slide under the door.
+
+<div class="myth">
+
+**"If I chat with it about my files, it learns them."** Chatting never changes the model's weights. It "remembers" only what is pasted into the current conversation. Close the chat and that knowledge is gone, unless an app stores it and pastes it back in next time.
+
+</div>
+
 ## 3. Why not paste everything?
 
 A 300-page policy manual is about 150,000 tokens. On a laptop with an 8,192-token context, it does not fit. Even on a big machine with a 128K window, every question would make the model read the whole manual again (prefill, Lesson 3.5), which can take minutes, and the KV cache (Lesson 8.4) would eat gigabytes. Models also pay less attention to facts buried in the middle of a very long context ("lost in the middle").
@@ -48,6 +58,14 @@ A 300-page policy manual is about 150,000 tokens. On a laptop with an 8,192-toke
 1. **Once, ahead of time:** read every file, cut it into short pieces (*chunks*, Lesson 12.3), turn each chunk into a list of numbers that captures its meaning (an *embedding*, Lesson 12.2), and store them (Lesson 12.4).
 2. **Each question:** turn the question into numbers the same way, find the 5 or so chunks whose numbers are closest, and paste only those into the prompt with an instruction: "answer from these sources and cite them" (Lesson 12.5).
 
+<div class="steps">
+<div class="step"><p><b>The question.</b> Someone asks: "How many days of leave do new staff get?" The handbook has 300 pages, about 150,000 tokens, far too many to paste.</p></div>
+<div class="step"><p><b>Turn the question into numbers.</b> The embedding model turns the question into a vector of 768 numbers that captures its meaning.</p></div>
+<div class="step"><p><b>Find the closest chunks.</b> The index holds 400 chunks of the handbook, each already turned into numbers. The 5 closest to the question win, including "page 12: Staff get 20 days of paid vacation a year".</p></div>
+<div class="step"><p><b>Build a small prompt.</b> Instructions (100 tokens) + 5 chunks of 400 tokens + the question (12 tokens) is about 2,100 tokens: roughly 70 times less than the whole handbook.</p></div>
+<div class="step"><p><b>Answer with a source.</b> The model reads only those chunks and writes: "New staff get 20 days of paid vacation a year [1]", with "[1] handbook.pdf, page 12" underneath.</p></div>
+</div>
+
 The model now answers from your text, with page numbers, and the prompt stays small. Every step runs on your machine: the embedding model and the chat model both run in Ollama, and the index is a file on your disk.
 
 <details class="maths" open>
@@ -55,12 +73,31 @@ The model now answers from your text, with page numbers, and the prompt stays sm
 
 **Principle:** retrieval shrinks the text the model must read from the whole library to the few pieces that matter for this question.
 
-**Equation:** prompt tokens ≈ instructions + k × chunk size + question. With k = 5 chunks of 400 tokens: about 2,000 + 150 tokens, whatever the size of the library.
+**Equation:**
+
+```math
+\text{prompt tokens} \approx \text{instructions} + k \times \text{chunk size} + \text{question}
+```
+
+With k = 5 chunks of 400 tokens: about 2,000 + 150 tokens, whatever the size of the library.
 
 **Analogy:** an open-book exam. You do not reread the whole book for each question; you use the index to find two pages, then read those carefully. The index costs effort once; every lookup after that is cheap. Where it breaks: if the index points to the wrong pages, the best reader in the world still answers wrongly. Retrieval quality limits answer quality.
 
 **Try it:** a library of 4,000 chunks; you send the top 5. What fraction of the library does the model read per question? (5 ÷ 4,000 = 0.125%.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>k</dt><dd>how many chunks the search hands to the model for each question, often 3 to 8</dd>
+<dt>chunk size</dt><dd>how long each piece of a document is, often 250 to 650 tokens</dd>
+<dt>instructions + question</dt><dd>the fixed part of the prompt: "answer only from these sources and cite them", plus what was asked</dd>
+<dt>Physical meaning</dt><dd>RAG is an open-book exam with a good index. The prompt stays the size of a few pages whether your library is a hundred pages or a million, so a laptop can answer from a whole office's files, as long as the index points to the right pages.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="why-rag-shrink"></div>
 
 ## 5. Worked example
 
@@ -81,3 +118,13 @@ The model now answers from your text, with page numbers, and the prompt stays sm
 </details>
 
 **New words:** *RAG* or *retrieval-augmented generation* (look up passages, then answer from them), *chunk* (a short piece of a document), *knowledge cut-off* (the date a model's training data ends).
+
+<div class="keypoints">
+
+- A model knows only its training data (frozen at its cut-off) and what is in its context window right now.
+- Pasting whole libraries does not fit, is slow to read every time, and facts in the middle get less attention.
+- RAG: index once (read, chunk, embed, store); for each question, find the closest chunks and answer from them with citations.
+- The prompt stays small (instructions + k × chunk size + question) however big the library grows.
+- Every step can run on your own machine, and answer quality is limited by retrieval quality.
+
+</div>

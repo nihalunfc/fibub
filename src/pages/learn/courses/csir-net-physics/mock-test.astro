@@ -1,0 +1,5 @@
+---
+import ExamMock from '../../../../components/qbank/ExamMock.astro';
+import { NET_PHYSICS, NET_BANK } from '../../../../courses/csir-net-physics/syllabus';
+---
+<ExamMock course={NET_PHYSICS} {...NET_BANK} marking="Part B questions carry 3.5 marks and Part C questions 5 marks; a wrong answer costs 25% of the question's marks. Unanswered: 0. (Part A aptitude is not simulated yet.)" />

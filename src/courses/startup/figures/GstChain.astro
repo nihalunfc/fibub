@@ -1,0 +1,43 @@
+---
+// 7.1: the input-credit chain. Step through a shirt's journey: each business charges tax on its sale, claims back the tax it paid,
+// and sends the government only the difference. US sales tax works differently: only the final retail sale is taxed.
+---
+<figure class="cs-fig su-fig" data-gc>
+  <span class="cs-figtag">Animation: who pays GST on a shirt?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India: GST 5 %</option><option value="ca">Canada: HST 13 % (Ontario)</option><option value="us">USA: sales tax 8 %</option></select></label>
+    <button type="button" class="btn" data-next>Next step</button>
+    <button type="button" class="btn secondary" data-reset>Start again</button>
+  </div>
+  <table class="su-t num" data-t></table>
+  <p class="su-say" data-say></p>
+  <figcaption>Made-up prices. Each business charges tax on what it sells (output tax), subtracts the tax it paid on what it bought (input tax credit), and pays the difference. Add up the last column: it equals the tax on the final price, and the final customer, who cannot claim it back, carries the whole cost. In the USA there is no chain: businesses buy for resale tax-free with a resale certificate, and only the sale to the end customer is taxed.</figcaption>
+</figure>
+<script>
+  import { followCountry, money, type CC } from './fmt';
+  const STAGES: [string, number][] = [['Farm sells cotton', 100], ['Mill sells cloth', 250], ['Tailor sells shirt', 600], ['Shop sells to you', 1000]];
+  const RATE: Record<CC, number> = { in: 0.05, ca: 0.13, us: 0.08 };
+  const SCALE: Record<CC, number> = { in: 1, ca: 0.1, us: 0.1 };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-gc]')) {
+    let step = 0;
+    const cc = followCountry(fig, () => { step = 0; draw(); });
+    fig.querySelector('[data-next]')!.addEventListener('click', () => { step = Math.min(STAGES.length, step + 1); draw(); });
+    fig.querySelector('[data-reset]')!.addEventListener('click', () => { step = 0; draw(); });
+    function draw() {
+      const c = cc(), r = RATE[c], k = SCALE[c], us = c === 'us';
+      let prev = 0, sum = 0;
+      const rows = STAGES.map(([name, p], i) => {
+        const price = p * k, last = i === STAGES.length - 1;
+        const out = us ? (last ? price * r : 0) : price * r, credit = us ? 0 : prev * r, pay = out - credit;
+        prev = price; if (i < step) sum += pay;
+        const show = i < step;
+        return `<tr style="opacity:${show ? 1 : 0.25};transition:opacity .4s"><td>${name}</td><td>${money(c, price, k < 1 ? 2 : 0)}</td><td>${show ? money(c, out, 2) : ''}</td><td>${show ? (credit ? '−' + money(c, credit, 2) : '0') : ''}</td><td><b>${show ? money(c, pay, 2) : ''}</b></td></tr>`;
+      });
+      fig.querySelector('[data-t]')!.innerHTML = `<thead><tr><th>Step</th><th>Price</th><th>Tax</th><th>Credit</th><th>Pays</th></tr></thead><tbody>${rows.join('')}</tbody><tfoot><tr><td colspan="4">Government received</td><td><b>${money(c, sum, 2)}</b></td></tr></tfoot>`;
+      const say = fig.querySelector('[data-say]')!;
+      if (step === 0) say.textContent = 'Press Next step to follow the shirt from farm to shop.';
+      else if (step < STAGES.length) say.textContent = us ? 'A sale for resale: the buyer gives a resale certificate, so no sales tax is charged yet.' : `This business paid ${money(c, (STAGES[step - 2]?.[1] ?? 0) * k * r, 2)} tax on what it bought, claims it back, and pays only the tax on the value it added.`;
+      else say.textContent = `Done: the government received ${money(c, sum, 2)}, exactly ${Math.round(r * 100)} % of the final ${money(c, 1000 * k, 0)}. ${us ? 'The shop collected it all at the till.' : 'Each business paid a slice; none of them was out of pocket, and you paid it all in the price.'}`;
+    }
+  }
+</script>

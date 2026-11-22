@@ -16,10 +16,14 @@ quiz:
     choices: ["Because they change with place and time as the sky turns", "Because they are too hard to measure", "Because azimuth has no units"]
     ans: 0
     why: "Alt-az coordinates are tied to the observer's horizon, so they change every minute and from town to town."
-sources: []
+sources:
+  - "Meeus, J. (1998), Astronomical Algorithms, 2nd ed., Willmann-Bell, Chapter 13 (transformation of coordinates)"
+  - "US Naval Observatory, Explanatory Supplement to the Astronomical Almanac (3rd ed., 2013), University Science Books"
 ---
 
-**Module 2 · about 20 minutes · angles.** You'll be able to describe any point in your sky by altitude and azimuth, estimate both with your hand, and explain why these coordinates keep changing.
+**Module 2 · about 20 minutes · read first: [1.1 The celestial sphere: a map painted on a dome](/learn/courses/sky-watching/celestial-sphere/), [1.2 Why the sky turns: daily motion and circumpolar stars](/learn/courses/sky-watching/turning-sky/) · maths: angles.** You'll be able to describe any point in your sky by altitude and azimuth, estimate both with your hand, and explain why these coordinates keep changing.
+
+<div class="bigidea">Altitude is how high something is above your horizon and azimuth is its compass bearing; together they say exactly where to look, but only from your place and only at that moment.</div>
 
 ## 1. Why this matters
 
@@ -45,6 +49,16 @@ Things to notice:
 
 The sky turns 15° an hour (Lesson 1.2), so a star's altitude and azimuth change constantly. They also depend on where you are: the same star can be overhead in Quito and on the horizon in Oslo at the same instant. That is why catalogues use **right ascension and declination** instead (Lesson 2.2), which stay fixed to the stars. Converting from one to the other needs your latitude and the time, through the **hour angle**.
 
+Point someone at Jupiter tonight:
+
+<div class="steps">
+<div class="step"><b>Face the right way.</b> Azimuth is measured from north round through east: 0° north, 90° east, 180° south, 270° west. Jupiter is at azimuth 135°: south-east.</div>
+<div class="step"><b>Look up.</b> Altitude is measured from the horizon (0°) to the zenith (90°). Jupiter is 30° up: three fists.</div>
+<div class="step"><b>Found it.</b> Two angles pin down any point in your sky.</div>
+<div class="step"><b>Wait an hour.</b> The sky has turned 15°. Jupiter is now higher and further south: its altitude and azimuth have both changed.</div>
+<div class="step"><b>Phone a friend in another city.</b> Their numbers for Jupiter differ from yours. Alt-az belongs to one place and one moment.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -65,6 +79,24 @@ where `$h$` is altitude and `$A$` azimuth from north (take the quadrant from the
 **Check:** on the meridian `$H = 0$`: `$\sin h = \cos(\varphi - \delta)$`, so `$h = 90^\circ - |\varphi - \delta|$`, the rule from Lesson 1.1.
 </details>
 
+
+<div class="meaning">
+
+<dl>
+<dt>h (altitude)</dt><dd>Angle above the horizon, 0° to 90°.</dd>
+<dt>A (azimuth)</dt><dd>Compass bearing, from north through east.</dd>
+<dt>sin h = sin δ sin φ + cos δ cos φ cos H</dt><dd>Altitude from the star's declination δ, your latitude φ and the hour angle H.</dd>
+<dt>Physical meaning</dt><dd>Alt-az is "how far round, how far up" from where you stand, like telling someone to look "over the oak tree, a bit above it". It is perfect for pointing but useless for a catalogue, because the oak tree and the sky both change as you move and as Earth turns.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A star's altitude and azimuth can go in a star catalogue."** They change every minute and from every place. Catalogues use right ascension and declination, which stay fixed to the stars (Lesson 2.2).
+
+</div>
+
 ## 4. Worked example
 
 *Made-up star at declination +20°, 3 hours after crossing the meridian (`$H = 45^\circ$`), seen from 43° N.*
@@ -77,6 +109,10 @@ so `$h = 46.0^\circ$`. For the azimuth, top `$= -0.940 \times 0.707 = -0.665$`, 
 
 ## 5. Practice
 
+<div class="problem" data-problem="altitude-from-ha"></div>
+
+**More practice** (answers below):
+
 1. Give the azimuth of south-east.
 2. A star sits 3 fists above the northern horizon. Roughly what are its altitude and azimuth?
 3. What is the altitude of a star on the meridian at declination 0° from latitude 52° N?
@@ -88,6 +124,15 @@ so `$h = 46.0^\circ$`. For the azimuth, top `$= -0.940 \times 0.707 = -0.665$`, 
 2. About 30° altitude, azimuth 0°.
 3. `$90 - |52 - 0| = 38^\circ$`.
 </details>
+
+<div class="keypoints">
+
+- Altitude: angle above the horizon. Azimuth: bearing from north through east.
+- Alt-az depends on your location and the time.
+- sin h = sin δ sin φ + cos δ cos φ cos H converts from sky coordinates.
+- Alt-az mounts and phone apps use these two angles.
+
+</div>
 
 **Try it on the real sky:** get the altitude and azimuth of any object through the night with [[object-altitude]], or convert between alt-az and RA/Dec with [[sky-coordinates]].
 

@@ -3,7 +3,7 @@ title: Splitting a model across graphics cards or machines
 seoTitle: Split a model across GPUs or machines | Offline AI
 summary: When a model is too big for one card, it can be split across two or more cards or even several computers. The two ways to split it, what each costs in speed, and the commands to try.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'llama.cpp: --split-mode, --tensor-split and the RPC backend (official README), https://github.com/ggml-org/llama.cpp'
   - 'vLLM documentation: distributed inference, --tensor-parallel-size and --pipeline-parallel-size (official page), https://docs.vllm.ai'
@@ -25,6 +25,8 @@ quiz:
 ---
 
 **Module 15 · about 25 minutes · read first: 4.1, 4.2 and 15.2.** You'll be able to run a model that does not fit on one card, and know what it costs in speed.
+
+<div class="bigidea">A model too big for one card can be split by layers (more memory, but the cards take turns) or by pieces of every layer (faster, but the cards must talk over a fast link).</div>
 
 ## 1. Why this matters
 
@@ -48,6 +50,16 @@ vllm serve <model-name-or-folder> --tensor-parallel-size 2
 
 The `--tensor-split` numbers are shares, not gigabytes; give the larger share to the card with more free memory.
 
+Watch one token go through a 40 GB model on two 24 GB cards, each reading memory at 936 GB/s:
+
+<div class="steps" data-fig="multi-gpu-split">
+<div class="step"><p><b>Too big for one.</b> 40 GB of weights will not fit on a 24 GB card. Two cards give 48 GB.</p></div>
+<div class="step"><p><b>Layer split, card 1.</b> Card 1 reads its 20 GB: 20 ÷ 936 ≈ 0.021 s. Card 2 sits idle, waiting.</p></div>
+<div class="step"><p><b>Layer split, card 2.</b> Card 1 passes a small bundle of numbers; card 2 reads its 20 GB in another 0.021 s. Total ≈ 0.043 s per token, about <b>23 tokens a second</b>: the same as one huge card.</p></div>
+<div class="step"><p><b>Tensor split.</b> Both cards read their half of every layer at the same time: about 0.021 s, plus many small swaps of results over the link. With a fast link, close to twice as fast.</p></div>
+<div class="step"><p><b>Across machines.</b> A layer split over office Ethernet still works, but each token waits for a trip across the network. Expect tokens per second to fall noticeably.</p></div>
+</div>
+
 ## 4. Across machines
 
 - **llama.cpp RPC:** run `rpc-server` on the helper machines and add `--rpc host1:50052,host2:50052` on the main one. Layers are spread over the network.
@@ -69,6 +81,26 @@ Network speed is the catch. Memory moves hundreds of gigabytes a second, a PCIe 
 **Try it:** 40 GB model, two cards at 936 GB/s, layer split, no link delay? (20 ÷ 936 + 20 ÷ 936 ≈ 0.043 s per token: about 23 tokens per second at best, the same as one huge card.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>GB on card</dt><dd>the share of the model's weights stored on that card</dd>
+<dt>bandwidth</dt><dd>how many GB a second the card can read from its own memory</dd>
+<dt>link delay</dt><dd>the time to pass results between cards or machines for each token</dd>
+<dt>time per token</dt><dd>with a layer split, every card's reading time added up, plus the link; tokens per second = 1 ÷ that</dd>
+<dt>Physical meaning</dt><dd>Two people reading a book. Layer split: one reads the first half, then hands it over, so the book takes as long as one fast reader. Tensor split: each reads half of every page at once and they compare notes after each page, which is quicker if they sit side by side and slow if they talk by post.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="multi-gpu-layer-speed"></div>
+
+<div class="myth">
+
+**"Two graphics cards make the model twice as fast."** With the usual layer split, the cards take turns, so one user gets about the speed of one big card: the second card buys memory, not speed. Only a tensor split, with matching cards and a fast link, makes one user faster. More cards can also serve more users at once through batching.
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* A hobbyist has two used 24 GB RTX 3090 cards in one PC. A 70B model at 4-bit is about 40 GB. Split by layers with llama.cpp it runs at around 15 tokens per second, close to what one 48 GB card would give. They also try a second PC over Ethernet with a third card for a bigger model: it loads, but drops to a few tokens per second. They keep the two-card setup for daily work.
@@ -88,3 +120,13 @@ Network speed is the catch. Memory moves hundreds of gigabytes a second, a PCIe 
 </details>
 
 **New words:** *pipeline (layer) split*, *tensor parallel*, *NVLink*, *RPC* (one program calling another over the network), *cluster*.
+
+<div class="keypoints">
+
+- A layer (pipeline) split puts different layers on different cards; it adds memory, works over slow links, and is llama.cpp's default.
+- A tensor split puts part of every layer on every card; it makes one user faster but needs similar cards and a fast link.
+- Layer split time per token ≈ sum of (GB on each card ÷ its bandwidth) + link delay.
+- `--tensor-split` takes shares, not gigabytes: give more to the card with more free memory.
+- Across machines (llama.cpp RPC, exo, MLX distributed) a bigger model fits, but network delay cuts speed.
+
+</div>

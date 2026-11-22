@@ -1,0 +1,72 @@
+---
+// Start a startup glossary: the main terms from the lessons, A to Z, with other names and a link to the lesson that explains it.
+// Data in src/courses/startup/glossary.ts. A filter box narrows the list in the browser; nothing is stored.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { STARTUP } from '../../../../courses/startup/syllabus';
+import { GLOSSARY } from '../../../../courses/startup/glossary';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
+const live = new Set((await courseLessons(STARTUP)).keys());
+const num = new Map(flatLessons(STARTUP).map((l) => [l.slug, l]));
+const terms = [...GLOSSARY].sort((a, b) => a[0].localeCompare(b[0], 'en', { sensitivity: 'base' }));
+const letters = [...new Set(terms.map((t) => t[0][0].toUpperCase()))];
+const id = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+---
+<Base title="Startup glossary: business, tax and legal terms explained" description={`${terms.length} startup terms for India, Canada and the USA, from GST, HST and sales tax nexus to vesting, SAFEs and trademarks, each in plain English with its other names and the lesson that explains it.`} ld={coursePageLd(STARTUP, 'Glossary', '', 'glossary')}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/startup/">Start a startup</a> / Glossary</div>
+  <div class="cs-layout">
+    <CourseSidebar course={STARTUP} live={live} />
+    <div class="cs-main gl">
+      <h1>Startup glossary</h1>
+      <p class="lead">{terms.length} words from the course, in plain English. "Also called" lists the other names you will meet on government sites, in contracts and from accountants. Each term links to the lesson that explains it.</p>
+      <label class="gl-find">Find a term<input type="search" placeholder="For example: GST, vesting, nexus" data-find /></label>
+      <p class="gl-az" aria-label="Jump to a letter">{letters.map((l) => <a href={`#letter-${l}`}>{l}</a>)}</p>
+      <p class="gl-none" hidden data-none>No term matches. Try a shorter word.</p>
+      {letters.map((l) => (
+        <section data-letter>
+          <h2 id={`letter-${l}`}>{l}</h2>
+          <dl>
+            {terms.filter((t) => t[0][0].toUpperCase() === l).map(([term, aka, meaning, slug]) => (
+              <div class="gl-item" id={id(term)}>
+                <dt>{term}</dt>
+                <dd>{aka && <span class="gl-aka">Also called: {aka}.</span>} {meaning} <a href={`/learn/courses/startup/${slug}/`}>Lesson {num.get(slug)?.n}</a></dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+      <p class="cs-meta">Not legal or tax advice: each lesson links the official sources. Work through your <a href="/learn/courses/startup/launch-plan/">launch plan and country checklist</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .gl-find { display: grid; gap: 4px; font-weight: 600; max-width: 420px; margin: 8px 0 12px; }
+  .gl-find input { font: inherit; font-weight: 400; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .gl-az { display: flex; flex-wrap: wrap; gap: 4px 10px; font-weight: 700; }
+  .gl dl { margin: 0; }
+  .gl-item { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .gl dt { font-weight: 700; }
+  .gl dd { margin: 2px 0 0; line-height: 1.55; }
+  .gl-aka { color: var(--muted); }
+</style>
+<script>
+  const box = document.querySelector<HTMLInputElement>('[data-find]')!;
+  box.addEventListener('input', () => {
+    const q = box.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll<HTMLElement>('[data-letter]').forEach((sec) => {
+      let n = 0;
+      sec.querySelectorAll<HTMLElement>('.gl-item').forEach((it) => {
+        const ok = !q || it.textContent!.toLowerCase().includes(q);
+        it.hidden = !ok;
+        if (ok) n++;
+      });
+      sec.hidden = n === 0;
+      shown += n;
+    });
+    document.querySelector<HTMLElement>('[data-none]')!.hidden = shown > 0;
+  });
+</script>

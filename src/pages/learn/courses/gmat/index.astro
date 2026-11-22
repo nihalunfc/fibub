@@ -1,0 +1,21 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { GMAT } from '../../../../courses/gmat/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={GMAT}>
+  <section class="cs-builds">
+    <h2>Prepare alone, from zero to test day</h2>
+    <p>This course is built so you never need a tutor. Work through it in order: every lesson starts from what the one before taught, and nothing is assumed.</p>
+    <ul>
+      <li><strong>Learn the method.</strong> Each question type is broken into a few repeatable steps, shown in an example you can play step by step.</li>
+      <li><strong>See why it works.</strong> Pictures and short animations show what a ratio, a remainder or a weak argument actually looks like.</li>
+      <li><strong>Practise without running out.</strong> Live questions make fresh numbers every time, with an instant check, a hint and a full worked solution.</li>
+      <li><strong>Know your traps.</strong> Every lesson lists the wrong answers the test is built to tempt you with, and how to spot them.</li>
+      <li><strong>Test yourself like the real thing.</strong> Lesson 9.2 is a timed practice test of all three sections (Quant, Verbal, Data Insights), drawn fresh each time, with every solution and your weakest topics at the end.</li>
+      <li><strong>Take it with you.</strong> Each lesson prints as a one-page summary sheet (save it as a PDF).</li>
+    </ul>
+    <p><strong>How long it takes:</strong> about 6 weeks at 2 hours a day, or 14 weeks at 1 hour a day. Lesson 1.3 gives a week-by-week plan. Tick each lesson as you finish it; your ticks stay in this browser, and you can save them to a file below so you never lose your place.</p>
+    <p class="cs-small">Independent free course, not part of or endorsed by GMAC. GMAT is a trademark of the Graduate Management Admission Council. Every question here is original.</p>
+  </section>
+</CourseHome>

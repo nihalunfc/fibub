@@ -2,10 +2,11 @@
 title: A server for a team or office
 summary: Sharing one local AI machine with a team over the office network. What size to buy, how many people it can serve and what to set up.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Ollama server and network settings (OLLAMA_HOST), Ollama documentation (official page), https://docs.ollama.com'
   - 'vLLM, a serving engine built for many users, project documentation (official page), https://docs.vllm.ai'
+  - 'Kwon, W. et al. (2023), Efficient Memory Management for Large Language Model Serving with PagedAttention (the paper behind vLLM), arXiv:2309.06180 https://arxiv.org/abs/2309.06180'
 quiz:
   - q: Five people share one machine but rarely ask at the same moment. What decides whether it feels fast?
     choices: ['Mostly the speed for one person, since requests rarely overlap', 'The number of hard disks', 'The keyboard']
@@ -23,13 +24,50 @@ quiz:
 
 **Module 5 · about 20 minutes · read first: 5.4 and 11.1.** You'll be able to size and set up one machine that a small team shares.
 
+<div class="bigidea">People who type, read and think only keep a model busy a small share of the time, so one machine that is fast for one person can serve a whole small office.</div>
+
 ## 1. Why this matters
 
-Buying one strong machine for five people often costs less than five strong laptops, and keeps data in one place you control. It needs a little planning: memory for the model, speed for overlapping requests, and network safety.
+Buying one strong machine for five people often costs less than five strong laptops, and keeps data in one place you control. It needs a little planning: memory for the model, speed for the moments when requests overlap, and network safety.
 
 ## 2. How many people can one machine serve?
 
-Office use is bursty: people type, read and think. If each person keeps the model busy about 5% of the working day, a machine that is fast for one person can serve 10 to 20 light users. Heavy users (agents, batch jobs, coding assistants) need more, and a serving engine that **batches** requests (Module 15).
+Think of the office kettle. Ten people share one kettle happily, because they rarely all want tea at the same moment, except at 11 o'clock. An AI machine is the same. Office use is **bursty**: people type, read and think between questions. If each person keeps the model busy about 5% of the working day, a machine that is fast for one person can serve 10 to 20 light users. Heavy users (agents, batch jobs, coding assistants) need more, and a serving engine that **batches** requests (handles several at once, Module 15).
+
+<div class="steps" data-fig="team-server-busy">
+<div class="step"><b>Twelve light users.</b> Each row is one person over an hour. The marks show the minutes when they are waiting on the model, about 5% of the time each.</div>
+<div class="step"><b>Count the overlaps.</b> The strip underneath counts how many people are busy in each minute. Most minutes nobody is; red means two or more at once.</div>
+<div class="step"><b>The maths.</b> On average 12 × 0.05 = 0.6 people are busy. Nobody is busy 54% of the time, one person 34%, two or more only 12%.</div>
+<div class="step"><b>Twelve heavy users.</b> If each is busy 20% of the time (coding assistants, agents), the average is 2.4, and two or more are busy 73% of the time. Now batching or a second machine is needed.</div>
+</div>
+
+With `$n$` users, each busy a share `$p$` of the time:
+
+```math
+\text{average busy at once} = n \times p, \qquad P(\text{nobody busy}) = (1 - p)^n
+```
+
+<div class="problem" data-problem="team-server-busy"></div>
+
+<div class="meaning">
+
+<dl>
+<dt>n</dt><dd>The number of people who share the machine.</dd>
+<dt>p</dt><dd>The share of the working day each person keeps the model busy, as a decimal (5% = 0.05).</dd>
+<dt>n × p</dt><dd>How many people are using it at the same moment, on average.</dd>
+<dt>(1 − p)<sup>n</sup></dt><dd>The chance that nobody is using it at a random moment.</dd>
+<dt>Physical meaning</dt><dd>A shared machine is like one kettle for an office: most of the time it sits idle, sometimes one person uses it, and only at the busiest moments does anyone queue. Size for those busy moments, not for the number of names on the list.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="team-server-idle"></div>
+
+<div class="myth">
+
+**"Ten users need ten times the machine."** Only if all ten ask at the same moment all day. Light office users overlap rarely, so one machine that is fast for one person often feels personal-speed to all of them. Heavy, constant users are the exception.
+
+</div>
 
 ## 3. Sizing
 
@@ -76,3 +114,12 @@ Office use is bursty: people type, read and think. If each person keeps the mode
 </details>
 
 **New words:** *server*, *bursty use*, *batching*, *VPN* (a private tunnel into the office network).
+
+<div class="keypoints">
+
+- Office use is bursty: n users each busy a share p of the time means about n × p busy at once.
+- Below about 1 busy at once, one machine that is fast for one person serves the whole team.
+- Heavy users (agents, coding assistants) need a batching serving engine such as vLLM, or more machines.
+- Keep the server on the office network with logins; never open its port to the internet.
+
+</div>

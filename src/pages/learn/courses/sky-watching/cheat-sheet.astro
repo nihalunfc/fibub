@@ -1,0 +1,102 @@
+---
+// Sky watching cheat sheet: the key formulas of the course on one page, grouped by part, each with a one-line
+// meaning and the lesson that explains it. Maths is rendered to MathML at build time by temml (no script or font sent).
+import temml from 'temml';
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { SKYWATCH } from '../../../../courses/sky-watching/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
+const live = new Set((await courseLessons(SKYWATCH)).keys());
+const num = new Map(flatLessons(SKYWATCH).map((l) => [l.slug, l.n]));
+const tex = (t: string) => temml.renderToString(t, { displayMode: true, throwOnError: true, annotate: false });
+type F = [name: string, formula: string, meaning: string, lesson: string];
+const SECTIONS: { h: string; rows: F[] }[] = [
+  { h: "The sky above you", rows: [
+    ["Pole altitude", "h_\\text{pole} = \\varphi", "The celestial pole is as high as your latitude.", "celestial-sphere"],
+    ["Highest altitude", "h_\\text{max} = 90^\\circ - |\\varphi - \\delta|", "How high a star climbs on the meridian.", "celestial-sphere"],
+    ["Circumpolar", "\\delta > 90^\\circ - \\varphi", "Stars this close to the pole never set.", "turning-sky"],
+    ["Hours above the horizon", "\\cos H_0 = -\\tan\\varphi\\tan\\delta, \\quad \\text{hours} = \\frac{2H_0}{15^\\circ}", "Also gives day length with the Sun's declination.", "turning-sky"],
+    ["Noon Sun", "h_\\text{noon} = 90^\\circ - |\\varphi - \\delta_\\odot|", "Energy per square metre ∝ sin h.", "seasons"],
+    ["Synodic month", "\\frac{1}{S} = \\frac{1}{27.32} - \\frac{1}{365.26} \\Rightarrow S = 29.53\\ \\text{d}", "New Moon to new Moon.", "moon-phases"],
+    ["Fraction of Moon lit", "k = \\frac{1 - \\cos\\psi}{2}", "ψ is the Moon's angle from the Sun.", "moon-phases"],
+    ["Synodic period (outer planet)", "\\frac{1}{S} = \\frac{1}{E} - \\frac{1}{P}", "Time between oppositions.", "wandering-planets"],
+    ["Magnitudes", "m_1 - m_2 = -2.5\\log_{10}\\frac{F_1}{F_2}, \\quad \\frac{F_1}{F_2} = 10^{-0.4(m_1 - m_2)}", "5 magnitudes = 100 times.", "magnitudes"],
+  ] },
+  { h: "Coordinates and time", rows: [
+    ["Altitude from hour angle", "\\sin h = \\sin\\delta\\sin\\varphi + \\cos\\delta\\cos\\varphi\\cos H", "Where a star is in your sky right now.", "altitude-azimuth"],
+    ["RA to degrees", "\\alpha_\\text{deg} = 15\\left(h + \\frac{m}{60} + \\frac{s}{3600}\\right)", "1 hour of RA = 15°.", "right-ascension-declination"],
+    ["Width of an RA step", "\\Delta\\theta = \\Delta\\alpha\\cos\\delta", "RA lines crowd together near the poles.", "right-ascension-declination"],
+    ["Hour angle", "H = \\text{LST} - \\alpha", "A star is on your meridian when LST = RA.", "sidereal-time"],
+    ["Local sidereal time", "\\text{LST} = \\text{GMST} + \\frac{\\lambda_\\text{east}}{15^\\circ}", "Star time at your longitude.", "sidereal-time"],
+    ["Julian date", "JD = \\lfloor 365.25(Y + 4716)\\rfloor + \\lfloor 30.6001(M + 1)\\rfloor + D + B - 1524.5", "A running day count (Meeus).", "julian-date"],
+    ["Precession", "p \\approx 50.29^{\\prime\\prime} \\text{ per year}, \\quad T \\approx 25\\,800\\ \\text{yr}", "The equinoxes slide; coordinates need an epoch.", "precession"],
+    ["Airmass and extinction", "X \\approx \\frac{1}{\\sin h}, \\quad m = m_0 + kX", "Low stars cross more air and dim.", "airmass"],
+  ] },
+  { h: "Dark skies", rows: [
+    ["Sensitivity in magnitudes", "\\Delta m = 2.5\\log_{10}(\\text{gain})", "A gain of 10,000 is 10 magnitudes.", "dark-adaptation"],
+    ["Naked-eye limit", "\\text{NELM} \\approx 7.93 - 5\\log_{10}\\left(10^{4.316 - S/5} + 1\\right)", "From sky brightness S in mag/arcsec².", "light-pollution"],
+    ["Walker's law", "I \\propto P\\,d^{-2.5}", "Skyglow from a town of population P at distance d.", "light-pollution"],
+    ["Seeing blur", "\\varepsilon \\approx 0.98\\,\\frac{\\lambda}{r_0}", "Turbulent air blurs stars.", "seeing-transparency"],
+    ["Darkness hours", "\\cos H = \\frac{\\sin h_0 - \\sin\\varphi\\sin\\delta_\\odot}{\\cos\\varphi\\cos\\delta_\\odot}, \\quad 24 - \\frac{2H}{15}", "With h₀ = −18° for astronomical darkness.", "planning-a-night"],
+  ] },
+  { h: "Telescopes", rows: [
+    ["Lens equation", "\\frac{1}{u} + \\frac{1}{v} = \\frac{1}{f}", "Where a lens forms an image.", "lenses-mirrors"],
+    ["Light grasp", "G = \\left(\\frac{D}{p}\\right)^2, \\quad \\Delta m = 5\\log_{10}\\frac{D}{p}", "Twice the aperture, four times the light.", "aperture"],
+    ["Magnification and exit pupil", "M = \\frac{F}{f_e}, \\quad d_\\text{exit} = \\frac{D}{M} = \\frac{f_e}{N}", "Useful powers run from about D/7 to 2D.", "focal-length-magnification"],
+    ["True field", "\\theta_\\text{true} \\approx \\frac{\\theta_\\text{apparent}}{M}", "How much sky you see.", "focal-length-magnification"],
+    ["Resolution", "\\theta_R = 1.22\\,\\frac{\\lambda}{D} \\approx \\frac{138^{\\prime\\prime}}{D_\\text{mm}}, \\quad \\text{Dawson} \\approx \\frac{116^{\\prime\\prime}}{D_\\text{mm}}", "Closest double a telescope can split.", "resolution"],
+    ["Two-mirror focal length", "F = m_2 f_1, \\quad N = \\frac{F}{D}", "How an SCT folds a long focal length.", "telescope-types"],
+    ["Polar drift", "t_\\text{max} = \\frac{s}{\\varepsilon\\,\\omega_\\oplus}, \\quad \\omega_\\oplus = 7.29\\times10^{-5}\\ \\text{rad/s}", "Longest exposure before misalignment shows.", "mounts-polar-alignment"],
+  ] },
+  { h: "Observing", rows: [
+    ["Apparent size", "\\theta \\approx 206\\,265^{\\prime\\prime} \\times \\frac{d}{r}", "How big a planet or the Moon looks.", "moon-planets"],
+    ["Surface brightness", "\\mu = m + 2.5\\log_{10}A", "Brightness per square arcsecond decides visibility.", "deep-sky"],
+    ["Double star mass", "M_1 + M_2 = \\frac{(a^{\\prime\\prime}/p^{\\prime\\prime})^3}{P^2}", "Orbit size over parallax gives AU.", "double-stars"],
+    ["Fractional estimate", "m_V = m_A + (m_B - m_A)\\,\\frac{a}{a + b}", "Interpolate between two comparison stars.", "variable-star-estimates"],
+    ["ZHR", "\\text{ZHR} = \\frac{N}{T}\\cdot\\frac{1}{1 - k}\\cdot r^{6.5 - \\text{lm}}\\cdot\\frac{1}{\\sin h_R}", "A meteor count anyone can compare.", "meteor-showers"],
+    ["Umbra length", "L = \\frac{R_M D}{R_\\odot - R_M} \\approx 374\\,000\\ \\text{km}", "Why some solar eclipses are annular.", "eclipses-occultations"],
+  ] },
+  { h: "Astrophotography", rows: [
+    ["Image scale", "s = 206.265\\,\\frac{p\\ (\\mu\\text{m})}{F\\ (\\text{mm})}", "Aim for 2 to 3 pixels across the seeing blur.", "image-scale"],
+    ["CCD equation", "\\text{SNR} = \\frac{St}{\\sqrt{St + n(B + D)t + nR^2}}", "Star, sky, dark and read noise.", "signal-to-noise"],
+    ["Calibration", "\\text{calibrated} = \\frac{\\text{light} - \\text{dark}}{\\text{flat}/\\overline{\\text{flat}}}", "Subtract the dark, divide by the normalised flat.", "calibration-frames"],
+    ["Stacking", "\\text{SNR}_n = \\sqrt{n}\\;\\text{SNR}_1", "Four times the frames, twice the SNR.", "stacking"],
+    ["NPF rule", "t \\approx \\frac{35N + 30p}{F\\cos\\delta}", "Longest untracked exposure before trails.", "tracking-guiding"],
+    ["Field of view and mosaics", "\\theta \\approx 57.3^\\circ\\,\\frac{L}{F}, \\quad n = 1 + \\left\\lceil\\frac{W - \\theta}{\\theta(1 - o)}\\right\\rceil", "Panels needed to cover a wide target.", "field-of-view-mosaics"],
+    ["Arcsinh stretch", "y = \\frac{\\operatorname{asinh}(\\beta x)}{\\operatorname{asinh}\\beta}", "Lifts faint signal, protects bright parts.", "processing-honestly"],
+  ] },
+];
+---
+<Base title="Stargazing cheat sheet: sky watching formulas" description="The key formulas of sky watching on one free page: altitudes, sidereal time, airmass, magnification, exit pupil, image scale, signal-to-noise and stacking, each with its lesson." ld={coursePageLd(SKYWATCH, 'Cheat sheet', '', 'cheat-sheet')}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/sky-watching/">Sky watching</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={SKYWATCH} live={live} />
+    <div class="cs-main ch">
+      <h1>Sky watching cheat sheet</h1>
+      <p class="lead">The key formulas of the course on one page, each with what it means in one line and the lesson that explains it. Print it or keep it open while you work.</p>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2>{s.h}</h2>
+          {s.rows.map(([name, f, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={`/learn/courses/sky-watching/${slug}/`}>Lesson {num.get(slug)}</a></h3>
+              <div class="ch-m" set:html={tex(f)} />
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/sky-watching/glossary/">glossary of terms</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-m { overflow-x: auto; padding: 4px 0; font-size: 1.05em; }
+  .ch-f p { margin: 2px 0 0; }
+</style>

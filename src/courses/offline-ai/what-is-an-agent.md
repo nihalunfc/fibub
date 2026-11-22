@@ -3,9 +3,10 @@ title: What an agent is
 seoTitle: What an AI agent is, with a local model | Offline AI
 summary: An agent is a model that uses tools in a loop until a job is done. Watch the loop, then build a small agent in Python that reads files on your own machine with Gemma 4.
 minutes: 30
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Yao et al. (2022), ReAct: Synergizing Reasoning and Acting in Language Models, https://arxiv.org/abs/2210.03629'
+  - 'Schick et al. (2023), Toolformer: Language Models Can Teach Themselves to Use Tools, https://arxiv.org/abs/2302.04761'
   - 'ollama Python library, tool calling, https://github.com/ollama/ollama-python'
 quiz:
   - q: What turns a chat model into an agent?
@@ -24,13 +25,17 @@ quiz:
 
 **Module 13 · about 30 minutes · read first: 11.3.** You'll be able to explain the agent loop and run a small file-reading agent on your own machine.
 
+<div class="bigidea">An agent is an ordinary model that asks your code to run tools, reads what comes back, and repeats until the job is done.</div>
+
 ## 1. Why this matters
 
-Chat answers one question. Agents do jobs: "go through this folder and tell me which invoices are overdue". The same pattern powers coding assistants, research helpers and report bots. With a local model it runs on your files, with no usage limit and nothing uploaded.
+Chat answers one question. An agent does a job, such as "go through this folder and tell me which invoices are overdue". The same pattern runs coding assistants, research helpers and report bots. With a local model it works on your own files, with no usage limit and nothing uploaded.
 
 ## 2. The loop
 
-An **agent** is a model plus tools plus a loop:
+Think of a new office assistant who cannot leave their desk. They can only ask you to fetch things: "please bring me the March folder". You fetch it, they read it, and they ask for the next thing, until they can write their answer. The model is the assistant; your code does the fetching.
+
+An **agent** is a model plus tools plus a loop. A **tool** is a small function in your code that the model is allowed to ask for by name.
 
 1. **Think:** the model reads the task and everything so far.
 2. **Act:** it asks for a tool, with arguments (`read_file("invoices/march.txt")`).
@@ -39,7 +44,15 @@ An **agent** is a model plus tools plus a loop:
 
 <!--fig:agent-loop-->
 
-You met one round of this in Lesson 11.3. An agent simply keeps going.
+You met one round of this in Lesson 11.3. An agent simply keeps going. Here is one small job, turn by turn. Watch the bar: every turn adds to what the model has to read.
+
+<div class="steps" data-fig="what-is-an-agent-loop">
+<div class="step"><p><b>The task.</b> "Which files mention a deadline?" The system message and task are about 500 tokens. The context is set to 8,192 tokens.</p></div>
+<div class="step"><p><b>Turn 1: act.</b> The model does not answer yet. It replies with a tool call: <code>list_files(".")</code>. Your code runs it and adds the result, three file names (about 30 tokens).</p></div>
+<div class="step"><p><b>Turn 2: act again.</b> The model asks for <code>read_file("brief-a.txt")</code>. Your code reads the file and adds up to 4,000 characters, about 1,000 tokens.</p></div>
+<div class="step"><p><b>Turn 3.</b> It reads <code>brief-b.txt</code> too: another 1,000 tokens. The context now holds about 2,600 tokens, a third of the window.</p></div>
+<div class="step"><p><b>Done.</b> This time the model replies with plain text and no tool call: "brief-b.txt has a deadline of 12 December." No tool call means the loop stops and the text is the answer.</p></div>
+</div>
 
 ## 3. A small agent in Python
 
@@ -126,6 +139,26 @@ Run `python agent.py` and type a task such as "Which files mention a deadline? G
 **Try it:** your context is 8,192 tokens and each step adds about 1,200. How many steps fit after a 500-token task? ((8,192 − 500) ÷ 1,200 ≈ 6.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>agent</dt><dd>a model, a few tools and a loop in your code that keeps going until the model stops asking for tools</dd>
+<dt>step</dt><dd>one turn of the loop: the model asks for a tool, your code runs it, the result is added to the conversation</dd>
+<dt>context after n steps</dt><dd>the task plus everything every step added (each call and each result); the model re-reads all of it every turn</dd>
+<dt>step limit</dt><dd>the most turns the loop may run, so a confused model cannot go round forever</dd>
+<dt>Physical meaning</dt><dd>An agent is a model with a notebook and an errand runner. Each errand writes another page into the notebook. When the notebook (the context window) is full, the agent forgets the start of the job, so short tool results mean longer jobs are possible.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="what-is-an-agent-steps"></div>
+
+<div class="myth">
+
+**"An agent is a smarter kind of model."** No. It is the same model you chat with. What makes it an agent is the loop in your code: the model asks for a tool, your code runs it, and the result goes back. Take away the loop and you have plain chat again.
+
+</div>
+
 ## 4. Worked example
 
 *Made-up numbers.* A freelance designer has 40 client briefs in `workspace`. Task: "List clients whose brief mentions a deadline in December." Gemma 4 12B on a 16 GB graphics card takes 9 steps (one list, eight reads; it reads only files whose names look like briefs) and 70 seconds, and returns five names with dates. A cloud agent would have needed every brief uploaded.
@@ -145,3 +178,13 @@ Run `python agent.py` and type a task such as "Which files mention a deadline? G
 </details>
 
 **New words:** *agent* (a model using tools in a loop), *tool* (a function the model may ask to run), *step limit* (the most rounds the loop may run), *ReAct* (the reason-then-act pattern most agents follow).
+
+<div class="keypoints">
+
+- An agent is a model, a few tools and a loop: think, act (ask for a tool), observe (read the result), repeat.
+- The loop ends when the model replies with plain text instead of a tool call; a step limit makes sure it always ends.
+- Your code runs the tools, never the model, so your code decides what the agent can reach (the `inside` check).
+- Every step adds tokens to the context; short tool results let an agent work longer before the window fills.
+- Multi-step tool use needs a model trained for it, such as Gemma 4 12B and up.
+
+</div>

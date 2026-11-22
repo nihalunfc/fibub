@@ -1,0 +1,5 @@
+---
+import ExamMock from '../../../../components/qbank/ExamMock.astro';
+import { JAM_PHYSICS, JAM_BANK } from '../../../../courses/iit-jam-physics/syllabus';
+---
+<ExamMock course={JAM_PHYSICS} {...JAM_BANK} marking="MCQ: +1 or +2 for right, minus one third of the marks for wrong. MSQ and NAT: no negative marks and no partial credit. Unanswered: 0." />

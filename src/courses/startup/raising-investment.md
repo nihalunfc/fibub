@@ -29,6 +29,8 @@ sources:
 
 **Module 6 · about 18 minutes.** You'll understand how founders sell part of the company for money, the common instruments, and the securities laws that apply.
 
+<div class="bigidea">Investors buy a share of your company: on SAFEs or convertible notes now with the price set later, or in a priced round now. Every sale of shares is regulated, and every SAFE is dilution already sold.</div>
+
 ## 1. Equity in one picture
 
 Investors give money for a share of the company. **Pre-money valuation** is what the company is worth before the money; **post-money** = pre-money + new money. Investor ownership = new money ÷ post-money.
@@ -69,9 +71,39 @@ Most startups sell under **Regulation D Rule 506(b)** (accredited investors, no 
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Raise:</b> a Delaware startup raises $500,000 on post-money SAFEs with a $5 million cap.</p></div>
+<div class="step"><p><b>File:</b> it files Form D with the SEC within 15 days of the first sale, plus state notices.</p></div>
+<div class="step"><p><b>Convert:</b> at the seed round, the SAFEs convert at the cap: investors own about 10 %.</p></div>
+<div class="step"><p><b>Model:</b> the founders saw this coming because they kept every SAFE in the cap table.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>SAFE</dt><dd>simple agreement for future equity: converts at the next round</dd>
+<dt>Valuation cap</dt><dd>the highest valuation at which a SAFE converts</dd>
+<dt>Convertible note</dt><dd>a loan that converts into shares, with interest</dd>
+<dt>Priced round</dt><dd>selling shares now at an agreed price per share</dd>
+<dt>Securities law</dt><dd>rules on offering and selling shares</dd>
+<dt>What it means for you</dt><dd>Keep a running total of SAFEs and notes in your cap table, use standard documents, and file the securities notices your country requires.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="raising-investment-safe"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Clinivo Inc. (Delaware) raises US$500,000 on post-money SAFEs with a US$5 million cap and 20 % discount, files Form D, and later raises a seed round at US$2.00 per share when the company had 4 million fully diluted shares. Cap price = 5,000,000 ÷ 4,000,000 = US$1.25; discount price = US$1.60. They convert at US$1.25 into 400,000 shares: about 9.1 % after conversion. Try these numbers in the calculator.
+
+<div class="myth">
+
+**"A SAFE is free money because it is not a loan."** It is a promise of shares. When it converts, you give up part of the company, often at a better price than your next investors pay.
+
+</div>
 
 ## 5. Practice
 
@@ -86,6 +118,16 @@ Most startups sell under **Regulation D Rule 506(b)** (accredited investors, no 
 2. The cap protects them if the company grows a lot before the round; the discount rewards early risk if it doesn't.
 3. Form D with the SEC (within 15 days), plus state notice filings.
 </details>
+
+<div class="keypoints">
+
+- Instruments: SAFEs, convertible notes, priced rounds.
+- Post-money SAFE ownership = investment ÷ post-money cap.
+- India: private placements and FEMA reporting; iSAFE and CCPS are common.
+- Canada: exemptions under NI 45-106 (accredited investors, family and friends) with filings.
+- USA: Regulation D, Form D within 15 days, plus state notices.
+
+</div>
 
 **Next:** [The cap table and dilution](/learn/courses/startup/cap-table-dilution/). Weigh an investment's return with [[npv-irr-calculator]].
 

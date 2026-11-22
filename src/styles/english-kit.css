@@ -1,0 +1,69 @@
+/* English exam courses (CELPIP, TOEFL): drills, listening player, speaking timer, writing pad, study plan and
+   model-answer boxes. Runtime: public/learn-kit/english/. Loaded with lesson-kit.css on those courses' pages. */
+.en-drill { display: grid; gap: 12px; }
+.en-unit { border-top: 1px solid var(--line); padding-top: 10px; }
+.en-unit:first-of-type { border-top: 0; padding-top: 0; }
+.en-gtitle { font-weight: 700; margin: 0 0 6px; }
+.en-passage { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 15px; line-height: 1.6; max-height: 360px; overflow: auto; }
+.en-passage > :first-child { margin-top: 0; }
+.en-passage > :last-child { margin-bottom: 0; }
+.en-q { margin: 10px 0; }
+.en-qtext { margin: 0 0 6px; }
+.en-opts { display: grid; gap: 4px; }
+.en-opts label { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; background: var(--bg); }
+.en-opts label:has(input:checked) { border-color: var(--accent); }
+.en-opts input { margin-top: 4px; accent-color: var(--accent); }
+.en-input { font: inherit; width: 100%; max-width: 360px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.en-built, .en-pool { display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px; padding: 6px; border-radius: 8px; }
+.en-built { border: 2px dashed var(--line); margin-bottom: 6px; }
+.en-pool { background: var(--bg); }
+.en-chip { font: 600 14.5px system-ui, sans-serif; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.en-built .en-chip { border-color: var(--accent); }
+.en-small { min-height: 30px; padding: 3px 10px; font-size: 13px; }
+.en-fb { margin-top: 6px; padding: 8px 10px; border-radius: 8px; border-left: 4px solid var(--line); background: var(--bg); font-size: 14.5px; }
+.en-fb p { margin: 2px 0; }
+.en-fb.ok { border-left-color: var(--good); }
+.en-fb.no { border-left-color: var(--bad); }
+.en-trap { color: var(--muted); }
+
+.en-player { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--bg); margin: 0 0 8px; }
+.en-player-head { margin: 0; font-weight: 700; }
+.en-player select { font: inherit; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.en-check { display: flex; gap: 6px; align-items: center; font-size: 14px; }
+.en-transcript { margin-top: 6px; font-size: 14.5px; }
+.en-transcript summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.en-transcript p { margin: 4px 0; padding: 2px 4px; border-radius: 4px; }
+.en-transcript p.en-on { background: var(--accent-soft); }
+.en-note { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); min-height: 0; }
+
+.en-task { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.en-task > :first-child { margin-top: 0; }
+.en-task > :last-child { margin-bottom: 0; }
+.en-phase { font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.en-bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 8px 0; }
+.en-bar span { display: block; height: 100%; width: 0; background: var(--s1, #2a78d6); }
+.en-speak[data-phase=speak] .en-bar span { background: var(--s2, #eb6834); }
+.en-rec { margin-top: 8px; }
+.en-rec audio { width: 100%; max-width: 380px; vertical-align: middle; }
+
+.en-write textarea { width: 100%; box-sizing: border-box; font: 16px/1.55 system-ui, sans-serif; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.en-count { font-weight: 600; margin: 6px 0; }
+.en-count.ok { color: var(--good); }
+.en-count.no { color: var(--muted); }
+.en-count.warn { color: var(--warn); }
+.en-clock { font-weight: 700; font-variant-numeric: tabular-nums; align-self: center; }
+.en-clock.en-late { color: var(--bad); }
+.en-checks { display: grid; gap: 4px; margin: 8px 0; }
+.en-checks p { margin: 0 0 2px; }
+.en-plan { padding-left: 20px; font-size: 14.5px; }
+.en-plan li { margin: 4px 0; }
+
+/* Model answers and phrase banks in the lesson text */
+.cs-body .model { border: 1px solid var(--line); border-left: 4px solid var(--good); border-radius: 10px; padding: 10px 14px; margin: 18px 0; background: var(--surface); }
+.cs-body .model > :first-child { margin-top: 0; }
+.cs-body .model::before { content: "Model answer"; display: block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--good); margin-bottom: 4px; }
+.cs-body .phrases { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 18px 0; background: var(--surface); }
+.cs-body .phrases::before { content: "Useful phrases"; display: block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.cs-body .strategy { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 10px 14px; margin: 18px 0; background: var(--surface); }
+.cs-body .strategy::before { content: "Strategy"; display: block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+@media print { .en-drill .lk-controls, .en-speak .lk-controls, .en-write .lk-controls, .en-player .lk-controls { display: none; } }

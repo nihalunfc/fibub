@@ -16,9 +16,16 @@ quiz:
     choices: ['To number the stacked rows 0 to n−1 instead of repeating each file''s 0, 1, 2…', 'To drop duplicates', 'To sort the rows']
     ans: 0
     why: 'Repeated index labels make loc ambiguous later.'
+sources:
+  - 'pandas documentation, User Guide: Merge, join, concatenate and compare https://pandas.pydata.org/docs/user_guide/merging.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 5 · about 15 minutes · uses Lesson 1.4.** You'll be able to combine tables that share columns into one.
+
+<div class="bigidea">concat stacks tables that describe the same kind of thing: same columns, more rows. Label where each row came from so you can still tell the pieces apart.</div>
+
+**In everyday terms:** putting this month's till rolls on top of last month's. The paper is the same shape, so the pile is just longer; write the month on each roll before you stack it.
 
 ## 1. Stack rows
 
@@ -34,7 +41,6 @@ both
 
 `keys=` labels which table each row came from; the `reset_index` steps turn that label into a normal `month` column and renumber the rows.
 
-<!--anim:concat-anim (table animation, added once the shared tableviz engine is on main)-->
 
 ## 2. Many files at once
 
@@ -73,6 +79,36 @@ pd.concat([a, b], ignore_index=True, join='inner')          # only the shared co
 If column names differ only in spelling (`Sales` vs `sales`), clean the names first (Lesson 2.1), or the "same" column appears twice.
 
 **Side by side:** `pd.concat([df1, df2], axis=1)` puts columns next to each other, matched by **index**. For matching on a key column, use `merge` (next lesson).
+
+<div class="meaning">
+
+<dl>
+<dt>pd.concat([a, b])</dt><dd>Puts b's rows under a's; columns are matched by name.</dd>
+<dt>ignore_index=True</dt><dd>Numbers the new table 0, 1, 2... instead of repeating the old labels.</dd>
+<dt>keys=[...] or a new column</dt><dd>Records which piece each row came from.</dd>
+<dt>axis=1</dt><dd>Places tables side by side, matched on the index.</dd>
+<dt>Physical meaning</dt><dd>Stacking only adds rows: nothing is matched or combined, so row counts simply add. A column missing from one piece is filled with NaN, which is pandas telling you the pieces were not quite the same shape.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"concat and merge do the same thing."** concat glues tables along an edge without looking at any key. merge matches rows by a key. Stacking two months is concat; adding customer names to orders is merge.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Two monthly tables.</b> January <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td>S01</td><td>3</td></tr><tr><td>S02</td><td>5</td></tr></table> February <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td>S01</td><td>4</td></tr><tr><td>WEB</td><td>2</td></tr></table></div>
+<div class="step"><b>Label them.</b> <code>jan.assign(month='Jan')</code>, <code>feb.assign(month='Feb')</code>.</div>
+<div class="step"><b>Stack.</b> <code>pd.concat([jan, feb], ignore_index=True)</code><table class="lk-tbl"><tr><th></th><th>store</th><th>qty</th><th>month</th></tr><tr><td>0</td><td>S01</td><td>3</td><td>Jan</td></tr><tr><td>1</td><td>S02</td><td>5</td><td>Jan</td></tr><tr><td><mark>2</mark></td><td><mark>S01</mark></td><td><mark>4</mark></td><td><mark>Feb</mark></td></tr><tr><td><mark>3</mark></td><td><mark>WEB</mark></td><td><mark>2</mark></td><td><mark>Feb</mark></td></tr></table></div>
+<div class="step"><b>Check.</b> 2 + 2 = 4 rows; total qty 8 + 6 = 14.</div>
+<div class="step"><b>A column only in one piece?</b> It appears for all rows, with NaN where that piece had nothing.</div>
+</div>
+
+<div class="problem" data-problem="pd-concat-rows"></div>
 
 ## 4. Your turn
 
@@ -124,3 +160,12 @@ pd.concat([north.assign(region='north'), south.assign(region='south')], ignore_i
 </details>
 
 **New words:** *concat*, *stack*, *ignore_index*, *keys*, *union of columns*.
+
+<div class="keypoints">
+
+- concat stacks tables with the same columns; rows add up.
+- Use ignore_index=True for a clean 0, 1, 2... index.
+- Add a column (or keys=) saying where each row came from.
+- NaN after concat means a column was missing from one piece: check the names.
+
+</div>

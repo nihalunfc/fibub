@@ -138,6 +138,7 @@ let problemsMod;
 const parseNum = (s) => {
   let t = String(s).trim().toLowerCase().replace(/[\s,]/g, '').replace(/−/g, '-');
   t = t.replace(/(?:×|x|\*)10\^?(-?\d+)/, 'e$1').replace(/^10\^(-?\d+)$/, '1e$1');
+  const fr = t.match(/^([-+]?\d+)\/(\d+)$/); if (fr && +fr[2]) return +fr[1] / +fr[2]; // a fraction such as 3/8
   if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/.test(t)) return NaN;
   return parseFloat(t);
 };
@@ -184,7 +185,7 @@ for (const el of problemEls) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const v = parseNum(inp.value);
-        if (Number.isNaN(v)) { fb.className = 'lk-p-fb'; fb.textContent = 'Type a number, for example 4.2 or 3e8.'; return; }
+        if (Number.isNaN(v)) { fb.className = 'lk-p-fb'; fb.textContent = 'Type a number, for example 4.2, 3/8 or 3e8.'; return; }
         const tol = p.tol ?? 0.02;
         const ok = p.answer === 0 ? Math.abs(v) < (p.abs ?? 1e-9) : Math.abs(v - p.answer) <= Math.abs(p.answer) * tol + (p.abs ?? 0);
         fb.className = 'lk-p-fb ' + (ok ? 'ok' : 'no');

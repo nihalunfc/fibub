@@ -16,9 +16,16 @@ quiz:
     choices: ['How many rows are there?', 'Who is missing from this data, and could they differ?', 'What is the standard deviation?']
     ans: 1
     why: 'Bias comes from who got into the data. Asking who is left out, and why, is the most useful habit.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 1.3 Sampling principles and strategies https://www.openintro.org/book/os/'
+  - 'Squire, P. (1988), Why the 1936 Literary Digest Poll Failed, Public Opinion Quarterly 52(1), 125-133 https://doi.org/10.1086/269085'
 ---
 
 **Module 4 · about 20 minutes · no new maths.** You'll be able to name the common sampling biases, spot them in business data, and explain why more data does not fix them.
+
+<div class="bigidea">More data shrinks random error, but it does nothing to bias: if the wrong people answer, a million answers are still wrong.</div>
+
+**In everyday terms:** asking how good a restaurant is by surveying the people still eating there at closing time. You will hear from the happiest customers; the ones who walked out are not in the room.
 
 ## 1. Two kinds of error
 
@@ -58,6 +65,36 @@ A big biased sample is worse than a small fair one, because it looks convincing.
 - **Weight** responses so the sample's mix matches the population (if young customers are half of members but a quarter of replies, count each young reply double). This fixes bias from *known* traits only.
 - **Follow up** with non-responders, or offer a small incentive to raise response.
 - **Say it**: "Results reflect customers who completed the survey (18 % response)."
+
+<div class="meaning">
+
+<dl>
+<dt>Random error</dt><dd>Wobble from luck of the draw. Shrinks like 1/√n.</dd>
+<dt>Bias</dt><dd>A steady push in one direction, from who gets measured. Does not shrink with n.</dd>
+<dt>Survivorship bias</dt><dd>Only the ones that lasted are in the data (active customers, surviving shops).</dd>
+<dt>Non-response bias</dt><dd>People who reply differ from people who do not.</dd>
+<dt>Physical meaning</dt><dd>Random error is a shaky hand; bias is a bent ruler. A steadier hand (more data) helps with the first and not at all with the second.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"We have so much data that bias cannot matter."** A famous 1936 US poll had 2.4 million replies and still picked the wrong winner by a wide margin, because the people it reached were richer than average voters. Size is not representativeness.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The truth.</b> Of 1,000 guests: 550 happy, 200 neutral, 250 unhappy. True average satisfaction 3.4 of 5.</div>
+<div class="step"><b>Who replies.</b> Happy guests reply 30 %, neutral 20 %, unhappy 10 %.</div>
+<div class="step"><b>The replies.</b> 165 happy, 40 neutral, 25 unhappy: happy guests are 72 % of replies but only 55 % of guests.</div>
+<div class="step"><b>The result.</b> The survey average comes out about 0.4 above the truth.</div>
+<div class="step"><b>The fix.</b> Weight each reply by (share of guests) ÷ (share of replies): happy × 0.77, unhappy × 2.3. The weighted average moves back towards 3.4.</div>
+</div>
+
+<div class="problem" data-problem="bias-weight"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -99,3 +136,12 @@ More data shrinks the variance term (like `$1/n$`) but leaves bias² untouched. 
 **Try it on your own data:** the [[crosstab-chi-square]] tool compares your sample's mix with known population shares (a goodness-of-fit check).
 
 **New words:** *bias*, *random error*, *survivorship bias*, *selection bias*, *non-response bias*, *self-selection*, *convenience sample*, *weighting*.
+
+<div class="keypoints">
+
+- Random error shrinks with sample size; bias does not.
+- Watch for survivorship, selection, non-response, self-selection and convenience samples.
+- Ask: who could not or would not end up in this data?
+- Weighting to known population shares can reduce bias, if you know those shares.
+
+</div>

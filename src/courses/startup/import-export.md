@@ -29,6 +29,8 @@ sources:
 
 **Module 5 · about 16 minutes.** You'll register to import or export, find the duty on a product, and work out its true landed cost.
 
+<div class="bigidea">Every shipment across a border needs the right code, value and origin, and may owe duty and import tax. Price from the landed cost, and know your importer or exporter number.</div>
+
 ## 1. The basics everywhere
 
 - **HS code:** every product has a Harmonized System code (the first 6 digits are global). It decides the duty rate and any permits.
@@ -61,9 +63,39 @@ Importers use their **EIN** as the importer of record number (registered with CB
 
 > **Key idea:** Duty is a cost; import GST is usually not (for registered businesses). Price your product on the landed cost, and check tariffs again before every big order.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Order:</b> a Toronto startup buys 200 sensor kits from Taiwan for C$2,000 plus C$300 freight.</p></div>
+<div class="step"><p><b>Classify:</b> the customs broker finds the HS code: 6.5 % duty on the goods’ value.</p></div>
+<div class="step"><p><b>Pay:</b> about C$130 duty (a cost) and GST on import (claimed back as an input tax credit).</p></div>
+<div class="step"><p><b>Price:</b> landed cost about C$2,430, or C$12.15 a kit, which sets the selling price.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>HS code</dt><dd>the international product code that sets the duty rate</dd>
+<dt>Duty</dt><dd>a tax on imports, a real cost</dd>
+<dt>Landed cost</dt><dd>price + freight + insurance + duty + fees</dd>
+<dt>IEC / RM account / importer number</dt><dd>the number that lets you import or export</dd>
+<dt>Incoterms</dt><dd>standard terms for who pays freight and when risk passes</dd>
+<dt>What it means for you</dt><dd>Get your importer or exporter number first, ask for the HS code and duty before ordering, and set prices from the landed cost.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="import-export-landed"></div>
+
 ## 3. Worked example
 
 *Made-up founder.* A Toronto startup imports 200 sensor kits from Taiwan: C$2,000 value (converted at the customs exchange rate), C$300 freight, duty 6.5 %. Duty is on the value without the international freight: ≈ $130. GST 5 % on value plus duty ≈ $107 (recoverable). Landed cost ≈ $2,537, or ≈ $12.68 per kit (≈ $12.15 after claiming the GST back). Their broker files the entry in CARM under their RM account.
+
+<div class="myth">
+
+**"Import GST or tax is a cost just like duty."** For a registered business, import GST is usually claimed back as an input tax credit. Duty is the real cost to price in.
+
+</div>
 
 ## 4. Practice
 
@@ -78,6 +110,16 @@ Importers use their **EIN** as the importer of record number (registered with CB
 2. CARM, the CBSA Assessment and Revenue Management portal.
 3. Usually no: it is an export of services, zero-rated if the conditions are met; it files a LUT to export without paying IGST.
 </details>
+
+<div class="keypoints">
+
+- India: IEC from DGFT; customs on ICEGATE; export earnings repatriated through your bank.
+- Canada: RM account on your BN; CARM for duties; GST on imports.
+- USA: EIN as importer number; CBP; tariffs change often.
+- Classify every product with an HS code and check rules of origin.
+- Price from the landed cost and recheck tariffs before big orders.
+
+</div>
 
 **Next:** Module 6 starts with [opening a business bank account](/learn/courses/startup/business-bank-account/).
 
