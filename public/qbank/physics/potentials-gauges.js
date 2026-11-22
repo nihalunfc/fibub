@@ -4,6 +4,7 @@
 // Original questions (fibub) for GATE and CSIR NET. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './potentials-gauges.more.gen.js';
+import more2 from './potentials-gauges.more2.gen.js';
 
 const MU0 = 1.25663706212e-6, C0 = 2.99792458e8, H = 6.62607015e-34, E = 1.602176634e-19, PI = Math.PI;
 
@@ -197,6 +198,7 @@ export default {
       q: 'The potentials are $V = 0$ and $\\vec A = \\beta t^2\\,\\hat z$ with $\\beta = 3.0$ V/(m s), everywhere in a region. The electric field magnitude at $t = 2.0$ s is ______ V/m.',
       answer: 12, tol: 0.01, calc: () => 2 * 3 * 2,
       sol: '$\\vec E = -\\partial_t\\vec A = -2\\beta t\\,\\hat z$, of magnitude $2\\times3.0\\times2.0 = 12$ V/m, and $\\vec B = \\nabla\\times\\vec A = 0$ (no space dependence). A uniform electric field growing in time can come entirely from $\\vec A$.' },
+    ...more2,
   ],
 
   gens: [

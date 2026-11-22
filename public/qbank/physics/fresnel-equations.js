@@ -6,6 +6,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt } from '../_util.js';
 import more from './fresnel-equations.more.gen.js';
+import more2 from './fresnel-equations.more2.gen.js';
 
 const D = Math.PI / 180;
 /** Fresnel amplitude coefficients for a ray from n1 into n2 at incidence thDeg (no TIR). */
@@ -257,6 +258,7 @@ export default {
       options: ['$r_s = -\\dfrac{\\sin(\\theta_i - \\theta_t)}{\\sin(\\theta_i + \\theta_t)}$', '$|r_p| = \\left|\\dfrac{\\tan(\\theta_i - \\theta_t)}{\\tan(\\theta_i + \\theta_t)}\\right|$', '$t_s = \\dfrac{2\\sin\\theta_t\\cos\\theta_i}{\\sin(\\theta_i + \\theta_t)}$', '$|r_p| = 0$ when $\\theta_i + \\theta_t = \\pi$'], answer: [0, 1, 2],
       sol: 'Put $n_2/n_1 = \\sin\\theta_i/\\sin\\theta_t$ into $r_s = \\frac{n_1\\cos\\theta_i - n_2\\cos\\theta_t}{n_1\\cos\\theta_i + n_2\\cos\\theta_t}$: numerator $\\propto \\sin\\theta_t\\cos\\theta_i - \\sin\\theta_i\\cos\\theta_t = -\\sin(\\theta_i - \\theta_t)$, denominator $\\sin(\\theta_i + \\theta_t)$. The same steps give $t_s$ and $|r_p| = |\\tan(\\theta_i - \\theta_t)/\\tan(\\theta_i + \\theta_t)|$, which is zero when $\\tan(\\theta_i + \\theta_t)$ is infinite, i.e. $\\theta_i + \\theta_t = \\pi/2$, not $\\pi$.',
       trap: 'The sign of $r_p$ depends on the book\'s convention; its magnitude does not.' },
+    ...more2,
   ],
 
   gens: [
