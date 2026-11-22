@@ -68,6 +68,7 @@ import Downloads from '../../components/Downloads.astro';
         <label>Amount <input name="amount" inputmode="decimal" required placeholder="0" /></label>
         <label class="bc-catl">Category <select name="cat"></select></label>
         <label>Date <input name="date" type="date" required /></label>
+        <label>Time (optional) <input name="time" type="time" /></label>
         <label>Repeats <select name="repeat"></select></label>
         <label class="bc-untl">Until (optional) <input name="until" type="date" /></label>
         <label class="bc-wide">Note <input name="note" maxlength="200" placeholder="Account, reference, how to pay…" /></label>
@@ -131,7 +132,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { CATS, INCOME, REPEATS, catOf, occurrences, inRange, balances, monthTotals, uid, sample, itemsCsv, fromBackup, type Item, type State, type Repeat } from '../../lib/bills';
+  import { CATS, INCOME, REPEATS, catOf, occurrences, inRange, balances, monthTotals, uid, sample, itemsCsv, fromBackup, time12, type Item, type State, type Repeat } from '../../lib/bills';
   import { iso, fromIso, addDays, monthDays } from '../../lib/planner';
   import { itemsIcs } from '../../lib/bills-ics';
   import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
@@ -235,7 +236,7 @@ import Downloads from '../../components/Downloads.astro';
     if (o.it.kind === 'income') cb.setAttribute('aria-label', `${o.it.title} received`);
     const t = document.createElement('div'); t.className = 't'; t.dataset.id = o.it.id; t.dataset.d = o.date;
     t.innerHTML = '<b></b><small></small>'; t.querySelector('b')!.textContent = o.it.title;
-    t.querySelector('small')!.textContent = `${fromIso(o.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${catOf(o.it.cat).name}${o.it.repeat !== 'none' ? ' · ' + REPEATS.find((r) => r[0] === o.it.repeat)![1].toLowerCase() : ''}`;
+    t.querySelector('small')!.textContent = `${fromIso(o.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}${o.it.time ? ' ' + time12(o.it.time) : ''} · ${catOf(o.it.cat).name}${o.it.repeat !== 'none' ? ' · ' + REPEATS.find((r) => r[0] === o.it.repeat)![1].toLowerCase() : ''}`;
     const a = document.createElement('span'); a.className = `a${o.it.kind === 'income' ? ' inc' : ''}`; a.textContent = (o.it.kind === 'income' ? '+' : '') + amt(o.it.amount);
     li.append(cb, t, a); return li;
   }
@@ -279,7 +280,7 @@ import Downloads from '../../components/Downloads.astro';
     setKind(editing?.kind ?? 'bill');
     F('title').value = editing?.title ?? ''; F('amount').value = editing ? String(editing.amount) : '';
     F('cat').value = editing?.cat ?? (kind === 'income' ? 'income' : 'bills');
-    F('date').value = editing?.date ?? date; F('repeat').value = editing?.repeat ?? 'monthly'; F('until').value = editing?.until ?? ''; F('note').value = editing?.note ?? '';
+    F('date').value = editing?.date ?? date; F('repeat').value = editing?.repeat ?? 'monthly'; F('until').value = editing?.until ?? ''; F('note').value = editing?.note ?? ''; F('time').value = editing?.time ?? '';
     q('.bc-untl').hidden = F('repeat').value === 'none';
     const rep = !!editing && editing.repeat !== 'none';
     q('.bc-occ').textContent = rep ? `This repeats. Changes apply to every date. You opened the one on ${fromIso(date).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}.` : '';
@@ -291,7 +292,7 @@ import Downloads from '../../components/Downloads.astro';
     e.preventDefault();
     const a = num(F('amount').value);
     if (!F('title').value.trim() || !(a > 0) || !F('date').value) { form.reportValidity(); if (!(a > 0)) { F('amount').setCustomValidity('Enter an amount above 0'); F('amount').reportValidity(); F('amount').setCustomValidity(''); } return; }
-    const data = { title: F('title').value.trim(), amount: Math.round(a * 100) / 100, kind, cat: kind === 'income' ? 'income' : F('cat').value, date: F('date').value, repeat: F('repeat').value as Repeat, until: F('repeat').value === 'none' ? '' : F('until').value, note: F('note').value.trim() };
+    const data = { title: F('title').value.trim(), amount: Math.round(a * 100) / 100, kind, cat: kind === 'income' ? 'income' : F('cat').value, date: F('date').value, repeat: F('repeat').value as Repeat, until: F('repeat').value === 'none' ? '' : F('until').value, note: F('note').value.trim(), time: F('time').value || undefined };
     if (editing) Object.assign(editing, data); else S.items.push({ id: uid(), ...data, paid: {}, skip: {} });
     dlg.close();
     const d = fromIso(data.date); if (!editing && (d.getMonth() !== month.getMonth() || d.getFullYear() !== month.getFullYear())) month = new Date(d.getFullYear(), d.getMonth(), 1);
