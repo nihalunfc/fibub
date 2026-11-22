@@ -651,4 +651,299 @@ const gens = [
     verify: (p) => (p.v === 0 ? 2 * PI / (p.b * PI) : p.v === 1 ? 2 * PI / Math.sqrt(p.kk) : Math.sqrt(p.a * p.a + p.b * p.b)) },
 ];
 
-export default { topic: 'oscillations', groups, items, gens };
+
+// ---------- Expansion (2026-11-22): more hard items, matches, passages and templates ----------
+const xs = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XCUET = false;
+const xex = (l, t) => (l <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet'] : l === 3 ? ['jee-main', 'neet', 'keam', 'comedk'] : l === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv']).concat(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : []);
+let xk = 0; let xc = 0;
+const xid = () => `os-x${String(++xk).padStart(3, '0')}`;
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type), sub, ...o });
+const xpos = () => [2, 0, 3, 1][xc++ % 4];
+const xmcq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('options not distinct: ' + q.slice(0, 60));
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xnat = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return xb(level, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol: typeof sol === 'function' ? sol(answer) : sol, ...o });
+};
+const xmsq = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAOPT = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xasrt = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAOPT, answer, sol, ...o });
+const XSOPT = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xstm = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSOPT, answer, sol, ...o });
+const xcnt = (level, sub, q, list, n, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((s, i) => `(${i + 1}) ${s}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: n - 1, sol, ...o });
+// match: correct code and three wrong codes
+const xmt = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('match options not distinct: ' + group);
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xpas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return { id: xid(), type: 'nat', level, format: 'passage', exams: xex(level, 'nat'), sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const xpasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: xid(), type: 'mcq', level, format: 'passage', exams: xex(level, 'mcq'), sub, group, q, options, answer: pos, sol, ...o };
+};
+// template: exams from level and type
+const xg = (id, level, type, sub, make, verify) => ({ id, type, level, exams: xex(level, type), sub, make, verify });
+const XPI = Math.PI; const XG = 9.8;
+
+const xgroups = {
+  mo1: { title: 'SHM at half the amplitude',
+    list1: ['A. Fraction of the total energy that is kinetic at $x = A/2$', 'B. Fraction of the total energy that is potential at $x = A/2$', 'C. Speed at $x = A/2$ as a fraction of the maximum speed', 'D. Acceleration at $x = A/2$ as a fraction of the maximum acceleration'],
+    list2: [r`p. $\dfrac34$`, r`q. $\dfrac14$`, r`r. $\dfrac{\sqrt3}{2}$`, r`s. $\dfrac12$`, r`t. $1$`] },
+  mo2: { title: 'A simple pendulum in different settings',
+    list1: ['A. Inside a lift accelerating upwards at $3g$', 'B. Inside a lift in free fall', 'C. On the Moon, where $g$ is one-sixth', 'D. With the length made four times as long'],
+    list2: [r`p. period $= T_0/2$`, r`q. no oscillation (bob floats)`, r`r. period $= \sqrt6\,T_0$`, r`s. period $= 2T_0$`, r`t. period $= \dfrac{\sqrt3}{2}T_0$`] },
+  mo3: { title: 'Springs and a mass',
+    list1: ['A. A mass on two identical springs $k$ in series', 'B. A mass on two identical springs $k$ in parallel', 'C. A mass on springs $k$ and $3k$ in series', 'D. A mass on springs $k$ and $3k$ in parallel'],
+    list2: [r`p. $\sqrt2\,T_0$`, r`q. $\dfrac{T_0}{\sqrt2}$`, r`r. $\dfrac{2}{\sqrt3}T_0$`, r`s. $\dfrac{T_0}{2}$`] },
+  mo4: { title: 'Time periods of pendulums',
+    list1: ['A. A simple pendulum of length $L$', 'B. A uniform thin rod of length $L$ pivoted at one end', 'C. A uniform thin rod of length $L$ pivoted at $L/4$ from one end', 'D. A uniform disc of radius $L$ pivoted at a point of its rim'],
+    list2: [r`p. $1$`, r`q. $\sqrt{2/3}$`, r`r. $\sqrt{7/12}$`, r`s. $\sqrt{3/2}$`, r`t. $\sqrt2$`] },
+  mo5: { title: 'Damped oscillations',
+    list1: ['A. Amplitude after time $t$', 'B. Energy after time $t$', 'C. Angular frequency of the damped oscillator', 'D. Quality factor $Q$'],
+    list2: [r`p. $A_0e^{-bt/2m}$`, r`q. $E_0e^{-bt/m}$`, r`r. $\sqrt{\dfrac km - \dfrac{b^2}{4m^2}}$`, r`s. $\dfrac{\sqrt{km}}{b}$`] },
+  mo6: { title: 'Small oscillations from a potential',
+    list1: ['A. $U = 8x^2$ (J), about $x = 0$, $m = 1$ kg', 'B. $U = 9(1 - \\cos x)$ (J), about $x = 0$, $m = 1$ kg', 'C. $U = \\tfrac14x^4 - \\tfrac12x^2$ (J), about its stable minimum at $x = 1$, $m = 1$ kg', 'D. $U = 2x^2 - x^4$ (J), about $x = 0$, $m = 1$ kg'],
+    list2: [r`p. $\omega = 4\ \mathrm{rad\,s^{-1}}$`, r`q. $\omega = 3\ \mathrm{rad\,s^{-1}}$`, r`r. $\omega = \sqrt2\ \mathrm{rad\,s^{-1}}$`, r`s. $\omega = 2\ \mathrm{rad\,s^{-1}}$`, r`t. $\omega = 1\ \mathrm{rad\,s^{-1}}$`] },
+  mo7: { title: 'Adding two SHMs of equal amplitude',
+    list1: ['A. Same direction, phase difference $0$', 'B. Same direction, phase difference $60^\\circ$', 'C. Same direction, phase difference $90^\\circ$', 'D. Same direction, phase difference $120^\\circ$'],
+    list2: [r`p. resultant amplitude $2A$`, r`q. resultant amplitude $\sqrt3\,A$`, r`r. resultant amplitude $\sqrt2\,A$`, r`s. resultant amplitude $A$`, r`t. resultant amplitude $0$`] },
+  mo8: { title: 'A pendulum in unusual surroundings',
+    list1: ['A. Bob carries a charge so that an upward electric force equals $mg/2$', 'B. Pendulum on a cart accelerating horizontally at $g$', 'C. Bob of density $4\\rho_w$ oscillating in water (ignore drag)', 'D. Pendulum in a satellite in orbit'],
+    list2: [r`p. $T = \sqrt2\,T_0$`, r`q. $T = 2^{-1/4}\,T_0$`, r`r. $T = \dfrac{2}{\sqrt3}T_0$`, r`s. no oscillation`, r`t. $T = T_0/2$`] },
+  po1: { title: 'A block on a spring and a lump of putty',
+    passage: r`<p>A block of mass 0.5 kg rests on a smooth horizontal table, joined to a wall by a spring of constant $200\ \mathrm{N\,m^{-1}}$. It is pulled 0.10 m from its rest position and released. When it passes the rest position, a 0.5 kg lump of putty falls vertically onto it and sticks.</p>` },
+  po2: { title: 'A pendulum clock in a hot room',
+    passage: r`<p>A pendulum clock keeps correct time at 20 °C. Its bob hangs on a rod whose coefficient of linear expansion is $1.9\times10^{-5}\ \mathrm{K^{-1}}$ (the mass of the rod is negligible, and its length is the length of the pendulum). The room warms to 40 °C. Take 1 day $= 86\,400$ s.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xnat(2, 'spring-mass system', r`A 0.5 kg block on a spring of constant $50\ \mathrm{N\,m^{-1}}$ oscillates on a smooth surface. Find its time period (in s, 2 decimals).`, 2 * XPI * Math.sqrt(0.5 / 50), 0.01, 2,
+    r`$T = 2\pi\sqrt{\dfrac mk} = 2\pi\sqrt{\dfrac{0.5}{50}} = 2\pi\times0.1 = 0.63$ s.`, { unit: 's' }),
+  xmcq(2, 'SHM basics', r`In simple harmonic motion the acceleration of the particle is zero at the`, 'mean position, where the speed is maximum', ['extreme positions, where the speed is maximum', 'mean position, where the speed is zero', 'extreme positions, where the speed is zero'],
+    r`$a = -\omega^2x$ is zero when $x = 0$. There the speed $\omega\sqrt{A^2 - x^2}$ is largest. At the extremes it is the other way round.`),
+  xnat(2, 'springs in series', r`A 2 kg mass is hung on two springs of constants $300\ \mathrm{N\,m^{-1}}$ and $600\ \mathrm{N\,m^{-1}}$ joined end to end. Find its angular frequency (in $\mathrm{rad\,s^{-1}}$).`, Math.sqrt(200 / 2), 0, 0,
+    r`Series: $k_{eq} = \dfrac{300\times600}{900} = 200\ \mathrm{N\,m^{-1}}$. $\omega = \sqrt{k_{eq}/m} = \sqrt{100} = 10\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s' }),
+  xmcq(2, 'simple pendulum', r`The length of a simple pendulum is made four times. Its period becomes`, 'twice', ['four times', 'half', 'one-fourth'],
+    r`$T\propto\sqrt L$: $\sqrt4 = 2$.`),
+  xnat(2, 'velocity in SHM', r`A particle in SHM has amplitude 5 cm and angular frequency $20\ \mathrm{rad\,s^{-1}}$. Find its maximum speed (in $\mathrm{m\,s^{-1}}$).`, 0.05 * 20, 0, 0,
+    r`$v_{max} = A\omega = 0.05\times20 = 1\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xmcq(2, 'energy in SHM', r`At the displacement $x = A/2$ the ratio of kinetic energy to potential energy in SHM is`, '3 : 1', ['1 : 3', '1 : 1', '2 : 1'],
+    r`$PE = \tfrac12kx^2 = \tfrac14\cdot\tfrac12kA^2$, i.e. $\tfrac14E$. So $KE = \tfrac34E$ and the ratio is 3 : 1.`),
+
+  // ---------- Level 3 ----------
+  xnat(3, 'velocity in SHM', r`A particle moves as $x = 0.1\sin\left(4\pi t + \dfrac\pi6\right)$ metres. Find its velocity at $t = 0$ (in $\mathrm{m\,s^{-1}}$, 2 decimals).`, 0.1 * 4 * XPI * Math.cos(XPI / 6), 0.01, 2,
+    r`$v = \dfrac{dx}{dt} = 0.1\times4\pi\cos\left(4\pi t + \dfrac\pi6\right)$. At $t = 0$: $0.4\pi\cos30^\circ = 1.257\times0.866 = 1.09\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', trap: 'Differentiating sin gives cos, and the phase is kept.' }),
+  xnat(3, 'time in SHM', r`A particle in SHM has period 6 s. Find the time it takes to go from the mean position to half the amplitude (in s, 2 decimals).`, 6 / (2 * XPI) * Math.asin(0.5), 0.01, 2,
+    r`$x = A\sin\omega t$ with $\omega = \dfrac{2\pi}{6}$. $\sin\omega t = \tfrac12$, so $\omega t = \dfrac\pi6$ and $t = \dfrac{T}{12} = 0.50$ s.`, { unit: 's', trap: 'The time from 0 to A/2 is T/12, not T/8.' }),
+  xnat(3, 'spring cutting', r`A spring of constant $60\ \mathrm{N\,m^{-1}}$ is cut into three equal pieces. A 0.2 kg block is attached to one piece. Find the angular frequency of its oscillation (in $\mathrm{rad\,s^{-1}}$).`, Math.sqrt(180 / 0.2), 0, 0,
+    r`$k\propto1/\text{length}$, so each piece has $k' = 3\times60 = 180\ \mathrm{N\,m^{-1}}$. $\omega = \sqrt{\dfrac{180}{0.2}} = \sqrt{900} = 30\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s' }),
+  xnat(3, 'pendulum clock', r`A pendulum clock is correct at 20 °C. The rod has $\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$. It is used at 50 °C. How many seconds does it lose per day (1 decimal)?`, 86400 * 0.5 * 1.2e-5 * 30, 0.2, 1,
+    r`$T\propto\sqrt L$, so $\dfrac{\Delta T}{T} = \tfrac12\alpha\Delta\theta = \tfrac12\times1.2\times10^{-5}\times30 = 1.8\times10^{-4}$. The clock runs slow: loss per day $= 86400\times1.8\times10^{-4} = 15.6$ s.`, { unit: 's' }),
+  xnat(3, 'spring-mass system', r`A mass hangs at rest from a vertical spring, which stretches 4.9 cm. It is pulled down a little and released. Find its time period (in s, 2 decimals).`, 2 * XPI * Math.sqrt(0.049 / XG), 0.01, 2,
+    r`$mg = kx_0$ gives $\dfrac mk = \dfrac{x_0}{g}$. $T = 2\pi\sqrt{\dfrac{x_0}{g}} = 2\pi\sqrt{\dfrac{0.049}{9.8}} = 2\pi\times0.0707 = 0.44$ s.`, { unit: 's' }),
+  xnat(3, 'damped oscillations', r`A 0.2 kg block oscillates in a medium with a damping force $-bv$, $b = 0.01\ \mathrm{kg\,s^{-1}}$. How long does it take for the mechanical energy to fall to half (in s, 1 decimal)?`, (0.2 / 0.01) * Math.LN2, 0.1, 1,
+    r`Energy $E = E_0e^{-bt/m}$. Half: $t = \dfrac mb\ln2 = \dfrac{0.2}{0.01}\times0.693 = 13.9$ s.`, { unit: 's', trap: 'The amplitude decays as e to the minus bt/2m; the energy decays twice as fast.' }),
+  xnat(3, 'superposition of SHM', r`Two SHMs along the same line, $x_1 = 3\sin\omega t$ and $x_2 = 4\cos\omega t$ (in cm), are added. Find the amplitude of the resultant (in cm).`, Math.hypot(3, 4), 0, 0,
+    r`$\cos\omega t = \sin(\omega t + \pi/2)$, so the phase difference is $90^\circ$ and $A = \sqrt{3^2 + 4^2} = 5$ cm.`, { unit: 'cm' }),
+  xnat(3, 'liquid in a U-tube', r`A column of liquid 0.49 m long oscillates in a U-tube of uniform bore. Find its time period (in s, 2 decimals). Take $g = 9.8\ \mathrm{m\,s^{-2}}$.`, 2 * XPI * Math.sqrt(0.49 / (2 * 9.8)), 0.01, 2,
+    r`For a total column length $L$: $T = 2\pi\sqrt{\dfrac{L}{2g}} = 2\pi\sqrt{\dfrac{0.49}{19.6}} = 2\pi\times0.158 = 0.99$ s. (The "length" is the whole column, not the height difference.)`, { unit: 's' }),
+  xnat(3, 'floating body', r`A wooden cube of side 10 cm and density $800\ \mathrm{kg\,m^{-3}}$ floats in water. It is pushed down slightly and released. Find the time period of its vertical oscillation (in s, 2 decimals; water $1000\ \mathrm{kg\,m^{-3}}$).`, 2 * XPI * Math.sqrt(0.8 / (1000 * 0.01 * XG)), 0.01, 2,
+    r`Mass $m = 800\times10^{-3} = 0.8$ kg. Restoring force per unit extra depth: $\rho_wAg = 1000\times0.01\times9.8 = 98\ \mathrm{N\,m^{-1}}$. $T = 2\pi\sqrt{\dfrac{0.8}{98}} = 0.57$ s.`, { unit: 's' }),
+  xnat(3, 'physical pendulum', r`A thin uniform ring of radius 0.20 m hangs from a nail through a point of its rim and swings in its own plane. Find its time period (in s, 2 decimals).`, 2 * XPI * Math.sqrt(2 * 0.2 / XG), 0.01, 2,
+    r`About the nail: $I = mR^2 + mR^2 = 2mR^2$; distance of the centre $= R$. $T = 2\pi\sqrt{\dfrac{I}{mgR}} = 2\pi\sqrt{\dfrac{2R}{g}} = 2\pi\sqrt{\dfrac{0.4}{9.8}} = 1.27$ s. It behaves like a simple pendulum of length $2R$.`, { unit: 's' }),
+  xnat(3, 'energy in SHM', r`A 0.1 kg particle oscillates with $\omega = 10\ \mathrm{rad\,s^{-1}}$ and amplitude 0.2 m. Find its kinetic energy at $x = 0.1$ m (in J, 2 decimals).`, 0.5 * 0.1 * 100 * (0.04 - 0.01), 0.005, 2,
+    r`$KE = \tfrac12m\omega^2(A^2 - x^2) = 0.5\times0.1\times100\times(0.04 - 0.01) = 0.15$ J.`, { unit: 'J' }),
+  xnat(3, 'time in SHM', r`The time period of a particle in SHM is 12 s. Find the time it takes to move from the extreme position to half the amplitude (in s).`, 12 / 6, 0, 0,
+    r`From $x = A$ to $x = A/2$: with $x = A\cos\omega t$, $\cos\omega t = \tfrac12$, $\omega t = \dfrac\pi3$, $t = \dfrac T6 = 2$ s. It is slower at the ends: from $A/2$ to 0 takes only $T/12$.`, { unit: 's', trap: 'Equal distances do not take equal times in SHM.' }),
+  xnat(3, 'velocity in SHM', r`When the speed of a particle in SHM is 60 % of its maximum speed, the displacement is what fraction of the amplitude (1 decimal)?`, Math.sqrt(1 - 0.36), 0.01, 1,
+    r`$v = \omega\sqrt{A^2 - x^2} = 0.6A\omega$ gives $x^2 = A^2(1 - 0.36) = 0.64A^2$, so $x = 0.8A$.`),
+  xnat(3, 'vertical spring', r`A mass $M$ and an extra mass of 0.5 kg hang from a spring of constant $100\ \mathrm{N\,m^{-1}}$ at rest. The extra mass is suddenly removed. Find the amplitude of the resulting oscillation (in cm, 1 decimal).`, 0.5 * XG / 100 * 100, 0.05, 1,
+    r`Removing the 0.5 kg shifts the equilibrium up by $\dfrac{mg}{k} = \dfrac{0.5\times9.8}{100} = 4.9$ cm. The block is at rest at that moment, so this shift is the amplitude: 4.9 cm.`, { unit: 'cm' }),
+  xmt(3, 'energy in SHM', 'mo1', r`A particle in SHM of amplitude $A$ is at $x = A/2$. Match each quantity with its value.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$PE = \tfrac14E$ so $KE = \tfrac34E$ (A-p), $PE$ fraction $\tfrac14$ (B-q). Speed $\omega\sqrt{A^2 - A^2/4} = \dfrac{\sqrt3}{2}A\omega$ (C-r). Acceleration $\omega^2\dfrac A2$, half of the maximum (D-s).`),
+  xmt(3, 'pendulum in different settings', 'mo2', r`A pendulum has period $T_0$ on Earth in an ordinary room. Match each setting with its new period.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-t, B-q, C-r, D-s'],
+    r`$T = 2\pi\sqrt{L/g_{eff}}$. (A) $g_{eff} = g + 3g = 4g$: $T_0/2$ (p). (B) $g_{eff} = 0$: no oscillation (q). (C) $g/6$: $\sqrt6T_0$ (r). (D) $L\to4L$: $2T_0$ (s). Option t would belong to a lift accelerating up at $g/3$.`),
+  xasrt(3, 'simple pendulum', r`The period of a simple pendulum does not depend on the mass of its bob.`, r`The restoring force on the bob is proportional to its mass.`, 1,
+    r`A is true. R is also true ($mg\sin\theta$), but it does not explain A: the inertia is also proportional to $m$, so the mass cancels in $a = -g\sin\theta$. The explanation is the cancellation, not the force alone.`),
+  xstm(3, 'SHM or not', r`The motion of a ball bouncing elastically on a floor is periodic but not simple harmonic.`, r`In SHM the restoring force is proportional to the displacement from a fixed point.`, 0,
+    r`The bouncing ball repeats, but its acceleration is a constant $-g$ in the air and a sharp impulse at the floor, so it is not proportional to displacement. II is the definition. Both are true.`),
+  xmcq(3, 'phase in SHM', r`For a particle in SHM, the acceleration is ahead of the displacement in phase by`, r`$\pi$ (they are opposite)`, [r`$\pi/2$`, r`$0$`, r`$3\pi/2$`],
+    r`$a = -\omega^2x$: the same shape but opposite sign, a phase difference of $\pi$. The velocity leads the displacement by $\pi/2$.`, { trap: 'Velocity leads displacement by π/2; acceleration by π.' }),
+
+  // ---------- Level 4 ----------
+  xnat(4, 'physical pendulum', r`A uniform disc of radius 0.40 m is hung from a point on its rim and swings in its own plane. Find the time period (in s, 2 decimals).`, 2 * XPI * Math.sqrt(1.5 * 0.4 / XG), 0.01, 2,
+    r`$I = \tfrac12mR^2 + mR^2 = \tfrac32mR^2$. $T = 2\pi\sqrt{\dfrac{I}{mgR}} = 2\pi\sqrt{\dfrac{3R}{2g}} = 2\pi\sqrt{\dfrac{0.6}{9.8}} = 1.55$ s.`, { unit: 's' }),
+  xnat(4, 'physical pendulum', r`A uniform rod 1.0 m long is pivoted at a point 0.25 m from its centre and oscillates in a vertical plane. Find the length of the equivalent simple pendulum (in cm, 1 decimal).`, (1 / 12 + 0.0625) / 0.25 * 100, 0.2, 1,
+    r`$I = \dfrac{mL^2}{12} + md^2 = m(0.0833 + 0.0625) = 0.1458m$. $L_{eq} = \dfrac{I}{md} = \dfrac{0.1458}{0.25} = 0.583$ m $= 58.3$ cm.`, { unit: 'cm' }),
+  xnat(4, 'mixed electric and pendulum', r`A pendulum bob of mass 2.0 g and charge $+2\ \mu$C hangs on a thread 0.50 m long in a uniform downward electric field of $5\times10^{3}\ \mathrm{V\,m^{-1}}$. Find its time period (in s, 2 decimals).`, 2 * XPI * Math.sqrt(0.5 / (XG + 2e-6 * 5e3 / 2e-3)), 0.01, 2,
+    r`Extra downward force $qE = 2\times10^{-6}\times5\times10^{3} = 0.01$ N, i.e. an extra acceleration $\dfrac{0.01}{0.002} = 5\ \mathrm{m\,s^{-2}}$. $g_{eff} = 9.8 + 5 = 14.8$. $T = 2\pi\sqrt{\dfrac{0.5}{14.8}} = 1.15$ s.`, { unit: 's' }),
+  xnat(4, 'transverse oscillation', r`A bead of mass 0.1 kg is fixed at the middle of a light string of length 1.0 m stretched with tension 40 N between two points. It is displaced slightly sideways and released. Find its angular frequency for small oscillations (in $\mathrm{rad\,s^{-1}}$). Ignore gravity.`, Math.sqrt(2 * 40 / (0.1 * 0.5)), 0, 0,
+    r`For a small sideways displacement $y$, each half of the string (length $l = 0.5$ m) makes angle $y/l$ and pulls back with $T\dfrac yl$. Restoring force $= \dfrac{2T}{l}y$. $\omega^2 = \dfrac{2T}{ml} = \dfrac{2\times40}{0.1\times0.5} = 1600$, so $\omega = 40\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s', trap: 'Two halves of the string both pull back; the tension itself is not changed to first order.' }),
+  xnat(4, 'damped oscillator', r`An oscillator has quality factor $Q = 50$. Find the percentage of its energy lost in one cycle (approximately, 1 decimal).`, 2 * XPI / 50 * 100, 0.1, 1,
+    r`For light damping $Q = 2\pi\dfrac{E}{\Delta E}$ per cycle, so $\dfrac{\Delta E}{E} = \dfrac{2\pi}{Q} = \dfrac{6.283}{50} = 0.1257$, which is 12.6 %.`, { unit: '%' }),
+  xnat(4, 'pendulum with a peg', r`A simple pendulum of length 1.0 m has a peg fixed 0.5 m below its pivot, directly under it, so that the string catches on the peg when the bob swings to one side. Find its time period for small swings (in s, 2 decimals).`, XPI * Math.sqrt(1 / XG) + XPI * Math.sqrt(0.5 / XG), 0.01, 2,
+    r`Half a swing is on the full length 1.0 m, half on the shorter 0.5 m. $T = \pi\sqrt{\dfrac{1}{9.8}} + \pi\sqrt{\dfrac{0.5}{9.8}} = 1.003 + 0.710 = 1.71$ s.`, { unit: 's', trap: 'The period is the sum of two half-periods, not 2π√(average length).' }),
+  xnat(4, 'potential energy curve', r`A 0.5 kg particle has potential energy $U = U_0(1 - \cos\alpha x)$ with $U_0 = 2$ J and $\alpha = 4\ \mathrm{m^{-1}}$. Find its angular frequency for small oscillations about $x = 0$ (in $\mathrm{rad\,s^{-1}}$).`, Math.sqrt(2 * 16 / 0.5), 0, 0,
+    r`$U\approx\tfrac12U_0\alpha^2x^2$ for small $x$, so $k = U_0\alpha^2 = 2\times16 = 32\ \mathrm{N\,m^{-1}}$. $\omega = \sqrt{k/m} = \sqrt{64} = 8\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s' }),
+  xnat(4, 'block on a platform', r`A block rests on a platform of mass 0.3 kg, which is on a vertical spring of constant $50\ \mathrm{N\,m^{-1}}$. The block has mass 0.2 kg. The platform oscillates vertically. Find the largest amplitude for which the block stays in contact with it (in cm, 1 decimal).`, XG * 0.5 / 50 * 100, 0.1, 1,
+    r`The block leaves the platform at the top if the platform's downward acceleration exceeds $g$. $a_{max} = \omega^2A$ with $\omega^2 = \dfrac{k}{m_{total}} = \dfrac{50}{0.5} = 100$. $A_{max} = \dfrac{g}{\omega^2} = \dfrac{9.8}{100} = 9.8$ cm.`, { unit: 'cm', trap: 'Use the total mass in omega squared.' }),
+  xnat(4, 'collision and SHM', r`A 3 kg block on a smooth table is attached to a spring and oscillates with amplitude 0.20 m. As it passes its mean position, a 1 kg lump of clay falls on it and sticks. Find the new amplitude (in cm, 2 decimals).`, 20 * Math.sqrt(3 / 4), 0.01, 2,
+    r`At the mean position the block moves with its maximum speed $v$, and its energy is $E = \tfrac12(3)v^2$. The clay brings no horizontal momentum, so $3v = 4v'$ and $v' = \tfrac34v$. Energy afterwards: $E' = \tfrac12(4)\left(\tfrac34v\right)^2 = \tfrac{9}{8}v^2$. $\dfrac{E'}{E} = \dfrac{9/8}{3/2} = \dfrac34$. Since $E\propto A^2$, $A' = A\sqrt{3/4} = 20\times0.866 = 17.32$ cm.`, { unit: 'cm', trap: 'The spring constant is unchanged: the energy, not the amplitude, falls by the momentum ratio.' }),
+  xmsq(4, 'SHM kinematics', r`A particle executes SHM of amplitude $A$ and angular frequency $\omega$. Which are correct?`, [r`At $x = A/2$ its speed is $\dfrac{\sqrt3}{2}A\omega$.`, r`At $x = A/2$ its acceleration is half of the maximum.`, r`Its speed is $\tfrac12A\omega$ at $x = A/2$.`, r`The time from $x = 0$ to $x = A$ is $\dfrac T4$.`], [0, 1, 3],
+    r`$v = \omega\sqrt{A^2 - x^2} = \omega A\dfrac{\sqrt3}{2}$ (A true, C false). $a = \omega^2x = \tfrac12\omega^2A$ (B). A quarter of a cycle takes $T/4$ (D).`),
+  xmsq(4, 'simple pendulum', r`Which of these change the period of a simple pendulum (small swings) at a given place?`, [r`Doubling the length.`, r`Doubling the mass of the bob.`, r`Moving it to a place with smaller $g$.`, r`Making the pendulum accelerate vertically upwards.`], [0, 2, 3],
+    r`$T = 2\pi\sqrt{L/g_{eff}}$. Length (A), $g$ (C) and $g_{eff} = g + a$ in an upward-accelerating frame (D) all change it. The mass cancels (B).`),
+  xmsq(4, 'conditions for SHM', r`Which of these are simple harmonic for small displacements?`, [r`A ball rolling to and fro in a smooth spherical bowl.`, r`A cylinder of liquid in a U-tube displaced slightly.`, r`A body dropped into a smooth tunnel through the diameter of the Earth (uniform density).`, r`A ball bouncing elastically on a floor.`], [0, 1, 2],
+    r`A, B and C each have a restoring force (or torque) proportional to displacement for small motion. The bouncing ball has a constant acceleration and a sudden reversal, so it is periodic but not SHM.`),
+  xmsq(4, 'damped oscillations', r`A lightly damped oscillator ($F = -bv$) is set going. Which are correct?`, [r`The amplitude falls exponentially.`, r`The time period is slightly more than for no damping.`, r`The energy falls twice as fast, in the exponential, as the amplitude does.`, r`The motion remains exactly periodic.`], [0, 1, 2],
+    r`$A = A_0e^{-bt/2m}$ (A) and $E\propto A^2$ gives $e^{-bt/m}$ (C). $\omega' = \sqrt{\omega_0^2 - b^2/4m^2}$ is smaller, so $T$ is larger (B). The amplitude keeps falling, so the motion is not periodic (D false).`),
+  xmsq(4, 'springs', r`A spring of constant $k$ and natural length $l$ is cut into two pieces of lengths $l/4$ and $3l/4$. Which are correct?`, [r`The piece of length $l/4$ has constant $4k$.`, r`The piece of length $3l/4$ has constant $\dfrac{4k}{3}$.`, r`The two pieces in parallel have a combined constant $\dfrac{16k}{3}$.`, r`The two pieces in series have a combined constant $\dfrac{4k}{3}$.`], [0, 1, 2],
+    r`$k\propto1/\text{length}$: $4k$ and $\dfrac{4k}{3}$ (A, B). Parallel: $4k + \dfrac{4k}{3} = \dfrac{16k}{3}$ (C). Series: back to $k$ (D false).`),
+  xasrt(4, 'resonance', r`A swing driven at a frequency equal to its natural frequency builds up a large amplitude.`, r`At resonance the driving force is in step with the velocity, so it does positive work on the swing all the time.`, 0,
+    r`At resonance the phase between force and velocity is zero, so the power $Fv$ is always positive and the amplitude grows until damping takes away that power. R explains A.`),
+  xasrt(4, 'conservation in SHM', r`The total mechanical energy of a particle in SHM is constant.`, r`The kinetic energy and the potential energy of a particle in SHM are each constant.`, 2,
+    r`A is true. R is false: KE and PE change continuously; only their sum is constant.`),
+  xstm(4, 'time in SHM', r`In SHM, the time taken to go from the mean position to $A/2$ is less than the time taken to go from $A/2$ to $A$.`, r`The speed is greatest near the mean position.`, 0,
+    r`Mean to $A/2$ takes $T/12$. Mean to $A$ takes $T/4$, so $A/2$ to $A$ takes $T/4 - T/12 = T/6$, twice as long. So I is true. II is also true, and it is the reason: the particle covers the first half of the amplitude fast and the second half slowly.`),
+  xcnt(4, 'phase in SHM', r`For $x = A\sin(\omega t + \varphi)$, how many of these are correct?`, [r`The velocity leads the displacement by $\pi/2$.`, r`The acceleration is $180^\circ$ out of phase with the displacement.`, r`The kinetic energy has twice the frequency of the displacement.`, r`When $x = 0$ the acceleration is zero and the speed is maximum.`], 4,
+    r`(1) $v = A\omega\cos(\ldots)$ leads $\sin$ by $\pi/2$. (2) $a = -\omega^2x$. (3) $KE\propto\cos^2$ has frequency $2f$. (4) At the mean position. All four are correct.`),
+  xmt(4, 'spring combinations', 'mo3', r`A mass $m$ on a single spring $k$ has period $T_0 = 2\pi\sqrt{m/k}$. Match each arrangement with its period.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Series $k$, $k$: $k_{eq} = \dfrac k2$, $T = \sqrt2T_0$ (A-p). Parallel $k$, $k$: $2k$, $T_0/\sqrt2$ (B-q). Series $k$, $3k$: $\dfrac{3k}{4}$, $T = \dfrac{2}{\sqrt3}T_0$ (C-r). Parallel $k$, $3k$: $4k$, $T = T_0/2$ (D-s).`),
+  xmt(4, 'physical pendulum', 'mo4', r`Match each pendulum with its time period in units of $2\pi\sqrt{L/g}$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`(A) 1. (B) rod about the end: $I = \tfrac13mL^2$, arm $\tfrac L2$: $\sqrt{2/3}$ (q). (C) $I = \dfrac{mL^2}{12} + m\dfrac{L^2}{16} = \dfrac{7mL^2}{48}$, arm $\dfrac L4$: $\sqrt{\dfrac{7}{12}}$ (r). (D) disc about the rim: $\dfrac32mR^2$, arm $R$: $\sqrt{\dfrac{3R}{2g}}$ with $R = L$: $\sqrt{3/2}$ (s).`),
+  xmt(4, 'damped oscillations', 'mo5', r`For an oscillator of mass $m$, spring constant $k$ and damping $-bv$ (light damping), match each quantity with its expression.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Amplitude $A_0e^{-bt/2m}$ (p), energy $E_0e^{-bt/m}$ (q), $\omega' = \sqrt{\dfrac km - \dfrac{b^2}{4m^2}}$ (r), and $Q = \dfrac{m\omega_0}{b} = \dfrac{\sqrt{km}}{b}$ (s).`),
+  xpas(3, 'speed at a point', 'po1', r`Find the speed of the block when it is 0.06 m from the rest position, before the putty falls (in $\mathrm{m\,s^{-1}}$, 1 decimal).`, 20 * Math.sqrt(0.01 - 0.0036), 0.05, 1,
+    r`$\omega = \sqrt{200/0.5} = 20\ \mathrm{rad\,s^{-1}}$. $v = \omega\sqrt{A^2 - x^2} = 20\sqrt{0.01 - 0.0036} = 20\times0.08 = 1.6\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xpas(4, 'collision and SHM', 'po1', r`Find the amplitude of the oscillation after the putty sticks (in cm, 2 decimals).`, 1 / Math.sqrt(200) * 100, 0.02, 2,
+    r`Speed at the rest position before: $A\omega = 0.1\times20 = 2\ \mathrm{m\,s^{-1}}$. After (momentum conserved, mass 1 kg): $v' = 1\ \mathrm{m\,s^{-1}}$. New $\omega' = \sqrt{200/1} = 14.14$. $A' = \dfrac{v'}{\omega'} = \dfrac{1}{14.14} = 0.0707$ m $= 7.07$ cm.`, { unit: 'cm' }),
+  xpas(5, 'energy lost', 'po1', r`Find the mechanical energy lost when the putty sticks (in J, 2 decimals).`, 0.5 * 0.5 * 4 - 0.5 * 1 * 1, 0.005, 2,
+    r`Before: $\tfrac12\times0.5\times2^2 = 1.0$ J. After: $\tfrac12\times1\times1^2 = 0.5$ J. Lost: $0.50$ J, half the energy: the usual loss in a perfectly inelastic collision.`, { unit: 'J' }),
+  xpas(3, 'fractional change', 'po2', r`Find the fractional increase in the time period (in units of $10^{-4}$, 1 decimal).`, 0.5 * 1.9e-5 * 20 * 1e4, 0.05, 1,
+    r`$T\propto\sqrt L$ and $L$ grows by $\alpha\Delta\theta = 3.8\times10^{-4}$, so $\dfrac{\Delta T}{T} = \tfrac12\times3.8\times10^{-4} = 1.9\times10^{-4}$.`, { unit: '×10⁻⁴' }),
+  xpas(4, 'loss per day', 'po2', r`Find how many seconds the clock loses in one day at 40 °C (1 decimal).`, 86400 * 1.9e-4, 0.1, 1,
+    r`The clock ticks slowly by the fraction $1.9\times10^{-4}$. Loss $= 86400\times1.9\times10^{-4} = 16.4$ s per day.`, { unit: 's' }),
+  xpas(5, 'correcting the clock', 'po2', r`To make the clock keep correct time at 40 °C it is taken to a place where $g$ is larger. Find the required fractional increase in $g$ (in per cent, 3 decimals).`, 1.9e-5 * 20 * 100, 0.002, 3,
+    r`The period stays the same if $L/g$ stays the same. $L$ has grown by $\alpha\Delta\theta = 3.8\times10^{-4}$, so $g$ must grow by the same fraction: $0.038$ %.`, { unit: '%', trap: 'g changes by the full α Δθ, not half of it, since T depends on L/g.' }),
+
+  // ---------- Level 5 ----------
+  xnat(5, 'coupled oscillators', r`Two equal masses $m$ lie on a smooth line. The first is joined to a wall by a spring $k$, and the second to the first by another spring $k$ (the right end is free). Find the ratio of the higher normal-mode frequency to the lower (3 decimals).`, Math.sqrt((3 + Math.sqrt(5)) / (3 - Math.sqrt(5))), 0.003, 3,
+    r`With displacements $x_1, x_2$: $m\ddot x_1 = -kx_1 + k(x_2 - x_1)$ and $m\ddot x_2 = -k(x_2 - x_1)$. Put $x\propto\cos\omega t$ and $\lambda = m\omega^2/k$: $x_2 = (2 - \lambda)x_1$ and $x_1 = (1 - \lambda)x_2$. So $(2 - \lambda)(1 - \lambda) = 1$, $\lambda^2 - 3\lambda + 1 = 0$, $\lambda = \dfrac{3\pm\sqrt5}{2} = 2.618,\ 0.382$. Frequency ratio $= \sqrt{2.618/0.382} = \sqrt{6.854} = 2.618$.`, { trap: 'Both masses move; write the two equations.' }),
+  xnat(5, 'potential energy curve', r`A 1.5 kg particle moves under $U = x^3 - 3x$ joules ($x$ in m). Find the angular frequency of small oscillations about its stable equilibrium (in $\mathrm{rad\,s^{-1}}$).`, Math.sqrt(6 / 1.5), 0, 0,
+    r`$\dfrac{dU}{dx} = 3x^2 - 3 = 0$ gives $x = \pm1$. $\dfrac{d^2U}{dx^2} = 6x$: positive (a minimum) only at $x = +1$, where it is 6. $k = 6\ \mathrm{N\,m^{-1}}$, $\omega = \sqrt{6/1.5} = 2\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s', trap: 'x = -1 is an unstable equilibrium (a maximum of U).' }),
+  xnat(5, 'forced oscillations', r`A 1.0 kg mass on a spring with $\omega_0 = 10\ \mathrm{rad\,s^{-1}}$ is driven by a force $2\cos\omega t$ N and damped by $-bv$ with $b = 0.5\ \mathrm{kg\,s^{-1}}$. Find the steady amplitude when $\omega = \omega_0$ (in m, 2 decimals).`, 2 / (0.5 * 10), 0.01, 2,
+    r`$A = \dfrac{F_0/m}{\sqrt{(\omega_0^2 - \omega^2)^2 + (b\omega/m)^2}}$. At resonance the first term vanishes: $A = \dfrac{F_0}{b\omega} = \dfrac{2}{0.5\times10} = 0.40$ m.`, { unit: 'm' }),
+  xnat(5, 'damped oscillations', r`An oscillator has $m = 0.10$ kg, $k = 40\ \mathrm{N\,m^{-1}}$, $b = 0.02\ \mathrm{kg\,s^{-1}}$. How many oscillations does it make while the amplitude falls to $1/e$ of its starting value (1 decimal)?`, (2 * 0.1 / 0.02) / (2 * XPI * Math.sqrt(0.1 / 40)), 0.2, 1,
+    r`Amplitude $A_0e^{-bt/2m}$ falls to $A_0/e$ at $t = \dfrac{2m}{b} = 10$ s. $T = 2\pi\sqrt{0.1/40} = 0.314$ s (damping is light). Number $= 10/0.314 = 31.8$.`, { unit: 'oscillations' }),
+  xnat(5, 'long pendulum', r`A simple pendulum has length equal to the radius of the Earth, $6.4\times10^{6}$ m. Find its period for small swings (in minutes, 1 decimal). Take $g = 9.8\ \mathrm{m\,s^{-2}}$.`, 2 * XPI * Math.sqrt(6.4e6 / (2 * XG)) / 60, 0.2, 1,
+    r`For a long pendulum $T = 2\pi\sqrt{\dfrac{1}{g\left(\dfrac1L + \dfrac1R\right)}}$. With $L = R$: $T = 2\pi\sqrt{\dfrac{R}{2g}} = 2\pi\sqrt{\dfrac{6.4\times10^{6}}{19.6}} = 3590$ s $= 59.8$ min.`, { unit: 'min', trap: 'The formula 2π√(L/g) fails for lengths comparable to R.' }),
+  xnat(5, 'collision and SHM', r`A 2 kg block oscillates on a spring with amplitude 0.30 m. At the instant it is at an extreme position, a 2 kg lump of clay is dropped on it and sticks. Find (new time period) / (old time period) (3 decimals). The new amplitude is also asked in the solution.`, Math.SQRT2, 0.003, 3,
+    r`At the extreme the block is at rest, so the clay adds no energy and the amplitude stays 0.30 m. The mass doubles and $T\propto\sqrt m$, so the new period is $\sqrt2 = 1.414$ times the old. (Had the clay fallen at the mean position, the amplitude would have fallen to $0.30/\sqrt2$.)`, { trap: 'At an extreme the amplitude is unchanged; at the mean position it shrinks.' }),
+  xnat(5, 'dropped load', r`A pan of mass 0.30 kg hangs at rest on a spring of constant $30\ \mathrm{N\,m^{-1}}$. A 0.10 kg lump of putty is released from rest from 0.20 m above the pan and sticks to it. Find the amplitude of the resulting oscillation (in cm, 1 decimal). Take $g = 9.8\ \mathrm{m\,s^{-2}}$.`, Math.sqrt((0.1 * XG / 30) ** 2 + ((0.1 * Math.sqrt(2 * XG * 0.2) / 0.4) ** 2) / (30 / 0.4)) * 100, 0.1, 1,
+    r`Speed of the putty on arrival: $v_0 = \sqrt{2gh} = \sqrt{2\times9.8\times0.2} = 1.98\ \mathrm{m\,s^{-1}}$. Sticking (momentum conserved): $v_1 = \dfrac{0.1\times1.98}{0.4} = 0.495\ \mathrm{m\,s^{-1}}$. The new equilibrium is lower than the old position by $x_0 = \dfrac{mg}{k} = \dfrac{0.1\times9.8}{30} = 0.0327$ m, and the pan is at that distance above it, moving down at $v_1$. $\omega^2 = \dfrac{30}{0.4} = 75$. $A = \sqrt{x_0^2 + v_1^2/\omega^2} = \sqrt{0.001067 + 0.003267} = 0.0658$ m $= 6.6$ cm.`, { unit: 'cm', trap: 'The starting point is not the new equilibrium: it is x0 above it.' }),
+  xnat(5, 'mixed electric field and SHM', r`An electron is inside a uniformly charged sphere of charge density $\rho = 1.0\times10^{-8}\ \mathrm{C\,m^{-3}}$ (the sphere is large and the electron is near its centre; the charge distribution is not disturbed). Find the time period of the electron's oscillation about the centre (in ns, nearest 10). $e = 1.6\times10^{-19}$ C, $m = 9.1\times10^{-31}$ kg, $\varepsilon_0 = 8.85\times10^{-12}\ \mathrm{F\,m^{-1}}$.`, 2 * XPI / Math.sqrt(1.6e-19 * 1e-8 / (3 * 8.85e-12 * 9.1e-31)) * 1e9, 10, 0,
+    r`Inside a uniform sphere $E = \dfrac{\rho r}{3\varepsilon_0}$, pointing outward, so the force on the electron is $-\dfrac{e\rho}{3\varepsilon_0}r$: simple harmonic with $\omega^2 = \dfrac{e\rho}{3\varepsilon_0m} = \dfrac{1.6\times10^{-19}\times10^{-8}}{3\times8.85\times10^{-12}\times9.1\times10^{-31}} = 6.62\times10^{13}$. $\omega = 8.14\times10^{6}$, $T = \dfrac{2\pi}{\omega} = 7.7\times10^{-7}$ s $= 770$ ns.`, { unit: 'ns' }),
+  xnat(5, 'rolling and SHM', r`A solid ball of radius 1.0 cm rolls without slipping to and fro near the bottom of a spherical bowl of radius 50 cm. Find the time period (in s, 2 decimals). $g = 9.8\ \mathrm{m\,s^{-2}}$.`, 2 * XPI * Math.sqrt(7 * 0.49 / (5 * XG)), 0.01, 2,
+    r`The centre of the ball moves on a circle of radius $R - r = 0.49$ m. For rolling, $T = 2\pi\sqrt{\dfrac{7(R - r)}{5g}} = 2\pi\sqrt{\dfrac{7\times0.49}{49}} = 2\pi\sqrt{0.07} = 1.66$ s. (A sliding ball would give $2\pi\sqrt{0.49/9.8} = 1.40$ s.)`, { unit: 's', trap: 'Rolling adds rotational energy: T is longer by the factor √(7/5).' }),
+  xnat(4, 'time in SHM', r`A particle in SHM has period 9 s. In each cycle, for how long is its distance from the mean position greater than half the amplitude (in s)?`, 4 * 9 / 6, 0, 0,
+    r`From $x = A/2$ to $x = A$ takes $T/6$ (cosine: $\omega t = \pi/3$). This happens four times in a cycle (out and back, on each side): $4\times\dfrac T6 = \dfrac{2T}{3} = 6$ s.`, { unit: 's' }),
+  xnat(4, 'torsional oscillations', r`A disc hangs from a torsion wire and has period 2.0 s. A second disc is fixed on top of the first, and the period becomes 3.0 s. Find the ratio (moment of inertia of the second disc) / (that of the first) (2 decimals).`, 9 / 4 - 1, 0.01, 2,
+    r`$T = 2\pi\sqrt{I/\kappa}$, so $T^2\propto I$. $\dfrac{I_1 + I_2}{I_1} = \dfrac{9}{4}$, so $\dfrac{I_2}{I_1} = \dfrac54 = 1.25$.`),
+  xnat(4, 'SHM or not', r`A bead slides without friction on a wire bent into the parabola $y = x^2$ ($x$, $y$ in metres, $y$ vertical). Find its time period for small oscillations about the bottom (in s, 2 decimals).`, 2 * XPI * Math.sqrt(0.5 / XG), 0.01, 2,
+    r`Near the bottom the curve is $y = \dfrac{x^2}{2R}$ with $R$ the radius of curvature. Here $\dfrac{1}{2R} = 1$, so $R = 0.5$ m. The bead behaves like a pendulum of length $R$: $T = 2\pi\sqrt{\dfrac{0.5}{9.8}} = 1.42$ s.`, { unit: 's' }),
+  xnat(3, 'finding amplitude', r`A particle in SHM has speed $8\ \mathrm{cm\,s^{-1}}$ at displacement 3 cm and speed $6\ \mathrm{cm\,s^{-1}}$ at displacement 4 cm. Find its time period (in s, 2 decimals).`, XPI, 0.01, 2,
+    r`$v^2 = \omega^2(A^2 - x^2)$. Dividing: $\dfrac{64}{36} = \dfrac{A^2 - 9}{A^2 - 16}$ gives $64A^2 - 1024 = 36A^2 - 324$, $28A^2 = 700$, $A = 5$ cm. $\omega^2 = \dfrac{64}{25 - 9} = 4$, $\omega = 2\ \mathrm{s^{-1}}$. $T = \dfrac{2\pi}{2} = \pi = 3.14$ s.`, { unit: 's' }),
+  xmsq(5, 'potential energy curve', r`A particle of mass 2 kg moves in a potential $U = (x^2 - 1)^2$ joules ($x$ in m). Which are correct?`, [r`$x = 0$ is a position of unstable equilibrium.`, r`$x = +1$ and $x = -1$ are positions of stable equilibrium.`, r`For small oscillations about $x = 1$ the angular frequency is $2\ \mathrm{rad\,s^{-1}}$.`, r`A particle with total energy 0.5 J can move between the two minima.`], [0, 1, 2],
+    r`$U' = 4x(x^2 - 1)$, $U'' = 12x^2 - 4$. At $x = 0$: $-4$ (a maximum, unstable). At $x = \pm1$: $+8$ (stable). $\omega = \sqrt{8/2} = 2$. The barrier at $x = 0$ is $U(0) = 1$ J, higher than 0.5 J, so the particle cannot cross (D false).`),
+  xmsq(5, 'Lissajous figures', r`Two perpendicular SHMs of equal frequency, $x = a\sin\omega t$ and $y = b\sin(\omega t + \varphi)$, are combined. Which are correct?`, [r`$\varphi = 0$ gives a straight line of slope $b/a$.`, r`$\varphi = \pi$ gives a straight line of slope $-b/a$.`, r`$\varphi = \pi/2$ and $a = b$ gives a circle.`, r`$\varphi = \pi/2$ and $a\neq b$ gives a circle.`], [0, 1, 2],
+    r`$\varphi = 0$: $y = (b/a)x$. $\varphi = \pi$: $y = -(b/a)x$. $\varphi = \pi/2$: $\dfrac{x^2}{a^2} + \dfrac{y^2}{b^2} = 1$, a circle only if $a = b$; for $a\neq b$ it is an ellipse (D false).`),
+  xmsq(5, 'energy graphs', r`A particle of total energy $E$ executes SHM with period $T$, $x = A\sin\omega t$. Which are correct?`, [r`The potential energy has period $T/2$.`, r`The average kinetic energy over a cycle is $E/2$.`, r`The average of the potential energy over the displacement (uniformly from $-A$ to $A$) is $E/3$.`, r`The kinetic energy equals the potential energy at $t = T/4$.`], [0, 1, 2],
+    r`$PE\propto\sin^2\omega t$ has period $T/2$ (A). Time average of $\cos^2$ is $\tfrac12$ (B). $PE = E\dfrac{x^2}{A^2}$ averaged over uniform $x$: $\tfrac13E$ (C). At $t = T/4$, $x = A$ and all the energy is potential (D false).`),
+  xmsq(5, 'simple pendulum', r`A simple pendulum is released from a large angle (say $60^\circ$). Which are correct?`, [r`The period is greater than $2\pi\sqrt{L/g}$.`, r`The tension at the lowest point is greater than $mg$.`, r`The restoring torque is not proportional to the angle, so the motion is not exactly SHM.`, r`The period is smaller than $2\pi\sqrt{L/g}$.`], [0, 1, 2],
+    r`The torque is $mgL\sin\theta$, less than $mgL\theta$ at large angles, so the pendulum is slower: $T$ is larger (A, C true, D false). At the bottom $T_{ension} - mg = \dfrac{mv^2}{L} > 0$ (B).`),
+  xmsq(5, 'forced oscillations', r`A damped oscillator is driven by $F_0\cos\omega t$. Which are correct in the steady state?`, [r`It oscillates at the driving frequency $\omega$.`, r`The displacement amplitude is greatest exactly at $\omega = \omega_0$ whatever the damping.`, r`The velocity amplitude is greatest at $\omega = \omega_0$.`, r`At $\omega = \omega_0$ the displacement lags the driving force by $\pi/2$.`], [0, 2, 3],
+    r`Steady state: the driving frequency (A). The velocity amplitude $\dfrac{F_0}{\sqrt{b^2 + (m\omega - k/\omega)^2}}$ peaks exactly when $m\omega = k/\omega$, i.e. at $\omega_0$ (C). At $\omega_0$ the velocity is in phase with the force, so the displacement lags by $\pi/2$ (D). The displacement amplitude peaks slightly below $\omega_0$, at $\sqrt{\omega_0^2 - b^2/2m^2}$ (B false).`),
+  xmt(4, 'adding SHMs', 'mo7', r`Two SHMs of the same frequency and amplitude $A$ act along the same line with the given phase difference. Match each with the resultant amplitude.`, 'A-p, B-q, C-r, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r'],
+    r`$A_R = 2A\cos\dfrac{\varphi}{2}$. $\varphi = 0$: $2A$ (p). $60^\circ$: $2A\cos30^\circ = \sqrt3A$ (q). $90^\circ$: $2A\cos45^\circ = \sqrt2A$ (r). $120^\circ$: $2A\cos60^\circ = A$ (s).`),
+  xmt(5, 'potential energy and frequency', 'mo6', r`A particle of mass 1 kg moves in the potential $U(x)$ given. Match each with the angular frequency of small oscillations about the stated stable point.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$\omega^2 = U''/m$ at the minimum. (A) $U'' = 16$: 4 (p). (B) $U'' = 9\cos0 = 9$: 3 (q). (C) $U' = x^3 - x = 0$ at $x = 1$, $U'' = 3x^2 - 1 = 2$: $\sqrt2$ (r). (D) $U'' = 4$ at 0: 2 (s).`),
+  xmt(5, 'pendulum in unusual surroundings', 'mo8', r`A pendulum of length $L$ has period $T_0$ in a still room on Earth. Match each setting with its period (ignore viscous drag).`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`(A) $g_{eff} = g - \tfrac g2 = \tfrac g2$: $T = \sqrt2T_0$ (p). (B) $g_{eff} = \sqrt{g^2 + g^2} = \sqrt2g$: $T = T_0/2^{1/4}$ (q). (C) apparent weight $mg\left(1 - \tfrac14\right) = \tfrac34mg$: $T = \dfrac{2}{\sqrt3}T_0$ (r). (D) weightlessness: no restoring force (s).`),
+  xasrt(5, 'physical pendulum', r`A uniform ring hung from a point on its rim has the same period as a simple pendulum whose length is the ring's diameter.`, r`The moment of inertia of the ring about the point of suspension is $2mR^2$, and the distance of its centre of mass from it is $R$.`, 0,
+    r`$T = 2\pi\sqrt{\dfrac{2mR^2}{mgR}} = 2\pi\sqrt{\dfrac{2R}{g}}$, which is a simple pendulum of length $2R$. R gives exactly that. Both true, R explains A.`),
+  xstm(5, 'damped and forced', r`In a lightly damped oscillator the energy falls by the same fraction in each cycle.`, r`The amplitude of a damped oscillator falls by the same fraction in each cycle.`, 0,
+    r`$A = A_0e^{-bt/2m}$: in each period $T$ it is multiplied by $e^{-bT/2m}$, a fixed factor. So is $E\propto A^2$. Both are true.`),
+
+];
+
+xitems.push(
+  xnat(4, 'two-body oscillation', r`Blocks of 2 kg and 3 kg lie on a smooth table, joined by a light spring of constant $120\ \mathrm{N\,m^{-1}}$. They are pulled apart a little and released. Find the angular frequency of the oscillation (in $\mathrm{rad\,s^{-1}}$).`, Math.sqrt(120 / (6 / 5)), 0, 0,
+    r`Relative motion behaves like one block of reduced mass $\mu = \dfrac{m_1m_2}{m_1 + m_2} = \dfrac{6}{5} = 1.2$ kg on the spring. $\omega = \sqrt{k/\mu} = \sqrt{120/1.2} = \sqrt{100} = 10\ \mathrm{rad\,s^{-1}}$.`, { unit: 'rad/s', trap: 'Neither mass alone is the oscillating mass: use the reduced mass.' }),
+  xnat(4, 'damped oscillator', r`A 0.5 kg oscillator has natural angular frequency $100\ \mathrm{rad\,s^{-1}}$ and damping constant $b = 0.5\ \mathrm{kg\,s^{-1}}$. Find its quality factor $Q$.`, 100 * 0.5 / 0.5, 0, 0,
+    r`$Q = \dfrac{m\omega_0}{b} = \dfrac{0.5\times100}{0.5} = 100$. It loses about $2\pi/Q = 6\ \%$ of its energy per cycle.`),
+);
+
+const xgens = [
+  xg('os-g23', 3, 'nat', 'springs in series and parallel', function make(rng) {
+    const k1 = pick(rng, 100, 400, 50); const k2 = pick(rng, 100, 400, 50); const m = pick(rng, 0.5, 4, 0.5); const ser = rng() < 0.5;
+    const ke = ser ? k1 * k2 / (k1 + k2) : k1 + k2; const T = 2 * Math.PI * Math.sqrt(m / ke);
+    return { k1, k2, m, ser, q: `A ${m} kg block is attached to two springs of constants ${k1} and ${k2} $\\mathrm{N\\,m^{-1}}$ joined ${ser ? 'end to end (in series)' : 'side by side (in parallel)'}. Find its time period (in s, 3 decimals).`, answer: +T.toFixed(3), tol: 0.004, unit: 's',
+      sol: `${ser ? `Series: $k_{eq} = \\dfrac{${k1}\\times${k2}}{${k1 + k2}} = ${xs(ke)}$` : `Parallel: $k_{eq} = ${k1} + ${k2} = ${ke}$`} N/m. $T = 2\\pi\\sqrt{m/k_{eq}} = 2\\pi\\sqrt{${m}/${xs(ke)}} = ${xs(T)}$ s.`, trap: 'Series: reciprocal addition. Parallel: plain addition.' };
+  }, (p) => 2 * Math.PI / Math.sqrt((p.ser ? 1 / (1 / p.k1 + 1 / p.k2) : p.k1 + p.k2) / p.m)),
+  xg('os-g24', 3, 'nat', 'pendulum clock', function make(rng) {
+    const al = choose(rng, [1.2, 1.9, 2.4]); const dT = pick(rng, 10, 40, 5);
+    const loss = 86400 * 0.5 * al * 1e-5 * dT;
+    return { al, dT, q: `A pendulum clock is correct at 20 °C. The pendulum rod has $\\alpha = ${al}\\times10^{-5}\\ \\mathrm{K^{-1}}$. It is used in a room ${dT} °C hotter. How many seconds does it lose per day (1 decimal)?`, answer: +loss.toFixed(1), tol: 0.2, unit: 's',
+      sol: `$\\dfrac{\\Delta T}{T} = \\tfrac12\\alpha\\Delta\\theta = \\tfrac12\\times${al}\\times10^{-5}\\times${dT} = ${xs(0.5 * al * 1e-5 * dT, 4)}$. Loss per day $= 86400\\times${xs(0.5 * al * 1e-5 * dT, 4)} = ${xs(loss)}$ s.`, trap: 'Half of αΔθ, because T goes as √L.' };
+  }, (p) => 86400 * (Math.sqrt(1 + p.al * 1e-5 * p.dT) - 1)),
+  xg('os-g25', 4, 'nat', 'block on block', function make(rng) {
+    const M = pick(rng, 1, 4, 0.5); const mm = pick(rng, 0.5, 2, 0.5); const mu = choose(rng, [0.2, 0.3, 0.4, 0.5]); const k = pick(rng, 100, 400, 50);
+    const A = mu * 9.8 * (M + mm) / k * 100;
+    return { M, mm, mu, k, q: `A block of ${mm} kg rests on a ${M} kg block that oscillates horizontally on a smooth table, attached to a spring of constant ${k} $\\mathrm{N\\,m^{-1}}$. The coefficient of friction between the blocks is ${mu}. Find the largest amplitude for which the top block does not slip (in cm, 1 decimal; $g = 9.8$).`, answer: +A.toFixed(1), tol: 0.15, unit: 'cm',
+      sol: `The top block's largest acceleration is $\\mu g$. Together the blocks have $\\omega^2 = \\dfrac{k}{M + m} = \\dfrac{${k}}{${M + mm}}$, and $a_{max} = \\omega^2A$. So $A = \\dfrac{\\mu g(M + m)}{k} = ${xs(A)}$ cm.`, trap: 'Use the total mass in ω², but only friction on the top block.' };
+  }, (p) => { const w2 = p.k / (p.M + p.mm); return p.mu * 9.8 / w2 * 100; }),
+  xg('os-g26', 4, 'mcq', 'time in SHM', function make(rng) {
+    const T = pick(rng, 4, 24, 4) ; const fr = choose(rng, [[0.5, 'half'], [Math.SQRT1_2, '$1/\\sqrt2$ of'], [Math.sqrt(3) / 2, '$\\sqrt3/2$ of']]);
+    const t = T / (2 * Math.PI) * Math.asin(fr[0]);
+    const o = numOpts(rng, t, [T / 4 * fr[0], T / 4 * (1 - fr[0]), T / 4], 's', 3);
+    return { T, fr0: fr[0], q: `A particle in SHM has period ${T} s. The time it takes to go from the mean position to ${fr[1]} the amplitude is`, options: o.options, answer: o.answer,
+      sol: `$x = A\\sin\\omega t$, so $t = \\dfrac{T}{2\\pi}\\arcsin(${xs(fr[0], 4)}) = ${xs(t)}$ s. Treating the motion as uniform (distance proportional to time) gives ${xs(T / 4 * fr[0])} s, which is wrong.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt(p.T / (2 * Math.PI) * Math.asin(p.fr0), 3)} s`)),
+  xg('os-g27', 4, 'nat', 'damped oscillations', function make(rng) {
+    const m = pick(rng, 0.1, 1, 0.1); const b = choose(rng, [0.01, 0.02, 0.05]); const f = choose(rng, [0.5, 0.25, 0.1]);
+    const t = 2 * m / b * Math.log(1 / f);
+    return { m, b, f, q: `A ${m} kg oscillator is damped by $-bv$ with $b = ${b}\\ \\mathrm{kg\\,s^{-1}}$. How long does the amplitude take to fall to ${f} of its initial value (in s, 1 decimal)?`, answer: +t.toFixed(1), tol: 0.2, unit: 's',
+      sol: `$A = A_0e^{-bt/2m}$, so $t = \\dfrac{2m}{b}\\ln\\dfrac1{${f}} = \\dfrac{2\\times${m}}{${b}}\\times${xs(Math.log(1 / f), 4)} = ${xs(t)}$ s.`, trap: 'Amplitude uses 2m/b; energy would use m/b.' };
+  }, (p) => { let lo = 0; let hi = 1e4; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (Math.exp(-p.b * mid / (2 * p.m)) > p.f) lo = mid; else hi = mid; } return lo; }),
+  xg('os-g28', 5, 'nat', 'drop onto a spring', function make(rng) {
+    const M = pick(rng, 0.2, 0.6, 0.1); const mm = pick(rng, 0.1, 0.3, 0.1); const k = pick(rng, 20, 60, 10); const h = choose(rng, [0.1, 0.2, 0.4]);
+    const v0 = Math.sqrt(2 * 9.8 * h); const v1 = mm * v0 / (M + mm); const x0 = mm * 9.8 / k; const w2 = k / (M + mm); const A = Math.sqrt(x0 * x0 + v1 * v1 / w2) * 100;
+    return { M, mm, k, h, q: `A pan of mass ${M} kg hangs at rest on a spring of constant ${k} $\\mathrm{N\\,m^{-1}}$. A ${mm} kg lump of putty is released from rest ${h} m above the pan and sticks to it. Find the amplitude of the oscillation that follows (in cm, 1 decimal; $g = 9.8$).`, answer: +A.toFixed(1), tol: 0.15, unit: 'cm',
+      sol: `$v_0 = \\sqrt{2gh} = ${xs(v0)}$ m/s. After sticking $v_1 = \\dfrac{${mm}\\times${xs(v0)}}{${xs(M + mm)}} = ${xs(v1)}$ m/s. The new equilibrium is $x_0 = \\dfrac{mg}{k} = ${xs(x0, 4)}$ m below, and $\\omega^2 = \\dfrac{${k}}{${xs(M + mm)}} = ${xs(w2)}$. $A = \\sqrt{x_0^2 + v_1^2/\\omega^2} = ${xs(A)}$ cm.`, trap: 'The release point is x0 above the new equilibrium, not at it.' };
+  }, (p) => { const v1 = p.mm * Math.sqrt(2 * 9.8 * p.h) / (p.M + p.mm); const k = p.k; const xx = p.mm * 9.8 / k; const E = 0.5 * (p.M + p.mm) * v1 * v1 + 0.5 * k * xx * xx; return Math.sqrt(2 * E / k) * 100; }),
+  xg('os-g29', 4, 'nat', 'physical pendulum', function make(rng) {
+    const L = choose(rng, [0.6, 0.8, 1.0, 1.2]); const d = choose(rng, [0.1, 0.15, 0.2, 0.25]);
+    const T = 2 * Math.PI * Math.sqrt((L * L / 12 + d * d) / (9.8 * d));
+    return { L, d, q: `A uniform rod ${L} m long is pivoted at a point ${d} m from its centre and swings in a vertical plane. Find its time period (in s, 2 decimals; $g = 9.8$).`, answer: +T.toFixed(2), tol: 0.02, unit: 's',
+      sol: `$I = \\dfrac{mL^2}{12} + md^2 = m\\times${xs(L * L / 12 + d * d, 4)}$. $T = 2\\pi\\sqrt{\\dfrac{I}{mgd}} = 2\\pi\\sqrt{\\dfrac{${xs(L * L / 12 + d * d, 4)}}{9.8\\times${d}}} = ${xs(T)}$ s.`, trap: 'Use the parallel-axis term md², not mL²/3.' };
+  }, (p) => { const I = (1 / 12) * p.L ** 2 + p.d ** 2; return 2 * Math.PI * Math.sqrt(I / (9.8 * p.d)); }),
+  xg('os-g30', 4, 'nat', 'pendulum with a peg', function make(rng) {
+    const L = choose(rng, [0.8, 1.0, 1.2, 1.6]); const f = choose(rng, [0.25, 0.5, 0.75]);
+    const T = Math.PI * Math.sqrt(L / 9.8) + Math.PI * Math.sqrt(L * (1 - f) / 9.8);
+    return { L, f, q: `A simple pendulum of length ${L} m has a peg fixed on the vertical through the pivot, ${f * L} m below it. The string catches on the peg on one side of each swing. Find the time period for small swings (in s, 3 decimals; $g = 9.8$).`, answer: +T.toFixed(3), tol: 0.01, unit: 's',
+      sol: `One half-swing uses length ${L} m: $\\pi\\sqrt{${L}/9.8} = ${xs(Math.PI * Math.sqrt(L / 9.8), 4)}$ s. The other uses ${xs(L * (1 - f), 4)} m (the length below the peg): $\\pi\\sqrt{${xs(L * (1 - f), 4)}/9.8} = ${xs(Math.PI * Math.sqrt(L * (1 - f) / 9.8), 4)}$ s. $T = ${xs(T)}$ s.`, trap: 'The shorter pendulum is the length below the peg, not the distance to the peg.' };
+  }, (p) => { let T = 0; for (const l of [p.L, p.L - p.f * p.L]) T += 0.5 * 2 * Math.PI * Math.sqrt(l / 9.8); return T; }),
+];
+
+export default { topic: 'oscillations', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

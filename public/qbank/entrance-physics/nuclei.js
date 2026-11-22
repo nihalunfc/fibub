@@ -672,4 +672,299 @@ const groups = {
   p3: { title: 'Dating a piece of charcoal', passage: r`<p>Living wood gives 15 decays per minute per gram of carbon (from $^{14}\mathrm C$, half-life 5730 y). A piece of ancient charcoal with 5.0 g of carbon gives 18.75 decays per minute.</p>` },
   p4: { title: 'A power reactor', passage: r`<p>A nuclear power station has a thermal power of 600 MW and converts 33% of it into electrical power. Each fission of $^{235}\mathrm U$ releases 200 MeV. Take 1 MeV $= 1.602\times10^{-13}$ J.</p>` },
 };
-export default { topic: 'nuclei', groups, items, gens };
+
+// ---------- Expansion (2026-11-22): more hard items, matches, passages and templates ----------
+const xs = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XCUET = true;
+const xex = (l, t) => (l <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet'] : l === 3 ? ['jee-main', 'neet', 'keam', 'comedk'] : l === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv']).concat(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : []);
+let xk = 0; let xc = 0;
+const xid = () => `nu-x${String(++xk).padStart(3, '0')}`;
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type), sub, ...o });
+const xpos = () => [2, 0, 3, 1][xc++ % 4];
+const xmcq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('options not distinct: ' + q.slice(0, 60));
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xnat = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return xb(level, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol: typeof sol === 'function' ? sol(answer) : sol, ...o });
+};
+const xmsq = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAOPT = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xasrt = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAOPT, answer, sol, ...o });
+const XSOPT = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xstm = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSOPT, answer, sol, ...o });
+const xcnt = (level, sub, q, list, n, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((s, i) => `(${i + 1}) ${s}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: n - 1, sol, ...o });
+// match: correct code and three wrong codes
+const xmt = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('match options not distinct: ' + group);
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xpas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return { id: xid(), type: 'nat', level, format: 'passage', exams: xex(level, 'nat'), sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const xpasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: xid(), type: 'mcq', level, format: 'passage', exams: xex(level, 'mcq'), sub, group, q, options, answer: pos, sol, ...o };
+};
+// template: exams from level and type
+const xg = (id, level, type, sub, make, verify) => ({ id, type, level, exams: xex(level, type), sub, make, verify });
+const XU = 931.5; const XNA = 6.022e23; const XYR = 3.156e7; const XMEV = 1.602e-13; const XLN2 = Math.LN2;
+
+let xrc = 0;
+const xmsqr = (level, sub, q, options, answer, sol, o = {}) => {
+  const k = [0, 2, 3, 1, 2, 0, 3, 1, 1][xrc++ % 9]; const n = options.length;
+  const no = options.map((_, j) => options[(j - k + n) % n]); const L = 'ABCD';
+  const na = answer.map((i) => (i + k) % n).sort();
+  const ns = sol.replace(/\(([A-D](?:, ?[A-D])*)((?: [a-z ]+)?)\)/g, (m, ls, rest) => '(' + ls.split(/, ?/).map((c) => L[(L.indexOf(c) + k) % n]).join(', ') + rest + ')');
+  return xmsq(level, sub, q, no, na, ns, o);
+};
+const xgroups = {
+  mn1: { title: 'Changes of the nucleus (A, Z)',
+    list1: [`A. Alpha decay`, `B. Beta-minus decay`, `C. Beta-plus decay`, `D. Gamma emission`],
+    list2: [r`p. $(A - 4,\ Z - 2)$`, r`q. $(A,\ Z + 1)$`, r`r. $(A,\ Z - 1)$`, r`s. $(A,\ Z)$`] },
+  mn2: { title: 'Fraction of nuclei left (mean life $\\tau$, half-life $T$)',
+    list1: [`A. After a time $\\tau$`, `B. After a time $2\\tau$`, `C. After a time $T$`, `D. After a time $2T$`],
+    list2: [`p. 0.37`, `q. 0.135`, `r. 0.50`, `s. 0.25`, `t. 0.63`] },
+  mn3: { title: 'Nuclear radius ($R = 1.2A^{1/3}$ fm)',
+    list1: [`A. $A = 8$`, `B. $A = 27$`, `C. $A = 64$`, `D. $A = 125$`],
+    list2: [`p. 2.4 fm`, `q. 3.6 fm`, `r. 4.8 fm`, `s. 6.0 fm`, `t. 7.2 fm`] },
+  mn4: { title: 'Energy released',
+    list1: [r`A. $\mathrm{D} + \mathrm{D}\to{}^{3}\mathrm{He} + n$`, r`B. $\mathrm{D} + \mathrm{T}\to{}^{4}\mathrm{He} + n$`, r`C. Fission of one $^{235}\mathrm{U}$ nucleus (approximately)`, r`D. $3\,{}^{4}\mathrm{He}\to{}^{12}\mathrm{C}$`],
+    list2: [`p. 3.3 MeV`, `q. 17.6 MeV`, `r. 200 MeV`, `s. 7.3 MeV`] },
+  mn5: { title: 'Radioactive series',
+    list1: [r`A. Number of $\alpha$ particles in $^{238}\mathrm{U}\to{}^{206}\mathrm{Pb}$`, r`B. Number of $\beta^-$ particles in $^{238}\mathrm{U}\to{}^{206}\mathrm{Pb}$`, r`C. Number of $\alpha$ particles in $^{235}\mathrm{U}\to{}^{207}\mathrm{Pb}$`, r`D. Number of $\beta^-$ particles in $^{232}\mathrm{Th}\to{}^{208}\mathrm{Pb}$`],
+    list2: [`p. 8`, `q. 6`, `r. 7`, `s. 4`] },
+  mn6: { title: 'Slowing down neutrons (elastic collision, head-on, nucleus at rest)',
+    list1: [`A. Hydrogen ($A = 1$): the fraction of its energy that the neutron can lose, at most`, `B. Deuterium ($A = 2$)`, `C. Helium-4 ($A = 4$)`, `D. Carbon-12 ($A = 12$)`],
+    list2: [`p. 1`, r`q. $\dfrac89$`, r`r. $\dfrac{16}{25}$`, r`s. $\dfrac{48}{169}$`] },
+  mn7: { title: 'Two samples with equal initial numbers of nuclei (half-lives $T$ and $2T$), at $t = 2T$',
+    list1: [`A. Fraction of sample 1 (half-life $T$) left`, `B. Fraction of sample 2 (half-life $2T$) left`, `C. Activity of sample 1 / activity of sample 2`, `D. Fraction of sample 1 that has decayed`],
+    list2: [r`p. $\tfrac14$`, r`q. $\tfrac12$`, `r. 1`, r`s. $\tfrac34$`] },
+  mn8: { title: 'Binding energy per nucleon',
+    list1: [r`A. $^{56}\mathrm{Fe}$`, r`B. $^{4}\mathrm{He}$`, r`C. $^{235}\mathrm{U}$`, r`D. $^{2}\mathrm{H}$`],
+    list2: [`p. 8.8 MeV`, `q. 7.1 MeV`, `r. 7.6 MeV`, `s. 1.1 MeV`] },
+  pn1: { title: 'One gram of radium',
+    passage: r`<p>Radium-226 has a half-life of 1600 years (take 1 year $= 3.156\times10^{7}$ s). A sample of 1.00 g is pure $^{226}$Ra. Take the molar mass as $226\ \mathrm{g\,mol^{-1}}$ and $N_A = 6.022\times10^{23}\ \mathrm{mol^{-1}}$. One curie is $3.7\times10^{10}$ decays per second.</p>` },
+  pn2: { title: 'A deuterium-tritium fusion plant',
+    passage: r`<p>In the reaction $\mathrm{D} + \mathrm{T}\to{}^{4}\mathrm{He} + n$ the atomic masses are D $= 2.014102$ u, T $= 3.016049$ u, $^{4}$He $= 4.002603$ u, $n = 1.008665$ u. Take $1\ \mathrm{u} = 931.5\ \mathrm{MeV}/c^2 = 1.6605\times10^{-27}$ kg and $1\ \mathrm{MeV} = 1.602\times10^{-13}$ J. A plant makes 1.0 GW of fusion power.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xnat(2, 'decay law', r`A radioactive substance has a half-life of 10 days. What fraction of it is left after 30 days (3 decimals)?`, 0.5 ** 3, 0.001, 3,
+    r`30 days is three half-lives. $\left(\dfrac12\right)^3 = \dfrac18 = 0.125$.`),
+  xmcq(2, 'nuclear force', r`Which is a property of the nuclear force between two nucleons?`, 'It is short-ranged and nearly the same between p-p, n-n and p-n', ['It is long-ranged, like gravity', 'It acts only between protons', 'It depends on the charge of the nucleons'],
+    r`The nuclear force acts over about 1 to 2 fm and is strongly attractive, regardless of charge. Beyond a few fm it falls off to almost nothing.`),
+  xnat(2, 'nucleus', r`How many neutrons does a nucleus of $^{235}_{92}\mathrm{U}$ contain?`, 235 - 92, 0, 0,
+    r`Neutrons $= A - Z = 235 - 92 = 143$.`),
+  xmcq(2, 'radiations', r`Which of these radiations is the most penetrating?`, 'Gamma rays', ['Alpha particles', 'Beta particles', 'All have the same penetration'],
+    r`Alpha particles are stopped by a sheet of paper, beta particles by a few millimetres of aluminium, and gamma rays need centimetres of lead.`),
+  xnat(2, 'nuclear size', r`Find the radius of a nucleus of mass number 64 (in fm, 1 decimal; $R_0 = 1.2$ fm).`, 1.2 * 64 ** (1 / 3), 0.05, 1,
+    r`$R = R_0A^{1/3} = 1.2\times4 = 4.8$ fm.`, { unit: 'fm' }),
+  xmcq(2, 'mass defect', r`The mass of a stable nucleus is`, 'less than the sum of the masses of its separate nucleons', ['greater than the sum of the masses of its nucleons', 'equal to the sum of the masses of its nucleons', 'equal to the number of its nucleons in kilograms'],
+    r`Binding releases energy, and energy has mass ($\Delta m = E_b/c^2$), so the bound nucleus is lighter than its separated nucleons. The difference is the mass defect.`),
+
+  // ---------- Level 3 ----------
+  xnat(3, 'decay series', r`How many beta-minus particles are emitted in the decay chain from $^{238}_{92}\mathrm{U}$ to $^{206}_{82}\mathrm{Pb}$?`, 6, 0, 0,
+    r`Mass number falls by 32, so $\dfrac{32}{4} = 8$ alpha particles are emitted. These lower $Z$ by 16, but $Z$ only falls by 10. So $16 - 10 = 6$ beta-minus particles are emitted.`),
+  xnat(3, 'binding energy', r`Find the binding energy of $^{4}\mathrm{He}$ (in MeV, 2 decimals). Atomic masses: $^{1}$H $= 1.007825$ u, $n = 1.008665$ u, $^{4}$He $= 4.002603$ u. $1\ \mathrm{u} = 931.5$ MeV$/c^2$.`, (2 * 1.007825 + 2 * 1.008665 - 4.002603) * XU, 0.05, 2,
+    r`Use atomic masses of hydrogen (they include the electron masses, which cancel with those in helium). $\Delta m = 2(1.007825) + 2(1.008665) - 4.002603 = 0.030377$ u. $E_b = 0.030377\times931.5 = 28.30$ MeV.`, { unit: 'MeV', trap: 'Use the hydrogen atom mass with atomic masses, not the proton mass.' }),
+  xnat(3, 'decay constant', r`A radioactive nuclide has a half-life of 69.3 s. Find its mean life (in s).`, 69.3 / XLN2, 0.1, 0,
+    r`$\tau = \dfrac{T_{1/2}}{\ln2} = \dfrac{69.3}{0.693} = 100$ s.`, { unit: 's' }),
+  xnat(3, 'decay law', r`What percentage of the nuclei of a radioactive sample decay during one mean life (1 decimal)?`, (1 - Math.exp(-1)) * 100, 0.1, 1,
+    r`After time $\tau$, $N = N_0e^{-1} = 0.368N_0$, so 63.2 % have decayed.`, { unit: '%' }),
+  xnat(3, 'mass-energy', r`Find the energy equivalent of 1.0 mg of matter (in units of $10^{10}$ J; $c = 3.0\times10^{8}\ \mathrm{m\,s^{-1}}$).`, 1e-6 * 9e16 / 1e10, 0.05, 2,
+    r`$E = mc^2 = 10^{-6}\times(3\times10^{8})^2 = 9\times10^{10}$ J.`, { unit: '×10¹⁰ J' }),
+  xnat(3, 'gamma photon', r`Find the wavelength of a gamma photon of energy 1.0 MeV (in pm, 2 decimals; $hc = 1240\ \mathrm{eV\,nm}$).`, 1240 / 1e6 * 1e3, 0.01, 2,
+    r`$\lambda = \dfrac{hc}{E} = \dfrac{1240\ \mathrm{eV\,nm}}{10^{6}\ \mathrm{eV}} = 1.24\times10^{-3}$ nm $= 1.24$ pm.`, { unit: 'pm' }),
+  xnat(3, 'alpha decay energy', r`$^{226}\mathrm{Ra}$ decays to $^{222}\mathrm{Rn}$ by alpha emission with total energy release $Q = 4.87$ MeV. Find the kinetic energy of the alpha particle (in MeV, 2 decimals).`, 4.87 * 222 / 226, 0.01, 2,
+    r`Momentum conservation makes the kinetic energies share in inverse ratio to the masses: $K_\alpha = Q\dfrac{A - 4}{A} = 4.87\times\dfrac{222}{226} = 4.78$ MeV.`, { unit: 'MeV' }),
+  xnat(3, 'decay law', r`A radioactive sample has a half-life of 5 years. How long does it take for 87.5 % of the sample to decay (in years)?`, 5 * 3, 0, 0,
+    r`87.5 % decayed means $12.5 = \tfrac18$ is left: three half-lives, $3\times5 = 15$ years.`, { unit: 'y' }),
+  xnat(3, 'activity', r`The activity of a source is 8000 decays per second. Its half-life is 2 hours. Find its activity after 6 hours (in decays per second).`, 8000 / 8, 0, 0,
+    r`6 h is three half-lives: $A = 8000\times\left(\tfrac12\right)^3 = 1000\ \mathrm{s^{-1}}$.`, { unit: 'Bq' }),
+  xnat(3, 'nuclear stability', r`Find the ratio of neutrons to protons in $^{208}_{82}\mathrm{Pb}$ (2 decimals).`, 126 / 82, 0.01, 2,
+    r`$N = 208 - 82 = 126$. $N/Z = \dfrac{126}{82} = 1.54$. Heavy stable nuclei have more neutrons than protons to offset the Coulomb repulsion.`),
+  xnat(3, 'beta decay Q-value', r`Tritium ($^{3}$H, atomic mass 3.016049 u) decays by beta-minus emission to $^{3}$He (atomic mass 3.016029 u). Find the energy released (in keV, 1 decimal; $1\ \mathrm{u} = 931.5$ MeV$/c^2$).`, (3.016049 - 3.016029) * XU * 1e3, 0.5, 1,
+    r`With atomic masses, the electron's mass is already included, so $Q = (m_{parent} - m_{daughter})c^2 = 0.000020\times931.5 = 0.0186$ MeV $= 18.6$ keV.`, { unit: 'keV' }),
+  xnat(3, 'nuclear size', r`Find the ratio of the radius of an $^{27}$Al nucleus to that of an $^{4}$He nucleus (2 decimals).`, (27 / 4) ** (1 / 3), 0.01, 2,
+    r`$R\propto A^{1/3}$. $\dfrac{R_{Al}}{R_{He}} = \left(\dfrac{27}{4}\right)^{1/3} = 1.89$.`),
+  xnat(3, 'radioactivity', r`A Geiger counter records 3600 counts per minute from a source whose half-life is 1 hour. Find the counts per minute after 3 hours (ignore background).`, 3600 / 8, 0, 0,
+    r`3 hours is three half-lives, so the rate falls to $\tfrac18$: $\dfrac{3600}{8} = 450$ counts per minute.`),
+  xnat(3, 'half-life from data', r`The activity of a sample is 1000 counts per second at $t = 2$ min and 125 counts per second at $t = 6$ min. Find its half-life (in minutes, 2 decimals).`, 4 / 3, 0.01, 2,
+    r`The activity falls by a factor of 8 $= 2^3$ in 4 minutes, which is 3 half-lives. $T = \dfrac43 = 1.33$ min.`, { unit: 'min' }),
+  xnat(3, 'fusion energy', r`Two deuterons ($E_b = 2.22$ MeV each) fuse to form $^{4}$He ($E_b = 28.3$ MeV). Find the energy released (in MeV, 1 decimal).`, 28.3 - 2 * 2.22, 0.05, 1,
+    r`Energy released $=$ increase in total binding energy $= 28.3 - 2\times2.22 = 23.9$ MeV.`, { unit: 'MeV' }),
+  xmt(3, 'changes of the nucleus', 'mn1', r`Match each process with the change in (mass number, atomic number) of the parent nucleus.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Alpha: loses 2 protons and 2 neutrons, $(A - 4, Z - 2)$. Beta-minus: a neutron becomes a proton, $(A, Z + 1)$. Beta-plus: a proton becomes a neutron, $(A, Z - 1)$. Gamma: no change in $A$ or $Z$.`),
+  xmt(3, 'decay law', 'mn2', r`Match each time with the fraction of the original nuclei still present.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-t, B-q, C-r, D-s'],
+    r`$N/N_0 = e^{-t/\tau}$ and $= 2^{-t/T}$. $t = \tau$: $e^{-1} = 0.37$ (p). $t = 2\tau$: $e^{-2} = 0.135$ (q). $t = T$: 0.50 (r). $t = 2T$: 0.25 (s). The 0.63 is the fraction that has decayed at $t = \tau$.`),
+  xmt(3, 'nuclear size', 'mn3', r`Match each mass number with the nuclear radius from $R = 1.2A^{1/3}$ fm.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$A^{1/3} = 2, 3, 4, 5$ for $A = 8, 27, 64, 125$. $R = 2.4, 3.6, 4.8, 6.0$ fm.`),
+  xmt(3, 'binding energy per nucleon', 'mn8', r`Match each nucleus with its binding energy per nucleon.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`The curve peaks near iron at about 8.8 MeV (p). $^{4}$He has 28.3 MeV for 4 nucleons, 7.1 MeV (q). $^{235}$U has about 7.6 MeV (r). The deuteron has 2.22 MeV for 2 nucleons: 1.1 MeV (s).`),
+  xasrt(3, 'radioactivity', r`The decay of a radioactive nucleus cannot be predicted for an individual nucleus.`, r`Radioactive decay is a random process, with a fixed probability per unit time for each nucleus.`, 0,
+    r`Each nucleus has the same probability $\lambda\,dt$ of decaying in a short time, and nothing tells which nucleus goes next. R explains A.`),
+  xstm(3, 'nuclear density', r`The density of nuclear matter is nearly the same for all nuclei.`, r`The nuclear radius is proportional to $A^{1/3}$.`, 0,
+    r`$M\propto A$ and $V\propto R^3\propto A$, so $\rho$ is constant, about $2.3\times10^{17}\ \mathrm{kg\,m^{-3}}$. Both true and II explains I.`),
+  xmcq(3, 'conservation laws', r`In a nuclear reaction, which quantity is NOT necessarily conserved?`, 'The total number of protons', ['The total electric charge', 'The total number of nucleons', 'The total energy including rest mass energy'],
+    r`Charge, nucleon number and energy-momentum are conserved. The number of protons alone is not: in beta decay a neutron becomes a proton.`, { trap: 'Read the NOT.' }),
+
+  // ---------- Level 4 ----------
+  xnat(4, 'neutron moderation', r`A neutron collides head-on and elastically with a stationary carbon-12 nucleus ($A = 12$). Find the greatest percentage of its kinetic energy that it can lose (1 decimal).`, 4 * 12 / 13 ** 2 * 100, 0.1, 1,
+    r`In a head-on elastic collision the fraction lost is $\dfrac{4A}{(A + 1)^2} = \dfrac{48}{169} = 0.284$, i.e. 28.4 %. For hydrogen ($A = 1$) it can lose 100 %, which is why water makes a good moderator.`, { unit: '%' }),
+  xnat(4, 'radioactive dating', r`A rock contains $^{238}$U (half-life $4.5\times10^{9}$ y) and its decay product lead in the ratio of numbers $N_{Pb}/N_U = 0.50$. Assume all the lead came from uranium. Find the age of the rock (in units of $10^{9}$ y, 2 decimals).`, 4.5 * Math.log2(1.5), 0.02, 2,
+    r`Originally $N_U + N_{Pb} = 1.5N_U$. Now $N_U = \dfrac{N_0}{1.5}$ (taking $N_U$ today as the unit, $N_0 = 1.5$). $2^{t/T} = \dfrac{N_0}{N_U} = 1.5$, so $t = T\log_21.5 = 4.5\times0.585 = 2.63\times10^{9}$ y.`, { unit: '×10⁹ y' }),
+  xnat(4, 'fusion and fission', r`Compare the energy per kilogram of fuel: $\mathrm{D} + \mathrm{T}\to{}^{4}\mathrm{He} + n$ releases 17.6 MeV per reaction (reacting mass 5 u). Fission of $^{235}$U releases 200 MeV per nucleus (mass 235 u). Find the ratio (D-T energy per kg)/(U energy per kg) (2 decimals).`, (17.6 / 5) / (200 / 235), 0.02, 2,
+    r`Per atomic mass unit: D-T $\dfrac{17.6}{5} = 3.52$ MeV/u; U $\dfrac{200}{235} = 0.851$ MeV/u. Ratio $= 4.14$.`),
+  xnat(4, 'neutron decay', r`A free neutron decays into a proton, an electron and an antineutrino. Find the energy released (in MeV, 2 decimals). $m_n = 1.008665$ u, $m_p = 1.007276$ u, $m_e = 0.000549$ u, $1\ \mathrm{u} = 931.5$ MeV$/c^2$ (take the antineutrino mass as zero).`, (1.008665 - 1.007276 - 0.000549) * XU, 0.01, 2,
+    r`$\Delta m = 1.008665 - 1.007276 - 0.000549 = 0.000840$ u. $Q = 0.000840\times931.5 = 0.78$ MeV, shared by the electron and the antineutrino (the proton recoils very little).`, { unit: 'MeV' }),
+  xnat(4, 'threshold energy', r`The reaction $^{14}\mathrm{N} + {}^{4}\mathrm{He}\to{}^{17}\mathrm{O} + p$ has $Q = -1.19$ MeV. Find the least kinetic energy of the incident alpha particle (in MeV, 2 decimals; use mass numbers for the masses).`, 1.19 * (1 + 4 / 14), 0.01, 2,
+    r`Only the kinetic energy in the centre-of-mass frame is available: $K_{th} = |Q|\dfrac{m_\alpha + M_N}{M_N} = 1.19\times\dfrac{18}{14} = 1.53$ MeV.`, { unit: 'MeV', trap: 'The threshold is more than |Q|, because the products must also move.' }),
+  xnat(4, 'alpha decay', r`$^{238}$U ($238.050788$ u) decays to $^{234}$Th ($234.043601$ u) by alpha emission ($^{4}$He $= 4.002603$ u). Find the energy released (in MeV, 2 decimals).`, (238.050788 - 234.043601 - 4.002603) * XU, 0.02, 2,
+    r`$\Delta m = 238.050788 - 234.043601 - 4.002603 = 0.004584$ u. $Q = 0.004584\times931.5 = 4.27$ MeV.`, { unit: 'MeV' }),
+  xnat(4, 'two sources', r`Two samples, X (half-life 1 hour) and Y (half-life 2 hours), start with equal numbers of nuclei. After how many hours are their activities equal?`, 2, 0, 0,
+    r`$A = \lambda N_0e^{-\lambda t}$. With $\lambda_X = \ln2$ and $\lambda_Y = \dfrac{\ln2}{2}$ (per hour): $\ln2\,e^{-t\ln2} = \dfrac{\ln2}{2}e^{-t\ln2/2}$ gives $2 = e^{t\ln2/2}$, so $t\ln2/2 = \ln2$ and $t = 2$ h.`, { unit: 'h' }),
+  xnat(4, 'radioactive dating', r`A sample of wood from an old site has a carbon-14 activity per gram that is one quarter of that of living wood. The half-life of $^{14}$C is 5730 y. Find the age (in years).`, 2 * 5730, 0, 0,
+    r`One quarter means two half-lives: $2\times5730 = 11\,460$ y.`, { unit: 'y' }),
+  xnat(4, 'decay law', r`What percentage of the nuclei of a sample decay in the first half of one half-life (1 decimal)?`, (1 - 2 ** -0.5) * 100, 0.1, 1,
+    r`After a time $T/2$: $\dfrac{N}{N_0} = 2^{-1/2} = 0.707$. So $29.3$ % have decayed.`, { unit: '%', trap: 'Not 25 %: the decay is exponential, not linear.' }),
+  xnat(4, 'two sources', r`Two samples start with equal activities. Their half-lives are 1 hour and 4 hours. Find the ratio (activity of the short-lived one)/(activity of the long-lived one) after 4 hours (3 decimals).`, 2 ** -4 / 2 ** -1, 0.001, 3,
+    r`Equal initial activities. After 4 h: the first has had 4 half-lives, factor $2^{-4}$; the second one half-life, factor $2^{-1}$. Ratio $= \dfrac{1/16}{1/2} = 0.125$.`),
+  xnat(4, 'energy sharing in fission', r`A nucleus of mass number 200, at rest, splits into two fragments of mass numbers 120 and 80, releasing 160 MeV as kinetic energy. Find the kinetic energy of the lighter fragment (in MeV).`, 160 * 120 / 200, 0, 0,
+    r`Momenta are equal and opposite, so $K\propto\dfrac1m$. The lighter (80) gets the larger share: $K_{80} = 160\times\dfrac{120}{200} = 96$ MeV (and the 120 fragment 64 MeV).`, { unit: 'MeV', trap: 'The lighter fragment carries more energy.' }),
+  xmsqr(4, 'radioactivity', r`Which are correct for radioactive decay?`, [r`The decay constant does not depend on temperature or pressure.`, r`The mean life is longer than the half-life.`, r`The activity is proportional to the number of undecayed nuclei.`, r`After one mean life, half of the nuclei have decayed.`], [0, 1, 2],
+    r`$\lambda$ is a property of the nucleus (A). $\tau = T/\ln2 = 1.44T$ (B). $A = \lambda N$ (C). After $\tau$, $e^{-1} = 37$ % remain, so 63 % have decayed (D false).`),
+  xmsqr(4, 'decay graphs', r`A graph of $\ln A$ (activity) against time $t$ for a pure radioactive sample is a straight line. Which are correct?`, [r`The slope is $-\lambda$.`, r`The intercept on the $\ln A$ axis is $\ln A_0$.`, r`The half-life is $\ln2$ divided by the magnitude of the slope.`, r`The line would curve upwards for a sample with two different nuclides.`], [0, 1, 2],
+    r`$\ln A = \ln A_0 - \lambda t$ (A, B), and $T = \ln2/\lambda$ (C). The slope $-\lambda$ is fixed for a pure sample, so it does not steepen as the sample decays (D false).`),
+  xmsqr(4, 'binding energy curve', r`Which are correct about the binding energy per nucleon curve?`, [r`It rises steeply for light nuclei and peaks near $A = 56$.`, r`For $A > 56$ it falls slowly, which is why fission of heavy nuclei releases energy.`, r`Fusion of light nuclei releases energy because the products have a higher binding energy per nucleon.`, r`Fission of $^{56}$Fe into two lighter nuclei releases energy.`], [0, 1, 2],
+    r`The curve rises steeply then falls slowly after the peak at $A = 56$. Fusion of light nuclei and fission of heavy ones both end nearer the peak, so both raise the binding energy per nucleon and release energy. Iron-56 is at the peak, so splitting or fusing it would cost energy (the Fe-56 fission statement is false).`),
+  xmsqr(4, 'fission', r`In a nuclear reactor, which are correct?`, [r`The moderator slows the fast neutrons.`, r`Control rods absorb neutrons.`, r`Slow neutrons are more likely than fast ones to cause fission in $^{235}$U.`, r`The multiplication factor must be less than 1 for steady power.`], [0, 1, 2],
+    r`Moderator (A), control rods (B), thermal neutrons have the greatest fission cross-section for U-235 (C). Steady power needs $k = 1$ (D false); $k < 1$ would let the reaction die out.`),
+  xmsqr(4, 'beta decay', r`In beta-minus decay of a nucleus, which are correct?`, [r`A neutron in the nucleus changes into a proton.`, r`An antineutrino is emitted.`, r`The mass number stays the same.`, r`The electron comes from the orbit round the nucleus.`], [0, 1, 2],
+    r`$n\to p + e^- + \bar\nu$. $A$ is unchanged, $Z$ rises by 1. The electron is created in the decay; it did not exist in the nucleus and is not an orbital electron (D false).`),
+  xasrt(4, 'fusion', r`Nuclear fusion needs very high temperatures.`, r`The nuclei must overcome their mutual Coulomb repulsion to come within the range of the nuclear force.`, 0,
+    r`The Coulomb barrier between two light nuclei is about 0.1 to 1 MeV. Only at temperatures of $10^7$ K and above do enough of them have thermal energy (with tunnelling) to get close. R explains A.`),
+  xasrt(4, 'binding energy', r`The mass of a helium-4 nucleus is less than the sum of the masses of two protons and two neutrons.`, r`The binding energy of the nucleus appears as a lower mass, by the relation $\Delta m = E_b/c^2$.`, 0,
+    r`Energy released in forming the nucleus has left the system, and with it the mass $E_b/c^2$. Both true; R explains A.`),
+  xstm(4, 'chain reaction', r`A reactor with multiplication factor $k = 1.001$ can be controlled even though $k > 1$.`, r`A small fraction of the neutrons from fission are delayed (emitted a little later), which slows the growth of the chain reaction.`, 0,
+    r`Delayed neutrons stretch the effective generation time from about $10^{-4}$ s to about 0.1 s, so the power rises slowly enough for control rods to respond. Both true, and II explains I.`),
+  xcnt(4, 'radioactivity', r`How many of the following are correct?`, [r`Gamma rays are not deflected by electric or magnetic fields.`, r`An alpha particle is a helium nucleus.`, r`The unit becquerel is one decay per second.`, r`The activity of a sample decreases exponentially with time.`], 4,
+    r`Gamma rays are neutral (1). Alpha = $^{4}_{2}$He (2). 1 Bq = 1 decay/s (3). $A = A_0e^{-\lambda t}$ (4). All four.`),
+  xmt(4, 'energy released', 'mn4', r`Match each reaction with the approximate energy released.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`D+D$\to{}^{3}$He+n: $\Delta m = 0.00351$ u, 3.27 MeV (p). D+T: 17.6 MeV (q). Fission of U-235: about 200 MeV (r). Triple alpha: $\Delta m = 0.00781$ u, 7.27 MeV (s).`),
+  xmt(4, 'radioactive series', 'mn5', r`Match each count for the decay chains.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$^{238}$U to $^{206}$Pb: $\Delta A = 32$, 8 alphas (p); $Z$ drops 16 by alphas but only 10 overall, so 6 betas (q). $^{235}$U to $^{207}$Pb: $\Delta A = 28$, 7 alphas (r). $^{232}$Th to $^{208}$Pb: 6 alphas lower $Z$ by 12, overall drop 8, so 4 betas (s).`),
+  xmt(4, 'neutron moderation', 'mn6', r`The greatest fraction of its energy that a neutron can lose in a head-on elastic collision with a stationary nucleus of mass number $A$ is $\dfrac{4A}{(A+1)^2}$. Match.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$A = 1$: $\dfrac44 = 1$ (p). $A = 2$: $\dfrac89$ (q). $A = 4$: $\dfrac{16}{25}$ (r). $A = 12$: $\dfrac{48}{169}$ (s).`),
+  xpas(3, 'decay constant', 'pn1', r`Find the decay constant of radium-226 (in units of $10^{-11}\ \mathrm{s^{-1}}$, 2 decimals).`, XLN2 / (1600 * XYR) * 1e11, 0.02, 2,
+    r`$T = 1600\times3.156\times10^{7} = 5.05\times10^{10}$ s. $\lambda = \dfrac{0.693}{5.05\times10^{10}} = 1.37\times10^{-11}\ \mathrm{s^{-1}}$.`, { unit: '×10⁻¹¹ s⁻¹' }),
+  xpas(3, 'number of nuclei', 'pn1', r`Find the number of nuclei in the 1.00 g sample (in units of $10^{21}$, 2 decimals).`, XNA / 226 / 1e21, 0.02, 2,
+    r`$N = \dfrac{1.00}{226}\times6.022\times10^{23} = 2.66\times10^{21}$.`, { unit: '×10²¹' }),
+  xpas(4, 'activity', 'pn1', r`Find the activity of the sample in curies (2 decimals).`, XNA / 226 * XLN2 / (1600 * XYR) / 3.7e10, 0.01, 2,
+    r`$A = \lambda N = 1.37\times10^{-11}\times2.66\times10^{21} = 3.66\times10^{10}$ Bq. In curies: $\dfrac{3.66\times10^{10}}{3.7\times10^{10}} = 0.99$ Ci, which is why the curie was defined as the activity of 1 g of radium.`, { unit: 'Ci' }),
+  xpas(3, 'Q value of a reaction', 'pn2', r`Find the energy released per reaction (in MeV, 2 decimals).`, (2.014102 + 3.016049 - 4.002603 - 1.008665) * XU, 0.02, 2,
+    r`$\Delta m = 2.014102 + 3.016049 - 4.002603 - 1.008665 = 0.018883$ u. $Q = 0.018883\times931.5 = 17.59$ MeV.`, { unit: 'MeV' }),
+  xpas(4, 'reactor power', 'pn2', r`Find the number of reactions per second needed for 1.0 GW (in units of $10^{20}$, 2 decimals).`, 1e9 / (17.59 * XMEV) / 1e20, 0.03, 2,
+    r`Energy per reaction $= 17.59\times1.602\times10^{-13} = 2.818\times10^{-12}$ J. Rate $= \dfrac{10^{9}}{2.818\times10^{-12}} = 3.55\times10^{20}\ \mathrm{s^{-1}}$.`, { unit: '×10²⁰ /s' }),
+  xpas(5, 'fuel use', 'pn2', r`Find the mass of tritium the plant burns in one day (in kg, 3 decimals).`, 1e9 / (17.59 * XMEV) * 86400 * 3.016049 * 1.6605e-27, 0.003, 3,
+    r`Reactions per day $= 3.55\times10^{20}\times86400 = 3.07\times10^{25}$. Each uses one tritium atom of $3.016\times1.6605\times10^{-27} = 5.008\times10^{-27}$ kg. Mass $= 3.07\times10^{25}\times5.008\times10^{-27} = 0.154$ kg.`, { unit: 'kg' }),
+
+  // ---------- Level 5 ----------
+  xnat(5, 'sequential decay', r`Nuclei A (half-life 1 h) decay to nuclei B (half-life 2 h), which are stable-ish products of no further interest. Starting with $N_0$ nuclei of A and none of B, find the largest number of B nuclei present at any time, as a fraction of $N_0$ (2 decimals).`, 0.5, 0.01, 2,
+    r`$N_B(t) = N_0\dfrac{\lambda_A}{\lambda_B - \lambda_A}\left(e^{-\lambda_At} - e^{-\lambda_Bt}\right)$, with $\lambda_A = \ln2$ and $\lambda_B = \dfrac{\ln2}{2}$ per hour. The maximum is when the activities are equal, $\lambda_AN_A = \lambda_BN_B$, which gives $e^{(\lambda_A - \lambda_B)t} = \dfrac{\lambda_A}{\lambda_B} = 2$, so $t = 2$ h. At $t = 2$ h, $e^{-\lambda_At} = \tfrac14$ and $e^{-\lambda_Bt} = \tfrac12$: $N_B = N_0\times\dfrac{\ln2}{-\ln2/2}\times\left(\tfrac14 - \tfrac12\right) = N_0\times(-2)\times(-0.25) = 0.50N_0$.`, { trap: 'B is not produced all at once: it decays as it forms.' }),
+  xnat(5, 'chain reactions', r`In a reactor the number of neutrons is multiplied by $k = 1.005$ in each generation of $1.0\times10^{-4}$ s (ignore delayed neutrons). How long does the neutron population take to double (in ms, 1 decimal)?`, Math.log(2) / Math.log(1.005) * 1e-4 * 1e3, 0.3, 1,
+    r`$k^n = 2$ gives $n = \dfrac{\ln2}{\ln1.005} = 139$ generations. Time $= 139\times10^{-4}$ s $= 13.9$ ms. With the delayed neutrons, real reactors are much slower, which makes them controllable.`, { unit: 'ms' }),
+  xnat(5, 'binding energy curve', r`A nucleus of mass number 236 with binding energy per nucleon 7.6 MeV splits into two equal nuclei, each with binding energy per nucleon 8.5 MeV. Find the energy released (in MeV, 1 decimal).`, 236 * (8.5 - 7.6), 0.2, 1,
+    r`Energy released $= $ total final binding energy $-$ initial $= 236\times8.5 - 236\times7.6 = 236\times0.9 = 212.4$ MeV.`, { unit: 'MeV' }),
+  xnat(5, 'half-life with growth', r`A radioactive nuclide is produced at a constant rate of $2.0\times10^{6}$ nuclei per second, and decays with a half-life of 10 minutes. Find the number of nuclei present when equilibrium is reached (in units of $10^{9}$, 2 decimals).`, 2e6 * (600 / XLN2) / 1e9, 0.01, 2,
+    r`At equilibrium the decay rate $\lambda N$ equals the production rate $R$. $N = \dfrac R\lambda = R\dfrac{T}{\ln2} = \dfrac{2\times10^{6}\times600}{0.693} = 1.73\times10^{9}$.`),
+  xnat(5, 'decay law', r`A sample contains a long-lived nuclide of half-life 100 years. In an experiment lasting 1 hour the number of nuclei decaying is counted and found to be 5000 decays. Estimate the number of nuclei in the sample (in units of $10^{9}$, 2 decimals). Take 1 year $= 8766$ h.`, 5000 / (XLN2 / (100 * 8766)) / 1e9, 0.01, 2,
+    r`For a short time $\Delta t\ll T$, $\Delta N = \lambda N\Delta t$. $\lambda = \dfrac{0.693}{100\times8766\ \mathrm{h}} = 7.91\times10^{-7}\ \mathrm{h^{-1}}$. $N = \dfrac{5000}{7.91\times10^{-7}\times1} = 6.32\times10^{9}$. In units of $10^{9}$: $6.32$.`, { trap: 'The activity of a long-lived sample is tiny compared with the number of nuclei.' }),
+  xmsqr(5, 'nuclear force', r`Which are correct about the nuclear force?`, [r`It is much stronger than the electrostatic force at distances of about 1 fm.`, r`It is saturated: a nucleon interacts mainly with its neighbours.`, r`It becomes repulsive at very short distances (below about 0.8 fm).`, r`It is a central force that depends on the charge of the nucleons.`], [0, 1, 2],
+    r`At 1 fm the nuclear force is about 100 times the Coulomb force (A). Its short range means each nucleon feels only nearby ones, so the binding energy per nucleon is roughly constant (B). At very short range it turns repulsive (C). It is charge independent (D false).`),
+  xmsqr(5, 'Q value of a reaction', r`For a nuclear reaction with $Q = (\text{total initial mass} - \text{total final mass})c^2$, which are correct?`, [r`If $Q > 0$ the reaction is exothermic.`, r`If $Q < 0$ the incoming particle needs at least $|Q|$ of kinetic energy, and in general more.`, r`Total energy is conserved, including rest mass energy.`, r`$Q$ depends on the kinetic energy of the incoming particle.`], [0, 1, 2],
+    r`$Q < 0$ needs at least $|Q|$ of kinetic energy, total energy is conserved, and $Q > 0$ means exothermic. $Q$ is fixed by the masses alone and does not depend on the projectile's energy, so that statement is false.`),
+  xmsqr(5, 'fusion', r`Which are correct for the fusion of hydrogen nuclei in the Sun?`, [r`The net result is four protons forming a helium-4 nucleus, two positrons and two neutrinos.`, r`The energy released is about 26 MeV per helium nucleus formed.`, r`The high temperature is needed so that nuclei can come close enough despite the Coulomb repulsion.`, r`The energy comes from the loss of mass, which is about 4 % of the mass of the protons that fuse.`], [0, 1, 2],
+    r`The pp chain: $4p\to{}^{4}$He $+ 2e^+ + 2\nu$ with about 26.7 MeV (A, B), made possible by thermal energy plus tunnelling (C). The mass loss is $\dfrac{26.7}{4\times938} = 0.7$ %, not 4 % (D false).`),
+  xmsqr(5, 'binding energy', r`Which are correct?`, [r`The binding energy of a nucleus is the energy needed to separate it into its nucleons.`, r`The binding energy per nucleon of $^{4}$He is greater than that of $^{3}$He.`, r`The binding energy per nucleon is roughly the same (7 to 9 MeV) for most nuclei with $A > 20$.`, r`The deuteron has a larger binding energy per nucleon than $^{4}$He.`], [0, 1, 2],
+    r`The binding energy of a nucleus is the energy needed to separate it into free nucleons. $^{4}$He has 7.07 MeV per nucleon against 2.57 MeV for $^{3}$He, and the curve is flat (about 7 to 9 MeV) for medium and heavy nuclei. The deuteron has only 1.11 MeV per nucleon, less than $^{3}$He, so the deuteron statement is false.`),
+  xasrt(5, 'activity', r`If the number of radioactive nuclei in a sample is halved, the activity is also halved.`, r`The activity is proportional to the number of nuclei present: $A = \lambda N$.`, 0,
+    r`$\lambda$ is a constant for the nuclide, so $A\propto N$. R explains A.`),
+  xasrt(5, 'alpha decay', r`In the alpha decay of a nucleus at rest, the alpha particle carries away most of the energy released.`, r`The nucleus and the alpha particle have equal and opposite momenta, so the lighter particle has the larger kinetic energy.`, 0,
+    r`With $p_\alpha = p_D$: $K = \dfrac{p^2}{2m}\propto\dfrac1m$. The alpha particle ($A = 4$) gets the fraction $\dfrac{A - 4}{A}$, about 98 % for heavy nuclei. R explains A.`),
+  xstm(5, 'radioactive series', r`A radioactive substance in a closed container reaches a state in which the activity of the parent equals the activity of the long-lived part of its daughter (secular equilibrium) when the daughter's half-life is much shorter than the parent's.`, r`In secular equilibrium the number of daughter nuclei is constant because they are formed as fast as they decay.`, 0,
+    r`When $T_{parent}\gg T_{daughter}$, the parent hardly changes, and the daughter's number rises until its decay rate equals its production rate, $\lambda_DN_D = \lambda_PN_P$. Both true.`),
+  xmt(5, 'two radioactive samples', 'mn7', r`Two samples start with equal numbers of nuclei. Sample 1 has half-life $T$ and sample 2 has half-life $2T$. Match each item at $t = 2T$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Sample 1: 2 half-lives, $\tfrac14$ left (p), $\tfrac34$ decayed (s). Sample 2: 1 half-life, $\tfrac12$ left (q). Activity $A = \lambda N$ with $\lambda_1 = 2\lambda_2$: $\dfrac{A_1}{A_2} = \dfrac{2\times\frac14}{\frac12} = 1$ (r).`),
+  xmsqr(4, 'half-life', r`A sample of $N_0$ nuclei has half-life $T$. Which are correct?`, [r`After $3T$, 12.5 % of the nuclei remain.`, r`In any interval of length $T$, half of the nuclei present at the start of the interval decay.`, r`The activity at $t = T$ is half the activity at $t = 0$.`, r`After $2T$ all the nuclei have decayed.`], [0, 1, 2],
+    r`Each half-life halves the number present: after $3T$ the fraction is $(1/2)^3 = 12.5$ %, and this holds for any starting moment, and the activity $\lambda N$ halves with $N$. After $2T$ a quarter ($25$ %) still remain, so the claim that all have decayed is false.`, { trap: 'Two half-lives do not remove everything; the decay is exponential.' }),
+];
+
+const xgens = [
+  xg('nu-g29', 3, 'nat', 'decay law', function make(rng) {
+    const T = pick(rng, 2, 30, 2); const n = pick(rng, 1.5, 5, 0.5); const t = T * n;
+    const dec = (1 - 2 ** -n) * 100;
+    return { T, t, n, q: `A radioactive sample has a half-life of ${T} days. What percentage of the nuclei have decayed after ${t} days (1 decimal)?`, answer: +dec.toFixed(1), tol: 0.1, unit: '%',
+      sol: `$t/T = ${n}$. $N/N_0 = 2^{-${n}} = ${xs(2 ** -n, 4)}$, so the fraction decayed is $1 - ${xs(2 ** -n, 4)} = ${xs(dec / 100, 4)}$, i.e. ${xs(dec)} %.`, trap: 'The question asks for the decayed fraction, not the remaining one.' };
+  }, (p) => (1 - Math.exp(-Math.LN2 / p.T * p.t)) * 100),
+  xg('nu-g30', 3, 'mcq', 'decay series', function make(rng) {
+    const na = int(rng, 2, 8); const nb = int(rng, 1, 5); const A1 = 230 + int(rng, 0, 10); const Z1 = 90 + int(rng, 0, 2);
+    const A2 = A1 - 4 * na; const Z2 = Z1 - 2 * na + nb;
+    const o = shuffleOpts(rng, `${na} alpha, ${nb} beta-minus`, [`${na} alpha, ${nb + 2} beta-minus`, `${na + 1} alpha, ${nb} beta-minus`, `${nb} alpha, ${na} beta-minus`]);
+    return { na, nb, A1, Z1, A2, Z2, q: `A nucleus of mass number ${A1} and atomic number ${Z1} ends up, after a series of decays, as a nucleus of mass number ${A2} and atomic number ${Z2}. The particles emitted are`, options: o.options, answer: o.answer,
+      sol: `$\\Delta A = ${A1 - A2}$ gives ${na} alpha particles. These lower $Z$ by ${2 * na}$, to ${Z1 - 2 * na}$; the actual $Z$ is ${Z2}, so ${nb} beta-minus particles raise it by ${nb}.` };
+  }, (p) => { const na = (p.A1 - p.A2) / 4; const nb = p.Z2 - (p.Z1 - 2 * na); return p.options.findIndex((o) => o === `${na} alpha, ${nb} beta-minus`); }),
+  xg('nu-g31', 4, 'nat', 'alpha decay energy', function make(rng) {
+    const A = choose(rng, [210, 214, 218, 222, 226, 230, 238]); const Q = pick(rng, 4, 6.5, 0.05);
+    const K = Q * (A - 4) / A;
+    return { A, Q, q: `A nucleus of mass number ${A}, at rest, emits an alpha particle, with total energy release $Q = ${Q}$ MeV. Find the kinetic energy of the alpha particle (in MeV, 3 decimals).`, answer: +K.toFixed(3), tol: 0.005, unit: 'MeV',
+      sol: `Equal momenta give $K\\propto1/m$. $K_\\alpha = Q\\dfrac{A - 4}{A} = ${Q}\\times\\dfrac{${A - 4}}{${A}} = ${xs(K, 4)}$ MeV.`, trap: 'The alpha particle gets the larger share, since it is lighter.' };
+  }, (p) => { const m1 = 4; const m2 = p.A - 4; return p.Q * m2 / (m1 + m2); }),
+  xg('nu-g32', 4, 'nat', 'binding energy per nucleon', function make(rng) {
+    const sets = [['\\mathrm{^{4}He}', 2, 2, 4.002603], ['\\mathrm{^{12}C}', 6, 6, 12.0], ['\\mathrm{^{16}O}', 8, 8, 15.994915], ['\\mathrm{^{14}N}', 7, 7, 14.003074], ['\\mathrm{^{20}Ne}', 10, 10, 19.992440]];
+    const s = choose(rng, sets); const Z = s[1]; const N = s[2]; const m = s[3];
+    const BE = (Z * 1.007825 + N * 1.008665 - m) * 931.5; const per = BE / (Z + N);
+    return { s, q: `The atomic mass of $${s[0]}$ is ${m} u ($^{1}$H $= 1.007825$ u, $n = 1.008665$ u, $1\\ \\mathrm{u} = 931.5$ MeV$/c^2$). Find its binding energy per nucleon (in MeV, 2 decimals).`, answer: +per.toFixed(2), tol: 0.02, unit: 'MeV',
+      sol: `$\\Delta m = ${Z}(1.007825) + ${N}(1.008665) - ${m} = ${xs(Z * 1.007825 + N * 1.008665 - m, 5)}$ u. $E_b = ${xs(BE, 5)}$ MeV. Per nucleon: $\\dfrac{${xs(BE, 5)}}{${Z + N}} = ${xs(per)}$ MeV.`, trap: 'Divide by the number of nucleons, A.' };
+  }, (p) => ((p.s[1] * 1.007825 + p.s[2] * 1.008665 - p.s[3]) * 931.5) / (p.s[1] + p.s[2])),
+  xg('nu-g33', 4, 'mcq', 'neutron moderation', function make(rng) {
+    const A = choose(rng, [2, 4, 9, 12, 16, 56]); const f = 4 * A / (A + 1) ** 2;
+    const o = numOpts(rng, f * 100, [(1 - f) * 100, 100 / A, 200 / (A + 1)], '%', 3);
+    return { A, q: `A neutron collides head-on and elastically with a stationary nucleus of mass number ${A}. The greatest fraction of its kinetic energy it can lose is`, options: o.options, answer: o.answer,
+      sol: `Fraction lost $= \\dfrac{4A}{(A + 1)^2} = \\dfrac{${4 * A}}{${(A + 1) ** 2}} = ${xs(f, 4)}$, i.e. ${xs(f * 100)} %. The other options come from the fraction kept, $1/A$, or an average-mass slip.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt(4 * p.A / (p.A + 1) ** 2 * 100, 3)} %`)),
+  xg('nu-g34', 5, 'nat', 'radioactive dating', function make(rng) {
+    const T = choose(rng, [1.25, 4.5, 0.704, 14.0]); const rr = choose(rng, [0.25, 0.5, 1, 2, 3]);
+    const t = T * Math.log2(1 + rr);
+    return { T, rr, q: `A rock contains a parent nuclide of half-life ${T}$\\times10^{9}$ y and its stable daughter in the ratio of numbers $N_d/N_p = ${rr}$. All the daughter came from the parent and none was there at the start. Find the age of the rock (in $10^{9}$ y, 3 decimals).`, answer: +t.toFixed(3), tol: Math.max(0.005, t * 0.003), unit: '×10⁹ y',
+      sol: `Originally $N_p + N_d = N_p(1 + ${rr})$. $2^{t/T} = \\dfrac{N_0}{N_p} = ${1 + rr}$. $t = T\\log_2${1 + rr} = ${T}\\times${xs(Math.log2(1 + rr), 4)} = ${xs(t)}\\times10^{9}$ y.`, trap: 'The original number is parent plus daughter, not parent alone.' };
+  }, (p) => { const lam = Math.LN2 / p.T; return Math.log(1 + p.rr) / lam; }),
+  xg('nu-g35', 4, 'nat', 'reactor power', function make(rng) {
+    const P = pick(rng, 100, 1000, 100); const eta = choose(rng, [0.3, 0.33, 0.4]); const d = pick(rng, 1, 30, 1);
+    const m = P * 1e6 * d * 86400 / eta / (200 * 1.602e-13) * 235 * 1.6605e-27;
+    return { P, eta, d, q: `A reactor delivers ${P} MW of electrical power with an efficiency of ${eta * 100} %. Each fission of $^{235}$U releases 200 MeV. Find the mass of $^{235}$U fissioned in ${d} day${d > 1 ? 's' : ''} (in kg, 3 decimals; $1\\ \\mathrm{MeV} = 1.602\\times10^{-13}$ J, $m = 235\\times1.6605\\times10^{-27}$ kg).`, answer: +m.toFixed(3), tol: Math.max(0.003, m * 0.005), unit: 'kg',
+      sol: `Thermal power $= ${P}/${eta} = ${xs(P / eta, 4)}$ MW. Energy in ${d} d $= ${xs(P / eta * 1e6 * d * 86400, 4)}$ J. Fissions $= \\dfrac{E}{200\\times1.602\\times10^{-13}} = ${xs(P * 1e6 * d * 86400 / eta / (200 * 1.602e-13), 4)}$. Mass $= N\\times235\\times1.6605\\times10^{-27} = ${xs(m)}$ kg.`, trap: 'Divide by the efficiency: the thermal power is larger than the electrical power.' };
+  }, (p) => { const n = p.P * 1e6 / p.eta * p.d * 86400 / (200 * 1.602e-13); return n * 235 * 1.6605e-27; }),
+  xg('nu-g36', 3, 'nat', 'Q value of a reaction', function make(rng) {
+    const rx = choose(rng, [['\\mathrm{D} + \\mathrm{D}\\to{}^{3}\\mathrm{He} + n', 2.014102 * 2, 3.016029 + 1.008665], ['\\mathrm{D} + \\mathrm{T}\\to{}^{4}\\mathrm{He} + n', 2.014102 + 3.016049, 4.002603 + 1.008665], ['3\\,{}^{4}\\mathrm{He}\\to{}^{12}\\mathrm{C}', 3 * 4.002603, 12.0], ['{}^{6}\\mathrm{Li} + n\\to{}^{4}\\mathrm{He} + \\mathrm{T}', 6.015123 + 1.008665, 4.002603 + 3.016049]]);
+    const Q = (rx[1] - rx[2]) * 931.5;
+    return { rx, q: `Using atomic masses, the reaction $${rx[0]}$ has total initial mass ${xs(rx[1], 7)} u and total final mass ${xs(rx[2], 7)} u. Find the energy released (in MeV, 2 decimals; $1\\ \\mathrm{u} = 931.5$ MeV$/c^2$).`, answer: +Q.toFixed(2), tol: 0.03, unit: 'MeV',
+      sol: `$\\Delta m = ${xs(rx[1], 7)} - ${xs(rx[2], 7)} = ${xs(rx[1] - rx[2], 4)}$ u. $Q = ${xs(rx[1] - rx[2], 4)}\\times931.5 = ${xs(Q)}$ MeV.`, trap: 'Initial mass minus final mass, in that order.' };
+  }, (p) => (p.rx[1] - p.rx[2]) * 931.5),
+  xg('nu-g37', 3, 'mcq', 'decay law', function make(rng) {
+    const n = int(rng, 2, 6); const N0 = choose(rng, [3.2e6, 6.4e7, 1.28e8, 5.12e8]);
+    const left = N0 / 2 ** n;
+    const o = shuffleOpts(rng, fmt(left, 3), [fmt(N0 / n, 3), fmt(N0 / 2 ** (n - 1), 3), fmt(N0 * (1 - 1 / 2 ** n), 3)]);
+    return { n, N0, q: `A sample has $${fmt(N0, 3).replace('<sup>', '^{').replace('</sup>', '}').replace(' × ', '\\times')}$ radioactive nuclei at $t = 0$. How many remain after ${n} half-lives?`, options: o.options, answer: o.answer,
+      sol: `Each half-life halves the number: $N = N_0/2^{${n}} = ${fmt(left, 3)}$. Dividing by ${n} (instead of $2^{${n}}$), or using ${n - 1} half-lives, are common slips; $N_0(1 - 2^{-${n}})$ is the number that has decayed.` };
+  }, (p) => p.options.findIndex((o) => o === fmt(p.N0 / 2 ** p.n, 3))),
+];
+
+export default { topic: 'nuclei', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
