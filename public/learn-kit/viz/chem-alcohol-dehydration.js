@@ -18,6 +18,7 @@ export default function (host) {
   const own = !host.classList.contains('lk-stage');
   if (own) { const c = row(host); button(c, '◀ Back', () => go(i - 1)); button(c, 'Next ▶', () => go(i + 1)); }
   const out = readout(host);
+  if (host.classList.contains('lk-stage')) out.hidden = true;
   function go(k) { i = Math.max(0, Math.min(S.length - 1, k)); out.innerHTML = `<b>${S[i][0]}.</b> ${S[i][1]}`; cv.redraw(); }
   cv.draw = (ctx, w, h, col) => {
     title(ctx, S[i][0], col);

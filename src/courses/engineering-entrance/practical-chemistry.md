@@ -84,6 +84,10 @@ An indicator is a weak acid whose two forms have different colours. It changes o
 | SO₄²⁻ | BaCl₂ | white BaSO₄, insoluble in HCl |
 | PO₄³⁻ | ammonium molybdate + HNO₃ | canary-yellow precipitate |
 
+**Try it:** run the tests on the hidden salt in a sensible order and write down what you see, then name the anion. Press "New unknown" to play again.
+
+<figure class="fig" data-fig="@chem-salt-analysis"><figcaption>Work from the general to the specific: dilute acid first (carbonate, sulphite, sulphide, nitrite, acetate), then concentrated H₂SO₄ (chloride, bromide, iodide, nitrate), then BaCl₂ for sulphate and AgNO₃ to confirm halides.</figcaption></figure>
+
 ## 5. Salt analysis: cation groups
 
 | Group | Ions | Group reagent | Precipitate |

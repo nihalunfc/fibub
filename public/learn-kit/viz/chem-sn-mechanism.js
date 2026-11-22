@@ -23,6 +23,7 @@ export default function (host) {
   const pb = document.createElement('button'); pb.type = 'button'; pb.className = 'lk-btn'; pb.textContent = '▶ Play'; pb.addEventListener('click', () => { if (t >= 1) t = 0; playing = !playing; pb.textContent = playing ? '❚❚ Pause' : '▶ Play'; });
   c2.appendChild(pb);
   const out = readout(host);
+  if (host.classList.contains('lk-stage')) out.hidden = true;
   function geom() {
     const sn2 = mech === 'sn2';
     let a, nuX, lgX, nuB, lgB, nuOn = true;

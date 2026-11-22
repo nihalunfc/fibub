@@ -16,6 +16,7 @@ export default function (host) {
   let i = 0;
   const cv = canvas(host, { aspect: 0.9, max: 430, min: 320, label: 'Balancing the MnO4- and Fe2+ redox equation step by step' });
   const out = readout(host);
+  if (host.classList.contains('lk-stage')) out.hidden = true;
   const own = !host.classList.contains('lk-stage');
   if (own) { const c = row(host); button(c, '◀ Back', () => go(i - 1)); button(c, 'Next ▶', () => go(i + 1)); }
   function go(k) { i = Math.max(0, Math.min(S.length - 1, k)); out.innerHTML = `<b>Step ${i + 1} of ${S.length}: ${S[i].t}.</b> ${S[i].note}`; cv.redraw(); }
