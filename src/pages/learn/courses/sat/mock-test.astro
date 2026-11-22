@@ -1,0 +1,5 @@
+---
+import ExamMock from '../../../../components/qbank/ExamMock.astro';
+import { SAT, SAT_BANK } from '../../../../courses/sat/syllabus';
+---
+<ExamMock course={SAT} {...SAT_BANK} marking="One point for each right answer; no penalty for wrong answers, so answer every question. Your real SAT score (200 to 800) also depends on which questions you get right and on the adaptive second module, so treat this as practice for pace and accuracy, not a score prediction." />

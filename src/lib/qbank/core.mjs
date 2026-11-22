@@ -187,6 +187,12 @@ export const PATTERNS = {
     { name: 'NAT, 1 mark', type: 'nat', marks: 1, count: 7 },
     { name: 'NAT, 2 marks', type: 'nat', marks: 2, count: 10 },
   ] },
+  // SAT Math, both modules together (44 questions in 70 minutes; about three quarters multiple choice). The real test
+  // adapts its second module; this practice paper does not.
+  'sat-math': { name: 'SAT Math practice (both modules, not adaptive)', minutes: 70, scheme: 'sat', sections: [
+    { name: 'Multiple choice', type: 'mcq', marks: 1, count: 33 },
+    { name: 'Student-produced response (type your answer)', type: 'nat', marks: 1, count: 11 },
+  ] },
   net: { name: 'CSIR NET Physical Sciences (Parts B and C)', minutes: 150, scheme: 'net', sections: [
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
