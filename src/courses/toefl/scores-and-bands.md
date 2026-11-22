@@ -1,7 +1,7 @@
 ---
 title: 'Scores: the 1 to 6 bands, CEFR and the old 0 to 120'
 seoTitle: 'TOEFL score 2026: 1-6 bands, CEFR and 0-120 explained'
-summary: 'How the 2026 TOEFL iBT is scored: a band from 1 to 6 for each section, an overall band rounded to the nearest half, how bands line up with CEFR levels, the 0 to 120 comparison and what universities ask for.'
+summary: 'How the 2026 TOEFL is scored: 1 to 6 section bands, the overall band rounded to the nearest half, CEFR levels and the 0 to 120 comparison.'
 minutes: 13
 updated: 2026-11-22
 quiz:

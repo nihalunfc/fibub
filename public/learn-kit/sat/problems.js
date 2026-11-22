@@ -14,10 +14,20 @@ import ex from '../../qbank/sat/exponential-functions.js';
 import pr from '../../qbank/sat/polynomials-rational.js';
 import re from '../../qbank/sat/radicals-exponents.js';
 import ns from '../../qbank/sat/nonlinear-systems.js';
+import rp from '../../qbank/sat/ratios-rates-percent.js';
+import uc from '../../qbank/sat/units-conversion.js';
+import ov from '../../qbank/sat/one-variable-data.js';
+import tv from '../../qbank/sat/two-variable-data.js';
+import pb from '../../qbank/sat/probability.js';
+import si from '../../qbank/sat/sampling-inference.js';
+import av from '../../qbank/sat/area-volume.js';
+import lt from '../../qbank/sat/lines-angles-triangles.js';
+import rt from '../../qbank/sat/right-triangle-trig.js';
+import ci from '../../qbank/sat/circles.js';
 
 const HINT = 'Write down what the question gives you and what it asks for, then take one small step at a time. Check your answer by putting it back in.';
 const out = {};
-for (const t of [le, lf, sy, li, lm, ee, qd, fn, ex, pr, re, ns]) {
+for (const t of [le, lf, sy, li, lm, ee, qd, fn, ex, pr, re, ns, rp, uc, ov, tv, pb, si, av, lt, rt, ci]) {
   for (const g of t.gens || []) {
     if (g.type !== 'nat') continue;
     out[g.id.replace(/^sat-/, '')] = {

@@ -77,7 +77,7 @@ for (const c of courses) {
     for (const m of md.matchAll(/data-fig="([a-z0-9-]+)"/g)) ok(`${c}/${f}: figure ${m[1]} exists`, existsSync(new URL(m[1] + '.js', figDir)));
     for (const m of md.matchAll(/data-set="([a-z0-9-]+)"/g)) ok(`${c}/${f}: set ${m[1]} exists`, existsSync(new URL(m[1] + '.js', setDir)));
     let fm = null; try { fm = yaml.load(md.split('\n---\n')[0].replace(/^---\n/, '')); } catch (e) { console.log(String(e).split('\n')[0]); }
-    ok(`${c}/${f}: front matter is valid YAML with a 3-question quiz`, fm?.quiz?.length === 3 && fm.seoTitle?.length <= 60 && fm.quiz.every((q) => q.ans < q.choices.length));
+    ok(`${c}/${f}: front matter is valid YAML with a 3-question quiz`, fm?.quiz?.length === 3 && fm.seoTitle?.length <= 60 && fm.summary?.length <= 160 && fm.quiz.every((q) => q.ans < q.choices.length));
     ok(`${c}/${f}: has key points`, md.includes('class="keypoints"'));
     ok(`${c}/${f}: has practice (a drill, timer or writing pad)`, /data-fig="(drill|speak|write)"/.test(md));
     ok(`${c}/${f}: has sources`, /\nsources:\n\s+- /.test(md));

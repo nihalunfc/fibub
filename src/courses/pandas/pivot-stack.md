@@ -16,9 +16,16 @@ quiz:
     choices: ['.unstack()', '.stack()', '.melt()']
     ans: 0
     why: 'The groupby result has a two-level index; unstack spreads the second level across.'
+sources:
+  - 'pandas documentation, User Guide: Reshaping and pivot tables https://pandas.pydata.org/docs/user_guide/reshaping.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 6 · about 15 minutes · uses Lessons 6.1 and 6.2.** You'll be able to move data between long and wide shapes in both directions.
+
+<div class="bigidea">pivot spreads a long table back into a grid without adding anything up; unstack moves an index level into the columns, and stack moves it back.</div>
+
+**In everyday terms:** folding a long receipt into a card: the same lines, laid out in a grid. Unfold it again and nothing is lost.
 
 ## 1. pivot: rearrange without combining
 
@@ -40,7 +47,6 @@ long.pivot(index='store', columns='year', values='sales')
 
 ## 2. stack and unstack
 
-<!--anim:stack-anim (table animation, added once the shared tableviz engine is on main)-->
 
 ```python data=orders.csv
 import pandas as pd
@@ -54,6 +60,36 @@ grid.stack().head(4)        # and back
 ```
 
 `unstack(level=0)` moves the outer level instead; `unstack(fill_value=0)` fills gaps.
+
+<div class="meaning">
+
+<dl>
+<dt>df.pivot(index, columns, values)</dt><dd>Reshapes; fails if a row/column pair appears twice.</dd>
+<dt>pivot_table</dt><dd>Use instead when pairs repeat: it aggregates them.</dd>
+<dt>unstack()</dt><dd>Moves the innermost row label into the columns.</dd>
+<dt>stack()</dt><dd>Moves the columns back into the innermost row label.</dd>
+<dt>Physical meaning</dt><dd>pivot, stack and unstack only move cells around: the same numbers in a different arrangement. If two rows claim the same cell, pivot refuses, because putting both in one cell would mean adding or choosing, which is pivot_table's job.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"pivot and pivot_table are interchangeable."** pivot errors on duplicate pairs ("Index contains duplicate entries") instead of summing. That error is useful: it tells you the data has a grain you did not expect.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>A groupby result (two row labels).</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th><th>lines</th></tr><tr><td>S01</td><td>1</td><td>4</td></tr><tr><td>S01</td><td>2</td><td>2</td></tr><tr><td>S02</td><td>1</td><td>3</td></tr></table></div>
+<div class="step"><b>unstack('qty').</b> The qty labels move across the top.</div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>store</th><th>1</th><th>2</th></tr><tr><td>S01</td><td>4</td><td>2</td></tr><tr><td>S02</td><td>3</td><td><mark>NaN</mark></td></tr></table></div>
+<div class="step"><b>Fill.</b> <code>.unstack(fill_value=0)</code> puts 0 where S02 had no qty-2 lines.</div>
+<div class="step"><b>stack()</b> goes back to three rows (the empty cell is dropped).</div>
+</div>
+
+<div class="problem" data-problem="pd-unstack-cells"></div>
 
 ## 3. Your turn
 
@@ -105,3 +141,12 @@ orders.groupby(['store_id', 'qty']).size() gives a two-level Series; .unstack(fi
 </details>
 
 **New words:** *pivot*, *stack*, *unstack*, *index level*.
+
+<div class="keypoints">
+
+- pivot reshapes long to wide; it never aggregates.
+- Duplicate pairs: use pivot_table (or fix the grain).
+- unstack moves a row level to columns; stack moves it back.
+- fill_value=0 fills cells with no rows, when zero is true.
+
+</div>

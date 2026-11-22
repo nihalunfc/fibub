@@ -1,7 +1,7 @@
 ---
 title: 'Your study plan: from today to test day'
 seoTitle: 'TOEFL study plan 2026: week by week to your band'
-summary: 'Build a week-by-week TOEFL study plan from your test date, your weekly hours and your weakest section, with a quick level check, the daily habits that raise your band and a plan you can download.'
+summary: 'Build a week-by-week TOEFL study plan from your test date, weekly hours and weakest section, with a level check and daily habits that raise bands.'
 minutes: 13
 updated: 2026-11-22
 quiz:

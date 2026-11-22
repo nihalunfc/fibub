@@ -3,7 +3,11 @@ title: 'Saving tokens 1: short, clear prompts'
 seoTitle: 'Write prompts that use fewer tokens | Offline AI'
 summary: The cheapest token is the one you never send or receive. How to write prompts that are short, clear and get short answers, without losing quality.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
+sources:
+  - 'Ollama API documentation (num_predict caps the answer length; format requests structured output) https://github.com/ollama/ollama/blob/main/docs/api.md'
+  - 'Brown, T. et al. (2020), Language Models are Few-Shot Learners (examples in the prompt) https://arxiv.org/abs/2005.14165'
+  - 'Anthropic, Prompt engineering overview (official documentation) https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview'
 quiz:
   - q: Which saves the most tokens on a typical job?
     choices: ['Removing "please" from prompts', 'Asking for a shorter, structured answer', 'Using capital letters']
@@ -21,13 +25,15 @@ quiz:
 
 **Module 3 · about 20 minutes · read first: 3.4.** You'll be able to cut a prompt's tokens and its answer's tokens without hurting the result.
 
+<div class="bigidea">The cheapest token is one you never send or receive, and the biggest saving is asking for a short, exact answer.</div>
+
 ## 1. Why this matters
 
 On a subscription, saved tokens mean you hit limits later. On an API, they are money. On your own machine, they are time: a job that writes half as many tokens finishes in about half the time.
 
 ## 2. Ask for less output
 
-Output costs most (Lesson 3.4). Say exactly what shape you want:
+Output costs most (Lesson 3.4). Say exactly what shape you want, the way you would brief a busy colleague: "Just the total and the due date, please":
 
 - "Summarise in **3 bullet points, at most 15 words each**."
 - "Reply with **only** the JSON, no explanation."
@@ -61,9 +67,35 @@ Short is not vague. Keep what the model needs: the task, the audience, the forma
 **Try it:** a job writes 400 tokens at 15 per second. You cut the answer to 120 tokens. Time saved? (400 ÷ 15 − 120 ÷ 15 ≈ 26.7 − 8 ≈ 19 seconds per job.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>input, output</dt><dd>tokens sent and tokens written for one job</dd>
+<dt>price_in, price_out</dt><dd>cloud prices per token; output is usually several times dearer</dd>
+<dt>read speed, write speed</dt><dd>tokens per second on your own machine; writing is much slower</dd>
+<dt>Physical meaning</dt><dd>Each word the model writes costs time locally and money in the cloud, and writing costs far more than reading. Trimming a long answer to the part you will actually use is the fastest way to make a job cheaper, without changing the model or the hardware.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Cutting 'please' and 'thank you' is how you save tokens."** Polite words cost a handful of input tokens, which are read in a blink. The real cost is a long answer. One instruction such as "3 bullets, 15 words each" can save hundreds of output tokens per request. Keep your manners; trim the answer.
+
+</div>
+
 ## 5. Worked example
 
-*Made-up numbers.* A recruiter screens 300 CVs a week with a local model. The old prompt asked for "a detailed assessment"; answers averaged 450 tokens. The new one asks for "Fit: yes/maybe/no; 3 reasons, 10 words each" and averages 60 tokens. At 12 tokens per second, the weekly run falls from about 3 hours to about 25 minutes.
+*Made-up numbers.* A recruiter screens 300 CVs a week with a local model. Step through the change.
+
+<div class="steps">
+<div class="step"><p><b>Old prompt:</b> "Give a detailed assessment." Answers average <b>450 tokens</b>.</p></div>
+<div class="step"><p><b>Old weekly time.</b> 300 × 450 = 135,000 tokens. At 12 tokens per second: 135,000 ÷ 12 = 11,250 seconds, about <b>3 hours 8 minutes</b> of writing.</p></div>
+<div class="step"><p><b>New prompt:</b> "Fit: yes/maybe/no; 3 reasons, 10 words each." Answers average <b>60 tokens</b>.</p></div>
+<div class="step"><p><b>New weekly time.</b> 300 × 60 = 18,000 tokens ÷ 12 = 1,500 seconds: <b>25 minutes</b>. Same CVs, same model, same decisions.</p></div>
+</div>
+
+<div class="problem" data-problem="token-saving-prompts-time"></div>
 
 ## 6. Practice
 
@@ -80,3 +112,13 @@ Short is not vague. Keep what the model needs: the task, the audience, the forma
 </details>
 
 **New words:** *output format*, *max tokens* (a hard cap on answer length), *padding* (words that add tokens but no meaning).
+
+<div class="keypoints">
+
+- Output tokens are the slow, expensive ones: ask for an exact, short shape ("3 bullets, 15 words each", "only the JSON").
+- Set a max tokens limit as a safety net.
+- Send less input: cut padding, put standing instructions in the system prompt once, send only the relevant part.
+- Short is not vague: keep the task, audience, format and rules; one example helps with unusual formats.
+- Time ≈ input ÷ read speed + output ÷ write speed, so halving the answer roughly halves the job.
+
+</div>

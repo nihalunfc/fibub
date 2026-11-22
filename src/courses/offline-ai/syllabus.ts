@@ -9,6 +9,7 @@ import type { CourseSyllabus } from '../types';
 
 export const OFFLINE_AI: CourseSyllabus = {
   id: 'offline-ai',
+  kit: true,
   name: 'Offline AI',
   title: 'Offline AI: run AI models on your own computer',
   text: 'Download AI models and run them on your own laptop, desktop or office server, with no internet and no monthly limit. From what a token is to building private document search, with prices in India, Canada, the USA and the UK.',

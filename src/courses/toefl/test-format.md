@@ -1,7 +1,7 @@
 ---
 title: The 2026 test, section by section
 seoTitle: 'TOEFL iBT format 2026: every section and task'
-summary: 'The new TOEFL iBT format: Reading, Listening, Writing and Speaking, with every task type, the number of items and the time for each section, and what each task asks you to do.'
+summary: 'The new TOEFL iBT format: every Reading, Listening, Writing and Speaking task, the items and time per section, and what each task asks you to do.'
 minutes: 15
 updated: 2026-11-22
 quiz:

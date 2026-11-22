@@ -11,6 +11,9 @@ import { ONTARIO_CLASSES } from './ontario';
 import { USA_GRADES } from './usa';
 import { SKILL_COURSES } from './skill-courses';
 import { KERALA_CLASSES } from './kerala';
+import { TN_CLASSES } from './tamil-nadu';
+import { TELANGANA_CLASSES } from './telangana';
+import { WB_CLASSES } from './west-bengal';
 
 export type Curriculum = {
   id: string;
@@ -34,6 +37,28 @@ export const CURRICULA: Curriculum[] = [
     note: "Topics follow the national curriculum for England (Key Stage 3, GCSE and A-level subject content) as exam boards teach it, so they fit students in England, Wales and Northern Ireland with small differences; Scotland has its own system. Check your own exam board's specification. fibub is an independent free site, not part of the Department for Education or any exam board, and copies no textbook text or pictures." },
   { id: 'kerala', name: 'Kerala state syllabus (SCERT)', country: 'India', grades: 'Class 8 to 10', status: 'live', classes: KERALA_CLASSES,
     note: 'Chapters follow the SCERT Kerala English-medium textbooks for 2026-27 (the new Class 9 books of 2024 and the new Class 8 and 10 books of 2025), the books used in Kerala state syllabus schools in Kerala and in Kerala-syllabus schools in the Gulf. Check the official SCERT Kerala textbooks (scert.kerala.gov.in, samagra.kite.kerala.gov.in) for the current list. fibub is an independent free site, not part of SCERT Kerala or the Government of Kerala, and copies no textbook text or pictures.' },
+  // Other Indian states with their own science and maths syllabus (nihal, 2026-11-22). States whose boards use
+  // the NCERT books are listed in INDIA_NCERT_BOARDS below instead of getting pages of their own.
+  { id: 'tamil-nadu', name: 'Tamil Nadu state syllabus (Samacheer Kalvi)', country: 'India', grades: 'Class 8 to 10', status: 'live', classes: TN_CLASSES,
+    note: 'Chapters follow the Tamil Nadu State Board (Samacheer Kalvi, TNSCERT) English-medium science and maths books for 2026-27; the computer chapters of the science book are left out. Check the official books (textbooksonline.tn.nic.in) for the current list. fibub is an independent free site, not part of TNSCERT or the Government of Tamil Nadu, and copies no textbook text or pictures.' },
+  { id: 'telangana', name: 'Telangana state syllabus (SCERT)', country: 'India', grades: 'Class 8 to 10', status: 'live', classes: TELANGANA_CLASSES,
+    note: 'Chapters follow the SCERT Telangana English-medium Physical Science, Biological Science and Mathematics books used for 2026-27. The state has proposed moving maths and science to the NCERT books from 2027-28; if it does, use the NCERT pages. Check the official books (scert.telangana.gov.in) for the current list. fibub is an independent free site, not part of SCERT Telangana or the Government of Telangana, and copies no textbook text or pictures.' },
+  { id: 'west-bengal', name: 'West Bengal state syllabus (WBBSE)', country: 'India', grades: 'Class 8 to 10', status: 'live', classes: WB_CLASSES,
+    note: 'Chapters follow the West Bengal Board of Secondary Education syllabus for 2026-27 (Paribesh o Bigyan and Ganitprabha in Class 8; Physical Science, Life Science and Mathematics for the Madhyamik in Class 9 and 10), with the English chapter names used in English-medium schools. Check the official WBBSE syllabus (wbbse.wb.gov.in) for the current list. fibub is an independent free site, not part of WBBSE or the Government of West Bengal, and copies no textbook text or pictures.' },
+];
+
+// Indian state boards that teach science and maths from the NCERT books (or close copies of them), so their
+// students use the NCERT pages. Checked 2026-11-22; each line says what the board uses and where that is stated.
+export type NcertBoard = { id: string; name: string; board: string; text: string; source: string };
+export const INDIA_NCERT_BOARDS: NcertBoard[] = [
+  { id: 'andhra-pradesh', name: 'Andhra Pradesh', board: 'BSEAP and BIEAP', text: 'NCERT books for Class 1 to 10 from 2025 (in two languages), and NCERT for Intermediate from 2025-26.', source: 'https://www.sakshipost.com/news/education/ap-intermediate-syllabus-2025-key-changes-ncert-cbse-syllabus-academic-year-390590' },
+  { id: 'karnataka', name: 'Karnataka', board: 'KSEAB', text: 'SSLC science and maths follow the NCERT chapters; PUC science has used NCERT since 2012-13.', source: 'https://udayavani.com/english-news/karnataka-implements-ncert-syllabus-for-pucs-three-key-subjects' },
+  { id: 'punjab', name: 'Punjab', board: 'PSEB', text: 'Class 10 science and maths have the same chapters as the NCERT books.', source: 'https://school.careers360.com/articles/pseb-10th-syllabus' },
+  { id: 'meghalaya', name: 'Meghalaya', board: 'MBOSE', text: 'NCERT books, with small changes, for Class 1 to 10 since the 2023 state decision.', source: 'https://news.careers360.com/meghalaya-opts-ncert-textbooks-maths-english-science-books-national-standard' },
+  { id: 'nagaland', name: 'Nagaland', board: 'NBSE', text: 'The board prescribes NCERT books (Nagaland edition) for science and maths.', source: 'https://nbsenl.edu.in/cms/document/13/syllabi' },
+  { id: 'tripura', name: 'Tripura', board: 'TBSE', text: 'Moved to the NCERT curriculum and books from 2019-20.', source: 'https://www.business-standard.com/article/pti-stories/tripura-to-adopt-ncert-curriculum-education-minister-118053001308_1.html' },
+  { id: 'mizoram', name: 'Mizoram', board: 'MBSE', text: 'Class 11 and 12 use the NCERT books; Class 9 and 10 use bilingual books from approved publishers, so check chapter names against the NCERT pages.', source: 'https://www.mbse.edu.in/wp-content/uploads/2025/12/HS-Textbook-List-2026-2027.pdf' },
+  { id: 'manipur', name: 'Manipur', board: 'BOSEM and COHSEM', text: 'The board\'s own books, written by local authors, follow the NCERT science and maths syllabus, so check chapter names against the NCERT pages.', source: 'https://ncert.nic.in/division/der/pdf/Curriculum_Textbook_Development.pdf' },
 ];
 
 /**
@@ -64,6 +89,9 @@ export const COURSES: Course[] = [
   // Analyst courses (nihal, 2026-11-22): src/courses/statistics/ and src/courses/pandas/.
   { id: 'statistics', name: 'Statistics for analysts', text: 'Averages, spread, probability, distributions, confidence intervals, hypothesis tests and A/B testing, with simulations and every formula worked by hand.', status: 'live', href: '/learn/courses/statistics/', cat: 'data-ai' },
   { id: 'pandas', name: 'Python pandas for analysis', text: 'Real Python in the page: load, clean, filter, group, join and reshape data with pandas, with exercises that check your answer and a retail analysis capstone.', status: 'live', href: '/learn/courses/pandas/', cat: 'data-ai' },
+  // Pipeline to Dashboard and Data at Scale (nihal, 2026-11-22): rebuilt on fibub from the old portfolio courses (src/courses/etl/, src/courses/data-at-scale/).
+  { id: 'etl', name: 'Pipeline to Dashboard', text: 'Build the pipelines that bring data in from email, drives and APIs, clean it, run it on a schedule with Dagster, load a warehouse, model it with dbt and show it in Power BI, with a project at the end of every module.', status: 'live', href: '/learn/courses/etl/', cat: 'data-ai' },
+  { id: 'data-at-scale', name: 'Data at Scale', text: 'Spark, BigQuery, Airflow, Kafka and the databases behind big platforms, data for machine learning and AI, and how retail media and ad measurement work, with mini projects and free sandboxes.', status: 'live', href: '/learn/courses/data-at-scale/', cat: 'data-ai' },
   // Power BI and DAX, Data storytelling (nihal, 2026-11-22): the BI courses (src/courses/power-bi/, src/courses/data-storytelling/).
   { id: 'power-bi', name: 'Power BI and DAX', text: 'Clean data in Power Query, model a star schema, write DAX measures and time intelligence, and build a dashboard, with DAX you can type and run in every lesson.', status: 'live', href: '/learn/courses/power-bi/', cat: 'data-ai' },
   { id: 'data-storytelling', name: 'Data storytelling', text: 'Pick the right chart, cut the clutter, design KPI cards and present numbers so managers act, with charts you can change and writing practice in every lesson.', status: 'live', href: '/learn/courses/data-storytelling/', cat: 'data-ai' },

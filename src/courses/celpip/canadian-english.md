@@ -1,7 +1,7 @@
 ---
 title: 'Everyday Canadian English: words, spelling and situations'
 seoTitle: 'Canadian English words and spelling for CELPIP'
-summary: 'The Canadian words, spellings and everyday situations that come up in CELPIP: housing, work, money, health, school and community life, with practice and the British and American words you can swap them for.'
+summary: 'The Canadian words, spellings and everyday situations CELPIP uses: housing, work, money, health, school and community life, with practice.'
 minutes: 14
 updated: 2026-11-22
 quiz:
