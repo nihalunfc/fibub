@@ -10,6 +10,7 @@ const boxP = (n, a, b) => (b - a) - (Math.sin(2 * n * Math.PI * b) - Math.sin(2 
 const simpson = (f, a, b, N = 2000) => { const h = (b - a) / N; let s = f(a) + f(b); for (let i = 1; i < N; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 
 import * as Q5 from '../_util.js';
+import more2 from './schrodinger-equation.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -250,6 +251,7 @@ export default {
       options: ['It is zero at all times.', 'It oscillates at angular frequency $\\tfrac32\\omega$.', 'It oscillates at angular frequency $\\omega$, like the classical oscillator.', 'It decays to zero.'], answer: 2,
       sol: 'The diagonal terms $\\langle\\psi_0|x|\\psi_0\\rangle$ and $\\langle\\psi_1|x|\\psi_1\\rangle$ vanish by parity. The two cross terms, each with weight $\\tfrac12$, add to $\\langle x\\rangle(t) = \\text{Re}\\left[\\langle\\psi_0|x|\\psi_1\\rangle e^{-i(E_1 - E_0)t/\\hbar}\\right]$. $E_1 - E_0 = \\hbar\\omega$ and $\\langle\\psi_0|x|\\psi_1\\rangle = \\sqrt{\\hbar/2m\\omega} \\ne 0$, so $\\langle x\\rangle = \\sqrt{\\hbar/2m\\omega}\\cos\\omega t$: classical motion at $\\omega$.',
       trap: 'The frequency comes from the difference of the two energies, not from either energy alone ($\\tfrac32\\omega$ is $E_1/\\hbar$).' },
+    ...more2,
   ],
 
   gens: [

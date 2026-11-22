@@ -11,6 +11,7 @@ const DEG = Math.PI / 180;
 const compE = (E, th) => E / (1 + (E / MC2) * (1 - Math.cos(th * DEG)));   // scattered photon energy, keV
 
 import * as Q5 from '../_util.js';
+import more2 from './photons.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -251,6 +252,7 @@ export default {
       answer: 510, tol: 2, calc: () => { const a = 1 / 255, b = 1 / 170; return 1 / (a - (b - a)); },
       sol: 'Write $1/E\' = 1/E + (1 - \\cos\\theta)/m_ec^2$. At $90^\\circ$: $1/255 = 1/E + 1/m_ec^2$. At $180^\\circ$: $1/170 = 1/E + 2/m_ec^2$. Subtract: $1/m_ec^2 = 1/170 - 1/255$, so $1/E = 2/255 - 1/170 = 0.0078431 - 0.0058824 = 0.0019608$ and $E = 510$ keV. The same subtraction gives $m_ec^2 = 1/0.0019608 = 510$ keV, a check on the data: the true value is $511$ keV, so the photons had $E \\approx m_ec^2$.',
       trap: 'Work with reciprocals of energy: $1/E\'$ is linear in $1 - \\cos\\theta$, energies themselves are not.' },
+    ...more2,
   ],
 
   gens: [

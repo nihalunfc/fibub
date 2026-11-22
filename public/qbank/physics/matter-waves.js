@@ -10,6 +10,7 @@ const lamV = (V) => h / Math.sqrt(2 * me * e * V);              // electron thro
 const lamRelKeV = (K) => 1240 / Math.sqrt(K * K + 2 * K * 511); // electron, K in keV -> pm (hc = 1240 keV pm)
 
 import * as Q5 from '../_util.js';
+import more2 from './matter-waves.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -246,6 +247,7 @@ export default {
       options: ['$dE/dp$ equals the particle\'s speed.', '$E/p \\ge c$.', 'For a photon, phase and group velocities are both $c$.', 'The phase velocity is the speed at which the probability density moves.'], answer: [0, 1, 2],
       sol: 'First: $dE/dp = pc^2/E = v$. Second: $E \\ge pc$, so $E/p \\ge c$, equality for $m = 0$. Third: $E = pc$ gives $\\omega = ck$, no dispersion. Fourth: false; the probability (and energy) moves with the group velocity.',
       trap: 'Phase velocity is a property of a single plane wave, not of anything you could detect moving.' },
+    ...more2,
   ],
 
   gens: [
