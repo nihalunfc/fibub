@@ -28,6 +28,8 @@ sources:
 
 **Module 5 · about 13 minutes.** You'll list every licence and permit your business needs before you open, and know where to check.
 
+<div class="bigidea">Licences come from every level of government, national, state or provincial, and city, and from your activity, your premises and your products. Use the official finder, then confirm with each office before you open.</div>
+
 ## 1. Four layers
 
 1. **The business:** registration and tax numbers (Module 4).
@@ -59,9 +61,38 @@ The **SBA** licences guide links each state's licensing office; your city or cou
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Plan:</b> a candle shop is about to open in Hamilton, Ontario.</p></div>
+<div class="step"><p><b>Finder:</b> BizPaL lists a city business licence, a sign permit, a building permit for the fit-out and a fire inspection.</p></div>
+<div class="step"><p><b>Confirm:</b> the city says her retail category needs no business licence, but the sign and building permits do.</p></div>
+<div class="step"><p><b>Open:</b> permits on file, insurance told, and every renewal date in the calendar.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Licence</dt><dd>permission to carry on an activity</dd>
+<dt>Permit</dt><dd>permission for a specific thing: a sign, a renovation, an event</dd>
+<dt>Four layers</dt><dd>national, state or provincial, city, and activity-specific rules</dd>
+<dt>BizPaL</dt><dd>Canada’s official permit and licence finder</dd>
+<dt>What it means for you</dt><dd>Run your activity and address through the official finder, list every licence with its office and renewal date, and get them before your first sale.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="licence-finder-fine"></div>
+
 ## 3. Worked example
 
 *Made-up founder.* Ayesha opens a candle shop in Hamilton, Ontario. BizPaL lists: Hamilton business licence (not needed for her retail category, she confirms with the city), a sign permit, building permit for the shop fit-out, and fire safety rules for storing wax and fragrance oils. No provincial licence applies. Her candles must meet Health Canada's Candles Regulations under the Canada Consumer Product Safety Act (safe burning, no lead wicks).
+
+<div class="myth">
+
+**"Registering the business means I am licensed to operate."** Registration creates the business; licences permit specific activities and premises. You often need both, from different offices.
+
+</div>
 
 ## 4. Practice
 
@@ -76,6 +107,16 @@ The **SBA** licences guide links each state's licensing office; your city or cou
 2. Local (municipal, city or county) government.
 3. Any two: serving alcohol, food service, child care, real estate brokerage, money services, cosmetology.
 </details>
+
+<div class="keypoints">
+
+- Licences come from national, state or provincial, and city governments.
+- India: Shops and Establishments, trade licence, and sector licences (FSSAI, drug, fire NOC).
+- Canada: BizPaL plus city licensing; USA: SBA guide, state portals, city and county offices.
+- Missing a licence can mean fines, closure and refused insurance claims.
+- Put every renewal in your compliance calendar.
+
+</div>
 
 **Next:** [Food, health and alcohol businesses](/learn/courses/startup/food-health-alcohol/).
 

@@ -30,6 +30,8 @@ sources:
 
 **Module 3 · about 14 minutes.** You'll know how a sole proprietorship works in your country, what to register and when it stops being the right choice.
 
+<div class="bigidea">A sole proprietorship is you doing business: no separate legal person, so the profit is your income and the debts are your debts. It is the simplest start and fine while the risk is low.</div>
+
 ## 1. What it is
 
 A **sole proprietorship** is one person doing business in their own name or a trade name. There is <mark>no separate legal person</mark>: the business's income is your income, its contracts are your contracts and its debts are your debts.
@@ -73,9 +75,38 @@ Consider a company, LLP or LLC when:
 - You want to **raise investment** or bring in co-owners.
 - Big clients insist on dealing with a registered company.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Year 1:</b> a freelance translator works under her own name: no business registration needed, only her own tax return.</p></div>
+<div class="step"><p><b>Year 2:</b> sales pass C$30,000 in four quarters, so she registers for GST/HST and starts charging it.</p></div>
+<div class="step"><p><b>Year 3:</b> a client threatens to sue over a missed deadline. Her savings, not a company’s, are at risk.</p></div>
+<div class="step"><p><b>Next:</b> with profit and risk both rising, she plans to incorporate (Lesson 3.7).</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Sole proprietorship</dt><dd>one person in business, with no separate legal entity</dd>
+<dt>Unlimited liability</dt><dd>your personal assets can pay the business’s debts</dd>
+<dt>Trade name / DBA</dt><dd>a business name different from your own legal name</dd>
+<dt>Proof of existence</dt><dd>India: registrations a bank accepts to open a current account</dd>
+<dt>What it means for you</dt><dd>Start as a sole proprietor while risk is low, register only what you need (name, tax, licences), and move to a company when staff, leases, loans or high profit arrive.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="sole-proprietor-loss"></div>
+
 ## 4. Worked example
 
 *Made-up founder.* Meera, a freelance translator in Mississauga, trades as "Meera Iyer" from 2026. She needs no business name registration. In her second year she earns C$38,000 in four quarters, crossing C$30,000, so she registers for GST/HST and charges 13 % HST to Ontario clients. She opens a business chequing account and files T2125 with her T1 return. When she starts hiring other translators, she plans to incorporate.
+
+<div class="myth">
+
+**"Registering a business name gives me limited liability."** A name registration or DBA only records the name. As a sole proprietor you are still personally liable for every debt; only a company, LLP or LLC creates a shield.
+
+</div>
 
 ## 5. Practice
 
@@ -90,6 +121,16 @@ Consider a company, LLP or LLC when:
 2. An assumed name certificate (DBA) with the county clerk, plus any food permits (Texas cottage food rules cover some home bakers).
 3. True in general in all three countries, subject to rules on hobby activities and loss limits.
 </details>
+
+<div class="keypoints">
+
+- No separate legal person: business income, contracts and debts are yours.
+- Register the things around it: trade name, tax accounts, licences.
+- Losses usually reduce your other income; profits are taxed at your personal rates.
+- Move on when you take real risk, profit is high, or you want investors.
+- Insurance helps, but does not replace limited liability.
+
+</div>
 
 **Next:** [Partnerships and LLPs](/learn/courses/startup/partnership-llp/). Track deductible car use with [[mileage-log]], and invoice clients with [[invoice-maker]].
 

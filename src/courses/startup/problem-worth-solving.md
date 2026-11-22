@@ -27,6 +27,8 @@ sources:
 
 **Module 2 · about 12 minutes.** You'll be able to judge whether a problem is worth building a business around, before spending money on it.
 
+<div class="bigidea">Fall in love with a problem, not your product: the best problems are painful, frequent, common, reachable, and already costing people money.</div>
+
 ## 1. Start from the problem, not the product
 
 Most new businesses fail because they build something nobody needs badly enough to pay for. The cure is to <mark>fall in love with a problem</mark>, not with your solution. A good problem is:
@@ -68,6 +70,29 @@ The largest single market, but crowded. Narrow niches (one industry, one job tit
 
 </div>
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Notice:</b> a pharmacy throws away expired medicine every month.</p></div>
+<div class="step"><p><b>Score:</b> pain high (₹15,000 a month), frequent, common; people already pay a helper to manage it.</p></div>
+<div class="step"><p><b>Weak spot:</b> reach is low: the founder knows only 3 owners.</p></div>
+<div class="step"><p><b>Next test:</b> can he get 10 owners to talk to him? That is Lesson 2.2.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Pain</dt><dd>what the problem costs in money, time, health or stress</dd>
+<dt>Workaround</dt><dd>what people do today instead of a proper fix</dd>
+<dt>Already paying</dt><dd>money spent on a workaround: the strongest proof</dd>
+<dt>Reach</dt><dd>whether you can find and talk to the people who have the problem</dd>
+<dt>What it means for you</dt><dd>Write your problem as one sentence about a person and what it costs them, score it, and test its weakest signal first.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="problem-worth-solving-score"></div>
+
 ## 4. Worked example
 
 *Made-up founder.* Ravi notices his uncle's pharmacy throws away expired medicine every month.
@@ -82,6 +107,12 @@ The largest single market, but crowded. Narrow niches (one industry, one job tit
 
 Next step: test whether he can get 10 pharmacy owners to talk to him (Lesson 2.2).
 
+<div class="myth">
+
+**"People said they would use it, so the problem is real."** Opinions are cheap. Proof is behaviour: what people already spend in money or hours on a workaround.
+
+</div>
+
 ## 5. Practice
 
 1. Rewrite as a problem: "an app for gym bookings".
@@ -95,6 +126,16 @@ Next step: test whether he can get 10 pharmacy owners to talk to him (Lesson 2.2
 2. "Already paying for a fix", because money spent is the clearest proof of pain.
 3. Your own answer: note the weakest signal and how you will test it.
 </details>
+
+<div class="keypoints">
+
+- A good problem is painful, frequent, already paid for, common and reachable.
+- “Already paying for a fix” is the strongest signal.
+- Good problems come from your job, your community, new rules and workarounds you see.
+- Describe the problem, not the product.
+- Test the weakest signal next.
+
+</div>
 
 **Next:** [Talking to customers](/learn/courses/startup/customer-interviews/).
 

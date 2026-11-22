@@ -79,3 +79,10 @@
 .qb-model { border-left: 3px solid var(--good, #1a7f37); padding-left: 10px; margin: 8px 0; }
 .qb-check ul { list-style: none; padding: 0; margin: 6px 0; }
 .qb-check li { margin: 4px 0; }
+/* order: word chips (TOEFL Build a Sentence and similar) */
+.qb-built, .qb-pool { display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px; padding: 6px; border-radius: 8px; }
+.qb-built { border: 2px dashed var(--line); margin-bottom: 6px; }
+.qb-pool { background: var(--bg); }
+.qb-chip { font: 600 14.5px system-ui, sans-serif; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.qb-built .qb-chip { border-color: var(--accent); }
+.qb-clear { font: 600 13px system-ui, sans-serif; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }

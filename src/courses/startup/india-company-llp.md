@@ -28,6 +28,8 @@ sources:
 
 **Module 4 · about 18 minutes · India.** You'll be able to register a private limited company, OPC or LLP online and know what comes after. (Canada and USA readers: your versions are Lessons 4.4 to 4.7.)
 
+<div class="bigidea">An Indian private company is formed online in one SPICe+ filing that also brings its PAN, TAN, EPFO, ESIC and optional GST numbers; an LLP is formed through FiLLiP. Either way the first 180 days bring a short list of follow-up duties.</div>
+
 <div class="cc" data-cc="ca">
 
 **Reading for Canada?** jump to [Canada: registering or incorporating](/learn/courses/startup/canada-incorporation/).
@@ -114,9 +116,30 @@ After incorporation
 
 </div>
 
+<div class="meaning">
+
+<dl>
+<dt>SPICe+</dt><dd>the single MCA form that incorporates a company and gets its tax numbers</dd>
+<dt>DSC</dt><dd>digital signature certificate used to sign MCA forms</dd>
+<dt>DIN</dt><dd>director identification number</dd>
+<dt>MoA and AoA</dt><dd>the company’s objects and its internal rules</dd>
+<dt>INC-20A</dt><dd>declaration that capital is paid in, due within 180 days</dd>
+<dt>What it means for you</dt><dd>Get DSCs, pick and check the name, file SPICe+ (or FiLLiP), then diary the 180-day duties: bank account, capital paid in, INC-20A, first auditor.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="india-company-llp-shares"></div>
+
 ## 5. Worked example
 
 *Made-up founders.* Asha and Imran, both resident in Pune, form "Clinivo Health Private Limited" with ₹1 lakh authorised and paid-up capital (10,000 shares of ₹10; 60/40). They file SPICe+ with DSCs, opt for EPFO, ESIC and a bank account through AGILE-PRO-S, and skip GST for now. Fees: ₹0 MCA fee, Maharashtra stamp duty of a few thousand rupees, two DSCs. The certificate with CIN, PAN and TAN arrives in about a week. They deposit ₹1 lakh into the new account and file INC-20A in month two.
+
+<div class="myth">
+
+**"Once the certificate of incorporation arrives, the company can start doing business with nothing else."** A company must file INC-20A, with proof the subscribers paid for their shares, within 180 days before it can commence business, and appoint its first auditor within 30 days.
+
+</div>
 
 ## 6. Practice
 
@@ -131,6 +154,16 @@ After incorporation
 2. Any three of: GSTIN, EPFO, ESIC, professional tax (some states), bank account.
 3. Subscribers must pay for their shares into the company's bank account (proof is attached).
 </details>
+
+<div class="keypoints">
+
+- Company: SPICe+ with AGILE-PRO-S, e-MoA and e-AoA; certificate comes with PAN and TAN.
+- Nil MCA fee up to ₹15 lakh authorised capital; stamp duty varies by state.
+- LLP: FiLLiP with two designated partners, one resident; file the LLP agreement within 30 days.
+- First 180 days: bank account, capital in, INC-20A, first auditor within 30 days, registers and board meetings.
+- Every director needs a DIN and a DSC.
+
+</div>
 
 **Next:** [India: Udyam, Startup India and the shop licence](/learn/courses/startup/india-udyam-startup-india/).
 

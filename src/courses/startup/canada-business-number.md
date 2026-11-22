@@ -28,6 +28,8 @@ sources:
 
 **Module 4 · about 14 minutes · Canada.** You'll know when you need a Business Number, which CRA accounts to open, and which provincial accounts sit alongside them.
 
+<div class="bigidea">The CRA gives your business one Business Number, with a program account for each tax: RT for GST/HST, RP for payroll, RC for corporate tax and RM for imports and exports.</div>
+
 ## 1. What the BN is
 
 The **Business Number (BN)** is a nine-digit number the CRA gives a business. It never changes. Each tax area you deal with is a **program account**: the BN plus two letters and a four-digit reference, for example **123456789 RT0001**.
@@ -69,9 +71,30 @@ Getting a BN and accounts
 - **Workers' compensation:** WSIB (Ontario), WorkSafeBC, WCB Alberta and so on, if your industry must be covered.
 - **Employer health tax** in some provinces (Ontario EHT, BC EHT) once payroll passes their exemption.
 
+<div class="meaning">
+
+<dl>
+<dt>Business Number (BN)</dt><dd>the 9-digit CRA number for your business</dd>
+<dt>Program account</dt><dd>a CRA account for one tax, such as RT0001</dd>
+<dt>Input tax credit</dt><dd>GST/HST paid on business purchases, claimed back</dd>
+<dt>Filing frequency</dt><dd>how often you file GST/HST: monthly, quarterly or yearly</dd>
+<dt>My Business Account</dt><dd>the CRA’s online portal for businesses</dd>
+<dt>What it means for you</dt><dd>Open only the program accounts you need, when you need them, and keep the GST/HST you collect apart from your own money.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="canada-business-number-hst"></div>
+
 ## 5. Worked example
 
 *Made-up founder.* Northlight Robotics Inc. (Lesson 4.4) gets BN 765432109 with RC0001 automatically. Before their first sale they add RT0001 voluntarily (to claim input tax credits on equipment). When they hire their first engineer, they add RP0001 and register with WCB Alberta. Importing motors from Japan, they add RM0001.
+
+<div class="myth">
+
+**"The GST/HST I collect is part of my revenue."** It belongs to the government. You hold it until your return is due, minus the input tax credits on your own business purchases.
+
+</div>
 
 ## 6. Practice
 
@@ -86,6 +109,16 @@ Getting a BN and accounts
 2. To claim input tax credits for GST/HST paid on start-up costs, and because big clients often expect it.
 3. Revenu Québec (which also administers GST for most Quebec businesses).
 </details>
+
+<div class="keypoints">
+
+- One BN per business; corporations get one with RC0001 at incorporation.
+- Add RT (GST/HST), RP (payroll) and RM (import-export) when needed.
+- Register through Business Registration Online or My Business Account.
+- Provinces add their own accounts: Quebec QST, BC and Saskatchewan PST, Manitoba RST, workers’ compensation.
+- Keep collected tax separate and note your filing frequency.
+
+</div>
 
 **Next:** [USA: forming an LLC or corporation](/learn/courses/startup/usa-forming-llc-corp/).
 

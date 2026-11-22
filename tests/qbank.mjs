@@ -21,6 +21,7 @@ ok('readNumber 1/4', Q.readNumber('1/4') === 0.25);
 ok('readNumber junk', Number.isNaN(Q.readNumber('abc')));
 ok('nat tol', Q.check({ type: 'nat', answer: 2, tol: 0.05 }, '2.04').right && !Q.check({ type: 'nat', answer: 2, tol: 0.05 }, '2.06').right);
 ok('msq exact', Q.check({ type: 'msq', answer: [0, 2] }, [2, 0]).right && !Q.check({ type: 'msq', answer: [0, 2] }, [0]).right);
+ok('order', Q.check({ type: 'order', answer: ['I think it is in room 204'] }, ['I', 'think', 'it', 'is', 'in', 'room', '204']).right && !Q.check({ type: 'order', answer: ['I think it is in room 204'] }, ['think', 'I', 'it', 'is', 'in', 'room', '204']).right);
 ok('text', Q.check({ type: 'text', answer: ['Blue whale'] }, ' blue  WHALE. ').right);
 ok('jam mcq negative', Q.score('jam', { type: 'mcq', answer: 1, level: 3 }, 0).marks === -0.67);
 ok('jam msq no negative', Q.score('jam', { type: 'msq', answer: [1], level: 3 }, [0]).marks === 0);
@@ -57,6 +58,10 @@ const checkItem = (it, where, groups = {}) => {
     ok(`${where}: nat tol set`, typeof it.tol === 'number' && it.tol >= 0 && Number.isFinite(it.tol));
   }
   if (it.type === 'text') ok(`${where}: text answers`, Array.isArray(it.answer) && it.answer.length > 0);
+  if (it.type === 'order') {
+    const chips = (it.options ?? []).map((w) => Q.normText(w)).sort().join('|');
+    ok(`${where}: order chips and answers`, Array.isArray(it.options) && it.options.length >= 2 && Array.isArray(it.answer) && it.answer.length > 0 && it.answer.every((a) => Q.normText(a).split(' ').sort().join('|') === chips));
+  }
   for (const k of ['q', 'sol', 'trap']) texOk(it[k], `${where}.${k}`);
   (opts ?? []).forEach((o, i) => texOk(o, `${where}.options[${i}]`));
   // listening scripts (group or item `audio`) and open writing/speaking tasks

@@ -2,7 +2,7 @@
 title: Watts at rest and at full load
 summary: How much power AI machines draw while idle, while reading a prompt and while writing, and how to measure your own.
 minutes: 15
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Graphics card board power (RTX 5060 Ti 180 W, RTX 3090 350 W, RTX 5090 575 W): NVIDIA product pages via Compute Market, updated 1 November 2026, https://compute-market.com'
   - 'India: about US$0.077 per kWh for homes, 2023 to 2025 average (about ₹6.5), GlobalPetrolPrices, https://www.globalpetrolprices.com/India/electricity_prices/'
@@ -26,9 +26,13 @@ quiz:
 
 **Module 6 · about 15 minutes · read first: 4.4.** You'll be able to estimate how many kWh your AI machine uses.
 
+<div class="bigidea">Energy is power multiplied by time, so a machine left idling for hours can use more electricity than the AI work itself.</div>
+
 ## 1. Why this matters
 
 Local AI has no per-token bill, but it does have an electricity bill. For a laptop it is tiny; for a big graphics card used all day it can be a real monthly cost. Knowing the watts is the first step to knowing the money (Lesson 6.2).
+
+Two words first. A **watt (W)** is how fast a machine uses power right now. A **kilowatt-hour (kWh)** is an amount of energy: 1,000 watts for one hour. Think of a tap: watts are how far it is open, hours how long it runs, and kWh the water in the bucket. Your bill charges for the bucket.
 
 <!--fig:power-bill-->
 
@@ -49,9 +53,43 @@ Rough whole-machine figures while writing (at the wall, estimates):
 | PC with RTX 5090 (575 W card) | about 500 to 800 W |
 | 128 GB AI box | about 150 to 250 W |
 
+Here is one working day on a desktop with a graphics card. The shaded area under the line is the energy:
+
+<div class="steps" data-fig="watts-day">
+<div class="step"><b>Measure.</b> A plug-in meter shows 70 W while the model sits loaded and idle, and 260 W while it writes.</div>
+<div class="step"><b>The work.</b> Four half-hour bursts of writing: 2 hours in all. 260 W × 2 h = 520 Wh = 0.52 kWh.</div>
+<div class="step"><b>The waiting.</b> The other 8 hours it idles at 70 W: 70 × 8 = 560 Wh = 0.56 kWh. The idle time uses more energy than the work. Day total: 1.08 kWh.</div>
+<div class="step"><b>Sleep instead.</b> Put the machine to sleep between jobs (about 2 W). Idle energy falls to about 0.02 kWh, and the day's total roughly halves to 0.54 kWh.</div>
+</div>
+
+```math
+\text{kWh} = \frac{W_\text{writing} \times h_\text{writing} + W_\text{idle} \times h_\text{idle}}{1000}
+```
+
+<div class="problem" data-problem="watts-daily-kwh"></div>
+
+<div class="meaning">
+
+<dl>
+<dt>W</dt><dd>Watts: how fast the machine is using power in that state, read from a plug-in meter.</dd>
+<dt>h</dt><dd>Hours spent in that state each day.</dd>
+<dt>÷ 1,000</dt><dd>Turns watt-hours into kilowatt-hours, the unit on your bill.</dd>
+<dt>Physical meaning</dt><dd>The energy is the area under the power line over the day. A tall, short spike of work can hold less area than a long, low strip of idling, which is why switching off or sleeping often saves more than any setting.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A 350 W graphics card always draws 350 W."** That is its maximum. While writing it often waits on memory and draws less; while idle it may draw a few tens of watts. Only a plug-in meter tells you what your machine really uses for your work.
+
+</div>
+
 ## 3. Measure, do not guess
 
 A plug-in power meter (an inexpensive gadget sold in hardware shops) shows real watts. Note idle, writing and peak. You can also lower a card's power limit by 20 to 30% with the maker's tool: since writing is memory-bound, speed often drops only a little.
+
+<div class="problem" data-problem="watts-power-limit"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -84,3 +122,12 @@ A plug-in power meter (an inexpensive gadget sold in hardware shops) shows real 
 </details>
 
 **New words:** *watt (W)*, *kilowatt-hour (kWh)*, *power limit*, *plug-in power meter*.
+
+<div class="keypoints">
+
+- Watts are the rate of use; kilowatt-hours (watts × hours ÷ 1,000) are what your bill charges for.
+- An AI machine has three states: idle, reading a prompt (near full power) and writing (often below rated power).
+- Hours of idling can use more energy than the AI work: sleep the machine between jobs.
+- Measure with a plug-in meter; a 20 to 30% lower power limit often costs little speed.
+
+</div>

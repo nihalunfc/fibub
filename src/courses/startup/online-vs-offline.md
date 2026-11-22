@@ -31,6 +31,8 @@ sources:
 
 **Module 1 · about 14 minutes.** You'll be able to list the rules your business triggers by what it does, not by whether it has a website.
 
+<div class="bigidea">Every business shares the same core of registering, tax numbers, records and returns; what you do (premises, selling online, collecting data, shipping, selling abroad) switches on extra rules.</div>
+
 ## 1. Same core, different add-ons
 
 Every business, online or offline, goes through the same core: **register it, get its tax numbers, keep records, file tax**. On top, the *activities* you do switch on extra rules:
@@ -76,6 +78,30 @@ Since the 2018 *Wayfair* Supreme Court decision, a state can require you to coll
 - **Health and food.** Anything you serve, cook or package for people to eat needs a food licence (FSSAI in India, provincial and municipal rules in Canada, county health departments and sometimes the FDA in the USA). Lesson 5.2.
 - **Signs, parking and waste** rules from the local council.
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Plan:</b> a candle maker lists what she will do: make at home, sell at a weekend market and on her own website.</p></div>
+<div class="step"><p><b>Market stall:</b> switches on a vendor permit, a city licence and product labelling.</p></div>
+<div class="step"><p><b>Website:</b> switches on refund terms, a privacy policy, email consent and, past the threshold, sales tax in other places.</p></div>
+<div class="step"><p><b>Result:</b> a short list of rule sets, each covered by one lesson, instead of a vague worry about “being legal”.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Zoning</dt><dd>local rules on which businesses may operate where</dd>
+<dt>E-commerce operator</dt><dd>a marketplace or platform that sells for others</dd>
+<dt>Economic nexus</dt><dd>USA: enough sales into a state that you must collect its sales tax</dd>
+<dt>Small supplier</dt><dd>Canada: under C$30,000 in four quarters, so GST/HST registration is optional</dd>
+<dt>CASL</dt><dd>Canada’s anti-spam law for commercial emails and texts</dd>
+<dt>What it means for you</dt><dd>Write down yes or no for premises, online sales, personal data, shipping and selling abroad; each yes is a rule set to look up.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="online-vs-offline-small-supplier"></div>
+
 ## 4. Worked example
 
 *Made-up founder.* Ayesha sells handmade candles. She tests two plans.
@@ -87,6 +113,12 @@ Since the 2018 *Wayfair* Supreme Court decision, a state can require you to coll
 | Sales tax | Register when over the threshold | India: often from the first marketplace sale; Canada: at $30,000; USA: in her state, then in others past nexus |
 | Product rules | Labels and safety warnings | Same, plus listing rules on the site |
 | Privacy | Little data | Privacy policy, email consent |
+
+<div class="myth">
+
+**"An online business has fewer rules than a shop."** It swaps rules rather than escaping them: fewer premises licences, but consumer, privacy, email and cross-border sales tax rules often start earlier.
+
+</div>
 
 ## 5. Practice
 
@@ -101,6 +133,16 @@ Since the 2018 *Wayfair* Supreme Court decision, a state can require you to coll
 2. Not yet: they are a small supplier under $30,000 in four consecutive quarters, though they may register voluntarily.
 3. *South Dakota v. Wayfair* (2018).
 </details>
+
+<div class="keypoints">
+
+- Think in activities, not channels: premises, selling online, personal data, shipping, selling abroad.
+- India: marketplace sellers of goods often need GST from the first sale; e-commerce rules require seller details and refund terms.
+- Canada: GST/HST after C$30,000 over four quarters; PIPEDA and CASL for data and email.
+- USA: economic nexus (often $100,000 a year) since Wayfair; FTC rules on ads, reviews and email.
+- Offline: check zoning before a lease, then premises, health and food licences.
+
+</div>
 
 **Next:** [Solo founder or a team](/learn/courses/startup/solo-or-team/). The [[sales-tax-calculator]] shows tax-inclusive and tax-exclusive prices; [[invoice-maker]] makes invoices with tax lines.
 

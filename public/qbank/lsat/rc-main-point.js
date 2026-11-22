@@ -1,5 +1,9 @@
 // LSAT · Reading Comprehension · main point and passage mapping. Original passage written for fibub.
 import { place } from './_util.js';
+import mp_adverse_possession from './_rc/mp-adverse-possession.js';
+import mp_fruit_fly_sleep from './_rc/mp-fruit-fly-sleep.js';
+import mp_translator from './_rc/mp-translator.js';
+const extra = [mp_adverse_possession, mp_fruit_fly_sleep, mp_translator]; // more original passages, one per file in _rc/
 const F = { section: 'rc', qtype: 'rc' };
 const it = (id, level, sub, q, options, sol, trap) => place({ id, type: 'mcq', marks: 1, level, exams: ['lsat'], sub, facets: F, format: 'passage', group: 'p1', q: `<p>${q}</p>`, options, answer: 0, sol, trap });
 export default {
@@ -9,6 +13,7 @@ export default {
 <p>Night markets challenge this model. In cities across Southeast Asia, and increasingly in North America, streets that carry traffic by day are closed in the evening and filled with stalls selling food, clothing and crafts. Supporters describe these markets as a return to an older idea of the street as a place to stay rather than a place to pass through. They point to measurable benefits: small vendors gain customers without paying shop rents, and residents who once avoided a district after dark begin to visit it.</p>
 <p>Critics raise two objections. The first is practical: markets bring noise, litter and crowds that nearby residents never agreed to. The second is legal. If a city closes a public street for the benefit of particular sellers, it seems to grant private parties a special right to land that belongs to everyone. On this view, night markets privatize public space under the banner of community.</p>
 <p>The legal objection is less forceful than it first appears. Cities have long allowed temporary uses of streets, from parades to film shoots, without anyone concluding that the street has ceased to be public. What makes such uses legitimate is not that everyone participates, but that access remains open: anyone may walk through a parade route, and anyone may browse a night market without buying. The practical objection is more serious, but it argues for careful management (limited hours, waste collection, consultation with residents) rather than for prohibition. The real lesson of the night market is that a street can do more than one job, and that codes written for a single purpose should be rewritten to allow for others.</p>` },
+    ...Object.fromEntries(extra.map((x) => [x.group, x.passage])),
   },
   items: [
     it('lsat-rcm-001', 3, 'main point', 'Which one of the following most accurately expresses the main point of the passage?',
@@ -26,5 +31,6 @@ export default {
     it('lsat-rcm-005', 5, 'inference', 'The author would be most likely to agree with which one of the following statements?',
       ['A temporary use of a street can be legitimate even if only some people take part in it, as long as others are not shut out.', 'A street stops being public whenever it is closed to traffic.', 'Night markets should be allowed only in Southeast Asia.', 'Residents\' complaints about noise are always exaggerated.', 'City codes should never limit what happens on sidewalks.'],
       '<p>The author says temporary uses are legitimate "not [because] everyone participates, but [because] access remains open". The first option restates that. The last option is far too strong: the author wants codes rewritten, not removed.</p>'),
+    ...extra.flatMap((x) => x.items),
   ],
 };

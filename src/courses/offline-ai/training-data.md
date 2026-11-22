@@ -3,7 +3,7 @@ title: Building a small training set and checking the result
 seoTitle: Build a fine-tuning dataset and test it | Offline AI
 summary: Collect 100 to 1,000 good examples, write them as chat-format JSONL, split them into training, validation and test sets, and compare the tuned model with the original in a blind test. Mini project 6, Teach a small model your house style.
 minutes: 35
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Zhou et al. (2023), LIMA: Less Is More for Alignment, https://arxiv.org/abs/2305.11206'
   - 'MLX LM, data formats for LoRA, https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md'
@@ -25,9 +25,13 @@ quiz:
 
 **Module 14 · about 35 minutes · read first: 14.3.** You'll be able to build a clean training set and prove whether fine-tuning helped. This lesson is **mini project 6: Teach a small model your house style**.
 
+<div class="bigidea">The examples are the fine-tune: a few hundred excellent ones, a share kept back that the model never sees, and a blind test tell you whether it worked.</div>
+
 ## 1. Why this matters
 
 The data is the fine-tune. Settings matter far less than whether your examples show exactly the behaviour you want. A clean set and an honest test are what separate a useful adapter from a wasted afternoon.
+
+Think of an apprentice who copies everything they watch, mistakes included. Show them 300 jobs done well and they learn your way. Show them 2,000 rushed jobs and they learn to rush.
 
 ## 2. What a good example looks like
 
@@ -76,9 +80,21 @@ for name, part in [("train", rows[:cut1]), ("valid", rows[cut1:cut2]), ("test", 
 
 80% trains, 10% validates during training (Lesson 14.3), and 10% stays locked away for the final test.
 
+<div class="problem" data-problem="training-data-split"></div>
+
 ## 4. The blind test
 
 After training, run every test prompt through the **base** model and the **tuned** model. Save each pair with the labels hidden and shuffled (A and B), read them, and pick the better one each time. Only then reveal which was which. If the tuned model wins clearly, say 15 of 20 or more, the fine-tune worked. Also look for damage: did it get worse at anything you did not train for?
+
+The pottery shop's set, from export to verdict (section 5 has the story):
+
+<div class="steps">
+<div class="step"><p><b>Collect.</b> 420 product notes the owner wrote over five years.</p></div>
+<div class="step"><p><b>Clean.</b> Drop 60: outdated ones, and ones with prices the model might learn as facts. <b>360</b> remain, every one a note the owner would sign off.</p></div>
+<div class="step"><p><b>Split.</b> Shuffle, then 80% / 10% / 10%: 360 × 0.8 = <b>288</b> train, 36 validate, 36 test. The 36 test examples are locked away.</p></div>
+<div class="step"><p><b>Blind pairs.</b> After training, each test prompt gets an answer from the base model and one from the tuned model, shuffled as A and B. The owner picks the better one without knowing which is which.</p></div>
+<div class="step"><p><b>Reveal.</b> Tuned 29, base 5, ties 2. Win rate = 29 ÷ (29 + 5) = <b>85%</b>: a clear win.</p></div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -91,6 +107,26 @@ After training, run every test prompt through the **base** model and the **tuned
 
 **Try it:** the tuned model wins 12 of 20. Is that convincing? (Not really; 12 to 8 or more lopsided happens by chance about half the time. Look for a bigger gap or test more.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>training set</dt><dd>the examples the model learns from (about 80%)</dd>
+<dt>validation set</dt><dd>examples checked during training to spot memorising (about 10%)</dd>
+<dt>test set</dt><dd>examples locked away until the very end, for the honest final check (about 10%)</dd>
+<dt>win rate</dt><dd>tuned wins ÷ (tuned wins + base wins); ties are left out</dd>
+<dt>Physical meaning</dt><dd>A blind taste test with questions the taster has never practised on. If you mark your own homework, or know which drink is your favourite brand, the score flatters you. Hidden labels and unseen examples make the result mean something.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="training-data-winrate"></div>
+
+<div class="myth">
+
+**"More examples always make a better fine-tune."** Only if they are good. The model copies what it sees, so typos, off-brand replies and old prices get learned too. For style and format, 300 checked examples usually beat 2,000 rushed ones; spend the time fixing and dropping, not collecting.
+
+</div>
 
 ## 5. Worked example
 
@@ -119,3 +155,13 @@ After training, run every test prompt through the **base** model and the **tuned
 </details>
 
 **New words:** *JSONL* (one JSON object per line), *training / validation / test split*, *blind test* or *A/B test* (comparing outputs without knowing which is which), *win rate*.
+
+<div class="keypoints">
+
+- Each example is one chat conversation in JSONL: the user's message and the perfect reply.
+- 100 good examples can shift style; 300 to 1,000 is comfortable. Quality and variety beat quantity.
+- Split 80% train, 10% validation, 10% test, and never train on the test set.
+- Judge with a blind A/B test against the base model; win rate = tuned wins ÷ (tuned + base wins).
+- Remove personal details and facts such as prices: models can memorise and repeat them.
+
+</div>

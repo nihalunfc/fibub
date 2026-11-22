@@ -2,7 +2,7 @@
 title: Law and accounting
 summary: Law firms and accountants handle confidential documents all day. How they use local AI for drafting, review and search without sending client files out, and the professional duties that come with it.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'American Bar Association, Formal Opinion 512 on generative AI tools, July 2024 (official page), https://www.americanbar.org'
   - 'The Law Society (England and Wales), generative AI guidance (official page), https://www.lawsociety.org.uk'
@@ -25,9 +25,11 @@ quiz:
 
 **Module 18 · about 20 minutes · read first: 17.6 and 17.7.** You'll be able to plan local AI for a law or accounting practice.
 
+<div class="bigidea">Law and accounting firms use local models to draft, review and search client files without handing them to an outside company, with each client's files kept apart and every citation and figure checked by a qualified person.</div>
+
 ## 1. Why this sector
 
-Contracts, case files, tax records and audit papers are confidential, and professional bodies in all four countries expect members to protect them and to understand any tool they use. Local AI gives the time savings without handing client files to an outside company.
+Contracts, case files, tax records and audit papers are confidential. Professional bodies in all four countries expect members to protect them and to understand any tool they use. Local AI gives the time savings without handing client files to an outside company.
 
 ## 2. Top uses
 
@@ -45,7 +47,14 @@ Contracts, case files, tax records and audit papers are confidential, and profes
 
 ## 4. A sensible setup
 
-An office server (Lesson 5.5) with a 27B model or larger, Open WebUI with separate document collections per client or matter so one client's files never answer another's question, logs of who asked what, and a written AI policy.
+An office server (Lesson 5.5) with a 27B model or larger, Open WebUI with separate document collections per client or **matter** (one client case), so one client's files never answer another's question, logs of who asked what, and a written AI policy.
+
+<div class="steps">
+<div class="step"><p><b>One big drawer.</b> A firm puts 200 clients' files into one shared search index. A lawyer asks: "What is the notice period in the lease?"</p></div>
+<div class="step"><p><b>The wrong client answers.</b> Leases use similar wording, so the closest passage the search finds comes from another client's lease. The draft now quotes a confidential document from the wrong file.</p></div>
+<div class="step"><p><b>One cabinet per matter.</b> Each matter gets its own collection. The same question searches only this client's files, so another client's text cannot come back at all.</p></div>
+<div class="step"><p><b>Check before it leaves.</b> The draft cites a case. The lawyer looks it up in the official source to confirm it exists and says what the draft claims, then signs.</p></div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -58,6 +67,27 @@ An office server (Lesson 5.5) with a 27B model or larger, Open WebUI with separa
 
 **Try it:** one shared index of 200 clients' files, or 200 indexes? Which can leak across clients? (Only the shared one.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>collection (index)</dt><dd>the set of documents one search looks through</dd>
+<dt>matter</dt><dd>one client case or engagement, with its own files</dd>
+<dt>one index per matter</dt><dd>a search for this matter can only ever find this matter's text</dd>
+<dt>Physical meaning</dt><dd>Confidentiality is built into the filing, not left to the model's good behaviour. A model cannot leak a document it was never shown, so separate cabinets make a cross-client leak impossible instead of merely unlikely.</dd>
+</dl>
+
+</div>
+
+The time saved is easy to measure in tax season:
+
+<div class="problem" data-problem="law-and-accounting-season"></div>
+
+<div class="myth">
+
+**"The model gave a full citation with a case name and year, so the case must exist."** Language models write what citations look like, and can invent convincing ones. Courts have sanctioned lawyers for filing them. Every authority and every figure is checked against the original source before it leaves the firm.
+
+</div>
 
 ## 5. Worked scenario
 
@@ -78,3 +108,12 @@ An office server (Lesson 5.5) with a 27B model or larger, Open WebUI with separa
 </details>
 
 **New words:** *confidentiality*, *matter* (one client case), *extraction*, *supervision*.
+
+<div class="keypoints">
+
+- Good uses: contract review, drafting from the firm's templates, search across files with citations, and pulling figures out of documents.
+- Professional duties of confidentiality, competence and supervision apply to any AI tool.
+- Give each client or matter its own document collection so one client's text can never answer another's question.
+- Check every citation and figure against the source: models can invent convincing cases.
+
+</div>

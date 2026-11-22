@@ -28,6 +28,8 @@ sources:
 
 **Module 6 · about 12 minutes.** You'll open the right account with the right papers and keep business money clean from day one.
 
+<div class="bigidea">Keep business money in its own account from before the first sale: every sale in, every cost out, and pay yourself by transfer. It makes bookkeeping easy and protects the company’s liability shield.</div>
+
 ## 1. Separate money, always
 
 Open a business account <mark>before your first sale</mark>, even as a sole proprietor. All business income goes in; all business costs go out; you pay yourself by transfer. Benefits: bookkeeping takes minutes, tax deductions are easy to prove, lenders see clear history, and for a company or LLC you protect the liability shield.
@@ -63,9 +65,39 @@ Bring the EIN letter, formation documents and operating agreement or bylaws. Und
 - **Business card:** a separate card for business spending keeps receipts in one place.
 - **Accounting link:** connect the account to your bookkeeping software (Lesson 6.3).
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Open:</b> a new company opens a current account; the board names who can sign, jointly above a limit.</p></div>
+<div class="step"><p><b>Capital:</b> founders deposit their share capital, the proof needed for commencement of business.</p></div>
+<div class="step"><p><b>Separate:</b> all sales arrive there, all costs leave from there; a card for business costs only.</p></div>
+<div class="step"><p><b>Pay yourself:</b> salary, dividends or drawings by transfer, each recorded properly.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Current / chequing account</dt><dd>a business transaction account</dd>
+<dt>Signing authority</dt><dd>who may approve payments</dd>
+<dt>KYC</dt><dd>know your customer: the bank’s identity checks</dd>
+<dt>Commingling</dt><dd>mixing personal and business money</dd>
+<dt>Drawings</dt><dd>money a sole proprietor or partner takes out</dd>
+<dt>What it means for you</dt><dd>Open the account before your first sale, set signing limits, and never pay personal bills from it.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="business-bank-account-fees"></div>
+
 ## 4. Worked example
 
 *Made-up founders.* Clinivo Health Private Limited opens a current account through AGILE-PRO-S; the board resolution names both directors with joint signing above ₹2 lakh. They deposit ₹1 lakh share capital (needed for INC-20A, Lesson 4.2), set up a second account for GST and TDS money, and link both to their accounting software.
+
+<div class="myth">
+
+**"As a sole proprietor I can use my personal account for the business."** It is legal in many places, but it makes bookkeeping and tax claims painful, and banks and payment providers may close a personal account used for business. A separate account takes an hour.
+
+</div>
 
 ## 5. Practice
 
@@ -80,6 +112,16 @@ Bring the EIN letter, formation documents and operating agreement or bylaws. Und
 2. A board (directors') resolution.
 3. The identity of beneficial owners (usually anyone with 25 % or more) and those who control the business.
 </details>
+
+<div class="keypoints">
+
+- Open a separate business account before the first sale.
+- Bring the registration documents, IDs and, for companies, a board resolution.
+- Set signing authority and limits; use a business card for business costs only.
+- Never pay personal bills from the company account; record any that slip through.
+- Compare monthly fees and transaction limits on your real volume.
+
+</div>
 
 **Next:** [Taking payments](/learn/courses/startup/taking-payments/).
 

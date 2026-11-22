@@ -28,6 +28,8 @@ sources:
 
 **Module 4 · about 13 minutes.** You'll set up a proper business address, domain and email, show the details the law requires, and know how long to keep every record.
 
+<div class="bigidea">Your business needs a proper address, its legal name on every contract and invoice, a domain and email it owns, and records kept for the legal period: 8 years in India, 6 in Canada, at least 3 to 7 in the USA.</div>
+
 ## 1. Which address
 
 - **Home:** allowed in many cases, but check your lease, housing society or homeowners' rules and city zoning (Lesson 5.3), and remember it becomes public in registries.
@@ -68,9 +70,38 @@ Buy the domain the day you reserve the name (.in, .ca, .com; ideally the .com to
 
 <!--fig:records-keep-->
 
+### Watch it happen
+
+<div class="steps">
+<div class="step"><p><b>Address:</b> a founder uses a virtual office as the registered address, keeping her home address off public records.</p></div>
+<div class="step"><p><b>Paperwork:</b> invoices and contracts show the company’s legal name, number and address; she signs as “for the company, by her, director”.</p></div>
+<div class="step"><p><b>Domain:</b> the domain and email are registered in the company’s name, with two-factor login.</p></div>
+<div class="step"><p><b>Records:</b> every receipt is scanned and filed by year, with a date to delete when the legal period ends.</p></div>
+</div>
+
+<div class="meaning">
+
+<dl>
+<dt>Registered office</dt><dd>the official address where legal notices are sent</dd>
+<dt>Virtual office</dt><dd>a paid address service for mail and registration</dd>
+<dt>Legal name</dt><dd>the exact name on the registry, including Ltd, Inc. or LLC</dd>
+<dt>Retention period</dt><dd>how long the law requires records to be kept</dd>
+<dt>What it means for you</dt><dd>Put the legal name and number on all paperwork, sign as the company, own your domain in the company’s name, and set a retention date for every year’s records.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="address-domain-records-keep"></div>
+
 ## 5. Worked example
 
 *Made-up founder.* Meera's Ontario corporation closes its year on 31 December 2026. Its receipts, invoices and bank statements for 2026 must be kept until at least 31 December 2032. She scans paper receipts into a folder by month with an online backup, which the CRA accepts if the scans are complete and readable.
+
+<div class="myth">
+
+**"I can sign contracts in my own name; everyone knows it is for the company."** A signature without the company’s name can make you personally liable. Sign as the company: “Company Inc., by your name, title”.
+
+</div>
 
 ## 6. Practice
 
@@ -85,6 +116,16 @@ Buy the domain the day you reserve the name (.in, .ca, .com; ideally the .com to
 2. So the domain belongs to the business: it moves with a sale of the company and can't be lost if a founder leaves.
 3. At least until 15 April 2030 (3 years), longer for employment tax records (4 years) and in the special cases.
 </details>
+
+<div class="keypoints">
+
+- Use an address that can receive legal notices; a virtual office keeps your home private.
+- Show the legal name (and CIN in India) on invoices, contracts and the website.
+- Sign contracts as the company, never just your own name.
+- Register the domain and email to the company and secure them.
+- Keep records: India 8 years, Canada 6 years, USA 3 to 7 years.
+
+</div>
 
 **Next:** Module 5, [which licences you need](/learn/courses/startup/licence-finder/).
 

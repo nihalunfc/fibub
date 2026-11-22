@@ -16,5 +16,13 @@ export default {
       ['the team concluded that the region had been far warmer 120,000 years ago.', 'the region was found to have been far warmer 120,000 years ago.', 'the conclusion was that the region had been far warmer 120,000 years ago.', 'evidence showed that the region had been far warmer 120,000 years ago.'], '<p>Who studied the ice cores? The team. So "the team" must come right after the comma. The region, the conclusion and the evidence did not do any studying.</p>'),
     it('sat-pm-005', 3, 'possessive pronoun', 'The two companies merged in 2015, but each kept ______ own name and logo for another decade.',
       ['its', 'their', "it's", 'theirs'], '<p>"Each" is singular, so the pronoun is singular: <b>its</b> (the possessive, with no apostrophe).</p>'),
+    it('sat-pm-101', 2, 'pronoun agreement', 'Each of the paintings in the exhibit was cleaned before ______ was hung on the gallery wall.',
+      ['it', 'they', 'them', 'those'], '<p>"Each" is singular, so the pronoun must be singular: <b>it</b>.</p>'),
+    it('sat-pm-102', 3, 'pronoun agreement', 'The city council announced that ______ would hold a public meeting on the new parking rules next month.',
+      ['it', 'they', 'we', 'one'], '<p>A council is one body, treated as singular in Standard English: <b>it</b>.</p>'),
+    it('sat-pm-103', 4, 'dangling modifier', 'Hoping to see the rare comet, ______',
+      ['the astronomers set up their telescopes on the hill before dawn.', 'telescopes were set up on the hill before dawn by the astronomers.', 'the hill was where the astronomers set up their telescopes before dawn.', 'before dawn, the telescopes were set up on the hill.'], '<p>"Hoping to see the rare comet" must describe whoever does the hoping, and that word must come right after the comma: <b>the astronomers</b>. Telescopes and hills cannot hope.</p>', 'Leaving the modifier attached to the wrong noun.'),
+    it('sat-pm-104', 5, 'pronoun case', 'The award was shared by the two researchers, and the committee praised both her and ______ for their careful work.',
+      ['him', 'he', 'himself', 'his'], '<p>"Her and ___" is the object of "praised", so it needs the object form: <b>him</b>. Test it alone: "praised him", not "praised he".</p>'),
   ],
 };

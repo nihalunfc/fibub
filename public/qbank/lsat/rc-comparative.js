@@ -1,5 +1,9 @@
 // LSAT · Reading Comprehension · comparative reading (two passages). Original passages written for fibub.
 import { place } from './_util.js';
+import cr_urban_trees from './_rc/cr-urban-trees.js';
+import cr_author_intent from './_rc/cr-author-intent.js';
+import cr_ranked_voting from './_rc/cr-ranked-voting.js';
+const extra = [cr_urban_trees, cr_author_intent, cr_ranked_voting]; // more original passages, one per file in _rc/
 const F = { section: 'rc', qtype: 'rc' };
 const it = (id, level, sub, q, options, sol, trap) => place({ id, type: 'mcq', marks: 1, level, exams: ['lsat'], sub, facets: F, format: 'passage', group: 'p1', q: `<p>${q}</p>`, options, answer: 0, sol, trap });
 export default {
@@ -9,6 +13,7 @@ export default {
 <p>Museums in former colonial powers hold thousands of objects taken from other countries during periods of conquest. Requests to return these objects are often met with the argument that the museums preserve them better and make them available to a global audience. That argument confuses custody with ownership. A borrowed book does not become the borrower's because it is kept on a clean shelf. Where an object was taken by force or under clear duress, the default should be return, and the burden should fall on the museum to show why it should keep what it never fairly acquired.</p>
 <p><b>Passage B</b></p>
 <p>Calls to return museum objects to their countries of origin rest on a simple picture: an object was taken from a people, and justice requires giving it back. Real cases are rarely so simple. Many objects changed hands several times, sometimes through sales that were legal at the time; the modern state that requests an object may not represent the community that made it; and some communities of origin have asked museums to keep objects they cannot yet house safely. None of this means that museums should keep everything. It means that each claim must be judged on its own history, by a process both sides trust, rather than settled by a general rule.</p>` },
+    ...Object.fromEntries(extra.map((x) => [x.group, x.passage])),
   },
   items: [
     it('lsat-rcc-001', 3, 'disagreement', 'The authors of the two passages would be most likely to disagree about whether',
@@ -23,5 +28,6 @@ export default {
     it('lsat-rcc-004', 5, 'analogy', 'The author of Passage A uses the example of a borrowed book primarily to',
       ['illustrate the claim that keeping something well does not make it yours', 'show that museums are like libraries', 'argue that museums should lend objects to other museums', 'suggest that colonial powers paid for most objects', 'show that preservation is unimportant'],
       '<p>The book example follows "That argument confuses custody with ownership" and illustrates it: good care (a clean shelf) does not transfer ownership.</p>'),
+    ...extra.flatMap((x) => x.items),
   ],
 };

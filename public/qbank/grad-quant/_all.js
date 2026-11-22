@@ -1,0 +1,21 @@
+// Every topic of the grad-quant bank in one import, for the lesson kits' live problems (GMAT and GRE).
+import mentalMaths from './mental-maths.js';
+import integers from './integers.js';
+import primes from './primes.js';
+import oddEven from './odd-even.js';
+import exponents from './exponents.js';
+import fractions from './fractions.js';
+import linear from './linear.js';
+import quadratics from './quadratics.js';
+import inequalities from './inequalities.js';
+import functions from './functions.js';
+import percents from './percents.js';
+import ratios from './ratios.js';
+import rates from './rates.js';
+import profit from './profit.js';
+import sets from './sets.js';
+import averages from './averages.js';
+import spread from './spread.js';
+import counting from './counting.js';
+import probability from './probability.js';
+export const TOPICS = [mentalMaths, integers, primes, oddEven, exponents, fractions, linear, quadratics, inequalities, functions, percents, ratios, rates, profit, sets, averages, spread, counting, probability];

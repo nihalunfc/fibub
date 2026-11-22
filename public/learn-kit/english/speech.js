@@ -61,7 +61,7 @@ export function stopAll() { synth?.cancel(); }
  * A small player: Play / Stop, speed, "exam mode" (one play only) and a transcript that opens on request.
  * Returns the element.
  */
-export function player(script, { accent = 'en-CA', examOnce = false, title = 'Listen', showTranscript = true } = {}) {
+export function player(script, { accent = 'en-CA', examOnce = false, title = 'Listen', showTranscript = true, lock = false } = {}) {
   const box = document.createElement('div');
   box.className = 'en-player';
   const head = document.createElement('p');
@@ -105,6 +105,8 @@ export function player(script, { accent = 'en-CA', examOnce = false, title = 'Li
     cur = play(script, { rate: +speed.value, accent, onLine: (i) => lines.forEach((p, j) => p.classList.toggle('en-on', i === j)) });
     cur.done.then(() => { if (cur && !cur.stopped) reset(); });
   });
-  box.reveal = () => { tr.open = true; };
+  // lock: keep the transcript out of sight until the answers are checked (it would give dictation answers away).
+  if (lock) { tr.hidden = true; note.textContent = 'The transcript appears after you check your answers.'; }
+  box.reveal = () => { tr.hidden = false; tr.open = true; };
   return box;
 }

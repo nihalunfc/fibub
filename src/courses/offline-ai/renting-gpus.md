@@ -2,7 +2,7 @@
 title: Renting graphics cards by the hour
 summary: The middle path between buying hardware and paying for a subscription. How hourly GPU rental works, what it costs, what it does and does not protect, and when it beats both.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'RunPod pricing (official page), https://www.runpod.io/pricing'
   - 'Vast.ai pricing (official page), https://vast.ai/pricing'
@@ -25,6 +25,8 @@ quiz:
 
 **Module 15 · about 20 minutes · read first: 14.3 and 15.2.** You'll be able to decide when to rent a GPU by the hour instead of buying one or paying for a plan.
 
+<div class="bigidea">Rent a big graphics card for the few hours a job needs and own one when the hours add up, remembering that a rented card means your data leaves the building.</div>
+
 ## 1. Why this matters
 
 Some jobs need a big card for a few hours: fine-tuning a model (Module 14), processing a backlog of 50,000 documents, or trying a 120B model before spending thousands on hardware. Renting gives you that power for the length of the job, with your own choice of open model and software.
@@ -37,6 +39,16 @@ Some jobs need a big card for a few hours: fine-tuning a model (Module 14), proc
 4. Save results to your own storage, then **stop or delete the machine**. Stored disks may still cost a little.
 
 **On-demand** machines are yours until you stop them. **Spot** or **interruptible** machines are cheaper but can be taken back with little warning: fine for batch jobs that save progress, bad for a live service.
+
+The research group from section 5, hour by hour (made-up prices):
+
+<div class="steps">
+<div class="step"><p><b>Choose.</b> An 80 GB card with a ready-made training image, at 3.00 an hour on demand.</p></div>
+<div class="step"><p><b>Start.</b> The meter starts the moment the machine is on, whether you are using it or not.</p></div>
+<div class="step"><p><b>Train.</b> The fine-tune runs for 6 hours: 6 × 3.00 = <b>18</b>.</p></div>
+<div class="step"><p><b>Copy home, then delete.</b> The adapter (tens of megabytes) is copied to their own storage and the machine is deleted. The meter stops.</p></div>
+<div class="step"><p><b>The costly mistake.</b> Had they forgotten it over a weekend, another 48 hours would have cost 48 × 3.00 = 144: eight times the job itself.</p></div>
+</div>
 
 ## 3. What it protects and what it does not
 
@@ -58,6 +70,26 @@ Hourly prices vary by card, provider, region and week, and moved a lot in 2026 w
 **Try it:** a card costing 2,000, rented equivalent 0.50 an hour, used 20 hours a month, power 5 a month? (20 × 0.50 − 5 = 5 a month saved by owning: 400 months. Rent.) Used 200 hours a month? (100 − 5 = 95: about 21 months. Owning starts to make sense.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>hardware price</dt><dd>what buying a similar card (or computer) would cost once</dd>
+<dt>hours per month × hourly rent</dt><dd>what renting the same power would cost each month</dd>
+<dt>monthly power cost</dt><dd>the electricity your own card would use for those hours</dd>
+<dt>months to break even</dt><dd>hardware price ÷ (monthly rent − monthly power): after this, owning is cheaper</dd>
+<dt>Physical meaning</dt><dd>A van. Hire one for moving day; buy one if you deliver every day. Few hours a month means the purchase never pays off; many hours a month means the rent quickly adds up to the price of your own.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="renting-gpus-breakeven"></div>
+
+<div class="myth">
+
+**"A rented GPU is the same as running AI offline."** You choose the open model and the software, so there are no message limits and no provider training on your prompts. But the machine, its disks and its network belong to someone else, and your data travels there over the internet. Treat it as cloud in your data policy (Lesson 15.6).
+
+</div>
+
 ## 5. Worked example
 
 *Made-up numbers.* A university research group wants to fine-tune a 12B model on 10,000 labelled lab notes. On their own 16 GB card it would take days and might not fit. They rent an 80 GB card for 6 hours at 3.00 an hour (18 in total), train the adapter, copy it home and delete the machine. Daily use then runs on their own card with the new adapter (Lesson 14.5).
@@ -77,3 +109,13 @@ Hourly prices vary by card, provider, region and week, and moved a lot in 2026 w
 </details>
 
 **New words:** *on-demand*, *spot (interruptible) instance*, *region*, *image* (a ready-made software set-up).
+
+<div class="keypoints">
+
+- Renting suits short bursts: a fine-tune, a document backlog, or testing a big model before buying.
+- Billing runs while the machine is on, used or not: save results, then stop or delete it.
+- Spot machines are cheaper but can be taken back at any moment; fine for batch jobs that save progress, not for live chat.
+- Months to break even ≈ hardware price ÷ (hours per month × hourly rent − monthly power); few hours favour renting.
+- A rented GPU is cloud for your data policy: data leaves your building, so read the terms and pick a region.
+
+</div>
