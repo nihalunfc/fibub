@@ -40,6 +40,10 @@ sources:
 
 </div>
 
+**Try it:** Change the sliders and read how the profit or the ratio is divided.
+
+<figure class="fig" data-fig="@tp-profit-share" data-mode="share"><figcaption>The bars show the order of the steps: fixed items first, then the ratio.</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-accountancy" data-topics="dissolution" data-n="10" data-mode="practice" data-type="mcq"></div>

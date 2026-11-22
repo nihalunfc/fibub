@@ -66,6 +66,10 @@ sources:
 
 </div>
 
+**Try it:** Set three percent changes in a row and compare the result with the sum of the percents.
+
+<figure class="fig" data-fig="@tp-percent-chain"><figcaption>The result is a product of multipliers, which is why +20% then −20% is not zero.</figcaption></figure>
+
 ## Practise: mixed arithmetic
 
 <div class="qbank" data-bank="grad-quant" data-topics="integers,primes,odd-even,exponents,fractions,percents,ratios,rates,sets" data-exam="gre" data-mode="practice" data-n="12"></div>

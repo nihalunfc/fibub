@@ -60,6 +60,10 @@ Cross out a choice if it:
 
 <figure class="fig" data-fig="inference-ladder"><figcaption>Climb from the facts to a claim. Each rung asks whether the passage proves the next step; claims that need outside information fall off.</figcaption></figure>
 
+**Try it:** Pick a statement and a fact and see what follows.
+
+<figure class="fig" data-fig="@tp-contrapositive"><figcaption>Only P true and Q false give an answer; the other two are the classic traps.</figcaption></figure>
+
 ## 5. Practice
 
 <div class="qbank" data-bank="grad-verbal" data-topics="cr-inference" data-mode="practice" data-n="4" data-exam="gmat"></div>

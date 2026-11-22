@@ -44,6 +44,10 @@ About an hour a day, six days a week.
 
 LSAC's LawHub has free official practice tests: use them in the last weeks, after the skills are in place.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="lsat"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Untimed, then timed
 
 <div class="steps">

@@ -65,6 +65,10 @@ A useful flip: **x% of y = y% of x**. So 8% of 50 = 50% of 8 = 4.
 <div class="step">Shortcut for two changes a% and b% (use minus signs for falls): net = a + b + ab/100. Here 25 − 20 − 500/100 = 0%.</div>
 </div>
 
+**Try it:** Set three percent changes in a row and compare the result with the sum of the percents.
+
+<figure class="fig" data-fig="@tp-percent-chain"><figcaption>The result is a product of multipliers, which is why +20% then −20% is not zero.</figcaption></figure>
+
 ## 4. Reverse percentages: divide by the multiplier
 
 If you know the value **after** a change, divide by the multiplier to get back. After a 25% rise a salary is ₹30,000, so before it was 30,000 ÷ 1.25 = ₹24,000.

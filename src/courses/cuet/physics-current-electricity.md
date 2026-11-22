@@ -73,6 +73,10 @@ A real cell of emf ε has internal resistance r, so the terminal voltage is V = 
 
 </div>
 
+**Try it:** Watch the bridge balance.
+
+<figure class="fig" data-fig="@sx-wheatstone-strain"><figcaption>The bridge reads zero when the ratios match.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="current-electricity" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

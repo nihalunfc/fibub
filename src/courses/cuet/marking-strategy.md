@@ -66,6 +66,10 @@ You have 72 seconds per question on average. Do not spend them evenly.
 <div class="step"><b>Last 2 minutes: check the answer sheet.</b> Make sure nothing you meant to answer is still only "marked for review" without an answer. Check the bulletin each year: in past years a question marked for review counted only if an answer was also selected.</div>
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="cuet"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 3. Turn a target into a number of right answers
 
 Universities rank you by score, so set a target from last year's cut-offs for your course (each university publishes its own), then work backwards:

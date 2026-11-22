@@ -66,6 +66,10 @@ A bag has 5 red, 3 blue and 2 green marbles. P(blue) = 3 ÷ 10 = 0.3. Probabilit
 
 </div>
 
+**Try it:** Change the three probabilities and light up each event.
+
+<figure class="fig" data-fig="@tp-prob-tree"><figcaption>Multiply down a path, add across paths; A given B is one leaf divided by the total of B's leaves.</figcaption></figure>
+
 ## Practice set
 
 Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.

@@ -47,6 +47,10 @@ sources:
 
 </div>
 
+**Try it:** Change receipts and spending and watch the three deficits.
+
+<figure class="fig" data-fig="@tp-budget-deficit"><figcaption>The fiscal deficit is the borrowing needed; the primary deficit removes interest from it.</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-economics" data-topics="budget" data-n="10" data-mode="practice" data-type="mcq"></div>

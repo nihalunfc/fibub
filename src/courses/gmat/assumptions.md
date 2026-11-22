@@ -66,6 +66,10 @@ To check a choice, turn it into its opposite and ask: **does the argument still 
 
 Occasionally the stem says "the conclusion follows logically **if** which is assumed?". Now you need a choice that makes the conclusion certain, not merely possible. These are often "only" statements: "Only employees who finished the course got a certificate" makes "Priya has a certificate, so she finished" airtight. Strong wording is fine here.
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="1"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## 6. Practice
 
 Try these original questions. Name the gap before you look at the choices.

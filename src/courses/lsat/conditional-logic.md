@@ -70,6 +70,14 @@ P \rightarrow Q \;\equiv\; \neg Q \rightarrow \neg P
 
 Rules link when the end of one is the start of the next: A → B and B → C give A → C, and its contrapositive, not C → not A. Draw them in a line and only travel forward along the arrows (or backward with "not" on everything).
 
+**Try it:** Place people in seats and watch the counter of orders that still obey every rule.
+
+<figure class="fig" data-fig="@tp-logic-board"><figcaption>When the count reaches one, the rest of the board is forced.</figcaption></figure>
+
+**Try it:** Pick a statement and a fact and see what follows.
+
+<figure class="fig" data-fig="@tp-contrapositive"><figcaption>Only P true and Q false give an answer; the other two are the classic traps.</figcaption></figure>
+
 ## 4. Practise until it is automatic
 
 Read each one, decide your answer, then open it. Focus on the form of the rule, not the topic: the logic is the same whatever the sentences are about.

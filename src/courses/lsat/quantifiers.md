@@ -83,6 +83,10 @@ sources:
 
 </div>
 
+**Try it:** Pick a statement and a fact and see what follows.
+
+<figure class="fig" data-fig="@tp-contrapositive"><figcaption>Only P true and Q false give an answer; the other two are the classic traps.</figcaption></figure>
+
 ## Practice set
 
 Fresh drills made from templates, so you can keep practising until each step is automatic. Press New set for more; every question has a full explanation.

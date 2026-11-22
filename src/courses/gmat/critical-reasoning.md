@@ -103,6 +103,10 @@ The [LSAT course](/learn/courses/lsat/) goes further into the same skills: [the 
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="0"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## Practise: a mixed Critical Reasoning set
 
 Questions of every type from Module 6, so you practise naming the type first. Each solution maps the argument and explains every wrong choice.

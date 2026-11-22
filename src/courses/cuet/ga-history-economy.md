@@ -38,6 +38,10 @@ sources:
 <li><b>1857</b> The Revolt of 1857; Crown rule follows in 1858</li>
 </ul>
 
+**Try it:** Tap a dot, use Later, or press Play to walk through the events in order.
+
+<figure class="fig" data-fig="@tp-timeline" data-set="freedom"><figcaption>Notice the order: each step makes sense because of the one before.</figcaption></figure>
+
 ## 2. The freedom movement in order
 
 <div class="steps" data-title="From 1885 to 1947">
@@ -60,6 +64,10 @@ sources:
 **"The RBI and the Finance Ministry are the same thing."** The RBI is India's central bank: it issues currency and sets interest rates. The Finance Ministry is part of the government: it prepares the budget and collects taxes.
 
 </div>
+
+**Try it:** Tap a dot, use Later, or press Play to walk through the events in order.
+
+<figure class="fig" data-fig="@tp-timeline" data-set="econ"><figcaption>Notice the order: each step makes sense because of the one before.</figcaption></figure>
 
 ## 4. Practice
 

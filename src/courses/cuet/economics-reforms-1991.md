@@ -39,6 +39,10 @@ sources:
 
 </div>
 
+**Try it:** Tap a dot, use Later, or press Play to walk through the events in order.
+
+<figure class="fig" data-fig="@tp-timeline" data-set="econ"><figcaption>Notice the order: each step makes sense because of the one before.</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-economics" data-topics="reforms-1991" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -36,6 +36,10 @@ sources:
 
 These tests are **not adaptive** and use fibub's own questions, so the score is a guide to your strengths and pace, not a predicted GMAT score. Every paper is new, so you can take the test again later.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="gmatv"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## Section 1: Quantitative Reasoning (21 questions, 45 minutes)
 
 <div class="qbank" data-bank="grad-quant" data-exam="gmat" data-mode="mock" data-pattern="gmat-quant"></div>

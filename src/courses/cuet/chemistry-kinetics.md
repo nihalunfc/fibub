@@ -51,6 +51,10 @@ For aA + bB → products, rate = k[A]^x[B]^y. The order (x + y) comes from exper
 
 Pseudo first order: when one reactant is in huge excess (water in the hydrolysis of an ester or of sucrose), the reaction behaves as first order in the other.
 
+**Try it:** Switch the order and watch successive half-lives.
+
+<figure class="fig" data-fig="@chem-half-life"><figcaption>Only first order has a constant half-life.</figcaption></figure>
+
 ## 3. Temperature and catalysts
 
 ```math
@@ -72,6 +76,10 @@ k = A\,e^{-E_a/RT} \qquad \log\frac{k_2}{k_1} = \frac{E_a}{2.303R}\left(\frac{1}
 **"Order and molecularity are the same thing."** Order is measured and can be zero or a fraction; molecularity is a count of colliding particles in one step. For a multi-step reaction, the slowest step sets the rate law.
 
 </div>
+
+**Try it:** Raise the temperature and watch the fraction of molecules above the activation energy.
+
+<figure class="fig" data-fig="@chem-arrhenius-tail"><figcaption>A small rise in T can double the rate.</figcaption></figure>
 
 ## 4. Practice
 

@@ -96,6 +96,10 @@ From a **table**, work out the slope from any two rows, but watch the step size:
 - Which equation matches a graph: check the sign of the slope (up or down) and where it crosses the y-axis.
 - Parallel or perpendicular slopes, or a line shifted up or down (adding k to the whole function moves it up k).
 
+**Try it:** Drag A and B and read the distance, midpoint and slope.
+
+<figure class="fig" data-fig="@tp-coord-points"><figcaption>The dashed legs form a right triangle; the distance is its hypotenuse.</figcaption></figure>
+
 ## Practice set
 
 Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.

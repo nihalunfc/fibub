@@ -75,6 +75,10 @@ An ideal transformer keeps power the same: V_s/V_p = N_s/N_p = I_p/I_s. Power li
 
 </div>
 
+**Try it:** Watch the oscillation build.
+
+<figure class="fig" data-fig="@sx-lc-tank"><figcaption>Energy swings between the coil and the capacitor.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="electromagnetic-induction,alternating-current" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

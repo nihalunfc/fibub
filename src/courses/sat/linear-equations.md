@@ -105,6 +105,10 @@ Read the question's last line before you start. If it asks for **2x + 3** and th
 
 <div class="problem" data-problem="le-g07"></div>
 
+**Try it:** Drag A and B and read the distance, midpoint and slope.
+
+<figure class="fig" data-fig="@tp-coord-points"><figcaption>The dashed legs form a right triangle; the distance is its hypotenuse.</figcaption></figure>
+
 ## Practice set
 
 Ten questions on this lesson, from warm-up to hard, in the SAT's own formats (four options or a typed answer). Press New numbers for a fresh set; every question has a full worked solution.

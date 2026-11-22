@@ -45,6 +45,10 @@ sources:
 
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="satm"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Reading and Writing module (32 minutes)
 
 <div class="qbank" data-bank="sat" data-exam="sat" data-mode="mock" data-pattern="sat-rw-module"></div>

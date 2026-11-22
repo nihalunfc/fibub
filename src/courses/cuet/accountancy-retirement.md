@@ -29,6 +29,10 @@ sources:
 
 Gaining ratio = new ratio − old ratio. If nothing is said, the remaining partners take over the share in their old ratio, so the gaining ratio is their old ratio.
 
+**Try it:** Show Retirement and change how the retiring partner's share is split.
+
+<figure class="fig" data-fig="@tp-profit-share" data-mode="retire"><figcaption>Gaining ratio is new share minus old share.</figcaption></figure>
+
 ## 2. Settling the account
 
 <div class="steps" data-title="Amount due to a retiring partner">

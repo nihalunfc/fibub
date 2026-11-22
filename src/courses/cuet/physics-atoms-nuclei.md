@@ -69,6 +69,10 @@ N = N₀e^(−λt), half-life T½ = 0.693/λ, mean life τ = 1/λ. Alpha decay d
 
 </div>
 
+**Try it:** Switch the target and watch the scattering.
+
+<figure class="fig" data-fig="@mech-rutherford"><figcaption>Most pass straight; a few bounce back from a small dense centre.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="atoms,nuclei" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

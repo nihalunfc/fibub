@@ -36,6 +36,10 @@ sources:
 
 <figure class="fig" data-fig="gre-pace"><figcaption>Pick a Quant section, the question you are on and the time left. GRE quant sections run at about 1 minute 45 seconds per question.</figcaption></figure>
 
+**Try it:** Change the two strengths and the litres, press Pour, then try Hit a target.
+
+<figure class="fig" data-fig="@tp-mixture-vessel"><figcaption>The mixture always lands between the two strengths, nearer the one you used more of.</figcaption></figure>
+
 ## 2. Set 1: GRE formats (21 minutes)
 
 <div class="qbank" data-bank="gre-quant" data-exam="gre" data-mode="practice" data-n="12"></div>
