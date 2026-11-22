@@ -3,6 +3,7 @@
 // physical pendulum as applications. Original questions for IIT JAM, GATE and CSIR NET practice (fibub).
 // Levels: 1 warm-up ... 5 top rank. g = 9.8 m/s² unless stated.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './moment-of-inertia.more.gen.js';
 
 const D = Math.PI / 180;
 // I = beta * M R^2 about the symmetry axis (rolling bodies)
@@ -329,5 +330,6 @@ export default {
           trap: 'The pulley\'s radius cancels; its effective mass is $I/R^2$.' };
       },
       verify: (p) => p.m * 9.8 / (p.m + (p.ring ? p.M : p.M / 2)) },
+    ...more,
   ],
 };
