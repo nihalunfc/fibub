@@ -6,6 +6,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './complex-analysis.more.gen.js';
 import more2 from './complex-analysis.more2.gen.js';
+import r4 from './complex-analysis.r4.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 
@@ -222,6 +223,7 @@ export default {
       sol: 'On the unit circle $z = e^{i\\theta}$, $e^{z} = e^{\\cos\\theta}e^{i\\sin\\theta}$ and $dz = iz\\,d\\theta$. Then $\\oint\\frac{e^z}{z^2}dz = \\int_0^{2\\pi} e^{\\cos\\theta}e^{i\\sin\\theta}e^{-2i\\theta}\\,ie^{i\\theta}d\\theta = i\\int_0^{2\\pi} e^{\\cos\\theta}e^{i(\\sin\\theta - \\theta)}d\\theta$. By Cauchy\'s formula the left side is $2\\pi i\\cdot(e^z)\'|_0 = 2\\pi i$. So $\\int e^{\\cos\\theta}e^{i(\\sin\\theta - \\theta)}d\\theta = 2\\pi$, and its real part is the required integral: $2\\pi \\approx 6.28$.',
       trap: 'Picking $\\oint e^z/z\\,dz$ instead gives the integral of $e^{\\cos\\theta}\\cos(\\sin\\theta)$, which is a different (though also $2\\pi$-valued) integral; match the $-\\theta$ in the phase.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'cax-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Cauchy-Riemann',
@@ -322,5 +324,6 @@ export default {
           const fz = f(z), m = d[0] * d[0] + d[1] * d[1]; return [z[0] - (fz[0] * d[0] + fz[1] * d[1]) / m, z[1] - (fz[1] * d[0] - fz[0] * d[1]) / m]; });
         return zs.filter((z) => { const m = Math.hypot(...z); return m > 1 && m < 2; }).length; } },
     ...more,
+    ...r4.gens,
   ],
 };

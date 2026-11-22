@@ -5,6 +5,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './linear-vector-spaces.more.gen.js';
 import more2 from './linear-vector-spaces.more2.gen.js';
+import r4 from './linear-vector-spaces.r4.gen.js';
 
 export default {
   topic: 'linear-vector-spaces',
@@ -219,6 +220,7 @@ export default {
       sol: 'The eigenfunctions of $\\hat x$ are $\\delta(x - x_0)$, which are not square integrable, so $\\hat x$ has no normalisable eigenvectors (a continuous spectrum). Completeness (every Cauchy sequence converges) is what makes $L^2$ a Hilbert space. $|e^{ikx}|^2 = 1$ has infinite integral, so plane waves are not in $L^2$; they are used as generalised (delta-normalised) states. $\\int e^{-2x^2}dx = \\sqrt{\\pi/2}$ is finite.',
       trap: 'Plane waves and delta functions are useful but live outside the Hilbert space proper.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'lvs-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'inner product',
@@ -313,5 +315,6 @@ export default {
           trap: 'Squaring the overlap (as for a probability) gives the wrong splitting.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };
