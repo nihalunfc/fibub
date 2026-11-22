@@ -18,6 +18,7 @@ const RULE = { sc: 'every $(hkl)$ is allowed', bcc: 'only $h + k + l$ even is al
 const lam_e = (V) => C.h / Math.sqrt(2 * C.me * C.e * V) * 1e10; // electron wavelength in Å (non-relativistic)
 
 import * as Q5 from '../_util.js';
+import more2 from './x-ray-diffraction.more2.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -258,6 +259,7 @@ export default {
       options: ['the slope gives the size and the intercept gives the strain', 'the intercept gives the size and the slope gives the strain', 'both the size and the strain come from the slope', 'a horizontal line means the sample is strained and has very large grains'], answer: 1,
       sol: 'The equation is a straight line $y = c + mx$ with $y = \\beta\\cos\\theta$ and $x = \\sin\\theta$. Intercept $c = K\\lambda/\\tau$, so $\\tau = K\\lambda/c$. Slope $m = 4\\varepsilon$. A horizontal line ($m = 0$) means no strain: the broadening is all from small crystallites, as Scherrer assumes.',
       trap: 'Size broadening goes as $1/\\cos\\theta$ and strain broadening as $\\tan\\theta$; the plot separates them because only strain depends on $\\sin\\theta$ after multiplying by $\\cos\\theta$.' },
+    ...more2,
   ],
 
   gens: [
