@@ -86,6 +86,10 @@ export default {
       "name": "Class 12",
       "topics": [
         {
+          "id": "electric-charges-fields",
+          "name": "Electric charges, fields and Gauss's law"
+        },
+        {
           "id": "potential-capacitance",
           "name": "Electric potential and capacitors"
         },
