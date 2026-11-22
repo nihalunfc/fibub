@@ -1,7 +1,18 @@
 ---
 // "Check yourself": pick-one questions checked in the browser, with the reason shown after each answer.
 interface Props { quiz: { q: string; choices: string[]; ans: number; why: string }[] }
-const { quiz } = Astro.props;
+const { quiz: raw } = Astro.props;
+// Writers often put the right choice first. Rotate each question's choices by a fixed amount worked out from its
+// text (the same on every build), so the answer lands on any position. Questions with order-bound choices
+// ("all of the above", "both", "neither"...) keep their order.
+const bound = /\b(all|none) of (the )?(above|these)\b|^(both|neither)\b|\bonly (the )?(first|second)\b/i;
+const quiz = raw.map((it) => {
+  const n = it.choices.length;
+  if (n < 2 || it.choices.some((c) => bound.test(c))) return it;
+  let h = 0; for (const ch of it.q) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const k = h % n;
+  return { ...it, choices: it.choices.map((_, j) => it.choices[(j + k) % n]), ans: (it.ans - k + n) % n };
+});
 ---
 {quiz.length > 0 && <section class="cs-quiz" data-quiz={quiz.length}>
   <h2>Check yourself</h2>
