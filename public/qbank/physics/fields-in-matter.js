@@ -4,6 +4,7 @@
 // dielectric images, magnetic shielding, energies. Original questions (fibub) for GATE and CSIR NET.
 // BSc basics are in dielectrics and magnetic-materials (IIT JAM).
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './fields-in-matter.more.gen.js';
 
 const EPS0 = 8.8541878128e-12, MU0 = 1.25663706212e-6, K = 8.9875517923e9, KB = 1.380649e-23, PI = Math.PI;
 
@@ -341,5 +342,6 @@ export default {
           trap: 'The factor $\\tfrac12$: the moment is induced, not permanent.' };
       },
       verify: (p) => -2 * PI * EPS0 * (p.R / 100) ** 3 * (p.er - 1) / (p.er + 2) * (p.E0 * 1e5) ** 2 * 1e6 },
+    ...more,
   ],
 };

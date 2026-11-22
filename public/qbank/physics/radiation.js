@@ -4,6 +4,7 @@
 // radiation, and the classical atom (GATE/NET level).
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
+import more from './radiation.more.gen.js';
 
 const c = C.c;
 const ETA0 = Math.sqrt(C.mu0 / C.eps0);
@@ -366,5 +367,6 @@ export default {
           trap: 'Linear: $\\gamma^6$; circular: $\\gamma^4$.' };
       },
       verify: (p) => { const g = (p.K + MEV) / MEV; return (p.ask === 'linear' ? Math.pow(g, 6) : Math.pow(g, 4)) / 10 ** p.ex; } },
+    ...more,
   ],
 };

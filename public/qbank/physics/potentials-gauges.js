@@ -3,6 +3,7 @@
 // uniformly moving charges, vector potentials of standard sources, canonical momentum and the Aharonov-Bohm phase.
 // Original questions (fibub) for GATE and CSIR NET. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './potentials-gauges.more.gen.js';
 
 const MU0 = 1.25663706212e-6, C0 = 2.99792458e8, H = 6.62607015e-34, E = 1.602176634e-19, PI = Math.PI;
 
@@ -330,5 +331,6 @@ export default {
           trap: 'Canonical momentum changes with the gauge; it is not a measurable momentum by itself.' };
       },
       verify: (p) => E * (p.gauge === 'symmetric' ? 0.5 * p.B * p.s / 100 : p.B * Math.abs(p.y)) * 1e22 },
+    ...more,
   ],
 };

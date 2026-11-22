@@ -3,6 +3,7 @@
 // dispersion and cutoff, the Drude and Lorentz models, group velocity and dispersion, Kramers-Kronig (GATE/NET level).
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
+import more from './em-waves-media.more.gen.js';
 
 const PC = 3.0857e16; // parsec in metres
 const KDM = (C.e * C.e) / (8 * Math.PI ** 2 * C.eps0 * C.me * C.c); // delay t = KDM * (column density) / f^2
@@ -373,5 +374,6 @@ export default {
           sol: `$\\delta = \\sqrt{2/(\\mu\\sigma\\omega)} \\propto \\omega^{-1/2}$, $R_s = 1/(\\sigma\\delta) \\propto \\omega^{1/2}$ and $v_p = \\omega\\delta \\propto \\omega^{1/2}$. So the ${what} is multiplied by ${show(val)}.`,
           trap: 'Skin depth falls with frequency; surface resistance and phase velocity grow.' };
       } },
+    ...more,
   ],
 };
