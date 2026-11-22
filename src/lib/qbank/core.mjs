@@ -203,6 +203,19 @@ export const PATTERNS = {
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
   ], marksMap: { 1: 3.5, 2: 5 } },
+  'gmat-quant': { name: 'GMAT-style Quantitative Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 8 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 13 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-verbal': { name: 'GMAT-style Verbal Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 7 },
+    { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 16 },
+  ], marksMap: { 1: 1, 2: 1 } },
+  'gmat-di': { name: 'GMAT-style Data Insights (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
+    { name: 'Standard questions', type: 'mcq', marks: 1, count: 2 },
+    { name: 'Data Sufficiency, graphs and two-part questions', type: 'mcq', marks: 2, count: 14 },
+    { name: 'Select-all questions (tables and multi-source)', type: 'msq', marks: 2, count: 4 },
+  ], marksMap: { 1: 1, 2: 1 } },
 };
 
 /** Counts for a bank: fixed items and templates by type and level. */
