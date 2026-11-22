@@ -27,6 +27,10 @@ export default {
           "name": "Trigonometric functions and identities"
         },
         {
+          "id": "trig-equations-triangles",
+          "name": "Trigonometric equations and properties of triangles"
+        },
+        {
           "id": "complex-numbers",
           "name": "Complex numbers"
         },
@@ -61,6 +65,10 @@ export default {
         {
           "id": "limits",
           "name": "Limits"
+        },
+        {
+          "id": "statistics",
+          "name": "Statistics"
         }
       ]
     },
@@ -71,6 +79,10 @@ export default {
         {
           "id": "probability",
           "name": "Probability"
+        },
+        {
+          "id": "inverse-trig",
+          "name": "Inverse trigonometric functions"
         },
         {
           "id": "matrices-determinants",
@@ -103,6 +115,10 @@ export default {
         {
           "id": "three-d-geometry",
           "name": "Three-dimensional geometry"
+        },
+        {
+          "id": "linear-programming",
+          "name": "Linear programming"
         }
       ]
     }

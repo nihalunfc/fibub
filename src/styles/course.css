@@ -82,6 +82,7 @@ a[aria-current="page"].done::after { color: inherit; }
 .cs-modcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 10px; }
 .cs-modcard h4 { margin: 0 0 6px; font-size: 16.5px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .cs-modcard ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 15px; }
+.cs-modline { margin: 0 0 6px; font-size: 15.5px; }
 .cs-modcard a { text-decoration: none; }
 
 /* Phones (nihal, 2026-11-22): less scrolling. Smaller headings, tighter gaps and boxes in every course. */
