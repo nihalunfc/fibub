@@ -106,6 +106,15 @@ for (const bank of banks) {
       ok(`${w}: repeatable seed`, JSON.stringify(Q.instantiate(g, 99).q) === JSON.stringify(Q.instantiate(g, 99).q));
     }
   }
+  // Answer letters spread out: in a topic with 8+ written MCQs, no letter holds more than half and none is unused
+  // among the first four (otherwise students learn "it's usually A").
+  for (const t of listed) {
+    const fu = new URL(`${bank}/${t}.js`, root); if (!existsSync(fu)) continue;
+    const mcq = ((await import(fu.href)).default.items ?? []).filter((i) => i.type === 'mcq' && Number.isInteger(i.answer));
+    if (mcq.length < 8) continue;
+    const c = [0, 0, 0, 0]; for (const i of mcq) if (i.answer < 4) c[i.answer]++;
+    ok(`${bank}/${t}: MCQ answer letters spread (${c.join('/')})`, Math.max(...c) <= mcq.length / 2 && c.every((x) => x > 0));
+  }
   console.log(`${bank}: ${bi} written questions, ${bg} templates`);
   totals.items += bi; totals.gens += bg;
 }
