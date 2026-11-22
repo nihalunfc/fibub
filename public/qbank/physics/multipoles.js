@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './multipoles.more.gen.js';
 import more2 from './multipoles.more2.gen.js';
+import r4 from './multipoles.r4.gen.js';
 
 const K = 8.9875517923e9, D = 3.33564e-30, E = 1.602176634e-19, PI = Math.PI;
 
@@ -205,6 +206,7 @@ export default {
       sol: 'On the shell $3z^2 - r^2 = R^2(3\\cos^2\\theta - 1)$ and $dA = R^2d\\Omega$. So $Q_{zz} = \\sigma_0R^4\\cdot2\\pi\\displaystyle\\int_{-1}^{1}x^2(3x^2 - 1)\\,dx = \\sigma_0R^4\\cdot2\\pi\\left(\\tfrac65 - \\tfrac23\\right) = \\dfrac{16\\pi}{15}\\sigma_0R^4 = 3.35\\,\\sigma_0R^4$.',
       trap: 'Only the $P_2$ part of $\\cos^2\\theta$ contributes; the $\\tfrac13$ part is a monopole.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -347,5 +349,6 @@ export default {
       },
       verify: (p) => { const c = Math.cos(p.b * PI / 180); return -p.qc * 1e-9 * (p.a * 1e-3) ** 2 * p.G * 1e8 * (1.5 * c * c - 0.5) * 1e6; } },
     ...more,
+    ...r4.gens,
   ],
 };
