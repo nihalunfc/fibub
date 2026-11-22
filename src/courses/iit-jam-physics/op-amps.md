@@ -209,4 +209,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="op-amps" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 7.7](/learn/courses/iit-jam-physics/digital-logic/) leaves the analogue world for logic gates, where transistors are only ever fully on or fully off. The [GATE Physics course](/learn/courses/gate-physics/) treats feedback amplifiers, active filters and oscillators in more depth.
+**Next:** [lesson 7.7](/learn/courses/iit-jam-physics/digital-logic/) leaves the analogue world for logic gates, where transistors are only ever fully on or fully off. The GATE Physics course treats [feedback amplifiers](/learn/courses/gate-physics/amplifiers-feedback/), [active filters](/learn/courses/gate-physics/op-amp-circuits/) and [oscillators](/learn/courses/gate-physics/oscillators/) in more depth.

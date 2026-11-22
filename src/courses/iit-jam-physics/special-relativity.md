@@ -159,4 +159,4 @@ They start easy and climb to top-rank level. More on the [special relativity pra
 
 <div class="qbank" data-bank="physics" data-topics="special-relativity" data-exam="jam" data-n="10"></div>
 
-**Before this:** lesson 2.8, [fluids](/learn/courses/iit-jam-physics/fluids/). **Next:** module 3 begins with [simple harmonic motion](/learn/courses/iit-jam-physics/simple-harmonic-motion/). Relativity returns with photons in [the photoelectric and Compton effects](/learn/courses/iit-jam-physics/photons/), and GATE goes on to [four-vectors and relativistic kinematics](/learn/courses/gate-physics/).
+**Before this:** lesson 2.8, [fluids](/learn/courses/iit-jam-physics/fluids/). **Next:** module 3 begins with [simple harmonic motion](/learn/courses/iit-jam-physics/simple-harmonic-motion/). Relativity returns with photons in [the photoelectric and Compton effects](/learn/courses/iit-jam-physics/photons/), and GATE goes on to [four-vectors and relativistic kinematics](/learn/courses/gate-physics/relativistic-kinematics/).

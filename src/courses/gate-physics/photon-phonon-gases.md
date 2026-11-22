@@ -25,7 +25,7 @@ sources:
   - 'GATE Physics (PH) syllabus, Statistical Physics section, published by the organising institute each year'
 ---
 
-**Module 5 · about 45 minutes.** By the end you will be able to derive Planck's law and the Stefan-Boltzmann constant from Bose statistics, work out every thermodynamic property of the photon gas, explain the Debye `$T^3$` law as a phonon gas, and calculate condensation temperatures and condensate fractions for atoms in a box or a trap. The radiation laws as such (Wien, Stefan, emissivity) are in the IIT JAM course; here we derive them. You need the Bose-Einstein occupation from [lesson 5.4](/learn/courses/gate-physics/quantum-statistics/).
+**Module 5 · about 45 minutes.** By the end you will be able to derive Planck's law and the Stefan-Boltzmann constant from Bose statistics, work out every thermodynamic property of the photon gas, explain the Debye `$T^3$` law as a phonon gas, and calculate condensation temperatures and condensate fractions for atoms in a box or a trap. The radiation laws as such (Wien, Stefan, emissivity) are in the IIT JAM course ([blackbody radiation](/learn/courses/iit-jam-physics/blackbody-radiation/)); here we derive them. You need the Bose-Einstein occupation from [lesson 5.4](/learn/courses/gate-physics/quantum-statistics/).
 
 <div class="bigidea">A Bose gas whose particle number is not conserved (photons, phonons) has μ = 0, and its thermodynamics follows from mode counting alone. A Bose gas whose number is conserved (atoms) cannot fit all its particles in excited states below a critical temperature, and the rest pile into the ground state: Bose-Einstein condensation.</div>
 

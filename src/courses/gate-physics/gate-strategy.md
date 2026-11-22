@@ -123,3 +123,5 @@ Put the strategy to work on a hard mixed set (levels 3 to 5). Time yourself at 1
 <div class="qbank" data-bank="physics" data-topics="linear-vector-spaces,hamiltonian-mechanics,potentials-gauges,harmonic-oscillator,fermi-gas,lasers,structure-factor,op-amp-circuits,adc-dac,sequential-logic" data-exam="gate" data-level="3,4,5" data-n="12"></div>
 
 **Next:** that completes the course. Sit a full [GATE mock test](/learn/courses/gate-physics/mock-test/) under exam conditions, review it with the log above, and go back to any lesson your mistakes point to.
+
+**Going on to CSIR NET?** [A 6-month study plan](/learn/courses/csir-net-physics/study-plan/) shows how to reuse these GATE lessons for NET.

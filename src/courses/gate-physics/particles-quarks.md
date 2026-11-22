@@ -152,3 +152,5 @@ The second formula, the **invariant mass**, works in any frame: combine the meas
 <div class="qbank" data-bank="physics" data-topics="particles-quarks" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 8.7](/learn/courses/gate-physics/conservation-laws/) collects the conservation laws and symmetries that decide which of all these processes can happen, and through which force.
+
+**Going on to CSIR NET?** [Isospin, strangeness and the quark model](/learn/courses/csir-net-physics/quark-model/) goes further with multiplets and quark content.

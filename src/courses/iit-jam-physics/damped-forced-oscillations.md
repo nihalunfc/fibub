@@ -185,4 +185,4 @@ They start easy and climb to top-rank level. More on the [damped and forced osci
 
 <div class="qbank" data-bank="physics" data-topics="damped-forced-oscillations" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/) adds oscillations together (beats, Lissajous figures and coupled oscillators), and [lesson 3.4](/learn/courses/iit-jam-physics/waves/) lets the oscillation travel as a wave. In electronics, resonance reappears in filters and oscillator circuits, which the [GATE Physics course](/learn/courses/gate-physics/) covers in its electronics module.
+**Next:** [lesson 3.3](/learn/courses/iit-jam-physics/superposition-coupled/) adds oscillations together (beats, Lissajous figures and coupled oscillators), and [lesson 3.4](/learn/courses/iit-jam-physics/waves/) lets the oscillation travel as a wave. In electronics, resonance reappears in [filters](/learn/courses/gate-physics/op-amp-circuits/) and [oscillator circuits](/learn/courses/gate-physics/oscillators/), which the GATE Physics course covers in its electronics module.

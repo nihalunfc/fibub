@@ -178,4 +178,4 @@ Warm-up to top-rank, each with a full solution. More on the [GATE Physics practi
 
 <div class="qbank" data-bank="physics" data-topics="potentials-gauges" data-exam="gate" data-n="10"></div>
 
-**Next:** the potentials of this lesson lead directly to electromagnetic waves in matter and to radiation from accelerated charges, later in this module. Back to [fields in matter](/learn/courses/gate-physics/fields-in-matter/), or see a plane wave's fields in 3D with [EM wave 3D](/learn/em-wave-3d/).
+**Next:** the potentials of this lesson lead directly to [electromagnetic waves in matter](/learn/courses/gate-physics/em-waves-media/) and to [radiation from accelerated charges](/learn/courses/gate-physics/radiation/), later in this module. Back to [fields in matter](/learn/courses/gate-physics/fields-in-matter/), or see a plane wave's fields in 3D with [EM wave 3D](/learn/em-wave-3d/).

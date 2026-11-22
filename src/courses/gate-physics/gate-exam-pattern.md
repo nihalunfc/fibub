@@ -133,3 +133,5 @@ A mixed set from across the syllabus, GATE-tagged, to feel the spread of the rea
 <div class="qbank" data-bank="physics" data-topics="matrices-eigenvalues,lagrangian-mechanics,multipoles,angular-momentum,quantum-statistics,fine-structure,phonons,nuclei-radioactivity,semiconductor-devices,combinational-logic" data-exam="gate" data-n="12"></div>
 
 **Next:** [lesson 10.2](/learn/courses/gate-physics/gate-strategy/) turns these rules into a strategy: what to attempt first, when to guess and when to skip. Then sit a full [mock test](/learn/courses/gate-physics/mock-test/).
+
+**Going on to CSIR NET?** Compare [the NET paper](/learn/courses/csir-net-physics/net-exam-pattern/), which has its own Parts A, B and C.

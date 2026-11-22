@@ -128,7 +128,7 @@ You are ready for quantum mechanics when you can, without notes:
 
 <div class="myth">
 
-**"Optics is a separate subject and NET skips it."** Reflection, refraction, polarisation, Fresnel's relations, interference, coherence and diffraction are all in the core electromagnetism syllabus. Revise them with the JAM optics lessons, then the GATE Fresnel lesson.
+**"Optics is a separate subject and NET skips it."** Reflection, refraction, polarisation, Fresnel's relations, interference, coherence and diffraction are all in the core electromagnetism syllabus. Revise them with the JAM optics lessons, then the [GATE Fresnel lesson](/learn/courses/gate-physics/fresnel-equations/).
 
 </div>
 
@@ -136,7 +136,7 @@ You are ready for quantum mechanics when you can, without notes:
 
 - Part B: statics and boundary values, induction, Maxwell's equations in media, potentials and gauges, waves and optics, charges in fields.
 - Part C: plasma dispersion, covariant form, waveguides and transmission lines, radiation and retarded potentials.
-- Order: boundary values and images, multipoles, fields in matter, potentials, waves in media and Fresnel, waveguides, radiation, covariant form, lessons 4.2 and 4.3.
+- Order: boundary values and images, multipoles, fields in matter, potentials, waves in media and Fresnel, waveguides, radiation, covariant form, lessons [4.2](/learn/courses/csir-net-physics/retarded-potentials/) and [4.3](/learn/courses/csir-net-physics/plasma-dispersion/).
 - Dipole radiation: intensity ∝ `$p_0^2\omega^4\sin^2\theta/r^2$`.
 
 </div>

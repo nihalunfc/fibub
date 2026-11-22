@@ -163,4 +163,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="matter-waves" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 6.3](/learn/courses/iit-jam-physics/schrodinger-equation/) writes down the equation these waves obey and solves it for wells, steps and barriers. The [GATE Physics course](/learn/courses/gate-physics/) derives the general uncertainty relation from commutators.
+**Next:** [lesson 6.3](/learn/courses/iit-jam-physics/schrodinger-equation/) writes down the equation these waves obey and solves it for wells, steps and barriers. The GATE Physics course derives [the general uncertainty relation from commutators](/learn/courses/gate-physics/commutators-uncertainty/).

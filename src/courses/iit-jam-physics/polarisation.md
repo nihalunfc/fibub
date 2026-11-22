@@ -159,4 +159,6 @@ They start easy and climb to top-rank level. More on the [polarisation practice 
 
 <div class="qbank" data-bank="physics" data-topics="polarisation" data-exam="jam" data-n="10"></div>
 
-**Next:** polarisation closes the optics part of Module 3. Look back at [interference](/learn/courses/iit-jam-physics/interference/) (thin films use the same reflection phases) and [diffraction](/learn/courses/iit-jam-physics/diffraction/), and at [superposition](/learn/courses/iit-jam-physics/superposition-coupled/) for the Lissajous figures that polarisation states really are. Electromagnetic waves themselves are treated in Module 4.
+**Next:** polarisation closes the optics part of Module 3. Look back at [interference](/learn/courses/iit-jam-physics/interference/) (thin films use the same reflection phases) and [diffraction](/learn/courses/iit-jam-physics/diffraction/), and at [superposition](/learn/courses/iit-jam-physics/superposition-coupled/) for the Lissajous figures that polarisation states really are. Electromagnetic waves themselves are treated in [Module 4](/learn/courses/iit-jam-physics/maxwell-em-waves/), which begins with [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/).
+
+**Go deeper:** GATE Physics derives Brewster's angle and the polarisation of reflected light from Maxwell's equations in [the Fresnel equations](/learn/courses/gate-physics/fresnel-equations/).

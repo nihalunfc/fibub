@@ -176,3 +176,5 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 <div class="qbank" data-bank="physics" data-topics="calculus-and-series" data-exam="jam" data-n="10"></div>
 
 **Next:** lesson 1.2 extends derivatives to functions of several variables: [partial derivatives, Jacobians and exact differentials](/learn/courses/iit-jam-physics/partial-derivatives/). Taylor series come back in [simple harmonic motion](/learn/courses/iit-jam-physics/simple-harmonic-motion/) (every small oscillation) and in [complex numbers](/learn/courses/iit-jam-physics/complex-numbers/) (Euler's formula). Expand binomials term by term in the [binomial expansion tool](/learn/binomial-expansion/) and plot any function in the [graphing calculator](/science/function-grapher/).
+
+**Go deeper:** for GATE and CSIR NET, power series return in [series solutions: Legendre, Bessel and Hermite](/learn/courses/gate-physics/special-functions/) and, as Laurent series, in [analytic functions and Cauchy's theorem](/learn/courses/gate-physics/complex-analysis/).

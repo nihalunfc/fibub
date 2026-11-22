@@ -127,7 +127,7 @@ You are ready for condensed matter when you can, without notes:
 <div class="keypoints">
 
 - Part C only: atomic structure and spectra, fine and hyperfine structure, coupling schemes, atoms in fields, magnetic resonance, molecular spectra, lasers.
-- Order: hydrogen and fine structure, LS and jj coupling, Zeeman and Stark, rotational, vibrational and Raman spectra, lasers, lessons 8.2 and 8.3.
+- Order: hydrogen and fine structure, LS and jj coupling, Zeeman and Stark, rotational, vibrational and Raman spectra, lasers, lessons [8.2](/learn/courses/csir-net-physics/esr-nmr/) and [8.3](/learn/courses/csir-net-physics/electronic-spectra/).
 - Landé g, term symbols, `$BJ(J + 1)$`, anharmonic `$G(v)$` and selection rules answer most questions.
 
 </div>

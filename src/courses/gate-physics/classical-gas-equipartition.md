@@ -125,3 +125,5 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 <div class="qbank" data-bank="physics" data-topics="classical-gas-equipartition" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 5.4, Bose-Einstein and Fermi-Dirac statistics](/learn/courses/gate-physics/quantum-statistics/), for what happens when `$n\lambda^3$` is no longer small. Try fibub's [real gas calculator](/science/real-gas-calculator/) to see where interactions, rather than quantum effects, make a gas non-ideal.
+
+**Going on to CSIR NET?** [The kinetic theory of transport](/learn/courses/csir-net-physics/transport/) uses the same molecular speeds for viscosity, conduction and diffusion.

@@ -157,3 +157,5 @@ They start easy and climb to top-rank level. More on the [normal modes practice 
 <div class="qbank" data-bank="physics" data-topics="normal-modes" data-exam="gate" data-n="10"></div>
 
 **Before this:** lesson 2.4, [central forces and scattering](/learn/courses/gate-physics/central-force-scattering/). **Next:** lesson 2.6, [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/).
+
+**Going on to CSIR NET?** [Phase space and stability](/learn/courses/csir-net-physics/phase-space-stability/) classifies the fixed points these modes oscillate about, and [nonlinear dynamics and chaos](/learn/courses/csir-net-physics/nonlinear-dynamics-chaos/) asks what happens when the amplitude is not small.

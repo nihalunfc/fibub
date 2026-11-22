@@ -148,4 +148,6 @@ From warm-up to top-rank level, with full solutions. More on the [probability pr
 
 <div class="qbank" data-bank="physics" data-topics="probability" data-exam="gate" data-n="10"></div>
 
-Try the [Binomial lab](/learn/binomial-distribution-lab/), the [Normal lab](/learn/normal-distribution-lab/) and the [Counting statistics helper](/science/counting-statistics/). **Before this:** [lesson 1.9, tensors](/learn/courses/gate-physics/tensors/). **Next:** Part B begins with Lagrangian mechanics; meanwhile, quantum measurement probabilities are in [lesson 4.1](/learn/courses/gate-physics/postulates-operators/). Back to the [GATE Physics course home](/learn/courses/gate-physics/).
+Try the [Binomial lab](/learn/binomial-distribution-lab/), the [Normal lab](/learn/normal-distribution-lab/) and the [Counting statistics helper](/science/counting-statistics/). **Before this:** [lesson 1.9, tensors](/learn/courses/gate-physics/tensors/). **Next:** Part B begins with [Lagrangian mechanics](/learn/courses/gate-physics/lagrangian-mechanics/); meanwhile, quantum measurement probabilities are in [lesson 4.1](/learn/courses/gate-physics/postulates-operators/). Back to the [GATE Physics course home](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [Random variables and probability distributions](/learn/courses/csir-net-physics/probability-distributions/) and [measurement, errors and fitting data](/learn/courses/csir-net-physics/errors-data-fitting/) take these ideas into Part C.

@@ -132,7 +132,7 @@ You are ready for mechanics when you can, without notes:
 
 - Part B: linear algebra, ODEs and special functions, Fourier and Laplace, complex analysis, probability.
 - Part C: Green's functions and PDEs, numerical methods, tensors, group theory.
-- Order: linear algebra, complex analysis, ODEs and special functions, transforms, PDEs and Green's functions, probability, tensors, then the NET extras (lessons 2.2 to 2.4).
+- Order: linear algebra, complex analysis, ODEs and special functions, transforms, PDEs and Green's functions, probability, tensors, then the NET extras (lessons [2.2](/learn/courses/csir-net-physics/group-theory/) to [2.4](/learn/courses/csir-net-physics/numerical-methods/)).
 - Learn every tool through one worked example you can redo from memory, and check answers with dimensions and limits.
 
 </div>

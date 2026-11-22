@@ -161,4 +161,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="potential-energy" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 4.3](/learn/courses/iit-jam-physics/conductors-images/) puts conductors into the picture, solves Laplace's equation and introduces the method of images; after that come dielectrics and capacitors. Back to the field picture: [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/). For multipole expansions and boundary value problems at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** [lesson 4.3](/learn/courses/iit-jam-physics/conductors-images/) puts conductors into the picture, solves Laplace's equation and introduces the method of images; after that come dielectrics and capacitors. Back to the field picture: [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/). For [multipole expansions](/learn/courses/gate-physics/multipoles/) and [boundary value problems](/learn/courses/gate-physics/boundary-value-problems/) at MSc level, see the GATE Physics course.

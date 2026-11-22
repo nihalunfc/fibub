@@ -118,3 +118,5 @@ for a full-scale sine of amplitude `$A$`. A 12-bit converter gives at most 74.0 
 <div class="qbank" data-bank="physics" data-topics="adc-dac" data-exam="gate" data-n="10"></div>
 
 **Next:** that completes the electronics module. [Lesson 10.1](/learn/courses/gate-physics/gate-exam-pattern/) explains the GATE PH paper itself: sections, marking and timing.
+
+**Going on to CSIR NET?** [Noise, filtering and lock-in detection](/learn/courses/csir-net-physics/noise-lock-in/) covers aliasing and sizing an ADC against the noise.

@@ -156,3 +156,5 @@ They start easy and climb to top-rank level. More on the [elasticity practice pa
 <div class="qbank" data-bank="physics" data-topics="elasticity" data-exam="jam" data-n="10"></div>
 
 **Before this:** lesson 2.6, [rotation, rolling and angular momentum](/learn/courses/iit-jam-physics/rigid-body-rotation/). **Next:** lesson 2.8, [fluids](/learn/courses/iit-jam-physics/fluids/), the materials with no shear modulus at all.
+
+**Go deeper:** stress and strain are the first tensors most students meet; GATE Physics treats them in general in [tensors](/learn/courses/gate-physics/tensors/), and CSIR NET's [defects and dislocations](/learn/courses/csir-net-physics/defects-dislocations/) explains why real metals yield far below their ideal strength.

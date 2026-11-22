@@ -173,4 +173,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="x-ray-diffraction" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 7.3](/learn/courses/iit-jam-physics/semiconductors/) moves from where the atoms are to what their electrons do: bands, gaps and the Fermi level. The [GATE Physics course](/learn/courses/gate-physics/) takes diffraction further, with the full structure factor algebra and neutron scattering.
+**Next:** [lesson 7.3](/learn/courses/iit-jam-physics/semiconductors/) moves from where the atoms are to what their electrons do: bands, gaps and the Fermi level. The GATE Physics course takes diffraction further, with [the full structure factor algebra](/learn/courses/gate-physics/structure-factor/) and neutron scattering.

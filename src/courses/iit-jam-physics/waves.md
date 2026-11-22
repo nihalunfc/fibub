@@ -179,3 +179,5 @@ They start easy and climb to top-rank level. More on the [waves practice page](/
 <div class="qbank" data-bank="physics" data-topics="waves" data-exam="jam" data-n="10"></div>
 
 **Next:** [lesson 3.5](/learn/courses/iit-jam-physics/sound-doppler/) applies all of this to sound: the speed of sound in gases, pipes, beats and the Doppler effect. The standing-wave idea returns in [interference](/learn/courses/iit-jam-physics/interference/) and in the quantum particle in a box.
+
+**Go deeper:** dispersion and group velocity in real media are in GATE's [electromagnetic waves in matter, conductors and plasmas](/learn/courses/gate-physics/em-waves-media/), and the wave equation is solved in general in [partial differential equations](/learn/courses/gate-physics/partial-differential-equations/).

@@ -188,4 +188,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="phase-changes" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 5.4, thermodynamic potentials](/learn/courses/iit-jam-physics/thermodynamic-potentials/). **Next:** [lesson 5.6, blackbody radiation](/learn/courses/iit-jam-physics/blackbody-radiation/), the thermodynamics of a gas of light. Going on to GATE or CSIR NET? The [GATE Physics course](/learn/courses/gate-physics/) treats phase transitions with order parameters and Landau theory.
+**Before this:** [lesson 5.4, thermodynamic potentials](/learn/courses/iit-jam-physics/thermodynamic-potentials/). **Next:** [lesson 5.6, blackbody radiation](/learn/courses/iit-jam-physics/blackbody-radiation/), the thermodynamics of a gas of light. Going on to GATE or CSIR NET? The GATE Physics course treats [phase transitions](/learn/courses/gate-physics/phase-transitions/) with order parameters and Landau theory, and CSIR NET goes further in [the Ising model and Landau theory](/learn/courses/csir-net-physics/ising-landau/).

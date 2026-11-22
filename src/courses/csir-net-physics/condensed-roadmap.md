@@ -80,7 +80,7 @@ Liquid crystals, quasicrystals and superfluidity appear rarely and at a descript
 | Semiconductors, Landau levels | [GATE 7.8](/learn/courses/gate-physics/semiconductors-hall/) | intrinsic carrier density, mobility, cyclotron frequency |
 | Magnetism | [GATE 7.9](/learn/courses/gate-physics/magnetism/) | Curie law, Curie-Weiss, Langevin diamagnetism |
 | Superconductivity | [GATE 7.10](/learn/courses/gate-physics/superconductivity/) | London depth, critical field, flux quantum `$h/2e$`, Josephson relation |
-| Defects, optics, quantum Hall | lessons 9.2 to 9.4 | Burgers vector, Clausius-Mossotti, `$\sigma_{xy} = \nu e^2/h$` |
+| Defects, optics, quantum Hall | lessons [9.2](/learn/courses/csir-net-physics/defects-dislocations/) to [9.4](/learn/courses/csir-net-physics/quantum-hall/) | Burgers vector, Clausius-Mossotti, `$\sigma_{xy} = \nu e^2/h$` |
 
 ## 4. A worked NET-style example
 
@@ -130,7 +130,7 @@ You are ready for nuclear physics when you can, without notes:
 <div class="keypoints">
 
 - Part C only: lattices and diffraction, bonding, phonons and heat capacity, free electrons and Hall effect, bands, superconductivity, defects, ordered phases.
-- Order: lattices, structure factor, bonding, phonons and heat capacity, free electrons, bands, semiconductors, magnetism and superconductivity, lessons 9.2 to 9.4.
+- Order: lattices, structure factor, bonding, phonons and heat capacity, free electrons, bands, semiconductors, magnetism and superconductivity, lessons [9.2](/learn/courses/csir-net-physics/defects-dislocations/) to [9.4](/learn/courses/csir-net-physics/quantum-hall/).
 - Reciprocal lattice and Brillouin zone unify diffraction, phonons and bands; `$1/m^* = E''(k)/\hbar^2$`.
 
 </div>

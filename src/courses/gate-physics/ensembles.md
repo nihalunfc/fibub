@@ -154,3 +154,5 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 <div class="qbank" data-bank="physics" data-topics="ensembles" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 5.2, partition functions](/learn/courses/gate-physics/partition-functions/), where the canonical ensemble becomes a working tool for two-level systems, oscillators, rotors and paramagnets. fibub's [Ising model simulator](/science/ising-model/) shows microstates being sampled with the Boltzmann weight in real time.
+
+**Going on to CSIR NET?** [Fluctuations, diffusion and Brownian motion](/learn/courses/csir-net-physics/fluctuations-brownian/) asks how far a system strays from these averages.

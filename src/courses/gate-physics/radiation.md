@@ -177,3 +177,5 @@ From warm-up to top-rank level, with full solutions. More on the [practice page]
 <div class="qbank" data-bank="physics" data-topics="radiation" data-exam="gate" data-n="10"></div>
 
 **Before this:** [lesson 3.8, waveguides](/learn/courses/gate-physics/waveguides/), and the JAM lesson on [Maxwell's equations and electromagnetic waves](/learn/courses/iit-jam-physics/maxwell-em-waves/). **Next:** [lesson 3.10, electrodynamics and relativity](/learn/courses/gate-physics/covariant-electrodynamics/), where the fields of moving charges are found by a Lorentz boost. Back to the [GATE Physics course home](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [Retarded and Liénard-Wiechert potentials](/learn/courses/csir-net-physics/retarded-potentials/) finds the full fields of a moving point charge.

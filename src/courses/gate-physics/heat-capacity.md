@@ -136,3 +136,5 @@ The [heat capacity fitter](/science/heat-capacity-fitter/) fits measured data wi
 <div class="qbank" data-bank="physics" data-topics="heat-capacity" data-exam="gate" data-n="10"></div>
 
 **Back to:** [phonons](/learn/courses/gate-physics/phonons/) for the modes behind these curves, or [the reciprocal lattice](/learn/courses/gate-physics/reciprocal-lattice/) for where they live.
+
+**Next:** lesson 7.6, [the free electron model](/learn/courses/gate-physics/free-electron-model/).

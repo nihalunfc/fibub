@@ -180,4 +180,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="diodes" data-exam="jam" data-n="10"></div>
 
-**Next:** add a third layer and a junction becomes a transistor, the amplifier and switch of all electronics. The [GATE Physics course](/learn/courses/gate-physics/) treats diodes, BJTs, FETs and MOSFETs together.
+**Next:** add a third layer and a junction becomes a [transistor](/learn/courses/iit-jam-physics/transistors/), the amplifier and switch of all electronics. The GATE Physics course treats [diodes, BJTs, FETs and MOSFETs](/learn/courses/gate-physics/semiconductor-devices/) together.

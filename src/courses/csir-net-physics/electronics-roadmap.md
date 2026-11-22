@@ -59,9 +59,9 @@ Described from the published syllabus (check the current one):
 
 ## 2. The order to study it
 
-1. **Devices**: JAM [semiconductors and the Fermi level](/learn/courses/iit-jam-physics/semiconductors/), [p-n junctions and diodes](/learn/courses/iit-jam-physics/diodes/) and [transistors](/learn/courses/iit-jam-physics/transistors/); then the GATE lesson on diodes, BJTs, FETs and MOSFETs. For the band picture behind them, GATE [semiconductors and the Hall effect](/learn/courses/gate-physics/semiconductors-hall/).
-2. **Op-amps**: JAM [operational amplifiers](/learn/courses/iit-jam-physics/op-amps/), then the GATE lessons on amplifiers and feedback, op-amp circuits and oscillators.
-3. **Digital**: JAM [logic gates and Boolean algebra](/learn/courses/iit-jam-physics/digital-logic/), then the GATE lessons on combinational logic, flip-flops and counters, and ADCs and DACs.
+1. **Devices**: JAM [semiconductors and the Fermi level](/learn/courses/iit-jam-physics/semiconductors/), [p-n junctions and diodes](/learn/courses/iit-jam-physics/diodes/) and [transistors](/learn/courses/iit-jam-physics/transistors/); then the GATE lesson on [diodes, BJTs, FETs and MOSFETs](/learn/courses/gate-physics/semiconductor-devices/). For the band picture behind them, GATE [semiconductors and the Hall effect](/learn/courses/gate-physics/semiconductors-hall/).
+2. **Op-amps**: JAM [operational amplifiers](/learn/courses/iit-jam-physics/op-amps/), then the GATE lessons on [amplifiers and feedback](/learn/courses/gate-physics/amplifiers-feedback/), [op-amp circuits](/learn/courses/gate-physics/op-amp-circuits/) and [oscillators](/learn/courses/gate-physics/oscillators/).
+3. **Digital**: JAM [logic gates and Boolean algebra](/learn/courses/iit-jam-physics/digital-logic/), then the GATE lessons on [combinational logic](/learn/courses/gate-physics/combinational-logic/), [flip-flops and counters](/learn/courses/gate-physics/sequential-logic/), and [ADCs and DACs](/learn/courses/gate-physics/adc-dac/).
 4. **Circuits** refresher where needed: JAM [DC transients and AC circuits](/learn/courses/iit-jam-physics/circuits/) (filters and time constants).
 5. **Errors and statistics**: GATE [probability and statistics](/learn/courses/gate-physics/probability/), then [lesson 7.2](/learn/courses/csir-net-physics/errors-data-fitting/) of this course (measurement, errors and fitting data).
 6. **NET extras in this course**: [lesson 7.3](/learn/courses/csir-net-physics/transducers-detectors/) (transducers and detectors) and [lesson 7.4](/learn/courses/csir-net-physics/noise-lock-in/) (noise, filtering and lock-in detection).
@@ -71,10 +71,10 @@ Described from the published syllabus (check the current one):
 | Topic | Learn it from | NET emphasis |
 |---|---|---|
 | Diodes, rectifiers, Zener | [JAM diodes](/learn/courses/iit-jam-physics/diodes/) | ripple, regulation, junction capacitance |
-| BJTs, FETs | [JAM transistors](/learn/courses/iit-jam-physics/transistors/), GATE devices lesson | biasing, small-signal gain, MOSFET regions |
+| BJTs, FETs | [JAM transistors](/learn/courses/iit-jam-physics/transistors/), [GATE devices lesson](/learn/courses/gate-physics/semiconductor-devices/) | biasing, small-signal gain, MOSFET regions |
 | Opto-electronics | [JAM semiconductors](/learn/courses/iit-jam-physics/semiconductors/), [GATE Hall effect](/learn/courses/gate-physics/semiconductors-hall/) | band gap and wavelength, solar-cell fill factor |
-| Op-amps | [JAM op-amps](/learn/courses/iit-jam-physics/op-amps/), GATE op-amp lessons | summers, integrators, differentiators, active filters, comparators |
-| Digital circuits, converters | [JAM logic](/learn/courses/iit-jam-physics/digital-logic/), GATE digital lessons | Karnaugh maps, counters, R-2R DAC, ADC resolution |
+| Op-amps | [JAM op-amps](/learn/courses/iit-jam-physics/op-amps/), GATE op-amp lessons ([feedback](/learn/courses/gate-physics/amplifiers-feedback/), [circuits](/learn/courses/gate-physics/op-amp-circuits/)) | summers, integrators, differentiators, active filters, comparators |
+| Digital circuits, converters | [JAM logic](/learn/courses/iit-jam-physics/digital-logic/), GATE digital lessons ([logic](/learn/courses/gate-physics/combinational-logic/), [counters](/learn/courses/gate-physics/sequential-logic/), [converters](/learn/courses/gate-physics/adc-dac/)) | Karnaugh maps, counters, R-2R DAC, ADC resolution |
 | Filters, time constants | [JAM circuits](/learn/courses/iit-jam-physics/circuits/) | RC cut-off frequency, phase shift |
 | Errors, least squares, chi-square | [GATE probability](/learn/courses/gate-physics/probability/), [lesson 7.2](/learn/courses/csir-net-physics/errors-data-fitting/) | propagation, weighted fits, degrees of freedom |
 | Transducers, detectors | [lesson 7.3](/learn/courses/csir-net-physics/transducers-detectors/) | thermocouples, RTDs, Hall probes, photomultipliers, vacuum gauges |
@@ -128,7 +128,7 @@ You are ready for the Part C units when you can, without notes:
 
 - Part B: devices and opto-electronics, op-amps, digital circuits and converters, error analysis and least squares.
 - Part C: curve fitting and chi-square, transducers and detectors, signal conditioning, noise and lock-in detection, high-frequency devices.
-- Order: devices, op-amps, digital, circuits refresher, errors and statistics, lessons 7.2 to 7.4.
+- Order: devices, op-amps, digital, circuits refresher, errors and statistics, lessons [7.2](/learn/courses/csir-net-physics/errors-data-fitting/) to [7.4](/learn/courses/csir-net-physics/noise-lock-in/).
 - Op-amp golden rules, diode as a switch, Boolean algebra, quadrature for independent errors.
 
 </div>

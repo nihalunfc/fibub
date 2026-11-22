@@ -144,3 +144,5 @@ They start easy and climb to top-rank level. More on the [fluids practice page](
 <div class="qbank" data-bank="physics" data-topics="fluids" data-exam="jam" data-n="10"></div>
 
 **Before this:** lesson 2.7, [elasticity](/learn/courses/iit-jam-physics/elasticity/). **Next:** lesson 2.9, [special relativity](/learn/courses/iit-jam-physics/special-relativity/). Gas viscosity from molecular motion comes back in [kinetic theory](/learn/courses/iit-jam-physics/kinetic-theory/).
+
+**Go deeper:** GATE Physics has no fluids lesson; the nearest next step is CSIR NET's [kinetic theory of transport](/learn/courses/csir-net-physics/transport/), which derives viscosity from molecular collisions.

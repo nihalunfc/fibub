@@ -118,7 +118,7 @@ Bethe is exact on a tree (Bethe lattice) and gets 1D right, but its exponents ar
 
 ## 5. Landau theory beyond the basics
 
-Landau's free energy is a power series in the order parameter allowed by symmetry. With `$m \to -m$` symmetry and `$b > 0$`, the transition is continuous (see the GATE lesson). Three extensions come up in NET.
+Landau's free energy is a power series in the order parameter allowed by symmetry. With `$m \to -m$` symmetry and `$b > 0$`, the transition is continuous (see the [GATE lesson](/learn/courses/gate-physics/phase-transitions/)). Three extensions come up in NET.
 
 **A cubic term** (no `$m \to -m$` symmetry, for example the nematic-isotropic transition or a three-state Potts model): `$F = am^2 - cm^3 + bm^4$`. A non-zero minimum appears before `$a$` reaches zero, and the transition is first order at `$a = c^2/4b$` with jump `$m = c/2b$`.
 

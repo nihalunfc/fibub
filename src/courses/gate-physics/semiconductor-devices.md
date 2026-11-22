@@ -154,3 +154,5 @@ A depletion-mode MOSFET has a channel built in, so it conducts at `$V_{GS} = 0$`
 <div class="qbank" data-bank="physics" data-topics="semiconductor-devices" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 9.2](/learn/courses/gate-physics/amplifiers-feedback/) builds amplifiers from these small-signal models and shows how feedback trades gain for bandwidth and stability. Try circuits like these in the [circuit simulator](/science/circuit-simulator/).
+
+**Going on to CSIR NET?** [Transducers and detectors](/learn/courses/csir-net-physics/transducers-detectors/) puts photodiodes and other junction devices to work as sensors.

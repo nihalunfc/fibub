@@ -170,4 +170,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="schrodinger-equation" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 6.4](/learn/courses/iit-jam-physics/atoms-x-rays/) applies these ideas to the hydrogen atom, its spectral lines and X-rays. Size-dependent levels are also how quantum dots get their colour: the [Quantum dot size calculator](/science/quantum-dot-size/) does the sums. The [GATE Physics course](/learn/courses/gate-physics/) solves the delta well, ladder operators and WKB in depth.
+**Next:** [lesson 6.4](/learn/courses/iit-jam-physics/atoms-x-rays/) applies these ideas to the hydrogen atom, its spectral lines and X-rays. Size-dependent levels are also how quantum dots get their colour: the [Quantum dot size calculator](/science/quantum-dot-size/) does the sums. The GATE Physics course solves [the delta well](/learn/courses/gate-physics/one-dimensional-potentials/), [ladder operators](/learn/courses/gate-physics/harmonic-oscillator/) and [WKB](/learn/courses/gate-physics/variational-wkb/) in depth.

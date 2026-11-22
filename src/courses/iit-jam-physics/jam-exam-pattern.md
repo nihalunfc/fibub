@@ -132,3 +132,5 @@ A mixed run of exam-level questions from several modules, the way the real paper
 <div class="qbank" data-bank="physics" data-topics="central-forces,interference,first-law,photons,electrostatics-gauss,semiconductors,matrices,simple-harmonic-motion" data-exam="jam" data-n="12"></div>
 
 **Next:** [lesson 8.2](/learn/courses/iit-jam-physics/problem-solving-tricks/) shows how to raise your chance of being right on every question: dimensions, limiting cases, symmetry and elimination. Then take a full [mock test](/learn/courses/iit-jam-physics/mock-test/).
+
+**Go deeper:** planning an MSc or PhD entrance after JAM? Compare [the GATE PH paper](/learn/courses/gate-physics/gate-exam-pattern/) and [the NET paper](/learn/courses/csir-net-physics/net-exam-pattern/).

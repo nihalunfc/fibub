@@ -166,3 +166,5 @@ They start easy and climb to top-rank level. More on the [sound and Doppler prac
 <div class="qbank" data-bank="physics" data-topics="sound-doppler" data-exam="jam" data-n="10"></div>
 
 **Next:** [lesson 3.6](/learn/courses/iit-jam-physics/geometrical-optics/) turns from sound to light, starting with rays, mirrors and lenses. Look back at [waves](/learn/courses/iit-jam-physics/waves/) for standing waves on strings, the same physics as pipes.
+
+**Go deeper:** the Doppler effect for light, where only the relative speed matters, is worked out with four-vectors in GATE's [electrodynamics and relativity](/learn/courses/gate-physics/covariant-electrodynamics/).

@@ -168,3 +168,5 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 <div class="qbank" data-bank="physics" data-topics="partial-derivatives" data-exam="jam" data-n="10"></div>
 
 **Before this:** [lesson 1.1, limits and Taylor series](/learn/courses/iit-jam-physics/calculus-and-series/). **Next:** lesson 1.3, [double and triple integrals](/learn/courses/iit-jam-physics/multiple-integrals/), where Jacobians turn awkward regions into rectangles. The gradient, which packs all the partial derivatives into one vector, is the subject of [lesson 1.5](/learn/courses/iit-jam-physics/vector-calculus/), and exact differentials return as state functions in [the first law](/learn/courses/iit-jam-physics/first-law/).
+
+**Go deeper:** for GATE, partial derivatives drive [Lagrangian mechanics](/learn/courses/gate-physics/lagrangian-mechanics/) and [partial differential equations](/learn/courses/gate-physics/partial-differential-equations/).

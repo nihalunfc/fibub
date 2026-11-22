@@ -179,4 +179,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="atoms-x-rays" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 6.5](/learn/courses/iit-jam-physics/nuclei-radioactivity/) moves from the electrons to the nucleus: binding energy and radioactivity. The [GATE Physics course](/learn/courses/gate-physics/) solves the hydrogen atom exactly and adds fine structure, spin and the Zeeman effect.
+**Next:** [lesson 6.5](/learn/courses/iit-jam-physics/nuclei-radioactivity/) moves from the electrons to the nucleus: binding energy and radioactivity. The GATE Physics course solves [the hydrogen atom](/learn/courses/gate-physics/hydrogen-atom/) exactly and adds [fine structure](/learn/courses/gate-physics/fine-structure/), [spin](/learn/courses/gate-physics/spin-addition/) and [the Zeeman effect](/learn/courses/gate-physics/zeeman-stark/).

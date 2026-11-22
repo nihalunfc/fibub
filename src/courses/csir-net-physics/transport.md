@@ -169,3 +169,5 @@ NET Part C style, each with a full solution. More on the [CSIR NET Physics pract
 <div class="qbank" data-bank="physics" data-topics="transport" data-exam="net" data-n="10"></div>
 
 **Next:** the statistical physics module ends here; review it with mixed questions on the [CSIR NET practice page](/learn/courses/csir-net-physics/practice/) or a timed [mock test](/learn/courses/csir-net-physics/mock-test/). Back to [fluctuations and Brownian motion](/learn/courses/csir-net-physics/fluctuations-brownian/) for diffusion seen from a single particle.
+
+**Next:** module 7 begins with the [electronics and experimental methods roadmap](/learn/courses/csir-net-physics/electronics-roadmap/).

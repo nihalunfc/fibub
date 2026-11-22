@@ -194,4 +194,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="photons" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 6.2](/learn/courses/iit-jam-physics/matter-waves/) gives particles a wavelength `$h/p$` and meets the uncertainty principle. The [GATE Physics course](/learn/courses/gate-physics/) builds the full quantum theory of light and matter from here.
+**Next:** [lesson 6.2](/learn/courses/iit-jam-physics/matter-waves/) gives particles a wavelength `$h/p$` and meets the uncertainty principle. The GATE Physics course builds [the full quantum theory](/learn/courses/gate-physics/postulates-operators/) of light and matter from here, and treats Compton scattering with [four-vectors](/learn/courses/gate-physics/relativistic-kinematics/).

@@ -159,3 +159,5 @@ They start easy and climb to top-rank level. More on the [GATE Physics practice 
 <div class="qbank" data-bank="physics" data-topics="semiconductors-hall" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 7.9](/learn/courses/gate-physics/magnetism/) turns from orbits to spins. The [Hall effect](/science/hall-effect/) tool converts real Hall data into carrier density and mobility, and the [Carrier concentration](/science/carrier-concentration/) calculator solves for n, p and E_F at any doping and temperature. Back to the [GATE Physics course](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [The quantum Hall effect and low-dimensional systems](/learn/courses/csir-net-physics/quantum-hall/) takes the Hall effect to two dimensions and strong fields.

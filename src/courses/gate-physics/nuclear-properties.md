@@ -158,3 +158,5 @@ Positive `$Q_0$` means prolate (cigar), negative means oblate (disc). What the l
 <div class="qbank" data-bank="physics" data-topics="nuclear-properties" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 8.2](/learn/courses/gate-physics/binding-energy-semf/) turns the liquid-drop picture into the semi-empirical mass formula and uses it for beta stability, fission and separation energies.
+
+**Going on to CSIR NET?** [The deuteron and the nuclear force](/learn/courses/csir-net-physics/deuteron-nuclear-force/) opens up the force that holds these nuclei together.

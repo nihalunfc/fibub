@@ -164,4 +164,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="conductors-images" data-exam="jam" data-n="10"></div>
 
-**Next:** [dielectrics and capacitors](/learn/courses/iit-jam-physics/dielectrics/) puts insulators between the conductors. Back to the potential and Poisson's equation: [potential and electrostatic energy](/learn/courses/iit-jam-physics/potential-energy/). For multipole expansions and harder boundary value problems at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** [dielectrics and capacitors](/learn/courses/iit-jam-physics/dielectrics/) puts insulators between the conductors. Back to the potential and Poisson's equation: [potential and electrostatic energy](/learn/courses/iit-jam-physics/potential-energy/). For [multipole expansions](/learn/courses/gate-physics/multipoles/) and harder [boundary value problems](/learn/courses/gate-physics/boundary-value-problems/) at MSc level, see the GATE Physics course.

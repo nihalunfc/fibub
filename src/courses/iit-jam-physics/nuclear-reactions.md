@@ -186,4 +186,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="nuclear-reactions" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 6.5, nuclei and radioactivity](/learn/courses/iit-jam-physics/nuclei-radioactivity/). **Next:** module 7, starting with [crystal structure](/learn/courses/iit-jam-physics/crystal-structure/). Going on to GATE or CSIR NET? The [GATE Physics course](/learn/courses/gate-physics/) adds nuclear models, the nuclear force and elementary particles.
+**Before this:** [lesson 6.5, nuclei and radioactivity](/learn/courses/iit-jam-physics/nuclei-radioactivity/). **Next:** module 7, starting with [crystal structure](/learn/courses/iit-jam-physics/crystal-structure/). Going on to GATE or CSIR NET? The GATE Physics course adds [nuclear models](/learn/courses/gate-physics/shell-model/), the nuclear force and [elementary particles](/learn/courses/gate-physics/particles-quarks/), and CSIR NET covers [the deuteron and the nuclear force](/learn/courses/csir-net-physics/deuteron-nuclear-force/).

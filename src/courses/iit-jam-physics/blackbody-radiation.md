@@ -181,4 +181,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="blackbody-radiation" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 5.5, phase changes](/learn/courses/iit-jam-physics/phase-changes/). **Next:** module 6 begins with [photons](/learn/courses/iit-jam-physics/photons/), where Einstein takes Planck's lumps literally. Going on to GATE or CSIR NET? The [GATE Physics course](/learn/courses/gate-physics/) derives Planck's law again from Bose–Einstein statistics.
+**Before this:** [lesson 5.5, phase changes](/learn/courses/iit-jam-physics/phase-changes/). **Next:** module 6 begins with [photons](/learn/courses/iit-jam-physics/photons/), where Einstein takes Planck's lumps literally. Going on to GATE or CSIR NET? The GATE Physics course derives [Planck's law again](/learn/courses/gate-physics/photon-phonon-gases/) from [Bose–Einstein statistics](/learn/courses/gate-physics/quantum-statistics/).

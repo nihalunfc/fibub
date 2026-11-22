@@ -172,4 +172,4 @@ They start easy and climb to top-rank level. More on the [GATE Physics practice 
 
 <div class="qbank" data-bank="physics" data-topics="superconductivity" data-exam="gate" data-n="10"></div>
 
-**Next:** module 8 turns to the nucleus. The [Superconductor calculator](/science/superconductor-calculator/) works out critical fields, penetration depths and gaps for real materials. Back to the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** module 8 turns to the nucleus, starting with [nuclear size, spin and moments](/learn/courses/gate-physics/nuclear-properties/). The [Superconductor calculator](/science/superconductor-calculator/) works out critical fields, penetration depths and gaps for real materials. Back to the [GATE Physics course](/learn/courses/gate-physics/).

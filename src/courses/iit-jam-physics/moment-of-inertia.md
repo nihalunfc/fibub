@@ -155,7 +155,7 @@ For rotation about an axis that is not fixed in advance, one number is not enoug
 I_{xx} = \sum m(y^2 + z^2), \qquad I_{xy} = -\sum m\,xy, \qquad \vec L = \mathsf I\,\vec\omega, \qquad I_{\hat n} = \hat n^{\rm T}\mathsf I\,\hat n
 ```
 
-It is real and symmetric, so there are always three perpendicular **principal axes** where the products of inertia vanish and `$\vec L \parallel \vec\omega$`. A symmetry axis is always principal. For a uniform cube about its centre all three principal moments equal `$\tfrac16Ma^2$`, so every axis through the centre, even a body diagonal, has that same moment. At a corner of a square plate the edges are not principal axes, because `$I_{xy} = -\tfrac14Ma^2 \neq 0$` there. GATE takes this further in [rigid body dynamics](/learn/courses/gate-physics/).
+It is real and symmetric, so there are always three perpendicular **principal axes** where the products of inertia vanish and `$\vec L \parallel \vec\omega$`. A symmetry axis is always principal. For a uniform cube about its centre all three principal moments equal `$\tfrac16Ma^2$`, so every axis through the centre, even a body diagonal, has that same moment. At a corner of a square plate the edges are not principal axes, because `$I_{xy} = -\tfrac14Ma^2 \neq 0$` there. GATE takes this further in [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/).
 
 <div class="keypoints">
 
@@ -175,3 +175,5 @@ They start easy and climb to top-rank level. More on the [moment of inertia prac
 <div class="qbank" data-bank="physics" data-topics="moment-of-inertia" data-exam="jam" data-n="10"></div>
 
 **Before this:** lesson 2.4, [central forces and orbits](/learn/courses/iit-jam-physics/central-forces/). **Next:** [lesson 2.6](/learn/courses/iit-jam-physics/rigid-body-rotation/) puts these moments to work in rotation, rolling and angular momentum.
+
+**Go deeper:** the inertia tensor, principal axes and Euler's equations are worked out in full in GATE's [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/).

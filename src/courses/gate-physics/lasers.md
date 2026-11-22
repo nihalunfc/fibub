@@ -181,4 +181,4 @@ They start at the definitions and climb to GATE top-rank level. Check each answe
 
 <div class="qbank" data-bank="physics" data-topics="lasers" data-exam="gate" data-n="10"></div>
 
-**End of Module 6.** Go back to [lesson 6.1](/learn/courses/gate-physics/fine-structure/) for the atomic levels that every laser transition starts from, or try the mixed practice on the [GATE Physics practice page](/learn/courses/gate-physics/practice/).
+**End of Module 6.** Go back to [lesson 6.1](/learn/courses/gate-physics/fine-structure/) for the atomic levels that every laser transition starts from, or try the mixed practice on the [GATE Physics practice page](/learn/courses/gate-physics/practice/). **Next:** Module 7 begins with [Bravais lattices and the reciprocal lattice](/learn/courses/gate-physics/reciprocal-lattice/).

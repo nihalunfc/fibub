@@ -125,3 +125,5 @@ The deformed version of the shell model (Nilsson) puts single-particle orbits in
 <div class="qbank" data-bank="physics" data-topics="shell-model" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 8.4](/learn/courses/gate-physics/radioactive-decays/) uses these states and spins to understand alpha, beta and gamma decay and their selection rules.
+
+**Going on to CSIR NET?** [The collective model and nuclear deformation](/learn/courses/csir-net-physics/collective-model/) covers the nuclei, far from magic numbers, where the shell model fails.

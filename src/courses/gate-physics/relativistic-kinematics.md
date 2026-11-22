@@ -179,3 +179,5 @@ They start easy and climb to top-rank level. More on the [relativistic kinematic
 <div class="qbank" data-bank="physics" data-topics="relativistic-kinematics" data-exam="gate" data-n="10"></div>
 
 **Before this:** lesson 2.6, [rigid body dynamics](/learn/courses/gate-physics/rigid-body-dynamics/). Basics: the JAM lesson on [special relativity](/learn/courses/iit-jam-physics/special-relativity/).
+
+**Next:** lesson 3.1, [boundary value problems and Laplace's equation](/learn/courses/gate-physics/boundary-value-problems/).

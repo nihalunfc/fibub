@@ -138,3 +138,5 @@ On a Bode plot the loop gain is the distance between the `$|A|$` curve and the h
 <div class="qbank" data-bank="physics" data-topics="amplifiers-feedback" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 9.3](/learn/courses/gate-physics/op-amp-circuits/) applies these ideas to the op-amp, where `$A\beta$` is so large that the closed-loop gain is set by the resistors alone. The [filter designer](/science/filter-designer/) shows Bode plots of real filters.
+
+**Going on to CSIR NET?** [Noise, filtering and lock-in detection](/learn/courses/csir-net-physics/noise-lock-in/) asks how small a signal these amplifiers can recover.

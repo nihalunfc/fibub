@@ -202,3 +202,5 @@ They start easy and climb to top-rank level. More on the [Poisson brackets pract
 <div class="qbank" data-bank="physics" data-topics="poisson-brackets" data-exam="gate" data-n="10"></div>
 
 **Before this:** lesson 2.2, [Hamiltonian mechanics](/learn/courses/gate-physics/hamiltonian-mechanics/). **Next:** lesson 2.4, [central forces and scattering](/learn/courses/gate-physics/central-force-scattering/).
+
+**Going on to CSIR NET?** [Canonical transformations and Hamilton-Jacobi theory](/learn/courses/csir-net-physics/hamilton-jacobi/) builds on these generating functions.

@@ -155,7 +155,7 @@ The same method works for any number of masses: write `$m\ddot{\mathbf x} = -K\m
 | `$N$` beads on a string, fixed ends | `$\omega_n = 2\omega_0\sin\dfrac{n\pi}{2(N + 1)}$` |
 | `$N$` masses in a closed ring | `$\omega_n = 2\omega_0\lvert\sin(n\pi/N)\rvert$`, including `$0$` and repeated values |
 
-**Worked example.** Three equal masses between walls on four springs: the matrix `$\omega_0^2\begin{pmatrix}2&-1&0\\-1&2&-1\\0&-1&2\end{pmatrix}$` has eigenvalues `$(2 - \sqrt2)\omega_0^2$`, `$2\omega_0^2$`, `$(2 + \sqrt2)\omega_0^2$`. The middle mode, `$(1, 0, -1)$`, keeps the centre mass still. As `$N$` grows, the chain's modes become the standing waves of a continuous string: that is the bridge to [lesson 3.4](/learn/courses/iit-jam-physics/waves/). The [GATE Physics course](/learn/courses/gate-physics/) treats general small oscillations with the Lagrangian method.
+**Worked example.** Three equal masses between walls on four springs: the matrix `$\omega_0^2\begin{pmatrix}2&-1&0\\-1&2&-1\\0&-1&2\end{pmatrix}$` has eigenvalues `$(2 - \sqrt2)\omega_0^2$`, `$2\omega_0^2$`, `$(2 + \sqrt2)\omega_0^2$`. The middle mode, `$(1, 0, -1)$`, keeps the centre mass still. As `$N$` grows, the chain's modes become the standing waves of a continuous string: that is the bridge to [lesson 3.4](/learn/courses/iit-jam-physics/waves/). The GATE Physics course treats [general small oscillations](/learn/courses/gate-physics/normal-modes/) with [the Lagrangian method](/learn/courses/gate-physics/lagrangian-mechanics/).
 
 The same mathematics appears in electric circuits: two LC loops sharing a capacitor `$C_c$` have modes at `$1/\sqrt{LC}$` and `$\sqrt{1/LC + 2/LC_c}$`, with `$1/C_c$` playing the role of the spring.
 
@@ -178,3 +178,5 @@ They start easy and climb to top-rank level. More on the [superposition and coup
 <div class="qbank" data-bank="physics" data-topics="superposition-coupled" data-exam="jam" data-n="10"></div>
 
 **Next:** [lesson 3.4](/learn/courses/iit-jam-physics/waves/) lets the number of coupled masses grow without limit, which turns normal modes into waves on a string. Before that, revisit [simple harmonic motion](/learn/courses/iit-jam-physics/simple-harmonic-motion/) if phasors felt new, and [damped and forced oscillations](/learn/courses/iit-jam-physics/damped-forced-oscillations/) for what friction does to each mode.
+
+**Go deeper:** GATE's [small oscillations and normal modes](/learn/courses/gate-physics/normal-modes/) does the general linear case, and CSIR NET's [nonlinear dynamics and chaos](/learn/courses/csir-net-physics/nonlinear-dynamics-chaos/) picks up when amplitudes are no longer small.

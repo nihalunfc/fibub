@@ -149,3 +149,5 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 <div class="qbank" data-bank="physics" data-topics="multiple-integrals" data-exam="jam" data-n="10"></div>
 
 **Before this:** [lesson 1.2, partial derivatives and Jacobians](/learn/courses/iit-jam-physics/partial-derivatives/). **Next:** lesson 1.4, [vector algebra](/learn/courses/iit-jam-physics/vector-algebra/). Surface and volume integrals of fields come back in [the integral theorems](/learn/courses/iit-jam-physics/integral-theorems/) and in [Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/), where choosing spherical or cylindrical pieces does all the work. Practise the rules for single integrals in [definite integral properties](/learn/integral-properties/).
+
+**Go deeper:** for GATE, Gaussian and polar-coordinate integrals come back in [probability and statistics for physicists](/learn/courses/gate-physics/probability/), and volume elements in any coordinates in [tensors](/learn/courses/gate-physics/tensors/).

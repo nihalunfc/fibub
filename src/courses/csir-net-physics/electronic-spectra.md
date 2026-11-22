@@ -140,3 +140,5 @@ NET Part C style, with full solutions. More on the [CSIR NET practice page](/lea
 <div class="qbank" data-bank="physics" data-topics="electronic-spectra" data-exam="net" data-n="10"></div>
 
 **End of Module 8.** Go back to [lesson 8.2](/learn/courses/csir-net-physics/esr-nmr/) for spin resonance, or revise the vibrational structure in the GATE lesson on [vibrational spectra](/learn/courses/gate-physics/vibrational-spectra/).
+
+**Next:** module 9 begins with the [condensed matter roadmap](/learn/courses/csir-net-physics/condensed-roadmap/).

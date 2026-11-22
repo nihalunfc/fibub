@@ -82,7 +82,7 @@ Described from the published syllabus (check the current one):
 | Photon and phonon gases, BEC | [GATE 5.5](/learn/courses/gate-physics/photon-phonon-gases/) | T⁴ law, Wien's law, condensation temperature |
 | Fermi gas | [GATE 5.6](/learn/courses/gate-physics/fermi-gas/) | E_F from density, linear-T heat capacity, degeneracy pressure |
 | Phase transitions, magnetism | [GATE 5.7](/learn/courses/gate-physics/phase-transitions/), [GATE 7.9](/learn/courses/gate-physics/magnetism/) | order of a transition, Curie-Weiss law, critical exponents |
-| Brownian motion, Ising, transport | lessons 6.2 to 6.4 | ⟨x²⟩ = 2Dt, mean-field Ising, mean free path |
+| Brownian motion, Ising, transport | lessons [6.2](/learn/courses/csir-net-physics/fluctuations-brownian/) to [6.4](/learn/courses/csir-net-physics/transport/) | ⟨x²⟩ = 2Dt, mean-field Ising, mean free path |
 
 ## 4. A worked NET-style example
 
@@ -134,7 +134,7 @@ You are ready for electronics when you can, without notes:
 
 - Part B: laws and potentials, ensembles and partition functions, classical and quantum statistics, Bose and Fermi gases, blackbody radiation.
 - Part C: phase transitions, magnetism and the Ising model, Bose-Einstein condensation, diffusion and Brownian motion.
-- Order: thermodynamics refresher, ensembles, partition functions, classical gas, quantum statistics, photons and condensation, Fermi gas, phase transitions, lessons 6.2 to 6.4.
+- Order: thermodynamics refresher, ensembles, partition functions, classical gas, quantum statistics, photons and condensation, Fermi gas, phase transitions, lessons [6.2](/learn/courses/csir-net-physics/fluctuations-brownian/) to [6.4](/learn/courses/csir-net-physics/transport/).
 - Everything from Z; check every option against the high- and low-temperature limits.
 
 </div>

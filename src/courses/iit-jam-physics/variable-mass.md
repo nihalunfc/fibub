@@ -156,3 +156,5 @@ They start easy and climb to top-rank level. More on the [variable mass practice
 <div class="qbank" data-bank="physics" data-topics="variable-mass" data-exam="jam" data-n="10"></div>
 
 **Before this:** lesson 2.2, [work, energy and collisions](/learn/courses/iit-jam-physics/work-energy-collisions/). **Next:** lesson 2.4, [central forces and orbits](/learn/courses/iit-jam-physics/central-forces/), where the same rockets go into orbit.
+
+**Go deeper:** for GATE, momentum conservation in its relativistic form, including particles that lose rest mass as they decay, is in [four-vectors and relativistic kinematics](/learn/courses/gate-physics/relativistic-kinematics/).

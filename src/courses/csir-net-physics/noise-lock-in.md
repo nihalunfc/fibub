@@ -136,3 +136,5 @@ NET Part C style, with full solutions. More on the [CSIR NET practice page](/lea
 <div class="qbank" data-bank="physics" data-topics="noise-lock-in" data-exam="net" data-n="10"></div>
 
 **End of Module 7.** Go back to [lesson 7.2](/learn/courses/csir-net-physics/errors-data-fitting/) to analyse the data your lock-in produces, or practise the whole module with the [experimental methods questions](/learn/courses/csir-net-physics/practice/).
+
+**Next:** module 8 begins with the [atomic and molecular physics roadmap](/learn/courses/csir-net-physics/atomic-roadmap/).

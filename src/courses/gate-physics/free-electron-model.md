@@ -181,3 +181,5 @@ They start easy and climb to top-rank level. More on the [GATE Physics practice 
 <div class="qbank" data-bank="physics" data-topics="free-electron-model" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 7.7](/learn/courses/gate-physics/band-theory/) puts the lattice back and shows how gaps open at the zone boundaries. The [Quantum statistics plotter](/science/quantum-statistics/) draws Fermi-Dirac against Bose-Einstein and Maxwell-Boltzmann. Back to the [GATE Physics course](/learn/courses/gate-physics/).
+
+**Going on to CSIR NET?** [Dielectric and optical properties of solids](/learn/courses/csir-net-physics/dielectric-optical/) turns the Drude model into an optical response.

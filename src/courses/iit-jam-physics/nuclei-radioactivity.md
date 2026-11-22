@@ -240,4 +240,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="nuclei-radioactivity" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 6.6](/learn/courses/iit-jam-physics/nuclear-reactions/) turns from spontaneous decay to nuclear reactions, fission and fusion, where the same Q-value bookkeeping applies. The [GATE Physics course](/learn/courses/gate-physics/) goes deeper into nuclear size, spin and moments, the shell model and the nuclear force.
+**Next:** [lesson 6.6](/learn/courses/iit-jam-physics/nuclear-reactions/) turns from spontaneous decay to nuclear reactions, fission and fusion, where the same Q-value bookkeeping applies. The GATE Physics course goes deeper into [nuclear size, spin and moments](/learn/courses/gate-physics/nuclear-properties/), [the shell model](/learn/courses/gate-physics/shell-model/) and the nuclear force, with decay modes in [alpha, beta and gamma decay](/learn/courses/gate-physics/radioactive-decays/).
