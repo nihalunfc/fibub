@@ -14,20 +14,22 @@ export default function (host, { data }) {
     out.innerHTML = `${n} = <b>${pf}</b>. Number of factors = ${[...pw.values()].map((e) => `(${e}+1)`).join(' × ')} = <b>${fs.length}</b>: ${fs.join(', ')}.`;
   };
   cv.draw = (ctx, w, h, col) => {
-    const levels = []; let cur = n, depth = 0;
-    const pos = [];
-    const draw = (v, x, y, span, d) => {
-      const s = split(v);
-      text(ctx, String(v), x, y, { color: s ? col.ink : col.s[2], size: 13, weight: s ? 500 : 700, align: 'center', halo: col.panel });
-      if (!s) { ctx.strokeStyle = col.s[2]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.stroke(); return; }
-      const dy = Math.min(46, (h - 40) / 9), yl = y + dy;
-      line(ctx, [[x - 6, y + 9], [x - span / 2 + 4, yl - 9]], col.line, 1.5);
-      line(ctx, [[x + 6, y + 9], [x + span / 2 - 4, yl - 9]], col.line, 1.5);
-      draw(s[0], x - span / 2, yl, Math.max(26, span * 0.15), d + 1);
-      draw(s[1], x + span / 2, yl, span * 0.62, d + 1);
-    };
-    draw(n, w * 0.3, 40, Math.min(110, w * 0.2), 0);
-    text(ctx, 'Circled numbers are prime: the tree stops there.', w - 12, h - 12, { color: col.muted, size: 10.5, align: 'right' });
+    // a chain that leans right: each composite splits into its smallest prime (left, circled) and the rest (right)
+    const chain = []; let v = n, s2;
+    while ((s2 = split(v))) { chain.push([v, s2[0]]); v = s2[1]; }
+    const levels = chain.length + 1, top = 46, dy = Math.min(40, (h - top - 30) / Math.max(1, levels - 1));
+    const dx = Math.min(46, (w * 0.7) / Math.max(1, levels)), x0 = Math.max(40, w * 0.12);
+    const ring = (x, y) => { ctx.strokeStyle = col.s[2]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.stroke(); };
+    chain.forEach(([c, p], i) => {
+      const x = x0 + i * dx, y = top + i * dy, yn = y + dy;
+      text(ctx, String(c), x, y, { color: col.ink, size: 13, align: 'center', halo: col.panel });
+      line(ctx, [[x - 5, y + 9], [x - dx * 0.55, yn - 11]], col.line, 1.5);
+      line(ctx, [[x + 5, y + 9], [x + dx - 4, yn - 11]], col.line, 1.5);
+      text(ctx, String(p), x - dx * 0.6, yn, { color: col.s[2], size: 13, weight: 700, align: 'center' }); ring(x - dx * 0.6, yn);
+    });
+    const xl = x0 + chain.length * dx, yl = top + chain.length * dy;
+    text(ctx, String(v), xl, yl, { color: col.s[2], size: 13, weight: 700, align: 'center' }); ring(xl, yl);
+    text(ctx, 'Circled = prime: the tree stops there.', w - 12, h - 12, { color: col.muted, size: 10.5, align: 'right' });
     title(ctx, 'Split off the smallest prime until only primes are left', col);
   };
   cv.redraw(); say();

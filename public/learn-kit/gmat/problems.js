@@ -1,7 +1,7 @@
 // Live problems for the GMAT course. They are the question generators of the shared bank
 // (public/qbank/grad-quant/, also used by the GRE course and the practice sets), shown as typed-answer problems:
 // <div class="problem" data-problem="<generator id>"></div>. The answer to type is the generator's `value`.
-import { TOPICS } from '../../qbank/grad-quant/all.js';
+import { TOPICS } from '../../qbank/grad-quant/_all.js';
 
 const out = {};
 for (const T of TOPICS) for (const g of T.gens ?? []) {

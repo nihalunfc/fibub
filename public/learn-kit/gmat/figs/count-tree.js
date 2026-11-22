@@ -1,7 +1,7 @@
 // 5.3 The counting principle as a tree: every choice branches, and the leaves multiply.
 import { canvas, text, line, dot, row, slider, readout, title } from '../../kit.js';
 export default function (host) {
-  const cv = canvas(host, { aspect: 0.55, max: 340, min: 240, label: 'A tree of choices' });
+  const cv = canvas(host, { aspect: 0.55, max: 340, min: 240, label: 'A tree of choices', mark: 'bl' });
   let a = 3, b = 2, c = 2;
   const ctl = row(host), f = (v) => String(Math.round(v));
   slider(ctl, { label: 'Mains', min: 1, max: 4, step: 1, value: a, fmt: f, oninput: (v) => { a = Math.round(v); go(); } });

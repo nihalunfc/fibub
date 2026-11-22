@@ -15,7 +15,7 @@ const seen = new Set();
 for (const bank of BANKS) {
   const dir = new URL(`../public/qbank/${bank}/`, import.meta.url);
   if (!existsSync(dir)) continue;
-  for (const f of readdirSync(dir).filter((f) => f.endsWith('.js') && !f.startsWith('_') && f !== 'index.js' && f !== 'all.js')) {
+  for (const f of readdirSync(dir).filter((f) => f.endsWith('.js') && !f.startsWith('_') && f !== 'index.js')) {
     const T = (await import(new URL(f, dir))).default;
     ok(`${bank}/${f}: topic equals file name`, T.topic === f.slice(0, -3));
     for (const it of T.items ?? []) {
