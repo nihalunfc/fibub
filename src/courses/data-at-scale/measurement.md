@@ -1,6 +1,6 @@
 ---
 title: 'Measurement: did the ads work?'
-summary: 'Delivery metrics, ROAS and attribution and their bias, incrementality tests with holdout groups, lift with a confidence interval, iROAS, and marketing mix models.'
+summary: 'Delivery metrics, ROAS and attribution bias, incrementality tests with holdout groups, lift with a confidence interval, iROAS, and marketing mix models.'
 minutes: 30
 updated: 2026-11-22
 quiz:

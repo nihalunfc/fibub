@@ -1,6 +1,6 @@
 ---
 title: 'Kafka: the log at the centre'
-summary: 'Topics, partitions, offsets, brokers, replication, producers, consumers and consumer groups, with a local Kafka you can run in one command and Python to talk to it.'
+summary: 'Topics, partitions, offsets, brokers, replication, producers and consumer groups, with a local Kafka you can start in one command and Python to talk to it.'
 minutes: 30
 updated: 2026-11-22
 quiz:

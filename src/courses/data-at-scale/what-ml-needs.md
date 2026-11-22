@@ -1,6 +1,6 @@
 ---
 title: What machine learning needs from a data platform
-summary: 'Training and serving, features and labels, point-in-time correctness, leakage, and the training-serving skew that quietly breaks models, from a data engineer''s side.'
+summary: 'Training and serving, features and labels, point-in-time correctness, leakage, and the training-serving skew that quietly breaks models.'
 minutes: 25
 updated: 2026-11-22
 quiz:

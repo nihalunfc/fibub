@@ -1,6 +1,6 @@
 ---
 title: Feature stores, pipelines and MLOps
-summary: 'Offline and online feature stores, materialisation, ML pipelines, experiment tracking, model registries and serving, with Vertex AI, Feast and MLflow as examples.'
+summary: 'Offline and online feature stores, materialisation, ML pipelines, experiment tracking, model registries and serving, with Vertex AI, Feast and MLflow.'
 minutes: 25
 updated: 2026-11-22
 quiz:

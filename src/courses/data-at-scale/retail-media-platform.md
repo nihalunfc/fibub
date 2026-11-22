@@ -1,6 +1,6 @@
 ---
 title: 'Capstone: design a retail media data platform'
-summary: 'Every module in one design: the events, pipelines, stores, models and measurement behind a grocer''s retail media network, one campaign traced end to end, and the capstone brief.'
+summary: 'Every module in one design: the events, pipelines, stores, models and measurement behind a grocer''s retail media network, plus the capstone brief.'
 minutes: 35
 updated: 2026-11-22
 quiz:

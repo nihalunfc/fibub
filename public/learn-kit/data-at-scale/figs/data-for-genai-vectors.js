@@ -4,15 +4,15 @@ import { canvas, text, title, line, dot } from '../../kit.js';
 
 // [name, x, y, label side]. Cosine looks only at direction, so items far from the centre can still be the closest match.
 const ITEMS = [
-  ['rain coat', 0.55, 0.43, 'r'], ['waterproof jacket', 0.75, 0.44, 'l'], ['umbrella', 0.35, 0.6, 'r'], ['wellington boots', 0.45, 0.2, 'l'], ['storm poncho (out of stock)', 0.95, 0.72, 'r'],
-  ['jacket potato', -0.7, 0.55, 'l'], ['baked beans', -0.8, 0.3, 'l'], ['potato salad', -0.55, 0.75, 'l'], ['sun cream', 0.15, -0.8, 'l'], ['sunglasses', 0.45, -0.55, 'l'],
+  ['rain coat', 0.5, 0.39, 'r'], ['waterproof jacket', 0.8, 0.47, 'l'], ['umbrella', 0.12, 0.9, 'l'], ['wellington boots', 0.55, 0.22, 'l'], ['storm poncho (out of stock)', 0.68, 0.53, 'r'],
+  ['jacket potato', -0.8, 0.3, 'l'], ['baked beans', -0.55, -0.15, 'l'], ['potato salad', -0.6, 0.7, 'l'], ['sun cream', 0.1, -0.8, 'l'], ['sunglasses', 0.5, -0.5, 'l'],
 ];
 const Q = [0.82, 0.64];
 const cos = (a, b) => (a[0] * b[0] + a[1] * b[1]) / (Math.hypot(...a) * Math.hypot(...b));
 const NAMES = ['Every product gets a position by meaning', 'The question is embedded into the same space', 'Nearest by direction (cosine similarity)', 'Filters: drop what the shopper cannot buy', 'The top matches go into the prompt'];
 
 export default function (host) {
-  const cv = canvas(host, { aspect: 0.7, max: 380, min: 260, label: 'Products as points in an embedding space and the nearest ones to a question' });
+  const cv = canvas(host, { aspect: 0.95, max: 440, min: 300, label: 'Products as points in an embedding space and the nearest ones to a question' });
   let s = 0;
   cv.draw = (ctx, w, h, col) => {
     const top = title(ctx, NAMES[s], col) + 4;
@@ -30,7 +30,7 @@ export default function (host) {
       const right = side === 'l';
       text(ctx, name.replace(' (out of stock)', gone ? ' ✕' : ''), px + (right ? 8 : -8), py - 8, { color: hit ? col.ink : col.muted, size: 10, weight: hit ? 700 : 400, align: right ? 'left' : 'right' });
     });
-    if (s >= 1) { const [qx, qy] = P(...Q); dot(ctx, qx, qy, 7, col.s[3]); text(ctx, 'question', qx + 9, qy + 10, { color: col.s[3], size: 11, weight: 700 }); }
+    if (s >= 1) { const [qx, qy] = P(...Q); dot(ctx, qx, qy, 7, col.s[3]); text(ctx, 'question', qx + 10, qy - 10, { color: col.s[3], size: 11, weight: 700 }); }
     const foot = s === 0 ? 'Close together = similar meaning' : s === 1 ? '"something to keep me dry in a storm"' : s === 2 ? 'Top 3: ' + top3.join(', ') : s === 3 ? 'Out of stock removed; next best moves up' : 'Prompt = question + top 3, with sources to cite';
     text(ctx, foot, 10, h - 12, { color: col.ink, size: 11.5, weight: 700 });
   };
