@@ -173,4 +173,140 @@ pass('ap2', 'Passage: five chordates', 'Five animals are examined: P has dry ski
 pq('ap2', 3, 'Chordata', 'Animal R belongs to the class', 'Cyclostomata', ['Chondrichthyes', 'Amphibia', 'Osteichthyes'], 'Jawless, circular mouth and 6 to 15 pairs of gill slits show a cyclostome like Petromyzon.');
 pq('ap2', 3, 'Chordata', 'Animals P, Q and S are respectively', 'reptile, bird, mammal', ['amphibian, bird, mammal', 'reptile, mammal, bird', 'bird, reptile, mammal'], 'P: dry scaly skin and a three-chambered heart point to a reptile. Q: pneumatic bones and crop point to a bird. S: hair points to a mammal.');
 pq('ap2', 4, 'Chordata', 'T could be', '<i>Scoliodon</i>', ['<i>Labeo</i>', '<i>Hippocampus</i>', '<i>Myxine</i>'], 'A cartilaginous skeleton with placoid scales is Chondrichthyes. The others are bony fishes and a hagfish.');
+
+// ---------------------------------------------------------------- Expansion (added 2026-11-22)
+// ---- Level 2
+mc(2, 'porifera', 'The pores through which water enters the body of a sponge are called', 'ostia', ['osculum', 'cnidocils', 'spiracles'], 'Water enters through many ostia and leaves through the osculum.', 'Osculum is the large exit opening.');
+mc(2, 'porifera', 'The skeleton of sponges is made of', 'spicules or spongin fibres', ['chitin', 'calcium carbonate shell', 'bone'], 'Sponges have a skeleton of spicules or spongin fibres.');
+mc(2, 'porifera', 'Which of these is a freshwater sponge?', 'Spongilla', ['Sycon', 'Euspongia', 'Obelia'], 'Spongilla lives in fresh water. Sycon and Euspongia are marine.');
+mc(2, 'cnidaria', 'Stinging cells of cnidarians are called', 'cnidoblasts', ['choanocytes', 'flame cells', 'comb plates'], 'Cnidoblasts (cnidocytes) hold nematocysts used for anchorage, defence and capture of prey.');
+mc(2, 'cnidaria', 'Which of these is a medusa form?', 'Aurelia', ['Hydra', 'Adamsia', 'Pennatula'], 'Aurelia (jelly fish) is free-swimming and umbrella-shaped. Hydra and Adamsia are polyps.');
+mc(2, 'platyhelminthes', 'Which of these is a flatworm?', 'Fasciola', ['Ascaris', 'Nereis', 'Pila'], 'Fasciola (liver fluke) is a trematode flatworm.');
+mc(2, 'mollusca', 'The rasping organ of molluscs that helps in feeding is the', 'radula', ['mantle', 'foot', 'tympanum'], 'Radula is a file-like organ in the mouth cavity.');
+mc(2, 'echinodermata', 'Which of the following is an echinoderm?', 'Asterias', ['Aplysia', 'Pheretima', 'Ascidia'], 'Asterias (star fish) belongs to Echinodermata.');
+mc(2, 'chordata', 'The notochord of adult Branchiostoma', 'extends from head to tail and persists throughout life', ['is present only in the larval tail', 'is replaced by a vertebral column', 'is absent'], 'Cephalochordates keep a notochord through life.');
+mc(2, 'aves', 'The only gland in the skin of most birds is the', 'oil gland at the base of the tail', ['sweat gland', 'mammary gland', 'sebaceous gland on the wing'], 'Feathers are kept oiled by this gland.');
+mc(2, 'mammalia', 'Which of the following is a marsupial that carries its young in a pouch?', 'Macropus', ['Pteropus', 'Delphinus', 'Elephas'], 'Macropus is the kangaroo. Pteropus is a flying fox.');
+mc(2, 'reptilia', 'The three-chambered heart of reptiles becomes four-chambered in', 'crocodiles', ['snakes', 'turtles', 'lizards'], 'Crocodilus is the exception.');
+
+// ---- Level 3
+mc(3, 'basis', 'In which type of symmetry can an animal be divided into two equal halves in only one plane?', 'Bilateral symmetry', ['Radial symmetry', 'Asymmetry', 'Spherical symmetry'], 'Annelids, arthropods and chordates show bilateral symmetry.');
+mc(3, 'basis', 'Tissue level of organisation is the highest level shown by', 'Cnidaria', ['Porifera', 'Platyhelminthes', 'Annelida'], 'Cnidaria and Ctenophora show the tissue level. Porifera is cellular; Platyhelminthes is organ level.');
+mc(3, 'basis', 'Animals whose germ layers are ectoderm and endoderm only, with mesoglea in between, are', 'diploblastic', ['triploblastic', 'acoelomate', 'metameric'], 'Mesoglea is non-cellular or has scattered cells.');
+mc(3, 'basis', 'The coelom is lined by', 'mesoderm', ['ectoderm', 'endoderm', 'none of the germ layers'], 'A true coelom is a body cavity lined by mesoderm.');
+mc(3, 'porifera', 'Digestion in sponges is', 'intracellular', ['extracellular only', 'both inside and outside the body', 'absent'], 'Food is digested inside choanocytes and amoebocytes.');
+mc(3, 'porifera', 'In sponges, fertilisation is', 'internal, with free-swimming larvae', ['external, with no larva', 'internal, with direct development', 'absent, only budding'], 'Sponges are hermaphrodite (bisexual), fertilisation is internal and development is indirect.');
+mc(3, 'cnidaria', 'Hydra shows which form of body?', 'Polyp, sessile and cylindrical', ['Medusa, free swimming', 'Alternating polyp and medusa', 'Larval form only'], 'Hydra is a polyp. Obelia has both.');
+mc(3, 'cnidaria', 'Which of the following is a coral?', 'Meandrina', ['Physalia', 'Adamsia', 'Aurelia'], 'Meandrina is the brain coral. Corals have a skeleton of calcium carbonate.');
+mc(3, 'cnidaria', 'The central cavity of cnidarians opens to the outside by', 'a single opening, the mouth on the hypostome', ['an anus only', 'a pair of mouths', 'no opening'], 'The coelenteron has one opening.');
+mc(3, 'ctenophora', 'Ctenophores are also called', 'sea walnuts or comb jellies', ['sea stars', 'sea pens', 'sea lilies'], 'They have eight external rows of ciliated comb plates.');
+mc(3, 'ctenophora', 'Bioluminescence is well marked in', 'Ctenophora', ['Porifera', 'Platyhelminthes', 'Aves'], 'NCERT notes bioluminescence (the property of a living organism to emit light) is well-marked in ctenophores.');
+mc(3, 'platyhelminthes', 'Flame cells of flatworms function in', 'osmoregulation and excretion', ['respiration', 'locomotion', 'digestion'], 'Flame cells remove excess water and wastes.');
+mc(3, 'platyhelminthes', 'The remarkable power of regeneration is seen in', 'Planaria', ['Taenia', 'Fasciola', 'Ascaris'], 'Some flatworms like Planaria have high regeneration capacity.');
+mc(3, 'aschelminthes', 'Which of the following is NOT an aschelminth?', 'Fasciola', ['Ascaris', 'Wuchereria', 'Ancylostoma'], 'Fasciola is a flatworm.');
+mc(3, 'aschelminthes', 'In roundworms the sexes are', 'separate, with females usually longer than males', ['same in one individual', 'same with equal size', 'absent'], 'They are dioecious.');
+mc(3, 'annelida', 'Which of these annelids is aquatic and dioecious?', 'Nereis', ['Pheretima', 'Hirudinaria', 'Taenia'], 'Nereis is dioecious. Earthworms and leeches are monoecious.');
+mc(3, 'annelida', 'The blood-sucking leech belongs to the genus', 'Hirudinaria', ['Pheretima', 'Nereis', 'Aphis'], 'Hirudinaria is the Indian cattle leech.');
+mc(3, 'arthropoda', 'The fraction of all named species that are arthropods is more than', 'two-thirds', ['one-tenth', 'one-half only', 'one-third'], 'NCERT: over two-thirds of all named species on earth are arthropods.');
+mc(3, 'arthropoda', 'Compound eyes are an example of', 'sensory organs in arthropods', ['excretory organs', 'respiratory organs', 'reproductive organs'], 'Arthropods have antennae, compound and simple eyes and statocysts.');
+mc(3, 'arthropoda', 'A gregarious pest among the following is', 'Locusta', ['Apis', 'Bombyx', 'Laccifer'], 'Locusta is the locust.');
+mc(3, 'arthropoda', 'Book lungs are present in', 'scorpions', ['prawns', 'cockroach', 'butterflies'], 'Book lungs and book gills are found in some arthropods; scorpions and spiders have book lungs.');
+mc(3, 'mollusca', 'The feather-like gills of molluscs lie in', 'the mantle cavity', ['the foot', 'the radula', 'the shell'], 'Gills function in respiration and excretion.');
+mc(3, 'mollusca', 'Which of these is a mollusc?', 'Pinctada', ['Antedon', 'Limulus', 'Balanoglossus'], 'Pinctada is the pearl oyster.');
+mc(3, 'echinodermata', 'Echinoderms have', 'an endoskeleton of calcareous ossicles', ['a chitinous exoskeleton', 'a shell of one piece', 'no skeleton'], 'The name means spiny skinned.');
+mc(3, 'hemichordata', 'The body of Hemichordata is divided into', 'proboscis, collar and trunk', ['head, thorax and abdomen', 'head and visceral hump', 'oral and aboral sides'], 'It is worm-like with these three parts.');
+mc(3, 'chordata', 'The post-anal tail of a chordate is', 'a part of the body extending beyond the anus', ['a tail in front of the anus', 'a part in the head', 'present only in birds'], 'It is one of the four features of chordates.');
+mc(3, 'cyclostomata', 'Which feature belongs to cyclostomes?', 'Circular sucking mouth without jaws', ['Placoid scales', 'Operculum', 'Four-chambered heart'], 'Lamprey and hagfish are jawless.');
+mc(3, 'chondrichthyes', 'The male sharks have claspers on', 'the pelvic fins', ['the pectoral fins', 'the tail fin', 'the gill slits'], 'Claspers help in internal fertilisation.');
+mc(3, 'osteichthyes', 'Which fish is bony?', 'Catla', ['Trygon', 'Pristis', 'Carcharodon'], 'Catla is a freshwater bony fish. The others are cartilaginous.');
+mc(3, 'amphibia', 'The heart of an adult frog has', 'two atria and one ventricle', ['one atrium and one ventricle', 'two atria and two ventricles', 'one atrium and two ventricles'], 'Three chambers.');
+mc(3, 'reptilia', 'The reptile that is a limbed lizard is', 'Calotes', ['Naja', 'Bangarus', 'Vipera'], 'Naja, Bangarus and Vipera are snakes.');
+mc(3, 'aves', 'The lungs of birds are supplemented by', 'air sacs', ['the gizzard', 'the crop', 'the cloaca'], 'The air sacs are connected to the lungs.');
+mc(3, 'mammalia', 'Which mammal is oviparous?', 'Ornithorhynchus', ['Macropus', 'Pteropus', 'Elephas'], 'The platypus lays eggs.');
+
+asr(2, 'porifera', 'Sponges are called animals even though they are sessile.', 'Sponges are multicellular and heterotrophic.', 0, 'Being multicellular and heterotrophic places them among animals.');
+asr(3, 'cnidaria', 'Cnidarians catch prey with tentacles.', 'Tentacles carry cnidoblasts with nematocysts.', 0, 'Stinging capsules help to capture prey and for defence.');
+asr(3, 'platyhelminthes', 'Flatworms are acoelomates.', 'They have a body cavity lined by mesoderm.', 2, 'A is true. R is false: acoelomates have no body cavity.');
+asr(3, 'chordata', 'Urochordates are called tunicates.', 'Their body is covered by a tunic.', 0, 'The tunic gives the name tunicata.');
+asr(4, 'arthropoda', 'Arthropods have an open circulatory system.', 'Blood flows in a closed system of vessels in arthropods.', 2, 'A is true. R is false: blood is pumped into body cavities (haemocoel) in an open system.');
+asr(4, 'echinodermata', 'Adult echinoderms are radially symmetrical.', 'Echinoderm larvae are bilaterally symmetrical.', 1, 'Both are true, but the larval symmetry does not explain the adult symmetry.', 'Students often pick the first option because both are famous facts.');
+asr(4, 'aves', 'Birds are called warm blooded.', 'Their body temperature stays constant regardless of the surroundings.', 0, 'Homoiothermy means a constant body temperature.');
+asr(5, 'chondrichthyes', 'Sharks must keep swimming to avoid sinking.', 'Sharks lack an air bladder.', 0, 'With no air bladder, they keep up buoyancy by constant swimming.');
+asr(5, 'mammalia', 'All mammals are viviparous.', 'Mammals have mammary glands.', 3, 'A is false: Ornithorhynchus lays eggs. R is true.');
+asr(5, 'hemichordata', 'Hemichordates were once placed in the phylum Chordata but are now a separate phylum.', 'Hemichordates have a true notochord and a dorsal hollow nerve cord.', 2, 'A is true. R is false: they lack the chordate features, so they are now kept outside the Chordata.', 'The old placement does not mean they have the chordate features.');
+
+stm(3, 'basis', 'Radial symmetry is found in Cnidaria.', 'Bilateral symmetry is found in Arthropoda.', 0, 'Both are correct.');
+stm(3, 'porifera', 'Sponges have a water canal system.', 'Sponges show the organ-system level of organisation.', 2, 'II is false: it is cellular level.');
+stm(3, 'platyhelminthes', 'Flatworms are dorsoventrally flattened.', 'Flatworms are pseudocoelomates.', 2, 'They are acoelomates.');
+stm(4, 'annelida', 'Annelids show metameric segmentation.', 'Annelids are acoelomates.', 2, 'They are coelomates.');
+stm(4, 'mollusca', 'Molluscs have a muscular foot.', 'Molluscs are segmented.', 2, 'Their body is unsegmented.');
+stm(4, 'chordata', 'Vertebrates have a vertebral column.', 'All chordates have a vertebral column.', 2, 'Only vertebrates have it; urochordates and cephalochordates lack it.');
+stm(4, 'aves', 'Birds have a pneumatic skeleton.', 'The birds have a two-chambered heart.', 2, 'The bird heart has four chambers.');
+mc(4, 'basis', 'Consider: (i) Cnidaria are diploblastic. (ii) Platyhelminthes are triploblastic. (iii) Aschelminthes are acoelomate. (iv) Annelida are coelomate. How many are correct?', 'Three', ['Two', 'Four', 'One'], '(i), (ii), (iv) are right. Aschelminthes are pseudocoelomate.', 'Pseudocoelom is not the same as no coelom.', 'statements');
+mc(4, 'chordata', 'Consider: (i) Frogs have external fertilisation. (ii) Lizards have internal fertilisation. (iii) Birds are oviparous. (iv) Whales are oviparous. How many are correct?', 'Three', ['Two', 'Four', 'One'], '(i), (ii), (iii) are correct. Whales are mammals and are viviparous.', null, 'statements');
+mc(5, 'chordata', 'Consider: (i) Sharks have an air bladder. (ii) Bony fishes have an operculum. (iii) Amphibians have a cloaca. (iv) Reptiles have external ears. (v) Birds have a gizzard. How many are correct?', 'Three', ['Two', 'Four', 'Five'], '(ii), (iii), (v) are correct. Sharks lack an air bladder, and reptiles have no external ear openings (a tympanum represents the ear).', 'Air bladder and ear are the two false ones.', 'statements');
+mc(5, 'basis', 'Consider: (i) Ctenophores have comb plates. (ii) Sponges have choanocytes. (iii) Cnidarians have a mesoglea. (iv) Echinoderms have a water vascular system. (v) Arthropods have malpighian tubules. How many are correct?', 'Five', ['Four', 'Three', 'Two'], 'All five are NCERT features.', 'Do not look for a false one.', 'statements');
+stm(5, 'basis', 'Animals with a true coelom are called eucoelomates.', 'Annelids, molluscs, arthropods, echinoderms and chordates are coelomates.', 0, 'Both are correct.');
+
+// ---- Matches
+match(2, 'phyla', 'akx1', 'Animal and phylum', ['A. Hydra', 'B. Ascaris', 'C. Pila', 'D. Asterias'], ['p. Mollusca', 'q. Echinodermata', 'r. Cnidaria', 's. Aschelminthes'], 'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-p, B-s, C-r, D-q'], 'Hydra: Cnidaria. Ascaris: Aschelminthes. Pila: Mollusca. Asterias: Echinodermata.');
+match(3, 'phyla', 'akx2', 'Phylum and key feature', ['A. Porifera', 'B. Ctenophora', 'C. Echinodermata', 'D. Annelida'], ['p. Comb plates', 'q. Choanocytes', 'r. Water vascular system', 's. Metameric segmentation'], 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'], 'Choanocytes in sponges; comb plates in ctenophores; water vascular system in echinoderms; metamerism in annelids.');
+match(3, 'classes', 'akx3', 'Animal and class', ['A. Scoliodon', 'B. Labeo', 'C. Rana', 'D. Petromyzon'], ['p. Amphibia', 'q. Osteichthyes', 'r. Chondrichthyes', 's. Cyclostomata'], 'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-r, B-p, C-q, D-s'], 'Dog fish: Chondrichthyes. Rohu: Osteichthyes. Frog: Amphibia. Lamprey: cyclostome.');
+match(3, 'classes', 'akx4', 'Animal and common name', ['A. Pteropus', 'B. Macropus', 'C. Struthio', 'D. Naja'], ['p. Kangaroo', 'q. Flying fox', 'r. Ostrich', 's. Cobra'], 'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'], 'Pteropus is the flying fox; Macropus the kangaroo; Struthio the ostrich; Naja the cobra.');
+match(4, 'phyla', 'akx5', 'Phylum and excretory or respiratory organ', ['A. Platyhelminthes', 'B. Annelida', 'C. Arthropoda', 'D. Mollusca'], ['p. Flame cells', 'q. Nephridia', 'r. Malpighian tubules', 's. Feather-like gills in the mantle cavity'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'], 'Flame cells, nephridia, Malpighian tubules and gills in the mantle cavity.');
+match(4, 'classes', 'akx6', 'Heart and group', ['A. Two-chambered', 'B. Three-chambered', 'C. Four-chambered, birds and mammals', 'D. Four-chambered reptile'], ['p. Frog', 'q. Shark', 'r. Crocodile', 's. Pigeon and cat'], 'A-q, B-p, C-s, D-r', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-s, B-p, C-q, D-r'], 'Fish: two. Amphibian: three. Birds and mammals: four. The crocodile is the reptile with a four-chambered heart.');
+match(4, 'phyla', 'akx7', 'Animal and its special feature', ['A. Limulus', 'B. Pennatula', 'C. Aplysia', 'D. Antedon'], ['p. Living fossil', 'q. Sea pen', 'r. Sea hare', 's. Sea lily'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'], 'Common names.');
+match(4, 'classes', 'akx8', 'Class and skin covering', ['A. Chondrichthyes', 'B. Osteichthyes', 'C. Reptilia', 'D. Aves'], ['p. Placoid scales', 'q. Cycloid or ctenoid scales', 'r. Epidermal scales or scutes', 's. Feathers on a dry skin with oil gland'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'], 'Skin features of the classes.');
+match(5, 'chordata', 'akx9', 'Group and notochord condition', ['A. Urochordata', 'B. Cephalochordata', 'C. Vertebrata', 'D. Aves (adult)'], ['p. Present only in the larval tail', 'q. Extends from head to tail and persists through life', 'r. Replaced by a vertebral column', 's. Absent at every stage'], 'A-p, B-q, C-r, D-r', ['A-q, B-p, C-r, D-r', 'A-p, B-q, C-r, D-s', 'A-p, B-q, C-s, D-r'], 'Tunicates keep it only in the larval tail; lancelets keep it for life; vertebrates, including birds, replace it with a vertebral column. Two entries of List I may match the same entry.', 'C and D have the same answer.');
+match(5, 'phyla', 'akx10', 'Disease vector or worm and name', ['A. Wuchereria', 'B. Ancylostoma', 'C. Anopheles', 'D. Taenia'], ['p. Filarial worm', 'q. Hookworm', 'r. Mosquito', 's. Tapeworm'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'], 'Common names.');
+
+// ---- Passages
+pass('akx11', 'Passage: unknown animal 1', 'Animal U lives in the sea. Its body shows radial symmetry as an adult, but its free-swimming larva is bilateral. It has a spiny skin, tube feet, a complete gut and no excretory organs. Its mouth is on the lower surface.');
+pq('akx11', 3, 'echinodermata', 'U belongs to', 'Echinodermata', ['Cnidaria', 'Mollusca', 'Annelida'], 'Spiny skin, tube feet and a larva with bilateral symmetry: Echinodermata.');
+pq('akx11', 4, 'echinodermata', 'The system helping locomotion and respiration in U is', 'the water vascular system', ['the nephridial system', 'the tracheal system', 'the lateral line'], 'The tube feet belong to the water vascular system.');
+pq('akx11', 5, 'echinodermata', 'Which statement about U is true?', 'It is coelomate and triploblastic', ['It is acoelomate', 'It is diploblastic', 'It has a closed circulation with a heart in the adult'], 'Echinoderms are triploblastic with a coelom.');
+pass('akx12', 'Passage: unknown animal 2', 'Animal V has a cylindrical body divided into many similar segments both outside and inside. It has a coelom, a double ventral nerve cord and paired ganglia, and it breathes through its moist skin. V is hermaphrodite and has nephridia.');
+pq('akx12', 3, 'annelida', 'V most likely belongs to', 'Annelida', ['Arthropoda', 'Platyhelminthes', 'Mollusca'], 'Metamerism and a double ventral nerve cord point to annelids.');
+pq('akx12', 4, 'annelida', 'The excretory organs of V are', 'nephridia', ['malpighian tubules', 'flame cells', 'kidneys'], 'Annelids excrete through nephridia.');
+pq('akx12', 4, 'annelida', 'V is more likely', 'Pheretima', ['Nereis', 'Ascaris', 'Taenia'], 'Hermaphrodite earthworm; Nereis is dioecious.');
+pass('akx13', 'Passage: unknown animal 3', 'Animal W is a vertebrate with feathers, a beak without teeth, a four-chambered heart and air sacs. It lays eggs with a hard shell.');
+pq('akx13', 3, 'aves', 'W belongs to the class', 'Aves', ['Reptilia', 'Mammalia', 'Amphibia'], 'Feathers and air sacs.');
+pq('akx13', 4, 'aves', 'Which of these features is also found in the class Mammalia?', 'Four-chambered heart', ['Feathers', 'Air sacs', 'A cloaca in all species'], 'Both Aves and Mammalia have four-chambered hearts and are warm blooded.');
+pq('akx13', 5, 'aves', 'The additional chambers of its digestive tract are', 'crop and gizzard', ['rumen and omasum', 'caecum and bladder', 'cloaca and bursa'], 'In birds, the crop stores and the gizzard grinds.');
+
+// ---- Level 4
+mc(4, 'basis', 'Which animal group is a bilaterally symmetrical, triploblastic and acoelomate?', 'Platyhelminthes', ['Aschelminthes', 'Annelida', 'Echinodermata'], 'Flatworms lack a body cavity.');
+mc(4, 'basis', 'The body cavity in Aschelminthes is a', 'pseudocoelom, with mesoderm only as scattered pouches', ['true coelom', 'haemocoel', 'no cavity'], 'It is not fully lined by mesoderm.');
+mc(4, 'basis', 'Metamerism is absent in', 'Mollusca', ['Annelida', 'Arthropoda', 'Chordata'], 'Molluscs are unsegmented. Annelids, arthropods and chordates show segmentation.');
+mc(4, 'porifera', 'Which sponge character is NOT correct?', 'They are all freshwater', ['Mostly marine', 'Asymmetrical', 'Skeleton of spicules or spongin'], 'Most are marine.');
+mc(4, 'cnidaria', 'Which of these is correct for Obelia?', 'It shows metagenesis, with polyp and medusa stages', ['It has only medusa', 'It has only polyp', 'It is a ctenophore'], 'Alternation of generations (metagenesis).');
+mc(4, 'cnidaria', 'Digestion in cnidarians is', 'extracellular and intracellular', ['only intracellular', 'absent', 'only extracellular outside the body'], 'NCERT: a gastrovascular cavity with extracellular and intracellular digestion.');
+mc(4, 'ctenophora', 'Which feature separates ctenophores from cnidarians?', 'Comb plates and no cnidoblasts', ['Tissue level of organisation', 'Radial symmetry', 'Diploblasty'], 'Both are radial, diploblastic and of tissue level.');
+mc(4, 'platyhelminthes', 'Which of the following is NOT correct for Platyhelminthes?', 'Pseudocoelomate', ['Flame cells', 'Hooks and suckers in parasites', 'Hermaphrodite'], 'They are acoelomate.');
+mc(4, 'aschelminthes', 'The alimentary canal of Ascaris is', 'complete with a muscular pharynx', ['incomplete with one opening', 'absent', 'with a mouth only'], 'It has a mouth and an anus.');
+mc(4, 'arthropoda', 'The appendages of arthropods are', 'jointed', ['absent', 'unjointed', 'only in the head'], 'The phylum name means jointed foot.');
+mc(4, 'arthropoda', 'The circulatory system of arthropods is open, which means that', 'blood is not always confined in vessels', ['blood is red', 'the heart is absent in all', 'blood has no cells'], 'It flows into the haemocoel.');
+mc(4, 'mollusca', 'Which pair is correct in Mollusca?', 'Sepia: cuttlefish; Loligo: squid', ['Sepia: squid; Loligo: cuttlefish', 'Octopus: sea hare; Aplysia: devil fish', 'Pila: pearl oyster; Pinctada: apple snail'], 'Common names must be matched exactly.', 'Squid and cuttlefish are easily swapped.');
+mc(4, 'echinodermata', 'Echinoderms differ from other coelomates in the absence of', 'an excretory system', ['a digestive tract', 'a coelom', 'bilateral larvae'], 'NCERT: excretory system absent.');
+mc(4, 'hemichordata', 'Hemichordata respire through', 'gills', ['book lungs', 'trachea', 'moist skin only'], 'They have gills and an open circulation.');
+mc(4, 'chordata', 'Which of the following is NOT a character of all chordates?', 'Vertebral column', ['Notochord at some stage', 'Dorsal hollow nerve cord', 'Paired pharyngeal gill slits'], 'The vertebral column is only in vertebrates.');
+mc(4, 'cyclostomata', 'Cyclostomes migrate to fresh water for', 'spawning, and die after it', ['feeding', 'moulting', 'hibernation'], 'The larvae return to the ocean.');
+mc(4, 'chondrichthyes', 'Which of these is a feature of Chondrichthyes?', 'Teeth are modified placoid scales', ['Operculum covers the gills', 'Air bladder is present', 'Skeleton of bone'], 'The scales are backward pointing.');
+mc(4, 'osteichthyes', 'Which of these is a feature of Osteichthyes?', 'Four pairs of gills covered by operculum', ['Ventral mouth', 'Placoid scales', 'Viviparous'], 'Mouth terminal; scales cycloid or ctenoid.');
+mc(4, 'amphibia', 'Which of the following is a limbless amphibian?', 'Ichthyophis', ['Hyla', 'Bufo', 'Salamandra'], 'Ichthyophis is a caecilian.');
+mc(4, 'reptilia', 'Which of these is true for reptiles?', 'Fertilisation is internal and development is direct', ['Fertilisation is external', 'They are viviparous mostly', 'The skin is moist'], 'Reptiles are oviparous with direct development.');
+mc(4, 'aves', 'The endoskeleton of birds is', 'fully ossified with pneumatic long bones', ['cartilaginous', 'absent', 'chitinous'], 'Bones have air cavities.');
+mc(4, 'mammalia', 'Which of the following helps to identify a mammal?', 'Different types of teeth in the jaw', ['Feathers', 'Cloaca opening', 'Three-chambered heart'], 'Mammals have heterodont dentition.');
+mc(4, 'mammalia', 'Which of these is an aquatic mammal?', 'Delphinus', ['Pristis', 'Hippocampus', 'Exocoetus'], 'Delphinus is the dolphin; the others are fishes.');
+
+// ---- Level 5
+mc(5, 'basis', 'In which sequence is the evolutionary complexity of body cavity correctly increasing?', 'Acoelomate, pseudocoelomate, coelomate', ['Coelomate, acoelomate, pseudocoelomate', 'Pseudocoelomate, coelomate, acoelomate', 'Acoelomate, coelomate, pseudocoelomate'], 'As NCERT lists flatworms, roundworms, then annelids onwards.');
+mc(5, 'porifera', 'Which feature is NOT shared by sponges and Cnidaria?', 'Nematocysts', ['Aquatic habit', 'Absence of organ systems', 'Absence of a true coelom'], 'Nematocysts occur only in Cnidaria. Both groups are aquatic, lack organ systems and lack a true coelom.');
+mc(5, 'basis', 'Which phylum has both a tissue-level of organisation and a polyp-medusa life cycle in some species?', 'Cnidaria', ['Ctenophora', 'Porifera', 'Platyhelminthes'], 'Medusa and polyp are cnidarian forms.');
+mc(5, 'arthropoda', 'Which of these is NOT an arthropod respiratory organ?', 'Parapodia', ['Gills', 'Book lungs', 'Tracheae'], 'Parapodia are annelid appendages. Arthropods use gills, book gills, book lungs and tracheae.');
+mc(5, 'mollusca', 'The shell of molluscs is composed of', 'calcium carbonate', ['chitin only', 'keratin', 'silica'], 'It is a calcareous shell.');
+mc(5, 'chordata', 'A group in which the notochord is replaced by a bony or cartilaginous vertebral column is', 'Vertebrata', ['Urochordata', 'Cephalochordata', 'Hemichordata'], 'NCERT, Vertebrata.');
+mc(5, 'classes', 'Which of the following combinations contains only egg-laying (oviparous) forms?', 'Frog, lizard, pigeon', ['Frog, shark (viviparous species), whale', 'Pigeon, cat, snake', 'Platypus, whale, hen'], 'Frog, lizard and pigeon all lay eggs. Whale and cat are viviparous.', 'The other options include a mammal that gives birth.');
+mc(5, 'classes', 'Which of the following has a heart that receives only deoxygenated blood?', 'Fish', ['Frog', 'Crocodile', 'Cat'], 'The two-chambered fish heart receives and pumps deoxygenated blood.');
+mc(5, 'phyla', 'Pick the odd one out by phylum: Sepia, Loligo, Aplysia, Antedon.', 'Antedon', ['Sepia', 'Loligo', 'Aplysia'], 'Sepia (cuttlefish), Loligo (squid) and Aplysia (sea hare) are molluscs. Antedon (sea lily) is an echinoderm.');
 export default { topic: 'animal-kingdom', groups, items, gens: [] };

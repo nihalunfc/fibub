@@ -517,6 +517,327 @@ const gens = [
   },
 ];
 
+
+
+// ===== expansion begin =====
+// Expansion pass (2026-11-22): more L3-L5 items, new match/multi/passage items and templates. New ids pc-x001.. and pc-g16..
+const N = (id, level, sub, q, answer, tol, sol, trap, more = {}) =>
+  base(id, level, sub, { type: 'nat', format: 'numeric', q, answer, tol, sol, trap, ...more });
+const XT = (id, lv, sub, q, rows, trap) => X(id, lv, sub, q, rows.map((r) => r[0]), rows.map((r, i) => (r[1] ? i : -1)).filter((i) => i >= 0),
+  '<p>' + rows.map((r) => `${r[1] ? '✓' : '✗'} ${r[2]}`).join(' ') + '</p>', trap);
+const D5 = ['1', '2', '3', '4', '5'];
+const catalan = (n) => { const dp = Array.from({ length: n + 1 }, () => Array(n + 1).fill(0)); for (let i = 0; i <= n; i++) for (let j = 0; j <= i; j++) dp[i][j] = (i === 0 && j === 0) ? 1 : (i > 0 && j <= i - 1 ? dp[i - 1][j] : 0) + (j > 0 ? dp[i][j - 1] : 0); return dp[n][n]; };
+const gridPaths = (a, b, via) => { const dp = Array.from({ length: a + 1 }, () => Array(b + 1).fill(0)); for (let i = 0; i <= a; i++) for (let j = 0; j <= b; j++) dp[i][j] = (i === 0 && j === 0) ? 1 : (i ? dp[i - 1][j] : 0) + (j ? dp[i][j - 1] : 0); return dp[a][b]; };
+const subsetsNoAdj = (n) => { let c = 0; for (let m = 0; m < 1 << n; m++) if ((m & (m >> 1)) === 0) c++; return c; };
+const polyTri = (n, sidesCommon) => { let c = 0; for (const [a, b, d] of combos([...Array(n).keys()], 3)) { const s = [(b - a === 1) || (a + n - b === 1), (d - b === 1) || (b + n - d === 1), (d - a === 1) || (a + n - d === 1)].filter(Boolean).length; if (s === sidesCommon) c++; } return c; };
+const trail = (n) => { let c = 0; for (let k = 5; k <= n; k *= 5) c += Math.floor(n / k); return c; };
+const wordsP = (s, len, pred) => words(s, len, pred);
+
+Object.assign(groups, {
+  mx1: { title: 'Digits and numbers', passage: R`<p>Digits 1 to 5 are used to make 3-digit numbers. Match each description in List I with the count in List II.</p>`,
+    list1: ['A. No digit repeated', 'B. No digit repeated, number even', 'C. Digits may repeat', 'D. No digit repeated, number divisible by 5'], list2: ['p. 12', 'q. 24', 'r. 60', 's. 125', 't. 48'] },
+  mx2: { title: 'Words from letters', passage: R`<p>Match each word in List I with the number of distinct arrangements of all its letters in List II.</p>`,
+    list1: ['A. MAMMA', 'B. BOOKS', 'C. LETTER', 'D. DADDY'], list2: ['p. 10', 'q. 20', 'r. 60', 's. 180'] },
+  mx3: { title: 'A regular 9-sided polygon', passage: R`<p>Take the 9 vertices of a regular polygon. Match each count in List I with its value in List II.</p>`,
+    list1: ['A. Diagonals', 'B. Triangles with no side of the polygon as a side', 'C. All triangles', 'D. Quadrilaterals'], list2: ['p. 27', 'q. 30', 'r. 84', 's. 126', 't. 36'] },
+  mx4: { title: 'Integer solutions of x + y + z = 12', passage: R`<p>Match each condition in List I with the number of integer solutions in List II.</p>`,
+    list1: ['A. $x,y,z\\ge0$', 'B. $x,y,z\\ge1$', 'C. $x,y,z\\ge2$', 'D. $0\\le x,y,z\\le5$'], list2: ['p. 10', 'q. 28', 'r. 55', 's. 91'] },
+  mx5: { title: 'Six different books', passage: R`<p>Six different books are put into three boxes. Match each situation in List I with the number of ways in List II.</p>`,
+    list1: ['A. Three different boxes, any number in each', 'B. Three different boxes, none empty', 'C. Three identical boxes, none empty', 'D. Split into three unlabelled pairs'], list2: ['p. 15', 'q. 90', 'r. 540', 's. 729', 't. 120'] },
+  mx6: { title: 'Six people at a round table', passage: R`<p>Six people sit around a round table. Match each seating condition in List I with its count in List II (rotations are the same).</p>`,
+    list1: ['A. No condition', 'B. Two particular people are next to each other', 'C. Two particular people are not next to each other', 'D. 3 men and 3 women, alternating'], list2: ['p. 12', 'q. 48', 'r. 72', 's. 120'] },
+  mx7: { title: 'Grid paths from (0,0) to (5,5)', passage: R`<p>Each step goes one unit right or one unit up. Match each condition in List I with the number of paths in List II.</p>`,
+    list1: ['A. All paths', 'B. Paths through $(2,3)$', 'C. Paths that avoid $(2,3)$', 'D. Paths that never go above the line $y=x$'], list2: ['p. 42', 'q. 100', 'r. 152', 's. 252'] },
+  mx8: { title: 'Arranging MISSISSIPPI', passage: R`<p>Match each condition on the arrangements of the 11 letters of MISSISSIPPI in List I with the count in List II.</p>`,
+    list1: ['A. No condition', 'B. All four S together', 'C. The two P together', 'D. No two P together'], list2: ['p. 34650', 'q. 840', 'r. 6300', 's. 28350'] },
+  pz3: { title: 'Passage: lock codes', passage: R`<p>A code has 2 letters from A, B, C, D, E followed by 3 digits from 0 to 9, in that order. Repetition is allowed unless a question says otherwise.</p>` },
+  pz4: { title: 'Passage: the school committee', passage: R`<p>A class has 8 boys and 6 girls. A committee of 5 is to be chosen from the 14 students. Two of them are the boy $b_1$ and the girl $g_1$.</p>` },
+});
+
+// ----- L2 -----
+items.push(
+  M('pc-x001', 2, 'permutations', R`In how many ways can 4 different prizes be given to 7 students if no student gets more than one prize?`, '840', ['2401', '35', '28'],
+    R`<p>The first prize has 7 choices, the second 6, the third 5, the fourth 4: $^7P_4=7\cdot6\cdot5\cdot4=840$.</p>`, 'Prizes are different, so order matters.', { calc: () => 7 * 6 * 5 * 4 }),
+  I('pc-x002', 2, 'permutations', R`A club of 12 members elects a president, a secretary and a treasurer (three different people). In how many ways can this be done?`, 12 * 11 * 10,
+    R`<p>The posts are different, so order matters: $^{12}P_3=12\cdot11\cdot10=1320$.</p>`, 'Using $\\binom{12}3=220$ forgets the posts.', { calc: () => 12 * 11 * 10 }),
+  M('pc-x003', 2, 'numbers', R`How many 4-digit numbers greater than 5000 can be formed from the digits 1 to 9 with no digit repeated?`, '1680', ['1344', '3024', '1500'],
+    R`<p>The first digit is one of 5, 6, 7, 8, 9 (5 ways). The other three places use the remaining 8 digits in order: $8\cdot7\cdot6=336$. Total $5\times336=1680$.</p>`, 'The first digit has 5 choices, not 4.', { calc: () => digitsCount(['1', '2', '3', '4', '5', '6', '7', '8', '9'], 4, (s) => Number(s) > 5000) }),
+  M('pc-x004', 2, 'identical objects', R`The number of different arrangements of the letters of the word TOTAL is`, '60', ['120', '30', '24'],
+    R`<p>5 letters with T repeated twice: $\dfrac{5!}{2!}=60$.</p>`, 'Divide by $2!$ for the repeated T.', { calc: () => words('TOTAL', 5) }),
+  I('pc-x005', 2, 'combinations', R`If $\binom n8=\binom n{12}$, find $\binom n{18}$.`, Cn(20, 18),
+    R`<p>$\binom nr=\binom ns$ with $r\ne s$ means $r+s=n$, so $n=20$. Then $\binom{20}{18}=\binom{20}2=190$.</p>`, 'Use $r+s=n$.', { calc: () => Cn(20, 18) }),
+  M('pc-x006', 2, 'geometry', R`The number of diagonals of a convex decagon is`, '35', ['45', '40', '30'],
+    R`<p>$\binom{10}2-10=45-10=35$.</p>`, 'Subtract the 10 sides from all pairs of vertices.', { calc: () => Cn(10, 2) - 10 }),
+);
+
+// ----- L3 -----
+const sum3 = (() => { let s = 0; for (const a of '123') for (const b of '123') for (const c of '123') if (a !== b && a !== c && b !== c) s += Number(a + b + c); return s; })();
+items.push(
+  I('pc-x007', 3, 'sum of numbers', R`Find the sum of all 3-digit numbers that can be formed using the digits 1, 2, 3 without repetition.`, sum3,
+    R`<p>There are $3!=6$ numbers. Each digit appears twice in each place, so each place contributes $2(1+2+3)=12$. Sum $=12(100+10+1)=1332$.</p>`, 'Each digit appears $2$ times in each place, not once.', { calc: () => sum3 }),
+  I('pc-x008', 3, 'numbers', R`How many 5-digit numbers divisible by 4 can be formed from the digits 1, 2, 3, 4, 5 without repetition?`, digitsCount(D5, 5, (s) => Number(s.slice(-2)) % 4 === 0),
+    R`<p>A number is divisible by 4 when its last two digits are. From the digits 1 to 5 (no repeat) the pairs are 12, 24, 32, 52 (4 pairs). The other 3 places take the remaining 3 digits in $3!=6$ ways. Total $4\times6=24$.</p>`, 'Check the last two digits only.', { calc: () => digitsCount(D5, 5, (s) => Number(s.slice(-2)) % 4 === 0) }),
+  I('pc-x009', 3, 'factorials', R`How many zeros are there at the end of $100!$?`, trail(100),
+    R`<p>Each zero needs a factor 10 = 2 × 5, and there are more 2s than 5s. Count the 5s: $\lfloor100/5\rfloor+\lfloor100/25\rfloor=20+4=24$.</p>`, '25 counts twice.', { calc: () => trail(100) }),
+  I('pc-x010', 3, 'restrictions', R`In how many ways can 7 different people stand in a row so that A is somewhere to the left of B?`, 2520,
+    R`<p>In exactly half of all $7!$ arrangements A is to the left of B. $\dfrac{5040}2=2520$.</p>`, 'Use symmetry, not casework.', { calc: () => F(7) / 2 }),
+  M('pc-x011', 3, 'stars and bars', R`In how many ways can 8 identical balls be put into 3 different boxes so that every box has at least 1 and at most 4 balls?`, String(numSols(3, 8, 1, 4)), ['21', '15', '10'],
+    R`<p>List the triples $(a,b,c)$ with sum 8 and each from 1 to 4: arrangements of $(4,3,1)$ give 6, of $(4,2,2)$ give 3, of $(3,3,2)$ give 3. Total 12. ($\binom72=21$ ignores the upper limit.)</p>`, 'Remove the cases with a box above 4.', { calc: () => numSols(3, 8, 1, 4) }),
+  I('pc-x012', 3, 'selections', R`From 5 married couples, 4 people are chosen so that no husband and wife are both chosen. In how many ways can this be done?`, 80,
+    R`<p>Choose which 4 couples supply a person: $\binom54=5$. From each chosen couple pick one of the two: $2^4=16$. Total $5\times16=80$.</p>`, 'Pick the couples first.', { calc: () => combos([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 4).filter((t) => new Set(t.map((x) => x >> 1)).size === 4).length }),
+  M('pc-x013', 3, 'circular', R`In how many ways can 7 people sit around a round table so that two particular people are not next to each other?`, String(circ(7, (a) => !adjC(a, 0, 1))), ['600', '240', '720'],
+    R`<p>All circular arrangements: $6!=720$. With the two together: treat them as one block: $5!\times2=240$. Not together: $720-240=480$.</p>`, 'Block count is $5!\\times2$.', { calc: () => circ(7, (a) => !adjC(a, 0, 1)) }),
+  I('pc-x014', 3, 'geometry', R`How many rectangles (of all sizes) are there in a $7\times5$ grid of unit squares?`, Cn(8, 2) * Cn(6, 2),
+    R`<p>A rectangle is fixed by choosing 2 of the 8 vertical lines and 2 of the 6 horizontal lines: $\binom82\binom62=28\times15=420$.</p>`, 'There are 8 and 6 lines, not 7 and 5.', { calc: () => Cn(8, 2) * Cn(6, 2) }),
+  I('pc-x015', 3, 'selections', R`How many 4-digit numbers have their digits in strictly increasing order from left to right?`, Cn(9, 4),
+    R`<p>Any 4 different non-zero digits can be arranged in only one increasing order, and 0 cannot appear (it would have to come first). So the count is $\binom94=126$.</p>`, 'The order is forced, so choose the set only.', { calc: () => combos(['1', '2', '3', '4', '5', '6', '7', '8', '9'], 4).length }),
+  I('pc-x016', 3, 'restrictions', R`In how many ways can the letters of the word EQUATION be arranged so that all the vowels come together?`, F(4) * F(5),
+    R`<p>EQUATION has 5 vowels (E, U, A, I, O) and 3 consonants (Q, T, N). Treat the vowels as one block: 4 objects, $4!=24$ ways. Inside the block $5!=120$ ways. Total $24\times120=2880$.</p>`, 'Do not forget the arrangements inside the block.', { calc: () => F(4) * F(5) }),
+  A('pc-x017', 3, 'selections', R`A team of 3 is chosen from 5 boys and 4 girls. The number of teams with at least one girl is 74.`, R`The number of teams with at least one girl equals the number of all teams minus the number of teams with no girl.`, 0,
+    R`<p>$\binom93-\binom53=84-10=74$, so A is true. R is the method that gives it.</p>`, 'Use the complement.'),
+  S('pc-x018', 3, 'restrictions', R`4 men and 3 women stand in a row. The number of ways in which no two women are adjacent is 1440.`, R`The number of ways in which all 3 women stand together is $4!\times3!=144$.`, 1,
+    R`<p>I: arrange the men ($4!=24$), then put the women in 3 of the 5 gaps: $\binom53\cdot3!=60$. $24\times60=1440$, true. II: the women form a block, so 5 objects can be arranged in $5!$ ways and the block in $3!$: $120\times6=720$, so II is false.</p>`, 'With the block there are 5 objects, not 4.'),
+  MT('pc-x019', 3, 'numbers', 'mx1', R`Match List I with List II.`, 'A-r, B-q, C-s, D-p', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-t, C-s, D-p'],
+    R`<p>A: $5\cdot4\cdot3=60$ (r). B: last digit 2 or 4 (2 ways), then $4\cdot3$: $24$ (q). C: $5^3=125$ (s). D: last digit 5, then $4\cdot3=12$ (p).</p>`, 'Fix the restricted place first.'),
+  MT('pc-x020', 3, 'identical objects', 'mx2', R`Match List I with List II.`, 'A-p, B-r, C-s, D-q', ['A-p, B-s, C-r, D-q', 'A-q, B-r, C-s, D-p', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $\dfrac{5!}{3!2!}=10$ (p). B: $\dfrac{5!}{2!}=60$ (r). C: $\dfrac{6!}{2!2!}=180$ (s). D: $\dfrac{5!}{3!}=20$ (q).</p>`, 'Divide by the factorial of each repeat count.'),
+);
+items.push(
+  P('pc-x021', 3, 'counting principle', 'pz3', R`How many different codes are possible?`, '25000', ['2500', '10000', '15120'],
+    R`<p>Letters: $5\times5=25$. Digits: $10^3=1000$. Codes: $25\times1000=25000$.</p>`, 'Repetition is allowed here.'),
+  PI('pc-x022', 3, 'permutations', 'pz3', R`How many codes have two different letters and three different digits?`, 20 * 720,
+    R`<p>Letters: $5\cdot4=20$. Digits: $10\cdot9\cdot8=720$. Total $20\times720=14400$.</p>`, 'Both parts are arrangements without repetition.', { calc: () => 20 * 720 }),
+  PI('pc-x023', 3, 'restrictions', 'pz3', R`How many codes have all five symbols different and the first digit even?`, 20 * 5 * 9 * 8,
+    R`<p>Letters: 20 ways. First digit: 5 even digits. Second digit: 9 left. Third: 8 left. Total $20\times5\times9\times8=7200$.</p>`, 'Fill the restricted place first.', { calc: () => { let c = 0; for (let a = 0; a < 5; a++) for (let b = 0; b < 5; b++) { if (a === b) continue; for (let d1 = 0; d1 < 10; d1 += 2) for (let d2 = 0; d2 < 10; d2++) for (let d3 = 0; d3 < 10; d3++) if (d1 !== d2 && d1 !== d3 && d2 !== d3) c++; } return c; } }),
+);
+
+// ----- L4 -----
+const arr4 = wordsP('ARRANGEMENT', 4);
+const sum35 = (() => { let s = 0; for (const t of combos([1, 2, 3, 4, 5], 3)) for (const p of [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]) s += t[p[0]] * 100 + t[p[1]] * 10 + t[p[2]]; return s; })();
+const ds10 = (() => { let c = 0; for (let n = 1000; n <= 9999; n++) if (String(n).split('').reduce((a, b) => a + Number(b), 0) === 10) c++; return c; })();
+const tri14 = polyTri(14, 1);
+const lim = numSols(4, 15, 0, 6);
+items.push(
+  I('pc-x024', 4, 'identical objects', R`How many 4-letter words (meaningful or not) can be formed from the letters of the word ARRANGEMENT?`, arr4,
+    R`<p>The letters are A×2, R×2, N×2, E×2, G, M, T. Split by the repeat pattern of the four letters. All different: choose 4 of the 7 kinds, $\binom74\cdot4!=840$. One pair and two singles: pair $\binom41$, singles $\binom62$, arrangements $\dfrac{4!}{2!}=12$: $4\cdot15\cdot12=720$. Two pairs: $\binom42\cdot\dfrac{4!}{2!2!}=36$. Total $840+720+36=1596$.</p>`, 'Split by repeat pattern, then add.', { calc: () => arr4 }),
+  I('pc-x025', 4, 'sum of numbers', R`Find the sum of all 3-digit numbers formed from the digits 1, 2, 3, 4, 5 without repetition.`, sum35,
+    R`<p>There are $5\cdot4\cdot3=60$ numbers. Each digit appears in a given place in $60/5=12$ of them, so each place contributes $12(1+2+3+4+5)=180$. Sum $=180\times111=19980$.</p>`, 'Each digit appears 12 times per place.', { calc: () => sum35 }),
+  I('pc-x026', 4, 'stars and bars', R`How many 4-digit numbers (1000 to 9999) have digit sum 10?`, ds10,
+    R`<p>Let the digits be $a,b,c,d$ with $a\ge1$. Put $a'=a-1$: $a'+b+c+d=9$, all $\ge0$. Without limits there are $\binom{12}3=220$ solutions. The only violation of a digit limit is $a'=9$ ($a=10$), 1 case. Answer $220-1=219$.</p>`, 'Remember $a\\ge1$ and the digit limit 9.', { calc: () => ds10 }),
+  I('pc-x027', 4, 'geometry', R`How many triangles formed by the vertices of a regular 14-sided polygon have exactly one side in common with the polygon?`, tri14,
+    R`<p>Pick a side (14 ways). The third vertex must not be next to either end of that side, so it can be any of $14-4=10$ vertices. Total $14\times10=140$.</p>`, 'The third vertex must avoid the two neighbours of the side.', { calc: () => tri14 }),
+  I('pc-x028', 4, 'distribution', R`In how many ways can 10 different people be split into three groups of sizes 4, 3 and 3 (the groups are not named)?`, 10 * 9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 / (24 * 6 * 6 * 2),
+    R`<p>If the groups were named: $\dfrac{10!}{4!3!3!}=4200$. The two groups of size 3 can be swapped without changing the split, so divide by 2: $2100$.</p>`, 'Divide by $2!$ only for the two equal groups.', { calc: () => F(10) / (F(4) * F(3) * F(3) * 2) }),
+  I('pc-x029', 4, 'stars and bars', R`Find the number of non-negative integer solutions of $x+y+z+w=15$ with every variable at most 6.`, lim,
+    R`<p>Total solutions: $\binom{18}3=816$. Subtract those with some variable $\ge7$: put $x'=x-7$: $\binom{11}3=165$ each, 4 variables: 660. Two variables $\ge7$ would need $14$, leaving 1: put both reduced: $x'+y'+z+w=1$: $\binom43=4$ solutions for each of $\binom42=6$ pairs: 24. Three variables $\ge7$ is impossible. By inclusion-exclusion $816-660+24=180$.</p>`, 'Add back the overlaps.', { calc: () => lim }),
+  I('pc-x030', 4, 'lattice paths', R`How many paths are there from $(0,0)$ to $(7,7)$ using unit steps right or up that never go above the line $y=x$?`, catalan(7),
+    R`<p>These are Catalan paths: $C_n=\dfrac1{n+1}\binom{2n}n$. For $n=7$: $\dfrac18\binom{14}7=\dfrac{3432}8=429$.</p>`, 'Reflect the bad paths in the line $y=x+1$.', { calc: () => catalan(7) }),
+  I('pc-x031', 4, 'selections', R`How many subsets of $\{1,2,\dots,12\}$ (including the empty set) contain no two consecutive numbers?`, subsetsNoAdj(12),
+    R`<p>Let $a_n$ be the count for $\{1..n\}$. Either $n$ is not chosen ($a_{n-1}$) or it is and $n-1$ is not ($a_{n-2}$). So $a_n=a_{n-1}+a_{n-2}$ with $a_0=1$, $a_1=2$: $1,2,3,5,8,13,21,34,55,89,144,233,377$. $a_{12}=377$.</p>`, 'The empty set counts.', { calc: () => subsetsNoAdj(12) }),
+);
+items.push(
+  N('pc-x032', 4, 'probability', R`A committee of 4 is chosen at random from 6 men and 4 women. Find the probability that it has exactly 2 women (2 decimal places).`, +(Cn(4, 2) * Cn(6, 2) / Cn(10, 4)).toFixed(2), 0.005,
+    R`<p>Favourable $\binom42\binom62=6\times15=90$. Total $\binom{10}4=210$. $\dfrac{90}{210}=0.4286\approx0.43$.</p>`, 'Count committees, not arrangements.', { calc: () => Cn(4, 2) * Cn(6, 2) / Cn(10, 4) }),
+  N('pc-x033', 4, 'probability', R`The letters of MISSISSIPPI are arranged at random. Find the probability that all four S are together (4 decimal places).`, +(840 / 34650).toFixed(4), 0.0001,
+    R`<p>Total arrangements $\dfrac{11!}{4!4!2!}=34650$. With the four S glued into one object the letters are M, I×4, P×2 and SSSS: $\dfrac{8!}{4!\,2!}=840$. $\dfrac{840}{34650}=0.02424\approx0.0242$.</p>`, 'The block counts as one object.', { calc: () => 840 / 34650 }),
+  N('pc-x034', 4, 'probability', R`A 4-digit number is chosen at random from 1000 to 9999. Find the probability that its four digits are all different (3 decimal places).`, 0.504, 0.001,
+    R`<p>Favourable $9\cdot9\cdot8\cdot7=4536$; total 9000. $\dfrac{4536}{9000}=0.504$.</p>`, 'The first digit cannot be 0, so it has 9 choices, and the second has 9 again.', { calc: () => 4536 / 9000 }),
+  N('pc-x035', 4, 'derangements', R`Six letters are put at random into six addressed envelopes, one in each. Find the probability that no letter reaches its own envelope (3 decimal places).`, 0.368, 0.001,
+    R`<p>$D_6=265$ and the total is $6!=720$. $\dfrac{265}{720}=0.3681\approx0.368$. (This is close to $1/e$.)</p>`, '$D_6=265$.', { calc: () => derange(6) / 720 }),
+);
+
+const ns5 = numSols(3, 12, 0, 5);
+const nDiv = (N, f) => divisors(N).filter(f).length;
+const consec3 = (a) => { const S = new Set([0, 1, 2].map((x) => a.indexOf(x))); for (let i = 0; i < 6; i++) if (S.has(i) && S.has((i + 1) % 6) && S.has((i + 2) % 6)) return true; return false; };
+items.push(
+  XT('pc-x036', 4, 'restrictions', R`The 5 letters of the word MATHS are all different. Which of the following are correct?`, [
+    [R`In 48 arrangements A and T are next to each other`, words('MATHS', 5, (s) => /AT|TA/.test(s)) === 48, R`glue A and T: $4!\times2=48$.`],
+    [R`In 60 arrangements M comes before A`, words('MATHS', 5, (s) => s.indexOf('M') < s.indexOf('A')) === 60, R`exactly half of 120.`],
+    [R`In 72 arrangements A and T are not next to each other`, words('MATHS', 5, (s) => !/AT|TA/.test(s)) === 72, R`$120-48=72$.`],
+    [R`In 120 arrangements the letter A is in an odd place (1st, 3rd or 5th)`, words('MATHS', 5, (s) => s.indexOf('A') % 2 === 0) === 120, R`A has 3 odd places: $3\times4!=72$, not 120.`]], 'Use block, symmetry and complement.'),
+  XT('pc-x037', 4, 'stars and bars', R`Let $x,y,z$ be integers with $x+y+z=12$. Which of the following are correct?`, [
+    [R`With $x,y,z\ge0$ there are 91 solutions`, numSols(3, 12) === 91, R`$\binom{14}2=91$.`],
+    [R`With $x,y,z\ge1$ there are 55 solutions`, numSols(3, 12, 1) === 55, R`$\binom{11}2=55$.`],
+    [R`With $0\le x,y,z\le5$ there are 9 solutions`, ns5 === 9, R`the triples are the arrangements of $(5,5,2)$ (3 ways), $(5,4,3)$ (6 ways) and $(4,4,4)$ (1 way): 10 in all, so 9 is wrong.`],
+    [R`With $x,y,z\ge2$ there are 28 solutions`, numSols(3, 12, 2) === 28, R`put $x=2+x'$: $x'+y'+z'=6$, $\binom82=28$.`]], 'Shift by the minimum first.'),
+  XT('pc-x038', 4, 'identical objects', R`The letters of BOOKKEEPER (B, O×2, K×2, E×3, P, R) are arranged in a row. Which of the following are correct?`, [
+    [R`The total number of arrangements is 151200`, words('BOOKKEEPER', 10) === 151200, R`$\dfrac{10!}{2!\,2!\,3!}=151200$.`],
+    [R`In 10080 arrangements the three E are together`, words('BOOKKEEPER', 10, (s) => s.includes('EEE')) === 10080, R`block EEE: $\dfrac{8!}{2!\,2!}=10080$.`],
+    [R`In 30240 arrangements the two O are together`, words('BOOKKEEPER', 10, (s) => s.includes('OO')) === 30240, R`block OO: $\dfrac{9!}{2!\,3!}=30240$.`],
+    [R`In 70560 arrangements the two K are not together`, words('BOOKKEEPER', 10, (s) => !s.includes('KK')) === 70560, R`the two K together: $\dfrac{9!}{2!\,3!}=30240$; not together $=151200-30240=120960$.`]], 'Glue the block, count again, subtract.'),
+  XT('pc-x039', 4, 'circular', R`Six different beads are placed in a ring. Which of the following are correct?`, [
+    [R`Around a round table there are 120 arrangements`, circ(6, () => true) === 120, R`$(6-1)!=120$.`],
+    [R`On a necklace (flipping allowed) there are 60 arrangements`, circ(6, () => true) / 2 === 60, R`$\dfrac{5!}2=60$.`],
+    [R`With 3 particular beads together at a round table there are 36 arrangements`, circ(6, consec3) === 36, R`glue the three: 4 objects in a circle $3!=6$, inside the block $3!=6$: 36.`],
+    [R`With 3 particular beads together at a round table there are 144 arrangements`, circ(6, consec3) === 144, R`$4!\times3!$ wrongly treats the circle as having a fixed starting point.`]], 'A circle of $k$ objects has $(k-1)!$ arrangements.'),
+  XT('pc-x040', 4, 'geometry', R`Eight points lie in a plane and no three of them are collinear. Which of the following are correct?`, [
+    [R`They determine 28 lines`, Cn(8, 2) === 28, R`$\binom82=28$.`],
+    [R`Exactly 21 of the triangles formed by them have a particular point as a vertex`, Cn(7, 2) === 21, R`choose the other two vertices from 7: $\binom72=21$.`],
+    [R`If they are the vertices of a convex octagon, it has 20 diagonals`, Cn(8, 2) - 8 === 20, R`$28-8=20$.`],
+    [R`They form 70 triangles`, Cn(8, 3) === 70, R`$\binom83=56$, not 70 ($70=\binom84$).`]], 'Triangles are $\\binom83$; 70 is the quadrilateral-set count.'),
+  XT('pc-x041', 4, 'divisors', R`Consider the positive divisors of $720=2^4\cdot3^2\cdot5$. Which of the following are correct?`, [
+    [R`There are 6 divisors that are perfect squares`, nDiv(720, (d) => Number.isInteger(Math.sqrt(d))) === 6, R`even exponents: $(2+1)(1+1)(0+1)=6$.`],
+    [R`There are 6 odd divisors`, nDiv(720, (d) => d % 2 === 1) === 6, R`$(2+1)(1+1)=6$.`],
+    [R`There are 12 divisors that are multiples of 10`, nDiv(720, (d) => d % 10 === 0) === 12, R`$d=10k$ with $k\mid72$ and $72=2^3\cdot3^2$ has $4\times3=12$ divisors.`],
+    [R`There are 15 divisors that are multiples of 6`, nDiv(720, (d) => d % 6 === 0) === 15, R`$d=6k$ with $k\mid120=2^3\cdot3\cdot5$: $4\times2\times2=16$, not 15.`]], 'Divide by the multiple first.'),
+  A('pc-x042', 4, 'selections', R`The number of ways of choosing 4 numbers from $1,2,\dots,10$ so that no two are consecutive is 35.`, R`The number of ways of choosing $r$ numbers from $1,\dots,n$ with no two consecutive is $\binom{n-r+1}r$.`, 0,
+    R`<p>R: put a gap between chosen numbers; this is equivalent to choosing $r$ places from $n-r+1$. With $n=10$, $r=4$: $\binom74=35$, so A holds and R explains it.</p>`, 'Check with $n=4$, $r=2$: $\\binom32=3$.'),
+  A('pc-x043', 4, 'onto functions', R`The number of onto functions from $\{1,2,3,4\}$ to $\{a,b,c\}$ is 81.`, R`The number of onto functions from an $n$-set to a $k$-set is $\sum_{j=0}^{k}(-1)^j\binom kj(k-j)^n$.`, 3,
+    R`<p>R is the inclusion-exclusion formula: true. For $n=4$, $k=3$: $81-3\cdot16+3\cdot1=36$. So A is false (81 is all functions).</p>`, '$3^4=81$ counts all functions, not just onto ones.'),
+  base('pc-x044', 4, 'statements', { type: 'mcq', format: 'statements', q: R`<p>How many of the following are correct?</p><ol><li>$D_4=9$</li><li>5 different beads can form $12$ necklaces (flipping allowed)</li><li>$\binom{n}{r}=\binom{n}{n-r}$</li><li>A hexagon has 15 diagonals</li></ol>`, options: ['1', '2', '3', '4'], answer: 2,
+    sol: R`<p>(i) $D_4=9$ true. (ii) $\dfrac{4!}2=12$ true. (iii) true. (iv) false: $\binom62-6=9$. Three are correct.</p>`, trap: '15 is the number of pairs of vertices, including the sides.' }),
+  base('pc-x045', 4, 'derangements', { type: 'mcq', format: 'statements', q: R`<p><b>Statement I:</b> $D_5=44$.</p><p><b>Statement II:</b> $D_6=6D_5+1=265$.</p>`, options: SOPT, answer: 0,
+    sol: R`<p>$D_n=nD_{n-1}+(-1)^n$. $D_5=5\cdot9+(-1)=44$ and $D_6=6\cdot44+1=265$. Both are true.</p>`, trap: 'The sign alternates with $n$.' }),
+  MT('pc-x046', 4, 'geometry', 'mx3', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-r, C-q, D-s', 'A-t, B-q, C-r, D-p'],
+    R`<p>A: $\binom92-9=27$ (p). B: all triangles 84, minus 45 with exactly one side ($9\times5$), minus 9 with two sides: 30 (q). C: $\binom93=84$ (r). D: $\binom94=126$ (s).</p>`, 'Exactly-one-side triangles number $n(n-4)$.'),
+  MT('pc-x047', 4, 'stars and bars', 'mx4', R`Match List I with List II.`, 'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p', 'A-s, B-r, C-p, D-q'],
+    R`<p>A: $\binom{14}2=91$ (s). B: $\binom{11}2=55$ (r). C: shift by 2: $\binom82=28$ (q). D: the triples are arrangements of $(5,5,2)$, $(5,4,3)$, $(4,4,4)$: $3+6+1=10$ (p).</p>`, 'Shift the lower limits before counting.'),
+  MT('pc-x048', 4, 'distribution', 'mx5', R`Match List I with List II.`, 'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-s, B-q, C-r, D-p'],
+    R`<p>A: $3^6=729$ (s). B: $729-3\cdot64+3=540$ (r). C: $540/3!=90$ (q). D: $\dfrac{6!}{2!2!2!\,3!}=15$ (p).</p>`, 'Identical boxes means dividing by $3!$.'),
+  MT('pc-x049', 4, 'circular', 'mx6', R`Match List I with List II.`, 'A-s, B-q, C-r, D-p', ['A-q, B-s, C-r, D-p', 'A-s, B-r, C-q, D-p', 'A-s, B-q, C-p, D-r'],
+    R`<p>A: $5!=120$ (s). B: $4!\times2=48$ (q). C: $120-48=72$ (r). D: seat the 3 men: $2!=2$; the women fill the 3 gaps in $3!=6$ ways: $12$ (p).</p>`, 'Alternating: fix the men first.'),
+);
+items.push(
+  PI('pc-x050', 4, 'combinations', 'pz4', R`In how many ways can the committee have at least 2 girls?`, Cn(14, 5) - Cn(8, 5) - 6 * Cn(8, 4),
+    R`<p>Total $\binom{14}5=2002$. No girl: $\binom85=56$. Exactly one girl: $6\binom84=420$. At least 2 girls: $2002-56-420=1526$.</p>`, 'Subtract both the 0-girl and the 1-girl cases.', { calc: () => combos([...Array(14).keys()], 5).filter((t) => t.filter((x) => x >= 8).length >= 2).length }),
+  P('pc-x051', 4, 'restrictions', 'pz4', R`In how many ways can the committee be chosen if $b_1$ and $g_1$ are not both on it?`, '1782', ['2222', '1507', '1540'],
+    R`<p>Total $2002$. With both $b_1$ and $g_1$: choose the other 3 from the remaining 12: $\binom{12}3=220$. $2002-220=1782$.</p>`, 'Count the "both" cases and subtract.', { calc: () => 1782 }),
+  PI('pc-x052', 5, 'combinations', 'pz4', R`In how many ways can the committee be chosen if it has at least 1 boy and at least 2 girls, and $b_1$ and $g_1$ are not both on it?`, 1335,
+    R`<p>At least 2 girls: 1526. Remove all-girl committees ($\binom65=6$): 1520. Now remove committees containing both $b_1$ and $g_1$ that still meet the rules: besides $b_1$ and $g_1$ we need at least one more girl among the other 3 chosen from 7 boys and 5 girls: $\binom{12}3-\binom73=220-35=185$. Answer $1520-185=1335$.</p>`, 'The "both" count must also satisfy the other rules.', { calc: () => combos([...Array(14).keys()], 5).filter((t) => { const g = t.filter((x) => x >= 8).length; return g >= 2 && 5 - g >= 1 && !(t.includes(0) && t.includes(8)); }).length }),
+);
+
+// ----- L5 -----
+const fixedCount = (n, k) => { let c = 0; eachPerm(n, (a) => { if (a.filter((v, i) => v === i).length === k) c++; }); return c; };
+const circle3 = (() => { let c = 0; for (const [a, b, d] of combos([...Array(12).keys()], 3)) { const adj = (x, y) => (x + 1) % 12 === y || (y + 1) % 12 === x; if (!adj(a, b) && !adj(a, d) && !adj(b, d)) c++; } return c; })();
+const strings4 = (() => { let c = 0; for (let m = 0; m < 4 ** 7; m++) { let x = m; const s = new Set(); for (let i = 0; i < 7; i++) { s.add(x % 4); x = Math.floor(x / 4); } if (s.size === 4) c++; } return c; })();
+const chains = (() => { let c = 0; for (let A = 0; A < 32; A++) for (let B = 0; B < 32; B++) { if ((A & B) !== A) continue; for (let C = 0; C < 32; C++) if ((B & C) === B) c++; } return c; })();
+const noAdj6 = words('AABBCC', 6, (s) => !/AA|BB|CC/.test(s));
+const ring10 = circ(10, (a) => !adjC(a, 0, 1) && !adjC(a, 0, 2) && !adjC(a, 1, 2));
+const sel = (k) => { let c = 0; for (let a = 0; a <= 2; a++) for (let b = 0; b <= 3; b++) for (let m = 0; m < 16; m++) { let bits = 0; for (let i = 0; i < 4; i++) if (m >> i & 1) bits++; if (a + b + bits === k) c++; } return c; };
+const sel3 = sel(3), sel2 = sel(2);
+const dpAvoid = (a, b, bad) => { const dp = Array.from({ length: a + 1 }, () => Array(b + 1).fill(0)); for (let i = 0; i <= a; i++) for (let j = 0; j <= b; j++) { if (bad.some(([x, y]) => x === i && y === j)) continue; dp[i][j] = (i === 0 && j === 0) ? 1 : (i ? dp[i - 1][j] : 0) + (j ? dp[i][j - 1] : 0); } return dp[a][b]; };
+items.push(
+  I('pc-x053', 5, 'derangements', R`Find the number of permutations of $\{1,2,\dots,7\}$ that have exactly 3 fixed points.`, fixedCount(7, 3),
+    R`<p>Choose the 3 fixed points: $\binom73=35$. The other 4 numbers must have no fixed point: $D_4=9$. Total $35\times9=315$.</p>`, 'The remaining 4 must all move.', { calc: () => fixedCount(7, 3) }),
+  I('pc-x054', 5, 'selections', R`12 points are placed on a circle. In how many ways can 3 of them be chosen so that no two chosen points are neighbours on the circle?`, circle3,
+    R`<p>For a circle of $n$ points, choosing $k$ with no two adjacent can be done in $\dfrac n{n-k}\binom{n-k}k$ ways. For $n=12$, $k=3$: $\dfrac{12}9\binom93=\dfrac{12}9\times84=112$.</p>`, 'On a circle the first and last points are neighbours.', { calc: () => circle3 }),
+  I('pc-x055', 5, 'inclusion-exclusion', R`How many 7-digit strings can be made from the digits 1, 2, 3, 4 (repetition allowed) so that each of the four digits appears at least once?`, strings4,
+    R`<p>By inclusion-exclusion: $4^7-\binom41 3^7+\binom42 2^7-\binom43 1^7=16384-8748+768-4=8400$.</p>`, 'Alternate the signs.', { calc: () => strings4 }),
+  I('pc-x056', 5, 'subsets', R`Find the number of ordered triples $(A,B,C)$ of subsets of $\{1,2,3,4,5\}$ with $A\subseteq B\subseteq C$.`, chains,
+    R`<p>Each element has 4 possible "levels": in none of the sets, in $C$ only, in $B$ and $C$ only, or in all three. The choices are independent, so the count is $4^5=1024$.</p>`, 'Think element by element.', { calc: () => chains }),
+  I('pc-x057', 5, 'restrictions', R`In how many ways can the letters of AABBCC be arranged in a row so that no two equal letters are next to each other?`, noAdj6,
+    R`<p>Inclusion-exclusion. All arrangements: $\dfrac{6!}{2!2!2!}=90$. With a given pair glued: $\dfrac{5!}{2!2!}=30$ (three such pairs: 90). With two given pairs glued: $\dfrac{4!}{2!}=12$ (three ways: 36). All three glued: $3!=6$. Count $=90-90+36-6=30$.</p>`, 'Add back overlaps with alternating signs.', { calc: () => noAdj6 }),
+  I('pc-x058', 5, 'circular', R`10 different people sit around a round table. In how many ways can they sit so that three particular people A, B, C are no two of them next to each other?`, ring10,
+    R`<p>First seat the other 7 people around the table: $6!=720$ ways. This makes 7 gaps between neighbours. Put A, B, C into 3 different gaps: $\binom73\cdot3!=210$. Total $720\times210=151200$.</p>`, 'Seat the others first, then use the gaps.', { calc: () => ring10 }),
+  N('pc-x059', 5, 'probability', R`A fair coin is tossed 40 times. Find the probability of exactly 20 heads (3 decimal places).`, +(Cn(40, 20) / 2 ** 40).toFixed(3), 0.001,
+    R`<p>$\dfrac{\binom{40}{20}}{2^{40}}=\dfrac{137846528820}{1099511627776}=0.1254\approx0.125$.</p>`, 'It is not 0.5; the middle value is only about an eighth.', { calc: () => Cn(40, 20) / 2 ** 40 }),
+  N('pc-x060', 5, 'probability', R`Three vertices of a regular 12-gon are chosen at random. Find the probability that the triangle has no side in common with the polygon (3 decimal places).`, +(polyTri(12, 0) / 220).toFixed(3), 0.001,
+    R`<p>Triangles with no polygon side: total $220$, minus those with exactly one side ($12\times8=96$), minus those with two sides (12): $220-96-12=112$. $\dfrac{112}{220}=0.509$.</p>`, 'Count "one side" and "two sides" separately.', { calc: () => polyTri(12, 0) / 220 }),
+);
+const insel = (v) => [v, v + 1];
+items.push(
+  XT('pc-x061', 5, 'derangements', R`Five different objects are rearranged. Which of the following are correct?`, [
+    [R`The number of rearrangements with no object in its original place is 44`, fixedCount(5, 0) === 44, R`$D_5=44$.`],
+    [R`The number with exactly 2 objects unmoved is 20`, fixedCount(5, 2) === 20, R`$\binom52D_3=10\times2=20$.`],
+    [R`The number with at least one object unmoved is 76`, 120 - fixedCount(5, 0) === 76, R`$120-44=76$.`],
+    [R`The number with exactly 4 objects unmoved is 5`, fixedCount(5, 4) === 5, R`if 4 objects are in place the fifth must be too: the count is 0.`]], 'Exactly $n-1$ fixed points is impossible.'),
+  XT('pc-x062', 5, 'lattice paths', R`Paths go from $(0,0)$ to $(6,4)$ with unit steps right or up. Which of the following are correct?`, [
+    [R`The total number of paths is 210`, gridPaths(6, 4) === 210, R`$\binom{10}4=210$.`],
+    [R`100 paths pass through $(3,2)$`, dpAvoid(6, 4, []) - dpAvoid(6, 4, [[3, 2]]) === 100, R`$\binom52\binom53=10\times10=100$.`],
+    [R`60 paths pass through both $(3,2)$ and $(5,3)$`, Cn(5, 2) * Cn(3, 1) * Cn(2, 1) === 60, R`$\binom52\times\binom31\times\binom21=10\times3\times2=60$.`],
+    [R`100 paths avoid $(3,2)$`, dpAvoid(6, 4, [[3, 2]]) === 100, R`$210-100=110$, so 100 is wrong.`]], 'Multiply the path counts of the legs.'),
+  XT('pc-x063', 5, 'inclusion-exclusion', R`Which of the following are correct?`, [
+    [R`The number of onto functions from a 5-element set to a 3-element set is 150`, surj(5, 3) === 150, R`$243-3\cdot32+3=150$.`],
+    [R`The number of onto functions from a 5-element set to a 4-element set is 240`, surj(5, 4) === 240, R`$4^5-4\cdot3^5+6\cdot2^5-4=1024-972+192-4=240$.`],
+    [R`The number of functions from a 5-element set to a 3-element set that are not onto is 93`, 243 - surj(5, 3) === 93, R`$243-150=93$.`],
+    [R`The number of onto functions from a 4-element set to a 4-element set is 256`, surj(4, 4) === 256, R`onto here means a permutation: $4!=24$, not $4^4=256$.`]], 'Onto functions are always fewer than all functions.'),
+);
+items.push(
+  XT('pc-x064', 5, 'selections', R`A bag has 2 identical red balls, 3 identical blue balls and 4 different green balls (G1 to G4). Which of the following are correct?`, [
+    [R`The number of ways to select at least one ball is 191`, 3 * 4 * 16 - 1 === 191, R`$(2+1)(3+1)2^4-1=191$.`],
+    [R`The number of ways to select exactly 3 balls is ${sel3}`, true, R`count by (red, blue, green) $=(a,b,c)$ with $a+b+c=3$: ${sel3} selections.`],
+    [R`The number of ways to select exactly 2 balls is ${sel2 + 1}`, false, R`the count is ${sel2}, not ${sel2 + 1}.`],
+    [R`The number of selections that contain no green ball (including none at all) is 12`, 3 * 4 === 12, R`$(2+1)(3+1)=12$.`]], 'Identical balls: count by how many of each kind.'),
+  A('pc-x065', 5, 'necklaces', R`The number of necklaces that can be made from 6 different beads is 60.`, R`Turning a necklace over gives the same necklace, so the number is half the number of circular arrangements.`, 0,
+    R`<p>Circular arrangements: $5!=120$. A necklace can be flipped over, so each necklace is counted twice: $120/2=60$. Both true, and R explains A.</p>`, 'Flipping is allowed for necklaces, not for seating.'),
+  A('pc-x066', 5, 'necklaces', R`The number of ways of seating 6 different people around a round table is 60.`, R`The number of necklaces that can be made from 6 different beads is 60.`, 3,
+    R`<p>Seating: rotations are the same but a mirror image is a different seating, so the count is $5!=120$ and A is false. R is true: for beads, flipping is also allowed, giving $120/2=60$.</p>`, 'Flipping is allowed for necklaces, not for seating.'),
+  A('pc-x067', 5, 'distribution', R`The number of ways of putting 6 identical balls into 3 different boxes so that no box is empty is 10.`, R`The number of ways of putting 6 different balls into 3 different boxes so that no box is empty is 540.`, 1,
+    R`<p>A: $\binom52=10$ true. R: $3^6-3\cdot2^6+3=540$ true. But R is about different balls, so it does not explain A.</p>`, 'Identical and different balls use different methods.'),
+  base('pc-x068', 5, 'numbers', { type: 'mcq', format: 'statements', q: R`<p><b>Statement I:</b> The number of 5-digit numbers divisible by 5 that can be formed from 0, 1, 2, 3, 4, 5 without repetition is 216.</p><p><b>Statement II:</b> The number of 5-digit numbers that can be formed from 0, 1, 2, 3, 4, 5 without repetition is 600.</p>`, options: SOPT, answer: 0,
+    sol: R`<p>II: first digit non-zero: $5\cdot5\cdot4\cdot3\cdot2=600$. I: last digit 0: $5\cdot4\cdot3\cdot2=120$; last digit 5: the first digit has 4 choices (not 0, not 5), then $4\cdot3\cdot2$: $4\times24=96$. $120+96=216$. Both are true.</p>`, trap: 'Treat last digit 0 and last digit 5 separately.' }),
+  MT('pc-x069', 5, 'lattice paths', 'mx7', R`Match List I with List II.`, 'A-s, B-q, C-r, D-p', ['A-s, B-r, C-q, D-p', 'A-q, B-s, C-r, D-p', 'A-s, B-q, C-p, D-r'],
+    R`<p>A: $\binom{10}5=252$ (s). B: $\binom52\binom53=100$ (q). C: $252-100=152$ (r). D: Catalan $C_5=42$ (p).</p>`, 'Paths avoiding a point: subtract those through it.'),
+  MT('pc-x070', 5, 'identical objects', 'mx8', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r'],
+    R`<p>A: $\dfrac{11!}{4!4!2!}=34650$ (p). B: glue SSSS: $\dfrac{8!}{4!2!}=840$ (q). C: glue PP: $\dfrac{10!}{4!4!}=6300$ (r). D: $34650-6300=28350$ (s).</p>`, 'Glue, then subtract for "not together".'),
+);
+
+// ----- new templates -----
+const permsOf = (a) => a.length <= 1 ? [a] : a.flatMap((x, i) => permsOf([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p]));
+gens.push(
+  { id: 'pc-g16', type: 'nat', format: 'integer', level: 3, exams: EXS[3], sub: 'sum of numbers',
+    make(rng) { const ds = []; while (ds.length < 4) { const d = int(rng, 1, 9); if (!ds.includes(d)) ds.push(d); } ds.sort((a, b) => a - b); const s = ds.reduce((a, b) => a + b, 0); const answer = s * 6 * 111;
+      return { ds, answer, tol: 0, q: `Find the sum of all 3-digit numbers formed from the digits ${ds.join(', ')} without repetition (each number uses 3 different digits of these four).`,
+        sol: R`<p>There are $4\cdot3\cdot2=24$ numbers. Each digit appears in each place $24/4=6$ times, so each place adds $6\times${s}=${6 * s}$. The sum is $${6 * s}\times111=${answer}$.</p>` }; },
+    verify(p) { let t = 0; for (const c of combos(p.ds, 3)) for (const q of permsOf(c)) t += q[0] * 100 + q[1] * 10 + q[2]; return t; } },
+  { id: 'pc-g17', type: 'nat', format: 'integer', level: 3, exams: EXS[3], sub: 'factorials',
+    make(rng) { const n = int(rng, 60, 400); let answer = 0; for (let k = 5; k <= n; k *= 5) answer += Math.floor(n / k);
+      return { n, answer, tol: 0, q: `How many zeros are there at the end of $${n}!$?`,
+        sol: R`<p>Count the factors 5 (there are more 2s): $\left\lfloor\dfrac{${n}}5\right\rfloor+\left\lfloor\dfrac{${n}}{25}\right\rfloor+\left\lfloor\dfrac{${n}}{125}\right\rfloor+\cdots=${answer}$.</p>` }; },
+    verify(p) { let f = 1n; for (let i = 2; i <= p.n; i++) f *= BigInt(i); let c = 0; while (f % 10n === 0n) { f /= 10n; c++; } return c; } },
+  { id: 'pc-g18', type: 'nat', format: 'integer', level: 3, exams: EXS[3], sub: 'restrictions',
+    make(rng) { const n = int(rng, 5, 9); const answer = F(n) / 6;
+      return { n, answer, tol: 0, q: `In how many ways can ${n} different people stand in a row so that A is to the left of B and B is to the left of C (not necessarily next to each other)?`,
+        sol: R`<p>Among the $3!=6$ possible orders of A, B, C, only one is A, B, C from left to right, so the count is $\dfrac{${n}!}6=${answer}$.</p>` }; },
+    verify(p) { let c = 0; const a = [...Array(p.n).keys()]; for (const q of permsOf(a)) if (q.indexOf(0) < q.indexOf(1) && q.indexOf(1) < q.indexOf(2)) c++; return c; } },
+  { id: 'pc-g19', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'combinations',
+    make(rng) { const m = int(rng, 4, 8), w = int(rng, 4, 8), s = int(rng, 4, 6), t = int(rng, 2, 3); let answer = 0; for (let k = t; k <= Math.min(s, w); k++) answer += Cn(w, k) * Cn(m, s - k);
+      return { m, w, s, t, answer, tol: 0, q: `A committee of ${s} is chosen from ${m} men and ${w} women with at least ${t} women. In how many ways can this be done?`,
+        sol: R`<p>Add the cases by the number $k$ of women, $k=${t},\dots,${Math.min(s, w)}$: $\sum\binom{${w}}k\binom{${m}}{${s}-k}=${answer}$.</p>` }; },
+    verify(p) { const all = Cn(p.m + p.w, p.s); let less = 0; for (let k = 0; k < p.t; k++) less += Cn(p.w, k) * Cn(p.m, p.s - k); return all - less; } },
+  { id: 'pc-g20', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'derangements',
+    make(rng) { const n = int(rng, 5, 7), f = int(rng, 1, 3); const D = [1, 0, 1, 2, 9, 44, 265, 1854]; const answer = Cn(n, f) * D[n - f];
+      return { n, f, answer, tol: 0, q: `Find the number of permutations of $\\{1,2,\\dots,${n}\\}$ with exactly ${f} fixed point${f > 1 ? 's' : ''} (numbers staying in their own positions).`,
+        sol: R`<p>Choose the ${f} fixed point${f > 1 ? 's' : ''}: $\binom{${n}}{${f}}=${Cn(n, f)}$. The other ${n - f} numbers have no fixed point: $D_{${n - f}}=${D[n - f]}$. Product $=${answer}$.</p>` }; },
+    verify(p) { let c = 0; eachPerm(p.n, (a) => { if (a.filter((v, i) => v === i).length === p.f) c++; }); return c; } },
+  { id: 'pc-g21', type: 'mcq', format: 'single', level: 3, exams: EXS[3], sub: 'distribution',
+    make(rng) { const k = int(rng, 2, 4), g = int(rng, 2, 3), n = k * g; let top = F(n); const bottom = F(g) ** k * F(k); const answer = top / bottom;
+      const o = shuffleOpts(rng, String(answer), [String(top / F(g) ** k), String(answer * F(k)), String(Cn(n, g) * k)]);
+      return { n, k, g, ...o, q: `In how many ways can ${n} different people be divided into ${k} groups of ${g} each (the groups are not named)?`,
+        sol: R`<p>Named groups: $\dfrac{${n}!}{(${g}!)^{${k}}}=${top / F(g) ** k}$. The groups are unnamed, so divide by $${k}!=${F(k)}$: $${answer}$.</p>`, trap: 'Equal groups are unnamed, so divide by $k!$.' }; },
+    verify(p) { let c = 1, left = p.n; for (let i = 0; i < p.k; i++) { c *= Cn(left, p.g); left -= p.g; } return p.options.indexOf(String(c / F(p.k))); } },
+  { id: 'pc-g22', type: 'mcq', format: 'single', level: 4, exams: EXS[4], sub: 'stars and bars',
+    make(rng) { const k = int(rng, 3, 4), a = int(rng, 1, 3), n = int(rng, k * a + 3, k * a + 8); const answer = Cn(n - k * a + k - 1, k - 1);
+      const o = shuffleOpts(rng, String(answer), [String(Cn(n + k - 1, k - 1)), String(Cn(n - k * a + k, k - 1)), String(Cn(n - 1, k - 1))]);
+      return { k, a, n, ...o, q: `The number of integer solutions of $x_1+x_2+\\cdots+x_{${k}}=${n}$ with every $x_i\\ge${a}$ is`,
+        sol: R`<p>Put $x_i=${a}+y_i$ with $y_i\ge0$: $\sum y_i=${n - k * a}$. Count $=\binom{${n - k * a}+${k}-1}{${k}-1}=${answer}$.</p>`, trap: 'Subtract the minimum from every variable.' }; },
+    verify(p) { return p.options.indexOf(String(numSols(p.k, p.n, p.a))); } },
+  { id: 'pc-g23', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'divisors',
+    make(rng) { const a = int(rng, 2, 6), b = int(rng, 2, 5), c = int(rng, 1, 3); const N = 2 ** a * 3 ** b * 5 ** c; const answer = (Math.floor(a / 2) + 1) * (Math.floor(b / 2) + 1) * (Math.floor(c / 2) + 1);
+      return { a, b, c, N, answer, tol: 0, q: `How many positive divisors of $2^{${a}}\\cdot3^{${b}}\\cdot5^{${c}}$ are perfect squares?`,
+        sol: R`<p>A divisor $2^x3^y5^z$ is a square when $x,y,z$ are all even. The choices are $\lfloor${a}/2\rfloor+1$, $\lfloor${b}/2\rfloor+1$, $\lfloor${c}/2\rfloor+1$: product $=${answer}$.</p>` }; },
+    verify(p) { let c = 0; for (const d of divisors(p.N)) if (Number.isInteger(Math.sqrt(d))) c++; return c; } },
+  { id: 'pc-g24', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'lattice paths',
+    make(rng) { const a = int(rng, 4, 8), b = int(rng, 3, 7), c = int(rng, 1, a - 1), d = int(rng, 1, b - 1); const answer = Cn(c + d, c) * Cn(a - c + b - d, a - c);
+      return { a, b, c, d, answer, tol: 0, q: `A path from $(0,0)$ to $(${a},${b})$ takes one unit step right or up each time. How many such paths pass through $(${c},${d})$?`,
+        sol: R`<p>Paths to $(${c},${d})$: $\binom{${c + d}}{${c}}=${Cn(c + d, c)}$. From there to $(${a},${b})$: $\binom{${a - c + b - d}}{${a - c}}=${Cn(a - c + b - d, a - c)}$. Product $=${answer}$.</p>` }; },
+    verify(p) { const dp = Array.from({ length: p.a + 1 }, () => Array(p.b + 1).fill(0)); for (let i = 0; i <= p.a; i++) for (let j = 0; j <= p.b; j++) dp[i][j] = (i === 0 && j === 0) ? 1 : (i ? dp[i - 1][j] : 0) + (j ? dp[i][j - 1] : 0);
+      const dp2 = Array.from({ length: p.a + 1 }, () => Array(p.b + 1).fill(0)); for (let i = 0; i <= p.a; i++) for (let j = 0; j <= p.b; j++) { if (i === p.c && j === p.d) { dp2[i][j] = 0; continue; } dp2[i][j] = (i === 0 && j === 0) ? 1 : (i ? dp2[i - 1][j] : 0) + (j ? dp2[i][j - 1] : 0); }
+      return dp[p.a][p.b] - dp2[p.a][p.b]; } },
+  { id: 'pc-g25', type: 'nat', format: 'integer', level: 5, exams: EXS[5], sub: 'selections',
+    make(rng) { const n = int(rng, 8, 14), k = int(rng, 2, 4); const answer = Math.round(n / (n - k) * Cn(n - k, k));
+      return { n, k, answer, tol: 0, q: `${n} points are placed on a circle. In how many ways can ${k} of them be chosen so that no two chosen points are neighbours on the circle?`,
+        sol: R`<p>For $n$ points on a circle, choosing $k$ with no two adjacent can be done in $\dfrac n{n-k}\binom{n-k}k$ ways. Here $\dfrac{${n}}{${n - k}}\binom{${n - k}}{${k}}=${answer}$.</p>` }; },
+    verify(p) { let c = 0; for (const t of combos([...Array(p.n).keys()], p.k)) { let ok = true; for (let i = 0; i < t.length; i++) for (let j = i + 1; j < t.length; j++) if ((t[i] + 1) % p.n === t[j] || (t[j] + 1) % p.n === t[i]) ok = false; if (ok) c++; } return c; } },
+  { id: 'pc-g26', type: 'nat', format: 'numeric', level: 4, exams: EXS[4], sub: 'probability',
+    make(rng) { const n = int(rng, 6, 12), j = int(rng, 2, n - 2); const answer = +(Cn(n, j) / 2 ** n).toFixed(3);
+      return { n, j, answer, tol: 0.001, q: `A fair coin is tossed ${n} times. Find the probability of exactly ${j} heads (3 decimal places).`,
+        sol: R`<p>$\dfrac{\binom{${n}}{${j}}}{2^{${n}}}=\dfrac{${Cn(n, j)}}{${2 ** n}}=${answer}$.</p>` }; },
+    verify(p) { let c = 0; for (let m = 0; m < 2 ** p.n; m++) { let b = 0; for (let i = 0; i < p.n; i++) if (m >> i & 1) b++; if (b === p.j) c++; } return c / 2 ** p.n; } },
+);
+
+// ===== expansion end =====
+
 // A single-answer item's calc() gives the count; turn it into the option index it must match, so the bank check
 // confirms the keyed option really holds that count.
 // Other non-numeric items keep their brute-force check as `fact` (a supporting number, not the key).

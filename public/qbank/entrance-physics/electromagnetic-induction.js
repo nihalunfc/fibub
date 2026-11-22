@@ -659,4 +659,327 @@ const gens = [
     },
     verify: (p) => { const tau = p.L / p.R; const t = p.k * tau; const I = p.E / p.R * (1 - Math.exp(-t / tau)); return (p.E - I * p.R) / p.L; } },
 ];
+{ // ===== extension block (added 2026-11-22): harder items, new formats and templates =====
+const r = String.raw;
+const CUET = true; const PFX = 'ei'; const GN = 26;
+const F = (x, s = 3) => String(+Number(x).toPrecision(s));
+const XEB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xe = (l, type) => (CUET && type === 'mcq' && l <= 3 ? [...XEB[l], 'cuet'] : XEB[l]);
+let xk = 0; let xc = 0;
+const xb = (l, sub, o) => ({ id: `${PFX}-x${String(++xk).padStart(3, '0')}`, level: l, sub, ...o, exams: xe(l, o.type) });
+const m = (l, sub, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o }); };
+const n = (l, sub, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol, ...o }); };
+const s = (l, sub, q, options, answer, sol, o = {}) => xb(l, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const AO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const a = (l, sub, A, R, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AO, answer, sol, ...o });
+const SO = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const t = (l, sub, I, II, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SO, answer, sol, ...o });
+// "how many of these are correct": list = 4 statements, k = how many are correct (1-4)
+const cn = (l, sub, q, list, k, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((x, i) => `(${['i', 'ii', 'iii', 'iv'][i]}) ${x}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: k - 1, sol, ...o });
+// match item: letters = correct List II letter for A, B, C, D, e.g. ['q','r','p','s']
+const mt = (l, sub, group, letters, sol, o = {}) => {
+  const code = (L) => L.map((x, i) => `${'ABCD'[i]}-${x}`).join(', ');
+  const right = code(letters); const wr = [];
+  for (const [i, j] of [[0, 1], [1, 2], [2, 3], [0, 3], [0, 2], [1, 3]]) { const L = [...letters]; [L[i], L[j]] = [L[j], L[i]]; const c = code(L); if (c !== right && !wr.includes(c)) wr.push(c); }
+  const pos = (xc++ * 3 + 2) % 4; const options = wr.slice(0, 3); options.splice(pos, 0, right);
+  return xb(l, sub, { type: 'mcq', format: 'match', q: 'Match the entries of List I with List II and choose the correct code.', group, options, answer: pos, sol, ...o });
+};
+const pn = (l, sub, group, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: 'passage', group, q, answer, tol, calc: () => answer, sol, ...o }); };
+const pm = (l, sub, group, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'passage', group, q, options, answer: pos, sol, ...o }); };
+let xg = GN;
+const gx = (l, type, sub, make, verify) => ({ id: `${PFX}-g${String(++xg).padStart(2, '0')}`, type, level: l, exams: xe(l, type), sub, make, verify });
+const NG = {};
+const MU0 = 4e-7 * Math.PI;
+Object.assign(groups, {
+  xi1: { title: 'Induced emf in different set-ups',
+    list1: ['A. A loop at rest in a steady uniform magnetic field', 'B. A coil of $N$ turns and area $A$ rotating at $\\omega$ in a uniform field $B$', 'C. A rod of length $l$ moving at speed $v$ perpendicular to $B$ and to its own length', 'D. A rod of length $l$ rotating at $\\omega$ about one end in a uniform field $B$ perpendicular to its plane'],
+    list2: [r`p. $Blv$`, r`q. $\tfrac12B\omega l^2$`, r`r. $0$`, r`s. $NBA\omega\sin\omega t$`] },
+  xi2: { title: 'An LR circuit: $\\varepsilon = 12$ V, $R = 4\\ \\Omega$, $L = 2$ H, switch just closed',
+    list1: ['A. Final steady current', 'B. Initial rate of rise of current', 'C. Time constant', 'D. Final energy stored in the inductor'],
+    list2: ['p. 0.5 s', 'q. 9 J', r`r. $6\ \mathrm{A\,s^{-1}}$`, 's. 3 A'] },
+  xi3: { title: 'An LR circuit connected to a battery of emf $\\varepsilon$ at $t=0$',
+    list1: ['A. Current at $t = 0$', 'B. Voltage across the inductor at $t = 0$', 'C. Fraction of the final current at $t = \\tau$', 'D. Fraction of the final current at $t = 3\\tau$'],
+    list2: ['p. 0', r`q. $\varepsilon$`, 'r. 0.63', 's. 0.95'] },
+  xi4: { title: 'A long solenoid ($n$ turns per metre, area $A$, length $l$, current $I$)',
+    list1: ['A. Field inside', 'B. Self-inductance', 'C. Energy stored', 'D. Energy density'],
+    list2: [r`p. $\tfrac12\mu_0n^2I^2$`, r`q. $\mu_0nI$`, r`r. $\tfrac12\mu_0n^2AlI^2$`, r`s. $\mu_0n^2Al$`] },
+  xi5: { title: 'A rod of mass $m$, length $l$ and a circuit of resistance $R$, with field $B$ perpendicular to the plane of the frictionless rails',
+    list1: ['A. Terminal speed when a constant force $F$ pulls it along horizontal rails', 'B. Terminal speed of the rod falling under gravity on vertical rails', 'C. Distance travelled by the rod, given a speed $v_0$ and then left alone', 'D. Extra effective mass when the rails are joined by a capacitor $C$ instead of a resistor'],
+    list2: [r`p. $\dfrac{FR}{B^2l^2}$`, r`q. $\dfrac{mgR}{B^2l^2}$`, r`r. $\dfrac{mv_0R}{B^2l^2}$`, r`s. $CB^2l^2$`] },
+  xi6: { title: 'A loop of area $A$ in a field $B = B_0\\sin\\omega t$ perpendicular to it',
+    list1: ['A. Induced emf at $t = 0$', r`B. Induced emf at $\omega t = \pi/2$`, 'C. Peak flux through the loop', 'D. Phase difference between the flux and the emf'],
+    list2: [r`p. $B_0A$`, 'q. 0', r`r. $\omega B_0A$`, r`s. $\pi/2$`] },
+  xi7: { title: 'A uniform field in a circular region of radius $R$ changes at a rate $k = dB/dt$; induced electric field at distance $r$ from the centre',
+    list1: ['A. Field at a point inside ($r<R$)', 'B. Field at a point outside ($r>R$)', 'C. Field at the boundary ($r=R$)', 'D. $\\oint\\vec E\\cdot d\\vec l$ round a circle of radius $r>R$'],
+    list2: [r`p. $kR/2$`, r`q. $kr/2$`, r`r. $k\pi R^2$`, r`s. $\dfrac{kR^2}{2r}$`] },
+  xi8: { title: 'Two coils of self-inductance $L_1$, $L_2$ and mutual inductance $M$',
+    list1: ['A. Total inductance in series, fluxes aiding', 'B. Total inductance in series, fluxes opposing', 'C. Coupling coefficient', 'D. Greatest possible $M$'],
+    list2: [r`p. $\sqrt{L_1L_2}$`, r`q. $L_1+L_2+2M$`, r`r. $L_1+L_2-2M$`, r`s. $\dfrac{M}{\sqrt{L_1L_2}}$`] },
+  xip1: { title: 'A square loop entering a magnetic field',
+    passage: r`<p>A square loop of side 0.2 m and resistance 0.1 $\Omega$ is pulled at a steady $2\ \mathrm{m\,s^{-1}}$ into a region of uniform field 0.5 T perpendicular to the loop. The field region is wide, and the loop is entering it with one side parallel to the boundary.</p>` },
+  xip2: { title: 'A rod pulled across rails joined by a capacitor',
+    passage: r`<p>A rod of mass 0.5 kg and length 0.5 m slides without friction on horizontal rails joined by a capacitor of 2 F (the rails have no resistance), in a vertical field of 1 T. A constant horizontal force of 2 N pulls the rod from rest.</p>` },
+});
+
+items.push(
+  // ---------- Level 2 ----------
+  n(2, 'magnetic flux', r`A coil of area $0.2\ \mathrm{m^2}$ is in a field of 0.5 T, with the normal at $60^\circ$ to the field. Find the flux (in Wb, 3 decimals).`, () => 0.5 * 0.2 * Math.cos(60 * Math.PI / 180), 0.001, 3,
+    r`$\Phi = BA\cos\theta = 0.5\times0.2\times\cos60^\circ = 0.05$ Wb.`, { unit: 'Wb' }),
+  n(2, 'motional emf', r`A rod 0.5 m long moves at $4\ \mathrm{m\,s^{-1}}$ at right angles to a field of 0.2 T (and to its own length). Find the emf across it (in V, 2 decimals).`, () => 0.2 * 0.5 * 4, 0.01, 2,
+    r`$\varepsilon = Blv = 0.2\times0.5\times4 = 0.40$ V.`, { unit: 'V' }),
+  m(2, 'Lenz\'s law', r`Lenz's law is a consequence of the conservation of`, 'energy', ['charge', 'linear momentum', 'mass'],
+    r`The induced current opposes the change that causes it. If it helped the change, energy would be created from nothing, so Lenz's law expresses energy conservation.`),
+  n(2, 'Faraday\'s law', r`A coil of 100 turns has the flux through each turn change by 0.02 Wb in 0.1 s. Find the induced emf (in V).`, () => 100 * 0.02 / 0.1, 0, 0,
+    r`$\varepsilon = N\dfrac{\Delta\Phi}{\Delta t} = 100\times\dfrac{0.02}{0.1} = 20$ V.`, { unit: 'V' }),
+  m(2, 'unit of inductance', r`The henry is equal to`, r`$\mathrm{V\,s\,A^{-1}}$`, [r`$\mathrm{V\,A\,s^{-1}}$`, r`$\mathrm{V\,s}$`, r`$\mathrm{A\,s\,V^{-1}}$`],
+    r`$\varepsilon = L\,dI/dt$, so $L = \dfrac{\varepsilon\,\Delta t}{\Delta I}$ has the unit volt second per ampere (also $\mathrm{Wb\,A^{-1}}$ or $\Omega$ s).`),
+  m(2, 'eddy currents', r`An induction furnace melts metals by using`, 'eddy currents induced in the metal by a rapidly changing field', ['the heating of the coil by the battery', 'electrostatic discharge', 'the magnetic force on the metal'],
+    r`A rapidly alternating field induces large eddy currents in the metal, and the $I^2R$ heating melts it, without any contact.`),
+  n(2, 'energy in an inductor', r`Find the energy stored in a 2 H inductor carrying 3 A (in J).`, () => 0.5 * 2 * 9, 0, 0,
+    r`$U = \tfrac12LI^2 = \tfrac12\times2\times9 = 9$ J.`, { unit: 'J' }),
+  // ---------- Level 3 ----------
+  n(3, 'self-induction', r`A current in a 0.5 H coil falls from 4 A to zero in 0.02 s. Find the average induced emf (in V).`, () => 0.5 * 4 / 0.02, 0, 0,
+    r`$|\varepsilon| = L\left|\dfrac{\Delta I}{\Delta t}\right| = 0.5\times\dfrac{4}{0.02} = 100$ V.`, { unit: 'V' }),
+  n(3, 'mutual induction', r`Two coils have a mutual inductance of 0.2 H. The current in the first changes at $5\ \mathrm{A\,s^{-1}}$. Find the emf induced in the second (in V).`, () => 0.2 * 5, 0, 0,
+    r`$\varepsilon_2 = M\dfrac{dI_1}{dt} = 0.2\times5 = 1$ V.`, { unit: 'V' }),
+  n(3, 'rotating rod', r`A rod of length 1 m rotates at $20\ \mathrm{rad\,s^{-1}}$ about one end in a field of 0.5 T perpendicular to its plane of rotation. Find the emf between its ends (in V).`, () => 0.5 * 0.5 * 20 * 1, 0, 0,
+    r`$\varepsilon = \tfrac12B\omega l^2 = \tfrac12\times0.5\times20\times1 = 5$ V.`, { unit: 'V' }),
+  n(3, 'AC generator', r`A generator coil has 100 turns, area $0.05\ \mathrm{m^2}$ and turns at $100\ \mathrm{rad\,s^{-1}}$ in a field of 0.2 T. Find the peak emf (in V).`, () => 100 * 0.2 * 0.05 * 100, 0, 0,
+    r`$\varepsilon_0 = NBA\omega = 100\times0.2\times0.05\times100 = 100$ V.`, { unit: 'V' }),
+  n(3, 'induced charge', r`A coil of 10 turns and resistance 5 $\Omega$ has the flux through each turn change by 0.05 Wb. How much charge (in C) flows through it?`, () => 10 * 0.05 / 5, 0.005, 3,
+    r`$Q = \dfrac{N\,\Delta\Phi}{R} = \dfrac{10\times0.05}{5} = 0.10$ C. The charge does not depend on how fast the flux changes.`, { unit: 'C' }),
+  n(3, 'LR circuit', r`An inductor of 0.4 H is in series with a 20 $\Omega$ resistor. Find the time constant (in ms).`, () => 0.4 / 20 * 1000, 0, 0,
+    r`$\tau = L/R = 0.4/20 = 0.02$ s $= 20$ ms.`, { unit: 'ms' }),
+  n(3, 'LR circuit', r`A 10 V battery is connected to a 5 $\Omega$ resistor in series with a 1 H inductor. Find the current (in A, 2 decimals) 0.2 s after closing the switch.`, () => 2 * (1 - Math.exp(-1)), 0.01, 2,
+    r`$\tau = L/R = 0.2$ s. $I = \dfrac\varepsilon R(1 - e^{-t/\tau}) = 2\times(1 - e^{-1}) = 2\times0.632 = 1.26$ A.`, { unit: 'A' }),
+  n(3, 'self-inductance of a solenoid', r`A solenoid has 1000 turns, area $2\times10^{-4}\ \mathrm{m^2}$ and length 0.5 m. Find its self-inductance (in mH, 3 decimals).`, () => MU0 * 1000 ** 2 * 2e-4 / 0.5 * 1000, 0.002, 3,
+    r`$L = \dfrac{\mu_0N^2A}{l} = \dfrac{4\pi\times10^{-7}\times10^6\times2\times10^{-4}}{0.5} = 5.03\times10^{-4}$ H $= 0.503$ mH.`, { unit: 'mH' }),
+  n(3, 'sliding rod', r`A rod of length 0.4 m slides at $5\ \mathrm{m\,s^{-1}}$ on rails joined by a 2 $\Omega$ resistor in a field of 0.5 T. Find the mechanical power (in W) needed to keep it at constant speed.`, () => (0.5 * 0.4 * 5) ** 2 / 2, 0.005, 3,
+    r`$\varepsilon = Blv = 1$ V, $I = 0.5$ A. $P = I^2R = 0.5$ W $= Fv$ with $F = BIl = 0.1$ N.`, { unit: 'W' }),
+  n(3, 'induced electric field', r`A uniform field in a circular region of radius 0.1 m grows at $0.2\ \mathrm{T\,s^{-1}}$. Find the induced electric field at 0.05 m from the centre (in V/m, 3 decimals).`, () => 0.05 / 2 * 0.2, 0.0005, 3,
+    r`$E\cdot2\pi r = \pi r^2\dfrac{dB}{dt}$, so $E = \dfrac r2\dfrac{dB}{dt} = \dfrac{0.05}{2}\times0.2 = 0.005\ \mathrm{V\,m^{-1}}$.`, { unit: 'V/m' }),
+  n(3, 'sliding rod', r`A rod is pulled on smooth horizontal rails by a constant force of 0.2 N. The rails are joined by a 2 $\Omega$ resistor, the field is 0.5 T and the rod's length is 0.4 m. Find its terminal speed (in $\mathrm{m\,s^{-1}}$).`, () => 0.2 * 2 / (0.5 * 0.4) ** 2, 0, 0,
+    r`At terminal speed $F = BIl = \dfrac{B^2l^2v}{R}$. $v = \dfrac{FR}{B^2l^2} = \dfrac{0.2\times2}{0.04} = 10\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  n(3, 'rotating disc', r`A metal disc of radius 0.2 m turns at $50\ \mathrm{rad\,s^{-1}}$ in a field of 0.4 T perpendicular to it. Find the emf between its centre and rim (in V, 2 decimals).`, () => 0.5 * 0.4 * 50 * 0.04, 0.01, 2,
+    r`$\varepsilon = \tfrac12B\omega r^2 = \tfrac12\times0.4\times50\times0.04 = 0.40$ V.`, { unit: 'V' }),
+  n(3, 'energy in an inductor', r`A 2 H inductor carrying 3 A is suddenly opened and the current falls to zero in 1 ms. Find the average emf induced (in V).`, () => 2 * 3 / 1e-3, 0, 0,
+    r`$|\varepsilon| = L\dfrac{\Delta I}{\Delta t} = \dfrac{2\times3}{10^{-3}} = 6000$ V. This is why a spark appears at a switch that breaks an inductive circuit.`, { unit: 'V' }),
+  n(3, 'AC generator', r`A coil of 50 turns and area $0.01\ \mathrm{m^2}$ is in a field $B = 0.2\sin(100t)$ T (perpendicular to the coil). Find the peak emf (in V).`, () => 50 * 0.01 * 0.2 * 100, 0, 0,
+    r`$\varepsilon = -NA\dfrac{dB}{dt} = -50\times0.01\times20\cos(100t)$. The peak is $10$ V.`, { unit: 'V' }),
+  m(3, 'direction of induced current', r`The north pole of a bar magnet is pushed towards a coil. Seen from the magnet's side, the induced current in the coil is`, 'anticlockwise, and the coil repels the magnet', ['clockwise, and the coil repels the magnet', 'anticlockwise, and the coil attracts the magnet', 'clockwise, and the coil attracts the magnet'],
+    r`The flux (towards the coil) is increasing, so the coil opposes it by presenting a north face to the magnet. An anticlockwise current seen from that side gives a north face. A north face repels the approaching north pole (as Lenz's law requires).`),
+  m(3, 'eddy currents', r`A strong magnet dropped down a thick copper tube falls very slowly because`, 'eddy currents in the tube exert an upward force that opposes the magnet\'s motion', ['copper is magnetic and attracts the magnet', 'air in the tube slows it', 'the magnet loses its magnetism'],
+    r`The changing flux induces circulating currents in the copper. By Lenz's law they oppose the motion, so the magnet reaches a small terminal speed. Copper is not attracted to a magnet.`),
+  a(3, 'eddy currents', 'A magnet takes much longer to fall through a copper tube than through a plastic tube of the same size.', 'Eddy currents are induced in the copper and, by Lenz\'s law, oppose the magnet\'s fall.', 0,
+    r`No emf is induced in the plastic (a non-conductor shows no currents). In copper the currents' force opposes the motion. Both true, R explains A.`),
+  t(3, 'Faraday\'s law', 'A steady current in a solenoid induces no emf in a nearby coil.', 'An emf is induced only when the flux through the coil changes.', 0,
+    r`A steady current gives a steady field, and a constant flux means $d\Phi/dt = 0$. Both true, and II explains I.`),
+  cn(3, 'concepts', 'How many of the following are correct?', ['Eddy currents can be used to heat metals.', 'The induced emf is proportional to the rate of change of flux.', 'An inductor opposes a change of current through it.', 'An inductor stores energy in an electric field.'], 3,
+    r`(i) True (induction furnace). (ii) True: Faraday's law. (iii) True. (iv) False: an inductor stores energy in its magnetic field, $\tfrac12LI^2$. Three are correct.`),
+  mt(3, 'induced emf', 'xi1', ['r', 's', 'p', 'q'], r`A: constant flux, so 0 (r). B: $\Phi = NBA\cos\omega t$, $\varepsilon = NBA\omega\sin\omega t$ (s). C: $Blv$ (p). D: $\int_0^lB\omega r\,dr = \tfrac12B\omega l^2$ (q).`),
+  mt(3, 'LR circuit', 'xi2', ['s', 'r', 'p', 'q'], r`A: $I_{\infty} = \varepsilon/R = 3$ A (s). B: $\dfrac{dI}{dt} = \dfrac\varepsilon L = 6\ \mathrm{A\,s^{-1}}$ (r). C: $\tau = L/R = 0.5$ s (p). D: $\tfrac12LI^2 = \tfrac12\times2\times9 = 9$ J (q).`),
+  mt(3, 'LR circuit', 'xi3', ['p', 'q', 'r', 's'], r`The inductor opposes the change: at $t=0$ the current is zero (p) and the whole emf appears across the inductor (q). At $t=\tau$: $1-e^{-1} = 0.63$ (r). At $t = 3\tau$: $1-e^{-3} = 0.95$ (s).`),
+  mt(3, 'solenoid', 'xi4', ['q', 's', 'r', 'p'], r`$B = \mu_0nI$ (q). $L = \dfrac{N\Phi}{I} = \mu_0n^2Al$ (s). $U = \tfrac12LI^2 = \tfrac12\mu_0n^2AlI^2$ (r). Divide by the volume $Al$: $\tfrac12\mu_0n^2I^2 = \dfrac{B^2}{2\mu_0}$ (p).`),
+  mt(3, 'AC generator', 'xi6', ['r', 'q', 'p', 's'], r`$\Phi = B_0A\sin\omega t$ and $\varepsilon = -\omega B_0A\cos\omega t$. At $t=0$: $|\varepsilon| = \omega B_0A$ (r). At $\omega t = \pi/2$: 0 (q). Peak flux $B_0A$ (p). The emf is a quarter-cycle ($\pi/2$) out of phase with the flux (s).`),
+  // ---------- Level 4 ----------
+  n(4, 'sliding on an incline', r`A rod of mass 0.05 kg and length 0.4 m falls under gravity along vertical rails joined at the bottom by a 1 $\Omega$ resistor, in a horizontal field of 0.5 T. Find its terminal speed (in $\mathrm{m\,s^{-1}}$, 1 decimal; $g=10$).`, () => 0.05 * 10 * 1 / (0.5 * 0.4) ** 2, 0.05, 1,
+    r`At terminal speed $mg = BIl = \dfrac{B^2l^2v}{R}$. $v = \dfrac{mgR}{B^2l^2} = \dfrac{0.05\times10\times1}{0.04} = 12.5\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  n(4, 'stopping distance', r`A rod of mass 0.2 kg and length 0.4 m is given a speed of $5\ \mathrm{m\,s^{-1}}$ on smooth horizontal rails joined by a 2 $\Omega$ resistor in a field of 0.5 T. Find the distance it travels before stopping (in m).`, () => 0.2 * 5 * 2 / (0.5 * 0.4) ** 2, 0, 0,
+    r`$m\dfrac{dv}{dt} = -\dfrac{B^2l^2v}{R}$ gives $m\,dv = -\dfrac{B^2l^2}{R}\,dx$, so $x = \dfrac{mv_0R}{B^2l^2} = \dfrac{0.2\times5\times2}{0.04} = 50$ m. (The heat produced is its initial kinetic energy, 2.5 J.)`, { unit: 'm' }),
+  n(4, 'loop entering a field', r`A square loop of side 0.2 m and resistance 0.1 $\Omega$ is pulled at $2\ \mathrm{m\,s^{-1}}$ into a region of uniform field 0.5 T. Find the force needed to hold its speed while it is entering (in N, 2 decimals).`, () => (0.5 * 0.2 * 2) ** 2 / 0.1 * 0.2 / (0.5 * 0.2 * 2) * 1 * 0 + 0.5 * 0.2 * (0.5 * 0.2 * 2 / 0.1), 0.01, 2,
+    r`$\varepsilon = Blv = 0.2$ V, $I = 2$ A. $F = BIl = 0.5\times2\times0.2 = 0.2$ N.`, { unit: 'N' }),
+  n(4, 'induced charge', r`A square loop of side 0.2 m and resistance 0.1 $\Omega$ enters a field of 0.5 T completely. Find the total charge (in C) that flows through it.`, () => 0.5 * 0.04 / 0.1, 0.005, 3,
+    r`$Q = \dfrac{\Delta\Phi}{R} = \dfrac{BA}{R} = \dfrac{0.5\times0.04}{0.1} = 0.2$ C.`, { unit: 'C' }),
+  n(4, 'mutual inductance', r`A coil of 50 turns and area $4\times10^{-4}\ \mathrm{m^2}$ is wound closely round the middle of a long solenoid with 2000 turns per metre. Find the mutual inductance (in $\mu$H, 1 decimal).`, () => MU0 * 2000 * 50 * 4e-4 * 1e6, 0.2, 1,
+    r`The solenoid's field is $B = \mu_0nI$, so the flux through each of the 50 turns is $\mu_0nIA$. $M = \dfrac{N_2\Phi}{I} = \mu_0nN_2A = 4\pi\times10^{-7}\times2000\times50\times4\times10^{-4} = 50.3\ \mu$H.`, { unit: 'μH' }),
+  n(4, 'coupled inductors', r`Two coils of 0.2 H and 0.3 H have a mutual inductance of 0.1 H. Find the difference (in H) between their total inductance when connected in series with the fluxes aiding and with the fluxes opposing.`, () => 4 * 0.1, 0, 1,
+    r`Aiding: $L_1+L_2+2M = 0.7$ H. Opposing: $L_1+L_2-2M = 0.3$ H. The difference is $4M = 0.4$ H.`, { unit: 'H' }),
+  n(4, 'coupling coefficient', r`Two coils of 0.2 H and 0.3 H have $M = 0.1$ H. Find the coefficient of coupling $k = M/\sqrt{L_1L_2}$ (2 decimals).`, () => 0.1 / Math.sqrt(0.06), 0.01, 2,
+    r`$k = \dfrac{0.1}{\sqrt{0.2\times0.3}} = \dfrac{0.1}{0.245} = 0.41$. It cannot exceed 1.`),
+  n(4, 'LR circuit', r`A 10 $\Omega$ resistor and a 0.5 H inductor are connected in series to a battery. How long (in s, 3 decimals) after closing the switch does the current reach 90% of its final value?`, () => 0.05 * Math.log(10), 0.001, 3,
+    r`$1 - e^{-t/\tau} = 0.9\Rightarrow t = \tau\ln10 = 0.05\times2.303 = 0.115$ s.`, { unit: 's' }),
+  n(4, 'induced electric field', r`A uniform field in a circular region of radius 0.1 m grows at $0.2\ \mathrm{T\,s^{-1}}$. Find the induced electric field at 0.2 m from the centre (in V/m, 3 decimals).`, () => 0.1 ** 2 / (2 * 0.2) * 0.2, 0.0005, 3,
+    r`Outside, the whole flux $\pi R^2B$ is enclosed: $E\cdot2\pi r = \pi R^2\dfrac{dB}{dt}$, so $E = \dfrac{R^2}{2r}\dfrac{dB}{dt} = \dfrac{0.01}{0.4}\times0.2 = 0.005\ \mathrm{V\,m^{-1}}$.`, { unit: 'V/m', trap: 'Outside the region the field falls as $1/r$.' }),
+  n(4, 'motional emf', r`A straight wire carries 10 A. A rod of length 0.5 m is parallel to the wire, 0.1 m from it, and moves directly away from it at $2\ \mathrm{m\,s^{-1}}$. Find the emf (in $\mu$V, 1 decimal) across the rod at that moment.`, () => MU0 * 10 / (2 * Math.PI * 0.1) * 0.5 * 2 * 1e6, 0.1, 1,
+    r`The field at 0.1 m is $B = \dfrac{\mu_0I}{2\pi r} = \dfrac{4\pi\times10^{-7}\times10}{2\pi\times0.1} = 2\times10^{-5}$ T. The rod moves at right angles to $B$ and to its own length: $\varepsilon = Blv = 2\times10^{-5}\times0.5\times2 = 2\times10^{-5}$ V $= 20\ \mu$V.`, { unit: 'μV' }),
+  n(4, 'AC generator', r`A generator has a peak emf of 100 V. Find the average emf (in V, 1 decimal) over one half-cycle, taken as the magnitude of its mean.`, () => 2 * 100 / Math.PI, 0.1, 1,
+    r`$\bar\varepsilon = \dfrac{2\varepsilon_0}{\pi} = 63.7$ V over a half-cycle (it is 0 over a whole cycle).`, { unit: 'V' }),
+  n(4, 'heat in a loop', r`A square loop of side 0.2 m and resistance 0.1 $\Omega$ is pulled at $2\ \mathrm{m\,s^{-1}}$ completely into a field of 0.5 T. How much heat (in J, 3 decimals) is produced?`, () => (0.5 * 0.2) ** 2 * 0.2 * 2 / 0.1, 0.002, 3,
+    r`While entering (0.1 s), the force is 0.2 N over a distance of 0.2 m: $W = Fl = 0.2\times0.2 = 0.04$ J, all of which appears as heat $\left(I^2Rt = 4\times0.1\times0.1\right)$.`, { unit: 'J' }),
+  n(4, 'energy in the inductor', r`In a circuit with a 12 V battery, 4 $\Omega$ resistor and 2 H inductor in series, find at $t = \tau$ the rate (in W, 2 decimals) at which energy is stored in the inductor.`, () => { const I = 3 * (1 - Math.exp(-1)); const dI = 6 * Math.exp(-1); return 2 * I * dI; }, 0.02, 2,
+    r`$\tau = 0.5$ s. $I = 3(1-e^{-1}) = 1.896$ A and $\dfrac{dI}{dt} = \dfrac\varepsilon Le^{-1} = 6\times0.368 = 2.207\ \mathrm{A\,s^{-1}}$. $\dfrac{dU}{dt} = LI\dfrac{dI}{dt} = 2\times1.896\times2.207 = 8.37$ W.`, { unit: 'W' }),
+  m(4, 'rotating rod', r`A conducting rod of length $l$ rotates at $\omega$ about its midpoint in a uniform field $B$ perpendicular to its plane. The emf between its two ends is`, 'zero', [r`$\tfrac12B\omega l^2$`, r`$\tfrac14B\omega l^2$`, r`$\tfrac18B\omega l^2$`],
+    r`Each half has an emf $\tfrac12B\omega\left(\dfrac l2\right)^2 = \tfrac18B\omega l^2$ between the centre and its end, with the same sign relative to the centre. Both ends are at the same potential, so the emf between the ends is zero (each is $\tfrac18B\omega l^2$ from the centre).`, { trap: 'The two ends are at the same potential; the centre is at a different one.' }),
+  s(4, 'Lenz\'s law', r`Which statements are correct?`,
+    ['The induced current opposes the change in flux.', 'The induced current always opposes the applied magnetic field.', 'Lenz\'s law follows from conservation of energy.', 'No emf is induced in a loop through which the flux is constant.'], [0, 2, 3],
+    r`It opposes the change of flux, not the field itself (if the flux is decreasing the induced field adds to the applied one: B false). The other three are correct.`),
+  s(5, 'sliding rod', r`A rod is pulled by a constant force $F$ from rest on frictionless horizontal rails joined by a resistor $R$, in a uniform vertical field. Which statements are correct?`,
+    [r`The emf is proportional to its speed.`, 'The magnetic force on the rod opposes its motion.', r`At terminal speed, the power supplied by $F$ equals $I^2R$.`, 'The speed increases without limit.'], [0, 1, 2],
+    r`$\varepsilon = Blv$ (A). By Lenz's law the force is backward (B). At terminal speed there is no acceleration, so $Fv = I^2R$ (C). The speed approaches $FR/B^2l^2$ (D false).`),
+  s(4, 'self-induction', r`Which statements about self-inductance are correct?`,
+    ['It depends on the geometry of the coil and its core.', r`$L = \Phi/I$ (flux linkage per unit current).`, 'Its SI unit is the henry.', 'A steady current through the coil induces a steady emf in it.'], [0, 1, 2],
+    r`$L$ is fixed by the number of turns, area, length and core (A, B). Henry = V s/A (C). A steady current gives no change of flux, so no emf (D false).`),
+  s(5, 'LR circuit', r`A battery is connected to a resistor and inductor in series at $t=0$. Which statements are correct?`,
+    ['The current rises linearly with time.', 'At $t=0$ the inductor behaves like an open circuit.', 'After a long time it behaves like a plain wire.', r`The time constant is $L/R$.`], [1, 2, 3],
+    r`The current rises exponentially, not linearly (A false). At $t=0$ no current flows because the inductor opposes the change (B). In the steady state $dI/dt = 0$, so no voltage across it (C). $\tau = L/R$ (D).`),
+  s(4, 'eddy currents', r`Which statements about eddy currents are correct?`,
+    ['They are used in induction furnaces.', 'They are used in magnetic braking of trains.', 'They are negligible in a solid iron transformer core.', 'They are reduced by laminating the core.'], [0, 1, 3],
+    r`A and B are applications. In a solid core they are large and waste energy (C false). Thin insulated laminations break their paths and raise the resistance (D).`),
+  s(5, 'induced electric field', r`The electric field induced by a changing magnetic field has which of these properties?`,
+    ['It is non-conservative.', 'It can exist even where there is no conductor.', 'Its field lines form closed loops.', 'It is the same as an electrostatic field.'], [0, 1, 2],
+    r`$\oint\vec E\cdot d\vec l = -\dfrac{d\Phi}{dt}\ne0$, so it is non-conservative (A), with closed loops (C), and exists in empty space (B). An electrostatic field starts and ends on charges and has $\oint\vec E\cdot d\vec l = 0$ (D false).`),
+  s(4, 'AC generator', r`A coil of $N$ turns rotates in a uniform field. Which statements are correct?`,
+    [r`The peak emf is $NBA\omega$.`, r`The frequency of the emf is $\omega/2\pi$.`, 'The emf is greatest when the plane of the coil is parallel to the field.', 'The emf is greatest when the flux through the coil is greatest.'], [0, 1, 2],
+    r`$\Phi = NBA\cos\omega t$, $\varepsilon = NBA\omega\sin\omega t$: peak $NBA\omega$ (A), frequency $\omega/2\pi$ (B). The emf peaks when $d\Phi/dt$ is largest, which is when the flux is zero (coil parallel to the field), not when it is maximum (C true, D false).`),
+  s(5, 'mutual inductance', r`Which statements about two coils with mutual inductance $M$ are correct?`,
+    [r`$M_{12} = M_{21}$.`, 'It depends on their relative position and orientation.', r`$M\le\sqrt{L_1L_2}$.`, r`$M$ can exceed $\sqrt{L_1L_2}$ for tightly coupled coils.`], [0, 1, 2],
+    r`Reciprocity gives $M_{12} = M_{21}$ (A). Less flux links when they are apart or at right angles (B). The coupling coefficient $k = M/\sqrt{L_1L_2}\le1$ (C true, D false).`),
+  s(5, 'rotating rod', r`A rod of length $l$ rotates at $\omega$ about its midpoint in a uniform field $B$ perpendicular to its plane. Which statements are correct?`,
+    [r`The emf between the centre and an end is $\tfrac18B\omega l^2$.`, 'The emf between the two ends is zero.', r`The emf between the two ends is $\tfrac12B\omega l^2$.`, 'The centre is at a different potential from both ends.'], [0, 1, 3],
+    r`Each half is a rod of length $l/2$ rotating about an end: $\tfrac12B\omega(l/2)^2 = \tfrac18B\omega l^2$ (A). Both ends are at the same potential, so the end-to-end emf is 0 (B true, C false), and the centre differs from both (D).`),
+  s(4, 'energy in a magnetic field', r`Which statements about energy and inductors are correct?`,
+    [r`The energy stored is $\tfrac12LI^2$.`, 'The energy is stored in the magnetic field.', r`The energy density is $B^2/2\mu_0$.`, 'At fixed $n$ and $I$, the energy of a solenoid does not depend on its length.'], [0, 1, 2],
+    r`$U = \tfrac12LI^2$ with $L = \mu_0n^2Al$ is proportional to the length $l$ (D false), in line with the density $B^2/2\mu_0$ times the volume.`),
+  mt(4, 'rod on rails', 'xi5', ['p', 'q', 'r', 's'], r`A constant force: $F = \dfrac{B^2l^2v}{R}$, $v = \dfrac{FR}{B^2l^2}$ (p). Falling: $mg$ replaces $F$ (q). Stopping distance $\dfrac{mv_0R}{B^2l^2}$ (r). With a capacitor $F - BIl = ma$ and $I = CBl\,a$, so $a = \dfrac{F}{m+CB^2l^2}$: the capacitor adds mass $CB^2l^2$ (s).`),
+  mt(4, 'induced electric field', 'xi7', ['q', 's', 'p', 'r'], r`Inside: $E\,2\pi r = \pi r^2k\Rightarrow E = kr/2$ (q). Outside: $E = \dfrac{kR^2}{2r}$ (s). At $r = R$: $kR/2$ (p). The line integral round a circle outside is the emf $k\pi R^2$ (r).`),
+  mt(4, 'coupled inductors', 'xi8', ['q', 'r', 's', 'p'], r`Aiding: $L_1+L_2+2M$ (q). Opposing: $L_1+L_2-2M$ (r). $k = M/\sqrt{L_1L_2}$ (s). The greatest $M$ occurs at $k=1$: $\sqrt{L_1L_2}$ (p).`),
+  a(4, 'motional emf', 'An emf can be induced across a metal rod moving in a magnetic field even if the rod is not part of any closed circuit.', 'The magnetic force on the free electrons in the moving rod separates charges, setting up a potential difference.', 0,
+    r`Both are true. The force $q\vec v\times\vec B$ pushes electrons to one end until an electric field balances it. No current flows, but the emf exists. R explains A.`),
+  a(4, 'AC generator', 'The induced emf in a rotating coil is zero when the flux through it is maximum.', 'The emf equals $-d\Phi/dt$, which is zero where the flux is at its maximum.', 0,
+    r`At the maximum of $\Phi(t)$ the slope is zero, so $\varepsilon = 0$. Both true, R explains A.`),
+  a(4, 'eddy currents', 'The core of a transformer is made of thin insulated laminations rather than a solid block.', 'The laminations raise the resistance of the paths for eddy currents, which reduces the heating.', 0,
+    r`Eddy currents need closed loops across the core. Insulated layers cut the loops, so the currents and the heat are much smaller. Both true, R explains A.`),
+  a(5, 'self-inductance', 'The self-inductance of a coil rises when an iron core is put inside it.', 'Iron increases the magnetic flux produced by a given current.', 0,
+    r`$L = \dfrac{N\Phi}{I}$ and $\Phi$ rises by the relative permeability $\mu_r$ (hundreds for iron). Both true, R explains A.`),
+  t(4, 'induced electric field', 'The electric field induced by a changing magnetic flux is conservative.', 'It is produced by a time-varying magnetic field.', 3,
+    r`I is false: $\oint\vec E\cdot d\vec l\ne0$, so it is non-conservative. II is true.`),
+  t(4, 'Faraday\'s law', 'The induced emf in a coil is proportional to the flux through it.', 'The induced emf is proportional to the rate of change of flux.', 3,
+    r`I is false: a large steady flux gives no emf. II is true: $\varepsilon = -d\Phi/dt$.`),
+  t(4, 'mutual inductance', 'The mutual inductance of two coils depends on their relative orientation.', 'The flux linking one coil due to a current in the other depends on how they are placed.', 0,
+    r`Both true, and II explains I.`),
+  cn(4, 'concepts', 'How many of the following are correct?', ['Magnetic flux is a vector.', 'Lenz\'s law follows from the conservation of energy.', 'If the number of turns of a long solenoid is doubled (same length and area), its inductance becomes four times as large.', 'The induced current in a closed loop does not depend on its resistance.'], 2,
+    r`(i) False: flux is a scalar. (ii) True. (iii) True: $L\propto N^2$. (iv) False: $I = \varepsilon/R$. Two are correct.`),
+  // ---------- Level 5 ----------
+  n(5, 'rod and capacitor', r`A rod of mass 0.5 kg and length 0.5 m slides on frictionless horizontal rails joined by a capacitor of 2 F, in a vertical field of 1 T, pulled by a constant force of 2 N from rest. Find its acceleration (in $\mathrm{m\,s^{-2}}$).`, () => 2 / (0.5 + 2 * 1 * 0.25), 0, 0,
+    r`The emf $Blv$ charges the capacitor: $q = CBlv$ and $I = CBl\,a$. Newton: $F - BIl = ma$, so $F = (m + CB^2l^2)a$. $a = \dfrac{2}{0.5+2\times1\times0.25} = \dfrac{2}{1} = 2\ \mathrm{m\,s^{-2}}$, constant.`, { unit: 'm/s²', trap: 'The acceleration is uniform even though the speed grows.' }),
+  n(5, 'mutual inductance of a loop and a wire', r`A square loop of side 0.2 m lies in the plane of a long straight wire, with its near side parallel to the wire and 0.2 m from it. Find the mutual inductance (in nH, 1 decimal).`, () => MU0 * 0.2 / (2 * Math.PI) * Math.log(2) * 1e9, 0.1, 1,
+    r`At distance $x$ the field is $\dfrac{\mu_0I}{2\pi x}$. The flux through the loop is $\int_{0.2}^{0.4}\dfrac{\mu_0I}{2\pi x}(0.2)\,dx = \dfrac{\mu_0I(0.2)}{2\pi}\ln2$. $M = \dfrac{\Phi}{I} = 2\times10^{-7}\times0.2\times0.693 = 2.77\times10^{-8}$ H $= 27.7$ nH.`, { unit: 'nH' }),
+  n(5, 'sliding on an incline', r`A rod of mass 0.1 kg and length 0.5 m slides without friction down rails inclined at $30^\circ$, joined by a 0.5 $\Omega$ resistor, in a vertical field of 1 T. Find its terminal speed (in $\mathrm{m\,s^{-1}}$, 2 decimals; $g=10$).`, () => 0.1 * 10 * 0.5 * 0.5 / (1 * 0.25 * 0.75), 0.02, 2,
+    r`With the rod moving along the incline at $v$, the component of its velocity perpendicular to the vertical field is $v\cos\theta$: $\varepsilon = Blv\cos\theta$, $I = \varepsilon/R$. The force $BIl$ is horizontal, and its component along the incline is $BIl\cos\theta$. At terminal speed $mg\sin\theta = \dfrac{B^2l^2v\cos^2\theta}{R}$. $v = \dfrac{0.1\times10\times0.5\times0.5}{0.25\times0.75} = 1.33\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s', trap: 'The field is vertical, so $\\cos\\theta$ appears twice.' }),
+  n(5, 'induced charge and time', r`A circular coil of radius 0.1 m and 20 turns, resistance 2 $\Omega$, is turned through $180^\circ$ about a diameter in a uniform field of 0.5 T that was perpendicular to its plane. Find the charge (in C, 3 decimals) that flows.`, () => 20 * 2 * 0.5 * Math.PI * 0.01 / 2, 0.002, 3,
+    r`The flux changes from $+BA$ to $-BA$: $\Delta\Phi = 2BA$ per turn. $Q = \dfrac{N\Delta\Phi}{R} = \dfrac{20\times2\times0.5\times\pi\times0.01}{2} = 0.314$ C.`, { unit: 'C' }),
+  n(5, 'rod with an inductor', r`A rod of length 0.5 m slides on frictionless rails in a field of 1 T and starts with speed $4\ \mathrm{m\,s^{-1}}$. The rails are joined by a resistor of 0.5 $\Omega$. How much heat (in J) is produced by the time the rod has stopped, if its mass is 0.5 kg?`, () => 0.5 * 0.5 * 16, 0, 0,
+    r`All the initial kinetic energy ends as heat: $\tfrac12mv_0^2 = \tfrac12\times0.5\times16 = 4$ J (the rod stops after travelling $mv_0R/B^2l^2 = 4$ m).`, { unit: 'J' }),
+  n(5, 'energy transfer', r`A 12 V battery drives a 4 $\Omega$ resistor in series with a 2 H inductor. When the current has reached its final value, the switch is opened and a 4 $\Omega$ resistor is left in a closed loop with the inductor. Find the total heat (in J) produced in the resistor afterwards.`, () => 0.5 * 2 * 9, 0, 0,
+    r`The final current is $12/4 = 3$ A. The stored energy $\tfrac12LI^2 = \tfrac12\times2\times9 = 9$ J is all dissipated as heat in the loop's resistance.`, { unit: 'J' }),
+  s(5, 'rod and capacitor', r`A rod is pulled by a constant force from rest on frictionless rails joined by a capacitor, in a uniform field perpendicular to the plane. Which statements are correct?`,
+    ['The acceleration of the rod is constant.', 'The current in the circuit is constant.', 'The speed of the rod grows without limit (no terminal speed).', 'The energy stored in the capacitor always equals the kinetic energy of the rod, whatever the mass, capacitance, field and rod length.'], [0, 1, 2],
+    r`$a = \dfrac F{m+CB^2l^2}$ is constant (A), so $v = at$, $q = CBlat$ and $I = CBla$ is constant (B). There is no terminal speed (C). The capacitor's energy is $\dfrac{q^2}{2C} = \tfrac12CB^2l^2v^2$, and the work done by $F$ is shared between it and the rod's $\tfrac12mv^2$ in the ratio $CB^2l^2:m$. The two are equal only when $CB^2l^2 = m$, so D is false in general. (No energy is lost: with no resistance the work done by $F$ goes into these two stores.)`),
+  s(5, 'loop entering a field', r`A square loop is pulled at constant speed into a region of uniform field (perpendicular to it) and then moves entirely inside. Which statements are correct?`,
+    ['A current flows while the loop is entering.', 'No current flows once it is completely inside.', 'A force is needed to keep it moving at constant speed only while it is entering.', 'The total charge that flows while entering depends on the speed.'], [0, 1, 2],
+    r`Current flows while the flux changes (entering) and stops when the whole loop is in the uniform field (A, B). The magnetic force exists only during entering (C). The charge $Q = \Delta\Phi/R$ does not depend on the speed (D false).`),
+  mt(5, 'AC generator', 'xi6', ['r', 'q', 'p', 's'], r`The same as the earlier set: $\varepsilon(0)$ maximal $\omega B_0A$ (r); 0 at the flux maximum (q); peak flux $B_0A$ (p); a quarter cycle phase difference (s).`),
+);
+items.pop();
+items.push(
+  a(5, 'rotating rod', 'The emf between the two ends of a rod rotating about its midpoint in a uniform field perpendicular to its plane is zero.', 'Each half of the rod has the same emf between the centre and its own end, with the centre at a different potential.', 0,
+    r`Each half has emf $\tfrac18B\omega l^2$ in the same sense with respect to the centre. The two ends are at the same potential, so the net end-to-end emf is zero. Both true, and R explains A.`),
+  t(5, 'energy transfer', 'The energy stored in an inductor is released as heat in the resistor when the battery is removed from an LR circuit.', 'The current decays through the closed loop, with $I^2R$ heating.', 0,
+    r`Both true. The total heat equals $\tfrac12LI_0^2$, and II explains how.`),
+  cn(5, 'concepts', 'How many of the following are correct?', ['The induced emf in a rod moving in a field exists even in an open circuit.', 'The mutual inductance of two coils cannot exceed $\\sqrt{L_1L_2}$.', 'In an LR circuit the current at $t=\\tau$ is 63% of its final value.', 'A capacitor in series with a moving rod on rails makes the rod stop at a terminal speed.'], 3,
+    r`(i) True. (ii) True. (iii) True. (iv) False: with a capacitor the rod has a constant acceleration, no terminal speed. Three are correct.`),
+);
+
+items.push(
+  pn(3, 'loop entering a field', 'xip1', r`Find the emf induced while it enters (in V, 2 decimals).`, () => 0.5 * 0.2 * 2, 0.01, 2,
+    r`Only the side that is moving through the field produces emf: $\varepsilon = Blv = 0.5\times0.2\times2 = 0.20$ V.`, { unit: 'V' }),
+  pn(4, 'loop entering a field', 'xip1', r`Find the force (in N, 2 decimals) needed to keep the speed constant while it enters.`, () => 0.5 * (0.2 / 0.1) * 0.2, 0.01, 2,
+    r`$I = \varepsilon/R = 0.2/0.1 = 2$ A. $F = BIl = 0.5\times2\times0.2 = 0.20$ N, opposing the motion.`, { unit: 'N' }),
+  pn(4, 'loop entering a field', 'xip1', r`Find the total heat (in J, 3 decimals) produced while the loop enters completely.`, () => 0.2 * 0.2, 0.002, 3,
+    r`The loop takes $0.2/2 = 0.1$ s. $Q = I^2Rt = 4\times0.1\times0.1 = 0.04$ J, which equals $F\times0.2$ m.`, { unit: 'J' }),
+  pn(4, 'rod and capacitor', 'xip2', r`Find the acceleration of the rod (in $\mathrm{m\,s^{-2}}$).`, () => 2 / (0.5 + 2 * 0.25), 0, 0,
+    r`With $I = CBl\,a$ and $F - BIl = ma$: $a = \dfrac F{m+CB^2l^2} = \dfrac{2}{0.5+2\times1\times0.25} = 2\ \mathrm{m\,s^{-2}}$.`, { unit: 'm/s²' }),
+  pn(5, 'rod and capacitor', 'xip2', r`Find the charge on the capacitor 3 s after the start (in C).`, () => 2 * 1 * 0.5 * (2 * 3), 0, 0,
+    r`$v = at = 6\ \mathrm{m\,s^{-1}}$. The capacitor voltage equals the emf $Blv = 1\times0.5\times6 = 3$ V. $q = CV = 2\times3 = 6$ C.`, { unit: 'C' }),
+  pn(5, 'rod and capacitor', 'xip2', r`Find the energy stored in the capacitor at that time (in J).`, () => 0.5 * 2 * 3 ** 2, 0, 0,
+    r`$U = \tfrac12CV^2 = \tfrac12\times2\times9 = 9$ J. (The rod's kinetic energy is $\tfrac12\times0.5\times36 = 9$ J, and the force has done $2\times9 = 18$ J of work over the 9 m travelled.)`, { unit: 'J' }),
+);
+
+gens.push(
+  gx(3, 'nat', 'Faraday\'s law', (rng) => {
+    const N = pick(rng, 20, 200, 10); const A = pick(rng, 0.01, 0.1, 0.01); const dB = pick(rng, 0.2, 2, 0.2); const dt = pick(rng, 0.05, 0.5, 0.05);
+    const e = N * A * dB / dt;
+    return { N, A, dB, dt, q: `A coil of ${N} turns and area ${A} m² has the field through it (along its normal) raised uniformly by ${dB} T in ${dt} s. Find the induced emf (in V, 2 decimals).`, answer: +e.toFixed(2), tol: 0.01, unit: 'V',
+      sol: `$|\\varepsilon| = NA\\dfrac{\\Delta B}{\\Delta t} = ${N}\\times${A}\\times\\dfrac{${dB}}{${dt}} = ${e.toFixed(2)}$ V.` };
+  }, (p) => { const phi1 = 0; const phi2 = p.A * p.dB; return Math.abs(p.N * (phi2 - phi1) / p.dt); }),
+  gx(3, 'nat', 'sliding rod', (rng) => {
+    const B = pick(rng, 0.2, 1, 0.1); const l = pick(rng, 0.2, 1, 0.1); const v = pick(rng, 2, 10, 1); const R = pick(rng, 1, 5, 1);
+    const P = (B * l * v) ** 2 / R;
+    return { B, l, v, R, q: `A rod of length ${l} m moves at ${v} m/s on rails joined by a ${R} Ω resistor, in a field of ${B} T perpendicular to the plane. Find the power (in W, 3 decimals) needed to keep it at constant speed.`, answer: +P.toFixed(3), tol: 0.002, unit: 'W',
+      sol: `$\\varepsilon = Blv = ${+(B * l * v).toFixed(3)}$ V. $I = \\varepsilon/R$. $P = \\varepsilon^2/R = ${P.toFixed(3)}$ W (equal to $Fv$ with $F = BIl$).` };
+  }, (p) => { const I = p.B * p.l * p.v / p.R; const F = p.B * I * p.l; return F * p.v; }),
+  gx(4, 'nat', 'LR growth', (rng) => {
+    const E = pick(rng, 6, 24, 2); const R = pick(rng, 2, 10, 1); const L = pick(rng, 0.5, 4, 0.5); const k = pick(rng, 0.5, 3, 0.5);
+    const tau = L / R; const t0 = k * tau; const I = E / R * (1 - Math.exp(-k));
+    return { E, R, L, k, q: `A ${E} V battery is joined to a ${R} Ω resistor and a ${L} H inductor in series. Find the current (in A, 3 decimals) at $t = ${k}\\tau$ after the switch is closed.`, answer: +I.toFixed(3), tol: 0.003, unit: 'A',
+      sol: `$\\tau = L/R = ${tau.toFixed(3)}$ s. $I = \\dfrac ER(1 - e^{-t/\\tau}) = ${+(E / R).toFixed(3)}\\times(1 - e^{-${k}}) = ${I.toFixed(3)}$ A.` };
+  }, (p) => { const tau = p.L / p.R; const T = p.k * tau; const steps = 200000; const dt = T / steps; let i = 0; for (let s = 0; s < steps; s++) { i += dt * (p.E - i * p.R) / p.L; } return i; }),
+  gx(4, 'nat', 'stopping distance', (rng) => {
+    const m1 = pick(rng, 0.1, 1, 0.1); const v0 = pick(rng, 2, 10, 1); const R = pick(rng, 1, 5, 1); const B = pick(rng, 0.2, 1, 0.1); const l = pick(rng, 0.2, 1, 0.1);
+    const x = m1 * v0 * R / (B * l) ** 2;
+    return { m1, v0, R, B, l, q: `A ${m1} kg rod of length ${l} m is given ${v0} m/s on smooth rails joined by a ${R} Ω resistor in a field of ${B} T. Find the distance (in m, 2 decimals) it travels before stopping.`, answer: +x.toFixed(2), tol: 0.02, unit: 'm',
+      sol: `$x = \\dfrac{mv_0R}{B^2l^2} = \\dfrac{${m1}\\times${v0}\\times${R}}{(${B}\\times${l})^2} = ${x.toFixed(2)}$ m.` };
+  }, (p) => { const k = (p.B * p.l) ** 2 / (p.R * p.m1); return p.v0 / k; }),
+  gx(4, 'nat', 'rotating rod', (rng) => {
+    const B = pick(rng, 0.1, 1, 0.1); const w = pick(rng, 5, 60, 5); const l = pick(rng, 0.2, 1.5, 0.1);
+    const e = 0.5 * B * w * l * l;
+    return { B, w, l, q: `A rod of length ${l} m rotates at ${w} rad/s about one end in a field of ${B} T perpendicular to its plane. Find the emf between its ends (in V, 3 decimals).`, answer: +e.toFixed(3), tol: 0.002, unit: 'V',
+      sol: `$\\varepsilon = \\tfrac12B\\omega l^2 = \\tfrac12\\times${B}\\times${w}\\times${l}^2 = ${e.toFixed(3)}$ V.` };
+  }, (p) => { let sum = 0; const n2 = 100000; const dr = p.l / n2; for (let i = 0; i < n2; i++) { const r2 = (i + 0.5) * dr; sum += p.B * p.w * r2 * dr; } return sum; }),
+  gx(3, 'nat', 'self-inductance of a solenoid', (rng) => {
+    const N = pick(rng, 200, 2000, 100); const A = pick(rng, 1, 10, 1) * 1e-4; const l = pick(rng, 0.2, 1, 0.1);
+    const L = MU0 * N * N * A / l * 1000;
+    return { N, A, l, q: `A long solenoid has ${N} turns, area ${A * 1e4} cm² and length ${l} m. Find its self-inductance (in mH, 3 decimals).`, answer: +L.toFixed(3), tol: 0.003, unit: 'mH',
+      sol: `$L = \\dfrac{\\mu_0N^2A}{l} = \\dfrac{4\\pi\\times10^{-7}\\times${N}^2\\times${+(A * 1e4).toFixed(1)}\\times10^{-4}}{${l}} = ${L.toFixed(3)}$ mH.` };
+  }, (p) => { const n1 = p.N / p.l; const B1 = MU0 * n1; const phi = B1 * p.A; return p.N * phi * 1000; }),
+  gx(4, 'nat', 'rod and capacitor', (rng) => {
+    const F = pick(rng, 1, 5, 1); const m1 = pick(rng, 0.2, 1, 0.1); const C = pick(rng, 0.5, 3, 0.5); const B = pick(rng, 0.5, 2, 0.5); const l = pick(rng, 0.2, 1, 0.1);
+    const a = F / (m1 + C * B * B * l * l);
+    return { F, m1, C, B, l, q: `A ${m1} kg rod of length ${l} m is pulled by a constant force of ${F} N on smooth rails joined by a ${C} F capacitor, in a field of ${B} T perpendicular to the plane. Find its acceleration (in m/s², 3 decimals).`, answer: +a.toFixed(3), tol: 0.003, unit: 'm/s²',
+      sol: `$I = CBl\\,a$ and $F - BIl = ma$, so $a = \\dfrac{F}{m + CB^2l^2} = \\dfrac{${F}}{${m1}+${C}\\times${B}^2\\times${l}^2} = ${a.toFixed(3)}$ m/s².` };
+  }, (p) => { let lo = 0; let hi = 1e3; for (let i = 0; i < 200; i++) { const aa = (lo + hi) / 2; const net = p.F - p.B * (p.C * p.B * p.l * aa) * p.l - p.m1 * aa; if (net > 0) lo = aa; else hi = aa; } return (lo + hi) / 2; }),
+  gx(4, 'nat', 'heat in a loop', (rng) => {
+    const B = pick(rng, 0.2, 1, 0.1); const s = pick(rng, 0.1, 0.5, 0.1); const v = pick(rng, 1, 5, 1); const R = pick(rng, 0.1, 1, 0.1);
+    const Q = (B * s * v) ** 2 / R * (s / v);
+    return { B, s, v, R, q: `A square loop of side ${s} m and resistance ${R} Ω is pulled at ${v} m/s completely into a field of ${B} T. Find the heat produced (in mJ, 3 decimals).`, answer: +(Q * 1000).toFixed(3), tol: 0.003, unit: 'mJ',
+      sol: `$\\varepsilon = Bsv$, $I = \\varepsilon/R$, time $= s/v$. $Q = I^2R\\,t = \\dfrac{B^2s^3v}{R} = ${(Q * 1000).toFixed(3)}$ mJ.` };
+  }, (p) => { const F = p.B * (p.B * p.s * p.v / p.R) * p.s; return F * p.s * 1000; }),
+  gx(3, 'mcq', 'direction of induced current', (rng) => {
+    const pole = choose(rng, ['north', 'south']); const toward = rng() < 0.5;
+    const nearN = (pole === 'north') === toward; // near face is north if (N towards) or (S away)
+    const dir = nearN ? 'anticlockwise' : 'clockwise'; const force = toward ? 'repels' : 'attracts';
+    const ans = `${dir}, and the coil ${force} the magnet`;
+    const o = shuffleOpts(rng, ans, [`${nearN ? 'clockwise' : 'anticlockwise'}, and the coil ${force} the magnet`, `${dir}, and the coil ${toward ? 'attracts' : 'repels'} the magnet`, `${nearN ? 'clockwise' : 'anticlockwise'}, and the coil ${toward ? 'attracts' : 'repels'} the magnet`]);
+    return { pole, toward, opts: o.options, ans, q: `The ${pole} pole of a bar magnet is moved ${toward ? 'towards' : 'away from'} a coil. Seen from the magnet's side, the induced current in the coil is`, options: o.options, answer: o.answer,
+      sol: `The coil opposes the change in flux. ${toward ? 'Approaching' : 'Receding'}: it ${toward ? 'repels' : 'attracts'} the magnet, so its near face is ${nearN ? 'a north face' : 'a south face'}. A north face is an anticlockwise current seen from that side, and a south face is clockwise. So ${dir}, and it ${force} the magnet.`, trap: 'Oppose the change, not the flux itself.' };
+  }, (p) => { const nearN = (p.pole === 'north') === p.toward; const want = `${nearN ? 'anticlockwise' : 'clockwise'}, and the coil ${p.toward ? 'repels' : 'attracts'} the magnet`; return p.opts.indexOf(want); }),
+  gx(4, 'mcq', 'LR circuit', (rng) => {
+    const k = choose(rng, [2, 3, 4]); const what = choose(rng, ['R', 'L']);
+    const tauF = what === 'R' ? `1/${k}` : `${k}`; const IF = what === 'R' ? `1/${k}` : 'unchanged';
+    const ans = `the time constant becomes ${tauF} of its value and the final current becomes ${what === 'R' ? '1/' + k + ' of its value' : 'unchanged'}`;
+    const wr = what === 'R' ? [`the time constant becomes ${k} times its value and the final current becomes 1/${k} of its value`, `the time constant becomes 1/${k} of its value and the final current is unchanged`, `the time constant is unchanged and the final current becomes 1/${k} of its value`] : [`the time constant becomes ${k} times its value and the final current becomes ${k} times its value`, `the time constant is unchanged and the final current becomes ${k} times its value`, `the time constant becomes 1/${k} of its value and the final current is unchanged`];
+    const o = shuffleOpts(rng, ans, wr);
+    return { k, what, opts: o.options, ans, q: `In an LR circuit on a steady battery, ${what === 'R' ? 'the resistance' : 'the inductance'} is multiplied by ${k} (everything else unchanged). Then`, options: o.options, answer: o.answer,
+      sol: what === 'R' ? `$\\tau = L/R$ falls to $1/${k}$ and $I_\\infty = \\varepsilon/R$ falls to $1/${k}$.` : `$\\tau = L/R$ becomes ${k} times larger, but $I_\\infty = \\varepsilon/R$ does not involve $L$.`, trap: 'The final current depends only on $R$.' };
+  }, (p) => p.opts.indexOf(p.ans)),
+  gx(5, 'nat', 'mutual inductance of a loop and a wire', (rng) => {
+    const a = pick(rng, 0.1, 0.5, 0.1); const d = pick(rng, 0.1, 0.5, 0.1);
+    const M = MU0 * a / (2 * Math.PI) * Math.log((d + a) / d) * 1e9;
+    return { a, d, q: `A square loop of side ${a} m lies in the plane of a long straight wire, with its near side parallel to the wire at a distance of ${d} m. Find the mutual inductance (in nH, 2 decimals).`, answer: +M.toFixed(2), tol: 0.02, unit: 'nH',
+      sol: `$\\Phi = \\int_d^{d+a}\\dfrac{\\mu_0I}{2\\pi x}a\\,dx = \\dfrac{\\mu_0Ia}{2\\pi}\\ln\\dfrac{d+a}{d}$. $M = \\Phi/I = ${M.toFixed(2)}$ nH.` };
+  }, (p) => { let s = 0; const n3 = 200000; const dx = p.a / n3; for (let i = 0; i < n3; i++) { const x = p.d + (i + 0.5) * dx; s += MU0 / (2 * Math.PI * x) * p.a * dx; } return s * 1e9; }),
+);
+
+}
+
 export default { topic: 'electromagnetic-induction', groups, items, gens };

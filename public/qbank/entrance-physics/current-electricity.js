@@ -605,4 +605,308 @@ const gens = [
     verify: (p) => p.Q * (p.f * 2 * Math.PI) / (2 * Math.PI) },
 ];
 
+{ // ===== extension block (added 2026-11-22): harder items, new formats and templates =====
+const r = String.raw;
+const CUET = true; const PFX = 'ec'; const GN = 27;
+const F = (x, s = 3) => String(+Number(x).toPrecision(s));
+const XEB = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xe = (l, type) => (CUET && type === 'mcq' && l <= 3 ? [...XEB[l], 'cuet'] : XEB[l]);
+let xk = 0; let xc = 0;
+const xb = (l, sub, o) => ({ id: `${PFX}-x${String(++xk).padStart(3, '0')}`, level: l, sub, ...o, exams: xe(l, o.type) });
+const m = (l, sub, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o }); };
+const n = (l, sub, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol, ...o }); };
+const s = (l, sub, q, options, answer, sol, o = {}) => xb(l, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const AO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const a = (l, sub, A, R, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AO, answer, sol, ...o });
+const SO = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const t = (l, sub, I, II, answer, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SO, answer, sol, ...o });
+// "how many of these are correct": list = 4 statements, k = how many are correct (1-4)
+const cn = (l, sub, q, list, k, sol, o = {}) => xb(l, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((x, i) => `(${['i', 'ii', 'iii', 'iv'][i]}) ${x}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: k - 1, sol, ...o });
+// match item: letters = correct List II letter for A, B, C, D, e.g. ['q','r','p','s']
+const mt = (l, sub, group, letters, sol, o = {}) => {
+  const code = (L) => L.map((x, i) => `${'ABCD'[i]}-${x}`).join(', ');
+  const right = code(letters); const wr = [];
+  for (const [i, j] of [[0, 1], [1, 2], [2, 3], [0, 3], [0, 2], [1, 3]]) { const L = [...letters]; [L[i], L[j]] = [L[j], L[i]]; const c = code(L); if (c !== right && !wr.includes(c)) wr.push(c); }
+  const pos = (xc++ * 3 + 2) % 4; const options = wr.slice(0, 3); options.splice(pos, 0, right);
+  return xb(l, sub, { type: 'mcq', format: 'match', q: 'Match the entries of List I with List II and choose the correct code.', group, options, answer: pos, sol, ...o });
+};
+const pn = (l, sub, group, q, fn, tol, dp, sol, o = {}) => { const answer = +fn().toFixed(dp); return xb(l, sub, { type: 'nat', format: 'passage', group, q, answer, tol, calc: () => answer, sol, ...o }); };
+const pm = (l, sub, group, q, correct, wrongs, sol, o = {}) => { const pos = (xc++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, correct); return xb(l, sub, { type: 'mcq', format: 'passage', group, q, options, answer: pos, sol, ...o }); };
+let xg = GN;
+const gx = (l, type, sub, make, verify) => ({ id: `${PFX}-g${String(++xg).padStart(2, '0')}`, type, level: l, exams: xe(l, type), sub, make, verify });
+const NG = {};
+Object.assign(groups, {
+  xe1: { title: 'Three identical resistors $R$',
+    list1: ['A. All three in series', 'B. All three in parallel', 'C. Two in parallel, the pair in series with the third', 'D. Two in series, the pair in parallel with the third'],
+    list2: [r`p. $R/3$`, r`q. $3R$`, r`r. $3R/2$`, r`s. $2R/3$`] },
+  xe2: { title: 'Resistivity and temperature',
+    list1: ['A. Copper', 'B. Silicon', 'C. Manganin', 'D. A superconductor cooled below its critical temperature'],
+    list2: ['p. Resistivity decreases as the temperature rises', 'q. Resistivity increases as the temperature rises', 'r. Resistivity is almost independent of temperature', 's. Resistivity falls abruptly to zero'] },
+  xe3: { title: 'A wire of resistance $R$ is altered (volume kept constant where it is stretched)',
+    list1: ['A. Stretched to twice its length', 'B. Radius doubled, length unchanged', 'C. One half of the wire taken', 'D. Stretched to three times its length'],
+    list2: [r`p. $R/4$`, r`q. $4R$`, r`r. $R/2$`, r`s. $9R$`] },
+  xe4: { title: 'Four identical cells, each 2 V with internal resistance 1 $\\Omega$',
+    list1: ['A. All four in series: emf', 'B. All four in parallel: emf', 'C. Two series pairs connected in parallel: emf', 'D. All four in series: internal resistance'],
+    list2: ['p. 2 V', 'q. 8 V', 'r. 4 V', r`s. 1 $\Omega$`, r`t. 4 $\Omega$`] },
+  xe5: { title: 'Rated bulbs (all run on a supply that matches the rating unless stated)',
+    list1: ['A. Resistance of a 100 W, 200 V bulb', 'B. Resistance of a 40 W, 200 V bulb', 'C. Current in a 100 W, 200 V bulb at its rating', 'D. Power of a 100 W, 200 V bulb run on 100 V (resistance constant)'],
+    list2: ['p. 25 W', r`q. 400 $\Omega$`, 'r. 0.5 A', r`s. 1000 $\Omega$`] },
+  xe6: { title: 'A potentiometer: wire 5 m long, resistance 10 $\\Omega$, driven by a 3 V battery in series with 5 $\\Omega$',
+    list1: ['A. Potential difference across the wire', 'B. Potential gradient', 'C. Balance length for a 1.2 V cell', 'D. New balance length for the same cell if the 5 $\\Omega$ is removed'],
+    list2: ['p. 3 m', 'q. 2 V', 'r. 0.4 V/m', 's. 2 m'] },
+  xe7: { title: 'Metre bridge with a known 10 $\\Omega$ in the left gap (balance length $l$ measured from the left end)',
+    list1: ['A. $l = 50$ cm: unknown resistance', 'B. $l = 25$ cm: unknown resistance', 'C. $l = 75$ cm: unknown resistance', 'D. $l = 40$ cm: unknown resistance'],
+    list2: [r`p. 3.33 $\Omega$`, r`q. 10 $\Omega$`, r`r. 15 $\Omega$`, r`s. 30 $\Omega$`] },
+  xe8: { title: 'A cube whose twelve edges are identical resistors $R$: equivalent resistance between',
+    list1: ['A. The two ends of one edge', 'B. The ends of a face diagonal', 'C. The ends of a body diagonal', 'D. Two opposite corners of one square face, taken alone as a square frame of four resistors'],
+    list2: [r`p. $7R/12$`, r`q. $3R/4$`, r`r. $5R/6$`, r`s. $R$`] },
+  xep1: { title: 'A battery and a resistor network',
+    passage: r`<p>A battery of emf 12 V and internal resistance 1 $\Omega$ is connected to a 3 $\Omega$ resistor in series with a parallel pair made of a 6 $\Omega$ and a 3 $\Omega$ resistor.</p>` },
+  xep2: { title: 'Making meters from a galvanometer',
+    passage: r`<p>A galvanometer has a resistance of 100 $\Omega$ and gives full-scale deflection for 1 mA.</p>` },
+});
+
+items.push(
+  // ---------- Level 2 ----------
+  n(2, 'combination of resistors', r`Two 6 $\Omega$ resistors in parallel are joined in series with a 4 $\Omega$ resistor across a 14 V cell of negligible internal resistance. Find the current drawn from the cell (in A).`, () => 14 / (3 + 4), 0, 0,
+    r`The parallel pair is 3 $\Omega$. Total $= 3 + 4 = 7\ \Omega$. $I = 14/7 = 2$ A.`, { unit: 'A' }),
+  m(2, 'electrical energy', r`One kilowatt-hour is equal to`, r`$3.6\times10^{6}$ J`, [r`$3.6\times10^{3}$ J`, r`$1\times10^{3}$ J`, r`$3.6\times10^{9}$ J`],
+    r`$1\ \mathrm{kWh} = 1000\ \mathrm{W}\times3600\ \mathrm{s} = 3.6\times10^6$ J.`),
+  m(2, 'resistivity', r`The resistivity of a wire of a given material depends on`, 'the material and the temperature', ['its length and its area of cross-section', 'its length and the material', 'its area of cross-section only'],
+    r`$\rho$ is a property of the material (and rises or falls with temperature). Length and area change the resistance $R = \rho L/A$, not $\rho$.`),
+  n(2, 'stretching a wire', r`A wire of resistance 10 $\Omega$ is drawn uniformly to three times its length. What is its new resistance (in $\Omega$)?`, () => 10 * 9, 0, 0,
+    r`The volume is fixed, so the area falls to one-third. $R\propto L/A\propto L^2$, so $R' = 9R = 90\ \Omega$.`, { unit: 'Ω' }),
+  m(2, 'drift velocity', r`In a metallic conductor, the electrons drift`, 'in the direction opposite to the electric field', ['in the direction of the electric field', 'at the speed of light', 'at right angles to the electric field'],
+    r`Electrons are negative, so the force $-e\vec E$ and the drift are against $\vec E$. The conventional current is in the direction of $\vec E$. The drift speed is tiny, about $\mathrm{mm\,s^{-1}}$.`),
+  n(2, 'electric power', r`Find the resistance (in $\Omega$, nearest whole number) of a 60 W bulb meant for 220 V.`, () => 220 ** 2 / 60, 1, 0,
+    r`$P = V^2/R \Rightarrow R = \dfrac{220^2}{60} = 807\ \Omega$.`, { unit: 'Ω' }),
+  mt(2, 'resistance combinations', 'xe1', ['q', 'p', 'r', 's'], r`A: $3R$ (q). B: $R/3$ (p). C: $R/2 + R = 3R/2$ (r). D: $\dfrac{2R\times R}{2R+R} = 2R/3$ (s).`),
+  mt(2, 'temperature dependence', 'xe2', ['q', 'p', 'r', 's'], r`Metals: more collisions at higher $T$, so $\rho$ rises (q). Semiconductors: more carriers, so $\rho$ falls (p). Manganin is an alloy with a very small temperature coefficient (r). A superconductor drops to zero resistance below its critical temperature (s).`),
+  // ---------- Level 3 ----------
+  n(3, 'drift velocity', r`A copper wire of cross-section $2\ \mathrm{mm^2}$ carries 3 A. The free-electron density is $8.5\times10^{28}\ \mathrm{m^{-3}}$. Find the drift speed (in units of $10^{-4}\ \mathrm{m\,s^{-1}}$, 2 decimals).`, () => 3 / (8.5e28 * 2e-6 * 1.6e-19) / 1e-4, 0.01, 2,
+    r`$I = nAev_d \Rightarrow v_d = \dfrac{3}{8.5\times10^{28}\times2\times10^{-6}\times1.6\times10^{-19}} = 1.10\times10^{-4}\ \mathrm{m\,s^{-1}}$ (about 0.1 mm/s).`, { unit: '10⁻⁴ m/s' }),
+  n(3, 'potentiometer', r`A potentiometer wire is 5 m long and has a resistance of 10 $\Omega$. It is joined to a 3 V battery (negligible internal resistance) in series with 5 $\Omega$. A cell balances at 3.2 m. Find its emf (in V, 2 decimals).`, () => 3.2 * 0.4, 0.01, 2,
+    r`$I = 3/15 = 0.2$ A. Wire voltage $= 0.2\times10 = 2$ V, gradient $= 2/5 = 0.4$ V/m. $E = 0.4\times3.2 = 1.28$ V.`, { unit: 'V' }),
+  n(3, 'metre bridge', r`In a metre bridge the known resistance is 4 $\Omega$ and the null point is at 40 cm from the end next to it. Find the unknown resistance (in $\Omega$).`, () => 4 * 60 / 40, 0, 0,
+    r`$\dfrac{R}{X} = \dfrac{l}{100-l} \Rightarrow X = R\dfrac{100-l}{l} = 4\times\dfrac{60}{40} = 6\ \Omega$.`, { unit: 'Ω' }),
+  n(3, 'galvanometer to ammeter', r`A galvanometer of 50 $\Omega$ gives full-scale deflection for 2 mA. What shunt (in $\Omega$, 4 decimals) makes it a 0 to 1 A ammeter?`, () => 0.002 * 50 / (1 - 0.002), 0.0005, 4,
+    r`$S = \dfrac{I_gG}{I - I_g} = \dfrac{0.002\times50}{0.998} = 0.1002\ \Omega$.`, { unit: 'Ω' }),
+  n(3, 'galvanometer to voltmeter', r`The same galvanometer (50 $\Omega$, 2 mA full scale) is made into a 0 to 10 V voltmeter. What series resistance (in $\Omega$) is needed?`, () => 10 / 0.002 - 50, 0, 0,
+    r`$V = I_g(G + R) \Rightarrow R = \dfrac{10}{0.002} - 50 = 4950\ \Omega$.`, { unit: 'Ω' }),
+  n(3, 'temperature coefficient', r`A resistor has 100 $\Omega$ at 20 °C with temperature coefficient $0.004\ \mathrm{K^{-1}}$. Find its resistance at 70 °C (in $\Omega$).`, () => 100 * (1 + 0.004 * 50), 0, 0,
+    r`$R = R_0(1 + \alpha\Delta T) = 100\times(1 + 0.004\times50) = 120\ \Omega$.`, { unit: 'Ω' }),
+  n(3, 'heating effect', r`A 1 kW heater is used to heat 2 kg of water from 20 °C to 80 °C, with no losses ($c = 4200\ \mathrm{J\,kg^{-1}K^{-1}}$). How long (in s) does it take?`, () => 2 * 4200 * 60 / 1000, 0, 0,
+    r`$Pt = mc\Delta T \Rightarrow t = \dfrac{2\times4200\times60}{1000} = 504$ s.`, { unit: 's' }),
+  n(3, 'heating effect', r`A kettle's coil A alone boils water in 6 minutes and coil B alone in 3 minutes. How long (in minutes) do they take when joined in parallel?`, () => 6 * 3 / 9, 0, 0,
+    r`Heat needed is fixed. Parallel on the same supply: powers add, $\dfrac1t = \dfrac1{t_A}+\dfrac1{t_B} = \dfrac16+\dfrac13 = \dfrac12$, so $t = 2$ min. (In series the times add: 9 min.)`, { unit: 'min' }),
+  n(3, 'stretching a wire', r`A wire is stretched by 10% of its length (volume constant). By what percentage does its resistance rise (nearest whole number)?`, () => (1.1 ** 2 - 1) * 100, 0, 0,
+    r`$R\propto L^2$, so $R'/R = 1.1^2 = 1.21$. A 21% increase.`, { unit: '%', trap: 'The area falls as the length rises.' }),
+  n(3, 'drift velocity', r`The diameter of a wire is halved at one section of a conductor carrying a steady current. By what factor is the drift speed greater there than in the wide section?`, () => 4, 0, 0,
+    r`$I = nAev_d$ is constant, so $v_d\propto1/A\propto1/d^2$. Halving the diameter quarters the area, so $v_d$ is 4 times greater.`),
+  n(3, 'electric current', r`A ring with charge 4 $\mu$C turns at 300 revolutions per minute. Find the average current (in $\mu$A).`, () => 4 * 300 / 60, 0, 0,
+    r`$I = qf = 4\ \mu\mathrm{C}\times5\ \mathrm{s^{-1}} = 20\ \mu\mathrm{A}$.`, { unit: 'μA' }),
+  n(3, 'charge from a varying current', r`The current in a wire is $I = 3t^2$ A (with $t$ in seconds). How much charge (in C) passes in the first 2 s?`, () => 2 ** 3, 0, 0,
+    r`$Q = \int_0^2 3t^2\,dt = t^3\big|_0^2 = 8$ C.`, { unit: 'C' }),
+  n(3, 'current density', r`A copper wire has a resistivity of $1.7\times10^{-8}\ \Omega\,\mathrm m$ and carries a current density of $2\times10^{6}\ \mathrm{A\,m^{-2}}$. What is the electric field inside it (in V/m, 3 decimals)?`, () => 1.7e-8 * 2e6, 0.001, 3,
+    r`$\vec E = \rho\vec J$, so $E = 1.7\times10^{-8}\times2\times10^6 = 0.034\ \mathrm{V\,m^{-1}}$.`, { unit: 'V/m' }),
+  m(3, 'fuse', r`A fuse wire should be made of a material that has`, 'a low melting point and a high resistivity', ['a high melting point and a low resistivity', 'a low melting point and a low resistivity', 'a high melting point and a high resistivity'],
+    r`It must melt quickly when the current is too high (low melting point) and heat up easily (high resistivity gives high $I^2R$).`),
+  a(3, 'drift velocity', 'The drift speed of electrons is tiny, yet a lamp lights almost at once when the switch is closed.', 'The electric field is set up along the whole wire at nearly the speed of light and moves all the free electrons together.', 0,
+    r`Both are true and R explains A: the signal (field) travels fast; each electron then drifts slowly.`),
+  t(3, 'Ohm\'s law', 'Ohm\'s law is not obeyed by a semiconductor diode.', 'The $V$-$I$ graph of a diode is not a straight line through the origin.', 0,
+    r`Both true. Ohm's law means $V\propto I$ (constant $R$). A diode's graph is curved and different for the two polarities, so it is non-ohmic.`),
+  cn(3, 'electric current', 'How many of the following are correct?', ['The drift velocity of electrons increases with the temperature of the conductor at constant field.', 'Mobility is the drift velocity per unit electric field.', 'The resistivity of a wire depends on its length and area.', 'Electric current is a scalar although it has a direction.'], 2,
+    r`(i) False: the relaxation time falls with $T$, so $v_d = eE\tau/m$ falls. (ii) True: $\mu = v_d/E$. (iii) False: $\rho$ is a material property. (iv) True: currents add algebraically. Two are correct.`),
+  mt(3, 'wire dimensions', 'xe3', ['q', 'p', 'r', 's'], r`$R = \rho L/A$. Doubling the length by stretching: $A$ halves, so $R\to4R$ (q). Doubling the radius: $A\to4A$, $R\to R/4$ (p). Half the wire: $R/2$ (r). Stretched to $3L$: $9R$ (s).`),
+  mt(3, 'combination of cells', 'xe4', ['q', 'p', 'r', 't'], r`Series: emf adds, $4\times2 = 8$ V (q) and resistance adds, $4\times1 = 4\ \Omega$ (t). All in parallel: emf stays 2 V (p). Two series pairs (4 V each) in parallel: emf 4 V (r).`),
+  mt(3, 'electric power', 'xe5', ['q', 's', 'r', 'p'], r`$R = V^2/P$: $200^2/100 = 400\ \Omega$ (q) and $200^2/40 = 1000\ \Omega$ (s). $I = P/V = 0.5$ A (r). On 100 V, $P = 100^2/400 = 25$ W (p).`),
+  mt(3, 'metre bridge', 'xe7', ['q', 's', 'p', 'r'], r`$X = R\dfrac{100-l}{l}$. $l=50$: 10 $\Omega$ (q). $l=25$: $10\times3 = 30\ \Omega$ (s). $l=75$: $10/3 = 3.33\ \Omega$ (p). $l=40$: $10\times1.5 = 15\ \Omega$ (r).`),
+  // ---------- Level 4 ----------
+  m(4, 'symmetrical networks', r`Twelve identical resistors of resistance $R$ form the edges of a cube. The equivalent resistance between the two ends of one edge is`, r`$\dfrac{7R}{12}$`, [r`$\dfrac{5R}{6}$`, r`$\dfrac{3R}{4}$`, r`$\dfrac{R}{2}$`],
+    r`Send a current $I$ in at A and out at B (the ends of one edge). By symmetry and superposition, the direct edge AB carries $\\tfrac{7}{12}I$ and the other paths together carry $\\tfrac{5}{12}I$. So $V = \\tfrac7{12}I\\times R$ and $R_{eq} = \\tfrac{7R}{12}$. $\\tfrac{5R}{6}$ is the body diagonal and $\\tfrac{3R}{4}$ the face diagonal.`, { trap: 'Each pair of corners of the cube has its own value.' }),
+  n(4, 'symmetrical networks', r`Each edge of a cube is a 12 $\Omega$ resistor. What is the resistance (in $\Omega$) between two opposite corners (ends of a body diagonal)?`, () => 5 * 12 / 6, 0, 0,
+    r`By symmetry the three edges at the entry corner carry $I/3$ each, the six middle edges carry $I/6$, and the three edges at the exit corner carry $I/3$. $V = \dfrac I3R + \dfrac I6R + \dfrac I3R = \dfrac{5}{6}IR$. $R_{eq} = \dfrac{5\times12}{6} = 10\ \Omega$.`, { unit: 'Ω' }),
+  n(4, 'ladder of resistors', r`An infinite ladder has a 10 $\Omega$ series resistor and a 10 $\Omega$ shunt resistor in each section. What is the equivalent resistance (in $\Omega$, 2 decimals) between its input terminals?`, () => 10 * (1 + Math.sqrt(5)) / 2, 0.01, 2,
+    r`Adding one more section does not change an infinite ladder: $x = R + \dfrac{Rx}{R+x}$. This gives $x^2 - Rx - R^2 = 0$, so $x = \dfrac{(1+\sqrt5)R}{2} = 16.18\ \Omega$.`, { unit: 'Ω' }),
+  n(4, 'Kirchhoff\'s laws', r`Two cells of 12 V and 6 V (negligible internal resistance) have their negative terminals joined at a point Y. Their positive terminals go through a 2 $\Omega$ and a 3 $\Omega$ resistor respectively to a junction X. A 6 $\Omega$ resistor joins X to Y. Find the current (in A, 2 decimals) in the 6 $\Omega$ resistor.`, () => ((12 / 2 + 6 / 3) / (1 / 2 + 1 / 3 + 1 / 6)) / 6, 0.01, 2,
+    r`Let the node be at potential $V$ above the common line. Junction rule: $\dfrac{12-V}{2} + \dfrac{6-V}{3} = \dfrac V6$. Multiply by 6: $36 - 3V + 12 - 2V = V \Rightarrow V = 8$ V. $I = 8/6 = 1.33$ A. (The 6 V cell is being charged: its branch current is $-0.67$ A.)`, { unit: 'A' }),
+  n(4, 'power in bulbs', r`A 100 W and a 60 W bulb, both rated for 220 V, are connected in series across 220 V. Find the power (in W, 2 decimals) dissipated in the 100 W bulb.`, () => { const R1 = 220 ** 2 / 100; const R2 = 220 ** 2 / 60; const I = 220 / (R1 + R2); return I * I * R1; }, 0.02, 2,
+    r`$R_1 = 484\ \Omega$, $R_2 = 806.7\ \Omega$. $I = \dfrac{220}{1290.7} = 0.1704$ A. $P_1 = I^2R_1 = 14.06$ W. The 60 W bulb dissipates $I^2R_2 = 23.4$ W, so it glows brighter.`, { unit: 'W', trap: 'In series the bulb with the larger resistance (lower rating) glows brighter.' }),
+  n(4, 'maximum power', r`A cell of emf 10 V and internal resistance 2 $\Omega$ gives the same power to a 1 $\Omega$ load as to another load $R_2$. Find $R_2$ (in $\Omega$).`, () => 4 / 1, 0, 0,
+    r`$P = \dfrac{E^2R}{(R+r)^2}$ takes the same value for $R_1$ and $R_2$ when $R_1R_2 = r^2$. $R_2 = 4/1 = 4\ \Omega$. Check: $P_1 = \dfrac{100\times1}{9} = 11.1$ W, $P_2 = \dfrac{100\times4}{36} = 11.1$ W.`, { unit: 'Ω' }),
+  n(4, 'combination of cells', r`Cells of emf 4 V (internal resistance 1 $\Omega$) and 2 V (2 $\Omega$) are joined in parallel (like poles together) across a 3 $\Omega$ resistor. Find the current in the resistor (in A, 2 decimals).`, () => ((4 / 1 + 2 / 2) / (1 + 1 / 2)) / (3 + 1 / (1 + 1 / 2)), 0.01, 2,
+    r`Equivalent cell: $E = \dfrac{E_1/r_1 + E_2/r_2}{1/r_1+1/r_2} = \dfrac{4+1}{1.5} = 3.33$ V and $r = \dfrac1{1.5} = 0.667\ \Omega$. $I = \dfrac{3.33}{3+0.667} = 0.91$ A.`, { unit: 'A' }),
+  n(4, 'combination of cells', r`Cells of 6 V (internal resistance 1 $\Omega$) and 4 V (2 $\Omega$) are connected in series with their emfs opposing, through a 3 $\Omega$ resistor. Find the potential difference (in V, 2 decimals) across the 4 V cell's terminals.`, () => 4 + (2 / 6) * 2, 0.01, 2,
+    r`$I = \dfrac{6-4}{1+2+3} = \dfrac13$ A. The 6 V cell pushes current through the 4 V cell against its emf, charging it: $V = E_2 + Ir_2 = 4 + \tfrac13\times2 = 4.67$ V.`, { unit: 'V', trap: 'A cell being charged has terminal voltage above its emf.' }),
+  n(4, 'potentiometer', r`The balance length for a cell on open circuit is 75 cm. When the cell is connected to a 12 $\Omega$ resistor, the balance length falls to 60 cm. Find the internal resistance of the cell (in $\Omega$).`, () => 12 * (75 - 60) / 60, 0, 0,
+    r`$r = R\left(\dfrac{l_1 - l_2}{l_2}\right) = 12\times\dfrac{15}{60} = 3\ \Omega$.`, { unit: 'Ω' }),
+  n(4, 'temperature compensation', r`A resistor made of copper ($\alpha = 4\times10^{-3}\ \mathrm{K^{-1}}$) is joined in series with a carbon resistor ($\alpha = -5\times10^{-4}\ \mathrm{K^{-1}}$) so that the combination has no change in resistance with temperature. Find $R_{carbon}/R_{copper}$ at the reference temperature.`, () => 4e-3 / 5e-4, 0, 0,
+    r`Change $= R_{Cu}\alpha_{Cu}\Delta T + R_C\alpha_C\Delta T = 0$, so $R_C/R_{Cu} = \alpha_{Cu}/|\alpha_C| = \dfrac{4\times10^{-3}}{5\times10^{-4}} = 8$.`),
+  n(4, 'mixed: capacitor in a DC circuit', r`A 10 V cell of negligible internal resistance drives a 2 $\Omega$ and a 3 $\Omega$ resistor in series. A 5 $\mu$F capacitor is connected across the 3 $\Omega$ resistor. Find its charge in the steady state (in $\mu$C).`, () => 5 * (10 * 3 / 5), 0, 0,
+    r`In the steady state no current flows through the capacitor. $I = 10/5 = 2$ A; voltage across the 3 $\Omega$ $= 6$ V. $Q = CV = 5\times6 = 30\ \mu$C.`, { unit: 'μC' }),
+  n(4, 'electric power', r`A bulb rated for 100 W at 200 V is run from a 100 V supply. Assuming its resistance does not change, how much power (in W) does it take?`, () => 100 / 4, 0, 0,
+    r`$P\propto V^2$ for constant $R$: $P = 100\times\left(\dfrac{100}{200}\right)^2 = 25$ W.`, { unit: 'W' }),
+  s(4, 'Ohm\'s law', r`Which of the following obey Ohm's law (constant resistance) under the stated conditions?`,
+    ['A copper wire kept at constant temperature', 'The filament of a bulb', 'A semiconductor diode', 'A nichrome wire kept at constant temperature'], [0, 3],
+    r`Ohm's law needs $V\propto I$ with $R$ constant. Metals at constant $T$ do (A, D). A filament's resistance rises as it heats (B), and a diode's $V$-$I$ curve is non-linear (C).`),
+  s(5, 'maximum power', r`A cell of emf $E$ and internal resistance $r$ is connected across a load $R$. Which statements are correct?`,
+    [r`The current is $E/(R+r)$.`, 'The terminal voltage rises as $R$ increases.', r`The power in the load is greatest when $R = r$.`, 'At maximum power the efficiency is 100%.'], [0, 1, 2],
+    r`(A) $I = E/(R+r)$. (B) $V = E - Ir = \dfrac{ER}{R+r}$ increases with $R$. (C) $P = \dfrac{E^2R}{(R+r)^2}$ is maximum at $R = r$. (D) At $R=r$ half the power is wasted in $r$: the efficiency is 50%.`),
+  s(4, 'Wheatstone bridge', r`A Wheatstone bridge is balanced. Which statements are correct?`,
+    [r`$P/Q = R/S$.`, 'No current flows through the galvanometer.', 'Interchanging the battery and the galvanometer leaves the bridge balanced.', 'The balance depends on the emf of the battery.'], [0, 1, 2],
+    r`At balance the galvanometer arm's ends are at the same potential, which needs $P/Q = R/S$ (A, B). The condition is symmetrical, so swapping battery and galvanometer keeps it (C). The emf only scales all the voltages (D false).`),
+  s(5, 'drift velocity', r`A conductor of varying cross-section carries a steady current. Which statements are correct at its narrow part, compared with its wide part?`,
+    ['The current is larger.', 'The current density is larger.', 'The drift speed is larger.', 'The electric field is larger.'], [1, 2, 3],
+    r`The current $I$ is the same at every section (charge cannot pile up). $J = I/A$ is larger where $A$ is smaller (B), $v_d = J/ne$ is larger (C), and $E = \rho J$ is larger (D). A is false.`),
+  s(4, 'meters', r`Which statements about meters are correct?`,
+    ['An ammeter is joined in parallel with the part of the circuit it measures.', 'An ideal ammeter has zero resistance.', 'A voltmeter has a high resistance and is joined in parallel.', 'A galvanometer is converted into an ammeter by a shunt much smaller than its own resistance.'], [1, 2, 3],
+    r`An ammeter goes in series (A false). Ideal: zero resistance (B), so it does not disturb the current. A voltmeter is in parallel with high resistance (C). A shunt is a small resistance in parallel with the coil, which makes the ammeter's total resistance small (D).`),
+  s(5, 'heating effect', r`Two heaters of resistances $R_1 < R_2$ run from the same supply. Which statements are correct?`,
+    ['In series, the heater of larger resistance gives more heat.', 'In series, the heater of smaller resistance gives more heat.', 'In parallel, the heater of smaller resistance gives more heat.', 'In parallel, both have the same voltage across them.'], [0, 2, 3],
+    r`Series: same current, $P = I^2R$, larger $R$ gets more (A true, B false). Parallel: same voltage, $P = V^2/R$, smaller $R$ gets more (C), and the voltage is shared (D).`),
+  s(4, 'potentiometer', r`Which statements about a potentiometer are correct?`,
+    ['It measures an emf more accurately than a voltmeter because it draws no current at balance.', 'The potential gradient is the voltage across the wire divided by its length.', 'Its sensitivity increases if the potential gradient is made smaller.', 'The potential gradient falls if the series rheostat resistance is reduced.'], [0, 1, 2],
+    r`At balance the cell supplies no current, so its internal drop is zero (A). The gradient is $V_{wire}/L$ (B). A small gradient means a given length change corresponds to a small voltage, so the balance point can be read more finely (C). Reducing the rheostat resistance raises the current and the gradient (D false).`),
+  s(5, 'resistivity', r`Which statements about resistivity are correct?`,
+    [r`$\rho = \dfrac{m}{ne^2\tau}$ for a metal.`, r`The resistivity of a metal rises with temperature because $\tau$ falls.`, 'The resistivity of a semiconductor falls with temperature because $n$ rises.', 'The resistivity of manganin changes greatly with temperature.'], [0, 1, 2],
+    r`From $v_d = \dfrac{eE\tau}{m}$ and $J = nev_d$, $\rho = \dfrac{m}{ne^2\tau}$ (A). In metals $n$ is fixed and collisions increase with $T$ (B). In semiconductors $n$ rises sharply with $T$ (C). Manganin is chosen for standard resistors because its resistivity hardly changes (D false).`),
+  s(5, 'symmetrical networks', r`A cube has an identical resistor $R$ on each of its 12 edges, and a battery is connected across the ends of a body diagonal. Which statements are correct?`,
+    ['The three edges at the entry corner carry equal currents.', 'The six middle edges carry equal currents.', 'All twelve edges carry the same current.', r`The equivalent resistance is $5R/6$.`], [0, 1, 3],
+    r`By symmetry the three edges at each end are equivalent (A) and the six middle edges are equivalent (B), but the currents differ: $I/3$ in the end edges and $I/6$ in the middle ones (C false). $V = IR\left(\tfrac13+\tfrac16+\tfrac13\right) = \tfrac56IR$ (D).`),
+  s(4, 'power in bulbs', r`A 100 W and a 60 W bulb, both rated for 220 V, are connected. Which statements are correct?`,
+    ['In series, the 60 W bulb glows brighter.', 'In parallel, the 100 W bulb glows brighter.', 'In series, the 100 W bulb glows brighter.', 'The 60 W bulb has the larger resistance.'], [0, 1, 3],
+    r`$R = V^2/P$ is larger for the 60 W bulb (D). Series: same current, $P = I^2R$ favours the larger $R$ (A true, C false). Parallel: same voltage, $P = V^2/R$ favours the smaller $R$, the 100 W bulb (B).`),
+  mt(4, 'potentiometer', 'xe6', ['q', 'r', 'p', 's'], r`$I = 3/15 = 0.2$ A. Wire voltage $= 0.2\times10 = 2$ V (q). Gradient $= 2/5 = 0.4$ V/m (r). $1.2/0.4 = 3$ m (p). Without the 5 $\Omega$: $I = 0.3$ A, wire voltage 3 V, gradient 0.6 V/m, so $l = 1.2/0.6 = 2$ m (s).`),
+  mt(4, 'symmetrical networks', 'xe8', ['p', 'q', 'r', 's'], r`Cube: adjacent corners $\tfrac{7R}{12}$ (p); face diagonal $\tfrac{3R}{4}$ (q); body diagonal $\tfrac{5R}{6}$ (r). A square frame of four resistors: two parallel paths of $2R$ each give $R$ (s).`),
+  a(4, 'semiconductors', 'The resistivity of a semiconductor decreases as the temperature increases.', 'The number of charge carriers in a semiconductor increases rapidly with temperature, outweighing the extra collisions.', 0,
+    r`Both are true, and R explains A: $\rho = \dfrac{m}{ne^2\tau}$ with $n$ rising much faster than $\tau$ falls.`),
+  a(4, 'meters', 'A voltmeter should have a very high resistance.', 'It is connected in parallel and should draw a negligible current from the circuit.', 0,
+    r`A low-resistance voltmeter would draw current and change the voltage it is measuring. Both true, and R explains A.`),
+  a(4, 'Kirchhoff\'s junction rule', 'Kirchhoff\'s junction rule expresses the conservation of electric charge.', 'In a steady state, charge cannot accumulate at a junction.', 0,
+    r`The current in equals the current out, because otherwise charge would collect. Both true, and R explains A.`),
+  a(5, 'maximum power', 'When a load receives the greatest possible power from a cell, the efficiency is 100%.', 'The power in the load is greatest when its resistance equals the internal resistance of the cell.', 3,
+    r`A is false: at $R = r$ the same power is wasted in the cell, so the efficiency is 50%. R is true.`),
+  t(4, 'power in bulbs', 'Two bulbs of the same voltage rating but different power, connected in series, make the lower-power bulb glow brighter.', 'In series the current is the same, and the bulb with the greater resistance dissipates more power.', 0,
+    r`Both are true. The lower-power bulb has the higher resistance, so $P = I^2R$ is larger for it.`),
+  t(4, 'potentiometer', 'A potentiometer is preferred to a voltmeter for measuring the emf of a cell.', 'At the balance point the potentiometer draws no current from the cell.', 0,
+    r`Both true, and the second explains the first: a voltmeter draws some current and reads the terminal voltage, not the emf.`),
+  t(5, 'combination of cells', 'Joining identical cells in parallel increases the emf of the battery.', 'Cells in parallel reduce the effective internal resistance.', 3,
+    r`I is false: the emf of identical cells in parallel stays $E$. II is true: $r_{eq} = r/n$.`),
+  cn(4, 'cells', 'How many of the following are correct?', ['The terminal voltage of a discharging cell is less than its emf.', 'The terminal voltage of a cell being charged is greater than its emf.', 'The power in a non-ohmic resistor is still $VI$.', 'In a series circuit the voltage across every component is the same.'], 3,
+    r`(i) True: $V = E - Ir$. (ii) True: $V = E + Ir$. (iii) True: $P = VI$ always. (iv) False: the current, not the voltage, is shared in a series circuit. Three are correct.`),
+  // ---------- Level 5 ----------
+  n(5, 'radial flow of current', r`The space between two concentric spherical electrodes of radii 0.1 m and 0.2 m is filled with a medium of resistivity 100 $\Omega$ m. Find the resistance between the electrodes (in $\Omega$, 1 decimal).`, () => 100 / (4 * Math.PI) * (1 / 0.1 - 1 / 0.2), 0.1, 1,
+    r`A thin shell of radius $r$ and thickness $dr$ has $dR = \dfrac{\rho\,dr}{4\pi r^2}$. $R = \dfrac{\rho}{4\pi}\int_{0.1}^{0.2}\dfrac{dr}{r^2} = \dfrac{\rho}{4\pi}\left(\dfrac1{0.1}-\dfrac1{0.2}\right) = \dfrac{100}{12.57}\times5 = 39.8\ \Omega$.`, { unit: 'Ω', trap: 'The area changes with the radius, so integrate.' }),
+  n(5, 'non-uniform resistivity', r`A rod of length 2 m and area $1\ \mathrm{mm^2}$ has resistivity $\rho = \rho_0(1 + x/L)$ along its length, with $\rho_0 = 10^{-5}\ \Omega\,\mathrm m$. Find its resistance (in $\Omega$).`, () => 1.5 * 1e-5 * 2 / 1e-6, 0, 0,
+    r`$R = \int_0^L\dfrac{\rho\,dx}{A} = \dfrac{\rho_0}{A}\left(L + \dfrac L2\right) = \dfrac{1.5\rho_0L}{A} = \dfrac{1.5\times10^{-5}\times2}{10^{-6}} = 30\ \Omega$.`, { unit: 'Ω' }),
+  n(5, 'resistance of a tapered conductor', r`A conical conductor of length 1 m has radii 1 mm and 2 mm at its ends and resistivity $10^{-6}\ \Omega\,\mathrm m$. Find the resistance between its ends (in $\Omega$, 3 decimals).`, () => 1e-6 * 1 / (Math.PI * 1e-3 * 2e-3), 0.001, 3,
+    r`A slice at distance $x$ has radius $r = r_1 + (r_2-r_1)x/L$. $R = \rho\int\dfrac{dx}{\pi r^2} = \dfrac{\rho L}{\pi r_1r_2} = \dfrac{10^{-6}\times1}{\pi\times10^{-3}\times2\times10^{-3}} = 0.159\ \Omega$.`, { unit: 'Ω' }),
+  n(5, 'voltmeter loading', r`A 10 V source (negligible internal resistance) feeds two 50 k$\Omega$ resistors in series. A voltmeter of resistance 5 k$\Omega$ is connected across one of them. What does it read (in V, 2 decimals)?`, () => 10 * (50 * 5 / 55) / (50 * 5 / 55 + 50), 0.01, 2,
+    r`The voltmeter and the 50 k$\Omega$ are in parallel: $\dfrac{50\times5}{55} = 4.545$ k$\Omega$. The reading is $10\times\dfrac{4.545}{4.545+50} = 0.83$ V instead of the true 5 V. A low-resistance voltmeter spoils the measurement.`, { unit: 'V', trap: 'The meter changes the circuit it measures.' }),
+  n(5, 'combination of cells', r`Twelve identical cells (2 V, 0.5 $\Omega$ each) are arranged as 3 parallel rows of 4 cells in series and joined across a 2 $\Omega$ load. Find the current in the load (in A, 2 decimals).`, () => 8 / (2 + 4 * 0.5 / 3), 0.01, 2,
+    r`Each row: emf $4\times2 = 8$ V and resistance $4\times0.5 = 2\ \Omega$. Three rows in parallel: emf 8 V, resistance $2/3\ \Omega$. $I = \dfrac{8}{2+0.667} = 3.00$ A.`, { unit: 'A' }),
+  n(5, 'charging a battery', r`A battery of emf 10 V and internal resistance 0.5 $\Omega$ is charged from a 12 V source of internal resistance 0.5 $\Omega$. How much power (in W) is lost as heat in the battery being charged?`, () => ((12 - 10) / 1) ** 2 * 0.5, 0, 0,
+    r`$I = \dfrac{12-10}{0.5+0.5} = 2$ A. Heat in the battery $= I^2r = 4\times0.5 = 2$ W. (The useful power stored is $EI = 20$ W.)`, { unit: 'W' }),
+  n(5, 'Kirchhoff\'s laws', r`A 12 V battery of internal resistance 1 $\Omega$ drives three resistors: 4 $\Omega$ and 12 $\Omega$ in parallel, in series with 2 $\Omega$. Find the heat produced per second (in W) in the 12 $\Omega$ resistor.`, () => { const Rp = 4 * 12 / 16; const I = 12 / (1 + 2 + Rp); const V = I * Rp; return V * V / 12; }, 0.01, 2,
+    r`$R_p = \dfrac{4\times12}{16} = 3\ \Omega$. $I = \dfrac{12}{1+2+3} = 2$ A. Voltage across the parallel pair $= 6$ V. $P = V^2/R = 36/12 = 3$ W.`, { unit: 'W' }),
+);
+
+items.push(
+  pn(3, 'combination of resistors', 'xep1', r`Find the current drawn from the battery (in A).`, () => 12 / (1 + 3 + 2), 0, 0,
+    r`The 6 $\Omega$ and 3 $\Omega$ in parallel give 2 $\Omega$. Total resistance $= 1 + 3 + 2 = 6\ \Omega$. $I = 12/6 = 2$ A.`, { unit: 'A' }),
+  pn(3, 'internal resistance', 'xep1', r`Find the terminal voltage of the battery (in V).`, () => 12 - 2 * 1, 0, 0,
+    r`$V = E - Ir = 12 - 2\times1 = 10$ V.`, { unit: 'V' }),
+  pn(4, 'electric power', 'xep1', r`Find the power dissipated in the 6 $\Omega$ resistor (in W, 2 decimals).`, () => (2 * 2) ** 2 / 6, 0.01, 2,
+    r`The voltage across the parallel pair $= 2\ \mathrm A\times2\ \Omega = 4$ V. $P = \dfrac{V^2}{R} = \dfrac{16}{6} = 2.67$ W.`, { unit: 'W' }),
+  pn(4, 'internal resistance', 'xep1', r`What percentage of the battery's total power output goes to the external circuit (nearest whole number)?`, () => 10 / 12 * 100, 0.5, 0,
+    r`Efficiency $= \dfrac{V}{E} = \dfrac{10}{12} = 83\%$. The rest, 4 W of the 24 W, is lost in the internal resistance.`, { unit: '%' }),
+  pn(3, 'galvanometer to ammeter', 'xep2', r`What shunt (in $\Omega$, 4 decimals) converts it into an ammeter reading 0 to 1 A?`, () => 0.001 * 100 / (1 - 0.001), 0.0005, 4,
+    r`$S = \dfrac{I_gG}{I - I_g} = \dfrac{10^{-3}\times100}{0.999} = 0.1001\ \Omega$.`, { unit: 'Ω' }),
+  pn(3, 'galvanometer to voltmeter', 'xep2', r`What series resistance (in $\Omega$) converts it into a voltmeter reading 0 to 5 V?`, () => 5 / 0.001 - 100, 0, 0,
+    r`$R = \dfrac VI_g - G = 5000 - 100 = 4900\ \Omega$. The voltmeter's total resistance is 5000 $\Omega$.`, { unit: 'Ω' }),
+  pn(5, 'voltmeter loading', 'xep2', r`This 5 V voltmeter is connected across one of two equal 50 k$\Omega$ resistors in series across a 10 V source. What does it read (in V, 2 decimals)?`, () => 10 * (50 * 5 / 55) / (50 * 5 / 55 + 50), 0.01, 2,
+    r`Its resistance is 5 k$\Omega$. In parallel with 50 k$\Omega$: 4.545 k$\Omega$. Reading $= 10\times\dfrac{4.545}{54.545} = 0.83$ V, against the true 5 V.`, { unit: 'V' }),
+);
+
+gens.push(
+  gx(3, 'nat', 'drift velocity', (rng) => {
+    const I = pick(rng, 1, 10, 0.5); const A = pick(rng, 1, 5, 0.5);
+    const v = I / (8.5e28 * A * 1e-6 * 1.6e-19) / 1e-4;
+    return { I, A, q: `A copper wire of cross-section ${A} mm² carries ${I} A. With $8.5\\times10^{28}$ free electrons per m³, find the drift speed (in units of $10^{-4}$ m/s, 2 decimals).`, answer: +v.toFixed(2), tol: 0.01, unit: '10⁻⁴ m/s',
+      sol: `$v_d = \\dfrac{I}{nAe} = \\dfrac{${I}}{8.5\\times10^{28}\\times${A}\\times10^{-6}\\times1.6\\times10^{-19}} = ${v.toFixed(2)}\\times10^{-4}$ m/s.` };
+  }, (p) => { const electronsPerSec = p.I / 1.6e-19; const volumePerSec = electronsPerSec / 8.5e28; return volumePerSec / (p.A * 1e-6) / 1e-4; }),
+  gx(3, 'nat', 'stretching a wire', (rng) => {
+    const R = pick(rng, 2, 20, 1); const k = pick(rng, 1.5, 4, 0.5);
+    const R2 = R * k * k;
+    return { R, k, q: `A wire of resistance ${R} Ω is drawn out uniformly to ${k} times its length. Find its new resistance (in Ω, 2 decimals).`, answer: +R2.toFixed(2), tol: 0.01, unit: 'Ω',
+      sol: `Volume is fixed, so $A' = A/${k}$. $R' = \\rho\\dfrac{${k}L}{A/${k}} = ${k}^2R = ${R2.toFixed(2)}\\ \\Omega$.` };
+  }, (p) => { const rho = 1; const L = 1; const A = rho * L / p.R; return rho * (p.k * L) / (A * L / (p.k * L)); }),
+  gx(4, 'nat', 'power in bulbs', (rng) => {
+    const P1 = pick(rng, 40, 150, 10); const P2 = pick(rng, 25, 100, 5); const V = 220;
+    const R1 = V * V / P1; const R2 = V * V / P2; const I = V / (R1 + R2); const Pa = I * I * R1;
+    return { P1, P2, q: `Bulbs rated ${P1} W and ${P2} W (both for 220 V) are connected in series across 220 V. Find the power (in W, 2 decimals) in the ${P1} W bulb. Assume constant resistances.`, answer: +Pa.toFixed(2), tol: 0.02, unit: 'W',
+      sol: `$R_1 = 220^2/${P1} = ${R1.toFixed(1)}\\ \\Omega$, $R_2 = 220^2/${P2} = ${R2.toFixed(1)}\\ \\Omega$. $I = 220/${(R1 + R2).toFixed(1)} = ${I.toFixed(4)}$ A. $P_1 = I^2R_1 = ${Pa.toFixed(2)}$ W.`, trap: 'In series the bulb with the larger resistance glows brighter.' };
+  }, (p) => { const V1 = 220 * (220 ** 2 / p.P1) / (220 ** 2 / p.P1 + 220 ** 2 / p.P2); return V1 * V1 / (220 ** 2 / p.P1); }),
+  gx(4, 'nat', 'combination of cells', (rng) => {
+    const E1 = pick(rng, 2, 10, 1); const E2 = pick(rng, 1, 8, 1); const r1 = pick(rng, 0.5, 3, 0.5); const r2 = pick(rng, 0.5, 3, 0.5); const R = pick(rng, 1, 6, 1);
+    const I = ((E1 / r1 + E2 / r2) / (1 / r1 + 1 / r2)) / (R + 1 / (1 / r1 + 1 / r2));
+    return { E1, E2, r1, r2, R, q: `Cells of ${E1} V (internal resistance ${r1} Ω) and ${E2} V (${r2} Ω) are joined in parallel (like poles together) across a ${R} Ω resistor. Find the current in the resistor (in A, 3 decimals).`, answer: +I.toFixed(3), tol: 0.003, unit: 'A',
+      sol: `$E_{eq} = \\dfrac{E_1/r_1+E_2/r_2}{1/r_1+1/r_2}$, $r_{eq} = \\dfrac1{1/r_1+1/r_2}$. $I = \\dfrac{E_{eq}}{R+r_{eq}} = ${I.toFixed(3)}$ A.` };
+  }, (p) => { // solve node equation: V across R: (E1-V)/r1 + (E2-V)/r2 = V/R
+    const V = (p.E1 / p.r1 + p.E2 / p.r2) / (1 / p.r1 + 1 / p.r2 + 1 / p.R); return V / p.R; }),
+  gx(3, 'nat', 'potentiometer', (rng) => {
+    const L = pick(rng, 4, 10, 1); const Rw = pick(rng, 5, 20, 5); const Rs = pick(rng, 2, 10, 2); const E0 = pick(rng, 2, 6, 1); const l = pick(rng, 1, L - 0.5, 0.5);
+    const grad = E0 * Rw / (Rw + Rs) / L; const E = grad * l;
+    return { L, Rw, Rs, E0, l, q: `A potentiometer wire is ${L} m long with resistance ${Rw} Ω. It is in series with ${Rs} Ω and a ${E0} V battery (negligible internal resistance). A cell balances at ${l} m. Find its emf (in V, 3 decimals).`, answer: +E.toFixed(3), tol: 0.003, unit: 'V',
+      sol: `$I = \\dfrac{${E0}}{${Rw}+${Rs}} = ${+(E0 / (Rw + Rs)).toFixed(4)}$ A. Gradient $= \\dfrac{IR_w}{L} = ${grad.toFixed(4)}$ V/m. $E = ${grad.toFixed(4)}\\times${l} = ${E.toFixed(3)}$ V.` };
+  }, (p) => { const I = p.E0 / (p.Rw + p.Rs); const Vw = I * p.Rw; return Vw * p.l / p.L; }),
+  gx(3, 'nat', 'galvanometer to ammeter', (rng) => {
+    const G = pick(rng, 20, 200, 10); const Ig = pick(rng, 1, 10, 1); const I = pick(rng, 1, 5, 1);
+    const S = Ig * 1e-3 * G / (I - Ig * 1e-3);
+    return { G, Ig, I, q: `A galvanometer of resistance ${G} Ω gives full-scale deflection for ${Ig} mA. What shunt (in Ω, 4 decimals) turns it into an ammeter of range 0 to ${I} A?`, answer: +S.toFixed(4), tol: 0.0005, unit: 'Ω',
+      sol: `$S = \\dfrac{I_gG}{I - I_g} = \\dfrac{${Ig}\\times10^{-3}\\times${G}}{${I} - ${Ig}\\times10^{-3}} = ${S.toFixed(4)}\\ \\Omega$.` };
+  }, (p) => { const Vg = p.Ig * 1e-3 * p.G; const Is = p.I - p.Ig * 1e-3; return Vg / Is; }),
+  gx(4, 'nat', 'internal resistance', (rng) => {
+    const R = pick(rng, 2, 20, 1); const l1 = pick(rng, 60, 90, 5); const l2 = pick(rng, 30, l1 - 5, 5);
+    const r2 = R * (l1 - l2) / l2;
+    return { R, l1, l2, q: `A cell's balance length on a potentiometer is ${l1} cm on open circuit and ${l2} cm when it drives a ${R} Ω resistor. Find its internal resistance (in Ω, 3 decimals).`, answer: +r2.toFixed(3), tol: 0.003, unit: 'Ω',
+      sol: `$r = R\\left(\\dfrac{l_1-l_2}{l_2}\\right) = ${R}\\times\\dfrac{${l1}-${l2}}{${l2}} = ${r2.toFixed(3)}\\ \\Omega$.` };
+  }, (p) => { const E = p.l1; const V = p.l2; const I = V / p.R; return (E - V) / I; }),
+  gx(4, 'nat', 'maximum power', (rng) => {
+    const r2 = pick(rng, 1, 6, 0.5); const R1 = pick(rng, 0.5, 4, 0.5); const E = pick(rng, 6, 24, 2);
+    const R2 = r2 * r2 / R1;
+    return { r2, R1, E, R2, q: `A cell of emf ${E} V and internal resistance ${r2} Ω gives the same power to a ${R1} Ω load as to a second load. Find the second load (in Ω, 3 decimals).`, answer: +R2.toFixed(3), tol: 0.003, unit: 'Ω',
+      sol: `$P = \\dfrac{E^2R}{(R+r)^2}$ is equal for $R_1$ and $R_2$ when $R_1R_2 = r^2$. $R_2 = ${r2}^2/${R1} = ${R2.toFixed(3)}\\ \\Omega$.` };
+  }, (p) => { const P = (R) => p.E ** 2 * R / (R + p.r2) ** 2; const P1 = P(p.R1); let lo = p.r2; let hi = 1e4; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (P(mid) > P1) lo = mid; else hi = mid; } return p.R1 < p.r2 ? (lo + hi) / 2 : (() => { lo = 1e-6; hi = p.r2; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (P(mid) < P1) lo = mid; else hi = mid; } return (lo + hi) / 2; })(); }),
+  gx(5, 'nat', 'combination of cells', (rng) => {
+    const cfg = choose(rng, [[2, 6], [3, 4], [4, 3], [6, 2]]); const m1 = cfg[0]; const nn = cfg[1];
+    const E = pick(rng, 1.5, 3, 0.5); const r1 = pick(rng, 0.2, 1, 0.1); const R = pick(rng, 1, 5, 0.5);
+    const I = nn * E / (R + nn * r1 / m1);
+    return { m1, nn, E, r1, R, q: `Twelve identical cells (${E} V, ${r1} Ω each) are arranged in ${m1} parallel rows of ${nn} cells in series, joined across a ${R} Ω load. Find the current in the load (in A, 3 decimals).`, answer: +I.toFixed(3), tol: 0.003, unit: 'A',
+      sol: `Each row has emf $${nn}\\times${E}$ and resistance $${nn}\\times${r1}$; ${m1} rows in parallel give resistance $${nn}\\times${r1}/${m1}$. $I = \\dfrac{nE}{R + nr/m} = ${I.toFixed(3)}$ A.` };
+  }, (p) => { const rowE = p.nn * p.E; const rowR = p.nn * p.r1; const V = (m1 => (rowE / rowR) * m1 / (m1 / rowR + 1 / p.R))(p.m1); return V / p.R; }),
+  gx(4, 'nat', 'mixed: capacitor in a DC circuit', (rng) => {
+    const E = pick(rng, 6, 24, 2); const R1 = pick(rng, 1, 6, 1); const R2 = pick(rng, 2, 8, 1); const C = pick(rng, 1, 10, 1);
+    const Q = C * E * R2 / (R1 + R2);
+    return { E, R1, R2, C, q: `A ${E} V cell (negligible internal resistance) drives ${R1} Ω and ${R2} Ω resistors in series. A ${C} μF capacitor is connected across the ${R2} Ω resistor. Find its steady-state charge (in μC, 2 decimals).`, answer: +Q.toFixed(2), tol: 0.02, unit: 'μC',
+      sol: `No current flows through the capacitor in the steady state. $V_{R_2} = ${E}\\times\\dfrac{${R2}}{${R1}+${R2}} = ${+(E * R2 / (R1 + R2)).toFixed(3)}$ V. $Q = CV = ${Q.toFixed(2)}\\ \\mu$C.` };
+  }, (p) => { const I = p.E / (p.R1 + p.R2); return p.C * I * p.R2; }),
+  gx(3, 'mcq', 'combination of resistors', (rng) => {
+    const a = int(rng, 2, 9); const b = int(rng, 2, 9); const c = int(rng, 2, 9);
+    const Req = a * b / (a + b) + c;
+    const o = numOpts(rng, Req, [a + b + c, a * b / (a + b) * c / (a * b / (a + b) + c), (a + b) * c / (a + b + c)], 'Ω', 3);
+    return { a, b, c, Req, q: `A ${a} Ω and a ${b} Ω resistor in parallel are joined in series with a ${c} Ω resistor. The equivalent resistance is`, options: o.options, answer: o.answer,
+      sol: `Parallel part: $\\dfrac{${a}\\times${b}}{${a}+${b}} = ${F(a * b / (a + b))}\\ \\Omega$. Series with ${c}: $${F(Req)}\\ \\Omega$. The other options use a wrong rule (all in series, or the wrong pair in parallel).`, trap: 'Work from the inside out.' };
+  }, (p) => p.options.findIndex((x) => Math.abs(parseFloat(x) - p.Req) < 0.006 * p.Req)),
+  gx(4, 'mcq', 'power in bulbs', (rng) => {
+    const P1 = choose(rng, [100, 150, 200]); const P2 = choose(rng, [25, 40, 60]); const seriesCase = rng() < 0.5;
+    const ans = seriesCase ? `the ${P2} W bulb` : `the ${P1} W bulb`;
+    const o = shuffleOpts(rng, ans, [seriesCase ? `the ${P1} W bulb` : `the ${P2} W bulb`, 'both equally bright', 'the brighter one depends on the supply voltage']);
+    return { P1, P2, seriesCase, opts: o.options, ans, q: `Bulbs rated ${P1} W and ${P2} W for the same voltage are joined ${seriesCase ? 'in series' : 'in parallel'} across a supply of that voltage. Which glows brighter?`, options: o.options, answer: o.answer,
+      sol: seriesCase ? `$R = V^2/P$ is larger for the ${P2} W bulb. In series the current is the same, so $P = I^2R$ is larger for it.` : `In parallel the voltage is the same, so $P = V^2/R$ is larger for the lower-resistance ${P1} W bulb.`, trap: 'Series favours the larger resistance; parallel favours the smaller.' };
+  }, (p) => p.opts.indexOf(p.seriesCase ? `the ${p.P2} W bulb` : `the ${p.P1} W bulb`)),
+);
+
+}
+
 export default { topic: 'current-electricity', groups, items, gens };

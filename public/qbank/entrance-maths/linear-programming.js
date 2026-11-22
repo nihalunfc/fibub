@@ -742,4 +742,360 @@ const gens = [
   }),
 ];
 
+
+
+
+
+// ===== expansion begin =====
+// Expansion pass (2026-11-22): more L2-L5 items (ids lp-x001..), match/multi/passage items and new templates (lp-g19..).
+const NI = [];
+const bruteInt = (f, hi = 40) => { let c = 0; for (let x = 0; x <= hi; x++) for (let y = 0; y <= hi; y++) if (f(x, y)) c++; return c; };
+const poly = (cons) => realV(cons);
+const hullArea = (cons) => polyArea(cornersOf(cons));
+const RA = [LE(1, 2, 10), LE(2, 1, 14)];
+const RB = [GE(2, 1, 12), GE(1, 2, 12)];
+const RC = [LE(1, 1, 8), LE(2, 1, 12), LE(0, 1, 6)];
+const RD = [LE(3, 1, 15), LE(1, 1, 9), LE(1, 3, 21)];
+const RE = [GE(3, 2, 18), GE(1, 2, 10)];
+const RF = [GE(1, 2, 10), GE(3, 1, 15), GE(1, 1, 7)];
+const RG = [LE(2, 3, 12), LE(3, 2, 12)];
+const RH = [LE(2, 1, 18), LE(1, 1, 11), LE(1, 2, 16), LE(1, 0, 8)];
+const RI = [LE(2, 1, 14), LE(1, 3, 21), LE(1, 0, 6)];
+const RJ = [LE(3, 2, 19), LE(1, 3, 13)];
+const RK = [GE(2, 3, 13), GE(5, 1, 12), LE(1, 1, 9)];
+const RL = [LE(1, 1, 10), LE(1, 0, 6), LE(0, 1, 8)];
+const RM = [LE(1, 1, 6), LE(1, 0, 4), LE(0, 1, 4)];
+const RN = [GE(1, 1, 4), LE(1, 1, 10), LE(1, 0, 7), LE(0, 1, 7)];
+const RO = [LE(1, 1, 10), LE(2, 1, 16), LE(1, 0, 7), LE(0, 1, 9)];
+const RP = [LE(1, 2, 10), LE(3, 1, 15)];
+const RQ = [LE(2, 3, 13), LE(3, 2, 13)];
+let _lv = 4;
+const XT4 = (q, rows, trap) => X(_lv, 'properties of an LPP', q, rows.map((r) => r[0]), rows.map((r, i) => (r[1] ? i : -1)).filter((i) => i >= 0), '<p>' + rows.map((r) => (r[1] ? '✓ ' : '✗ ') + r[2]).join(' ') + '</p>', trap);
+const RBK = [LE(2, 1, 12), LE(1, 2, 12)]; // bakery
+const RDI = [GE(4, 1, 16), GE(1, 2, 11)]; // diet
+
+Object.assign(groups, {
+  mx1: { title: 'Optimal values', passage: R`<p>All problems have $x\ge0,\ y\ge0$ and the constraints $x+2y\le8$, $3x+y\le9$. Match each objective in List I (to be maximised) with its maximum value in List II.</p>`,
+    list1: [R`A. $Z=x+y$`, R`B. $Z=2x+y$`, R`C. $Z=x+3y$`, R`D. $Z=3x+y$`], list2: [R`p. $5$`, R`q. $7$`, R`r. $9$`, R`s. $12$`] },
+  mx2: { title: 'Number of corner points', passage: R`<p>Match each feasible region in List I (always with $x\ge0,\ y\ge0$) with its number of corner points in List II.</p>`,
+    list1: [R`A. $x+y\le4$`, R`B. $x\le3,\ y\le2$`, R`C. $x+y\le6,\ x\le4,\ y\le4$`, R`D. $x+y=4$ (an equation, not an inequality)`], list2: [R`p. $2$`, R`q. $3$`, R`r. $4$`, R`s. $5$`] },
+  mx3: { title: 'Maximum over one region', passage: R`<p>A feasible region has corner points $(0,0)$, $(5,0)$, $(4,3)$ and $(0,5)$. Match each objective in List I (to be maximised) with its maximum in List II.</p>`,
+    list1: [R`A. $Z=2x+y$`, R`B. $Z=x+y$`, R`C. $Z=3x+y$`, R`D. $Z=x+2y$`], list2: [R`p. $7$`, R`q. $10$`, R`r. $11$`, R`s. $15$`] },
+  mx4: { title: 'Kinds of outcome', passage: R`<p>All problems have $x\ge0,\ y\ge0$. Match each LPP in List I with what happens in List II.</p>`,
+    list1: [R`A. Maximise $x+y$ subject to $x+2y\le4$`, R`B. Maximise $x+2y$ subject to $x+2y\le4$`, R`C. Maximise $x+y$ subject to $x+y\ge2$`, R`D. Maximise $x+y$ subject to $x+y\le2$ and $x+y\ge3$`],
+    list2: [R`p. There is no feasible point`, R`q. There is exactly one optimal point`, R`r. There are infinitely many optimal points`, R`s. There is no maximum`] },
+  mx5: { title: 'Words to inequalities', passage: R`<p>A factory makes $x$ units of X and $y$ units of Y. Match each condition in List I with its inequality in List II.</p>`,
+    list1: [R`A. The total number of units is at least $20$`, R`B. There are at most twice as many X as Y`, R`C. There must be at least one third as many Y as X`, R`D. X uses $3$ kg and Y uses $2$ kg of a material, with $60$ kg available`],
+    list2: [R`p. $x-3y\le0$`, R`q. $3x+2y\le60$`, R`r. $x+y\ge20$`, R`s. $x-2y\le0$`] },
+  mx6: { title: 'Where the maximum lies', passage: R`<p>The feasible region has corner points $(0,0)$, $(5,0)$, $(4,3)$ and $(0,5)$. Match each objective in List I (to be maximised) with where the maximum occurs in List II.</p>`,
+    list1: [R`A. $Z=5x+y$`, R`B. $Z=2x+3y$`, R`C. $Z=x+4y$`, R`D. $Z=3x+y$`],
+    list2: [R`p. At $(0,5)$ only`, R`q. At $(5,0)$ only`, R`r. At both $(5,0)$ and $(4,3)$ (and every point between)`, R`s. At $(4,3)$ only`] },
+  mx7: { title: 'Areas of feasible regions', passage: R`<p>Match each feasible region in List I (always with $x\ge0,\ y\ge0$) with its area in List II.</p>`,
+    list1: [R`A. $x+y\le6$`, R`B. $x\le4,\ y\le3$`, R`C. $x+y\le6,\ x\le4$`, R`D. $x+y\ge2,\ x\le3,\ y\le3$`], list2: [R`p. $7$`, R`q. $12$`, R`r. $16$`, R`s. $18$`] },
+  mx8: { title: 'Optimal values of different problems', passage: R`<p>Match each problem in List I (all with $x\ge0,\ y\ge0$) with its optimal value in List II.</p>`,
+    list1: [R`A. Maximise $3x+4y$ subject to $2x+y\le10$, $x+2y\le8$`, R`B. Maximise $2x+5y$ subject to $x+y\le6$, $x\le4$`, R`C. Minimise $2x+3y$ subject to $x+y\ge5$, $x+3y\ge9$, $3x+y\ge9$`, R`D. Maximise $5x+6y$ subject to $x+y\le10$, $x+3y\le24$, $3x+y\le24$`],
+    list2: [R`p. $12$`, R`q. $20$`, R`r. $30$`, R`s. $57$`] },
+  pz5: { title: 'Passage: a bakery', passage: R`<p>A bakery makes $x$ cakes and $y$ pies a day. The profit is $Z=30x+20y$ rupees. The oven allows $2x+y\le12$ and the mixer allows $x+2y\le12$. Also $x\ge0,\ y\ge0$.</p>` },
+  pz6: { title: 'Passage: a cheap diet', passage: R`<p>A diet uses $x$ units of food P and $y$ units of food Q. It needs at least $16$ units of protein ($4x+y\ge16$) and at least $11$ units of fibre ($x+2y\ge11$), with $x\ge0,\ y\ge0$. The cost is $Z=5x+2y$ rupees.</p>` },
+});
+
+// ----- L2 -----
+NI.push(
+  bM(2, 'corner point method', RA, 3, 2, 'max', 'Compare every corner point.'),
+  M(2, 'feasible region', R`Which point satisfies $x+2y\le8$, $3x+y\le9$, $x\ge0$ and $y\ge0$?`, R`$(2,3)$`, [R`$(3,3)$`, R`$(4,3)$`, R`$(0,5)$`],
+    R`<p>$(2,3)$: $2+6=8\le8$ and $6+3=9\le9$, so it is feasible. $(3,3)$ gives $3+6=9>8$. $(4,3)$ gives $10>8$. $(0,5)$ gives $10>8$.</p>`, 'Test both inequalities.'),
+  I(2, 'corner point method', R`How many corner points does the region $2x+y\le8$, $x+y\le5$, $x\ge0$, $y\ge0$ have?`, 4,
+    R`<p>The corners are $(0,0)$, $(4,0)$, $(3,2)$ (where the two lines meet) and $(0,5)$. That is $4$.</p>`, 'Check which line is closer to the origin on each axis.', { calc: () => cornersOf([LE(2, 1, 8), LE(1, 1, 5)]).length }),
+  bM(2, 'bounded and unbounded', RB, 3, 2, 'min', 'The region is unbounded, but the minimum still exists.'),
+  M(2, 'formulation', R`A carpenter spends $3$ hours on each table ($x$) and $2$ hours on each chair ($y$). He has at most $24$ hours. The constraint is`, R`$3x+2y\le24$`, [R`$2x+3y\le24$`, R`$3x+2y\ge24$`, R`$3x+2y=24$ only`],
+    R`<p>Hours used: $3x+2y$. "At most" means $\le$: $3x+2y\le24$.</p>`, 'Tables take 3 hours, not chairs.'),
+  bI(2, 'corner point method', [LE(1, 0, 4), LE(0, 1, 3)], 1, 1, 'max', 'The region is a rectangle.'),
+);
+
+// ----- L3 -----
+NI.push(
+  bI(3, 'corner point method', RC, 5, 4, 'max', 'Compare every corner.'),
+  bAt(3, 'corner point method', RC, 5, 4, 'max', 'x', 'Find the corner where the best value occurs.'),
+  bM(3, 'corner point method', RD, 4, 3, 'max', 'The line $x+y=9$ passes through the same corner.'),
+  bI(3, 'bounded and unbounded', RE, 2, 3, 'min', 'The region is unbounded; positive coefficients make the minimum exist.'),
+  I(3, 'polygon area', R`Find the area of the feasible region $x+2y\le10$, $2x+y\le14$, $x\ge0$, $y\ge0$.`, 22,
+    R`<p>The corners in order are $(0,0)$, $(7,0)$, $(6,2)$, $(0,5)$. Shoelace: $\dfrac12|0+(7\cdot2-6\cdot0)+(6\cdot5-0\cdot2)+0|=\dfrac12(14+30)=22$.</p>`, 'Find $(6,2)$ by solving the two lines.', { calc: () => hullArea(RA) }),
+  A(3, 'corner point method', R`The maximum of $Z=2x+3y$ over the region $x+y\le4$, $x\ge0$, $y\ge0$ is $12$.`, R`A linear function over a bounded polygon attains its maximum at a corner point.`, 0,
+    R`<p>The corners are $(0,0)$, $(4,0)$, $(0,4)$ with $Z=0,8,12$. R is the rule used to get A, so it explains A.</p>`, 'Check every corner.'),
+  S(3, 'bounded and unbounded', R`Every LPP with a non-empty feasible region has an optimal solution.`, R`If the feasible region is bounded, $Z$ has both a maximum and a minimum.`, 2,
+    R`<p>Statement I is false (for example, maximising $x+y$ with $x+y\ge2$ has no maximum). Statement II is true: the corner point theorem.</p>`, 'Unbounded regions can fail.'),
+  MT(3, 'corner point method', 'mx1', R`Match List I with List II.`, 'A-p, B-q, C-s, D-r', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-p, B-r, C-s, D-q'],
+    R`<p>Corners: $(0,0)$, $(3,0)$, $(2,3)$, $(0,4)$. $x+y$: $0,3,5,4$ so $5$ (p). $2x+y$: $0,6,7,4$ so $7$ (q). $x+3y$: $0,3,11,12$ so $12$ (s). $3x+y$: $0,9,9,4$ so $9$ (r).</p>`, 'Evaluate at all four corners.'),
+  MT(3, 'corner point method', 'mx2', R`Match List I with List II.`, 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    R`<p>A: $(0,0)$, $(4,0)$, $(0,4)$ gives $3$ (q). B: a rectangle, $4$ (r). C: $(0,0)$, $(4,0)$, $(4,2)$, $(2,4)$, $(0,4)$ gives $5$ (s). D: the region is the segment from $(4,0)$ to $(0,4)$, with $2$ corner points (p).</p>`, 'An equation gives a line segment, not an area.'),
+  PI(3, 'corner point method', 'pz5', R`Find the maximum profit (in rupees).`, 200,
+    R`<p>Corners: $(0,0)$, $(6,0)$, $(4,4)$, $(0,6)$. $Z=0,180,200,120$. The maximum is $200$.</p>`, 'Solve $2x+y=12$ and $x+2y=12$ for $(4,4)$.', { calc: () => lpMax(RBK, 30, 20) }),
+  PI(3, 'corner point method', 'pz5', R`How many corner points does the feasible region have?`, 4,
+    R`<p>The corners are $(0,0)$, $(6,0)$, $(4,4)$ and $(0,6)$.</p>`, '', { calc: () => cornersOf(RBK).length }),
+  M(3, 'feasible region', R`The constraints $x+2y\ge10$ and $x+2y\le6$ (with $x\ge0$, $y\ge0$) give a feasible region that is`, R`empty`, [R`a bounded polygon`, R`an unbounded region`, R`a single point`],
+    R`<p>A point cannot have $x+2y$ at least $10$ and at most $6$ at the same time. No point is feasible.</p>`, 'Check whether the two conditions can hold together.'),
+  I(3, 'lattice points', R`How many points with integer coordinates satisfy $x+y\le6$, $x\ge0$, $y\ge0$?`, 28,
+    R`<p>For $x=0,1,\dots,6$ the number of $y$ values is $7,6,5,4,3,2,1$. Total $=28$.</p>`, 'Count $y=0$ too.', { calc: () => bruteInt((x, y) => x + y <= 6, 10) }),
+  bM(3, 'bounded and unbounded', RF, 4, 5, 'min', 'The constraint $x+y\\ge7$ touches the region only at the corner $(4,3)$.'),
+  bN(3, 'numeric corner point', RG, 1, 1, 'max', 'The best corner is not a whole-number point.'),
+);
+
+// ----- L4 -----
+const redund = (cons) => { const A0 = hullArea(cons); return cons.filter((_, i) => Math.abs(hullArea(cons.filter((__, j) => j !== i)) - A0) < 1e-9).length; };
+const intLP = bruteInt((x, y) => 2 * x + 3 * y <= 13 && 3 * x + 2 * y <= 13, 20);
+const intBest = (() => { let b = -1; for (let x = 0; x <= 10; x++) for (let y = 0; y <= 10; y++) if (2 * x + 3 * y <= 13 && 3 * x + 2 * y <= 13) b = Math.max(b, x + y); return b; })();
+NI.push(
+  bI(4, 'corner point method', RH, 3, 4, 'max', 'Check all six corner points.'),
+  bAt(4, 'corner point method', RH, 3, 4, 'max', 'y', 'Find the corner with the largest value.'),
+  I(4, 'bounded and unbounded', R`Consider $3x+y\le15$, $x+y\le9$, $x+3y\le21$, $x\ge0$, $y\ge0$. How many of the three constraints are redundant (removing it does not change the region)?`, redund(RD),
+    R`<p>The lines $3x+y=15$ and $x+3y=21$ meet at $(3,6)$, and $x+y=9$ also passes through $(3,6)$. The line $x+y=9$ only touches the region at that corner, so it can be removed without changing the region. Removing either of the others cuts the region. So exactly $1$ is redundant.</p>`, 'Check where the third line passes.', { calc: () => redund(RD) }),
+  I(4, 'integer solutions', R`Maximise $Z=x+y$ subject to $2x+3y\le13$, $3x+2y\le13$ where $x$ and $y$ must be non-negative integers. Find the maximum value of $Z$.`, intBest,
+    R`<p>Without the integer condition, the corner $(2.6,2.6)$ gives $Z=5.2$. For integers, $Z\le5$. $(2,3)$ gives $4+9=13\le13$ and $6+6=12\le13$ so it is allowed, with $Z=5$. The integer maximum is $5$.</p>`, 'Rounding the LP corner gives an infeasible point.', { calc: () => intBest }),
+  I(4, 'distance from the origin', R`Find the minimum value of $x^2+y^2$ over the region $x+y\ge4$, $x\ge0$, $y\ge0$.`, 8,
+    R`<p>$x^2+y^2$ is the squared distance from the origin. The closest point of the region to $O$ is the foot of the perpendicular on $x+y=4$, which is $(2,2)$. The minimum is $4+4=8$.</p>`, 'This objective is not linear; use distance.', { calc: () => { let m = 1e9; for (let x = 0; x <= 4; x += 0.001) m = Math.min(m, x * x + (4 - x) ** 2); return Math.round(m); } }),
+  I(4, 'feasible region', R`How many corner points does the region $2x+y\le18$, $x+y\le11$, $x+2y\le16$, $x\le8$, $x\ge0$, $y\ge0$ have?`, cornersOf(RH).length,
+    R`<p>The corners are $(0,0)$, $(8,0)$, $(8,2)$, $(7,4)$, $(6,5)$, $(0,8)$. That is $6$.</p>`, 'Look for each line that forms an edge.', { calc: () => cornersOf(RH).length }),
+  I(4, 'polygon area', R`The feasible region is $3x+y\le15$, $x+y\le9$, $x+3y\le21$, $x\ge0$, $y\ge0$. If its area is $A$, find $2A$.`, 51,
+    R`<p>The corners in order are $(0,0)$, $(5,0)$, $(3,6)$, $(0,7)$. Shoelace: $2A=|0+(5\cdot6-3\cdot0)+(3\cdot7-0\cdot6)+0|=30+21=51$.</p>`, 'The corner $(3,6)$ is where two lines meet.', { calc: () => 2 * hullArea(RD) }),
+  bI(4, 'multiple optimal solutions', RI, 1, 3, 'max', 'More than one corner gives the maximum.'),
+  I(4, 'corner point method', R`Minimise $Z=3x+2y$ subject to $2x+y\ge12$, $x+2y\ge12$, $x\ge0$, $y\ge0$. At the optimal point, find $x+y$.`, 8,
+    R`<p>The corners are $(0,12)$, $(4,4)$ and $(12,0)$ with $Z=24,20,36$. The minimum is at $(4,4)$, so $x+y=8$.</p>`, 'The region is unbounded; the minimum is at the corner where the lines meet.', { calc: () => { const T = lpTable(RB, 3, 2); const b = T.reduce((u, v) => (v[2] < u[2] ? v : u)); return b[0] + b[1]; } }),
+  bN(4, 'numeric corner point', RJ, 1, 2, 'max', 'The optimal corner has fractional coordinates.'),
+  N(4, 'distance from the origin', R`Find the shortest distance from the origin to the feasible region $3x+4y\ge12$, $x\ge0$, $y\ge0$. (decimal)`, 2.4, 0.01,
+    R`<p>The region lies on the far side of the line $3x+4y=12$, so the nearest point is on that line. Distance of the origin from it $=\dfrac{12}{\sqrt{9+16}}=2.4$ (the foot $(1.44,1.92)$ is in the first quadrant).</p>`, 'Perpendicular distance, not an intercept.', { calc: () => 12 / Math.hypot(3, 4) }),
+  N(4, 'polygon area', R`Find the area of the feasible region $2x+y\le8$, $x+2y\le8$, $x\ge0$, $y\ge0$. (2 decimal places)`, 10.67, 0.01,
+    R`<p>The corners are $(0,0)$, $(4,0)$, $\left(\dfrac83,\dfrac83\right)$ and $(0,4)$. Shoelace: $\dfrac12\left(\dfrac{32}3+\dfrac{32}3\right)=\dfrac{32}3\approx10.67$.</p>`, 'The two lines meet at $\\left(\\dfrac83,\\dfrac83\\right)$.', { calc: () => hullArea([LE(2, 1, 8), LE(1, 2, 8)]) }),
+  N(4, 'numeric corner point', R`Maximise $Z=x+2y$ subject to $3x+2y\le19$, $x+3y\le13$, $x\ge0$, $y\ge0$. Find the $x$-coordinate of the optimal point. (2 decimal places)`, 4.43, 0.01,
+    R`<p>The corners are $(0,0)$, $\left(\dfrac{19}3,0\right)$, $\left(\dfrac{31}7,\dfrac{20}7\right)$ and $\left(0,\dfrac{13}3\right)$ with $Z=0,6.33,10.14,8.67$. The maximum is at $\left(\dfrac{31}7,\dfrac{20}7\right)$, so $x=\dfrac{31}7\approx4.43$.</p>`, 'Solve the two lines together.', { calc: () => { const T = lpTable(RJ, 1, 2); return T.reduce((u, v) => (v[2] > u[2] ? v : u))[0]; } }),
+  XT4('The statements below are about linear programming problems. Which are correct?', [
+    [R`The feasible region is always convex`, true, R`It is an intersection of half-planes.`],
+    [R`If an optimal solution exists, it occurs at a corner point`, true, R`This is the corner point theorem.`],
+    [R`An LPP can have exactly two optimal solutions`, false, R`If two points are optimal, every point between them is optimal, so there are $1$ or infinitely many.`],
+    [R`If the feasible region is bounded, $Z$ has a maximum and a minimum`, true, R`A linear function on a bounded polygon reaches both at corners.`],
+  ], 'Two optimal points force a whole segment.'),
+  XT4(R`Constraints: $x+2y\le10$, $3x+y\le15$, $x,y\ge0$. Which of these points are feasible?`, [
+    [R`$(3,3)$`, true, R`$3+6=9\le10$, $9+3=12\le15$.`],
+    [R`$(4,3)$`, true, R`$4+6=10\le10$, $12+3=15\le15$.`],
+    [R`$(4,4)$`, false, R`$4+8=12>10$.`],
+    [R`$(0,6)$`, false, R`$12>10$.`],
+  ], 'Boundary points are feasible.'),
+  XT4(R`The region is $x+y\ge4$, $x\ge0$, $y\ge0$. Which statements are correct?`, [
+    [R`The region is unbounded`, true, R`$x+y$ can grow without limit.`],
+    [R`$Z=2x+3y$ has a minimum value $8$`, true, R`Corners $(4,0)$ and $(0,4)$ give $8$ and $12$.`],
+    [R`$Z=2x+3y$ has a maximum`, false, R`$Z\to\infty$ as $x\to\infty$.`],
+    [R`The corner points are $(4,0)$ and $(0,4)$`, true, R`Only the lines $x+y=4$ with the axes.`],
+  ], 'Unbounded regions can have a minimum but no maximum.'),
+  XT4(R`The region is $x+2y\le10$, $3x+y\le15$, $x,y\ge0$ with corners $(0,0)$, $(5,0)$, $(4,3)$, $(0,5)$. For $Z=3x+y$, which are correct?`, [
+    [R`The maximum value is $15$`, true, R`$Z=0,15,15,5$ at the corners.`],
+    [R`It is attained at $(4,3)$`, true, R`$12+3=15$.`],
+    [R`It is attained at $(4.5,1.5)$`, true, R`$13.5+1.5=15$ and $(4.5,1.5)$ is feasible ($4.5+3=7.5\le10$).`],
+    [R`It is attained at $(0,5)$`, false, R`$Z=5$ there.`],
+  ], 'Points on the edge between two optimal corners are optimal too.'),
+  XT4(R`A diet needs at least $8$ units of A. Food X has $2$ units of A per kg and food Y has $3$. At most $10$ kg of food is allowed, and the amount of X is at least the amount of Y. Which inequalities describe this?`, [
+    [R`$2x+3y\ge8$`, true, R`At least $8$ units of A.`],
+    [R`$x+y\le10$`, true, R`At most $10$ kg.`],
+    [R`$x-y\ge0$`, true, R`X is at least Y.`],
+    [R`$2x+3y\le8$`, false, R`"At least" means $\ge$.`],
+  ], 'Read each phrase for its direction.'),
+  XT4(R`Which of these constraint sets (with $x,y\ge0$) give an empty feasible region?`, [
+    [R`$x+y\le3$ and $x+y\ge5$`, true, R`The sum cannot be both at most $3$ and at least $5$.`],
+    [R`$x+y\ge3$ and $x+y\le5$`, false, R`A strip between the lines, not empty.`],
+    [R`$x\ge4$ and $x+y\le3$`, true, R`$x\ge4$ forces $x+y\ge4>3$ since $y\ge0$.`],
+    [R`$x\le4$ and $y\le3$`, false, R`A rectangle.`],
+  ], 'Remember $y\\ge0$.'),
+  A(4, 'multiple optimal solutions', R`An LPP can have exactly two optimal solutions.`, R`If two different points are both optimal, every point on the segment between them is also optimal.`, 3,
+    R`<p>R is true: $Z$ is linear, so on the segment $Z=tZ(P)+(1-t)Z(Q)$ equals the optimal value. So an LPP with two optimal points has infinitely many. A is false.</p>`, 'Check the points between.'),
+  A(4, 'bounded and unbounded', R`The maximum of $Z=x+y$ over the region $x+y\ge2$, $x\ge0$, $y\ge0$ does not exist.`, R`The region is unbounded and $Z$ grows without limit along it.`, 0,
+    R`<p>The points $(t,0)$ with $t\ge2$ are feasible and $Z=t\to\infty$. So there is no maximum (A true), and R is exactly why.</p>`, 'Look for a direction in which both the region and Z keep growing.'),
+  SC(4, 'checking statements', [R`The feasible region of an LPP is always convex.`, R`A linear function on a bounded region has its maximum at a corner point.`, R`The set $x+y\ge5$, $x+y\le3$ has a feasible point.`, R`An LPP with an unbounded region never has an optimal solution.`], '2', ['1', '3', '4'],
+    R`<p>(1) true. (2) true. (3) false: no point satisfies both. (4) false: for instance, minimising $x+y$ over $x+y\ge4$ has a minimum $4$. So $2$ are correct.</p>`, 'Unbounded regions may still have a minimum.'),
+  S(4, 'bounded and unbounded', R`Removing a redundant constraint does not change the feasible region.`, R`In the region $3x+y\le15$, $x+3y\le21$, $x\ge0$, $y\ge0$, the constraint $x+y\le9$ is redundant.`, 0,
+    R`<p>Statement I is the meaning of redundant. For II, the lines $3x+y=15$ and $x+3y=21$ meet at $(3,6)$, which lies on $x+y=9$, and $x+y\le9$ holds at every corner $(0,0),(5,0),(3,6),(0,7)$ ($0,5,9,7$), so it is redundant.</p>`, 'Test the third constraint at every corner.'),
+  MT(4, 'corner point method', 'mx3', R`Match List I with List II.`, 'A-r, B-p, C-s, D-q', ['A-r, B-p, C-q, D-s', 'A-p, B-r, C-s, D-q', 'A-r, B-s, C-p, D-q'],
+    R`<p>Corners $(0,0),(5,0),(4,3),(0,5)$. $2x+y$: $0,10,11,5$, so $11$ (r). $x+y$: $0,5,7,5$, so $7$ (p). $3x+y$: $0,15,15,5$, so $15$ (s). $x+2y$: $0,5,10,10$, so $10$ (q).</p>`, 'Evaluate at all four corners.'),
+  MT(4, 'multiple optimal solutions', 'mx4', R`Match List I with List II.`, 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    R`<p>A: corners $(0,0)$, $(4,0)$, $(0,2)$, $Z=0,4,2$; one optimal point (q). B: $Z=0,4,4$: the whole edge, infinitely many (r). C: unbounded in the direction of increasing $Z$, no maximum (s). D: the conditions conflict, no feasible point (p).</p>`, 'Compare all corners; look for ties.'),
+  MT(4, 'formulation', 'mx5', R`Match List I with List II.`, 'A-r, B-s, C-p, D-q', ['A-r, B-s, C-q, D-p', 'A-s, B-r, C-p, D-q', 'A-r, B-p, C-s, D-q'],
+    R`<p>A: $x+y\ge20$ (r). B: $x\le2y$, i.e. $x-2y\le0$ (s). C: $y\ge\dfrac x3$, i.e. $x-3y\le0$ (p). D: $3x+2y\le60$ (q).</p>`, 'Turn "at most twice" into $x\\le2y$.'),
+  PI(4, 'corner point method', 'pz5', R`The profit per cake rises to $50$ rupees, so $Z=50x+20y$. Find the new maximum profit.`, 300,
+    R`<p>$Z$ at the corners: $(0,0)\to0$, $(6,0)\to300$, $(4,4)\to280$, $(0,6)\to120$. The maximum is $300$, now at $(6,0)$.</p>`, 'The best corner can change when a coefficient changes.', { calc: () => lpMax(RBK, 50, 20) }),
+  PI(4, 'corner point method', 'pz6', R`Find the minimum cost in rupees.`, 23,
+    R`<p>The corners are $(0,16)$, $(3,4)$ (where $4x+y=16$ meets $x+2y=11$) and $(11,0)$. $Z=32,23,55$. The minimum is $23$.</p>`, 'The region is unbounded; positive costs make the minimum exist.', { calc: () => lpMin(RDI, 5, 2) }),
+  PI(4, 'corner point method', 'pz6', R`Find the value of $x$ at the cheapest diet.`, 3,
+    R`<p>The minimum $Z=23$ occurs at $(3,4)$, so $x=3$.</p>`, '', { calc: () => lpTable(RDI, 5, 2).reduce((u, v) => (v[2] < u[2] ? v : u))[0] }),
+  PN(4, 'numeric corner point', 'pz6', R`The cost of food P falls to $1.5$ rupees per unit, so $Z=1.5x+2y$. Find the new minimum cost. (decimal)`, 12.5, 0.01,
+    R`<p>$Z$ at the corners: $(0,16)\to32$, $(3,4)\to4.5+8=12.5$, $(11,0)\to16.5$. The minimum is $12.5$.</p>`, 'Recompute at every corner.', { calc: () => lpMin(RDI, 1.5, 2) }),
+);
+
+// ----- L5 -----
+_lv = 5;
+const pq = (() => { for (let p = 1; p <= 9; p++) for (let q = 1; q <= 9; q++) if (p + q === 6 && Math.abs(4 * p + 3 * q - 5 * q) < 1e-9 && Math.max(0, 5 * p, 4 * p + 3 * q, 5 * q) === 5 * q) return p * q; return NaN; })();
+const kCount = (() => { let c = 0; for (let k = 0; k <= 10; k++) { const v = [0, 5, 4 + 3 * k, 5 * k]; if (v[2] >= Math.max(...v) - 1e-9) c++; } return c; })();
+const optLat = (() => { const best = 10; return bruteInt((x, y) => x + y === best && x <= 6 && y <= 8 && x + y <= 10, 12); })();
+const maxSq = Math.max(...cornersOf(RM).map(([x, y]) => x * x + y * y));
+NI.push(
+  I(5, 'multiple optimal solutions', R`The maximum of $Z=px+qy$ over the region $x+2y\le10$, $3x+y\le15$, $x\ge0$, $y\ge0$ occurs at both $(4,3)$ and $(0,5)$, and $p+q=6$. Find $pq$.`, pq,
+    R`<p>Equal values: $4p+3q=5q$, so $4p=2q$ and $q=2p$. With $p+q=6$: $p=2$, $q=4$, $pq=8$. Check: $Z(4,3)=8+12=20$, $Z(0,5)=20$, $Z(5,0)=10$, $Z(0,0)=0$, so $20$ is the maximum.</p>`, 'Check that the tied value is really the maximum.', { calc: () => pq }),
+  I(5, 'multiple optimal solutions', R`Over the region $x+2y\le10$, $3x+y\le15$, $x\ge0$, $y\ge0$ (corners $(0,0)$, $(5,0)$, $(4,3)$, $(0,5)$), for how many integers $k$ with $0\le k\le10$ does $Z=x+ky$ attain its maximum at $(4,3)$ (ties allowed)?`, kCount,
+    R`<p>$Z(5,0)=5$, $Z(4,3)=4+3k$, $Z(0,5)=5k$. $(4,3)$ is a maximum when $4+3k\ge5$ (so $k\ge\dfrac13$) and $4+3k\ge5k$ (so $k\le2$). The integers are $k=1,2$, that is $2$ values.</p>`, 'Include the tie at $k=2$.', { calc: () => kCount }),
+  I(5, 'lattice points', R`Maximise $Z=x+y$ subject to $x+y\le10$, $x\le6$, $y\le8$, $x\ge0$, $y\ge0$. How many points with integer coordinates give the maximum?`, optLat,
+    R`<p>The maximum is $10$ along the edge $x+y=10$, from $(6,4)$ to $(2,8)$. Integer points: $(6,4)$, $(5,5)$, $(4,6)$, $(3,7)$, $(2,8)$. That is $5$.</p>`, 'Count both end points of the edge.', { calc: () => optLat }),
+  I(5, 'polygon area', R`Find the area of the feasible region $x+y\ge4$, $x+y\le10$, $x\le7$, $y\le7$, $x\ge0$, $y\ge0$.`, 33,
+    R`<p>The corners are $(4,0)$, $(7,0)$, $(7,3)$, $(3,7)$, $(0,7)$, $(0,4)$. The square $0\le x,y\le7$ has area $49$. Remove the triangle below $x+y=4$ (legs $4$, area $8$) and the triangle above $x+y=10$ (legs $4$, area $8$): $49-8-8=33$.</p>`, 'Subtract two corner triangles from the square.', { calc: () => hullArea(RN) }),
+  I(5, 'distance from the origin', R`Find the maximum value of $x^2+y^2$ over the region $x+y\le6$, $x\le4$, $y\le4$, $x\ge0$, $y\ge0$.`, maxSq,
+    R`<p>A convex function such as $x^2+y^2$ reaches its maximum at a corner. The corners are $(0,0)$, $(4,0)$, $(4,2)$, $(2,4)$, $(0,4)$ with values $0,16,20,20,16$. The maximum is $20$.</p>`, 'Compare all corners, not just the farthest axis points.', { calc: () => maxSq }),
+  bN(5, 'numeric corner point', RK, 2, 5, 'max', 'The best corner has fractional coordinates.'),
+  N(5, 'polygon area', R`Find the area of the feasible region $2x+3y\ge13$, $5x+y\ge12$, $x+y\le9$, $x\ge0$, $y\ge0$. (2 decimal places)`, +hullArea(RK).toFixed(2), 0.01,
+    R`<p>The corners in order are $(6.5,0)$, $(9,0)$, $(0.75,8.25)$ and $\left(\dfrac{23}{13},\dfrac{41}{13}\right)\approx(1.77,3.15)$. The shoelace formula over these four corners gives the area.</p>`, 'Find all four corners first; $(1.77,3.15)$ comes from the two "at least" lines.', { calc: () => hullArea(RK) }),
+  XT4(R`The region is $x+y\le6$, $x\le4$, $y\le4$, $x\ge0$, $y\ge0$. Which objectives (to be maximised) have a unique optimal point at $(4,2)$?`, [
+    [R`$Z=3x+y$`, true, R`Corners: $(4,0)\to12$, $(4,2)\to14$, $(2,4)\to10$.`],
+    [R`$Z=x+y$`, false, R`$Z=6$ at both $(4,2)$ and $(2,4)$.`],
+    [R`$Z=2x+y$`, true, R`$(4,2)\to10$, $(2,4)\to8$, $(4,0)\to8$.`],
+    [R`$Z=x+2y$`, false, R`$(2,4)\to10$ beats $(4,2)\to8$.`],
+  ], 'Check the neighbouring corners.'),
+  XT4(R`The region is $x-y\le2$, $x+y\ge4$, $x\ge0$, $y\ge0$. Which statements are correct?`, [
+    [R`The minimum of $x+y$ is $4$`, true, R`The corners are $(3,1)$ and $(0,4)$, both with $x+y=4$.`],
+    [R`$x+y$ has infinitely many minimisers`, true, R`Both ends of the segment give $4$, so all points between do.`],
+    [R`$x+y$ has no maximum`, true, R`The region is unbounded, and $x+y$ grows without limit.`],
+    [R`$y-x$ has a maximum`, false, R`Moving up along $x=0$ gives $y-x\to\infty$.`],
+  ], 'Look for ties and unbounded directions.'),
+  XT4(R`The bakery problem: maximise $Z=30x+20y$ subject to $2x+y\le12$, $x+2y\le12$, $x,y\ge0$. Which are correct?`, [
+    [R`The maximum is $200$`, true, R`At $(4,4)$.`],
+    [R`The maximum is at $(4,4)$`, true, R`$Z=0,180,200,120$ at the corners.`],
+    [R`If the profit on cakes becomes $50$, the best corner is $(6,0)$ with $300$`, true, R`$Z=0,300,280,120$.`],
+    [R`If $Z=30x+30y$, the maximum is attained at two corners`, false, R`$Z=0,180,240,180$: unique at $(4,4)$.`],
+  ], 'Recompute for every changed objective.'),
+  XT4(R`The region is $x+y\le10$, $2x+y\le16$, $x\le7$, $y\le9$, $x,y\ge0$. Which are correct?`, [
+    [R`It has $6$ corner points`, true, R`$(0,0)$, $(7,0)$, $(7,2)$, $(6,4)$, $(1,9)$, $(0,9)$.`],
+    [R`No constraint is redundant`, true, R`Each of the four lines carries an edge.`],
+    [R`$Z=x+y$ has infinitely many optimal points`, true, R`$Z=10$ at both $(6,4)$ and $(1,9)$.`],
+    [R`$Z=2x+y$ is maximised at exactly one corner`, false, R`$Z=16$ at both $(7,2)$ and $(6,4)$.`],
+  ], 'Ties between neighbouring corners mean a whole edge.'),
+  A(5, 'bounded and unbounded', R`The problem "maximise $Z=2x-y$ subject to $x-y\le1$, $x\ge0$, $y\ge0$" has no optimal solution.`, R`The points $(1+t,\,t)$, $t\ge0$, are feasible and $Z=2+t$ at them, which grows without limit.`, 0,
+    R`<p>For $(1+t,t)$: $x-y=1\le1$, so it is feasible, and $Z=2(1+t)-t=2+t\to\infty$. So there is no maximum (A is true), and R is exactly the reason.</p>`, 'Find a feasible ray along which $Z$ increases.'),
+  S(5, 'multiple optimal solutions', R`If a bounded LPP has two optimal corner points, it has infinitely many optimal points.`, R`An LPP whose feasible region is unbounded never has an optimal solution.`, 1,
+    R`<p>I is true: the segment between the two corners is optimal. II is false: for instance, minimising $x+y$ over $x+y\ge4$ has the minimum $4$.</p>`, 'Positive costs keep the minimum.'),
+  MT(5, 'multiple optimal solutions', 'mx6', R`Match List I with List II.`, 'A-q, B-s, C-p, D-r', ['A-q, B-s, C-r, D-p', 'A-s, B-q, C-p, D-r', 'A-q, B-p, C-s, D-r'],
+    R`<p>Corners $(0,0),(5,0),(4,3),(0,5)$. A: $0,25,23,5$, so $(5,0)$ only (q). B: $0,10,17,15$, so $(4,3)$ only (s). C: $0,5,16,20$, so $(0,5)$ only (p). D: $0,15,15,5$, so both $(5,0)$ and $(4,3)$ (r).</p>`, 'Look for ties.'),
+  MT(5, 'polygon area', 'mx7', R`Match List I with List II.`, 'A-s, B-q, C-r, D-p', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-s, B-r, C-q, D-p'],
+    R`<p>A: triangle with legs $6$: $18$ (s). B: rectangle $4\times3=12$ (q). C: the region has corners $(0,0)$, $(4,0)$, $(4,2)$, $(0,6)$, area $\dfrac12(6+2)\times4=16$ (r). D: the $3\times3$ square minus the corner triangle with legs $2$: $9-2=7$ (p).</p>`, 'The area of a trapezoid is the mean of the parallel sides times the width.'),
+  MT(5, 'corner point method', 'mx8', R`Match List I with List II.`, 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    R`<p>A: corners $(0,0),(5,0),(4,2),(0,4)$, $Z=0,15,20,16$, so $20$ (q). B: corners $(0,0),(4,0),(4,2),(0,6)$, $Z=0,8,18,30$, so $30$ (r). C: corners $(2,3),(3,2),(9,0),(0,9)$, $Z=13,12,18,27$, so $12$ (p). D: corners $(0,0),(8,0),(7,3),(3,7),(0,8)$, $Z=0,40,53,57,48$, so $57$ (s).</p>`, 'Make a table of corner values for each problem.'),
+  PI(5, 'multiple optimal solutions', 'pz5', R`The profit on cakes becomes $p$ rupees, so $Z=px+20y$. Find the greatest value of $p$ for which the maximum is still attained at $(4,4)$.`, 40,
+    R`<p>$(4,4)$ must be at least as good as its neighbours. Against $(6,0)$: $4p+80\ge6p$, so $p\le40$. Against $(0,6)$: $4p+80\ge120$, so $p\ge10$. The greatest value is $40$ (a tie with $(6,0)$).</p>`, 'The comparison with $(6,0)$ gives the upper limit.', { calc: () => { let best = 0; for (let p = 0; p <= 100; p += 0.5) { const T = lpTable(RBK, p, 20), m = Math.max(...T.map((r) => r[2])); if (Math.abs(4 * p + 80 - m) < 1e-9) best = p; } return best; } }),
+);
+NI.forEach((it, i) => { it.id = `lp-x${String(i + 1).padStart(3, '0')}`; });
+items.push(...NI);
+
+// ----- new templates -----
+const cornerList = (cons) => cornersOf(cons).map((u) => `$${ptx(u)}$`).join(', ');
+gens.push(
+  // g19: how many corner points
+  gen('lp-g19', 3, 'nat', 'integer', 'feasible region', retry((rng) => {
+    const r = rLE2(rng), A = int(rng, 2, 7), B = int(rng, 2, 7), v = int(rng, 0, 1);
+    const cons = [...r.cons, v === 0 ? LE(1, 0, A) : LE(0, 1, B)];
+    const n = cornersOf(cons).length;
+    return { cons, answer: n, tol: 0, q: `How many corner points does the region ${consTx(cons)}, $x\\ge0$, $y\\ge0$ have?`, sol: `<p>Draw the lines and find where the boundary lines meet inside the region. The corner points are ${cornerList(cons)}. That is ${n}.</p>` };
+  }), (p) => realV(p.cons).length),
+
+  // g20: area of the feasible region
+  gen('lp-g20', 4, 'nat', 'numeric', 'polygon area', (rng) => {
+    const { cons } = rLE2(rng), P = cornersOf(cons), a = polyArea(P);
+    return { cons, answer: r2(a), tol: 0.01, q: `Find the area of the feasible region ${consTx(cons)}, $x\\ge0$, $y\\ge0$.${N2}`, sol: `<p>The corner points in order are ${P.map((u) => `$${ptx(u)}$`).join(', ')}. The shoelace formula gives $\\dfrac12\\left|\\sum(x_iy_{i+1}-x_{i+1}y_i)\\right|=${t2(a)}$.</p>` };
+  }, (p) => polyArea(realV(p.cons))),
+
+  // g21: words to an inequality
+  gen('lp-g21', 3, 'mcq', 'single', 'formulation', retry((rng) => {
+    const a = int(rng, 2, 6), b = int(rng, 2, 6), H = int(rng, 4, 12) * 10, kind = int(rng, 0, 1);
+    if (a === b) return null;
+    const word = kind === 0 ? ['at most', '\\le'] : ['at least', '\\ge'];
+    const eq = (aa, bb, s) => `$${aa}x+${bb}y${s}${H}$`;
+    const cand = [[a, b, word[1]], [b, a, word[1]], [a, b, kind === 0 ? '\\ge' : '\\le'], [a, b, '=']];
+    const map = {}; const txt = cand.map(([aa, bb, s]) => { const t = eq(aa, bb, s); map[t] = [aa, bb, s]; return t; });
+    const o = shuffleOpts(rng, txt[0], txt.slice(1));
+    return { a, b, H, kind, map, ...o, q: `A machine runs ${a} hours for each unit of X ($x$ units) and ${b} hours for each unit of Y ($y$ units). It can run ${word[0]} ${H} hours. The constraint is`,
+      sol: `<p>Hours used: $${a}x+${b}y$. "${word[0][0].toUpperCase() + word[0].slice(1)}" gives $${word[1]}$: $${a}x+${b}y${word[1]}${H}$.</p>` };
+  }), (p) => p.options.findIndex((o) => { const [aa, bb, s] = p.map[o]; return aa === p.a && bb === p.b && s === (p.kind === 0 ? '\\le' : '\\ge'); })),
+
+  // g22: integer solutions
+  gen('lp-g22', 4, 'nat', 'integer', 'integer solutions', (rng) => {
+    const { cons } = rLE2(rng), c = int(rng, 1, 6), d = int(rng, 1, 6);
+    const lp = lpMax(cons, c, d);
+    let best = -1, bx = 0, by = 0;
+    for (let x = 0; x <= 40; x++) for (let y = 0; y <= 40; y++) if (cons.every((k) => holds(k, x, y)) && c * x + d * y > best) { best = c * x + d * y; bx = x; by = y; }
+    return { cons, c, d, answer: best, tol: 0, q: `Maximise $${objTx(c, d)}$ subject to ${consTx(cons)}, $x\\ge0$, $y\\ge0$, where $x$ and $y$ must be integers. Find the maximum value.`,
+      sol: `<p>Without the integer condition the best corner gives $Z=${t2(lp)}$. For integers the value is at most $${Math.floor(lp + 1e-9)}$; checking the lattice points near the corner, the best one is $(${bx},${by})$ with $Z=${best}$.</p>` };
+  }, (p) => { let b = -1; for (let y = 0; y <= 40; y++) for (let x = 0; x <= 40; x++) if (p.cons.every((k) => holds(k, x, y))) b = Math.max(b, p.c * x + p.d * y); return b; }),
+
+  // g23: lattice points on the optimal edge
+  gen('lp-g23', 4, 'nat', 'integer', 'multiple optimal solutions', (rng) => {
+    const u = int(rng, 4, 9), v = int(rng, 4, 9), s = int(rng, Math.max(u, v) + 1, u + v - 1);
+    const answer = u + v - s + 1;
+    return { u, v, s, answer, tol: 0, q: `Maximise $Z=x+y$ subject to $x+y\\le${s}$, $x\\le${u}$, $y\\le${v}$, $x\\ge0$, $y\\ge0$. How many points with integer coordinates give the maximum?`,
+      sol: `<p>The maximum is $${s}$, attained all along the edge $x+y=${s}$ from $(${u},${s - u})$ to $(${s - v},${v})$. The integer values of $x$ run from ${s - v} to ${u}, so there are $${u}-${s - v}+1=${answer}$ points.</p>` };
+  }, (p) => { let c = 0; for (let x = 0; x <= p.u; x++) for (let y = 0; y <= p.v; y++) if (x + y === p.s) c++; return c; }),
+
+  // g24: which point is feasible
+  gen('lp-g24', 2, 'mcq', 'single', 'feasible region', retry((rng) => {
+    const { cons } = rLE2(rng), pts = [], seen = new Set();
+    for (let t = 0; t < 40 && pts.length < 12; t++) { const x = int(rng, 0, 8), y = int(rng, 0, 8), key = x + ',' + y; if (!seen.has(key)) { seen.add(key); pts.push([x, y]); } }
+    const ok = pts.filter(([x, y]) => cons.every((k) => holds(k, x, y))), bad = pts.filter(([x, y]) => !cons.every((k) => holds(k, x, y)));
+    if (ok.length < 1 || bad.length < 3) return null;
+    const right = ok[0], wrongs = bad.slice(0, 3);
+    const o = shuffleOpts(rng, pt(...right), wrongs.map((w) => pt(...w)));
+    return { cons, ...o, q: `Which point is in the feasible region ${consTx(cons)}, $x\\ge0$, $y\\ge0$?`,
+      sol: `<p>Test each point in every inequality. $${ptx(right)}$ satisfies both. ${wrongs.map((w) => `$${ptx(w)}$ fails ${cons.find((k) => !holds(k, ...w)) ? '$' + ctx(cons.find((k) => !holds(k, ...w))) + '$' : ''}`).join('; ')}.</p>` };
+  }), (p) => p.options.findIndex((o) => { const m = o.match(/\((-?\d+),\\,(-?\d+)\)/); return p.cons.every((k) => holds(k, +m[1], +m[2])); })),
+
+  // g25: maximum of x^2+y^2
+  gen('lp-g25', 5, 'nat', 'integer', 'corner point method', (rng) => {
+    const A = int(rng, 3, 9), B = int(rng, 3, 9), C = int(rng, Math.max(A, B) + 1, A + B - 1);
+    const cons = [LE(1, 0, A), LE(0, 1, B), LE(1, 1, C)], P = cornersOf(cons), vals = P.map(([x, y]) => x * x + y * y), answer = Math.max(...vals);
+    return { A, B, C, cons, answer, tol: 0, q: `Find the maximum value of $x^2+y^2$ over the region $x\\le${A}$, $y\\le${B}$, $x+y\\le${C}$, $x\\ge0$, $y\\ge0$.`,
+      sol: `<p>$x^2+y^2$ is convex, so its maximum is at a corner point. The corners are ${P.map((u) => `$${ptx(u)}$`).join(', ')} with values ${vals.join(', ')}. The maximum is ${answer}.</p>` };
+  }, (p) => Math.max(...clipPoly(p.cons).filter(([x, y]) => x < 9999 && y < 9999).map(([x, y]) => x * x + y * y))),
+
+  // g26: kind of region
+  gen('lp-g26', 4, 'mcq', 'single', 'bounded and unbounded', (rng) => {
+    const v = int(rng, 0, 2);
+    let cons, right;
+    if (v === 0) { cons = rLE2(rng).cons; right = 'a bounded region'; }
+    else if (v === 1) { cons = rGE2(rng).cons; right = 'an unbounded region'; }
+    else { const s = int(rng, 2, 6); cons = [LE(1, 1, s), GE(1, 1, s + int(rng, 1, 4))]; right = 'an empty region'; }
+    const all = ['a bounded region', 'an unbounded region', 'an empty region', 'a single point'];
+    const o = shuffleOpts(rng, right, all.filter((s) => s !== right));
+    const why = v === 0 ? 'Both lines are "at most" limits, so the region is a polygon touching the axes: bounded.' : v === 1 ? 'Both are "at least" limits, so the region extends without limit away from the origin: unbounded.' : 'The sum $x+y$ cannot be both at most one number and at least a larger one: empty.';
+    return { v, cons, ...o, q: `The constraints ${consTx(cons)}, $x\\ge0$, $y\\ge0$ define`, sol: `<p>${why}</p>` };
+  }, (p) => { const P = clipPoly(p.cons); const kind = P.length === 0 ? 'an empty region' : P.every(([x, y]) => x < 9999 && y < 9999) ? 'a bounded region' : 'an unbounded region'; return p.options.indexOf(kind); }),
+
+  // g27: minimum cost (diet)
+  gen('lp-g27', 4, 'nat', 'integer', 'corner point method', retry((rng) => {
+    const { cons } = rGE2(rng), c = int(rng, 1, 9), d = int(rng, 1, 9), v = lpMin(cons, c, d);
+    if (Math.abs(v - Math.round(v)) > 1e-9) return null;
+    const [k1, k2] = cons;
+    return { cons, c, d, answer: Math.round(v), tol: 0, q: `A diet uses $x$ units of food P and $y$ units of food Q at ${c} and ${d} rupees per unit. It needs $${lt(k1.a, k1.b)}\\ge${k1.c}$ and $${lt(k2.a, k2.b)}\\ge${k2.c}$ (nutrients), with $x\\ge0$, $y\\ge0$. Find the least cost in rupees.`,
+      sol: `<p>The region is unbounded, but the cost has positive coefficients, so the minimum is at a corner point: ${tabTx(cons, c, d)}. The least cost is ${Math.round(v)} rupees.</p>` };
+  }), (p) => polyOpt(p.cons, p.c, p.d, 'min')),
+
+  // g28: shortest distance from the origin
+  gen('lp-g28', 4, 'nat', 'numeric', 'distance from the origin', (rng) => {
+    const [a, b, h] = choose(rng, [[3, 4, 5], [5, 12, 13], [6, 8, 10], [4, 3, 5], [8, 15, 17], [12, 5, 13]]), c = int(rng, 2, 12) * 2;
+    const answer = r2(c / h);
+    return { a, b, c, answer, tol: 0.01, q: `Find the shortest distance from the origin to the region $${a}x+${b}y\\ge${c}$, $x\\ge0$, $y\\ge0$.${N2}`,
+      sol: `<p>The nearest point is the foot of the perpendicular on the line $${a}x+${b}y=${c}$ (it lies in the first quadrant). Distance $=\\dfrac{${c}}{\\sqrt{${a}^2+${b}^2}}=\\dfrac{${c}}{${h}}=${answer}$.</p>` };
+  }, (p) => { let m = Infinity; for (let i = 0; i <= 20000; i++) { const x = (p.c / p.a) * (i / 20000), y = (p.c - p.a * x) / p.b; m = Math.min(m, Math.hypot(x, y)); } return m; }),
+
+  // g29: redundant constraints
+  gen('lp-g29', 5, 'nat', 'integer', 'bounded and unbounded', retry((rng) => {
+    const x0 = int(rng, 2, 6), y0 = int(rng, 2, 6), a1 = int(rng, 1, 4), b1 = int(rng, 1, 4), a2 = int(rng, 1, 4), b2 = int(rng, 1, 4);
+    if (a1 * b2 === a2 * b1) return null;
+    const c1 = a1 * x0 + b1 * y0, c2 = a2 * x0 + b2 * y0, cons = [LE(a1, b1, c1), LE(a2, b2, c2), LE(a1 + a2, b1 + b2, c1 + c2)];
+    const A0 = polyArea(realV(cons)), red = cons.filter((_, i) => Math.abs(polyArea(realV(cons.filter((__, j) => j !== i))) - A0) < 1e-7).length;
+    return { cons, x0, y0, answer: red, tol: 0, q: `How many of the three constraints ${consTx(cons)} (with $x\\ge0$, $y\\ge0$) are redundant, meaning that removing it leaves the feasible region unchanged?`,
+      sol: `<p>The first two lines meet at $(${x0},${y0})$. The third line also passes through $(${x0},${y0})$, and its coefficients are the sums of the first two, so it only touches the region there. Checking each constraint by removing it: ${red} of them leave the region unchanged.</p>` };
+  }), (p) => { let r = 0; for (let i = 0; i < 3; i++) { const rest = p.cons.filter((_, j) => j !== i); const V = realV(rest); const full = realV(p.cons); const sameCorners = V.length === full.length && V.every(([x, y]) => full.some(([u, v]) => abs(u - x) < 1e-7 && abs(v - y) < 1e-7)); if (sameCorners) r++; } return r; }),
+);
+
+// ===== expansion end =====
+
 export default { topic: 'linear-programming', groups, items, gens };
