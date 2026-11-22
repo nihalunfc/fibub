@@ -39,6 +39,12 @@ for (const id of ['iit-jam-physics', 'gate-physics', 'csir-net-physics']) {
     ok(`${w}: has a meaning box`, md.includes('class="meaning"'));
     ok(`${w}: has practice from the bank`, md.includes('class="qbank"'));
     ok(`${w}: has sources`, /\nsources:\n\s+- /.test(md));
+    // Links to other course lessons must point at a lesson that exists (no 404s while courses are being written).
+    for (const m of md.matchAll(/\]\((\/learn\/courses\/([a-z0-9-]+)\/([a-z0-9-]+)\/)[^)]*\)/g)) {
+      const [, url, cid, slug] = m;
+      const fine = ['practice', 'mock-test', 'glossary', 'cheat-sheet'].includes(slug) || existsSync(new URL(`../src/courses/${cid}/${slug}.md`, import.meta.url));
+      ok(`${w}: link ${url} goes to a written lesson`, fine);
+    }
     ok(`${w}: images have alt text`, !/<img(?![^>]*alt=)/.test(md));
   }
 }
