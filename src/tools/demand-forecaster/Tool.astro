@@ -1,0 +1,240 @@
+---
+// #T1069 Demand forecaster: a daily forecast of how much you will sell, from your own history (maths in src/lib/biz/forecast.ts).
+// Runs in the browser. Your file is read on this device and never uploaded; saving it on the device is opt-in.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax df">
+  <div class="ax-card">
+    <h2>1. Your history</h2>
+    <p class="ax-help df-src" style="margin-top:0"></p>
+    <p class="ax-help">Paste or open at least 60 days of history (two years is best, because then last year's seasons are used). Columns: date, number sold that day, and optionally your capacity that day and the sales value. Headings are matched by name.</p>
+    <textarea class="df-paste" rows="5" spellcheck="false" placeholder="date&#9;sold&#9;capacity&#9;revenue&#10;2025-06-01&#9;96&#9;120&#9;2310"></textarea>
+    <DataFile target=".df-paste" maxCols={8} maxRows={5000} label="Open a file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small df-use">Use this history</button><button type="button" class="btn secondary small df-sample">Back to the example</button><button type="button" class="btn secondary small df-tpl">Download template (CSV)</button></div>
+    <p class="biz-warn df-imp"></p>
+    <dl class="ax-facts df-sum" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Settings</h2>
+    <div class="ax-grid">
+      <label>Business name <input data-k="name" /></label>
+      <label>What you sell (one word) <input data-k="unit" maxlength="20" /></label>
+      <label>Places you can sell a day, from now <input data-k="capacity" inputmode="numeric" /></label>
+      <label>Currency <select class="df-cur"></select></label>
+      <label>Share already booked 30 days out, % <input data-k="s30" inputmode="decimal" /></label>
+      <label>Holidays to treat as busy or quiet days
+        <select data-k="region"><option value="none">None</option><option value="ca">Canada (Ontario)</option><option value="us">United States</option><option value="uk">United Kingdom</option></select>
+      </label>
+      <label>Your own special dates <input data-k="extraDays" placeholder="2026-12-31, 2027-03-14" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><span class="ax-help" style="margin:0">Look ahead:</span>
+      <div class="ax-seg df-horizon" role="group" aria-label="Look ahead"><button type="button" data-h="30" aria-pressed="false">30 days</button><button type="button" data-h="60" aria-pressed="true">60 days</button><button type="button" data-h="90" aria-pressed="false">90 days</button></div></div>
+    <p class="ax-help">Share booked 30 days out: how much of a typical day's final sales you already have a month ahead. It is only used to blend in the bookings you type in the table below. Holiday rules are the widely published public holidays (Ontario Employment Standards, US federal holidays, UK bank holidays), checked 2026-11-22; check the official source for your area, and add your own dates (festivals, local events) in the box.</p>
+    <p class="biz-warn biz-bad df-swarn"></p>
+  </div>
+
+  <div class="ax-card df-res" aria-live="polite">
+    <h2 class="df-title">Your forecast</h2>
+    <div class="biz-kpis df-kpis"></div>
+    <p class="biz-take df-take"></p>
+    <div class="ax-row" style="margin-top:10px"><span class="ax-help" style="margin:0">Show history:</span>
+      <div class="ax-seg df-view" role="group" aria-label="History shown"><button type="button" data-v="60" aria-pressed="false">60 days</button><button type="button" data-v="180" aria-pressed="true">6 months</button><button type="button" data-v="all" aria-pressed="false">All</button></div></div>
+    <svg class="biz-svg df-chart" viewBox="0 0 700 260" role="img" aria-label="Past sales and the forecast with its 80 percent range" style="margin-top:8px"></svg>
+    <div class="ax-legend"><span><i style="background:var(--muted)"></i>Actual</span><span><i style="background:var(--accent)"></i>Forecast</span><span><i style="background:var(--accent);opacity:.2"></i>80% range</span><span><i style="background:var(--warn)"></i>Backtest (last 8 weeks)</span></div>
+    <h3 class="biz-sub">How accurate is it?</h3>
+    <div class="df-acc"></div>
+    <h3 class="biz-sub">By month</h3>
+    <div class="ax-scroll"><table class="biz-tbl df-month"></table></div>
+    <h3 class="biz-sub">Day by day</h3>
+    <p class="ax-help" style="margin-top:0">Type how many you already have booked for a day to blend it into the forecast. Leave blank to use the model alone.</p>
+    <div class="ax-scroll" style="max-height:420px"><table class="biz-tbl df-daily"><thead><tr><th>Day</th><th class="r">Model</th><th class="r">80% range</th><th class="r">Booked now</th><th class="r">Forecast</th><th>Full</th><th class="r">Last year</th></tr></thead><tbody></tbody></table></div>
+    <h3 class="biz-sub">Weekday pattern found in your history</h3>
+    <div class="ax-scroll"><table class="biz-tbl df-dow"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small df-csv">Download forecast (CSV)</button></div>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="df-keep" /> Remember my settings on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your settings and bookings are kept in this browser only. A big history file is not kept: open it again next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small df-clear">Clear saved settings</button></div>
+  </div>
+  <p class="biz-fine">A forecast learns from the past; it can not know about a new competitor, a closure or a one-off event unless you add it as a special date. Use single days as a guide and month totals as the firmer number.</p>
+</div>
+
+<style is:inline>
+  .df .df-sum { grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); }
+  .df .df-sum dd { font-size: 16px; }
+  .df .df-daily tr.wkend td { background: var(--bg); }
+  .df .df-daily thead th { position: sticky; top: 0; background: var(--surface); }
+  .df .df-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-left: 6px; }
+  .df .df-acc p { margin: 6px 0; font-size: 14.5px; }
+</style>
+
+<script>
+  import { analyse, importHistory, sampleHistory, specials, type HistRow, type Region } from '../../lib/biz/forecast';
+  import { addDays, dowOf, DOW, toCSV, downloadText, keeper, parseDate, toNum, todayISO } from '../../lib/biz/common';
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.df')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  type S = { cur: string; name: string; unit: string; capacity: string; s30: string; region: Region; extraDays: string; horizon: number; view: string; otb: Record<string, number>; hist: null | { name: string; rows: HistRow[]; notes: string[] } };
+  const fresh = (cur: string): S => ({ cur, name: 'Example business', unit: 'sale', capacity: '120', s30: '45', region: 'ca', extraDays: '', horizon: 60, view: '180', otb: {}, hist: null });
+  let st = fresh(defaultCurrency());
+  q('.df-cur').innerHTML = currencyOptions(st.cur);
+  const $ = (v: number, d = 0) => money(v, st.cur, d);
+  const int = (v: number) => Math.round(v).toLocaleString();
+  const p0 = (v: number) => Math.round(v * 100) + '%', p1 = (v: number) => (v * 100).toFixed(1) + '%';
+  const label = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const longLabel = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const extra = () => st.extraDays.split(/[\s,;]+/).map((x) => parseDate(x)).filter((x): x is string => !!x);
+  const isSpecial = () => specials(st.region, extra());
+  let SAMPLE: HistRow[] = [];
+  const rows = () => (st.hist ? st.hist.rows : SAMPLE);
+  // The saved copy leaves out a big history file, which would not fit in the browser's small store.
+  const keep = keeper('fibub-forecast-v1', q('.df-keep'), q('.df-clear'), () => ({ ...st, hist: null }), (v) => { st = Object.assign(fresh(defaultCurrency()), v, { hist: null }); });
+
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    q<HTMLSelectElement>('.df-cur').value = st.cur;
+    seg('.df-horizon', String(st.horizon), 'h'); seg('.df-view', st.view, 'v');
+    SAMPLE = sampleHistory(addDays(todayISO(), -1), num(st.capacity) || 120, isSpecial());
+    data(); run();
+  }
+  const seg = (sel: string, v: string, k: string) => q(sel).querySelectorAll<HTMLElement>('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[k] === v)));
+  root.addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.k) { (st as any)[el.dataset.k] = el.value; keep(); if (el.dataset.k === 'capacity' && !st.hist) SAMPLE = sampleHistory(addDays(todayISO(), -1), num(st.capacity) || 120, isSpecial()); sched(); } });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLSelectElement; if (el.tagName === 'SELECT' && el.dataset.k) { (st as any)[el.dataset.k] = el.value; keep(); if (!st.hist) SAMPLE = sampleHistory(addDays(todayISO(), -1), num(st.capacity) || 120, isSpecial()); run(); } });
+  q('.df-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.df-horizon').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-h]'); if (!b) return; st.horizon = +b.dataset.h!; seg('.df-horizon', b.dataset.h!, 'h'); keep(); run(); });
+  q('.df-view').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-v]'); if (!b) return; st.view = b.dataset.v!; seg('.df-view', st.view, 'v'); keep(); run(); });
+  let timer = 0; const sched = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+
+  function data() {
+    const r = rows(), n = r.length;
+    q('.df-src').innerHTML = st.hist ? `<b>Using your file.</b> ${st.hist.name}. Press "Back to the example" to go back.` : '<b>Using the example.</b> Two years of made-up daily sales: busy summers, weekend peaks and everyday noise. Paste or open your own history to replace it.';
+    const sold = r.reduce((s, x) => s + x[1], 0), av = r.reduce((s, x) => s + x[2], 0);
+    q('.df-sum').innerHTML = [['Days of history', int(n)], ['From', longLabel(r[0][0])], ['To', longLabel(r[n - 1][0])], ['Average use', p1(sold / av)]].map(([a, b]) => `<div><dt>${a}</dt><dd>${b}</dd></div>`).join('');
+    q('.df-imp').textContent = st.hist && st.hist.notes.length ? 'What we did with your file: ' + st.hist.notes.join(' ') : '';
+  }
+  q('.df-use').addEventListener('click', () => {
+    const t = q<HTMLTextAreaElement>('.df-paste').value;
+    if (!t.trim()) { q('.df-imp').textContent = 'Paste some rows or open a file first.'; return; }
+    const r = importHistory(t, num(st.capacity) || 100);
+    if (r.error) { q('.df-imp').textContent = r.error; return; }
+    st.hist = { name: `${r.rows.length.toLocaleString()} days from your data`, rows: r.rows, notes: r.notes }; st.otb = {};
+    const lastCap = r.rows[r.rows.length - 1][2]; if (lastCap > 0) { st.capacity = String(lastCap); q<HTMLInputElement>('[data-k=capacity]').value = st.capacity; }
+    keep(); data(); run();
+  });
+  q('.df-sample').addEventListener('click', () => { st = { ...fresh(st.cur), hist: null }; q<HTMLTextAreaElement>('.df-paste').value = ''; keep(); bind(); });
+  q('.df-tpl').addEventListener('click', () => downloadText('history-template.csv', toCSV([['date', 'sold', 'capacity', 'revenue'], ...rows().slice(-14).map((r) => [r[0], r[1], r[2], r[3] ?? ''])])));
+
+  let A: ReturnType<typeof analyse> | null = null;
+  function run() {
+    const w: string[] = [];
+    if (!(num(st.capacity) >= 1)) w.push('Enter how many places you can sell a day (at least 1).');
+    if (!(num(st.s30) >= 5 && num(st.s30) <= 95)) w.push('The share booked 30 days out must be between 5% and 95%.');
+    q('.df-swarn').textContent = w.join(' '); q('.df-res').hidden = !!w.length;
+    if (w.length) return;
+    A = analyse({ rows: rows(), capacity: num(st.capacity), horizon: st.horizon, s30: num(st.s30), isSpecial: isSpecial(), otb: st.otb });
+    const { fc, bt, fit, hasRev } = A, H = fc.length, u = (st.unit || 'sale').trim();
+    const fin = fc.reduce((s, p) => s + p.fin, 0), lo = fc.reduce((s, p) => s + p.lo, 0), hi = fc.reduce((s, p) => s + p.hi, 0), capT = fc.reduce((s, p) => s + p.cap, 0);
+    const lyOk = fc.every((p) => p.ly != null), lyRooms = lyOk ? fc.reduce((s, p) => s + (p.ly as number), 0) : 0, lyCap = lyOk ? fc.reduce((s, p) => s + (p.lyCap as number), 0) : 1;
+    const occ = fin / capT, lyOcc = lyRooms / lyCap;
+    const busiest = fc.reduce((a, p) => (p.fin / p.cap > a.fin / a.cap ? p : a), fc[0]), quiet = fc.reduce((a, p) => (p.fin / p.cap < a.fin / a.cap ? p : a), fc[0]);
+    const peaks = fc.filter((p) => p.fin / p.cap >= 0.9).length, otbDays = fc.filter((p) => p.otb != null).length;
+    const lyV = (p: (typeof fc)[0]) => (p.lyRev && p.ly ? p.lyRev / p.ly : null);
+    const revEst = hasRev && fc.every((p) => lyV(p)) ? fc.reduce((s, p) => s + p.fin * (lyV(p) as number), 0) : null;
+    const dpts = lyOk ? ` (${occ >= lyOcc ? '+' : '-'}${Math.abs(Math.round((occ - lyOcc) * 100))} points)` : '';
+    q('.df-title').textContent = `${st.name || 'Your business'}: next ${H} days from ${label(fc[0].date)}`;
+    q('.df-kpis').innerHTML = [
+      ['Forecast use of capacity', p0(occ), lyOk ? `against ${p0(lyOcc)} on the same days last year${dpts}` : `${H} days ahead`],
+      [`${u[0].toUpperCase() + u.slice(1)}s expected`, int(fin), `80% range ${int(lo)} to ${int(hi)}`],
+      ['Accuracy (typical miss)', bt ? p1(bt.mape) : 'n/a', bt ? `Last 8 weeks: off by about ${int(bt.mae)} a day` : 'Needs 16 weeks of history'],
+      ['Busiest day', label(busiest.date), `${p0(busiest.fin / busiest.cap)} full; ${peaks} day${peaks === 1 ? '' : 's'} at 90% or more`],
+      revEst ? ['Sales estimate', $(revEst), "Forecast times last year's average sale"] : ['Quietest day', label(quiet.date), `${p0(quiet.fin / quiet.cap)} full`],
+    ].map(([l, v, s]) => `<div class="biz-k"><span>${l}</span><b>${v}</b><small>${s}</small></div>`).join('');
+    const months = monthRows(), top = months.slice().sort((a, b) => b.occ - a.occ)[0];
+    const growth = fit.growth ? Math.max(0.5, Math.min(2, fit.growth)) : 1;
+    q('.df-take').innerHTML = `<strong>What this means:</strong> expect about <b>${int(fin)}</b> ${esc(u)}s over the next ${H} days (${p0(occ)} of capacity)` +
+      (lyOk ? `, ${Math.abs(occ - lyOcc) < 0.005 ? 'level with' : occ > lyOcc ? Math.round((occ - lyOcc) * 100) + ' points ahead of' : Math.round((lyOcc - occ) * 100) + ' points behind'} the same days last year` : '') + '. ' +
+      (fit.growth ? `Recent weeks are running <b>${Math.abs(Math.round((growth - 1) * 100))}% ${growth >= 1 ? 'above' : 'below'}</b> last year, and the forecast assumes that gap continues. ` : '') +
+      (peaks ? `${peaks} day${peaks === 1 ? ' is' : 's are'} forecast at 90% or more, led by ${label(busiest.date)}: protect those days and staff up. ` : '') +
+      (top && months.length > 1 ? `${top.name} is the busiest month in this window. ` : '') +
+      (bt ? `On the last 8 weeks the method was off by ${p1(bt.mape)} on an average day, so treat single days as a guide and month totals as firmer.` : '') + (otbDays ? ` Bookings on hand are blended in for ${otbDays} day${otbDays === 1 ? '' : 's'}.` : '');
+    acc(); chart(); monthTable(months); daily(); dow();
+  }
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+
+  function acc() {
+    const { bt, fit, band } = A!;
+    if (!bt) { q('.df-acc').innerHTML = '<p>Accuracy needs at least 16 weeks of history: 8 to learn from and 8 to test on. Add more history to see it.</p>'; return; }
+    const grade = bt.mape < 0.06 ? ['Very good', 'good'] : bt.mape < 0.1 ? ['Good', 'good'] : bt.mape < 0.15 ? ['Fair', 'warn'] : ['Rough', 'bad'];
+    q('.df-acc').innerHTML = `<p><span class="ax-pill ${grade[1]}">${grade[0]}</span> <b>Typical miss ${p1(bt.mape)}</b> (MAPE, the mean absolute percentage error)</p>
+      <p>We pretended it was 8 weeks ago, forecast the next 8 weeks with only the data known then, and compared with what really happened. <b>On a typical day the forecast was ${p1(bt.mape)} away from the actual number</b>, about ${int(bt.mae)}.</p>
+      <p>It ran <b>${Math.abs(bt.bias) < 0.01 ? 'with almost no bias' : `${p1(Math.abs(bt.bias))} ${bt.bias > 0 ? 'high' : 'low'} overall`}</b>, and the actual number landed inside the 80% range on <b>${p0(bt.within)}</b> of those days.</p>
+      <p class="ax-help">Daily forecasts within 5% to 10% are generally considered good. ${fit.yearly ? '' : '<b>Less than 14 months of history, so last year\'s seasons are not used.</b> '}${band[0].fallback ? 'Too few back-tests for a measured range, so a 15% range is used.' : ''}</p>`;
+  }
+
+  function chart() {
+    const { rows: r, fc, bt } = A!, svg = q<SVGElement>('.df-chart');
+    const view = st.view === 'all' ? r.length : Math.min(r.length, +st.view || 180), hist = r.slice(-view);
+    const nH = hist.length, nF = fc.length, N = nH + nF, W = 700, Ht = 260, L = 44, Rr = 10, T = 10, B = 24;
+    const cap = fc[0].cap, mx = Math.max(cap, ...hist.map((x) => x[1]), ...fc.map((p) => p.hi)) * 1.05;
+    const x = (i: number) => L + (i / (N - 1)) * (W - L - Rr), y = (v: number) => T + (1 - v / mx) * (Ht - T - B);
+    const path = (pts: [number, number][]) => pts.map((p, i) => (i ? 'L' : 'M') + x(p[0]).toFixed(1) + ' ' + y(p[1]).toFixed(1)).join(' ');
+    let s = '';
+    for (let k = 0; k <= 4; k++) { const v = (mx * k) / 4; s += `<line x1="${L}" x2="${W - Rr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${int(v)}</text>`; }
+    const tick = (i: number, d: string) => `<text x="${x(i)}" y="${Ht - 6}" text-anchor="middle">${MON[+d.slice(5, 7) - 1]} ${view > 200 ? d.slice(2, 4) : +d.slice(8)}</text>`;
+    const all = hist.map((h) => h[0]).concat(fc.map((p) => p.date)); [0, Math.floor(N / 3), Math.floor((2 * N) / 3), N - 1].forEach((i) => (s += tick(i, all[i])));
+    s += `<line x1="${L}" x2="${W - Rr}" y1="${y(cap)}" y2="${y(cap)}" stroke="var(--muted)" stroke-dasharray="4 4"/><text x="${W - Rr}" y="${y(cap) - 4}" text-anchor="end">capacity</text>`;
+    const band = [[nH - 1, hist[nH - 1][1]] as [number, number], ...fc.map((p, j) => [nH + j, p.hi] as [number, number])], low = [...fc.map((p, j) => [nH + j, p.lo] as [number, number])].reverse();
+    s += `<path d="${path(band)} ${path(low).replace('M', 'L')} L ${x(nH - 1)} ${y(hist[nH - 1][1])} Z" fill="var(--accent)" opacity=".2"/>`;
+    s += `<path d="${path(hist.map((h, i) => [i, h[1]] as [number, number]))}" fill="none" stroke="var(--muted)" stroke-width="1.2"/>`;
+    if (bt) { const m: Record<string, number> = {}; bt.pts.forEach((p) => (m[p.date] = p.f)); const pts = hist.map((h, i) => (m[h[0]] != null ? ([i, m[h[0]]] as [number, number]) : null)).filter((p): p is [number, number] => !!p); if (pts.length > 1) s += `<path d="${path(pts)}" fill="none" stroke="var(--warn)" stroke-width="1.4" stroke-dasharray="5 4"/>`; }
+    s += `<path d="${path([[nH - 1, hist[nH - 1][1]], ...fc.map((p, j) => [nH + j, p.fin] as [number, number])])}" fill="none" stroke="var(--accent)" stroke-width="2.2"/>`;
+    svg.innerHTML = s;
+  }
+
+  function monthRows() {
+    const g: Record<string, any> = {};
+    A!.fc.forEach((p) => {
+      const k = p.date.slice(0, 7), r = (g[k] ||= { key: k, nights: 0, fin: 0, lo: 0, hi: 0, cap: 0, ly: 0, lyCap: 0, lyOk: true, rev: 0, revOk: true });
+      r.nights++; r.fin += p.fin; r.lo += p.lo; r.hi += p.hi; r.cap += p.cap;
+      if (p.ly == null) r.lyOk = false; else { r.ly += p.ly; r.lyCap += p.lyCap; }
+      if (p.lyRev && p.ly) r.rev += (p.fin * p.lyRev) / p.ly; else r.revOk = false;
+    });
+    return Object.values(g).map((r: any) => { const [y, m] = r.key.split('-'); return { ...r, name: MON[+m - 1] + ' ' + y, partial: r.nights < new Date(+y, +m, 0).getDate(), occ: r.fin / r.cap, lyOcc: r.lyOk ? r.ly / r.lyCap : null }; });
+  }
+  function monthTable(months: any[]) {
+    const rev = A!.hasRev && months.every((m) => m.revOk);
+    const tot = months.reduce((a, m) => ({ nights: a.nights + m.nights, fin: a.fin + m.fin, lo: a.lo + m.lo, hi: a.hi + m.hi, cap: a.cap + m.cap, ly: a.ly + m.ly, lyCap: a.lyCap + m.lyCap, rev: a.rev + m.rev }), { nights: 0, fin: 0, lo: 0, hi: 0, cap: 0, ly: 0, lyCap: 0, rev: 0 });
+    const lyAll = months.every((m) => m.lyOk);
+    const row = (name: string, m: any, lyOcc: number | null, bold = false) => `<tr${bold ? ' style="font-weight:700"' : ''}><td>${name}</td><td class="r">${m.nights}</td><td class="r">${int(m.fin)}</td><td class="r">${int(m.lo)} to ${int(m.hi)}</td><td class="r">${p1(m.fin / m.cap)}</td><td class="r">${lyOcc != null ? p1(lyOcc) : '-'}</td><td class="r">${lyOcc != null ? (m.fin / m.cap >= lyOcc ? '+' : '-') + Math.abs(Math.round((m.fin / m.cap - lyOcc) * 1000) / 10) + ' pts' : '-'}</td>${rev ? `<td class="r">${$(m.rev)}</td>` : ''}</tr>`;
+    q('.df-month').innerHTML = `<thead><tr><th>Month</th><th class="r">Days</th><th class="r">Forecast</th><th class="r">80% range</th><th class="r">Use of capacity</th><th class="r">Last year</th><th class="r">Change</th>${rev ? "<th class=\"r\">Sales at last year's average</th>" : ''}</tr></thead><tbody>` +
+      months.map((m) => row(m.name + (m.partial ? ' (part)' : ''), m, m.lyOcc)).join('') + row('Total', tot, lyAll ? tot.ly / tot.lyCap : null, true) + '</tbody>';
+  }
+  function daily() {
+    q('.df-daily tbody').innerHTML = A!.fc.map((p) => {
+      const o = p.fin / p.cap, dw = dowOf(p.date);
+      return `<tr class="${dw === 5 || dw === 6 || dw === 0 ? 'wkend' : ''}"><td><b>${label(p.date)}</b></td><td class="r">${int(p.model)}</td><td class="r">${int(p.lo)} to ${int(p.hi)}</td><td class="r"><input inputmode="numeric" data-d="${p.date}" value="${p.otb ?? ''}" placeholder="-" aria-label="Booked for ${label(p.date)}" style="width:76px;text-align:right"></td><td class="r"><b>${int(p.fin)}</b></td><td>${p0(o)}<span class="df-bar" style="width:${Math.round(o * 60)}px"></span></td><td class="r">${p.ly != null ? int(p.ly) : '-'}</td></tr>`;
+    }).join('');
+  }
+  q('.df-daily').addEventListener('change', (e) => {
+    const el = e.target as HTMLInputElement; if (!el.dataset.d) return;
+    const v = toNum(el.value); if (v === '') delete st.otb[el.dataset.d]; else st.otb[el.dataset.d] = Math.max(0, v);
+    keep(); const keepId = el.dataset.d; run(); q<HTMLInputElement>(`.df-daily input[data-d="${keepId}"]`)?.focus();
+  });
+  function dow() {
+    const idx = A!.fit.idx, order = [1, 2, 3, 4, 5, 6, 0];
+    q('.df-dow').innerHTML = `<thead><tr>${order.map((i) => `<th class="r">${DOW[i]}</th>`).join('')}</tr></thead><tbody><tr>${order.map((i) => `<td class="r ${idx[i] >= 1 ? 'pos' : ''}">${Math.round(idx[i] * 100)}%</td>`).join('')}</tr></tbody>` + (A!.fit.holN ? `<tfoot><tr><td colspan="7" class="ax-help">Special days run about ${Math.round((A!.fit.hol - 1) * 100)}% above their weekday (${A!.fit.holN} found in your history).</td></tr></tfoot>` : '');
+  }
+  q('.df-csv').addEventListener('click', () => {
+    if (!A) return;
+    downloadText('demand-forecast.csv', toCSV([['date', 'day', 'model', 'range_low', 'range_high', 'booked_now', 'forecast', 'capacity', 'full_pct', 'last_year'], ...A.fc.map((p) => [p.date, DOW[dowOf(p.date)], Math.round(p.model), Math.round(p.lo), Math.round(p.hi), p.otb ?? '', Math.round(p.fin), p.cap, +((p.fin / p.cap) * 100).toFixed(1), p.ly ?? ''])]));
+  });
+
+  bind();
+</script>

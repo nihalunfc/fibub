@@ -1,0 +1,238 @@
+---
+// #T1068 Pricing recommender: a suggested price for each day of a business with limited capacity, from bookings, last year's
+// pace, events and what competitors charge. Maths in src/lib/biz/pricing.ts. Runs in the browser; nothing is sent anywhere.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax pr">
+  <div class="ax-card">
+    <h2>1. Your business and your rules</h2>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="pr-preset"><option value="hotel">Hotel rooms</option><option value="tour">Tour seats</option><option value="slot">Appointment slots</option></select>
+      </label>
+      <label>Currency <select class="pr-cur"></select></label>
+      <label>What you sell (one word) <input data-k="unit" maxlength="20" /></label>
+      <label>Places you can sell each day <input data-k="capacity" inputmode="numeric" /></label>
+      <label>Lowest price you will charge <input data-k="floor" inputmode="decimal" /></label>
+      <label>Highest price you will charge <input data-k="ceiling" inputmode="decimal" /></label>
+      <label>Biggest change in one go, % <input data-k="maxChange" inputmode="decimal" /></label>
+      <label>Aim above or below competitors, % <input data-k="position" inputmode="decimal" /></label>
+      <label>Round prices to
+        <select data-k="round"><option value="1">The nearest whole number</option><option value="5">The nearest 5</option><option value="0.5">The nearest 0.50</option><option value="9">A price ending in 9</option></select>
+      </label>
+      <label>How much demand reacts to price
+        <select data-k="sens"><option value="low">Not much (loyal customers)</option><option value="normal">Normal</option><option value="high">A lot (people shop around)</option></select>
+      </label>
+    </div>
+    <details class="biz-paste" style="margin-top:10px"><summary>Demand tiers, event boost and competitor names</summary>
+      <p class="ax-help">The forecast share of capacity sets the tier. Each tier moves the price by a percentage from the competitors' middle price. Defaults suit most businesses.</p>
+      <div class="ax-grid">
+        <label>Moderate from, % full <input data-k="t1" inputmode="decimal" /></label>
+        <label>High from, % full <input data-k="t2" inputmode="decimal" /></label>
+        <label>Compression (nearly sold out) from, % <input data-k="t3" inputmode="decimal" /></label>
+        <label>Extra last-minute demand on event days, % <input data-k="eventBoost" inputmode="decimal" /></label>
+        <label>Price change in the Low tier, % <input data-k="adjLow" inputmode="decimal" /></label>
+        <label>Price change in the Moderate tier, % <input data-k="adjMod" inputmode="decimal" /></label>
+        <label>Price change in the High tier, % <input data-k="adjHigh" inputmode="decimal" /></label>
+        <label>Price change in the Compression tier, % <input data-k="adjComp" inputmode="decimal" /></label>
+        <label>Competitor 1 <input data-c="0" /></label><label>Competitor 2 <input data-c="1" /></label><label>Competitor 3 <input data-c="2" /></label><label>Competitor 4 <input data-c="3" /></label>
+      </div>
+    </details>
+    <p class="biz-warn biz-bad pr-swarn"></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="biz-card-head"><h2>2. Your days</h2><button type="button" class="btn secondary small pr-today">Start from today</button></div>
+    <p class="ax-help" style="margin-top:0">One row per day. "Booked now" is what you have sold so far; "last year" is what you had at the same point last year and how many you sold in the end. Competitor prices are optional.</p>
+    <p class="biz-warn pr-gwarn"></p>
+    <div class="ax-scroll"><table class="biz-tbl pr-grid"><thead></thead><tbody></tbody></table></div>
+    <p class="ax-help pr-gnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pr-add">Add a day</button><button type="button" class="btn secondary small pr-example">Back to the example</button><button type="button" class="btn secondary small pr-tpl">Download template (CSV)</button></div>
+    <details class="biz-paste" style="margin-top:10px"><summary>Paste or open a table of days</summary>
+      <p class="ax-help">Columns: date, booked now, booked last year at this point, final last year, current price, then up to four competitor prices and an event note. Headings are matched by name.</p>
+      <textarea class="pr-paste" rows="5" spellcheck="false"></textarea>
+      <DataFile target=".pr-paste" maxCols={12} maxRows={400} label="Open a table" />
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small pr-load">Use these rows</button></div>
+      <p class="ax-help pr-lmsg"></p>
+    </details>
+  </div>
+
+  <div class="ax-card pr-res" aria-live="polite">
+    <h2 class="pr-title">3. Your price plan</h2>
+    <div class="pr-issues"></div>
+    <div class="biz-kpis pr-kpis"></div>
+    <p class="biz-take pr-take"></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="biz-tbl pr-plan"><thead><tr><th>Day</th><th>Demand</th><th class="r">Forecast full</th><th class="r">Pace</th><th class="r">Competitors</th><th class="r">Now</th><th class="r">Suggested</th><th class="r">Change</th><th>Use it</th><th>Why</th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-legend"><span><i style="background:var(--good)"></i>Raise</span><span><i style="background:var(--bad)"></i>Lower</span><span>Untick "Use it" to keep today's price on a day; the totals follow.</span></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pr-csv">Download plan (CSV)</button></div>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="pr-keep" /> Remember my numbers on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your settings and days stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pr-clear">Clear saved numbers</button></div>
+  </div>
+  <p class="biz-fine">Suggestions come from simple rules, not a promise of results. The demand reaction (price elasticity) is an assumption you can change. Always look at the days before you change a price.</p>
+</div>
+
+<style is:inline>
+  .pr .pr-grid input[type=checkbox] { width: 18px; height: 18px; }
+  .pr .pr-plan td.why { white-space: normal; min-width: 280px; font-size: 13.5px; }
+  .pr .pr-plan tr.off td { opacity: .55; }
+  .pr .pr-tier { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+  .pr .pr-tier.Compression { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+  .pr .pr-tier.High { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+  .pr .pr-tier.Low { background: var(--good-soft); color: var(--good); border-color: transparent; }
+  .pr .up { color: var(--good); font-weight: 700; } .pr .down { color: var(--bad); font-weight: 700; }
+</style>
+
+<script>
+  import { recommend, settingsProblems, importDays, blankRow, type Row, type Settings } from '../../lib/biz/pricing';
+  import { addDays, todayISO, validISO, dayLabel, esc, toCSV, downloadText, keeper, dowOf, DOW, toNum } from '../../lib/biz/common';
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.pr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MAX = 90;
+  type S = { cur: string; unit: string; set: Record<string, string>; comp: string[]; rows: Row[]; accept: Record<string, boolean> };
+  const BASE: Record<string, { unit: string; cap: number; price: number; floor: number; ceiling: number; comp: string[]; ev: [string, string] }> = {
+    hotel: { unit: 'room', cap: 120, price: 150, floor: 90, ceiling: 380, comp: ['Hotel A', 'Hotel B', 'Hotel C', 'Hotel D'], ev: ['Concert at the arena', 'Trade show'] },
+    tour: { unit: 'seat', cap: 30, price: 65, floor: 40, ceiling: 150, comp: ['Operator A', 'Operator B', 'Operator C', 'Operator D'], ev: ['Local festival', 'School holiday'] },
+    slot: { unit: 'slot', cap: 20, price: 70, floor: 50, ceiling: 130, comp: ['Studio A', 'Studio B', 'Studio C', 'Studio D'], ev: ['Wedding season', 'Holiday rush'] },
+  };
+  function rng(seed: number) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function sampleRows(start: string, kind: string): Row[] {
+    const b = BASE[kind], R = rng(620), cap = b.cap, rows: Row[] = [];
+    const occBase = [0.55, 0.49, 0.53, 0.58, 0.66, 0.85, 0.94], mult = [0.77, 0.73, 0.75, 0.8, 0.86, 1.14, 1.32];
+    let concert = -1, conf = -1;
+    for (let i = 0; i < 30; i++) { const dow = dowOf(addDays(start, i)); if (concert < 0 && i >= 8 && dow === 6) concert = i; if (conf < 0 && i >= 15 && dow === 2) conf = i; }
+    for (let i = 0; i < 30; i++) {
+      const date = addDays(start, i), dow = dowOf(date), isEv = i === concert || i === conf || i === conf + 1;
+      const occ = Math.min(0.98, occBase[dow] * (1 - 0.0035 * i) * (0.96 + R() * 0.08));
+      const finLy = Math.round(cap * occ), share = Math.min(0.98, 0.36 + 0.6 * Math.exp(-i / 15) + (R() - 0.5) * 0.04), otbLy = Math.round(finLy * share);
+      let pace = (i < 7 ? 0.9 : 1.02) + (R() - 0.5) * 0.18; if (isEv) pace = 1.32 + R() * 0.1;
+      const otb = Math.min(cap, Math.round(otbLy * pace)), bar = Math.round(b.price * mult[dow] * (b.price < 100 ? 1 : 1)), lift = isEv ? 1.24 : 1;
+      const comp = [1.12, 1.05, 1.0, 0.88].map((f, k) => (k === 3 && i % 11 === 5 ? '' : Math.round(bar * f * lift * (0.95 + R() * 0.1))));
+      rows.push({ date, ev: isEv, evName: i === concert ? b.ev[0] : isEv ? b.ev[1] : '', otb, otbLy, finLy, bar, c0: comp[0], c1: comp[1], c2: comp[2], c3: comp[3] });
+    }
+    return rows;
+  }
+  const fresh = (kind: string, cur: string): S => {
+    const b = BASE[kind];
+    return { cur, unit: b.unit, comp: [...b.comp], rows: sampleRows(todayISO(), kind), accept: {},
+      set: { capacity: String(b.cap), floor: String(b.floor), ceiling: String(b.ceiling), maxChange: '15', position: '0', round: kind === 'hotel' ? '9' : '1', sens: 'normal', t1: '60', t2: '80', t3: '92', eventBoost: '10', adjLow: '-6', adjMod: '0', adjHigh: '6', adjComp: '15' } };
+  };
+  let st = fresh('hotel', defaultCurrency());
+  q('.pr-cur').innerHTML = currencyOptions(st.cur);
+  const $ = (v: number, d = 0) => money(v, st.cur, d);
+  const pct0 = (v: number) => Math.round(v * 100) + '%';
+  const keep = keeper('fibub-pricing-v1', q('.pr-keep'), q('.pr-clear'), () => st, (v) => { st = Object.assign(fresh('hotel', defaultCurrency()), v); });
+  const settings = (): Settings => { const s = st.set, g = (k: string) => (s[k].trim() === '' ? NaN : num(s[k])); return { capacity: g('capacity'), floor: g('floor'), ceiling: g('ceiling'), maxChange: g('maxChange'), position: g('position'), round: s.round as Settings['round'], sens: s.sens as Settings['sens'], t1: g('t1'), t2: g('t2'), t3: g('t3'), eventBoost: g('eventBoost'), adjLow: g('adjLow'), adjMod: g('adjMod'), adjHigh: g('adjHigh'), adjComp: g('adjComp') }; };
+
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String(el.dataset.k === 'unit' ? st.unit : st.set[el.dataset.k!] ?? ''); });
+    root.querySelectorAll<HTMLInputElement>('[data-c]').forEach((el) => { el.value = st.comp[+el.dataset.c!] ?? ''; });
+    q<HTMLSelectElement>('.pr-cur').value = st.cur; grid(); run();
+  }
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset.k) { if (el.dataset.k === 'unit') st.unit = el.value; else st.set[el.dataset.k] = el.value; keep(); run(); }
+    else if (el.dataset.c != null) { st.comp[+el.dataset.c] = el.value; keep(); head(); }
+  });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLSelectElement; if (el.tagName === 'SELECT' && el.dataset.k) { st.set[el.dataset.k] = el.value; keep(); run(); } });
+  q('.pr-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.pr-preset').addEventListener('change', (e) => { st = fresh((e.target as HTMLSelectElement).value, st.cur); keep(); bind(); });
+  q('.pr-example').addEventListener('click', () => { st = fresh(q<HTMLSelectElement>('.pr-preset').value, st.cur); keep(); bind(); });
+
+  const FIELDS = ['otb', 'otbLy', 'finLy', 'bar', 'c0', 'c1', 'c2', 'c3'] as const;
+  function head() {
+    q('.pr-grid thead').innerHTML = `<tr><th>Date</th><th></th><th>Event</th><th>What is on</th><th class="r">Booked now</th><th class="r">Last year at this point</th><th class="r">Final last year</th><th class="r">Price now</th>${st.comp.map((n, i) => `<th class="r">${esc(n || 'Competitor ' + (i + 1))}</th>`).join('')}<th></th></tr>`;
+  }
+  function grid() {
+    head();
+    const cap = num(st.set.capacity);
+    q('.pr-grid tbody').innerHTML = st.rows.map((r, i) => {
+      const bad = !validISO(r.date) || !(+r.bar > 0) || +r.otb > cap;
+      return `<tr class="${bad ? 'bad' : ''}"><td><input type="date" class="w-date" value="${esc(r.date)}" data-i="${i}" data-f="date" aria-label="Date"></td><td>${validISO(r.date) ? DOW[dowOf(r.date)] : ''}</td>
+        <td style="text-align:center"><input type="checkbox" ${r.ev ? 'checked' : ''} data-i="${i}" data-f="ev" aria-label="Event on ${esc(r.date)}"></td><td><input class="w-wide" value="${esc(r.evName)}" data-i="${i}" data-f="evName" placeholder="optional" style="min-width:130px"></td>
+        ${FIELDS.map((f) => `<td class="r"><input inputmode="decimal" value="${r[f] === '' || r[f] == null ? '' : r[f]}" data-i="${i}" data-f="${f}" aria-label="${f}" style="width:78px;text-align:right"></td>`).join('')}<td><button type="button" class="biz-x" data-del="${i}" aria-label="Remove this day">&times;</button></td></tr>`;
+    }).join('') || '<tr><td colspan="13" class="ax-help">No days yet. Add a day or paste a table.</td></tr>';
+    q('.pr-gnote').textContent = `${st.rows.length} day${st.rows.length === 1 ? '' : 's'}. A day needs a valid date and a current price; "booked now" can not be more than your places.`;
+    q<HTMLButtonElement>('.pr-add').disabled = st.rows.length >= MAX;
+  }
+  q('.pr-grid').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement; if (el.dataset.i == null) return;
+    const r = st.rows[+el.dataset.i] as any, f = el.dataset.f!;
+    if (f === 'ev') r.ev = el.checked; else if (f === 'date' || f === 'evName') r[f] = el.value; else r[f] = toNum(el.value) === '' ? '' : Math.max(0, toNum(el.value) as number);
+    if (f === 'date') { const c = el.closest('tr')!.children[1]; c.textContent = validISO(r.date) ? DOW[dowOf(r.date)] : ''; }
+    keep(); run();
+  });
+  q('.pr-grid').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-del]'); if (!b) return; st.rows.splice(+b.dataset.del!, 1); keep(); grid(); run(); });
+  q('.pr-add').addEventListener('click', () => { if (st.rows.length >= MAX) return; const l = st.rows[st.rows.length - 1]; st.rows.push(blankRow(l && validISO(l.date) ? addDays(l.date, 1) : todayISO())); keep(); grid(); run(); });
+  q('.pr-today').addEventListener('click', () => {
+    if (!st.rows.length) return;
+    const first = st.rows.find((r) => validISO(r.date)); if (!first) return;
+    const shift = Math.round((new Date(todayISO() + 'T12:00:00').getTime() - new Date(first.date + 'T12:00:00').getTime()) / 864e5);
+    st.rows.forEach((r) => { if (validISO(r.date)) r.date = addDays(r.date, shift); }); st.accept = {}; keep(); grid(); run();
+  });
+  q('.pr-load').addEventListener('click', () => {
+    const r = importDays(q<HTMLTextAreaElement>('.pr-paste').value, st.comp, MAX), msg = q('.pr-lmsg');
+    if (r.error) { msg.textContent = r.error; return; }
+    st.rows = r.rows; st.accept = {}; msg.textContent = `Loaded ${r.rows.length} day${r.rows.length === 1 ? '' : 's'}${r.notes.length ? '. Note: ' + r.notes.join('; ') : ''}.`; keep(); grid(); run();
+  });
+  const tplRows = () => [['date', 'booked_now', 'booked_last_year_at_this_point', 'final_last_year', 'current_price', ...st.comp.map((c, i) => c || 'competitor' + (i + 1)), 'event'], ...st.rows.map((r) => [r.date, r.otb, r.otbLy, r.finLy, r.bar, r.c0, r.c1, r.c2, r.c3, r.ev ? r.evName || 'yes' : ''])];
+  q('.pr-tpl').addEventListener('click', () => downloadText('pricing-template.csv', toCSV(tplRows())));
+
+  let OUT: any[] = [];
+  function run() {
+    const sw = settingsProblems(settings());
+    q('.pr-swarn').textContent = sw.length ? 'Please check: ' + sw.join(' ') : '';
+    q('.pr-res').hidden = !!sw.length;
+    if (sw.length) return;
+    const { out, issues } = recommend(settings(), st.rows, todayISO(), (v) => $(v), st.accept); OUT = out;
+    const w: string[] = [], u = (st.unit || 'place').trim();
+    if (issues.badDate) w.push(`${issues.badDate} day${issues.badDate > 1 ? 's have' : ' has'} no valid date and ${issues.badDate > 1 ? 'were' : 'was'} left out.`);
+    if (issues.noBar) w.push(`${issues.noBar} day${issues.noBar > 1 ? 's have' : ' has'} no current price and ${issues.noBar > 1 ? 'were' : 'was'} left out.`);
+    if (issues.dup) w.push(`${issues.dup} repeated date${issues.dup > 1 ? 's were' : ' was'} left out (the first one counts).`);
+    if (issues.overCap) w.push(`On ${issues.overCap} day${issues.overCap > 1 ? 's' : ''} "booked now" is above your capacity, so it was treated as sold out. Check for a typo.`);
+    if (issues.lyOdd) w.push(`On ${issues.lyOdd} day${issues.lyOdd > 1 ? 's' : ''} last year's final number is lower than last year's number at this point (cancellations). Pick-up was taken as zero.`);
+    if (issues.past) w.push(`${issues.past} day${issues.past > 1 ? 's are' : ' is'} already in the past. Press "Start from today" to roll the dates forward.`);
+    q('.pr-issues').innerHTML = w.map((x) => `<p class="biz-warn">${esc(x)}</p>`).join('');
+    if (!out.length) { q('.pr-kpis').innerHTML = ''; q('.pr-plan tbody').innerHTML = '<tr><td colspan="10" class="ax-help">No days to price yet. Add days above.</td></tr>'; q('.pr-take').innerHTML = '<strong>What this means:</strong> there is nothing to suggest until at least one day has a date and a current price.'; return; }
+    const cap = num(st.set.capacity), n = out.length, avail = cap * n, sum = (k: string) => out.reduce((a, o) => a + o[k], 0);
+    const rC = sum('roomsCur'), rP = sum('roomsPlan'), vC = sum('revCur'), vP = sum('revPlan'), adrC = rC ? vC / rC : 0, adrP = rP ? vP / rP : 0;
+    const raise = out.filter((o) => o.action === 'Raise'), lower = out.filter((o) => o.action === 'Lower'), hold = out.filter((o) => o.action === 'Hold');
+    const avgMove = (a: any[]) => (a.length ? a.reduce((s, o) => s + (o.rec - o.bar), 0) / a.length : 0);
+    const dl = (a: number, b: number) => (b ? `(${a >= b ? '+' : '-'}${Math.abs(Math.round(((a - b) / b) * 1000) / 10)}%)` : '');
+    q('.pr-kpis').innerHTML = [
+      ['Forecast full', pct0(rP / avail), `${Math.round(rP).toLocaleString()} of ${avail.toLocaleString()} ${u}s${Math.abs(rP - rC) >= 1 ? `; ${pct0(rC / avail)} at today's prices` : ''}`],
+      ['Average price', $(adrP, 2), `against ${$(adrC, 2)} at today's prices ${dl(adrP, adrC)}`],
+      ['Sales per place available', $(vP / avail, 2), `against ${$(vC / avail, 2)} at today's prices ${dl(vP, vC)}`],
+      ['Days to raise', String(raise.length), raise.length ? `average +${$(avgMove(raise))}` : 'No increases needed'],
+      ['Days to lower', String(lower.length), `${lower.length ? `average -${$(-avgMove(lower))}; ` : ''}${hold.length} to hold`],
+    ].map(([l, v, s]) => `<div class="biz-k"><span>${l}</span><b>${v}</b><small>${s}</small></div>`).join('');
+    const acc = out.filter((o) => o.acc && o.action !== 'Hold').length, gain = vP - vC;
+    const up = out.filter((o) => o.acc && o.action === 'Raise').sort((a, b) => (b.rec - b.bar) * b.roomsPlan - (a.rec - a.bar) * a.roomsPlan)[0];
+    const comp = out.filter((o) => o.tier === 'Compression').length, low = out.filter((o) => o.tier === 'Low').length;
+    q('.pr-take').innerHTML = `<strong>What this means:</strong> ${acc ? `with the ${acc} accepted change${acc > 1 ? 's' : ''}, sales for these ${n} days are estimated at <b>${$(vP)}</b>, ${gain >= 0 ? '<b>' + $(gain) + ' more</b>' : '<b>' + $(-gain) + ' less</b>'} than leaving today's prices.` : 'no change is accepted, so the plan equals today\'s prices.'}` +
+      (comp ? ` ${comp} day${comp > 1 ? 's look' : ' looks'} close to selling out: raise early, before cheaper ${esc(u)}s are gone.` : '') + (up ? ` The biggest single opportunity is <b>${dayLabel(up.date)}</b>: ${$(up.bar)} to ${$(up.rec)}.` : '') +
+      (low ? ` ${low} quiet day${low > 1 ? 's are' : ' is'} in the Low tier; where you sit above the market, a small cut helps win bookings from competitors rather than leave ${esc(u)}s empty.` : '');
+    q('.pr-plan tbody').innerHTML = out.map((o) => {
+      const ch = o.rec - o.bar, cls = o.action === 'Raise' ? 'up' : o.action === 'Lower' ? 'down' : '';
+      return `<tr class="${o.acc || o.action === 'Hold' ? '' : 'off'}"><td><b>${dayLabel(o.date)}</b>${o.ev ? ' <span class="ax-pill">Event</span>' : ''}</td><td><span class="pr-tier ${o.tier}">${o.tier}</span></td><td class="r">${pct0(o.occ)}</td>
+        <td class="r">${o.otbLy > 0 ? (o.pace >= 1 ? '+' : '-') + Math.abs(Math.round((o.pace - 1) * 100)) + '%' : 'n/a'}</td><td class="r">${o.med ? $(o.med) : '-'}</td><td class="r">${$(o.bar)}</td><td class="r"><b>${$(o.rec)}</b></td>
+        <td class="r"><span class="${cls}">${o.action === 'Hold' ? 'Hold' : (ch > 0 ? '+' : '-') + $(Math.abs(ch))}</span></td>
+        <td style="text-align:center">${o.action === 'Hold' ? '-' : `<input type="checkbox" data-acc="${esc(o.date)}" ${o.acc ? 'checked' : ''} aria-label="Use the suggestion for ${esc(dayLabel(o.date))}">`}</td><td class="why">${esc(o.reason)}</td></tr>`;
+    }).join('');
+  }
+  q('.pr-plan').addEventListener('change', (e) => { const cb = e.target as HTMLInputElement; if (!cb.dataset.acc) return; st.accept[cb.dataset.acc] = cb.checked; keep(); run(); });
+  q('.pr-csv').addEventListener('click', () => {
+    const rows: unknown[][] = [['Date', 'Day', 'Event', 'Demand tier', 'Forecast full %', 'Forecast places', 'Booked now', 'Pace vs last year %', 'Competitor middle', 'Current price', 'Suggested price', 'Used', 'Final price', 'Change', 'Why']];
+    OUT.forEach((o) => rows.push([o.date, DOW[dowOf(o.date)], o.ev ? o.evName || 'Yes' : '', o.tier, +(o.occ * 100).toFixed(1), Math.round(o.fc), o.otb, o.otbLy > 0 ? +((o.pace - 1) * 100).toFixed(1) : '', o.med ?? '', o.bar, o.rec, o.action === 'Hold' ? 'Hold' : o.acc ? 'Yes' : 'No', o.plan, +(o.plan - o.bar).toFixed(2), o.reason]));
+    downloadText('price-plan.csv', toCSV(rows));
+  });
+
+  bind();
+</script>
