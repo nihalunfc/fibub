@@ -16,9 +16,16 @@ quiz:
     choices: ['The number of whole days between them', 'The day of the month', 'An error']
     ans: 0
     why: 'Subtracting dates gives a Timedelta; .dt.days turns it into a number.'
+sources:
+  - 'pandas documentation, User Guide: Time series / date functionality https://pandas.pydata.org/docs/user_guide/timeseries.html'
+  - 'ISO 8601 Date and time format https://www.iso.org/iso-8601-date-and-time-format.html'
 ---
 
 **Module 3 · about 20 minutes · uses Lesson 3.3.** You'll be able to read dates in any format, take them apart, and calculate with them.
+
+<div class="bigidea">Turn date text into real dates once, then pandas can sort, filter, take dates apart and do date arithmetic correctly.</div>
+
+**In everyday terms:** "03/04/2026" is the 3rd of April in Canada's DD/MM habit and March 4th in the US. A real date type removes the guesswork, like writing 2026-04-03.
 
 ## 1. Text to dates
 
@@ -79,6 +86,35 @@ customers[['customer_id', 'signup_date', 'days_since_signup', 'first_renewal']].
 ```
 
 `pd.Timedelta(days=30)` is a fixed length; `pd.DateOffset(months=1)` follows the calendar (Jan 31 + 1 month = Feb 28).
+
+<div class="meaning">
+
+<dl>
+<dt>pd.to_datetime(col)</dt><dd>Text to datetime64.</dd>
+<dt>format= / dayfirst=</dt><dd>Say how ambiguous dates are written.</dd>
+<dt>.dt.year, .dt.month, .dt.day_name()</dt><dd>Parts of each date.</dd>
+<dt>date2 − date1</dt><dd>A Timedelta; .dt.days gives whole days.</dd>
+<dt>Physical meaning</dt><dd>A real date is a point on a timeline, so subtracting two gives a duration and sorting follows time. As text, "2026-10-02" and "2026-9-30" sort the wrong way round.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"pandas will figure out the format."** With mixed formats it may guess day-first for some rows and month-first for others. Give a format, or parse each format separately, and check min and max afterwards.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Text.</b> ['2026-03-01', '2026-03-15', '2026-04-02'] (object).</div>
+<div class="step"><b>Convert.</b> <code>pd.to_datetime(df['date'])</code> → datetime64.</div>
+<div class="step"><b>Take apart.</b> <code>.dt.month</code> → 3, 3, 4; <code>.dt.day_name()</code> → Sunday, Sunday, Thursday.</div>
+<div class="step"><b>Arithmetic.</b> <code>(df['date'] - df['date'].min()).dt.days</code> → 0, 14, 32.</div>
+</div>
+
+<div class="problem" data-problem="pd-days-between"></div>
 
 ## 5. Your turn
 
@@ -147,3 +183,12 @@ pd.to_datetime(s, format='%d/%m/%Y') reads day first; then .max().
 **Try it on your own data:** the [[timestamp-converter]] tool turns timestamps into readable dates.
 
 **New words:** *datetime*, *to_datetime*, *format codes*, *NaT*, *.dt accessor*, *Timedelta*, *DateOffset*, *period*.
+
+<div class="keypoints">
+
+- Convert date text with pd.to_datetime (or parse_dates when reading).
+- State the format when dates are ambiguous or mixed.
+- .dt gives parts: year, month, day_name, quarter, to_period.
+- Subtracting dates gives Timedeltas; .dt.days gives whole days.
+
+</div>

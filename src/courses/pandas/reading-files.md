@@ -16,9 +16,16 @@ quiz:
     choices: ['Deletes the date column', 'Reads that column as real dates, so you can sort, filter and group by month', 'Formats dates as text']
     ans: 1
     why: 'Without it, dates arrive as text and sort alphabetically.'
+sources:
+  - 'pandas documentation, User Guide: IO tools (text, CSV) https://pandas.pydata.org/docs/user_guide/io.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 1 · about 20 minutes · uses Lesson 1.4.** You'll be able to read CSV and Excel files and fix the common reading problems with options instead of manual edits.
+
+<div class="bigidea">read_csv turns a text file into a DataFrame, and a few options (dates, separators, missing markers, column types) decide whether it arrives clean.</div>
+
+**In everyday terms:** unpacking a delivery: you tell the person unpacking which boxes hold dates, which are fragile (IDs that must stay text), and what "n/a" scribbled on a box means.
 
 ## 1. read_csv
 
@@ -76,6 +83,36 @@ all_sheets = pd.read_excel('sales.xlsx', sheet_name=None) # every sheet, as a di
 `read_excel` takes the same `skiprows`, `usecols`, `dtype` and `na_values` options. On your own computer it needs the `openpyxl` package (`pip install openpyxl`). The in-page Python here doesn't include it, so the course datasets are CSV.
 
 **Writing files** is the mirror image: `df.to_csv('out.csv', index=False)` and `df.to_excel('out.xlsx', index=False)`. `index=False` stops pandas writing the 0, 1, 2 row labels as an extra column.
+
+<div class="meaning">
+
+<dl>
+<dt>parse_dates=['date']</dt><dd>Read these columns as real dates, not text.</dd>
+<dt>dtype={'zip': str}</dt><dd>Keep codes as text so leading zeros survive.</dd>
+<dt>na_values=['n/a', '-']</dt><dd>Extra markers to treat as missing.</dd>
+<dt>sep=';'</dt><dd>The separator if it is not a comma.</dd>
+<dt>Physical meaning</dt><dd>A CSV is just text with commas. pandas guesses each column's type from that text; the options are how you correct the guesses before the mistakes spread into every later step.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If it loaded without an error, it loaded correctly."** A postal code 01234 can arrive as the number 1234, dates as text, and "n/a" as a word. Always run <code>info()</code> and look at a few rows right after reading.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The file.</b> <code>order_id,date,store_id,qty</code> then lines of text.</div>
+<div class="step"><b>Plain read.</b> <code>pd.read_csv('orders.csv')</code>: date comes in as text (object).</div>
+<div class="step"><b>Tell it about dates.</b> <code>parse_dates=['date']</code>: date becomes datetime64.</div>
+<div class="step"><b>Check.</b> <code>orders.info()</code>: 9,717 rows, the right types, no surprise missing values.</div>
+<div class="step"><b>Ready.</b> Now date filters, months and resampling all work.</div>
+</div>
+
+<div class="problem" data-problem="pd-read-rows"></div>
 
 ## 4. Your turn
 
@@ -145,3 +182,12 @@ usecols takes a list of column names: usecols=['product', 'price'].
 **Try it on your own data:** the [[csv-profiler]] tool shows what's in any CSV (types, missing values, odd entries) before you write the `read_csv` line.
 
 **New words:** *CSV*, *separator*, *header*, *parse dates*, *encoding*, *read_excel*.
+
+<div class="keypoints">
+
+- read_csv reads text files; read_excel reads .xlsx (needs openpyxl).
+- Use parse_dates for dates and dtype=str for codes with leading zeros.
+- na_values adds extra missing-value markers.
+- Check info() and head() right after reading.
+
+</div>

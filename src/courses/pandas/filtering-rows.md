@@ -16,9 +16,16 @@ quiz:
     choices: ["df[df['date'] >= '2026-01-01']", "df[df['date'] == 2026]", "df['2026']"]
     ans: 0
     why: "Datetime columns compare with date strings directly. df['date'].dt.year == 2026 works too."
+sources:
+  - 'pandas documentation, User Guide: Indexing and selecting data (boolean indexing) https://pandas.pydata.org/docs/user_guide/indexing.html#boolean-indexing'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 2 · about 20 minutes · uses Lesson 1.3.** You'll be able to filter rows with one or many conditions, on numbers, text and dates.
+
+<div class="bigidea">A condition on a column makes a True/False mask, and the table keeps only the rows where the mask is True.</div>
+
+**In everyday terms:** a sieve with holes shaped by your rule. Pour the table through and only the rows that fit the rule stay.
 
 ## 1. One condition
 
@@ -65,6 +72,35 @@ s0 = orders[orders['store_id'].str.startswith('S0')]       # text tests use .str
 print(len(december), len(y2026), len(s0))
 orders[orders['date'].between('2025-11-24', '2025-11-30')].head(3)
 ```
+
+<div class="meaning">
+
+<dl>
+<dt>df['qty'] > 2</dt><dd>A mask: one True/False per row.</dd>
+<dt>df[mask]</dt><dd>Rows where the mask is True.</dd>
+<dt>&, |, ~</dt><dd>And, or, not; wrap each condition in brackets.</dd>
+<dt>Physical meaning</dt><dd>A mask is a column of ticks and crosses. Combining masks is combining ticks: & needs both ticked, | needs either. The filter never changes the rows it keeps.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Use and / or between conditions."** Python's <code>and</code> works on single values, not columns, and raises an error. Use <code>&</code> and <code>|</code>, with brackets: <code>df[(df.qty > 2) & (df.store_id == 'S01')]</code>.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The table.</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td>S01</td><td>3</td></tr><tr><td>WEB</td><td>1</td></tr><tr><td>S01</td><td>1</td></tr><tr><td>S02</td><td>4</td></tr></table></div>
+<div class="step"><b>Mask 1.</b> <code>qty > 2</code> → True, False, False, True.</div>
+<div class="step"><b>Mask 2.</b> <code>store == 'S01'</code> → True, False, True, False.</div>
+<div class="step"><b>Both (&).</b> True, False, False, False.</div>
+<div class="step"><b>Filter.</b> Only the first row stays: <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td><mark>S01</mark></td><td><mark>3</mark></td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-mask-count"></div>
 
 ## 4. Your turn
 
@@ -134,3 +170,12 @@ orders['store_id'] != 'WEB' is the mask; len(orders[mask]) or mask.sum() counts 
 </details>
 
 **New words:** *mask*, *boolean indexing*, *and (&)*, *or (|)*, *not (~)*.
+
+<div class="keypoints">
+
+- Conditions make boolean masks; df[mask] keeps True rows.
+- Combine with & (and), | (or), ~ (not), each condition in brackets.
+- mask.sum() counts matching rows; mask.mean() gives the share.
+- Filtering never changes values, only which rows are kept.
+
+</div>

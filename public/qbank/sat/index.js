@@ -25,5 +25,19 @@ export default {
       { id: 'radicals-exponents', name: 'Exponents and radicals' },
       { id: 'nonlinear-systems', name: 'Nonlinear systems' },
     ] },
+    { id: 'data', name: 'Problem-solving and data analysis', topics: [
+      { id: 'ratios-rates-percent', name: 'Ratios, rates and percentages' },
+      { id: 'units-conversion', name: 'Units and density' },
+      { id: 'one-variable-data', name: 'Mean, median and spread' },
+      { id: 'two-variable-data', name: 'Scatterplots and two-way tables' },
+      { id: 'probability', name: 'Probability' },
+      { id: 'sampling-inference', name: 'Sampling and inference' },
+    ] },
+    { id: 'geometry', name: 'Geometry and trigonometry', topics: [
+      { id: 'area-volume', name: 'Area and volume' },
+      { id: 'lines-angles-triangles', name: 'Lines, angles and triangles' },
+      { id: 'right-triangle-trig', name: 'Right-triangle trigonometry' },
+      { id: 'circles', name: 'Circles' },
+    ] },
   ],
 };
