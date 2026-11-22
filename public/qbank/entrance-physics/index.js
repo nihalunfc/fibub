@@ -80,6 +80,14 @@ export default {
         {
           "id": "electromagnetic-induction",
           "name": "Electromagnetic induction"
+        },
+        {
+          "id": "ray-optics",
+          "name": "Ray optics and optical instruments"
+        },
+        {
+          "id": "wave-optics",
+          "name": "Wave optics"
         }
       ]
     }
