@@ -141,7 +141,7 @@ with a continuous, rising-frequency spectrum. Stable atoms with sharp lines were
 
 <div class="myth">
 
-**"Any moving charge radiates."** Radiation needs acceleration. A charge moving at constant velocity carries a squashed Coulomb field along with it (lesson 3.10) whose energy flux through a distant sphere vanishes. Conversely, a charge moving at constant speed in a circle does radiate: its velocity changes direction, so it accelerates.
+**"Any moving charge radiates."** Radiation needs acceleration. A charge moving at constant velocity carries a squashed Coulomb field along with it ([lesson 3.10](/learn/courses/gate-physics/covariant-electrodynamics/)) whose energy flux through a distant sphere vanishes. Conversely, a charge moving at constant speed in a circle does radiate: its velocity changes direction, so it accelerates.
 
 </div>
 

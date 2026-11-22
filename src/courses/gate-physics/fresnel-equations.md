@@ -137,7 +137,7 @@ It is zero at the critical angle and at grazing incidence, with a maximum `$\tan
 R = \frac{(n - 1)^2 + \kappa^2}{(n + 1)^2 + \kappa^2}
 ```
 
-Silver at 600 nm (`$\tilde n \approx 0.06 + 4.0i$`) reflects 98.6%. For a good conductor at radio frequencies this becomes `$1 - R \approx 4R_s/\eta_0$` (lesson 3.6).
+Silver at 600 nm (`$\tilde n \approx 0.06 + 4.0i$`) reflects 98.6%. For a good conductor at radio frequencies this becomes `$1 - R \approx 4R_s/\eta_0$` ([lesson 3.6](/learn/courses/gate-physics/em-waves-media/)).
 
 **Stokes relations.** Time-reversing a lossless reflection and transmission must rebuild the incident wave alone:
 
