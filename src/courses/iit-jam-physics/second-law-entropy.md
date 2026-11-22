@@ -131,4 +131,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="second-law-entropy" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 5.2, the first law](/learn/courses/iit-jam-physics/first-law/). **Next:** [lesson 5.4, thermodynamic potentials and Maxwell relations](/learn/courses/iit-jam-physics/thermodynamic-potentials/). Going on to GATE? [Microstates, entropy and the ensembles](/learn/courses/gate-physics/ensembles/) builds entropy from counting states, and fibub's [Ising model playground](/science/ising-model/) shows entropy and order fighting it out in a magnet.
+**Before this:** [lesson 5.2, the first law](/learn/courses/iit-jam-physics/first-law/). **Next:** [lesson 5.4, thermodynamic potentials and Maxwell relations](/learn/courses/iit-jam-physics/thermodynamic-potentials/). Going on to GATE? [Microstates, entropy and the ensembles](/learn/courses/gate-physics/) builds entropy from counting states, and fibub's [Ising model playground](/science/ising-model/) shows entropy and order fighting it out in a magnet.
