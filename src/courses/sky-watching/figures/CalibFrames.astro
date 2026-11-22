@@ -1,0 +1,54 @@
+---
+// SIM for 6.3: a made-up raw frame with a dark gradient, hot pixels, vignetting and dust shadows. Tick the
+// calibration steps to remove each fault.
+---
+<figure class="cs-fig mlf" data-calib>
+  <span class="cs-figtag">Try it: calibrate a raw frame</span>
+  <canvas aria-label="A raw astronomical frame that becomes cleaner as dark and flat calibration are applied"></canvas>
+  <div class="mlf-btns">
+    <label><input type="checkbox" name="dark"> Subtract the master dark</label>
+    <label><input type="checkbox" name="flat"> Divide by the master flat</label>
+  </div>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <figcaption>Made-up frame. A <strong>dark</strong> (same exposure and temperature, cap on) records the camera's own signal: hot pixels and amp glow. A <strong>flat</strong> (an evenly lit target) records vignetting and dust shadows, which are multiplied into the image, so we divide them out. Bias frames (the shortest exposure) hold the camera's fixed offset and are usually folded into the darks and flats.</figcaption>
+</figure>
+<script>
+  import { live } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  import { calibrate } from '../../../lib/astrocourse/optics';
+  import { pagePalette } from '../../../lib/report';
+  const N = 128, R = rng(5), sky = new Float32Array(N * N), dark = new Float32Array(N * N), flat = new Float32Array(N * N);
+  const stars = Array.from({ length: 70 }, () => [R() * N, R() * N, 20 + 400 * R() ** 4]);
+  const dust = [[38, 80, 9], [90, 40, 6]];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const k = j * N + i; let v = 40;
+    for (const [x, y, b] of stars) { const d2 = (i - x) ** 2 + (j - y) ** 2; if (d2 < 30) v += b * Math.exp(-d2 / 2.2); }
+    v += 60 * Math.exp(-((i - 70) ** 2 + (j - 60) ** 2) / 300); // a faint nebula
+    sky[k] = v;
+    dark[k] = 25 + 30 * (i / N) ** 3 + (R() < 0.004 ? 400 : 0); // amp glow on one side and hot pixels
+    const r2 = ((i - N / 2) ** 2 + (j - N / 2) ** 2) / (N * N / 4);
+    let f = 1 - 0.45 * r2; for (const [x, y, s] of dust) { const d = Math.hypot(i - x, j - y); if (d < s && d > s * 0.45) f *= 0.8; }
+    flat[k] = f;
+  }
+  const fmean = flat.reduce((a, b) => a + b, 0) / flat.length;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-calib]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!, cd = fig.querySelector<HTMLInputElement>('[name=dark]')!, cf = fig.querySelector<HTMLInputElement>('[name=flat]')!;
+    const draw = () => {
+      const red = pagePalette().red, ctx = cv.getContext('2d')!, size = Math.min(320, cv.clientWidth || 320);
+      cv.width = N; cv.height = N; cv.style.height = size + 'px'; cv.style.maxWidth = size + 'px'; cv.style.margin = '0 auto';
+      const img = ctx.createImageData(N, N);
+      for (let k = 0; k < N * N; k++) {
+        const raw = sky[k] * flat[k] + dark[k];
+        let v = cd.checked && cf.checked ? calibrate(raw, dark[k], flat[k], 0, fmean) * fmean : cd.checked ? raw - dark[k] : cf.checked ? raw / (flat[k] / fmean) : raw;
+        if (cd.checked) v += 25; // keep a small pedestal so the background isn't clipped
+        const L = Math.max(0, Math.min(255, Math.sqrt(Math.max(0, v - 30) / 320) * 255));
+        img.data[4 * k] = L; img.data[4 * k + 1] = red ? 0 : L; img.data[4 * k + 2] = red ? 0 : L; img.data[4 * k + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffffff'; ctx.font = '7px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('fibub.com', N - 3, N - 3); ctx.globalAlpha = 1;
+      say.textContent = cd.checked && cf.checked ? 'Calibrated: hot pixels, glow, dark corners and dust rings are gone. Only sky noise remains.' : cd.checked ? 'Dark removed: hot pixels and the glow on the right are gone. Corners are still dark and the dust rings remain.' : cf.checked ? 'Flat applied without a dark: the corners brighten, but hot pixels and the glow are now magnified too.' : 'Raw frame: dark corners (vignetting), two dust rings, a glow on the right edge and scattered hot pixels.';
+    };
+    cd.addEventListener('change', () => go()); cf.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

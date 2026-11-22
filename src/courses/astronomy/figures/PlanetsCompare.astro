@@ -1,0 +1,49 @@
+---
+// FIGURE for 8.5: the eight planets against distance from the Sun. Switch between density (worked out from
+// mass and radius), the period from Kepler's third law, and a no-air "equilibrium" temperature.
+---
+<figure class="cs-fig mlf" data-planets>
+  <span class="cs-figtag">Try it: compare the planets</span>
+  <div class="mlf-btns">
+    <button type="button" class="btn secondary" data-k="0" aria-pressed="true">Density</button>
+    <button type="button" class="btn secondary" data-k="1" aria-pressed="false">Period</button>
+    <button type="button" class="btn secondary" data-k="2" aria-pressed="false">Temperature</button>
+  </div>
+  <canvas aria-label="The eight planets plotted against their distance from the Sun"></canvas>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Distance on a log scale. Dot size grows with the planet's radius. Masses, radii, distances and reflectivities are rounded from the NASA Planetary Fact Sheet; the densities, periods and temperatures are worked out from them on this page.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from '../../ml-foundations/figures/kit';
+  import { density, periodYears, eqTemp } from '../../../lib/astrocourse/physics';
+  // name, distance (AU), radius (km), mass (Earths), Bond albedo. Rounded, NASA Planetary Fact Sheet.
+  const PL: [string, number, number, number, number][] = [
+    ['Mercury', 0.39, 2440, 0.055, 0.07], ['Venus', 0.72, 6052, 0.815, 0.76], ['Earth', 1, 6371, 1, 0.31], ['Mars', 1.52, 3390, 0.107, 0.25],
+    ['Jupiter', 5.2, 69911, 318, 0.34], ['Saturn', 9.5, 58232, 95.2, 0.34], ['Uranus', 19.2, 25362, 14.5, 0.3], ['Neptune', 30.1, 24622, 17.1, 0.29],
+  ];
+  const M_E = 5.972e24;
+  const VIEWS = [
+    { y: [0, 7.5], lab: 'density (g/cm³)', log: false, f: (r: (typeof PL)[0]) => density(r[3] * M_E, r[2] * 1000) / 1000, say: 'The four inner planets are rock and metal, 4 to 5.5 g/cm³. The giants are mostly hydrogen and helium; Saturn would float in a big enough bath (0.7 g/cm³).' },
+    { y: [-1, 2.4], lab: 'log₁₀ period (years)', log: true, f: (r: (typeof PL)[0]) => periodYears(r[1]), say: 'All eight sit on one straight line on log-log axes with slope 1.5: Kepler\'s third law, P² = a³. Neptune takes about 165 years to go round once.' },
+    { y: [0, 480], lab: 'temperature (K)', log: false, f: (r: (typeof PL)[0]) => eqTemp(r[1], r[4]), say: 'The temperature a bare ball would settle at, balancing sunlight in and heat out. It falls as 1/√distance. Earth comes out at about 255 K, 33 degrees colder than it really is: that gap is the greenhouse effect. Venus is far hotter for the same reason.' },
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-planets]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!, btns = [...fig.querySelectorAll<HTMLButtonElement>('[data-k]')];
+    let k = 0, p: Plot;
+    const draw = () => {
+      const V = VIEWS[k];
+      p = new Plot(cv, { x: [-0.6, 1.7], y: V.y as [number, number], h: 260, xLabel: 'log₁₀ distance from the Sun (AU)', yLabel: V.lab });
+      p.begin();
+      if (V.log) p.fn((x) => 1.5 * x, { color: p.pal.grid, width: 1.5, dash: [4, 4] });
+      PL.forEach((r, i) => {
+        const x = Math.log10(r[1]), v = V.f(r), y = V.log ? Math.log10(v) : v;
+        p.dot(x, y, { r: 3 + Math.sqrt(r[2] / 6371) * 3.2, color: r[3] > 10 ? p.pal.accent2 : p.pal.accent, alpha: 0.85 });
+        p.text(x, y, `${r[0]} ${fmt(v, V.log ? (v < 2 ? 2 : 0) : V.y[1] > 100 ? 0 : 1)}`, { dy: (i % 2 ? 16 : -14) + (i % 2 ? 1 : -1) * Math.sqrt(r[2] / 6371) * 2, align: 'center', size: 10.5, color: p.pal.muted });
+      });
+      p.end();
+      say.textContent = V.say;
+    };
+    btns.forEach((b, i) => b.addEventListener('click', () => { k = i; btns.forEach((c, j) => c.setAttribute('aria-pressed', String(j === i))); draw(); }));
+    live(cv, draw);
+  }
+</script>

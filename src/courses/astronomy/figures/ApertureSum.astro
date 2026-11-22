@@ -1,0 +1,49 @@
+---
+// SIM for 11.1: aperture photometry on a simulated star image. Choose the aperture and sky annulus radii; the page
+// adds up the counts, subtracts the sky and works out the signal-to-noise ratio and an instrumental magnitude.
+---
+<figure class="cs-fig mlf" data-apphot>
+  <span class="cs-figtag">Try it: measure a star</span>
+  <canvas aria-label="A simulated star image with a measuring circle and a sky ring around it"></canvas>
+  <div class="mlf-ctl">
+    <label>Aperture radius <output data-v="r"></output><input type="range" name="r" min="1" max="12" step="0.5" value="4"></label>
+    <label>Sky ring inner radius <output data-v="ri"></output><input type="range" name="ri" min="6" max="16" step="0.5" value="10"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>star counts (sky removed)</span><b data-s></b></div>
+    <div><span>signal-to-noise</span><b data-snr></b></div>
+    <div><span>instrumental magnitude</span><b data-m></b></div>
+    <div><span>share of the star's light caught</span><b data-frac></b></div>
+  </div>
+  <figcaption>A made-up 41 × 41 pixel image: one star (true total 20,000 counts, star width FWHM 4 px) on a sky of 100 counts per pixel, with random photon noise. The sky ring is 5 px wide. Too small an aperture misses starlight; too big adds sky noise. The best signal-to-noise usually comes at a radius near the FWHM.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const N = 41, C0 = 20, SKY = 100, FLUX = 20000, SIG = 4 / 2.3548, R = rng(4);
+  const pois = (lam: number) => lam + Math.sqrt(lam) * (R() + R() + R() + R() + R() + R() - 3) * Math.SQRT2;
+  const img: number[] = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const r2 = (x - C0) ** 2 + (y - C0) ** 2; img.push(pois(SKY + (FLUX / (2 * Math.PI * SIG * SIG)) * Math.exp(-r2 / (2 * SIG * SIG)))); }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-apphot]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, N], y: [0, N], h: 300, bare: true, equal: true });
+    const draw = () => {
+      const r = gr(), ri = gri(), ro = ri + 5;
+      let sum = 0, n = 0; const sky: number[] = [];
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const d = Math.hypot(x - C0, y - C0), v = img[y * N + x]; if (d <= r) { sum += v; n++; } else if (d >= ri && d <= ro) sky.push(v); }
+      sky.sort((a, b) => a - b); const sk = sky[Math.floor(sky.length / 2)], S = sum - n * sk;
+      const snr = S / Math.sqrt(S + n * sk * (1 + n / sky.length));
+      p.begin();
+      const c = p.ctx, w = p.px(1) - p.px(0), red = document.documentElement.classList.contains('red-mode');
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const v = Math.asinh(Math.max(0, img[y * N + x] - SKY) / 30) / Math.asinh(3000 / 30), g = Math.round(255 * Math.min(1, Math.max(0, v))); c.fillStyle = red ? `rgb(${g},0,0)` : `rgb(${g},${g},${g})`; c.fillRect(p.px(x), p.py(y + 1), w + 0.5, w + 0.5); }
+      const ring = (rad: number, col: string, dash?: number[]) => { const pts: [number, number][] = []; for (let k = 0; k <= 80; k++) pts.push([C0 + 0.5 + rad * Math.cos((k / 80) * 2 * Math.PI), C0 + 0.5 + rad * Math.sin((k / 80) * 2 * Math.PI)]); p.path(pts, { color: col, width: 2, dash }); };
+      ring(r, p.pal.accent2); ring(ri, p.pal.warn, [4, 3]); ring(ro, p.pal.warn, [4, 3]);
+      p.end();
+      q('[data-s]').textContent = fmt(S, 0); q('[data-snr]').textContent = fmt(snr, 0);
+      q('[data-m]').textContent = S > 0 ? fmt(-2.5 * Math.log10(S), 3) : '–';
+      q('[data-frac]').textContent = `${fmt(100 * (1 - Math.exp(-(r * r) / (2 * SIG * SIG))), 0)}%`;
+    };
+    const gr = slider(fig, 'r', () => go(), (v) => `${fmt(v, 1)} px`), gri = slider(fig, 'ri', () => go(), (v) => `${fmt(v, 1)} px`);
+    const go = live(cv, draw);
+  }
+</script>

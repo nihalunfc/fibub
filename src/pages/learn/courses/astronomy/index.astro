@@ -1,0 +1,16 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { ASTRONOMY } from '../../../../courses/astronomy/syllabus';
+---
+<CourseHome course={ASTRONOMY}>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Read light like an astronomer</strong>: the spectrum, blackbodies, spectral lines, the Doppler shift and the inverse-square law.</li>
+      <li><strong>Work out orbits</strong> with Kepler and Newton: periods, speeds, orbital elements, transfers and the planets.</li>
+      <li><strong>Explain how stars work</strong>: distances by parallax, the HR diagram, fusion, binaries, Cepheids and how stars die.</li>
+      <li><strong>Work like a researcher</strong>: photometry, periodograms, exoplanet fits, spectra, FITS files, open archives, error bars and how papers are written.</li>
+    </ul>
+    <p>Every lesson has a picture of the idea, a simulation to play with, a maths box with a worked example, practice questions and a short quiz, and links to the free <a href="/science/astronomy/">astronomy tools</a> on fibub. To go out and look at the sky yourself, take <a href="/learn/courses/sky-watching/">Sky watching</a>. For the universe as a whole (its expansion, dark matter and the Big Bang), go on to <a href="/learn/courses/cosmology/">Cosmology</a>.</p>
+  </section>
+</CourseHome>

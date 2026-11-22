@@ -1,0 +1,43 @@
+---
+// SIM for 11.4: wavelength calibration. A lamp's lines fall on known pixels; slide the starting wavelength and the
+// nm-per-pixel until the lamp lines sit on their lab wavelengths. Then the star's H-alpha line gives a velocity.
+---
+<figure class="cs-fig mlf" data-wavecal>
+  <span class="cs-figtag">Try it: calibrate a spectrum</span>
+  <canvas aria-label="A lamp spectrum and a star spectrum against a wavelength scale you adjust"></canvas>
+  <div class="mlf-ctl">
+    <label>Wavelength at pixel 0 <output data-v="w0"></output><input type="range" name="w0" min="560" max="600" step="0.05" value="580"></label>
+    <label>Dispersion <output data-v="d"></output><input type="range" name="d" min="0.08" max="0.12" step="0.0001" value="0.1"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>typical lamp-line miss</span><b data-rms></b></div>
+    <div><span>star's H-alpha measured at</span><b data-ha></b></div>
+    <div><span>radial velocity</span><b data-vel></b></div>
+  </div>
+  <figcaption>Simulated data from a 1,000-pixel detector. Top: a neon lamp (lab wavelengths of real neon lines, in air, marked as ticks). Bottom: a star with a hydrogen absorption line. Until the lamp lines sit on their ticks the velocity is meaningless; a miss of 0.1 nm is already 45 km/s at this wavelength. Real pipelines fit a smooth curve, not a straight line, to dozens of lines.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { C } from '../../../lib/astrocourse/physics';
+  const NE = [585.249, 594.483, 603.000, 607.434, 609.616, 614.306, 616.359, 621.728, 626.650, 633.443, 638.299, 640.225, 650.653, 653.288, 659.895, 667.828, 671.704];
+  const TW0 = 583.6, TD = 0.0961, HA = 656.28, VTRUE = 42e3;
+  const pix = (w: number) => (w - TW0) / TD, HA_PIX = pix(HA * (1 + VTRUE / C));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-wavecal]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const w0 = gw(), d = gd(), lam = (px: number) => w0 + d * px;
+      const p = new Plot(cv, { x: [lam(0), lam(1000)], y: [0, 2.2], h: 240, xLabel: 'wavelength (nm), from your calibration', noYTicks: true });
+      p.begin();
+      for (const w of NE) p.line(w, 2.05, w, 2.2, { color: p.pal.muted, width: 1.5 });
+      p.fn((x) => { const px = (x - w0) / d; let y = 0; for (const w of NE) y += 0.9 * Math.exp(-(((px - pix(w)) / 1.6) ** 2)); return 1.1 + Math.min(0.95, y); }, { color: p.pal.accent2, width: 1.5 });
+      p.fn((x) => { const px = (x - w0) / d; return 0.85 - 0.55 * Math.exp(-(((px - HA_PIX) / 4) ** 2)) + 0.02 * Math.sin(px * 0.7); }, { color: p.pal.accent, width: 1.8 });
+      p.text(p.x0, 2.0, 'lamp', { dx: 4, size: 11, color: p.pal.muted }); p.text(p.x0, 0.95, 'star', { dx: 4, size: 11, color: p.pal.muted });
+      p.end();
+      const rms = Math.sqrt(NE.reduce((a, w) => a + (lam(pix(w)) - w) ** 2, 0) / NE.length), ha = lam(HA_PIX);
+      q('[data-rms]').textContent = `${fmt(rms, 3)} nm`; q('[data-ha]').textContent = `${fmt(ha, 2)} nm`;
+      q('[data-vel]').textContent = rms < 0.03 ? `${fmt(((ha - HA) / HA) * C / 1000, 0)} km/s` : 'calibrate first';
+    };
+    const gw = slider(fig, 'w0', () => go(), (v) => `${fmt(v, 2)} nm`), gd = slider(fig, 'd', () => go(), (v) => `${fmt(v, 4)} nm/px`);
+    const go = live(cv, draw);
+  }
+</script>

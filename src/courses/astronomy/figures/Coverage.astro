@@ -1,0 +1,47 @@
+---
+// SIM for 11.9: why pro-am networks work. Observers spread in longitude watch a star through a 48-hour event; each
+// can see it only during their own night. More observers, spread out, fill the gaps.
+---
+<figure class="cs-fig mlf" data-coverage>
+  <span class="cs-figtag">Try it: build an observing network</span>
+  <canvas aria-label="A 48-hour timeline showing when each observer can watch the star, and the event's light curve"></canvas>
+  <div class="mlf-ctl">
+    <label>Number of observers <output data-v="n"></output><input type="range" name="n" min="1" max="8" step="1" value="1"></label>
+    <label>Chance a night is clear <output data-v="c"></output><input type="range" name="c" min="0.2" max="1" step="0.05" value="0.6"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>share of the event covered</span><b data-cov></b></div>
+    <div><span>the peak caught?</span><b data-peak></b></div>
+  </div>
+  <figcaption>Observers are spaced evenly in longitude starting from 0°, each able to watch for about 8 dark hours a night when the star is up; whether each night is clear is decided at random (the same pattern every time for a given setting). The curve is a made-up flare peaking at hour 30. This is why campaigns on variable stars, exoplanet transits and occultations ask for observers across many countries.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { rng } from '../../../lib/astrocourse/sky';
+  const flare = (t: number) => 0.15 + Math.exp(-(((t - 30) / 3) ** 2)) + 0.35 * Math.exp(-(((t - 30) / 10) ** 2));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-coverage]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const n = gn(), clear = gc(), R = rng(40 + n), win: [number, number][] = [];
+      const p = new Plot(cv, { x: [0, 48], y: [-n - 0.7, 1.7], h: 150 + 18 * n, xLabel: 'hours (UTC)', noYTicks: true });
+      p.begin();
+      for (let k = 0; k < n; k++) {
+        const lon = (360 / n) * k, start = (((22 - lon / 15) % 24) + 24) % 24, y = -1 - k;
+        p.text(0, y, `${fmt(lon, 0)}°`, { dx: -2, align: 'right', size: 10, color: p.pal.muted });
+        for (let night = -1; night < 3; night++) {
+          const a = start + night * 24, b = a + 8, ok = R() < clear;
+          const lo = Math.max(0, a), hi = Math.min(48, b);
+          if (hi > lo) { p.rect(lo, y - 0.35, hi - lo, 0.7, { fill: ok ? p.pal.accent : p.pal.muted, alpha: ok ? 0.7 : 0.2 }); if (ok) win.push([lo, hi]); }
+        }
+      }
+      const covered = (t: number) => win.some(([a, b]) => t >= a && t <= b);
+      p.fn((t) => flare(t), { color: p.pal.muted, width: 1, dash: [3, 3] });
+      for (let t = 0; t < 48; t += 0.25) if (covered(t)) p.dot(t, flare(t), { r: 1.6, color: p.pal.accent2 });
+      p.end();
+      let c = 0; for (let t = 0; t < 48; t += 0.1) if (covered(t)) c++;
+      q('[data-cov]').textContent = `${fmt((100 * c) / 480, 0)}%`; q('[data-peak]').textContent = covered(30) ? 'yes' : 'no';
+    };
+    const gn = slider(fig, 'n', () => go(), (v) => String(v)), gc = slider(fig, 'c', () => go(), (v) => `${fmt(v * 100, 0)}%`);
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,40 @@
+---
+// SIM for 9.5: a Cepheid's light curve and the period-luminosity rule. Choose the period and the average apparent
+// magnitude you measure; the rule gives the absolute magnitude, and the distance follows.
+---
+<figure class="cs-fig mlf" data-cepheid>
+  <span class="cs-figtag">Try it: find the distance to a Cepheid</span>
+  <canvas data-top aria-label="A Cepheid variable's brightness over three cycles"></canvas>
+  <canvas data-low aria-label="The period-luminosity rule with the chosen star marked"></canvas>
+  <div class="mlf-ctl">
+    <label>Period <output data-v="P"></output><input type="range" name="P" min="0.3" max="2" step="0.01" value="1"></label>
+    <label>Average magnitude you measure <output data-v="m"></output><input type="range" name="m" min="4" max="26" step="0.1" value="12"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>absolute magnitude M from the rule</span><b data-M></b></div>
+    <div><span>distance modulus m − M</span><b data-mu></b></div>
+    <div><span>distance (ignoring dust)</span><b data-d></b></div>
+  </div>
+  <figcaption>Top: a made-up light curve shaped like a real Cepheid's (quick rise, slow fade), drawn with brighter upwards. Bottom: the rule M ≈ −2.43 (log₁₀ P − 1) − 4.05, a published calibration from Hubble and Gaia-era parallaxes, rounded. Longer period means a more powerful star. Real work also corrects for dust, which makes stars look fainter and further away.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { cepheidMv, distanceFromModulus } from '../../../lib/astrocourse/physics';
+  const wave = (ph: number) => { const f = ph - Math.floor(ph); return f < 0.25 ? -0.4 + 0.8 * (f / 0.25) ** 0.8 : 0.4 - 0.8 * ((f - 0.25) / 0.75) ** 1.1; };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cepheid]')) {
+    const top = fig.querySelector<HTMLCanvasElement>('[data-top]')!, low = fig.querySelector<HTMLCanvasElement>('[data-low]')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const P = 10 ** gP(), m = gm(), M = cepheidMv(P), mu = m - M, d = distanceFromModulus(mu);
+      const pt = new Plot(top, { x: [0, 3 * Math.max(P, 3)], y: [-m - 0.7, -m + 0.7], h: 150, xLabel: 'days', yLabel: 'magnitude', noYTicks: true });
+      pt.begin(); pt.fn((x) => -m + wave(x / P), { color: pt.pal.accent, width: 2.5 }); pt.end();
+      pt.text(pt.x0, -m + 0.55, `brighter ↑  (average ${fmt(m, 1)})`, { dx: 4, size: 11, color: pt.pal.muted });
+      const pl = new Plot(low, { x: [0.3, 2], y: [1.2, 7.5], h: 200, xLabel: 'log₁₀ period (days)', yLabel: '−M (brighter up)' });
+      pl.begin(); pl.fn((x) => -cepheidMv(10 ** x), { color: pl.pal.accent2, width: 2.5 }); pl.dot(Math.log10(P), -M, { r: 7, color: pl.pal.accent }); pl.end();
+      q('[data-M]').textContent = fmt(M, 2); q('[data-mu]').textContent = fmt(mu, 2);
+      q('[data-d]').textContent = d < 1e3 ? `${fmt(d, 0)} pc` : d < 1e6 ? `${fmt(d / 1e3, 1)} kpc` : `${fmt(d / 1e6, 1)} Mpc (${fmt(d * 3.2616 / 1e6, 0)} million ly)`;
+    };
+    const gP = slider(fig, 'P', () => go(), (v) => `${fmt(10 ** v, 1)} days`), gm = slider(fig, 'm', () => go(), (v) => fmt(v, 1));
+    const go = () => draw();
+    live(top, draw); live(low, draw);
+  }
+</script>

@@ -1,0 +1,40 @@
+---
+// SIM for 4.7: compare common first setups on what the optics can do: light grasp, resolution, widest field
+// and highest useful power, all worked out from aperture and focal length.
+---
+<figure class="cs-fig mlf" data-setups>
+  <span class="cs-figtag">Try it: compare first setups</span>
+  <div class="mlf-ctl"><label>Compare by <select name="by">
+    <option value="grasp">Light grasp (× your eye)</option>
+    <option value="res">Finest detail (Dawson limit, ″; smaller is better)</option>
+    <option value="field">Widest field (degrees)</option>
+    <option value="maxm">Highest useful power (×)</option>
+  </select></label></div>
+  <canvas aria-label="Bar chart comparing first telescope setups"></canvas>
+  <figcaption>Typical specifications: 10×50 binoculars (two 50 mm lenses, 10× and a 6.5° field), an 80 mm f/6 refractor, 130 mm f/5 and 200 mm f/6 Newtonians on Dobsonian mounts, and a 203 mm f/10 Schmidt-Cassegrain. Widest field assumes a 2-inch 30 mm eyepiece with a 70° field where it fits (a 1.25-inch 32 mm with 50° for the smaller scopes). Worked from the formulas in this module; no prices, which change too fast.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from '../../ml-foundations/figures/kit';
+  import { lightGrasp, dawson, trueField, magnification, magRange } from '../../../lib/astrocourse/optics';
+  const S: { n: string; D: number; F: number; fe: number; af: number; bino?: boolean }[] = [
+    { n: '10×50 bino', D: 50, F: 0, fe: 0, af: 0, bino: true },
+    { n: '80 refr.', D: 80, F: 480, fe: 32, af: 50 },
+    { n: '130 Dob', D: 130, F: 650, fe: 32, af: 50 },
+    { n: '200 Dob', D: 200, F: 1200, fe: 30, af: 70 },
+    { n: '203 SCT', D: 203, F: 2032, fe: 30, af: 70 },
+  ];
+  const val = (s: typeof S[number], by: string) => by === 'grasp' ? lightGrasp(s.D) * (s.bino ? 2 : 1)
+    : by === 'res' ? dawson(s.D) : by === 'field' ? (s.bino ? 6.5 : trueField(s.af, magnification(s.F, s.fe))) : (s.bino ? 10 : magRange(s.D).max);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-setups]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const draw = () => {
+      const by = sel.value, vs = S.map((s) => val(s, by)), top = Math.max(...vs) * 1.2;
+      const p = new Plot(cv, { x: [0, S.length], y: [0, top], h: 240, noXTicks: true });
+      p.begin();
+      S.forEach((s, i) => { p.rect(i + 0.18, 0, 0.64, vs[i], { fill: i === 0 ? p.pal.accent2 : p.pal.accent, alpha: 0.85 }); p.text(i + 0.5, vs[i], fmt(vs[i], vs[i] < 10 ? 1 : 0), { align: 'center', dy: -9, size: 11, bold: true }); p.text(i + 0.5, 0, s.n, { align: 'center', base: 'top', dy: 4, size: 10, color: p.pal.muted }); });
+      p.end();
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,40 @@
+---
+// SIM for 2.3: Earth's orbit from above. After one turn relative to the stars (a sidereal day) Earth has moved
+// along its orbit, so it must turn about 1° more to face the Sun again. Over a year the extra adds up to a day.
+---
+<figure class="cs-fig mlf" data-sidereal>
+  <span class="cs-figtag">Try it: move through the year</span>
+  <canvas aria-label="Earth's orbit around the Sun seen from above, with arrows to the Sun and to a distant star"></canvas>
+  <div class="mlf-ctl">
+    <label>Days later <output data-v="d"></output><input type="range" name="d" min="0" max="365" step="1" value="30"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>stars rise earlier by</span><b data-early></b></div>
+    <div><span>Earth has moved round the Sun</span><b data-deg></b></div>
+  </div>
+  <figcaption>The arrow to the distant star always points the same way (stars are so far away that Earth's orbit makes no difference). The arrow to the Sun swings round as Earth moves. A solar day (noon to noon, 24 h) is about 3 min 56 s longer than a sidereal day (23 h 56 min 4 s), so any star rises that much earlier each night: about 2 hours a month.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { SIDEREAL_DAY_H } from '../../../lib/astrocourse/sky';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sidereal]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.6, 1.9], y: [-1.3, 1.3], h: 260, bare: true, equal: true });
+    const draw = () => {
+      const d = gd(), a = -Math.PI / 2 + (2 * Math.PI * d) / 365.25, E: [number, number] = [Math.cos(a), Math.sin(a)];
+      p.begin();
+      p.path(Array.from({ length: 81 }, (_, k) => [Math.cos(k / 80 * 6.283), Math.sin(k / 80 * 6.283)] as [number, number]), { color: p.pal.line, width: 1 });
+      p.dot(0, 0, { r: 10, color: p.pal.accent2 }); p.text(0, 0, 'Sun', { dy: 18, align: 'center', size: 11 });
+      p.dot(0, -1, { r: 4, color: p.pal.muted, shape: 'ring' }); p.text(0, -1, 'day 0', { dy: 14, align: 'center', size: 10.5, color: p.pal.muted });
+      p.arrow(E[0], E[1], E[0] + 0.55, E[1], { color: p.pal.accent, width: 2 }); p.text(E[0] + 0.58, E[1], 'to a star', { size: 11, color: p.pal.accent });
+      p.arrow(E[0], E[1], E[0] * 0.45, E[1] * 0.45, { color: p.pal.accent2, width: 2 });
+      p.dot(E[0], E[1], { r: 7, color: p.pal.accent }); p.text(E[0], E[1], 'Earth', { dx: -8, dy: -12, align: 'right', size: 11 });
+      p.end();
+      const early = d * (24 - SIDEREAL_DAY_H) * 60, h = Math.floor(early / 60) % 24, m = Math.round(early % 60);
+      q('[data-early]').textContent = early < 60 ? `${fmt(early, 1)} min` : `${h} h ${m} min`;
+      q('[data-deg]').textContent = `${fmt((d * 360) / 365.25, 0)}°`;
+    };
+    const gd = slider(fig, 'd', () => go(), (v) => `${v}`);
+    const go = live(cv, draw);
+  }
+</script>

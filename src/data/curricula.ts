@@ -53,7 +53,10 @@ export const COURSES: Course[] = [
   // Power BI and DAX, Data storytelling (nihal, 2026-11-22): the BI courses (src/courses/power-bi/, src/courses/data-storytelling/).
   { id: 'power-bi', name: 'Power BI and DAX', text: 'Clean data in Power Query, model a star schema, write DAX measures and time intelligence, and build a dashboard, with DAX you can type and run in every lesson.', status: 'live', href: '/learn/courses/power-bi/' },
   { id: 'data-storytelling', name: 'Data storytelling', text: 'Pick the right chart, cut the clutter, design KPI cards and present numbers so managers act, with charts you can change and writing practice in every lesson.', status: 'live', href: '/learn/courses/data-storytelling/' },
-  { id: 'space-sky', name: 'Space and the sky', text: 'Find the planets tonight, measure the Moon, and learn how we know how far away stars are.', status: 'planned' },
+  // Space and the sky (nihal, 2026-11-22): replaced by two courses that never repeat each other or the
+  // cosmology course: Sky watching (src/courses/sky-watching/) and Astronomy (src/courses/astronomy/).
+  { id: 'sky-watching', name: 'Sky watching', text: 'Amateur astronomy from your own eyes to binoculars, telescopes and astrophotography: how the sky moves, finding anything, dark skies, what to observe and taking honest astrophotos.', status: 'live', href: '/learn/courses/sky-watching/' },
+  { id: 'astronomy', name: 'Astronomy', text: 'The science of stars, planets and galaxies: light and spectra, gravity and orbits, how stars live and die, galaxies, and the research methods astronomers use.', status: 'live', href: '/learn/courses/astronomy/' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned' },

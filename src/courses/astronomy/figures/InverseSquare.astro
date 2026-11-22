@@ -1,0 +1,44 @@
+---
+// SIM for 7.5: light spreading over ever bigger spheres. Move a Sun-like star away and see its flux fall as
+// 1/d², its apparent magnitude rise, and the distance modulus.
+---
+<figure class="cs-fig mlf" data-invsq>
+  <span class="cs-figtag">Try it: move the star away</span>
+  <canvas aria-label="Apparent magnitude of a Sun-like star against distance on a log scale"></canvas>
+  <div class="mlf-ctl">
+    <label>Distance <output data-v="d"></output><input type="range" name="d" min="-5.5" max="4" step="0.05" value="1"></label>
+    <label>Star's luminosity (Suns) <output data-v="L"></output><input type="range" name="L" min="-2" max="5" step="0.1" value="0"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>flux at Earth</span><b data-f></b></div>
+    <div><span>apparent magnitude</span><b data-m></b></div>
+    <div><span>distance modulus m − M</span><b data-mu></b></div>
+  </div>
+  <figcaption>Distance on a log scale in parsecs (1 pc = 3.26 light-years = 206,265 AU). The left edge is 1 AU, where we see the Sun at magnitude −26.7; at 10 pc the Sun would be magnitude 4.8, its absolute visual magnitude. The dashed line is the naked-eye limit, 6.5. Every 10 times further is 100 times fainter: 5 magnitudes.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { distanceModulus, flux, LSUN, PC } from '../../../lib/astrocourse/physics';
+  // The Sun's absolute visual magnitude is about 4.8 (V band).
+  const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  const sci = (x: number) => { const [m, e] = x.toExponential(2).split('e'); return `${m} × 10${String(+e).split('').map((c) => SUP[c]).join('')}`; };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-invsq]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-5.4, 4], y: [-27, 27], h: 250, xLabel: 'log₁₀ distance (pc)', yLabel: 'magnitude' });
+    const draw = () => {
+      const ld = gd(), L = 10 ** gL(), d = 10 ** ld, M = 4.8 - 2.5 * Math.log10(L), m = M + distanceModulus(d);
+      p.begin();
+      p.line(-5.4, -6.5, 4, -6.5, { color: p.pal.accent2, width: 1.2, dash: [4, 4] });
+      p.fn((x) => -(M + distanceModulus(10 ** x)), { color: p.pal.accent, width: 2.5 });
+      p.dot(ld, -m, { r: 6, color: p.pal.accent2 });
+      p.end();
+      const c = p.ctx; c.fillStyle = p.pal.bg; c.fillRect(0, 0, p.L - 2, p.H - p.B + 2); c.fillStyle = p.pal.muted; c.textAlign = 'right'; c.textBaseline = 'middle'; c.font = '12px system-ui, sans-serif';
+      for (const v of [-20, -10, 0, 10, 20]) c.fillText(String(v).replace('-', '−'), p.L - 5, p.py(-v));
+      c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('mag', 2, 2);
+      const F = flux(L * LSUN, d * PC);
+      q('[data-f]').textContent = `${sci(F)} W/m²`; q('[data-m]').textContent = fmt(m, 1); q('[data-mu]').textContent = fmt(distanceModulus(d), 1);
+    };
+    const gd = slider(fig, 'd', () => go(), (v) => { const d = 10 ** v; return d < 0.001 ? `${fmt(d * 206265, 1)} AU` : d < 1000 ? `${fmt(d, d < 10 ? 2 : 0)} pc` : `${fmt(d / 1000, 1)} kpc`; }), gL = slider(fig, 'L', () => go(), (v) => fmt(10 ** v, v < 0 ? 2 : 0));
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,44 @@
+---
+// SIM for 1.3: the Sun's altitude through the day for any latitude and date, with the solstice and equinox
+// curves for comparison. Shows why summer days are long and the noon Sun is high.
+---
+<figure class="cs-fig mlf" data-sunpath>
+  <span class="cs-figtag">Try it: change the date and your latitude</span>
+  <canvas aria-label="The Sun's altitude through a day, with the June solstice, equinox and December solstice curves"></canvas>
+  <div class="mlf-ctl">
+    <label>Latitude <output data-v="lat"></output><input type="range" name="lat" min="-70" max="80" step="1" value="43"></label>
+    <label>Day of the year <output data-v="day"></output><input type="range" name="day" min="1" max="365" step="1" value="172"></label>
+  </div>
+  <div class="mlf-read">
+    <div><span>Sun's declination</span><b data-dec></b></div>
+    <div><span>noon altitude</span><b data-noon></b></div>
+    <div><span>daylight</span><b data-len></b></div>
+  </div>
+  <figcaption>Thin lines: the June solstice (top), the equinoxes (middle) and the December solstice (bottom) at the same latitude. The thick line is your chosen day. Time is local solar time, so noon is when the Sun is highest. The day length ignores the atmosphere's bending of light, which adds a few minutes.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from '../../ml-foundations/figures/kit';
+  import { sunDec, sunAltAt, dayLength, noonAlt } from '../../../lib/astrocourse/sky';
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateOf = (n: number) => { const d = new Date(Date.UTC(2026, 0, n)); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`; };
+  const hm = (h: number) => `${Math.floor(h)} h ${Math.round((h % 1) * 60)} min`;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sunpath]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 24], y: [-60, 90], h: 280, xLabel: 'solar time (h)', yLabel: 'altitude (°)' });
+    const draw = () => {
+      const lat = gl(), n = gn(), dec = sunDec(n);
+      p.begin();
+      p.rect(0, -60, 24, 60, { fill: p.pal.night, alpha: 0.15 });
+      p.line(0, 0, 24, 0, { color: p.pal.ink, width: 1.5 }); p.text(0.3, -6, 'horizon', { size: 11, color: p.pal.muted });
+      for (const d of [23.44, 0, -23.44]) p.fn((t) => sunAltAt(t, d, lat), { color: p.pal.muted, width: 1, dash: [4, 4] });
+      p.fn((t) => sunAltAt(t, dec, lat), { color: p.pal.accent2, width: 3 });
+      p.dot(12, noonAlt(dec, lat), { r: 6, color: p.pal.accent2 });
+      p.end();
+      q('[data-dec]').textContent = `${fmt(dec, 1)}°`;
+      const na = noonAlt(dec, lat); q('[data-noon]').textContent = na > 0 ? `${fmt(na, 1)}°` : 'below horizon';
+      q('[data-len]').textContent = hm(dayLength(dec, lat));
+    };
+    const gl = slider(fig, 'lat', () => go(), (v) => `${Math.abs(v)}° ${v >= 0 ? 'N' : 'S'}`), gn = slider(fig, 'day', () => go(), dateOf);
+    const go = live(cv, draw);
+  }
+</script>
