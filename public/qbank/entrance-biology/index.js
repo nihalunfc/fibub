@@ -115,6 +115,14 @@ export default {
         {
           "id": "microbes-welfare",
           "name": "Microbes in human welfare"
+        },
+        {
+          "id": "biotech-principles",
+          "name": "Biotechnology: principles and processes"
+        },
+        {
+          "id": "biotech-applications",
+          "name": "Biotechnology and its applications"
         }
       ]
     }
