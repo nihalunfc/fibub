@@ -2,7 +2,11 @@
 title: Choosing the right size for your machine
 summary: A step-by-step way to pick the model size, quantisation and context length that give the best answers your machine can run, using the simulation and a quick test.
 minutes: 20
-updated: 2026-11-18
+updated: 2026-11-22
+sources:
+  - 'Dettmers, T. and Zettlemoyer, L. (2023), The case for 4-bit precision: k-bit Inference Scaling Laws, ICML 2023 https://arxiv.org/abs/2212.09720'
+  - 'llama.cpp quantisation types and sizes, project documentation (official page), https://github.com/ggml-org/llama.cpp/tree/master/tools/quantize'
+  - 'Gemma 4 sizes and download sizes from the Ollama library, read 16 November 2026 via BenchLM, https://benchlm.ai/best/ollama-models'
 quiz:
   - q: You can just fit a 27B model at 3 bits, or a 12B at 6 bits. What should decide?
     choices: ['Always the bigger number', 'Run both on your own tasks and compare answers and speed', 'Always the smaller file']
@@ -20,9 +24,13 @@ quiz:
 
 **Module 8 · about 20 minutes · read first: 4.1 and 8.1.** You'll be able to choose a model size, quantisation and context length for your machine in a few minutes.
 
+<div class="bigidea">Your best model is the biggest one whose weights, plus the memory for your context, fit in your fast memory with a little room to spare, at a speed you can live with.</div>
+
 ## 1. Why this matters
 
 Every machine has a best combination: the most capable model that still fits, at a speed you can live with, with enough context for your work. Finding it once saves a lot of trial and error.
+
+It is like packing a suitcase for a flight: you want the most useful things inside, under the weight limit, and you still need to be able to close the lid.
 
 ## 2. Five steps
 
@@ -32,7 +40,19 @@ Every machine has a best combination: the most capable model that still fits, at
 4. **Check speed:** at least about 10 tokens per second for chat; for overnight jobs, slower is fine.
 5. **Test on your own tasks:** compare with one size smaller at higher precision (for example 12B at 4 bits against 31B at 3 bits, or 12B at 6 bits). Keep the winner.
 
+**Headroom** is memory you leave free on purpose: the chat grows, and your browser and system need space too.
+
 <!--fig:will-it-fit-->
+
+### Watch it happen: Sana's 16 GB laptop
+
+<div class="steps">
+<div class="step"><p><b>Usable memory.</b> 16 GB minus about 5 GB for Windows and apps: <b>11 GB</b> usable.</p></div>
+<div class="step"><p><b>Context.</b> Sana summarises reports, so 16K tokens. For a 12B model that costs about <b>1.9 GB</b> of KV cache.</p></div>
+<div class="step"><p><b>Try 12B at 4.8 bits.</b> Weights 12 × 4.8 ÷ 8 = <b>7.2 GB</b>. Add cache and engine: 7.2 + 1.9 + 1 = 10.1 GB. Headroom 0.9 GB: tight, but it fits.</p></div>
+<div class="step"><p><b>Try 31B at 4.8 bits.</b> Weights 31 × 4.8 ÷ 8 = 18.6 GB. Far over 11 GB. Out.</p></div>
+<div class="step"><p><b>Check speed and test.</b> The 12B writes about 9 tokens per second: fine for a summary script. For quick questions she keeps E4B too, which is twice as fast.</p></div>
+</div>
 
 ## 3. Quick picks (November 2026)
 
@@ -51,14 +71,38 @@ Every machine has a best combination: the most capable model that still fits, at
 
 **Equation:** maximise quality(size, bits) subject to memory(size, bits, context) ≤ usable memory and speed ≥ your minimum.
 
+```math
+\text{headroom} = U - \frac{P \times b}{8} - k \times C - 1
+```
+
 **Analogy:** choosing a suitcase for a flight: the most useful things you can take, under the weight limit and still able to carry it.
 
 **Try it:** usable memory 11 GB, need 16K context (about 1.9 GB of KV cache for a 12B model). Does a 12B at 4.8 bits fit? (7.2 + 1.9 + 1 ≈ 10.1 GB: yes, only just.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>U</dt><dd>usable fast memory in GB (card memory, three quarters of a Mac, or laptop memory minus the system)</dd>
+<dt>P × b ÷ 8</dt><dd>the weights: billions of parameters × bits per weight ÷ 8</dd>
+<dt>k × C</dt><dd>the KV cache: GB per 1,000 tokens × thousands of tokens of context</dd>
+<dt>1</dt><dd>about 1 GB the engine needs for its own work</dd>
+<dt>Physical meaning</dt><dd>Headroom is the gap between what you pack and the suitcase's limit. Aim for 10% to 20% of your memory: less and the machine starts swapping when a chat grows; much more and you could have run a bigger model.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="choose-a-quant-fit"></div>
+
+<div class="myth">
+
+**"If the file is smaller than my memory, it will run fine."** The file is only the weights. The context's cache, the engine and your other apps need memory too, and a model that "just fits" can still run painfully slowly. Add them up and keep 10% to 20% free.
+
+</div>
+
 ## 4. Worked example
 
-*Made-up numbers.* Sana has a 16 GB laptop and wants document summaries with 16K of context. Usable memory is about 11 GB. The simulation says Gemma 4 12B at 4-bit fits with 16K. A test on five real documents shows good summaries at 9 tokens per second, fine for a script that runs while he does something else. For quick questions he keeps Gemma 4 E4B, which is twice as fast.
+*Made-up numbers.* Sana has a 16 GB laptop and wants document summaries with 16K of context. Usable memory is about 11 GB. The simulation says Gemma 4 12B at 4-bit fits with 16K. A test on five real documents shows good summaries at 9 tokens per second, fine for a script that runs while she does something else. For quick questions she keeps Gemma 4 E4B, which is twice as fast.
 
 ## 5. Practice
 
@@ -75,3 +119,12 @@ Every machine has a best combination: the most capable model that still fits, at
 </details>
 
 **New words:** *usable memory*, *headroom* (memory left free on purpose), *default model* (the one you reach for first).
+
+<div class="keypoints">
+
+- Usable memory: the card's memory, three quarters of a Mac, or laptop memory minus 4 to 5 GB.
+- Start at 4 bits and pick the biggest model that fits with your context and 10% to 20% headroom.
+- Headroom = usable − weights − KV cache − about 1 GB for the engine.
+- Aim for at least 10 tokens per second for chat, then test your pick against one alternative on real tasks.
+
+</div>

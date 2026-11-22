@@ -3,7 +3,7 @@ title: Licences, law and sector rules in four countries
 seoTitle: 'AI licences, law and sector rules | Offline AI'
 summary: A plain guide to the rules around running AI yourself in India, Canada, the USA and the UK. Model licences, who owns AI output, privacy laws, and the extra rules for health, finance and law. Not legal advice.
 minutes: 25
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'India: Digital Personal Data Protection Act 2023 and DPDP Rules 2025 (MeitY, official page), https://www.meity.gov.in/data-protection-framework'
   - 'India: Reserve Bank of India, FREE-AI framework report (responsible AI in finance), August 2025, https://www.rbi.org.in'
@@ -30,13 +30,17 @@ quiz:
 
 **Module 17 · about 25 minutes · read first: 7.2.** You'll be able to spot the legal questions in a local AI project and know where to look. **This is general information, not legal advice:** for a real project, ask a lawyer or your organisation's privacy officer.
 
+<div class="bigidea">Running AI locally makes many legal questions easier, because personal data stays with you, but the model's licence, who owns the output, privacy law and sector rules still apply.</div>
+
 ## 1. Why this matters
 
-Local AI makes many legal worries smaller, because personal data stays with you. It does not make them disappear. And three things are true everywhere: the model has a licence, the output may or may not be yours, and some sectors have extra rules.
+Local AI makes many legal worries smaller, because personal data stays with you. It does not make them disappear. Three things are true everywhere: the model has a licence, the output may or may not be yours, and some sectors have extra rules.
 
 ## 2. Model licences
 
-- **Apache 2.0 and MIT** (Gemma 4, gpt-oss, Qwen, DeepSeek and many others): use, change and sell, keep the licence notice.
+A **licence** is the permission slip that comes with a model: what you may do with it and what you must do in return.
+
+- **Apache 2.0 and MIT** (Gemma 4, gpt-oss, Qwen, DeepSeek and many others): use, change and sell; keep the licence notice.
 - **Community or custom licences** (for example some Llama versions): usually free for most uses, with conditions such as a limit on very large companies, naming rules or an acceptable-use policy.
 - **Research-only or non-commercial:** fine for learning, not for paid work.
 
@@ -57,11 +61,20 @@ Also: a model can reproduce text it was trained on. Do not publish output that l
 | **USA** | Sector laws (HIPAA for health, GLBA for finance) and state laws such as California's CCPA | Health data needs safeguards and agreements with any vendor; local means no vendor in the loop. |
 | **UK** | UK GDPR and the Data Protection Act 2018 | Lawful basis, data minimisation, impact assessments for risky processing. Local simplifies the vendor part. |
 
+One idea runs through all four: **data minimisation**. Use only the personal data the job needs, and keep it only as long as needed.
+
 ## 5. Sector rules
 
 - **Health:** patient data has the strictest rules in all four countries (HIPAA, PHIPA, the UK's NHS data rules, India's DPDP). Local is a strong fit; still log access, encrypt disks and keep a human in charge of clinical decisions (Lesson 18.1).
 - **Finance:** regulators expect you to manage model risk: test, document and monitor models. Examples: OSFI's Guideline E-23 in Canada (effective 2027), the RBI's FREE-AI framework in India, and existing model-risk and consumer-duty rules in the UK and USA (Lesson 18.3).
 - **Law:** confidentiality duties to clients apply to any tool. Bar and law society guidance in all four countries says lawyers must understand the tools they use and protect client information (Lesson 18.2).
+
+<div class="steps">
+<div class="step"><p><b>Tell people.</b> An Ontario physiotherapy clinic wants AI-written visit summaries. First item: the clinic's privacy notice tells patients how AI is used.</p></div>
+<div class="step"><p><b>Keep it in the building.</b> The model runs on a clinic machine with an encrypted disk. No vendor contract and no cross-border question: the two hardest items, gone.</p></div>
+<div class="step"><p><b>Limit who sees what.</b> Each clinician has their own Open WebUI account, and chats are deleted after 90 days instead of being kept forever.</p></div>
+<div class="step"><p><b>Keep a person in charge.</b> A clinician reviews and signs every summary. The model's licence (Apache 2.0 for Gemma 4) is recorded.</p></div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -74,6 +87,27 @@ Also: a model can reproduce text it was trained on. Do not publish output that l
 
 **Try it:** which lowers risk more: sending 1,000 full patient files to a cloud model, or sending 1,000 files with names removed to a local model? (The second: fewer identifiers and fewer copies.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>amount</dt><dd>how many records and how many personal details in each (names, dates of birth, notes)</dd>
+<dt>sensitivity</dt><dd>how much harm a leak would do: health and children's data rank highest</dd>
+<dt>copies</dt><dd>every place the data sits: the machine, backups, a vendor, chat history</dd>
+<dt>Physical meaning</dt><dd>Risk is a pile you can make smaller from three sides: hold fewer details, avoid the most sensitive ones where you can, and keep fewer copies for less time. Local AI cuts the copies (no vendor); a short retention period cuts the amount.</dd>
+</dl>
+
+</div>
+
+Retention is the easiest of the three to change:
+
+<div class="problem" data-problem="law-and-ethics-retention"></div>
+
+<div class="myth">
+
+**"It runs on our own machine, so privacy law does not apply."** Privacy laws cover how you handle personal data anywhere, not just when you send it to a vendor. Local AI makes compliance easier (no cross-border transfer, no vendor contract), but you still need a lawful reason, security, limits on use and keeping, and a way to answer people's requests.
+
+</div>
 
 ## 6. Worked example
 
@@ -94,3 +128,13 @@ Also: a model can reproduce text it was trained on. Do not publish output that l
 </details>
 
 **New words:** *licence*, *data minimisation*, *model risk management*, *privacy impact assessment*.
+
+<div class="keypoints">
+
+- Check every model's licence: Apache 2.0 and MIT allow commercial use with a notice; others add conditions or forbid it.
+- Purely AI-generated work may not be protected by copyright; real human creative work on it helps.
+- Privacy laws in India, Canada, the USA and the UK still apply locally; local removes the vendor and cross-border parts.
+- Health, finance and law add sector rules: access logs, model risk management, client confidentiality.
+- Minimise data: fewer details, fewer copies, shorter retention. Not legal advice: ask a lawyer for a real project.
+
+</div>

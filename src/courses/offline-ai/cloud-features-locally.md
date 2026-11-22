@@ -3,7 +3,7 @@ title: Every cloud feature and its local equivalent
 seoTitle: Cloud AI features and their local versions | Offline AI
 summary: Chat, files, projects, memory, web search, code, voice, images, video, apps and sync. For each cloud feature, the local tool that does the same job, how close it gets, and which lesson shows you how.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Open WebUI features: documents, web search, tools, voice (official documentation), https://docs.openwebui.com'
   - 'whisper.cpp (offline speech to text), https://github.com/ggml-org/whisper.cpp'
@@ -27,11 +27,17 @@ quiz:
 
 **Module 17 · about 20 minutes · read first: 9.5.** You'll be able to rebuild the cloud features you rely on with local tools, and know which ones are not worth the effort.
 
+<div class="bigidea">Almost every cloud AI feature has a local version, but you only need to rebuild the few you use often; the rare, heavy ones are cheaper to leave in the cloud.</div>
+
 ## 1. Why this matters
 
 People rarely use a cloud AI for "just the model". They use projects, file uploads, voice, search and the phone app. Going local works when you replace the features you actually use, not all of them.
 
+It is like fitting out a home kitchen: buy the pans you cook with every week, and borrow the fondue set.
+
 ## 2. The map
+
+A **front end** is the app you type into; the model runs behind it.
 
 | Cloud feature | Local equivalent | How close | Lesson |
 |---|---|---|---|
@@ -57,6 +63,13 @@ People rarely use a cloud AI for "just the model". They use projects, file uploa
 
 List the features you used in the last month and how often. Rebuild the top three locally. For anything you use rarely (video, deep web research), keep a cloud option rather than building it.
 
+<div class="steps">
+<div class="step"><p><b>List what you use.</b> Lena, a freelance translator, checks last month: chat (daily), uploading client files (40 times), voice dictation (30 times), web lookups (3 times).</p></div>
+<div class="step"><p><b>Rebuild the top three.</b> Open WebUI with Gemma 4 for chat and files, and whisper.cpp for dictation. One weekend of setup.</p></div>
+<div class="step"><p><b>Leave out what leaks or is rare.</b> Web search would send queries out, and she used it 3 times. She leaves it off, so client text never leaves, and uses her normal browser for the odd lookup.</p></div>
+<div class="step"><p><b>Check a month later.</b> Three features rebuilt; the one she skipped she did not miss.</p></div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -68,6 +81,29 @@ List the features you used in the last month and how often. Rebuild the top thre
 
 **Try it:** a feature used 40 times a month, saving 3 minutes each, that takes 4 hours to set up? (120 minutes saved a month; the setup pays back in two months.)
 </details>
+
+```math
+\text{payback months} = \frac{60 \times H}{U \times s}
+```
+
+<div class="meaning">
+
+<dl>
+<dt>H</dt><dd>hours to set up the local version</dd>
+<dt>U</dt><dd>how many times a month you use the feature</dd>
+<dt>s</dt><dd>minutes saved each time (no upload, no waiting, no usage window)</dd>
+<dt>Physical meaning</dt><dd>A feature you use every day pays back its setup in weeks; one you use twice a year never does. That is why the short list of daily features is worth a weekend and video generation usually is not.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="cloud-features-locally-payback"></div>
+
+<div class="myth">
+
+**"Going local means giving up everything the cloud app does."** Most cloud features have a close local version: chat history, files, projects, voice, image reading, scheduled jobs. A few are far behind (video generation, the strongest reasoning) and one sends data out even locally (web search). Rebuild what you use; keep the rest in the cloud.
+
+</div>
 
 ## 4. Worked example
 
@@ -88,3 +124,12 @@ List the features you used in the last month and how often. Rebuild the top thre
 </details>
 
 **New words:** *front end*, *workspace*, *search tool*, *on-device app*.
+
+<div class="keypoints">
+
+- Chat, accounts, files, projects, voice, image reading and scheduled tasks all have close local versions.
+- Video generation and the strongest reasoning are still far behind at home.
+- Web search sends your queries out even when the model is local.
+- Rebuild the top three features you use; payback months = 60 × setup hours ÷ (uses × minutes saved).
+
+</div>

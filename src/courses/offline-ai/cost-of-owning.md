@@ -2,11 +2,13 @@
 title: The full cost of owning the hardware
 summary: Price is only the start. Add electricity, your time, extras and upkeep, then subtract what you can sell it for, to get the real monthly cost of a local AI machine.
 minutes: 20
-updated: 2026-11-19
+updated: 2026-11-22
 sources:
   - 'Hardware prices: Lessons 5.1 to 5.4 and their sources (prices.ts, checked 18 November 2026)'
   - 'Home electricity prices: Lesson 6.2 and its sources (Ofgem, Ontario Energy Board, EIA)'
   - 'Compute Market, "GPU Market 2026" (third-party, on used card prices and the memory shortage), updated 1 November 2026, https://www.compute-market.com/blog/gpu-market-trends-pricing-2026'
+  - 'U.S. Energy Information Administration, Electric Power Monthly (average retail electricity prices, official page), https://www.eia.gov/electricity/monthly/'
+  - 'Ofgem, Energy price cap (official page), https://www.ofgem.gov.uk/energy-price-cap'
 quiz:
   - q: Which cost do people most often leave out when comparing a local machine with a plan?
     choices: ['Their own time for setting up and looking after it', 'The price on the box', 'The plan price']
@@ -24,9 +26,13 @@ quiz:
 
 **Module 16 · about 20 minutes · read first: 5.6 and 6.2.** You'll be able to work out what a local AI machine really costs you each month.
 
+<div class="bigidea">The real monthly cost of a local AI machine is what you paid because of AI, minus what you will sell it for, spread over the months you keep it, plus power and your time.</div>
+
 ## 1. Why this matters
 
 "A US$1,300 Mac mini against a US$20 plan" sounds like 65 months to pay off. The real answer can be much shorter (you sell the machine later, you use it for other work) or much longer (electricity, your time, a second machine). This lesson lists every piece, so the break-even in Lesson 16.4 is honest.
+
+The name for this is **total cost of ownership**: everything a thing costs you from the day you buy it to the day you sell it.
 
 ## 2. The pieces
 
@@ -47,6 +53,33 @@ quiz:
 
 Spread the hardware over the years you will keep it, take off the resale value, then add the monthly running costs. That gives a monthly cost of owning, which you can compare straight with a plan's monthly price.
 
+<div class="steps">
+<div class="step"><p><b>Count only the AI part.</b> Marcus would buy a 16 GB Mac mini anyway (US$899). He buys the 32 GB one (US$1,299) to run models, so the AI cost is the difference: <b>US$400</b>.</p></div>
+<div class="step"><p><b>Take off resale.</b> After three years he expects to sell it for 40% of its price, so he gets back about 40% of the extra too: 0.4 × 400 = <b>US$160</b>. The extra really costs him US$240.</p></div>
+<div class="step"><p><b>Spread it out.</b> Over 36 months: 240 ÷ 36 ≈ <b>US$6.67 a month</b>.</p></div>
+<div class="step"><p><b>Add running costs.</b> Power: 25 W × 3 h × 30 days = 2.25 kWh at US$0.182 ≈ US$0.41 a month. His time he counts as zero, because he enjoys it. Total ≈ <b>US$7 a month</b>, against a US$20 plan.</p></div>
+</div>
+
+```math
+\text{monthly cost} = \frac{H + X - S}{M} + E + h \times v
+```
+
+<div class="meaning">
+
+<dl>
+<dt>H</dt><dd>hardware: only what you pay because of AI (a whole box, a card, or the extra for more memory)</dd>
+<dt>X</dt><dd>extras: power supply, storage, UPS, a power meter</dd>
+<dt>S</dt><dd>resale: what you expect to get back when you sell</dd>
+<dt>M</dt><dd>months you will keep the machine</dd>
+<dt>E</dt><dd>electricity per month</dd>
+<dt>h × v</dt><dd>upkeep hours a month times what an hour of your time is worth</dd>
+<dt>Physical meaning</dt><dd>The machine slowly "uses itself up" in money terms, like a car losing value each year. The top part of the fraction is the value it loses while you own it; dividing by the months turns that into a monthly rent you pay yourself.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="cost-of-owning-monthly"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -58,6 +91,12 @@ Spread the hardware over the years you will keep it, take off the resale value, 
 
 **Try it:** 1,300 machine, 100 extras, 500 resale after 36 months, 2 a month electricity, 1 hour a month at 15 an hour? ((1,400 − 500) ÷ 36 = 25; + 2 + 15 = 42 a month.)
 </details>
+
+<div class="myth">
+
+**"The price on the box is what it costs."** It is only the start. You may get 30 to 60% back when you sell, you may have bought a computer anyway, and power and your time add to it. Counting the full box price with no resale can make local look five times dearer than it really is.
+
+</div>
 
 ## 5. Worked example
 
@@ -78,3 +117,13 @@ Spread the hardware over the years you will keep it, take off the resale value, 
 </details>
 
 **New words:** *total cost of ownership*, *resale value*, *upkeep*, *UPS* (a battery that keeps the machine running through short power cuts).
+
+<div class="keypoints">
+
+- Count only what you pay because of AI: if you would buy a computer anyway, count just the extra.
+- Monthly cost = (hardware + extras − resale) ÷ months kept + electricity + upkeep hours × your hourly value.
+- Resale of 30 to 60% after 2 to 4 years often halves the real hardware cost; do not count on it too much.
+- Your time is a real cost: a weekend to start, then an hour or two a month.
+- The result is a monthly figure you can put straight next to a plan's price.
+
+</div>
