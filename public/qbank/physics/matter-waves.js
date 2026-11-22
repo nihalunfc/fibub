@@ -9,6 +9,25 @@ const DEG = Math.PI / 180;
 const lamV = (V) => h / Math.sqrt(2 * me * e * V);              // electron through V volts, metres
 const lamRelKeV = (K) => 1240 / Math.sqrt(K * K + 2 * K * 511); // electron, K in keV -> pm (hc = 1240 keV pm)
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'matter-waves',
   items: [
@@ -230,6 +249,60 @@ export default {
   ],
 
   gens: [
+    { id: 'mw-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'de broglie', format: 'comparison',
+      make(r) {
+        const P = [['a proton', 1, 1], ['a deuteron', 2, 1], ['an alpha particle', 4, 2]];
+        const i = Q5.int(r, 0, 2), j = (i + Q5.int(r, 1, 2)) % 3, A = P[i], B = P[j];
+        const sq = (n, d) => { const g = (a, b) => (b ? g(b, a % b) : a), k = g(n, d), a = n / k, b = d / k, ra = Math.round(Math.sqrt(a)), rb = Math.round(Math.sqrt(b)); return ra * ra === a && rb * rb === b ? q5frac(ra, rb) : `\\sqrt{${q5frac(a, b)}}`; };
+        const c = Q5.int(r, 0, 3);
+        const val = [sq(B[1], A[1]), q5frac(B[1], A[1]), '1', sq(B[1] * B[2], A[1] * A[2])];
+        const cond = ['have the same kinetic energy', 'have the same speed', 'have the same momentum', 'are each accelerated from rest through the same potential difference'][c];
+        const o = Q5.mcqOptions(r, val[c], [...val.filter((v, k) => k !== c), sq(A[1], B[1]), q5frac(A[1], B[1])], (s) => `$${s}$`);
+        return { q: `${A[0][0].toUpperCase() + A[0].slice(1)} and ${B[0]} ${cond} (non-relativistic). The ratio of their de Broglie wavelengths, $\\lambda_{\\rm ${A[0].split(' ')[1]}}/\\lambda_{\\rm ${B[0].split(' ')[1]}}$, is (take masses $1:2:4$ for proton, deuteron and alpha, charges $e, e, 2e$)`, ...o,
+          sol: `$\\lambda = h/p$. Same momentum: equal wavelengths. Same speed: $p = mv$, so $\\lambda \\propto 1/m$. Same kinetic energy: $p = \\sqrt{2mK}$, so $\\lambda \\propto 1/\\sqrt m$. Same accelerating voltage: $K = qV$, so $\\lambda \\propto 1/\\sqrt{qm}$. Here: $${val[c]}$.`,
+          trap: 'Decide what is shared (K, v, p or V) before writing the ratio; the alpha particle has twice the charge.' };
+      } },
+    { id: 'mw-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'phase and group velocity', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['The uncertainty relation $\\Delta x\\,\\Delta p \\ge \\hbar/2$ is a property of waves, not a result of clumsy measurement.', 'A narrower wave packet needs a wider spread of wavenumbers.',
+          'For a free non-relativistic particle, the group velocity of its matter wave equals the particle velocity.', 'For a free non-relativistic particle (no rest energy in $\\omega$), the phase velocity is half the particle velocity.', 'A free particle with an exactly known momentum is spread over all space.'];
+        const F = ['For a free non-relativistic particle, the phase velocity of its matter wave equals the particle velocity.', 'A particle with an exactly known momentum is well localised.',
+          'The de Broglie wavelength of a particle depends on its electric charge (at fixed momentum).', 'A wider wave packet needs a wider spread of wavenumbers.', 'Matter waves of free particles show no dispersion.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about matter waves are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'With $E = \\hbar\\omega = \\hbar^2k^2/2m$: $v_g = d\\omega/dk = \\hbar k/m = v$, while $v_p = \\omega/k = \\hbar k/2m = v/2$; since $v_p$ depends on $k$ the waves are dispersive and packets spread. A packet of width $\\Delta x$ needs $\\Delta k \\gtrsim 1/(2\\Delta x)$ (Fourier), which is the uncertainty relation; a single $k$ (exact momentum) is a plane wave filling all space. $\\lambda = h/p$ has no charge in it.',
+          trap: 'Group velocity, not phase velocity, carries the particle.' };
+      } },
+    { id: 'mw-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'bohr and de broglie', unit: 'nm',
+      make(r) {
+        const n = Q5.int(r, 1, 5), Z = Q5.int(r, 1, 4);
+        const lam = 2 * Math.PI * 0.0529 * n / Z;
+        return { q: `In the Bohr model, the electron in the $n = ${n}$ orbit of a hydrogen-like ion with $Z = ${Z}$ has a de Broglie wavelength of ______ nm (to four decimal places; $a_0 = 0.0529$ nm).`,
+          answer: Q5.round(lam, 4), tol: +(0.003 * lam).toPrecision(2), n, Z,
+          sol: `Bohr's condition $mvr = n\\hbar$ is the same as $2\\pi r_n = n\\lambda$: $n$ wavelengths fit round the orbit. With $r_n = n^2a_0/Z$: $\\lambda = 2\\pi r_n/n = 2\\pi a_0 n/Z = 2\\pi\\times0.0529\\times${n}/${Z} = ${Q5.round(lam, 4)}$ nm.`,
+          trap: 'The orbit holds $n$ whole wavelengths, so $\\lambda$ grows only as $n$, not $n^2$.' };
+      },
+      verify: (p) => { const v = 2.18769e6 * p.Z / p.n; return 6.62607e-34 / (9.10938e-31 * v) * 1e9; } },
+    { id: 'mw-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'accelerated electrons', format: 'graph',
+      make(r) {
+        const [what, k] = Q5.choose(r, [['$\\log\\lambda$ against $\\log V$ for electrons accelerated from rest through $V$ (non-relativistic)', '-1/2'], ['$\\log\\lambda$ against $\\log p$ for any particle', '-1'],
+          ['$\\log\\lambda$ against $\\log v$ for electrons of speed $v$ (non-relativistic)', '-1'], ['$\\log\\lambda$ against $\\log m$ for particles of the same kinetic energy', '-1/2'], ['$\\log\\lambda$ against $\\log E$ for photons of energy $E$', '-1'], ['$\\log\\lambda$ against $\\log T$ for thermal neutrons at temperature $T$', '-1/2']]);
+        const o = Q5.mcqOptions(r, `$${k}$`, ['$-1/2$', '$-1$', '$1/2$', '$-2$', '$1$'].filter((s) => s !== `$${k}$`));
+        return { q: `A graph of ${what} is a straight line. Its slope is`, ...o,
+          sol: `$\\lambda = h/p$, so $\\log\\lambda = \\log h - \\log p$: slope $-1$ against $\\log p$, and also against $\\log v$ ($p = mv$) and $\\log E$ for photons ($p = E/c$). When $p = \\sqrt{2mK}$, with $K = eV$, $K$ fixed, or $K = \\tfrac32k_BT$, $\\lambda \\propto V^{-1/2}$, $m^{-1/2}$, $T^{-1/2}$: slope $-1/2$. Here the slope is $${k}$.`,
+          trap: 'A power law $\\lambda \\propto x^n$ is a straight line of slope $n$ on a log-log graph.' };
+      } },
+    { id: 'mw-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'neutrons', unit: 'K',
+      make(r) {
+        const lam = Q5.pick(r, 0.1, 0.3, 0.01);
+        const T = (6.626e-34) ** 2 / (3 * 1.675e-27 * 1.381e-23 * (lam * 1e-9) ** 2);
+        return { q: `Neutrons with mean kinetic energy $\\tfrac32k_BT$ have de Broglie wavelength $${lam}$ nm. The temperature $T$ is ______ K (to three significant figures; $h = 6.626\\times10^{-34}$ J s, $m_n = 1.675\\times10^{-27}$ kg, $k_B = 1.381\\times10^{-23}$ J/K).`,
+          answer: +T.toPrecision(3), tol: +(0.006 * T).toPrecision(2), lam,
+          sol: `$\\lambda = h/\\sqrt{2m\\cdot\\tfrac32k_BT} = h/\\sqrt{3mk_BT}$, so $T = \\dfrac{h^2}{3mk_B\\lambda^2} = \\dfrac{(6.626\\times10^{-34})^2}{3\\times1.675\\times10^{-27}\\times1.381\\times10^{-23}\\times(${lam}\\times10^{-9})^2} = ${+T.toPrecision(3)}$ K.`,
+          trap: 'Halving the wavelength needs four times the temperature.' };
+      },
+      verify: (p) => { const E = (6.626e-34) ** 2 / (2 * 1.675e-27 * (p.lam * 1e-9) ** 2); return 2 * E / (3 * 1.381e-23); } },
     { id: 'mw-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'accelerated electrons',
       make(r) {
         const V = choose(r, [25, 50, 64, 100, 144, 150, 200, 225, 300, 400, 500, 900, 1000]);

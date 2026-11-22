@@ -9,6 +9,25 @@ const H2M = 0.0381;    // hbar^2/(2 m_e) in eV nm^2, as stated
 const boxP = (n, a, b) => (b - a) - (Math.sin(2 * n * Math.PI * b) - Math.sin(2 * n * Math.PI * a)) / (2 * n * Math.PI); // a, b as fractions of L
 const simpson = (f, a, b, N = 2000) => { const h = (b - a) / N; let s = f(a) + f(b); for (let i = 1; i < N; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'schrodinger-equation',
   items: [
@@ -234,6 +253,54 @@ export default {
   ],
 
   gens: [
+    { id: 'sch-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'infinite well', format: 'comparison',
+      make(r) {
+        const [wn, wd] = Q5.choose(r, [[2, 1], [3, 1], [1, 2], [3, 2]]), [mn, md, mname] = Q5.choose(r, [[1, 1, 'the same particle'], [4, 1, 'a particle 4 times as heavy'], [2, 1, 'a particle twice as heavy'], [1, 2, 'a particle half as heavy']]);
+        const right = q5frac(md * wd * wd, mn * wn * wn);
+        const o = Q5.mcqOptions(r, right, [q5frac(mn * wn * wn, md * wd * wd), q5frac(md * wd, mn * wn), q5frac(wd * wd, wn * wn), q5frac(md * wd * wd * 2, mn * wn * wn), q5frac(md * wd * wd, 2 * mn * wn * wn), q5frac(md * wn, mn * wd)], (s) => `$${s}$`);
+        return { q: `A particle sits in the ground state of a one-dimensional infinite well. The well is made $${q5frac(wn, wd)}$ times as wide and filled instead with ${mname}. The new ground-state energy divided by the old one is`, ...o,
+          sol: `$E_1 = \\dfrac{\\pi^2\\hbar^2}{2mL^2} \\propto \\dfrac1{mL^2}$. The ratio is $\\dfrac{1}{(${q5frac(mn, md)})(${q5frac(wn, wd)})^2} = ${right}$.`,
+          trap: 'The energy falls as the square of the width, and also falls with mass.' };
+      } },
+    { id: 'sch-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'acceptable wavefunctions', format: 'statements',
+      make(r) {
+        const not = r() < 0.5;
+        const good = ['$e^{-x^2}$', '$x\\,e^{-x^2}$', '$\\dfrac{1}{1 + x^2}$', '$\\operatorname{sech} x$', '$\\dfrac{1}{\\sqrt{1 + x^2}}$'];
+        const bad = ['$e^{x}$', '$\\sin x$', '$x$', '$1/x$', '$\\dfrac{1}{(1 + x^2)^{1/4}}$'];
+        const o = not ? q5msq(r, bad, good) : q5msq(r, good, bad);
+        return { q: `Which of these functions are ${not ? '<b>NOT</b> ' : ''}square-integrable over the whole real line ($-\\infty < x < \\infty$), so that they could be normalised as wavefunctions?`, ...o,
+          sol: 'Need $\\int_{-\\infty}^{\\infty}|\\psi|^2dx$ finite. Gaussians and $\\operatorname{sech} x$ fall off exponentially: fine. $1/(1+x^2)$ squared goes as $x^{-4}$: fine. $1/\\sqrt{1+x^2}$ squared is $1/(1+x^2)$, whose integral is $\\pi$: fine, although it decays slowly. $(1+x^2)^{-1/4}$ squared is $(1+x^2)^{-1/2} \\sim 1/|x|$: the integral diverges logarithmically. $e^x$ blows up, $\\sin x$ and $x$ do not decay, and $1/x$ squared diverges at $x = 0$.',
+          trap: '$|\\psi|^2$ must fall faster than $1/|x|$; $1/\\sqrt{1+x^2}$ just makes it.' };
+      } },
+    { id: 'sch-t23', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'expectation values', unit: 'nm',
+      make(r) {
+        const n = Q5.int(r, 1, 5), L = Q5.pick(r, 0.5, 5, 0.5);
+        const dx = L * Math.sqrt(1 / 12 - 1 / (2 * Math.PI ** 2 * n * n));
+        return { q: `A particle is in the stationary state $n = ${n}$ of an infinite well from $x = 0$ to $x = ${L}$ nm. The uncertainty $\\Delta x = \\sqrt{\\langle x^2\\rangle - \\langle x\\rangle^2}$ is ______ nm (to three decimal places).`,
+          answer: Q5.round(dx, 3), tol: 0.002, n, L,
+          sol: `With $\\psi_n = \\sqrt{2/L}\\sin(n\\pi x/L)$: $\\langle x\\rangle = L/2$ by symmetry and $\\langle x^2\\rangle = L^2\\left(\\dfrac13 - \\dfrac{1}{2n^2\\pi^2}\\right)$. So $\\Delta x = L\\sqrt{\\dfrac1{12} - \\dfrac{1}{2n^2\\pi^2}} = ${L}\\times${Q5.round(dx / L, 4)} = ${Q5.round(dx, 3)}$ nm. As $n$ grows it tends to the classical $L/\\sqrt{12}$.`,
+          trap: '$\\langle x^2\\rangle$ is not $\\langle x\\rangle^2$; the difference tends to $L^2/12$, the value for a uniform spread.' };
+      },
+      verify: (p) => { const N = 400, h = p.L / N; let m1 = 0, m2 = 0; for (let i = 0; i <= N; i++) { const x = i * h, w = i === 0 || i === N ? 1 : i % 2 ? 4 : 2, d = 2 / p.L * Math.sin(p.n * Math.PI * x / p.L) ** 2; m1 += w * x * d; m2 += w * x * x * d; } m1 *= h / 3; m2 *= h / 3; return Math.sqrt(m2 - m1 * m1); } },
+    { id: 'sch-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'stationary states', format: 'graph',
+      make(r) {
+        const k = Q5.int(r, 1, 4), box = r() < 0.5;
+        const s = box ? (j) => `$${(j + 1) ** 2 === 1 ? '' : (j + 1) ** 2}E_1$` : (j) => `$${q5frac(2 * j + 1, 2)}\\hbar\\omega$`;
+        const o = Q5.mcqOptions(r, s(k), [s(k - 1), s(k + 1), box ? `$${2 * (k + 1)}E_1$` : `$${k === 1 ? '' : k}\\hbar\\omega$`, box ? `$${k + 1}E_1$` : `$${k + 1}\\hbar\\omega$`]);
+        return { q: `A sketch of an energy eigenfunction ${box ? 'of a particle in a one-dimensional infinite well' : 'of a one-dimensional harmonic oscillator'} crosses zero $${k}$ time${k > 1 ? 's' : ''} (not counting ${box ? 'the walls' : 'the tails at infinity'}). Its energy is ${box ? '(with $E_1$ the ground-state energy)' : ''}`, ...o,
+          sol: box ? `The $n$-th state has $n - 1$ interior nodes, so $n = ${k + 1}$ and $E = n^2E_1 = ${(k + 1) ** 2}E_1$.` : `The state $n$ (counting from $n = 0$) has $n$ nodes, so $n = ${k}$ and $E = (n + \\tfrac12)\\hbar\\omega = ${q5frac(2 * k + 1, 2)}\\hbar\\omega$.`,
+          trap: 'Node counting: the ground state has no nodes, so $k$ nodes means the $(k+1)$-th state.' };
+      } },
+    { id: 'sch-t25', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'step potential',
+      make(r) {
+        const E = Q5.int(r, 1, 20), V0 = Q5.int(r, 1, 20);
+        const k1 = Math.sqrt(E), k2 = Math.sqrt(E + V0), T = 4 * k1 * k2 / (k1 + k2) ** 2;
+        return { q: `Particles of kinetic energy $${E}$ eV move towards a step where the potential energy suddenly drops by $${V0}$ eV. The fraction transmitted past the step is ______ (to four decimal places).`,
+          answer: Q5.round(T, 4), tol: 0.0002, E, V0,
+          sol: `$k \\propto \\sqrt{\\text{kinetic energy}}$: $k_1 \\propto \\sqrt{${E}}$, $k_2 \\propto \\sqrt{${E + V0}}$. Matching $\\psi$ and $\\psi'$ at the step: $T = \\dfrac{4k_1k_2}{(k_1 + k_2)^2} = ${Q5.round(T, 4)}$. Classically every particle would pass; quantum mechanically a drop also reflects.`,
+          trap: 'Waves reflect at any sudden change of $k$, downward steps included.' };
+      },
+      verify: (p) => { const a = Math.sqrt(p.E), b = Math.sqrt(p.E + p.V0); return 1 - ((a - b) / (a + b)) ** 2; } },
     { id: 'sch-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'infinite well',
       make(r) {
         const L = choose(r, [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.5, 2]), n = int(r, 1, 4);
