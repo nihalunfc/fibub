@@ -14,6 +14,11 @@ export type CourseSyllabus = {
   // and a printable summary sheet. Figures are JS modules in public/learn-kit/<id>/figs/<name>.js, problems in
   // public/learn-kit/<id>/problems.js; the course's pages import src/styles/lesson-kit.css.
   kit?: boolean;
+  // Lessons written once in another course and shown here too (medical entrance borrows the engineering course's
+  // Physics and Chemistry): files of that course whose slug this syllabus lists. Their pages here carry a
+  // canonical link to the original, so each search has one page.
+  sharedFrom?: string;
+  kitDir?: string;   // folder under public/learn-kit/ for figures and problems (default: the course id)
   parts: { name: string; modules: CourseModule[] }[];
 };
 

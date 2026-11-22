@@ -61,6 +61,10 @@ export const COURSES: Course[] = [
   { id: 'startup', name: 'Start a startup', text: 'Start a business in India, Canada or the USA, online or offline, alone or with co-founders: registering, licences, GST and sales tax, income tax, payroll, IP and equity, with official sources.', status: 'live', href: '/learn/courses/startup/' },
   // Cosmology A to Z (nihal, 2026-11-22): src/courses/cosmology/.
   { id: 'cosmology', name: 'Cosmology from A to Z', text: 'The story of the universe from ancient sky watchers to JWST: light, distances, Einstein, the Big Bang, the cosmic microwave background, dark matter and dark energy, with animations and live problems.', status: 'live', href: '/learn/courses/cosmology/' },
+  // Plus Two entrance (nihal, 2026-11-22): src/courses/engineering-entrance/ and src/courses/medical-entrance/,
+  // chapters in src/data/entrance.ts, questions in public/qbank/entrance-<subject>/.
+  { id: 'engineering-entrance', name: 'Engineering entrance (KEAM to JEE Advanced)', text: 'Plus Two Physics, Chemistry and Maths for KEAM, CUSAT CAT, COMEDK, JEE Main and JEE Advanced: lessons, every question type, and original practice questions with full solutions at five levels.', status: 'live', href: '/learn/courses/engineering-entrance/' },
+  { id: 'medical-entrance', name: 'Medical entrance (NEET)', text: 'Plus Two Physics, Chemistry and Biology for NEET UG: lessons, every NEET question format, and original practice questions with full solutions at five levels.', status: 'live', href: '/learn/courses/medical-entrance/' },
   { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned' },
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned' },

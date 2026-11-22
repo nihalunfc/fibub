@@ -43,6 +43,15 @@ function lastChanged() {
 }
 const changed = lastChanged();
 
+// Medical entrance pages that show an engineering-course lesson (Physics, Chemistry) carry a canonical link to
+// the engineering page, so they stay out of the sitemap (src/data/entrance.ts, src/courses/medical-entrance/).
+const borrowedLessons = (() => {
+  const src = readFileSync('src/data/entrance.ts', 'utf8');
+  const part = src.slice(src.indexOf('  physics: ['), src.indexOf('  maths: ['));
+  const ids = [...part.matchAll(/\{ id: '([a-z0-9-]+)'/g)].map((m) => m[1]);
+  return new Set(ids.flatMap((id) => [`/learn/courses/medical-entrance/${id}/`, `/learn/courses/medical-entrance/${id}-questions/`]));
+})();
+
 export default defineConfig({
   // FIBUB_CACHE=<dir> gives a quick FIBUB_ONLY build its own cache, so builds side by side don't share one.
   cacheDir: process.env.FIBUB_CACHE || undefined,
@@ -52,7 +61,7 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [sitemap({
     // /nav/ only holds the menu's tool lists for the header to load, and /offline/ is what the app shows with no internet: neither is a page of its own.
-    filter: (page) => !/\/(nav|offline)\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page),
+    filter: (page) => !/\/(nav|offline)\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page) && !borrowedLessons.has(new URL(page).pathname),
     serialize(item) {
       const path = new URL(item.url).pathname.split('/').filter(Boolean);
       const course = path[0] === 'learn' && path[1] === 'courses' && path.length >= 3;

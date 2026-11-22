@@ -20,11 +20,13 @@ const d = entry.data;
 const kitV = course.kit ? Date.now().toString(36) : '';
 const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
-const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
+// A lesson borrowed from another course (sharedFrom) points search engines at its original page.
+const borrowed = course.sharedFrom && entry.id.startsWith(`${course.sharedFrom}/`) ? `/learn/courses/${course.sharedFrom}/${slug}/` : undefined;
+const ld = borrowed ? [] : lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
 ---
-<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article">
+<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article" canonical={borrowed}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
-  <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.id}/` : undefined}>
+  <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.kitDir ?? course.id}/` : undefined}>
     <CourseSidebar course={course} live={live} current={slug} />
     <article class="cs-main cs-lesson">
       <p class="cs-kicker">Module {me.module.n}: {me.module.name} · Lesson {me.n} · about {d.minutes} min</p>
