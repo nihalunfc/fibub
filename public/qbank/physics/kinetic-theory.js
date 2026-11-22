@@ -8,6 +8,7 @@ const erf = (x) => { let s = 0, t = x, n = 0; while (Math.abs(t) > 1e-16 && n < 
 
 import * as Q5 from '../_util.js';
 import more2 from './kinetic-theory.more2.gen.js';
+import r4 from './kinetic-theory.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -236,6 +237,7 @@ export default {
       sol: 'The Boltzmann factor $e^{-(\\frac12 mv^2 + mgz)/kT}$ factorises into a speed part and a height part. So the speed distribution (and the mean energy $\\tfrac32 kT$) is the same at every height, while the density falls as $e^{-mgz/kT}$ with scale height $kT/mg$. Slow molecules do not get as high, which is why fewer arrive, not why those that arrive are slower.',
       trap: 'C sounds natural but contradicts equilibrium at one temperature: temperature measures mean kinetic energy.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'kth-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'Maxwell speeds', format: 'comparison',
@@ -377,5 +379,6 @@ export default {
           trap: 'Three temperatures in the ratio $T_c : T_B : T_i = 8/27 : 1 : 2$; know which is which.' };
       },
       verify: (p) => ({ Tc: 8 / 27, TB: 1, Ti: 2 })[p.want] * p.a / (8.314 * p.b * 1e-5) },
+    ...r4.gens,
   ],
 };

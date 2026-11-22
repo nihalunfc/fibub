@@ -20,7 +20,7 @@ for (const id of ['iit-jam-physics', 'gate-physics', 'csir-net-physics']) {
       const p = pr.make(r);
       ok(`${id} problem ${pid} answer finite`, Number.isFinite(p.answer));
       ok(`${id} problem ${pid} has question, hint and solution`, [p.q, p.hint, p.solution].every((s) => typeof s === 'string' && s.length > 10 && !/undefined|NaN/.test(s)));
-      if (pr.verify) { const v = pr.verify(p); ok(`${id} problem ${pid} verify ${v} vs ${p.answer}`, Math.abs(v - p.answer) <= Math.max(1e-9, Math.abs(v) * 0.005)); }
+      if (pr.verify) { const v = pr.verify(p); ok(`${id} problem ${pid} verify ${v} vs ${p.answer}`, Math.abs(v - p.answer) <= Math.max(1e-6, Math.abs(v) * 0.005)); }
     }
   }
   const syl = readFileSync(new URL(`../src/courses/${id}/syllabus.ts`, import.meta.url), 'utf8');

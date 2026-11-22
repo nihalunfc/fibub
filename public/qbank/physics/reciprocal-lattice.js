@@ -5,6 +5,7 @@
 import { pick, int, choose, shuffle, mcqOptions, round, C } from '../_util.js';
 import more from './reciprocal-lattice.more.gen.js';
 import more2 from './reciprocal-lattice.more2.gen.js';
+import r4 from './reciprocal-lattice.r4.gen.js';
 
 const PI = Math.PI, D = PI / 180, S2 = Math.SQRT2, S3 = Math.sqrt(3);
 const HB = C.hbar ** 2 / (2 * C.me) / C.e * 1e20; // hbar^2/2m in eV Å^2 (3.81)
@@ -259,6 +260,7 @@ export default {
       sol: 'Bloch\'s theorem fixes $\\psi(\\vec r + \\vec R) = e^{i\\vec k\\cdot\\vec R}\\psi(\\vec r)$, and $e^{i(\\vec k + \\vec G)\\cdot\\vec R} = e^{i\\vec k\\cdot\\vec R}$, so $\\vec k$ is defined only modulo $\\vec G$: options 1 and 4 are the same fact, and points on opposite faces are one point. Periodic boundary conditions give $N$ distinct $\\vec k$ in the zone. $\\hbar\\vec k$ is the crystal momentum, conserved only up to $\\hbar\\vec G$; the velocity is the group velocity $\\nabla_k E/\\hbar$, not $\\hbar\\vec k/m$.',
       trap: 'Treating crystal momentum as ordinary momentum: in Bragg reflection $\\hbar\\vec k$ jumps by $\\hbar\\vec G$, the lattice taking up the difference.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -398,5 +400,6 @@ export default {
       },
       verify: (p) => Math.cbrt(3 * Math.PI * Math.PI * p.n) / p.near },
     ...more,
+    ...r4.gens,
   ],
 };

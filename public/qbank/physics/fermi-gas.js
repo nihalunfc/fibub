@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './fermi-gas.more.gen.js';
 import more2 from './fermi-gas.more2.gen.js';
+import r4 from './fermi-gas.r4.gen.js';
 
 const sig = (x, n = 3) => Number(x.toPrecision(n));
 const kF = (n, g = 2) => (6 * Math.PI ** 2 * n / g) ** (1 / 3);
@@ -210,6 +211,7 @@ export default {
       options: ['4/3 to 5/3', '1 to 2', '5/3 to 1', '5/3 to 4/3'], answer: 3,
       sol: 'Non-relativistic: $P \\propto n^{5/3}$. Ultra-relativistic: $P \\propto n^{4/3}$. A self-gravitating star needs $\\Gamma > 4/3$ for stability; reaching $4/3$ is the origin of the Chandrasekhar limit.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'fgas-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Fermi energy',
@@ -325,5 +327,6 @@ export default {
           sol: `$T_F = \\hbar^2(3\\pi^2n)^{2/3}/2mk \\approx ${sig(TF, 3)}$ K, so $T/T_F \\approx ${sig(x, 2)}$: ${cat}. (Fermions never Bose-condense on their own.)` };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

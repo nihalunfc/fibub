@@ -4,6 +4,7 @@
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './complex-numbers.more.gen.js';
 import more2 from './complex-numbers.more2.gen.js';
+import r4 from './complex-numbers.r4.gen.js';
 
 const deg = (x) => x * 180 / Math.PI;
 
@@ -212,6 +213,7 @@ export default {
       sol: 'Take moduli: $|z|^4 = |z|$, so $|z| = 0$ or $|z| = 1$. $z = 0$ is one solution. If $|z| = 1$ then $\\bar z = 1/z$, so $z^4 = 1/z$, i.e. $z^5 = 1$: five solutions. Total 6.',
       trap: 'Forgetting $z = 0$ gives 5.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'cx-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'modulus and argument',
@@ -294,5 +296,6 @@ export default {
           trap: 'For a negative exponent take the remainder that lies in 0 to 3, not the negative remainder.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -3,6 +3,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './integral-theorems.more.gen.js';
 import more2 from './integral-theorems.more2.gen.js';
+import r4 from './integral-theorems.r4.gen.js';
 
 export default {
   topic: 'integral-theorems',
@@ -223,6 +224,7 @@ export default {
       sol: 'Apply the divergence theorem to $\\vec F\\times\\vec c$ for a constant $\\vec c$: $\\nabla\\cdot(\\vec F\\times\\vec c) = \\vec c\\cdot(\\nabla\\times\\vec F)$. So $\\vec c\\cdot\\int\\nabla\\times\\vec F\\,dV = \\oint(\\vec F\\times\\vec c)\\cdot\\hat n\\,dS = \\vec c\\cdot\\oint\\hat n\\times\\vec F\\,dS$. As $\\vec c$ is arbitrary, the result is $\\oint\\hat n\\times\\vec F\\,dS$.',
       trap: 'Option A has the cross product in the wrong order, which gives minus the answer.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'it-g01', type: 'nat', level: 2, exams: ['jam', 'gate'], sub: 'divergence theorem',
@@ -310,5 +312,6 @@ export default {
       },
       verify: (p) => 2 * (1 - p.d / p.h) },
     ...more,
+    ...r4.gens,
   ],
 };

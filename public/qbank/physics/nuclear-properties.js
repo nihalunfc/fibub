@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './nuclear-properties.more.gen.js';
 import more2 from './nuclear-properties.more2.gen.js';
+import r4 from './nuclear-properties.r4.gen.js';
 
 const HBARC = 197.327;          // MeV fm
 const E2 = 1.43996;             // e^2/(4 pi eps0) in MeV fm
@@ -240,6 +241,7 @@ export default {
       sol: 'Isobars share the mass number $A$: 40, 14 and 3 in the first three pairs. ${}^{12}$C and ${}^{13}$C share $Z$, so they are isotopes. ${}^3$H and ${}^3$He are also a mirror pair.',
       trap: 'Isobars differ in $Z$; same-element pairs are isotopes.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'npr-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'rms radius',
@@ -360,5 +362,6 @@ export default {
           trap: 'Using $2J + 1$, or assuming the count always gives I.', I, J };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

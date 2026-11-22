@@ -7,6 +7,7 @@ const R = 8.314;
 
 import * as Q5 from '../_util.js';
 import more2 from './second-law-entropy.more2.gen.js';
+import r4 from './second-law-entropy.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -217,6 +218,7 @@ export default {
       sol: 'Heat flows so that total entropy rises. $1/T = \\partial S/\\partial U$ is negative for the spins: they gain entropy by losing energy. The body gains entropy by gaining energy. So energy flows from the spins to the body, whatever the size of $|T|$. Negative temperatures are "hotter than infinite temperature".',
       trap: 'Comparing magnitudes. The order of hotness runs $+0 \\dots +\\infty, -\\infty \\dots -0$, and $1/T$ is the natural variable.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'snd-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'Carnot engine', format: 'comparison',
@@ -353,5 +355,6 @@ export default {
           sol: `First law: the work cannot exceed the heat taken in ($${Q}$ J). Second law: the most work is $Q(1 - T_c/T_h) = ${Q}(1 - ${Tc}/${Th}) = ${round(Wmax, 1)}$ J. ${['The claim exceeds this', 'The claim is below this, so it is allowed, with some entropy produced', 'The claim equals this, so only a reversible engine could do it', 'The claim exceeds the heat taken in'][ans]}.`,
           trap: 'Check the first law before the second: more work than heat in is impossible for a different reason.' };
       } },
+    ...r4.gens,
   ],
 };
