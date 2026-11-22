@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './linear-vector-spaces.more.gen.js';
 import more2 from './linear-vector-spaces.more2.gen.js';
 import r4 from './linear-vector-spaces.r4.gen.js';
+import r5 from './linear-vector-spaces.r5.gen.js';
 
 export default {
   topic: 'linear-vector-spaces',
@@ -221,6 +222,7 @@ export default {
       trap: 'Plane waves and delta functions are useful but live outside the Hilbert space proper.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'lvs-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'inner product',
@@ -316,5 +318,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
