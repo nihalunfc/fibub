@@ -5,6 +5,7 @@
 // topic semiconductors.) Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './free-electron-model.more.gen.js';
+import more2 from './free-electron-model.more2.gen.js';
 
 const HB2M = (C.hbar ** 2) / (2 * C.me) / C.e * 1e18; // hbar^2/2m_e in eV nm^2 (0.0381)
 const kBe = C.kB / C.e; // eV/K
@@ -204,6 +205,7 @@ export default {
       q: 'For a free-electron metal with $\\omega_p\\tau \\gg 1$, light of frequency $1/\\tau \\ll \\omega < \\omega_p$ falls normally on its surface. The reflectivity is',
       options: ['close to zero', 'about one half', 'exactly $(1 - \\omega/\\omega_p)^2$', 'close to 1'], answer: 3,
       sol: 'Here $\\varepsilon = 1 - \\omega_p^2/\\omega^2 < 0$, so the refractive index $N = i\\kappa$ is purely imaginary (no absorption when $\\omega\\tau \\gg 1$). Then $R = |(N - 1)/(N + 1)|^2 = |(i\\kappa - 1)/(i\\kappa + 1)|^2 = 1$. Small losses from finite $\\tau$ bring it just below 1, which is why polished metals are such good mirrors.' },
+    ...more2,
   ],
   gens: [
     { id: 'fem-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Fermi energy',

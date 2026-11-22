@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './spin-addition.more.gen.js';
+import more2 from './spin-addition.more2.gen.js';
 
 const half = (x) => (Number.isInteger(x) ? String(x) : `${Math.round(2 * x)}/2`);
 const ls = (l, j) => (j * (j + 1) - l * (l + 1) - 0.75) / 2;            // <L·S>/ħ² for s = 1/2
@@ -202,6 +203,7 @@ export default {
       q: 'For the coupling of $j_1$ and $j_2$ to $|j, m\\rangle$ with Clebsch-Gordan coefficients $\\langle j_1m_1; j_2m_2|j m\\rangle$, which statements are always correct?',
       options: ['The coefficient vanishes unless $m = m_1 + m_2$.', '$\\sum_j(2j + 1) = (2j_1 + 1)(2j_2 + 1)$, with $j$ from $|j_1 - j_2|$ to $j_1 + j_2$.', '$|j_1 + j_2, j_1 + j_2\\rangle = |j_1j_1\\rangle|j_2j_2\\rangle$.', 'Every coupled state is symmetric under swapping the two angular momenta when $j_1 = j_2$.'], answer: [0, 1, 2],
       sol: '$J_z = J_{1z} + J_{2z}$ forces $m = m_1 + m_2$. The coupled and product bases span the same space, so the dimensions match. The stretched state has only one product state with $m = j_1 + j_2$. For $j_1 = j_2 = j$ the exchange sign is $(-1)^{2j - J}$, so half the multiplets (alternately) are antisymmetric, such as the singlet of two spin-$\\tfrac12$.' },
+    ...more2,
   ],
   gens: [
     { id: 'qsa-g01', type: 'nat', level: 1, exams: ['gate', 'net', 'jam'], sub: 'addition rules',

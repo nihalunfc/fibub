@@ -5,6 +5,7 @@
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './band-theory.more.gen.js';
+import more2 from './band-theory.more2.gen.js';
 
 const HB2M = (C.hbar ** 2) / (2 * C.me) / C.e * 1e18; // hbar^2/2m_e in eV nm^2 (0.0381)
 const H_eVs = C.h / C.e; // Planck constant in eV s
@@ -196,6 +197,7 @@ export default {
       q: 'For free electrons on a 2D square lattice, how many plane-wave states are degenerate at the zone corner M $= (\\pi/a, \\pi/a)$ in the lowest set (energy $\\hbar^2\\pi^2/ma^2$)?',
       options: ['2', '3', '4', '8'], answer: 2,
       sol: 'The plane waves $\\mathbf k - \\mathbf G$ with the same $|\\mathbf k - \\mathbf G|$ at M are $(\\pi,\\pi)/a$, $(-\\pi,\\pi)/a$, $(\\pi,-\\pi)/a$ and $(-\\pi,-\\pi)/a$, all of length $\\sqrt2\\pi/a$. Four states (times spin), so a weak potential needs a $4\\times4$ matrix there; it splits them into levels set by $U_{10}$ and $U_{11}$.' },
+    ...more2,
   ],
   gens: [
     { id: 'bth-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'nearly free electrons',
