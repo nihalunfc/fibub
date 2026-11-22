@@ -32,5 +32,13 @@ export default {
       { id: 'magnetostatics', name: 'Magnetic fields: Biot-Savart and Ampère' },
       { id: 'induction', name: 'Electromagnetic induction and inductance' },
     ] },
+    { id: 'electronics', name: 'Electronics', topics: [
+      { id: 'transistors', name: 'Transistors and amplifiers' },
+      { id: 'op-amps', name: 'Operational amplifiers' },
+      { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+    ] },
+    { id: 'nuclear', name: 'Nuclear physics', topics: [
+      { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
+    ] },
   ],
 };
