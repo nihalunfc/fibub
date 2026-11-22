@@ -157,7 +157,10 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
     // anyLevel: take every level (marks per question stay sec.marks); exams like the SAT and LSAT give every question one mark.
     // only: { facet: value } keeps a section to part of a bank (e.g. the SAT Math test uses only section: 'math').
     const only = sec.only || pattern.only;
-    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
+    // topics: keep a section to these topics; skipTopics (pattern-wide) keeps them out of every other section.
+    const skip = sec.topics ? [] : pattern.skipTopics || [];
+    const tp = (it) => (!sec.topics || sec.topics.includes(it.topic)) && !skip.includes(it.topic);
+    const mk = (it) => (sec.anyLevel || marksOf(it) === sec.marks) && tp(it) && (!only || Object.entries(only).every(([k, v]) => it.facets?.[k] === v));
     const fits = (it) => it.type === sec.type && mk(it) && !used.has(it.id) && it.type !== 'open';
     // round-robin over topics so one topic cannot fill a section
     const byTopic = new Map();
@@ -253,10 +256,12 @@ export const PATTERNS = {
     { name: 'Standard questions', type: 'mcq', marks: 1, count: 30 },
     { name: 'Harder questions', type: 'mcq', marks: 2, count: 20 },
   ], marksMap: { 1: 5, 2: 5 } },
-  net: { name: 'CSIR NET Physical Sciences (Parts B and C)', minutes: 150, scheme: 'net', sections: [
-    { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
+  // Parts as answered (the real paper shows 20/25/30 and counts 15/20/20): 15×2 + 20×3.5 + 20×5 = 200 marks.
+  net: { name: 'CSIR NET Physical Sciences (Parts A, B and C)', minutes: 180, scheme: 'net', skipTopics: ['part-a-aptitude'], sections: [
+    { name: 'Part A: general aptitude, 2 marks each', type: 'mcq', marks: 3, count: 15, anyLevel: true, topics: ['part-a-aptitude'] },
+    { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 20 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
-  ], marksMap: { 1: 3.5, 2: 5 } },
+  ], marksMap: { 1: 3.5, 2: 5, 3: 2 } },
   // CELPIP and TOEFL: one mark a question, no negative marks. Counts follow each part's usual size and the bank's sets
   // (a recording or passage is never split), so a paper can be a question or two off the real one; not adaptive.
   'celpip-listening': { name: 'CELPIP-General Listening practice (Parts 1-6)', minutes: 47, scheme: 'none', sections: [

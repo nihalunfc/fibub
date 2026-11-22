@@ -155,7 +155,7 @@ There is no time operator: a Hermitian `$\hat T$` with `$[\hat T, \hat H] = i\hb
 
 ## 6. Estimates from uncertainty
 
-For a quick ground-state energy, take a minimum-uncertainty Gaussian of width `$\sigma$`, so `$\langle p^2\rangle = \hbar^2/4\sigma^2$`, and minimise `$\langle H\rangle$` over `$\sigma$`. Any trial state gives an upper bound to the true ground energy (this is the variational method, lesson 4.9).
+For a quick ground-state energy, take a minimum-uncertainty Gaussian of width `$\sigma$`, so `$\langle p^2\rangle = \hbar^2/4\sigma^2$`, and minimise `$\langle H\rangle$` over `$\sigma$`. Any trial state gives an upper bound to the true ground energy (this is the variational method, [lesson 4.9](/learn/courses/gate-physics/variational-wkb/)).
 
 - Oscillator: `$\langle H\rangle = \dfrac{\hbar^2}{8m\sigma^2} + \tfrac12m\omega^2\sigma^2 \ge \tfrac12\hbar\omega$`, exact because the ground state is this Gaussian.
 - Quartic `$\lambda x^4$` (with `$\langle x^4\rangle = 3\sigma^4$`): minimum `$0.681(\hbar^4\lambda/m^2)^{1/3}$`, against the exact `$0.668$`.

@@ -72,7 +72,7 @@ A cyclic coordinate is even more useful here: if `$q_k$` is missing from `$H$`, 
 
 **Worked example.** `$H = \dfrac{p^2}{2m} + \tfrac12m\omega^2q^2$`. Hamilton's equations give `$\dot q = p/m$` and `$\dot p = -m\omega^2 q$`, so `$\ddot q = -\omega^2q$`. In phase space the orbits are ellipses `$p^2/(2mE) + q^2/(2E/m\omega^2) = 1$` with area `$\pi\sqrt{2mE}\sqrt{2E/(m\omega^2)} = 2\pi E/\omega$`.
 
-The same equations follow from a variational principle in phase space, `$\delta\int(\sum p_j\dot q_j - H)\,dt = 0$`, with `$q$` and `$p$` varied independently. That form is the starting point for canonical transformations in lesson 2.3.
+The same equations follow from a variational principle in phase space, `$\delta\int(\sum p_j\dot q_j - H)\,dt = 0$`, with `$q$` and `$p$` varied independently. That form is the starting point for canonical transformations in [lesson 2.3](/learn/courses/gate-physics/poisson-brackets/).
 
 ## 3. Is H the energy? Is it conserved?
 

@@ -139,7 +139,7 @@ Three examples worth knowing:
 <div class="step"><p><b>Solve.</b> P = E/ω is constant and Q̇ = ∂K/∂P = ω, so Q = ωt + φ: the motion follows at once.</p></div>
 </div>
 
-Here `$P$` is `$J/2\pi$`, the action of lesson 2.2 divided by `$2\pi$`, and `$Q$` is the angle variable.
+Here `$P$` is `$J/2\pi$`, the action of [lesson 2.2](/learn/courses/gate-physics/hamiltonian-mechanics/) divided by `$2\pi$`, and `$Q$` is the angle variable.
 
 ## 6. Generators and symmetries
 
