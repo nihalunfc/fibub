@@ -16,9 +16,16 @@ quiz:
     choices: ['Calling your own function on the table inside a chain', 'Reading files', 'Joining two tables']
     ans: 0
     why: 'df.pipe(f) is the same as f(df), but it keeps the chain reading top to bottom.'
+sources:
+  - 'Augspurger, T. (2016), Modern Pandas: Method Chaining https://tomaugspurger.net/posts/method-chaining/'
+  - 'pandas documentation, User Guide: pandas.DataFrame.pipe https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.pipe.html'
 ---
 
 **Module 8 · about 15 minutes · uses Modules 2 to 4.** You'll be able to write an analysis as a single readable chain.
+
+<div class="bigidea">A chain writes the analysis as one recipe, top to bottom: each line takes the table from the line above, does one thing, and passes it on.</div>
+
+**In everyday terms:** a recipe card: "sift, add eggs, whisk, bake". You do not name every bowl along the way; you follow the steps in order.
 
 ## 1. Many lines, many names
 
@@ -72,6 +79,36 @@ def top(d, col, n=3):
 ```
 
 Small named functions plus `pipe` make a chain that a teammate can read and reuse.
+
+<div class="meaning">
+
+<dl>
+<dt>( ... ) around the chain</dt><dd>Lets each step sit on its own line.</dd>
+<dt>.assign(new=lambda d: ...)</dt><dd>Adds a column inside the chain.</dd>
+<dt>.query('...')</dt><dd>Filters inside the chain.</dd>
+<dt>.pipe(my_function)</dt><dd>Runs your own step as part of the chain.</dd>
+<dt>Physical meaning</dt><dd>A chain does exactly what the separate lines did, in the same order; it just leaves no half-finished tables lying around to be reused by mistake. Comment out one line to see the table at that step.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Chaining is faster."** It runs at the same speed. Its value is that it reads in order, with no temporary names like df2 and df_final that go stale.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Start.</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th><th>price</th></tr><tr><td>S01</td><td>2</td><td>5</td></tr><tr><td>S02</td><td>1</td><td>8</td></tr><tr><td>S01</td><td>4</td><td>5</td></tr><tr><td>S02</td><td>3</td><td>4</td></tr></table></div>
+<div class="step"><b>.query('qty >= 2').</b> Drops the S02 row with qty 1: 3 rows left.</div>
+<div class="step"><b>.assign(revenue=lambda d: d.qty * d.price).</b> 10, 20, 12.</div>
+<div class="step"><b>.groupby('store')['revenue'].sum().</b> <table class="lk-tbl"><tr><th>store</th><th>revenue</th></tr><tr><td>S01</td><td><mark>30</mark></td></tr><tr><td>S02</td><td><mark>12</mark></td></tr></table></div>
+<div class="step"><b>.sort_values(ascending=False).</b> S01 first. Four steps, one readable block.</div>
+</div>
+
+<div class="problem" data-problem="pd-chain-result"></div>
 
 ## 4. Your turn
 
@@ -128,3 +165,12 @@ Start with (orders .query("store_id == 'WEB'") then .assign(revenue=lambda d: ..
 </details>
 
 **New words:** *method chaining*, *assign*, *lambda*, *query*, *pipe*, *in place*.
+
+<div class="keypoints">
+
+- Wrap the chain in brackets, one step per line.
+- assign with lambda d: adds columns from the table at that step.
+- pipe runs your own function as a step.
+- Debug by commenting out lines from the bottom.
+
+</div>

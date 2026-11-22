@@ -1,7 +1,7 @@
 ---
 title: 'Test centre or Home Edition: test day step by step'
 seoTitle: 'TOEFL test day: test centre vs Home Edition'
-summary: 'Choosing between a TOEFL test centre and the at-home Home Edition, what each needs, what happens on test day from check-in to scores, and a checklist that removes every avoidable risk.'
+summary: 'TOEFL test centre or Home Edition: what each needs, what happens on test day from check-in to scores, and a checklist to remove every risk.'
 minutes: 11
 updated: 2026-11-22
 quiz:

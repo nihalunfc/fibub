@@ -16,9 +16,16 @@ quiz:
     choices: ["Use groupby('store_id') before shift or pct_change", 'Sort by revenue', 'Nothing']
     ans: 0
     why: 'Without the group, the first row of store B is compared with the last row of store A.'
+sources:
+  - 'pandas documentation, User Guide: pandas.Series.pct_change https://pandas.pydata.org/docs/reference/api/pandas.Series.pct_change.html'
+  - 'Hyndman, R. J. and Athanasopoulos, G. (2021), Forecasting: Principles and Practice, 3rd edition https://otexts.com/fpp3/'
 ---
 
 **Module 7 · about 20 minutes · uses Lesson 7.2.** You'll be able to compute period-over-period and year-over-year growth correctly.
+
+<div class="bigidea">Growth compares a period with an earlier one: shift moves a series down by some rows so you can divide this month by last month, or by the same month last year.</div>
+
+**In everyday terms:** laying this year's calendar over last year's, one month offset or twelve months offset, and comparing the boxes that line up.
 
 ## 1. shift and pct_change
 
@@ -56,6 +63,36 @@ q[q['store_id'].isin(['S01', 'S06'])]
 - **Partial periods:** comparing this month so far with all of last month looks like a fall. Compare the same number of days (month-to-date vs the same days last year).
 - **Small bases:** +300 % from 2 to 8 sales is noise. Show the counts beside the percentages.
 - **Averaging growth rates:** +50 % then −50 % is not 0; it's −25 % overall. Compound growth uses the geometric mean.
+
+<div class="meaning">
+
+<dl>
+<dt>shift(1)</dt><dd>Each row gets the previous row's value.</dd>
+<dt>pct_change()</dt><dd>(this − previous) ÷ previous: growth as a share.</dd>
+<dt>pct_change(12)</dt><dd>Year over year on monthly data.</dd>
+<dt>groupby('store')[...].pct_change()</dt><dd>Growth within each store, never across stores.</dd>
+<dt>Physical meaning</dt><dd>Growth is a ratio, so it depends on the base: from 10 to 20 is +100 %, from 20 to 10 is −50 %. Year over year compares like with like (December with December) and cancels the season.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"+50 % then −50 % gets you back where you started."** 100 → 150 → 75. Percentages compound on a changing base; work with the values, then compute the growth.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Monthly revenue.</b> <table class="lk-tbl"><tr><th>month</th><th>revenue</th></tr><tr><td>Jan</td><td>200</td></tr><tr><td>Feb</td><td>250</td></tr><tr><td>Mar</td><td>225</td></tr></table></div>
+<div class="step"><b>shift(1).</b> <table class="lk-tbl"><tr><th>month</th><th>revenue</th><th>prev</th></tr><tr><td>Jan</td><td>200</td><td>NaN</td></tr><tr><td>Feb</td><td>250</td><td><mark>200</mark></td></tr><tr><td>Mar</td><td>225</td><td><mark>250</mark></td></tr></table></div>
+<div class="step"><b>Divide.</b> Feb: 250 ÷ 200 − 1 = +25 %. Mar: 225 ÷ 250 − 1 = −10 %.</div>
+<div class="step"><b>One call.</b> <code>s.pct_change()</code> gives NaN, 0.25, −0.10.</div>
+<div class="step"><b>Per store.</b> Sort by date first, then <code>groupby('store')['revenue'].pct_change()</code>.</div>
+</div>
+
+<div class="problem" data-problem="pd-pct-change"></div>
 
 ## 4. Your turn
 
@@ -109,3 +146,12 @@ With k = 1 it's period over period; with k = the season length (12 months, 52 we
 </details>
 
 **New words:** *shift*, *pct_change*, *diff*, *month over month*, *year over year*, *CAGR*.
+
+<div class="keypoints">
+
+- shift(n) lines a row up with the one n periods earlier.
+- pct_change() = this ÷ previous − 1.
+- Year over year on monthly data: pct_change(12).
+- Sort by date and group by store before shifting.
+
+</div>
