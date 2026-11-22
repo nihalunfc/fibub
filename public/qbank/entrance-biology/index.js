@@ -85,6 +85,14 @@ export default {
       "name": "Class 12",
       "topics": [
         {
+          "id": "plant-reproduction",
+          "name": "Sexual reproduction in flowering plants"
+        },
+        {
+          "id": "human-reproduction",
+          "name": "Human reproduction"
+        },
+        {
           "id": "inheritance",
           "name": "Principles of inheritance and variation"
         },
