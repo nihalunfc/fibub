@@ -2,13 +2,15 @@
 // { q, answer, unit, tol (relative), abs?, hint, solution } as small HTML strings; `verify` works the answer out
 // another way for tests/entrance.mjs. Placed in a lesson as <div class="problem" data-problem="id"></div>.
 import { PATTERNS, score, guessValue } from './exams.js';
+// Chapter problems live in problems/<chapter>.js (one file per chapter, listed in problems/index.js).
+import CHAPTER_PROBLEMS from './problems/index.js';
 
 const pick = (r, min, max, step = 1) => +(min + Math.floor(r() * ((max - min) / step + 1 - 1e-9)) * step).toFixed(6);
 const n = (v, d = 3) => (+(+v).toPrecision(d)).toLocaleString('en-IN', { maximumFractionDigits: 6 });
 const steps = (...ls) => '<ol>' + ls.map((l) => `<li>${l}</li>`).join('') + '</ol>';
 const G = 9.8;
 
-export default {
+const BASE = {
   // ---------- Start here ----------
   'net-score': {
     title: 'work out a net score with negative marks',
@@ -254,3 +256,5 @@ export default {
     },
   },
 };
+
+export default { ...BASE, ...CHAPTER_PROBLEMS };
