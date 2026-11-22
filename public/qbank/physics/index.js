@@ -20,5 +20,11 @@ export default {
       { id: 'interference', name: 'Interference' },
       { id: 'diffraction', name: 'Diffraction' },
     ] },
+    { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
+      { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
+      { id: 'work-energy-collisions', name: 'Work, energy, momentum and collisions' },
+      { id: 'central-forces', name: 'Central forces, orbits and Kepler\'s laws' },
+      { id: 'moment-of-inertia', name: 'Moment of inertia and the axis theorems' },
+    ] },
   ],
 };
