@@ -1,0 +1,223 @@
+---
+// #T1067 Labour productivity: hours, people and cost per unit of work, by department, for any business.
+// Maths in src/lib/biz/productivity.ts. Runs in the browser; nothing is sent anywhere or kept unless the box is ticked.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+---
+<div class="tool-ui ax lp">
+  <div class="ax-card">
+    <h2>1. Your business</h2>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="lp-preset"><option value="hotel">Hotel</option><option value="restaurant">Restaurant</option><option value="clinic">Clinic</option><option value="shop">Shop</option></select>
+      </label>
+      <label>Currency <select class="lp-cur"></select></label>
+      <label>Name <input data-k="name" /></label>
+      <label>What you sell (one word) <input data-k="unit" maxlength="20" /></label>
+      <label>Most you could sell in a day <input data-k="cap" inputmode="numeric" /></label>
+      <label>Share of that you sell, % <input data-k="use" inputmode="decimal" /></label>
+      <label>Share that are new customers, % <input data-k="newShare" inputmode="decimal" /></label>
+      <label>Average price of one <input data-k="price" inputmode="decimal" /></label>
+      <label>Benefits on top of wages, % <input data-k="benefits" inputmode="decimal" /></label>
+      <label>Paid hours in one shift <input data-k="shiftHours" inputmode="decimal" /></label>
+      <label>Hours in one full-time week <input data-k="fteHours" inputmode="decimal" /></label>
+      <label>Days you open a week <input data-k="days" inputmode="numeric" /></label>
+      <label>Extra volume per one sold (meals, calls) <input data-k="extraPer" inputmode="decimal" /></label>
+      <label>Extra volume not linked to sales, a day <input data-k="extraOutside" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help lp-note"></p>
+    <p class="ax-help">New customers are the share of what you sell that is a first visit or a turnover (a new guest checking in, a new patient). The rest are continuing customers. Extra volume is other work that follows sales, such as meals served or phone calls, plus any that does not.</p>
+    <p class="biz-warn biz-bad lp-warn"></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="biz-card-head"><h2>2. Departments and standards</h2><button type="button" class="btn secondary small lp-add">Add a department</button></div>
+    <p class="ax-help" style="margin-top:0">Each department has up to two kinds of work. Hours of work = units times minutes each, divided by the share of a paid shift that is productive, plus support hours and fixed hours. Staffing never falls below the minimum.</p>
+    <div class="lp-depts"></div>
+  </div>
+
+  <div class="ax-card lp-res" aria-live="polite">
+    <h2 class="lp-title">Results</h2>
+    <div class="biz-kpis lp-kpis"></div>
+    <p class="biz-take lp-take"></p>
+    <h3 class="biz-sub">By department</h3>
+    <div class="ax-scroll"><table class="biz-tbl lp-dept"><thead><tr><th>Department</th><th class="r">Work hours</th><th class="r">Minimum hours</th><th class="r">Scheduled hours</th><th class="r">People a day</th><th class="r">Hours a week</th><th class="r">FTE</th><th class="r">Cost a day</th><th class="r">Cost a week</th><th class="r">Share</th></tr></thead><tbody></tbody><tfoot></tfoot></table></div>
+    <h3 class="biz-sub">Staffing guide: the same plan at other busy levels</h3>
+    <div class="ax-scroll"><table class="biz-tbl lp-guide"><thead></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lp-csv">Download plan (CSV)</button><button type="button" class="btn secondary small lp-csv-guide">Download staffing guide (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. What if</h2>
+    <div class="ax-grid">
+      <label>Share of capacity sold: <b class="lp-wi-use-v"></b><input type="range" class="lp-wi-use" min="20" max="100" step="1" /></label>
+      <label>Time each job takes: <b class="lp-wi-min-v"></b><input type="range" class="lp-wi-min" min="50" max="130" step="1" /></label>
+      <label>Wage change: <b class="lp-wi-wage-v"></b><input type="range" class="lp-wi-wage" min="-10" max="25" step="1" /></label>
+    </div>
+    <div class="ax-scroll" style="margin-top:8px"><table class="biz-tbl lp-wi"></table></div>
+    <p class="biz-take lp-wi-take"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lp-wi-match">Match my plan</button><button type="button" class="btn secondary small lp-wi-apply">Copy these into my plan</button></div>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="lp-keep" /> Remember my numbers on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your numbers stay in this browser only so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small lp-clear">Clear saved numbers</button><button type="button" class="btn secondary small lp-reset">Back to the example</button></div>
+  </div>
+  <p class="biz-fine">Standards such as minutes per job are yours to set from your own time studies; the examples are made up. Pay rules for breaks and overtime are not included. An estimate, not advice.</p>
+</div>
+
+<style is:inline>
+  .lp .lp-dept-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 12px; background: var(--bg); }
+  .lp .lp-dept-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .lp .lp-dept-head input[type=text] { max-width: 260px; font-weight: 700; }
+  .lp .lp-calc { margin: 10px 0 0; font-size: 14px; }
+  .lp input[type=range] { width: 100%; accent-color: var(--accent); }
+  .lp .lp-wi th, .lp .lp-wi td { text-align: right; } .lp .lp-wi th:first-child, .lp .lp-wi td:first-child { text-align: left; }
+  .lp .lp-guide tr.cur td { background: var(--good-soft); font-weight: 600; }
+</style>
+
+<script>
+  import { model, guide, problems as pb, DRIVERS, type Biz, type Dept, type Driver } from '../../lib/biz/productivity';
+  import { esc, toCSV, downloadText, keeper } from '../../lib/biz/common';
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.lp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  type D = { name: string; wage: string; driverA: Driver; minA: string; driverB: Driver; minB: string; prod: string; support: string; fixed: string; minPerShift: string; shifts: string; core: boolean };
+  type S = { cur: string; name: string; unit: string; cap: string; use: string; newShare: string; price: string; benefits: string; shiftHours: string; fteHours: string; days: string; extraPer: string; extraOutside: string; depts: D[]; wi: { use: number; min: number; wage: number } };
+  const dep = (name: string, wage: number, a: [Driver, number], b: [Driver, number], prod: number, support: number, fixed: number, mps: number, shifts: number, core: boolean): D =>
+    ({ name, wage: String(wage), driverA: a[0], minA: String(a[1]), driverB: b[0], minB: String(b[1]), prod: String(prod), support: String(support), fixed: String(fixed), minPerShift: String(mps), shifts: String(shifts), core });
+  const base = { benefits: '22', shiftHours: '8', fteHours: '40', days: '7', extraPer: '0', extraOutside: '0' };
+  const P: Record<string, Omit<S, 'cur' | 'wi'>> = {
+    hotel: { ...base, name: 'Example hotel', unit: 'room', cap: '120', use: '78', newShare: '40', price: '140', extraPer: '0.9', extraOutside: '30', depts: [
+      dep('Housekeeping', 20.75, ['new', 30], ['ongoing', 18], 7, 8, 0, 2, 1, true), dep('Front desk', 21.5, ['new', 6], ['new', 4], 4, 0, 0, 2, 3, true),
+      dep('Food and beverage', 18.25, ['extra', 4.3], ['none', 0], 8, 80, 0, 3, 2, false), dep('Maintenance', 28, ['sold', 1], ['none', 0], 8, 0, 8, 1, 3, false)] },
+    restaurant: { ...base, name: 'Example restaurant', unit: 'cover', cap: '400', use: '70', newShare: '100', price: '28', benefits: '15', depts: [
+      dep('Servers', 14, ['sold', 8], ['none', 0], 7, 0, 0, 1, 2, true), dep('Kitchen', 18, ['sold', 6], ['none', 0], 7, 0, 0, 1, 2, true),
+      dep('Dishwashing', 14.5, ['sold', 2.5], ['none', 0], 7, 0, 0, 1, 1, true), dep('Host and cashier', 14, ['sold', 1.5], ['none', 0], 6, 0, 0, 1, 1, false), dep('Manager', 26, ['none', 0], ['none', 0], 8, 0, 8, 0, 1, false)] },
+    clinic: { ...base, name: 'Example clinic', unit: 'appointment', cap: '40', use: '85', newShare: '20', price: '90', benefits: '20', days: '5', extraPer: '0', depts: [
+      dep('Clinicians', 55, ['new', 45], ['ongoing', 20], 7, 0, 0, 1, 1, true), dep('Nurses and assistants', 30, ['sold', 10], ['none', 0], 7, 0, 0, 1, 1, true),
+      dep('Reception', 19, ['sold', 6], ['none', 0], 6, 0, 0, 1, 1, false), dep('Cleaning and admin', 17, ['none', 0], ['none', 0], 8, 0, 4, 0, 1, false)] },
+    shop: { ...base, name: 'Example shop', unit: 'sale', cap: '400', use: '60', newShare: '100', price: '35', benefits: '15', depts: [
+      dep('Checkout', 15.5, ['sold', 2.5], ['none', 0], 6, 0, 0, 1, 2, true), dep('Shop floor', 15, ['sold', 3], ['none', 0], 7, 0, 0, 2, 2, true),
+      dep('Stock and deliveries', 16, ['sold', 1], ['none', 0], 7, 0, 3, 0, 1, false), dep('Manager', 24, ['none', 0], ['none', 0], 8, 0, 8, 0, 1, false)] },
+  };
+  const fresh = (kind: string, cur: string): S => { const p = P[kind]; return { cur, ...p, depts: p.depts.map((d) => ({ ...d })), wi: { use: +p.use, min: 100, wage: 0 } }; };
+  let st = fresh('hotel', defaultCurrency());
+  q('.lp-cur').innerHTML = currencyOptions(st.cur);
+  const $ = (v: number, d = 0) => money(v, st.cur, d);
+  const n1 = (v: number) => (Math.round(v * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
+  const n0 = (v: number) => Math.round(v).toLocaleString();
+  const pc = (v: number, d = 1) => (v * 100).toFixed(d) + '%';
+  const f = (s: string | number) => (String(s).trim() === '' ? NaN : num(String(s)));
+  const keep = keeper('fibub-labour-v1', q('.lp-keep'), q('.lp-clear'), () => st, (v) => { st = Object.assign(fresh('hotel', defaultCurrency()), v); });
+  const unit = () => (st.unit || 'unit').trim();
+
+  const H = (): Biz => ({ name: st.name || 'Your business', capacity: f(st.cap), use: f(st.use) / 100, newShare: Math.min(1, Math.max(0, (f(st.newShare) || 0) / 100)), price: f(st.price) || 0, benefits: (f(st.benefits) || 0) / 100,
+    shiftHours: f(st.shiftHours), fteHours: f(st.fteHours), days: Math.min(7, Math.max(1, Math.round(f(st.days) || 7))), extraPer: f(st.extraPer) || 0, extraOutside: f(st.extraOutside) || 0 });
+  const Ds = (): Dept[] => st.depts.map((d) => ({ name: d.name, wage: f(d.wage), driverA: d.driverA, minA: f(d.minA) || 0, driverB: d.driverB, minB: f(d.minB) || 0, prod: f(d.prod), support: (f(d.support) || 0) / 100, fixed: f(d.fixed) || 0, minPerShift: f(d.minPerShift) || 0, shifts: f(d.shifts) || 0, core: d.core }));
+
+  function bind() {
+    root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { el.value = String((st as any)[el.dataset.k!] ?? ''); });
+    q<HTMLSelectElement>('.lp-cur').value = st.cur;
+    depts(); run();
+  }
+  root.addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.k) { (st as any)[el.dataset.k] = el.value; keep(); run(); } });
+  q('.lp-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.lp-preset').addEventListener('change', (e) => { st = fresh((e.target as HTMLSelectElement).value, st.cur); keep(); bind(); });
+  q('.lp-reset').addEventListener('click', () => { st = fresh(q<HTMLSelectElement>('.lp-preset').value, st.cur); keep(); bind(); });
+
+  const field = (i: number, k: string, label: string, v: string, help = '') => `<label>${label}<input inputmode="decimal" data-di="${i}" data-df="${k}" value="${esc(v)}">${help ? `<span class="ax-help" style="margin:0">${help}</span>` : ''}</label>`;
+  const drv = (i: number, k: string, label: string, v: string) => `<label>${label}<select data-di="${i}" data-df="${k}">${Object.entries(DRIVERS).map(([key, t]) => `<option value="${key}"${v === key ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`;
+  function depts() {
+    q('.lp-depts').innerHTML = st.depts.map((d, i) => `<div class="lp-dept-card" data-i="${i}"><div class="lp-dept-head"><input type="text" data-di="${i}" data-df="name" value="${esc(d.name)}" aria-label="Department name">
+      <span class="ax-row"><label class="ax-check"><input type="checkbox" data-di="${i}" data-df="core"${d.core ? ' checked' : ''}> Core team (counted in the second set of figures)</label><button type="button" class="btn secondary small" data-del="${i}">Remove</button></span></div>
+      <div class="ax-grid">${drv(i, 'driverA', 'First kind of work follows', d.driverA)}${field(i, 'minA', 'Minutes for each', d.minA)}${drv(i, 'driverB', 'Second kind of work follows', d.driverB)}${field(i, 'minB', 'Minutes for each', d.minB)}
+      ${field(i, 'prod', 'Productive hours in a paid shift', d.prod, 'Time actually spent on the work')}${field(i, 'support', 'Support hours per work hour, %', d.support, 'Supervisors, cover, helpers')}${field(i, 'fixed', 'Fixed hours a day', d.fixed, 'Needed whatever the volume')}
+      ${field(i, 'minPerShift', 'Fewest people on a shift', d.minPerShift)}${field(i, 'shifts', 'Shifts a day', d.shifts, '3 = round the clock')}${field(i, 'wage', 'Wage per hour', d.wage, 'Before benefits')}</div><p class="lp-calc" data-calc="${i}"></p></div>`).join('') || '<p class="ax-help">No departments. Add one, or press "Back to the example".</p>';
+  }
+  q('.lp-depts').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement; if (el.dataset.di == null) return;
+    const d = st.depts[+el.dataset.di] as any, k = el.dataset.df!;
+    d[k] = el.type === 'checkbox' ? el.checked : el.value; keep(); run();
+  });
+  q('.lp-depts').addEventListener('change', (e) => { const el = e.target as HTMLSelectElement; if (el.tagName !== 'SELECT' || el.dataset.di == null) return; (st.depts[+el.dataset.di] as any)[el.dataset.df!] = el.value; keep(); run(); });
+  q('.lp-depts').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-del]'); if (!b) return; st.depts.splice(+b.dataset.del!, 1); keep(); depts(); run(); });
+  q('.lp-add').addEventListener('click', () => { st.depts.push(dep('New department', 18, ['sold', 5], ['none', 0], 7, 0, 0, 1, 1, false)); keep(); depts(); run(); });
+
+  let h: Biz, D: Dept[], M: ReturnType<typeof model>;
+  function run() {
+    h = H(); D = Ds();
+    const w = pb(h, D);
+    q('.lp-warn').textContent = w.length ? 'Please check: ' + w.join(' ') : '';
+    q('.lp-res').hidden = !!w.length;
+    if (w.length) return;
+    M = model(h, D);
+    const u = unit();
+    q('.lp-note').textContent = `${n0(M.sold)} ${u}s sold a day: ${n0(M.new)} new customers and ${n0(M.ongoing)} continuing. Revenue ${$(M.rev)} a day.`;
+    M.rows.forEach((r) => { const c = q(`[data-calc="${r.i}"]`); if (c) c.innerHTML = `<b>${n1(r.hours)} hours, ${r.people} people a day</b>${r.floorBound ? ' (set by the minimum staffing)' : ''}. Work ${n1(r.work)} h, minimum ${n1(r.minH)} h.`; });
+    q('.lp-title').textContent = `Results for ${h.name} at ${n0(h.use * 100)}% of capacity`;
+    const t = M.tot;
+    q('.lp-kpis').innerHTML = [
+      ['Labour hours a day', n0(t.hours), `${n0(t.hours * h.days)} a week`],
+      ['People to schedule a day', n0(t.people), `${n0(t.people * h.days)} shifts a week`],
+      ['Full-time equivalents', n1(M.fte), `at ${h.fteHours} hours a week`],
+      [`Labour cost per ${u} sold`, M.perUnit != null ? $(M.perUnit, 2) : '-', `core team ${M.corePerUnit != null ? $(M.corePerUnit, 2) : '-'}`],
+      ['Labour cost, % of sales', M.pct != null ? pc(M.pct) : '-', `core team ${M.corePct != null ? pc(M.corePct) : '-'}`],
+    ].map(([l, v, s]) => `<div class="biz-k"><span>${l}</span><b>${v}</b><small>${s}</small></div>`).join('');
+    let msg: string;
+    if (!D.length) msg = 'Add at least one department in step 2 to see results.';
+    else if (M.sold <= 0) msg = 'At no sales only minimum staffing is costed, so figures per sale cannot be worked out.';
+    else {
+      const big = M.rows.slice().sort((a, b) => b.cost - a.cost)[0], floor = M.rows.filter((r) => r.floorBound).map((r) => r.d.name);
+      msg = `A typical day needs about <b>${n0(t.people)} people on shift</b> (${n1(M.fte)} full-time equivalents) costing <b>${$(t.cost)}</b>, or <b>${$(M.perUnit!, 2)}</b> for every ${esc(u)} sold. ${esc(big.d.name)} is the biggest cost at ${pc(big.cost / t.cost, 0)} of the total. `;
+      msg += floor.length ? `${floor.map(esc).join(' and ')} ${floor.length === 1 ? 'is' : 'are'} staffed at the minimum, so ${floor.length === 1 ? 'its' : 'their'} cost does not fall when you are quieter: check whether that minimum can flex on slow days.` : 'Every department is staffed by workload, so costs will move with sales.';
+    }
+    q('.lp-take').innerHTML = `<strong>What this means:</strong> ${msg}`;
+    q('.lp-dept tbody').innerHTML = M.rows.map((r) => `<tr><td>${esc(r.d.name)}</td><td class="r">${n1(r.work)}</td><td class="r">${n1(r.minH)}</td><td class="r">${n1(r.hours)}</td><td class="r">${r.people}</td><td class="r">${n1(r.hours * h.days)}</td><td class="r">${(r.hours * h.days / h.fteHours).toFixed(2)}</td><td class="r">${$(r.cost)}</td><td class="r">${$(r.cost * h.days)}</td><td class="r">${t.cost ? pc(r.cost / t.cost, 0) : '-'}</td></tr>`).join('');
+    q('.lp-dept tfoot').innerHTML = `<tr><td>Total</td><td class="r">${n1(M.rows.reduce((s, r) => s + r.work, 0))}</td><td class="r">${n1(M.rows.reduce((s, r) => s + r.minH, 0))}</td><td class="r">${n1(t.hours)}</td><td class="r">${t.people}</td><td class="r">${n1(t.hours * h.days)}</td><td class="r">${M.fte.toFixed(2)}</td><td class="r">${$(t.cost)}</td><td class="r">${$(t.cost * h.days)}</td><td class="r">100%</td></tr>`;
+    const G = guide(h, D), cur = G.reduce((b, g) => (Math.abs(g.p - h.use * 100) < Math.abs(b.p - h.use * 100) ? g : b), G[0]).p;
+    q('.lp-guide thead').innerHTML = `<tr><th class="r">Sold</th><th class="r">${esc(u)}s</th>${D.map((d) => `<th class="r">${esc(d.name)}</th>`).join('')}<th class="r">People</th><th class="r">Hours</th><th class="r">Cost a day</th><th class="r">Per ${esc(u)}</th><th class="r">% of sales</th></tr>`;
+    q('.lp-guide tbody').innerHTML = G.map(({ p, m }) => `<tr class="${p === cur ? 'cur' : ''}"><td class="r">${p}%</td><td class="r">${n0(m.sold)}</td>${m.rows.map((r) => `<td class="r">${r.people}</td>`).join('')}<td class="r"><b>${m.tot.people}</b></td><td class="r">${n0(m.tot.hours)}</td><td class="r">${$(m.tot.cost)}</td><td class="r">${m.perUnit != null ? $(m.perUnit, 2) : '-'}</td><td class="r">${m.pct != null ? pc(m.pct, 0) : '-'}</td></tr>`).join('');
+    whatIf();
+  }
+
+  function whatIf() {
+    const W = st.wi;
+    q<HTMLInputElement>('.lp-wi-use').value = String(W.use); q<HTMLInputElement>('.lp-wi-min').value = String(W.min); q<HTMLInputElement>('.lp-wi-wage').value = String(W.wage);
+    q('.lp-wi-use-v').textContent = W.use + '%'; q('.lp-wi-min-v').textContent = W.min + '%'; q('.lp-wi-wage-v').textContent = (W.wage > 0 ? '+' : '') + W.wage + '%';
+    const X = model(h, D, { use: W.use / 100, minScale: W.min / 100, wageMult: 1 + W.wage / 100 });
+    const row = (label: string, a: number | null, b: number | null, fm: (v: number) => string, goodDown = true) => {
+      const dv = a == null || b == null ? null : b - a, cls = dv == null || Math.abs(dv) < 1e-9 ? '' : (dv > 0) === goodDown ? 'neg' : 'pos';
+      return `<tr><td>${label}</td><td>${a == null ? '-' : fm(a)}</td><td>${b == null ? '-' : fm(b)}</td><td class="${cls}">${dv == null ? '-' : (dv > 0 ? '+' : dv < 0 ? '-' : '') + fm(Math.abs(dv))}</td></tr>`;
+    };
+    q('.lp-wi').innerHTML = '<thead><tr><th></th><th>Your plan</th><th>This scenario</th><th>Change</th></tr></thead><tbody>' + [
+      row(`${esc(unit())}s sold a day`, M.sold, X.sold, n0, false), row('Labour hours a day', M.tot.hours, X.tot.hours, n0), row('People a day', M.tot.people, X.tot.people, n0),
+      row('Labour cost a day', M.tot.cost, X.tot.cost, (v) => $(v)), row('Labour cost a week', M.tot.cost * h.days, X.tot.cost * h.days, (v) => $(v)), row(`Cost per ${esc(unit())}`, M.perUnit, X.perUnit, (v) => $(v, 2)),
+      row('% of sales', M.pct == null ? null : M.pct * 100, X.pct == null ? null : X.pct * 100, (v) => v.toFixed(1) + '%'),
+    ].join('') + '</tbody>';
+    const dw = (X.tot.cost - M.tot.cost) * h.days;
+    q('.lp-wi-take').innerHTML = Math.abs(dw) < 1 ? '<strong>What this means:</strong> the sliders match your plan. Move one to see what changes.' : `<strong>What this means:</strong> this scenario ${dw > 0 ? 'adds' : 'saves'} about <b>${$(Math.abs(dw))}</b> a week in labour cost (about ${$((Math.abs(dw) * 52) / 1000)}K a year if every week looked like this)${X.perUnit != null && M.perUnit != null ? ` and moves the cost per ${esc(unit())} from ${$(M.perUnit, 2)} to <b>${$(X.perUnit, 2)}</b>` : ''}.`;
+  }
+  const wi = (k: 'use' | 'min' | 'wage', sel: string) => q<HTMLInputElement>(sel).addEventListener('input', (e) => { st.wi[k] = +(e.target as HTMLInputElement).value; keep(); if (M) whatIf(); });
+  wi('use', '.lp-wi-use'); wi('min', '.lp-wi-min'); wi('wage', '.lp-wi-wage');
+  q('.lp-wi-match').addEventListener('click', () => { st.wi = { use: Math.round(h.use * 100), min: 100, wage: 0 }; keep(); whatIf(); });
+  q('.lp-wi-apply').addEventListener('click', () => {
+    const W = st.wi; st.use = String(W.use);
+    st.depts.forEach((d) => { d.minA = String(Math.round((f(d.minA) || 0) * W.min) / 100); d.minB = String(Math.round((f(d.minB) || 0) * W.min) / 100); if (W.wage) d.wage = String(Math.round((f(d.wage) || 0) * (1 + W.wage / 100) * 100) / 100); });
+    st.wi = { use: W.use, min: 100, wage: 0 }; keep(); bind();
+  });
+
+  const guideCSV = () => { const G = guide(h, D); return [['Sold %', 'Units sold', ...D.map((d) => d.name + ' people'), 'Total people', 'Hours', 'Cost per day', 'Cost per unit', 'Labour % of sales'], ...G.map(({ p, m }) => [p, Math.round(m.sold), ...m.rows.map((r) => r.people), m.tot.people, m.tot.hours.toFixed(1), m.tot.cost.toFixed(2), m.perUnit != null ? m.perUnit.toFixed(2) : '', m.pct != null ? (m.pct * 100).toFixed(1) : ''])]; };
+  q('.lp-csv-guide').addEventListener('click', () => downloadText('staffing-guide.csv', toCSV(guideCSV())));
+  q('.lp-csv').addEventListener('click', () => {
+    const rows: unknown[][] = [[`${h.name}, ${h.capacity} capacity, ${(h.use * 100).toFixed(0)}% sold, price ${h.price}, benefits ${(h.benefits * 100).toFixed(0)}%`], [],
+      ['Department', 'Work hours a day', 'Minimum hours', 'Scheduled hours a day', 'Hours a week', 'People a day', 'FTE', 'Cost a day', 'Cost a week'],
+      ...M.rows.map((r) => [r.d.name, r.work.toFixed(1), r.minH.toFixed(1), r.hours.toFixed(1), (r.hours * h.days).toFixed(1), r.people, ((r.hours * h.days) / h.fteHours).toFixed(2), r.cost.toFixed(2), (r.cost * h.days).toFixed(2)]),
+      ['Total', '', '', M.tot.hours.toFixed(1), (M.tot.hours * h.days).toFixed(1), M.tot.people, M.fte.toFixed(2), M.tot.cost.toFixed(2), (M.tot.cost * h.days).toFixed(2)], [], ['Staffing guide'], ...guideCSV()];
+    downloadText('labour-productivity.csv', toCSV(rows));
+  });
+
+  bind();
+</script>

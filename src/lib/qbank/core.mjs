@@ -164,6 +164,24 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
     for (const it of shuffle(pool.filter(fits), r)) { if (!byTopic.has(it.topic)) byTopic.set(it.topic, []); byTopic.get(it.topic).push(it); }
     const gfits = shuffle(gens.filter((g) => g.type === sec.type && mk(g)), r);
     for (const g of gfits) { if (!byTopic.has(g.topic)) byTopic.set(g.topic, []); byTopic.get(g.topic).push({ __gen: g }); }
+    // sets: items that share a group (one passage or recording) are taken whole, in their own order, never split.
+    if (sec.sets) {
+      const units = new Map();
+      for (const it of pool) if (fits(it)) { const k = it.group ? `${it.topic}/${it.group}` : it.id; if (!units.has(k)) units.set(k, []); units.get(k).push(it); }
+      // a few random draws, keeping the first that fills the section exactly (else the fullest)
+      let out = [];
+      for (let t = 0; t < 60 && out.length < sec.count; t++) {
+        const pick = [];
+        for (const u of shuffle([...units.values()], r)) {
+          if (pick.length + u.length > sec.count) continue;
+          pick.push(...u);
+          if (pick.length === sec.count) break;
+        }
+        if (pick.length > out.length) out = pick;
+      }
+      for (const it of out) used.add(it.id);
+      return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: sec.count - out.length };
+    }
     // passages: N draws N whole shared-passage sets (every question of each passage, in its own order) instead of
     // single questions, as on the LSAT Reading Comprehension section. The count is then whatever those passages hold.
     if (sec.passages) {
@@ -239,6 +257,33 @@ export const PATTERNS = {
     { name: 'Part B: 3.5 marks each', type: 'mcq', marks: 1, count: 25 },
     { name: 'Part C: 5 marks each', type: 'mcq', marks: 2, count: 20 },
   ], marksMap: { 1: 3.5, 2: 5 } },
+  // CELPIP and TOEFL: one mark a question, no negative marks. Counts follow each part's usual size and the bank's sets
+  // (a recording or passage is never split), so a paper can be a question or two off the real one; not adaptive.
+  'celpip-listening': { name: 'CELPIP-General Listening practice (Parts 1-6)', minutes: 47, scheme: 'none', sections: [
+    { name: 'Part 1: Problem solving', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'listening', part: '1' } },
+    { name: 'Part 2: Daily life conversation', type: 'mcq', marks: 1, count: 5, anyLevel: true, sets: true, only: { skill: 'listening', part: '2' } },
+    { name: 'Part 3: Information', type: 'mcq', marks: 1, count: 6, anyLevel: true, sets: true, only: { skill: 'listening', part: '3' } },
+    { name: 'Part 4: News item', type: 'mcq', marks: 1, count: 5, anyLevel: true, sets: true, only: { skill: 'listening', part: '4' } },
+    { name: 'Part 5: Discussion', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'listening', part: '5' } },
+    { name: 'Part 6: Viewpoints', type: 'mcq', marks: 1, count: 6, anyLevel: true, sets: true, only: { skill: 'listening', part: '6' } },
+  ] },
+  'celpip-reading': { name: 'CELPIP-General Reading practice (Parts 1-4)', minutes: 50, scheme: 'none', sections: [
+    { name: 'Part 1: Correspondence', type: 'mcq', marks: 1, count: 9, anyLevel: true, sets: true, only: { skill: 'reading', part: '1' } },
+    { name: 'Part 2: Diagram', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'reading', part: '2' } },
+    { name: 'Part 3: Information', type: 'text', marks: 1, count: 9, anyLevel: true, sets: true, only: { skill: 'reading', part: '3' } },
+    { name: 'Part 4: Viewpoints', type: 'mcq', marks: 1, count: 9, anyLevel: true, sets: true, only: { skill: 'reading', part: '4' } },
+  ] },
+  'toefl-reading': { name: 'TOEFL iBT Reading practice (2026 format, not adaptive)', minutes: 30, scheme: 'none', sections: [
+    { name: 'Complete the Words', type: 'text', marks: 1, count: 20, anyLevel: true, sets: true, only: { skill: 'reading', task: 'complete-words' } },
+    { name: 'Read in Daily Life', type: 'mcq', marks: 1, count: 15, anyLevel: true, sets: true, only: { skill: 'reading', task: 'daily-life' } },
+    { name: 'Read an Academic Passage', type: 'mcq', marks: 1, count: 15, anyLevel: true, sets: true, only: { skill: 'reading', task: 'academic-passage' } },
+  ] },
+  'toefl-listening': { name: 'TOEFL iBT Listening practice (2026 format, not adaptive)', minutes: 29, scheme: 'none', sections: [
+    { name: 'Listen and Choose a Response', type: 'mcq', marks: 1, count: 16, anyLevel: true, sets: true, only: { skill: 'listening', task: 'choose-response' } },
+    { name: 'Listen to a Conversation', type: 'mcq', marks: 1, count: 12, anyLevel: true, sets: true, only: { skill: 'listening', task: 'conversation' } },
+    { name: 'Listen to an Announcement', type: 'mcq', marks: 1, count: 11, anyLevel: true, sets: true, only: { skill: 'listening', task: 'announcement' } },
+    { name: 'Listen to an Academic Talk', type: 'mcq', marks: 1, count: 8, anyLevel: true, sets: true, only: { skill: 'listening', task: 'academic-talk' } },
+  ] },
   'gmat-quant': { name: 'GMAT-style Quantitative Reasoning (not adaptive)', minutes: 45, scheme: 'gmat', sections: [
     { name: 'Warm-up and standard questions', type: 'mcq', marks: 1, count: 8 },
     { name: 'Exam-level and harder questions', type: 'mcq', marks: 2, count: 13 },

@@ -1,0 +1,167 @@
+---
+// #T1074 Report builder: open the exports you already have and get a short manager's report with charts and plain notes.
+// Runs in the browser. Your file is read on this device and never uploaded; saving the title and settings is opt-in.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui ax rb">
+  <div class="ax-card">
+    <h2>1. Your export</h2>
+    <p class="ax-help" style="margin-top:0">One table with a heading row: a date column, one or more number columns, and optionally a label column such as department, branch or supplier. Open a file, paste from a spreadsheet, or start from an example.</p>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="rb-sample"><option value="sales">Sales by branch and product</option><option value="costs">Supplier invoices</option></select>
+      </label>
+    </div>
+    <textarea class="rb-paste" rows="5" spellcheck="false" placeholder="Date&#9;Branch&#9;Sales&#10;2026-10-01&#9;North&#9;1250.50"></textarea>
+    <DataFile target=".rb-paste" maxCols={30} maxRows={100000} label="Open a file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small rb-use">Use these rows</button><button type="button" class="btn secondary small rb-ex">Back to the example</button></div>
+    <p class="biz-warn rb-msg"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Choose what the report is about</h2>
+    <div class="ax-grid">
+      <label>Report title <input class="rb-title" type="text" maxlength="80" value="Manager's report" /></label>
+      <label>Date column <select class="rb-date"></select></label>
+      <label>Measure (what to add up) <select class="rb-measure"></select></label>
+      <label>Add up as <select class="rb-agg"><option value="sum">Total</option><option value="avg">Average per row</option></select></label>
+      <label>Split by <select class="rb-group"></select></label>
+      <label>Period <select class="rb-period"></select></label>
+      <label>Dates are written <select class="rb-dmy"><option value="auto">Work it out</option><option value="mdy">Month first (12/31/2026)</option><option value="dmy">Day first (31/12/2026)</option></select></label>
+      <label>Put before amounts <input class="rb-prefix" type="text" maxlength="4" placeholder="$ or £ (optional)" /></label>
+    </div>
+    <p class="ax-help rb-detect"></p>
+  </div>
+
+  <div class="ax-card" aria-live="polite">
+    <div class="biz-card-head"><h2>3. Your report</h2><span class="ax-help rb-sub" style="margin:0"></span></div>
+    <div class="rb-out"></div>
+    <div class="ax-row biz-noprint" style="margin-top:12px"><button type="button" class="btn small rb-add">Add this to my report</button><span class="ax-help rb-added" style="margin:0"></span></div>
+    <ul class="rb-parts"></ul>
+    <p class="ax-help">Downloads contain everything you added, or the report above if you added nothing. To combine several exports, open the next file, press Add, and repeat.</p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="rb-keep" /> Remember my title and amount symbol on this device</label>
+    <p class="ax-help">Off unless you tick it. Only the title and symbol stay in this browser. Your files and numbers are never kept. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rb-clear">Clear saved settings</button></div>
+  </div>
+  <p class="biz-fine">The notes are plain arithmetic on the rows you give it, not advice. Check key numbers against your own system.</p>
+</div>
+
+<style is:inline>
+  .rb .rb-out h3 { margin: 16px 0 6px; font-size: 16px; }
+  .rb .rb-fig { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 10px; }
+  .rb .rb-notes { margin: 6px 0 0; padding-left: 20px; }
+  .rb .rb-notes li { margin: 4px 0; }
+  .rb .rb-parts { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+  .rb .rb-parts:empty { display: none; }
+  .rb .rb-parts li { display: flex; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; }
+  .rb .biz-tbl td:first-child { font-weight: 600; }
+  .rb .biz-tbl td, .rb .biz-tbl th { white-space: normal; }
+  .rb .biz-tbl .r { text-align: right; }
+</style>
+
+<script>
+  import { profile, defaults, prepare, build, overview, fmtNum, lineFigure, barFigure, sampleCsv, pct, chg, PERIOD_LIST, type Profile, type Setup } from '../../lib/biz/reportbuilder';
+  import { todayISO, keeper, esc } from '../../lib/biz/common';
+  import { wireDownloads, paint, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let prof: Profile | null = null, cur: Section[] = [], curLabel = '';
+  const parts: { label: string; sections: Section[] }[] = [];
+
+  const opts = (el: HTMLSelectElement, list: [string, string][], keep?: string) => { el.innerHTML = list.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join(''); if (keep != null && list.some(([v]) => v === keep)) el.value = keep; };
+
+  function load(text: string) {
+    const p = profile(text, sel('.rb-dmy').value as 'auto');
+    if (p.error) { q('.rb-msg').textContent = p.error; return false; }
+    if (!p.cols.some((c) => c.kind === 'date')) { q('.rb-msg').textContent = 'No date column found. Add a column of dates (for example 2026-10-31 or 31 Oct 2026) with a heading, then try again.'; return false; }
+    prof = p; q('.rb-msg').textContent = '';
+    const d = defaults(p);
+    opts(sel('.rb-date'), p.cols.filter((c) => c.kind === 'date').map((c) => [String(c.i), c.name]), String(d.date));
+    opts(sel('.rb-measure'), [...p.cols.filter((c) => c.kind === 'number').map((c): [string, string] => [String(c.i), c.name]), ['-1', 'Number of rows']], String(d.measure < 0 ? -1 : d.measure));
+    opts(sel('.rb-group'), [['-1', 'Nothing (no split)'], ...p.cols.filter((c) => c.kind === 'text' && c.distinct >= 2 && c.distinct <= 200).map((c): [string, string] => [String(c.i), `${c.name} (${c.distinct})`])], String(d.group));
+    sel('.rb-agg').value = d.agg; sel('.rb-period').value = 'all';
+    q('.rb-detect').textContent = `Found ${p.body.length.toLocaleString('en')} rows and ${p.cols.length} columns. Check the choices above; the report updates as you change them.`;
+    return true;
+  }
+
+  const setup = (): Setup => ({ date: +sel('.rb-date').value, measure: +sel('.rb-measure').value, group: +sel('.rb-group').value, agg: sel('.rb-agg').value as 'sum' | 'avg', period: sel('.rb-period').value, dmy: prof!.dmy });
+
+  function render() {
+    const out = q('.rb-out'); out.innerHTML = ''; cur = [];
+    if (!prof) return;
+    const s = setup(), prefix = q<HTMLInputElement>('.rb-prefix').value.trim(), fmt = (v: number) => fmtNum(v, prefix);
+    const mName = s.measure < 0 ? 'Rows' : prof.head[s.measure], gName = s.group < 0 ? '' : prof.head[s.group];
+    const pr = prepare(prof, s), b = build(pr, s, mName, gName, fmt);
+    if (!b) { out.innerHTML = '<p class="biz-warn" style="display:block">There are no rows with a date and a number in this period. Try "All the data" or a different date or measure column.</p>'; return; }
+    const sub = `${b.label}: ${b.from} to ${b.to}`;
+    q('.rb-sub').textContent = sub;
+    curLabel = `${mName}${gName ? ' by ' + gName : ''}`;
+    const facts: [string, string][] = [[`${s.agg === 'avg' ? 'Average' : 'Total'} ${mName.toLowerCase()}`, fmt(b.cur.value)], ['Rows', b.cur.n.toLocaleString('en')], ['Period', `${b.from} to ${b.to}`]];
+    if (b.before && b.before.n) { const c = chg(b.cur.value, b.before.value); facts.push(['Previous period', fmt(b.before.value)], ['Change', pct(c)]); }
+    const secs: Section[] = [{ title: 'At a glance', facts }];
+    const list = b.buckets.list;
+    if (list.length >= 2) secs.push({ title: `${mName} by ${b.buckets.unit}`, figure: lineFigure(list, prefix, `${mName} by ${b.buckets.unit}`), note: b.buckets.unit === 'week' ? 'Each point is a week, shown from its Monday.' : undefined });
+    if (b.groups.length >= 2) {
+      const sum = s.agg === 'sum', hasPrev = !!b.before;
+      const head = [gName, sum ? 'Total' : 'Average', ...(sum ? ['Share'] : []), ...(hasPrev ? ['Change'] : [])];
+      const rows = b.groups.slice(0, 15).map((g) => [g.name, fmt(g.value), ...(sum ? [Number.isFinite(g.share) ? (g.share * 100).toFixed(1) + '%' : ''] : []), ...(hasPrev ? [pct(chg(g.value, g.prev))] : [])]);
+      secs.push({ title: `${mName} by ${gName.toLowerCase()}`, figure: barFigure(b.groups, prefix, `${mName} by ${gName}`), table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: b.groups.length > 15 ? `The biggest 15 of ${b.groups.length} are shown.` : undefined });
+    }
+    const ov = overview(prof, s, b.from, b.to, fmt);
+    if (ov.length >= 2) secs.push({ title: 'All the number columns', table: { head: ['Column', 'Total', 'Average', 'Smallest', 'Largest'], rows: ov, align: ['l', 'r', 'r', 'r', 'r'] } });
+    secs.push({ title: 'Notes', text: b.notes });
+    cur = secs;
+    for (const sc of secs) {
+      const h = document.createElement('h3'); h.textContent = sc.title; out.append(h);
+      if (sc.facts) { const d = document.createElement('div'); d.className = 'biz-kpis'; d.innerHTML = sc.facts.map(([k, v]) => `<div class="biz-k"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join(''); out.append(d); }
+      if (sc.figure) { const c = document.createElement('canvas'); c.className = 'rb-fig'; c.setAttribute('role', 'img'); paint(c, sc.figure); out.append(c); }
+      if (sc.table) { const w = document.createElement('div'); w.className = 'ax-scroll'; const t = sc.table; w.innerHTML = `<table class="biz-tbl"><thead><tr>${t.head.map((x, i) => `<th class="${t.align?.[i] === 'r' ? 'r' : ''}">${esc(x)}</th>`).join('')}</tr></thead><tbody>${t.rows.map((r) => `<tr>${r.map((x, i) => `<td class="${t.align?.[i] === 'r' ? 'r' : ''}">${esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`; out.append(w); }
+      if (sc.text) { const u = document.createElement('ul'); u.className = 'rb-notes'; u.innerHTML = sc.text.map((x) => `<li>${esc(x)}</li>`).join(''); out.append(u); }
+      if (sc.note) { const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = sc.note; out.append(p); }
+    }
+  }
+
+  function showParts() {
+    q('.rb-parts').innerHTML = parts.map((p, i) => `<li><span>${esc(p.label)}</span><button type="button" class="btn secondary small" data-rm="${i}" aria-label="Remove ${esc(p.label)}">Remove</button></li>`).join('');
+    q('.rb-added').textContent = parts.length ? `${parts.length} part${parts.length > 1 ? 's' : ''} in your report.` : '';
+  }
+  q('.rb-parts').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-rm]'); if (b) { parts.splice(+b.dataset.rm!, 1); showParts(); } });
+  q('.rb-add').addEventListener('click', () => {
+    if (!cur.length) return;
+    const same = parts.filter((p) => p.label.startsWith(curLabel)).length;
+    const label = same ? `${curLabel} (${same + 1})` : curLabel;
+    parts.push({ label, sections: cur.map((s) => ({ ...s, title: `${label}: ${s.title}` })) }); showParts();
+  });
+
+  function useText(t: string) { if (load(t)) { render(); } }
+  const sample = () => { q<HTMLTextAreaElement>('.rb-paste').value = ''; q('.rb-msg').textContent = ''; useText(sampleCsv(sel('.rb-sample').value as 'sales')); };
+  q('.rb-sample').addEventListener('change', sample);
+  q('.rb-ex').addEventListener('click', sample);
+  q('.rb-use').addEventListener('click', () => { const t = q<HTMLTextAreaElement>('.rb-paste').value; if (!t.trim()) { q('.rb-msg').textContent = 'Paste some rows or open a file first.'; return; } useText(t); });
+  q('.rb-paste').addEventListener('change', () => { const t = q<HTMLTextAreaElement>('.rb-paste').value; if (t.trim() && !q('.rb-msg').textContent) useText(t); });
+  sel('.rb-dmy').addEventListener('change', () => { const t = q<HTMLTextAreaElement>('.rb-paste').value || sampleCsv(sel('.rb-sample').value as 'sales'); useText(t); });
+  for (const c of ['.rb-date', '.rb-measure', '.rb-agg', '.rb-group', '.rb-period']) q(c).addEventListener('change', render);
+  q('.rb-prefix').addEventListener('input', render);
+
+  opts(sel('.rb-period'), Object.entries(PERIOD_LIST));
+  const keep = keeper('fibub-report-builder-v1', q<HTMLInputElement>('.rb-keep'), q('.rb-clear'),
+    () => ({ title: q<HTMLInputElement>('.rb-title').value, prefix: q<HTMLInputElement>('.rb-prefix').value }),
+    (v) => { q<HTMLInputElement>('.rb-title').value = String(v.title ?? '').slice(0, 80); q<HTMLInputElement>('.rb-prefix').value = String(v.prefix ?? '').slice(0, 4); });
+  q('.rb-title').addEventListener('input', keep); q('.rb-prefix').addEventListener('input', keep);
+  sample();
+
+  wireDownloads(q('.dl'), () => {
+    const title = q<HTMLInputElement>('.rb-title').value.trim() || "Manager's report";
+    const sections = parts.length ? parts.flatMap((p) => p.sections) : cur;
+    return { title, subtitle: `${q('.rb-sub').textContent || ''}. Made ${todayISO()}`.replace(/^\. /, ''), sections, file: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'report' };
+  });
+</script>

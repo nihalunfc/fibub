@@ -1,0 +1,210 @@
+---
+// #T1073 Revenue dashboard: net revenue by channel, sold-out days and a plain outlook (maths in src/lib/biz/revenue.ts and dash.ts).
+// Runs in the browser. Your file is read on this device and never uploaded; saving settings on the device is opt-in.
+import '../../styles/astro.css';
+import '../../styles/biz.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="tool-ui ax rv">
+  <div class="ax-card">
+    <h2>1. Your daily sales</h2>
+    <p class="ax-help rv-src" style="margin-top:0"></p>
+    <div class="ax-grid">
+      <label>Example to start from
+        <select class="rv-preset"><option value="hotel">Hotels (rooms)</option><option value="restaurant">Restaurants (covers)</option><option value="clinic">Clinics (appointments)</option><option value="any">Any business</option></select>
+      </label>
+      <label>Currency <select class="rv-cur"></select></label>
+    </div>
+    <p class="ax-help">One row per site, per channel, per day. Columns: date, site, channel, number sold, revenue, and (optional) number cancelled. Headings are matched by name; without headings the order above is used. A channel is where the sale came from, such as your own website, a booking site, the phone or walk-ins.</p>
+    <textarea class="rv-paste" rows="5" spellcheck="false" placeholder="date&#9;site&#9;channel&#9;sold&#9;revenue&#9;cancelled&#10;2026-10-01&#9;North&#9;Website&#9;40&#9;5600&#9;3"></textarea>
+    <DataFile target=".rv-paste" maxCols={10} maxRows={100000} label="Open a file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small rv-use">Use these rows</button><button type="button" class="btn secondary small rv-sample">Back to the example</button></div>
+    <p class="biz-warn rv-imp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. What you know about each site and channel</h2>
+    <div class="ax-grid">
+      <label>Period <select class="rv-period"></select></label>
+      <label>Site <select class="rv-site"></select></label>
+      <label>Extra demand on sold-out days, % <input data-k="extra" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Extra demand: on a day a site sold out, how much more you think it could have sold. It is your assumption (10% is cautious), not something the tool can see. A day counts as sold out at 97% or more of the places.</p>
+    <div class="ax-scroll"><table class="biz-tbl rv-caps"></table></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="biz-tbl rv-comm"></table></div>
+    <p class="ax-help">Places is how many you can sell on one day at that site. Commission is the share of the sale a channel keeps, in percent. Net revenue is what stays with you.</p>
+  </div>
+
+  <div class="ax-card rv-res" aria-live="polite">
+    <h2 class="rv-title">Results</h2>
+    <p class="ax-help rv-range" style="margin-top:0"></p>
+    <div class="biz-kpis rv-kpis"></div>
+    <p class="biz-take rv-take"></p>
+    <h3 class="biz-sub">Net revenue by month</h3>
+    <svg class="biz-svg rv-chart1" viewBox="0 0 700 200" role="img" aria-label="Net revenue by month"></svg>
+    <h3 class="biz-sub">What each channel really earns</h3>
+    <div class="ax-scroll"><table class="biz-tbl rv-chan"></table></div>
+    <p class="biz-take rv-chtake"></p>
+    <h3 class="biz-sub">Sold-out days and demand turned away</h3>
+    <div class="biz-kpis rv-so"></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="biz-tbl rv-sotop"></table></div>
+    <h3 class="biz-sub">Use of capacity by week, and the next 8 weeks</h3>
+    <svg class="biz-svg rv-chart2" viewBox="0 0 700 220" role="img" aria-label="Weekly use of capacity with a simple outlook"></svg>
+    <div class="ax-legend"><span><i style="background:var(--muted)"></i>Actual</span><span><i style="background:var(--accent)"></i>Outlook</span></div>
+    <p class="ax-help rv-outnote"></p>
+    <h3 class="biz-sub">Site by site</h3>
+    <div class="ax-scroll"><table class="biz-tbl rv-sites"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rv-csv">Download channels (CSV)</button><button type="button" class="btn secondary small rv-csv2">Download weekly outlook (CSV)</button></div>
+  </div>
+
+  <div class="ax-card biz-keep">
+    <label class="ax-check"><input type="checkbox" class="rv-keep" /> Remember my settings on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, the currency, period, places and commission rates stay in this browser only. Your sales file is never kept. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rv-clear">Clear saved settings</button></div>
+  </div>
+  <p class="biz-fine">The outlook is a plain average of each weekday over the last 8 weeks, scaled by growth against a year earlier. It does not know about events or price changes. Not advice; check against your own reports.</p>
+</div>
+
+<style is:inline>
+  .rv .rv-caps input, .rv .rv-comm input { width: 80px; text-align: right; }
+  .rv .rv-caps th, .rv .rv-comm th { font-weight: 600; }
+</style>
+
+<script>
+  import { importRows, sumRows, use, price, perPlace, change, ranges, PERIODS, monthly, sampleRows, lineSvg, barSvg, type Row, type SiteDef } from '../../lib/biz/dash';
+  import { channels, cancelRate, siteDays, soldOut, outlook } from '../../lib/biz/revenue';
+  import { addDays, todayISO, toCSV, downloadText, keeper, toNum, dayLabel } from '../../lib/biz/common';
+  import { money, defaultCurrency, currencyOptions } from '../../lib/money';
+
+  const root = document.querySelector<HTMLElement>('.rv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  type Chan = { name: string; share: number; priceMul: number; canc: number; comm: number };
+  type Kind = { unit: string; sites: SiteDef[]; chans: Chan[] };
+  const KINDS: Record<string, Kind> = {
+    hotel: { unit: 'room', sites: [{ name: 'Harbour', cap: 120, base: 100, price: 150 }, { name: 'Airport', cap: 80, base: 66, price: 120 }, { name: 'Old Town', cap: 60, base: 42, price: 175 }], chans: [{ name: 'Own website', share: 0.34, priceMul: 1, canc: 0.06, comm: 0 }, { name: 'Booking site A', share: 0.36, priceMul: 0.96, canc: 0.22, comm: 17 }, { name: 'Booking site B', share: 0.14, priceMul: 0.94, canc: 0.18, comm: 15 }, { name: 'Phone and walk-in', share: 0.16, priceMul: 1.04, canc: 0.04, comm: 0 }] },
+    restaurant: { unit: 'cover', sites: [{ name: 'Centre', cap: 180, base: 150, price: 34 }, { name: 'Riverside', cap: 120, base: 96, price: 41 }], chans: [{ name: 'Own website', share: 0.3, priceMul: 1, canc: 0.07, comm: 0 }, { name: 'Delivery app', share: 0.28, priceMul: 0.88, canc: 0.05, comm: 25 }, { name: 'Booking app', share: 0.17, priceMul: 1, canc: 0.12, comm: 8 }, { name: 'Walk-in', share: 0.25, priceMul: 1.05, canc: 0, comm: 0 }] },
+    clinic: { unit: 'appointment', sites: [{ name: 'Main clinic', cap: 60, base: 52, price: 95 }, { name: 'East', cap: 40, base: 31, price: 88 }], chans: [{ name: 'Own website', share: 0.35, priceMul: 1, canc: 0.1, comm: 0 }, { name: 'Referral network', share: 0.2, priceMul: 0.9, canc: 0.08, comm: 12 }, { name: 'Phone', share: 0.45, priceMul: 1.02, canc: 0.12, comm: 0 }] },
+    any: { unit: 'sale', sites: [{ name: 'Shop 1', cap: 100, base: 82, price: 48 }, { name: 'Shop 2', cap: 80, base: 60, price: 52 }], chans: [{ name: 'In person', share: 0.5, priceMul: 1, canc: 0.02, comm: 0 }, { name: 'Own web shop', share: 0.3, priceMul: 1.02, canc: 0.06, comm: 0 }, { name: 'Marketplace', share: 0.2, priceMul: 0.92, canc: 0.1, comm: 14 }] },
+  };
+  type S = { cur: string; kind: string; period: string; site: string; extra: string; caps: Record<string, string>; comm: Record<string, string> };
+  const fresh = (cur: string): S => ({ cur, kind: 'hotel', period: 'ltm', site: '', extra: '10', caps: {}, comm: {} });
+  let st = fresh(defaultCurrency());
+  const keep = keeper('fibub-revenue-dash-v1', q('.rv-keep'), q('.rv-clear'), () => st, (v) => { st = Object.assign(fresh(defaultCurrency()), v); });
+  q('.rv-cur').innerHTML = currencyOptions(st.cur);
+  q('.rv-period').innerHTML = Object.entries(PERIODS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  const $ = (v: number, d = 0) => (Number.isFinite(v) ? money(v, st.cur, d) : '-');
+  const p1 = (v: number) => (Number.isFinite(v) ? (v * 100).toFixed(1) + '%' : '-');
+  const dl = (v: number) => (Number.isFinite(v) ? (v >= 0 ? '+' : '-') + Math.abs(v * 100).toFixed(1) + '%' : 'n/a');
+  const cl = (v: number) => (Number.isFinite(v) ? (v >= 0 ? 'pos' : 'neg') : '');
+  const int = (v: number) => Math.round(v).toLocaleString();
+  const compact = (v: number) => { const a = Math.abs(v); return a >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (v / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'k' : String(Math.round(v)); };
+  let rows: Row[] = [], mine = false, sampleCaps: Record<string, number> = {}, sampleComm: Record<string, number> = {};
+
+  function sample() {
+    const k = KINDS[st.kind]; rows = sampleRows(addDays(todayISO(), -1), k.sites, k.chans, 5); mine = false;
+    sampleCaps = Object.fromEntries(k.sites.map((s) => [s.name, s.cap])); sampleComm = Object.fromEntries(k.chans.map((c) => [c.name, c.comm]));
+    st.caps = {}; st.comm = {};
+  }
+  const sitesOf = () => [...new Set(rows.map((r) => r.site))], chansOf = () => [...new Set(rows.map((r) => r.ch))];
+  const maxSold = (s: string) => { const m = new Map<string, number>(); rows.forEach((r) => { if (r.site === s) m.set(r.d, (m.get(r.d) || 0) + r.sold); }); return Math.max(0, ...m.values()); };
+  const cap = (s: string) => { const v = toNum(st.caps[s] ?? ''); return v !== '' && v > 0 ? v : (sampleCaps[s] ?? Math.ceil(maxSold(s) * 1.0)); };
+  const commOf = (c: string) => { const v = toNum(st.comm[c] ?? ''); return v !== '' ? v : (sampleComm[c] ?? 0); };
+
+  function tables() {
+    q('.rv-caps').innerHTML = `<thead><tr><th>Site</th><th class="r">Places a day</th></tr></thead><tbody>${sitesOf().map((s) => `<tr><td>${esc(s)}</td><td class="r"><input data-cap="${esc(s)}" inputmode="numeric" value="${cap(s)}" aria-label="Places a day at ${esc(s)}" /></td></tr>`).join('')}</tbody>`;
+    q('.rv-comm').innerHTML = `<thead><tr><th>Channel</th><th class="r">Commission, %</th></tr></thead><tbody>${chansOf().map((c) => `<tr><td>${esc(c)}</td><td class="r"><input data-comm="${esc(c)}" inputmode="decimal" value="${commOf(c)}" aria-label="Commission for ${esc(c)}" /></td></tr>`).join('')}</tbody>`;
+  }
+  function bind() {
+    q<HTMLSelectElement>('.rv-cur').value = st.cur; q<HTMLSelectElement>('.rv-preset').value = st.kind; q<HTMLSelectElement>('.rv-period').value = st.period;
+    q<HTMLInputElement>('[data-k=extra]').value = st.extra;
+    q('.rv-src').innerHTML = mine ? '<b>Using your rows.</b> Press "Back to the example" to go back.' : '<b>Using the example.</b> Two years of made-up sales for a few sites and channels. Paste or open your own below.';
+    const sites = sitesOf(); if (st.site && !sites.includes(st.site)) st.site = '';
+    q('.rv-site').innerHTML = '<option value="">All sites</option>' + sites.map((s) => `<option value="${esc(s)}"${s === st.site ? ' selected' : ''}>${esc(s)}</option>`).join('');
+    tables(); run();
+  }
+  const caps = () => Object.fromEntries(sitesOf().map((s) => [s, cap(s)]));
+  const comms = () => Object.fromEntries(chansOf().map((c) => [c, commOf(c)]));
+  let R: { r: ReturnType<typeof ranges>; chs: ReturnType<typeof channels>; so: ReturnType<typeof soldOut>; ol: ReturnType<typeof outlook> };
+
+  function run() {
+    if (!rows.length) return;
+    const end = rows[rows.length - 1].d, r = ranges(end, st.period), site = st.site, cm = comms(), days = siteDays(rows, caps());
+    const cur = sumRows(rows, r.cur[0], r.cur[1], site), prev = sumRows(rows, r.prev[0], r.prev[1], site);
+    const chs = channels(rows, r.cur[0], r.cur[1], cm, site), chp = channels(rows, r.prev[0], r.prev[1], cm, site);
+    const dcur = days.filter((x) => x.d >= r.cur[0] && x.d <= r.cur[1] && (!site || x.site === site)), dprev = days.filter((x) => x.d >= r.prev[0] && x.d <= r.prev[1] && (!site || x.site === site));
+    const cp = dcur.reduce((a, x) => a + x.cap, 0), pp = dprev.reduce((a, x) => a + x.cap, 0);
+    const net = chs.reduce((a, c) => a + c.net, 0), netp = chp.reduce((a, c) => a + c.net, 0), comm = chs.reduce((a, c) => a + c.commission, 0);
+    const canc = chs.reduce((a, c) => a + c.canc, 0), cancp = chp.reduce((a, c) => a + c.canc, 0);
+    const so = soldOut(days, r.cur[0], r.cur[1], toNum(st.extra) === '' ? 0 : +toNum(st.extra), site);
+    const ol = outlook(days, end, 26, 8, site); R = { r, chs, so, ol };
+    q('.rv-title').textContent = `${PERIODS[st.period]}${site ? ', ' + site : ', all sites'}`;
+    q('.rv-range').textContent = `${r.cur[0]} to ${r.cur[1]}, compared with ${r.prev[0]} to ${r.prev[1]}.`;
+    const u = cp > 0 ? cur.sold / cp : NaN, up = pp > 0 ? dprev.reduce((a, x) => a + x.sold, 0) / pp : NaN;
+    const k = (n: string, v: string, sub: string, c = '') => `<div class="biz-k"><span>${n}</span><b>${v}</b><small class="${c}">${sub}</small></div>`;
+    const cr = cancelRate({ sold: cur.sold, canc }), crp = cancelRate({ sold: prev.sold, canc: cancp });
+    q('.rv-kpis').innerHTML = [
+      k('Gross revenue', $(cur.rev), dl(change(cur.rev, prev.rev)) + ' vs previous', cl(change(cur.rev, prev.rev))),
+      k('Net revenue', $(net), dl(change(net, netp)) + ' vs previous', cl(change(net, netp))),
+      k('Kept by channels', $(comm), cur.rev > 0 ? p1(comm / cur.rev) + ' of gross' : ''),
+      k('Use of capacity', p1(u), Number.isFinite(u - up) ? (u - up >= 0 ? '+' : '-') + Math.abs((u - up) * 100).toFixed(1) + ' pts vs previous' : '', cl(u - up)),
+      k('Average price', $(price(cur), 2), dl(change(price(cur), price(prev))) + ' vs previous', cl(change(price(cur), price(prev)))),
+      k('Cancellations', p1(cr), Number.isFinite(crp) ? 'previous ' + p1(crp) : '', Number.isFinite(cr - crp) ? (cr > crp + 0.005 ? 'neg' : '') : ''),
+    ].join('');
+    const top = chs[0], worst = [...chs].filter((c) => c.sold > 0).sort((a, b) => b.commission / (b.rev || 1) - a.commission / (a.rev || 1))[0];
+    q('.rv-take').innerHTML = `<b>What this means:</b> ` + (top ? `${esc(top.ch)} brings the most net revenue (${$(top.net)}, ${p1(top.net / (net || 1))} of the total). ` : '') + (worst && worst.commission > 0 ? `${esc(worst.ch)} keeps the largest share of its own sales in commission (${p1(worst.commission / worst.rev)}). ` : '') + (so.n ? `There were ${so.n} sold-out days, so some demand was probably turned away.` : 'No site sold out in this period.');
+    // channels
+    const th = `<thead><tr><th>Channel</th><th class="r">Sold</th><th class="r">Share</th><th class="r">Gross</th><th class="r">Price</th><th class="r">Commission</th><th class="r">Net</th><th class="r">Net per sale</th><th class="r">Cancelled</th><th class="r">Net vs previous</th></tr></thead>`;
+    const tb = chs.map((c) => { const p = chp.find((x) => x.ch === c.ch), d = p ? change(c.net, p.net) : NaN;
+      return `<tr><td>${esc(c.ch)}</td><td class="r">${int(c.sold)}</td><td class="r">${p1(c.sold / (cur.sold || 1))}</td><td class="r">${$(c.rev)}</td><td class="r">${$(c.sold ? c.rev / c.sold : NaN, 2)}</td><td class="r">${$(c.commission)}</td><td class="r">${$(c.net)}</td><td class="r">${$(c.sold ? c.net / c.sold : NaN, 2)}</td><td class="r">${p1(cancelRate(c))}</td><td class="r ${cl(d)}">${dl(d)}</td></tr>`; }).join('');
+    q('.rv-chan').innerHTML = th + `<tbody>${tb}</tbody><tfoot><tr><td>All channels</td><td class="r">${int(cur.sold)}</td><td class="r">100%</td><td class="r">${$(cur.rev)}</td><td class="r">${$(price(cur), 2)}</td><td class="r">${$(comm)}</td><td class="r">${$(net)}</td><td class="r">${$(cur.sold ? net / cur.sold : NaN, 2)}</td><td class="r">${p1(cr)}</td><td class="r ${cl(change(net, netp))}">${dl(change(net, netp))}</td></tr></tfoot>`;
+    const cheap = [...chs].filter((c) => c.sold > 0).sort((a, b) => a.net / a.sold - b.net / b.sold)[0];
+    q('.rv-chtake').innerHTML = cheap && chs.length > 1 ? `<b>Worth a look:</b> ${esc(cheap.ch)} earns the least per sale after commission (${$(cheap.net / cheap.sold, 2)}). Compare that with what the same place would earn from your own channels.` : '';
+    // sold-out
+    q('.rv-so').innerHTML = [k('Sold-out days', int(so.n), 'site-days at 97% or more'), k('Extra sales it could have made', int(so.units), `if ${st.extra || 0}% more would have bought`), k('Value of that demand', $(so.value), 'at the price of those days')].join('');
+    q('.rv-sotop').innerHTML = so.top.length ? `<thead><tr><th>Day</th><th>Site</th><th class="r">Sold</th><th class="r">Places</th><th class="r">Revenue</th></tr></thead><tbody>${so.top.map((x) => `<tr><td>${dayLabel(x.d)}</td><td>${esc(x.site)}</td><td class="r">${int(x.sold)}</td><td class="r">${int(x.cap)}</td><td class="r">${$(x.rev)}</td></tr>`).join('')}</tbody>` : '';
+    // charts
+    const m = monthly(rows.filter((x) => !site || x.site === site), '').slice(-12);
+    const ratio = (e: Row[]) => e; void ratio;
+    const netByMonth = m.map(([key]) => channels(rows, key + '-01', key + '-31', cm, site).reduce((a, c) => a + c.net, 0));
+    q('.rv-chart1').innerHTML = barSvg(netByMonth, m.map(([key]) => MON[+key.slice(5, 7) - 1]), compact);
+    const hist = ol.hist.map((h) => (Number.isFinite(h.sold) && h.cap > 0 ? h.sold / h.cap : null)), fut = ol.out.map((h) => (h.cap > 0 ? h.sold / h.cap : null));
+    const labels = ol.hist.concat(ol.out).map((h) => h.w.slice(5)), n = hist.length;
+    q('.rv-chart2').innerHTML = lineSvg([{ name: 'Actual', v: hist.concat(fut.map(() => null)), color: 'var(--muted)' }, { name: 'Outlook', v: hist.map((v, i) => (i === n - 1 ? v : null)).concat(fut), color: 'var(--accent)' }], labels, (v) => Math.round(v * 100) + '%');
+    q('.rv-outnote').textContent = `Weeks start on Monday. The outlook assumes growth of ${((ol.growth - 1) * 100 >= 0 ? '+' : '') + ((ol.growth - 1) * 100).toFixed(1)}% on a year earlier (kept within 25%), and expected sales never go above your places.`;
+    // sites
+    const names = sitesOf();
+    q('.rv-sites').innerHTML = `<thead><tr><th>Site</th><th class="r">Revenue</th><th class="r">Use of capacity</th><th class="r">Price</th><th class="r">Revenue per place</th><th class="r">Revenue vs previous</th></tr></thead><tbody>${names.map((s) => {
+      const c = sumRows(rows, r.cur[0], r.cur[1], s), p = sumRows(rows, r.prev[0], r.prev[1], s), dd = days.filter((x) => x.site === s && x.d >= r.cur[0] && x.d <= r.cur[1]), cp2 = dd.reduce((a, x) => a + x.cap, 0), d = change(c.rev, p.rev);
+      return `<tr><td>${esc(s)}</td><td class="r">${$(c.rev)}</td><td class="r">${p1(cp2 ? c.sold / cp2 : NaN)}</td><td class="r">${$(price(c), 2)}</td><td class="r">${$(cp2 ? c.rev / cp2 : NaN, 2)}</td><td class="r ${cl(d)}">${dl(d)}</td></tr>`; }).join('')}</tbody>`;
+  }
+
+  q('.rv-caps').addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.cap) { st.caps[el.dataset.cap] = el.value; keep(); sched(); } });
+  q('.rv-comm').addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset.comm) { st.comm[el.dataset.comm] = el.value; keep(); sched(); } });
+  q('[data-k=extra]').addEventListener('input', (e) => { st.extra = (e.target as HTMLInputElement).value; keep(); sched(); });
+  let timer = 0; const sched = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  q('.rv-cur').addEventListener('change', (e) => { st.cur = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.rv-period').addEventListener('change', (e) => { st.period = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.rv-site').addEventListener('change', (e) => { st.site = (e.target as HTMLSelectElement).value; keep(); run(); });
+  q('.rv-preset').addEventListener('change', (e) => { st.kind = (e.target as HTMLSelectElement).value; st.site = ''; q('.rv-imp').textContent = ''; sample(); keep(); bind(); });
+  q('.rv-sample').addEventListener('click', () => { q('.rv-imp').textContent = ''; q<HTMLTextAreaElement>('.rv-paste').value = ''; sample(); bind(); });
+  q('.rv-use').addEventListener('click', () => {
+    const t = q<HTMLTextAreaElement>('.rv-paste').value;
+    if (!t.trim()) { q('.rv-imp').textContent = 'Paste some rows or open a file first.'; return; }
+    const r = importRows(t, ['d', 'site', 'ch', 'sold', 'rev', 'canc']);
+    if (r.error) { q('.rv-imp').textContent = r.error; return; }
+    rows = r.rows; mine = true; st.site = ''; sampleCaps = {}; sampleComm = {}; st.caps = {}; st.comm = {};
+    q('.rv-imp').textContent = 'What we did with your file: ' + r.notes.join(' ') + ' Places a day start at the most you sold in a day; change them in step 2.';
+    bind();
+  });
+  q('.rv-csv').addEventListener('click', () => {
+    const out: unknown[][] = [['Channel', 'Sold', 'Gross revenue', 'Commission', 'Net revenue', 'Cancelled']]; R.chs.forEach((c) => out.push([c.ch, c.sold, c.rev.toFixed(2), c.commission.toFixed(2), c.net.toFixed(2), c.canc]));
+    downloadText('channels.csv', toCSV(out));
+  });
+  q('.rv-csv2').addEventListener('click', () => {
+    const out: unknown[][] = [['Week starting', 'Kind', 'Sold', 'Places', 'Use %']]; R.ol.hist.forEach((h) => { if (Number.isFinite(h.sold)) out.push([h.w, 'actual', Math.round(h.sold), h.cap, (h.sold / h.cap * 100).toFixed(1)]); }); R.ol.out.forEach((h) => out.push([h.w, 'outlook', Math.round(h.sold), Math.round(h.cap), (h.cap ? h.sold / h.cap * 100 : 0).toFixed(1)]));
+    downloadText('weekly-outlook.csv', toCSV(out));
+  });
+  sample(); bind();
+</script>
