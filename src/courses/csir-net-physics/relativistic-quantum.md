@@ -108,6 +108,10 @@ u(\vec p) = \sqrt{\frac{E + mc^2}{2mc^2}}\begin{pmatrix} \chi \\[2pt] \dfrac{c\,
 
 The lower ("small") components are of order `$v/2c$`: about 0.4% of the upper ones for an electron in hydrogen.
 
+Press Play with silver atoms, then try classical magnets, an l = 1 atom and j = 3/2.
+
+<figure class="fig" data-fig="@qm-stern-gerlach"><figcaption>Real atoms land only in 2j + 1 spots where classical magnets would smear into a band; the spots move apart as the field gradient grows.</figcaption></figure>
+
 **Spin.** `$[H, \vec L] = -i\hbar c\,\vec\alpha\times\vec p \ne 0$`, so orbital angular momentum alone is not conserved. What commutes with `$H$` is `$\vec J = \vec L + \tfrac\hbar2\vec\Sigma$`, with `$\vec\Sigma = \text{diag}(\vec\sigma, \vec\sigma)$`. The electron has spin ½ built in. The helicity `$h = \vec\Sigma\cdot\hat p$` commutes with the free `$H$`, so free particles keep their helicity.
 
 **Zitterbewegung.** The velocity operator is `$\dot{\vec r} = i[H, \vec r]/\hbar = c\vec\alpha$`, with eigenvalues `$\pm c$`. A wave packet built from positive-energy states alone moves smoothly; one that mixes in negative energies jitters at angular frequency `$2mc^2/\hbar$` (about `$1.6\times10^{21}$` s⁻¹) with amplitude about `$\hbar/2mc = 1.9\times10^{-13}$` m. Localising an electron more sharply than its Compton wavelength needs negative-energy components, which is the deeper reason a one-particle picture breaks down there.
@@ -127,6 +131,10 @@ H = \frac{(\vec p - q\vec A)^2}{2m} - \frac{q\hbar}{2m}\vec\sigma\cdot\vec B + q
 ```
 
 The second term is the Pauli spin coupling with **g = 2** exactly (QED adds `$\alpha/2\pi$`). The last three are the fine-structure terms: relativistic kinetic energy, spin-orbit (with the Thomas factor ½ already included) and the Darwin term, which acts only on s states and comes from zitterbewegung smearing the electron over a Compton wavelength.
+
+Pick l, s, j and m_j, switch the field on and off, and drag the picture to turn it.
+
+<figure class="fig" data-fig="@qm-vector-model"><figcaption>L and S circle quickly about J while J circles slowly about B. Only the lengths √(x(x+1)) and the z-component m_j are fixed, and g_J sets the Zeeman splitting.</figcaption></figure>
 
 **Exact Dirac hydrogen.** For a point nucleus of charge `$Ze$`, with `$\alpha = 1/137.036$`,
 

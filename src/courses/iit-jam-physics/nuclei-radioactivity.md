@@ -33,6 +33,10 @@ sources:
 
 A nucleus has `$Z$` protons and `$N$` neutrons, `$A = Z + N$` nucleons in all, written `${}^A_Z\text{X}$`. Nuclei with the same `$Z$` are **isotopes** (same element), with the same `$A$` **isobars**, with the same `$N$` **isotones**.
 
+Drag the exchanged mass up to the pion value (140 MeV) and move the nucleon separation across the range R.
+
+<figure class="fig" data-fig="@qm-yukawa"><figcaption>A heavier exchanged particle lives for a shorter time, so the force reaches less far: Yukawa's e^(−r/R)/r collapses where Coulomb's 1/r only fades.</figcaption></figure>
+
 Scattering experiments show that nuclei are nearly uniform spheres whose volume grows in proportion to `$A$`:
 
 ```math
@@ -93,6 +97,10 @@ B = a_vA - a_sA^{2/3} - a_c\frac{Z(Z-1)}{A^{1/3}} - a_a\frac{(A - 2Z)^2}{A} + \d
 
 with typical values `$a_v \approx 15.8$`, `$a_s \approx 18.3$`, `$a_c \approx 0.71$`, `$a_a \approx 23.2$` MeV, and the pairing term `$\delta = +a_p/\sqrt A$` for even-even nuclei, `$-a_p/\sqrt A$` for odd-odd, 0 for odd `$A$` (`$a_p \approx 12$` MeV).
 
+Slide β negative and positive, then try the triaxial and pear shapes and press Play on the vibrating drop.
+
+<figure class="fig" data-fig="@qm-nuclear-shapes"><figcaption>The shape is R₀[1 + βY]: Y₂₀ gives a rugby ball or a pancake, Y₃₀ a pear. A spherical nucleus has no quadrupole moment, and only deformed ones have rotational bands.</figcaption></figure>
+
 <div class="meaning">
 
 <dl>
@@ -123,6 +131,10 @@ So light stable nuclei have `$N \approx Z$`, while lead has `$N/Z \approx 1.5$`.
 ## 5. Radioactive decay: what comes out
 
 An unstable nucleus moves towards the valley of stability by emitting particles. In every decay, charge, nucleon number, energy, momentum and angular momentum are conserved.
+
+Click cells in the three regions, or pick an example such as C-14 or U-238.
+
+<figure class="fig" data-fig="@qm-nuclide-chart"><figcaption>The stable band bends away from N = Z because of proton repulsion. Colours show the predicted decay, and the dashed lines mark the magic numbers the plain formula cannot explain.</figcaption></figure>
 
 | Decay | What happens | Change in `$Z$` | Change in `$A$` | Q value (atomic masses) |
 |---|---|---|---|---|
@@ -167,6 +179,10 @@ N = N_0e^{-\lambda t} = N_0\,2^{-t/T_{1/2}}, \qquad A = \lambda N = A_0e^{-\lamb
 ```
 
 The **activity** `$A$` is the number of decays per second, measured in becquerel (1 Bq = 1 decay/s) or curie (1 Ci = `$3.7\times10^{10}$` Bq, roughly the activity of 1 g of radium). A plot of `$\ln A$` against time is a straight line of slope `$-\lambda$`.
+
+Press Play with 'One kind', then try 'Parent → daughter' and change the half-lives.
+
+<figure class="fig" data-fig="@qm-decay-atoms"><figcaption>Every square decays at random, yet the counts trace the exponential. In a chain the daughter first rises and then follows the parent when the parent lives longer.</figcaption></figure>
 
 If a nuclide can decay in two ways, the decay constants add: `$\lambda = \lambda_1 + \lambda_2$`, so `$1/T = 1/T_1 + 1/T_2$`, and the fraction going each way (the **branching ratio**) is `$\lambda_1/\lambda$`.
 
