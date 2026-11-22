@@ -1,0 +1,37 @@
+---
+// The SQL sandbox: the whole Northbay database, one big editor, and the table list. Editors in lessons open
+// here with their code (#q=...). Nothing is saved or sent anywhere.
+import Base from '../../../../layouts/Base.astro';
+import { northbay } from '../../../../lib/sqllab/northbay';
+import '../../../../styles/course.css';
+import '../../../../styles/runner.css';
+import '../../../../styles/tableviz.css';
+const tables = northbay();
+---
+<Base title="SQL sandbox: practise SQL online, free" description="Practise SQL in your browser on a ready-made store database: run any query, see the result, and watch step by step what joins, GROUP BY and window functions do. Free, no sign-up.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/sql/">SQL for analysts</a> / Sandbox</div>
+  <h1>SQL sandbox</h1>
+  <p class="lead">Type any SQL and press Run (or Ctrl+Enter). <strong>Show how it runs</strong> draws each step. Changes you make (new tables, updates) last until you reset or leave the page.</p>
+  <div class="sbx">
+    <div id="sandbox" data-sql-box>SELECT * FROM orders LIMIT 10</div>
+    <details class="sbx-tables" open>
+      <summary>Tables (tap one to look inside)</summary>
+      <ul>
+        {tables.map((t) => <li><button type="button" class="rn-link" data-table={t.name}>{t.name}</button> <span>{t.rows.length.toLocaleString('en')} rows · {t.cols.map((c) => c.name).join(', ')}</span></li>)}
+      </ul>
+      <p><a href="/learn/courses/sql/meet-northbay/">What each table holds</a></p>
+    </details>
+  </div>
+  <p class="cs-meta">This is SQLite, running on your device. For your own CSV or Excel files, use the <a href="/science/sql-playground/">SQL playground</a>.</p>
+</Base>
+<style is:inline>
+.sbx { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .sbx { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; } }
+.sbx-tables { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); font-size: 14px; }
+.sbx-tables summary { font-weight: 700; cursor: pointer; }
+.sbx-tables ul { list-style: none; padding: 0; margin: 8px 0; }
+.sbx-tables li { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.sbx-tables li span { display: block; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.sbx #sandbox .rn-code { min-height: 160px; }
+</style>
+<script>import '../../../../scripts/sqlsandbox';</script>

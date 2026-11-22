@@ -1,0 +1,44 @@
+---
+// The Northbay practice database as cards: every table, its columns, what points where, and its row count.
+// Worked out at build time from the generator, so it always matches what learners query.
+import { northbay } from '../../../lib/sqllab/northbay';
+const tables = northbay();
+const linked = new Set(tables.flatMap((t) => Object.values(t.refs ?? {})));
+---
+<figure class="nbm">
+  <div class="nbm-grid">
+    {tables.filter((t) => !t.name.startsWith('mini_')).map((t) => (
+      <section class="nbm-t" id={`nb-${t.name}`}>
+        <h4><code>{t.name}</code> <span>{t.rows.length.toLocaleString('en')} rows</span></h4>
+        <p>{t.about}</p>
+        <ul>
+          {t.cols.map((c) => (
+            <li>
+              <code class={c.name === t.key ? 'pk' : t.refs?.[c.name] ? 'fk' : ''}>{c.name}</code>
+              {c.name === t.key && <span class="nbm-tag">key</span>}
+              {t.refs?.[c.name] && <span class="nbm-tag fk">→ {t.refs[c.name]}</span>}
+              <span class="nbm-type">{c.type.toLowerCase()}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+  <figcaption>Northbay's tables. <strong>key</strong> marks the column that names each row once; <strong>→</strong> marks a column that points at another table's key (a foreign key). Plus two tiny tables for pictures: <code>mini_customers</code> (5 rows) and <code>mini_orders</code> (6 rows).</figcaption>
+</figure>
+<style is:inline>
+.nbm { margin: 20px 0; }
+.nbm-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.nbm-t { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--surface); font-size: 13.5px; }
+.nbm-t h4 { margin: 0 0 4px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; }
+.nbm-t h4 span { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.nbm-t p { margin: 0 0 6px; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.nbm-t ul { list-style: none; margin: 0; padding: 0; }
+.nbm-t li { display: flex; gap: 6px; align-items: baseline; padding: 1px 0; flex-wrap: wrap; }
+.nbm-t code { background: none !important; padding: 0 !important; font-size: 13px; }
+.nbm-t code.pk { font-weight: 700; text-decoration: underline; }
+.nbm-t code.fk { font-style: italic; }
+.nbm-tag { font-size: 11.5px; padding: 0 5px; border-radius: 5px; background: var(--accent-soft); color: var(--accent); }
+.nbm-type { margin-left: auto; color: var(--muted); font-size: 11.5px; }
+.nbm figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+</style>

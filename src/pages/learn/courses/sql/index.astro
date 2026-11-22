@@ -1,0 +1,28 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { SQL_COURSE } from '../../../../courses/sql/syllabus';
+import '../../../../styles/runner.css';
+import '../../../../styles/tableviz.css';
+---
+<CourseHome course={SQL_COURSE}>
+  <p class="cs-meta"><strong>Practice any time:</strong> <a href="/learn/courses/sql/sandbox/">SQL sandbox</a> (the whole Northbay database, with step-by-step pictures)</p>
+  <section class="cs-builds">
+    <h2>Try it now</h2>
+    <p>Press <strong>Run</strong>, then <strong>Show how it runs</strong> to watch the join match rows and the totals add up. Change anything and run it again.</p>
+    <div data-sql-box>-- try
+SELECT c.city, COUNT(*) AS orders, SUM(o.amount) AS total
+FROM mini_orders o
+JOIN mini_customers c ON o.customer_id = c.id
+GROUP BY c.city
+ORDER BY total DESC</div>
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Answer business questions in SQL</strong>: filters, summaries, joins across many tables, subqueries and CTEs.</li>
+      <li><strong>Use the SQL that analyst interviews test</strong>: window functions, top N per group, running totals, growth, cohorts, funnels and gaps and islands.</li>
+      <li><strong>See what every query does</strong>: each step drawn on the tables, so joins and GROUP BY stop being magic.</li>
+      <li><strong>Leave with a portfolio project</strong>: the Northbay SQL casebook, 30 business questions answered with your own queries.</li>
+    </ul>
+    <p>Every lesson has live editors with <strong>Run</strong>, <strong>Check</strong>, <strong>Hint</strong> and <strong>Show answer</strong>, plain-English error messages, and a 3-question quiz. Next steps: <a href="/learn/courses/data-modelling/">Data modelling and warehousing</a>, then <a href="https://nihalsulaiman.com/learn/etl-course/" rel="noopener">Pipeline to Dashboard</a> for the tools that load real warehouses. To query your own CSV or Excel files, use the <a href="/science/sql-playground/">SQL playground</a>.</p>
+  </section>
+</CourseHome>
+<script>import '../../../../scripts/sqllab';</script>
