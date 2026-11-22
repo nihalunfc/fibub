@@ -4,6 +4,7 @@
 // Every Fourier question states its convention. Original questions for GATE and CSIR NET practice (fibub).
 // Levels: 1 warm-up ... 5 top rank.
 import { int, choose, round } from '../_util.js';
+import more from './fourier-laplace-transforms.more.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const FT = 'Use $\\tilde f(k) = \\int_{-\\infty}^{\\infty}f(x)e^{-ikx}dx$.';
@@ -311,5 +312,6 @@ export default {
       verify: (pp) => { // partial fractions: f(t) = A + B e^{-at} + C e^{-bt}; evaluate at large t
         const { p, num: q, a, b } = pp, B = (p * -a + q) / (-a * (b - a)), C = (p * -b + q) / (-b * (a - b)), A = q / (a * b), t = 60;
         return A + B * Math.exp(-a * t) + C * Math.exp(-b * t); } },
+    ...more,
   ],
 };

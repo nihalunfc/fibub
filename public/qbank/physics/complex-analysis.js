@@ -4,6 +4,7 @@
 // `complex-numbers`. Residue calculus: topic `residues`.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './complex-analysis.more.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 
@@ -318,5 +319,6 @@ export default {
         for (let it = 0; it < 300; it++) zs = zs.map((z, i) => { let d = [1, 0]; zs.forEach((w, j) => { if (j !== i) { const e = [z[0] - w[0], z[1] - w[1]]; d = [d[0] * e[0] - d[1] * e[1], d[0] * e[1] + d[1] * e[0]]; } });
           const fz = f(z), m = d[0] * d[0] + d[1] * d[1]; return [z[0] - (fz[0] * d[0] + fz[1] * d[1]) / m, z[1] - (fz[1] * d[0] - fz[0] * d[1]) / m]; });
         return zs.filter((z) => { const m = Math.hypot(...z); return m > 1 && m < 2; }).length; } },
+    ...more,
   ],
 };

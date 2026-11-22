@@ -3,6 +3,7 @@
 // Bessel functions (series, recurrences, zeros, orthogonality), Hermite and Laguerre polynomials, the gamma function.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './special-functions.more.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 // Legendre P_n(x) by Bonnet's recurrence (n+1)P_{n+1} = (2n+1)xP_n - nP_{n-1}
@@ -365,5 +366,6 @@ export default {
           trap: 'Half-integer Bessel functions are elementary; they are the spherical Bessel functions in disguise, $j_\\ell(x) = \\sqrt{\\pi/2x}\\,J_{\\ell+1/2}(x)$.' };
       },
       verify: (p) => J(1.5, p.x) },
+    ...more,
   ],
 };

@@ -4,6 +4,7 @@
 // the field tensor), the metric, raising and lowering indices, curvilinear coordinates and Christoffel symbols.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './tensors.more.gen.js';
 
 const binom = (n, k) => { if (k < 0 || k > n) return 0; let b = 1; for (let i = 1; i <= k; i++) b = (b * (n - k + i)) / i; return Math.round(b); };
 const vec = (v) => `(${v.join(', ')})`;
@@ -361,5 +362,6 @@ export default {
         const [Ex, Ey, Ez] = p.Ev, [Bx, By, Bz] = p.Bv;
         const F = [[0, -Ex, -Ey, -Ez], [Ex, 0, -Bz, By], [Ey, Bz, 0, -Bx], [Ez, -By, Bx, 0]], g = [1, -1, -1, -1];
         let s = 0; for (let m = 0; m < 4; m++) for (let n = 0; n < 4; n++) s += g[m] * g[n] * F[m][n] * F[m][n]; return s; } },
+    ...more,
   ],
 };

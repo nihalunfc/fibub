@@ -3,6 +3,7 @@
 // initial and boundary data, decay times and normal modes, d'Alembert's solution and characteristics, uniqueness.
 // Original questions for GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './partial-differential-equations.more.gen.js';
 
 const integ = (f, a, b, N = 20000) => { let s = 0; const h = (b - a) / N; for (let i = 0; i < N; i++) s += f(a + (i + 0.5) * h); return s * h; };
 
@@ -358,5 +359,6 @@ export default {
           trap: 'Amplitude is initial velocity divided by $\\omega_n$, not by $c$.' };
       },
       verify: (p) => (p.v0 / ((p.n * Math.PI * p.c) / p.L)) * 1000 },
+    ...more,
   ],
 };
