@@ -3,6 +3,7 @@
 // adiabatic demagnetisation. Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './partition-functions.more.gen.js';
+import more2 from './partition-functions.more2.gen.js';
 
 const kB = 8.617333e-5; // eV/K
 const muB = 9.2740100783e-24; // J/T
@@ -210,6 +211,7 @@ export default {
       q: 'For $N$ ideal spin-1/2 moments ($\\pm\\mu$) in a field $B$ at temperature $T$, with $x = \\mu B/kT$, which statements are correct?',
       options: ['$U = -N\\mu B\\tanh x$', 'The heat capacity has the Schottky form with gap $2\\mu B$', 'The entropy at fixed $B$ falls as $T$ is lowered', 'The susceptibility at small $x$ is independent of $T$'], answer: [0, 1, 2],
       sol: '$Z_1 = 2\\cosh x$, $U = -N\\mu B\\tanh x$. The two levels $\\mp\\mu B$ are $2\\mu B$ apart, so $C$ is the two-level Schottky curve. $S/Nk = \\ln(2\\cosh x) - x\\tanh x$ falls as $x$ grows. At small $x$, $M \\approx N\\mu^2B/kT$: Curie law, $\\chi \\propto 1/T$.' },
+    ...more2,
   ],
   gens: [
     { id: 'pfun-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'two-level',
