@@ -697,4 +697,488 @@ export default {
     },
     verify: (p) => ((p.Vin - p.Vz) / p.R - p.Vz / p.RL) * 1000,
   },
+  'rocket-delta-v': {
+    title: 'speed gained by a rocket (Tsiolkovsky)',
+    make(r) {
+      const m0 = 100 * int(r, 5, 50), f = int(r, 30, 90) / 100, u = int(r, 15, 45) / 10;
+      const fuel = Math.round(m0 * f), m = m0 - fuel, answer = u * Math.log(m0 / m);
+      return {
+        q: `<p>A probe of mass ${m0} kg, of which ${fuel} kg is fuel, fires its engine in deep space starting from rest. The exhaust leaves at ${u} km/s relative to the probe. Find its final speed in km/s.</p>`,
+        answer, unit: 'km/s', tol: 0.01,
+        hint: 'Δv = u ln(m₀/m), where m is the mass left when the fuel is gone (not the fuel mass). Use the natural log.',
+        solution: steps(`Final mass m = ${m0} − ${fuel} = ${m} kg.`, `Mass ratio m₀/m = ${(m0 / m).toFixed(4)}.`, `Δv = ${u} × ln(${(m0 / m).toFixed(4)}) = ${u} × ${Math.log(m0 / m).toFixed(4)} = <b>${answer.toFixed(3)} km/s</b>.`),
+        m0, fuel, u,
+      };
+    },
+    verify: (p) => p.u * Math.log(p.m0 / (p.m0 - p.fuel)),
+  },
+  'chain-lift': {
+    title: 'force to lift a chain from a heap',
+    make(r) {
+      const lam = int(r, 1, 8) / 2, v = int(r, 1, 8) / 2, y = int(r, 2, 12) / 4;
+      const answer = lam * y * 9.8 + lam * v * v;
+      return {
+        q: `<p>A chain of ${lam} kg/m lies in a heap on the floor. One end is pulled straight up at a steady ${v} m/s. Find the pulling force, in N, when ${y} m of chain is off the floor (g = 9.8 m/s²).</p>`,
+        answer, unit: 'N', tol: 0.01,
+        hint: 'Two jobs: hold up the weight λyg of the lifted part, and give new links momentum at the rate d(λyv)/dt = λv².',
+        solution: steps(`Weight of the lifted part: λyg = ${lam} × ${y} × 9.8 = ${(lam * y * 9.8).toFixed(3)} N.`, `Momentum per second given to new links: λv² = ${lam} × ${v}² = ${(lam * v * v).toFixed(3)} N.`, `Total F = <b>${answer.toFixed(3)} N</b>.`),
+        lam, v, y,
+      };
+    },
+    verify: (p) => p.lam * p.y * 9.8 + p.lam * p.v ** 2,
+  },
+  'rolling-incline-speed': {
+    title: 'speed at the bottom of a slope when rolling',
+    make(r) {
+      const bodies = [['thin ring', 1, '1'], ['solid disc', 0.5, '1/2'], ['solid sphere', 0.4, '2/5'], ['hollow sphere', 2 / 3, '2/3']];
+      const [name, k, kt] = bodies[int(r, 0, 3)], h = int(r, 2, 40) / 10;
+      const answer = Math.sqrt(2 * 9.8 * h / (1 + k));
+      return {
+        q: `<p>A ${name} rolls without slipping, from rest, down a slope through a vertical drop of ${h} m. Find its speed at the bottom in m/s (g = 9.8 m/s²).</p>`,
+        answer, unit: 'm/s', tol: 0.01,
+        hint: `Energy: mgh = ½mv² + ½Iω² with ω = v/R and I = ${kt} mR² for this body. Static friction does no work.`,
+        solution: steps(`mgh = ½mv²(1 + ${kt}).`, `v = √(2gh / (1 + ${kt})) = √(${(2 * 9.8 * h).toFixed(2)} / ${(1 + k).toFixed(4)}).`, `v = <b>${answer.toFixed(3)} m/s</b> (sliding without friction would give ${Math.sqrt(2 * 9.8 * h).toFixed(3)} m/s).`),
+        h, k,
+      };
+    },
+    verify: (p) => Math.sqrt(2 * 9.8 * p.h / (1 + p.k)),
+  },
+  'skid-to-roll': {
+    title: 'a bowling ball stops skidding',
+    make(r) {
+      const v0 = int(r, 3, 12), mu = int(r, 5, 30) / 100;
+      const answer = 2 * v0 / (7 * mu * 9.8);
+      return {
+        q: `<p>A bowling ball (uniform solid sphere) is released sliding at ${v0} m/s with no spin. The coefficient of kinetic friction with the lane is ${mu}. After how many seconds does it roll without slipping? (g = 9.8 m/s²)</p>`,
+        answer, unit: 's', tol: 0.01,
+        hint: 'Friction μmg slows the centre (v = v₀ − μgt) and spins the ball up (ωR = (5μg/2)t, using I = 2/5 mR²). Set v = ωR.',
+        solution: steps(`v = ${v0} − ${(mu * 9.8).toFixed(3)} t and ωR = ${(2.5 * mu * 9.8).toFixed(3)} t.`, `Equal when ${v0} = ${(3.5 * mu * 9.8).toFixed(3)} t.`, `t = 2v₀/(7μg) = <b>${answer.toFixed(3)} s</b>; its speed is then 5v₀/7 = ${(5 * v0 / 7).toFixed(3)} m/s.`),
+        v0, mu,
+      };
+    },
+    verify: (p) => p.v0 / (3.5 * p.mu * 9.8),
+  },
+  'wire-extension': {
+    title: 'stretch of a loaded wire',
+    make(r) {
+      const mats = [['steel', 200], ['copper', 120], ['brass', 100], ['aluminium', 70]];
+      const [mat, Y] = mats[int(r, 0, 3)], L = int(r, 1, 8) / 2, d = int(r, 4, 20) / 10, m = int(r, 1, 20);
+      const A = Math.PI * (d / 2 * 1e-3) ** 2, answer = m * 9.8 * L / (A * Y * 1e9) * 1000;
+      return {
+        q: `<p>A ${mat} wire (Y = ${Y} GPa), ${L} m long and ${d} mm in diameter, carries a ${m} kg mass. Find its extension in mm (g = 9.8 m/s²).</p>`,
+        answer, unit: 'mm', tol: 0.01,
+        hint: 'ΔL = FL/(AY) with A = πr², r = half the diameter, all in metres and newtons.',
+        solution: steps(`F = ${m} × 9.8 = ${(m * 9.8).toFixed(2)} N.`, `A = π × (${(d / 2).toFixed(2)}×10⁻³)² = ${A.toExponential(4)} m².`, `ΔL = ${(m * 9.8).toFixed(2)} × ${L} / (${A.toExponential(4)} × ${Y}×10⁹) = <b>${answer.toFixed(4)} mm</b>.`),
+        Y, L, d, m,
+      };
+    },
+    verify: (p) => p.m * 9.8 * p.L / (Math.PI * (p.d / 2 * 1e-3) ** 2 * p.Y * 1e9) * 1000,
+  },
+  'moduli-relation': {
+    title: 'shear and bulk moduli from Y and Poisson\'s ratio',
+    make(r) {
+      const Y = 10 * int(r, 5, 22), s = int(r, 20, 45) / 100, want = r() < 0.5 ? 'G' : 'K';
+      const answer = want === 'G' ? Y / (2 * (1 + s)) : Y / (3 * (1 - 2 * s));
+      return {
+        q: `<p>A metal has Young's modulus ${Y} GPa and Poisson's ratio ${s}. Find its ${want === 'G' ? 'shear (rigidity)' : 'bulk'} modulus in GPa.</p>`,
+        answer, unit: 'GPa', tol: 0.005,
+        hint: 'Y = 2G(1 + σ) and Y = 3K(1 − 2σ).',
+        solution: want === 'G' ? steps(`G = Y / (2(1 + σ)) = ${Y} / ${(2 * (1 + s)).toFixed(2)}.`, `G = <b>${answer.toFixed(2)} GPa</b>.`) : steps(`K = Y / (3(1 − 2σ)) = ${Y} / ${(3 * (1 - 2 * s)).toFixed(2)}.`, `K = <b>${answer.toFixed(2)} GPa</b>.`),
+        Y, s, want,
+      };
+    },
+    verify: (p) => (p.want === 'G' ? p.Y / (2 * (1 + p.s)) : p.Y / (3 * (1 - 2 * p.s))),
+  },
+  'capillary-height': {
+    title: 'capillary rise in a glass tube',
+    make(r) {
+      const T = int(r, 20, 75) / 1000, rr = int(r, 1, 20) / 20, rho = [800, 1000, 1260][int(r, 0, 2)];
+      const answer = 2 * T / (rho * 9.8 * rr * 1e-3) * 100;
+      return {
+        q: `<p>A liquid of density ${rho} kg/m³ and surface tension ${T} N/m wets glass completely (contact angle 0). How high, in cm, does it rise in a glass tube of radius ${rr} mm? (g = 9.8 m/s²)</p>`,
+        answer, unit: 'cm', tol: 0.01,
+        hint: 'Jurin\'s law: h = 2T cos θ / (ρgr). Put r in metres.',
+        solution: steps(`h = 2 × ${T} / (${rho} × 9.8 × ${rr}×10⁻³).`, `h = ${(answer / 100).toFixed(5)} m = <b>${answer.toFixed(3)} cm</b>.`),
+        T, rr, rho,
+      };
+    },
+    verify: (p) => 2 * p.T / (p.rho * 9.8 * p.rr * 1e-3) * 100,
+  },
+  'stokes-terminal': {
+    title: 'terminal speed of a falling ball (Stokes)',
+    make(r) {
+      const rr = int(r, 2, 20) / 10, rho = [2500, 7800, 11300][int(r, 0, 2)], eta = int(r, 2, 20) / 10;
+      const sig = 1260, answer = 2 * (rr * 1e-3) ** 2 * (rho - sig) * 9.8 / (9 * eta) * 1000;
+      return {
+        q: `<p>A ball of radius ${rr} mm and density ${rho} kg/m³ is dropped into glycerine (density ${sig} kg/m³, viscosity ${eta} Pa s). Find its terminal speed in mm/s (g = 9.8 m/s²).</p>`,
+        answer, unit: 'mm/s', tol: 0.01,
+        hint: 'At terminal speed: weight − buoyancy = 6πηrv, so v = 2r²(ρ − σ)g / (9η).',
+        solution: steps(`ρ − σ = ${rho - sig} kg/m³.`, `v = 2 × (${rr}×10⁻³)² × ${rho - sig} × 9.8 / (9 × ${eta}).`, `v = <b>${answer.toFixed(3)} mm/s</b>.`),
+        rr, rho, eta,
+      };
+    },
+    verify: (p) => 2 * (p.rr * 1e-3) ** 2 * (p.rho - 1260) * 9.8 / (9 * p.eta) * 1000,
+  },
+  'add-velocities': {
+    title: 'relativistic velocity addition',
+    make(r) {
+      const v = int(r, 1, 18) / 20, u = int(r, 1, 18) / 20;
+      const answer = (u + v) / (1 + u * v);
+      return {
+        q: `<p>A spaceship moves at ${v}c relative to a planet and fires a probe straight ahead at ${u}c relative to the ship. Find the probe's speed relative to the planet, in units of c.</p>`,
+        answer, unit: 'c', tol: 0.002,
+        hint: 'u = (u′ + v) / (1 + u′v/c²). The answer must stay below 1.',
+        solution: steps(`Top: ${u} + ${v} = ${(u + v).toFixed(3)}.`, `Bottom: 1 + ${u} × ${v} = ${(1 + u * v).toFixed(4)}.`, `u = <b>${answer.toFixed(4)}c</b> (simply adding would give ${(u + v).toFixed(2)}c).`),
+        u, v,
+      };
+    },
+    verify: (p) => (p.u + p.v) / (1 + p.u * p.v),
+  },
+  'trip-proper-time': {
+    title: 'crew time for a fast trip',
+    make(r) {
+      const d = int(r, 2, 40), b = int(r, 10, 99) / 100;
+      const g = 1 / Math.sqrt(1 - b * b), answer = d / b / g;
+      return {
+        q: `<p>A ship travels at ${b}c to a star ${d} light-years away (distance in the Earth's frame). How many years does the trip take by the crew's own clocks?</p>`,
+        answer, unit: 'years', tol: 0.005,
+        hint: 'Earth time is distance ÷ speed. The crew\'s clocks run slow by γ = 1/√(1 − β²). (Or: in the crew\'s frame the distance is contracted by γ.)',
+        solution: steps(`Earth time: ${d} / ${b} = ${(d / b).toFixed(3)} years.`, `γ = 1/√(1 − ${b}²) = ${g.toFixed(4)}.`, `Crew time = ${(d / b).toFixed(3)} / ${g.toFixed(4)} = <b>${answer.toFixed(3)} years</b>.`),
+        d, b,
+      };
+    },
+    verify: (p) => (p.d / p.b) * Math.sqrt(1 - p.b ** 2),
+  },
+  // ---- Mathematical methods: calculus, partial derivatives, multiple integrals, vector algebra, Fourier series ----
+  'taylor-sqrt': {
+    title: 'square root by a first-order Taylor step',
+    make(r) {
+      const a = int(r, 3, 15), d = int(r, -4, 6) || 2, N = a * a + d;
+      const answer = a + d / (2 * a);
+      return {
+        q: `<p>Estimate √${N} by writing it as √(${a * a} ${d < 0 ? '−' : '+'} ${Math.abs(d)}) and using the first-order Taylor step √(A² + δ) ≈ A + δ/(2A). Give the estimate to four decimal places.</p>`,
+        answer, unit: '', tol: 0.0002,
+        hint: `Take A = ${a}, the nearest whole square root, so that δ = ${d} is small compared with A² = ${a * a}.`,
+        solution: steps(`f(x) = √x has f′(x) = 1/(2√x). Expand about x = ${a * a}: √(${a * a} + δ) ≈ ${a} + δ/(2 × ${a}).`, `δ = ${d}, so the step is ${d}/${2 * a} = ${(d / (2 * a)).toFixed(5)}.`, `Estimate: <b>${answer.toFixed(4)}</b>. (Exact: ${Math.sqrt(N).toFixed(4)}; the error is about δ²/(8A³) = ${((d * d) / (8 * a ** 3)).toFixed(5)}.)`),
+        a, d,
+      };
+    },
+    verify: (p) => { const h = 1e-6, A2 = p.a * p.a; return Math.sqrt(A2) + ((Math.sqrt(A2 + h) - Math.sqrt(A2 - h)) / (2 * h)) * p.d; },
+  },
+  'error-propagation': {
+    title: 'maximum error in g from a pendulum',
+    make(r) {
+      const pL = int(r, 1, 10) / 10, pT = int(r, 1, 10) / 10;
+      const answer = pL + 2 * pT;
+      return {
+        q: `<p>In a pendulum experiment g = 4π²L/T². The length is measured to within ${pL}% and the period to within ${pT}%. What is the largest possible percentage error in g?</p>`,
+        answer, unit: '%', tol: 0.001,
+        hint: 'Take logs: ln g = ln(4π²) + ln L − 2 ln T. Differentiate, then add the sizes of the terms for the worst case.',
+        solution: steps('dg/g = dL/L − 2 dT/T.', `Worst case: the two parts add in size: ${pL}% + 2 × ${pT}%.`, `Maximum error = <b>${answer.toFixed(1)}%</b>. The period counts twice because it is squared.`),
+        pL, pT,
+      };
+    },
+    // worst-case linear error, from a tiny numerical step in the worst direction
+    verify: (p) => { const g = (L, T) => (4 * Math.PI ** 2 * L) / (T * T), e = 1e-7; return (100 * (g(1 + (e * p.pL) / 100, 1 - (e * p.pT) / 100) / g(1, 1) - 1)) / e; },
+  },
+  'disc-mass-polar': {
+    title: 'mass of a disc with varying density (polar integral)',
+    make(r) {
+      const k = int(r, 1, 6), n = int(r, 1, 3), R = int(r, 1, 4) / 2;
+      const answer = (2 * Math.PI * k * R ** (n + 2)) / (n + 2);
+      return {
+        q: `<p>A thin disc of radius ${R} m has surface density σ = ${k}r${n === 1 ? '' : '<sup>' + n + '</sup>'} kg/m², where r is the distance from the centre in metres. Find its mass in kg.</p>`,
+        answer, unit: 'kg', tol: 0.005,
+        hint: 'Cut the disc into thin rings. A ring of radius r and width dr has area 2πr dr (that extra r is the polar Jacobian).',
+        solution: steps(`dM = σ · 2πr dr = ${k}r${n === 1 ? '' : '<sup>' + n + '</sup>'} · 2πr dr.`, `M = 2π × ${k} ∫₀<sup>${R}</sup> r<sup>${n + 1}</sup> dr = 2π × ${k} × ${R}<sup>${n + 2}</sup>/${n + 2}.`, `M = <b>${answer.toFixed(3)} kg</b>.`),
+        k, n, R,
+      };
+    },
+    verify: (p) => { const N = 2000, h = p.R / N; let s = 0; for (let i = 0; i < N; i++) { const rr = (i + 0.5) * h; s += p.k * rr ** p.n * 2 * Math.PI * rr * h; } return s; },
+  },
+  'box-volume': {
+    title: 'volume of a parallelepiped (scalar triple product)',
+    make(r) {
+      const D = (a, b, c) => a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
+      let a = [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)], b = [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)], c = [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)];
+      if (D(a, b, c) === 0) { a = [2, 1, 0]; b = [int(r, -2, 2), 3, 1]; c = [1, 0, int(r, 2, 4)]; }
+      const det = D(a, b, c);
+      const bc = [b[1] * c[2] - b[2] * c[1], b[2] * c[0] - b[0] * c[2], b[0] * c[1] - b[1] * c[0]];
+      return {
+        q: `<p>Find the volume of the parallelepiped with edges <b>a</b> = (${a.join(', ')}), <b>b</b> = (${b.join(', ')}) and <b>c</b> = (${c.join(', ')}).</p>`,
+        answer: Math.abs(det), unit: '', tol: 0, abs: 1e-9,
+        hint: 'Volume = |a · (b × c)|, the absolute value of the 3 × 3 determinant with a, b, c as rows.',
+        solution: steps(`b × c = (${bc.join(', ')}).`, `a · (b × c) = ${a[0]}(${bc[0]}) + ${a[1]}(${bc[1]}) + ${a[2]}(${bc[2]}) = ${det}.`, `Volume = |${det}| = <b>${Math.abs(det)}</b>.${det < 0 ? ' (The negative sign only means a, b, c form a left-handed set.)' : ''}`),
+        a, b, c,
+      };
+    },
+    // expand along the third row instead of the first
+    verify: (p) => { const { a, b, c } = p; return Math.abs(c[0] * (a[1] * b[2] - a[2] * b[1]) - c[1] * (a[0] * b[2] - a[2] * b[0]) + c[2] * (a[0] * b[1] - a[1] * b[0])); },
+  },
+  'square-wave-coeff': {
+    title: 'Fourier coefficient of a square wave',
+    make(r) {
+      const h = int(r, 1, 9), n = [1, 3, 5, 7, 9][int(r, 0, 4)];
+      const answer = (4 * h) / (n * Math.PI);
+      return {
+        q: `<p>A square wave equals +${h} for 0 &lt; x &lt; π and −${h} for −π &lt; x &lt; 0, repeating every 2π. Find the coefficient b<sub>${n}</sub> of sin ${n}x in its Fourier series.</p>`,
+        answer, unit: '', tol: 0.002,
+        hint: 'The wave is odd, so b<sub>n</sub> = (2/π) ∫₀<sup>π</sup> f(x) sin nx dx.',
+        solution: steps(`b<sub>n</sub> = (2/π) ∫₀<sup>π</sup> ${h} sin nx dx = (${2 * h}/(nπ)) (1 − cos nπ).`, `For odd n, cos nπ = −1, so b<sub>n</sub> = ${4 * h}/(nπ).`, `With n = ${n}: b<sub>${n}</sub> = ${4 * h}/(${n}π) = <b>${answer.toFixed(4)}</b>.`),
+        h, n,
+      };
+    },
+    verify: (p) => { const N = 4000, dx = Math.PI / N; let s = 0; for (let i = 0; i < N; i++) s += p.h * Math.sin(p.n * (i + 0.5) * dx) * dx; return (2 / Math.PI) * s; },
+  },
+  // ---- 3.3 Superposition, Lissajous figures and coupled oscillators ----
+  'shm-add': {
+    title: 'amplitude of two added SHMs',
+    make(r) {
+      const A1 = int(r, 2, 9), A2 = int(r, 2, 9), ph = [30, 45, 60, 90, 120, 135, 150][int(r, 0, 6)];
+      const answer = Math.sqrt(A1 * A1 + A2 * A2 + 2 * A1 * A2 * Math.cos(ph * Math.PI / 180));
+      return {
+        q: `<p>Two SHMs along the same line, x₁ = ${A1} sin ωt and x₂ = ${A2} sin(ωt + ${ph}°) (in cm), act on one particle. Find the amplitude of the resulting motion, in cm.</p>`,
+        answer, unit: 'cm', tol: 0.005,
+        hint: 'Draw each SHM as an arrow (phasor) of length A at its phase angle and add the arrows: A² = A₁² + A₂² + 2A₁A₂ cos φ.',
+        solution: steps(`cos ${ph}° = ${(+Math.cos(ph * Math.PI / 180).toFixed(4))}.`, `A² = ${A1 * A1} + ${A2 * A2} + 2(${A1})(${A2})(${(+Math.cos(ph * Math.PI / 180).toFixed(4))}) = ${(answer * answer).toFixed(3)}.`, `A = <b>${answer.toFixed(3)} cm</b>.`),
+        A1, A2, ph,
+      };
+    },
+    verify: (p) => Math.hypot(p.A1 + p.A2 * Math.cos(p.ph * Math.PI / 180), p.A2 * Math.sin(p.ph * Math.PI / 180)),
+  },
+  'coupled-transfer': {
+    title: 'energy transfer time for coupled pendulums',
+    make(r) {
+      const L = [0.5, 0.8, 1, 1.2, 1.5, 2][int(r, 0, 5)], km = [0.05, 0.1, 0.2, 0.3, 0.5][int(r, 0, 4)];
+      const w1 = Math.sqrt(9.8 / L), w2 = Math.sqrt(9.8 / L + 2 * km), answer = Math.PI / (w2 - w1);
+      return {
+        q: `<p>Two identical pendulums of length ${L} m are joined at the bobs by a light spring with k/m = ${km} s⁻². One is pulled aside and released; the other starts at rest. How long (in s) until all the energy is in the second pendulum? Take g = 9.8 m/s².</p>`,
+        answer, unit: 's', tol: 0.005,
+        hint: 'Find the two normal-mode frequencies: ω₁ = √(g/L) (in step) and ω₂ = √(g/L + 2k/m) (opposite). The energy has crossed over when the beat envelope first reaches zero, at t = π/(ω₂ − ω₁).',
+        solution: steps(`ω₁ = √(9.8/${L}) = ${w1.toFixed(4)} rad/s.`, `ω₂ = √(${(9.8 / L).toFixed(3)} + ${2 * km}) = ${w2.toFixed(4)} rad/s.`, `t = π/(ω₂ − ω₁) = π/${(w2 - w1).toFixed(5)} = <b>${answer.toFixed(1)} s</b>.`),
+        L, km,
+      };
+    },
+    verify: (p) => Math.PI / (Math.sqrt(9.8 / p.L + 2 * p.km) - Math.sqrt(9.8 / p.L)),
+  },
+  // ---- 3.4 Waves ----
+  'string-harmonic': {
+    title: 'frequency of a harmonic on a stretched string',
+    make(r) {
+      const L = int(r, 4, 20) / 10, T = int(r, 20, 300), mu = [0.001, 0.002, 0.005, 0.01, 0.02][int(r, 0, 4)], n = int(r, 1, 5);
+      const v = Math.sqrt(T / mu), answer = n * v / (2 * L);
+      return {
+        q: `<p>A string ${L} m long is fixed at both ends, with tension ${T} N and mass per unit length ${mu} kg/m. Find the frequency of its harmonic number ${n}, in Hz.</p>`,
+        answer, unit: 'Hz', tol: 0.005,
+        hint: 'Wave speed v = √(T/μ). Harmonic n fits n half-wavelengths into the string: L = nλ/2, so f = nv/(2L).',
+        solution: steps(`v = √(${T}/${mu}) = ${v.toFixed(2)} m/s.`, `λ = 2L/n = ${(2 * L / n).toFixed(3)} m.`, `f = v/λ = <b>${answer.toFixed(1)} Hz</b>.`),
+        L, T, mu, n,
+      };
+    },
+    verify: (p) => p.n * Math.sqrt(p.T / p.mu) / (2 * p.L),
+  },
+  'group-velocity': {
+    title: 'group velocity from a dispersion relation',
+    make(r) {
+      const a = int(r, 1, 6), b = int(r, 1, 4), k = int(r, 1, 5);
+      // omega = a k + b k^3
+      const answer = a + 3 * b * k * k;
+      return {
+        q: `<p>Waves in a medium obey ω = ${a}k + ${b}k³ (consistent units). Find the group velocity at k = ${k}.</p>`,
+        answer, unit: '', tol: 0, abs: 1e-9,
+        hint: 'Group velocity is dω/dk, not ω/k (which is the phase velocity).',
+        solution: steps(`dω/dk = ${a} + ${3 * b}k².`, `At k = ${k}: ${a} + ${3 * b}(${k * k}) = <b>${answer}</b>.`, `(The phase velocity is ω/k = ${a} + ${b}k² = ${a + b * k * k}.)`),
+        a, b, k,
+      };
+    },
+    verify: (p) => { const h = 1e-6, w = (k) => p.a * k + p.b * k ** 3; return (w(p.k + h) - w(p.k - h)) / (2 * h); },
+  },
+  // ---- 3.5 Sound and the Doppler effect ----
+  'doppler-shift': {
+    title: 'Doppler shift with a moving source and listener',
+    make(r) {
+      const f = [256, 300, 400, 500, 512, 600, 800][int(r, 0, 6)], us = int(r, 0, 40), uo = int(r, 0, 30), v = 340;
+      const answer = f * (v + uo) / (v - us);
+      return {
+        q: `<p>A source of ${f} Hz moves at ${us} m/s towards a listener, who moves at ${uo} m/s towards the source, along one line in still air (speed of sound ${v} m/s). What frequency does the listener hear, in Hz?</p>`,
+        answer, unit: 'Hz', tol: 0.002,
+        hint: 'f′ = f (v + u<sub>o</sub>)/(v − u<sub>s</sub>) when they approach. The listener\'s speed goes on top, the source\'s underneath: they are not interchangeable.',
+        solution: steps(`v + u<sub>o</sub> = ${v + uo} m/s and v − u<sub>s</sub> = ${v - us} m/s.`, `f′ = ${f} × ${v + uo}/${v - us} = <b>${answer.toFixed(1)} Hz</b>.`),
+        f, us, uo, v,
+      };
+    },
+    verify: (p) => p.f * (1 + p.uo / p.v) / (1 - p.us / p.v),
+  },
+  'pipe-resonance': {
+    title: 'resonant frequency of an air column',
+    make(r) {
+      const L = int(r, 20, 150) / 100, closed = r() < 0.5, n = closed ? [1, 3, 5][int(r, 0, 2)] : int(r, 1, 4), v = 340;
+      const answer = closed ? n * v / (4 * L) : n * v / (2 * L);
+      return {
+        q: `<p>A pipe ${L} m long is ${closed ? 'closed at one end' : 'open at both ends'}. Taking the speed of sound as ${v} m/s and ignoring end corrections, find the frequency of harmonic number ${n}, in Hz.</p>`,
+        answer, unit: 'Hz', tol: 0.002,
+        hint: closed ? 'A closed end is a displacement node and an open end an antinode, so the pipe holds an odd number of quarter wavelengths: f = nv/(4L) with n odd.' : 'Both ends are displacement antinodes, so the pipe holds a whole number of half wavelengths: f = nv/(2L).',
+        solution: steps(closed ? `λ = 4L/n = ${(4 * L / n).toFixed(3)} m.` : `λ = 2L/n = ${(2 * L / n).toFixed(3)} m.`, `f = v/λ = <b>${answer.toFixed(1)} Hz</b>.`),
+        L, closed, n, v,
+      };
+    },
+    verify: (p) => p.v / ((p.closed ? 4 : 2) * p.L / p.n),
+  },
+  // ---- 3.6 Geometrical optics ----
+  'thin-lens-image': {
+    title: 'image distance for a thin lens',
+    make(r) {
+      const f = [10, 12, 15, 20, 25, 30, -10, -15, -20][int(r, 0, 8)], u0 = int(r, 5, 80), u = u0 === f ? u0 + 1 : u0;
+      const answer = 1 / (1 / f - 1 / u); // Cartesian v with object at -u
+      return {
+        q: `<p>An object is ${u} cm in front of a thin ${f > 0 ? 'converging' : 'diverging'} lens of focal length ${Math.abs(f)} cm. Using the Cartesian convention (light travels in +x, distances from the lens), find the image distance v in cm (positive = real, behind the lens).</p>`,
+        answer, unit: 'cm', tol: 0.002,
+        hint: 'Use 1/v − 1/u = 1/f with u = −(object distance) and f negative for a diverging lens.',
+        solution: steps(`u = −${u} cm, f = ${f} cm.`, `1/v = 1/f + 1/u = 1/${f} − 1/${u} = ${(1 / f - 1 / u).toFixed(5)}.`, `v = <b>${answer.toFixed(2)} cm</b> (${answer > 0 ? 'real, behind the lens' : 'virtual, on the object side'}); magnification v/u = ${(answer / -u).toFixed(3)}.`),
+        f, u,
+      };
+    },
+    verify: (p) => p.f * p.u / (p.u - p.f),
+  },
+  'two-lens-focal': {
+    title: 'equivalent focal length of two separated lenses',
+    make(r) {
+      const f1 = [10, 15, 20, 25, 30, 40][int(r, 0, 5)], f2 = [10, 15, 20, 25, -10, -20][int(r, 0, 5)], d0 = int(r, 1, 15), d = f1 + f2 === d0 ? d0 + 1 : d0;
+      const answer = f1 * f2 / (f1 + f2 - d);
+      return {
+        q: `<p>Thin lenses of focal lengths ${f1} cm and ${f2} cm are ${d} cm apart on one axis. Find the equivalent focal length of the pair, in cm (negative means diverging).</p>`,
+        answer, unit: 'cm', tol: 0.002,
+        hint: 'Powers add, with a correction for the gap: 1/F = 1/f₁ + 1/f₂ − d/(f₁f₂).',
+        solution: steps(`1/F = 1/${f1} + 1/(${f2}) − ${d}/(${f1}×${f2}) = ${(1 / f1 + 1 / f2 - d / (f1 * f2)).toFixed(5)} cm⁻¹.`, `F = f₁f₂/(f₁ + f₂ − d) = ${f1 * f2}/${f1 + f2 - d} = <b>${answer.toFixed(2)} cm</b>.`),
+        f1, f2, d,
+      };
+    },
+    verify: (p) => 1 / (1 / p.f1 + 1 / p.f2 - p.d / (p.f1 * p.f2)),
+  },
+  // ---- 3.9 Polarisation ----
+  'malus-chain': {
+    title: 'intensity through three polarisers',
+    make(r) {
+      const I0 = int(r, 10, 100), a = int(r, 10, 80), b = a + int(r, 10, 80);
+      const answer = I0 / 2 * Math.cos(a * Math.PI / 180) ** 2 * Math.cos((b - a) * Math.PI / 180) ** 2;
+      return {
+        q: `<p>Unpolarised light of intensity ${I0} W/m² passes through three ideal polarisers in turn, with axes at 0°, ${a}° and ${b}°. Find the emerging intensity in W/m².</p>`,
+        answer, unit: 'W/m²', tol: 0.005,
+        hint: 'The first polariser halves unpolarised light. After that, each polariser multiplies by cos² of the angle between it and the one before (not the angle from the first).',
+        solution: steps(`After the first: ${I0}/2 = ${I0 / 2}.`, `After the second: × cos²${a}° = ${(I0 / 2 * Math.cos(a * Math.PI / 180) ** 2).toFixed(3)}.`, `After the third: × cos²${b - a}° = <b>${answer.toFixed(3)} W/m²</b>.`),
+        I0, a, b,
+      };
+    },
+    verify: (p) => p.I0 / 8 * (1 + Math.cos(2 * p.a * Math.PI / 180)) * (1 + Math.cos(2 * (p.b - p.a) * Math.PI / 180)),
+  },
+  'brewster-angle': {
+    title: 'Brewster angle and the refracted ray',
+    make(r) {
+      const n1 = [1, 1, 1.33][int(r, 0, 2)], n2 = [1.45, 1.5, 1.6, 1.7, 2.0, 2.42][int(r, 0, 5)];
+      const answer = Math.atan(n2 / n1) * 180 / Math.PI;
+      return {
+        q: `<p>Light travelling in a medium of index ${n1} reflects from a flat surface of a medium of index ${n2}. At what angle of incidence (in degrees) is the reflected light completely polarised?</p>`,
+        answer, unit: '°', tol: 0.002,
+        hint: 'Brewster: tan θ<sub>B</sub> = n₂/n₁. At this angle the reflected and refracted rays are at 90° to each other.',
+        solution: steps(`tan θ<sub>B</sub> = ${n2}/${n1} = ${(n2 / n1).toFixed(4)}.`, `θ<sub>B</sub> = <b>${answer.toFixed(2)}°</b>; the refracted ray is at 90° − θ<sub>B</sub> = ${(90 - answer).toFixed(2)}°.`),
+        n1, n2,
+      };
+    },
+    verify: (p) => 90 - Math.atan(p.n1 / p.n2) * 180 / Math.PI,
+  },
+  // ---- 4.3 Conductors and images ----
+  'image-force': {
+    title: 'force from an image charge',
+    make(r) {
+      const q = int(r, 1, 9), d = int(r, 2, 20), k = 8.988e9;
+      const answer = k * (q * 1e-9) ** 2 / (2 * d / 100) ** 2 * 1e6;
+      return {
+        q: `<p>A charge of ${q} nC is held ${d} cm above a very large grounded metal plate. Find the force on it, in μN.</p>`,
+        answer, unit: 'μN', tol: 0.01,
+        hint: 'Replace the plate by an image charge −q at the same distance below the surface. The force is the Coulomb pull between q and its image.',
+        solution: steps(`Image: −${q} nC, ${d} cm below the plate; separation 2d = ${(2 * d / 100).toFixed(2)} m.`, `F = kq²/(2d)² = (8.99×10⁹)(${q}×10⁻⁹)²/(${(2 * d / 100).toFixed(2)})².`, `= <b>${answer.toPrecision(3)} μN</b>, towards the plate.`),
+        qq: q, d,
+      };
+    },
+    verify: (p) => 8.988e9 * (p.qq * 1e-9) ** 2 / (2 * p.d / 100) ** 2 * 1e6,
+  },
+  // ---- 4.4 Dielectrics and capacitors ----
+  'slab-capacitance': {
+    title: 'capacitor with a dielectric slab',
+    make(r) {
+      const d = int(r, 3, 10), t = int(r, 1, d - 1), k = [2, 3, 4, 5, 6][int(r, 0, 4)], A = int(r, 1, 10);
+      const answer = 8.854e-12 * A * 1e-2 / ((d - t + t / k) * 1e-3) * 1e12;
+      return {
+        q: `<p>Plates of area ${A}×10⁻² m² are ${d} mm apart. A slab ${t} mm thick, of dielectric constant ${k}, lies flat in the gap. Find the capacitance in pF.</p>`,
+        answer, unit: 'pF', tol: 0.01,
+        hint: 'The slab and the remaining air gap are two capacitors in series. Equivalently, the slab counts as if its thickness were divided by κ.',
+        solution: steps(`Effective gap = (d − t) + t/κ = ${d - t} + ${(t / k).toFixed(3)} = ${(d - t + t / k).toFixed(3)} mm.`, `C = ε₀A / (effective gap) = (8.854×10⁻¹²)(${A}×10⁻²)/(${(d - t + t / k).toFixed(3)}×10⁻³).`, `= <b>${answer.toPrecision(3)} pF</b>.`),
+        A, d, t, k,
+      };
+    },
+    verify: (p) => 8.854e-12 * p.A * 1e-2 / ((p.d - p.t + p.t / p.k) * 1e-3) * 1e12,
+  },
+  // ---- 4.6 Magnetic materials ----
+  'gap-electromagnet': {
+    title: 'field in an electromagnet gap',
+    make(r) {
+      const mur = [500, 1000, 2000, 5000][int(r, 0, 3)], l = int(r, 2, 10) / 10, g = int(r, 1, 6) / 2, N = int(r, 1, 10) * 100, I = int(r, 1, 6) / 2;
+      const mu0 = 1.25663706e-6, answer = mu0 * N * I / (l / mur + g / 1000);
+      return {
+        q: `<p>An iron core (μ<sub>r</sub> = ${mur}) has a mean path of ${l} m and an air gap of ${g} mm. A ${N}-turn coil carries ${I} A. Ignoring fringing, find B in the gap, in tesla.</p>`,
+        answer, unit: 'T', tol: 0.01,
+        hint: 'Use Ampère\'s law for H round the core: H<sub>iron</sub> l + H<sub>gap</sub> g = NI, with the same B in iron and gap (B = μ₀μ<sub>r</sub>H in iron, μ₀H in the gap).',
+        solution: steps(`(B/μ₀)(l/μ<sub>r</sub> + g) = NI = ${N * I} A-turns.`, `l/μ<sub>r</sub> = ${(l / mur).toExponential(3)} m, g = ${g / 1000} m: the gap dominates.`, `B = μ₀NI/(l/μ<sub>r</sub> + g) = <b>${answer.toPrecision(3)} T</b>.`),
+        mur, l, g, N, I,
+      };
+    },
+    verify: (p) => 1.25663706e-6 * p.N * p.I / (p.l / p.mur + p.g / 1000),
+  },
+  // ---- 4.8 DC transients and AC circuits ----
+  'rc-charge-time': {
+    title: 'time for a capacitor to charge',
+    make(r) {
+      const R = [1, 2.2, 4.7, 10, 22, 47][int(r, 0, 5)], Cu = [1, 2.2, 4.7, 10, 22, 47, 100][int(r, 0, 6)], pct = [50, 63, 75, 90, 95, 99][int(r, 0, 5)];
+      const tau = R * Cu, answer = -tau * Math.log(1 - pct / 100); // ms
+      return {
+        q: `<p>A ${Cu} μF capacitor charges from zero through a ${R} kΩ resistor from a battery. How long, in ms, until its voltage reaches ${pct}% of the battery voltage?</p>`,
+        answer, unit: 'ms', tol: 0.01,
+        hint: 'V = V₀(1 − e<sup>−t/τ</sup>) with τ = RC. Set V/V₀ to the fraction and solve for t with a natural log.',
+        solution: steps(`τ = RC = ${R} kΩ × ${Cu} μF = ${tau.toPrecision(4)} ms.`, `1 − e<sup>−t/τ</sup> = ${pct / 100} ⇒ t = τ ln(1/(1 − ${pct / 100})) = ${tau.toPrecision(4)} × ${(-Math.log(1 - pct / 100)).toFixed(4)}.`, `t = <b>${answer.toPrecision(3)} ms</b>.`),
+        tau, pct,
+      };
+    },
+    verify: (p) => -p.tau * Math.log(1 - p.pct / 100),
+  },
+  'lcr-current': {
+    title: 'current in a series LCR circuit',
+    make(r) {
+      const R = int(r, 1, 10) * 10, L = [0.05, 0.1, 0.2, 0.5][int(r, 0, 3)], Cu = [10, 22, 47, 100][int(r, 0, 3)], f = [50, 60, 100, 200][int(r, 0, 3)], V = [100, 110, 200, 230][int(r, 0, 3)];
+      const w = 2 * Math.PI * f, XL = w * L, XC = 1 / (w * Cu * 1e-6), Z = Math.hypot(R, XL - XC), answer = V / Z;
+      return {
+        q: `<p>A ${R} Ω resistor, a ${L} H inductor and a ${Cu} μF capacitor are in series across a ${V} V rms, ${f} Hz supply. Find the rms current, in A.</p>`,
+        answer, unit: 'A', tol: 0.01,
+        hint: 'Find X<sub>L</sub> = ωL and X<sub>C</sub> = 1/(ωC) with ω = 2πf, then Z = √(R² + (X<sub>L</sub> − X<sub>C</sub>)²) and I = V/Z.',
+        solution: steps(`ω = 2π(${f}) = ${w.toFixed(1)} rad/s; X<sub>L</sub> = ${XL.toFixed(2)} Ω, X<sub>C</sub> = ${XC.toFixed(2)} Ω.`, `Z = √(${R}² + (${(XL - XC).toFixed(2)})²) = ${Z.toFixed(2)} Ω.`, `I = ${V}/${Z.toFixed(2)} = <b>${answer.toPrecision(3)} A</b>, ${XL > XC ? 'lagging' : 'leading'} the voltage by ${(Math.abs(Math.atan((XL - XC) / R)) * 180 / Math.PI).toFixed(1)}°.`),
+        R, L, Cu, f, V,
+      };
+    },
+    verify: (p) => { const w = 2 * Math.PI * p.f; return p.V / Math.hypot(p.R, w * p.L - 1 / (w * p.Cu * 1e-6)); },
+  },
+  // ---- 4.9 Maxwell's equations and EM waves ----
+  'laser-field': {
+    title: 'electric field in a laser beam',
+    make(r) {
+      const P = [0.5, 1, 2, 5, 10, 100][int(r, 0, 5)], d = [0.5, 1, 1.5, 2, 3][int(r, 0, 4)];
+      const c = 2.99792458e8, e0 = 8.8541878128e-12, I = P * 1e-3 / (Math.PI * (d / 2e3) ** 2), answer = Math.sqrt(2 * I / (c * e0));
+      return {
+        q: `<p>A ${P} mW laser beam has a uniform circular cross-section ${d} mm across. Find the amplitude of its electric field, in V/m.</p>`,
+        answer, unit: 'V/m', tol: 0.01,
+        hint: 'Intensity I = P/(πr²) with r half the diameter. Then I = ½cε₀E₀², so E₀ = √(2I/(cε₀)).',
+        solution: steps(`I = ${P}×10⁻³ / (π × (${d / 2}×10⁻³)²) = ${I.toPrecision(4)} W/m².`, `E₀ = √(2I/(cε₀)) = √(${(2 * I).toPrecision(4)} / ${(c * e0).toExponential(4)}).`, `E₀ = <b>${answer.toPrecision(3)} V/m</b>; B₀ = E₀/c = ${(answer / c * 1e6).toPrecision(3)} μT.`),
+        I,
+      };
+    },
+    verify: (p) => Math.sqrt(2 * p.I / (2.99792458e8 * 8.8541878128e-12)),
+  },
 };

@@ -174,4 +174,4 @@ They start easy and climb to top-rank level. More on the [moment of inertia prac
 
 <div class="qbank" data-bank="physics" data-topics="moment-of-inertia" data-exam="jam" data-n="10"></div>
 
-**Before this:** lesson 2.4, [central forces and orbits](/learn/courses/iit-jam-physics/central-forces/). **Next:** lesson 2.6 puts these moments to work in rotation, rolling and angular momentum.
+**Before this:** lesson 2.4, [central forces and orbits](/learn/courses/iit-jam-physics/central-forces/). **Next:** [lesson 2.6](/learn/courses/iit-jam-physics/rigid-body-rotation/) puts these moments to work in rotation, rolling and angular momentum.

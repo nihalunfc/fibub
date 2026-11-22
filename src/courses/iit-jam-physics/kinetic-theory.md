@@ -142,7 +142,7 @@ Real molecules have size and attract each other. Van der Waals patched the ideal
 
 <figure class="fig" data-fig="vdw-isotherms"><figcaption>Reduced van der Waals isotherms. Below T<sub>c</sub> the shaded part (pressure rising with volume) is unstable and the gas condenses; at T<sub>c</sub> the wiggle flattens into an inflection; well above T<sub>c</sub> the gas behaves almost ideally.</figcaption></figure>
 
-At the critical point both `$\partial P/\partial V$` and `$\partial^2P/\partial V^2$` vanish, which gives `$V_c = 3b$`, `$P_c = a/27b^2$`, `$T_c = 8a/27Rb$` and `$Z_c = P_cV_c/RT_c = 3/8$`. Two more temperatures: the Boyle temperature `$a/Rb$` (where the gas is ideal-like at low density) and the Joule–Thomson inversion temperature `$2a/Rb$` (lesson 5.4). Explore real gases with fibub's [real gas calculator](/science/real-gas-calculator/) and simple gas-law sums with the [gas law calculator](/science/gas-law-calculator/).
+At the critical point both `$\partial P/\partial V$` and `$\partial^2P/\partial V^2$` vanish, which gives `$V_c = 3b$`, `$P_c = a/27b^2$`, `$T_c = 8a/27Rb$` and `$Z_c = P_cV_c/RT_c = 3/8$`. Two more temperatures: the Boyle temperature `$a/Rb$` (where the gas is ideal-like at low density) and the Joule–Thomson inversion temperature `$2a/Rb$` ([lesson 5.4](/learn/courses/iit-jam-physics/thermodynamic-potentials/)). Explore real gases with fibub's [real gas calculator](/science/real-gas-calculator/) and simple gas-law sums with the [gas law calculator](/science/gas-law-calculator/).
 
 <div class="keypoints">
 

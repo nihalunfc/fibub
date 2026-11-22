@@ -148,7 +148,7 @@ Since `$\nabla\cdot\vec B = 0$`, we can write `$\vec B = \nabla\times\vec A$`. `
 \vec B = \frac{\mu_0}{2}\vec J\times\vec s - \frac{\mu_0}{2}\vec J\times(\vec s - \vec d) = \frac{\mu_0}{2}\vec J\times\vec d
 ```
 
-a uniform field, exactly like the uniform electric field in an off-centre cavity of a charged sphere (lesson 4.1).
+a uniform field, exactly like the uniform electric field in an off-centre cavity of a charged sphere ([lesson 4.1](/learn/courses/iit-jam-physics/electrostatics-gauss/)).
 
 <div class="keypoints">
 
@@ -167,4 +167,4 @@ These start easy and climb to top-rank level. Check each answer, then read the f
 
 <div class="qbank" data-bank="physics" data-topics="magnetostatics" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 4.6 puts magnetic materials into the picture (B, H and M), and lesson 4.7 lets the fields change in time: [electromagnetic induction and inductance](/learn/courses/iit-jam-physics/induction/). For the electric side of the story, see [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/). Iron cores and gaps are worked out in the [magnetic circuit solver](/science/magnetic-circuit/). For potentials, gauges and fields in matter at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** [lesson 4.6](/learn/courses/iit-jam-physics/magnetic-materials/) puts magnetic materials into the picture (B, H and M), and lesson 4.7 lets the fields change in time: [electromagnetic induction and inductance](/learn/courses/iit-jam-physics/induction/). For the electric side of the story, see [electric fields and Gauss's law](/learn/courses/iit-jam-physics/electrostatics-gauss/). Iron cores and gaps are worked out in the [magnetic circuit solver](/science/magnetic-circuit/). For potentials, gauges and fields in matter at MSc level, see the [GATE Physics course](/learn/courses/gate-physics/).

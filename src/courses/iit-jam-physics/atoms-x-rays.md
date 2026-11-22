@@ -151,7 +151,7 @@ E_{K\alpha} \approx 13.6\,(Z - 1)^2\left(1 - \frac14\right)\ \text{eV} = 10.2\,(
 
 Moseley (1913) plotted `$\sqrt\nu$` against `$Z$` for many elements and got a straight line. It showed that the order of the periodic table is the order of nuclear charge, not mass (cobalt, 27, before nickel, 28, although cobalt is heavier), and it revealed gaps for undiscovered elements.
 
-**Absorption edges.** A metal foil absorbs X-rays strongly just above the energy needed to eject its K electrons (the **K edge**) and much less just below it. The K edge of a metal lies a little above its own Kα energy. Nickel (`$Z = 28$`) has its K edge at 8.3 keV, between copper's Kα (8.0 keV) and Kβ (8.9 keV), so a thin nickel foil removes most of copper's Kβ while passing its Kα. With the Bragg law `$2d\sin\theta = n\lambda$`, characteristic X-rays become the tool of lesson 7.2 on crystal structure.
+**Absorption edges.** A metal foil absorbs X-rays strongly just above the energy needed to eject its K electrons (the **K edge**) and much less just below it. The K edge of a metal lies a little above its own Kα energy. Nickel (`$Z = 28$`) has its K edge at 8.3 keV, between copper's Kα (8.0 keV) and Kβ (8.9 keV), so a thin nickel foil removes most of copper's Kβ while passing its Kα. With the Bragg law `$2d\sin\theta = n\lambda$`, characteristic X-rays become the tool of [lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/) on crystal structure.
 
 <div class="problem" data-problem="moseley-energy"></div>
 
@@ -179,4 +179,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="atoms-x-rays" data-exam="jam" data-n="10"></div>
 
-**Next:** lesson 6.5 moves from the electrons to the nucleus: binding energy and radioactivity. The [GATE Physics course](/learn/courses/gate-physics/) solves the hydrogen atom exactly and adds fine structure, spin and the Zeeman effect.
+**Next:** [lesson 6.5](/learn/courses/iit-jam-physics/nuclei-radioactivity/) moves from the electrons to the nucleus: binding energy and radioactivity. The [GATE Physics course](/learn/courses/gate-physics/) solves the hydrogen atom exactly and adds fine structure, spin and the Zeeman effect.

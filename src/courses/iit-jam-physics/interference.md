@@ -170,4 +170,4 @@ They start easy and climb to top-rank level. More on the [interference practice 
 
 <div class="qbank" data-bank="physics" data-topics="interference" data-exam="jam" data-n="10"></div>
 
-**Next:** [lesson 3.8](/learn/courses/iit-jam-physics/diffraction/) explains what happens inside each slit (diffraction) and how many slits together make a grating. The thin-film rules return in lesson 3.9 on polarisation and in X-ray diffraction (lesson 7.2).
+**Next:** [lesson 3.8](/learn/courses/iit-jam-physics/diffraction/) explains what happens inside each slit (diffraction) and how many slits together make a grating. The thin-film rules return in [lesson 3.9](/learn/courses/iit-jam-physics/polarisation/) on polarisation and in X-ray diffraction ([lesson 7.2](/learn/courses/iit-jam-physics/x-ray-diffraction/)).
