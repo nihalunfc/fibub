@@ -1,0 +1,71 @@
+---
+// SIM for 3.1 (and 3.4): a default-looking chart cleaned up one step at a time. Next and Back walk through the
+// steps; each step changes one option of the same chart and says why. arg: "bars" (stores) or "lines" (months).
+const { arg = 'bars' } = Astro.props as { arg?: string };
+---
+<figure class="cs-fig ds" data-declutter={arg}>
+  <span class="cs-figtag">Try it: clean up a chart, one step at a time</span>
+  <p class="ds-title" data-title></p>
+  <p class="ds-sub" data-sub></p>
+  <div class="ds-chartbox" data-chart></div>
+  <p class="ds-step" data-say aria-live="polite"></p>
+  <div class="ds-nav">
+    <button type="button" class="btn" data-back>Back</button>
+    <span data-count></span>
+    <button type="button" class="btn primary" data-next>Next step</button>
+    <label class="ds-cmp"><input type="checkbox" data-before /> Show the first version</label>
+  </div>
+  <figcaption>Same data, same chart type at every step. Only the choices change.</figcaption>
+</figure>
+<script>
+  import { bar, line, PAL, GREY } from './charts';
+  import * as D from './data';
+  type St = { say: string; title: string; sub?: string; o: Record<string, unknown> };
+  const BARS: St[] = [
+    { say: 'The chart a tool gives you by default: a border, gridlines, a colour per bar, labels on a slant, and a title that only names the data.', title: 'Sum of Amount by Store', o: { grid: true, border: true, colors: 'rainbow', rotate: true, legend: true } },
+    { say: 'Remove the border and the legend. The names are already under the bars, so the legend only repeats them.', title: 'Sum of Amount by Store', o: { grid: true, colors: 'rainbow', rotate: true } },
+    { say: 'One colour. Different colours made you wonder what each one meant; they meant nothing.', title: 'Sum of Amount by Store', o: { grid: true, rotate: true } },
+    { say: 'Turn it sideways and sort it. Long names now read straight, and the order answers "who sold most?" before anyone asks.', title: 'Sum of Amount by Store', o: { grid: true, horizontal: true, sort: true } },
+    { say: 'Label the bars and drop the axis and gridlines. Readers want the numbers, not to trace lines across.', title: 'Sum of Amount by Store', o: { horizontal: true, sort: true, dataLabels: true, axis: false } },
+    { say: 'Grey everything except the point you want to make, then say that point in the title. Now the chart has a message: the newest store is already close to its target.', title: 'Forks Market sold $30k in its first 10 months, 99.6 % of target', sub: 'Sales by store, 2025 (Forks Market opened 1 March)', o: { horizontal: true, sort: true, dataLabels: true, axis: false, highlight: [4] } },
+  ];
+  const lab = D.MONTHS;
+  const LINES: St[] = [
+    { say: 'The default: a legend box, a dot on every point, gridlines, three equal lines, and a title that only names the data.', title: 'Sales and Target by Month', o: { grid: true, markers: true, legend: 'box', border: true, s: 'all' } },
+    { say: 'Put the names at the end of each line and drop the legend: no more looking back and forth.', title: 'Sales and Target by Month', o: { grid: true, markers: true, legend: 'direct', s: 'all' } },
+    { say: 'Remove the dots and the gridlines. The line shows the shape on its own.', title: 'Sales and Target by Month', o: { legend: 'direct', s: 'all' } },
+    { say: 'Make last year grey and the target dashed. Context stays, but 2025 sales stand out.', title: 'Sales and Target by Month', o: { legend: 'direct', s: 'focus' } },
+    { say: 'Point at the one thing that needs attention, and say it in the title. February 2025 missed target by 8 % and was the only month below the year before. (November also missed, but only by 1 %.)', title: 'February was the only month below last year, and 8 % under target', sub: 'Monthly sales, 2025 vs target and 2024', o: { legend: 'direct', s: 'focus', note: { s: 0, i: 1, text: 'Feb: 13.4k vs 14.5k target' }, band: [1, 1] } },
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-declutter]')) {
+    const steps = fig.dataset.declutter === 'lines' ? LINES : BARS;
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    let at = 0;
+    const draw = (st: St) => {
+      if (steps === BARS) return bar({ labels: D.STORES, values: D.STORE_2025, ...(st.o as object) });
+      const o = st.o as Record<string, any>, focus = o.s === 'focus';
+      return line({
+        labels: lab, grid: o.grid, markers: o.markers, legend: o.legend, border: o.border, note: o.note, band: o.band, dataLabels: focus ? undefined : undefined,
+        series: [
+          { name: '2025', values: D.SALES_2025, color: PAL[0], width: focus ? 3 : 2.5 },
+          { name: 'Target', values: D.TARGET_2025, color: focus ? 'var(--ink)' : PAL[1], dash: focus, width: focus ? 1.5 : 2.5 },
+          { name: '2024', values: D.SALES_2024, color: focus ? GREY : PAL[2], width: focus ? 2 : 2.5 },
+        ],
+      });
+    };
+    const show = () => {
+      const st = (q('[data-before]') as HTMLInputElement).checked ? steps[0] : steps[at];
+      q('[data-title]').textContent = st.title;
+      q('[data-sub]').textContent = st.sub ?? '';
+      q('[data-chart]').innerHTML = draw(st);
+      q('[data-say]').textContent = `Step ${at + 1}. ${steps[at].say}`;
+      q('[data-count]').textContent = `${at + 1} of ${steps.length}`;
+      (q('[data-back]') as HTMLButtonElement).disabled = at === 0;
+      (q('[data-next]') as HTMLButtonElement).disabled = at === steps.length - 1;
+    };
+    q('[data-next]').addEventListener('click', () => { at = Math.min(at + 1, steps.length - 1); show(); });
+    q('[data-back]').addEventListener('click', () => { at = Math.max(at - 1, 0); show(); });
+    q('[data-before]').addEventListener('change', show);
+    show();
+  }
+</script>

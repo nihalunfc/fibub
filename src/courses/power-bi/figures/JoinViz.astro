@@ -1,0 +1,54 @@
+---
+// SIM for 2.3: Merge queries. Pick a join kind and see which rows of each table match, and the merged result.
+// Order lines (left) and a product list (right) with one line whose product is missing from the list and one
+// product nobody bought, so every join kind gives a different answer.
+---
+<figure class="cs-fig pbi" data-joinviz>
+  <span class="cs-figtag">Try it: six kinds of merge</span>
+  <div class="pbi-kinds" role="group" aria-label="Join kind">
+    <button type="button" data-j="left" aria-pressed="true">Left outer</button>
+    <button type="button" data-j="inner" aria-pressed="false">Inner</button>
+    <button type="button" data-j="right" aria-pressed="false">Right outer</button>
+    <button type="button" data-j="full" aria-pressed="false">Full outer</button>
+    <button type="button" data-j="lanti" aria-pressed="false">Left anti</button>
+    <button type="button" data-j="ranti" aria-pressed="false">Right anti</button>
+  </div>
+  <p class="pbi-say" data-say></p>
+  <div class="pbi-two">
+    <div class="pbi-tv"><p class="pbi-tvname">Order lines (left)</p><div class="pbi-tablewrap" data-l></div></div>
+    <div class="pbi-tv"><p class="pbi-tvname">Products (right)</p><div class="pbi-tablewrap" data-r></div></div>
+  </div>
+  <div class="pbi-tv" style="margin-top:10px"><p class="pbi-tvname">Merged result</p><div class="pbi-tablewrap" data-o></div></div>
+  <figcaption>Matched on ProductKey. Green rows found a partner; amber rows did not. Line 5 has ProductKey 13, which is not in the product list (a new product the list doesn't have yet), and the Snow shovel (12) was not sold on these lines.</figcaption>
+</figure>
+<script>
+  const L = [[1, 4, 2], [2, 7, 1], [3, 4, 1], [4, 11, 3], [5, 13, 2]];
+  const R = [[4, 'Bath towel set', 'Home'], [7, 'Wireless earbuds', 'Electronics'], [11, 'Water bottle', 'Outdoor'], [12, 'Snow shovel', 'Outdoor']];
+  const SAY: Record<string, string> = {
+    left: 'Left outer (the default): every order line, plus the product details where a match exists. Line 5 keeps its row with nulls. This is the merge you want most of the time: you never lose a sale.',
+    inner: 'Inner: only rows that match on both sides. Line 5 disappears, so its sale vanishes from your totals: check the row count before and after an inner join.',
+    right: 'Right outer: every product, with order lines where they exist. The Snow shovel appears with nulls because nobody bought it here.',
+    full: 'Full outer: everything from both sides, matched where possible. Good for reconciling two lists.',
+    lanti: 'Left anti: only the order lines with no matching product. A quick data quality check: these are sales for products missing from the master list.',
+    ranti: 'Right anti: only the products with no order lines: products that did not sell.',
+  };
+  const td = (v: unknown) => (v === null ? '<td class="null">null</td>' : `<td>${v}</td>`);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-joinviz]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const show = (j: string) => {
+      const lm = L.map((l) => R.some((r) => r[0] === l[1])), rm = R.map((r) => L.some((l) => l[1] === r[0]));
+      q('[data-l]').innerHTML = `<table class="pbi-mini"><thead><tr><th>Line</th><th class="hi">ProductKey</th><th>Qty</th></tr></thead><tbody>${L.map((l, i) => `<tr class="${lm[i] ? 'match' : 'nomatch'}">${l.map(td).join('')}</tr>`).join('')}</tbody></table>`;
+      q('[data-r]').innerHTML = `<table class="pbi-mini"><thead><tr><th class="hi">ProductKey</th><th>Product</th><th>Category</th></tr></thead><tbody>${R.map((r, i) => `<tr class="${rm[i] ? 'match' : 'nomatch'}">${r.map(td).join('')}</tr>`).join('')}</tbody></table>`;
+      const rows: unknown[][] = [];
+      const anti = j === 'lanti' || j === 'ranti';
+      if (j !== 'ranti') for (const l of L) { const ms = R.filter((r) => r[0] === l[1]); if (ms.length && !anti) ms.forEach((r) => rows.push([...l, r[1], r[2]])); else if (!ms.length && j !== 'inner' && j !== 'right') rows.push([...l, null, null]); }
+      if (j === 'right' || j === 'full' || j === 'ranti') for (const r of R) { const ms = L.filter((l) => l[1] === r[0]); if (!ms.length) rows.push([null, j === 'ranti' ? r[0] : null, null, r[1], r[2]]); else if (j === 'right') ms.forEach((l) => rows.push([...l, r[1], r[2]])); }
+      if (j === 'right') rows.sort((a, b) => ((a[0] as number) ?? 99) - ((b[0] as number) ?? 99));
+      q('[data-o]').innerHTML = `<table class="pbi-mini"><thead><tr><th>Line</th><th>ProductKey</th><th>Qty</th><th>Product</th><th>Category</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.includes(null) ? 'nomatch' : 'match'}">${r.map(td).join('')}</tr>`).join('') || '<tr><td colspan="5">(no rows)</td></tr>'}</tbody></table><p class="pbi-tvfoot">${rows.length} row${rows.length === 1 ? '' : 's'} (the order lines table had ${L.length}).</p>`;
+      q('[data-say]').textContent = SAY[j];
+      fig.querySelectorAll('[data-j]').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.j === j)));
+    };
+    fig.querySelectorAll<HTMLElement>('[data-j]').forEach((b) => b.addEventListener('click', () => show(b.dataset.j!)));
+    show('left');
+  }
+</script>

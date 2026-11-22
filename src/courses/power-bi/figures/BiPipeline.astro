@@ -1,0 +1,22 @@
+---
+// 1.1: the path data takes in Power BI, and which part of the course covers each stage.
+const S = [['Sources', 'Excel, CSV, SQL,', 'SharePoint, APIs'], ['Power Query', 'clean and shape', 'Module 2'], ['Model', 'tables and', 'relationships · M3'], ['DAX', 'measures', 'Modules 4-6'], ['Report', 'visuals and pages', 'Module 7'], ['Service', 'share, refresh,', 'security · M8']];
+---
+<figure class="cs-fig pbi">
+  <span class="cs-figtag">The idea in one picture</span>
+  <svg viewBox="0 0 680 150" role="img" aria-label="Sources, then Power Query, then the model, then DAX measures, then the report, then the Power BI Service.">
+    {S.map(([a, b, c], i) => { const x = 6 + i * 112; return <g>
+      <rect class={i === 0 ? 'box' : 'acc'} x={x} y="30" width="98" height="78" rx="10" />
+      <text class="b" x={x + 49} y="56" text-anchor="middle">{a}</text>
+      <text class="mu" x={x + 49} y="76" text-anchor="middle">{b}</text>
+      <text class="mu" x={x + 49} y="92" text-anchor="middle">{c}</text>
+      {i < S.length - 1 && <polygon class="fa" points={`${x + 101},63 ${x + 110},69 ${x + 101},75`} />}
+    </g>; })}
+    <text class="mu" x="6" y="18">Power BI Desktop (free, Windows)</text>
+    <line class="ln" x1="118" y1="22" x2="562" y2="22" />
+    <text class="mu" x="566" y="18">Power BI Service</text>
+    <text class="mu" x="6" y="136">A BI developer owns the whole path; an analyst mostly lives in the last three boxes.</text>
+    <text class="wm" x="674" y="146" text-anchor="end">fibub.com</text>
+  </svg>
+  <figcaption>Data comes in from sources, gets cleaned in Power Query, is stored as related tables (the model), is summed up by DAX measures, is shown in a report, and is shared through the Power BI Service in a browser.</figcaption>
+</figure>

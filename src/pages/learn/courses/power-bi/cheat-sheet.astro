@@ -1,0 +1,80 @@
+---
+// Power BI and DAX cheat sheet: the DAX patterns of the course on one page, grouped by module, each with a one-line
+// meaning and the lesson that explains it. Plain code blocks; nothing runs on this page.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { POWER_BI } from '../../../../courses/power-bi/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+const live = new Set((await courseLessons(POWER_BI)).keys());
+const num = new Map(flatLessons(POWER_BI).map((l) => [l.slug, l.n]));
+type P = [name: string, code: string, meaning: string, lesson: string];
+const SECTIONS: { h: string; rows: P[] }[] = [
+  { h: 'Model and columns', rows: [
+    ['Date table', "Date = ADDCOLUMNS(CALENDAR(DATE(2024,1,1), DATE(2025,12,31)),\n  \"Year\", YEAR([Date]), \"MonthNo\", MONTH([Date]),\n  \"Month\", FORMAT([Date], \"mmm\"))", 'One row per day, whole years. Then Mark as date table.', 'date-table'],
+    ['Calculated column', 'Sales[Margin] = Sales[Amount] - Sales[Quantity] * Sales[UnitCost]', 'Worked out once per row at refresh and stored.', 'calculated-columns'],
+    ['Value from the one side', 'Sales[Category] = RELATED(Product[Category])', 'Fetches the related product\'s category for each sales line.', 'related-lookups'],
+    ['Rows from the many side', 'Product[Lines] = COUNTROWS(RELATEDTABLE(Sales))', 'How many sales lines each product has.', 'related-lookups'],
+  ] },
+  { h: 'First measures', rows: [
+    ['Total', 'Total Sales = SUM(Sales[Amount])', 'Adds one column in the current filter context.', 'first-measures'],
+    ['Ratio', 'Margin % = DIVIDE([Total Margin], [Total Sales])', 'Blank instead of an error when the bottom is zero.', 'divide-and-ratios'],
+    ['Row by row', 'Revenue = SUMX(Sales, Sales[Quantity] * Sales[UnitPrice])', 'Calculates per row, then adds up.', 'iterators'],
+    ['Count distinct', 'Products Sold = DISTINCTCOUNT(Sales[ProductKey])', 'How many different products appear.', 'first-measures'],
+    ['Variables and bands', "Band =\nVAR s = [Total Sales]\nRETURN SWITCH(TRUE(), s >= 100000, \"High\", s >= 50000, \"Mid\", \"Low\")", 'Name a step once; SWITCH(TRUE()) for ranges.', 'variables-if-switch'],
+  ] },
+  { h: 'CALCULATE and filter context', rows: [
+    ['Fixed filter', 'Home Sales = CALCULATE([Total Sales], Product[Category] = "Home")', 'Replaces any filter on Category, keeps the rest.', 'calculate'],
+    ['Add, don\'t replace', 'CALCULATE([Total Sales], KEEPFILTERS(Product[Category] = "Home"))', 'Intersects with the existing Category filter.', 'calculate'],
+    ['Percent of total', 'Share = DIVIDE([Total Sales], CALCULATE([Total Sales], ALL(Store)))', 'Every row divided by the chain total.', 'all-and-percent-of-total'],
+    ['Percent of selection', 'DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Store)))', 'Respects slicers; ignores the visual\'s own rows.', 'all-and-percent-of-total'],
+    ['Condition on rows', 'Big Lines = CALCULATE([Total Sales], FILTER(Sales, Sales[Amount] > 100))', 'FILTER for row-by-row or measure conditions.', 'filter-function'],
+    ['Context transition', 'Best Day = MAXX(VALUES(\'Date\'[Date]), [Total Sales])', 'A measure inside an iterator sees each row as a filter.', 'context-transition'],
+    ['Rank', 'Rank = RANKX(ALL(Product[Product]), [Total Sales])', 'Compares each product with every product.', 'ranking-topn'],
+    ['Inactive relationship', "CALCULATE([Total Sales], USERELATIONSHIP(Sales[ShipDate], 'Date'[Date]))", 'Uses the dashed relationship for this measure only.', 'relationships'],
+  ] },
+  { h: 'Time intelligence', rows: [
+    ['Year to date', "Sales YTD = TOTALYTD([Total Sales], 'Date'[Date])", 'From 1 January to the last date in context.', 'ytd-mtd'],
+    ['Last year', "Sales LY = CALCULATE([Total Sales], SAMEPERIODLASTYEAR('Date'[Date]))", 'The same dates one year earlier.', 'last-year-growth'],
+    ['Growth', 'Growth % = DIVIDE([Total Sales] - [Sales LY], [Sales LY])', 'Change on last year as a share of last year.', 'last-year-growth'],
+    ['Rolling 28 days', "Sales R28 = CALCULATE([Total Sales],\n  DATESINPERIOD('Date'[Date], MAX('Date'[Date]), -28, DAY))", 'The 28 days ending on the last date in context.', 'rolling-windows'],
+    ['Targets at month grain', "Target = CALCULATE(SUM(Targets[Target]),\n  TREATAS(VALUES('Date'[YearMonth]), Targets[YearMonth]))", 'Moves the month filter onto a table with no date relationship.', 'pace-and-targets'],
+  ] },
+  { h: 'Queries and security', rows: [
+    ['Test a measure', "EVALUATE\nSUMMARIZECOLUMNS(Store[Store], \"Sales\", [Total Sales])\nORDER BY [Sales] DESC", 'Returns a table: run it in DAX query view.', 'dax-queries'],
+    ['Static RLS role', 'Store[Region] = "West"', 'A role filter: members see only West stores.', 'row-level-security'],
+    ['Dynamic RLS', 'Users[Email] = USERPRINCIPALNAME()', 'One role; each person sees their own rows.', 'row-level-security'],
+  ] },
+];
+---
+<Base title="DAX cheat sheet: Power BI formulas on one page" description="The DAX patterns of the free Power BI and DAX course on one page: measures, SUMX, CALCULATE, ALL and percent of total, RANKX, year to date, last year, rolling totals, TREATAS and row-level security, each with a one-line meaning.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/power-bi/">Power BI and DAX</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={POWER_BI} live={live} />
+    <div class="cs-main ch">
+      <h1>DAX cheat sheet</h1>
+      <p class="lead">The DAX patterns of the course on one page, written for the Northbay model (ShipDate and the Users table are extra examples), each with what it does in one line and the lesson that explains it. Try any of them in the <a href="/learn/courses/power-bi/playground/">DAX playground</a>.</p>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2>{s.h}</h2>
+          {s.rows.map(([name, code, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={`/learn/courses/power-bi/${slug}/`}>Lesson {num.get(slug)}</a></h3>
+              <pre><code>{code}</code></pre>
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/power-bi/glossary/">glossary of terms</a> and the <a href="/learn/courses/power-bi/interview-questions/">interview questions</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-f pre { overflow-x: auto; margin: 6px 0; }
+  .ch-f p { margin: 2px 0 0; }
+</style>

@@ -1,0 +1,25 @@
+---
+// 1.2: download the Northbay Goods tables as CSV files for Power BI Desktop (made in the browser, nothing uploaded).
+---
+<figure class="cs-fig pbi" data-nbdata>
+  <span class="cs-figtag">Download the course data</span>
+  <p class="pbi-say">Five CSV files, made right here in your browser from a fixed seed, so your numbers match the lessons exactly.</p>
+  <div class="pbi-ctl" data-btns><button type="button" class="btn" data-all>Download all 5 files</button></div>
+  <div class="pbi-tablewrap" data-list><p class="pbi-wait">Preparing the tables…</p></div>
+  <figcaption>Sales has one row per order line for 2024 and 2025. Save the files in one folder (for example Documents\Northbay); Lesson 1.4 loads them into Power BI Desktop.</figcaption>
+</figure>
+<script>
+  import { northbayTables, toCsv } from '../../../lib/dax/northbay';
+  const ABOUT: Record<string, string> = { Sales: 'one row per order line (the fact table)', Product: '12 products in 4 categories', Store: '5 stores in Ontario', Date: 'one row per day, 2024 to 2025', Targets: 'monthly sales target per store' };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-nbdata]')) {
+    const T = northbayTables();
+    const save = (name: string) => {
+      const blob = new Blob([toCsv(T[name as keyof typeof T])], { type: 'text/csv' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `northbay-${name.toLowerCase()}.csv`;
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    };
+    fig.querySelector('[data-list]')!.innerHTML = `<table class="pbi-mini"><thead><tr><th>File</th><th>Rows</th><th>Columns</th><th>What it holds</th><th></th></tr></thead><tbody>${Object.entries(T).map(([n, rows]) => `<tr><td>northbay-${n.toLowerCase()}.csv</td><td>${(rows.length - 1).toLocaleString('en')}</td><td>${(rows[0] as string[]).join(', ')}</td><td>${ABOUT[n]}</td><td><button type="button" class="btn secondary" data-one="${n}">Download</button></td></tr>`).join('')}</tbody></table>`;
+    fig.querySelectorAll<HTMLElement>('[data-one]').forEach((b) => b.addEventListener('click', () => save(b.dataset.one!)));
+    fig.querySelector('[data-all]')!.addEventListener('click', () => Object.keys(T).forEach((n, i) => setTimeout(() => save(n), i * 400)));
+  }
+</script>
