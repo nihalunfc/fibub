@@ -154,6 +154,13 @@ export default {
       { id: 'transistors', name: 'Transistors and amplifiers' },
       { id: 'op-amps', name: 'Operational amplifiers' },
       { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+      { id: 'semiconductor-devices', name: 'Diodes, BJTs, FETs and MOSFETs' },
+      { id: 'amplifiers-feedback', name: 'Amplifiers and feedback' },
+      { id: 'op-amp-circuits', name: 'Op-amp circuits' },
+      { id: 'oscillators', name: 'Oscillators' },
+      { id: 'combinational-logic', name: 'Combinational logic' },
+      { id: 'sequential-logic', name: 'Flip-flops, counters and registers' },
+      { id: 'adc-dac', name: 'ADCs and DACs' },
     ] },
     { id: 'experimental', name: 'Experimental methods', topics: [
       { id: 'errors-data-fitting', name: 'Measurement, errors and fitting data' },
