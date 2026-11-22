@@ -38,5 +38,25 @@ export default {
       { id: 'second-law-entropy', name: 'The second law, engines and entropy' },
       { id: 'thermodynamic-potentials', name: 'Thermodynamic potentials and Maxwell relations' },
     ] },
+    { id: 'modern', name: 'Modern physics', topics: [
+      { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
+      { id: 'matter-waves', name: 'Matter waves and the uncertainty principle' },
+      { id: 'schrodinger-equation', name: 'The Schrödinger equation: wells, steps and tunnelling' },
+      { id: 'atoms-x-rays', name: 'The Bohr atom, spectra and X-rays' },
+    ] },
+    { id: 'solid-state', name: 'Solid state physics and devices', topics: [
+      { id: 'crystal-structure', name: 'Crystal structure, lattices and Miller indices' },
+      { id: 'x-ray-diffraction', name: 'X-ray diffraction and Bragg\'s law' },
+      { id: 'semiconductors', name: 'Semiconductors and the Fermi level' },
+      { id: 'diodes', name: 'p-n junctions, diodes and Zener diodes' },
+    ] },
+    { id: 'electronics', name: 'Electronics', topics: [
+      { id: 'transistors', name: 'Transistors and amplifiers' },
+      { id: 'op-amps', name: 'Operational amplifiers' },
+      { id: 'digital-logic', name: 'Logic gates and Boolean algebra' },
+    ] },
+    { id: 'nuclear', name: 'Nuclear physics', topics: [
+      { id: 'nuclei-radioactivity', name: 'Nuclei, binding energy and radioactivity' },
+    ] },
   ],
 };
