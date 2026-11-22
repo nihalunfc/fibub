@@ -143,4 +143,4 @@ You are ready for electronics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="ensembles,partition-functions,classical-gas-equipartition,quantum-statistics,photon-phonon-gases,fermi-gas,phase-transitions,thermodynamic-potentials,second-law-entropy" data-exam="net" data-n="10"></div>
 
-**Next:** [electronics and experimental methods roadmap](/learn/courses/csir-net-physics/electronics-roadmap/).
+**Next:** the first lesson of this unit, [Fluctuations, diffusion and Brownian motion](/learn/courses/csir-net-physics/fluctuations-brownian/). Already strong in this unit? Skip ahead to the [electronics and experimental methods roadmap](/learn/courses/csir-net-physics/electronics-roadmap/).

@@ -145,4 +145,4 @@ You are ready for quantum mechanics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="boundary-value-problems,method-of-images,multipoles,fields-in-matter,potentials-gauges,em-waves-media,fresnel-equations,waveguides,radiation,covariant-electrodynamics" data-exam="net" data-n="10"></div>
 
-**Next:** [quantum mechanics roadmap](/learn/courses/csir-net-physics/quantum-roadmap/).
+**Next:** the first lesson of this unit, [Retarded and Liénard-Wiechert potentials](/learn/courses/csir-net-physics/retarded-potentials/). Already strong in this unit? Skip ahead to the [quantum mechanics roadmap](/learn/courses/csir-net-physics/quantum-roadmap/).

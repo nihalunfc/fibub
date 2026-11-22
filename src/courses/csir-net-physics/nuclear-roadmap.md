@@ -64,7 +64,6 @@ Described from the published syllabus (check the current one). All of it is **Pa
 6. **Relativistic kinematics**: GATE [four-vectors and relativistic kinematics](/learn/courses/gate-physics/relativistic-kinematics/) (thresholds and invariant mass).
 7. **NET extras in this course**: [lesson 10.2](/learn/courses/csir-net-physics/deuteron-nuclear-force/) (the deuteron and the nuclear force), [lesson 10.3](/learn/courses/csir-net-physics/collective-model/) (the collective model and nuclear deformation) and [lesson 10.4](/learn/courses/csir-net-physics/quark-model/) (isospin, strangeness and the quark model).
 
-Several GATE nuclear lessons are still being written; until they appear, use the JAM lessons, the practice sets and the textbooks in the sources.
 
 ## 3. Where each topic is taught
 
@@ -133,4 +132,4 @@ You are ready for full NET mocks when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="nuclei-radioactivity,nuclear-reactions,relativistic-kinematics,special-relativity" data-exam="net" data-n="10"></div>
 
-**Next:** you have the plan for every unit. Sit a full [mock test](/learn/courses/csir-net-physics/mock-test/), review it, and return to the roadmap of your weakest unit.
+**Next:** the first lesson of this unit, [The deuteron and the nuclear force](/learn/courses/csir-net-physics/deuteron-nuclear-force/).

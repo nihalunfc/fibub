@@ -71,7 +71,6 @@ Described from the published syllabus (check the current one):
 7. **Fine structure** (Part C): GATE [hydrogen spectra and fine structure](/learn/courses/gate-physics/fine-structure/).
 8. **NET extras in this course**: [lesson 5.2](/learn/courses/csir-net-physics/scattering-theory/) (scattering: Born approximation and partial waves) and [lesson 5.3](/learn/courses/csir-net-physics/relativistic-quantum/) (Klein-Gordon and Dirac equations).
 
-Some GATE quantum lessons in steps 4 to 6 are still being written; until they appear, the practice sets and the textbooks in the sources cover them.
 
 ## 3. Where each topic is taught
 
@@ -149,4 +148,4 @@ You are ready for statistical physics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="postulates-operators,commutators-uncertainty,one-dimensional-potentials,harmonic-oscillator,angular-momentum,schrodinger-equation,fine-structure,linear-vector-spaces" data-exam="net" data-n="10"></div>
 
-**Next:** [statistical physics roadmap](/learn/courses/csir-net-physics/stat-roadmap/).
+**Next:** the first lesson of this unit, [Scattering: Born approximation and partial waves](/learn/courses/csir-net-physics/scattering-theory/). Already strong in this unit? Skip ahead to the [statistical physics roadmap](/learn/courses/csir-net-physics/stat-roadmap/).

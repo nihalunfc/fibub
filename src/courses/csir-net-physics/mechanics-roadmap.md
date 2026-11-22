@@ -141,4 +141,4 @@ You are ready for electromagnetism when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="lagrangian-mechanics,hamiltonian-mechanics,poisson-brackets,central-force-scattering,normal-modes,rigid-body-dynamics,relativistic-kinematics,special-relativity" data-exam="net" data-n="10"></div>
 
-**Next:** [electromagnetic theory roadmap](/learn/courses/csir-net-physics/em-roadmap/).
+**Next:** the first lesson of this unit, [Canonical transformations and Hamilton-Jacobi theory](/learn/courses/csir-net-physics/hamilton-jacobi/). Already strong in this unit? Skip ahead to the [electromagnetic theory roadmap](/learn/courses/csir-net-physics/em-roadmap/).

@@ -137,4 +137,4 @@ You are ready for the Part C units when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="semiconductors,diodes,transistors,op-amps,digital-logic,circuits,probability,semiconductors-hall" data-exam="net" data-n="10"></div>
 
-**Next:** the Part C units begin with the [atomic and molecular physics roadmap](/learn/courses/csir-net-physics/atomic-roadmap/).
+**Next:** the first lesson of this unit, [Measurement, errors and fitting data](/learn/courses/csir-net-physics/errors-data-fitting/). Already strong in this unit? Skip ahead to the [atomic and molecular physics roadmap](/learn/courses/csir-net-physics/atomic-roadmap/).

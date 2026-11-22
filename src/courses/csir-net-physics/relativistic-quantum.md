@@ -181,4 +181,4 @@ NET Part C style, each with a full solution. More on the [CSIR NET Physics pract
 
 <div class="qbank" data-bank="physics" data-topics="relativistic-quantum" data-exam="net" data-n="10"></div>
 
-**Next:** the [statistical physics module](/learn/courses/csir-net-physics/stat-roadmap/) continues with [fluctuations, diffusion and Brownian motion](/learn/courses/csir-net-physics/fluctuations-brownian/). For the angular momentum algebra behind j = l ± ½, see [angular momentum](/learn/courses/gate-physics/angular-momentum/).
+**Next:** the statistical physics module starts with its [roadmap](/learn/courses/csir-net-physics/stat-roadmap/), then [fluctuations, diffusion and Brownian motion](/learn/courses/csir-net-physics/fluctuations-brownian/). For the angular momentum algebra behind j = l ± ½, see [angular momentum](/learn/courses/gate-physics/angular-momentum/).

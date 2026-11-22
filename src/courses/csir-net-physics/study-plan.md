@@ -78,7 +78,6 @@ For each unit, start with its roadmap lesson in this course (lessons [2.1](/lear
 | 25 | Revision | Write one page of formulas per unit from memory, then check | **mock 6**, review |
 | 26 | Final week | Light revision of your formula pages; rest the day before | two mocks early in the week, none in the last two days |
 
-Some lessons in this course and in GATE Physics are still being written. Where a row names a lesson without a link, study the same topic from the roadmap's list and come back when it is live.
 
 ## 3. A weekly routine
 

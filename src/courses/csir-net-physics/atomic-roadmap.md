@@ -136,4 +136,4 @@ You are ready for condensed matter when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="fine-structure,ls-jj-coupling,zeeman-stark,rotational-spectra,vibrational-spectra,raman,lasers,atoms-x-rays" data-exam="net" data-n="10"></div>
 
-**Next:** [condensed matter roadmap](/learn/courses/csir-net-physics/condensed-roadmap/).
+**Next:** the first lesson of this unit, [Magnetic resonance: ESR and NMR](/learn/courses/csir-net-physics/esr-nmr/). Already strong in this unit? Skip ahead to the [condensed matter roadmap](/learn/courses/csir-net-physics/condensed-roadmap/).

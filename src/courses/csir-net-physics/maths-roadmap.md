@@ -141,4 +141,4 @@ You are ready for mechanics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="linear-vector-spaces,matrices-eigenvalues,complex-analysis,residues,fourier-laplace-transforms,special-functions,partial-differential-equations,delta-greens-functions,tensors,probability" data-exam="net" data-n="10"></div>
 
-**Next:** [classical mechanics roadmap](/learn/courses/csir-net-physics/mechanics-roadmap/).
+**Next:** the first lesson of this unit, [Group theory for physicists](/learn/courses/csir-net-physics/group-theory/). Already strong in this unit? Skip ahead to the [classical mechanics roadmap](/learn/courses/csir-net-physics/mechanics-roadmap/).

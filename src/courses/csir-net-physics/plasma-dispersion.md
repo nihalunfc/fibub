@@ -162,4 +162,4 @@ NET Part C style, each with a full solution. More on the [CSIR NET Physics pract
 
 <div class="qbank" data-bank="physics" data-topics="plasma-dispersion" data-exam="net" data-n="10"></div>
 
-**Next:** the [quantum mechanics module](/learn/courses/csir-net-physics/quantum-roadmap/) begins with [scattering theory](/learn/courses/csir-net-physics/scattering-theory/). Back to [retarded and Liénard-Wiechert potentials](/learn/courses/csir-net-physics/retarded-potentials/) for the radiation of a single shaken electron.
+**Next:** the quantum mechanics module starts with its [roadmap](/learn/courses/csir-net-physics/quantum-roadmap/), then [scattering theory](/learn/courses/csir-net-physics/scattering-theory/). Back to [retarded and Liénard-Wiechert potentials](/learn/courses/csir-net-physics/retarded-potentials/) for the radiation of a single shaken electron.

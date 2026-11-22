@@ -139,4 +139,4 @@ You are ready for nuclear physics when you can, without notes:
 
 <div class="qbank" data-bank="physics" data-topics="reciprocal-lattice,structure-factor,bonding,phonons,heat-capacity,free-electron-model,band-theory,semiconductors-hall,magnetism,superconductivity" data-exam="net" data-n="10"></div>
 
-**Next:** [nuclear and particle physics roadmap](/learn/courses/csir-net-physics/nuclear-roadmap/).
+**Next:** the first lesson of this unit, [Defects and dislocations](/learn/courses/csir-net-physics/defects-dislocations/). Already strong in this unit? Skip ahead to the [nuclear and particle physics roadmap](/learn/courses/csir-net-physics/nuclear-roadmap/).
