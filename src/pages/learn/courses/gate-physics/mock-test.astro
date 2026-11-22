@@ -1,0 +1,5 @@
+---
+import ExamMock from '../../../../components/qbank/ExamMock.astro';
+import { GATE_PHYSICS, GATE_BANK } from '../../../../courses/gate-physics/syllabus';
+---
+<ExamMock course={GATE_PHYSICS} {...GATE_BANK} marking="MCQ: +1 or +2 for right, minus one third of the marks for wrong. MSQ and NAT: no negative marks and no partial credit. Unanswered: 0. Only the 85-mark physics part is simulated (no general aptitude)." />

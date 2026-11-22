@@ -1,0 +1,18 @@
+---
+import ExamPracticeTopic from '../../../../../components/qbank/ExamPracticeTopic.astro';
+import { JAM_PHYSICS, JAM_BANK } from '../../../../../courses/iit-jam-physics/syllabus';
+import { bankCounts } from '../../../../../lib/qbank/build';
+import { courseLessons } from '../../../../../lib/course';
+import { flatLessons } from '../../../../../courses/types';
+export async function getStaticPaths() {
+  const { idx, topics } = await bankCounts(JAM_BANK.bank);
+  const live = await courseLessons(JAM_PHYSICS);
+  const lessons = flatLessons(JAM_PHYSICS).filter((l) => live.has(l.slug));
+  return idx.units.flatMap((u) => u.topics.filter((t) => (topics[t.id]?.exams['jam'] ?? 0) > 0).map((t) => ({
+    params: { topic: t.id },
+    props: { topic: t, unit: u.name, count: topics[t.id].exams['jam'], lesson: lessons.find((l) => l.slug === t.id) },
+  })));
+}
+const { topic, unit, count, lesson } = Astro.props as any;
+---
+<ExamPracticeTopic course={JAM_PHYSICS} {...JAM_BANK} topic={topic} unit={unit} count={count} lesson={lesson} />

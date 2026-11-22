@@ -10,6 +10,7 @@ const curModule = course.parts.flatMap((p) => p.modules).find((m) => m.lessons.s
   <summary>All lessons</summary>
   <nav aria-label={`${course.name} lessons`}>
     <a class="cs-home" href={`/learn/courses/${course.id}/`}>{course.name}: course home</a>
+    {course.extras?.map((x) => <a class="cs-home" href={x.href}>{x.label}</a>)}
     {course.parts.map((p) => <>
       <p class="cs-part">{p.name}</p>
       {p.modules.map((m) => (

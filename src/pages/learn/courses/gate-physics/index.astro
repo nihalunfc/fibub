@@ -1,0 +1,9 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import ExamCourseIntro from '../../../../components/qbank/ExamCourseIntro.astro';
+import { GATE_PHYSICS, GATE_BANK } from '../../../../courses/gate-physics/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={GATE_PHYSICS}>
+  <ExamCourseIntro course={GATE_PHYSICS} {...GATE_BANK} />
+</CourseHome>

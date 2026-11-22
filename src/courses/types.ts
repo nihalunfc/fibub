@@ -14,6 +14,8 @@ export type CourseSyllabus = {
   // and a printable summary sheet. Figures are JS modules in public/learn-kit/<id>/figs/<name>.js, problems in
   // public/learn-kit/<id>/problems.js; the course's pages import src/styles/lesson-kit.css.
   kit?: boolean;
+  // Extra pages listed under "course home" in the side list (e.g. practice questions and mock tests of exam courses).
+  extras?: { href: string; label: string }[];
   parts: { name: string; modules: CourseModule[] }[];
 };
 
