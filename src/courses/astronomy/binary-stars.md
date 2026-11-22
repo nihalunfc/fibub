@@ -21,7 +21,9 @@ sources:
   - "Sirius A-B orbit (rounded) from published orbit solutions; values used in words only"
 ---
 
-**Module 3 · about 25 minutes · Kepler's third law.** You'll be able to name the kinds of binary star, find a pair's total mass from its orbit, and split it using their speeds.
+**Module 3 · about 25 minutes · read first: [2.2 Newton's gravity and orbital speed](/learn/courses/astronomy/newtons-gravity/), [1.4 The Doppler shift](/learn/courses/astronomy/doppler-shift/) · maths: Kepler's third law.** You'll be able to name the kinds of binary star, find a pair's total mass from its orbit, and split it using their speeds.
+
+<div class="bigidea">Most stars have a partner; two stars circle their shared centre of mass, Kepler's third law turns the size and period of their orbit into their total mass, and their speeds split it between them.</div>
 
 ## 1. Why this matters
 
@@ -40,6 +42,16 @@ Things to notice:
 - The heavier star swings in a smaller circle and moves more slowly.
 - The two velocity curves are mirror images; the ratio of their heights is the inverse of the mass ratio.
 - Closer pairs orbit faster: shrink the separation and watch the period drop.
+
+Weigh a pair of stars:
+
+<div class="steps">
+<div class="step"><b>Two stars, one balance point.</b> They orbit a common centre of mass, like children on a seesaw: the heavier one sits closer to the middle.</div>
+<div class="step"><b>Measure the orbit.</b> Over years, the stars trace an ellipse. Say the orbit's size is a = 20 AU and one lap takes P = 50 years.</div>
+<div class="step"><b>Kepler's third law.</b> M<sub>A</sub> + M<sub>B</sub> = a³/P² = 8,000/2,500 = 3.2 Suns in total.</div>
+<div class="step"><b>Split it.</b> Doppler shifts show star A moving at 10 km/s and star B at 22 km/s. Speeds are in inverse ratio to mass, so A is 2.2 times heavier.</div>
+<div class="step"><b>Answer.</b> M<sub>A</sub> = 2.2 Suns and M<sub>B</sub> = 1.0 Sun. This is how almost every star mass is known.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -63,6 +75,24 @@ M_A + M_B = \frac{a^3}{P^2}
 
 Each star pulls the other, so neither stays still: they balance like two children on a seesaw, the heavier one sitting closer to the middle. Gravity needs a certain amount of mass to keep a pair of a given size going round in a given time; that is all Kepler's law says. Measuring the size and the time therefore weighs the pair, and the seesaw balance tells you how the weight is shared.
 
+
+<div class="meaning">
+
+<dl>
+<dt>M<sub>A</sub> + M<sub>B</sub> = a³/P²</dt><dd>Total mass in Suns from the orbit size (AU) and period (years).</dd>
+<dt>M<sub>A</sub>/M<sub>B</sub> = v<sub>B</sub>/v<sub>A</sub></dt><dd>The heavier star moves slower and stays nearer the centre of mass.</dd>
+<dt>a = α d</dt><dd>Orbit size in AU from its angle α (arcseconds) and distance d (parsecs).</dd>
+<dt>Physical meaning</dt><dd>It is a dance where a heavy partner and a light one hold hands and spin: the heavy one barely moves while the light one swings wide. Watching how they swing tells you how heavy each is, which is the only direct way to weigh a star.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"In a binary, the small star goes round the big one."** Both stars orbit their shared centre of mass. Even the Sun wobbles around a point near its surface because of Jupiter.
+
+</div>
+
 ## 4. Worked example
 
 *Sirius B orbits Sirius A in 50.1 years. The orbit's size appears as 7.5″ at a distance of 2.64 pc. Weigh the pair.*
@@ -75,6 +105,10 @@ Sirius A's orbit around the centre of mass is about half the size of B's, so `$M
 
 ## 5. Practice
 
+<div class="problem" data-problem="binary-mass"></div>
+
+**More practice** (answers below):
+
 1. Two stars orbit each other with a = 10 AU in 20 years. What is their total mass?
 2. In a spectroscopic binary, star A moves at 30 km/s and star B at 60 km/s. Which is heavier, and by how much?
 3. Why can't a single spectroscopic binary usually give each star's exact mass?
@@ -86,6 +120,15 @@ Sirius A's orbit around the centre of mass is about half the size of B's, so `$M
 2. A is twice as heavy as B (it moves half as fast).
 3. We don't know the tilt of the orbit, so we only measure part of the speed. Eclipses fix the tilt.
 </details>
+
+<div class="keypoints">
+
+- Most stars are in binaries or larger groups.
+- Total mass: M<sub>A</sub> + M<sub>B</sub> = a³/P² (AU, years, Suns).
+- Mass ratio from speeds or distances to the centre of mass.
+- Binaries are how star masses are measured directly.
+
+</div>
 
 **Try it with real numbers:** measure pairs with the [[double-star-calculator]], and fit velocity curves with the [[radial-velocity-fitter]].
 

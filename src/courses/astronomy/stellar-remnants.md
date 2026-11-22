@@ -21,7 +21,9 @@ sources:
   - "Chandrasekhar, S. (1931), ApJ 74, 81 (white dwarf mass limit)"
 ---
 
-**Module 3 · about 25 minutes · density and the Schwarzschild radius.** You'll be able to tell the three kinds of dead star apart, explain which star ends up as which, and work out their sizes and densities.
+**Module 3 · about 25 minutes · read first: [3.3 How stars shine and age](/learn/courses/astronomy/how-stars-shine/), [2.2 Newton's gravity and orbital speed](/learn/courses/astronomy/newtons-gravity/) · maths: density and the Schwarzschild radius.** You'll be able to tell the three kinds of dead star apart, explain which star ends up as which, and work out their sizes and densities.
+
+<div class="bigidea">When fusion stops, a star's core collapses until something can hold it up: light cores become Earth-sized white dwarfs, heavier ones city-sized neutron stars after a supernova, and the heaviest black holes.</div>
 
 ## 1. Why this matters
 
@@ -43,6 +45,16 @@ Things to notice:
 - Jumping from white dwarf to neutron star shrinks the size by about 500 times.
 - A black hole's horizon grows in step with its mass.
 
+Follow three cores as their fuel runs out:
+
+<div class="steps">
+<div class="step"><b>Fusion ends.</b> Without its heat, gravity wins and the core starts to shrink.</div>
+<div class="step"><b>Sun-like star.</b> The core stops at about Earth's size, held up by electrons that refuse to be squeezed closer (degeneracy pressure). A white dwarf: a teaspoon weighs tonnes.</div>
+<div class="step"><b>Heavier core, over 1.4 Suns.</b> Electrons cannot hold it. In a split second electrons and protons merge into neutrons. The collapse stops at about 20 km wide and the rebound blows the star apart: a supernova.</div>
+<div class="step"><b>A neutron star.</b> More mass than the Sun in a ball the size of a city, often spinning many times a second: a pulsar.</div>
+<div class="step"><b>The heaviest cores.</b> Nothing can stop the collapse. A black hole forms, with an event horizon of radius 2GM/c², about 3 km per solar mass.</div>
+</div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -63,6 +75,24 @@ It comes from asking where the escape speed `$\sqrt{2GM/r}$` (Lesson 2.2) reache
 
 The pressure that holds up white dwarfs and neutron stars is not heat but a quantum rule: two electrons (or two neutrons) can't occupy the same state, so packing them closer forces them to move faster, which pushes back. This pressure has a limit. Past it, the particles would need to move faster than light, so gravity wins. A black hole isn't a cosmic vacuum cleaner; from far away its gravity is the same as any object of the same mass. Only very close does it become a point of no return.
 
+
+<div class="meaning">
+
+<dl>
+<dt>M<sub>Ch</sub> ≈ 1.4 M☉</dt><dd>Chandrasekhar limit: the heaviest a white dwarf can be.</dd>
+<dt>ρ = M / (4/3 πR³)</dt><dd>Density of the remnant.</dd>
+<dt>R<sub>s</sub> = 2GM/c²</dt><dd>Event-horizon radius: where the escape speed reaches the speed of light.</dd>
+<dt>Physical meaning</dt><dd>Each remnant is gravity fighting a different wall. For white dwarfs the wall is electrons crowding together; for neutron stars it is neutrons crowding; for black holes no wall is strong enough. The event horizon is not a surface, just the distance inside which not even light can climb out.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Black holes suck everything in like a vacuum cleaner."** From far away a black hole pulls exactly like any star of the same mass. If the Sun became a black hole of the same mass, Earth would keep orbiting just as it does now (though it would be very dark and cold).
+
+</div>
+
 ## 4. Worked example
 
 *A neutron star has 1.4 solar masses and a radius of 12 km. How dense is it, and how big would the same mass be as a black hole?*
@@ -75,6 +105,10 @@ A teaspoon would weigh about 2 billion tonnes, like the nucleus of an atom scale
 
 ## 5. Practice
 
+<div class="problem" data-problem="schwarzschild-radius"></div>
+
+**More practice** (answers below):
+
 1. What is the Schwarzschild radius of Earth (`$6\times10^{24}$` kg)?
 2. The black hole at the centre of the Milky Way has about 4 million solar masses. How big is its event horizon, compared with Mercury's orbit (58 million km)?
 3. Why does the Sun not become a neutron star?
@@ -86,6 +120,15 @@ A teaspoon would weigh about 2 billion tonnes, like the nucleus of an atom scale
 2. `$2.95\times4\times10^6 = 1.2\times10^7$` km, about a fifth of Mercury's orbit.
 3. Its leftover core will be only about 0.5 to 0.6 solar masses, well under the Chandrasekhar limit, so electron pressure can hold it up as a white dwarf.
 </details>
+
+<div class="keypoints">
+
+- White dwarfs: Earth-sized, held up by electrons, at most about 1.4 M☉.
+- Neutron stars: about 20 km wide, born in supernovae; many are pulsars.
+- Black holes form when no pressure can stop collapse; R<sub>s</sub> ≈ 2.95 km × M/M☉.
+- Supernovae spread heavy elements into space for new stars and planets.
+
+</div>
 
 **Try it with real numbers:** follow a star's life on the [[hr-diagram]], and see how gravity from a heavy star bends spacecraft paths with the [[orbit-transfer-calculator]].
 

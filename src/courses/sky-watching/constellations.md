@@ -21,7 +21,9 @@ sources:
   - "Star positions: Yale Bright Star Catalogue, 5th revised edition (Hoffleit and Warren 1991), via NASA HEASARC"
 ---
 
-**Module 1 · about 25 minutes · no maths needed.** You'll be able to name a few key constellations, read an all-sky chart, and use star-hopping to find fainter objects.
+**Module 1 · about 25 minutes · read first: [1.1 The celestial sphere: a map painted on a dome](/learn/courses/sky-watching/celestial-sphere/), [1.2 Why the sky turns: daily motion and circumpolar stars](/learn/courses/sky-watching/turning-sky/) · maths: no maths needed.** You'll be able to name a few key constellations, read an all-sky chart, and use star-hopping to find fainter objects.
+
+<div class="bigidea">The sky is divided into 88 official constellations with exact borders; learn a few bright patterns, measure angles with your hand, and star-hop from what you know to what you want.</div>
 
 ## 1. Why this matters
 
@@ -53,6 +55,24 @@ Things to notice:
 - Orion is a winter evening constellation (sidereal time around 5 to 6 h); the Summer Triangle owns summer evenings (around 19 to 20 h).
 - Slide to 30° S to see the Southern Cross, which never rises from most of Europe, Canada and the northern United States.
 
+
+<div class="meaning">
+
+<dl>
+<dt>Constellation</dt><dd>One of 88 areas of the sky with official IAU borders.</dd>
+<dt>Asterism</dt><dd>A pattern that is not an official constellation, like the Big Dipper.</dd>
+<dt>Fist ≈ 10°</dt><dd>Hand measures at arm's length: finger 1°, three fingers 5°, spread hand 20°.</dd>
+<dt>Physical meaning</dt><dd>Stars in a constellation are usually not near each other at all; they just lie in the same direction from Earth, at very different distances. A constellation is a direction, like a postcode for the sky, not a group of neighbours.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"There are 12 constellations of the zodiac and they rule the year."** The Sun's path crosses 13 constellations (including Ophiuchus), with very unequal time in each. Constellations are just areas for mapping the sky; astrology has no scientific basis.
+
+</div>
+
 ## 4. Star-hopping
 
 Use bright patterns as signposts:
@@ -60,6 +80,16 @@ Use bright patterns as signposts:
 - **The Pointers:** the two stars at the end of the Big Dipper's bowl (Merak and Dubhe) point at Polaris, about five times their separation away.
 - **Arc to Arcturus, speed on to Spica:** follow the curve of the Dipper's handle to orange Arcturus, then continue to Spica.
 - **Orion's Belt** points down-left to Sirius, the brightest star in the night sky, and up-right to Aldebaran.
+
+Star-hop from the Big Dipper to two new stars:
+
+<div class="steps">
+<div class="step"><b>Start with what you know.</b> Find the Big Dipper, seven bright stars in Ursa Major.</div>
+<div class="step"><b>Follow the pointers.</b> The two stars at the end of the bowl are 5° apart (three fingers). Go about five times that distance from them, roughly 28°.</div>
+<div class="step"><b>Arrive at Polaris.</b> A medium-bright star on its own: the north celestial pole.</div>
+<div class="step"><b>Arc to Arcturus.</b> Follow the curve of the Dipper's handle about 30° (three fists): the bright orange star Arcturus.</div>
+<div class="step"><b>Speed on to Spica.</b> Continue the same curve another 30° to blue-white Spica. Three new stars from one pattern.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -94,6 +124,10 @@ so `$\theta = 28.7^\circ$`: about five Pointer-lengths, or three fists. (The rig
 
 ## 6. Practice
 
+<div class="problem" data-problem="hand-angle"></div>
+
+**More practice** (answers below):
+
 1. Which is bigger in the sky: the Big Dipper's bowl (Pointers 5.4° apart) or your fist at arm's length?
 2. You face south and hold a chart overhead. Which edge of the chart should be at the bottom?
 3. Why can't the IAU borders be drawn as constellation stick figures?
@@ -105,6 +139,15 @@ so `$\theta = 28.7^\circ$`: about five Pointer-lengths, or three fists. (The rig
 2. The S edge.
 3. Because borders must cover every point of the sky with no gaps, while stick figures only join a few bright stars.
 </details>
+
+<div class="keypoints">
+
+- 88 official constellations cover the whole sky with exact borders.
+- Asterisms like the Big Dipper are handy signposts.
+- Hand at arm's length: finger 1°, three fingers 5°, fist 10°, spread hand 20°.
+- Star-hop from bright, known patterns to fainter targets.
+
+</div>
 
 **Try it on the real sky:** see the constellations above your town tonight with [[sky-tonight]], and plan a full night's target list with the [[observing-session]] planner.
 

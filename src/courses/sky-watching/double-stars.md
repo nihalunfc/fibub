@@ -20,7 +20,9 @@ sources:
   - "Washington Double Star Catalog, US Naval Observatory: the standard catalogue of double star measurements"
 ---
 
-**Module 5 · about 20 minutes · angles.** You'll be able to describe a double star by separation and position angle, judge whether your telescope can split it, and explain how measurements lead to stellar masses.
+**Module 5 · about 20 minutes · read first: [4.4 Resolution, the Dawson limit and the atmosphere](/learn/courses/sky-watching/resolution/), [2.2 Right ascension and declination: the sky's latitude and longitude](/learn/courses/sky-watching/right-ascension-declination/) · maths: angles.** You'll be able to describe a double star by separation and position angle, judge whether your telescope can split it, and explain how measurements lead to stellar masses.
+
+<div class="bigidea">About half of Sun-like stars have companions; double stars test your telescope and your seeing, and measuring their separation and position angle over years reveals their orbits and masses.</div>
 
 ## 1. Why this matters
 
@@ -44,12 +46,40 @@ Things to notice:
 
 Some pairs only line up by chance: an **optical double**, two stars at very different distances. Most close pairs, though, are **binaries**: stars orbiting their common centre of mass. Over decades their PA and separation change. A long run of measurements traces the orbit as an ellipse on the sky.
 
+
+<div class="meaning">
+
+<dl>
+<dt>ρ</dt><dd>Separation in arcseconds.</dd>
+<dt>θ (PA)</dt><dd>Position angle: direction from north through east.</dd>
+<dt>M₁ + M₂ = (a″/p″)³ / P²</dt><dd>Total mass from the orbit size, parallax and period.</dd>
+<dt>Physical meaning</dt><dd>A visual binary is a slow clock. Its hands, the two stars, turn over decades or centuries, and the size and speed of their dance reveal how hard they pull on each other, which means how massive they are.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"All double stars are pairs in orbit."** Some are optical doubles: two unrelated stars that happen to lie in the same direction at very different distances. Only measurements over time, or matching distances and motions, show a true binary.
+
+</div>
+
 ## 4. Tips for splitting doubles
 
 - Use high power: at least `$120''/\rho$` (to make the gap about 2′ to your eye), often double that.
 - Wait for steady seeing; watch for moments when the air settles.
 - Let the telescope cool; a warm mirror blurs everything.
 - For unequal pairs, block glare by putting the bright star just outside the field or use a higher power.
+
+Measure and weigh a binary star:
+
+<div class="steps">
+<div class="step"><b>Separation, ρ.</b> The angle between the two stars, say 2.5″.</div>
+<div class="step"><b>Position angle, θ.</b> The direction of the fainter star from the brighter, measured from north through east: say 150°.</div>
+<div class="step"><b>Years later.</b> Repeat the measurement. ρ and θ change as the stars orbit each other. Plot them and an ellipse emerges.</div>
+<div class="step"><b>Convert to AU.</b> If the orbit's semi-major axis is 4.0″ and the parallax is 0.2″, the orbit is 4.0/0.2 = 20 AU across in size.</div>
+<div class="step"><b>Weigh them.</b> With a period of 60 years: M = 20³/60² = 2.2 Suns in total.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -80,6 +110,10 @@ because `$a''/p''$` is the semi-major axis in astronomical units.
 
 ## 6. Practice
 
+<div class="problem" data-problem="double-mass"></div>
+
+**More practice** (answers below):
+
 1. A companion is due west of the primary. What is the PA?
 2. What minimum magnification makes a 1.5″ pair look about 2′ apart?
 3. Why does a binary star's PA change over the years while an optical double's hardly does?
@@ -91,6 +125,15 @@ because `$a''/p''$` is the semi-major axis in astronomical units.
 2. `$120/1.5 = 80\times$`.
 3. The binary's stars orbit each other; an optical double's stars are unrelated and change only through their slow, separate motions across the sky.
 </details>
+
+<div class="keypoints">
+
+- Doubles are described by separation ρ and position angle θ.
+- True binaries orbit; optical doubles only line up.
+- Orbit size in AU = a″ / parallax″.
+- Kepler's third law gives the total mass: (a″/p″)³ / P².
+
+</div>
 
 **Try it with real numbers:** work out separation, PA, and orbit-based masses with the [[double-star-calculator]].
 
