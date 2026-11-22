@@ -47,6 +47,10 @@ h\nu = g\mu_BB_0 \ \ (\text{electrons}), \qquad \nu = \frac{\gamma}{2\pi}B_0 \ \
 
 The electron resonates 658 times higher than the proton in the same field. Nuclei with even proton and neutron numbers (¹²C, ¹⁶O) have `$I = 0$` and are invisible.
 
+In free precession change B and the tilt; then switch to the RF pulse view, set 90° and press Pulse.
+
+<figure class="fig" data-fig="@qm-spin-bloch"><figcaption>Precession keeps the angle to B and runs at ω = γB. In the rotating frame a pulse simply tips the spin away from z, and the coil signal (largest after 90°) dies away as the spins dephase.</figcaption></figure>
+
 **Populations.** For spin ½ the fractional excess is `$\tanh(h\nu/2k_BT) \approx h\nu/2k_BT$`: 32 ppm for protons at 400 MHz and 300 K, about `$8\times10^{-4}$` for electrons at X-band. This tiny excess is the whole NMR signal; the equilibrium magnetisation is `$M_0 = N\gamma^2\hbar^2I(I+1)B_0/3k_BT$` (Curie's law), 3 mA/m for water in 1 T.
 
 <figure class="fig" data-fig="larmor-resonance"><figcaption>Left: a moment precessing about B₀ (the cone angle does not change the rate). Right: the resonance line, a Lorentzian of full width 1/(πT₂), with the RF frequency as a marker. Choose the spin and the field to see where it resonates.</figcaption></figure>

@@ -89,6 +89,10 @@ Q_{\beta^-} = [M(Z, A) - M(Z+1, A)]c^2, \quad Q_{\beta^+} = [M(Z, A) - M(Z-1, A)
 
 The `$2m_e$` in `$\beta^+$` is why some proton-rich nuclei can only decay by electron capture: they need at least 1.022 MeV of mass difference to emit a positron.
 
+Click cells in the three regions, or pick an example such as C-14 or U-238.
+
+<figure class="fig" data-fig="@qm-nuclide-chart"><figcaption>The stable band bends away from N = Z because of proton repulsion. Colours show the predicted decay, and the dashed lines mark the magic numbers the plain formula cannot explain.</figcaption></figure>
+
 <div class="problem" data-problem="semf-most-stable"></div>
 
 ## 4. Fission and the limits of stability
@@ -106,6 +110,10 @@ E_C^{(0)} > 2E_S^{(0)} \iff \frac{Z^2}{A} > \frac{2a_S}{a_C} \approx 51
 ```
 
 Uranium (`$Z^2/A = 35.9$` for `$^{236}$`U) is well below this limit: its fission barrier is about 6 MeV. Capturing a slow neutron adds `$S_n \approx 6.5$` MeV to `$^{236}$`U, enough to go over the barrier; `$^{238}$`U capturing a neutron gets only 4.8 MeV (odd N, no pairing bonus), which is why `$^{235}$`U is the fissile isotope.
+
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-fission-steps"><div class="step">A slow neutron approaches U-235 and is absorbed.</div><div class="step">U-236 forms in an excited state and starts to wobble like a charged liquid drop.</div><div class="step">The drop stretches into a peanut: surface tension pulls back, Coulomb repulsion pushes out.</div><div class="step">Past the fission barrier the neck thins out.</div><div class="step">Scission: the neck snaps and two fragments form.</div><div class="step">The fragments fly apart and 2 to 3 prompt neutrons escape to carry on the chain.</div><div class="step">Energy tally: about 200 MeV per fission, mostly fragment motion.</div></div>
 
 **Worked example.** `$^{236}$`U `$\to$` 2 `$^{118}$`Pd from the formula: surface `$2\times440.3 - 698.9 = +181.7$` MeV cost, Coulomb `$967.3 - 2\times301.3 = 364.6$` MeV gained, asymmetry unchanged, pairing `$+1.4$`. Net `$Q \approx 184$` MeV, close to the 200 MeV measured for real (asymmetric) fission, most of it as kinetic energy of the fragments.
 

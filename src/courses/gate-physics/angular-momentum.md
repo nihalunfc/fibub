@@ -37,6 +37,10 @@ With `$\vec L = \vec r\times\vec p$` and `$[x_i, p_j] = i\hbar\delta_{ij}$` (fro
 
 Also `$[L_z, x] = i\hbar y$`, `$[L_z, y] = -i\hbar x$`, `$[L_z, z] = 0$`: `$L_z$` rotates vectors about `$z$`. `$\vec L$` commutes with `$r^2$`, `$p^2$` and any `$V(r)$`, so for a **central potential** `$H$`, `$L^2$` and `$L_z$` form a commuting set and share eigenstates `$|n, l, m\rangle$`.
 
+In free precession change B and the tilt; then switch to the RF pulse view, set 90° and press Pulse.
+
+<figure class="fig" data-fig="@qm-spin-bloch"><figcaption>Precession keeps the angle to B and runs at ω = γB. In the rotating frame a pulse simply tips the spin away from z, and the coil signal (largest after 90°) dies away as the spins dephase.</figcaption></figure>
+
 In spherical coordinates `$\hat L_z = -i\hbar\,\partial/\partial\phi$` and `$\hat L^2 = -\hbar^2\left[\dfrac{1}{\sin\theta}\dfrac{\partial}{\partial\theta}\left(\sin\theta\dfrac{\partial}{\partial\theta}\right) + \dfrac{1}{\sin^2\theta}\dfrac{\partial^2}{\partial\phi^2}\right]$`, the angular part of `$-\hbar^2r^2\nabla^2$`.
 
 The uncertainty relation gives `$\Delta L_x\Delta L_y \ge \tfrac{\hbar}{2}|\langle L_z\rangle|$`. All three components can be sharp together only when `$l = 0$`.
@@ -53,6 +57,10 @@ Watch the spectrum come out.
 
 <div class="steps">
 <div class="step">
+
+Pick l, s, j and m_j, switch the field on and off, and drag the picture to turn it.
+
+<figure class="fig" data-fig="@qm-vector-model"><figcaption>L and S circle quickly about J while J circles slowly about B. Only the lengths √(x(x+1)) and the z-component m_j are fixed, and g_J sets the Zeeman splitting.</figcaption></figure>
 
 **Common eigenstates.** Let `$L^2|\lambda, m\rangle = \lambda\hbar^2|\lambda, m\rangle$` and `$L_z|\lambda, m\rangle = m\hbar|\lambda, m\rangle$`.
 
@@ -109,6 +117,10 @@ L_z = \hbar\begin{pmatrix}1&0&0\\0&0&0\\0&0&-1\end{pmatrix}, \quad L_x = \frac{\
 
 `$L_x$` has the same eigenvalues `$\hbar, 0, -\hbar$` as `$L_z$`, with eigenvectors `$(\tfrac12, \tfrac{1}{\sqrt2}, \tfrac12)$`, `$(1, 0, -1)/\sqrt2$` and `$(\tfrac12, -\tfrac{1}{\sqrt2}, \tfrac12)$`.
 
+Press Play with silver atoms, then try classical magnets, an l = 1 atom and j = 3/2.
+
+<figure class="fig" data-fig="@qm-stern-gerlach"><figcaption>Real atoms land only in 2j + 1 spots where classical magnets would smear into a band; the spots move apart as the field gradient grows.</figcaption></figure>
+
 **Worked example.** A particle is in `$|1,1\rangle$`. Measure `$L_x$`, then `$L_z$`.
 
 1. `$P(L_x = \hbar) = |\tfrac12|^2 = \tfrac14$`, `$P(0) = \tfrac12$`, `$P(-\hbar) = \tfrac14$`: average zero, as it must be in any `$|l, m\rangle$`.
@@ -136,6 +148,10 @@ Y_{20} = \sqrt{\frac{5}{16\pi}}(3\cos^2\theta - 1), \qquad Y_{2,\pm2} \propto \s
 <figure class="fig" data-fig="angular-cones"><figcaption>Choose l and m. The vector model shows L of length √(l(l+1)) ħ on its cone at height mħ (never along the axis); the polar plot shows |Y_lm|² in the xz-plane, the same for every φ. Notice m = ±l crowding towards the equator and m = 0 lobes along z.</figcaption></figure>
 
 The [Hydrogen orbital viewer](/science/hydrogen-orbitals/) draws these angular shapes in 3D, multiplied by the radial functions of hydrogen.
+
+Click through 1s, 2s, 2p, 3s, 3p and the 3d shapes, and flip between density and sign, vertical and flat slices.
+
+<figure class="fig" data-fig="@qm-orbital-slices"><figcaption>Count the rings (radial nodes, n − l − 1) and the flat nodal planes (l). Neighbouring lobes of a p or d orbital have opposite sign, drawn in the two colours.</figcaption></figure>
 
 ## 5. Rotors and rotations
 

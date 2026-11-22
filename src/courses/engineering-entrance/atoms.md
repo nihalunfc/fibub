@@ -30,6 +30,10 @@ sources:
 
 Alpha particles fired at thin gold foil mostly went straight through, a few bent a lot, and about 1 in 8000 bounced back. Thomson's spread-out "plum pudding" atom could not turn an alpha particle back. Rutherford concluded that all the positive charge and nearly all the mass sit in a **nucleus** about 10⁻¹⁵ to 10⁻¹⁴ m across, inside an atom about 10⁻¹⁰ m across.
 
+Move the impact parameter, then switch on the whole beam and change the target and the energy.
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>A small impact parameter means a large deflection, and only an almost head-on α comes straight back. The counts fall as 1/sin⁴(θ/2).</figcaption></figure>
+
 - **Distance of closest approach** (head-on): all kinetic energy becomes potential energy, `$r_0 = \dfrac{k(2e)(Ze)}{K}$`. With ke² = 1.44 MeV fm, `$r_0 = \dfrac{2.88Z}{K\,(\text{MeV})}$` fm.
 - **Impact parameter** b (how far off-centre the alpha aims) sets the scattering angle θ: `$b = \dfrac{kZe^2\cot(\theta/2)}{K}$`. Head-on (b = 0) gives θ = 180°.
 - The number scattered at angle θ falls steeply, as `$\dfrac{1}{\sin^4(\theta/2)}$`.
@@ -70,6 +74,10 @@ Combining postulate 2 with the Coulomb force as the centripetal force gives, for
 **"An electron in a higher orbit has more kinetic energy."** It has less. Total energy rises (becomes less negative) with n, but kinetic energy, 13.6Z²/n² eV, falls. Only the potential energy rises, by twice as much.
 
 </div>
+
+Bohr's rule L = nħ has a wave meaning. Pick n = 1 to 6 and count the wavelengths round the orbit, then switch to 'Any wavelength' and drag to a fraction.
+
+<figure class="fig" data-fig="@qm-bohr-standing"><figcaption>Only a whole number of wavelengths closes up on itself, which is the same as L = nħ. Between the whole numbers the wave cancels itself and no orbit survives.</figcaption></figure>
 
 ## 3. Spectral series
 

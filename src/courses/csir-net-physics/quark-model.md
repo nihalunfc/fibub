@@ -103,6 +103,10 @@ With three quark flavours, the symmetry group is SU(3). The quark triplet **3** 
 
 <figure class="fig" data-fig="baryon-weights"><figcaption>SU(3) weight diagrams with I₃ across and Y = B + S up: the baryon octet, the baryon decuplet with the Ω⁻ at the bottom corner, and the pseudoscalar mesons. Label the points by name, quark content, charge or strangeness. Dashed diagonals join states of equal charge, as Q = I₃ + Y/2 requires.</figcaption></figure>
 
+Switch between octet, decuplet and mesons and click a particle for its quarks.
+
+<figure class="fig" data-fig="@qm-eightfold-way"><figcaption>Each pattern comes from combining u, d and s quarks. Lines of equal charge run diagonally (Q = I₃ + Y/2), and the decuplet's equal mass steps predicted the Ω⁻.</figcaption></figure>
+
 ### Mass rules and the Ω⁻
 
 SU(3) is broken because `$m_s$` exceeds `$m_u \approx m_d$` by about 100 to 150 MeV. To first order, the mass splitting goes like `$M = a + bY + c[I(I+1) - Y^2/4]$` (Gell-Mann–Okubo). For the baryon octet this gives

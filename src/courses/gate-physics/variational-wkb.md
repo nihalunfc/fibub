@@ -125,6 +125,10 @@ In a region where `$E > V$`, write `$p(x) = \sqrt{2m(E - V(x))}$`. If `$V$` were
 
 with `$\kappa = \sqrt{2m(V - E)}/\hbar$`. The amplitude `$1/\sqrt p$` is classical: `$|\psi|^2 \propto 1/v$`, the particle is found more often where it moves slowly. The approximation needs the de Broglie wavelength to change little over one wavelength, `$|d\lambda/dx| \ll 1$`, which fails at turning points where `$p = 0$`. There, the connection formulas (from the exact Airy-function solution of a linear potential) join the two sides and fix a phase of `$\pi/4$` at each smooth turning point.
 
+Slide n from 0 up to 30 and switch between the density and ψ itself.
+
+<figure class="fig" data-fig="@qm-ho-classical"><figcaption>The quantum density has n nodes and leaks past the classical turning points; at large n it averages out to the classical curve, which piles up at the ends where the ball moves slowest.</figcaption></figure>
+
 **Quantisation.** Matching the waves from the two turning points `$x_1, x_2$` of a well:
 
 ```math
@@ -154,6 +158,10 @@ T \approx \exp\!\left(-2\int_{x_1}^{x_2}\kappa(x)\,dx\right), \qquad \kappa(x) =
 ```
 
 taken between the two turning points. For a rectangular barrier this is `$e^{-2\kappa L}$`, the leading factor of the exact result.
+
+Watch the packet hit the barrier, then lower the energy, thicken the barrier, and raise E above the top.
+
+<figure class="fig" data-fig="@qm-packet-barrier"><figcaption>When E < V₀ part of the wave still gets through (tunnelling), and part reflects even when E > V₀. A thicker barrier cuts the transmission sharply.</figcaption></figure>
 
 **Worked example (rectangular).** An electron 1 eV below the top of a barrier 1 nm wide: `$\kappa = \sqrt{2m_e(1\text{ eV})}/\hbar = 5.12$` nm⁻¹, `$2\kappa L = 10.25$`, `$T \approx 3.6\times10^{-5}$`. Double the width and `$T$` falls to about `$10^{-9}$`: tunnelling is exponentially sensitive to width and to `$\sqrt{V - E}$`.
 

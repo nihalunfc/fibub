@@ -107,11 +107,19 @@ For a `$^1\Sigma - {}^1\Sigma$` band, `$\Delta J = \pm1$` only, and both branche
 
 There is no line at `$m = 0$`: a gap of `$2(B' + B'')$` between R(0) and P(1). Because `$B' \neq B''$`, one branch turns back on itself, forming a **band head** at `$m_h = -(B' + B'')/2(B' - B'')$`, a distance `$-(B' + B'')^2/4(B' - B'')$` from the origin. If `$B' < B''$` (longer bond in the upper state, the usual case) the head is in the R branch and the band is **shaded to the red**; if `$B' > B''$` it is in the P branch and shaded to the violet. A Q branch (`$\Delta J = 0$`) appears only when `$\Lambda \neq 0$` in one of the states (`$\Pi - \Sigma$`, `$\Pi - \Pi$`).
 
+Step the lower J, switch between R and P, raise the temperature, and turn on 'B(v=1) < B(v=0)'.
+
+<figure class="fig" data-fig="@qm-rovib-spectrum"><figcaption>R lines sit above the band centre, P lines below, and nothing sits at the centre. Heights follow the populations; unequal rotational constants squeeze one branch together.</figcaption></figure>
+
 **Worked example.** `$B' = 1.6$`, `$B'' = 1.9$` cm⁻¹: `$m_h = 3.5/0.6 = 5.8$`, so the head is near R(5), `$3.5^2/1.2 = 10.2$` cm⁻¹ above the origin, and the band is shaded to the red.
 
 ## 5. Term symbols, selection rules and what happens next
 
 Diatomic states are labelled `$^{2S+1}\Lambda_{g/u}^{\pm}$` with `$\Lambda = 0, 1, 2 \to \Sigma, \Pi, \Delta$`. Electric-dipole rules: `$\Delta\Lambda = 0, \pm1$`; `$\Delta S = 0$`; `$g \leftrightarrow u$` (homonuclear); `$\Sigma^+ \leftrightarrow \Sigma^+$`, `$\Sigma^- \leftrightarrow \Sigma^-$`. Molecular-orbital filling gives the ground states and bond orders: H₂ and N₂ `$^1\Sigma_g^+$` (bond orders 1 and 3); O₂ `$^3\Sigma_g^-$` (bond order 2, paramagnetic, two electrons in `$\pi_g^*$`), whose strong Schumann-Runge bands (`$B\,^3\Sigma_u^- \leftarrow X\,^3\Sigma_g^-$`) converge into the continuum that photodissociates O₂ in the upper atmosphere. B₂ is paramagnetic because its `$\pi_u$` orbitals lie below `$\sigma_g2p$`.
+
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-jablonski"><div class="step">Ground state S₀: the electron pair is in the lowest level.</div><div class="step">Absorption S₀ to S₂ in about 10⁻¹⁵ s, vertical on the diagram.</div><div class="step">Vibrational relaxation to the bottom of S₂ in picoseconds, giving heat to neighbours.</div><div class="step">Internal conversion S₂ to S₁ without any light.</div><div class="step">Fluorescence S₁ to S₀: a photon of lower energy than the one absorbed, in nanoseconds.</div><div class="step">Intersystem crossing: a spin flip traps the electron in the triplet T₁.</div><div class="step">Phosphorescence T₁ to S₀: forbidden, so slow, milliseconds to seconds.</div></div>
 
 After absorption, large molecules relax in picoseconds to `$v = 0$` of `$S_1$` (Kasha's rule) and then **fluoresce** (nanoseconds, red-shifted from the absorption: the Stokes shift; often a mirror image of the absorption band), lose energy by internal conversion, or cross to the triplet `$T_1$` and **phosphoresce** (spin-forbidden, milliseconds to seconds). **Predissociation**: where a repulsive curve crosses a bound one, levels above the crossing leak away, and their bands turn diffuse below the true convergence limit. Electronic bands are also the starting point of lasers ([lesson 6.7 of GATE Physics](/learn/courses/gate-physics/lasers/)) and of resonance [Raman scattering](/learn/courses/gate-physics/raman/).
 

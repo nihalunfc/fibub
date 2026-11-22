@@ -10,9 +10,9 @@ export default function (host) {
   let met = 'Na', lam = 400, inten = 5, V = 1, es = [], acc = 0, cur = 0, got = 0, tt = 0;
   const ctl = row(host), ctl2 = row(host), out = readout(host);
   choice(ctl, 'Metal', Object.keys(METALS).map((k) => [k, k]), met, (v) => { met = v; es = []; show(); });
-  slider(ctl, { label: 'Wavelength', min: 150, max: 700, step: 5, value: lam, fmt: (v) => v + ' nm', oninput: (v) => { lam = v; show(); } });
-  slider(ctl2, { label: 'Brightness', min: 1, max: 10, step: 1, value: inten, fmt: (v) => v + '/10', oninput: (v) => { inten = v; show(); } });
-  slider(ctl2, { label: 'Collector voltage', min: -5, max: 4, step: 0.1, value: V, fmt: (v) => (v > 0 ? '+' : '') + v.toFixed(1) + ' V', oninput: (v) => { V = v; show(); } });
+  const sLam = slider(ctl, { label: 'Wavelength', min: 150, max: 700, step: 5, value: lam, fmt: (v) => v + ' nm', oninput: (v) => { lam = v; show(); } });
+  const sInt = slider(ctl2, { label: 'Brightness', min: 1, max: 10, step: 1, value: inten, fmt: (v) => v + '/10', oninput: (v) => { inten = v; show(); } });
+  const sV = slider(ctl2, { label: 'Collector voltage', min: -5, max: 4, step: 0.1, value: V, fmt: (v) => (v > 0 ? '+' : '') + v.toFixed(1) + ' V', oninput: (v) => { V = v; show(); } });
   const phi = () => METALS[met][1], E = () => 1239.84 / lam, KM = () => Math.max(0, E() - phi());
   const anim = loop(host, (dt) => {
     tt += dt; acc += dt * (KM() > 0 ? inten * 2.2 : 0);
@@ -52,4 +52,5 @@ export default function (host) {
     dot(ctx, a.X(V), a.Y(I(V)), 5, col.s[1]);
   };
   show();
+  return { step(i) { const P = [[700, 5, 1, 'Na'], [400, 5, 1, 'Na'], [400, 10, 1, 'Na'], [250, 10, 1, 'Na'], [250, 10, null, 'Na']][Math.min(i, 4)]; met = P[3]; es = []; lam = P[0]; inten = P[1]; V = P[2] === null ? -Math.max(0.1, Math.round(KM() * 10) / 10) : P[2]; sLam.set(lam); sInt.set(inten); sV.set(V); show(); cv.redraw(); } };
 }

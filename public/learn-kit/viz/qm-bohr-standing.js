@@ -39,4 +39,5 @@ export default function (host) {
     else text(ctx, `${Math.round(k)} full wavelengths: closes up`, cx, cy + R + amp + 18, { color: col.good, size: 11, weight: 600, align: 'center' });
   };
   show();
+  return { step(i) { n = Math.max(1, Math.min(6, i + 1)); mode = 'allowed'; show(); } };
 }

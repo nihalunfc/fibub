@@ -127,6 +127,10 @@ P_{1\to2}(t) = \frac{\Omega^2}{\Omega^2 + \Delta^2}\,\sin^2\!\left(\frac{Wt}{2}\
 
 On resonance the atom swings fully between the levels at the Rabi frequency `$\Omega$`. A **π pulse** (`$\Omega t = \pi$`) inverts it; a **π/2 pulse** makes an equal superposition, the basic step of NMR, MRI and quantum gates. Off resonance the swings are faster and smaller, with maximum `$\Omega^2/W^2$`.
 
+In free precession change B and the tilt; then switch to the RF pulse view, set 90° and press Pulse.
+
+<figure class="fig" data-fig="@qm-spin-bloch"><figcaption>Precession keeps the angle to B and runs at ω = γB. In the rotating frame a pulse simply tips the spin away from z, and the coil signal (largest after 90°) dies away as the spins dephase.</figcaption></figure>
+
 For short times `$P \approx \Omega^2t^2/4$`, exactly the first-order result with `$|V_{fi}| = \hbar\Omega/2$`. First-order theory keeps growing as `$t^2$` and passes 1; the exact answer turns back. Perturbation theory works only while `$P$` is small.
 
 <figure class="fig" data-fig="rabi-oscillation"><figcaption>Left choice: the upper-state probability against time, exact (solid) and first order (dashed), for a chosen detuning. On resonance the first-order curve shoots past 1 while the exact one oscillates. Right choice: the probability against detuning after a fixed pulse, the sin²-shaped line whose central peak narrows as the pulse gets longer.</figcaption></figure>
@@ -179,6 +183,10 @@ For light of wavelength much longer than the atom, `$V = e\mathcal E\cdot\mathbf
 - Dipole rules: `$\Delta l = \pm1$`, `$\Delta m = 0, \pm1$`, parity changes; `$A \propto \omega^3|d|^2$`; hydrogen `$2p$` lives 1.6 ns.
 
 </div>
+
+Start at 50% with the pair 1 + 2 and press Play, then set the share to 0% or 100% and try other pairs.
+
+<figure class="fig" data-fig="@qm-sloshing"><figcaption>A single energy state never changes, but two states beat at (Eₙ − Eₘ)/ħ and the probability sloshes. The lower graph follows ⟨x⟩ against time.</figcaption></figure>
 
 To see two-level dynamics on a sphere, try the [Bloch sphere](/science/bloch-sphere/); the same Rabi physics drives the [MRI Bloch simulator](/science/mri-bloch-simulator/).
 
