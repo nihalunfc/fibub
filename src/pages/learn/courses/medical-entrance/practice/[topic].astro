@@ -5,8 +5,8 @@ import { MEDICAL_ENTRANCE } from '../../../../../courses/medical-entrance/syllab
 import { bankCounts } from '../../../../../lib/qbank/build';
 import { courseLessons } from '../../../../../lib/course';
 import { flatLessons } from '../../../../../courses/types';
-const EXAM: string | undefined = 'neet';
 export async function getStaticPaths() {
+  const EXAM: string | undefined = 'neet';
   const live = await courseLessons(MEDICAL_ENTRANCE);
   const lessons = flatLessons(MEDICAL_ENTRANCE).filter((l) => live.has(l.slug));
   const out = [];
@@ -14,11 +14,11 @@ export async function getStaticPaths() {
     const bank = `entrance-${s}`, { idx, topics } = await bankCounts(bank);
     for (const u of idx.units) for (const t of u.topics) {
       const c = topics[t.id], count = EXAM ? c?.exams[EXAM] ?? 0 : (c?.items ?? 0) + (c?.gens ?? 0);
-      if (count > 0) out.push({ params: { topic: t.id }, props: { bank, topic: t, unit: u.name, count, lesson: lessons.find((l) => l.slug === t.id) } });
+      if (count > 0) out.push({ params: { topic: t.id }, props: { bank, exam: EXAM, topic: t, unit: u.name, count, lesson: lessons.find((l) => l.slug === t.id) } });
     }
   }
   return out;
 }
-const { bank, topic, unit, count, lesson } = Astro.props as any;
+const { bank, exam, topic, unit, count, lesson } = Astro.props as any;
 ---
-<ExamPracticeTopic course={MEDICAL_ENTRANCE} bank={bank} exam={EXAM as string} topic={topic} unit={unit} count={count} lesson={lesson} mock={false} />
+<ExamPracticeTopic course={MEDICAL_ENTRANCE} bank={bank} exam={exam} topic={topic} unit={unit} count={count} lesson={lesson} mock={false} />
