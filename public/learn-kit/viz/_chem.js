@@ -38,3 +38,14 @@ export function nm(w) {
   const f = w < 420 ? 0.4 + 0.6 * (w - 380) / 40 : w > 700 ? 0.4 + 0.6 * (750 - w) / 50 : 1;
   return `rgb(${Math.round(255 * r * f)},${Math.round(255 * g * f)},${Math.round(255 * b * f)})`;
 }
+
+/** Draw a small structural formula: atoms [{x,y,l}] in unit coordinates, bonds [{a,b,o,dash}] (indexes). Labels get a gap in the bond. */
+export function mol(ctx, atoms, bonds, col, u, ox, oy, { ink, size = 13 } = {}) {
+  const px = (a) => [ox + a.x * u, oy + a.y * u];
+  bonds.forEach((b) => {
+    const A = atoms[b.a], B = atoms[b.b], [x0, y0] = px(A), [x1, y1] = px(B), L = Math.hypot(x1 - x0, y1 - y0) || 1, ux = (x1 - x0) / L, uy = (y1 - y0) / L;
+    const ga = A.l ? Math.min(L * 0.4, size * 0.9) : 0, gb = B.l ? Math.min(L * 0.4, size * 0.9) : 0;
+    bond(ctx, x0 + ux * ga, y0 + uy * ga, x1 - ux * gb, y1 - uy * gb, b.c || ink || col.ink, b.o || 1, !!b.dash, b.w || 2.2);
+  });
+  atoms.forEach((a) => { if (a.l) { const [x, y] = px(a); text(ctx, a.l, x, y, { color: a.c || ink || col.ink, size, weight: 700, align: 'center', fit: false, halo: col.panel }); } });
+}
