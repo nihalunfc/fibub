@@ -17,7 +17,7 @@ export default function (host) {
     title(ctx, ST[step][2], col);
     ctx.fillStyle = col.soft; ctx.fillRect(L, y, R - L, bh);
     ctx.fillStyle = col.s[0]; ctx.fillRect(L, y, X(WGT) - L, bh);
-    ctx.fillStyle = col.s[7] || col.muted; ctx.fillRect(X(WGT), y, X(WGT + ENG) - X(WGT), bh);
+    ctx.fillStyle = col.muted; ctx.fillRect(X(WGT), y, X(WGT + ENG) - X(WGT), bh);
     ctx.fillStyle = over ? col.bad || col.s[5] : col.s[2]; ctx.fillRect(X(WGT + ENG), y, X(total) - X(WGT + ENG), bh);
     text(ctx, 'weights 4.8', L + 4, y + bh / 2, { color: col.panel, size: 11, weight: 700 });
     const cx = X(CARD);

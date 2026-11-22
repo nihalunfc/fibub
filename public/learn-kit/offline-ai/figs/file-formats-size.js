@@ -21,17 +21,16 @@ export default function (host) {
       const gb = (P * bits) / 8, y = 46 + i * 62, t = i === step && step < 3 ? e : 1;
       text(ctx, `${name}: ${P} × ${bits} ÷ 8`, L, y, { color: col.ink, size: 12, weight: 600 });
       ctx.fillStyle = col.soft; ctx.fillRect(L, y + 10, R - L, bh);
-      const fits = gb * 1.2 <= 11;
+      const fits = gb * 1.2 <= 11; // about 11 GB usable on a 16 GB laptop
       ctx.fillStyle = step === 3 ? (fits ? col.good || col.s[2] : col.bad || col.s[5]) : col.s[i];
       ctx.fillRect(L, y + 10, (X(gb) - L) * t, bh);
       text(ctx, `${(+gb.toFixed(2))} GB`, X(gb) * t + (1 - t) * L + 6, y + 10 + bh / 2, { color: col.ink, size: 12, weight: 700, halo: col.panel });
       text(ctx, `read by ${eng}`, L, y + bh + 20, { color: col.muted, size: 10.5 });
     });
     if (step === 3) {
-      const x = X(11);
-      ctx.save(); ctx.strokeStyle = col.ink; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(x, 34); ctx.lineTo(x, h - 26); ctx.stroke(); ctx.restore();
-      text(ctx, 'about 11 GB usable on a 16 GB laptop (file × 1.2 must fit)', 12, h - 14, { color: col.ink, size: 11.5, weight: 600 });
+      const x = X(11 / 1.2);
+      BARS.forEach((_, i) => { const y = 46 + i * 62 + 10; ctx.save(); ctx.strokeStyle = col.ink; ctx.setLineDash([4, 3]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + bh + 4); ctx.stroke(); ctx.restore(); });
+      text(ctx, 'dashed line: largest file that fits, 11 GB ÷ 1.2 ≈ 9.2 GB', 12, h - 14, { color: col.ink, size: 11.5, weight: 600 });
     }
   };
   cv.redraw();
