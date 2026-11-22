@@ -69,6 +69,11 @@ export default {
       { id: 'x-ray-diffraction', name: 'X-ray diffraction and Bragg\'s law' },
       { id: 'semiconductors', name: 'Semiconductors and the Fermi level' },
       { id: 'diodes', name: 'p-n junctions, diodes and Zener diodes' },
+      { id: 'reciprocal-lattice', name: 'Bravais lattices and the reciprocal lattice' },
+      { id: 'structure-factor', name: 'Diffraction and the structure factor' },
+      { id: 'bonding', name: 'Bonding in solids' },
+      { id: 'phonons', name: 'Lattice vibrations and phonons' },
+      { id: 'heat-capacity', name: 'Heat capacity: Einstein and Debye' },
     ] },
     { id: 'electronics', name: 'Electronics', topics: [
       { id: 'transistors', name: 'Transistors and amplifiers' },
