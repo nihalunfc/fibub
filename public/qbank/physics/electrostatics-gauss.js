@@ -7,6 +7,7 @@ const K = 1 / (4 * Math.PI * C.eps0); // Coulomb constant, 8.988e9 N m^2 C^-2
 
 import * as Q5 from '../_util.js';
 import more2 from './electrostatics-gauss.more2.gen.js';
+import r4 from './electrostatics-gauss.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -233,6 +234,7 @@ export default {
       sol: 'The field at $r$ is zero when the enclosed charge is zero: $q + \\rho\\cdot\\tfrac43\\pi(R/2)^3 = 0$, so $q = -\\tfrac43\\pi\\rho\\dfrac{R^3}{8} = -\\dfrac{\\pi\\rho R^3}{6}$, $k = 1/6 \\approx 0.167$.',
       trap: 'Using the whole sphere\'s charge $\\tfrac43\\pi R^3\\rho$ instead of the part inside $R/2$.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'esg-t21', type: 'msq', level: 2, exams: ['jam'], sub: 'gauss law', format: 'statements',
@@ -386,5 +388,6 @@ export default {
           trap: 'Each component is differentiated only by its own coordinate.' };
       },
       verify: (p) => C.eps0 * (p.a + p.b + p.c) * 1e12 },
+    ...r4.gens,
   ],
 };
