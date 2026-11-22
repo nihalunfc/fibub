@@ -65,12 +65,20 @@ export default {
       "name": "Class 12",
       "topics": [
         {
+          "id": "probability",
+          "name": "Probability"
+        },
+        {
           "id": "matrices-determinants",
           "name": "Matrices and determinants"
         },
         {
           "id": "definite-integrals",
           "name": "Definite integrals and area"
+        },
+        {
+          "id": "vectors",
+          "name": "Vectors"
         }
       ]
     }
