@@ -1,0 +1,22 @@
+---
+// The block on an exam course's home page: how the course works, the paper pattern, and links to practice and mocks.
+import { PATTERNS } from '../../lib/qbank/core.mjs';
+import { bankCounts } from '../../lib/qbank/build';
+import type { CourseSyllabus } from '../../courses/types';
+interface Props { course: CourseSyllabus; bank: string; exam: string; pattern: string }
+const { course, bank, exam, pattern } = Astro.props;
+const p = (PATTERNS as any)[pattern];
+const { topics } = await bankCounts(bank);
+const qn = Object.values(topics).reduce((s, c) => s + (c.exams[exam] ?? 0), 0);
+const base = `/learn/courses/${course.id}`;
+---
+<section class="cs-builds">
+  <h2>How this course works</h2>
+  <ol>
+    <li><strong>Learn a topic.</strong> Lessons go in syllabus order and start from what you already know. Every idea comes with a picture or animation, what it means physically, a worked example and the trap examiners like to set.</li>
+    <li><strong>Practise it, easy to hard.</strong> Each topic's questions climb from warm-up to exam level, hard and top rank, in all three styles the exam uses: one correct answer (MCQ), one or more correct answers (MSQ) and type-the-number (NAT). Every question has a full worked solution.</li>
+    <li><strong>Test yourself under exam conditions.</strong> Timed mock tests are drawn fresh from the whole bank and marked with the real negative marking, then show your weakest topics.</li>
+  </ol>
+  <p><a class="btn" href={`${base}/practice/`}>Practice questions ({qn} so far)</a> <a class="btn ghost" href={`${base}/mock-test/`}>Timed mock test</a></p>
+  <p class="cs-small">Paper simulated: {p.name}, {p.minutes} minutes. Every question is original, written for fibub from the published syllabus; none is copied from a past paper. Templates make new numbers every time, so you can practise the same idea again and again. Your progress stays in your own browser; nothing is sent anywhere.</p>
+</section>

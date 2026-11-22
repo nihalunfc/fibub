@@ -1,0 +1,27 @@
+---
+// An exam course's mock test page: a fresh paper drawn from the bank, timed and marked the exam's way.
+import Base from '../../layouts/Base.astro';
+import QBank from './QBank.astro';
+import { PATTERNS, SCHEMES } from '../../lib/qbank/core.mjs';
+import type { CourseSyllabus } from '../../courses/types';
+import { coursePageLd } from '../../lib/seo';
+import '../../styles/course.css';
+interface Props { course: CourseSyllabus; bank: string; exam: string; pattern: string; marking: string }
+const { course, bank, exam, pattern, marking } = Astro.props;
+const p = (PATTERNS as any)[pattern];
+const base = `/learn/courses/${course.id}`;
+const title = `${course.name} mock test, free and timed`;
+const desc = `A free timed ${course.name} mock test drawn fresh from a bank of original questions, marked the exam's way with negative marks, then a topic-by-topic score and full solutions.`;
+const ld = coursePageLd(course, 'Mock test', desc.slice(0, 160), 'mock-test');
+---
+<Base title={title} description={desc.slice(0, 160)} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / Mock test</div>
+  <div class="cs-main cs-wide">
+    <h1>{title}</h1>
+    <p class="lead">Every paper is new: questions are drawn from the bank across all topics and templates make fresh numbers. At the end you see your score, your weakest topics and every solution.</p>
+    <p class="cs-small"><b>Marking:</b> {marking}</p>
+    <QBank bank={bank} exam={exam} mode="mock" pattern={pattern} />
+    <p class="cs-small">Your answers stay on this page and are not saved or sent anywhere. Pattern: {p.name}, {p.minutes} minutes. Check the official exam website for the current pattern before your exam.</p>
+    <p><a href={`${base}/practice/`}>← Practice by topic</a></p>
+  </div>
+</Base>
