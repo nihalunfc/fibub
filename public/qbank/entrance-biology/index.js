@@ -123,6 +123,18 @@ export default {
         {
           "id": "biotech-applications",
           "name": "Biotechnology and its applications"
+        },
+        {
+          "id": "organisms-populations",
+          "name": "Organisms and populations"
+        },
+        {
+          "id": "ecosystem",
+          "name": "Ecosystem"
+        },
+        {
+          "id": "biodiversity",
+          "name": "Biodiversity and conservation"
         }
       ]
     }

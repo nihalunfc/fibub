@@ -82,12 +82,20 @@ export default {
           "name": "Electromagnetic induction"
         },
         {
+          "id": "alternating-current",
+          "name": "Alternating current"
+        },
+        {
           "id": "ray-optics",
           "name": "Ray optics and optical instruments"
         },
         {
           "id": "wave-optics",
           "name": "Wave optics"
+        },
+        {
+          "id": "dual-nature",
+          "name": "Dual nature of radiation and matter"
         }
       ]
     }

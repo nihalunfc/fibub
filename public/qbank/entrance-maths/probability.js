@@ -783,7 +783,7 @@ const gens = [
     const ask = ['its variance', 'the value of $E(X^2)$', `the variance of $${A_}X+${B_}$`][v];
     const sol = [R`<p>$E(X)=${r4(mu)}$. $E(X^2)=${r4(m2)}$. $\mathrm{Var}=E(X^2)-[E(X)]^2=${r4(m2)}-${r4(mu * mu)}=${r3(V)}$.</p>`, R`<p>$E(X^2)=\sum x^2p=${xs.map((x, i) => `${x * x}(${ps[i] / 100})`).join('+')}=${r4(m2)}$.</p>`,
       R`<p>First $\mathrm{Var}(X)=E(X^2)-[E(X)]^2=${r4(m2)}-${r4(mu * mu)}=${r4(V)}$. Adding ${B_} does not change the spread, and multiplying by ${A_} multiplies the variance by $${A_}^2=${A_ * A_}$. Answer $${A_ * A_}\times${r4(V)}=${r3(val)}$.</p>`][v];
-    return { xs, ps, v, A_, answer: r3(val), tol: 0.001,
+    return { xs, ps, v, A_, answer: r3(val), tol: 0.002,
       q: R`A random variable takes the values ${xs.join(', ')} with probabilities ${ps.map((x) => x / 100).join(', ')}. Find ${ask}.${D3T}`, sol, trap: v === 2 ? 'Adding a constant changes the mean but not the variance; the multiplier is squared.' : 'Do not forget to square the mean in the last step.' };
   }, (p) => { const mu = p.xs.reduce((s, x, i) => s + (x * p.ps[i]) / 100, 0); const vr = p.xs.reduce((s, x, i) => s + (p.ps[i] / 100) * (x - mu) ** 2, 0); const m2 = vr + mu * mu; return r3([vr, m2, p.A_ * p.A_ * vr][p.v]); }),
 
