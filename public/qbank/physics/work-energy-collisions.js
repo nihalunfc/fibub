@@ -4,6 +4,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './work-energy-collisions.more.gen.js';
 import more2 from './work-energy-collisions.more2.gen.js';
+import r4 from './work-energy-collisions.r4.gen.js';
 
 export default {
   topic: 'work-energy-collisions',
@@ -248,6 +249,7 @@ export default {
       sol: 'A is the theorem; it comes straight from $F = ma$ and holds for every kind of force (B). C is false: static friction on a crate in a truck that speeds up does positive work on the crate (the contact point moves with the crate). D: work is force times displacement, and displacements differ between frames, so work (like kinetic energy) is frame dependent; the theorem holds in each frame.',
       trap: 'Static friction does no work in pure rolling on a fixed surface, but that is a special case.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'wec-g01', type: 'nat', level: 3, exams: ['jam'], sub: 'collisions',
@@ -337,5 +339,6 @@ export default {
       },
       verify: (p) => Math.hypot(p.m1 * p.u1, p.m2 * p.u2) / (p.m1 + p.m2) },
     ...more,
+    ...r4.gens,
   ],
 };

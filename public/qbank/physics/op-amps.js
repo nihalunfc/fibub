@@ -8,6 +8,7 @@ const par = (a, b) => (a * b) / (a + b);
 
 import * as Q5 from '../_util.js';
 import more2 from './op-amps.more2.gen.js';
+import r4 from './op-amps.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -269,6 +270,7 @@ export default {
       sol: 'Superposition. Through the inverting path: $-(R/R)V_{in} = -V_{in}$. Through the non-inverting path: $(1 + R/R)V_{in} = 2V_{in}$. Total $+V_{in}$. Check with the virtual short: $V_- = V_{in}$, so no current flows in the input resistor and none in the feedback resistor, giving $V_o = V_- = V_{in}$.',
       trap: 'It looks like the two paths should cancel to zero, but the non-inverting path has gain 2, not 1.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -428,5 +430,6 @@ export default {
           sol: `With matched ratios $R_2/R_1 = R_4/R_3 = ${k}$, $V_o = ${k}(V_2 - V_1) = ${k}(${V2} - (${V1})) = ${round(Vo, 2)}$ V.`,
           trap: 'Swapping which input carries the minus sign.' };
       } },
+    ...r4.gens,
   ],
 };

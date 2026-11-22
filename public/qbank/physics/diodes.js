@@ -11,6 +11,7 @@ const opPoint = (Vs, R, Is, n = 1) => { let V = 0.6; for (let i = 0; i < 200; i+
 
 import * as Q5 from '../_util.js';
 import more2 from './diodes.more2.gen.js';
+import r4 from './diodes.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -257,6 +258,7 @@ export default {
       sol: '$C \\propto (V_0 + V_R)^{-1/2}$, so $\\left(\\dfrac{C_1}{C_2}\\right)^2 = \\dfrac{V_0 + V_{R2}}{V_0 + V_{R1}}$: $4 = \\dfrac{V_0 + 7.25}{V_0 + 1.25}$. Then $4V_0 + 5 = V_0 + 7.25$, so $V_0 = 0.75$ V. In the lab this is done by plotting $1/C^2$ against $V_R$: a straight line that meets the axis at $V_R = -V_0$, with a slope that gives the doping.',
       trap: 'Using the capacitance ratio 2 instead of its square 4.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -399,5 +401,6 @@ export default {
           sol: `$\\Delta V = \\eta V_T\\ln(I_2/I_1) = ${n}\\times25.85\\times\\ln${ratio} = ${round(dV, 1)}$ mV.`,
           trap: 'Using $\\log_{10}$, or assuming the voltage scales with the current.' };
       } },
+    ...r4.gens,
   ],
 };

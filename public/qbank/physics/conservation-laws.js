@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './conservation-laws.more.gen.js';
 import more2 from './conservation-laws.more2.gen.js';
+import r4 from './conservation-laws.r4.gen.js';
 
 const HBAR_MEVS = 6.582120e-22, CC = 2.99792458e8;
 // name: [Q, B, Le, Lmu, Ltau, S]
@@ -297,6 +298,7 @@ export default {
       sol: '$|\\tfrac32, -\\tfrac12\\rangle = \\sqrt{\\tfrac13}\\,|\\pi^- p\\rangle + \\sqrt{\\tfrac23}\\,|\\pi^0 n\\rangle$. Ratio of squares: $\\tfrac13/\\tfrac23 = 0.5$. The neutral pion channel is twice as likely, the mirror of the $\\Delta^+$.',
       trap: 'Copying the $\\Delta^+$ result (2) without asking which channel is on top.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'cnl-g01', type: 'mcq', level: 2, exams: ['gate', 'net'], sub: 'allowed or forbidden',
@@ -404,5 +406,6 @@ export default {
       },
       verify: (p) => (0.511 / 105.658) ** 2 * ((p.M ** 2 - 0.511 ** 2) / (p.M ** 2 - 105.658 ** 2)) ** 2 / 10 ** p.e },
     ...more,
+    ...r4.gens,
   ],
 };

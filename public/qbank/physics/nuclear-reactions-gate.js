@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './nuclear-reactions-gate.more.gen.js';
 import more2 from './nuclear-reactions-gate.more2.gen.js';
+import r4 from './nuclear-reactions-gate.r4.gen.js';
 
 const HBARC = 197.327, MN = 939.565, MP = 938.272, NA = 6.02214076e23, QE = 1.602176634e-19;
 // mass excesses in MeV (AME 2020); symbol -> [Delta, Z, A]
@@ -247,6 +248,7 @@ export default {
       sol: 'At $90^\\circ$, $\\cos\\theta = 0$. As $m_Y \\to \\infty$ the angle term $\\propto 1/m_Y$ vanishes and $T_b \\to T_a + Q$ at all angles. The positive root grows with $\\cos\\theta$, so it is largest forward. $T_b$ clearly depends on $T_a$.',
       trap: 'Recoil corrections shrink as the residual nucleus gets heavier.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'nrg-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Q value',
@@ -368,5 +370,6 @@ export default {
       },
       verify: (p) => { const t = p.tc * Math.PI / 180, vx = Math.cos(t) + p.g, vy = Math.sin(t); return Math.acos(vx / Math.hypot(vx, vy)) * 180 / Math.PI; } },
     ...more,
+    ...r4.gens,
   ],
 };

@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './fluids.more.gen.js';
 import more2 from './fluids.more2.gen.js';
+import r4 from './fluids.r4.gen.js';
 
 const G0 = 9.8;
 
@@ -205,6 +206,7 @@ export default {
       options: ['$gL/a$', '$a/(gL)$', '$aL/2g$', '$aL/g$'], answer: 3,
       sol: 'In the cart\'s frame the liquid feels gravity $g$ down and a fictitious force $a$ backwards; the free surfaces lie on a plane tilted by $\\tan\\phi = a/g$. Over the horizontal distance $L$ the levels differ by $L\\tan\\phi = aL/g$, higher in the rear arm. (This is a simple accelerometer.)' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'fld-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'bernoulli',
@@ -286,5 +288,6 @@ export default {
           trap: 'Flow goes as $r^4$, not as the area $r^2$.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

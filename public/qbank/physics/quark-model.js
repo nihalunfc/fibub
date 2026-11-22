@@ -6,6 +6,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './quark-model.more.gen.js';
 import more2 from './quark-model.more2.gen.js';
+import r4 from './quark-model.r4.gen.js';
 
 const R = String.raw;
 // quark flavour numbers: [charge, I3, B, S, C, Bottom]
@@ -249,6 +250,7 @@ export default {
       sol: R`$27 = 10 + 8 + 8 + 1$; the 10 is symmetric (uuu, ..., sss), which, with symmetric spin $\tfrac32$, fits colour antisymmetry; the octet has $J = \tfrac12$. Mass splittings within multiplets (about 150 MeV per s quark) come from $m_s - m_{u,d}$, giving the Gell-Mann-Okubo formulas.`,
       trap: 'The spin-3/2 baryons are the decuplet, not the octet.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'qk-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Gell-Mann-Nishijima',
@@ -391,5 +393,6 @@ export default {
       },
       verify: (p) => p.v },
     ...more,
+    ...r4.gens,
   ],
 };

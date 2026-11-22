@@ -7,6 +7,7 @@
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './dielectric-optical.more.gen.js';
 import more2 from './dielectric-optical.more2.gen.js';
+import r4 from './dielectric-optical.r4.gen.js';
 
 const R = String.raw;
 const EPS0 = C.eps0, E = C.e, ME = C.me, HBAR = C.hbar;
@@ -236,6 +237,7 @@ export default {
       sol: R`Reflection is total where $\varepsilon < 0$: from the pole at $\omega_T$ to the zero at $\omega_L$. LST: $\omega_L = \omega_T\sqrt{\varepsilon(0)/\varepsilon(\infty)} = \omega_T\sqrt{2.5} = 1.58\,\omega_T$.`,
       trap: R`2.5 is $\omega_L^2/\omega_T^2$; take the square root.` },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'diel-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Clausius-Mossotti',
@@ -368,5 +370,6 @@ export default {
           trap: 'Short wavelengths (high frequencies) get through; long ones are reflected.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };
