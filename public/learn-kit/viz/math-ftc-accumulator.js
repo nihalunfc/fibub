@@ -24,7 +24,7 @@ export default function (host) {
     curve(ctx, A, f, -3, 3, col.s[0], 3); line(ctx, [[A.X(x), A.T], [A.X(x), A.B]], col.muted, 1, [4, 3]); dot(ctx, A.X(x), A.Y(f(x)), 5, col.s[0], col.ink); dot(ctx, A.X(a), A.Y(0), 4, col.s[3]);
     text(ctx, 'f(x): shaded = area from a to x', A.L + 6, A.T + 8, { color: col.muted, size: 10 }); ctx.restore();
     ctx.save(); ctx.translate(0, top); ctx.beginPath(); ctx.rect(0, 0, w, h - top); ctx.clip();
-    const vs = Array.from({ length: 121 }, (_, i) => Fx(-3 + i * 0.05)), B = axes(ctx, w, h - top, col, { x: [-3, 3], y: [Math.min(...vs, 0) - 0.3, Math.max(...vs, 0) + 0.3], l: 30, b: 24, t: 8, r: 10, xlabel: 'x', yt: [] });
+    const vs = Array.from({ length: 121 }, (_, i) => Fx(-3 + i * 0.05)), B = axes(ctx, w, h - top, col, { x: [-3, 3], y: [Math.min(...vs, 0) - 0.3, Math.max(...vs, 0) + 0.3], l: 30, b: 34, t: 8, r: 10, xlabel: 'x', yt: [] });
     curve(ctx, B, Fx, -3, 3, col.s[1], 3); line(ctx, [[B.X(x), B.T], [B.X(x), B.B]], col.muted, 1, [4, 3]); dot(ctx, B.X(x), B.Y(Fx(x)), 5, col.s[1], col.ink);
     text(ctx, 'F(x) = running total of area', B.L + 6, B.T + 8, { color: col.s[1], size: 10, weight: 600 }); ctx.restore();
   };

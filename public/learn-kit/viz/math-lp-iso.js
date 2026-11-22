@@ -24,7 +24,7 @@ export default function (host) {
     const tied = CORNERS.filter((q) => Math.abs(a * q[0] + b * q[1] - zm) < 1e-9);
     out.innerHTML = `Feasible corners: ${CORNERS.map(([x, y]) => `(${+x.toFixed(1)}, ${+y.toFixed(1)}) → Z = ${f2(a * x + b * y, 1)}`).join('; ')}. Best: <b>${tied.length > 1 ? `every point between two corners — the line lies along an edge` : `(${+best[0].toFixed(1)}, ${+best[1].toFixed(1)})`}</b> with Z = <b>${f2(zm, 1)}</b>. Now sliding at Z = ${f2(z, 1)} ${z > zm + 1e-6 ? '(past the region: not feasible)' : ''}.`; }
   cv.draw = (ctx, w, h, col) => {
-    const A = axes(ctx, w, h, col, { x: [0, 7], y: [0, 6], l: 28, b: 24, t: 22, r: 10, xlabel: 'x', ylabel: 'y' });
+    const A = axes(ctx, w, h, col, { x: [0, 7], y: [0, 6], l: 28, b: 34, t: 22, r: 10, xlabel: 'x', ylabel: 'y' });
     ctx.save(); ctx.setLineDash([2, 3]); CON.forEach(([p, q, r], i) => { const pts = q ? [[0, r / q], [7, (r - 7 * p) / q]] : [[r / p, 0], [r / p, 6]]; ctx.beginPath(); ctx.rect(A.L, A.T, A.R - A.L, A.B - A.T); ctx.save(); ctx.clip(); line(ctx, pts.map(([x, y]) => [A.X(x), A.Y(y)]), col.muted, 1); ctx.restore(); }); ctx.restore();
     ctx.beginPath(); CORNERS.forEach(([x, y], i) => (i ? ctx.lineTo(A.X(x), A.Y(y)) : ctx.moveTo(A.X(x), A.Y(y)))); ctx.closePath(); ctx.globalAlpha = 0.25; ctx.fillStyle = col.s[0]; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col.s[0]; ctx.lineWidth = 2.5; ctx.stroke();
     const zm = zmax(); ctx.save(); ctx.beginPath(); ctx.rect(A.L, A.T, A.R - A.L, A.B - A.T); ctx.clip();

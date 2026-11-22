@@ -36,7 +36,7 @@ export default function (host) {
     // lower panel: secant slope against h
     ctx.save(); ctx.translate(0, top); ctx.beginPath(); ctx.rect(0, 0, w, h2 - top); ctx.clip();
     const hh = h2 - top, vals = [-1, 1].flatMap((sg) => [0.01, 1, 2].map((q) => sec(x0, sg * q))), lo = Math.min(d - 3, ...vals), hi = Math.max(d + 3, ...vals);
-    const B = axes(ctx, w, hh, col, { x: [0, 2], y: [lo, hi], l: 30, b: 28, t: 8, r: 10, xlabel: 'h', xt: [0, 0.5, 1, 1.5, 2], yt: [] });
+    const B = axes(ctx, w, hh, col, { x: [0, 2], y: [lo, hi], l: 30, b: 34, t: 8, r: 10, xlabel: 'h', xt: [0, 0.5, 1, 1.5, 2], yt: [] });
     curve(ctx, B, (q) => sec(x0, Math.max(0.005, q)), 0.005, 2, col.s[1], 2.5);
     line(ctx, [[B.L, B.Y(d)], [B.R, B.Y(d)]], col.muted, 1.5, [5, 4]);
     dot(ctx, B.X(h), B.Y(m), 5, col.s[1], col.ink);

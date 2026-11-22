@@ -24,7 +24,7 @@ export default function (host) {
     out.innerHTML = `After ${m} step${m === 1 ? '' : 's'} (x = ${f2(x)}): Euler gives y ≈ <b>${f2(y, 4)}</b>, exact y = ${f2(ex, 4)}, error ${f2(Math.abs(y - ex), 4)} (${f2(Math.abs(y - ex) / Math.abs(ex) * 100, 1)}%). Each step: y_new = y + h · f(x, y).`; }
   cv.draw = (ctx, w, h2, col) => {
     const [, f, ex] = EQ[k], P = path(), ys = [...P.map((p) => p[1]), ...[0, 1, 2].map(ex)], lo = Math.min(0, ...ys), hi = Math.max(...ys) * 1.08;
-    const A = axes(ctx, w, h2, col, { x: [0, 2], y: [lo, hi], l: 36, b: 24, t: 22, r: 10, xlabel: 'x' });
+    const A = axes(ctx, w, h2, col, { x: [0, 2], y: [lo, hi], l: 36, b: 34, t: 22, r: 10, xlabel: 'x' });
     // slope field in the background
     ctx.save(); ctx.beginPath(); ctx.rect(A.L, A.T, A.R - A.L, A.B - A.T); ctx.clip(); ctx.strokeStyle = col.line; ctx.lineWidth = 1;
     for (let i = 0; i <= 10; i++) for (let j = 0; j <= 7; j++) { const x = (2 * i) / 10, y = lo + ((hi - lo) * j) / 7, s = f(x, y), dx = 0.07, dy = s * dx * ((hi - lo) / 2) * 0 + s * 0.07 * ((hi - lo) / 2) / 1; const a = Math.atan2(-(A.Y(y + s * 0.1) - A.Y(y)), A.X(x + 0.1) - A.X(x)); ctx.beginPath(); ctx.moveTo(A.X(x) - Math.cos(a) * 7, A.Y(y) + Math.sin(a) * 7); ctx.lineTo(A.X(x) + Math.cos(a) * 7, A.Y(y) - Math.sin(a) * 7); ctx.stroke(); }
