@@ -4,6 +4,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './fluids.more.gen.js';
+import more2 from './fluids.more2.gen.js';
 
 const G0 = 9.8;
 
@@ -203,6 +204,7 @@ export default {
       q: 'A U-tube holding water, with its vertical arms a distance $L$ apart, rides on a cart that accelerates horizontally at $a$ along the line joining the arms. Once the water settles, the difference between the levels in the two arms is',
       options: ['$gL/a$', '$a/(gL)$', '$aL/2g$', '$aL/g$'], answer: 3,
       sol: 'In the cart\'s frame the liquid feels gravity $g$ down and a fictitious force $a$ backwards; the free surfaces lie on a plane tilted by $\\tan\\phi = a/g$. Over the horizontal distance $L$ the levels differ by $L\\tan\\phi = aL/g$, higher in the rear arm. (This is a simple accelerometer.)' },
+    ...more2,
   ],
   gens: [
     { id: 'fld-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'bernoulli',

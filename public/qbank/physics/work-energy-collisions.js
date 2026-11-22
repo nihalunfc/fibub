@@ -3,6 +3,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank. g = 9.8 m/s².
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './work-energy-collisions.more.gen.js';
+import more2 from './work-energy-collisions.more2.gen.js';
 
 export default {
   topic: 'work-energy-collisions',
@@ -246,6 +247,7 @@ export default {
       options: ['The work done by the net force equals the change in kinetic energy.', 'It holds even when non-conservative forces act.', 'The work done by static friction on a body is always zero.', 'The work done by a given force can be different in two different inertial frames.'], answer: [0, 1, 3],
       sol: 'A is the theorem; it comes straight from $F = ma$ and holds for every kind of force (B). C is false: static friction on a crate in a truck that speeds up does positive work on the crate (the contact point moves with the crate). D: work is force times displacement, and displacements differ between frames, so work (like kinetic energy) is frame dependent; the theorem holds in each frame.',
       trap: 'Static friction does no work in pure rolling on a fixed surface, but that is a special case.' },
+    ...more2,
   ],
   gens: [
     { id: 'wec-g01', type: 'nat', level: 3, exams: ['jam'], sub: 'collisions',

@@ -4,6 +4,7 @@
 // Levels: 1 warm-up ... 5 top rank. g = 9.8 m/s² unless stated.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './moment-of-inertia.more.gen.js';
+import more2 from './moment-of-inertia.more2.gen.js';
 
 const D = Math.PI / 180;
 // I = beta * M R^2 about the symmetry axis (rolling bodies)
@@ -242,6 +243,7 @@ export default {
       q: 'A thin rigid lamina lies in the $xy$-plane. About axes through a point O in the plane, which are always true?',
       options: ['$I_{zz} = I_{xx} + I_{yy}$', '$I_{zz} \\ge I_{xx}$', '$I_{xz} = I_{yz} = 0$', '$I_{xx} = I_{yy}$'], answer: [0, 1, 2],
       sol: 'Every particle has $z = 0$. A: the perpendicular axis theorem. B follows from A, since $I_{yy} \\ge 0$. C: the products $-\\sum mxz$ and $-\\sum myz$ contain $z$, so they vanish; the $z$-axis is therefore always a principal axis of a lamina. D holds only for special shapes (a square or a circle about its centre, for example), not in general.' },
+    ...more2,
   ],
   gens: [
     { id: 'moi-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'parallel axis',

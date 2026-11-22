@@ -3,6 +3,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './central-forces.more.gen.js';
+import more2 from './central-forces.more2.gen.js';
 
 const R_E = 6.4e6, G0 = 9.8;
 
@@ -227,6 +228,7 @@ export default {
       q: 'A particle with angular momentum $L \\neq 0$ moves in the attractive potential $U = -k/r$. Which are correct?',
       options: ['It can never reach $r = 0$.', 'If its energy equals the minimum of $U_{\\rm eff}$, its orbit is a circle.', 'If its energy is positive, it goes off to infinity.', 'For negative energy there is only one turning point.'], answer: [0, 1, 2],
       sol: 'A: the barrier $L^2/2\\mu r^2$ rises without limit as $r \\to 0$, faster than $-k/r$ falls. B: at the minimum, $\\dot r = 0$ always. C: $U_{\\rm eff} \\to 0$ from below as $r \\to \\infty$, so $E > 0$ allows any large $r$. D is false: for $E < 0$ there are two turning points (closest and farthest).' },
+    ...more2,
   ],
   gens: [
     { id: 'cfo-g01', type: 'nat', level: 2, exams: ['jam'], sub: 'kepler laws',
