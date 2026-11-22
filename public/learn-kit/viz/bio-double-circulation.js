@@ -2,7 +2,7 @@
 // lap: right side to the lungs (pulmonary circuit, low pressure), back to the left side, then to the whole body
 // (systemic circuit, high pressure). Colour shows oxygen: blue is low, red is high.
 import { text, title, dot } from '../kit.js';
-import { stepper, mix } from './_bio-kit.js';
+import { stepper, mix, wrap } from './_bio-kit.js';
 
 const NAMES = ['Right atrium', 'Right ventricle', 'Pulmonary artery to the lungs', 'Lungs: gas exchange', 'Pulmonary veins to the left atrium', 'Left ventricle', 'Aorta to the body', 'Body tissues, then vena cava'];
 const NOTE = ['Blood poor in oxygen arrives from the body through the vena cavae.', 'The right ventricle squeezes (pressure about 25 mmHg).', 'Only artery that carries deoxygenated blood.', 'Oxygen enters the blood, carbon dioxide leaves.', 'Only veins that carry oxygenated blood.', 'Thick walled: pushes blood out at about 120 mmHg.', 'Branches to every organ.', 'Oxygen is delivered; the blood returns to the right atrium.'];
@@ -28,7 +28,7 @@ export default function (host) {
     const [x, y] = pos(u), ox = (s) => (s >= 3 && s <= 6 ? 1 : 0);
     const o = mix(ox(pv), ox(st), k);
     ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fillStyle = `rgb(${Math.round(mix(40, 210, o))},${Math.round(mix(80, 40, o))},${Math.round(mix(200, 40, o))})`; ctx.fill(); ctx.strokeStyle = col.ink; ctx.lineWidth = 2; ctx.stroke();
-    text(ctx, NOTE[st], w / 2, h - 24, { color: col.ink, size: 11, align: 'center' });
+    wrap(ctx, NOTE[st], w / 2, h - 34, w - 24, { color: col.ink, size: 11 });
     text(ctx, 'blue: low oxygen, red: high oxygen', w / 2, h - 8, { color: col.muted, size: 10.5, align: 'center' });
   });
 }

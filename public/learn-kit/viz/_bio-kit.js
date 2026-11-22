@@ -1,6 +1,6 @@
 // Small helpers for the biology figures (bio-*): a step-player canvas with eased tweening between stages, rod
 // "chromosomes", cells drawn as ellipses, and a wrapped caption line. Only used by figures whose names start bio-.
-import { canvas, loop, calm, clamp, ease, text } from '../kit.js';
+import { canvas, loop, calm, clamp, ease, text, font } from '../kit.js';
 
 /** A canvas that follows a step player: draw(ctx, w, h, col, stage, k, t, prevStage), k eases 0 to 1 after each change. */
 export function stepper(host, o, draw) {
@@ -46,3 +46,14 @@ const AA3 = { F: 'Phe', L: 'Leu', S: 'Ser', Y: 'Tyr', C: 'Cys', W: 'Trp', P: 'Pr
 export const CODON = {};
 for (let i = 0; i < 64; i++) CODON[ORDER[i >> 4] + ORDER[(i >> 2) & 3] + ORDER[i & 3]] = AA3[AA1[i]];
 export const BASES = ORDER.split('');
+
+/** Wrapped text: breaks s into lines no wider than maxW and draws them centred (or left) from y downward. Returns the next y. */
+export function wrap(ctx, s, x, y, maxW, o = {}) {
+  const { size = 11, weight = 600, color, lh = size + 3, align = 'center' } = o;
+  ctx.save(); ctx.font = font(size, weight);
+  const words = s.split(' '), lines = []; let cur = '';
+  for (const wd of words) { const t = cur ? cur + ' ' + wd : wd; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = t; }
+  lines.push(cur); ctx.restore();
+  lines.forEach((l, i) => text(ctx, l, x, y + i * lh, { color, size, weight, align }));
+  return y + lines.length * lh;
+}
