@@ -23,6 +23,11 @@ export default {
       { id: 'complex-analysis', name: 'Analytic functions and Cauchy\'s theorem' },
       { id: 'residues', name: 'The residue theorem and real integrals' },
       { id: 'fourier-laplace-transforms', name: 'Fourier and Laplace transforms' },
+      { id: 'special-functions', name: 'Series solutions: Legendre, Bessel and Hermite' },
+      { id: 'partial-differential-equations', name: 'Partial differential equations and separation of variables' },
+      { id: 'delta-greens-functions', name: 'The Dirac delta and Green\'s functions' },
+      { id: 'tensors', name: 'Tensors' },
+      { id: 'probability', name: 'Probability and statistics for physicists' },
     ] },
     { id: 'mechanics', name: 'Mechanics and properties of matter', topics: [
       { id: 'newtons-laws-frames', name: 'Newton\'s laws, inertial and non-inertial frames' },
