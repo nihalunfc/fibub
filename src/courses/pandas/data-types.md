@@ -16,9 +16,16 @@ quiz:
     choices: ['It saves memory and can keep a meaningful order for sorting', 'It is required for groupby', 'It makes text upper case']
     ans: 0
     why: 'Ordered categories sort small < medium < large instead of alphabetically.'
+sources:
+  - 'pandas documentation, User Guide: Essential basic functionality (dtypes) https://pandas.pydata.org/docs/user_guide/basics.html#dtypes'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 3 · about 20 minutes · uses Lesson 1.6.** You'll be able to fix columns that were read with the wrong type.
+
+<div class="bigidea">Each column has a type (number, text, date, category, True/False), and the wrong type silently breaks sums, sorting and filters.</div>
+
+**In everyday terms:** numbers stored as text are like prices written on paper tags: you can read them, but the till cannot add them. Converting the type is typing them into the till.
 
 ## 1. Spot the wrong types
 
@@ -72,6 +79,37 @@ df.sort_values('size')
 - An **ordered category** sorts in a meaningful order and saves memory on repeated labels.
 - `map` with a dictionary turns labels into True/False (or any values).
 - `astype(int)` fails if the column has NaN; use `astype('Int64')` (capital I), which allows missing whole numbers.
+
+<div class="meaning">
+
+<dl>
+<dt>int64 / float64</dt><dd>Whole numbers / decimals.</dd>
+<dt>object or string</dt><dd>Text.</dd>
+<dt>datetime64</dt><dd>Dates and times.</dd>
+<dt>category</dt><dd>Text with few repeated values, stored compactly.</dd>
+<dt>pd.to_numeric(errors='coerce')</dt><dd>Convert text to numbers; anything unreadable becomes NaN for you to inspect.</dd>
+<dt>Physical meaning</dt><dd>The type decides what operations mean. "10" + "5" is "105" as text and 15 as numbers; "10" sorts before "9" as text. Fix types right after reading.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If it looks like a number, pandas treats it as one."** One "$" or "n/a" in a column turns the whole column into text. info() shows object instead of float64: that is your clue.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The column.</b> price = ['$4.50', '$12', 'n/a', '$7.25'] (object).</div>
+<div class="step"><b>Strip symbols.</b> <code>.str.replace('$', '')</code> → ['4.50', '12', 'n/a', '7.25'].</div>
+<div class="step"><b>Convert.</b> <code>pd.to_numeric(..., errors='coerce')</code> → 4.5, 12.0, NaN, 7.25 (float64).</div>
+<div class="step"><b>Inspect what failed.</b> The NaN came from 'n/a': a real gap, not a typo.</div>
+<div class="step"><b>Now maths works.</b> Sum = 23.75.</div>
+</div>
+
+<div class="problem" data-problem="pd-text-sum"></div>
 
 ## 4. Your turn
 
@@ -140,3 +178,12 @@ s.str.rstrip('%') removes the % sign (and leaves the missing value missing); the
 </details>
 
 **New words:** *dtype*, *to_numeric*, *coerce*, *astype*, *category*, *ordered category*, *nullable integer*.
+
+<div class="keypoints">
+
+- Check dtypes with info() after reading.
+- Clean symbols, then pd.to_numeric(errors='coerce') and inspect new NaN.
+- Use astype for safe conversions; category for repeated text; bool for flags.
+- Text numbers add and sort as text: "10" + "5" = "105".
+
+</div>

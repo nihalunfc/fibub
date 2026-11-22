@@ -35,6 +35,8 @@ for slug, b in L.items():
     ins = '\n\n'.join(blk) + '\n\n'
     anchor = b.get('before', '<details class="maths"')
     k = body.find(anchor)
+    yt = re.search(r'\n## \d+\. Your turn', body)
+    if 'before' not in b and yt: k = yt.start() + 1  # code courses: teach before the exercise
     if k < 0: k = body.find('\n## ', body.find('## 2.')) + 1  # fall back: before section 3
     body = body[:k] + ins + body[k:]
     keys = '\n'.join(f'- {x}' for x in b['keys'])

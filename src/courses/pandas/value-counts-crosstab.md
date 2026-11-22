@@ -16,9 +16,16 @@ quiz:
     choices: ['Each row add up to 1 (row percentages)', 'Each column add up to 1', 'The whole table add up to 1']
     ans: 0
     why: "'index' = rows, 'columns' = columns, True = whole table."
+sources:
+  - 'pandas documentation, User Guide: Reshaping and pivot tables (crosstab) https://pandas.pydata.org/docs/user_guide/reshaping.html#cross-tabulations'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 4 · about 15 minutes · uses Lesson 4.1.** You'll be able to build frequency tables and two-way tables with percentages.
+
+<div class="bigidea">value_counts counts how often each value appears; crosstab counts every combination of two columns in a grid.</div>
+
+**In everyday terms:** a tally sheet. value_counts is one column of tally marks per answer; crosstab is a grid with one tally box per pair of answers, like a seating chart of who sat where.
 
 ## 1. value_counts
 
@@ -46,6 +53,35 @@ display(pd.crosstab(customers['home_store'], customers['segment'], margins=True)
 `margins=True` adds totals. `normalize='index'` gives **row percentages**: "of this store's customers, what share is each segment?" Choose the direction that answers your question; it's the commonest mistake in reading these tables.
 
 **With a value:** `pd.crosstab(a, b, values=df['revenue'], aggfunc='sum')` sums a number instead of counting rows, like a pivot table (Lesson 6.1).
+
+<div class="meaning">
+
+<dl>
+<dt>value_counts()</dt><dd>Counts per value, biggest first.</dd>
+<dt>normalize=True</dt><dd>Shares instead of counts.</dd>
+<dt>pd.crosstab(a, b)</dt><dd>Counts of each a-b combination.</dd>
+<dt>normalize='index'</dt><dd>Shares within each row.</dd>
+<dt>Physical meaning</dt><dd>A crosstab is the table a chi-square test reads (Statistics Lesson 6.5): if the row shares look alike, the two columns are unrelated; if they differ, one tells you something about the other.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Compare the counts across rows."** Rows with more customers have bigger counts everywhere. Compare shares within each row (normalize='index') to see whether the mix really differs.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The rows.</b> segment by store for 6 customers: S01 Premium, S01 Regular, S01 Regular, WEB Premium, WEB Premium, WEB Regular.</div>
+<div class="step"><b>Counts.</b> <code>pd.crosstab(df.store, df.segment)</code><table class="lk-tbl"><tr><th>store</th><th>Premium</th><th>Regular</th></tr><tr><td>S01</td><td>1</td><td>2</td></tr><tr><td>WEB</td><td>2</td><td>1</td></tr></table></div>
+<div class="step"><b>Shares per row.</b> <code>normalize='index'</code><table class="lk-tbl"><tr><th>store</th><th>Premium</th><th>Regular</th></tr><tr><td>S01</td><td>0.33</td><td>0.67</td></tr><tr><td>WEB</td><td><mark>0.67</mark></td><td>0.33</td></tr></table></div>
+<div class="step"><b>Read it.</b> WEB customers are twice as often Premium.</div>
+</div>
+
+<div class="problem" data-problem="pd-crosstab-share"></div>
 
 ## 3. Your turn
 
@@ -114,3 +150,12 @@ pd.crosstab(orders['store_id'], orders['qty'], normalize='index') * 100, then .r
 **Try it on your own data:** [[crosstab-chi-square]] builds the table and runs the test.
 
 **New words:** *value_counts*, *normalize*, *crosstab*, *margins*, *row percentage*.
+
+<div class="keypoints">
+
+- value_counts gives counts or shares of one column.
+- crosstab counts combinations of two columns.
+- normalize='index' compares mixes fairly across rows.
+- A crosstab is the input to a chi-square test.
+
+</div>

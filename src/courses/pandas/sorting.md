@@ -16,9 +16,16 @@ quiz:
     choices: ['To undo the sort', 'To number the rows 0, 1, 2 again in the new order', 'It is required']
     ans: 1
     why: 'Sorting keeps each row''s original label; resetting gives clean positions-as-labels.'
+sources:
+  - 'pandas documentation, User Guide: Essential basic functionality (sorting) https://pandas.pydata.org/docs/user_guide/basics.html#sorting'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 2 · about 15 minutes · uses Lesson 2.3.** You'll be able to sort tables and pull out top and bottom N.
+
+<div class="bigidea">sort_values puts rows in order by one or more columns, and nlargest and nsmallest jump straight to the top or bottom N.</div>
+
+**In everyday terms:** sorting a deck of cards by suit and then by number within each suit: the first key decides, the second breaks ties.
 
 ## 1. sort_values
 
@@ -64,6 +71,35 @@ products.sort_values('price_rank').reset_index(drop=True).head()
 ```
 
 `method='min'` gives tied values the same (best) rank, like a sports table. `reset_index(drop=True)` renumbers rows 0, 1, 2 in the new order.
+
+<div class="meaning">
+
+<dl>
+<dt>sort_values('qty', ascending=False)</dt><dd>Biggest first.</dd>
+<dt>sort_values(['store', 'qty'])</dt><dd>By store, then by qty within store.</dd>
+<dt>nlargest(5, 'qty')</dt><dd>The 5 biggest rows, quickly.</dd>
+<dt>rank()</dt><dd>Each value's place in the order.</dd>
+<dt>Physical meaning</dt><dd>Sorting changes the order of rows but keeps their labels. That is why reset_index(drop=True) is often the next step, to number the sorted rows 0, 1, 2 again.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Sorting by two columns sorts each one separately."** It sorts by the first, and uses the second only to order rows that tie on the first.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Start.</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td>WEB</td><td>2</td></tr><tr><td>S01</td><td>5</td></tr><tr><td>S01</td><td>1</td></tr><tr><td>WEB</td><td>4</td></tr></table></div>
+<div class="step"><b>Sort by store.</b> S01, S01, WEB, WEB.</div>
+<div class="step"><b>Then by qty, biggest first.</b> <code>sort_values(['store', 'qty'], ascending=[True, False])</code></div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>store</th><th>qty</th></tr><tr><td>S01</td><td>5</td></tr><tr><td>S01</td><td>1</td></tr><tr><td>WEB</td><td>4</td></tr><tr><td>WEB</td><td>2</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="pd-rank"></div>
 
 ## 4. Your turn
 
@@ -132,3 +168,12 @@ sort_values(['category', 'cost']) sorts both ascending; then .reset_index(drop=T
 </details>
 
 **New words:** *sort_values*, *ascending*, *nlargest*, *nsmallest*, *rank*, *reset_index*.
+
+<div class="keypoints">
+
+- sort_values sorts by one or more columns; ascending can be a list.
+- nlargest / nsmallest find the top or bottom N fast.
+- rank gives positions; method= decides how ties are handled.
+- reset_index(drop=True) renumbers rows after sorting.
+
+</div>
