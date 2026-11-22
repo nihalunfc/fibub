@@ -1,0 +1,33 @@
+---
+// 10.5: a co-founder leaves. Good or bad leaver terms decide how many shares they keep and what the company pays to buy the rest.
+---
+<figure class="cs-fig su-fig" data-lv>
+  <span class="cs-figtag">Calculator: when a co-founder leaves</span>
+  <div class="su-row">
+    <label>Their shares<input type="number" name="n" min="0" step="1" value="400000" /></label>
+    <label>Months since vesting started<input type="number" name="m" min="0" step="1" value="20" /></label>
+    <label>Price they paid per share<input type="number" name="p" min="0" step="any" value="0.001" /></label>
+    <label>Fair value per share now<input type="number" name="f" min="0" step="any" value="0.5" /></label>
+    <label>Leaver type<select name="t"><option value="good">Good leaver (illness, agreed exit, let go without cause)</option><option value="bad">Bad leaver (breach, fraud, joins a competitor)</option></select></label>
+  </div>
+  <div class="su-out"><div><span>Vested (4 years, 1-year cliff)</span><b data-v></b></div><div><span>Company buys back</span><b data-b></b></div><div><span>Company pays</span><b data-c></b></div><div><span>They keep, worth now</span><b data-k></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Typical terms in a shareholders’ or stock purchase agreement: unvested shares are bought back at the price paid; a good leaver keeps vested shares; a bad leaver must also sell vested shares at the lower of the price paid and fair value. Your agreement decides; courts look at what was signed.</figcaption>
+</figure>
+<script>
+  import { num } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lv]')) {
+    function draw() {
+      const n = num(fig, 'n'), m = num(fig, 'm'), p = num(fig, 'p'), f = num(fig, 'f'), bad = (fig.querySelector('[name=t]') as HTMLSelectElement).value === 'bad';
+      const vf = m < 12 ? 0 : Math.min(1, Math.floor(m) / 48), vested = Math.round(n * vf), unv = n - vested;
+      const back = bad ? n : unv, pay = unv * p + (bad ? vested * Math.min(p, f) : 0), keep = bad ? 0 : vested;
+      const fmt = (x: number) => x.toLocaleString('en', { maximumFractionDigits: 2 });
+      fig.querySelector('[data-v]')!.textContent = `${fmt(vested)} (${(vf * 100).toFixed(1)} %)`;
+      fig.querySelector('[data-b]')!.textContent = fmt(back);
+      fig.querySelector('[data-c]')!.textContent = fmt(pay);
+      fig.querySelector('[data-k]')!.textContent = `${fmt(keep)} shares, ${fmt(keep * f)}`;
+      fig.querySelector('[data-say]')!.textContent = bad ? 'A bad leaver loses everything at little cost to the company: that is why the bad-leaver list must be short and clear.' : `They keep ${fmt(keep)} vested shares as a shareholder; the ${fmt(unv)} unvested shares return to the company for whoever takes over the role. Without vesting, they would have kept all ${fmt(n)}.`;
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+  }
+</script>

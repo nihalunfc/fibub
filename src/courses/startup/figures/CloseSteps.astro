@@ -1,0 +1,43 @@
+---
+// 12.5: pick a country and structure; see the steps to close the business properly, in order, with the form and the usual time.
+---
+<figure class="cs-fig su-fig" data-cl>
+  <span class="cs-figtag">Try it: how do I close my business?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>Structure<select name="st"><option value="co">Company or corporation</option><option value="llp">LLP or LLC</option><option value="sp">Sole proprietor</option></select></label>
+  </div>
+  <ol data-out style="padding-left:20px;margin:10px 0;font-size:14.5px"></ol>
+  <div class="su-out"><div><span>Main form</span><b data-f></b></div><div><span>Typical time</span><b data-t></b></div></div>
+  <figcaption>As of November 2026, for a solvent business with no disputes. A business that cannot pay its debts goes through insolvency instead (India’s IBC, Canada’s Bankruptcy and Insolvency Act, US Chapter 7): see a licensed insolvency professional or trustee. Sources: MCA, Corporations Canada, CRA, Delaware Division of Corporations, IRS.</figcaption>
+</figure>
+<script>
+  import { followCountry, type CC } from './fmt';
+  const COMMON = ['Decide formally: a board and shareholder resolution (or partner agreement) to close.', 'Finish or hand over customer work; tell customers, suppliers and staff in writing.', 'Pay final wages, notice and benefits; file final payroll returns and slips.', 'Collect what you are owed, sell assets, and pay every debt and tax.'];
+  const C: Record<CC, Record<string, [string[], string, string]>> = {
+    in: {
+      co: [['File all overdue annual returns and the final income tax return; cancel GST registration (REG-16).', 'Close the bank account once the balance is distributed to shareholders.', 'File STK-2 with the ₹10,000 fee and indemnity bonds, affidavits and a statement of accounts certified by a chartered accountant (Fast Track Exit). A company with assets or creditors uses voluntary liquidation under IBC section 59 instead.', 'The Registrar publishes a notice; the company is struck off after the objection period.'], 'STK-2 (₹10,000)', '6 to 12 months'],
+      llp: [['File all overdue Form 8 and Form 11 returns; cancel GST registration.', 'Close the bank account.', 'File Form 24 to strike off the LLP with a statement of accounts and partners’ affidavits.'], 'Form 24', '3 to 9 months'],
+      sp: [['Cancel GST registration (REG-16) and file the final return (GSTR-10).', 'Surrender shop and trade licences; close the current account.', 'Show the closure and any asset sales on your income tax return.'], 'GST REG-16', '1 to 3 months'],
+    },
+    ca: {
+      co: [['File the final T2 return and final GST/HST and payroll returns; close the program accounts on the Business Number.', 'Ask CRA for a clearance certificate (TX19) before distributing money, so directors are not personally liable for unpaid tax.', 'Distribute what is left to shareholders (taxed as dividends or capital) and close the bank account.', 'File Articles of Dissolution (federal Form 17, or with your province, for example through the Ontario Business Registry).'], 'Articles of Dissolution', '3 to 6 months'],
+      llp: [['File final partnership and partner returns; close the GST/HST account.', 'Divide what is left by the partnership agreement.', 'Cancel the business name or partnership registration with the province.'], 'Provincial cancellation', '1 to 3 months'],
+      sp: [['File the final GST/HST return and close the account.', 'Cancel the business name registration (Ontario: free online).', 'Report the final year on your T1 with form T2125.'], 'Name cancellation', '1 to 2 months'],
+    },
+    us: {
+      co: [['File IRS Form 966 within 30 days of the resolution to dissolve.', 'File the final federal (1120, ticking "final return") and state returns, final payroll returns (941 and 940) and W-2s.', 'Pay all franchise tax, then file a Certificate of Dissolution in the state of incorporation (Delaware) and withdraw from every other state where you registered.', 'Distribute remaining assets, issue 1099-DIV to shareholders, close the bank account, and ask the IRS to close the EIN account.'], 'Certificate of Dissolution', '2 to 6 months'],
+      llp: [['File the final 1065 and K-1s (or final Schedule C for a single-member LLC).', 'Pay any state LLC tax due, then file a Certificate of Cancellation (Delaware) or Articles of Dissolution with the state.', 'Withdraw from other states; close the bank account and EIN account.'], 'Certificate of Cancellation', '1 to 3 months'],
+      sp: [['File the final Schedule C and close sales tax permits.', 'Cancel the DBA and local business licence.', 'Close the EIN account if you had one.'], 'DBA cancellation', '1 month'],
+    },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cl]')) {
+    const cc = followCountry(fig, draw); fig.addEventListener('change', draw);
+    function draw() {
+      const st = (fig.querySelector('[name=st]') as HTMLSelectElement).value, [steps, form, time] = C[cc()][st];
+      const out = fig.querySelector('[data-out]')!; out.innerHTML = '';
+      [...COMMON, ...steps, 'Keep the records for the legal period after closing (India 8 years, Canada 6, USA at least 3 to 7).'].forEach((s) => { const li = document.createElement('li'); li.style.margin = '4px 0'; li.textContent = s; out.append(li); });
+      fig.querySelector('[data-f]')!.textContent = form; fig.querySelector('[data-t]')!.textContent = time;
+    }
+  }
+</script>

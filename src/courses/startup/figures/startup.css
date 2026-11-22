@@ -70,6 +70,8 @@ html[data-cc=in] [data-only]:not([data-only~=in]), html[data-cc=ca] [data-only]:
 .su-fig .su-card.on { border-color: var(--accent); background: var(--accent-soft); }
 .su-fig .su-card.good { border-color: var(--good); background: var(--good-soft); }
 .su-fig .su-card.bad { border-color: var(--bad); background: var(--bad-soft); }
+.su-fig .su-card.warn { border-color: var(--warn); background: var(--warn-soft); }
+.su-fig .su-fine { font-size: 13px; color: var(--muted, #555); margin-top: 3px; }
 .su-fig .su-card strong { display: block; margin-bottom: 2px; }
 .su-fig .su-wm { font-size: 11px; color: var(--muted); opacity: .5; text-align: right; margin: 4px 0 0; }
 .su-fig .su-fine { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }

@@ -56,6 +56,22 @@ import TaxCalendar from './TaxCalendar.astro';
 import WorkerTest from './WorkerTest.astro';
 import Payslip from './Payslip.astro';
 import HireCost from './HireCost.astro';
+import AgreementBuilder from './AgreementBuilder.astro';
+import EquitySplit from './EquitySplit.astro';
+import VestingTimeline from './VestingTimeline.astro';
+import EsopTax from './EsopTax.astro';
+import LeaverCalc from './LeaverCalc.astro';
+import IpPicker from './IpPicker.astro';
+import TrademarkFees from './TrademarkFees.astro';
+import ContractClauses from './ContractClauses.astro';
+import EmailRules from './EmailRules.astro';
+import LegalPages from './LegalPages.astro';
+import FilingFinder from './FilingFinder.astro';
+import ComplianceCal from './ComplianceCal.astro';
+import InsurancePicker from './InsurancePicker.astro';
+import ExpandPath from './ExpandPath.astro';
+import CloseSteps from './CloseSteps.astro';
+import LaunchPlan from './LaunchPlan.astro';
 
 export const FIGURES: Record<string, any> = {
   country: CountrySwitch,
@@ -113,4 +129,23 @@ export const FIGURES: Record<string, any> = {
   'worker-test': WorkerTest,
   'payslip': Payslip,
   'hire-cost': HireCost,
+  // Module 10
+  'agreement-builder': AgreementBuilder,
+  'equity-split': EquitySplit,
+  'vesting-timeline': VestingTimeline,
+  'esop-tax': EsopTax,
+  'leaver-calc': LeaverCalc,
+  // Module 11
+  'ip-picker': IpPicker,
+  'trademark-fees': TrademarkFees,
+  'contract-clauses': ContractClauses,
+  'email-rules': EmailRules,
+  'legal-pages': LegalPages,
+  // Module 12
+  'filing-finder': FilingFinder,
+  'compliance-cal': ComplianceCal,
+  'insurance-picker': InsurancePicker,
+  'expand-path': ExpandPath,
+  'close-steps': CloseSteps,
+  'launch-plan': LaunchPlan,
 };
