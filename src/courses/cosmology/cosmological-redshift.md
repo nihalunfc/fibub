@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "A galaxy's light shows a redshift of z = 3. How much bigger is the universe now than when the light left?"
-    choices: ["4 times", "3 times", "30 times"]
-    ans: 0
+    choices: ["3 times","4 times","30 times"]
+    ans: 1
     why: "1 + z = 1 + 3 = 4. Every distance between galaxies has grown 4 times while the light travelled."
   - q: "Why does the James Webb Space Telescope look mainly in infrared light?"
-    choices: ["The visible and ultraviolet light of the first galaxies has been stretched into the infrared", "Infrared is easier to focus", "Distant galaxies are all cool and red"]
-    ans: 0
+    choices: ["Infrared is easier to focus","The visible and ultraviolet light of the first galaxies has been stretched into the infrared","Distant galaxies are all cool and red"]
+    ans: 1
     why: "At z = 10, ultraviolet light from young hot stars arrives 11 times longer, deep in the infrared."
   - q: "How is cosmological redshift different from an ordinary Doppler shift?"
-    choices: ["It comes from space stretching while the light travels, not from the source's speed at the moment it sent the light", "There is no difference at all", "It only affects radio waves"]
-    ans: 0
+    choices: ["There is no difference at all","It only affects radio waves","It comes from space stretching while the light travels, not from the source's speed at the moment it sent the light"]
+    ans: 2
     why: "For nearby galaxies the two give the same answer, but far away only the stretching picture works: z can be bigger than 1 without anything moving faster than light through space."
 sources:
   - "S. Carniani et al. (2024), Spectroscopic confirmation of two luminous galaxies at a redshift of 14, Nature 633, 318 https://doi.org/10.1038/s41586-024-07860-9"

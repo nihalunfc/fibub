@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: Why are Type Ia supernovae such good candles for great distances?
-    choices: ['They are extremely bright and have nearly the same peak power once corrected', 'They last for centuries', 'They are always close to us']
+    choices: ["They are extremely bright and have nearly the same peak power once corrected","They last for centuries","They are always close to us"]
     ans: 0
     why: At their peak they outshine billions of suns, so they can be seen across most of the observable universe, and after correction their peaks agree to about 10% in distance.
   - q: What is the Phillips relation?
-    choices: ['Brighter Type Ia supernovae fade more slowly', 'Supernovae get redder over time', 'All supernovae have the same light curve']
-    ans: 0
+    choices: ["Supernovae get redder over time","All supernovae have the same light curve","Brighter Type Ia supernovae fade more slowly"]
+    ans: 2
     why: Measuring how fast a supernova fades tells you how bright it really was, so you can correct its peak.
   - q: Why can't we use Type Ia supernovae alone, without Cepheids?
-    choices: ['Their true brightness must be calibrated with galaxies whose distance is known another way', 'They are too rare to see', 'They only happen in the Milky Way']
-    ans: 0
+    choices: ["They are too rare to see","They only happen in the Milky Way","Their true brightness must be calibrated with galaxies whose distance is known another way"]
+    ans: 2
     why: The supernova method tells you relative distances very well. To turn them into real distances you need nearby supernovae in galaxies with Cepheid (or similar) distances.
 sources:
   - 'M. M. Phillips (1993), The absolute magnitudes of Type Ia supernovae, ApJ Letters 413, L105 https://doi.org/10.1086/186970'

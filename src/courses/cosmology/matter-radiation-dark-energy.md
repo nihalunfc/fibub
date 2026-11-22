@@ -6,15 +6,15 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "When the universe doubles in size, matter's density falls by:"
-    choices: ["8 times", "2 times", "16 times"]
+    choices: ["8 times","2 times","16 times"]
     ans: 0
     why: "The same matter fills a volume 2 × 2 × 2 = 8 times larger."
   - q: "Why does radiation thin out faster than matter?"
-    choices: ["Photons spread out like matter and each one is also stretched to lower energy", "Photons are destroyed", "Radiation turns into matter"]
+    choices: ["Photons spread out like matter and each one is also stretched to lower energy","Photons are destroyed","Radiation turns into matter"]
     ans: 0
     why: "Spreading gives 1/a³, stretching each wave gives another 1/a, so 1/a⁴."
   - q: "Which order did the three ingredients rule the expansion in?"
-    choices: ["Radiation, then matter, then dark energy", "Dark energy, then matter, then radiation", "Matter, then radiation, then dark energy"]
+    choices: ["Radiation, then matter, then dark energy","Dark energy, then matter, then radiation","Matter, then radiation, then dark energy"]
     ans: 0
     why: "Radiation falls fastest, so it ruled when the universe was small; dark energy never falls, so it rules when the universe is big."
 sources:

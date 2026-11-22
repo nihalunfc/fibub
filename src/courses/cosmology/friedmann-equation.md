@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: "A ball is thrown up at exactly the escape speed. What happens?"
-    choices: ["It keeps rising forever, slowing down but never stopping", "It falls back", "It speeds up"]
-    ans: 0
+    choices: ["It falls back","It speeds up","It keeps rising forever, slowing down but never stopping"]
+    ans: 2
     why: "Its energy of motion exactly matches the pull of gravity. It is the boundary between falling back and escaping, like a flat universe."
   - q: "In the Friedmann equation H² = (8πG/3)ρ − kc²/a², what does the k term stand for?"
-    choices: ["The curvature of space, playing the part of the leftover energy of the thrown ball", "The speed of light", "Dark energy"]
-    ans: 0
+    choices: ["The speed of light","Dark energy","The curvature of space, playing the part of the leftover energy of the thrown ball"]
+    ans: 2
     why: "In the ball picture it is the total energy; in general relativity it becomes the shape of space: closed, flat or open."
   - q: "How does the expansion rate depend on density in a flat universe?"
-    choices: ["H² is proportional to the density", "H is proportional to the density", "They are unrelated"]
-    ans: 0
+    choices: ["H is proportional to the density","H² is proportional to the density","They are unrelated"]
+    ans: 1
     why: "H² = 8πGρ/3: four times the density means twice the expansion rate."
 sources:
   - "A. Friedmann (1922), Über die Krümmung des Raumes (On the curvature of space), Zeitschrift für Physik 10, 377 https://doi.org/10.1007/BF01332580"

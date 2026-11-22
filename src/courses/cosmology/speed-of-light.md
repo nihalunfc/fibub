@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: You run towards a torch beam at half the speed of light. How fast do you measure the light coming at you?
-    choices: ['Exactly c, the same as everyone else', '1.5 times c', 'Half of c']
-    ans: 0
+    choices: ["1.5 times c","Half of c","Exactly c, the same as everyone else"]
+    ans: 2
     why: That is Einstein's second rule. Every observer moving steadily measures light at c, however they move.
   - q: What did Michelson and Morley find in 1887?
-    choices: ['Light''s speed was the same in every direction, whatever Earth''s motion', 'Light was slower along Earth''s motion', 'Light needs air to travel']
-    ans: 0
+    choices: ["Light was slower along Earth's motion","Light's speed was the same in every direction, whatever Earth's motion","Light needs air to travel"]
+    ans: 1
     why: They expected a tiny difference from Earth moving through an "ether". They found none, to far better than they needed.
   - q: Who first showed that light takes time to travel?
-    choices: ['Ole Rømer, timing the eclipses of Jupiter''s moon Io in 1676', 'Isaac Newton, with a prism', 'Galileo, with lanterns on hills']
-    ans: 0
+    choices: ["Isaac Newton, with a prism","Galileo, with lanterns on hills","Ole Rømer, timing the eclipses of Jupiter's moon Io in 1676"]
+    ans: 2
     why: Io's eclipses came a few minutes late when Jupiter was farther from Earth. The extra distance took the light extra time.
 sources:
   - 'A. A. Michelson and E. W. Morley (1887), On the relative motion of the Earth and the luminiferous ether, American Journal of Science 34, 333 https://doi.org/10.2475/ajs.s3-34.203.333'

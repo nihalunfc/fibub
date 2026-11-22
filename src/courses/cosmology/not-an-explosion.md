@@ -6,15 +6,15 @@ minutes: 12
 updated: 2026-11-22
 quiz:
   - q: "Where did the Big Bang happen?"
-    choices: ["Everywhere: every place in the universe was part of it", "At a point near the centre of the universe", "Near the Milky Way"]
-    ans: 0
+    choices: ["At a point near the centre of the universe","Near the Milky Way","Everywhere: every place in the universe was part of it"]
+    ans: 2
     why: "All of space was hot and dense, and all of it began expanding. The spot where you sit now took part, as did every other spot."
   - q: "In the balloon picture, what stands for the universe?"
-    choices: ["Only the rubber surface", "The air inside", "The whole balloon including the inside"]
-    ans: 0
+    choices: ["The air inside","The whole balloon including the inside","Only the rubber surface"]
+    ans: 2
     why: "The galaxies are dots on the rubber and live only on the surface. The middle of the balloon is not part of their world, so it is not a centre of the universe."
   - q: "What did the young universe look like in every direction, from any place?"
-    choices: ["Hot, dense and almost the same everywhere", "Dark and empty, with one bright point", "A shell of fire with empty space inside"]
+    choices: ["Hot, dense and almost the same everywhere","Dark and empty, with one bright point","A shell of fire with empty space inside"]
     ans: 0
     why: "Run the film backwards and every patch of space gets denser and hotter at the same time. There was no empty space for an explosion to fill."
 sources:

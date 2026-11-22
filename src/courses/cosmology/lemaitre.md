@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "Why did Einstein add the cosmological constant to his equations in 1917?"
-    choices: ["To keep the universe static, as everyone then believed it was", "To explain the redshifts of galaxies", "To make black holes possible"]
+    choices: ["To keep the universe static, as everyone then believed it was","To explain the redshifts of galaxies","To make black holes possible"]
     ans: 0
     why: "Gravity alone would make a static universe collapse. Einstein added a gentle push to balance it. Today a cosmological constant is back, as dark energy."
   - q: "What did Lemaître do in 1927?"
-    choices: ["Showed that Einstein's equations allow an expanding universe and that this explains galaxy redshifts, with a first estimate of the expansion rate", "Measured the distance to Andromeda", "Discovered the cosmic microwave background"]
+    choices: ["Showed that Einstein's equations allow an expanding universe and that this explains galaxy redshifts, with a first estimate of the expansion rate","Measured the distance to Andromeda","Discovered the cosmic microwave background"]
     ans: 0
     why: "He linked theory and observation: speeds proportional to distances, two years before Hubble's plot."
   - q: "What was Lemaître's 'primeval atom'?"
-    choices: ["His 1931 idea that the universe began in a single, extremely dense state that broke apart", "The first atom made in a laboratory", "A hydrogen atom in a distant galaxy"]
-    ans: 0
+    choices: ["The first atom made in a laboratory","His 1931 idea that the universe began in a single, extremely dense state that broke apart","A hydrogen atom in a distant galaxy"]
+    ans: 1
     why: "Running the expansion backwards led him to a beginning: the first version of what later became the Big Bang theory."
 sources:
   - "A. Friedmann (1922), Über die Krümmung des Raumes (On the curvature of space), Zeitschrift für Physik 10, 377 https://doi.org/10.1007/BF01332580"

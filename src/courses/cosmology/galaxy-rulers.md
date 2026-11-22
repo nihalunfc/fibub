@@ -6,15 +6,15 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: What does the Tully-Fisher relation link?
-    choices: ['How fast a spiral galaxy spins and how much light it gives out', 'A galaxy''s colour and its age', 'A star''s mass and its lifetime']
+    choices: ["How fast a spiral galaxy spins and how much light it gives out","A galaxy's colour and its age","A star's mass and its lifetime"]
     ans: 0
     why: Faster spinning spirals hold more mass and so more stars, so they are brighter. Measure the spin, get the true brightness, compare with how bright it looks, and you have the distance.
   - q: Why is the water maser distance to NGC 4258 so valuable?
-    choices: ['It uses pure geometry, with no assumption about how bright any star is', 'It is the farthest distance ever measured', 'It needs no telescope']
-    ans: 0
+    choices: ["It is the farthest distance ever measured","It needs no telescope","It uses pure geometry, with no assumption about how bright any star is"]
+    ans: 2
     why: Clouds orbiting the galaxy's central black hole give both a speed and a sideways drift. Comparing the two gives the distance directly, which checks the Cepheid scale.
   - q: If one image of a lensed quasar flickers 30 days after another, what does the delay depend on?
-    choices: ['The size of the universe, so it measures the expansion rate', 'Only the colour of the quasar', 'The weather on Earth']
+    choices: ["The size of the universe, so it measures the expansion rate","Only the colour of the quasar","The weather on Earth"]
     ans: 0
     why: The two light paths differ in length by an amount that scales with cosmic distances. A bigger universe (smaller Hubble constant) means a longer delay.
 sources:

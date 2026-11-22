@@ -6,15 +6,15 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: What do gravitational waves do as they pass?
-    choices: ['Stretch and squeeze space by a tiny amount', 'Push objects away from their source', 'Heat up the air']
-    ans: 0
+    choices: ["Push objects away from their source","Heat up the air","Stretch and squeeze space by a tiny amount"]
+    ans: 2
     why: They alternately stretch space one way and squeeze it the other. LIGO's 4 km arms change length by far less than a proton's width.
   - q: Why does the signal from merging black holes "chirp"?
-    choices: ['They orbit faster and faster as they spiral in, so the wave rises in pitch and strength', 'The detector is noisy', 'Sound travels through space']
+    choices: ["They orbit faster and faster as they spiral in, so the wave rises in pitch and strength","The detector is noisy","Sound travels through space"]
     ans: 0
     why: Losing energy to gravitational waves, the pair moves closer and orbits faster, so the waves get higher and stronger until the merger.
   - q: How can gravitational waves help measure the expansion of the universe?
-    choices: ['The wave itself tells how far away the source is, a "standard siren"', 'They are louder in faster universes', 'They cannot help']
+    choices: ["The wave itself tells how far away the source is, a \"standard siren\"","They are louder in faster universes","They cannot help"]
     ans: 0
     why: The shape and strength of the wave give the true distance. With the redshift of the host galaxy, that gives the expansion rate without the distance ladder.
 sources:

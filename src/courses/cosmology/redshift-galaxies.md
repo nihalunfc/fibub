@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "What did Slipher measure to find a galaxy's speed?"
-    choices: ["How far its spectral lines had shifted along the spectrum", "How quickly it grew brighter", "How fast it moved across the sky"]
-    ans: 0
+    choices: ["How quickly it grew brighter","How far its spectral lines had shifted along the spectrum","How fast it moved across the sky"]
+    ans: 1
     why: "Lines shifted towards red mean moving away; towards blue mean coming closer. The size of the shift gives the speed."
   - q: "Andromeda's lines are shifted towards blue. What does that tell us?"
-    choices: ["Andromeda is moving towards us", "Andromeda is moving away from us", "Andromeda is very hot"]
-    ans: 0
+    choices: ["Andromeda is moving away from us","Andromeda is moving towards us","Andromeda is very hot"]
+    ans: 1
     why: "A blueshift means approach. Andromeda and the Milky Way are falling towards each other at about 300 km/s, held by their mutual gravity."
   - q: "By 1917, what pattern had Slipher found among the spirals he measured?"
-    choices: ["Most were moving away, many at hundreds of km/s or more", "They were all at rest", "Half were coming, half going, evenly"]
-    ans: 0
+    choices: ["They were all at rest","Most were moving away, many at hundreds of km/s or more","Half were coming, half going, evenly"]
+    ans: 1
     why: "Of 25 spirals, 21 were moving away, some faster than 1,000 km/s, far faster than any star in our galaxy. Nobody yet knew why."
 sources:
   - "V. M. Slipher (1913), The radial velocity of the Andromeda Nebula, Lowell Observatory Bulletin 2, 56 https://ui.adsabs.harvard.edu/abs/1913LowOB...2...56S"
