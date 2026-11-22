@@ -1,0 +1,18 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { ETL_COURSE } from '../../../../courses/etl/syllabus';
+import '../../../../styles/lesson-kit.css';
+---
+<CourseHome course={ETL_COURSE}>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Get data in from anywhere</strong>: shared drives, email attachments, SharePoint and Google Drive, SFTP, APIs and source databases, landed safely and only once.</li>
+      <li><strong>Clean it so people trust it</strong>: profiling, data contracts, Polars and DuckDB transforms, duplicates and entity matching, and quality gates that quarantine bad rows.</li>
+      <li><strong>Run it on its own</strong> with Dagster: assets, partitions, backfills, schedules, sensors, retries and alerts.</li>
+      <li><strong>Load and model a warehouse</strong>: Azure SQL, Postgres, DuckDB and ClickHouse, star schemas, slowly changing dimensions and tested dbt models.</li>
+      <li><strong>Deliver dashboards that add up</strong>: fast Power BI models, correct DAX, refresh and security, and reconciliation that earns trust.</li>
+    </ul>
+    <p>Every lesson has a step-by-step animation of the key operation, a plain-words meaning box, live problems with fresh numbers, a short quiz and a summary sheet to download. Each module ends with a project you can show an employer. Take <a href="/learn/courses/pandas/">pandas</a> and <a href="/learn/courses/statistics/">Statistics</a> first if they are new; go on to <a href="/learn/courses/data-at-scale/">Data at Scale</a> when you finish.</p>
+  </section>
+</CourseHome>

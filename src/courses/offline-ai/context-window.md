@@ -3,8 +3,11 @@ title: "The context window: a model's working memory"
 seoTitle: "The context window explained | Offline AI"
 summary: Everything the model can see at once, instructions, chat history, documents and its own answer, has to fit in the context window. What happens when it is full, and how to set it.
 minutes: 20
-updated: 2026-11-18
+updated: 2026-11-22
 sources:
+  - 'Ollama FAQ, how to set the context window (num_ctx) https://github.com/ollama/ollama/blob/main/docs/faq.md'
+  - 'llama.cpp, official repository (the -c context size option) https://github.com/ggml-org/llama.cpp'
+  - 'Liu, N. F. et al. (2023), Lost in the Middle: How Language Models Use Long Contexts https://arxiv.org/abs/2307.03172'
   - 'Context lengths of current open models (Gemma 4 31B 256K, Qwen3.8-27B 262K, gpt-oss-120b 128K): Morph, November 2026, https://www.morphllm.com/best-open-source-llm'
 quiz:
   - q: What counts towards the context window?
@@ -23,6 +26,8 @@ quiz:
 
 **Module 3 · about 20 minutes · read first: 3.1.** You'll be able to say what fills the context window, what happens when it overflows, and how to set its size.
 
+<div class="bigidea">The context window is everything the model can see at once; instructions, chat, documents and its own answer must all fit, and whatever falls out is simply gone.</div>
+
 ## 1. Why this matters
 
 Most "the model forgot" and "it ignored my document" problems are context problems. Knowing the size of the window, and what is in it, lets you design prompts and scripts that keep the important text where the model can see it.
@@ -36,13 +41,31 @@ For every new token it writes, the model looks at everything in its **context wi
 3. any **documents** or tool results you added;
 4. the **answer it is writing**, so far.
 
-The **context length** is the most tokens that can fit. Current open models are trained for long contexts: Gemma 4 31B for 256K tokens, Qwen3.8-27B for 262K, gpt-oss-120b for 128K. But your engine decides how much it actually uses, and many start with a few thousand tokens to save memory.
+The **context length** is the most tokens that can fit. Current open models are trained for long contexts: Gemma 4 31B for 256K tokens, Qwen3.8-27B for 262K, gpt-oss-120b for 128K (K means thousand). But your engine decides how much it actually uses, and many start with a few thousand tokens to save memory.
+
+Think of a desk. The model can only use the papers spread out on it. A bigger desk holds more, but costs more room in the office (memory).
+
+Watch an 8,192-token window fill up, with the numbers from the box below.
+
+<div class="steps" data-fig="context-window-fill">
+<div class="step"><p><b>An empty window</b> of 8,192 tokens.</p></div>
+<div class="step"><p><b>Standing instructions.</b> The system prompt takes <b>300</b> tokens.</p></div>
+<div class="step"><p><b>The chat so far.</b> Your messages and its replies: <b>2,500</b> tokens.</p></div>
+<div class="step"><p><b>Room for the answer.</b> Keep <b>1,000</b> tokens free for the reply it will write. Left for a document: 8,192 − 3,800 = <b>4,392</b> tokens, about 3,300 words.</p></div>
+<div class="step"><p><b>Overflow.</b> Paste a 9,000-token contract instead and it cannot all fit. The engine drops the oldest text first: the start of the chat, then the start of the contract. The model never sees them.</p></div>
+</div>
 
 ## 3. When it is full
 
 When the conversation grows past the context length, engines drop the oldest text. The model is not being careless; it simply can no longer see it. Two fixes: a longer window (if memory allows), or a short summary of the old conversation at the start of a new one (Lesson 3.7).
 
 Even inside the window, very long contexts have a known weakness: models pay less attention to the middle of long text than to its start and end (Lesson 17.4). Put key instructions at the start or the end.
+
+<div class="myth">
+
+**"My model supports 256K tokens, so my app gives it 256K."** Often it doesn't. The 256K is what the model was trained to handle; the engine sets what it actually uses, and many start at 4K or 8K because every extra token of window needs memory. If a long document seems ignored, check the context length setting first.
+
+</div>
 
 ## 4. Setting it
 
@@ -64,6 +87,21 @@ Raise it step by step and watch memory (Lesson 8.4 explains why it grows).
 **Try it:** an 8,192 context with a 300-token system prompt, 2,500 tokens of history and a 1,000-token answer. How big can a document be? (8,192 − 3,800 = 4,392 tokens, about 3,300 words.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>system</dt><dd>tokens of standing instructions at the start</dd>
+<dt>history</dt><dd>tokens of the conversation so far, both sides</dd>
+<dt>documents</dt><dd>tokens of anything pasted or attached, and tool results</dd>
+<dt>answer</dt><dd>tokens you keep free for the reply</dd>
+<dt>context length</dt><dd>the size of the window the engine is set to, in tokens</dd>
+<dt>Physical meaning</dt><dd>The model has no memory outside this window. If the sum is too big, something is cut, usually the oldest text, and the model behaves as if it was never said. Plan the budget like packing a bag with a weight limit.</dd>
+</dl>
+
+</div>
+
+<div class="problem" data-problem="context-window-room"></div>
+
 ## 5. Worked example
 
 *Made-up numbers.* Omar pastes a 9,000-token contract into a chat set to 8,192 tokens. The model summarises only the last part, because the start was cut. He raises the context to 16,384; memory use grows by about 1 GB and the summary now covers the whole contract.
@@ -83,3 +121,13 @@ Raise it step by step and watch memory (Lesson 8.4 explains why it grows).
 </details>
 
 **New words:** *context window* or *context length* (how many tokens the model can see at once), *system prompt* (standing instructions at the start), *truncation* (dropping the oldest text).
+
+<div class="keypoints">
+
+- The context window holds the system prompt, the conversation, any documents and the answer being written.
+- system + history + documents + answer ≤ context length.
+- When it overflows, the oldest text is dropped and the model can no longer see it.
+- Models may support 128K to 262K tokens, but engines often start at a few thousand to save memory; raise it step by step.
+- Put key instructions at the start or end: the middle of a long context gets the least attention.
+
+</div>

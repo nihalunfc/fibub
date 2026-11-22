@@ -16,13 +16,19 @@ quiz:
     choices: ['They match', 'pandas raises an error, or nothing matches; convert both to the same type first', 'They are summed']
     ans: 1
     why: 'Keys must be the same type and the same spelling to match.'
+sources:
+  - 'pandas documentation, User Guide: Merge, join, concatenate and compare https://pandas.pydata.org/docs/user_guide/merging.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 5 · about 20 minutes · uses Lesson 5.2.** You'll be able to spot and prevent the join mistakes that inflate or lose rows.
 
+<div class="bigidea">A join can quietly change your totals. Repeated keys multiply rows; mismatched keys lose them. Check the row count and tell pandas what you expect.</div>
+
+**In everyday terms:** a phone book with two entries for the same person. Look up every caller and that person's calls get counted twice, once per entry.
+
 ## 1. Duplicate keys multiply rows
 
-<!--anim:join-dupes (table animation, added once the shared tableviz engine is on main)-->
 
 ```python
 import pandas as pd
@@ -71,6 +77,36 @@ Also check **types**: `101` and `'101'` never match. Convert both sides with `as
 4. Row count before and after (`len`).
 5. Unmatched rows with `indicator=True`, and why they didn't match.
 6. A total (revenue) before and after; it shouldn't change on a left join to a lookup.
+
+<div class="meaning">
+
+<dl>
+<dt>Duplicate key on the right</dt><dd>Each left row matching it appears once per copy: rows multiply.</dd>
+<dt>validate='many_to_one'</dt><dd>Raises an error if the right-hand key is not unique.</dd>
+<dt>Type or spelling mismatch</dt><dd>'S01' vs 's01 ' or 101 vs '101' never match.</dd>
+<dt>len before and after</dt><dd>The cheapest test: a left join on a unique key keeps the row count.</dd>
+<dt>Physical meaning</dt><dd>Revenue after a join should equal revenue before it. If a product appears twice in the product table, every order of it is copied, and the sum rises by exactly that product's revenue.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If the code runs, the join worked."** A many-to-many join runs without complaint and can double your revenue. pandas only checks when you ask with validate=.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Orders (revenue 100).</b> <table class="lk-tbl"><tr><th>order</th><th>product</th><th>revenue</th></tr><tr><td>1</td><td>P1</td><td>60</td></tr><tr><td>2</td><td>P2</td><td>40</td></tr></table></div>
+<div class="step"><b>Products: P1 is listed twice</b> (an old and a new row). <table class="lk-tbl"><tr><th>product</th><th>category</th></tr><tr><td><mark>P1</mark></td><td>Tea</td></tr><tr><td><mark>P1</mark></td><td>Tea</td></tr><tr><td>P2</td><td>Cups</td></tr></table></div>
+<div class="step"><b>Left join.</b> <table class="lk-tbl"><tr><th>order</th><th>product</th><th>revenue</th><th>category</th></tr><tr><td>1</td><td>P1</td><td><mark>60</mark></td><td>Tea</td></tr><tr><td>1</td><td>P1</td><td><mark>60</mark></td><td>Tea</td></tr><tr><td>2</td><td>P2</td><td>40</td><td>Cups</td></tr></table> Revenue now sums to 160.</div>
+<div class="step"><b>Catch it.</b> <code>validate='many_to_one'</code> raises MergeError: right keys are not unique.</div>
+<div class="step"><b>Fix.</b> <code>products.drop_duplicates('product', keep='last')</code>, join again: 2 rows, revenue 100.</div>
+</div>
+
+<div class="problem" data-problem="pd-dupe-join"></div>
 
 ## 5. Your turn
 
@@ -125,3 +161,12 @@ products.sort_values('updated').drop_duplicates('product_id', keep='last') gives
 </details>
 
 **New words:** *duplicate key*, *row explosion*, *validate*, *many-to-one*, *many-to-many*, *key hygiene*.
+
+<div class="keypoints">
+
+- Duplicate keys on the lookup side multiply rows and inflate sums.
+- Pass validate='many_to_one' (or one_to_one) so pandas checks for you.
+- Clean keys first: same type, strip spaces, same case.
+- Compare row counts and a key total before and after.
+
+</div>

@@ -2,8 +2,9 @@
 title: Five myths about running AI at home
 summary: You do not need a supercomputer, local models are not useless, it is not free, offline is not automatically safe, and local is not always slow.
 minutes: 20
-updated: 2026-11-18
+updated: 2026-11-22
 sources:
+  - 'llama.cpp, official repository (runs models on ordinary CPUs as well as GPUs) https://github.com/ggml-org/llama.cpp'
   - 'Open model list and sizes: Morph, "Best Open Source LLMs (November 2026)", https://www.morphllm.com/best-open-source-llm'
   - 'Mac speeds (gpt-oss-120b on M5 Max, measured with MLX): ComputingForGeeks, prices checked 27 October 2026, https://computingforgeeks.com/best-mac-for-local-llm/'
   - 'Graphics card prices in 2026: Compute Market, updated 1 November 2026, https://www.compute-market.com/blog/gpu-market-trends-pricing-2026'
@@ -24,9 +25,11 @@ quiz:
 
 **Module 1 · about 20 minutes · read first: 1.2 and 1.3.** You'll be able to answer the five things people most often get wrong about local AI.
 
+<div class="bigidea">Local AI is neither magic nor useless: it runs on ordinary computers, costs real money and time, and is only as safe and as fast as you set it up to be.</div>
+
 ## 1. Why this matters
 
-Myths cost money in both directions: some people buy a powerful machine they do not need, others never start because they think they need one. A clear view of each myth sets your expectations right for the rest of the course.
+Myths cost money in both directions. Some people buy a powerful machine they do not need. Others never start because they think they need one. A clear view of each myth sets your expectations right for the rest of the course.
 
 ## 2. Myth 1: "You need a supercomputer"
 
@@ -55,7 +58,7 @@ Myths cost money in both directions: some people buy a powerful machine they do 
 
 ## 6. Myth 5: "Local is always slow"
 
-**Reality:** speed depends on memory speed and model size (Module 4). A small model on a graphics card can write faster than you can read. Even large models can be quick on the right hardware: one test measured gpt-oss-120b at about 88 tokens per second on a 128 GB M5 Max Mac. Where local is slow is with big models on modest machines, and with very long documents.
+**Reality:** speed depends on two things: how fast the memory is, and how big the model is (Module 4). A small model on a graphics card can write faster than you can read. Even large models can be quick on the right hardware: one test measured gpt-oss-120b at about 88 tokens per second on a 128 GB M5 Max Mac. (A **token** is a word or piece of a word; Module 3 explains.) Local is slow with big models on modest machines, and with very long documents.
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -69,9 +72,29 @@ Myths cost money in both directions: some people buy a powerful machine they do 
 **Try it:** memory at 100 GB/s and a 5 GB model? (100 ÷ 5 = at most 20 tokens per second, a comfortable reading pace.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>bandwidth (GB/s)</dt><dd>how many gigabytes the memory can hand to the processor each second</dd>
+<dt>model size (GB)</dt><dd>how much memory the model's numbers take up</dd>
+<dt>tokens per second</dt><dd>how many word pieces the model can write each second, at most</dd>
+<dt>Physical meaning</dt><dd>To write each word piece, the machine has to read through the whole model once. A machine with fast memory and a small model writes quickly; a big model on a slow laptop writes slowly. That is why "local is slow" is true for some setups and false for others.</dd>
+</dl>
+
+</div>
+
 ## 7. Worked example
 
-*Made-up numbers.* A teacher assumes she must buy a new computer. Her laptop has 16 GB and memory that reads at about 100 GB/s. A 4-bit, 8-billion-parameter model takes about 5 GB, so the top speed is about 100 ÷ 5 = 20 tokens per second. She reads at about 5 words a second (roughly 7 tokens), so the model writes about three times faster than she reads. She does not need new hardware to start.
+*Made-up numbers.* A teacher assumes she must buy a new computer. Step through her check.
+
+<div class="steps">
+<div class="step"><p><b>Her laptop.</b> 16 GB of memory that reads at about <b>100 GB/s</b>.</p></div>
+<div class="step"><p><b>The model.</b> An 8-billion-parameter model at 4 bits: 8 × 4 ÷ 8 = 4 GB of weights, about <b>5 GB</b> with everything it needs.</p></div>
+<div class="step"><p><b>Top speed.</b> Every token means one pass through those 5 GB: 100 ÷ 5 = <b>20 tokens per second</b> at most.</p></div>
+<div class="step"><p><b>Her reading speed.</b> About 5 words a second, roughly <b>7 tokens</b>. The model writes about 20 ÷ 7 ≈ <b>3 times</b> faster than she reads. She does not need new hardware to start.</p></div>
+</div>
+
+<div class="problem" data-problem="local-ai-myths-speed"></div>
 
 ## 8. Practice
 
@@ -88,3 +111,13 @@ Myths cost money in both directions: some people buy a powerful machine they do 
 </details>
 
 **New words:** *memory bandwidth* (how fast memory can be read, in GB/s), *prompt injection* (hidden instructions inside content the model reads), *tokens per second* (how fast a model writes).
+
+<div class="keypoints">
+
+- You can start on an ordinary 8 to 16 GB laptop; bigger hardware buys bigger models and more speed.
+- Good open models now handle most everyday work; the best cloud models still lead on the hardest tasks.
+- Local AI has no usage meter, but hardware, electricity and your time are real costs.
+- Offline keeps your data home; it does not protect against tampered files, prompt injection or wrong answers.
+- Top speed ≈ memory bandwidth (GB/s) ÷ model size (GB) tokens per second.
+
+</div>

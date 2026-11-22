@@ -1,7 +1,7 @@
 // Live problems for "Start a startup" (India, Canada, USA). Each make(rand) returns { q, answer, unit, tol, abs?, hint,
 // solution } as small HTML; verify(p) recomputes the answer another way for tests/startup-kit.mjs.
 // Placed in a lesson as <div class="problem" data-problem="id"></div>. Rates as of November 2026.
-import { pick, steps, m, inTax } from './util.js';
+import { pick, n, steps, m, inTax } from './util.js';
 
 export default {
   // ---------- Module 7: sales tax ----------
@@ -284,5 +284,236 @@ export default {
       };
     },
     verify: (q) => q.w * (q.yrs >= 5 ? 0.06 : 0.04),
+  },
+  // ---------- Module 10: co-founders and equity ----------
+  'co-founder-agreement-cash': {
+    title: 'shares for a founder who puts in cash',
+    make(r) {
+      const cash = pick(r, 5, 50, 5) * 1000, price = pick(r, 1, 20, 1) / 100, answer = cash / price;
+      return {
+        q: `<p>The founders agree that any cash a founder puts in buys shares at ${m('us', price, 2)} each, the price the founders paid. One founder invests ${m('us', cash)}. How many shares does that buy?</p>`,
+        answer, unit: 'shares', tol: 0.001,
+        hint: 'Shares = cash ÷ price per share.',
+        solution: steps(`${m('us', cash)} ÷ ${m('us', price, 2)} = <b>${answer.toLocaleString('en')}</b> shares.`, 'Writing the price into the agreement in advance avoids an argument later about what the cash was worth.'),
+        cash, price,
+      };
+    },
+    verify: (q) => q.cash / q.price,
+  },
+  'splitting-equity-weighted': {
+    title: 'a weighted starting split',
+    make(r) {
+      const a1 = pick(r, 5, 10), a2 = pick(r, 3, 10), b1 = pick(r, 3, 10), b2 = pick(r, 3, 10), w1 = 3, w2 = 2;
+      const A = w1 * a1 + w2 * a2, B = w1 * b1 + w2 * b2, answer = (A / (A + B)) * 100;
+      return {
+        q: `<p>Two founders score themselves on two lines. "Full-time from the start" (weight 3): Asha ${a1}, Ben ${b1}. "Skills the product needs" (weight 2): Asha ${a2}, Ben ${b2}. What percentage does Asha get in the weighted starting split?</p>`,
+        answer, unit: '%', tol: 0.002,
+        hint: 'Points = weight × score, added over the lines. Asha’s share = her points ÷ both founders’ points.',
+        solution: steps(`Asha: 3 × ${a1} + 2 × ${a2} = ${A} points.`, `Ben: 3 × ${b1} + 2 × ${b2} = ${B} points.`, `Asha: ${A} ÷ ${A + B} = <b>${answer.toFixed(1)} %</b>.`),
+        A, B,
+      };
+    },
+    verify: (q) => 100 * q.A / (q.A + q.B),
+  },
+  'vesting-cliffs-vested': {
+    title: 'shares vested on the day someone leaves',
+    make(r) {
+      const n = pick(r, 2, 20, 1) * 100000, mo = pick(r, 6, 47, 1), answer = mo < 12 ? 0 : (n * mo) / 48;
+      return {
+        q: `<p>A co-founder has ${n.toLocaleString('en')} shares vesting over 48 months with a 12-month cliff, then monthly. They leave after ${mo} full months. How many shares have vested?</p>`,
+        answer, unit: 'shares', tol: 0.001, abs: 0.5,
+        hint: 'Before the cliff nothing vests. From the cliff on, vested = shares × months ÷ 48.',
+        solution: mo < 12 ? steps(`${mo} months is before the 12-month cliff.`, 'Vested: <b>0</b> shares.') : steps(`${mo} months is past the cliff.`, `${n.toLocaleString('en')} × ${mo} ÷ 48 = <b>${Math.round(answer).toLocaleString('en')}</b> shares.`),
+        n, mo,
+      };
+    },
+    verify: (q) => (q.mo < 12 ? 0 : q.n * q.mo / 48),
+  },
+  'employee-stock-options-perquisite': {
+    title: 'tax on exercising options in India',
+    make(r) {
+      const n = pick(r, 1, 20, 1) * 1000, k = pick(r, 10, 100, 10), v = k + pick(r, 50, 500, 10), rate = 0.312;
+      const per = (v - k) * n, answer = per * rate;
+      return {
+        q: `<p>An employee of an Indian startup exercises ${n.toLocaleString('en')} options at ${m('in', k)} each when the shares are valued at ${m('in', v)}. Their top rate is 30 % plus 4 % cess (31.2 %), and the startup cannot offer the deferral. How much tax is due on exercise?</p>`,
+        answer, unit: '₹', tol: 0.002,
+        hint: 'Perquisite = (value − exercise price) × number of options. Tax = perquisite × 31.2 %.',
+        solution: steps(`Perquisite: (${m('in', v)} − ${m('in', k)}) × ${n.toLocaleString('en')} = ${m('in', per)}.`, `Tax: 31.2 % × ${m('in', per)} = <b>${m('in', answer)}</b>, deducted through payroll, although no shares have been sold.`),
+        n, k, v,
+      };
+    },
+    verify: (q) => (q.v - q.k) * q.n * 0.312,
+  },
+  'disputes-exits-buyback': {
+    title: 'what the company pays a good leaver',
+    make(r) {
+      const n = pick(r, 2, 10, 1) * 100000, mo = pick(r, 12, 40, 1), par = 0.001;
+      const vested = Math.floor((n * mo) / 48), unv = n - vested, answer = unv * par;
+      return {
+        q: `<p>A good leaver holds ${n.toLocaleString('en')} shares (bought at $0.001 each) on 4-year monthly vesting with a 1-year cliff, and leaves after ${mo} months. The company buys back the unvested shares at the price paid. How much does it pay?</p>`,
+        answer, unit: '$', tol: 0.002, abs: 0.01,
+        hint: 'Vested = shares × months ÷ 48 (rounded down). Unvested = the rest. Payment = unvested × $0.001.',
+        solution: steps(`Vested: ${n.toLocaleString('en')} × ${mo} ÷ 48 = ${vested.toLocaleString('en')}.`, `Unvested: ${unv.toLocaleString('en')}.`, `Payment: ${unv.toLocaleString('en')} × $0.001 = <b>${m('us', answer, 2)}</b>. They keep ${vested.toLocaleString('en')} vested shares.`),
+        n, mo,
+      };
+    },
+    verify: (q) => (q.n - Math.floor(q.n * q.mo / 48)) * 0.001,
+  },
+  // Module 11
+  'ip-basics-copyright': {
+    title: 'when a work enters the public domain',
+    make(r) {
+      const cc = ['in', 'ca', 'us'][pick(r, 0, 2)], d = pick(r, 1940, 1990), life = cc === 'in' ? 60 : 70;
+      const name = { in: 'India', ca: 'Canada', us: 'the USA' }[cc], answer = d + life + 1;
+      return {
+        q: `<p>A writer died in ${d}. Their book is protected in ${name} for the author’s life plus ${life} years, ending on 31 December of the last year. In which year can anyone first use it freely?</p>`,
+        answer, unit: '', tol: 0, abs: 0.5,
+        hint: 'Add the years to the death year; protection runs to the end of that calendar year, and the work is free from 1 January of the next year.',
+        solution: steps(`Life plus ${life}: ${d} + ${life} = ${d + life}.`, `Protection runs to 31 December ${d + life}.`, `Free from 1 January <b>${answer}</b>.`),
+        d, life,
+      };
+    },
+    verify: (q) => q.d + q.life + 1,
+  },
+  'trademarks-fee': {
+    title: 'the government fee for an Indian trademark',
+    make(r) {
+      const k = pick(r, 1, 5), small = r() < 0.5, fee = small ? 4500 : 9000, answer = k * fee;
+      return {
+        q: `<p>${small ? 'A DPIIT-recognised startup' : 'A company that is not a startup or small enterprise'} files one Indian trademark online in ${k} class${k > 1 ? 'es' : ''}. The e-filing fee is ₹4,500 a class for individuals, startups and small enterprises and ₹9,000 a class for others. What is the government fee?</p>`,
+        answer, unit: '₹', tol: 0, abs: 0.5,
+        hint: 'Fee per class times the number of classes.',
+        solution: steps(`Fee per class: ${m('in', fee)}.`, `${k} × ${m('in', fee)} = <b>${m('in', answer)}</b>.`, small ? 'A startup pays half what other companies pay.' : 'Getting DPIIT startup recognition first would halve this.'),
+        k, fee,
+      };
+    },
+    verify: (q) => q.k * q.fee,
+  },
+  'contracts-nda-ip-assignment-cap': {
+    title: 'a liability cap in customer terms',
+    make(r) {
+      const fee = pick(r, 20, 400, 10), mo = pick(r, 3, 30), answer = fee * Math.min(mo, 12);
+      return {
+        q: `<p>Your terms say: “Our total liability is limited to the fees you paid us in the 12 months before the claim.” A customer has paid $${fee} a month for ${mo} months when something goes wrong. What is the most you owe under the cap?</p>`,
+        answer, unit: '$', tol: 0, abs: 0.5,
+        hint: 'Only the last 12 months count, or fewer if they have been a customer for less time.',
+        solution: steps(`Months that count: the smaller of ${mo} and 12 = ${Math.min(mo, 12)}.`, `$${fee} × ${Math.min(mo, 12)} = <b>${m('us', answer)}</b>.`, 'Consumer law can override a cap (for example for personal injury or gross negligence), so it is a limit, not a guarantee.'),
+        fee, mo,
+      };
+    },
+    verify: (q) => q.fee * Math.min(q.mo, 12),
+  },
+  'privacy-email-laws-casl': {
+    title: 'months of implied consent left under CASL',
+    make(r) {
+      const buy = r() < 0.5, ago = buy ? pick(r, 1, 23) : pick(r, 1, 5), limit = buy ? 24 : 6, answer = limit - ago;
+      return {
+        q: `<p>A Canadian ${buy ? 'bought from you' : 'asked you a question about your product'} ${ago} month${ago > 1 ? 's' : ''} ago and never ticked a box for marketing. Under CASL, implied consent lasts 2 years after a purchase and 6 months after an inquiry. For how many more months may you email them marketing?</p>`,
+        answer, unit: 'months', tol: 0, abs: 0.5,
+        hint: buy ? 'Purchase: 24 months in total.' : 'Inquiry: 6 months in total.',
+        solution: steps(`Implied consent lasts ${limit} months.`, `${limit} − ${ago} = <b>${answer} months</b> left.`, 'Use them to ask for express consent, which does not expire.'),
+        ago, limit,
+      };
+    },
+    verify: (q) => q.limit - q.ago,
+  },
+  'website-legal-pages-gdpr': {
+    title: 'the highest GDPR fine',
+    make(r) {
+      const t = pick(r, 50, 2000, 50), answer = Math.max(20, 0.04 * t);
+      return {
+        q: `<p>A company with worldwide yearly turnover of €${t} million breaks a core GDPR rule (such as using data with no lawful basis). The top fine is €20 million or 4 % of worldwide turnover, whichever is higher. What is the most it can be fined, in € million?</p>`,
+        answer, unit: '€ million', tol: 0.001, abs: 0.01,
+        hint: 'Work out 4 % of turnover, then take the larger of that and €20 million.',
+        solution: steps(`4 % of €${t} million = €${n(0.04 * t)} million.`, `Larger of €20 million and €${n(0.04 * t)} million: <b>€${n(answer)} million</b>.`, 'Regulators rarely fine a small startup anything like the maximum, but the scale is why EU-facing sites need a proper notice.'),
+        t,
+      };
+    },
+    verify: (q) => Math.max(20, 0.04 * q.t),
+  },
+  // Module 12
+  'annual-filings-late-fee': {
+    title: 'late fees on Indian company filings',
+    make(r) {
+      const a = pick(r, 5, 120), b = pick(r, 0, 90), answer = 100 * (a + b);
+      return {
+        q: `<p>An Indian private company files its financial statements (AOC-4) ${a} days late and its annual return (MGT-7A) ${b ? `${b} days late` : 'on time'}. The late fee is ₹100 a day for each form, with no cap. What is the total late fee?</p>`,
+        answer, unit: '₹', tol: 0, abs: 0.5,
+        hint: 'Work out each form separately (₹100 × days late), then add them.',
+        solution: steps(`AOC-4: ₹100 × ${a} = ${m('in', 100 * a)}.`, `MGT-7A: ₹100 × ${b} = ${m('in', 100 * b)}.`, `Total: <b>${m('in', answer)}</b>, and it keeps growing every day.`),
+        a, b,
+      };
+    },
+    verify: (q) => 100 * q.a + 100 * q.b,
+  },
+  'compliance-calendar-gst-returns': {
+    title: 'how many GST/HST returns a year',
+    make(r) {
+      const rev = pick(r, 2, 80) * 100000, answer = rev > 6000000 ? 12 : rev > 1500000 ? 4 : 1;
+      return {
+        q: `<p>A Canadian corporation has C$${rev.toLocaleString('en')} of taxable sales a year. CRA assigns annual GST/HST returns up to C$1.5 million, quarterly above C$1.5 million up to C$6 million, and monthly above C$6 million. How many GST/HST returns does it file each year?</p>`,
+        answer, unit: 'returns', tol: 0, abs: 0.5,
+        hint: 'Find which band the sales fall in.',
+        solution: steps(`Sales: C$${rev.toLocaleString('en')}.`, `Band: ${answer === 1 ? 'up to C$1.5 million, annual' : answer === 4 ? 'C$1.5 million to C$6 million, quarterly' : 'over C$6 million, monthly'}.`, `<b>${answer} return${answer > 1 ? 's' : ''}</b> a year. Smaller businesses can choose to file more often to get input tax credits back sooner.`),
+        rev,
+      };
+    },
+    verify: (q) => (q.rev <= 1500000 ? 1 : q.rev <= 6000000 ? 4 : 12),
+  },
+  'business-insurance-expected-loss': {
+    title: 'the expected yearly loss from a risk',
+    make(r) {
+      const p = pick(r, 1, 10), loss = pick(r, 20, 300, 10) * 1000, prem = pick(r, 5, 40) * 100, answer = (p / 100) * loss;
+      return {
+        q: `<p>A small studio estimates a ${p} % chance each year of a client claim for a design error, costing about $${loss.toLocaleString('en')} if it happens. Professional liability cover costs $${prem.toLocaleString('en')} a year. What is the expected yearly loss without insurance?</p>`,
+        answer, unit: '$', tol: 0.001, abs: 0.5,
+        hint: 'Expected loss = chance × cost of the loss.',
+        solution: steps(`${p} % × $${loss.toLocaleString('en')} = <b>${m('us', answer)}</b> a year on average.`, `Premium: $${prem.toLocaleString('en')}.`, `The premium is ${prem > answer ? 'higher than the average loss, as it usually is: you pay for removing a loss that could close the business' : 'lower than the average loss: insuring is clearly worth it'}.`),
+        p, loss,
+      };
+    },
+    verify: (q) => q.p * q.loss / 100,
+  },
+  'expanding-across-borders-eor': {
+    title: 'the yearly cost of a hire through an employer of record',
+    make(r) {
+      const s = pick(r, 40, 120, 5) * 100, c = pick(r, 8, 25), fee = pick(r, 4, 8) * 100, answer = 12 * (s * (1 + c / 100) + fee);
+      return {
+        q: `<p>A startup hires its first person in another country through an employer of record (EOR). Salary: $${s.toLocaleString('en')} a month. Employer taxes and benefits there: ${c} % of salary. EOR fee: $${fee} a month. What is the cost for a year?</p>`,
+        answer, unit: '$', tol: 0.001, abs: 0.5,
+        hint: 'Monthly cost = salary × (1 + employer %) + fee; then times 12.',
+        solution: steps(`Salary plus employer costs: $${s.toLocaleString('en')} × ${1 + c / 100} = ${m('us', s * (1 + c / 100))}.`, `Plus fee: ${m('us', s * (1 + c / 100) + fee)} a month.`, `× 12 = <b>${m('us', answer)}</b> a year.`),
+        s, c, fee,
+      };
+    },
+    verify: (q) => 12 * q.s + 12 * q.s * q.c / 100 + 12 * q.fee,
+  },
+  'closing-a-business-distribution': {
+    title: 'what a shareholder gets when a company closes',
+    make(r) {
+      const cash = pick(r, 50, 400, 5) * 1000, debt = pick(r, 5, 40) * 1000, cost = pick(r, 2, 10) * 500, own = pick(r, 10, 60, 5), answer = (own / 100) * (cash - debt - cost);
+      return {
+        q: `<p>A solvent corporation is closing. It has $${cash.toLocaleString('en')} after selling its assets, owes $${debt.toLocaleString('en')} to suppliers and tax, and expects $${cost.toLocaleString('en')} of closing costs. A founder owns ${own} % of the shares. How much is distributed to that founder?</p>`,
+        answer, unit: '$', tol: 0.001, abs: 0.5,
+        hint: 'Creditors and closing costs are paid first; shareholders share what is left by their percentage.',
+        solution: steps(`Left for shareholders: $${cash.toLocaleString('en')} − $${debt.toLocaleString('en')} − $${cost.toLocaleString('en')} = ${m('us', cash - debt - cost)}.`, `${own} % of that = <b>${m('us', answer)}</b>.`, 'In Canada, get a CRA clearance certificate before paying it out.'),
+        cash, debt, cost, own,
+      };
+    },
+    verify: (q) => q.own * (q.cash - q.debt - q.cost) / 100,
+  },
+  'launch-plan-runway': {
+    title: 'months of runway',
+    make(r) {
+      const cash = pick(r, 10, 200, 5) * 1000, cost = pick(r, 3, 20) * 1000, rev = pick(r, 0, 2) * 1000, answer = cash / (cost - rev);
+      return {
+        q: `<p>Your launch plan starts with $${cash.toLocaleString('en')} in the bank. Monthly costs are $${cost.toLocaleString('en')} and monthly revenue is $${rev.toLocaleString('en')}. How many months of runway do you have? (One decimal place.)</p>`,
+        answer, unit: 'months', tol: 0.01, abs: 0.05,
+        hint: 'Runway = cash ÷ (costs − revenue).',
+        solution: steps(`Net burn: $${cost.toLocaleString('en')} − $${rev.toLocaleString('en')} = ${m('us', cost - rev)} a month.`, `$${cash.toLocaleString('en')} ÷ ${m('us', cost - rev)} = <b>${answer.toFixed(1)} months</b>.`, 'Plan to raise money or reach break-even with at least 6 months left.'),
+        cash, cost, rev,
+      };
+    },
+    verify: (q) => q.cash / (q.cost - q.rev),
   },
 };

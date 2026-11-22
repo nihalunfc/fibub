@@ -53,3 +53,11 @@ export const quad = (a, b, c, x = 'x') => {
 export const usd = (x) => '&#36;' + (Math.abs(x - Math.round(x)) < 1e-9 ? Math.round(x).toLocaleString('en-US') : x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 /** A numbered solution. */
 export const steps = (...ls) => '<ol>' + ls.map((l) => `<li>${l}</li>`).join('') + '</ol>';
+/** Written Reading and Writing items are authored with the right answer first. This turns the options round so the
+ *  right answer sits at a spread-out position, fixed per id (the explanations quote options, never letters). */
+export function place(item) {
+  const n = item.options.length; let h = 0;
+  for (const ch of item.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const k = ((item.answer - (h % n)) % n + n) % n;
+  return { ...item, options: item.options.map((_, j) => item.options[(j + k) % n]), answer: ((item.answer - k) % n + n) % n };
+}
