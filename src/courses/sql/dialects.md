@@ -17,9 +17,18 @@ quiz:
     choices: ['3.5', '3', 'An error']
     ans: 1
     why: 'Integer divided by integer gives an integer, dropping the fraction. BigQuery is the odd one out: its / always returns a decimal (3.5).'
+sources:
+  - 'SQLite documentation: SQL As Understood By SQLite https://www.sqlite.org/lang.html'
+  - 'Microsoft Learn: Transact-SQL reference https://learn.microsoft.com/en-us/sql/t-sql/language-reference'
+  - 'PostgreSQL documentation: SQL Commands https://www.postgresql.org/docs/current/sql-commands.html'
+  - 'Google Cloud: BigQuery query syntax https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax'
 ---
 
 **Module 9 · about 25 minutes · read first: 7.1, 7.2.** You'll be able to move a query between SQLite, SQL Server (T-SQL), PostgreSQL and BigQuery by changing the few things that differ.
+
+<div class="bigidea">SQLite, SQL Server, PostgreSQL and BigQuery share the same core SQL; moving a query means changing a short list of spellings, mainly limits, dates, text joining and integer division.</div>
+
+**In everyday terms:** British and American English. "Colour" or "color", "lift" or "elevator": a few words change, the grammar and the meaning don't.
 
 ## 1. Why this matters
 
@@ -108,6 +117,38 @@ SQLite's LIKE ignores case for plain A–Z letters, so `like_ignores_case` is 1.
 
 **Try it:** what does `SELECT 45 / 100 * 100` give in SQLite? (0, because 45 / 100 is already 0. Write `100.0 * 45 / 100` to get 45.0.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Dialect</dt><dd>One database's version of SQL: the standard plus its own extras and spellings.</dd>
+<dt>T-SQL</dt><dd>Transact-SQL, the dialect of Microsoft SQL Server and Azure SQL.</dd>
+<dt>Integer division</dt><dd>In SQLite, SQL Server and PostgreSQL, 7 / 2 = 3: the fraction is dropped. BigQuery gives 3.5.</dd>
+<dt>Collation</dt><dd>The rules a database uses to compare and sort text, including whether case matters.</dd>
+<dt>QUALIFY</dt><dd>A filter on window functions, in BigQuery and Snowflake only; elsewhere use a CTE and WHERE.</dd>
+<dt>Physical meaning</dt><dd>The rows each dialect returns are the same for the same logic: the filtering, joining and grouping don't change. What changes is the spelling of a few functions and some type rules, and a type rule (like integer division) can silently change the numbers in a column.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If a query runs without an error, it gives the same numbers in every database."** `SELECT 45 / 100 * 100` runs everywhere, but gives 0 in SQLite, SQL Server and PostgreSQL and 45 in BigQuery. Write `100.0 * 45 / 100` and the answer is the same everywhere.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Start in SQLite.</b> <table class="lk-tbl"><tr><th>line</th><th>SQLite</th></tr><tr><td>1</td><td>SELECT order_id, date(order_date, 'start of month')</td></tr><tr><td>2</td><td>FROM orders</td></tr><tr><td>3</td><td>ORDER BY order_date DESC</td></tr><tr><td>4</td><td>LIMIT 3</td></tr></table></div>
+<div class="step"><b>Move the limit.</b> T-SQL has no LIMIT. <table class="lk-tbl"><tr><th>line</th><th>T-SQL</th></tr><tr><td>1</td><td><mark>SELECT TOP (3)</mark> order_id, …</td></tr><tr><td>4</td><td><mark>(removed)</mark></td></tr></table></div>
+<div class="step"><b>Change the date function.</b> <table class="lk-tbl"><tr><th>line</th><th>T-SQL</th></tr><tr><td>1</td><td>… <mark>DATETRUNC(month, order_date)</mark></td></tr></table></div>
+<div class="step"><b>Everything else stays.</b> FROM, JOIN, WHERE, GROUP BY, ORDER BY and window functions are identical: 2 lines changed out of 4.</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-int-division"></div>
 
 ## 5. QUALIFY, and the portable way
 
@@ -207,5 +248,15 @@ WHERE order_date = '2025-12-24'
 ```
 
 **Try it on your own data:** [[sql-playground]] runs SQLite, so use the SQLite column of the table there.
+
+<div class="keypoints">
+
+- SELECT, JOIN, GROUP BY, CTEs and window functions are the same in all four.
+- LIMIT becomes TOP (n) in T-SQL; dates and text joining have their own spellings.
+- Integer ÷ integer drops the fraction in SQLite, SQL Server and PostgreSQL: write 100.0.
+- QUALIFY is BigQuery/Snowflake only; the portable way is a CTE with ROW_NUMBER and WHERE.
+- Check the official docs for your version: features change between releases.
+
+</div>
 
 **New words:** *dialect*, *T-SQL*, *collation*, *QUALIFY*, *identity column*.

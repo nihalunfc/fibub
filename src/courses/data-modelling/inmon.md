@@ -17,13 +17,40 @@ quiz:
     choices: ['Kimball forbids normalised tables', 'Kimball delivers a usable star for one business process quickly, then grows through conformed dimensions', 'Inmon cannot store history']
     ans: 1
     why: Kimball's bus approach ships value one process at a time. Inmon asks for more modelling up front across the whole business, which pays off in large organisations with many sources.
+sources:
+  - 'Inmon, W. H. (2005), Building the Data Warehouse, 4th edition, Wiley, chapter 1'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 1 (comparison with the Corporate Information Factory)'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 6 · about 25 minutes · read first: 2.4.** You'll be able to explain Inmon's "enterprise warehouse first" approach, build a small normalised warehouse with a dependent data mart in SQL, and say when you would pick Inmon, Kimball or a mix.
 
+<div class="bigidea">Inmon builds one clean, normalised enterprise warehouse first, then feeds small data marts from it.</div>
+
+**In everyday terms:** a central kitchen that cooks for many cafes. Every cafe (mart) serves what it needs, but all of the food comes from the one kitchen, so the recipes agree.
+
 ## 1. Why this matters
 
 Every warehouse you join was built on some philosophy, even if nobody wrote it down. Banks, insurers and governments often have a large normalised "enterprise data warehouse" with star-shaped marts on top; many younger companies went straight to Kimball stars. Knowing both lets you read an unfamiliar warehouse quickly, and "Inmon or Kimball?" is a classic interview question.
+
+<div class="meaning">
+
+<dl>
+<dt>Enterprise data warehouse (EDW)</dt><dd>One central, integrated, normalised store of all the business's data.</dd>
+<dt>Dependent data mart</dt><dd>A smaller table set built from the EDW for one team.</dd>
+<dt>Subject-oriented</dt><dd>Organised around business subjects such as customer or product, not around applications.</dd>
+<dt>Integrated</dt><dd>Data from many sources made consistent.</dd>
+<dt>Time-variant, non-volatile</dt><dd>Keeps history; once loaded, rows are not changed.</dd>
+<dt>Physical meaning</dt><dd>The EDW is a set of normalised tables. Marts are extra, usually denormalised, tables copied and summarised from it.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Inmon and Kimball are opposites, so you must pick one."** Many companies use both: a normalised core for integration and Kimball-style stars for the marts.
+
+</div>
 
 ## 2. Two fathers of the warehouse
 
@@ -141,6 +168,18 @@ Ontario leads with $59,660.61, then Online with $32,661.99. Because every mart i
 **Try it:** if a fix to customer cities is made in the EDW, how many marts need changing by hand? (None. They are rebuilt from the EDW, so the fix flows into all of them.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Three sources.</b> Shop, website and finance each hold their own customers.</div>
+<div class="step"><b>Integrate into the EDW.</b> <table class="lk-tbl"><tr><th>party_id</th><th>name</th><th>source</th></tr><tr><td>1</td><td>Asha</td><td>shop + web</td></tr><tr><td>2</td><td>Ben</td><td>finance</td></tr></table> One row per real customer.</div>
+<div class="step"><b>Normalised tables.</b> Party, order, order_line, product, each in third normal form.</div>
+<div class="step"><b>Build a mart.</b> <table class="lk-tbl"><tr><th>month</th><th>region</th><th>sales</th></tr><tr><td><mark>Jan</mark></td><td>East</td><td>120</td></tr><tr><td><mark>Jan</mark></td><td>West</td><td>90</td></tr></table> A summary for the sales team, copied from the EDW.</div>
+<div class="step"><b>Marts agree.</b> The finance mart and the sales mart read the same EDW rows, so totals match.</div>
+</div>
+
+<div class="problem" data-problem="dm-inmon-mart"></div>
+
 ## 5. Worked example: when the middle layer earns its keep
 
 *Question:* Northbay buys a smaller chain whose till system writes province names in full ("Ontario") and uses its own customer numbers. Where should those be matched to Northbay's codes?
@@ -202,5 +241,14 @@ WHERE month LIKE '2025-%'
 GROUP BY department
 ORDER BY revenue DESC
 ```
+
+<div class="keypoints">
+
+- Inmon: integrate everything first in a normalised EDW.
+- Marts are dependent: they take data only from the EDW.
+- The cost is more upfront modelling; the gain is consistency.
+- Real warehouses often mix Inmon's core with Kimball's marts.
+
+</div>
 
 **New words:** *enterprise data warehouse (EDW)*, *Corporate Information Factory*, *dependent data mart*, *subject-oriented*, *integrated*, *time-variant*, *non-volatile*, *party*, *top-down*, *bottom-up*.

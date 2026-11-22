@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const DEG = Math.PI / 180;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'diffraction',
   items: [
@@ -206,6 +225,61 @@ export default {
       trap: 'Counting $m = \\pm5$ (grazing) or forgetting the missing orders.' },
   ],
   gens: [
+    { id: 'dfr-t21', type: 'mcq', level: 3, exams: ['jam'], sub: 'single slit', format: 'comparison',
+      make(r) {
+        const [n, d] = Q5.choose(r, [[2, 1], [3, 1], [1, 2]]), width = r() < 0.5;
+        const f = (k) => `$${k >= 0 ? q5frac(n ** k, d ** k) : q5frac(d ** -k, n ** -k)}$ times`;
+        const right = width ? f(-1) : f(2), wr = width ? [f(1), f(2), f(-2)] : [f(1), f(-1), f(-2)];
+        const o = Q5.mcqOptions(r, right, wr);
+        return { q: `A single slit is lit normally by a parallel beam of fixed intensity, and the Fraunhofer pattern is watched on a distant screen. The slit width is multiplied by $${q5frac(n, d)}$. The ${width ? 'angular width of the central maximum' : 'intensity at the centre of the pattern'} becomes`, ...o,
+          sol: width ? `The first minima are at $\\sin\\theta = \\pm\\lambda/a$, so the central width goes as $1/a$: it becomes ${f(-1)} as large.`
+            : `The power through the slit grows as $a$, while the central maximum narrows as $1/a$; so the peak intensity goes as $a \\times a = a^2$ (the amplitude at the centre adds up from the whole slit, $\\propto a$). It becomes ${f(2)} as large.`,
+          trap: 'The centre grows as $a^2$, not $a$: more light is squeezed into a narrower peak.' };
+      } },
+    { id: 'dfr-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'n slits', format: 'statements',
+      make(r) {
+        const N = Q5.int(r, 3, 8);
+        const T = [`Between two neighbouring principal maxima there are $${N - 1}$ minima.`, `Between two neighbouring principal maxima there are $${N - 2}$ secondary maxima.`,
+          `Each principal maximum is $${N * N}$ times as intense as the maximum from one slit alone.`, 'The principal maxima are at the same angles as for two slits with the same spacing.'];
+        const F = [`Between two neighbouring principal maxima there are $${N}$ minima.`, `Between two neighbouring principal maxima there are $${N - 1}$ secondary maxima.`,
+          `Each principal maximum is $${N}$ times as intense as the maximum from one slit alone.`, 'Adding more slits with the same spacing moves the principal maxima to larger angles.'];
+        const o = q5msq(r, T, F);
+        return { q: `Monochromatic light falls normally on $${N}$ identical, very narrow, equally spaced slits. Which statements about the far-field pattern are correct?`, ...o,
+          sol: `$I = I_1\\left(\\dfrac{\\sin(N\\phi/2)}{\\sin(\\phi/2)}\\right)^2$ with $\\phi$ the phase step between neighbouring slits. Principal maxima at $\\phi = 2\\pi m$ (set by the spacing only: $d\\sin\\theta = m\\lambda$), with height $N^2I_1 = ${N * N}I_1$. Zeros where $N\\phi/2 = k\\pi$ but $\\phi/2 \\ne m\\pi$: $N - 1 = ${N - 1}$ of them between principal maxima, and hence $N - 2 = ${N - 2}$ weak secondary maxima.`,
+          trap: 'Peak height grows as $N^2$ (amplitudes add), while the peaks get narrower as $1/N$.' };
+      } },
+    { id: 'dfr-t23', type: 'nat', level: 2, exams: ['jam'], sub: 'resolving power', unit: 'km',
+      make(r) {
+        const s = Q5.pick(r, 1.2, 1.8, 0.1), D = Q5.pick(r, 2, 7, 0.5), lam = Q5.choose(r, [500, 550, 600]);
+        const L = s * D * 1e-3 / (1.22 * lam * 1e-9) / 1000;
+        return { q: `The two headlights of a car are $${s}$ m apart. Taking the eye's pupil as a circular aperture $${D}$ mm across, light of $${lam}$ nm and the Rayleigh criterion (and no other limit), the largest distance at which the two lights can be seen as separate is ______ km (to two decimal places).`,
+          answer: Q5.round(L, 2), tol: 0.02, s, D, lam,
+          sol: `Rayleigh limit: $\\theta = 1.22\\lambda/D = 1.22\\times${lam}\\times10^{-9}/${D / 1000} = ${Q5.fmt(1.22 * lam * 1e-9 / (D * 1e-3), 4)}$ rad. The lights subtend $s/L$, so $L = s/\\theta = ${Q5.round(L, 2)}$ km.`,
+          trap: 'Convert the pupil size to metres and the wavelength to metres before dividing.' };
+      },
+      verify: (p) => { const theta = 1.22 * p.lam / (p.D * 1e6); return p.s / theta / 1000; } },
+    { id: 'dfr-t24', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'fresnel zones',
+      make(r) {
+        const N = Q5.int(r, 1, 8), lam = Q5.choose(r, [500, 600]), z = Q5.int(r, 1, 4);
+        const rho = Q5.round(Math.sqrt(N * lam * 1e-9 * z) * 1000, 3);
+        const s = (k) => `about $${k}$ zones, so the centre is ${k % 2 ? 'bright' : 'nearly dark'}`;
+        const opp = `about $${N}$ zones, so the centre is ${N % 2 ? 'nearly dark' : 'bright'}`;
+        const o = Q5.mcqOptions(r, s(N), [opp, s(2 * N), s(N + 1), s(N + 2)]);
+        return { q: `A plane wave of wavelength $${lam}$ nm falls normally on an opaque screen with a circular hole of radius $${rho}$ mm. Seen from a point on the axis $${z}$ m behind the screen, the hole uncovers`, ...o,
+          sol: `The $k$-th half-period zone has outer radius $\\rho_k = \\sqrt{k\\lambda z}$, so the number of zones is $N = \\rho^2/(\\lambda z) = \\dfrac{(${rho}\\times10^{-3})^2}{${lam}\\times10^{-9}\\times${z}} \\approx ${N}$. Neighbouring zones send nearly equal amplitudes in antiphase: an odd number leaves one zone uncancelled (bright, up to 4 times the open-screen intensity for $N = 1$); an even number nearly cancels.`,
+          trap: 'Enlarging the hole can make the centre darker: what matters is whether the zone count is odd or even.' };
+      } },
+    { id: 'dfr-t25', type: 'nat', level: 2, exams: ['jam'], sub: 'grating', unit: 'lines/mm',
+      make(r) {
+        const Nl = Q5.int(r, 100, 800), lam = Q5.int(r, 400, 700), m = 2 * Nl * lam * 1e-6 < 0.9 ? Q5.int(r, 1, 2) : 1;
+        const th = Q5.round(Math.asin(Nl * m * lam * 1e-6) * 180 / Math.PI, 2);
+        const ans = Math.sin(th * Math.PI / 180) / (m * lam * 1e-6);
+        return { q: `Light of wavelength $${lam}$ nm falls normally on a grating. The order-$${m}$ maximum is seen at $${th}^\\circ$ from the straight-through direction. The grating has ______ lines per mm (to the nearest whole number).`,
+          answer: Math.round(ans), tol: 1, lam, m, th,
+          sol: `$d\\sin\\theta = m\\lambda$, so $d = \\dfrac{${m}\\times${lam}\\times10^{-6}\\ \\text{mm}}{\\sin ${th}^\\circ} = ${Q5.fmt(m * lam * 1e-6 / Math.sin(th * Math.PI / 180), 4)}$ mm, and the number of lines per mm is $1/d \\approx ${Math.round(ans)}$.`,
+          trap: 'The grating equation gives the spacing $d$; lines per mm is its reciprocal (with $d$ in mm).' };
+      },
+      verify: (p) => { const d = p.m * p.lam * 1e-6 / Math.sin(p.th * Math.PI / 180); return 1 / d; } },
     { id: 'dfr-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'single slit',
       make(r) {
         const lam = choose(r, [450, 500, 550, 600, 633, 650]), a = choose(r, [0.05, 0.1, 0.15, 0.2, 0.25, 0.4]), D = pick(r, 0.5, 3, 0.5);

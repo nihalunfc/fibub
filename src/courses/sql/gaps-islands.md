@@ -17,9 +17,18 @@ quiz:
     choices: ['Only the orders table', 'A calendar of every day, LEFT JOINed to the sales', 'GROUP BY order_date']
     ans: 1
     why: 'Days with no sales have no rows in orders. Only a calendar that lists every day can show what is missing.'
+sources:
+  - 'SQLite documentation: Window Functions (ROW_NUMBER, LEAD) https://www.sqlite.org/windowfunctions.html'
+  - 'SQLite documentation: Date and Time Functions https://www.sqlite.org/lang_datefunc.html'
+  - 'Ben-Gan, I. (2019), T-SQL Window Functions, 2nd edition, Microsoft Press, chapter 4 (gaps and islands)'
+  - 'Microsoft Learn: ROW_NUMBER (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/row-number-transact-sql'
 ---
 
 **Module 8 · about 30 minutes · read first: 6.2, 6.4, 5.5.** You'll be able to find streaks of consecutive days, the gaps between them, and days with no data at all.
+
+<div class="bigidea">Inside a streak, the date and the row number both go up by one, so date minus row number stays the same and becomes a label for the streak.</div>
+
+**In everyday terms:** a paper chain. Each day with sales is a link; where a day is missing, the chain breaks. The trick gives every link in one piece of chain the same tag, so you can count the pieces and measure each one.
 
 ## 1. Why this matters
 
@@ -97,6 +106,39 @@ Four islands, exactly as we saw by eye. The `DISTINCT` in the first CTE matters:
 
 **Try it:** dates 10, 11, 12, 15, 16 with row numbers 1–5. What are the labels? (9, 9, 9, 11, 11: two islands, and the gap is 11 − 9 = 2 days long.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Island</dt><dd>A run of consecutive days (or numbers) that all have data.</dd>
+<dt>Gap</dt><dd>The run of missing days between two islands.</dd>
+<dt>Group label (grp)</dt><dd>date − ROW_NUMBER(). Equal inside an island, different between islands. Its value means nothing else.</dd>
+<dt>DISTINCT days</dt><dd>Each day must appear once, or the row numbers run ahead of the dates.</dd>
+<dt>LEAD(day)</dt><dd>The next day with data, put beside each day, so the gap is next − day − 1.</dd>
+<dt>Physical meaning</dt><dd>ROW_NUMBER gives each sales day a position. Subtracting it from the date shifts every day in a streak back to the same date, so GROUP BY that shifted date collects each streak into one row with its start, end and length.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Just use LAG and check if yesterday had sales."** That tells you where a streak starts, but not which streak each day belongs to, so you can't measure lengths without more steps. Date minus row number labels every day in one pass. And always start from DISTINCT days: two orders on one day break the trick.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Distinct sales days.</b> <table class="lk-tbl"><tr><th>day</th></tr><tr><td>1</td></tr><tr><td>2</td></tr><tr><td>5</td></tr><tr><td>9</td></tr><tr><td>10</td></tr><tr><td>11</td></tr></table></div>
+<div class="step"><b>Number them.</b> <table class="lk-tbl"><tr><th>day</th><th>rn</th></tr><tr><td>1</td><td><mark>1</mark></td></tr><tr><td>2</td><td><mark>2</mark></td></tr><tr><td>5</td><td><mark>3</mark></td></tr><tr><td>9</td><td><mark>4</mark></td></tr><tr><td>10</td><td><mark>5</mark></td></tr><tr><td>11</td><td><mark>6</mark></td></tr></table></div>
+<div class="step"><b>Label = day − rn.</b> Same label inside a streak. <table class="lk-tbl"><tr><th>day</th><th>rn</th><th>grp</th></tr><tr><td>1</td><td>1</td><td><mark>0</mark></td></tr><tr><td>2</td><td>2</td><td><mark>0</mark></td></tr><tr><td>5</td><td>3</td><td><mark>2</mark></td></tr><tr><td>9</td><td>4</td><td><mark>5</mark></td></tr><tr><td>10</td><td>5</td><td><mark>5</mark></td></tr><tr><td>11</td><td>6</td><td><mark>5</mark></td></tr></table></div>
+<div class="step"><b>GROUP BY grp.</b> Each group is one island. <table class="lk-tbl"><tr><th>starts</th><th>ends</th><th>days</th></tr><tr><td>1</td><td>2</td><td><mark>2</mark></td></tr><tr><td>5</td><td>5</td><td><mark>1</mark></td></tr><tr><td>9</td><td>11</td><td><mark>3</mark></td></tr></table></div>
+<div class="step"><b>The gaps.</b> The label jumps by the gap length: 0 → 2 means days 3–4 are missing (2 days); 2 → 5 means days 6–8 (3 days).</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-islands-count"></div>
 
 ## 4. Gaps with LEAD
 
@@ -207,5 +249,15 @@ WHERE s.order_date IS NULL
 ```
 
 **Try it on your own data:** check a log of dates for missing days with [[date-calculator]], or run these queries on your CSV in [[sql-playground]].
+
+<div class="keypoints">
+
+- An island is a run of consecutive days with data; a gap is the empty run between two islands.
+- Label each day with date − ROW_NUMBER(); group by the label to get one row per island.
+- Start from DISTINCT days so each day is numbered once.
+- For the gaps themselves, LEAD(day) beside each day and keep rows where the next day is more than 1 away.
+- The jump in the label between two islands equals the length of the gap.
+
+</div>
 
 **New words:** *island*, *gap*, *streak*, *group label*.

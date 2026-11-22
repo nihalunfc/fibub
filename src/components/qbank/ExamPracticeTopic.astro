@@ -9,13 +9,15 @@ import '../../styles/course.css';
 interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { id: string; name: string }; unit: string; count: number; lesson?: { slug: string; title: string }; mock?: boolean; label?: string }
 const { course, bank, exam, topic, unit, count, lesson, mock = true, label = course.name } = Astro.props;
 const base = `/learn/courses/${course.id}`;
-// Search titles stay within 60 characters with " | fibub": the first that fits, shortest exam label last.
+const title = `${topic.name}: ${label} questions`;
+// Search titles stay within 60 characters: drop words from the end until one fits (the exam label keeps them unique).
 const short = topic.name.split(':')[0];
-const title = [`${topic.name}: ${label} questions`, `${short}: ${label} questions`, `${short}: ${label}`, `${short} questions`, short].find((t) => t.length <= 52) ?? short.slice(0, 52);
+const docTitle = [`${title} | fibub`, `${short}: ${label} questions | fibub`, title, `${short}: ${label} questions`, `${short}: ${label}`, `${short} questions`, short]
+  .find((t) => t.length <= 60) ?? short.slice(0, 57) + '...';
 const desc = `${count} original ${course.name} practice questions on ${topic.name.toLowerCase()} (${unit.toLowerCase()}), from warm-up to top-rank level, with full worked solutions. Free, no sign-up.`;
 const ld = coursePageLd(course, `Practice: ${topic.name}`, desc.slice(0, 160), `practice/${topic.id}`);
 ---
-<Base title={title} description={desc.slice(0, 160)} ld={ld}>
+<Base title={title} docTitle={docTitle} description={desc.slice(0, 160)} ld={ld}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / <a href={`${base}/practice/`}>Practice</a> / {topic.name}</div>
   <div class="cs-main cs-wide">
     <h1>{topic.name}</h1>

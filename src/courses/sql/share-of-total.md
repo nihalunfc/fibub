@@ -17,9 +17,17 @@ quiz:
     choices: ['It is faster to compute', 'A few very big spenders pull the average up, but not the median', 'The average ignores NULLs']
     ans: 1
     why: The median is the middle value, so it does not care how far the top values stretch. Spending data usually has a long tail of big spenders.
+sources:
+  - 'SQLite documentation, Window functions: ntile, percent_rank, cume_dist https://www.sqlite.org/windowfunctions.html#builtins'
+  - 'Microsoft Learn, NTILE (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/ntile-transact-sql'
+  - 'PostgreSQL documentation, Aggregate functions: percentile_cont https://www.postgresql.org/docs/current/functions-aggregate.html'
 ---
 
 **Module 6 · about 30 minutes · read first: 6.2.** You'll be able to work out each row's share of a total or of its group, split rows into quartiles with NTILE, and find a median or percentile with window functions.
+
+<div class="bigidea">A share is a row's value divided by the total of its window; NTILE and percentiles say where a row stands among all the others.</div>
+
+**In everyday terms:** slicing a pizza. Each slice is a share, and all the slices of one pizza make exactly one whole. NTILE is dealing a pile of cards into equal hands.
 
 ## 1. Why this matters
 
@@ -121,6 +129,38 @@ WHERE rn IN ((n + 1) / 2, (n + 2) / 2)
 
 With n = 6, `(n + 1) / 2` = 3 and `(n + 2) / 2` = 4 (whole-number division), so it averages rows 3 and 4: (45 + 45) / 2 = 45. With an odd n both give the same row.
 
+<div class="meaning">
+
+<dl>
+<dt>Share of total</dt><dd><code>100.0 * x / SUM(x) OVER ()</code>: this row as a percentage of all rows.</dd>
+<dt>Share of group</dt><dd>The same with <code>OVER (PARTITION BY g)</code>: the shares of each group add to 100.</dd>
+<dt>NTILE(k)</dt><dd>Deals the ordered rows into k buckets of nearly equal size; the first buckets get one extra row when it does not divide evenly.</dd>
+<dt>PERCENT_RANK / CUME_DIST</dt><dd>Where a row stands from 0 to 1: rank-based, or the fraction of rows less than or equal to it.</dd>
+<dt>Median</dt><dd>The middle value: half the rows are below it, half above.</dd>
+<dt>Physical meaning</dt><dd>No rows are lost. Each row gets a total from its window and one new number from it; summing a group's shares gives back 100%.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"amount / SUM(amount) OVER () gives the share."** With whole numbers in SQLite, SQL Server or PostgreSQL, that is whole-number division and every share comes out 0. Write `100.0 * amount / SUM(amount) OVER ()`.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Sales by year and channel.</b> <table class="lk-tbl"><tr><th>yr</th><th>channel</th><th>sales</th></tr><tr><td>2024</td><td>online</td><td>200</td></tr><tr><td>2024</td><td>store</td><td>600</td></tr><tr><td>2025</td><td>online</td><td>300</td></tr><tr><td>2025</td><td>store</td><td>700</td></tr></table></div>
+<div class="step"><b>Window total.</b> <code>SUM(sales) OVER (PARTITION BY yr)</code> <table class="lk-tbl"><tr><th>yr</th><th>channel</th><th>sales</th><th>year_total</th></tr><tr><td>2024</td><td>online</td><td>200</td><td><mark>800</mark></td></tr><tr><td>2024</td><td>store</td><td>600</td><td><mark>800</mark></td></tr><tr><td>2025</td><td>online</td><td>300</td><td><mark>1000</mark></td></tr><tr><td>2025</td><td>store</td><td>700</td><td><mark>1000</mark></td></tr></table></div>
+<div class="step"><b>Divide.</b> 2024 online: 200 ÷ 800 = <mark>25%</mark>; store 75%. 2025 online: 300 ÷ 1000 = <mark>30%</mark>; store 70%.</div>
+<div class="step"><b>Check.</b> Each year adds up to 100%. If it does not, a filter or a NULL is hiding rows.</div>
+</div>
+
+<div class="problem" data-problem="sql-share-of-group"></div>
+
+<div class="problem" data-problem="sql-ntile-size"></div>
+
 ## 6. Worked example
 
 *Question:* how much of the money from known customers comes from the top 25% of spenders, and what does a typical customer spend?
@@ -194,5 +234,14 @@ SELECT store_name, size_sqft,
 FROM stores
 WHERE store_id <= 11
 ```
+
+<div class="keypoints">
+
+- Share = 100.0 * x / SUM(x) OVER (...); PARTITION BY gives a share of each group.
+- Shares within one window add up to 100%.
+- NTILE(k) makes k nearly equal buckets by position; ties can be split.
+- SQLite has no PERCENTILE_CONT: number the rows and average the middle one or two for a median.
+
+</div>
 
 **New words:** *share of total*, *NTILE*, *quartile*, *PERCENT_RANK*, *CUME_DIST*, *median*.

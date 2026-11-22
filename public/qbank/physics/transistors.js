@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
 const par = (a, b) => (a * b) / (a + b);
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'transistors',
   items: [
@@ -256,6 +275,64 @@ export default {
   ],
 
   gens: [
+    { id: 'bjt-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'modes',
+      make(r) {
+        const c = Q5.int(r, 0, 3), R = (x) => Q5.round(x, 1);
+        let VE, VB, VC;
+        if (c === 0) { VE = Q5.pick(r, 0, 3, 0.5); VB = VE + 0.7; VC = VB + Q5.pick(r, 1, 8, 0.5); }
+        else if (c === 1) { VE = Q5.pick(r, 0, 3, 0.5); VB = VE + 0.8; VC = VE + 0.2; }
+        else if (c === 2) { VE = Q5.pick(r, 1, 3, 0.5); VB = VE + Q5.choose(r, [0, 0.1, 0.2, -0.5]); VC = VE + Q5.pick(r, 3, 9, 0.5); }
+        else { VC = Q5.pick(r, 0, 2, 0.5); VB = VC + 0.7; VE = VB + Q5.pick(r, 1, 5, 0.5); }
+        const names = ['active (forward-active)', 'saturation', 'cut-off', 'reverse-active'];
+        const o = Q5.mcqOptions(r, names[c], names.filter((x, i) => i !== c));
+        return { q: `An npn silicon transistor has its emitter at $${R(VE)}$ V, base at $${R(VB)}$ V and collector at $${R(VC)}$ V (all to ground). It is working in its`, ...o,
+          sol: `$V_{BE} = ${R(VB - VE)}$ V (${VB - VE >= 0.6 ? 'forward' : 'not forward'} biased) and $V_{BC} = ${R(VB - VC)}$ V (${VB - VC >= 0.5 ? 'forward' : 'reverse'} biased). Base-emitter forward and base-collector reverse: active; both forward: saturation; base-emitter off: cut-off; base-emitter reverse with base-collector forward: reverse-active. So: ${names[c]}.`,
+          trap: 'Look at the two junctions separately; $V_{CE} \\approx 0.2$ V with $V_{BE} \\approx 0.7$ V means saturation.' };
+      } },
+    { id: 'bjt-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'configurations', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['The common-emitter amplifier inverts the signal (180° phase shift).', 'The common-base stage has a current gain a little below 1.', 'The common-collector stage (emitter follower) has a voltage gain close to 1.',
+          'The emitter follower has a high input resistance and a low output resistance.', 'The common-emitter stage gives both voltage and current gain.'];
+        const F = ['The common-collector stage inverts the signal.', 'The common-base stage has a large current gain $\\beta$.', 'The emitter follower has a large voltage gain.',
+          'The common-base stage has a high input resistance.', 'The common-emitter stage has a voltage gain below 1.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about the three basic BJT amplifier configurations are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'CE: input at the base, output at the collector; gain $\\approx -g_mR_C$ (large, inverting) and current gain $\\beta$. CB: input at the emitter; current gain $\\alpha < 1$, low input resistance ($\\approx 1/g_m$), voltage gain large and non-inverting. CC (emitter follower): output follows the input less 0.7 V, gain $\\approx 1$, input resistance $\\approx \\beta R_E$ (high), output resistance low: a buffer.',
+          trap: 'The emitter follower gives current gain but no voltage gain.' };
+      } },
+    { id: 'bjt-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'biasing', unit: 'V',
+      make(r) {
+        const VCC = Q5.int(r, 9, 20), RB = Q5.int(r, 20, 50) * 10, RE = Q5.pick(r, 0.5, 1, 0.1), b = Q5.int(r, 5, 20) * 10, fr = Q5.pick(r, 0.3, 0.6, 0.05);
+        const IB = (VCC - 0.7) / (RB + (b + 1) * RE), IC = b * IB, IE = (b + 1) * IB;
+        const RC = Math.max(0.1, Q5.round(fr * (VCC - IE * RE) / IC, 1)), VCE = VCC - IC * RC - IE * RE;
+        return { q: `A common-emitter stage has $V_{CC} = ${VCC}$ V, a base resistor $R_B = ${RB}$ k$\\Omega$ from $V_{CC}$, $R_C = ${RC}$ k$\\Omega$ and an emitter resistor $R_E = ${RE}$ k$\\Omega$ (not bypassed for DC). With $\\beta = ${b}$ and $V_{BE} = 0.7$ V, the collector-emitter voltage is ______ V (to two decimal places).`,
+          answer: Q5.round(VCE, 2), tol: 0.02, VCC, RB, RE, b, RC,
+          sol: `Base loop: $V_{CC} = I_BR_B + 0.7 + (\\beta + 1)I_BR_E$, so $I_B = \\dfrac{${VCC} - 0.7}{${RB} + ${b + 1}\\times${RE}} = ${Q5.round(IB * 1000, 2)}\\ \\mu$A, $I_C = \\beta I_B = ${Q5.round(IC, 3)}$ mA, $I_E = ${Q5.round(IE, 3)}$ mA. $V_{CE} = V_{CC} - I_CR_C - I_ER_E = ${Q5.round(VCE, 2)}$ V (positive and well above 0.2 V, so the transistor is active).`,
+          trap: 'The emitter resistor appears in the base loop multiplied by $\\beta + 1$.' };
+      },
+      verify: (p) => { const IE = (p.VCC - 0.7) / (p.RE + p.RB / (p.b + 1)), IC = IE * p.b / (p.b + 1); return p.VCC - IC * p.RC - IE * p.RE; } },
+    { id: 'bjt-t24', type: 'mcq', level: 3, exams: ['jam'], sub: 'stability', format: 'comparison',
+      make(r) {
+        const c = Q5.int(r, 0, 2);
+        const what = ['a fixed-bias stage (base resistor straight from $V_{CC}$, no emitter resistor)', 'a voltage-divider stage with a large emitter resistor ($\\beta R_E \\gg R_1\\parallel R_2$)', 'an emitter-follower stage biased by a voltage divider with $\\beta R_E \\gg R_1\\parallel R_2$'][c];
+        const right = c === 0 ? 'roughly doubles (if the transistor stays active)' : 'changes only slightly';
+        const o = Q5.mcqOptions(r, right, ['roughly doubles (if the transistor stays active)', 'changes only slightly', 'roughly halves', 'falls to zero'].filter((s) => s !== right));
+        return { q: `A transistor in ${what} is replaced by one with twice the current gain $\\beta$. The quiescent collector current`, ...o,
+          sol: c === 0 ? 'Fixed bias sets $I_B = (V_{CC} - 0.7)/R_B$ regardless of the transistor, so $I_C = \\beta I_B$ doubles (until the transistor saturates). This is why fixed bias is unstable.'
+            : 'With a stiff divider and a large $R_E$, the base voltage is fixed by the divider and $I_E \\approx (V_{TH} - 0.7)/R_E$: almost independent of $\\beta$. Doubling $\\beta$ only shrinks the small base current that loads the divider.',
+          trap: 'Emitter degeneration (feedback through $R_E$) is what makes the bias independent of $\\beta$.' };
+      } },
+    { id: 'bjt-t25', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'MOSFET', unit: 'V',
+      make(r) {
+        const VT = Q5.pick(r, 0.5, 2, 0.1), V1 = Q5.round(VT + Q5.pick(r, 0.5, 2, 0.1), 1), I1 = Q5.int(r, 1, 10), I2 = Q5.int(r, 1, 20);
+        const V2 = VT + (V1 - VT) * Math.sqrt(I2 / I1);
+        return { q: `An n-channel enhancement MOSFET in saturation follows $I_D = k(V_{GS} - V_T)^2$ with $V_T = ${VT}$ V. It carries $${I1}$ mA at $V_{GS} = ${V1}$ V. To carry $${I2}$ mA (still in saturation), $V_{GS}$ must be ______ V (to three decimal places).`,
+          answer: Q5.round(V2, 3), tol: 0.002, VT, V1, I1, I2,
+          sol: `$\\sqrt{I_D} \\propto V_{GS} - V_T$, so $V_{GS} = V_T + (V_1 - V_T)\\sqrt{I_2/I_1} = ${VT} + ${Q5.round(V1 - VT, 2)}\\sqrt{${I2}/${I1}} = ${Q5.round(V2, 3)}$ V.`,
+          trap: 'The overdrive $V_{GS} - V_T$, not $V_{GS}$ itself, scales as $\\sqrt{I_D}$.' };
+      },
+      verify: (p) => { const k = p.I1 / (p.V1 - p.VT) ** 2; return p.VT + Math.sqrt(p.I2 / k); } },
     { id: 'bjt-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'alpha and beta',
       make(r) {
         const a = choose(r, [0.95, 0.96, 0.975, 0.98, 0.985, 0.99, 0.992, 0.995, 0.998]);

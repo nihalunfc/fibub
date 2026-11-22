@@ -5,6 +5,25 @@ import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 
 const K = 1 / (4 * Math.PI * C.eps0); // 8.988e9 N m^2 C^-2
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'potential-energy',
   items: [
@@ -218,6 +237,62 @@ export default {
       sol: 'A: $\\vec E = 0$ in the metal, so $V$ is the same throughout it, surface included. C: a pillbox with one face in the metal gives $EA = \\sigma A/\\epsilon_0$; any tangential component would drive surface currents. D: the cavity is bounded by one equipotential and contains no charge, so the unique solution of Laplace\'s equation is $V$ = constant (this is how a Faraday cage works). B is false: $\\sigma$ is largest where the surface curves most sharply.' },
   ],
   gens: [
+    { id: 'pot-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'field from potential', format: 'graph',
+      make(r) {
+        const V0 = Q5.int(r, 2, 40) * 5, d = Q5.int(r, 2, 20), rise = r() < 0.5, inside = r() < 0.7;
+        const E = Q5.round(V0 / (d / 100), 1);
+        const s = (m, dir) => (m === 0 ? 'zero' : `$${m}$ V/m along $${dir}x$`);
+        const right = inside ? s(E, rise ? '-' : '+') : 'zero';
+        const o = Q5.mcqOptions(r, right, [s(E, rise ? '+' : '-'), inside ? 'zero' : s(E, rise ? '-' : '+'), s(Q5.round(V0 * d / 100, 2), rise ? '-' : '+'), s(V0, rise ? '-' : '+')]);
+        return { q: `A graph of the potential $V$ against $x$ ${rise ? `rises in a straight line from $0$ at $x = 0$ to $${V0}$ V at $x = ${d}$ cm` : `falls in a straight line from $${V0}$ V at $x = 0$ to $0$ at $x = ${d}$ cm`}, and stays flat beyond $x = ${d}$ cm. The electric field at $x = ${inside ? Q5.round(d / 2, 1) : d + 5}$ cm is`, ...o,
+          sol: `$E_x = -dV/dx$. ${inside ? `On the sloping part the slope is $${rise ? '+' : '-'}${V0}/${d / 100} = ${rise ? '+' : '-'}${E}$ V/m, so $E_x = ${rise ? '-' : '+'}${E}$ V/m: the field points ${rise ? 'along $-x$, towards lower potential' : 'along $+x$, towards lower potential'}.` : 'Where the graph is flat the slope is zero, so the field is zero, even though $V$ itself is not zero there.'}`,
+          trap: 'The field is minus the slope of $V$: it points downhill in potential, and it is zero wherever $V$ is flat, whatever the value of $V$.' };
+      } },
+    { id: 'pot-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'equipotentials', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['Electric field lines cross equipotential surfaces at right angles.', 'No work is done by the field on a charge moved along an equipotential surface.', 'Where equipotentials (drawn at equal steps of $V$) crowd together, the field is stronger.',
+          'The surface of a conductor in electrostatic equilibrium is an equipotential.', 'The field points from higher towards lower potential.'];
+        const F = ['The field is zero wherever the potential is zero.', 'Two different equipotential surfaces can cross each other.', 'A positive charge released from rest moves towards higher potential.',
+          'The work done by the field on a charge $q$ moved from A to B is $q(V_B - V_A)$.', 'Where the potential is large, the field must be large too.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about electrostatic potential and equipotential surfaces are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: '$\\vec E = -\\nabla V$ is perpendicular to surfaces of constant $V$, points towards lower $V$, and is larger where $V$ changes faster (surfaces closer together). It depends on how $V$ changes, not on its value: midway between equal and opposite charges $V = 0$ but $E \\ne 0$. Along an equipotential $dV = 0$, so no work. Two surfaces of different $V$ cannot meet, since a point has one potential. The field\'s work is $W_{A\\to B} = q(V_A - V_B)$, so a positive charge falls towards lower potential.',
+          trap: '$V = 0$ does not mean $E = 0$: the field depends on the slope of $V$.' };
+      } },
+    { id: 'pot-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'work and energy', unit: 'J',
+      make(r) {
+        const q1 = Q5.choose(r, [1, 2, 3, 4, 5, -1, -2, -3]), q2 = Q5.choose(r, [1, 2, 3, 4, -1, -2, -4, -5]), q3 = Q5.int(r, 1, 3), d = Q5.int(r, 10, 30), a = Q5.int(r, 5, 20);
+        const k = 8.99e9, u = 1e-6;
+        const VA = k * (q1 * u / (a / 100) + q2 * u / ((d + a) / 100)), VB = k * (q1 + q2) * u / (d / 200);
+        const W = q3 * u * (VB - VA);
+        return { q: `Charges of $${q1}\\,\\mu$C and $${q2}\\,\\mu$C are fixed at $x = 0$ and $x = ${d}$ cm. A third charge of $+${q3}\\,\\mu$C is carried slowly from $x = -${a}$ cm to $x = ${d / 2}$ cm (the midpoint). The work done by the person carrying it is ______ J (to three decimal places; $k = 8.99\\times10^9$ SI; negative if the field does the work).`,
+          answer: Q5.round(W, 3), tol: Math.max(0.002, Q5.round(Math.abs(W) * 0.002, 4)), q1, q2, q3, d, a,
+          sol: `$W = q_3(V_B - V_A)$. At $x = -${a}$ cm: $V_A = k\\left(\\dfrac{${q1}\\times10^{-6}}{${a / 100}} + \\dfrac{${q2}\\times10^{-6}}{${(d + a) / 100}}\\right) = ${Q5.round(VA, 0)}$ V. At the midpoint: $V_B = k\\dfrac{(${q1} + ${q2})\\times10^{-6}}{${d / 200}} = ${Q5.round(VB, 0)}$ V. $W = ${q3}\\times10^{-6}\\times(${Q5.round(VB, 0)} - (${Q5.round(VA, 0)})) = ${Q5.round(W, 3)}$ J.`,
+          trap: 'Distances from the charge at $x = ' + d + '$ cm to the start point are $d + a$, not $d - a$.' };
+      },
+      verify: (p) => { const k = 8.99e9, u = 1e-6, U = (r1, r2) => k * p.q3 * u * (p.q1 * u / r1 + p.q2 * u / r2); return U(p.d / 200, p.d / 200) - U(p.a / 100, (p.d + p.a) / 100); } },
+    { id: 'pot-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'continuous distributions',
+      make(r) {
+        const [obj, right, why] = Q5.choose(r, [
+          ['a thin ring of radius $R$ with charge $Q$', '$kQ/R$', 'every bit of the ring is at distance $R$, so $V = kQ/R$.'],
+          ['a thin spherical shell of radius $R$ with charge $Q$', '$kQ/R$', 'inside a shell the field is zero, so $V$ is the same everywhere inside as on the surface: $kQ/R$.'],
+          ['a flat disc of radius $R$ with charge $Q$ spread uniformly over it', '$2kQ/R$', 'rings of radius $s$ give $dV = k\\sigma 2\\pi s\\,ds/s$, so $V = 2\\pi k\\sigma R = \\sigma R/2\\varepsilon_0 = 2kQ/R$.'],
+          ['a solid insulating ball of radius $R$ with charge $Q$ spread uniformly through it', '$3kQ/2R$', '$V(R) = kQ/R$, and inside $E = kQr/R^3$ adds $\\int_0^R E\\,dr = kQ/2R$, so $V(0) = 3kQ/2R$.']]);
+        const o = Q5.mcqOptions(r, right, ['$kQ/R$', '$2kQ/R$', '$3kQ/2R$', '$0$', '$kQ/2R$'].filter((s) => s !== right));
+        return { q: `The electrostatic potential (zero at infinity) at the centre of ${obj} is ($k = 1/4\\pi\\varepsilon_0$)`, ...o, sol: `Here ${why}`,
+          trap: 'A zero field at the centre does not mean a zero potential there.' };
+      } },
+    { id: 'pot-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'work and energy', unit: 'MeV',
+      make(r) {
+        const alpha = r() < 0.5, Z = Q5.int(r, 20, 92), d = Q5.int(r, 10, 60), z = alpha ? 2 : 1;
+        const K = 1.44 * z * Z / d;
+        return { q: `${alpha ? 'An alpha particle' : 'A proton'} is fired head-on at a fixed nucleus of atomic number $${Z}$ and comes to rest momentarily $${d}$ fm from its centre (no contact). Its starting kinetic energy, far away, was ______ MeV (to two decimal places; $ke^2 = 1.44$ MeV fm).`,
+          answer: Q5.round(K, 2), tol: 0.02, Z, d, z,
+          sol: `Energy is conserved: all the kinetic energy becomes electric potential energy at the turning point, $K = k\\,(${z}e)(${Z}e)/r = 1.44\\times${z}\\times${Z}/${d} = ${Q5.round(K, 2)}$ MeV.`,
+          trap: alpha ? 'The alpha particle carries charge $2e$.' : 'Use the full nuclear charge $Ze$, not $e$.' };
+      },
+      verify: (p) => { const k = 8.9875517923e9, e = 1.602176634e-19; return k * p.z * p.Z * e * e / (p.d * 1e-15) / (e * 1e6); } },
     { id: 'pot-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'point charges', unit: 'V',
       make(r) {
         const q = int(r, 1, 9) * (r() < 0.3 ? -1 : 1), d = int(r, 5, 80); // nC, cm

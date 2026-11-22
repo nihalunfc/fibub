@@ -17,9 +17,18 @@ quiz:
     choices: ['What each keyword does', 'Why the query does something that is not obvious, like a business rule', 'Who wrote it']
     ans: 1
     why: 'The code already says what it does. Comments earn their place by saying why: "cancelled orders are not revenue", "store 12 is online".'
+sources:
+  - 'Holywell, S., SQL Style Guide https://www.sqlstyle.guide/'
+  - 'dbt documentation: How we style our SQL https://docs.getdbt.com/best-practices/how-we-style/2-how-we-style-our-sql'
+  - 'SQLite documentation: SQL Language Expressions (operator precedence) https://www.sqlite.org/lang_expr.html'
+  - 'Microsoft Learn: Operator Precedence (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql'
 ---
 
 **Module 9 · about 25 minutes · read first: 5.4.** You'll be able to lay out a query so that someone else (or you, in six months) can check it quickly, and you'll see how clean layout exposes bugs.
+
+<div class="bigidea">Readable SQL puts one clause per line, names every calculated column and every step, and brackets every mix of AND and OR, so mistakes stand out instead of hiding.</div>
+
+**In everyday terms:** a recipe written as numbered steps with exact amounts, rather than one long paragraph. Anyone can follow it, and if the cake is flat you can see which step went wrong.
 
 ## 1. Why this matters
 
@@ -130,6 +139,38 @@ WHERE status = 'completed' AND store_id = 1 OR store_id = 2
 
 This counts 512 orders, including store 2's cancelled ones. With `store_id IN (1, 2)` it is 506.
 
+<div class="meaning">
+
+<dl>
+<dt>Style guide</dt><dd>A team's agreed rules for layout and naming, so everyone's SQL looks the same.</dd>
+<dt>Alias</dt><dd>A short name for a table (o for orders) or a column (AS revenue).</dd>
+<dt>snake_case</dt><dd>Lower-case words joined by underscores: days_since_last_order.</dd>
+<dt>Operator precedence</dt><dd>Which operator binds first. AND binds before OR, as × binds before +.</dd>
+<dt>CTE as a step</dt><dd>A named intermediate result whose name says what one row of it is.</dd>
+<dt>Physical meaning</dt><dd>Layout never changes the result: the database ignores spaces and line breaks. What it changes is how quickly a person can see which tables are joined, which rows are kept and what one row means, which is where most wrong numbers come from.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Spacing is cosmetic, so I'll tidy up at the end."** In the one-line query above, an extra table in the FROM list doubled the count, and nobody could see it. Writing one clause per line from the start, with JOIN … ON instead of commas, is how you catch fan-out and AND/OR bugs before anyone else does.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The rows.</b> <table class="lk-tbl"><tr><th>order</th><th>store</th><th>status</th></tr><tr><td>1</td><td>1</td><td>completed</td></tr><tr><td>2</td><td>1</td><td>cancelled</td></tr><tr><td>3</td><td>2</td><td>completed</td></tr><tr><td>4</td><td>2</td><td>cancelled</td></tr></table></div>
+<div class="step"><b>Without brackets.</b> <code>status = 'completed' AND store_id = 1 OR store_id = 2</code> reads as (completed AND store 1) OR store 2. <table class="lk-tbl"><tr><th>order</th><th>kept?</th></tr><tr><td>1</td><td><mark>yes</mark></td></tr><tr><td>2</td><td>no</td></tr><tr><td>3</td><td><mark>yes</mark></td></tr><tr><td>4</td><td><mark>yes (cancelled!)</mark></td></tr></table></div>
+<div class="step"><b>With brackets.</b> <code>status = 'completed' AND (store_id = 1 OR store_id = 2)</code>, or <code>store_id IN (1, 2)</code>. <table class="lk-tbl"><tr><th>order</th><th>kept?</th></tr><tr><td>1</td><td><mark>yes</mark></td></tr><tr><td>2</td><td>no</td></tr><tr><td>3</td><td><mark>yes</mark></td></tr><tr><td>4</td><td>no</td></tr></table></div>
+<div class="step"><b>Lay it out.</b> One condition per line, starting with AND, so a missing bracket is visible and each line can be commented out to test.</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-and-or"></div>
+
 ## 7. Worked example
 
 *Task:* a colleague hands you this query for a weekly report. Make it readable and check it.
@@ -188,5 +229,15 @@ WHERE status = 'completed'
 ```
 
 **Try it on your own data:** paste a query you wrote last month into [[sql-playground]] and rewrite it with these rules; see if a bug falls out.
+
+<div class="keypoints">
+
+- Keywords in capitals, one clause per line, one column per line in long SELECT lists.
+- Use JOIN … ON, never commas in FROM; ON says how tables connect, WHERE which rows you want.
+- Name every calculated column and every CTE so a reader can guess what one row means.
+- AND binds before OR: always bracket a mix of the two, or use IN.
+- Comments say why (a business rule, the grain), not what the code already says.
+
+</div>
 
 **New words:** *style guide*, *alias*, *operator precedence*, *snake_case*.

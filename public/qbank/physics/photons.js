@@ -10,6 +10,25 @@ const MC2 = 511;          // electron rest energy in keV, as stated
 const DEG = Math.PI / 180;
 const compE = (E, th) => E / (1 + (E / MC2) * (1 - Math.cos(th * DEG)));   // scattered photon energy, keV
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'photons',
   items: [
@@ -235,6 +254,58 @@ export default {
   ],
 
   gens: [
+    { id: 'pho-t21', type: 'nat', level: 3, exams: ['jam'], sub: 'millikan graph', unit: '×10¹⁴ Hz', format: 'graph',
+      make(r) {
+        const phi = Q5.pick(r, 2, 5, 0.1), h = 4.1357e-15, f0 = phi / h / 1e14;
+        const f1 = Q5.round(f0 + Q5.pick(r, 0.5, 3, 0.1), 1), f2 = Q5.round(f1 + Q5.pick(r, 1, 5, 0.5), 1);
+        const V1 = Q5.round(h * f1 * 1e14 - phi, 3), V2 = Q5.round(h * f2 * 1e14 - phi, 3);
+        const ans = f1 - V1 * (f2 - f1) / (V2 - V1);
+        return { q: `A graph of stopping potential against frequency for one metal is a straight line through the points $(${f1}\\times10^{14}$ Hz, $${V1}$ V$)$ and $(${f2}\\times10^{14}$ Hz, $${V2}$ V$)$. The threshold frequency of the metal is ______ $\\times10^{14}$ Hz (to two decimal places).`,
+          answer: Q5.round(ans, 2), tol: 0.02, f1, f2, V1, V2,
+          sol: `$eV_s = hf - \\phi$, so the line has slope $h/e$ and meets $V_s = 0$ at the threshold $f_0$. Slope $= \\dfrac{${V2} - ${V1}}{(${f2} - ${f1})\\times10^{14}} = ${Q5.fmt((V2 - V1) / ((f2 - f1) * 1e14), 4)}$ V s. Extrapolating back: $f_0 = f_1 - V_1/\\text{slope} = ${Q5.round(ans, 2)}\\times10^{14}$ Hz.`,
+          trap: 'The threshold is the intercept on the frequency axis; the intercept on the voltage axis is $-\\phi/e$.' };
+      },
+      verify: (p) => (p.V2 * p.f1 - p.V1 * p.f2) / (p.V2 - p.V1) },
+    { id: 'pho-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'intensity and frequency', format: 'statements',
+      make(r) {
+        const c = Q5.int(r, 0, 2);
+        const L = [
+          ['the intensity of the light is doubled, at the same frequency', ['The saturation photocurrent doubles.', 'The stopping potential is unchanged.', 'The largest kinetic energy of the photoelectrons is unchanged.', 'Twice as many photoelectrons leave per second.'], ['The stopping potential doubles.', 'The largest kinetic energy of the photoelectrons doubles.', 'The saturation photocurrent is unchanged.', 'The threshold frequency halves.']],
+          ['the frequency of the light is raised, at the same intensity', ['The stopping potential increases.', 'The largest kinetic energy rises by $h$ times the rise in frequency.', 'The threshold frequency is unchanged.', 'The work function is unchanged.'], ['The stopping potential is unchanged.', 'The work function increases.', 'Doubling the frequency doubles the largest kinetic energy.', 'The threshold frequency increases.']],
+          ['the metal is replaced by one with a larger work function (the light still above its threshold)', ['The stopping potential is smaller.', 'The threshold frequency is higher.', 'The largest kinetic energy falls by the increase in work function.', 'The slope of the graph of stopping potential against frequency is the same.'], ['The stopping potential is larger.', 'The slope of the graph of stopping potential against frequency is larger.', 'The threshold frequency is lower.', 'The largest kinetic energy is unchanged.']]][c];
+        const o = q5msq(r, L[1], L[2]);
+        return { q: `In a photoelectric experiment, ${L[0]}. Which statements are correct?`, ...o,
+          sol: '$K_{\\max} = eV_s = hf - \\phi$. Intensity sets the number of photons per second, hence the number of electrons and the saturation current, but not the energy of each. Frequency sets the photon energy: $K_{\\max}$ rises by $h\\,\\Delta f$ (not in proportion to $f$, because of $-\\phi$). The work function belongs to the metal: a larger $\\phi$ lowers $K_{\\max}$ and $V_s$ and raises $f_0 = \\phi/h$, while the slope $h/e$ of $V_s$ against $f$ is the same for every metal.',
+          trap: 'Brighter light gives more electrons, not faster ones.' };
+      } },
+    { id: 'pho-t23', type: 'mcq', level: 2, exams: ['jam'], sub: 'compton', format: 'limiting case',
+      make(r) {
+        const [th, k] = Q5.choose(r, [[0, 0], [60, 0.5], [90, 1], [120, 1.5], [180, 2]]);
+        const s = (x) => (x === 0 ? '$0$' : x === 1 ? '$\\lambda_C$' : `$${x}\\lambda_C$`);
+        const o = Q5.mcqOptions(r, s(k), [0, 0.5, 1, 1.5, 2].filter((x) => x !== k).map(s));
+        return { q: `X-rays are Compton-scattered by free electrons at rest. With $\\lambda_C = h/m_ec$, the increase in wavelength for photons scattered through $${th}^\\circ$ is`, ...o,
+          sol: `$\\Delta\\lambda = \\lambda_C(1 - \\cos\\theta) = \\lambda_C(1 - \\cos${th}^\\circ) = ${s(k).slice(1, -1)}$. It is zero straight ahead, $\\lambda_C$ at right angles and largest, $2\\lambda_C$, for back-scattering.`,
+          trap: 'The shift does not depend on the incoming wavelength, only on the angle.' };
+      } },
+    { id: 'pho-t24', type: 'nat', level: 3, exams: ['jam'], sub: 'photon and electron', unit: 'keV',
+      make(r) {
+        const K = Q5.int(r, 1, 100) * 10;
+        const E = Math.sqrt(2 * 511000 * K) / 1000;
+        return { q: `A photon has the same momentum as an electron of kinetic energy $${K}$ eV (non-relativistic). The photon's energy is ______ keV (to three significant figures; $m_ec^2 = 511$ keV).`,
+          answer: +E.toPrecision(3), tol: +(0.006 * E).toPrecision(2), K,
+          sol: `Electron: $p = \\sqrt{2m_eK}$, so $pc = \\sqrt{2m_ec^2K} = \\sqrt{2\\times511000\\times${K}}$ eV. Photon: $E = pc = ${+E.toPrecision(3)}$ keV, far more than the electron's $${K}$ eV.`,
+          trap: 'Equal momentum does not mean equal energy: for a photon $E = pc$, for a slow electron $K = p^2/2m$.' };
+      },
+      verify: (p) => { const hc = 1239.84, lam = hc / Math.sqrt(2 * 511000 * p.K); return hc / lam / 1000; } },
+    { id: 'pho-t25', type: 'mcq', level: 2, exams: ['jam'], sub: 'photon momentum', format: 'dimensions',
+      make(r) {
+        const names = ['energy', 'momentum', 'length', 'time', 'mass'];
+        const [ex, c] = Q5.choose(r, [['hc/\\lambda', 0], ['\\hbar\\omega', 0], ['h/\\lambda', 1], ['hf/c', 1], ['h/(m_ec)', 2], ['\\hbar/(m_ec)', 2], ['h/(m_ec^2)', 3], ['hf/c^2', 4]]);
+        const o = Q5.mcqOptions(r, names[c], Q5.shuffle(r, names.filter((x, i) => i !== c)));
+        return { q: `With $h$ (or $\\hbar$) Planck's constant, $c$ the speed of light, $m_e$ the electron mass, $\\lambda$ a wavelength and $f$ (or $\\omega$) a frequency, the quantity $${ex}$ has the dimensions of`, ...o,
+          sol: '$h$ is energy $\\times$ time (J s). So $hf$ and $\\hbar\\omega$ are energies; $hc/\\lambda$ too. $h/\\lambda$ and $hf/c$ are momenta (J s/m $=$ kg m/s). $h/(m_ec)$ is a length (the Compton wavelength), $h/(m_ec^2)$ a time, and $hf/c^2$ a mass (the photon energy expressed as mass).',
+          trap: 'Write $h$ as J s and track each factor; $h/(m_ec)$ is the Compton wavelength.' };
+      } },
     { id: 'pho-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'photon energy',
       make(r) {
         const lam = choose(r, [124, 155, 200, 248, 310, 400, 450, 496, 550, 620, 700, 800]);

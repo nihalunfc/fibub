@@ -17,13 +17,39 @@ quiz:
     choices: ['Nothing', 'SUM(order_total) counts each order once per line, so totals come out too high', 'The table becomes narrower']
     ans: 1
     why: A value at order grain repeated on line-grain rows is not additive across lines. Summing it multiplies each order by its number of lines.
+sources:
+  - 'Google Cloud, BigQuery documentation: Optimize query computation (denormalization) https://cloud.google.com/bigquery/docs/best-practices-performance-compute'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 2 (why dimensions are denormalised)'
 ---
 
 **Module 6 · about 25 minutes · read first: 2.4.** You'll be able to build a one big table from a star schema, explain what it gains and what it costs, avoid the double-counting trap, and decide when a wide table is the right design.
 
+<div class="bigidea">A one big table joins the fact and all its dimensions into one wide table, so queries need no joins, but facts that sit at a higher level get repeated.</div>
+
+**In everyday terms:** a spreadsheet where every row repeats the customer's name, address and phone. Easy to read, but adding the "customer count" column up gives nonsense.
+
 ## 1. Why this matters
 
 In cloud warehouses such as BigQuery, Snowflake and Databricks, many teams publish wide, flat tables for analysts and for tools that cannot join well (spreadsheets, some notebook users, machine learning features). You will be asked to build them, and to say when a star is better. Knowing both, and the traps in between, is what makes a modeller trusted.
+
+<div class="meaning">
+
+<dl>
+<dt>One big table (OBT)</dt><dd>A single wide table made by pre-joining a star schema.</dd>
+<dt>Wide table</dt><dd>A table with many columns.</dd>
+<dt>Columnar storage</dt><dd>Data stored column by column, so unused columns cost nothing to skip.</dd>
+<dt>Fan-out</dt><dd>A value repeated on every row of the many side of a join.</dd>
+<dt>Physical meaning</dt><dd>Each fact row carries copies of its dimension values. Any measure that belongs to the parent (a shipping fee on an order) is repeated once per child row.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"An OBT always gives the same totals as the star."** Any measure stored at a higher grain is repeated on every line, so SUM over the OBT overstates it. Keep line-level measures in the OBT and keep header-level measures at their own grain.
+
+</div>
 
 ## 2. The star, pre-joined
 
@@ -172,6 +198,18 @@ $126,579.09 is right. $301,183.62 is wrong: each order's total was counted once 
 **Try it:** an OBT has 10 million rows and 50,000 products. Roughly how many times is each product name stored? (About 200, on average.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>The star.</b> <table class="lk-tbl"><tr><th>order</th><th>fee</th></tr><tr><td>1001</td><td>6</td></tr></table> <table class="lk-tbl"><tr><th>order</th><th>line</th><th>item</th></tr><tr><td>1001</td><td>1</td><td>Pen</td></tr><tr><td>1001</td><td>2</td><td>Ink</td></tr><tr><td>1001</td><td>3</td><td>Pad</td></tr></table></div>
+<div class="step"><b>Join them once.</b> <table class="lk-tbl"><tr><th>order</th><th>line</th><th>item</th><th>fee</th></tr><tr><td>1001</td><td>1</td><td>Pen</td><td>6</td></tr><tr><td>1001</td><td>2</td><td>Ink</td><td><mark>6</mark></td></tr><tr><td>1001</td><td>3</td><td>Pad</td><td><mark>6</mark></td></tr></table> The fee is copied to every line.</div>
+<div class="step"><b>Queries get simple.</b> No joins: <code>SELECT item, COUNT(*) FROM obt GROUP BY item</code>.</div>
+<div class="step"><b>The trap.</b> <code>SUM(fee)</code> returns 18 but the order only paid 6.</div>
+<div class="step"><b>The fix.</b> Sum fee only on one row per order (for example where line = 1), or keep it in a separate table.</div>
+</div>
+
+<div class="problem" data-problem="dm-obt-double"></div>
+
 ## 6. Worked example: should Northbay publish an OBT?
 
 *Request:* the marketing team wants a file of every 2025 order line with customer tier and department, to load into a spreadsheet model each Monday.
@@ -220,5 +258,14 @@ FROM obt_sales
 SELECT (SELECT ROUND(SUM(sales_amount), 2) FROM fact_sales) AS star_sales,
        (SELECT ROUND(SUM(sales_amount), 2) FROM obt_sales) AS obt_sales
 ```
+
+<div class="keypoints">
+
+- An OBT trades storage and repetition for join-free queries.
+- Columnar warehouses make wide tables cheap to scan.
+- Header-level measures repeated on lines get double-counted.
+- Build the OBT from a tested star, not instead of one.
+
+</div>
 
 **New words:** *one big table (OBT)*, *wide table*, *columnar storage*, *factorisation*.

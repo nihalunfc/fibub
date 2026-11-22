@@ -1,6 +1,7 @@
 ---
 import CourseHome from '../../../../components/course/CourseHome.astro';
 import { SQL_COURSE } from '../../../../courses/sql/syllabus';
+import '../../../../styles/lesson-kit.css';
 import '../../../../styles/runner.css';
 import '../../../../styles/tableviz.css';
 ---
@@ -22,7 +23,7 @@ ORDER BY total DESC</div>
       <li><strong>See what every query does</strong>: each step drawn on the tables, so joins and GROUP BY stop being magic.</li>
       <li><strong>Leave with a portfolio project</strong>: the Northbay SQL casebook, 30 business questions answered with your own queries.</li>
     </ul>
-    <p>Every lesson has live editors with <strong>Run</strong>, <strong>Check</strong>, <strong>Hint</strong> and <strong>Show answer</strong>, plain-English error messages, and a 3-question quiz. Next steps: <a href="/learn/courses/data-modelling/">Data modelling and warehousing</a>, then <a href="https://nihalsulaiman.com/learn/etl-course/" rel="noopener">Pipeline to Dashboard</a> for the tools that load real warehouses. To query your own CSV or Excel files, use the <a href="/science/sql-playground/">SQL playground</a>.</p>
+    <p>Every lesson has live editors with <strong>Run</strong>, <strong>Check</strong>, <strong>Hint</strong> and <strong>Show answer</strong>, plain-English error messages, and a 3-question quiz. Next steps: <a href="/learn/courses/data-modelling/">Data modelling and warehousing</a>, then <a href="/learn/courses/etl/">Pipeline to Dashboard</a> for the tools that load real warehouses. To query your own CSV or Excel files, use the <a href="/science/sql-playground/">SQL playground</a>.</p>
   </section>
 </CourseHome>
 <script>import '../../../../scripts/sqllab';</script>

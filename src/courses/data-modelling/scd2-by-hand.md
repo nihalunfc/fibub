@@ -17,13 +17,40 @@ quiz:
     choices: ['Every changed customer gets a duplicate version', 'Nothing: no current row differs from staging, and every staged customer already has a current row', 'The load fails']
     ans: 1
     why: The load is idempotent. After the first run the current rows match staging, so the UPDATE finds nothing to expire and the INSERT finds nobody without a current row.
+sources:
+  - 'PostgreSQL documentation, Comparison functions and operators (IS DISTINCT FROM) https://www.postgresql.org/docs/current/functions-comparison.html'
+  - 'SQLite documentation, Expressions (IS DISTINCT FROM) https://www.sqlite.org/lang_expr.html'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
 ---
 
 **Module 5 · about 35 minutes · read first: 5.1.** You'll be able to write a complete type 2 load in plain SQL, make it safe to run twice, check it for gaps and overlaps, and look up the right version when loading facts.
 
+<div class="bigidea">A type 2 load is three steps in SQL: find the rows that changed, close their old versions, insert the new versions.</div>
+
+**In everyday terms:** a school register. When a pupil changes class, you do not rub out the old line. You write the end date on it, then add a new line for the new class.
+
 ## 1. Why this matters
 
 Tools like dbt snapshots and SQL Server's `MERGE` can maintain a type 2 dimension for you, but they all run the same few steps underneath. When one of them produces duplicate "current" rows or loses a change, you need to know those steps to find out why. Writing one by hand, once, is the best way to understand what your tools are doing, and it is a favourite take-home task in data engineering interviews.
+
+<div class="meaning">
+
+<dl>
+<dt>Staging table</dt><dd>Tonight's copy of the source data, waiting to be compared.</dd>
+<dt>Change set</dt><dd>The staging rows that differ from the current dimension rows, or that are new.</dd>
+<dt>Expire</dt><dd>Set valid_to and is_current on the old row. The row stays.</dd>
+<dt>IS DISTINCT FROM</dt><dd>A comparison that treats NULL as a value, so NULL vs NULL is "same".</dd>
+<dt>Idempotent</dt><dd>Running it twice gives the same result as running it once.</dd>
+<dt>Physical meaning</dt><dd>Each changed customer costs one UPDATE (the old row closes) and one INSERT (the new row opens). The table only grows, and old rows never disappear.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If the data has not changed the load is harmless, so it does not matter if it runs twice."** If the load only inserts, a second run adds a duplicate version for every customer. The "changed" test must compare staging with the <b>current</b> row, so a second run finds nothing to do.
+
+</div>
 
 ## 2. The starting dimension
 
@@ -236,6 +263,18 @@ No customer has two current rows, and no two versions of one customer overlap. T
 **Try it:** Isaac's versions are [1900-01-01, 2025-06-01), [2025-06-01, 2025-10-01) and [2025-10-01, 9999-12-31). Which covers 2025-06-01 itself? (The second: the first ends before that day, because valid_to is excluded.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Dimension before the load.</b> <table class="lk-tbl"><tr><th>key</th><th>cust</th><th>city</th><th>current</th></tr><tr><td>1</td><td>Asha</td><td>Toronto</td><td>1</td></tr><tr><td>2</td><td>Ben</td><td>Halifax</td><td>1</td></tr></table></div>
+<div class="step"><b>Staging tonight.</b> <table class="lk-tbl"><tr><th>cust</th><th>city</th></tr><tr><td>Asha</td><td>Ottawa</td></tr><tr><td>Ben</td><td>Halifax</td></tr><tr><td>Chloe</td><td>Calgary</td></tr></table></div>
+<div class="step"><b>Step 1: find changes.</b> Asha changed. Ben is the same. Chloe is new.</div>
+<div class="step"><b>Step 2: expire.</b> <table class="lk-tbl"><tr><th>key</th><th>cust</th><th>city</th><th>current</th></tr><tr><td><mark>1</mark></td><td>Asha</td><td>Toronto</td><td><mark>0</mark></td></tr><tr><td>2</td><td>Ben</td><td>Halifax</td><td>1</td></tr></table></div>
+<div class="step"><b>Step 3: insert.</b> <table class="lk-tbl"><tr><th>key</th><th>cust</th><th>city</th><th>current</th></tr><tr><td>1</td><td>Asha</td><td>Toronto</td><td>0</td></tr><tr><td>2</td><td>Ben</td><td>Halifax</td><td>1</td></tr><tr><td><mark>3</mark></td><td>Asha</td><td>Ottawa</td><td>1</td></tr><tr><td><mark>4</mark></td><td>Chloe</td><td>Calgary</td><td>1</td></tr></table> Run it again and the change set is empty.</div>
+</div>
+
+<div class="problem" data-problem="dm-scd2-load"></div>
+
 ## 10. Worked example: loading facts against the right version
 
 A fact must get the key of the version that was true **on the fact's date**, so the lookup adds a date range to the natural key:
@@ -317,5 +356,15 @@ JOIN dim_customer d ON d.customer_key = f.customer_key
 WHERE d.customer_id = 4
 GROUP BY d.city
 ```
+
+<div class="keypoints">
+
+- Compare staging with the current rows only.
+- Expire first (UPDATE), then insert (INSERT).
+- Use IS DISTINCT FROM so NULLs compare correctly.
+- A second run must find an empty change set.
+- Check afterwards: one current row per customer, no gaps or overlaps in dates.
+
+</div>
 
 **New words:** *staging table*, *change set*, *expire*, *IS DISTINCT FROM*, *idempotent*, *overlap check*.

@@ -10,6 +10,7 @@ export const SQL_COURSE: CourseSyllabus = {
   name: 'SQL for analysts',
   title: 'SQL for analysts: from your first SELECT to window functions',
   text: 'Learn SQL by typing it. Every lesson has live editors on a real-looking store database, checks your answers, and shows step by step what each query does to the tables: joins matching rows, groups forming, totals adding up.',
+  kit: true,
   audience: 'For anyone heading into data, BI or analyst work, and for interview practice. No set-up and no sign-up: it runs in your browser.',
   updated: '2026-11-22',
   footnote: 'Northbay Retail is a made-up company; its data is generated in your browser. Queries run on your device and nothing you type is sent anywhere.',

@@ -17,13 +17,41 @@ quiz:
     choices: ['Nothing', 'Each matching fact row is doubled by the join (fan-out), so totals come out too high', 'The join fails with an error']
     ans: 1
     why: A join matches every copy. That is why a unique-key test on every dimension and a row-count check after every join are the first tests to write.
+sources:
+  - 'dbt Labs documentation, Data tests https://docs.getdbt.com/docs/build/data-tests'
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, chapter 19 (ETL quality screens)'
 ---
 
 **Module 7 · about 30 minutes · read first: 7.3.** You'll be able to write the five standard warehouse tests in SQL, collect them in one results view, find planted bugs with them, and know which test catches which kind of mistake.
 
+<div class="bigidea">A warehouse test is a query that returns the bad rows; if it returns nothing, the test passes.</div>
+
+**In everyday terms:** a till check at closing time. You count the cash against the receipts. If they match, nothing to do; if not, you go and find the mistake.
+
 ## 1. Why this matters
 
 A dashboard that shows the wrong number is worse than no dashboard: people make decisions on it. Most warehouse errors come from a few causes (duplicate keys, missing keys, values nobody expected, rows lost or doubled in a join), and each can be caught by a short SQL query run after every load. Teams that use dbt, Great Expectations or hand-written checks all test the same few things. Being able to list them, and write them, is a standard interview question.
+
+<div class="meaning">
+
+<dl>
+<dt>Unique test</dt><dd>No key appears more than once.</dd>
+<dt>Not-null test</dt><dd>A required column is never NULL.</dd>
+<dt>Relationships test</dt><dd>Every fact key matches a dimension row.</dd>
+<dt>Orphan</dt><dd>A fact row whose key matches no dimension row.</dd>
+<dt>Accepted values</dt><dd>A column holds only allowed values.</dd>
+<dt>Reconciliation</dt><dd>Totals in the warehouse match the source.</dd>
+<dt>Physical meaning</dt><dd>Tests do not change any table. Each one reads the tables and returns the rows that break a rule.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If the row count looks right the data must be right."** A join that drops and duplicates the same number of rows still gives the right count. Test keys, nulls, orphans and totals separately.
+
+</div>
 
 ## 2. A test is a query for bad rows
 
@@ -180,6 +208,18 @@ Five FAILs and three PASSes. Bug 1 shows up twice, as a duplicate key and as fan
 **Try it:** a fact has 1,000 rows, 20 are orphans, and one dimension key appears three times, used by 10 fact rows. How many rows after an inner join? (1,000 − 20 + 2 × 10 = 1,000.) The count matches, yet two bugs hide. That is why you run each test separately, not only the count.
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>A small star.</b> <table class="lk-tbl"><tr><th>sale</th><th>product_key</th><th>amount</th></tr><tr><td>1</td><td>10</td><td>40</td></tr><tr><td>2</td><td>11</td><td>30</td></tr><tr><td>3</td><td><mark>99</mark></td><td>20</td></tr><tr><td>4</td><td><mark>NULL</mark></td><td>10</td></tr></table> <table class="lk-tbl"><tr><th>product_key</th></tr><tr><td>10</td></tr><tr><td>11</td></tr></table></div>
+<div class="step"><b>Unique test.</b> <code>GROUP BY product_key HAVING COUNT(*) &gt; 1</code> on the dimension: no rows, pass.</div>
+<div class="step"><b>Not-null test.</b> Sale 4 has no product_key: fail, 1 row.</div>
+<div class="step"><b>Relationships test.</b> Sale 3 uses key 99, which the dimension lacks: fail, 1 orphan.</div>
+<div class="step"><b>Fix and re-run.</b> Repair the two rows. Every test now returns zero rows.</div>
+</div>
+
+<div class="problem" data-problem="dm-orphans"></div>
+
 ## 6. Worked example: fix the bugs, re-run the tests
 
 Fix all four bugs in the build: de-duplicate products, trim cities, drop the leftover filter, and add the -1 Unknown member for guests.
@@ -212,7 +252,7 @@ SELECT * FROM test_results
 
 All eight tests say PASS. Because test_results is a view, the same tests ran against the new tables without rewriting anything.
 
-In dbt the same tests are one line each in a YAML file (`unique`, `not_null`, `relationships`, `accepted_values`), and dbt writes these queries for you. The ETL course sets that up in [Week 5](https://nihalsulaiman.com/learn/etl-course/).
+In dbt the same tests are one line each in a YAML file (`unique`, `not_null`, `relationships`, `accepted_values`), and dbt writes these queries for you. The ETL course sets that up in [Module 5](/learn/courses/etl/dbt-basics/).
 
 ## 7. Practice
 
@@ -263,5 +303,14 @@ FROM dim_customer d
 LEFT JOIN fact_sales f ON f.customer_key = d.customer_key
 WHERE f.customer_key IS NULL
 ```
+
+<div class="keypoints">
+
+- A test is a query that returns bad rows.
+- The five basics: unique, not null, relationships, accepted values, reconciliation.
+- Each test catches a different kind of mistake.
+- Put all tests in one results view and run it after every load.
+
+</div>
 
 **New words:** *data test*, *unique test*, *not-null test*, *relationships test*, *orphan*, *referential integrity*, *accepted values*, *reconciliation*.

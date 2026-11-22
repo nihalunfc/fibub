@@ -17,9 +17,18 @@ quiz:
     choices: ['Names cannot be compared in SQL', 'Different people often share a name, so it finds false matches', 'It is too slow']
     ans: 1
     why: In Northbay, 15 name-and-city pairs appear twice or more, but only 3 are really the same person. Match on something closer to unique, such as a cleaned email, and check by hand.
+sources:
+  - 'SQLite documentation, SELECT DISTINCT https://www.sqlite.org/lang_select.html#distinct'
+  - 'SQLite documentation, Window functions: row_number https://www.sqlite.org/windowfunctions.html#builtins'
+  - 'Microsoft Learn, ROW_NUMBER (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/row-number-transact-sql'
+  - 'Molinaro, A. and de Graaf, R. (2020), SQL Cookbook, 2nd edition, O''Reilly, chapter 4 (deleting duplicate records)'
 ---
 
 **Module 7 · about 30 minutes · read first: 6.3.** You'll be able to find exact duplicate rows, find the same thing recorded twice under slightly different values, and keep one row per key safely with ROW_NUMBER.
+
+<div class="bigidea">Decide what makes two rows "the same" (the key), find keys that appear more than once, and keep one row per key with ROW_NUMBER.</div>
+
+**In everyday terms:** a cloakroom where each coat should have its own ticket number. Two tickets with the same number is a duplicate; "17" and "17 " written sloppily are the same ticket in disguise.
 
 ## 1. Why this matters
 
@@ -151,6 +160,37 @@ WHERE rn = 1
 
 600 kept: 603 minus the 3 duplicates.
 
+<div class="meaning">
+
+<dl>
+<dt>Exact duplicate</dt><dd>A row identical in every column to another row. SELECT DISTINCT removes these.</dd>
+<dt>Key</dt><dd>The column (or columns) that should be unique, such as a cleaned email.</dd>
+<dt>GROUP BY key HAVING COUNT(*) &gt; 1</dt><dd>Lists the keys that appear more than once.</dd>
+<dt>False positive</dt><dd>Two rows that look like a duplicate but are different things, such as two people with the same name.</dd>
+<dt>NULL trap</dt><dd>PARTITION BY puts every NULL key into one group, so a dedupe would throw away all but one of them.</dd>
+<dt>Physical meaning</dt><dd>Finding duplicates groups rows by the key and counts them. Removing them numbers the rows inside each key and keeps only number 1, so the row count drops by exactly the number of extra copies.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Matching on first and last name finds the duplicate customers."** People share names: on Northbay, 15 name-and-city groups repeat but only 3 are real duplicates. Use the most reliable key you have (a cleaned email), and check a sample before you delete anything.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Customers.</b> <table class="lk-tbl"><tr><th>id</th><th>email</th><th>joined</th></tr><tr><td>17</td><td>uma@x.ca</td><td>2024-03</td></tr><tr><td>601</td><td>UMA@x.ca</td><td>2025-08</td></tr><tr><td>20</td><td>NULL</td><td>2024-05</td></tr><tr><td>21</td><td>NULL</td><td>2024-06</td></tr></table></div>
+<div class="step"><b>Clean the key.</b> LOWER(email): 17 and 601 both become <mark>uma@x.ca</mark>.</div>
+<div class="step"><b>Number inside each key.</b> <code>ROW_NUMBER() OVER (PARTITION BY LOWER(email) ORDER BY joined)</code> <table class="lk-tbl"><tr><th>id</th><th>key</th><th>rn</th></tr><tr><td>17</td><td>uma@x.ca</td><td>1</td></tr><tr><td>601</td><td>uma@x.ca</td><td><mark>2</mark></td></tr><tr><td>20</td><td>NULL</td><td>1</td></tr><tr><td>21</td><td>NULL</td><td><mark>2</mark></td></tr></table></div>
+<div class="step"><b>The trap.</b> Customer 21 is not a duplicate: the two NULLs were put in one group. Use <code>COALESCE(LOWER(email), 'no-email-' || id)</code> so each NULL is its own key.</div>
+<div class="step"><b>Keep rn = 1.</b> Only 601 goes: 4 rows become <mark>3</mark>.</div>
+</div>
+
+<div class="problem" data-problem="sql-dedupe-removed"></div>
+
 ## 6. Worked example
 
 *Question:* make a clean customer table, and a map from each duplicate id to the id that is kept (so orders can be pointed at the right person).
@@ -222,5 +262,15 @@ WHERE rn > 1
 ```
 
 **Try it on your own data:** [[data-cleaner]] removes duplicate rows from a CSV, and [[merge-csv]] helps when the duplicates come from joining two files.
+
+<div class="keypoints">
+
+- SELECT DISTINCT removes exact copies; most real duplicates differ a little.
+- Find repeated keys with GROUP BY key HAVING COUNT(*) > 1, on a cleaned key.
+- Keep one row per key with ROW_NUMBER() OVER (PARTITION BY key ORDER BY rule) and rn = 1.
+- Give NULL keys their own value, or they are treated as one group.
+- Names alone give false positives; check before deleting.
+
+</div>
 
 **New words:** *exact duplicate*, *key*, *false positive*, *FIRST_VALUE*.

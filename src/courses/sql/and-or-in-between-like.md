@@ -17,9 +17,17 @@ quiz:
     choices: ['Names that start with pack', 'Names that end with pack', 'Names with exactly four letters']
     ans: 1
     why: '% stands for any run of characters (even none), so %pack means anything, then pack at the very end.'
+sources:
+  - 'SQLite documentation, SQL Language Expressions (operators, BETWEEN, IN, LIKE) https://www.sqlite.org/lang_expr.html'
+  - 'PostgreSQL documentation, Pattern Matching (LIKE) https://www.postgresql.org/docs/current/functions-matching.html'
+  - 'Microsoft Learn, Operator Precedence (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql'
 ---
 
 **Module 2 · about 30 minutes · read first: 2.2.** You'll be able to combine several conditions safely, test against lists, ranges and text patterns, and explain why brackets matter around OR.
+
+<div class="bigidea">AND, OR, IN, BETWEEN and LIKE build bigger tests out of small ones, and SQL does AND before OR, so brackets decide what you really asked.</div>
+
+**In everyday terms:** "I'll have tea or coffee and a biscuit." Does the biscuit come only with the coffee, or with either drink? Spoken English is vague; SQL is not, and it always reads it as "tea, or (coffee and a biscuit)" unless you add brackets.
 
 ## 1. Why this matters
 
@@ -74,6 +82,40 @@ WHERE (store_id = 4 OR store_id = 8) AND order_date LIKE '2025%'
 ```
 
 310. The rule: **whenever a WHERE mixes AND with OR, put brackets around the OR.**
+
+<div class="meaning">
+
+<dl>
+<dt>p AND q</dt><dd>Both tests must be true. Can only keep the same rows or fewer.</dd>
+<dt>p OR q</dt><dd>At least one test must be true.</dd>
+<dt>NOT p</dt><dd>Flips the test.</dd>
+<dt>Precedence</dt><dd>The order SQL works things out: NOT, then AND, then OR (like × before +).</dd>
+<dt>x IN (a, b)</dt><dd>Short for x = a OR x = b, with no bracket trap.</dd>
+<dt>x BETWEEN a AND b</dt><dd>x &gt;= a AND x &lt;= b: both ends included.</dd>
+<dt>LIKE 'B%'</dt><dd>A text pattern: % is any run of characters, _ exactly one.</dd>
+<dt>Physical meaning</dt><dd>Each row gets the whole combined test; AND keeps the overlap of the two sets of rows, OR keeps both sets together. A missing bracket silently changes which rows are in the overlap.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"SQL reads my conditions left to right, so the order I type them in is the order they are joined."** SQL always does AND before OR. `store_id = 4 OR store_id = 8 AND year = 2025` means "store 4 in any year, or store 8 in 2025". Whenever AND and OR meet in one WHERE, put brackets around the OR (or use IN).
+
+</div>
+
+Watch the bracket trap happen, one step at a time, on four orders:
+
+<div class="steps">
+<div class="step"><b>The orders.</b> <table class="lk-tbl"><tr><th>order</th><th>store</th><th>year</th></tr><tr><td>A</td><td>4</td><td>2024</td></tr><tr><td>B</td><td>4</td><td>2025</td></tr><tr><td>C</td><td>8</td><td>2024</td></tr><tr><td>D</td><td>8</td><td>2025</td></tr></table></div>
+<div class="step"><b>Without brackets SQL groups the AND first:</b> store = 4 OR (store = 8 AND year = 2025). <table class="lk-tbl"><tr><th>order</th><th>store</th><th>year</th></tr><tr><td><mark>A</mark></td><td>4</td><td><mark>2024</mark></td></tr><tr><td>B</td><td>4</td><td>2025</td></tr><tr><td>D</td><td>8</td><td>2025</td></tr></table> Order A (2024) sneaks in: 3 rows.</div>
+<div class="step"><b>With brackets:</b> (store = 4 OR store = 8) AND year = 2025. <table class="lk-tbl"><tr><th>order</th><th>store</th><th>year</th></tr><tr><td>B</td><td>4</td><td>2025</td></tr><tr><td>D</td><td>8</td><td>2025</td></tr></table> 2 rows, the right answer.</div>
+<div class="step"><b>With IN:</b> store IN (4, 8) AND year = 2025 gives the same 2 rows, and there is no bracket to forget.</div>
+</div>
+
+Press **Show how it runs** on the two Northbay boxes above to see the same thing happen to 4,064 real orders. Then try it:
+
+<div class="problem" data-problem="sql-and-or-precedence"></div>
 
 ## 5. IN: one of a list
 
@@ -217,5 +259,15 @@ SELECT product_name
 FROM products
 WHERE product_name LIKE '%set'
 ```
+
+<div class="keypoints">
+
+- AND needs both tests true; OR needs at least one; NOT flips a test.
+- SQL does NOT, then AND, then OR. Put brackets around every OR that sits next to an AND.
+- IN (a, b, c) is a safe short form of several ORs.
+- BETWEEN includes both ends; with date-and-time columns use &gt;= start AND &lt; next day.
+- LIKE matches patterns: % for any run of characters, _ for exactly one.
+
+</div>
 
 **New words:** *Boolean*, *precedence*, *IN*, *BETWEEN*, *LIKE*, *wildcard*.

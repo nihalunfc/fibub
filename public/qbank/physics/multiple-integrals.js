@@ -4,6 +4,7 @@
 // angle, Gaussian integrals by squaring. Original questions for IIT JAM, GATE and CSIR NET practice (fibub).
 // Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './multiple-integrals.more.gen.js';
 
 const simpson = (f, a, b, n = 4000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return (s * h) / 3; };
 const PI = Math.PI;
@@ -334,5 +335,6 @@ export default {
           trap: 'The semi-axes are the square roots of the denominators.' };
       },
       verify: (p) => (4 / 3) * PI * p.a * p.b * p.c },
+    ...more,
   ],
 };

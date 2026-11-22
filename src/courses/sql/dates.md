@@ -17,9 +17,18 @@ quiz:
     choices: ['SQLite sorts text by date automatically', 'Year, month and day are written biggest unit first with fixed widths, so text order equals date order', 'They do not sort correctly']
     ans: 1
     why: "Fixed-width, biggest-first text sorts the same way as the dates it stands for. '03/30/2025' style text would not."
+sources:
+  - 'SQLite documentation, Date and time functions https://www.sqlite.org/lang_datefunc.html'
+  - 'PostgreSQL documentation, Date/time functions and operators https://www.postgresql.org/docs/current/functions-datetime.html'
+  - 'Microsoft Learn, DATEDIFF (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-transact-sql'
+  - 'ISO 8601 date and time format, overview https://www.iso.org/iso-8601-date-and-time-format.html'
 ---
 
 **Module 7 · about 30 minutes · read first: 3.2.** You'll be able to pull parts out of a date, group by month or weekday, add and subtract days, and count the days between two dates, in SQLite and in the dialects you will meet at work.
+
+<div class="bigidea">Treat dates as points on a number line: pull out parts, round down to the month, move by days, and subtract to get a distance.</div>
+
+**In everyday terms:** house numbers on a long street. 140 minus 128 is 12 houses apart, and 128 plus 12 is house 140. But 128 plus 140 is nobody's house.
 
 ## 1. Why this matters
 
@@ -126,6 +135,37 @@ The same four ideas, spelled differently:
 
 Last day of the month: SQL Server `EOMONTH(d)`.
 
+<div class="meaning">
+
+<dl>
+<dt>ISO date</dt><dd>Text written <code>'YYYY-MM-DD'</code>. Biggest unit first and fixed width, so text order is date order.</dd>
+<dt>strftime(format, d)</dt><dd>Writes a date in a chosen format: <code>%Y</code> year, <code>%m</code> month, <code>%w</code> weekday (0 = Sunday). The result is text.</dd>
+<dt>Truncate</dt><dd>Round a date down, for example to the first day of its month, so a whole month shares one value for GROUP BY.</dd>
+<dt>date(d, '+7 days')</dt><dd>Moves a date. Modifiers are applied left to right.</dd>
+<dt>julianday(d)</dt><dd>A day number; the difference of two is the number of days between them.</dd>
+<dt>Physical meaning</dt><dd>Each date is turned into another value on the same row: a part, a rounded date or a number. Grouping by a truncated date makes many dates fall into one group.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"BETWEEN '2025-01-01' AND '2025-01-31' gets all of January."** It does for plain dates, but if the column holds a time too, '2025-01-31 14:00' is after '2025-01-31' and is missed. Use `>= '2025-01-01' AND < '2025-02-01'`.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>A date.</b> <table class="lk-tbl"><tr><th>order_date</th></tr><tr><td>2025-03-30</td></tr></table></div>
+<div class="step"><b>Pull out parts.</b> <table class="lk-tbl"><tr><th>yr</th><th>mon</th><th>weekday</th></tr><tr><td><mark>'2025'</mark></td><td><mark>'03'</mark></td><td><mark>'0' (Sunday)</mark></td></tr></table> All text.</div>
+<div class="step"><b>Truncate.</b> <code>date(order_date, 'start of month')</code> gives <mark>2025-03-01</mark>: every March date now shares one value.</div>
+<div class="step"><b>Move.</b> <code>date(order_date, '+7 days')</code> gives <mark>2025-04-06</mark> (the calendar handles the month change).</div>
+<div class="step"><b>Subtract.</b> <code>julianday('2025-04-06') - julianday('2025-03-30')</code> = <mark>7</mark> days.</div>
+</div>
+
+<div class="problem" data-problem="sql-days-between"></div>
+
 ## 7. Worked example
 
 *Question:* are weekends busier than weekdays, per day?
@@ -187,5 +227,15 @@ WHERE order_date >= date('2025-12-31', '-6 days')
 ```
 
 **Try it on your own data:** [[date-calculator]] adds days and counts between dates without any SQL.
+
+<div class="keypoints">
+
+- Write dates as 'YYYY-MM-DD'; then text order is date order.
+- strftime pulls out parts (as text); 'start of month' truncates for grouping.
+- date(d, '+n days') moves a date; julianday differences count days.
+- For timestamps, use >= start AND < next start, not BETWEEN.
+- Each database spells these differently, but the four ideas are the same.
+
+</div>
 
 **New words:** *ISO date*, *timestamp*, *strftime*, *truncate*, *julianday*.

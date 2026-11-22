@@ -17,13 +17,39 @@ quiz:
     choices: ['It keeps running and bills you', 'It pauses until the allowance resets next month', 'It is deleted']
     ans: 1
     why: Microsoft's page says the auto-pause choice stops charges, and the database can't be used until the allowance resets at the start of the next calendar month.
+sources:
+  - 'Microsoft Learn, Azure SQL Database free offer https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer'
+  - 'PostgreSQL documentation, COPY https://www.postgresql.org/docs/current/sql-copy.html'
+  - 'DuckDB documentation https://duckdb.org/docs/'
 ---
 
 **Module 8 · about 30 minutes · read first: 8.2.** You'll be able to export Northbay from the browser, translate the build scripts for SQL Server/Azure SQL, PostgreSQL or DuckDB, run the tests on a real database, and publish the project as a GitHub repo and a portfolio page. This is part 3 of the **Northbay warehouse** project.
 
+<div class="bigidea">Move the finished warehouse to a real database: export the data, translate the scripts for that dialect, run the tests, and publish the result.</div>
+
+**In everyday terms:** moving house. You pack the boxes (export), check the new house has the same plug sockets (dialect), and count every box on arrival (tests).
+
 ## 1. Why this matters
 
-"It works in a browser tutorial" is good practice; "it runs on Azure SQL, here is the repo and the test results" is a portfolio piece. Moving the project to a real database also teaches the small dialect differences that trip people up in their first week on a job. This lesson covers the database side; for loading pipelines, scheduling and dbt, follow the ETL course: [Week 4 loads into Azure SQL, Week 5 rebuilds the models in dbt](https://nihalsulaiman.com/learn/etl-course/).
+"It works in a browser tutorial" is good practice; "it runs on Azure SQL, here is the repo and the test results" is a portfolio piece. Moving the project to a real database also teaches the small dialect differences that trip people up in their first week on a job. This lesson covers the database side; for loading pipelines, scheduling and dbt, follow the ETL course: [Module 4 loads into Azure SQL, Module 5 rebuilds the models in dbt](/learn/courses/etl/azure-sql-hands-on/).
+
+<div class="meaning">
+
+<dl>
+<dt>Free offer</dt><dd>A cloud database tier that costs nothing within limits.</dd>
+<dt>Auto-pause</dt><dd>The database sleeps when idle and wakes on first use.</dd>
+<dt>IDENTITY</dt><dd>SQL Server's way of generating surrogate keys.</dd>
+<dt>Dialect translation</dt><dd>Changing syntax so the same design runs on another database.</dd>
+<dt>Physical meaning</dt><dd>The tables hold the same rows in a different engine. Row counts and test results must match the browser version.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"If the scripts ran in the browser, they will run unchanged in the cloud."** Types, auto-numbering, date functions and quoting differ. Translate each script, then re-run the tests.
+
+</div>
 
 ## 2. Pick a home
 
@@ -121,7 +147,7 @@ In DuckDB, loading a CSV is one line, and most of the course's SQL runs as it is
 CREATE TABLE orders AS SELECT * FROM read_csv('data/orders.csv');
 ```
 
-To load CSVs into Azure SQL Database, use the Import Flat File wizard in SQL Server Management Studio, the mssql extension for VS Code, or a short Python script; the ETL course's Week 4 walks through a scripted load.
+To load CSVs into Azure SQL Database, use the Import Flat File wizard in SQL Server Management Studio, the mssql extension for VS Code, or a short Python script; [Module 4 of the ETL course](/learn/courses/etl/azure-sql-hands-on/) walks through a scripted load.
 
 ## 5. Prove it works there
 
@@ -151,6 +177,18 @@ SELECT (SELECT COUNT(*) FROM order_items i JOIN orders o ON o.order_id = i.order
 
 **Try it:** a table has 3 rows of 0.10 in a REAL column. What might SUM show before rounding? (Something like 0.30000000000000004; in DECIMAL it is exactly 0.30.)
 </details>
+
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Export.</b> Each table to a CSV file.</div>
+<div class="step"><b>Translate.</b> <table class="lk-tbl"><tr><th>browser</th><th>SQL Server</th></tr><tr><td>INTEGER PRIMARY KEY</td><td><mark>INT IDENTITY(1,1)</mark></td></tr><tr><td>date('now')</td><td><mark>GETDATE()</mark></td></tr></table></div>
+<div class="step"><b>Load.</b> Create the tables and import each CSV.</div>
+<div class="step"><b>Reconcile.</b> <table class="lk-tbl"><tr><th>table</th><th>source</th><th>cloud</th></tr><tr><td>orders</td><td>1200</td><td>1200</td></tr><tr><td>customers</td><td>300</td><td><mark>295</mark></td></tr></table> A mismatch to investigate.</div>
+<div class="step"><b>Publish.</b> Push scripts and a README to GitHub, then link it from your portfolio page.</div>
+</div>
+
+<div class="problem" data-problem="dm-export-recon"></div>
 
 ## 6. Worked example: the GitHub repo
 
@@ -223,5 +261,14 @@ SELECT COUNT(*) AS completed_orders,
 FROM orders
 WHERE status = 'completed'
 ```
+
+<div class="keypoints">
+
+- Export, translate, load, reconcile, publish.
+- Dialects differ in types, keys and date functions.
+- Row counts must match after the move.
+- Use a free tier and watch auto-pause.
+
+</div>
 
 **New words:** *free offer*, *auto-pause*, *IDENTITY*, *dialect translation*, *homomorphism*.

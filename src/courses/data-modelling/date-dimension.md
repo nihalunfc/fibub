@@ -17,9 +17,18 @@ quiz:
     choices: ['A random number', 'An integer like 20251129, built from the date', 'The day name']
     ans: 1
     why: Date keys are the one place where a meaningful key is normal. 20251129 is unique, sorts in date order and never changes, because a date's meaning never changes.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (calendar date dimension)'
+  - 'SQLite documentation: The WITH clause (recursive common table expressions) https://www.sqlite.org/lang_with.html'
+  - 'SQLite documentation: Date and time functions https://www.sqlite.org/lang_datefunc.html'
 ---
 
 **Module 4 · about 30 minutes · read first: 4.1.** You'll be able to build a date dimension with a recursive CTE, add the columns analysts ask for (weekday, quarter, weekend, promotion, fiscal year), and use it to report days that had no sales.
+
+<div class="bigidea">The date dimension is a calendar table with one row per day and a column for every way people slice time, built once so every report just filters and groups.</div>
+
+**In everyday terms:** a wall calendar with everything already marked: weekends, holidays, sale weeks, the start of the financial year. Nobody has to work out "is the 29th a Saturday?" again.
 
 ## 1. Why this matters
 
@@ -111,6 +120,37 @@ Northbay uses April to March, and names each fiscal year after the year it **end
 Because our calendar starts in January 2024, FY2024 has only its last quarter (91 days) and FY2026 only its first three (275 days). Only FY2025 is complete. Retail calendars with 4-4-5 week months are built the same way, just with more columns; that is exactly why they belong in a table and not in every report.
 
 Holidays fit the same pattern: a column `is_holiday`. Fixed ones (New Year's Day, Canada Day on 1 July, Christmas Day) can be worked out from the date; ones that move (Good Friday, Victoria Day, Thanksgiving) are easier to keep in a small table you fill in once a year and join in.
+
+<div class="meaning">
+
+<dl>
+<dt>Date dimension (calendar table)</dt><dd>One row per calendar day in range, whether or not anything happened.</dd>
+<dt>Date key</dt><dd>The date as a YYYYMMDD integer, such as 20251129: unique, sorted and readable.</dd>
+<dt>Recursive CTE</dt><dd>A CTE that starts with a row and keeps adding the next one until a stop condition.</dd>
+<dt>Fiscal year</dt><dd>The 12-month budget year; Northbay's runs April to March and is named after the year it ends in.</dd>
+<dt>Physical meaning</dt><dd>A recursive CTE makes every day in the range; each column is a formula applied to that day and stored. Reports LEFT JOIN facts to it, so every day appears, even with zero sales.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Group orders by order_date to get sales per day."** Days with no order simply disappear, so charts draw straight lines over gaps and averages divide by too few days. Start from the calendar and LEFT JOIN the orders.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Start row.</b> <table class="lk-tbl"><tr><th>d</th></tr><tr><td>2024-01-01</td></tr></table></div>
+<div class="step"><b>Add a day, repeat.</b> <table class="lk-tbl"><tr><th>d</th></tr><tr><td>2024-01-01</td></tr><tr><td><mark>2024-01-02</mark></td></tr><tr><td><mark>2024-01-03</mark></td></tr></table></div>
+<div class="step"><b>Add columns.</b> <table class="lk-tbl"><tr><th>date_key</th><th>weekday</th><th>is_weekend</th><th>fiscal_year</th></tr><tr><td>20240101</td><td>Mon</td><td>0</td><td>2024</td></tr><tr><td>20240406</td><td><mark>Sat</mark></td><td><mark>1</mark></td><td><mark>2025</mark></td></tr></table></div>
+<div class="step"><b>Join the facts.</b> <table class="lk-tbl"><tr><th>date_key</th><th>orders</th></tr><tr><td>20251202</td><td>2</td></tr><tr><td>20251203</td><td><mark>0</mark></td></tr><tr><td>20251204</td><td><mark>0</mark></td></tr></table> The quiet days stay.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-weekend-days"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -211,5 +251,15 @@ SELECT COUNT(*) AS empty_days FROM per_day WHERE orders = 0
 ```
 
 **Try it on your own data:** [[date-calculator]] counts days and weekdays between two dates, a handy check on your calendar columns.
+
+<div class="keypoints">
+
+- One row per day in range, even days with no sales.
+- Its key is a readable YYYYMMDD integer, the one key that may mean something.
+- Make the days with a recursive CTE (or generate_series in PostgreSQL).
+- Store weekday, weekend, holiday, promotion and fiscal columns once.
+- Start from the calendar and LEFT JOIN facts to see empty days and divide by the right number of days.
+
+</div>
 
 **New words:** *date dimension*, *calendar table*, *date key*, *recursive CTE*, *fiscal year*, *fiscal quarter*.

@@ -17,9 +17,18 @@ quiz:
     choices: ['It only works in SQLite', 'You must write one expression per column, so the columns must be known in advance', 'It cannot handle NULLs']
     ans: 1
     why: 'SQL needs to know the result''s columns before it runs. A new year or category means editing the query, or building the SQL with code (dynamic SQL).'
+sources:
+  - 'SQLite documentation: CASE expression https://www.sqlite.org/lang_expr.html#the_case_expression'
+  - 'Microsoft Learn: FROM - Using PIVOT and UNPIVOT https://learn.microsoft.com/en-us/sql/t-sql/queries/from-using-pivot-and-unpivot'
+  - 'PostgreSQL documentation: tablefunc (crosstab) https://www.postgresql.org/docs/current/tablefunc.html'
+  - 'Google Cloud: BigQuery query syntax, PIVOT operator https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#pivot_operator'
 ---
 
 **Module 8 · about 25 minutes · read first: 2.6, 3.2.** You'll be able to turn rows into columns with SUM(CASE WHEN ...), and turn columns back into rows with UNION ALL.
+
+<div class="bigidea">A pivot turns the values of one column into column headings by putting a CASE inside each SUM, so each column only adds up its own rows.</div>
+
+**In everyday terms:** sorting the post into pigeonholes. Every letter goes past every hole, but each hole only keeps the letters with its own label.
 
 ## 1. Why this matters
 
@@ -92,6 +101,38 @@ Toronto has three big orders (two kettles and the duvet) and one small one (the 
 
 **Try it:** check the Iverson idea on the result above. Is Grocery's rev_2024 + rev_2025 equal to its total revenue? (20,817.95 + 27,876.18 = 48,694.13; run a plain SUM grouped by department to see.)
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Long table</dt><dd>One row per thing per value, such as one row per department per year. Easy to group and store.</dd>
+<dt>Wide table</dt><dd>One row per thing, one column per value, such as a column per year. Easy to read across.</dd>
+<dt>SUM(CASE WHEN year = 2025 THEN x ELSE 0 END)</dt><dd>Adds x only on 2025 rows; every other row adds 0.</dd>
+<dt>Conditional aggregation</dt><dd>The name for an aggregate with a CASE inside it.</dd>
+<dt>Unpivot</dt><dd>Wide back to long: one SELECT per column, stacked with UNION ALL.</dd>
+<dt>Physical meaning</dt><dd>GROUP BY decides the rows of the result (one per department). Each CASE column sees every row of its group but lets only one year's values into its SUM, so the group's total is split across the columns, and the columns add back up to the total.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Put the year in WHERE to make the 2025 column."** WHERE removes rows for the whole query, so the 2024 column would be empty. The filter for each column has to live inside that column's aggregate, as a CASE.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Long table.</b> <table class="lk-tbl"><tr><th>department</th><th>year</th><th>revenue</th></tr><tr><td>Grocery</td><td>2024</td><td>20</td></tr><tr><td>Grocery</td><td>2025</td><td>30</td></tr><tr><td>Home</td><td>2024</td><td>15</td></tr><tr><td>Home</td><td>2025</td><td>10</td></tr></table></div>
+<div class="step"><b>CASE on each row.</b> Each row sends its revenue to one column and 0 to the other. <table class="lk-tbl"><tr><th>department</th><th>rev_2024</th><th>rev_2025</th></tr><tr><td>Grocery</td><td><mark>20</mark></td><td>0</td></tr><tr><td>Grocery</td><td>0</td><td><mark>30</mark></td></tr><tr><td>Home</td><td><mark>15</mark></td><td>0</td></tr><tr><td>Home</td><td>0</td><td><mark>10</mark></td></tr></table></div>
+<div class="step"><b>GROUP BY department and SUM.</b> The zeros vanish into the totals. <table class="lk-tbl"><tr><th>department</th><th>rev_2024</th><th>rev_2025</th></tr><tr><td>Grocery</td><td><mark>20</mark></td><td><mark>30</mark></td></tr><tr><td>Home</td><td><mark>15</mark></td><td><mark>10</mark></td></tr></table></div>
+<div class="step"><b>Check.</b> 20 + 30 = 50, the plain Grocery total. The columns always add back up to the total.</div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-pivot-cell"></div>
 
 ## 4. Unpivot: wide back to long
 
@@ -166,5 +207,15 @@ GROUP BY reason
 ```
 
 **Try it on your own data:** reshape a CSV in [[sql-playground]], then chart the wide table with [[plot-maker]].
+
+<div class="keypoints">
+
+- Databases prefer long tables; people prefer wide ones.
+- Pivot: GROUP BY the row label, and write one SUM(CASE WHEN … THEN x ELSE 0 END) per column.
+- To count instead of sum, let the CASE give 1 or 0.
+- Unpivot: one SELECT per column, stacked with UNION ALL.
+- CASE pivots work in every database; PIVOT operators exist but still need the column list.
+
+</div>
 
 **New words:** *long table*, *wide table*, *pivot*, *unpivot*, *conditional aggregation*.

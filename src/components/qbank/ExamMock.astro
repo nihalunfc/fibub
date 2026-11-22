@@ -7,15 +7,15 @@ import type { CourseSyllabus } from '../../courses/types';
 import { coursePageLd } from '../../lib/seo';
 import '../../styles/course.css';
 // label and slug: for a course with more than one timed test (e.g. SAT Math and SAT Reading and Writing).
-interface Props { course: CourseSyllabus; bank: string; exam: string; pattern: string; marking: string; label?: string; slug?: string }
-const { course, bank, exam, pattern, marking, label = 'mock test', slug = 'mock-test' } = Astro.props;
+interface Props { course: CourseSyllabus; bank: string; exam: string; pattern: string; marking: string; label?: string; slug?: string; docTitle?: string }
+const { course, bank, exam, pattern, marking, label = 'mock test', slug = 'mock-test', docTitle } = Astro.props;
 const p = (PATTERNS as any)[pattern];
 const base = `/learn/courses/${course.id}`;
 const title = `${course.name} ${label}, free and timed`;
 const desc = `A free timed ${course.name} ${label} drawn fresh from a bank of original questions, marked the exam's way${['sat', 'lsat', 'gmat', 'gre', 'none', 'practice'].includes(p?.scheme) ? '' : ' with negative marks'}, then a topic-by-topic score and full solutions.`;
 const ld = coursePageLd(course, label.charAt(0).toUpperCase() + label.slice(1), desc.slice(0, 160), slug);
 ---
-<Base title={title} description={desc.slice(0, 160)} ld={ld}>
+<Base title={title} docTitle={docTitle} description={desc.slice(0, 160)} ld={ld}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / {label.charAt(0).toUpperCase() + label.slice(1)}</div>
   <div class="cs-main cs-wide">
     <h1>{title}</h1>

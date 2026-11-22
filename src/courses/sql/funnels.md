@@ -17,9 +17,18 @@ quiz:
     choices: ['LAG(n) OVER (ORDER BY step)', 'FIRST_VALUE(n) OVER (ORDER BY step)', 'ROW_NUMBER() OVER (ORDER BY step)']
     ans: 1
     why: 'FIRST_VALUE returns the value from the first row of the window, so every row can divide by the top of the funnel. LAG gives the row before, for step conversion.'
+sources:
+  - 'SQLite documentation: Compound SELECT (UNION ALL) https://www.sqlite.org/lang_select.html#compound'
+  - 'SQLite documentation: Window Functions (LAG, FIRST_VALUE) https://www.sqlite.org/windowfunctions.html'
+  - 'PostgreSQL documentation: Aggregate Expressions (FILTER) https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-AGGREGATES'
+  - 'Croll, A. and Yoskovitz, B. (2013), Lean Analytics, O''Reilly, chapter 5 (funnels and conversion)'
 ---
 
 **Module 8 · about 30 minutes · read first: 4.4, 6.4.** You'll be able to build a funnel table in SQL, one row per step, and add step and overall conversion rates.
+
+<div class="bigidea">A funnel stacks one count per step, then divides each step by the one before (where people leak) and by the first (how many make it all the way).</div>
+
+**In everyday terms:** a stack of kitchen sieves. Flour goes through one sieve after another; each sieve keeps some back, and what reaches the bowl passed every sieve above it.
 
 ## 1. Why this matters
 
@@ -85,6 +94,38 @@ ORDER BY step
 
 **Try it:** step rates of 50%, 40% and 50%. What is the overall rate? (0.5 × 0.4 × 0.5 = 10%.) Check the Northbay numbers: 0.971 × 0.949 ≈ 0.921.
 </details>
+
+<div class="meaning">
+
+<dl>
+<dt>Funnel</dt><dd>A process people or orders move through in order, losing some at each step.</dd>
+<dt>Step conversion</dt><dd>This step ÷ the step before (LAG). It shows where the biggest leak is.</dd>
+<dt>Overall conversion</dt><dd>This step ÷ the first step (FIRST_VALUE). It shows how many make it to the end.</dd>
+<dt>Nested steps</dt><dd>Everyone counted at a step must also be counted at every step before it.</dd>
+<dt>Time-boxed funnel</dt><dd>A step only counts if it happens within a time limit, such as 90 days.</dd>
+<dt>Physical meaning</dt><dd>Each step is a COUNT with one more condition than the step before. UNION ALL stacks those counts as rows, and the window functions put the previous and first counts beside each row so one division gives each rate.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Overall conversion is the average of the step rates."** It is their *product*. Steps of 50 %, 40 % and 50 % give 0.5 × 0.4 × 0.5 = 10 %, not 47 %. That is why a leak early in the funnel hurts every step after it.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>One count per step.</b> Each SELECT adds a condition. <table class="lk-tbl"><tr><th>step</th><th>stage</th><th>n</th></tr><tr><td>1</td><td>Visited</td><td>1000</td></tr><tr><td>2</td><td>Signed up</td><td>400</td></tr><tr><td>3</td><td>Ordered</td><td>100</td></tr></table></div>
+<div class="step"><b>LAG puts the step before beside each row.</b> <table class="lk-tbl"><tr><th>step</th><th>n</th><th>prev</th></tr><tr><td>1</td><td>1000</td><td>NULL</td></tr><tr><td>2</td><td>400</td><td><mark>1000</mark></td></tr><tr><td>3</td><td>100</td><td><mark>400</mark></td></tr></table></div>
+<div class="step"><b>Step conversion.</b> 400 ÷ 1000 = 40 %; 100 ÷ 400 = 25 %. The second step is the bigger leak. <table class="lk-tbl"><tr><th>step</th><th>n</th><th>step_pct</th></tr><tr><td>1</td><td>1000</td><td>NULL</td></tr><tr><td>2</td><td>400</td><td><mark>40</mark></td></tr><tr><td>3</td><td>100</td><td><mark>25</mark></td></tr></table></div>
+<div class="step"><b>FIRST_VALUE gives the top of the funnel.</b> Overall: 100 ÷ 1000 = 10 %, which equals 0.40 × 0.25. <table class="lk-tbl"><tr><th>step</th><th>n</th><th>overall_pct</th></tr><tr><td>1</td><td>1000</td><td>100</td></tr><tr><td>2</td><td>400</td><td><mark>40</mark></td></tr><tr><td>3</td><td>100</td><td><mark>10</mark></td></tr></table></div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-funnel-overall"></div>
 
 ## 4. A customer funnel
 
@@ -194,5 +235,15 @@ WHERE julianday(second_order) - julianday(first_order) <= 90
 ```
 
 **Try it on your own data:** load an events or orders CSV into [[sql-playground]] and stack your own steps; [[plot-maker]] can draw the funnel as bars.
+
+<div class="keypoints">
+
+- A funnel is one count per step, stacked with UNION ALL and numbered so the order is clear.
+- Step conversion uses LAG (÷ the step before); overall conversion uses FIRST_VALUE (÷ step 1).
+- Overall conversion is the product of the step rates.
+- Make sure the steps are nested: each one adds a condition to the one before.
+- Add a time limit (for example within 90 days) to make "came back" a meaningful goal.
+
+</div>
 
 **New words:** *funnel*, *step conversion*, *overall conversion*, *time-boxed funnel*.

@@ -17,9 +17,18 @@ quiz:
     choices: ['January sales are always huge', 'The data starts in January 2024, so long-standing customers all look new that month', 'It has duplicate customers']
     ans: 1
     why: 'Customers who had been shopping for years show up with their "first" order in the first month of the data. This is called left censoring; treat the first cohort with care.'
+sources:
+  - 'SQLite documentation: Aggregate Functions (COUNT DISTINCT) https://www.sqlite.org/lang_aggfunc.html'
+  - 'SQLite documentation: The WITH Clause https://www.sqlite.org/lang_with.html'
+  - 'Microsoft Learn: DATEDIFF (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-transact-sql'
+  - 'Croll, A. and Yoskovitz, B. (2013), Lean Analytics, O''Reilly, chapter 7 (cohort analysis)'
 ---
 
 **Module 8 · about 35 minutes · read first: 5.4, 7.1.** You'll be able to build a cohort retention table in SQL: one row per starting month, one column per month since the start, and read what it says.
+
+<div class="bigidea">A cohort table follows each group of customers from the month they started and shows what share of them are still buying each month after.</div>
+
+**In everyday terms:** a school reunion list. You follow "the class of 2024" and count how many still turn up each year, instead of counting everyone in the hall.
 
 ## 1. Why this matters
 
@@ -131,6 +140,39 @@ This is the classic **retention table** (also called a cohort triangle, because 
 **Try it:** a cohort of 80 has 12 active customers in month 3. What is the month-3 retention? (12 ÷ 80 = 15%.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Cohort</dt><dd>A group of customers who started in the same period, here the month of their first completed order.</dd>
+<dt>Month number</dt><dd>How many calendar months after the cohort month an order happened. The first month is 0.</dd>
+<dt>Retention</dt><dd>Customers in the cohort active in month k, divided by the cohort size at month 0.</dd>
+<dt>Left censoring</dt><dd>The data starts after some customers had already started, so the first cohort looks too big.</dd>
+<dt>Cumulative retention</dt><dd>Counts a customer as kept if they came back at any time up to month k. Always higher.</dd>
+<dt>Physical meaning</dt><dd>Each customer gets one fixed label (their cohort) and each order gets a relative time (its month number). The query then counts distinct customers in every (cohort, month number) cell and divides by the cell in column 0.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Divide by last month's active customers."** That gives a month-to-month rate that can go up and down for odd reasons. Retention always divides by the size of the cohort at month 0, so every number in a row shares the same base and the row can only be read one way.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Orders.</b> Three customers. <table class="lk-tbl"><tr><th>customer</th><th>order_month</th></tr><tr><td>A</td><td>2025-01</td></tr><tr><td>A</td><td>2025-03</td></tr><tr><td>B</td><td>2025-01</td></tr><tr><td>C</td><td>2025-02</td></tr><tr><td>C</td><td>2025-03</td></tr></table></div>
+<div class="step"><b>Step 1: cohort = first month.</b> MIN(order_date) per customer. <table class="lk-tbl"><tr><th>customer</th><th>cohort</th></tr><tr><td>A</td><td><mark>2025-01</mark></td></tr><tr><td>B</td><td><mark>2025-01</mark></td></tr><tr><td>C</td><td><mark>2025-02</mark></td></tr></table></div>
+<div class="step"><b>Step 2: month number.</b> Months since the cohort month. <table class="lk-tbl"><tr><th>customer</th><th>cohort</th><th>month_no</th></tr><tr><td>A</td><td>2025-01</td><td><mark>0</mark></td></tr><tr><td>A</td><td>2025-01</td><td><mark>2</mark></td></tr><tr><td>B</td><td>2025-01</td><td><mark>0</mark></td></tr><tr><td>C</td><td>2025-02</td><td><mark>0</mark></td></tr><tr><td>C</td><td>2025-02</td><td><mark>1</mark></td></tr></table></div>
+<div class="step"><b>Step 3: count distinct customers per cell.</b> <table class="lk-tbl"><tr><th>cohort</th><th>m0</th><th>m1</th><th>m2</th></tr><tr><td>2025-01</td><td>2</td><td>0</td><td><mark>1</mark></td></tr><tr><td>2025-02</td><td>1</td><td><mark>1</mark></td><td>–</td></tr></table></div>
+<div class="step"><b>Divide by month 0.</b> January: 1 of 2 back in month 2 = 50 %. February: 1 of 1 back in month 1 = 100 %. <table class="lk-tbl"><tr><th>cohort</th><th>size</th><th>m1_pct</th><th>m2_pct</th></tr><tr><td>2025-01</td><td>2</td><td>0</td><td><mark>50</mark></td></tr><tr><td>2025-02</td><td>1</td><td><mark>100</mark></td><td>–</td></tr></table></div>
+</div>
+
+Any live box with a SELECT has a **Show how it runs** button that animates the real query on Northbay, row by row.
+
+<div class="problem" data-problem="sql-cohort-retention"></div>
+
 ## 6. Worked example
 
 *Question:* do Northbay customers come back?
@@ -198,5 +240,15 @@ GROUP BY joined_year
 ```
 
 **Try it on your own data:** put your own orders export into [[sql-playground]] and swap in your table and column names; [[plot-maker]] can draw the retention curves.
+
+<div class="keypoints">
+
+- A cohort is a group that shares a starting month; MIN(order_date) per customer assigns it.
+- Month number = (year × 12 + month) of the order minus the same for the cohort month.
+- Count DISTINCT customers per (cohort, month number), then divide by the month-0 size.
+- Read a row across to follow one cohort; read a column down to compare cohorts at the same age.
+- The first cohort is often padded by older customers (left censoring): say so.
+
+</div>
 
 **New words:** *cohort*, *retention*, *month number*, *retention table*, *left censoring*, *cumulative retention*.

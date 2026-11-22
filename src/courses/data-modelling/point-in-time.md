@@ -17,13 +17,40 @@ quiz:
     choices: ['Count rows where loyalty_tier = ''Silver''', 'Count rows where loyalty_tier = ''Silver'' and valid_from <= ''2025-03-31'' < valid_to', 'Count rows where is_current = 1 and loyalty_tier = ''Silver''']
     ans: 1
     why: An "as of" question keeps the one version valid on that date for each customer. All rows would count old and new versions; is_current gives today's count.
+sources:
+  - 'The Kimball Group, Dimensional Modeling Techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball Group, Design Tip #152 on slowly changing dimension types https://www.kimballgroup.com/2013/02/design-tip-152-slowly-changing-dimension-types-0-4-5-6-7/'
+  - 'SQLite documentation, SQL language reference https://www.sqlite.org/lang.html'
 ---
 
 **Module 5 · about 30 minutes · read first: 5.2.** You'll be able to answer "as it was", "as it is" and "as of a date" questions from one type 2 dimension, and say which one a business question needs.
 
+<div class="bigidea">One type 2 dimension can answer three different questions: what was true then, what is true now, and what was true on a chosen date.</div>
+
+**In everyday terms:** looking at an old photo album. "As it was" shows the photo taken that day. "As it is" shows how everyone looks today. "As of" picks a date and shows the photo from then.
+
 ## 1. Why this matters
 
 Once a dimension keeps history, every report has to choose which history to show. "Sales by loyalty tier" can mean the tier at the time of each sale, or the tier the customer has now. A finance report usually needs the first; a marketing team planning next month's Gold campaign usually wants the second. Mixing them up gives numbers that are each correct, but answer a different question from the one asked. Being able to say "which version do you mean?" and then write it is a mark of a senior analyst.
+
+<div class="meaning">
+
+<dl>
+<dt>As it was</dt><dd>Join each fact to the version valid when the fact happened (the surrogate key stored on the fact).</dd>
+<dt>As it is</dt><dd>Join through the durable key to the current version.</dd>
+<dt>As of a date</dt><dd>Pick the version valid on that date for everyone, then group the facts by it.</dd>
+<dt>Durable key</dt><dd>A customer key that never changes across versions.</dd>
+<dt>Point-in-time</dt><dd>A view of the data at one moment.</dd>
+<dt>Physical meaning</dt><dd>The same fact rows are grouped under different dimension rows. Only the join changes; nothing in the tables moves.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**""The current tier" and "the tier then" are the same thing if you join on customer_id."** Joining on the durable key sends every sale to the current version, which is "as it is". "As it was" uses the surrogate key already stored on each fact.
+
+</div>
 
 ## 2. Northbay's tier review
 
@@ -168,6 +195,18 @@ Each labelling is a partition of the same facts, so all three give the same gran
 **Try it:** Gurpreet Wilson's order on 2024-12-10: what tier is it under as it was, as it is, and as of 2025-03-31? (Bronze, Silver, Bronze.)
 </details>
 
+Watch it happen, one step at a time (any live box below has a **Show how it runs** button that animates the real query):
+
+<div class="steps">
+<div class="step"><b>Asha's versions.</b> <table class="lk-tbl"><tr><th>key</th><th>tier</th><th>from</th></tr><tr><td>1</td><td>Silver</td><td>Jan 1</td></tr><tr><td>2</td><td>Gold</td><td>Jul 1</td></tr></table></div>
+<div class="step"><b>Her sales.</b> <table class="lk-tbl"><tr><th>sale</th><th>date</th><th>amount</th><th>customer_key</th></tr><tr><td>1</td><td>Mar 5</td><td>50</td><td>1</td></tr><tr><td>2</td><td>Aug 9</td><td>70</td><td>2</td></tr></table></div>
+<div class="step"><b>As it was.</b> Follow the key on each sale. <table class="lk-tbl"><tr><th>tier</th><th>total</th></tr><tr><td>Silver</td><td>50</td></tr><tr><td>Gold</td><td>70</td></tr></table></div>
+<div class="step"><b>As it is.</b> Join through the durable key to the current row. <table class="lk-tbl"><tr><th>tier</th><th>total</th></tr><tr><td><mark>Gold</mark></td><td><mark>120</mark></td></tr></table> Silver disappears: the old sale is re-labelled.</div>
+<div class="step"><b>As of Jun 1.</b> Everyone gets the tier valid on that date, so both sales count as Silver.</div>
+</div>
+
+<div class="problem" data-problem="dm-asof-sales"></div>
+
 ## 6. Worked example: did the July upgrades pay off?
 
 *Question:* did the 47 upgraded members spend more after the review than before, compared with everyone else?
@@ -245,5 +284,14 @@ ORDER BY sales DESC
 ```
 
 **Try it on your own data:** load a history table into [[sql-playground]] and try the three questions with your own valid_from and valid_to columns.
+
+<div class="keypoints">
+
+- "As it was" follows the surrogate key stored on the fact.
+- "As it is" joins through the durable key to the current row.
+- "As of" fixes one date for everybody.
+- Name the question before choosing the join.
+
+</div>
 
 **New words:** *as it was*, *as it is*, *as of*, *durable key*, *point-in-time*.

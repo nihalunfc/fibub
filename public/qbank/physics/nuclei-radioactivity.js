@@ -19,6 +19,25 @@ const NUC = [
 ];
 const bePerA = (Z, A, M) => (Z * MH + (A - Z) * MN - M) * U / A;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'nuclei-radioactivity',
   items: [
@@ -254,6 +273,65 @@ export default {
   ],
 
   gens: [
+    { id: 'nbr-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'decay modes',
+      make(r) {
+        const Z = Q5.int(r, 20, 92), A = Math.round(Z * Q5.pick(r, 2.1, 2.6, 0.05)), c = Q5.int(r, 0, 3);
+        const [dZ, dA] = [[-2, -4], [1, 0], [-1, 0], [0, 0]][c];
+        const names = ['alpha decay', 'beta-minus decay', 'beta-plus decay (or electron capture)', 'gamma decay (from an excited state)'];
+        const o = Q5.mcqOptions(r, names[c], names.filter((x, i) => i !== c));
+        return { q: `A nucleus with $Z = ${Z}$, $A = ${A}$${c === 3 ? ', left in an excited state,' : ''} decays to a nucleus with $Z = ${Z + dZ}$, $A = ${A + dA}$, emitting one particle (or photon). The decay is`, ...o,
+          sol: 'Alpha: $Z - 2$, $A - 4$. Beta-minus ($n \\to p + e^- + \\bar\\nu$): $Z + 1$, same $A$. Beta-plus or electron capture ($p \\to n$): $Z - 1$, same $A$. Gamma: same $Z$ and $A$, lower energy. ' + `Here $\\Delta Z = ${dZ}$, $\\Delta A = ${dA}$: ${names[c]}.`,
+          trap: 'Beta decay changes $Z$ but not $A$; only alpha decay changes $A$.' };
+      } },
+    { id: 'nbr-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'binding energy curve', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['The binding energy per nucleon is largest, about $8.8$ MeV, near $A \\approx 56$-$62$.', 'Both fission of heavy nuclei and fusion of light nuclei release energy.', 'For $A > 20$ the binding energy per nucleon is roughly constant, near $8$ MeV, showing that the nuclear force saturates.',
+          'All nuclei have roughly the same density.', '${}^4$He has a higher binding energy per nucleon than its neighbours.'];
+        const F = ['The binding energy per nucleon keeps rising up to uranium.', 'The heaviest nuclei are the most tightly bound per nucleon.', 'The nuclear radius is proportional to the mass number $A$.',
+          '${}^4$He has a lower binding energy per nucleon than its neighbours.', 'Fusion of two iron nuclei releases energy.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about nuclear binding energy are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'The $B/A$ curve rises steeply for light nuclei (with a spike at ${}^4$He, a doubly magic nucleus), peaks near iron and nickel at about $8.8$ MeV, then falls slowly to about $7.6$ MeV for uranium because of Coulomb repulsion. Moving towards the peak releases energy: fission from the heavy side, fusion from the light side; fusing iron would cost energy. $B/A$ is nearly constant because each nucleon binds only to its neighbours (saturation), and $R = R_0A^{1/3}$ makes the density the same for all nuclei.',
+          trap: 'Radius goes as $A^{1/3}$, so volume (not radius) is proportional to $A$.' };
+      } },
+    { id: 'nbr-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'activity', unit: 'GBq',
+      make(r) {
+        const m = Q5.int(r, 1, 100), A = Q5.int(r, 50, 240), T = Q5.int(r, 1, 30), t = Q5.int(r, 0, 60);
+        const lam = Math.LN2 / (T * 86400), N0 = m * 1e-6 / A * 6.022e23, act = lam * N0 * Math.exp(-lam * t * 86400) / 1e9;
+        return { q: `A freshly made sample contains $${m}\\ \\mu$g of a pure radionuclide of mass number $${A}$ and half-life $${T}$ days. Its activity $${t}$ days later is ______ GBq (to three significant figures; molar mass $\\approx A$ g/mol, $N_A = 6.022\\times10^{23}$).`,
+          answer: +act.toPrecision(3), tol: +(0.006 * act).toPrecision(2), m, A, T, t,
+          sol: `$N_0 = \\dfrac{${m}\\times10^{-6}}{${A}}\\times6.022\\times10^{23} = ${Q5.fmt(N0, 4)}$. $\\lambda = \\ln2/T_{1/2} = 0.693/(${T}\\times86400\\ \\text{s}) = ${Q5.fmt(lam, 4)}$ s$^{-1}$. $A_0 = \\lambda N_0 = ${Q5.fmt(lam * N0 / 1e9, 4)}$ GBq, and after $${t}$ days $A = A_0\\,2^{-${t}/${T}} = ${+act.toPrecision(3)}$ GBq.`,
+          trap: 'Use the decay constant in s$^{-1}$ (the becquerel is decays per second).' };
+      },
+      verify: (p) => { const lam = Math.LN2 / (p.T * 86400), N0 = p.m * 1e-6 / p.A * 6.022e23; return lam * N0 * 0.5 ** (p.t / p.T) / 1e9; } },
+    { id: 'nbr-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'decay law', format: 'graph',
+      make(r) {
+        const log10 = r() < 0.5, x = log10 ? Q5.pick(r, 1, 20, 0.5) : Q5.pick(r, 0.02, 0.5, 0.01);
+        const T = log10 ? x * Math.log10(2) : Math.LN2 / x;
+        const s = (v) => `$${Q5.round(v, 2)}$ h`;
+        const o = Q5.mcqOptions(r, T, log10 ? [x, x / 2, x * Math.LN2] : [1 / x, x * Math.LN2, Math.log10(2) / x], s);
+        return { q: log10 ? `A graph of $\\log_{10}$(activity) against time for a pure radionuclide is a straight line that falls by $1$ (a factor of 10) every $${x}$ hours. The half-life is` : `A graph of $\\ln$(activity) against time for a pure radionuclide is a straight line of slope $-${x}$ per hour. The half-life is`, ...o,
+          sol: log10 ? `A factor of 10 takes $\\ln10/\\lambda = ${x}$ h; a factor of 2 takes $\\ln2/\\lambda$. So $T_{1/2} = ${x}\\times\\dfrac{\\ln2}{\\ln10} = ${x}\\times0.301 = ${Q5.round(T, 2)}$ h.` : `$\\ln A = \\ln A_0 - \\lambda t$, so $\\lambda = ${x}$ h$^{-1}$ and $T_{1/2} = \\ln2/\\lambda = ${Q5.round(T, 2)}$ h.`,
+          trap: 'Check which logarithm the graph uses: base 10 and base $e$ give slopes differing by $\\ln10 = 2.303$.' };
+      } },
+    { id: 'nbr-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'mass-energy', unit: 'u',
+      make(r) {
+        const M = { n: ['n', 1.008665], p: ['{}^1\\mathrm H', 1.007825], d: ['{}^2\\mathrm H', 2.014102], t: ['{}^3\\mathrm H', 3.016049], h3: ['{}^3\\mathrm{He}', 3.016029], a: ['{}^4\\mathrm{He}', 4.002602], li6: ['{}^6\\mathrm{Li}', 6.015122], li7: ['{}^7\\mathrm{Li}', 7.016003] };
+        const [L, Rr] = Q5.choose(r, [[['d', 't'], ['a', 'n']], [['p', 'li7'], ['a', 'a']], [['n', 'li6'], ['a', 't']], [['d', 'd'], ['h3', 'n']], [['d', 'd'], ['t', 'p']]]);
+        const all = [...L.map((k) => [k, 1]), ...Rr.map((k) => [k, -1])], dup = (i) => all.filter((x) => x[0] === all[i][0]).length > 1;
+        let hide = Q5.int(r, 0, 3); if (dup(hide)) hide = all.findIndex((x, i) => !dup(i));
+        const Qv = +((L.reduce((s, k) => s + M[k][1], 0) - Rr.reduce((s, k) => s + M[k][1], 0)) * 931.494).toFixed(3);
+        const known = all.filter((x, i) => i !== hide).reduce((s, [k, sg]) => s + sg * M[k][1], 0);
+        const sg = all[hide][1], mass = sg * (Qv / 931.494 - known);
+        const eq = `${L.map((k) => M[k][0]).join(' + ')} \\to ${Rr.map((k) => M[k][0]).join(' + ')}`;
+        const given = all.filter((x, i) => i !== hide).map(([k]) => `$m(${M[k][0]}) = ${M[k][1]}$ u`).filter((v, i, a) => a.indexOf(v) === i).join(', ');
+        return { q: `The reaction $${eq}$ releases $Q = ${Qv}$ MeV. Given ${given}, the mass of ${M[all[hide][0]][0] === 'n' ? 'the neutron' : `$${M[all[hide][0]][0]}$`} (one of the ${sg > 0 ? 'reactants' : 'products'}) is ______ u (to six decimal places; $1$ u $= 931.494$ MeV/$c^2$).`,
+          answer: Q5.round(mass, 6), tol: 3e-6, Qv, known, sg,
+          sol: `$Q = (\\text{mass of reactants} - \\text{mass of products})\\,c^2$. So $\\Delta m = ${Qv}/931.494 = ${Q5.round(Qv / 931.494, 6)}$ u. Solving the mass balance for the unknown: $m = ${Q5.round(mass, 6)}$ u.`,
+          trap: 'Atomic masses already include the electrons; they balance on both sides here.' };
+      },
+      verify: (p) => (p.Qv / 931.494 - p.known) / p.sg },
     { id: 'nbr-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'decay law',
       make(r) {
         const T = choose(r, [2, 5, 8, 10, 12, 15, 20, 30]), k = choose(r, [0.5, 1, 1.5, 2, 2.5, 3, 4, 5]), t = round(T * k, 2);

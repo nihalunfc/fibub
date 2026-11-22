@@ -43,6 +43,7 @@ near('Eratosthenes 7.2° and 800 km', P.eratosthenes(7.2, 800), 40000, 1e-9);
 near('Aristarchus 87°', P.aristarchusRatio(87), 19.1, 0.005);
 near('true half-moon ratio at 89.85°', P.aristarchusRatio(89.85), 382, 0.01);
 // Cosmology
+near('Hubble time constant 977.8 Gyr km/s/Mpc', P.hubbleTimeGyr(1), 977.8, 0.001);
 near('Hubble time for H0 = 70 (Gyr)', P.hubbleTimeGyr(70), 13.97, 0.002);
 near('critical density for H0 = 70 (kg/m³)', P.criticalDensity(70), 9.20e-27, 0.005);
 near('Einstein-de Sitter age = 2/3 tH', P.ageGyr(0, { H0: 70, Om: 1, OL: 0 }), (2 / 3) * P.hubbleTimeGyr(70), 0.002);

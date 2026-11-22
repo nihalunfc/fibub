@@ -130,7 +130,7 @@ For an ideal gas it gives `$nR$`. For a liquid at 300 K with `$V = 1.8\times10^{
 
 **Stability.** At equilibrium the right potential is a minimum. That forces `$C_V > 0$` and `$\kappa_T > 0$`, and hence `$C_P \ge C_V$`. But `$\alpha$` may be negative (water between 0 and 4 °C).
 
-**Chemical potential.** With particle number allowed to change, `$dG = -S\,dT + V\,dP + \mu\,dN$`. Since `$G$` is extensive in `$N$` only, `$G = \mu N$`: the chemical potential is the Gibbs energy per particle. Differentiating gives the **Gibbs–Duhem** relation `$S\,dT - V\,dP + N\,d\mu = 0$`. For an ideal gas, `$\mu = \mu_0(T) + kT\ln(P/P_0)$`. Two phases coexist when their `$\mu$` are equal, which is the starting point of lesson 5.5.
+**Chemical potential.** With particle number allowed to change, `$dG = -S\,dT + V\,dP + \mu\,dN$`. Since `$G$` is extensive in `$N$` only, `$G = \mu N$`: the chemical potential is the Gibbs energy per particle. Differentiating gives the **Gibbs–Duhem** relation `$S\,dT - V\,dP + N\,d\mu = 0$`. For an ideal gas, `$\mu = \mu_0(T) + kT\ln(P/P_0)$`. Two phases coexist when their `$\mu$` are equal, which is the starting point of [lesson 5.5](/learn/courses/iit-jam-physics/phase-changes/).
 
 **Magnetic systems.** For a paramagnet, replace `$-P\,dV$` by `$B\,dM$`. The Maxwell relation from `$G(T, B)$` is `$(\partial S/\partial B)_T = (\partial M/\partial T)_B$`. For Curie's law `$M = CB/T$` this is negative: magnetising at constant `$T$` orders the spins and releases heat. Then removing the field adiabatically keeps `$S$`, hence `$B/T$`, fixed: from 1 K at 2 T down to 0.05 T gives 0.025 K. This is adiabatic demagnetisation.
 
@@ -153,4 +153,4 @@ They start easy and climb to top-rank level. Check each answer, then read the fu
 
 <div class="qbank" data-bank="physics" data-topics="thermodynamic-potentials" data-exam="jam" data-n="10"></div>
 
-**Before this:** [lesson 5.3, the second law and entropy](/learn/courses/iit-jam-physics/second-law-entropy/). **Next:** lesson 5.5, phase changes and the Clausius–Clapeyron equation, which follows from equal chemical potentials. Going on to GATE? [Partition functions and free energy](/learn/courses/gate-physics/) computes `$F = -kT\ln Z$` directly from the energy levels.
+**Before this:** [lesson 5.3, the second law and entropy](/learn/courses/iit-jam-physics/second-law-entropy/). **Next:** [lesson 5.5](/learn/courses/iit-jam-physics/phase-changes/), phase changes and the Clausius–Clapeyron equation, which follows from equal chemical potentials. Going on to GATE? [Partition functions and free energy](/learn/courses/gate-physics/) computes `$F = -kT\ln Z$` directly from the energy levels.

@@ -17,9 +17,17 @@ quiz:
     choices: ['So days with no orders still appear, with a count of 0', 'Because orders has no dates', 'To make the query shorter']
     ans: 0
     why: Grouping orders by date only shows days that had orders. A full calendar left-joined to orders shows the empty days as 0.
+sources:
+  - 'SQLite documentation, Recursive common table expressions https://www.sqlite.org/lang_with.html#recursive_common_table_expressions'
+  - 'PostgreSQL documentation, Recursive queries https://www.postgresql.org/docs/current/queries-with.html#QUERIES-WITH-RECURSIVE'
+  - 'Microsoft Learn, Recursive queries using common table expressions https://learn.microsoft.com/en-us/sql/t-sql/queries/with-common-table-expression-transact-sql#guidelines-for-defining-and-using-recursive-common-table-expressions'
 ---
 
 **Module 5 · about 30 minutes · read first: 5.4 and 4.6.** You'll be able to write a recursive CTE, make sure it stops, generate a calendar of dates, and walk a manager hierarchy to any depth.
+
+<div class="bigidea">A recursive CTE starts from some rows and keeps adding new rows made from the last round until a round makes nothing.</div>
+
+**In everyday terms:** a phone tree. The boss calls two people, each of them calls the people they look after, and so on, until someone has nobody left to call.
 
 ## 1. Why this matters
 
@@ -126,6 +134,37 @@ This time the stop condition is natural: the join runs out of matches. `path` bu
 **Try it:** how many rounds does the org chart take, and how many people does each find? (Rounds 0 to 3 find 1, 2, 13 and 22 people; round 4 finds none.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>Recursive CTE</dt><dd>A CTE that reads its own name. Written <code>WITH RECURSIVE</code> in SQLite and PostgreSQL, plain <code>WITH</code> in SQL Server.</dd>
+<dt>Anchor</dt><dd>The first SELECT: the starting rows (round 0).</dd>
+<dt>Recursive step</dt><dd>The SELECT after UNION ALL that uses the CTE name. It sees only the rows made in the last round.</dd>
+<dt>Stop condition</dt><dd>A WHERE, or a join that runs out of matches, so that some round makes no rows.</dd>
+<dt>Date spine</dt><dd>One row for every date in a range, used to show empty days as 0.</dd>
+<dt>Physical meaning</dt><dd>The database repeats the step in rounds, adding each round's rows to the result, and stops at the first round that adds nothing. The final table is all rounds stacked together.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"WHERE n < 5 means the last row is 4."** The test is on the row from the last round, not on the new row. 4 passes the test and makes 5, so the last row is 5. To stop at a limit exactly, test the new value: `WHERE n + 1 <= 5`.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Anchor.</b> <code>SELECT 1</code> <table class="lk-tbl"><tr><th>n</th></tr><tr><td><mark>1</mark></td></tr></table></div>
+<div class="step"><b>Round 1.</b> The step reads 1. Is 1 &lt; 5? Yes, so it makes 2. <table class="lk-tbl"><tr><th>n</th></tr><tr><td>1</td></tr><tr><td><mark>2</mark></td></tr></table></div>
+<div class="step"><b>Rounds 2 and 3.</b> Each reads only the newest row and adds one. <table class="lk-tbl"><tr><th>n</th></tr><tr><td>1</td></tr><tr><td>2</td></tr><tr><td><mark>3</mark></td></tr><tr><td><mark>4</mark></td></tr></table></div>
+<div class="step"><b>Round 4.</b> Reads 4; 4 &lt; 5, so it makes 5. <table class="lk-tbl"><tr><th>n</th></tr><tr><td>1</td></tr><tr><td>2</td></tr><tr><td>3</td></tr><tr><td>4</td></tr><tr><td><mark>5</mark></td></tr></table></div>
+<div class="step"><b>Round 5.</b> Reads 5; 5 &lt; 5 is false. Nothing new, so the recursion stops with 5 rows.</div>
+</div>
+
+<div class="problem" data-problem="sql-recursive-rows"></div>
+
 ## 5. Worked example: days without an online order in 2025
 
 *Question:* on how many days of 2025 did the online shop take no orders, and in which months?
@@ -215,5 +254,14 @@ GROUP BY cal.d
 ```
 
 **Try it on your own data:** need a date list for a spreadsheet instead? [[date-calculator]] counts days between dates; for a full spine, run the calendar CTE in [[sql-playground]] and download the result.
+
+<div class="keypoints">
+
+- A recursive CTE has an anchor and a recursive step joined by UNION ALL.
+- Each round the step sees only the rows made in the round before.
+- It stops when a round makes no rows, so always build in a stop condition.
+- Use it for date spines (show empty days as 0) and hierarchies of any depth.
+
+</div>
 
 **New words:** *recursive CTE*, *anchor*, *recursive step*, *date spine*, *fixed point*, *transitive closure*.

@@ -6,6 +6,25 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 
 const K = 1 / (4 * Math.PI * C.eps0); // 8.988e9 N m^2 C^-2
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'conductors-images',
   items: [
@@ -220,6 +239,62 @@ export default {
       trap: 'Trying to work out the induced distribution. The centre trick needs no images at all (the image method gives the same: $k(qR/d)/R = kq/d$).' },
   ],
   gens: [
+    { id: 'cim-t21', type: 'mcq', level: 3, exams: ['jam', 'gate'], sub: 'images: plane', format: 'comparison',
+      make(r) {
+        const c = Q5.int(r, 0, 2);
+        const qs = ['the force on the charge, as a fraction of the force between two real charges $+q$ and $-q$ a distance $d$ apart, is',
+          'the work done by an external agent to bring the charge slowly from infinity to this position, as a fraction of the potential energy of two real charges $+q$ and $-q$ a distance $2d$ apart, is',
+          'the total charge induced on the plate, as a fraction of $q$, is'];
+        const right = ['$1/4$', '$1/2$', '$-1$'][c];
+        const o = Q5.mcqOptions(r, right, [['$1/2$', '$1$', '$2$'], ['$1$', '$1/4$', '$2$'], ['$-1/2$', '$0$', '$-2$']][c]);
+        const sol = ['The image charge $-q$ sits a distance $d$ behind the plate, so the real charge is $2d$ from it: $F = kq^2/(2d)^2 = \\tfrac14\\cdot kq^2/d^2$.',
+          'The force at height $x$ is $kq^2/4x^2$ (towards the plate), so the agent does $W = -\\int_\\infty^d \\dfrac{kq^2}{4x^2}dx = -\\dfrac{kq^2}{4d}$. The real pair at $2d$ has $U = -kq^2/2d$, so the ratio is $1/2$: the field exists only on one side of the plate, half the space.',
+          'Every field line leaving $q$ ends on the plate (the field below the plate is zero), so by Gauss law the induced charge is exactly $-q$.'][c];
+        return { q: `A point charge $+q$ is held a distance $d$ above a large grounded metal plate. Then ${qs[c]}`, ...o, sol,
+          trap: 'The image method gives the right field above the plate, but the energy is only half that of the real pair, since no field exists below the plate.' };
+      } },
+    { id: 'cim-t22', type: 'msq', level: 3, exams: ['jam', 'gate'], sub: 'cavities', format: 'statements',
+      make(r) {
+        const q = Q5.int(r, 1, 9), yes = r() < 0.5;
+        const T = [`The inner surface of the cavity carries a total charge of $-${q}$ nC.`, `The outer surface carries a total charge of $+${q}$ nC, spread uniformly.`, 'The field outside the shell is the same wherever the charge sits inside the cavity.',
+          'The field inside the cavity depends on where the charge sits.', 'If the shell is earthed, the charge on its outer surface becomes zero.'];
+        const F = ['The field inside the cavity is zero.', 'The way charge is spread on the outer surface depends on where the charge sits in the cavity.', `The inner surface carries $+${q}$ nC.`,
+          'If the shell is earthed, the inner surface charge disappears too.', 'The field inside the metal itself is the field of the point charge.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `A neutral metal shell with a spherical outer surface has an irregular cavity inside it. A point charge of $+${q}$ nC is held off-centre inside the cavity. Which statements are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: `In the metal $E = 0$. A Gaussian surface inside the metal encloses zero charge, so the cavity wall carries $-${q}$ nC, arranged (depending on where the charge is) to cancel its field in the metal. The shell is neutral, so $+${q}$ nC sits on the outer surface; the metal screens the cavity, so this charge spreads exactly as on an isolated sphere (uniformly), and the outside field is that of $${q}$ nC at the centre. Earthing removes the outer charge but not the inner one, which is held by the point charge.`,
+          trap: 'The metal screens in both directions: the outside never learns where the charge sits inside the cavity.' };
+      } },
+    { id: 'cim-t23', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'images: sphere', unit: 'μN',
+      make(r) {
+        const q = Q5.int(r, 1, 9), R = Q5.int(r, 2, 6), a = R + Q5.int(r, 2, 10);
+        const k = 8.99e9, F = k * (q * 1e-9) ** 2 * (R / 100) * (a / 100) / ((a / 100) ** 2 - (R / 100) ** 2) ** 2 * 1e6;
+        return { q: `A point charge of $${q}$ nC is $${a}$ cm from the centre of an earthed metal sphere of radius $${R}$ cm. The attractive force on it is ______ $\\mu$N (to three significant figures; $k = 8.99\\times10^9$ SI).`,
+          answer: +F.toPrecision(3), tol: +(0.006 * F).toPrecision(2), qc: q, R, a,
+          sol: `Image: $q' = -qR/a = -${Q5.round(q * R / a, 3)}$ nC at $b = R^2/a = ${Q5.round(R * R / a, 3)}$ cm from the centre. Separation $a - b = ${Q5.round(a - R * R / a, 3)}$ cm. $F = k\\,q|q'|/(a - b)^2 = \\dfrac{kq^2Ra}{(a^2 - R^2)^2} = ${+F.toPrecision(3)}\\ \\mu$N.`,
+          trap: 'The image is not at the mirror point $2R - a$; it is at $R^2/a$ with charge $-qR/a$.' };
+      },
+      verify: (p) => { const k = 8.99e9, a = p.a / 100, R = p.R / 100, qi = p.qc * 1e-9 * R / a, b = R * R / a; return k * p.qc * 1e-9 * qi / (a - b) ** 2 * 1e6; } },
+    { id: 'cim-t24', type: 'mcq', level: 2, exams: ['jam', 'gate'], sub: 'laplace equation',
+      make(r) {
+        const good = ['$x^2 - y^2$', '$xy$', '$e^{x}\\cos y$', '$\\ln(x^2 + y^2)$', '$x^3 - 3xy^2$', '$e^{-y}\\sin x$'];
+        const bad = ['$x^2 + y^2$', '$x^2y$', '$\\sin x\\sin y$', '$e^{x}\\sin x$', '$x^3$', '$x^2 + 2y^2$'];
+        const not = r() < 0.5;
+        const o = not ? q5odd(r, bad, good) : q5odd(r, good, bad);
+        return { q: `In a charge-free region of the $xy$ plane (no $z$ dependence), the potential must satisfy Laplace's equation. Which ${not ? 'one of these could <b>NOT</b> be' : 'one of these could be'} such a potential (away from the origin)?`, ...o,
+          sol: 'Check $\\partial^2V/\\partial x^2 + \\partial^2V/\\partial y^2$: $x^2 - y^2$: $2 - 2 = 0$; $xy$: $0$; $e^x\\cos y$: $e^x\\cos y - e^x\\cos y = 0$; $\\ln(x^2+y^2)$: $0$ for $(x,y) \\ne 0$; $x^3 - 3xy^2$: $6x - 6x = 0$; $e^{-y}\\sin x$: $0$. But $x^2 + y^2$ gives $4$, $x^2y$ gives $2y$, $\\sin x\\sin y$ gives $-2\\sin x\\sin y$, $e^x\\sin x$ gives $2e^x\\cos x$, $x^3$ gives $6x$, $x^2 + 2y^2$ gives $6$.',
+          trap: 'A harmonic function cannot have a maximum or minimum inside the region, so a sum of squares (a bowl) is never one.' };
+      } },
+    { id: 'cim-t25', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'sphere in uniform field', unit: 'nC/m²',
+      make(r) {
+        const E0 = Q5.int(r, 1, 20), th = Q5.choose(r, [0, 30, 45, 60, 120, 135, 150]);
+        const s = 3 * 8.854e-12 * E0 * 1e3 * Math.cos(th * Math.PI / 180) * 1e9;
+        return { q: `A neutral metal sphere sits in a uniform field of $${E0}$ kV/m along $+z$. The induced surface charge density at a point of its surface whose radius makes $${th}^\\circ$ with $+z$ is ______ nC/m$^2$ (to two decimal places; $\\varepsilon_0 = 8.854\\times10^{-12}$ SI).`,
+          answer: Q5.round(s, 2), tol: 0.01, E0, th,
+          sol: `Outside the sphere $V = -E_0\\left(r - \\dfrac{R^3}{r^2}\\right)\\cos\\theta$, and $\\sigma = -\\varepsilon_0\\,\\partial V/\\partial r|_R = 3\\varepsilon_0E_0\\cos\\theta = 3\\times8.854\\times10^{-12}\\times${E0 * 1000}\\times\\cos${th}^\\circ = ${Q5.round(s, 2)}$ nC/m$^2$.`,
+          trap: 'The factor is 3, not 1: the induced charges add a dipole field that triples the normal field at the poles.' };
+      },
+      verify: (p) => { const R = 0.03, eps = 8.854e-12, pd = 4 * Math.PI * eps * R ** 3 * p.E0 * 1e3, P = pd / (4 / 3 * Math.PI * R ** 3); return P * Math.cos(p.th * Math.PI / 180) * 1e9; } },
     { id: 'cim-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'conductors', unit: 'kV/m',
       make(r) {
         const s = pick(r, 0.5, 9.5, 0.5); // uC/m^2

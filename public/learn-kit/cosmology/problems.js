@@ -490,4 +490,152 @@ export default {
     },
     verify: (p) => p.k * 4e-18,
   },
+  // ---------- Module 4 ----------
+  'slipher-speed': {
+    title: 'how fast is the galaxy moving?',
+    make(r) {
+      const lines = [[656.3, 'hydrogen (Hα)'], [589.3, 'sodium'], [393.4, 'calcium (K)']];
+      const [lab, name] = lines[Math.floor(r() * lines.length)];
+      const v = pick(r, 300, 1800, 50) * (r() < 0.15 ? -1 : 1);
+      const obs = +(lab * (1 + v / 299792.458)).toFixed(2);
+      const answer = 299792.458 * (obs - lab) / lab;
+      return {
+        q: `<p>In the lab, the ${name} line is at ${lab} nm. In a galaxy's spectrum the same line is at ${obs} nm. How fast is the galaxy moving along our line of sight, in km/s? (Use a minus sign if it is coming towards us. Light: 299,792 km/s.)</p>`,
+        answer, unit: 'km/s', tol: 0.02,
+        hint: 'Redshift z = (observed − lab) ÷ lab. For small speeds, speed = z × the speed of light.',
+        solution: steps(
+          `Shift: ${obs} − ${lab} = ${n(obs - lab, 3)} nm.`,
+          `z = ${n(obs - lab, 3)} ÷ ${lab} = ${n((obs - lab) / lab, 3)}.`,
+          `Speed = z × 299,792 km/s = <b>${n(answer)} km/s</b>${answer < 0 ? ': it is coming towards us, like Andromeda' : ': moving away'}.`),
+        lab, obs,
+      };
+    },
+    verify: (p) => 299792.458 * (p.obs / p.lab - 1),
+  },
+  'hubble-distance': {
+    title: 'distance from speed',
+    make(r) {
+      const v = pick(r, 1500, 30000, 500), H0 = pick(r, 67, 73, 1);
+      const answer = v / H0;
+      return {
+        q: `<p>A galaxy is moving away at ${v.toLocaleString('en-CA')} km/s. Take the Hubble constant as H₀ = ${H0} km/s per megaparsec. How far away is it, in megaparsecs (Mpc)?</p>`,
+        answer, unit: 'Mpc', tol: 0.01,
+        hint: 'Hubble\'s law is v = H₀ × d, so d = v ÷ H₀.',
+        solution: steps(
+          `d = v ÷ H₀ = ${v.toLocaleString('en-CA')} ÷ ${H0}.`,
+          `d = <b>${n(answer)} Mpc</b>.`,
+          `One Mpc is 3.26 million light-years, so that is about ${n(answer * 3.2616)} million light-years.`),
+        v, H0,
+      };
+    },
+    verify: (p) => p.v / p.H0,
+  },
+  'raisin-speeds': {
+    title: 'raisins in rising dough',
+    make(r) {
+      const T = pick(r, 1, 3, 0.5), d = pick(r, 1, 6, 1);
+      const answer = d / T;
+      return {
+        q: `<p>A loaf's dough doubles every distance in ${T} hour${T === 1 ? '' : 's'} as it rises evenly. A raisin starts ${d} cm from the raisin you sit on. At what average speed, in cm per hour, does it move away from you while the dough doubles?</p>`,
+        answer, unit: 'cm/h', tol: 0.01,
+        hint: 'Doubling turns a gap of d into 2d, so the raisin moves d further in that time.',
+        solution: steps(
+          `Its distance grows from ${d} cm to ${2 * d} cm: it moves ${d} cm further.`,
+          `Speed = ${d} cm ÷ ${T} h = <b>${n(answer)} cm/h</b>.`,
+          `A raisin twice as far away moves twice as fast. Speed in proportion to distance is Hubble's law.`),
+        T, d,
+      };
+    },
+    verify: (p) => p.d / p.T,
+  },
+  'balloon-dots': {
+    title: 'dots on a growing balloon',
+    make(r) {
+      const R1 = pick(r, 5, 10, 1), f = pick(r, 1.5, 4, 0.5), s = pick(r, 2, 8, 1);
+      const R2 = R1 * f, answer = s * f;
+      return {
+        q: `<p>Two ink dots are ${s} cm apart, measured along the rubber, on a balloon of radius ${R1} cm. You blow it up to radius ${n(R2)} cm. How far apart are the dots now, along the rubber, in cm?</p>`,
+        answer, unit: 'cm', tol: 0.01,
+        hint: 'Every distance on the surface grows by the same factor as the radius.',
+        solution: steps(
+          `The radius grew by ${n(R2)} ÷ ${R1} = ${f} times.`,
+          `So every gap grew ${f} times: ${s} × ${f} = <b>${n(answer)} cm</b>.`,
+          'The dots did not crawl over the rubber. The rubber between them stretched, just as space stretches between galaxies.'),
+        s, f,
+      };
+    },
+    verify: (p) => p.s * p.f,
+  },
+  'stretch-factor': {
+    title: 'how much smaller was the universe?',
+    make(r) {
+      const z = pick(r, 1, 10, 0.5), obs = +(121.6 * (1 + z)).toFixed(1);
+      const answer = obs / 121.6;
+      return {
+        q: `<p>Hydrogen gives out ultraviolet light at 121.6 nm. In a distant galaxy this line is seen at ${obs} nm. How many times bigger is the universe now than when this light set out?</p>`,
+        answer, unit: 'times', tol: 0.01,
+        hint: 'The wavelength stretches by exactly as much as space did: 1 + z = observed ÷ emitted.',
+        solution: steps(
+          `Stretch: ${obs} ÷ 121.6 = ${n(answer, 4)}.`,
+          `So 1 + z = ${n(answer, 4)} (z ≈ ${n(answer - 1, 3)}): the universe is <b>${n(answer)} times</b> bigger now.`,
+          `When the light left, every distance between galaxies was 1/${n(answer, 3)} of today's.`),
+        obs,
+      };
+    },
+    verify: (p) => p.obs / 121.6,
+  },
+  'rewind-time': {
+    title: 'run the film backwards',
+    make(r) {
+      const d = pick(r, 10, 200, 10), H = pick(r, 60, 80, 1);
+      const v = d * H, answer = (d * 3.0857e19) / v / 3.15576e16;
+      return {
+        q: `<p>A galaxy is ${d} Mpc away and moving away at ${v.toLocaleString('en-CA')} km/s. If it had always moved at this speed, how many <b>billion years</b> ago were we together? (1 Mpc = 3.086 × 10<sup>19</sup> km; 1 billion years = 3.156 × 10<sup>16</sup> s.)</p>`,
+        answer, unit: 'billion years', tol: 0.01,
+        hint: 'Time = distance ÷ speed. Put the distance in km so the units match km/s.',
+        solution: steps(
+          `Distance: ${d} × 3.086 × 10<sup>19</sup> = ${n(d * 3.0857e19)} km.`,
+          `Time = ${n(d * 3.0857e19)} ÷ ${v.toLocaleString('en-CA')} = ${n(answer * 3.15576e16)} s.`,
+          `÷ 3.156 × 10<sup>16</sup> = <b>${n(answer)} billion years</b>. Try another galaxy: the answer is the same for every one, because speed is proportional to distance.`),
+        H,
+      };
+    },
+    verify: (p) => 977.79 / p.H,
+  },
+  'hubble-time': {
+    title: 'the age of a matter-only universe',
+    make(r) {
+      const H0 = pick(r, 50, 90, 1);
+      const tH = 977.79 / H0, answer = (2 / 3) * tH;
+      return {
+        q: `<p>The Hubble time is 1/H₀, which works out as 977.8 ÷ H₀ billion years when H₀ is in km/s/Mpc. A universe of matter alone, slowed by its own gravity, is 2/3 of its Hubble time old. With H₀ = ${H0}, how old is such a universe, in billion years?</p>`,
+        answer, unit: 'billion years', tol: 0.01,
+        hint: 'First the Hubble time, 977.8 ÷ H₀, then take two-thirds of it.',
+        solution: steps(
+          `Hubble time: 977.8 ÷ ${H0} = ${n(tH)} billion years.`,
+          `Two-thirds of it: <b>${n(answer)} billion years</b>.`,
+          `${answer < 12.5 ? 'That is younger than the oldest stars, about 12 to 13 billion years old: the "age problem" of the 1990s, solved by dark energy.' : 'Older than the oldest stars, but only because H₀ is set low here; measured values (67 to 73) give 9 to 10 billion years.'}`),
+        H0,
+      };
+    },
+    verify: (p) => (2 / 3) * P.hubbleTimeGyr(p.H0),
+  },
+  'box-scatter': {
+    title: 'how smooth is a random scatter?',
+    make(r) {
+      const N = [25, 100, 400, 2500, 10000, 40000][Math.floor(r() * 6)];
+      const answer = 100 / Math.sqrt(N);
+      return {
+        q: `<p>Galaxies scattered at random fill boxes with ${N.toLocaleString('en-CA')} galaxies each on average. By chance alone, a typical box differs from the average by about √N galaxies. What percentage of the average is that?</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: 'Work out √N, then divide by N and multiply by 100.',
+        solution: steps(
+          `√${N.toLocaleString('en-CA')} = ${n(Math.sqrt(N))} galaxies.`,
+          `${n(Math.sqrt(N))} ÷ ${N.toLocaleString('en-CA')} × 100 = <b>${n(answer)}%</b>.`,
+          'Bigger boxes hold more galaxies, so they come out more alike. Real galaxies clump, so they need even bigger boxes (hundreds of millions of light-years) to look smooth.'),
+        N,
+      };
+    },
+    verify: (p) => 100 / Math.sqrt(p.N),
+  },
 };

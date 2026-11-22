@@ -17,9 +17,17 @@ quiz:
     choices: ['0', 'NULL', 'An error']
     ans: 1
     why: SUM of nothing is NULL in SQL, not 0. COALESCE(SUM(amount), 0) turns it into 0 when you need it.
+sources:
+  - 'SQLite documentation, Built-in Aggregate Functions https://www.sqlite.org/lang_aggfunc.html'
+  - 'PostgreSQL documentation, Aggregate Functions https://www.postgresql.org/docs/current/functions-aggregate.html'
+  - 'Microsoft Learn, COUNT (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/functions/count-transact-sql'
 ---
 
 **Module 3 · about 30 minutes · read first: 2.6.** You'll be able to total, count, average and find the smallest and largest values in a table, and say exactly how each function treats NULL.
+
+<div class="bigidea">An aggregate function squeezes a whole column into one number (a count, total, average, smallest or largest), and all of them except COUNT(*) skip NULLs.</div>
+
+**In everyday terms:** the last line of a till receipt. All the items above squeeze into one word, TOTAL. Counting the items, finding the dearest one or working out the average price are the same kind of squeeze.
 
 ## 1. Why this matters
 
@@ -48,6 +56,36 @@ Press **Show how it runs** and watch the aggregate step: six rows squeeze into o
 | `SUM(col)` | total | yes |
 | `AVG(col)` | SUM ÷ COUNT(col) | yes |
 | `MIN(col)`, `MAX(col)` | smallest, largest | yes |
+
+<div class="meaning">
+
+<dl>
+<dt>COUNT(*)</dt><dd>How many rows, blanks and all.</dd>
+<dt>COUNT(col)</dt><dd>How many rows have a value in col (NULLs skipped).</dd>
+<dt>SUM(col)</dt><dd>The total of the values.</dd>
+<dt>AVG(col)</dt><dd>SUM(col) ÷ COUNT(col): the blanks are left out of both top and bottom.</dd>
+<dt>MIN, MAX</dt><dd>Smallest and largest, using the same order as ORDER BY (so they work on text and dates).</dd>
+<dt>Physical meaning</dt><dd>Without GROUP BY, the whole table (after WHERE) collapses into a single row. NULLs are removed before the sum or average is worked out, so the average is over the rows that have a value.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"AVG counts a blank as zero."** AVG skips NULLs, so it divides by the number of values, not the number of rows. Northbay's average store size is 16,409 sq ft over 11 stores, not 15,042 over 12. If a blank really means zero, say so with `AVG(COALESCE(x, 0))`.
+
+</div>
+
+Watch the squeeze happen, one step at a time (the live box's **Show how it runs** button animates the real query):
+
+<div class="steps">
+<div class="step"><b>Four values, one blank.</b> <table class="lk-tbl"><tr><th>store</th><th>size</th></tr><tr><td>A</td><td>10</td></tr><tr><td>B</td><td>20</td></tr><tr><td>C</td><td><i>NULL</i></td></tr><tr><td>D</td><td>30</td></tr></table></div>
+<div class="step"><b>COUNT(*) = 4, COUNT(size) = 3.</b> The blank is a row, but not a value. <table class="lk-tbl"><tr><th>COUNT(*)</th><th>COUNT(size)</th></tr><tr><td><mark>4</mark></td><td><mark>3</mark></td></tr></table></div>
+<div class="step"><b>SUM(size) = 60.</b> The blank is skipped, not counted as 0.</div>
+<div class="step"><b>AVG(size) = 60 ÷ 3 = 20.</b> Not 60 ÷ 4 = 15. <table class="lk-tbl"><tr><th>SUM</th><th>AVG</th><th>MIN</th><th>MAX</th></tr><tr><td>60</td><td><mark>20</mark></td><td>10</td><td>30</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="sql-avg-skips-null"></div>
 
 ## 3. COUNT(*) vs COUNT(column)
 
@@ -189,5 +227,15 @@ FROM orders
 SELECT COUNT(customer_id) AS member_orders, COUNT(*) AS all_orders
 FROM orders
 ```
+
+<div class="keypoints">
+
+- COUNT, SUM, AVG, MIN and MAX turn many rows into one value.
+- COUNT(*) counts rows; COUNT(col) counts values; the gap is the number of NULLs.
+- AVG skips NULLs in both the total and the count; use COALESCE if a blank means 0.
+- You can aggregate expressions; round outside the SUM, not inside.
+- WHERE runs first and decides which rows are aggregated; aggregates never go inside WHERE.
+
+</div>
 
 **New words:** *aggregate function*, *γ (gamma)*, *bag*.

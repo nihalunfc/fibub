@@ -17,9 +17,17 @@ quiz:
     choices: ['NOT IN', 'NOT EXISTS', 'Both are the same']
     ans: 1
     why: One NULL in a NOT IN list makes the test unknown for every row, so nothing comes back. NOT EXISTS is not affected.
+sources:
+  - 'SQLite documentation, The IN and NOT IN operators; EXISTS https://www.sqlite.org/lang_expr.html#in_op'
+  - 'PostgreSQL documentation, Subquery expressions (EXISTS, IN, NOT IN) https://www.postgresql.org/docs/current/functions-subquery.html'
+  - 'Microsoft Learn, EXISTS (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/language-elements/exists-transact-sql'
 ---
 
 **Module 5 · about 25 minutes · read first: 5.1 and 4.4.** You'll be able to filter rows with IN and EXISTS subqueries, pick between them, and avoid duplicates and the NOT IN NULL trap.
+
+<div class="bigidea">IN and EXISTS keep a row if it has at least one match in another table, and keep it once, however many matches there are.</div>
+
+**In everyday terms:** a bouncer with a guest list. Your name is either on the list or not; being on it three times does not let you in three times.
 
 ## 1. Why this matters
 
@@ -123,6 +131,38 @@ Modern databases usually run IN and EXISTS the same way, so choose the one that 
 **Try it:** `SELECT COUNT(*) FROM stores WHERE store_id IN (SELECT store_id FROM orders WHERE promo_id = 7)`. Did every store sell something in Boxing Week 2025? (Yes: all 12.)
 </details>
 
+<div class="meaning">
+
+<dl>
+<dt>IN (subquery)</dt><dd>Keeps the row if its value is one of the values the subquery returns. The subquery returns one column.</dd>
+<dt>EXISTS (subquery)</dt><dd>Keeps the row if the subquery returns at least one row. The subquery usually mentions the outer row.</dd>
+<dt>Semi-join</dt><dd>The name for this kind of filter: rows of one table that have a partner in another, each kept once.</dd>
+<dt>NOT IN with NULL</dt><dd>If the list holds a NULL, NOT IN is never true, so it returns no rows. Use NOT EXISTS.</dd>
+<dt>Physical meaning</dt><dd>No columns are added and no rows are copied: the outer table only gets shorter. A join, by contrast, makes one row per matching pair.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"NOT IN and NOT EXISTS are the same."** They differ as soon as the list contains a NULL: `id NOT IN (1, NULL)` means `id <> 1 AND id <> NULL`, and a comparison with NULL is unknown, so no row passes. NOT EXISTS ignores NULLs and gives the answer you meant.
+
+</div>
+
+Watch it happen, one step at a time (any live box's **Show how it runs** button animates the real query on Northbay):
+
+<div class="steps">
+<div class="step"><b>Two tables.</b> mini_customers ids 1 to 5. mini_orders customer_id: <table class="lk-tbl"><tr><th>order_id</th><th>customer_id</th></tr><tr><td>101</td><td>1</td></tr><tr><td>102</td><td>1</td></tr><tr><td>103</td><td>2</td></tr><tr><td>104</td><td>3</td></tr><tr><td>105</td><td>3</td></tr><tr><td>106</td><td>9</td></tr></table></div>
+<div class="step"><b>Build the list.</b> <code>SELECT customer_id FROM mini_orders</code> gives 1, 1, 2, 3, 3, 9. As a set: <mark>1, 2, 3, 9</mark>.</div>
+<div class="step"><b>Check each customer.</b> <table class="lk-tbl"><tr><th>id</th><th>name</th><th>on list?</th></tr><tr><td>1</td><td>Asha</td><td><mark>yes</mark></td></tr><tr><td>2</td><td>Ben</td><td><mark>yes</mark></td></tr><tr><td>3</td><td>Chen</td><td><mark>yes</mark></td></tr><tr><td>4</td><td>Dina</td><td>no</td></tr><tr><td>5</td><td>Eli</td><td>no</td></tr></table> Asha is kept once, not twice.</div>
+<div class="step"><b>Compare with a join.</b> An inner join would give 5 rows (Asha and Chen twice each). IN gives 3.</div>
+<div class="step"><b>The NOT IN trap.</b> Add one order with a NULL customer_id and <code>NOT IN</code> returns 0 rows instead of Dina and Eli.</div>
+</div>
+
+<div class="problem" data-problem="sql-in-semi-count"></div>
+
+<div class="problem" data-problem="sql-not-in-null"></div>
+
 ## 6. Worked example: tech buyers by loyalty tier
 
 *Question:* among customers who bought tech, how are loyalty tiers split?
@@ -186,5 +226,14 @@ FROM customers c
 WHERE c.loyalty_tier = 'Gold'
   AND EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.channel = 'online')
 ```
+
+<div class="keypoints">
+
+- IN (subquery) keeps rows whose value is on a list made by a query.
+- EXISTS keeps rows for which the subquery finds at least one row.
+- Both keep each outer row once: no fan-out, unlike a join.
+- For "not on the list", use NOT EXISTS: NOT IN returns nothing if the list has a NULL.
+
+</div>
 
 **New words:** *IN subquery*, *membership*, *EXISTS subquery*.

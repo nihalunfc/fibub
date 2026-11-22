@@ -4,6 +4,25 @@
 // visibility and spatial coherence. Original questions for IIT JAM, GATE and CSIR NET practice (fibub).
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'interference',
   items: [
@@ -216,6 +235,63 @@ export default {
       trap: 'Assuming the usual dark centre (one $\\pi$ shift) leads to $2\\mu t = \\lambda$ and $t = 187.5$ nm.' },
   ],
   gens: [
+    { id: 'ifr-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'young double slit', format: 'comparison',
+      make(r) {
+        const b = Q5.pick(r, 0.3, 2, 0.1), kind = Q5.int(r, 0, 3);
+        let what, fac, why;
+        if (kind === 0) { const [n, s] = Q5.choose(r, [[4 / 3, '4/3'], [1.5, '1.5'], [1.6, '1.6']]); fac = 1 / n; what = `the whole apparatus is put under a liquid of refractive index $${s}$`; why = `the wavelength in the liquid is $\\lambda/n$, so $\\beta$ is divided by $${s}$`; }
+        else if (kind === 1) { const c = Q5.choose(r, [2, 3, 0.5]); fac = 1 / c; what = `the slit separation is multiplied by $${c}$`; why = `$\\beta \\propto 1/d$, so $\\beta$ is divided by $${c}$`; }
+        else if (kind === 2) { const c = Q5.choose(r, [2, 3, 0.5, 1.5]); fac = c; what = `the slit-to-screen distance is multiplied by $${c}$`; why = `$\\beta \\propto D$, so $\\beta$ is multiplied by $${c}$`; }
+        else { const [l1, l2] = Q5.choose(r, [[600, 400], [450, 600], [500, 650], [640, 480]]); fac = l2 / l1; what = `the light of $${l1}$ nm is replaced by light of $${l2}$ nm`; why = `$\\beta \\propto \\lambda$, so $\\beta$ is multiplied by $${l2}/${l1}$`; }
+        const s = (x) => `$${Q5.round(x, 3)}$ mm`;
+        const o = Q5.mcqOptions(r, b * fac, [b, b / fac, b * fac * fac, b / (fac * fac)], s);
+        return { q: `In a Young's double-slit experiment the fringe width is $${b}$ mm. Then ${what}, and nothing else changes. The new fringe width is`, ...o,
+          sol: `$\\beta = \\lambda D/d$. Here ${why}: $\\beta' = ${b}\\times${Q5.round(fac, 4)} = ${Q5.round(b * fac, 3)}$ mm.`,
+          trap: 'Fringe width grows with $\\lambda$ and $D$ but shrinks with $d$ and with the refractive index of the medium.' };
+      } },
+    { id: 'ifr-t22', type: 'msq', level: 3, exams: ['jam'], sub: 'thin films', format: 'statements',
+      make(r) {
+        const yes = r() < 0.5;
+        const T = ['A soap film in air looks dark in reflected light where it is much thinner than the wavelength.', 'The reflected and transmitted fringe patterns of a thin film are complementary.',
+          'At normal incidence a soap film (index $n$, thickness $t$) in air reflects wavelength $\\lambda$ most strongly when $2nt = (m + \\tfrac12)\\lambda$.', 'A quarter-wave coating whose index lies between those of air and glass reduces reflection from the glass.',
+          'The colour reflected by a thin film changes with the viewing angle.'];
+        const F = ['A soap film in air looks bright in reflected light where it is much thinner than the wavelength.', 'The reflected and transmitted fringe patterns of a thin film are identical.',
+          'At normal incidence a soap film in air reflects wavelength $\\lambda$ most strongly when $2nt = m\\lambda$.', 'An anti-reflection coating works best when it is half a wavelength thick (in the coating).',
+          'The colour reflected by a thin film does not depend on the viewing angle.'];
+        const o = yes ? q5msq(r, T, F) : q5msq(r, F, T);
+        return { q: `Which statements about interference in thin films are ${yes ? 'correct' : '<b>NOT</b> correct'}?`, ...o,
+          sol: 'A soap film in air: reflection at the top (air to soap) gains a phase $\\pi$, at the bottom (soap to air) it does not. So the condition for bright reflection is $2nt = (m + \\tfrac12)\\lambda$, and a film with $t \\to 0$ is dark. Energy is conserved, so where reflection is strong transmission is weak: the patterns are complementary. A coating with $n_{\\rm air} < n_c < n_g$ has a $\\pi$ shift at both faces, so a quarter-wave thickness ($2n_ct = \\lambda/2$) makes the two reflections cancel; a half-wave coating would make them add. The path difference is $2nt\\cos r$, so the colour shifts with angle.',
+          trap: 'Count the phase jumps: one jump in a free film, two in a coating on glass.' };
+      } },
+    { id: 'ifr-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'young double slit', unit: 'nm',
+      make(r) {
+        const m = Q5.int(r, 3, 6), same = r() < 0.5, n = same ? m : m - 1, l1 = same ? Q5.int(r, 500, 650) : Q5.int(r, 400, 500);
+        const l2 = (m - 0.5) * l1 / n;
+        const th = (k) => `${k}${['', 'st', 'nd', 'rd'][k] || 'th'}`;
+        return { q: `In a Young's experiment lit by two wavelengths together, the ${th(m)} dark fringe of the $${l1}$ nm light (counting outwards from the centre) falls exactly on the ${th(n)} bright fringe of the other light (not counting the central one). The other wavelength is ______ nm (to one decimal place).`,
+          answer: Q5.round(l2, 1), tol: 0.1, m, n, l1,
+          sol: `Dark fringe number $m$ of $\\lambda_1$: path difference $(m - \\tfrac12)\\lambda_1$. Bright fringe number $n$ of $\\lambda_2$: path difference $n\\lambda_2$. Equal positions mean equal path differences: $\\lambda_2 = \\dfrac{(${m} - 0.5)\\times${l1}}{${n}} = ${Q5.round(l2, 1)}$ nm.`,
+          trap: 'The first dark fringe is at half a wavelength of path difference, so the $m$-th is at $(m - \\tfrac12)\\lambda$.' };
+      },
+      verify: (p) => { const D = 1.2, d = 3e-4; const y = (p.m - 0.5) * p.l1 * 1e-9 * D / d; return y * d / (p.n * D) * 1e9; } },
+    { id: 'ifr-t24', type: 'mcq', level: 3, exams: ['jam'], sub: 'visibility', format: 'graph',
+      make(r) {
+        const p = Q5.int(r, 2, 6), q = Q5.int(r, 1, p - 1);
+        const o = Q5.mcqOptions(r, q5frac((p + q) ** 2, (p - q) ** 2), [q5frac(p + q, p - q), q5frac(p * p, q * q), q5frac(p, q), q5frac((p + q) ** 2, 4 * p * q)], (s) => `$${s}$`);
+        return { q: `Two coherent beams overlap. A graph of intensity across the overlap region is a cosine-like curve swinging between $${p * p}$ units and $${q * q}$ ${q * q === 1 ? 'unit' : 'units'}. The ratio of the intensities of the two beams (stronger to weaker) is`, ...o,
+          sol: `$I_{\\max} = (a_1 + a_2)^2$ and $I_{\\min} = (a_1 - a_2)^2$, so $a_1 + a_2 = ${p}$ and $a_1 - a_2 = ${q}$ (in matching units): $a_1/a_2 = ${q5frac(p + q, p - q)}$. Intensity goes as amplitude squared: $I_1/I_2 = ${q5frac((p + q) ** 2, (p - q) ** 2)}$.`,
+          trap: '$I_{\\max}/I_{\\min}$ is not the beam ratio; take square roots first.' };
+      } },
+    { id: 'ifr-t25', type: 'nat', level: 3, exams: ['jam', 'gate'], sub: 'michelson',
+      make(r) {
+        const L = Q5.int(r, 2, 10), lam = Q5.choose(r, [546.1, 589.3, 632.8]), N = Q5.int(r, 20, 200);
+        const x = N * lam * 1e-9 / (2 * L * 1e-2) * 1e4;
+        return { q: `A gas cell of inner length $${L}$ cm sits in one arm of a Michelson interferometer lit at $${lam}$ nm. As the gas is pumped out, $${N}$ fringes pass the centre. The refractive index of the gas is $n = 1 + x\\times10^{-4}$, where $x$ is ______ (to three decimal places).`,
+          answer: Q5.round(x, 3), tol: 0.004, L, lam, N,
+          sol: `The light crosses the cell twice, so the optical path changes by $2L(n - 1)$, and each fringe is one wavelength: $2L(n - 1) = N\\lambda$. $n - 1 = \\dfrac{${N}\\times${lam}\\times10^{-9}}{2\\times${L / 100}} = ${Q5.round(x, 3)}\\times10^{-4}$.`,
+          trap: 'In a Michelson the beam passes through the cell twice: use $2L$.' };
+      },
+      verify: (p) => (p.N * p.lam * 1e-7) / (2 * p.L) * 1e4 },
     { id: 'ifr-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'young double slit',
       make(r) {
         const lam = choose(r, [450, 500, 550, 589, 600, 633, 650]), D = pick(r, 0.5, 2.5, 0.5), d = choose(r, [0.1, 0.2, 0.25, 0.4, 0.5, 1]);

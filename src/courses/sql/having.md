@@ -17,9 +17,17 @@ quiz:
     choices: ['HAVING', 'WHERE', 'They run at the same time']
     ans: 1
     why: The order is FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, LIMIT.
+sources:
+  - 'SQLite documentation, SELECT (HAVING clause) https://www.sqlite.org/lang_select.html'
+  - 'Microsoft Learn, HAVING (Transact-SQL) https://learn.microsoft.com/en-us/sql/t-sql/queries/select-having-transact-sql'
+  - 'PostgreSQL documentation, The GROUP BY and HAVING Clauses https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-GROUP'
 ---
 
 **Module 3 · about 25 minutes · read first: 3.2.** You'll be able to keep only the groups you want with HAVING, choose correctly between WHERE and HAVING, and use both in one query.
+
+<div class="bigidea">HAVING filters whole groups after GROUP BY has worked out their totals; WHERE filters single rows before any grouping.</div>
+
+**In everyday terms:** a bake sale. WHERE throws out burnt biscuits before they go in boxes; HAVING throws out boxes that weigh too little. You can't weigh a box before it is packed.
 
 ## 1. Why this matters
 
@@ -38,6 +46,34 @@ HAVING SUM(amount) > 40
 ```
 
 Press **Show how it runs**, then **Play**. GROUP BY makes four groups and the aggregate step gives each a total (50, 20, 135, 60). At the HAVING step, customer 2's group (20) fades out. Three groups are left.
+
+<div class="meaning">
+
+<dl>
+<dt>HAVING condition</dt><dd>Keep only the groups where the condition is true. It may use SUM, COUNT and the rest.</dd>
+<dt>Row filter (WHERE)</dt><dd>Tests one row; runs before grouping.</dd>
+<dt>Group filter (HAVING)</dt><dd>Tests one group's totals; runs after grouping.</dd>
+<dt>Physical meaning</dt><dd>WHERE decides which rows go into the totals; HAVING decides which finished totals are shown. Moving a test from one to the other can change the totals themselves.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"WHERE and HAVING are two ways to write the same filter."** WHERE changes what gets added up; HAVING only hides groups. `WHERE amount > 10 ... GROUP BY customer` drops small orders from every total, while `HAVING SUM(amount) > 10` keeps the totals whole and hides small customers. If a test makes sense for a single row, it belongs in WHERE.
+
+</div>
+
+Watch the query above run, one step at a time (the live box's **Show how it runs** button animates the real thing):
+
+<div class="steps">
+<div class="step"><b>GROUP BY customer_id.</b> Four groups of mini orders.</div>
+<div class="step"><b>SUM(amount) per group.</b> <table class="lk-tbl"><tr><th>customer_id</th><th>spent</th></tr><tr><td>1</td><td>50</td></tr><tr><td>2</td><td>20</td></tr><tr><td>3</td><td>135</td></tr><tr><td>9</td><td>60</td></tr></table></div>
+<div class="step"><b>HAVING SUM(amount) &gt; 40.</b> Customer 2's group fails the test. <table class="lk-tbl"><tr><th>customer_id</th><th>spent</th><th>passes?</th></tr><tr><td>1</td><td>50</td><td><mark>yes</mark></td></tr><tr><td>2</td><td>20</td><td>no</td></tr><tr><td>3</td><td>135</td><td><mark>yes</mark></td></tr><tr><td>9</td><td>60</td><td><mark>yes</mark></td></tr></table></div>
+<div class="step"><b>The answer.</b> Three groups left. The totals themselves were not changed. <table class="lk-tbl"><tr><th>customer_id</th><th>spent</th></tr><tr><td>1</td><td>50</td></tr><tr><td>3</td><td>135</td></tr><tr><td>9</td><td>60</td></tr></table></div>
+</div>
+
+<div class="problem" data-problem="sql-having-groups"></div>
 
 ## 3. WHERE vs HAVING
 
@@ -193,5 +229,15 @@ FROM categories
 GROUP BY department
 HAVING COUNT(*) > 2
 ```
+
+<div class="keypoints">
+
+- HAVING filters groups after GROUP BY; it can use aggregates.
+- WHERE filters rows before grouping; it cannot use aggregates.
+- Use both together: row tests in WHERE, total tests in HAVING.
+- A test that makes sense for one row belongs in WHERE (it is also faster).
+- Watch for the NULL group, and use HAVING COUNT(*) &lt; n to find rare, often mistyped values.
+
+</div>
 
 **New words:** *HAVING*, *group filter*, *row filter*.

@@ -17,9 +17,18 @@ quiz:
     choices: ['Because one customer can have several rows, one per version, and each row needs its own key', 'Because natural keys are always text', 'They do not need them']
     ans: 0
     why: When a customer moves city, type 2 adds a new row with the same customer_id. Only a surrogate key can tell the two versions apart.
+sources:
+  - 'Kimball Group, Dimensional modeling techniques https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+  - 'Kimball, R. and Ross, M. (2013), The Data Warehouse Toolkit, 3rd edition, Wiley, Chapter 3: Retail Sales (dimension surrogate keys)'
+  - 'SQLite documentation: Window functions (ROW_NUMBER) https://www.sqlite.org/windowfunctions.html'
+  - 'Microsoft Learn, T-SQL: CREATE TABLE IDENTITY (Property) https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property'
 ---
 
 **Module 4 · about 25 minutes · read first: 2.4.** You'll be able to explain why a warehouse uses its own keys, make them with `ROW_NUMBER`, add an "unknown" member, and load a fact table that never loses a row.
+
+<div class="bigidea">A warehouse gives every dimension row its own meaningless whole-number key, so facts never depend on ids that another system can reuse, clash or leave blank.</div>
+
+**In everyday terms:** a cloakroom ticket. The attendant does not file your coat under your name (two people may share it, and some give none). You get ticket 57, which means nothing except "this coat", and it never gets mixed up.
 
 ## 1. Why this matters
 
@@ -134,6 +143,37 @@ JOIN customers c ON c.customer_id = o.customer_id
 
 Only 6,436 lines. The 874 guest lines simply vanished, and nobody got an error. That silent loss is the main thing the unknown member protects you from.
 
+<div class="meaning">
+
+<dl>
+<dt>Natural key (business key)</dt><dd>The id a row has in the source system, such as customer_id or a SKU.</dd>
+<dt>Surrogate key</dt><dd>A whole number the warehouse makes up for each dimension row; it means nothing and never changes.</dd>
+<dt>Unknown member</dt><dd>A dimension row with a reserved key (here −1) for facts with no or an unmatched natural key.</dd>
+<dt>Key lookup</dt><dd>The fact load swapping each natural key for its surrogate key.</dd>
+<dt>Physical meaning</dt><dd>The dimension load numbers each row (ROW_NUMBER or IDENTITY) and keeps the natural key as an ordinary column. The fact load LEFT JOINs on the natural key and writes the surrogate, with COALESCE(..., −1) for anything unmatched, so no fact row is lost.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Just join facts to customers on customer_id; it is already unique."** Guests have NULL, which matches nothing, so their 874 lines vanish without an error. Two merged systems can also both have a customer 1. The surrogate key and unknown member fix both.
+
+</div>
+
+Watch it happen, one step at a time (and press **Show how it runs** on any live SQL box in this lesson to animate the real query):
+
+<div class="steps">
+<div class="step"><b>Source lines.</b> <table class="lk-tbl"><tr><th>line</th><th>customer_id</th></tr><tr><td>1</td><td>10</td></tr><tr><td>2</td><td>NULL</td></tr><tr><td>3</td><td>11</td></tr></table></div>
+<div class="step"><b>dim_customer.</b> <table class="lk-tbl"><tr><th>customer_key</th><th>customer_id</th><th>name</th></tr><tr><td>-1</td><td>NULL</td><td>Guest / unknown</td></tr><tr><td>1</td><td>10</td><td>Uma</td></tr><tr><td>2</td><td>11</td><td>Ben</td></tr></table></div>
+<div class="step"><b>LEFT JOIN on the natural key.</b> <table class="lk-tbl"><tr><th>line</th><th>customer_key</th></tr><tr><td>1</td><td>1</td></tr><tr><td>2</td><td><mark>NULL</mark></td></tr><tr><td>3</td><td>2</td></tr></table></div>
+<div class="step"><b>COALESCE to −1.</b> <table class="lk-tbl"><tr><th>line</th><th>customer_key</th></tr><tr><td>1</td><td>1</td></tr><tr><td>2</td><td><mark>-1</mark></td></tr><tr><td>3</td><td>2</td></tr></table> 3 rows in, 3 out.</div>
+</div>
+
+**Try one with fresh numbers:**
+
+<div class="problem" data-problem="dm-unknown-member"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -208,5 +248,15 @@ LIMIT 4
 ```
 
 **Try it on your own data:** paste a customer list into [[sql-playground]] and give it keys with `ROW_NUMBER() OVER (ORDER BY ...)`.
+
+<div class="keypoints">
+
+- Natural keys belong to the source: they can be reused, clash between systems or be missing.
+- Surrogate keys are made by the warehouse, mean nothing and never change.
+- Fact tables store surrogate keys; the natural key stays in the dimension.
+- An unknown member (−1) catches facts with no match, so inner joins lose nothing.
+- Make keys with ROW_NUMBER by hand, or IDENTITY in the database.
+
+</div>
 
 **New words:** *natural key*, *business key*, *surrogate key*, *unknown member*, *key lookup*.

@@ -5,6 +5,25 @@ import { int, choose, mcqOptions, round, C } from '../_util.js';
 
 const MU = C.mu0;
 
+import * as Q5 from '../_util.js';
+
+// Helpers for the variety templates (ids ending -t21 to -t25).
+// q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
+function q5msq(r, good, bad, n = 4) {
+  const lo = Math.max(1, n - bad.length), hi = Math.max(lo, Math.min(good.length, n - 1));
+  const k = Q5.int(r, lo, hi);
+  const all = Q5.shuffle(r, [...Q5.shuffle(r, good).slice(0, k).map((s) => [s, 1]), ...Q5.shuffle(r, bad).slice(0, n - k).map((s) => [s, 0])]);
+  return { options: all.map((x) => x[0]), answer: all.map((x, i) => (x[1] ? i : -1)).filter((i) => i >= 0) };
+}
+// q5odd: an MCQ whose answer is the one line from `odd` placed among three lines from `rest`.
+const q5odd = (r, odd, rest) => Q5.mcqOptions(r, Q5.choose(r, odd), Q5.shuffle(r, rest));
+// q5frac: a fraction n/d (integers) in lowest terms, as TeX.
+function q5frac(n, d) {
+  const g = (a, b) => (b ? g(b, a % b) : Math.abs(a));
+  const k = g(n, d) * Math.sign(d); const a = n / k, b = d / k;
+  return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
+}
+
 export default {
   topic: 'induction',
   items: [
@@ -201,6 +220,59 @@ export default {
       sol: 'Send current $I$ round the big loop. Its axial field $\\dfrac{\\mu_0Ib^2}{2(b^2+z^2)^{3/2}}$ is nearly uniform over the small loop, so the flux is that times $\\pi a^2$. Divide by $I$. Check: at $z = 0$ it gives $\\mu_0\\pi a^2/(2b)$, the flux through a small loop at the centre. By $M_{12} = M_{21}$ this also gives the much harder flux of the small loop\'s dipole field through the big loop.' },
   ],
   gens: [
+    { id: 'ind-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'faraday law', format: 'graph',
+      make(r) {
+        const N = Q5.int(r, 2, 20) * 10, P = Q5.int(r, 2, 20), t = [Q5.pick(r, 0.1, 1, 0.1), Q5.pick(r, 0.2, 2, 0.1), Q5.pick(r, 0.1, 1, 0.1)], s = Q5.int(r, 0, 2);
+        const e = (i) => (i === 1 ? 0 : N * P * 1e-3 / t[i]);
+        const show = (v) => `$${Q5.round(v, 3)}$ V`;
+        const o = Q5.mcqOptions(r, e(s), [e((s + 1) % 3), e((s + 2) % 3), N * P * 1e-3, P * 1e-3 / t[s === 1 ? 0 : s], N * P * 1e-3 / t[1]], show);
+        return { q: `The magnetic flux through each turn of a $${N}$-turn coil, plotted against time, rises in a straight line from $0$ to $${P}$ mWb in $${t[0]}$ s, stays flat for $${t[1]}$ s, then falls in a straight line to $0$ in $${t[2]}$ s. During the ${['rise', 'flat part', 'fall'][s]}, the size of the induced emf is`, ...o,
+          sol: `$|\\mathcal E| = N\\,|d\\Phi/dt|$, $N$ times the slope of the graph. Rise: $${N}\\times${P}\\times10^{-3}/${t[0]} = ${Q5.round(e(0), 3)}$ V. Flat: slope zero, emf zero (even though the flux is largest). Fall: $${N}\\times${P}\\times10^{-3}/${t[2]} = ${Q5.round(e(2), 3)}$ V, with the opposite sign.`,
+          trap: 'The emf follows the slope of the flux graph, not its height.' };
+      } },
+    { id: 'ind-t22', type: 'msq', level: 2, exams: ['jam'], sub: 'lenz law', format: 'statements',
+      make(r) {
+        const near = r() < 0.5, pole = r() < 0.5 ? 'north' : 'south';
+        const faceN = near ? pole === 'north' : pole === 'south';
+        const pairs = [['The coil repels the magnet.', 'The coil attracts the magnet.', near], ['The face of the coil nearest the magnet acts as a north pole.', 'The face of the coil nearest the magnet acts as a south pole.', faceN],
+          ['Seen from the magnet, the induced current flows anticlockwise.', 'Seen from the magnet, the induced current flows clockwise.', faceN], ['The person moving the magnet must do work against the magnetic force.', 'The magnetic force on the magnet helps the person move it.', true],
+          ['Moving the magnet faster would give a larger induced current.', 'The induced current does not depend on how fast the magnet moves.', true]];
+        const T = pairs.map((p) => (p[2] ? p[0] : p[1])), F = pairs.map((p) => (p[2] ? p[1] : p[0]));
+        const o = q5msq(r, T, F);
+        return { q: `The ${pole} pole of a bar magnet is moved along the axis of a closed coil, ${near ? 'towards' : 'away from'} it. Which statements are correct?`, ...o,
+          sol: `Lenz: the induced current opposes the change. The flux from the ${pole} pole through the coil is ${near ? 'growing, so the coil opposes the approach: its near face becomes a ' + pole + ' pole and repels' : 'shrinking, so the coil opposes the retreat: its near face becomes ' + (pole === 'north' ? 'a south' : 'a north') + ' pole and attracts'}. A face acts as a north pole when, seen from outside, its current runs anticlockwise. Either way the force opposes the motion, so the person does work, which becomes heat in the coil. Faster motion means faster flux change, larger emf and current.`,
+          trap: 'Lenz law opposes the change in flux, not the flux itself: a retreating magnet is attracted.' };
+      } },
+    { id: 'ind-t23', type: 'nat', level: 3, exams: ['jam'], sub: 'rails', unit: 'm/s',
+      make(r) {
+        const m = Q5.pick(r, 0.005, 0.05, 0.005), R = Q5.pick(r, 0.5, 5, 0.5), B = Q5.pick(r, 0.5, 1.5, 0.1), L = Q5.pick(r, 0.2, 0.5, 0.05);
+        const v = m * 9.8 * R / (B * L) ** 2;
+        return { q: `A metal rod of mass $${m}$ kg and length $${L}$ m slides without friction down a pair of long vertical rails joined at the top by a $${R}\\ \\Omega$ resistor (rod and rails have no resistance). A horizontal field of $${B}$ T is perpendicular to the plane of the rails. Released from rest, the rod reaches a terminal speed of ______ m/s (to three significant figures; $g = 9.8$ m/s$^2$).`,
+          answer: +v.toPrecision(3), tol: +(0.006 * v).toPrecision(2), m, R, B, L,
+          sol: `At speed $v$: emf $BLv$, current $BLv/R$, magnetic force $B^2L^2v/R$ upwards. Terminal speed when this equals $mg$: $v_t = \\dfrac{mgR}{B^2L^2} = \\dfrac{${m}\\times9.8\\times${R}}{(${B}\\times${L})^2} = ${+v.toPrecision(3)}$ m/s. (Check: then $mgv_t = (BLv_t)^2/R$, the power lost by gravity becomes heat.)`,
+          trap: 'The braking force grows as $B^2L^2$: double the field and the terminal speed falls to a quarter.' };
+      },
+      verify: (p) => { const k = (p.B * p.L) ** 2 / (p.m * p.R), tau = 1 / k, h = tau / 50; let v = 0; const f = (x) => 9.8 - k * x; for (let i = 0; i < 2000; i++) { const a = f(v), b = f(v + h * a / 2), c = f(v + h * b / 2), d = f(v + h * c); v += h * (a + 2 * b + 2 * c + d) / 6; } return v; } },
+    { id: 'ind-t24', type: 'mcq', level: 2, exams: ['jam'], sub: 'rl circuits', format: 'dimensions',
+      make(r) {
+        const time = r() < 0.5;
+        const ok = time ? ['$L/R$', '$RC$', '$\\sqrt{LC}$'] : ['$\\sqrt{L/C}$', '$L/(RC)$', '$\\omega L$'];
+        const bad = time ? ['$LR$', '$R/L$', '$L/C$', '$LC$', '$\\sqrt{L/C}$'] : ['$LC$', '$RC$', '$L/R$', '$\\sqrt{LC}$', '$C/L$'];
+        const o = q5odd(r, ok, bad);
+        return { q: `With $R$ a resistance, $L$ an inductance, $C$ a capacitance and $\\omega$ an angular frequency, which combination has the dimensions of ${time ? 'time' : 'resistance'}?`, ...o,
+          sol: 'From $V = L\\,dI/dt$, an inductance is (ohm)(second); from $I = C\\,dV/dt$, a capacitance is (second)/(ohm). So $L/R$ and $RC$ are seconds and $LC$ is seconds squared; $\\sqrt{L/C}$, $\\omega L$ and $L/RC$ are ohms.',
+          trap: 'Write $L$ as $\\Omega$ s and $C$ as s/$\\Omega$; then every combination is quick to check.' };
+      } },
+    { id: 'ind-t25', type: 'nat', level: 3, exams: ['jam'], sub: 'mutual inductance', unit: 'mV',
+      make(r) {
+        const N1 = Q5.int(r, 2, 10) * 50, N2 = Q5.int(r, 2, 10) * 100, l = Q5.int(r, 20, 60), a = Q5.int(r, 1, 3), dI = Q5.int(r, 1, 50);
+        const M = 4e-7 * Math.PI * N1 * N2 * Math.PI * (a / 100) ** 2 / (l / 100), e = M * dI * 1000;
+        return { q: `A long solenoid of $${N2}$ turns and length $${l}$ cm surrounds, along its whole length, a coaxial inner coil of $${N1}$ turns and radius $${a}$ cm (the same length). The current in the outer solenoid changes at $${dI}$ A/s. The emf induced in the inner coil is ______ mV (to three significant figures; $\\mu_0 = 4\\pi\\times10^{-7}$ SI).`,
+          answer: +e.toPrecision(3), tol: +(0.006 * e).toPrecision(2), N1, N2, l, a, dI,
+          sol: `The outer field is $B = \\mu_0N_2I/l$; its flux through each inner turn is $B\\pi a^2$. So $M = \\mu_0N_1N_2\\pi a^2/l = ${Q5.fmt(M, 4)}$ H and $\\mathcal E = M\\,dI/dt = ${+e.toPrecision(3)}$ mV.`,
+          trap: 'Only the inner coil\'s area carries the linking flux, whatever the outer radius.' };
+      },
+      verify: (p) => { const B1 = 4e-7 * Math.PI * p.N1 / (p.l / 100); const link = p.N2 * B1 * Math.PI * (p.a / 100) ** 2; return link * p.dI * 1000; } },
     { id: 'ind-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'faraday law', unit: 'V',
       make(r) {
         const N = choose(r, [10, 50, 100, 200, 500]), A = int(r, 5, 100), B1 = int(r, 0, 10) / 10, B2 = int(r, 0, 10) / 10, t = choose(r, [0.05, 0.1, 0.2, 0.5, 1]);
