@@ -51,6 +51,11 @@ export default {
       { id: 'induction', name: 'Electromagnetic induction and inductance' },
       { id: 'circuits', name: 'DC transients and AC circuits' },
       { id: 'maxwell-em-waves', name: 'Maxwell\'s equations and electromagnetic waves' },
+      { id: 'boundary-value-problems', name: 'Boundary value problems and Laplace\'s equation' },
+      { id: 'method-of-images', name: 'The method of images' },
+      { id: 'multipoles', name: 'Multipole expansion' },
+      { id: 'fields-in-matter', name: 'Fields in matter: polarisation and magnetisation' },
+      { id: 'potentials-gauges', name: 'Potentials, gauges and Maxwell\'s equations' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
