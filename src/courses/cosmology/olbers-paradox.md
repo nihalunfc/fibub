@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: In an endless, unchanging universe evenly filled with stars, how does the light from a far shell of stars compare with a near shell of the same thickness?
-    choices: ['The same: more stars exactly make up for each being fainter', 'Much less, so far shells don''t matter', 'Much more']
-    ans: 0
+    choices: ["Much less, so far shells don't matter","Much more","The same: more stars exactly make up for each being fainter"]
+    ans: 2
     why: A shell twice as far has 4 times as many stars, each 1/4 as bright. Every shell adds the same light, so endless shells add up to a blazing sky.
   - q: What is the main reason the night sky is dark?
-    choices: ['The universe has a finite age, so light has only reached us from a limited distance', 'Dust absorbs all the starlight', 'Stars are too far apart']
-    ans: 0
+    choices: ["Dust absorbs all the starlight","Stars are too far apart","The universe has a finite age, so light has only reached us from a limited distance"]
+    ans: 2
     why: Light from beyond a certain distance has not had time to get here. Too few sight lines end on a star within that distance. Expansion helps too, by stretching and dimming old light.
   - q: Why doesn't dust solve the paradox?
-    choices: ['Dust soaking up starlight forever would heat up until it glowed as brightly as the stars', 'There is no dust in space', 'Dust is transparent']
-    ans: 0
+    choices: ["There is no dust in space","Dust soaking up starlight forever would heat up until it glowed as brightly as the stars","Dust is transparent"]
+    ans: 1
     why: Absorbed energy has to go somewhere. Over endless time the dust would warm to the temperature of starlight and shine itself.
 sources:
   - 'H. W. Olbers (1823), Über die Durchsichtigkeit des Weltraums (On the transparency of space)'

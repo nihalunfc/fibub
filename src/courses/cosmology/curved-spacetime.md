@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: In general relativity, why does the Earth orbit the Sun?
-    choices: ['The Sun''s mass curves spacetime and the Earth follows the straightest path through it', 'An invisible rope-like force pulls it', 'The Earth is pushed by sunlight']
-    ans: 0
+    choices: ["An invisible rope-like force pulls it","The Earth is pushed by sunlight","The Sun's mass curves spacetime and the Earth follows the straightest path through it"]
+    ans: 2
     why: Nothing pulls. The Earth moves as freely as it can, and in curved spacetime the straightest path is an orbit.
   - q: Which clock runs faster, one on the ground floor or one on the top floor?
-    choices: ['The one on the top floor', 'The one on the ground floor', 'Both run exactly the same']
-    ans: 0
+    choices: ["The one on the ground floor","The one on the top floor","Both run exactly the same"]
+    ans: 1
     why: Time runs slower deeper in gravity. The difference is tiny, but atomic clocks see it for a lift of just 33 cm.
   - q: What is the main weakness of the stretched rubber-sheet picture?
-    choices: ['It uses gravity pulling down to explain gravity, and it leaves out the curving of time', 'It is too accurate', 'It only works for light']
-    ans: 0
+    choices: ["It is too accurate","It only works for light","It uses gravity pulling down to explain gravity, and it leaves out the curving of time"]
+    ans: 2
     why: It is a helpful cartoon of curved space, but in real general relativity much of everyday gravity comes from time running at different rates.
 sources:
   - 'A. Einstein (1916), Die Grundlage der allgemeinen Relativitätstheorie (The foundation of the general theory of relativity), Annalen der Physik 49, 769 https://doi.org/10.1002/andp.19163540702'

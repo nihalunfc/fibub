@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: A clock moves past you at 0.6 times the speed of light (γ = 1.25). While your clock ticks 10 seconds, how many does it tick?
-    choices: ['8 seconds', '12.5 seconds', '10 seconds']
-    ans: 0
+    choices: ["12.5 seconds","10 seconds","8 seconds"]
+    ans: 2
     why: Moving clocks run slow by the factor γ. 10 ÷ 1.25 = 8 seconds.
   - q: Why do muons made high in the atmosphere reach the ground?
-    choices: ['Their fast-moving internal clocks run slow, so fewer decay on the way', 'They are not affected by air', 'They travel faster than light']
-    ans: 0
+    choices: ["They are not affected by air","Their fast-moving internal clocks run slow, so fewer decay on the way","They travel faster than light"]
+    ans: 1
     why: Muons live about 2.2 microseconds at rest. Moving near light speed, their time runs several times slower as seen from the ground, so many survive the trip.
   - q: In the twin paradox, why is it the travelling twin who ends up younger?
-    choices: ['The traveller turns round, so the two journeys are not the same', 'The Earth twin moves faster', 'Space travel is bad for clocks']
-    ans: 0
+    choices: ["The Earth twin moves faster","The traveller turns round, so the two journeys are not the same","Space travel is bad for clocks"]
+    ans: 1
     why: Only the traveller changes direction (speeds up and slows down), so the situation is not symmetrical. Every careful calculation and experiment agrees the traveller ages less.
 sources:
   - 'A. Einstein (1905), Zur Elektrodynamik bewegter Körper, Annalen der Physik 17, 891 https://doi.org/10.1002/andp.19053221004'

@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: What did Hubble need to measure about the Cepheid in Andromeda?
-    choices: ['Its pulsing period and how bright it looks', 'Its colour and size', 'Its parallax']
-    ans: 0
+    choices: ["Its colour and size","Its parallax","Its pulsing period and how bright it looks"]
+    ans: 2
     why: The period gives the true brightness through Leavitt's law; comparing it with the apparent brightness gives the distance.
   - q: A Cepheid with a longer period is...
-    choices: ['more powerful', 'less powerful', 'the same power, just slower']
-    ans: 0
+    choices: ["less powerful","more powerful","the same power, just slower"]
+    ans: 1
     why: 'Leavitt''s law: the longer the period, the more luminous the Cepheid.'
   - q: Why was Hubble's 1925 distance to Andromeda (about 900,000 light-years) too small?
-    choices: ['The calibration of Cepheids was off: there are two types, and he used the wrong one''s brightness', 'Andromeda has moved away since then', 'His telescope was out of focus']
-    ans: 0
+    choices: ["Andromeda has moved away since then","His telescope was out of focus","The calibration of Cepheids was off: there are two types, and he used the wrong one's brightness"]
+    ans: 2
     why: In 1952 Walter Baade showed there are two kinds of Cepheids with different brightnesses. Correcting for that roughly doubled the distances to galaxies.
 sources:
   - 'E. P. Hubble (1925), Cepheids in spiral nebulae, Publications of the American Astronomical Society 5, 261'

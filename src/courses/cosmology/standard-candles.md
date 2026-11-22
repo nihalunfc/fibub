@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: A standard candle is moved to 3 times its distance. How bright does it look?
-    choices: ['1/9 as bright', '1/3 as bright', '3 times fainter in magnitudes']
-    ans: 0
+    choices: ["1/3 as bright","3 times fainter in magnitudes","1/9 as bright"]
+    ans: 2
     why: Brightness falls as 1/distance², so 3 times farther means 1/9 as bright.
   - q: A standard ruler is moved to 3 times its distance. How big does it look?
-    choices: ['1/3 the angle', '1/9 the angle', 'The same']
+    choices: ["1/3 the angle","1/9 the angle","The same"]
     ans: 0
     why: Angular size falls as 1/distance (for small angles), so 3 times farther means a third of the angle.
   - q: Object A has m − M = 10 and object B has m − M = 15. How much farther is B?
-    choices: ['10 times', '5 times', '100 times']
-    ans: 0
+    choices: ["5 times","10 times","100 times"]
+    ans: 1
     why: Every 5 magnitudes is a factor of 100 in brightness, which is a factor of 10 in distance.
 sources:
   - 'Astronomy course on fibub: flux, luminosity and the inverse square law https://fibub.com/learn/courses/astronomy/flux-luminosity/'

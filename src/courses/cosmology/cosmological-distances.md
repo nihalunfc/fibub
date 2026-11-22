@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "A galaxy at z = 1 sent its light about 8 billion years ago. How far away is it now?"
-    choices: ["About 11 billion light-years: space kept stretching after the light left", "Exactly 8 billion light-years", "About 4 billion light-years"]
-    ans: 0
+    choices: ["Exactly 8 billion light-years","About 11 billion light-years: space kept stretching after the light left","About 4 billion light-years"]
+    ans: 1
     why: "The comoving (present) distance is larger than the light-travel distance, because the space behind the light kept growing."
   - q: "Which distance should you use with the inverse square law for brightness?"
-    choices: ["The luminosity distance", "The angular-diameter distance", "The light-travel distance"]
+    choices: ["The luminosity distance","The angular-diameter distance","The light-travel distance"]
     ans: 0
     why: "It is built to make flux = L / (4π d²) work, including the stretching of the photons and of the time between them: (1 + z) × comoving."
   - q: "Why do galaxies beyond redshift about 1.6 look bigger the farther away they are?"
-    choices: ["We see them as they were when the universe was small and they were closer to us", "They really are bigger", "Dust magnifies them"]
-    ans: 0
+    choices: ["They really are bigger","We see them as they were when the universe was small and they were closer to us","Dust magnifies them"]
+    ans: 1
     why: "The angular-diameter distance (comoving ÷ (1 + z)) reaches a maximum near z ≈ 1.6 and then shrinks."
 sources:
   - "D. W. Hogg (1999), Distance measures in cosmology https://arxiv.org/abs/astro-ph/9905116"

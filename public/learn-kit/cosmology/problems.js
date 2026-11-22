@@ -2,6 +2,13 @@
 // { q, answer, unit, tol (relative), hint, solution } as small HTML strings; `verify` recomputes the answer
 // another way for tests/cosmo.mjs. Placed in a lesson as <div class="problem" data-problem="id"></div>.
 import * as P from './phys.js';
+import m6 from './problems/m6.js';
+import m7 from './problems/m7.js';
+import m8 from './problems/m8.js';
+import m9 from './problems/m9.js';
+import m10 from './problems/m10.js';
+import m11 from './problems/m11.js';
+import m12 from './problems/m12.js';
 
 /** A random value from min to max in steps of `step`. */
 const pick = (r, min, max, step = 1) => +(min + Math.floor(r() * ((max - min) / step + 1 - 1e-9)) * step).toFixed(6);
@@ -16,7 +23,7 @@ const n = (v, d = 3) => {
 };
 const steps = (...ls) => '<ol>' + ls.map((l) => `<li>${l}</li>`).join('') + '</ol>';
 
-export default {
+const base = {
   // ---------- Module 1 ----------
   'cosmic-calendar': {
     title: 'squeeze the universe into one year',
@@ -816,3 +823,5 @@ export default {
     verify: (p) => P.ageGyr(0, { H0: p.H0, Om: p.Om, OL: 1 - p.Om }),
   },
 };
+
+export default { ...base, ...m6, ...m7, ...m8, ...m9, ...m10, ...m11, ...m12 };

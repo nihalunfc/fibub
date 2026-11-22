@@ -6,15 +6,15 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: "In general relativity, what does pressure do to gravity?"
-    choices: ["Positive pressure adds to gravity's pull; negative pressure pushes", "Nothing", "Pressure always cancels gravity"]
-    ans: 0
+    choices: ["Nothing","Positive pressure adds to gravity's pull; negative pressure pushes","Pressure always cancels gravity"]
+    ans: 1
     why: "The source of gravity's pull is ρ + 3p/c². Light's pressure makes it pull harder than matter; dark energy's negative pressure makes it push."
   - q: "What does a negative deceleration parameter q0 mean?"
-    choices: ["The expansion is speeding up", "The universe is shrinking", "The expansion is slowing down"]
-    ans: 0
+    choices: ["The universe is shrinking","The expansion is speeding up","The expansion is slowing down"]
+    ans: 1
     why: "q0 measures slowing; negative slowing is speeding up. Today q0 ≈ −0.53."
   - q: "Who found the accelerating expansion in 1998, and how?"
-    choices: ["Two teams, by finding distant Type Ia supernovae fainter than expected", "One team, with a gravitational wave detector", "Astronauts on the Moon"]
+    choices: ["Two teams, by finding distant Type Ia supernovae fainter than expected","One team, with a gravitational wave detector","Astronauts on the Moon"]
     ans: 0
     why: "The Supernova Cosmology Project and the High-z Supernova Search Team; Perlmutter, Schmidt and Riess shared the 2011 Nobel Prize."
 sources:

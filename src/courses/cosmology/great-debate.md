@@ -6,16 +6,16 @@ minutes: 16
 updated: 2026-11-22
 quiz:
   - q: Why did William Herschel think the Sun was near the centre of the Milky Way?
-    choices: ['He counted about as many stars in every direction, not knowing that dust hides the distant ones', 'He measured the distance to the centre', 'He saw the centre through a telescope']
-    ans: 0
+    choices: ["He measured the distance to the centre","He counted about as many stars in every direction, not knowing that dust hides the distant ones","He saw the centre through a telescope"]
+    ans: 1
     why: Dust in the disc blocks distant starlight, so from inside, every direction looks about equally crowded and we seem to sit in the middle of a bubble.
   - q: How did Harlow Shapley find the true centre of the Milky Way?
-    choices: ['Globular clusters swarm around the centre, and they are all on one side of our sky', 'He followed the Milky Way to its brightest point by eye', 'He used radio telescopes']
-    ans: 0
+    choices: ["He followed the Milky Way to its brightest point by eye","He used radio telescopes","Globular clusters swarm around the centre, and they are all on one side of our sky"]
+    ans: 2
     why: Globular clusters form a ball around the galaxy's centre. Shapley found they bunch up towards Sagittarius, far from the Sun.
   - q: What settled the Great Debate?
-    choices: ['Hubble measured Cepheid stars in Andromeda and showed it is far outside the Milky Way', 'A vote at a conference', 'Photographs of the Milky Way from space']
-    ans: 0
+    choices: ["A vote at a conference","Hubble measured Cepheid stars in Andromeda and showed it is far outside the Milky Way","Photographs of the Milky Way from space"]
+    ans: 1
     why: 'In 1923-25 Hubble found Cepheids in Andromeda. Their period told him their true brightness, and their faintness put them hundreds of thousands of light-years away (today: 2.5 million).'
 sources:
   - 'H. Shapley and H. D. Curtis (1921), The Scale of the Universe, Bulletin of the National Research Council 2, 171'

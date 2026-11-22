@@ -6,16 +6,16 @@ minutes: 12
 updated: 2026-11-22
 quiz:
   - q: You see a galaxy 50 million light-years away. What do you see?
-    choices: ['The galaxy as it was 50 million years ago', 'The galaxy as it is today', 'The galaxy as it will be in 50 million years']
+    choices: ["The galaxy as it was 50 million years ago","The galaxy as it is today","The galaxy as it will be in 50 million years"]
     ans: 0
     why: Its light left 50 million years ago, so the picture shows the galaxy as it was then.
   - q: Why is lookback time so useful to cosmologists?
-    choices: ['They can see young galaxies directly and compare them with old ones', 'It makes galaxies look bigger', 'It lets them see the future']
-    ans: 0
+    choices: ["It makes galaxies look bigger","It lets them see the future","They can see young galaxies directly and compare them with old ones"]
+    ans: 2
     why: Distant galaxies show us earlier times, so a deep picture of the sky is a slice through cosmic history.
   - q: For a galaxy billions of light-years away, why is "light-years away" a slippery idea?
-    choices: ['Space expanded while the light travelled, so its distance then, the travel time and its distance now all differ', 'Light slows down over long distances', 'Light-years only work inside the Milky Way']
-    ans: 0
+    choices: ["Light slows down over long distances","Light-years only work inside the Milky Way","Space expanded while the light travelled, so its distance then, the travel time and its distance now all differ"]
+    ans: 2
     why: Over billions of years the expansion of space matters. Cosmologists quote redshift or lookback time instead, as Lesson 5.8 explains.
 sources:
   - 'NASA Webb mission: Webb''s deep fields and the most distant galaxies https://science.nasa.gov/mission/webb/'

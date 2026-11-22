@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "Roughly how much is the critical density of our universe?"
-    choices: ["About 5 hydrogen atoms per cubic metre", "About 5 grams per cubic metre", "About 5 atoms per cubic kilometre"]
+    choices: ["About 5 hydrogen atoms per cubic metre","About 5 grams per cubic metre","About 5 atoms per cubic kilometre"]
     ans: 0
     why: "For H0 near 70 km/s per Mpc it is about 9 × 10⁻²⁷ kg/m³, the mass of about 5 to 6 hydrogen atoms in each cubic metre."
   - q: "What does Ω = 1 mean?"
-    choices: ["The universe holds exactly the critical density, so space is flat", "The universe is one year old", "Only one kind of matter exists"]
-    ans: 0
+    choices: ["The universe is one year old","Only one kind of matter exists","The universe holds exactly the critical density, so space is flat"]
+    ans: 2
     why: "Ω is the actual density divided by the critical density. At exactly 1 the curvature term vanishes."
   - q: "Ordinary atoms make up about 5% of the critical density. What makes up the rest?"
-    choices: ["About 26% dark matter and 69% dark energy", "Stars and planets", "Light"]
-    ans: 0
+    choices: ["Stars and planets","Light","About 26% dark matter and 69% dark energy"]
+    ans: 2
     why: "The full budget adds to almost exactly 1, so space is flat, but most of it is not atoms. Modules 8 and 9 look at the dark parts."
 sources:
   - "Planck Collaboration (2020), Planck 2018 results. VI. Cosmological parameters, A&A 641, A6 https://doi.org/10.1051/0004-6361/201833910"

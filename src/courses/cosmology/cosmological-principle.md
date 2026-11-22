@@ -6,16 +6,16 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "What does the cosmological principle say?"
-    choices: ["On large scales the universe is the same everywhere (homogeneous) and in every direction (isotropic)", "The Earth is at the centre of the universe", "Every galaxy is identical"]
+    choices: ["On large scales the universe is the same everywhere (homogeneous) and in every direction (isotropic)","The Earth is at the centre of the universe","Every galaxy is identical"]
     ans: 0
     why: "Up close the universe is lumpy, but averaged over big enough boxes every region looks alike, and no direction is special."
   - q: "Roughly above what size do galaxy maps start to look smooth?"
-    choices: ["A few hundred million light-years", "A few light-years", "The size of the Milky Way"]
-    ans: 0
+    choices: ["A few light-years","The size of the Milky Way","A few hundred million light-years"]
+    ans: 2
     why: "Surveys such as WiggleZ and the Sloan Digital Sky Survey find the number of galaxies per box evens out above roughly 300 to 400 million light-years."
   - q: "Why is the cosmological principle so useful?"
-    choices: ["It lets one scale factor and one Hubble rate describe the whole universe", "It proves that aliens exist", "It means we don't need telescopes"]
-    ans: 0
+    choices: ["It proves that aliens exist","It lets one scale factor and one Hubble rate describe the whole universe","It means we don't need telescopes"]
+    ans: 1
     why: "If every place is alike, the whole universe can be described by a few numbers that change with time. Module 5 builds the equations from that."
 sources:
   - "M. Scrimgeour et al. (2012), The WiggleZ Dark Energy Survey: the transition to large-scale cosmic homogeneity, MNRAS 425, 116 https://doi.org/10.1111/j.1365-2966.2012.21402.x"

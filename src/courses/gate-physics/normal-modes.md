@@ -112,7 +112,7 @@ M = ml^2\begin{pmatrix}2 & 1\\ 1 & 1\end{pmatrix}, \qquad K = mgl\begin{pmatrix}
 
 Here `$K$` is diagonal and all the coupling is in `$M$`. The secular equation gives `$\omega^2 = (2\mp\sqrt2)\,g/l$`, that is `$0.586\,g/l$` and `$3.414\,g/l$`, with shapes `$\theta_2/\theta_1 = +\sqrt2$` (in step) and `$-\sqrt2$` (opposite). At larger amplitudes the double pendulum is chaotic; normal modes describe only the small motions.
 
-**Small oscillations about steady motion.** The same method works about any steady state, not only rest. A circular orbit is an equilibrium of the effective potential (lesson 2.4, [central forces and scattering](/learn/courses/gate-physics/central-force-scattering/)), and small radial oscillations about it have `$\omega_r^2 = U_{\rm eff}''(r_0)/\mu$`. The bead on the spinning hoop of lesson 2.1 oscillates about its tilted equilibrium at `$\omega' = \omega\sin\theta_0$`.
+**Small oscillations about steady motion.** The same method works about any steady state, not only rest. A circular orbit is an equilibrium of the effective potential (lesson 2.4, [central forces and scattering](/learn/courses/gate-physics/central-force-scattering/)), and small radial oscillations about it have `$\omega_r^2 = U_{\rm eff}''(r_0)/\mu$`. The bead on the spinning hoop of [lesson 2.1](/learn/courses/gate-physics/lagrangian-mechanics/) oscillates about its tilted equilibrium at `$\omega' = \omega\sin\theta_0$`.
 
 <div class="myth">
 

@@ -1,0 +1,101 @@
+---
+// Cosmology cheat sheet: the key formulas of the course on one page, grouped by part, each with a one-line
+// meaning and the lesson that explains it. Maths is rendered to MathML at build time by temml (no script or font sent).
+import temml from 'temml';
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { COSMOLOGY } from '../../../../courses/cosmology/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
+const live = new Set((await courseLessons(COSMOLOGY)).keys());
+const num = new Map(flatLessons(COSMOLOGY).map((l) => [l.slug, l.n]));
+const tex = (t: string) => temml.renderToString(t, { displayMode: true, throwOnError: true, annotate: false });
+type F = [name: string, formula: string, meaning: string, lesson: string];
+const SECTIONS: { h: string; rows: F[] }[] = [
+  { h: "Distances and expansion", rows: [
+    ["Light-travel distance", "d = c\\,t", "Seeing far means seeing the past.", "lookback-time"],
+    ["Distance modulus", "\\mu = m - M = 5\\log_{10}\\frac{d_L}{10\\ \\text{pc}}", "Faintness of a standard candle gives its distance.", "standard-candles"],
+    ["Redshift", "1 + z = \\frac{\\lambda_\\text{obs}}{\\lambda_\\text{emit}} = \\frac{1}{a}", "How much the universe grew while the light travelled.", "cosmological-redshift"],
+    ["Hubble's law", "v = H_0\\,d", "Recession speed grows with distance.", "hubble-law"],
+    ["Hubble time", "t_H = \\frac{1}{H_0} \\approx \\frac{977.8}{H_0}\\ \\text{Gyr}", "A rough age of the universe (H₀ in km/s/Mpc).", "age-of-universe"],
+    ["Luminosity and angular distance", "d_L = (1 + z)\\,d_M, \\quad d_A = \\frac{d_M}{1 + z}", "Three distances in an expanding universe.", "cosmological-distances"],
+  ] },
+  { h: "Einstein's universe", rows: [
+    ["Lorentz factor", "\\gamma = \\frac{1}{\\sqrt{1 - v^2/c^2}}", "How much moving clocks slow.", "time-dilation"],
+    ["Mass-energy", "E = mc^2", "Mass is a store of energy.", "e-equals-mc2"],
+    ["Schwarzschild radius", "R_s = \\frac{2GM}{c^2}", "Size of a black hole's horizon.", "black-holes"],
+    ["Light bending", "\\alpha = \\frac{4GM}{c^2 b}", "Twice Newton's value; 1.75 arcseconds at the Sun's edge.", "tests-of-relativity"],
+  ] },
+  { h: "The equations of the universe", rows: [
+    ["Friedmann equation", "H^2 = \\left(\\frac{\\dot a}{a}\\right)^2 = \\frac{8\\pi G}{3}\\rho - \\frac{kc^2}{a^2} + \\frac{\\Lambda c^2}{3}", "Expansion rate from contents and curvature.", "friedmann-equation"],
+    ["Acceleration equation", "\\frac{\\ddot a}{a} = -\\frac{4\\pi G}{3}\\left(\\rho + \\frac{3p}{c^2}\\right) + \\frac{\\Lambda c^2}{3}", "Pressure adds to gravity; Λ pushes outward.", "acceleration-equation"],
+    ["Critical density", "\\rho_c = \\frac{3H^2}{8\\pi G} \\approx 9 \\times 10^{-27}\\ \\text{kg/m}^3", "About 5 hydrogen atoms per cubic metre makes space flat.", "critical-density"],
+    ["Budget", "\\Omega_m + \\Omega_r + \\Omega_\\Lambda + \\Omega_k = 1", "Today about 0.31 + 0.0001 + 0.69 + 0.", "critical-density"],
+    ["Expansion history", "H(z) = H_0\\sqrt{\\Omega_r(1+z)^4 + \\Omega_m(1+z)^3 + \\Omega_k(1+z)^2 + \\Omega_\\Lambda}", "How each ingredient thins as the universe grows.", "matter-radiation-dark-energy"],
+    ["Deceleration parameter", "q_0 = \\Omega_r + \\tfrac{1}{2}\\Omega_m - \\Omega_\\Lambda", "Negative means speeding up; today about −0.55.", "acceleration-equation"],
+    ["Age of a flat universe", "t_0 = \\frac{2}{3H_0\\sqrt{\\Omega_\\Lambda}}\\,\\sinh^{-1}\\sqrt{\\frac{\\Omega_\\Lambda}{\\Omega_m}}", "13.8 billion years for Planck's numbers.", "age-of-universe"],
+  ] },
+  { h: "The hot Big Bang", rows: [
+    ["Cooling", "T = T_0\\,(1 + z), \\quad T_0 = 2.7255\\ \\text{K}", "Twice smaller universe, twice hotter light.", "temperature-and-time"],
+    ["Radiation-era clock", "t \\approx \\frac{2.4\\ \\text{s}}{\\sqrt{g_*}}\\left(\\frac{1\\ \\text{MeV}}{kT}\\right)^2", "About 1 second at 10 billion kelvin.", "temperature-and-time"],
+    ["Neutron to proton ratio", "\\frac{n}{p} = e^{-Q/kT}, \\quad Q = 1.293\\ \\text{MeV}", "Frozen at about 1/6, then 1/7 after decays.", "first-second"],
+    ["Helium fraction", "Y_p \\approx \\frac{2\\,(n/p)}{1 + n/p} \\approx 0.25", "Almost every neutron ends in helium-4.", "big-bang-nucleosynthesis"],
+    ["Neutrino temperature", "T_\\nu = \\left(\\frac{4}{11}\\right)^{1/3} T_\\gamma \\approx 1.95\\ \\text{K}", "Neutrinos missed the heat from electron-positron annihilation.", "cosmic-neutrinos"],
+    ["Matter-radiation equality", "1 + z_\\text{eq} = \\frac{\\Omega_m}{\\Omega_r} \\approx 3400", "After this, lumps grow quickly.", "matter-radiation-equality"],
+  ] },
+  { h: "The cosmic microwave background", rows: [
+    ["Planck's law", "B_\\nu(T) = \\frac{2h\\nu^3}{c^2}\\,\\frac{1}{e^{h\\nu/kT} - 1}", "The CMB follows it to 1 part in 10,000.", "cmb-blackbody"],
+    ["Photons in the CMB", "n_\\gamma = \\frac{2\\zeta(3)}{\\pi^2}\\left(\\frac{kT}{\\hbar c}\\right)^3 \\approx 411\\ \\text{cm}^{-3}", "About 1.6 billion photons for every atom.", "cmb-blackbody"],
+    ["Dipole", "\\frac{\\Delta T}{T} \\approx \\frac{v}{c}\\cos\\theta", "3.36 mK means we move at about 370 km/s.", "cmb-dipole"],
+    ["Angle and multipole", "\\theta \\approx \\frac{180^\\circ}{\\ell}", "First peak at ℓ ≈ 220, about 1 degree.", "acoustic-peaks"],
+    ["Sound speed", "c_s = \\frac{c}{\\sqrt{3(1 + R)}}, \\quad R = \\frac{3\\rho_b}{4\\rho_\\gamma}", "Atoms slow the sound waves.", "acoustic-peaks"],
+  ] },
+  { h: "The dark universe", rows: [
+    ["Virial mass", "M \\approx \\frac{5\\sigma^2 R}{G}", "How fast galaxies move weighs a cluster.", "zwicky-missing-mass"],
+    ["Mass from orbits", "M(r) = \\frac{v^2 r}{G}", "Flat rotation curves mean mass growing with r.", "rotation-curves"],
+    ["MOND", "v_\\text{flat}^4 = G M a_0, \\quad a_0 \\approx 1.2 \\times 10^{-10}\\ \\text{m/s}^2", "The alternative to dark matter in galaxies.", "mond"],
+    ["Dark energy density", "\\rho \\propto a^{-3(1 + w)}", "w = −1 stays constant as space grows.", "equation-of-state"],
+    ["Changing dark energy", "w(a) = w_0 + w_a\\,(1 - a)", "The DESI fits use this.", "desi-dark-energy"],
+    ["Big Rip time", "t_\\text{rip} - t_0 \\approx \\frac{2}{3\\,|1 + w|\\,H_0\\sqrt{1 - \\Omega_m}}", "Only for w below −1.", "fate-of-universe"],
+  ] },
+  { h: "Structure and the first instant", rows: [
+    ["Jeans length", "\\lambda_J = c_s\\sqrt{\\frac{\\pi}{G\\rho}}", "Bigger than this, gravity wins over pressure.", "gravitational-instability"],
+    ["Growth of lumps", "\\delta \\propto a \\quad (\\text{matter era})", "Lumps grow as fast as the universe.", "gravitational-instability"],
+    ["E-folds", "\\frac{a_\\text{end}}{a_\\text{start}} = e^N, \\quad N \\gtrsim 60", "How much inflation must stretch space.", "cosmic-inflation"],
+    ["Tilt and tensors", "n_s \\approx 1 - \\frac{2}{N}, \\quad r < 0.036", "What inflation predicts and what we measure.", "quantum-seeds"],
+    ["Planck length", "\\ell_P = \\sqrt{\\frac{\\hbar G}{c^3}} \\approx 1.6 \\times 10^{-35}\\ \\text{m}", "Where quantum gravity takes over.", "planck-era"],
+    ["Standard siren", "H_0 = \\frac{v}{d_\\text{GW}}", "Distance from gravitational waves, speed from the host galaxy.", "standard-sirens"],
+  ] },
+];---
+<Base title="Cosmology cheat sheet: every key formula" description="The key formulas of cosmology on one free page, from Hubble's law and the Friedmann equation to the CMB, dark energy and inflation, each with a one-line meaning and its lesson." ld={coursePageLd(COSMOLOGY, 'Cheat sheet', '', 'cheat-sheet')}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/cosmology/">Cosmology</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={COSMOLOGY} live={live} />
+    <div class="cs-main ch">
+      <h1>Cosmology cheat sheet</h1>
+      <p class="lead">The key formulas of the course on one page, each with what it means in one line and the lesson that explains it. Print it or keep it open while you work.</p>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2>{s.h}</h2>
+          {s.rows.map(([name, f, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={`/learn/courses/cosmology/${slug}/`}>Lesson {num.get(slug)}</a></h3>
+              <div class="ch-m" set:html={tex(f)} />
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/cosmology/glossary/">glossary of terms</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-m { overflow-x: auto; padding: 4px 0; font-size: 1.05em; }
+  .ch-f p { margin: 2px 0 0; }
+</style>

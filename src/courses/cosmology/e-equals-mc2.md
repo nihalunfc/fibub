@@ -6,15 +6,15 @@ minutes: 12
 updated: 2026-11-22
 quiz:
   - q: What does E = mc² say?
-    choices: ['Mass is a very concentrated form of energy', 'Energy always travels at the speed of light', 'Heavy things are faster']
-    ans: 0
+    choices: ["Energy always travels at the speed of light","Heavy things are faster","Mass is a very concentrated form of energy"]
+    ans: 2
     why: Mass and energy are two forms of the same thing, and the exchange rate is c², a huge number.
   - q: Where does the Sun's energy come from?
-    choices: ['Fusing hydrogen into helium, which turns a little mass into energy', 'Burning coal-like fuel', 'Its own gravity squeezing it forever']
-    ans: 0
+    choices: ["Burning coal-like fuel","Its own gravity squeezing it forever","Fusing hydrogen into helium, which turns a little mass into energy"]
+    ans: 2
     why: Four hydrogen nuclei weigh slightly more than one helium nucleus. The missing 0.7% of the mass leaves as energy.
   - q: Why does E = mc² matter for cosmology?
-    choices: ['In the hot early universe, energy turned into particles and back', 'It sets the age of the universe', 'It explains why galaxies are spiral']
+    choices: ["In the hot early universe, energy turned into particles and back","It sets the age of the universe","It explains why galaxies are spiral"]
     ans: 0
     why: When the universe was hot enough, light could make pairs of particles and antiparticles. That is where matter came from (Module 6).
 sources:

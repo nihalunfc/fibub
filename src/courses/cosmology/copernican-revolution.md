@@ -6,16 +6,16 @@ minutes: 15
 updated: 2026-11-22
 quiz:
   - q: Why could the sky alone not decide between Ptolemy's and Copernicus's pictures at first?
-    choices: ['Both pictures could reproduce the backward loops of the planets', 'Nobody could see the planets', 'Copernicus refused to publish data']
+    choices: ["Both pictures could reproduce the backward loops of the planets","Nobody could see the planets","Copernicus refused to publish data"]
     ans: 0
     why: An epicycle carrying Mars is mathematically the same as Earth's own orbit seen in reverse, so both models draw the same loop in the sky.
   - q: What did Galileo see that Ptolemy's model could not explain?
-    choices: ['Venus showing a full set of phases, small when full and large when a crescent', 'Craters on the Moon', 'Sunspots']
+    choices: ["Venus showing a full set of phases, small when full and large when a crescent","Craters on the Moon","Sunspots"]
     ans: 0
     why: In Ptolemy's model Venus always lies between us and the Sun, so it could only ever be a crescent. A full Venus means it goes behind the Sun.
   - q: What does the Copernican principle say?
-    choices: ['We do not live in a special or central place in the universe', 'The Sun is the centre of the universe', 'Planets move in perfect circles']
-    ans: 0
+    choices: ["The Sun is the centre of the universe","We do not live in a special or central place in the universe","Planets move in perfect circles"]
+    ans: 1
     why: 'Copernicus moved the Earth away from the centre. Modern cosmology generalises this: our view of the universe should be typical.'
 sources:
   - 'N. Copernicus (1543), De revolutionibus orbium coelestium'

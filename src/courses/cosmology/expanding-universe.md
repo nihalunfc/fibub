@@ -6,15 +6,15 @@ minutes: 13
 updated: 2026-11-22
 quiz:
   - q: "In the raisin-loaf picture, why does a raisin twice as far away move away twice as fast?"
-    choices: ["There is twice as much dough between them stretching", "It was pushed harder at the start", "It is lighter"]
-    ans: 0
+    choices: ["It was pushed harder at the start","There is twice as much dough between them stretching","It is lighter"]
+    ans: 1
     why: "Every bit of dough stretches by the same factor, so a gap with twice the dough grows twice as much in the same time. That is Hubble's law."
   - q: "Does the Milky Way itself expand?"
-    choices: ["No: gravity holds it together, so only the gaps between unbound galaxies and clusters grow", "Yes, at the same rate as the universe", "Only its outer stars move away"]
-    ans: 0
+    choices: ["Yes, at the same rate as the universe","Only its outer stars move away","No: gravity holds it together, so only the gaps between unbound galaxies and clusters grow"]
+    ans: 2
     why: "Galaxies, stars, planets and atoms are held together by gravity and other forces. The expansion only shows across the huge spaces between groups of galaxies."
   - q: "An astronomer in a galaxy 1 billion light-years away looks at the sky. What does she see?"
-    choices: ["Galaxies moving away from her in every direction, faster the farther, just as we do", "Everything moving towards the Milky Way", "Galaxies at rest"]
+    choices: ["Galaxies moving away from her in every direction, faster the farther, just as we do","Everything moving towards the Milky Way","Galaxies at rest"]
     ans: 0
     why: "Even expansion looks the same from every galaxy. Each observer seems to be at the centre, which means nobody is."
 sources:

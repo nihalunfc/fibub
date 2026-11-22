@@ -6,16 +6,16 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: "How does the size of an Einstein-de Sitter (flat, matter-only) universe grow with time?"
-    choices: ["As t to the power 2/3", "Exponentially", "It stays the same"]
-    ans: 0
+    choices: ["Exponentially","It stays the same","As t to the power 2/3"]
+    ans: 2
     why: "Gravity keeps slowing it, and the Friedmann equation gives a ∝ t^(2/3). Its age is 2/3 of the Hubble time."
   - q: "What is special about the de Sitter universe?"
-    choices: ["It holds only dark energy, grows exponentially and has no beginning", "It is static", "It collapses after 10 billion years"]
-    ans: 0
+    choices: ["It is static","It collapses after 10 billion years","It holds only dark energy, grows exponentially and has no beginning"]
+    ans: 2
     why: "With a constant expansion rate, it doubles in size every fixed time, forever, in both directions of time."
   - q: "Which classic model is our universe becoming more like?"
-    choices: ["de Sitter", "Einstein's static universe", "A closed universe heading for a Big Crunch"]
-    ans: 0
+    choices: ["Einstein's static universe","de Sitter","A closed universe heading for a Big Crunch"]
+    ans: 1
     why: "As matter thins out, only dark energy is left, and the expansion settles into de Sitter's steady exponential growth."
 sources:
   - "A. Einstein and W. de Sitter (1932), On the relation between the expansion and the mean density of the universe, PNAS 18, 213 https://doi.org/10.1073/pnas.18.3.213"

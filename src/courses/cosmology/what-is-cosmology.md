@@ -6,15 +6,15 @@ minutes: 14
 updated: 2026-11-22
 quiz:
   - q: Which question belongs to cosmology rather than to the rest of astronomy?
-    choices: ['How old is the universe?', 'How hot is the surface of Mars?', 'When is the next solar eclipse?']
+    choices: ["How old is the universe?","How hot is the surface of Mars?","When is the next solar eclipse?"]
     ans: 0
     why: Cosmology studies the universe as a whole, its age, size, contents and history. The other two are about single objects in our Solar System.
   - q: On a cosmic calendar where the whole history of the universe is one year, when do the Sun and Earth form?
-    choices: ['1 January', 'Early September', '31 December']
-    ans: 1
+    choices: ["Early September","1 January","31 December"]
+    ans: 0
     why: The Sun formed about 4.6 billion years ago, two-thirds of the way through the 13.8 billion years. That lands around 1 September.
   - q: Why can cosmologists study the distant past directly?
-    choices: ['Because light takes time to travel, so far-away light is old light', 'Because old galaxies are brighter', 'Because they use time machines called telescopes that move faster than light']
+    choices: ["Because light takes time to travel, so far-away light is old light","Because old galaxies are brighter","Because they use time machines called telescopes that move faster than light"]
     ans: 0
     why: Light from a galaxy a billion light-years away set off a billion years ago. Looking far is looking back.
 sources:
