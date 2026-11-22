@@ -1,0 +1,30 @@
+---
+// 11.2: what a trademark application costs and how long it takes, by country, applicant type and number of classes.
+---
+<figure class="cs-fig su-fig" data-tm>
+  <span class="cs-figtag">Calculator: trademark filing fees</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada (C$)</option><option value="us">USA ($)</option></select></label>
+    <label>Number of classes<input type="number" name="n" min="1" max="45" step="1" value="2" /></label>
+    <label><span><input type="checkbox" name="s" checked> <span data-sl></span></span></label>
+  </div>
+  <div class="su-out"><div><span>Government filing fee</span><b data-f></b></div><div><span>Typical time to registration</span><b data-t></b></div><div><span>Lasts</span><b>10 years, renewable</b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Official fees as of late 2026, before any agent’s fees: India, e-filing ₹4,500 a class for individuals, startups and small enterprises (₹9,000 otherwise); Canada, about C$460 for the first class and about C$140 for each additional class (CIPO adjusts fees each year); USA, $350 a class for the base application since 18 January 2025, plus surcharges for free-text descriptions. Check the office’s current fee page before filing.</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  const SL: Record<CC, string> = { in: 'Individual, startup or small enterprise', ca: 'Online filing', us: 'Use the pre-approved ID Manual descriptions (no $200 a class surcharge)' };
+  const T: Record<CC, string> = { in: '12 to 24 months', ca: '2 to 3 years', us: '12 to 18 months' };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tm]')) {
+    const cc = followCountry(fig, draw); fig.addEventListener('input', draw); fig.addEventListener('change', draw);
+    function draw() {
+      const c = cc(), n = Math.max(1, Math.round(num(fig, 'n'))), s = (fig.querySelector('[name=s]') as HTMLInputElement).checked;
+      fig.querySelector('[data-sl]')!.textContent = SL[c];
+      const fee = c === 'in' ? n * (s ? 4500 : 9000) : c === 'ca' ? 460 + (n - 1) * 140 + (s ? 0 : 20) : n * (350 + (s ? 0 : 200));
+      fig.querySelector('[data-f]')!.textContent = `about ${money(c, fee)}`;
+      fig.querySelector('[data-t]')!.textContent = T[c];
+      fig.querySelector('[data-say]')!.textContent = c === 'in' ? 'File on the IP India portal (Form TM-A). After examination the mark is advertised in the Trade Marks Journal for 4 months of opposition. You can use ™ from filing.' : c === 'ca' ? 'File with CIPO, using the Nice classes. Canada’s backlog is long: file early, and consider the Madrid Protocol to extend to other countries from one application.' : 'File on USPTO’s Trademark Center. Foreign applicants need a US attorney. Use ™ until registration, then ®; file a declaration of use between years 5 and 6.';
+    }
+  }
+</script>

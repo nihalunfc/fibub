@@ -1,0 +1,32 @@
+---
+// 11.1: what protects what. Tap something your startup made to see which kind of IP covers it, for how long, and whether to register.
+---
+<figure class="cs-fig su-fig" data-ip>
+  <span class="cs-figtag">Try it: which IP protects this?</span>
+  <div class="su-opts" data-k></div>
+  <div class="su-card on" style="margin-top:10px"><strong data-t>Tap something your startup made</strong><div data-d>Each thing can be protected by one or more kinds of intellectual property.</div><div class="su-fine" data-c></div></div>
+  <figcaption>Terms as of November 2026. Copyright: India life of the author plus 60 years, Canada and the USA life plus 70 (company works in the USA: 95 years from publication). Patents: 20 years from filing in all three. Trademarks: 10 years, renewable forever. Designs: India 10 + 5 years; Canada up to 15 years; US design patents 15 years from grant.</figcaption>
+</figure>
+<script>
+  import { getCountry } from './su';
+  const K: [string, string, string, Record<string, string>][] = [
+    ['App or website code', 'Copyright (automatic) + trade secret', 'Code is protected by copyright as soon as it is written; keep the source private as a trade secret. Software as such is hard to patent; a genuinely new technical method sometimes can be.', { in: 'India: software "per se" is not patentable; you can record copyright with the Copyright Office.', us: 'USA: registering copyright (about $45 to $65 online) is needed before suing and allows statutory damages.' }],
+    ['Brand name and logo', 'Trademark', 'Register the name and logo for your goods or services class. Until then, use ™; after registration, ®.', {}],
+    ['A new machine or process', 'Patent', 'File before you show it publicly (or within the grace period your country allows). Patents last 20 years from filing and need a patent agent.', { us: 'USA: a provisional application ($65 to $325) holds your filing date for 12 months.', in: 'India: startups pay reduced fees and can request expedited examination.' }],
+    ['Product shape or look', 'Industrial design', 'Protects how a product looks, not how it works. Register before it goes public.', {}],
+    ['Customer list, recipe, pricing model', 'Trade secret', 'No registration: protected as long as you keep it secret, with NDAs, access limits and staff confidentiality clauses.', {}],
+    ['Blog posts, photos, course videos', 'Copyright', 'Automatic. Make sure the company owns work by staff and freelancers through written assignments.', {}],
+    ['Domain name', 'Domain registration (not IP)', 'Register it in the company’s name; trademark rights help win a dispute over a look-alike domain (UDRP).', {}],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ip]')) {
+    const box = fig.querySelector('[data-k]')!;
+    box.innerHTML = K.map(([k], i) => `<button type="button" data-i="${i}" aria-pressed="false">${k}</button>`).join('');
+    box.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+      box.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      const [k, t, d, notes] = K[Number(b.dataset.i)], cc = getCountry();
+      fig.querySelector('[data-t]')!.textContent = `${k}: ${t}`;
+      fig.querySelector('[data-d]')!.textContent = d;
+      fig.querySelector('[data-c]')!.textContent = cc === 'all' ? Object.values(notes).join(' ') : notes[cc] ?? '';
+    }));
+  }
+</script>

@@ -1,0 +1,71 @@
+---
+// 11.3: pick a contract a startup signs often; see the clauses it must have, what each does, and the trap to avoid.
+---
+<figure class="cs-fig su-fig" data-kc>
+  <span class="cs-figtag">Try it: what must this contract say?</span>
+  <div class="su-opts" data-k></div>
+  <div data-qs style="margin-top:10px"></div>
+  <div class="su-bars"><div><span>Clauses checked</span><span class="t"><i data-bar></i></span><b data-n></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>A plain-language list of the clauses lawyers expect to see, as of November 2026. Tick each one you have found in your draft. Use it to read a contract before you sign, not as a replacement for one written for your business.</figcaption>
+</figure>
+<script>
+  const K: [string, [string, string][], string][] = [
+    ['NDA', [
+      ['What counts as confidential', 'Specific enough to enforce: product plans, code, customer data, pricing.'],
+      ['What does not count', 'Information already public, already known, or developed independently.'],
+      ['How it may be used', 'Only to evaluate or deliver the deal named in the NDA.'],
+      ['How long it lasts', 'Commonly 2 to 5 years; trade secrets for as long as they stay secret.'],
+      ['Return or destroy on request', 'Copies come back or are deleted when talks end.'],
+      ['Mutual or one-way', 'Mutual when both sides share secrets.'],
+    ], 'Most investors will not sign an NDA to hear a pitch. Share the story freely; keep code, data and detailed financials for later, under an NDA.'],
+    ['Contractor or freelancer', [
+      ['Scope, deliverables and deadlines', 'What is delivered, by when, and how it is accepted.'],
+      ['Fees, invoices and payment terms', 'Fixed or hourly, when invoices are paid, who pays tax.'],
+      ['IP assignment to your company', 'All work, code and designs belong to the company once paid. Without it, the freelancer usually owns the copyright.'],
+      ['Moral rights waiver', 'Canada and India give authors moral rights; ask for a waiver or consent so you can change the work.'],
+      ['Confidentiality', 'Keeps your code, data and customers private during and after the work.'],
+      ['Independent contractor status', 'Their own tools, hours and other clients; matches how you really work (Lesson 9.1).'],
+      ['Ending the contract', 'Notice period and payment for work done.'],
+    ], 'The trap: paying a freelancer for your logo or app without a written IP assignment. You paid for the work but may not own it, and investors will find the gap in due diligence.'],
+    ['Customer terms (ToS)', [
+      ['What you provide and what you do not', 'The service, its limits, and acceptable use.'],
+      ['Price, billing, renewal and cancellation', 'Clear auto-renewal terms and an easy way to cancel.'],
+      ['Refunds', 'Matches consumer law in each country you sell in.'],
+      ['Limit of liability', 'Caps what you owe if something goes wrong; consumer laws limit how far you can go.'],
+      ['Who owns the content and data', 'Customers own their data; you get a licence to run the service.'],
+      ['Governing law and disputes', 'Which country or state’s law applies and where disputes go.'],
+      ['How you change the terms', 'Notice before changes take effect.'],
+    ], 'Copying another company’s terms copies their business, not yours, and may copy their copyright. Use a template, then fit it to what you actually do.'],
+    ['Employee offer letter', [
+      ['Role, pay, start date and place of work', 'The basics, plus probation if any.'],
+      ['IP and invention assignment', 'Work done for the job belongs to the company.'],
+      ['Confidentiality', 'During and after employment.'],
+      ['Notice and termination', 'At least the legal minimum (Lesson 9.6).'],
+      ['Options, if promised', 'Number, strike price and vesting, or a promise to grant under the plan.'],
+      ['Non-solicitation', 'Not poaching staff or customers for a period; non-competes are often unenforceable.'],
+    ], 'In the USA, California and some other states limit invention assignment for work done on the employee’s own time and equipment; Ontario bans most non-competes since 2021.'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-kc]')) {
+    const box = fig.querySelector('[data-k]')!, qs = fig.querySelector('[data-qs]')!;
+    box.innerHTML = K.map(([k], i) => `<button type="button" data-i="${i}" aria-pressed="${i === 0}">${k}</button>`).join('');
+    let cur = 0;
+    function pick(i: number) {
+      cur = i; box.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+      qs.innerHTML = '';
+      K[i][1].forEach(([t, d]) => {
+        const l = document.createElement('label'); l.style.cssText = 'display:flex;gap:8px;align-items:flex-start;font-weight:500;font-size:14.5px;margin:6px 0';
+        l.innerHTML = '<input type="checkbox" style="margin-top:3px"><span><b></b> <span class="su-fine"></span></span>';
+        l.querySelector('b')!.textContent = t; l.querySelector('.su-fine')!.textContent = d; qs.append(l);
+      });
+      fig.querySelector('[data-say]')!.textContent = K[i][2]; draw();
+    }
+    function draw() {
+      const all = qs.querySelectorAll('input').length, on = qs.querySelectorAll('input:checked').length;
+      (fig.querySelector('[data-bar]') as HTMLElement).style.width = `${(on / all) * 100}%`;
+      fig.querySelector('[data-n]')!.textContent = `${on} of ${all}`;
+    }
+    box.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => pick(Number(b.dataset.i))));
+    qs.addEventListener('change', draw); pick(cur);
+  }
+</script>
