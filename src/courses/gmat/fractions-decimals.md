@@ -76,3 +76,10 @@ When the answer choices are far apart, round and estimate (Lesson 1.4). When the
 - Estimate when choices are far apart; stay exact when they are close.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="fractions" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

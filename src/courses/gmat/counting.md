@@ -85,3 +85,10 @@ Arrangements of a word with repeated letters: divide by the factorial of each re
 - Repeats: divide by the factorial of each repeat. Together: glue into a block. Not together: total − together.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="counting" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

@@ -95,3 +95,10 @@ For a number between 0 and 1, powers make it **smaller** and roots make it **big
 - Between 0 and 1, powers shrink a number and roots grow it.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="exponents" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

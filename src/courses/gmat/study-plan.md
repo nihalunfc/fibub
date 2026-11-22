@@ -98,3 +98,10 @@ Keep the maths warm every day. Here is a quick one:
 - You are ready when your last two practice tests hit your target.
 
 </div>
+
+## Diagnostic: where are you now?
+
+Ten mixed questions from across the quant syllabus. Do them before you start Module 2, without a calculator, and write down which ones you missed. That list is your study plan.
+
+<div class="qbank" data-bank="grad-quant" data-topics="mental-maths,integers,primes,odd-even,exponents,fractions,linear,quadratics,inequalities,functions,percents,ratios,rates,profit,sets,averages,spread,counting,probability" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

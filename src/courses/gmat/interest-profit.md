@@ -73,3 +73,10 @@ With 10% a year on 1,000: simple gives 1,100, 1,200, 1,300; compound gives 1,100
 - Compounding n times a year: rate ÷ n, n times as many periods.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="profit" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

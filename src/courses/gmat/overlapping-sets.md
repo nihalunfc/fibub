@@ -73,3 +73,10 @@ Each row and each column must add up. Fill what the question gives; the empty ce
 - Overlapping percentages can add to more than 100%.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="sets" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

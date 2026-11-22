@@ -100,3 +100,10 @@ Only the last digit of the base matters: 17<sup>20</sup> ends in the same digit 
 - Units digits of powers repeat in short cycles: use the remainder of the power.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="integers" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

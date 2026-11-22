@@ -87,3 +87,10 @@ y = ax² + bx + c turns at **x = −b ÷ (2a)**. If a is negative the curve open
 - A parabola turns at x = −b/(2a).
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="quadratics" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

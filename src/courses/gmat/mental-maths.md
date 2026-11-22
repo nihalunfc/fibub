@@ -113,3 +113,10 @@ GMAT answer choices are usually far enough apart that a rough estimate picks the
 - Estimate first; calculate exactly only when two choices are close.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="mental-maths" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

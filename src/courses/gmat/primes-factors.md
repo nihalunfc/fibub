@@ -94,3 +94,10 @@ Each zero at the end of a number comes from a 10 = 2 × 5. In a factorial there 
 - Trailing zeros of n!: count the 5s (n ÷ 5 + n ÷ 25 + …).
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="primes" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

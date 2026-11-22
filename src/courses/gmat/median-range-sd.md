@@ -75,3 +75,10 @@ On the GMAT you will rarely calculate an SD. You will **compare** them: the list
 - A value at the mean lowers the SD; values far away raise it.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="spread" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

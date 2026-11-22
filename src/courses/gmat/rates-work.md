@@ -89,3 +89,10 @@ Shortcut for two workers: **together = ab ÷ (a + b)** (6 × 3 ÷ 9 = 2). A pipe
 - An emptying pipe has a negative rate.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="rates" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

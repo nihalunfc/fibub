@@ -87,3 +87,10 @@ If you have no plan after 30 seconds, or you are past 2.5 minutes with no end in
 - No plan in 30 seconds or no end in 2.5 minutes: guess, bookmark, move on.
 
 </div>
+
+## Practise: a mixed quant set
+
+Twenty questions drawn from every quant lesson, in random order, the way the real section mixes them. Note which topics you miss and go back to those lessons.
+
+<div class="qbank" data-bank="grad-quant" data-topics="mental-maths,integers,primes,odd-even,exponents,fractions,linear,quadratics,inequalities,functions,percents,ratios,rates,profit,sets,averages,spread,counting,probability" data-exam="gmat" data-mode="practice" data-n="20"></div>
+

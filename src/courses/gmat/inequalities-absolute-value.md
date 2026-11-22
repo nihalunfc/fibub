@@ -87,3 +87,10 @@ So "x² &lt; x" means exactly 0 &lt; x &lt; 1.
 - Squares and fractions break simple rules: test 0, ±1 and ±1/2.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="inequalities" data-exam="gmat" data-mode="practice" data-n="10"></div>
+

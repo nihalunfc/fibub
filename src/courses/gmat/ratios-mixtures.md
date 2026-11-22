@@ -86,3 +86,10 @@ The strength of a mixture is a **weighted average**: total amount of the ingredi
 - Mixture strength = total ingredient ÷ total volume, a weighted average.
 
 </div>
+
+## Practise: GMAT-style questions on this lesson
+
+Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.
+
+<div class="qbank" data-bank="grad-quant" data-topics="ratios" data-exam="gmat" data-mode="practice" data-n="10"></div>
+
