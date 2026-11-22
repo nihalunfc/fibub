@@ -2,6 +2,7 @@
 // quantum harmonic oscillator, rotors (symmetry number, ortho/para), paramagnets (tanh, Brillouin, Curie law),
 // adiabatic demagnetisation. Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './partition-functions.more.gen.js';
 
 const kB = 8.617333e-5; // eV/K
 const muB = 9.2740100783e-24; // J/T
@@ -330,5 +331,6 @@ export default {
           sol: `$P(v \\ge 1) = 1 - P_0 = 1 - (1 - e^{-x}) = e^{-x}$ with $x = ${th}/${T} = ${round(th / T, 4)}$: $e^{-${round(th / T, 4)}} = ${round(f / 100, 5)}$, i.e. $${round(f, 3)}\\%$.` };
       },
       verify: (p) => Math.exp(-p.th / p.T) * 100 },
+    ...more,
   ],
 };

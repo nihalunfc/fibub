@@ -3,6 +3,7 @@
 // critical exponents, scaling relations, universality, the exact 1D and 2D Ising results.
 // Original questions for GATE and CSIR NET practice (fibub), MSc level.
 import { pick, int, choose, mcqOptions, round, shuffle, C } from '../_util.js';
+import more from './phase-transitions.more.gen.js';
 
 const kBe = 8.617333e-5;
 const mf = (t) => { if (t >= 1) return 0; let m = 1; for (let i = 0; i < 2000; i++) m = Math.tanh(m / t); return m; }; // m = tanh(m/t)
@@ -311,5 +312,6 @@ export default {
         return { q: `In ${which}, the critical exponent $${sym}$ equals`, options: o.options, answer: o.answer,
           sol: `${which === 'mean-field theory' ? 'Mean field: $\\alpha = 0$ (jump), $\\beta = 1/2$, $\\gamma = 1$, $\\delta = 3$, $\\nu = 1/2$.' : '2D Ising (Onsager, Yang): $\\alpha = 0$ (log), $\\beta = 1/8$, $\\gamma = 7/4$, $\\delta = 15$, $\\nu = 1$.'} Both sets satisfy $\\alpha + 2\\beta + \\gamma = 2$ and $\\gamma = \\beta(\\delta - 1)$.` };
       } },
+    ...more,
   ],
 };
