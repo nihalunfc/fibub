@@ -57,6 +57,10 @@ Moment of inertia measures how hard a body is to spin up: `$I = \sum m r^2 = \in
 | Solid sphere | diameter | `$2MR^2/5$` |
 | Rectangular plate a × b | through the centre, perpendicular | `$M(a^2 + b^2)/12$` |
 
+See every row of this table spin. Pick a body and an axis: the dots are bits of mass, and the farther a dot is from the axis the bigger it is drawn, because it counts r² times. Switch the axis of the same body and watch I change; switch "Spin" to *Same push* and the bodies with a bigger I speed up more slowly under the same torque.
+
+<figure class="fig" data-fig="@moi-shapes"><figcaption>Moment of inertia for every standard body and axis. Drag the picture to turn it. The readout checks the formula against the value added up from the dots.</figcaption></figure>
+
 - **Parallel axis theorem:** `$I = I_{cm} + Md^2$`, for an axis parallel to one through the centre of mass at distance d. It shows I is least about an axis through the centre of mass.
 - **Perpendicular axis theorem** (flat bodies only): `$I_z = I_x + I_y$`, where x and y lie in the plate and z is perpendicular to it through the same point. A ring about a diameter: MR²/2; a disc about a diameter: MR²/4.
 

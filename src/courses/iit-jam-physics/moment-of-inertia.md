@@ -49,6 +49,8 @@ Here `$r$` is the **perpendicular distance from the axis**, not the distance fro
 
 </div>
 
+<figure class="fig" data-fig="@moi-shapes"><figcaption>Every standard body about every standard axis, spinning in 3D (drag to turn). Each dot is a bit of mass drawn by its r²; the readout adds the dots up and compares with the formula, which is exactly what the slicing below does with an integral.</figcaption></figure>
+
 ## 2. Computing I by slicing
 
 The strategy is always the same: cut the body into pieces whose moment of inertia you already know, and add them up.
