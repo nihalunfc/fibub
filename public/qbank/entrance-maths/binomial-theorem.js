@@ -792,4 +792,106 @@ for (const it of items) {
   it.calc = () => it.options.findIndex((o) => Math.abs(num(o) - count()) < 1e-9);
 }
 
+// ==L5-M2-START
+{
+  const R = String.raw;
+  const E5 = ['jee-adv'];
+  const o = (id, type, format, sub, q, extra) => ({ id, type, format, level: 5, exams: E5, sub, q, ...extra });
+  const AOPT5 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+  const cb = (n, k) => { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - i + 1)) / i; return Math.round(r); };
+  Object.assign(groups, {
+    v5m1: {
+      title: 'Sums with binomial coefficients, n = 5',
+      passage: R`<p>Match each sum in List I (over $r=0,1,\dots,5$) with its value in List II.</p>`,
+      list1: [R`A. $\displaystyle\sum\frac{\binom5r}{r+1}$`, R`B. $\displaystyle\sum\frac{(-1)^r\binom5r}{r+1}$`, R`C. $\displaystyle\sum r\binom5r$`, R`D. $\displaystyle\sum\frac{(-1)^r\binom5r}{r+2}$`],
+      list2: [R`p. $\dfrac16$`, R`q. $\dfrac{21}2$`, R`r. $80$`, R`s. $\dfrac1{42}$`, R`t. $\dfrac1{30}$`],
+    },
+    v5m2: {
+      title: 'Pascal rows and divisibility',
+      passage: R`<p>Match each quantity in List I with its value in List II.</p>`,
+      list1: [R`A. The number of odd numbers in row $12$ of Pascal's triangle (the entries $\binom{12}r$)`, R`B. The number of odd numbers in row $11$ (the entries $\binom{11}r$)`, R`C. The highest power of $2$ dividing $\binom{12}6$`, R`D. The highest power of $3$ dividing $\binom{12}6$`],
+      list2: [R`p. $1$`, R`q. $2$`, R`r. $4$`, R`s. $8$`],
+    },
+    v5p1: {
+      title: 'Passage: powers of 2 plus root 3',
+      passage: R`<p>Let $a_n=(2+\sqrt3)^n+(2-\sqrt3)^n$ for $n=0,1,2,\dots$ Note that $2\pm\sqrt3$ are the roots of $t^2-4t+1=0$.</p>`,
+    },
+  });
+  items.push(
+    o('bt-v501', 'nat', 'integer', 'integration', R`$\displaystyle\sum_{r=0}^{6}\frac{(-1)^r\binom6r}{r+3}=\frac1N$. Find the integer $N$.`, { answer: 252, tol: 0,
+      sol: R`<p>Idea: $\dfrac1{r+3}=\displaystyle\int_0^1x^{r+2}\,dx$, so the sum is an integral of a binomial expansion.</p><p>$\displaystyle\sum_{r=0}^6(-1)^r\binom6r\int_0^1x^{r+2}dx=\int_0^1x^2(1-x)^6dx=\dfrac{2!\,6!}{9!}=\dfrac{2\cdot720}{362880}=\dfrac1{252}$.</p><p>So $N=252$. (In general the sum $\sum(-1)^r\binom nr\frac1{r+k}$ has reciprocal $k\binom{n+k}k$; here $3\binom93=252$.)</p>`,
+      trap: 'Using $\\int_0^1(1-x)^6dx=\\tfrac17$ (the $k=1$ case) and forgetting the extra $x^2$.' }),
+    o('bt-v502', 'nat', 'integer', 'parity', R`Among $\binom{100}0,\binom{100}1,\dots,\binom{100}{100}$ let $p$ be the number of odd entries and $q$ the number of entries that are not divisible by $3$. Find $p+q$.`, { answer: 20, tol: 0,
+      sol: R`<p>Use Lucas' theorem: $\binom nr\not\equiv0\pmod p$ exactly when every base-$p$ digit of $r$ is at most the matching digit of $n$.</p><p>Base 2: $100=1100100_2$, which has three 1s, so $p=2^3=8$.</p><p>Base 3: $100=10201_3$ (since $81+2\cdot9+1$). The count of $r$ is $(1+1)(0+1)(2+1)(0+1)(1+1)=12$, so $q=12$.</p><p>$p+q=20$.</p>`,
+      trap: 'Guessing that about half the entries are odd. Only 8 of 101 are.' }),
+    o('bt-v503', 'nat', 'integer', 'identities', R`Find $\displaystyle\sum_{r=3}^{9}\binom9r\binom r3$.`, { answer: 5376, tol: 0,
+      sol: R`<p>Choose a set of $r$ items from 9, then a subset of 3 inside it. Reverse the order: pick the 3 first, $\binom93$ ways, then choose which of the other $6$ items join $r$: $2^6$ ways.</p><p>Algebraically $\binom9r\binom r3=\binom93\binom6{r-3}$, so the sum is $\binom93\sum_s\binom6s=84\cdot64=5376$.</p>`,
+      trap: 'Summing $\\binom9r$ alone ($2^9-\\dots$) or using $2^{9}\\binom93$. The sum of the second factor runs over only $6$ remaining items.' }),
+    o('bt-v504', 'nat', 'numeric', 'infinite series', R`Find $\displaystyle\sum_{n=0}^{\infty}\binom{2n}{n}\frac1{5^n}$. (2 decimal places)`, { answer: 2.24, tol: 0.01,
+      sol: R`<p>Since $\binom{-1/2}{n}(-4)^n=\binom{2n}n$, we have $(1-4x)^{-1/2}=\sum_{n\ge0}\binom{2n}nx^n$ for $|x|<\tfrac14$.</p><p>Put $x=\tfrac15$ (inside the range): $\left(1-\tfrac45\right)^{-1/2}=\sqrt5\approx2.24$.</p>`,
+      trap: 'The series converges only for $|x|<1/4$. At $x=1/5$ it is fine; at $x=1/3$ it would not be.' }),
+    o('bt-v505', 'nat', 'numeric', 'probability link', R`Find $\displaystyle\sum_{r=0}^{20}r^2\binom{20}r(0.3)^r(0.7)^{20-r}$. (2 decimal places)`, { answer: 40.2, tol: 0.01,
+      sol: R`<p>Let $f(x)=(q+x)^{20}$ with $q=0.7$. Then $\sum r\binom{20}rx^rq^{20-r}=xf'(x)$ and $\sum r^2\binom{20}rx^rq^{20-r}=x\dfrac d{dx}(xf')=xf'+x^2f''$.</p><p>At $x=0.3$, $q+x=1$: $f'=20$, $f''=20\cdot19=380$.</p><p>$0.3\cdot20+0.09\cdot380=6+34.2=40.2$.</p><p>(Same as $npq+n^2p^2=4.2+36$.)</p>`,
+      trap: 'Giving the variance $npq=4.2$ or the mean $6$. This is the sum with $r^2$, so it is $npq+(np)^2$.' }),
+    o('bt-v506', 'msq', 'multi', 'complex numbers', R`Let $S=\displaystyle\sum_{r=0}^{6}\binom6r\cos\dfrac{r\pi}3$. Which statements are true?`, { options: [R`$S=-27$`, R`$\displaystyle\sum_{r=0}^6(-1)^r\binom6r\cos\dfrac{r\pi}3=-1$`, R`$\displaystyle\sum_{r=0}^6\binom6r\sin\dfrac{r\pi}3=0$`, R`$\displaystyle\sum_{r=0}^6\binom6r\cos\dfrac{2r\pi}3=1$`], answer: [0, 2, 3],
+      sol: R`<p>Use $\sum\binom6r e^{ir\theta}=(1+e^{i\theta})^6$ and $1+e^{i\theta}=2\cos\dfrac\theta2\,e^{i\theta/2}$.</p><p>$\theta=\dfrac\pi3$: $(1+e^{i\pi/3})^6=\left(2\cos\dfrac\pi6\right)^6e^{i\pi}=(\sqrt3)^6\cdot(-1)=-27$. So the real part is $-27$ (A true) and the imaginary part (the sine sum) is $0$ (C true).</p><p>B: $\sum(-1)^r\binom6re^{ir\pi/3}=(1-e^{i\pi/3})^6$. $1-e^{i\pi/3}=e^{-i\pi/3}$ (modulus 1), so the sixth power is $e^{-2\pi i}=1$. The real part is $+1$, not $-1$. B false.</p><p>D: $(1+e^{2\pi i/3})^6=(-e^{4\pi i/3})^6=e^{8\pi i}=1$. True.</p><p>Answer: A, C, D.</p>`,
+      trap: 'Mixing up $\\sum(-1)^r\\binom6r\\cos$ with the plain sum. Replacing $r$ by $-r$ in the sign changes the angle by $\\pi$.' }),
+    o('bt-v507', 'msq', 'multi', 'inequalities', R`Which of the following are true?`, { options: [R`$(1.0001)^{10000}>3$`, R`$101^{50}>100^{50}+99^{50}$`, R`$(1.01)^{1000}>1000$`, R`$\left(1+\dfrac1n\right)^n<3$ for every positive integer $n$`], answer: [1, 2, 3],
+      sol: R`<p>(A) $\left(1+\dfrac1n\right)^n=\sum\binom nk\dfrac1{n^k}\le\sum\dfrac1{k!}<1+1+\dfrac12+\dfrac14+\cdots=3$. So $(1.0001)^{10000}<3$ (it is about $2.718$). A false, D true.</p><p>(B) Divide by $101^{50}$: $\left(1-\dfrac1{101}\right)^{50}+\left(1-\dfrac2{101}\right)^{50}<e^{-50/101}+e^{-100/101}\approx0.609+0.372=0.981<1$. True.</p><p>(C) $(1.01)^{1000}\ge1+\binom{1000}1(0.01)+\binom{1000}2(0.01)^2+\binom{1000}3(0.01)^3+\binom{1000}4(0.01)^4+\binom{1000}5(0.01)^5$, about $1+10+49.95+166.2+414.2+825\approx1466>1000$. True.</p><p>Answer: B, C, D.</p>`,
+      trap: 'Taking $(1+1/n)^n$ with huge $n$ to exceed $3$. It increases towards $e\\approx2.718$ and never reaches $3$.' }),
+    o('bt-v508', 'msq', 'multi', 'divisibility of binomial coefficients', R`Which of the following primes divide $\dbinom{40}{20}$?`, { options: [R`$17$`, R`$23$`, R`$13$`, R`$19$`], answer: [1, 2],
+      sol: R`<p>Legendre's formula: the exponent of $p$ in $\binom{40}{20}$ is $\sum_i\left(\left\lfloor\dfrac{40}{p^i}\right\rfloor-2\left\lfloor\dfrac{20}{p^i}\right\rfloor\right)$.</p><p>$p=17$: $2-2\cdot1=0$. No.</p><p>$p=23$: $1-0=1$. Yes.</p><p>$p=13$: $3-2\cdot1=1$. Yes.</p><p>$p=19$: $2-2\cdot1=0$. No.</p><p>Answer: 23 and 13. (Rule of thumb: primes in $(20,40]$ divide it, primes in $(\tfrac{40}3,20]$ do not.)</p>`,
+      trap: 'Believing every prime up to 40 divides it. Primes between $2n/3$ and $n$ never divide $\\binom{2n}n$.' }),
+    { ...o('bt-v509', 'mcq', 'match', 'integration and sums', R`Match each sum with its value.`, { options: ['A-p, B-q, C-r, D-s', 'A-r, B-p, C-q, D-s', 'A-q, B-p, C-r, D-s', 'A-q, B-p, C-s, D-r'], answer: 2 }), group: 'v5m1',
+      sol: R`<p>Write $\dfrac1{r+k}=\int_0^1x^{r+k-1}dx$.</p><p>A: $\int_0^1(1+x)^5dx=\dfrac{2^6-1}6=\dfrac{21}2$ (q).</p><p>B: $\int_0^1(1-x)^5dx=\dfrac16$ (p).</p><p>C: $\sum r\binom5r=5\cdot2^4=80$ (r).</p><p>D: $\int_0^1x(1-x)^5dx=\dfrac{1!\,5!}{7!}=\dfrac1{42}$ (s).</p>`,
+      trap: 'In D the extra factor $x$ changes the answer from $\\tfrac16$ to $\\tfrac1{42}$ (not $\\tfrac1{30}$).' },
+    { ...o('bt-v510', 'mcq', 'match', "Lucas' and Kummer's theorems", R`Match each quantity with its value.`, { options: ['A-p, B-s, C-q, D-r', 'A-r, B-s, C-q, D-p', 'A-r, B-q, C-s, D-p', 'A-s, B-r, C-q, D-p'], answer: 1 }), group: 'v5m2',
+      sol: R`<p>Number of odd entries in row $n$ is $2^{s}$, where $s$ is the number of 1s in the binary form of $n$.</p><p>A: $12=1100_2$, $s=2$: $2^2=4$ (r).</p><p>B: $11=1011_2$, $s=3$: $2^3=8$ (s).</p><p>C and D: $\binom{12}6=924=2^2\cdot3\cdot7\cdot11$. The power of 2 is 2 (q) and of 3 is 1 (p). (Kummer: carries when adding $6+6$ in base 2 are 2 ($110+110$), in base 3 are 1 ($20+20$).)</p>`,
+      trap: 'The binary count: $12$ has two 1s but $11$ has three, so row 11 has more odd entries than row 12.' },
+    { ...o('bt-v511', 'nat', 'passage', 'conjugate pairs', R`Find $a_5$.`, { answer: 724, tol: 0,
+      sol: R`<p>Since $2\pm\sqrt3$ satisfy $t^2=4t-1$, $a_n=4a_{n-1}-a_{n-2}$. Start with $a_0=2$, $a_1=4$.</p><p>$a_2=14$, $a_3=52$, $a_4=194$, $a_5=724$.</p>`,
+      trap: 'Computing $a_5$ from $(2+\\sqrt3)^5$ alone and rounding: the integer is the sum of the pair.' }), group: 'v5p1' },
+    { ...o('bt-v512', 'nat', 'passage', 'integral part', R`Find the greatest integer not exceeding $(2+\sqrt3)^{10}$.`, { answer: 524173, tol: 0,
+      sol: R`<p>$0<(2-\sqrt3)^{10}<1$, so $(2+\sqrt3)^{10}=a_{10}-(2-\sqrt3)^{10}$ lies between $a_{10}-1$ and $a_{10}$. The greatest integer is $a_{10}-1$.</p><p>Continuing the recurrence: $a_6=2702$, $a_7=10084$, $a_8=37634$, $a_9=140452$, $a_{10}=524174$.</p><p>Answer: $524173$.</p>`,
+      trap: 'Answering $a_{10}$. It is not below $(2+\\sqrt3)^{10}$; it is just above it.' }), group: 'v5p1' },
+    { ...o('bt-v513', 'nat', 'passage', 'remainders', R`The integer found in the previous part is divided by $7$. Find the remainder.`, { answer: 6, tol: 0,
+      sol: R`<p>$524173=7\cdot74881+6$, since $7\cdot74881=524167$.</p><p>Remainder $6$.</p>`,
+      trap: 'Using $a_{10}=524174$, whose remainder is $0$, instead of $a_{10}-1$.' }), group: 'v5p1' },
+    o('bt-v514', 'mcq', 'single', 'partial alternating sum', R`The value of $\displaystyle\sum_{r=0}^{4}(-1)^r\binom{12}r$ is`, { options: ['$-330$', '$330$', '$495$', '$0$'], answer: 1,
+      sol: R`<p>Use $\binom{12}r=\binom{11}r+\binom{11}{r-1}$. The sum telescopes:</p><p>$\sum_{r=0}^{k}(-1)^r\binom nr=(-1)^k\binom{n-1}k$.</p><p>With $n=12$, $k=4$: $\binom{11}4=330$. Check directly: $1-12+66-220+495=330$.</p><p>The full alternating sum is $0$, but the sum stops at $r=4$.</p>`,
+      trap: 'Answering 0 (the full sum) or the last term 495.' }),
+    o('bt-v515', 'mcq', 'assertion', 'divisibility', R`<p><b>Assertion (A):</b> $11^{25}+12^{25}$ is divisible by $23$.</p><p><b>Reason (R):</b> $a^n+b^n$ is divisible by $a+b$ for every positive integer $n$.</p>`, { options: AOPT5, answer: 2,
+      sol: R`<p>$12=23-11$, so $12^{25}=(23-11)^{25}=-11^{25}+23k$ (an odd power flips the sign of the last term). Hence $11^{25}+12^{25}=23k$. A is true.</p><p>R is false: it needs odd $n$. For $n=2$, $11^2+12^2=265$ is not a multiple of $23$ ($265=23\cdot11+12$).</p><p>So A is true and R is false.</p>`,
+      trap: 'The reason looks like the standard fact, but the standard fact is for odd $n$ only.' }),
+  );
+  const fact = (n) => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; };
+  gens.push(
+    { id: 'bt-v5g1', type: 'nat', format: 'integer', level: 5, exams: E5, sub: 'integration',
+      make(rng) {
+        const n = int(rng, 4, 8), k = int(rng, 2, 4), N = k * cb(n + k, k);
+        return { n, k, N, answer: N, tol: 0,
+          q: `$\\displaystyle\\sum_{r=0}^{${n}}\\frac{(-1)^r\\binom{${n}}r}{r+${k}}=\\frac1N$. Find the integer $N$.`,
+          sol: `<p>$\\dfrac1{r+${k}}=\\displaystyle\\int_0^1x^{r+${k - 1}}dx$, so the sum is $\\displaystyle\\int_0^1x^{${k - 1}}(1-x)^{${n}}dx=\\dfrac{${k - 1}!\\,${n}!}{${n + k}!}$.</p><p>Its reciprocal is $${k}\\binom{${n + k}}{${k}}=${N}$.</p>` };
+      },
+      verify(p) { let s = 0; for (let r = 0; r <= p.n; r++) s += ((-1) ** r * cb(p.n, r)) / (r + p.k); return Math.round(1 / s); } },
+    { id: 'bt-v5g2', type: 'nat', format: 'numeric', level: 5, exams: E5, sub: 'infinite series',
+      make(rng) {
+        const m = choose(rng, [5, 6, 8, 9, 10, 12, 16, 20]), ans = Math.sqrt(m / (m - 4));
+        return { m, answer: Math.round(ans * 100) / 100, tol: 0.01,
+          q: `Find $\\displaystyle\\sum_{n=0}^{\\infty}\\binom{2n}n\\frac1{${m}^n}$. (2 decimal places)`,
+          sol: `<p>$(1-4x)^{-1/2}=\\sum\\binom{2n}nx^n$ for $|x|<\\tfrac14$. With $x=\\tfrac1{${m}}$ (inside the range): $\\left(1-\\dfrac4{${m}}\\right)^{-1/2}=\\sqrt{\\dfrac{${m}}{${m - 4}}}\\approx${ans.toFixed(2)}$.</p>` };
+      },
+      verify(p) { let s = 0, c = 1; for (let n = 0; n < 400; n++) { s += c / p.m ** n; c = (c * (2 * (2 * n + 1))) / (n + 1); } return Math.round(s * 100) / 100; } },
+    { id: 'bt-v5g3', type: 'nat', format: 'integer', level: 5, exams: E5, sub: 'identities',
+      make(rng) {
+        const n = int(rng, 6, 11), k = int(rng, 2, 4), ans = cb(n, k) * 2 ** (n - k);
+        return { n, k, answer: ans, tol: 0,
+          q: `Find $\\displaystyle\\sum_{r=${k}}^{${n}}\\binom{${n}}r\\binom r{${k}}$.`,
+          sol: `<p>$\\binom{${n}}r\\binom r{${k}}=\\binom{${n}}{${k}}\\binom{${n - k}}{r-${k}}$ (choose the ${k} first, then the rest of the $r$).</p><p>The sum is $\\binom{${n}}{${k}}\\cdot2^{${n - k}}=${cb(n, k)}\\times${2 ** (n - k)}=${ans}$.</p>` };
+      },
+      verify(p) { let s = 0; for (let r = p.k; r <= p.n; r++) s += cb(p.n, r) * cb(r, p.k); return s; } },
+  );
+}
+// ==L5-M2-END
+
 export default { topic: 'binomial-theorem', groups, items, gens };

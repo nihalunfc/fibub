@@ -903,4 +903,118 @@ gens.push(...xgens);
 
 }
 
+
+
+// ==L5-M2-START
+{
+  const R = String.raw;
+  const E5 = ['jee-adv'];
+  const o = (id, type, format, sub, q, extra) => ({ id, type, format, level: 5, exams: E5, sub, q, ...extra });
+  const SOPT5 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+  Object.assign(groups, {
+    v5m1: {
+      title: 'Lines touching shifted conics',
+      passage: R`<p>For each conic in List I, the line $y=x+c$ touches it for the values of $c$ in List II. Match them.</p>`,
+      list1: [R`A. $(y-1)^2=8(x-3)$`, R`B. $\dfrac{(x-2)^2}{25}-\dfrac{(y-1)^2}{9}=1$`, R`C. $(x-1)^2+(y-1)^2=18$`, R`D. $\dfrac{(x+1)^2}{16}+\dfrac{(y-2)^2}{9}=1$`],
+      list2: [R`p. $c=0$ only`, R`q. $c=3$ or $c=-5$`, R`r. $c=6$ or $c=-6$`, R`s. $c=8$ or $c=-2$`, R`t. no real value of $c$`],
+    },
+    v5m2: {
+      title: 'Midpoints of chords through a point',
+      passage: R`<p>Chords of each conic in List I are drawn through the point given with it. Match the locus of the midpoints of these chords with its equation in List II.</p>`,
+      list1: [R`A. chords of $y^2=4x$ through $(1,0)$`, R`B. chords of $\dfrac{x^2}{9}+\dfrac{y^2}{4}=1$ through $(1,0)$`, R`C. chords of $x^2-y^2=4$ through $(4,0)$`, R`D. chords of $x^2+y^2=9$ through $(4,0)$`],
+      list2: [R`p. $y^2=2x-2$`, R`q. $(2x-1)^2+9y^2=1$`, R`r. $x^2+y^2=4x$`, R`s. $x^2-y^2=4x$`],
+    },
+    v5p1: {
+      title: 'Passage: tangent and normal at the end of a parabola chord',
+      passage: R`<p>$P=(4,4)$ lies on $y^2=4x$ and $S$ is its focus. The tangent at $P$ meets the $x$-axis at $T$ and the normal at $P$ meets the $x$-axis at $G$. The circle through $P$, $T$ and $G$ meets the parabola again at a point $Q$.</p>`,
+    },
+  });
+  items.push(
+    o('cs-v501', 'nat', 'integer', 'parabola: reflection', R`Inside the parabola $y^2=4x$ a ray travels along the line $y=4$ in the direction of decreasing $x$, starting from $(9,4)$. It hits the parabola, passes through the focus, hits the parabola again and is reflected. Find the total distance the ray travels until it comes back to the line $x=9$.`, { answer: 20, tol: 0,
+      sol: R`<p>Use the reflection property: a ray parallel to the axis goes through the focus, and a ray through the focus leaves parallel to the axis.</p><p>First hit: $P=(4,4)$ (parameter $t=2$). Path so far $=9-4=5$.</p><p>Through the focus $(1,0)$ to the other end of the focal chord: $t'=-1/t=-\tfrac12$, so $Q=(\tfrac14,-1)$. The focal chord has length $x_P+x_Q+2a=4+\tfrac14+2=\tfrac{25}4$.</p><p>After the second hit the ray leaves parallel to the axis along $y=-1$ from $x=\tfrac14$ to $x=9$: distance $\tfrac{35}4$.</p><p>Total $=5+\tfrac{25}4+\tfrac{35}4=20$. (In general the total is $2X_0+2a$, whatever the height.)</p>`,
+      trap: 'Stopping at the focal chord, or using the chord length 25/4 as the whole path. The ray has three legs.' }),
+    o('cs-v502', 'nat', 'integer', 'parabola: four points on a circle', R`A circle meets the parabola $y^2=4x$ at the four points whose ordinates are $2$, $4$, $-2$ and $y_4$. If $r$ is its radius, find $4r^2$.`, { answer: 65, tol: 0,
+      sol: R`<p>For a circle meeting $y^2=4ax$ at four points with parameters $t_1,\dots,t_4$, the sum of the ordinates is $0$ (substituting $x=y^2/4$ in the circle gives a quartic in $y$ with no $y^3$ term).</p><p>$2+4-2+y_4=0$ gives $y_4=-4$. The points are $(1,2),(4,4),(1,-2),(4,-4)$.</p><p>They are symmetric about the $x$-axis, so the centre is $(h,0)$: $(1-h)^2+4=(4-h)^2+16$, so $6h=27$, $h=\tfrac92$.</p><p>$r^2=(4-\tfrac92)^2+16=\tfrac14+16=\tfrac{65}4$, so $4r^2=65$.</p>`,
+      trap: 'Not using the "sum of ordinates is zero" fact and trying to find the circle from three points without noticing the fourth.' }),
+    o('cs-v503', 'nat', 'integer', 'hyperbola: tangent and foci', R`The line $y=2x+\sqrt{20}$ touches the hyperbola $\dfrac{x^2}{9}-\dfrac{y^2}{16}=1$. If $d_1$ and $d_2$ are the perpendicular distances of the foci from this tangent, find $d_1^2+d_2^2$.`, { answer: 48, tol: 0,
+      sol: R`<p>$a^2=9$, $b^2=16$, $c=5$, foci $(\pm5,0)$. (Check tangency: $c_0^2=a^2m^2-b^2=36-16=20$. Yes.)</p><p>Write the line as $2x-y+\sqrt{20}=0$, with $\sqrt{2^2+1}=\sqrt5$.</p><p>$d_1=\dfrac{|10+\sqrt{20}|}{\sqrt5}$ and $d_2=\dfrac{|-10+\sqrt{20}|}{\sqrt5}=\dfrac{10-\sqrt{20}}{\sqrt5}$.</p><p>$d_1^2+d_2^2=\dfrac{2(100+20)}{5}=48$.</p><p>(Their product is $b^2=16$, the known result. Here the sum of squares is asked, so it must be worked out.)</p>`,
+      trap: 'Answering $b^2=16$, the product of the distances.' }),
+    o('cs-v504', 'nat', 'numeric', 'ellipse: tangents at the latera recta', R`Tangents are drawn at the four ends of the two latera recta of $\dfrac{x^2}{25}+\dfrac{y^2}{9}=1$. They form a quadrilateral. Find its area. (2 decimal places)`, { answer: 62.5, tol: 0.01,
+      sol: R`<p>$a=5$, $b=3$, $c=4$, so the ends of the latera recta are $(\pm4,\pm\tfrac95)$.</p><p>Tangent at $(4,\tfrac95)$: $\dfrac{4x}{25}+\dfrac{(9/5)y}{9}=1$, i.e. $\dfrac{4x}{25}+\dfrac y5=1$. Its intercepts are $x=\tfrac{25}4$ and $y=5$.</p><p>The other three tangents are $\pm\dfrac{4x}{25}\pm\dfrac y5=1$, so the four lines form a rhombus with vertices $(\pm\tfrac{25}4,0)$ and $(0,\pm5)$.</p><p>Area $=\tfrac12 d_1d_2=\tfrac12\cdot\tfrac{25}2\cdot10=62.5$.</p>`,
+      trap: 'Finding the area of the rectangle joining the four points of contact instead of the quadrilateral formed by the tangents.' }),
+    o('cs-v505', 'nat', 'numeric', 'ellipse: least distance', R`Find the least distance from the point $(1,0)$ to the ellipse $\dfrac{x^2}{9}+\dfrac{y^2}{4}=1$. (2 decimal places)`, { answer: 1.79, tol: 0.01,
+      sol: R`<p>For a point $(x,y)$ on the ellipse, $y^2=4-\tfrac49x^2$, so $d^2=(x-1)^2+4-\tfrac49x^2=\tfrac59x^2-2x+5$ for $-3\le x\le3$.</p><p>This quadratic has its minimum at $x=\dfrac{2}{2\cdot5/9}=\dfrac95$, which lies in $[-3,3]$.</p><p>$d^2_{\min}=\tfrac59\cdot\tfrac{81}{25}-\tfrac{18}5+5=\tfrac95-\tfrac{18}5+5=\tfrac{16}5=3.2$, so $d=\sqrt{3.2}\approx1.79$.</p>`,
+      trap: 'Assuming the nearest point is the vertex $(3,0)$ (distance 2). The nearest point is at $x=1.8$.' }),
+    o('cs-v506', 'msq', 'multi', 'ellipse: eccentric angles', R`Points $P$ and $Q$ on $\dfrac{x^2}{16}+\dfrac{y^2}{9}=1$ have eccentric angles $\theta$ and $\theta+\dfrac\pi2$, and $O$ is the origin. Which statements are true for every $\theta$?`, { options: [R`$OP^2+OQ^2=25$`, R`$OP\perp OQ$`, R`The area of triangle $OPQ$ is $6$`, R`The tangents at $P$ and $Q$ meet on the ellipse $\dfrac{x^2}{32}+\dfrac{y^2}{18}=1$`], answer: [0, 2, 3],
+      sol: R`<p>$P=(4\cos\theta,3\sin\theta)$, $Q=(-4\sin\theta,3\cos\theta)$.</p><p>(A) $OP^2+OQ^2=16(\cos^2\theta+\sin^2\theta)+9(\sin^2\theta+\cos^2\theta)=25$. True.</p><p>(B) $\vec{OP}\cdot\vec{OQ}=-16\sin\theta\cos\theta+9\sin\theta\cos\theta=-7\sin\theta\cos\theta\ne0$ in general. False (they are conjugate semi-diameters, not perpendicular, unless $a=b$).</p><p>(C) Area $=\tfrac12|x_Py_Q-x_Qy_P|=\tfrac12|12\cos^2\theta+12\sin^2\theta|=6$. True.</p><p>(D) Tangents: $\dfrac{x\cos\theta}4+\dfrac{y\sin\theta}3=1$ and $-\dfrac{x\sin\theta}4+\dfrac{y\cos\theta}3=1$. Solving: $\dfrac x4=\cos\theta-\sin\theta$, $\dfrac y3=\cos\theta+\sin\theta$. Squaring and adding: $\dfrac{x^2}{16}+\dfrac{y^2}9=2$, i.e. $\dfrac{x^2}{32}+\dfrac{y^2}{18}=1$. True.</p><p>Answer: A, C, D.</p>`,
+      trap: 'Thinking $\\theta$ and $\\theta+\\pi/2$ give perpendicular radius vectors. That is true only for a circle.' }),
+    o('cs-v507', 'msq', 'multi', 'parabola: normal chord', R`The normal at $P(t^2,2t)$, $t\ne0$, on $y^2=4x$ meets the parabola again at $Q$. Which statements are true?`, { options: [R`For $t=1$, $Q=(9,-6)$`, R`The normal at some point $P$ is a tangent to the parabola at $Q$`, R`The ordinate of $Q$ is numerically at least $4\sqrt2$ for every $P$`, R`For $t=\sqrt2$, $Q=(8,4\sqrt2)$`], answer: [0, 2],
+      sol: R`<p>The normal at $t$ meets the parabola again at $t'=-t-\dfrac2t$.</p><p>(A) $t=1$: $t'=-3$, $Q=(9,-6)$. True.</p><p>(B) The tangent at $Q$ has slope $\dfrac1{t'}$ and the normal at $P$ has slope $-t$. Equal slopes need $tt'=-1$, i.e. $-t^2-2=-1$, $t^2=-1$. Impossible. False.</p><p>(C) $|t'|=|t|+\dfrac2{|t|}\ge2\sqrt2$ (AM-GM), so $|y_Q|=2|t'|\ge4\sqrt2$. True.</p><p>(D) $t=\sqrt2$: $t'=-2\sqrt2$, so $Q=(8,-4\sqrt2)$. The sign of the ordinate in the option is wrong. False.</p><p>Answer: A and C.</p>`,
+      trap: 'In (D) it is easy to copy the magnitude and miss the sign: $t$ and $t\'$ always have opposite signs.' }),
+    o('cs-v508', 'msq', 'multi', 'confocal family', R`Consider $\dfrac{x^2}{16-\lambda}+\dfrac{y^2}{9-\lambda}=1$. Which statements are true?`, { options: [R`For $\lambda=10$ it is an ellipse`, R`For $\lambda=5$ it is an ellipse with foci $(\pm\sqrt7,0)$`, R`For $\lambda=20$ it has no real point`, R`For $\lambda=12$ it is a hyperbola with foci $(\pm\sqrt7,0)$`], answer: [1, 2, 3],
+      sol: R`<p>Every member has $(16-\lambda)-(9-\lambda)=7$, so all members share foci $(\pm\sqrt7,0)$ (confocal), whichever type they are.</p><p>$\lambda=10$: $\dfrac{x^2}{6}-\dfrac{y^2}{1}=1$, a hyperbola. So (A) is false.</p><p>$\lambda=5$: $\dfrac{x^2}{11}+\dfrac{y^2}{4}=1$, ellipse, $c^2=11-4=7$. True.</p><p>$\lambda=20$: $-\dfrac{x^2}4-\dfrac{y^2}{11}=1$, impossible for real $x,y$. True.</p><p>$\lambda=12$: $\dfrac{x^2}4-\dfrac{y^2}3=1$, hyperbola with $c^2=4+3=7$. True.</p><p>Answer: B, C, D.</p>`,
+      trap: 'Assuming a hyperbola in the family must have different foci. The family is confocal.' }),
+    { ...o('cs-v509', 'mcq', 'match', 'shifted conics: tangent lines', R`Match each conic with the values of $c$ for which $y=x+c$ touches it.`, { options: ['A-p, B-q, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-t, B-q, C-r, D-s'], answer: 0 }), group: 'v5m1',
+      sol: R`<p>Shift the origin to the centre or vertex so the standard tangent conditions work.</p><p>A: $Y=y-1$, $X=x-3$. $y=x+c$ becomes $Y=X+(c+2)$. For $Y^2=8X$ the tangent $Y=X+\dfrac2{1}$, so $c+2=2$, $c=0$. (p)</p><p>B: $Y=y-1$, $X=x-2$: $Y=X+(c+1)$. For the hyperbola $(c+1)^2=a^2m^2-b^2=25-9=16$, so $c=3$ or $-5$. (q)</p><p>C: $Y=y-1$, $X=x-1$: $Y=X+c$; for the circle $c^2=18\cdot2=36$, $c=\pm6$. (r)</p><p>D: $Y=y-2$, $X=x+1$: $y=x+c$ becomes $Y=X+(c-3)$; $(c-3)^2=16+9=25$, so $c=8$ or $-2$. (s)</p>`,
+      trap: 'Using the standard condition without allowing for the shift: the intercept changes by (shift in $y$) minus (shift in $x$).' },
+    { ...o('cs-v510', 'mcq', 'match', 'locus of midpoints of chords', R`Match each family of chords with the locus of their midpoints.`, { options: ['A-p, B-r, C-s, D-q', 'A-p, B-q, C-s, D-r', 'A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s'], answer: 1 }), group: 'v5m2',
+      sol: R`<p>Use $T=S_1$: the chord of a conic with midpoint $(h,k)$ is $T=S_1$; it must pass through the given point.</p><p>A: $ky-2(x+h)=k^2-4h$ through $(1,0)$: $-2-2h=k^2-4h$, so $k^2=2h-2$: $y^2=2x-2$ (p).</p><p>B: $\dfrac{hx}9+\dfrac{ky}4=\dfrac{h^2}9+\dfrac{k^2}4$ through $(1,0)$: $\dfrac h9=\dfrac{h^2}9+\dfrac{k^2}4$, so $4x^2-4x+9y^2=0$, i.e. $(2x-1)^2+9y^2=1$ (q).</p><p>C: $hx-ky=h^2-k^2$ through $(4,0)$: $x^2-y^2=4x$ (s).</p><p>D: $hx+ky=h^2+k^2$ through $(4,0)$: $x^2+y^2=4x$ (r), the circle on the segment from the centre to the point as diameter.</p>`,
+      trap: 'Taking all four loci to be conics of the same type as the original. Each is a different type here (parabola, ellipse, hyperbola, circle).' },
+    { ...o('cs-v511', 'nat', 'passage', 'parabola: tangent and normal', R`Find the length $TG$.`, { answer: 10, tol: 0,
+      sol: R`<p>Tangent at $(4,4)$ to $y^2=4x$: $4y=2(x+4)$, which meets $y=0$ at $T=(-4,0)$. The slope is $\tfrac12$, so the normal has slope $-2$: $y-4=-2(x-4)$, meeting $y=0$ at $G=(6,0)$.</p><p>$TG=6-(-4)=10$.</p>`,
+      trap: 'Using the subtangent or subnormal length alone instead of the whole segment $TG$.' }), group: 'v5p1' },
+    { ...o('cs-v512', 'mcq', 'passage', 'parabola: tangent and normal', R`The circumcentre of triangle $PTG$ is`, { options: ['the focus $S=(1,0)$', 'the vertex $(0,0)$', 'the foot of the ordinate of $P$, $(4,0)$', 'the point $(-4,0)$'], answer: 0 }), group: 'v5p1',
+      sol: R`<p>The tangent and normal at $P$ are perpendicular, so the angle at $P$ is $90^\circ$ and $TG$ is a diameter of the circle. The centre is the midpoint of $TG$: $\left(\tfrac{-4+6}2,0\right)=(1,0)$, the focus. (Indeed $SP=SG=ST=5$.)</p>`,
+      trap: 'Guessing the vertex. The midpoint of the hypotenuse is the circumcentre of a right triangle.' },
+    { ...o('cs-v513', 'nat', 'passage', 'parabola: tangent and normal', R`Find the area of the quadrilateral $PTQG$ (with $Q$ the second meeting point of the circle with the parabola).`, { answer: 40, tol: 0,
+      sol: R`<p>The circle has centre $(1,0)$ and radius $5$: $x^2+y^2-2x=24$. With $y^2=4x$: $x^2+2x-24=0$, so $x=4$ or $-6$. Only $x=4$ is possible on the parabola, giving $P=(4,4)$ and $Q=(4,-4)$.</p><p>The diagonals of $PTQG$ are $TG=10$ along the $x$-axis and $PQ=8$, and they are perpendicular. Area $=\tfrac12\cdot10\cdot8=40$.</p>`,
+      trap: 'Expecting $Q$ to be a new point off the axis of symmetry. The circle is symmetric about the $x$-axis, so $Q$ is the mirror image of $P$.' }), group: 'v5p1' },
+    o('cs-v514', 'mcq', 'single', 'ellipse: normal at latus rectum', R`The normal at the upper end of the latus rectum (through the focus $(ae,0)$) of $\dfrac{x^2}{a^2}+\dfrac{y^2}{b^2}=1$ passes through the end $(0,-b)$ of the minor axis. Then $e$ equals`, { options: [R`$\dfrac{\sqrt5-1}{2}$`, R`$\dfrac{1}{\sqrt2}$`, R`$\sqrt{\dfrac{\sqrt5-1}{2}}$`, R`$\sqrt{\dfrac{\sqrt5+1}{2}}$`], answer: 2,
+      sol: R`<p>The point is $\left(ae,\dfrac{b^2}a\right)$. The normal at $(x_1,y_1)$ is $\dfrac{a^2x}{x_1}-\dfrac{b^2y}{y_1}=a^2-b^2=a^2e^2$.</p><p>Put $(0,-b)$: $\dfrac{b^3}{b^2/a}=ab=a^2e^2$, so $b=ae^2$.</p><p>Square: $b^2=a^2e^4$, and $b^2=a^2(1-e^2)$, so $e^4+e^2-1=0$ and $e^2=\dfrac{\sqrt5-1}2$.</p><p>So $e=\sqrt{\dfrac{\sqrt5-1}{2}}\approx0.786$. The option $\dfrac{\sqrt5-1}2\approx0.618$ is $e^2$, and $\sqrt{(\sqrt5+1)/2}>1$ is impossible.</p>`,
+      trap: 'Stopping at $e^2$. The golden-ratio number is $e^2$, not $e$.' }),
+    o('cs-v515', 'mcq', 'assertion', 'ellipse: polar of a focus', R`<p><b>Assertion (A):</b> The tangents at the two ends of any focal chord of $\dfrac{x^2}{a^2}+\dfrac{y^2}{b^2}=1$ meet on the corresponding directrix.</p><p><b>Reason (R):</b> The polar of the focus $(ae,0)$ with respect to the ellipse is the line $x=\dfrac ae$.</p>`, { options: SOPT5, answer: 0,
+      sol: R`<p>The tangents at the ends of a chord meet at the pole of the chord. A chord through the focus has its pole on the polar of the focus. The polar of $(ae,0)$ is $\dfrac{x\cdot ae}{a^2}=1$, i.e. $x=\dfrac ae$, which is the directrix. So R is true and it is exactly why A is true: both are true and R explains A.</p>`,
+      trap: 'Treating the result as special to the latus rectum. It holds for every focal chord.' }),
+  );
+  const sq5 = Math.sqrt, hyp5 = Math.hypot;
+  gens.push(
+    { id: 'cs-v5g1', type: 'nat', format: 'integer', level: 5, exams: E5, sub: 'parabola: reflection',
+      make(rng) {
+        const a = int(rng, 1, 4), t = int(rng, 2, 4), x1 = a * t * t, X0 = x1 + int(rng, 1, 7);
+        const total = 2 * X0 + 2 * a;
+        return { a, t, X0, answer: total, tol: 0,
+          q: `Inside the parabola $y^2=${4 * a}x$ a ray travels in the direction of decreasing $x$ along the line $y=${2 * a * t}$, starting at $(${X0},${2 * a * t})$. It hits the parabola, passes through the focus and hits the parabola again, then leaves parallel to the axis. Find the total distance it travels until it is back on the line $x=${X0}$.`,
+          sol: `<p>First hit $P=(${x1},${2 * a * t})$, path $${X0}-${x1}=${X0 - x1}$. The other end of the focal chord has $t'=-1/${t}$, so $x_Q=${a}/${t * t}$. The chord length is $x_P+x_Q+2a$. Then the ray goes from $x_Q$ back to $x=${X0}$ parallel to the axis.</p><p>Adding the three legs, $x_P$ and $x_Q$ cancel: total $=2X_0+2a=${total}$.</p>` };
+      },
+      verify(p) { const xp = p.a * p.t * p.t, yp = 2 * p.a * p.t, xq = p.a / (p.t * p.t), yq = -2 * p.a / p.t; return Math.round(hyp5(p.X0 - xp, 0) + hyp5(xp - xq, yp - yq) + hyp5(p.X0 - xq, 0)); } },
+    { id: 'cs-v5g2', type: 'nat', format: 'integer', level: 5, exams: E5, sub: 'parabola: four points on a circle',
+      make(rng) {
+        let a, t1, t2, t3, t4;
+        do { a = int(rng, 1, 3); t1 = int(rng, 1, 4); t2 = int(rng, -4, 4); t3 = int(rng, -4, 4); t4 = -(t1 + t2 + t3); } while (t2 === 0 || t3 === 0 || t4 === 0 || new Set([t1, t2, t3, t4]).size < 4);
+        return { a, t1, t2, t3, t4, answer: a * t4 * t4, tol: 0,
+          q: `A circle meets $y^2=${4 * a}x$ at four points. Three of them are $(${a * t1 * t1},${2 * a * t1})$, $(${a * t2 * t2},${2 * a * t2})$ and $(${a * t3 * t3},${2 * a * t3})$. Find the abscissa of the fourth point.`,
+          sol: `<p>For four concyclic points on $y^2=4ax$ the sum of the parameters (equivalently of the ordinates) is $0$. The given parameters are $${t1},${t2},${t3}$ (point $(at^2,2at)$), so the fourth is $t_4=${t4}$, and its abscissa is $at_4^2=${a}\\cdot${t4 * t4}=${a * t4 * t4}$.</p>` };
+      },
+      verify(p) {
+        const P = [p.t1, p.t2, p.t3].map((t) => [p.a * t * t, 2 * p.a * t]);
+        const [[x1, y1], [x2, y2], [x3, y3]] = P;
+        const D = 2 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
+        const h = ((x1 * x1 + y1 * y1) * (y2 - y3) + (x2 * x2 + y2 * y2) * (y3 - y1) + (x3 * x3 + y3 * y3) * (y1 - y2)) / D;
+        const k = ((x1 * x1 + y1 * y1) * (x3 - x2) + (x2 * x2 + y2 * y2) * (x1 - x3) + (x3 * x3 + y3 * y3) * (x2 - x1)) / D;
+        const r = hyp5(x1 - h, y1 - k), x4 = p.a * p.t4 * p.t4, y4 = 2 * p.a * p.t4;
+        return Math.abs(hyp5(x4 - h, y4 - k) - r) < 1e-6 ? x4 : NaN;
+      } },
+    { id: 'cs-v5g3', type: 'nat', format: 'numeric', level: 5, exams: E5, sub: 'ellipse: least distance',
+      make(rng) {
+        const [a, b, h] = choose(rng, [[3, 2, 1], [5, 3, 1], [5, 3, 2], [5, 3, 3], [5, 4, 1], [7, 5, 1], [7, 5, 2], [7, 5, 3], [10, 6, 3], [10, 8, 2], [13, 5, 4]]);
+        const c2 = a * a - b * b, d = b * sq5(1 - (h * h) / c2), xs = (h * a * a) / c2;
+        return { a, b, h, answer: Math.round(d * 100) / 100, tol: 0.01,
+          q: `Find the least distance from the point $(${h},0)$ to the ellipse $\\dfrac{x^2}{${a * a}}+\\dfrac{y^2}{${b * b}}=1$. (2 decimal places)`,
+          sol: `<p>On the ellipse $d^2=(x-${h})^2+${b * b}\\left(1-\\dfrac{x^2}{${a * a}}\\right)=\\dfrac{${c2}}{${a * a}}x^2-${2 * h}x+${h * h + b * b}$. This quadratic is least at $x=\\dfrac{${h}\\cdot${a * a}}{${c2}}=${+xs.toFixed(3)}$, which lies between $-${a}$ and $${a}$, so it is the true minimum (not the vertex).</p><p>$d_{\\min}^2=b^2\\left(1-\\dfrac{h^2}{c^2}\\right)=${+(d * d).toFixed(4)}$, so $d\\approx${d.toFixed(2)}$.</p>` };
+      },
+      verify(p) { let m = 1e9; for (let i = 0; i <= 200000; i++) { const th = (i / 200000) * 2 * Math.PI; m = Math.min(m, hyp5(p.a * Math.cos(th) - p.h, p.b * Math.sin(th))); } return Math.round(m * 100) / 100; } },
+  );
+}
+// ==L5-M2-END
+
 export default { topic: 'conic-sections', groups, items, gens };

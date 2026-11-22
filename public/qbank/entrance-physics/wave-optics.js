@@ -894,4 +894,139 @@ const xgens = [
     verify: (p) => { const mx = (Math.sqrt(p.r) + 1) ** 2, mn = (Math.sqrt(p.r) - 1) ** 2; return (mx - mn) / (mx + mn); } },
 ];
 
-export default { topic: 'wave-optics', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+
+// ================= Level 5 round (top-rank additions, ids <prefix>-v5NN / -v5gN) =================
+const v5 = (o) => ({ level: 5, exams: ['jee-adv'], ...o });
+const v5s = (id, sub, q, correct, wrongs, pos, sol, trap) => { const options = [...wrongs]; options.splice(pos, 0, correct); return v5({ id, type: 'mcq', format: 'single', sub, q, options, answer: pos, sol, trap }); };
+const v5n = (id, sub, q, val, dp, tol, unit, sol, trap) => { const answer = +val.toFixed(dp); return v5({ id, type: 'nat', format: tol === 0 ? 'integer' : 'numeric', sub, q, answer, tol, unit, calc: () => answer, sol, trap }); };
+const v5m = (id, sub, q, options, answer, sol, trap) => v5({ id, type: 'msq', format: 'multi', sub, q, options, answer, sol, trap });
+const v5a = (id, sub, A, R, answer, sol, trap) => v5({ id, type: 'mcq', format: 'assertion', sub, q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: AOPT, answer, sol, trap });
+const v5t = (id, sub, I, II, answer, sol, trap) => v5({ id, type: 'mcq', format: 'statements', sub, q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: SOPT, answer, sol, trap });
+const v5mat = (id, sub, group, q, correct, wrongs, pos, sol, trap) => { const options = [...wrongs]; options.splice(pos, 0, correct); return v5({ id, type: 'mcq', format: 'match', sub, group, q, options, answer: pos, sol, trap }); };
+const v5p = (id, sub, group, q, val, dp, tol, unit, sol, trap) => { const answer = +val.toFixed(dp); return v5({ id, type: 'nat', format: 'passage', sub, group, q, answer, tol, unit, calc: () => answer, sol, trap }); };
+const v5groups = {
+  v5m1: { title: 'Two coherent point sources',
+    list1: ['A. $d = \\lambda/2$', 'B. $d = \\lambda$', 'C. $d = 2\\lambda$', 'D. $d = 2.5\\lambda$'],
+    list2: ['p. 2', 'q. 4', 'r. 6', 's. 8', 't. 10'] },
+  v5m2: { title: 'Four equal coherent sources',
+    list1: ['A. $\\varphi = 0$', 'B. $\\varphi = 60^\\circ$', 'C. $\\varphi = 90^\\circ$', 'D. $\\varphi = 120^\\circ$'],
+    list2: [r`p. $I_0$`, r`q. $3I_0$`, r`r. $0$`, r`s. $16I_0$`, r`t. $4I_0$`] },
+  v5p1: { title: 'Polaroids on the slits',
+    passage: r`<p>Plane polarised monochromatic light, with its plane of polarisation at $30^\circ$ to the vertical, falls normally on a double slit. Slit 1 is covered by a polaroid strip with a vertical axis and slit 2 by a strip with its axis at $60^\circ$ to the vertical, so the two beams leave the strips with equal amplitude $a$, polarised along the axes of their strips. Treat the two beams as coherent. The visibility is $V = (I_{max} - I_{min})/(I_{max} + I_{min})$.</p>` },
+};
+
+const v5items = [];
+{
+  const pi = Math.PI;
+  // 01: two point sources on a line
+  v5items.push(v5m('wo-v501', 'coherent sources', r`Two identical point sources oscillate in phase and are a distance $d = 4.5\lambda$ apart. Treat the waves as having equal amplitude at points on the line joining them. Which statements are correct?`, [
+    r`There are 9 points of maximum intensity between the sources on the line joining them`,
+    r`There are 10 points of minimum intensity between the sources on that line`,
+    r`The midpoint of the two sources is a point of minimum intensity`,
+    r`Points whose path difference from the two sources is fixed lie on a hyperbola (a hyperboloid in space) with the sources as its foci`,
+  ], [0, 3],
+  r`Idea: at a point a distance $x$ from the midpoint (towards one source) the path difference is $2x$, with $|x| < d/2 = 2.25\lambda$ between the sources.<br>Maxima: $2x = m\lambda$ with $|m| < 4.5$, so $m = -4,\ldots,4$: <b>9 maxima</b> (option 1 true).<br>Minima: $2x = (m+\tfrac12)\lambda$ with $|m+\tfrac12| < 4.5$, so $m+\tfrac12 = \pm0.5, \pm1.5, \pm2.5, \pm3.5$: only <b>8 minima</b>, because $\pm4.5$ falls exactly on the sources (option 2 false).<br>At the midpoint the path difference is 0, so in-phase sources give a maximum (option 3 false).<br>A fixed path difference $|r_1 - r_2| =$ const is the definition of a hyperbola with foci at the sources (option 4 true).<br>Answer: 1 and 4.`,
+  r`Counting minima: the two candidate positions at the sources themselves are not "between" them.`));
+  // 02: Babinet
+  v5items.push(v5m('wo-v502', 'diffraction', r`A parallel beam of light of wavelength $\lambda$ meets a thin opaque wire of diameter $a$ (far from the screen, Fraunhofer conditions). Compare it with the complementary object, a single slit of width $a$. Which statements are correct?`, [
+    r`Away from the forward direction the intensity pattern of the wire is the same as that of the slit, with minima at $\sin\theta = m\lambda/a$`,
+    r`Away from the forward direction the wave amplitudes from the wire and from the slit are equal in size and opposite in sign`,
+    r`In every direction the intensities from the wire and the slit add up to the intensity of the unobstructed beam`,
+    r`In the forward direction the wire and the slit give equal intensities`,
+  ], [0, 1],
+  r`Idea (Babinet's principle): a screen and its complement together make a fully open aperture, so the <b>amplitudes</b> (not intensities) add up to the unobstructed wave: $A_{wire} + A_{slit} = A_{free}$.<br>For a wide beam $A_{free}$ is zero in every direction except the forward one. So away from the forward direction $A_{wire} = -A_{slit}$: equal size, opposite sign (option 2 true), hence equal intensities and the same minima at $a\sin\theta = m\lambda$ (option 1 true).<br>Option 3 is false: amplitudes add, not intensities. Option 4 is false: in the forward direction the wire pattern contains almost the whole undiffracted beam, much brighter than the slit's central maximum.<br>Answer: 1 and 2.`,
+  r`Complementary screens add amplitudes; their intensities are equal off-axis but they do not add to the free-beam intensity.`));
+  // 03: oblique incidence
+  v5items.push(v5m('wo-v503', 'YDSE', r`A plane wave of wavelength $\lambda$ falls on a double slit (separation $d$, each slit narrow but of width $a$) at angle of incidence $\alpha$ to the normal, in the plane perpendicular to the slits. Far-field maxima occur at angles $\theta$, measured on the same side of the normal as $\alpha$, where $d(\sin\theta - \sin\alpha) = m\lambda$. Which statements are correct?`, [
+    r`The numbers of maxima on the two sides of the zero order are always equal`,
+    r`The zero-order maximum lies in the direction $\theta = \alpha$, the straight-through direction`,
+    r`Near the zero order, neighbouring maxima are separated by an angle $\lambda/(d\cos\alpha)$, larger than $\lambda/d$`,
+    r`The central lobe of the single-slit diffraction envelope is centred on $\theta = \alpha$ as well`,
+  ], [1, 2, 3],
+  r`Idea: for a plane wave arriving at angle $\alpha$ the two slits are already out of step by $d\sin\alpha$, which is cancelled when $\sin\theta = \sin\alpha$.<br>Option 2: $m = 0$ gives $\theta = \alpha$. True.<br>Option 3: differentiating, $d\cos\theta\,\Delta\theta = \lambda$, so at $\theta \approx \alpha$ the spacing is $\lambda/(d\cos\alpha) > \lambda/d$. True.<br>Option 4: a single slit of width $a$ has minima at $a(\sin\theta - \sin\alpha) = \pm\lambda$, centred on $\theta = \alpha$. True.<br>Option 1 is false: $\sin\theta = \sin\alpha + m\lambda/d$ must stay between $-1$ and $1$, so $m$ ranges from $-(1+\sin\alpha)d/\lambda$ to $(1-\sin\alpha)d/\lambda$: more orders lie on the side away from the incident beam.<br>Answer: 2, 3 and 4.`,
+  r`With oblique light the zero order moves to $\theta=\alpha$ and the pattern is lopsided.`));
+  // 04: source shift and slab
+  v5items.push(v5n('wo-v504', 'YDSE with a slab', r`In a double slit experiment the source slit is 1.0 mm above the axis and 0.50 m before the plane of the two slits. The slits are 0.50 mm apart and $\lambda = 500$ nm. A thin sheet ($n = 1.5$, thickness $6.0\ \mu$m) covers the upper slit. Find the net shift of the central bright fringe on the screen, in units of the fringe width, taking an upward shift as positive.`, (() => { const lam = 500e-9, d = 0.5e-3, S = 0.5, y = 1e-3; const slab = 0.5 * 6e-6 / lam, src = y * d / (S * lam); return slab - src; })(), 0, 0, 'fringe widths',
+  r`Idea: the two effects shift the central fringe in opposite directions; count each in fringe widths ($\beta = \lambda D/d$).<br>Sheet over the upper slit: the pattern moves towards the covered slit (up) by $\dfrac{(n-1)t}{\lambda} = \dfrac{0.5\times6.0\times10^{-6}}{500\times10^{-9}} = 6$ fringes.<br>Source 1.0 mm above the axis: the central fringe moves the opposite way (down) by $\dfrac{yd}{S\lambda} = \dfrac{10^{-3}\times0.5\times10^{-3}}{0.50\times500\times10^{-9}} = 2$ fringes.<br>Net: $6 - 2 = 4$ fringe widths upward.<br>Answer: 4.`,
+  r`Adding the two (8) forgets that a displaced source moves the pattern the opposite way to the sheet.`));
+  // 05: wedge in water
+  v5items.push(v5n('wo-v505', 'wedge', r`Two flat glass plates touch along one edge and are held apart at the other end by a wire 25.0 $\mu$m thick, forming a thin wedge. The gap is filled with water ($n = 4/3$). Light of wavelength 500 nm in air falls normally and the wedge is viewed in reflected light. How many bright fringes are seen between the contact line and the wire?`, (() => { const x = 2 * (4 / 3) * 25e-6 / 500e-9; let c = 0; for (let m = 0; m < 1000; m++) if (m + 0.5 <= x + 1e-9) c++; return c; })(), 0, 0, '',
+  r`Idea: for a water film between two glass plates only one reflection has a phase change of $\pi$ (water to the lower glass), so the contact line is dark and bright fringes occur when $2nt = (m + \tfrac12)\lambda$, $m = 0, 1, 2, \ldots$<br>At the wire, $t = 25\ \mu$m: $\dfrac{2nt}{\lambda} = \dfrac{2\times(4/3)\times25\times10^{-6}}{500\times10^{-9}} = 133.3$.<br>We need $m + \tfrac12 \le 133.3$, so $m = 0, 1, \ldots, 132$: that is <b>133</b> bright fringes.<br>Answer: 133.`,
+  r`With air the count would be 100; the water multiplies the optical thickness by $n$, and the dark line at the contact is the $m=0$ start.`));
+  // 06: polaroid chain
+  v5items.push(v5n('wo-v506', 'polaroids', r`Plane polarised light is turned through $90^\circ$ by a stack of $N$ ideal polaroids. The $k$th polaroid has its axis at angle $k\times(90^\circ/N)$ from the original plane of polarisation, so the last one is perpendicular to it. Find the smallest $N$ for which at least 75% of the incident intensity gets through.`, (() => { for (let N = 1; N < 100; N++) if (Math.cos(pi / 2 / N) ** (2 * N) >= 0.75) return N; })(), 0, 0, '',
+  r`Idea: each polaroid turns the plane by $90^\circ/N$ and passes $\cos^2(90^\circ/N)$ of the intensity (Malus), so the total is $T_N = \cos^{2N}(90^\circ/N)$.<br>$N=2$: 0.25. $N=4$: 0.53. $N=6$: 0.66. $N=8$: $\cos^{16}(11.25^\circ) = 0.733$ (below 0.75). $N=9$: $\cos^{18}(10^\circ) = 0.759$ (above 0.75).<br>The transmission rises towards 1 as $N$ grows, so the smallest $N$ is 9.<br>Answer: 9.`,
+  r`Two polaroids at 90 degrees block everything, but many small turns pass most of the light: the transmission tends to 1 as $N$ grows.`));
+  // 07: Newton's rings, oil between lens and dense plate
+  v5items.push(v5n('wo-v507', 'Newton rings', r`In a Newton's rings arrangement a lens ($n = 1.50$, radius of curvature $R = 1.20$ m) rests on a plate of dense glass ($n = 1.80$) and the gap is filled with oil of $n = 1.65$. Light of wavelength 600 nm (in air) falls normally and the rings are viewed in reflected light. Find the radius of the third bright ring counted outward from the centre (not counting the central spot), in mm (2 decimals).`, Math.sqrt(3 * 600e-9 * 1.2 / 1.65) * 1e3, 2, 0.01, 'mm',
+  r`Idea: find the phase changes first. Lens (1.50) to oil (1.65): reflection at a denser medium, phase change $\pi$. Oil (1.65) to plate (1.80): again denser, another $\pi$. Both reflected rays are shifted by $\pi$, so the net shift is zero: the centre is <b>bright</b>, and bright rings need $2nt = m\lambda$ with $m = 1, 2, 3, \ldots$ outward.<br>The film thickness at radius $r$ is $t = r^2/2R$, so $r_m = \sqrt{\dfrac{m\lambda R}{n}}$.<br>For $m = 3$: $r = \sqrt{\dfrac{3\times600\times10^{-9}\times1.20}{1.65}} = \sqrt{1.309\times10^{-6}} = 1.14\times10^{-3}$ m $= 1.14$ mm.<br>Answer: 1.14.`,
+  r`Treating the centre as dark (the usual glass-air-glass case) gives bright rings at half-integer orders and $1.04$ mm.`));
+  // 08: spatial coherence, source width
+  v5items.push(v5n('wo-v508', 'coherence', r`A uniform source slit of width $b$ is placed 0.80 m from a double slit of separation 0.60 mm and lit with light of wavelength 600 nm; the screen is 1.5 m beyond the double slit. Each thin strip of the source makes its own fringe pattern. The overall fringes first disappear when the patterns from the two edges of the source are displaced relative to each other by exactly one fringe width. Find $b$ in mm (2 decimals).`, 600e-9 * 0.8 / 0.6e-3 * 1e3, 2, 0.01, 'mm',
+  r`Idea: a source point displaced by $y$ moves the pattern by $Dy/S$ ($S$ source-to-slits distance, $D$ slits-to-screen distance). Two edges of the source differ by $b$, so their patterns are displaced by $Db/S$.<br>Set this equal to one fringe width $\beta = \lambda D/d$: $\dfrac{Db}{S} = \dfrac{\lambda D}{d}$, so $b = \dfrac{\lambda S}{d}$ ($D$ cancels).<br>$b = \dfrac{600\times10^{-9}\times0.80}{0.60\times10^{-3}} = 8.0\times10^{-4}$ m $= 0.80$ mm.<br>Answer: 0.80.`,
+  r`The screen distance 1.5 m is a distractor: it cancels, and the source distance $S$ is what matters.`));
+  // 09: far-field directions match
+  v5items.push(v5mat('wo-v509', 'coherent sources', 'v5m1', r`Two identical point sources oscillate in phase and are a distance $d$ apart in a plane. At large distances the intensity in that plane is a maximum along certain directions. Match each $d$ in List I with the number of such directions over the full $360^\circ$ in List II.`, 'A-p, B-q, C-s, D-t', ['A-p, B-q, C-r, D-t', 'A-p, B-r, C-s, D-t', 'A-q, B-q, C-s, D-t'], 0,
+  r`Idea: maxima need path difference $d\cos\theta = m\lambda$, i.e. $\cos\theta = m\lambda/d$ with $|m\lambda/d| \le 1$. Each $|\cos\theta| < 1$ gives two directions ($\pm\theta$); $\cos\theta = \pm1$ gives only one (along the line of the sources).<br>A: $d = 0.5\lambda$: only $m = 0$, two directions (90° and 270°): 2.<br>B: $d = \lambda$: $m = 0$ gives 2; $m = \pm1$ give $\cos\theta = \pm1$: one each. Total 4.<br>C: $d = 2\lambda$: $m = 0$: 2; $m = \pm1$ ($\cos\theta = \pm0.5$): 4; $m = \pm2$ ($\cos\theta = \pm1$): 1 each, 2. Total 8.<br>D: $d = 2.5\lambda$: $m = 0$: 2; $\pm1$ ($\pm0.4$): 4; $\pm2$ ($\pm0.8$): 4. Total 10.<br>Answer: A-p, B-q, C-s, D-t.`,
+  r`The directions along the line joining the sources ($\cos\theta=\pm1$) count once each, not twice.`));
+  // 10: four sources match
+  v5items.push(v5mat('wo-v510', 'multiple sources', 'v5m2', r`Four equally spaced coherent sources each produce intensity $I_0$ at a distant point when acting alone, with equal amplitudes. The phase difference between waves from neighbouring sources at that point is $\varphi$. Match each $\varphi$ in List I with the resultant intensity in List II.`, 'A-s, B-q, C-r, D-p', ['A-s, B-q, C-p, D-r', 'A-t, B-q, C-r, D-p', 'A-s, B-r, C-q, D-p'], 2,
+  r`Idea: add four equal phasors of angle $0, \varphi, 2\varphi, 3\varphi$ (amplitude $a$, $I_0 \propto a^2$).<br>A: $\varphi = 0$: all in line, amplitude $4a$, intensity $16I_0$ (s).<br>B: $\varphi = 60^\circ$: phasors at $0°, 60°, 120°, 180°$ add to $(a(1 + 0.5 - 0.5 - 1),\ a(0 + 0.866 + 0.866 + 0)) = (0,\ 1.73a)$: amplitude $\sqrt3a$, intensity $3I_0$ (q).<br>C: $\varphi = 90^\circ$: phasors at $0°, 90°, 180°, 270°$ form a closed square: zero (r).<br>D: $\varphi = 120^\circ$: the first three form a closed triangle (sum zero), leaving one phasor: amplitude $a$, intensity $I_0$ (p).<br>(General formula: $I = I_0\sin^2(2\varphi)/\sin^2(\varphi/2)$.)<br>Answer: A-s, B-q, C-r, D-p.`,
+  r`Intensity is the square of the phasor sum, not 4 times or 16 times $I_0$ every time: look for closed polygons.`));
+  // 11-12: passage on polaroid strips
+  v5items.push(v5p('wo-v511', 'polarisation and interference', 'v5p1', r`With nothing else in the path, find the visibility of the fringes in per cent.`, (() => { const c = Math.cos(pi / 3); return 2 * c / (1 + 1) * 100; })(), 0, 0, '%',
+  r`Idea: only the components of the two electric fields along a common direction can interfere. The fields are $\vec E_1$ (vertical, amplitude $a$) and $\vec E_2$ (at $60^\circ$ to it, amplitude $a$), so the intensity is $I = |\vec E_1 + \vec E_2|^2 = 2a^2 + 2a^2\cos60^\circ\cos\phi$, where $\phi$ is the phase difference.<br>$I_{max} = 3a^2$, $I_{min} = a^2$, so $V = \dfrac{3-1}{3+1} = 0.5$, i.e. 50%.<br>Answer: 50.`,
+  r`Different directions of polarisation reduce the visibility by the factor $\cos$ of the angle between them.`));
+  v5items.push(v5p('wo-v512', 'polarisation and interference', 'v5p1', r`A polaroid (analyser) with its axis parallel to the axis of the strip on slit 1 is now placed in front of the screen. Find the visibility of the fringes in per cent.`, (() => { const a1 = 1, a2 = Math.cos(pi / 3); const Imax = (a1 + a2) ** 2, Imin = (a1 - a2) ** 2; return (Imax - Imin) / (Imax + Imin) * 100; })(), 0, 0, '%',
+  r`Idea: the analyser lets through only the components of the two fields along its axis, which now interfere fully (they are parallel), but with unequal amplitudes.<br>Slit 1's beam is along the axis: amplitude $a$. Slit 2's beam makes $60^\circ$ with it: amplitude $a\cos60^\circ = 0.5a$.<br>$I_{max} = (a + 0.5a)^2 = 2.25a^2$, $I_{min} = (a - 0.5a)^2 = 0.25a^2$.<br>$V = \dfrac{2.25 - 0.25}{2.25 + 0.25} = \dfrac{2.0}{2.5} = 0.80$, i.e. 80%.<br>Answer: 80.`,
+  r`The analyser raises the visibility from 50% to 80% by making the fields parallel, though it removes some light.`));
+  // 13: assertion
+  v5items.push(v5a('wo-v513', 'thin films', r`A thin film of oil of refractive index 1.20 on a water surface (refractive index 1.33) appears bright in reflected light at the places where its thickness tends to zero.`, r`The light reflected at both surfaces of this film undergoes a phase change of $\pi$, so the two reflected rays are in phase when the film is very thin.`, 0,
+  r`Idea: a reflection from a medium of higher refractive index gives a phase change of $\pi$.<br>Air (1.00) to oil (1.20): higher, so $\pi$. Oil (1.20) to water (1.33): higher again, so $\pi$ again.<br>Both rays are shifted by $\pi$, so they are in phase when the thickness tends to zero: constructive, bright. A is true, and R is the reason.<br>(For a normal oil of $n \approx 1.45$ on water the second reflection has no phase change and the thin film would look dark.)<br>Answer: Both true and R explains A.`,
+  r`The common case (oil denser than water) gives a dark film at zero thickness; here the oil is less dense than the water.`));
+  // 14: statements
+  v5items.push(v5t('wo-v514', 'diffraction and interference', r`When a double slit set-up (separation $d$, slit width $a$) is put into water, the number of bright fringes that lie inside the central diffraction maximum does not change.`, r`Putting the set-up into water does not change the angular width of the central diffraction maximum.`, 2,
+  r`In water the wavelength becomes $\lambda/n$. The first diffraction minimum is at $\sin\theta = \lambda/(na)$ and the $m$th bright fringe at $\sin\theta = m\lambda/(nd)$. Both scale by $1/n$.<br>Statement I: the number of fringes inside the envelope depends on the ratio $d/a$ only: unchanged. True.<br>Statement II: the central maximum narrows to $\lambda/(na)$. False.<br>Answer: Statement I true, Statement II false.`,
+  r`Everything shrinks together by $1/n$, so counts of fringes stay the same although every angle changes.`));
+  // 15: half-slit phase plate
+  v5items.push(v5s('wo-v515', 'single slit diffraction', r`A slit of width $a$ is lit by a normal plane wave of wavelength $\lambda$. A thin strip of refractive index $n$ and thickness $t = \dfrac{\lambda}{2(n-1)}$ covers the upper half of the slit. Compared with its value $I_0$ without the strip, the intensity at the centre of the pattern ($\theta = 0$) is`, 'zero', [r`$I_0/2$`, r`$I_0/4$`, r`$I_0$`], 1,
+  r`Idea: the strip adds an optical path $(n-1)t = \lambda/2$, a phase shift of $\pi$, to the light from the upper half only. At $\theta = 0$ every part of the slit contributes in phase when uncovered, so the amplitude is $A$ (intensity $I_0$).<br>With the strip: the lower half gives $A/2$ and the upper half gives $(A/2)e^{i\pi} = -A/2$. The sum is zero.<br>So the central intensity is zero (the centre becomes a minimum).<br>Answer: zero.`,
+  r`Blocking half the light would give $I_0/4$; a half-wave phase shift on half the slit makes the two halves cancel exactly.`));
+}
+
+const v5gens = [
+  { id: 'wo-v5g1', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'YDSE with a slab',
+    make(rng) {
+      const lam = choose(rng, [500, 600]) * 1e-9, d = choose(rng, [0.4, 0.5, 0.8, 1.0]) * 1e-3, S = choose(rng, [0.4, 0.5, 0.8, 1.0]), y = choose(rng, [0.5, 1.0, 1.5, 2.0]) * 1e-3, n = choose(rng, [1.4, 1.5, 1.6]), t = choose(rng, [4, 5, 6, 8, 10]) * 1e-6, D = choose(rng, [1.0, 1.5, 2.0]);
+      const shift = D * ((n - 1) * t - y * d / S) / d * 1e3;
+      return { lam, d, S, y, n, t, D, shift, answer: +shift.toFixed(3), tol: 0.01 * Math.abs(shift) + 0.005, unit: 'mm',
+        q: `In a double slit experiment the source slit is ${fmt(y * 1e3, 2)} mm above the axis, ${fmt(S, 2)} m before the plane of the slits. The slits are ${fmt(d * 1e3, 2)} mm apart, $\\lambda = ${fmt(lam * 1e9, 3)}$ nm and the screen is ${fmt(D, 2)} m away. A thin sheet ($n = ${n}$, thickness ${fmt(t * 1e6, 2)} $\\mu$m) covers the upper slit. Find the shift of the central bright fringe, in mm, taking upward as positive (3 decimals).`,
+        sol: `Sheet over the upper slit: shift up by $\\dfrac{(n-1)tD}{d} = ${fmt((n - 1) * t * D / d * 1e3, 4)}$ mm. Source above the axis: shift down by $\\dfrac{yD}{S} = ${fmt(y * D / S * 1e3, 4)}$ mm. Net: $${fmt(shift, 4)}$ mm (positive is upward).`,
+        trap: 'The source displacement and the sheet shift the pattern in opposite directions.' };
+    },
+    verify: (p) => { const Y = (p.D / p.d) * ((p.n - 1) * p.t - p.y * p.d / p.S); return Y * 1e3; } },
+  { id: 'wo-v5g2', type: 'nat', level: 5, exams: ['jee-adv'], sub: 'coherent sources',
+    make(rng) {
+      const dl = choose(rng, [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]), ph = choose(rng, [0, 90, 180]);
+      let cnt = 0; for (let m = -40; m <= 40; m++) { const c = (m - ph / 360) / dl; if (Math.abs(c) < 1 - 1e-9) cnt += 2; else if (Math.abs(Math.abs(c) - 1) < 1e-9) cnt += 1; }
+      return { dl, ph, answer: cnt, tol: 0,
+        q: `Two identical point sources in a plane are a distance $d = ${dl}\\lambda$ apart. The second source leads the first in phase by ${ph}$^\\circ$. At large distances, along how many directions in the plane (over the full $360^\\circ$) is the intensity a maximum?`,
+        sol: `With the phase lead $\\varphi$, maxima need $d\\cos\\theta/\\lambda + \\varphi/2\\pi = m$, so $\\cos\\theta = (m - ${ph / 360})\\lambda/d$ with $|\\cos\\theta| \\le 1$. Each value with $|\\cos\\theta| < 1$ gives two directions, and $\\cos\\theta = \\pm1$ gives one. Counting the allowed $m$ gives ${cnt} directions.`,
+        trap: 'End-on directions ($\\cos\\theta=\\pm1$) count once; also the phase lead shifts every $m$.' };
+    },
+    verify: (p) => { const N = 200000; const g = (th) => Math.sin(Math.PI * (p.dl * Math.cos(th) + p.ph / 360)); let c = 0; let prev = g(0); const first = prev; for (let i = 1; i <= N; i++) { const cur = g(2 * Math.PI * i / N); if (i < N && prev * cur < 0) c++; prev = cur; } if (Math.abs(g(0)) < 1e-9) c += 1; if (Math.abs(g(Math.PI)) < 1e-9) c += 1; return c; } },
+  { id: 'wo-v5g3', type: 'mcq', level: 5, exams: ['jee-adv'], sub: 'Newton rings',
+    make(rng) {
+      let nl, ng, npl; do { nl = choose(rng, [1.45, 1.5, 1.6]); ng = choose(rng, [1.2, 1.33, 1.4, 1.55, 1.65, 1.7, 1.8]); npl = choose(rng, [1.3, 1.5, 1.52, 1.75, 1.9]); } while (ng === nl || ng === npl);
+      const changes = (ng > nl ? 1 : 0) + (npl > ng ? 1 : 0);
+      const centre = changes === 1 ? 'dark in reflected light and bright in transmitted light' : 'bright in reflected light and dark in transmitted light';
+      const { options, answer } = shuffleOpts(rng, centre, [centre === 'dark in reflected light and bright in transmitted light' ? 'bright in reflected light and dark in transmitted light' : 'dark in reflected light and bright in transmitted light', 'bright in both reflected and transmitted light', 'dark in both reflected and transmitted light']);
+      return { nl, ng, npl, changes, centre, options, answer,
+        q: `In a Newton's rings arrangement a lens of index ${nl} rests on a plate of index ${npl}, and the gap is filled with a transparent liquid of index ${ng}. The central spot of the pattern is`,
+        sol: `Reflection at a denser medium gives a phase change of $\\pi$. Lens (${nl}) to liquid (${ng}): ${ng > nl ? 'denser, $\\pi$' : 'rarer, none'}. Liquid (${ng}) to plate (${npl}): ${npl > ng ? 'denser, $\\pi$' : 'rarer, none'}. Net relative phase is ${changes === 1 ? '$\\pi$, so the centre is dark in reflection (and bright in transmission)' : changes === 2 ? '$2\\pi$, i.e. none, so the centre is bright in reflection (and dark in transmission)' : 'none, so the centre is bright in reflection (and dark in transmission)'}.`,
+        trap: 'The centre is dark only when exactly one of the two reflections gives a phase change.' };
+    },
+    verify: (p) => { const ph = (a, b) => (b > a ? Math.PI : 0); const net = (ph(p.nl, p.ng) + ph(p.ng, p.npl)) % (2 * Math.PI); const dark = Math.abs(net - Math.PI) < 1e-9; return p.options.indexOf(dark ? 'dark in reflected light and bright in transmitted light' : 'bright in reflected light and dark in transmitted light'); } },
+];
+
+export default { topic: 'wave-optics', groups: { ...groups, ...xgroups, ...v5groups }, items: [...items, ...xitems, ...v5items], gens: [...gens, ...xgens, ...v5gens] };

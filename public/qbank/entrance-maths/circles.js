@@ -964,4 +964,122 @@ gens.push(...xgens);
 
 }
 
+// ==L5-BEGIN (level 5 round: new top-rank items, groups and templates)
+{
+const LR = String.raw;
+const LEX = ['jee-adv'];
+let _v = 0; const LPOS = [1, 3, 0, 2, 2, 0, 3, 1, 3, 1];
+let _vp = 0;
+const lid = () => `ci-v5${String(++_v).padStart(2, '0')}`;
+const lpl = (c, w) => { const p = LPOS[_vp++ % LPOS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const lmk = (sub, extra) => ({ id: lid(), level: 5, exams: LEX, sub, ...extra });
+const LI = (s, q, a, sol, trap, calc) => lmk(s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const LN = (s, q, a, tol, sol, trap, calc) => lmk(s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const LX = (s, q, options, answer, sol, trap) => lmk(s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const LAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const LA = (s, a, r, answer, sol, trap) => lmk(s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: LAO, answer, sol, trap });
+const LSC = (s, lines, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...lpl(c, w), sol, trap });
+const LMT = (s, group, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...lpl(c, w), sol, trap });
+const LPM = (s, group, q, c, w, sol, trap) => lmk(s, { type: 'mcq', format: 'passage', group, q, ...lpl(c, w), sol, trap });
+const LPI = (s, group, q, a, sol, trap, calc) => lmk(s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const LPN = (s, group, q, a, tol, sol, trap, calc) => lmk(s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const LG = (id, type, format, sub, make, verify) => ({ id, type, format, level: 5, exams: LEX, sub, make, ...(verify ? { verify } : {}) });
+
+Object.assign(groups, {
+  v5m1: { title: 'Loci of centres of touching circles', passage: LR`<p>A variable circle touches the given circles or line as described in List I. Match each description with the curve traced by the centre of the variable circle (List II).</p>`,
+    list1: ['A. touches $x^2+y^2=1$ and $(x-8)^2+y^2=9$, both externally', 'B. touches $x^2+y^2=1$ externally and the line $x=3$, lying to the left of that line', 'C. touches $x^2+y^2=1$ and $(x-4)^2+y^2=1$, both externally', 'D. touches $(x-2)^2+y^2=36$ internally and $x^2+y^2=1$ externally'],
+    list2: ['p. a straight line', 'q. one branch of a hyperbola', 'r. an ellipse', 's. a circle', 't. a parabola'] },
+  v5m2: { title: 'Two circles and a parameter', passage: LR`<p>Let $S_1:\ x^2+y^2=4$ and $S_2:\ x^2+y^2-6x-8y+k=0$. Match each condition in List I with the value of $k$ in List II.</p>`,
+    list1: ['A. $S_2$ touches $S_1$ externally', 'B. $S_2$ touches $S_1$ internally', 'C. $S_2$ cuts $S_1$ orthogonally', 'D. $S_2$ bisects the circumference of $S_1$'],
+    list2: ['p. $-24$', 'q. $-4$', 'r. $4$', 's. $16$', 't. $25$'] },
+  v5p1: { title: 'Passage: chords that subtend a right angle', passage: LR`<p>A variable chord $AB$ of the circle $x^2+y^2=25$ subtends a right angle at the point $P(2,0)$ inside the circle (that is, $\angle APB=90^\circ$). Let $M$ be the mid-point of $AB$.</p>` },
+});
+
+items.push(
+  LI('lattice points', LR`How many points $(x,y)$ with integer coordinates lie <b>on</b> the circle $x^2+y^2=325$?`, 24,
+    LR`<p>Idea: list the ways to write $325$ as a sum of two squares, then count sign and order changes.</p><p>$325=1+324=36+289=100+225$, i.e. $(1,18)$, $(6,17)$, $(10,15)$. None of these has a zero coordinate or equal coordinates, so each gives $8$ points ($\pm$ signs, and swapping $x,y$).</p><p>Total $3\times8=24$. (Check with the formula: $325=5^2\cdot13$ has $6$ divisors, all of the form $4m+1$, so $r_2=4\cdot6=24$.)</p>`,
+    'Counting only the first-quadrant points, or forgetting the swap $(x,y)\\to(y,x)$ that doubles the count.',
+    () => { let c = 0; for (let x = -18; x <= 18; x++) for (let y = -18; y <= 18; y++) if (x * x + y * y === 325) c++; return c; }),
+  LI('chords through a point', LR`Through the point $(3,0)$, chords are drawn in the circle $x^2+y^2=25$. How many of these chords have an integer length?`, 4,
+    LR`<p>Idea: the shortest chord through an interior point is perpendicular to the line from the centre; the longest is the diameter.</p><p>Shortest: $2\sqrt{25-3^2}=8$. Longest: $10$. Lengths between $8$ and $10$ occur on both sides of the shortest chord (two chords each), the extreme lengths only once.</p><p>Length $8$: $1$ chord. Length $9$: $2$ chords. Length $10$: $1$ chord (the diameter).</p><p>Total $1+2+1=4$.</p>`,
+    'Counting length 9 only once (the answer 3), or counting 8 and 10 twice.',
+    () => { let c = 0; for (let L = 1; L <= 10; L++) { const h = Math.sqrt(25 - L * L / 4); if (Math.abs(h - 3) < 1e-9) c += 1; else if (h < 3) c += h < 1e-9 ? 1 : 2; } return c; }),
+  LI('circles bisecting a circumference', LR`A circle bisects the circumference of $x^2+y^2=4$ and its centre lies on the line $3x+4y=25$. Find the square of the least possible radius of such a circle.`, 29,
+    LR`<p>Idea: the circle $S$ with centre $C$ and radius $\rho$ bisects the circumference of the circle $S'$ (centre $O$, radius $2$) when their common chord is a diameter of $S'$, so $O$ is on the radical axis.</p><p>Then the power of $O$ with respect to $S$ equals its power with respect to $S'$: $OC^2-\rho^2=0-2^2$, so $\rho^2=OC^2+4$.</p><p>$OC$ is smallest when $C$ is the foot of the perpendicular from $O$ to $3x+4y=25$: $OC=\dfrac{25}{5}=5$.</p><p>$\rho^2=25+4=29$.</p>`,
+    'Taking $\\rho=OC$ (the smallest circle centred on the line) and forgetting the extra $r^2=4$.',
+    () => { let best = 1e9; for (let t = -20; t < 20; t += 0.001) { const y = (25 - 3 * t) / 4; best = Math.min(best, t * t + y * y + 4); } return Math.round(best); }),
+  LN('concyclic points on the axes', LR`The line $\dfrac x4+\dfrac y3=1$ meets the axes at $A,B$, and the line $\dfrac x6+\dfrac yk=1$ meets them at $C,D$ ($A,C$ on the $x$-axis). The four points $A,B,C,D$ are concyclic. Find the radius of the circle through them (2 decimal places).`, 5.59, 0.01,
+    LR`<p>Idea: use the power of the origin. $O$ lies on lines $AC$ and $BD$ (the two axes), so $OA\cdot OC=OB\cdot OD$.</p><p>$4\cdot6=3\cdot k$, so $k=8$. The points are $(4,0),(6,0),(0,3),(0,8)$.</p><p>Circle $x^2+y^2+Dx+Ey+F=0$: on the $x$-axis the roots of $x^2+Dx+F=0$ are $4,6$, so $D=-10$, $F=24$; on the $y$-axis the roots of $y^2+Ey+F=0$ are $3,8$, so $E=-11$ and $F=24$ agrees.</p><p>Centre $(5,5.5)$, $r^2=25+30.25-24=31.25$, $r=\sqrt{31.25}\approx5.59$.</p>`,
+    'Forgetting that the intercepts on one axis must multiply to the same constant $F$; any other $k$ gives no common circle.',
+    () => +Math.sqrt(31.25).toFixed(2)),
+  LN('touching circles', LR`Three circles of radius $1$ touch one another externally. A larger circle touches all three of them internally (all three lie inside it). Find the radius of the larger circle (2 decimal places).`, 2.15, 0.01,
+    LR`<p>Idea: the three centres form an equilateral triangle of side $2$; the large circle's centre is the triangle's centre.</p><p>Circumradius of the triangle $=\dfrac{2}{\sqrt3}\approx1.1547$.</p><p>The big circle touches each small circle internally, so its radius is the distance to a small centre plus the small radius: $1+\dfrac2{\sqrt3}\approx2.15$.</p>`,
+    'Using $\\frac{2}{\\sqrt3}$ alone (forgetting the radius $1$ of the small circle) gives $1.15$.',
+    () => +(1 + 2 / Math.sqrt(3)).toFixed(2)),
+  LX('family of circles', LR`Consider the family of circles $x^2+y^2-4+\lambda(x+y-2)=0$, $\lambda$ real, through the intersection of $x^2+y^2=4$ and $x+y=2$. Which statements are true?`,
+    ['Every member passes through $(2,0)$ and $(0,2)$', 'The member of least radius has radius $\\sqrt2$', 'Some member passes through $(1,1)$', 'Some member touches both coordinate axes'],
+    [0, 1, 3],
+    LR`<p>The line meets the circle where $x+y=2$ and $x^2+y^2=4$: at $(2,0)$ and $(0,2)$. Every member passes through both.</p><p>Radius: centre $(-\frac\lambda2,-\frac\lambda2)$, $\rho^2=\frac{\lambda^2}2+2\lambda+4=\frac{(\lambda+2)^2}2+2\ge2$, least at $\lambda=-2$: radius $\sqrt2$. True.</p><p>$(1,1)$: substitute: $2-4+\lambda(0)=-2\ne0$ for every $\lambda$. False. (It lies on the line but is not one of the two common points.)</p><p>$\lambda=-4$ gives $x^2+y^2-4x-4y+4=0$: centre $(2,2)$, radius $2$, so it touches both axes (at $(2,0)$ and $(0,2)$). True.</p>`,
+    '$(1,1)$ is on the line $x+y=2$, but the line term vanishes there, so the circle part $-2$ never cancels.'),
+  LX('pole and polar', LR`For the circle $S:\ x^2+y^2=25$, which statements are true?`,
+    ['The points $(1,2)$ and $(3,11)$ are conjugate points with respect to $S$', 'The circle on the join of $(1,2)$ and $(3,11)$ as diameter cuts $S$ orthogonally', 'The chord of contact of the tangents from $(10,0)$ has length $5\\sqrt3$', 'The points $(3,4)$ and $(4,3)$ are conjugate points with respect to $S$'],
+    [0, 1, 2],
+    LR`<p>Points $(x_1,y_1)$ and $(x_2,y_2)$ are conjugate when $x_1x_2+y_1y_2=r^2$ (each lies on the other's polar).</p><ul><li>$1\cdot3+2\cdot11=25$: conjugate. True.</li><li>Circle on the join as diameter: $(x-1)(x-3)+(y-2)(y-11)=0$, i.e. $x^2+y^2-4x-13y+25=0$. For orthogonality with $x^2+y^2-25=0$: $2g_1g_2+2f_1f_2=0$ and $c_1+c_2=25-25=0$. They agree, so it is orthogonal. True.</li><li>Chord of contact of $(10,0)$: $x=2.5$; length $2\sqrt{25-6.25}=2\sqrt{18.75}=5\sqrt3$. True.</li><li>$3\cdot4+4\cdot3=24\ne25$: not conjugate. False.</li></ul>`,
+    'Mixing up "on the circle" with "conjugate": both $(3,4)$ and $(4,3)$ lie on $S$, yet they are not conjugate to each other.'),
+  LX('tangent lengths', LR`Tangents are drawn to $x^2+y^2=9$ from points $P$ on the line $x+y=8$. Which statements are true?`,
+    ['The least length of a tangent is $\\sqrt{23}$', 'The least tangent length occurs at $P=(4,4)$', 'Every chord of contact passes through the fixed point $\\left(\\dfrac94,\\dfrac94\\right)$', 'Every chord of contact passes through a fixed point that lies inside the circle'],
+    [0, 1, 3],
+    LR`<p>Tangent length from $P$: $\sqrt{OP^2-9}$. It is least when $OP$ is least, i.e. at the foot of the perpendicular from $O$: $P=(4,4)$, $OP^2=32$, length $\sqrt{23}$. First two true.</p><p>Chord of contact of $P(h,8-h)$: $hx+(8-h)y=9$, i.e. $h(x-y)+8y-9=0$ for all $h$. So $x=y$ and $8y=9$: the fixed point is $\left(\frac98,\frac98\right)$. So the third option is false.</p><p>Is $\left(\frac98,\frac98\right)$ inside $x^2+y^2=9$? $2\cdot\frac{81}{64}\approx2.53<9$. Yes. True.</p>`,
+    'The fixed point is the pole of the line, $\\frac{9}{8}$ in each coordinate (it is $r^2/8$), not $\\frac{9}{4}$.'),
+  LMT('loci of centres', 'v5m1', 'A-q, B-t, C-p, D-r', ['A-t, B-q, C-p, D-r', 'A-q, B-p, C-t, D-s', 'A-r, B-t, C-p, D-q'],
+    LR`<p>A. Radii $1$ and $3$: $CC_2=\rho+3$, $CC_1=\rho+1$, so $CC_2-CC_1=2$, less than the distance $8$ between centres: one branch of a hyperbola (q).</p><p>B. $CO=\rho+1$ and the distance to the line $x=3$ is $\rho$, so $CO=(3-x)+1=4-x$: $C$ is equidistant from $O$ and the line $x=4$: a parabola (t).</p><p>C. $CC_1=\rho+1=CC_2$: the perpendicular bisector $x=2$ (p).</p><p>D. Centre $C$ inside the big circle: $CC_2=6-\rho$ and $CC_1=1+\rho$, sum $7$, greater than $C_1C_2=2$: an ellipse (r).</p>`,
+    'Treating "touch internally" like "touch externally" in D: the sum of the focal distances is constant, not the difference.'),
+  LMT('two circles and a parameter', 'v5m2', 'A-s, B-p, C-r, D-q', ['A-p, B-s, C-r, D-q', 'A-s, B-p, C-q, D-r', 'A-s, B-r, C-p, D-q'],
+    LR`<p>$S_2$ has centre $(3,4)$ and radius $\sqrt{25-k}$; the distance between centres is $5$; $S_1$ has radius $2$.</p><p>A. External touch: $5=2+\sqrt{25-k}$, radius $3$, $k=16$ (s).</p><p>B. Internal touch: $5=\sqrt{25-k}-2$, radius $7$, $k=25-49=-24$ (p). (The other case, $\sqrt{25-k}=-3$, is impossible.)</p><p>C. Orthogonal: $2g_1g_2+2f_1f_2=c_1+c_2$ gives $0=-4+k$, $k=4$ (r).</p><p>D. Bisecting: the common chord $S_2-S_1=-6x-8y+k+4=0$ must pass through the centre $O$ of $S_1$: $k=-4$ (q).</p>`,
+    'Mixing up the orthogonal condition (which has $c_1+c_2$) with the bisecting condition (radical axis through the other centre).'),
+  LPM('locus', 'v5p1', LR`The locus of $M$ is`, '$2x^2+2y^2-4x-21=0$', ['$x^2+y^2-4x-21=0$', '$2x^2+2y^2-4x-29=0$', '$2x^2+2y^2+4x-21=0$'],
+    LR`<p>In the right triangle $APB$ the mid-point $M$ of the hypotenuse is its circumcentre, so $MP=MA$.</p><p>In the circle, $OM\perp AB$, so $OM^2+MA^2=25$. With $M=(x,y)$:</p><p>$x^2+y^2+(x-2)^2+y^2=25\Rightarrow2x^2+2y^2-4x-21=0$, a circle with centre $(1,0)$ and radius squared $1+\dfrac{21}2=\dfrac{23}2$.</p>`,
+    'Writing $MA=MP$ but then using $OM^2+MA^2=100$ or forgetting the half-chord.'),
+  LPN('locus', 'v5p1', LR`Find the greatest possible length of $AB$ (2 decimal places).`, 8.78, 0.01,
+    LR`<p>$AB=2\,MA=2\,MP$. $M$ lies on the circle of centre $(1,0)$ and radius $\sqrt{23/2}\approx3.391$ (from the locus).</p><p>$MP$ is greatest when $M$ is the point of that circle farthest from $P(2,0)$: $MP_{\max}=1+3.391=4.391$ ($P$ is $1$ unit from the centre).</p><p>$AB_{\max}=2\times4.391\approx8.78$.</p>`,
+    'The greatest chord of the big circle is $10$, but a chord that subtends a right angle at $P$ cannot be the diameter.',
+    () => +(2 * (1 + Math.sqrt(11.5))).toFixed(2)),
+  LPI('locus', 'v5p1', LR`For how many whole numbers $L$ is there a chord $AB$ of length exactly $L$ subtending a right angle at $P$?`, 4,
+    LR`<p>$AB=2MP$ and $MP$ takes every value between $r-1$ and $r+1$ as $M$ goes round the locus circle (radius $r=\sqrt{23/2}\approx3.391$, centre $1$ unit from $P$).</p><p>So $AB$ takes every value from $2(r-1)\approx4.78$ to $2(r+1)\approx8.78$.</p><p>The whole numbers in that range: $5,6,7,8$. Answer $4$.</p>`,
+    'The range of $AB$ is closed and continuous, so each whole number inside it is attained; do not stop at 5 and 8 only.',
+    () => { const r = Math.sqrt(11.5); let c = 0; for (let L = 1; L <= 10; L++) if (L >= 2 * (r - 1) && L <= 2 * (r + 1)) c++; return c; }),
+  LA('loci of centres', LR`The locus of the centre of a circle of radius $2$ that touches $x^2+y^2=1$ is the single circle $x^2+y^2=9$.`,
+    LR`If two circles touch internally, the distance between their centres equals the difference of their radii.`, 3,
+    LR`<p>R is true.</p><p>A: touching externally gives $OC=2+1=3$, the circle $x^2+y^2=9$. But the circle of radius $2$ can also touch the unit circle internally (the unit circle inside it): $OC=2-1=1$, the circle $x^2+y^2=1$. The full locus is both circles, so "the single circle $x^2+y^2=9$" is false.</p>`,
+    'Taking "touches" to mean externally only.'),
+  LSC('pole and polar and tangents', ['The polar of a point inside a circle lies entirely outside the circle.', 'The shortest chord through an interior point $P$ (not the centre) is perpendicular to the line joining $P$ to the centre.', 'If two circles touch externally, their radical axis is one of their three common tangents.', 'Two circles that cut each other orthogonally have exactly four common tangents.'],
+    '3', ['1', '2', '4'],
+    LR`<p>(1) True: for a point at distance $d<r$ from the centre the polar is at distance $r^2/d>r$.</p><p>(2) True: the chord at distance $h$ from the centre has length $2\sqrt{r^2-h^2}$; $h$ is greatest, $=OP$, when the chord is perpendicular to $OP$.</p><p>(3) True: the radical axis is the common tangent at the point of contact, one of the three.</p><p>(4) False: orthogonal circles intersect at two points, so they have only two (direct) common tangents.</p><p>Three are correct.</p>`,
+    'Four common tangents need the circles to be completely separate; intersecting circles (even orthogonal ones) have only 2.'),
+);
+
+gens.push(
+  LG('ci-v5g1', 'nat', 'integer', 'lattice points', (rng) => {
+    const n = choose(rng, [25, 50, 65, 85, 100, 125, 130, 145, 169, 185, 205, 225, 325, 425, 625]);
+    let a = 0; for (let d = 1; d <= n; d++) if (n % d === 0) { if (d % 4 === 1) a++; else if (d % 4 === 3) a--; } const ans = 4 * a;
+    return { n, answer: ans, tol: 0, q: LR`How many points with integer coordinates lie on the circle $x^2+y^2=${n}$?`,
+      sol: LR`<p>The number of ways to write $${n}$ as $x^2+y^2$ with integers $x,y$ (counting signs and order) is $4\,(d_1-d_3)$, where $d_1$ and $d_3$ count the divisors of $${n}$ leaving remainder $1$ and $3$ on division by $4$. Here $d_1-d_3=${a}$, so the answer is $${ans}$.</p><p>(Check by listing: find the squares $a^2$ up to $${n}$ for which $${n}-a^2$ is also a square, then count signs and the swap of the two coordinates.)</p>` };
+  }, (p) => { let c = 0; const r = Math.floor(Math.sqrt(p.n)); for (let x = -r; x <= r; x++) for (let y = -r; y <= r; y++) if (x * x + y * y === p.n) c++; return c; }),
+  LG('ci-v5g2', 'nat', 'integer', 'chords through a point', (rng) => {
+    const [R, d] = choose(rng, [[5, 3], [13, 5], [13, 12], [10, 6], [15, 9], [17, 8], [25, 7], [20, 12], [26, 10]]);
+    const lo2 = 4 * (R * R - d * d); const rt = Math.sqrt(lo2); const loInt = Number.isInteger(rt);
+    let c = 0; for (let L = Math.ceil(rt) + (loInt ? 1 : 0); L < 2 * R; L++) c += 2; c += 1; if (loInt) c += 1;
+    const minL = loInt ? `${rt}` : `2\\sqrt{${R * R - d * d}}\\approx${(rt).toFixed(2)}`;
+    return { R, d, answer: c, tol: 0, q: LR`Chords of the circle $x^2+y^2=${R * R}$ are drawn through the point $(${d},0)$. How many of them have integer length?`,
+      sol: LR`<p>The shortest chord through the point is perpendicular to the x-axis: length $${minL}$. The longest is the diameter, $${2 * R}$. Each integer length strictly between these occurs for two chords (one on each side of the shortest); the shortest chord (if its length is an integer) and the diameter occur once each.</p><p>Total $=${c}$.</p>` };
+  }, (p) => { let c = 0; for (let L = 1; L <= 2 * p.R; L++) { const h2 = p.R * p.R - L * L / 4; const h = Math.sqrt(Math.max(h2, 0)); if (Math.abs(h - p.d) < 1e-9) c += 1; else if (h < p.d) c += h < 1e-9 ? 1 : 2; } return c; }),
+  LG('ci-v5g3', 'nat', 'numeric', 'circles bisecting a circumference', (rng) => {
+    const [p, q, nn] = choose(rng, [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17]]); const m = int(rng, 2, 6); const r0 = int(rng, 2, 7);
+    const c = nn * m; const dist = m; const rho = Math.sqrt(dist * dist + r0 * r0);
+    return { pp: p, qq: q, c, r0, answer: +rho.toFixed(2), tol: 0.01, q: LR`A circle bisects the circumference of $x^2+y^2=${r0 * r0}$ and its centre lies on the line $${p}x+${q}y=${c}$. Find the least possible radius (2 decimal places).`,
+      sol: LR`<p>A circle (centre $C$, radius $\rho$) bisecting the circumference of the circle centred at $O$ with radius $${r0}$ satisfies $\rho^2=OC^2+${r0}^2$. The least $OC$ is the distance from $O$ to the line: $\dfrac{${c}}{\sqrt{${p}^2+${q}^2}}=\dfrac{${c}}{${nn}}=${dist}$.</p><p>$\rho=\sqrt{${dist}^2+${r0}^2}=\sqrt{${dist * dist + r0 * r0}}\approx${rho.toFixed(2)}$.</p>` };
+  }, (p) => { let best = 1e18; for (let t = -60; t < 60; t += 0.002) { const x = t, y = (p.c - p.pp * x) / p.qq; best = Math.min(best, x * x + y * y + p.r0 * p.r0); } return +Math.sqrt(best).toFixed(2); }),
+);
+}
+// ==L5-END
 export default { topic: 'circles', groups, items, gens };

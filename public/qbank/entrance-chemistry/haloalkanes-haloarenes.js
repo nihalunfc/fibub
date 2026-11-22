@@ -684,9 +684,113 @@ const NEWG = [
 GENS.push(...NEWG);
 
 
+// ---------- level 5 round: top-rank items (ha-v5NN) and templates (ha-v5gN) ----------
+const V5G = {};
+let _v5 = 0;
+const V5EX = ['jee-adv'];
+const v5id = (n) => `ha-v5${String(n).padStart(2, '0')}`;
+const v5mcq = (n, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_v5++) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  return { id: v5id(n), type: 'mcq', level: 5, format, exams: V5EX, sub, q, options, answer: pos, sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) };
+};
+const v5nat = (n, sub, q, answer, tol, unit, sol, trap, group) => ({ id: v5id(n), type: 'nat', level: 5, format: group ? 'passage' : (tol === 0 ? 'integer' : 'numeric'), exams: V5EX, sub, q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(group ? { group } : {}) });
+const v5msq = (n, sub, q, options, answer, sol, trap) => ({ id: v5id(n), type: 'msq', level: 5, format: 'multi', exams: V5EX, sub, q, options, answer, sol, ...(trap ? { trap } : {}) });
+const v5match = (n, sub, title, l1, l2, map, sol, trap) => {
+  const L = 'ABCD', Q = 'pqrst'; const gk = `v5m${n}`;
+  V5G[gk] = { title, list1: l1.map((t, i) => `${L[i]}. ${t}`), list2: l2.map((t, i) => `${Q[i]}. ${t}`) };
+  const code = (m) => m.map((x, i) => `${L[i]}-${x}`).join(', ');
+  const sw = (a, i, j) => { const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return b; };
+  const wr = [sw(map, 0, 1), sw(map, 1, 2), sw(map, 2, 3), sw(map, 0, 3), sw(map, 0, 2)].map(code).filter((c) => c !== code(map));
+  return v5mcq(n, sub, 'Match the entries of List I with those of List II and choose the correct code.', code(map), wr.slice(0, 3), sol, trap, 'match', gk);
+};
+const V5A4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+V5G.v5p1 = { title: 'Adding the C&ndash;Cl dipoles of chlorobenzenes', passage: '<p>Treat the C&ndash;Cl bond in a chlorobenzene as a dipole of <b>1.6 D</b> that lies in the plane of the ring and points along the line from the ring centre to that carbon. Ring positions are 60&deg; apart. Add the dipoles as vectors, and ignore any interaction between neighbouring chlorine atoms. Take cos 60&deg; = 0.5 and sin 60&deg; = 0.866.</p>' };
+const V5I = [
+  v5msq(1, 'Grignard reagents', '<p>Methylmagnesium bromide, CH<sub>3</sub>MgBr (excess), is treated with each reagent below, followed by H<sub>3</sub>O<sup>+</sup> work-up where needed. Which statements are correct?</p>',
+    ['With ethanol it gives ethane', 'With ethanal (acetaldehyde) it gives propan-2-ol', 'With methanal (formaldehyde) it gives propan-1-ol', 'With solid CO<sub>2</sub> it gives ethanoic acid', 'With ethyl ethanoate it gives 2-methylpropan-2-ol'], [1, 3, 4],
+    '<p>Idea: a Grignard reagent is a strong base (takes any acidic H) and a carbon nucleophile (adds CH<sub>3</sub> to C=O).</p><p>A: R-MgX + R&prime;OH &rarr; R-H + R&prime;OMgX. Here R is CH<sub>3</sub>, so the gas is <b>methane</b>, not ethane. Wrong.</p><p>B: CH<sub>3</sub>CHO + CH<sub>3</sub>MgBr &rarr; CH<sub>3</sub>CH(OH)CH<sub>3</sub>, a secondary alcohol. Correct.</p><p>C: HCHO adds one carbon and gives a primary alcohol, CH<sub>3</sub>CH<sub>2</sub>OH (ethanol), not propanol. Wrong.</p><p>D: CO<sub>2</sub> + CH<sub>3</sub>MgBr &rarr; CH<sub>3</sub>COOMgBr, then acid gives CH<sub>3</sub>COOH. Correct.</p><p>E: an ester takes two CH<sub>3</sub> groups: the ketone formed in the first step reacts again, giving (CH<sub>3</sub>)<sub>3</sub>COH after work-up. Correct.</p>',
+    'In A the new C&ndash;H bond keeps the carbon group of the Grignard reagent, so the gas is methane.'),
+  v5msq(2, 'SN2 reactivity', '<p>Each halide reacts with the same nucleophile (I<sup>-</sup>) in dry acetone by the S<sub>N</sub>2 path at the same temperature. Which comparisons of reaction rate are correct?</p>',
+    ['CH<sub>3</sub>Br &gt; CH<sub>3</sub>CH<sub>2</sub>Br', 'CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>Br &gt; (CH<sub>3</sub>)<sub>3</sub>CCH<sub>2</sub>Br', 'C<sub>6</sub>H<sub>5</sub>CH<sub>2</sub>Br &gt; CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>Br', '(CH<sub>3</sub>)<sub>2</sub>CHBr &gt; CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>Br', 'CH<sub>2</sub>=CHBr &gt; CH<sub>3</sub>CH<sub>2</sub>Br'], [0, 1, 2],
+    '<p>Idea: S<sub>N</sub>2 is slowed by crowding at the carbon being attacked and by a stronger C&ndash;X bond, and it is speeded up when the transition state overlaps with a neighbouring &pi; system.</p><p>A: methyl has no alkyl crowding. Correct.</p><p>B: neopentyl bromide is a primary halide, but the bulky tert-butyl group next to the carbon blocks the back-side attack; it is extremely slow. Correct.</p><p>C: the benzene ring stabilises the S<sub>N</sub>2 transition state. Correct.</p><p>D: a secondary halide is more crowded than a primary one, so it is slower. Wrong.</p><p>E: vinyl bromide has a shorter, stronger C&ndash;Br bond (partial double-bond character) and the back side is blocked by the &pi; cloud, so it is very unreactive. Wrong.</p>',
+    'Neopentyl bromide is primary, but it still reacts slower than ethyl bromide.'),
+  v5msq(3, 'preparation of haloalkanes and haloarenes', '<p>Which reactions give the stated compound as the main product?</p>',
+    ['CH<sub>3</sub>CH<sub>2</sub>OH + SOCl<sub>2</sub> &rarr; CH<sub>3</sub>CH<sub>2</sub>Cl', 'CH<sub>3</sub>CH=CH<sub>2</sub> + HBr (in the presence of a peroxide) &rarr; 1-bromopropane', 'C<sub>6</sub>H<sub>5</sub>OH + HCl (with ZnCl<sub>2</sub>) &rarr; chlorobenzene', 'C<sub>6</sub>H<sub>6</sub> + Cl<sub>2</sub> (with FeCl<sub>3</sub>) &rarr; chlorobenzene', 'C<sub>6</sub>H<sub>5</sub>CH<sub>3</sub> + Cl<sub>2</sub> (with FeCl<sub>3</sub>, dark) &rarr; benzyl chloride'], [0, 1, 3],
+    '<p>A: thionyl chloride turns an alcohol into the chloride, and the by-products SO<sub>2</sub> and HCl escape as gases. Correct.</p><p>B: with a peroxide HBr adds by a free-radical path (anti-Markovnikov), so Br ends up on the end carbon. Correct.</p><p>C: the C&ndash;OH bond of phenol has partial double-bond character (the oxygen lone pair is delocalised into the ring), so HCl cannot replace OH. Wrong.</p><p>D: electrophilic substitution of benzene with a Lewis-acid catalyst. Correct.</p><p>E: FeCl<sub>3</sub> in the dark makes a ring substitution (o- and p-chlorotoluene). Benzyl chloride needs light or heat (free radicals) without the catalyst. Wrong.</p>',
+    'The catalyst decides: Lewis acid for the ring, light or heat for the side chain.'),
+  v5nat(4, 'counting alkenes', '<p>Among all the constitutional isomers of C<sub>5</sub>H<sub>11</sub>Cl, how many give <b>exactly one alkene</b> (counting <i>E</i> and <i>Z</i> forms as different alkenes) as the only product on heating with alcoholic KOH?</p>', 3, 0, '',
+    '<p>Idea: list the eight isomers and find the &beta;-hydrogens of each.</p><p>1-Chloropentane &rarr; pent-1-ene only. <b>1</b></p><p>2-Chloropentane &rarr; pent-1-ene and pent-2-ene (E, Z): several. 3-Chloropentane &rarr; pent-2-ene as <i>E</i> and <i>Z</i>: two alkenes.</p><p>1-Chloro-2-methylbutane &rarr; 2-methylbut-1-ene only. <b>2</b></p><p>1-Chloro-3-methylbutane &rarr; 3-methylbut-1-ene only. <b>3</b></p><p>2-Chloro-2-methylbutane and 2-chloro-3-methylbutane give two alkenes each. 1-Chloro-2,2-dimethylpropane (neopentyl) has no &beta;-hydrogen and gives none.</p><p>Answer: <b>3</b>.</p>',
+    'Counting 3-chloropentane (it gives both <i>E</i> and <i>Z</i>) or the neopentyl isomer (it gives nothing).'),
+  v5nat(5, 'polyhalogen compounds', '<p>Complete alkaline hydrolysis is carried out on 1 mol each of CHCl<sub>3</sub>, C<sub>6</sub>H<sub>5</sub>CCl<sub>3</sub> and (CH<sub>3</sub>)<sub>2</sub>CCl<sub>2</sub>. The products are sodium methanoate, sodium benzoate and propanone. Ignore any further reaction of the organic products. How many moles of NaOH are used up in all?</p>', 10, 0, 'mol',
+    '<p>Idea: three OH<sup>-</sup> replace three Cl, giving an unstable triol that loses water to form an acid; the acid then uses one more OH<sup>-</sup> to make its salt.</p><p>CHCl<sub>3</sub> &rarr; HCOO<sup>-</sup>: 3 + 1 = 4 mol. C<sub>6</sub>H<sub>5</sub>CCl<sub>3</sub> &rarr; C<sub>6</sub>H<sub>5</sub>COO<sup>-</sup>: 3 + 1 = 4 mol.</p><p>(CH<sub>3</sub>)<sub>2</sub>CCl<sub>2</sub> &rarr; (CH<sub>3</sub>)<sub>2</sub>C(OH)<sub>2</sub> &rarr; acetone + H<sub>2</sub>O: 2 mol, and no acid forms.</p><p>Total = 4 + 4 + 2 = <b>10 mol</b>.</p>',
+    'Forgetting the extra mole of alkali that neutralises the carboxylic acid.'),
+  v5nat(6, 'stereoisomers', '<p>1,2,3,4,5,6-Hexachlorocyclohexane (the pesticide BHC) has each carbon of a six-membered ring bearing one Cl and one H. How many stereoisomers does it have, counting each enantiomer separately? (Ring flipping between chair forms only converts conformers, not isomers.)</p>', 9, 0, '',
+    '<p>Idea: each carbon has Cl up or Cl down, so there are 2<sup>6</sup> = 64 up/down patterns. Count the patterns that are really different when the ring is turned (rotated or flipped over); the mirror image is then counted as a separate isomer.</p><p>Rotations of the ring by 0, 60, ..., 300&deg; keep 64, 2, 4, 8, 4 and 2 patterns, a total of 84. The six flips (turning the ring over) leave 0 patterns for the three axes through atoms and 8 for each of the three axes through bonds: 24. Group size 12, so (84 + 24)/12 = <b>9</b> different arrangements.</p><p>Seven of these arrangements are achiral (meso). One, the &alpha;-isomer, is chiral and exists as a pair of enantiomers. Counting that pair as two gives 7 + 2 = 9 stereoisomers, in line with the known isomers (&alpha;, &beta;, &gamma; (lindane), &delta;, ...).</p>',
+    'Chair flipping does not create new isomers; only up/down arrangement counts.'),
+  v5nat(7, 'estimation of halogens', '<p>A 0.8675 g mixture of bromoethane and chloroethane is heated by the Carius method, and all the halogen is precipitated as silver halides weighing 1.6575 g. Find the percentage of bromoethane in the mixture by mass, to 1 decimal place. (C = 12, H = 1, Cl = 35.5, Br = 80, Ag = 108)</p>', 62.8, 0.1, '%',
+    '<p>Idea: one halogen atom per molecule means moles of AgX = moles of halide. Two unknowns, two equations.</p><p>C<sub>2</sub>H<sub>5</sub>Br = 109 g mol<sup>-1</sup> (AgBr 188), C<sub>2</sub>H<sub>5</sub>Cl = 64.5 g mol<sup>-1</sup> (AgCl 143.5). Let the moles be x and y.</p><p>109x + 64.5y = 0.8675; 188x + 143.5y = 1.6575.</p><p>Multiply the first by 143.5/64.5 = 2.2248: 242.5x + 143.5y = 1.9300. Subtract: 54.5x = 0.2725, so x = 0.00500 mol, y = 0.00500 mol.</p><p>Mass of C<sub>2</sub>H<sub>5</sub>Br = 0.00500 &times; 109 = 0.545 g. Percentage = 0.545/0.8675 &times; 100 = <b>62.8 %</b>.</p>',
+    'Treating the whole precipitate as AgBr.'),
+  v5nat(8, 'SN1 and E1 competition', '<p>tert-Butyl chloride reacts in aqueous ethanol by a first-order path (rate = k[RCl]) that gives 80 % substitution (alcohol) and 20 % elimination (alkene) at every moment. The total rate constant is 5.0 &times; 10<sup>-4</sup> s<sup>-1</sup>. Starting with 0.050 M RCl, what is the concentration of the alcohol after 1386 s (ln 2 = 0.693)?</p>', 0.020, 0.0005, 'M',
+    '<p>Idea: parallel first-order paths share the same rate law, so the products always appear in the ratio of their rate constants (4 : 1 here).</p><p>k t = 5.0 &times; 10<sup>-4</sup> &times; 1386 = 0.693, so exactly one half-life has passed. RCl used = 0.025 M.</p><p>Alcohol = 0.80 &times; 0.025 = <b>0.020 M</b> (alkene 0.0050 M).</p>',
+    'Taking 0.80 &times; 0.050 = 0.040 M, as if all the halide were gone.'),
+  v5match(9, 'monochlorination products', 'Match the alkane with the total number of monochloro products (stereoisomers counted separately)',
+    ['Neopentane, (CH<sub>3</sub>)<sub>4</sub>C', 'Propane', 'Pentane', '2-Methylbutane'],
+    ['4', '1', '6', '2', '8'], ['q', 's', 'p', 'r'],
+    '<p>Idea: count the different kinds of hydrogen, then ask whether the carbon holding the new Cl is a stereocentre.</p><p>A: neopentane has only one kind of H: 1 product.</p><p>B: propane: 1-chloropropane, 2-chloropropane (no stereocentre): 2.</p><p>C: pentane: 1-chloropentane (1), 2-chloropentane (stereocentre, 2), 3-chloropentane (1): 4.</p><p>D: 2-methylbutane: 1-chloro-2-methylbutane (C2 has H, CH<sub>3</sub>, C<sub>2</sub>H<sub>5</sub>, CH<sub>2</sub>Cl: 2), 2-chloro-2-methylbutane (1), 2-chloro-3-methylbutane (2), 1-chloro-3-methylbutane (1): 6.</p><p>A-q, B-s, C-p, D-r. (8 is not used; it is the figure for 3-methylpentane.)</p>',
+    'Forgetting that a new stereocentre doubles the count.'),
+  v5match(10, 'elimination products', 'Match the elimination with its major alkene',
+    ['2-Bromobutane with alcoholic KOH', '1-Bromobutane with alcoholic KOH', '2-Bromo-2-methylbutane with alcoholic KOH', '2-Bromo-2-methylbutane with potassium tert-butoxide in tert-butanol'],
+    ['2-Methylbut-2-ene', 'But-1-ene', '2-Methylbut-1-ene', 'But-2-ene', '3-Methylbut-1-ene'], ['s', 'q', 'p', 'r'],
+    '<p>Idea: a small base gives the more substituted (Zaitsev) alkene; a very bulky base takes the more exposed hydrogen (Hofmann-type product).</p><p>A: 2-bromobutane &rarr; but-2-ene (disubstituted, major). B: 1-bromobutane has only one &beta;-carbon, giving but-1-ene. C: 2-bromo-2-methylbutane &rarr; 2-methylbut-2-ene (trisubstituted, Zaitsev). D: bulky tert-butoxide removes a hydrogen from the methyl group, giving the less substituted 2-methylbut-1-ene as the major product.</p><p>A-s, B-q, C-p, D-r.</p>',
+    'The bulky base reverses the Zaitsev preference.'),
+  v5nat(11, 'dipole moments', 'What is the dipole moment of 1,2,3-trichlorobenzene by this vector model, in D?', 3.2, 0.05, 'D',
+    '<p>Place the chlorines at 0&deg;, 60&deg; and 120&deg;. Components: x = 1 + 0.5 - 0.5 = 1; y = 0 + 0.866 + 0.866 = 1.732.</p><p>Resultant = &radic;(1 + 3) = 2 units = 2 &times; 1.6 = <b>3.2 D</b>.</p>', 'Remember that the middle bond adds to the resultant of its two neighbours: they sum to 1 unit along 60&deg;.', 'v5p1'),
+  v5nat(12, 'dipole moments', 'Of the three isomeric trichlorobenzenes (1,2,3-, 1,2,4- and 1,3,5-), how many have a non-zero dipole moment in this model?', 2, 0, '',
+    '<p>1,3,5-: three equal vectors at 120&deg; cancel, giving 0. 1,2,4-: the chlorines at positions 1 and 4 are opposite and cancel, leaving the one at position 2, so 1.6 D. 1,2,3-: 3.2 D.</p><p>Two isomers are polar: <b>2</b>.</p>', 'Opposite pairs cancel, which is why 1,2,4- is not zero.', 'v5p1'),
+  v5mcq(13, 'dipole moments', 'Which of these has the largest dipole moment in this model?', '1,2,3-Trichlorobenzene', ['1,2,3,4-Tetrachlorobenzene', '1,2,3,5-Tetrachlorobenzene', '1,2,4,5-Tetrachlorobenzene'],
+    '<p>1,2,3-trichloro: 3.2 D. 1,2,3,4-tetrachloro: positions 1 and 4 cancel, leaving 2 and 3 at 60&deg; and 120&deg;: &radic;3 &times; 1.6 = 2.77 D. 1,2,3,5-tetrachloro: 1.6 D. 1,2,4,5-tetrachloro: two opposite pairs, 0.</p><p>The largest is <b>1,2,3-trichlorobenzene</b>.</p>', 'More chlorine atoms do not mean a larger moment.', 'passage', 'v5p1'),
+  { id: v5id(14), type: 'mcq', level: 5, format: 'assertion', exams: V5EX, sub: 'nucleophilic aromatic substitution',
+    q: '<p><b>Assertion (A):</b> In 1-halo-2,4-dinitrobenzenes reacting with methoxide, the fluoro compound reacts much faster than the iodo compound.</p><p><b>Reason (R):</b> The C&ndash;F bond is the weakest of the carbon&ndash;halogen bonds, so fluoride leaves most easily.</p>',
+    options: V5A4, answer: 2,
+    sol: '<p>The reaction goes by addition&ndash;elimination. The slow step is the attack of the nucleophile on the ring carbon, which forms the nitro-stabilised anion; loss of halide comes afterwards. The very electronegative fluorine makes that carbon more positive and stabilises the intermediate, so the order is F &gt;&gt; Cl &asymp; Br &gt; I, the reverse of S<sub>N</sub>2. A is true.</p><p>R is false: C&ndash;F is the <i>strongest</i> C&ndash;halogen bond. Bond breaking is not the slow step here. Answer: A true, R false.</p>', trap: 'Using the S<sub>N</sub>2 leaving-group order, where iodide leaves fastest.' },
+  { id: v5id(15), type: 'mcq', level: 5, format: 'statements', exams: V5EX, sub: 'solvent effect on nucleophilicity',
+    q: '<p><b>Statement I:</b> In a polar protic solvent such as water or methanol, I<sup>-</sup> is a better nucleophile than F<sup>-</sup> towards CH<sub>3</sub>Br.</p><p><b>Statement II:</b> In a polar aprotic solvent such as DMSO, F<sup>-</sup> is a better nucleophile than I<sup>-</sup>.</p>',
+    options: ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'], answer: 0,
+    sol: '<p>In a protic solvent, small F<sup>-</sup> is held tightly by hydrogen bonds from the solvent, so its lone pairs are not free; large, loosely held I<sup>-</sup> is the better nucleophile: I<sup>-</sup> &gt; Br<sup>-</sup> &gt; Cl<sup>-</sup> &gt; F<sup>-</sup>.</p><p>In a polar aprotic solvent there is no such hydrogen bonding, so the nucleophiles act in line with their basicity and the order reverses: F<sup>-</sup> &gt; Cl<sup>-</sup> &gt; Br<sup>-</sup> &gt; I<sup>-</sup>. Both statements are correct.</p>', trap: 'Nucleophilicity is not a fixed property of the ion; the solvent can reverse the order.' },
+];
+const V5GN = [
+  { id: 'ha-v5g1', type: 'nat', level: 5, exams: V5EX, sub: 'estimation of halogens',
+    make(rng) {
+      const S = choose(rng, [{ a: 'bromoethane', ma: 109, aa: 188, b: 'chloroethane', mb: 64.5, ab: 143.5 }, { a: 'iodomethane', ma: 142, aa: 235, b: 'bromomethane', mb: 95, ab: 188 }]);
+      let n1, n2; do { n1 = pick(rng, 0.002, 0.008, 0.001); n2 = pick(rng, 0.002, 0.008, 0.001); } while (n1 === n2);
+      const m = +(n1 * S.ma + n2 * S.mb).toFixed(4), ag = +(n1 * S.aa + n2 * S.ab).toFixed(4); const ans = +(n1 * S.ma / m * 100).toFixed(1);
+      return { q: `A ${m} g mixture of ${S.a} and ${S.b} is analysed by the Carius method, and all the halogen is precipitated as silver halides weighing ${ag} g. Find the percentage of ${S.a} in the mixture by mass (1 decimal place). (Molar masses ${S.a} ${S.ma}, ${S.b} ${S.mb}; AgX ${S.aa} and ${S.ab})`,
+        answer: ans, tol: 0.15, m, ag, S,
+        sol: `<p>Moles of AgX = moles of halide (one halogen per molecule). Let x = mol ${S.a}, y = mol ${S.b}.</p><p>${S.ma}x + ${S.mb}y = ${m}; ${S.aa}x + ${S.ab}y = ${ag}.</p><p>Solving: x = ${fmt(n1, 3)} mol, y = ${fmt(n2, 3)} mol. Mass of ${S.a} = ${fmt(n1 * S.ma, 4)} g, so <b>${ans} %</b>.</p>` };
+    }, verify: (p) => { const [a, b, c, d] = [p.S.ma, p.S.mb, p.S.aa, p.S.ab]; const det = a * d - b * c; const x = (p.m * d - b * p.ag) / det; return x * a / p.m * 100; } },
+  { id: 'ha-v5g2', type: 'nat', level: 5, exams: V5EX, sub: 'SN1 and E1 competition',
+    make(rng) {
+      const C0 = choose(rng, [0.040, 0.060, 0.080, 0.100]), f = choose(rng, [60, 70, 80, 90]), n = choose(rng, [1, 2, 3]);
+      const k = choose(rng, [2, 4, 5, 8]) * 1e-4; const t12 = Math.log(2) / k; const ans = +(C0 * f / 100 * (1 - Math.pow(0.5, n))).toFixed(5);
+      return { q: `A tertiary halide reacts by a first-order path in which ${f} % of the halide gives the substitution product (alcohol) and the rest gives alkene, at every moment. Its half-life is ${t12.toFixed(0)} s. Starting with ${C0} M halide, find the molarity of alcohol after ${n} half-lives (${(n * t12).toFixed(0)} s).`,
+        answer: ans, tol: +(ans * 0.01 + 0.0002).toFixed(5), C0, f, n, unit: 'M',
+        sol: `<p>Fraction of halide used after ${n} half-life${n > 1 ? 'ves' : ''} = 1 - (1/2)<sup>${n}</sup> = ${1 - Math.pow(0.5, n)}. Halide used = ${fmt(C0 * (1 - Math.pow(0.5, n)), 4)} M.</p><p>Parallel first-order paths keep the product ratio fixed, so alcohol = ${f / 100} &times; ${fmt(C0 * (1 - Math.pow(0.5, n)), 4)} = <b>${fmt(ans, 4)} M</b>.</p>` };
+    }, verify: (p) => p.C0 * (p.f / 100) * (1 - Math.pow(2, -p.n)) },
+  { id: 'ha-v5g3', type: 'mcq', level: 5, exams: V5EX, sub: 'polyhalogen compounds',
+    make(rng) {
+      const SP = [['CHCl<sub>3</sub>', 3, 4], ['C<sub>6</sub>H<sub>5</sub>CCl<sub>3</sub>', 3, 4], ['CH<sub>3</sub>CCl<sub>3</sub>', 3, 4], ['(CH<sub>3</sub>)<sub>2</sub>CCl<sub>2</sub>', 2, 2]];
+      const idx = [0, 1, 2, 3].sort(() => rng() - 0.5).slice(0, 3); const amt = idx.map(() => choose(rng, [0.5, 1, 2]));
+      const tot = idx.reduce((s, k, i) => s + amt[i] * SP[k][2], 0), naive = idx.reduce((s, k, i) => s + amt[i] * SP[k][1], 0), extra = amt.reduce((a, b) => a + b, 0);
+      const o = numOpts(rng, tot, [naive, tot + extra, tot / 2 + extra], 'mol', 3);
+      return { q: `Complete alkaline hydrolysis is carried out on ${idx.map((k, i) => `${amt[i]} mol of ${SP[k][0]}`).join(', ')}. The organic products are the sodium salt of the carboxylic acid for each CCl<sub>3</sub> compound and the ketone for a CCl<sub>2</sub> compound. How many moles of NaOH are used up? (Ignore further reactions of the products.)`,
+        options: o.options, answer: o.answer, SP, idx, amt,
+        sol: `<p>Each CCl<sub>3</sub> group uses 3 OH<sup>-</sup> to replace Cl and 1 more to make the carboxylate: 4 per mole. A CCl<sub>2</sub> group uses 2 per mole and gives a neutral ketone.</p><p>Total = ${idx.map((k, i) => `${amt[i]} &times; ${SP[k][2]}`).join(' + ')} = <b>${fmt(tot, 3)} mol</b>.</p>` };
+    }, verify: (p) => { const tot = p.idx.reduce((s, k, i) => s + p.amt[i] * (p.SP[k][1] === 3 ? 4 : 2), 0); return p.options.indexOf(`${fmt(tot, 3)} mol`); } },
+];
+
 export default {
   topic: 'haloalkanes-haloarenes',
-  groups: clean(GRP),
-  items: clean([...NOMEN, ...CLASSIFY, ...PREP, ...SN, ...PHYS, ...ARENE, ...POLY, ...MATCH, ...PASS, ...ASR, ...STM, ...CNT, ...MULTI, ...NUM, ...MIXEDF, ...XN]),
-  gens: GENS,
+  groups: clean({ ...GRP, ...V5G }),
+  items: clean([...NOMEN, ...CLASSIFY, ...PREP, ...SN, ...PHYS, ...ARENE, ...POLY, ...MATCH, ...PASS, ...ASR, ...STM, ...CNT, ...MULTI, ...NUM, ...MIXEDF, ...XN, ...V5I]),
+  gens: [...GENS, ...V5GN],
 };
