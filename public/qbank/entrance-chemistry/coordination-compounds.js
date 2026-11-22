@@ -443,9 +443,251 @@ const gens = [
     verify: (p) => { const e = Math.min(p.dd, 2) + Math.max(0, Math.min(p.dd - 5, 2)) + Math.max(0, p.dd - 7); let ee, tt; if (p.dd <= 2) { ee = p.dd; tt = 0; } else if (p.dd <= 5) { ee = 2; tt = p.dd - 2; } else if (p.dd === 6) { ee = 3; tt = 3; } else if (p.dd === 7) { ee = 4; tt = 3; } else { ee = 4; tt = p.dd - 4; } return (-0.6 * ee + 0.4 * tt) * p.Dt; } },
 ];
 
+const XP = 'cc', XCUET = true, GBASE = 20;
+// ===== expansion block (added) =====
+const XI = [], XGRP = {}, XGENS = []; let _xn = 0, _xc = 0;
+const XA4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XS4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const xex = (level, mcq) => level <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet', ...(XCUET && mcq ? ['cuet'] : [])] : level === 3 ? ['jee-main', 'neet', 'comedk', ...(XCUET && mcq ? ['cuet'] : [])] : level === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv'];
+const xid = () => `${XP}-x${String(++_xc).padStart(3, '0')}`;
+const xmk = (level, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_xn++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, ...(group ? { group } : {}), q, options, answer: pos, sol, ...(trap ? { trap } : {}) });
+};
+const xnat = (level, sub, q, answer, tol, unit, sol, trap, calc, format, group) => { XI.push({ id: xid(), type: 'nat', level, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: xex(level, false), sub, ...(group ? { group } : {}), q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(calc ? { calc } : {}) }); };
+const xmsq = (level, sub, q, options, answer, sol, trap) => { XI.push({ id: xid(), type: 'msq', level, format: 'multi', exams: ['jee-adv'], sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xmk2 = (level, sub, q, options, answer, sol, trap, format) => { XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xasr = (level, sub, A, R, answer, sol, trap) => xmk2(level, sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, XA4, answer, sol, trap, 'assertion');
+const xstm = (level, sub, s1, s2, answer, sol, trap) => xmk2(level, sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, XS4, answer, sol, trap, 'statements');
+const xmat = (level, sub, title, list1, list2, correct, wrongs, sol, trap) => {
+  const gid = `xm${String(Object.keys(XGRP).length + 1).padStart(2, '0')}`; XGRP[gid] = { title, list1, list2 };
+  xmk(level, sub, 'Match each entry of List I with the correct entry of List II.', correct, wrongs, sol, trap, 'match', gid);
+};
+const xpassage = (gid, title, passage) => { XGRP[gid] = { title, passage }; };
+const xgen = (g) => XGENS.push({ ...g, id: `${XP}-g${String(GBASE + XGENS.length + 1).padStart(2, '0')}`, exams: xex(g.level, g.type === 'mcq') });
+
+// octahedral isomer counting by brute force (positions +x,-x,+y,-y,+z,-z), used to verify keys
+const _compose = (p, q) => p.map((_, i) => q[p[i]]);
+const _Rz = [2, 3, 1, 0, 4, 5], _Rx = [0, 1, 4, 5, 3, 2], _Mx = [1, 0, 2, 3, 4, 5];
+const _closure = (gens) => { const key = (p) => p.join(''); const seen = new Map([[key([0, 1, 2, 3, 4, 5]), [0, 1, 2, 3, 4, 5]]]); let q = [[0, 1, 2, 3, 4, 5]]; while (q.length) { const p = q.pop(); for (const g of gens) { const r = _compose(p, g); if (!seen.has(key(r))) { seen.set(key(r), r); q.push(r); } } } return [...seen.values()]; };
+const _ROT = _closure([_Rz, _Rx]), _FULL = _closure([_Rz, _Rx, _Mx]);
+const _perms = (arr) => { const out = new Set(); const rec = (a, cur) => { if (!a.length) { out.add(cur.join('|')); return; } new Set(a).forEach((v) => { const i = a.indexOf(v); rec([...a.slice(0, i), ...a.slice(i + 1)], [...cur, v]); }); }; rec(arr, []); return [...out].map((s) => s.split('|')); };
+const _orbits = (ligs, group) => { const all = _perms(ligs); const seen = new Set(); let n = 0; for (const c of all) { const k = c.join('|'); if (seen.has(k)) continue; n++; for (const g of group) { const d = new Array(6); g.forEach((to, from) => { d[to] = c[from]; }); seen.add(d.join('|')); } } return n; };
+const _geo = (s) => _orbits(s.split(''), _FULL), _stereo = (s) => _orbits(s.split(''), _ROT);
+// d-electron filling in an octahedral field
+const _fill = (n, strong) => { const orb = [0, 0, 0, 0, 0]; let left = n;
+  const single = (idx) => { for (const i of idx) if (left > 0 && orb[i] === 0) { orb[i] = 1; left--; } };
+  const pair = (idx) => { for (const i of idx) if (left > 0 && orb[i] === 1) { orb[i] = 2; left--; } };
+  if (strong) { single([0, 1, 2]); pair([0, 1, 2]); single([3, 4]); pair([3, 4]); } else { single([0, 1, 2, 3, 4]); pair([0, 1, 2, 3, 4]); }
+  const t = orb[0] + orb[1] + orb[2], e = orb[3] + orb[4]; const unp = orb.filter((x) => x === 1).length; const pairs = orb.filter((x) => x === 2).length; return { t, e, unp, pairs, cfse: -0.4 * t + 0.6 * e }; };
+// ---------- matches ----------
+xmat(3, 'valence bond theory', 'Complex, hybridisation and shape', ['A. [Ni(CN)<sub>4</sub>]<sup>2-</sup>', 'B. [NiCl<sub>4</sub>]<sup>2-</sup>', 'C. [Fe(CN)<sub>6</sub>]<sup>3-</sup>', 'D. [FeF<sub>6</sub>]<sup>3-</sup>'],
+  ['p. sp<sup>3</sup>', 'q. dsp<sup>2</sup>', 'r. d<sup>2</sup>sp<sup>3</sup>', 's. sp<sup>3</sup>d<sup>2</sup>'],
+  'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-q, B-r, C-p, D-s'],
+  '<p>CN<sup>-</sup> is strong-field: Ni<sup>2+</sup> (d<sup>8</sup>) pairs electrons, leaving one 3d orbital for dsp<sup>2</sup>, square planar (q). Cl<sup>-</sup> is weak-field, so sp<sup>3</sup> tetrahedral (p). CN<sup>-</sup> with Fe<sup>3+</sup>: inner orbital d<sup>2</sup>sp<sup>3</sup> (r). F<sup>-</sup> with Fe<sup>3+</sup>: outer orbital sp<sup>3</sup>d<sup>2</sup> (s).</p>');
+xmat(3, 'magnetic moment', 'Complex and spin-only magnetic moment (BM)', ['A. [Fe(CN)<sub>6</sub>]<sup>4-</sup>', 'B. [Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', 'C. [Cr(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>', 'D. [Ni(NH<sub>3</sub>)<sub>6</sub>]<sup>2+</sup>'],
+  ['p. 0', 'q. 2.83', 'r. 3.87', 's. 4.90'],
+  'A-p, B-s, C-r, D-q', ['A-s, B-p, C-r, D-q', 'A-p, B-s, C-q, D-r', 'A-p, B-r, C-s, D-q'],
+  '<p>&mu; = &radic;(n(n + 2)). A: Fe<sup>2+</sup> d<sup>6</sup> with CN<sup>-</sup> (strong), n = 0, &mu; = 0 (p). B: d<sup>6</sup> with H<sub>2</sub>O (weak), n = 4, &mu; = &radic;24 = 4.90 (s). C: Cr<sup>3+</sup> d<sup>3</sup>, n = 3, &radic;15 = 3.87 (r). D: Ni<sup>2+</sup> d<sup>8</sup> octahedral, n = 2, &radic;8 = 2.83 (q).</p>');
+xmat(4, 'CFSE', 'Octahedral aqua complex and its CFSE (pairing energy ignored)', ['A. [Cr(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup>', 'B. [Cr(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> (weak field)', 'C. [Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> (weak field)', 'D. [Co(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> (weak field)'],
+  ['p. -0.8 &Delta;<sub>o</sub>', 'q. -1.2 &Delta;<sub>o</sub>', 'r. -0.6 &Delta;<sub>o</sub>', 's. -0.4 &Delta;<sub>o</sub>'],
+  'A-q, B-r, C-s, D-p', ['A-r, B-q, C-s, D-p', 'A-q, B-r, C-p, D-s', 'A-s, B-r, C-q, D-p'],
+  '<p>CFSE = (-0.4 n<sub>t2g</sub> + 0.6 n<sub>eg</sub>)&Delta;<sub>o</sub>. A: Cr<sup>3+</sup> d<sup>3</sup> t<sub>2g</sub><sup>3</sup>: -1.2 (q). B: Cr<sup>2+</sup> d<sup>4</sup> t<sub>2g</sub><sup>3</sup>e<sub>g</sub><sup>1</sup>: -1.2 + 0.6 = -0.6 (r). C: Fe<sup>2+</sup> d<sup>6</sup> t<sub>2g</sub><sup>4</sup>e<sub>g</sub><sup>2</sup>: -1.6 + 1.2 = -0.4 (s). D: Co<sup>2+</sup> d<sup>7</sup> t<sub>2g</sub><sup>5</sup>e<sub>g</sub><sup>2</sup>: -2.0 + 1.2 = -0.8 (p).</p>');
+xmat(3, 'ligands', 'Ligand and its type', ['A. Ethane-1,2-diamine (en)', 'B. EDTA<sup>4-</sup>', 'C. NO<sub>2</sub><sup>-</sup>', 'D. Oxalate (C<sub>2</sub>O<sub>4</sub><sup>2-</sup>)'],
+  ['p. Ambidentate', 'q. Hexadentate', 'r. Bidentate, neutral', 's. Bidentate, anionic'],
+  'A-r, B-q, C-p, D-s', ['A-s, B-q, C-p, D-r', 'A-r, B-p, C-q, D-s', 'A-r, B-q, C-s, D-p'],
+  '<p>en has two N donors and no charge (r). EDTA<sup>4-</sup> has 2 N and 4 O donors (q). NO<sub>2</sub><sup>-</sup> can bind through N (nitro) or O (nitrito): ambidentate (p). Oxalate binds through two O atoms and carries 2- charge (s).</p>');
+xmat(4, 'nomenclature', 'Formula and IUPAC name', ['A. K<sub>4</sub>[Fe(CN)<sub>6</sub>]', 'B. [Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>]', 'C. [Co(NH<sub>3</sub>)<sub>5</sub>Cl]Cl<sub>2</sub>', 'D. Na<sub>3</sub>[Co(NO<sub>2</sub>)<sub>6</sub>]'],
+  ['p. Potassium hexacyanidoferrate(II)', 'q. Diamminedichloridoplatinum(II)', 'r. Pentaamminechloridocobalt(III) chloride', 's. Sodium hexanitrito-N-cobaltate(III)'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>A: anionic complex, so the metal takes "-ate", Fe(II) (4K<sup>+</sup> balance 4-). B: neutral complex; ligands alphabetically (ammine before chlorido), Pt(II). C: cationic complex followed by the counter-ion chloride; Co(III) (1+ ligand Cl<sup>-</sup>, 3+ - 1 = 2+). D: Co(III), NO<sub>2</sub><sup>-</sup> bonded through N is "nitrito-N".</p>', 'Alphabetical order ignores the numerical prefixes.');
+xmat(5, 'isomer counting', 'Octahedral complexes and the number of isomers (M = metal; letters are monodentate ligands, en = AA)', ['A. Number of stereoisomers of [M(AA)<sub>2</sub>b<sub>2</sub>]', 'B. Geometrical isomers of [Ma<sub>3</sub>b<sub>3</sub>]', 'C. Geometrical isomers of [Ma<sub>2</sub>b<sub>2</sub>c<sub>2</sub>]', 'D. Geometrical isomers of [Mabcdef]'],
+  ['p. 2', 'q. 3', 'r. 5', 's. 15'],
+  'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-q, B-r, C-p, D-s'],
+  '<p>A: cis (an enantiomeric pair) + trans = 3 stereoisomers (q). B: facial and meridional = 2 (p). C: 5 geometrical isomers (r). D: 15 geometrical isomers (s), each chiral, so 30 stereoisomers in all.</p>');
+xmat(3, 'colour of complexes', 'Complex ion and its colour behaviour', ['A. [Ti(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup>', 'B. [Cu(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup>', 'C. [Cu(H<sub>2</sub>O)<sub>4</sub>]<sup>2+</sup>', 'D. [Zn(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>'],
+  ['p. Deep blue', 'q. Colourless, because d<sup>10</sup> has no d-d transition', 'r. Violet (purple)', 's. Pale blue'],
+  'A-r, B-p, C-s, D-q', ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-s, B-p, C-r, D-q'],
+  '<p>Ti<sup>3+</sup> (d<sup>1</sup>) shows a d-d transition in the visible and looks violet (r). NH<sub>3</sub> is a stronger ligand than H<sub>2</sub>O, so the copper-ammine absorbs at shorter wavelength and is deep blue (p), while the aqua ion is pale blue (s). Zn<sup>2+</sup> has a full d subshell: no d-d transition, colourless (q).</p>');
+xmat(5, 'EAN rule', 'Effective atomic number (EAN = Z - oxidation state + 2 &times; coordination number)', ['A. [Ni(CN)<sub>4</sub>]<sup>2-</sup>', 'B. [Cu(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup>', 'C. [Zn(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup>', 'D. [Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>]'],
+  ['p. 34', 'q. 35', 'r. 36', 's. 84'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+  '<p>Ni: 28 - 2 + 8 = 34 (p). Cu: 29 - 2 + 8 = 35 (q). Zn: 30 - 2 + 8 = 36, the krypton configuration (r). Pt: 78 - 2 + 8 = 84 (s).</p>', 'The EAN counts 2 electrons per ligand (coordination number 4 here, so +8).');
+
+// ---------- msq ----------
+xmsq(4, 'nickel complexes', 'Which statements about [Ni(CN)<sub>4</sub>]<sup>2-</sup> and [NiCl<sub>4</sub>]<sup>2-</sup> are correct?',
+  ['[Ni(CN)<sub>4</sub>]<sup>2-</sup> is diamagnetic', '[NiCl<sub>4</sub>]<sup>2-</sup> is paramagnetic', '[Ni(CN)<sub>4</sub>]<sup>2-</sup> is square planar', '[NiCl<sub>4</sub>]<sup>2-</sup> is square planar'], [0, 1, 2],
+  '<p>CN<sup>-</sup> is a strong-field ligand: the d<sup>8</sup> electrons pair up (dsp<sup>2</sup>, square planar, diamagnetic). Cl<sup>-</sup> is weak-field: sp<sup>3</sup> tetrahedral with 2 unpaired electrons.</p>');
+xmsq(4, 'geometrical isomerism', 'Which of these show geometrical isomerism?',
+  ['[Zn(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] (tetrahedral)', '[Co(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]<sup>+</sup>', '[Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] (square planar)', '[Co(NH<sub>3</sub>)<sub>3</sub>Cl<sub>3</sub>]'], [1, 2, 3],
+  '<p>Tetrahedral complexes cannot show cis-trans isomerism because all positions are equivalent. [Co(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]<sup>+</sup> has cis and trans forms; square planar [Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] has cis and trans; [Co(NH<sub>3</sub>)<sub>3</sub>Cl<sub>3</sub>] has facial and meridional forms.</p>');
+xmsq(4, 'optical isomerism', 'Which of these are optically active?', ['cis-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup>', 'trans-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup>', '[Co(en)<sub>3</sub>]<sup>3+</sup>', '[Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] (square planar)'], [0, 2],
+  '<p>cis-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup> and [Co(en)<sub>3</sub>]<sup>3+</sup> are like propellers or screws, with no plane or centre of symmetry, so they exist as enantiomers. The trans form has a plane of symmetry, and square planar Pt(II) complex is planar and achiral.</p>');
+xmsq(4, 'ambidentate ligands', 'Which of these ligands can give linkage isomers?', ['NO<sub>2</sub><sup>-</sup>', 'SCN<sup>-</sup>', 'CN<sup>-</sup>', 'Cl<sup>-</sup>'], [0, 1, 2],
+  '<p>A ligand with two different possible donor atoms is ambidentate: NO<sub>2</sub><sup>-</sup> (N or O), SCN<sup>-</sup> (S or N), CN<sup>-</sup> (C or N, although isocyanide is much rarer). Cl<sup>-</sup> has a single donor atom.</p>');
+xmsq(4, 'paramagnetism', 'Which complexes are paramagnetic?', ['[Fe(CN)<sub>6</sub>]<sup>3-</sup>', '[Fe(CN)<sub>6</sub>]<sup>4-</sup>', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>', '[CoF<sub>6</sub>]<sup>3-</sup>'], [0, 3],
+  '<p>[Fe(CN)<sub>6</sub>]<sup>3-</sup>: Fe<sup>3+</sup> d<sup>5</sup> low spin, 1 unpaired electron. [Fe(CN)<sub>6</sub>]<sup>4-</sup>: d<sup>6</sup> low spin, 0. [Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>: d<sup>6</sup> low spin, 0. [CoF<sub>6</sub>]<sup>3-</sup>: d<sup>6</sup> high spin, 4 unpaired.</p>');
+xmsq(4, 'crystal field splitting', 'Which statements about the splitting &Delta; are correct?',
+  ['For the same ligand and charge, &Delta;<sub>o</sub> is larger for a 4d or 5d metal than for a 3d metal', '&Delta;<sub>o</sub> increases with the oxidation state of the metal', '&Delta;<sub>t</sub> is about 4/9 of &Delta;<sub>o</sub> for the same metal and ligand', '&Delta;<sub>o</sub> of [Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> is larger than that of [Fe(CN)<sub>6</sub>]<sup>3-</sup>'], [0, 1, 2],
+  '<p>The first three are standard. CN<sup>-</sup> is much higher than H<sub>2</sub>O in the spectrochemical series, so [Fe(CN)<sub>6</sub>]<sup>3-</sup> has the larger &Delta;<sub>o</sub>.</p>');
+xmsq(4, 'chelates', 'Which statements about chelates are correct?', ['Ethane-1,2-diamine forms a five-membered ring with a metal', 'A chelate is generally more stable than the analogue with monodentate ligands', 'EDTA is used to estimate water hardness', 'The chelate effect is mainly an enthalpy effect'], [0, 1, 2],
+  '<p>The extra stability of chelates is mainly an entropy effect: one chelating ligand replaces two or more monodentate ligands, releasing more free molecules, so &Delta;S is more positive.</p>');
+xmsq(5, 'metal carbonyls', 'Which statements about metal carbonyls are correct?', ['The CO ligand donates a lone pair from carbon to the metal', 'The metal donates d electrons into the &pi;* orbital of CO', 'Back-donation lowers the C-O stretching frequency', 'Back-donation increases the C-O bond order'], [0, 1, 2],
+  '<p>The M-C bond has a &sigma; (CO to M) and a &pi; (M to CO &pi;*) component. Populating an antibonding &pi;* orbital of CO weakens the C-O bond, lowering the bond order and the stretching frequency.</p>');
+xmsq(4, 'Werner and AgNO<sub>3</sub>', 'Excess AgNO<sub>3</sub> is added to 1 mol of each compound. Which statements are correct?', ['[Co(NH<sub>3</sub>)<sub>5</sub>Cl]Cl<sub>2</sub> gives 2 mol of AgCl', '[Co(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]Cl gives 1 mol of AgCl', '[Co(NH<sub>3</sub>)<sub>6</sub>]Cl<sub>3</sub> gives 3 mol of AgCl', '[Co(NH<sub>3</sub>)<sub>3</sub>Cl<sub>3</sub>] gives 3 mol of AgCl'], [0, 1, 2],
+  '<p>Only chloride outside the coordination sphere precipitates: 2, 1, 3 and 0 mol respectively. [Co(NH<sub>3</sub>)<sub>3</sub>Cl<sub>3</sub>] is a neutral complex with all Cl inside, so no AgCl forms.</p>');
+xmsq(5, 'high and low spin', 'For an octahedral d<sup>4</sup> ion, which statements are correct?', ['In a weak field the configuration is t<sub>2g</sub><sup>3</sup>e<sub>g</sub><sup>1</sup>', 'In a strong field the configuration is t<sub>2g</sub><sup>4</sup>', 'The weak-field complex is Jahn-Teller active', 'The strong-field complex has 4 unpaired electrons'], [0, 1, 2],
+  '<p>Strong field: t<sub>2g</sub><sup>4</sup> has 2 unpaired electrons (not 4). The weak-field arrangement has 4 unpaired and one electron in the e<sub>g</sub> set, so the e<sub>g</sub> orbitals are unevenly filled and the complex distorts (Jahn-Teller).</p>');
+xmsq(4, 'tetrahedral complexes', 'Which statements about tetrahedral complexes are correct?', ['They are almost always high spin', '&Delta;<sub>t</sub> is smaller than &Delta;<sub>o</sub>', 'The e set lies below the t<sub>2</sub> set', 'The t<sub>2</sub> set lies below the e set'], [0, 1, 2],
+  '<p>In a tetrahedral field the splitting is inverted: e is lower (d<sub>z2</sub>, d<sub>x2-y2</sub> point between ligands) and t<sub>2</sub> higher. &Delta;<sub>t</sub> = (4/9)&Delta;<sub>o</sub> is too small to force pairing.</p>');
+xmsq(4, 'nomenclature', 'Which names are correct?', ['K<sub>3</sub>[Fe(CN)<sub>6</sub>] is potassium hexacyanidoferrate(III)', '[Co(NH<sub>3</sub>)<sub>6</sub>]Cl<sub>3</sub> is hexaamminecobalt(III) chloride', 'Na<sub>2</sub>[Zn(OH)<sub>4</sub>] is sodium tetrahydroxidozincate(II)', '[Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] is dichloridodiammineplatinum(II)'], [0, 1, 2],
+  '<p>Ligands are listed alphabetically ignoring numerical prefixes: ammine comes before chlorido, so the correct name is diamminedichloridoplatinum(II).</p>');
+
+// ---------- integer ----------
+xnat(4, 'stereoisomers', 'How many stereoisomers (counting enantiomers separately) does [Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup> have?', 3, 0, '',
+  '<p>trans-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup> has a mirror plane (1 form). cis-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup> is chiral and exists as two enantiomers. Total <b>3</b>.</p>', 'Answering 2 (geometrical) misses the enantiomers of the cis form.', () => 3);
+xnat(5, 'geometrical isomers', 'How many geometrical isomers can [Ma<sub>2</sub>b<sub>2</sub>c<sub>2</sub>] (octahedral, all ligands monodentate) have?', 5, 0, '',
+  '<p>Count by how many identical pairs are trans to each other. All three pairs trans: 1 isomer. Exactly one pair trans (a, b or c), the other two pairs cis: 3 isomers. No pair trans (all cis): 1 isomer. Total 1 + 3 + 1 = <b>5</b> geometrical isomers (the all-cis one is chiral).</p>', '', () => _geo('aabbcc'));
+xnat(5, 'stereoisomers', 'How many stereoisomers in total (enantiomers counted separately) does [Ma<sub>2</sub>b<sub>2</sub>c<sub>2</sub>] have?', 6, 0, '',
+  '<p>Of the 5 geometrical isomers, exactly one (all three pairs cis) is chiral, so it contributes 2 stereoisomers. Total = 4 + 2 = <b>6</b>.</p>', 'The question counts mirror images separately.', () => _stereo('aabbcc'));
+xnat(5, 'stereoisomers', 'How many stereoisomers does an octahedral [Mabcdef] (six different monodentate ligands) have?', 30, 0, '',
+  '<p>With six different ligands there are 15 ways to choose which pairs of ligands sit trans to each other (15 geometrical isomers). None has a mirror plane, so every one is chiral and exists as an enantiomeric pair: 15 &times; 2 = <b>30</b> stereoisomers.</p>', '', () => _stereo('abcdef'));
+xnat(4, 'paramagnetism', 'How many of these are paramagnetic: [Fe(CN)<sub>6</sub>]<sup>3-</sup>, [Fe(CN)<sub>6</sub>]<sup>4-</sup>, [CoF<sub>6</sub>]<sup>3-</sup>, [Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>, [Ni(CN)<sub>4</sub>]<sup>2-</sup>, [NiCl<sub>4</sub>]<sup>2-</sup>, [Cu(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup>?', 4, 0, '',
+  '<p>Unpaired electrons: Fe(CN)<sub>6</sub><sup>3-</sup> 1; Fe(CN)<sub>6</sub><sup>4-</sup> 0; CoF<sub>6</sub><sup>3-</sup> 4; Co(NH<sub>3</sub>)<sub>6</sub><sup>3+</sup> 0; Ni(CN)<sub>4</sub><sup>2-</sup> 0; NiCl<sub>4</sub><sup>2-</sup> 2; Cu(NH<sub>3</sub>)<sub>4</sub><sup>2+</sup> 1. Paramagnetic: 1, 3, 6 and 7, so <b>4</b>.</p>', '', () => [1, 0, 4, 0, 0, 2, 1].filter((n) => n > 0).length);
+xnat(5, 'oxidation state and coordination number', 'In sodium nitroprusside Na<sub>2</sub>[Fe(CN)<sub>5</sub>(NO)], NO is present as NO<sup>+</sup>. Find (oxidation state of Fe) + (coordination number of Fe).', 8, 0, '',
+  '<p>Complex charge = 2- (2Na<sup>+</sup>). x + 5(-1) + 1 = -2, so x = +2. Coordination number = 5 CN + 1 NO = 6. Sum = 2 + 6 = <b>8</b>.</p>', 'Treating NO as neutral gives Fe(+3) instead.', () => (-2 + 5 - 1) + 6);
+xnat(5, 'EAN rule', 'The carbonyl Fe(CO)<sub>x</sub> obeys the effective atomic number rule (Fe, Z = 26, oxidation state 0, noble gas Z = 36). Find x.', 5, 0, '',
+  '<p>EAN = Z - 0 + 2x = 36, so 2x = 10 and x = <b>5</b>, giving Fe(CO)<sub>5</sub>.</p>', '', () => (36 - 26) / 2);
+xnat(5, 'EAN rule', 'In Co<sub>2</sub>(CO)<sub>x</sub> (Co, Z = 27, oxidation state 0, one Co-Co bond giving each Co one extra electron), each Co reaches EAN 36. Find x.', 8, 0, '',
+  '<p>For the whole molecule x CO ligands are shared between two metals: per Co, 27 + 1 (Co-Co bond) + 2(x/2) = 36, so x = 8, i.e. <b>Co<sub>2</sub>(CO)<sub>8</sub></b> (4 CO per Co).</p>', 'Each Co is surrounded by 4 CO on average, not 8.', () => 2 * (36 - 27 - 1) / 2);
+xnat(5, 'CFSE', 'For a low spin octahedral d<sup>7</sup> complex (pairing energy ignored), find the magnitude of the CFSE in units of 0.1 &Delta;<sub>o</sub>.', 18, 0, '',
+  '<p>Low spin d<sup>7</sup>: t<sub>2g</sub><sup>6</sup>e<sub>g</sub><sup>1</sup>. CFSE = -0.4(6) + 0.6(1) = -2.4 + 0.6 = -1.8 &Delta;<sub>o</sub>, i.e. <b>18</b> units of 0.1 &Delta;<sub>o</sub>.</p>', '', () => { const f = _fill(7, true); return Math.round(-f.cfse * 10); });
+xnat(4, 'Werner theory', 'A platinum compound PtCl<sub>4</sub>&middot;nNH<sub>3</sub> conducts like a salt that gives 4 ions in water (coordination number 6, all NH<sub>3</sub> bonded to Pt). Find n.', 5, 0, '',
+  '<p>Four ions means one complex ion plus 3 free Cl<sup>-</sup>. With Pt(IV) and 6 donor positions, [Pt(NH<sub>3</sub>)<sub>5</sub>Cl]<sup>3+</sup> carries 4+ - 1 = 3+, balanced by 3Cl<sup>-</sup>: [Pt(NH<sub>3</sub>)<sub>5</sub>Cl]Cl<sub>3</sub>. So n = 5. Answer <b>5</b>.</p>', '', () => 5);
+xnat(4, 'spin state', 'How many unpaired electrons are present in [Mn(CN)<sub>6</sub>]<sup>3-</sup>?', 2, 0, '',
+  '<p>Mn<sup>3+</sup> is d<sup>4</sup>. CN<sup>-</sup> is strong-field, so t<sub>2g</sub><sup>4</sup>: two orbitals have one electron each (and one has a pair). Unpaired electrons = <b>2</b>.</p>', 'A weak-field answer of 4 ignores the ligand.', () => _fill(4, true).unp);
+
+// ---------- numeric ----------
+xnat(5, 'wavelength and splitting', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> absorbs light of wavelength 475 nm. Find &Delta;<sub>o</sub> in kJ/mol (use &Delta; in kJ/mol = 119 600/&lambda; in nm).', 251.8, 0.5, 'kJ/mol',
+  '<p>&Delta;<sub>o</sub> = 119 600/475 = <b>251.8 kJ/mol</b>.</p>', '', () => 119600 / 475);
+xnat(4, 'CFSE in kJ/mol', '[Cr(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> absorbs at 575 nm. Find its CFSE in kJ/mol (&Delta; in kJ/mol = 119 600/&lambda;).', -249.6, 0.5, 'kJ/mol',
+  '<p>&Delta;<sub>o</sub> = 119 600/575 = 208.0 kJ/mol. Cr<sup>3+</sup> is d<sup>3</sup>, CFSE = -1.2&Delta;<sub>o</sub> = -1.2 &times; 208.0 = <b>-249.6 kJ/mol</b>.</p>', '', () => -1.2 * 119600 / 575);
+xnat(4, 'magnetic moment ratio', 'Find the ratio of the spin-only magnetic moments &mu;[Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> / &mu;[Fe(CN)<sub>6</sub>]<sup>3-</sup>.', 3.42, 0.02, '',
+  '<p>Fe<sup>3+</sup> d<sup>5</sup>. With H<sub>2</sub>O (weak): 5 unpaired, &mu; = &radic;35 = 5.92 BM. With CN<sup>-</sup> (strong): 1 unpaired, &mu; = &radic;3 = 1.73 BM. Ratio = 5.92/1.73 = <b>3.42</b>.</p>', '', () => Math.sqrt(35) / Math.sqrt(3));
+xnat(4, 'stability constants', 'In a solution with 0.10 M [Ag(NH<sub>3</sub>)<sub>2</sub>]<sup>+</sup> and 1.0 M free NH<sub>3</sub>, find [Ag<sup>+</sup>] in units of 10<sup>-9</sup> M (&beta;<sub>2</sub> = 1.6 &times; 10<sup>7</sup>).', 6.25, 0.05, '&times; 10<sup>-9</sup> M',
+  '<p>&beta;<sub>2</sub> = [Ag(NH<sub>3</sub>)<sub>2</sub><sup>+</sup>]/([Ag<sup>+</sup>][NH<sub>3</sub>]<sup>2</sup>). [Ag<sup>+</sup>] = 0.10/(1.6 &times; 10<sup>7</sup> &times; 1.0<sup>2</sup>) = 6.25 &times; 10<sup>-9</sup> M. Answer <b>6.25</b>.</p>', '', () => 0.10 / (1.6e7 * 1.0 ** 2) * 1e9);
+xnat(5, 'solubility in complexing agent', 'AgCl (K<sub>sp</sub> = 1.8 &times; 10<sup>-10</sup>) dissolves in 1.0 M NH<sub>3</sub> as AgCl + 2NH<sub>3</sub> &rlhar; [Ag(NH<sub>3</sub>)<sub>2</sub>]<sup>+</sup> + Cl<sup>-</sup>, with &beta;<sub>2</sub> = 1.6 &times; 10<sup>7</sup>. Treating [NH<sub>3</sub>] as constant at 1.0 M, find the solubility in mol/L.', 0.0537, 0.001, 'mol/L',
+  '<p>K = K<sub>sp</sub>&beta;<sub>2</sub> = 1.8 &times; 10<sup>-10</sup> &times; 1.6 &times; 10<sup>7</sup> = 2.88 &times; 10<sup>-3</sup>. K = s<sup>2</sup>/[NH<sub>3</sub>]<sup>2</sup> with [NH<sub>3</sub>] = 1.0, so s = &radic;(2.88 &times; 10<sup>-3</sup>) = <b>0.0537 mol/L</b>.</p>', 'The exact answer is lower (0.048 M) because the free NH<sub>3</sub> falls; the question tells you to ignore that.', () => Math.sqrt(1.8e-10 * 1.6e7));
+xnat(3, 'Werner and AgNO<sub>3</sub>', '0.01 mol of [Co(NH<sub>3</sub>)<sub>5</sub>Cl]Cl<sub>2</sub> is treated with excess AgNO<sub>3</sub>. Find the mass of AgCl formed in g (AgCl = 143.5 g/mol).', 2.87, 0.01, 'g',
+  '<p>Only the 2 ionisable Cl<sup>-</sup> precipitate: 0.01 &times; 2 = 0.02 mol AgCl = 0.02 &times; 143.5 = <b>2.87 g</b>. The Cl in the coordination sphere stays.</p>', 'Counting all 3 Cl gives 4.31 g.', () => 0.01 * 2 * 143.5);
+
+// ---------- passages ----------
+xpassage('xp1', 'Isomers of cobalt(III) ethane-1,2-diamine complexes', '<p>Cobalt(III) forms octahedral complexes with the bidentate ligand en (ethane-1,2-diamine). Consider [Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup>, with Cl<sup>-</sup> as monodentate ligands, and its analogue in which one Cl<sup>-</sup> is replaced by NO<sub>2</sub><sup>-</sup>.</p>');
+xnat(4, 'geometrical isomerism', 'The number of geometrical isomers of [Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup> is', 2, 0, '',
+  '<p>The two Cl<sup>-</sup> can be on opposite sides (trans) or adjacent (cis): <b>2</b>.</p>', '', () => 2, 'passage', 'xp1');
+xmk(4, 'optical isomerism', 'Which of the forms is optically active?', 'cis only', ['trans only', 'both cis and trans', 'neither'],
+  '<p>The cis form lacks a plane of symmetry and cannot be superimposed on its mirror image (it is a left- or right-handed propeller). The trans form has a mirror plane (the plane containing the four N donors), so it is optically inactive.</p>', '', 'passage', 'xp1');
+xnat(5, 'types of isomerism', 'Including the linkage isomers from NO<sub>2</sub><sup>-</sup> (nitro or nitrito) and counting enantiomers separately, the total number of isomers of [Co(en)<sub>2</sub>(NO<sub>2</sub>)Cl]<sup>+</sup> is', 6, 0, '',
+  '<p>Stereoisomers of [Co(en)<sub>2</sub>(X)Cl]<sup>+</sup>: trans (1) + cis (2 enantiomers) = 3. The NO<sub>2</sub><sup>-</sup> can bind through N or O, doubling the count: 3 &times; 2 = <b>6</b>.</p>', 'Forgetting the enantiomers or the linkage isomerism gives 2 or 3.', () => (1 + 2) * 2, 'passage', 'xp1');
+xpassage('xp2', 'Spin states of cobalt(III)', '<p>For Co<sup>3+</sup> assume a pairing energy P = 210 kJ/mol. The complex [Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> has its d-d absorption at 475 nm and [CoF<sub>6</sub>]<sup>3-</sup> at 700 nm (&Delta; in kJ/mol = 119 600/&lambda; in nm). A complex is low spin when &Delta;<sub>o</sub> &gt; P.</p>');
+xnat(4, 'wavelength and splitting', '&Delta;<sub>o</sub> of [Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> (kJ/mol) is', 251.8, 0.5, 'kJ/mol', '<p>&Delta;<sub>o</sub> = 119 600/475 = <b>251.8 kJ/mol</b>.</p>', '', () => 119600 / 475, 'passage', 'xp2');
+xmk(4, 'spin state', 'Which statement is correct?', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> is low spin and diamagnetic; [CoF<sub>6</sub>]<sup>3-</sup> is high spin', ['Both are low spin', 'Both are high spin', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> is high spin and [CoF<sub>6</sub>]<sup>3-</sup> is low spin'],
+  '<p>For NH<sub>3</sub>: &Delta;<sub>o</sub> = 251.8 &gt; P = 210, so low spin (t<sub>2g</sub><sup>6</sup>, diamagnetic). For F<sup>-</sup>: &Delta;<sub>o</sub> = 119 600/700 = 170.9 &lt; 210, so high spin (t<sub>2g</sub><sup>4</sup>e<sub>g</sub><sup>2</sup>).</p>', '', 'passage', 'xp2');
+xnat(4, 'magnetic moment', 'The spin-only magnetic moment of [CoF<sub>6</sub>]<sup>3-</sup> (BM) is', 4.9, 0.02, 'BM', '<p>High spin Co<sup>3+</sup> d<sup>6</sup>: 4 unpaired electrons. &mu; = &radic;(4 &times; 6) = &radic;24 = <b>4.90 BM</b>.</p>', '', () => Math.sqrt(24), 'passage', 'xp2');
+
+// ---------- assertion / reason ----------
+xasr(3, 'nickel complexes', '[Ni(CN)<sub>4</sub>]<sup>2-</sup> is diamagnetic but [NiCl<sub>4</sub>]<sup>2-</sup> is paramagnetic.', 'CN<sup>-</sup> is a strong-field ligand that pairs the d electrons and gives a square planar dsp<sup>2</sup> complex, whereas Cl<sup>-</sup> is weak-field and gives a tetrahedral sp<sup>3</sup> complex.', 0,
+  '<p>Both true; R explains A. Ni<sup>2+</sup> is d<sup>8</sup>: with CN<sup>-</sup> all eight electrons pair up in four d orbitals, leaving one empty for dsp<sup>2</sup>; with Cl<sup>-</sup> two electrons stay unpaired.</p>');
+xasr(3, 'tetrahedral complexes', 'Tetrahedral complexes are usually high spin.', '&Delta;<sub>t</sub> is only about 4/9 of &Delta;<sub>o</sub>, which is smaller than the pairing energy.', 0,
+  '<p>Both true; R explains A. The splitting is too small to make pairing worthwhile.</p>');
+xasr(3, 'spin state', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> is diamagnetic.', 'NH<sub>3</sub> is a strong-field ligand for Co<sup>3+</sup>, giving the t<sub>2g</sub><sup>6</sup> arrangement.', 0,
+  '<p>Both true; R explains A. All six d electrons of Co<sup>3+</sup> pair in the t<sub>2g</sub> set, so there are no unpaired electrons.</p>');
+xasr(3, 'magnetic behaviour', '[Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> is more paramagnetic than [Fe(CN)<sub>6</sub>]<sup>3-</sup>.', 'H<sub>2</sub>O is a weak-field ligand and does not force pairing of the d<sup>5</sup> electrons.', 0,
+  '<p>Both true; R explains A. Five unpaired electrons (5.92 BM) against one (1.73 BM).</p>');
+xasr(3, 'chelate effect', 'Chelate complexes are more stable than similar complexes of monodentate ligands.', 'Chelation increases the entropy of the system, because several free molecules are released.', 0,
+  '<p>Both true; R explains A. Replacing two NH<sub>3</sub> by one en releases more particles into solution, raising entropy and making the process more favourable.</p>');
+xasr(4, 'metal carbonyls', 'The M-C bond in metal carbonyls has partial multiple-bond character.', 'CO donates a lone pair to the metal and the metal donates electrons back into the &pi;* orbital of CO.', 0,
+  '<p>Both true; R explains A. The synergic &sigma; donation and &pi; back-donation strengthen the M-C bond and weaken the C-O bond.</p>');
+xasr(4, 'optical isomerism', 'cis-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup> shows optical isomerism but the trans isomer does not.', 'The cis isomer has no plane of symmetry, while the trans isomer has a plane of symmetry.', 0,
+  '<p>Both true; R explains A. A molecule is chiral only if it lacks all improper symmetry (plane, centre).</p>');
+xasr(3, 'colour', '[Ti(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> is coloured but [Sc(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> is colourless.', 'Ti<sup>3+</sup> has one d electron that can make a d-d transition, whereas Sc<sup>3+</sup> has no d electrons.', 0,
+  '<p>Both true; R explains A. Colour needs a d-d transition: the electron must have an empty d orbital to move to and an electron to move.</p>');
+xasr(4, 'tetrahedral low spin', 'Tetrahedral complexes of a d<sup>6</sup> ion with strong-field ligands are low spin.', '&Delta;<sub>t</sub> is only about 4/9 of &Delta;<sub>o</sub>, so pairing is rarely favoured.', 3,
+  '<p>A is false: even strong-field ligands in a tetrahedral arrangement give small &Delta;<sub>t</sub>, so they remain high spin. R is true and is the reason A is false.</p>', 'Strong-field ligands give low spin only in octahedral geometry.');
+
+// ---------- statements ----------
+xstm(2, 'ambidentate ligands', 'Ambidentate ligands have two different donor atoms and can give linkage isomers.', 'SCN<sup>-</sup> is an ambidentate ligand.', 0, '<p>Both correct: SCN<sup>-</sup> can bind through S (thiocyanato) or N (isothiocyanato).</p>');
+xstm(3, 'CFSE', 'The CFSE of a high spin octahedral d<sup>5</sup> complex is zero.', 'In it, all five d electrons are unpaired, with the arrangement t<sub>2g</sub><sup>3</sup>e<sub>g</sub><sup>2</sup>.', 0, '<p>Both correct: -0.4(3) + 0.6(2) = 0.</p>');
+xstm(3, 'valence bond theory', 'The hybridisation in [Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> is sp<sup>3</sup>d<sup>2</sup>.', 'It is an outer orbital complex.', 3, '<p>Both incorrect: NH<sub>3</sub> is strong-field, the 3d electrons pair, and the complex uses 3d orbitals: d<sup>2</sup>sp<sup>3</sup> (inner orbital).</p>');
+xstm(3, 'spectrochemical series', '&Delta;<sub>o</sub> of [CoF<sub>6</sub>]<sup>3-</sup> is less than that of [Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>.', 'F<sup>-</sup> is a weaker-field ligand than NH<sub>3</sub>.', 0, '<p>Both correct: F<sup>-</sup> lies below NH<sub>3</sub> in the spectrochemical series.</p>');
+xstm(4, 'carbonyls', '[Ni(CO)<sub>4</sub>] is tetrahedral and Ni is in the zero oxidation state.', '[Ni(CO)<sub>4</sub>] is diamagnetic.', 0, '<p>Both correct: Ni(0) is d<sup>10</sup> (sp<sup>3</sup>), and with all electrons paired it is diamagnetic.</p>');
+xstm(4, 'EAN rule', 'The effective atomic number of Cu in [Cu(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup> is 36.', 'Many stable transition metal complexes do not obey the EAN rule.', 2, '<p>I is incorrect: EAN = 29 - 2 + 8 = 35. II is correct, and this complex is an example.</p>');
+xstm(3, 'stability', 'A complex with a larger stability constant has a smaller dissociation constant.', 'The stability constant is the reciprocal of the overall instability (dissociation) constant.', 0, '<p>Both correct: K<sub>stab</sub> = 1/K<sub>diss</sub>.</p>');
+
+// ---------- extra single answers ----------
+xmk(2, 'nomenclature', 'The formula of tetraamminedichloridocobalt(III) chloride is', '[Co(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]Cl', ['[Co(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]Cl<sub>3</sub>', '[Co(NH<sub>3</sub>)<sub>2</sub>Cl<sub>4</sub>]Cl', '[Co(NH<sub>3</sub>)<sub>4</sub>]Cl<sub>3</sub>'],
+  '<p>Co(III) with 4 NH<sub>3</sub> (neutral) and 2 Cl<sup>-</sup> inside: charge 3 - 2 = +1, balanced by one Cl<sup>-</sup> outside.</p>');
+xmk(3, 'ionisation isomerism', '[Co(NH<sub>3</sub>)<sub>5</sub>Br]SO<sub>4</sub> and [Co(NH<sub>3</sub>)<sub>5</sub>SO<sub>4</sub>]Br are', 'ionisation isomers, distinguished by BaCl<sub>2</sub> or AgNO<sub>3</sub> tests', ['linkage isomers', 'geometrical isomers', 'coordination isomers'],
+  '<p>They differ in which anion is inside the coordination sphere and which is outside. The first gives a white precipitate of BaSO<sub>4</sub> with BaCl<sub>2</sub>; the second gives a pale yellow AgBr precipitate with AgNO<sub>3</sub>.</p>');
+xmk(5, 'trans effect', 'Starting from [PtCl<sub>4</sub>]<sup>2-</sup> reacting with NH<sub>3</sub>, the product [Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] is', 'cis, because Cl<sup>-</sup> has a stronger trans effect than NH<sub>3</sub>', ['trans, because Cl<sup>-</sup> has a stronger trans effect than NH<sub>3</sub>', 'cis, because NH<sub>3</sub> has a stronger trans effect than Cl<sup>-</sup>', 'trans, because NH<sub>3</sub> has a stronger trans effect than Cl<sup>-</sup>'],
+  '<p>After the first NH<sub>3</sub> enters, the Cl<sup>-</sup> trans to Cl<sup>-</sup> (not the one trans to NH<sub>3</sub>) is replaced, since Cl<sup>-</sup> directs substitution trans to itself more than NH<sub>3</sub> does. Both NH<sub>3</sub> end up cis. (Conversely [Pt(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup> with Cl<sup>-</sup> gives the trans isomer.)</p>');
+xmk(5, 'CFSE', 'Pairing energy ignored, the largest CFSE (in &Delta;<sub>o</sub>) among these octahedral complexes is that of', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>', ['[Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', '[Cr(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup>', '[Ni(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>'],
+  '<p>[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> is low-spin d<sup>6</sup>: -2.4&Delta;<sub>o</sub>. [Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> (d<sup>6</sup> high spin): -0.4. [Cr(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> (d<sup>3</sup>): -1.2. [Ni(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> (d<sup>8</sup>): -1.2.</p>');
+xmk(3, 'magnetic moment', 'Which has the highest spin-only magnetic moment?', '[Mn(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', ['[Fe(CN)<sub>6</sub>]<sup>3-</sup>', '[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>', '[Ni(NH<sub>3</sub>)<sub>6</sub>]<sup>2+</sup>'],
+  '<p>[Mn(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> is d<sup>5</sup> high spin: 5 unpaired, 5.92 BM. The others have 1 (1.73 BM), 0 and 2 (2.83 BM).</p>');
+
+// ---------- templates ----------
+const _TY = [['aabbcc', 'Ma<sub>2</sub>b<sub>2</sub>c<sub>2</sub>'], ['aaabbb', 'Ma<sub>3</sub>b<sub>3</sub>'], ['aaaabb', 'Ma<sub>4</sub>b<sub>2</sub>'], ['abcdef', 'Mabcdef'], ['aaabbc', 'Ma<sub>3</sub>b<sub>2</sub>c'], ['aabbcd', 'Ma<sub>2</sub>b<sub>2</sub>cd']];
+xgen({ type: 'nat', level: 4, sub: 'geometrical isomers',
+  make(rng) { const [s, name] = choose(rng, _TY); const n = _geo(s);
+    return { q: `How many geometrical isomers (not counting enantiomers separately) can an octahedral complex [${name}] have? All letters are monodentate ligands.`, answer: n, tol: 0, s, n,
+      sol: `<p>Place the ligands on the six octahedral positions and count the arrangements that cannot be converted into one another by rotation or reflection (mirror images are the same geometrical isomer).</p><p>Result: <b>${n}</b> geometrical isomers.</p>`, trap: 'Geometrical isomers do not count mirror images separately; stereoisomers do.' };
+  }, verify: (p) => _geo(p.s) });
+xgen({ type: 'nat', level: 5, sub: 'stereoisomers',
+  make(rng) { const [s, name] = choose(rng, _TY); const n = _stereo(s);
+    return { q: `How many stereoisomers in total (counting each enantiomer separately) can an octahedral complex [${name}] have? All letters are monodentate ligands.`, answer: n, tol: 0, s, n,
+      sol: `<p>Count the arrangements that cannot be converted into one another by rotation alone: mirror-image pairs count as 2.</p><p>Result: <b>${n}</b> stereoisomers.</p>`, trap: 'Enantiomers are separate stereoisomers.' };
+  }, verify: (p) => _stereo(p.s) });
+const _CX = [['[Co(NH<sub>3</sub>)<sub>5</sub>Cl]Cl<sub>2</sub>', 58.9 + 85 + 35.5 + 71, 2], ['[Co(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]Cl', 58.9 + 68 + 71 + 35.5, 1], ['[Co(NH<sub>3</sub>)<sub>6</sub>]Cl<sub>3</sub>', 58.9 + 102 + 106.5, 3], ['[Cr(NH<sub>3</sub>)<sub>6</sub>]Cl<sub>3</sub>', 52 + 102 + 106.5, 3], ['[Pt(NH<sub>3</sub>)<sub>4</sub>Cl<sub>2</sub>]Cl<sub>2</sub>', 195 + 68 + 71 + 71, 2]];
+xgen({ type: 'nat', level: 3, sub: 'Werner and AgNO3',
+  make(rng) { const [f, M, nCl] = choose(rng, _CX); const mass = +(M * choose(rng, [0.005, 0.01, 0.02])).toFixed(3); const mol = mass / M; const m = mol * nCl * 143.5;
+    return { q: `${fmt(mass, 4)} g of ${f} (molar mass ${fmt(M, 4)} g/mol) is treated with excess AgNO<sub>3</sub> solution. What mass of AgCl (143.5 g/mol) is precipitated, in g?`, answer: +m.toPrecision(3), tol: m * 0.01, unit: 'g', mass, M, nCl,
+      sol: `<p>Moles of complex = ${fmt(mass, 4)}/${fmt(M, 4)} = ${fmt(mol, 3)}. Only the ${nCl} Cl<sup>-</sup> outside the coordination sphere precipitate: ${fmt(mol * nCl, 3)} mol AgCl.</p><p>Mass = ${fmt(mol * nCl, 3)} &times; 143.5 = <b>${fmt(m, 3)} g</b>.</p>` };
+  }, verify: (p) => (p.mass / p.M) * p.nCl * 143.5 });
+xgen({ type: 'nat', level: 5, sub: 'solubility in complexing agent',
+  make(rng) { const [salt, Ksp] = choose(rng, [['AgCl', 1.8e-10], ['AgBr', 5.0e-13], ['AgCl', 1.6e-10]]); const b = choose(rng, [1.6e7, 1.7e7, 2.0e7]); const N = choose(rng, [0.5, 1.0, 2.0]); const s = Math.sqrt(Ksp * b) * N;
+    return { q: `${salt} (K<sub>sp</sub> = ${fmt(Ksp, 3)}) dissolves in aqueous NH<sub>3</sub> forming [Ag(NH<sub>3</sub>)<sub>2</sub>]<sup>+</sup> (&beta;<sub>2</sub> = ${fmt(b, 3)}). Treating [NH<sub>3</sub>] as constant at ${N} M, find the solubility in mol/L.`, answer: +s.toPrecision(3), tol: s * 0.02, unit: 'mol/L', Ksp, b, N,
+      sol: `<p>${salt} + 2NH<sub>3</sub> &rlhar; [Ag(NH<sub>3</sub>)<sub>2</sub>]<sup>+</sup> + X<sup>-</sup> has K = K<sub>sp</sub>&beta;<sub>2</sub> = ${fmt(Ksp * b, 3)}.</p><p>s<sup>2</sup>/[NH<sub>3</sub>]<sup>2</sup> = K, so s = &radic;K &times; ${N} = <b>${fmt(s, 3)} mol/L</b>.</p>` };
+  }, verify: (p) => Math.sqrt(p.Ksp) * Math.sqrt(p.b) * p.N });
+xgen({ type: 'nat', level: 5, sub: 'high spin versus low spin energy',
+  make(rng) { const n = choose(rng, [4, 5, 6, 7]); const Do = choose(rng, [150, 200, 250, 300]); const P = choose(rng, [150, 200, 250]);
+    const ls = _fill(n, true), hs = _fill(n, false); const dE = (ls.cfse - hs.cfse) * Do + (ls.pairs - hs.pairs) * P;
+    return { q: `For an octahedral d<sup>${n}</sup> ion, &Delta;<sub>o</sub> = ${Do} kJ/mol and the pairing energy per pair is P = ${P} kJ/mol. Find E(low spin) - E(high spin) in kJ/mol, counting the CFSE and the extra pairing cost.`, answer: dE, tol: 0.5, unit: 'kJ/mol', n, Do, P,
+      sol: `<p>Low spin: t<sub>2g</sub><sup>${ls.t}</sup>e<sub>g</sub><sup>${ls.e}</sup>, CFSE = ${fmt(ls.cfse, 3)}&Delta;<sub>o</sub>, ${ls.pairs} pair(s).</p><p>High spin: t<sub>2g</sub><sup>${hs.t}</sup>e<sub>g</sub><sup>${hs.e}</sup>, CFSE = ${fmt(hs.cfse, 3)}&Delta;<sub>o</sub>, ${hs.pairs} pair(s).</p><p>&Delta;E = (${fmt(ls.cfse, 3)} - (${fmt(hs.cfse, 3)}))(${Do}) + (${ls.pairs} - ${hs.pairs})(${P}) = <b>${fmt(dE, 4)} kJ/mol</b>. ${dE < 0 ? 'Negative: low spin is lower in energy.' : 'Positive: high spin is lower in energy.'}</p>` };
+  }, verify: (p) => { const e1 = 0.4 * 0, ls = _fill(p.n, true), hs = _fill(p.n, false); return (ls.cfse - hs.cfse) * p.Do + (ls.pairs - hs.pairs) * p.P + e1; } });
+const _NM = [['[Co(NH<sub>3</sub>)<sub>5</sub>Cl]Cl<sub>2</sub>', 'pentaamminechloridocobalt(III) chloride', ['pentaamminechloridocobalt(II) chloride', 'chloridopentaamminecobalt(III) chloride', 'pentaamminechloridocobaltate(III) chloride']], ['K<sub>4</sub>[Fe(CN)<sub>6</sub>]', 'potassium hexacyanidoferrate(II)', ['potassium hexacyanidoiron(II)', 'potassium hexacyanidoferrate(III)', 'tetrapotassium hexacyanidoferrate(II)']], ['[Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>]', 'diamminedichloridoplatinum(II)', ['dichloridodiammineplatinum(II)', 'diamminedichloridoplatinate(II)', 'diamminedichloridoplatinum(IV)']], ['Na<sub>2</sub>[Zn(OH)<sub>4</sub>]', 'sodium tetrahydroxidozincate(II)', ['sodium tetrahydroxidozinc(II)', 'sodium tetrahydroxidozincate(IV)', 'disodium tetrahydroxidozincate(II)']], ['[Cr(H<sub>2</sub>O)<sub>4</sub>Cl<sub>2</sub>]Cl', 'tetraaquadichloridochromium(III) chloride', ['dichloridotetraaquachromium(III) chloride', 'tetraaquadichloridochromium(II) chloride', 'tetraaquadichloridochromate(III) chloride']], ['K<sub>3</sub>[Fe(CN)<sub>6</sub>]', 'potassium hexacyanidoferrate(III)', ['potassium hexacyanidoferrate(II)', 'tripotassium hexacyanidoferrate(III)', 'potassium hexacyanidoiron(III)']]];
+xgen({ type: 'mcq', level: 3, sub: 'nomenclature',
+  make(rng) { const [f, right, wr] = choose(rng, _NM); const o = shuffleOpts(rng, right, wr);
+    return { q: `The IUPAC name of ${f} is`, options: o.options, answer: o.answer, f, right,
+      sol: `<p>Ligands first in alphabetical order, then the metal; the metal takes "-ate" when the complex ion is an anion, and the oxidation state is written in Roman numerals. Counter-ions are named without prefixes of number.</p><p>Answer: <b>${right}</b>.</p>`, trap: 'Alphabetical order ignores di-, tri-, tetra-; anionic complexes use "-ate".' };
+  }, verify: (p) => p.options.indexOf(p.right) });
+const _OPT = [['cis-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup>', true], ['trans-[Co(en)<sub>2</sub>Cl<sub>2</sub>]<sup>+</sup>', false], ['[Co(en)<sub>3</sub>]<sup>3+</sup>', true], ['[Pt(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] (square planar)', false], ['[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>', false], ['[Cr(ox)<sub>3</sub>]<sup>3-</sup>', true], ['[Ni(en)(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup>', false], ['[Zn(NH<sub>3</sub>)<sub>2</sub>Cl<sub>2</sub>] (tetrahedral)', false]];
+xgen({ type: 'mcq', level: 4, sub: 'optical isomerism',
+  make(rng) { const act = _OPT.filter((x) => x[1]), inact = _OPT.filter((x) => !x[1]); const right = choose(rng, act); const pool = [...inact]; const wr = []; while (wr.length < 3) wr.push(pool.splice(Math.floor(rng() * pool.length), 1)[0][0]); const o = shuffleOpts(rng, right[0], wr);
+    return { q: 'Which of the following complexes is optically active? (en = ethane-1,2-diamine, ox = oxalate)', options: o.options, answer: o.answer, right: right[0],
+      sol: `<p>A complex is optically active when it is chiral: no plane or centre of symmetry. Propeller-like octahedral complexes with chelating ligands (the cis-bis and tris chelates) are chiral. Complexes with a mirror plane (trans forms, square planar, tetrahedral with two identical pairs, symmetric ones) are not.</p><p>Answer: <b>${right[0]}</b>.</p>`, trap: 'Having chelating ligands is not enough; the trans form has a mirror plane.' };
+  }, verify: (p) => p.options.indexOf(p.right) });
+const _CF = [['[Co(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup>', 6, true], ['[Fe(CN)<sub>6</sub>]<sup>4-</sup>', 6, true], ['[Fe(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', 6, false], ['[Cr(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup>', 3, false], ['[Mn(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', 5, false], ['[Ni(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', 8, false], ['[Fe(CN)<sub>6</sub>]<sup>3-</sup>', 5, true], ['[Co(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup>', 7, false]];
+xgen({ type: 'mcq', level: 4, sub: 'CFSE ranking',
+  make(rng) { const pool = [..._CF]; const pk = []; while (pk.length < 4) { const x = pool.splice(Math.floor(rng() * pool.length), 1)[0]; if (!pk.some((y) => Math.abs(_fill(y[1], y[2]).cfse - _fill(x[1], x[2]).cfse) < 1e-9)) pk.push(x); }
+    const val = (x) => _fill(x[1], x[2]).cfse; const best = pk.reduce((a, b) => (val(b) < val(a) ? b : a)); const o = shuffleOpts(rng, best[0], pk.filter((x) => x !== best).map((x) => x[0]));
+    return { q: 'Ignoring the pairing energy, which octahedral complex has the largest crystal field stabilisation energy (in units of &Delta;<sub>o</sub>)?', options: o.options, answer: o.answer, pk, best: best[0], vals: pk.map(val),
+      sol: `<p>CFSE = -0.4 n(t<sub>2g</sub>) + 0.6 n(e<sub>g</sub>) in &Delta;<sub>o</sub>. ${pk.map((x) => `${x[0]}: d<sup>${x[1]}</sup>, ${x[2] ? 'low' : 'high'} spin, ${fmt(val(x), 3)}`).join('; ')}.</p><p>Most negative: <b>${best[0]}</b>.</p>`, trap: 'Low-spin d<sup>6</sup> has a much larger CFSE (-2.4) than high-spin d<sup>6</sup> (-0.4).' };
+  }, verify: (p) => { const v = p.pk.map((x) => _fill(x[1], x[2]).cfse); const i = v.indexOf(Math.min(...v)); return p.options.indexOf(p.pk[i][0]); } });
+
 export default {
   topic: 'coordination-compounds',
-  groups,
-  items: L.map((it, i) => ({ id: `cc-${String(i + 1).padStart(3, '0')}`, ...it })),
-  gens,
+  groups: { ...groups, ...XGRP },
+  items: [...L.map((it, i) => ({ id: `cc-${String(i + 1).padStart(3, '0')}`, ...it })), ...XI],
+  gens: [...gens, ...XGENS],
 };

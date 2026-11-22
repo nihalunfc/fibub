@@ -714,4 +714,246 @@ const gens = [
   },
 ];
 
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = false;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `srf-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const frac = (n, d) => { const g = ((a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; })(n, d); n /= g; d /= g; const sgn = n < 0 ? '-' : ''; n = Math.abs(n); return d === 1 ? `${sgn}${n}` : `${sgn}\\dfrac{${n}}{${d}}`; };
+const OPT = (c, w) => ({ c, w });
+Object.assign(groups, {
+  xm1: { title: 'Ranges of functions', passage: XR`<p>Match each function in List I with its range in List II (domain: all real numbers where defined).</p>`,
+    list1: ['A. $f(x)=\\dfrac1{2-\\cos x}$', 'B. $f(x)=x^2-4x+7$', 'C. $f(x)=\\sin x\\cos x$', 'D. $f(x)=e^{-x^2}$'], list2: ['p. $[3,\\infty)$', 'q. $\\left[\\dfrac13,1\\right]$', 'r. $(0,1]$', 's. $\\left[-\\dfrac12,\\dfrac12\\right]$'] },
+  xm2: { title: 'Counting functions and relations', passage: XR`<p>Match each count in List I with its value in List II.</p>`,
+    list1: ['A. functions from a 3-element set to a 2-element set', 'B. one-one functions from a 2-element set to a 3-element set', 'C. relations from a 2-element set to a 2-element set', 'D. equivalence relations on a 3-element set'], list2: ['p. 5', 'q. 6', 'r. 8', 's. 16'] },
+  xm3: { title: 'Fundamental periods', passage: XR`<p>Match each function in List I with its fundamental period in List II.</p>`,
+    list1: ['A. $\\sin3x+\\cos3x$', 'B. $|\\sin x|+|\\cos x|$', 'C. $\\sin x\\cos x$', 'D. $\\tan\\dfrac x2$'], list2: ['p. $\\dfrac\\pi2$', 'q. $\\dfrac{2\\pi}3$', 'r. $\\pi$', 's. $2\\pi$'] },
+  xm4: { title: 'Composition of functions', passage: XR`<p>Let $f(x)=x+1$, $g(x)=2x$ and $h(x)=x^2$. Match each value in List I with its number in List II.</p>`,
+    list1: ['A. $(f\\circ g)(3)$', 'B. $(g\\circ f)(3)$', 'C. $(h\\circ f)(3)$', 'D. $(f\\circ h)(3)$'], list2: ['p. 7', 'q. 8', 'r. 10', 's. 16'] },
+  xm5: { title: 'Domains', passage: XR`<p>Match each function in List I with its natural domain in List II.</p>`,
+    list1: ['A. $\\sqrt{x-2}+\\sqrt{4-x}$', 'B. $\\sqrt{x^2-4}$', 'C. $\\dfrac1{\\sqrt{|x|-x}}$', 'D. $\\log(x^2-4x+3)$'], list2: ['p. $[2,4]$', 'q. $(-\\infty,0)$', 'r. $(-\\infty,-2]\\cup[2,\\infty)$', 's. $(-\\infty,1)\\cup(3,\\infty)$'] },
+  xm6: { title: 'Sets and their sizes', passage: XR`<p>$A=\{1,2,3,4,5,6\}$ and $B=\{4,5,6,7,8\}$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $n(A\\cup B)$', 'B. $n(A\\,\\triangle\\,B)$', 'C. $n(A\\times B)$', 'D. $n\\big(\\mathcal P(B\\setminus A)\\big)$'], list2: ['p. 4', 'q. 5', 'r. 8', 's. 30'] },
+  xm7: { title: 'Inverse functions', passage: XR`<p>Match each function in List I (on a suitable domain) with its inverse in List II.</p>`,
+    list1: ['A. $f(x)=2x+3$', 'B. $f(x)=x^3$', 'C. $f(x)=e^x$', 'D. $f(x)=\\dfrac{x+1}{x-1}$'], list2: ['p. $\\sqrt[3]{x}$', 'q. $\\ln x$', 'r. $\\dfrac{x-3}2$', 's. $\\dfrac{x+1}{x-1}$'] },
+  xm8: { title: 'Equivalence classes on 1 to 12', passage: XR`<p>Each relation below is an equivalence relation on $S=\{1,2,\dots,12\}$. Match it with its number of equivalence classes.</p>`,
+    list1: ['A. $a\\,R\\,b\\iff 3\\mid(a-b)$', 'B. $a\\,R\\,b\\iff\\gcd(a,12)=\\gcd(b,12)$', 'C. $a\\,R\\,b\\iff ab$ is a perfect square', 'D. $a\\,R\\,b\\iff 5\\mid(a-b)$'], list2: ['p. 3', 'q. 5', 'r. 6', 's. 8'] },
+  xp1: { title: 'Passage: a function on six points', passage: XR`<p>$f:\{1,2,3,4,5,6\}\to\{1,2,3,4,5,6\}$ is given by $f(1)=3,\ f(2)=5,\ f(3)=1,\ f(4)=4,\ f(5)=2,\ f(6)=6$.</p>` },
+  xp2: { title: 'Passage: remainders on 1 to 12', passage: XR`<p>On $A=\{1,2,\dots,12\}$ define $a\,R\,b$ if $a-b$ is divisible by $4$. This is an equivalence relation.</p>` },
+});
+items.push(
+  // ---- L2 ----
+  M(2, 'power set', XR`A set has $5$ elements. The number of its subsets is`, '$32$', ['$10$', '$25$', '$31$'],
+    XR`<p>Each of the 5 elements is either in or out of a subset: $2^5=32$ subsets (including the empty set and the set itself). $31$ would leave out the empty set.</p>`, 'The empty set counts.'),
+  M(2, 'domain', XR`The domain of $f(x)=\sqrt{x-3}$ is`, '$[3,\\infty)$', ['$(3,\\infty)$', '$(-\\infty,3]$', '$\\mathbb R$'],
+    XR`<p>We need $x-3\ge0$, so $x\ge3$. At $x=3$ the root is $0$, which is allowed: $[3,\infty)$.</p>`, 'Square roots of 0 are fine; only negatives are excluded.'),
+  M(2, 'composition', XR`If $f(x)=3x+1$ and $g(x)=x^2$, then $(f\circ g)(2)$ equals`, '$13$', ['$49$', '$25$', '$12$'],
+    XR`<p>$(f\circ g)(2)=f(g(2))=f(4)=3\cdot4+1=13$. (Using $g\circ f$ would give $g(7)=49$.)</p>`, 'f∘g means do g first.'),
+  S(2, 'relations', XR`Every function from $A$ to $B$ is a relation from $A$ to $B$.`, XR`Every relation from $A$ to $B$ is a function from $A$ to $B$.`, 1,
+    XR`<p>A function is a relation in which each element of $A$ has exactly one image. So I is true. A relation may relate an element to two or more elements, or to none, so II is false.</p>`, 'A function is a special relation, not the other way round.'),
+  A(2, 'power set', XR`A set with $n$ elements has $2^n$ subsets.`, XR`Each element is either in a subset or not, independently of the others.`, 0,
+    XR`<p>Making a subset means making $n$ independent yes/no choices, giving $2\cdot2\cdots2=2^n$ subsets. R is exactly the reason.</p>`, 'Independent choices multiply.'),
+  M(2, 'types of function', XR`The function $f:\mathbb R\to\mathbb R$, $f(x)=x^2$ is`, 'neither one-one nor onto', ['one-one but not onto', 'onto but not one-one', 'both one-one and onto'],
+    XR`<p>$f(2)=f(-2)=4$, so $f$ is not one-one. No negative number is a square, so $f$ is not onto $\mathbb R$.</p>`, 'Check both properties separately.'),
+  // ---- L3 ----
+  I(3, 'counting', XR`How many integers from $1$ to $1000$ are divisible by $2$, $3$ or $5$?`, 734,
+    XR`<p>Inclusion–exclusion: $n(2)=500$, $n(3)=333$, $n(5)=200$; $n(6)=166$, $n(10)=100$, $n(15)=66$; $n(30)=33$. Total $=500+333+200-166-100-66+33=734$.</p>`, 'Add back the triple overlap at the end.', () => { let c = 0; for (let n = 1; n <= 1000; n++) if (n % 2 === 0 || n % 3 === 0 || n % 5 === 0) c++; return c; }),
+  I(3, 'counting subsets', XR`How many subsets of $\{1,2,3,4,5,6\}$ have an even sum of elements (the empty set counts, with sum 0)?`, 32,
+    XR`<p>Fix the choices for $2,3,4,5,6$ in any of $2^5=32$ ways. Whether to include $1$ is then decided uniquely so that the sum becomes even. So exactly $32$ subsets work (half of $64$). (Equivalently: the sum is even exactly when an even number of the odd elements $1,3,5$ is chosen, which is half of all choices.)</p>`, 'Half of all subsets have even sum whenever at least one odd element exists.', () => { let e = 0; for (let m = 0; m < 64; m++) { let s = 0; for (let i = 0; i < 6; i++) if (m >> i & 1) s += i + 1; if (s % 2 === 0) e++; } return e; }),
+  I(3, 'counting relations', XR`How many relations on a set of $4$ elements are both reflexive and symmetric?`, 64,
+    XR`<p>The four pairs $(a,a)$ must all be present. For each of the $\binom42=6$ unordered pairs $\{a,b\}$ with $a\ne b$, either both $(a,b),(b,a)$ are in or both are out: $2$ choices each. Total $2^6=64$.</p>`, 'Count unordered pairs, not ordered pairs.', () => 2 ** 6),
+  M(3, 'inverse', XR`If $f(x)=\dfrac{3x+1}{x-2}$, then $f^{-1}(5)$ equals`, XR`$\dfrac{11}2$`, [XR`$\dfrac{17}3$`, XR`$\dfrac{16}3$`, XR`$\dfrac{9}{2}$`],
+    XR`<p>Put $y=\dfrac{3x+1}{x-2}$: $xy-2y=3x+1$, so $x(y-3)=2y+1$ and $x=\dfrac{2y+1}{y-3}$. So $f^{-1}(y)=\dfrac{2y+1}{y-3}$ and $f^{-1}(5)=\dfrac{11}2$. (Check: $f\!\left(\dfrac{11}2\right)=\dfrac{16.5+1}{3.5}=5$.)</p>`, 'Check by substituting back.'),
+  I(3, 'periodic', XR`The function $f(x)=\sin\dfrac{2x}3+\cos\dfrac{3x}2$ has fundamental period $k\pi$. Find $k$.`, 12,
+    XR`<p>The periods of the two terms are $\dfrac{2\pi}{2/3}=3\pi$ and $\dfrac{2\pi}{3/2}=\dfrac{4\pi}3$. The period of the sum is their LCM: $\mathrm{lcm}\left(\dfrac{9\pi}3,\dfrac{4\pi}3\right)=\dfrac{\mathrm{lcm}(9,4)\pi}3=\dfrac{36\pi}3=12\pi$. So $k=12$.</p>`, 'Write both periods over a common denominator before taking the LCM.', () => 12),
+  S(3, 'greatest integer', XR`The fractional part $\{x\}=x-[x]$ always satisfies $0\le\{x\}<1$.`, XR`$\{-2.3\}=-0.3$.`, 1,
+    XR`<p>Since $[x]\le x<[x]+1$, we have $0\le x-[x]<1$: Statement I is true. For $x=-2.3$, $[x]=-3$, so $\{x\}=-2.3+3=0.7$, not $-0.3$: Statement II is false.</p>`, '[−2.3] is −3, not −2.'),
+  A(3, 'even and odd', XR`An even function defined on all of $\mathbb R$ is never one-one.`, XR`For an even function, $f(a)=f(-a)$ for every $a$.`, 0,
+    XR`<p>Take any $a\ne0$: $a\ne-a$ but $f(a)=f(-a)$, so two different inputs give the same output. Hence $f$ is not one-one. R is the reason.</p>`, 'The function f(x) = x² is the model.'),
+  A(3, 'greatest integer', XR`$[x]+[-x]=0$ for every real $x$.`, XR`$[-x]=-[x]$ only when $x$ is an integer.`, 3,
+    XR`<p>For non-integer $x$, $[x]+[-x]=-1$ (for example $x=2.5$: $2+(-3)=-1$). So A is false. R is true: $[-x]=-[x]$ holds exactly when $x$ is an integer.</p>`, 'The sum is 0 for integers and −1 otherwise.'),
+  SC(3, 'set algebra', ['$A\\cup(B\\cap C)=(A\\cup B)\\cap(A\\cup C)$.', '$(A\\cap B)^{c}=A^{c}\\cap B^{c}$.', '$A\\setminus B=A\\cap B^{c}$.', '$n(A\\times B)=n(A)+n(B)$.'], '2', ['1', '3', '4'],
+    XR`<p>(1) true (distributive law). (2) false: De Morgan gives $(A\cap B)'=A'\cup B'$. (3) true. (4) false: $n(A\times B)=n(A)\,n(B)$. Two are correct.</p>`, 'De Morgan flips the operation.'),
+  MT(3, 'range', 'xm1', 'A-q, B-p, C-s, D-r', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-q, B-s, C-p, D-r'],
+    XR`<p>A: $2-\cos x\in[1,3]$, so $\dfrac1{2-\cos x}\in\left[\dfrac13,1\right]$. B: $(x-2)^2+3\ge3$. C: $\sin x\cos x=\dfrac12\sin2x\in\left[-\dfrac12,\dfrac12\right]$. D: $-x^2\le0$, so $e^{-x^2}\in(0,1]$ (never $0$).</p>`, 'e^(−x²) never reaches 0.'),
+  MT(3, 'counting', 'xm2', 'A-r, B-q, C-s, D-p', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-s, C-q, D-p'],
+    XR`<p>A: $2^3=8$. B: $3\cdot2=6$ (first element 3 choices, second 2). C: a relation is a subset of a 4-element product, $2^4=16$. D: equivalence relations on 3 elements correspond to partitions: $1+3+1=5$.</p>`, 'Partitions of a 3-set: one block, three blocks, or a pair plus a single (3 ways).'),
+  MT(3, 'composition', 'xm4', 'A-p, B-q, C-s, D-r', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-p, B-s, C-q, D-r'],
+    XR`<p>A: $f(g(3))=f(6)=7$. B: $g(f(3))=g(4)=8$. C: $h(f(3))=h(4)=16$. D: $f(h(3))=f(9)=10$.</p>`, 'The function written first acts last.'),
+  MT(3, 'inverse', 'xm7', 'A-r, B-p, C-q, D-s', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s'],
+    XR`<p>A: $y=2x+3\Rightarrow x=\dfrac{y-3}2$. B: cube root. C: logarithm. D: $y=\dfrac{x+1}{x-1}\Rightarrow xy-y=x+1\Rightarrow x=\dfrac{y+1}{y-1}$, so it is its own inverse.</p>`, 'The function in D undoes itself.'),
+  MT(3, 'sets', 'xm6', 'A-r, B-q, C-s, D-p', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-r, B-s, C-q, D-p'],
+    XR`<p>$A\cap B=\{4,5,6\}$, $A\cup B=\{1,\dots,8\}$: $n=8$ (A). $A\triangle B=\{1,2,3,7,8\}$: 5 (B). $n(A\times B)=6\cdot5=30$ (C). $B\setminus A=\{7,8\}$ has $2^2=4$ subsets (D).</p>`, 'A△B removes the common elements.'),
+  N(3, 'range', XR`The greatest value of $2\sin x+\cos x$ is (2 decimal places)`, 2.24, 0.01,
+    XR`<p>$a\sin x+b\cos x$ has greatest value $\sqrt{a^2+b^2}=\sqrt5\approx2.24$ (reached at $\tan x=2$).</p>`, 'The amplitude is √(a² + b²), not a + b.', () => Math.sqrt(5)),
+  N(3, 'inverse', XR`If $f(x)=\dfrac{3x+1}{x-2}$, find $f^{-1}(5)$ as a decimal.`, 5.5, 0.01,
+    XR`<p>$f^{-1}(y)=\dfrac{2y+1}{y-3}$, so $f^{-1}(5)=\dfrac{11}2=5.5$.</p>`, 'Solve for x in terms of y first.', () => 11 / 2),
+  // ---- L4 ----
+  X(4, 'one-one', XR`Which of the following functions $f:\mathbb R\to\mathbb R$ are one-one?`, ['$x^3+x$', '$x|x|$', '$x^2$', '$x+\\sin x$'], [0, 1, 3],
+    XR`<p>$x^3+x$: derivative $3x^2+1>0$, strictly increasing. $x|x|$ equals $x^2$ for $x\ge0$ and $-x^2$ for $x<0$: strictly increasing. $x^2$ is not one-one ($f(1)=f(-1)$). $x+\sin x$: derivative $1+\cos x\ge0$ with zeros only at isolated points, so strictly increasing.</p>`, 'A derivative that is zero only at isolated points still gives a strictly increasing function.'),
+  X(4, 'onto', XR`Which of these functions $f:\mathbb R\to\mathbb R$ are onto?`, ['$x^3-x$', '$|x|$', '$5-3x$', '$x+[x]$'], [0, 2],
+    XR`<p>$x^3-x$: continuous and unbounded in both directions, so it takes every real value. $|x|$ is never negative. $5-3x$ is linear with non-zero slope: onto. $x+[x]$ jumps: on $[0,1)$ it takes $[0,1)$ and on $[1,2)$ it takes $[2,3)$, so the values in $[1,2)$ are missed.</p>`, 'A function with jumps can skip an interval.'),
+  X(4, 'equivalence relations', XR`Which of these relations on $\mathbb R$ are equivalence relations?`, ['$xRy\\iff|x-y|<1$', '$xRy\\iff x-y\\in\\mathbb Z$', '$xRy\\iff x^2=y^2$', '$xRy\\iff x\\le y$'], [1, 2],
+    XR`<p>A: not transitive ($0R0.6$ and $0.6R1.2$ but $|0-1.2|\ge1$). B: reflexive, symmetric, transitive (the difference of two integers is an integer). C: $x^2=y^2$ is equality of squares: an equivalence relation. D: not symmetric.</p>`, 'Closeness is not transitive.'),
+  X(4, 'types of relation', XR`On $\{1,2,3\}$, let $R=\{(1,1),(2,2),(3,3),(1,2),(2,1)\}$. Which properties does $R$ have?`, ['reflexive', 'symmetric', 'transitive', 'antisymmetric'], [0, 1, 2],
+    XR`<p>All three diagonal pairs are present: reflexive. $(1,2)$ and $(2,1)$ both present: symmetric. Chains such as $(1,2),(2,1)\Rightarrow(1,1)$ are present: transitive. It is not antisymmetric because $(1,2)$ and $(2,1)$ are both in $R$ with $1\ne2$.</p>`, 'A symmetric relation with an off-diagonal pair is not antisymmetric.'),
+  X(4, 'domain', XR`Which of these numbers are in the domain of $f(x)=\sqrt{(x-1)(3-x)}$?`, ['$1$', '$3$', '$0$', '$3.5$'], [0, 1],
+    XR`<p>We need $(x-1)(3-x)\ge0$, i.e. $1\le x\le3$. So $1$ and $3$ are in the domain (the root is $0$); $0$ and $3.5$ give a negative product.</p>`, 'The endpoints are allowed.'),
+  X(4, 'composition', XR`Let $f(x)=x^2$ and $g(x)=\sin x$ for real $x$. Which statements are true?`, ['$(f\\circ g)(x)=\\sin^2x$', '$(g\\circ f)(x)=\\sin(x^2)$', '$f\\circ g=g\\circ f$', 'the range of $f\\circ g$ is $[0,1]$'], [0, 1, 3],
+    XR`<p>$(f\circ g)(x)=f(\sin x)=\sin^2x$; $(g\circ f)(x)=\sin(x^2)$. They are different functions ($x=\sqrt\pi$ gives $0$ for the second but $\sin^2\sqrt\pi\ne0$). $\sin^2x$ takes every value in $[0,1]$.</p>`, 'sin² x and sin(x²) are not the same.'),
+  X(5, 'counting functions', XR`Let $f:\{1,2,3,4\}\to\{1,2,3\}$. Which counts are correct?`, ['the number of onto functions is $36$', 'the number of one-one functions is $0$', 'the number of all functions is $81$', 'the number of functions with range of size exactly $2$ is $36$'], [0, 1, 2],
+    XR`<p>Onto: $3^4-3\cdot2^4+3=81-48+3=36$. One-one: impossible as 4 elements cannot map injectively into 3: $0$. All functions: $3^4=81$. Range of size exactly 2: choose the 2 values in $\binom32=3$ ways, then count onto maps from 4 points to those 2: $2^4-2=14$; total $42$, not $36$. So the last statement is false.</p>`, 'Count onto maps to the chosen 2 values: 2⁴ − 2.'),
+  X(5, 'periodic', XR`Which of these functions are periodic?`, ['$x-[x]$', '$\\sin(x^2)$', '$\\sin x+\\cos(\\sqrt2\\,x)$', '$|\\sin x|+|\\cos x|$'], [0, 3],
+    XR`<p>$x-[x]$ has period 1. $\sin(x^2)$ has zeros at $\pm\sqrt{k\pi}$ whose gaps shrink, so it is not periodic. $\sin x$ has period $2\pi$ and $\cos(\sqrt2x)$ has period $\sqrt2\pi$; the ratio $\sqrt2$ is irrational, so no common period exists. $|\sin x|+|\cos x|$ has period $\dfrac\pi2$.</p>`, 'Periods with an irrational ratio never agree.'),
+  X(5, 'greatest integer', XR`For $f(x)=[x]+[-x]$, which statements are true?`, ['the range of $f$ is $\\{-1,0\\}$', '$f$ is periodic with period $1$', '$f$ is an even function', '$f$ is continuous'], [0, 1, 2],
+    XR`<p>$f(x)=0$ for integers and $-1$ otherwise. So the range is $\{-1,0\}$; adding 1 to $x$ changes nothing; $f(-x)=[-x]+[x]=f(x)$: even. It jumps at every integer, so it is not continuous.</p>`, 'The function jumps at each integer.'),
+  X(5, 'set algebra', XR`$A\,\triangle\,B$ denotes the symmetric difference $(A\setminus B)\cup(B\setminus A)$. Which statements are true for finite sets?`, ['$A\\triangle B=(A\\cup B)\\setminus(A\\cap B)$', '$A\\triangle B=\\emptyset$ exactly when $A=B$', '$A\\triangle(A\\triangle B)=B$', '$n(A\\triangle B)=n(A)+n(B)-n(A\\cap B)$'], [0, 1, 2],
+    XR`<p>A: both describe elements in exactly one of the sets. B: no element lies in exactly one set means the sets are equal. C: elements of $A$ appear twice and cancel, leaving $B$. D is false: $n(A\triangle B)=n(A)+n(B)-2n(A\cap B)$.</p>`, 'The common part is removed twice.'),
+  X(5, 'counting relations', XR`$A$ has $3$ elements. Which counts of relations on $A$ are correct?`, ['reflexive relations: $2^6$', 'symmetric relations: $2^6$', 'reflexive and symmetric relations: $2^3$', 'symmetric relations: $2^9$'], [0, 1, 2],
+    XR`<p>Reflexive: the 3 diagonal pairs are forced; the other 6 pairs are free, $2^6=64$. Symmetric: choose for 3 diagonal pairs and 3 unordered off-diagonal pairs: $2^{3+3}=64$. Reflexive and symmetric: only the 3 off-diagonal unordered pairs are free: $2^3=8$. $2^9$ is the count of all relations, not just symmetric ones.</p>`, '2⁹ counts all relations.'),
+  I(4, 'counting functions', XR`How many onto functions are there from a $7$-element set onto a $3$-element set?`, 1806,
+    XR`<p>Inclusion–exclusion: $3^7-\binom31 2^7+\binom32 1^7=2187-384+3=1806$.</p>`, 'Remember to add back the 3 constant functions.', () => 3 ** 7 - 3 * 2 ** 7 + 3),
+  I(4, 'counting functions', XR`How many strictly increasing functions $f:\{1,2,3,4\}\to\{1,2,\dots,9\}$ are there?`, 126,
+    XR`<p>A strictly increasing function is fixed by choosing $4$ different values from the $9$ (they are then placed in increasing order). So the count is $\binom94=126$.</p>`, 'Order is forced, so use combinations.', () => 126),
+  I(4, 'equivalence classes', XR`On $S=\{1,2,\dots,12\}$ define $aRb$ when $ab$ is a perfect square. This is an equivalence relation. How many equivalence classes does it have?`, 8,
+    XR`<p>$ab$ is a square exactly when $a$ and $b$ have the same square-free part. Square-free parts: $1,4,9\to1$; $2,8\to2$; $3,12\to3$; $5\to5$; $6\to6$; $7\to7$; $10\to10$; $11\to11$. Classes: $\{1,4,9\},\{2,8\},\{3,12\},\{5\},\{6\},\{7\},\{10\},\{11\}$: $8$.</p>`, 'Group numbers by their square-free part.', () => 8),
+  I(4, 'one-one', XR`For how many integers $k$ is $f(x)=x^3+kx^2+3x$ one-one on $\mathbb R$?`, 7,
+    XR`<p>$f$ is a cubic, so it is one-one exactly when it never decreases: $f'(x)=3x^2+2kx+3\ge0$ for all $x$. That needs $D=4k^2-36\le0$, i.e. $|k|\le3$. At $|k|=3$, $f'(x)=3(x\pm1)^2$ is zero at a single point, so $f$ is still strictly increasing. The integers are $-3,\dots,3$: $7$.</p>`, 'D = 0 is allowed here.', () => { let c = 0; for (let k = -10; k <= 10; k++) if (4 * k * k - 36 <= 0) c++; return c; }),
+  I(4, 'composition', XR`Let $f(x)=\dfrac1{1-x}$ ($x\ne0,1$). Find $f^{(100)}(2)$, where $f^{(n)}$ means $f$ applied $n$ times.`, -1,
+    XR`<p>$f(x)=\dfrac1{1-x}$, $f(f(x))=\dfrac1{1-\frac1{1-x}}=\dfrac{x-1}x$, $f(f(f(x)))=\dfrac1{1-\frac{x-1}x}=x$. So $f^{(3)}$ is the identity and $f^{(100)}=f^{(1)}$ because $100=3\cdot33+1$. So the answer is $f(2)=\dfrac1{1-2}=-1$.</p>`, 'Find the cycle length first.', () => { let x = 2; for (let i = 0; i < 100; i++) x = 1 / (1 - x); return x; }),
+  I(4, 'functional equations', XR`A function satisfies $f(x)f(y)-f(xy)=x+y$ for all real $x,y$. Find $f(10)$.`, 11,
+    XR`<p>Put $y=0$: $f(x)f(0)-f(0)=x$, so $f(0)\big(f(x)-1\big)=x$. Then $f(0)\ne0$ and $f(x)=1+\dfrac x{f(0)}$. Putting $x=0$ here gives $f(0)=1$, so $f(x)=1+x$. Check: $(1+x)(1+y)-(1+xy)=x+y$. So $f(10)=11$.</p>`, 'Use y = 0 to find the shape of f.', () => 11),
+  I(4, 'counting functions', XR`Find the number of bijections $f$ of $\{1,2,3,4,5,6\}$ onto itself with $f(i)\ne i$ for every $i$.`, 265,
+    XR`<p>These are derangements $D_6$. $D_n=n!\sum_{k=0}^{n}\dfrac{(-1)^k}{k!}$: $720\left(1-1+\dfrac12-\dfrac16+\dfrac1{24}-\dfrac1{120}+\dfrac1{720}\right)=720-720+360-120+30-6+1=265$.</p>`, 'Use the alternating inclusion–exclusion sum.', () => { let d = 0; const perm = (a, i = 0) => { if (i === a.length) { if (a.every((v, j) => v !== j)) d++; return; } for (let j = i; j < a.length; j++) { [a[i], a[j]] = [a[j], a[i]]; perm(a, i + 1); [a[i], a[j]] = [a[j], a[i]]; } }; perm([0, 1, 2, 3, 4, 5]); return d; }),
+  I(4, 'counting subsets', XR`Find the number of ordered pairs $(A,B)$ of subsets of $\{1,2,3,4,5\}$ for which $A\cap B$ has exactly one element.`, 405,
+    XR`<p>Choose the common element: $5$ ways. Each of the other $4$ elements is in $A$ only, $B$ only, or in neither (not in both): $3$ choices. Total $5\cdot3^4=405$.</p>`, 'The other elements cannot be in both sets.', () => 5 * 81),
+  I(5, 'counting functions', XR`Find the number of functions $f:\{1,2,3,4,5\}\to\{1,2,3,4,5\}$ that are non-decreasing and satisfy $f(i)\le i$ for every $i$.`, 42,
+    XR`<p>$f(1)=1$ is forced. Such sequences $1=f(1)\le f(2)\le\dots\le f(5)$ with $f(i)\le i$ are counted by the Catalan number $C_5=\dfrac1{6}\binom{10}5=42$. (Counting them directly: $1,2,5,14,42$ for $n=1,\dots,5$.)</p>`, 'The bound f(i) ≤ i is the ballot condition.', () => { let cat = 0; const rec = (i, prev, n) => { if (i > n) { cat++; return; } for (let v = prev; v <= i; v++) rec(i + 1, v, n); }; rec(1, 1, 5); return cat; }),
+  I(5, 'counting relations', XR`How many relations on $\{1,2,3\}$ are both reflexive and transitive?`, 29,
+    XR`<p>Reflexive and transitive relations are preorders. On 3 elements the off-diagonal pairs are the 6 ordered pairs $(a,b)$, $a\ne b$. Count by the equivalence classes of the 'both ways' relation. One class (all three elements related to each other): $1$ relation. Two classes (3 ways to pick the pair): a partial order on the two classes can be 'incomparable' or either direction, $3$ ways, so $3\cdot3=9$. Three classes: a partial order on 3 labelled elements, of which there are $19$. Total $1+9+19=29$.</p>`, 'This is the number of topologies on a 3-point set.', () => { let pre = 0; for (let m = 0; m < 512; m++) { const R = (i, j) => (m >> (i * 3 + j)) & 1; let ok = true; for (let i = 0; i < 3; i++) if (!R(i, i)) ok = false; for (let i = 0; i < 3 && ok; i++) for (let j = 0; j < 3 && ok; j++) for (let k = 0; k < 3; k++) if (R(i, j) && R(j, k) && !R(i, k)) { ok = false; break; } if (ok) pre++; } return pre; }),
+  I(4, 'periodic', XR`The function $f(x)=\sin\dfrac{\pi x}3+\cos\dfrac{\pi x}4$ has fundamental period $T$. Find $T$.`, 24,
+    XR`<p>The periods of the terms are $\dfrac{2\pi}{\pi/3}=6$ and $\dfrac{2\pi}{\pi/4}=8$. $\mathrm{lcm}(6,8)=24$.</p>`, 'Each period is a plain number here.', () => 24),
+  N(4, 'range', XR`The least value of $\dfrac1{2-\cos3x}$ is (2 decimal places)`, 0.33, 0.01,
+    XR`<p>$\cos3x\in[-1,1]$, so $2-\cos3x\in[1,3]$ and $\dfrac1{2-\cos3x}\in\left[\dfrac13,1\right]$. The least value is $\dfrac13\approx0.33$.</p>`, 'Least value of 1/g comes from the greatest g.', () => 1 / 3),
+  N(4, 'inverse', XR`$f(x)=\dfrac{2^x}{1+2^x}$ is one-one. Find $f^{-1}(0.6)$ (3 decimal places).`, 0.585, 0.001,
+    XR`<p>$y=\dfrac{2^x}{1+2^x}\Rightarrow2^x=\dfrac y{1-y}$, so $f^{-1}(y)=\log_2\dfrac y{1-y}$. At $y=0.6$: $\log_2\dfrac{0.6}{0.4}=\log_2 1.5\approx0.585$.</p>`, 'The inverse exists only for 0 < y < 1.', () => Math.log2(1.5)),
+  N(4, 'periodic', XR`The fundamental period of $|\sin3x|+|\cos3x|$ is (2 decimal places)`, 0.52, 0.01,
+    XR`<p>$|\sin u|+|\cos u|$ has period $\dfrac\pi2$ in $u$ (its square is $1+|\sin2u|$). With $u=3x$ the period in $x$ is $\dfrac\pi6\approx0.52$.</p>`, 'The absolute values halve the period twice over.', () => Math.PI / 6),
+  N(4, 'greatest integer', XR`Find the smallest positive real $x$ for which $[x]\cdot\{x\}=2.5$ (2 decimal places). Here $[x]$ is the integer part and $\{x\}$ the fractional part.`, 3.83, 0.01,
+    XR`<p>Write $x=n+f$ with $n=[x]$, $0\le f<1$. Then $nf=2.5$, so $f=\dfrac{2.5}n<1$ requires $n\ge3$. The smallest $x$ comes from the smallest $n$: $n=3$, $f=\dfrac{2.5}3=0.8333$, so $x=3.8333\approx3.83$.</p>`, 'n must be at least 3, otherwise f would be 1 or more.', () => 3 + 2.5 / 3),
+  N(4, 'counting functions', XR`A function $f:\{1,2,3,4\}\to\{1,2,3,4\}$ is chosen at random from all such functions. Find the probability that it is one-one (3 decimal places).`, 0.094, 0.001,
+    XR`<p>All functions: $4^4=256$. One-one functions: $4!=24$. Probability $=\dfrac{24}{256}=0.09375\approx0.094$.</p>`, 'Total functions is 4⁴, not 4!.', () => 24 / 256),
+  N(4, 'counting relations', XR`A relation on $\{1,2,3\}$ is chosen at random from all relations. Find the probability that it is reflexive.`, 0.125, 0.001,
+    XR`<p>All relations: $2^9=512$. Reflexive relations: the 3 diagonal pairs are forced and the other 6 are free: $2^6=64$. Probability $=\dfrac{64}{512}=\dfrac18=0.125$.</p>`, 'Compare 2⁶ with 2⁹.', () => 64 / 512),
+  A(4, 'periodic', XR`$f(x)=x-[x]$ is periodic with period $1$.`, XR`$[x+1]=[x]+1$ for every real $x$.`, 0,
+    XR`<p>$f(x+1)=x+1-[x+1]=x+1-[x]-1=x-[x]=f(x)$, using R. So A is true and R is exactly what the proof uses.</p>`, 'Adding an integer shifts the floor by the same integer.'),
+  A(4, 'types of relation', XR`$R=\{(1,1),(2,2)\}$ on $A=\{1,2,3\}$ is symmetric and transitive but not reflexive.`, XR`A symmetric and transitive relation is always reflexive.`, 2,
+    XR`<p>$R$ is symmetric and transitive (no chains lead to a missing pair), but $(3,3)\notin R$, so it is not reflexive: A is true. R is false: the usual false proof "$aRb$ and $bRa$ give $aRa$" fails for elements that are related to nothing.</p>`, 'An element related to nothing breaks the "proof".'),
+  A(4, 'one-one and onto', XR`If $A$ is a finite set and $f:A\to A$ is one-one, then $f$ is onto.`, XR`A finite set has no proper subset with the same number of elements.`, 0,
+    XR`<p>The image of $A$ under a one-one $f$ has $n(A)$ elements. If it were a proper subset of $A$ it would have fewer, so the image is all of $A$. R is the reason.</p>`, 'False for infinite sets, such as n → n + 1 on the naturals.'),
+  A(5, 'counting relations', XR`The number of symmetric relations on a set of $3$ elements is $64$.`, XR`A symmetric relation is fixed by choosing which pairs $\{a,b\}$ with $a\le b$ it contains.`, 0,
+    XR`<p>There are $3$ diagonal pairs and $3$ unordered pairs of different elements: $6$ independent choices, $2^6=64$. R describes exactly this, so it explains A.</p>`, 'The number of unordered pairs with repetition is n(n + 1)/2.'),
+  S(4, 'periodic', XR`$f(x)=\sin x+\cos(\sqrt2\,x)$ is not periodic.`, XR`The periods $2\pi$ and $\dfrac{2\pi}{\sqrt2}$ of the two terms have an irrational ratio.`, 0,
+    XR`<p>A common period $T$ would be an integer multiple of both periods: $T=2\pi m=\sqrt2\pi k$, giving $\sqrt2=\dfrac{2m}k$, impossible. So Statement I is true, and Statement II is the reason.</p>`, 'Both statements are true here.'),
+  S(4, 'composition', XR`If $f\circ g$ is one-one, then $g$ is one-one.`, XR`If $f\circ g$ is one-one, then $f$ is one-one.`, 1,
+    XR`<p>I: if $g(a)=g(b)$ then $f(g(a))=f(g(b))$, so $a=b$: true. II: false. Take $g(x)=e^x$ and $f(x)=x^2$ on $\mathbb R$: $f\circ g=e^{2x}$ is one-one but $f$ is not (it need only be one-one on the range of $g$).</p>`, 'f only has to behave on the range of g.'),
+  S(5, 'composition', XR`If $f\circ g$ is onto, then $f$ is onto.`, XR`If $f\circ g$ is onto, then $g$ is onto.`, 1,
+    XR`<p>I: every $y$ equals $f(g(x))$ for some $x$, so every $y$ is a value of $f$: true. II is false: take $g:\{1,2\}\to\{1,2,3\}$ with $g(1)=1$, $g(2)=2$ (not onto) and $f:\{1,2,3\}\to\{1,2\}$ with $f(1)=1$, $f(2)=2$, $f(3)=2$. Then $f\circ g:\{1,2\}\to\{1,2\}$ is onto, but $g$ misses $3$.</p>`, 'g needs to reach only the inputs f uses.'),
+  SC(4, 'mixed properties', ['A one-one function from a finite set into itself is a bijection.', 'The number of onto functions from an $m$-set to an $n$-set is $0$ if $m<n$.', '$[x+y]=[x]+[y]$ for all real $x,y$.', 'If $f$ is odd then $|f|$ is even.'], '3', ['1', '2', '4'],
+    XR`<p>(1) true (pigeonhole). (2) true: not enough elements to cover. (3) false: $x=y=0.5$ gives $[1]=1$ but $[0.5]+[0.5]=0$. (4) true: $|f(-x)|=|-f(x)|=|f(x)|$. Three are correct.</p>`, 'The floor of a sum can exceed the sum of floors.'),
+  MT(4, 'periodic functions', 'xm3', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: $\dfrac{2\pi}3$. B: $|\sin x|+|\cos x|$ has period $\dfrac\pi2$. C: $\sin x\cos x=\dfrac12\sin2x$, period $\pi$. D: $\tan\dfrac x2$ has period $\dfrac\pi{1/2}=2\pi$.</p>`, 'tan(kx) has period π/k.'),
+  MT(4, 'domain', 'xm5', 'A-p, B-r, C-q, D-s', ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-p, B-s, C-q, D-r'],
+    XR`<p>A: $x\ge2$ and $x\le4$. B: $x^2\ge4$. C: $|x|-x>0$ only when $x<0$. D: $x^2-4x+3=(x-1)(x-3)>0$ outside the roots.</p>`, 'The expression under a root in a denominator must be strictly positive.'),
+  MT(5, 'equivalence classes', 'xm8', 'A-p, B-r, C-s, D-q', ['A-p, B-r, C-q, D-s', 'A-r, B-p, C-s, D-q', 'A-p, B-s, C-r, D-q'],
+    XR`<p>A: remainders mod 3: 3 classes. B: $\gcd(a,12)\in\{1,2,3,4,6,12\}$: 6 classes. C: same square-free part gives 8 classes. D: remainders mod 5: 5 classes (the residues $0,1,2,3,4$ all occur in $1..12$).</p>`, 'List the possible values of the invariant.'),
+  // ---- passages ----
+  PI(3, 'types of function', 'xp1', XR`How many fixed points does $f$ have (points with $f(x)=x$)?`, 2,
+    XR`<p>$f(4)=4$ and $f(6)=6$; the others move. So $2$.</p>`, 'Check every point.', () => 2),
+  PI(4, 'composition', 'xp1', XR`Find $f^{(2025)}(2)$, where $f^{(n)}$ means $f$ applied $n$ times.`, 5,
+    XR`<p>$f(1)=3,f(3)=1$; $f(2)=5,f(5)=2$; $4$ and $6$ stay. So $f\circ f$ is the identity. An odd number of applications equals one application: $f^{(2025)}(2)=f(2)=5$.</p>`, 'Odd power of an involution equals the function.', () => 5),
+  PM(4, 'inverse', 'xp1', XR`Which statement about $f^{-1}$ is correct?`, '$f^{-1}=f$', ['$f^{-1}(3)=3$', '$f$ is not invertible', '$f^{-1}(1)=1$'],
+    XR`<p>$f$ is one-one and onto (each of $1,\dots,6$ appears once as an image), so it is invertible. Since $f(f(x))=x$ for all $x$, $f^{-1}=f$. Then $f^{-1}(3)=f(3)=1$ and $f^{-1}(1)=f(1)=3$, so the other options are false.</p>`, 'f(f(x)) = x means f is its own inverse.'),
+  PI(3, 'equivalence classes', 'xp2', XR`How many equivalence classes does $R$ have?`, 4,
+    XR`<p>Two numbers are related when they have the same remainder mod 4. Remainders: $0,1,2,3$: $4$ classes, each with $3$ numbers.</p>`, 'Count the possible remainders.', () => 4),
+  PI(4, 'counting relations', 'xp2', XR`How many ordered pairs $(a,b)$ belong to $R$?`, 36,
+    XR`<p>Each class has $3$ elements and contributes $3\times3=9$ ordered pairs. With $4$ classes: $36$.</p>`, 'Pairs inside the same class only.', () => 4 * 9),
+  PM(4, 'equivalence classes', 'xp2', XR`The equivalence class of $7$ is`, '$\\{3,7,11\\}$', ['$\\{1,5,9\\}$', '$\\{4,7,10\\}$', '$\\{7,8,9,10\\}$'],
+    XR`<p>Numbers with the same remainder as $7$ mod 4, i.e. remainder $3$: $3,7,11$.</p>`, '7 mod 4 is 3.'),
+);
+gens.push(
+  GX('srf-g17', 3, 'nat', 'integer', 'counting', (rng) => {
+    const t = choose(rng, [[2, 3, 5], [2, 3, 7], [3, 5, 7], [2, 5, 7], [2, 3, 11]]); const n = int(rng, 10, 90) * 10; const [a, b, c] = t;
+    const fl = Math.floor; const ans = fl(n / a) + fl(n / b) + fl(n / c) - fl(n / (a * b)) - fl(n / (a * c)) - fl(n / (b * c)) + fl(n / (a * b * c));
+    return { n, a, b, c, answer: ans, tol: 0, q: XR`How many integers from $1$ to ${n} are divisible by ${a}, ${b} or ${c}?`,
+      sol: XR`<p>By inclusion–exclusion: $\left\lfloor\dfrac{${n}}{${a}}\right\rfloor+\left\lfloor\dfrac{${n}}{${b}}\right\rfloor+\left\lfloor\dfrac{${n}}{${c}}\right\rfloor-\left\lfloor\dfrac{${n}}{${a * b}}\right\rfloor-\left\lfloor\dfrac{${n}}{${a * c}}\right\rfloor-\left\lfloor\dfrac{${n}}{${b * c}}\right\rfloor+\left\lfloor\dfrac{${n}}{${a * b * c}}\right\rfloor=${ans}$.</p>` };
+  }, (p) => { let c = 0; for (let k = 1; k <= p.n; k++) if (k % p.a === 0 || k % p.b === 0 || k % p.c === 0) c++; return c; }),
+  GX('srf-g18', 4, 'nat', 'integer', 'counting functions', (rng) => {
+    const [m, n] = choose(rng, [[5, 3], [6, 3], [7, 3], [6, 4], [7, 4]]);
+    const binom = (a, b) => { let r = 1; for (let i = 1; i <= b; i++) r = r * (a - b + i) / i; return Math.round(r); };
+    let ans = 0; for (let j = 0; j <= n; j++) ans += (-1) ** j * binom(n, j) * (n - j) ** m;
+    return { m, n, answer: ans, tol: 0, q: XR`Find the number of onto functions from a set of ${m} elements onto a set of ${n} elements.`,
+      sol: XR`<p>Inclusion–exclusion: $\sum_{j=0}^{${n}}(-1)^j\binom{${n}}j(${n}-j)^{${m}}=${ans}$.</p>` };
+  }, (p) => { let c = 0; const tot = p.n ** p.m; for (let code = 0; code < tot; code++) { let x = code, seen = 0; for (let i = 0; i < p.m; i++) { seen |= 1 << (x % p.n); x = Math.floor(x / p.n); } if (seen === (1 << p.n) - 1) c++; } return c; }),
+  GX('srf-g19', 3, 'nat', 'integer', 'counting functions', (rng) => {
+    const m = int(rng, 2, 5), n = int(rng, m + 2, m + 6); const binom = (a, b) => { let r = 1; for (let i = 1; i <= b; i++) r = r * (a - b + i) / i; return Math.round(r); };
+    return { m, n, answer: binom(n, m), tol: 0, q: XR`How many strictly increasing functions $f:\{1,2,\dots,${m}\}\to\{1,2,\dots,${n}\}$ are there?`,
+      sol: XR`<p>Choosing $${m}$ different values from $${n}$ fixes the function (the values are placed in increasing order). The count is $\binom{${n}}{${m}}=${binom(n, m)}$.</p>` };
+  }, (p) => { let c = 0; const rec = (i, prev) => { if (i > p.m) { c++; return; } for (let v = prev + 1; v <= p.n; v++) rec(i + 1, v); }; rec(1, 0); return c; }),
+  GX('srf-g20', 4, 'mcq', 'single', 'periodic', (rng) => {
+    const a = int(rng, 2, 9); let b = int(rng, 2, 9); if (a === b) b = a + 1; const gg = ((x, y) => { while (y) [x, y] = [y, x % y]; return x; })(a, b);
+    const ok = gg === 1 ? '$2\\pi$' : `$\\dfrac{2\\pi}{${gg}}$`; const lcmv = a * b / gg;
+    const { options, answer } = shuffleOpts(rng, ok, [`$\\dfrac{2\\pi}{${lcmv}}$`, `$\\dfrac{2\\pi}{${a * b}}$`, `$\\dfrac{2\\pi}{${a}}$`, `$2\\pi\\cdot${lcmv}$`, '$\\pi$']);
+    return { a, b, gg, options, answer, q: XR`The fundamental period of $f(x)=\sin${a}x+\cos${b}x$ is`,
+      sol: XR`<p>The two terms have periods $\dfrac{2\pi}{${a}}$ and $\dfrac{2\pi}{${b}}$. A common period is $2\pi k/${a}$ and $2\pi l/${b}$ for integers $k,l$; the smallest is $\dfrac{2\pi}{\gcd(${a},${b})}=\dfrac{2\pi}{${gg}}$. (Here $\gcd(${a},${b})=${gg}$.)</p>` };
+  }, (p) => { const T = 2 * Math.PI / p.gg; const f = (x) => Math.sin(p.a * x) + Math.cos(p.b * x); const xs = [0.1, 0.77, 1.9, 3.3]; const per = (t) => xs.every((x) => Math.abs(f(x + t) - f(x)) < 1e-9); if (!per(T)) return -1; for (let m = 2; m <= 12; m++) if (per(T / m)) return -1; return p.answer; }),
+  GX('srf-g21', 4, 'nat', 'numeric', 'periodic', (rng) => {
+    const k = int(rng, 2, 7); const ans = Math.PI / (2 * k);
+    return { k, answer: +ans.toFixed(3), tol: 0.005, q: XR`Find the fundamental period of $|\sin${k}x|+|\cos${k}x|$ (2 decimal places).`,
+      sol: XR`<p>$|\sin u|+|\cos u|$ has period $\dfrac\pi2$ in $u$ (its square is $1+|\sin2u|$, which has period $\dfrac\pi2$). With $u=${k}x$ the period in $x$ is $\dfrac{\pi}{${2 * k}}\approx${ans.toFixed(2)}$.</p>` };
+  }, (p) => { const f = (x) => Math.abs(Math.sin(p.k * x)) + Math.abs(Math.cos(p.k * x)); const T = Math.PI / (2 * p.k); const xs = [0.13, 0.5, 1.1, 2.3]; if (!xs.every((x) => Math.abs(f(x + T) - f(x)) < 1e-9)) return -1; if (xs.every((x) => Math.abs(f(x + T / 2) - f(x)) < 1e-9)) return -1; return T; }),
+  GX('srf-g22', 3, 'nat', 'integer', 'counting relations', (rng) => {
+    const n = int(rng, 3, 4); const kind = choose(rng, ['refsym', 'symnotref', 'ref']);
+    const sym = n * (n + 1) / 2, off = n * (n - 1) / 2;
+    const ans = kind === 'refsym' ? 2 ** off : kind === 'symnotref' ? 2 ** sym - 2 ** off : 2 ** (n * n - n);
+    const word = kind === 'refsym' ? 'both reflexive and symmetric' : kind === 'symnotref' ? 'symmetric but not reflexive' : 'reflexive';
+    const sol = kind === 'refsym' ? XR`<p>The ${n} diagonal pairs are forced. Each of the $\binom${n}2=${off}$ unordered pairs of different elements is in or out: $2^{${off}}=${ans}$.</p>` : kind === 'symnotref' ? XR`<p>Symmetric relations: ${n} diagonal pairs and ${off} unordered pairs are free: $2^{${sym}}$. Remove those that are also reflexive ($2^{${off}}$): $2^{${sym}}-2^{${off}}=${ans}$.</p>` : XR`<p>The ${n} diagonal pairs are forced; the other $${n}^2-${n}=${n * n - n}$ ordered pairs are free: $2^{${n * n - n}}=${ans}$.</p>`;
+    return { n, kind, answer: ans, tol: 0, q: XR`How many relations on a set of ${n} elements are ${word}?`, sol };
+  }, (p) => { let c = 0; const N = p.n; for (let m = 0; m < 2 ** (N * N); m++) { const R = (i, j) => (m >> (i * N + j)) & 1; let refl = true, sy = true; for (let i = 0; i < N; i++) { if (!R(i, i)) refl = false; for (let j = 0; j < N; j++) if (R(i, j) !== R(j, i)) sy = false; } if (p.kind === 'refsym' ? refl && sy : p.kind === 'symnotref' ? sy && !refl : refl) c++; } return c; }),
+  GX('srf-g23', 4, 'mcq', 'single', 'inverse', (rng) => {
+    let a, b, c, d; do { a = int(rng, 1, 4); b = int(rng, -4, 4); c = int(rng, 1, 3); d = int(rng, -4, 4); } while (a * d - b * c === 0 || b === 0 || d === 0 || a === -d);
+    const lin = (u, v) => `${u === 1 ? '' : u === -1 ? '-' : u}x${v < 0 ? '-' : '+'}${Math.abs(v)}`;
+    const ok = `$\\dfrac{${lin(d, -b)}}{${lin(-c, a)}}$`;
+    const { options, answer } = shuffleOpts(rng, ok, [`$\\dfrac{${lin(d, b)}}{${lin(c, a)}}$`, `$\\dfrac{${lin(a, -b)}}{${lin(-c, d)}}$`, `$\\dfrac{${lin(d, -b)}}{${lin(c, -a)}}$`]);
+    return { a, b, c, d, options, answer, q: XR`If $f(x)=\dfrac{${lin(a, b)}}{${lin(c, d)}}$, then $f^{-1}(x)$ is`,
+      sol: XR`<p>For $y=\dfrac{ax+b}{cx+d}$ we get $y(cx+d)=ax+b$, so $x(cy-a)=b-dy$ and $x=\dfrac{dy-b}{-cy+a}$. So the inverse of $\dfrac{ax+b}{cx+d}$ is $\dfrac{dx-b}{-cx+a}$. Here $a=${a}$, $b=${b}$, $c=${c}$, $d=${d}$, giving $\dfrac{${lin(d, -b)}}{${lin(-c, a)}}$.</p>` };
+  }, (p) => { const f = (x) => (p.a * x + p.b) / (p.c * x + p.d); const g = (x) => (p.d * x - p.b) / (-p.c * x + p.a); for (const x of [0.37, 1.9, 5.2, -3.3]) { const y = g(x); if (!isFinite(y) || Math.abs(f(y) - x) > 1e-7) return -1; } return p.answer; }),
+  GX('srf-g24', 4, 'nat', 'numeric', 'counting functions', (rng) => {
+    const n = int(rng, 3, 5); let f = 1; for (let i = 2; i <= n; i++) f *= i; const ans = f / n ** n;
+    return { n, answer: +ans.toFixed(3), tol: 0.001, q: XR`A function $f:\{1,\dots,${n}\}\to\{1,\dots,${n}\}$ is chosen at random from all such functions. Find the probability that it is one-one (3 decimal places).`,
+      sol: XR`<p>There are $${n}^{${n}}=${n ** n}$ functions and $${n}!=${f}$ of them are one-one. The probability is $\dfrac{${f}}{${n ** n}}\approx${ans.toFixed(3)}$.</p>` };
+  }, (p) => { let c = 0; const tot = p.n ** p.n; for (let code = 0; code < tot; code++) { let x = code, seen = 0; for (let i = 0; i < p.n; i++) { seen |= 1 << (x % p.n); x = Math.floor(x / p.n); } if (seen === (1 << p.n) - 1) c++; } return c / tot; }),
+);
+
+}
+// ==XP-END
 export default { topic: 'sets-relations-functions', groups, items, gens };

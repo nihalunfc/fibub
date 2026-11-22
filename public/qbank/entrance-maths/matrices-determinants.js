@@ -665,4 +665,247 @@ const gens = [
   }, (p) => { const A = [[1, 1, 1], [1, 2, 3], [1, p.s, p.lam0]]; if (dt(A) !== 0) return NaN; const mu = p.alpha * 6 + p.beta * 9; return p.lam0 + mu; }),
 ];
 
+// ==XP-BEGIN (expansion block: new items, groups and templates; ids continue after the originals)
+{
+const XR = String.raw;
+const XEXS = { 1: ['keam', 'cusat', 'comedk', 'jee-main'], 2: ['keam', 'cusat', 'comedk', 'jee-main'], 3: ['jee-main', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const XCUET = true;
+const xex = (l, t) => [...XEXS[l], ...(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : [])];
+let _k = 0, _p = 0; const XPS = [2, 0, 3, 1, 3, 1, 0, 2, 1, 3, 2, 0];
+const xid = () => `md-x${String(++_k).padStart(3, '0')}`;
+const xpl = (c, w) => { const p = XPS[_p++ % XPS.length]; const o = [...w]; o.splice(p, 0, c); return { options: o, answer: p }; };
+const mk = (level, sub, extra) => ({ id: xid(), level, exams: xex(level, extra.type), sub, ...extra });
+const M = (l, s, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'single', q, ...xpl(c, w), sol, trap });
+const I = (l, s, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'integer', q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const N = (l, s, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'numeric', q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const X = (l, s, q, options, answer, sol, trap) => mk(l, s, { type: 'msq', format: 'multi', q, options, answer, sol, trap });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XSO = ['Both Statement I and Statement II are true', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true', 'Both Statement I and Statement II are false'];
+const A = (l, s, a, r, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'assertion', q: `<p><b>Assertion (A):</b> ${a}</p><p><b>Reason (R):</b> ${r}</p>`, options: XAO, answer, sol, trap });
+const S = (l, s, s1, s2, answer, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, options: XSO, answer, sol, trap });
+const SC = (l, s, lines, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'statements', q: `<ol>${lines.map((x) => `<li>${x}</li>`).join('')}</ol><p>How many of these statements are correct?</p>`, ...xpl(c, w), sol, trap });
+const MT = (l, s, group, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'match', group, q: 'Match List I with List II.', ...xpl(c, w), sol, trap });
+const PM = (l, s, group, q, c, w, sol, trap) => mk(l, s, { type: 'mcq', format: 'passage', group, q, ...xpl(c, w), sol, trap });
+const PI = (l, s, group, q, a, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol: 0, sol, trap, ...(calc ? { calc } : {}) });
+const PN = (l, s, group, q, a, tol, sol, trap, calc) => mk(l, s, { type: 'nat', format: 'passage', group, q, answer: a, tol, sol, trap, ...(calc ? { calc } : {}) });
+const GX = (id, level, type, format, sub, make, verify) => ({ id, type, format, level, exams: xex(level, type), sub, make, ...(verify ? { verify } : {}) });
+const frac = (n, d) => { const g = ((a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; })(n, d); n /= g; d /= g; const sgn = n < 0 ? '-' : ''; n = Math.abs(n); return d === 1 ? `${sgn}${n}` : `${sgn}\\dfrac{${n}}{${d}}`; };
+const OPT = (c, w) => ({ c, w });
+const PM2 = (a, b, c, d) => XR`\begin{pmatrix}${a}&${b}\\${c}&${d}\end{pmatrix}`;
+Object.assign(groups, {
+  xm1: { title: 'Special matrices', passage: XR`<p>Match each matrix in List I with the property in List II that it satisfies.</p>`,
+    list1: ['A. $\\begin{pmatrix}0&1\\\\1&0\\end{pmatrix}$', 'B. $\\begin{pmatrix}1&0\\\\0&0\\end{pmatrix}$', 'C. $\\begin{pmatrix}0&1\\\\0&0\\end{pmatrix}$', 'D. $\\begin{pmatrix}0&1\\\\-1&0\\end{pmatrix}$'], list2: ['p. $A^2=A$', 'q. $A^2=I$', 'r. $A^2=O$', 's. $A^T=-A$'] },
+  xm2: { title: 'Values of determinants', passage: XR`<p>Match each determinant in List I with its value in List II.</p>`,
+    list1: ['A. $\\begin{vmatrix}1&1&1\\\\1&2&4\\\\1&3&9\\end{vmatrix}$', 'B. $\\begin{vmatrix}1&2&3\\\\0&3&4\\\\0&0&2\\end{vmatrix}$', 'C. $\\begin{vmatrix}2&0&0\\\\0&3&0\\\\0&0&4\\end{vmatrix}$', 'D. $\\begin{vmatrix}0&1&2\\\\-1&0&3\\\\-2&-3&0\\end{vmatrix}$'], list2: ['p. $0$', 'q. $2$', 'r. $6$', 's. $24$'] },
+  xm3: { title: 'Determinants of related matrices', passage: XR`<p>$A$ is a $3\times3$ matrix with $|A|=3$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $|\\mathrm{adj}\\,A|$', 'B. $|2A|$', 'C. $|A^{-1}|$', 'D. $|\\mathrm{adj}(2A)|$'], list2: ['p. $\\dfrac13$', 'q. $9$', 'r. $24$', 's. $576$'] },
+  xm4: { title: 'Powers of a rotation matrix', passage: XR`<p>Let $A=\begin{pmatrix}0&-1\\1&0\end{pmatrix}$ (rotation through $90^\circ$). Match each power in List I with the matrix in List II.</p>`,
+    list1: ['A. $A^2$', 'B. $A^3$', 'C. $A^5$', 'D. $A^4$'], list2: ['p. $I$', 'q. $-I$', 'r. $\\begin{pmatrix}0&-1\\\\1&0\\end{pmatrix}$', 's. $\\begin{pmatrix}0&1\\\\-1&0\\end{pmatrix}$'] },
+  xm5: { title: 'Solutions of a system with parameters', passage: XR`<p>Consider $x+y+z=3$, $x+2y+3z=6$, $x+3y+\lambda z=\mu$. Match each choice of $(\lambda,\mu)$ in List I with what happens in List II.</p>`,
+    list1: ['A. $\\lambda=7,\\ \\mu=11$', 'B. $\\lambda=5,\\ \\mu=9$', 'C. $\\lambda=5,\\ \\mu=10$', 'D. $\\lambda=7,\\ \\mu=9$'], list2: ['p. unique solution with $x=y=z$', 'q. no solution', 'r. infinitely many solutions', 's. unique solution with $z=0$'] },
+  xm6: { title: 'Quantities for one matrix', passage: XR`<p>$A=\begin{pmatrix}1&2\\3&4\end{pmatrix}$. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. $\\mathrm{tr}(A^2)$', 'B. $|A^3|$', 'C. $\\mathrm{tr}(A^{-1})$', 'D. $|\\mathrm{adj}\\,A|$'], list2: ['p. $-8$', 'q. $-\\dfrac52$', 'r. $29$', 's. $-2$'] },
+  xm7: { title: 'Counting 2 by 2 matrices', passage: XR`<p>Consider all $2\times2$ matrices whose entries are $0$ or $1$. Match each count in List I with its value in List II.</p>`,
+    list1: ['A. all such matrices', 'B. symmetric ones', 'C. ones with determinant $0$', 'D. ones with determinant $1$'], list2: ['p. 3', 'q. 8', 'r. 10', 's. 16'] },
+  xm8: { title: 'Solving determinant equations', passage: XR`<p>Match each equation in List I with its set of real solutions in List II.</p>`,
+    list1: ['A. $\\begin{vmatrix}x&1&1\\\\1&x&1\\\\1&1&x\\end{vmatrix}=0$', 'B. $\\begin{vmatrix}x&0&0\\\\0&x&0\\\\0&0&x\\end{vmatrix}=0$', 'C. $\\begin{vmatrix}1&1&1\\\\1&x&1\\\\1&1&x^2\\end{vmatrix}=0$', 'D. $\\begin{vmatrix}x^2&1\\\\4&1\\end{vmatrix}=0$'], list2: ['p. $\\{0\\}$', 'q. $\\{1,-2\\}$', 'r. $\\{1,-1\\}$', 's. $\\{2,-2\\}$'] },
+  xp1: { title: 'Passage: a Fibonacci matrix', passage: XR`<p>Let $F=\begin{pmatrix}1&1\\1&0\end{pmatrix}$. Then $F^n=\begin{pmatrix}F_{n+1}&F_n\\F_n&F_{n-1}\end{pmatrix}$, where $F_1=F_2=1$ and $F_{n+1}=F_n+F_{n-1}$.</p>` },
+  xp2: { title: 'Passage: a family of shears', passage: XR`<p>For real $t$ let $S(t)=\begin{pmatrix}1&t\\0&1\end{pmatrix}$. Multiplying shows $S(s)S(t)=S(s+t)$.</p>` },
+});
+items.push(
+  // ---- L2 ----
+  M(2, 'determinant of 2x2', XR`The value of $\begin{vmatrix}3&4\\2&5\end{vmatrix}$ is`, '$7$', ['$23$', '$-7$', '$15$'],
+    XR`<p>$3\cdot5-4\cdot2=15-8=7$.</p>`, 'Multiply down the diagonals: main minus the other.'),
+  M(2, 'order of a matrix', XR`$A$ is $2\times3$ and $B$ is $3\times4$. The order of $AB$ is`, '$2\\times4$', ['$3\\times3$', '$2\\times3$', '$4\\times2$'],
+    XR`<p>$AB$ exists because the number of columns of $A$ (3) equals the number of rows of $B$ (3). The result has the rows of $A$ and the columns of $B$: $2\times4$.</p>`, 'Inner numbers match, outer numbers give the order.'),
+  A(2, 'skew-symmetric', XR`Every diagonal entry of a skew-symmetric matrix is $0$.`, XR`For a skew-symmetric matrix, $a_{ii}=-a_{ii}$.`, 0,
+    XR`<p>Skew-symmetric means $A^T=-A$, so $a_{ji}=-a_{ij}$. Putting $j=i$: $a_{ii}=-a_{ii}$, so $2a_{ii}=0$ and $a_{ii}=0$. R is the reason.</p>`, 'The diagonal entries pair with themselves.'),
+  S(2, 'transpose and inverse', XR`$(AB)^T=B^TA^T$ for matrices $A,B$ that can be multiplied.`, XR`$(AB)^{-1}=A^{-1}B^{-1}$ for invertible $A,B$.`, 1,
+    XR`<p>I is true (order reverses). II is false: $(AB)^{-1}=B^{-1}A^{-1}$, again in reverse order, and $A^{-1}B^{-1}$ is generally different.</p>`, 'Transpose and inverse both reverse the order.'),
+  I(2, 'triangular matrix', XR`Find the determinant of $\begin{pmatrix}2&0&0\\0&3&0\\0&0&4\end{pmatrix}$.`, 24,
+    XR`<p>The determinant of a diagonal matrix is the product of the diagonal entries: $2\cdot3\cdot4=24$.</p>`, 'Diagonal entries multiply.', () => 24),
+  M(2, 'determinant of scalar multiple', XR`If $A$ is a $3\times3$ matrix with $|A|=4$, then $|2A|$ equals`, '$32$', ['$8$', '$16$', '$64$'],
+    XR`<p>For an $n\times n$ matrix, $|kA|=k^n|A|$. Here $2^3\cdot4=32$.</p>`, 'Each of the 3 rows brings a factor 2.'),
+  // ---- L3 ----
+  I(3, 'special determinants', XR`Find the value of $\begin{vmatrix}1&2&3\\1&3&6\\1&4&10\end{vmatrix}$.`, 1,
+    XR`<p>$R_2\to R_2-R_1$ and $R_3\to R_3-R_1$ give $\begin{vmatrix}1&2&3\\0&1&3\\0&2&7\end{vmatrix}=1\cdot(7-6)=1$.</p>`, 'Row operations that subtract one row from another keep the determinant.', () => dt([[1, 2, 3], [1, 3, 6], [1, 4, 10]])),
+  I(3, 'special determinants', XR`Find $\begin{vmatrix}1&1&1\\2&3&7\\4&9&49\end{vmatrix}$.`, 20,
+    XR`<p>This is a Vandermonde determinant with $a=2,b=3,c=7$ (rows $1$, $x$, $x^2$ in columns): $(b-a)(c-a)(c-b)=1\cdot5\cdot4=20$.</p>`, 'Spot the pattern 1, x, x².', () => dt([[1, 1, 1], [2, 3, 7], [4, 9, 49]])),
+  M(3, 'properties of determinants', XR`The value of $\begin{vmatrix}2&3&4\\5&6&7\\8&9&10\end{vmatrix}$ is`, '$0$', ['$-6$', '$6$', '$30$'],
+    XR`<p>Rows are in arithmetic progression: $R_3-R_2=R_2-R_1$, so $R_1-2R_2+R_3=0$. The rows are linearly dependent, so the determinant is $0$. (Or: $R_2\to R_2-R_1$, $R_3\to R_3-R_1$ gives two proportional rows $3,3,3$ and $6,6,6$.)</p>`, 'Three terms in AP in rows or columns force determinant 0.'),
+  M(3, 'powers of a matrix', XR`If $A=\begin{pmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta\end{pmatrix}$ with $\theta=\dfrac\pi6$, then $A^3$ equals`, XR`$\begin{pmatrix}0&1\\-1&0\end{pmatrix}$`, [XR`$\begin{pmatrix}0&-1\\1&0\end{pmatrix}$`, XR`$\begin{pmatrix}1&0\\0&1\end{pmatrix}$`, XR`$\begin{pmatrix}\frac12&\frac{\sqrt3}2\\-\frac{\sqrt3}2&\frac12\end{pmatrix}$`],
+    XR`<p>$A^n=\begin{pmatrix}\cos n\theta&\sin n\theta\\-\sin n\theta&\cos n\theta\end{pmatrix}$. With $n=3$ and $\theta=\dfrac\pi6$: $n\theta=\dfrac\pi2$, so $\cos=0$, $\sin=1$.</p>`, 'Check the sign layout of the sine entries.'),
+  I(3, 'powers of a matrix', XR`If $A=\begin{pmatrix}1&2\\0&1\end{pmatrix}$, find the sum of all entries of $A^{20}$.`, 42,
+    XR`<p>$A^n=\begin{pmatrix}1&2n\\0&1\end{pmatrix}$ (each multiplication adds $2$ to the top-right entry). For $n=20$ the entries are $1,40,0,1$ and their sum is $42$.</p>`, 'The top-right entry grows by 2 each time, not 2ⁿ.', () => 1 + 40 + 0 + 1),
+  M(3, 'skew-symmetric', XR`The determinant of $\begin{pmatrix}0&2&-3\\-2&0&4\\3&-4&0\end{pmatrix}$ is`, '$0$', ['$24$', '$-24$', '$13$'],
+    XR`<p>The matrix is skew-symmetric of odd order. $|A|=|A^T|=|-A|=(-1)^3|A|=-|A|$, so $|A|=0$. (Direct expansion also gives $0$.)</p>`, 'Odd order skew-symmetric means singular.'),
+  I(3, 'trace', XR`For $A=\begin{pmatrix}1&2\\3&4\end{pmatrix}$ find $\mathrm{tr}(A^2)$.`, 29,
+    XR`<p>$A^2=\begin{pmatrix}7&10\\15&22\end{pmatrix}$, so the trace is $7+22=29$. (Shortcut: $\mathrm{tr}(A^2)=(\mathrm{tr}A)^2-2|A|=25+4=29$.)</p>`, 'The shortcut uses the determinant −2.', () => 29),
+  I(3, 'counting matrices', XR`How many $2\times2$ matrices with every entry equal to $0$ or $1$ are invertible?`, 6,
+    XR`<p>Invertible means $ad-bc\ne0$. For $0/1$ entries, $ad$ and $bc$ are each $0$ or $1$, so $ad-bc\ne0$ exactly when $ad\ne bc$. Total matrices: $16$. Those with $ad=bc=0$: $3\cdot3=9$; with $ad=bc=1$: $1$ (all ones). So $10$ are singular and $6$ are invertible.</p>`, 'Count the singular ones first.', () => { let c = 0; for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) for (let cc = 0; cc < 2; cc++) for (let d = 0; d < 2; d++) if (a * d - b * cc !== 0) c++; return c; }),
+  I(3, 'special determinants', XR`If $f(x)=\begin{vmatrix}1&x&x^2\\1&2&4\\1&3&9\end{vmatrix}$, find the sum of the roots of $f(x)=0$.`, 5,
+    XR`<p>Expand along the first row: $f(x)=1(18-12)-x(9-4)+x^2(3-2)=x^2-5x+6$. The roots are $2$ and $3$ (a Vandermonde determinant vanishes when $x$ equals another entry). Their sum is $5$.</p>`, 'The determinant vanishes when two of the numbers 2, 3, x coincide.', () => 2 + 3),
+  A(3, 'idempotent matrix', XR`If $A^2=A$, then $(I-A)^2=I-A$.`, XR`$(I-A)^2=I-2A+A^2$.`, 0,
+    XR`<p>$(I-A)^2=I-2A+A^2=I-2A+A=I-A$. R expands the square and A follows once $A^2=A$ is used.</p>`, 'I commutes with A, so the expansion is legal.'),
+  S(3, 'skew-symmetric matrices', XR`Every skew-symmetric matrix of odd order is singular.`, XR`$|A^T|=|A|$ for every square matrix $A$.`, 0,
+    XR`<p>II is true. Using it: $|A|=|A^T|=|-A|=(-1)^n|A|$, which forces $|A|=0$ when $n$ is odd. So I is true.</p>`, 'Even-order skew-symmetric matrices can be invertible.'),
+  SC(3, 'mixed properties', ['$\\mathrm{tr}(AB)=\\mathrm{tr}(BA)$ for square $A,B$.', '$|kA|=k|A|$ for an $n\\times n$ matrix.', '$(A^{-1})^T=(A^T)^{-1}$ when $A$ is invertible.', 'An orthogonal matrix has determinant $1$ or $-1$.'], '3', ['1', '2', '4'],
+    XR`<p>(1) true. (2) false: $|kA|=k^n|A|$. (3) true. (4) true: $|A|^2=|AA^T|=|I|=1$. Three are correct.</p>`, '(2) is the common slip.'),
+  MT(3, 'types of matrices', 'xm1', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: swapping twice restores $I$, so $A^2=I$. B: the projection onto the first axis, $A^2=A$. C: $A^2=O$ (nilpotent). D: $A^T=\begin{pmatrix}0&-1\\1&0\end{pmatrix}=-A$.</p>`, 'Compute each square.'),
+  MT(3, 'special determinants', 'xm2', 'A-q, B-r, C-s, D-p', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-q, B-s, C-r, D-p'],
+    XR`<p>A: Vandermonde with $1,2,3$: $(2-1)(3-1)(3-2)=2$. B: upper triangular, $1\cdot3\cdot2=6$. C: diagonal, $24$. D: skew-symmetric of odd order: $0$.</p>`, 'Triangular determinants are products of diagonals.'),
+  MT(3, 'counting matrices', 'xm7', 'A-s, B-q, C-r, D-p', ['A-s, B-q, C-p, D-r', 'A-q, B-s, C-r, D-p', 'A-s, B-r, C-q, D-p'],
+    XR`<p>A: $2^4=16$. B: $b=c$ leaves $3$ free entries, $2^3=8$. C: singular matrices: $16-6=10$. D: $ad-bc=1$ needs $ad=1$, $bc=0$: $a=d=1$ and $(b,c)\ne(1,1)$ with $bc=0$: $3$ matrices.</p>`, 'Det 1 needs ad = 1 and bc = 0.'),
+  N(3, 'area of a triangle', XR`Find the area of the quadrilateral with vertices $(0,0),(4,0),(5,3),(1,4)$ (taken in order).`, 14.5, 0.01,
+    XR`<p>Shoelace formula: area $=\dfrac12\left|\sum(x_iy_{i+1}-x_{i+1}y_i)\right|=\dfrac12|0+12+17+0|=14.5$. Terms: $(0\cdot0-4\cdot0)=0$, $(4\cdot3-5\cdot0)=12$, $(5\cdot4-1\cdot3)=17$, $(1\cdot0-0\cdot4)=0$.</p>`, 'Go round the vertices in order.', () => 14.5),
+  // ---- L4 ----
+  X(4, 'properties', XR`$A,B$ are $n\times n$ matrices. Which of the following are always true?`, ['$|AB|=|A|\\,|B|$', '$(A+B)^2=A^2+2AB+B^2$', '$(AB)^T=B^TA^T$', '$\\mathrm{tr}(AB)=\\mathrm{tr}(BA)$'], [0, 2, 3],
+    XR`<p>(A) true. (B) false in general: $(A+B)^2=A^2+AB+BA+B^2$, and $AB\ne BA$. (C) true. (D) true: both equal $\sum_{i,j}a_{ij}b_{ji}$.</p>`, 'Matrices do not commute.'),
+  X(4, 'determinants of related matrices', XR`$A$ is a $3\times3$ matrix with $|A|=-2$. Which statements are true?`, ['$|\\mathrm{adj}\\,A|=4$', '$|A^{-1}|=-\\tfrac12$', '$|A^2|=-4$', '$|-A|=2$'], [0, 1, 3],
+    XR`<p>$|\mathrm{adj}A|=|A|^{2}=4$. $|A^{-1}|=\dfrac1{-2}$. $|A^2|=|A|^2=4$, not $-4$. $|-A|=(-1)^3(-2)=2$.</p>`, 'A square of a real number is not negative.'),
+  X(4, 'systems with parameters', XR`Consider $x+y+z=6$, $x+2y+3z=10$, $x+2y+\lambda z=\mu$. Which statements are true?`, ['for $\\lambda=3,\\mu=10$ there are infinitely many solutions', 'for $\\lambda=3,\\mu=11$ there is no solution', 'for $\\lambda=5$ there is a unique solution for every $\\mu$', 'for $\\lambda=3$ there is a unique solution for every $\\mu$'], [0, 1, 2],
+    XR`<p>Subtracting the second equation from the third: $(\lambda-3)z=\mu-10$. If $\lambda\ne3$, $z$ is determined and then $x,y$ follow: unique solution (C). If $\lambda=3$: $0=\mu-10$; for $\mu=10$ the third equation repeats the second and there are infinitely many solutions (A); for $\mu\ne10$ the system is inconsistent (B). D is false.</p>`, 'Look at (λ − 3)z = μ − 10.'),
+  X(4, 'orthogonal matrices', XR`Which of these matrices are orthogonal?`, [XR`$\begin{pmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{pmatrix}$`, XR`$\begin{pmatrix}1&1\\-1&1\end{pmatrix}$`, XR`$\begin{pmatrix}0&1\\1&0\end{pmatrix}$`, XR`$\dfrac13\begin{pmatrix}1&2&2\\2&1&-2\\2&-2&1\end{pmatrix}$`], [0, 2, 3],
+    XR`<p>Orthogonal means the rows are perpendicular unit vectors. A: yes. B: rows have length $\sqrt2$, not 1. C: yes. D: each row has $\dfrac{1+4+4}9=1$, and $r_1\cdot r_2=\dfrac{2+2-4}9=0$, $r_1\cdot r_3=\dfrac{2-4+2}9=0$, $r_2\cdot r_3=\dfrac{4-2-2}9=0$.</p>`, 'Check lengths as well as perpendicularity.'),
+  X(4, 'symmetric and skew-symmetric', XR`$A$ is any square matrix. Which of these are always true?`, ['$A+A^T$ is symmetric', '$A-A^T$ is skew-symmetric', '$AA^T$ is symmetric', '$A^TA$ is skew-symmetric'], [0, 1, 2],
+    XR`<p>$(A+A^T)^T=A^T+A$. $(A-A^T)^T=A^T-A=-(A-A^T)$. $(AA^T)^T=(A^T)^TA^T=AA^T$. $A^TA$ is also symmetric, not skew-symmetric (its diagonal entries are sums of squares, not $0$).</p>`, 'Diagonal of AᵀA is non-negative.'),
+  X(4, 'idempotent matrix', XR`$A$ is a $3\times3$ matrix with $A^2=A$. Which statements are true?`, ['$|A|=0$ or $|A|=1$', '$I-A$ is idempotent', '$A+I$ is invertible', '$A=O$ or $A=I$'], [0, 1, 2],
+    XR`<p>$|A|^2=|A|$, so $|A|\in\{0,1\}$. $(I-A)^2=I-2A+A^2=I-A$. $(A+I)\left(I-\dfrac A2\right)=I+\dfrac A2-\dfrac{A^2}2=I$, so $A+I$ is invertible. The last is false: $\begin{pmatrix}1&0\\0&0\end{pmatrix}$ is idempotent but neither $O$ nor $I$ (embed in $3\times3$).</p>`, 'A projection need not be O or I.'),
+  X(5, 'nilpotent matrices', XR`$N=\begin{pmatrix}0&1&2\\0&0&3\\0&0&0\end{pmatrix}$. Which statements are true?`, ['$N^3=O$', '$N^2=O$', '$I-N$ is invertible', '$|I+N|=1$'], [0, 2, 3],
+    XR`<p>$N^2=\begin{pmatrix}0&0&3\\0&0&0\\0&0&0\end{pmatrix}\ne O$ and $N^3=O$. $(I-N)(I+N+N^2)=I-N^3=I$, so $I-N$ is invertible. $I+N$ is upper triangular with diagonal $1,1,1$, so its determinant is $1$.</p>`, 'Nilpotent plus identity is triangular with 1s on the diagonal.'),
+  X(5, 'Cayley-Hamilton', XR`$A$ is a real $2\times2$ matrix with $A^2=-I$. Which statements must be true?`, ['$|A|=1$', '$\\mathrm{tr}A=0$', '$A$ is skew-symmetric', '$A^{-1}=-A$'], [0, 1, 3],
+    XR`<p>Cayley–Hamilton: $A^2-tA+dI=0$ with $t=\mathrm{tr}A$, $d=|A|$. Using $A^2=-I$: $tA=(d-1)I$. If $t\ne0$ then $A$ is a scalar matrix $cI$ and $c^2=-1$, impossible for real $c$. So $t=0$, and then $d=1$. Also $A(-A)=-A^2=I$, so $A^{-1}=-A$. $A$ need not be skew-symmetric: $\begin{pmatrix}1&-2\\1&-1\end{pmatrix}$ squares to $-I$.</p>`, 'Find a non-skew example to see C fails.'),
+  X(5, 'special determinants', XR`Which of these determinants are $0$ for all real $a,b,c$?`, [XR`$\begin{vmatrix}a&b&c\\a+1&b+1&c+1\\a+2&b+2&c+2\end{vmatrix}$`, XR`$\begin{vmatrix}1&a&b+c\\1&b&c+a\\1&c&a+b\end{vmatrix}$`, XR`$\begin{vmatrix}a&b&c\\b&c&a\\c&a&b\end{vmatrix}$`, XR`$\begin{vmatrix}1&1&1\\a&b&c\\a^2&b^2&c^2\end{vmatrix}$`], [0, 1],
+    XR`<p>A: $R_3-R_2=R_2-R_1$, so the rows are dependent: $0$. B: add column 2 to column 3: the third column becomes $a+b+c$ in every row, equal to $(a+b+c)\times$ column 1: $0$. C is $-(a^3+b^3+c^3-3abc)$, not zero in general. D is the Vandermonde determinant $(b-a)(c-a)(c-b)$.</p>`, 'Try a column operation before expanding.'),
+  X(5, 'powers of a matrix', XR`$A=\begin{pmatrix}1&1\\0&1\end{pmatrix}$ and $n$ is a positive integer. Which statements are true?`, ['$|A^n|=n$', XR`$A^n=\begin{pmatrix}1&n\\0&1\end{pmatrix}$`, '$\\mathrm{tr}(A^n)=2$', XR`$A^{-1}=\begin{pmatrix}1&-1\\0&1\end{pmatrix}$`], [1, 2, 3],
+    XR`<p>$A^n=\begin{pmatrix}1&n\\0&1\end{pmatrix}$ by induction, so the trace is $2$ and the determinant is $1$ (not $n$). $A^{-1}$ is the shear with $-1$.</p>`, 'The determinant of a shear is 1.'),
+  I(4, 'adjoint of adjoint', XR`$A$ is a $4\times4$ matrix with $|A|=2$. Find $|\mathrm{adj}(\mathrm{adj}\,A)|$.`, 512,
+    XR`<p>For an $n\times n$ matrix $B$, $|\mathrm{adj}B|=|B|^{n-1}$. With $B=\mathrm{adj}A$: $|\mathrm{adj}(\mathrm{adj}A)|=|\mathrm{adj}A|^{3}=\big(|A|^{3}\big)^{3}=|A|^9=2^9=512$.</p>`, 'The exponent is (n − 1)².', () => 2 ** 9),
+  I(4, 'Cayley-Hamilton', XR`$B=\begin{pmatrix}2&1\\-1&3\end{pmatrix}$ and $B^4=pB+qI$. Find $p+q$.`, -71,
+    XR`<p>$\mathrm{tr}B=5$, $|B|=7$, so $B^2=5B-7I$. Then $B^3=5B^2-7B=25B-35I-7B=18B-35I$ and $B^4=18B^2-35B=90B-126I-35B=55B-126I$. So $p=55$, $q=-126$, $p+q=-71$.</p>`, 'Reduce every power with B² = 5B − 7I.', () => { const B = [[2, 1], [-1, 3]]; const P = mpow(B, 4); return P[0][1] / 1 + (P[0][0] - 55 * 2); }),
+  I(4, 'counting matrices', XR`How many $2\times2$ matrices with entries from $\{-1,0,1\}$ have determinant $0$?`, 33,
+    XR`<p>$ad=bc$. Count pairs $(a,d)$ by their product: product $0$: $5$ pairs (one of them zero: $3+3-1=5$); product $1$: $(1,1),(-1,-1)$: $2$ pairs; product $-1$: $(1,-1),(-1,1)$: $2$ pairs. Matrices with $ad=bc$: $5\cdot5+2\cdot2+2\cdot2=25+4+4=33$.</p>`, 'Group by the common product.', () => { let c = 0; for (const a of [-1, 0, 1]) for (const b of [-1, 0, 1]) for (const cc of [-1, 0, 1]) for (const d of [-1, 0, 1]) if (a * d - b * cc === 0) c++; return c; }),
+  I(4, 'powers of a matrix', XR`$A=\begin{pmatrix}1&2\\2&1\end{pmatrix}$. Find the sum of all entries of $A^5$.`, 486,
+    XR`<p>The vector $v=(1,1)^T$ satisfies $Av=3v$ (row sums are $3$). So $A^5v=3^5v$. The sum of all entries of $A^5$ is $v^TA^5v=3^5\,v^Tv=243\cdot2=486$.</p>`, 'Row sums being constant makes (1,1) an eigenvector.', () => { const P = mpow([[1, 2], [2, 1]], 5); return P.flat().reduce((a, b) => a + b, 0); }),
+  I(4, 'homogeneous systems', XR`The system $\lambda x+y+z=0$, $x+\lambda y+z=0$, $x+y+\lambda z=0$ has a non-trivial solution. Find the sum of all possible values of $\lambda$.`, -1,
+    XR`<p>A non-trivial solution exists exactly when the determinant is zero. $\begin{vmatrix}\lambda&1&1\\1&\lambda&1\\1&1&\lambda\end{vmatrix}=(\lambda-1)^2(\lambda+2)$ (add all rows to get the factor $\lambda+2$, then subtract). The possible values are $1$ and $-2$, and their sum is $-1$ (count $1$ once).</p>`, 'The repeated root λ = 1 is counted once.', () => 1 + -2),
+  I(4, 'special determinants', XR`Find $\begin{vmatrix}1&2&3\\3&1&2\\2&3&1\end{vmatrix}$.`, 18,
+    XR`<p>Add all columns into the first: each entry becomes $6$. Factor 6: $6\begin{vmatrix}1&2&3\\1&1&2\\1&3&1\end{vmatrix}$. Subtract row 1 from rows 2 and 3: $\begin{vmatrix}1&2&3\\0&-1&-1\\0&1&-2\end{vmatrix}=1\cdot(2+1)=3$. So the value is $6\cdot3=18$. (Check with $a^3+b^3+c^3-3abc=36-18=18$ for $1,2,3$.)</p>`, 'Circulant determinants factor as (a + b + c)(...).', () => dt([[1, 2, 3], [3, 1, 2], [2, 3, 1]])),
+  I(5, 'idempotent matrices', XR`$A$ is a $3\times3$ real matrix with $A^2=A$ and $\mathrm{tr}A=2$. Find $|A+I|$.`, 4,
+    XR`<p>An idempotent matrix has eigenvalues $0$ or $1$, and its trace counts the eigenvalues equal to $1$: here two $1$s and one $0$. Then $A+I$ has eigenvalues $2,2,1$ and $|A+I|=4$.</p><p>(Check with $A=\mathrm{diag}(1,1,0)$: $A+I=\mathrm{diag}(2,2,1)$, determinant $4$.)</p>`, 'Trace equals the number of eigenvalues equal to 1.', () => dt([[2, 0, 0], [0, 2, 0], [0, 0, 1]])),
+  I(5, 'Cayley-Hamilton', XR`$A=\begin{pmatrix}1&-1\\2&3\end{pmatrix}$. Find $\mathrm{tr}(A^8)$.`, -1054,
+    XR`<p>$\mathrm{tr}A=4$, $|A|=5$. Let $s_n=\mathrm{tr}(A^n)$. By Cayley–Hamilton $A^n=4A^{n-1}-5A^{n-2}$, so $s_n=4s_{n-1}-5s_{n-2}$ with $s_0=2$, $s_1=4$. Then $s_2=6$, $s_3=4$, $s_4=-14$, $s_5=-76$, $s_6=-234$, $s_7=-556$, $s_8=-1054$.</p>`, 's0 is 2 (the trace of I), not 1.', () => { const P = mpow([[1, -1], [2, 3]], 8); return P[0][0] + P[1][1]; }),
+  I(5, 'counting matrices', XR`How many $2\times2$ matrices with entries from $\{-1,0,1\}$ have determinant $1$?`, 20,
+    XR`<p>$ad-bc=1$. Possible $(ad,bc)$: $(1,0)$ or $(0,-1)$. $ad=1$: $2$ pairs $(a,d)$; $bc=0$: $5$ pairs $(b,c)$: $10$. $ad=0$: $5$ pairs; $bc=-1$: $2$ pairs: $10$. Total $20$.</p>`, 'Also consider ad = 0 and bc = −1.', () => { let c = 0; for (const a of [-1, 0, 1]) for (const b of [-1, 0, 1]) for (const cc of [-1, 0, 1]) for (const d of [-1, 0, 1]) if (a * d - b * cc === 1) c++; return c; }),
+  I(5, 'orthogonal matrices', XR`How many $3\times3$ orthogonal matrices have all entries integers?`, 48,
+    XR`<p>Each row is a unit vector with integer entries, so it is $\pm e_i$. The rows must be perpendicular, so they use different axes: the matrix is a permutation matrix with each $1$ replaced by $\pm1$. There are $3!=6$ permutations and $2^3=8$ sign choices: $48$.</p>`, 'Integer unit vectors are only ±eᵢ.', () => 6 * 8),
+  N(4, 'inverse', XR`For $A=\begin{pmatrix}2&1&0\\1&3&1\\0&1&4\end{pmatrix}$ find $\mathrm{tr}(A^{-1})$ (2 decimal places).`, 1.33, 0.01,
+    XR`<p>$|A|=2(12-1)-1(4-0)+0=18$. The diagonal cofactors are $C_{11}=11$, $C_{22}=8$, $C_{33}=5$. Since $A^{-1}=\dfrac1{|A|}\mathrm{adj}A$ and the adjoint's diagonal equals the cofactors' diagonal, $\mathrm{tr}(A^{-1})=\dfrac{11+8+5}{18}=\dfrac43\approx1.33$.</p>`, 'The adjoint is the transpose of the cofactor matrix; the diagonal is unchanged.', () => 24 / 18),
+  N(4, 'characteristic equation', XR`The larger root of $\begin{vmatrix}1-\lambda&2\\3&4-\lambda\end{vmatrix}=0$ is (2 decimal places)`, 5.37, 0.01,
+    XR`<p>$(1-\lambda)(4-\lambda)-6=\lambda^2-5\lambda-2=0$, so $\lambda=\dfrac{5\pm\sqrt{33}}2$. The larger root is $\dfrac{5+5.745}2\approx5.37$.</p>`, 'Discriminant is 25 + 8 = 33.', () => (5 + Math.sqrt(33)) / 2),
+  N(4, 'Fibonacci matrix', XR`$F=\begin{pmatrix}1&1\\1&0\end{pmatrix}$. Find the ratio of the top-left entry of $F^{10}$ to its top-right entry (3 decimal places).`, 1.618, 0.001,
+    XR`<p>$F^n=\begin{pmatrix}F_{n+1}&F_n\\F_n&F_{n-1}\end{pmatrix}$. For $n=10$: $F_{11}=89$, $F_{10}=55$. The ratio is $\dfrac{89}{55}\approx1.618$ (close to the golden ratio).</p>`, 'Fibonacci numbers: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89.', () => 89 / 55),
+  N(4, 'volume', XR`A tetrahedron has vertices $(0,0,0)$, $(1,2,1)$, $(2,1,3)$ and $(0,5,4)$. Find its volume (2 decimal places).`, 2.83, 0.01,
+    XR`<p>Volume $=\dfrac16\left|\begin{vmatrix}1&2&1\\2&1&3\\0&5&4\end{vmatrix}\right|$. The determinant is $1(4-15)-2(8-0)+1(10-0)=-11-16+10=-17$. Volume $=\dfrac{17}6\approx2.83$.</p>`, 'Divide by 6 for a tetrahedron, not 2.', () => 17 / 6),
+  N(4, 'counting matrices', XR`A $2\times2$ matrix with entries from $\{0,1\}$ is chosen at random (all $16$ equally likely). Find the probability that it is invertible.`, 0.375, 0.001,
+    XR`<p>Invertible matrices: $6$ (see the count of singular ones: $10$). Probability $=\dfrac6{16}=0.375$.</p>`, 'Total is 16 matrices.', () => 6 / 16),
+  N(4, 'counting matrices', XR`A $2\times2$ matrix with entries from $\{-1,0,1\}$ is chosen at random (all $81$ equally likely). Find the probability that it is singular (3 decimal places).`, 0.407, 0.001,
+    XR`<p>Singular means $ad=bc$, which happens for $33$ of the $81$ matrices. Probability $=\dfrac{33}{81}=\dfrac{11}{27}\approx0.407$.</p>`, 'Count ad = bc by common product.', () => 33 / 81),
+  N(5, 'characteristic equation', XR`Find the largest real root of $\begin{vmatrix}2-\lambda&1&0\\1&2-\lambda&1\\0&1&2-\lambda\end{vmatrix}=0$ (2 decimal places).`, 3.41, 0.01,
+    XR`<p>Expand along the first row: $(2-\lambda)\big[(2-\lambda)^2-1\big]-1\cdot(2-\lambda)=(2-\lambda)\big[(2-\lambda)^2-2\big]$. Roots: $\lambda=2$ and $(2-\lambda)^2=2$, i.e. $\lambda=2\pm\sqrt2$. The largest is $2+\sqrt2\approx3.41$.</p>`, 'Factor (2 − λ) out first.', () => 2 + Math.SQRT2),
+  A(4, 'matrix multiplication', XR`$AB=O$ does not imply $A=O$ or $B=O$.`, XR`$\begin{pmatrix}1&0\\0&0\end{pmatrix}\begin{pmatrix}0&0\\0&1\end{pmatrix}=O$.`, 0,
+    XR`<p>R gives a product of two non-zero matrices equal to $O$: a counter-example to the cancellation rule. So A is true and R is the reason.</p>`, 'Matrices can have zero divisors.'),
+  A(4, 'inverse', XR`The matrix $\begin{pmatrix}1&2\\2&4\end{pmatrix}$ has no inverse.`, XR`Its determinant is $0$.`, 0,
+    XR`<p>$1\cdot4-2\cdot2=0$, so the matrix is singular. A square matrix has an inverse exactly when its determinant is non-zero, so R explains A.</p>`, 'The second row is twice the first.'),
+  A(5, 'adjoint of adjoint', XR`For a $3\times3$ matrix $A$, $|\mathrm{adj}(\mathrm{adj}A)|=|A|^4$.`, XR`For an $n\times n$ matrix $B$, $|\mathrm{adj}B|=|B|^{n-1}$.`, 0,
+    XR`<p>Apply R twice with $n=3$: $|\mathrm{adj}(\mathrm{adj}A)|=|\mathrm{adj}A|^2=(|A|^2)^2=|A|^4$. So A is true and R is the reason.</p>`, 'Square the determinant at each step for n = 3.'),
+  A(4, 'nilpotent', XR`If $A$ is a $3\times3$ matrix with $A^2=O$, then $A=O$.`, XR`$\begin{pmatrix}0&1\\0&0\end{pmatrix}^2=O$.`, 3,
+    XR`<p>A is false: the $3\times3$ matrix with $1$ in the top-right corner of its upper-left $2\times2$ block and zeros elsewhere has square $O$ but is not $O$. R is true as stated (a $2\times2$ example), but it does not show that A is true.</p>`, 'Non-zero matrices can square to zero.'),
+  A(5, 'symmetric and skew-symmetric', XR`Every square matrix is the sum of a symmetric and a skew-symmetric matrix.`, XR`$A=\dfrac12(A+A^T)+\dfrac12(A-A^T)$.`, 0,
+    XR`<p>$\dfrac12(A+A^T)$ is symmetric and $\dfrac12(A-A^T)$ is skew-symmetric, and R shows that they add to $A$. So A is true and R is the proof.</p>`, 'The decomposition is unique.'),
+  S(4, 'transpose and inverse', XR`If $A$ is symmetric and invertible, then $A^{-1}$ is symmetric.`, XR`A skew-symmetric matrix of even order can be invertible.`, 0,
+    XR`<p>I: $(A^{-1})^T=(A^T)^{-1}=A^{-1}$. II: $\begin{pmatrix}0&1\\-1&0\end{pmatrix}$ has determinant $1$. Both are true.</p>`, 'Both statements are true and unrelated.'),
+  S(4, 'special matrices', XR`If $A^2=I$ then $A=I$ or $A=-I$.`, XR`If $A^2=O$ then $A=O$.`, 3,
+    XR`<p>I is false: $\begin{pmatrix}0&1\\1&0\end{pmatrix}^2=I$. II is false: $\begin{pmatrix}0&1\\0&0\end{pmatrix}^2=O$. Both false.</p>`, 'Square roots of I and O are not unique for matrices.'),
+  S(4, 'determinant properties', XR`$|A+B|=|A|+|B|$ for all $n\times n$ matrices.`, XR`$|AB|=|A|\,|B|$ for all $n\times n$ matrices.`, 2,
+    XR`<p>I is false: $A=B=I_2$ gives $|A+B|=4$ but $|A|+|B|=2$. II is true.</p>`, 'The determinant is multiplicative, not additive.'),
+  S(5, 'systems of equations', XR`A homogeneous system of $3$ equations in $3$ unknowns with coefficient determinant $0$ has infinitely many solutions.`, XR`Every system $AX=B$ with $|A|=0$ has infinitely many solutions.`, 1,
+    XR`<p>I is true: the zero solution is always a solution, and $|A|=0$ gives non-zero ones, hence infinitely many. II is false: $|A|=0$ with an inconsistent right side gives no solution at all.</p>`, 'A singular system is either inconsistent or has infinitely many solutions.'),
+  SC(4, 'mixed properties', ['$\\mathrm{adj}(A^{-1})=(\\mathrm{adj}A)^{-1}$ for invertible $A$.', 'If $A$ is nilpotent then $I-A$ is invertible.', 'If $AB=I$ for square matrices, then $BA=I$.', 'If $A^2=A$ and $|A|\\ne0$ then $A=I$.'], '4', ['1', '2', '3'],
+    XR`<p>(1) true: $\mathrm{adj}(A^{-1})=\dfrac{A}{|A|}=(\mathrm{adj}A)^{-1}$. (2) true: $(I-A)(I+A+\dots+A^{k-1})=I-A^k=I$. (3) true for square matrices (since $|A||B|=1$, $A$ is invertible and $B=A^{-1}$). (4) true: multiply $A^2=A$ by $A^{-1}$. All four are correct.</p>`, 'All four are standard theorems.'),
+  MT(4, 'determinants of related matrices', 'xm3', 'A-q, B-r, C-p, D-s', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-q, B-p, C-r, D-s'],
+    XR`<p>$|A|=3$, $n=3$. A: $|A|^{2}=9$. B: $2^3\cdot3=24$. C: $\dfrac13$. D: $|\mathrm{adj}(2A)|=|2A|^2=24^2=576$.</p>`, '|adj B| = |B|² for 3 × 3.'),
+  MT(4, 'powers of a matrix', 'xm4', 'A-q, B-s, C-r, D-p', ['A-q, B-s, C-p, D-r', 'A-s, B-q, C-r, D-p', 'A-q, B-r, C-s, D-p'],
+    XR`<p>$A$ rotates by $90^\circ$ anticlockwise. Two turns: $-I$. Three turns ($270^\circ$): $\begin{pmatrix}0&1\\-1&0\end{pmatrix}$. Five turns equal one turn: $A$. Four turns: $I$.</p>`, 'The powers repeat in a cycle of 4.'),
+  MT(4, 'systems with a parameter', 'xm5', 'A-p, B-r, C-q, D-s', ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-p, B-q, C-r, D-s'],
+    XR`<p>Subtract the equations: $y+2z=3$ and $y+(\lambda-3)z=\mu-6$, so $(\lambda-5)z=\mu-9$. A: $\lambda=7$: $z=\dfrac{\mu-9}2=1$, then $y=1$, $x=1$: unique with $x=y=z$. B: $\lambda=5,\mu=9$: $0=0$, infinitely many. C: $\lambda=5,\mu=10$: $0=1$, none. D: $\lambda=7,\mu=9$: $z=0$, $y=3$, $x=0$: unique with $z=0$.</p>`, 'The key equation is (λ − 5)z = μ − 9.'),
+  MT(4, 'solving determinant equations', 'xm8', 'A-q, B-p, C-r, D-s', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-q, B-r, C-p, D-s'],
+    XR`<p>A: the determinant is $(x-1)^2(x+2)$, roots $1,-2$. B: $x^3=0$, so $x=0$. C: expand: $x^3-x^2-x+1=(x-1)^2(x+1)$, roots $1,-1$. D: $x^2-4=0$, roots $\pm2$.</p>`, 'Add all rows (or columns) to factor out x + 2.'),
+  MT(5, 'quantities for one matrix', 'xm6', 'A-r, B-p, C-q, D-s', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-r, B-q, C-p, D-s'],
+    XR`<p>$|A|=-2$, $\mathrm{tr}A=5$. A: $\mathrm{tr}(A^2)=25+4=29$. B: $|A^3|=(-2)^3=-8$. C: $A^{-1}=\dfrac1{-2}\begin{pmatrix}4&-2\\-3&1\end{pmatrix}$, trace $\dfrac{4+1}{-2}=-\dfrac52$. D: for $n=2$, $|\mathrm{adj}A|=|A|=-2$.</p>`, 'For 2 × 2 the adjoint has the same determinant as A.'),
+  // ---- passages ----
+  PI(3, 'Fibonacci matrix', 'xp1', XR`Find the top-right entry of $F^{10}$.`, 55,
+    XR`<p>The top-right entry of $F^n$ is $F_n$. The Fibonacci numbers are $1,1,2,3,5,8,13,21,34,55$, so $F_{10}=55$.</p>`, 'Count the terms carefully.', () => 55),
+  PI(4, 'Fibonacci matrix', 'xp1', XR`Find $|F^{9}|$.`, -1,
+    XR`<p>$|F|=1\cdot0-1\cdot1=-1$, so $|F^9|=(-1)^9=-1$.</p>`, 'Odd power of −1.', () => dt(mpow([[1, 1], [1, 0]], 9))),
+  PM(4, 'Fibonacci matrix', 'xp1', XR`The value of $F_9F_7-F_8^2$ is`, '$1$', ['$-1$', '$0$', '$2$'],
+    XR`<p>The determinant of $F^8$ is $F_9F_7-F_8^2=(-1)^8=1$. Numerically, $34\cdot13-21^2=442-441=1$.</p>`, 'The sign alternates with n.'),
+  PI(4, 'shear matrices', 'xp2', XR`Find the top-right entry of $S(3)S(4)$.`, 7,
+    XR`<p>$S(3)S(4)=S(7)$, so the top-right entry is $7$. (Direct: $\begin{pmatrix}1&3\\0&1\end{pmatrix}\begin{pmatrix}1&4\\0&1\end{pmatrix}=\begin{pmatrix}1&7\\0&1\end{pmatrix}$.)</p>`, 'Top-right entries add.', () => 7),
+  PI(4, 'shear matrices', 'xp2', XR`Find the top-right entry of $S(2)^{-1}S(5)$.`, 3,
+    XR`<p>$S(2)S(-2)=S(0)=I$, so $S(2)^{-1}=S(-2)$. Then $S(-2)S(5)=S(3)$: top-right entry $3$.</p>`, 'The inverse of S(t) is S(−t).', () => 3),
+  PI(5, 'shear matrices', 'xp2', XR`Find the least positive integer $n$ for which the top-right entry of $S\!\left(\dfrac13\right)^n$ is at least $10$.`, 30,
+    XR`<p>$S(t)^n=S(nt)$, so the entry is $\dfrac n3$. We need $\dfrac n3\ge10$, so $n\ge30$. The least is $n=30$.</p>`, 'The entry equals exactly 10 at n = 30, which counts.', () => 30),
+);
+gens.push(
+  GX('md-g25', 3, 'nat', 'integer', 'trace', (rng) => {
+    const A = [[int(rng, -4, 5), int(rng, -4, 5)], [int(rng, -4, 5), int(rng, -4, 5)]]; const t = A[0][0] + A[1][1], d = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+    return { A, answer: t * t - 2 * d, tol: 0, q: XR`For $A=${mx(A)}$, find $\mathrm{tr}(A^2)$.`,
+      sol: XR`<p>$\mathrm{tr}A=${t}$ and $|A|=${d}$. For a $2\times2$ matrix $\mathrm{tr}(A^2)=(\mathrm{tr}A)^2-2|A|=${t * t}-2(${d})=${t * t - 2 * d}$.</p>` };
+  }, (p) => { const P = mm(p.A, p.A); return P[0][0] + P[1][1]; }),
+  GX('md-g26', 4, 'nat', 'integer', 'Cayley-Hamilton', (rng) => {
+    let a, b, c, d; do { a = int(rng, 1, 4); b = int(rng, 1, 3); c = int(rng, -3, -1); d = int(rng, 1, 4); } while (a * d - b * c === 0);
+    const t = a + d, det = a * d - b * c, n = int(rng, 3, 5); let p = 1, q = 0; // A^1 = 1*A + 0*I
+    const steps = []; for (let k = 2; k <= n; k++) { const np = t * p + q, nq = -det * p; p = np; q = nq; steps.push(`A^{${k}}=${p}A${q < 0 ? '-' : '+'}${Math.abs(q)}I`); }
+    return { A: [[a, b], [c, d]], n, p, q, answer: p, tol: 0, q: XR`$A=${mx([[a, b], [c, d]])}$ and $A^{${n}}=pA+qI$. Find $p$.`,
+      sol: XR`<p>$\mathrm{tr}A=${t}$, $|A|=${det}$, so $A^2=${t}A${det < 0 ? '+' : '-'}${Math.abs(det)}I$. Multiplying by $A$ repeatedly and reducing $A^2$ each time: $${steps.join(',\\ ')}$. So $p=${p}$.</p>` };
+  }, (p) => { const P = mpow(p.A, p.n); return P[0][1] / p.A[0][1]; }),
+  GX('md-g27', 4, 'nat', 'integer', 'adjoint of adjoint', (rng) => {
+    const n = int(rng, 3, 4), d = int(rng, 2, 3); const e = (n - 1) ** 2; const ans = d ** e;
+    return { n, d, answer: ans, tol: 0, q: XR`$A$ is an $${n}\times${n}$ matrix with $|A|=${d}$. Find $|\mathrm{adj}(\mathrm{adj}\,A)|$.`,
+      sol: XR`<p>$|\mathrm{adj}B|=|B|^{n-1}$. Applying it twice: $|\mathrm{adj}(\mathrm{adj}A)|=\big(|A|^{${n - 1}}\big)^{${n - 1}}=${d}^{${e}}=${ans}$.</p>` };
+  }, (p) => { let v = p.d; v = v ** (p.n - 1); v = v ** (p.n - 1); return v; }),
+  GX('md-g28', 3, 'nat', 'integer', 'special determinants', (rng) => {
+    const a = int(rng, -3, 3); const b = a + int(rng, 1, 4); const c = b + int(rng, 1, 4); const ans = (b - a) * (c - a) * (c - b);
+    return { a, b, c, answer: ans, tol: 0, q: XR`Find $\begin{vmatrix}1&1&1\\${a}&${b}&${c}\\${a * a}&${b * b}&${c * c}\end{vmatrix}$.`,
+      sol: XR`<p>This is the Vandermonde determinant: $(b-a)(c-a)(c-b)=(${b - a})(${c - a})(${c - b})=${ans}$.</p>` };
+  }, (p) => dt([[1, 1, 1], [p.a, p.b, p.c], [p.a * p.a, p.b * p.b, p.c * p.c]])),
+  GX('md-g29', 4, 'mcq', 'single', 'powers of a matrix', (rng) => {
+    const a = int(rng, 2, 4), n = int(rng, 3, 7); const ok = XR`$${PM2(1, n * a, 0, 1)}$`;
+    const { options, answer } = shuffleOpts(rng, ok, [XR`$${PM2(1, a ** n, 0, 1)}$`, XR`$${PM2(1, a + n, 0, 1)}$`, XR`$${PM2(1, a, 0, n)}$`]);
+    return { a, n, options, answer, q: XR`If $A=${mx([[1, a], [0, 1]])}$, then $A^{${n}}$ equals`,
+      sol: XR`<p>$A^2=\begin{pmatrix}1&${2 * a}\\0&1\end{pmatrix}$ and each further factor of $A$ adds $${a}$ to the top-right entry: $A^k=\begin{pmatrix}1&${a}k\\0&1\end{pmatrix}$. For $k=${n}$ the entry is $${n * a}$.</p>` };
+  }, (p) => { const P = mpow([[1, p.a], [0, 1]], p.n); return P[0][1] === p.n * p.a && P[0][0] === 1 && P[1][1] === 1 && P[1][0] === 0 ? p.answer : -1; }),
+  GX('md-g30', 4, 'nat', 'integer', 'homogeneous systems', (rng) => {
+    const k = int(rng, 1, 6);
+    return { k, answer: -k, tol: 0, q: XR`The system $\lambda x+${k}y+${k}z=0$, $${k}x+\lambda y+${k}z=0$, $${k}x+${k}y+\lambda z=0$ has a non-trivial solution. Find the sum of all possible distinct values of $\lambda$.`,
+      sol: XR`<p>We need $\begin{vmatrix}\lambda&${k}&${k}\\${k}&\lambda&${k}\\${k}&${k}&\lambda\end{vmatrix}=0$. This equals $(\lambda-${k})^2(\lambda+${2 * k})$. The distinct values are $${k}$ and $-${2 * k}$, sum $=-${k}$.</p>` };
+  }, (p) => { const D = (l) => dt([[l, p.k, p.k], [p.k, l, p.k], [p.k, p.k, l]]); if (D(p.k) !== 0 || D(-2 * p.k) !== 0) return 9999; for (let l = -40; l <= 40; l++) if (D(l) === 0 && l !== p.k && l !== -2 * p.k) return 9999; return p.k + -2 * p.k; }),
+  GX('md-g31', 4, 'nat', 'integer', 'counting matrices', (rng) => {
+    const m = int(rng, 2, 4); let c = 0; for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) for (let cc = 0; cc < m; cc++) for (let d = 0; d < m; d++) if (a * d === b * cc) c++;
+    return { m, answer: c, tol: 0, q: XR`How many $2\times2$ matrices with every entry in $\{0,1,\dots,${m - 1}\}$ have determinant $0$?`,
+      sol: XR`<p>Determinant $0$ means $ad=bc$. Let $N(p)$ be the number of ordered pairs $(x,y)$ with entries in $\{0,\dots,${m - 1}\}$ and $xy=p$. The answer is $\sum_pN(p)^2=${c}$.</p>` };
+  }, (p) => { const N = {}; for (let x = 0; x < p.m; x++) for (let y = 0; y < p.m; y++) N[x * y] = (N[x * y] || 0) + 1; return Object.values(N).reduce((s, v) => s + v * v, 0); }),
+  GX('md-g32', 4, 'mcq', 'single', 'inverse', (rng) => {
+    let a, b, c, d; do { a = int(rng, 1, 5); b = int(rng, 1, 5); c = int(rng, 1, 5); d = int(rng, 1, 5); } while (a * d - b * c === 0 || Math.abs(a * d - b * c) === 1);
+    const det = a * d - b * c; const ok = `$${frac(-b, det)}$`;
+    const { options, answer } = shuffleOpts(rng, ok, [`$${frac(b, det)}$`, `$${frac(-c, det)}$`, `$${frac(-b, a * d + b * c)}$`]);
+    return { a, b, c, d, det, options, answer, q: XR`For $A=${mx([[a, b], [c, d]])}$, the entry in row 1, column 2 of $A^{-1}$ is`,
+      sol: XR`<p>$A^{-1}=\dfrac1{|A|}\begin{pmatrix}d&-b\\-c&a\end{pmatrix}$ with $|A|=${a}\cdot${d}-${b}\cdot${c}=${det}$. The entry in row 1, column 2 is $\dfrac{-b}{|A|}=${frac(-b, det)}$.</p>` };
+  }, (p) => { const inv = [[p.d / p.det, -p.b / p.det], [-p.c / p.det, p.a / p.det]]; const P = mm([[p.a, p.b], [p.c, p.d]], inv); return Math.abs(P[0][0] - 1) < 1e-9 && Math.abs(P[0][1]) < 1e-9 && Math.abs(inv[0][1] + p.b / p.det) < 1e-12 ? p.answer : -1; }),
+);
+
+}
+// ==XP-END
 export default { topic: 'matrices-determinants', groups, items, gens };

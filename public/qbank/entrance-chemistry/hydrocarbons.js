@@ -470,9 +470,240 @@ const GENS = [
     }, verify: (p) => 100 - 100 * p.y / (12 * p.n + p.y) },
 ];
 
+const XP = 'hc', XCUET = false, GBASE = 15;
+// ===== expansion block (added) =====
+const XI = [], XGRP = {}, XGENS = []; let _xn = 0, _xc = 0;
+const XA4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XS4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const xex = (level, mcq) => level <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet', ...(XCUET && mcq ? ['cuet'] : [])] : level === 3 ? ['jee-main', 'neet', 'comedk', ...(XCUET && mcq ? ['cuet'] : [])] : level === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv'];
+const xid = () => `${XP}-x${String(++_xc).padStart(3, '0')}`;
+const xmk = (level, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_xn++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, ...(group ? { group } : {}), q, options, answer: pos, sol, ...(trap ? { trap } : {}) });
+};
+const xnat = (level, sub, q, answer, tol, unit, sol, trap, calc, format, group) => { XI.push({ id: xid(), type: 'nat', level, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: xex(level, false), sub, ...(group ? { group } : {}), q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(calc ? { calc } : {}) }); };
+const xmsq = (level, sub, q, options, answer, sol, trap) => { XI.push({ id: xid(), type: 'msq', level, format: 'multi', exams: ['jee-adv'], sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xmk2 = (level, sub, q, options, answer, sol, trap, format) => { XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xasr = (level, sub, A, R, answer, sol, trap) => xmk2(level, sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, XA4, answer, sol, trap, 'assertion');
+const xstm = (level, sub, s1, s2, answer, sol, trap) => xmk2(level, sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, XS4, answer, sol, trap, 'statements');
+const xmat = (level, sub, title, list1, list2, correct, wrongs, sol, trap) => {
+  const gid = `xm${String(Object.keys(XGRP).length + 1).padStart(2, '0')}`; XGRP[gid] = { title, list1, list2 };
+  xmk(level, sub, 'Match each entry of List I with the correct entry of List II.', correct, wrongs, sol, trap, 'match', gid);
+};
+const xpassage = (gid, title, passage) => { XGRP[gid] = { title, passage }; };
+const xgen = (g) => XGENS.push({ ...g, id: `${XP}-g${String(GBASE + XGENS.length + 1).padStart(2, '0')}`, exams: xex(g.level, g.type === 'mcq') });
+
+// ring-substitution counting by brute force (benzene ring, D6 symmetry), used to verify keys
+const _D6 = []; for (let k = 0; k < 6; k++) { _D6.push([0, 1, 2, 3, 4, 5].map((i) => (i + k) % 6)); _D6.push([0, 1, 2, 3, 4, 5].map((i) => (k - i + 6) % 6)); }
+const _arr = (subs) => { const all = ['H', 'H', 'H', 'H', 'H', 'H']; subs.forEach((s, i) => { all[i] = s; }); const out = new Set(); const rec = (a, cur) => { if (!a.length) { out.add(cur.join('|')); return; } new Set(a).forEach((v) => { const i = a.indexOf(v); rec([...a.slice(0, i), ...a.slice(i + 1)], [...cur, v]); }); }; rec(all, []); return [...out].map((s) => s.split('|')); };
+const _ringIso = (subs) => { const seen = new Set(); let n = 0; for (const c of _arr(subs)) { const k = c.join('|'); if (seen.has(k)) continue; n++; for (const g of _D6) { const d = new Array(6); g.forEach((to, from) => { d[to] = c[from]; }); seen.add(d.join('|')); } } return n; };
+const _ringBurnside = (subs) => { const all = _arr(subs); let fixed = 0; for (const g of _D6) for (const c of all) if (g.every((to, from) => c[to] === c[from])) fixed++; return fixed / 12; };
+// ---------- matches ----------
+xmat(3, 'addition to alkenes', 'Propene with each reagent gives', ['A. HBr (no peroxide)', 'B. HBr with a peroxide', 'C. H<sub>2</sub>O, H<sup>+</sup>', 'D. B<sub>2</sub>H<sub>6</sub>, then H<sub>2</sub>O<sub>2</sub>/OH<sup>-</sup>'],
+  ['p. 1-Bromopropane', 'q. 2-Bromopropane', 'r. Propan-1-ol', 's. Propan-2-ol'],
+  'A-q, B-p, C-s, D-r', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-s, B-p, C-q, D-r'],
+  '<p>Without peroxide HBr adds by the ionic Markovnikov route through the secondary carbocation: 2-bromopropane (q). With peroxide, Br&bull; adds first to the terminal carbon: 1-bromopropane (p). Acid-catalysed hydration is Markovnikov: propan-2-ol (s). Hydroboration-oxidation is anti-Markovnikov: propan-1-ol (r).</p>');
+xmat(3, 'alkyne reduction', 'But-2-yne and each reagent', ['A. H<sub>2</sub>, Lindlar\'s catalyst', 'B. Na in liquid NH<sub>3</sub>', 'C. Excess H<sub>2</sub>, Pt', 'D. H<sub>2</sub>O, HgSO<sub>4</sub>/H<sub>2</sub>SO<sub>4</sub>'],
+  ['p. Butane', 'q. trans-But-2-ene', 'r. cis-But-2-ene', 's. Butan-2-one'],
+  'A-r, B-q, C-p, D-s', ['A-q, B-r, C-p, D-s', 'A-r, B-q, C-s, D-p', 'A-p, B-q, C-r, D-s'],
+  '<p>Lindlar\'s catalyst gives syn addition: cis alkene (r). Na/NH<sub>3</sub> gives anti addition: trans alkene (q). Excess H<sub>2</sub> over Pt goes all the way to the alkane (p). Hydration gives an enol that tautomerises to the ketone butan-2-one (s).</p>');
+xmat(5, 'ozonolysis', 'Alkene and the products of reductive ozonolysis (O<sub>3</sub>, then Zn/H<sub>2</sub>O)', ['A. But-2-ene', 'B. 2-Methylpropene', 'C. Cyclohexene', 'D. 2,3-Dimethylbut-2-ene'],
+  ['p. Only propanone (two molecules)', 'q. Only ethanal (two molecules)', 'r. Propanone and methanal', 's. Hexanedial (one molecule)'],
+  'A-q, B-r, C-s, D-p', ['A-p, B-r, C-s, D-q', 'A-q, B-s, C-r, D-p', 'A-q, B-r, C-p, D-s'],
+  '<p>Break the C=C and put =O on each carbon. But-2-ene: CH<sub>3</sub>CH=CHCH<sub>3</sub> gives 2CH<sub>3</sub>CHO (q). 2-Methylpropene gives (CH<sub>3</sub>)<sub>2</sub>C=O + HCHO (r). Cyclohexene opens the ring: OHC(CH<sub>2</sub>)<sub>4</sub>CHO (s). 2,3-Dimethylbut-2-ene gives 2(CH<sub>3</sub>)<sub>2</sub>C=O (p).</p>');
+xmat(3, 'directing effects', 'Substituent on benzene and its effect on electrophilic substitution', ['A. &minus;OCH<sub>3</sub>', 'B. &minus;NO<sub>2</sub>', 'C. &minus;Cl', 'D. &minus;CH<sub>3</sub>'],
+  ['p. Meta director, deactivating', 'q. Ortho/para director, deactivating', 'r. Ortho/para director, strongly activating', 's. Ortho/para director, weakly activating'],
+  'A-r, B-p, C-q, D-s', ['A-s, B-p, C-q, D-r', 'A-r, B-q, C-p, D-s', 'A-r, B-p, C-s, D-q'],
+  '<p>Methoxy donates a lone pair by +M (strong activation, o/p). Nitro withdraws by &minus;M and &minus;I (deactivating, meta). Chlorine withdraws by &minus;I but its lone pair directs o/p (deactivating o/p). Methyl is a weak +I and hyperconjugation donor (weakly activating o/p).</p>');
+xmat(3, 'counting substitution products', 'Number of monochloro structural isomers (ignoring stereoisomers)', ['A. 2,2-Dimethylpropane', 'B. 2-Methylpropane', 'C. 2-Methylbutane', 'D. Pentane'],
+  ['p. 1', 'q. 2', 'r. 3', 's. 4'],
+  'A-p, B-q, C-s, D-r', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-p, B-s, C-q, D-r'],
+  '<p>Count the different types of H. 2,2-Dimethylpropane: all 12 H equivalent, 1 (p). 2-Methylpropane: 1&deg; and 3&deg; H, 2 (q). 2-Methylbutane: the two methyl groups on C2 are equivalent, then C2-H, C3-H<sub>2</sub> and C4-H<sub>3</sub>: 4 (s). Pentane: CH<sub>3</sub>, C2 and C3: 3 (r).</p>');
+xmat(4, 'stability of alkenes', 'Approximate heat of hydrogenation of each alkene (to the alkane)', ['A. But-1-ene', 'B. cis-But-2-ene', 'C. trans-But-2-ene', 'D. 2-Methylbut-2-ene'],
+  ['p. 112 kJ/mol', 'q. 116 kJ/mol', 'r. 120 kJ/mol', 's. 127 kJ/mol'],
+  'A-s, B-r, C-q, D-p', ['A-r, B-s, C-q, D-p', 'A-s, B-q, C-r, D-p', 'A-s, B-r, C-p, D-q'],
+  '<p>The more stable the alkene, the less heat is released on hydrogenation. Stability: trisubstituted &gt; trans-disubstituted &gt; cis-disubstituted &gt; monosubstituted. So 2-methylbut-2-ene (112) &lt; trans (116) &lt; cis (120) &lt; but-1-ene (127).</p>', 'Larger heat released means a less stable alkene.');
+xmat(3, 'catalysts and reagents', 'Reaction and the catalyst or reagent', ['A. Alkene + H<sub>2</sub> &rarr; alkane', 'B. Alkyne + H<sub>2</sub> &rarr; cis-alkene', 'C. Ethyne + H<sub>2</sub>O &rarr; ethanal', 'D. Benzene + CH<sub>3</sub>Cl &rarr; toluene'],
+  ['p. Pd/BaSO<sub>4</sub> poisoned with quinoline', 'q. Anhydrous AlCl<sub>3</sub>', 'r. Finely divided Ni (Sabatier-Senderens)', 's. HgSO<sub>4</sub> and dilute H<sub>2</sub>SO<sub>4</sub>'],
+  'A-r, B-p, C-s, D-q', ['A-p, B-r, C-s, D-q', 'A-r, B-p, C-q, D-s', 'A-r, B-s, C-p, D-q'],
+  '<p>Ni gives complete hydrogenation (r). Lindlar\'s (poisoned Pd) stops at the cis-alkene (p). Hg<sup>2+</sup> in dilute acid hydrates the alkyne (s). AlCl<sub>3</sub> is the Lewis acid for Friedel-Crafts alkylation (q).</p>');
+
+xmat(3, 'benzene reactions', 'Reagents and the product from benzene', ['A. CH<sub>3</sub>COCl, anhydrous AlCl<sub>3</sub>', 'B. Conc. HNO<sub>3</sub> + conc. H<sub>2</sub>SO<sub>4</sub>', 'C. Cl<sub>2</sub>, FeCl<sub>3</sub> (dark)', 'D. Fuming H<sub>2</sub>SO<sub>4</sub>'],
+  ['p. Acetophenone', 'q. Nitrobenzene', 'r. Chlorobenzene', 's. Benzenesulphonic acid'],
+  'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'],
+  '<p>Friedel-Crafts acylation gives the ketone (p). Mixed acid forms NO<sub>2</sub><sup>+</sup>: nitrobenzene (q). Halogen carrier FeCl<sub>3</sub> makes Cl<sup>+</sup>-like electrophile: chlorobenzene (r). SO<sub>3</sub> in fuming sulphuric acid gives sulphonation (s).</p>');
+
+// ---------- msq ----------
+xmsq(4, 'peroxide effect', 'Which statements about the addition of HX to propene are correct?', ['HBr without peroxide gives 2-bromopropane', 'HBr with peroxide gives 1-bromopropane', 'HCl with peroxide gives 1-chloropropane', 'HI with peroxide gives 1-iodopropane'], [0, 1],
+  '<p>The peroxide (free radical) effect works only with HBr. With HCl the H-Cl bond is too strong for the propagation step, and with HI the iodine atoms combine to give I<sub>2</sub> rather than add to the alkene. So HCl and HI add by the ordinary Markovnikov path.</p>');
+xmsq(4, 'tests for unsaturation', 'Which of these decolourise bromine in CCl<sub>4</sub> in the dark?', ['Propene', 'Propyne', 'Propane', 'Benzene'], [0, 1],
+  '<p>Alkenes and alkynes add Br<sub>2</sub> across the multiple bond. Alkanes need light for substitution. Benzene resists addition because that would destroy its aromatic stabilisation.</p>');
+xmsq(4, 'acidity of alkynes', 'Which statements are correct?', ['Terminal alkynes react with sodium amide to give acetylides', 'Terminal alkynes give a white precipitate with ammoniacal AgNO<sub>3</sub>', 'But-2-yne gives a white precipitate with ammoniacal AgNO<sub>3</sub>', 'Pent-1-yne gives a red precipitate with ammoniacal Cu<sub>2</sub>Cl<sub>2</sub>'], [0, 1, 3],
+  '<p>Only a hydrogen on an sp carbon is acidic enough (pK<sub>a</sub> about 25). But-2-yne is an internal alkyne with no such H, so it gives no precipitate.</p>');
+xmsq(5, 'anti addition', 'Br<sub>2</sub> adds to cyclohexene to give 1,2-dibromocyclohexane. Which statements are correct?', ['A cyclic bromonium ion is formed', 'The product is the trans isomer', 'The product is formed as a racemic mixture', 'The product is the cis isomer'], [0, 1, 2],
+  '<p>The bromonium ion blocks one face, so Br<sup>-</sup> attacks from the opposite face (anti addition): trans-1,2-dibromocyclohexane. It forms as equal amounts of the (1R,2R) and (1S,2S) enantiomers, a racemic mixture.</p>');
+xmsq(5, 'electrophilic substitution', 'Which statements about electrophilic substitution of benzene are correct?', ['The nitrating electrophile is NO<sub>2</sub><sup>+</sup>', 'Friedel-Crafts alkylation can give rearranged products', 'Nitrobenzene does not undergo Friedel-Crafts reactions', 'Friedel-Crafts acylation easily gives poly-acylated products'], [0, 1, 2],
+  '<p>The acyl group deactivates the ring, so the product resists a second acylation (acylation stops at the mono-product), while the alkyl group activates the ring and polyalkylation is common. Rearrangements occur because carbocations can shift.</p>');
+xmsq(4, 'cyclohexane', 'Which statements about cyclohexane are correct?', ['The chair conformation is the most stable', 'Axial and equatorial hydrogens interchange on ring flipping', 'The boat conformation has flagpole interactions', 'In the chair form all the C-C-C angles are 90&deg;'], [0, 1, 2],
+  '<p>The chair has C-C-C angles of about 111&deg; (close to the tetrahedral 109.5&deg;) and fully staggered bonds, so it is strain-free. The boat suffers torsional strain and the flagpole H-H repulsion.</p>');
+xmsq(4, 'stability of alkenes', 'Which statements about alkene stability are correct?', ['More substituted alkenes are generally more stable', 'trans-Alkenes are usually more stable than cis-alkenes', 'A more stable alkene has a smaller heat of hydrogenation', 'But-1-ene is more stable than but-2-ene'], [0, 1, 2],
+  '<p>Alkyl groups stabilise a C=C by hyperconjugation, and trans isomers avoid steric clash. All alkenes release a similar heat on hydrogenation to the same alkane, so a smaller heat means a more stable alkene. But-2-ene is disubstituted and more stable than monosubstituted but-1-ene.</p>');
+xmsq(5, "Baeyer's strain theory", 'Which statements about ring strain are correct?', ['Cyclopropane has the largest angle strain among simple cycloalkanes', 'Real cyclohexane is nearly free of strain because it is puckered', 'Baeyer assumed all rings are planar', 'Baeyer\'s theory correctly predicted the stability of cyclohexane'], [0, 1, 2],
+  '<p>Baeyer assumed planar rings, which predicts a deviation of 5&deg;16\' for cyclohexane and so some strain. In reality cyclohexane adopts a chair with angles near 109.5&deg;, so the prediction fails for rings larger than cyclopentane.</p>');
+xmsq(5, 'ozonolysis', 'Reductive ozonolysis of an alkene C<sub>5</sub>H<sub>10</sub> gives ethanal and propanal. Which statements are correct?', ['The alkene is pent-2-ene', 'Both the cis and trans isomers give the same products', 'Oxidative work-up (H<sub>2</sub>O<sub>2</sub>) would give ethanoic and propanoic acids', 'One of the products is a ketone'], [0, 1, 2],
+  '<p>CH<sub>3</sub>CHO + CH<sub>3</sub>CH<sub>2</sub>CHO join at the double bond: CH<sub>3</sub>CH=CHCH<sub>2</sub>CH<sub>3</sub>. Ozonolysis destroys the C=C, so the E/Z geometry is lost. Both products are aldehydes (oxidised to acids with H<sub>2</sub>O<sub>2</sub>); there is no ketone.</p>');
+xmsq(4, 'structure of benzene', 'Which statements about benzene are correct?', ['All the C-C bonds are of equal length (139 pm)', 'Its resonance energy is about 150 kJ/mol', 'It undergoes addition more readily than substitution', 'It has six &pi; electrons delocalised over the ring'], [0, 1, 3],
+  '<p>Benzene prefers substitution, which keeps the aromatic ring, over addition, which would destroy it.</p>');
+xmsq(4, 'halogenation of alkanes', 'Which statements about free radical halogenation of alkanes are correct?', ['Chlorination is less selective than bromination', 'Bromination is more selective than chlorination', 'The mechanism has initiation, propagation and termination steps', 'Free radical halogenation needs ionic intermediates'], [0, 1, 2],
+  '<p>The Br&bull; abstraction step is endothermic and has a late transition state, so it is highly selective for weaker (3&deg;) C-H bonds, while Cl&bull; is much less selective. The mechanism is a radical chain with no ions.</p>');
+xmsq(5, 'side-chain oxidation', 'Which compounds give benzoic acid on heating with alkaline KMnO<sub>4</sub> followed by acidification?', ['Toluene', 'Ethylbenzene', 'Isopropylbenzene', 'tert-Butylbenzene'], [0, 1, 2],
+  '<p>Oxidation needs at least one benzylic C-H. Toluene, ethylbenzene and isopropylbenzene have one; tert-butylbenzene has none, so it is not oxidised.</p>');
+
+// ---------- integer ----------
+xnat(5, 'counting substitution products', 'How many monobromo structural isomers can methylcyclohexane give on bromination (ignoring stereoisomers)?', 5, 0, '',
+  '<p>Substitution at C1 (the carbon with CH<sub>3</sub>), C2, C3 (equivalent to C5 and C6 respectively), C4, and on the CH<sub>3</sub> group: 1 + 1 + 1 + 1 + 1 = <b>5</b>.</p>', 'C2 and C6 are equivalent, C3 and C5 are equivalent; C4 is unique.', () => 5);
+xnat(4, 'counting substitution products', 'Monochlorination of 2-methylbutane gives several structural isomers. How many products are possible in all if stereoisomers (enantiomers) are counted separately?', 6, 0, '',
+  '<p>Four structural isomers: 1-chloro-2-methylbutane (chiral, 2 stereoisomers), 2-chloro-2-methylbutane (1), 2-chloro-3-methylbutane (chiral, 2), 1-chloro-3-methylbutane (1). Total 2 + 1 + 2 + 1 = <b>6</b>.</p>', 'Answering 4 forgets that two products have a stereocentre.', () => 2 + 1 + 2 + 1);
+xnat(4, 'alkene isomers', 'How many alkenes of formula C<sub>5</sub>H<sub>10</sub> (open chain, counting cis and trans separately) exist?', 6, 0, '',
+  '<p>Pent-1-ene, pent-2-ene (cis and trans: 2), 2-methylbut-1-ene, 3-methylbut-1-ene, 2-methylbut-2-ene. That is 1 + 2 + 1 + 1 + 1 = <b>6</b>.</p>', 'Without counting cis/trans separately the answer is 5.', () => 1 + 2 + 1 + 1 + 1);
+xnat(5, 'cyclic stereoisomers', 'How many stereoisomers does 1,3-dimethylcyclohexane have?', 3, 0, '',
+  '<p>cis-1,3-dimethylcyclohexane has an internal mirror plane (meso, 1). trans-1,3-dimethylcyclohexane has no plane of symmetry and exists as two enantiomers (2). Total <b>3</b>.</p>', '1,4-Dimethylcyclohexane has only 2 (both achiral).', () => 1 + 2);
+xnat(5, 'ring substitution', 'How many isomeric compounds of formula C<sub>6</sub>H<sub>3</sub>Cl<sub>2</sub>Br are possible (benzene derivatives)?', 6, 0, '',
+  '<p>The three substituents can be 1,2,3 (Br in the middle or at the end: 2), 1,2,4 (Br at each of the three different positions: 3) or 1,3,5 (1). Total 2 + 3 + 1 = <b>6</b>.</p>', '', () => _ringIso(['Cl', 'Cl', 'Br']));
+xnat(5, 'Wurtz reaction', 'A mixture of CH<sub>3</sub>Br, CH<sub>3</sub>CH<sub>2</sub>Br and CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>Br is treated with sodium in dry ether. How many different alkanes are formed?', 5, 0, '',
+  '<p>Combinations: CH<sub>3</sub>-CH<sub>3</sub> (ethane), CH<sub>3</sub>-C<sub>2</sub>H<sub>5</sub> (propane), CH<sub>3</sub>-C<sub>3</sub>H<sub>7</sub> (butane), C<sub>2</sub>H<sub>5</sub>-C<sub>2</sub>H<sub>5</sub> (butane again), C<sub>2</sub>H<sub>5</sub>-C<sub>3</sub>H<sub>7</sub> (pentane), C<sub>3</sub>H<sub>7</sub>-C<sub>3</sub>H<sub>7</sub> (hexane). Six couplings but butane appears twice, so <b>5</b> different alkanes.</p>', 'Six couplings give only five different compounds.', () => new Set([1 + 1, 1 + 2, 1 + 3, 2 + 2, 2 + 3, 3 + 3]).size);
+xnat(4, 'hydrogenation', 'How many moles of H<sub>2</sub> are needed to convert one mole of naphthalene (C<sub>10</sub>H<sub>8</sub>) completely to decalin (C<sub>10</sub>H<sub>18</sub>)?', 5, 0, '',
+  '<p>Each H<sub>2</sub> removes one degree of unsaturation. C<sub>10</sub>H<sub>8</sub> to C<sub>10</sub>H<sub>18</sub> adds 10 H, so <b>5</b> mol of H<sub>2</sub>.</p>', '', () => (18 - 8) / 2);
+xnat(4, 'alkene identification', 'How many different alkenes give 2-methylbutane on catalytic hydrogenation?', 3, 0, '',
+  '<p>The carbon skeleton C-C(C)-C-C stays unchanged. Double bond positions: 2-methylbut-1-ene, 3-methylbut-1-ene and 2-methylbut-2-ene, so <b>3</b>.</p>', '', () => 3);
+xnat(5, 'dehydrohalogenation', 'How many alkenes (counting E and Z forms separately) can form from 3-bromo-3-methylhexane, CH<sub>3</sub>CH<sub>2</sub>C(Br)(CH<sub>3</sub>)CH<sub>2</sub>CH<sub>2</sub>CH<sub>3</sub>, by loss of HBr?', 5, 0, '',
+  '<p>Eliminating toward the ethyl CH<sub>2</sub> gives 3-methylhex-2-ene (E and Z: 2). Toward the methyl group gives 2-ethylpent-1-ene (1). Toward the propyl CH<sub>2</sub> gives 3-methylhex-3-ene (E and Z: 2). Total 2 + 1 + 2 = <b>5</b>.</p>', 'Zaitsev gives the major product, but the question asks for all possible.', () => 2 + 1 + 2);
+xnat(4, "Friedel-Crafts reaction", 'How many of these fail to undergo Friedel-Crafts alkylation: nitrobenzene, chlorobenzene, toluene, benzaldehyde, aniline, acetophenone?', 4, 0, '',
+  '<p>Strongly deactivated rings fail (nitrobenzene, benzaldehyde, acetophenone). Aniline fails because its NH<sub>2</sub> reacts with AlCl<sub>3</sub> and the ring becomes deactivated. Chlorobenzene and toluene react. Answer <b>4</b>.</p>', 'Chlorobenzene is deactivated but does react.', () => ['nitro', 'cl', 'tol', 'cho', 'aniline', 'acetophenone'].filter((x) => ['nitro', 'cho', 'aniline', 'acetophenone'].includes(x)).length);
+xnat(4, 'volume analysis', '10 mL of a gaseous hydrocarbon C<sub>x</sub>H<sub>y</sub> is burnt in 70 mL of O<sub>2</sub>. After cooling to the original temperature the volume is 50 mL, and 20 mL remains after KOH solution. Find y.', 8, 0, '',
+  '<p>KOH absorbs CO<sub>2</sub>: 50 - 20 = 30 mL, so x = 3 per molecule. The remaining 20 mL is unused O<sub>2</sub>, so O<sub>2</sub> used = 50 mL = 5 per hydrocarbon: x + y/4 = 5, y/4 = 2, y = <b>8</b> (propane).</p>', 'Water vapour condenses and takes no volume.', () => 4 * (5 - (50 - 20) / 10));
+
+// ---------- numeric ----------
+xnat(5, 'selectivity of halogenation', 'Chlorination of 2-methylbutane has relative reactivities 1&deg; : 2&deg; : 3&deg; = 1 : 3.8 : 5 per H. Find the percentage of 2-chloro-2-methylbutane in the monochloro mixture.', 23.1, 0.2, '%',
+  '<p>2-Methylbutane has 9 primary H, 2 secondary H and 1 tertiary H. Weights: 9 &times; 1 = 9; 2 &times; 3.8 = 7.6; 1 &times; 5 = 5. Total 21.6. Tertiary share = 5/21.6 &times; 100 = <b>23.1%</b>.</p>', 'Ignoring the number of hydrogens of each kind.', () => 5 / (9 * 1 + 2 * 3.8 + 1 * 5) * 100);
+xnat(4, 'selectivity of halogenation', 'Bromination of propane has relative reactivities 1&deg; : 2&deg; = 1 : 82 per H. Find the percentage of 2-bromopropane in the product.', 96.5, 0.2, '%',
+  '<p>Propane has 6 primary H and 2 secondary H. Weights: 6 &times; 1 = 6; 2 &times; 82 = 164. 2-Bromopropane = 164/170 &times; 100 = <b>96.5%</b>.</p>', '', () => 164 / (6 + 164) * 100);
+xnat(3, 'combustion of hydrocarbons', 'What mass of CO<sub>2</sub> (g) is produced on complete combustion of 7.2 g of pentane (C<sub>5</sub>H<sub>12</sub>, M = 72)?', 22.0, 0.1, 'g',
+  '<p>7.2 g = 0.10 mol pentane. C<sub>5</sub>H<sub>12</sub> + 8O<sub>2</sub> &rarr; 5CO<sub>2</sub> + 6H<sub>2</sub>O gives 0.50 mol CO<sub>2</sub> = 0.50 &times; 44 = <b>22.0 g</b>.</p>', '', () => 7.2 / 72 * 5 * 44);
+xnat(5, 'delocalisation energy', 'The heat of hydrogenation of but-1-ene is -127 kJ/mol and of buta-1,3-diene (to butane) is -239 kJ/mol. Find the stabilisation energy due to conjugation in butadiene in kJ/mol.', 15, 0.5, 'kJ/mol',
+  '<p>Without conjugation, butadiene would release 2 &times; 127 = 254 kJ/mol. It releases only 239, so it is more stable by 254 - 239 = <b>15 kJ/mol</b>.</p>', '', () => 2 * 127 - 239);
+xnat(4, 'preparation of ethyne', '64 g of calcium carbide (CaC<sub>2</sub>, M = 64) reacts with excess water. The yield of ethyne is 80%. What mass of ethyne (g) is obtained? (C<sub>2</sub>H<sub>2</sub> = 26)', 20.8, 0.1, 'g',
+  '<p>CaC<sub>2</sub> + 2H<sub>2</sub>O &rarr; Ca(OH)<sub>2</sub> + C<sub>2</sub>H<sub>2</sub>. 64 g = 1 mol gives 1 mol (26 g) at 100%. At 80%: 0.80 &times; 26 = <b>20.8 g</b>.</p>', '', () => 64 / 64 * 26 * 0.8);
+xnat(3, 'combustion of hydrocarbons', 'The enthalpy of combustion of ethane is -1560 kJ/mol. How much heat (kJ) is released on burning 11.2 L of ethane at STP?', 780, 2, 'kJ',
+  '<p>11.2 L at STP = 0.5 mol. Heat = 0.5 &times; 1560 = <b>780 kJ</b>.</p>', '', () => 11.2 / 22.4 * 1560);
+xnat(5, 'Kolbe electrolysis', 'Aqueous sodium ethanoate is electrolysed (Kolbe) with a current of 9.65 A for 1000 s. Assuming 100% efficiency, what total volume of gas (ethane + CO<sub>2</sub>) forms at the anode at STP, in litres?', 3.36, 0.03, 'L',
+  '<p>Charge = 9650 C = 0.1 F = 0.1 mol e<sup>-</sup>. 2CH<sub>3</sub>COO<sup>-</sup> &rarr; C<sub>2</sub>H<sub>6</sub> + 2CO<sub>2</sub> + 2e<sup>-</sup>: 2 mol e<sup>-</sup> give 3 mol gas. Gas = 0.1 &times; 3/2 = 0.15 mol = 0.15 &times; 22.4 = <b>3.36 L</b> (0.05 mol ethane + 0.10 mol CO<sub>2</sub>).</p>', 'Counting only the ethane, or taking 1 e<sup>-</sup> per mol gas.', () => 9650 / 96500 * 3 / 2 * 22.4);
+
+// ---------- passages ----------
+xpassage('xp1', 'A sequence from propyne', '<p>Propyne (A) is treated with sodium amide, and the product is then treated with methyl bromide to give B (C<sub>4</sub>H<sub>6</sub>). B is reduced with Na in liquid ammonia to give C, and, separately, hydrated with HgSO<sub>4</sub>/dilute H<sub>2</sub>SO<sub>4</sub> to give D.</p>');
+xmk(3, 'alkyne alkylation', 'The compound B is', 'but-2-yne', ['but-1-yne', 'buta-1,3-diene', '2-methylpropene'],
+  '<p>Sodium amide removes the acidic sp C-H to give CH<sub>3</sub>C&equiv;C<sup>-</sup> Na<sup>+</sup>; the acetylide attacks CH<sub>3</sub>Br to give CH<sub>3</sub>C&equiv;CCH<sub>3</sub>, <b>but-2-yne</b>.</p>', '', 'passage', 'xp1');
+xmk(4, 'alkyne reduction', 'The compound C is', 'trans-but-2-ene', ['cis-but-2-ene', 'butane', 'but-1-ene'],
+  '<p>Na in liquid NH<sub>3</sub> reduces an internal alkyne by anti addition of hydrogen, giving the <b>trans</b> alkene.</p>', '', 'passage', 'xp1');
+xnat(4, 'sigma and pi bonds', 'The total number of &sigma; bonds in D is', 12, 0, '',
+  '<p>D is butan-2-one, CH<sub>3</sub>COCH<sub>2</sub>CH<sub>3</sub>. &sigma; bonds: 8 C-H + 3 C-C + 1 C=O (&sigma; part) = <b>12</b>.</p>', 'The C=O contributes one &sigma; and one &pi;.', () => 8 + 3 + 1, 'passage', 'xp1');
+xpassage('xp2', 'Nitration of toluene', '<p>Nitration of toluene with mixed acid gives approximately 58% ortho, 4% meta and 38% para mononitrotoluene. There are two ortho positions, two meta positions and one para position on the ring.</p>');
+xnat(5, 'partial rate factors', 'How many times faster is substitution at one para position than at one meta position?', 19, 0.5, '',
+  '<p>Per position: para 38% on one site = 38. Meta: 4% shared by two sites = 2 per site. Ratio = 38/2 = <b>19</b>.</p>', 'Comparing totals (38 and 4) gives 9.5.', () => 38 / (4 / 2), 'passage', 'xp2');
+xmk(4, 'directing effects', 'The methyl group directs the incoming nitro group mainly to the ortho and para positions because', 'in the ortho and para attacks the arenium ion has a resonance form with the positive charge on the carbon bearing CH<sub>3</sub>, which is stabilised by hyperconjugation and +I', ['the CH<sub>3</sub> group donates a lone pair by +M', 'meta attack is sterically hindered by CH<sub>3</sub>', 'the CH<sub>3</sub> group deactivates the meta position by &minus;M'],
+  '<p>Ortho and para attack put positive charge on C1 (bearing CH<sub>3</sub>), a tertiary-like carbocation stabilised by the methyl group. Meta attack never places charge on C1. Methyl has no lone pair and is far from the meta position.</p>', '', 'passage', 'xp2');
+xmk(3, 'electrophilic substitution', 'Compared with benzene, toluene is nitrated', 'faster, because CH<sub>3</sub> activates the ring', ['slower, because CH<sub>3</sub> deactivates the ring', 'at the same rate', 'faster, because CH<sub>3</sub> has a &minus;I effect'],
+  '<p>Methyl donates electrons (+I and hyperconjugation), stabilising the arenium ion transition state, so toluene reacts about 25 times faster than benzene.</p>', '', 'passage', 'xp2');
+
+// ---------- assertion / reason ----------
+xasr(2, 'alkanes', 'Alkanes are generally unreactive towards ionic reagents such as acids and bases.', 'The C-C and C-H bonds are strong and almost non-polar.', 0, '<p>Both true; R explains A: there are no polar sites for an ion to attack.</p>');
+xasr(3, 'halogenation', 'Methane and chlorine do not react in the dark at room temperature.', 'Light or heat is needed to split Cl<sub>2</sub> into chlorine atoms to start the chain.', 0, '<p>Both true; R explains A. Without initiation there are no Cl&bull; radicals to abstract hydrogen.</p>');
+xasr(3, 'peroxide effect', 'HBr adds to propene in the presence of a peroxide to give 1-bromopropane.', 'Br&bull; adds to the terminal carbon to give the more stable secondary radical.', 0, '<p>Both true; R explains A. The radical chain gives CH<sub>3</sub>CH&bull;CH<sub>2</sub>Br, then abstracts H from HBr.</p>');
+xasr(5, 'peroxide effect', 'The peroxide effect is not observed with HCl and HI.', 'The H-Cl bond is too strong for the abstraction step, and iodine atoms combine to give I<sub>2</sub> instead of adding to the alkene.', 0, '<p>Both true; R explains A. Only HBr has the right bond strength for both propagation steps to be favourable.</p>');
+xasr(2, 'acidity of alkynes', 'Ethyne is more acidic than ethene and ethane.', 'The sp hybridised carbon has more s-character and is more electronegative than sp<sup>2</sup> and sp<sup>3</sup> carbons.', 0, '<p>Both true; R explains A. The acetylide anion holds its lone pair in an orbital with 50% s-character, close to the nucleus.</p>');
+xasr(5, 'physical properties', 'cis-But-2-ene has a higher boiling point than trans-but-2-ene.', 'The cis isomer has a small net dipole moment, while the trans isomer has none.', 0, '<p>Both true; R explains A: dipole-dipole attractions raise the boiling point (3.7 &deg;C against 0.9 &deg;C).</p>');
+xasr(3, 'benzene reactions', 'Benzene prefers to undergo substitution rather than addition.', 'Substitution retains the aromatic stabilisation of the ring.', 0, '<p>Both true; R explains A: addition would destroy the delocalised 6 &pi; electron system (about 150 kJ/mol).</p>');
+xasr(3, 'Friedel-Crafts', 'Nitrobenzene does not undergo Friedel-Crafts reactions.', 'The nitro group strongly deactivates the benzene ring.', 0, '<p>Both true; R explains A. The ring is too electron-poor to attack the carbocation or acylium ion.</p>');
+xasr(5, 'stereochemistry of addition', 'Anti addition of Br<sub>2</sub> to cis-but-2-ene gives a racemic mixture of (2R,3R)- and (2S,3S)-2,3-dibromobutane.', 'The bromonium ion is opened by Br<sup>-</sup> attacking either carbon with equal probability.', 0, '<p>Both true; R explains A. Attack at one carbon gives the (R,R) product; at the other, the (S,S) product, in equal amounts.</p>');
+
+// ---------- statements ----------
+xstm(2, 'free radical chain', 'Free radical halogenation of alkanes proceeds by a chain mechanism.', 'A termination step forms a stable molecule from two radicals.', 0, '<p>Both correct: initiation, propagation, then termination, e.g. Cl&bull; + Cl&bull; &rarr; Cl<sub>2</sub>.</p>');
+xstm(3, "Markovnikov's rule", 'Markovnikov addition is explained by the greater stability of a secondary carbocation than a primary.', 'In the addition of HBr to propene without peroxide, the intermediate is the isopropyl carbocation.', 0, '<p>Both correct: H<sup>+</sup> adds to the terminal carbon to give the more stable CH<sub>3</sub>CH<sup>+</sup>CH<sub>3</sub>.</p>');
+xstm(3, 'hydroboration', 'Hydroboration-oxidation of propene gives propan-2-ol.', 'Hydroboration-oxidation gives the anti-Markovnikov hydration product.', 2, '<p>I is incorrect: the product is propan-1-ol. II is correct.</p>');
+xstm(3, 'alkyne reduction', 'Lindlar\'s catalyst converts an alkyne to a cis-alkene.', 'Na in liquid NH<sub>3</sub> converts an alkyne to a trans-alkene.', 0, '<p>Both correct: syn addition of H<sub>2</sub> on the catalyst surface against anti addition through radical-anion intermediates.</p>');
+xstm(3, 'benzene', 'Benzene decolourises bromine water.', 'Benzene has three isolated C=C double bonds.', 3, '<p>Both incorrect: benzene does not react with bromine water; its six &pi; electrons are delocalised, so there are no isolated C=C bonds.</p>');
+xstm(4, 'side-chain oxidation', 'Toluene gives benzoic acid on oxidation with hot alkaline KMnO<sub>4</sub>.', 'Any alkylbenzene with at least one benzylic hydrogen gives benzoic acid under these conditions.', 0, '<p>Both correct: the whole side chain is cleaved down to COOH. tert-Butylbenzene, with no benzylic H, is not oxidised.</p>');
+xstm(4, 'selectivity', 'In free radical halogenation the product ratio depends on the number of each kind of H and on its reactivity (3&deg; &gt; 2&deg; &gt; 1&deg;).', 'Bromination is more selective than chlorination.', 0, '<p>Both correct. For propane, chlorination gives about 45% 2-chloropropane, bromination about 97% 2-bromopropane.</p>');
+xstm(4, 'cyclohexane', 'Cyclohexane in the chair form is free of angle strain and torsional strain.', 'All the adjacent C-H bonds in the chair form are staggered.', 0, '<p>Both correct. The chair has tetrahedral-like angles (about 111&deg;) and a perfectly staggered arrangement.</p>');
+
+// ---------- extra single answers ----------
+xmk(2, 'Wurtz reaction', 'Ethyl bromide is treated with sodium in dry ether. The main organic product is', 'butane', ['ethane', 'propane', 'ethene'],
+  '<p>2CH<sub>3</sub>CH<sub>2</sub>Br + 2Na &rarr; CH<sub>3</sub>CH<sub>2</sub>CH<sub>2</sub>CH<sub>3</sub> + 2NaBr. Two ethyl groups join: the carbon chain doubles.</p>');
+xmk(3, 'alkene preparation', 'Dehydration of butan-2-ol with concentrated H<sub>2</sub>SO<sub>4</sub> at 443 K gives mainly', 'but-2-ene', ['but-1-ene', 'butane', 'butanone'],
+  '<p>Elimination follows Zaitsev\'s rule: the more substituted alkene (but-2-ene, disubstituted) is the major product over but-1-ene.</p>');
+xmk(5, 'carbocation rearrangement', 'HBr adds to 3-methylbut-1-ene. The major product is', '2-bromo-2-methylbutane', ['2-bromo-3-methylbutane', '1-bromo-3-methylbutane', '1-bromo-2-methylbutane'],
+  '<p>H<sup>+</sup> adds to C1 to give the secondary cation (CH<sub>3</sub>)<sub>2</sub>CHCH<sup>+</sup>CH<sub>3</sub>. A 1,2-hydride shift gives the more stable tertiary cation (CH<sub>3</sub>)<sub>2</sub>C<sup>+</sup>CH<sub>2</sub>CH<sub>3</sub>, which captures Br<sup>-</sup>. The minor product is 2-bromo-3-methylbutane.</p>');
+xmk(3, 'directing effects', 'Chlorobenzene is nitrated. The major products are', 'o- and p-chloronitrobenzene, with para predominating', ['m-chloronitrobenzene', 'o- and m-chloronitrobenzene', '2,4,6-trinitrochlorobenzene only'],
+  '<p>Cl is ortho/para directing (lone pair, +M) although deactivating. Para is preferred over ortho because of steric hindrance.</p>');
+xmk(3, 'reactivity in substitution', 'The correct order of reactivity of these compounds towards electrophilic nitration is', 'toluene &gt; benzene &gt; chlorobenzene &gt; nitrobenzene', ['nitrobenzene &gt; chlorobenzene &gt; benzene &gt; toluene', 'benzene &gt; toluene &gt; chlorobenzene &gt; nitrobenzene', 'toluene &gt; chlorobenzene &gt; benzene &gt; nitrobenzene'],
+  '<p>Electron-donating CH<sub>3</sub> activates; Cl deactivates (&minus;I &gt; +M); NO<sub>2</sub> deactivates strongly.</p>');
+xmk(3, 'ozonolysis', 'Reductive ozonolysis of which alkene gives ethanal and propanone?', '2-methylbut-2-ene', ['but-2-ene', '2-methylbut-1-ene', '3-methylbut-1-ene'],
+  '<p>CH<sub>3</sub>CH=C(CH<sub>3</sub>)<sub>2</sub> splits into CH<sub>3</sub>CHO and (CH<sub>3</sub>)<sub>2</sub>C=O. 2-Methylbut-1-ene would give methanal and butanone.</p>');
+
+// ---------- templates ----------
+const _RS = [['Cl', 'Cl', 'Br'], ['Cl', 'Br', 'I'], ['Cl', 'Cl', 'Cl'], ['Cl', 'Cl', 'Cl', 'Br'], ['Cl', 'Cl', 'Br', 'Br'], ['Cl', 'Cl'], ['Cl', 'Br', 'NO₂'], ['Cl', 'Cl', 'Cl', 'Cl']];
+xgen({ type: 'nat', level: 4, sub: 'ring substitution',
+  make(rng) { const s = choose(rng, _RS); const n = _ringIso(s); const cnt = {}; s.forEach((x) => { cnt[x] = (cnt[x] || 0) + 1; });
+    const fm = `C<sub>6</sub>H<sub>${6 - s.length}</sub>${Object.entries(cnt).map(([k, v]) => (k === 'NO₂' ? 'NO<sub>2</sub>' : k) + (v > 1 ? `<sub>${v}</sub>` : '')).join('')}`;
+    return { q: `How many structural isomers are possible for the benzene derivative ${fm} (all substituents attached to the ring)?`, answer: n, tol: 0, s, n,
+      sol: `<p>Place the ${s.length} substituents on the six ring positions and count arrangements that cannot be turned into each other by rotating or flipping the ring (the hexagon has 12 symmetries).</p><p>Number of isomers = <b>${n}</b>.</p>`, trap: 'Positions equivalent by ring symmetry give the same compound.' };
+  }, verify: (p) => _ringBurnside(p.s) });
+xgen({ type: 'nat', level: 4, sub: 'Wurtz reaction',
+  make(rng) { const pool = [1, 2, 3, 4, 5]; const k = choose(rng, [3, 4]); const ch = []; while (ch.length < k) ch.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]); ch.sort((a, b) => a - b);
+    const sums = new Set(); for (let i = 0; i < ch.length; i++) for (let j = i; j < ch.length; j++) sums.add(ch[i] + ch[j]);
+    const nm = (n) => (n === 1 ? 'CH<sub>3</sub>Br' : `n-C<sub>${n}</sub>H<sub>${2 * n + 1}</sub>Br`);
+    return { q: `A mixture of the straight-chain alkyl bromides ${ch.map(nm).join(', ')} is treated with sodium in dry ether (Wurtz reaction). How many different alkanes are formed? (Treat each coupling as giving a straight-chain alkane.)`, answer: sums.size, tol: 0, ch,
+      sol: `<p>Every pair (including a halide with itself) can couple. The product is a straight-chain alkane with C = (carbons of one group) + (carbons of the other).</p><p>Pair sums: ${[...sums].sort((a, b) => a - b).join(', ')}. Equal sums give the same alkane, so there are <b>${sums.size}</b> different alkanes.</p>`, trap: 'Different pairs can give the same alkane, so count distinct carbon totals.' };
+  }, verify: (p) => { const all = []; for (const a of p.ch) for (const b of p.ch) all.push(Math.min(a, b) * 100 + Math.max(a, b)); const set = new Set(all); const tot = new Set([...set].map((x) => Math.floor(x / 100) + (x % 100))); return tot.size; } });
+xgen({ type: 'nat', level: 3, sub: 'preparation of ethyne',
+  make(rng) { const m = choose(rng, [32, 64, 96, 128, 160]); const y = choose(rng, [60, 75, 80, 90]); const V = m / 64 * y / 100 * 22.4;
+    return { q: `${m} g of calcium carbide (CaC<sub>2</sub>, M = 64) reacts with excess water and gives ethyne in ${y}% yield. What volume of ethyne (in litres at STP, 22.4 L/mol) is obtained?`, answer: +V.toPrecision(4), tol: V * 0.01, unit: 'L', m, y,
+      sol: `<p>CaC<sub>2</sub> + 2H<sub>2</sub>O &rarr; Ca(OH)<sub>2</sub> + C<sub>2</sub>H<sub>2</sub>. Moles of CaC<sub>2</sub> = ${m}/64 = ${fmt(m / 64, 3)}, which could give the same moles of ethyne.</p><p>At ${y}%: ${fmt(m / 64, 3)} &times; ${y / 100} = ${fmt(m / 64 * y / 100, 3)} mol = ${fmt(m / 64 * y / 100, 3)} &times; 22.4 = <b>${fmt(V, 4)} L</b>.</p>` };
+  }, verify: (p) => (p.m / 64) * (p.y / 100) * 22.4 });
+xgen({ type: 'nat', level: 5, sub: 'Kolbe electrolysis',
+  make(rng) { const I = choose(rng, [1.93, 4.825, 9.65, 19.3]); const t = choose(rng, [500, 1000, 2000]); const mol = I * t / 96500; const V = mol * 1.5 * 22.4;
+    return { q: `Aqueous sodium ethanoate is electrolysed (Kolbe electrolysis) with ${I} A for ${t} s at 100% efficiency. What total volume of gas (ethane and CO<sub>2</sub>) is evolved at the anode at STP, in litres? (F = 96 500 C/mol, 22.4 L/mol)`, answer: +V.toPrecision(4), tol: V * 0.01 + 0.001, unit: 'L', I, t,
+      sol: `<p>Moles of electrons = ${I} &times; ${t}/96 500 = ${fmt(mol, 3)}.</p><p>2CH<sub>3</sub>COO<sup>-</sup> &rarr; C<sub>2</sub>H<sub>6</sub> + 2CO<sub>2</sub> + 2e<sup>-</sup>, so 2 mol e<sup>-</sup> give 3 mol gas, i.e. 1.5 mol gas per mol e<sup>-</sup>.</p><p>Gas = ${fmt(mol, 3)} &times; 1.5 &times; 22.4 = <b>${fmt(V, 4)} L</b>.</p>` };
+  }, verify: (p) => (p.I * p.t / 96500) * 3 / 2 * 22400 / 1000 });
+xgen({ type: 'nat', level: 4, sub: 'bromine uptake',
+  make(rng) { const a = choose(rng, [2.8, 5.6, 8.4]); const b = choose(rng, [2.6, 5.2, 7.8]); const br = (a / 28 + 2 * b / 26) * 160;
+    return { q: `A mixture of ${a} g of ethene and ${b} g of ethyne is passed through excess bromine in CCl<sub>4</sub>. What mass of bromine (g) is consumed? (C<sub>2</sub>H<sub>4</sub> = 28, C<sub>2</sub>H<sub>2</sub> = 26, Br<sub>2</sub> = 160)`, answer: +br.toPrecision(4), tol: br * 0.01, unit: 'g', a, b,
+      sol: `<p>Ethene: ${a}/28 = ${fmt(a / 28, 3)} mol, adds 1 Br<sub>2</sub> each. Ethyne: ${b}/26 = ${fmt(b / 26, 3)} mol, adds 2 Br<sub>2</sub> each.</p><p>Br<sub>2</sub> = (${fmt(a / 28, 3)} + 2 &times; ${fmt(b / 26, 3)}) = ${fmt(a / 28 + 2 * b / 26, 3)} mol &times; 160 = <b>${fmt(br, 4)} g</b>.</p>`, trap: 'An alkyne takes up two molecules of Br<sub>2</sub>.' };
+  }, verify: (p) => 160 * (p.a / 28) + 160 * 2 * (p.b / 26) });
+xgen({ type: 'mcq', level: 3, sub: 'reactivity in substitution',
+  make(rng) { const T = [['phenol', 5], ['methoxybenzene', 5], ['toluene', 4], ['benzene', 3], ['chlorobenzene', 2], ['benzaldehyde', 1], ['nitrobenzene', 0], ['benzoic acid', 1]];
+    const pool = [...T]; const pk = []; while (pk.length < 4) { const x = pool.splice(Math.floor(rng() * pool.length), 1)[0]; if (!pk.some((y) => y[1] === x[1])) pk.push(x); }
+    const best = pk.reduce((a, b) => (b[1] > a[1] ? b : a)); const o = shuffleOpts(rng, best[0], pk.filter((x) => x !== best).map((x) => x[0]));
+    return { q: 'Which of these compounds undergoes electrophilic nitration fastest?', options: o.options, answer: o.answer, pk, best: best[0],
+      sol: `<p>Electron-donating groups (OH, OCH<sub>3</sub> by +M; CH<sub>3</sub> by +I) activate the ring; Cl deactivates weakly; CHO, COOH and NO<sub>2</sub> deactivate strongly. Among the choices, <b>${best[0]}</b> is the most activated.</p>`, trap: 'Chlorine is deactivating even though it is ortho/para directing.' };
+  }, verify: (p) => (p.options[p.answer] === p.best ? p.answer : -1) });
+const _HH = [['ethene', 137], ['propene', 126], ['but-1-ene', 127], ['cis-but-2-ene', 120], ['trans-but-2-ene', 116], ['2-methylpropene', 119], ['2-methylbut-2-ene', 113], ['2,3-dimethylbut-2-ene', 111]];
+xgen({ type: 'mcq', level: 4, sub: 'stability of alkenes',
+  make(rng) { const pool = [..._HH]; const pk = []; while (pk.length < 4) pk.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    const best = pk.reduce((a, b) => (b[1] < a[1] ? b : a)); const o = shuffleOpts(rng, best[0], pk.filter((x) => x !== best).map((x) => x[0]));
+    return { q: 'Which of these alkenes is the most stable (that is, releases the least heat on catalytic hydrogenation to the alkane)?', options: o.options, answer: o.answer, pk, best: best[0],
+      sol: `<p>Approximate heats of hydrogenation (kJ/mol): ${pk.map((x) => `${x[0]} ${x[1]}`).join('; ')}. The smallest heat means the most stable alkene: <b>${best[0]}</b>.</p>`, trap: 'More substituents and trans geometry make an alkene more stable (less exothermic hydrogenation).' };
+  }, verify: (p) => (p.options[p.answer] === p.best ? p.answer : -1) });
+const _DT = [['ethane and ethene', 'bromine in CCl<sub>4</sub> (or cold dilute KMnO<sub>4</sub>)'], ['ethene and ethyne', 'ammoniacal silver nitrate'], ['propyne and but-2-yne', 'ammoniacal silver nitrate'], ['hexane and hex-1-ene', 'bromine in CCl<sub>4</sub> (or cold dilute KMnO<sub>4</sub>)'], ['benzene and toluene', 'hot alkaline KMnO<sub>4</sub>'], ['pent-1-yne and pent-2-yne', 'ammoniacal silver nitrate']];
+xgen({ type: 'mcq', level: 3, sub: 'distinguishing tests',
+  make(rng) { const [pair, right] = choose(rng, _DT); const all = [...new Set(_DT.map((x) => x[1]))]; const wr = all.filter((x) => x !== right).concat(['anhydrous AlCl<sub>3</sub>', 'dilute HCl']); const pk = []; while (pk.length < 3) pk.push(wr.splice(Math.floor(rng() * wr.length), 1)[0]); const o = shuffleOpts(rng, right, pk);
+    return { q: `A simple test to distinguish between ${pair} is`, options: o.options, answer: o.answer, pair, right,
+      sol: `<p>Choose the group present in one compound and absent in the other. Alkenes and alkynes decolourise bromine; terminal alkynes (with an acidic sp C-H) give a precipitate with ammoniacal AgNO<sub>3</sub>; an alkyl side chain with a benzylic H is oxidised to COOH by hot alkaline KMnO<sub>4</sub>.</p><p>For ${pair}: <b>${right}</b>.</p>`, trap: 'Both an alkene and an alkyne decolourise bromine, so use the acidic C-H to separate a terminal alkyne.' };
+  }, verify: (p) => p.options.indexOf(p.right) });
+
 export default {
   topic: 'hydrocarbons',
-  groups: GRP,
-  items: [...HAND1, ...HAND3, ...HAND4, ...HAND5, ...MATCH, ...PASSAGES, ...REACTION_ITEMS, ...COUNT_ITEMS, ...AROM_ITEMS],
-  gens: GENS,
+  groups: { ...GRP, ...XGRP },
+  items: [...HAND1, ...HAND3, ...HAND4, ...HAND5, ...MATCH, ...PASSAGES, ...REACTION_ITEMS, ...COUNT_ITEMS, ...AROM_ITEMS, ...XI],
+  gens: [...GENS, ...XGENS],
 };

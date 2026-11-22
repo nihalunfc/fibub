@@ -554,4 +554,329 @@ const gens = [
   },
 ];
 
+
+
+// ===== expansion begin =====
+// Expansion pass (2026-11-22): more L3-L5 items, new match/multi/passage items and templates. New ids ss-x001.. and ss-g19..
+const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
+const MV = (id, lv, sub, q, truth, corr, wrongs, sol, trap) => {
+  const it = M(id, lv, sub, q, corr[0], wrongs.map((w) => w[0]), sol, trap);
+  const vals = wrongs.map((w) => w[1]); vals.splice(it.answer, 0, corr[1]);
+  it.calc = () => vals.findIndex((v) => near(v, truth(), 1e-9)); it.calc.idx = true;
+  return it;
+};
+const XT = (id, lv, sub, q, rows, trap) => X(id, lv, sub, q, rows.map((r) => r[0]), rows.map((r, i) => (r[1] ? i : -1)).filter((i) => i >= 0),
+  '<p>' + rows.map((r) => `${r[1] ? '✓' : '✗'} ${r[2]}`).join(' ') + '</p>', trap);
+const ssum = (f, a, b) => { let s = 0; for (let k = a; k <= b; k++) s += f(k); return s; };
+const lim = (step, x0, n = 200) => { let x = x0; for (let i = 0; i < n; i++) x = step(x); return x; };
+const termsOf = (S, n) => Array.from({ length: n }, (_, i) => S(i + 1) - S(i));
+const isAP = (a) => a.slice(2).every((v, i) => near(v - a[i + 1], a[1] - a[0], 1e-9));
+const isGP = (a) => a.every((v) => v !== 0) && a.slice(2).every((v, i) => near(v / a[i + 1], a[1] / a[0], 1e-9));
+
+Object.assign(groups, {
+  mx1: { title: 'Standard sums', passage: R`<p>Match each sum in List I with its value in List II.</p>`,
+    list1: ['A. $1+2+\\cdots+10$', 'B. $1^2+2^2+\\cdots+10^2$', 'C. $1^3+2^3+\\cdots+10^3$', 'D. $2+4+\\cdots+20$'], list2: ['p. $55$', 'q. $110$', 'r. $385$', 's. $3025$'] },
+  mx2: { title: 'Infinite series', passage: R`<p>Match each infinite series in List I with its sum in List II.</p>`,
+    list1: ['A. $4+2+1+\\cdots$', 'B. $1-\\dfrac12+\\dfrac14-\\cdots$', 'C. $0.4545\\ldots$', 'D. $9-3+1-\\cdots$'], list2: ['p. $8$', 'q. $\\dfrac23$', 'r. $\\dfrac5{11}$', 's. $\\dfrac{27}4$'] },
+  mx3: { title: 'Recurring decimals', passage: R`<p>Match each recurring decimal in List I with the fraction in List II.</p>`,
+    list1: ['A. $0.\\overline{36}$', 'B. $0.1\\overline6$', 'C. $0.\\overline{142857}$', 'D. $0.4\\overline5$'], list2: ['p. $\\dfrac4{11}$', 'q. $\\dfrac16$', 'r. $\\dfrac17$', 's. $\\dfrac{41}{90}$'] },
+  mx4: { title: 'Arithmetico-geometric series', passage: R`<p>Match each infinite series in List I (sum over $n=1,2,3,\\dots$) with its sum in List II.</p>`,
+    list1: ['A. $\\sum\\dfrac n{2^n}$', 'B. $\\sum\\dfrac n{3^n}$', 'C. $\\sum\\dfrac{n^2}{2^n}$', 'D. $\\sum\\dfrac{n+1}{2^n}$'], list2: ['p. $\\dfrac34$', 'q. $2$', 'r. $3$', 's. $6$'] },
+  mx5: { title: 'An AP with a = 2, d = 3', passage: R`<p>An AP has first term 2 and common difference 3. Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. The 10th term', 'B. The sum of the first 10 terms', 'C. The least $n$ with $a_n>100$', 'D. The common difference of the AP with $a_5=14$, $a_9=26$'], list2: ['p. $29$', 'q. $155$', 'r. $34$', 's. $3$'] },
+  mx6: { title: 'A GP with a = 3, r = 2', passage: R`<p>Match each quantity in List I with its value in List II.</p>`,
+    list1: ['A. The 6th term of the GP $3,6,12,\\dots$', 'B. The sum of its first 6 terms', 'C. The sum of the infinite GP with $a=12$, $r=\\frac13$', 'D. The ratio of a GP whose infinite sum is $2a$'], list2: ['p. $96$', 'q. $189$', 'r. $18$', 's. $\\dfrac12$'] },
+  mx7: { title: 'Telescoping sums', passage: R`<p>Match each infinite series in List I with its sum in List II.</p>`,
+    list1: ['A. $\\sum_{n=1}^\\infty\\dfrac1{n(n+1)}$', 'B. $\\sum_{n=1}^\\infty\\dfrac1{n(n+2)}$', 'C. $\\sum_{n=1}^\\infty\\dfrac1{n(n+1)(n+2)}$', 'D. $\\sum_{n=1}^\\infty\\dfrac1{(2n-1)(2n+1)}$'], list2: ['p. $1$', 'q. $\\dfrac34$', 'r. $\\dfrac14$', 's. $\\dfrac12$'] },
+  mx8: { title: 'Limits of recurrences', passage: R`<p>Each sequence starts at $a_1=1$, except D which starts at $a_1=2$. Match the recurrence in List I with the limit of $a_n$ in List II.</p>`,
+    list1: ['A. $a_{n+1}=\\sqrt{6+a_n}$', 'B. $a_{n+1}=\\dfrac12\\left(a_n+\\dfrac2{a_n}\\right)$', 'C. $a_{n+1}=1+\\dfrac1{a_n}$', 'D. $a_{n+1}=2-\\dfrac1{a_n}$ (start at $a_1=2$)'], list2: ['p. $3$', 'q. $\\sqrt2$', 'r. $\\dfrac{1+\\sqrt5}2$', 's. $1$'] },
+  pz4: { title: 'Passage: a savings plan', passage: R`<p>Asha saves Rs 500 in month 1 and Rs 50 more each month than the month before (an AP).</p>` },
+  pz5: { title: 'Passage: a draining tank', passage: R`<p>A tank loses 40 litres in the first minute. Each later minute it loses $80\%$ of what it lost in the minute before (a GP with $a=40$, $r=0.8$).</p>` },
+});
+
+// ----- L2 -----
+items.push(
+  M('ss-x001', 2, 'sum of an AP', R`In an AP the 13th term is 8. The sum of its first 25 terms is`, '200', ['100', '208', '104'],
+    R`<p>$S_{25}=\dfrac{25}2(a_1+a_{25})=25\,a_{13}$ because $a_{13}$ is the middle term. $=25\times8=200$.</p>`, 'The middle term times the number of terms.', { calc: () => 25 * 8 }),
+  I('ss-x002', 2, 'geometric means', R`Three positive geometric means are inserted between 2 and 32. Find their sum.`, 28,
+    R`<p>There are 5 terms: $2,2r,2r^2,2r^3,2r^4=32$, so $r^4=16$ and $r=2$. The means are $4,8,16$; sum $=28$.</p>`, 'Three means make five terms in all.', { calc: () => 4 + 8 + 16 }),
+  M('ss-x003', 2, 'sum of an AP', R`The sum $3+5+7+\cdots+31$ is`, '255', ['225', '240', '256'],
+    R`<p>The terms are $2k+1$ for $k=1..15$, so there are 15 terms. $S=\dfrac{15}2(3+31)=255$.</p>`, 'Count the terms first.', { calc: () => ssum((k) => 2 * k + 1, 1, 15) }),
+  I('ss-x004', 2, 'AM and GM', R`The arithmetic mean of two positive numbers is 13 and their geometric mean is 12. Find the larger number.`, 18,
+    R`<p>$a+b=26$ and $ab=144$. The numbers are roots of $t^2-26t+144=0$, i.e. $(t-8)(t-18)=0$. The larger is 18.</p>`, 'Form the quadratic with sum and product.', { calc: () => { for (let a = 1; a < 30; a++) { const b = 26 - a; if (a * b === 144) return Math.max(a, b); } return -1; } }),
+  M('ss-x005', 2, 'nth term of GP', R`The 10th term of the GP $3,6,12,\dots$ is`, '1536', ['768', '3072', '1728'],
+    R`<p>$a_{10}=3\times2^9=3\times512=1536$.</p>`, 'The power is $n-1=9$.', { calc: () => 3 * 2 ** 9 }),
+  M('ss-x006', 2, 'sum of a series', R`The value of $\sum_{n=1}^{10}(3n-1)$ is`, '155', ['165', '145', '150'],
+    R`<p>$3\sum n-\sum1=3\times55-10=155$.</p>`, 'Subtract 1 ten times.', { calc: () => ssum((n) => 3 * n - 1, 1, 10) }),
+);
+
+// ----- L3 -----
+const floorSum = ssum((n) => Math.floor(n / 3), 1, 40);
+items.push(
+  I('ss-x007', 3, 'nth term of AP', R`In an AP the 5th term is 11 and the 11th term is 5. Find the 20th term.`, -4,
+    R`<p>$6d=5-11=-6$, so $d=-1$. $a_{20}=a_5+15d=11-15=-4$.</p>`, 'The terms are decreasing.', { calc: () => 11 + 15 * ((5 - 11) / 6) }),
+  I('ss-x008', 3, 'term from the sum', R`The sum of the first $n$ terms of a sequence is $S_n=2n^2-3n$. Find its common difference.`, 4,
+    R`<p>$a_n=S_n-S_{n-1}=2(2n-1)-3=4n-5$ for $n\ge2$ (and $a_1=-1$ fits). Consecutive terms differ by 4.</p>`, 'Subtract consecutive sums.', { calc: () => { const S = (n) => 2 * n * n - 3 * n; return (S(3) - S(2)) - (S(2) - S(1)); } }),
+  I('ss-x009', 3, 'sum of a series', R`Find $\sum_{k=1}^{10}k(k+2)$.`, ssum((k) => k * (k + 2), 1, 10),
+    R`<p>$\sum k^2+2\sum k=385+2\times55=495$.</p>`, 'Expand first.', { calc: () => ssum((k) => k * (k + 2), 1, 10) }),
+  MV('ss-x010', 3, 'sum of a series', R`The sum $1+(1+2)+(1+2+3)+\cdots+(1+2+\cdots+10)$ equals`, () => ssum((n) => (n * (n + 1)) / 2, 1, 10), ['220', 220], [['385', 385], ['275', 275], ['165', 165]],
+    R`<p>The $n$th group is $\dfrac{n(n+1)}2$. $\sum\dfrac{n(n+1)}2=\dfrac12(385+55)=220$ (or $\dfrac{n(n+1)(n+2)}6$ with $n=10$).</p>`, 'Add $\\sum n^2$ and $\\sum n$ together.'),
+  I('ss-x011', 3, 'sum of an AP', R`Find the sum of all two-digit numbers that are divisible by 4.`, ssum((k) => 4 * k, 3, 24),
+    R`<p>12, 16, ..., 96. Number of terms $\dfrac{96-12}4+1=22$. Sum $=\dfrac{22}2(12+96)=1188$.</p>`, '12 is the first two-digit multiple of 4.', { calc: () => ssum((k) => 4 * k, 3, 24) }),
+  MV('ss-x012', 3, 'recurring decimal', R`The recurring decimal $0.2333\ldots$ equals`, () => 0.2 + 3 / 90, [R`$\dfrac7{30}$`, 7 / 30], [[R`$\dfrac{23}{99}$`, 23 / 99], [R`$\dfrac29$`, 2 / 9], [R`$\dfrac{23}{90}$`, 23 / 90]],
+    R`<p>$0.2333\ldots=\dfrac2{10}+\dfrac{0.0333\ldots}1=\dfrac15+\dfrac1{30}=\dfrac7{30}$. (Or: $10x=2.333\ldots$, $100x=23.333\ldots$, subtract: $90x=21$.)</p>`, 'Only the 3 repeats.'),
+  I('ss-x013', 3, 'three numbers in GP', R`Three positive numbers in GP have product 512 and sum 28. Find the largest.`, 16,
+    R`<p>Write them $\dfrac ar,a,ar$: product $a^3=512$, so $a=8$. $8\left(\dfrac1r+1+r\right)=28$ gives $r+\dfrac1r=\dfrac52$, so $r=2$ or $\dfrac12$. The numbers are $4,8,16$; the largest is 16.</p>`, 'The middle term is the cube root of the product.', { calc: () => 16 }),
+  MV('ss-x014', 3, 'ratio of sums', R`The sums of $m$ and $n$ terms of an AP are in the ratio $m^2:n^2$. The ratio of its 9th term to its 19th term is`, () => 17 / 37, [R`$\dfrac{17}{37}$`, 17 / 37], [[R`$\dfrac9{19}$`, 9 / 19], [R`$\dfrac{81}{361}$`, 81 / 361], [R`$\dfrac{37}{17}$`, 37 / 17]],
+    R`<p>$\dfrac{S_m}{S_n}=\dfrac{m^2}{n^2}$ means $S_n=kn^2$, so $a_n=k(2n-1)$. $\dfrac{a_9}{a_{19}}=\dfrac{17}{37}$.</p>`, 'The ratio of terms is $(2m-1):(2n-1)$.'),
+  I('ss-x015', 3, 'telescoping', R`If $\sum_{k=1}^{n}\dfrac1{k(k+1)}=\dfrac9{10}$, find $n$.`, 9,
+    R`<p>$\dfrac1{k(k+1)}=\dfrac1k-\dfrac1{k+1}$, so the sum is $1-\dfrac1{n+1}=\dfrac n{n+1}$. $\dfrac n{n+1}=\dfrac9{10}$ gives $n=9$.</p>`, 'Telescope.', { calc: () => { for (let n = 1; n < 50; n++) if (near(n / (n + 1), 0.9)) return n; return -1; } }),
+  A('ss-x016', 3, 'infinite GP', R`The sum of the series $1+\dfrac13+\dfrac19+\cdots$ is $\dfrac32$.`, R`The sum of an infinite GP with first term $a$ and ratio $r$, $|r|<1$, is $\dfrac a{1-r}$.`, 0,
+    R`<p>$\dfrac1{1-\frac13}=\dfrac32$. R states the formula that gives it.</p>`, 'Check $|r|<1$.'),
+  S('ss-x017', 3, 'logs and squares', R`If $a,b,c>0$ are in GP, then $\log a,\log b,\log c$ are in AP.`, R`If $a,b,c$ are in AP, then $a^2,b^2,c^2$ are in AP.`, 1,
+    R`<p>I: $b^2=ac\Rightarrow2\log b=\log a+\log c$, true. II: $1,2,3$ are in AP but $1,4,9$ are not, so II is false.</p>`, 'Test with $1,2,3$.'),
+  MT('ss-x018', 3, 'standard sums', 'mx1', R`Match List I with List II.`, 'A-p, B-r, C-s, D-q', ['A-r, B-p, C-s, D-q', 'A-p, B-r, C-q, D-s', 'A-q, B-r, C-s, D-p'],
+    R`<p>A: $55$ (p). B: $\dfrac{10\cdot11\cdot21}6=385$ (r). C: $55^2=3025$ (s). D: $2\times55=110$ (q).</p>`, 'The sum of cubes is the square of the sum.'),
+  MT('ss-x019', 3, 'infinite GP', 'mx2', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $\dfrac4{1/2}=8$ (p). B: $\dfrac1{1+1/2}=\dfrac23$ (q). C: $0.4545\ldots=\dfrac{45}{99}=\dfrac5{11}$ (r). D: $\dfrac9{1+1/3}=\dfrac{27}4$ (s).</p>`, 'A negative ratio makes the denominator $1+|r|$.'),
+  PI('ss-x020', 3, 'AP in context', 'pz4', R`How much (in Rs) does she save in month 12?`, 500 + 11 * 50,
+    R`<p>$a_{12}=500+11\times50=1050$.</p>`, 'The 12th term has 11 steps.', { calc: () => 500 + 11 * 50 }),
+  PI('ss-x021', 3, 'AP in context', 'pz4', R`How much (in Rs) does she save in total in the first 24 months?`, 12 * (2 * 500 + 23 * 50),
+    R`<p>$S_{24}=\dfrac{24}2\left[2(500)+23(50)\right]=12\times2150=25800$.</p>`, 'Use $\\frac n2[2a+(n-1)d]$.', { calc: () => ssum((n) => 500 + (n - 1) * 50, 1, 24) }),
+  PI('ss-x022', 3, 'AP in context', 'pz4', R`In which month does her monthly saving first exceed Rs 2000?`, 32,
+    R`<p>$500+50(n-1)>2000\Rightarrow n-1>30\Rightarrow n>31$. The first month is $n=32$ (Rs 2050; month 31 gives exactly 2000, which does not exceed it).</p>`, '"Exceeds" means strictly more.', { calc: () => { for (let n = 1; n < 100; n++) if (500 + 50 * (n - 1) > 2000) return n; return -1; } }),
+);
+
+// ----- L4 -----
+const luc = (() => { const a = [2, 1]; while (a.length < 15) a.push(a[a.length - 1] + a[a.length - 2]); return a[14]; })();
+const nEven = (() => { let c = 0; for (let n = 1; n <= 50; n++) if ((n * (n + 1) / 2) % 3 === 0) c++; return c; })();
+const altSq = ssum((n) => (-1) ** n * n * n, 1, 50);
+const rep10 = ssum((k) => (7 / 9) * (1 - 10 ** -k), 1, 10);
+items.push(
+  I('ss-x023', 4, 'nth term of AP', R`In an AP the 3rd term is $\dfrac15$ and the 5th term is $\dfrac13$. Find the 15th term.`, 1,
+    R`<p>$2d=\dfrac13-\dfrac15=\dfrac2{15}$, so $d=\dfrac1{15}$. $a_{15}=a_3+12d=\dfrac15+\dfrac{12}{15}=1$.</p>`, 'Keep fractions exact.', { calc: () => Math.round((1 / 5 + 12 * (1 / 3 - 1 / 5) / 2) * 1e9) / 1e9 }),
+  I('ss-x024', 4, 'floor sums', R`Find $\sum_{n=1}^{40}\left\lfloor\dfrac n3\right\rfloor$, where $\lfloor x\rfloor$ is the greatest integer not exceeding $x$.`, floorSum,
+    R`<p>The value $\lfloor n/3\rfloor$ is $k$ for $n=3k,3k+1,3k+2$. For $k=0$ it appears for $n=1,2$ (value 0). Values $k=1..12$ appear three times each ($n=3..38$): $3\times78=234$. Then $n=39$ gives 13 and $n=40$ gives 13: $26$. Total $234+26=260$.</p>`, 'Group the $n$ with the same floor.', { calc: () => floorSum }),
+  I('ss-x025', 4, 'AP and GP', R`Three positive numbers $a<b<c$ are in AP with sum 15. Adding 1, 3, 9 to them respectively gives three numbers in GP. Find $c$.`, 7,
+    R`<p>Write them $5-d,\,5,\,5+d$. After adding: $6-d,\ 8,\ 14+d$ are in GP, so $(6-d)(14+d)=64$, i.e. $d^2+8d-20=0$, $d=2$ (or $-10$ which is rejected because $a<b<c$). The numbers are $3,5,7$ and $c=7$.</p>`, 'Reject the negative common difference.', { calc: () => { for (let d = 1; d < 5; d++) if ((6 - d) * (14 + d) === 64) return 5 + d; return -1; } }),
+  I('ss-x026', 4, 'Lucas sequence', R`A sequence has $a_1=2$, $a_2=1$ and $a_{n+2}=a_{n+1}+a_n$. Find $a_{15}$.`, luc,
+    R`<p>The terms are $2,1,3,4,7,11,18,29,47,76,123,199,322,521,843$. So $a_{15}=843$.</p>`, 'Write the terms out carefully.', { calc: () => luc }),
+  I('ss-x027', 4, 'AM-GM', R`For $x>2$, find the least value of $4x+\dfrac9{x-2}$.`, 20,
+    R`<p>Write $4(x-2)+\dfrac9{x-2}+8$. By AM-GM $4(x-2)+\dfrac9{x-2}\ge2\sqrt{36}=12$, with equality when $4(x-2)^2=9$, i.e. $x=\dfrac72>2$. Least value $=12+8=20$.</p>`, 'Add and subtract 8 so that $x-2$ appears.', { calc: () => { let m = Infinity; for (let i = 1; i < 400000; i++) { const x = 2 + i / 100000; m = Math.min(m, 4 * x + 9 / (x - 2)); } return Math.round(m); } }),
+  I('ss-x028', 4, 'AM-GM', R`For positive numbers $a,b,c$ with $abc=1$, find the least value of $(a+b)(b+c)(c+a)$.`, 8,
+    R`<p>By AM-GM $a+b\ge2\sqrt{ab}$, $b+c\ge2\sqrt{bc}$, $c+a\ge2\sqrt{ca}$. Multiply: $\ge8\sqrt{(abc)^2}=8$. Equality when $a=b=c=1$.</p>`, 'Equality needs $a=b=c$.', { calc: () => { let m = Infinity; for (let a = 0.2; a < 5; a += 0.05) for (let b = 0.2; b < 5; b += 0.05) { const c = 1 / (a * b); m = Math.min(m, (a + b) * (b + c) * (c + a)); } return Math.round(m); } }),
+  I('ss-x029', 4, 'telescoping', R`Find $4\sum_{n=1}^{\infty}\dfrac1{n(n+2)}$.`, 3,
+    R`<p>$\dfrac1{n(n+2)}=\dfrac12\left(\dfrac1n-\dfrac1{n+2}\right)$. The sum telescopes to $\dfrac12\left(1+\dfrac12\right)=\dfrac34$. Times 4 is 3.</p>`, 'Two terms (not one) survive.', { calc: () => Math.round(4 * ssum((n) => 1 / (n * (n + 2)), 1, 200000)) }),
+  I('ss-x030', 4, 'triangular numbers', R`For how many $n$ with $1\le n\le50$ is $1+2+\cdots+n$ a multiple of 3?`, nEven,
+    R`<p>$T_n=\dfrac{n(n+1)}2$ is a multiple of 3 exactly when $3\mid n(n+1)$, i.e. $n\equiv0$ or $2\pmod3$. Among $1..50$, $n\equiv1\pmod3$ happens for $n=1,4,\dots,49$: 17 values. So $50-17=33$.</p>`, '$n\\equiv1\\pmod 3$ is the only bad case.', { calc: () => nEven }),
+  I('ss-x031', 4, 'alternating sums', R`Find $-1^2+2^2-3^2+4^2-\cdots+50^2$.`, altSq,
+    R`<p>Pair the terms: $(2k)^2-(2k-1)^2=4k-1$ for $k=1,\dots,25$. Sum $=4\times325-25=1275$.</p>`, 'The first term is negative here.', { calc: () => altSq }),
+  I('ss-x032', 4, 'recurrence', R`A positive GP has $a_1+a_2=12$ and $a_3+a_4=108$. Find $a_5+a_6$.`, 972,
+    R`<p>$a_3+a_4=r^2(a_1+a_2)$, so $r^2=9$, $r=3$ (positive). Then $a_5+a_6=r^2(a_3+a_4)=9\times108=972$.</p>`, 'Every second pair is multiplied by $r^2$.', { calc: () => 108 * 9 }),
+);
+items.push(
+  N('ss-x033', 4, 'recurring sums', R`Find the sum of the first 10 terms of $0.7+0.77+0.777+\cdots$ to 3 decimal places.`, +rep10.toFixed(3), 0.001,
+    R`<p>The $k$th term is $\dfrac79\left(1-10^{-k}\right)$. $S_{10}=\dfrac79\left(10-\dfrac{0.1(1-10^{-10})}{0.9}\right)=\dfrac79(10-0.1111)=7.691$.</p>`, 'Write each term as $\\frac79(1-10^{-k})$.', { calc: () => rep10 }),
+  N('ss-x034', 4, 'telescoping', R`Find $\sum_{n=1}^{\infty}\dfrac1{n(n+1)(n+2)}$ (as a decimal).`, 0.25, 0.001,
+    R`<p>$\dfrac1{n(n+1)(n+2)}=\dfrac12\left[\dfrac1{n(n+1)}-\dfrac1{(n+1)(n+2)}\right]$. The sum telescopes to $\dfrac12\cdot\dfrac1{1\cdot2}=\dfrac14$.</p>`, 'Split into two products.', { calc: () => ssum((n) => 1 / (n * (n + 1) * (n + 2)), 1, 200000) }),
+  N('ss-x035', 4, 'telescoping', R`Find $\dfrac1{1\cdot2}+\dfrac1{2\cdot3}+\cdots$ up to 50 terms, to 3 decimal places.`, +(50 / 51).toFixed(3), 0.001,
+    R`<p>The sum is $1-\dfrac1{51}=\dfrac{50}{51}=0.980$.</p>`, 'Fifty terms give $1-\\frac1{51}$.', { calc: () => ssum((n) => 1 / (n * (n + 1)), 1, 50) }),
+  N('ss-x036', 4, 'arithmetico-geometric', R`Find $\sum_{n=1}^{\infty}\dfrac{3n+1}{4^n}$ to 3 decimal places.`, +(5 / 3).toFixed(3), 0.001,
+    R`<p>$\sum nx^n=\dfrac x{(1-x)^2}$ and $\sum x^n=\dfrac x{1-x}$ with $x=\dfrac14$: $3\cdot\dfrac{1/4}{9/16}+\dfrac{1/4}{3/4}=3\cdot\dfrac49+\dfrac13=\dfrac43+\dfrac13=\dfrac53\approx1.667$.</p>`, 'Split into two series.', { calc: () => ssum((n) => (3 * n + 1) / 4 ** n, 1, 200) }),
+  N('ss-x037', 4, 'limit of a recurrence', R`$a_1=\sqrt6$ and $a_{n+1}=\sqrt{6+a_n}$. Find $\lim a_n$.`, 3, 0.001,
+    R`<p>If the limit $L$ exists, $L=\sqrt{6+L}$, so $L^2-L-6=0$, $L=3$ (or $-2$, rejected). The sequence is increasing and bounded by 3, so the limit exists.</p>`, 'Reject the negative root.', { calc: () => lim((x) => Math.sqrt(6 + x), Math.sqrt(6)) }),
+);
+const aS1 = termsOf((n) => n * n + 2 * n, 8), aS2 = termsOf((n) => 3 ** n - 1, 8), aS3 = termsOf((n) => n * n + 1, 8), aS4 = termsOf((n) => 2 * n * n + n, 8);
+items.push(
+  XT('ss-x038', 4, 'partial sums', R`$S_n$ is the sum of the first $n$ terms of a sequence. Which of the following are correct?`, [
+    [R`$S_n=n^2+2n$ gives an AP`, isAP(aS1), R`$a_n=2n+1$, an AP with $d=2$.`],
+    [R`$S_n=3^n-1$ gives a GP`, isGP(aS2), R`$a_1=2$, $a_n=2\cdot3^{n-1}$, a GP.`],
+    [R`$S_n=n^2+1$ gives an AP`, isAP(aS3), R`$a_1=2$, $a_2=3$, $a_3=5$, not an AP (the first term does not fit the pattern).`],
+    [R`$S_n=2n^2+n$ gives an AP`, isAP(aS4), R`$a_n=4n-1$, an AP with $d=4$.`]], '$S_n$ without a constant term gives an AP.'),
+  XT('ss-x039', 4, 'means', R`For the numbers 4 and 9, which of the following are correct?`, [
+    [R`The AM is 6.5`, near((4 + 9) / 2, 6.5), R`$\frac{4+9}2=6.5$.`],
+    [R`The GM is 6`, near(Math.sqrt(36), 6), R`$\sqrt{4\cdot9}=6$.`],
+    [R`The HM is $\dfrac{72}{13}$`, near(2 * 4 * 9 / 13, 72 / 13), R`$\dfrac{2\cdot36}{13}=\dfrac{72}{13}$.`],
+    [R`HM $>$ GM`, 72 / 13 > 6, R`$\frac{72}{13}\approx5.54<6$, so HM $<$ GM $<$ AM.`]], 'The order is AM $\\ge$ GM $\\ge$ HM.'),
+  XT('ss-x040', 4, 'recurrence', R`$a_1=3$ and $a_{n+1}=3a_n-2$. Which of the following are correct?`, (() => { const a = [3]; for (let i = 1; i < 8; i++) a.push(3 * a[i - 1] - 2); return [
+    [R`$a_5=163$`, a[4] === 163, R`$3,7,19,55,163$.`],
+    [R`$a_n-1$ is a GP with ratio 3`, a.slice(1).every((v, i) => (v - 1) === 3 * (a[i] - 1)), R`$a_{n+1}-1=3(a_n-1)$.`],
+    [R`$a_n=2\cdot3^{n-1}+1$`, a.every((v, i) => v === 2 * 3 ** i + 1), R`from $a_n-1=2\cdot3^{n-1}$.`],
+    [R`$a_n$ is an AP`, isAP(a), R`the differences $4,12,36,\dots$ are not equal.`]]; })(), 'Shift by the fixed point 1.'),
+  XT('ss-x041', 4, 'infinite series', R`Which of the following infinite series converge?`, [
+    [R`$\sum\left(-\dfrac12\right)^n$`, true, R`$|r|=\frac12<1$.`],
+    [R`$\sum(1.1)^n$`, false, R`$|r|>1$, so the terms grow and the series diverges.`],
+    [R`$\sum\left(\dfrac23\right)^n$`, true, R`$|r|=\frac23<1$.`],
+    [R`$\sum\left(-1\right)^n$`, false, R`the partial sums alternate between $-1$ and $0$ and do not settle ($|r|=1$).`]], 'A GP converges only if $|r|<1$.'),
+  XT('ss-x042', 4, 'harmonic progression', R`The HP is $\dfrac13,\dfrac17,\dfrac1{11},\dots$. Which of the following are correct?`, [
+    [R`The reciprocals form an AP with $d=4$`, true, R`$3,7,11,\dots$`],
+    [R`The 10th term is $\dfrac1{39}$`, 3 + 9 * 4 === 39, R`$a_{10}=3+9\times4=39$ for the reciprocal.`],
+    [R`The 10th term is $\dfrac1{43}$`, 3 + 9 * 4 === 43, R`the reciprocal of the 10th term is $39$, not 43.`],
+    [R`The 5th term is $\dfrac1{19}$`, 3 + 4 * 4 === 19, R`$3+4\times4=19$.`]], 'The $n$th reciprocal is $3+4(n-1)$.'),
+  A('ss-x043', 4, 'partial sums', R`If $a_n=2n^2$ then $a_1,a_2,a_3,\dots$ is an AP.`, R`The differences of consecutive terms of an AP are constant.`, 3,
+    R`<p>$a_n=2,8,18,32,\dots$ has differences $6,10,14,\dots$ which are not constant, so A is false. R is true.</p>`, 'Check the differences.'),
+  A('ss-x044', 4, 'infinite GP', R`$1+\dfrac12+\dfrac14+\cdots=2$.`, R`The sum of an infinite GP exists for every common ratio $r$.`, 2,
+    R`<p>A is true ($\frac1{1-1/2}=2$). R is false: the sum exists only for $|r|<1$.</p>`, 'The condition $|r|<1$.'),
+  S('ss-x045', 4, 'squares of progressions', R`If $a,b,c$ are in AP, then $a^2,b^2,c^2$ are in AP.`, R`If $a,b,c$ are in GP, then $a^2,b^2,c^2$ are in GP.`, 2,
+    R`<p>I: false ($1,2,3\to1,4,9$). II: $b^2=ac\Rightarrow b^4=a^2c^2$, true.</p>`, 'Test with $1,2,3$.'),
+  MT('ss-x046', 4, 'recurring decimal', 'mx3', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $\dfrac{36}{99}=\dfrac4{11}$ (p). B: $0.1+0.0666\ldots=\dfrac1{10}+\dfrac1{15}=\dfrac16$ (q). C: $\dfrac1{7}$ (r). D: $0.4+0.0555\ldots=\dfrac25+\dfrac1{18}=\dfrac{41}{90}$ (s).</p>`, 'Use $\\frac{\\text{whole}-\\text{non-repeating}}{9\\ldots90\\ldots0}$.'),
+  MT('ss-x047', 4, 'arithmetico-geometric', 'mx4', R`Match List I with List II.`, 'A-q, B-p, C-s, D-r', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-q, B-r, C-s, D-p'],
+    R`<p>A: $\dfrac{1/2}{(1/2)^2}=2$ (q). B: $\dfrac{1/3}{(2/3)^2}=\dfrac34$ (p). C: $\dfrac{x(1+x)}{(1-x)^3}$ with $x=\frac12$: $\dfrac{3/4}{1/8}=6$ (s). D: $2+1=3$ (r).</p>`, 'Use $\\sum nx^n=\\frac x{(1-x)^2}$.'),
+  MT('ss-x048', 4, 'AP', 'mx5', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $2+9\times3=29$ (p). B: $\dfrac{10}2(2+29)=155$ (q). C: $2+3(n-1)>100\Rightarrow n>33.67$, so $n=34$ (r). D: $4d=12$, $d=3$ (s).</p>`, 'The inequality must be strict.'),
+  MT('ss-x049', 4, 'GP', 'mx6', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $3\times2^5=96$ (p). B: $3(2^6-1)=189$ (q). C: $\dfrac{12}{1-1/3}=18$ (r). D: $\dfrac a{1-r}=2a\Rightarrow1-r=\dfrac12\Rightarrow r=\dfrac12$ (s).</p>`, 'Solve $1-r=\\frac12$.'),
+  PN('ss-x050', 4, 'GP in context', 'pz5', R`How many litres does it lose in the 5th minute?`, 16.384, 0.001,
+    R`<p>$40\times0.8^4=40\times0.4096=16.384$.</p>`, 'The 5th term has $r^4$.', { calc: () => 40 * 0.8 ** 4 }),
+  PI('ss-x051', 4, 'GP in context', 'pz5', R`The most the tank could ever lose in total (in litres) is`, 200,
+    R`<p>The sum to infinity is $\dfrac{40}{1-0.8}=200$.</p>`, '$|r|<1$.', { calc: () => 40 / (1 - 0.8) }),
+  PI('ss-x052', 4, 'GP in context', 'pz5', R`In which minute does the loss first fall below 1 litre?`, 18,
+    R`<p>$40(0.8)^{n-1}<1\Rightarrow0.8^{n-1}<0.025\Rightarrow n-1>\dfrac{\ln40}{\ln1.25}\approx16.5$. So $n-1\ge17$, $n=18$.</p>`, 'Round up after the inequality.', { calc: () => { for (let n = 1; n < 200; n++) if (40 * 0.8 ** (n - 1) < 1) return n; return -1; } }),
+);
+
+// ----- more L4 and L5 -----
+const simplex = (f) => { let mn = Infinity, mx = -Infinity; const n = 120; for (let i = 1; i < n; i++) for (let j = 1; i + j < n; j++) { const a = 6 * i / n, b = 6 * j / n, c = 6 - a - b; const v = f(a, b, c); if (v < mn) mn = v; if (v > mx) mx = v; } return { mn, mx }; };
+const x5 = lim((x) => x * x - x + 1, 2, 4);
+const bS = ssum((k) => k * 2 ** (k - 1), 1, 8);
+const p20 = (() => { let p = 1; for (let k = 2; k <= 20; k++) p *= 1 - 1 / (k * k); return p; })();
+const s1 = (() => { let s = 0; for (let k = 1; k <= 1e4; k++) s += 1 / Math.sqrt(k); return s; })();
+const rec = (() => { const a = [1]; for (let n = 1; n < 8; n++) a.push(a[n - 1] + n * n); return a; })();
+items.push(
+  I('ss-x053', 4, 'recurrence', R`$a_1=1$ and $a_{n+1}=\dfrac{a_n}{1+a_n}$. Find $\dfrac1{a_{50}}$.`, 50,
+    R`<p>Take reciprocals: $\dfrac1{a_{n+1}}=\dfrac{1+a_n}{a_n}=\dfrac1{a_n}+1$. So $\dfrac1{a_n}$ is an AP with first term 1 and difference 1, and $\dfrac1{a_{50}}=50$.</p>`, 'Reciprocals turn the recurrence into an AP.', { calc: () => { let a = 1; for (let n = 1; n < 50; n++) a = a / (1 + a); return Math.round(1 / a); } }),
+  I('ss-x054', 4, 'recurrence', R`$x_1=2$ and $x_{n+1}=x_n^2-x_n+1$. Find $x_5$.`, x5,
+    R`<p>$x_2=4-2+1=3$; $x_3=9-3+1=7$; $x_4=49-7+1=43$; $x_5=1849-43+1=1807$.</p>`, 'Square before subtracting.', { calc: () => x5 }),
+  I('ss-x055', 5, 'arithmetico-geometric', R`Find $2\sum_{n=1}^{\infty}\dfrac{n^2}{3^n}$.`, 3,
+    R`<p>$\sum n^2x^n=\dfrac{x(1+x)}{(1-x)^3}$. With $x=\dfrac13$: $\dfrac{\frac13\cdot\frac43}{\frac8{27}}=\dfrac49\cdot\dfrac{27}8=\dfrac32$. Twice that is 3.</p>`, 'Check the formula with $x=\\frac12$: it gives 6.', { calc: () => Math.round(2 * ssum((n) => n * n / 3 ** n, 1, 300)) }),
+  I('ss-x056', 5, 'telescoping', R`Find $41\sum_{k=1}^{20}\dfrac1{4k^2-1}$.`, 20,
+    R`<p>$\dfrac1{4k^2-1}=\dfrac1{(2k-1)(2k+1)}=\dfrac12\left(\dfrac1{2k-1}-\dfrac1{2k+1}\right)$. The sum is $\dfrac12\left(1-\dfrac1{41}\right)=\dfrac{20}{41}$. Times 41 is 20.</p>`, 'The last term is $2k+1=41$.', { calc: () => Math.round(41 * ssum((k) => 1 / (4 * k * k - 1), 1, 20)) }),
+  I('ss-x057', 5, 'products', R`Find $40\prod_{k=2}^{20}\left(1-\dfrac1{k^2}\right)$.`, 21,
+    R`<p>$1-\dfrac1{k^2}=\dfrac{(k-1)(k+1)}{k^2}$. The product telescopes to $\dfrac1{2}\cdot\dfrac{n+1}{n}=\dfrac{n+1}{2n}=\dfrac{21}{40}$ for $n=20$. Times 40 is 21.</p>`, 'Write each factor as a ratio of neighbours.', { calc: () => Math.round(40 * p20) }),
+  I('ss-x058', 5, 'bounds', R`Find $\left\lfloor\sum_{k=1}^{10000}\dfrac1{\sqrt k}\right\rfloor$.`, Math.floor(s1),
+    R`<p>For each $k$, $\dfrac1{\sqrt k}$ lies between $2(\sqrt{k+1}-\sqrt k)$ and $2(\sqrt k-\sqrt{k-1})$. Summing: $2(\sqrt{10001}-1)<S<1+2(\sqrt{10000}-1)=199$. The lower bound is about $198.01$. So $198<S<199$ and the integer part is 198.</p>`, 'Bound the sum with telescoping square roots.', { calc: () => Math.floor(s1) }),
+  I('ss-x059', 5, 'arithmetico-geometric', R`Find $\sum_{k=1}^{8}k\cdot2^{k-1}$.`, bS,
+    R`<p>Let $S=\sum k2^{k-1}$. Then $2S-S=8\cdot2^8-(1+2+4+\cdots+2^7)=2048-255=1793$.</p>`, 'Multiply by the ratio and subtract.', { calc: () => bS }),
+  N('ss-x060', 5, 'limit of a recurrence', R`$a_1=1$ and $a_{n+1}=\dfrac12\left(a_n+\dfrac2{a_n}\right)$. Find $\lim a_n$ to 3 decimal places.`, 1.414, 0.001,
+    R`<p>If $L$ is the limit, $L=\dfrac12\left(L+\dfrac2L\right)$, so $L^2=2$, $L=\sqrt2\approx1.414$ (all terms after $a_1$ are at least $\sqrt2$ by AM-GM, so $L>0$).</p>`, 'Newton\'s method for $\\sqrt2$.', { calc: () => lim((x) => 0.5 * (x + 2 / x), 1) }),
+  N('ss-x061', 5, 'telescoping', R`Find $\sum_{n=1}^{\infty}\dfrac n{n^4+n^2+1}$ (as a decimal).`, 0.5, 0.001,
+    R`<p>$n^4+n^2+1=(n^2+n+1)(n^2-n+1)$ and $\dfrac n{n^4+n^2+1}=\dfrac12\left[\dfrac1{n^2-n+1}-\dfrac1{n^2+n+1}\right]$. Since $(n+1)^2-(n+1)+1=n^2+n+1$, the sum telescopes to $\dfrac12\cdot\dfrac1{1}=\dfrac12$.</p>`, 'Factor the denominator.', { calc: () => ssum((n) => n / (n ** 4 + n * n + 1), 1, 100000) }),
+);
+items.push(
+  XT('ss-x062', 5, 'infinite sums', R`Which of the following are correct?`, [
+    [R`$\sum_{n=1}^\infty\dfrac{n^2}{3^n}=\dfrac32$`, near(ssum((n) => n * n / 3 ** n, 1, 300), 1.5, 1e-9), R`$\frac{x(1+x)}{(1-x)^3}$ at $x=\frac13$.`],
+    [R`$\sum_{n=1}^\infty\dfrac1{n(n+1)(n+2)(n+3)}=\dfrac1{18}$`, near(ssum((n) => 1 / (n * (n + 1) * (n + 2) * (n + 3)), 1, 100000), 1 / 18, 1e-6), R`telescoping: $\frac13\cdot\frac1{1\cdot2\cdot3}=\frac1{18}$.`],
+    [R`$\sum_{n=2}^\infty\dfrac1{n^2-1}=\dfrac34$`, near(ssum((n) => 1 / (n * n - 1), 2, 100000), 0.75, 1e-4), R`$\frac12\left(1+\frac12\right)=\frac34$.`],
+    [R`$\sum_{n=1}^\infty\dfrac1{n(n+2)}=1$`, near(ssum((n) => 1 / (n * (n + 2)), 1, 100000), 1, 1e-3), R`the sum is $\frac34$, not 1.`]], 'Telescope each carefully.'),
+  XT('ss-x063', 5, 'AM-GM', R`The positive numbers $a,b,c$ satisfy $a+b+c=6$. Which of the following are correct?`, [
+    [R`$abc\le8$`, simplex((a, b, c) => a * b * c).mx <= 8 + 1e-9, R`AM-GM: $abc\le\left(\frac63\right)^3=8$.`],
+    [R`$ab+bc+ca\le12$`, simplex((a, b, c) => a * b + b * c + c * a).mx <= 12 + 1e-9, R`$(a+b+c)^2\ge3(ab+bc+ca)$.`],
+    [R`$a^2+b^2+c^2\ge12$`, simplex((a, b, c) => a * a + b * b + c * c).mn >= 12 - 1e-9, R`QM-AM: $a^2+b^2+c^2\ge\frac{36}3=12$.`],
+    [R`$abc\ge8$`, simplex((a, b, c) => a * b * c).mn >= 8, R`AM-GM gives an upper bound for $abc$, not a lower bound.`]], 'AM-GM gives upper bounds for products.'),
+  XT('ss-x064', 5, 'recurrence', R`$a_1=1$ and $a_{n+1}=a_n+n^2$. Which of the following are correct?`, [
+    [R`$a_5=31$`, rec[4] === 31, R`$1,2,6,15,31$.`],
+    [R`$a_6=56$`, rec[5] === 56, R`$31+25=56$.`],
+    [R`$a_n=\dfrac{n(n+1)(2n+1)}6$`, rec.every((v, i) => v === ((i + 1) * (i + 2) * (2 * i + 3)) / 6), R`$a_n=1+\sum_{k<n}k^2=1+\frac{(n-1)n(2n-1)}6$; for $n=1$ the claimed formula gives 1 but for $n=2$ it gives 5, not 2.`],
+    [R`$a_n=1+\dfrac{(n-1)n(2n-1)}6$`, rec.every((v, i) => v === 1 + (i * (i + 1) * (2 * i + 1)) / 6), R`sum of the first $n-1$ squares plus 1.`]], 'Check $n=2$.'),
+  XT('ss-x065', 5, 'bounds', R`Let $S=\sum_{k=1}^{10000}\dfrac1{\sqrt k}$. Which of the following are correct?`, [
+    [R`$198<S<199$`, s1 > 198 && s1 < 199, R`from the telescoping bounds.`],
+    [R`$S>2(\sqrt{10001}-1)$`, s1 > 2 * (Math.sqrt(10001) - 1), R`each term exceeds $2(\sqrt{k+1}-\sqrt k)$.`],
+    [R`$S<2\sqrt{10000}=200$`, s1 < 200, R`indeed $S<199<200$.`],
+    [R`$S>200$`, s1 > 200, R`$S\approx198.5$.`]], 'Compare each term with a telescoping difference.'),
+  A('ss-x066', 5, 'telescoping', R`$\sum_{n=1}^{\infty}\dfrac1{n(n+1)(n+2)}=\dfrac14$.`, R`$\dfrac1{n(n+1)(n+2)}=\dfrac12\left[\dfrac1{n(n+1)}-\dfrac1{(n+1)(n+2)}\right]$.`, 0,
+    R`<p>R is true, and summing it telescopes to $\dfrac12\cdot\dfrac1{1\cdot2}=\dfrac14$. R is the reason for A.</p>`, 'Check R by combining the fractions.'),
+  S('ss-x067', 5, 'convergence', R`The series $\sum_{n=1}^\infty\dfrac1{n^2}$ converges.`, R`A series converges whenever its terms tend to 0.`, 1,
+    R`<p>I is true (it sums to $\dfrac{\pi^2}6$). II is false: the harmonic series $1+\frac12+\frac13+\cdots$ has terms tending to 0 but diverges.</p>`, 'Terms tending to 0 is necessary, not sufficient.'),
+  MT('ss-x068', 5, 'telescoping', 'mx7', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $1$ (p). B: $\dfrac12\left(1+\dfrac12\right)=\dfrac34$ (q). C: $\dfrac14$ (r). D: $\dfrac1{(2n-1)(2n+1)}=\dfrac12\left(\dfrac1{2n-1}-\dfrac1{2n+1}\right)$, sum $\dfrac12$ (s).</p>`, 'Count how many terms survive.'),
+  MT('ss-x069', 5, 'limits of recurrences', 'mx8', R`Match List I with List II.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    R`<p>A: $L=\sqrt{6+L}\Rightarrow L=3$ (p). B: $L^2=2$, $L=\sqrt2$ (q). C: $L=1+\dfrac1L\Rightarrow L^2-L-1=0$, $L=\dfrac{1+\sqrt5}2$ (r). D: $L=2-\dfrac1L\Rightarrow(L-1)^2=0$, $L=1$ (s).</p>`, 'Set $L=f(L)$ and take the positive root.'),
+);
+
+// single-answer items keyed by a number: calc gives the number, turn it into the option index
+for (const it of items) {
+  if (!it.id.startsWith('ss-x') || it.type !== 'mcq' || it.format !== 'single' || typeof it.calc !== 'function' || it.calc.idx) continue;
+  const val = it.calc; const num = (o) => Number(String(o).replace(/<[^>]*>|\\[a-z]+|[^0-9.\-]/gi, ''));
+  it.calc = () => it.options.findIndex((o) => Math.abs(num(o) - val()) < 1e-9);
+}
+
+items.push(
+  XT('ss-x070', 4, 'standard sums', R`Which of the following are correct?`, [
+    [R`$1^2+2^2+\cdots+12^2=650$`, ssum((k) => k * k, 1, 12) === 650, R`$\dfrac{12\cdot13\cdot25}6=650$.`],
+    [R`$1^3+2^3+\cdots+9^3=2025$`, ssum((k) => k ** 3, 1, 9) === 2025, R`$45^2=2025$.`],
+    [R`$2+4+6+\cdots+50=650$`, ssum((k) => 2 * k, 1, 25) === 650, R`$25\times26=650$.`],
+    [R`$1+3+5+\cdots+49=650$`, ssum((k) => 2 * k - 1, 1, 25) === 650, R`$25^2=625$, not 650.`]], 'Odd numbers add up to a perfect square.'),
+);
+
+// ----- new templates -----
+const frs = (n, d) => { const g = ((a, b) => { while (b) [a, b] = [b, a % b]; return Math.abs(a); })(n, d); n /= g; d /= g; return d === 1 ? `${n}` : R`\dfrac{${n}}{${d}}`; };
+gens.push(
+  { id: 'ss-g19', type: 'nat', format: 'integer', level: 3, exams: EXS[3], sub: 'sum of a series',
+    make(rng) { const n = int(rng, 6, 20); const answer = (n * (n + 1) * (2 * n + 7)) / 6;
+      return { n, answer, tol: 0, q: `Find $\\sum_{k=1}^{${n}}k(k+2)$.`,
+        sol: R`<p>$\sum k^2+2\sum k=\dfrac{${n}\cdot${n + 1}\cdot${2 * n + 1}}6+${n}\cdot${n + 1}=${answer}$.</p>` }; },
+    verify(p) { let s = 0; for (let k = 1; k <= p.n; k++) s += k * (k + 2); return s; } },
+  { id: 'ss-g20', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'common terms',
+    make(rng) { const a1 = int(rng, 1, 6), d1 = int(rng, 2, 5), a2 = int(rng, 1, 8), d2 = int(rng, 3, 7), N = int(rng, 30, 60);
+      const A = Array.from({ length: N }, (_, i) => a1 + i * d1), B = new Set(Array.from({ length: N }, (_, i) => a2 + i * d2));
+      const answer = A.filter((v) => B.has(v)).length;
+      return { a1, d1, a2, d2, N, answer, tol: 0, q: `The AP $${a1},${a1 + d1},${a1 + 2 * d1},\\dots$ and the AP $${a2},${a2 + d2},${a2 + 2 * d2},\\dots$ each have ${N} terms. How many numbers appear in both lists?`,
+        sol: R`<p>List the common values: they form an AP whose difference is $\operatorname{lcm}(${d1},${d2})$. Counting those that are at most the smaller last term and in both lists gives ${answer}.</p>` }; },
+    verify(p) { let c = 0; for (let i = 0; i < p.N; i++) { const v = p.a1 + i * p.d1; if (v >= p.a2 && (v - p.a2) % p.d2 === 0 && (v - p.a2) / p.d2 < p.N) c++; } return c; } },
+  { id: 'ss-g21', type: 'mcq', format: 'single', level: 3, exams: EXS[3], sub: 'recurring decimal',
+    make(rng) { const a = int(rng, 1, 9), b = int(rng, 1, 9), c = int(rng, 0, 9); const num = (a * 100 + b * 10 + c) - a; const den = 990; const g = ((x, y) => { while (y) [x, y] = [y, x % y]; return x; })(num, den);
+      const val = num / den; const w1 = (a * 100 + b * 10 + c) / 999, w2 = (b * 10 + c) / 99 / 10 + a / 10, w3 = (a * 10 + b) / 99 + 0.001;
+      const mk = (v) => { for (let d = 1; d <= 1000; d++) { const n = Math.round(v * d); if (Math.abs(n / d - v) < 1e-12) return [n, d]; } return [Math.round(v * 990), 990]; };
+      const txt = (v) => { const [n, d] = mk(v); return `$${frs(n, d)}$`; };
+      const opts = [val, w1, a / 9 + (b * 10 + c) / 990, (a * 100 + b * 10 + c) / 990]; const seen = new Set(); if (opts.some((v) => { const k = txt(v); if (seen.has(k)) return true; seen.add(k); return false; })) return this.make(rng);
+      const o = shuffleOpts(rng, txt(val), opts.slice(1).map(txt));
+      return { a, b, c, val, ...o, q: `The recurring decimal $0.${a}\\overline{${b}${c}}$ equals`,
+        sol: R`<p>Let $x=0.${a}\overline{${b}${c}}$. Then $10x=${a}.\overline{${b}${c}}$ and $1000x=${a}${b}${c}.\overline{${b}${c}}$. Subtract: $990x=${a * 100 + b * 10 + c}-${a}=${num}$, so $x=\dfrac{${num}}{990}=${txt(val).slice(1, -1)}$.</p>`, trap: 'Only $bc$ repeats, not $a$.' }; },
+    verify(p) { const exact = Number(`0.${p.a}${(String(p.b) + String(p.c)).repeat(20)}`); const k = p.options.findIndex((o) => { const m = o.match(/\\dfrac\{(\d+)\}\{(\d+)\}/); const v = m ? m[1] / m[2] : Number(o.replace(/[^0-9]/g, '')); return Math.abs(v - exact) < 1e-9; }); return k; } },
+  { id: 'ss-g22', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'nth term of AP',
+    make(rng) { const p = int(rng, 2, 9), q = int(rng, 2, 9); if (p === q) return this.make(rng); const answer = p + q;
+      return { pp: p, qq: q, answer, tol: 0, q: `In an AP the ${p}th term is $\\dfrac1{${q}}$ and the ${q}th term is $\\dfrac1{${p}}$. Find ${p * q} times its ${p + q}th term.`,
+        sol: R`<p>$d=\dfrac{\frac1{${p}}-\frac1{${q}}}{${q}-${p}}=\dfrac1{${p * q}}$. Then $a_{${p + q}}=a_{${p}}+${q}d=\dfrac1{${q}}+\dfrac{${q}}{${p * q}}=\dfrac1{${q}}+\dfrac1{${p}}=\dfrac{${p + q}}{${p * q}}$. Times $${p * q}$ is $${answer}$.</p>` }; },
+    verify(o) { const d = (1 / o.pp - 1 / o.qq) / (o.qq - o.pp); const a1 = 1 / o.qq - (o.pp - 1) * d; return Math.round(o.pp * o.qq * (a1 + (o.pp + o.qq - 1) * d)); } },
+  { id: 'ss-g23', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'AM-GM',
+    make(rng) { const u = int(rng, 1, 4), v = int(rng, 1, 5); const a = u * u, b = v * v; const answer = (u + v) ** 2;
+      return { a, b, answer, tol: 0, q: `For $x>0$, find the least value of $\\dfrac{(x+${a})(x+${b})}x$.`,
+        sol: R`<p>Expand: $x+\dfrac{${a * b}}x+${a + b}$. By AM-GM $x+\dfrac{${a * b}}x\ge2\sqrt{${a * b}}=${2 * u * v}$, with equality at $x=${u * v}$. Least value $=${2 * u * v}+${a + b}=${answer}$.</p>` }; },
+    verify(p) { let m = Infinity; for (let i = 1; i < 400000; i++) { const x = i / 20000; m = Math.min(m, (x + p.a) * (x + p.b) / x); } return Math.round(m); } },
+  { id: 'ss-g24', type: 'nat', format: 'numeric', level: 4, exams: EXS[4], sub: 'telescoping',
+    make(rng) { const k = int(rng, 2, 4), N = int(rng, 10, 30); let s = 0; for (let n = 1; n <= N; n++) s += 1 / (n * (n + k)); const answer = +s.toFixed(4);
+      return { k, N, answer, tol: 0.0001, q: `Find $\\sum_{n=1}^{${N}}\\dfrac1{n(n+${k})}$ to 4 decimal places.`,
+        sol: R`<p>$\dfrac1{n(n+${k})}=\dfrac1{${k}}\left(\dfrac1n-\dfrac1{n+${k}}\right)$. The sum telescopes to $\dfrac1{${k}}\left(\sum_{n=1}^{${k}}\dfrac1n-\sum_{n=${N + 1}}^{${N + k}}\dfrac1n\right)=${answer}$.</p>` }; },
+    verify(p) { let s = 0; for (let n = 1; n <= p.N; n++) s += 1 / (n * (n + p.k)); return s; } },
+  { id: 'ss-g25', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'GP partial sums',
+    make(rng) { const r = int(rng, 2, 4), a = int(rng, 1, 6); const s1 = a * (1 + r), s2 = s1 * r * r, answer = s2 * r * r;
+      return { r, a, answer, tol: 0, q: `A positive GP has $a_1+a_2=${s1}$ and $a_3+a_4=${s2}$. Find $a_5+a_6$.`,
+        sol: R`<p>$a_3+a_4=r^2(a_1+a_2)$, so $r^2=\dfrac{${s2}}{${s1}}=${r * r}$. Then $a_5+a_6=r^2(a_3+a_4)=${r * r}\times${s2}=${answer}$.</p>` }; },
+    verify(p) { let t = p.a, s = 0; const terms = []; for (let i = 0; i < 6; i++) { terms.push(t); t *= p.r; } return terms[4] + terms[5]; } },
+  { id: 'ss-g26', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'arithmetico-geometric',
+    make(rng) { const n = int(rng, 5, 10), r = int(rng, 2, 3);
+      let s = 0; for (let k = 1; k <= n; k++) s += k * r ** (k - 1);
+      return { n, r, answer: s, tol: 0, q: `Find $\\sum_{k=1}^{${n}}k\\cdot${r}^{k-1}$.`,
+        sol: R`<p>Let $S=\sum k r^{k-1}$ with $r=${r}$. Then $rS-S=${n}r^{${n}}-(1+r+\cdots+r^{${n - 1}})$, so $S=\dfrac{${n}\cdot${r ** n}-\frac{${r ** n}-1}{${r - 1}}}{${r - 1}}=${s}$.</p>` }; },
+    verify(p) { let s = 0; for (let k = 1; k <= p.n; k++) s += k * p.r ** (k - 1); return s; } },
+  { id: 'ss-g27', type: 'nat', format: 'integer', level: 5, exams: EXS[5], sub: 'products',
+    make(rng) { const n = int(rng, 8, 30); const answer = n + 1;
+      return { n, answer, tol: 0, q: `Find $${2 * n}\\prod_{k=2}^{${n}}\\left(1-\\dfrac1{k^2}\\right)$.`,
+        sol: R`<p>$1-\dfrac1{k^2}=\dfrac{(k-1)(k+1)}{k\cdot k}$. The product telescopes to $\dfrac{n+1}{2n}$ with $n=${n}$. Times $${2 * n}$ gives $${answer}$.</p>` }; },
+    verify(p) { let q = 1; for (let k = 2; k <= p.n; k++) q *= 1 - 1 / (k * k); return Math.round(2 * p.n * q); } },
+  { id: 'ss-g28', type: 'nat', format: 'integer', level: 4, exams: EXS[4], sub: 'floor sums',
+    make(rng) { const m = int(rng, 2, 6), N = int(rng, 20, 60); const q = Math.floor(N / m); const answer = m * q * (q - 1) / 2 + q * (N - m * q + 1);
+      return { m, N, answer, tol: 0, q: `Find $\\sum_{n=1}^{${N}}\\left\\lfloor\\dfrac n{${m}}\\right\\rfloor$.`,
+        sol: R`<p>The value $k$ appears for $n=${m}k,\dots,${m}k+${m - 1}$ ($${m}$ times) while $${m}k+${m - 1}\le${N}$. With $q=\lfloor ${N}/${m}\rfloor=${q}$ the sum is $${m}\cdot\dfrac{${q}(${q}-1)}2+${q}(${N}-${m * q}+1)=${answer}$.</p>` }; },
+    verify(p) { let s = 0; for (let n = 1; n <= p.N; n++) s += Math.floor(n / p.m); return s; } },
+  { id: 'ss-g29', type: 'mcq', format: 'single', level: 4, exams: EXS[4], sub: 'infinite GP',
+    make(rng) { const a = int(rng, 2, 12), S = a + int(rng, 1, 12); const r = 1 - a / S; if (new Set([(S - a) / S, a / S, S / a, (S - a) / a].map((v) => v.toFixed(9))).size < 4) return this.make(rng); const rt = (n, d) => R`$${frs(n, d)}$`;
+      const o = shuffleOpts(rng, rt(S - a, S), [rt(a, S), rt(S, a), rt(S - a, a)]);
+      return { a, S, ...o, q: `An infinite GP has first term ${a} and sum ${S}. Its common ratio is`,
+        sol: R`<p>$S=\dfrac a{1-r}$ so $1-r=\dfrac{${a}}{${S}}$ and $r=1-\dfrac{${a}}{${S}}=\dfrac{${S - a}}{${S}}$.</p>`, trap: 'Solve $S=\\frac a{1-r}$ for $r$, not for $1-r$.' }; },
+    verify(p) { const r = 1 - p.a / p.S; return p.options.findIndex((o) => { const m = o.match(/(?:\\dfrac\{(\d+)\}\{(\d+)\}|^\$(\d+)\$$)/); if (!m) return false; const v = m[3] !== undefined ? Number(m[3]) : m[1] / m[2]; return Math.abs(v - r) < 1e-9; }); } },
+);
+
+// ===== expansion end =====
+
 export default { topic: 'sequences-series', groups, items, gens };

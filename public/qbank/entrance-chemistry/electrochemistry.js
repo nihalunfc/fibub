@@ -382,9 +382,270 @@ const gens = [
     }, verify: (p) => p.E0 - 0.059 / p.n * p.e },
 ];
 
+const XP = 'el', XCUET = true, GBASE = 23;
+// ===== expansion block (added) =====
+const XI = [], XGRP = {}, XGENS = []; let _xn = 0, _xc = 0;
+const XA4 = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const XS4 = ['Both Statement I and Statement II are correct', 'Statement I is correct but Statement II is incorrect', 'Statement I is incorrect but Statement II is correct', 'Both Statement I and Statement II are incorrect'];
+const xex = (level, mcq) => level <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet', ...(XCUET && mcq ? ['cuet'] : [])] : level === 3 ? ['jee-main', 'neet', 'comedk', ...(XCUET && mcq ? ['cuet'] : [])] : level === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv'];
+const xid = () => `${XP}-x${String(++_xc).padStart(3, '0')}`;
+const xmk = (level, sub, q, right, wrongs, sol, trap, format = 'single', group) => {
+  const pos = (_xn++ * 3 + 1) % 4; const options = [...wrongs]; options.splice(pos, 0, right);
+  XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, ...(group ? { group } : {}), q, options, answer: pos, sol, ...(trap ? { trap } : {}) });
+};
+const xnat = (level, sub, q, answer, tol, unit, sol, trap, calc, format, group) => { XI.push({ id: xid(), type: 'nat', level, format: format || (tol === 0 ? 'integer' : 'numeric'), exams: xex(level, false), sub, ...(group ? { group } : {}), q, answer, tol, ...(unit ? { unit } : {}), sol, ...(trap ? { trap } : {}), ...(calc ? { calc } : {}) }); };
+const xmsq = (level, sub, q, options, answer, sol, trap) => { XI.push({ id: xid(), type: 'msq', level, format: 'multi', exams: ['jee-adv'], sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xmk2 = (level, sub, q, options, answer, sol, trap, format) => { XI.push({ id: xid(), type: 'mcq', level, format, exams: xex(level, true), sub, q, options, answer, sol, ...(trap ? { trap } : {}) }); };
+const xasr = (level, sub, A, R, answer, sol, trap) => xmk2(level, sub, `<p><b>Assertion (A):</b> ${A}</p><p><b>Reason (R):</b> ${R}</p>`, XA4, answer, sol, trap, 'assertion');
+const xstm = (level, sub, s1, s2, answer, sol, trap) => xmk2(level, sub, `<p><b>Statement I:</b> ${s1}</p><p><b>Statement II:</b> ${s2}</p>`, XS4, answer, sol, trap, 'statements');
+const xmat = (level, sub, title, list1, list2, correct, wrongs, sol, trap) => {
+  const gid = `xm${String(Object.keys(XGRP).length + 1).padStart(2, '0')}`; XGRP[gid] = { title, list1, list2 };
+  xmk(level, sub, 'Match each entry of List I with the correct entry of List II.', correct, wrongs, sol, trap, 'match', gid);
+};
+const xpassage = (gid, title, passage) => { XGRP[gid] = { title, passage }; };
+const xgen = (g) => XGENS.push({ ...g, id: `${XP}-g${String(GBASE + XGENS.length + 1).padStart(2, '0')}`, exams: xex(g.level, g.type === 'mcq') });
+
+const F_ = 96500;
+// ---------- matches ----------
+xmat(3, 'electrolysis products', 'Products of electrolysis with inert electrodes', ['A. Molten NaCl', 'B. Concentrated aqueous NaCl', 'C. Aqueous CuSO<sub>4</sub>', 'D. Dilute H<sub>2</sub>SO<sub>4</sub>'],
+  ['p. H<sub>2</sub> at cathode, O<sub>2</sub> at anode', 'q. Cu at cathode, O<sub>2</sub> at anode', 'r. Na at cathode, Cl<sub>2</sub> at anode', 's. H<sub>2</sub> at cathode, Cl<sub>2</sub> at anode'],
+  'A-r, B-s, C-q, D-p', ['A-s, B-r, C-q, D-p', 'A-r, B-s, C-p, D-q', 'A-r, B-q, C-s, D-p'],
+  '<p>Molten NaCl has only Na<sup>+</sup> and Cl<sup>-</sup>: Na at cathode, Cl<sub>2</sub> at anode (r). In concentrated brine water is reduced in preference to Na<sup>+</sup> (E&deg; of Na<sup>+</sup> is -2.71 V), giving H<sub>2</sub>, and Cl<sup>-</sup> is oxidised in preference to water because of the overpotential of O<sub>2</sub> (s). Cu<sup>2+</sup> (+0.34 V) is reduced before water; water is oxidised at the anode because SO<sub>4</sub><sup>2-</sup> cannot be oxidised (q). Dilute H<sub>2</sub>SO<sub>4</sub>: H<sub>2</sub> and O<sub>2</sub> (p).</p>', 'Molten and aqueous NaCl give different cathode products.');
+xmat(2, 'units', 'Quantities and their SI units', ['A. Conductivity (&kappa;)', 'B. Molar conductivity (&Lambda;<sub>m</sub>)', 'C. Cell constant', 'D. Conductance (G)'],
+  ['p. S m<sup>2</sup> mol<sup>-1</sup>', 'q. S', 'r. m<sup>-1</sup>', 's. S m<sup>-1</sup>'],
+  'A-s, B-p, C-r, D-q', ['A-p, B-s, C-r, D-q', 'A-s, B-p, C-q, D-r', 'A-q, B-p, C-r, D-s'],
+  '<p>Conductance G = 1/R in siemens (q). Cell constant = l/A in m<sup>-1</sup> (r). &kappa; = G &times; (l/A) in S m<sup>-1</sup> (s). &Lambda;<sub>m</sub> = &kappa;/c in S m<sup>2</sup> mol<sup>-1</sup> (p).</p>');
+xmat(4, 'batteries', 'Cells and a feature of each', ['A. Lead storage battery', 'B. Dry (Leclanch&eacute;) cell', 'C. Mercury cell', 'D. Nickel-cadmium cell'],
+  ['p. Electrolyte is a moist paste of NH<sub>4</sub>Cl and ZnCl<sub>2</sub>', 'q. About 2 V per cell; the H<sub>2</sub>SO<sub>4</sub> density falls on discharge', 'r. Steady 1.35 V used in watches and hearing aids', 's. Rechargeable, about 1.2 V; no change in the KOH concentration overall'],
+  'A-q, B-p, C-r, D-s', ['A-p, B-q, C-r, D-s', 'A-q, B-p, C-s, D-r', 'A-r, B-p, C-q, D-s'],
+  '<p>Lead storage: Pb/PbO<sub>2</sub> in H<sub>2</sub>SO<sub>4</sub>, about 2 V, acid used up on discharge (q). Dry cell: zinc container, graphite rod, MnO<sub>2</sub> with NH<sub>4</sub>Cl/ZnCl<sub>2</sub> paste (p). Mercury cell: Zn-Hg amalgam, HgO, KOH; the overall reaction has no ion whose concentration changes, so 1.35 V stays constant (r). Ni-Cd: Cd + 2NiO(OH) + 2H<sub>2</sub>O &rarr; Cd(OH)<sub>2</sub> + 2Ni(OH)<sub>2</sub>, rechargeable (s).</p>');
+xmat(4, 'standard cell emf', 'E&deg;<sub>cell</sub> (use E&deg;: Zn<sup>2+</sup>/Zn -0.76, Fe<sup>2+</sup>/Fe -0.44, Cu<sup>2+</sup>/Cu +0.34, Ag<sup>+</sup>/Ag +0.80 V)', ['A. Zn | Zn<sup>2+</sup> || Cu<sup>2+</sup> | Cu', 'B. Fe | Fe<sup>2+</sup> || Ag<sup>+</sup> | Ag', 'C. Zn | Zn<sup>2+</sup> || Ag<sup>+</sup> | Ag', 'D. Cu | Cu<sup>2+</sup> || Ag<sup>+</sup> | Ag'],
+  ['p. 1.56 V', 'q. 0.46 V', 'r. 1.10 V', 's. 1.24 V'],
+  'A-r, B-s, C-p, D-q', ['A-s, B-r, C-p, D-q', 'A-r, B-s, C-q, D-p', 'A-r, B-p, C-s, D-q'],
+  '<p>E&deg;<sub>cell</sub> = E&deg;(cathode) - E&deg;(anode), and the value is not multiplied by the electrons. A: 0.34 - (-0.76) = 1.10 (r). B: 0.80 - (-0.44) = 1.24 (s). C: 0.80 - (-0.76) = 1.56 (p). D: 0.80 - 0.34 = 0.46 (q).</p>', 'Do not double E&deg; of Ag<sup>+</sup>/Ag when you balance 2Ag<sup>+</sup>.');
+xmat(4, 'Nernst equation', 'Zn | Zn<sup>2+</sup>(a M) || Cu<sup>2+</sup>(b M) | Cu, E&deg; = 1.10 V, 0.059/2 = 0.0295 V. Value of E<sub>cell</sub> for [Zn<sup>2+</sup>]/[Cu<sup>2+</sup>] =', ['A. 10', 'B. 100', 'C. 0.1', 'D. 1000'],
+  ['p. 1.01 V', 'q. 1.04 V', 'r. 1.07 V', 's. 1.13 V'],
+  'A-r, B-q, C-s, D-p', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-s, B-q, C-r, D-p'],
+  '<p>E = 1.10 - 0.0295 log Q with Q = [Zn<sup>2+</sup>]/[Cu<sup>2+</sup>]. Q = 10: 1.0705 (r). Q = 100: 1.041 (q). Q = 0.1: 1.1295 (s). Q = 1000: 1.0115 (p). A bigger Q (more product) lowers the emf, a smaller Q raises it.</p>', 'The sign: more Zn<sup>2+</sup> (the product) lowers E.');
+xmat(5, 'Gibbs energy', 'Standard Gibbs energy &Delta;G&deg; = -nFE&deg; (F = 96 500 C/mol)', ['A. n = 2, E&deg; = 0.10 V', 'B. n = 2, E&deg; = 1.10 V', 'C. n = 1, E&deg; = 0.80 V', 'D. n = 6, E&deg; = 0.05 V'],
+  ['p. -77.2 kJ/mol', 'q. -19.3 kJ/mol', 'r. -212.3 kJ/mol', 's. -29 kJ/mol'],
+  'A-q, B-r, C-p, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-s, C-p, D-r', 'A-q, B-r, C-s, D-p'],
+  '<p>A: 2 &times; 96 500 &times; 0.10 = 19 300 J, so -19.3 kJ (q). B: 2 &times; 96 500 &times; 1.10 = 212 300 J (r). C: 96 500 &times; 0.80 = 77 200 J (p). D: 6 &times; 96 500 &times; 0.05 = 28 950 J &asymp; -29 kJ (s).</p>', 'Forgetting n, or mixing kJ and J.');
+xmat(3, "Faraday's laws", 'Mass deposited by 965 C (0.01 F) (Ag 108, Cu 63.5, Al 27, Zn 65)', ['A. Ag<sup>+</sup> &rarr; Ag', 'B. Cu<sup>2+</sup> &rarr; Cu', 'C. Al<sup>3+</sup> &rarr; Al', 'D. Zn<sup>2+</sup> &rarr; Zn'],
+  ['p. 0.325 g', 'q. 0.090 g', 'r. 1.08 g', 's. 0.3175 g'],
+  'A-r, B-s, C-q, D-p', ['A-r, B-p, C-q, D-s', 'A-s, B-r, C-q, D-p', 'A-r, B-s, C-p, D-q'],
+  '<p>0.01 mol of electrons. Mass = 0.01 &times; (molar mass/charge). Ag: 108 &times; 0.01 = 1.08 g (r). Cu: 31.75 &times; 0.01 = 0.3175 g (s). Al: 9 &times; 0.01 = 0.090 g (q). Zn: 32.5 &times; 0.01 = 0.325 g (p). Cu and Zn are close, so use the exact values.</p>');
+xmat(3, 'corrosion protection', 'Method and reason', ['A. Galvanising (zinc coat)', 'B. Tin plating', 'C. A magnesium block bolted to a pipe', 'D. Painting or greasing'],
+  ['p. Mg is more reactive than iron and is oxidised instead', 'q. Zn still protects the iron where the coat is scratched', 'r. Tin is less reactive than iron, so a scratch speeds up the rusting of iron', 's. It keeps oxygen and water away from the metal'],
+  'A-q, B-r, C-p, D-s', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-p, B-r, C-q, D-s'],
+  '<p>Zinc (E&deg; -0.76 V) is more reactive than iron (-0.44 V), so it acts as a sacrificial anode and protects even where scratched (q). Tin (-0.14 V) is less reactive, so at a scratch iron becomes the anode and rusts faster (r). Mg is sacrificial (p). Paint is only a barrier (s).</p>');
+
+// ---------- msq ----------
+xmsq(4, 'galvanic cell', 'In the cell Zn | Zn<sup>2+</sup>(1 M) || Cu<sup>2+</sup>(1 M) | Cu, which statements are correct?',
+  ['Electrons flow through the wire from Zn to Cu', 'Zn is the anode and is the negative electrode', 'The mass of the Cu electrode increases', 'Anions of the salt bridge move towards the Cu half cell'], [0, 1, 2],
+  '<p>Zn is oxidised at the anode (negative) and sends electrons to the Cu cathode, where Cu<sup>2+</sup> is deposited, so the mass rises. In the salt bridge, anions move towards the anode (Zn side) to balance the Zn<sup>2+</sup> being produced; cations move towards the cathode. So the last statement is false.</p>');
+xmsq(4, 'Nernst equation', 'The cell Zn | Zn<sup>2+</sup>(0.01 M) || Cu<sup>2+</sup>(0.1 M) | Cu has E&deg; = 1.10 V. Which statements are correct?',
+  ['E<sub>cell</sub> is greater than E&deg;', 'E<sub>cell</sub> is about 1.13 V', '&Delta;G is more negative than &Delta;G&deg;', 'E<sub>cell</sub> increases when Zn<sup>2+</sup> is added to the left half'], [0, 1, 2],
+  '<p>Q = [Zn<sup>2+</sup>]/[Cu<sup>2+</sup>] = 0.1, so E = 1.10 - 0.0295 log 0.1 = 1.10 + 0.0295 = 1.1295 V. Q &lt; 1, so E &gt; E&deg; and &Delta;G = -nFE is more negative than &Delta;G&deg;. Adding Zn<sup>2+</sup> raises Q and lowers E.</p>');
+xmsq(4, 'conductance on dilution', 'A weak electrolyte solution is diluted with water. Which statements are correct?',
+  ['The conductivity (&kappa;) decreases', 'The molar conductivity increases', 'The degree of dissociation increases', '&Lambda;<sub>m</sub> varies linearly with &radic;c'], [0, 1, 2],
+  '<p>Fewer ions per unit volume lowers &kappa;. &Lambda;<sub>m</sub> = &kappa;/c rises because the degree of dissociation increases (Ostwald dilution law). The linear &Lambda;<sub>m</sub> against &radic;c plot (Debye-H&uuml;ckel-Onsager) is for strong electrolytes only.</p>');
+xmsq(4, "Kohlrausch's law", "Which statements about Kohlrausch's law are correct?",
+  ['&Lambda;&deg;(CH<sub>3</sub>COOH) = &Lambda;&deg;(CH<sub>3</sub>COONa) + &Lambda;&deg;(HCl) - &Lambda;&deg;(NaCl)', 'At infinite dilution every ion migrates independently', '&Lambda;&deg;(BaCl<sub>2</sub>) = &lambda;&deg;(Ba<sup>2+</sup>) + 2&lambda;&deg;(Cl<sup>-</sup>)', '&Lambda;&deg; of a weak electrolyte is found by extrapolating &Lambda;<sub>m</sub> against &radic;c to zero'], [0, 1, 2],
+  '<p>The first three are the law and its uses. The extrapolation works for strong electrolytes, whose plot is nearly a straight line; for weak electrolytes &Lambda;<sub>m</sub> rises so steeply near zero concentration that it cannot be extrapolated, which is why Kohlrausch\'s law is needed.</p>');
+xmsq(4, 'electrolysis with active electrodes', 'Aqueous CuSO<sub>4</sub> is electrolysed with copper electrodes. Which statements are correct?',
+  ['The anode dissolves', 'The mass of the cathode increases', 'The concentration of Cu<sup>2+</sup> in the solution stays nearly constant', 'O<sub>2</sub> is evolved at the anode'], [0, 1, 2],
+  '<p>The copper anode is oxidised, Cu &rarr; Cu<sup>2+</sup> + 2e<sup>-</sup>, which is easier than oxidising water. As much Cu<sup>2+</sup> is formed at the anode as is removed at the cathode, so the concentration stays about the same (this is copper refining). No oxygen is evolved.</p>');
+xmsq(4, 'fuel cell', 'Which statements are correct for the H<sub>2</sub>-O<sub>2</sub> fuel cell?',
+  ['Water is the only product', 'The reactants are supplied continuously', 'It must be recharged from an external source', 'The electrodes act as catalysts and are not used up'], [0, 1, 3],
+  '<p>2H<sub>2</sub> + O<sub>2</sub> &rarr; 2H<sub>2</sub>O is the overall reaction. Fuel and oxygen are fed in, so the cell runs as long as they are supplied; there is no recharging. The porous electrodes carry catalysts (Pt) and are not consumed.</p>');
+xmsq(4, 'corrosion', 'Which statements about the rusting of iron are correct?',
+  ['Iron acts as the anode', 'The anode reaction is Fe &rarr; Fe<sup>2+</sup> + 2e<sup>-</sup>', 'Dissolved oxygen is reduced at the cathode region', 'Rusting is slower in salty water than in pure water'], [0, 1, 2],
+  '<p>Rusting is an electrochemical process: Fe is oxidised at the anode, and O<sub>2</sub> + 4H<sup>+</sup> + 4e<sup>-</sup> &rarr; 2H<sub>2</sub>O at the cathode. Dissolved salts make the water conduct better and speed rusting, so it is faster, not slower, in salty water.</p>');
+xmsq(4, 'lead storage battery', 'During discharge of the lead storage battery, which statements are correct?',
+  ['PbSO<sub>4</sub> is formed at both electrodes', 'The density of the H<sub>2</sub>SO<sub>4</sub> solution falls', 'Pb is the anode', 'Pb is reduced at the anode'], [0, 1, 2],
+  '<p>Pb + SO<sub>4</sub><sup>2-</sup> &rarr; PbSO<sub>4</sub> + 2e<sup>-</sup> (anode, oxidation); PbO<sub>2</sub> + 4H<sup>+</sup> + SO<sub>4</sub><sup>2-</sup> + 2e<sup>-</sup> &rarr; PbSO<sub>4</sub> + 2H<sub>2</sub>O (cathode). Acid is used up, so the density falls. Pb is oxidised, not reduced, at the anode.</p>');
+xmsq(5, 'electrode potentials', 'Given E&deg;: Fe<sup>3+</sup>/Fe<sup>2+</sup> = +0.77 V, I<sub>2</sub>/I<sup>-</sup> = +0.54 V, Br<sub>2</sub>/Br<sup>-</sup> = +1.09 V, Cl<sub>2</sub>/Cl<sup>-</sup> = +1.36 V. Which reactions are spontaneous under standard conditions?',
+  ['2Fe<sup>3+</sup> + 2I<sup>-</sup> &rarr; 2Fe<sup>2+</sup> + I<sub>2</sub>', '2Fe<sup>3+</sup> + 2Br<sup>-</sup> &rarr; 2Fe<sup>2+</sup> + Br<sub>2</sub>', 'Cl<sub>2</sub> + 2Br<sup>-</sup> &rarr; 2Cl<sup>-</sup> + Br<sub>2</sub>', 'Br<sub>2</sub> + 2I<sup>-</sup> &rarr; 2Br<sup>-</sup> + I<sub>2</sub>'], [0, 2, 3],
+  '<p>A reaction is spontaneous if E&deg;(oxidising agent) &gt; E&deg;(reducing agent). Fe<sup>3+</sup> (0.77) can oxidise I<sup>-</sup> (0.54) but not Br<sup>-</sup> (1.09). Cl<sub>2</sub> (1.36) oxidises Br<sup>-</sup> (1.09), and Br<sub>2</sub> (1.09) oxidises I<sup>-</sup> (0.54).</p>');
+xmsq(5, 'equilibrium constant', 'A reaction with n = 2 has E&deg;<sub>cell</sub> = 0.177 V at 298 K (2.303RT/F = 0.059 V). Which statements are correct?',
+  ['&Delta;G&deg; is negative', 'K = 10<sup>6</sup>', 'At equilibrium E<sub>cell</sub> = 0', '&Delta;G&deg; = -17.1 kJ/mol'], [0, 1, 2],
+  '<p>log K = nE&deg;/0.059 = 2 &times; 0.177/0.059 = 6, so K = 10<sup>6</sup>. &Delta;G&deg; = -nFE&deg; = -2 &times; 96 500 &times; 0.177 = -34.2 kJ/mol (negative). At equilibrium &Delta;G = 0 so E = 0. The value -17.1 kJ forgets n = 2.</p>');
+xmsq(5, 'concentration cell', 'Ag | Ag<sup>+</sup>(0.001 M) || Ag<sup>+</sup>(0.1 M) | Ag at 298 K. Which statements are correct?',
+  ['E&deg;<sub>cell</sub> = 0', 'The right-hand electrode is the cathode', 'E<sub>cell</sub> = 0.118 V', 'E<sub>cell</sub> = 0.059 V'], [0, 1, 2],
+  '<p>Both electrodes are silver, so E&deg; = 0. Ions move from higher to lower concentration, so the more concentrated side (0.1 M) is the cathode (reduction). E = (0.059/1) log(0.1/0.001) = 0.059 &times; 2 = 0.118 V.</p>');
+
+// ---------- integer ----------
+xnat(4, 'electrons in redox', 'In the balanced equation of Cr<sub>2</sub>O<sub>7</sub><sup>2-</sup> with Fe<sup>2+</sup> in acid solution, how many moles of electrons are exchanged per mole of dichromate?', 6, 0, '',
+  '<p>Each Cr goes from +6 to +3, gaining 3 electrons; there are 2 Cr, so 6 electrons. Cr<sub>2</sub>O<sub>7</sub><sup>2-</sup> + 6Fe<sup>2+</sup> + 14H<sup>+</sup> &rarr; 2Cr<sup>3+</sup> + 6Fe<sup>3+</sup> + 7H<sub>2</sub>O. Answer <b>6</b>.</p>', 'Counting only one Cr atom (3).', () => 2 * (6 - 3));
+xnat(5, 'electrons in redox', 'For the cell reaction 2MnO<sub>4</sub><sup>-</sup> + 5Sn<sup>2+</sup> + 16H<sup>+</sup> &rarr; 2Mn<sup>2+</sup> + 5Sn<sup>4+</sup> + 8H<sub>2</sub>O, what is n in the Nernst equation for this balanced equation?', 10, 0, '',
+  '<p>Each Mn goes from +7 to +2, gaining 5 electrons; 2 Mn gain 10. Each Sn loses 2; 5 Sn lose 10. So n = <b>10</b> for the equation as written.</p>', 'Using n = 5 (per MnO<sub>4</sub><sup>-</sup>): n must match the equation written.', () => 2 * (7 - 2));
+xnat(4, "Faraday's first law", 'A current of 5.0 A is passed through aqueous AgNO<sub>3</sub> with platinum electrodes until 5.4 g of silver is deposited. How many seconds does this take? (Ag = 108, F = 96 500 C/mol)', 965, 0, 's',
+  '<p>5.4 g Ag = 5.4/108 = 0.05 mol, needing 0.05 F = 0.05 &times; 96 500 = 4825 C. t = Q/I = 4825/5.0 = <b>965 s</b>.</p>', '', () => (5.4 / 108) * 96500 / 5.0);
+xnat(4, 'hydrogen electrode', 'A hydrogen electrode (H<sub>2</sub> at 1 bar) has potential -0.236 V at 298 K (2.303RT/F = 0.059 V). Find the pH of the solution.', 4, 0, '',
+  '<p>E = -0.059 &times; pH for H<sub>2</sub> at 1 bar. pH = 0.236/0.059 = <b>4</b>.</p>', '', () => 0.236 / 0.059);
+xnat(4, 'electrolysis and pH', 'A current of 9.65 A is passed for 1000 s through 10 L of aqueous NaCl using inert electrodes, with 100% efficiency. Assuming the volume does not change, what is the pH of the solution at the end?', 12, 0, '',
+  '<p>Q = 9.65 &times; 1000 = 9650 C = 0.1 F. At the cathode 2H<sub>2</sub>O + 2e<sup>-</sup> &rarr; H<sub>2</sub> + 2OH<sup>-</sup>, so 0.1 mol OH<sup>-</sup> forms in 10 L: [OH<sup>-</sup>] = 0.01 M. pOH = 2 and pH = <b>12</b>.</p>', 'Using volume 1 L, which gives pH 13.', () => 14 + Math.log10((9.65 * 1000 / 96500) / 10));
+xnat(4, 'equilibrium constant', 'For a cell with n = 2 the standard emf is 0.236 V at 298 K (2.303RT/F = 0.059 V). Find log<sub>10</sub> K.', 8, 0, '',
+  '<p>log K = nE&deg;/0.059 = 2 &times; 0.236/0.059 = <b>8</b>.</p>', '', () => 2 * 0.236 / 0.059);
+xnat(4, "Kohlrausch's law", '&Lambda;&deg; (S cm<sup>2</sup> mol<sup>-1</sup>) at infinite dilution: KCl 150, NaCl 126, CH<sub>3</sub>COONa 91. Find &Lambda;&deg; of CH<sub>3</sub>COOK.', 115, 0, 'S cm<sup>2</sup> mol<sup>-1</sup>',
+  '<p>&Lambda;&deg;(CH<sub>3</sub>COOK) = &Lambda;&deg;(KCl) + &Lambda;&deg;(CH<sub>3</sub>COONa) - &Lambda;&deg;(NaCl) = 150 + 91 - 126 = <b>115</b>, since the K<sup>+</sup> and acetate contributions are added and Na<sup>+</sup>, Cl<sup>-</sup> cancel.</p>', '', () => 150 + 91 - 126);
+xnat(5, 'electrolysis in series', 'Aqueous AgNO<sub>3</sub>, CuSO<sub>4</sub> and AlCl<sub>3</sub> solutions are electrolysed in series with the same current. 10.8 g of silver is deposited in the first cell. How many milligrams of aluminium are deposited in the third? (Ag = 108, Al = 27)', 900, 0, 'mg',
+  '<p>10.8 g Ag = 0.1 mol, so 0.1 mol of electrons passed. Al<sup>3+</sup> + 3e<sup>-</sup> &rarr; Al needs 3 mol e<sup>-</sup> per mol: 0.1/3 mol &times; 27 = 0.9 g = <b>900 mg</b>.</p>', 'Giving 2.7 g (treating Al as 1 electron).', () => (10.8 / 108) / 3 * 27 * 1000);
+xnat(4, 'electrolysis of water', 'A current of 9650 C is passed through dilute H<sub>2</sub>SO<sub>4</sub> with platinum electrodes. What volume of O<sub>2</sub> (in mL at STP, 22.4 L/mol) is formed at the anode?', 560, 0, 'mL',
+  '<p>9650 C = 0.1 F. 2H<sub>2</sub>O &rarr; O<sub>2</sub> + 4H<sup>+</sup> + 4e<sup>-</sup>: 4 mol e<sup>-</sup> per mol O<sub>2</sub>, so 0.025 mol O<sub>2</sub> = 0.025 &times; 22.4 = 0.56 L = <b>560 mL</b>.</p>', 'Using 2 electrons per O<sub>2</sub> gives 1120 mL.', () => 9650 / 96500 / 4 * 22.4 * 1000);
+xnat(5, 'sacrificial anode', 'E&deg;(Fe<sup>2+</sup>/Fe) = -0.44 V. How many of these metals can protect iron as a sacrificial anode: Zn (-0.76 V), Mg (-2.37 V), Cu (+0.34 V), Sn (-0.14 V), Al (-1.66 V), Ag (+0.80 V)?', 3, 0, '',
+  '<p>A sacrificial metal must be oxidised more easily than iron: E&deg; more negative than -0.44 V. Zn, Mg and Al qualify; Sn, Cu and Ag do not. Answer <b>3</b>.</p>', 'Choosing Sn because it is used to coat steel cans (it only protects while the coat is whole).', () => [-0.76, -2.37, 0.34, -0.14, -1.66, 0.80].filter((e) => e < -0.44).length);
+xnat(4, 'pH from cell emf', 'Pt | H<sub>2</sub>(1 bar) | solution of pH x || standard hydrogen electrode, has E<sub>cell</sub> = 0.177 V at 298 K (2.303RT/F = 0.059 V), the solution side being the anode. Find x.', 3, 0, '',
+  '<p>The left electrode has E = -0.059 x, the right (SHE) is 0. E<sub>cell</sub> = 0 - (-0.059x) = 0.059x = 0.177, so x = <b>3</b>.</p>', '', () => 0.177 / 0.059);
+
+// ---------- numeric ----------
+xnat(4, 'Nernst equation', 'Find E<sub>cell</sub> (V) of Zn | Zn<sup>2+</sup>(0.01 M) || Cu<sup>2+</sup>(1.0 M) | Cu at 298 K. E&deg; = 1.10 V, 2.303RT/F = 0.059 V.', 1.159, 0.005, 'V',
+  '<p>E = E&deg; - (0.059/2) log([Zn<sup>2+</sup>]/[Cu<sup>2+</sup>]) = 1.10 - 0.0295 log 0.01 = 1.10 + 0.0295 &times; 2 = <b>1.159 V</b>.</p>', '', () => 1.10 - 0.0295 * Math.log10(0.01 / 1));
+xnat(4, 'cell constant', 'A cell filled with 0.1 M KCl (&kappa; = 1.29 S m<sup>-1</sup>) has resistance 100 &Omega;. The same cell with 0.01 M electrolyte X has resistance 520 &Omega;. Find &Lambda;<sub>m</sub> of X in S cm<sup>2</sup> mol<sup>-1</sup>.', 248.1, 0.5, 'S cm<sup>2</sup> mol<sup>-1</sup>',
+  '<p>Cell constant = &kappa;R = 1.29 &times; 100 = 129 m<sup>-1</sup>. &kappa;(X) = 129/520 = 0.2481 S m<sup>-1</sup> = 2.481 &times; 10<sup>-3</sup> S cm<sup>-1</sup>. &Lambda;<sub>m</sub> = 1000&kappa;/c = 1000 &times; 2.481 &times; 10<sup>-3</sup>/0.01 = <b>248.1 S cm<sup>2</sup> mol<sup>-1</sup></b>.</p>', 'Forgetting the 1000 (L to cm<sup>3</sup>) or mixing S m<sup>-1</sup> with S cm<sup>-1</sup>.', () => 1000 * (1.29 * 100 / 520 / 100) / 0.01);
+xnat(5, 'dissociation constant', 'A weak acid HA (0.010 M) has &Lambda;<sub>m</sub> = 16.0 S cm<sup>2</sup> mol<sup>-1</sup> and &Lambda;&deg; = 390 S cm<sup>2</sup> mol<sup>-1</sup>. Find K<sub>a</sub> in units of 10<sup>-5</sup>.', 1.76, 0.03, '&times; 10<sup>-5</sup>',
+  '<p>&alpha; = &Lambda;<sub>m</sub>/&Lambda;&deg; = 16/390 = 0.0410. K<sub>a</sub> = c&alpha;<sup>2</sup>/(1 - &alpha;) = 0.010 &times; (0.0410)<sup>2</sup>/0.959 = 1.76 &times; 10<sup>-5</sup>. Answer <b>1.76</b>.</p>', 'Dropping the (1 - &alpha;) changes the answer by 4%: here it matters at the third figure.', () => { const a = 16 / 390; return 0.010 * a * a / (1 - a) * 1e5; });
+xnat(5, 'K<sub>sp</sub> from a cell', 'Ag | saturated AgX solution || Ag<sup>+</sup>(0.1 M) | Ag has E<sub>cell</sub> = 0.3776 V at 298 K (2.303RT/F = 0.059 V). Find K<sub>sp</sub> of AgX in units of 10<sup>-15</sup>.', 1.58, 0.03, '&times; 10<sup>-15</sup>',
+  '<p>E = 0.059 log(0.1/[Ag<sup>+</sup>]) = 0.3776, so log(0.1/[Ag<sup>+</sup>]) = 6.4 and [Ag<sup>+</sup>] = 0.1 &times; 10<sup>-6.4</sup> = 3.98 &times; 10<sup>-8</sup> M. K<sub>sp</sub> = [Ag<sup>+</sup>][X<sup>-</sup>] = [Ag<sup>+</sup>]<sup>2</sup> = 1.58 &times; 10<sup>-15</sup>. Answer <b>1.58</b>.</p>', 'The saturated half cell is the anode (lower [Ag<sup>+</sup>]); K<sub>sp</sub> is the square of [Ag<sup>+</sup>], not [Ag<sup>+</sup>] itself.', () => Math.pow(0.1 * Math.pow(10, -0.3776 / 0.059), 2) * 1e15);
+xnat(4, 'current efficiency', 'A current of 2.5 A flows for 30 min through aqueous CuSO<sub>4</sub> with 80% current efficiency at the cathode. What mass of copper (g) is deposited? (Cu = 63.5, F = 96 500 C/mol)', 1.18, 0.01, 'g',
+  '<p>Charge = 2.5 &times; 1800 = 4500 C. Effective charge = 0.80 &times; 4500 = 3600 C = 0.03731 mol e<sup>-</sup>. Cu: 63.5/2 = 31.75 g per mol e<sup>-</sup>. Mass = 0.03731 &times; 31.75 = <b>1.18 g</b>.</p>', 'Taking 100% efficiency gives 1.48 g.', () => 0.8 * 2.5 * 1800 / 96500 * 63.5 / 2);
+xnat(5, 'combining half cells', 'E&deg;(Cr<sup>3+</sup>/Cr<sup>2+</sup>) = -0.41 V and E&deg;(Cr<sup>2+</sup>/Cr) = -0.91 V. Find E&deg;(Cr<sup>3+</sup>/Cr) in volts.', -0.743, 0.003, 'V',
+  '<p>Potentials do not add, free energies do. &Delta;G&deg; = -nFE&deg;: 3E&deg;(Cr<sup>3+</sup>/Cr) = 1 &times; (-0.41) + 2 &times; (-0.91) = -2.23. E&deg; = -2.23/3 = <b>-0.743 V</b>.</p>', 'Adding -0.41 + (-0.91) = -1.32 V.', () => (1 * -0.41 + 2 * -0.91) / 3);
+xnat(4, 'dissociation constant', 'A hydrogen electrode (1 bar H<sub>2</sub>) in 0.10 M weak acid HA is paired with the SHE and gives E<sub>cell</sub> = 0.1475 V (hydrogen electrode as anode) at 298 K (2.303RT/F = 0.059 V). Take [HA] &asymp; 0.10 M and find K<sub>a</sub> in units of 10<sup>-4</sup>.', 1.0, 0.03, '&times; 10<sup>-4</sup>',
+  '<p>E<sub>cell</sub> = 0.059 pH, so pH = 0.1475/0.059 = 2.5 and [H<sup>+</sup>] = 10<sup>-2.5</sup> = 3.16 &times; 10<sup>-3</sup> M. K<sub>a</sub> = [H<sup>+</sup>]<sup>2</sup>/[HA] = 10<sup>-5</sup>/0.10 = 1.0 &times; 10<sup>-4</sup>. Answer <b>1.0</b>.</p>', '', () => Math.pow(10, -2 * 0.1475 / 0.059) / 0.10 * 1e4);
+
+// ---------- passages ----------
+xpassage('xp1', 'A silver concentration cell and K<sub>sp</sub>', '<p>Two silver electrodes dip in AgNO<sub>3</sub> solutions: left 0.01 M, right 1.0 M, joined by a salt bridge, at 298 K (2.303RT/F = 0.059 V). Later, NaBr is added to the left half until [Br<sup>-</sup>] = 0.050 M, and the emf rises to 0.649 V.</p>');
+xnat(4, 'concentration cell', 'The emf of the cell before NaBr is added (V) is', 0.118, 0.002, 'V',
+  '<p>E = 0.059 log(1.0/0.01) = 0.059 &times; 2 = <b>0.118 V</b>. E&deg; = 0 because both electrodes are silver.</p>', '', () => 0.059 * Math.log10(1.0 / 0.01), 'passage', 'xp1');
+xmk(3, 'concentration cell', 'Why does the emf rise when NaBr is added to the left half?', 'AgBr precipitates, so [Ag<sup>+</sup>] on the left falls', ['Br<sup>-</sup> is oxidised at the left electrode', '[Ag<sup>+</sup>] on the left rises', 'E&deg; of the left electrode increases'],
+  '<p>Ag<sup>+</sup> + Br<sup>-</sup> &rarr; AgBr(s) removes Ag<sup>+</sup>. A bigger ratio [Ag<sup>+</sup>]<sub>right</sub>/[Ag<sup>+</sup>]<sub>left</sub> gives a bigger emf. E&deg; is a property of the Ag<sup>+</sup>/Ag couple and does not change.</p>', '', 'passage', 'xp1');
+xnat(5, 'K<sub>sp</sub> from a cell', 'K<sub>sp</sub> of AgBr, in units of 10<sup>-13</sup>, is', 5.0, 0.1, '&times; 10<sup>-13</sup>',
+  '<p>0.649 = 0.059 log(1.0/[Ag<sup>+</sup>]), so log(1/[Ag<sup>+</sup>]) = 11 and [Ag<sup>+</sup>] = 10<sup>-11</sup> M on the left. K<sub>sp</sub> = [Ag<sup>+</sup>][Br<sup>-</sup>] = 10<sup>-11</sup> &times; 0.050 = <b>5.0 &times; 10<sup>-13</sup></b>.</p>', '', () => Math.pow(10, -0.649 / 0.059) * 0.050 * 1e13, 'passage', 'xp1');
+xpassage('xp2', 'Two cells in series', '<p>A current of 1.93 A flows for 50 min (3000 s) through two cells in series. Cell 1 has aqueous CuSO<sub>4</sub> with platinum electrodes. Cell 2 has aqueous AgNO<sub>3</sub> with silver electrodes. Cu = 63.5, Ag = 108, F = 96 500 C/mol, molar volume 22.4 L at STP.</p>');
+xnat(4, "Faraday's laws", 'The mass of copper deposited in cell 1 (g) is', 1.905, 0.01, 'g',
+  '<p>Q = 1.93 &times; 3000 = 5790 C = 0.06 F. Cu<sup>2+</sup> + 2e<sup>-</sup> &rarr; Cu: 0.03 mol Cu = 0.03 &times; 63.5 = <b>1.905 g</b>.</p>', '', () => 1.93 * 3000 / 96500 / 2 * 63.5, 'passage', 'xp2');
+xmk(4, 'electrolysis with active electrodes', 'In cell 2, the anode reaction is', 'Ag &rarr; Ag<sup>+</sup> + e<sup>-</sup>, the silver anode dissolves', ['2H<sub>2</sub>O &rarr; O<sub>2</sub> + 4H<sup>+</sup> + 4e<sup>-</sup>', 'NO<sub>3</sub><sup>-</sup> &rarr; NO<sub>3</sub> + e<sup>-</sup>', 'Ag<sup>+</sup> + e<sup>-</sup> &rarr; Ag'],
+  '<p>With a silver anode, silver itself is oxidised more easily than water or nitrate, so the anode dissolves while silver is deposited at the cathode (silver plating).</p>', 'Inert and active anodes give different products.', 'passage', 'xp2');
+xnat(5, 'gas volume', 'The volume of O<sub>2</sub> at STP produced at the anode of cell 1 (mL) is', 336, 2, 'mL',
+  '<p>Water is oxidised at the Pt anode: 2H<sub>2</sub>O &rarr; O<sub>2</sub> + 4H<sup>+</sup> + 4e<sup>-</sup>. 0.06 mol e<sup>-</sup> gives 0.015 mol O<sub>2</sub> = 0.015 &times; 22.4 = 0.336 L = <b>336 mL</b>.</p>', '', () => 5790 / 96500 / 4 * 22400, 'passage', 'xp2');
+
+// ---------- assertion / reason ----------
+xasr(3, 'cell at equilibrium', 'The emf of a galvanic cell is zero when it has reached equilibrium.', '&Delta;G = -nFE, and &Delta;G = 0 at equilibrium.', 0,
+  '<p>Both true. At equilibrium the reaction has no tendency to go in either direction, &Delta;G = 0, so E = 0 (a "dead" battery).</p>');
+xasr(3, 'corrosion protection', 'Zinc protects iron from rusting even when the zinc coating is scratched.', 'Zinc has a lower reduction potential than iron, so it is oxidised in preference to iron.', 0,
+  '<p>Both true. E&deg;(Zn<sup>2+</sup>/Zn) = -0.76 V &lt; E&deg;(Fe<sup>2+</sup>/Fe) = -0.44 V. Zinc is the sacrificial anode, so it still protects where the coat is broken.</p>');
+xasr(3, 'conductance of weak electrolytes', 'The molar conductivity of a weak electrolyte rises sharply on dilution.', 'On dilution the degree of dissociation of a weak electrolyte increases.', 0,
+  '<p>Both true and R explains A. As c falls, more of the electrolyte ionises, giving more ions per mole, so &Lambda;<sub>m</sub> rises steeply.</p>');
+xasr(3, 'conductivity', 'The conductivity of a strong electrolyte solution decreases on dilution.', 'The number of ions per unit volume decreases on dilution.', 0,
+  '<p>Both true and R explains A. &kappa; measures the conductance of 1 cm<sup>3</sup> of solution; with fewer ions in that volume, &kappa; falls even though the molar conductivity rises a little.</p>');
+xasr(3, 'electrolysis of brine', 'Hydrogen, and not sodium, is formed at the cathode when aqueous NaCl is electrolysed.', 'The reduction potential of water is less negative than that of Na<sup>+</sup>.', 0,
+  '<p>Both true. Na<sup>+</sup> + e<sup>-</sup> &rarr; Na has E&deg; = -2.71 V, while 2H<sub>2</sub>O + 2e<sup>-</sup> &rarr; H<sub>2</sub> + 2OH<sup>-</sup> has about -0.83 V. The species with the higher (less negative) reduction potential is reduced first.</p>');
+xasr(4, 'salt bridge', 'A KCl salt bridge cannot be used in a cell containing Ag<sup>+</sup> ions.', 'Chloride ions precipitate Ag<sup>+</sup> as AgCl.', 0,
+  '<p>Both true. The Cl<sup>-</sup> would react with Ag<sup>+</sup> at the junction, removing Ag<sup>+</sup> and clogging the bridge. KNO<sub>3</sub> is used instead.</p>');
+xasr(5, 'temperature coefficient', 'The emf of every galvanic cell increases when the temperature is raised.', '(&part;E/&part;T) = &Delta;S/(nF), and &Delta;S of the cell reaction can be positive or negative.', 3,
+  '<p>A is false: E rises with T only if &Delta;S &gt; 0 for the cell reaction, and falls if &Delta;S &lt; 0. R is true.</p>', 'The sign of &Delta;S decides the direction.');
+xasr(4, 'intensive property', 'The standard electrode potential does not change when the half-reaction is multiplied by 2.', 'E&deg; is an intensive property, whereas &Delta;G&deg; is extensive.', 0,
+  '<p>Both true and R explains A. E&deg; = -&Delta;G&deg;/(nF): doubling the equation doubles both &Delta;G&deg; and n, so E&deg; stays the same.</p>');
+
+// ---------- statements ----------
+xstm(3, 'Kohlrausch law', 'Kohlrausch\'s law is used to find &Lambda;&deg; of weak electrolytes.', 'At infinite dilution each ion migrates independently of the other ions.', 0,
+  '<p>Both correct. Since each ion contributes its own constant amount at infinite dilution, &Lambda;&deg; of a weak electrolyte can be built from those of strong ones.</p>');
+xstm(4, 'ionic mobility', 'The ionic mobilities of H<sup>+</sup> and OH<sup>-</sup> in water are far higher than those of other ions.', 'H<sup>+</sup> and OH<sup>-</sup> move partly by proton hopping from one water molecule to the next.', 0,
+  '<p>Both correct (the Grotthuss mechanism). This is why acids and bases have much larger &lambda;&deg; for H<sup>+</sup> (350) and OH<sup>-</sup> (198 S cm<sup>2</sup> mol<sup>-1</sup>) than other ions (50 to 80).</p>');
+xstm(3, "Faraday's laws", 'One faraday deposits one mole of copper.', 'One faraday is the charge carried by one mole of electrons.', 2,
+  '<p>I is false: Cu<sup>2+</sup> needs 2 mol of electrons, so 1 F deposits 0.5 mol Cu (31.75 g). II is correct: 96 500 C.</p>');
+xstm(3, 'SHE', 'The potential of the standard hydrogen electrode is taken as zero at all temperatures.', 'This is a convention, not a measured value.', 0,
+  '<p>Both correct. Absolute single-electrode potentials cannot be measured, so one reference is assigned zero.</p>');
+xstm(2, 'electrodes', 'In an electrolytic cell the anode is the positive electrode.', 'In a galvanic cell the anode is the negative electrode.', 0,
+  '<p>Both correct. Oxidation always occurs at the anode. In a galvanic cell it supplies electrons (negative); in an electrolytic cell the battery pulls electrons from it (positive).</p>');
+xstm(4, 'conductivity on dilution', 'The conductivity of a strong electrolyte solution increases on dilution.', 'The molar conductivity of a strong electrolyte increases on dilution.', 2,
+  '<p>I is incorrect: &kappa; decreases because there are fewer ions per cm<sup>3</sup>. II is correct: &Lambda;<sub>m</sub> = &kappa;/c rises because the ions interact less and move more freely.</p>');
+
+// ---------- extra single answers ----------
+xmk(2, 'displacement', 'Which metal can displace copper from CuSO<sub>4</sub> solution but cannot displace zinc from ZnSO<sub>4</sub> solution?', 'Fe', ['Mg', 'Ag', 'Au'],
+  '<p>A metal displaces another only if its E&deg; is lower. Fe (-0.44 V) is lower than Cu (+0.34 V) but higher than Zn (-0.76 V). Mg (-2.37 V) would displace both. Ag and Au (+0.80, +1.50 V) displace neither.</p>');
+xmk(5, 'disproportionation', 'E&deg;(Cu<sup>+</sup>/Cu) = +0.52 V and E&deg;(Cu<sup>2+</sup>/Cu<sup>+</sup>) = +0.16 V. In water, Cu<sup>+</sup>', 'disproportionates into Cu and Cu<sup>2+</sup>, with E&deg; = +0.36 V', ['is stable, because E&deg;(Cu<sup>+</sup>/Cu) is positive', 'disproportionates with E&deg; = -0.36 V', 'is oxidised by water to Cu<sup>2+</sup>'],
+  '<p>2Cu<sup>+</sup> &rarr; Cu + Cu<sup>2+</sup>. Cu<sup>+</sup> is reduced (cathode, +0.52 V) and oxidised (anode, +0.16 V). E&deg;<sub>cell</sub> = 0.52 - 0.16 = +0.36 V &gt; 0, so it is spontaneous.</p>', 'A species disproportionates when E&deg;(right) &gt; E&deg;(left) in its Latimer diagram.');
+xmk(4, 'Nernst equation', 'E&deg; = 0.46 V for Cu | Cu<sup>2+</sup>(0.1 M) || Ag<sup>+</sup>(0.01 M) | Ag (2.303RT/F = 0.059 V). E<sub>cell</sub> is', '0.37 V', ['0.46 V', '0.55 V', '0.40 V'],
+  '<p>Cu + 2Ag<sup>+</sup> &rarr; Cu<sup>2+</sup> + 2Ag, n = 2, Q = [Cu<sup>2+</sup>]/[Ag<sup>+</sup>]<sup>2</sup> = 0.1/(10<sup>-4</sup>) = 10<sup>3</sup>. E = 0.46 - 0.0295 &times; 3 = <b>0.37 V</b> (0.3715).</p>', 'Forgetting to square [Ag<sup>+</sup>] (Q = 10) gives 0.43 V.');
+xmk(5, 'equilibrium constant', 'For Zn + Cu<sup>2+</sup> &rarr; Zn<sup>2+</sup> + Cu, E&deg; = 1.10 V. At 298 K (0.059 V) the equilibrium constant is about', '10<sup>37</sup>', ['10<sup>18.6</sup>', '10<sup>1.1</sup>', '10<sup>74</sup>'],
+  '<p>log K = nE&deg;/0.059 = 2 &times; 1.10/0.059 = 37.3, so K &asymp; 2 &times; 10<sup>37</sup>. Using n = 1 gives 10<sup>18.6</sup>.</p>');
+xmk(3, 'molar conductivity', 'The conductivity of 0.1 M electrolytic solution is 0.012 S cm<sup>-1</sup>. Its molar conductivity in S cm<sup>2</sup> mol<sup>-1</sup> is', '120', ['0.12', '1200', '0.0012'],
+  '<p>&Lambda;<sub>m</sub> = 1000&kappa;/c = 1000 &times; 0.012/0.1 = <b>120</b>. (The 1000 converts mol per litre to mol per cm<sup>3</sup>.)</p>');
+xmk(3, 'order of deposition', 'A solution has Ag<sup>+</sup>, Cu<sup>2+</sup> and Zn<sup>2+</sup> ions, each at 1 M. On electrolysis with inert electrodes, which metal is deposited first at the cathode?', 'Ag', ['Cu', 'Zn', 'Zn and Cu together'],
+  '<p>The ion with the highest reduction potential is reduced first: Ag<sup>+</sup> (+0.80 V) before Cu<sup>2+</sup> (+0.34 V) before Zn<sup>2+</sup> (-0.76 V, in practice water would be reduced before Zn<sup>2+</sup> in aqueous solution).</p>');
+xmk(3, 'hydrogen electrode', 'A hydrogen electrode with H<sub>2</sub> at 1 bar is dipped in pure water (pH 7) at 298 K (0.059 V). Its potential is', '-0.413 V', ['+0.413 V', '-0.059 V', '0.000 V'],
+  '<p>E = -0.059 &times; pH = -0.059 &times; 7 = <b>-0.413 V</b>.</p>', 'The potential is zero only at pH 0 (1 M H<sup>+</sup>).');
+
+// ---------- templates ----------
+const _M = { Zn: [2, -0.76, 'Zn'], Fe: [2, -0.44, 'Fe'], Cu: [2, 0.34, 'Cu'], Ag: [1, 0.80, 'Ag'], Mg: [2, -2.37, 'Mg'], Ni: [2, -0.25, 'Ni'], Al: [3, -1.66, 'Al'] };
+const _gcd = (a, b) => (b ? _gcd(b, a % b) : a);
+xgen({ type: 'nat', level: 4, sub: 'Nernst equation',
+  make(rng) {
+    const names = Object.keys(_M); let a, c; do { a = choose(rng, names); c = choose(rng, names); } while (_M[c][1] <= _M[a][1] + 0.3);
+    const [ma, Ea] = _M[a], [mc, Ec] = _M[c]; const n = ma * mc / _gcd(ma, mc); const ca = choose(rng, [0.001, 0.01, 0.1, 1]), cc = choose(rng, [0.001, 0.01, 0.1, 1]);
+    const E0 = Ec - Ea; const pa = n / ma, pc = n / mc; const Q = ca ** pa / cc ** pc; const E = E0 - (0.059 / n) * Math.log10(Q);
+    const sup = (m) => (m === 1 ? '<sup>+</sup>' : `<sup>${m}+</sup>`);
+    return { q: `Find E<sub>cell</sub> (V) at 298 K of ${a} | ${a}${sup(ma)}(${ca} M) || ${c}${sup(mc)}(${cc} M) | ${c}. E&deg;(${a}${sup(ma)}/${a}) = ${Ea} V, E&deg;(${c}${sup(mc)}/${c}) = ${Ec} V, 2.303RT/F = 0.059 V.`, answer: +E.toFixed(3), tol: 0.004, unit: 'V', a, c, ma, mc, Ea, Ec, ca, cc,
+      sol: `<p>E&deg;<sub>cell</sub> = ${Ec} - (${Ea}) = ${fmt(E0, 3)} V. Balanced for n = ${n}: ${pa}${a} + ${pc}${c}${sup(mc)} reaction, so Q = [${a}${sup(ma)}]<sup>${pa}</sup>/[${c}${sup(mc)}]<sup>${pc}</sup> = ${fmt(Q, 4)}.</p><p>E = ${fmt(E0, 3)} - (0.059/${n}) log(${fmt(Q, 4)}) = <b>${fmt(E, 4)} V</b>.</p>` };
+  }, verify: (p) => (p.Ec + (0.059 / p.mc) * Math.log10(p.cc)) - (p.Ea + (0.059 / p.ma) * Math.log10(p.ca)) });
+xgen({ type: 'nat', level: 5, sub: 'K<sub>sp</sub> from a cell',
+  make(rng) {
+    const c = choose(rng, [0.1, 1.0]); const k = choose(rng, [5.4, 5.8, 6.4, 6.8, 7.2]); const E = +(0.059 * k).toFixed(4);
+    const Ag = c * Math.pow(10, -E / 0.059); const K = Ag * Ag; const e = Math.ceil(-Math.log10(K) - 1e-9); const mant = K * 10 ** e;
+    return { q: `Ag | saturated AgX solution || Ag<sup>+</sup>(${c} M) | Ag has E<sub>cell</sub> = ${E} V at 298 K (2.303RT/F = 0.059 V). Find K<sub>sp</sub> of AgX in units of 10<sup>-${e}</sup>.`, answer: +mant.toPrecision(3), tol: mant * 0.02, unit: `&times; 10<sup>-${e}</sup>`, c, E, e,
+      sol: `<p>E = 0.059 log(${c}/[Ag<sup>+</sup>]) = ${E}, so log(${c}/[Ag<sup>+</sup>]) = ${fmt(E / 0.059, 3)} and [Ag<sup>+</sup>] = ${c} &times; 10<sup>-${fmt(E / 0.059, 3)}</sup> = ${fmt(Ag, 3)} M.</p><p>K<sub>sp</sub> = [Ag<sup>+</sup>]<sup>2</sup> = ${fmt(K, 3)}, i.e. <b>${fmt(mant, 3)} &times; 10<sup>-${e}</sup></b>.</p>` };
+  }, verify: (p) => Math.pow(p.c * Math.pow(10, -p.E / 0.059), 2) * 10 ** p.e });
+xgen({ type: 'nat', level: 4, sub: 'electrolysis and pH',
+  make(rng) {
+    const pH = choose(rng, [11, 12, 13]); const OH = 10 ** (pH - 14); const nmol = choose(rng, [0.01, 0.02, 0.05]); const V = nmol / OH; const I = choose(rng, [1, 2, 5]); const t = nmol * 96500 / I;
+    return { q: `A current of ${I} A is passed for ${fmt(t, 4)} s through ${fmt(V, 4)} L of aqueous NaCl using inert electrodes, with 100% current efficiency. Assuming the volume stays constant, what is the pH at the end? (F = 96 500 C/mol)`, answer: pH, tol: 0.05, I, t, V,
+      sol: `<p>Charge = ${I} &times; ${fmt(t, 4)} = ${fmt(I * t, 5)} C = ${nmol} F. At the cathode 2H<sub>2</sub>O + 2e<sup>-</sup> &rarr; H<sub>2</sub> + 2OH<sup>-</sup>, so ${nmol} mol OH<sup>-</sup> forms.</p><p>[OH<sup>-</sup>] = ${nmol}/${fmt(V, 4)} = ${fmt(OH, 3)} M, pOH = ${14 - pH}, pH = <b>${pH}</b>.</p>` };
+  }, verify: (p) => 14 + Math.log10((p.I * p.t / 96500) / p.V) });
+xgen({ type: 'nat', level: 4, sub: "Faraday's laws with a mixture",
+  make(rng) {
+    const a = int(rng, 1, 4), b = int(rng, 1, 4);
+    const mAg = a * 1.08, mCu = b * 0.635; const Q = F_ * (mAg / 108 + 2 * mCu / 63.5);
+    return { q: `What charge (in coulombs) is needed to deposit ${fmt(mAg, 3)} g of silver from AgNO<sub>3</sub> and ${fmt(mCu, 3)} g of copper from CuSO<sub>4</sub> (in separate cells)? (Ag = 108, Cu = 63.5, F = 96 500 C/mol)`, answer: Math.round(Q), tol: Math.round(Q) * 0.005, unit: 'C', mAg, mCu,
+      sol: `<p>Silver: ${fmt(mAg, 3)}/108 = ${fmt(mAg / 108, 3)} mol, 1 e<sup>-</sup> each = ${fmt(mAg / 108, 3)} F.</p><p>Copper: ${fmt(mCu, 3)}/63.5 = ${fmt(mCu / 63.5, 3)} mol, 2 e<sup>-</sup> each = ${fmt(2 * mCu / 63.5, 3)} F.</p><p>Total = ${fmt(mAg / 108 + 2 * mCu / 63.5, 3)} F &times; 96 500 = <b>${Math.round(Q)} C</b>.</p>` };
+  }, verify: (p) => 96500 * (p.mAg / 108) + 96500 * 2 * (p.mCu / 63.5) });
+xgen({ type: 'nat', level: 5, sub: 'dissociation constant',
+  make(rng) {
+    const lHCl = choose(rng, [426, 425, 424]), lNaA = choose(rng, [91, 90, 88]), lNaCl = choose(rng, [126, 125, 127]); const L0 = lHCl + lNaA - lNaCl;
+    const c = choose(rng, [0.01, 0.02, 0.05]); const alpha = choose(rng, [0.03, 0.04, 0.05]); const Lm = +(alpha * L0).toFixed(3); const a = Lm / L0; const Ka = c * a * a / (1 - a);
+    const e = Math.ceil(-Math.log10(Ka) - 1e-9); const mant = Ka * 10 ** e;
+    return { q: `&Lambda;&deg; (S cm<sup>2</sup> mol<sup>-1</sup>) of HCl, CH<sub>3</sub>COONa-type salt NaA and NaCl are ${lHCl}, ${lNaA} and ${lNaCl}. A ${c} M solution of the weak acid HA has &Lambda;<sub>m</sub> = ${fmt(Lm, 4)} S cm<sup>2</sup> mol<sup>-1</sup>. Find K<sub>a</sub> of HA in units of 10<sup>-${e}</sup>.`.replace('CH<sub>3</sub>COONa-type salt ', ''), answer: +mant.toPrecision(3), tol: mant * 0.02, unit: `&times; 10<sup>-${e}</sup>`, lHCl, lNaA, lNaCl, c, Lm, e,
+      sol: `<p>&Lambda;&deg;(HA) = ${lHCl} + ${lNaA} - ${lNaCl} = ${L0}. &alpha; = ${fmt(Lm, 4)}/${L0} = ${fmt(a, 4)}.</p><p>K<sub>a</sub> = c&alpha;<sup>2</sup>/(1 - &alpha;) = ${c} &times; ${fmt(a * a, 4)}/${fmt(1 - a, 4)} = <b>${fmt(mant, 3)} &times; 10<sup>-${e}</sup></b>.</p>` };
+  }, verify: (p) => { const a = p.Lm / (p.lHCl + p.lNaA - p.lNaCl); return p.c * a * a / (1 - a) * 10 ** p.e; } });
+xgen({ type: 'mcq', level: 3, sub: 'order of deposition',
+  make(rng) {
+    const names = ['Ag', 'Cu', 'Zn', 'Mg', 'Ni', 'Fe']; const E = { Ag: 0.80, Cu: 0.34, Zn: -0.76, Mg: -2.37, Ni: -0.25, Fe: -0.44 };
+    const pool = [...names]; const pk = []; for (let i = 0; i < 4; i++) pk.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    const best = pk.reduce((x, y) => (E[x] > E[y] ? x : y)); const o = shuffleOpts(rng, best, pk.filter((x) => x !== best));
+    return { q: `A solution contains ${pk.map((x) => x + '<sup>' + (x === 'Ag' ? '+' : '2+') + '</sup>').join(', ')} ions (1 M each). Ignoring the reduction of water, the metal ion reduced first at the cathode is that of`, options: o.options, answer: o.answer, pk, best, E,
+      sol: `<p>The ion with the highest (least negative) reduction potential is reduced first. E&deg; values: ${pk.map((x) => `${x} ${E[x]}`).join(', ')} V. Highest: <b>${best}</b> (${E[best]} V).</p>`, trap: 'Look for the highest E&deg;, not the lowest.' };
+  }, verify: (p) => p.options[p.answer] === p.best ? p.answer : -1 });
+xgen({ type: 'mcq', level: 4, sub: 'anode and cell emf',
+  make(rng) {
+    const names = Object.keys(_M); let a, c; do { a = choose(rng, names); c = choose(rng, names); } while (_M[c][1] <= _M[a][1] + 0.3);
+    const E0 = +(_M[c][1] - _M[a][1]).toFixed(2); const right = `${a} is the anode; E&deg;<sub>cell</sub> = ${E0} V`;
+    const o = shuffleOpts(rng, right, [`${c} is the anode; E&deg;<sub>cell</sub> = ${E0} V`, `${a} is the anode; E&deg;<sub>cell</sub> = ${-E0} V`, `${c} is the anode; E&deg;<sub>cell</sub> = ${-E0} V`]);
+    return { q: `A standard cell is made from ${a} (E&deg; of its ion = ${_M[a][1]} V) and ${c} (E&deg; of its ion = ${_M[c][1]} V). Which statement is correct?`, options: o.options, answer: o.answer, a, c, E0,
+      sol: `<p>The anode is the half cell with the lower reduction potential: ${a} (${_M[a][1]} V). E&deg;<sub>cell</sub> = E&deg;(cathode) - E&deg;(anode) = ${_M[c][1]} - (${_M[a][1]}) = ${E0} V.</p><p>Answer: <b>${right}</b>.</p>`, trap: 'A galvanic cell has a positive E&deg;<sub>cell</sub>; the lower E&deg; is the anode.' };
+  }, verify: (p) => p.options.indexOf(`${p.a} is the anode; E&deg;<sub>cell</sub> = ${p.E0} V`) });
+xgen({ type: 'mcq', level: 3, sub: 'molar conductivity',
+  make(rng) {
+    const k = choose(rng, [0.002, 0.005, 0.012, 0.025, 0.04]); const c = choose(rng, [0.01, 0.05, 0.1, 0.5]); const L = 1000 * k / c;
+    const o = numOpts(rng, L, [k / c, L * 1000, 1000 * c / k, k * c * 1000], 'S cm<sup>2</sup> mol<sup>-1</sup>', 3);
+    return { q: `A solution of concentration ${c} mol L<sup>-1</sup> has conductivity &kappa; = ${k} S cm<sup>-1</sup>. Its molar conductivity is`, options: o.options, answer: o.answer, k, c,
+      sol: `<p>&Lambda;<sub>m</sub> = 1000&kappa;/c, where the 1000 changes litres to cm<sup>3</sup>.</p><p>= 1000 &times; ${k}/${c} = <b>${fmt(L, 3)} S cm<sup>2</sup> mol<sup>-1</sup></b>.</p>`, trap: 'Without the 1000 the answer is off by a factor of 1000.' };
+  }, verify: (p) => (parseFloat(p.options[p.answer].replace(/ ×.*/, '')) > 0 ? p.answer : -1) });
+
 export default {
   topic: 'electrochemistry',
-  groups,
-  items: L.map((it, i) => ({ id: `el-${String(i + 1).padStart(3, '0')}`, ...it })),
-  gens,
+  groups: { ...groups, ...XGRP },
+  items: [...L.map((it, i) => ({ id: `el-${String(i + 1).padStart(3, '0')}`, ...it })), ...XI],
+  gens: [...gens, ...XGENS],
 };

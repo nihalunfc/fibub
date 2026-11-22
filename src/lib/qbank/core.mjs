@@ -225,6 +225,20 @@ export const PATTERNS = {
       { name: `${b[0].toUpperCase() + b.slice(1)}: numerical answer`, bank: `entrance-${b}`, type: 'nat', marks: 4, count: 5, anyLevel: true, levels: [2, 3, 4], formats: ['integer'] },
     ]),
   ] },
+  // JEE Advanced: one 3-hour paper (the real exam has two; their section mix changes every year). Per subject: single
+  // correct (+3/-1), one or more correct (+4, partial +1 a correct option, -2 for any wrong pick), numerical (+4, no
+  // negative) and match the lists (+3/-1). Levels 4 and 5 only.
+  'jee-adv': { name: 'JEE Advanced (one paper)', minutes: 180, scheme: 'jee-adv', sections: [
+    ...['physics', 'chemistry', 'maths'].flatMap((b) => {
+      const S = b[0].toUpperCase() + b.slice(1), bank = `entrance-${b}`, levels = [4, 5];
+      return [
+        { name: `${S}: one correct option`, bank, type: 'mcq', marks: 3, count: 4, anyLevel: true, levels, formats: ['single', 'assertion', 'statements', 'passage'] },
+        { name: `${S}: one or more correct`, bank, type: 'msq', marks: 4, count: 3, anyLevel: true, levels },
+        { name: `${S}: numerical answer`, bank, type: 'nat', marks: 4, count: 6, anyLevel: true, levels },
+        { name: `${S}: match the lists`, bank, type: 'mcq', marks: 3, count: 4, anyLevel: true, levels: [3, 4, 5], formats: ['match'] },
+      ];
+    }),
+  ] },
   neet: { name: 'NEET (UG)', minutes: 180, scheme: 'neet', sections: [
     { name: 'Physics', bank: 'entrance-physics', type: 'mcq', marks: 4, count: 45, anyLevel: true, levels: [1, 2, 3, 4] },
     { name: 'Chemistry', bank: 'entrance-chemistry', type: 'mcq', marks: 4, count: 45, anyLevel: true, levels: [1, 2, 3, 4] },

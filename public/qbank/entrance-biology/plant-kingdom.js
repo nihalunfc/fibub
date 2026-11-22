@@ -182,4 +182,141 @@ pass('p2', 'Passage: chromosome counting', 'Consider a flowering plant in which 
 pq('p2', 3, 'angiosperms', 'The number of chromosomes in the egg cell of this plant is', '9', ['18', '27', '36'], 'The root tip cell is diploid, 2n = 18. The egg is haploid, n = 9.');
 pq('p2', 4, 'angiosperms', 'The number of chromosomes in a cell of the endosperm and in the zygote are respectively', '27 and 18', ['18 and 27', '27 and 9', '9 and 18'], 'Endosperm is triploid (n + n + n = 27), the zygote is 2n = 18.');
 pq('p2', 5, 'angiosperms', 'The number of chromosomes in a cell of the seed coat (from integuments of the ovule) is', '18', ['9', '27', '36'], 'The seed coat develops from the integuments of the ovule, which are tissues of the sporophyte (2n = 18) and not from fertilisation products.', 'Seed coat is maternal sporophyte tissue, not endosperm.');
+
+// ---------------------------------------------------------------- Expansion (added 2026-11-22)
+// ---- Level 2
+mc(2, 'classification systems', 'Artificial systems of classification, such as that of Linnaeus, relied on', 'a few vegetative and sexual characters, such as the androecium structure', ['evolutionary relationships', 'chromosome numbers only', 'chemical constituents only'], 'These systems gave equal weight to a few characters and separated closely related species.');
+mc(2, 'classification systems', 'The study of the chemical constituents of plants as an aid to classification is called', 'chemotaxonomy', ['cytotaxonomy', 'numerical taxonomy', 'phylogeny'], 'Chemotaxonomy uses chemicals such as alkaloids.');
+mc(2, 'algae', 'The photosynthetic pigments of green algae are', 'chlorophyll a and b', ['chlorophyll a and c', 'chlorophyll a and d', 'phycoerythrin only'], 'They are green because chlorophyll a and b dominate.');
+mc(2, 'algae', 'Which of the following is a filamentous green alga?', 'Spirogyra', ['Volvox', 'Chlamydomonas', 'Laminaria'], 'Spirogyra and Ulothrix are filamentous; Volvox is colonial; Chlamydomonas is unicellular.');
+mc(2, 'algae', 'Which pigment gives brown algae their colour?', 'Fucoxanthin', ['Phycoerythrin', 'Chlorophyll b', 'Carotene only'], 'Fucoxanthin gives the olive green to brown colour.');
+mc(2, 'algae', 'Gelidium and Gracilaria give', 'agar', ['algin', 'laminarin', 'peat'], 'Agar is used to grow microbes and in jellies and ice creams.');
+mc(2, 'algae', 'Which algal product is a hydrocolloid from brown algae?', 'Algin', ['Agar', 'Peat', 'Chitin'], 'Brown algae yield algin and red algae yield carrageen and agar.');
+mc(2, 'bryophytes', 'Rhizoids of bryophytes are', 'root-like structures that anchor the plant', ['true roots with xylem', 'sex organs', 'spore sacs'], 'Bryophytes lack true roots, stems or leaves.');
+mc(2, 'bryophytes', 'A moss capsule contains', 'spores', ['gemmae', 'eggs', 'antherozoids'], 'The sporophyte consists of foot, seta and capsule.');
+mc(2, 'pteridophytes', 'Which of these is a fern?', 'Dryopteris', ['Equisetum', 'Selaginella', 'Funaria'], 'Dryopteris, Pteris and Adiantum are ferns (Pteropsida).');
+mc(2, 'pteridophytes', 'Equisetum belongs to', 'the horsetails (Sphenopsida)', ['ferns (Pteropsida)', 'club mosses (Lycopsida)', 'Psilopsida'], 'Equisetum is the horsetail.');
+mc(2, 'gymnosperms', 'Which gymnosperm has needle-like leaves?', 'Pinus', ['Cycas', 'Ginkgo', 'Sargassum'], 'Conifers such as Pinus have needles. Cycas has pinnate leaves.');
+mc(2, 'angiosperms', 'The male gametophyte of an angiosperm is the', 'pollen grain', ['embryo sac', 'ovule', 'stamen'], 'Pollen grains develop from microspores in anthers.');
+mc(2, 'angiosperms', 'The ovule of an angiosperm develops into a', 'seed', ['fruit', 'flower', 'gametophyte'], 'The ovary becomes the fruit.');
+
+// ---- Level 3
+mc(3, 'classification systems', 'Which system arranges plants on the basis of their evolutionary relationships?', 'Phylogenetic system', ['Artificial system', 'Natural system of Bentham and Hooker', 'Numerical system'], 'The phylogenetic system uses the idea of common ancestry. The natural system uses natural affinities.', 'Natural and phylogenetic are different.');
+mc(3, 'classification systems', 'Numerical taxonomy uses', 'numbers and codes assigned to all characters with computer processing', ['chromosome shape only', 'chemical test only', 'a few floral characters'], 'Every character is given equal weight.');
+mc(3, 'classification systems', 'Cytotaxonomy uses', 'cytological information such as chromosome number and behaviour', ['plant extracts', 'computer codes', 'floral colour'], 'It is a basis of classification.');
+mc(3, 'algae', 'The cell wall of green algae is made of', 'an inner layer of cellulose and an outer layer of pectose', ['cellulose and algin', 'chitin', 'peptidoglycan'], 'NCERT description.');
+mc(3, 'algae', 'The plant body of Fucus or Laminaria shows', 'holdfast, stipe and frond', ['rhizoids, stem and leaf', 'thallus only', 'protonema'], 'Brown algae often have this three-part organisation.');
+mc(3, 'algae', 'Floridean starch is the reserve food of', 'red algae', ['green algae', 'brown algae', 'mosses'], 'It resembles amylopectin and glycogen.');
+mc(3, 'algae', 'The sexual reproduction of Volvox is', 'oogamous', ['isogamous', 'anisogamous', 'absent'], 'Volvox, Fucus and Chara are examples of oogamy.');
+mc(3, 'algae', 'The sexual reproduction in Spirogyra is', 'isogamous', ['oogamous', 'anisogamous', 'asexual only'], 'Similar gametes fuse.');
+mc(3, 'algae', 'Which alga is anisogamous?', 'Eudorina', ['Spirogyra', 'Volvox', 'Ulothrix'], 'Eudorina shows anisogamy.');
+mc(3, 'algae', 'The asexual spores of algae that are flagellated are called', 'zoospores', ['aplanospores', 'conidia', 'sporangiospores'], 'Zoospores are motile.');
+mc(3, 'algae', 'Which of these red algae is used as food?', 'Porphyra', ['Fucus', 'Ectocarpus', 'Spirogyra'], 'Porphyra, Laminaria and Sargassum are used as food.', 'Laminaria and Sargassum are brown algae.');
+mc(3, 'algae', 'Chlorella is useful because', 'it is a protein-rich single-cell protein used by space travellers', ['it makes agar', 'it makes algin', 'it makes peat'], 'Chlorella and Spirulina are used as food supplements.');
+mc(3, 'bryophytes', 'The antheridium of a bryophyte releases', 'biflagellate antherozoids', ['uniflagellate zoospores', 'non-motile gametes', 'pollen grains'], 'They swim in water to the archegonium.');
+mc(3, 'bryophytes', 'The archegonium of a bryophyte is', 'flask-shaped with a single egg', ['spherical with many eggs', 'a sac of spores', 'club-shaped with sperm'], 'It has a neck and a venter.');
+mc(3, 'bryophytes', 'Gemma cups are found in', 'Marchantia', ['Funaria', 'Sphagnum', 'Polytrichum'], 'Gemmae are green multicellular asexual buds.');
+mc(3, 'bryophytes', 'In a moss, the protonema develops from', 'a spore', ['a zygote', 'a gemma only', 'a seta'], 'The spore germinates into the protonema.');
+mc(3, 'bryophytes', 'Mosses along with lichens', 'colonise rocks and make them suitable for higher plants', ['form peat', 'form coal', 'form timber'], 'They are pioneers on bare rocks.');
+mc(3, 'pteridophytes', 'The prothallus of a fern is', 'a free-living, photosynthetic haploid gametophyte', ['a diploid sporophyte', 'a parasite on the sporophyte', 'a spore'], 'It needs cool damp shady places.');
+mc(3, 'pteridophytes', 'Sporophylls forming compact structures are called', 'strobili', ['sori only', 'gemmae', 'protonema'], 'Equisetum and Selaginella have strobili.');
+mc(3, 'pteridophytes', 'Heterosporous pteridophytes include', 'Selaginella and Salvinia', ['Dryopteris and Pteris', 'Equisetum and Adiantum', 'Marchantia and Funaria'], 'They produce macrospores and microspores.');
+mc(3, 'pteridophytes', 'The seed habit evolved from the heterosporous pteridophytes because', 'the zygote develops into an embryo inside the female gametophyte retained on the sporophyte', ['spores are lost', 'sexual reproduction is lost', 'zoospores form'], 'It is a precursor of the seed habit.');
+mc(3, 'gymnosperms', 'Coralloid roots of Cycas are associated with', 'nitrogen-fixing cyanobacteria', ['mycorrhiza', 'Rhizobium', 'algae of lichens'], 'Pinus has mycorrhiza.');
+mc(3, 'gymnosperms', 'The male cones of Pinus bear', 'microsporophylls with microsporangia', ['megasporophylls', 'ovules', 'strobili with seeds'], 'Pollen grains develop in microsporangia.');
+mc(3, 'gymnosperms', 'The megaspore mother cell in gymnosperms is differentiated from', 'the nucellus', ['the integument', 'the pollen grain', 'the micropyle'], 'It lies within the megasporangium (nucellus).');
+mc(3, 'gymnosperms', 'Seeds in gymnosperms are', 'not covered by fruit wall', ['enclosed in an ovary', 'absent', 'enclosed in a pericarp'], 'Ovules are not enclosed in an ovary wall.');
+mc(3, 'gymnosperms', 'Which of these is a gymnosperm tree among the tallest tree species?', 'Sequoia', ['Eucalyptus', 'Wolffia', 'Mangifera'], 'Sequoia (redwood) is a gymnosperm; Eucalyptus is an angiosperm.');
+mc(3, 'angiosperms', 'The egg apparatus of an embryo sac consists of', 'one egg cell and two synergids', ['egg and antipodals', 'three synergids', 'polar nuclei and egg'], 'The egg apparatus is at the micropylar end.');
+mc(3, 'angiosperms', 'The cells present at the chalazal end of the embryo sac are', 'antipodals', ['synergids', 'polar nuclei', 'egg cells'], 'Three antipodals are there at the chalazal end.');
+mc(3, 'angiosperms', 'The central cell of the embryo sac has', 'two polar nuclei', ['one egg', 'three antipodals', 'two synergids'], 'Fusion of male gamete with the two polar nuclei gives PEN.');
+mc(3, 'angiosperms', 'The smallest angiosperm is', 'Wolffia', ['Sequoia', 'Eucalyptus', 'Cycas'], 'Wolffia is a tiny floating plant.');
+mc(3, 'life cycles', 'The dominant phase in the life cycle of pteridophytes is', 'the sporophyte', ['the gametophyte', 'the protonema', 'the zygote'], 'The sporophyte is independent.');
+mc(3, 'life cycles', 'Which of the following is haplo-diplontic?', 'Ectocarpus', ['Volvox', 'Fucus', 'Pinus'], 'Ectocarpus, Polysiphonia and kelps have both multicellular phases.');
+mc(3, 'life cycles', 'Fucus shows which life cycle?', 'Diplontic', ['Haplontic', 'Haplo-diplontic', 'None'], 'Fucus is diplontic.');
+mc(3, 'life cycles', 'In algae with haplontic life cycle, meiosis occurs in', 'the zygote', ['the spore', 'the gamete', 'the vegetative cell'], 'Zygotic meiosis immediately restores the haploid.');
+mc(3, 'life cycles', 'In diplontic plants the gametes are formed by', 'meiosis in the gamete mother cells', ['mitosis in a haploid body', 'fertilisation', 'binary fission'], 'The body is diploid, so meiosis precedes gametes.');
+
+asr(2, 'algae', 'Algae are autotrophs.', 'Algae have chlorophyll for photosynthesis.', 0, 'Photosynthesis with chlorophyll makes them autotrophic.');
+asr(3, 'algae', 'Red algae can live at great depths.', 'Phycoerythrin absorbs blue-green light that penetrates deep water.', 0, 'The pigment captures the light available at depth.');
+asr(3, 'bryophytes', 'Bryophytes need water for fertilisation.', 'Their antherozoids are flagellated and must swim to the archegonium.', 0, 'Swimming gametes need a film of water.');
+asr(3, 'pteridophytes', 'Selaginella is considered a step towards the seed habit.', 'Selaginella is homosporous.', 2, 'A is true. R is false: it is heterosporous.');
+asr(4, 'gymnosperms', 'Conifers can survive in dry or cold conditions.', 'Their leaves are needle-like with a thick cuticle and sunken stomata.', 0, 'These features reduce water loss.');
+asr(4, 'angiosperms', 'Angiosperm endosperm is triploid.', 'It forms by fusion of one male gamete with two polar nuclei.', 0, 'One haploid plus two haploid nuclei gives 3n.');
+asr(4, 'life cycles', 'Bryophytes show alternation of generations.', 'The sporophyte and gametophyte are both multicellular in the life cycle.', 0, 'They alternate between a haploid gametophyte and a diploid sporophyte.');
+asr(5, 'bryophytes', 'The sporophyte of a moss is dependent on the gametophyte.', 'The sporophyte is attached to the gametophyte and gets its nourishment from it.', 0, 'NCERT: the sporophyte is not free-living but attached to the photosynthetic gametophyte, from which it draws nourishment.');
+asr(5, 'algae', 'Chlamydomonas is a unicellular alga.', 'Volvox is a colonial alga.', 1, 'Both are true, but one does not explain the other.', 'The two statements are separate facts.');
+asr(5, 'gymnosperms', 'The pollen grain of a gymnosperm is a highly reduced male gametophyte.', 'It contains only a few cells.', 0, 'The reduced body of few cells is the reduction.');
+
+stm(3, 'algae', 'Brown algae have laminarin and mannitol as reserve food.', 'Green algae store starch.', 0, 'Both are correct.');
+stm(3, 'bryophytes', 'The dominant stage of mosses is the haploid gametophyte.', 'The sporophyte of mosses is free living.', 2, 'II is false.');
+stm(3, 'pteridophytes', 'Pteridophytes have vascular tissue.', 'Pteridophytes produce seeds.', 2, 'They are seedless.');
+stm(4, 'gymnosperms', 'Gymnosperms are heterosporous.', 'Gymnosperms produce flowers.', 2, 'II is false: they bear cones.');
+stm(4, 'angiosperms', 'Double fertilisation is characteristic of angiosperms.', 'Triple fusion produces the zygote.', 2, 'Triple fusion produces the primary endosperm nucleus.');
+stm(4, 'life cycles', 'Haplontic cycle: the dominant body is haploid.', 'Diplontic cycle: the dominant body is diploid.', 0, 'Both are correct.');
+stm(4, 'algae', 'Phaeophyceae have pear-shaped zoospores with two unequal flagella.', 'Rhodophyceae have flagellated gametes.', 2, 'Red algae lack flagellated stages.');
+mc(4, 'algae', 'Consider: (i) Spirogyra is filamentous. (ii) Volvox is colonial. (iii) Chlamydomonas is unicellular. (iv) Laminaria is unicellular. How many are correct?', 'Three', ['Two', 'Four', 'One'], '(i), (ii), (iii) are correct. Laminaria is a large multicellular brown alga.', null, 'statements');
+mc(4, 'pteridophytes', 'Consider: (i) Selaginella is heterosporous. (ii) Equisetum is a horsetail. (iii) Marchantia is a pteridophyte. (iv) Adiantum is a fern. How many are correct?', 'Three', ['Two', 'Four', 'One'], '(i), (ii), (iv) are correct. Marchantia is a liverwort.', null, 'statements');
+mc(5, 'life cycles', 'Consider: (i) Bryophytes: dominant gametophyte. (ii) Pteridophytes: dominant sporophyte. (iii) Gymnosperms: dominant sporophyte. (iv) Angiosperms: dominant gametophyte. (v) Volvox: dominant diploid. How many are correct?', 'Three', ['Two', 'Four', 'Five'], '(i), (ii), (iii) are correct. Angiosperms have a dominant sporophyte and Volvox is haplontic.', null, 'statements');
+mc(5, 'angiosperms', 'Consider: (i) The embryo sac is the female gametophyte. (ii) It has 8 nuclei but 7 cells. (iii) Synergids are at the chalazal end. (iv) Antipodals are three in number. (v) The egg apparatus is at the micropylar end. How many are correct?', 'Four', ['Three', 'Five', 'Two'], '(i), (ii), (iv), (v) are correct. Synergids are at the micropylar end, not the chalazal end.', 'Synergids are near the egg.', 'statements');
+stm(5, 'algae', 'Carrageen is obtained from red algae.', 'Algin is obtained from green algae.', 2, 'II is false: algin comes from brown algae.');
+
+// ---- Matches
+match(2, 'plant groups', 'pkx1', 'Plant and group', ['A. Funaria', 'B. Dryopteris', 'C. Cycas', 'D. Spirogyra'], ['p. Bryophyte', 'q. Pteridophyte', 'r. Gymnosperm', 's. Alga'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-s, B-q, C-r, D-p'], 'Moss, fern, cycad and green alga.');
+match(3, 'algae', 'pkx2', 'Algal group or genus and feature', ['A. Chlorophyceae', 'B. Phaeophyceae', 'C. Rhodophyceae', 'D. Volvox'], ['p. Starch and pyrenoids', 'q. Fucoxanthin and laminarin', 'r. Phycoerythrin and floridean starch', 's. Colonial and oogamous'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'], 'Each group has a distinctive pigment and reserve; Volvox is a colonial oogamous green alga.');
+match(3, 'bryophytes', 'pkx3', 'Structure and plant', ['A. Gemma cup', 'B. Protonema', 'C. Peat', 'D. Archegonium'], ['p. Marchantia', 'q. Moss', 'r. Sphagnum', 's. Flask-shaped female sex organ'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-p, C-q, D-s'], 'Gemma cups in Marchantia, protonema in moss, peat from Sphagnum, archegonium flask-shaped.');
+match(3, 'pteridophytes', 'pkx4', 'Class and example', ['A. Psilopsida', 'B. Lycopsida', 'C. Sphenopsida', 'D. Pteropsida'], ['p. Equisetum', 'q. Psilotum', 'r. Selaginella', 's. Dryopteris'], 'A-q, B-r, C-p, D-s', ['A-r, B-q, C-p, D-s', 'A-q, B-r, C-s, D-p', 'A-p, B-r, C-q, D-s'], 'NCERT classes of pteridophytes.');
+match(4, 'life cycles', 'pkx5', 'Plant and life cycle', ['A. Volvox', 'B. Fucus', 'C. Ectocarpus', 'D. Pinus'], ['p. Haplontic', 'q. Diplontic (alga)', 'r. Haplo-diplontic', 's. Diplontic (gymnosperm)'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'], 'Volvox: haplontic; Fucus: diplontic; Ectocarpus: haplo-diplontic; Pinus: diplontic.');
+match(4, 'angiosperms', 'pkx6', 'Embryo sac part and number', ['A. Antipodals', 'B. Synergids', 'C. Polar nuclei', 'D. Egg cell'], ['p. 1', 'q. 2', 'r. 3', 's. 4'], 'A-r, B-q, C-q, D-p', ['A-r, B-q, C-p, D-q', 'A-q, B-r, C-q, D-p', 'A-r, B-p, C-q, D-q'], 'Three antipodals, two synergids, two polar nuclei, one egg. One entry of List II is used twice.', 'Two List I entries have the same answer.');
+match(4, 'algae', 'pkx7', 'Algal product and use', ['A. Agar', 'B. Algin', 'C. Chlorella', 'D. Porphyra'], ['p. Gelidium and Gracilaria', 'q. Brown algae hydrocolloid', 'r. Single cell protein', 's. Edible red alga'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'], 'Standard NCERT facts.');
+match(5, 'classification systems', 'pkx8', 'System and basis', ['A. Artificial', 'B. Natural', 'C. Phylogenetic', 'D. Numerical taxonomy'], ['p. Natural affinities of external and internal features', 'q. Evolutionary relationships', 'r. All characters coded and processed by computers', 's. A few vegetative and sexual characters'], 'A-s, B-p, C-q, D-r', ['A-r, B-p, C-q, D-s', 'A-s, B-p, C-r, D-q', 'A-q, B-p, C-s, D-r'], 'Artificial: few characters. Natural: natural affinities. Phylogenetic: evolutionary relationships. Numerical: coded characters analysed by computer.');
+match(5, 'gymnosperms', 'pkx9', 'Gymnosperm and feature', ['A. Cycas', 'B. Pinus', 'C. Ginkgo', 'D. Sequoia'], ['p. Coralloid roots', 'q. Mycorrhiza and needle leaves', 'r. Maidenhair tree', 's. Giant redwood'], 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-r, B-q, C-p, D-s'], 'Common features of the genera.');
+match(5, 'life cycles', 'pkx10', 'Plant and chromosome state (2n = 20 in the sporophyte)', ['A. Moss protonema cell', 'B. Fern prothallus cell', 'C. Pinus pollen grain nucleus', 'D. Angiosperm endosperm cell'], ['p. 10 (n)', 'q. 20 (2n)', 'r. 30 (3n)', 's. 40 (4n)'], 'A-p, B-p, C-p, D-r', ['A-p, B-q, C-p, D-r', 'A-q, B-p, C-p, D-r', 'A-p, B-p, C-q, D-s'], 'Protonema, prothallus and pollen are haploid (10). Endosperm of an angiosperm is triploid (30).', 'Three List I entries share one answer.');
+
+// ---- Passages
+pass('pkx11', 'Passage: a plant collected from a damp wall', 'A student finds a small green plant with a flat, ribbon-like body that lies on the ground. It is attached by unicellular rhizoids and has cup-like structures with small green buds on its upper surface. Later the same plant bears umbrella-shaped structures on stalks.');
+pq('pkx11', 3, 'bryophytes', 'The plant is most probably', 'a liverwort such as Marchantia', ['a moss such as Funaria', 'a fern', 'a green alga'], 'A flat thallus with gemma cups points to Marchantia.');
+pq('pkx11', 4, 'bryophytes', 'The small green buds in the cups are', 'gemmae, which are asexual', ['spores', 'eggs', 'zygotes'], 'Gemmae grow into new plants.');
+pq('pkx11', 4, 'bryophytes', 'The plant body is', 'haploid', ['diploid', 'triploid', 'tetraploid'], 'The main plant body of a bryophyte is the haploid gametophyte.');
+pass('pkx12', 'Passage: a seed plant', 'Plant S has pinnate leaves and a thick unbranched stem. Its roots include special ones growing upwards at the surface of the soil and associated with cyanobacteria. Its seeds are borne on leaf-like megasporophylls and are not enclosed in fruits.');
+pq('pkx12', 3, 'gymnosperms', 'Plant S is', 'Cycas', ['Pinus', 'Mangifera', 'Equisetum'], 'Coralloid roots with cyanobacteria and pinnate leaves point to Cycas.');
+pq('pkx12', 4, 'gymnosperms', 'The special roots are', 'coralloid roots', ['pneumatophores', 'prop roots', 'stilt roots'], 'They are associated with nitrogen-fixing cyanobacteria.');
+pq('pkx12', 5, 'gymnosperms', 'A cell of the endosperm of its seed has n = 8. The zygote of this plant therefore has', '16 chromosomes', ['8 chromosomes', '24 chromosomes', '32 chromosomes'], 'Gymnosperm endosperm is haploid (female gametophyte, n = 8), so the zygote is 2n = 16.', 'In angiosperms endosperm is 3n.');
+pass('pkx13', 'Passage: an embryo sac', 'A mature embryo sac of a flowering plant contains seven cells and eight nuclei. One male gamete of the pollen tube fuses with the egg and the other fuses with the central cell.');
+pq('pkx13', 3, 'angiosperms', 'The fusion with the central cell produces', 'primary endosperm nucleus', ['zygote', 'embryo', 'seed coat'], 'The triple fusion forms the PEN.');
+pq('pkx13', 4, 'angiosperms', 'If the plant has 2n = 24, the number of chromosomes in the primary endosperm nucleus is', '36', ['12', '24', '48'], 'n = 12; two polar nuclei (12 + 12) plus a male gamete (12) = 36.');
+pq('pkx13', 5, 'angiosperms', 'The number of cells that do NOT take part in fertilisation in the embryo sac is', 'five (three antipodals and two synergids)', ['two', 'three', 'six'], 'Seven cells minus the egg and central cell is five.');
+
+// ---- Level 4
+mc(4, 'algae', 'Which statement about algae is NOT correct?', 'All algae are unicellular', ['Many are aquatic', 'They are autotrophic', 'They can reproduce by fragmentation'], 'Algae range from unicellular to large multicellular forms such as kelps.');
+mc(4, 'algae', 'Which is NOT a characteristic of Phaeophyceae?', 'Phycoerythrin pigment', ['Fucoxanthin', 'Algin in the wall', 'Mannitol and laminarin'], 'Phycoerythrin is the red alga pigment.');
+mc(4, 'algae', 'Which of the following has chlorophyll d?', 'Rhodophyceae', ['Chlorophyceae', 'Phaeophyceae', 'Bryophyta'], 'Red algae: chlorophyll a, d and phycoerythrin.');
+mc(4, 'algae', 'Brown algae have chlorophyll', 'a and c', ['a and b', 'a and d', 'b and c'], 'They also have fucoxanthin.');
+mc(4, 'algae', 'The vegetative reproduction of algae is generally by', 'fragmentation', ['zoospores', 'conidia', 'gemmae'], 'Each fragment grows into a thallus.');
+mc(4, 'bryophytes', 'In bryophytes, meiosis takes place in', 'the spore mother cells of the capsule', ['the zygote', 'the antheridium', 'the archegonium'], 'The sporophyte forms haploid spores by meiosis.');
+mc(4, 'bryophytes', 'Peat, which is used as fuel, is formed from', 'partially decomposed Sphagnum moss', ['marine brown algae', 'dried ferns', 'gymnosperm cones'], 'Sphagnum also holds much water, so it is used to pack and transport living plants.');
+mc(4, 'pteridophytes', 'The gametophyte of pteridophytes is', 'independent and mostly photosynthetic', ['parasitic on sporophyte', 'a spore', 'diploid'], 'The prothallus is free-living.');
+mc(4, 'pteridophytes', 'A feature which distinguishes pteridophytes from bryophytes is that pteridophytes', 'have vascular tissue and a dominant independent sporophyte', ['need water for fertilisation', 'have a thallus', 'produce spores'], 'Both need water for fertilisation and both produce spores.');
+mc(4, 'gymnosperms', 'Gymnosperms differ from pteridophytes in having', 'seeds', ['xylem', 'spores', 'roots'], 'Gymnosperms are seed plants.');
+mc(4, 'gymnosperms', 'Pollination in gymnosperms is mainly by', 'wind', ['insects', 'birds', 'water'], 'Pollen grains are carried by air currents.');
+mc(4, 'gymnosperms', 'Which structure of Pinus carries the haploid female gametophyte?', 'Ovule', ['Microsporangium', 'Pollen tube', 'Needle'], 'The female gametophyte is within the ovule.');
+mc(4, 'angiosperms', 'The number of nuclei in the egg apparatus of an angiosperm embryo sac is', 'Three', ['Two', 'Five', 'Eight'], 'One egg plus two synergids make three nuclei.', 'Eight is the total for the whole embryo sac.');
+mc(4, 'angiosperms', 'Pollen grains of angiosperms are formed in', 'anthers', ['ovaries', 'stigma', 'style'], 'Anthers contain microsporangia.');
+mc(4, 'angiosperms', 'Dicots have', 'two cotyledons', ['one cotyledon', 'no cotyledons', 'three cotyledons'], 'Monocots have one cotyledon.');
+mc(4, 'life cycles', 'In plants with a diplontic life cycle, the only haploid stage is', 'the gametes', ['the zygote', 'the plant body', 'the spore mother cell'], 'The body and zygote are diploid.');
+mc(4, 'life cycles', 'In a haplontic life cycle, the only diploid stage is', 'the zygote', ['the gamete', 'the vegetative body', 'the spore'], 'The zygote divides meiotically to give haploid.');
+mc(4, 'life cycles', 'Which one shows sporic meiosis?', 'A fern', ['Volvox', 'Spirogyra', 'Chlamydomonas'], 'Meiosis in spore mother cells.');
+mc(4, 'classification systems', 'Which of the following uses the arrangement of the androecium?', 'The artificial system', ['The natural system', 'The phylogenetic system', 'Chemotaxonomy'], 'Linnaeus classed plants by stamen number and arrangement.');
+mc(4, 'algae', 'Which statement is true for Chlorophyceae?', 'Chlorophyll a and b with pyrenoids', ['Fucoxanthin with laminarin', 'Phycoerythrin with floridean starch', 'Algin in the cell wall'], 'These are the chlorophyte features.');
+
+// ---- Level 5
+mc(5, 'algae', 'The two pigments listed for Rhodophyceae and Phaeophyceae besides chlorophyll a are', 'phycoerythrin and fucoxanthin respectively', ['fucoxanthin and phycoerythrin respectively', 'chlorophyll b for both', 'carotene for both'], 'Red algae: r-phycoerythrin. Brown algae: fucoxanthin.', 'The order of the two names is easily reversed.');
+mc(5, 'bryophytes', 'Which of these shows haplo-diplontic life with the dominant haploid body?', 'Moss', ['Fern', 'Pinus', 'Mango'], 'Dominant gametophyte in bryophytes.');
+mc(5, 'pteridophytes', 'How many of the following are seedless vascular plants: Funaria, Selaginella, Pinus, Equisetum?', 'Two', ['One', 'Three', 'Four'], 'Selaginella and Equisetum. Funaria is a bryophyte and Pinus is a seed plant.');
+mc(5, 'gymnosperms', 'Which statement about the pollen grain of Pinus is correct?', 'It is haploid and is the male gametophyte', ['It is diploid and a sporophyte', 'It is a megaspore', 'It is formed by mitosis from the zygote'], 'Microspore mother cells divide by meiosis to give haploid microspores that develop into pollen grains.');
+mc(5, 'angiosperms', 'Which statement is true for triple fusion?', 'It fuses the male gamete with the two polar nuclei', ['It fuses the male gamete with the egg', 'It fuses two male gametes', 'It forms the zygote'], 'Triple fusion forms the primary endosperm nucleus.', 'Syngamy forms the zygote.');
+mc(5, 'angiosperms', 'A plant with 2n = 28 has how many chromosomes in the antipodal cell?', '14', ['28', '42', '7'], 'The embryo sac cells are haploid: n = 14.');
+mc(5, 'life cycles', 'In a plant with 2n = 22, how many chromosomes are present in a spore mother cell, a spore and a zygote respectively?', '22, 11, 22', ['11, 11, 22', '22, 22, 11', '11, 22, 11'], 'Spore mother cell is diploid, spores are haploid, zygote diploid.');
+mc(5, 'life cycles', 'A bryophyte gametophyte cell has 18 chromosomes. How many chromosomes are present in a cell of the capsule wall?', '36', ['18', '9', '72'], 'The capsule wall belongs to the sporophyte (2n = 36).');
+mc(5, 'classification systems', 'Which approach would best show that two look-alike plants are different species with different chromosome counts?', 'Cytotaxonomy', ['Chemotaxonomy', 'Artificial system', 'Herbarium alone'], 'Chromosome number and behaviour are cytological.');
 export default { topic: 'plant-kingdom', groups, items, gens: [] };
