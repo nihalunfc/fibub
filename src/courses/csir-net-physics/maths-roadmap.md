@@ -65,9 +65,9 @@ Typical Part B questions take one step (an eigenvalue, a residue, a transform pa
 3. **ODEs and special functions**: JAM [differential equations](/learn/courses/iit-jam-physics/differential-equations/), then GATE [series solutions: Legendre, Bessel, Hermite](/learn/courses/gate-physics/special-functions/).
 4. **Fourier methods**: JAM [Fourier series](/learn/courses/iit-jam-physics/fourier-series/), then GATE [Fourier and Laplace transforms](/learn/courses/gate-physics/fourier-laplace-transforms/).
 5. **PDEs and Green's functions** (Part C): [separation of variables](/learn/courses/gate-physics/partial-differential-equations/) and [the delta function and Green's functions](/learn/courses/gate-physics/delta-greens-functions/).
-6. **Probability**: [probability and statistics for physicists](/learn/courses/gate-physics/probability/), then lesson 2.3 of this course (random variables and distributions).
+6. **Probability**: [probability and statistics for physicists](/learn/courses/gate-physics/probability/), then [lesson 2.3](/learn/courses/csir-net-physics/probability-distributions/) of this course (random variables and distributions).
 7. **Tensors**: [tensors](/learn/courses/gate-physics/tensors/).
-8. **NET extras in this course**: lesson 2.2 (group theory for physicists) and lesson 2.4 (numerical methods: roots, integration and ODEs).
+8. **NET extras in this course**: [lesson 2.2](/learn/courses/csir-net-physics/group-theory/) (group theory for physicists) and [lesson 2.4](/learn/courses/csir-net-physics/numerical-methods/) (numerical methods: roots, integration and ODEs).
 
 Vector calculus and dimensional analysis are usually already strong; if not, use JAM [vector calculus](/learn/courses/iit-jam-physics/vector-calculus/) and [integral theorems](/learn/courses/iit-jam-physics/integral-theorems/).
 
@@ -82,9 +82,9 @@ Vector calculus and dimensional analysis are usually already strong; if not, use
 | Fourier and Laplace transforms | [GATE 1.5](/learn/courses/gate-physics/fourier-laplace-transforms/) | convolution, solving ODEs with Laplace transforms |
 | PDEs, Green's functions | [GATE 1.7](/learn/courses/gate-physics/partial-differential-equations/), [GATE 1.8](/learn/courses/gate-physics/delta-greens-functions/) | Green's function of `$d^2/dx^2 + k^2$`, heat kernel |
 | Tensors | [GATE 1.9](/learn/courses/gate-physics/tensors/) | Levi-Civita identities, rank counting |
-| Probability | [GATE 1.10](/learn/courses/gate-physics/probability/), lesson 2.3 | Poisson and Gaussian limits, central limit theorem |
-| Group theory | lesson 2.2 | group tables, SU(2) and O(3), representations |
-| Numerical methods | lesson 2.4 | error of trapezoid versus Simpson, Newton-Raphson, Runge-Kutta steps |
+| Probability | [GATE 1.10](/learn/courses/gate-physics/probability/), [lesson 2.3](/learn/courses/csir-net-physics/probability-distributions/) | Poisson and Gaussian limits, central limit theorem |
+| Group theory | [lesson 2.2](/learn/courses/csir-net-physics/group-theory/) | group tables, SU(2) and O(3), representations |
+| Numerical methods | [lesson 2.4](/learn/courses/csir-net-physics/numerical-methods/) | error of trapezoid versus Simpson, Newton-Raphson, Runge-Kutta steps |
 
 ## 4. A worked NET-style example
 

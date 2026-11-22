@@ -69,7 +69,7 @@ Part B questions are usually one clean step: count degrees of freedom, read off 
 6. **Small oscillations**: GATE [normal modes](/learn/courses/gate-physics/normal-modes/).
 7. **Rigid bodies**: GATE [inertia tensor and Euler's equations](/learn/courses/gate-physics/rigid-body-dynamics/).
 8. **Relativity**: JAM [special relativity](/learn/courses/iit-jam-physics/special-relativity/), then GATE [four-vectors and relativistic kinematics](/learn/courses/gate-physics/relativistic-kinematics/).
-9. **NET extras in this course**: lesson 3.2 (canonical transformations and Hamilton-Jacobi theory), lesson 3.3 (phase space, fixed points and stability) and lesson 3.4 (nonlinear dynamics and chaos).
+9. **NET extras in this course**: [lesson 3.2](/learn/courses/csir-net-physics/hamilton-jacobi/) (canonical transformations and Hamilton-Jacobi theory), [lesson 3.3](/learn/courses/csir-net-physics/phase-space-stability/) (phase space, fixed points and stability) and [lesson 3.4](/learn/courses/csir-net-physics/nonlinear-dynamics-chaos/) (nonlinear dynamics and chaos).
 
 ## 3. Where each topic is taught
 
@@ -77,7 +77,7 @@ Part B questions are usually one clean step: count degrees of freedom, read off 
 |---|---|---|
 | Lagrangian, constraints, Noether | [GATE 2.1](/learn/courses/gate-physics/lagrangian-mechanics/) | conserved quantities from symmetry, velocity-dependent potentials |
 | Hamiltonian, phase space | [GATE 2.2](/learn/courses/gate-physics/hamiltonian-mechanics/) | phase-space area, H for a charge in a field |
-| Poisson brackets, canonical maps | [GATE 2.3](/learn/courses/gate-physics/poisson-brackets/), lesson 3.2 | checking canonicity, generating functions |
+| Poisson brackets, canonical maps | [GATE 2.3](/learn/courses/gate-physics/poisson-brackets/), [lesson 3.2](/learn/courses/csir-net-physics/hamilton-jacobi/) | checking canonicity, generating functions |
 | Central forces, scattering | [GATE 2.4](/learn/courses/gate-physics/central-force-scattering/), [JAM central forces](/learn/courses/iit-jam-physics/central-forces/) | effective potential, orbit stability, cross-sections |
 | Normal modes | [GATE 2.5](/learn/courses/gate-physics/normal-modes/) | frequencies from trace and determinant, zero modes |
 | Rigid bodies | [GATE 2.6](/learn/courses/gate-physics/rigid-body-dynamics/) | inertia tensor of simple shapes, principal axes |
