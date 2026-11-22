@@ -10,10 +10,13 @@ interface Props { course: CourseSyllabus; bank: string; exam: string; topic: { i
 const { course, bank, exam, topic, unit, count, lesson } = Astro.props;
 const base = `/learn/courses/${course.id}`;
 const title = `${topic.name}: ${course.name} questions`;
+// Search titles stay within 60 characters: drop words from the end until one fits.
+const docTitle = [`${title} | fibub`, title, `${topic.name} | ${course.name}`, `${topic.name} questions`, topic.name]
+  .find((t) => t.length <= 60) ?? topic.name.slice(0, 57) + '...';
 const desc = `${count} original ${course.name} practice questions on ${topic.name.toLowerCase()} (${unit.toLowerCase()}), from warm-up to top-rank level, with full worked solutions. Free, no sign-up.`;
 const ld = coursePageLd(course, `Practice: ${topic.name}`, desc.slice(0, 160), `practice/${topic.id}`);
 ---
-<Base title={title} description={desc.slice(0, 160)} ld={ld}>
+<Base title={title} docTitle={docTitle} description={desc.slice(0, 160)} ld={ld}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`${base}/`}>{course.name}</a> / <a href={`${base}/practice/`}>Practice</a> / {topic.name}</div>
   <div class="cs-main cs-wide">
     <h1>{topic.name}</h1>
