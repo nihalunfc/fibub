@@ -49,6 +49,14 @@ export default {
         {
           "id": "straight-lines",
           "name": "Straight lines"
+        },
+        {
+          "id": "circles",
+          "name": "Circles"
+        },
+        {
+          "id": "conic-sections",
+          "name": "Parabola, ellipse and hyperbola"
         }
       ]
     },
