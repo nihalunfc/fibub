@@ -5,6 +5,7 @@
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './special-relativity.more.gen.js';
 import more2 from './special-relativity.more2.gen.js';
+import r4 from './special-relativity.r4.gen.js';
 
 const gam = (b) => 1 / Math.sqrt(1 - b * b);
 const PARTS = [{ name: 'an electron', m: 0.511 }, { name: 'a proton', m: 938.3 }, { name: 'a muon', m: 105.7 }];
@@ -207,6 +208,7 @@ export default {
       options: ['A cup of tea has slightly more mass when hot than when cold.', 'Rest mass is conserved separately from energy in every nuclear reaction.', 'A compressed spring has slightly more mass than the same spring relaxed.', 'A hydrogen atom has slightly less mass than a free proton plus a free electron.'], answer: [0, 2, 3],
       sol: 'Any energy stored inside a body, heat or elastic or chemical, adds $E/c^2$ to its mass (first and third true). Binding lowers the energy, so the atom is lighter by $13.6\\ {\\rm eV}/c^2$ (fourth true). In nuclear reactions rest mass changes measurably: the change $\\Delta mc^2$ is the energy released (second false).' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'srl-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'time dilation',
@@ -289,5 +291,6 @@ export default {
           trap: 'Setting $\\tfrac12mv^2$ equal to the kinetic energy is wrong at these speeds.' };
       } },
     ...more,
+    ...r4.gens,
   ],
 };

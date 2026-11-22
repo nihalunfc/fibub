@@ -7,6 +7,7 @@ const K = 1 / (4 * Math.PI * C.eps0); // 8.988e9 N m^2 C^-2
 
 import * as Q5 from '../_util.js';
 import more2 from './potential-energy.more2.gen.js';
+import r4 from './potential-energy.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -237,6 +238,7 @@ export default {
       options: ['The whole surface of a conductor is at one potential.', 'On an isolated conductor of irregular shape, the surface charge density is the same everywhere.', 'Just outside the surface, the field is $\\sigma/\\epsilon_0$ and normal to the surface.', 'Inside an empty cavity in a conductor, the field is zero, however the conductor is charged or what fields are outside.'], answer: [0, 2, 3],
       sol: 'A: $\\vec E = 0$ in the metal, so $V$ is the same throughout it, surface included. C: a pillbox with one face in the metal gives $EA = \\sigma A/\\epsilon_0$; any tangential component would drive surface currents. D: the cavity is bounded by one equipotential and contains no charge, so the unique solution of Laplace\'s equation is $V$ = constant (this is how a Faraday cage works). B is false: $\\sigma$ is largest where the surface curves most sharply.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'pot-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'field from potential', format: 'graph',
@@ -380,5 +382,6 @@ export default {
           trap: 'The dipole potential falls as $1/r^2$ and changes sign past $90^\\circ$.' };
       },
       verify: (p) => K * p.p * 1e-12 * Math.cos(p.th * Math.PI / 180) / (p.d / 100) ** 2 },
+    ...r4.gens,
   ],
 };
