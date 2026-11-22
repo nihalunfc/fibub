@@ -1,0 +1,65 @@
+// Class 10 Maths, Chapter 10 Circles: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ci');
+const R = String.raw;
+const TRI = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29]];
+const tri = (rng) => { const t = choose(rng, TRI), k = choose(rng, [1, 1, 2, 3]); const [a, b, c] = t; return rng() < 0.5 ? [a * k, b * k, c * k] : [b * k, a * k, c * k]; };
+
+export default {
+  topic: 'circles', name: 'Circles', n: 10,
+  items: [
+    m.mcq(1, 'tangent', R`<p>A line that meets a circle at exactly one point is called a:</p>`, R`tangent`, [R`secant`, R`chord`, R`diameter`], R`<p>A tangent touches the circle at one point only. A secant cuts it at two points, and a chord is a segment joining two points of the circle.</p>`),
+    m.mcq(1, 'tangent', R`<p>The tangent at a point P of a circle with centre O is perpendicular to:</p>`, R`the radius OP`, [R`any chord through P`, R`the diameter that does not pass through P`, R`the line joining P to any other tangent point`], R`<p>This is the basic theorem: the tangent at any point is perpendicular to the radius through that point of contact.</p>`),
+    m.mcq(1, 'number', R`<p>How many tangents can be drawn to a circle from a point inside the circle?</p>`, R`0`, [R`1`, R`2`, R`infinitely many`], R`<p>Every line through an inside point cuts the circle at two points, so none of them is a tangent.</p>`, { trap: 'Thinking that "inside" means one tangent.' }),
+    m.mcq(1, 'number', R`<p>From a point outside a circle, the number of tangents that can be drawn is:</p>`, R`exactly 2`, [R`exactly 1`, R`exactly 3`, R`infinitely many`], R`<p>There are exactly two, one on each side of the line joining the point to the centre.</p>`),
+    m.mcq(1, 'number', R`<p>The number of tangents that can be drawn at a given point of a circle is:</p>`, R`exactly 1`, [R`2`, R`0`, R`infinitely many`], R`<p>At a point ON the circle there is only one tangent, perpendicular to the radius at that point.</p>`),
+    m.mcq(1, 'equal', R`<p>Tangents PA and PB are drawn from an outside point P to a circle, touching it at A and B. Then:</p>`, R`PA = PB`, [R`PA > PB`, R`PA < PB`, R`PA + PB = AB`], R`<p>The lengths of the two tangents from an external point are equal.</p>`),
+    m.mcq(2, 'length', R`<p>The distance of a point P from the centre of a circle of radius 6 cm is 10 cm. The length of the tangent from P is:</p>`, R`8 cm`, [R`4 cm`, R`16 cm`, R`$\sqrt{136}$ cm`], R`<p>$PT^2 = OP^2 - r^2 = 100 - 36 = 64$, so $PT = 8$ cm.</p>`, { trap: 'Adding the squares instead of subtracting.' }),
+    m.mcq(2, 'length', R`<p>A tangent PT of length 12 cm is drawn from P to a circle of radius 5 cm with centre O. Then OP is:</p>`, R`13 cm`, [R`17 cm`, R`$\sqrt{119}$ cm`, R`7 cm`], R`<p>OT ⟂ PT, so $OP^2 = 5^2 + 12^2 = 169$ and $OP = 13$ cm.</p>`),
+    m.mcq(2, 'angle', R`<p>PA and PB are tangents from P to a circle with centre O. If $\angle APB = 70^\circ$, then $\angle AOB$ is:</p>`, R`$110^\circ$`, [R`$70^\circ$`, R`$90^\circ$`, R`$140^\circ$`], R`<p>$\angle OAP = \angle OBP = 90^\circ$, so $\angle AOB = 360^\circ - 90^\circ - 90^\circ - 70^\circ = 110^\circ$.</p>`),
+    m.mcq(2, 'angle', R`<p>PQ is a tangent at P to a circle with centre O, and $\angle POQ = 40^\circ$. Then $\angle OQP$ is:</p>`, R`$50^\circ$`, [R`$40^\circ$`, R`$60^\circ$`, R`$140^\circ$`], R`<p>$\angle OPQ = 90^\circ$, so $\angle OQP = 180^\circ - 90^\circ - 40^\circ = 50^\circ$.</p>`),
+    m.mcq(2, 'angle', R`<p>The angle between two tangents from P is $60^\circ$. The angle between the radii to the two points of contact is:</p>`, R`$120^\circ$`, [R`$60^\circ$`, R`$90^\circ$`, R`$30^\circ$`], R`<p>The two angles add up to $180^\circ$ in the quadrilateral formed by the two radii and two tangents, so $180^\circ - 60^\circ = 120^\circ$.</p>`),
+    m.mcq(2, 'equal', R`<p>A triangle ABC has a circle inside it touching AB, BC and CA. If AB = 9, BC = 7 and CA = 8 cm, the tangent length from A is:</p>`, R`5 cm`, [R`4 cm`, R`2 cm`, R`3 cm`], R`<p>$x = \tfrac12(AB + CA - BC) = \tfrac12(9 + 8 - 7) = 5$ cm.</p>`),
+    m.mcq(2, 'parallel', R`<p>The tangents drawn at the two ends of a diameter of a circle are:</p>`, R`parallel to each other`, [R`perpendicular to each other`, R`equal chords`, R`meeting at the centre`], R`<p>Each is perpendicular to the diameter, so they are parallel.</p>`),
+    m.mcq(3, 'equal', R`<p>A quadrilateral ABCD is drawn round a circle. If AB = 6, CD = 5 and BC = 7 cm, then AD is:</p>`, R`4 cm`, [R`8 cm`, R`6 cm`, R`18 cm`], R`<p>For a quadrilateral round a circle, $AB + CD = BC + DA$. So $6 + 5 = 7 + DA$ and $DA = 4$ cm.</p>`),
+    m.mcq(3, 'concentric', R`<p>Two concentric circles have radii 13 cm and 5 cm. A chord of the larger circle touches the smaller. Its length is:</p>`, R`24 cm`, [R`12 cm`, R`$2\sqrt{194}$ cm`, R`18 cm`], R`<p>Half the chord is $\sqrt{13^2 - 5^2} = 12$, so the chord is 24 cm.</p>`, { trap: 'Giving the half-chord, 12 cm.' }),
+    m.mcq(3, 'angle', R`<p>PA and PB are tangents to a circle with centre O. If $\angle OPA = 25^\circ$, then $\angle APB$ is:</p>`, R`$50^\circ$`, [R`$25^\circ$`, R`$65^\circ$`, R`$130^\circ$`], R`<p>OP bisects $\angle APB$ (the triangles OAP and OBP are congruent). So $\angle APB = 2 \times 25^\circ = 50^\circ$.</p>`),
+    m.ar(1, 'tangent', R`A tangent to a circle is perpendicular to the radius through the point of contact.`, R`A tangent to a circle always passes through its centre.`, 2, R`<p>A is true (it is a theorem of this chapter). R is false: a line through the centre cuts the circle at two points, so it is a secant, never a tangent. Answer (C).</p>`),
+    m.ar(2, 'number', R`From a point inside a circle no tangent can be drawn.`, R`Every line through a point inside a circle meets the circle at two points.`, 0, R`<p>Both true and R explains A: a tangent must meet the circle at only one point, and no line through an inside point does.</p>`),
+    m.ar(2, 'equal', R`The two tangents from an external point to a circle are equal in length.`, R`The triangles formed by the two radii to the points of contact and the line to the centre are congruent.`, 0, R`<p>Right triangles OAP and OBP have OA = OB, OP common and a right angle at A and B (RHS). So PA = PB. Both true and R explains A.</p>`),
+    m.ar(3, 'parallel', R`The tangents at the ends of a diameter of a circle are parallel.`, R`The tangent at any point is perpendicular to the radius at that point.`, 0, R`<p>Both tangents are perpendicular to the same line, the diameter, so they are parallel. R is the reason.</p>`),
+    m.ar(3, 'length', R`A point P is 4 cm from the centre of a circle of radius 5 cm. The tangent length from P is 3 cm.`, R`The tangent length is $\sqrt{OP^2 - r^2}$.`, 3, R`<p>R is true, but P is inside the circle (4 < 5), so there is no tangent from P and A is false. Answer: (D).</p>`),
+    m.nat(1, 'length', R`<p>A tangent from a point 17 cm from the centre of a circle of radius 8 cm touches the circle. Find the length of the tangent in cm.</p>`, () => 15, 0, R`<p>$\sqrt{17^2 - 8^2} = \sqrt{225} = 15$ cm.</p>`, { unit: 'cm' }),
+    m.nat(2, 'angle', R`<p>The angle between two tangents drawn from an outside point is $80^\circ$. Find the angle (in degrees) between the radii drawn to the points of contact.</p>`, () => 100, 0, R`<p>$180^\circ - 80^\circ = 100^\circ$.</p>`, { unit: '°' }),
+    m.nat(2, 'equal', R`<p>A circle touches the sides of triangle ABC. If AB = 12, BC = 9 and CA = 13 cm, find the length (in cm) of the tangent from B.</p>`, () => (12 + 9 - 13) / 2, 0, R`<p>$y = \tfrac12(AB + BC - CA) = \tfrac12(12 + 9 - 13) = 4$ cm.</p>`, { unit: 'cm' }),
+    m.nat(3, 'concentric', R`<p>Two concentric circles have radii 17 cm and 8 cm. Find the length of the chord of the larger circle that touches the smaller circle, in cm.</p>`, () => 30, 0, R`<p>Half the chord is $\sqrt{17^2 - 8^2} = 15$, so the chord is 30 cm.</p>`, { unit: 'cm' }),
+    m.nat(3, 'equal', R`<p>A quadrilateral ABCD is drawn round a circle with AB = 10, BC = 9 and CD = 8 cm. Find AD in cm.</p>`, () => 10 + 8 - 9, 0, R`<p>$AB + CD = BC + DA$, so $DA = 18 - 9 = 9$ cm.</p>`, { unit: 'cm' }),
+    m.msq(2, 'tangent', R`<p>Which of these statements about a tangent to a circle are true? (Choose all that apply.)</p>`, [R`It meets the circle at exactly one point.`, R`It is perpendicular to the radius at the point of contact.`, R`It passes through the centre.`, R`Every point of it other than the point of contact lies outside the circle.`], [0, 1, 3], R`<p>A tangent never passes through the centre (that would be a diameter-line cutting the circle twice). The other three are true.</p>`),
+    m.msq(2, 'number', R`<p>For a point P and a circle, which of these are correct? (Choose all that apply.)</p>`, [R`If P is outside, exactly 2 tangents can be drawn.`, R`If P is on the circle, exactly 1 tangent can be drawn.`, R`If P is inside, exactly 1 tangent can be drawn.`, R`If P is inside, no tangent can be drawn.`], [0, 1, 3], R`<p>Outside: 2; on the circle: 1; inside: 0.</p>`),
+    m.msq(3, 'equal', R`<p>Tangents PA and PB are drawn from P to a circle with centre O. Which are always true? (Choose all that apply.)</p>`, [R`$PA = PB$`, R`$\angle OAP = 90^\circ$`, R`$OP$ bisects $\angle APB$`, R`$\angle APB = \angle AOB$`], [0, 1, 2], R`<p>$\angle APB + \angle AOB = 180^\circ$, so they are equal only in the special case of $90^\circ$ each. The other three are always true.</p>`),
+  ],
+  gens: [
+    { id: 'ci-g01', type: 'nat', level: 2, exams: ['board'], sub: 'length',
+      make(rng) { const [r, t, d] = tri(rng); return { r, d, q: `<p>The radius of a circle is ${r} cm and a point P is ${d} cm from its centre. Find the length of the tangent from P in cm.</p>`, answer: t, tol: 0, unit: 'cm', sol: `<p>$PT^2 = ${d}^2 - ${r}^2 = ${d * d - r * r}$, so $PT = ${t}$ cm.</p>` }; },
+      verify: (p) => Math.sqrt(p.d * p.d - p.r * p.r) },
+    { id: 'ci-g02', type: 'nat', level: 2, exams: ['board'], sub: 'length',
+      make(rng) { const [r, t, d] = tri(rng); return { r, t, q: `<p>A tangent of length ${t} cm is drawn from P to a circle of radius ${r} cm. Find the distance of P from the centre in cm.</p>`, answer: d, tol: 0, unit: 'cm', sol: `<p>$OP^2 = ${r}^2 + ${t}^2 = ${r * r + t * t}$, so $OP = ${d}$ cm.</p>` }; },
+      verify: (p) => Math.hypot(p.r, p.t) },
+    { id: 'ci-g03', type: 'nat', level: 2, exams: ['board'], sub: 'angle',
+      make(rng) { const a = pick(rng, 30, 140, 5); return { a, q: `<p>Tangents PA and PB from P to a circle with centre O make $\\angle APB = ${a}^\\circ$. Find $\\angle AOB$ in degrees.</p>`, answer: 180 - a, tol: 0, unit: '°', sol: `<p>$\\angle OAP = \\angle OBP = 90^\\circ$, so $\\angle AOB = 360^\\circ - 180^\\circ - ${a}^\\circ = ${180 - a}^\\circ$.</p>` }; },
+      verify: (p) => 360 - 90 - 90 - p.a },
+    { id: 'ci-g04', type: 'nat', level: 2, exams: ['board'], sub: 'angle',
+      make(rng) { const a = pick(rng, 20, 70, 5); return { a, q: `<p>PQ is a tangent at P to a circle with centre O and $\\angle POQ = ${a}^\\circ$. Find $\\angle OQP$ in degrees.</p>`, answer: 90 - a, tol: 0, unit: '°', sol: `<p>$\\angle OPQ = 90^\\circ$, so $\\angle OQP = 180^\\circ - 90^\\circ - ${a}^\\circ = ${90 - a}^\\circ$.</p>` }; },
+      verify: (p) => 180 - 90 - p.a },
+    { id: 'ci-g05', type: 'nat', level: 3, exams: ['board'], sub: 'equal',
+      make(rng) { const x = pick(rng, 2, 9), y = pick(rng, 2, 9), z = pick(rng, 2, 9); return { x, y, z, q: `<p>A circle touches the sides of triangle ABC. AB = ${x + y} cm, BC = ${y + z} cm and CA = ${z + x} cm. Find the tangent length from A in cm.</p>`, answer: x, tol: 0, unit: 'cm', sol: `<p>$x = \\tfrac12(AB + CA - BC) = \\tfrac12(${x + y} + ${z + x} - ${y + z}) = ${x}$ cm.</p>` }; },
+      verify: (p) => ((p.x + p.y) + (p.z + p.x) - (p.y + p.z)) / 2 },
+    { id: 'ci-g06', type: 'nat', level: 3, exams: ['board'], sub: 'equal',
+      make(rng) { const a = pick(rng, 5, 12), b = pick(rng, 6, 14), c = pick(rng, 4, 11); return { a, b, c, q: `<p>A quadrilateral ABCD is drawn round a circle. AB = ${a} cm, BC = ${b} cm, CD = ${c} cm. Find AD in cm.</p>`, answer: a + c - b, tol: 0, unit: 'cm', sol: `<p>$AB + CD = BC + DA$, so $DA = ${a} + ${c} - ${b} = ${a + c - b}$ cm.</p>` }; },
+      verify: (p) => p.a + p.c - p.b },
+    { id: 'ci-g07', type: 'nat', level: 3, exams: ['board'], sub: 'concentric',
+      make(rng) { const [r, h, R] = tri(rng); return { r, h, R, q: `<p>Two concentric circles have radii ${R} cm and ${r} cm. A chord of the larger circle touches the smaller circle. Find its length in cm.</p>`, answer: 2 * h, tol: 0, unit: 'cm', sol: `<p>Half the chord is $\\sqrt{${R}^2 - ${r}^2} = ${h}$, so the chord is ${2 * h} cm.</p>` }; },
+      verify: (p) => 2 * Math.sqrt(p.R * p.R - p.r * p.r) },
+  ],
+};
