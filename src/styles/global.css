@@ -250,3 +250,19 @@ html.is-app .ft-install, html.is-app .at-install, html.is-app .inst-hide { displ
 .inst-dlg li svg { vertical-align: -3px; }
 .inst-note { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
 .inst-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* Compact phones (nihal, 2026-11-22): smaller headings and tighter gaps, so more fits on one screen and
+   there is less scrolling. Body text stays 16 px for reading; only spacing and headings shrink. */
+@media (max-width: 640px) {
+  main { padding: 14px 0 32px; }
+  h1 { font-size: 23px; line-height: 1.2; margin-bottom: 6px; }
+  h2 { font-size: 18px; margin: 22px 0 8px; }
+  h3 { font-size: 16px; margin: 16px 0 6px; }
+  .lead { font-size: 15.5px; line-height: 1.5; margin-bottom: 12px; }
+  .crumbs { margin-bottom: 4px; }
+  .grid { gap: 8px; }
+  .card { padding: 12px 14px; }
+  .panel { padding: 14px; }
+  .note { padding: 8px 12px; }
+  footer.site { padding: 18px 0 28px; }
+}

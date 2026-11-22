@@ -3,6 +3,9 @@
 import Base from '../../layouts/Base.astro';
 import CourseSidebar from './CourseSidebar.astro';
 import LessonQuiz from './LessonQuiz.astro';
+import CourseSiblings from '../learn/CourseSiblings.astro';
+import { COURSES, COURSE_CATS } from '../../data/curricula';
+import '../../styles/learn.css';
 import { splitFigures, type LessonEntry } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
 import { lessonLd } from '../../lib/seo';
@@ -18,12 +21,13 @@ const parts = splitFigures(entry.rendered?.html ?? '');
 for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${slug}: unknown figure ${p.fig}`);
 const d = entry.data;
 const kitV = course.kit ? Date.now().toString(36) : '';
+const cat = COURSE_CATS.find((k) => k.id === COURSES.find((c) => c.id === course.id)?.cat);
 const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
 const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
 ---
 <Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article">
-  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / {cat ? <a href={cat.href}>{cat.short}</a> : <a href="/learn/courses/">Courses</a>} / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
   <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.id}/` : undefined}>
     <CourseSidebar course={course} live={live} current={slug} />
     <article class="cs-main cs-lesson">
@@ -44,6 +48,7 @@ const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug,
         {prev ? <a href={`/learn/courses/${course.id}/${prev.slug}/`}>← {prev.n} {prev.title}</a> : <span />}
         {next ? <a class="cs-next" href={`/learn/courses/${course.id}/${next.slug}/`}>{next.n} {next.title} →</a> : <a class="cs-next" href={`/learn/courses/${course.id}/`}>Course home →</a>}
       </nav>
+      <CourseSiblings id={course.id} />
       <p class="cs-small">Updated {d.updated.toISOString().slice(0, 10)}. {course.footnote ?? 'Prices and model names change fast: check the official source before you buy.'}</p>
     </article>
   </div>

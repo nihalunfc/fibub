@@ -1,0 +1,8 @@
+---
+// "Explore more" at the foot of every Learn page: the other hubs, so a reader is always one tap from the next thing.
+import { COURSE_CATS } from '../../data/curricula';
+interface Props { here?: string }
+const { here } = Astro.props;
+const hubs = [{ id: 'overview', name: 'Learn home', href: '/learn/' }, { id: 'school', name: 'School', href: '/learn/school/' }, ...COURSE_CATS.map((k) => ({ id: k.id, name: k.name, href: k.href })), { id: 'courses', name: 'All courses', href: '/learn/courses/' }, { id: 'labs', name: 'Experiments', href: '/learn/experiments/' }, { id: 'languages', name: 'Languages', href: '/learn/languages/' }, { id: 'tools', name: 'Science tools', href: '/science/' }, { id: 'blog', name: 'Guides for students', href: '/blog/kids/' }];
+---
+<nav class="lh-more" aria-label="Explore more"><span>Explore more:</span>{hubs.filter((h) => h.id !== here).map((h) => <a href={h.href}>{h.name}</a>)}</nav>

@@ -1,0 +1,15 @@
+---
+// A small line icon for each Learn category, with one moving part (see the motion rules in styles/learn.css).
+interface Props { id: string }
+const { id } = Astro.props;
+const P: Record<string, string> = {
+  school: '<path d="M3 5.5c2.5-1 5.5-1 9 1v13c-3.5-2-6.5-2-9-1z"/><path class="a-page" d="M12 6.5c3.5-2 6.5-2 9-1v13c-2.5-1-5.5-1-9 1z"/>',
+  'data-ai': '<path d="M3 20h18"/><g><rect class="a-bar" x="5" y="11" width="3" height="8" rx="1"/><rect class="a-bar" x="10.5" y="6" width="3" height="13" rx="1"/><rect class="a-bar" x="16" y="9" width="3" height="10" rx="1"/></g>',
+  science: '<circle cx="12" cy="12" r="4"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(-20 12 12)"/><g class="a-orbit"><circle cx="21" cy="9" r="1.6" fill="currentColor"/></g>',
+  life: '<g class="a-rock"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></g>',
+  labs: '<path d="M9 3h6M10 3v6l-5.5 9.5A1.6 1.6 0 0 0 5.9 21h12.2a1.6 1.6 0 0 0 1.4-2.5L14 9V3"/><path d="M7.5 15h9"/><circle class="a-bub" cx="11" cy="17.5" r="1" fill="currentColor"/><circle class="a-bub" cx="13.5" cy="18.5" r=".8" fill="currentColor" style="animation-delay:.4s"/>',
+  languages: '<path d="M4 5h16v11H9l-5 4z"/><g><circle class="a-dot" cx="8.5" cy="10.5" r="1.1" fill="currentColor"/><circle class="a-dot" cx="12" cy="10.5" r="1.1" fill="currentColor"/><circle class="a-dot" cx="15.5" cy="10.5" r="1.1" fill="currentColor"/></g>',
+  tools: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18h8"/>',
+};
+---
+<span class="lh-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={P[id] ?? P.school} /></span>

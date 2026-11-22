@@ -36,35 +36,52 @@ export const CURRICULA: Curriculum[] = [
     note: 'Chapters follow the SCERT Kerala English-medium textbooks for 2026-27 (the new Class 9 books of 2024 and the new Class 8 and 10 books of 2025), the books used in Kerala state syllabus schools in Kerala and in Kerala-syllabus schools in the Gulf. Check the official SCERT Kerala textbooks (scert.kerala.gov.in, samagra.kite.kerala.gov.in) for the current list. fibub is an independent free site, not part of SCERT Kerala or the Government of Kerala, and copies no textbook text or pictures.' },
 ];
 
-export type Course = { id: string; name: string; text: string; status: 'live' | 'planned'; href?: string };
+/**
+ * The Learn categories (nihal, 2026-11-22): every course belongs to one, and its card shows up on that
+ * category's hub page (/learn/<hub>/), on /learn/courses/ and in the Learn overview automatically.
+ * School curricula are their own hub (/learn/school/).
+ */
+export const COURSE_CATS = [
+  { id: 'data-ai', name: 'Data and AI', short: 'Data & AI', href: '/learn/data-ai/', blurb: 'Statistics, SQL, dashboards, machine learning and running AI on your own computer.' },
+  { id: 'science', name: 'Science and space', short: 'Science', href: '/learn/science/', blurb: 'Astronomy, cosmology, climate and how scientists work things out.' },
+  { id: 'life', name: 'Life, money and business', short: 'Life & business', href: '/learn/life-skills/', blurb: 'Home skills like tyres, tools and carpentry, plus money and starting a business.' },
+] as const;
+export type CourseCat = (typeof COURSE_CATS)[number]['id'];
+
+// `cat` is required: pick the hub the course belongs in (COURSE_CATS above). The build fails on an unknown one.
+export type Course = { id: string; name: string; text: string; status: 'live' | 'planned'; href?: string; cat: CourseCat };
 
 // Short free courses (see /learn/courses/). Mark one 'live' with its page address when it is published.
 export const COURSES: Course[] = [
   // Home skills (nihal, 2026-11-16): src/data/skill-courses.ts, pages at /learn/courses/<id>/.
-  ...SKILL_COURSES.map((c) => ({ id: c.id, name: c.name, text: c.text, status: 'live' as const, href: `/learn/courses/${c.id}/` })),
+  ...SKILL_COURSES.map((c) => ({ id: c.id, name: c.name, text: c.text, status: 'live' as const, href: `/learn/courses/${c.id}/`, cat: 'life' as const })),
   // Long text courses (src/courses/<id>/), pages at /learn/courses/<id>/.
-  { id: 'offline-ai', name: 'Offline AI', text: 'Run AI models on your own laptop or desktop with no internet and no monthly limit: tokens, hardware, setup, Python workflows and costs.', status: 'live', href: '/learn/courses/offline-ai/' },
-  { id: 'coding-data', name: 'Coding and data', text: 'Start with simple steps, then sort, count and draw charts from real-looking data.', status: 'planned' },
+  { id: 'offline-ai', name: 'Offline AI', text: 'Run AI models on your own laptop or desktop with no internet and no monthly limit: tokens, hardware, setup, Python workflows and costs.', status: 'live', href: '/learn/courses/offline-ai/', cat: 'data-ai' },
+  { id: 'coding-data', name: 'Coding and data', text: 'Start with simple steps, then sort, count and draw charts from real-looking data.', status: 'planned', cat: 'data-ai' },
   // How AI works (nihal, 2026-11-21): filled by the ML foundations course (src/courses/ml-foundations/).
-  { id: 'ml-foundations', name: 'From a straight line to an LLM', text: 'How machines learn from data: regression, decision trees, random forests, neural networks and what an LLM is, with simulations and the maths worked by hand.', status: 'live', href: '/learn/courses/ml-foundations/' },
+  { id: 'ml-foundations', name: 'From a straight line to an LLM', text: 'How machines learn from data: regression, decision trees, random forests, neural networks and what an LLM is, with simulations and the maths worked by hand.', status: 'live', href: '/learn/courses/ml-foundations/', cat: 'data-ai' },
   // Analyst courses (nihal, 2026-11-22): src/courses/statistics/ and src/courses/pandas/.
-  { id: 'statistics', name: 'Statistics for analysts', text: 'Averages, spread, probability, distributions, confidence intervals, hypothesis tests and A/B testing, with simulations and every formula worked by hand.', status: 'live', href: '/learn/courses/statistics/' },
-  { id: 'pandas', name: 'Python pandas for analysis', text: 'Real Python in the page: load, clean, filter, group, join and reshape data with pandas, with exercises that check your answer and a retail analysis capstone.', status: 'live', href: '/learn/courses/pandas/' },
+  { id: 'statistics', name: 'Statistics for analysts', text: 'Averages, spread, probability, distributions, confidence intervals, hypothesis tests and A/B testing, with simulations and every formula worked by hand.', status: 'live', href: '/learn/courses/statistics/', cat: 'data-ai' },
+  { id: 'pandas', name: 'Python pandas for analysis', text: 'Real Python in the page: load, clean, filter, group, join and reshape data with pandas, with exercises that check your answer and a retail analysis capstone.', status: 'live', href: '/learn/courses/pandas/', cat: 'data-ai' },
   // Power BI and DAX, Data storytelling (nihal, 2026-11-22): the BI courses (src/courses/power-bi/, src/courses/data-storytelling/).
-  { id: 'power-bi', name: 'Power BI and DAX', text: 'Clean data in Power Query, model a star schema, write DAX measures and time intelligence, and build a dashboard, with DAX you can type and run in every lesson.', status: 'live', href: '/learn/courses/power-bi/' },
-  { id: 'data-storytelling', name: 'Data storytelling', text: 'Pick the right chart, cut the clutter, design KPI cards and present numbers so managers act, with charts you can change and writing practice in every lesson.', status: 'live', href: '/learn/courses/data-storytelling/' },
+  { id: 'power-bi', name: 'Power BI and DAX', text: 'Clean data in Power Query, model a star schema, write DAX measures and time intelligence, and build a dashboard, with DAX you can type and run in every lesson.', status: 'live', href: '/learn/courses/power-bi/', cat: 'data-ai' },
+  { id: 'data-storytelling', name: 'Data storytelling', text: 'Pick the right chart, cut the clutter, design KPI cards and present numbers so managers act, with charts you can change and writing practice in every lesson.', status: 'live', href: '/learn/courses/data-storytelling/', cat: 'data-ai' },
   // Space and the sky (nihal, 2026-11-22): replaced by two courses that never repeat each other or the
   // cosmology course: Sky watching (src/courses/sky-watching/) and Astronomy (src/courses/astronomy/).
-  { id: 'sky-watching', name: 'Sky watching', text: 'Amateur astronomy from your own eyes to binoculars, telescopes and astrophotography: how the sky moves, finding anything, dark skies, what to observe and taking honest astrophotos.', status: 'live', href: '/learn/courses/sky-watching/' },
-  { id: 'astronomy', name: 'Astronomy', text: 'The science of stars, planets and galaxies: light and spectra, gravity and orbits, how stars live and die, galaxies, and the research methods astronomers use.', status: 'live', href: '/learn/courses/astronomy/' },
+  { id: 'sky-watching', name: 'Sky watching', text: 'Amateur astronomy from your own eyes to binoculars, telescopes and astrophotography: how the sky moves, finding anything, dark skies, what to observe and taking honest astrophotos.', status: 'live', href: '/learn/courses/sky-watching/', cat: 'science' },
+  { id: 'astronomy', name: 'Astronomy', text: 'The science of stars, planets and galaxies: light and spectra, gravity and orbits, how stars live and die, galaxies, and the research methods astronomers use.', status: 'live', href: '/learn/courses/astronomy/', cat: 'science' },
   // Start a startup (nihal, 2026-11-22): India, Canada and the USA, src/courses/startup/.
-  { id: 'startup', name: 'Start a startup', text: 'Start a business in India, Canada or the USA, online or offline, alone or with co-founders: registering, licences, GST and sales tax, income tax, payroll, IP and equity, with official sources.', status: 'live', href: '/learn/courses/startup/' },
+  { id: 'startup', name: 'Start a startup', text: 'Start a business in India, Canada or the USA, online or offline, alone or with co-founders: registering, licences, GST and sales tax, income tax, payroll, IP and equity, with official sources.', status: 'live', href: '/learn/courses/startup/', cat: 'life' },
   // Cosmology A to Z (nihal, 2026-11-22): src/courses/cosmology/.
-  { id: 'cosmology', name: 'Cosmology from A to Z', text: 'The story of the universe from ancient sky watchers to JWST: light, distances, Einstein, the Big Bang, the cosmic microwave background, dark matter and dark energy, with animations and live problems.', status: 'live', href: '/learn/courses/cosmology/' },
-  { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned' },
-  { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },
-  { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned' },
+  { id: 'cosmology', name: 'Cosmology from A to Z', text: 'The story of the universe from ancient sky watchers to JWST: light, distances, Einstein, the Big Bang, the cosmic microwave background, dark matter and dark energy, with animations and live problems.', status: 'live', href: '/learn/courses/cosmology/', cat: 'science' },
+  { id: 'climate-energy', name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.', status: 'planned', cat: 'science' },
+  { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned', cat: 'life' },
+  { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned', cat: 'science' },
 ];
+
+for (const c of COURSES) if (!COURSE_CATS.some((k) => k.id === c.cat)) throw new Error(`Course "${c.id}" has unknown cat "${c.cat}": use ${COURSE_CATS.map((k) => k.id).join(', ')} (COURSE_CATS in src/data/curricula.ts)`);
+const dup = COURSES.find((c, i) => COURSES.findIndex((d) => d.id === c.id) !== i);
+if (dup) throw new Error(`Course "${dup.id}" is listed twice in COURSES`);
 
 /** Every grade or class of every live curriculum, with the curriculum it belongs to. */
 export const allClasses = () => CURRICULA.filter((c) => c.status === 'live').flatMap((cur) => cur.classes.map((cls) => ({ cur, cls })));
