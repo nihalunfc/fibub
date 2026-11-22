@@ -1,0 +1,41 @@
+---
+// SIM for 5.3: what "95 % confidence" means. Draw many samples, build an interval from each, and count how
+// many intervals catch the true mean. About 95 in 100 do; the misses are drawn in the second colour.
+---
+<figure class="cs-fig mlf" data-cover>
+  <span class="cs-figtag">Try it: 100 samples, 100 intervals</span>
+  <canvas aria-label="Many horizontal confidence intervals stacked up, with the true mean as a vertical line and the misses highlighted"></canvas>
+  <div class="mlf-ctl">
+    <label>Confidence level: <output data-v="cl"></output><input type="range" name="cl" min="0.5" max="0.99" step="0.01" value="0.95" /></label>
+    <label>Sample size n: <output data-v="n"></output><input type="range" name="n" min="5" max="100" step="1" value="20" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run>Draw 100 samples</button></div>
+  <div class="mlf-read"><div><span>intervals that caught the truth</span><b data-hit></b></div><div><span>running total</span><b data-tot></b></div></div>
+  <figcaption>Each line is the interval from one sample of basket values (true mean $40, the vertical line). The method catches the truth in about 95 % of samples; the second-colour lines missed. For any one interval you can't tell whether it is a hit or a miss: "95 % confident" is a statement about the method's long-run success rate. Bigger n makes intervals shorter, not more often right.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct } from './skit';
+  import { rng, mean, sd } from '../../../lib/ml/core';
+  import { ciMean } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cover]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(22); let ivs: [number, number][] = [], hits = 0, total = 0, tally = 0;
+    const p = new Plot(cv, { x: [20, 60], y: [0, 101], h: 320, xLabel: 'basket $', noYTicks: true });
+    const again = () => { total = 0; tally = 0; run(); };
+    const CL = slider(fig, 'cl', again, (v) => `${Math.round(v * 100)} %`), N = slider(fig, 'n', again);
+    function run() {
+      ivs = [];
+      for (let k = 0; k < 100; k++) { const xs = Array.from({ length: N() }, () => R.normal(40, 12)); const c = ciMean(mean(xs), sd(xs, true), xs.length, CL()); ivs.push([c.lo, c.hi]); }
+      const h = ivs.filter(([a, b]) => a <= 40 && b >= 40).length; hits = h; total += 100; tally += h;
+      draw();
+    }
+    function draw() {
+      p.begin();
+      ivs.forEach(([a, b], i) => { const ok = a <= 40 && b >= 40; p.line(a, i + 1, b, i + 1, { color: ok ? p.pal.accent : p.pal.accent2, width: ok ? 1.5 : 2.5, alpha: ok ? 0.7 : 1 }); });
+      p.line(40, 0, 40, 101, { color: p.pal.ink, width: 2 }).end();
+      put(fig, 'hit', ivs.length ? `${hits} of 100` : '–'); put(fig, 'tot', total ? `${tally.toLocaleString('en')} of ${total.toLocaleString('en')} (${pct(tally / total)})` : '–');
+    }
+    fig.querySelector('[data-run]')!.addEventListener('click', run);
+    live(cv, draw);
+    run();
+  }
+</script>

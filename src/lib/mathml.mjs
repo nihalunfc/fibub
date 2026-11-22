@@ -10,7 +10,7 @@
 // A formula temml cannot read fails the build, with the lesson and the formula in the message.
 import temml from 'temml';
 
-const COURSES = ['/src/courses/ml-foundations/'];
+const COURSES = ['/src/courses/ml-foundations/', '/src/courses/statistics/'];
 
 const render = (tex, display, where) => {
   try {

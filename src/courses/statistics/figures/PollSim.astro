@@ -1,0 +1,37 @@
+---
+// SIM for 4.1: a population of 10,000 customers, 38 % of whom would use a new feature. Survey a random
+// sample, then many samples, and see how far each sample's answer lands from the truth.
+---
+<figure class="cs-fig mlf" data-poll>
+  <span class="cs-figtag">Try it: survey a sample</span>
+  <canvas aria-label="Dots for the share answering yes in each survey, around a line for the true share"></canvas>
+  <div class="mlf-ctl"><label>People per survey n: <output data-v="n"></output><input type="range" name="n" min="10" max="2000" step="10" value="100" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run="1">Run 1 survey</button><button type="button" class="btn secondary" data-run="50">Run 50 surveys</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>last survey said</span><b data-last></b></div><div><span>true share (population)</span><b>38.0 %</b></div><div><span>middle 95 % of surveys</span><b data-mid></b></div></div>
+  <figcaption>Each dot is one survey's answer. The truth is fixed (38 %), but every random sample lands somewhere different: that scatter is <strong>sampling variation</strong>. Bigger samples scatter less, but only slowly: to halve the scatter you need four times the people. Made-up population.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct } from './skit';
+  import { rng, quantile } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-poll]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(4); let res: { n: number; p: number }[] = [];
+    const p = new Plot(cv, { x: [0.1, 0.66], y: [0, 1], h: 220, xLabel: 'share saying yes', noYTicks: true });
+    const N = slider(fig, 'n', () => draw());
+    function draw() {
+      p.begin(); p.line(0.38, 0, 0.38, 1, { color: p.pal.ink, width: 2, dash: [5, 4] }).text(0.38, 0.97, ' truth', { base: 'top' });
+      res.forEach((r, i) => p.dot(r.p, 0.06 + ((i * 0.618) % 1) * 0.82, { r: 3.5, color: r.n === N() ? p.pal.accent : p.pal.muted, alpha: r.n === N() ? 0.85 : 0.35 }));
+      p.end();
+      const cur = res.filter((r) => r.n === N()).map((r) => r.p);
+      put(fig, 'last', res.length ? pct(res[res.length - 1].p) : '–');
+      put(fig, 'mid', cur.length >= 20 ? `${pct(quantile(cur, 0.025))} to ${pct(quantile(cur, 0.975))}` : 'run 20+ surveys at this n');
+      void fmt;
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => {
+      for (let k = 0; k < Number(b.dataset.run); k++) { const n = N(); let y = 0; for (let i = 0; i < n; i++) if (R.next() < 0.38) y++; res.push({ n, p: y / n }); }
+      if (res.length > 600) res = res.slice(-600);
+      draw();
+    }));
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { res = []; draw(); });
+    live(cv, draw);
+  }
+</script>

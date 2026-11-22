@@ -1,0 +1,41 @@
+---
+// SIM for 6.3: a two-sample t-test. Two groups of basket values; move the gap between them, the noise and the
+// group size, and see how t = difference ÷ standard error and the p-value respond.
+---
+<figure class="cs-fig mlf" data-ttest>
+  <span class="cs-figtag">Try it: signal against noise</span>
+  <canvas aria-label="Two rows of dots for two groups, each with its mean and confidence interval"></canvas>
+  <div class="mlf-ctl">
+    <label>True gap between groups: $<output data-v="g"></output><input type="range" name="g" min="0" max="15" step="0.5" value="5" /></label>
+    <label>Spread within groups (SD): $<output data-v="s"></output><input type="range" name="s" min="2" max="30" step="1" value="15" /></label>
+    <label>People per group: <output data-v="n"></output><input type="range" name="n" min="5" max="300" step="5" value="40" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-new>New samples</button></div>
+  <div class="mlf-read"><div><span>observed difference</span><b data-d></b></div><div><span>standard error</span><b data-se></b></div><div><span>t = difference ÷ SE</span><b data-t></b></div><div><span>p-value (Welch)</span><b data-p></b></div></div>
+  <figcaption>Group A gets the old page, group B the new one (made-up basket values). The t statistic is the gap between the sample means divided by its standard error, so it grows with a bigger gap, less noise or more people. The bars are each group's 95 % interval for its mean. Overlapping bars do not by themselves mean "no difference"; the test on the difference is what counts.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng, mean } from '../../../lib/ml/core';
+  import { tTestTwo, ciMeanOf } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ttest]')) {
+    const cv = fig.querySelector('canvas')!; let seed = 3; let za: number[] = [], zb: number[] = [];
+    const fresh = () => { const R = rng(seed++); za = Array.from({ length: 300 }, () => R.normal()); zb = Array.from({ length: 300 }, () => R.normal()); };
+    fresh();
+    const p = new Plot(cv, { x: [-20, 140], y: [0, 2.2], h: 220, xLabel: 'basket $', noYTicks: true });
+    const G = slider(fig, 'g', () => draw()), S = slider(fig, 's', () => draw()), N = slider(fig, 'n', () => draw());
+    function draw() {
+      const n = N(), s = S(), A = za.slice(0, n).map((z) => 50 + s * z), B = zb.slice(0, n).map((z) => 50 + G() + s * z), t = tTestTwo(B, A);
+      p.o.x = [Math.min(...A, ...B) - 5, Math.max(...A, ...B) + 5]; p.begin();
+      const row = (xs: number[], y: number, col: string, name: string) => {
+        xs.forEach((x, i) => p.dot(x, y + 0.25 + ((i * 0.618) % 1) * 0.35, { r: 2.8, color: col, alpha: 0.45 }));
+        const c = ciMeanOf(xs); p.line(c.lo, y + 0.1, c.hi, y + 0.1, { color: col, width: 4 }); p.dot(mean(xs), y + 0.1, { r: 5, color: col });
+        p.text(p.x0, y + 0.85, ` ${name}`, { bold: true, color: col });
+      };
+      row(A, 1.15, p.pal.accent, 'A (old)'); row(B, 0.05, p.pal.accent2, 'B (new)'); p.end();
+      put(fig, 'd', `$${fmt(t.diff, 2)}`); put(fig, 'se', `$${fmt(t.se, 2)}`); put(fig, 't', fmt(t.t, 2)); put(fig, 'p', t.p < 0.0001 ? '< 0.0001' : fmt(t.p, 4));
+    }
+    fig.querySelector('[data-new]')!.addEventListener('click', () => { fresh(); draw(); });
+    live(cv, draw);
+  }
+</script>

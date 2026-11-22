@@ -1,0 +1,43 @@
+---
+// SIM for 1.4: delivery times as a histogram with a box plot under it. Stretch the right tail or add a
+// late delivery and see the box, whiskers, outliers, mean and median respond.
+---
+<figure class="cs-fig mlf" data-boxplot>
+  <span class="cs-figtag">Try it: stretch the tail, add a late delivery</span>
+  <canvas aria-label="A histogram of delivery times with a box plot underneath, showing quartiles, whiskers and outliers"></canvas>
+  <div class="mlf-ctl"><label>Right tail (skew): <output data-v="sk"></output><input type="range" name="sk" min="0" max="1" step="0.05" value="0.3" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-add>Add a 90-minute delivery</button><button type="button" class="btn secondary" data-clear>Remove added</button></div>
+  <div class="mlf-read"><div><span>mean</span><b data-m></b></div><div><span>median</span><b data-md></b></div><div><span>skewness</span><b data-sk2></b></div><div><span>outliers (beyond 1.5 × IQR)</span><b data-o></b></div></div>
+  <figcaption>The box runs from the first quartile (Q1) to the third (Q3), with a line at the median. Whiskers reach the furthest points within 1.5 × IQR of the box; anything beyond is drawn as a separate dot, an <strong>outlier</strong> worth checking. With a long right tail, the mean is pulled above the median and skewness turns positive. Made-up delivery times in minutes.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng, mean, median, histogram } from '../../../lib/ml/core';
+  import { fiveNumber, skewness } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-boxplot]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(21);
+    const base = Array.from({ length: 80 }, () => [R.normal(), R.next()]);
+    let extra: number[] = [];
+    const p = new Plot(cv, { x: [0, 100], y: [-6, 16], h: 270, xLabel: 'minutes', noYTicks: true });
+    const sk = slider(fig, 'sk', () => draw());
+    function draw() {
+      const s = sk(), xs = base.map(([z, u]) => Math.max(8, 28 + 5 * z + s * 40 * u ** 3)).concat(extra);
+      const f = fiveNumber(xs), h = histogram(xs, 0, 100, 25), top = Math.max(...h);
+      p.o.y = [-top * 0.55, top * 1.1]; p.begin();
+      h.forEach((c, i) => c && p.rect(i * 4, 0, 4, c, { fill: p.pal.accent, alpha: 0.5, color: p.pal.bg, width: 1 }));
+      const y = -top * 0.28, bh = top * 0.14;
+      p.line(f.whiskerLo, y, f.q1, y, { color: p.pal.ink, width: 1.5 }).line(f.q3, y, f.whiskerHi, y, { color: p.pal.ink, width: 1.5 });
+      p.line(f.whiskerLo, y - bh / 2, f.whiskerLo, y + bh / 2, { color: p.pal.ink, width: 1.5 }).line(f.whiskerHi, y - bh / 2, f.whiskerHi, y + bh / 2, { color: p.pal.ink, width: 1.5 });
+      p.rect(f.q1, y - bh, f.q3 - f.q1, 2 * bh, { fill: p.pal.accent, alpha: 0.15, color: p.pal.ink, width: 1.5 });
+      p.line(f.median, y - bh, f.median, y + bh, { color: p.pal.ink, width: 3 });
+      f.outliers.forEach((o) => p.dot(o, y, { shape: 'ring', r: 4, color: p.pal.accent2 }));
+      p.line(mean(xs), 0, mean(xs), top * 1.05, { color: p.pal.accent2, width: 2, dash: [5, 4] }).text(mean(xs), top * 1.05, ' mean', { color: p.pal.accent2, base: 'top' });
+      p.end();
+      put(fig, 'm', `${fmt(mean(xs), 1)} min`); put(fig, 'md', `${fmt(median(xs), 1)} min`);
+      put(fig, 'sk2', fmt(skewness(xs), 2)); put(fig, 'o', String(f.outliers.length));
+    }
+    fig.querySelector('[data-add]')!.addEventListener('click', () => { extra.push(90); draw(); });
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { extra = []; draw(); });
+    live(cv, draw);
+  }
+</script>

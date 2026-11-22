@@ -1,0 +1,35 @@
+---
+// SIM for 6.8: the multiple comparisons trap. Test 20 segments where the change truly does nothing; count
+// how many look "significant" by luck, with and without a correction.
+---
+<figure class="cs-fig mlf" data-multi>
+  <span class="cs-figtag">Try it: slice the data 20 ways</span>
+  <canvas aria-label="Twenty bars of p-values, one per segment, with the 0.05 line and the corrected threshold"></canvas>
+  <div class="mlf-ctl"><label>Segments tested: <output data-v="m"></output><input type="range" name="m" min="1" max="40" step="1" value="20" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run>Run a new analysis</button></div>
+  <div class="mlf-read"><div><span>"significant" at 0.05</span><b data-raw></b></div><div><span>after Holm correction</span><b data-holm></b></div><div><span>chance of at least one false win</span><b data-fwer></b></div></div>
+  <figcaption>Each bar is one segment (region, device, age group...). The change does nothing in any of them, so every "win" is a false positive. With 20 segments, at least one looks significant about 64 % of the time. Corrections such as Bonferroni and Holm raise the bar so that the chance of any false win stays near 5 %.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, put, pct } from './skit';
+  import { rng } from '../../../lib/ml/core';
+  import { holm } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-multi]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(40); let ps: number[] = [];
+    const p = new Plot(cv, { x: [0, 21], y: [0, 3], h: 220, noXTicks: true, yLabel: '−log10(p): taller = smaller p' });
+    const M = slider(fig, 'm', () => run());
+    function run() { ps = Array.from({ length: M() }, () => R.next()); draw(); }
+    function draw() {
+      const m = ps.length, adj = holm(ps), lp = ps.map((v) => -Math.log10(v)), top = Math.max(3, ...lp) * 1.1;
+      p.o.x = [0, m + 1]; p.o.y = [0, top]; p.begin();
+      lp.forEach((v, i) => p.rect(i + 0.6, 0, 0.8, v, { fill: ps[i] < 0.05 ? (adj[i] < 0.05 ? p.pal.ink : p.pal.accent2) : p.pal.accent, alpha: 0.75 }));
+      p.line(0, -Math.log10(0.05), m + 1, -Math.log10(0.05), { color: p.pal.accent2, width: 1.5, dash: [5, 4] }).text(m + 1, -Math.log10(0.05), 'p = 0.05 ', { align: 'right', base: 'bottom', color: p.pal.accent2, size: 11 });
+      p.line(0, -Math.log10(0.05 / m), m + 1, -Math.log10(0.05 / m), { color: p.pal.ink, width: 1.5, dash: [2, 3] }).text(m + 1, -Math.log10(0.05 / m), `0.05 ÷ ${m} `, { align: 'right', base: 'bottom', size: 11 });
+      p.end();
+      put(fig, 'raw', `${ps.filter((v) => v < 0.05).length} of ${m}`); put(fig, 'holm', `${adj.filter((v) => v < 0.05).length} of ${m}`); put(fig, 'fwer', pct(1 - 0.95 ** m, 0));
+    }
+    fig.querySelector('[data-run]')!.addEventListener('click', run);
+    live(cv, draw);
+    run();
+  }
+</script>

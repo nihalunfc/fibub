@@ -1,0 +1,36 @@
+---
+// SIM for 6.6: one-way ANOVA. Three store layouts; move the gap between group means and the noise within
+// groups, and watch the between-group and within-group variation set the F ratio.
+---
+<figure class="cs-fig mlf" data-anova>
+  <span class="cs-figtag">Try it: between groups vs within groups</span>
+  <canvas aria-label="Three groups of dots with their means and the grand mean"></canvas>
+  <div class="mlf-ctl">
+    <label>How far apart the layouts really are: <output data-v="g"></output><input type="range" name="g" min="0" max="10" step="0.5" value="4" /></label>
+    <label>Noise within each layout (SD): <output data-v="s"></output><input type="range" name="s" min="1" max="15" step="0.5" value="6" /></label>
+  </div>
+  <div class="mlf-read"><div><span>between-group mean square</span><b data-b></b></div><div><span>within-group mean square</span><b data-w></b></div><div><span>F = between ÷ within</span><b data-f></b></div><div><span>p-value</span><b data-p></b></div></div>
+  <figcaption>Each dot is one store's weekly sales change (%) under layout A, B or C, with 12 stores per layout (made up). ANOVA asks: are the group means further apart than the scatter inside each group would explain? If F is near 1, the differences between means look like ordinary noise. A significant F says at least one layout differs, not which one; follow up with pairwise tests (Lesson 6.8).</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng, mean } from '../../../lib/ml/core';
+  import { anova } from '../../../lib/stats/tests';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-anova]')) {
+    const cv = fig.querySelector('canvas')!, R = rng(27), Z = [0, 1, 2].map(() => Array.from({ length: 12 }, () => R.normal()));
+    const p = new Plot(cv, { x: [0.4, 3.6], y: [-30, 40], h: 250, noXTicks: true, yLabel: 'sales change %' });
+    const G = slider(fig, 'g', () => draw()), S = slider(fig, 's', () => draw());
+    function draw() {
+      const gs = Z.map((z, k) => z.map((v) => 5 + (k - 1) * G() + S() * v)), a = anova(gs), gm = mean(gs.flat());
+      p.begin(); p.line(0.5, gm, 3.5, gm, { color: p.pal.muted, width: 1.5, dash: [5, 4] });
+      gs.forEach((g, k) => {
+        g.forEach((v, i) => p.dot(k + 1 - 0.2 + (i % 6) * 0.08, v, { r: 3.5, color: k === 1 ? p.pal.accent2 : p.pal.accent, alpha: 0.65, shape: k === 1 ? 'square' : 'circle' }));
+        p.line(k + 1 - 0.3, mean(g), k + 1 + 0.3, mean(g), { color: p.pal.ink, width: 3 });
+        p.text(k + 1, -30, 'ABC'[k], { align: 'center', base: 'bottom', bold: true, dy: -2 });
+      });
+      p.end();
+      put(fig, 'b', fmt(a.msb, 1)); put(fig, 'w', fmt(a.msw, 1)); put(fig, 'f', fmt(a.f, 2)); put(fig, 'p', a.p < 0.0001 ? '< 0.0001' : fmt(a.p, 4));
+    }
+    live(cv, draw);
+  }
+</script>

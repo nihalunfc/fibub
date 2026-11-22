@@ -1,0 +1,56 @@
+---
+// SIM for 4.3: the central limit theorem. Pick a lopsided population, a sample size, and draw many samples;
+// the histogram of sample means turns into a bell around the population mean, narrower as n grows.
+---
+<figure class="cs-fig mlf" data-clt>
+  <span class="cs-figtag">Try it: averages become normal</span>
+  <div class="bw-two"><canvas aria-label="The population's shape"></canvas><canvas aria-label="Histogram of sample means with the normal curve the theorem predicts"></canvas></div>
+  <div class="mlf-ctl">
+    <label>Population <select name="pop"><option value="exp">Order values (long right tail)</option><option value="uni">Minute of the hour (flat)</option><option value="bi">Two customer types (two peaks)</option><option value="bern">Bought or not (0 or 1, 10 % buy)</option></select></label>
+    <label>Sample size n: <output data-v="n"></output><input type="range" name="n" min="1" max="100" step="1" value="5" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-run="100">Draw 100 samples</button><button type="button" class="btn secondary" data-run="2000">Draw 2,000</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>samples drawn</span><b data-k></b></div><div><span>mean of the sample means</span><b data-m></b></div><div><span>their SD (vs σ/√n)</span><b data-s></b></div></div>
+  <figcaption>Left: the population, nothing like a bell. Right: each bar counts sample means. With n = 1 the means look just like the population; by n = 30 they form a bell centred on the population mean, with spread σ/√n (the curve). This is why tests on averages work even when the raw data is skewed.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { rng, mean, sd, histogram, normalPdf } from '../../../lib/ml/core';
+  type Pop = { draw: (R: ReturnType<typeof rng>) => number; mu: number; sigma: number; lo: number; hi: number; pdf: (x: number) => number };
+  const POPS: Record<string, Pop> = {
+    exp: { draw: (R) => -Math.log(1 - R.next()) * 50, mu: 50, sigma: 50, lo: 0, hi: 250, pdf: (x) => (x < 0 ? 0 : Math.exp(-x / 50) / 50) },
+    uni: { draw: (R) => R.next() * 60, mu: 30, sigma: 60 / Math.sqrt(12), lo: 0, hi: 60, pdf: (x) => (x >= 0 && x <= 60 ? 1 / 60 : 0) },
+    bi: { draw: (R) => (R.next() < 0.6 ? R.normal(20, 5) : R.normal(70, 8)), mu: 0.6 * 20 + 0.4 * 70, sigma: Math.sqrt(0.6 * 25 + 0.4 * 64 + 0.6 * 0.4 * 2500), lo: 0, hi: 100, pdf: (x) => 0.6 * normalPdf(x, 20, 5) + 0.4 * normalPdf(x, 70, 8) },
+    bern: { draw: (R) => +(R.next() < 0.1), mu: 0.1, sigma: Math.sqrt(0.09), lo: -0.1, hi: 1.1, pdf: () => 0 },
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-clt]')) {
+    const [c1, c2] = fig.querySelectorAll('canvas'), sel = fig.querySelector<HTMLSelectElement>('select')!, R = rng(12); let means: number[] = [];
+    const a = new Plot(c1, { x: [0, 1], y: [0, 1], h: 200, noYTicks: true, xLabel: 'population' });
+    const b = new Plot(c2, { x: [0, 1], y: [0, 1], h: 200, noYTicks: true, xLabel: 'sample mean' });
+    const N = slider(fig, 'n', () => { means = []; draw(); });
+    sel.addEventListener('change', () => { means = []; draw(); });
+    function draw() {
+      const P = POPS[sel.value], n = N(), se = P.sigma / Math.sqrt(n);
+      a.o.x = [P.lo, P.hi];
+      if (sel.value === 'bern') { a.o.y = [0, 1]; a.begin(); a.rect(-0.1, 0, 0.2, 0.9, { fill: a.pal.accent, alpha: 0.6 }); a.rect(0.9, 0, 0.2, 0.1, { fill: a.pal.accent, alpha: 0.6 }); a.end(); }
+      else { let top = 0; for (let i = 0; i <= 200; i++) top = Math.max(top, P.pdf(P.lo + ((P.hi - P.lo) * i) / 200)); a.o.y = [0, top * 1.2]; a.begin(); a.fn(P.pdf, { color: a.pal.accent, width: 2.5 }); a.end(); }
+      const lo = Math.max(P.lo, P.mu - 4.5 * se), hi = Math.min(P.hi, P.mu + 4.5 * se), bins = 36, w = (hi - lo) / bins;
+      b.o.x = [lo, hi];
+      const h = histogram(means, lo, hi, bins), peak = Math.max(normalPdf(P.mu, P.mu, se), ...h.map((c) => (means.length ? c / (means.length * w) : 0)));
+      b.o.y = [0, peak * 1.15]; b.begin();
+      if (means.length) h.forEach((c, i) => c && b.rect(lo + i * w, 0, w, c / (means.length * w), { fill: b.pal.accent2, alpha: 0.55, color: b.pal.bg, width: 1 }));
+      if (n >= 2 || sel.value === 'uni') b.fn((x) => normalPdf(x, P.mu, se), { color: b.pal.ink, width: 2 });
+      b.end();
+      put(fig, 'k', means.length.toLocaleString('en'));
+      put(fig, 'm', means.length ? fmt(mean(means), 2) : '–');
+      put(fig, 's', means.length > 2 ? `${fmt(sd(means, true), 2)} (vs ${fmt(se, 2)})` : `– (vs ${fmt(se, 2)})`);
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-run]').forEach((btn) => btn.addEventListener('click', () => {
+      const P = POPS[sel.value], n = N();
+      for (let k = 0; k < Number(btn.dataset.run); k++) { let s = 0; for (let i = 0; i < n; i++) s += P.draw(R); means.push(s / n); }
+      draw();
+    }));
+    fig.querySelector('[data-clear]')!.addEventListener('click', () => { means = []; draw(); });
+    live(c1, draw); live(c2, draw);
+  }
+</script>

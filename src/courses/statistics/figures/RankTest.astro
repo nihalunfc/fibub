@@ -1,0 +1,31 @@
+---
+// SIM for 6.7: rank tests. Two groups of session lengths; add one huge outlier to one group and compare the
+// t-test with the Mann-Whitney rank test, which only looks at the order of the values.
+---
+<figure class="cs-fig mlf" data-rank>
+  <span class="cs-figtag">Try it: one outlier, two tests</span>
+  <canvas aria-label="Two groups of values with their ranks, and an optional outlier"></canvas>
+  <div class="mlf-ctl"><label>Biggest value in group B: <output data-v="o"></output> min<input type="range" name="o" min="20" max="300" step="5" value="20" /></label></div>
+  <div class="mlf-read"><div><span>t-test p-value</span><b data-t></b></div><div><span>Mann-Whitney p-value</span><b data-m></b></div><div><span>difference in means / medians</span><b data-d></b></div></div>
+  <figcaption>Session lengths in minutes for 10 users of each app version (made up). Group B is generally longer. Drag B's largest value out to 300: the mean of B jumps, but so does its standard deviation, and the t-test's p-value gets <em>worse</em>. The rank test only sees that the value is the biggest, so its result does not move. For skewed data with outliers, rank tests are the safer choice.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put } from './skit';
+  import { mean, median } from '../../../lib/ml/core';
+  import { tTestTwo, mannWhitney } from '../../../lib/stats/tests';
+  const A = [3, 4, 5, 6, 6, 7, 8, 9, 10, 12], B0 = [6, 8, 9, 10, 11, 12, 13, 15, 17];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-rank]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0, 300], y: [0, 2], h: 170, xLabel: 'minutes', noYTicks: true });
+    const O = slider(fig, 'o', () => draw());
+    function draw() {
+      const B = [...B0, O()], t = tTestTwo(B, A), m = mannWhitney(B, A);
+      p.o.x = [0, Math.max(25, O() + 10)]; p.begin();
+      A.forEach((x, i) => p.dot(x, 1.4 + (i % 3) * 0.12, { r: 4, color: p.pal.accent }));
+      B.forEach((x, i) => p.dot(x, 0.45 + (i % 3) * 0.12, { r: 4, color: p.pal.accent2, shape: 'square' }));
+      p.text(p.x1, 1.8, 'A ', { align: 'right', bold: true, color: p.pal.accent }).text(p.x1, 0.85, 'B ', { align: 'right', bold: true, color: p.pal.accent2 }).end();
+      put(fig, 't', fmt(t.p, 4)); put(fig, 'm', fmt(m.p, 4)); put(fig, 'd', `${fmt(mean(B) - mean(A), 1)} / ${fmt(median(B) - median(A), 1)} min`);
+    }
+    live(cv, draw);
+  }
+</script>

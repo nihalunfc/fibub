@@ -1,0 +1,43 @@
+---
+// SIM for 2.1: 100 customers as a grid. Set how many bought shoes (A), how many bought socks (B) and how
+// many bought both; the grid colours itself and the rules (or, and, given) are read off by counting.
+---
+<figure class="cs-fig mlf" data-people>
+  <span class="cs-figtag">Try it: probability by counting people</span>
+  <canvas aria-label="A grid of 100 squares coloured by which products each customer bought"></canvas>
+  <div class="mlf-ctl">
+    <label>Bought shoes (A): <output data-v="a"></output><input type="range" name="a" min="0" max="100" step="1" value="40" /></label>
+    <label>Bought socks (B): <output data-v="b"></output><input type="range" name="b" min="0" max="100" step="1" value="30" /></label>
+    <label>Bought both: <output data-v="ab"></output><input type="range" name="ab" min="0" max="100" step="1" value="20" /></label>
+  </div>
+  <div class="mlf-read"><div><span>P(A or B) = P(A) + P(B) − P(A and B)</span><b data-or></b></div><div><span>P(B | A): socks, given shoes</span><b data-ba></b></div><div><span>independent? P(A)·P(B) vs P(A and B)</span><b data-ind></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Each square is one of 100 customers (made up). Dark: bought both. First colour: shoes only. Second colour: socks only. Blank: neither. Counting squares is all probability is: P(B | A) looks only at the shoe buyers and asks what share of them also bought socks.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt, put, pct } from './skit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-people]')) {
+    const cv = fig.querySelector('canvas')!;
+    const p = new Plot(cv, { x: [0, 20], y: [0, 5], h: 190, bare: true });
+    const A = slider(fig, 'a', () => draw()), B = slider(fig, 'b', () => draw()), AB = slider(fig, 'ab', () => draw());
+    function draw() {
+      const a = A(), b = B(), ab = Math.max(Math.max(0, a + b - 100), Math.min(AB(), a, b)), onlyA = a - ab, onlyB = b - ab;
+      p.begin();
+      for (let i = 0; i < 100; i++) {
+        const col = i % 20, row = 4 - Math.floor(i / 20);
+        const kind = i < ab ? 3 : i < ab + onlyA ? 1 : i < ab + onlyA + onlyB ? 2 : 0;
+        const fill = kind === 3 ? p.pal.ink : kind === 1 ? p.pal.accent : kind === 2 ? p.pal.accent2 : p.pal.bg;
+        p.rect(col + 0.08, row + 0.08, 0.84, 0.84, { fill, alpha: kind ? 0.85 : 1, color: p.pal.grid, width: 1 });
+      }
+      p.end();
+      put(fig, 'or', pct((a + b - ab) / 100, 0));
+      put(fig, 'ba', a ? `${ab} of ${a} = ${pct(ab / a, 0)}` : '–');
+      put(fig, 'ind', `${fmt((a / 100) * (b / 100), 2)} vs ${fmt(ab / 100, 2)}`);
+      const say = ab !== AB() ? `"Both" was set to ${ab}: it can't be more than either group, or fewer than ${Math.max(0, a + b - 100)} (they would not fit in 100 people).`
+        : Math.abs((a * b) / 100 - ab) < 1.5 ? 'Close to independent: buying shoes barely changes the chance of buying socks.'
+        : ab > (a * b) / 100 ? 'Shoe buyers are more likely than average to buy socks: the two go together.' : 'Shoe buyers are less likely than average to buy socks.';
+      put(fig, 'say', say);
+    }
+    live(cv, draw);
+  }
+</script>
