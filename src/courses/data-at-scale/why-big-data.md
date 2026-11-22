@@ -1,6 +1,6 @@
 ---
 title: Why big data needs different tools
-summary: 'Data is big when one computer can no longer store it, process it in time or keep up with it. Learn scale-up and scale-out, and the three ideas behind every big-data tool.'
+summary: 'Data is big when one computer can''t store it, process it in time or keep up with it. Learn scale-up, scale-out and the three ideas behind every tool.'
 minutes: 20
 updated: 2026-11-22
 quiz:

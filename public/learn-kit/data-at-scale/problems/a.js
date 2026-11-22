@@ -92,10 +92,10 @@ export default {
   'pyspark-basics-rows': {
     title: 'count the rows left after cleaning and an inner join',
     make(r) {
-      const R = pick(r, 180, 240) * 1000, d = pick(r, 200, 2000, 50), f = pick(r, 1000, 6000, 100), g = pick(r, 50, 900, 10);
+      const R = pick(r, 8000, 9900, 10), d = pick(r, 20, 300, 1), f = pick(r, 100, 700, 1), g = pick(r, 5, 90, 1);
       const answer = R - d - f - g;
       return {
-        q: `<p>A grocery chain's PySpark job reads ${fmtInt(R)} till rows. It runs <code>dropDuplicates()</code>, which removes ${fmtInt(d)} exact duplicate copies. Among the rows left, ${fmtInt(f)} are refunds (<code>qty &lt; 0</code>), and the job keeps only <code>qty &gt; 0</code>. Finally it does an <b>inner</b> join to the stores table, but ${fmtInt(g)} of the remaining rows have <code>store_id = 99</code>, a test till that is not in the stores table. How many rows come out?</p>`,
+        q: `<p>A grocery chain tests its PySpark job on one region's day of till data: ${fmtInt(R)} rows. It runs <code>dropDuplicates()</code>, which removes ${fmtInt(d)} exact duplicate copies. Among the rows left, ${fmtInt(f)} are refunds (<code>qty &lt; 0</code>), and the job keeps only <code>qty &gt; 0</code>. Finally it does an <b>inner</b> join to the stores table, but ${fmtInt(g)} of the remaining rows have <code>store_id = 99</code>, a test till that is not in the stores table. How many rows come out?</p>`,
         answer, unit: 'rows', tol: 0, abs: 0.5,
         hint: 'Take each step in order: duplicates go, then refunds go, then an inner join drops rows with no match on the other side.',
         solution: steps(
