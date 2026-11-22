@@ -21,7 +21,9 @@ sources:
   - "Bevington, P. R. and Robinson, D. K. (2003), Data Reduction and Error Analysis for the Physical Sciences (methods described)"
 ---
 
-**Module 5 · about 25 minutes · sums of squares.** You'll be able to fit a straight line by least squares, judge a fit with chi-squared, and carry uncertainties through a calculation.
+**Module 5 · about 25 minutes · read first: [5.1 Aperture photometry](/learn/courses/astronomy/aperture-photometry/), [5.2 Time series and periodograms](/learn/courses/astronomy/periodograms/) · maths: sums of squares.** You'll be able to fit a straight line by least squares, judge a fit with chi-squared, and carry uncertainties through a calculation.
+
+<div class="bigidea">Every measurement needs an uncertainty: least squares finds the model that misses the data least, chi-squared says whether the misses match the error bars, and uncertainties pass through formulas in predictable ways.</div>
 
 ## 1. Why this matters
 
@@ -37,6 +39,16 @@ Things to notice:
 
 - By hand you can get close; the best-fit button finds the exact minimum.
 - Shrink the claimed error bars and χ² shoots up even though the line hasn't changed.
+
+Fit a straight line and judge the fit:
+
+<div class="steps">
+<div class="step"><b>Data.</b> Five points, each with an error bar of ±0.2.</div>
+<div class="step"><b>Fit.</b> Least squares finds the slope and intercept that make the squared misses smallest.</div>
+<div class="step"><b>Score the misses.</b> χ² adds up (miss / error bar)² for every point. Here χ² = 3.4.</div>
+<div class="step"><b>Judge it.</b> With 5 points and 2 parameters, χ²/(5 − 2) = 1.1: the misses match the error bars. A value near 10 would mean a bad model or underestimated errors.</div>
+<div class="step"><b>Report.</b> Slope 2.03 ± 0.06: the best value with its uncertainty, never just a bare number.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -66,6 +78,24 @@ m = \frac{\sum (x_i - \bar x)(y_i - \bar y)}{\sum (x_i - \bar x)^2}, \qquad b = 
 
 Squaring the misses treats overshooting and undershooting alike and punishes big misses most. Dividing by `$\sigma$` means a point you measured carefully counts more than a rough one. If your error bars are right and your model is right, each point should miss by about one error bar on average, so χ² comes out near the number of points: that is the whole idea behind "reduced χ² ≈ 1".
 
+
+<div class="meaning">
+
+<dl>
+<dt>χ² = Σ((y − f(x)) / σ)²</dt><dd>How far the model misses each point, measured in error bars.</dd>
+<dt>χ²<sub>ν</sub> = χ² / (N − k)</dt><dd>Reduced chi-squared: about 1 means a good fit.</dd>
+<dt>σ<sub>m</sub> ≈ 1.086 σ<sub>F</sub> / F</dt><dd>Error propagation: a flux uncertainty becomes a magnitude uncertainty.</dd>
+<dt>Physical meaning</dt><dd>Error bars are the honest "give or take" of a measurement. A good model passes within about one error bar of two-thirds of the points; if it misses by much more, either the model is wrong or the error bars were too optimistic.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A fit that passes through every point is the best fit."** With error bars, a perfect pass through every point usually means the model has too many free parameters (overfitting) or the errors are overestimated. Expect misses about the size of the error bars.
+
+</div>
+
 ## 4. Worked example
 
 *A star's radius comes from `$R \propto \sqrt{L}/T^2$`. L is known to 10% and T to 2%. How well is R known?*
@@ -78,6 +108,10 @@ The temperature error, though only 2%, matters almost as much as the luminosity 
 
 ## 5. Practice
 
+<div class="problem" data-problem="magnitude-error"></div>
+
+**More practice** (answers below):
+
 1. A fit to 22 points with 2 parameters gives χ² = 21. Is it good?
 2. You measure a period ten times; the spread is 0.03 days. How well do you know the average?
 3. `$m_1 = 12.30 \pm 0.02$`, `$m_2 = 11.85 \pm 0.03$`. What is `$m_1 - m_2$` with its error?
@@ -89,6 +123,15 @@ The temperature error, though only 2%, matters almost as much as the luminosity 
 2. `$0.03/\sqrt{10} = 0.009$` days.
 3. `$0.45 \pm \sqrt{0.02^2 + 0.03^2} = 0.45 \pm 0.036$`.
 </details>
+
+<div class="keypoints">
+
+- Least squares minimises the sum of squared, error-weighted misses (χ²).
+- Reduced χ² ≈ 1 means the model and error bars agree.
+- Errors add in quadrature: σ = √(σ₁² + σ₂²) for independent errors.
+- Always report a result with its uncertainty.
+
+</div>
 
 **Try it with real numbers:** fit real data with the [[radial-velocity-fitter]], the [[transit-light-curve-fitter]] or the [[rotation-curve-fitter]]; each reports its uncertainties.
 

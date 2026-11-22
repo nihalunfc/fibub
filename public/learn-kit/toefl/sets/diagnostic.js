@@ -1,0 +1,23 @@
+// Quick mixed level check (lesson 1.6). Original by fibub.
+export default {
+  title: 'a quick level check',
+  accent: 'en-US',
+  groups: {
+    l1: { title: 'Listen to part of a talk.', audio: [
+      { who: 'N', name: 'Professor', text: 'Today I want to look at why some deserts are cold. Most people picture deserts as hot, but a desert is defined by how little rain it gets, not by temperature. Antarctica, for example, gets so little precipitation that it counts as the largest desert on Earth. What makes a place dry? Usually it is either distance from the ocean, or mountains that block moist air, or cold ocean currents that make rain less likely along a coast.' },
+    ] },
+    r1: { title: 'Read the passage.', passage: '<p>Many cities are planting trees along streets to cool neighbourhoods in summer. Trees lower temperatures in two ways. Their leaves shade roads and buildings, which would otherwise absorb sunlight and release heat. They also release water vapour through their leaves, a process that uses energy from the surrounding air. Studies in several cities have found that streets with full tree cover can be several degrees cooler in the afternoon than similar streets without trees. However, trees need space, water and care, and young trees take years to provide much shade.</p>' },
+  },
+  items: [
+    { id: 'dg-01', type: 'mcq', group: 'l1', q: 'What is the main point of the talk?', options: ['A desert is defined by low rainfall, not heat', 'Antarctica is getting warmer', 'Mountains make places rainy', 'Hot deserts are larger than cold ones'], answer: 0, sol: 'The professor says a desert is "defined by how little rain it gets, not by temperature".' },
+    { id: 'dg-02', type: 'mcq', group: 'l1', q: 'Why does the professor mention Antarctica?', options: ['As an example of a cold desert', 'To compare it with the Sahara', 'To discuss ocean currents', 'To describe its animals'], answer: 0, sol: 'It is an example that supports the definition: very little precipitation, so it is a desert.' },
+    { id: 'dg-03', type: 'mcq', group: 'r1', q: 'According to the passage, how do trees cool streets?', options: ['By shading surfaces and releasing water vapour', 'By blocking the wind', 'By absorbing sunlight and releasing heat', 'By making it rain'], answer: 0, sol: 'Two ways: shade, and water vapour released through leaves.', trap: 'Absorbing sunlight and releasing heat is what roads and buildings do, not trees.' },
+    { id: 'dg-04', type: 'mcq', group: 'r1', q: 'What does the last sentence suggest?', options: ['Tree planting has limits and takes time', 'Trees are not useful in cities', 'Cities should stop planting trees', 'Young trees give the most shade'], answer: 0, sol: '"However..." introduces costs and delays: a limit, not a rejection.' },
+    { id: 'dg-05', type: 'text', q: 'Complete the word: "The results were surpr____ because nobody expected them."', answer: ['surprising', 'ising'], sol: '"surprising": an adjective describing the results.' },
+    { id: 'dg-06', type: 'text', q: 'Complete the word: "Water is essen____ for all known forms of life."', answer: ['essential', 'tial'], sol: '"essential", meaning absolutely necessary.' },
+    { id: 'dg-07', type: 'text', q: 'Complete the word: "She wrote a detailed descri_____ of the experiment."', answer: ['description', 'ption'], sol: '"description" is the noun from "describe" (note the change from b to p).' },
+    { id: 'dg-08', type: 'order', q: 'Build a sentence. <i>"Why were you late?"</i> → reply:', options: ['the', 'bus', 'did', 'not', 'come', 'on', 'time'], answer: ['the bus did not come on time'], sol: 'Subject (the bus) + did not + base verb (come) + on time.' },
+    { id: 'dg-09', type: 'order', q: 'Build a sentence. <i>"Can you tell me where the office is?"</i> → reply:', options: ['it', 'is', 'next', 'to', 'the', 'main', 'library'], answer: ['it is next to the main library'], sol: '"It is next to the main library."' },
+    { id: 'dg-10', type: 'mcq', q: 'Choose the correct sentence.', options: ['Could you tell me when the lab opens?', 'Could you tell me when does the lab open?', 'Could you tell me when opens the lab?', 'Could you tell me the lab when opens?'], answer: 0, sol: 'In an indirect question the word order is like a statement: "when the lab opens".' },
+  ],
+};

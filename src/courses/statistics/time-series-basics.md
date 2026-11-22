@@ -16,9 +16,16 @@ quiz:
     choices: ['Days are too few', 'Neighbouring days are correlated (autocorrelation), so there is less independent information than the count of days suggests', 'Daily data is always normal']
     ans: 1
     why: 'With autocorrelation, 30 days might carry the information of far fewer independent ones, so standard errors come out too small.'
+sources:
+  - 'Hyndman, R. J. and Athanasopoulos, G. (2021), Forecasting: Principles and Practice, 3rd edition, OTexts, Chapters 2-3 https://otexts.com/fpp3/'
+  - 'NIST/SEMATECH e-Handbook, 6.4 Introduction to Time Series Analysis https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc4.htm'
 ---
 
 **Module 8 · about 20 minutes · no new maths.** You'll be able to describe a KPI series in terms of trend, seasonality and noise, smooth it properly, and make fair period-to-period comparisons.
+
+<div class="bigidea">A KPI over time is trend plus seasonal pattern plus noise; compare like with like and smooth with a window as long as the pattern.</div>
+
+**In everyday terms:** your heart rate over a day: a slow drift (trend), a daily rhythm (season: low at night, high in the afternoon), and beat-to-beat jitter (noise). Comparing 3 a.m. with 3 p.m. tells you about the rhythm, not about your fitness.
 
 ## 1. Three parts of a series
 
@@ -52,6 +59,36 @@ A **moving average** of k periods replaces each point with the mean of the last 
 ## 4. Autocorrelation
 
 Tomorrow is usually like today. That **autocorrelation** means 30 daily values hold less independent information than 30 random draws, so standard tests (which assume independence) give intervals that are too narrow. For time-based questions, compare whole weeks, use methods built for time series, or, best of all, run an experiment with a control group running at the same time.
+
+<div class="meaning">
+
+<dl>
+<dt>Trend</dt><dd>The slow long-run direction.</dd>
+<dt>Seasonality</dt><dd>A pattern that repeats every week, month or year.</dd>
+<dt>Moving average of k</dt><dd>Average of the last k points; with k = the season length, the pattern cancels.</dd>
+<dt>Year over year</dt><dd>Compare with the same period last year: the season cancels.</dd>
+<dt>Physical meaning</dt><dd>A 7-day average contains exactly one of each weekday, so the weekly rhythm cancels out and only trend and noise remain. Day-to-day changes compare different parts of the rhythm and mostly show the rhythm itself.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Saturday is up 45 % on Friday: great news."** If every Saturday beats Friday by that much, it is the weekly pattern. Compare with last Saturday, or look at the 7-day average.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The dashboard.</b> "Saturday +45 % vs Friday; Monday −30 % vs Sunday."</div>
+<div class="step"><b>Pattern check.</b> Same weekday last week: Saturday +3 %, Monday +2 %.</div>
+<div class="step"><b>Smooth.</b> 7-day average: 252 → 260, about +3 %.</div>
+<div class="step"><b>Year over year.</b> Same week last year: +11 %.</div>
+<div class="step"><b>Report.</b> "Steady growth of about 3 % a week; nothing unusual." Put the 7-day average on the dashboard.</div>
+</div>
+
+<div class="problem" data-problem="moving-average"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -95,3 +132,12 @@ y_t = T_t + S_t + \varepsilon_t, \qquad \sum_{j=1}^{m} S_j = 0
 **Try it on your own data:** the [[time-series-analyser]] tool splits your own series into trend, seasonal pattern and remainder and shows its autocorrelation; [[grouped-data-stats]] gives totals and means by weekday or month.
 
 **New words:** *time series*, *trend*, *seasonality*, *moving average*, *lag*, *year over year*, *seasonal adjustment*, *autocorrelation*.
+
+<div class="keypoints">
+
+- Series = trend + seasonality + noise.
+- Compare like with like: same weekday, same month last year.
+- Moving averages over one full season cancel the pattern.
+- Day-to-day changes in seasonal data mostly show the season.
+
+</div>

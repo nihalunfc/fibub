@@ -1,0 +1,5 @@
+---
+import ExamMock from '../../../../components/qbank/ExamMock.astro';
+import { LSAT, LSAT_BANK } from '../../../../courses/lsat/syllabus';
+---
+<ExamMock course={LSAT} {...LSAT_BANK} marking="One point for each right answer; no penalty for wrong answers, so answer every question. One timed section of 25 Logical Reasoning questions in 35 minutes, like one scored section of the real test. Your LSAT score (120 to 180) comes from all scored sections together, so treat this as practice for pace and accuracy, not a score prediction." />

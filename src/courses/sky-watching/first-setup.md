@@ -16,10 +16,14 @@ quiz:
     choices: ["A 200 mm Dobsonian", "An 80 mm refractor on a computerised mount", "A 60 mm refractor"]
     ans: 0
     why: "Aperture matters most for faint galaxies, and a Dobsonian gives the most aperture for the money."
-sources: []
+sources:
+  - "Hecht, E. (2017), Optics, 5th ed., Pearson (thin lens equation, diffraction)"
+  - "Rutten, H. and van Venrooij, M. (1988), Telescope Optics: Evaluation and Design, Willmann-Bell"
 ---
 
-**Module 4 · about 20 minutes · uses this module's formulas.** You'll be able to compare setups by what their optics can do, avoid common buying mistakes, and match a setup to your sky, your space and your goals.
+**Module 4 · about 20 minutes · read first: [4.2 Aperture: the bucket that catches light](/learn/courses/sky-watching/aperture/), [4.3 Focal length, f-ratio and magnification](/learn/courses/sky-watching/focal-length-magnification/), [4.5 Refractors, reflectors and catadioptrics](/learn/courses/sky-watching/telescope-types/), [4.6 Mounts and polar alignment](/learn/courses/sky-watching/mounts-polar-alignment/) · maths: uses this module's formulas.** You'll be able to compare setups by what their optics can do, avoid common buying mistakes, and match a setup to your sky, your space and your goals.
+
+<div class="bigidea">Start with your eyes and binoculars, then choose a telescope for the sky you have and what you want to see; a 150 to 200 mm Dobsonian is the classic all-rounder, a small refractor suits travel and photography.</div>
 
 ## 1. Why this matters
 
@@ -39,6 +43,25 @@ Things to notice:
 - The widest fields come from short focal lengths: the refractor and the binoculars.
 - Highest useful power follows aperture, but the air rarely allows more than 250× to 300×.
 
+
+<div class="meaning">
+
+<dl>
+<dt>(D/7)²</dt><dd>Light grasp over a 7 mm pupil.</dd>
+<dt>116″/D</dt><dd>Dawson limit.</dd>
+<dt>D/7 to 2D</dt><dd>Useful magnification range (D in mm).</dd>
+<dt>θ<sub>a</sub>/M</dt><dd>True field of view.</dd>
+<dt>Physical meaning</dt><dd>Your first telescope should match your sky and your back. A huge telescope that stays indoors shows nothing; a modest one that comes out twice a week shows the rings of Saturn, the moons of Jupiter and dozens of galaxies.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"You need a computerised GoTo telescope to find things."** Many observers learn faster by star-hopping with a chart (Lesson 1.6). GoTo helps under city skies, but adds cost, setup and batteries; the same money often buys a bigger aperture.
+
+</div>
+
 ## 4. Matching setup to goals
 
 | Goal | Good first choice | Why |
@@ -50,6 +73,16 @@ Things to notice:
 | Start astrophotography | 60 to 80 mm apochromatic refractor on a tracking EQ mount | Wide, forgiving fields; the mount matters most |
 
 Avoid: tiny telescopes sold by magnification claims, wobbly tripods, and spending everything on the telescope with nothing left for a decent eyepiece, a red torch and a chart.
+
+Check a 200 mm f/6 Dobsonian with the formulas from this module:
+
+<div class="steps">
+<div class="step"><b>Light grasp.</b> (200/7)² = 816 times your eye: stars to about magnitude 13.3 from a dark site.</div>
+<div class="step"><b>Resolution.</b> 116/200 = 0.58″: limited by seeing on most nights.</div>
+<div class="step"><b>Eyepieces.</b> A 25 mm gives 48× (wide views); a 10 mm gives 120× (planets).</div>
+<div class="step"><b>Field.</b> The 25 mm with a 52° field shows 1.1°: the whole Pleiades fits.</div>
+<div class="step"><b>Practical.</b> About 20 kg in two pieces; cools in 30 to 60 minutes; no power needed. If that is too big, a 130 mm tabletop or 80 mm refractor is the next choice.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -74,6 +107,10 @@ Avoid: tiny telescopes sold by magnification claims, wobbly tripods, and spendin
 
 ## 6. Practice
 
+<div class="problem" data-problem="true-field"></div>
+
+**More practice** (answers below):
+
 1. What are the exit pupil and rough limiting magnitude of 7×50 binoculars under NELM 6?
 2. Why is a tracking mount more important than the telescope for photography?
 3. A friend wants a telescope that "magnifies 600×". What two numbers do you ask about instead?
@@ -85,6 +122,15 @@ Avoid: tiny telescopes sold by magnification claims, wobbly tripods, and spendin
 2. Long exposures need the stars held still to a fraction of a pixel for minutes; any wobble or drift blurs the image whatever the optics.
 3. The aperture (light grasp and resolution) and the mount (stability and tracking).
 </details>
+
+<div class="keypoints">
+
+- Start with eyes and binoculars (7×50 or 10×50).
+- A 150 to 200 mm Dobsonian is the classic first telescope.
+- Check light grasp, resolution, magnification and field before buying.
+- Pick a scope you will carry out often.
+
+</div>
 
 **Try it with real numbers:** compare any telescope and eyepiece set with the [[telescope-calculator]], and see what you could observe tonight with the [[observing-session]] planner.
 

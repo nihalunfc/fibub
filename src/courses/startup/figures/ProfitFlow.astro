@@ -1,0 +1,35 @@
+---
+// 8.1: where a year's sales go: sales tax collected (not yours), costs, profit, income tax, what you keep. Rough rates by country and structure.
+---
+<figure class="cs-fig su-fig" data-pfw>
+  <span class="cs-figtag">Animation: from sales to money you keep</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India (₹)</option><option value="ca">Canada, Ontario (C$)</option><option value="us">USA, federal only ($)</option></select></label>
+    <label>Sales in a year, before tax<input type="number" name="s" min="0" step="any" value="2000000" /></label>
+    <label>Business costs<input type="number" name="c" min="0" step="any" value="800000" /></label>
+    <label>Structure<select name="k"><option value="p">On my own (sole proprietor)</option><option value="c">Company (profit kept inside)</option></select></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Estimate for one person with no other income, using fibub's income tax engines: India new regime and the 25.17 % company rate; Ontario personal tax with self-employed CPP, and the 12.2 % small business rate; US federal tax with self-employment tax and the QBI deduction (state tax left out), and the 21 % corporate rate. A company's profit is taxed again when paid out to you (Lesson 8.5).</figcaption>
+</figure>
+<script>
+  import { followCountry, money, num, type CC } from './fmt';
+  import { inPersonal, IN_CO, caProp, caCorpTax, usProp, US_CCORP } from './biztax';
+  const SALES_TAX: Record<CC, number> = { in: 0.18, ca: 0.13, us: 0.08 };
+  const DEF: Record<CC, [number, number]> = { in: [2000000, 800000], ca: [150000, 50000], us: [150000, 50000] };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pfw]')) {
+    let touched = false; fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', () => { touched = true; draw(); }));
+    fig.querySelector('[name=k]')!.addEventListener('change', draw);
+    const cc = followCountry(fig, (c) => { if (!touched) { (fig.querySelector('[name=s]') as HTMLInputElement).value = String(DEF[c][0]); (fig.querySelector('[name=c]') as HTMLInputElement).value = String(DEF[c][1]); } draw(); });
+    function draw() {
+      const c = cc(), s = num(fig, 's'), cost = num(fig, 'c'), co = (fig.querySelector('[name=k]') as HTMLSelectElement).value === 'c';
+      const st = s * SALES_TAX[c], profit = Math.max(0, s - cost);
+      const tax = co ? (c === 'in' ? profit * IN_CO : c === 'ca' ? caCorpTax(profit, 'ON') : profit * US_CCORP) : c === 'in' ? inPersonal(0, profit) : c === 'ca' ? caProp(profit, 'ON').total : usProp(profit).total;
+      const keep = profit - tax, top = s + st;
+      const rows: [string, number, string][] = [['Customers paid', top, ''], [c === 'us' ? 'Sales tax (state’s)' : 'GST/HST (government’s)', st, 'w'], ['Costs', cost, 'w'], ['Profit', profit, ''], [co ? 'Corporate tax' : (c === 'in' ? 'Income tax' : 'Income tax + ' + (c === 'ca' ? 'CPP' : 'SE tax')), tax, 'w'], [co ? 'Kept in company' : 'You keep', keep, 'g']];
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([t, v, k]) => `<div><span>${t}</span><span class="t"><i class="${k}" style="width:${top ? Math.max(1, (v / top) * 100) : 0}%"></i></span><b>${money(c, v)}</b></div>`).join('');
+      fig.querySelector('[data-say]')!.textContent = profit > 0 ? `Tax takes ${Math.round((tax / profit) * 100)} % of the profit. Of every ${money(c, 100)} customers paid, ${money(c, (keep / top) * 100)} ${co ? 'stays in the company' : 'reaches your pocket'}.` : 'No profit, so no income tax; a loss can usually be carried forward against future profit.';
+    }
+  }
+</script>

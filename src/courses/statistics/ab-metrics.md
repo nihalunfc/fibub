@@ -16,9 +16,16 @@ quiz:
     choices: ['Purchase conversion', 'Order cancellations and returns', 'Button size']
     ans: 1
     why: 'A bigger button might raise purchases but also accidental orders. Cancellations catch that.'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments: A Practical Guide to A/B Testing, Cambridge University Press, Chapters 6-7 (metrics)'
+  - 'Deng, A. and Shi, X. (2016), Data-Driven Metric Development for Online Controlled Experiments, KDD 2016 https://doi.org/10.1145/2939672.2939700'
 ---
 
 **Module 7 · about 20 minutes · no new maths.** You'll be able to choose a primary metric, secondary metrics and guardrails, and avoid the unit mismatch in ratio metrics.
+
+<div class="bigidea">One metric decides, a few explain, and guardrails make sure the win does not break something else.</div>
+
+**In everyday terms:** a diet plan judged on weight lost (the deciding metric), with energy and sleep tracked to explain how (secondary), and blood pressure watched so you do not win the diet and lose your health (guardrail).
 
 ## 1. One decides, some explain, some protect
 
@@ -50,6 +57,36 @@ quiz:
 ## 3. Overall evaluation criterion
 
 Some teams combine several metrics into one **overall evaluation criterion (OEC)** with agreed weights, such as revenue minus a cost per support contact. It makes trade-offs explicit before the test, not after.
+
+<div class="meaning">
+
+<dl>
+<dt>Primary metric</dt><dd>Sensitive to the change and tied to value; decides the test.</dd>
+<dt>Secondary metrics</dt><dd>Explain the result: clicks, items per order.</dd>
+<dt>Guardrails</dt><dd>Must not get worse beyond a set limit: load time, refunds, complaints.</dd>
+<dt>Ratio metrics</dt><dd>Per user, not per page view, when the user is the randomised unit; otherwise heavy users dominate and SEs come out wrong.</dd>
+<dt>Physical meaning</dt><dd>A metric is the question you ask the experiment. Ask about clicks and you get click-bait; ask about revenue per user and you learn whether customers are really better off.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Pick the metric that moved most."** With ten metrics, one will move by luck. Name the primary metric in the plan and treat the others as explanation or warning lights.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The test.</b> A "Recommended for you" row on the home page.</div>
+<div class="step"><b>Primary.</b> Revenue per user over 14 days, capped at the 99th percentile (decided in advance): +1.8 % (CI +0.2 % to +3.4 %).</div>
+<div class="step"><b>Secondary.</b> Clicks on the row, items per order +3 %: the extra revenue comes from bigger baskets.</div>
+<div class="step"><b>Guardrail.</b> Load time +140 ms, beyond the 100 ms limit.</div>
+<div class="step"><b>Decide.</b> Do not ship yet: make the row load lazily, then re-test. The win is real but the guardrail is breached.</div>
+</div>
+
+<div class="problem" data-problem="metric-per-user"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -92,3 +129,12 @@ Some teams combine several metrics into one **overall evaluation criterion (OEC)
 **Try it on your own data:** the [[bootstrap-permutation]] tool resamples by row, so put one row per user to get honest intervals for per-user metrics.
 
 **New words:** *primary metric*, *secondary metric*, *guardrail metric*, *overall evaluation criterion*, *ratio metric*, *delta method*, *CUPED*, *capping*.
+
+<div class="keypoints">
+
+- One primary metric, chosen before the test.
+- Secondary metrics explain; guardrails protect.
+- Use per-user metrics when users are randomised.
+- Cap or transform extreme values in revenue metrics, as planned in advance.
+
+</div>

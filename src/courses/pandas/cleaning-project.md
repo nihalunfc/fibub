@@ -16,9 +16,16 @@ quiz:
     choices: ['Nothing', 'How many rows each step removed or changed, and why', 'The raw data']
     ans: 1
     why: 'Readers of your analysis need to know what was dropped and changed to trust the result.'
+sources:
+  - 'Wickham, H. (2014), Tidy Data, Journal of Statistical Software 59(10) https://doi.org/10.18637/jss.v059.i10'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 3 · about 30 minutes · uses all of Module 3.** You'll turn a messy export into a clean, validated table with a repeatable function and a log of what changed.
+
+<div class="bigidea">Clean a messy export in a fixed order (names, types, text, dates, duplicates, missing, rules) inside one function you can rerun on next month's file.</div>
+
+**In everyday terms:** a car wash runs in a set order: rinse, soap, scrub, rinse, dry. Drying first would be pointless. Cleaning data has the same kind of order.
 
 ## 1. The file
 
@@ -86,6 +93,36 @@ clean.head()
 ```
 
 Every step is in the function, so next month's export is one line: `clean, log = clean_orders(pd.read_csv('next_month.csv'))`.
+
+<div class="meaning">
+
+<dl>
+<dt>Column names</dt><dd>Fix first, so every later step can use simple names.</dd>
+<dt>Types</dt><dd>Next: numbers, dates and text in the right types.</dd>
+<dt>Values</dt><dd>Then text variants, duplicates and gaps.</dd>
+<dt>Rules</dt><dd>Last: asserts that the result is fit to use.</dd>
+<dt>Physical meaning</dt><dd>Each step relies on the one before: you cannot drop duplicate orders before order IDs are the same type, or fill gaps per store before store names are consistent.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Clean it once by hand and save the file."** Next month the same mess comes back. A cleaning function turns an afternoon into one line and makes the cleaning itself reviewable.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Names.</b> 'Customer ID' → customer_id; 'Unit Price' → unit_price.</div>
+<div class="step"><b>Types.</b> '$12.50' → 12.5; '10%' → 0.10; three date formats → datetime.</div>
+<div class="step"><b>Text.</b> ' harbourview' → 'Harbourview': 7 stores, not 12.</div>
+<div class="step"><b>Rows.</b> 12 duplicate lines removed; 22 missing qty filled from the product's median and flagged.</div>
+<div class="step"><b>Rules.</b> asserts pass: positive qty, discounts 0 to 0.5, known stores. 400 clean rows.</div>
+</div>
+
+<div class="problem" data-problem="pd-clean-rows"></div>
 
 ## 4. Your turn: extend the function
 
@@ -156,3 +193,12 @@ Inside the function, before return: df = df.dropna(subset=['Qty']) and df['reven
 </details>
 
 **New words:** *cleaning function*, *cleaning log*, *pipeline*, *raw vs clean data*.
+
+<div class="keypoints">
+
+- Clean in order: names, types, text, dates, duplicates, missing, rules.
+- Wrap the steps in one function and rerun it on each new file.
+- Log what each step changed (rows dropped, values filled).
+- Finish with asserts so a bad file stops the pipeline.
+
+</div>

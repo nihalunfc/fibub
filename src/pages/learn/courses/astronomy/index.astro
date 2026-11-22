@@ -1,8 +1,10 @@
 ---
 import CourseHome from '../../../../components/course/CourseHome.astro';
+import '../../../../styles/lesson-kit.css';
 import { ASTRONOMY } from '../../../../courses/astronomy/syllabus';
 ---
 <CourseHome course={ASTRONOMY}>
+  <p class="cs-meta"><strong>Quick reference:</strong> <a href="/learn/courses/astronomy/glossary/">glossary of terms</a> · <a href="/learn/courses/astronomy/cheat-sheet/">formula cheat sheet</a></p>
   <section class="cs-builds">
     <h2>What you will be able to do</h2>
     <ul>
@@ -11,6 +13,6 @@ import { ASTRONOMY } from '../../../../courses/astronomy/syllabus';
       <li><strong>Explain how stars work</strong>: distances by parallax, the HR diagram, fusion, binaries, Cepheids and how stars die.</li>
       <li><strong>Work like a researcher</strong>: photometry, periodograms, exoplanet fits, spectra, FITS files, open archives, error bars and how papers are written.</li>
     </ul>
-    <p>Every lesson has a picture of the idea, a simulation to play with, a maths box with a worked example, practice questions and a short quiz, and links to the free <a href="/science/astronomy/">astronomy tools</a> on fibub. To go out and look at the sky yourself, take <a href="/learn/courses/sky-watching/">Sky watching</a>. For the universe as a whole (its expansion, dark matter and the Big Bang), go on to <a href="/learn/courses/cosmology/">Cosmology</a>.</p>
+    <p>Every lesson starts with the big idea and what to read first, then gives you a step-by-step "watch it happen" player, a simulation to play with, a box on what each symbol means physically, a worked example, live problems with fresh numbers, hints and full solutions, a common mix-up, key points you can download as a summary sheet, a short quiz, and links to the free <a href="/science/astronomy/">astronomy tools</a> on fibub. To go out and look at the sky yourself, take <a href="/learn/courses/sky-watching/">Sky watching</a>. For the universe as a whole (its expansion, dark matter and the Big Bang), go on to <a href="/learn/courses/cosmology/">Cosmology</a>.</p>
   </section>
 </CourseHome>

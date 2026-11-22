@@ -1,0 +1,98 @@
+---
+// Astronomy cheat sheet: the key formulas of the course on one page, grouped by part, each with a one-line
+// meaning and the lesson that explains it. Maths is rendered to MathML at build time by temml (no script or font sent).
+import temml from 'temml';
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { ASTRONOMY } from '../../../../courses/astronomy/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+import { coursePageLd } from '../../../../lib/seo';
+const live = new Set((await courseLessons(ASTRONOMY)).keys());
+const num = new Map(flatLessons(ASTRONOMY).map((l) => [l.slug, l.n]));
+const tex = (t: string) => temml.renderToString(t, { displayMode: true, throwOnError: true, annotate: false });
+type F = [name: string, formula: string, meaning: string, lesson: string];
+const SECTIONS: { h: string; rows: F[] }[] = [
+  { h: "Light", rows: [
+    ["Wave speed", "c = \\lambda f", "All light moves at c; long waves come less often.", "electromagnetic-spectrum"],
+    ["Photon energy", "E = hf = \\frac{hc}{\\lambda} \\approx \\frac{1240\\ \\text{eV nm}}{\\lambda}", "Shorter wavelength, more energy per photon.", "electromagnetic-spectrum"],
+    ["Wien's law", "\\lambda_\\text{peak}\\,T = 2.898\\times10^{-3}\\ \\text{m K}", "A hot object's colour gives its temperature.", "blackbody-radiation"],
+    ["Stefan-Boltzmann", "L = 4\\pi R^2 \\sigma T^4", "A star's power from its size and temperature.", "blackbody-radiation"],
+    ["Rydberg formula", "\\frac{1}{\\lambda} = R\\left(\\frac{1}{n_1^2} - \\frac{1}{n_2^2}\\right)", "Wavelengths of hydrogen's lines; R = 1.0968 × 10⁷ m⁻¹.", "spectral-lines"],
+    ["Doppler shift", "v = c\\,\\frac{\\Delta\\lambda}{\\lambda_0}, \\quad z = \\frac{\\Delta\\lambda}{\\lambda_0}", "Speed along the line of sight from a shifted line.", "doppler-shift"],
+    ["Inverse square law", "F = \\frac{L}{4\\pi d^2}", "Flux falls as one over distance squared.", "flux-luminosity"],
+    ["Distance modulus", "m - M = 5\\log_{10}\\frac{d}{10\\ \\text{pc}}", "How much fainter a star looks than from 10 pc.", "flux-luminosity"],
+    ["Diffraction limit", "\\theta = 1.22\\,\\frac{\\lambda}{D}", "Finest detail a telescope of diameter D can see.", "beyond-visible"],
+  ] },
+  { h: "Gravity and orbits", rows: [
+    ["Kepler's third law", "P^2 = a^3 \\quad (\\text{years, AU, around the Sun})", "Further out, longer year.", "keplers-laws"],
+    ["Perihelion and aphelion", "r_\\text{peri} = a(1 - e), \\quad r_\\text{aph} = a(1 + e)", "Closest and furthest points of an orbit.", "keplers-laws"],
+    ["Newton's gravity", "F = \\frac{GMm}{r^2}", "Twice the distance, a quarter of the pull.", "newtons-gravity"],
+    ["Circular and escape speed", "v_\\text{circ} = \\sqrt{\\frac{GM}{r}}, \\quad v_\\text{esc} = \\sqrt{\\frac{2GM}{r}}", "Orbit is falling while moving sideways fast enough.", "newtons-gravity"],
+    ["Kepler's equation", "M = E - e\\sin E", "Turns steady time into position on the ellipse.", "orbital-elements"],
+    ["Vis-viva", "v^2 = GM\\left(\\frac{2}{r} - \\frac{1}{a}\\right)", "Speed anywhere on an orbit.", "transfers-rockets"],
+    ["Rocket equation", "\\Delta v = v_e \\ln\\frac{m_0}{m_f}", "Each extra km/s costs fuel exponentially.", "transfers-rockets"],
+    ["Density", "\\rho = \\frac{M}{\\tfrac{4}{3}\\pi R^3}", "Tells rock from ice from gas.", "planets-small-bodies"],
+    ["Equilibrium temperature", "T_\\text{eq} = T_\\odot\\sqrt{\\frac{R_\\odot}{2d}}\\,(1 - A)^{1/4}", "A planet's temperature from its distance and albedo.", "planets-small-bodies"],
+    ["Mass into energy", "\\frac{\\Delta m}{\\Delta t} = \\frac{L}{c^2}", "The Sun loses about 4 million tonnes a second.", "the-sun"],
+  ] },
+  { h: "Stars", rows: [
+    ["Parallax distance", "d\\ (\\text{pc}) = \\frac{1}{p\\ (\\text{arcsec})}", "1 pc = 3.26 light-years = 206,265 AU.", "parallax"],
+    ["Luminosity, radius, temperature", "\\frac{L}{L_\\odot} = \\left(\\frac{R}{R_\\odot}\\right)^2\\left(\\frac{T}{T_\\odot}\\right)^4", "Every spot on the HR diagram gives a size.", "hr-diagram"],
+    ["Mass-luminosity and lifetime", "L \\approx M^4, \\quad t \\approx 10^{10}\\ \\text{yr} \\times M^{-3}", "Heavy stars shine fiercely and die young (solar units).", "how-stars-shine"],
+    ["Binary mass", "M_A + M_B = \\frac{a^3}{P^2}, \\quad \\frac{M_A}{M_B} = \\frac{v_B}{v_A}", "Weigh stars from their orbit (AU, years, Suns).", "binary-stars"],
+    ["Leavitt's law", "M_V \\approx -2.43\\,(\\log_{10}P - 1) - 4.05", "A Cepheid's period (days) gives its true brightness.", "variable-stars"],
+    ["Schwarzschild radius", "R_s = \\frac{2GM}{c^2} \\approx 2.95\\ \\text{km} \\times \\frac{M}{M_\\odot}", "Size of a black hole's event horizon.", "stellar-remnants"],
+  ] },
+  { h: "Galaxies", rows: [
+    ["Orbital period", "P = \\frac{2\\pi r}{v}", "The Sun takes about 220 million years per lap.", "milky-way"],
+    ["Mass inside an orbit", "M = \\frac{v^2 r}{G}", "How fast things orbit weighs what is inside.", "milky-way"],
+    ["Apparent size", "\\theta \\approx \\frac{D}{d}", "Angle in radians of an object of size D at distance d.", "galaxy-types"],
+    ["Look-back time", "t = \\frac{d}{c}", "We see distant galaxies as they were.", "galaxy-types"],
+  ] },
+  { h: "Doing research", rows: [
+    ["Aperture photometry", "S = \\Sigma - n b, \\quad \\text{SNR} = \\frac{S}{\\sqrt{S + nb\\,(1 + n/n_\\text{sky})}}", "Star light minus sky, and how clean the measurement is.", "aperture-photometry"],
+    ["Magnitudes from counts", "m = m_c - 2.5\\log_{10}\\frac{S}{S_c}, \\quad \\sigma_m \\approx \\frac{1.086}{\\text{SNR}}", "Compare with a star of known magnitude.", "aperture-photometry"],
+    ["Phase", "\\phi = \\frac{t - t_0}{P} - \\left\\lfloor\\frac{t - t_0}{P}\\right\\rfloor", "Where in its cycle a star was at time t.", "periodograms"],
+    ["Transit depth", "\\delta = \\left(\\frac{R_p}{R_\\star}\\right)^2", "A planet's size from the dip in starlight.", "exoplanet-methods"],
+    ["Radial-velocity amplitude", "K = \\left(\\frac{2\\pi G}{P}\\right)^{1/3}\\frac{M_p}{M_\\star^{2/3}}", "The star's wobble gives the planet's mass.", "exoplanet-methods"],
+    ["Resolving power", "R = \\frac{\\lambda}{\\Delta\\lambda}, \\quad \\sigma_v = c\\,\\frac{\\sigma_\\lambda}{\\lambda}", "How finely a spectrograph separates wavelengths.", "spectroscopy-pipeline"],
+    ["Robust noise", "\\sigma \\approx 1.4826 \\times \\text{MAD}", "Noise that ignores stars and cosmic rays.", "fits-python"],
+    ["Angular separation", "\\cos\\theta = \\sin\\delta_1\\sin\\delta_2 + \\cos\\delta_1\\cos\\delta_2\\cos(\\alpha_1 - \\alpha_2)", "Distance between two sky positions.", "open-archives"],
+    ["Chi-squared", "\\chi^2 = \\sum_i\\left(\\frac{y_i - f(x_i)}{\\sigma_i}\\right)^2, \\quad \\chi^2_\\nu = \\frac{\\chi^2}{N - k}", "Reduced χ² near 1 means a good fit.", "fitting-errors"],
+    ["Significance", "\\frac{\\Delta}{\\sqrt{\\sigma_1^2 + \\sigma_2^2}}", "How many sigma apart two results are.", "papers-arxiv"],
+    ["Network coverage", "P = 1 - (1 - p)^n", "Chance that at least one of n sites is clear.", "pro-am-science"],
+  ] },
+];
+---
+<Base title="Astronomy cheat sheet: every key formula" description="The key formulas of astronomy on one free page, from Wien's law and the Doppler shift to Kepler's laws, parallax, transit depth and chi-squared, each with a one-line meaning and its lesson." ld={coursePageLd(ASTRONOMY, 'Cheat sheet', '', 'cheat-sheet')}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/astronomy/">Astronomy</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={ASTRONOMY} live={live} />
+    <div class="cs-main ch">
+      <h1>Astronomy cheat sheet</h1>
+      <p class="lead">The key formulas of the course on one page, each with what it means in one line and the lesson that explains it. Print it or keep it open while you work.</p>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2>{s.h}</h2>
+          {s.rows.map(([name, f, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={`/learn/courses/astronomy/${slug}/`}>Lesson {num.get(slug)}</a></h3>
+              <div class="ch-m" set:html={tex(f)} />
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/astronomy/glossary/">glossary of terms</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-m { overflow-x: auto; padding: 4px 0; font-size: 1.05em; }
+  .ch-f p { margin: 2px 0 0; }
+</style>

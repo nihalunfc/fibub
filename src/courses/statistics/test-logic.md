@@ -16,9 +16,16 @@ quiz:
     choices: ['It is easier to compute', 'Because a change can help or hurt, and you want to notice either', 'It always gives smaller p-values']
     ans: 1
     why: 'A new design can make things worse. A one-sided test only looks in one direction, so use it only when the other direction truly does not matter, decided before seeing data.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 5.3 Hypothesis testing for a proportion https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook of Statistical Methods, 7.1.3 What are statistical tests? https://www.itl.nist.gov/div898/handbook/prc/section1/prc13.htm'
 ---
 
 **Module 6 · about 20 minutes · no new maths.** You'll be able to set up a null and alternative hypothesis, explain how a test weighs evidence, and state a result correctly.
+
+<div class="bigidea">A test assumes nothing is going on, works out how often chance alone would give a result like yours, and calls the result real only if that is rare.</div>
+
+**In everyday terms:** a court case. The defendant is presumed innocent (the null hypothesis). The evidence has to be too unlikely to fit innocence before the jury convicts. "Not guilty" does not mean "proven innocent", only "not enough evidence".
 
 ## 1. Proof by surprise
 
@@ -58,6 +65,36 @@ With 5,000 simulated no-preference worlds, a split as lopsided as 62–38 (in ei
 5. Decide: p ≤ α → reject `$H_0$`; otherwise, don't. Then report the **size** of the effect with a confidence interval.
 
 **One-sided or two-sided?** A two-sided alternative (≠) catches effects in either direction and is the safe default. One-sided (>) is for when only one direction matters and you decided that in advance.
+
+<div class="meaning">
+
+<dl>
+<dt>H₀ (null)</dt><dd>The boring explanation: no difference, no effect, the claim is true.</dd>
+<dt>H₁ (alternative)</dt><dd>What you suspect instead: there is a difference.</dd>
+<dt>Test statistic</dt><dd>How far your result is from what H₀ predicts, in standard errors.</dd>
+<dt>α</dt><dd>The false-alarm rate you accept in advance, usually 5 %.</dd>
+<dt>Physical meaning</dt><dd>A test measures surprise. If the world really were boring, how often would it throw up data this far from boring? Rarely (p below α) means you stop believing the boring story.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Not significant means there is no effect."** It means the data could not rule out "no effect". A small or noisy study can miss a real effect. Look at the confidence interval: if it runs from −1 to +5, a sizeable effect is still possible.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The claim.</b> A supplier says packs weigh 500 g on average. You weigh 36: mean 497.6 g, SD 6 g.</div>
+<div class="step"><b>Assume the claim (H₀).</b> If μ = 500, sample means of 36 packs wobble with SE 6 ÷ √36 = 1 g.</div>
+<div class="step"><b>Measure the surprise.</b> 497.6 is 2.4 g below 500: t = −2.4 SEs.</div>
+<div class="step"><b>How rare?</b> A t at least 2.4 away from 0 in either direction happens about 2.2 % of the time by chance.</div>
+<div class="step"><b>Decide.</b> 2.2 % is below 5 %: reject the claim. Packs average 2.4 g light (95 % CI 0.4 to 4.4 g).</div>
+</div>
+
+<div class="problem" data-problem="test-t-stat"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -103,3 +140,12 @@ Report: "Packs averaged 497.6 g, 2.4 g below the claimed 500 g (95 % CI 0.4 to 4
 **Try it on your own data:** the [[hypothesis-tests]] tool runs z, t, proportion and chi-square tests on your numbers and explains each step.
 
 **New words:** *hypothesis test*, *null hypothesis*, *alternative hypothesis*, *test statistic*, *significance level α*, *reject / fail to reject*, *one-sided*, *two-sided*.
+
+<div class="keypoints">
+
+- State H₀ and H₁ and choose α before looking at the data.
+- Test statistic = (estimate − value under H₀) ÷ SE.
+- Small p: data this extreme would be rare if H₀ were true, so reject H₀.
+- Failing to reject is not proof of no effect; report the interval.
+
+</div>

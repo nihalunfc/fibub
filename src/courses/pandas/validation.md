@@ -16,9 +16,16 @@ quiz:
     choices: ['Nothing', 'It stops the script with a message if a rule is broken, so bad data cannot slip through silently', 'It fixes the data']
     ans: 1
     why: 'Assertions turn your expectations into checks that run every time the data changes.'
+sources:
+  - 'pandas documentation, User Guide: Indexing and selecting data (boolean indexing) https://pandas.pydata.org/docs/user_guide/indexing.html'
+  - 'Breck, E. et al. (2019), Data Validation for Machine Learning, MLSys 2019 https://mlsys.org/Conferences/2019/doc/2019/167.pdf'
 ---
 
 **Module 3 · about 20 minutes · uses Lessons 2.3 and 3.1.** You'll be able to write the checks that catch bad data before it reaches a report.
+
+<div class="bigidea">Write the rules your data must follow as code, so every run checks them and a broken file stops the analysis instead of fooling it.</div>
+
+**In everyday terms:** a pilot's pre-flight checklist. Each item is quick and boring, and the one time a check fails it saves the flight.
 
 ## 1. Rules as masks
 
@@ -81,6 +88,36 @@ These are real sales of expensive items, not errors. An outlier rule finds rows 
 ## 4. Reconcile totals
 
 Compare your total with a number from the source system (a finance report, the till summary). If revenue from your cleaned table differs, find out why before going further: dropped rows, double-counted lines after a join, or a filter that was too strict.
+
+<div class="meaning">
+
+<dl>
+<dt>Mask rule</dt><dd>df['qty'] <= 0 flags rows that break "quantity is positive".</dd>
+<dt>assert cond, msg</dt><dd>Stop with a message if a rule that must hold does not.</dd>
+<dt>Outlier flag</dt><dd>Mark unusual values for review rather than deleting them.</dd>
+<dt>Reconcile</dt><dd>Check totals against a trusted source (the finance figure).</dd>
+<dt>Physical meaning</dt><dd>A validation rule is a promise the data makes. When a promise breaks, everything built on it is suspect, so the code should shout, not carry on quietly.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The data came from our own system, so it is correct."** Exports change, joins duplicate, test orders slip in. Rules catch the change the day it happens, not the day a manager spots a strange number.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Rules.</b> qty > 0; discount between 0 and 0.5; every store_id in stores.csv.</div>
+<div class="step"><b>Check.</b> <code>bad = orders[(orders.qty <= 0) | ~orders.discount.between(0, 0.5)]</code> → 0 rows.</div>
+<div class="step"><b>Must hold.</b> <code>assert orders.store_id.isin(stores.store_id).all(), 'unknown store'</code></div>
+<div class="step"><b>Reconcile.</b> Total revenue against finance's figure: within 0.1 %.</div>
+<div class="step"><b>Outliers.</b> Lines over the 99.9th percentile are flagged, read, and kept: real large orders.</div>
+</div>
+
+<div class="problem" data-problem="pd-rule-share"></div>
 
 ## 5. Your turn
 
@@ -149,3 +186,12 @@ messy[messy['Qty'] < 0]
 **Try it on your own data:** [[csv-profiler]] shows ranges, missing counts and odd values per column.
 
 **New words:** *validation*, *data quality report*, *assert*, *orphan key*, *outlier flag*, *reconciliation*.
+
+<div class="keypoints">
+
+- Express rules as masks; count and inspect violations.
+- assert stops the run when a must-hold rule breaks.
+- Flag outliers for review; do not delete real values.
+- Reconcile key totals with a trusted source.
+
+</div>

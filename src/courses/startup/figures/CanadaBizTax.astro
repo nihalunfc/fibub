@@ -1,0 +1,42 @@
+---
+// 8.3: Canada, sole proprietor vs a small corporation (CCPC) that pays the owner a salary and keeps the rest.
+---
+<figure class="cs-fig su-fig" data-cbt>
+  <span class="cs-figtag">Calculator: sole proprietor or corporation? (Canada)</span>
+  <div class="su-row">
+    <label>Province<select name="p"></select></label>
+    <label>Business profit for the year (C$)<input type="number" name="x" min="0" step="any" value="160000" /></label>
+    <label>What you need to live on, before tax (C$)<input type="number" name="w" min="0" step="any" value="70000" /></label>
+  </div>
+  <div class="su-bars" data-bars></div>
+  <p class="su-say" data-say></p>
+  <figcaption>Estimate for 2026 using fibub's Canada income tax engine: personal tax with only basic credits; self-employed CPP is both halves; an owner-manager with over 40 % of the shares pays no EI. Corporate rates: federal 9 % plus the provincial small business rate on the first $500,000 of active business income (Quebec's small rate needs enough staff hours). Quebec personal tax is shown at Ontario rates here. Money left in the corporation is taxed again when you take it out later (Lesson 8.5), so compare totals over several years with an accountant.</figcaption>
+</figure>
+<script>
+  import { money, num } from './fmt';
+  import { CA_CORP, caProp, caCorpTax } from './biztax';
+  import { canadaTax } from '../../../lib/money/canada-income-tax';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cbt]')) {
+    const sel = fig.querySelector<HTMLSelectElement>('[name=p]')!;
+    sel.innerHTML = Object.entries(CA_CORP).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+    function draw() {
+      const prov = sel.value, x = num(fig, 'x'), w = Math.min(num(fig, 'w'), x);
+      const prop = caProp(x, prov);
+      // Salary w: employee side from the tax engine (EI removed), employer CPP on top, deductible to the company.
+      const t = canadaTax({ prov: prov === 'QC' ? 'ON' : prov, employment: w, other: 0, rrsp: 0 });
+      const erCpp = t.cpp + t.cpp2;
+      const corpProfit = Math.max(0, x - w - erCpp), corp = caCorpTax(corpProfit, prov);
+      const salTotal = t.incomeTax + t.cpp + t.cpp2 + erCpp + corp, keepAll = caCorpTax(x, prov);
+      const rows: [string, number, string][] = [
+        ['Sole proprietor: income tax + CPP on all profit', prop.total, `You keep ${money('ca', x - prop.total)}`],
+        [`Corporation pays you ${money('ca', w)} salary, keeps the rest`, salTotal, `In your pocket ${money('ca', w - t.incomeTax - t.cpp - t.cpp2)}; left in company ${money('ca', corpProfit - corp)}`],
+        ['Corporation keeps everything (corporate tax only)', keepAll, 'You still need money to live on'],
+      ];
+      const max = Math.max(...rows.map((r) => r[1]), 1);
+      fig.querySelector('[data-bars]')!.innerHTML = rows.map(([n, v, note]) => `<div style="grid-template-columns:1fr"><span>${n}<br><small style="color:var(--muted)">${note}</small></span><span style="display:grid;grid-template-columns:1fr 6.5em;gap:8px;align-items:center"><span class="t"><i class="w" style="width:${Math.max(1, (v / max) * 100)}%"></i></span><b>${money('ca', v)}</b></span></div>`).join('');
+      const save = prop.total - salTotal;
+      fig.querySelector('[data-say]')!.textContent = save > 2000 ? `Tax now is ${money('ca', save)} lower with a corporation, because profit you leave in the company is taxed at the small business rate. It is a deferral: you pay personal tax when you take it out, so it helps most when you do not need all the profit to live on. Incorporating also costs about $1,000 to $3,000 a year in accounting and filings.` : 'At this level a corporation saves little or no tax: you need most of the profit to live on. Many founders stay sole proprietors until profit clearly exceeds what they spend.';
+    }
+    fig.addEventListener('input', draw); fig.addEventListener('change', draw); draw();
+  }
+</script>

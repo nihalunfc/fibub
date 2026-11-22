@@ -21,7 +21,9 @@ sources:
   - "NGC/IC data: OpenNGC (CC-BY-SA 4.0), github.com/mattiaverga/OpenNGC"
 ---
 
-**Module 5 · about 25 minutes · logarithms.** You'll be able to name the kinds of deep-sky object, read their catalogue numbers, and predict which ones you can see by surface brightness.
+**Module 5 · about 25 minutes · read first: [4.2 Aperture: the bucket that catches light](/learn/courses/sky-watching/aperture/), [3.2 Light pollution and the Bortle scale](/learn/courses/sky-watching/light-pollution/), [1.7 How bright is it? The magnitude scale](/learn/courses/sky-watching/magnitudes/) · maths: logarithms.** You'll be able to name the kinds of deep-sky object, read their catalogue numbers, and predict which ones you can see by surface brightness.
+
+<div class="bigidea">Star clusters, nebulae and galaxies are the deep sky; surface brightness, not total magnitude, decides how easy each is to see, so a bright but large galaxy can be harder than a faint small one.</div>
 
 ## 1. Why this matters
 
@@ -43,6 +45,24 @@ The deep sky is where most amateur observing time goes: hundreds of targets, eac
 - **NGC and IC:** the New General Catalogue (1888) and its Index Catalogues list about 13,000 objects. The open **OpenNGC** database keeps modern positions, sizes and magnitudes.
 - **Caldwell (C):** 109 popular objects Messier missed, including southern ones.
 
+
+<div class="meaning">
+
+<dl>
+<dt>μ = m + 2.5 log₁₀ A</dt><dd>Average surface brightness: magnitude spread over area A (arcsec²).</dd>
+<dt>A = π(30a)(30b)</dt><dd>Area of an ellipse a′ × b′ in square arcseconds.</dd>
+<dt>Messier / NGC</dt><dd>Catalogues: 110 bright objects / about 7,800 objects.</dd>
+<dt>Physical meaning</dt><dd>Imagine two lamps with the same bulb, one behind a small frosted window and one behind a whole frosted wall. The small window glows bright; the wall is a faint glow you might miss. Galaxies are the same: total light matters less than how concentrated it is.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A telescope makes faint nebulae brighter."** No telescope can make an extended object's surface brighter than it looks to the naked eye; it only makes it bigger, so your eye can see detail. That is why dark skies matter as much as aperture.
+
+</div>
+
 ## 4. Surface brightness
 
 A galaxy's **total magnitude** is all its light added up as if squeezed into a point. But you see it spread over an area. Its average **surface brightness** compares directly with the sky's (Lesson 3.2): if the galaxy is fainter per square arcsecond than the sky, it is very hard to see.
@@ -53,6 +73,16 @@ Things to notice:
 
 - Make the object bigger with the same magnitude: it fades towards the sky.
 - Darken the sky: the same object stands out. That is why dark sites matter so much for galaxies.
+
+Compare two galaxies of similar total brightness:
+
+<div class="steps">
+<div class="step"><b>M33, the Triangulum Galaxy.</b> Total magnitude 5.7: bright enough for the naked eye in theory.</div>
+<div class="step"><b>But spread out.</b> It covers 70′ × 40′, over twice the area of the full Moon. Its surface brightness is about 23 mag/arcsec²: fainter than a dark sky.</div>
+<div class="step"><b>M51, the Whirlpool.</b> Total magnitude 8.4, ten times fainter in total.</div>
+<div class="step"><b>But compact.</b> Only 11′ × 7′, so its surface brightness is about 21.7 mag/arcsec²: it stands out better in a telescope.</div>
+<div class="step"><b>The lesson.</b> Low power and dark skies for big, faint objects; more power for small, bright ones.</div>
+</div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -81,6 +111,10 @@ M57 is 6 magnitudes brighter per square arcsecond and shows even from a suburb; 
 
 ## 6. Practice
 
+<div class="problem" data-problem="surface-brightness"></div>
+
+**More practice** (answers below):
+
 1. What is the average surface brightness of a 10th-magnitude galaxy 4′ × 2′?
 2. Why is the Pleiades easy in a city but the Andromeda Galaxy's outer arms are not?
 3. What kind of object is M42?
@@ -92,6 +126,15 @@ M57 is 6 magnitudes brighter per square arcsecond and shows even from a suburb; 
 2. The Pleiades are bright stars (points); Andromeda's arms are faint spread-out light with surface brightness well below a city sky.
 3. An emission nebula, a star-forming region.
 </details>
+
+<div class="keypoints">
+
+- Deep-sky objects: open and globular clusters, nebulae, galaxies.
+- Surface brightness μ = m + 2.5 log₁₀(area) decides visibility.
+- Use low power for large faint objects; dark skies help most.
+- Messier (110) and NGC (about 7,800) are the classic lists.
+
+</div>
 
 **Try it on the real sky:** get a list of the best deep-sky objects for your sky and telescope tonight with the [[observing-session]] planner, and check when each is highest with [[object-altitude]].
 

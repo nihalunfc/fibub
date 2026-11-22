@@ -16,9 +16,16 @@ quiz:
     choices: ['Always says normal', 'Rejects normality for even tiny, harmless departures', 'Cannot run on that much data']
     ans: 1
     why: 'With huge samples, tests detect trivial departures. Look at the plot and ask whether the departure matters for your question.'
+sources:
+  - 'NIST/SEMATECH e-Handbook, 1.3.3.24 Normal Probability Plot and 1.3.6 Probability Distributions https://www.itl.nist.gov/div898/handbook/eda/section3/eda36.htm'
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 4.2 Evaluating the normal approximation https://www.openintro.org/book/os/'
 ---
 
 **Module 3 · about 20 minutes · no new maths.** You'll be able to pick a sensible distribution from the type of data, check it with plots, and know what to do when nothing fits.
+
+<div class="bigidea">Pick a distribution from what the data is (a yes/no, a count, a time, an amount), then check it against the data with a picture.</div>
+
+**In everyday terms:** a doctor guesses from the symptoms first, then orders a test to check. The type of data is the symptom; the histogram and Q-Q plot are the test.
 
 ## 1. Start from what the data is
 
@@ -64,6 +71,37 @@ Often less than you'd think. Tests on **averages** of large samples are protecte
 - have **small** samples;
 - care about **extremes** (fraud, outages, big claims).
 
+<div class="meaning">
+
+<dl>
+<dt>Yes/no per try</dt><dd>Binomial (Lesson 3.2).</dd>
+<dt>Count in a window</dt><dd>Poisson (Lesson 3.3), or a more spread-out count model if variance ≫ mean.</dd>
+<dt>Time between events</dt><dd>Exponential (Lesson 3.5).</dd>
+<dt>Money, sizes</dt><dd>Log-normal (Lesson 3.5).</dd>
+<dt>Averages, sums, measurement error</dt><dd>Normal (Lesson 3.4).</dd>
+<dt>Physical meaning</dt><dd>A distribution is a claim about how the data were made. Arrivals that do not know about each other are Poisson; amounts built up by many multiplying factors are log-normal. If the story does not fit the process, the distribution will not fit the data.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"A formal test said p > 0.05, so the data is normal."** With small samples such tests rarely object; with big ones they object to tiny, harmless differences. A Q-Q plot and the question "does the difference change my answer?" are more useful.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The data.</b> 90 days of "minutes until the first order after opening".</div>
+<div class="step"><b>What is it?</b> A waiting time for independent customers: guess exponential.</div>
+<div class="step"><b>Picture.</b> Histogram: floor at 0, peak at 3 to 5 minutes, long right tail. Fits the guess.</div>
+<div class="step"><b>Numbers.</b> Mean 7.9, median 5.6. An exponential with mean 7.9 has median 0.693 × 7.9 ≈ 5.5. Close. ✓</div>
+<div class="step"><b>Q-Q plot.</b> Straight, except two days over 40 minutes: both public holidays. Model ordinary days; report holidays separately.</div>
+</div>
+
+<div class="problem" data-problem="dist-mean-variance"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -102,3 +140,12 @@ Conclusion: model ordinary days as exponential with mean about 8 minutes, and tr
 **Try it on your own data:** the [[histogram-builder]] shows the shape of a column, and the [[distribution-explorer]] overlays candidate curves.
 
 **New words:** *Q-Q plot*, *heavy tails*, *goodness of fit*, *normality test*.
+
+<div class="keypoints">
+
+- Start from the data type: yes/no → binomial, count → Poisson, wait → exponential, money → log-normal, averages → normal.
+- Check with a histogram and a Q-Q plot (straight line = good fit).
+- Quick number checks: Poisson mean ≈ variance; exponential median ≈ 0.69 × mean.
+- If nothing fits, use methods that need no distribution: the bootstrap (Lesson 4.5) and rank tests (Lesson 6.7).
+
+</div>
