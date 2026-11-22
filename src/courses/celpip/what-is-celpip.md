@@ -1,7 +1,7 @@
 ---
 title: What CELPIP is and who it is for
 seoTitle: 'What is CELPIP? Who needs it and how it works'
-summary: 'CELPIP is a computer-based English test made in Canada and accepted by IRCC for permanent residence and citizenship. Here is who needs it, which version to book and how this free course gets you ready.'
+summary: 'CELPIP is a Canadian computer-based English test accepted for PR and citizenship. Who needs it, General vs LS, and how this free course gets you ready.'
 minutes: 12
 updated: 2026-11-22
 quiz:

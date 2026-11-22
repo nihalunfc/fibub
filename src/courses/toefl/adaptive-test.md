@@ -1,7 +1,7 @@
 ---
 title: How the adaptive test works and what it means for you
 seoTitle: 'TOEFL adaptive test explained: strategy for 2026'
-summary: 'The 2026 TOEFL iBT adapts to your level as you go. Here is how adaptive tests usually work, why harder questions are a good sign, and the strategy changes that follow: accuracy early, no blanks, steady pace.'
+summary: 'The 2026 TOEFL iBT adapts to your level as you go. How adaptive tests work, why harder questions are a good sign, and how to change your strategy.'
 minutes: 11
 updated: 2026-11-22
 quiz:

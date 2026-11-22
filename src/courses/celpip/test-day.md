@@ -1,7 +1,7 @@
 ---
 title: 'Test day on the computer: what happens and how to prepare'
 seoTitle: 'CELPIP test day: what to expect and how to prepare'
-summary: 'What happens on CELPIP test day, from check-in and ID to the headset, the screen, note-taking, breaks and the speaking section, plus a checklist for the week before.'
+summary: 'What happens on CELPIP test day, from ID check and headset to note-taking and speaking, plus a checklist for the week before.'
 minutes: 11
 updated: 2026-11-22
 quiz:
