@@ -477,4 +477,85 @@ export default {
     },
     verify: (p) => 13.6 * 0.75 * (p.Z - 1) ** 2 / 1000,
   },
+  // ---- Mathematical methods: calculus, partial derivatives, multiple integrals, vector algebra, Fourier series ----
+  'taylor-sqrt': {
+    title: 'square root by a first-order Taylor step',
+    make(r) {
+      const a = int(r, 3, 15), d = int(r, -4, 6) || 2, N = a * a + d;
+      const answer = a + d / (2 * a);
+      return {
+        q: `<p>Estimate √${N} by writing it as √(${a * a} ${d < 0 ? '−' : '+'} ${Math.abs(d)}) and using the first-order Taylor step √(A² + δ) ≈ A + δ/(2A). Give the estimate to four decimal places.</p>`,
+        answer, unit: '', tol: 0.0002,
+        hint: `Take A = ${a}, the nearest whole square root, so that δ = ${d} is small compared with A² = ${a * a}.`,
+        solution: steps(`f(x) = √x has f′(x) = 1/(2√x). Expand about x = ${a * a}: √(${a * a} + δ) ≈ ${a} + δ/(2 × ${a}).`, `δ = ${d}, so the step is ${d}/${2 * a} = ${(d / (2 * a)).toFixed(5)}.`, `Estimate: <b>${answer.toFixed(4)}</b>. (Exact: ${Math.sqrt(N).toFixed(4)}; the error is about δ²/(8A³) = ${((d * d) / (8 * a ** 3)).toFixed(5)}.)`),
+        a, d,
+      };
+    },
+    verify: (p) => { const h = 1e-6, A2 = p.a * p.a; return Math.sqrt(A2) + ((Math.sqrt(A2 + h) - Math.sqrt(A2 - h)) / (2 * h)) * p.d; },
+  },
+  'error-propagation': {
+    title: 'maximum error in g from a pendulum',
+    make(r) {
+      const pL = int(r, 1, 10) / 10, pT = int(r, 1, 10) / 10;
+      const answer = pL + 2 * pT;
+      return {
+        q: `<p>In a pendulum experiment g = 4π²L/T². The length is measured to within ${pL}% and the period to within ${pT}%. What is the largest possible percentage error in g?</p>`,
+        answer, unit: '%', tol: 0.001,
+        hint: 'Take logs: ln g = ln(4π²) + ln L − 2 ln T. Differentiate, then add the sizes of the terms for the worst case.',
+        solution: steps('dg/g = dL/L − 2 dT/T.', `Worst case: the two parts add in size: ${pL}% + 2 × ${pT}%.`, `Maximum error = <b>${answer.toFixed(1)}%</b>. The period counts twice because it is squared.`),
+        pL, pT,
+      };
+    },
+    // worst-case linear error, from a tiny numerical step in the worst direction
+    verify: (p) => { const g = (L, T) => (4 * Math.PI ** 2 * L) / (T * T), e = 1e-7; return (100 * (g(1 + (e * p.pL) / 100, 1 - (e * p.pT) / 100) / g(1, 1) - 1)) / e; },
+  },
+  'disc-mass-polar': {
+    title: 'mass of a disc with varying density (polar integral)',
+    make(r) {
+      const k = int(r, 1, 6), n = int(r, 1, 3), R = int(r, 1, 4) / 2;
+      const answer = (2 * Math.PI * k * R ** (n + 2)) / (n + 2);
+      return {
+        q: `<p>A thin disc of radius ${R} m has surface density σ = ${k}r${n === 1 ? '' : '<sup>' + n + '</sup>'} kg/m², where r is the distance from the centre in metres. Find its mass in kg.</p>`,
+        answer, unit: 'kg', tol: 0.005,
+        hint: 'Cut the disc into thin rings. A ring of radius r and width dr has area 2πr dr (that extra r is the polar Jacobian).',
+        solution: steps(`dM = σ · 2πr dr = ${k}r${n === 1 ? '' : '<sup>' + n + '</sup>'} · 2πr dr.`, `M = 2π × ${k} ∫₀<sup>${R}</sup> r<sup>${n + 1}</sup> dr = 2π × ${k} × ${R}<sup>${n + 2}</sup>/${n + 2}.`, `M = <b>${answer.toFixed(3)} kg</b>.`),
+        k, n, R,
+      };
+    },
+    verify: (p) => { const N = 2000, h = p.R / N; let s = 0; for (let i = 0; i < N; i++) { const rr = (i + 0.5) * h; s += p.k * rr ** p.n * 2 * Math.PI * rr * h; } return s; },
+  },
+  'box-volume': {
+    title: 'volume of a parallelepiped (scalar triple product)',
+    make(r) {
+      const D = (a, b, c) => a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
+      let a = [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)], b = [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)], c = [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)];
+      if (D(a, b, c) === 0) { a = [2, 1, 0]; b = [int(r, -2, 2), 3, 1]; c = [1, 0, int(r, 2, 4)]; }
+      const det = D(a, b, c);
+      const bc = [b[1] * c[2] - b[2] * c[1], b[2] * c[0] - b[0] * c[2], b[0] * c[1] - b[1] * c[0]];
+      return {
+        q: `<p>Find the volume of the parallelepiped with edges <b>a</b> = (${a.join(', ')}), <b>b</b> = (${b.join(', ')}) and <b>c</b> = (${c.join(', ')}).</p>`,
+        answer: Math.abs(det), unit: '', tol: 0, abs: 1e-9,
+        hint: 'Volume = |a · (b × c)|, the absolute value of the 3 × 3 determinant with a, b, c as rows.',
+        solution: steps(`b × c = (${bc.join(', ')}).`, `a · (b × c) = ${a[0]}(${bc[0]}) + ${a[1]}(${bc[1]}) + ${a[2]}(${bc[2]}) = ${det}.`, `Volume = |${det}| = <b>${Math.abs(det)}</b>.${det < 0 ? ' (The negative sign only means a, b, c form a left-handed set.)' : ''}`),
+        a, b, c,
+      };
+    },
+    // expand along the third row instead of the first
+    verify: (p) => { const { a, b, c } = p; return Math.abs(c[0] * (a[1] * b[2] - a[2] * b[1]) - c[1] * (a[0] * b[2] - a[2] * b[0]) + c[2] * (a[0] * b[1] - a[1] * b[0])); },
+  },
+  'square-wave-coeff': {
+    title: 'Fourier coefficient of a square wave',
+    make(r) {
+      const h = int(r, 1, 9), n = [1, 3, 5, 7, 9][int(r, 0, 4)];
+      const answer = (4 * h) / (n * Math.PI);
+      return {
+        q: `<p>A square wave equals +${h} for 0 &lt; x &lt; π and −${h} for −π &lt; x &lt; 0, repeating every 2π. Find the coefficient b<sub>${n}</sub> of sin ${n}x in its Fourier series.</p>`,
+        answer, unit: '', tol: 0.002,
+        hint: 'The wave is odd, so b<sub>n</sub> = (2/π) ∫₀<sup>π</sup> f(x) sin nx dx.',
+        solution: steps(`b<sub>n</sub> = (2/π) ∫₀<sup>π</sup> ${h} sin nx dx = (${2 * h}/(nπ)) (1 − cos nπ).`, `For odd n, cos nπ = −1, so b<sub>n</sub> = ${4 * h}/(nπ).`, `With n = ${n}: b<sub>${n}</sub> = ${4 * h}/(${n}π) = <b>${answer.toFixed(4)}</b>.`),
+        h, n,
+      };
+    },
+    verify: (p) => { const N = 4000, dx = Math.PI / N; let s = 0; for (let i = 0; i < N; i++) s += p.h * Math.sin(p.n * (i + 0.5) * dx) * dx; return (2 / Math.PI) * s; },
+  },
 };
