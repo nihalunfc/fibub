@@ -56,6 +56,10 @@ The older idea of **spontaneous generation** (life from rotting matter) was disp
 
 **Darwin** (voyage of HMS Beagle; with Alfred Wallace, who reached the same idea in the Malay Archipelago) proposed: organisms vary; populations make more offspring than resources support; the better fitted leave more offspring (**fitness = reproductive fitness**); over generations new types arise. The two key ideas are **branching descent** and **natural selection**. **Lamarck** had earlier suggested use and disuse of organs (the giraffe stretching its neck), which is not accepted. **Hugo de Vries**, working on evening primrose (*Oenothera lamarckiana*), proposed that large sudden changes, **mutations**, cause evolution in jumps (**saltation**), whereas Darwin's variations are small and directional.
 
+Choose the bark colour and the strength of predation and press Play.
+
+<figure class="fig" data-fig="@bio-peppered-moth"><figcaption>Selection acts on the phenotype that stands out; over generations the allele for the camouflaged form rises.</figcaption></figure>
+
 ## 4. The Hardy-Weinberg principle
 
 In a large population with random mating and no evolutionary forces, allele and genotype frequencies stay constant from generation to generation. For one gene with alleles A (frequency p) and a (frequency q):
@@ -71,6 +75,10 @@ Five factors disturb it, and each is a way evolution happens: **gene migration (
 Natural selection takes three forms, picturing a trait such as body size: **stabilising** (the average is favoured, the peak gets taller and narrower), **directional** (one extreme is favoured, the peak shifts) and **disruptive** (both extremes are favoured, two peaks form).
 
 <div class="problem" data-problem="evo-allele"></div>
+
+Slide the population size and press New run: eight populations with no selection at all.
+
+<figure class="fig" data-fig="@bio-genetic-drift"><figcaption>Drift is a chance change in allele frequency, strongest in small populations (founder effect, bottleneck).</figcaption></figure>
 
 ## 5. A brief history of life
 

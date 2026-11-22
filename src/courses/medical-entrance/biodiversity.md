@@ -59,6 +59,10 @@ where S is species richness, A is area, Z is the slope (regression coefficient) 
 
 <div class="problem" data-problem="bdv-species-area"></div>
 
+Slide the numbers of individuals or pick a preset community and watch the indices.
+
+<figure class="fig" data-fig="@bio-diversity-index"><figcaption>Richness only counts species. Shannon and Simpson also reward an even spread, so a community dominated by one species is less diverse than an even one with the same species.</figcaption></figure>
+
 ## 4. Why biodiversity matters
 
 Communities with more species tend to be more stable: less variation in productivity from year to year, more resistance to disturbances such as alien species, and more resilience. **David Tilman**'s long-term outdoor plot experiments showed that plots with more species had **less year-to-year variation in total biomass**, and more diversity also gave **higher productivity**.

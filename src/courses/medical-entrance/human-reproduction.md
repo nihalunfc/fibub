@@ -66,6 +66,10 @@ At birth each ovary holds about 60,000 to 80,000 primary follicles, and the numb
 
 </div>
 
+Switch between spermatogenesis and oogenesis and move "Show up to" along to see how many cells come out of one primary cell.
+
+<figure class="fig" data-fig="@bio-gametogenesis"><figcaption>Sperm: equal divisions make four small cells. Egg: unequal divisions give one large ovum and polar bodies that degenerate.</figcaption></figure>
+
 ## 4. The menstrual cycle
 
 The first cycle (**menarche**) starts at puberty; cycles stop at **menopause** (around 50 years). One cycle averages 28 to 29 days. Move through the cycle and watch the hormones.
@@ -86,6 +90,16 @@ Sperm reach the **ampulla**, where the oocyte waits. One sperm contacts the zona
 **Sex is decided at fertilisation by the sperm.** Every ovum carries an X. Half the sperm carry X (XX zygote: female), half carry Y (XY: male). So the chance of a girl or boy is 50% each time, and the father's sperm decides, not the mother.
 
 The zygote divides by mitosis (**cleavage**) as it moves down the oviduct: 2, 4, 8, 16 cells (**blastomeres**). The 8 to 16 cell ball is the **morula**, which becomes a **blastocyst**: an outer layer, the **trophoblast**, and an **inner cell mass**. The trophoblast attaches to the endometrium and the blastocyst sinks into it: **implantation**. The inner cell mass becomes the embryo.
+
+Step from the zygote to implantation.
+
+<div class="steps" data-fig="@bio-embryo-stages">
+<div class="step"><b>Zygote.</b> Fertilisation in the ampulla of the fallopian tube.</div>
+<div class="step"><b>Cleavage.</b> Mitotic divisions to 2 and 4 cells, with no growth in size.</div>
+<div class="step"><b>Morula.</b> A solid ball of 8 to 16 cells reaches the uterus.</div>
+<div class="step"><b>Blastocyst.</b> A cavity forms; the trophoblast surrounds the inner cell mass.</div>
+<div class="step"><b>Implantation.</b> The trophoblast sinks into the endometrium, about the seventh day.</div>
+</div>
 
 ## 6. Pregnancy and the placenta
 

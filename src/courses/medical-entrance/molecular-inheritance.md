@@ -66,6 +66,10 @@ The main enzyme is **DNA-dependent DNA polymerase**, which only adds nucleotides
 
 In eukaryotes replication happens in the S phase; if it is not followed by division, the cell becomes polyploid.
 
+Press play, slow the fork down and then switch ligase off.
+
+<figure class="fig" data-fig="@bio-replication-fork"><figcaption>The leading strand is made in one piece toward the fork; the lagging strand is made backwards in Okazaki fragments, each started by an RNA primer, and ligase joins them.</figcaption></figure>
+
 ## 4. Transcription
 
 Only one strand is copied into RNA. The **template strand** runs 3′ → 5′; the other, the **coding strand**, has the same sequence as the RNA (with T for U) and is the one written by convention. A **transcription unit** = **promoter** (upstream, where RNA polymerase binds; it decides the template strand) + **structural gene** + **terminator** (downstream).
@@ -94,6 +98,21 @@ George Gamow argued that 4 bases need codons of 3 to cover 20 amino acids (4³ =
 
 </div>
 
+Pick a codon, then mutate one letter and read whether it is silent, missense or nonsense.
+
+<figure class="fig" data-fig="@bio-codon-table"><figcaption>The code is degenerate: many amino acids have several codons, so changes in the third letter are often silent.</figcaption></figure>
+
+Step through transcription and translation of a short gene.
+
+<div class="steps" data-fig="@bio-central-dogma">
+<div class="step"><b>The gene.</b> The template strand is read 3' to 5'.</div>
+<div class="step"><b>Transcription.</b> RNA polymerase builds mRNA by base pairing (A with U).</div>
+<div class="step"><b>mRNA.</b> Codons AUG GUG CAC CUU UAA.</div>
+<div class="step"><b>Start.</b> The ribosome meets AUG and tRNA brings Met.</div>
+<div class="step"><b>Elongation.</b> Each codon brings its amino acid and a peptide bond forms.</div>
+<div class="step"><b>Termination.</b> UAA is a stop codon; the polypeptide Met-Val-His-Leu is released.</div>
+</div>
+
 ## 6. Gene regulation: the lac operon
 
 In bacteria, genes for one job often sit together under one promoter as an **operon**. Jacob and Monod described the **lac operon** of *E. coli*: a regulator gene **i** (makes the repressor all the time), a promoter, an operator, and three structural genes: **z** (β-galactosidase, splits lactose into glucose and galactose), **y** (permease, lets lactose in) and **a** (transacetylase).
@@ -101,6 +120,10 @@ In bacteria, genes for one job often sit together under one promoter as an **ope
 <figure class="fig" data-fig="lac-operon"><figcaption>The lac operon with lactose absent (repressor on the operator) and present (inducer removes the repressor). Lactose acts as the inducer.</figcaption></figure>
 
 Lactose (or allolactose) is the **inducer**. This control by a repressor is **negative regulation**. Low levels of the operon's proteins are always present, enough to let a little lactose in to start the switch.
+
+Switch tryptophan between low and high and see which state turns the operon on.
+
+<figure class="fig" data-fig="@bio-trp-operon"><figcaption>Compare with the lac operon above: lac is switched on by an inducer (lactose), trp is switched off by its end product acting as a corepressor.</figcaption></figure>
 
 ## 7. The Human Genome Project and DNA fingerprinting
 
@@ -118,6 +141,10 @@ The **Human Genome Project** (1990 to 2003) aimed to find all human genes and se
 <dt>Physical meaning</dt><dd>Base pairing is a lock and key. Copy, read and compare DNA all use the same lock: a strand finds or builds its complement.</dd>
 </dl>
 </div>
+
+Press play and compare the crime-scene lane with the three suspects.
+
+<figure class="fig" data-fig="@bio-gel-electrophoresis"><figcaption>DNA fingerprinting compares band patterns of VNTR fragments: the lane that matches the scene is the same person.</figcaption></figure>
 
 <div class="keypoints">
 

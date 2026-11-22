@@ -83,6 +83,10 @@ Energy flows **one way**: from the sun to producers, then to consumers. It is ne
 
 <div class="problem" data-problem="eco-ten"></div>
 
+Remove one species at a time and read the likely effects.
+
+<figure class="fig" data-fig="@bio-food-web"><figcaption>Removing a producer starves everything; removing a top predator lets its prey increase. A web has several links, so losses spread.</figcaption></figure>
+
 ## 5. Ecological pyramids
 
 Placing the trophic levels as stacked bars, producers at the base, gives an ecological pyramid. Three kinds:
@@ -106,6 +110,18 @@ Placing the trophic levels as stacked bars, producers at the base, gives an ecol
 <dt>Standing crop</dt><dd>living biomass at a trophic level at one time</dd>
 <dt>Physical meaning</dt><dd>Energy in an ecosystem is like money passed down a chain where each person keeps 90% for their own expenses. The chain can only be a few people long before nothing is left, which is why food chains rarely have more than four or five levels.</dd>
 </dl>
+</div>
+
+Nutrients cycle, unlike energy. Step around the nitrogen cycle.
+
+<div class="steps" data-fig="@bio-nitrogen-cycle">
+<div class="step"><b>Fixation</b> by Rhizobium, Azotobacter and lightning.</div>
+<div class="step"><b>Nitrification, 1</b> by Nitrosomonas.</div>
+<div class="step"><b>Nitrification, 2</b> by Nitrobacter.</div>
+<div class="step"><b>Assimilation</b> by plants, then animals.</div>
+<div class="step"><b>Ammonification</b> by decomposers.</div>
+<div class="step"><b>Ammonia</b> is available again.</div>
+<div class="step"><b>Denitrification</b> returns N₂ to the air.</div>
 </div>
 
 <div class="keypoints">
