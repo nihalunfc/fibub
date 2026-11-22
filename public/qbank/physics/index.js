@@ -20,5 +20,11 @@ export default {
       { id: 'interference', name: 'Interference' },
       { id: 'diffraction', name: 'Diffraction' },
     ] },
+    { id: 'modern', name: 'Modern physics', topics: [
+      { id: 'photons', name: 'Photons: the photoelectric and Compton effects' },
+      { id: 'matter-waves', name: 'Matter waves and the uncertainty principle' },
+      { id: 'schrodinger-equation', name: 'The Schrödinger equation: wells, steps and tunnelling' },
+      { id: 'atoms-x-rays', name: 'The Bohr atom, spectra and X-rays' },
+    ] },
   ],
 };
