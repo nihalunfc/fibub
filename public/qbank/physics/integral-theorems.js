@@ -2,6 +2,7 @@
 // Original questions for IIT JAM, GATE and CSIR NET practice (fibub). Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
 import more from './integral-theorems.more.gen.js';
+import more2 from './integral-theorems.more2.gen.js';
 
 export default {
   topic: 'integral-theorems',
@@ -221,6 +222,7 @@ export default {
       options: ['$\\oint_S \\vec F\\times\\hat n\\,dS$', '$\\oint_S \\hat n\\times\\vec F\\,dS$', '$\\oint_S (\\hat n\\cdot\\vec F)\\,\\hat n\\,dS$', '$\\vec 0$ always'], answer: 1,
       sol: 'Apply the divergence theorem to $\\vec F\\times\\vec c$ for a constant $\\vec c$: $\\nabla\\cdot(\\vec F\\times\\vec c) = \\vec c\\cdot(\\nabla\\times\\vec F)$. So $\\vec c\\cdot\\int\\nabla\\times\\vec F\\,dV = \\oint(\\vec F\\times\\vec c)\\cdot\\hat n\\,dS = \\vec c\\cdot\\oint\\hat n\\times\\vec F\\,dS$. As $\\vec c$ is arbitrary, the result is $\\oint\\hat n\\times\\vec F\\,dS$.',
       trap: 'Option A has the cross product in the wrong order, which gives minus the answer.' },
+    ...more2,
   ],
   gens: [
     { id: 'it-g01', type: 'nat', level: 2, exams: ['jam', 'gate'], sub: 'divergence theorem',

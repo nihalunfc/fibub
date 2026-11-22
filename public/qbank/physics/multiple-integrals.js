@@ -5,6 +5,7 @@
 // Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './multiple-integrals.more.gen.js';
+import more2 from './multiple-integrals.more2.gen.js';
 
 const simpson = (f, a, b, n = 4000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return (s * h) / 3; };
 const PI = Math.PI;
@@ -246,6 +247,7 @@ export default {
       options: ['$-\\pi/2$', '$0$', '$-\\pi$', 'it diverges, because the integrand is unbounded at the origin'], answer: 2,
       sol: 'In polar form: $\\int_0^{2\\pi}\\int_0^1\\ln(r^2)\\,r\\,dr\\,d\\theta = 2\\pi\\cdot2\\int_0^1r\\ln r\\,dr$. By parts, $\\int_0^1r\\ln r\\,dr = \\left[\\tfrac{r^2}{2}\\ln r\\right]_0^1 - \\int_0^1\\tfrac r2dr = 0 - \\tfrac14$ (since $r^2\\ln r\\to0$). So the integral is $4\\pi\\cdot(-\\tfrac14) = -\\pi$. The Jacobian $r$ tames the logarithmic singularity.',
       trap: 'Declaring divergence because $\\ln(x^2 + y^2)\\to-\\infty$: an integrable singularity can still give a finite area.' },
+    ...more2,
   ],
   gens: [
     { id: 'mi-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'iterated integrals',

@@ -4,6 +4,7 @@
 // Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './calculus-and-series.more.gen.js';
+import more2 from './calculus-and-series.more2.gen.js';
 
 const simpson = (f, a, b, n = 4000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return (s * h) / 3; };
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
@@ -240,6 +241,7 @@ export default {
       options: ['$7$', '$8$', '$9$', '$10$'], answer: 3,
       sol: 'With $N$ terms the last term kept is $1/(N-1)!$, and the error is $\\dfrac{1}{N!} + \\dfrac{1}{(N+1)!} + \\dots\\approx\\dfrac{1}{N!}\\left(1 + \\dfrac{1}{N+1} + \\dots\\right)$. For $N = 9$: $1/9! = 2.76\\times10^{-6}$, so the error is about $3.0\\times10^{-6}$: too big. For $N = 10$: $1/10! = 2.76\\times10^{-7}$, error about $3.0\\times10^{-7} < 10^{-6}$. So 10 terms (up to $1/9!$).',
       trap: 'Off-by-one counting: the term $1/9!$ is the tenth term because the series starts at $1/0!$.' },
+    ...more2,
   ],
   gens: [
     { id: 'cal-g01', type: 'nat', level: 1, exams: ['jam'], sub: 'standard limits',
