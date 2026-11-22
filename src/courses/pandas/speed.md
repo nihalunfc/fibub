@@ -16,9 +16,16 @@ quiz:
     choices: ['When a text column repeats a few values many times', 'For unique IDs', 'For numbers']
     ans: 0
     why: 'Each value is stored once, and rows hold small integer codes.'
+sources:
+  - 'pandas documentation, User Guide: Enhancing performance https://pandas.pydata.org/docs/user_guide/enhancingperf.html'
+  - 'pandas documentation, User Guide: Scaling to large datasets https://pandas.pydata.org/docs/user_guide/scale.html'
 ---
 
 **Module 8 · about 15 minutes · uses Modules 2 and 3.** You'll be able to spot slow pandas code and rewrite it.
+
+<div class="bigidea">pandas is fast when it works on whole columns at once. A Python loop over rows does the same job one row at a time, often 100 times slower.</div>
+
+**In everyday terms:** a supermarket checkout: scanning a full basket at once versus walking back to the shelf for each item.
 
 ## 1. Loop, apply, vectorised
 
@@ -84,6 +91,36 @@ small.dtypes
 
 Read only the columns you need (`usecols`), and store repeated text as `category`. On a file with millions of rows this is the difference between "fits in memory" and "crashes".
 
+<div class="meaning">
+
+<dl>
+<dt>Vectorised</dt><dd>df.qty * df.price: one operation on the whole column, in compiled code.</dd>
+<dt>apply(axis=1)</dt><dd>A Python function per row: convenient but slow.</dd>
+<dt>np.where / np.select</dt><dd>If-then rules on whole columns.</dd>
+<dt>astype('category')</dt><dd>Stores repeated text once; less memory, faster groupby.</dd>
+<dt>Physical meaning</dt><dd>A loop pays Python's overhead on every row; a column operation pays it once and does the rest in C. On a million rows that is the difference between a blink and a coffee break.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"apply is vectorised."** It still calls your Python function once per row. Use it when no column operation exists, not by default.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The task.</b> 10 % off when qty is 3 or more.</div>
+<div class="step"><b>Loop.</b> <code>for i, row in df.iterrows(): ...</code> one row at a time.</div>
+<div class="step"><b>Vectorised.</b> <code>df['pay'] = np.where(df.qty >= 3, df.price * 0.9, df.price)</code></div>
+<div class="step"><b>Same answer.</b> <table class="lk-tbl"><tr><th>qty</th><th>price</th><th>pay</th></tr><tr><td>1</td><td>10</td><td>10.0</td></tr><tr><td>3</td><td>10</td><td><mark>9.0</mark></td></tr><tr><td>5</td><td>20</td><td><mark>18.0</mark></td></tr></table></div>
+<div class="step"><b>Timing on 1 million rows.</b> Loop: seconds to minutes. np.where: milliseconds.</div>
+</div>
+
+<div class="problem" data-problem="pd-where-sum"></div>
+
 ## 4. Your turn
 
 ```python exercise data=orders.csv
@@ -140,3 +177,12 @@ T_\text{loop} \approx n \cdot (c_\text{python} + c_\text{work}), \qquad T_\text{
 **Try it on your own data:** [[big-o-plotter]] shows how loop costs grow with the number of rows.
 
 **New words:** *vectorised*, *iterrows*, *apply*, *np.where*, *category dtype*, *usecols*.
+
+<div class="keypoints">
+
+- Prefer column operations over loops and apply.
+- np.where for one rule, np.select for several.
+- category dtype for repeated text.
+- Read only the columns you need (usecols=).
+
+</div>

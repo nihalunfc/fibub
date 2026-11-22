@@ -16,9 +16,16 @@ quiz:
     choices: ['FY2026 (Apr 2025 to Mar 2026)', 'FY2025', 'FY2027']
     ans: 0
     why: "dt.to_period('Q-MAR') or a shifted month gives the year that ends in March 2026."
+sources:
+  - 'pandas documentation, User Guide: Time series / date functionality https://pandas.pydata.org/docs/user_guide/timeseries.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 7 · about 15 minutes · uses Lesson 3.5.** You'll be able to slice sales by weekday, weekend, month and fiscal period.
+
+<div class="bigidea">Every date carries a weekday, a month, a quarter and a fiscal period. .dt reads them off, so you can ask "do weekends sell more?" with one groupby.</div>
+
+**In everyday terms:** a calendar page: the day name, the month and the week number are all printed on it. You do not need to work them out, just read them.
 
 ## 1. The .dt accessor
 
@@ -76,6 +83,36 @@ orders.groupby(['fy', 'fq'])['qty'].sum()
 
 `'Q-MAR'` means "quarters of a year that ends in March": April to June is Q1 of the year that ends next March. Check one date by hand whenever you set this up.
 
+<div class="meaning">
+
+<dl>
+<dt>.dt.day_name() / .dt.dayofweek</dt><dd>Monday ... Sunday / 0 ... 6.</dd>
+<dt>.dt.dayofweek >= 5</dt><dd>True on Saturday and Sunday.</dd>
+<dt>.dt.month, .dt.quarter, .dt.isocalendar().week</dt><dd>Calendar parts as numbers.</dd>
+<dt>.dt.to_period('Q-MAR').dt.qyear</dt><dd>Fiscal year ending in March, labelled by the year it ends.</dd>
+<dt>Physical meaning</dt><dd>Calendar features turn a date into categories you can compare. A month has 4 or 5 of each weekday, so compare weekdays by average per day, not by total.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Sort the weekday names and you are done."** Text sorts alphabetically: Friday, Monday, Saturday... Group on dayofweek (0-6) or make the names an ordered category.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Dates.</b> <table class="lk-tbl"><tr><th>date</th></tr><tr><td>2026-03-01</td></tr><tr><td>2026-03-04</td></tr><tr><td>2026-04-02</td></tr></table></div>
+<div class="step"><b>Weekday.</b> <code>.dt.day_name()</code> → Sunday, Wednesday, Thursday; <code>.dt.dayofweek</code> → 6, 2, 3.</div>
+<div class="step"><b>Weekend.</b> <code>.dt.dayofweek >= 5</code> → True, False, False.</div>
+<div class="step"><b>Fiscal year starting 1 April.</b> <code>.dt.to_period('Q-MAR').dt.qyear</code> → 2026, 2026, 2027.</div>
+<div class="step"><b>Why 2027?</b> 2 April 2026 is in the fiscal year that ends in March 2027.</div>
+</div>
+
+<div class="problem" data-problem="pd-fiscal-year"></div>
+
 ## 4. Your turn
 
 ```python exercise data=orders.csv
@@ -131,3 +168,12 @@ orders['date'].dt.dayofweek >= 5 is True on Saturday (5) and Sunday (6). Then gr
 </details>
 
 **New words:** *.dt accessor*, *day of week*, *ordered category*, *fiscal year*, *anchored period*, *ISO week*.
+
+<div class="keypoints">
+
+- .dt reads weekday, month, quarter and week from a datetime column.
+- Weekend: dayofweek >= 5.
+- Order weekdays by number, not by name.
+- Fiscal years: to_period('Q-MAR') for a year ending in March.
+
+</div>

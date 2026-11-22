@@ -16,13 +16,19 @@ quiz:
     choices: ['fill_value=0', 'dropna=True', 'aggfunc=0']
     ans: 0
     why: 'fill_value fills empty cells after aggregating.'
+sources:
+  - 'pandas documentation, User Guide: Reshaping and pivot tables https://pandas.pydata.org/docs/user_guide/reshaping.html'
+  - 'McKinney, W. (2022), Python for Data Analysis, 3rd edition, O''Reilly (open access) https://wesmckinney.com/book/'
 ---
 
 **Module 6 · about 20 minutes · uses Lesson 4.2.** You'll be able to build pivot tables like the ones in Excel, in one line.
 
+<div class="bigidea">A pivot table is a groupby by two things at once, laid out as a grid: one set of labels down the side, another across the top, a summary in each cell.</div>
+
+**In everyday terms:** a school timetable: days across the top, periods down the side, and each cell answers one question (which class?). A pivot answers "how much?" in each cell.
+
 ## 1. Rows × columns × values
 
-<!--anim:pivot-anim (table animation, added once the shared tableviz engine is on main)-->
 
 ```python data=orders.csv
 import pandas as pd
@@ -64,6 +70,36 @@ pt = pt[['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']]                 # cal
 ```
 
 `div(..., axis=0)` divides each row by its own total: row percentages. Each store's busiest day stands out.
+
+<div class="meaning">
+
+<dl>
+<dt>index=</dt><dd>The labels down the side (rows).</dd>
+<dt>columns=</dt><dd>The labels across the top.</dd>
+<dt>values=, aggfunc=</dt><dd>What goes in each cell and how it is combined (sum, mean, count).</dd>
+<dt>fill_value=0, margins=True</dt><dd>Zero for empty cells; an All row and column of totals.</dd>
+<dt>Physical meaning</dt><dd>Each cell is the total of the rows that share that row label and column label. Add up a row of cells and you get that label's total; the grand total equals the plain sum of the column, so the pivot only rearranges, never invents.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"An empty cell means zero."** By default it is NaN: no rows had that pair. Fill with 0 only when "no rows" really means "nothing sold", and remember the mean of an empty cell is not 0.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Long data.</b> <table class="lk-tbl"><tr><th>store</th><th>month</th><th>qty</th></tr><tr><td>S01</td><td>Jan</td><td><mark>3</mark></td></tr><tr><td>S01</td><td>Feb</td><td>4</td></tr><tr><td>S02</td><td>Jan</td><td>5</td></tr><tr><td>S01</td><td>Jan</td><td><mark>2</mark></td></tr></table></div>
+<div class="step"><b>Pick the grid.</b> <code>index='store', columns='month', values='qty', aggfunc='sum'</code></div>
+<div class="step"><b>S01, Jan.</b> Two rows: 3 + 2 = 5.</div>
+<div class="step"><b>Result.</b> <table class="lk-tbl"><tr><th>store</th><th>Feb</th><th>Jan</th></tr><tr><td>S01</td><td>4</td><td><mark>5</mark></td></tr><tr><td>S02</td><td><mark>0</mark></td><td>5</td></tr></table> S02 had no February rows; fill_value=0 shows 0.</div>
+<div class="step"><b>Check.</b> Cells add to 14 = the sum of qty.</div>
+</div>
+
+<div class="problem" data-problem="pd-pivot-cell"></div>
 
 ## 4. Your turn
 
@@ -122,3 +158,12 @@ Pivots are for **reading** (reports, comparisons across a row). For further anal
 </details>
 
 **New words:** *pivot_table*, *index / columns / values*, *aggfunc*, *margins*, *fill_value*, *unstack*.
+
+<div class="keypoints">
+
+- pivot_table(index, columns, values, aggfunc) is a two-way groupby as a grid.
+- fill_value=0 for empty cells only when that is the truth.
+- margins=True adds totals; they should match a plain sum.
+- Several values or aggfuncs give a two-level column header.
+
+</div>
