@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './zeeman-stark.more.gen.js';
 import more2 from './zeeman-stark.more2.gen.js';
 import r4 from './zeeman-stark.r4.gen.js';
+import r5 from './zeeman-stark.r5.gen.js';
 
 const MUB = 5.7884e-5;       // Bohr magneton, eV/T
 const MUB_GHZ = 13.9962;     // mu_B/h, GHz/T
@@ -243,6 +244,7 @@ export default {
       trap: 'Squaring the size ($n^2$) alone gives $n^4$, which misses the shrinking energy denominators.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -391,5 +393,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

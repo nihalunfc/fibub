@@ -7,6 +7,7 @@ import { int, pick, choose, round, mcqOptions, C } from '../_util.js';
 import more from './band-theory.more.gen.js';
 import more2 from './band-theory.more2.gen.js';
 import r4 from './band-theory.r4.gen.js';
+import r5 from './band-theory.r5.gen.js';
 
 const HB2M = (C.hbar ** 2) / (2 * C.me) / C.e * 1e18; // hbar^2/2m_e in eV nm^2 (0.0381)
 const H_eVs = C.h / C.e; // Planck constant in eV s
@@ -200,6 +201,7 @@ export default {
       sol: 'The plane waves $\\mathbf k - \\mathbf G$ with the same $|\\mathbf k - \\mathbf G|$ at M are $(\\pi,\\pi)/a$, $(-\\pi,\\pi)/a$, $(\\pi,-\\pi)/a$ and $(-\\pi,-\\pi)/a$, all of length $\\sqrt2\\pi/a$. Four states (times spin), so a weak potential needs a $4\\times4$ matrix there; it splits them into levels set by $U_{10}$ and $U_{11}$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'bth-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'nearly free electrons',
@@ -325,5 +327,6 @@ export default {
       verify: (p) => { const f = kpRHS(p.P); if (p.which === 'bottom') return bisect((x) => f(x) - 1, 1e-6, Math.PI); const x1 = bisect((x) => f(x) + 1, Math.PI + 1e-9, 2 * Math.PI); return (x1 ** 2 - Math.PI ** 2) / Math.PI ** 2; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './commutators-uncertainty.more.gen.js';
 import more2 from './commutators-uncertainty.more2.gen.js';
 import r4 from './commutators-uncertainty.r4.gen.js';
+import r5 from './commutators-uncertainty.r5.gen.js';
 
 const H_EVFS = 4.135667696; // h in eV fs
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
@@ -205,6 +206,7 @@ export default {
       trap: 'Using $\\langle x^4\\rangle = \\sigma^4$ instead of $3\\sigma^4$ for a Gaussian.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'qcu-g01', type: 'nat', level: 1, exams: ['gate', 'net'], sub: 'functions of x and p',
@@ -281,5 +283,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

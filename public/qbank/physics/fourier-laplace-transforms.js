@@ -7,6 +7,7 @@ import { int, choose, round } from '../_util.js';
 import more from './fourier-laplace-transforms.more.gen.js';
 import more2 from './fourier-laplace-transforms.more2.gen.js';
 import r4 from './fourier-laplace-transforms.r4.gen.js';
+import r5 from './fourier-laplace-transforms.r5.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const FT = 'Use $\\tilde f(k) = \\int_{-\\infty}^{\\infty}f(x)e^{-ikx}dx$.';
@@ -225,6 +226,7 @@ export default {
       trap: 'This is the mathematical root of the uncertainty principle: perfect confinement in both domains is impossible.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'flt-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Laplace pairs',
@@ -318,5 +320,6 @@ export default {
         return A + B * Math.exp(-a * t) + C * Math.exp(-b * t); } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

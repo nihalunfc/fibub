@@ -15,7 +15,7 @@ const terms = [...GLOSSARY].sort((a, b) => a[0].localeCompare(b[0], 'en', { sens
 const letters = [...new Set(terms.map((t) => t[0][0].toUpperCase()))];
 const id = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 ---
-<Base title="Startup glossary: business, tax and legal terms explained" description={`${terms.length} startup terms for India, Canada and the USA, from GST, HST and sales tax nexus to vesting, SAFEs and trademarks, each in plain English with its other names and the lesson that explains it.`} ld={coursePageLd(STARTUP, 'Glossary', '', 'glossary')}>
+<Base title="Startup glossary: business, tax and legal terms explained" docTitle="Startup glossary: business, tax and legal terms" description={`${terms.length} startup terms for India, Canada and the USA, from GST, HST and sales tax nexus to vesting, SAFEs and trademarks, each in plain English with its other names and the lesson that explains it.`} ld={coursePageLd(STARTUP, 'Glossary', '', 'glossary')}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/startup/">Start a startup</a> / Glossary</div>
   <div class="cs-layout">
     <CourseSidebar course={STARTUP} live={live} />

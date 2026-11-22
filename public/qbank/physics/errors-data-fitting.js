@@ -7,6 +7,7 @@ import { pick, int, choose, mcqOptions, round } from '../_util.js';
 import more from './errors-data-fitting.more.gen.js';
 import more2 from './errors-data-fitting.more2.gen.js';
 import r4 from './errors-data-fitting.r4.gen.js';
+import r5 from './errors-data-fitting.r5.gen.js';
 
 // erf by Abramowitz-Stegun 7.1.26 (error below 1.5e-7) and by Simpson integration (used by verify).
 const erf = (x) => { const s = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.3275911 * a); return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a)); };
@@ -228,6 +229,7 @@ export default {
       trap: 'Averaging a non-linear function is not the same as applying it to the average.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'edf-g01', type: 'nat', level: 2, exams: ['gate', 'net', 'jam'], sub: 'error propagation',
@@ -390,5 +392,6 @@ export default {
       verify: (p) => (p.mode === 'ln' ? p.s / p.x : p.mode === 'exp' ? p.k * Math.exp(p.k * p.x) * p.s : p.mode === 'sin' ? Math.cos(p.x * Math.PI / 180) * p.s * Math.PI / 180 : 2 * p.s / p.x ** 3) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

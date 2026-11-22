@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './matrices-eigenvalues.more.gen.js';
 import more2 from './matrices-eigenvalues.more2.gen.js';
 import r4 from './matrices-eigenvalues.r4.gen.js';
+import r5 from './matrices-eigenvalues.r5.gen.js';
 
 const pm = (M) => `\\begin{pmatrix} ${M.map((r) => r.join(' & ')).join(' \\\\ ')} \\end{pmatrix}`;
 
@@ -223,6 +224,7 @@ export default {
       trap: '$(\\det A)^2 = 1$ alone allows $\\pm1$; the conjugate pairing fixes the sign.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'mev-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'Hermitian matrices',
@@ -335,5 +337,6 @@ export default {
       verify: (p) => Math.round((((1 + Math.sqrt(5)) / 2) ** p.n - ((1 - Math.sqrt(5)) / 2) ** p.n) / Math.sqrt(5)) },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

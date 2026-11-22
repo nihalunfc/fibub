@@ -7,6 +7,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './complex-analysis.more.gen.js';
 import more2 from './complex-analysis.more2.gen.js';
 import r4 from './complex-analysis.r4.gen.js';
+import r5 from './complex-analysis.r5.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 
@@ -224,6 +225,7 @@ export default {
       trap: 'Picking $\\oint e^z/z\\,dz$ instead gives the integral of $e^{\\cos\\theta}\\cos(\\sin\\theta)$, which is a different (though also $2\\pi$-valued) integral; match the $-\\theta$ in the phase.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'cax-g01', type: 'nat', level: 1, exams: ['jam', 'gate', 'net'], sub: 'Cauchy-Riemann',
@@ -325,5 +327,6 @@ export default {
         return zs.filter((z) => { const m = Math.hypot(...z); return m > 1 && m < 2; }).length; } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

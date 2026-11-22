@@ -10,6 +10,7 @@ const e0 = C.eps0;
 import * as Q5 from '../_util.js';
 import more2 from './dielectrics.more2.gen.js';
 import r4 from './dielectrics.r4.gen.js';
+import r5 from './dielectrics.r5.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -240,6 +241,7 @@ export default {
       trap: 'Multiplying the vacuum answer by an average $\\kappa$; the field must be integrated with $\\kappa(r)$ inside.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'die-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'battery connected or isolated', format: 'comparison',
@@ -376,5 +378,6 @@ export default {
       },
       verify: (p) => 4 * Math.PI * e0 * p.k * (p.a / 100) * (p.b / 100) / ((p.b - p.a) / 100) * 1e12 },
     ...r4.gens,
+    ...r5.gens,
   ],
 };

@@ -6,6 +6,7 @@ import { int, choose, mcqOptions, round } from '../_util.js';
 import more from './angular-momentum.more.gen.js';
 import more2 from './angular-momentum.more2.gen.js';
 import r4 from './angular-momentum.r4.gen.js';
+import r5 from './angular-momentum.r5.gen.js';
 
 const lp = (l, m) => Math.sqrt(l * (l + 1) - m * (m + 1));
 
@@ -196,6 +197,7 @@ export default {
       sol: 'The amplitude is $d^2_{02}(\\beta) = \\sqrt{\\tfrac38}\\sin^2\\beta$. At $\\beta = 90^\\circ$: $\\sqrt{3/8}$, probability $\\tfrac38 = 0.375$. Check with Cartesian forms: $|2,2\\rangle \\propto (x + iy)^2$ becomes $\\propto (z + iy)^2 = z^2 - y^2 + 2iyz$ (up to signs), and projecting $z^2 - y^2$ on $3z^2 - r^2$ gives the same $3/8$.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
   gens: [
     { id: 'qam-g01', type: 'nat', level: 2, exams: ['gate', 'net'], sub: 'ladder operators',
@@ -276,5 +278,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };

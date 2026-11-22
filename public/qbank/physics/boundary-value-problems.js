@@ -5,6 +5,7 @@ import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
 import more from './boundary-value-problems.more.gen.js';
 import more2 from './boundary-value-problems.more2.gen.js';
 import r4 from './boundary-value-problems.r4.gen.js';
+import r5 from './boundary-value-problems.r5.gen.js';
 
 const EPS0 = 8.8541878128e-12;
 const sh = Math.sinh, ch = Math.cosh, PI = Math.PI;
@@ -222,6 +223,7 @@ export default {
       trap: 'Each field component is harmonic, but the field strength squared is not: it is subharmonic.' },
     ...more2,
     ...r4.items,
+    ...r5.items,
   ],
 
   gens: [
@@ -358,5 +360,6 @@ export default {
       } },
     ...more,
     ...r4.gens,
+    ...r5.gens,
   ],
 };
