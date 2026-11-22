@@ -42,7 +42,12 @@ const ld = lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug,
       {d.sources.length > 0 && <section class="cs-sources"><h2>Sources</h2><ul>{d.sources.map((s) => <li set:html={s.replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" rel="noopener">$1</a>')} />)}</ul></section>}
       <div class="cs-end">
         <button type="button" class="btn" data-mark-done>Mark this lesson as done</button>
-        <p class="cs-small">Your ticks stay in this browser. Save them as a file on the <a href={`/learn/courses/${course.id}/#progress`}>course home</a>.</p>
+        <div class="cs-nudge" data-save-nudge hidden role="note">
+          <p><strong>Save your progress.</strong> Your ticks and quiz scores are kept only in this tab, so closing it loses them.</p>
+          <label class="cs-check"><input type="checkbox" data-prog-remember /> Remember my progress on this device</label>
+          <button type="button" class="btn secondary" data-prog-download>Download progress file</button>
+        </div>
+        <p class="cs-small">Your ticks stay in this browser, never on a server. Load a saved file on the <a href={`/learn/courses/${course.id}/#progress`}>course home</a>.</p>
       </div>
       <nav class="cs-pn" aria-label="Previous and next lesson">
         {prev ? <a href={`/learn/courses/${course.id}/${prev.slug}/`}>← {prev.n} {prev.title}</a> : <span />}
