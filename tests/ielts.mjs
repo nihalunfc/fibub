@@ -54,9 +54,10 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
   let fm = null; try { fm = yaml.load(md.split('\n---\n')[0].replace(/^---\n/, '')); } catch (e) { console.log(f, String(e).split('\n')[0]); }
   ok(`${f}: front matter is valid YAML with a 3-question quiz`, fm?.quiz?.length === 3 && (!fm.seoTitle || fm.seoTitle.length <= 60));
   fm?.quiz?.forEach((q, i) => ok(`${f}: quiz ${i + 1} answer exists`, q.ans < q.choices.length));
-  ok(`${f}: summary fits a search snippet`, fm?.summary?.length <= 200);
+  ok(`${f}: summary fits a search snippet`, fm?.summary?.length <= 160);
   ok(`${f}: has key points`, md.includes('class="keypoints"'));
   ok(`${f}: has something to do (figure, steps, problem or practice)`, /data-fig="|class="steps"|data-problem="|class="qbank"/.test(md));
+  for (const m of md.matchAll(/data-bank="([a-z-]+)"[^>]*data-topics="([a-z0-9,-]+)"/g)) for (const t of m[2].split(',')) ok(`${f}: bank topic ${m[1]}/${t} exists`, existsSync(new URL(`../public/qbank/${m[1]}/${t}.js`, import.meta.url)));
   ok(`${f}: has sources`, /\nsources:\n\s+- /.test(md));
   ok(`${f}: every image has alt text`, !/<img(?![^>]*alt=)/.test(md));
 }

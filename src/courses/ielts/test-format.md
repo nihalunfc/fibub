@@ -1,7 +1,7 @@
 ---
 title: 'The four papers, minute by minute'
 seoTitle: 'IELTS test format: timing and question types'
-summary: 'The IELTS test format in detail: how long each paper lasts, how many questions there are, every question type you can meet, and what happens in each minute of the test.'
+summary: 'The IELTS test format: how long each paper lasts, how many questions there are, every question type, and what happens in each part of the test.'
 minutes: 14
 updated: 2026-11-22
 quiz:

@@ -1,7 +1,7 @@
 ---
 title: 'What IELTS is: Academic, General Training and UKVI'
 seoTitle: 'What is IELTS? Academic vs General Training explained'
-summary: 'What the IELTS test is, who uses it, the difference between Academic and General Training, what IELTS for UKVI and Life Skills are, and how to pick the right one.'
+summary: 'What the IELTS test is, who uses it, Academic vs General Training, what IELTS for UKVI and Life Skills are, and how to pick the right one.'
 minutes: 12
 updated: 2026-11-22
 quiz:
