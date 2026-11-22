@@ -75,6 +75,12 @@ export default {
       { id: 'multipoles', name: 'Multipole expansion' },
       { id: 'fields-in-matter', name: 'Fields in matter: polarisation and magnetisation' },
       { id: 'potentials-gauges', name: 'Potentials, gauges and Maxwell\'s equations' },
+
+      { id: 'em-waves-media', name: 'Electromagnetic waves in matter, conductors and plasmas' },
+      { id: 'fresnel-equations', name: 'Reflection, refraction and the Fresnel equations' },
+      { id: 'waveguides', name: 'Waveguides, transmission lines, cavities and optical fibres' },
+      { id: 'radiation', name: 'Radiation from dipoles and accelerated charges' },
+      { id: 'covariant-electrodynamics', name: 'Electrodynamics and relativity: covariant form, field transformations' },
     ] },
     { id: 'thermal', name: 'Kinetic theory and thermodynamics', topics: [
       { id: 'kinetic-theory', name: 'Kinetic theory of gases' },
