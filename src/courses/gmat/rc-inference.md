@@ -53,6 +53,10 @@ Fertiliser passage, topic-free: *people would gain from spending later, but stru
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="grad-verbal" data-topics="rc-passages" data-sub="inference" data-mode="practice" data-exam="gmat"></div>

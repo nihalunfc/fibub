@@ -83,6 +83,10 @@ Every week, count the reasons. Mostly *concept*? Go back to the lessons. Mostly 
 
 You are ready when your last two full practice tests are at or above your target and your error log shows few *concept* mistakes. If you are 30 or more points short a week before the test, think about moving the date; rescheduling costs less than a retake.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="gmatq"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 6. Practice
 
 Keep the maths warm every day. Here is a quick one:

@@ -57,6 +57,10 @@ Each class's change (later score minus earlier score), and evidence that B's cha
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="1"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## Practice set
 
 Original SAT-style questions with full explanations. Answer each one before you check it.

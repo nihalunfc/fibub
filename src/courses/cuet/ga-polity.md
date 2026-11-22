@@ -37,6 +37,10 @@ Adopted on **26 November 1949**, in force from **26 January 1950**. Dr B. R. Amb
 | Part IVA (Article 51A) | Fundamental Duties (added in 1976) |
 | Article 368 | How the Constitution is amended |
 
+**Try it:** Tap a dot, use Later, or press Play to walk through the events in order.
+
+<figure class="fig" data-fig="@tp-timeline" data-set="constitution"><figcaption>Notice the order: each step makes sense because of the one before.</figcaption></figure>
+
 ## 2. Rights worth knowing by number
 
 - **Article 14** equality before law · **15** no discrimination by religion, race, caste, sex or place of birth · **17** untouchability abolished

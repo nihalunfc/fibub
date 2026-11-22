@@ -60,6 +60,10 @@ sources:
 
 </div>
 
+**Try it:** Choose a form, set the numbers and slide the test value along the line.
+
+<figure class="fig" data-fig="@tp-ineq-line"><figcaption>Open circles leave the end out, closed circles keep it; for |x − c| < d the solution is a single interval around c.</figcaption></figure>
+
 ## Practise: mixed algebra
 
 <div class="qbank" data-bank="grad-quant" data-topics="linear,quadratics,inequalities,functions" data-exam="gre" data-mode="practice" data-n="12"></div>

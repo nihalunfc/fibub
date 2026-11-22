@@ -59,6 +59,10 @@ sources:
 
 </div>
 
+**Try it:** Step through the mechanism.
+
+<figure class="fig" data-fig="@chem-alcohol-dehydration"><figcaption>Protonation, loss of water, then loss of H+ gives the alkene.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-chemistry" data-topics="alcohols-phenols-ethers" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -48,6 +48,10 @@ sources:
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="1"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## Practise: argument questions
 
 <div class="qbank" data-bank="grad-verbal" data-topics="cr-assumption,cr-strengthen-weaken,cr-evaluate-flaw,cr-inference,cr-boldface-paradox" data-exam="gre" data-mode="practice" data-n="10"></div>

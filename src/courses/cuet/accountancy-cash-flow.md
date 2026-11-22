@@ -41,6 +41,10 @@ sources:
 
 </div>
 
+**Try it:** Sort the ten items into operating, investing and financing activities; each tap is checked at once.
+
+<figure class="fig" data-fig="@tp-cashflow-sort"><figcaption>Notice that the box totals are the three parts of the cash flow statement.</figcaption></figure>
+
 ## Practice
 
 <div class="qbank" data-bank="cuet-accountancy" data-topics="cash-flow" data-n="10" data-mode="practice" data-type="mcq"></div>

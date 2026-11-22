@@ -57,6 +57,10 @@ No: "None of this means that museums should keep everything." That shared ground
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## Practice set
 
 <div class="qbank" data-bank="lsat" data-topics="rc-comparative" data-exam="lsat" data-n="4"></div>

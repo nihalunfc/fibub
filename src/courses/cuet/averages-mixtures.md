@@ -64,6 +64,10 @@ The same rule works for concentrations (milk and water, acid solutions), speeds 
 
 </div>
 
+**Try it:** Change the two strengths and the litres, press Pour, then try Hit a target.
+
+<figure class="fig" data-fig="@tp-mixture-vessel"><figcaption>The mixture always lands between the two strengths, nearer the one you used more of.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="cuet-general-test" data-topics="averages-mixtures" data-n="10" data-mode="practice" data-type="mcq"></div>

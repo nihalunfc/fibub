@@ -42,6 +42,10 @@ There is a 10-minute break after the second section. You cannot tell which secti
 
 Since August 2026, most test takers sit the multiple-choice part at a test centre, on a computer (LSAC allows limited exceptions; check its website).
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="lsat"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. From August 2027: three sections
 
 LSAC has announced that from the August 2027 test, the unscored questions will be mixed into the scored sections instead of having a section of their own:

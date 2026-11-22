@@ -88,6 +88,10 @@ If you have no plan after 30 seconds, or you are past 2.5 minutes with no end in
 
 </div>
 
+**Try it:** Set three percent changes in a row and compare the result with the sum of the percents.
+
+<figure class="fig" data-fig="@tp-percent-chain"><figcaption>The result is a product of multipliers, which is why +20% then −20% is not zero.</figcaption></figure>
+
 ## Practise: a mixed quant set
 
 Twenty questions drawn from every quant lesson, in random order, the way the real section mixes them. Note which topics you miss and go back to those lessons.

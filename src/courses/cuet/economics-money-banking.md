@@ -37,6 +37,10 @@ sources:
 
 <div class="problem" data-problem="money-multiplier"></div>
 
+**Try it:** Press Play to follow ₹1,000 through the chain of banks, then change the reserve ratio.
+
+<figure class="fig" data-fig="@tp-bank-chain"><figcaption>Each bank keeps only the reserve, so the bars shrink; the total creeps towards 1 ÷ LRR times the first deposit.</figcaption></figure>
+
 ## 2. The RBI's tools
 
 | Tool | To reduce money supply (fight inflation) | To increase it |
@@ -51,6 +55,10 @@ sources:
 **"Banks lend out only the cash people deposit."** Through the multiplier, the banking system as a whole creates deposits several times the cash it holds. That is why reserve ratios matter.
 
 </div>
+
+**Try it:** Shift the demand and supply sliders and watch the equilibrium move; then try a price ceiling or floor.
+
+<figure class="fig" data-fig="@tp-demand-supply" data-market="money"><figcaption>The dot is equilibrium; a fixed price away from it leaves a shortage or a surplus.</figcaption></figure>
 
 ## 3. Practice
 

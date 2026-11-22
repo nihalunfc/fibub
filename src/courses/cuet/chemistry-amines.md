@@ -38,6 +38,10 @@ sources:
 <div class="step"><b>Aryl amines</b> are much weaker: the lone pair is shared with the ring. Electron-pulling groups (−NO₂) weaken them further.</div>
 </div>
 
+**Try it:** Watch the nitrogen flip.
+
+<figure class="fig" data-fig="@chem-amine-inversion"><figcaption>The lone pair makes amines basic and nucleophilic.</figcaption></figure>
+
 ## 2. Making and testing amines
 
 | Method | Gives |

@@ -88,6 +88,10 @@ So "x² &lt; x" means exactly 0 &lt; x &lt; 1.
 
 </div>
 
+**Try it:** Choose a form, set the numbers and slide the test value along the line.
+
+<figure class="fig" data-fig="@tp-ineq-line"><figcaption>Open circles leave the end out, closed circles keep it; for |x − c| < d the solution is a single interval around c.</figcaption></figure>
+
 ## Practise: GMAT-style questions on this lesson
 
 Each set is new every time: the numbers change, so you can practise as often as you like. They start easy and get harder. Answer, check, then read the full solution and the trap note.

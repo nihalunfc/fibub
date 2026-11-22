@@ -53,6 +53,10 @@ sources:
 
 **Structural:** ionisation (ions swap in and out of the bracket), linkage (ambidentate ligand binds differently), coordination (ligands swap between cation and anion complexes), solvate/hydrate. **Stereo:** geometrical (cis and trans in square planar MA₂B₂ and octahedral MA₄B₂; fac and mer in MA₃B₃) and optical (non-superimposable mirror images, e.g. [Co(en)₃]³⁺).
 
+**Try it:** Turn the complex and switch isomers.
+
+<figure class="fig" data-fig="@chem-complex-isomers"><figcaption>Same formula, different arrangement in space.</figcaption></figure>
+
 ## 3. Bonding
 
 <div class="meaning">

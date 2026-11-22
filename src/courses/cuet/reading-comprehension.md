@@ -56,6 +56,10 @@ CUET's English test uses **factual** passages (science, society, environment, re
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## 4. Practice
 
 Each set gives you one or two original passages with their questions. Time yourself: about 6 minutes for a passage and five questions.

@@ -49,6 +49,10 @@ Two conclusions about the same two groups, such as "Some A are B" and "No A is B
 
 </div>
 
+**Try it:** Pick a statement and a fact and see what follows.
+
+<figure class="fig" data-fig="@tp-contrapositive"><figcaption>Only P true and Q false give an answer; the other two are the classic traps.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="cuet-general-test" data-topics="syllogisms" data-n="10" data-mode="practice" data-type="mcq"></div>

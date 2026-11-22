@@ -39,6 +39,10 @@ sources:
 
 **n-type**: add a group 15 atom (P, As); extra electrons are the majority carriers. **p-type**: add a group 13 atom (B, Al, In); holes are the majority carriers. The material stays electrically neutral either way.
 
+**Try it:** Change the gap and temperature.
+
+<figure class="fig" data-fig="@sx-band-fill"><figcaption>The gap decides whether a material is a conductor, semiconductor or insulator.</figcaption></figure>
+
 ## 2. The p-n junction
 
 <div class="steps" data-title="How the junction forms and works">
@@ -48,6 +52,10 @@ sources:
 <div class="step"><b>Reverse bias</b> (p to −): the barrier grows and only a tiny leakage current flows, until breakdown.</div>
 <div class="step"><b>Rectifier:</b> because a diode conducts one way only, it turns AC into pulsing DC. Half-wave uses one diode; full-wave uses two (centre-tap) or four (bridge).</div>
 </div>
+
+**Try it:** Step through how the junction forms.
+
+<figure class="fig" data-fig="@sx-pn-junction"><figcaption>Diffusion leaves a depletion region and a built-in field.</figcaption></figure>
 
 ## 3. What is in the syllabus, and what is not
 

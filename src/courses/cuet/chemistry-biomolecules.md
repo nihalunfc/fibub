@@ -67,6 +67,10 @@ Amino acids exist as zwitterions (H₃N⁺−CHR−COO⁻). Essential amino acid
 
 </div>
 
+**Try it:** Turn the helix and compare A-T and G-C pairs.
+
+<figure class="fig" data-fig="@chem-dna-helix"><figcaption>G-C has three hydrogen bonds, so GC-rich DNA melts at a higher temperature.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-chemistry" data-topics="biomolecules" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

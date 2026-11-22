@@ -66,6 +66,10 @@ sources:
 
 </div>
 
+**Try it:** Slide the iso-profit line across the feasible region.
+
+<figure class="fig" data-fig="@math-lp-iso"><figcaption>The best value is reached at a corner.</figcaption></figure>
+
 ## 3. Practice
 
 Do the live problem above until you get five right in a row, then try the question set.
