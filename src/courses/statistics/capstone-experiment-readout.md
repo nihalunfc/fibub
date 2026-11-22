@@ -16,9 +16,16 @@ quiz:
     choices: ['As extra wins to make the case stronger', 'As a consistency check: the effect is not driven by one segment; no segment was used to make the decision', 'Not at all']
     ans: 1
     why: 'Segments support or question the main result; deciding on them would be multiple testing (Lesson 6.8).'
+sources:
+  - 'Kohavi, R., Tang, D. and Xu, Y. (2020), Trustworthy Online Controlled Experiments: A Practical Guide to A/B Testing, Cambridge University Press, Chapters 3 and 17'
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 6.2 Difference of two proportions https://www.openintro.org/book/os/'
 ---
 
 **Module 9 · about 90 minutes · uses all of Module 7.** You'll analyse a full test from raw data and write the kind of readout memo analysts send to product teams. It becomes a portfolio piece that shows an employer you can run an experiment end to end.
+
+<div class="bigidea">A readout memo leads with the decision and the size of the effect, then shows the checks that make it trustworthy.</div>
+
+**In everyday terms:** a doctor's letter: diagnosis and treatment first, test results and caveats below. Nobody wants to read the lab method before learning what is wrong.
 
 ## 1. The brief
 
@@ -57,6 +64,36 @@ quiz:
 - **Guardrails judged by size** against the limit in the plan, not by significance alone.
 - **Segments as context**, clearly labelled as not decisive.
 - **One clear recommendation**, with what it's expected to be worth (extra orders or revenue per month) and the main risk.
+
+<div class="meaning">
+
+<dl>
+<dt>Decision</dt><dd>Ship, do not ship, or keep testing, by the rule written in the plan.</dd>
+<dt>Effect</dt><dd>Absolute and relative lift with 95 % CIs, in business units.</dd>
+<dt>Checks</dt><dd>Split, data quality, guardrails, novelty.</dd>
+<dt>Segments</dt><dd>Context only: consistent or not, never the basis of the decision.</dd>
+<dt>Physical meaning</dt><dd>The memo turns numbers into an action someone can take on Monday, with the risk stated plainly. Its value is the decision it supports, not the number of tests it reports.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"More tables make a stronger memo."** One clear decision, the key interval and the checks beat ten tables. Put the rest in an appendix.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Check the split.</b> 11,968 against 12,032: χ² p ≈ 0.68, fine.</div>
+<div class="step"><b>Primary.</b> Conversion 4.12 % → 4.87 %: +0.75 points (CI +0.23 to +1.28), p = 0.005.</div>
+<div class="step"><b>Guardrails.</b> Load +46 ms (CI 37 to 56), inside the 100 ms limit. Refunds unchanged.</div>
+<div class="step"><b>Segments.</b> B wins on phones and computers, new and returning: consistent.</div>
+<div class="step"><b>Decide.</b> Ship. About 7.5 extra orders per 1,000 visitors.</div>
+</div>
+
+<div class="problem" data-problem="readout-orders"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -100,3 +137,12 @@ Write it in this order. Aim for about 400 words plus one table and one chart.
 </details>
 
 **New words:** *readout*, *pre-registration*, *decision memo*, *guardrail breach*.
+
+<div class="keypoints">
+
+- Lead with the decision and the effect size with its interval.
+- Show checks (split, guardrails, novelty) before secondary results.
+- Segments are context, not the basis of the decision.
+- Translate the lift into orders or money per month.
+
+</div>

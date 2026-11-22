@@ -16,9 +16,16 @@ quiz:
     choices: ['It is easier', 'If the process shifted during the baseline, the overall SD is inflated; the moving range reflects short-term noise only', 'It is always smaller']
     ans: 1
     why: 'The moving range is robust to shifts and trends within the baseline, so the limits stay tight enough to catch changes.'
+sources:
+  - 'Wheeler, D. J. (2000), Understanding Variation: The Key to Managing Chaos, 2nd edition, SPC Press'
+  - 'NIST/SEMATECH e-Handbook, 6.3.2 What are Variables Control Charts? https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc32.htm'
 ---
 
 **Module 8 · about 20 minutes · uses Lesson 3.4.** You'll be able to build an individuals control chart for a KPI, read its signals, and explain to a manager why most day-to-day changes need no action.
+
+<div class="bigidea">A control chart draws the limits of ordinary variation, so you react to signals and leave noise alone.</div>
+
+**In everyday terms:** a fever thermometer. Your temperature wobbles a little all day and nobody calls a doctor for 36.9 °C. Above 38 °C is a signal. The control limits are the "normal range" for your KPI.
 
 ## 1. Two kinds of variation
 
@@ -50,6 +57,36 @@ Common rules (Western Electric / Nelson, simplified):
 Use a few rules, not all of them: each extra rule adds false alarms.
 
 **For rates** (share of late orders out of varying daily volumes) a **p-chart** with limits that widen on low-volume days is better; for counts of rare events, a **c-chart**. The individuals chart is a good default for any KPI.
+
+<div class="meaning">
+
+<dl>
+<dt>Centre line</dt><dd>The mean of a calm baseline period.</dd>
+<dt>Moving range</dt><dd>Gap between each day and the day before; its average estimates day-to-day noise.</dd>
+<dt>Limits</dt><dd>Centre ± 2.66 × average moving range (about ± 3 sigma).</dd>
+<dt>Signals</dt><dd>A point outside the limits, or 8 in a row on one side of the centre.</dd>
+<dt>Physical meaning</dt><dd>A process left alone produces values inside the limits about 99.7 % of the time. Points outside, or long runs on one side, mean the process itself changed: a new courier, a broken machine, a pricing error.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"Every bad day needs an explanation."** Chasing ordinary variation wastes time and leads to random fixes that add noise. Investigate signals; for everything inside the limits, improve the process as a whole.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>Baseline.</b> 20 calm days of late-shipping share: mean 4.0 %, average moving range 0.68.</div>
+<div class="step"><b>Limits.</b> 4.0 ± 2.66 × 0.68 → 2.2 % to 5.8 %.</div>
+<div class="step"><b>Day 23: 5.4 %.</b> Inside the limits, no run: ordinary variation. No root-cause meeting.</div>
+<div class="step"><b>Days 27 to 34.</b> Eight days in a row above the centre: a signal.</div>
+<div class="step"><b>Find the cause.</b> A new courier pickup time from day 26. Fix it, then recompute limits after 20 stable days.</div>
+</div>
+
+<div class="problem" data-problem="control-limits"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -95,3 +132,12 @@ Use a few rules, not all of them: each extra rule adds false alarms.
 **Try it on your own data:** the [[control-charts]] tool draws individuals, X-bar and p-charts for your own numbers and flags the signals; [[normal-distribution-lab]] shows where the 3-sigma limits sit on a bell curve.
 
 **New words:** *control chart*, *common-cause variation*, *special-cause variation*, *moving range*, *control limits*, *run rule*, *p-chart*.
+
+<div class="keypoints">
+
+- Set limits from a calm baseline: centre ± 2.66 × average moving range.
+- Signals: a point beyond the limits, or 8 in a row on one side.
+- Do not explain every wobble inside the limits.
+- Recompute limits only after a deliberate, stable change.
+
+</div>
