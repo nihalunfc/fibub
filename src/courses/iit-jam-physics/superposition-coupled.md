@@ -71,6 +71,11 @@ You hear the average pitch, swelling and fading. The envelope cosine has frequen
 
 **Worked example.** `$x = a\sin(100\pi t) + a\sin(104\pi t)$`: frequencies 50 Hz and 52 Hz, so 2 beats per second, 20 beats in 10 s. Musicians tune by turning a peg until the beats slow down and stop. The [Beats lab](/learn/beats-lab/) lets you hear this, and [lesson 3.5](/learn/courses/iit-jam-physics/sound-doppler/) uses beats to find unknown frequencies.
 
+Bring two close frequencies together and watch the envelope slow down.
+
+<figure class="fig" data-fig="@wt-beats"><figcaption>sin 2πf₁t + sin 2πf₂t = 2 cos(π Δf t) sin(2π f̄ t). Notice that the envelope has frequency Δf/2 but the loudness peaks Δf times a second, because both signs of the cosine sound alike.</figcaption></figure>
+
+
 ## 4. Perpendicular SHMs: Lissajous figures
 
 Now let one SHM move a point along `$x$` and another along `$y$`: `$x = A\sin\omega_xt$`, `$y = B\sin(\omega_yt + \phi)$`. The point traces a **Lissajous figure**. For equal frequencies, eliminating `$t$` gives

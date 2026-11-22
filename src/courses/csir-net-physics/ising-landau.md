@@ -160,6 +160,11 @@ A small field `$h(\vec r)$` gives the Ornstein-Zernike correlation `$G(k) \propt
 
 </div>
 
+Landau theory in pictures: the free-energy landscape and the order parameter.
+
+<figure class="fig" data-fig="@wt-landau-wells"><figcaption>F = a(T − T_c)m² + bm⁴ − hm. Notice the single minimum above T_c, two minima below, and the tilt from a field; the lower plot is the equilibrium m(T) from the minimum.</figcaption></figure>
+
+
 ## Practise: exam questions on this lesson
 
 NET Part C style, each with a full solution. More on the [CSIR NET Physics practice page](/learn/courses/csir-net-physics/practice/).

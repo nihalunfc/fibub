@@ -73,6 +73,11 @@ F(m) = F_0 + a(T - T_c)m^2 + bm^4 - hm, \qquad a, b > 0
 
 **First-order transitions in Landau theory.** If a cubic term is allowed (no `$m \to -m$` symmetry, as for nematic liquid crystals), or if the quartic coefficient is negative with a positive `$m^6$` term, a second minimum appears and reaches the height of `$F(0)$` before the `$m^2$` coefficient vanishes. Then `$m$` jumps. For `$F = \alpha(T - T_0)m^2 - Bm^4 + Dm^6$` the transition is at `$T^* = T_0 + B^2/4\alpha D$` with a jump `$m^2 = B/2D$`, and there is hysteresis between the spinodals.
 
+Move through T_c with the Landau free energy.
+
+<div class="steps" data-fig="@wt-landau-wells"><div class="step"><b>T > T_c.</b> F(m) has one minimum at m = 0: the symmetric phase.</div><div class="step"><b>T ≈ T_c.</b> The quadratic term vanishes: the curvature (inverse susceptibility) goes to zero, and fluctuations become huge.</div><div class="step"><b>T < T_c.</b> Two minima at m = ±√(1 − T/T_c): the symmetry is broken spontaneously, the exponent is β = ½.</div><div class="step"><b>Deep in the ordered phase.</b> Turn on a field h: the tilted landscape selects one minimum, and m jumps if you reverse it: a first-order transition in h.</div></div>
+
+
 ## 3. The Ising model in mean field
 
 The simplest model with a transition: spins `$s_i = \pm1$` on a lattice, `$H = -J\sum_{\langle ij\rangle}s_is_j - h\sum_is_i$`. Replace each neighbour by the average `$m$`: every spin feels a field `$zJm + h$`, and

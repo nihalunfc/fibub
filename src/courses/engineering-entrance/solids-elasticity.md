@@ -50,6 +50,11 @@ sources:
 </dl>
 </div>
 
+Why does a wire stretch in proportion to the load? Pull on the lattice below: each row of atoms moves apart a tiny bit, and the sum of all those tiny stretches is the wire's extension. Try the four materials at the same stress.
+
+<figure class="fig" data-fig="@wt-hooke-lattice"><figcaption>Stress σ stretches every atomic "spring" a little, so the strain e = σ/E is the same for every layer. Notice that a stiffer material (bigger E) stretches less at the same stress, and that the line on the graph is straight until the elastic limit.</figcaption></figure>
+
+
 ## 2. Poisson's ratio and the links between moduli
 
 A stretched wire gets thinner. **Poisson's ratio** `$\sigma = -\dfrac{\Delta d/d}{\Delta L/L}$`. In theory it lies between −1 and 0.5; real materials have 0.2 to 0.4, and rubber is close to 0.5 (its volume hardly changes). For a wire, `$\dfrac{\Delta V}{V} = (1 - 2\sigma)\dfrac{\Delta L}{L}$`.

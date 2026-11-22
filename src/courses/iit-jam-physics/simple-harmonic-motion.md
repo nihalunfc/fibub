@@ -102,6 +102,11 @@ The phase `$\pi/4$` played no part: it only decides *when* these things happen.
 
 <div class="problem" data-problem="shm-speed"></div>
 
+Watch x, v and a at the same moment as the block moves, and change k, m and the amplitude.
+
+<figure class="fig" data-fig="@wt-shm-graphs"><figcaption>x = A cos ωt, v = −Aω sin ωt, a = −ω²x. Notice v peaking as x passes zero, a opposite to x, and the energy bar swapping between kinetic and potential while the total stays ½kA².</figcaption></figure>
+
+
 ## 4. Energy
 
 The spring stores potential energy `$\tfrac12kx^2$`; the block carries kinetic energy `$\tfrac12mv^2 = \tfrac12m\omega^2(A^2 - x^2) = \tfrac12k(A^2 - x^2)$`. Add them:

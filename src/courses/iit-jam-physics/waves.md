@@ -99,6 +99,11 @@ for the amplitudes. The fractions of **power** are `$r^2$` and `$(Z_2/Z_1)t^2$`,
 
 **Worked example.** Into a string with four times the mass per unit length: `$Z_2 = 2Z_1$`, `$r = -1/3$`, `$t = 2/3$`. Power reflected `$1/9$`, transmitted `$2\times(2/3)^2 = 8/9$`. The trap is using `$\mu$` instead of `$\sqrt\mu$`.
 
+Pick an end condition and send a pulse at it. Then try the junction between two strings.
+
+<figure class="fig" data-fig="@wt-wave-reflection"><figcaption>The reflection coefficient is r = (Z₁ − Z₂)/(Z₁ + Z₂) = (v₂ − v₁)/(v₂ + v₁) and the transmission coefficient t = 1 + r. Notice r = −1 at a fixed end, +1 at a free end, and a sign change when the second string is heavier.</figcaption></figure>
+
+
 ## 5. Standing waves and the harmonics of a string
 
 A wave and its reflection, running opposite ways with equal amplitude, add to
@@ -127,6 +132,11 @@ Variations examiners like:
 - **Hanging rope**: the tension grows with height, `$v = \sqrt{gy}$`, and a pulse climbs a rope of length `$L$` in `$2\sqrt{L/g}$`.
 
 The [Standing waves calculator](/science/standing-waves/) works out modes for strings and pipes, and the [Travelling wave](/learn/travelling-wave/) tool shows `$k$`, `$\omega$` and direction changing live.
+
+Pluck the string at different places and see which harmonics are present and how many are needed to rebuild the pluck.
+
+<div class="steps" data-fig="@wt-string-modes"><div class="step"><b>Fundamental only.</b> A single smooth arc; this is the pitch you hear.</div><div class="step"><b>Add the 2nd harmonic.</b> The shape already leans toward the pluck point; its size depends on sin(2π x₀/L).</div><div class="step"><b>Four harmonics.</b> The peak sharpens; each mode runs at n f₁, so the shape changes as time passes but repeats exactly every 1/f₁.</div><div class="step"><b>Twelve harmonics.</b> Close to the real triangle. Corners need many modes: b<sub>n</sub> falls only as 1/n².</div></div>
+
 
 ## 6. Dispersion, phase velocity and group velocity
 
