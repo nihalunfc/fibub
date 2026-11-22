@@ -108,6 +108,10 @@ The same idea explains why relativistic beams hold together. Two parallel beams 
 
 </div>
 
+Slide the electron speed and compare the two frames. Count the ions and electrons in each strip.
+
+<figure class="fig" data-fig="@em-magnetism-relativity"><figcaption>In the frame of the test charge the wire is charged (length contraction), so the force is electric. In the lab it is magnetic.</figcaption></figure>
+
 ## 5. Covariant dynamics and plane waves
 
 **Lorentz force.** For a particle of four-momentum `$p^\mu$` and proper time `$\tau$`:

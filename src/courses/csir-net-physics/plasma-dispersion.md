@@ -45,6 +45,10 @@ The frequency depends only on the density: no wavelength appears, so in a cold p
 | tokamak core | `$10^{20}$` | 90 GHz |
 | sodium metal (conduction electrons) | `$2.65\times10^{28}$` | `$1.5\times10^{15}$` Hz (`$\hbar\omega_p \approx 6$` eV) |
 
+Slide the electron density and the frequency of a test wave. Check whether it is reflected or transmitted.
+
+<figure class="fig" data-fig="@em-plasma-slab"><figcaption>The slab oscillates at ω_p = √(ne²/ε₀m); waves below that frequency are reflected, those above pass.</figcaption></figure>
+
 ## 2. Light in a plasma
 
 A field `$E_0e^{-i\omega t}$` drives each free electron to `$x = eE_0/m\omega^2$` (opposite to the force, since there is no spring). The polarisation `$P = -nex$` gives the dielectric function
@@ -101,6 +105,10 @@ For the F layer at 1000 K, `$\lambda_D = 69\sqrt{10^{-9}} = 2.2$` mm and `$N_D \
 </dl>
 
 </div>
+
+Change the density and the temperature. See how the electron cloud and the potential change.
+
+<figure class="fig" data-fig="@em-debye-screen"><figcaption>The potential of a test charge in a plasma falls faster than 1/r: e^(−r/λ_D)/r.</figcaption></figure>
 
 ## 4. Waves with pressure: Bohm-Gross and ion acoustic
 

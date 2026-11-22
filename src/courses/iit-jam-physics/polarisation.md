@@ -90,6 +90,10 @@ At `$\theta_B$` the reflected and refracted rays are at right angles. The refrac
 
 **Scattering.** Air molecules scatter sunlight like tiny dipoles. Seen at `$90^\circ$` from the Sun, sky light is strongly polarised (bees navigate by it), and blue scatters most, which is why the sky is blue ([Sky colour](/learn/sky-colour/)).
 
+Slide the angle of incidence to the Brewster angle, then try the three polaroids.
+
+<figure class="fig" data-fig="@em-brewster"><figcaption>At θB the in-page polarisation is not reflected and the reflected and refracted rays are at 90°. Each polaroid multiplies the light by cos² of the angle between neighbouring axes.</figcaption></figure>
+
 ## 4. Double refraction
 
 In crystals such as calcite and quartz, light polarised in different directions travels at different speeds. In a **uniaxial** crystal there is one special direction, the **optic axis**:

@@ -42,6 +42,10 @@ A concave mirror has negative f, a convex mirror positive f. A plane mirror form
 
 </div>
 
+Slide the object towards and away from the mirror and switch between concave and convex. Watch the three rays and the image.
+
+<figure class="fig" data-fig="@em-mirror-rays"><figcaption>Real images (solid) form in front of the mirror; behind it the image is virtual (dashed). A convex mirror always gives a smaller upright virtual image.</figcaption></figure>
+
 ## 2. Refraction
 
 **Snell's law:** `$\mu_1\sin i = \mu_2\sin r$`, where `$\mu = c/v$`. Light bends towards the normal on entering a denser medium. Frequency stays the same; speed and wavelength drop by μ.
@@ -52,6 +56,10 @@ A concave mirror has negative f, a convex mirror positive f. A plane mirror form
 <div class="problem" data-problem="ro-apparent-depth"></div>
 
 **Total internal reflection.** Going from denser to rarer, the refracted ray grazes the surface at the critical angle C, `$\sin C = \dfrac{\mu_{\text{rarer}}}{\mu_{\text{denser}}}$`. Beyond C, all the light reflects. Glass-air: C ≈ 42°; water-air: C ≈ 49°; diamond: C ≈ 24°, which is why diamonds sparkle. **Optical fibres** guide light by repeated total internal reflection. A lamp at depth h in water lights a circle of radius `$\dfrac{h}{\sqrt{\mu^2 - 1}}$` at the surface. Mirages and the shimmer over hot roads are total internal reflection in air layers.
+
+Raise the angle of incidence until the refracted ray disappears. Then switch to the optical fibre and find the largest entry angle that stays trapped.
+
+<figure class="fig" data-fig="@em-snell-tir"><figcaption>Past the critical angle all the light is reflected. A fibre uses this over and over; its acceptance angle depends on the two refractive indices.</figcaption></figure>
 
 ## 3. Refraction at a curved surface and thin lenses
 
@@ -99,6 +107,20 @@ For a prism of angle A, deviation δ = i + e − A. At **minimum deviation** the
 
 μ is larger for violet than for red, so white light spreads into a spectrum. **Dispersive power** `$\omega = \dfrac{\mu_v - \mu_r}{\mu_y - 1}$`. Two prisms can cancel dispersion while keeping deviation (achromatic), or cancel deviation while keeping dispersion (direct vision). A rainbow is refraction, dispersion and internal reflection in raindrops; the primary bow has red outside.
 
+Slide the angle of incidence, then press Minimum deviation. Raise the dispersion to see the colours spread.
+
+<figure class="fig" data-fig="@em-prism-dispersion"><figcaption>Violet bends more than red. The deviation is smallest when the ray crosses the prism symmetrically.</figcaption></figure>
+
+Step through the path of one ray, or slide its height b. At the end, see each colour at its own minimum deviation.
+
+<div class="steps" data-fig="@em-rainbow-drop">
+<div class="step">Sunlight, a bundle of parallel rays, meets a spherical raindrop. Pick one ray at height b above the axis.</div>
+<div class="step">It refracts into the drop (it bends towards the normal, because water has n ≈ 1.33).</div>
+<div class="step">It reflects once from the back surface (part of the light does; the rest leaves).</div>
+<div class="step">It refracts out again. The total turn D = 180° + 2i − 4r depends on b; see the graph.</div>
+<div class="step">D has a minimum (about 138° for red). Rays near that b all leave in nearly the same direction, so that direction is bright: the rainbow, 42° from the line opposite the sun. Violet's minimum is at a slightly different angle.</div>
+</div>
+
 ## 5. The eye and its defects
 
 The eye lens changes its focal length (accommodation) to focus objects from the near point (25 cm for a normal eye) to infinity.
@@ -117,6 +139,10 @@ The eye lens changes its focal length (accommodation) to focus objects from the 
 - **Astronomical telescope:** `$M = \dfrac{f_o}{f_e}$` at normal adjustment, tube length f_o + f_e; with the image at D, `$M = \dfrac{f_o}{f_e}\left(1 + \dfrac{f_e}{D}\right)$`. A large objective gathers more light and resolves finer detail. Reflecting telescopes use a concave mirror: no chromatic aberration and easier to build large.
 
 **Worked example (level 4).** A compound microscope has f_o = 1 cm and f_e = 5 cm, with the lenses 20 cm apart, and the final image at 25 cm. The eyepiece needs its object at u_e: 1/(−25) − 1/u_e = 1/5 gives u_e = −25/6 ≈ −4.17 cm. So the objective's image is 20 − 4.17 = 15.83 cm behind it, and its object at u_o with 1/15.83 − 1/u_o = 1 gives u_o ≈ −1.07 cm. m_o = 15.83/(−1.07) ≈ −14.8, m_e = 1 + 25/5 = 6. **M ≈ −89** (inverted).
+
+Switch between the microscope and the telescope and change the focal lengths. Follow the rays through each lens.
+
+<figure class="fig" data-fig="@em-scope-rays"><figcaption>The microscope's objective makes a big real image that the eyepiece magnifies; in the telescope the two focal points coincide and the beam leaves parallel.</figcaption></figure>
 
 <div class="keypoints">
 

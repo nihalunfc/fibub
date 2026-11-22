@@ -73,6 +73,10 @@ The Earth's field is roughly that of a huge dipole whose south pole points to th
 
 A **deflection magnetometer** (tangent law): a small needle in two perpendicular fields B and B_H settles at θ with `$B = B_H\tan\theta$`.
 
+Slide the latitude from the equator to the pole. Watch the dip needle tilt and read the horizontal and vertical parts of the field.
+
+<figure class="fig" data-fig="@em-earth-dip"><figcaption>The dip angle grows from 0° at the magnetic equator to 90° at the poles, following tan δ = 2 tan λ.</figcaption></figure>
+
 ## 4. Magnetisation, H and susceptibility
 
 When a material sits in a field, its atoms line up and add their own moments. **Magnetisation** M is the magnetic moment per unit volume (A/m). The **magnetising field** H (A/m) is the part set by free currents alone, such as nI in a solenoid. Then:
@@ -98,6 +102,10 @@ B = \mu_0(H + M), \qquad M = \chi H, \qquad \mu_r = 1 + \chi, \qquad B = \mu_0\m
 **"Only iron responds to magnets."** Every material does. Water is diamagnetic, and a strong enough field (about 16 T) can levitate a living frog. The effect is just a million times weaker than in iron.
 
 </div>
+
+Choose each material, then raise B and lower T. Watch the atomic arrows line up (or not) and read M.
+
+<figure class="fig" data-fig="@em-mag-types"><figcaption>Diamagnets oppose the field weakly; paramagnets line up a little more when cold; ferromagnets below T_c have domains that grow when B is applied.</figcaption></figure>
 
 ## 6. Domains and the hysteresis loop
 

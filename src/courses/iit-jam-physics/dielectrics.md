@@ -42,6 +42,10 @@ Picture uniform `$\vec P$` in a slab: inside, the head of each dipole sits next 
 
 **Worked example.** `$\vec P = kr\,\hat r$` in a sphere of radius `$R$`: `$\rho_b = -\dfrac{1}{r^2}\dfrac{d}{dr}(kr^3) = -3k$` and `$\sigma_b = kR$`. Check: `$-3k\cdot\tfrac43\pi R^3 + kR\cdot4\pi R^2 = 0$`.
 
+Slide κ and switch between stretched (non-polar) and turned (polar) molecules. See how the bound charge on the faces weakens the field inside.
+
+<figure class="fig" data-fig="@em-dielectric-polarise"><figcaption>The bound surface charge cancels part of E₀, so E = E₀/κ inside while the plates' free charge stays the same.</figcaption></figure>
+
 ## 2. The displacement field D
 
 The field comes from all charges, free and bound. Since bound charge depends on the field, it is easier to define
@@ -111,6 +115,10 @@ As `$\kappa\to\infty$` this becomes the metal sphere of the [previous lesson](/l
 <div class="problem" data-problem="slab-capacitance"></div>
 
 The bound charge on a dielectric face next to a plate with free density `$\sigma_f$` is `$\sigma_f(1 - 1/\kappa)$`, opposite in sign. Between two different layers there is a net bound charge too: with `$\kappa_1 = 2$` next to the `$+$` plate and `$\kappa_2 = 4$` beyond it, the interface carries `$\sigma_f(1/4 - 1/2) = -\sigma_f/4$`. The [capacitor and inductor calculator](/science/capacitor-inductor-calculator/) handles plates with one or two dielectric layers, coaxial cables and spheres.
+
+Switch between series and parallel and change C₁, C₂ and the battery. Watch which quantity is shared and which one adds.
+
+<figure class="fig" data-fig="@em-cap-network"><figcaption>Series: the same charge on both, voltages share (smaller C takes more). Parallel: the same voltage, charges add.</figcaption></figure>
 
 ## 5. Energy, and battery connected or not
 

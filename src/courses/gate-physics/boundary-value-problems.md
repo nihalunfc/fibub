@@ -64,6 +64,10 @@ Neumann data must also be consistent with Gauss's law: `$\oint\partial V/\partia
 
 </div>
 
+Choose an electrode layout and press play. Then click a point to compare its potential with the average of its neighbours.
+
+<figure class="fig" data-fig="@em-laplace-relax"><figcaption>Every free point settles to the average of its neighbours, the defining property of a solution of Laplace's equation; the picture relaxes towards the unique answer.</figcaption></figure>
+
 ## 2. Separation in Cartesian coordinates
 
 Try `$V = X(x)Y(y)$` in two dimensions. Dividing `$\nabla^2V = 0$` by `$XY$`:
@@ -132,6 +136,10 @@ The most-asked separation problem: a sphere (conductor or linear dielectric) in 
 </div>
 
 Try the switch in the figure: as `$\epsilon_r$` rises the field inside weakens and the lines bend towards the sphere, until the metal swallows them completely, meeting its surface at right angles. The dipole part alone shows the `$r^{-2}$` term that decorates the uniform field. The polarisation side of the same problem, with bound charge, is in [fields in matter](/learn/courses/gate-physics/fields-in-matter/).
+
+Choose a set of charges, then raise l one step at a time. Move r closer and see how many terms you need.
+
+<figure class="fig" data-fig="@em-multipole-angles"><figcaption>Each extra multipole term improves the match; far from the charges only the first non-zero terms matter.</figcaption></figure>
 
 ## 4. Cylindrical problems in two dimensions
 
