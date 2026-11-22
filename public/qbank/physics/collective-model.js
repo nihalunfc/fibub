@@ -5,6 +5,7 @@
 // triplet, octupole), the Nilsson model, backbending and superdeformation, liquid-drop deformation energy and fission
 // stability. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './collective-model.more.gen.js';
 
 const R = String.raw;
 const HC = 197.327, MN = 939.0;
@@ -364,6 +365,7 @@ export default {
           sol: R`A band has $I \ge K$. For $K = 0$ the reflection symmetry of the intrinsic state allows only every second spin: even $I$ for $0^+$ bands, odd for $0^-$. For $K \ne 0$ all $I = K, K+1, \dots$ appear. Two phonons of spin 2 (bosons) couple only to $0, 2, 4$. Here: ${c[1]}.`,
           trap: 'Only K = 0 bands skip spins.' };
       } },
+    ...more,
   ],
 };
 function sci0(v) { const e = Math.floor(Math.log10(v)); return `${(v / 10 ** e).toFixed(3)}\\times10^{${e}}`; }

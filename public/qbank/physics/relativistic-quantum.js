@@ -4,6 +4,7 @@
 // the Dirac hydrogen atom and fine structure, hole theory, the Klein paradox and bilinear covariants.
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './relativistic-quantum.more.gen.js';
 
 const ALPHA = 1 / 137.035999, MEC2 = 0.51099895, HBC = 197.3269804, HBAR_MEVS = 6.582119569e-22, RY = 13.605693;
 const diracE = (n, j, Z) => { const k = j + 0.5, Za = Z * ALPHA; return 1 / Math.sqrt(1 + (Za / (n - k + Math.sqrt(k * k - Za * Za))) ** 2); };
@@ -330,5 +331,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

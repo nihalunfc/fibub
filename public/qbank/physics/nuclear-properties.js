@@ -4,6 +4,7 @@
 // electric quadrupole moments (intrinsic and spectroscopic), hyperfine counting, isospin labels.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './nuclear-properties.more.gen.js';
 
 const HBARC = 197.327;          // MeV fm
 const E2 = 1.43996;             // e^2/(4 pi eps0) in MeV fm
@@ -356,5 +357,6 @@ export default {
           sol: `$F$ runs from $|I - J|$ to $I + J$, giving $2\\min(I, J) + 1$ levels. If $I \\ge J$ there would be $2J + 1 = ${2 * J + 1}$. Since only ${n} appear, $I < J$ and $2I + 1 = ${n}$: $I = ${half(I)}$.`,
           trap: 'Using $2J + 1$, or assuming the count always gives I.', I, J };
       } },
+    ...more,
   ],
 };

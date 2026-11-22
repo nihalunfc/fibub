@@ -5,6 +5,7 @@
 // and the CMOS inverter. The JAM topics `diodes` and `transistors` cover rectifiers, alpha/beta and load lines.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './semiconductor-devices.more.gen.js';
 
 const VT300 = 0.025852; // kT/q at 300 K, volts
 const G = ['gate', 'net'];
@@ -356,5 +357,6 @@ export default {
           trap: 'Using $C_0$ (the zero-bias value) or forgetting that more reverse bias lowers $C$ and raises $f$.' };
       },
       verify: (p) => 1 / (2 * Math.PI * Math.sqrt(p.L * 1e-6 * p.C0 / Math.sqrt(1 + p.VR / p.Vbi) * 1e-12)) / 1e6 },
+    ...more,
   ],
 };

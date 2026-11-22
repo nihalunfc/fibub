@@ -6,6 +6,7 @@
 // (Basic mean-field Ising, Landau m^2-m^4, exponents and scaling relations are in phase-transitions.)
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './ising-landau.more.gen.js';
 
 const onsagerM = (t) => { const K = 1 / t; const s = Math.sinh(2 * K); return s <= 1 ? 0 : Math.pow(1 - Math.pow(s, -4), 1 / 8); }; // t = kT/J
 const TC2D = 2 / Math.log(1 + Math.SQRT2);
@@ -332,5 +333,6 @@ export default {
           sol: `${P[1]}. Unfrustrated clusters (any ferromagnet, or an antiferromagnet on a bipartite graph like the square ring) have just the two global flips. On the triangle at most two bonds can be satisfied: 6 of 8 states. On the tetrahedron the best is two up, two down: $\\binom42 = 6$ states with energy $-2|J|$.`,
           trap: 'Frustration (an odd loop of antiferromagnetic bonds) multiplies the ground-state degeneracy.' };
       } },
+    ...more,
   ],
 };

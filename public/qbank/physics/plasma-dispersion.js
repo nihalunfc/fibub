@@ -4,6 +4,7 @@
 // (cyclotron, upper hybrid, Faraday rotation, whistlers) and pulsar dispersion.
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './plasma-dispersion.more.gen.js';
 
 const PI = Math.PI, E = C.e, ME = C.me, EPS = C.eps0, C0 = C.c, KB = C.kB, MP = C.mp, HB = C.hbar;
 const wp = (n) => Math.sqrt(n * E * E / (EPS * ME));      // electron plasma angular frequency, n in m^-3
@@ -344,5 +345,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

@@ -4,6 +4,7 @@
 // structure and line counts, transition-metal ions, zero-field splitting, MRI gradients and sensitivity.
 // Original questions for CSIR NET (and GATE) practice (fibub). Zeeman energies and simple ESR g values are in `zeeman-stark`.
 import { pick, int, choose, mcqOptions, round } from '../_util.js';
+import more from './esr-nmr.more.gen.js';
 
 const H = 6.62607015e-34, KB = 1.380649e-23;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
@@ -381,5 +382,6 @@ export default {
           trap: 'The spread is $2nI$ times the splitting, one less than the number of lines times $a$.' };
       },
       verify: (p) => (p.mode === 'low' ? p.B0 - p.a * p.n * p.I : 2 * p.a * p.n * p.I) },
+    ...more,
   ],
 };

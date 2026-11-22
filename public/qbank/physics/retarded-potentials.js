@@ -4,6 +4,7 @@
 // equations. (Gauges, retarded time and the LW potentials themselves are in potentials-gauges.)
 // Original questions (fibub) for CSIR NET Part C and GATE. Levels: 1 warm-up ... 5 top rank.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './retarded-potentials.more.gen.js';
 
 const PI = Math.PI, E = C.e, ME = C.me, EPS = C.eps0, C0 = C.c, MU0 = C.mu0;
 const KL = E * E / (6 * PI * EPS * C0 ** 3);          // Larmor coefficient for an electron, W s^4/m^2
@@ -341,5 +342,6 @@ export default {
         const o = mcqOptions(r, P[1], P[2], (v) => v);
         return { q: P[0], ...o, sol: `The answer is ${P[1]}. ${P[3]}` };
       } },
+    ...more,
   ],
 };

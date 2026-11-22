@@ -2,6 +2,7 @@
 // geometry, logical puzzles, graph reading and estimation. Original questions written for fibub (none copied from a
 // past paper). Single-answer MCQs only, as in the real Part A. Levels 1 warm-up ... 4 hard.
 import { int, choose, mcqOptions, round } from '../_util.js';
+import more from './part-a-aptitude.more.gen.js';
 
 // Place the correct option at a position that cycles through A-D, so answers are spread evenly.
 const POS = [1, 3, 0, 2, 2, 0, 3, 1];
@@ -360,4 +361,4 @@ const gens = [
     verify(p) { return Math.log10(p.y2 / p.A) / Math.log10(p.x2); } },
 ];
 
-export default { topic: 'part-a-aptitude', items, gens };
+export default { topic: 'part-a-aptitude', items, gens: [...gens, ...more] };

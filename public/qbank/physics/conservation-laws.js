@@ -4,6 +4,7 @@
 // decay ratio, the neutral kaon system (strangeness oscillation, CP violation) and the CPT theorem.
 // Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, shuffle } from '../_util.js';
+import more from './conservation-laws.more.gen.js';
 
 const HBAR_MEVS = 6.582120e-22, CC = 2.99792458e8;
 // name: [Q, B, Le, Lmu, Ltau, S]
@@ -400,5 +401,6 @@ export default {
           trap: 'Phase space alone would favour the electron mode; the helicity factor reverses that.' };
       },
       verify: (p) => (0.511 / 105.658) ** 2 * ((p.M ** 2 - 0.511 ** 2) / (p.M ** 2 - 105.658 ** 2)) ** 2 / 10 ** p.e },
+    ...more,
   ],
 };
