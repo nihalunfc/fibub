@@ -991,4 +991,95 @@ export default {
     },
     verify: (p) => 2.99792458e8 / (2 * p.n * p.L) / 1e6,
   },
+  // ---- 1.6 to 1.10 special functions, PDEs, Green's functions, tensors, probability ----
+  'sfn-legendre-coeff': {
+    title: 'Legendre coefficients of a cubic',
+    make(r) {
+      const a = int(r, -3, 3), b = int(r, -3, 3), c = int(r, 1, 6), d = int(r, 1, 5), l = int(r, 0, 3);
+      const cs = [a + c / 3, b + (3 * d) / 5, (2 * c) / 3, (2 * d) / 5], answer = cs[l];
+      return {
+        q: `<p>Expand f(x) = ${a} + ${b}x + ${c}x² + ${d}x³ on [−1, 1] as a Legendre series f = Σ c<sub>ℓ</sub>P<sub>ℓ</sub>(x). Find c<sub>${l}</sub>.</p>`,
+        answer, unit: '', tol: 0.005, abs: 0.002,
+        hint: 'Rewrite the powers: x² = (P₀ + 2P₂)/3 and x³ = (3P₁ + 2P₃)/5, then collect. (Or use c_ℓ = (2ℓ + 1)/2 ∫ f P_ℓ dx.)',
+        solution: steps(`x² = ⅓P₀ + ⅔P₂ and x³ = ⅗P₁ + ⅖P₃ (from P₂ = (3x² − 1)/2 and P₃ = (5x³ − 3x)/2).`, `So f = (${a} + ${c}/3)P₀ + (${b} + 3·${d}/5)P₁ + (2·${c}/3)P₂ + (2·${d}/5)P₃.`, `c<sub>${l}</sub> = <b>${answer.toFixed(4)}</b>. Check: the four coefficients add to f(1) = ${a + b + c + d}, because every P_ℓ(1) = 1.`),
+        a, b, c, d, l,
+      };
+    },
+    verify(p) { // c_l = (2l+1)/2 * integral of f P_l, midpoint rule
+      const P = [() => 1, (x) => x, (x) => (3 * x * x - 1) / 2, (x) => (5 * x ** 3 - 3 * x) / 2], N = 20000; let s = 0;
+      for (let i = 0; i < N; i++) { const x = -1 + (2 * (i + 0.5)) / N; s += (p.a + p.b * x + p.c * x * x + p.d * x ** 3) * P[p.l](x); }
+      return ((2 * p.l + 1) / 2) * s * (2 / N);
+    },
+  },
+  'pde-rod-cooling': {
+    title: 'midpoint temperature of a cooling rod',
+    make(r) {
+      const L = [0.2, 0.3, 0.5][int(r, 0, 2)], k = [1.2e-5, 2.3e-5, 9.7e-5][int(r, 0, 2)], T0 = [60, 80, 100, 150][int(r, 0, 3)], f = [0.04, 0.06, 0.1, 0.15][int(r, 0, 3)];
+      const t = (f * L * L) / k, e1 = Math.exp(-(Math.PI ** 2) * f), e3 = Math.exp(-9 * Math.PI ** 2 * f);
+      const answer = (4 * T0 / Math.PI) * (e1 - e3 / 3);
+      return {
+        q: `<p>A rod of length ${L} m (diffusivity κ = ${k} m²/s) is at a uniform ${T0} °C. At t = 0 both ends are put into ice at 0 °C. Find the temperature at its midpoint after ${t.toFixed(1)} s, in °C.</p>`,
+        answer, unit: '°C', tol: 0.005,
+        hint: 'u = Σ b_n sin(nπx/L) e^(−n²π²κt/L²) with b_n = 4T₀/(nπ) for odd n. At the midpoint sin(nπ/2) = 1, −1, 1, ... for n = 1, 3, 5. Work out κt/L² first; two terms are enough.',
+        solution: steps(`κt/L² = ${k} × ${t.toFixed(1)} / ${L}² = ${f}.`, `n = 1: (4·${T0}/π) e^(−π²·${f}) = ${((4 * T0 / Math.PI) * e1).toFixed(3)} °C. n = 3: −(4·${T0}/3π) e^(−9π²·${f}) = ${(-(4 * T0 / (3 * Math.PI)) * e3).toFixed(3)} °C.`, `u(L/2) ≈ <b>${answer.toFixed(2)} °C</b> (the n = 5 term is smaller than ${(((4 * T0) / (5 * Math.PI)) * Math.exp(-25 * Math.PI ** 2 * f)).toFixed(3)} °C).`),
+        T0, f,
+      };
+    },
+    verify(p) { let s = 0; for (let n = 1; n < 400; n += 2) s += (4 * p.T0 / (n * Math.PI)) * Math.sin((n * Math.PI) / 2) * Math.exp(-n * n * Math.PI ** 2 * p.f); return s; },
+  },
+  'dgf-string-load': {
+    title: 'deflection of a string under point and spread loads',
+    make(r) {
+      const L = [1, 1.5, 2][int(r, 0, 2)], T = [50, 100, 200][int(r, 0, 2)], F = [2, 5, 10][int(r, 0, 2)], w = [5, 10, 20][int(r, 0, 2)];
+      const xs = L * [0.25, 0.4, 0.6][int(r, 0, 2)], x = L * [0.3, 0.5, 0.7][int(r, 0, 2)];
+      const lo = Math.min(x, xs), hi = Math.max(x, xs), yP = (F * lo * (L - hi)) / (T * L), yU = (w * x * (L - x)) / (2 * T), answer = 1000 * (yP + yU);
+      return {
+        q: `<p>A string of length ${L} m under tension ${T} N is fixed at both ends. It carries its own uniform load of ${w} N/m and a point force of ${F} N at x′ = ${xs.toFixed(2)} m (both downwards, small deflections). Find the deflection at x = ${x.toFixed(2)} m, in mm.</p>`,
+        answer, unit: 'mm', tol: 0.005,
+        hint: 'The deflection obeys −T y″ = f(x). Its Green\'s function is G(x, x′) = x<(L − x>)/(T L). Add the point-force response F·G(x, x′) and the uniform-load response w x(L − x)/(2T).',
+        solution: steps(`Point force: F·G = ${F} × ${lo.toFixed(2)} × (${L} − ${hi.toFixed(2)}) / (${T} × ${L}) = ${(1000 * yP).toFixed(3)} mm.`, `Uniform load: ∫G w dx′ = w x(L − x)/(2T) = ${w} × ${x.toFixed(2)} × ${(L - x).toFixed(2)} / ${2 * T} = ${(1000 * yU).toFixed(3)} mm.`, `Superposition: <b>${answer.toFixed(3)} mm</b>.`),
+        L, T, F, w, xs, x,
+      };
+    },
+    verify(p) { // finite differences: -T y'' = f with the point force as F/h at the nearest node
+      const N = 600, h = p.L / N, f = Array(N + 1).fill(p.w); f[Math.round(p.xs / h)] += p.F / h;
+      // Thomas algorithm for T(-y[i-1] + 2y[i] - y[i+1])/h^2 = f[i]
+      const n = N - 1, cp = Array(n), dp = Array(n), a = -1, b = 2, c = -1;
+      for (let i = 0; i < n; i++) { const rhs = (f[i + 1] * h * h) / p.T; if (i === 0) { cp[i] = c / b; dp[i] = rhs / b; } else { const m = b - a * cp[i - 1]; cp[i] = c / m; dp[i] = (rhs - a * dp[i - 1]) / m; } }
+      const y = Array(n); y[n - 1] = dp[n - 1]; for (let i = n - 2; i >= 0; i--) y[i] = dp[i] - cp[i] * y[i + 1];
+      return 1000 * y[Math.round(p.x / h) - 1];
+    },
+  },
+  'tns-principal': {
+    title: 'principal stresses of a 2D stress tensor',
+    make(r) {
+      const sx = int(r, -40, 80), sy = int(r, -40, 80), txy = int(r, -50, 50) || 15;
+      const m = (sx + sy) / 2, R = Math.hypot((sx - sy) / 2, txy), answer = m + R, ang = (0.5 * Math.atan2(2 * txy, sx - sy) * 180) / Math.PI;
+      return {
+        q: `<p>A plane stress state has σ<sub>xx</sub> = ${sx} MPa, σ<sub>yy</sub> = ${sy} MPa and σ<sub>xy</sub> = ${txy} MPa. Find the larger principal stress in MPa.</p>`,
+        answer, unit: 'MPa', tol: 0.005, abs: 0.05,
+        hint: 'The principal stresses are the eigenvalues of the symmetric 2×2 tensor: (σxx + σyy)/2 ± √[((σxx − σyy)/2)² + σxy²].',
+        solution: steps(`Mean: (${sx} + ${sy})/2 = ${m} MPa.`, `Radius (of Mohr\'s circle): √[(${(sx - sy) / 2})² + ${txy}²] = ${R.toFixed(3)} MPa.`, `σ₁ = ${m} + ${R.toFixed(3)} = <b>${answer.toFixed(2)} MPa</b>, along the axis rotated by ½ atan2(2σxy, σxx − σyy) = ${ang.toFixed(1)}° from x. The trace σ₁ + σ₂ = ${sx + sy} MPa is unchanged.`),
+        sx, sy, txy,
+      };
+    },
+    verify(p) { // maximise the normal stress n.sigma.n over directions
+      let best = -Infinity; for (let i = 0; i < 200000; i++) { const t = (Math.PI * i) / 200000, c = Math.cos(t), s = Math.sin(t); best = Math.max(best, c * c * p.sx + 2 * s * c * p.txy + s * s * p.sy); } return best;
+    },
+  },
+  'prb-net-rate': {
+    title: 'net counting rate with background',
+    make(r) {
+      const tb = [100, 200, 300][int(r, 0, 2)], ts = [50, 100, 200][int(r, 0, 2)], B = [1.5, 2, 4][int(r, 0, 2)], S = [3, 5, 8, 12][int(r, 0, 3)];
+      const Nb = Math.round(B * tb), Ns = Math.round((B + S) * ts), net = Ns / ts - Nb / tb, answer = Math.sqrt(Ns / ts ** 2 + Nb / tb ** 2);
+      return {
+        q: `<p>A background run records ${Nb} counts in ${tb} s. With the sample in place, ${Ns} counts are recorded in ${ts} s. Find the uncertainty (one standard deviation) of the net sample rate, in counts per second.</p>`,
+        answer, unit: 's⁻¹', tol: 0.005,
+        hint: 'Each count N has σ = √N, so a rate N/t has σ = √N/t. A difference of independent rates has σ² equal to the sum of their σ².',
+        solution: steps(`Gross rate ${Ns}/${ts} = ${(Ns / ts).toFixed(3)} s⁻¹ with σ = √${Ns}/${ts} = ${(Math.sqrt(Ns) / ts).toFixed(4)} s⁻¹.`, `Background ${Nb}/${tb} = ${(Nb / tb).toFixed(3)} s⁻¹ with σ = √${Nb}/${tb} = ${(Math.sqrt(Nb) / tb).toFixed(4)} s⁻¹.`, `Net rate ${net.toFixed(3)} s⁻¹ ± √(${(Math.sqrt(Ns) / ts).toFixed(4)}² + ${(Math.sqrt(Nb) / tb).toFixed(4)}²) = ± <b>${answer.toFixed(4)} s⁻¹</b>. Variances add even though the rates are subtracted.`),
+        Nb, Ns, tb, ts,
+      };
+    },
+    verify: (p) => Math.hypot(Math.sqrt(p.Ns) / p.ts, Math.sqrt(p.Nb) / p.tb),
+  },
 };
