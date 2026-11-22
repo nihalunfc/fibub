@@ -1,0 +1,51 @@
+// Class 12 Chemistry, Chapter 7 Alcohols, Phenols and Ethers: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('al');
+
+export default {
+  topic: 'alcohols-phenols-and-ethers', name: 'Alcohols, Phenols and Ethers', n: 7,
+  items: [
+    m.mcq(1, 'classify', '<p>Propan-2-ol is a:</p>', 'secondary alcohol', ['primary alcohol', 'tertiary alcohol', 'phenol'], '<p>The C–OH carbon is bonded to two other carbons.</p>'),
+    m.mcq(2, 'classify', '<p>Which compound is a tertiary alcohol?</p>', '2-methylpropan-2-ol', ['butan-2-ol', '2-methylpropan-1-ol', 'butan-1-ol'], '<p>In 2-methylpropan-2-ol the OH carbon carries three methyl groups.</p>'),
+    m.mcq(2, 'nomenclature', '<p>The IUPAC name of CH₃CH(OH)CH₂CH₃ is:</p>', 'butan-2-ol', ['butan-1-ol', '2-methylpropan-1-ol', 'butanol-3'], '<p>Number from the end that gives the OH the lowest number: the OH is on carbon 2 of a four-carbon chain.</p>', { trap: 'Giving the OH the higher number.' }),
+    m.mcq(2, 'nomenclature', '<p>The IUPAC name of CH₃OCH₂CH₃ is:</p>', 'methoxyethane', ['ethoxymethane', 'propan-1-ol', 'methyl ethanol'], '<p>The smaller group plus O becomes the alkoxy prefix (methoxy), and the longer chain is the parent (ethane).</p>'),
+    m.mcq(2, 'physical', '<p>Ethanol boils at 78 °C but methoxymethane (same molecular formula) at −24 °C because:</p>', 'ethanol molecules form hydrogen bonds', ['ethanol is heavier', 'methoxymethane is polar', 'ethanol has a longer carbon chain'], '<p>Isomers have the same mass. Only ethanol has an O–H bond and therefore hydrogen bonds between its molecules.</p>'),
+    m.mcq(2, 'physical', '<p>Which has the highest boiling point?</p>', 'butan-1-ol', ['butane', 'ethoxyethane', 'propanal'], '<p>Of similar size, the alcohol is hydrogen bonded.</p>'),
+    m.mcq(3, 'physical', '<p>The solubility of alcohols in water falls as the carbon chain gets longer because:</p>', 'the non-polar alkyl part grows relative to the polar OH', ['the OH group is lost', 'the molecules become ionic', 'hydrogen bonds become stronger'], '<p>Water likes the OH end but dislikes the long hydrocarbon end.</p>'),
+    m.mcq(2, 'preparation', '<p>Hydration of propene (acid-catalysed) gives mainly:</p>', 'propan-2-ol', ['propan-1-ol', 'propanal', 'propanone'], '<p>Markovnikov addition: H adds to the carbon with more H, OH to the more substituted carbon.</p>', { trap: 'Forgetting Markovnikov’s rule.' }),
+    m.mcq(2, 'preparation', '<p>Reduction of a ketone with NaBH₄ gives:</p>', 'a secondary alcohol', ['a primary alcohol', 'a tertiary alcohol', 'an ether'], '<p>Aldehydes give primary alcohols and ketones give secondary alcohols.</p>'),
+    m.mcq(3, 'preparation', '<p>Methanal reacts with a Grignard reagent RMgX and then water to give:</p>', 'a primary alcohol', ['a secondary alcohol', 'a tertiary alcohol', 'an aldehyde'], '<p>HCHO + RMgX → RCH₂OMgX → RCH₂OH.</p>'),
+    m.mcq(2, 'acidity', '<p>The order of acidic strength is:</p>', 'ethanol < water < phenol', ['water < ethanol < phenol', 'phenol < water < ethanol', 'ethanol < phenol < water'], '<p>Alkyl groups push electrons and weaken the alcohol; the phenoxide ion is stabilised by resonance.</p>'),
+    m.mcq(3, 'acidity', '<p>Which is the strongest acid?</p>', '2,4,6-trinitrophenol', ['phenol', '4-methylphenol', '4-chlorophenol'], '<p>Three –NO₂ groups withdraw electrons and spread the negative charge of the anion.</p>'),
+    m.mcq(2, 'reactions', '<p>Which test separates tertiary from primary alcohols quickly at room temperature?</p>', 'Lucas test', ['Tollens test', 'Fehling test', 'Iodoform test'], '<p>Lucas reagent (conc. HCl + ZnCl₂) gives turbidity at once with tertiary alcohols and not at all at room temperature with primary ones.</p>'),
+    m.mcq(2, 'reactions', '<p>PCC oxidises a primary alcohol to:</p>', 'an aldehyde', ['a carboxylic acid', 'a ketone', 'an alkene'], '<p>PCC is a mild oxidant that stops at the aldehyde stage.</p>'),
+    m.mcq(2, 'reactions', '<p>Heating ethanol with concentrated H₂SO₄ at 443 K gives mainly:</p>', 'ethene', ['ethoxyethane', 'ethanal', 'ethanoic acid'], '<p>At 443 K the acid dehydrates ethanol to the alkene; at 413 K with excess alcohol you get the ether.</p>', { trap: 'Mixing up the two temperatures.' }),
+    m.mcq(3, 'reactions', '<p>Which alcohol dehydrates fastest with an acid?</p>', '2-methylpropan-2-ol', ['butan-1-ol', 'butan-2-ol', 'ethanol'], '<p>Dehydration goes via a carbocation. The tertiary one is the most stable.</p>'),
+    m.mcq(2, 'phenol', '<p>Phenol reacts with bromine water to give:</p>', 'a white precipitate of 2,4,6-tribromophenol', ['bromobenzene only', 'no reaction', 'a yellow solid of 4-bromophenol only'], '<p>The OH group makes the ring so reactive that all three ortho/para positions are brominated even without a catalyst.</p>'),
+    m.mcq(2, 'phenol', '<p>Phenol turns neutral FeCl₃ solution:</p>', 'violet', ['red', 'blue-green precipitate', 'yellow'], '<p>The violet complex is the standard test for phenols.</p>'),
+    m.mcq(3, 'phenol', '<p>Why is phenol ortho/para directing?</p>', 'the oxygen lone pair puts electron density on the ortho and para carbons', ['OH is electron withdrawing from the ring', 'phenol is acidic', 'the ring is destroyed'], '<p>Resonance moves a lone pair from O into the ring at those positions.</p>'),
+    m.mcq(2, 'ether', '<p>The Williamson synthesis uses:</p>', 'a sodium alkoxide and a primary alkyl halide', ['two alcohols and H₂SO₄ at 443 K', 'an alkene and water', 'an aldehyde and a Grignard reagent'], '<p>RO⁻ attacks R′X by the SN2 mechanism.</p>'),
+    m.mcq(3, 'ether', '<p>To prepare tert-butyl methyl ether by Williamson, the best pair is:</p>', 'sodium tert-butoxide and chloromethane', ['sodium methoxide and tert-butyl chloride', 'methanol and tert-butanol with H₂SO₄ at 413 K', 'sodium methoxide and tert-butanol'], '<p>The tertiary halide would eliminate to an alkene; put the bulky group on the alkoxide.</p>', { trap: 'Using the tertiary halide.' }),
+    m.mcq(2, 'ether', '<p>HI (excess) cleaves ethoxyethane to give:</p>', 'two molecules of iodoethane', ['ethanol only', 'ethene and water', 'iodoethane and ethanal'], '<p>C₂H₅OC₂H₅ + 2 HI → 2 C₂H₅I + H₂O.</p>'),
+    m.ar(2, 'acidity', 'Phenol is a stronger acid than ethanol.', 'The phenoxide ion is stabilised by resonance, whereas the ethoxide ion is not.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(3, 'reactions', 'Tertiary alcohols are not oxidised easily by PCC or K₂Cr₂O₇.', 'A tertiary alcohol has no hydrogen on the carbon bearing OH.', 0, '<p>Oxidation removes that hydrogen with the O–H hydrogen. Without it, the C=O cannot form without breaking a C–C bond.</p>'),
+    m.ar(3, 'physical', 'The boiling point of ethoxyethane is much lower than that of butan-1-ol.', 'Ethoxyethane molecules cannot hydrogen bond with each other.', 0, '<p>Both true, R explains A: no O–H bond in the ether.</p>'),
+    m.ar(3, 'ether', 'Williamson synthesis of tert-butyl ethyl ether from tert-butyl bromide and sodium ethoxide gives mainly an alkene.', 'The alkoxide is a strong base and a tertiary halide cannot undergo SN2.', 0, '<p>Both true, R explains A: elimination wins.</p>'),
+    m.nat(2, 'reactions', '<p>How many moles of H₂ are formed when 3 moles of ethanol react completely with excess sodium?</p>', () => 1.5, 0.01, '<p>2 ROH + 2 Na → 2 RONa + H₂, so moles of H₂ = 3/2 = 1.5.</p>'),
+    m.nat(2, 'classify', '<p>How many different primary alcohols have the molecular formula C₄H₁₀O?</p>', () => 2, 0, '<p>Butan-1-ol and 2-methylpropan-1-ol.</p>'),
+    m.nat(3, 'acidity', '<p>The pKa of phenol is 10. What is the pH at which exactly half of the phenol is ionised?</p>', () => 10, 0.01, '<p>At half ionisation [A⁻] = [HA], so pH = pKa = 10.</p>'),
+    m.msq(3, 'reactions', '<p>Which of these reactions of phenol occur? (Choose all that apply.)</p>', ['Reacts with NaOH to form sodium phenoxide', 'Reacts with bromine water to give 2,4,6-tribromophenol', 'Reacts with NaHCO₃ to release CO₂', 'Gives a violet colour with neutral FeCl₃'], [0, 1, 3], '<p>Phenol is too weak an acid (pKa 10) to release CO₂ from bicarbonate (carbonic acid pKa 6.4).</p>'),
+  ],
+  gens: [
+    { id: 'al-g01', type: 'nat', level: 2, exams: ['board'], sub: 'reactions',
+      make(rng) { const A = choose(rng, [['ethanol', 46], ['propan-1-ol', 60], ['butan-1-ol', 74]]), g = choose(rng, [5, 10, 15, 20]); return { M: A[1], g, q: `<p>${g} g of ${A[0]} (${A[1]} g/mol) reacts with excess sodium. How many millimoles of H₂ are formed?</p>`, answer: +(g / A[1] / 2 * 1000).toPrecision(5), tol: 0.01, unit: 'mmol', sol: `<p>n(ROH) = ${g}/${A[1]} mol; n(H₂) is half: ${(g / A[1] / 2 * 1000).toFixed(1)} mmol.</p>` }; },
+      verify: (p) => 500 * p.g / p.M },
+    { id: 'al-g02', type: 'nat', level: 3, exams: ['board'], sub: 'acidity',
+      make(rng) { const pKa = choose(rng, [7.15, 9.4, 10, 15.9]), pH = choose(rng, [5, 7, 9, 11, 13]); const f = 100 / (1 + Math.pow(10, pKa - pH)); return { pKa, pH, q: `<p>The pKa of a compound is ${pKa}. What percentage is ionised at pH ${pH}?</p>`, answer: +f.toPrecision(5), tol: 0.02, unit: '%', sol: `<p>ratio = 10^(${pH} − ${pKa}); fraction = ratio/(1 + ratio) = ${f.toFixed(2)} %.</p>` }; },
+      verify: (p) => { const k = Math.pow(10, -p.pKa), h = Math.pow(10, -p.pH); return 100 * k / (k + h); } },
+    { id: 'al-g03', type: 'nat', level: 2, exams: ['board'], sub: 'preparation',
+      make(rng) { const g = choose(rng, [46, 92, 138]), y = choose(rng, [60, 70, 80, 90]); return { g, y, q: `<p>Ethene is hydrated to ethanol: C₂H₄ + H₂O → C₂H₅OH. ${g} g of ethanol (46 g/mol) is obtained at ${y} % yield. What mass of ethene (28 g/mol) was used?</p>`, answer: +(g / 46 * 28 / (y / 100)).toPrecision(5), tol: 0.015, unit: 'g', sol: `<p>n(ethanol) = ${g}/46; ethene needed = n × 28 ÷ ${y / 100} = ${(g / 46 * 28 / (y / 100)).toFixed(1)} g.</p>` }; },
+      verify: (p) => (p.g * 28 * 100) / (46 * p.y) },
+  ],
+};
