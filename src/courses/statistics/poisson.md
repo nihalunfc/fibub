@@ -16,9 +16,16 @@ quiz:
     choices: ['A perfect Poisson', 'Overdispersion: events cluster (busy and quiet periods), so a plain Poisson understates the spread', 'The data has an error']
     ans: 1
     why: 'A Poisson has variance equal to its mean. Variance much bigger than the mean means the rate is not steady, for example lunch rushes, so plan for wider swings.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 4.5 Poisson distribution https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 1.3.6.6.19 Poisson Distribution https://www.itl.nist.gov/div898/handbook/eda/section3/eda366j.htm'
 ---
 
 **Module 3 · about 20 minutes · school maths.** You'll be able to recognise a Poisson situation, compute Poisson probabilities, scale λ to a window, and spot when counts are more spread out than Poisson.
+
+<div class="bigidea">Events that happen independently at a steady average rate (orders per hour, calls per minute) give Poisson counts, and one number λ describes everything.</div>
+
+**In everyday terms:** raindrops on a paving stone: you know about how many land per minute on average, but each minute the count is a bit different, and you cannot know which minute gets more.
 
 ## 1. Counts with no fixed number of tries
 
@@ -61,6 +68,35 @@ Real counts often vary **more** than Poisson, because the rate isn't steady (lun
 
 A binomial with large `$n$` and small `$p$` looks like a Poisson with `$\lambda = np$`: 10,000 visitors each with a 0.03 % chance of reporting a bug is close to Poisson with λ = 3. This "law of rare events" is why the Poisson fits so many rare counts.
 
+<div class="meaning">
+
+<dl>
+<dt>λ</dt><dd>The average count in the window (2 urgent tickets per hour).</dd>
+<dt>P(X = k) = e^(−λ) λ^k ÷ k!</dt><dd>The chance of exactly k events in one window.</dd>
+<dt>Mean = variance = λ</dt><dd>The SD is √λ, so busier windows wobble more in counts but less as a share.</dd>
+<dt>Physical meaning</dt><dd>Poisson is what independent, steady arrivals look like: no memory, no planning. If your counts spread out much more than λ (overdispersion), arrivals are clumping, such as lunch rushes or one customer placing many orders.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"An average of 2 an hour means 2 every hour."** With λ = 2, about 14 % of hours have none at all and about 14 % have 4 or more. Staffing for the average leaves you short one hour in seven.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The rate.</b> On average 2 urgent tickets an hour; one person handles 3 an hour.</div>
+<div class="step"><b>0 and 1.</b> P(0) = e⁻² ≈ 0.135; P(1) = 2e⁻² ≈ 0.271.</div>
+<div class="step"><b>2 and 3.</b> P(2) = 4e⁻²/2 ≈ 0.271; P(3) = 8e⁻²/6 ≈ 0.180.</div>
+<div class="step"><b>Add the manageable hours.</b> P(3 or fewer) ≈ 0.857.</div>
+<div class="step"><b>Turn it round.</b> About 14 % of hours bring 4 or more: in a 40-hour week, about 6 overloaded hours.</div>
+</div>
+
+<div class="problem" data-problem="poisson-overload"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -101,3 +137,12 @@ If the target is "fewer than 1 overloaded hour a week", one person isn't enough 
 **Try it on your own data:** the [[distribution-explorer]] draws the Poisson for any λ and gives exact tail probabilities.
 
 **New words:** *Poisson distribution*, *rate λ*, *overdispersion*, *law of rare events*.
+
+<div class="keypoints">
+
+- Poisson counts events in a fixed window at a steady average rate λ.
+- P(X = k) = e^(−λ) λ^k ÷ k!; mean and variance are both λ.
+- Scale λ with the window: 2 per hour is 16 per 8-hour shift.
+- Variance far above the mean (overdispersion) means clumped events, so Poisson underestimates busy periods.
+
+</div>

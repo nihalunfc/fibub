@@ -16,9 +16,16 @@ quiz:
     choices: ['3 times', '6 times', '9 times']
     ans: 2
     why: 'SE ∝ 1/√n, so to divide it by 3 you multiply n by 3² = 9.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Sections 5.1 and 6.2 (difference of two proportions) https://www.openintro.org/book/os/'
+  - 'NIST/SEMATECH e-Handbook, 7.2 Comparisons based on data from one process https://www.itl.nist.gov/div898/handbook/prc/section2/prc2.htm'
 ---
 
 **Module 4 · about 20 minutes · school maths.** You'll be able to compute standard errors for a mean, a proportion and a difference, tell SE from SD, and plan with the square-root law.
+
+<div class="bigidea">The standard error is the typical distance between a sample result and the truth: the size of the wobble you would see if you repeated the study.</div>
+
+**In everyday terms:** measure your own height ten times with a tape and you get slightly different numbers. The SD is how much single measurements scatter; the SE is how much the average of your ten measurements would scatter if you did the whole thing again.
 
 ## 1. The size of the wobble
 
@@ -64,6 +71,36 @@ A difference is noisier than either group alone, about √2 times as noisy for e
 
 Because of the `$\sqrt{n}$`, precision gets expensive: 4× the data halves the SE; 100× the data cuts it to a tenth. When planning, ask what precision you need *before* asking for more data. Going from a ±2-point to a ±1-point margin costs four times the sample.
 
+<div class="meaning">
+
+<dl>
+<dt>SD</dt><dd>Spread of individual values (customers, orders).</dd>
+<dt>SE of a mean = s/√n</dt><dd>Spread of the sample mean across repeated samples.</dd>
+<dt>SE of a share = √(p(1 − p)/n)</dt><dd>Spread of a percentage such as a conversion rate.</dd>
+<dt>SE of a difference = √(SE₁² + SE₂²)</dt><dd>Wobbles add in squares when you compare two groups.</dd>
+<dt>Physical meaning</dt><dd>The SE is the "give or take" on every result you report. To halve it you need four times as much data, which is why precision gets expensive.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The SE of a difference is SE₁ + SE₂."** Two independent wobbles partly cancel, so they add in squares: √(0.28² + 0.30²) ≈ 0.41 points, not 0.58.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The test.</b> A: 200 of 5,000 bought (4.0 %). B: 240 of 5,000 (4.8 %).</div>
+<div class="step"><b>SE of A.</b> √(0.04 × 0.96 ÷ 5,000) ≈ 0.28 points.</div>
+<div class="step"><b>SE of B.</b> √(0.048 × 0.952 ÷ 5,000) ≈ 0.30 points.</div>
+<div class="step"><b>SE of the difference.</b> √(0.28² + 0.30²) ≈ 0.41 points.</div>
+<div class="step"><b>Compare.</b> The difference is 0.8 points, about 2 SEs: borderline, worth the formal test of Module 6.</div>
+</div>
+
+<div class="problem" data-problem="se-difference"></div>
+
 <details class="maths" open>
 <summary>Maths and principle</summary>
 
@@ -105,3 +142,12 @@ Because of the `$\sqrt{n}$`, precision gets expensive: 4× the data halves the S
 **Try it on your own data:** the [[hypothesis-tests]] tool shows the standard error behind each test it runs; the [[sample-size]] calculator runs the square-root law backwards.
 
 **New words:** *standard error*, *SE of a proportion*, *SE of a difference*, *square-root law*.
+
+<div class="keypoints">
+
+- SD describes individuals; SE describes a statistic.
+- SE of a mean = s/√n; of a share = √(p(1 − p)/n).
+- For a difference of independent groups, add SEs in squares.
+- Square-root law: four times the data halves the SE.
+
+</div>

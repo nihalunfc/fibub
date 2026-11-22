@@ -16,9 +16,16 @@ quiz:
     choices: ['+$24', '−$16', '+$40']
     ans: 1
     why: 'Expected payout = 0.08 × $300 = $24, minus the $40 price = −$16. The seller expects to keep $16 per warranty on average.'
+sources:
+  - 'OpenIntro Statistics, 4th edition (Diez, Cetinkaya-Rundel, Barr), Section 3.4 Random variables (expectation) https://www.openintro.org/book/os/'
+  - 'Blitzstein, J. and Hwang, J. (2019), Introduction to Probability, 2nd edition, Chapter 4 Expectation https://projects.iq.harvard.edu/stat110'
 ---
 
 **Module 2 · about 20 minutes · school maths.** You'll be able to compute expected value and its standard deviation, use them to compare business options, and explain why the long run matters.
+
+<div class="bigidea">The expected value is what a chancy choice pays per try on average over many tries, so it is the number to compare options with when you will repeat the choice.</div>
+
+**In everyday terms:** a coin game that pays $3 on heads and nothing on tails is worth $1.50 a go in the long run. You never win $1.50 on a single toss, yet after 1,000 tosses you will have close to $1,500.
 
 ## 1. Deciding under chance
 
@@ -51,6 +58,36 @@ Two options can share an EV and carry very different risk. The **standard deviat
 ```
 
 A $100 sure payment and a 1 % chance of $10,000 both have EV $100, but the second is far riskier. Businesses that cannot survive a bad run (small firms, tight cash flow) should weigh the SD, not just the EV.
+
+<div class="meaning">
+
+<dl>
+<dt>Outcomes x</dt><dd>The possible results, in money or units.</dd>
+<dt>Probabilities p</dt><dd>How likely each result is; they add up to 1.</dd>
+<dt>E[X] = Σ p·x</dt><dd>Weight each result by its chance and add up: the long-run average per try.</dd>
+<dt>SD of X</dt><dd>How far a single try usually lands from E[X]: the risk.</dd>
+<dt>Physical meaning</dt><dd>Expected value is the balance point of all the possible outcomes, each weighted by how often it happens. Businesses that repeat a decision thousands of times (coupons, warranties, stock) live on that average; a person making the choice once also cares about the spread.</dd>
+</dl>
+
+</div>
+
+<div class="myth">
+
+**"The expected value is the most likely result."** A $10 coupon with an EV of $2.40 per customer never pays $2.40 to anyone: each customer gives $30 or $0. EV is a long-run average, not a typical single outcome.
+
+</div>
+
+Watch it happen, one step at a time:
+
+<div class="steps">
+<div class="step"><b>The choice.</b> Send a $10-off coupon or not? Each sale makes $40 profit before any discount.</div>
+<div class="step"><b>No coupon.</b> 5 % buy. EV per customer = 0.05 × $40 = $2.00.</div>
+<div class="step"><b>Coupon.</b> 8 % buy, but each sale now makes $30. EV = 0.08 × $30 = $2.40.</div>
+<div class="step"><b>Scale up.</b> To 10,000 customers: $20,000 against $24,000. The coupon wins by $4,000.</div>
+<div class="step"><b>Check the assumptions.</b> Would some of the 8 % have bought anyway at full price? That "cannibalisation" is the first thing to test (Module 7).</div>
+</div>
+
+<div class="problem" data-problem="expected-value-coupon"></div>
 
 <details class="maths" open>
 <summary>Maths and principle</summary>
@@ -92,3 +129,12 @@ The coupon wins by $0.40 per customer: on 50,000 customers, about $20,000. But t
 **Try it on your own data:** the [[probability-tree]] works out the expected value of a decision with several stages.
 
 **New words:** *expected value*, *payoff*, *law of large numbers*, *risk*, *standard deviation of an outcome*.
+
+<div class="keypoints">
+
+- E[X] = sum of (outcome × probability): the long-run average per try.
+- Compare options by EV when the decision is repeated many times.
+- The SD of the outcome measures risk; two options with equal EV can differ a lot in it.
+- The law of large numbers: the average of many tries settles near the EV.
+
+</div>
