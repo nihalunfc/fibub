@@ -72,8 +72,8 @@ export default function autolinkTools() {
   return (tree, file) => {
     const path = file?.path || file?.history?.[0] || '';
     const isBlog = /[\\/]blog[\\/][^\\/]+[\\/][^\\/]+\.md$/.test(path);
-    // Course lessons (ML foundations, Statistics, Power BI, Data storytelling, Sky watching, Astronomy) use hand-made [[tool-id]] links only (no automatic links inside a lesson).
-    const isCourse = /[\\/]courses[\\/](?:ml-foundations|statistics|power-bi|data-storytelling|astronomy|sky-watching)[\\/][^\\/]+\.md$/.test(path);
+    // Course lessons (ML foundations, Statistics, Power BI, Data storytelling, Sky watching, Astronomy, pandas) use hand-made [[tool-id]] links only (no automatic links inside a lesson).
+    const isCourse = /[\\/]courses[\\/](?:ml-foundations|statistics|power-bi|data-storytelling|astronomy|sky-watching|pandas)[\\/][^\\/]+\.md$/.test(path);
     if (!isBlog && !isCourse && !/[\\/]tools[\\/][^\\/]+[\\/]guide\.md$/.test(path)) return;
     // A tool guide never links to itself; a Blog article may link to every tool, its own included.
     const self = isBlog ? '' : basename(dirname(path));

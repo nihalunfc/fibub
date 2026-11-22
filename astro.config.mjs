@@ -3,6 +3,7 @@ import sitemap from '@astrojs/sitemap';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import autolinkTools from './src/lib/autolink.mjs';
 import remarkMathml from './src/lib/mathml.mjs';
+import remarkPycells from './src/lib/pycells.mjs';
 
 // When each page last changed, for the sitemap's <lastmod>: a tool's newest entry in the change log
 // (made from git history by scripts/changelog.mjs just before the build), else its guide's `updated`.
@@ -51,7 +52,7 @@ export default defineConfig({
   })],
   // Links between tool guides: the first mention of another tool's name links to it (src/lib/autolink.mjs).
   // Maths in the ML foundations lessons becomes MathML at build time (src/lib/mathml.mjs).
-  markdown: { remarkPlugins: [remarkMathml], rehypePlugins: [autolinkTools] },
+  markdown: { remarkPlugins: [remarkMathml, remarkPycells], rehypePlugins: [autolinkTools] },
   // CSS goes in shared files the browser keeps between pages (only very small sheets are inlined).
   build: { format: 'directory', inlineStylesheets: 'auto' },
   // Never inline scripts: the CSP (public/_headers) allows only script files from this site. Small

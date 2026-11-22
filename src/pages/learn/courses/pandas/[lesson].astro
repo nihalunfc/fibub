@@ -1,0 +1,19 @@
+---
+import LessonPage from '../../../../components/course/LessonPage.astro';
+import { PANDAS } from '../../../../courses/pandas/syllabus';
+import { FIGURES } from '../../../../courses/pandas/figures';
+import { courseLessons, type LessonEntry } from '../../../../lib/course';
+import '../../../../styles/math.css';
+import '../../../../styles/pycells.css';
+import '../../../../courses/ml-foundations/figures/figs.css';
+export async function getStaticPaths() {
+  const written = await courseLessons(PANDAS);
+  const live = new Set(written.keys());
+  return [...written].map(([slug, entry]) => ({ params: { lesson: slug }, props: { slug, entry, live } }));
+}
+const { slug, entry, live } = Astro.props as { slug: string; entry: LessonEntry; live: Set<string> };
+---
+<LessonPage course={PANDAS} entry={entry} slug={slug} live={live} figures={FIGURES} />
+<script>
+  import '../../../../scripts/pycells';
+</script>
