@@ -72,6 +72,14 @@ export default {
         {
           "id": "current-electricity",
           "name": "Current electricity and circuits"
+        },
+        {
+          "id": "moving-charges-magnetism",
+          "name": "Moving charges and magnetic fields"
+        },
+        {
+          "id": "electromagnetic-induction",
+          "name": "Electromagnetic induction"
         }
       ]
     }
