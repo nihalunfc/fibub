@@ -11,6 +11,7 @@ const deg = Math.PI / 180;
 
 import * as Q5 from '../_util.js';
 import more2 from './geometrical-optics.more2.gen.js';
+import r4 from './geometrical-optics.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -224,6 +225,7 @@ export default {
       options: ['In the primary bow red is on the outside.', 'The primary bow lies about $42^\\circ$ from the point directly opposite the Sun.', 'The secondary bow has its colours in the reverse order.', 'The secondary bow is formed by one internal reflection in each drop.'], answer: [0, 1, 2],
       sol: 'Each drop sends light back most strongly at its angle of minimum deviation: about $42^\\circ$ (red) and $40^\\circ$ (violet) from the antisolar point for one internal reflection, so red is outside. The secondary bow (about $51^\\circ$) comes from two internal reflections, which reverses the colours.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'gop-t21', type: 'mcq', level: 1, exams: ['jam'], sub: 'images',
@@ -364,5 +366,6 @@ export default {
           sol: `The object is at ${k}$f$. Object inside $f$: virtual, upright, magnified. Between $f$ and $2f$: real, inverted, magnified. At $2f$: real, inverted, same size. Beyond $2f$: real, inverted, diminished. So the image is ${right}.`,
           trap: 'Compare the object distance with $f$ and $2f$ first.' };
       } },
+    ...r4.gens,
   ],
 };

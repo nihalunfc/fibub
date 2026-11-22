@@ -6,6 +6,7 @@ import { pick, int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 
 import * as Q5 from '../_util.js';
 import more2 from './circuits.more2.gen.js';
+import r4 from './circuits.r4.gen.js';
 
 // Helpers for the variety templates (ids ending -t21 to -t25).
 // q5msq: a statement MSQ with a random mix of true lines (from good) and false lines (from bad), at least one of each.
@@ -233,6 +234,7 @@ export default {
       sol: 'Maximum transfer needs the load to be the complex conjugate of the source impedance, $Z_L = 30 - 40j\\ \\Omega$: the reactances cancel, leaving $60\\ \\Omega$ in total. $I = 100/60 = 1.667$ A and $P_L = I^2(30) = 83.3$ W $= V^2/(4R_s)$.',
       trap: 'Matching $|Z_L| = |Z_s| = 50\\ \\Omega$ with a pure resistor gives less: $P = 100^2\\times50/((80)^2+40^2) = 62.5$ W.' },
     ...more2,
+    ...r4.items,
   ],
   gens: [
     { id: 'cir-t21', type: 'mcq', level: 2, exams: ['jam'], sub: 'rl transients', format: 'limiting case',
@@ -369,5 +371,6 @@ export default {
           trap: '$V^2/R$ holds only at resonance.' };
       },
       verify: (p) => p.V * p.V * p.R / (p.R * p.R + p.X * p.X) },
+    ...r4.gens,
   ],
 };
