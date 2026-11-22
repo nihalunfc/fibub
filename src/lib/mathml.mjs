@@ -27,6 +27,9 @@ function walk(node, file) {
       node.children[i] = { type: 'html', value: render(c.value.slice(1, -1), false, file) };
     } else if (c.type === 'code' && c.lang === 'math') {
       node.children[i] = { type: 'html', value: `<div class="cs-math">${render(c.value, true, file)}</div>` };
+    } else if (c.type === 'html' && file.includes('/src/courses/ncert-') && c.value.includes('`$')) {
+      // NCERT courses: maths written as `$...$` inside a one-line HTML block (a box, a <dd>, a one-line <details>).
+      c.value = c.value.replace(/`\$([^`$][^`]*?)\$`/g, (_, tex) => render(tex, false, file));
     } else walk(c, file);
   });
 }
