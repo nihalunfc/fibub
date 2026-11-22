@@ -347,4 +347,193 @@ export default {
     },
     verify: (p) => { const f = (z) => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI); let s = 0; const h = p.t / 2000; for (let i = 0; i <= 2000; i++) s += (i === 0 || i === 2000 ? 1 : i % 2 ? 4 : 2) * f(i * h); return p.N * (1 - 2 * (s * h / 3)); },
   },
+  // ---------- Module 9: neural networks ----------
+  'perceptron-update': {
+    title: 'one perceptron correction',
+    make(r) {
+      const w1 = pick(r, -2, 1), w2 = pick(r, -2, 1), x1 = pick(r, 1, 3), x2 = pick(r, 1, 3);
+      const b = -(Math.max(0, w1 * x1 + w2 * x2) + pick(r, 1, 3));
+      const eta = one(r, [0.5, 1]);
+      const z = w1 * x1 + w2 * x2 + b;
+      const nw1 = w1 + eta * x1, nw2 = w2 + eta * x2, nb = b + eta;
+      const answer = nw1 * x1 + nw2 * x2 + nb;
+      return {
+        q: `<p>A perceptron decides whether to send a customer a discount (1) or not (0). Its weights are <b>(${w1}, ${w2})</b> and its bias is <b>${b}</b>. A customer with inputs <b>(${x1}, ${x2})</b> should have got a discount. Apply the perceptron rule with learning rate η = <b>${eta}</b>, then work out the new weighted sum z for the same customer.</p>`,
+        answer, unit: '', tol: 0.001, abs: 1e-6,
+        hint: 'First check what it said: z = w·x + b. It should have said 1, so add η × x to the weights and η to the bias. Then compute z again with the new numbers.',
+        solution: steps(
+          `Old sum: ${w1} × ${x1} + ${w2} × ${x2} + (${b}) = ${z}. Below 0, so it said 0: a mistake.`,
+          `Should be 1, said 0: add. New weights (${w1} + ${eta} × ${x1}, ${w2} + ${eta} × ${x2}) = (${nw1}, ${nw2}); new bias ${b} + ${eta} = ${nb}.`,
+          `New sum: ${nw1} × ${x1} + ${nw2} × ${x2} + (${nb}) = <b>${n(answer, 4)}</b>. It rose by η × (${x1}² + ${x2}² + 1) = ${n(answer - z, 4)}${answer >= 0 ? ', enough to fire now' : ', not yet enough to fire; the next mistake will push it further'}.`),
+        w1, w2, b, x1, x2, eta,
+      };
+    },
+    verify: (p) => p.w1 * p.x1 + p.w2 * p.x2 + p.b + p.eta * (p.x1 ** 2 + p.x2 ** 2 + 1),
+  },
+  'activation-functions-sigmoid': {
+    title: 'a neuron\'s sigmoid output',
+    make(r) {
+      const w1 = pick(r, -1, 1.5, 0.1), w2 = pick(r, -1, 1, 0.1), x1 = pick(r, 0, 3), x2 = pick(r, 0, 3), b = pick(r, -1, 0.5, 0.1);
+      const z = +(w1 * x1 + w2 * x2 + b).toFixed(6);
+      const answer = 1 / (1 + Math.exp(-z));
+      return {
+        q: `<p>An output neuron predicts whether a parcel arrives late. Weights <b>(${w1}, ${w2})</b>, bias <b>${b}</b>, inputs <b>(${x1}, ${x2})</b>. With a sigmoid activation, what probability does it give?</p>`,
+        answer, unit: '', tol: 0.005,
+        hint: 'z = w₁x₁ + w₂x₂ + b, then sigmoid(z) = 1 ÷ (1 + e<sup>−z</sup>).',
+        solution: steps(
+          `z = ${w1} × ${x1} + ${w2} × ${x2} + (${b}) = ${n(z, 4)}.`,
+          `e<sup>−z</sup> = e<sup>${n(-z, 4)}</sup> = ${n(Math.exp(-z), 4)}.`,
+          `sigmoid = 1 ÷ (1 + ${n(Math.exp(-z), 4)}) = <b>${n(answer, 3)}</b>: about a ${Math.round(answer * 100)} % chance of a late parcel. Its slope here is ${n(answer, 3)} × ${n(1 - answer, 3)} = ${n(answer * (1 - answer), 3)}.`),
+        z,
+      };
+    },
+    verify: (p) => (Math.tanh(p.z / 2) + 1) / 2,
+  },
+  'activation-functions-vanish': {
+    title: 'a learning signal through many sigmoid layers',
+    make(r) {
+      const sv = one(r, [0.5, 0.731, 0.881, 0.953]), L = pick(r, 4, 12);
+      const slope = sv * (1 - sv);
+      const answer = slope ** L;
+      return {
+        q: `<p>A deep network uses sigmoid neurons. In every layer the neuron on our path outputs <b>${sv}</b>. Backpropagation multiplies the learning signal by the sigmoid's slope, σ × (1 − σ), once per layer. What fraction of the signal is left after <b>${L}</b> layers (ignore the weights)?</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Work out the slope for one layer, then raise it to the power of the number of layers.',
+        solution: steps(
+          `Slope in one layer: ${sv} × ${n(1 - sv, 3)} = ${n(slope, 3)}.`,
+          `After ${L} layers: ${n(slope, 3)}<sup>${L}</sup> = <b>${n(answer, 3)}</b>.`,
+          `The early layers hardly learn. ReLU's slope is 1 wherever it is active, so the same path would keep the whole signal.`),
+        sv, L,
+      };
+    },
+    verify: (p) => Math.exp(p.L * Math.log(p.sv - p.sv * p.sv)),
+  },
+  'layers-params': {
+    title: 'count a network\'s weights and biases',
+    make(r) {
+      const sizes = [pick(r, 3, 20), one(r, [8, 16, 32, 64]), one(r, [4, 8, 16]), one(r, [1, 3, 10])];
+      let answer = 0; const parts = [];
+      for (let i = 1; i < sizes.length; i++) { const c = sizes[i - 1] * sizes[i] + sizes[i]; parts.push(`${sizes[i - 1]} × ${sizes[i]} + ${sizes[i]} = ${c}`); answer += c; }
+      return {
+        q: `<p>A fully connected network for a store's demand forecast has layers of sizes <b>${sizes.join(' → ')}</b> (inputs, two hidden layers, outputs). How many weights and biases does it have in total?</p>`,
+        answer, unit: 'parameters', tol: 0.001,
+        hint: 'Between two layers, every neuron of the first connects to every neuron of the second (n<sub>in</sub> × n<sub>out</sub> weights), and each neuron of the second has one bias.',
+        solution: steps(...parts.map((t, i) => `Layer ${i + 1} to ${i + 2}: ${t}.`), `Total: <b>${answer.toLocaleString('en-CA')}</b>.`),
+        sizes,
+      };
+    },
+    verify: (p) => { let t = 0; for (let i = 1; i < p.sizes.length; i++) for (let o = 0; o < p.sizes[i]; o++) t += p.sizes[i - 1] + 1; return t; },
+  },
+  'backpropagation-grad': {
+    title: 'the gradient for the first weight',
+    make(r) {
+      const x = pick(r, 1, 3), w1 = pick(r, 0.2, 1, 0.1), w2 = pick(r, 0.5, 2, 0.1), b = pick(r, -1, 0.5, 0.1);
+      const z1 = w1 * x, h = Math.max(0, z1), z2 = w2 * h + b, p = 1 / (1 + Math.exp(-z2));
+      const answer = (p - 1) * w2 * (z1 > 0 ? 1 : 0) * x;
+      return {
+        q: `<p>A tiny network: input x = <b>${x}</b>; z₁ = w₁x with w₁ = <b>${w1}</b>; h = ReLU(z₁); z₂ = w₂h + b with w₂ = <b>${w2}</b>, b = <b>${b}</b>; p = sigmoid(z₂); log-loss with true answer y = 1. Find ∂L/∂w₁, the gradient for the first weight.</p>`,
+        answer, unit: '', tol: 0.01,
+        hint: 'Forward first to get p. The error at z₂ is p − y. Pass it back: times w₂ to reach h, times ReLU\'s slope (1 if z₁ > 0) to reach z₁, times x to reach w₁.',
+        solution: steps(
+          `Forward: z₁ = ${n(z1, 3)}, h = ${n(h, 3)}, z₂ = ${n(w2, 3)} × ${n(h, 3)} + (${b}) = ${n(z2, 4)}, p = ${n(p, 4)}.`,
+          `Error at z₂: p − y = ${n(p - 1, 4)}.`,
+          `Back to h: × w₂ = ${n((p - 1) * w2, 4)}. Back to z₁: × ReLU'(${n(z1, 3)}) = 1, still ${n((p - 1) * w2, 4)}.`,
+          `To w₁: × x = ${x}, so ∂L/∂w₁ = <b>${n(answer, 3)}</b>. Negative, so gradient descent will raise w₁, which raises p towards the true answer 1.`),
+        x, w1, w2, b,
+      };
+    },
+    verify: (p) => { const L = (w1) => { const z2 = p.w2 * Math.max(0, w1 * p.x) + p.b; return Math.log(1 + Math.exp(-z2)); }; const e = 1e-5; return (L(p.w1 + e) - L(p.w1 - e)) / (2 * e); },
+  },
+  'training-networks-updates': {
+    title: 'how many weight updates a training run makes',
+    make(r) {
+      const nRows = pick(r, 20, 120) * 500, B = one(r, [32, 64, 128, 256]), E = pick(r, 5, 30, 5);
+      const per = Math.ceil(nRows / B);
+      const answer = per * E;
+      return {
+        q: `<p>A network that reads product photos trains on <b>${nRows.toLocaleString('en-CA')}</b> images with mini-batches of <b>${B}</b>, for <b>${E}</b> epochs. The last batch of each epoch may be smaller. How many weight updates happen in total?</p>`,
+        answer, unit: 'updates', tol: 0.0005,
+        hint: 'Each batch gives one update. Divide the rows by the batch size and round up for the last, smaller batch. Then multiply by the epochs.',
+        solution: steps(
+          `${nRows.toLocaleString('en-CA')} ÷ ${B} = ${n(nRows / B, 5)}, rounded up: ${per} batches per epoch.`,
+          `${per} × ${E} epochs = <b>${answer.toLocaleString('en-CA')} updates</b>.`,
+          'Each update uses only one batch, so each step is a little noisy, but there are many of them.'),
+        nRows, B, E,
+      };
+    },
+    verify: (p) => { let u = 0; for (let e = 0; e < p.E; e++) for (let i = 0; i < p.nRows; i += p.B) u++; return u; },
+  },
+  'convolution-patch': {
+    title: 'one value of a feature map',
+    make(r) {
+      const P = [0, 1, 2].map(() => [0, 1, 2].map(() => pick(r, 0, 9)));
+      const K = one(r, [[[1, 0, -1], [1, 0, -1], [1, 0, -1]], [[1, 1, 1], [0, 0, 0], [-1, -1, -1]], [[1, 0, -1], [2, 0, -2], [1, 0, -1]]]);
+      let answer = 0; const terms = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { answer += P[i][j] * K[i][j]; if (K[i][j]) terms.push(`${P[i][j]} × ${K[i][j]}`); }
+      const grid = (g) => table(['', '', ''], g.map((row) => row.map(String))).replace(/<tr><th><\/th><th><\/th><th><\/th><\/tr>/, '');
+      return {
+        q: `<p>A 3 × 3 patch of a greyscale photo (brightness 0 to 9) and a 3 × 3 filter:</p><p>Patch:</p>${grid(P)}<p>Filter:</p>${grid(K)}<p>What value does the filter give at this position?</p>`,
+        answer, unit: '', tol: 0.001, abs: 0.5,
+        hint: 'Multiply each pixel by the filter weight in the same place, then add all nine products. The zeros drop out.',
+        solution: steps(
+          `Non-zero products: ${terms.join(' + ').replace(/\+ (\d+) × -/g, '− $1 × ')}.`,
+          `Sum: <b>${answer}</b>.`,
+          answer === 0 ? 'Zero: no change in brightness in the direction this filter looks for.' : `${Math.abs(answer) >= 10 ? 'A strong' : 'A weak'} response: the brightness changes across this patch in the direction the filter checks.`),
+        P, K,
+      };
+    },
+    verify: (p) => { let s = 0; for (let k = 8; k >= 0; k--) s += p.P[Math.floor(k / 3)][k % 3] * p.K[Math.floor(k / 3)][k % 3]; return s; },
+  },
+  'convolution-params': {
+    title: 'weights in a convolution layer',
+    make(r) {
+      const k = one(r, [3, 5]), cin = one(r, [1, 3, 16, 32]), cout = one(r, [8, 16, 32, 64]);
+      const answer = k * k * cin * cout + cout;
+      return {
+        q: `<p>A convolution layer has <b>${cout}</b> filters of size <b>${k} × ${k}</b>, reading an input with <b>${cin}</b> channel${cin > 1 ? 's' : ''}${cin === 3 ? ' (red, green, blue)' : ''}. How many weights and biases does it learn, whatever the image size?</p>`,
+        answer, unit: 'parameters', tol: 0.001,
+        hint: 'Each filter covers k × k pixels in every input channel. Multiply by the number of filters, then add one bias per filter.',
+        solution: steps(
+          `One filter: ${k} × ${k} × ${cin} = ${k * k * cin} weights.`,
+          `${cout} filters: ${k * k * cin} × ${cout} = ${k * k * cin * cout}, plus ${cout} biases = <b>${answer.toLocaleString('en-CA')}</b>.`,
+          'The same filters slide over the whole picture, so a 4K photo needs no more weights than a thumbnail.'),
+        k, cin, cout,
+      };
+    },
+    verify: (p) => p.cout * (p.k * p.k * p.cin + 1),
+  },
+  'sequences-memory': {
+    title: 'how much of an early word survives',
+    make(r) {
+      const u = one(r, [0.5, 0.7, 0.8, 0.9, 0.95]), t = pick(r, 5, 30, 5);
+      const answer = 100 * u ** t;
+      return {
+        q: `<p>A simple recurrent network keeps a one-number memory. Each step it multiplies the old memory by <b>u = ${u}</b> before adding the new word (ignore the squashing). What percentage of the first word's signal is left after <b>${t}</b> more steps?</p>`,
+        answer, unit: '%', tol: 0.01,
+        hint: 'Each step keeps a fraction u of what was there. After t steps that is u multiplied by itself t times.',
+        solution: steps(
+          `Fraction left: ${u}<sup>${t}</sup> = ${n(u ** t, 3)}.`,
+          `As a percentage: <b>${n(answer, 3)} %</b>.`,
+          answer < 5 ? 'Practically forgotten. This is why plain RNNs struggle with long sentences, and why LSTMs and attention were invented.' : 'Still noticeable, but it keeps shrinking with every extra step.'),
+        u, t,
+      };
+    },
+    verify: (p) => 100 * Math.exp(p.t * Math.log(p.u)),
+  },
+  'sequences-rnn-step': {
+    title: 'run a recurrent cell for three steps',
+    make(r) {
+      const w = one(r, [0.5, 1, 1.5]), u = one(r, [0.4, 0.6, 0.8]), xs = [pick(r, 0, 1), pick(r, 0, 2), pick(r, -1, 1)];
+      let h = 0; const rows = [];
+      for (const x of xs) { const z = w * x + u * h; h = Math.tanh(z); rows.push([x, n(z, 4), n(h, 4)]); }
+      return {
+        q: `<p>A one-number recurrent cell reads daily sales signals with h<sub>t</sub> = tanh(w × x<sub>t</sub> + u × h<sub>t−1</sub>), w = <b>${w}</b>, u = <b>${u}</b>, starting from h<sub>0</sub> = 0. The inputs are <b>${xs.join(', ')}</b>. What is h<sub>3</sub>?</p>`,
+        answer: h, unit: '', tol: 0.01, abs: 0.002,
+        hint: 'Go one step at a time. At each step mix the new input (times w) with the previous memory (times u), then squash with tanh.',
+        solution: steps(...rows.map(([x, z, hh], i) => `Step ${i + 1}: ${w} × ${x} + ${u} × (previous h) = ${z}; tanh gives h = ${hh}.`), `So h<sub>3</sub> = <b>${n(h, 3)}</b>. It carries a faded trace of every input so far.`),
+        w, u, xs,
+      };
+    },
+    verify: (p) => { let h = 0; for (const x of p.xs) { const z = p.w * x + p.u * h; h = (Math.exp(2 * z) - 1) / (Math.exp(2 * z) + 1); } return h; },
+  },
 };
