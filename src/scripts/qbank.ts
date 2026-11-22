@@ -277,14 +277,14 @@ async function groupBlock(g: Item) {
 let uid = 0;
 
 /** One question card: badges, group material, the question, the answer area and (after checking) the solution. */
-async function card(it: Item, ctx: { bankName?: string; topicName?: (t: string) => string; mode: 'practice' | 'mock' | 'list'; onCheck?: (r: any) => void; onNew?: () => void; noGroup?: boolean }) {
+async function card(it: Item, ctx: { marks?: number; bankName?: string; topicName?: (t: string) => string; mode: 'practice' | 'mock' | 'list'; onCheck?: (r: any) => void; onNew?: () => void; noGroup?: boolean }) {
   const name = `qb${++uid}`;
   const el = h('article', { class: 'qb-card', 'data-id': it.id });
   const badges = h('p', { class: 'qb-badges' },
     ctx.topicName ? h('span', {}, ctx.topicName(it.topic)) : null,
     h('span', {}, it.type?.toUpperCase()),
     h('span', { class: `qb-lv qb-lv${it.level}` }, LEVELS[it.level] ?? `Level ${it.level}`),
-    h('span', {}, `${marksOf(it)} mark${marksOf(it) > 1 ? 's' : ''}`),
+    h('span', {}, `${ctx.marks ?? marksOf(it)} mark${(ctx.marks ?? marksOf(it)) > 1 ? 's' : ''}`),
     it.format && it.format !== 'single' && it.format !== 'multi' ? h('span', {}, it.format) : null,
     it.gen ? h('span', { class: 'qb-fresh', title: 'Made from a template: new numbers every time' }, 'Fresh numbers') : null,
   );
@@ -517,7 +517,7 @@ async function mock(root: HTMLElement) {
       cur = i;
       const q = qs[i];
       body.innerHTML = '';
-      q.card ??= await card(q.it, { mode: 'mock', topicName });
+      q.card ??= await card(q.it, { mode: 'mock', topicName, marks: q.marks });
       body.append(h('p', { class: 'qb-sec' }, `${q.sec} · Question ${i + 1} of ${qs.length}`), q.card.el,
         h('p', { class: 'qb-nav' },
           h('button', { type: 'button', class: 'btn ghost', disabled: i === 0, onclick: () => go(i - 1) }, '← Previous'),
@@ -556,7 +556,7 @@ async function mock(root: HTMLElement) {
         h('p', { class: 'qb-hint' }, 'Weakest topics are at the top. Your answers and solutions are below.'),
         h('button', { type: 'button', class: 'btn', onclick: () => mock(root) }, 'Take another paper')));
       for (const [i, q] of qs.entries()) {
-        const c = await card(q.it, { mode: 'practice', topicName });
+        const c = await card(q.it, { mode: 'practice', topicName, marks: q.marks });
         const r = (q as any).r;
         c.el.prepend(h('p', { class: `qb-out ${r.right ? 'ok' : r.blank ? '' : 'bad'}` }, `Q${i + 1}: ${r.blank ? 'not answered' : r.right ? 'right' : 'wrong'} (${r.marks >= 0 ? '+' : ''}${r.marks})`));
         await c.reveal();
