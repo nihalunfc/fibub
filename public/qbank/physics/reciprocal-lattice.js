@@ -3,6 +3,7 @@
 // Brillouin zones and their high-symmetry points, higher zones, free-electron energies and Fermi spheres in the zone,
 // the Ewald limit. Original questions for fibub. Basics (Miller indices, packing) are in crystal-structure.
 import { pick, int, choose, shuffle, mcqOptions, round, C } from '../_util.js';
+import more from './reciprocal-lattice.more.gen.js';
 
 const PI = Math.PI, D = PI / 180, S2 = Math.SQRT2, S3 = Math.sqrt(3);
 const HB = C.hbar ** 2 / (2 * C.me) / C.e * 1e20; // hbar^2/2m in eV Å^2 (3.81)
@@ -394,5 +395,6 @@ export default {
           trap: 'Counting electrons per conventional cube as $Z$ (forgetting the lattice points per cube), or using the zone corner instead of the nearest face.' };
       },
       verify: (p) => Math.cbrt(3 * Math.PI * Math.PI * p.n) / p.near },
+    ...more,
   ],
 };

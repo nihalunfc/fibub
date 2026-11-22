@@ -3,6 +3,7 @@
 // at low temperature, zero-point energy, dimension dependence (T^d), electrons (gamma T) and the C/T against T^2 plot,
 // compounds with several atoms, magnons. Original questions for fibub.
 import { pick, int, choose, mcqOptions, round, C } from '../_util.js';
+import more from './heat-capacity.more.gen.js';
 
 const PI = Math.PI, R = C.R;
 const BETA0 = 12 * PI ** 4 / 5 * R;    // 1943.8 J/mol K: C = BETA0 (T/theta)^3 per mole of atoms
@@ -375,5 +376,6 @@ export default {
           trap: 'Averaging the speeds arithmetically.' };
       },
       verify: (p) => Math.cbrt(3 / (1 / p.vL ** 3 + 2 / p.vT ** 3)) },
+    ...more,
   ],
 };
