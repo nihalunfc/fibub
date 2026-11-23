@@ -163,7 +163,9 @@ An **identity** is true for every angle, so the graphs of its two sides lie on t
 
 <div class="problem" data-problem="c11m-trig-double"></div>
 
-## 6. Trigonometric equations
+## 6. Beyond the syllabus: trigonometric equations
+
+*The 2023 rationalised NCERT book moved general solutions of trigonometric equations out of the Class 11 syllabus, so check your school's list; they are still needed for JEE.*
 
 An equation like `$\sin x = \tfrac12$` is true only for certain angles. On the graph those are the places where the horizontal line `$y = \tfrac12$` crosses the curve. Because the curve repeats, there are infinitely many, and we describe them all with a **general solution**. The three basic forms (with `$\alpha$` the principal value) are:
 
