@@ -3,13 +3,17 @@
 // /learn/life-skills/) and /learn/courses/ fill themselves. To add a course, list it in COURSES
 // (src/data/curricula.ts) with its `cat`; a long text course's numbers come from its syllabus.ts and lessons.
 import { getCollection } from 'astro:content';
-import { COURSES, COURSE_CATS, CURRICULA, type Course, type CourseCat } from '../data/curricula';
+import { COURSES, COURSE_CATS, CURRICULA, LEVELS, type Course, type CourseCat } from '../data/curricula';
+import { NCERT_COURSES } from '../courses/ncert';
+import { lessonMinutes, fmtStudy } from './studytime';
 import { SKILL_COURSES } from '../data/skill-courses';
 import { flatLessons, type CourseSyllabus } from '../courses/types';
 
 // Every syllabus.ts, found by its exported object (any export with `parts` and `id`).
 const syllabi = Object.values(import.meta.glob('../courses/*/syllabus.ts', { eager: true }) as Record<string, Record<string, unknown>>)
-  .flatMap((m) => Object.values(m)).filter((v): v is CourseSyllabus => !!v && typeof v === 'object' && 'parts' in v && 'id' in v);
+  .flatMap((m) => Object.values(m)).filter((v): v is CourseSyllabus => !!v && typeof v === 'object' && 'parts' in v && 'id' in v)
+  // NCERT study courses are built in src/courses/ncert.ts (one per class and subject), not in a syllabus.ts.
+  .concat(NCERT_COURSES);
 
 // English language courses, also listed on /learn/languages/ (they live in Exam prep).
 export const ENGLISH = ['ielts', 'celpip', 'toefl'];
@@ -36,21 +40,32 @@ export async function courseCards(): Promise<CourseCard[]> {
       const listed = new Set(flatLessons(syl).map((l) => l.slug));
       const mine = files.filter((e) => e.id.startsWith(`${c.id}/`) || (syl.sharedFrom && e.id.startsWith(`${syl.sharedFrom}/`) && listed.has(e.id.slice(syl.sharedFrom.length + 1))));
       // A course marked live with no lesson written yet still shows as coming soon.
-      return { ...c, status: mine.length ? c.status : 'planned' as const, kind: 'text' as const, lessons: mine.length, total: flatLessons(syl).length, minutes: mine.reduce((s, e) => s + e.data.minutes, 0) };
+      return { ...c, status: mine.length ? c.status : 'planned' as const, kind: 'text' as const, lessons: mine.length, total: flatLessons(syl).length, minutes: mine.reduce((s, e) => s + lessonMinutes(e), 0) };
     }
     const sk = SKILL_COURSES.find((s) => s.id === c.id);
-    if (sk) return { ...c, kind: 'skill' as const, lessons: sk.lessons.length, total: sk.lessons.length, minutes: 0 };
+    // A home skills lesson is one hands-on tool: about 15 minutes to read the steps and do the activities.
+    if (sk) return { ...c, kind: 'skill' as const, lessons: sk.lessons.length, total: sk.lessons.length, minutes: sk.lessons.length * 15 };
     return { ...c, kind: 'planned' as const, lessons: 0, total: 0, minutes: 0 };
   }).sort((a, b) => Number(b.status === 'live') - Number(a.status === 'live'));
 }
 
 export const cardsIn = (cards: CourseCard[], cat: CourseCat) => cards.filter((c) => c.cat === cat);
 
-/** "33 lessons · 9 h" style line for a card. */
+/** Course size from its study time (nihal, 2026-11-23), so a newcomer sees a quick course from a big one. */
+export const SIZES = [
+  { id: 'short', name: 'Short', max: 5 * 60 },
+  { id: 'medium', name: 'Medium', max: 15 * 60 },
+  { id: 'long', name: 'Long', max: 35 * 60 },
+  { id: 'big', name: 'Very long', max: Infinity },
+] as const;
+export const sizeOf = (minutes: number) => SIZES.find((s) => minutes <= s.max)!;
+export const levelOf = (c: Course) => LEVELS.find((l) => l.id === c.level)!;
+
+/** "33 lessons · 9 h" style line for a card (study time worked out from the lessons, src/lib/studytime.ts). */
 export function cardMeta(c: CourseCard) {
   if (c.status !== 'live') return 'Coming soon';
   const parts = [c.lessons < c.total ? `${c.lessons} of ${c.total} lessons` : `${c.lessons} lessons`];
-  if (c.minutes) parts.push(c.minutes >= 90 ? `${Math.round(c.minutes / 6) / 10} h` : `${c.minutes} min`);
+  if (c.minutes) parts.push(`about ${fmtStudy(c.minutes)}`);
   return parts.join(' · ');
 }
 
