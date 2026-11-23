@@ -1,10 +1,10 @@
 // Class 12 Maths, Continuity and Differentiability: live problems (original fibub questions). Ids start with c12m-cont-.
-import { choose, n, steps } from './_util.js';
+import { choose, n, steps, tidyProblems } from './_util.js';
 
 const D = (f, x) => { const h = 1e-5; return (f(x + h) - f(x - h)) / (2 * h); };
 const D2 = (f, x) => { const h = 1e-3; return (f(x + h) - 2 * f(x) + f(x - h)) / (h * h); };
 
-export default {
+export default tidyProblems({
   'c12m-cont-findk': {
     title: 'the constant that makes a function continuous',
     make(r) {
@@ -78,4 +78,4 @@ export default {
     // find c by bisection on f'(c) - slope
     verify: (p) => { const m = (p.b * p.b - p.a * p.a) / (p.b - p.a); let lo = p.a, hi = p.b; for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; (2 * mid - m) < 0 ? (lo = mid) : (hi = mid); } return (lo + hi) / 2; },
   },
-};
+}, ['c12m-cont-implicit', 'c12m-cont-param', 'c12m-cont-second', 'c12m-cont-mvt']);

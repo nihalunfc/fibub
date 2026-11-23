@@ -1,10 +1,12 @@
 // SAT Math · Advanced math · equivalent expressions: expanding, factoring, combining. Original (fibub).
 import { int, nz, choose, shuffleOpts, fmt, lin, quad, term, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'advanced' };
 const X = v('x');
 const br = (a, b) => `(${lin(a, b)})`;
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'equivalent-expressions',
   gens: [
     { id: 'sat-ee-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'expand', facets: F, format: 'numeric',
@@ -67,4 +69,4 @@ export default {
       options: ['3<i>x</i> − 4', '3<i>x</i> + 4', '2<i>x</i> − 5', '6<i>x</i> + 5'], answer: 0,
       sol: '<p>6<i>x</i><sup>2</sup> + 7<i>x</i> − 20 = (3<i>x</i> − 4)(2<i>x</i> + 5). Check: 6<i>x</i><sup>2</sup> + 15<i>x</i> − 8<i>x</i> − 20. A quick test: a factor 3<i>x</i> − 4 means <i>x</i> = 4/3 makes the expression zero: 6(16/9) + 28/3 − 20 = 32/3 + 28/3 − 20 = 0. ✓</p>' },
   ],
-};
+}, ['sat-ee-g01', 'sat-ee-g04', 'sat-ee-g05']);

@@ -1,11 +1,11 @@
 // Class 12 Maths, Chapter 6 Application of Derivatives: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('ad');
 const D = (f, x) => { const h = 1e-5; return (f(x + h) - f(x - h)) / (2 * h); };
 const maxOf = (f, lo, hi) => { const g = (Math.sqrt(5) - 1) / 2; let a = lo, b = hi; for (let i = 0; i < 120; i++) { const c = b - g * (b - a), d = a + g * (b - a); f(c) > f(d) ? (b = d) : (a = c); } return f((a + b) / 2); };
 
-export default {
+export default tidyGens({
   topic: 'application-of-derivatives', name: 'Application of Derivatives', n: 6,
   items: [
     m.mcq(1, 'rate', '<p>If the side $s$ of a square grows at 2 cm/s, the rate of change of its area when $s = 4$ cm is:</p>', '16 cm²/s', ['8 cm²/s', '32 cm²/s', '4 cm²/s'], '<p>$A = s^2$, $dA/dt = 2s\\,ds/dt = 2\\times4\\times2 = 16$.</p>'),
@@ -58,4 +58,4 @@ export default {
       make(rng) { const s = choose(rng, [12, 18, 24, 30]); return { s, q: '<p>Squares are cut from the corners of a ' + s + ' cm square sheet to make an open box. Find the greatest volume in cm³.</p>', answer: 2 * s ** 3 / 27, tol: 0.01, unit: 'cm\u00b3', sol: '<p>$V = x(' + s + ' - 2x)^2$, best $x = ' + s / 6 + '$, $V_{max} = ' + 2 * s ** 3 / 27 + '$.</p>' }; },
       verify: (p) => maxOf((x) => x * (p.s - 2 * x) ** 2, 0, p.s / 2) },
   ],
-};
+}, ['ad-g04']);

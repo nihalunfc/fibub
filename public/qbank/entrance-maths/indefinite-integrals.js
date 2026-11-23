@@ -3,6 +3,7 @@
 // at several points and returns the one option whose derivative is the integrand; nat items recompute their answers
 // by differentiation, Simpson's rule or a fine search, and the templates' verify() recompute their answers another way.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1071,4 +1072,5 @@ XIT.push(
 Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
 }
 // ==XP-END
-export default { topic: 'indefinite-integrals', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'indefinite-integrals', groups, items, gens }, ['ii-g01', 'ii-g14', 'ii-g21', 'ii-g17', 'ii-g07', 'ii-g10', 'ii-g19', 'ii-g23', 'ii-g25', 'ii-xg09', 'ii-xg07'], [], ['ii-xg07']);

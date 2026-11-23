@@ -80,7 +80,7 @@ Your result shows marks out of 100 and a **GATE score** out of 1000, which is wh
 \text{score} = S_q + (S_t - S_q)\,\frac{M - M_q}{\bar M_t - M_q}
 ```
 
-where `$M$` is your mark, `$M_q$` the qualifying mark for the general category, `$\bar M_t$` the mean mark of the top 0.1% of candidates (or the top 10, whichever is more), and `$S_q = 350$`, `$S_t = 900$` the scores assigned to those two marks. The qualifying mark has been the larger of 25 and `$\mu + \sigma$` (mean plus one standard deviation of all marks in the paper), with lower qualifying marks for reserved categories. Two consequences: your score depends on how everyone else did, so a hard paper does not hurt you by itself; and the score rises linearly with marks, so every mark counts the same wherever it comes from. Check the current brochure for the exact rules.
+where `$M$` is your mark, `$M_q$` the qualifying mark for the general category, `$\bar M_t$` the mean mark of the top 0.1% of candidates (or the top 10, whichever is more), and `$S_q = 350$`, `$S_t = 900$` the scores assigned to those two marks. The qualifying mark has been `$\mu + \sigma$` (mean plus one standard deviation of all marks in the paper), but never below 25 or above 40, with lower qualifying marks for reserved categories (9/10 of it for OBC-NCL and EWS, 2/3 for SC, ST and PwD). Two consequences: your score depends on how everyone else did, so a hard paper does not hurt you by itself; and the score rises linearly with marks, so every mark counts the same wherever it comes from. Check the current brochure for the exact rules.
 
 ## 4. A plan for the 180 minutes
 

@@ -328,7 +328,7 @@ export default {
         const [g, ok, bad] = choose(r, SETS);
         const askForbidden = choose(r, [false, true]);
         let correct, wrongs;
-        if (!askForbidden) { correct = choose(r, ok); wrongs = [bad[int(r, 0, 1)], bad[int(r, 2, 3)], bad[bad.length - 1]]; }
+        if (!askForbidden) { correct = choose(r, ok); wrongs = [bad[int(r, 0, 1)], bad[int(r, 2, 3)], bad[bad.length - 1], ...bad]; }
         else { correct = choose(r, bad); wrongs = ok.length >= 3 ? ok.slice(0, 3) : ok.concat(['all of the other options can be reached']); }
         const o = mcqOptions(r, correct, wrongs);
         return { q: `A diatomic molecule has a ${g} ground state. ${askForbidden ? 'Which upper state can NOT be reached by an electric-dipole transition from it?' : 'Which upper state can be reached from it by an electric-dipole transition?'}`, options: o.options, answer: o.answer,

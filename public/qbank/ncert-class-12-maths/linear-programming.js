@@ -1,10 +1,10 @@
 // Class 12 Maths, Chapter 12 Linear Programming: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('lq');
 const R = String.raw;
 
-export default {
+export default tidyGens({
   topic: 'linear-programming', name: 'Linear Programming', n: 12,
   items: [
     m.mcq(1, 'basic', R`<p>The function $Z = px + qy$ that is to be maximised or minimised is called the:</p>`, R`objective function`, [R`constraint`, R`feasible region`, R`corner point`], R`<p>It is the objective function. The inequalities are the constraints.</p>`),
@@ -52,4 +52,4 @@ export default {
       make(rng) { const p = pick(rng, 1, 9), q = pick(rng, 1, 9), x = pick(rng, 1, 9), y = pick(rng, 1, 9); return { p, qq: q, x, y, q: `<p>For $Z = ${p}x + ${q}y$, the line $Z = ${p * x + q * y}$ passes through the corner point $(${x}, ${y})$. Find the value of $Z$ at the point $(${y}, ${x})$.</p>`, answer: p * y + q * x, tol: 0, sol: `<p>$Z = ${p}\\cdot${y} + ${q}\\cdot${x} = ${p * y + q * x}$.</p>` }; },
       verify: (m) => m.p * m.y + m.qq * m.x },
   ],
-};
+}, ['lq-g02', 'lq-g03', 'lq-g04', 'lq-g06']);

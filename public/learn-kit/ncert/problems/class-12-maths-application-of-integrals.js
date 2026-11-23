@@ -1,9 +1,9 @@
 // Class 12 Maths, Chapter 8 Application of Integrals: live problems (original fibub questions). Ids start with c12m-aoi-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const simpson = (f, a, b, N = 4000) => { const h = (b - a) / N; let s = f(a) + f(b); for (let i = 1; i < N; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 
-export default {
+export default tidyProblems({
   'c12m-aoi-under': {
     title: 'area under a parabola',
     make(r) {
@@ -57,11 +57,11 @@ export default {
   'c12m-aoi-train': {
     title: 'distance from a speed graph',
     make(r) {
-      const p = choose(r, [6, 8, 12]), T = choose(r, [2, 3, 4]), answer = p * T * T / 2 - T ** 3;
+      const p = choose(r, [6, 8, 12]), T = choose(r, [2, 3, 4].filter((x) => 3 * x <= p)), answer = p * T * T / 2 - T ** 3;
       return { p, T, q: `<p>A cricket ball's speed along a gully is v = ${p}t − 3t² m/s for 0 ≤ t ≤ ${T}. Use area under the speed-time graph to find the distance covered in ${T} s (metres).</p>`, answer, unit: 'm', tol: 0.005, abs: 0.005,
         hint: 'Distance = ∫ v dt from 0 to T, as long as v stays positive on that range.',
         solution: steps(`Distance = ∫ from 0 to ${T} of (${p}t − 3t²) dt = [${p / 2}t² − t³] from 0 to ${T}.`, `= ${p / 2}·${T * T} − ${T ** 3}.`, `= <b>${n(answer)} m</b>.`) };
     },
     verify: (x) => simpson((t) => x.p * t - 3 * t * t, 0, x.T),
   },
-};
+}, ['c12m-aoi-under', 'c12m-aoi-axis', 'c12m-aoi-latus']);

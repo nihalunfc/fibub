@@ -1,5 +1,6 @@
 // Statistics (Plus Two entrance, Mathematics, Class 11). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const CUET = false; // Class 12 chapters: level 1-3 mcq also list 'cuet'
@@ -147,7 +148,7 @@ const items = [
   I(1, 'median', R`The median of $4,8,10,12$ is`, 9,
     R`<p>With an even number of values, the median is the average of the two middle ones: $\dfrac{8+10}2=9$.</p>`, '', { calc: () => median([4, 8, 10, 12]) }),
   M(1, 'variance and SD', R`The variance of $n$ observations $x_i$ with mean $\bar x$ is`, R`$\dfrac1n\sum(x_i-\bar x)^2$`, [R`$\dfrac1n\sum(x_i-\bar x)$`, R`$\dfrac1n\sum|x_i-\bar x|$`, R`$\sqrt{\dfrac1n\sum(x_i-\bar x)^2}$`],
-    R`<p>Variance is the mean of the squared deviations. The last option is the standard deviation, the one before it is the mean deviation, and the first always gives $0$.</p>`, 'Do not confuse variance with SD.'),
+    R`<p>Variance is the mean of the squared deviations. The square-root option is the standard deviation, the one with $|x_i-\bar x|$ is the mean deviation, and the plain sum of deviations always gives $0$.</p>`, 'Do not confuse variance with SD.'),
   I(1, 'range', R`The range of $14,3,22,9$ is`, 19,
     R`<p>Range $=$ largest $-$ smallest $=22-3=19$.</p>`, '', { calc: () => 22 - 3 }),
   I(1, 'mean', R`The mean of $6$ observations is $12$. Their sum is`, 72,
@@ -355,7 +356,7 @@ const items = [
   I(2, 'harmonic mean', R`A car covers half of a journey at $60$ km/h and the other half at $40$ km/h. Its average speed for the whole journey, in km/h, is`, 48,
     R`<p>Take the half-distance $d$. Time $=\dfrac d{60}+\dfrac d{40}=\dfrac{5d}{120}=\dfrac d{24}$. Average speed $=\dfrac{2d}{d/24}=48$ km/h. This is the harmonic mean, not the arithmetic mean $50$.</p>`, 'Equal distances mean the harmonic mean applies.', { calc: () => 2 / (1 / 60 + 1 / 40) }),
   M(2, 'grouped data', R`For grouped data, the median is given by (with $l$ the lower limit of the median class, $cf$ the cumulative frequency before it, $f$ its frequency and $h$ its width)`, R`$l+\dfrac{\frac N2-cf}{f}\times h$`, [R`$l+\dfrac{N-cf}{f}\times h$`, R`$l+\dfrac{\frac N2-f}{cf}\times h$`, R`$l+\dfrac{f_1-f_0}{2f_1-f_0-f_2}\times h$`],
-    R`<p>The median is the $\dfrac N2$th value. We need $\dfrac N2-cf$ more observations from the median class, spread evenly over width $h$. The last option is the formula for the mode.</p>`, 'Do not mix the mode formula with the median formula.'),
+    R`<p>The median is the $\dfrac N2$th value. We need $\dfrac N2-cf$ more observations from the median class, spread evenly over width $h$. The option with $f_1-f_0$ is the formula for the mode.</p>`, 'Do not mix the mode formula with the median formula.'),
   M(2, 'change of scale', R`The standard deviation of a set of observations is $5$. Each observation is multiplied by $3$. The variance of the new set is`, '225', ['15', '75', '45'],
     R`<p>New SD $=3\cdot5=15$. New variance $=15^2=225$.</p>`, 'Square it at the end.'),
   M(2, 'properties', R`For the data $5,5,5,5,5$,`, R`the SD is $0$ and the coefficient of variation is $0$`, [R`the SD is $5$`, R`the variance is $5$ and the SD is $\sqrt5$`, R`the coefficient of variation is $100\%$`],
@@ -738,4 +739,5 @@ gens.push(...xgens);
 
 }
 
-export default { topic: 'statistics', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'statistics', groups, items, gens }, ['st-g05', 'st-g10']);

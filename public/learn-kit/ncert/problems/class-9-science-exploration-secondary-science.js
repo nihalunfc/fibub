@@ -1,5 +1,6 @@
 // Class 9 Science, Chapter 1 Exploration: live problems (original fibub questions). Ids start with c9s-sci-.
 import { pick, choose, n, steps } from './_util.js';
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 
 const sigCount = (s) => { const h = s.includes('.'); const d = s.replace('.', ''); const a = d.replace(/^0+/, ''); return h ? a.length : a.replace(/0+$/, '').length; };
 
@@ -53,7 +54,7 @@ export default {
     make(r) {
       const msr = pick(r, 8, 30), k = pick(r, 1, 9), zero = choose(r, [0, 0.1]), lc = 0.1;
       const answer = msr + k * lc;
-      return { msr, k, q: `<p>A vernier caliper has a main scale in mm and 10 vernier divisions equal to 9 main divisions. The zero of the vernier is just past the ${msr} mm mark and the <b>${k}th</b> vernier division lines up with a main-scale line. What is the reading in mm?</p>`, answer, unit: 'mm', tol: 0.002,
+      return { msr, k, q: `<p>A vernier caliper has a main scale in mm and 10 vernier divisions equal to 9 main divisions. The zero of the vernier is just past the ${msr} mm mark and the <b>${ord(k)}</b> vernier division lines up with a main-scale line. What is the reading in mm?</p>`, answer, unit: 'mm', tol: 0.002,
         hint: 'Least count = 1 mm − 0.9 mm = 0.1 mm. Reading = main scale + (vernier division × least count).',
         solution: steps(`Least count = 0.1 mm.`, `Reading = ${msr} + ${k} × 0.1 = <b>${n(answer, 4)} mm</b>.`) };
     },

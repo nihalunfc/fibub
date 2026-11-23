@@ -1,12 +1,12 @@
 // Class 9 Maths, Chapter 2 Introduction to Linear Polynomials: practice questions (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('lp');
 const sg = (v) => String(v).replace('-', '−');
 const lin = (a, b) => `${a === 1 ? '' : a === -1 ? '−' : sg(a)}x ${b < 0 ? '−' : '+'} ${Math.abs(b)}`;
 const nz = (r, a, b) => { const v = pick(r, a, b); return v || b; };
 
-export default {
+export default tidyGens({
   topic: 'introduction-to-linear-polynomials', name: 'Introduction to Linear Polynomials', n: 2,
   items: [
     m.mcq(1, 'polynomial', '<p>Which of these is a polynomial in $x$?</p>', '$5x^3 - x + 2$', ['$\\dfrac{5}{x} + 2$', '$\\sqrt{x} + 2$', '$x^{-2} + x$'], '<p>Only the first has whole-number powers (3, 1, 0) of x.</p>'),
@@ -63,4 +63,4 @@ export default {
       make(rng) { const x = pick(rng, 10, 60, 5), ra = pick(rng, 1, 4), rb = ra + pick(rng, 1, 4), fa = pick(rng, 60, 200, 10) + (rb - ra) * x, fb = fa - (rb - ra) * x; return { fa, fb, ra, rb, x, q: `<p>Plan A: ₹${fa} + ₹${ra} per unit. Plan B: ₹${fb} + ₹${rb} per unit. For how many units do they cost the same?</p>`, answer: x, tol: 0, sol: `<p>${fa} + ${ra}x = ${fb} + ${rb}x gives ${fa - fb} = ${rb - ra}x, so x = ${x}.</p>` }; },
       verify: (p) => (p.fa - p.fb) / (p.rb - p.ra) },
   ],
-};
+}, ['lp-g01', 'lp-g02', 'lp-g03', 'lp-g05', 'lp-g07']);

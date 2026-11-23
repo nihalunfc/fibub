@@ -2,6 +2,8 @@
 import { maker } from './_make.js';
 import { pick, choose } from '../_util.js';
 const m = maker('po');
+const poly = (a, b, c) => `${a === 1 ? '' : a}x²${b === 0 ? '' : (b < 0 ? ' − ' : ' + ') + (Math.abs(b) === 1 ? '' : Math.abs(b)) + 'x'}${c === 0 ? '' : (c < 0 ? ' − ' : ' + ') + Math.abs(c)}`;
+const fac = (r) => (r === 0 ? 'x' : r < 0 ? `(x + ${-r})` : `(x − ${r})`);
 
 export default {
   topic: 'polynomials', name: 'Polynomials', n: 2,
@@ -36,22 +38,22 @@ export default {
   ],
   gens: [
     { id: 'po-g01', type: 'nat', level: 2, exams: ['board'], sub: 'relation',
-      make(rng) { const a = choose(rng, [1, 2, 3, 4]), s = pick(rng, -6, 9), pr = pick(rng, -8, 12), b = -a * s, c = a * pr; return { a, b, c, s, q: `<p>Find the sum of the zeros of ${a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}.</p>`, answer: s, tol: 0, sol: `<p>Sum = −b/a = ${-b}/${a} = ${s}.</p>` }; },
+      make(rng) { const a = choose(rng, [1, 2, 3, 4]), s = pick(rng, -6, 9), pr = pick(rng, -8, 12), b = -a * s, c = a * pr; return { a, b, c, s, q: `<p>Find the sum of the zeros of ${poly(a, b, c)}.</p>`, answer: s, tol: 0, sol: `<p>Sum = −b/a = ${-b}/${a} = ${s}.</p>` }; },
       verify: (p) => -p.b / p.a },
     { id: 'po-g02', type: 'nat', level: 2, exams: ['board'], sub: 'relation',
-      make(rng) { const a = choose(rng, [1, 2, 3, 5]), al = pick(rng, -4, 6), be = pick(rng, -4, 6), b = -a * (al + be), c = a * al * be; return { a, b, c, al, be, q: `<p>Find the product of the zeros of ${a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}.</p>`, answer: al * be, tol: 0, sol: `<p>Product = c/a = ${c}/${a} = ${al * be}.</p>` }; },
+      make(rng) { const a = choose(rng, [1, 2, 3, 5]), al = pick(rng, -4, 6), be = pick(rng, -4, 6), b = -a * (al + be), c = a * al * be; return { a, b, c, al, be, q: `<p>Find the product of the zeros of ${poly(a, b, c)}.</p>`, answer: al * be, tol: 0, sol: `<p>Product = c/a = ${c}/${a} = ${al * be}.</p>` }; },
       verify: (p) => p.c / p.a },
     { id: 'po-g03', type: 'nat', level: 2, exams: ['board'], sub: 'zeros',
-      make(rng) { const a = pick(rng, 1, 4), b = pick(rng, -5, 5), c = pick(rng, -9, 9), x = pick(rng, -3, 4); return { a, b, c, x, q: `<p>Find p(${x}) for p(x) = ${a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}.</p>`, answer: a * x * x + b * x + c, tol: 0, sol: `<p>p(${x}) = ${a}(${x})² + (${b})(${x}) + (${c}) = ${a * x * x + b * x + c}.</p>` }; },
+      make(rng) { const a = pick(rng, 1, 4), b = pick(rng, -5, 5), c = pick(rng, -9, 9), x = pick(rng, -3, 4); return { a, b, c, x, q: `<p>Find p(${x}) for p(x) = ${poly(a, b, c)}.</p>`, answer: a * x * x + b * x + c, tol: 0, sol: `<p>p(${x}) = ${a}(${x})² + (${b})(${x}) + (${c}) = ${a * x * x + b * x + c}.</p>` }; },
       verify: (p) => [p.a, p.b, p.c].reduce((acc, v) => acc * p.x + v, 0) },
     { id: 'po-g04', type: 'nat', level: 3, exams: ['board'], sub: 'zeros',
-      make(rng) { const al = pick(rng, -5, 6), be = pick(rng, -5, 6); let bb = be; if (al === be) bb = be + 1; const k = al * bb, p = -(al + bb); return { al, bb, p, k, q: `<p>If ${al} is a zero of x² + (${p})x + k, where the other zero is ${bb}, find k.</p>`, answer: k, tol: 0, sol: `<p>The product of the zeros is c/a = k, so k = ${al} × ${bb} = ${k}.</p>` }; },
+      make(rng) { const al = pick(rng, -5, 6), be = pick(rng, -5, 6); let bb = be; if (al === be) bb = be + 1; const k = al * bb, p = -(al + bb); return { al, bb, p, k, q: `<p>If ${al} is a zero of ${poly(1, p, 0)} + k, where the other zero is ${bb}, find k.</p>`, answer: k, tol: 0, sol: `<p>The product of the zeros is c/a = k, so k = ${al} × ${bb} = ${k}.</p>` }; },
       verify: (q) => -(q.al * q.al + q.p * q.al) },
     { id: 'po-g05', type: 'nat', level: 3, exams: ['board'], sub: 'zeros',
-      make(rng) { const al = pick(rng, -6, 6), be = pick(rng, -6, 6), a = choose(rng, [1, 2, 3]), b = -a * (al + be), c = a * al * be, big = Math.max(al, be); return { a, b, c, big, q: `<p>Find the larger zero of ${a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}.</p>`, answer: big, tol: 0, sol: `<p>Factorise: ${a}(x − ${al})(x − ${be}), so the zeros are ${al} and ${be}. The larger is ${big}.</p>` }; },
+      make(rng) { const al = pick(rng, -6, 6), be = pick(rng, -6, 6), a = choose(rng, [1, 2, 3]), b = -a * (al + be), c = a * al * be, big = Math.max(al, be); return { a, b, c, big, q: `<p>Find the larger zero of ${poly(a, b, c)}.</p>`, answer: big, tol: 0, sol: `<p>Factorise: ${a === 1 ? '' : a}${fac(al)}${fac(be)}, so the zeros are ${al} and ${be}. The larger is ${big}.</p>` }; },
       verify: (p) => { const s = Math.sqrt(p.b * p.b - 4 * p.a * p.c); return Math.max((-p.b + s) / (2 * p.a), (-p.b - s) / (2 * p.a)); } },
     { id: 'po-g06', type: 'nat', level: 2, exams: ['board'], sub: 'relation',
-      make(rng) { const s = pick(rng, 2, 12), pr = pick(rng, 1, 30); const sq = s * s - 2 * pr; return { s, pr, q: `<p>The zeros α and β of a quadratic have α + β = ${s} and αβ = ${pr}. Find α² + β².</p>`, answer: sq, tol: 0, sol: `<p>α² + β² = (α + β)² − 2αβ = ${s * s} − ${2 * pr} = ${sq}.</p>` }; },
+      make(rng) { const s = pick(rng, 2, 12), pr = pick(rng, 1, Math.floor(s * s / 4)); const sq = s * s - 2 * pr; return { s, pr, q: `<p>The zeros α and β of a quadratic have α + β = ${s} and αβ = ${pr}. Find α² + β².</p>`, answer: sq, tol: 0, sol: `<p>α² + β² = (α + β)² − 2αβ = ${s * s} − ${2 * pr} = ${sq}.</p>` }; },
       verify: (p) => p.s ** 2 - p.pr * 2 },
   ],
 };

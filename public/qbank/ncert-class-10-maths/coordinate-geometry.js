@@ -1,10 +1,10 @@
 // Class 10 Maths, Chapter 7 Coordinate Geometry: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('cg');
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 
-export default {
+export default tidyGens({
   topic: 'coordinate-geometry', name: 'Coordinate Geometry', n: 7,
   items: [
     m.mcq(1, 'distance', '<p>The distance of the point $(-6, 8)$ from the origin is:</p>', '10', ['14', '2', '$\\sqrt{14}$'], '<p>$d = \\sqrt{(-6)^2 + 8^2} = \\sqrt{36 + 64} = 10$.</p>'),
@@ -58,4 +58,4 @@ export default {
       make(rng) { const p = pick(rng, 1, 5), q = choose(rng, [1, 2, 3, 4, 6].filter((v) => v !== p)), g = gcd(p, q); const y1 = 2 * p, y2 = -2 * q; return { y1, y2, q: `<p>The x-axis divides the line joining $(1, ${y1})$ and $(6, ${y2})$ in the ratio $k : 1$. Find $k$.</p>`, answer: p / q, tol: 0.01, sol: `<p>On the x-axis $y = 0$: $0 = (k \\times ${y2} + ${y1})/(k + 1)$, so $k = ${y1}/${-y2} = ${+(p / q).toFixed(3)}$.</p>` }; },
       verify: (p) => Math.abs(p.y1) / Math.abs(p.y2) },
   ],
-};
+}, ['cg-g03', 'cg-g06']);

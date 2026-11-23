@@ -60,7 +60,7 @@ export default {
   'c10m-circ-quad': {
     title: 'a quadrilateral round a circle',
     make(r) {
-      const AB = pick(r, 5, 12), BC = pick(r, 6, 14), CD = pick(r, 4, 11), DA = AB + CD - BC;
+      const AB = pick(r, 5, 12), CD = pick(r, 4, 11), BC = pick(r, 6, Math.min(14, AB + CD - 2)), DA = AB + CD - BC;
       return { AB, BC, CD, q: `<p>A quadrilateral ABCD is drawn so that all four sides touch a circle. AB = ${n(AB)} cm, BC = ${n(BC)} cm and CD = ${n(CD)} cm. Find AD in cm.</p>`, answer: DA, unit: 'cm', tol: 0.001, abs: 0.001,
         hint: 'Tangents from each vertex are equal. Add the lengths and show AB + CD = BC + DA.',
         solution: steps(`Let the tangent lengths from A, B, C, D be p, q, r, s. Then AB = p + q, BC = q + r, CD = r + s, DA = s + p.`, `AB + CD = p + q + r + s = BC + DA.`, `AD = ${n(AB)} + ${n(CD)} − ${n(BC)} = <b>${n(DA)} cm</b>.`) };

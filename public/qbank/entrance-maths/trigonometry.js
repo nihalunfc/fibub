@@ -1,5 +1,6 @@
 // Trigonometric functions and identities (Plus Two entrance, Mathematics). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -949,4 +950,5 @@ gens.push(
 
 // ===== expansion end =====
 
-export default { topic: 'trigonometry', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'trigonometry', groups, items, gens }, ['tr-g09', 'tr-g17', 'tr-g19']);

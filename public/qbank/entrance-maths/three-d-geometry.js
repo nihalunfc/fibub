@@ -2,6 +2,7 @@
 // Every numeric answer was checked in code: each `calc` recomputes the answer with vector formulas (cross and dot
 // products) or by solving the geometry directly, and the templates' verify() recompute their answers another way.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1297,4 +1298,5 @@ gens.push(...xgens);
 
 }
 
-export default { topic: 'three-d-geometry', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'three-d-geometry', groups, items, gens }, ['td-g04', 'td-g06', 'td-g08', 'td-g09', 'td-g10', 'td-g14', 'td-g16', 'td-gx1', 'td-gx4', 'td-g11']);

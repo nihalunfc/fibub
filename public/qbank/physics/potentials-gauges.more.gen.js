@@ -24,7 +24,7 @@ export default [
       const a = int(r, -4, 4), b = int(r, -4, 4) || 5, c = a === b ? a + 1 : a;
       const f = (v, s) => (v === 0 ? '0' : v === 1 ? s : v === -1 ? `-${s}` : `${v}${s}`);
       const B = (v) => (v === 0 ? '$\\vec B = 0$' : `$${v}\\,\\hat z$ T`);
-      const o = mcqOptions(r, B(b - c), shuffle(r, [B(c - b), B(b + c), B(-b - c), B(b), B(c)]));
+      const o = mcqOptions(r, B(b - c), [...shuffle(r, [B(c - b), B(b + c), B(-b - c), B(b), B(c)]), B(b - c + 1), B(b - c - 1), B(2 * (b - c) || 2)]);
       return { q: `In a region with $V = 0$ the vector potential is $\\vec A = (${f(c, 'y')},\\ ${f(b, 'x')},\\ 0)$ (constants in tesla). The magnetic field is`, ...o,
         sol: `$\\vec B = \\nabla\\times\\vec A$ has only a $z$-component: $B_z = \\partial_xA_y - \\partial_yA_x = ${b} - ${c < 0 ? `(${c})` : c} = ${b - c}$ T. Since $\\vec A$ does not depend on time, $\\vec E = 0$.`,
         trap: '$B_z = \\partial_xA_y - \\partial_yA_x$: the order of the two terms fixes the sign.' };

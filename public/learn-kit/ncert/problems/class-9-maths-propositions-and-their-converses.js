@@ -1,8 +1,8 @@
 // Class 9 Maths, Propositions and their Converses: live problems (original fibub questions). Ids start with c9m-logic-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const isPrime = (m) => { if (m < 2) return false; for (let d = 2; d * d <= m; d++) if (m % d === 0) return false; return true; };
-export default {
+export default tidyProblems({
   'c9m-logic-vert': {
     title: 'angles at crossing lines',
     make(r) {
@@ -56,4 +56,4 @@ export default {
     },
     verify: (p) => { let m = p.k + 1; for (;;) { const v = 2 * m + 1; let comp = false; for (let d = 2; d < v; d++) if (v % d === 0) { comp = true; break; } if (comp) return m; m++; } },
   },
-};
+}, ['c9m-logic-isosx']);

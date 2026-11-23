@@ -81,7 +81,7 @@ Drive from a city centre to a dark site:
 I \propto P\, d^{-2.5}
 ```
 
-**Try it:** a city of 1 million at 50 km versus a town of 50,000 at 10 km: `$10^6 \times 50^{-2.5} = 56.6$` and `$5\times 10^4 \times 10^{-2.5} = 1581$`. The small nearby town is about 28 times worse.
+**Try it:** a city of 1 million at 50 km versus a town of 50,000 at 10 km: `$10^6 \times 50^{-2.5} = 56.6$` and `$5\times 10^4 \times 10^{-2.5} = 158$`. The small nearby town is about 3 times worse.
 </details>
 
 

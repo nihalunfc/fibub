@@ -92,7 +92,7 @@ export default {
         const Rr = choose(r, [1, 2, 3, 4, 5, 6]), X = choose(r, [1, 2, 3, 4, 6, -1, -2, -3, -4]), d = Rr * Rr + X * X;
         const re = Rr * X * X / d, im = Rr * Rr * X / d;
         const show = ([a, b]) => `$(${cstr(a, b)})\\ \\Omega$`;
-        const { options, answer } = mcqOptions(r, show([re, im]), [show([Rr, X]), show([Rr / 2, X / 2]), show([re, -im]), show([im, re])]);
+        const { options, answer } = mcqOptions(r, show([re, im]), [show([Rr, X]), show([Rr / 2, X / 2]), show([re, -im]), show([im, re]), show([Rr, -X]), show([-re, im]), show([2 * re, 2 * im])]);
         return { q: R`A ${Rr} Ω resistor is connected in parallel with ${X > 0 ? 'an inductor' : 'a capacitor'} of impedance $${cstr(0, X)}\ \Omega$. The impedance of the combination is`,
           options, answer,
           sol: R`$Z = \dfrac{R\cdot iX}{R + iX} = \dfrac{iRX(R - iX)}{R^2 + X^2} = \dfrac{RX^2 + iR^2X}{R^2 + X^2} = \dfrac{${Rr * X * X} ${X < 0 ? '-' : '+'} ${Math.abs(Rr * Rr * X)}i}{${d}} = ${cstr(re, im)}$ Ω.`,

@@ -40,7 +40,7 @@ export default {
   ],
   gens: [
     { id: 'bp-g01', type: 'nat', level: 2, exams: ['board'], sub: 'pcr',
-      make(rng) { const c = pick(rng, 6, 25, 1), s = choose(rng, [1, 2, 3, 5]); return { c, s, q: `<p>A PCR starts with ${s} copy${s > 1 ? 'ies' : ''} of the target. How many copies after ${c} cycles with perfect doubling?</p>`, answer: s * Math.pow(2, c), tol: 0.01, unit: '', sol: `<p>${s} × 2^${c} = ${s * Math.pow(2, c)}.</p>` }; },
+      make(rng) { const c = pick(rng, 6, 25, 1), s = choose(rng, [1, 2, 3, 5]); return { c, s, q: `<p>A PCR starts with ${s} ${s > 1 ? 'copies' : 'copy'} of the target. How many copies after ${c} cycles with perfect doubling?</p>`, answer: s * Math.pow(2, c), tol: 0.01, unit: '', sol: `<p>${s} × 2^${c} = ${s * Math.pow(2, c)}.</p>` }; },
       verify: (p) => { let x = p.s; for (let i = 0; i < p.c; i++) x += x; return x; } },
     { id: 'bp-g02', type: 'nat', level: 2, exams: ['board'], sub: 'tools',
       make(rng) { const k = pick(rng, 1, 8, 1), lin = choose(rng, [true, false]); return { k, lin, q: `<p>A ${lin ? 'linear' : 'circular'} DNA has ${k} recognition site${k > 1 ? 's' : ''} for an enzyme. How many fragments will it give when fully cut?</p>`, answer: lin ? k + 1 : k, tol: 0, unit: '', sol: `<p>${lin ? 'Linear: cuts + 1' : 'Circular: equal to the number of cuts'} = ${lin ? k + 1 : k}.</p>` }; },

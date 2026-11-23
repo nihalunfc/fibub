@@ -1,12 +1,12 @@
 // Class 12 Maths, Chapter 9 Differential Equations: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('de');
 const R = String.raw;
 // Runge-Kutta 4: a numerical solution, used by the templates to check their own answers without the formula.
 const rk4 = (F, x0, y0, x1, N = 400) => { const h = (x1 - x0) / N; let x = x0, y = y0; for (let i = 0; i < N; i++) { const k1 = F(x, y), k2 = F(x + h / 2, y + h * k1 / 2), k3 = F(x + h / 2, y + h * k2 / 2), k4 = F(x + h, y + h * k3); y += h * (k1 + 2 * k2 + 2 * k3 + k4) / 6; x += h; } return y; };
 
-export default {
+export default tidyGens({
   topic: 'differential-equations', name: 'Differential Equations', n: 9,
   items: [
     m.mcq(1, 'order', R`<p>The order of $\dfrac{d^3y}{dx^3} + 2\dfrac{dy}{dx} = 0$ is:</p>`, R`3`, [R`1`, R`2`, R`0`], R`<p>The highest derivative is $y'''$.</p>`),
@@ -59,4 +59,4 @@ export default {
       make(rng) { const Tr = pick(rng, 20, 35, 5), t = choose(rng, [10, 20]), T1 = choose(rng, [50, 60, 70]); const k = Math.log((90 - Tr) / (T1 - Tr)) / t, ans = Tr + (90 - Tr) * Math.exp(-k * 2 * t); return { Tr, t, T1, q: `<p>A cup of tea at 90 °C is in a ${Tr} °C room and cools by Newton's law. After ${t} minutes it is ${T1} °C. Find its temperature after ${2 * t} minutes (in °C).</p>`, answer: +ans.toPrecision(6), tol: 0.01, unit: '°C', sol: `<p>$T = ${Tr} + ${90 - Tr}e^{-kt}$ with $e^{-k${t}} = ${((T1 - Tr) / (90 - Tr)).toFixed(3)}$. After ${2 * t} min: $T = ${Tr} + ${90 - Tr}\\times(${((T1 - Tr) / (90 - Tr)).toFixed(3)})^2 = ${ans.toFixed(2)}$ °C.</p>` }; },
       verify: (q) => { const k = Math.log((90 - q.Tr) / (q.T1 - q.Tr)) / q.t; return rk4((s, T) => -k * (T - q.Tr), 0, 90, 2 * q.t); } },
   ],
-};
+}, ['de-g03']);

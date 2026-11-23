@@ -39,7 +39,7 @@ export default {
       make(r) {
         const top = int(r, 10, 80) * 2;
         const base = (180 - top) / 2;
-        const o = shuffleOpts(r, `${base}°`, [`${top}°`, `${180 - top}°`, `${base + 10}°`]);
+        const o = shuffleOpts(r, `${base}°`, [`${top}°`, `${180 - top}°`, `${base + 10}°`, `${base + 20}°`, `${base - 5}°`]);
         return { q: `<p>In an isosceles triangle, the angle between the two equal sides measures ${top}°. What is the measure of each of the other two angles?</p>`, ...o,
           sol: steps(`The two base angles are equal and the three angles add to 180°.`, `Each base angle: (180 − ${top}) ÷ 2 = <b>${base}°</b>.`), trap: `Giving 180 − ${top} = ${180 - top}, the total of the two base angles.` };
       } },

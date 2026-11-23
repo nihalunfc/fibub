@@ -48,7 +48,7 @@ export default {
       make(rng) { const nn = choose(rng, [1, 2, 3, 4, 5]), v = +mu(nn).toFixed(2); return { v, q: `<p>An ion has a spin-only magnetic moment of ${v} BM. How many unpaired electrons does it have?</p>`, answer: nn, tol: 0.01, sol: `<p>μ² = n(n + 2) = ${(v * v).toFixed(2)}, so n = ${nn}.</p>` }; },
       verify: (p) => Math.round(-1 + Math.sqrt(1 + p.v * p.v)) },
     { id: 'db-g03', type: 'nat', level: 3, exams: ['board'], sub: 'oxstates',
-      make(rng) { const [x, y, z, f, s] = choose(rng, [[1, 4, -1, 'MnO₄⁻', 7], [2, 7, -2, 'Cr₂O₇²⁻', 6], [1, 4, -2, 'CrO₄²⁻', 6], [1, 2, 1, 'VO₂⁺', 5], [2, 5, 0, 'V₂O₅', 5], [1, 3, 0, 'CrO₃', 6]]); return { x, y, z, q: `<p>Find the oxidation state of the metal in ${f}.</p>`, answer: s, tol: 0.01, sol: `<p>${x}s + ${y}(−2) = ${z}, so s = +${s}.</p>` }; },
+      make(rng) { const [x, y, z, f, s] = choose(rng, [[1, 4, -1, 'MnO₄⁻', 7], [2, 7, -2, 'Cr₂O₇²⁻', 6], [1, 4, -2, 'CrO₄²⁻', 6], [1, 2, 1, 'VO₂⁺', 5], [2, 5, 0, 'V₂O₅', 5], [1, 3, 0, 'CrO₃', 6]]); return { x, y, z, q: `<p>Find the oxidation state of the metal in ${f}.</p>`, answer: s, tol: 0.01, sol: `<p>Call the oxidation state m: ${x === 1 ? '' : x}m + ${y}(−2) = ${z < 0 ? '−' + -z : z}, so m = +${s}.</p>` }; },
       verify: (p) => (p.z + 2 * p.y) / p.x },
   ],
 };

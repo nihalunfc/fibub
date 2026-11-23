@@ -98,7 +98,7 @@ export default {
     { id: 'cfo-019', type: 'mcq', level: 3, exams: ['jam'], sub: 'orbits',
       q: 'A body moves in the gravitational field of a star. Which statement is NOT correct?',
       options: ['If its total energy is zero, its orbit is a parabola.', 'If its total energy is negative, its orbit is an ellipse (or circle).', 'For a given angular momentum, the circular orbit has the lowest energy.', 'If its total energy is positive, its orbit is an ellipse.'], answer: 3,
-      sol: 'For an inverse-square force: $E < 0$ ellipse (circle at the minimum energy for that $L$), $E = 0$ parabola, $E > 0$ hyperbola. A positive-energy body escapes on a hyperbola, so the first statement is the incorrect one.' },
+      sol: 'For an inverse-square force: $E < 0$ ellipse (circle at the minimum energy for that $L$), $E = 0$ parabola, $E > 0$ hyperbola. A positive-energy body escapes on a hyperbola, so the last statement is the incorrect one.' },
     { id: 'cfo-020', type: 'mcq', level: 2, exams: ['jam'], sub: 'orbits',
       q: 'A planet\'s closest and farthest distances from its star are 1 AU and 3 AU. The eccentricity of its orbit is',
       options: ['2', '0.5', '0.33', '0.67'], answer: 1,

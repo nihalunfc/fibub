@@ -74,6 +74,6 @@ export default {
     O(3, 'It takes about forty minutes to get there', 'It takes + time + to + verb.'),
     O(3, 'Could you tell me where the ticket office is', 'Indirect question: where the ticket office is.'),
     O(4, 'By the time we arrived the plane had already left', 'Past perfect (had left) for the earlier of two past actions.', ['The plane had already left by the time we arrived']),
-    O(5, 'Had the bridge not been repaired the town would have been cut off', 'Inverted third conditional in the negative: Had ... not been = If ... had not been.'),
+    O(5, 'Had the bridge not been repaired the town would have been cut off', 'Inverted third conditional in the negative: Had ... not been = If ... had not been.', ['The town would have been cut off had the bridge not been repaired']),
   ],
 };

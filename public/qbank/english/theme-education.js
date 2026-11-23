@@ -69,7 +69,7 @@ export default {
     T(3, 'Fix the spelling: "Learning a language takes <b>dicipline</b>."', 'discipline', 'Discipline: dis-ci-pline (sc).', 'spelling'),
     T(3, 'Fix the spelling: "Her <b>grammer</b> is excellent."', 'grammar', 'Grammar ends in -ar.', 'spelling'),
     T(4, 'Fix the spelling: "I need to improve my <b>pronounciation</b>."', 'pronunciation', 'Pronounce → pronunciation (the o after n is dropped).', 'spelling'),
-    O(1, 'I study English every evening', 'Subject + verb + object + time.'),
+    O(1, 'I study English every evening', 'Subject + verb + object + time.', ['Every evening I study English']),
     O(2, 'What subject did you enjoy most at school', 'Past question: What subject + did + you + verb.'),
     O(3, 'She has just finished her final exam', 'Present perfect with "just" between has and the participle.'),
     O(3, 'The essay must be no longer than two thousand words', 'must be + no longer than + amount.'),

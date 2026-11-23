@@ -1,9 +1,11 @@
 // SAT Math · Advanced math · function notation, composition and transformations. Original (fibub).
 import { int, nz, choose, shuffleOpts, fmt, lin, quad, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'advanced' };
 const X = v('x'), f = v('f'), g = v('g');
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'functions',
   gens: [
     { id: 'sat-fn-g01', type: 'nat', marks: 1, level: 1, exams: ['sat'], sub: 'evaluate', facets: F, format: 'numeric',
@@ -56,4 +58,4 @@ export default {
       options: ['The point (3, 10) is on the graph of <i>y</i> = <i>p</i>(<i>x</i>).', 'The point (10, 3) is on the graph of <i>y</i> = <i>p</i>(<i>x</i>).', '<i>p</i> multiplied by 3 equals 10.', '<i>p</i>(10) = 3'], answer: 0,
       sol: '<p><i>p</i>(3) = 10 means "input 3, output 10". On a graph the input is <i>x</i> and the output is <i>y</i>, so (3, 10) is on it. It says nothing about <i>p</i>(10).</p>' },
   ],
-};
+}, ['sat-fn-g01', 'sat-fn-g02', 'sat-fn-g04']);

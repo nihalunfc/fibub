@@ -34,7 +34,7 @@ sources:
 
 **Biodiversity** is the variety of life at all levels: genes, species and ecosystems. The word was popularised by the sociobiologist Edward Wilson. It has three levels.
 
-- **Genetic diversity.** The variation of genes within a species. The medicinal plant *Rauwolfia vinca* grows in different Indian regions, and plants from different regions differ in the amount and potency of the active chemical reserpine they make. India has tens of thousands of traditional rice varieties and many hundreds of mango varieties.
+- **Genetic diversity.** The variation of genes within a species. The medicinal plant *Rauwolfia vomitoria* grows in different Indian regions, and plants from different regions differ in the amount and potency of the active chemical reserpine they make. India has tens of thousands of traditional rice varieties and many hundreds of mango varieties.
 - **Species diversity.** The number and variety of species in a region. The Western Ghats have more amphibian species than the Eastern Ghats.
 - **Ecological diversity.** The variety of ecosystems. India, with its deserts, rain forests, mangroves, coral reefs, wetlands, alpine meadows and estuaries, has a much greater ecosystem diversity than a country such as Norway.
 

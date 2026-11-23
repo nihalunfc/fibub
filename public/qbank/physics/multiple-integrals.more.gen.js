@@ -12,7 +12,7 @@ export default [
         { orig: I2(0, a, 0, 'x', 'dy', 'dx'), region: `$0\\le y\\le x\\le ${a}$`, right: I2(0, a, 'y', a), wrong: [I2(0, a, 0, 'y'), I2(0, a, 0, a), I2(0, 'x', 'y', a)] },
         { orig: I2(0, a, 'x', a, 'dy', 'dx'), region: `$0\\le x\\le y\\le ${a}$`, right: I2(0, a, 0, 'y'), wrong: [I2(0, a, 'y', a), I2(0, a, 0, a), I2(0, a, 'x', a)] },
         { orig: I2(0, 1, 'x^2', 'x', 'dy', 'dx'), region: '$x^2\\le y\\le x$ for $0\\le x\\le1$, that is $y\\le x\\le\\sqrt y$ for $0\\le y\\le 1$', right: I2(0, 1, 'y', '\\sqrt y'), wrong: [I2(0, 1, '\\sqrt y', 'y'), I2(0, 1, 'y^2', 'y'), I2(0, 1, 'y', 'y^2')] },
-        { orig: I2(0, a, 0, `\\sqrt{${a * a}-x^2}`, 'dy', 'dx'), region: `the quarter disc $x, y\\ge0$, $x^2 + y^2\\le ${a * a}$`, right: I2(0, a, 0, `\\sqrt{${a * a}-y^2}`), wrong: [I2(0, a, 0, `\\sqrt{${a * a}-x^2}`), I2(0, a, `\\sqrt{${a * a}-y^2}`, a), I2(0, a * a, 0, `\\sqrt{${a * a}-y^2}`)] },
+        { orig: I2(0, a, 0, `\\sqrt{${a * a}-x^2}`, 'dy', 'dx'), region: `the quarter disc $x, y\\ge0$, $x^2 + y^2\\le ${a * a}$`, right: I2(0, a, 0, `\\sqrt{${a * a}-y^2}`), wrong: [I2(0, a, 0, `\\sqrt{${a * a}-x^2}`), I2(0, a, `\\sqrt{${a * a}-y^2}`, a), I2(0, a, 0, a)] },
         { orig: I2(0, a, 0, '2x', 'dy', 'dx'), region: `$0\\le y\\le 2x$, $0\\le x\\le ${a}$, that is $y/2\\le x\\le ${a}$ for $0\\le y\\le ${2 * a}$`, right: I2(0, 2 * a, 'y/2', a), wrong: [I2(0, a, 'y/2', a), I2(0, 2 * a, 0, 'y/2'), I2(0, 2 * a, '2y', a)] },
       ];
       const F = choose(r, forms);

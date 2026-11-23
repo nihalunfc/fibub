@@ -117,7 +117,7 @@ The same result holds for varying forces and curved paths (it comes from adding 
 
 A neat everyday use: the stopping distance of a vehicle. Friction `$\mu m g$` acts over the braking distance d and must remove all the kinetic energy: `$\mu m g\, d = \tfrac12 m v^2$`, so `$d = v^2/(2\mu g)$`. The mass cancels, and speed matters squared.
 
-<figure class="fig" data-fig="c11p-work-brake"><figcaption>Braking distance against speed on a dry road, a wet road and ice. Press Brake! and watch the car. A speed of 72 km/h (20 m/s) needs about 29 m on a dry road but over 100 m on a wet one.</figcaption></figure>
+<figure class="fig" data-fig="c11p-work-brake"><figcaption>Braking distance against speed on a dry road, a wet road and ice. Press Brake! and watch the car. A speed of 72 km/h (20 m/s) needs about 29 m on a dry road, about 51 m on a wet one and about 200 m on ice.</figcaption></figure>
 
 <div class="myth">
 

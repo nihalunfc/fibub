@@ -1,8 +1,10 @@
 // GRE answer formats: Numeric Entry (type the number) and select-all multiple-answer questions.
 import { int, choose, shuffle, fmt, steps } from '../grad-quant/_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gre'];
 const neg = (v) => String(v).replace('-', '−');
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'formats',
   gens: [
     { id: 'ne-g01', type: 'nat', level: 2, exams: E, format: 'numeric', sub: 'numeric entry',
@@ -61,4 +63,4 @@ export default {
           trap: `Forgetting negative values (−${s - 0.5} works too), or including ±${s}, where x² equals ${k} exactly.` };
       } },
   ],
-};
+}, ['ma-g01']);

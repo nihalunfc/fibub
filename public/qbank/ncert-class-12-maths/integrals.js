@@ -1,12 +1,12 @@
 // Class 12 Maths, Chapter 7 Integrals: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('ig');
 const R = String.raw;
 // Simpson's rule, used by the templates to check their own answers without an antiderivative.
 const simp = (f, a, b, N = 2000) => { const h = (b - a) / N; let s = f(a) + f(b); for (let i = 1; i < N; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 
-export default {
+export default tidyGens({
   topic: 'integrals', name: 'Integrals', n: 7,
   items: [
     m.mcq(1, 'basic', R`<p>$\int \left(x^3 + \dfrac1x\right)dx$ equals:</p>`, R`$\dfrac{x^4}{4} + \ln|x| + C$`, [R`$3x^2 - \dfrac1{x^2} + C$`, R`$\dfrac{x^4}{4} + \dfrac{1}{x^2} + C$`, R`$x^4 + \ln x + C$`], R`<p>Use $\int x^n dx = \frac{x^{n+1}}{n+1}$ and $\int \frac1x dx = \ln|x|$.</p>`),
@@ -61,4 +61,4 @@ export default {
       make(rng) { const k = pick(rng, 1, 4); return { k, q: `<p>Evaluate $\\int_1^{e^{${k}}} \\dfrac{dx}{x}$.</p>`, answer: k, tol: 0.01, unit: '', sol: `<p>$[\\ln x]_1^{e^{${k}}} = ${k} - 0 = ${k}$.</p>` }; },
       verify: (p) => simp((t) => 1 / t, 1, Math.exp(p.k), 20000) },
   ],
-};
+}, ['ig-g01', 'ig-g03', 'ig-g04', 'ig-g05']);

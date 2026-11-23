@@ -49,7 +49,7 @@ const items = [
   nat(1, 'vectors', r`Find the magnitude of the vector $\vec A = 6\hat i - 8\hat j$.`, 10, 0,
     r`$|\vec A| = \sqrt{6^2 + (-8)^2} = \sqrt{100} = 10$. The minus sign disappears when squared.`),
   mcq(1, 'projectile motion', r`The time of flight of a projectile launched at speed $u$ at angle $\theta$ over level ground is`, r`$\dfrac{2u\sin\theta}{g}$`, [r`$\dfrac{u\sin\theta}{g}$`, r`$\dfrac{2u\cos\theta}{g}$`, r`$\dfrac{u^2\sin 2\theta}{g}$`],
-    r`The vertical motion goes up and comes back: $0 = u\sin\theta\,T - \tfrac12 gT^2$, so $T = 2u\sin\theta/g$. The last option is the range.`),
+    r`The vertical motion goes up and comes back: $0 = u\sin\theta\,T - \tfrac12 gT^2$, so $T = 2u\sin\theta/g$. $u^2\sin2\theta/g$ is the range.`),
   mcq(1, 'projectile motion', r`At the highest point of its path, the velocity of a projectile (no air) is`, r`horizontal, equal to $u\cos\theta$`, ['zero', r`vertical, equal to $u\sin\theta$`, r`equal to $u$`],
     r`Only the vertical component becomes zero at the top. The horizontal component $u\cos\theta$ never changes because no horizontal force acts.`, { trap: 'The velocity is zero at the top only for a vertical throw.' }),
   mcq(1, 'projectile motion', r`For a given speed of projection, the horizontal range on level ground is largest when the angle of projection is`, r`$45^\circ$`, [r`$30^\circ$`, r`$60^\circ$`, r`$90^\circ$`],
@@ -147,7 +147,7 @@ const items = [
   nat(3, 'angular quantities', r`A wheel starts from rest with a constant angular acceleration of $\pi\ \mathrm{rad\,s^{-2}}$. How many complete revolutions does it make in the first 4 s?`, 4, 0,
     r`$\theta = \tfrac12\alpha t^2 = \tfrac12\pi\times16 = 8\pi$ rad. Each revolution is $2\pi$ rad, so $8\pi/2\pi = 4$ revolutions.`),
   mcq(3, 'vectors', r`A vector perpendicular to $4\hat i + 3\hat j$, of the same magnitude and with a positive $\hat j$ component, is`, r`$-3\hat i + 4\hat j$`, [r`$3\hat i + 4\hat j$`, r`$4\hat i - 3\hat j$`, r`$3\hat i - 4\hat j$`],
-    r`Dot with $4\hat i + 3\hat j$: $-12 + 12 = 0$ for option A. Option B: $12+12 \ne 0$. Option C: $16 - 9\ne0$. Option D is also perpendicular with magnitude 5, but its $\hat j$ part is negative.`, { trap: 'Two perpendicular vectors exist in a plane (one on each side).' }),
+    r`Dot with $4\hat i + 3\hat j$: $-12 + 12 = 0$ for option D, which has magnitude 5 and a positive $\hat j$ part. Option A: $12+12 \ne 0$. Option B: $16 - 9\ne0$. Option C is also perpendicular with magnitude 5, but its $\hat j$ part is negative.`, { trap: 'Two perpendicular vectors exist in a plane (one on each side).' }),
   nat(3, 'vectors', r`Find the area of the parallelogram whose adjacent sides are $\vec A = 2\hat i + \hat j$ and $\vec B = \hat i + 3\hat j$ (in square units).`, 5, 0,
     r`Area $= |\vec A\times\vec B| = |A_xB_y - A_yB_x| = |2\times3 - 1\times1| = 5$.`),
   mcq(3, 'vectors', r`If $|\vec A + \vec B| = |\vec A - \vec B|$ for two non-zero vectors, then the angle between them is`, r`$90^\circ$`, [r`$0^\circ$`, r`$180^\circ$`, r`$60^\circ$`],
@@ -155,7 +155,7 @@ const items = [
   nat(3, 'vectors', r`Find the angle, in degrees, between the vectors $\hat i + \hat j + \hat k$ and $\hat i$ (1 decimal place).`, 54.7, 0.1,
     r`$\cos\theta = \dfrac{1}{\sqrt3\times1}$, so $\theta = \cos^{-1}(0.577) = 54.7^\circ$.`, { unit: '°' }),
   mcq(3, 'vectors', r`The unit vector along $2\hat i - 3\hat j + 6\hat k$ is`, r`$\dfrac{2\hat i - 3\hat j + 6\hat k}{7}$`, [r`$\dfrac{2\hat i - 3\hat j + 6\hat k}{11}$`, r`$\dfrac{2\hat i - 3\hat j + 6\hat k}{\sqrt{11}}$`, r`$\dfrac{2\hat i + 3\hat j + 6\hat k}{7}$`],
-    r`$|\vec A| = \sqrt{4+9+36} = 7$. Divide the vector by 7. Option B has the sum 11 and C has its root; D flips a sign.`),
+    r`$|\vec A| = \sqrt{4+9+36} = 7$. Divide the vector by 7. Option A has the sum 11 and C has its root; D flips a sign.`),
   mcq(3, 'circular motion', r`Which of these is NOT correct for a particle in uniform circular motion?`, 'Its acceleration vector is constant', ['Its speed is constant', 'Its kinetic energy is constant', 'The magnitude of its acceleration is constant'],
     r`The acceleration always points to the centre, so its direction keeps changing. The vector is not constant even though its size $v^2/r$ is.`, { trap: 'Read "NOT correct": hunt for the false statement.' }),
   mcq(3, 'projectile motion', r`The speed–time graph of a projectile launched at $60^\circ$ from level ground and landing at the same level looks like`, 'a curve that falls to a minimum (non-zero) at half the flight time and rises again', ['a straight line falling to zero', 'a curve falling to zero at the top and rising again', 'a straight horizontal line'],
@@ -242,7 +242,7 @@ const items = [
   asrt(3, 'circular motion', r`A body in uniform circular motion has an acceleration although its speed is constant.`, r`Acceleration is the rate of change of velocity, and the direction of the velocity keeps changing.`, 0,
     r`Both true; R explains A. Speed constant only means no tangential acceleration.`),
   asrt(3, 'vectors', r`The magnitude of the resultant of two vectors can be less than the magnitude of either of them.`, r`The magnitude of the resultant depends on the angle between the vectors.`, 0,
-    r`For $P = Q = 5$ and an angle of $120^\circ$, $R = 5$. For $180^\circ$ it is $|P - Q|$ which is smaller than both if both are non-zero. R is the reason: the cosine term can be negative.`),
+    r`For $P = Q = 5$ and an angle of $120^\circ$, $R = 5$, equal to each. At any larger angle it is less than both, down to $|P - Q| = 0$ at $180^\circ$. R is the reason: the cosine term can be negative.`),
   asrt(3, 'projectile motion', r`The kinetic energy of a projectile is least at the highest point of its path.`, r`The speed at the highest point is $u\cos\theta$, the smallest value over the flight.`, 0,
     r`Kinetic energy $= \tfrac12mv^2$ is least where the speed is least. The speed is $\sqrt{v_x^2 + v_y^2}$ with $v_x$ constant, so it is least when $v_y = 0$, at the top. R explains A.`),
   asrt(4, 'vectors', r`If $\vec A\cdot\vec B = \vec A\cdot\vec C$ for a non-zero vector $\vec A$, then $\vec B = \vec C$.`, r`The dot product of two perpendicular vectors is zero.`, 3,
@@ -533,6 +533,7 @@ const gens = [
 
 // ======== Expansion block (added 2026-11-22): more hard items and templates, ids mp-x001 onward ========
 import * as XH from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
 const xr = String.raw;
 const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
@@ -899,4 +900,5 @@ const xgens = [
     verify: (p) => p.options.indexOf(xfmt(4 * p.b / p.a, 3)) },
 ];
 
-export default { topic: 'motion-plane', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'motion-plane', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['mp-g17', 'mp-g26']);

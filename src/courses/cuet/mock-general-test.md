@@ -28,7 +28,7 @@ sources:
 
 ## Before you start
 
-The paper mixes numerical ability, logical and analytical reasoning and general awareness. It does not include current affairs, which change every month: keep up with them using the method in Lesson 5.5.
+The paper mixes numerical ability, logical and analytical reasoning and general awareness. The real General Test also asks current affairs questions; this mock leaves them out because they change every month, so keep up with them using the method in Lesson 5.5.
 
 <div class="steps" data-title="How to use a mock">
 <div class="step"><b>Sit it in one go.</b> 60 minutes, no breaks, three rounds as in Lesson 1.2: sure ones, workable ones, educated guesses.</div>

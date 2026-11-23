@@ -37,7 +37,7 @@ export default {
         const m = int(r, 3, 7), w = int(r, 3, 7), k = 3, want = choose(r, [1, 2]), a = C(m, want) * C(w, k - want), b = C(m + w, k), value = a / b;
         return { q: `<p>Three people are picked at random from ${m} men and ${w} women. What is the probability that exactly ${want} of them ${want === 1 ? 'is a man' : 'are men'}?</p>`, ...textOpts(r, frac(a, b), wrongFracs(a, b, [[want, 3], [C(m, want), b], [m, m + w], [a, b * 2], [a * 2, b * 3]]).concat(nearFracs(a, b))), value, m, w, want,
           hint: 'Favourable groups ÷ all possible groups, both counted with combinations.',
-          sol: steps(`All groups of 3: C(${m + w}, 3) = ${b}.`, `Exactly ${want} men: C(${m}, ${want}) × C(${w}, ${k - want}) = ${C(m, want)} × ${C(w, k - want)} = ${a}.`, `P = ${a}/${b} = <b>${frac(a, b)}</b>.`) };
+          sol: steps(`All groups of 3: C(${m + w}, 3) = ${b}.`, `Exactly ${want} ${want === 1 ? 'man' : 'men'}: C(${m}, ${want}) × C(${w}, ${k - want}) = ${C(m, want)} × ${C(w, k - want)} = ${a}.`, `P = ${a}/${b} = <b>${frac(a, b)}</b>.`) };
       }, check: (p) => (C(p.m, p.want) * C(p.w, 3 - p.want)) / C(p.m + p.w, 3) },
   ],
 };

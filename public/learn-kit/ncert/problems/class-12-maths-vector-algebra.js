@@ -1,12 +1,12 @@
 // Class 12 Maths, Vector Algebra: live problems (original fibub questions). Ids start with c12m-vec-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 // (a, b, c, length): whole-number lengths
 const QUAD = [[1, 2, 2, 3], [2, 3, 6, 7], [1, 4, 8, 9], [2, 6, 9, 11], [4, 4, 7, 9], [6, 6, 7, 11], [2, 10, 11, 15]];
 const sg = (r) => (r() < 0.5 ? -1 : 1);
 const vec = (a) => `${a[0]}<b>i</b> ${a[1] < 0 ? '−' : '+'} ${Math.abs(a[1])}<b>j</b> ${a[2] < 0 ? '−' : '+'} ${Math.abs(a[2])}<b>k</b>`;
 
-export default {
+export default tidyProblems({
   'c12m-vec-mag': {
     title: 'magnitude and unit vector',
     make(r) {
@@ -85,4 +85,4 @@ export default {
     // go the fraction m/(m+k) of the way from A to B
     verify: (p) => p.A[p.ax] + (p.m / (p.m + p.k)) * (p.B[p.ax] - p.A[p.ax]),
   },
-};
+}, ['c12m-vec-mag', 'c12m-vec-dot', 'c12m-vec-proj', 'c12m-vec-cross', 'c12m-vec-tri', 'c12m-vec-work']);

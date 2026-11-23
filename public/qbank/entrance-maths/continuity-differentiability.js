@@ -2,6 +2,7 @@
 // Every fixed limit/derivative item below is checked numerically when the file loads (the helper throws on a mismatch),
 // and every template has a verify() that recomputes its answer numerically from the fields it returns.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const CUET = true;
@@ -1247,4 +1248,5 @@ XGN.push(
 Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
 }
 // ==XP-END
-export default { topic: 'continuity-differentiability', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'continuity-differentiability', groups, items, gens }, ['cd-g01', 'cd-g03', 'cd-g06', 'cd-g10', 'cd-g11', 'cd-g14', 'cd-g15', 'cd-g16', 'cd-g18', 'cd-xg01', 'cd-xg02', 'cd-xg07']);

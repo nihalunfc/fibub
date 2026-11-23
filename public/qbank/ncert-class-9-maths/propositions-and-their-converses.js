@@ -1,9 +1,9 @@
 // Class 9 Maths, Chapter 9 Propositions and their Converses: practice questions (original fibub questions).
 import { maker } from './_make.js';
-import { pick } from '../_util.js';
+import { pick, tidyGens } from '../_util.js';
 const m = maker('pc');
 
-export default {
+export default tidyGens({
   topic: 'propositions-and-their-converses', name: 'Propositions and their Converses', n: 9,
   items: [
     m.mcq(1, 'statements', '<p>Which of these is a statement (a sentence that is true or false)?</p>', 'The sum of two even numbers is even.', ['Is 12 an even number?', 'Add 5 to both sides.', 'What a hot day!'], '<p>Only the first can be called true (or false). A question, a command and an exclamation are not statements.</p>'),
@@ -44,7 +44,7 @@ export default {
       make(rng) { const a = pick(rng, 20, 140, 2); return { a, q: `<p>In an isosceles triangle the angle between the equal sides is ${a}°. Find one base angle in degrees.</p>`, answer: (180 - a) / 2, tol: 0, sol: `<p>(180 − ${a}) ÷ 2 = ${(180 - a) / 2}.</p>` }; },
       verify: (p) => 90 - p.a / 2 },
     { id: 'pc-g04', type: 'nat', level: 3, exams: ['board'], sub: 'proof',
-      make(rng) { const x = pick(rng, 5, 15), a = pick(rng, 2, 5), e = pick(rng, 1, 3), b = pick(rng, 10, 30), f = b - e * x; return { x, a, e, b, f, q: `<p>Two vertically opposite angles are (${a}x + ${b})° and (${a + e}x ${f < 0 ? '−' : '+'} ${Math.abs(f)})°. Find x.</p>`, answer: x, tol: 0, sol: `<p>Vertically opposite angles are equal: ${a}x + ${b} = ${a + e}x ${f < 0 ? '−' : '+'} ${Math.abs(f)}, so ${e}x = ${b - f} and x = ${x}.</p>` }; },
+      make(rng) { const x = pick(rng, 5, 15), a = pick(rng, 2, 5), e = pick(rng, 1, 3), b = pick(rng, 10, 30), f = b - e * x; return { x, a, e, b, f, q: `<p>Two vertically opposite angles are (${a}x + ${b})° and (${a + e}x ${f < 0 ? '−' : '+'} ${Math.abs(f)})°. Find x.</p>`, answer: x, tol: 0, sol: `<p>Vertically opposite angles are equal: ${a}x + ${b} = ${a + e}x ${f < 0 ? '−' : '+'} ${Math.abs(f)}, so ${e === 1 ? '' : `${e}x = ${b - f} and `}x = ${x}.</p>` }; },
       verify: (p) => (p.b - p.f) / p.e },
     { id: 'pc-g05', type: 'nat', level: 3, exams: ['board'], sub: 'counter',
       make(rng) { const k = pick(rng, 1, 30); let t = k + 1; const pr = (v) => { for (let d = 2; d * d <= v; d++) if (v % d === 0) return false; return v > 1; }; while (pr(2 * t + 1)) t++; return { k, q: `<p>Claim: “2n + 1 is prime for every whole number n.” Find the smallest n greater than ${k} that is a counterexample.</p>`, answer: t, tol: 0, sol: `<p>2n + 1 = ${2 * t + 1} is not prime at n = ${t}.</p>` }; },
@@ -53,4 +53,4 @@ export default {
       make(rng) { const N = pick(rng, 20, 60); return { N, q: `<p>Of the numbers 1 to ${N}, how many are counterexamples to “if a number is a multiple of 3 then it is a multiple of 6”?</p>`, answer: Math.floor(N / 3) - Math.floor(N / 6), tol: 0, sol: `<p>Multiples of 3 that are odd: ${Math.floor(N / 3)} multiples of 3 minus ${Math.floor(N / 6)} multiples of 6.</p>` }; },
       verify: (p) => { let c = 0; for (let v = 1; v <= p.N; v++) if (v % 3 === 0 && v % 6 !== 0) c++; return c; } },
   ],
-};
+}, ['pc-g04']);

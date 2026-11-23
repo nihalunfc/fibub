@@ -402,7 +402,7 @@ export default {
       make(rng) {
         const f = choose(rng, FCS); const fc = f[1] - f[2] - f[3];
         return { q: `Find the formal charge on ${f[0]} (valence electrons ${f[1]}, non-bonding electrons ${f[2]}, number of bonds counting a double bond as 2 = ${f[3]}).`, answer: fc, tol: 0, V: f[1], L: f[2], b: f[3],
-          sol: `<p>Formal charge = V - L - B/2, where B/2 is the number of bonds.</p><p>= ${f[1]} - ${f[2]} - ${f[3]} = <b>${fc >= 0 ? '+' : ''}${fc}</b>.</p>` };
+          sol: `<p>Formal charge = V - L - B/2, where B/2 is the number of bonds.</p><p>= ${f[1]} - ${f[2]} - ${f[3]} = <b>${fc > 0 ? '+' : ''}${fc}</b>.</p>` };
       }, verify: (p) => p.V - p.L - (2 * p.b) / 2 },
     { id: 'cb-g02', type: 'nat', level: 3, exams: EX[3], sub: 'lone pairs',
       make(rng) {

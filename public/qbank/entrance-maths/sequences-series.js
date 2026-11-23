@@ -1,6 +1,7 @@
 // Sequences and series (Plus Two entrance, Mathematics, Class 11). Original fibub questions.
 // Numeric answers were checked in code (the `calc` fields and the gens' verify() recompute by loops or other formulas).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -879,4 +880,5 @@ gens.push(
 
 // ===== expansion end =====
 
-export default { topic: 'sequences-series', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'sequences-series', groups, items, gens }, ['ss-g06', 'ss-g08', 'ss-g18']);

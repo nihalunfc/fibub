@@ -1,6 +1,6 @@
 // Class 12 Maths, Chapter 11 Three Dimensional Geometry: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('tg');
 const R = String.raw;
 const QD = [[1, 2, 2, 3], [2, 3, 6, 7], [3, 4, 12, 13], [2, 6, 9, 11], [4, 4, 7, 9], [1, 4, 8, 9]];
@@ -8,7 +8,7 @@ const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], sq = (v) => dot(v
 const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const tup = (v) => `(${v.join(', ')})`;
 
-export default {
+export default tidyGens({
   topic: 'three-dimensional-geometry', name: 'Three Dimensional Geometry', n: 11,
   items: [
     m.mcq(1, 'dc', R`<p>For any line, $l^2 + m^2 + n^2$ is equal to:</p>`, R`$1$`, [R`$0$`, R`$3$`, R`$\tfrac12$`], R`<p>$\cos^2\alpha + \cos^2\beta + \cos^2\gamma = 1$ for the angles a line makes with the three axes.</p>`),
@@ -59,4 +59,4 @@ export default {
       make(rng) { const [a, b, c, mm] = choose(rng, QD), P = [pick(rng, -4, 4), pick(rng, -4, 4), pick(rng, -4, 4)], d = pick(rng, -6, 6); return { a, b, c, mm, P, d, q: `<p>Find the distance of the point $${tup(P)}$ from the plane $${a}x + ${b}y + ${c}z = ${d}$ (3 decimal places).</p>`, answer: Math.abs(a * P[0] + b * P[1] + c * P[2] - d) / mm, tol: 0.01, sol: `<p>$\\dfrac{|${a}(${P[0]}) + ${b}(${P[1]}) + ${c}(${P[2]}) - ${d}|}{${mm}} = \\dfrac{${Math.abs(a * P[0] + b * P[1] + c * P[2] - d)}}{${mm}}$.</p>` }; },
       verify: (p) => { const n = [p.a, p.b, p.c], nn = Math.hypot(...n), t = (p.d - dot(n, p.P)) / (nn * nn), F = p.P.map((x, i) => x + t * n[i]); return Math.hypot(...F.map((x, i) => x - p.P[i])); } },
   ],
-};
+}, ['tg-g05', 'tg-g06', 'tg-g07']);

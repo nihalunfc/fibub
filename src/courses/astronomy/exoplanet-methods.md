@@ -49,7 +49,7 @@ Follow one planet through both methods:
 <div class="step"><b>The transit.</b> Every 4 days a planet crosses its star and the light drops by 1%: depth δ = 0.01.</div>
 <div class="step"><b>Size.</b> δ = (R<sub>p</sub>/R<sub>★</sub>)², so R<sub>p</sub> = √0.01 = 0.1 of the star's radius. For a Sun-like star that is about 11 Earth radii, Jupiter-sized.</div>
 <div class="step"><b>The wobble.</b> The planet tugs the star in a small circle. Doppler shifts show it moving towards and away from us by 100 m/s every 4 days.</div>
-<div class="step"><b>Mass.</b> That speed, the period and the star's mass give about 0.7 Jupiter masses.</div>
+<div class="step"><b>Mass.</b> That speed, the period and the star's mass give about 0.8 Jupiter masses.</div>
 <div class="step"><b>Density.</b> Mass ÷ volume: a puffy gas giant roasting close to its star, a "hot Jupiter".</div>
 </div>
 

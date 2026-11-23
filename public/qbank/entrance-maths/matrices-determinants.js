@@ -1,6 +1,7 @@
 // Matrices and determinants (Plus Two entrance, Mathematics, Class 12). Original fibub questions.
 // Numeric answers were checked in code (`calc` fields and the templates' verify() recompute them another way).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -908,4 +909,5 @@ gens.push(
 
 }
 // ==XP-END
-export default { topic: 'matrices-determinants', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'matrices-determinants', groups, items, gens }, ['md-g07', 'md-g10', 'md-g11', 'md-g30', 'md-g14', 'md-g18', 'md-g26'], [], ['md-g14', 'md-g18', 'md-g26']);

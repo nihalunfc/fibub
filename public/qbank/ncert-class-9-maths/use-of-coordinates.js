@@ -1,11 +1,11 @@
 // Class 9 Maths, Chapter 1 Orienting Yourself: The Use of Coordinates: practice questions (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('uc');
 const pt = (x, y) => `(${x}, ${y})`.replace(/-/g, '−');
 const nz = (r, a, b) => { const v = pick(r, a, b); return v || b; };
 
-export default {
+export default tidyGens({
   topic: 'use-of-coordinates', name: 'Orienting Yourself: The Use of Coordinates', n: 1,
   items: [
     m.mcq(1, 'plane', '<p>The point where the x-axis and y-axis meet is called the:</p>', 'origin', ['abscissa', 'ordinate', 'quadrant'], '<p>The axes cross at (0, 0), the origin.</p>'),
@@ -62,4 +62,4 @@ export default {
       make(rng) { const a = pick(rng, 2, 9), b = pick(rng, 2, 9); return { a, b, q: `<p>A point on the x-axis is ${a} units to the right of the origin, and a point on the y-axis is ${b} units above it. Find the distance between them correct to 2 decimal places.</p>`, answer: +Math.hypot(a, b).toFixed(2), tol: 0.01, sol: `<p>d = √(${a}² + ${b}²) = √${a * a + b * b} ≈ ${Math.hypot(a, b).toFixed(2)}.</p>` }; },
       verify: (p) => Math.sqrt(p.a * p.a + p.b * p.b) },
   ],
-};
+}, ['uc-g05']);

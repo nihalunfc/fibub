@@ -1,10 +1,12 @@
 // SAT Math · Advanced math · polynomials, zeros, remainders and rational equations. Original (fibub).
 import { int, nz, other, choose, shuffleOpts, fmt, lin, quad, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'advanced' };
 const X = v('x'), p = v('p');
 const fac = (z) => `(${X} ${z < 0 ? '+' : '−'} ${Math.abs(z)})`;
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'polynomials-rational',
   gens: [
     { id: 'sat-pr-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'remainder theorem', facets: F, format: 'numeric',
@@ -63,4 +65,4 @@ export default {
       sol: '<p>Multiply by (<i>x</i> − 2): <i>x</i> = 2 + 3(<i>x</i> − 2), so <i>x</i> = 3<i>x</i> − 4 and <i>x</i> = 2. But <i>x</i> = 2 makes the bottom zero, so it is not allowed (an "extraneous" solution). There is no solution.</p>',
       trap: 'Not checking the answer in the original equation.' },
   ],
-};
+}, ['sat-pr-g01', 'sat-pr-g03', 'sat-pr-g05']);

@@ -1,5 +1,6 @@
 // Quadratic equations and inequalities (Plus Two entrance, Mathematics). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1074,4 +1075,5 @@ gens.push(
 );
 }
 // ==L5-END
-export default { topic: 'quadratic-equations', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'quadratic-equations', groups, items, gens }, ['qe-g01', 'qe-g07', 'qe-g08', 'qe-g10', 'qe-g12', 'qe-g15', 'qe-g16', 'qe-g18', 'qe-g19', 'qe-g20', 'qe-g21', 'qe-g22', 'qe-v5g1']);

@@ -62,7 +62,7 @@ q_0 = \frac{\Omega_m}{2} + \Omega_r - \Omega_\Lambda \approx \frac{0.31}{2} - 0.
 
 ## 3. The 1998 surprise
 
-Everyone expected the expansion to be slowing; the question was by how much. Two teams set out to measure it with distant Type Ia supernovae ([Lesson 2.4](/learn/courses/cosmology/type-ia-supernovae/)), standard candles visible across billions of light-years. A slowing universe would make distant supernovae a little brighter than a steady one. They found them about **25% fainter**: farther away than expected. The expansion is speeding up.
+Everyone expected the expansion to be slowing; the question was by how much. Two teams set out to measure it with distant Type Ia supernovae ([Lesson 2.4](/learn/courses/cosmology/type-ia-supernovae/)), standard candles visible across billions of light-years. A slowing universe would make distant supernovae a little brighter than a steady one. They found them about **0.25 magnitudes fainter**, about 20% less light: farther away than expected. The expansion is speeding up.
 
 <div class="history">
 

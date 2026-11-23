@@ -1,9 +1,11 @@
 // GRE geometry: angles, triangles, circles, coordinates and solids. All figures are described in words.
 import { int, choose, numOpts, fmt, steps } from '../grad-quant/_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gre'];
 const TRIPLES = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]];
 const r1 = (x) => Math.round(x * 10) / 10;
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'geometry',
   gens: [
     { id: 'geo-g01', type: 'nat', level: 2, exams: E, format: 'numeric', sub: 'triangles',
@@ -56,4 +58,4 @@ export default {
       },
       verify: (p) => (p.ask === 0 ? 2 * (p.l * p.w + p.l * p.h + p.w * p.h) : 8) },
   ],
-};
+}, ['geo-g04']);

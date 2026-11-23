@@ -808,7 +808,7 @@ const xitems = [
   xstm(3, 'spectral series', r`The wavelengths of the Lyman series lie in the ultraviolet.`, r`The Lyman series ends on the level $n = 1$, so its lines carry at least 10.2 eV.`, 0,
     r`10.2 eV corresponds to $\dfrac{1240}{10.2} = 121.6$ nm: ultraviolet. Both are true and II explains I.`),
   xmcq(3, 'limits of Rutherford model', r`Which of these is a difficulty of Rutherford's nuclear model that Bohr's model removed?`, 'The orbiting electron should radiate energy and spiral into the nucleus', ['Alpha particles are scattered through large angles', 'The nucleus is much smaller than the atom', 'Most alpha particles pass straight through'],
-    r`The other three are observations that the nuclear model explains. The first is a prediction that fails: an accelerating charge radiates, so the atom could not be stable. Bohr's stationary orbits avoid it.`),
+    r`The other three are observations that the nuclear model explains. The spiralling electron is a prediction that fails: an accelerating charge radiates, so the atom could not be stable. Bohr's stationary orbits avoid it.`),
 
   // ---------- Level 4 ----------
   xnat(4, 'excitation by collision', r`A neutron (mass nearly equal to that of a hydrogen atom) strikes a hydrogen atom at rest in its ground state and excites it to $n = 2$ in an inelastic collision. Find the smallest kinetic energy of the neutron for this to be possible (in eV, 1 decimal).`, 2 * 10.2, 0.05, 1,

@@ -1,5 +1,6 @@
 // Sets, relations and functions (Plus Two entrance, Mathematics). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1075,4 +1076,5 @@ gens.push(
 );
 }
 // ==L5-END
-export default { topic: 'sets-relations-functions', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'sets-relations-functions', groups, items, gens }, ['srf-g10', 'srf-v5g3']);

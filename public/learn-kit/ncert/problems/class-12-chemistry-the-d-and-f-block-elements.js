@@ -1,5 +1,5 @@
 // Class 12 Chemistry, Chapter 4 The d- and f-Block Elements: live problems (original fibub questions). Ids start with c12c-dblock-.
-import { choose, n, steps } from './_util.js';
+import { choose, n, steps, tidyProblems } from './_util.js';
 
 const unpaired = (d) => (d <= 5 ? d : 10 - d);
 const ION = [['Ti³⁺', 22, 3, 1], ['V³⁺', 23, 3, 2], ['Cr³⁺', 24, 3, 3], ['Mn²⁺', 25, 2, 5], ['Fe²⁺', 26, 2, 6], ['Fe³⁺', 26, 3, 5], ['Co²⁺', 27, 2, 7], ['Ni²⁺', 28, 2, 8], ['Cu²⁺', 29, 2, 9], ['Mn³⁺', 25, 3, 4], ['Cr²⁺', 24, 2, 4]];
@@ -7,7 +7,7 @@ const SPEC = [['MnO<sub>4</sub><sup>−</sup>', 'Mn', 1, 4, -1, 7], ['Cr<sub>2</
 const EV = [['Fe', -0.44], ['Zn', -0.76], ['Ni', -0.25], ['Co', -0.28], ['Cu', 0.34], ['Mn', -1.18], ['Cr', -0.91]];
 const LN = [['Ce', 58], ['Pr', 59], ['Nd', 60], ['Sm', 62], ['Eu', 63], ['Gd', 64], ['Tb', 65], ['Dy', 66], ['Ho', 67], ['Er', 68], ['Tm', 69]];
 
-export default {
+export default tidyProblems({
   'c12c-dblock-mu': {
     title: 'spin-only magnetic moment of an ion',
     make(r) {
@@ -59,4 +59,4 @@ export default {
     },
     verify: (x) => { const f = x.Z - 3 - 54; return Math.min(f, 14 - f); },
   },
-};
+}, ['c12c-dblock-state']);

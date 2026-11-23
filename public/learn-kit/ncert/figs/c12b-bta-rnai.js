@@ -1,4 +1,4 @@
-// Class 12 Biology, Biotechnology and its Applications (step player): RNA interference (RNAi) against a root-knot nematode (Meloidogyne incognitia)
+// Class 12 Biology, Biotechnology and its Applications (step player): RNA interference (RNAi) against a root-knot nematode (Meloidogyne incognita)
 // in tobacco. Genes made sense and antisense RNA of a nematode gene in the host cell. The two RNAs are complementary and pair into double-stranded RNA,
 // which makes the cell destroy the matching mRNA of the nematode, so it cannot make its protein and the parasite dies.
 import { canvas, text, title, line, dot, arrow } from '../../kit.js';
@@ -13,7 +13,7 @@ export default function (host) {
     const wave = (x0, x1, y, c, wd = 3) => { const p = []; for (let x = x0; x <= x1; x += 3) p.push([x, y + Math.sin((x - x0) / 5) * 3]); line(ctx, p, c, wd); };
     const ny = top + 200;
     const nem = (x, y, c) => { ctx.lineWidth = 7; ctx.strokeStyle = c; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - 40, y); ctx.bezierCurveTo(x - 20, y - 14, x + 10, y + 14, x + 40, y - 4); ctx.stroke(); dot(ctx, x + 40, y - 4, 4, c); };
-    if (st === 0) { nem(cx, ny + 10, col.bad); S('Meloidogyne incognitia', cx, ny + 36, col.bad, 'center', 11, 700); S('infects the roots and feeds on them', cx, ny + 52, col.ink); S('(It is the nematode that damages tobacco roots)', cx, ny + 68, col.muted, 'center', 10.5); S('no dsRNA yet', cx, top + 76, col.muted); }
+    if (st === 0) { nem(cx, ny + 10, col.bad); S('Meloidogyne incognita', cx, ny + 36, col.bad, 'center', 11, 700); S('infects the roots and feeds on them', cx, ny + 52, col.ink); S('(It is the nematode that damages tobacco roots)', cx, ny + 68, col.muted, 'center', 10.5); S('no dsRNA yet', cx, top + 76, col.muted); }
     if (st >= 1) { wave(30, w - 30, top + 44, col.s[0]); S('sense RNA (copy of a nematode gene)', cx, top + 28, col.s[0], 'center', 10.5, 700); wave(30, w - 30, top + 112, col.s[2]); S('antisense RNA (its complement)', cx, top + 132, col.s[2], 'center', 10.5, 700); }
     if (st >= 2) { for (let x = 38; x < w - 36; x += 9) line(ctx, [[x, top + 48], [x, top + 108]], col.good, 1.5); text(ctx, 'double-stranded RNA (dsRNA)', cx, top + 78, { color: col.good, size: 11, weight: 800, align: 'center', halo: col.soft }); }
     if (st >= 3) { nem(cx, ny + 10, col.bad); wave(cx - 60, cx + 60, ny - 22, col.bad, 3); S('mRNA of the nematode gene', cx, ny - 36, col.bad, 'center', 10.5, 700); line(ctx, [[cx - 24, ny - 30], [cx + 24, ny - 12]], col.ink, 4); line(ctx, [[cx + 24, ny - 30], [cx - 24, ny - 12]], col.ink, 4); }

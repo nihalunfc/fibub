@@ -8,12 +8,12 @@ export default {
   gens: [
     { id: 'sat-li-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'greatest integer', facets: F, format: 'numeric',
       make(r) {
-        const a = nz(r, -6, 6), b = int(r, -12, 12), bound = int(r, -6, 9), strict = r() < 0.5;
+        const a = nz(r, -6, 6), b = nz(r, -12, 12), bound = int(r, -6, 9), strict = r() < 0.5;
         // a x + b  (<|<=)  a*bound + b   ... with negative a the direction flips; ask greatest or least accordingly
         const c = a * bound + b, sym = strict ? '&lt;' : '≤';
         const greatest = a > 0, ans = strict ? (greatest ? bound - 1 : bound + 1) : bound;
         return { q: `<p>${lin(a, b)} ${sym} ${fmt(c)}</p><p>What is the ${greatest ? 'greatest' : 'least'} integer value of ${X} that satisfies the inequality above?</p>`, answer: ans, tol: 0, a, b, c, strict,
-          sol: steps(`Subtract ${fmt(b)}: ${lin(a, 0)} ${sym} ${fmt(c - b)}.`, a > 0 ? `Divide by ${a}: ${X} ${sym} ${fmt(bound)}.` : `Divide by ${fmt(a)}. Dividing by a negative number <b>flips</b> the sign: ${X} ${strict ? '&gt;' : '≥'} ${fmt(bound)}.`,
+          sol: steps(`${b < 0 ? 'Add ' + fmt(-b) : 'Subtract ' + fmt(b)}: ${lin(a, 0)} ${sym} ${fmt(c - b)}.`, a > 0 ? `Divide by ${a}: ${X} ${sym} ${fmt(bound)}.` : `Divide by ${fmt(a)}. Dividing by a negative number <b>flips</b> the sign: ${X} ${strict ? '&gt;' : '≥'} ${fmt(bound)}.`,
             `The ${greatest ? 'greatest' : 'least'} integer that fits is <b>${fmt(ans)}</b>.`),
           trap: 'Forgetting to flip the inequality when dividing by a negative number, or including the end point of a strict inequality.' };
       },
@@ -36,7 +36,7 @@ export default {
         const pts = []; for (let x = -3; x <= 3; x++) for (let y = -8; y <= 14; y++) pts.push([x, y]);
         const ins = pts.filter(([x, y]) => inside(x, y)), outs = pts.filter(([x, y]) => !inside(x, y));
         const P = ins[Math.floor(r() * ins.length)];
-        const W = [0, 1, 2].map(() => outs[Math.floor(r() * outs.length)]);
+        const W = []; while (W.length < 3) { const p = outs[Math.floor(r() * outs.length)]; if (!W.includes(p)) W.push(p); }
         const o = shuffleOpts(r, `(${fmt(P[0])}, ${fmt(P[1])})`, W.map(([x, y]) => `(${fmt(x)}, ${fmt(y)})`));
         return { q: `<p>${Y} &gt; ${lin(m1, b1)}<br>${Y} &lt; ${lin(m2, b2)}</p><p>Which point (${X}, ${Y}) is a solution to the system of inequalities above?</p>`, ...o,
           sol: steps('Test each point in <b>both</b> inequalities. A solution must make both true.', `For (${fmt(P[0])}, ${fmt(P[1])}): ${fmt(P[1])} &gt; ${fmt(m1 * P[0] + b1)} ✓ and ${fmt(P[1])} &lt; ${fmt(m2 * P[0] + b2)} ✓.`, 'Each other point breaks at least one of the inequalities.'),

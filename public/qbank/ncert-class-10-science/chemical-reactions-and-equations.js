@@ -34,7 +34,7 @@ export default {
   ],
   gens: [
     { id: 'cr-g01', type: 'nat', level: 2, exams: ['board'], sub: 'balancing',
-      make(rng) { const a = pick(rng, 8, 60, 2), b = pick(rng, 4, 30, 2); return { a, b, q: `<p>${a} g of a compound is heated and breaks into a solid and a gas. The solid weighs ${b} g. What is the mass of gas in grams (the gas has not been weighed)?</p>`, answer: a - b, tol: 0.01, unit: 'g', sol: `<p>Mass is conserved: gas = ${a} − ${b} = ${a - b} g.</p>` }; },
+      make(rng) { const a = pick(rng, 8, 60, 2), b = pick(rng, 4, Math.min(30, a - 2), 2); return { a, b, q: `<p>${a} g of a compound is heated and breaks into a solid and a gas. The solid weighs ${b} g. What is the mass of gas in grams (the gas has not been weighed)?</p>`, answer: a - b, tol: 0.01, unit: 'g', sol: `<p>Mass is conserved: gas = ${a} − ${b} = ${a - b} g.</p>` }; },
       verify: (p) => p.a - p.b },
     { id: 'cr-g02', type: 'nat', level: 3, exams: ['board'], sub: 'types',
       make(rng) { const M = pick(rng, 20, 400, 10); return { M, q: `<p>${M} kg of limestone (CaCO₃) is heated strongly. Find the mass of quicklime (CaO) formed, in kg. (Ca = 40, C = 12, O = 16.)</p>`, answer: r2((M * 56) / 100), tol: 0.01, unit: 'kg', sol: `<p>CaCO₃ = 100 and CaO = 56, so ${M} × 56/100 = ${r2((M * 56) / 100)} kg.</p>` }; },

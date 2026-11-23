@@ -1,5 +1,6 @@
 // Electric potential and capacitance: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EXB = {
@@ -128,7 +129,7 @@ const items = [
   nat(2, 'RC circuit', r`A resistor of $2\ \mathrm{M\Omega}$ and a capacitor of $5\ \mu$F are connected in series. Find the time constant (in s).`, 2e6 * 5e-6, 0.01, 2,
     r`$\tau = RC = 2\times10^{6}\ \Omega\times5\times10^{-6}\ \mathrm{F} = 10$ s.`, { unit: 's' }),
   mcq(2, 'equipotential surfaces', r`Which statement about equipotential surfaces is correct?`, 'Two equipotential surfaces can never intersect', ['The electric field is parallel to them', 'They are always spheres', 'No work is done in moving a charge from one to another'],
-    r`At an intersection the potential would have two different values at the same point: impossible. Option 2 is false because the field is normal to them. Option 3 is false for two different surfaces: $W = q\Delta V\neq0$. They are spheres only for a point charge, planes for a uniform field.`),
+    r`At an intersection the potential would have two different values at the same point: impossible. Option 1 is false because the field is normal to them. Option 3 is false for two different surfaces: $W = q\Delta V\neq0$. They are spheres only for a point charge, planes for a uniform field.`),
   nat(2, 'combination of capacitors', r`Two $2\ \mu$F capacitors in parallel are connected in series with a third $2\ \mu$F capacitor. Find the equivalent capacitance (in $\mu$F, 2 decimals).`, 4 * 2 / 6, 0.01, 2,
     r`The parallel pair gives $4\ \mu$F. In series with $2\ \mu$F: $\dfrac{4\times2}{4+2} = \dfrac43 = 1.33\ \mu$F.`, { unit: 'µF' }),
   nat(2, 'charge sharing', r`A $6\ \mu$F capacitor charged to 100 V is connected, plate to plate (positive to positive), to an uncharged $3\ \mu$F capacitor. Find the common potential difference (in V, 1 decimal).`, 600 / 9, 0.1, 1,
@@ -146,7 +147,7 @@ const items = [
   mcq(2, 'potential and field', r`In a region where the electric field is zero, the potential`, 'is constant', ['must be zero', 'must be positive', 'must change linearly'],
     r`$E = -dV/dx = 0$ means $V$ does not change; its constant value need not be zero.`),
   mn(2, 'work and potential', r`A proton is released from rest in a uniform field and moves through a potential drop of 300 V. Its kinetic energy gained is`, 300, [150, 600, 0.3], 'eV',
-    r`Energy gained $= eV = 1\times300 = 300$ eV. Option 2 mixes in joules, and the proton's greater mass does not change the energy gained.`),
+    r`Energy gained $= eV = 1\times300 = 300$ eV. Option 3 mixes in joules, and the proton's greater mass does not change the energy gained.`),
   mn(2, 'series combination', r`Three capacitors of $6\ \mu$F each are joined in series. The equivalent capacitance is`, 2, [18, 6, 0.5], 'µF',
     r`$\dfrac1C = \dfrac16\times3 = \dfrac12$, so $C = 2\ \mu$F. 18 is the parallel value.`),
   mn(2, 'electric potential', r`The electric potential at a point at distance $r$ from a point charge is 50 V. At a distance $2r$ the potential is`, 25, [12.5, 100, 50], 'V',
@@ -715,7 +716,7 @@ const xitems = [
   xstm(3, 'potential and field', r`The potential at a point on the equatorial line of an electric dipole is zero, so the field there is also zero.`, r`The electric field is the negative gradient of the potential.`, 3,
     r`Statement I is false: on the equatorial line the field is $\dfrac{kp}{r^3}$, directed opposite to $\vec p$. The potential is zero only along that line, and the field depends on how $V$ changes in the direction away from it, which is not zero. Statement II is true, which is exactly why a zero value of $V$ at a point does not mean $E = 0$.`),
   xmcq(3, 'conductors', r`Which of these is NOT correct for a charged conductor in electrostatic equilibrium?`, 'The charge on a cavity wall is zero if the cavity has a charge inside it', ['The potential is the same at all points of the conductor', 'The field just outside the surface is perpendicular to it', 'Any excess charge lies on the outer surface if the cavity is empty'],
-    r`If a charge $+q$ sits inside a cavity, the cavity wall carries $-q$ to cancel its field in the metal, so the first option is the false one. The other three statements are standard properties.`, { trap: 'Read the NOT: three true statements and one false.' }),
+    r`If a charge $+q$ sits inside a cavity, the cavity wall carries $-q$ to cancel its field in the metal, so the statement that the cavity wall has zero charge is the false one. The other three statements are standard properties.`, { trap: 'Read the NOT: three true statements and one false.' }),
 
   // ---------- Level 4 ----------
   xnat(4, 'earthed shell', r`A thin shell of radius 0.2 m carries $+8$ nC. Inside it, concentric, is a small conducting sphere of radius 0.1 m which is earthed. Find the charge induced on the small sphere (in nC, with sign).`, -8 * 0.1 / 0.2, 0, 0,
@@ -874,4 +875,5 @@ const xgens = [
   }, (p) => { let s = 0; const n = 20000; for (let i = 0; i < n; i++) { const d = (p.d1 + (p.d2 - p.d1) * (i + 0.5) / n) * 1e-3; s += 8.85e-12 * (p.w / 100) * (p.L / 100 / n) / d; } return s * 1e12; }),
 ];
 
-export default { topic: 'potential-capacitance', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'potential-capacitance', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['ep-g10', 'ep-g19', '__P__-g30']);

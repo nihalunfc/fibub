@@ -1,5 +1,6 @@
 // Ray optics: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EXB = {
@@ -922,4 +923,5 @@ gens.push(
 
 }
 
-export default { topic: 'ray-optics', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'ray-optics', groups, items, gens }, ['ro-g02', 'ro-g23']);

@@ -1,5 +1,6 @@
 // Oscillations: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EX = {
@@ -946,4 +947,5 @@ const xgens = [
   }, (p) => { let T = 0; for (const l of [p.L, p.L - p.f * p.L]) T += 0.5 * 2 * Math.PI * Math.sqrt(l / 9.8); return T; }),
 ];
 
-export default { topic: 'oscillations', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'oscillations', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['os-g15', 'os-g02'], [], ['os-g02']);

@@ -41,7 +41,7 @@ export default {
   ],
   gens: [
     { id: 'co-g01', type: 'nat', level: 2, exams: ['board'], sub: 'nervous',
-      make(rng) { const d = pick(rng, 0.5, 1.8, 0.1), v = pick(rng, 50, 120, 10); return { d, v, q: `<p>An impulse travels ${d} m along a nerve at ${v} m/s. How long does it take, in ms?</p>`, answer: r2((d / v) * 1000), tol: 0.01, unit: 'ms', sol: `<p>${d} ÷ ${v} = ${r2(d / v)} s = ${r2(d / v * 1000)} ms.</p>` }; },
+      make(rng) { const d = pick(rng, 0.5, 1.8, 0.1), v = pick(rng, 50, 120, 10); return { d, v, q: `<p>An impulse travels ${d} m along a nerve at ${v} m/s. How long does it take, in ms?</p>`, answer: r2((d / v) * 1000), tol: 0.01, unit: 'ms', sol: `<p>${d} ÷ ${v} = ${+(d / v).toPrecision(4)} s = ${r2(d / v * 1000)} ms.</p>` }; },
       verify: (p) => r2(p.d / (p.v / 1000)) },
     { id: 'co-g02', type: 'nat', level: 3, exams: ['board'], sub: 'nervous',
       make(rng) { const d = pick(rng, 8, 30, 1); return { d, q: `<p>A ruler is caught after falling ${d} cm. Find the reaction time in ms (g = 9.8 m/s²).</p>`, answer: r2(Math.sqrt((2 * d / 100) / 9.8) * 1000), tol: 0.02, unit: 'ms', sol: `<p>t = √(2d/g) = √(2 × ${d / 100} / 9.8) s = ${r2(Math.sqrt((2 * d / 100) / 9.8) * 1000)} ms.</p>` }; },

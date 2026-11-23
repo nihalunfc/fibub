@@ -1,5 +1,6 @@
 // Class 12 Physics, Wave Optics: live problems (original fibub questions). Ids start with c12p-wave-.
 import { pick, choose, n, steps } from './_util.js';
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 
 const C = 3e8;
 export default {
@@ -37,7 +38,7 @@ export default {
     title: 'position of a bright fringe',
     make(r) {
       const d = choose(r, [0.3, 0.5, 0.6, 1]), D = choose(r, [1, 1.2, 1.5, 2]), lam = pick(r, 450, 650, 50), k = choose(r, [2, 3, 4, 5]), y = (k * lam * 1e-9 * D) / (d * 1e-3) * 1e3;
-      return { d, D, lam, k, q: `<p>Slits ${d} mm apart are lit by light of wavelength ${lam} nm. A screen is ${D} m from the slits. How far from the central bright fringe is the ${k}th bright fringe? Give the answer in mm.</p>`, answer: y, unit: 'mm', tol: 0.01,
+      return { d, D, lam, k, q: `<p>Slits ${d} mm apart are lit by light of wavelength ${lam} nm. A screen is ${D} m from the slits. How far from the central bright fringe is the ${ord(k)} bright fringe? Give the answer in mm.</p>`, answer: y, unit: 'mm', tol: 0.01,
         hint: 'The n-th bright fringe is at y = nλD/d (the path difference dy/D equals nλ).',
         solution: steps(`Path difference needed: dy/D = ${k}λ.`, `y = ${k} × ${lam}×10⁻⁹ × ${D} ÷ ${d}×10⁻³ = ${n(y / 1e3)} m = <b>${n(y)} mm</b>.`) };
     },

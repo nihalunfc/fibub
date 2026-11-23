@@ -36,7 +36,7 @@ export default {
     m.mcq(3, 'key', '<p>Which question would be least useful at the start of a key for animals?</p>', 'Is it pretty?', ['Does it have a backbone?', 'Does it have jointed legs?', 'Does it have wings?'], '<p>Keys use clear, visible features, not opinions.</p>'),
     m.ar(2, 'kingdoms', 'Mushrooms are not classified as plants.', 'Mushrooms do not have chlorophyll and cannot make their own food.', 0, '<p>Both true and R explains A.</p>'),
     m.ar(3, 'hierarchy', 'Two organisms of the same genus must belong to the same species.', 'The genus is the rank just above the species.', 3, '<p>A is false (a genus can have many species). R is true.</p>'),
-    m.ar(3, 'animals', 'Bats are classified as mammals.', 'Bats can fly like birds.', 2, '<p>A is true; R is true but does not explain A. Bats have hair and feed milk to their young, which makes them mammals.</p>'),
+    m.ar(3, 'animals', 'Bats are classified as mammals.', 'Bats can fly like birds.', 1, '<p>Both are true, but R does not explain A. Bats have hair and feed milk to their young, which makes them mammals.</p>'),
     m.nat(2, 'key', '<p>A key has 5 yes/no questions on every path. What is the greatest number of organisms it can separate?</p>', () => 32, 0, '<p>2⁵ = 32.</p>'),
     m.nat(3, 'key', '<p>What is the smallest number of yes/no questions that can separate 20 organisms?</p>', () => 5, 0, '<p>2⁴ = 16 is too small, 2⁵ = 32 is enough: 5 questions.</p>'),
     m.nat(2, 'hierarchy', '<p>A genus has 6 species. How many species are in a family of 4 such genera?</p>', () => 24, 0, '<p>4 × 6 = 24.</p>'),

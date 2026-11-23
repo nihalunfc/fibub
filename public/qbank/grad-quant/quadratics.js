@@ -1,7 +1,9 @@
 import { int, choose, fmt, numOpts, steps } from './_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gmat', 'gre'];
 const sg = (n) => (n < 0 ? `− ${-n}` : `+ ${n}`);
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'quadratics',
   items: [
     { id: 'qu-001', type: 'mcq', level: 2, exams: E, sub: 'identities',
@@ -48,4 +50,4 @@ export default {
           sol: steps(`Best price p = ${fmt(b)} ÷ (2 × ${fmt(a)}) = ${h}.`, `Profit there: −${fmt(a)}(${h})² + ${fmt(b)}(${h}) ${sg(c)} = ${fmt(-a * h * h)} + ${fmt(b * h)} ${sg(c)}.`, `= <b>${fmt(value)}</b> dollars.`), trap: `Answering the best price (${h}) instead of the profit.` };
       }, check: (p) => -p.a * p.h * p.h + p.b * p.h + p.c },
   ],
-};
+}, ['qu-g01', 'qu-g02']);

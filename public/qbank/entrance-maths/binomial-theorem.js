@@ -1,6 +1,7 @@
 // Binomial theorem (Plus Two entrance, Mathematics, Class 11). Original fibub questions.
 // Every answer was checked by brute force (the `calc` fields and the gens' verify() expand the polynomials in code).
 import { pick, int, choose, fmt, shuffleOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -894,4 +895,5 @@ for (const it of items) {
 }
 // ==L5-M2-END
 
-export default { topic: 'binomial-theorem', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'binomial-theorem', groups, items, gens }, ['bt-g03', 'bt-g04', 'bt-g05', 'bt-g21']);

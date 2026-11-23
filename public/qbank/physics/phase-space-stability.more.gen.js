@@ -35,7 +35,7 @@ export default [
       const a = int(r, 1, 6), b = int(r, 1, 6), c = int(r, 1, 6), d = int(r, 1, 6);
       const pt = (x, y) => `$(${x},\\ ${y})$`;
       const ans = pt(frac(c, d), frac(a, b));
-      const o = mcqOptions(r, ans, shuffle(r, [pt(frac(a, b), frac(c, d)), pt(frac(d, c), frac(b, a)), pt(frac(c, b), frac(a, d)), pt(frac(a, d), frac(c, b))]));
+      const o = mcqOptions(r, ans, [...shuffle(r, [pt(frac(a, b), frac(c, d)), pt(frac(d, c), frac(b, a)), pt(frac(c, b), frac(a, d)), pt(frac(a, d), frac(c, b))]), pt(0, 0), pt(frac(c, d), 0), pt(0, frac(a, b))]);
       return { q: `Prey $x$ and predators $y$ obey $\\dot x = x(${a} - ${b === 1 ? '' : b}y)$, $\\dot y = y(-${c} + ${d === 1 ? '' : d}x)$. The fixed point where both species coexist is`, ...o,
         sol: `$\\dot x = 0$ with $x \\ne 0$ needs $y = ${frac(a, b)}$; $\\dot y = 0$ with $y \\ne 0$ needs $x = ${frac(c, d)}$. So the point is $(${frac(c, d)}, ${frac(a, b)})$. The linearisation there has eigenvalues $\\pm i\\sqrt{${a * c}}$: a centre, and indeed the populations cycle round it on closed orbits (there is a conserved quantity).`,
         trap: 'The prey equation fixes the predator level and vice versa.' };

@@ -1,5 +1,6 @@
 // Complex numbers (Plus Two entrance, Mathematics). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -956,7 +957,7 @@ items.push(
   PI(4, 'geometry', 'xp2', XR`Find the area of the square $ABCD$.`, 20,
     XR`<p>The diagonal $AC$ goes from $2+i$ to $4+7i$: $|AC|^2=2^2+6^2=40$. Area of a square $=\dfrac{d^2}2=20$.</p>`, 'Area of a square is half the diagonal squared.', () => 20),
   PM(4, 'geometry', 'xp2', XR`The vertex $D$ represents`, '$5i$', ['$6+3i$', '$-2+3i$', '$2+5i$'],
-    XR`<p>The centre is the midpoint of $AC$: $c=3+4i$. $A-c=-1-3i$. Anticlockwise order $A,B,C,D$ means $B$ is $A$ rotated $+90^\circ$ about $c$ and $D$ is $A$ rotated $-90^\circ$: $D=c-i(A-c)=3+4i-i(-1-3i)=3+4i+i-3=5i$. (And $B=c+i(A-c)=3+4i+(-i+3)=6+3i$, which option B uses as a distractor.)</p>`, 'Anticlockwise order decides which rotation gives B and which gives D.'),
+    XR`<p>The centre is the midpoint of $AC$: $c=3+4i$. $A-c=-1-3i$. Anticlockwise order $A,B,C,D$ means $B$ is $A$ rotated $+90^\circ$ about $c$ and $D$ is $A$ rotated $-90^\circ$: $D=c-i(A-c)=3+4i-i(-1-3i)=3+4i+i-3=5i$. (And $B=c+i(A-c)=3+4i+(-i+3)=6+3i$, which option A uses as a distractor.)</p>`, 'Anticlockwise order decides which rotation gives B and which gives D.'),
   PI(5, 'geometry', 'xp2', XR`Find the square of the radius of the circle through all four vertices.`, 10,
     XR`<p>The circumcircle has the diagonal $AC$ as diameter: $d^2=40$, so $r^2=\dfrac{d^2}4=10$.</p>`, 'The radius is half the diagonal.', () => 10),
 );
@@ -1013,4 +1014,5 @@ gens.push(
 
 }
 // ==XP-END
-export default { topic: 'complex-numbers', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'complex-numbers', groups, items, gens }, ['cn-g01', 'cn-g08', 'cn-g10', 'cn-g11', 'cn-g12', 'cn-g14', 'cn-g17', 'cn-g18', 'cn-g21']);

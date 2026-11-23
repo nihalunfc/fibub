@@ -1,10 +1,10 @@
 // Class 12 Maths, Chapter 9 Differential Equations: live problems (original fibub questions). Ids start with c12m-de-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 // Runge-Kutta 4 from (x0, y0) to x1: a numerical check that needs no formula for the solution.
 const rk4 = (F, x0, y0, x1, N = 400) => { const h = (x1 - x0) / N; let x = x0, y = y0; for (let i = 0; i < N; i++) { const k1 = F(x, y), k2 = F(x + h / 2, y + h * k1 / 2), k3 = F(x + h / 2, y + h * k2 / 2), k4 = F(x + h, y + h * k3); y += h * (k1 + 2 * k2 + 2 * k3 + k4) / 6; x += h; } return y; };
 
-export default {
+export default tidyProblems({
   'c12m-de-order': {
     title: 'order times degree',
     make(r) {
@@ -66,4 +66,4 @@ export default {
     },
     verify: (x) => { let t = 0; const k = Math.log(2) / x.T; while (Math.exp(k * t) < x.f - 1e-12 && t < 1000) t += 0.0005; return Math.abs(Math.exp(k * t) - x.f) < 0.01 * x.f ? t : t; },
   },
-};
+}, ['c12m-de-linear']);

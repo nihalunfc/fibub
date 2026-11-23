@@ -56,7 +56,7 @@ export default {
       make(rng) { const x = pick(rng, 2, 9), y = pick(rng, 2, 9), z = pick(rng, 2, 9); return { x, y, z, q: `<p>A circle touches the sides of triangle ABC. AB = ${x + y} cm, BC = ${y + z} cm and CA = ${z + x} cm. Find the tangent length from A in cm.</p>`, answer: x, tol: 0, unit: 'cm', sol: `<p>$x = \\tfrac12(AB + CA - BC) = \\tfrac12(${x + y} + ${z + x} - ${y + z}) = ${x}$ cm.</p>` }; },
       verify: (p) => ((p.x + p.y) + (p.z + p.x) - (p.y + p.z)) / 2 },
     { id: 'ci-g06', type: 'nat', level: 3, exams: ['board'], sub: 'equal',
-      make(rng) { const a = pick(rng, 5, 12), b = pick(rng, 6, 14), c = pick(rng, 4, 11); return { a, b, c, q: `<p>A quadrilateral ABCD is drawn round a circle. AB = ${a} cm, BC = ${b} cm, CD = ${c} cm. Find AD in cm.</p>`, answer: a + c - b, tol: 0, unit: 'cm', sol: `<p>$AB + CD = BC + DA$, so $DA = ${a} + ${c} - ${b} = ${a + c - b}$ cm.</p>` }; },
+      make(rng) { const a = pick(rng, 5, 12), c = pick(rng, 4, 11), b = pick(rng, 6, Math.min(14, a + c - 2)); return { a, b, c, q: `<p>A quadrilateral ABCD is drawn round a circle. AB = ${a} cm, BC = ${b} cm, CD = ${c} cm. Find AD in cm.</p>`, answer: a + c - b, tol: 0, unit: 'cm', sol: `<p>$AB + CD = BC + DA$, so $DA = ${a} + ${c} - ${b} = ${a + c - b}$ cm.</p>` }; },
       verify: (p) => p.a + p.c - p.b },
     { id: 'ci-g07', type: 'nat', level: 3, exams: ['board'], sub: 'concentric',
       make(rng) { const [r, h, R] = tri(rng); return { r, h, R, q: `<p>Two concentric circles have radii ${R} cm and ${r} cm. A chord of the larger circle touches the smaller circle. Find its length in cm.</p>`, answer: 2 * h, tol: 0, unit: 'cm', sol: `<p>Half the chord is $\\sqrt{${R}^2 - ${r}^2} = ${h}$, so the chord is ${2 * h} cm.</p>` }; },

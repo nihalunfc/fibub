@@ -2,6 +2,7 @@
 // Every numeric answer was checked in code: each `calc` integrates the function numerically (Simpson's rule) or from an
 // independent closed form, and the templates' verify() recompute their answers another way.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -991,4 +992,5 @@ gens.push(
 }
 // ==L5-M2-END
 
-export default { topic: 'definite-integrals', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'definite-integrals', groups, items, gens }, ['di-g01', 'di-g05', 'di-g18', 'di-g26', 'di-v5g3']);

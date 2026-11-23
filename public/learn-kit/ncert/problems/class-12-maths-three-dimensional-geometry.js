@@ -1,5 +1,5 @@
 // Class 12 Maths, Three Dimensional Geometry: live problems (original fibub questions). Ids start with c12m-3d-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const QUAD = [[1, 2, 2, 3], [2, 3, 6, 7], [3, 4, 12, 13], [2, 6, 9, 11], [4, 4, 7, 9], [1, 4, 8, 9]];
 const sg = (r) => (r() < 0.5 ? -1 : 1);
@@ -7,7 +7,7 @@ const sq = (v) => v[0] ** 2 + v[1] ** 2 + v[2] ** 2, dt = (a, b) => a[0] * b[0] 
 const cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const pt = (a) => `(${a.join(', ')})`;
 
-export default {
+export default tidyProblems({
   'c12m-3d-dc': {
     title: 'direction cosines of a line through two points',
     make(r) {
@@ -82,4 +82,4 @@ export default {
     },
     verify: (p) => p.P[p.ax] + ((p.X - p.P[0]) / p.a) * [p.a, p.b, p.c][p.ax],
   },
-};
+}, ['c12m-3d-perp', 'c12m-3d-point']);

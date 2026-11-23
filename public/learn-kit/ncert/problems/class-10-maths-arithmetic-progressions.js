@@ -1,5 +1,6 @@
 // Class 10 Maths, Arithmetic Progressions: live problems (original fibub questions). Ids start with c10m-ap-.
 import { pick, choose, n, steps } from './_util.js';
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 
 const list = (a, d, k = 4) => Array.from({ length: k }, (_, i) => a + i * d).join(', ');
 const sgn = (v) => (v < 0 ? `(${v})` : `${v}`);
@@ -9,7 +10,7 @@ export default {
     title: 'find the n-th term',
     make(r) {
       const a = pick(r, -12, 30), d = pick(r, -7, 9), N = pick(r, 8, 40);
-      return { a, d, N, q: `<p>Find the ${N}th term of the AP ${list(a, d)}, …</p>`, answer: a + (N - 1) * d, unit: '', tol: 0.001, abs: 0.001,
+      return { a, d, N, q: `<p>Find the ${ord(N)} term of the AP ${list(a, d)}, …</p>`, answer: a + (N - 1) * d, unit: '', tol: 0.001, abs: 0.001,
         hint: `Read off a (the first term) and d (second minus first). Then use a<sub>n</sub> = a + (n − 1)d.`,
         solution: steps(`a = ${a}, d = ${a + d} − ${sgn(a)} = ${d}.`, `a<sub>${N}</sub> = a + (${N} − 1)d = ${a} + ${N - 1} × ${sgn(d)}.`, `a<sub>${N}</sub> = <b>${a + (N - 1) * d}</b>.`) };
     },
@@ -21,7 +22,7 @@ export default {
       const a = pick(r, 2, 30), d = pick(r, 2, 9), k = pick(r, 6, 40), T = a + (k - 1) * d;
       return { a, d, T, q: `<p>Which term of the AP ${list(a, d)}, … is ${T}?</p>`, answer: k, unit: '', tol: 0.001, abs: 0.001,
         hint: 'Put a + (n − 1)d equal to the number and solve for n.',
-        solution: steps(`a = ${a}, d = ${d}. Set a<sub>n</sub> = ${T}: ${a} + (n − 1) × ${d} = ${T}.`, `(n − 1) × ${d} = ${T - a}, so n − 1 = ${(T - a) / d}.`, `n = <b>${k}</b>, so ${T} is the ${k}th term.`) };
+        solution: steps(`a = ${a}, d = ${d}. Set a<sub>n</sub> = ${T}: ${a} + (n − 1) × ${d} = ${T}.`, `(n − 1) × ${d} = ${T - a}, so n − 1 = ${(T - a) / d}.`, `n = <b>${k}</b>, so ${T} is the ${ord(k)} term.`) };
     },
     verify: (x) => { let v = x.a, i = 1; while (v < x.T) { v += x.d; i++; } return i; },
   },
@@ -29,7 +30,7 @@ export default {
     title: 'find d from two terms',
     make(r) {
       const a = pick(r, -10, 20), d = pick(r, -6, 9), p = pick(r, 2, 5), s = pick(r, 8, 14), ap = a + (p - 1) * d, as = a + (s - 1) * d;
-      return { ap, as, p, s, q: `<p>In an AP the ${p}th term is ${ap} and the ${s}th term is ${as}. Find the common difference d.</p>`, answer: d, unit: '', tol: 0.001, abs: 0.001,
+      return { ap, as, p, s, q: `<p>In an AP the ${ord(p)} term is ${ap} and the ${ord(s)} term is ${as}. Find the common difference d.</p>`, answer: d, unit: '', tol: 0.001, abs: 0.001,
         hint: `Going from term ${p} to term ${s} adds d exactly ${s - p} times.`,
         solution: steps(`a<sub>${s}</sub> − a<sub>${p}</sub> = (${s} − ${p})d, because ${s - p} steps of d are taken.`, `${as} − ${sgn(ap)} = ${s - p}d, so ${as - ap} = ${s - p}d.`, `d = <b>${d}</b>.`) };
     },

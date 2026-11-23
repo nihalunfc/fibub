@@ -58,7 +58,7 @@ export default [
       const P = terms([[al, m === 1 ? 'z' : `z^{${m}}`], [c, '']]);
       const Q = terms([[be, `z^{${two ? m + 2 : m + 1}}`], [d, 'z'], [e, '']]);
       const val = two ? '0' : `${frac(al, be) === '1' ? '' : frac(al, be)}\\cdot 2\\pi i`;
-      const w = [`${frac(be, al)}\\cdot 2\\pi i`, `${frac(al * (m + 1), be)}\\cdot 2\\pi i`, '2\\pi i', '0', `${frac(al, be)}\\cdot 2\\pi i`].map((x) => x.replace(/^1\\cdot /, ''));
+      const w = [`${frac(be, al)}\\cdot 2\\pi i`, `${frac(al * (m + 1), be)}\\cdot 2\\pi i`, '2\\pi i', '0', `${frac(al, be)}\\cdot 2\\pi i`, `${frac(2 * al, be)}\\cdot 2\\pi i`, `${frac(-al, be)}\\cdot 2\\pi i`, `${frac(al, be)}\\cdot \\pi i`].map((x) => x.replace(/^1\\cdot /, '').replace(/^-1\\cdot /, '-'));
       const o = mcqOptions(r, `$${val}$`, shuffle(r, w.map((x) => `$${x}$`)));
       return { q: `$R$ is large enough that every zero of the denominator lies inside $|z| = R$. Then $\\displaystyle\\oint_{|z| = R}\\frac{${P}}{${Q}}\\,dz$ (anticlockwise) equals`, ...o,
         sol: two

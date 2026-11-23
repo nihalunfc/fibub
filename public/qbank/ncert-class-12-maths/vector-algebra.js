@@ -1,6 +1,6 @@
 // Class 12 Maths, Chapter 10 Vector Algebra: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('va');
 const R = String.raw;
 const QD = [[1, 2, 2, 3], [2, 3, 6, 7], [3, 4, 12, 13], [2, 6, 9, 11], [4, 4, 7, 9], [1, 4, 8, 9]];
@@ -8,7 +8,7 @@ const vtex = (v) => `${v[0]}\\hat i ${v[1] < 0 ? '-' : '+'} ${Math.abs(v[1])}\\h
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 
-export default {
+export default tidyGens({
   topic: 'vector-algebra', name: 'Vector Algebra', n: 10,
   items: [
     m.mcq(1, 'basic', R`<p>Which of these is a scalar quantity?</p>`, R`distance travelled`, [R`displacement`, R`velocity`, R`force`], R`<p>Distance has only a size. Displacement, velocity and force all have a direction.</p>`),
@@ -61,4 +61,4 @@ export default {
       make(rng) { const P = [pick(rng, 0, 7), pick(rng, 0, 7)], Q = [pick(rng, 0, 7), pick(rng, 0, 7)], S = [pick(rng, 0, 7), pick(rng, 0, 7)], cr = (Q[0] - P[0]) * (S[1] - P[1]) - (Q[1] - P[1]) * (S[0] - P[0]); return { P, Q, S, q: `<p>Using vectors, find the area of the triangle with corners $A(${P[0]}, ${P[1]})$, $B(${Q[0]}, ${Q[1]})$ and $C(${S[0]}, ${S[1]})$ (0 if the points are collinear).</p>`, answer: Math.abs(cr) / 2, tol: 0.005, sol: `<p>$\\tfrac12|\\overrightarrow{AB}\\times\\overrightarrow{AC}| = \\tfrac12|${cr}| = ${Math.abs(cr) / 2}$.</p>` }; },
       verify: (p) => Math.abs(p.P[0] * (p.Q[1] - p.S[1]) + p.Q[0] * (p.S[1] - p.P[1]) + p.S[0] * (p.P[1] - p.Q[1])) / 2 },
   ],
-};
+}, ['va-g02']);

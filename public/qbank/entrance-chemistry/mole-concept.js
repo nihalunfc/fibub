@@ -162,8 +162,9 @@ const XGN = [
     make(rng) {
       const x = int(rng, 1, 4); const y = choose(rng, [2, 4, 6, 8].filter((v) => v <= 2 * x + 2)); const V = pick(rng, 10, 30, 5); const need = V * (x + y / 4); const O = Math.ceil(need / 10) * 10 + pick(rng, 10, 40, 10);
       const left = O - need; const tot = V * x + left;
-      return { q: `${V} mL of C<sub>${x}</sub>H<sub>${y}</sub> is burnt with ${O} mL of O<sub>2</sub>. After the reaction the gases are cooled to the starting temperature (water condenses). Find the total volume of gas left in mL.`, answer: tot, tol: 0.5, unit: 'mL', x, y, V, O,
-        sol: `<p>C<sub>${x}</sub>H<sub>${y}</sub> + ${x + y / 4}O<sub>2</sub> &rarr; ${x}CO<sub>2</sub> + ${y / 2}H<sub>2</sub>O(l).</p><p>For ${V} mL: O<sub>2</sub> used = ${need} mL; CO<sub>2</sub> formed = ${V * x} mL; O<sub>2</sub> left = ${O} - ${need} = ${left} mL.</p><p>Total = ${V * x} + ${left} = <b>${tot} mL</b>.</p>` };
+      const C = x === 1 ? 'C' : `C<sub>${x}</sub>`, k = (n) => (n === 1 ? '' : n);
+      return { q: `${V} mL of ${C}H<sub>${y}</sub> is burnt with ${O} mL of O<sub>2</sub>. After the reaction the gases are cooled to the starting temperature (water condenses). Find the total volume of gas left in mL.`, answer: tot, tol: 0.5, unit: 'mL', x, y, V, O,
+        sol: `<p>${C}H<sub>${y}</sub> + ${k(x + y / 4)}O<sub>2</sub> &rarr; ${k(x)}CO<sub>2</sub> + ${k(y / 2)}H<sub>2</sub>O(l).</p><p>For ${V} mL: O<sub>2</sub> used = ${need} mL; CO<sub>2</sub> formed = ${V * x} mL; O<sub>2</sub> left = ${O} - ${need} = ${left} mL.</p><p>Total = ${V * x} + ${left} = <b>${tot} mL</b>.</p>` };
     }, verify: (p) => p.V * p.x + p.O - p.V * (p.x + p.y / 4) },
   { id: 'mc-g25', type: 'nat', level: 5, exams: EX[5], sub: 'molality from molarity',
     make(rng) {

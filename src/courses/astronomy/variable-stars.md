@@ -28,7 +28,7 @@ sources:
 
 ## 1. Why this matters
 
-In 1912 Henrietta Swan Leavitt, studying photographic plates at Harvard, noticed that brighter Cepheids in the Small Magellanic Cloud pulsed more slowly. That single pattern let Edwin Hubble show in 1924 that the Andromeda "nebula" is a separate galaxy, and Cepheids still anchor today's measurements of the expansion of the universe (in the [cosmology course](/learn/courses/cosmology/)). Amateurs also contribute: tens of thousands of variable stars are watched by volunteers (Lesson 5.9).
+In 1912 Henrietta Swan Leavitt, studying photographic plates at Harvard, noticed that brighter Cepheids in the Small Magellanic Cloud pulsed more slowly. That single pattern let Edwin Hubble show (observing in 1923-24, announced on 1 January 1925) that the Andromeda "nebula" is a separate galaxy, and Cepheids still anchor today's measurements of the expansion of the universe (in the [cosmology course](/learn/courses/cosmology/)). Amateurs also contribute: tens of thousands of variable stars are watched by volunteers (Lesson 5.9).
 
 ## 2. Kinds of variable
 
@@ -53,7 +53,7 @@ Use a Cepheid to measure a distance:
 <div class="step"><b>Leavitt's law.</b> Henrietta Leavitt found in 1912 that longer-period Cepheids are more luminous. Here M<sub>V</sub> = −2.43 × (log 30 − 1) − 4.05 = −5.2.</div>
 <div class="step"><b>How bright it looks.</b> Its average apparent magnitude is m = 15.8.</div>
 <div class="step"><b>Distance modulus.</b> m − M = 21.0, so d = 10<sup>21.0/5 + 1</sup> = 160,000 pc: in a neighbouring galaxy.</div>
-<div class="step"><b>Why it matters.</b> This is how Hubble showed in 1925 that Andromeda is a separate galaxy far beyond the Milky Way.</div>
+<div class="step"><b>Why it matters.</b> This is how Hubble showed (announced on 1 January 1925) that Andromeda is a separate galaxy far beyond the Milky Way.</div>
 </div>
 
 <details class="maths" open>

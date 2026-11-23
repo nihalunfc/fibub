@@ -584,6 +584,7 @@ const gens = [
 
 // ======== Expansion block (added 2026-11-22): more hard items and templates, ids wo-x001 onward ========
 import * as XH from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
 const xr = String.raw;
 const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
@@ -1029,4 +1030,5 @@ const v5gens = [
     verify: (p) => { const ph = (a, b) => (b > a ? Math.PI : 0); const net = (ph(p.nl, p.ng) + ph(p.ng, p.npl)) % (2 * Math.PI); const dark = Math.abs(net - Math.PI) < 1e-9; return p.options.indexOf(dark ? 'dark in reflected light and bright in transmitted light' : 'bright in reflected light and dark in transmitted light'); } },
 ];
 
-export default { topic: 'wave-optics', groups: { ...groups, ...xgroups, ...v5groups }, items: [...items, ...xitems, ...v5items], gens: [...gens, ...xgens, ...v5gens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'wave-optics', groups: { ...groups, ...xgroups, ...v5groups }, items: [...items, ...xitems, ...v5items], gens: [...gens, ...xgens, ...v5gens] }, ['wo-v5g2']);

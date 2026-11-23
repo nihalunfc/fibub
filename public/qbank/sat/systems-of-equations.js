@@ -1,10 +1,12 @@
 // SAT Math · Algebra · systems of two linear equations. Original (fibub).
 import { int, nz, other, choose, shuffleOpts, fmt, lin, term, v, usd, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'algebra' };
 const X = v('x'), Y = v('y');
 const eq = (a, b, c) => `${term(a, 'x', true)}${term(b, 'y')} = ${fmt(c)}`;
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'systems-of-equations',
   gens: [
     { id: 'sat-sy-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'solve', facets: F, format: 'numeric',
@@ -75,4 +77,4 @@ export default {
       options: ['<i>C</i> = 40 + 25<i>m</i> and <i>C</i> = 33<i>m</i>', '<i>C</i> = 25 + 40<i>m</i> and <i>C</i> = 33<i>m</i>', '<i>C</i> = 40<i>m</i> + 25 and <i>C</i> = 33 + <i>m</i>', '<i>C</i> = 65<i>m</i> and <i>C</i> = 33<i>m</i>'], answer: 0,
       sol: '<p>The fee is paid once (a constant), the monthly price is multiplied by <i>m</i>. Setting 40 + 25<i>m</i> = 33<i>m</i> gives <i>m</i> = 5 months.</p>' },
   ],
-};
+}, ['sat-sy-g04', 'sat-sy-g05']);

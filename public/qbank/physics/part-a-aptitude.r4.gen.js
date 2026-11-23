@@ -88,7 +88,7 @@ export default {
         const gain = choose(rng, [2, 3, 4, 5, 6, 10, 12]), fast = rng() < 0.6, h = int(rng, 2, 9);
         const shown = h * 60, real = fast ? (shown * 60) / (60 + gain) : (shown * 60) / (60 - gain);
         const ans = clock(real);
-        const o = mcqOptions(rng, ans, [clock(fast ? shown - gain * h : shown + gain * h), clock(fast ? shown + gain * h : shown - gain * h), clock(fast ? (shown * (60 - gain)) / 60 : (shown * (60 + gain)) / 60), clock(real + 3)]);
+        const o = mcqOptions(rng, ans, [clock(fast ? shown - gain * h : shown + gain * h), clock(fast ? shown + gain * h : shown - gain * h), clock(fast ? (shown * (60 - gain)) / 60 : (shown * (60 + gain)) / 60), clock(real + 3), clock(real - 3), clock(real + 6), clock(real - 6)]);
         return { q: `A clock ${fast ? 'gains' : 'loses'} ${gain} minutes every hour. It is set to the right time at 12 noon. When it shows ${clock(shown)} the same day, the correct time is about`,
           ...o, gain, fast: fast ? 1 : 0, h,
           sol: `The clock moves ${fast ? 60 + gain : 60 - gain} minutes for every 60 real minutes. It has moved ${shown} minutes, so the real time passed is $${shown}\\times\\tfrac{60}{${fast ? 60 + gain : 60 - gain}} = ${Math.round(real * 10) / 10}$ minutes: about ${ans}.`,

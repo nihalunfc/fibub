@@ -1,8 +1,8 @@
 // Class 9 Maths, Exploring Algebraic Identities: live problems (original fibub questions). Ids start with c9m-iden-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const sg = (v) => String(v).replace('-', '−');
-export default {
+export default tidyProblems({
   'c9m-iden-sumsq': {
     title: 'x² + y² from the sum and product',
     make(r) {
@@ -93,4 +93,4 @@ export default {
     },
     verify: (p) => (p.a + p.b + p.c) ** 2,
   },
-};
+}, ['c9m-iden-xab']);
