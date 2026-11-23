@@ -1,0 +1,55 @@
+// Class 11 Physics, Chapter 11 Thermodynamics: question bank for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('td');
+const R = 8.314;
+
+export default {
+  topic: 'thermodynamics', name: 'Thermodynamics', n: 11,
+  items: [
+    m.mcq(1, 'laws', '<p>The zeroth law of thermodynamics is the basis for the idea of:</p>', 'temperature', ['energy', 'entropy', 'pressure'], '<p>If A and B are each in equilibrium with C, they share a temperature, so a thermometer is meaningful.</p>'),
+    m.mcq(2, 'laws', '<p>Which of the following is a state function?</p>', 'internal energy', ['heat absorbed', 'work done', 'both heat and work'], '<p>Heat and work depend on the path; the internal energy depends only on the state.</p>'),
+    m.mcq(2, 'first', '<p>The first law of thermodynamics is a statement of the conservation of:</p>', 'energy', ['mass', 'momentum', 'entropy'], '<p>Q = ΔU + W.</p>'),
+    m.mcq(2, 'first', '<p>A gas does 300 J of work and absorbs 500 J of heat. Its internal energy:</p>', 'rises by 200 J', ['falls by 200 J', 'rises by 800 J', 'is unchanged'], '<p>ΔU = Q − W = 200 J.</p>'),
+    m.mcq(2, 'first', '<p>In an isothermal expansion of an ideal gas, the heat absorbed is:</p>', 'equal to the work done by the gas', ['equal to the internal energy change', 'zero', 'negative'], '<p>ΔU = 0, so Q = W.</p>', { trap: 'Saying the heat is zero because the temperature does not change.' }),
+    m.mcq(2, 'first', '<p>In an adiabatic compression of a gas:</p>', 'its internal energy rises', ['its internal energy falls', 'heat flows in', 'its temperature stays the same'], '<p>Q = 0 and W is negative, so ΔU = −W is positive.</p>'),
+    m.mcq(2, 'heatcap', '<p>For one mole of an ideal gas Cp − Cv equals:</p>', 'R', ['2R', 'R/2', '1/R'], '<p>Mayer’s relation.</p>'),
+    m.mcq(2, 'heatcap', '<p>The value of γ for a monatomic ideal gas is:</p>', '5/3', ['7/5', '4/3', '1'], '<p>Cv = 3R/2 and Cp = 5R/2.</p>'),
+    m.mcq(3, 'heatcap', '<p>One mole of a monatomic gas is heated at constant pressure through 10 K. The work done by the gas is:</p>', '83 J', ['125 J', '208 J', '0'], '<p>W = PΔV = nRΔT = 8.31 × 10 = 83 J. The heat is 5/2 R ΔT = 208 J.</p>'),
+    m.mcq(2, 'processes', '<p>The work done in an isochoric process is:</p>', 'zero', ['PΔV', 'nRT ln(V₂/V₁)', 'negative'], '<p>No volume change, no work.</p>'),
+    m.mcq(2, 'processes', '<p>On a P–V diagram the adiabatic curve through a point is _____ the isothermal curve through the same point.</p>', 'steeper than', ['less steep than', 'parallel to', 'the same as'], '<p>PV^γ with γ > 1 falls faster than PV = constant.</p>'),
+    m.mcq(2, 'processes', '<p>For an adiabatic process of an ideal gas, which relation is correct?</p>', 'PV^γ = constant', ['PV = constant', 'P/T = constant', 'V/T = constant'], '<p>γ is the ratio Cp/Cv.</p>'),
+    m.mcq(3, 'processes', '<p>An ideal gas is compressed adiabatically to 1/8 of its volume (γ = 5/3). The pressure becomes:</p>', '32 times', ['8 times', '16 times', '40 times'], '<p>P₂ = P₁(8)^(5/3) = 32 P₁.</p>'),
+    m.mcq(2, 'processes', '<p>The net work done in a cyclic process equals:</p>', 'the area enclosed on the P–V diagram', ['zero', 'the internal energy change', 'the heat absorbed at the hot reservoir only'], '<p>Over a full cycle ΔU = 0 and W = Q_net = enclosed area.</p>'),
+    m.mcq(2, 'second', '<p>The statement “no heat engine can convert all the heat it absorbs into work” is the:</p>', 'Kelvin-Planck statement', ['Clausius statement', 'zeroth law', 'first law'], '<p>One of the two equivalent forms of the second law.</p>'),
+    m.mcq(2, 'second', '<p>Heat cannot flow from a cold body to a hot one without external work. This is:</p>', 'the Clausius statement', ['Boyle’s law', 'Newton’s law of cooling', 'the zeroth law'], '<p>Refrigerators need a compressor.</p>'),
+    m.mcq(2, 'second', '<p>Which of these processes is reversible in the ideal sense?</p>', 'a very slow isothermal expansion with no friction', ['free expansion of a gas into a vacuum', 'heat flow through a finite temperature difference', 'mixing of hot and cold water'], '<p>Quasi-static and frictionless changes can be undone, with no net change in the surroundings.</p>'),
+    m.mcq(2, 'engine', '<p>A heat engine takes 800 J from the hot reservoir and rejects 600 J. Its efficiency is:</p>', '25 %', ['75 %', '33 %', '20 %'], '<p>W = 200 J, η = 200/800 = 0.25.</p>'),
+    m.mcq(3, 'engine', '<p>A Carnot engine works between 727 °C and 27 °C. Its efficiency is:</p>', '70 %', ['96 %', '30 %', '3.7 %'], '<p>T in kelvin: 1000 K and 300 K. η = 1 − 0.3 = 0.7.</p>', { trap: 'Using Celsius temperatures in the efficiency formula.' }),
+    m.mcq(2, 'engine', '<p>The efficiency of a Carnot engine is increased by:</p>', 'lowering the cold reservoir temperature or raising the hot one', ['raising the cold reservoir temperature', 'using a different gas', 'making the cycle faster'], '<p>η = 1 − Tc/Th depends only on the temperatures.</p>'),
+    m.mcq(2, 'engine', '<p>No engine between two temperatures can be more efficient than a Carnot engine between the same two. This is:</p>', 'Carnot’s theorem', ['Mayer’s relation', 'Kelvin’s law', 'Hooke’s law'], '<p>Carnot’s theorem sets the upper limit.</p>'),
+    m.mcq(2, 'fridge', '<p>The coefficient of performance of a refrigerator is:</p>', 'heat removed from the cold space divided by the work supplied', ['work supplied divided by heat removed', 'heat rejected divided by heat removed', 'work divided by heat rejected'], '<p>COP = Qc/W.</p>'),
+    m.mcq(3, 'fridge', '<p>A refrigerator removes 300 J from its inside using 100 J of work. It delivers to the room:</p>', '400 J', ['300 J', '200 J', '100 J'], '<p>Qh = Qc + W = 400 J.</p>'),
+    m.ar(2, 'first', 'In an isothermal process all the heat supplied to an ideal gas is converted into work.', 'The internal energy of an ideal gas depends only on its temperature.', 0, '<p>Both true and R explains A: ΔU = 0 so Q = W.</p>'),
+    m.ar(3, 'engine', 'A heat engine with 100 % efficiency is impossible.', 'Some heat must always be rejected to a colder reservoir.', 0, '<p>Both true; this is the Kelvin-Planck statement, and R explains A.</p>'),
+    m.ar(3, 'processes', 'In an adiabatic expansion the temperature of a gas falls.', 'No heat enters the gas, so the work is done at the expense of its internal energy.', 0, '<p>Both true and R explains A: ΔU = −W.</p>'),
+    m.nat(2, 'first', '<p>A gas absorbs 900 J of heat and its internal energy increases by 400 J. How much work does it do, in joules?</p>', () => 900 - 400, 0, '<p>W = Q − ΔU = 500 J.</p>', { unit: 'J' }),
+    m.nat(3, 'processes', '<p>Find the work done by 1 mol of an ideal gas expanding isothermally at 300 K to 2.718 times its volume (so that ln = 1), in joules. (R = 8.314.)</p>', () => 8.314 * 300 * Math.log(Math.E), 0.01, '<p>W = nRT ln(V₂/V₁) = 8.314 × 300 × 1 = 2494 J.</p>', { unit: 'J' }),
+    m.nat(3, 'engine', '<p>A Carnot engine takes 1200 J from a 600 K source and works with a 300 K sink. Find the work per cycle, in joules.</p>', () => 1200 * (1 - 300 / 600), 0.01, '<p>η = 1/2, so W = 600 J.</p>', { unit: 'J' }),
+    m.msq(3, 'processes', '<p>Which of these statements about an ideal gas are true? (Choose all that apply.)</p>', ['In an isochoric process W = 0.', 'In an adiabatic process Q = 0.', 'In an isothermal process ΔU = 0.', 'In an isobaric process Q = ΔU.'], [0, 1, 2], '<p>In an isobaric process Q = ΔU + PΔV, so Q ≠ ΔU.</p>'),
+  ],
+  gens: [
+    { id: 'td-g01', type: 'nat', level: 2, exams: ['board'], sub: 'first',
+      make(rng) { const Q = pick(rng, 200, 1000, 100), W = pick(rng, 50, 400, 50); return { Q, W, q: `<p>A gas absorbs ${Q} J of heat while doing ${W} J of work. Find the change in its internal energy in joules.</p>`, answer: Q - W, tol: 0.01, abs: 0.5, unit: 'J', sol: `<p>ΔU = Q − W = ${Q - W} J.</p>` }; },
+      verify: (p) => -(p.W - p.Q) },
+    { id: 'td-g02', type: 'nat', level: 3, exams: ['board'], sub: 'engine',
+      make(rng) { const Th = pick(rng, 400, 900, 100), Tc = choose(rng, [250, 300, 350]), Qh = pick(rng, 500, 2000, 100); const eta = 1 - Tc / Th; return { Th, Tc, Qh, q: `<p>A Carnot engine works between ${Th} K and ${Tc} K and absorbs ${Qh} J per cycle. How much heat does it reject, in joules?</p>`, answer: Qh * Tc / Th, tol: 0.01, unit: 'J', sol: `<p>Qc = Qh Tc/Th = ${(Qh * Tc / Th).toFixed(1)} J (η = ${eta.toFixed(3)}).</p>` }; },
+      verify: (p) => p.Qh - p.Qh * (1 - p.Tc / p.Th) },
+    { id: 'td-g03', type: 'nat', level: 3, exams: ['board'], sub: 'processes',
+      make(rng) { const n = choose(rng, [1, 2, 3]), T = pick(rng, 280, 400, 20), f = choose(rng, [2, 3, 4]); return { n, T, f, q: `<p>${n} mol of an ideal gas expands isothermally at ${T} K to ${f} times its volume. Find the heat absorbed in joules (R = 8.314).</p>`, answer: n * R * T * Math.log(f), tol: 0.01, unit: 'J', sol: `<p>Q = W = nRT ln ${f} = ${(n * R * T * Math.log(f)).toFixed(0)} J.</p>` }; },
+      verify: (p) => { const P1V1 = p.n * R * p.T; let s = 0; const N = 20000, dv = (p.f - 1) / N; for (let i = 0; i < N; i++) s += P1V1 / (1 + (i + 0.5) * dv) * dv; return s; } },
+    { id: 'td-g04', type: 'nat', level: 2, exams: ['board'], sub: 'fridge',
+      make(rng) { const Qc = pick(rng, 400, 2000, 200), cop = choose(rng, [2, 4, 5, 8]); return { Qc, cop, q: `<p>A refrigerator of coefficient of performance ${cop} removes ${Qc} J from the cold space per cycle. How much heat in joules does it release to the room?</p>`, answer: Qc + Qc / cop, tol: 0.01, unit: 'J', sol: `<p>W = Qc/COP = ${Qc / cop} J; Qh = Qc + W = ${Qc + Qc / cop} J.</p>` }; },
+      verify: (p) => { const W = p.Qc / p.cop; return p.Qc * (1 + 1 / p.cop) + W - W; } },
+  ],
+};
