@@ -10,7 +10,9 @@ import r5 from './method-of-images.r5.gen.js';
 
 const EPS0 = 8.8541878128e-12, K = 8.9875517923e9, PI = Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'method-of-images',
   items: [
     // ---------- level 1 ----------
@@ -358,3 +360,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["gim-r4g2"]);

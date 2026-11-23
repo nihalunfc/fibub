@@ -10,7 +10,9 @@ import r5 from './matrices-eigenvalues.r5.gen.js';
 
 const pm = (M) => `\\begin{pmatrix} ${M.map((r) => r.join(' & ')).join(' \\\\ ')} \\end{pmatrix}`;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'matrices-eigenvalues',
   items: [
     // ---------- level 1 ----------
@@ -340,3 +342,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["mev-m34","mev-r4g3","mev-r5g3"]);

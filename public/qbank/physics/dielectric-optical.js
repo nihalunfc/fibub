@@ -14,7 +14,9 @@ const EPS0 = C.eps0, E = C.e, ME = C.me, HBAR = C.hbar;
 const wp = (n) => Math.sqrt(n * E * E / (EPS0 * ME));          // plasma angular frequency for n per m^3
 const sci = (v, d = 3) => { const [m, e] = v.toExponential(d).split('e'); return (+m === 1 ? '' : m + R`\times`) + `10^{${+e}}`; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'dielectric-optical',
   items: [
     // ---------- level 1 ----------
@@ -373,3 +375,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["diel-g03"]);

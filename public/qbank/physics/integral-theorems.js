@@ -5,7 +5,9 @@ import more from './integral-theorems.more.gen.js';
 import more2 from './integral-theorems.more2.gen.js';
 import r4 from './integral-theorems.r4.gen.js';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'integral-theorems',
   items: [
     // ---- level 1 ----
@@ -315,3 +317,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["it-g01","it-g02","it-g03","it-g06","it-g07","it-t23"]);

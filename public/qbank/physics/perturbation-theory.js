@@ -12,7 +12,9 @@ import r5 from './perturbation-theory.r5.gen.js';
 const lower2 = (a, b, v) => (a + b) / 2 - Math.sqrt(((a - b) / 2) ** 2 + v * v);
 const wellStep = (n, f) => f - Math.sin(2 * n * Math.PI * f) / (2 * n * Math.PI); // <n|H'|n>/V0 for H' = V0 on 0 < x < f a
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'perturbation-theory',
   items: [
     // ---------- level 1 ----------
@@ -325,3 +327,6 @@ export default {
 };
 
 function fmtE(x) { const e = Math.floor(Math.log10(x)); return `${(x / 10 ** e).toFixed(3)}\\times10^{${e}}`; }
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["qpt-g08"]);

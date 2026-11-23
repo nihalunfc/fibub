@@ -8,7 +8,9 @@ import r4 from './central-forces.r4.gen.js';
 
 const R_E = 6.4e6, G0 = 9.8;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'central-forces',
   items: [
     { id: 'cfo-001', type: 'mcq', level: 1, exams: ['jam', 'gate'], sub: 'angular momentum',
@@ -317,3 +319,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["cfo-r4g3"]);

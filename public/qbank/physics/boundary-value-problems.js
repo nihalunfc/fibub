@@ -10,7 +10,9 @@ import r5 from './boundary-value-problems.r5.gen.js';
 const EPS0 = 8.8541878128e-12;
 const sh = Math.sinh, ch = Math.cosh, PI = Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'boundary-value-problems',
   items: [
     // ---------- level 1 ----------
@@ -363,3 +365,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["bvp-g01","bvp-g02","bvp-g07","bvp-g09","bvp-r4g1","bvp-r4g2","bvp-r5g1"]);

@@ -9,7 +9,9 @@ import r5 from './lagrangian-mechanics.r5.gen.js';
 
 const g = 9.8;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'lagrangian-mechanics',
   items: [
     // ---------- level 1 ----------
@@ -362,3 +364,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["lag-g01","lag-g03","lag-g06","lag-g07"]);

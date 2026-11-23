@@ -13,7 +13,9 @@ const KB = 1.380649e-23, QE = 1.602176634e-19;
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
 const RES = [[50, '50 Ω'], [1e3, '1 kΩ'], [10e3, '10 kΩ'], [47e3, '47 kΩ'], [100e3, '100 kΩ'], [1e6, '1 MΩ'], [10e6, '10 MΩ']];
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'noise-lock-in',
   items: [
     // ---------- level 1 ----------
@@ -304,7 +306,7 @@ export default {
         const pool = [1, 1 / 3, 1 / 5, 1 / 7, 0, 1 / 2].filter((v) => v !== val);
         const o = mcqOptions(r, val, [pool[0], pool[int(r, 1, 2)], pool[int(r, 3, 4)]], show);
         return { q: `A lock-in at reference frequency $f$ uses ${sq ? 'a square-wave (sign-switching) demodulator' : 'a pure sinusoidal reference'}. Compared with an in-phase sine of the same amplitude at $f$, an in-phase sine at ${n === 1 ? '$f$ itself' : `$${n}f$`} gives an output that is`, options: o.options, answer: o.answer,
-          sol: sq ? `A square wave is $\\frac4\\pi\\sum_{\\text{odd }k}\\frac1k\\sin k\\omega t$: odd harmonic $k$ is weighted by $1/k$ and even harmonics are absent. For ${n}f$ the weight is ${n % 2 ? `$1/${n}$` : 'zero (even harmonic)'}.` : `A pure sine reference has only the fundamental, so only signals at $f$ survive the averaging${n === 1 ? '; the output is the same' : `; a signal at ${n}f averages to zero`}.`,
+          sol: sq ? `A square wave is $\\frac4\\pi\\sum_{\\text{odd }k}\\frac1k\\sin k\\omega t$: odd harmonic $k$ is weighted by $1/k$ and even harmonics are absent. For $${n}f$ the weight is ${n % 2 ? `$1/${n}$` : 'zero (even harmonic)'}.` : `A pure sine reference has only the fundamental, so only signals at $f$ survive the averaging${n === 1 ? '; the output is the same' : `; a signal at ${n}f averages to zero`}.`,
           trap: 'Square-wave demodulators also detect odd harmonics; sine references do not.' };
       } },
     { id: 'nli-g07', type: 'nat', level: 3, exams: ['gate', 'net'], sub: 'noise bandwidth',
@@ -380,3 +382,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["nli-g06"]);

@@ -9,7 +9,9 @@ import r5 from './hamiltonian-mechanics.r5.gen.js';
 
 const g = 9.8;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'hamiltonian-mechanics',
   items: [
     // ---------- level 1 ----------
@@ -359,3 +361,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["ham-g04","ham-g08","ham-g09","ham-m32","ham-r4g2","ham-r5g1"]);

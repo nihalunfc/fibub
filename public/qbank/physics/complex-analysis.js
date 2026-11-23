@@ -11,7 +11,9 @@ import r5 from './complex-analysis.r5.gen.js';
 
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'complex-analysis',
   items: [
     // ---------- level 1 ----------
@@ -330,3 +332,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["cax-g01","cax-g02","cax-g03","cax-g06","cax-r5g1","cax-r5g3"], { neg: ["cax-r5g1"] });

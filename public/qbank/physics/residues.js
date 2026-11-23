@@ -12,7 +12,9 @@ const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 const frac = (p, q) => { if (q < 0) { p = -p; q = -q; } const g = gcd(p, q) || 1; p /= g; q /= g; return q === 1 ? `${p}` : `${p < 0 ? '-' : ''}\\tfrac{${Math.abs(p)}}{${q}}`; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'residues',
   items: [
     // ---------- level 1 ----------
@@ -317,3 +319,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["res-g01","res-g02","res-g03","res-g06","res-g07","res-g08","res-m33","res-m34","res-m35"], { neg: ["res-g06"] });

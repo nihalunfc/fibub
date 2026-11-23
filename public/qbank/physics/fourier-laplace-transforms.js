@@ -12,7 +12,9 @@ import r5 from './fourier-laplace-transforms.r5.gen.js';
 const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const FT = 'Use $\\tilde f(k) = \\int_{-\\infty}^{\\infty}f(x)e^{-ikx}dx$.';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'fourier-laplace-transforms',
   items: [
     // ---------- level 1 ----------
@@ -323,3 +325,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["flt-g01","flt-g02","flt-g03","flt-g04","flt-g07","flt-g08","flt-m33","flt-r4g1","flt-r4g3"]);

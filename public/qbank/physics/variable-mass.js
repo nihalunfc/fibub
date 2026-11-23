@@ -8,7 +8,9 @@ import r4 from './variable-mass.r4.gen.js';
 
 const G0 = 9.8;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'variable-mass',
   items: [
     { id: 'vms-001', type: 'mcq', level: 1, exams: ['jam'], sub: 'thrust',
@@ -307,3 +309,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["vms-t26"]);

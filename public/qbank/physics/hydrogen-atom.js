@@ -15,7 +15,9 @@ const rAvg = (n, l) => (3 * n * n - l * (l + 1)) / 2;            // <r> in units
 const r2Avg = (n, l) => (n * n / 2) * (5 * n * n + 1 - 3 * l * (l + 1)); // <r²> in units of (a/Z)²
 const inside = (x) => 1 - Math.exp(-2 * x) * (1 + 2 * x + 2 * x * x);   // P(r < x a) in 1s
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'hydrogen-atom',
   items: [
     // ---------- level 1 ----------
@@ -339,3 +341,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["qhy-g12"], { orb: ["qhy-g12"] });

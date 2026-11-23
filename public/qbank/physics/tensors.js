@@ -16,7 +16,9 @@ const rv = (r) => [int(r, -3, 3), int(r, -3, 3), int(r, -3, 3)];
 // Levi-Civita by permutation parity
 const eps = (i, j, k) => ((i - j) * (j - k) * (k - i)) / 2;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'tensors',
   items: [
     // ---------- level 1 ----------
@@ -370,3 +372,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["tns-g09"]);

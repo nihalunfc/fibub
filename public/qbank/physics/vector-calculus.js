@@ -6,7 +6,9 @@ import more2 from './vector-calculus.more2.gen.js';
 import r4 from './vector-calculus.r4.gen.js';
 import r5 from './vector-calculus.r5.gen.js';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'vector-calculus',
   items: [
     { id: 'vc-001', type: 'mcq', level: 1, exams: ['jam', 'gate'], sub: 'vector algebra',
@@ -190,3 +192,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["vc-g01","vc-g03","vc-g04","vc-g06","vc-t26","vc-r4g2","vc-r5g1"]);
