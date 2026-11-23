@@ -1,0 +1,52 @@
+// Class 11 Biology, Chapter 12 Respiration in Plants: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('rp');
+
+export default {
+  topic: 'respiration-in-plants', name: 'Respiration in Plants', n: 12,
+  items: [
+    m.mcq(1, 'gas', '<p>Gas exchange in woody stems takes place through:</p>', 'lenticels', ['stomata only', 'root hairs', 'cuticle'], '<p>Lenticels are small openings in the bark.</p>'),
+    m.mcq(2, 'gas', '<p>Plants can manage without lungs because:</p>', 'each part gets O₂ by diffusion and needs little', ['they never respire', 'they take O₂ only from photosynthesis', 'they have blood'], '<p>Air spaces and short distances make diffusion enough.</p>'),
+    m.mcq(2, 'glycolysis', '<p>The end product of glycolysis is:</p>', 'pyruvic acid', ['acetyl CoA', 'citric acid', 'lactic acid'], '<p>Glucose gives two pyruvates.</p>'),
+    m.mcq(2, 'glycolysis', '<p>The net gain of ATP per glucose in glycolysis is:</p>', '2', ['4', '6', '38'], '<p>4 made − 2 used.</p>', { trap: 'Giving 4 and forgetting the 2 used.' }),
+    m.mcq(2, 'glycolysis', '<p>In glycolysis, how many ATP are used to prepare each glucose?</p>', '2', ['1', '4', '0'], '<p>One for glucose 6-phosphate and one for fructose 1,6-bisphosphate.</p>'),
+    m.mcq(3, 'glycolysis', '<p>Glycolysis is common to both aerobic and anaerobic respiration because:</p>', 'it does not need oxygen', ['it makes the most ATP', 'it takes place in mitochondria', 'it makes CO₂'], '<p>It works in the cytoplasm without O₂ and comes first in both.</p>'),
+    m.mcq(2, 'ferment', '<p>Yeast ferments glucose to:</p>', 'ethanol and CO₂', ['lactic acid only', 'acetyl CoA', 'pyruvate and water'], '<p>Pyruvate → acetaldehyde + CO₂ → ethanol.</p>'),
+    m.mcq(2, 'ferment', '<p>Muscle cells working hard without enough O₂ form:</p>', 'lactic acid', ['ethanol', 'CO₂ and water', 'oxaloacetic acid'], '<p>Pyruvate is reduced to lactic acid; no CO₂ is released.</p>'),
+    m.mcq(3, 'ferment', '<p>Why is fermentation needed to regenerate NAD⁺?</p>', 'Glycolysis needs NAD⁺ to continue and the chain is not available', ['to make more ATP in the mitochondria', 'to produce CO₂', 'to make glucose'], '<p>Pyruvate accepts the electrons from NADH, so NAD⁺ is remade.</p>'),
+    m.mcq(2, 'link', '<p>The link reaction takes place in the:</p>', 'mitochondrial matrix', ['cytoplasm', 'inner membrane', 'stroma'], '<p>Pyruvate enters the matrix, where it is converted to acetyl CoA.</p>'),
+    m.mcq(2, 'link', '<p>Pyruvate is converted to acetyl CoA with the release of:</p>', 'one CO₂ and one NADH', ['two CO₂', 'one ATP', 'one FADH₂'], '<p>It loses one carbon as CO₂.</p>'),
+    m.mcq(2, 'krebs', '<p>Acetyl CoA joins which molecule to begin the Krebs cycle?</p>', 'oxaloacetic acid', ['citric acid', 'pyruvic acid', 'malic acid'], '<p>It forms citric acid (6 C).</p>'),
+    m.mcq(3, 'krebs', '<p>How many NADH are formed in one turn of the Krebs cycle?</p>', '3', ['2', '6', '1'], '<p>Per turn: 3 NADH, 1 FADH₂, 1 ATP.</p>'),
+    m.mcq(3, 'krebs', '<p>For one glucose molecule the Krebs cycle gives how many FADH₂?</p>', '2', ['1', '6', '4'], '<p>1 per turn × 2 turns.</p>'),
+    m.mcq(2, 'krebs', '<p>Succinic acid is converted to malic acid with the formation of:</p>', 'FADH₂', ['NADH', 'ATP', 'CO₂'], '<p>The only FAD-linked step of the cycle.</p>'),
+    m.mcq(2, 'ets', '<p>The final acceptor of electrons in the respiratory chain is:</p>', 'oxygen', ['NAD⁺', 'FAD', 'cytochrome c'], '<p>Oxygen is reduced to water.</p>'),
+    m.mcq(2, 'ets', '<p>ATP synthase is located in the:</p>', 'inner mitochondrial membrane', ['outer membrane', 'matrix', 'cytoplasm'], '<p>It is complex V.</p>'),
+    m.mcq(3, 'ets', '<p>Why does FADH₂ yield less ATP than NADH?</p>', 'it enters the chain at complex II, so fewer H⁺ are pumped', ['it is not an electron carrier', 'it works in the cytoplasm only', 'it needs more oxygen'], '<p>NADH enters at complex I, which pumps more protons.</p>'),
+    m.mcq(3, 'ets', '<p>An uncoupler of oxidative phosphorylation:</p>', 'lets H⁺ leak through the membrane so less ATP is made', ['stops the chain at complex IV', 'adds extra electrons to oxygen', 'makes ATP synthase faster'], '<p>The gradient is lost as heat.</p>'),
+    m.mcq(2, 'balance', '<p>The textbook ATP yield per glucose in aerobic respiration is:</p>', '38', ['2', '18', '12'], '<p>8 + 6 + 24 = 38.</p>'),
+    m.mcq(3, 'balance', '<p>Which stage gives the most ATP per glucose?</p>', 'electron transport (via NADH and FADH₂)', ['glycolysis', 'the link reaction', 'fermentation'], '<p>Most of the 38 ATP are made at the chain.</p>'),
+    m.mcq(2, 'amphi', '<p>A pathway that is both catabolic and anabolic is called:</p>', 'amphibolic', ['anaerobic', 'autotrophic', 'hydrolytic'], '<p>Respiration gives and takes building blocks.</p>'),
+    m.mcq(3, 'amphi', '<p>Fatty acids enter respiration as:</p>', 'acetyl CoA', ['pyruvate', 'oxaloacetic acid', 'glucose'], '<p>They are cut into 2-carbon pieces.</p>'),
+    m.mcq(2, 'rq', '<p>The respiratory quotient for a carbohydrate is:</p>', '1', ['0.7', '0.9', '4'], '<p>6 CO₂ ÷ 6 O₂.</p>'),
+    m.mcq(3, 'rq', '<p>Seeds are germinating and the RQ is 0.7. The seeds store mainly:</p>', 'fats', ['carbohydrates', 'organic acids', 'vitamins'], '<p>Fats need more O₂ than the CO₂ they release.</p>'),
+    m.ar(2, 'ets', 'Oxygen is needed for aerobic respiration.', 'Oxygen is the final electron acceptor of the chain.', 0, '<p>Both true and R explains A: without O₂ the chain jams.</p>'),
+    m.ar(3, 'amphi', 'Respiration is amphibolic.', 'Intermediates of the pathway can be used to synthesise fatty acids and amino acids.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'rq', 'The RQ of a fat is greater than 1.', 'Fats contain less oxygen than carbohydrates.', 3, '<p>A is false (about 0.7); R is true and is why more O₂ is needed.</p>'),
+    m.nat(3, 'balance', '<p>How many ATP are formed from 4 glucose molecules in aerobic respiration (textbook count of 38)?</p>', () => 4 * 38, 0, '<p>4 × 38 = 152.</p>'),
+    m.nat(3, 'rq', '<p>A respirometer shows 90 mL of CO₂ released and 100 mL of O₂ used. Find the RQ.</p>', () => 0.9, 0.01, '<p>90 ÷ 100 = 0.9, suggesting protein or mixed fuel.</p>'),
+    m.msq(3, 'krebs', '<p>Which products are released in one turn of the Krebs cycle? (Choose all that apply.)</p>', ['CO₂', 'NADH', 'FADH₂', 'Pyruvate'], [0, 1, 2], '<p>Pyruvate is made in glycolysis.</p>'),
+  ],
+  gens: [
+    { id: 'rp-g01', type: 'nat', level: 2, exams: ['board'], sub: 'balance',
+      make(rng) { const g = choose(rng, [1, 2, 3, 5, 10]); return { g, q: `<p>How many ATP are made from ${g} glucose in aerobic respiration (38 per glucose)?</p>`, answer: 38 * g, tol: 0, unit: 'ATP', sol: `<p>${g} × 38 = ${38 * g}.</p>` }; },
+      verify: (p) => p.g * (8 + 6 + 24) },
+    { id: 'rp-g02', type: 'nat', level: 2, exams: ['board'], sub: 'rq',
+      make(rng) { const o = choose(rng, [100, 150, 200, 250]), c = choose(rng, [70, 90, 100, 120]); return { o, c, q: `<p>Seeds use ${o} mL of O₂ and release ${c} mL of CO₂. Find the RQ.</p>`, answer: +(c / o).toPrecision(4), tol: 0.01, unit: '', sol: `<p>${c} ÷ ${o} = ${(c / o).toFixed(2)}.</p>` }; },
+      verify: (p) => p.c / p.o },
+    { id: 'rp-g03', type: 'nat', level: 3, exams: ['board'], sub: 'krebs',
+      make(rng) { const g = choose(rng, [1, 2, 3, 4, 6, 8]); return { g, q: `<p>How many CO₂ are released by the link reaction and the Krebs cycle together when ${g} glucose are completely oxidised?</p>`, answer: 6 * g, tol: 0, unit: 'CO₂', sol: `<p>Per glucose: 2 (link) + 4 (cycle) = 6. So ${6 * g}.</p>` }; },
+      verify: (p) => p.g * (2 * 1 + 2 * 2) },
+  ],
+};
