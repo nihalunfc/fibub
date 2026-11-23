@@ -10,6 +10,8 @@ import { ICONS } from '../../lib/icons';
 import { allTools, bySubject, toolUrl } from '../../lib/tools';
 import { siteLd } from '../../lib/seo';
 import { siteTotals } from '../../lib/totals';
+import { siteHeadline } from '../../lib/headline';
+import CountStrip from '../../components/CountStrip.astro';
 import { CURRICULA } from '../../data/curricula';
 import changelog from '../../data/changelog.json';
 const { preview = false } = Astro.props as { preview?: boolean };
@@ -18,6 +20,7 @@ const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
 const byId = new Map(live.map((t) => [t.id, t]));
 const { stats } = await siteTotals();
+const headline = await siteHeadline();
 const learnCount = stats.find((s) => s.id === 'activities')?.value ?? live.filter((t) => t.data.shelf === 'learn').length;
 
 // Tools door: every shelf with its count; Science also names its biggest subjects.
@@ -55,6 +58,8 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
       {promises.map((p) => <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={tick} />{p}</li>)}
     </ul>
   </section>
+
+  <CountStrip counts={headline.counts} exams={headline.exams} label="fibub in numbers" />
 
   <section class="hits" hidden aria-live="polite">
     <p class="hits-n"></p>

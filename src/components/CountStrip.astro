@@ -1,0 +1,45 @@
+---
+// A compact row of counts (the site or a section in numbers), with an optional second row of question
+// counts per exam. Numbers come from src/lib/headline.ts and src/lib/qtotals.ts at build time.
+import type { Count } from '../lib/headline';
+import type { ExamCount } from '../lib/qtotals';
+interface Props { counts: Count[]; exams?: ExamCount[]; label?: string; examsLabel?: string; open?: boolean }
+const { counts, exams = [], label = 'In numbers', examsLabel = 'Practice questions by exam', open = true } = Astro.props;
+const n = (v: number) => v.toLocaleString('en');
+---
+{counts.length > 0 && (
+  <section class="cstrip" aria-label={label}>
+    <ul class="cs-top">
+      {counts.map((c) => {
+        const inner = <><b>{n(c.value)}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</>;
+        return <li>{c.href ? <a href={c.href}>{inner}</a> : <div>{inner}</div>}</li>;
+      })}
+    </ul>
+    {exams.length > 0 && (
+      <details class="cs-exams" open={open}>
+        <summary>{examsLabel}</summary>
+        <ul>
+          {exams.map((e) => <li><a href={e.href}><span>{e.name}</span><b>{n(e.items)}</b>{e.gens > 0 && <small>+{n(e.gens)} templates</small>}</a></li>)}
+        </ul>
+      </details>
+    )}
+  </section>
+)}
+<style is:inline>
+.cstrip{margin:.75rem 0 1rem}
+.cstrip ul{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+.cs-top{grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr))}
+.cs-top li>a,.cs-top li>div{display:flex;flex-direction:column;padding:.5rem .65rem;border:1px solid var(--line,#d0d0d0);border-radius:8px;color:inherit;text-decoration:none;height:100%;box-sizing:border-box}
+.cs-top li>a:hover{border-color:var(--accent,currentColor)}
+.cs-top b{font-size:1.35rem;line-height:1.15;font-variant-numeric:tabular-nums}
+.cs-top span{font-size:.85rem}
+.cstrip small{font-size:.72rem;opacity:.75;line-height:1.25}
+.cs-exams{margin-top:.5rem}
+.cs-exams summary{cursor:pointer;font-size:.88rem;font-weight:600;padding:.2rem 0}
+.cs-exams ul{grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));margin-top:.35rem}
+.cs-exams a{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 .4rem;padding:.35rem .55rem;border:1px solid var(--line,#d0d0d0);border-radius:6px;color:inherit;text-decoration:none;font-size:.82rem}
+.cs-exams a:hover{border-color:var(--accent,currentColor)}
+.cs-exams a b{font-variant-numeric:tabular-nums}
+.cs-exams a small{grid-column:1/-1}
+@media (max-width:640px){.cstrip{margin:.5rem 0 .75rem}.cs-top{grid-template-columns:repeat(2,1fr);gap:.3rem}.cs-top b{font-size:1.15rem}.cs-top li>a,.cs-top li>div{padding:.4rem .5rem}.cs-top li:last-child:nth-child(odd){grid-column:1/-1}.cs-exams ul{grid-template-columns:repeat(2,1fr);gap:.3rem}.cs-exams a{padding:.3rem .5rem}.cs-exams a small{display:none}}
+</style>

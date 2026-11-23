@@ -9,6 +9,8 @@ import '../../styles/learn.css';
 import { courseLessons } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
 import { courseLd } from '../../lib/seo';
+import CountStrip from '../CountStrip.astro';
+import { questionTotals, examsFor } from '../../lib/qtotals';
 import '../../styles/course.css';
 // compact: one line per module (links to each lesson by number) for very long courses, so the page stays under 120 KB;
 // the sidebar still lists every lesson by name. Its Course data then lists the teaching lessons, not the
@@ -20,6 +22,9 @@ const live = new Set(written.keys());
 const all = flatLessons(course);
 const cat = COURSE_CATS.find((k) => k.id === COURSES.find((c) => c.id === course.id)?.cat);
 const minutes = [...written.values()].reduce((s, e) => s + e.data.minutes, 0);
+// Exam courses: the course's practice questions per exam, counted from the question banks at build time.
+const mine = new Set(examsFor(course.id).map((e) => e.id));
+const examNums = mine.size ? (await questionTotals()).exams.filter((e) => mine.has(e.id)) : [];
 const ld = courseLd(course, all.filter((l) => live.has(l.slug) && !(compact && l.slug.endsWith('-questions'))).map((l) => ({ name: `${l.n} ${l.title}`, url: `/learn/courses/${course.id}/${l.slug}/` })), minutes / 60);
 ---
 <Base title={`${course.name}: free course`} description={course.text} ld={ld}>
@@ -30,6 +35,7 @@ const ld = courseLd(course, all.filter((l) => live.has(l.slug) && !(compact && l
       <h1>{course.title}</h1>
       <p class="lead">{course.text}</p>
       <p class="cs-meta">{course.audience} Free, no sign-up. {live.size === all.length ? `All ${all.length} lessons, about ${Math.round(minutes / 6) / 10} hours.` : `${live.size} of ${all.length} lessons written so far (about ${Math.round(minutes / 6) / 10} hours); new modules are added in order.`}</p>
+      {examNums.length > 0 && <CountStrip counts={[{ value: live.size, label: 'lessons' }]} exams={examNums} label="This course in numbers" examsLabel="Practice questions" />}
       <slot />
       <ProgressBox total={all.length} />
       <h2>All modules</h2>
