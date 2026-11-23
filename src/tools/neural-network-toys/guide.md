@@ -59,6 +59,6 @@ The rule: for each point in turn, error = target − output. Each weight changes
 
 **Why does the learning rate not matter for AND?** With zero starting weights, the rate only scales every weight by the same amount, so the line and the number of epochs stay the same. It matters when you start from random weights.
 
-**How many patterns fit?** For random patterns, about 0.138 × the number of units: about 6 on a 7 × 7 grid. Patterns that look alike interfere sooner.
+**How many patterns fit?** For random patterns, about 0.138 × the number of units: about 7 on a 7 × 7 grid (0.138 × 49 = 6.8). Patterns that look alike interfere sooner.
 
 **Is anything sent anywhere?** No. Everything runs in your browser and nothing is stored.

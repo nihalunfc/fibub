@@ -46,7 +46,7 @@ This estimator shows what that could be worth for any Ontario business, such as 
 
 ## Worked example
 
-A building has a 1,054 kW average monthly peak and uses 1,240 kW in the peak hours. It can cut 360 kW (cooling 126, laundry 86, chargers 66, heating 40, ovens 21 and other loads 21). It expects to catch 80% of 5 peaks and pays about 450 per kW. Each peak hour caught is worth 360 / 5 x 450 = 32,400, so 4 of them save 129,510 a year. Pre-cooling on 12 alert days costs about 285. After an 18,000 setup cost the payback is about 2 months. The average peak is above 1,000 kW, so the business can opt in to Class A.
+A building has a 1,054 kW average monthly peak and uses 1,240 kW in the peak hours. It can cut 360 kW (cooling 126, laundry 86, chargers 66, heating 40, ovens 21 and other loads 21). It expects to catch 80% of 5 peaks and pays about 450 per kW. Each peak hour caught is worth about 360 / 5 x 450 = 32,400 (the loads add up to 359.75 kW), so 4 of them save about 129,510 a year. Pre-cooling on 12 alert days costs about 285. After an 18,000 setup cost the payback is about 2 months. The average peak is above 1,000 kW, so the business can opt in to Class A.
 
 ## FAQs
 

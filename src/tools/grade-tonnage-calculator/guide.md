@@ -47,7 +47,7 @@ Make length-weighted composites first with [[drill-hole-composites]], and put er
 
 ## Worked example
 
-All numbers are made up. Forty copper blocks of about 25,000 t each hold 1.00 Mt at 0.432 % Cu. With copper at 9000 per tonne, 500 selling costs, a 2 % royalty and 88 % recovery, each tonne of rock is worth 83.2 per percent of copper. Mining, processing and overheads cost 13.5 per tonne, so the **breakeven cut-off is 0.184 % Cu**. Above it are **929 kt at 0.454 % Cu**, holding about 4200 t of copper. The marginal cut-off is 0.150 %.
+All numbers are made up. Forty copper blocks of about 25,000 t each hold 1.00 Mt at 0.432 % Cu. With copper at 9000 per tonne, 500 selling costs, a 2 % royalty and 88 % recovery, each tonne of rock is worth 83.2 per percent of copper before recovery, or 73.2 after the 88 % recovery. Mining, processing and overheads cost 13.5 per tonne, so the **breakeven cut-off is 0.184 % Cu**. Above it are **929 kt at 0.454 % Cu**, holding about 4200 t of copper. The marginal cut-off is 0.150 %.
 
 ## Good to know
 

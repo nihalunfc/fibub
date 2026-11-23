@@ -116,7 +116,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
       </header>
       <p class="blurb">Work with files, money and data without uploading anything.</p>
       <ul class="shelves">
-        {shelves.map(({ shelf, count }) => <li><a href={`/${shelf.id}/`}><span>{shelf.name}</span><b>{count.toLocaleString('en')}</b></a></li>)}
+        {shelves.map(({ shelf, count }) => <li id={shelf.id}><a href={`/${shelf.id}/`}><span>{shelf.name}</span><b>{count.toLocaleString('en')}</b></a></li>)}
       </ul>
       {grouped.map(({ shelf, top, subjects }) => (
         <p class="subs"><span>{shelf.name} by subject:</span> {top.map((sj, i) => <>{i > 0 && ', '}<a href={sj.url}>{sj.name}</a></>)}{subjects.length > top.length && <>, <a href={`/${shelf.id}/`}>all {subjects.length}</a></>}.</p>

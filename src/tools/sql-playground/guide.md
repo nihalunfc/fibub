@@ -52,4 +52,4 @@ Press **Try it with sample data** to load the Palmer penguins dataset (Horst, Hi
 
 **Is my data safe?** It stays in this browser tab. Nothing is sent anywhere, and the page works offline.
 
-Turn a result into a figure with the [publication plot maker](/science/plot-maker/), or tidy messy files first with the [data cleaner](/documents/data-cleaner/).
+Turn a result into a figure with the [publication plot maker](/science/plot-maker/), or check messy files first with the [CSV profiler](/science/csv-profiler/).

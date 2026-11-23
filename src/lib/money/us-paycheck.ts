@@ -36,9 +36,10 @@ export const STATES: Record<string, StateRule> = {
   MI: { name: 'Michigan', kind: 'flat', rate: 0.0425, allow: 5900, allowMfj: 11800, perChild: 5900 },
   NC: { name: 'North Carolina', kind: 'flat', rate: 0.0399, std: { single: 12750, mfj: 25500, hoh: 19125, mfs: 12750 } },
   PA: { name: 'Pennsylvania', kind: 'flat', rate: 0.0307, allow: 0, allowMfj: 0, k401Taxed: true },
+  // Georgia: 4.99% for 2026 (HB 463, signed 2026-05-11, retroactive to 2026-01-01; Governor's press release), checked 2026-11-23.
   // Flat-rate states not confirmed on the state's own site: the starting value is the 2026 flat rate (Tax Foundation),
   // which is higher than the effective rate because it ignores the state's deductions. Marked as an estimate on the page.
-  CO: { name: 'Colorado', kind: 'est', start: 4.4 }, GA: { name: 'Georgia', kind: 'est', start: 5.19 }, ID: { name: 'Idaho', kind: 'est', start: 5.3 },
+  CO: { name: 'Colorado', kind: 'est', start: 4.4 }, GA: { name: 'Georgia', kind: 'est', start: 4.99 }, ID: { name: 'Idaho', kind: 'est', start: 5.3 },
   IN: { name: 'Indiana (plus county tax)', kind: 'est', start: 2.95 }, IA: { name: 'Iowa', kind: 'est', start: 3.8 }, LA: { name: 'Louisiana', kind: 'est', start: 3.0 },
   MS: { name: 'Mississippi', kind: 'est', start: 4.0 }, OH: { name: 'Ohio', kind: 'est', start: 2.75 }, UT: { name: 'Utah', kind: 'est', start: 4.5 },
 };

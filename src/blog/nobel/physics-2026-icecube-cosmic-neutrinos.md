@@ -76,7 +76,7 @@ Slide the energy cut and the cosmic slope below and watch who wins.
 
 ## 2012 and 2013: Bert, Ernie and 26 more
 
-In 2012 a search for extremely energetic neutrinos turned up two cascades, each depositing about **1 petaelectronvolt** (10¹⁵ eV, about a thousand times the energy of a proton at the Large Hadron Collider) inside the detector. The team nicknamed them **Bert and Ernie**. Nothing from the atmosphere was expected at such energies in that much data.
+In 2012 a search for extremely energetic neutrinos turned up two cascades, each depositing about **1 petaelectronvolt** (10¹⁵ eV, over a hundred times the energy of a proton at the Large Hadron Collider) inside the detector. The team nicknamed them **Bert and Ernie**. Nothing from the atmosphere was expected at such energies in that much data.
 
 The team then designed a search on purpose for such events: keep only events that **start inside** the detector (the veto) and deposit **more than about 30 TeV**, from data taken between May 2010 and May 2012. It found **28 events**. Backgrounds (atmospheric muons that slipped past the veto, plus atmospheric neutrinos) were expected to give about **10.6**. The excess had a cosmic-looking spectrum and came from all over the sky. Published in *Science* in November 2013, it was called **evidence**, at 4.1σ. With a third year of data the count rose to 37 events and the significance to 5.7σ (2014), and an independent analysis of up-going muon tracks from the northern sky, using the Earth as a shield, found the same cosmic flux in 2015. Neutrinos from beyond the solar system were real.
 

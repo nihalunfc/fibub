@@ -53,7 +53,7 @@ Check the angles by running them forward in [[dh-kinematics|D-H forward kinemati
 
 ## Worked example
 
-A made-up arm with L1 = 1 and L2 = 0.8 reaching for (1.2, 0.6), 1.342 from the base and well inside its reach of 0.2 to 1.8. **Elbow up: θ1 = 62.956°, θ2 = −84.261°. Elbow down: θ1 = −9.826°, θ2 = 84.261°.** With the example joint limits (joint 2 from −150° to 0°) only elbow up is allowed. Add a 0.3-long tool held at 30° and the wrist moves to (0.940, 0.350): elbow up gives 67.494°, −113.326° and 75.832°.
+A made-up arm with L1 = 1 and L2 = 0.8 reaching for (1.2, 0.6), 1.342 from the base and well inside its reach of 0.2 to 1.8. **Elbow up: θ1 = 62.956°, θ2 = −84.261°. Elbow down: θ1 = −9.826°, θ2 = 84.261°.** With the example joint limits (joint 2 from −150° to 0°) only elbow up is allowed. Add a 0.3-long tool held at 30° and move the target to (1.2, 0.5): the wrist sits at (0.940, 0.350): elbow up gives 67.494°, −113.326° and 75.832°.
 
 ## Tips
 

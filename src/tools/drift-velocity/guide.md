@@ -70,7 +70,7 @@ which the page shows as **0.0735 mm/s**. To drift one metre takes about 13 600 s
 
 **If electrons are so slow, why does a lamp light at once?** The field is set up along the whole wire at nearly the speed of light, so electrons everywhere start drifting at the same moment. The ones in the lamp's filament are already there.
 
-**Is the random speed really 117 km/s?** That is the old classical estimate √(3kT/m) at room temperature. Quantum theory says free electrons in a metal move even faster, about 1 000 km/s. Either way the drift is tiny in comparison.
+**Is the random speed really 117 km/s?** That is the old classical estimate √(3kT/m) at room temperature. Quantum theory says free electrons in a metal move even faster: about 1 600 km/s in copper (the Fermi speed). Either way the drift is tiny in comparison.
 
 **Why does aluminium have more free electrons?** Each aluminium atom gives three, so for the same current they need to drift more slowly.
 
