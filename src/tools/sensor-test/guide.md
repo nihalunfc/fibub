@@ -13,7 +13,7 @@ order: 3079
 icon: compass
 works: offline
 updated: 2026-11-19
-related: [vibration-test, touch-test, battery-test, device-info]
+related: [vibration-test, touch-test, battery-test, device-info, live-trackers, g-force-meter]
 sources:
   - "Readings come from the browser's DeviceMotionEvent (acceleration in m/s², rotation rate in degrees per second) and DeviceOrientationEvent (alpha, beta, gamma in degrees). iPhone and iPad need a tap to grant permission."
   - "Tilt is atan2 of the gravity components in degrees; compass heading is 360 minus alpha for absolute orientation, or webkitCompassHeading on iOS. Checked in tests/device.mjs."

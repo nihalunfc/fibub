@@ -1,0 +1,101 @@
+---
+// #T1078 Step Counter: a live pedometer from the phone's accelerometer, with cadence, distance from height and a goal bar.
+// Step detection in src/lib/device/track.ts (checked in tests/device.mjs). Nothing is stored or sent.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv sc">
+  <section class="panel">
+    <div class="sc-big"><b class="sc-n">0</b><span>steps</span></div>
+    <div class="dv-meter sc-goalbar" aria-hidden="true"><i></i></div>
+    <p class="dv-fine sc-goaltext">0% of your goal</p>
+    <div class="dv-row">
+      <button type="button" class="btn sc-start">Start counting</button>
+      <button type="button" class="btn secondary sc-stop" hidden>Pause</button>
+      <button type="button" class="btn secondary sc-reset">Reset</button>
+    </div>
+    <p class="dv-status sc-status" aria-live="polite">Press Start, then carry the phone in your hand or a front pocket with this page open. On an iPhone or iPad the browser asks for motion access first. Nothing is recorded or sent anywhere.</p>
+    <dl class="dv-stats">
+      <div><dt>Cadence</dt><dd class="sc-cad">–</dd></div>
+      <div><dt>Distance</dt><dd class="sc-dist">–</dd></div>
+      <div><dt>Active time</dt><dd class="sc-time">–</dd></div>
+      <div><dt>Step length used</dt><dd class="sc-len">–</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>Settings</h2>
+    <div class="dv-grid">
+      <label>Your height (cm) <input class="sc-h" type="number" min="100" max="230" step="1" value="170" inputmode="numeric" /></label>
+      <label>Goal (steps) <input class="sc-goal" type="number" min="100" step="100" value="10000" inputmode="numeric" /></label>
+      <label>Moving by <select class="sc-mode"><option value="walk" selected>Walking</option><option value="run">Running</option></select></label>
+      <label>Sensitivity <select class="sc-sens"><option value="1.8">Low (phone in a bag)</option><option value="1.2" selected>Normal</option><option value="0.8">High (slow walking)</option></select></label>
+    </div>
+    <p class="dv-fine">Height sets the step length: about 0.41 × height walking and 0.65 × running. Sensitivity is how big a bounce counts as a step: raise it if it counts while you stand still, lower it if it misses slow steps.</p>
+  </section>
+  <p class="dv-fine"><strong>Keep the page open with the screen on</strong> (the page asks it to stay awake). Browsers stop sending motion to a page that is minimised or locked, so this counts only while it is in front of you; your phone's own health app counts in the background.</p>
+</div>
+
+<style is:inline>
+  .sc .sc-big { display: grid; justify-items: center; }
+  .sc .sc-big b { font-size: 72px; line-height: 1; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .sc .sc-big span { color: var(--muted); }
+</style>
+
+<script>
+  import { makeStepCounter, cadence, stepLength, fmtClock } from '../../lib/device/track';
+  import { askMotion, keepAwake, say } from '../../lib/device/browser';
+  const root = document.querySelector('.sc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.sc-status'), startB = $<HTMLButtonElement>('.sc-start'), stopB = $<HTMLButtonElement>('.sc-stop');
+  const hIn = $<HTMLInputElement>('.sc-h'), goalIn = $<HTMLInputElement>('.sc-goal'), modeIn = $<HTMLSelectElement>('.sc-mode'), sensIn = $<HTMLSelectElement>('.sc-sens');
+  let counter = makeStepCounter(+sensIn.value), total = 0, metres = 0, active = 0, lastStep = 0, got = false, timer = 0, tick = 0, release: () => void = () => {};
+
+  const show = () => {
+    const goal = Math.max(1, +goalIn.value || 10000), share = Math.min(1, total / goal), len = stepLength((+hIn.value || 170) / 100, modeIn.value === 'run');
+    $('.sc-n').textContent = total.toLocaleString('en');
+    ($('.sc-goalbar').firstElementChild as HTMLElement).style.width = `${share * 100}%`;
+    $('.sc-goaltext').textContent = `${Math.round(share * 100)}% of your ${goal.toLocaleString('en')}-step goal`;
+    const cad = cadence(counter.steps, performance.now());
+    $('.sc-cad').textContent = cad ? `${Math.round(cad)} a minute` : total ? 'paused' : '–';
+    $('.sc-dist').textContent = total ? (metres >= 1000 ? `${(metres / 1000).toFixed(2)} km` : `${Math.round(metres)} m`) : '–';
+    $('.sc-time').textContent = total ? fmtClock(active) : '–';
+    $('.sc-len').textContent = `${Math.round(len * 100)} cm`;
+  };
+  const onMotion = (e: DeviceMotionEvent) => {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null || a.z == null) return;
+    if (!got) { got = true; say(status, 'Counting. Walk normally; the first few steps settle the counter.', 'good'); }
+    const t = performance.now();
+    if (counter.push(t, Math.hypot(a.x, a.y, a.z))) {
+      total++;
+      metres += stepLength((+hIn.value || 170) / 100, modeIn.value === 'run');
+      // Count time between steps as active only when they come less than 2 s apart.
+      if (lastStep && t - lastStep < 2000) active += (t - lastStep) / 1000;
+      lastStep = t; show();
+    }
+  };
+  const stop = () => {
+    clearTimeout(timer); clearInterval(tick); release(); release = () => {};
+    removeEventListener('devicemotion', onMotion); startB.hidden = false; stopB.hidden = true;
+  };
+  const start = async () => {
+    stop();
+    if (!('DeviceMotionEvent' in window)) { say(status, 'This browser has no motion sensor support.', 'bad'); return; }
+    if (!window.isSecureContext) { say(status, 'Motion sensors only work on a secure (https) page.', 'bad'); return; }
+    const p = await askMotion();
+    if (p === 'denied') { say(status, 'Motion access was refused. On iPhone, quit Safari fully, reopen this page and tap Allow. Or check Settings > Safari > Motion & Orientation Access.', 'bad'); return; }
+    got = false; counter = makeStepCounter(+sensIn.value); lastStep = 0;
+    addEventListener('devicemotion', onMotion); startB.hidden = true; stopB.hidden = false; startB.textContent = 'Carry on counting';
+    say(status, 'Listening for steps…');
+    timer = window.setTimeout(() => { if (!got) say(status, 'No motion data arrived. Most laptops and desktops have no accelerometer, so this is normal there. Try a phone.', 'warn'); }, 1500);
+    tick = window.setInterval(show, 1000);
+    release = await keepAwake();
+  };
+
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Paused. Press Carry on counting to go on from here.'); show(); });
+  $('.sc-reset').addEventListener('click', () => { total = 0; metres = 0; active = 0; lastStep = 0; counter = makeStepCounter(+sensIn.value); startB.textContent = 'Start counting'; show(); });
+  sensIn.addEventListener('change', () => { counter = makeStepCounter(+sensIn.value); });
+  [hIn, goalIn, modeIn].forEach((el) => el.addEventListener('input', show));
+  addEventListener('pagehide', stop);
+  show();
+</script>

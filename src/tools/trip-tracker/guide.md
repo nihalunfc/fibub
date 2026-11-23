@@ -12,7 +12,7 @@ order: 2113
 icon: pointer
 works: offline
 updated: 2026-11-12
-related: [gps-track-analyser, pace-calculator, fuel-cost, road-trip]
+related: [gps-track-analyser, pace-calculator, fuel-cost, road-trip, speedometer]
 sources:
   - "Distances use Vincenty's (1975) inverse formula on the WGS84 ellipsoid (a = 6 378 137 m, f = 1/298.257223563), with the haversine formula as a fallback, written by fibub from the published equations; the same maths as the GPS track analyser."
   - "Positions, accuracy and speed come from your browser's Geolocation API. GPX 1.1 is an open format. Screen Wake Lock is a web standard."

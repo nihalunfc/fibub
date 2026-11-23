@@ -12,7 +12,7 @@ order: 2032
 icon: ruler
 works: offline
 updated: 2026-11-16
-related: [pace-calculator, calorie-calculator, one-rep-max]
+related: [pace-calculator, calorie-calculator, one-rep-max, step-counter]
 sources:
   - "Stride ≈ 0.414 × height for walking and 0.65 × height for running: common rules of thumb, not a standard. A measured stride is better."
   - "Ainsworth BE et al. (2011). 2011 Compendium of Physical Activities. Med Sci Sports Exerc 43(8): 1575–1581 (walking about 3.5 MET, running at 5 mph about 8.3 MET)."

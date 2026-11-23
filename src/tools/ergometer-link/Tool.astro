@@ -1,0 +1,159 @@
+---
+// #T1080 Ergometer Link: live readings from a Bluetooth rowing machine, smart bike or trainer, power meter and heart-rate
+// strap, over Web Bluetooth's standard fitness services. Parsers in src/lib/device/track.ts (tests/device.mjs). Nothing is stored or sent.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv el">
+  <section class="panel">
+    <div class="dv-row">
+      <button type="button" class="btn el-machine">Connect a rower, bike or power meter</button>
+      <button type="button" class="btn secondary el-hr">Connect a heart-rate strap</button>
+    </div>
+    <div class="dv-row">
+      <button type="button" class="btn secondary small el-demo">Try a demo rower</button>
+      <button type="button" class="btn secondary small el-reset">Reset session</button>
+      <button type="button" class="btn secondary small el-off">Disconnect all</button>
+    </div>
+    <p class="dv-status el-status" aria-live="polite">Wake the machine or put the strap on, then press Connect and pick it from the list. Readings stay on this page; nothing is recorded or sent anywhere.</p>
+    <p class="dv-fine el-devs"></p>
+  </section>
+  <section class="panel">
+    <h2>Live</h2>
+    <dl class="dv-stats el-live">
+      <div><dt>Power</dt><dd class="el-w">–</dd></div>
+      <div><dt>Cadence / stroke rate</dt><dd class="el-cad">–</dd></div>
+      <div><dt>Speed</dt><dd class="el-speed">–</dd></div>
+      <div><dt>Pace per 500 m</dt><dd class="el-pace">–</dd></div>
+      <div><dt>Distance</dt><dd class="el-dist">–</dd></div>
+      <div><dt>Heart rate</dt><dd class="el-bpm">–</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>This session</h2>
+    <dl class="dv-stats">
+      <div><dt>Time</dt><dd class="el-time">–</dd></div>
+      <div><dt>Average power</dt><dd class="el-avgw">–</dd></div>
+      <div><dt>Top power</dt><dd class="el-maxw">–</dd></div>
+      <div><dt>Work done</dt><dd class="el-kj">–</dd></div>
+      <div><dt>Average heart rate</dt><dd class="el-avghr">–</dd></div>
+      <div><dt>Top heart rate</dt><dd class="el-maxhr">–</dd></div>
+    </dl>
+    <canvas class="dv-canvas el-chart" height="140" aria-label="Power (solid) and heart rate (dashed) over the last two minutes"></canvas>
+    <p class="dv-fine">Solid line: power in watts. Dashed line: heart rate. Work done is power added up over time (1 kJ is 1,000 watt-seconds); the body burns roughly four times that in food energy.</p>
+  </section>
+  <p class="dv-fine">Works in Chrome and Edge on Android, Windows, macOS and ChromeOS, which have Web Bluetooth. iPhone and iPad browsers and Firefox do not offer it yet. The machine must speak the standard Bluetooth fitness services (FTMS, cycling power or heart rate), as most from the last few years do. Close the maker's own app first: most machines talk to one app at a time.</p>
+</div>
+
+<style is:inline>
+  .el .el-chart { height: 140px; }
+</style>
+
+<script>
+  import { parseHeartRate, parseCyclingPower, parseIndoorBike, parseRower, fmtPace500, fmtClock, type Ergo } from '../../lib/device/track';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.el') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.el-status'), chart = $<HTMLCanvasElement>('.el-chart');
+  type Gatt = { connected: boolean; disconnect(): void };
+  const devices: { name: string; gatt: Gatt }[] = [];
+  let live: Ergo = {}, t0 = 0, lastW = 0, sumW = 0, secsW = 0, maxW = 0, sumHr = 0, nHr = 0, maxHr = 0, kj = 0, demo = 0, tick = 0;
+  const hist: { t: number; w: number | null; hr: number | null }[] = [];
+
+  const show = () => {
+    const d = (v: number | undefined, f: (n: number) => string) => (typeof v === 'number' && isFinite(v) ? f(v) : '–');
+    $('.el-w').textContent = d(live.watts, (v) => `${Math.round(v)} W`);
+    $('.el-cad').textContent = live.strokeRate != null ? `${live.strokeRate} strokes/min` : d(live.cadence, (v) => `${Math.round(v)} rpm`);
+    $('.el-speed').textContent = d(live.speed, (v) => `${v.toFixed(1)} km/h`);
+    $('.el-pace').textContent = d(live.pace, fmtPace500);
+    $('.el-dist').textContent = d(live.distance, (v) => (v >= 1000 ? `${(v / 1000).toFixed(2)} km` : `${v} m`));
+    $('.el-bpm').textContent = d(live.hr, (v) => `${v} bpm`);
+    $('.el-time').textContent = t0 ? fmtClock((performance.now() - t0) / 1000) : '–';
+    $('.el-avgw').textContent = secsW ? `${Math.round(sumW / secsW)} W` : '–';
+    $('.el-maxw').textContent = maxW ? `${maxW} W` : '–';
+    $('.el-kj').textContent = kj ? `${kj.toFixed(1)} kJ` : '–';
+    $('.el-avghr').textContent = nHr ? `${Math.round(sumHr / nHr)} bpm` : '–';
+    $('.el-maxhr').textContent = maxHr ? `${maxHr} bpm` : '–';
+    draw();
+  };
+  const draw = () => {
+    const dpr = devicePixelRatio || 1, W = (chart.width = chart.clientWidth * dpr), H = (chart.height = 140 * dpr), c = chart.getContext('2d')!;
+    const css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', line = css.getPropertyValue('--line') || '#bbb';
+    const now = performance.now(), x = (t: number) => W - ((now - t) / 120000) * W;
+    const wMax = Math.max(100, ...hist.map((h) => h.w || 0)) * 1.1, hrMax = 200;
+    c.strokeStyle = line; c.lineWidth = dpr; c.beginPath(); c.moveTo(0, H - dpr); c.lineTo(W, H - dpr); c.stroke();
+    c.strokeStyle = ink; c.lineWidth = 2 * dpr;
+    for (const k of ['w', 'hr'] as const) {
+      c.setLineDash(k === 'hr' ? [6 * dpr, 4 * dpr] : []); c.beginPath(); let pen = false;
+      hist.forEach((h) => { const v = h[k]; if (v == null) { pen = false; return; } const y = H - (v / (k === 'w' ? wMax : hrMax)) * (H - 6 * dpr); pen ? c.lineTo(x(h.t), y) : c.moveTo(x(h.t), y); pen = true; });
+      c.stroke();
+    }
+    c.setLineDash([]);
+  };
+  // Once a second: add up power and heart rate for the session, and keep two minutes for the chart.
+  const second = () => {
+    if (!t0) return;
+    const now = performance.now();
+    if (typeof live.watts === 'number') { lastW = Math.max(0, live.watts); sumW += lastW; secsW++; kj += lastW / 1000; maxW = Math.max(maxW, lastW); }
+    if (typeof live.hr === 'number' && live.hr > 0) { sumHr += live.hr; nHr++; maxHr = Math.max(maxHr, live.hr); }
+    hist.push({ t: now, w: live.watts ?? null, hr: live.hr ?? null }); while (hist.length && now - hist[0].t > 120000) hist.shift();
+    show();
+  };
+  const begin = () => { if (!t0) { t0 = performance.now(); tick = window.setInterval(second, 1000); } };
+  const merge = (o: Ergo) => { live = { ...live, ...o }; begin(); show(); };
+  const listDevs = () => { $('.el-devs').textContent = devices.length ? 'Connected: ' + devices.map((d) => d.name).join(', ') : ''; };
+
+  type Char = { startNotifications(): Promise<Char>; addEventListener(t: string, f: (e: Event) => void): void };
+  type Service = { getCharacteristic(n: string | number): Promise<Char> };
+  type Device = { name?: string; gatt?: Gatt & { connect(): Promise<{ getPrimaryService(n: string | number): Promise<Service> }> }; addEventListener(t: string, f: () => void): void };
+  const bt = () => (navigator as Navigator & { bluetooth?: { requestDevice(o: unknown): Promise<Device> } }).bluetooth;
+  const sub = async (svc: Service, name: string | number, parse: (v: DataView) => Ergo) => {
+    const ch = await svc.getCharacteristic(name);
+    ch.addEventListener('characteristicvaluechanged', (e) => { const v = (e.target as unknown as { value: DataView }).value; try { merge(parse(v)); } catch { /* a short packet: skip it */ } });
+    await ch.startNotifications();
+  };
+  const connect = async (kind: 'machine' | 'hr') => {
+    const b = bt();
+    if (!b) { say(status, 'This browser has no Web Bluetooth. Use Chrome or Edge on Android, Windows, macOS or ChromeOS. iPhone, iPad and Firefox do not offer it yet.', 'bad'); return; }
+    try {
+      const dev = await b.requestDevice(kind === 'hr' ? { filters: [{ services: ['heart_rate'] }] } : { filters: [{ services: ['fitness_machine'] }, { services: ['cycling_power'] }], optionalServices: ['fitness_machine', 'cycling_power', 'heart_rate'] });
+      say(status, `Connecting to ${dev.name || 'the device'}…`);
+      const server = await dev.gatt!.connect();
+      let n = 0;
+      if (kind === 'hr') { await sub(await server.getPrimaryService('heart_rate'), 'heart_rate_measurement', (v) => ({ hr: parseHeartRate(v).bpm })); n++; }
+      else {
+        try { const s = await server.getPrimaryService('fitness_machine'); for (const [c, p] of [[0x2ad1, parseRower], [0x2ad2, parseIndoorBike]] as const) { try { await sub(s, c, p); n++; } catch { /* not this kind of machine */ } } } catch { /* no FTMS */ }
+        if (!n) try { await sub(await server.getPrimaryService('cycling_power'), 'cycling_power_measurement', (v) => ({ watts: parseCyclingPower(v).watts })); n++; } catch { /* no power */ }
+        try { await sub(await server.getPrimaryService('heart_rate'), 'heart_rate_measurement', (v) => ({ hr: parseHeartRate(v).bpm })); } catch { /* no built-in heart rate */ }
+      }
+      if (!n) { dev.gatt!.disconnect(); say(status, `${dev.name || 'That device'} has no rower, bike or power data in the standard form, so it cannot be read here.`, 'bad'); return; }
+      devices.push({ name: dev.name || (kind === 'hr' ? 'heart-rate strap' : 'machine'), gatt: dev.gatt! }); listDevs();
+      dev.addEventListener('gattserverdisconnected', () => { const i = devices.findIndex((d) => d.gatt === dev.gatt); if (i >= 0) devices.splice(i, 1); listDevs(); say(status, `${dev.name || 'A device'} disconnected. Press Connect to link it again.`, 'warn'); });
+      say(status, `Connected to ${dev.name || 'the device'}. Start moving: readings appear as the machine sends them.`, 'good');
+    } catch (e) {
+      const n = (e as { name?: string })?.name;
+      if (n === 'NotFoundError') say(status, 'No device was chosen. Wake the machine (start pedalling or rowing), close its own app, and try again.', 'warn');
+      else if (n === 'SecurityError' || n === 'NotAllowedError') say(status, 'Bluetooth was blocked. Check that Bluetooth is on and the browser may use it, then try again.', 'bad');
+      else say(status, `The device could not be connected (${n || 'unknown error'}). Move closer, wake it, and try again.`, 'bad');
+    }
+  };
+
+  // Demo: a made-up 26 strokes a minute row near 180 W, sent through the same rower parser as a real machine.
+  const demoRow = () => {
+    clearInterval(demo); let dist = 0, k = 0;
+    say(status, 'Demo rower: made-up numbers, so you can see how the page works without a machine.', 'good');
+    demo = window.setInterval(() => {
+      k++; const w = Math.round(180 + 25 * Math.sin(k / 6)), pace = Math.round(500 / Math.cbrt(w / 2.8)); dist += Math.round(500 / pace);
+      const b = new DataView(new ArrayBuffer(12));
+      b.setUint16(0, 0x2c, true); b.setUint8(2, 52); b.setUint16(3, k, true); b.setUint8(5, dist & 255); b.setUint8(6, (dist >> 8) & 255); b.setUint8(7, dist >> 16); b.setUint16(8, pace, true); b.setInt16(10, w, true);
+      merge({ ...parseRower(b), hr: 128 + Math.round(k / 10) % 30 });
+    }, 1000);
+  };
+
+  $('.el-machine').addEventListener('click', () => connect('machine'));
+  $('.el-hr').addEventListener('click', () => connect('hr'));
+  $('.el-demo').addEventListener('click', demoRow);
+  $('.el-reset').addEventListener('click', () => { clearInterval(tick); t0 = 0; sumW = secsW = maxW = sumHr = nHr = maxHr = kj = 0; hist.length = 0; live = {}; if (devices.length || demo) begin(); show(); });
+  $('.el-off').addEventListener('click', () => { clearInterval(demo); demo = 0; devices.splice(0).forEach((d) => d.gatt.disconnect()); listDevs(); say(status, 'Disconnected. Session figures stay on screen until you reset or leave the page.'); });
+  addEventListener('pagehide', () => { clearInterval(demo); devices.forEach((d) => d.gatt.disconnect()); });
+  show();
+</script>

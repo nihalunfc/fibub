@@ -1,0 +1,165 @@
+---
+// #T1076 Speedometer: live GPS speed with top and average speed, distance, heading and altitude, a speed alert and a
+// mirrored windscreen (HUD) view. Maths in src/lib/device/track.ts (checked in tests/device.mjs). Nothing is stored or sent.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv sp">
+  <section class="panel">
+    <div class="dv-row sp-units" role="group" aria-label="Units">
+      <button type="button" class="dv-chip" data-u="kmh" aria-pressed="true">km/h</button>
+      <button type="button" class="dv-chip" data-u="mph" aria-pressed="false">mph</button>
+      <button type="button" class="dv-chip" data-u="kn" aria-pressed="false">knots</button>
+      <button type="button" class="dv-chip" data-u="ms" aria-pressed="false">m/s</button>
+    </div>
+    <div class="sp-dial">
+      <canvas class="sp-gauge" height="200" aria-hidden="true"></canvas>
+      <div class="sp-read"><b class="sp-now">0</b><span class="sp-unit">km/h</span></div>
+    </div>
+    <div class="dv-row">
+      <button type="button" class="btn sp-start">Start</button>
+      <button type="button" class="btn secondary sp-stop" hidden>Stop</button>
+      <button type="button" class="btn secondary sp-reset">Reset trip</button>
+      <button type="button" class="btn secondary sp-hud">Windscreen view</button>
+    </div>
+    <p class="dv-status sp-status" aria-live="polite">Press Start and allow location. Speed comes from your device's GPS; nothing is recorded or sent anywhere.</p>
+    <dl class="dv-stats">
+      <div><dt>Top speed</dt><dd class="sp-max">–</dd></div>
+      <div><dt>Average (moving)</dt><dd class="sp-avg">–</dd></div>
+      <div><dt>Distance</dt><dd class="sp-dist">–</dd></div>
+      <div><dt>Moving time</dt><dd class="sp-mov">–</dd></div>
+      <div><dt>Heading</dt><dd class="sp-head">–</dd></div>
+      <div><dt>Altitude</dt><dd class="sp-alt">–</dd></div>
+      <div><dt>Climbed</dt><dd class="sp-climb">–</dd></div>
+      <div><dt>GPS accuracy</dt><dd class="sp-acc">–</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>Speed alert</h2>
+    <div class="dv-grid">
+      <label>Warn me above <input class="sp-limit" type="number" min="1" step="1" value="100" inputmode="numeric" /></label>
+      <label class="dv-check"><input class="sp-alert" type="checkbox" /> Beep, buzz and turn red</label>
+    </div>
+    <p class="dv-fine">The number is in the units chosen above. The beep repeats every few seconds while you stay over it. It is a reminder only: your vehicle's speedometer and the road signs are what count.</p>
+  </section>
+  <p class="dv-fine"><strong>Keep the page open with the screen on</strong> (the page asks the screen to stay awake). Phones stop giving location to web pages when the browser is minimised or the phone locks. <strong>Set it up before you drive and never handle the phone while driving.</strong></p>
+  <div class="sp-hudview" hidden role="dialog" aria-label="Windscreen view: tap to close">
+    <b class="sp-hudnum">0</b><span class="sp-hudunit">km/h</span>
+    <small>Tap to close. At night, lay the phone flat on the dashboard, screen up and top toward the windscreen: the number reads the right way up in the glass.</small>
+  </div>
+</div>
+
+<style is:inline>
+  .sp .sp-dial { position: relative; max-width: 360px; margin: 0 auto; width: 100%; }
+  .sp .sp-gauge { width: 100%; height: 200px; display: block; }
+  .sp .sp-read { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; display: grid; justify-items: center; }
+  .sp .sp-now { font-size: 64px; line-height: 1; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .sp .sp-unit { color: var(--muted); font-size: 15px; }
+  .sp.sp-over .sp-now { color: var(--bad); }
+  .sp .sp-hudview { position: fixed; inset: 0; z-index: 1000; background: #000; color: #fff; display: grid; place-content: center; justify-items: center; text-align: center; padding: 16px; cursor: pointer; }
+  .sp .sp-hudview[data-mirror=yes] b, .sp .sp-hudview[data-mirror=yes] .sp-hudunit { transform: scaleY(-1); }
+  .sp .sp-hudnum { font-size: min(52vw, 60vh); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .sp .sp-hudunit { font-size: 28px; }
+  .sp .sp-hudview small { opacity: .6; margin-top: 18px; max-width: 30em; }
+  .sp.sp-over .sp-hudnum { color: #ff3b30; }
+</style>
+
+<script>
+  import { SPEED_UNITS, toUnit, newSpeed, addGps, avgMoving, fmtClock, type SpeedUnit } from '../../lib/device/track';
+  import { compassPoint } from '../../lib/device/core';
+  import { keepAwake, say } from '../../lib/device/browser';
+  const root = document.querySelector('.sp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.sp-status'), startB = $<HTMLButtonElement>('.sp-start'), stopB = $<HTMLButtonElement>('.sp-stop');
+  const gauge = $<HTMLCanvasElement>('.sp-gauge'), hud = $('.sp-hudview');
+  const limitIn = $<HTMLInputElement>('.sp-limit'), alertBox = $<HTMLInputElement>('.sp-alert');
+  let unit: SpeedUnit = 'kmh', st = newSpeed(), watch: number | null = null, release: () => void = () => {}, tick = 0, lastBeep = 0, audio: AudioContext | null = null;
+
+  const scaleMax = (v: number) => [30, 60, 120, 200, 300, 400, 600, 1000].find((m) => v <= m * 0.92) || Math.ceil(v / 100) * 100;
+  const draw = () => {
+    const dpr = devicePixelRatio || 1, W = (gauge.width = gauge.clientWidth * dpr), H = (gauge.height = 200 * dpr), c = gauge.getContext('2d')!;
+    const css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', line = css.getPropertyValue('--line') || '#bbb', bad = css.getPropertyValue('--bad') || '#c00';
+    const now = toUnit(st.speed, unit), top = toUnit(st.max, unit), max = scaleMax(Math.max(now, top, unit === 'ms' ? 10 : 30));
+    const cx = W / 2, cy = H - 12 * dpr, R = Math.min(W / 2, H) - 16 * dpr, a0 = Math.PI, ang = (v: number) => a0 + Math.min(1, v / max) * Math.PI;
+    c.lineCap = 'round';
+    c.strokeStyle = line; c.lineWidth = 10 * dpr; c.beginPath(); c.arc(cx, cy, R, a0, 2 * Math.PI); c.stroke();
+    c.strokeStyle = root.classList.contains('sp-over') ? bad : ink; c.beginPath(); c.arc(cx, cy, R, a0, ang(now)); c.stroke();
+    c.fillStyle = css.getPropertyValue('--muted') || '#666'; c.font = `${11 * dpr}px system-ui, sans-serif`; c.textAlign = 'center';
+    for (let i = 0; i <= 4; i++) { const v = (max * i) / 4, a = ang(v); c.fillText(String(Math.round(v)), cx + Math.cos(a) * (R - 22 * dpr), cy + Math.sin(a) * (R - 22 * dpr) + 4 * dpr); }
+    if (top > 0) { const a = ang(top); c.strokeStyle = ink; c.lineWidth = 3 * dpr; c.beginPath(); c.moveTo(cx + Math.cos(a) * (R - 9 * dpr), cy + Math.sin(a) * (R - 9 * dpr)); c.lineTo(cx + Math.cos(a) * (R + 9 * dpr), cy + Math.sin(a) * (R + 9 * dpr)); c.stroke(); }
+  };
+  const beep = () => {
+    try {
+      audio ||= new AudioContext();
+      const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.value = 0.15;
+      o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime + 0.25);
+    } catch { /* no sound available */ }
+    navigator.vibrate?.([200, 100, 200]);
+  };
+  const show = () => {
+    const u = SPEED_UNITS[unit], dec = unit === 'ms' ? 1 : 0, now = toUnit(st.speed, unit);
+    $('.sp-now').textContent = now.toFixed(dec); $('.sp-unit').textContent = u.label;
+    $('.sp-hudnum').textContent = now.toFixed(dec); $('.sp-hudunit').textContent = u.label;
+    const f = (ms: number) => (st.fixes ? `${toUnit(ms, unit).toFixed(1)} ${u.label}` : '–');
+    $('.sp-max').textContent = f(st.max); $('.sp-avg').textContent = st.moving ? f(avgMoving(st)) : '–';
+    $('.sp-dist').textContent = st.fixes ? (st.dist / u.dist >= 10 ? (st.dist / u.dist).toFixed(1) : (st.dist / u.dist).toFixed(2)) + ' ' + u.dl : '–';
+    $('.sp-mov').textContent = st.fixes ? fmtClock(st.moving) : '–';
+    $('.sp-head').textContent = st.heading == null ? (st.fixes ? 'not moving' : '–') : `${Math.round(st.heading)}° ${compassPoint(st.heading)}`;
+    const ft = unit === 'mph' ? 3.28084 : 1, al = ft === 1 ? 'm' : 'ft';
+    $('.sp-alt').textContent = st.alt == null ? (st.fixes ? 'not given' : '–') : `${Math.round(st.alt * ft)} ${al}`;
+    $('.sp-climb').textContent = st.alt == null ? '–' : `${Math.round(st.climb * ft)} ${al}`;
+    $('.sp-acc').textContent = st.acc ? `±${Math.round(st.acc)} m` : '–';
+    const over = alertBox.checked && +limitIn.value > 0 && now > +limitIn.value;
+    root.classList.toggle('sp-over', over);
+    if (over && Date.now() - lastBeep > 4000) { lastBeep = Date.now(); beep(); }
+    draw();
+  };
+
+  const onFix = (p: GeolocationPosition) => {
+    const c = p.coords;
+    const ok = addGps(st, { t: p.timestamp || Date.now(), lat: c.latitude, lon: c.longitude, acc: c.accuracy, speed: c.speed, heading: c.heading, alt: c.altitude, altAcc: c.altitudeAccuracy });
+    if (ok) say(status, c.speed == null ? 'Live. Your browser gives no speed of its own, so it is worked out from position changes; it settles after a few seconds of moving.' : 'Live. Speed comes straight from the GPS.', 'good');
+    else say(status, `Waiting for a better GPS fix (now ±${Math.round(c.accuracy)} m). Go outside or near a window.`, 'warn');
+    show();
+  };
+  const onErr = (e: GeolocationPositionError) => {
+    const msg = e.code === 1 ? 'Location access was refused. Press the lock icon by the address bar, allow location, and press Start again. On a phone, also check that location is on for the browser.'
+      : e.code === 3 ? 'No GPS fix yet. Step outside, wait a moment, or check that location is switched on.' : 'Your device could not find its location. Check that location is switched on.';
+    say(status, msg, e.code === 3 ? 'warn' : 'bad');
+  };
+  const stop = () => {
+    if (watch != null) navigator.geolocation?.clearWatch(watch);
+    watch = null; release(); release = () => {}; clearInterval(tick);
+    startB.hidden = false; stopB.hidden = true;
+  };
+  const start = async () => {
+    if (!('geolocation' in navigator)) { say(status, 'This browser has no location (GPS) support, so it cannot measure speed.', 'bad'); return; }
+    if (!window.isSecureContext) { say(status, 'Location only works on a secure (https) page.', 'bad'); return; }
+    stop();
+    say(status, 'Looking for GPS… the first fix can take up to a minute.');
+    watch = navigator.geolocation.watchPosition(onFix, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    startB.hidden = true; stopB.hidden = false;
+    release = await keepAwake();
+    // A fix that stops arriving means the speed is stale: drop to zero after 6 s without one.
+    tick = window.setInterval(() => { if (st.lastT && Date.now() - st.lastT > 6000 && st.speed) { st.speed = 0; show(); } }, 2000);
+  };
+
+  root.querySelectorAll<HTMLButtonElement>('.sp-units [data-u]').forEach((b) => b.addEventListener('click', () => {
+    const old = unit; unit = b.dataset.u as SpeedUnit;
+    root.querySelectorAll('.sp-units [data-u]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    // Keep the alert at the same real speed when switching units.
+    if (+limitIn.value > 0) limitIn.value = String(Math.round(toUnit(+limitIn.value / SPEED_UNITS[old].k, unit)));
+    show();
+  }));
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Stopped. Your trip figures stay on screen until you reset or leave the page.'); });
+  $('.sp-reset').addEventListener('click', () => { st = newSpeed(); root.classList.remove('sp-over'); show(); });
+  $('.sp-hud').addEventListener('click', () => {
+    hud.hidden = false; hud.dataset.mirror = 'yes';
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  });
+  hud.addEventListener('click', () => { hud.hidden = true; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); });
+  limitIn.addEventListener('input', show); alertBox.addEventListener('change', show);
+  addEventListener('pagehide', stop);
+  addEventListener('resize', draw);
+  show();
+</script>
