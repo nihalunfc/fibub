@@ -1,0 +1,149 @@
+---
+// #T1076 G-Force Meter: live g-force from the phone's accelerometer for driving, rides and sport: a g-ball, peaks for
+// braking, speeding up, cornering and bumps, and a rolling trace. Maths in src/lib/device/track.ts (tests/device.mjs).
+import '../../styles/device.css';
+---
+<div class="tool-ui dv gf">
+  <section class="panel">
+    <div class="dv-row gf-mount" role="group" aria-label="How is the phone placed?">
+      <button type="button" class="dv-chip" data-m="flat" aria-pressed="true">Lying flat, top forward</button>
+      <button type="button" class="dv-chip" data-m="upright" aria-pressed="false">In a holder, screen facing me</button>
+    </div>
+    <div class="dv-row">
+      <button type="button" class="btn gf-start">Start</button>
+      <button type="button" class="btn secondary gf-stop" hidden>Stop</button>
+      <button type="button" class="btn secondary gf-zero" disabled>Zero again</button>
+      <button type="button" class="btn secondary gf-reset">Reset peaks</button>
+    </div>
+    <p class="dv-status gf-status" aria-live="polite">Fix the phone so it cannot slide, press Start and keep it still for a second while it zeroes. On an iPhone or iPad the browser asks for motion access first. Nothing is recorded or sent anywhere.</p>
+    <canvas class="dv-canvas gf-ball" height="260" aria-label="G-ball: the dot moves the way you are pushed, like a ball in a bowl; rings at 0.25, 0.5 and 1 g"></canvas>
+    <dl class="dv-stats">
+      <div><dt>Total now</dt><dd class="gf-tot">–</dd></div>
+      <div><dt>Forward / back</dt><dd class="gf-fwd">–</dd></div>
+      <div><dt>Left / right</dt><dd class="gf-lat">–</dd></div>
+      <div><dt>Up / down</dt><dd class="gf-up">–</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>Peaks</h2>
+    <dl class="dv-stats">
+      <div><dt>Hardest braking</dt><dd class="gf-pbrake">–</dd></div>
+      <div><dt>Hardest speed-up</dt><dd class="gf-pacc">–</dd></div>
+      <div><dt>Hardest left turn</dt><dd class="gf-pleft">–</dd></div>
+      <div><dt>Hardest right turn</dt><dd class="gf-pright">–</dd></div>
+      <div><dt>Biggest bump</dt><dd class="gf-pbump">–</dd></div>
+      <div><dt>Biggest total</dt><dd class="gf-ptot">–</dd></div>
+    </dl>
+    <p class="dv-fine">For a sense of scale: calm driving stays under 0.3 g, firm braking is 0.5 to 0.7 g, a hard emergency stop 0.8 to 1 g, and a road car corners at up to about 0.9 g on dry roads.</p>
+  </section>
+  <section class="panel">
+    <h2>Last 10 seconds</h2>
+    <canvas class="dv-canvas gf-trace" height="140" aria-label="Rolling trace: forward g solid, sideways g dashed"></canvas>
+    <p class="dv-fine">Solid line: forward and back (up the chart is speeding up). Dashed line: sideways (up the chart is a right turn).</p>
+  </section>
+  <p class="dv-fine"><strong>Set it up before you drive and never handle the phone while driving.</strong> Readings are smoothed over about a tenth of a second, so short knocks to the phone itself do not swamp them.</p>
+</div>
+
+<style is:inline>
+  .gf .gf-ball { height: 260px; }
+  .gf .gf-trace { height: 140px; }
+</style>
+
+<script>
+  import { makeFrame, carG, alpha, type Frame, type Mount } from '../../lib/device/track';
+  import { askMotion, keepAwake, say } from '../../lib/device/browser';
+  const root = document.querySelector('.gf') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.gf-status'), startB = $<HTMLButtonElement>('.gf-start'), stopB = $<HTMLButtonElement>('.gf-stop'), zeroB = $<HTMLButtonElement>('.gf-zero');
+  const ball = $<HTMLCanvasElement>('.gf-ball'), trace = $<HTMLCanvasElement>('.gf-trace');
+  type V3 = [number, number, number];
+  let mount: Mount = 'flat', on = false, raf = 0, timer = 0, release: () => void = () => {};
+  let frame: Frame | null = null, zeroing: V3[] = [], last = 0, sm = { fwd: 0, right: 0, up: 0 }, raw: V3 | null = null;
+  const hist: { t: number; f: number; r: number }[] = [], trail: { f: number; r: number }[] = [];
+  const peaks = { brake: 0, acc: 0, left: 0, right: 0, bump: 0, tot: 0 };
+  const gs = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)} g`;
+
+  const onMotion = (e: DeviceMotionEvent) => {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null || a.z == null) return;
+    raw = [a.x, a.y, a.z];
+    const t = performance.now();
+    if (!frame) {
+      zeroing.push(raw);
+      if (zeroing.length >= 25) {
+        const m: V3 = [0, 0, 0]; zeroing.forEach((v) => { m[0] += v[0] / zeroing.length; m[1] += v[1] / zeroing.length; m[2] += v[2] / zeroing.length; });
+        frame = makeFrame(m, mount); zeroing = []; last = t; sm = { fwd: 0, right: 0, up: 0 };
+        say(status, 'Live. The dot moves the way you are pushed, like a ball in a bowl: braking sends it up, a right turn sends it left.', 'good');
+      } else say(status, 'Hold still: zeroing…');
+      return;
+    }
+    const g = carG(raw, frame), k = alpha(Math.max(0.001, (t - last) / 1000), 0.12); last = t;
+    sm = { fwd: sm.fwd + k * (g.fwd - sm.fwd), right: sm.right + k * (g.right - sm.right), up: sm.up + k * (g.up - sm.up) };
+    const tot = Math.hypot(sm.fwd, sm.right);
+    peaks.brake = Math.min(peaks.brake, sm.fwd); peaks.acc = Math.max(peaks.acc, sm.fwd);
+    peaks.left = Math.min(peaks.left, sm.right); peaks.right = Math.max(peaks.right, sm.right);
+    peaks.bump = Math.max(peaks.bump, Math.abs(sm.up)); peaks.tot = Math.max(peaks.tot, tot);
+    hist.push({ t, f: sm.fwd, r: sm.right }); while (hist.length && t - hist[0].t > 10000) hist.shift();
+    trail.push({ f: sm.fwd, r: sm.right }); if (trail.length > 120) trail.shift();
+  };
+
+  const show = () => {
+    $('.gf-tot').textContent = frame ? `${Math.hypot(sm.fwd, sm.right).toFixed(2)} g` : '–';
+    $('.gf-fwd').textContent = frame ? gs(sm.fwd) : '–'; $('.gf-lat').textContent = frame ? gs(sm.right) : '–'; $('.gf-up').textContent = frame ? gs(sm.up) : '–';
+    const p = (v: number, any: boolean) => (any ? `${Math.abs(v).toFixed(2)} g` : '–');
+    $('.gf-pbrake').textContent = p(peaks.brake, peaks.brake < 0); $('.gf-pacc').textContent = p(peaks.acc, peaks.acc > 0);
+    $('.gf-pleft').textContent = p(peaks.left, peaks.left < 0); $('.gf-pright').textContent = p(peaks.right, peaks.right > 0);
+    $('.gf-pbump').textContent = p(peaks.bump, peaks.bump > 0); $('.gf-ptot').textContent = p(peaks.tot, peaks.tot > 0);
+  };
+  const draw = () => {
+    const css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', line = css.getPropertyValue('--line') || '#bbb', muted = css.getPropertyValue('--muted') || '#666';
+    const dpr = devicePixelRatio || 1;
+    let W = (ball.width = ball.clientWidth * dpr), H = (ball.height = 260 * dpr), c = ball.getContext('2d')!;
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 14 * dpr, s = R / 1; // 1 g at the outer ring
+    c.strokeStyle = line; c.lineWidth = dpr; c.fillStyle = muted; c.font = `${11 * dpr}px system-ui, sans-serif`;
+    [0.25, 0.5, 1].forEach((g) => { c.beginPath(); c.arc(cx, cy, g * s, 0, 7); c.stroke(); c.fillText(`${g} g`, cx + 3 * dpr, cy - g * s + 12 * dpr); });
+    c.beginPath(); c.moveTo(cx - R, cy); c.lineTo(cx + R, cy); c.moveTo(cx, cy - R); c.lineTo(cx, cy + R); c.stroke();
+    c.textAlign = 'center'; c.fillText('Speeding up', cx, cy + R + 11 * dpr > H ? H - 2 * dpr : cy + R + 11 * dpr); c.fillText('Braking', cx, 11 * dpr); c.textAlign = 'left'; c.fillText('Right turn', 4 * dpr, cy - 4 * dpr); c.textAlign = 'right'; c.fillText('Left turn', W - 4 * dpr, cy - 4 * dpr);
+    const pos = (p: { f: number; r: number }) => [cx + Math.max(-1.1, Math.min(1.1, p.r)) * s, cy + Math.max(-1.1, Math.min(1.1, p.f)) * s];
+    // The dot shows the push you feel, like a ball in a bowl: braking throws it forward (up), a right turn throws it left.
+    const P = (p: { f: number; r: number }) => pos({ f: p.f, r: -p.r });
+    c.strokeStyle = muted; c.lineWidth = 2 * dpr; c.beginPath(); trail.forEach((p, i) => { const [x, y] = P(p); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
+    if (frame) { const [x, y] = P({ f: sm.fwd, r: sm.right }); c.fillStyle = ink; c.beginPath(); c.arc(x, y, 10 * dpr, 0, 7); c.fill(); }
+    // Trace
+    W = trace.width = trace.clientWidth * dpr; H = trace.height = 140 * dpr; c = trace.getContext('2d')!;
+    const y = (g: number) => H / 2 - Math.max(-1, Math.min(1, g)) * (H / 2 - 6 * dpr), now = performance.now(), x = (t: number) => W - ((now - t) / 10000) * W;
+    c.strokeStyle = line; c.lineWidth = dpr; c.beginPath(); c.moveTo(0, H / 2); c.lineTo(W, H / 2); c.stroke();
+    c.strokeStyle = ink; c.lineWidth = 2 * dpr;
+    for (const k of ['f', 'r'] as const) { c.setLineDash(k === 'r' ? [6 * dpr, 4 * dpr] : []); c.beginPath(); hist.forEach((h, i) => (i ? c.lineTo(x(h.t), y(h[k])) : c.moveTo(x(h.t), y(h[k])))); c.stroke(); }
+    c.setLineDash([]);
+  };
+  const loop = () => { if (!on) return; show(); draw(); raf = requestAnimationFrame(loop); };
+
+  const stop = () => {
+    on = false; cancelAnimationFrame(raf); clearTimeout(timer); release(); release = () => {};
+    removeEventListener('devicemotion', onMotion); startB.hidden = false; stopB.hidden = true; zeroB.disabled = true;
+  };
+  const start = async () => {
+    stop();
+    if (!('DeviceMotionEvent' in window)) { say(status, 'This browser has no motion sensor support.', 'bad'); return; }
+    if (!window.isSecureContext) { say(status, 'Motion sensors only work on a secure (https) page.', 'bad'); return; }
+    const p = await askMotion();
+    if (p === 'denied') { say(status, 'Motion access was refused. On iPhone, quit Safari fully, reopen this page and tap Allow. Or check Settings > Safari > Motion & Orientation Access.', 'bad'); return; }
+    frame = null; zeroing = []; on = true; addEventListener('devicemotion', onMotion);
+    startB.hidden = true; stopB.hidden = false; zeroB.disabled = false;
+    say(status, 'Hold still: zeroing…');
+    timer = window.setTimeout(() => { if (!raw) say(status, 'No motion data arrived. Most laptops and desktops have no accelerometer, so this is normal there. Try a phone or tablet.', 'warn'); }, 1500);
+    release = await keepAwake(); loop();
+  };
+
+  root.querySelectorAll<HTMLButtonElement>('.gf-mount [data-m]').forEach((b) => b.addEventListener('click', () => {
+    mount = b.dataset.m as Mount; root.querySelectorAll('.gf-mount [data-m]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (frame) frame = makeFrame(frame.g0, mount);
+  }));
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Stopped. Peaks stay on screen until you reset or leave the page.'); });
+  zeroB.addEventListener('click', () => { frame = null; zeroing = []; say(status, 'Hold still: zeroing…'); });
+  $('.gf-reset').addEventListener('click', () => { Object.assign(peaks, { brake: 0, acc: 0, left: 0, right: 0, bump: 0, tot: 0 }); hist.length = 0; trail.length = 0; show(); draw(); });
+  addEventListener('pagehide', stop);
+  draw();
+</script>

@@ -1,0 +1,133 @@
+---
+// #T1078 Live Trackers: checks which sensors this device and browser offer, then shows a live card for each one that works
+// (speed, altitude, heading, g-force, steps, tilt, light, battery, Bluetooth) and links to the full tool. Nothing is stored or sent.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv lt">
+  <section class="panel">
+    <label class="dv-check"><input class="lt-gps" type="checkbox" checked /> Include location (GPS) for speed, altitude and heading</label>
+    <div class="dv-row">
+      <button type="button" class="btn lt-start">Check my device and start</button>
+      <button type="button" class="btn secondary lt-stop" hidden>Stop</button>
+    </div>
+    <p class="dv-status lt-status" aria-live="polite">Press the button. The browser may ask for location and, on iPhone or iPad, motion access. Only the trackers your device can run appear below; nothing is recorded or sent anywhere.</p>
+  </section>
+  <div class="lt-cards">
+    <a class="panel lt-card" data-k="speed" href="/everyday/speedometer/" hidden><span>Speed (GPS)</span><b class="lt-speed">–</b><small class="lt-speeds">Open the speedometer</small></a>
+    <a class="panel lt-card" data-k="alt" href="/everyday/speedometer/" hidden><span>Altitude (GPS)</span><b class="lt-alt">–</b><small class="lt-alts">Height above sea level</small></a>
+    <a class="panel lt-card" data-k="head" href="/everyday/sensor-test/" hidden><span>Compass heading</span><b class="lt-head">–</b><small>Open the sensor test</small></a>
+    <a class="panel lt-card" data-k="g" href="/everyday/g-force-meter/" hidden><span>G-force</span><b class="lt-g">–</b><small class="lt-gs">Open the g-force meter</small></a>
+    <a class="panel lt-card" data-k="steps" href="/everyday/step-counter/" hidden><span>Steps</span><b class="lt-steps">0</b><small class="lt-stepss">Open the step counter</small></a>
+    <a class="panel lt-card" data-k="tilt" href="/everyday/sensor-test/" hidden><span>Tilt</span><b class="lt-tilt">–</b><small>Left-right, front-back</small></a>
+    <a class="panel lt-card" data-k="light" href="/everyday/sensor-test/" hidden><span>Light</span><b class="lt-light">–</b><small>Ambient light sensor</small></a>
+    <a class="panel lt-card" data-k="battery" href="/everyday/battery-test/" hidden><span>Battery</span><b class="lt-bat">–</b><small class="lt-bats">Open the battery test</small></a>
+    <a class="panel lt-card" data-k="bt" href="/everyday/ergometer-link/" hidden><span>Bluetooth fitness</span><b>Ready</b><small>Rowers, bikes, power meters and heart-rate straps</small></a>
+  </div>
+  <section class="panel lt-missing" hidden>
+    <h2>Not on this device</h2>
+    <ul class="lt-miss"></ul>
+  </section>
+</div>
+
+<style is:inline>
+  .lt .lt-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 10px; }
+  .lt .lt-card { display: grid; gap: 2px; text-decoration: none; color: var(--ink); padding: 12px 14px; }
+  .lt .lt-card span { font-size: 13px; color: var(--muted); }
+  .lt .lt-card b { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .lt .lt-card small { font-size: 13px; color: var(--accent); }
+  .lt .lt-miss { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
+</style>
+
+<script>
+  import { toUnit, newSpeed, addGps, makeStepCounter, G } from '../../lib/device/track';
+  import { tiltFromGravity, headingFromAlpha, compassPoint } from '../../lib/device/core';
+  import { askMotion, keepAwake, say } from '../../lib/device/browser';
+  const root = document.querySelector('.lt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.lt-status'), startB = $<HTMLButtonElement>('.lt-start'), stopB = $<HTMLButtonElement>('.lt-stop');
+  const card = (k: string, on = true) => { ($(`.lt-card[data-k="${k}"]`)).hidden = !on; };
+  const miss = new Map<string, string>();
+  const render = () => { const ul = $('.lt-miss'); ul.innerHTML = ''; miss.forEach((w) => { const li = document.createElement('li'); li.textContent = w; ul.append(li); }); $('.lt-missing').hidden = !miss.size; };
+  const missing = (k: string, why: string) => { miss.set(k, why); render(); };
+  const found = (k: string) => { miss.delete(k); render(); };
+  // Imperial units for visitors whose browser language is US or UK English.
+  const mph = /^en-(US|GB)/.test(navigator.language);
+  let watch: number | null = null, release: () => void = () => {}, timers: number[] = [], light: { stop(): void } | null = null;
+  let sp = newSpeed(), steps = makeStepCounter(), nSteps = 0, gotMotion = false, gotHead = false, peakG = 0;
+
+  const onFix = (p: GeolocationPosition) => {
+    const c = p.coords; addGps(sp, { t: p.timestamp || Date.now(), lat: c.latitude, lon: c.longitude, acc: c.accuracy, speed: c.speed, heading: c.heading, alt: c.altitude });
+    card('speed'); found('gps');
+    $('.lt-speed').textContent = mph ? `${toUnit(sp.speed, 'mph').toFixed(0)} mph` : `${toUnit(sp.speed, 'kmh').toFixed(0)} km/h`;
+    $('.lt-speeds').textContent = `±${Math.round(c.accuracy)} m · top ${mph ? toUnit(sp.max, 'mph').toFixed(0) + ' mph' : toUnit(sp.max, 'kmh').toFixed(0) + ' km/h'}`;
+    if (c.altitude != null) { card('alt'); $('.lt-alt').textContent = mph ? `${Math.round(c.altitude * 3.28084)} ft` : `${Math.round(c.altitude)} m`; $('.lt-alts').textContent = c.altitudeAccuracy ? `±${Math.round(c.altitudeAccuracy)} m` : 'Height above sea level'; }
+    else missing('alt', 'Altitude: this device gives location without height (common on laptops using Wi-Fi location).');
+  };
+  const onMotion = (e: DeviceMotionEvent) => {
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x == null || a.y == null || a.z == null) return;
+    if (!gotMotion) { gotMotion = true; card('g'); card('steps'); card('tilt'); found('motion'); }
+    const mag = Math.hypot(a.x, a.y, a.z), g = Math.abs(mag - G) / G; peakG = Math.max(peakG, g);
+    if (steps.push(performance.now(), mag)) nSteps++;
+    const t = tiltFromGravity(a.x, a.y, a.z);
+    $('.lt-g').textContent = `${g.toFixed(2)} g`; $('.lt-gs').textContent = `peak ${peakG.toFixed(2)} g · open the g-force meter`;
+    $('.lt-steps').textContent = String(nSteps);
+    $('.lt-tilt').textContent = `${t.x.toFixed(0)}°, ${t.y.toFixed(0)}°`;
+  };
+  const onOrient = (e: DeviceOrientationEvent) => {
+    const w = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
+    let h: number | null = null;
+    if (typeof w === 'number') h = w; else if (e.alpha != null && (e.absolute || e.type === 'deviceorientationabsolute')) h = headingFromAlpha(e.alpha);
+    if (h == null) return;
+    if (!gotHead) { gotHead = true; card('head'); found('compass'); }
+    $('.lt-head').textContent = `${Math.round(h)}° ${compassPoint(h)}`;
+  };
+
+  const stop = () => {
+    if (watch != null) navigator.geolocation?.clearWatch(watch); watch = null;
+    removeEventListener('devicemotion', onMotion); removeEventListener('deviceorientation', onOrient); removeEventListener('deviceorientationabsolute', onOrient as EventListener);
+    timers.forEach(clearTimeout); timers = []; light?.stop(); light = null; release(); release = () => {};
+    startB.hidden = false; stopB.hidden = true;
+  };
+  const start = async () => {
+    stop(); miss.clear(); render();
+    root.querySelectorAll<HTMLElement>('.lt-card').forEach((c) => (c.hidden = true));
+    sp = newSpeed(); steps = makeStepCounter(); nSteps = 0; gotMotion = false; gotHead = false; peakG = 0;
+    if (!window.isSecureContext) { say(status, 'Sensors only work on a secure (https) page.', 'bad'); return; }
+    startB.hidden = true; stopB.hidden = false; say(status, 'Checking what this device has…');
+    // Motion and compass
+    if ('DeviceMotionEvent' in window || 'DeviceOrientationEvent' in window) {
+      const p = await askMotion();
+      if (p === 'denied') missing('motion', 'Motion and compass: access was refused. On iPhone, quit Safari, reopen this page and tap Allow.');
+      else {
+        addEventListener('devicemotion', onMotion); addEventListener('deviceorientation', onOrient); addEventListener('deviceorientationabsolute', onOrient as EventListener);
+        timers.push(window.setTimeout(() => {
+          if (!gotMotion) missing('motion', 'Motion (g-force, steps, tilt): no accelerometer. Normal on most laptops and desktops.');
+          if (!gotHead) missing('compass', 'Compass: no magnetometer reading in this browser.');
+        }, 2000));
+      }
+    } else { missing('motion', 'Motion (g-force, steps, tilt): this browser has no motion sensor support.'); missing('compass', 'Compass: not supported in this browser.'); }
+    // GPS
+    if (!($('.lt-gps') as HTMLInputElement).checked) missing('gps', 'Speed, altitude and heading: location is switched off above.');
+    else if ('geolocation' in navigator) {
+      watch = navigator.geolocation.watchPosition(onFix, (e) => sp.fixes ? undefined : missing('gps', e.code === 1 ? 'Speed and altitude: location access was refused.' : 'Speed and altitude: no location fix yet. Go outside or near a window and try again.'), { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    } else missing('gps', 'Speed and altitude: this browser has no location support.');
+    // Light
+    try {
+      const S = (window as unknown as { AmbientLightSensor?: new () => { illuminance: number; start(): void; stop(): void; addEventListener(t: string, f: () => void): void } }).AmbientLightSensor;
+      if (S) { const s = new S(); s.addEventListener('reading', () => { card('light'); $('.lt-light').textContent = `${Math.round(s.illuminance)} lux`; }); s.addEventListener('error', () => missing('light', 'Light: the light sensor is blocked in this browser.')); s.start(); light = s; }
+      else missing('light', 'Light: browsers hide the light sensor unless a flag is switched on (Chrome on Android only).');
+    } catch { missing('light', 'Light: not available in this browser.'); }
+    // Battery
+    const nb = navigator as Navigator & { getBattery?: () => Promise<{ level: number; charging: boolean }> };
+    if (nb.getBattery) nb.getBattery().then((b) => { card('battery'); $('.lt-bat').textContent = `${Math.round(b.level * 100)}%`; $('.lt-bats').textContent = b.charging ? 'Charging' : 'On battery'; }).catch(() => missing('battery', 'Battery: not reported.'));
+    else missing('battery', 'Battery: this browser does not report it (Safari and Firefox).');
+    // Bluetooth
+    if ('bluetooth' in navigator) card('bt'); else missing('bt', 'Bluetooth fitness machines: this browser has no Web Bluetooth (iPhone, iPad and Firefox).');
+    release = await keepAwake();
+    timers.push(window.setTimeout(() => say(status, 'Live. Tap a card to open its full tool.', 'good'), 2200));
+  };
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Stopped.'); });
+  addEventListener('pagehide', stop);
+</script>
