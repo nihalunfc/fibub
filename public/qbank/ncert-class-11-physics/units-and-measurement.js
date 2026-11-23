@@ -1,0 +1,52 @@
+// Class 11 Physics, Chapter 1 Units and Measurement: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('un');
+
+export default {
+  topic: 'units-and-measurement', name: 'Units and Measurement', n: 1,
+  items: [
+    m.mcq(1, 'si', '<p>Which of these is a base (fundamental) quantity in the SI system?</p>', 'electric current', ['force', 'speed', 'pressure'], '<p>The seven SI base quantities are length, mass, time, electric current, temperature, amount of substance and luminous intensity. Force, speed and pressure are derived from them.</p>'),
+    m.mcq(1, 'si', '<p>The SI unit of power, expressed in base units, is:</p>', 'kg m² s⁻³', ['kg m s⁻²', 'kg m² s⁻²', 'kg m⁻¹ s⁻²'], '<p>Power = energy/time = (kg m² s⁻²)/s = kg m² s⁻³ (the watt).</p>'),
+    m.mcq(2, 'si', '<p>A scientist writes a length as 4.5 × 10⁻⁹ m. The correct SI prefix form is:</p>', '4.5 nm', ['4.5 μm', '4.5 mm', '4.5 pm'], '<p>nano means 10⁻⁹.</p>'),
+    m.mcq(2, 'si', '<p>One light-year is a unit of:</p>', 'distance', ['time', 'speed', 'brightness'], '<p>It is the distance light travels in one year, about 9.46 × 10¹⁵ m.</p>', { trap: 'The word “year” suggests time.' }),
+    m.mcq(2, 'sigfig', '<p>The number of significant figures in 0.003040 is:</p>', '4', ['3', '6', '7'], '<p>Leading zeros do not count; 3, 0, 4 and the final 0 after the decimal point count: 4 figures.</p>', { trap: 'Counting the leading zeros.' }),
+    m.mcq(2, 'sigfig', '<p>The number 2500 written without a decimal point is usually taken to have:</p>', 'at least 2 significant figures', ['exactly 4 significant figures', 'exactly 1 significant figure', '5 significant figures'], '<p>Trailing zeros with no decimal point are ambiguous. Writing 2.5 × 10³ (2 figures) or 2.500 × 10³ (4 figures) removes the doubt.</p>'),
+    m.mcq(2, 'sigfig', '<p>The sum 12.11 + 0.9 + 5.346 is reported as:</p>', '18.4', ['18.356', '18.36', '18'], '<p>For addition keep the fewest decimal places: 0.9 has one, so 18.356 becomes 18.4.</p>', { trap: 'Using the product rule (significant figures) for a sum.' }),
+    m.mcq(2, 'sigfig', '<p>The product 2.50 × 1.2 is reported as:</p>', '3.0', ['3', '3.00', '3.000'], '<p>The least precise factor, 1.2, has 2 significant figures, so the answer 3.0 has 2.</p>'),
+    m.mcq(2, 'error', '<p>A measuring instrument whose readings are close to each other but all far from the true value is:</p>', 'precise but not accurate', ['accurate but not precise', 'both accurate and precise', 'neither precise nor accurate'], '<p>Precision is closeness of readings to each other; accuracy is closeness to the true value. A zero error causes exactly this.</p>'),
+    m.mcq(2, 'error', '<p>A stopwatch always starts 0.2 s late. This is an example of a:</p>', 'systematic error', ['random error', 'gross error that cannot be repeated', 'least count error only'], '<p>It shifts every reading in the same direction, so averaging does not remove it.</p>'),
+    m.mcq(2, 'error', '<p>The least count of a vernier caliper whose 20 divisions equal 19 mm of the main scale is:</p>', '0.05 mm', ['0.1 mm', '0.5 mm', '0.01 mm'], '<p>Least count = 1 mm/20 = 0.05 mm (1 main division minus 1 vernier division).</p>'),
+    m.mcq(3, 'error', '<p>The radius of a sphere is measured with a 2 % error. The error in its volume is about:</p>', '6 %', ['2 %', '4 %', '8 %'], '<p>V ∝ r³, so the relative error is 3 × 2 % = 6 %.</p>'),
+    m.mcq(2, 'error', '<p>Values 9.8, 9.6 and 10.0 are the results of measuring g. The mean absolute error is:</p>', '0.13 (approximately)', ['0.2', '0.4', '0.0'], '<p>Mean = 9.8. Deviations 0, 0.2, 0.2; mean absolute error = 0.4/3 ≈ 0.13.</p>'),
+    m.mcq(1, 'dimension', '<p>The dimensional formula of force is:</p>', '[M L T⁻²]', ['[M L² T⁻²]', '[M L T⁻¹]', '[M L⁻¹ T⁻²]'], '<p>Force = mass × acceleration = M × L T⁻².</p>'),
+    m.mcq(2, 'dimension', '<p>A quantity with dimensions [M L² T⁻²] could be:</p>', 'work', ['pressure', 'momentum', 'power'], '<p>Work = force × distance = M L T⁻² × L.</p>'),
+    m.mcq(2, 'dimension', '<p>Which pair has the same dimensions?</p>', 'impulse and momentum', ['work and power', 'force and pressure', 'speed and acceleration'], '<p>Impulse = force × time = M L T⁻¹, the same as momentum = mass × velocity.</p>'),
+    m.mcq(2, 'dimension', '<p>The dimensions of Planck’s constant h, given E = hf, are:</p>', '[M L² T⁻¹]', ['[M L² T⁻²]', '[M L T⁻¹]', '[M L² T⁻³]'], '<p>h = E/f = M L² T⁻² ÷ T⁻¹ = M L² T⁻¹.</p>'),
+    m.mcq(3, 'dimension', '<p>A student claims that v = u + a t² describes motion. Dimensional analysis shows the claim is:</p>', 'wrong, because the terms have different dimensions', ['right, because it has three symbols', 'right, because all the terms have dimensions of velocity', 'impossible to test'], '<p>[a t²] = L, but [v] = [u] = L T⁻¹. A correct equation must be homogeneous.</p>'),
+    m.mcq(3, 'dimension', '<p>Which of the following can dimensional analysis <i>not</i> give?</p>', 'the value of a dimensionless constant such as 2π', ['a check that an equation is homogeneous', 'a conversion between unit systems', 'the way one quantity depends on the others, up to a constant'], '<p>It fixes only how the quantities combine, not pure numbers.</p>'),
+    m.ar(2, 'sigfig', 'The result of a calculation can never be more precise than the measurements used.', 'Extra digits on a calculator display are not measured.', 0, '<p>Both true, and R explains A: digits beyond the measured ones are meaningless, so we round.</p>'),
+    m.ar(3, 'dimension', 'The equation v = u + a t² is dimensionally correct.', 'Both sides of a correct equation must have the same dimensions.', 3, '<p>A is false: [v] = [u] = L T⁻¹ but [a t²] = L. R is true, and it is exactly why A fails.</p>'),
+    m.ar(2, 'error', 'A zero error in a screw gauge changes every reading by the same amount.', 'Zero error is a systematic error.', 0, '<p>Both true, and R explains A: a systematic error pushes all readings in one direction by a fixed amount.</p>'),
+    m.nat(2, 'dimension', '<p>The speed of light is 3 × 10⁸ m/s. Express it in km/h, as a multiple of 10⁹ (give the number, e.g. 1.08 means 1.08 × 10⁹ km/h).</p>', () => 3e8 * 3600 / 1000 / 1e9, 0.01, '<p>3 × 10⁸ m/s × 3600 s/h ÷ 1000 m/km = 1.08 × 10⁹ km/h.</p>', { unit: '× 10⁹ km/h' }),
+    m.nat(2, 'error', '<p>A pendulum’s period is measured as 1.99 s, 2.01 s and 2.00 s. Find the mean period in seconds.</p>', () => (1.99 + 2.01 + 2.0) / 3, 0.001, '<p>Mean = 6.00/3 = 2.00 s.</p>', { unit: 's' }),
+    m.nat(3, 'error', '<p>Resistance is R = V/I. V = 20 ± 1 V and I = 4.0 ± 0.1 A. Find the maximum percentage error in R.</p>', () => 1 / 20 * 100 + 0.1 / 4 * 100, 0.01, '<p>ΔR/R = ΔV/V + ΔI/I = 5 % + 2.5 % = 7.5 %.</p>', { unit: '%' }),
+    m.nat(3, 'si', '<p>A cube has side 2.0 cm. Find its volume in m³, as a multiple of 10⁻⁶ (give the number).</p>', () => 8, 0.001, '<p>Volume = 8.0 cm³ = 8.0 × 10⁻⁶ m³.</p>', { unit: '× 10⁻⁶ m³' }),
+    m.msq(3, 'dimension', '<p>Which of these quantities have the same dimensions as energy? (Choose all that apply.)</p>', ['work', 'torque', 'force × velocity', 'pressure × volume'], [0, 1, 3], '<p>Work and torque (force × distance) are M L² T⁻². Pressure × volume = (force/area) × volume = force × length. Force × velocity is power, M L² T⁻³.</p>'),
+    m.msq(2, 'sigfig', '<p>Which of these numbers has exactly three significant figures? (Choose all that apply.)</p>', ['0.0230', '4.05', '1.20 × 10³', '3000'], [0, 1, 2], '<p>0.0230 → 2, 3, 0 (3 figures); 4.05 → 3; 1.20 × 10³ → 3; 3000 is ambiguous (1 to 4).</p>'),
+  ],
+  gens: [
+    { id: 'un-g01', type: 'nat', level: 2, exams: ['board'], sub: 'error',
+      make(rng) { const m = choose(rng, [50, 100, 200]), dm = choose(rng, [0.5, 1, 2]), l = choose(rng, [2, 4, 5]), dl = choose(rng, [0.01, 0.02, 0.05]); return { m, dm, l, dl, q: `<p>A cube has mass ${m} ± ${dm} g and edge ${l} ± ${dl} cm. Find the maximum percentage error in its density (2 decimal places).</p>`, answer: +((dm / m + 3 * dl / l) * 100).toFixed(2), tol: 0.01, unit: '%', sol: `<p>Δρ/ρ = Δm/m + 3Δl/l = ${(dm / m * 100).toFixed(2)} % + 3 × ${(dl / l * 100).toFixed(2)} % = ${((dm / m + 3 * dl / l) * 100).toFixed(2)} %.</p>` }; },
+      verify: (p) => 100 * p.dm / p.m + 300 * p.dl / p.l },
+    { id: 'un-g02', type: 'nat', level: 2, exams: ['board'], sub: 'error',
+      make(rng) { const N = choose(rng, [10, 20, 50]), ms = pick(rng, 10, 40, 1), k = pick(rng, 1, N - 1, 1); const v = ms + k / N; return { N, ms, k, q: `<p>A vernier caliper has ${N} vernier divisions equal to ${N - 1} mm of the main scale (1 mm divisions). The vernier zero is just past ${ms} mm and division ${k} coincides with a main-scale line. Find the reading in mm.</p>`, answer: +v.toFixed(4), tol: 0.0005, unit: 'mm', sol: `<p>LC = 1/${N} mm. Reading = ${ms} + ${k}/${N} = ${v.toFixed(3)} mm.</p>` }; },
+      verify: (p) => p.ms + p.k * (1 - (p.N - 1) / p.N) },
+    { id: 'un-g03', type: 'nat', level: 2, exams: ['board'], sub: 'si',
+      make(rng) { const v = pick(rng, 18, 108, 18); return { v, q: `<p>A train moves at ${v} km/h. Find its speed in m/s.</p>`, answer: +(v / 3.6).toFixed(4), tol: 0.002, unit: 'm/s', sol: `<p>${v} km/h = ${v} × 1000 m / 3600 s = ${(v / 3.6).toFixed(2)} m/s.</p>` }; },
+      verify: (p) => (p.v * 1000) / 3600 },
+    { id: 'un-g04', type: 'nat', level: 3, exams: ['board'], sub: 'dimension',
+      make(rng) { const f = choose(rng, [2, 3, 4, 5]); return { f, q: `<p>If the length of a simple pendulum is made ${f * f} times larger, by what factor does its time period T = 2π√(l/g) change? (give the factor)</p>`, answer: f, tol: 0.001, unit: '×', sol: `<p>T ∝ √l, so the period changes by √${f * f} = ${f}.</p>` }; },
+      verify: (p) => Math.sqrt(p.f * p.f) },
+  ],
+};

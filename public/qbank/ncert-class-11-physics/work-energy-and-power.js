@@ -1,0 +1,56 @@
+// Class 11 Physics, Chapter 5 Work, Energy and Power: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('we');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'work-energy-and-power', name: 'Work, Energy and Power', n: 5,
+  items: [
+    m.mcq(1, 'work', '<p>A force does no work on a body when:</p>', 'it is perpendicular to the displacement', ['it is parallel to the displacement', 'the body moves faster', 'the force is large'], '<p>W = F d cos θ is zero when θ = 90°.</p>'),
+    m.mcq(1, 'work', '<p>The SI unit of work is:</p>', 'joule', ['watt', 'newton', 'pascal'], '<p>1 J = 1 N m. The watt is the unit of power.</p>'),
+    m.mcq(2, 'work', '<p>A force of 20 N moves a body 3 m at 60° to the force. The work done is:</p>', '30 J', ['60 J', '52 J', '10 J'], '<p>W = F d cos 60° = 20 × 3 × 0.5 = 30 J.</p>'),
+    m.mcq(2, 'work', '<p>Friction acting on a sliding block does:</p>', 'negative work', ['positive work', 'zero work', 'work that is always conserved'], '<p>Friction opposes the motion, so θ = 180° and W = −f d.</p>'),
+    m.mcq(2, 'variable', '<p>The work done by a variable force along a line is given by:</p>', 'the area under the force–position graph', ['the slope of the force–position graph', 'force × time', 'the highest force × distance'], '<p>W = ∫ F dx, the area under the F–x graph.</p>'),
+    m.mcq(1, 'ke', '<p>If the speed of a body is tripled, its kinetic energy becomes:</p>', '9 times', ['3 times', '6 times', '27 times'], '<p>K = ½mv² ∝ v².</p>', { trap: 'Thinking kinetic energy is proportional to speed.' }),
+    m.mcq(2, 'ke', '<p>A force acts on a body that starts from rest and does 50 J of work on it. The kinetic energy of the body is then:</p>', '50 J', ['25 J', '100 J', '0 J'], '<p>Work-energy theorem: W = ΔK = K − 0.</p>'),
+    m.mcq(3, 'ke', '<p>Two bodies of mass ratio 1 : 4 have equal kinetic energies. The ratio of their speeds is:</p>', '2 : 1', ['1 : 2', '4 : 1', '1 : 4'], '<p>½m₁v₁² = ½m₂v₂², so v₁/v₂ = √(m₂/m₁) = 2.</p>'),
+    m.mcq(3, 'ke', '<p>A car brakes with a constant force and stops in 12 m from 36 km/h. From 72 km/h with the same force it stops in:</p>', '48 m', ['24 m', '36 m', '96 m'], '<p>d ∝ v²; doubling the speed multiplies d by 4: 48 m.</p>'),
+    m.mcq(1, 'pe', '<p>Which force is not conservative?</p>', 'friction', ['gravity', 'spring force', 'the electrostatic force'], '<p>Friction’s work depends on the path length, so no potential energy can be defined for it.</p>'),
+    m.mcq(2, 'pe', '<p>A 2 kg book is raised through 3 m. Its gravitational potential energy increases by (g = 10 m/s²):</p>', '60 J', ['6 J', '20 J', '30 J'], '<p>ΔU = m g h = 2 × 10 × 3 = 60 J.</p>'),
+    m.mcq(2, 'conservation', '<p>A ball is dropped from a height h. Its speed on reaching the ground (no air resistance) does not depend on:</p>', 'its mass', ['the height h', 'g', 'the speed it started with'], '<p>v = √(2gh); the mass cancels.</p>'),
+    m.mcq(3, 'conservation', '<p>A ball is thrown vertically up at 20 m/s (g = 10). Its kinetic energy is half the initial value at a height of:</p>', '10 m', ['5 m', '20 m', '15 m'], '<p>Half of ½mu² becomes m g h: ¼ m u² = m g h, h = u²/(4g) = 400/40 = 10 m.</p>'),
+    m.mcq(2, 'spring', '<p>The potential energy of a spring stretched by x is:</p>', '½ k x²', ['k x', '½ k x', 'k x²'], '<p>The area of the triangle under the F = kx graph.</p>'),
+    m.mcq(2, 'spring', '<p>A spring is compressed by 2 cm and then by 6 cm. The energy stored in the second case is:</p>', '9 times that of the first', ['3 times', '6 times', 'the same'], '<p>U ∝ x²: (6/2)² = 9.</p>'),
+    m.mcq(1, 'power', '<p>One kilowatt-hour equals:</p>', '3.6 × 10⁶ J', ['3600 J', '1000 J', '3.6 × 10³ W'], '<p>1000 W × 3600 s = 3.6 × 10⁶ J.</p>'),
+    m.mcq(2, 'power', '<p>A machine lifts 100 kg through 10 m in 20 s (g = 10). Its power is:</p>', '500 W', ['50 W', '1000 W', '2000 W'], '<p>P = m g h / t = 100 × 10 × 10 / 20 = 500 W.</p>'),
+    m.mcq(2, 'power', '<p>A car engine of constant power P moves the car at speed v with pulling force F. If it climbs a hill at lower speed, the force is:</p>', 'larger', ['smaller', 'the same', 'zero'], '<p>P = F v, so for the same P a smaller v needs a larger F.</p>'),
+    m.mcq(1, 'collision', '<p>In every collision (no external force) the quantity always conserved is:</p>', 'momentum', ['kinetic energy', 'speed', 'kinetic energy and speed'], '<p>Internal forces cancel, so momentum is conserved. Kinetic energy is conserved only if the collision is elastic.</p>'),
+    m.mcq(2, 'collision', '<p>Two equal masses collide head-on elastically, one at rest. After the collision:</p>', 'the moving one stops and the other moves off with the same speed', ['both move off together', 'both stop', 'the moving one rebounds with the same speed'], '<p>Equal masses exchange velocities.</p>'),
+    m.mcq(3, 'collision', '<p>A 1 kg body at 6 m/s collides and sticks to a 2 kg body at rest. The kinetic energy lost is:</p>', '12 J', ['0 J', '6 J', '18 J'], '<p>v = 6/3 = 2 m/s. K before = 18 J, after = ½ × 3 × 4 = 6 J; loss 12 J.</p>'),
+    m.ar(2, 'work', 'A satellite in a circular orbit has zero work done on it by gravity in one orbit.', 'The gravitational force on the satellite is perpendicular to its velocity at every point.', 0, '<p>Both true and R explains A: W = F d cos 90° = 0 for each tiny step.</p>'),
+    m.ar(2, 'collision', 'In an inelastic collision the kinetic energy is not conserved but the total energy is.', 'The lost kinetic energy changes to heat, sound and deformation.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'pe', 'A potential energy can be defined for friction.', 'Friction acts opposite to the displacement.', 3, '<p>A is false: friction is not conservative. R is true but is not a reason for A being true.</p>'),
+    m.ar(3, 'ke', 'Kinetic energy depends on the frame of reference.', 'The velocity of a body depends on the frame from which it is observed.', 0, '<p>Both true and R explains A: K = ½mv² uses v measured in a frame.</p>'),
+    m.nat(2, 'work', '<p>A force of 40 N pushes a box 5 m along a floor at an angle of 0°. How much work does it do, in joules?</p>', () => 40 * 5, 0, '<p>W = F d = 200 J.</p>', { unit: 'J' }),
+    m.nat(2, 'ke', '<p>A 0.15 kg cricket ball travels at 30 m/s. What is its kinetic energy in joules?</p>', () => 0.5 * 0.15 * 900, 0.01, '<p>K = ½ m v² = 0.5 × 0.15 × 900 = 67.5 J.</p>', { unit: 'J' }),
+    m.nat(3, 'spring', '<p>A spring (k = 200 N/m) is stretched by 10 cm. How much energy is stored in joules?</p>', () => 0.5 * 200 * 0.01, 0.01, '<p>U = ½ k x² = 0.5 × 200 × 0.01 = 1 J.</p>', { unit: 'J' }),
+    m.nat(3, 'power', '<p>A 1.5 kW heater runs for 4 hours. How many kWh (units) of energy does it use?</p>', () => 1.5 * 4, 0.01, '<p>E = P t = 1.5 × 4 = 6 kWh.</p>', { unit: 'kWh' }),
+    m.nat(3, 'collision', '<p>A 3 kg body at 4 m/s hits a 1 kg body at rest and they stick together. What is their common speed in m/s?</p>', () => 12 / 4, 0.01, '<p>v = m₁u/(m₁ + m₂) = 12/4 = 3 m/s.</p>', { unit: 'm/s' }),
+    m.msq(3, 'collision', '<p>A ball hits a wall and rebounds with a speed smaller than it had. Which are true? (Choose all that apply.)</p>', ['The collision is inelastic.', 'Kinetic energy is lost.', 'The momentum of the ball alone is conserved.', 'The wall takes the missing momentum (the Earth recoils very slightly).'], [0, 1, 3], '<p>The ball’s own momentum changes (it reverses), so it is not conserved for the ball alone; the Earth takes it up. Kinetic energy is lost as heat and sound.</p>'),
+  ],
+  gens: [
+    { id: 'we-g01', type: 'nat', level: 2, exams: ['board'], sub: 'ke',
+      make(rng) { const mm = choose(rng, [0.5, 1, 2, 5]), v = pick(rng, 2, 20, 2); return { mm, v, q: `<p>A ${mm} kg body moves at ${v} m/s. Find its kinetic energy in joules.</p>`, answer: 0.5 * mm * v * v, tol: 0.01, unit: 'J', sol: `<p>K = ½ m v² = 0.5 × ${mm} × ${v}² = ${r3(0.5 * mm * v * v)} J.</p>` }; },
+      verify: (p) => (p.mm * p.v) ** 2 / (2 * p.mm) },
+    { id: 'we-g02', type: 'nat', level: 2, exams: ['board'], sub: 'spring',
+      make(rng) { const k = pick(rng, 100, 500, 50), x = choose(rng, [0.02, 0.05, 0.1, 0.2]); return { k, x, q: `<p>A spring of constant ${k} N/m is stretched by ${x * 100} cm. Find the elastic potential energy in joules.</p>`, answer: 0.5 * k * x * x, tol: 0.01, unit: 'J', sol: `<p>U = ½ k x² = 0.5 × ${k} × ${x}² = ${r3(0.5 * k * x * x)} J.</p>` }; },
+      verify: (p) => { const F = p.k * p.x; return 0.5 * F * p.x; } },
+    { id: 'we-g03', type: 'nat', level: 3, exams: ['board'], sub: 'collision',
+      make(rng) { const m1 = choose(rng, [1, 2, 3, 4]), m2 = choose(rng, [1, 2, 5, 6]), u = pick(rng, 2, 12, 1); return { m1, m2, u, q: `<p>A ${m1} kg body at ${u} m/s collides head-on with a ${m2} kg body at rest and they stick together. Find the kinetic energy lost in joules.</p>`, answer: 0.5 * m1 * u * u * m2 / (m1 + m2), tol: 0.01, unit: 'J', sol: `<p>v = ${m1}×${u}/${m1 + m2}; loss = K<sub>before</sub> − K<sub>after</sub> = ${r3(0.5 * m1 * u * u * m2 / (m1 + m2))} J.</p>` }; },
+      verify: (p) => { const v = p.m1 * p.u / (p.m1 + p.m2); return 0.5 * p.m1 * p.u * p.u - 0.5 * (p.m1 + p.m2) * v * v; } },
+    { id: 'we-g04', type: 'nat', level: 3, exams: ['board'], sub: 'power',
+      make(rng) { const mm = pick(rng, 50, 500, 50), h = pick(rng, 5, 40, 5), t = pick(rng, 10, 60, 10); return { mm, h, t, q: `<p>A crane lifts ${mm} kg through ${h} m in ${t} s at a steady speed. Find the power it delivers in watts (g = 9.8 m/s²).</p>`, answer: mm * 9.8 * h / t, tol: 0.01, unit: 'W', sol: `<p>P = m g h / t = ${mm} × 9.8 × ${h} / ${t} = ${r3(mm * 9.8 * h / t)} W.</p>` }; },
+      verify: (p) => { const F = p.mm * 9.8, v = p.h / p.t; return F * v; } },
+  ],
+};

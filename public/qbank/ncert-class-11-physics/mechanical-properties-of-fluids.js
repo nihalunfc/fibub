@@ -1,0 +1,53 @@
+// Class 11 Physics, Chapter 9 Mechanical Properties of Fluids: question bank for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('fl');
+
+export default {
+  topic: 'mechanical-properties-of-fluids', name: 'Mechanical Properties of Fluids', n: 9,
+  items: [
+    m.mcq(1, 'pressure', '<p>The SI unit of pressure is:</p>', 'pascal', ['newton', 'joule', 'watt'], '<p>1 Pa = 1 N/m².</p>'),
+    m.mcq(2, 'pressure', '<p>The pressure at a point in a liquid at rest does <i>not</i> depend on:</p>', 'the shape of the container', ['the depth of the point', 'the density of the liquid', 'the value of g'], '<p>P = P₀ + ρgh depends only on depth, density and g.</p>'),
+    m.mcq(2, 'pressure', '<p>A tyre pressure gauge reads 2 bar. The absolute pressure inside (atmosphere 1 bar) is:</p>', '3 bar', ['2 bar', '1 bar', '4 bar'], '<p>Gauge = absolute − atmospheric.</p>', { trap: 'Reading the gauge pressure as the absolute pressure.' }),
+    m.mcq(2, 'pascal', '<p>In a hydraulic lift the large piston has 50 times the area of the small one. The force on it is:</p>', '50 times the force on the small piston', ['equal to it', '1/50 of it', '2500 times it'], '<p>F₂ = F₁ × A₂/A₁.</p>'),
+    m.mcq(3, 'pascal', '<p>In that lift (area ratio 50) the small piston moves down 10 cm. The large piston rises by:</p>', '0.2 cm', ['500 cm', '10 cm', '5 cm'], '<p>d₂ = d₁ × A₁/A₂ = 10/50 = 0.2 cm: work in equals work out.</p>'),
+    m.mcq(2, 'barometer', '<p>A barometer using a liquid of density one-tenth that of mercury would have a column about:</p>', '7.6 m tall', ['7.6 cm tall', '76 cm tall', '0.76 cm tall'], '<p>h = P/ρg is inversely proportional to ρ.</p>'),
+    m.mcq(2, 'buoyancy', '<p>The buoyant force on a floating body equals:</p>', 'the weight of the liquid it displaces', ['its own volume', 'the pressure at the bottom', 'the density of the liquid'], '<p>Archimedes’ principle; for a floating body it also equals the body’s weight.</p>'),
+    m.mcq(2, 'continuity', '<p>Water flows at 1 m/s in a pipe of diameter d. The speed in a section of diameter d/2 is:</p>', '4 m/s', ['2 m/s', '1/2 m/s', '8 m/s'], '<p>A₁v₁ = A₂v₂ and the area is a quarter, so v₂ = 4v₁.</p>'),
+    m.mcq(2, 'continuity', '<p>The equation of continuity expresses the conservation of:</p>', 'mass', ['energy', 'momentum', 'charge'], '<p>For an incompressible fluid the mass flow per second is the same across every section.</p>'),
+    m.mcq(2, 'bernoulli', '<p>Bernoulli’s equation is a statement of the conservation of:</p>', 'energy', ['mass', 'momentum', 'charge'], '<p>It is the work-energy theorem for a flowing fluid.</p>'),
+    m.mcq(2, 'bernoulli', '<p>Air flows faster over the upper surface of an aeroplane wing. As a result the pressure above the wing is:</p>', 'lower than below the wing', ['higher than below', 'the same as below', 'zero'], '<p>Faster flow means lower pressure, giving a net upward force.</p>'),
+    m.mcq(3, 'bernoulli', '<p>A hole is made at a depth of 5 m in the side of an open tank of water (g = 10 m/s²). The speed of the outflow is:</p>', '10 m/s', ['5 m/s', '50 m/s', '100 m/s'], '<p>Torricelli: v = √(2gh) = √(100) = 10 m/s.</p>'),
+    m.mcq(2, 'viscosity', '<p>On heating, the viscosity of a liquid:</p>', 'decreases', ['increases', 'stays the same', 'first increases then decreases'], '<p>Molecules gain energy and slide past each other more easily; for gases it increases.</p>'),
+    m.mcq(2, 'viscosity', '<p>The dimensions of the coefficient of viscosity are:</p>', 'M L⁻¹ T⁻¹', ['M L T⁻¹', 'M L² T⁻²', 'M L⁻² T⁻¹'], '<p>η = F d/(A v) = [M L T⁻²][L]/([L²][L T⁻¹]) = M L⁻¹ T⁻¹.</p>'),
+    m.mcq(3, 'stokes', '<p>Two spheres of the same material and radii r and 2r fall through the same viscous liquid. The ratio of their terminal velocities (small : large) is:</p>', '1 : 4', ['1 : 2', '1 : 8', '1 : 1'], '<p>v_t ∝ r², so the ratio is 1 : 4.</p>'),
+    m.mcq(2, 'stokes', '<p>When a ball reaches its terminal velocity in a viscous liquid, the net force on it is:</p>', 'zero', ['equal to its weight', 'equal to the viscous force', 'upward'], '<p>Weight = buoyancy + drag, so the acceleration is zero.</p>'),
+    m.mcq(2, 'reynolds', '<p>Flow in a pipe is most likely to turn turbulent if:</p>', 'the speed is high and the viscosity is low', ['the speed is low and the viscosity is high', 'the pipe is very narrow and the fluid is syrup', 'the fluid is at rest'], '<p>Re = ρvD/η increases with speed and falls with viscosity.</p>'),
+    m.mcq(2, 'surface', '<p>The surface tension of a liquid has the unit:</p>', 'N/m', ['N m', 'N/m²', 'N s/m'], '<p>S = force/length. It is also J/m², energy per unit area.</p>'),
+    m.mcq(2, 'surface', '<p>The excess pressure inside a soap bubble of radius r and surface tension S is:</p>', '4S/r', ['2S/r', 'S/r', '8S/r'], '<p>A bubble has two surfaces (inside and outside), each adding 2S/r.</p>'),
+    m.mcq(3, 'surface', '<p>Two soap bubbles of different sizes are joined by a tube. Air flows:</p>', 'from the smaller bubble to the larger one', ['from the larger to the smaller', 'neither way: pressures are equal', 'out of both'], '<p>ΔP = 4S/r is greater for the smaller bubble.</p>'),
+    m.mcq(2, 'capillary', '<p>In a narrow glass tube the liquid level is below the outside level. The liquid is probably:</p>', 'mercury', ['water', 'alcohol', 'kerosene'], '<p>The angle of contact is obtuse, so cos θ is negative and the liquid is depressed.</p>'),
+    m.mcq(3, 'capillary', '<p>Water rises 4 cm in a capillary tube. In a tube of half the radius it will rise:</p>', '8 cm', ['2 cm', '4 cm', '16 cm'], '<p>h ∝ 1/r.</p>'),
+    m.ar(2, 'bernoulli', 'The pressure of water is lower in the narrow part of a horizontal pipe.', 'The speed of water is higher there.', 0, '<p>Both true and R explains A: by Bernoulli’s equation a higher speed means a lower pressure.</p>'),
+    m.ar(3, 'surface', 'Detergents help to remove oily dirt.', 'Detergents lower the surface tension of water.', 0, '<p>Lower S lets the water spread and penetrate the fabric and the dirt, so the statement and the reason are both true and linked.</p>'),
+    m.ar(3, 'viscosity', 'A raindrop reaches a constant speed as it falls.', 'The viscous drag of air increases with speed until it balances the net force of gravity.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'pressure', '<p>Find the gauge pressure at a depth of 20 m in fresh water (g = 10 m/s²), in kPa.</p>', () => 1000 * 10 * 20 / 1000, 0.01, '<p>ρgh = 1000 × 10 × 20 = 200 kPa.</p>', { unit: 'kPa' }),
+    m.nat(3, 'bernoulli', '<p>Water flows at 1 m/s in the wide part of a horizontal pipe and at 5 m/s in the narrow part. What is the pressure difference in kPa? (ρ = 1000 kg/m³.)</p>', () => 500 * (25 - 1) / 1000, 0.01, '<p>ΔP = ½ρ(v₂² − v₁²) = 500 × 24 = 12 000 Pa = 12 kPa.</p>', { unit: 'kPa' }),
+    m.nat(3, 'capillary', '<p>Find the capillary rise of water (S = 0.07 N/m, θ = 0°) in a tube of radius 0.35 mm, in cm. (ρ = 1000 kg/m³, g = 10 m/s².)</p>', () => 2 * 0.07 / (0.35e-3 * 1000 * 10) * 100, 0.01, '<p>h = 2S/(rρg) = 0.14/3.5 = 0.04 m = 4 cm.</p>', { unit: 'cm' }),
+    m.msq(3, 'pressure', '<p>Which of these use Pascal’s law? (Choose all that apply.)</p>', ['a hydraulic jack', 'brakes of a car', 'a barometer reading the air pressure through h = P/ρg', 'a pen filling by suction only'], [0, 1], '<p>Jacks and hydraulic brakes transmit pressure through an enclosed fluid.</p>'),
+  ],
+  gens: [
+    { id: 'fl-g01', type: 'nat', level: 2, exams: ['board'], sub: 'pressure',
+      make(rng) { const h = pick(rng, 5, 50, 5), rho = choose(rng, [1000, 1025, 800]); return { h, rho, q: `<p>Find the gauge pressure at a depth of ${h} m in a liquid of density ${rho} kg/m³, in kPa (g = 10 m/s²).</p>`, answer: rho * 10 * h / 1000, tol: 0.01, unit: 'kPa', sol: `<p>ρgh = ${rho} × 10 × ${h} = ${rho * 10 * h / 1000} kPa.</p>` }; },
+      verify: (p) => { const mass = p.rho * 1 * p.h; return mass * 10 / 1 / 1000; } },
+    { id: 'fl-g02', type: 'nat', level: 2, exams: ['board'], sub: 'continuity',
+      make(rng) { const v = pick(rng, 1, 5, 1), D = choose(rng, [6, 8, 10]), d = choose(rng, [2, 3, 4]); const v2 = v * (D / d) ** 2; return { v, D, d, q: `<p>Water at ${v} m/s in a pipe of diameter ${D} cm enters a section of diameter ${d} cm. What is its speed there, in m/s?</p>`, answer: v2, tol: 0.01, unit: 'm/s', sol: `<p>v₂ = v₁(D/d)² = ${v} × (${D}/${d})² = ${v2.toFixed(2)} m/s.</p>` }; },
+      verify: (p) => { const Q = p.v * Math.PI * p.D * p.D / 4; return Q / (Math.PI * p.d * p.d / 4); } },
+    { id: 'fl-g03', type: 'nat', level: 3, exams: ['board'], sub: 'stokes',
+      make(rng) { const r = choose(rng, [0.5, 1, 2]), eta = choose(rng, [0.5, 1, 1.5]); const v = 2 * (r * 1e-3) ** 2 * (7800 - 1260) * 9.8 / (9 * eta) * 1000; return { r, eta, q: `<p>A steel ball (7800 kg/m³) of radius ${r} mm falls in glycerine (1260 kg/m³, η = ${eta} Pa s). Find the terminal speed in mm/s (g = 9.8 m/s²).</p>`, answer: v, tol: 0.01, unit: 'mm/s', sol: `<p>v = 2r²(ρ − σ)g/(9η) = ${v.toPrecision(3)} mm/s.</p>` }; },
+      verify: (p) => { const m = 4 / 3 * Math.PI * (p.r * 1e-3) ** 3 * (7800 - 1260) * 9.8; return m / (6 * Math.PI * p.eta * p.r * 1e-3) * 1000; } },
+    { id: 'fl-g04', type: 'nat', level: 3, exams: ['board'], sub: 'surface',
+      make(rng) { const r = choose(rng, [1, 2, 4, 5]), S = choose(rng, [0.025, 0.03, 0.04]); const dp = 4 * S / (r * 1e-3); return { r, S, q: `<p>Find the excess pressure inside a soap bubble of radius ${r} mm if the surface tension of the soap solution is ${S} N/m. Answer in pascal.</p>`, answer: dp, tol: 0.01, unit: 'Pa', sol: `<p>ΔP = 4S/r = 4 × ${S} / ${r}×10⁻³ = ${dp.toFixed(1)} Pa.</p>` }; },
+      verify: (p) => 2 * (2 * p.S / (p.r * 1e-3)) },
+  ],
+};

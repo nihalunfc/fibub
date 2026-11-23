@@ -1,0 +1,56 @@
+// Class 11 Physics, Chapter 14 Waves: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('wv');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'waves', name: 'Waves', n: 14,
+  items: [
+    m.mcq(1, 'basics', '<p>In a transverse wave the particles of the medium move:</p>', 'perpendicular to the direction of the wave', ['along the direction of the wave', 'in circles only', 'with the speed of the wave'], '<p>That is the definition of a transverse wave.</p>'),
+    m.mcq(1, 'basics', '<p>Sound waves in air are:</p>', 'longitudinal', ['transverse', 'electromagnetic', 'polarised'], '<p>Air particles move to and fro along the direction of travel.</p>'),
+    m.mcq(2, 'basics', '<p>A wave has frequency 50 Hz and speed 340 m/s. Its wavelength is:</p>', '6.8 m', ['0.147 m', '17 000 m', '68 m'], '<p>λ = v/f = 340/50 = 6.8 m.</p>'),
+    m.mcq(2, 'equation', '<p>For the wave y = 0.02 sin(10x − 200t) (SI units) the speed and direction are:</p>', '20 m/s in the +x direction', ['20 m/s in the −x direction', '0.05 m/s in the +x direction', '2000 m/s in the +x direction'], '<p>v = ω/k = 200/10 = 20 m/s; (kx − ωt) means travelling towards +x.</p>', { trap: 'Taking the speed as the coefficient of t.' }),
+    m.mcq(2, 'equation', '<p>Two points on a wave are λ/4 apart. Their phase difference is:</p>', 'π/2', ['π/4', 'π', '2π'], '<p>Phase difference = 2π × (path difference)/λ = 2π/4 = π/2.</p>'),
+    m.mcq(2, 'speed', '<p>The tension in a stretched string is made four times larger. The speed of a wave on it:</p>', 'doubles', ['becomes 4 times', 'becomes √2 times', 'halves'], '<p>v = √(T/μ) ∝ √T.</p>'),
+    m.mcq(2, 'speed', '<p>The speed of sound in air at 0 °C is 332 m/s. At 273 °C it is approximately:</p>', '470 m/s', ['664 m/s', '332 m/s', '235 m/s'], '<p>v ∝ √T: 332 × √(546/273) = 332 × 1.414 = 470 m/s.</p>'),
+    m.mcq(2, 'speed', '<p>The speed of sound in a gas at constant temperature is independent of the pressure because:</p>', 'the density changes in the same ratio as the pressure', ['the gas is incompressible', 'pressure has no effect on molecules', 'the temperature changes'], '<p>v = √(γP/ρ) and P/ρ is fixed at constant T.</p>'),
+    m.mcq(2, 'speed', '<p>Laplace corrected Newton’s formula by assuming that the changes in a sound wave in air are:</p>', 'adiabatic', ['isothermal', 'isobaric', 'isochoric'], '<p>The oscillations are too rapid for heat to flow, so the bulk modulus is γP.</p>'),
+    m.mcq(2, 'speed', '<p>In which medium is the speed of sound the greatest?</p>', 'steel', ['water', 'air', 'hydrogen at room temperature'], '<p>Steel is very stiff: about 5000 m/s, against 1480 in water and 340 in air.</p>'),
+    m.mcq(2, 'superposition', '<p>Two waves of equal amplitude A reach a point in the same phase. The resultant amplitude is:</p>', '2A', ['A', '√2 A', 'zero'], '<p>R = 2A cos(0) = 2A.</p>'),
+    m.mcq(2, 'superposition', '<p>Destructive interference of two equal waves occurs when their path difference is:</p>', 'λ/2', ['λ', '2λ', '0'], '<p>A path difference of (n + ½)λ gives a phase difference of π.</p>'),
+    m.mcq(2, 'reflection', '<p>A pulse on a string is reflected at a fixed end. The reflected pulse:</p>', 'is inverted (a phase change of π)', ['is not inverted', 'has twice the amplitude', 'is completely absorbed'], '<p>The fixed end exerts a downward pull on an upward pulse, so it returns upside down.</p>'),
+    m.mcq(2, 'standing', '<p>The distance between two consecutive nodes of a standing wave of wavelength λ is:</p>', 'λ/2', ['λ', 'λ/4', '2λ'], '<p>Nodes are λ/2 apart, and an antinode lies midway.</p>'),
+    m.mcq(2, 'standing', '<p>A string fixed at both ends of length L vibrates in the second harmonic. The wavelength is:</p>', 'L', ['2L', 'L/2', '4L'], '<p>L = 2 × λ/2, so λ = L.</p>'),
+    m.mcq(3, 'standing', '<p>The frequency of the fundamental of a vibrating string is f. If the length is halved and the tension kept the same, the fundamental becomes:</p>', '2f', ['f/2', '4f', 'f'], '<p>f = (1/2L)√(T/μ) ∝ 1/L.</p>'),
+    m.mcq(2, 'pipes', '<p>An organ pipe closed at one end has a fundamental frequency of 150 Hz. The next higher frequency it can sound is:</p>', '450 Hz', ['300 Hz', '225 Hz', '600 Hz'], '<p>Only odd harmonics: 150, 450, 750, …</p>'),
+    m.mcq(2, 'pipes', '<p>At the open end of an organ pipe there is a:</p>', 'displacement antinode', ['displacement node', 'pressure antinode', 'maximum pressure change'], '<p>The air is free to move there; the pressure stays near atmospheric (a pressure node).</p>'),
+    m.mcq(3, 'pipes', '<p>An open pipe and a closed pipe of the same length have fundamental frequencies f₀ and f<sub>c</sub>. Then f₀ : f<sub>c</sub> is:</p>', '2 : 1', ['1 : 2', '1 : 1', '4 : 1'], '<p>f₀ = v/2L and f<sub>c</sub> = v/4L.</p>'),
+    m.mcq(2, 'beats', '<p>Two tuning forks of 340 Hz and 344 Hz are sounded together. The number of beats per second is:</p>', '4', ['2', '342', '684'], '<p>Beat frequency = 344 − 340 = 4.</p>'),
+    m.mcq(2, 'doppler', '<p>A source of sound moves towards a stationary observer. The observer hears:</p>', 'a higher frequency than that emitted', ['a lower frequency', 'the same frequency', 'a higher speed of sound'], '<p>The crests are bunched in front of the source.</p>'),
+    m.mcq(3, 'doppler', '<p>A listener moves away from a stationary source at speed v/10 (v = speed of sound). The apparent frequency is:</p>', '0.9 f₀', ['1.1 f₀', 'f₀', '0.8 f₀'], '<p>f′ = f₀(v − v/10)/v = 0.9 f₀.</p>'),
+    m.ar(2, 'basics', 'Sound cannot travel in a vacuum.', 'Sound is a mechanical wave and needs a material medium.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'standing', 'In a standing wave on a string, no energy flows past a node.', 'A node is a point that never moves.', 0, '<p>Both true and R explains A: the string at a node does no work on its neighbours, so no energy crosses it.</p>'),
+    m.ar(3, 'speed', 'The speed of sound is slightly higher in humid air than in dry air.', 'Water vapour molecules are lighter than the average of dry air.', 0, '<p>Both true, R explains A: v = √(γRT/M) and a smaller M gives a larger v.</p>'),
+    m.ar(3, 'doppler', 'For sound, the frequency heard is the same whether the source approaches at speed u or the listener approaches at speed u.', 'Sound travels in a medium (air), which defines a rest frame, so it matters which of the two is moving through the air.', 3, '<p>A is false: a moving source gives f₀v/(v − u) and a moving listener f₀(v + u)/v, which differ. R is true and is the reason they differ.</p>', { trap: 'Applying the light result, where only the relative velocity matters, to sound.' }),
+    m.nat(2, 'basics', '<p>A wave of frequency 256 Hz has wavelength 1.33 m. Find the speed in m/s.</p>', () => 256 * 1.33, 1, '<p>v = fλ = 256 × 1.33 = 340 m/s.</p>', { unit: 'm/s' }),
+    m.nat(2, 'speed', '<p>A string of mass per unit length 0.01 kg/m is under 100 N tension. Find the speed of a transverse wave in m/s.</p>', () => Math.sqrt(100 / 0.01), 0.5, '<p>v = √(T/μ) = √10000 = 100 m/s.</p>', { unit: 'm/s' }),
+    m.nat(3, 'pipes', '<p>A pipe closed at one end is 0.5 m long. Find the fundamental frequency in Hz (v = 340 m/s).</p>', () => 340 / (4 * 0.5), 0.5, '<p>f = v/4L = 340/2 = 170 Hz.</p>', { unit: 'Hz' }),
+    m.nat(3, 'doppler', '<p>A source of 600 Hz moves away from a stationary listener at 20 m/s (v = 340 m/s). Find the frequency heard in Hz.</p>', () => 600 * 340 / 360, 0.5, '<p>f′ = 600 × 340/(340 + 20) = 566.7 Hz.</p>', { unit: 'Hz' }),
+    m.msq(3, 'standing', '<p>A string fixed at both ends vibrates in its third harmonic. Which are true? (Choose all that apply.)</p>', ['There are 4 nodes including the two ends.', 'There are 3 antinodes.', 'The wavelength is 2L/3.', 'The frequency is half of the fundamental.'], [0, 1, 2], '<p>For n = 3, L = 3λ/2: three loops (3 antinodes), nodes at the ends plus two inside (4). The frequency is 3 times the fundamental, not half.</p>'),
+  ],
+  gens: [
+    { id: 'wv-g01', type: 'nat', level: 2, exams: ['board'], sub: 'speed',
+      make(rng) { const T = choose(rng, [25, 64, 100, 225]), mu = choose(rng, [0.01, 0.04, 0.0625]); const v = Math.sqrt(T / mu); return { T, mu, q: `<p>Speed of a transverse wave on a string of ${mu} kg/m under ${T} N, in m/s?</p>`, answer: r3(v), tol: v * 0.01, unit: 'm/s', sol: `<p>v = √(T/μ) = √(${T}/${mu}) = ${r3(v)} m/s.</p>` }; },
+      verify: (p) => Math.pow(p.T / p.mu, 0.5) },
+    { id: 'wv-g02', type: 'nat', level: 2, exams: ['board'], sub: 'pipes',
+      make(rng) { const L = choose(rng, [0.25, 0.4, 0.5, 0.85]), open = choose(rng, [true, false]); const f = open ? 340 / (2 * L) : 340 / (4 * L); return { L, open, q: `<p>Fundamental frequency in Hz of a pipe of length ${L} m ${open ? 'open at both ends' : 'closed at one end'} (v = 340 m/s)?</p>`, answer: r3(f), tol: f * 0.01, unit: 'Hz', sol: `<p>f = ${open ? 'v/2L' : 'v/4L'} = ${r3(f)} Hz.</p>` }; },
+      verify: (p) => 340 / (p.open ? 2 * p.L : 4 * p.L) },
+    { id: 'wv-g03', type: 'nat', level: 2, exams: ['board'], sub: 'beats',
+      make(rng) { const f = choose(rng, [256, 300, 440, 512]), d = pick(rng, 2, 8, 1); return { f, d, q: `<p>Forks of ${f} Hz and ${f + d} Hz sound together. Beats per second?</p>`, answer: d, tol: 0, unit: 'beats/s', sol: `<p>f<sub>beat</sub> = ${f + d} − ${f} = ${d}.</p>` }; },
+      verify: (p) => Math.abs(p.f - (p.f + p.d)) },
+    { id: 'wv-g04', type: 'nat', level: 3, exams: ['board'], sub: 'doppler',
+      make(rng) { const f = choose(rng, [400, 500, 800]), u = choose(rng, [17, 34, 68]), tow = choose(rng, [true, false]); const fp = f * 340 / (tow ? 340 - u : 340 + u); return { f, u, tow, q: `<p>A ${f} Hz source moves ${tow ? 'towards' : 'away from'} a still listener at ${u} m/s (v = 340 m/s). Frequency heard in Hz?</p>`, answer: r3(fp), tol: fp * 0.01, unit: 'Hz', sol: `<p>f′ = ${f} × 340/${tow ? 340 - u : 340 + u} = ${r3(fp)} Hz.</p>` }; },
+      verify: (p) => { const lam = (340 - (p.tow ? p.u : -p.u)) / p.f; return 340 / lam; } },
+  ],
+};

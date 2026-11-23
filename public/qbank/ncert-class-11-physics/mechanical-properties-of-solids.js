@@ -1,0 +1,51 @@
+// Class 11 Physics, Chapter 8 Mechanical Properties of Solids: question bank for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('so');
+
+export default {
+  topic: 'mechanical-properties-of-solids', name: 'Mechanical Properties of Solids', n: 8,
+  items: [
+    m.mcq(1, 'stress', '<p>The SI unit of stress is:</p>', 'N/m²', ['N', 'N m', 'no unit'], '<p>Stress is force per unit area, the pascal.</p>'),
+    m.mcq(1, 'stress', '<p>Strain is:</p>', 'a ratio with no unit', ['measured in pascal', 'measured in newton', 'equal to force per area'], '<p>Strain = change/original, a pure number.</p>'),
+    m.mcq(2, 'hooke', '<p>Hooke’s law holds:</p>', 'within the elastic limit', ['only beyond the yield point', 'only for liquids', 'at the breaking point'], '<p>Stress is proportional to strain only for small deformations.</p>'),
+    m.mcq(2, 'young', '<p>Two wires of the same material have the same length but the second has twice the diameter. Under the same load the extension of the second is:</p>', 'one quarter of the first', ['half of the first', 'double the first', 'the same'], '<p>ΔL ∝ 1/A ∝ 1/d². Doubling d divides ΔL by 4.</p>', { trap: 'Forgetting that area depends on the square of the diameter.' }),
+    m.mcq(2, 'young', '<p>A wire stretches by 1 mm under a load. A wire of the same material and diameter but three times as long, under the same load, stretches by:</p>', '3 mm', ['1 mm', '9 mm', '1/3 mm'], '<p>ΔL ∝ L, so three times as long gives three times the extension.</p>'),
+    m.mcq(2, 'young', '<p>Young’s modulus of a perfectly rigid body is:</p>', 'infinite', ['zero', 'one', 'equal to its density'], '<p>A rigid body shows no strain whatever the stress, so Y = stress/strain is infinite.</p>'),
+    m.mcq(2, 'curve', '<p>Beyond the elastic limit the wire:</p>', 'does not return to its original length on unloading', ['always returns to its original length', 'breaks immediately', 'becomes elastic again'], '<p>Plastic deformation leaves a permanent set.</p>'),
+    m.mcq(2, 'curve', '<p>A material that fractures soon after the elastic limit with no plastic region is called:</p>', 'brittle', ['ductile', 'malleable', 'elastomeric'], '<p>Glass and cast iron are brittle.</p>'),
+    m.mcq(2, 'curve', '<p>The stress at the highest point of the stress-strain curve of a metal is called its:</p>', 'ultimate tensile strength', ['yield stress', 'elastic modulus', 'proportional limit'], '<p>The wire can bear no greater stress than this; afterwards it necks and breaks.</p>'),
+    m.mcq(2, 'curve', '<p>Which material has no well-defined Young’s modulus because its stress-strain graph is not a straight line?</p>', 'rubber', ['steel', 'copper', 'glass'], '<p>Elastomers show a non-linear curve and a large strain.</p>'),
+    m.mcq(2, 'moduli', '<p>For which of these is the shear modulus zero?</p>', 'a liquid', ['steel', 'copper', 'glass'], '<p>A fluid cannot sustain a steady shear stress; it flows.</p>'),
+    m.mcq(2, 'moduli', '<p>The bulk modulus of a material is defined as:</p>', '−ΔP / (ΔV/V)', ['ΔP × V', 'ΔV / ΔP', 'F / A'], '<p>The minus sign makes B positive.</p>'),
+    m.mcq(3, 'moduli', '<p>The shear strain of a block is 0.002 when a tangential force acts on its top face. If the block is 10 cm high, the top face moves by:</p>', '0.2 mm', ['2 mm', '0.02 mm', '20 mm'], '<p>Δx = strain × h = 0.002 × 100 mm = 0.2 mm.</p>'),
+    m.mcq(2, 'moduli', '<p>Which pair is correctly matched?</p>', 'volume strain and bulk modulus', ['shear strain and Young’s modulus', 'longitudinal strain and bulk modulus', 'volume strain and shear modulus'], '<p>Volume strain goes with B, shear strain with G, longitudinal strain with Y.</p>'),
+    m.mcq(2, 'energy', '<p>The elastic energy stored per unit volume in a stretched wire is:</p>', '½ × stress × strain', ['stress × strain', 'stress / strain', '½ × stress / strain'], '<p>The work is the area of the triangle under the F–l graph.</p>'),
+    m.mcq(3, 'energy', '<p>If the force on a wire is doubled (still elastic), the stored elastic energy becomes:</p>', '4 times', ['2 times', '8 times', 'half'], '<p>U = F²L/(2AY) ∝ F².</p>', { trap: 'Assuming energy is proportional to force instead of its square.' }),
+    m.mcq(2, 'apps', '<p>Cables for lifts are made of many thin strands because:</p>', 'they are flexible and the failure of one strand does not break the cable', ['thin steel is stronger per area than a thick rod', 'they have a larger Young’s modulus', 'they are cheaper than a rod of the same breaking force'], '<p>The breaking force depends on total area; stranding gives flexibility and safety.</p>'),
+    m.mcq(2, 'apps', '<p>The depression of a loaded beam of rectangular cross-section is least if its:</p>', 'depth is increased', ['breadth is increased by the same factor', 'length is increased', 'Young’s modulus is decreased'], '<p>δ = Wl³/(4bd³Y): depth enters as d³, breadth only as b.</p>'),
+    m.ar(2, 'young', 'A steel wire stretches less than a copper wire of the same size under the same load.', 'Young’s modulus of steel is greater than that of copper.', 0, '<p>Both true and R explains A: ΔL = FL/(AY), so a larger Y means a smaller extension.</p>'),
+    m.ar(3, 'moduli', 'Gases have only a bulk modulus.', 'A gas cannot sustain a steady shear stress.', 0, '<p>Both true and R explains A: a gas flows under shear so G = 0, leaving only resistance to compression, B.</p>'),
+    m.ar(3, 'curve', 'A ductile metal can be drawn into wires.', 'It has a long plastic region on the stress-strain curve.', 0, '<p>Both true and R explains A: it can be stretched a long way beyond the elastic limit without breaking.</p>'),
+    m.nat(2, 'young', '<p>A load of 50 N hangs from a wire of cross-section 0.5 mm² (Y = 2 × 10¹¹ Pa), length 2 m. Find the extension in mm.</p>', () => 50 * 2 / (0.5e-6 * 2e11) * 1000, 0.01, '<p>ΔL = FL/(AY) = 100/(10⁵) = 1 × 10⁻³ m = 1 mm.</p>', { unit: 'mm' }),
+    m.nat(3, 'energy', '<p>A wire is stretched by 2 mm by a force of 80 N within the elastic limit. Find the energy stored, in joules.</p>', () => 0.5 * 80 * 2e-3, 0.01, '<p>U = ½FΔL = 0.5 × 80 × 0.002 = 0.08 J.</p>', { unit: 'J' }),
+    m.nat(3, 'moduli', '<p>The bulk modulus of water is 2.2 GPa. By what percentage (to 2 decimal places) does a litre of water shrink when the pressure rises by 11 MPa?</p>', () => 11e6 / 2.2e9 * 100, 0.01, '<p>ΔV/V = ΔP/B = 11×10⁶/2.2×10⁹ = 0.005 = 0.50 %.</p>', { unit: '%' }),
+    m.nat(2, 'apps', '<p>A cable of cross-section 2 × 10⁻⁴ m² breaks at a stress of 4 × 10⁸ Pa. Taking a safety factor of 4 and g = 10 m/s², the safe load in kg is:</p>', () => 4e8 * 2e-4 / 4 / 10, 0.01, '<p>Breaking force = 8 × 10⁴ N; safe force 2 × 10⁴ N; mass = 2000 kg.</p>', { unit: 'kg' }),
+    m.msq(3, 'curve', '<p>Which statements about the stress-strain curve of mild steel are true? (Choose all that apply.)</p>', ['It is straight up to the proportional limit.', 'The wire returns to its length if unloaded before the elastic limit.', 'The yield point is where the stress is highest.', 'Strain keeps rising without much extra stress after yield.'], [0, 1, 3], '<p>The highest stress is the ultimate strength, not the yield point.</p>'),
+    m.msq(3, 'moduli', '<p>Which of these materials possess a shear modulus? (Choose all that apply.)</p>', ['steel', 'glass', 'water', 'air'], [0, 1], '<p>Only solids resist a steady shear stress.</p>'),
+  ],
+  gens: [
+    { id: 'so-g01', type: 'nat', level: 2, exams: ['board'], sub: 'young',
+      make(rng) { const F = pick(rng, 50, 400, 50), L = choose(rng, [1, 2, 3]), a = pick(rng, 1, 4, 0.5), Y = choose(rng, [2, 1.1, 0.7]); const dL = F * L / (a * 1e-6 * Y * 1e11) * 1000; return { F, L, a, Y, q: `<p>A wire of length ${L} m and cross-section ${a} mm² (Young’s modulus ${Y} × 10¹¹ Pa) carries a load of ${F} N. Find the extension in mm.</p>`, answer: +dL.toPrecision(4), tol: 0.01, unit: 'mm', sol: `<p>ΔL = FL/(AY) = ${F} × ${L} / (${a}×10⁻⁶ × ${Y}×10¹¹) = ${dL.toPrecision(3)} mm.</p>` }; },
+      verify: (p) => { const stress = p.F / (p.a * 1e-6), strain = stress / (p.Y * 1e11); return strain * p.L * 1000; } },
+    { id: 'so-g02', type: 'nat', level: 3, exams: ['board'], sub: 'energy',
+      make(rng) { const F = pick(rng, 20, 200, 20), x = choose(rng, [1, 2, 4]); const U = 0.5 * F * x * 1e-3; return { F, x, q: `<p>A force of ${F} N stretches a wire by ${x} mm within the elastic limit. Find the energy stored in the wire in millijoules.</p>`, answer: +(U * 1000).toPrecision(4), tol: 0.01, unit: 'mJ', sol: `<p>U = ½FΔL = 0.5 × ${F} × ${x}×10⁻³ = ${(U * 1000).toPrecision(3)} mJ.</p>` }; },
+      verify: (p) => { const k = p.F / (p.x * 1e-3); return 0.5 * k * (p.x * 1e-3) ** 2 * 1000; } },
+    { id: 'so-g03', type: 'nat', level: 3, exams: ['board'], sub: 'young',
+      make(rng) { const k = choose(rng, [2, 3, 4]), F = pick(rng, 10, 90, 10), d0 = pick(rng, 1, 5, 1); return { k, F, d0, q: `<p>A wire stretches by ${d0} mm under a load. A second wire of the same material with ${k} times the length and ${k} times the diameter carries the same load. Find its extension in mm (2 decimal places).</p>`, answer: +(d0 / k).toFixed(2), tol: 0.01, unit: 'mm', sol: `<p>ΔL ∝ L/d²: factor ${k}/${k}² = 1/${k}, so ${d0}/${k} = ${(d0 / k).toFixed(2)} mm.</p>` }; },
+      verify: (p) => { const base = { L: 1, d: 1 }, f = (L, d) => L / (d * d); return p.d0 * f(p.k, p.k) / f(base.L, base.d); } },
+    { id: 'so-g04', type: 'nat', level: 2, exams: ['board'], sub: 'apps',
+      make(rng) { const d = pick(rng, 2, 8, 1), s = choose(rng, [3, 4, 5]); const m2 = 4e8 * Math.PI * (d * 1e-3 / 2) ** 2 / s / 10; return { d, s, q: `<p>A steel wire of diameter ${d} mm breaks at a stress of 4 × 10⁸ Pa. With a safety factor of ${s} and g = 10 m/s², what mass can it safely carry, in kg?</p>`, answer: m2, tol: 0.01, unit: 'kg', sol: `<p>Breaking force = 4×10⁸ × π(${d}×10⁻³)²/4; divide by ${s} and by g: ${m2.toPrecision(3)} kg.</p>` }; },
+      verify: (p) => 4e8 * (Math.PI * p.d * p.d * 1e-6 / 4) / p.s / 10 },
+  ],
+};
