@@ -1,0 +1,57 @@
+// Class 11 Physics, Chapter 7 Gravitation: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('gr');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'gravitation', name: 'Gravitation', n: 7,
+  items: [
+    m.mcq(1, 'kepler', '<p>Kepler’s first law says planets move in:</p>', 'ellipses with the Sun at one focus', ['circles with the Sun at the centre', 'parabolas', 'straight lines'], '<p>Every planet’s orbit is an ellipse, with the Sun at one of the two foci.</p>'),
+    m.mcq(2, 'kepler', '<p>A planet moves fastest in its orbit when it is:</p>', 'nearest the Sun', ['farthest from the Sun', 'at the ends of the minor axis', 'at the same speed everywhere'], '<p>Equal areas in equal times: a shorter radius needs a faster speed.</p>'),
+    m.mcq(2, 'kepler', '<p>Kepler’s second law is a consequence of the conservation of:</p>', 'angular momentum', ['linear momentum', 'energy only', 'mass'], '<p>Gravity gives no torque about the Sun, so L is constant, and dA/dt = L/2m.</p>'),
+    m.mcq(2, 'kepler', '<p>A planet has an orbital radius 4 times that of the Earth. Its period in years is:</p>', '8', ['4', '16', '2'], '<p>T² ∝ r³: T = 4^1.5 = 8.</p>'),
+    m.mcq(3, 'kepler', '<p>Two satellites of the Earth have orbital radii in the ratio 1 : 9. The ratio of their periods is:</p>', '1 : 27', ['1 : 9', '1 : 3', '1 : 81'], '<p>T ∝ r^1.5, so (1/9)^1.5 = 1/27.</p>'),
+    m.mcq(1, 'law', '<p>The gravitational force between two masses is proportional to:</p>', 'the product of the masses and the inverse square of the distance', ['the sum of the masses', 'the distance', 'the inverse of the distance'], '<p>F = Gm₁m₂/r².</p>'),
+    m.mcq(2, 'law', '<p>The distance between two masses is halved. The gravitational force becomes:</p>', '4 times', ['2 times', '1/4', '1/2'], '<p>F ∝ 1/r²: (1/½)² = 4.</p>'),
+    m.mcq(2, 'law', '<p>The force on mass m₁ due to m₂ compared with the force on m₂ due to m₁ is:</p>', 'equal in size and opposite in direction', ['larger if m₁ is larger', 'smaller if m₁ is larger', 'zero'], '<p>Newton’s third law applies to gravity.</p>'),
+    m.mcq(2, 'law', '<p>The value of G depends on:</p>', 'nothing: it is a universal constant', ['the masses of the bodies', 'the distance', 'the temperature'], '<p>G = 6.67 × 10⁻¹¹ N m²/kg² everywhere.</p>'),
+    m.mcq(2, 'g', '<p>g on the surface of a planet of mass M and radius R is:</p>', 'GM/R²', ['GM/R', 'GMR', 'G M²/R'], '<p>mg = GMm/R².</p>'),
+    m.mcq(2, 'g', '<p>A planet has the same density as the Earth but twice its radius. g on it is:</p>', '2g', ['g/2', '4g', 'g'], '<p>g = (4/3)πGρR ∝ R at constant density.</p>'),
+    m.mcq(2, 'g', '<p>At what height above the Earth’s surface is g equal to g/9?</p>', '2R', ['3R', 'R', '8R'], '<p>(R/(R + h))² = 1/9 gives R + h = 3R, so h = 2R.</p>'),
+    m.mcq(3, 'g', '<p>g at a depth equal to half the Earth’s radius (uniform Earth) is:</p>', 'g/2', ['g/4', 'g', '3g/4'], '<p>g_d = g(1 − d/R) = g(1 − ½) = g/2.</p>'),
+    m.mcq(2, 'g', '<p>The value of g at the centre of a uniform Earth is:</p>', 'zero', ['g', '2g', 'infinite'], '<p>g_d = g r/R and r = 0.</p>'),
+    m.mcq(2, 'pe', '<p>The gravitational potential energy of a body of mass m at distance r from the centre of a planet of mass M (zero at infinity) is:</p>', '−GMm/r', ['+GMm/r', '−GMm/r²', 'mgr'], '<p>U = −GMm/r: negative, since the force is attractive.</p>'),
+    m.mcq(3, 'pe', '<p>The change in potential energy of a mass m raised through a small height h near the surface is approximately:</p>', 'mgh', ['GMm/R', 'GMm/h', 'mg/h'], '<p>U(R + h) − U(R) ≈ GMm h/R² = mgh.</p>'),
+    m.mcq(2, 'escape', '<p>The escape speed from the Earth is about:</p>', '11.2 km/s', ['7.9 km/s', '3.0 km/s', '9.8 km/s'], '<p>v_esc = √(2gR) = 11.2 km/s.</p>'),
+    m.mcq(2, 'escape', '<p>The escape speed of a body of mass 10 kg compared with that of a body of mass 1 kg from the same planet is:</p>', 'the same', ['10 times', '√10 times', '1/10'], '<p>v_esc = √(2GM/R) does not depend on the mass of the escaping body.</p>'),
+    m.mcq(3, 'escape', '<p>The ratio of the escape speed to the orbital speed just above the Earth’s surface is:</p>', '√2', ['2', '1', '1/√2'], '<p>√(2gR)/√(gR) = √2.</p>'),
+    m.mcq(2, 'satellite', '<p>The orbital speed of a satellite at a distance r from the Earth’s centre is:</p>', '√(GM/r)', ['√(2GM/r)', 'GM/r', '√(GM r)'], '<p>GMm/r² = mv²/r.</p>'),
+    m.mcq(2, 'satellite', '<p>A geostationary satellite has a time period of:</p>', '24 hours', ['90 minutes', '12 hours', '1 year'], '<p>It must turn once per Earth rotation to stay above one spot.</p>'),
+    m.mcq(3, 'satellite', '<p>The total energy of a satellite of mass m in a circular orbit of radius r around a planet of mass M is:</p>', '−GMm/2r', ['+GMm/2r', '−GMm/r', 'zero'], '<p>K = GMm/2r, U = −GMm/r, so E = −GMm/2r.</p>'),
+    m.mcq(3, 'satellite', '<p>Because of air drag a satellite loses energy and moves to a lower orbit. Its speed:</p>', 'increases', ['decreases', 'stays the same', 'becomes zero'], '<p>v = √(GM/r) rises as r falls (E = −K becomes more negative).</p>'),
+    m.ar(2, 'satellite', 'An astronaut in a satellite feels weightless.', 'The satellite and the astronaut are in free fall with the same acceleration.', 0, '<p>Both true and R explains A: there is no contact force between them.</p>'),
+    m.ar(2, 'escape', 'The escape speed from the Moon is much smaller than from the Earth.', 'The Moon has a smaller M/R than the Earth.', 0, '<p>Both true and R explains A: v_esc ∝ √(M/R).</p>'),
+    m.ar(3, 'g', 'The weight of a body is zero at the centre of the Earth.', 'The Earth’s gravitational pull cancels there.', 0, '<p>Both true and R explains A: the mass is spread all around, so the pulls cancel (g = 0).</p>'),
+    m.ar(3, 'kepler', 'A planet’s speed is constant along its orbit.', 'Gravity is the only force on the planet.', 3, '<p>A is false (equal-area law: faster near the Sun). R is true but is not a reason for A.</p>'),
+    m.nat(2, 'law', '<p>Two 1000 kg bodies are 2 m apart. The force between them is how many micronewtons? (G = 6.67 × 10⁻¹¹; 1 µN = 10⁻⁶ N)</p>', () => 6.67e-11 * 1e6 / 4 * 1e6, 0.02, '<p>F = G m²/r² = 6.67×10⁻¹¹ × 10⁶ / 4 = 1.67×10⁻⁵ N = 16.7 µN.</p>', { unit: 'µN' }),
+    m.nat(3, 'g', '<p>Find g (m/s²) at a height of 1600 km above the Earth. (g = 9.8, R = 6400 km.)</p>', () => 9.8 * (6400 / 8000) ** 2, 0.01, '<p>g′ = 9.8 × (6400/8000)² = 9.8 × 0.64 = 6.27 m/s².</p>', { unit: 'm/s²' }),
+    m.nat(3, 'escape', '<p>A planet has the same mass as the Earth but half its radius. The escape speed from the Earth is 11.2 km/s. Find it for the planet, in km/s.</p>', () => 11.2 * Math.SQRT2, 0.01, '<p>v ∝ 1/√R, so v = 11.2 × √2 = 15.8 km/s.</p>', { unit: 'km/s' }),
+    m.nat(3, 'satellite', '<p>A satellite orbits at a radius 4 times the Earth’s radius. If the speed just above the surface is 7.9 km/s, find its speed in km/s.</p>', () => 7.9 / 2, 0.01, '<p>v ∝ 1/√r, so v = 7.9/√4 = 3.95 km/s.</p>', { unit: 'km/s' }),
+    m.msq(3, 'satellite', '<p>For a satellite in a circular orbit around the Earth, which are true? (Choose all that apply.)</p>', ['Its kinetic energy is positive and half the magnitude of its potential energy.', 'Its total energy is negative.', 'Its speed is greater in a higher orbit.', 'Gravity supplies the centripetal force.'], [0, 1, 3], '<p>K = GMm/2r, |U| = GMm/r, E = −K. A higher orbit is slower, v = √(GM/r).</p>'),
+  ],
+  gens: [
+    { id: 'gr-g01', type: 'nat', level: 2, exams: ['board'], sub: 'g',
+      make(rng) { const h = choose(rng, [100, 500, 1000, 3185, 6371]); return { h, q: `<p>Find g at a height of ${h} km above the Earth in m/s² (g = 9.8 m/s², R = 6371 km).</p>`, answer: 9.8 * (6371 / (6371 + h)) ** 2, tol: 0.01, unit: 'm/s²', sol: `<p>g′ = 9.8 × (6371/${6371 + h})² = ${r3(9.8 * (6371 / (6371 + h)) ** 2)} m/s².</p>` }; },
+      verify: (p) => { const f = 6371 / (6371 + p.h); return 9.8 * f * f; } },
+    { id: 'gr-g02', type: 'nat', level: 3, exams: ['board'], sub: 'kepler',
+      make(rng) { const a = choose(rng, [0.5, 2, 4, 9, 16, 25]); return { a, q: `<p>A planet orbits the Sun at ${a} AU. Find its period in years.</p>`, answer: a ** 1.5, tol: 0.01, unit: 'years', sol: `<p>T² = a³, T = ${a}^1.5 = ${r3(a ** 1.5)} years.</p>` }; },
+      verify: (p) => Math.sqrt(p.a ** 3) },
+    { id: 'gr-g03', type: 'nat', level: 3, exams: ['board'], sub: 'escape',
+      make(rng) { const f = choose(rng, [0.5, 2, 4, 9]), rr = choose(rng, [0.5, 1, 2, 4]); return { f, rr, q: `<p>A planet has ${f} times the Earth’s mass and ${rr} times its radius. Find the escape speed in km/s given that it is 11.2 km/s for the Earth.</p>`, answer: 11.2 * Math.sqrt(f / rr), tol: 0.01, unit: 'km/s', sol: `<p>v ∝ √(M/R): 11.2 × √(${f}/${rr}) = ${r3(11.2 * Math.sqrt(f / rr))} km/s.</p>` }; },
+      verify: (p) => 11.2 * Math.sqrt(p.f) / Math.sqrt(p.rr) },
+    { id: 'gr-g04', type: 'nat', level: 3, exams: ['board'], sub: 'satellite',
+      make(rng) { const h = choose(rng, [300, 600, 1000, 20200, 35786]); const r = (6371 + h) * 1000; return { h, q: `<p>Find the orbital period in hours of a satellite at a height of ${h} km above the Earth. (GM = 3.986 × 10¹⁴ m³/s², R = 6371 km)</p>`, answer: 2 * Math.PI * Math.sqrt(r ** 3 / 3.986e14) / 3600, tol: 0.02, unit: 'h', sol: `<p>T = 2π√(r³/GM) = ${r3(2 * Math.PI * Math.sqrt(r ** 3 / 3.986e14) / 3600)} h.</p>` }; },
+      verify: (p) => { const r = (6371 + p.h) * 1000, v = Math.sqrt(3.986e14 / r); return 2 * Math.PI * r / v / 3600; } },
+  ],
+};

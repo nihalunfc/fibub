@@ -1,0 +1,56 @@
+// Class 11 Physics, Chapter 6 System of Particles and Rotational Motion: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('rt');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'system-of-particles-and-rotational-motion', name: 'System of Particles and Rotational Motion', n: 6,
+  items: [
+    m.mcq(1, 'com', '<p>The centre of mass of a uniform ring lies:</p>', 'at its geometric centre, where there is no mass', ['on the ring itself', 'at the heaviest point', 'at the edge'], '<p>By symmetry the average position is the centre, in the empty middle.</p>'),
+    m.mcq(2, 'com', '<p>Masses of 2 kg at x = 0 and 6 kg at x = 8 m. The centre of mass is at:</p>', 'x = 6 m', ['x = 4 m', 'x = 2 m', 'x = 5 m'], '<p>X = (2×0 + 6×8)/8 = 6 m, nearer the heavier mass.</p>'),
+    m.mcq(2, 'com', '<p>A shell explodes in mid-air. The centre of mass of the fragments (ignoring air) continues to:</p>', 'follow the original parabola', ['fall straight down', 'stop', 'move in a circle'], '<p>Explosion forces are internal, so only gravity (external) acts on the system’s CM.</p>'),
+    m.mcq(3, 'com', '<p>A uniform disc of radius R has a circular hole of radius R/2 whose centre is R/2 from the centre of the disc. The centre of mass of the remaining part is at:</p>', 'R/6 from the disc centre, on the side away from the hole', ['R/2 towards the hole', 'at the centre of the disc', 'R/3 towards the hole'], '<p>x = −(M/4)(R/2)/(3M/4) = −R/6.</p>'),
+    m.mcq(1, 'vector', '<p>The vector product of two parallel vectors is:</p>', 'zero', ['maximum', 'a scalar', 'equal to their sum'], '<p>|a × b| = ab sin θ; θ = 0 gives zero.</p>'),
+    m.mcq(2, 'kinematics', '<p>A wheel starts from rest and gets a constant angular acceleration of 2 rad/s². Its angular speed after 5 s is:</p>', '10 rad/s', ['5 rad/s', '2.5 rad/s', '25 rad/s'], '<p>ω = αt = 2 × 5 = 10 rad/s.</p>'),
+    m.mcq(2, 'kinematics', '<p>Two points on a rotating disc are at 0.1 m and 0.3 m from the axis. The ratio of their angular speeds is:</p>', '1 : 1', ['1 : 3', '3 : 1', '1 : 9'], '<p>All points of a rigid body share the same ω; only their linear speeds differ (v = ωr).</p>'),
+    m.mcq(2, 'kinematics', '<p>A point on the rim of a wheel of radius 0.5 m rotates at 4 rad/s. Its centripetal acceleration is:</p>', '8 m/s²', ['2 m/s²', '16 m/s²', '4 m/s²'], '<p>a_c = ω²r = 16 × 0.5 = 8 m/s².</p>'),
+    m.mcq(1, 'torque', '<p>Torque is the product of force and:</p>', 'the perpendicular distance of its line of action from the axis', ['the angle', 'the time', 'the mass'], '<p>τ = F × lever arm.</p>'),
+    m.mcq(2, 'torque', '<p>A 20 N force acts perpendicular to a 0.5 m spanner. The torque is:</p>', '10 N m', ['40 N m', '10 J', '2.5 N m'], '<p>τ = r F sin 90° = 0.5 × 20 = 10 N m.</p>'),
+    m.mcq(3, 'torque', '<p>A force is applied to a door at a point 0.8 m from the hinge, at 30° to the door’s plane. The force is 50 N. The torque is:</p>', '20 N m', ['40 N m', '34.6 N m', '10 N m'], '<p>τ = r F sin 30° = 0.8 × 50 × 0.5 = 20 N m.</p>'),
+    m.mcq(2, 'equilibrium', '<p>A rigid body is in complete mechanical equilibrium when:</p>', 'the net force and the net torque are both zero', ['only the net force is zero', 'only the net torque is zero', 'it is at rest'], '<p>Both conditions are needed. (A couple has zero net force but nonzero torque.)</p>'),
+    m.mcq(2, 'equilibrium', '<p>A 2 kg mass is 0.3 m from the pivot of a light bar. What mass 0.2 m from the pivot on the other side balances it?</p>', '3 kg', ['2 kg', '4 kg', '1.33 kg'], '<p>2 × 0.3 = m × 0.2, m = 3 kg.</p>'),
+    m.mcq(1, 'moi', '<p>The moment of inertia of a body depends on:</p>', 'its mass, its shape and the position of the axis', ['its mass only', 'its angular speed', 'the torque applied'], '<p>I = Σmr² about the chosen axis.</p>'),
+    m.mcq(2, 'moi', '<p>Which has the greatest moment of inertia about its central axis, for the same mass and radius?</p>', 'a thin ring', ['a solid disc', 'a solid sphere', 'a hollow sphere'], '<p>Ring MR², hollow sphere ⅔MR², disc ½MR², solid sphere ⅖MR². The ring has all its mass at the rim.</p>'),
+    m.mcq(2, 'moi', '<p>The moment of inertia of a thin rod (mass M, length L) about an axis through its centre perpendicular to it is ML²/12. About one end it is:</p>', 'ML²/3', ['ML²/6', 'ML²/4', 'ML²/12'], '<p>Parallel axis: ML²/12 + M(L/2)² = ML²/3.</p>'),
+    m.mcq(3, 'moi', '<p>The moment of inertia of a uniform disc about a diameter is:</p>', '¼ M R²', ['½ M R²', '⅖ M R²', 'M R²'], '<p>Perpendicular-axis theorem: I_z = I_x + I_y gives ½MR² = 2 I_d, so I_d = ¼MR².</p>'),
+    m.mcq(3, 'moi', '<p>A ring of mass M and radius R turns about an axis through a point on its rim, perpendicular to its plane. The moment of inertia is:</p>', '2 M R²', ['M R²', '3/2 M R²', '½ M R²'], '<p>I = MR² + MR² = 2MR² by the parallel-axis theorem.</p>'),
+    m.mcq(2, 'dynamics', '<p>A constant torque is applied to two wheels of the same mass, one with a smaller moment of inertia. It will have:</p>', 'a larger angular acceleration', ['a smaller angular acceleration', 'the same angular acceleration', 'zero acceleration'], '<p>α = τ/I.</p>'),
+    m.mcq(2, 'angular', '<p>A skater with arms out spins at ω. She pulls her arms in so that her moment of inertia halves. Her angular speed becomes:</p>', '2ω', ['ω/2', 'ω', '4ω'], '<p>I₁ω = (I₁/2)ω′, so ω′ = 2ω.</p>'),
+    m.mcq(3, 'angular', '<p>When the skater pulls her arms in, her kinetic energy:</p>', 'increases, because she does work pulling them in', ['stays constant', 'decreases', 'becomes zero'], '<p>K = L²/2I rises as I falls. The work comes from her muscles.</p>'),
+    m.mcq(3, 'rolling', '<p>The fraction of the total kinetic energy that is translational for a solid sphere rolling without slipping is:</p>', '5/7', ['2/7', '1/2', '2/5'], '<p>K_trans = ½Mv², K_rot = ⅕Mv²; fraction = 0.5/0.7 = 5/7.</p>'),
+    m.mcq(2, 'rolling', '<p>Solid sphere, disc, ring and hollow sphere roll from rest down the same incline. The last to arrive is the:</p>', 'ring', ['disc', 'solid sphere', 'hollow sphere'], '<p>The ring has the largest I/MR² (= 1), so the smallest acceleration.</p>'),
+    m.ar(2, 'angular', 'A spinning ice skater speeds up when she pulls in her arms.', 'Angular momentum is conserved when no external torque acts.', 0, '<p>Both true and R explains A: I falls so ω rises.</p>'),
+    m.ar(2, 'moi', 'A solid sphere and a hollow sphere of equal mass and radius have different moments of inertia.', 'The hollow sphere has more of its mass far from the axis.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'torque', 'A couple can produce rotation but no translation.', 'The net force of a couple is zero.', 0, '<p>Both true and R explains A: equal and opposite forces cancel but their torques add.</p>'),
+    m.ar(3, 'com', 'The centre of mass of a body can lie outside the body.', 'The centre of mass is always at the geometric centre.', 2, '<p>A is true (a ring, a boomerang). R is false: the CM is at the geometric centre only for uniform symmetrical bodies.</p>'),
+    m.nat(2, 'torque', '<p>A 15 N force acts at right angles to a 0.4 m handle. Find the torque in N m.</p>', () => 15 * 0.4, 0.01, '<p>τ = r F = 6 N m.</p>', { unit: 'N m' }),
+    m.nat(3, 'moi', '<p>A disc of mass 4 kg and radius 0.5 m. Find its moment of inertia about an axis through its centre perpendicular to its plane, in kg m².</p>', () => 0.5 * 4 * 0.25, 0.01, '<p>I = ½MR² = 0.5 × 4 × 0.25 = 0.5 kg m².</p>', { unit: 'kg m²' }),
+    m.nat(3, 'angular', '<p>A flywheel of moment of inertia 2 kg m² spins at 10 rad/s. Find its kinetic energy in joules.</p>', () => 0.5 * 2 * 100, 0.01, '<p>K = ½Iω² = 100 J.</p>', { unit: 'J' }),
+    m.msq(3, 'rolling', '<p>A disc rolls without slipping on a horizontal surface. Which are true? (Choose all that apply.)</p>', ['The contact point is momentarily at rest.', 'The speed of the centre is ωR.', 'The speed of the top point is 2ωR.', 'Friction at the contact point dissipates energy as heat.'], [0, 1, 2], '<p>For pure rolling the contact point has zero velocity, v_cm = ωR and the top moves at v_cm + ωR = 2ωR. Static friction does no work, so there is no heat loss.</p>'),
+  ],
+  gens: [
+    { id: 'rt-g01', type: 'nat', level: 2, exams: ['board'], sub: 'com',
+      make(rng) { const m1 = pick(rng, 1, 6, 1), m2 = pick(rng, 2, 9, 1), d = pick(rng, 2, 10, 1); return { m1, m2, d, q: `<p>A ${m1} kg and a ${m2} kg mass are ${d} m apart. How far is their centre of mass from the ${m2} kg mass, in metres?</p>`, answer: m1 * d / (m1 + m2), tol: 0.01, unit: 'm', sol: `<p>The CM is closer to the heavier mass: ${m1}×${d}/(${m1}+${m2}) = ${r3(m1 * d / (m1 + m2))} m.</p>` }; },
+      verify: (p) => { const x = (p.m1 * 0 + p.m2 * p.d) / (p.m1 + p.m2); return p.d - x; } },
+    { id: 'rt-g02', type: 'nat', level: 3, exams: ['board'], sub: 'moi',
+      make(rng) { const M = pick(rng, 1, 10, 1), R = choose(rng, [0.2, 0.4, 0.5]), d = choose(rng, [0.1, 0.2, 0.3]); return { M, R, d, q: `<p>A solid disc of mass ${M} kg and radius ${R} m turns about an axis perpendicular to its plane, ${d} m from the centre. Find I in kg m².</p>`, answer: M * (0.5 * R * R + d * d), tol: 0.01, unit: 'kg m²', sol: `<p>I = ½MR² + Md² = ${r3(0.5 * M * R * R)} + ${r3(M * d * d)} = ${r3(M * (0.5 * R * R + d * d))} kg m².</p>` }; },
+      verify: (p) => 0.5 * p.M * p.R * p.R + p.M * p.d * p.d },
+    { id: 'rt-g03', type: 'nat', level: 3, exams: ['board'], sub: 'angular',
+      make(rng) { const I1 = choose(rng, [2, 3, 4, 6]), I2 = choose(rng, [0.5, 1, 1.5]), w = pick(rng, 2, 8, 1); return { I1, I2, w, q: `<p>A rotating platform has I = ${I1} kg m² and spins at ${w} rad/s. It changes shape to I = ${I2} kg m² with no external torque. Find the new angular speed in rad/s.</p>`, answer: I1 * w / I2, tol: 0.01, unit: 'rad/s', sol: `<p>I₁ω₁ = I₂ω₂, so ω₂ = ${I1}×${w}/${I2} = ${r3(I1 * w / I2)} rad/s.</p>` }; },
+      verify: (p) => { const L = p.I1 * p.w; return L / p.I2; } },
+    { id: 'rt-g04', type: 'nat', level: 3, exams: ['board'], sub: 'rolling',
+      make(rng) { const th = choose(rng, [20, 30, 45]), c = choose(rng, [0.4, 0.5, 0.6667, 1]); return { th, c, q: `<p>A body with I = ${c} M R² rolls without slipping down a ${th}° incline. Find its acceleration in m/s² (g = 9.8).</p>`, answer: 9.8 * Math.sin(th * Math.PI / 180) / (1 + c), tol: 0.01, unit: 'm/s²', sol: `<p>a = g sin θ/(1 + ${c}) = ${r3(9.8 * Math.sin(th * Math.PI / 180) / (1 + c))} m/s².</p>` }; },
+      verify: (p) => { const g = 9.8 * Math.sin(p.th * Math.PI / 180); return g / (1 + p.c); } },
+  ],
+};
