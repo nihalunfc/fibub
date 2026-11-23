@@ -1,0 +1,65 @@
+// Class 11 Maths, Chapter 1 Sets: question bank (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('st');
+const T = String.raw;
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+const C = (n, k) => (k === 0 || k === n ? 1 : C(n - 1, k - 1) + C(n - 1, k));
+
+export default {
+  topic: 'sets', name: 'Sets', n: 1,
+  items: [
+    m.mcq(1, 'basics', T`<p>Which of these is the empty set?</p>`, T`$\{x : x \in \mathbb{N},\ 1 < x < 2\}$`, [T`$\{0\}$`, T`$\{\varnothing\}$`, T`$\{x : x^2 = 4\}$`], T`<p>No natural number lies strictly between 1 and 2, so the set has no element. $\{0\}$ has one element, and $\{\varnothing\}$ has one element (the empty set).</p>`, { trap: '{0} and {∅} are NOT empty: each has one element.' }),
+    m.mcq(1, 'basics', T`<p>The roster form of $\{x : x \text{ is a vowel in the word ENGLISH}\}$ is:</p>`, T`$\{E, I\}$`, [T`$\{E, I, A\}$`, T`$\{E, G, I\}$`, T`$\{E, N, L, S, H\}$`], T`<p>The vowels in E-N-G-L-I-S-H are E and I.</p>`),
+    m.mcq(1, 'subsets', T`<p>How many subsets does $\{a, b, c\}$ have?</p>`, '8', ['3', '6', '9'], T`<p>$2^3 = 8$ (each element is in or out).</p>`),
+    m.mcq(2, 'subsets', T`<p>How many <b>proper</b> subsets does a set with 4 elements have?</p>`, '15', ['16', '14', '8'], T`<p>All subsets: $2^4 = 16$. A proper subset leaves out the set itself, so $16 - 1 = 15$.</p>`, { trap: 'Proper subsets exclude the whole set (but include ∅).' }),
+    m.mcq(1, 'operations', T`<p>$A = \{1, 2, 3\}$, $B = \{2, 3, 4\}$. Then $A \cup B =$</p>`, T`$\{1, 2, 3, 4\}$`, [T`$\{2, 3\}$`, T`$\{1, 4\}$`, T`$\{1, 2, 2, 3, 3, 4\}$`], T`<p>Union: everything in A or B, each element written once.</p>`),
+    m.mcq(1, 'operations', T`<p>$A = \{1, 2, 3\}$, $B = \{2, 3, 4\}$. Then $A \cap B =$</p>`, T`$\{2, 3\}$`, [T`$\{1, 4\}$`, T`$\{1, 2, 3, 4\}$`, T`$\{1\}$`], T`<p>Intersection: elements in both sets.</p>`),
+    m.mcq(1, 'operations', T`<p>$A = \{1, 2, 3\}$, $B = \{2, 3, 4\}$. Then $A - B =$</p>`, T`$\{1\}$`, [T`$\{4\}$`, T`$\{1, 4\}$`, T`$\{2, 3\}$`], T`<p>In A but not in B: only 1. ($B - A = \{4\}$.)</p>`),
+    m.mcq(1, 'operations', T`<p>$U = \{1, \dots, 10\}$, $A = \{2, 4, 6, 8, 10\}$. Then $A'$ is:</p>`, T`$\{1, 3, 5, 7, 9\}$`, [T`$\{2, 4, 6, 8, 10\}$`, T`$\{1, 2, 3, 4, 5\}$`, T`$\varnothing$`], T`<p>The complement holds everything in U that is not in A.</p>`),
+    m.mcq(2, 'counting', T`<p>$n(A) = 20$, $n(B) = 15$, $n(A \cap B) = 5$. Then $n(A \cup B) =$</p>`, '30', ['35', '40', '25'], T`<p>$20 + 15 - 5 = 30$.</p>`, { trap: 'Forgetting to subtract the overlap gives 35.' }),
+    m.mcq(2, 'operations', T`<p>By De Morgan's law, $(A \cup B)'$ equals:</p>`, T`$A' \cap B'$`, [T`$A' \cup B'$`, T`$A \cap B$`, T`$(A \cap B)'$`], T`<p>Not (in A or B) means not in A and not in B.</p>`),
+    m.mcq(2, 'subsets', T`<p>If $A \subseteq B$, then $A \cap B$ equals:</p>`, '$A$', ['$B$', T`$\varnothing$`, '$A \\cup B$'], T`<p>Everything in A is already in B, so the common part is all of A.</p>`),
+    m.mcq(2, 'intervals', T`<p>$[2, 5) \cap (3, 7] =$</p>`, '$(3, 5)$', ['$[3, 5]$', '$[2, 7]$', '$(3, 5]$'], T`<p>Start at the larger left end 3 (open, because 3 is not in the second interval), stop at the smaller right end 5 (open, because 5 is not in the first).</p>`),
+    m.mcq(2, 'intervals', T`<p>$[1, 4] \cup (2, 6) =$</p>`, '$[1, 6)$', ['$[1, 6]$', '$(2, 4]$', '$(1, 6)$'], T`<p>Together they cover 1 up to (not including) 6, with 1 included.</p>`),
+    m.mcq(1, 'subsets', T`<p>The number of elements of the power set of a set with 5 elements is:</p>`, '32', ['25', '10', '5'], T`<p>$2^5 = 32$.</p>`),
+    m.mcq(1, 'basics', T`<p>Which two sets are equal?</p>`, T`$\{1, 2, 3\}$ and $\{3, 2, 1, 1\}$`, [T`$\{1, 2\}$ and $\{1, 2, 3\}$`, T`$\{1\}$ and $\{\{1\}\}$`, T`$\varnothing$ and $\{0\}$`], T`<p>Order and repeats do not matter; both sets contain exactly 1, 2 and 3.</p>`),
+    m.mcq(2, 'intervals', T`<p>The complement of $(-2, 3]$ in $\mathbb{R}$ is:</p>`, T`$(-\infty, -2] \cup (3, \infty)$`, [T`$(-\infty, -2) \cup [3, \infty)$`, T`$[-2, 3)$`, T`$(-\infty, 3]$`], T`<p>Everything not in the interval: the left piece includes $-2$ (it was left out) and the right piece starts after 3.</p>`),
+    m.mcq(2, 'subsets', T`<p>$A \subset B$ means:</p>`, 'every element of A is also in B (and B has something more)', ['every element of B is in A', 'A and B share no element', 'A has more elements than B'], T`<p>That is the definition of a (proper) subset.</p>`),
+    m.ar(1, 'subsets', 'Every set is a subset of itself.', 'Every element of A is an element of A.', 0, T`<p>Both true; R is exactly the definition of subset applied to $A \subseteq A$.</p>`),
+    m.ar(2, 'subsets', 'The empty set is a subset of every set.', 'The empty set has no element that could fail to belong to another set.', 0, T`<p>Both true, and R is the reason.</p>`),
+    m.ar(2, 'counting', 'n(A ∪ B) = n(A) + n(B) for any two finite sets.', 'n(A ∪ B) = n(A) + n(B) − n(A ∩ B).', 3, T`<p>A is false in general (it only holds when A and B do not overlap). R is the correct rule.</p>`),
+    m.ar(3, 'operations', "(A ∪ B)′ = A′ ∪ B′", "(A ∪ B)′ = A′ ∩ B′ (De Morgan).", 3, T`<p>A is false; the complement of a union is the intersection of the complements. R is true.</p>`),
+    m.nat(1, 'subsets', T`<p>How many subsets does a set with 6 elements have?</p>`, () => 2 ** 6, 0, T`<p>$2^6 = 64$.</p>`),
+    m.nat(2, 'counting', T`<p>$n(A) = 40$, $n(B) = 25$, $n(A \cap B) = 10$. Find $n(A \cup B)$.</p>`, () => 40 + 25 - 10, 0, T`<p>$40 + 25 - 10 = 55$.</p>`),
+    m.nat(2, 'counting', T`<p>In a group of 100 students, 60 play cricket, 45 play football and 20 play both. How many play neither?</p>`, () => 100 - (60 + 45 - 20), 0, T`<p>At least one game: $60 + 45 - 20 = 85$. Neither: $100 - 85 = 15$.</p>`),
+    m.nat(2, 'subsets', T`<p>How many subsets of $\{1, 2, 3, 4, 5\}$ have exactly 2 elements?</p>`, () => C(5, 2), 0, T`<p>$\binom{5}{2} = 10$.</p>`),
+    m.nat(3, 'counting', T`<p>How many numbers from 1 to 100 are divisible by 6 or by 15?</p>`, () => Math.floor(100 / 6) + Math.floor(100 / 15) - Math.floor(100 / 30), 0, T`<p>$16 + 6 - 3 = 19$ (the overlap is the multiples of 30).</p>`),
+    m.nat(3, 'counting', T`<p>$n(A) = 12$, $n(B) = 9$, $n(A \cap B) = 4$. How many elements are in exactly one of A and B?</p>`, () => 12 + 9 - 2 * 4, 0, T`<p>$(12 - 4) + (9 - 4) = 13$.</p>`),
+    m.msq(2, 'subsets', T`<p>For $A = \{1, 2, 3\}$ which statements are true? (Choose all that apply.)</p>`, [T`$\varnothing \subset A$`, T`$\{1, 2\} \subset A$`, T`$2 \in A$`, T`$\{2\} \in A$`], [0, 1, 2], T`<p>$\{2\}$ is a subset of A, not an element: $\{2\} \subset A$ but $\{2\} \notin A$.</p>`, { trap: 'Mixing up ∈ (element of) and ⊂ (subset of).' }),
+    m.msq(2, 'operations', T`<p>Which are always true for any sets A and B? (Choose all that apply.)</p>`, [T`$A \cap B \subseteq A$`, T`$A \subseteq A \cup B$`, T`$A - B \subseteq B$`, T`$A \cup B \subseteq A \cap B$`], [0, 1], T`<p>The last two fail, for example for $A = \{1\}$, $B = \{2\}$.</p>`),
+  ],
+  gens: [
+    { id: 'st-g01', type: 'nat', level: 2, exams: ['board'], sub: 'subsets',
+      make(rng) { const n = pick(rng, 5, 9), k = pick(rng, 2, 3); return { n, k, q: `<p>How many subsets of a set with ${n} elements have exactly ${k} elements?</p>`, answer: C(n, k), tol: 0, sol: `<p>$\\binom{${n}}{${k}} = ${C(n, k)}$.</p>` }; },
+      verify: (p) => { let c = 0; for (let mask = 0; mask < 1 << p.n; mask++) { let b = 0; for (let i = 0; i < p.n; i++) if (mask >> i & 1) b++; if (b === p.k) c++; } return c; } },
+    { id: 'st-g02', type: 'nat', level: 2, exams: ['board'], sub: 'counting',
+      make(rng) { const both = pick(rng, 5, 20), a = pick(rng, 10, 40), b = pick(rng, 10, 40), none = pick(rng, 3, 15), N = a + b + both + none; return { a, b, both, none, N, q: `<p>Of ${N} people, ${a + both} like tea, ${b + both} like coffee and ${both} like both. How many like neither?</p>`, answer: none, tol: 0, sol: `<p>At least one: $${a + both} + ${b + both} - ${both} = ${a + b + both}$. Neither: $${N} - ${a + b + both} = ${none}$.</p>` }; },
+      verify: (p) => p.N - p.a - p.b - p.both },
+    { id: 'st-g03', type: 'nat', level: 3, exams: ['board'], sub: 'counting',
+      make(rng) { const abc = pick(rng, 1, 5), ab = abc + pick(rng, 1, 6), bc = abc + pick(rng, 1, 6), ca = abc + pick(rng, 1, 6), A = ab + ca - abc + pick(rng, 3, 15), B = ab + bc - abc + pick(rng, 3, 15), Cc = bc + ca - abc + pick(rng, 3, 15); return { A, B, Cc, ab, bc, ca, abc, q: `<p>$n(A) = ${A}$, $n(B) = ${B}$, $n(C) = ${Cc}$, $n(A \\cap B) = ${ab}$, $n(B \\cap C) = ${bc}$, $n(C \\cap A) = ${ca}$, $n(A \\cap B \\cap C) = ${abc}$. Find $n(A \\cup B \\cup C)$.</p>`, answer: A + B + Cc - ab - bc - ca + abc, tol: 0, sol: `<p>$${A} + ${B} + ${Cc} - ${ab} - ${bc} - ${ca} + ${abc} = ${A + B + Cc - ab - bc - ca + abc}$.</p>` }; },
+      verify: (p) => { const x = p.ab - p.abc, y = p.bc - p.abc, z = p.ca - p.abc; return (p.A - x - z - p.abc) + (p.B - x - y - p.abc) + (p.Cc - y - z - p.abc) + x + y + z + p.abc; } },
+    { id: 'st-g04', type: 'nat', level: 2, exams: ['board'], sub: 'intervals',
+      make(rng) { const a = pick(rng, -8, 0), b = a + pick(rng, 4, 10), c = pick(rng, -6, 4), d = c + pick(rng, 3, 10); return { a, b, c, d, q: `<p>Find the length of $[${a}, ${b}] \\cap [${c}, ${d}]$ (0 if they do not meet).</p>`, answer: Math.max(0, Math.min(b, d) - Math.max(a, c)), tol: 0, sol: `<p>Left end $\\max(${a}, ${c}) = ${Math.max(a, c)}$, right end $\\min(${b}, ${d}) = ${Math.min(b, d)}$.</p>` }; },
+      verify: (p) => { let k = 0; for (let x = p.a * 10; x <= p.b * 10; x++) if (x >= p.c * 10 && x <= p.d * 10) k++; return k ? (k - 1) / 10 : 0; } },
+    { id: 'st-g05', type: 'nat', level: 3, exams: ['board'], sub: 'counting',
+      make(rng) { const a = choose(rng, [3, 4, 5, 6]), b = choose(rng, [7, 8, 9, 10]), N = pick(rng, 60, 200); let c = 0; for (let x = 1; x <= N; x++) if (x % a === 0 || x % b === 0) c++; return { a, b, N, q: `<p>How many numbers from 1 to ${N} are divisible by ${a} or by ${b}?</p>`, answer: c, tol: 0, sol: `<p>$\\lfloor ${N}/${a} \\rfloor + \\lfloor ${N}/${b} \\rfloor - \\lfloor ${N}/${(a * b) / gcd(a, b)} \\rfloor = ${c}$.</p>` }; },
+      verify: (p) => { const l = (p.a * p.b) / gcd(p.a, p.b); return Math.floor(p.N / p.a) + Math.floor(p.N / p.b) - Math.floor(p.N / l); } },
+    { id: 'st-g06', type: 'nat', level: 2, exams: ['board'], sub: 'counting',
+      make(rng) { const both = pick(rng, 3, 12), a = pick(rng, 4, 20), b = pick(rng, 4, 20); return { both, a, b, q: `<p>$n(A) = ${a + both}$, $n(B) = ${b + both}$, $n(A \\cap B) = ${both}$. How many elements are in exactly one of A, B?</p>`, answer: a + b, tol: 0, sol: `<p>$(${a + both} - ${both}) + (${b + both} - ${both}) = ${a + b}$.</p>` }; },
+      verify: (p) => (p.a + p.both) + (p.b + p.both) - 2 * p.both },
+    { id: 'st-g07', type: 'nat', level: 1, exams: ['board'], sub: 'subsets',
+      make(rng) { const n = pick(rng, 3, 9); return { n, q: `<p>A set has ${n} elements. How many proper subsets does it have?</p>`, answer: 2 ** n - 1, tol: 0, sol: `<p>$2^{${n}} - 1 = ${2 ** n - 1}$.</p>` }; },
+      verify: (p) => { let c = 0; for (let mask = 0; mask < (1 << p.n) - 1; mask++) c++; return c; } },
+  ],
+};
