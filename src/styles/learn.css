@@ -41,6 +41,12 @@ a.lc:hover, a.lc:focus-visible { border-color: var(--accent); }
 .lc .lh-ico { width: 30px; height: 30px; margin-top: 2px; }
 .lc-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .lc-b strong { font-size: 15.5px; line-height: 1.3; }
+.lc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 1px; }
+.lc-lv, .lc-sz { font-size: 11.5px; font-weight: 600; line-height: 1; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); }
+.lc-lv::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; background: currentColor; }
+.lv-beginner { color: var(--good, #1a7f37); }
+.lv-intermediate { color: var(--warn, #9a6700); }
+.lv-advanced { color: var(--bad, #b42318); }
 .lc-m { font-size: 12.5px; font-weight: 600; color: var(--accent); }
 .lc-t { font-size: 13.5px; line-height: 1.45; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .lc.soon { opacity: .72; border-style: dashed; }
@@ -149,3 +155,6 @@ a.lc:hover, a.lc:focus-visible { border-color: var(--accent); }
   .lh-compact .lc-b strong { font-size: 14px; }
   .lh-compact .lc-p { left: 10px; right: 10px; bottom: 5px; }
 }
+
+.lh-lv { margin-top: 6px; }
+.lh-key { font-size: 12.5px; margin: 6px 0 4px; }

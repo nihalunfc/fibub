@@ -1,10 +1,10 @@
 ---
-// Every course in one place, with a filter by category (radio chips: works with no script).
+// Every course in one place, with a filter by category and by level (radio chips: works with no script).
 import Base from '../../layouts/Base.astro';
 import CourseCard from '../../components/learn/CourseCard.astro';
 import LearnMore from '../../components/learn/LearnMore.astro';
 import { courseCards } from '../../lib/learn';
-import { COURSE_CATS } from '../../data/curricula';
+import { COURSE_CATS, LEVELS } from '../../data/curricula';
 import { collectionLd } from '../../lib/seo';
 import '../../styles/area.css';
 import '../../styles/learn.css';
@@ -13,7 +13,10 @@ const n = (cat?: string) => cards.filter((c) => c.status === 'live' && (!cat || 
 // One section per category (nihal, 2026-11-22: organised, not one mixed list); the chips show one section.
 const sections = COURSE_CATS.map((k) => ({ ...k, live: cards.filter((c) => c.cat === k.id && c.status === 'live') })).filter((k) => k.live.length);
 const soon = cards.filter((c) => c.status !== 'live');
-const css = COURSE_CATS.map((k) => `.lh-f:has(#f-${k.id}:checked) [data-sec]:not([data-sec="${k.id}"]){display:none}`).join('');
+const css = COURSE_CATS.map((k) => `.lh-f:has(#f-${k.id}:checked) [data-sec]:not([data-sec="${k.id}"]){display:none}`).join('')
+  // Level chips (nihal, 2026-11-23): show only beginner, intermediate or advanced courses; empty topics fold away.
+  + LEVELS.map((l) => `.lh-f:has(#v-${l.id}:checked) .lc:not([data-level="${l.id}"]),.lh-f:has(#v-${l.id}:checked) [data-sec]:not(:has(.lc[data-level="${l.id}"])){display:none}`).join('');
+const nl = (lv: string) => cards.filter((c) => c.status === 'live' && c.level === lv).length;
 const title = 'Learn: Courses';
 const desc = 'Every free fibub course by topic: SQL, Power BI, statistics, pandas and machine learning; astronomy and cosmology; SAT, GRE, IELTS and physics exams; startups and home skills. No sign-up.';
 ---
@@ -22,7 +25,7 @@ const desc = 'Every free fibub course by topic: SQL, Power BI, statistics, panda
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / Courses</div>
   <div class="lh-head">
     <h1>Courses</h1>
-    <p class="lead">{n()} free courses with no sign-up. Pick a topic to narrow the list.</p>
+    <p class="lead">{n()} free courses with no sign-up. Pick a topic or a level to narrow the list.</p>
   </div>
   <section class="lh-cont" data-continue hidden aria-label="Continue where you left off"><h2>Continue where you left off</h2><ul></ul></section>
   <div class="lh-f">
@@ -30,6 +33,11 @@ const desc = 'Every free fibub course by topic: SQL, Power BI, statistics, panda
       <input type="radio" name="cat" id="f-all" value="all" data-hash checked /><label for="f-all">All <small>{n()}</small></label>
       {COURSE_CATS.map((k) => <><input type="radio" name="cat" id={`f-${k.id}`} value={k.id} data-hash /><label for={`f-${k.id}`}>{k.short} <small>{n(k.id)}</small></label></>)}
     </div>
+    <div class="lh-tabs lh-lv" role="radiogroup" aria-label="Level">
+      <input type="radio" name="lv" id="v-all" value="all" checked /><label for="v-all">Any level</label>
+      {LEVELS.map((l) => <><input type="radio" name="lv" id={`v-${l.id}`} value={l.id} /><label for={`v-${l.id}`} title={l.text}>{l.name} <small>{nl(l.id)}</small></label></>)}
+    </div>
+    <p class="lh-sub lh-key">Beginner: no background needed. Intermediate: needs the basics or school maths. Advanced: university level or the hardest exams. Study times are worked out from each lesson's text, maths, figures and practice.</p>
     {sections.map((k) => (
       <section data-sec={k.id} aria-label={k.name}>
         <div class="lh-sec"><h2>{k.name} <small class="lh-sub">({k.live.length})</small></h2><a href={k.href}>Open hub →</a></div>

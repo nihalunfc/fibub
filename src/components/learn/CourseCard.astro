@@ -1,17 +1,19 @@
 ---
-// One course as a compact card: icon, name, lessons and hours, two lines of text, and a thin progress bar
+// One course as a compact card: icon, name, level and size tags, lessons and study time, two lines of text, and a thin progress bar
 // that src/scripts/learn.ts fills from this browser's own progress (nothing leaves the device).
 import HubIcon from './HubIcon.astro';
-import { cardMeta, type CourseCard } from '../../lib/learn';
+import { cardMeta, levelOf, sizeOf, type CourseCard } from '../../lib/learn';
 interface Props { c: CourseCard; i?: number }
 const { c, i = 0 } = Astro.props;
 const live = c.status === 'live' && c.href;
 const Tag = live ? 'a' : 'div';
+const lv = levelOf(c), sz = c.minutes ? sizeOf(c.minutes) : undefined;
 ---
-<Tag class:list={['lc', { soon: !live }]} href={live ? c.href : undefined} data-cat={c.cat} data-course={c.kind === 'text' ? c.id : undefined} data-total={c.kind === 'text' ? c.total : undefined} data-name={c.name} style={`--i:${i}`}>
+<Tag class:list={['lc', { soon: !live }]} href={live ? c.href : undefined} data-cat={c.cat} data-course={c.kind === 'text' ? c.id : undefined} data-total={c.kind === 'text' ? c.total : undefined} data-name={c.name} data-level={c.level} data-size={sz?.id} style={`--i:${i}`}>
   <HubIcon id={c.cat} />
   <span class="lc-b">
     <strong>{c.name}</strong>
+    {live && <span class="lc-tags"><span class={`lc-lv lv-${lv.id}`} title={lv.text}>{lv.name}</span>{sz && <span class="lc-sz" title="Course size, from its study time">{sz.name} course</span>}</span>}
     <span class="lc-m">{cardMeta(c)}</span>
     <span class="lc-t">{c.text}</span>
   </span>
