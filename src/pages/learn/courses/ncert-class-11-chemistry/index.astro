@@ -1,0 +1,9 @@
+---
+// Made by scripts/ncert-pages.mjs: one NCERT study course's home page.
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import NcertIntro from '../../../../components/course/NcertIntro.astro';
+import { ncertCourse } from '../../../../courses/ncert';
+import '../../../../styles/lesson-kit.css';
+const course = ncertCourse('ncert-class-11-chemistry');
+---
+<CourseHome course={course} compact><NcertIntro course={course} /></CourseHome>

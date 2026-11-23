@@ -1,0 +1,58 @@
+// Class 11 Chemistry, Chapter 6 Equilibrium: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('eq');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'equilibrium', name: 'Equilibrium', n: 6,
+  items: [
+    m.mcq(1, 'dynamic', '<p>At chemical equilibrium:</p>', 'the rates of the forward and reverse reactions are equal', ['the reactions have stopped', 'the concentrations of reactants and products are equal', 'the reactant concentration is zero'], '<p>Equilibrium is dynamic: both reactions go on at the same rate, so concentrations stay constant (not necessarily equal).</p>'),
+    m.mcq(2, 'dynamic', '<p>A catalyst added to a reaction at equilibrium:</p>', 'does not change the position of equilibrium', ['increases the equilibrium constant', 'shifts it to the right', 'shifts it to the left'], '<p>It speeds up both directions equally.</p>'),
+    m.mcq(2, 'kc', '<p>The equilibrium constant expression for 2SO₂ + O₂ ⇌ 2SO₃ is:</p>', '[SO₃]² / ([SO₂]²[O₂])', ['[SO₃] / ([SO₂][O₂])', '[SO₂]²[O₂] / [SO₃]²', '2[SO₃] / (2[SO₂] + [O₂])'], '<p>Products over reactants, each raised to its coefficient.</p>'),
+    m.mcq(2, 'kc', '<p>For CaCO₃(s) ⇌ CaO(s) + CO₂(g), Kc equals:</p>', '[CO₂]', ['[CaO][CO₂] / [CaCO₃]', '[CaCO₃] / [CO₂]', '1'], '<p>Pure solids are left out of K.</p>'),
+    m.mcq(2, 'kc', '<p>If K for A ⇌ B is 4, then K for B ⇌ A is:</p>', '0.25', ['4', '−4', '16'], '<p>Reversing the reaction inverts K.</p>'),
+    m.mcq(3, 'kc', '<p>K for 2NO₂ ⇌ N₂O₄ is 9. K for NO₂ ⇌ ½N₂O₄ is:</p>', '3', ['9', '81', '4.5'], '<p>Halving the equation takes the square root of K.</p>'),
+    m.mcq(2, 'kp', '<p>For which reaction is Kp equal to Kc?</p>', 'H₂(g) + I₂(g) ⇌ 2HI(g)', ['N₂(g) + 3H₂(g) ⇌ 2NH₃(g)', 'PCl₅(g) ⇌ PCl₃(g) + Cl₂(g)', '2SO₂(g) + O₂(g) ⇌ 2SO₃(g)'], '<p>Kp = Kc (RT)^Δn, and Δn = 0 only for the HI reaction.</p>'),
+    m.mcq(2, 'q', '<p>For a reaction mixture the reaction quotient Q is smaller than K. The reaction will:</p>', 'proceed in the forward direction', ['proceed in the reverse direction', 'be at equilibrium', 'stop'], '<p>Too few products relative to equilibrium, so products form.</p>'),
+    m.mcq(2, 'le', '<p>For N₂ + 3H₂ ⇌ 2NH₃ (exothermic), the yield of ammonia is increased by:</p>', 'raising the pressure and lowering the temperature', ['lowering the pressure and raising the temperature', 'raising both', 'adding a catalyst'], '<p>Fewer gas moles on the right (pressure) and an exothermic forward reaction (cool). A catalyst only speeds things up.</p>'),
+    m.mcq(2, 'le', '<p>Adding an inert gas to H₂ + I₂ ⇌ 2HI at constant volume:</p>', 'has no effect on the position', ['shifts it to the right', 'shifts it to the left', 'doubles K'], '<p>Concentrations of the reacting species do not change.</p>'),
+    m.mcq(3, 'le', '<p>For N₂O₄(g) ⇌ 2NO₂(g), ΔH > 0. The brown colour of NO₂ becomes darker when:</p>', 'the temperature is raised', ['the pressure is raised', 'N₂O₄ is added', 'a catalyst is added'], '<p>Heating favours the endothermic forward reaction, making more NO₂. Raising pressure shifts to fewer moles (toward N₂O₄ and a lighter colour).</p>', { trap: 'Mixing up the effect of pressure and temperature on this equilibrium.' }),
+    m.mcq(2, 'acid', '<p>The conjugate base of NH₄⁺ is:</p>', 'NH₃', ['NH₂⁻', 'NH₄OH', 'N₂H₄'], '<p>Remove one H⁺ from NH₄⁺.</p>'),
+    m.mcq(2, 'acid', '<p>According to Lewis, BF₃ behaves as:</p>', 'an acid, because it accepts an electron pair', ['a base, because it donates a pair', 'a base, because it has OH⁻', 'neither'], '<p>B has an empty orbital and accepts an electron pair.</p>'),
+    m.mcq(2, 'ph', '<p>The pH of 0.0001 M HCl is:</p>', '4', ['10', '1', '0.0001'], '<p>[H⁺] = 10⁻⁴ M, pH = 4.</p>'),
+    m.mcq(2, 'ph', '<p>If the pH of a solution is 3, its [H⁺] is:</p>', '10⁻³ mol/L', ['3 mol/L', '10³ mol/L', '10⁻¹¹ mol/L'], '<p>[H⁺] = 10^(−pH).</p>'),
+    m.mcq(2, 'ph', '<p>The pH of a solution decreases from 6 to 4. The hydrogen ion concentration:</p>', 'increases by 100 times', ['increases by 2 times', 'decreases by 100 times', 'stays the same'], '<p>Each pH unit is a factor of 10, so two units is 100.</p>'),
+    m.mcq(3, 'ph', '<p>The ionic product of water Kw at 25 °C is 10⁻¹⁴. At a higher temperature Kw is larger. Pure water at this temperature has:</p>', 'pH less than 7 but is still neutral', ['pH greater than 7 and is basic', 'pH of 7 and is acidic', 'pH less than 7 and is acidic'], '<p>[H⁺] = [OH⁻] (neutral), but both are above 10⁻⁷ so the pH is below 7.</p>', { trap: 'Equating neutral with pH 7 at every temperature.' }),
+    m.mcq(2, 'weak', '<p>The Ka of a weak acid is 10⁻⁶. The pKa is:</p>', '6', ['−6', '8', '1.6'], '<p>pKa = −log Ka.</p>'),
+    m.mcq(2, 'weak', '<p>The degree of ionisation of a weak acid increases when:</p>', 'the solution is diluted', ['the concentration is raised', 'a common ion is added', 'a strong acid is added'], '<p>α ≈ √(Ka/c): lower c gives larger α.</p>'),
+    m.mcq(3, 'weak', '<p>Ka for HA is 10⁻⁵. Kb of its conjugate base A⁻ at 25 °C is:</p>', '10⁻⁹', ['10⁻⁵', '10⁻¹⁹', '10⁹'], '<p>Ka × Kb = Kw = 10⁻¹⁴, so Kb = 10⁻⁹.</p>'),
+    m.mcq(2, 'common', '<p>Adding solid CH₃COONa to ethanoic acid solution:</p>', 'decreases the ionisation of the acid and raises the pH', ['increases the ionisation of the acid', 'lowers the pH', 'has no effect'], '<p>The common ion CH₃COO⁻ shifts the equilibrium back.</p>'),
+    m.mcq(2, 'salt', '<p>An aqueous solution of sodium carbonate is:</p>', 'basic, because CO₃²⁻ reacts with water to give OH⁻', ['acidic', 'neutral', 'acidic, because Na⁺ is hydrolysed'], '<p>The carbonate ion is the conjugate base of the weak acid HCO₃⁻.</p>'),
+    m.mcq(2, 'salt', '<p>Which salt solution has a pH below 7?</p>', 'NH₄Cl', ['KCl', 'CH₃COOK', 'NaNO₃'], '<p>NH₄⁺ is the conjugate acid of a weak base and gives H₃O⁺.</p>'),
+    m.mcq(2, 'buffer', '<p>Which pair makes a buffer?</p>', 'CH₃COOH and CH₃COONa', ['HCl and NaCl', 'NaOH and NaCl', 'HNO₃ and KNO₃'], '<p>A weak acid with its salt (conjugate base). Strong acids and bases do not buffer.</p>'),
+    m.mcq(3, 'buffer', '<p>A buffer works best (has the greatest capacity) when:</p>', '[salt] ≈ [acid], so pH ≈ pKa', ['[salt] is 100 times [acid]', '[acid] is zero', 'the solution is very dilute'], '<p>When the two are equal, both added H⁺ and OH⁻ can be handled equally.</p>'),
+    m.mcq(2, 'ksp', '<p>The Ksp expression for Ca₃(PO₄)₂ is:</p>', '[Ca²⁺]³[PO₄³⁻]²', ['[Ca²⁺]²[PO₄³⁻]³', '[Ca²⁺][PO₄³⁻]', '3[Ca²⁺] × 2[PO₄³⁻]'], '<p>Each ion concentration is raised to its coefficient.</p>'),
+    m.mcq(3, 'ksp', '<p>If the ionic product of a salt exceeds its Ksp, then:</p>', 'a precipitate forms', ['no change occurs', 'the salt dissolves more', 'the solution is unsaturated'], '<p>The solution is supersaturated, so the solid separates until the product equals Ksp.</p>'),
+    m.ar(2, 'le', 'Increasing the pressure shifts N₂ + 3H₂ ⇌ 2NH₃ to the right.', 'The forward reaction decreases the number of gas moles.', 0, '<p>Both true, and R explains A: pressure favours the side with fewer gas moles.</p>'),
+    m.ar(2, 'salt', 'A solution of ammonium chloride is acidic.', 'NH₄⁺ ions react with water to form H₃O⁺.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'kc', 'At equilibrium the concentrations of reactants and products are equal.', 'The rates of the forward and reverse reactions are equal.', 3, '<p>A is false: concentrations are constant, not equal (unless K = 1 by chance). R is true.</p>'),
+    m.nat(2, 'ph', '<p>Find the pH of 0.002 M NaOH at 25 °C. (log 2 = 0.30)</p>', () => 14 + Math.log10(0.002), 0.01, '<p>pOH = −log(2 × 10⁻³) = 3 − 0.30 = 2.70; pH = 14 − 2.70 = 11.30.</p>', { unit: '' }),
+    m.nat(3, 'weak', '<p>Find the pH of 0.10 M ethanoic acid (Ka = 1.8 × 10⁻⁵), using [H⁺] = √(Ka c).</p>', () => -Math.log10(Math.sqrt(1.8e-5 * 0.1)), 0.01, '<p>[H⁺] = √(1.8 × 10⁻⁶) = 1.34 × 10⁻³ M; pH = 2.87.</p>', { unit: '' }),
+    m.nat(3, 'ksp', '<p>The Ksp of AgCl is 1.8 × 10⁻¹⁰. Find its solubility in units of 10⁻⁵ mol/L.</p>', () => Math.sqrt(1.8e-10) * 1e5, 0.02, '<p>s = √Ksp = 1.34 × 10⁻⁵ mol/L, which is 1.34 in units of 10⁻⁵.</p>', { unit: '× 10⁻⁵ mol/L' }),
+    m.nat(2, 'kp', '<p>For N₂O₄ ⇌ 2NO₂ the value of Kc at 300 K is 0.0057. Find Kp in atm (R = 0.0821).</p>', () => 0.0057 * 0.0821 * 300, 0.02, '<p>Δn = 1, so Kp = 0.0057 × 24.63 = 0.140 atm.</p>', { unit: 'atm' }),
+    m.msq(3, 'le', '<p>Which changes alter the VALUE of the equilibrium constant K? (Choose all that apply.)</p>', ['changing the temperature', 'adding a reactant', 'changing the pressure', 'adding a catalyst'], [0], '<p>Only temperature changes K. The other changes shift the position but K stays the same.</p>'),
+    m.msq(3, 'salt', '<p>Which of these salts give an acidic solution in water? (Choose all that apply.)</p>', ['NH₄Cl', 'CH₃COONa', 'AlCl₃', 'NaCl'], [0, 2], '<p>NH₄⁺ and Al³⁺ (strongly hydrated) release H⁺; ethanoate gives a basic solution; NaCl is neutral.</p>'),
+  ],
+  gens: [
+    { id: 'eq-g01', type: 'nat', level: 2, exams: ['board'], sub: 'ph',
+      make(rng) { const c = choose(rng, [0.1, 0.01, 0.001, 0.0005, 0.02, 0.05]), acid = choose(rng, [true, false]); const ph = acid ? -Math.log10(c) : 14 + Math.log10(c); return { c, acid, q: `<p>Find the pH of ${c} mol/L ${acid ? 'HCl' : 'NaOH'} at 25 °C.</p>`, answer: r3(ph), tol: Math.max(0.02, ph * 0.01), unit: '', sol: `<p>${acid ? '[H⁺] = ' + c + ', pH = −log ' + c : 'pOH = −log ' + c + ', pH = 14 − pOH'} = ${r3(ph)}.</p>` }; },
+      verify: (p) => (p.acid ? -Math.log10(p.c) : 14 - -Math.log10(p.c)) },
+    { id: 'eq-g02', type: 'nat', level: 3, exams: ['board'], sub: 'buffer',
+      make(rng) { const pKa = choose(rng, [3.75, 4.20, 4.76, 7.20]), a = choose(rng, [0.1, 0.2, 0.4]), s = choose(rng, [0.05, 0.1, 0.2, 0.5]); const ph = pKa + Math.log10(s / a); return { pKa, a, s, q: `<p>A buffer contains ${a} M weak acid (pKa = ${pKa}) and ${s} M of its sodium salt. Find the pH.</p>`, answer: r3(ph), tol: 0.03, unit: '', sol: `<p>pH = ${pKa} + log(${s}/${a}) = ${r3(ph)}.</p>` }; },
+      verify: (p) => -Math.log10(Math.pow(10, -p.pKa) * p.a / p.s) },
+    { id: 'eq-g03', type: 'nat', level: 3, exams: ['board'], sub: 'kp',
+      make(rng) { const Kc = choose(rng, [0.5, 2, 8, 25]), T = choose(rng, [400, 500, 600]), dn = choose(rng, [-2, -1, 1]); const Kp = Kc * Math.pow(0.0821 * T, dn); return { Kc, T, dn, q: `<p>A gaseous reaction has Kc = ${Kc} at ${T} K and Δn(g) = ${dn}. Find Kp (R = 0.0821 L atm K⁻¹ mol⁻¹), to 3 significant figures.</p>`, answer: r3(Kp), tol: Math.abs(Kp) * 0.015, unit: '', sol: `<p>Kp = Kc (RT)^Δn = ${Kc} × (${r3(0.0821 * T)})^${dn} = ${r3(Kp)}.</p>` }; },
+      verify: (p) => Math.exp(Math.log(p.Kc) + p.dn * Math.log(0.0821 * p.T)) },
+  ],
+};
