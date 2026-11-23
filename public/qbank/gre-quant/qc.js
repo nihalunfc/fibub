@@ -56,5 +56,15 @@ export default {
           sol: explain(res, show, num, F.tip), hint: 'Plug in more than one allowed value: try 0, 1, a negative and a fraction where allowed.', _f: [i, F] };
       },
       check(p) { const F = p._f[1], cs = (F.cases ? F.cases() : F.two ? P2(RD) : RD).filter(F.ok); return compare(cs, F.fa, F.fb).ans; } },
+    { id: 'qc-g03', type: 'mcq', level: 3, exams: E, format: 'qc', sub: 'triangle sides',
+      make(r) {
+        const a = int(r, 3, 12), b = int(r, 3, 12), lo = Math.abs(a - b), hi = a + b, k = choose(r, [lo, Math.max(1, lo - 1), hi, hi + 1, Math.round((lo + hi) / 2), lo + 1]), sw = r() < 0.5;
+        const cs = []; for (let c = lo + 0.01; c < hi; c += 0.25) cs.push(c); cs.push(hi - 0.01);
+        const fa = sw ? () => k : (c) => c, fb = sw ? (c) => c : () => k, res = compare(cs, fa, fb);
+        const A = sw ? String(k) : 'c', B = sw ? 'c' : String(k);
+        return { q: `<p>A triangle has sides of length ${a}, ${b} and c.</p>${qc(A, B)}`, options: QC.slice(), answer: res.ans, value: res.ans,
+          sol: explain(res, (c) => `c = ${fmt(c, 2)}`, num, `The third side of a triangle is more than the difference of the other two and less than their sum: ${lo} &lt; c &lt; ${hi}.`), hint: 'Find the range the third side must lie in, then compare that range with the number.', _p: [a, b, k, sw] };
+      },
+      check(p) { const [a, b, k] = p._p, lo = Math.abs(a - b), hi = a + b; return k <= lo ? (p._p[3] ? 1 : 0) : k >= hi ? (p._p[3] ? 0 : 1) : 3; } },
   ],
 };

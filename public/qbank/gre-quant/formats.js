@@ -40,5 +40,25 @@ export default {
           sol: `<p>Check each choice twice: does it divide ${N}, and is it a multiple of ${m}?</p><ul>${opts.map((d) => `<li>${d}: ${N % d === 0 ? 'divides ' + N : 'does not divide ' + N}; ${d % m === 0 ? 'a multiple of ' + m : 'not a multiple of ' + m} → ${N % d === 0 && d % m === 0 ? '<b>yes</b>' : 'no'}</li>`).join('')}</ul>`,
           trap: 'Stopping after the first right choice. Select-all questions need every right choice and no wrong one.' };
       } },
+    { id: 'ne-g02', type: 'nat', level: 3, exams: E, format: 'numeric', sub: 'numeric entry',
+      make(r) {
+        const k = int(r, 0, 1);
+        if (k === 0) { const n = choose(r, [4, 5, 6]), m = int(r, 12, 40), xs = Array.from({ length: n - 1 }, () => int(r, m - 10, m + 10)), last = n * m - xs.reduce((a, b) => a + b, 0);
+          return { q: `<p>The average (arithmetic mean) of ${n} numbers is ${m}. ${['Three', 'Four', 'Five'][n - 4]} of them are ${xs.join(', ')}. What is the remaining number?</p>`, answer: last, tol: 0, k, n, m, xs,
+            sol: steps(`The total of all ${n} numbers is ${n} × ${m} = ${n * m}.`, `The known numbers add to ${xs.reduce((a, b) => a + b, 0)}.`, `The remaining number is ${n * m} − ${xs.reduce((a, b) => a + b, 0)} = <b>${neg(last)}</b>.`), trap: 'Averaging the known numbers instead of working with the total.' }; }
+        const a = choose(r, [40, 50, 60, 80, 120, 150, 200, 250]), p = choose(r, [-40, -25, -20, -10, 10, 20, 25, 30, 50, 75]), b = (a * (100 + p)) / 100;
+        return { q: `<p>A price changed from ${a} dollars to ${b} dollars. By what percent did it change? Give a negative number for a fall.</p>`, answer: p, tol: 0, k, a, b,
+          sol: steps(`Percent change = (new − old) ÷ old × 100.`, `(${b} − ${a}) ÷ ${a} × 100 = <b>${neg(p)}</b>.`), trap: 'Dividing by the new price instead of the old one.' };
+      },
+      verify: (p) => (p.k === 0 ? p.n * p.m - p.xs.reduce((a, b) => a + b, 0) : ((p.b - p.a) / p.a) * 100) },
+    { id: 'ma-g03', type: 'msq', level: 3, exams: E, format: 'multi', sub: 'select all',
+      make(r) {
+        const k = choose(r, [4, 9, 16, 25]), s = Math.sqrt(k), cand = [-s - 1, -s, -s + 0.5, -1, 0, 0.5, s - 0.5, s, s + 1], opts = shuffle(r, cand).slice(0, 6).sort((a, b) => a - b);
+        const answer = opts.map((x, i) => (x * x < k ? i : -1)).filter((i) => i >= 0);
+        if (!answer.length || answer.length === opts.length) return this.make(r);
+        return { q: `<p>Which of the following values of x satisfy x² &lt; ${k}?</p><p>Select <b>all</b> that apply.</p>`, options: opts.map((x) => neg(fmt(x, 3))), answer,
+          sol: steps(`x² &lt; ${k} means −${s} &lt; x &lt; ${s}: x lies strictly between −${s} and ${s}.`, `So the values are <b>${answer.map((i) => neg(fmt(opts[i], 3))).join(', ')}</b>.`),
+          trap: `Forgetting negative values (−${s - 0.5} works too), or including ±${s}, where x² equals ${k} exactly.` };
+      } },
   ],
 };
