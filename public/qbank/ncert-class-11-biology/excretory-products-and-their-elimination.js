@@ -1,0 +1,53 @@
+// Class 11 Biology, Chapter 16 Excretory Products and their Elimination: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('ex');
+
+export default {
+  topic: 'excretory-products-and-their-elimination', name: 'Excretory Products and their Elimination', n: 16,
+  items: [
+    m.mcq(1, 'wastes', '<p>Animals that excrete most of their nitrogen as ammonia are called:</p>', 'ammonotelic', ['ureotelic', 'uricotelic', 'aminotelic'], '<p>Bony fishes and aquatic invertebrates are ammonotelic.</p>'),
+    m.mcq(2, 'wastes', '<p>Which of these animals is uricotelic?</p>', 'pigeon', ['frog tadpole', 'human', 'rohu fish'], '<p>Birds, reptiles and insects excrete uric acid, a paste that saves water.</p>'),
+    m.mcq(2, 'wastes', '<p>Uric acid is a good waste for a bird embryo inside an egg because it:</p>', 'is almost insoluble and non-toxic, so it can be stored in the egg', ['dissolves quickly in water', 'is the cheapest to make', 'is very toxic and easily removed'], '<p>The egg is sealed, so waste must be harmless and take little room and no water.</p>', { trap: 'Thinking uric acid is cheap to make: it costs the most energy.' }),
+    m.mcq(2, 'wastes', '<p>The organ that forms urea is the:</p>', 'liver', ['kidney', 'spleen', 'bladder'], '<p>The liver converts ammonia and CO₂ to urea; the kidney removes it.</p>'),
+    m.mcq(1, 'system', '<p>The functional unit of the kidney is the:</p>', 'nephron', ['neuron', 'renal pelvis', 'calyx'], '<p>Each human kidney has about a million nephrons.</p>'),
+    m.mcq(2, 'system', '<p>The efferent arteriole of the glomerulus is narrower than the afferent arteriole. This:</p>', 'keeps the pressure in the glomerulus high', ['lowers blood pressure', 'prevents any filtration', 'speeds up reabsorption'], '<p>A narrow exit holds the blood back, so the pressure rises and drives filtration.</p>'),
+    m.mcq(2, 'system', '<p>Nephrons whose loops of Henle dip deep into the medulla are:</p>', 'juxtamedullary nephrons', ['cortical nephrons', 'peritubular nephrons', 'collecting nephrons'], '<p>These long loops build the medullary gradient for concentrated urine.</p>'),
+    m.mcq(2, 'system', '<p>The brush border of the proximal convoluted tubule helps by:</p>', 'increasing the surface area for reabsorption', ['stopping water from leaving', 'filtering blood cells', 'secreting renin'], '<p>The microvilli greatly widen the surface that takes back substances.</p>'),
+    m.mcq(2, 'filtration', '<p>The glomerular filtration rate of a healthy adult is about:</p>', '125 mL per minute', ['12.5 mL per minute', '1.25 L per minute', '500 mL per minute'], '<p>That is about 180 litres a day.</p>', { trap: 'Mixing up the filtered volume (180 L) with the urine volume (1.5 L).' }),
+    m.mcq(2, 'filtration', '<p>Which of these normally passes into the Bowman\'s capsule?</p>', 'glucose', ['red blood cells', 'plasma proteins', 'platelets'], '<p>Small molecules pass; cells and large proteins do not.</p>'),
+    m.mcq(3, 'filtration', '<p>If the glomerular blood pressure falls so low that it equals the sum of the protein pull and the capsule pressure, the GFR will be:</p>', 'zero', ['unchanged', 'doubled', 'about half'], '<p>Net filtration pressure is the difference, which is zero.</p>'),
+    m.mcq(2, 'tubule', '<p>Most glucose and amino acids are reabsorbed in the:</p>', 'proximal convoluted tubule', ['loop of Henle', 'distal convoluted tubule', 'collecting duct'], '<p>The PCT takes back nearly all of them by active transport.</p>'),
+    m.mcq(2, 'tubule', '<p>The ascending limb of the loop of Henle is:</p>', 'permeable to salt, impermeable to water', ['permeable to water, impermeable to salt', 'permeable to both', 'impermeable to both'], '<p>Salt leaves, water cannot, so the filtrate becomes dilute.</p>', { trap: 'Reversing the two limbs.' }),
+    m.mcq(2, 'tubule', '<p>The filtrate becomes most concentrated at:</p>', 'the bend of the loop of Henle in the deep medulla', ['the Bowman\'s capsule', 'the proximal tubule', 'the start of the distal tubule'], '<p>It reaches about 1200 mOsm/L at the tip.</p>'),
+    m.mcq(3, 'tubule', '<p>The highest concentration of urine a human can make is about:</p>', '1200 mOsm/L, four times blood', ['300 mOsm/L, equal to blood', '600 mOsm/L, twice blood', '100 mOsm/L'], '<p>The medullary gradient runs from 300 to 1200.</p>'),
+    m.mcq(2, 'regulation', '<p>The hormone that makes the collecting duct more permeable to water is:</p>', 'ADH', ['aldosterone', 'ANF', 'renin'], '<p>Antidiuretic hormone from the posterior pituitary.</p>'),
+    m.mcq(2, 'regulation', '<p>A person with a lack of ADH will pass:</p>', 'a large volume of dilute urine', ['a small volume of concentrated urine', 'no urine', 'glucose in urine only'], '<p>This is diabetes insipidus.</p>'),
+    m.mcq(3, 'regulation', '<p>Which sequence is correct?</p>', 'renin → angiotensin I → angiotensin II → aldosterone', ['aldosterone → renin → angiotensin II', 'angiotensin II → renin → aldosterone', 'ANF → renin → aldosterone'], '<p>Renin starts the chain; angiotensin II makes the adrenal cortex release aldosterone.</p>'),
+    m.mcq(2, 'regulation', '<p>Atrial natriuretic factor:</p>', 'widens blood vessels and lowers blood pressure', ['raises blood pressure', 'is made by the kidney', 'increases the release of renin'], '<p>ANF opposes the renin-angiotensin system.</p>'),
+    m.mcq(2, 'regulation', '<p>Aldosterone acts on the:</p>', 'distal tubule, to increase Na⁺ and water reabsorption', ['glomerulus, to lower GFR', 'ureter, to start peristalsis', 'liver, to make urea'], '<p>It is released by the adrenal cortex.</p>'),
+    m.mcq(2, 'other', '<p>Urine release is controlled by:</p>', 'a stretch reflex involving the central nervous system', ['a hormone from the thyroid', 'the loop of Henle', 'the renal pelvis alone'], '<p>Stretch receptors in the bladder wall start the micturition reflex.</p>'),
+    m.mcq(2, 'other', '<p>Glucose in the urine usually points to:</p>', 'diabetes mellitus', ['diabetes insipidus', 'kidney stones', 'a urine infection only'], '<p>The tubule cannot take back all the glucose when blood sugar is very high.</p>'),
+    m.mcq(2, 'other', '<p>Sebaceous glands remove:</p>', 'sterols, hydrocarbons and waxes', ['urea and salt', 'bile pigments', 'carbon dioxide'], '<p>Their secretion is sebum.</p>'),
+    m.mcq(2, 'disorders', '<p>In haemodialysis, wastes leave the blood by:</p>', 'diffusion through a semi-permeable membrane', ['active transport', 'filtration by a kidney', 'bile secretion'], '<p>Dialysis fluid has no wastes, so urea diffuses into it.</p>'),
+    m.mcq(2, 'disorders', '<p>Kidney stones are mainly crystals of:</p>', 'calcium oxalate', ['sodium chloride', 'glucose', 'urea'], '<p>They form in the renal pelvis and may block the ureter.</p>'),
+    m.mcq(3, 'disorders', '<p>Inflammation of the glomeruli is called:</p>', 'glomerulonephritis', ['uremia', 'renal calculi', 'ketonuria'], '<p>It often follows an infection and lets protein and blood leak into the urine.</p>'),
+    m.ar(2, 'tubule', 'The filtrate in the proximal convoluted tubule remains isotonic with blood.', 'Water follows the reabsorbed salts and glucose by osmosis.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'tubule', 'Urine can be made four times more concentrated than blood.', 'Water is actively pumped out of the collecting duct.', 2, '<p>A is true. R is false: water is never pumped; it follows salt by osmosis into the salty medulla.</p>'),
+    m.ar(3, 'regulation', 'A person who has lost a lot of blood releases more renin.', 'A fall in blood pressure is sensed by the JG cells.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'filtration', '<p>The glomerular blood pressure is 60 mm Hg, the blood protein pull is 28 mm Hg and the capsule pressure is 12 mm Hg. Find the net filtration pressure in mm Hg.</p>', () => 60 - 28 - 12, 0, '<p>60 − 28 − 12 = 20.</p>'),
+    m.nat(3, 'filtration', '<p>A person filters 180 L a day and passes 1.8 L of urine. What percentage of the filtrate is reabsorbed?</p>', () => (180 - 1.8) / 180 * 100, 0.01, '<p>(180 − 1.8) ÷ 180 × 100 = 99 %.</p>'),
+    m.msq(3, 'tubule', '<p>Which processes happen in the proximal convoluted tubule? (Choose all that apply.)</p>', ['Reabsorption of glucose', 'Reabsorption of 65-70 % of water', 'Secretion of H⁺', 'Formation of concentrated urine'], [0, 1, 2], '<p>The concentrated urine is finished in the collecting duct.</p>'),
+  ],
+  gens: [
+    { id: 'ex-g01', type: 'nat', level: 2, exams: ['board'], sub: 'filtration',
+      make(rng) { const g = choose(rng, [50, 55, 60, 65]), b = choose(rng, [25, 28, 30]), c = choose(rng, [10, 12, 15]); return { g, b, c, q: `<p>Glomerular blood pressure is ${g} mm Hg, blood protein pull ${b} mm Hg, capsule pressure ${c} mm Hg. Find the net filtration pressure (mm Hg).</p>`, answer: g - b - c, tol: 0.01, unit: 'mm Hg', sol: `<p>${g} − ${b} − ${c} = ${g - b - c} mm Hg.</p>` }; },
+      verify: (p) => (p.g - p.c) - p.b },
+    { id: 'ex-g02', type: 'nat', level: 2, exams: ['board'], sub: 'filtration',
+      make(rng) { const gfr = choose(rng, [100, 120, 125, 130]); return { gfr, q: `<p>The GFR is ${gfr} mL per minute. How many litres of filtrate are made in a day?</p>`, answer: +(gfr * 1.44).toPrecision(6), tol: 0.01, unit: 'L', sol: `<p>${gfr} × 1440 = ${gfr * 1440} mL = ${(gfr * 1.44).toFixed(1)} L.</p>` }; },
+      verify: (p) => p.gfr * 1440 / 1000 },
+    { id: 'ex-g03', type: 'nat', level: 3, exams: ['board'], sub: 'regulation',
+      make(rng) { const load = choose(rng, [600, 800, 900]), osm = choose(rng, [100, 300, 600, 1200]); return { load, osm, q: `<p>A person must excrete ${load} mOsm of solute a day. How many litres of urine are needed if its concentration is ${osm} mOsm/L?</p>`, answer: +(load / osm).toPrecision(6), tol: 0.01, unit: 'L', sol: `<p>${load} ÷ ${osm} = ${(load / osm).toFixed(2)} L.</p>` }; },
+      verify: (p) => 1 / (p.osm / p.load) },
+  ],
+};
