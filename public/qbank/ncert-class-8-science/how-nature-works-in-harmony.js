@@ -1,0 +1,50 @@
+// Class 8 Science (Curiosity), Chapter 12 How Nature Works in Harmony: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ec');
+
+export default {
+  topic: 'how-nature-works-in-harmony', name: 'How Nature Works in Harmony', n: 12,
+  items: [
+    m.mcq(1, 'ecosystem', '<p>Living things and non-living things interacting in an area form a(n):</p>', 'ecosystem', ['population', 'organ', 'cell'], '<p>An ecosystem has biotic and abiotic parts.</p>'),
+    m.mcq(1, 'ecosystem', '<p>Which of these is an abiotic factor?</p>', 'sunlight', ['grass', 'frog', 'fungus'], '<p>Sunlight, water, air, soil and temperature are non-living factors.</p>'),
+    m.mcq(2, 'ecosystem', '<p>Organisms that make their own food by photosynthesis are:</p>', 'producers', ['consumers', 'decomposers', 'scavengers'], '<p>Green plants and algae.</p>'),
+    m.mcq(2, 'ecosystem', '<p>In a pond, which is a producer?</p>', 'algae', ['fish', 'frog', 'snail'], '<p>Algae photosynthesise.</p>'),
+    m.mcq(1, 'chain', '<p>A food chain always starts with:</p>', 'a producer', ['a herbivore', 'a carnivore', 'a decomposer'], '<p>Producers bring energy into the chain.</p>'),
+    m.mcq(2, 'chain', '<p>In the chain grass → deer → tiger, the deer is a:</p>', 'primary consumer', ['producer', 'secondary consumer', 'decomposer'], '<p>It eats the producer directly.</p>'),
+    m.mcq(2, 'chain', '<p>In the chain grain → rat → snake → eagle, the snake is a:</p>', 'secondary consumer', ['primary consumer', 'tertiary consumer', 'producer'], '<p>It eats the primary consumer (the rat).</p>'),
+    m.mcq(2, 'chain', '<p>The arrow in a food chain shows:</p>', 'the direction in which energy moves', ['who hunts whom in the future', 'the direction of the wind', 'nothing'], '<p>It points from the food to the eater.</p>', { trap: 'The arrow points to the animal that eats, not to the animal that is eaten.' }),
+    m.mcq(2, 'chain', '<p>An animal that eats both plants and animals is called:</p>', 'an omnivore', ['a herbivore', 'a carnivore', 'a producer'], '<p>Humans, crows and bears are omnivores.</p>'),
+    m.mcq(1, 'web', '<p>Many food chains joined together in an ecosystem form a:</p>', 'food web', ['food pyramid only', 'food bar', 'food line'], '<p>Most animals eat more than one kind of food.</p>'),
+    m.mcq(2, 'web', '<p>If all the frogs in a pond are removed, the number of insects will probably:</p>', 'increase at first', ['fall at once', 'stay exactly the same', 'become zero'], '<p>Frogs eat insects, so fewer frogs means fewer insects eaten.</p>'),
+    m.mcq(3, 'web', '<p>A food web is more stable than a single chain because:</p>', 'animals can switch to other food if one source is lost', ['it has fewer species', 'it has no producers', 'it has only one path'], '<p>Several paths of energy give the system more resilience.</p>'),
+    m.mcq(2, 'energy', '<p>Only about what part of the energy passes from one trophic level to the next?</p>', 'one tenth', ['half', 'all of it', 'nine tenths'], '<p>The rest is used for life processes or lost as heat.</p>'),
+    m.mcq(2, 'energy', '<p>Food chains are usually short (3 to 5 links) because:</p>', 'very little energy is left for higher levels', ['animals do not like long chains', 'plants are scarce', 'predators are slow'], '<p>The 10 per cent rule means the energy runs out.</p>'),
+    m.mcq(3, 'energy', '<p>The top carnivores in a forest are fewer in number than the herbivores because:</p>', 'less energy reaches the top of the chain', ['they are bigger', 'they are slower', 'the herbivores are stronger'], '<p>Each step gets about a tenth of the energy.</p>'),
+    m.mcq(1, 'decomposers', '<p>Which of these is a decomposer?</p>', 'a fungus', ['a deer', 'a fern', 'a hawk'], '<p>Fungi and bacteria break down dead matter.</p>'),
+    m.mcq(2, 'decomposers', '<p>Decomposers are important because they:</p>', 'return nutrients to the soil', ['make sunlight', 'kill all disease', 'produce oxygen'], '<p>They recycle nutrients for plants.</p>'),
+    m.mcq(2, 'decomposers', '<p>A dead leaf rots fastest in:</p>', 'warm, damp soil', ['cold, dry soil', 'a freezer', 'a dry desert'], '<p>Decomposers thrive in warmth and moisture.</p>'),
+    m.mcq(2, 'decomposers', '<p>Which animal helps decomposition and improves soil?</p>', 'earthworm', ['tiger', 'eagle', 'whale'], '<p>Earthworms break down leaves and mix the soil.</p>'),
+    m.mcq(1, 'balance', '<p>The natural balance of an ecosystem can be upset most by:</p>', 'removing one species such as a top predator', ['a gentle breeze', 'a rainy day', 'a sunny day'], '<p>The change ripples through the web.</p>'),
+    m.mcq(2, 'balance', '<p>Which human activity harms an ecosystem?</p>', 'cutting down forests without replanting', ['planting trees', 'saving water', 'protecting wetlands'], '<p>It destroys habitats and food.</p>'),
+    m.mcq(3, 'balance', '<p>Pesticide sprayed on a field is found in high amounts in hawks. This is called:</p>', 'biomagnification', ['photosynthesis', 'decomposition', 'dispersal'], '<p>Poisons build up as they pass up the food chain.</p>'),
+    m.ar(2, 'decomposers', 'Without decomposers, dead matter would pile up on the ground.', 'Decomposers break down dead organisms into simple nutrients.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(3, 'energy', 'There are very few top carnivores in a food chain.', 'About 90% of the energy is lost at every trophic level.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(3, 'chain', 'Producers are placed at the start of a food chain.', 'Producers make their own food and so bring energy into the chain.', 0, '<p>Both true, and R explains A.</p>'),
+    m.nat(1, 'energy', '<p>Plants in a field capture 5000 units of energy. How much reaches the herbivores (10% rule)?</p>', () => 500, 0.01, '<p>10% of 5000 = 500 units.</p>'),
+    m.nat(2, 'energy', '<p>Producers capture 20000 units. How much energy reaches the second consumers (trophic level 3)?</p>', () => 200, 0.01, '<p>20000 × 0.1 × 0.1 = 200 units.</p>'),
+    m.nat(2, 'decomposers', '<p>Decomposers halve a leaf mass every 10 days. A 40 g leaf has how many grams left after 30 days?</p>', () => 5, 0.01, '<p>3 halvings: 40 → 20 → 10 → 5 g.</p>'),
+    m.msq(3, 'ecosystem', '<p>Which are biotic parts of a pond ecosystem? (Choose all that apply.)</p>', ['Algae', 'Fish', 'Water temperature', 'Bacteria'], [0, 1, 3], '<p>Temperature is abiotic.</p>'),
+  ],
+  gens: [
+    { id: 'ec-g01', type: 'nat', level: 2, exams: ['board'], sub: 'energy',
+      make(rng) { const E = choose(rng, [10000, 20000, 50000, 100000]), k = choose(rng, [1, 2, 3]); return { E, k, q: `<p>Producers capture ${E} units of energy. By the 10% rule, how much reaches trophic level ${k + 1}?</p>`, answer: E / Math.pow(10, k), tol: 0.01, sol: `<p>${E} × 0.1^${k} = ${E / Math.pow(10, k)} units.</p>` }; },
+      verify: (p) => { let e = p.E; for (let i = 0; i < p.k; i++) e /= 10; return e; } },
+    { id: 'ec-g02', type: 'nat', level: 3, exams: ['board'], sub: 'energy',
+      make(rng) { const top = choose(rng, [10, 20, 50]), k = choose(rng, [2, 3]); return { top, k, q: `<p>The top carnivore gets ${top} units, ${k} steps above the producers. How many units did the producers capture (10% rule)?</p>`, answer: top * Math.pow(10, k), tol: 0.01, sol: `<p>${top} × 10^${k} = ${top * Math.pow(10, k)} units.</p>` }; },
+      verify: (p) => Number(String(p.top) + '0'.repeat(p.k)) },
+    { id: 'ec-g03', type: 'nat', level: 2, exams: ['board'], sub: 'decomposers',
+      make(rng) { const m0 = choose(rng, [16, 32, 64]), k = choose(rng, [1, 2, 3]); return { m0, k, q: `<p>A fallen leaf of ${m0} g loses half its mass every week. How many grams are left after ${k} week${k > 1 ? 's' : ''}?</p>`, answer: m0 / Math.pow(2, k), tol: 0.01, sol: `<p>${m0} ÷ 2^${k} = ${m0 / Math.pow(2, k)} g.</p>` }; },
+      verify: (p) => { let v = p.m0; for (let i = 0; i < p.k; i++) v *= 0.5; return v; } },
+  ],
+};

@@ -10,7 +10,7 @@ import type { CourseModule, CourseSyllabus } from './types';
 import { CLASSES, type Chapter } from '../data/ncert';
 
 /** Courses that are published (the others wait until their first lessons are written). */
-export const NCERT_LIVE = ['ncert-class-10-science', 'ncert-class-10-maths', 'ncert-class-9-science', 'ncert-class-9-maths', 'ncert-class-12-physics', 'ncert-class-12-chemistry', 'ncert-class-12-biology', 'ncert-class-12-maths', 'ncert-class-11-physics', 'ncert-class-11-chemistry', 'ncert-class-11-maths', 'ncert-class-11-biology']; // add a course here once its lessons are written, then run scripts/ncert-pages.mjs
+export const NCERT_LIVE = ['ncert-class-10-science', 'ncert-class-10-maths', 'ncert-class-9-science', 'ncert-class-9-maths', 'ncert-class-12-physics', 'ncert-class-12-chemistry', 'ncert-class-12-biology', 'ncert-class-12-maths', 'ncert-class-11-physics', 'ncert-class-11-chemistry', 'ncert-class-11-maths', 'ncert-class-11-biology', 'ncert-class-8-science']; // add a course here once its lessons are written, then run scripts/ncert-pages.mjs
 
 // Short, readable addresses for chapters whose full titles are long.
 const SLUGS: Record<string, string> = {
