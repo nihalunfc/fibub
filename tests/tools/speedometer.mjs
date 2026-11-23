@@ -1,4 +1,4 @@
-// #T1075 Speedometer. Headless Chromium has no GPS: a fake geolocation is put in place and fed positions.
+// #T1076 Speedometer. Headless Chromium has no GPS: a fake geolocation is put in place and fed positions.
 export const path = '/everyday/speedometer/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/everyday/speedometer/`); await page.waitForTimeout(300);

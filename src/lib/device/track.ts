@@ -1,4 +1,4 @@
-// Live trackers (#T1075 Speedometer, #T1076 G-Force Meter, #T1077 Step Counter, #T1078 Live Trackers, #T1079 Ergometer Link):
+// Live trackers (#T1076 Speedometer, #T1077 G-Force Meter, #T1078 Step Counter, #T1079 Live Trackers, #T1080 Ergometer Link):
 // the pure maths, with no DOM, so tests/device.mjs can check it. Nothing here stores or sends anything.
 
 export const G = 9.80665; // standard gravity, m/s²

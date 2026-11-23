@@ -1,15 +1,15 @@
 ---
 name: Live Trackers
-num: 3097
+num: 3098
 shelf: everyday
-code: T1078
+code: T1079
 section: screen-sensors
 title: "Live trackers: see every sensor your phone has, from GPS speed and altitude to g-force, steps and compass"
 summary: "One button checks which sensors your phone, tablet or laptop has and shows a live card for each that works: speed, altitude, compass heading, g-force, steps, tilt, light, battery and Bluetooth fitness machines. Each card opens its full tool."
 seoTitle: "Live phone sensors: speed, altitude, g-force, steps"
 status: live
 ads: false
-order: 3097
+order: 3098
 icon: compass
 works: offline
 updated: 2026-11-23

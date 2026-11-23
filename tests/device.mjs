@@ -45,7 +45,7 @@ const g = d.gridCoverage([{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }, { x: 1, y: 1 }
 check(g.share === 0.5 && g.hit[0] && g.hit[3] && !g.hit[1], 'touch grid coverage (edges count in the last cell)');
 check(d.parsePattern('200, 100 ,x, 300;-5 20000').join() === '200,100,300,10000' && d.patternLength([200, 100]) === 300, 'vibration pattern parsing');
 
-// Live trackers (src/lib/device/track.ts): #T1075-#T1079.
+// Live trackers (src/lib/device/track.ts): #T1076-#T1080.
 import * as tk from '../src/lib/device/track.ts';
 check(near(tk.toUnit(10, 'kmh'), 36) && near(tk.toUnit(10, 'mph'), 22.369, 1e-3) && near(tk.toUnit(10, 'kn'), 19.438, 1e-3), 'speed units: 10 m/s is 36 km/h, 22.37 mph, 19.44 knots');
 // One degree of latitude is 111.195 km on the 6371.0088 km sphere; due east bearing is 90.

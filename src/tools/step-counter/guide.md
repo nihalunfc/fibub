@@ -1,15 +1,15 @@
 ---
 name: Step Counter
-num: 3096
+num: 3097
 shelf: everyday
-code: T1077
+code: T1078
 section: running
 title: "Step counter: a free online pedometer that counts steps with your phone"
 summary: "A live pedometer in your browser: counts steps from your phone's motion sensor, with steps a minute, distance from your height, active time and a goal bar. Nothing is recorded or sent."
 seoTitle: "Step counter online: free pedometer for your phone"
 status: live
 ads: false
-order: 3096
+order: 3097
 icon: pointer
 works: offline
 updated: 2026-11-23

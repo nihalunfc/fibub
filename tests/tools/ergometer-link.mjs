@@ -1,4 +1,4 @@
-// #T1079 Ergometer Link. No Bluetooth hardware in CI: the demo rower runs through the same FTMS parser.
+// #T1080 Ergometer Link. No Bluetooth hardware in CI: the demo rower runs through the same FTMS parser.
 export const path = '/everyday/ergometer-link/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/everyday/ergometer-link/`); await page.waitForTimeout(300);

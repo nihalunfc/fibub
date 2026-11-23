@@ -1,15 +1,15 @@
 ---
 name: G-Force Meter
-num: 3095
+num: 3096
 shelf: everyday
-code: T1076
+code: T1077
 section: screen-sensors
 title: "G-force meter: measure braking, acceleration and cornering g with your phone"
 summary: "A live g-meter from your phone's accelerometer: a g-ball, forward, sideways and up-down g, and peaks for the hardest braking, speeding up, left and right turns and bumps, with a 10-second trace. Nothing is recorded or sent."
 seoTitle: "G-force meter online: braking and cornering g"
 status: live
 ads: false
-order: 3095
+order: 3096
 icon: compass
 works: offline
 updated: 2026-11-23

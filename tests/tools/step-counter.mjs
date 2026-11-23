@@ -1,4 +1,4 @@
-// #T1077 Step Counter. A made-up 2-steps-a-second walk is sent as devicemotion events.
+// #T1078 Step Counter. A made-up 2-steps-a-second walk is sent as devicemotion events.
 export const path = '/everyday/step-counter/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/everyday/step-counter/`); await page.waitForTimeout(300);

@@ -1,4 +1,4 @@
-// #T1078 Live Trackers. Headless Chromium: fake GPS and synthetic motion make their cards appear; missing sensors are listed.
+// #T1079 Live Trackers. Headless Chromium: fake GPS and synthetic motion make their cards appear; missing sensors are listed.
 export const path = '/everyday/live-trackers/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/everyday/live-trackers/`); await page.waitForTimeout(300);

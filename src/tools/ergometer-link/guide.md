@@ -1,15 +1,15 @@
 ---
 name: Ergometer Link
-num: 3098
+num: 3099
 shelf: everyday
-code: T1079
+code: T1080
 section: running
 title: "Ergometer link: live power, cadence and heart rate from a Bluetooth rower, smart bike or power meter"
 summary: "Connect a Bluetooth rowing machine, exercise bike, smart trainer, power meter or heart-rate strap in Chrome or Edge and see live watts, cadence or stroke rate, speed, pace per 500 m, distance and heart rate, with session averages and work done. No app or account; nothing is recorded or sent."
 seoTitle: "Bluetooth ergometer, rower and bike power online"
 status: live
 ads: false
-order: 3098
+order: 3099
 icon: chart
 works: offline
 updated: 2026-11-23

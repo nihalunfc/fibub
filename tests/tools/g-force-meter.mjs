@@ -1,4 +1,4 @@
-// #T1076 G-Force Meter. Headless Chromium has no sensors: synthetic devicemotion events are sent.
+// #T1077 G-Force Meter. Headless Chromium has no sensors: synthetic devicemotion events are sent.
 export const path = '/everyday/g-force-meter/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/everyday/g-force-meter/`); await page.waitForTimeout(300);

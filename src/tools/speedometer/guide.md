@@ -1,15 +1,15 @@
 ---
 name: Speedometer
-num: 3094
+num: 3095
 shelf: everyday
-code: T1075
+code: T1076
 section: reminders-travel
 title: "Speedometer: live GPS speed in km/h, mph or knots, with top speed, distance and a speed alert"
 summary: "A live GPS speedometer for your phone: speed now, top and average speed, distance, heading, altitude and climb, in km/h, mph, knots or m/s. Set a speed alert and use the mirrored windscreen view at night. Nothing is recorded or sent."
 seoTitle: "GPS speedometer online: live speed in km/h or mph"
 status: live
 ads: false
-order: 3094
+order: 3095
 icon: pointer
 works: offline
 updated: 2026-11-23
