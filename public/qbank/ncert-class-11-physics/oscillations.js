@@ -1,0 +1,55 @@
+// Class 11 Physics, Chapter 13 Oscillations: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('os');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'oscillations', name: 'Oscillations', n: 13,
+  items: [
+    m.mcq(1, 'basics', '<p>The frequency of an oscillation with time period 0.04 s is:</p>', '25 Hz', ['0.04 Hz', '2.5 Hz', '250 Hz'], '<p>f = 1/T = 1/0.04 = 25 Hz.</p>'),
+    m.mcq(2, 'basics', '<p>Which of these motions is periodic but <i>not</i> simple harmonic?</p>', 'a ball bouncing elastically on the floor', ['a mass on a spring', 'a small-angle pendulum', 'the shadow of a point going round a circle'], '<p>For a bouncing ball the force (gravity) is constant, not proportional to displacement. The other three are SHM.</p>'),
+    m.mcq(2, 'shm', '<p>In SHM the acceleration of the particle is:</p>', 'proportional to the displacement and opposite in direction', ['proportional to the velocity', 'constant', 'proportional to the displacement and in the same direction'], '<p>a = −ω²x.</p>'),
+    m.mcq(2, 'shm', '<p>A particle in SHM has displacement x = 5 sin(4πt) cm. Its time period is:</p>', '0.5 s', ['2 s', '4π s', '0.25 s'], '<p>ω = 4π rad/s, so T = 2π/ω = 0.5 s.</p>'),
+    m.mcq(2, 'shm', '<p>At the mean position of a particle in SHM:</p>', 'the speed is maximum and the acceleration is zero', ['the speed is zero and the acceleration is maximum', 'both are maximum', 'both are zero'], '<p>v = ωA (maximum) and a = −ω²x = 0 at x = 0.</p>', { trap: 'Mixing up the end and the middle.' }),
+    m.mcq(3, 'shm', '<p>A particle in SHM has amplitude A. When its speed is half of the maximum its displacement is:</p>', '√3 A/2', ['A/2', 'A/√2', 'A/4'], '<p>ω√(A² − x²) = ωA/2 ⇒ A² − x² = A²/4 ⇒ x = (√3/2)A.</p>'),
+    m.mcq(3, 'circle', '<p>The phase difference between velocity and acceleration in SHM is:</p>', 'π/2', ['0', 'π', '2π'], '<p>v = −ωA sin(ωt + φ) and a = −ω²A cos(ωt + φ): a quarter of a cycle apart.</p>'),
+    m.mcq(2, 'energy', '<p>The total energy of a particle in SHM of amplitude A and force constant k is:</p>', '½kA²', ['½kA', 'kA²', '½k²A'], '<p>At the ends all the energy is the spring’s ½kA².</p>'),
+    m.mcq(2, 'energy', '<p>The amplitude of an SHM is doubled. Its total energy becomes:</p>', '4 times', ['2 times', '8 times', 'the same'], '<p>E ∝ A².</p>'),
+    m.mcq(3, 'energy', '<p>At what displacement are the kinetic and potential energies of an SHM equal?</p>', 'A/√2', ['A/2', 'A/4', 'A'], '<p>½k(A² − x²) = ½kx² ⇒ x² = A²/2.</p>'),
+    m.mcq(2, 'spring', '<p>A mass m on a spring has period T. If the spring is replaced by one four times as stiff, the period becomes:</p>', 'T/2', ['2T', 'T/4', '4T'], '<p>T ∝ 1/√k, so 4 times stiffer halves the period.</p>'),
+    m.mcq(2, 'spring', '<p>Two identical springs are connected in parallel and support a block. Compared with one spring the frequency is:</p>', '√2 times larger', ['√2 times smaller', '2 times larger', 'the same'], '<p>k_eff = 2k, so f ∝ √k_eff gives √2.</p>'),
+    m.mcq(3, 'spring', '<p>A block hangs from a spring and oscillates vertically with period T. The same system on a smooth horizontal table (same spring and block) has period:</p>', 'T (the same)', ['2T', 'T/2', '√2 T'], '<p>T = 2π√(m/k) does not involve g. Gravity only changes the mean position.</p>'),
+    m.mcq(2, 'pendulum', '<p>A simple pendulum’s length is made 4 times longer. Its period becomes:</p>', '2 times', ['4 times', '√2 times', 'half'], '<p>T ∝ √L.</p>'),
+    m.mcq(2, 'pendulum', '<p>A simple pendulum is taken from a place where g = 9.8 m/s² to one where g is four times larger. The period:</p>', 'halves', ['doubles', 'is the same', 'becomes 4 times smaller'], '<p>T ∝ 1/√g, so a g four times larger halves T.</p>'),
+    m.mcq(2, 'pendulum', '<p>A pendulum clock in a lift that is accelerating upwards will:</p>', 'run fast (gain time)', ['run slow', 'keep correct time', 'stop'], '<p>The effective g is g + a, so T falls and the clock ticks faster.</p>'),
+    m.mcq(2, 'damping', '<p>In damped oscillations the amplitude:</p>', 'falls exponentially with time', ['falls linearly with time', 'stays constant', 'rises slowly'], '<p>A(t) = A₀e<sup>−bt/2m</sup>.</p>'),
+    m.mcq(3, 'damping', '<p>A heavily damped door closer closes the door in the shortest time without slamming when the damping is:</p>', 'critical', ['zero', 'very light', 'much more than critical'], '<p>Critical damping gives the quickest return without overshoot; more damping is slower.</p>'),
+    m.mcq(2, 'resonance', '<p>Resonance in a forced oscillation occurs when:</p>', 'the driving frequency equals the natural frequency', ['the driving force is the largest', 'the damping is zero', 'the amplitude is zero'], '<p>At ω_d ≈ ω₀ the energy transfer is most efficient and the amplitude peaks.</p>'),
+    m.mcq(2, 'resonance', '<p>When a system is driven at a frequency other than its natural one, in steady state it oscillates at:</p>', 'the driving frequency', ['its natural frequency', 'the average of the two', 'zero frequency'], '<p>After the transient dies out, a forced system follows the driver.</p>'),
+    m.ar(2, 'shm', 'The time period of a simple pendulum does not depend on the mass of the bob.', 'The restoring force and the inertia are both proportional to the mass.', 0, '<p>Both true and R explains A: mg sin θ ÷ m leaves a = −(g/L)x, no mass.</p>'),
+    m.ar(3, 'energy', 'The kinetic energy of a particle in SHM is maximum at the mean position.', 'At the mean position the potential energy is maximum.', 2, '<p>A is true (the speed is greatest at x = 0). R is false: U = ½kx² is zero there.</p>'),
+    m.ar(3, 'resonance', 'Soldiers are told to break step when crossing a bridge.', 'The regular marching may match the natural frequency of the bridge and make it vibrate with a large amplitude.', 0, '<p>Both true and R explains A: this is resonance.</p>'),
+    m.ar(3, 'damping', 'Damped oscillations have a time period slightly longer than the undamped system.', 'The damped angular frequency is ω′ = √(k/m − b²/4m²), smaller than √(k/m).', 0, '<p>Both true, R explains A: smaller ω′ means longer T.</p>'),
+    m.nat(2, 'spring', '<p>A 0.25 kg block on a spring of stiffness 100 N/m oscillates. Find the time period in seconds.</p>', () => 2 * Math.PI * Math.sqrt(0.25 / 100), 0.005, '<p>T = 2π√(0.25/100) = 0.314 s.</p>', { unit: 's' }),
+    m.nat(2, 'pendulum', '<p>Find the length in metres of a simple pendulum with a period of 3 s (g = 9.8 m/s²).</p>', () => 9.8 * 9 / (4 * Math.PI ** 2), 0.01, '<p>L = gT²/4π² = 9.8 × 9 / 39.5 = 2.23 m.</p>', { unit: 'm' }),
+    m.nat(3, 'energy', '<p>A block of mass 0.4 kg on a spring (k = 50 N/m) has amplitude 0.2 m. Find the maximum speed in m/s.</p>', () => Math.sqrt(50 / 0.4) * 0.2, 0.01, '<p>v<sub>max</sub> = ωA = √(50/0.4) × 0.2 = 2.24 m/s.</p>', { unit: 'm/s' }),
+    m.nat(3, 'shm', '<p>A particle in SHM has amplitude 10 cm and period 2 s. Find its speed in cm/s when 6 cm from the mean position.</p>', () => Math.PI * Math.sqrt(100 - 36), 0.05, '<p>ω = π rad/s; v = ω√(A² − x²) = π × 8 = 25.1 cm/s.</p>', { unit: 'cm/s' }),
+    m.nat(3, 'damping', '<p>A damped oscillator (m = 1 kg, b = 0.2 kg/s) starts with amplitude 10 cm. Find the amplitude in cm after 10 s.</p>', () => 10 * Math.exp(-0.2 * 10 / 2), 0.02, '<p>A = 10 e<sup>−0.2×10/2</sup> = 10 e<sup>−1</sup> = 3.68 cm.</p>', { unit: 'cm' }),
+    m.msq(3, 'shm', '<p>A particle executes SHM of amplitude A and angular frequency ω. Which are true? (Choose all that apply.)</p>', ['The maximum speed is ωA.', 'The maximum acceleration is ω²A.', 'The speed is maximum when the acceleration is maximum.', 'The total energy is proportional to A².'], [0, 1, 3], '<p>The speed is maximum at x = 0 where the acceleration is zero, so the third statement is false.</p>'),
+  ],
+  gens: [
+    { id: 'os-g01', type: 'nat', level: 2, exams: ['board'], sub: 'spring',
+      make(rng) { const mass = choose(rng, [0.2, 0.5, 1, 2]), k = choose(rng, [20, 50, 100, 200]); const T = 2 * Math.PI * Math.sqrt(mass / k); return { mass, k, q: `<p>A ${mass} kg block on a spring of stiffness ${k} N/m. Find the time period in seconds.</p>`, answer: r3(T), tol: T * 0.01, unit: 's', sol: `<p>T = 2π√(m/k) = 2π√(${mass}/${k}) = ${r3(T)} s.</p>` }; },
+      verify: (p) => 2 * Math.PI / Math.sqrt(p.k / p.mass) },
+    { id: 'os-g02', type: 'nat', level: 2, exams: ['board'], sub: 'pendulum',
+      make(rng) { const L = choose(rng, [0.5, 1, 1.5, 2, 3]); const T = 2 * Math.PI * Math.sqrt(L / 9.8); return { L, q: `<p>Time period in seconds of a simple pendulum of length ${L} m (g = 9.8 m/s²)?</p>`, answer: r3(T), tol: T * 0.01, unit: 's', sol: `<p>T = 2π√(L/g) = ${r3(T)} s.</p>` }; },
+      verify: (p) => 2 * Math.PI * Math.sqrt(p.L / 9.8) },
+    { id: 'os-g03', type: 'nat', level: 3, exams: ['board'], sub: 'shm',
+      make(rng) { const A = choose(rng, [5, 8, 10, 12]), x = A * choose(rng, [0.3, 0.5, 0.6]), T = choose(rng, [1, 2, 4]); const v = (2 * Math.PI / T) * Math.sqrt(A * A - x * x); return { A, x, T, q: `<p>A particle in SHM has amplitude ${A} cm and period ${T} s. Find its speed in cm/s at a displacement of ${r3(x)} cm.</p>`, answer: r3(v), tol: v * 0.01, unit: 'cm/s', sol: `<p>v = ω√(A² − x²) = ${r3(2 * Math.PI / T)} × √(${A}² − ${r3(x)}²) = ${r3(v)} cm/s.</p>` }; },
+      verify: (p) => { const w = 2 * Math.PI / p.T; return Math.sqrt((w * p.A) ** 2 - (w * p.x) ** 2); } },
+    { id: 'os-g04', type: 'nat', level: 3, exams: ['board'], sub: 'energy',
+      make(rng) { const k = choose(rng, [40, 80, 160]), A = choose(rng, [0.1, 0.2, 0.25]); const E = 0.5 * k * A * A; return { k, A, q: `<p>A spring of stiffness ${k} N/m oscillates with amplitude ${A} m. Find the total energy in J.</p>`, answer: r3(E), tol: E * 0.01, unit: 'J', sol: `<p>E = ½kA² = ½ × ${k} × ${A}² = ${r3(E)} J.</p>` }; },
+      verify: (p) => { const w2 = p.k, F = p.k * p.A; return 0.5 * F * p.A + 0 * w2; } },
+  ],
+};
