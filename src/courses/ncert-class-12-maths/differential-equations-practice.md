@@ -177,7 +177,7 @@ For 8 times: `$e^{kt} = 8$`, so `$kt = \ln 8 = 3\ln 2$` and `$t = \dfrac{3\ln 2}
 
 (b) `$T(10) = 60$`: `$30 + 60e^{-10k} = 60$`, so `$e^{-10k} = \tfrac12$` and `$k = \dfrac{\ln 2}{10} \approx 0.0693$` per minute.
 
-(c) `$T(20) = 30 + 60\left(\tfrac12\right)^2 = 30 + 15 = 45$ °C`.
+(c) `$T(20) = 30 + 60\left(\tfrac12\right)^2 = 30 + 15 = 45$` °C.
 
 (d) No. `$60e^{-kt}$` is always positive and tends to 0, so `$T$` approaches 30 °C from above but never goes below it.
 
