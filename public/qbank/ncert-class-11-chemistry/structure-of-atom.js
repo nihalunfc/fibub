@@ -1,0 +1,57 @@
+// Class 11 Chemistry, Chapter 2 Structure of Atom: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('sa');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'structure-of-atom', name: 'Structure of Atom', n: 2,
+  items: [
+    m.mcq(1, 'particles', '<p>The particle with no charge found in the nucleus is the:</p>', 'neutron', ['proton', 'electron', 'positron'], '<p>Chadwick discovered the neutron in 1932.</p>'),
+    m.mcq(2, 'particles', '<p>The number of neutrons in ³⁷Cl⁻ (Z = 17) is:</p>', '20', ['17', '18', '37'], '<p>Neutrons = A − Z = 37 − 17 = 20. The charge changes electrons, not neutrons.</p>', { trap: 'Subtracting the electrons.' }),
+    m.mcq(2, 'particles', '<p>The species ⁴⁰Ar and ⁴⁰Ca are:</p>', 'isobars', ['isotopes', 'isotones', 'isomers'], '<p>Same mass number, different atomic number.</p>'),
+    m.mcq(2, 'particles', '<p>A species has 18 electrons, 20 neutrons and 17 protons. It is:</p>', '³⁷Cl⁻', ['³⁷Ar', '³⁸Cl⁺', '³⁷Cl'], '<p>17 protons means chlorine; 17 + 20 = 37; 18 electrons means one extra, so Cl⁻.</p>'),
+    m.mcq(2, 'models', '<p>In Rutherford’s experiment most alpha particles passed straight through the gold foil. This showed that:</p>', 'most of the atom is empty space', ['the nucleus is large', 'electrons are heavier than alpha particles', 'the foil was too thin to contain atoms'], '<p>Only a tiny nucleus can deflect an alpha particle, so most of the atom is empty.</p>'),
+    m.mcq(2, 'models', '<p>The main drawback of Rutherford’s model was that:</p>', 'a revolving electron would radiate energy and spiral into the nucleus', ['it had no nucleus', 'it required neutrons', 'it denied electrons'], '<p>An accelerating charge radiates; atoms would collapse.</p>'),
+    m.mcq(2, 'light', '<p>Which of these has the highest photon energy?</p>', 'ultraviolet light', ['visible light', 'infrared light', 'radio waves'], '<p>E = hc/λ: the shortest wavelength has the largest energy.</p>'),
+    m.mcq(2, 'light', '<p>The frequency of light of wavelength 600 nm is (c = 3 × 10⁸ m/s):</p>', '5 × 10¹⁴ Hz', ['5 × 10¹⁵ Hz', '2 × 10¹⁴ Hz', '1.8 × 10¹¹ Hz'], '<p>ν = c/λ = 3 × 10⁸ / 6 × 10⁻⁷ = 5 × 10¹⁴ Hz.</p>'),
+    m.mcq(3, 'photoelectric', '<p>When the intensity of light above the threshold frequency is doubled, the maximum kinetic energy of the emitted electrons:</p>', 'stays the same', ['doubles', 'halves', 'becomes four times'], '<p>K = hν − φ depends only on frequency. Intensity changes the number of electrons.</p>'),
+    m.mcq(3, 'photoelectric', '<p>A metal has a work function of 2.0 eV. Light of energy 3.5 eV hits it. The maximum kinetic energy of the electrons is:</p>', '1.5 eV', ['5.5 eV', '2.0 eV', '3.5 eV'], '<p>K = 3.5 − 2.0 = 1.5 eV.</p>'),
+    m.mcq(2, 'bohr', '<p>Bohr’s model correctly explains the spectrum of:</p>', 'hydrogen and He⁺', ['helium atom', 'all atoms', 'lithium atom'], '<p>It works for one-electron systems only.</p>'),
+    m.mcq(2, 'bohr', '<p>The energy of the electron in the n = 2 orbit of hydrogen is:</p>', '−3.4 eV', ['−13.6 eV', '−6.8 eV', '−1.51 eV'], '<p>E = −13.6/4 = −3.4 eV.</p>'),
+    m.mcq(3, 'bohr', '<p>The radius of the third orbit of He⁺ (Z = 2) is (r₁ of H = 52.9 pm):</p>', '238 pm', ['159 pm', '106 pm', '476 pm'], '<p>r = 52.9 × 9/2 = 238 pm.</p>'),
+    m.mcq(2, 'bohr', '<p>Which series of hydrogen lies in the visible region?</p>', 'Balmer', ['Lyman', 'Paschen', 'Brackett'], '<p>Balmer lines end on n = 2.</p>'),
+    m.mcq(2, 'matter waves', '<p>The de Broglie wavelength of a particle is inversely proportional to its:</p>', 'momentum', ['energy squared', 'charge', 'volume'], '<p>λ = h/p = h/mv.</p>'),
+    m.mcq(3, 'matter waves', '<p>If the speed of an electron is doubled, its de Broglie wavelength becomes:</p>', 'half', ['double', 'four times', 'one quarter'], '<p>λ ∝ 1/v.</p>'),
+    m.mcq(2, 'matter waves', '<p>Heisenberg’s uncertainty principle is significant mainly for:</p>', 'electrons in atoms', ['cricket balls', 'cars', 'planets'], '<p>For ordinary objects, h/4π is negligible compared with their momentum.</p>'),
+    m.mcq(2, 'quantum numbers', '<p>The number of orbitals in the n = 3 shell is:</p>', '9', ['3', '6', '18'], '<p>n² = 9 (1 + 3 + 5).</p>'),
+    m.mcq(2, 'quantum numbers', '<p>For l = 2 the allowed values of mₗ number:</p>', '5', ['3', '2', '7'], '<p>2l + 1 = 5.</p>'),
+    m.mcq(2, 'quantum numbers', '<p>Which orbital does n = 4, l = 1 describe?</p>', '4p', ['4s', '3p', '4d'], '<p>l = 1 is a p subshell; n = 4.</p>'),
+    m.mcq(3, 'quantum numbers', '<p>The number of radial nodes in a 3s orbital is:</p>', '2', ['0', '1', '3'], '<p>n − l − 1 = 3 − 0 − 1 = 2.</p>'),
+    m.mcq(2, 'configuration', '<p>The electronic configuration of Cu (Z = 29) is:</p>', '[Ar] 3d¹⁰ 4s¹', ['[Ar] 3d⁹ 4s²', '[Ar] 3d⁸ 4s³', '[Ar] 4s² 4p⁹'], '<p>Filled 3d is extra stable, so one 4s electron moves to 3d.</p>'),
+    m.mcq(2, 'configuration', '<p>The number of unpaired electrons in nitrogen (Z = 7) is:</p>', '3', ['1', '2', '0'], '<p>1s² 2s² 2p³: Hund’s rule puts one electron in each p orbital.</p>'),
+    m.mcq(3, 'configuration', '<p>Which ion has the configuration [Ar] 3d⁵?</p>', 'Mn²⁺ (Z = 25)', ['Fe²⁺ (Z = 26)', 'Cr²⁺ (Z = 24)', 'Co²⁺ (Z = 27)'], '<p>Mn is [Ar] 3d⁵ 4s²; removing the 4s electrons gives [Ar] 3d⁵.</p>'),
+    m.mcq(2, 'configuration', '<p>The rule that no two electrons in an atom have the same four quantum numbers is:</p>', 'Pauli exclusion principle', ['Hund’s rule', 'Aufbau principle', 'Heisenberg principle'], '<p>That is Pauli’s principle.</p>'),
+    m.ar(2, 'photoelectric', 'Electrons are emitted from a metal only when the light frequency is above a threshold.', 'Each photon gives all its energy to one electron, so the photon must carry at least the work function.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'bohr', 'Bohr’s model cannot be applied to the helium atom.', 'It cannot account for electron-electron repulsion in an atom with more than one electron.', 0, '<p>Both true and R explains A: the model is built for one electron.</p>'),
+    m.ar(3, 'configuration', 'Chromium has the configuration [Ar] 3d⁵ 4s¹.', 'A half-filled d subshell has extra stability.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(2, 'quantum numbers', 'There is no 2d subshell.', 'For n = 2 the azimuthal quantum number l can only be 0 or 1.', 0, '<p>l runs from 0 to n − 1, so d (l = 2) first appears at n = 3. Both true and R explains A.</p>'),
+    m.nat(2, 'light', '<p>Find the energy in eV of a photon of wavelength 620 nm (hc = 1240 eV nm).</p>', () => 1240 / 620, 0.01, '<p>E = 1240/620 = 2.0 eV.</p>', { unit: 'eV' }),
+    m.nat(3, 'bohr', '<p>Find the wavelength in nm of the photon emitted when an electron in hydrogen falls from n = 4 to n = 2.</p>', () => 1239.84 / (13.6 * (1 / 4 - 1 / 16)), 0.01, '<p>ΔE = 13.6 (1/4 − 1/16) = 2.55 eV; λ = 1240/2.55 = 486 nm.</p>', { unit: 'nm' }),
+    m.nat(3, 'photoelectric', '<p>Light of wavelength 310 nm falls on a metal of work function 2.5 eV. Find the maximum kinetic energy of the electrons in eV (hc = 1240 eV nm).</p>', () => 1240 / 310 - 2.5, 0.02, '<p>Photon energy 1240/310 = 4.0 eV; K = 4.0 − 2.5 = 1.5 eV.</p>', { unit: 'eV' }),
+    m.nat(3, 'quantum numbers', '<p>How many electrons can have n = 4 and l = 2?</p>', () => 10, 0.001, '<p>A 4d subshell has 5 orbitals, 2 electrons each: 10.</p>', { unit: 'electrons' }),
+    m.msq(3, 'quantum numbers', '<p>Which sets (n, l, mₗ) are allowed? (Choose all that apply.)</p>', ['3, 2, −2', '2, 1, 0', '1, 1, 0', '4, 3, +3'], [0, 1, 3], '<p>l must be less than n, so (1, 1, 0) is not allowed.</p>'),
+    m.msq(2, 'configuration', '<p>Which atoms have 3 unpaired electrons in the ground state?</p>', ['N (Z = 7)', 'P (Z = 15)', 'V (Z = 23)', 'O (Z = 8)'], [0, 1, 2], '<p>N 2p³, P 3p³ and V 3d³ 4s²; O has 2.</p>'),
+  ],
+  gens: [
+    { id: 'sa-g01', type: 'nat', level: 2, exams: ['board'], sub: 'light',
+      make(rng) { const l = choose(rng, [200, 250, 300, 400, 500, 620]); const E = 1239.84 / l; return { l, q: `<p>Find the energy in eV of a photon of wavelength ${l} nm (hc = 1240 eV nm).</p>`, answer: r3(E), tol: Math.max(0.01, E * 0.01), unit: 'eV', sol: `<p>E = 1240/${l} = ${r3(E)} eV.</p>` }; },
+      verify: (p) => 6.626e-34 * 2.998e8 / (p.l * 1e-9) / 1.602e-19 },
+    { id: 'sa-g02', type: 'nat', level: 3, exams: ['board'], sub: 'bohr',
+      make(rng) { const Z = choose(rng, [1, 2, 3]), n = pick(rng, 1, 4), E = -13.6 * Z * Z / (n * n); return { Z, n, q: `<p>Find the energy of the electron in orbit n = ${n} of a hydrogen-like ion with Z = ${Z}, in eV (E<sub>n</sub> = −13.6 Z²/n²).</p>`, answer: r3(E), tol: Math.max(0.02, Math.abs(E) * 0.01), unit: 'eV', sol: `<p>E = −13.6 × ${Z * Z}/${n * n} = ${r3(E)} eV.</p>` }; },
+      verify: (p) => -13.6 * (p.Z / p.n) ** 2 },
+    { id: 'sa-g03', type: 'nat', level: 3, exams: ['board'], sub: 'matter waves',
+      make(rng) { const v = choose(rng, [1, 2, 4, 5, 8]); const lam = 6.626e-34 / (9.109e-31 * v * 1e6) * 1e12; return { v, q: `<p>Find the de Broglie wavelength in pm of an electron moving at ${v} × 10⁶ m/s (m = 9.109 × 10⁻³¹ kg).</p>`, answer: r3(lam), tol: Math.max(0.5, lam * 0.01), unit: 'pm', sol: `<p>λ = h/mv = 6.626 × 10⁻³⁴ / (9.109 × 10⁻³¹ × ${v} × 10⁶) = ${r3(lam)} pm.</p>` }; },
+      verify: (p) => 727.4 / p.v },
+  ],
+};
