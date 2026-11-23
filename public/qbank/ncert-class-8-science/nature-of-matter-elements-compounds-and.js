@@ -1,0 +1,51 @@
+// Class 8 Science (Curiosity), Chapter 8 Nature of Matter: Elements, Compounds, and Mixtures: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('nm');
+
+export default {
+  topic: 'nature-of-matter-elements-compounds-and', name: 'Nature of Matter: Elements, Compounds, and Mixtures', n: 8,
+  items: [
+    m.mcq(1, 'element', '<p>A substance made of only one kind of atom is called an:</p>', 'element', ['compound', 'mixture', 'alloy'], '<p>An element has only one kind of atom.</p>'),
+    m.mcq(1, 'element', '<p>Which of these is an element?</p>', 'iron', ['water', 'salt', 'air'], '<p>Iron (Fe) contains only iron atoms; the others are compounds or a mixture.</p>'),
+    m.mcq(2, 'element', '<p>The symbol for sodium is:</p>', 'Na', ['S', 'So', 'Sd'], '<p>Na comes from the Latin name natrium.</p>'),
+    m.mcq(2, 'element', '<p>The symbol Fe stands for:</p>', 'iron', ['fluorine', 'fermium only', 'francium'], '<p>Fe is from the Latin ferrum.</p>'),
+    m.mcq(2, 'element', '<p>Which of these is a non-metal?</p>', 'sulfur', ['copper', 'sodium', 'iron'], '<p>Sulfur is a brittle yellow non-metal.</p>'),
+    m.mcq(2, 'element', '<p>Which metal is a liquid at room temperature?</p>', 'mercury', ['iron', 'copper', 'aluminium'], '<p>Mercury is the only common liquid metal.</p>'),
+    m.mcq(1, 'compound', '<p>A compound is a substance that:</p>', 'has two or more elements joined in a fixed ratio', ['is a mixture of gases', 'contains one kind of atom', 'can be separated by filtering'], '<p>The elements are chemically combined.</p>'),
+    m.mcq(2, 'compound', '<p>Which of these is a compound?</p>', 'carbon dioxide', ['oxygen', 'nitrogen', 'air'], '<p>CO₂ has carbon and oxygen joined together.</p>'),
+    m.mcq(2, 'compound', '<p>The properties of a compound compared with its elements are:</p>', 'different from them', ['the same as them', 'an average of them', 'always weaker'], '<p>Water puts out fire although hydrogen burns and oxygen helps burning.</p>', { trap: 'The compound is a new substance, not a blend.' }),
+    m.mcq(2, 'compound', '<p>The formula H₂O shows that a water molecule has:</p>', '2 hydrogen atoms and 1 oxygen atom', ['2 oxygen atoms and 1 hydrogen atom', '3 hydrogen atoms', '1 of each and a water atom'], '<p>The small 2 belongs to the symbol before it.</p>'),
+    m.mcq(2, 'compound', '<p>The elements in a compound can be separated by:</p>', 'chemical methods', ['filtering', 'using a magnet', 'handpicking'], '<p>Physical methods do not break the chemical bond.</p>'),
+    m.mcq(1, 'mixture', '<p>Air is a:</p>', 'mixture of gases', ['compound', 'element', 'single gas'], '<p>Air has nitrogen, oxygen and other gases mixed.</p>'),
+    m.mcq(2, 'mixture', '<p>In a mixture:</p>', 'the substances keep their own properties', ['the substances combine chemically', 'the ratio is always fixed', 'a new substance is always formed'], '<p>Parts of a mixture are just mixed.</p>'),
+    m.mcq(2, 'mixture', '<p>Which is a homogeneous mixture?</p>', 'sugar dissolved in water', ['sand in water', 'oil and water', 'a fruit salad'], '<p>It looks the same throughout.</p>'),
+    m.mcq(2, 'mixture', '<p>Which is a heterogeneous mixture?</p>', 'sand and iron filings', ['salt solution', 'brass', 'air'], '<p>You can see the different parts.</p>'),
+    m.mcq(2, 'separate', '<p>Iron filings can be separated from sand using:</p>', 'a magnet', ['filtration', 'evaporation', 'distillation'], '<p>Iron is attracted by a magnet.</p>'),
+    m.mcq(2, 'separate', '<p>Salt is recovered from sea water by:</p>', 'evaporation', ['magnetic separation', 'winnowing', 'sieving'], '<p>Salt is left behind when the water evaporates.</p>'),
+    m.mcq(2, 'separate', '<p>Which method separates sand from water?</p>', 'filtration', ['evaporation of sand', 'using a magnet', 'sublimation'], '<p>Sand is too big to pass through the filter paper.</p>'),
+    m.mcq(2, 'separate', '<p>Husk is separated from rice grains by:</p>', 'winnowing', ['filtration', 'distillation', 'magnetism'], '<p>Wind blows the lighter husk away.</p>'),
+    m.mcq(2, 'separate', '<p>Which method is best to get pure water from salt water?</p>', 'distillation', ['filtration', 'sieving', 'decantation'], '<p>The water is boiled off and condensed.</p>'),
+    m.mcq(3, 'compound', '<p>Which statement is correct about iron filings and sulfur?</p>', 'mixed together they are a mixture, but heated together they form a compound', ['they are always a compound', 'they cannot be separated at all', 'heating only separates them'], '<p>The mixture keeps the properties of each; heating makes iron sulfide.</p>'),
+    m.mcq(3, 'mixture', '<p>Brass is made by mixing copper and zinc in different proportions. It is therefore:</p>', 'an alloy, a mixture of metals', ['a compound', 'an element', 'a pure metal'], '<p>The ratio can change, which is a sign of a mixture.</p>'),
+    m.ar(2, 'compound', 'Water is a compound.', 'It has hydrogen and oxygen joined in a fixed ratio.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'mixture', 'Air is a compound of nitrogen and oxygen.', 'The gases in air keep their own properties and can be separated by physical methods.', 3, '<p>A is false: air is a mixture. R is true, and it is the reason air is a mixture.</p>'),
+    m.ar(3, 'separate', 'Sand can be separated from a salt solution by filtering.', 'Sand does not dissolve in water.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'compound', '<p>How many atoms are in 5 molecules of CO₂?</p>', () => 15, 0.01, '<p>Each molecule has 3 atoms: 5 × 3 = 15.</p>'),
+    m.nat(2, 'mixture', '<p>A mixture has 20 g of salt and 80 g of sand. What percentage is salt?</p>', () => 20, 0.01, '<p>20 ÷ 100 × 100 = 20%.</p>'),
+    m.nat(3, 'compound', '<p>In water the mass ratio of hydrogen to oxygen is 1 : 8. How many grams of hydrogen are in 54 g of water?</p>', () => 6, 0.01, '<p>54 ÷ 9 = 6 g.</p>'),
+    m.msq(3, 'element', '<p>Which of these are elements? (Choose all that apply.)</p>', ['Gold', 'Carbon dioxide', 'Oxygen', 'Sodium chloride'], [0, 2], '<p>Gold and oxygen have one kind of atom. CO₂ and NaCl are compounds.</p>'),
+    m.msq(3, 'mixture', '<p>Which of these are mixtures? (Choose all that apply.)</p>', ['Sea water', 'Air', 'Distilled water', 'Muddy water'], [0, 1, 3], '<p>Distilled water is a pure compound.</p>'),
+  ],
+  gens: [
+    { id: 'nm-g01', type: 'nat', level: 2, exams: ['board'], sub: 'compound',
+      make(rng) { const k = pick(rng, 2, 20, 1), a = choose(rng, [3, 4, 5, 7]); return { k, a, q: `<p>One molecule of a compound has ${a} atoms. How many atoms are in ${k} molecules?</p>`, answer: k * a, tol: 0.01, sol: `<p>${k} × ${a} = ${k * a} atoms.</p>` }; },
+      verify: (p) => p.a * p.k },
+    { id: 'nm-g02', type: 'nat', level: 2, exams: ['board'], sub: 'mixture',
+      make(rng) { const a = pick(rng, 10, 50, 10), b = pick(rng, 50, 150, 10); return { a, b, q: `<p>A mixture contains ${a} g of sugar and ${b} g of sand. What percentage of it is sugar?</p>`, answer: a / (a + b) * 100, tol: 0.01, sol: `<p>${a} ÷ ${a + b} × 100 = ${+(a / (a + b) * 100).toFixed(3)}%.</p>` }; },
+      verify: (p) => 100 * p.a / (p.a + p.b) },
+    { id: 'nm-g03', type: 'nat', level: 3, exams: ['board'], sub: 'compound',
+      make(rng) { const M = pick(rng, 18, 90, 9); return { M, q: `<p>Water has hydrogen and oxygen in the mass ratio 1 : 8. How many grams of hydrogen are in ${M} g of water?</p>`, answer: M / 9, tol: 0.01, sol: `<p>${M} ÷ 9 = ${+(M / 9).toFixed(4)} g.</p>` }; },
+      verify: (p) => p.M * (1 / 9) },
+  ],
+};

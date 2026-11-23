@@ -1,0 +1,51 @@
+// Class 8 Science (Curiosity), Chapter 13 Our Home: Earth, a Unique Life-Sustaining Planet: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('er');
+
+export default {
+  topic: 'our-home-earth-a-unique-life', name: 'Our Home: Earth, a Unique Life-Sustaining Planet', n: 13,
+  items: [
+    m.mcq(1, 'spheres', '<p>The solid, rocky part of the Earth\'s surface is the:</p>', 'lithosphere', ['hydrosphere', 'atmosphere', 'biosphere'], '<p>Lithos means stone.</p>'),
+    m.mcq(1, 'spheres', '<p>All the water on Earth together is called the:</p>', 'hydrosphere', ['lithosphere', 'atmosphere', 'biosphere'], '<p>Hydro means water.</p>'),
+    m.mcq(1, 'spheres', '<p>The blanket of gases around the Earth is the:</p>', 'atmosphere', ['hydrosphere', 'biosphere', 'lithosphere'], '<p>It is held by gravity.</p>'),
+    m.mcq(2, 'spheres', '<p>The part of the Earth where life exists is the:</p>', 'biosphere', ['atmosphere only', 'core', 'ozone layer'], '<p>It overlaps the other three spheres.</p>'),
+    m.mcq(2, 'spheres', '<p>A fish swimming in a river belongs to which sphere?</p>', 'biosphere (living in the hydrosphere)', ['lithosphere only', 'atmosphere only', 'none'], '<p>Spheres overlap: life exists in water, soil and air.</p>'),
+    m.mcq(2, 'atmosphere', '<p>The most abundant gas in the air is:</p>', 'nitrogen', ['oxygen', 'carbon dioxide', 'hydrogen'], '<p>About 78% nitrogen, 21% oxygen.</p>', { trap: 'Oxygen is only about one fifth.' }),
+    m.mcq(2, 'atmosphere', '<p>Weather happens in the:</p>', 'troposphere', ['stratosphere', 'mesosphere', 'thermosphere'], '<p>It is the lowest layer, with clouds and most of the air.</p>'),
+    m.mcq(2, 'atmosphere', '<p>The ozone layer lies in the:</p>', 'stratosphere', ['troposphere', 'mesosphere', 'exosphere'], '<p>It absorbs harmful ultraviolet rays.</p>'),
+    m.mcq(2, 'atmosphere', '<p>As you climb a mountain, the air pressure:</p>', 'falls', ['rises', 'stays the same', 'doubles'], '<p>There is less air above you.</p>'),
+    m.mcq(3, 'atmosphere', '<p>Meteors usually burn up in the atmosphere because of:</p>', 'friction with the air', ['sunlight', 'rain', 'wind'], '<p>They move very fast and heat up.</p>'),
+    m.mcq(1, 'water', '<p>The change of liquid water to water vapour is:</p>', 'evaporation', ['condensation', 'precipitation', 'runoff'], '<p>It is driven by heat from the Sun.</p>'),
+    m.mcq(2, 'water', '<p>Clouds form when water vapour:</p>', 'cools and condenses', ['evaporates', 'melts', 'boils'], '<p>Tiny droplets gather around dust.</p>'),
+    m.mcq(2, 'water', '<p>Rain, snow and hail are all forms of:</p>', 'precipitation', ['evaporation', 'transpiration', 'runoff'], '<p>Water falling from the sky.</p>'),
+    m.mcq(2, 'water', '<p>Plants add water vapour to the air by:</p>', 'transpiration', ['photosynthesis', 'respiration only', 'germination'], '<p>Water escapes through tiny holes in leaves.</p>'),
+    m.mcq(2, 'water', '<p>About how much of the Earth\'s water is fresh?</p>', '3%', ['30%', '50%', '97%'], '<p>About 97% is salty.</p>'),
+    m.mcq(3, 'water', '<p>Most of the Earth\'s fresh water is:</p>', 'frozen in ice caps and glaciers', ['in rivers', 'in lakes', 'in clouds'], '<p>About 69% is ice.</p>'),
+    m.mcq(1, 'life', '<p>Earth supports life partly because it has:</p>', 'liquid water', ['no atmosphere', 'extreme heat', 'no gravity'], '<p>All known life needs liquid water.</p>'),
+    m.mcq(2, 'life', '<p>The habitable zone is the region around a star where:</p>', 'a planet can have liquid water', ['it is always freezing', 'there is no light', 'planets are largest'], '<p>Not too hot and not too cold.</p>'),
+    m.mcq(2, 'life', '<p>A planet far outside the habitable zone is likely to be:</p>', 'too cold, with water frozen', ['too hot, with boiling oceans', 'just right', 'full of oxygen'], '<p>It gets too little sunlight.</p>'),
+    m.mcq(2, 'life', '<p>Venus is hotter than Earth mainly because of:</p>', 'a thick carbon dioxide atmosphere trapping heat', ['no atmosphere', 'being far from the Sun', 'having oceans'], '<p>An extreme greenhouse effect.</p>'),
+    m.mcq(2, 'greenhouse', '<p>The greenhouse effect makes the Earth:</p>', 'warmer than it would be without an atmosphere', ['colder', 'darker', 'smaller'], '<p>Gases trap heat; without them the Earth would be about -18 degrees C.</p>'),
+    m.mcq(2, 'greenhouse', '<p>Which is a greenhouse gas?</p>', 'carbon dioxide', ['nitrogen', 'argon', 'helium'], '<p>Water vapour and methane are others.</p>'),
+    m.mcq(3, 'greenhouse', '<p>Burning fossil fuels raises the Earth\'s average temperature because it:</p>', 'adds carbon dioxide that traps more heat', ['adds oxygen', 'removes the Sun', 'cools the sea'], '<p>More greenhouse gas means more trapped heat.</p>'),
+    m.ar(2, 'life', 'Mars today cannot have liquid water on its surface easily.', 'Mars is far from the Sun and has a thin atmosphere.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(3, 'greenhouse', 'Without the greenhouse effect, life on Earth would be difficult.', 'Greenhouse gases are harmful in every amount.', 2, '<p>A is true: the Earth would freeze. R is false: the natural effect is helpful; only an excess is harmful.</p>'),
+    m.ar(3, 'water', 'Fresh water is a precious resource.', 'Only a small part of Earth\'s water is easily available as fresh water.', 0, '<p>Both true, and R explains A.</p>'),
+    m.nat(1, 'water', '<p>Out of 200 litres of Earth\'s water, how many litres are fresh if 3% is fresh?</p>', () => 6, 0.01, '<p>3% of 200 = 6 L.</p>'),
+    m.nat(2, 'atmosphere', '<p>The temperature on the ground is 30 degrees C and falls 6.5 degrees per km. What is it at 6 km (degrees C)?</p>', () => -9, 0.01, '<p>30 − 6.5 × 6 = −9 degrees C.</p>'),
+    m.nat(2, 'life', '<p>A planet at 2 AU from the Sun gets how many times the sunlight Earth gets?</p>', () => 0.25, 0.01, '<p>1 ÷ 2² = 0.25.</p>'),
+    m.msq(3, 'water', '<p>Which are steps in the water cycle? (Choose all that apply.)</p>', ['Evaporation', 'Condensation', 'Precipitation', 'Combustion'], [0, 1, 2], '<p>Combustion is burning, not a step of the water cycle.</p>'),
+  ],
+  gens: [
+    { id: 'er-g01', type: 'nat', level: 2, exams: ['board'], sub: 'atmosphere',
+      make(rng) { const T0 = pick(rng, 20, 40, 5), h = pick(rng, 2, 11, 1); return { T0, h, q: `<p>The air temperature on the ground is ${T0} °C and falls by 6.5 °C for every km. What is the temperature at ${h} km, in °C?</p>`, answer: T0 - 6.5 * h, tol: 0.01, sol: `<p>${T0} − 6.5 × ${h} = ${T0 - 6.5 * h} °C.</p>` }; },
+      verify: (p) => p.T0 - 6.5 * p.h },
+    { id: 'er-g02', type: 'nat', level: 2, exams: ['board'], sub: 'life',
+      make(rng) { const d = choose(rng, [0.5, 0.72, 1.5, 2, 4, 5]); return { d, q: `<p>A planet is ${d} AU from the Sun. How many times the sunlight Earth receives does it get? (Light falls as 1/d².)</p>`, answer: 1 / (d * d), tol: 0.01, sol: `<p>1 ÷ ${d}² = ${1 / (d * d)}.</p>` }; },
+      verify: (p) => Math.pow(p.d, -2) },
+    { id: 'er-g03', type: 'nat', level: 2, exams: ['board'], sub: 'water',
+      make(rng) { const T = pick(rng, 100, 1000, 100); return { T, q: `<p>Out of ${T} litres of all the water on Earth, about 3% is fresh. How many litres is that?</p>`, answer: T * 0.03, tol: 0.01, sol: `<p>3% of ${T} = ${T * 0.03} L.</p>` }; },
+      verify: (p) => (p.T / 100) * 3 },
+  ],
+};

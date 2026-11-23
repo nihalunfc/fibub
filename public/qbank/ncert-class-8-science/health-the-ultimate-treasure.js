@@ -1,0 +1,53 @@
+// Class 8 Science (Curiosity), Chapter 3 Health: The Ultimate Treasure: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('hea');
+
+export default {
+  topic: 'health-the-ultimate-treasure', name: 'Health: The Ultimate Treasure', n: 3,
+  items: [
+    m.mcq(1, 'what', '<p>Health according to the WHO includes:</p>', 'physical, mental and social well-being', ['only the absence of disease', 'only a strong body', 'only a clean house'], '<p>Health is more than not being ill.</p>'),
+    m.mcq(2, 'what', '<p>A student who is worried and cannot sleep for weeks is mainly affected in:</p>', 'mental health', ['skin health', 'bone health', 'vision only'], '<p>Long stress or low mood is a mental-health matter; seek help from a trusted adult or doctor.</p>'),
+    m.mcq(2, 'what', '<p>Which of these is mainly a social health factor?</p>', 'having supportive friends and family', ['eating iron', 'getting a vaccine', 'drinking boiled water'], '<p>Social health concerns relationships and community.</p>'),
+    m.mcq(1, 'diet', '<p>Which nutrient is mainly for body growth and repair?</p>', 'proteins', ['carbohydrates', 'fibre', 'water'], '<p>Proteins build and repair tissues.</p>'),
+    m.mcq(2, 'diet', '<p>Scurvy is caused by lack of:</p>', 'vitamin C', ['vitamin D', 'iron', 'iodine'], '<p>Without vitamin C the gums bleed.</p>'),
+    m.mcq(2, 'diet', '<p>Rickets, with soft bent bones in children, is caused by lack of:</p>', 'vitamin D', ['vitamin C', 'iodine', 'protein only'], '<p>Vitamin D helps bones take up calcium; sunlight makes it in the skin.</p>'),
+    m.mcq(2, 'diet', '<p>Goitre is caused by too little:</p>', 'iodine', ['iron', 'vitamin A', 'calcium'], '<p>Iodine is needed by the thyroid gland; use iodised salt.</p>'),
+    m.mcq(2, 'diet', '<p>Anaemia is linked with a shortage of:</p>', 'iron', ['vitamin D', 'iodine', 'fibre'], '<p>Iron makes haemoglobin.</p>'),
+    m.mcq(2, 'diet', '<p>Which food is the best source of fibre?</p>', 'whole grains and vegetables', ['butter', 'sugar', 'refined white flour only'], '<p>Fibre keeps the gut working well.</p>'),
+    m.mcq(3, 'diet', '<p>Too much sugar and oily snacks over a long time mostly leads to:</p>', 'obesity and diabetes risk', ['scurvy', 'rickets', 'goitre'], '<p>Too much energy food is stored as fat.</p>'),
+    m.mcq(1, 'disease', '<p>Which disease is NOT spread from person to person?</p>', 'diabetes', ['measles', 'cholera', 'tuberculosis'], '<p>Diabetes is non-infectious.</p>'),
+    m.mcq(2, 'disease', '<p>Cholera spreads mostly through:</p>', 'contaminated water', ['the air', 'a mosquito bite', 'sunlight'], '<p>Drinking water with the bacterium Vibrio cholerae.</p>'),
+    m.mcq(2, 'disease', '<p>Dengue is spread by:</p>', 'a mosquito', ['a housefly', 'contaminated water', 'shared pencils'], '<p>The vector is the Aedes mosquito, which breeds in clean standing water.</p>'),
+    m.mcq(2, 'disease', '<p>A disease that lasts a long time, like diabetes, is called:</p>', 'chronic', ['acute', 'infectious', 'viral'], '<p>Acute diseases are short; chronic ones are long-lasting.</p>'),
+    m.mcq(2, 'disease', '<p>HIV is NOT spread by:</p>', 'hugging or sharing a meal', ['blood transfusion with infected blood', 'sharing unsterile needles', 'from mother to baby'], '<p>Everyday contact is safe.</p>'),
+    m.mcq(2, 'prevent', '<p>The best way to stop dengue spreading is to:</p>', 'remove standing water around the house', ['boil the milk', 'wash fruits only', 'eat more vitamin C'], '<p>No water means no mosquito breeding.</p>'),
+    m.mcq(2, 'prevent', '<p>How long should one scrub hands with soap?</p>', 'at least 20 seconds', ['2 seconds', '5 seconds', 'only when wet'], '<p>Scrub fingers, thumbs, nails and palms.</p>'),
+    m.mcq(2, 'prevent', '<p>When should you wash your hands?</p>', 'before eating and after using the toilet', ['only on festivals', 'only after games', 'never with soap'], '<p>These are the key moments.</p>'),
+    m.mcq(1, 'immune', '<p>Cells that swallow germs in the blood are:</p>', 'white blood cells', ['red blood cells', 'platelets', 'hair cells'], '<p>White cells fight infection.</p>'),
+    m.mcq(2, 'immune', '<p>Antibodies are made to:</p>', 'attach to a particular germ', ['carry oxygen', 'clot blood', 'digest food'], '<p>Each antibody fits one kind of germ.</p>'),
+    m.mcq(2, 'immune', '<p>A vaccine contains:</p>', 'a weakened or harmless form of the germ', ['antibiotics', 'extra iron', 'a living healthy bacterium for food'], '<p>It trains the immune system without making you ill.</p>'),
+    m.mcq(2, 'immune', '<p>Which disease was removed from the world by vaccination?</p>', 'smallpox', ['malaria', 'cholera', 'dengue'], '<p>Smallpox was declared eradicated in 1980.</p>'),
+    m.mcq(3, 'immune', '<p>Herd immunity means that:</p>', 'when most people are immune, the germ cannot spread easily', ['animals are vaccinated', 'everyone has the same disease', 'germs die in cold weather'], '<p>Immune people block the paths of infection.</p>'),
+    m.mcq(2, 'immune', '<p>Antibiotics are used to treat:</p>', 'bacterial infections', ['viral colds', 'diabetes', 'goitre'], '<p>They do not work on viruses.</p>', { trap: 'Flu and colds are viral.' }),
+    m.ar(2, 'prevent', 'Standing water near houses should be removed.', 'Mosquitoes lay eggs in standing water.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'immune', 'Vaccines cause the disease they protect against.', 'A vaccine contains a harmful, fully active germ.', 3, '<p>Both false: a vaccine holds a harmless form and does not cause the disease.</p>'),
+    m.ar(2, 'diet', 'A thali with roti, dal, vegetables and curd is a balanced meal.', 'It supplies energy, protein, vitamins, minerals and calcium.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'diet', '<p>A student has a mass of 54 kg and a height of 1.5 m. What is the BMI (mass ÷ height²) in kg/m²?</p>', () => 24, 0.01, '<p>1.5² = 2.25; 54 ÷ 2.25 = 24.</p>'),
+    m.nat(2, 'immune', '<p>A school has 400 students. 75% are vaccinated. How many students are vaccinated?</p>', () => 300, 0.01, '<p>75 ÷ 100 × 400 = 300.</p>'),
+    m.nat(3, 'prevent', '<p>A hand has 4000 germs. Soap and water remove 95%. How many remain?</p>', () => 200, 0.01, '<p>5% of 4000 = 200.</p>'),
+    m.msq(3, 'prevent', '<p>Which actions help prevent infectious diseases? (Choose all that apply.)</p>', ['Handwashing with soap', 'Drinking boiled water', 'Sharing towels', 'Getting vaccinated'], [0, 1, 3], '<p>Sharing towels spreads skin infections.</p>'),
+    m.msq(3, 'diet', '<p>Which are deficiency diseases? (Choose all that apply.)</p>', ['Anaemia', 'Scurvy', 'Cholera', 'Goitre'], [0, 1, 3], '<p>Cholera is caused by bacteria.</p>'),
+  ],
+  gens: [
+    { id: 'hea-g01', type: 'nat', level: 2, exams: ['board'], sub: 'diet',
+      make(rng) { const h = pick(rng, 1.4, 1.8, 0.05), mass = pick(rng, 35, 80, 1); return { h, mass, q: `<p>A student is ${h} m tall with a mass of ${mass} kg. Find the BMI (mass ÷ height²) in kg/m².</p>`, answer: mass / (h * h), tol: 0.01, sol: `<p>${h}² = ${(h * h).toFixed(4)}; ${mass} ÷ ${(h * h).toFixed(4)} = ${(mass / (h * h)).toFixed(2)}.</p>` }; },
+      verify: (p) => p.mass / p.h / p.h },
+    { id: 'hea-g02', type: 'nat', level: 2, exams: ['board'], sub: 'immune',
+      make(rng) { const pop = choose(rng, [200, 400, 500, 1000, 2000]), pct = choose(rng, [60, 70, 75, 80, 90]); return { pop, pct, q: `<p>A town of ${pop} people wants ${pct}% vaccinated. How many people is that?</p>`, answer: pop * pct / 100, tol: 0.01, sol: `<p>${pct}% of ${pop} = ${pop * pct / 100}.</p>` }; },
+      verify: (p) => p.pop * 0.01 * p.pct },
+    { id: 'hea-g03', type: 'nat', level: 3, exams: ['board'], sub: 'prevent',
+      make(rng) { const g = choose(rng, [1000, 2000, 5000, 10000]), pct = choose(rng, [80, 90, 95, 99]); return { g, pct, q: `<p>Hands carry ${g} germs. Washing removes ${pct}% of them. How many germs remain?</p>`, answer: g * (100 - pct) / 100, tol: 0.01, sol: `<p>${100 - pct}% of ${g} = ${g * (100 - pct) / 100}.</p>` }; },
+      verify: (p) => p.g - p.g * p.pct / 100 },
+  ],
+};

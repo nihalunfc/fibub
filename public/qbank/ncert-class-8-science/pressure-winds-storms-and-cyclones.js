@@ -1,0 +1,52 @@
+// Class 8 Science (Curiosity), Chapter 6 Pressure, Winds, Storms and Cyclones: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('pw');
+
+export default {
+  topic: 'pressure-winds-storms-and-cyclones', name: 'Pressure, Winds, Storms, and Cyclones', n: 6,
+  items: [
+    m.mcq(1, 'pressure', '<p>Pressure is the force acting on a surface divided by the:</p>', 'area of the surface', ['mass of the object', 'speed of the force', 'volume of the object'], '<p>Pressure = force ÷ area.</p>'),
+    m.mcq(1, 'pressure', '<p>The SI unit of pressure is the:</p>', 'pascal', ['newton', 'kilogram', 'watt'], '<p>1 pascal = 1 newton per square metre.</p>'),
+    m.mcq(2, 'pressure', '<p>A nail has a sharp point because:</p>', 'a small area gives a large pressure', ['a small area gives a small pressure', 'it makes the nail lighter', 'it makes the force smaller'], '<p>The same force on a small area gives a high pressure, so it goes in easily.</p>'),
+    m.mcq(2, 'pressure', '<p>Camels have broad feet so that they:</p>', 'do not sink into soft sand', ['run faster in sand', 'carry more water', 'feel less heat'], '<p>A wide area lowers the pressure on the sand.</p>'),
+    m.mcq(2, 'pressure', '<p>A 200 N force acts on 0.5 m². The pressure is:</p>', '400 Pa', ['100 Pa', '0.0025 Pa', '200.5 Pa'], '<p>200 ÷ 0.5 = 400 Pa.</p>'),
+    m.mcq(2, 'pressure', '<p>The force on a surface is doubled but the area stays the same. The pressure:</p>', 'doubles', ['halves', 'stays the same', 'becomes four times'], '<p>Pressure is proportional to force at fixed area.</p>'),
+    m.mcq(2, 'liquid', '<p>The pressure in a liquid:</p>', 'increases with depth', ['decreases with depth', 'is the same at every depth', 'acts only downward'], '<p>More liquid above means more weight pressing.</p>'),
+    m.mcq(2, 'liquid', '<p>A tall tank has holes at three heights. The water jet will be fastest from the:</p>', 'lowest hole', ['highest hole', 'middle hole', 'all equally'], '<p>The lowest hole has the greatest depth and the highest pressure.</p>'),
+    m.mcq(2, 'liquid', '<p>Dams are built thicker at the bottom because:</p>', 'water pressure is greatest at the bottom', ['water is colder at the bottom', 'the dam is taller there', 'water pressure is least at the bottom'], '<p>Pressure grows with depth.</p>'),
+    m.mcq(2, 'liquid', '<p>Liquids press:</p>', 'in all directions', ['only downward', 'only sideways', 'only upward'], '<p>A liquid presses on the bottom and the walls of its container and on anything inside it.</p>'),
+    m.mcq(1, 'atm', '<p>The air around the Earth exerts:</p>', 'atmospheric pressure', ['no pressure', 'pressure only upward', 'pressure only on mountains'], '<p>The weight of the air above us presses on everything.</p>'),
+    m.mcq(2, 'atm', '<p>Atmospheric pressure at sea level is about:</p>', '100 000 Pa', ['100 Pa', '10 Pa', '1 Pa'], '<p>About 101 300 Pa, or 1013 hPa.</p>'),
+    m.mcq(2, 'atm', '<p>As we climb a mountain, the air pressure:</p>', 'decreases', ['increases', 'stays the same', 'becomes zero at once'], '<p>There is less air above us.</p>'),
+    m.mcq(2, 'atm', '<p>A drinking straw works because:</p>', 'the air pressure outside pushes the liquid up when the pressure inside falls', ['the liquid is pulled up by the straw itself', 'the liquid is lighter than air', 'gravity switches off'], '<p>Sucking lowers the pressure in the straw; the higher pressure on the liquid surface pushes the drink up.</p>'),
+    m.mcq(2, 'atm', '<p>A sealed can is crushed after steam inside it condenses. This shows that:</p>', 'outside air pressure is larger than the inside pressure', ['steam is heavy', 'the can became hot', 'water is compressible'], '<p>Pressure inside dropped, so the outside air crushes the can.</p>'),
+    m.mcq(1, 'wind', '<p>Wind is moving air that goes from:</p>', 'high pressure to low pressure', ['low pressure to high pressure', 'hot to cold only', 'sea to land only'], '<p>Pressure differences drive winds.</p>'),
+    m.mcq(2, 'wind', '<p>A sea breeze blows during the day because the land:</p>', 'warms faster and has lower pressure', ['stays cooler than the sea', 'has higher pressure than the sea', 'is wetter'], '<p>Warm air rises over the land, so cool sea air flows in.</p>'),
+    m.mcq(2, 'wind', '<p>The bigger the difference in pressure between two places, the:</p>', 'stronger the wind', ['weaker the wind', 'hotter the air', 'less the rain'], '<p>A larger difference pushes the air harder.</p>'),
+    m.mcq(2, 'wind', '<p>At night the breeze near the coast usually blows:</p>', 'from the land to the sea', ['from the sea to the land', 'straight up', 'in no direction'], '<p>At night the land cools faster, so the sea is the warmer, lower-pressure side.</p>'),
+    m.mcq(2, 'storm', '<p>The calm, clear centre of a cyclone is called the:</p>', 'eye', ['wall', 'storm surge', 'front'], '<p>The eye has light winds; the strongest winds are in the eye wall around it.</p>'),
+    m.mcq(2, 'storm', '<p>The pressure at the centre of a cyclone is:</p>', 'very low', ['very high', 'the same as outside', 'zero'], '<p>Air spirals in toward the low pressure.</p>'),
+    m.mcq(2, 'storm', '<p>Cyclones form over:</p>', 'warm ocean water', ['cold deserts', 'high mountains', 'polar ice'], '<p>Warm moist air supplies the energy.</p>'),
+    m.mcq(2, 'storm', '<p>Which warning measure helps most before a cyclone hits?</p>', 'moving people from the coast to shelters', ['going out to watch the waves', 'opening all windows', 'standing under tall trees'], '<p>Early warnings and evacuation save lives.</p>'),
+    m.ar(2, 'pressure', 'It is easier to cut with a sharp knife than with a blunt one.', 'A sharp edge has a smaller area, so the same force gives more pressure.', 0, '<p>Both are true, and R explains A.</p>'),
+    m.ar(3, 'wind', 'Wind blows from a high-pressure area to a low-pressure area.', 'Air always moves from cold places to hot places.', 2, '<p>A is true. R is false: the direction depends on pressure, not directly on hot or cold.</p>'),
+    m.ar(3, 'atm', 'We are not crushed by the air pressure of about 100 000 Pa.', 'The pressure inside our body balances the pressure outside.', 0, '<p>Both are true, and R explains A.</p>'),
+    m.nat(2, 'pressure', '<p>A force of 600 N acts on an area of 0.2 m². What is the pressure in pascals?</p>', () => 3000, 0.01, '<p>600 ÷ 0.2 = 3000 Pa.</p>'),
+    m.nat(2, 'pressure', '<p>A pressure of 5000 Pa acts on 0.04 m². What force acts, in newtons?</p>', () => 200, 0.01, '<p>F = p × A = 5000 × 0.04 = 200 N.</p>'),
+    m.nat(3, 'storm', '<p>A cyclone 360 km away moves at 24 km/h. In how many hours will it reach the coast?</p>', () => 15, 0.01, '<p>360 ÷ 24 = 15 h.</p>'),
+    m.msq(3, 'atm', '<p>Which of these happen because of air pressure? (Choose all that apply.)</p>', ['A suction hook stays on the wall', 'A drink rises in a straw', 'A magnet picks up a nail', 'A can crushes when the steam inside cools'], [0, 1, 3], '<p>Suction hooks, straws and the crushed can all use air pressure; the magnet uses magnetic force.</p>'),
+    m.msq(3, 'storm', '<p>Which are good safety steps during a cyclone warning? (Choose all that apply.)</p>', ['Listen to the radio or official alerts', 'Stay away from windows', 'Shelter under a tall tree', 'Keep a torch and drinking water ready'], [0, 1, 3], '<p>Trees can fall; the other steps keep you informed and safe.</p>'),
+  ],
+  gens: [
+    { id: 'pw-g01', type: 'nat', level: 2, exams: ['board'], sub: 'pressure',
+      make(rng) { const F = pick(rng, 50, 800, 50), A = choose(rng, [0.01, 0.02, 0.05, 0.1, 0.25]); return { F, A, q: `<p>A force of ${F} N acts on an area of ${A} m². Find the pressure in pascals.</p>`, answer: F / A, tol: 0.01, sol: `<p>p = F ÷ A = ${F} ÷ ${A} = ${F / A} Pa.</p>` }; },
+      verify: (p) => p.F * (1 / p.A) },
+    { id: 'pw-g02', type: 'nat', level: 2, exams: ['board'], sub: 'pressure',
+      make(rng) { const p = choose(rng, [500, 1000, 2000, 4000]), A = choose(rng, [0.02, 0.05, 0.1, 0.5]); return { p, A, q: `<p>The pressure under a table leg is ${p} Pa and the contact area is ${A} m². What force acts on the floor, in newtons?</p>`, answer: p * A, tol: 0.01, sol: `<p>F = p × A = ${p} × ${A} = ${p * A} N.</p>` }; },
+      verify: (q) => q.A * q.p },
+    { id: 'pw-g03', type: 'nat', level: 3, exams: ['board'], sub: 'storm',
+      make(rng) { const d = pick(rng, 100, 700, 50), v = choose(rng, [10, 20, 25, 50]); return { d, v, q: `<p>A storm is ${d} km away and moves at ${v} km/h towards you. How many hours until it arrives?</p>`, answer: d / v, tol: 0.01, sol: `<p>t = ${d} ÷ ${v} = ${d / v} h.</p>` }; },
+      verify: (p) => p.d / p.v },
+  ],
+};

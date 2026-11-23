@@ -1,0 +1,51 @@
+// Class 8 Science (Curiosity), Chapter 1 Exploring the Investigative World of Science: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('inv');
+
+export default {
+  topic: 'exploring-the-investigative-world-of-science', name: 'Exploring the Investigative World of Science', n: 1,
+  items: [
+    m.mcq(1, 'method', '<p>A testable guess about what will happen is called a:</p>', 'hypothesis', ['conclusion', 'observation', 'unit'], '<p>A hypothesis is made before the test and can be shown wrong by it.</p>'),
+    m.mcq(1, 'method', '<p>Which step comes last in an investigation?</p>', 'drawing a conclusion and sharing it', ['making a hypothesis', 'asking the question', 'planning the test'], '<p>You conclude from the data after the test, then share.</p>'),
+    m.mcq(2, 'method', '<p>Which of these is a question that can be tested?</p>', 'Does a heavier stone sink faster in water?', ['Which colour is the nicest?', 'Is chai better than coffee?', 'Why is Monday boring?'], '<p>You can measure the sinking time. The others are opinions.</p>'),
+    m.mcq(2, 'method', '<p>"The road is wet, so it must have rained" is a(n):</p>', 'inference', ['observation', 'measurement', 'control'], '<p>The wet road is the observation; "it rained" is a reason worked out from it.</p>', { trap: 'An inference could be wrong: a water tanker may have passed.' }),
+    m.mcq(2, 'method', '<p>"Wet clothes dry faster in wind" written before any test is a:</p>', 'hypothesis', ['conclusion', 'observation', 'result'], '<p>It is a guess to be tested.</p>'),
+    m.mcq(1, 'fair', '<p>In a fair test the number of variables changed at a time is:</p>', 'one', ['two', 'three', 'all'], '<p>Only one is changed so the cause is clear.</p>'),
+    m.mcq(2, 'fair', '<p>A student tests the effect of water temperature on how fast sugar dissolves. Which must be kept the same?</p>', 'amount of sugar and water', ['water temperature', 'time to dissolve', 'nothing'], '<p>Only the temperature is changed; the amounts stay the same.</p>'),
+    m.mcq(2, 'fair', '<p>The variable you measure in an experiment is the:</p>', 'dependent variable', ['independent variable', 'controlled variable', 'control'], '<p>It depends on the variable that you change.</p>', { trap: 'The one you change is the independent variable.' }),
+    m.mcq(2, 'fair', '<p>A set-up where nothing is changed, used for comparison, is the:</p>', 'control', ['hypothesis', 'variable', 'graph'], '<p>The control shows what happens without the change.</p>'),
+    m.mcq(3, 'fair', '<p>Two plants: one in sun with extra water, one in shade with normal water. The sun plant grows taller. What can be concluded?</p>', 'Nothing certain, because two things differ', ['Sunlight caused it', 'Water caused it', 'Shade kills plants'], '<p>Light and water both changed, so the test is not fair.</p>'),
+    m.mcq(2, 'fair', '<p>Which pendulum property changes its time of swing?</p>', 'length', ['mass of the bob', 'colour of the bob', 'the material of the bob'], '<p>A longer pendulum swings more slowly; the mass makes no difference.</p>'),
+    m.mcq(1, 'measure', '<p>Error caused by reading a scale from the side is called:</p>', 'parallax error', ['zero error', 'least count', 'mean error'], '<p>The pointer seems to line up with the wrong mark.</p>'),
+    m.mcq(2, 'measure', '<p>The mean of 12 s, 14 s and 13 s is:</p>', '13 s', ['39 s', '12 s', '14 s'], '<p>(12 + 14 + 13) ÷ 3 = 13 s.</p>'),
+    m.mcq(2, 'measure', '<p>1.5 m is equal to:</p>', '150 cm', ['15 cm', '1500 cm', '0.15 cm'], '<p>1 m = 100 cm.</p>'),
+    m.mcq(2, 'measure', '<p>Why do we time 10 swings of a pendulum rather than one?</p>', 'the reaction-time error is shared among 10 swings', ['the pendulum swings faster', 'one swing cannot be seen', 'a stopwatch only works for 10 s'], '<p>The same hand error is spread over ten swings so each swing is more exact.</p>'),
+    m.mcq(2, 'measure', '<p>The smallest division on a metre ruler is 1 mm. Which reading is sensible?</p>', '12.3 cm', ['12.345 cm', '12.3456 cm', '12 m'], '<p>A ruler cannot show more detail than its least count.</p>'),
+    m.mcq(2, 'graph', '<p>On a graph, the variable you change is plotted on the:</p>', 'horizontal axis', ['vertical axis', 'title', 'legend'], '<p>The changed variable goes on x and the measured one on y.</p>'),
+    m.mcq(2, 'graph', '<p>A line of best fit should:</p>', 'pass as close as possible to all the points', ['join every dot with straight lines', 'go through the first and last points only', 'always start at (10, 10)'], '<p>It shows the overall trend, with points scattered either side.</p>'),
+    m.mcq(2, 'graph', '<p>A point far away from the line on an otherwise straight-line graph should be:</p>', 'checked or repeated', ['ignored without thought', 'made the new line', 'erased from the table'], '<p>It may be a careless reading, or something new.</p>'),
+    m.mcq(2, 'graph', '<p>Spring extension is 3 cm for a 200 g load and 6 cm for a 400 g load. Extension for 600 g is about:</p>', '9 cm', ['12 cm', '8 cm', '10 cm'], '<p>It stretches 1.5 cm per 100 g, so 600 g gives 9 cm.</p>'),
+    m.mcq(2, 'attitude', '<p>A scientist gets a result that does not fit the hypothesis. The honest step is to:</p>', 'report it and revise the hypothesis', ['change the data', 'hide the result', 'repeat until it fits'], '<p>Science follows the evidence.</p>'),
+    m.mcq(2, 'attitude', '<p>Why do scientists share their methods?</p>', 'so others can repeat the test', ['to make the work longer', 'to hide mistakes', 'so no one can question it'], '<p>If others can repeat a result and get the same answer, it is trusted.</p>'),
+    m.ar(2, 'fair', 'A fair test changes only one variable.', 'If two variables change, you cannot tell which one caused the result.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'method', 'A hypothesis that a test shows to be wrong is useless.', 'Science only advances through ideas that are proved right.', 3, '<p>Both statements are false. A wrong hypothesis rules something out and helps find a better idea.</p>', { }),
+    m.ar(2, 'measure', 'Averaging several readings gives a more reliable value.', 'Random errors partly cancel when readings are added.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'measure', '<p>Four readings are 2.0 s, 2.2 s, 1.8 s and 2.0 s. What is the mean in seconds?</p>', () => 2, 0.01, '<p>Sum = 8.0 s; 8.0 ÷ 4 = 2.0 s.</p>'),
+    m.nat(2, 'measure', '<p>A pendulum takes 15 s for 10 swings. What is the time for one swing in seconds?</p>', () => 1.5, 0.01, '<p>15 ÷ 10 = 1.5 s.</p>'),
+    m.nat(3, 'graph', '<p>A graph passes through (100 g, 1.5 cm) and (500 g, 7.5 cm). How many cm per 100 g?</p>', () => 1.5, 0.01, '<p>Change in extension 6.0 cm over 4 hundreds of grams = 1.5 cm per 100 g.</p>'),
+    m.msq(3, 'fair', '<p>Which of these should be kept the same in a fair test? (Choose all that apply.)</p>', ['the variable being changed', 'the amount of material used', 'the measuring instrument', 'the room conditions'], [1, 2, 3], '<p>Everything except the one changed variable must stay the same.</p>'),
+    m.msq(3, 'attitude', '<p>Which are good scientific habits? (Choose all that apply.)</p>', ['Record every reading', 'Change the data to match the guess', 'Share the method', 'Repeat the test'], [0, 2, 3], '<p>Never change data to fit the guess.</p>'),
+  ],
+  gens: [
+    { id: 'inv-g01', type: 'nat', level: 2, exams: ['board'], sub: 'measure',
+      make(rng) { const a = pick(rng, 10, 20, 0.5), b = pick(rng, 10, 20, 0.5), c = pick(rng, 10, 20, 0.5); return { a, b, c, q: `<p>Three readings are ${a} s, ${b} s and ${c} s. What is the mean in seconds?</p>`, answer: (a + b + c) / 3, tol: 0.01, sol: `<p>Mean = (${a} + ${b} + ${c}) ÷ 3 = ${(a + b + c) / 3} s.</p>` }; },
+      verify: (p) => p.a / 3 + p.b / 3 + p.c / 3 },
+    { id: 'inv-g02', type: 'nat', level: 2, exams: ['board'], sub: 'measure',
+      make(rng) { const N = choose(rng, [10, 20, 25]), T = pick(rng, 1, 2.5, 0.1), tot = +(N * T).toFixed(2); return { N, tot, q: `<p>A pendulum takes ${tot} s for ${N} swings. What is the time of one swing in seconds?</p>`, answer: tot / N, tol: 0.01, sol: `<p>${tot} ÷ ${N} = ${tot / N} s.</p>` }; },
+      verify: (p) => p.tot * (1 / p.N) },
+    { id: 'inv-g03', type: 'nat', level: 3, exams: ['board'], sub: 'graph',
+      make(rng) { const k = choose(rng, [1.2, 1.5, 2, 2.4]), load = pick(rng, 200, 800, 100); return { k, load, q: `<p>A spring stretches ${k} cm for every 100 g. What is the extension for a ${load} g load, in cm?</p>`, answer: k * load / 100, tol: 0.01, sol: `<p>${load} ÷ 100 = ${load / 100}; ${load / 100} × ${k} = ${k * load / 100} cm.</p>` }; },
+      verify: (p) => p.k * p.load * 0.01 },
+  ],
+};
