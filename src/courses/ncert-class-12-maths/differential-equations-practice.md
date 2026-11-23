@@ -161,7 +161,7 @@ For 8 times: `$e^{kt} = 8$`, so `$kt = \ln 8 = 3\ln 2$` and `$t = \dfrac{3\ln 2}
 
 ## Case-based question
 
-**A cup of chai.** A cup of chai at 90 °C is left in a room at 30 °C. Its temperature `$T$` (°C) after `$t$` minutes satisfies Newton's law of cooling, `$\dfrac{dT}{dt} = -k(T - 30)`. After 10 minutes the chai is at 60 °C.
+**A cup of chai.** A cup of chai at 90 °C is left in a room at 30 °C. Its temperature `$T$` (°C) after `$t$` minutes satisfies Newton's law of cooling, `$\dfrac{dT}{dt} = -k(T - 30)$`. After 10 minutes the chai is at 60 °C.
 
 (a) Write the differential equation's general solution.
 

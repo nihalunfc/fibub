@@ -34,8 +34,7 @@ export default {
         hint: 'Shear stress = F/A with A = side². Shear strain = Δx/h = stress/G.',
         solution: steps(`A = (${a}×10<sup>−2</sup>)² = ${sci((a / 100) ** 2)} m²; stress = ${n(F)} / A = ${n(F / (a / 100) ** 2)} Pa.`, `Strain = stress/G = ${sci(F / (a / 100) ** 2 / (G * 1e6))}.`, `Δx = strain × h = <b>${n(dx)} mm</b>.`) };
     },
-    verify: (x) => { const strain = (x.F / ((x.a / 100) ** 2)) / (x.G * 1e6); return Math.atan(strain) * (x.h * 10) ; },
-    // tan(theta) = dx/h; theta is tiny so atan and the small-angle value agree within 1 %
+    verify: (x) => { const strain = (x.F / ((x.a / 100) ** 2)) / (x.G * 1e6); return strain * (x.h * 10); }, // shear strain = Δx/h (h in cm, Δx in mm)
   },
   'c11p-solid-bulk': {
     title: 'compressing water',
