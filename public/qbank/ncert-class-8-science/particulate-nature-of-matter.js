@@ -1,0 +1,51 @@
+// Class 8 Science (Curiosity), Chapter 7 Particulate Nature of Matter: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('pn');
+
+export default {
+  topic: 'particulate-nature-of-matter', name: 'Particulate Nature of Matter', n: 7,
+  items: [
+    m.mcq(1, 'particles', '<p>Matter is made up of:</p>', 'tiny particles', ['continuous smooth material', 'only atoms of one kind', 'light'], '<p>All matter is made of extremely small particles.</p>'),
+    m.mcq(2, 'particles', '<p>Which observation shows that particles are very small?</p>', 'a few crystals colour a whole glass of water', ['ice floats on water', 'a stone sinks', 'wood burns'], '<p>A tiny amount of dye spreads into a large volume, so there must be a huge number of tiny particles.</p>'),
+    m.mcq(2, 'particles', '<p>The particles of matter are:</p>', 'always in motion', ['always at rest', 'at rest in solids only', 'moving only when heated'], '<p>Even in a solid the particles vibrate.</p>', { trap: 'Particles in a solid still vibrate in place.' }),
+    m.mcq(2, 'spaces', '<p>When sugar dissolves in water the water level hardly rises because:</p>', 'sugar particles go into the spaces between water particles', ['sugar disappears', 'sugar becomes water', 'sugar has no particles'], '<p>There are gaps between the water particles that sugar particles fill.</p>'),
+    m.mcq(2, 'spaces', '<p>The spaces between particles are largest in a:</p>', 'gas', ['liquid', 'solid', 'they are equal'], '<p>Gas particles are far apart.</p>'),
+    m.mcq(2, 'forces', '<p>The force that holds particles together is strongest in a:</p>', 'solid', ['liquid', 'gas', 'vacuum'], '<p>Solid particles are close, so the attraction is strong.</p>'),
+    m.mcq(2, 'forces', '<p>A gas fills its whole container because its particles:</p>', 'have very weak attraction and move freely', ['are heavy', 'are tightly packed', 'do not move'], '<p>With weak forces the particles spread out in every direction.</p>'),
+    m.mcq(1, 'states', '<p>Which state of matter has a fixed shape and a fixed volume?</p>', 'solid', ['liquid', 'gas', 'steam'], '<p>Solids keep their shape.</p>'),
+    m.mcq(2, 'states', '<p>A liquid:</p>', 'has a fixed volume but takes the shape of its container', ['has a fixed shape and volume', 'has no fixed volume', 'cannot flow'], '<p>Liquid particles slide past each other but stay close.</p>'),
+    m.mcq(2, 'states', '<p>Which can be compressed most easily?</p>', 'a gas', ['a solid', 'a liquid', 'all equally'], '<p>Gas particles have a lot of empty space between them.</p>'),
+    m.mcq(2, 'states', '<p>A cylinder of LPG contains the fuel as:</p>', 'a liquid under pressure', ['a solid', 'a plasma', 'a powder'], '<p>A gas can be squeezed into a liquid at high pressure to store more in a small cylinder.</p>'),
+    m.mcq(1, 'diffusion', '<p>The mixing of particles of two substances by themselves is called:</p>', 'diffusion', ['evaporation', 'freezing', 'compression'], '<p>Diffusion is spreading caused by the random motion of particles.</p>'),
+    m.mcq(2, 'diffusion', '<p>Diffusion is fastest in:</p>', 'gases', ['liquids', 'solids', 'all equal'], '<p>Particles in gases move fastest and have the most room.</p>'),
+    m.mcq(2, 'diffusion', '<p>Ink spreads faster in warm water than in cold because:</p>', 'particles move faster when warm', ['warm water is heavier', 'ink melts', 'cold water is thicker only'], '<p>Higher temperature means faster particle movement.</p>'),
+    m.mcq(2, 'diffusion', '<p>We smell food cooking from another room because of:</p>', 'diffusion of gas particles', ['friction', 'gravity', 'magnetic force'], '<p>The particles of the aroma spread through the air.</p>'),
+    m.mcq(2, 'change', '<p>The change of a solid into a liquid is called:</p>', 'melting', ['boiling', 'freezing', 'condensation'], '<p>Melting happens at the melting point.</p>'),
+    m.mcq(2, 'change', '<p>During boiling of water at normal pressure the temperature stays at:</p>', '100 °C', ['0 °C', '50 °C', '212 °C'], '<p>The heat goes into separating particles, not raising the temperature.</p>'),
+    m.mcq(2, 'change', '<p>Steam turning back to liquid water is called:</p>', 'condensation', ['sublimation', 'melting', 'freezing'], '<p>Cooling brings gas particles close again.</p>'),
+    m.mcq(2, 'change', '<p>On heating a solid, its particles:</p>', 'vibrate faster', ['stop moving', 'become smaller', 'become heavier'], '<p>Heat energy increases the particles\' movement.</p>'),
+    m.mcq(2, 'change', '<p>Camphor turning directly into vapour on heating is called:</p>', 'sublimation', ['melting', 'boiling', 'condensation'], '<p>Solid to gas with no liquid stage is sublimation.</p>'),
+    m.mcq(3, 'states', '<p>A student claims "gas particles are lighter than liquid particles of the same substance". The best reply is:</p>', 'The particles are the same; only the spacing and speed differ', ['Correct, gas particles are smaller', 'Correct, gas particles have less matter', 'Gas particles disappear'], '<p>The state changes the arrangement and motion, not the particles themselves.</p>'),
+    m.mcq(3, 'spaces', '<p>50 mL of alcohol and 50 mL of water together make slightly less than 100 mL. This supports the idea that:</p>', 'there are spaces between particles', ['particles are destroyed', 'alcohol evaporates fully', 'water is compressible only'], '<p>Particles of one liquid fit into the gaps of the other.</p>'),
+    m.ar(2, 'diffusion', 'A drop of ink spreads in still water without stirring.', 'The particles of ink and water are constantly moving.', 0, '<p>Both are true and R explains A.</p>'),
+    m.ar(3, 'states', 'Gases can be compressed easily but solids cannot.', 'The particles in a solid are far apart.', 2, '<p>A is true. R is false: solid particles are packed close together.</p>'),
+    m.ar(3, 'change', 'The temperature stays the same while ice melts.', 'The heat supplied is used to loosen the particles from their fixed positions.', 0, '<p>Both are true and R explains A.</p>'),
+    m.nat(2, 'spaces', '<p>50 mL of marbles and 50 mL of sand are mixed and the volume reads 84 mL. By how many mL is it less than 100 mL?</p>', () => 16, 0.01, '<p>100 − 84 = 16 mL.</p>'),
+    m.nat(2, 'diffusion', '<p>A smell spreads 6 m in 30 s. Find its average speed in m/s.</p>', () => 0.2, 0.01, '<p>6 ÷ 30 = 0.2 m/s.</p>'),
+    m.nat(3, 'particles', '<p>A drop is diluted 10 times, three times in a row. By what factor is it diluted in all?</p>', () => 1000, 0.01, '<p>10 × 10 × 10 = 1000.</p>'),
+    m.msq(3, 'states', '<p>Which of these are true for a gas? (Choose all that apply.)</p>', ['Particles are far apart', 'It has a fixed shape', 'It can be compressed', 'It fills its container'], [0, 2, 3], '<p>Gases have no fixed shape or volume.</p>'),
+    m.msq(3, 'change', '<p>Which are changes of state? (Choose all that apply.)</p>', ['Freezing', 'Evaporation', 'Rusting of iron', 'Condensation'], [0, 1, 3], '<p>Rusting forms a new substance; the others are physical state changes.</p>'),
+  ],
+  gens: [
+    { id: 'pn-g01', type: 'nat', level: 2, exams: ['board'], sub: 'spaces',
+      make(rng) { const V = pick(rng, 50, 200, 50), g = pick(rng, 6, 20, 2); return { V, g, q: `<p>${V} mL of marbles and ${V} mL of sand together fill only ${2 * V - g} mL. How many mL did the sand put into the gaps?</p>`, answer: g, tol: 0.01, sol: `<p>${2 * V} − ${2 * V - g} = ${g} mL.</p>` }; },
+      verify: (p) => p.g },
+    { id: 'pn-g02', type: 'nat', level: 2, exams: ['board'], sub: 'diffusion',
+      make(rng) { const d = pick(rng, 2, 12, 1), t = choose(rng, [10, 20, 40, 50]); return { d, t, q: `<p>A smell travels ${d} m in ${t} s by diffusion. What is the average speed in m/s?</p>`, answer: d / t, tol: 0.01, sol: `<p>v = ${d} ÷ ${t} = ${+(d / t).toFixed(4)} m/s.</p>` }; },
+      verify: (p) => p.d * (1 / p.t) },
+    { id: 'pn-g03', type: 'nat', level: 3, exams: ['board'], sub: 'particles',
+      make(rng) { const k = pick(rng, 2, 6, 1); return { k, q: `<p>A solution is diluted by a factor of 10, ${k} times in a row. By what factor is it diluted in all?</p>`, answer: 10 ** k, tol: 0.01, sol: `<p>10<sup>${k}</sup> = ${10 ** k}.</p>` }; },
+      verify: (p) => +('1' + '0'.repeat(p.k)) },
+  ],
+};
