@@ -2,6 +2,8 @@
 
 Free everyday tools that never see your files. Every tool runs in the browser; nothing is uploaded.
 
+Ideas, feedback and bugs: join the [fibub Discord community](https://discord.gg/TcMaXGjnj).
+
 ```
 npm install
 npm run dev      # http://localhost:4321
