@@ -7,6 +7,8 @@ export const SITE = {
   description:
     'Free tools for documents, money, data, everyday tasks and science, made to fill the gaps other tools leave. Everything runs in your browser: your files and numbers never leave your device.',
   maker: { name: 'Nihal Sulaiman', url: 'https://nihalsulaiman.com' },
+  // The fibub Discord server: where visitors share ideas, feedback and bugs.
+  discord: 'https://discord.gg/TcMaXGjnj',
 };
 
 // The shelves. A tool's `shelf` must be one of these ids; it sets the tool's URL: /<shelf>/<tool>/.
