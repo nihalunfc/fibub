@@ -26,7 +26,9 @@ function q5frac(n, d) {
   return b === 1 ? String(a) : `${a < 0 ? '-' : ''}\\tfrac{${Math.abs(a)}}{${b}}`;
 }
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'potential-energy',
   items: [
     // ---------- level 1 ----------
@@ -385,3 +387,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pot-t23"]);

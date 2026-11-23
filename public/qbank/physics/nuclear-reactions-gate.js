@@ -25,7 +25,9 @@ const SYM = ['n', 'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'M
 const PART = { n: [0, 1, 'n'], p: [1, 1, 'p'], d: [1, 2, 'd'], t: [1, 3, 't'], h: [2, 3, '{}^3\\text{He}'], a: [2, 4, '\\alpha'], g: [0, 0, '\\gamma'] };
 const RELTH = [['p + p \\to p + p + \\pi^0', [MP, MP], [MP, MP, 134.977]], ['p + p \\to p + n + \\pi^+', [MP, MP], [MP, MN, 139.570]], ['\\gamma + p \\to \\pi^+ + n', [0, MP], [139.570, MN]], ['\\gamma + p \\to p + \\pi^0', [0, MP], [MP, 134.977]], ['\\pi^- + p \\to K^0 + \\Lambda', [139.570, MP], [497.611, 1115.683]], ['\\pi^- + p \\to n + \\eta', [139.570, MP], [MN, 547.862]], ['p + p \\to p + \\Lambda + K^+', [MP, MP], [MP, 1115.683, 493.677]], ['\\gamma + p \\to p + e^+ + e^-', [0, MP], [MP, 0.511, 0.511]], ['p + p \\to d + \\pi^+', [MP, MP], [1875.613, 139.570]], ['K^- + p \\to \\Omega^- + K^+ + K^0', [493.677, MP], [1672.45, 493.677, 497.611]]];
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'nuclear-reactions-gate',
   items: [
     // ---------- level 1 ----------
@@ -373,3 +375,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["nrg-g01"]);

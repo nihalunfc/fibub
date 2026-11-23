@@ -17,7 +17,9 @@ const MUB_H = 13.996;   // GHz/T
 const binom = (n, k) => { let c = 1; for (let i = 1; i <= k; i++) c = c * (n - k + i) / i; return Math.round(c); };
 const fr = (I) => (I === 0.5 ? '1/2' : I === 1.5 ? '3/2' : I === 2.5 ? '5/2' : I === 3.5 ? '7/2' : String(I));
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'esr-nmr',
   items: [
     // ---------- level 1 ----------
@@ -393,3 +395,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["nmr-r5g3"]);

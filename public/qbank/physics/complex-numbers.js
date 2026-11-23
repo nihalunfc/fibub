@@ -8,7 +8,9 @@ import r4 from './complex-numbers.r4.gen.js';
 
 const deg = (x) => x * 180 / Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'complex-numbers',
   items: [
     // ---- level 1 ----
@@ -299,3 +301,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["cx-g04","cx-g06","cx-t24","cx-r4g3"], { neg: ["cx-g04"] });

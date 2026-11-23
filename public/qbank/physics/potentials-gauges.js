@@ -10,7 +10,9 @@ import r5 from './potentials-gauges.r5.gen.js';
 
 const MU0 = 1.25663706212e-6, C0 = 2.99792458e8, H = 6.62607015e-34, E = 1.602176634e-19, PI = Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'potentials-gauges',
   items: [
     // ---------- level 1 ----------
@@ -342,3 +344,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pgx-r4g2","pgx-r5g2"]);

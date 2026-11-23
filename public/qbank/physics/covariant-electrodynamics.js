@@ -14,7 +14,9 @@ const gam = (b) => 1 / Math.sqrt(1 - b * b);
 const D = Math.PI / 180;
 const MPC2 = 938.272; // proton rest energy, MeV
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'covariant-electrodynamics',
   items: [
     // ---------- level 1 ----------
@@ -387,3 +389,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["ced-g08"]);

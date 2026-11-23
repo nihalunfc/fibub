@@ -27,7 +27,9 @@ const F2 = (st, t, fA, fB) => { const [re, im] = Fof(st, t, fA, fB); const v = r
 const hcpF2 = (h, k, l) => { const v = 2 + 2 * Math.cos(2 * PI * ((h + 2 * k) / 3 + l / 2)); return Math.abs(v) < 1e-9 ? 0 : v; };
 const mult = (t) => { const s = new Set(); const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]]; for (const p of perms) for (const sx of [1, -1]) for (const sy of [1, -1]) for (const sz of [1, -1]) s.add([t[p[0]] * sx, t[p[1]] * sy, t[p[2]] * sz].join(',')); return s.size; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'structure-factor',
   items: [
     // ---------- level 1 ----------
@@ -417,3 +419,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["sf-g02","sf-r4g1","sf-r4g2","sf-r4g3"]);

@@ -15,7 +15,9 @@ const erfS = (x) => { const n = 400, h = x / n; let s = 1 + Math.exp(-x * x); fo
 const sum = (a) => a.reduce((s, v) => s + v, 0);
 const fitLine = (x, y) => { const N = x.length, Sx = sum(x), Sy = sum(y), Sxy = sum(x.map((v, i) => v * y[i])), Sxx = sum(x.map((v) => v * v)), D = N * Sxx - Sx * Sx; return { b: (N * Sxy - Sx * Sy) / D, a: (Sxx * Sy - Sx * Sxy) / D, Sx, Sy, Sxy, Sxx, D, N }; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'errors-data-fitting',
   items: [
     // ---------- level 1 ----------
@@ -395,3 +397,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["edf-g12"]);

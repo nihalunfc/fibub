@@ -21,7 +21,7 @@ export default [
   { id: 'rots-x04', type: 'mcq', level: 4, exams: ['gate', 'net'], sub: 'activity',
     q: R`H$_2$ has no pure rotational absorption spectrum, but HD shows a very weak one. The reason is`,
     options: [R`HD has a tiny permanent dipole, because the electrons do not follow the unequal nuclei exactly`, R`HD has nuclear spin 1`, R`HD is heavier, so its lines fall in the microwave region`, R`for HD the selection rule becomes $\Delta J = \pm2$`], answer: 0,
-    sol: R`Within the Born-Oppenheimer approximation H$_2$ and HD have the same symmetric electron cloud and no dipole. Beyond it, the centre of mass of HD is off the centre of charge, so the electrons lag the nuclear motion asymmetrically and HD gets a dipole of order $10^{-4}$ D. It is enough for weak $\Delta J = \pm1$ lines (seen in the far infrared and in planetary atmospheres).`,
+    sol: R`Within the Born-Oppenheimer approximation H$_2$ and HD have the same symmetric electron cloud and no dipole. Beyond it, the centre of mass of HD is off the centre of charge, so the electrons lag the nuclear motion asymmetrically and HD gets a dipole of order $10^{-3}$ D. It is enough for weak $\Delta J = \pm1$ lines (seen in the far infrared and in planetary atmospheres).`,
     trap: R`$\Delta J = \pm2$ is the rotational Raman rule, not a microwave one.` },
   { id: 'rots-x05', type: 'mcq', level: 4, exams: ['gate', 'net'], sub: 'energy levels',
     q: R`Ignoring nuclear spin, the degeneracy of rotational level $J$ of a rigid spherical top such as CH$_4$ (in zero field) is`,

@@ -13,7 +13,9 @@ const HC = 1239.84;          // eV nm
 const QE = 1.602176634e-19;  // C
 const s3 = (x) => +x.toPrecision(3), t6 = (x) => +(Math.abs(x) * 0.006).toPrecision(2);
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'transducers-detectors',
   items: [
     // ---------- level 1 ----------
@@ -413,3 +415,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["trd-g02"]);

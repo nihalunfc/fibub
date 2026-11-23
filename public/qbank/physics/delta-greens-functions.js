@@ -20,7 +20,9 @@ const rk4 = (F, g, w2, x0, v0, T, n = 4000) => {
   return x;
 };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'delta-greens-functions',
   items: [
     // ---------- level 1 ----------
@@ -365,3 +367,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["dgf-g03","dgf-g11","dgf-r4g2"]);

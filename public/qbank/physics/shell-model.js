@@ -23,7 +23,9 @@ const HB2U = 197.327 ** 2 / 931.494;   // hbar^2 / (1 u fm^2) in MeV
 const MAGIC = [2, 8, 20, 28, 50, 82, 126];
 const ODD_OK = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 41, 43, 45, 47, 49];
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'shell-model',
   items: [
     // ---------- level 1 ----------
@@ -363,3 +365,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["nsm-g02"], { orb: ["nsm-g02"] });

@@ -10,7 +10,9 @@ import r4 from './partial-derivatives.r4.gen.js';
 
 const R_GAS = 8.314;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'partial-derivatives',
   items: [
     // ---------- level 1 ----------
@@ -328,3 +330,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pd-g04","pd-t22","pd-t24","pd-r4g1","pd-r4g2"]);

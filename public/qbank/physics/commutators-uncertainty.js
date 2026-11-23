@@ -11,7 +11,9 @@ import r5 from './commutators-uncertainty.r5.gen.js';
 const H_EVFS = 4.135667696; // h in eV fs
 const HB2M = 0.0381; // hbar^2 / (2 m_e) in eV nm^2
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'commutators-uncertainty',
   items: [
     // ---------- level 1 ----------
@@ -286,3 +288,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["qcu-g07"]);

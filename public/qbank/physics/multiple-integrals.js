@@ -11,7 +11,9 @@ import r4 from './multiple-integrals.r4.gen.js';
 const simpson = (f, a, b, n = 4000) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return (s * h) / 3; };
 const PI = Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'multiple-integrals',
   items: [
     // ---------- level 1 ----------
@@ -343,3 +345,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["mi-g02","mi-g06","mi-g08","mi-t22","mi-t26"]);

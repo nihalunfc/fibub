@@ -11,7 +11,9 @@ import r5 from './poisson-brackets.r5.gen.js';
 const g = 9.8;
 const PB = 'Use $\\{f, g\\} = \\sum_i\\left(\\dfrac{\\partial f}{\\partial q_i}\\dfrac{\\partial g}{\\partial p_i} - \\dfrac{\\partial f}{\\partial p_i}\\dfrac{\\partial g}{\\partial q_i}\\right)$.';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'poisson-brackets',
   items: [
     // ---------- level 1 ----------
@@ -335,3 +337,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pbr-g02","pbr-g08","pbr-g10","pbr-g12","pbr-r4g2"]);
