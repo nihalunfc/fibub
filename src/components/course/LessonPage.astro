@@ -10,6 +10,7 @@ import QBankLoader from '../qbank/QBankLoader.astro';
 import { splitFigures, type LessonEntry } from '../../lib/course';
 import { flatLessons, type CourseSyllabus } from '../../courses/types';
 import { lessonLd } from '../../lib/seo';
+import { lessonMinutes } from '../../lib/studytime';
 import '../../styles/course.css';
 interface Props { course: CourseSyllabus; entry: LessonEntry; slug: string; live: Set<string>; figures: Record<string, any> }
 const { course, entry, slug, live, figures } = Astro.props;
@@ -18,7 +19,10 @@ const i = all.findIndex((l) => l.slug === slug), me = all[i];
 const liveAll = all.filter((l) => live.has(l.slug));
 const li = liveAll.findIndex((l) => l.slug === slug);
 const prev = liveAll[li - 1], next = liveAll[li + 1];
-const parts = splitFigures(entry.rendered?.html ?? '');
+const minutes = lessonMinutes(entry); // from the lesson's own text, maths, figures and practice (src/lib/studytime.ts)
+// Many lessons open with a bold line ending "about N minutes."; that number was a guess, so it shows the worked-out time.
+const html = (entry.rendered?.html ?? '').replace(/(<strong>[^<]{0,200}?about )\d+( minutes[.)]{0,2}<\/strong>)/, `$1${minutes}$2`);
+const parts = splitFigures(html);
 for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${slug}: unknown figure ${p.fig}`);
 const d = entry.data;
 const hasQBank = (entry.rendered?.html ?? '').includes('class="qbank"');
@@ -28,14 +32,14 @@ const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t)
 if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
 // A lesson borrowed from another course (sharedFrom) points search engines at its original page.
 const borrowed = course.sharedFrom && entry.id.startsWith(`${course.sharedFrom}/`) ? `/learn/courses/${course.sharedFrom}/${slug}/` : undefined;
-const ld = borrowed ? [] : lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes: d.minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
+const ld = borrowed ? [] : lessonLd(course, { n: me.n, title: d.title, summary: d.summary, slug, minutes, updated: d.updated, module: me.module.name, quiz: d.quiz.length });
 ---
 <Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary} ld={ld} ogType="article" canonical={borrowed}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / {cat ? <a href={cat.href}>{cat.short}</a> : <a href="/learn/courses/">Courses</a>} / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
   <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug} data-kit={course.kit ? `/learn-kit/${course.kitDir ?? course.id}/` : undefined}>
     <CourseSidebar course={course} live={live} current={slug} />
     <article class="cs-main cs-lesson">
-      <p class="cs-kicker">Module {me.module.n}: {me.module.name} · Lesson {me.n} · about {d.minutes} min</p>
+      <p class="cs-kicker">Module {me.module.n}: {me.module.name} · Lesson {me.n} · about {minutes} min</p>
       <h1>{d.title}</h1>
       <p class="lead">{d.summary}</p>
       {course.kit && <p class="cs-kitbar"><button type="button" class="lk-btn" data-action="summary-sheet">⤓ Summary sheet (PDF)</button><span>Key points, meanings and formulas on one page: choose "Save as PDF" in the print box.</span></p>}
