@@ -44,7 +44,7 @@ It is the first lesson of the free **Tyres and punctures** course. When the spar
 
 ## Worked example
 
-You have a flat front-left tyre in a car park. You switch on the hazard lights, pull the parking brake, put the car in Park (or first gear) and chock the rear-right wheel with a brick. You take a quarter to half turn off each of the five nuts with the wheel still on the ground, then jack at the front-left jacking point until the tyre is about 3 cm clear. You take the nuts off, swap the wheels, do the nuts up by hand in a star pattern (1, 3, 5, 2, 4), lower the car and tighten them firmly in the same star order. The handbook says 110 N·m: with a 40 cm brace that is a push of about 275 N, roughly your body weight on one foot pushing down. After 50 km you check the nuts again.
+You have a flat front-left tyre in a car park. You switch on the hazard lights, pull the parking brake, put the car in Park (or first gear) and chock the rear-right wheel with a brick. You take a quarter to half turn off each of the five nuts with the wheel still on the ground, then jack at the front-left jacking point until the tyre is about 3 cm clear. You take the nuts off, swap the wheels, do the nuts up by hand in a star pattern (1, 3, 5, 2, 4), lower the car and tighten them firmly in the same star order. The handbook says 110 N·m: with a 40 cm brace that is a push of about 275 N, about the weight of a 28 kg bag: a firm push, well short of your full body weight. After 50 km you check the nuts again.
 
 ## FAQs
 

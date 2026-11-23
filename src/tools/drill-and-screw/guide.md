@@ -44,7 +44,7 @@ It is the second lesson of the free **Light carpentry** course. Cut your pieces 
 
 ## Worked example
 
-You are fixing an 18 mm (¾ in) pine board onto a 45 mm (1¾ in) batten. About 2.5 times 18 mm is 45 mm, and the tip stays 13 mm inside the batten, so a 45 mm screw works. That length is usually 4.0 mm thick (#8). Drill a 4.5 mm clearance hole through the board, a 2.5 mm pilot hole about 27 mm deep into the batten (as deep as the screw will go) (3 mm for oak or other hardwood), countersink, then drive the screw with a PZ2 bit and the clutch on a low setting. The screw goes 27 mm into the batten, 60% of its length, which grips well.
+You are fixing an 18 mm (¾ in) pine board onto a 45 mm (1¾ in) batten. About 2.5 times 18 mm is 45 mm, and the tip stops 18 mm short of the far side of the batten (45 − 27), so a 45 mm screw works. That length is usually 4.0 mm thick (#8). Drill a 4.5 mm clearance hole through the board, a 2.5 mm pilot hole about 27 mm deep into the batten (as deep as the screw will go) (3 mm for oak or other hardwood), countersink, then drive the screw with a PZ2 bit and the clutch on a low setting. The screw goes 27 mm into the batten, 60% of its length, which grips well.
 
 ## FAQs
 

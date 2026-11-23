@@ -46,7 +46,7 @@ The mass function f = P K³ (1 − e²)^1.5 / (2πG) equals (m sin i)³ / (M* + 
 
 ## Frequently asked questions
 
-**Why only a minimum mass?** The Doppler shift only sees motion along our line of sight. A tilted orbit hides some of the motion, so the true mass is m / sin i, larger by 15 % on average.
+**Why only a minimum mass?** The Doppler shift only sees motion along our line of sight. A tilted orbit hides some of the motion, so the true mass is m / sin i. For randomly tilted orbits the median is 15 % larger (sin i = 0.87); the mean sin i is π/4, so averages are often quoted as about 27 % larger.
 
 **What K can be measured?** About 1 m/s with the best spectrographs on quiet stars, and 0.3 m/s or better with the newest. Active stars add several m/s of noise.
 

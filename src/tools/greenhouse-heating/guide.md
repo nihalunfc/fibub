@@ -47,7 +47,7 @@ For the humidity and dew point inside, use the [[psychrometric-calculator]]; for
 
 Press **Use the example**: a made-up house 30 m long, 9.6 m wide, 3 m to the eaves and 4.8 m to the ridge, covered with double inflated film (example U = 4.0). It has 288 m² of floor, 562.5 m² of cover and 1,123.2 m³ of air.
 
-Holding 18 °C when it is −10 °C outside with one air change an hour, it loses 74.8 kW: 63.0 kW (84 %) through the cover and 11.8 kW (16 %) through leaks. With a 10 % margin the heater should be 82.3 kW, about 280,694 BTU/h, or 260 W per m² of floor. Over a season of 3,000 degree-days that is 192,303 kWh of heat, or 21,433 m³ of natural gas at an example 38 MJ/m³ and 85 % efficiency.
+Holding 18 °C when it is −10 °C outside with one air change an hour, it loses 74.8 kW: 63.0 kW (84 %) through the cover and 11.8 kW (16 %) through leaks. With a 10 % margin the heater should be 82.3 kW, about 280,694 BTU/h; the loss itself is 260 W per m² of floor. Over a season of 3,000 degree-days that is 192,303 kWh of heat, or 21,433 m³ of natural gas at an example 38 MJ/m³ and 85 % efficiency.
 
 In summer sun of 800 W/m², with 70 % getting through and half used by the crop, 80.6 kW warms the air, and 9.0 kW leaves through the cover at a 4 °C rise. Holding the rise to 4 °C with 28 °C outside needs 15.19 m³/s, which is 0.81 air changes a minute, or 2 fans of 35,000 m³/h.
 

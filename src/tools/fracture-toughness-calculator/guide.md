@@ -72,7 +72,7 @@ Cycling between 20 and 200 MPa (Δσ = 180 MPa) with C = 5 × 10⁻¹² m/cycle 
 
 ## FAQ
 
-**Why is the life so sensitive to the starting crack size?** Most of the life is spent while the crack is small and K is low. Halving the starting crack can more than double the life when m is about 3, which is why inspections look for small cracks.
+**Why is the life so sensitive to the starting crack size?** Most of the life is spent while the crack is small and K is low. Halving the starting crack can nearly double the life when m is about 3 (in the example, 2.5 mm instead of 5 mm gives 1.86 times the cycles), which is why inspections look for small cracks.
 
 **Which units for C?** Metres per cycle with ΔK in MPa√m. To convert from in/cycle with ksi√in, C changes with m, so convert ΔK first.
 
