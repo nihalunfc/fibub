@@ -1,0 +1,52 @@
+// Class 11 Biology, Chapter 3 Plant Kingdom: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('pk');
+
+export default {
+  topic: 'plant-kingdom', name: 'Plant Kingdom', n: 3,
+  items: [
+    m.mcq(1, 'algae', '<p>The plant body of algae is called a:</p>', 'thallus', ['rhizoid', 'sporophyll', 'protonema'], '<p>Algae have no true roots, stems or leaves.</p>'),
+    m.mcq(2, 'algae', '<p>Brown algae store food as:</p>', 'laminarin and mannitol', ['starch only', 'glycogen', 'floridean starch'], '<p>Brown algae have fucoxanthin and store laminarin and mannitol; red algae store floridean starch.</p>'),
+    m.mcq(2, 'algae', '<p>Red algae can grow in deep sea water because they have:</p>', 'phycoerythrin, which uses blue-green light', ['chlorophyll b only', 'fucoxanthin', 'no pigments'], '<p>Red light does not reach deep water, but blue-green does.</p>'),
+    m.mcq(2, 'algae', '<p>Agar is obtained from:</p>', '<i>Gelidium</i> and <i>Gracilaria</i> (red algae)', ['<i>Fucus</i> (brown algae)', '<i>Chlamydomonas</i> (green algae)', '<i>Marchantia</i> (liverwort)'], '<p>Red algae also give carrageen. Brown algae give algin.</p>'),
+    m.mcq(2, 'algae', '<p>Which pair is correctly matched?</p>', '<i>Spirogyra</i> : isogamy', ['<i>Eudorina</i> : isogamy', '<i>Volvox</i> : anisogamy', '<i>Fucus</i> : isogamy'], '<p>Eudorina is anisogamous; Volvox and Fucus are oogamous.</p>'),
+    m.mcq(1, 'bryo', '<p>Bryophytes are called the amphibians of the plant kingdom because they:</p>', 'live on land but need water for fertilisation', ['live only in water', 'have no sex organs', 'live in air only'], '<p>The antherozoids need water to swim to the egg.</p>'),
+    m.mcq(2, 'bryo', '<p>The dominant, free-living phase in a moss is the:</p>', 'haploid gametophyte', ['diploid sporophyte', 'zygote', 'spore mother cell'], '<p>The sporophyte (foot, seta, capsule) is dependent on the gametophyte.</p>'),
+    m.mcq(2, 'bryo', '<p>The first stage of a moss that grows from a spore is the:</p>', 'protonema', ['prothallus', 'gemma', 'strobilus'], '<p>Prothallus is the fern gametophyte.</p>'),
+    m.mcq(2, 'bryo', '<p>Green cups with buds on a liverwort thallus make:</p>', 'gemmae for asexual reproduction', ['spores by meiosis', 'seeds', 'antherozoids only'], '<p>Gemmae detach and grow into new thalli.</p>'),
+    m.mcq(2, 'bryo', '<p><i>Sphagnum</i> is used for:</p>', 'peat, fuel and packing material', ['agar', 'algin', 'timber'], '<p>It holds a lot of water.</p>'),
+    m.mcq(1, 'ptero', '<p>Vascular tissue first appears in:</p>', 'pteridophytes', ['bryophytes', 'algae', 'liverworts'], '<p>Xylem and phloem arrive with ferns and allies.</p>'),
+    m.mcq(2, 'ptero', '<p>The prothallus of a fern is:</p>', 'haploid, free-living and photosynthetic', ['diploid and dependent', 'a seed', 'a sporangium'], '<p>It carries the antheridia and archegonia.</p>'),
+    m.mcq(2, 'ptero', '<p>Heterospory is shown by:</p>', '<i>Selaginella</i> and <i>Salvinia</i>', ['<i>Pteris</i>', '<i>Funaria</i>', '<i>Marchantia</i>'], '<p>They make megaspores and microspores; this is a step towards the seed habit.</p>'),
+    m.mcq(3, 'ptero', '<p>A fern sporophyte cell has 2n = 48. The number of chromosomes in a cell of its prothallus is:</p>', '24', ['48', '12', '96'], '<p>The prothallus is haploid: n = 24.</p>'),
+    m.mcq(1, 'gymno', '<p>The word "gymnosperm" means:</p>', 'naked seed', ['flowering plant', 'seedless plant', 'spore plant'], '<p>The ovule is not enclosed in an ovary.</p>'),
+    m.mcq(2, 'gymno', '<p>Coralloid roots of <i>Cycas</i> contain:</p>', 'nitrogen-fixing cyanobacteria', ['mycorrhiza', 'Rhizobium', 'sporangia'], '<p>Pine roots have mycorrhiza instead.</p>'),
+    m.mcq(2, 'gymno', '<p>Water is not needed for fertilisation in gymnosperms because:</p>', 'the pollen tube carries the male gametes to the egg', ['the egg swims to the pollen', 'fertilisation is absent', 'the spores are motile'], '<p>Pollen is carried by wind.</p>'),
+    m.mcq(2, 'gymno', '<p>Pine leaves are needle-like to:</p>', 'reduce water loss', ['increase light capture', 'attract insects', 'store water'], '<p>A thick cuticle and sunken stomata also help.</p>'),
+    m.mcq(3, 'gymno', '<p>In a gymnosperm, the male gametophyte is:</p>', 'the pollen grain, a few cells only', ['a large green plant', 'the cone', 'the seed'], '<p>Both gametophytes are very reduced and depend on the sporophyte.</p>'),
+    m.mcq(2, 'angio', '<p>Double fertilisation is a feature of:</p>', 'angiosperms', ['gymnosperms', 'pteridophytes', 'bryophytes'], '<p>One male gamete fuses with the egg and one with the two polar nuclei.</p>'),
+    m.mcq(2, 'angio', '<p>Which of these is a monocot feature?</p>', 'parallel venation and fibrous roots', ['reticulate venation', 'tap root', 'two cotyledons'], '<p>Dicots have net venation, a tap root and two cotyledons.</p>'),
+    m.mcq(2, 'life', '<p>The life cycle in which only the zygote is diploid is:</p>', 'haplontic', ['diplontic', 'haplo-diplontic', 'none of these'], '<p>For example <i>Spirogyra</i>; the zygote divides by meiosis at once.</p>'),
+    m.mcq(2, 'life', '<p>Pteridophytes show which life cycle?</p>', 'haplo-diplontic, with a dominant sporophyte', ['haplontic', 'diplontic', 'haplo-diplontic with a dominant gametophyte'], '<p>Bryophytes have a dominant gametophyte.</p>'),
+    m.mcq(3, 'life', '<p>A diplontic life cycle is found in:</p>', 'gymnosperms and angiosperms', ['Spirogyra and Volvox', 'mosses and ferns', 'liverworts only'], '<p>Only the gametes are haploid.</p>'),
+    m.ar(2, 'ptero', 'Pteridophytes can grow taller than bryophytes.', 'Pteridophytes have vascular tissue to carry water and food.', 0, '<p>Both true; R explains A.</p>'),
+    m.ar(3, 'gymno', 'Gymnosperms do not need water for fertilisation.', 'Their seeds are not covered by a fruit.', 1, '<p>Both statements are true, but the naked seed does not explain why water is not needed; the pollen tube does.</p>'),
+    m.ar(3, 'bryo', 'The sporophyte of a moss is independent of the gametophyte.', 'It has chlorophyll.', 3, '<p>A is false: the sporophyte depends on the gametophyte. It does have some chlorophyll (R true).</p>'),
+    m.msq(2, 'algae', '<p>Which of these are features of green algae? (Choose all that apply.)</p>', ['Chlorophyll a and b', 'Starch as stored food', 'Fucoxanthin', 'Cellulose cell wall'], [0, 1, 3], '<p>Fucoxanthin is in brown algae.</p>'),
+    m.msq(3, 'life', '<p>Which plants are haplo-diplontic? (Choose all that apply.)</p>', ['Mosses', 'Ferns', 'Pine', 'Mango'], [0, 1], '<p>Pine and mango are diplontic.</p>'),
+    m.nat(2, 'bryo', '<p>A moss capsule contains 200 spore mother cells. How many spores can form by meiosis?</p>', () => 800, 0, '<p>200 × 4 = 800.</p>'),
+    m.nat(2, 'ptero', '<p>The prothallus cells of a fern have n = 29 chromosomes. How many chromosomes are in a leaf cell of the fern plant?</p>', () => 58, 0, '<p>The sporophyte is 2n = 58.</p>'),
+  ],
+  gens: [
+    { id: 'pk-g01', type: 'nat', level: 2, exams: ['board'], sub: 'bryo',
+      make(rng) { const k = choose(rng, [50, 100, 150, 400, 800]); return { k, q: `<p>A moss capsule has ${k} spore mother cells. How many spores form by meiosis?</p>`, answer: 4 * k, tol: 0, unit: '', sol: `<p>${k} × 4 = ${4 * k}.</p>` }; },
+      verify: (p) => Array.from({ length: p.k }, () => 4).reduce((a, b) => a + b, 0) },
+    { id: 'pk-g02', type: 'nat', level: 2, exams: ['board'], sub: 'life',
+      make(rng) { const d = choose(rng, [18, 24, 34, 46, 64]); return { d, q: `<p>A fern sporophyte has 2n = ${d}. How many chromosomes in one cell of the gametophyte?</p>`, answer: d / 2, tol: 0, unit: '', sol: `<p>n = ${d} ÷ 2 = ${d / 2}.</p>` }; },
+      verify: (p) => p.d - p.d / 2 },
+    { id: 'pk-g03', type: 'nat', level: 3, exams: ['board'], sub: 'algae',
+      make(rng) { const d = choose(rng, [10, 20, 40]), k = choose(rng, [0.02, 0.03, 0.05]); return { d, k, q: `<p>Blue light in sea water drops to e<sup>−k d</sup> of its surface value, with k = ${k} per metre. What percentage is left at ${d} m?</p>`, answer: +(100 * Math.exp(-k * d)).toPrecision(6), tol: 0.02, unit: '%', sol: `<p>k d = ${(k * d).toFixed(2)}; e<sup>−${(k * d).toFixed(2)}</sup> × 100 = ${(100 * Math.exp(-k * d)).toFixed(1)} %.</p>` }; },
+      verify: (p) => { let f = 100; for (let i = 0; i < p.d; i++) f *= Math.exp(-p.k); return f; } },
+  ],
+};

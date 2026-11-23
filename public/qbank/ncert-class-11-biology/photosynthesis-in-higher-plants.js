@@ -1,0 +1,51 @@
+// Class 11 Biology, Chapter 11 Photosynthesis in Higher Plants: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ph');
+
+export default {
+  topic: 'photosynthesis-in-higher-plants', name: 'Photosynthesis in Higher Plants', n: 11,
+  items: [
+    m.mcq(1, 'history', '<p>Who showed that light is needed for plants to restore air?</p>', 'Jan Ingenhousz', ['Joseph Priestley', 'Julius von Sachs', 'Melvin Calvin'], '<p>Priestley found that plants restore air; Ingenhousz showed that this needs sunlight and green parts.</p>'),
+    m.mcq(2, 'history', '<p>Engelmann\'s experiment with a prism and <i>Spirogyra</i> showed:</p>', 'the action spectrum: photosynthesis is highest in blue and red light', ['that O₂ comes from water', 'that starch is the product', 'the path of carbon'], '<p>Oxygen-loving bacteria gathered where the alga made most O₂.</p>'),
+    m.mcq(2, 'history', '<p>Experiments with ¹⁸O showed that the O₂ evolved in photosynthesis comes from:</p>', 'water', ['carbon dioxide', 'glucose', 'chlorophyll'], '<p>Heavy oxygen in water appeared in the O₂; heavy oxygen in CO₂ did not.</p>'),
+    m.mcq(2, 'site', '<p>The light reactions take place in the:</p>', 'thylakoid membranes', ['stroma', 'outer chloroplast membrane', 'cytoplasm'], '<p>Photosystems and ATP synthase are in the thylakoids; the stroma holds the Calvin cycle enzymes.</p>'),
+    m.mcq(2, 'pigments', '<p>Which pigment takes part directly in the light reactions?</p>', 'chlorophyll a', ['chlorophyll b', 'xanthophyll', 'carotenoid'], '<p>The others are accessory pigments that pass energy to chlorophyll a.</p>'),
+    m.mcq(2, 'pigments', '<p>In paper chromatography of leaf pigments, the band that moves furthest is usually:</p>', 'carotene (orange-yellow)', ['chlorophyll a', 'chlorophyll b', 'xanthophyll'], '<p>Carotenes dissolve best in the solvent and run the farthest.</p>'),
+    m.mcq(2, 'pigments', '<p>A leaf looks green because chlorophyll:</p>', 'reflects green light and absorbs mostly blue and red', ['absorbs green light', 'absorbs all colours', 'makes green light'], '<p>The colour we see is the light that is reflected.</p>'),
+    m.mcq(2, 'light', '<p>The reaction centre of photosystem I is:</p>', 'P700', ['P680', 'P450', 'P600'], '<p>PS II has P680 and PS I has P700.</p>', { trap: 'Mixing up the two photosystems.' }),
+    m.mcq(2, 'light', '<p>Splitting of water in photosynthesis is linked with:</p>', 'photosystem II', ['photosystem I', 'the Calvin cycle', 'ATP synthase'], '<p>PS II gets its replacement electrons from water at the lumen side.</p>'),
+    m.mcq(2, 'light', '<p>The proton gradient across the thylakoid membrane is used by:</p>', 'ATP synthase', ['RuBisCO', 'NADP reductase', 'PEP carboxylase'], '<p>H⁺ flow through the CF₀ channel and drive ATP making in CF₁.</p>'),
+    m.mcq(3, 'light', '<p>Which is made in cyclic photophosphorylation?</p>', 'ATP only', ['ATP and NADPH', 'NADPH and O₂', 'ATP, NADPH and O₂'], '<p>The electron returns to PS I; there is no water splitting and no NADP⁺ reduction.</p>'),
+    m.mcq(3, 'light', '<p>Stroma lamellae lack photosystem II. The main process there is:</p>', 'cyclic photophosphorylation', ['non-cyclic photophosphorylation', 'carbon fixation', 'photorespiration'], '<p>Only PS I is present, so electrons can only cycle.</p>'),
+    m.mcq(2, 'calvin', '<p>The CO₂ acceptor in the Calvin cycle is:</p>', 'RuBP', ['PEP', 'PGA', 'OAA'], '<p>RuBP is a 5-carbon sugar bisphosphate.</p>'),
+    m.mcq(2, 'calvin', '<p>The most abundant enzyme on Earth is:</p>', 'RuBisCO', ['PEP carboxylase', 'amylase', 'catalase'], '<p>It is present in huge amounts in every green leaf because it works slowly.</p>'),
+    m.mcq(3, 'calvin', '<p>How many turns of the Calvin cycle give one glucose?</p>', '6', ['3', '12', '2'], '<p>Each turn fixes one carbon; glucose has six.</p>'),
+    m.mcq(3, 'calvin', '<p>In the Calvin cycle, regeneration of RuBP needs:</p>', '1 ATP per CO₂ fixed', ['2 NADPH per CO₂', 'light directly', '3 ATP per CO₂ fixed'], '<p>Reduction uses 2 ATP and 2 NADPH; regeneration uses 1 ATP.</p>'),
+    m.mcq(2, 'c4', '<p>Kranz anatomy is found in:</p>', 'maize', ['wheat', 'rice', 'potato'], '<p>Maize, sugarcane and sorghum are C4 plants with a wreath of bundle sheath cells.</p>'),
+    m.mcq(2, 'c4', '<p>The enzyme that first fixes CO₂ in a C4 plant is:</p>', 'PEP carboxylase', ['RuBisCO', 'ATP synthase', 'hexokinase'], '<p>It works in the mesophyll cells and has no affinity for O₂.</p>'),
+    m.mcq(3, 'c4', '<p>How many ATP are needed per CO₂ in a C4 plant?</p>', '5', ['3', '2', '6'], '<p>3 for the Calvin cycle and 2 to regenerate PEP.</p>'),
+    m.mcq(3, 'c4', '<p>Which of these is TRUE of C4 plants?</p>', 'They show almost no photorespiration', ['They have the Calvin cycle in mesophyll cells only', 'Their first product is PGA', 'They are best at 15 °C'], '<p>CO₂ is concentrated in the bundle sheath, so RuBisCO rarely binds O₂.</p>'),
+    m.mcq(2, 'photoresp', '<p>Photorespiration happens when RuBisCO binds:</p>', 'O₂', ['CO₂', 'NADPH', 'PEP'], '<p>This is oxygenation of RuBP.</p>'),
+    m.mcq(3, 'photoresp', '<p>Photorespiration:</p>', 'releases CO₂ and wastes energy', ['makes ATP in mitochondria', 'makes sugar in the dark', 'is the same as cellular respiration'], '<p>It makes no ATP and no sugar.</p>'),
+    m.mcq(2, 'factors', '<p>The law of limiting factors was given by:</p>', 'Blackman', ['Calvin', 'Hill', 'Sachs'], '<p>F. F. Blackman, 1905.</p>'),
+    m.mcq(2, 'factors', '<p>Which method would raise yield in a closed greenhouse of tomato plants on a bright day?</p>', 'adding extra CO₂', ['adding more light only', 'lowering the O₂', 'cooling to 5 °C'], '<p>CO₂ is usually the limiting factor then.</p>'),
+    m.ar(2, 'light', 'The O₂ released in photosynthesis comes from water.', 'Photosystem II takes electrons from water.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'c4', 'Maize grows well in hot, dry weather.', 'It is a C4 plant with a high CO₂ concentration around RuBisCO.', 0, '<p>Both true and R explains A: little photorespiration even when stomata are partly closed.</p>'),
+    m.ar(3, 'calvin', 'The Calvin cycle stops soon after the light is switched off.', 'The cycle uses light directly to fix CO₂.', 2, '<p>A is true, R is false: it needs ATP and NADPH from the light reactions, not light itself.</p>'),
+    m.nat(3, 'calvin', '<p>How many ATP are needed to make 3 glucose molecules in a C3 plant?</p>', () => 3 * 18, 0, '<p>3 glucose = 18 CO₂; 18 × 3 = 54 ATP.</p>'),
+    m.nat(3, 'calvin', '<p>How many NADPH are needed for 5 glucose molecules in a C3 plant?</p>', () => 5 * 12, 0, '<p>12 NADPH per glucose; 5 × 12 = 60.</p>'),
+    m.msq(3, 'light', '<p>Which products are formed in non-cyclic photophosphorylation? (Choose all that apply.)</p>', ['ATP', 'NADPH', 'O₂', 'Glucose'], [0, 1, 2], '<p>Glucose is made later in the Calvin cycle.</p>'),
+  ],
+  gens: [
+    { id: 'ph-g01', type: 'nat', level: 2, exams: ['board'], sub: 'calvin',
+      make(rng) { const g = choose(rng, [1, 2, 3, 4, 5, 8, 10]); return { g, q: `<p>How many ATP are needed to make ${g} glucose molecules in a C3 plant (3 ATP per CO₂ fixed)?</p>`, answer: 18 * g, tol: 0, unit: 'ATP', sol: `<p>${g} × 6 CO₂ × 3 ATP = ${18 * g}.</p>` }; },
+      verify: (p) => p.g * 6 * 3 },
+    { id: 'ph-g02', type: 'nat', level: 3, exams: ['board'], sub: 'c4',
+      make(rng) { const co = choose(rng, [6, 12, 18, 24, 30]); return { co, q: `<p>A C4 plant fixes ${co} CO₂ molecules. How many ATP does it use in all (5 ATP per CO₂)?</p>`, answer: 5 * co, tol: 0, unit: 'ATP', sol: `<p>${co} × 5 = ${5 * co}.</p>` }; },
+      verify: (p) => p.co * 3 + p.co * 2 },
+    { id: 'ph-g03', type: 'nat', level: 3, exams: ['board'], sub: 'calvin',
+      make(rng) { const g = choose(rng, [18, 36, 90, 180, 360]); return { g, q: `<p>How many grams of CO₂ are fixed to make ${g} g of glucose? (C₆H₁₂O₆ = 180, CO₂ = 44)</p>`, answer: +(g * 264 / 180).toPrecision(6), tol: 0.01, unit: 'g', sol: `<p>${g} ÷ 180 mol × 6 × 44 = ${(g * 264 / 180).toFixed(1)} g.</p>` }; },
+      verify: (p) => (p.g / 180) * 6 * 44 },
+  ],
+};
