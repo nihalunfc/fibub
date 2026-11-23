@@ -193,7 +193,7 @@ In fluids heat travels with the moving fluid itself. Warm fluid expands, becomes
 Every body emits electromagnetic waves (mostly infrared) because of its temperature. No medium is needed, which is how the Sun’s heat crosses space. A **black body** absorbs all radiation that falls on it and is the best emitter. Two laws describe it:
 
 - **Stefan-Boltzmann law:** power per unit area `$= \sigma T^4$`, σ = 5.67 × 10⁻⁸ W m⁻² K⁻⁴. For a body of area A at temperature T in surroundings at T₀ the net loss is `$\sigma A(T^4 - T_0^4)$` (times the emissivity for a real surface).
-- **Wien’s displacement law:** the wavelength of peak emission `$\lambda_m T = 2.898\times10^{-3}$ m K`. A hotter body peaks at a shorter wavelength.
+- **Wien’s displacement law:** the wavelength of peak emission `$\lambda_m T = 2.898\times10^{-3}$` m K. A hotter body peaks at a shorter wavelength.
 
 <figure class="fig" data-fig="c11p-therm-radiation"><figcaption>Move the temperature. The peak shifts left toward blue, the glow colour changes from red to white, and the power (readout) climbs as T⁴. The Sun, at 5800 K, peaks in the middle of the visible band.</figcaption></figure>
 

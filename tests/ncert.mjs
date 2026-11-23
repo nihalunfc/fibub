@@ -54,6 +54,8 @@ for (const course of courses) {
     ok(`${where}: has key points`, md.includes('class="keypoints"'));
     const bare = md.split('\n---\n').slice(1).join('\n').replace(/```[\s\S]*?```/g, '').match(/(?<![`\\$])\$[^$\n`]+?\$(?![`$])/);
     ok(`${where}: maths is written as \`$...$\` with backticks (bare: ${bare?.[0]})`, !bare);
+    const spill = md.match(/`\$[^`$\n]*\$[^`\n]+`/);
+    ok(`${where}: a \`$...$\` span ends right after its closing $ (${spill?.[0]})`, !spill);
     ok(`${where}: has sources`, /\nsources:\n\s+- /.test(md));
     ok(`${where}: every image has alt text`, !/<img(?![^>]*alt=)/.test(md));
     const visuals = (md.match(/data-fig="|class="steps"/g) ?? []).length + tools.length;
