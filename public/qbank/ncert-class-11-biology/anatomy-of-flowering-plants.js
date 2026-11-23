@@ -1,0 +1,53 @@
+// Class 11 Biology, Chapter 6 Anatomy of Flowering Plants: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('an');
+
+export default {
+  topic: 'anatomy-of-flowering-plants', name: 'Anatomy of Flowering Plants', n: 6,
+  items: [
+    m.mcq(1, 'tissues', '<p>Which tissue is responsible for the increase in length of a root?</p>', 'apical meristem', ['lateral meristem', 'cork cambium', 'vascular cambium'], '<p>The root tip meristem adds cells, which then grow longer behind the tip.</p>'),
+    m.mcq(1, 'tissues', '<p>Grass regrows after being cut because of:</p>', 'intercalary meristem', ['apical meristem only', 'cork cambium', 'secondary xylem'], '<p>Intercalary meristems at the bases of leaves and internodes keep dividing.</p>'),
+    m.mcq(2, 'tissues', '<p>Which of these cells is alive when mature?</p>', 'collenchyma', ['sclerenchyma fibre', 'xylem vessel', 'cork cell'], '<p>Collenchyma cells keep their protoplasm and give flexible support.</p>'),
+    m.mcq(2, 'tissues', '<p>The gritty particles in guava pulp are:</p>', 'stone cells (sclereids)', ['xylem vessels', 'collenchyma', 'sieve tubes'], '<p>Sclereids are short sclerenchyma cells with very thick walls.</p>'),
+    m.mcq(2, 'tissues', '<p>Which is the only living component of the xylem?</p>', 'xylem parenchyma', ['vessels', 'tracheids', 'xylem fibres'], '<p>Parenchyma cells in the xylem store food; the other three are dead when mature.</p>', { trap: 'Assuming the whole of xylem is dead.' }),
+    m.mcq(2, 'tissues', '<p>Companion cells are associated with:</p>', 'sieve tube elements', ['tracheids', 'vessels', 'guard cells'], '<p>The nucleus of the companion cell controls the enucleate sieve tube cell next to it.</p>'),
+    m.mcq(3, 'tissues', '<p>Which tissue is absent from the xylem of gymnosperms?</p>', 'vessels', ['tracheids', 'xylem parenchyma', 'fibres'], '<p>Gymnosperms have only tracheids for conduction.</p>'),
+    m.mcq(2, 'system', '<p>The guard cells of grasses are:</p>', 'dumb-bell shaped', ['kidney (bean) shaped', 'cube shaped', 'tube shaped'], '<p>Grasses have dumb-bell shaped guard cells; most other plants have bean-shaped ones.</p>'),
+    m.mcq(2, 'system', '<p>Which of these is a part of the ground tissue system?</p>', 'mesophyll', ['stomata', 'phloem', 'root hairs'], '<p>Mesophyll is ground tissue. Stomata and root hairs are epidermal; phloem is vascular.</p>'),
+    m.mcq(2, 'system', '<p>Root hairs are formed from:</p>', 'epidermal cells', ['cortex cells', 'pericycle cells', 'endodermis'], '<p>They are tube-like outgrowths of single epidermal cells.</p>'),
+    m.mcq(2, 'bundle', '<p>A bundle in which xylem and phloem lie on the same radius with a cambium between them is:</p>', 'conjoint and open', ['radial', 'conjoint and closed', 'concentric'], '<p>Dicot stems have conjoint open bundles.</p>'),
+    m.mcq(3, 'bundle', '<p>Xylem surrounds the phloem in an amphivasal bundle. Such bundles are found in:</p>', 'Dracaena', ['sunflower stem', 'maize stem', 'bean root'], '<p>Amphivasal (and amphicribral) bundles are concentric types found in a few plants.</p>'),
+    m.mcq(1, 'root', '<p>The Casparian strip is made of:</p>', 'suberin', ['cutin', 'lignin only', 'cellulose'], '<p>Suberin is a waxy, waterproof substance deposited on the radial walls of endodermal cells.</p>'),
+    m.mcq(2, 'root', '<p>A root with more than six xylem bundles and a large pith is a:</p>', 'monocot root', ['dicot root', 'dicot stem', 'monocot stem'], '<p>Monocot roots are polyarch with a large pith.</p>'),
+    m.mcq(2, 'root', '<p>Lateral roots arise from the:</p>', 'pericycle', ['epidermis', 'endodermis', 'cortex'], '<p>Pericycle cells divide and the new root pushes outwards through the cortex.</p>'),
+    m.mcq(2, 'stem', '<p>The hypodermis of a dicot stem is made of:</p>', 'collenchyma', ['sclerenchyma', 'parenchyma only', 'cork'], '<p>Collenchyma supports the young dicot stem; a monocot stem has a sclerenchymatous hypodermis.</p>'),
+    m.mcq(2, 'stem', '<p>Which feature is seen in a monocot stem?</p>', 'scattered closed bundles with sheaths', ['open bundles in a ring', 'a wide pith and medullary rays', 'a cambium between the xylem and phloem'], '<p>Monocot bundles are closed, scattered and sclerenchyma-sheathed.</p>'),
+    m.mcq(3, 'stem', '<p>Protoxylem lies towards the centre and metaxylem towards the skin of the stem. This arrangement is called:</p>', 'endarch', ['exarch', 'radial', 'amphicribral'], '<p>In stems protoxylem is on the inner side (endarch); in roots it is outside (exarch).</p>'),
+    m.mcq(2, 'leaf', '<p>Bulliform cells are present in the:</p>', 'upper epidermis of grass leaves', ['lower epidermis of dicot leaves', 'palisade layer', 'xylem'], '<p>They are big colourless cells that control rolling of the leaf.</p>'),
+    m.mcq(2, 'leaf', '<p>Most of the stomata of a dicot leaf are found on the:</p>', 'lower epidermis', ['upper epidermis', 'palisade layer', 'veins'], '<p>Lower stomata lose less water to the sun.</p>'),
+    m.mcq(2, 'leaf', '<p>In an isobilateral leaf:</p>', 'the mesophyll is not differentiated into palisade and spongy tissue', ['stomata are only on the lower face', 'venation is reticulate', 'bulliform cells are absent'], '<p>Isobilateral leaves belong to monocots; both faces look alike.</p>'),
+    m.mcq(2, 'secondary', '<p>The vascular cambium produces:</p>', 'more secondary xylem inside than secondary phloem outside', ['equal amounts of cork and cortex', 'only phloem', 'only xylem outwards'], '<p>The result is that wood forms the bulk of a tree trunk.</p>'),
+    m.mcq(2, 'secondary', '<p>The tissue in which the cork cambium gives rise to cork is called the:</p>', 'phellogen', ['phelloderm', 'periblem', 'procambium'], '<p>Phellogen makes phellem (cork) outwards and phelloderm inwards.</p>'),
+    m.mcq(2, 'secondary', '<p>Heartwood is:</p>', 'dark, non-conducting and durable', ['pale and conducting', 'made of living cells', 'the outer part of the wood'], '<p>Tannins and resins fill the cells; the centre of the log no longer carries water.</p>'),
+    m.mcq(3, 'secondary', '<p>Which one is NOT part of the bark?</p>', 'secondary xylem', ['periderm', 'cortex remains', 'secondary phloem'], '<p>Bark is everything outside the vascular cambium; xylem lies inside it.</p>'),
+    m.mcq(2, 'secondary', '<p>Lenticels help in:</p>', 'gas exchange in woody stems', ['water absorption', 'photosynthesis', 'food storage'], '<p>Lenticels are loose patches in the cork that allow air to reach inner tissues.</p>'),
+    m.ar(2, 'secondary', 'Monocots do not show secondary growth.', 'Their vascular bundles are closed, without cambium.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'root', 'The endodermis controls which minerals reach the xylem.', 'Its Casparian strip makes water pass through the cell membranes.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'tissues', 'Sclerenchyma gives strength to plant parts.', 'Its cells have thick lignified walls and are dead at maturity.', 1, '<p>Both statements are true, but "dead" is not the reason for strength: the thick lignified wall is. R describes the cells but does not explain A.</p>'),
+    m.nat(2, 'secondary', '<p>A tree trunk has 42 annual rings. How old is the tree, in years?</p>', () => 42, 0, '<p>One ring a year, so 42 years.</p>'),
+    m.msq(3, 'tissues', '<p>Which of these are living when mature? (Choose all that apply.)</p>', ['Xylem parenchyma', 'Sieve tube elements', 'Tracheids', 'Phloem fibres'], [0, 1], '<p>Tracheids and phloem fibres are dead at maturity.</p>'),
+    m.msq(3, 'stem', '<p>Which features belong to a dicot stem? (Choose all that apply.)</p>', ['Bundles in a ring', 'Open bundles', 'Large pith', 'Closed bundles scattered'], [0, 1, 2], '<p>Scattered closed bundles belong to a monocot stem.</p>'),
+  ],
+  gens: [
+    { id: 'an-g01', type: 'nat', level: 2, exams: ['board'], sub: 'system',
+      make(rng) { const c = pick(rng, 10, 40), d = choose(rng, [0.4, 0.5, 0.6, 0.8]); return { c, d, q: `<p>A circular microscope field of diameter ${d} mm contains ${c} stomata. Find the stomatal density per mm².</p>`, answer: +(c / (Math.PI * d * d / 4)).toPrecision(5), tol: 1, unit: 'per mm²', sol: `<p>Area = π(${d}/2)² = ${(Math.PI * d * d / 4).toFixed(3)} mm². Density = ${c} ÷ ${(Math.PI * d * d / 4).toFixed(3)} = ${(c / (Math.PI * d * d / 4)).toFixed(1)}.</p>` }; },
+      verify: (p) => p.c / (Math.PI * (p.d / 2) ** 2) },
+    { id: 'an-g02', type: 'nat', level: 2, exams: ['board'], sub: 'secondary',
+      make(rng) { const rings = pick(rng, 20, 90, 5), w = choose(rng, [2, 2.5, 3, 4]); return { rings, w, q: `<p>A trunk has ${rings} rings, each about ${w} mm wide. What is the diameter of the wood in mm?</p>`, answer: 2 * rings * w, tol: 1, unit: 'mm', sol: `<p>Radius = ${rings} × ${w} = ${rings * w} mm, so diameter = ${2 * rings * w} mm.</p>` }; },
+      verify: (p) => p.rings * p.w + p.rings * p.w },
+    { id: 'an-g03', type: 'nat', level: 2, exams: ['board'], sub: 'tissues',
+      make(rng) { const drawn = pick(rng, 20, 90, 5), mag = choose(rng, [100, 200, 400, 500]); return { drawn, mag, q: `<p>A vessel looks ${drawn} mm wide in a photograph magnified ${mag} times. Its real width in µm is:</p>`, answer: +(drawn * 1000 / mag).toPrecision(5), tol: 1, unit: 'µm', sol: `<p>${drawn} ÷ ${mag} = ${(drawn / mag).toFixed(3)} mm = ${(drawn * 1000 / mag).toFixed(1)} µm.</p>` }; },
+      verify: (p) => (p.drawn / p.mag) * 1000 },
+  ],
+};
