@@ -1,0 +1,53 @@
+// Class 8 Science (Curiosity), Chapter 2 The Invisible Living World: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('mic');
+
+export default {
+  topic: 'the-invisible-living-world-beyond-our', name: 'The Invisible Living World: Beyond Our Naked Eye', n: 2,
+  items: [
+    m.mcq(1, 'scope', '<p>The smallest object the naked eye can see is about:</p>', '0.1 mm', ['1 µm', '10 µm', '1 cm'], '<p>Anything much smaller than about a tenth of a millimetre needs a microscope.</p>'),
+    m.mcq(1, 'scope', '<p>The word "cell" was first used by:</p>', 'Robert Hooke', ['Louis Pasteur', 'Alexander Fleming', 'C. V. Raman'], '<p>Hooke saw the box-like spaces in cork in 1665.</p>'),
+    m.mcq(2, 'scope', '<p>Eyepiece 10× and objective 100×. The total magnification is:</p>', '1000×', ['110×', '10×', '100×'], '<p>10 × 100 = 1000×.</p>'),
+    m.mcq(2, 'scope', '<p>When using a microscope you should first focus with:</p>', 'the lowest-power objective', ['the highest-power objective', 'the fine knob only', 'a finger on the slide'], '<p>Start low, then increase the power so the lens never hits the slide.</p>'),
+    m.mcq(2, 'scope', '<p>A cell is 0.05 mm wide. In micrometres this is:</p>', '50 µm', ['5 µm', '500 µm', '0.5 µm'], '<p>1 mm = 1000 µm, so 0.05 mm = 50 µm.</p>'),
+    m.mcq(2, 'scope', '<p>Under 200× a bacterium looks 0.4 mm long. Its real length is:</p>', '2 µm', ['20 µm', '0.2 µm', '80 µm'], '<p>0.4 mm = 400 µm; 400 ÷ 200 = 2 µm.</p>'),
+    m.mcq(1, 'groups', '<p>Which of these is NOT made of cells?</p>', 'a virus', ['yeast', 'Amoeba', 'Spirogyra'], '<p>Viruses are not cells and need a host to multiply.</p>'),
+    m.mcq(1, 'groups', '<p>Spirogyra, a green thread in ponds, is an:</p>', 'alga', ['bacterium', 'virus', 'protozoan'], '<p>Algae contain chlorophyll and make their own food.</p>'),
+    m.mcq(2, 'groups', '<p>Yeast and bread mould belong to the:</p>', 'fungi', ['bacteria', 'protozoa', 'viruses'], '<p>Yeast is a single-celled fungus; moulds are threads of fungus.</p>'),
+    m.mcq(2, 'groups', '<p>Malaria is caused by a:</p>', 'protozoan', ['bacterium', 'fungus', 'alga'], '<p>Plasmodium is a single-celled parasite carried by Anopheles mosquitoes.</p>'),
+    m.mcq(2, 'groups', '<p>Which of these can multiply only inside a living cell?</p>', 'virus', ['bacterium', 'yeast', 'Amoeba'], '<p>A virus has no machinery of its own.</p>'),
+    m.mcq(3, 'groups', '<p>Which statement about bacteria is correct?</p>', 'They are single cells with no nucleus.', ['They are not made of cells.', 'They always cause disease.', 'They contain chlorophyll in all cases.'], '<p>Bacteria are single-celled, without a proper nucleus, and most are harmless.</p>'),
+    m.mcq(1, 'useful', '<p>Curd is made from milk by:</p>', 'Lactobacillus', ['Rhizobium', 'Plasmodium', 'Penicillium'], '<p>Lactobacillus makes lactic acid.</p>'),
+    m.mcq(2, 'useful', '<p>Idli batter rises because yeast and bacteria release:</p>', 'carbon dioxide', ['oxygen', 'hydrogen', 'nitrogen'], '<p>CO₂ bubbles puff up the batter.</p>'),
+    m.mcq(2, 'useful', '<p>Penicillin comes from the mould:</p>', 'Penicillium', ['Rhizobium', 'Lactobacillus', 'Amoeba'], '<p>Fleming noticed it killed bacteria in 1928.</p>'),
+    m.mcq(2, 'useful', '<p>Rhizobium bacteria live in the root nodules of:</p>', 'pulse plants such as gram', ['wheat', 'mango trees', 'cactus'], '<p>They fix nitrogen from the air for the plant.</p>'),
+    m.mcq(2, 'useful', '<p>Antibiotics are useful against:</p>', 'bacterial infections', ['viral infections such as colds', 'every disease', 'only fungal diseases'], '<p>They kill bacteria, not viruses.</p>', { trap: 'A common cold is caused by a virus.' }),
+    m.mcq(2, 'useful', '<p>Decomposers such as bacteria and fungi:</p>', 'break down dead matter and return nutrients to the soil', ['make oxygen in the sea', 'carry malaria', 'make vaccines in the body'], '<p>They recycle dead plants and animals.</p>'),
+    m.mcq(2, 'harm', '<p>Which disease is caused by a bacterium?</p>', 'cholera', ['dengue', 'measles', 'malaria'], '<p>Cholera is caused by Vibrio cholerae, spread by dirty water.</p>'),
+    m.mcq(2, 'harm', '<p>Which is a viral disease?</p>', 'measles', ['typhoid', 'tuberculosis', 'malaria'], '<p>Measles is caused by a virus.</p>'),
+    m.mcq(2, 'harm', '<p>Eating spoilt food can cause:</p>', 'food poisoning', ['photosynthesis', 'nitrogen fixation', 'a vaccine'], '<p>Toxins made by microbes upset the stomach.</p>'),
+    m.mcq(2, 'keep', '<p>Which method keeps microbes out by removing water?</p>', 'sun drying', ['boiling and eating at once', 'adding water', 'keeping it warm'], '<p>Microbes cannot grow without water.</p>'),
+    m.mcq(2, 'keep', '<p>Mango pickle keeps well because of:</p>', 'salt and oil', ['sunlight and water', 'warmth and moisture', 'carbon dioxide'], '<p>Salt draws out water; oil keeps air and water away.</p>'),
+    m.mcq(3, 'keep', '<p>A food is boiled, then left uncovered for a day. It spoils because:</p>', 'microbes from the air settle and multiply', ['boiling makes poison', 'the food gets older chemically only', 'light turns it sour'], '<p>Boiling kills microbes already present; new ones arrive later.</p>'),
+    m.ar(2, 'useful', 'Curd is made by adding a spoon of old curd to warm milk.', 'Old curd carries Lactobacillus bacteria that multiply and set the milk.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'groups', 'Viruses are considered to be on the border between living and non-living.', 'Viruses can reproduce on their own outside any cell.', 2, '<p>A is true. R is false: viruses reproduce only inside a host cell.</p>'),
+    m.ar(2, 'keep', 'Dried fish stays fresh for a long time.', 'Microbes need water to grow and drying removes it.', 0, '<p>Both true and R explains A.</p>'),
+    m.nat(2, 'scope', '<p>A microscope has a 15× eyepiece and a 40× objective. What is its magnification?</p>', () => 600, 0.01, '<p>15 × 40 = 600.</p>'),
+    m.nat(2, 'growth', '<p>One bacterium divides every 30 minutes. How many are there after 3 hours?</p>', () => 64, 0.01, '<p>6 doublings: 2⁶ = 64.</p>'),
+    m.nat(3, 'scope', '<p>An image of a cell is 6 mm long at 300× magnification. What is the real length in mm?</p>', () => 0.02, 0.01, '<p>6 ÷ 300 = 0.02 mm.</p>'),
+    m.msq(3, 'useful', '<p>Which of these are useful microbes? (Choose all that apply.)</p>', ['Lactobacillus in curd', 'Yeast in bread', 'Rhizobium in pulse roots', 'Plasmodium in blood'], [0, 1, 2], '<p>Plasmodium causes malaria.</p>'),
+    m.msq(3, 'keep', '<p>Which methods help keep food from spoiling? (Choose all that apply.)</p>', ['Cooling', 'Drying', 'Leaving it warm and wet', 'Salting'], [0, 1, 3], '<p>Warm and wet is ideal for microbes.</p>'),
+  ],
+  gens: [
+    { id: 'mic-g01', type: 'nat', level: 2, exams: ['board'], sub: 'scope',
+      make(rng) { const e = choose(rng, [5, 10, 15]), o = choose(rng, [4, 10, 40, 100]); return { e, o, q: `<p>A microscope has a ${e}× eyepiece and a ${o}× objective. What is the total magnification?</p>`, answer: e * o, tol: 0.01, sol: `<p>${e} × ${o} = ${e * o}.</p>` }; },
+      verify: (p) => p.o * p.e },
+    { id: 'mic-g02', type: 'nat', level: 2, exams: ['board'], sub: 'growth',
+      make(rng) { const dt = choose(rng, [20, 30, 60]), k = pick(rng, 2, 8, 1); return { dt, k, q: `<p>A bacterium doubles every ${dt} minutes. How many bacteria are there after ${dt * k} minutes, starting from one?</p>`, answer: Math.pow(2, k), tol: 0.01, sol: `<p>${k} doublings, so 2^${k} = ${Math.pow(2, k)}.</p>` }; },
+      verify: (p) => { let c = 1; for (let i = 0; i < p.k; i++) c *= 2; return c; } },
+    { id: 'mic-g03', type: 'nat', level: 3, exams: ['board'], sub: 'scope',
+      make(rng) { const M = choose(rng, [100, 200, 400, 500]), real = choose(rng, [0.01, 0.02, 0.05]); const img = +(real * M).toFixed(3); return { M, img, q: `<p>Through a ${M}× microscope a cell looks ${img} mm long. What is its real length in mm?</p>`, answer: img / M, tol: 0.01, sol: `<p>${img} ÷ ${M} = ${img / M} mm.</p>` }; },
+      verify: (p) => p.img * (1 / p.M) },
+  ],
+};
