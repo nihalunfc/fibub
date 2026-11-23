@@ -1,0 +1,61 @@
+// Class 12 Maths, Chapter 6 Application of Derivatives: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ad');
+const D = (f, x) => { const h = 1e-5; return (f(x + h) - f(x - h)) / (2 * h); };
+const maxOf = (f, lo, hi) => { const g = (Math.sqrt(5) - 1) / 2; let a = lo, b = hi; for (let i = 0; i < 120; i++) { const c = b - g * (b - a), d = a + g * (b - a); f(c) > f(d) ? (b = d) : (a = c); } return f((a + b) / 2); };
+
+export default {
+  topic: 'application-of-derivatives', name: 'Application of Derivatives', n: 6,
+  items: [
+    m.mcq(1, 'rate', '<p>If the side $s$ of a square grows at 2 cm/s, the rate of change of its area when $s = 4$ cm is:</p>', '16 cm²/s', ['8 cm²/s', '32 cm²/s', '4 cm²/s'], '<p>$A = s^2$, $dA/dt = 2s\\,ds/dt = 2\\times4\\times2 = 16$.</p>'),
+    m.mcq(2, 'rate', '<p>The radius of a circle increases at 1 cm/s. The rate of increase of its circumference is:</p>', '$2\\pi$ cm/s', ['$\\pi$ cm/s', '$2\\pi r$ cm/s', '$1$ cm/s'], '<p>$C = 2\\pi r$ so $dC/dt = 2\\pi\\,dr/dt = 2\\pi$, independent of $r$.</p>'),
+    m.mcq(3, 'rate', '<p>A balloon is blown up at a steady rate. As its radius gets larger, $\\dfrac{dr}{dt}$:</p>', 'decreases', ['increases', 'stays the same', 'is zero'], '<p>$dr/dt = (dV/dt)/(4\\pi r^2)$ falls as $r$ grows.</p>', { trap: 'Assuming a steady dV/dt means a steady dr/dt.' }),
+    m.mcq(2, 'rate', '<p>In a related-rates problem you should substitute the numbers:</p>', 'after differentiating with respect to $t$', ['before differentiating', 'only at the end points', 'never'], '<p>Substituting first turns the changing quantity into a constant, whose derivative is zero.</p>'),
+    m.mcq(1, 'monotone', '<p>$f$ is increasing on an interval if:</p>', '$f\'(x) > 0$ throughout it', ['$f(x) > 0$ throughout it', '$f\'\'(x) > 0$ throughout it', '$f\'(x) = 0$ throughout it'], '<p>The sign of the derivative decides, not the sign of the function.</p>'),
+    m.mcq(2, 'monotone', '<p>$f(x) = x^2$ is decreasing on:</p>', '$(-\\infty, 0)$', ['$(0, \\infty)$', '$(-\\infty, \\infty)$', '$(1, \\infty)$'], '<p>$f\'(x) = 2x < 0$ for $x < 0$.</p>'),
+    m.mcq(3, 'monotone', '<p>$f(x) = x^3 - 3x$ is decreasing on:</p>', '$(-1, 1)$', ['$(-\\infty, -1)$', '$(1, \\infty)$', '$(0, \\infty)$'], '<p>$f\' = 3(x-1)(x+1) < 0$ between $-1$ and $1$.</p>'),
+    m.mcq(2, 'monotone', '<p>$f(x) = e^x$ is:</p>', 'increasing on $\\mathbb{R}$', ['decreasing on $\\mathbb{R}$', 'increasing only for $x > 0$', 'neither increasing nor decreasing'], '<p>$f\'(x) = e^x > 0$ for all $x$.</p>'),
+    m.mcq(2, 'extrema', '<p>A critical point is a point where:</p>', '$f\'(x) = 0$ or $f\'$ does not exist', ['$f(x) = 0$', '$f\'\'(x) = 0$ only', '$f$ is largest'], '<p>Local extremes can only occur at critical points.</p>'),
+    m.mcq(2, 'extrema', '<p>The minimum value of $f(x) = x^2 - 6x + 11$ is:</p>', '2', ['3', '11', '−2'], '<p>$f\' = 2x - 6 = 0$ at $x = 3$, $f(3) = 9 - 18 + 11 = 2$.</p>'),
+    m.mcq(3, 'extrema', '<p>At $x = 0$, $f(x) = x^4$ has:</p>', 'a local minimum although $f\'\'(0) = 0$', ['a local maximum', 'no extremum', 'a point where the second derivative test shows a minimum'], '<p>$f\'$ goes from − to + at 0 so it is a minimum, but $f\'\'(0) = 0$ means the second derivative test cannot decide: use the first derivative test.</p>'),
+    m.mcq(2, 'extrema', '<p>If $f\'(c) = 0$ and $f\'\'(c) < 0$, then $f$ has at $c$:</p>', 'a local maximum', ['a local minimum', 'a point of inflection', 'nothing can be said'], '<p>Negative second derivative means the curve bends downwards like a cap.</p>'),
+    m.mcq(3, 'extrema', '<p>$f(x) = x^3$ at $x = 0$ has:</p>', 'neither a maximum nor a minimum', ['a local maximum', 'a local minimum', 'both'], '<p>$f\' = 3x^2$ does not change sign at 0.</p>'),
+    m.mcq(2, 'interval', '<p>The absolute maximum of a continuous function on $[a, b]$ can occur:</p>', 'at an end point or a critical point', ['only at a critical point', 'only at an end point', 'only where $f\'\' < 0$'], '<p>Compare $f$ at both ends and at every critical point inside.</p>'),
+    m.mcq(3, 'interval', '<p>The greatest value of $f(x) = x^2 - 4x$ on $[0, 5]$ is:</p>', '5', ['0', '−4', '4'], '<p>Critical point $x = 2$, $f(2) = -4$; ends $f(0) = 0$, $f(5) = 5$. The greatest is 5 at the right end.</p>'),
+    m.mcq(2, 'optimise', '<p>Of all rectangles with perimeter 40 cm, the one with the greatest area is:</p>', 'a square of side 10 cm', ['10 cm by 8 cm', '15 cm by 5 cm', '12 cm by 8 cm'], '<p>$A = x(20 - x)$, $A\' = 20 - 2x = 0$ gives $x = 10$, area 100 cm².</p>'),
+    m.mcq(3, 'optimise', '<p>Two positive numbers have sum 12. The greatest possible product is:</p>', '36', ['35', '32', '24'], '<p>$P = x(12 - x)$, maximum at $x = 6$, $P = 36$.</p>'),
+    m.mcq(3, 'optimise', '<p>A closed cylindrical tin of given volume has the least surface area when:</p>', 'height = diameter', ['height = radius', 'height = 2 × diameter', 'radius = 2 × height'], '<p>$S\' = 0$ gives $h = 2r$.</p>'),
+    m.ar(2, 'monotone', 'The function $f(x) = x^3$ is increasing on $\\mathbb{R}$.', '$f\'(x) = 3x^2 \\ge 0$ for all $x$ and equals 0 only at $x = 0$.', 0, '<p>Both true and R explains A: the derivative is never negative and is zero at a single point only.</p>'),
+    m.ar(3, 'extrema', 'The function $f(x) = x^3$ has $f\'(0) = 0$ but no local extremum at 0.', 'The derivative $f\'$ does not change sign at 0.', 0, '<p>Both true and R explains A: $f\' = 3x^2$ is positive on both sides of 0.</p>'),
+    m.ar(3, 'interval', 'The absolute maximum of $f(x) = x$ on $[0, 3]$ is 3.', 'The absolute maximum on a closed interval is always at a point where $f\' = 0$.', 2, '<p>A is true (right end point, $f\' = 1 \\ne 0$). R is false: the end points must also be compared.</p>'),
+    m.nat(2, 'rate', '<p>The radius of a spherical bubble grows at 0.5 cm/s. At $r = 4$ cm, find $dA/dt$ for its surface area $A = 4\\pi r^2$, in units of $\\pi$ cm²/s.</p>', () => 16, 0.01, '<p>$dA/dt = 8\\pi r\\,dr/dt = 8\\pi(4)(0.5) = 16\\pi$.</p>'),
+    m.nat(3, 'rate', '<p>A 5 m ladder has its foot sliding away at 1 m/s. How fast (m/s, positive) is the top coming down when the foot is 3 m from the wall?</p>', () => 0.75, 0.001, '<p>$y = 4$. $dy/dt = -(3/4)(1) = -0.75$.</p>'),
+    m.nat(3, 'extrema', '<p>Find the local minimum value of $f(x) = x^3 - 12x + 5$.</p>', () => -11, 0, '<p>$f\' = 3x^2 - 12 = 0$ gives $x = \\pm2$; $f\'\' = 6x > 0$ at $x = 2$. $f(2) = 8 - 24 + 5 = -11$.</p>'),
+    m.nat(3, 'optimise', '<p>The sum of a number and twice another is 12. Find the largest possible product of the two numbers.</p>', () => 18, 0, '<p>$x + 2y = 12$, $P = xy = (12 - 2y)y$. $P\' = 12 - 4y = 0$, $y = 3$, $x = 6$, $P = 18$.</p>'),
+    m.msq(3, 'extrema', '<p>Which statements are true? (Choose all that apply.)</p>', ['A local maximum can be lower than a local minimum elsewhere', 'A continuous function on $[a, b]$ always has an absolute maximum', 'If $f\'\'(c) = 0$ the point $c$ cannot be an extremum', 'At a point of maximum, $f\'$ goes from positive to negative'], [0, 1, 3], '<p>The third is false: $x^4$ has $f\'\'(0) = 0$ yet 0 is a minimum.</p>'),
+  ],
+  gens: [
+    { id: 'ad-g01', type: 'nat', level: 2, exams: ['board'], sub: 'rate',
+      make(rng) { const v = pick(rng, 1, 5, 1), r = pick(rng, 2, 12, 1); return { v, r, q: '<p>The radius of a circle grows at ' + v + ' cm/s. How fast is its area growing (in cm²/s, as a multiple of $\\pi$) when $r = ' + r + '$ cm?</p>', answer: 2 * r * v, tol: 0, unit: '\u03c0 cm\u00b2/s', sol: '<p>$dA/dt = 2\\pi r\\,dr/dt = 2\\pi(' + r + ')(' + v + ') = ' + 2 * r * v + '\\pi$.</p>' }; },
+      verify: (p) => D((t) => (p.r + p.v * t) ** 2, 0) },
+    { id: 'ad-g02', type: 'nat', level: 3, exams: ['board'], sub: 'rate',
+      make(rng) { const [L, x] = choose(rng, [[5, 3], [13, 5], [10, 6], [17, 8], [25, 7], [25, 15]]); const v = pick(rng, 1, 3, 0.5); const y = Math.sqrt(L * L - x * x); return { L, x, v, q: '<p>A ' + L + ' m ladder slides with its foot moving away from the wall at ' + v + ' m/s. How fast (m/s) is the top moving down when the foot is ' + x + ' m from the wall?</p>', answer: +(x / y * v).toPrecision(6), tol: 0.01, unit: 'm/s', sol: '<p>$y = ' + y.toFixed(2) + '$ and $dy/dt = -(x/y)\\,dx/dt$, speed $' + (x / y * v).toFixed(3) + '$ m/s.</p>' }; },
+      verify: (p) => Math.abs(D((t) => Math.sqrt(p.L * p.L - (p.x + p.v * t) ** 2), 0)) },
+    { id: 'ad-g03', type: 'nat', level: 2, exams: ['board'], sub: 'extrema',
+      make(rng) { const b = pick(rng, 2, 12, 2), c = pick(rng, 1, 9, 1); return { b, c, q: '<p>Find the minimum value of $f(x) = x^2 - ' + b + 'x + ' + c + '$.</p>', answer: c - (b * b) / 4, tol: 0.001, unit: '', sol: '<p>$f\' = 2x - ' + b + ' = 0$ at $x = ' + b / 2 + '$, and $f(' + b / 2 + ') = ' + (c - (b * b) / 4) + '$.</p>' }; },
+      verify: (p) => { const f = (x) => x * x - p.b * x + p.c; let lo = -50, hi = 50; for (let i = 0; i < 120; i++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; f(m1) < f(m2) ? (hi = m2) : (lo = m1); } return f((lo + hi) / 2); } },
+    { id: 'ad-g04', type: 'nat', level: 3, exams: ['board'], sub: 'extrema',
+      make(rng) { const a = pick(rng, 1, 4, 1), c = pick(rng, 0, 8, 1); return { a, c, q: '<p>Find the local maximum value of $f(x) = x^3 - ' + 3 * a * a + 'x + ' + c + '$.</p>', answer: c + 2 * a ** 3, tol: 0, unit: '', sol: '<p>$f\' = 3(x-' + a + ')(x+' + a + ')$; $f\'\' = 6x < 0$ at $x = -' + a + '$, so $f(-' + a + ') = ' + (c + 2 * a ** 3) + '$.</p>' }; },
+      verify: (p) => { const f = (x) => x ** 3 - 3 * p.a * p.a * x + p.c; return maxOf(f, -2 * p.a, 0); } },
+    { id: 'ad-g05', type: 'nat', level: 3, exams: ['board'], sub: 'interval',
+      make(rng) { const b = choose(rng, [3, 4, 5, 6]), hi = b + pick(rng, 1, 4, 1); return { b, hi, q: '<p>Find the greatest value of $f(x) = x^2 - ' + b + 'x$ on $[0, ' + hi + ']$.</p>', answer: Math.max(0, hi * hi - b * hi), tol: 0, unit: '', sol: '<p>Critical point $x = ' + b / 2 + '$ gives a minimum ($f$ = ' + -(b * b) / 4 + '). Ends: $f(0) = 0$, $f(' + hi + ') = ' + (hi * hi - b * hi) + '$. The greatest is ' + Math.max(0, hi * hi - b * hi) + '.</p>' }; },
+      verify: (p) => maxOf((x) => x * x - p.b * x, 0, p.hi) },
+    { id: 'ad-g06', type: 'nat', level: 3, exams: ['board'], sub: 'optimise',
+      make(rng) { const P = pick(rng, 20, 80, 10); return { P, q: '<p>Of all rectangles with perimeter ' + P + ' cm, find the greatest possible area (cm²).</p>', answer: (P / 4) ** 2, tol: 0.001, unit: 'cm\u00b2', sol: '<p>The best rectangle is a square of side ' + P / 4 + ' cm, area ' + (P / 4) ** 2 + '.</p>' }; },
+      verify: (p) => maxOf((x) => x * (p.P / 2 - x), 0, p.P / 2) },
+    { id: 'ad-g07', type: 'nat', level: 3, exams: ['board'], sub: 'optimise',
+      make(rng) { const s = choose(rng, [12, 18, 24, 30]); return { s, q: '<p>Squares are cut from the corners of a ' + s + ' cm square sheet to make an open box. Find the greatest volume in cm³.</p>', answer: 2 * s ** 3 / 27, tol: 0.01, unit: 'cm\u00b3', sol: '<p>$V = x(' + s + ' - 2x)^2$, best $x = ' + s / 6 + '$, $V_{max} = ' + 2 * s ** 3 / 27 + '$.</p>' }; },
+      verify: (p) => maxOf((x) => x * (p.s - 2 * x) ** 2, 0, p.s / 2) },
+  ],
+};

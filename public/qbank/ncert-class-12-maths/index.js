@@ -10,7 +10,60 @@ export default {
     {
       "id": "class-12",
       "name": "Class 12 Maths",
-      "topics": []
+      "topics": [
+        {
+          "id": "relations-and-functions",
+          "name": "1. Relations and Functions"
+        },
+        {
+          "id": "inverse-trigonometric-functions",
+          "name": "2. Inverse Trigonometric Functions"
+        },
+        {
+          "id": "matrices",
+          "name": "3. Matrices"
+        },
+        {
+          "id": "determinants",
+          "name": "4. Determinants"
+        },
+        {
+          "id": "continuity-and-differentiability",
+          "name": "5. Continuity and Differentiability"
+        },
+        {
+          "id": "application-of-derivatives",
+          "name": "6. Application of Derivatives"
+        },
+        {
+          "id": "integrals",
+          "name": "7. Integrals"
+        },
+        {
+          "id": "application-of-integrals",
+          "name": "8. Application of Integrals"
+        },
+        {
+          "id": "differential-equations",
+          "name": "9. Differential Equations"
+        },
+        {
+          "id": "vector-algebra",
+          "name": "10. Vector Algebra"
+        },
+        {
+          "id": "three-dimensional-geometry",
+          "name": "11. Three Dimensional Geometry"
+        },
+        {
+          "id": "linear-programming",
+          "name": "12. Linear Programming"
+        },
+        {
+          "id": "probability",
+          "name": "13. Probability"
+        }
+      ]
     }
   ]
 };
