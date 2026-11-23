@@ -33,7 +33,7 @@ Call the ligand's enantiomeric excess ee_L and the best product ee (with a pure 
 
 ee_product = ee_max × ee_L
 
-a straight line from (0, 0) to (100 %, ee_max). For forty years after asymmetric catalysis began, everyone assumed this held.
+a straight line from (0, 0) to (100 %, ee_max). For the first twenty years of asymmetric catalysis, everyone assumed this held.
 
 ## 1986: three reactions, three different answers
 

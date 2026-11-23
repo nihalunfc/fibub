@@ -128,7 +128,7 @@ const figDist = figure(chart({
   title: 'How long the neutrinos travelled', xLabel: 'Redshift z', yLabel: 'Light-travel time (billion years)',
   series: [{ name: 'Planck 2018 universe', x: zs, y: lb.map((v) => +v.toFixed(3)), kind: 'line' }, { name: 'Sources', x: [0.00379, 0.3365], y: [n1068.lookback, txs.lookback].map((v) => +v.toFixed(3)), kind: 'dots', size: 5, noLegend: true }],
   vlines: [{ x: 0.3365, text: `TXS 0506+056: ${txs.lookback.toFixed(1)} billion years`, left: true }, { x: 0.00379, text: `NGC 1068: ${Math.round(n1068.lookback * 1000)} million years`, dy: 16 }],
-  desc: 'Light-travel time rises almost linearly at small redshift; the blazar TXS 0506+056 at redshift 0.34 sits near 3.7 billion years, the galaxy NGC 1068 at about 50 million years.',
+  desc: 'Light-travel time rises almost linearly at small redshift; the blazar TXS 0506+056 at redshift 0.34 sits near 3.9 billion years, the galaxy NGC 1068 at about 55 million years.',
 }), 'Cosmology calculator maths (Planck 2018: H₀ = 67.66, Ωm = 0.311). Redshifts: TXS 0506+056 z = 0.3365 (Paiano et al. 2018); NGC 1068 z ≈ 0.0038. For a galaxy this close its own motion matters, so its distance is better taken from other methods (about 14 Mpc, or 47 million light-years).');
 // (c) Why sources take a decade: expected significance against years of data for a steady weak source in a fixed
 // background, using the Poisson tail (counts set to their expected values).
@@ -138,6 +138,6 @@ const figYears = figure(chart({
   title: 'Years of data needed to see a steady source', xLabel: 'Years of data', yLabel: 'Expected significance (σ)',
   series: [{ name: '8 per year over 60 background', x: yrs, y: sig(8, 60), kind: 'line' }, { name: '4 per year over 60', x: yrs, y: sig(4, 60), kind: 'line', dash: '5 4' }, { name: '8 per year over 15', x: yrs, y: sig(8, 15), kind: 'line', dash: '2 3' }],
   hlines: [{ y: 5, text: '5σ' }, { y: 4.2, text: '4.2σ (NGC 1068, 2022)' }], yDomain: [0, 10],
-  desc: 'Significance grows like the square root of time. A source giving 8 extra neutrinos a year over a background of 60 needs about a decade to pass 4 sigma; halving the background gets there in a few years.',
+  desc: 'Significance grows like the square root of time. A source giving 8 extra neutrinos a year over a background of 60 reaches only about 3 sigma after a decade and nears 4 sigma after 15 years; with a quarter of the background it passes 4 sigma in about five years.',
 }), 'Our own illustration with the Counting statistics tool\'s Poisson maths: counts set to their expected values, one search spot, no trials penalty. Rates are round numbers, chosen near the scale of the NGC 1068 search (about 79 extra events over roughly a decade).');
 put('physics-2026-neutrino-sources', { glashow: figGl, distances: figDist, 'years-needed': figYears });

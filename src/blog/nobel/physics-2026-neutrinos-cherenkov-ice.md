@@ -65,7 +65,7 @@ After 1956 neutrinos turned up wherever physicists looked:
 - **The atmosphere.** Cosmic rays smashing into air make showers of pions and muons, which decay into neutrinos. In 1998 the Super-Kamiokande detector showed these change type ("oscillate") on the way through the Earth, which means neutrinos have mass. That, and the solution of the solar puzzle at the SNO detector, won the 2015 Nobel Prize.
 - **Three kinds.** There are electron, muon and tau neutrinos, each paired with its charged partner. The muon neutrino was found in 1962 (Nobel Prize 1988), the tau neutrino in 2000.
 
-By the 1980s one big source was still missing: the most violent objects in the universe. Cosmic rays, mostly protons, reach Earth with energies up to a hundred million times what the Large Hadron Collider can give. Something out there accelerates them, and nobody knew what. When such protons hit gas or light near their source they must make pions, and pions decay into neutrinos. So a **neutrino telescope** could find the accelerators. The catch: such high-energy neutrinos are rare, so the detector would have to be about a cubic kilometre in size.
+By the 1980s one big source was still missing: the most violent objects in the universe. Cosmic rays, mostly protons, reach Earth with energies tens of millions of times higher than the Large Hadron Collider gives each proton. Something out there accelerates them, and nobody knew what. When such protons hit gas or light near their source they must make pions, and pions decay into neutrinos. So a **neutrino telescope** could find the accelerators. The catch: such high-energy neutrinos are rare, so the detector would have to be about a cubic kilometre in size.
 
 ## Blue light faster than light
 
