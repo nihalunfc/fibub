@@ -8,6 +8,8 @@ import { CURRICULA, INDIA_NCERT_BOARDS } from '../../data/curricula';
 import { SECTIONS } from '../../site';
 import { allTools, toolUrl } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
+import { hubHeadline } from '../../lib/headline';
+import CountStrip from '../../components/CountStrip.astro';
 import { NCERT_COURSES } from '../../courses/ncert';
 import '../../styles/area.css';
 import '../../styles/learn.css';
@@ -28,6 +30,7 @@ const countries = [...new Set(curricula.map((c) => c.country))].map((name) => ({
 const groups = (SECTIONS.learn ?? []).filter((sec) => sec.id !== 'home-skills').map((sec) => ({ ...sec, tools: all.filter((t) => t.data.shelf === 'learn' && t.data.status === 'live' && t.data.section === sec.id) })).filter((g) => g.tools.length);
 const css = countries.map((c) => `.lh-cur:has(#c-${c.id}:checked) [data-panel]:not([data-panel="${c.id}"]){display:none}`).join('')
   + groups.map((g) => `.lh-sub-t:has(#s-${g.id}:checked) [data-group]:not([data-group="${g.id}"]){display:none}`).join('');
+const nums = await hubHeadline('school');
 const title = 'Learn: School';
 const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by chapter: NCERT and CBSE, Kerala, Tamil Nadu, Telangana and West Bengal state boards, Canada, the USA and the UK. Free, in your browser.';
 ---
@@ -38,6 +41,7 @@ const desc = 'Interactive science and maths tools for Class 8 to 12, chapter by 
     <h1>School, Class 8 to 12</h1>
     <p class="lead">Pick your syllabus, then your class, to see every chapter with tools to try: change a number and watch what happens.</p>
   </div>
+  <CountStrip counts={nums.counts} exams={nums.exams} label="School in numbers" examsLabel="Practice questions" />
   <div class="lh-cur">
     <div class="lh-tabs" role="radiogroup" aria-label="Country">
       {countries.map((c, i) => <><input type="radio" name="cur" id={`c-${c.id}`} value={c.id} data-hash checked={i === 0} /><label for={`c-${c.id}`}>{c.name}</label></>)}
