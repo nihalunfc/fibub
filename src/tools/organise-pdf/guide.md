@@ -4,7 +4,7 @@ num: 1701
 shelf: documents
 code: T735
 section: pdf-pages
-title: "Organise PDF: merge, split, reorder, rotate and delete pages, free"
+title: "Organise PDF: reorder, split, rotate and delete PDF pages, free"
 summary: "Merge PDFs, split one into parts, reorder, rotate or delete pages and pull out the pages you need. It all happens on your device; nothing is uploaded."
 status: live
 ads: false
@@ -12,7 +12,7 @@ order: 1701
 icon: scissors
 works: offline
 updated: 2026-11-10
-related: [file-converter, compress-file, page-numbers, watermark-pdf]
+related: [merge-documents, file-converter, compress-file, page-numbers, watermark-pdf]
 sources:
   - "Pages are copied with pdf-lib and previewed with PDF.js (both open source). Nothing else is used."
 flow:
@@ -28,7 +28,7 @@ New: drag a page card onto another to reorder it (or use the arrows), pick pages
 
 Organise PDF is a small page desk. Add one PDF or several, and every page shows as a picture. Move pages, turn them, delete the ones you do not want, then save everything as one PDF, split it into parts, or pull out only the pages you picked.
 
-Your files stay in your browser. They are never uploaded, so it is fine for contracts, statements and forms, and it keeps working with no internet once the page has loaded. Shrink the result with [[compress-file]], or add numbers with [[page-numbers]] and a stamp with [[watermark-pdf]].
+Your files stay in your browser. They are never uploaded, so it is fine for contracts, statements and forms, and it keeps working with no internet once the page has loaded. To join whole files, including photos, in one step use [[merge-documents]]. Shrink the result with [[compress-file]], or add numbers with [[page-numbers]] and a stamp with [[watermark-pdf]].
 
 ## How to use it
 
