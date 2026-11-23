@@ -96,7 +96,7 @@ Left end: the larger of −3 and 1 is 1, and 1 is not in B (open), so it is excl
 
 </details>
 
-12. Prove that `$(A \cap B)' = A' \cup B'$ for any sets A and B. *(5 marks)*
+12. Prove that `$(A \cap B)' = A' \cup B'$` for any sets A and B. *(5 marks)*
 <details><summary>Answer</summary>
 
 Let `$x \in (A \cap B)'$`. Then `$x \notin A \cap B$`, so x is not in both A and B, which means `$x \notin A$` or `$x \notin B$`. So `$x \in A'$` or `$x \in B'$`, that is `$x \in A' \cup B'$`. Hence `$(A \cap B)' \subseteq A' \cup B'$`.
