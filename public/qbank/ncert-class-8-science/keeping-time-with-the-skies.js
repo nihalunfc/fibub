@@ -1,0 +1,51 @@
+// Class 8 Science (Curiosity), Chapter 11 Keeping Time with the Skies: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('sk');
+
+export default {
+  topic: 'keeping-time-with-the-skies', name: 'Keeping Time with the Skies', n: 11,
+  items: [
+    m.mcq(1, 'daynight', '<p>Day and night are caused by:</p>', 'the rotation of the Earth on its axis', ['the revolution of the Earth round the Sun', 'the Moon blocking the Sun', 'the Sun moving round the Earth'], '<p>The Earth turns once in about 24 hours, so each place faces the Sun, then faces away.</p>'),
+    m.mcq(1, 'daynight', '<p>The Earth rotates from:</p>', 'west to east', ['east to west', 'north to south', 'south to north'], '<p>That is why the Sun seems to rise in the east and set in the west.</p>'),
+    m.mcq(2, 'daynight', '<p>The Earth turns through how many degrees in one hour?</p>', '15', ['24', '30', '360'], '<p>360 ÷ 24 = 15 degrees.</p>'),
+    m.mcq(2, 'daynight', '<p>The Sun appears to rise in the east because:</p>', 'our place on the turning Earth moves into the sunlight', ['the Sun moves towards the east', 'the Moon pushes the Sun', 'the Earth stops'], '<p>It is our own motion that makes the Sun seem to move.</p>'),
+    m.mcq(2, 'shadow', '<p>A vertical stick has its shortest shadow at about:</p>', 'noon', ['sunrise', 'sunset', 'midnight'], '<p>At noon the Sun is highest in the sky.</p>'),
+    m.mcq(2, 'shadow', '<p>In the morning, the shadow of a tree points towards the:</p>', 'west', ['east', 'north only', 'sky'], '<p>The Sun is in the east, so the shadow falls on the opposite side.</p>'),
+    m.mcq(1, 'moon', '<p>The time from one new Moon to the next is about:</p>', '29.5 days', ['7 days', '365 days', '24 hours'], '<p>This is the lunar month.</p>'),
+    m.mcq(2, 'moon', '<p>The Moon shines because it:</p>', 'reflects sunlight', ['makes its own light', 'is hot', 'burns gas'], '<p>The Moon is not a source of light.</p>'),
+    m.mcq(2, 'moon', '<p>On a full Moon night the Moon is:</p>', 'on the opposite side of the Earth from the Sun', ['between the Earth and the Sun', 'at a right angle to the Sun', 'behind the Sun'], '<p>We see the whole lit face.</p>'),
+    m.mcq(2, 'moon', '<p>At new Moon the Moon is:</p>', 'between the Earth and the Sun, with its lit side facing away from us', ['on the far side of the Earth', 'between the Earth and the Sun, with its lit side facing us', 'hidden by the Earth shadow'], '<p>We see the dark side, so the Moon is not visible.</p>'),
+    m.mcq(2, 'moon', '<p>The phase after the new Moon is the:</p>', 'waxing crescent', ['waning gibbous', 'full Moon', 'last quarter'], '<p>Waxing means growing.</p>'),
+    m.mcq(3, 'moon', '<p>The same face of the Moon always points towards the Earth because:</p>', 'the Moon turns once on its axis in the time it goes once round the Earth', ['the Moon does not rotate', 'the Earth holds it still', 'the Sun lights only one face'], '<p>Its rotation period equals its orbit period.</p>'),
+    m.mcq(2, 'eclipse', '<p>A solar eclipse can happen only on:</p>', 'a new Moon day', ['a full Moon day', 'a quarter Moon day', 'any day'], '<p>The Moon must be between the Sun and the Earth.</p>'),
+    m.mcq(2, 'eclipse', '<p>A lunar eclipse is seen when:</p>', 'the Earth is between the Sun and the Moon', ['the Moon is between the Earth and the Sun', 'the Sun is between the Earth and the Moon', 'the Moon is at first quarter'], '<p>The Earth casts its shadow on the Moon.</p>'),
+    m.mcq(3, 'eclipse', '<p>Eclipses do not happen every month because:</p>', 'the Moon orbit is tilted to the Earth orbit about the Sun', ['the Moon is too small', 'the Sun moves away', 'the Earth shadow is too short'], '<p>Most months the Moon passes just above or below the line.</p>'),
+    m.mcq(1, 'calendar', '<p>A solar year is about:</p>', '365.25 days', ['354 days', '30 days', '400 days'], '<p>It is the time the Earth takes to go once round the Sun.</p>'),
+    m.mcq(2, 'calendar', '<p>A leap year has:</p>', '366 days', ['365 days', '364 days', '367 days'], '<p>An extra day (29 February) is added.</p>'),
+    m.mcq(2, 'calendar', '<p>Leap years are needed because the Earth takes:</p>', 'about a quarter of a day more than 365 days to go round the Sun', ['exactly 365 days', 'less than 365 days', '400 days'], '<p>The extra quarters add up to a day every four years.</p>'),
+    m.mcq(3, 'calendar', '<p>A calendar based only on 12 lunar months (354 days) would:</p>', 'drift away from the seasons by about 11 days each year', ['keep in step with the seasons', 'gain a day every month', 'never change'], '<p>365.25 − 354.4 is about 11 days.</p>'),
+    m.mcq(1, 'stars', '<p>The star that seems to stay in one place in the northern sky is the:</p>', 'pole star', ['Sirius', 'Betelgeuse', 'Sun'], '<p>It lies almost exactly above the Earth north pole, called Dhruva Tara in India.</p>'),
+    m.mcq(2, 'stars', '<p>The seven bright stars of Saptarishi can be used to find the:</p>', 'pole star', ['Moon', 'Sun', 'Mars'], '<p>The two end stars of the bowl point to it.</p>'),
+    m.mcq(2, 'stars', '<p>In a long exposure photograph of the sky, the stars make arcs because:</p>', 'the Earth is rotating', ['the stars move in circles around us', 'the camera shakes', 'the Moon moves'], '<p>The motion is an effect of the Earth rotation.</p>'),
+    m.ar(2, 'daynight', 'It is day in India when it is night in the USA.', 'The Earth is a sphere and only half of it faces the Sun at a time.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(3, 'eclipse', 'A solar eclipse is possible on a full Moon night.', 'In a solar eclipse the Moon is between the Earth and the Sun.', 3, '<p>A is false: a solar eclipse needs a new Moon. R is true.</p>'),
+    m.ar(3, 'calendar', 'A leap year is needed every four years.', 'The Earth takes about 365.25 days to go round the Sun.', 0, '<p>Both true, and R explains A: the extra quarter days add up to one day in four years.</p>'),
+    m.nat(1, 'daynight', '<p>How many degrees does the Earth rotate in 6 hours?</p>', () => 90, 0.01, '<p>6 × 15 = 90 degrees.</p>'),
+    m.nat(2, 'daynight', '<p>The difference in longitude between two cities is 30 degrees. By how many minutes do their local times differ?</p>', () => 120, 0.01, '<p>30 × 4 = 120 minutes.</p>'),
+    m.nat(2, 'calendar', '<p>How many days does a year of 12 lunar months of 29.5 days have?</p>', () => 354, 0.01, '<p>12 × 29.5 = 354 days.</p>'),
+    m.nat(3, 'calendar', '<p>A calendar of 365 days ignores 0.25 day every year. By how many days will it drift in 80 years?</p>', () => 20, 0.01, '<p>80 × 0.25 = 20 days.</p>'),
+    m.msq(3, 'moon', '<p>Which statements about the Moon are true? (Choose all that apply.)</p>', ['It reflects sunlight.', 'Half of it is always lit by the Sun.', 'It makes its own light.', 'It goes round the Earth in about a month.'], [0, 1, 3], '<p>The Moon makes no light of its own.</p>'),
+  ],
+  gens: [
+    { id: 'sk-g01', type: 'nat', level: 2, exams: ['board'], sub: 'daynight',
+      make(rng) { const d = pick(rng, 5, 60, 5); return { d, q: `<p>Two places are ${d}° of longitude apart. What is the difference between their local times, in minutes?</p>`, answer: d * 4, tol: 0.01, sol: `<p>The Earth turns 1° in 4 minutes: ${d} × 4 = ${d * 4} minutes.</p>` }; },
+      verify: (p) => (p.d / 15) * 60 },
+    { id: 'sk-g02', type: 'nat', level: 2, exams: ['board'], sub: 'stars',
+      make(rng) { const t = pick(rng, 1, 12, 1); return { t, q: `<p>How many degrees do the stars appear to turn around the pole star in ${t} hours?</p>`, answer: 15 * t, tol: 0.01, sol: `<p>15 degrees per hour × ${t} = ${15 * t} degrees.</p>` }; },
+      verify: (p) => (360 * p.t) / 24 },
+    { id: 'sk-g03', type: 'nat', level: 3, exams: ['board'], sub: 'calendar',
+      make(rng) { const y = pick(rng, 40, 400, 40); return { y, q: `<p>A calendar that ignores the extra quarter day each year falls behind the seasons. By how many days in ${y} years?</p>`, answer: y * 0.25, tol: 0.01, sol: `<p>${y} × 0.25 = ${y * 0.25} days.</p>` }; },
+      verify: (p) => p.y / 4 },
+  ],
+};

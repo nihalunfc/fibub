@@ -1,0 +1,51 @@
+// Class 8 Science (Curiosity), Chapter 9 The Amazing World of Solutes, Solvents and Solutions: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('so');
+
+export default {
+  topic: 'the-amazing-world-of-solutes-solvents', name: 'The Amazing World of Solutes, Solvents, and Solutions', n: 9,
+  items: [
+    m.mcq(1, 'basics', '<p>In a solution of sugar in water, sugar is the:</p>', 'solute', ['solvent', 'precipitate', 'suspension'], '<p>The substance that dissolves is the solute; the one that does the dissolving (usually the larger part) is the solvent.</p>'),
+    m.mcq(1, 'basics', '<p>A solution is a:</p>', 'homogeneous mixture', ['heterogeneous mixture only', 'pure substance', 'compound'], '<p>The solute is spread evenly through the solvent, so every drop is the same.</p>'),
+    m.mcq(1, 'basics', '<p>Which of these is a solution?</p>', 'salt dissolved in water', ['chalk powder stirred in water', 'sand and water', 'milk'], '<p>Salt particles spread out among water particles and do not settle. Chalk and sand settle; milk is a colloid.</p>'),
+    m.mcq(2, 'basics', '<p>In soda water, the solute is a:</p>', 'gas', ['liquid', 'solid', 'metal'], '<p>Carbon dioxide gas is dissolved in water.</p>', { trap: 'A solute can be a solid, a liquid or a gas.' }),
+    m.mcq(2, 'basics', '<p>Brass is a solution of zinc in copper. The solvent is:</p>', 'copper', ['zinc', 'water', 'brass'], '<p>Copper is present in the larger amount, so it is the solvent. Solutions can be solid too.</p>'),
+    m.mcq(2, 'dissolving', '<p>Stirring makes sugar dissolve faster because it:</p>', 'brings fresh solvent to the solute surface', ['makes the sugar lighter', 'changes sugar into water', 'removes the solvent'], '<p>Stirring moves dissolved particles away and brings fresh water to the crystals.</p>'),
+    m.mcq(2, 'dissolving', '<p>Which change makes a solid dissolve fastest?</p>', 'powdering it and using hot water', ['using a big lump in cold water', 'leaving it still', 'cooling the water'], '<p>Powder has more surface in contact with water and hot water has faster-moving particles.</p>'),
+    m.mcq(2, 'dissolving', '<p>When sugar dissolves in water, the sugar:</p>', 'is still there, split into tiny particles', ['disappears and its mass is lost', 'turns into water', 'turns into a gas'], '<p>Mass is conserved: the solution weighs as much as water plus sugar.</p>', { trap: 'Dissolved does not mean destroyed.' }),
+    m.mcq(1, 'saturation', '<p>A solution that cannot dissolve any more solute at that temperature is:</p>', 'saturated', ['dilute', 'unsaturated', 'pure'], '<p>That is what saturated means.</p>'),
+    m.mcq(2, 'saturation', '<p>The solubility of most solids in water, as the temperature rises, generally:</p>', 'increases', ['decreases', 'stays the same always', 'becomes zero'], '<p>Hot water usually dissolves more of a solid. Gases are the opposite.</p>'),
+    m.mcq(2, 'saturation', '<p>Why does a bottle of fizzy drink lose its gas faster when it is warm?</p>', 'gases dissolve less in warm water', ['gases dissolve more in warm water', 'the sugar reacts', 'water evaporates fully'], '<p>The solubility of gases falls as temperature rises.</p>'),
+    m.mcq(3, 'saturation', '<p>A hot saturated solution is cooled and crystals appear. This is because:</p>', 'less solute can stay dissolved at the lower temperature', ['more solvent is made', 'the solute is created', 'the solution became unsaturated'], '<p>Solubility falls on cooling, and the extra solute comes out as crystals.</p>'),
+    m.mcq(1, 'concentration', '<p>The strength of a solution is called its:</p>', 'concentration', ['solubility', 'density only', 'volume'], '<p>Concentration tells how much solute is present in a given amount of solution.</p>'),
+    m.mcq(2, 'concentration', '<p>Adding more water to a solution makes it:</p>', 'more dilute', ['more concentrated', 'saturated', 'a pure liquid'], '<p>The same solute is spread through more solvent.</p>'),
+    m.mcq(2, 'concentration', '<p>A solution has 20 g solute in 80 g solvent. Its mass per cent is:</p>', '20%', ['25%', '80%', '16%'], '<p>20 ÷ (20 + 80) × 100 = 20%.</p>', { trap: 'Divide by the mass of the whole solution, not by the solvent alone.' }),
+    m.mcq(2, 'types', '<p>A torch beam is clearly visible through milk but not through salt water because:</p>', 'milk particles are big enough to scatter light', ['salt water is darker', 'milk is hot', 'salt absorbs light'], '<p>This is the Tyndall effect: particles in a colloid scatter light; the tiny particles in a true solution do not.</p>'),
+    m.mcq(2, 'types', '<p>Chalk powder stirred in water forms a:</p>', 'suspension', ['true solution', 'colloid', 'saturated solution'], '<p>The particles are large and settle on standing.</p>'),
+    m.mcq(2, 'types', '<p>Which mixture does NOT settle and scatters light?</p>', 'a colloid', ['a suspension', 'a true solution', 'sand in water'], '<p>Colloid particles are small enough to stay spread out but big enough to scatter light.</p>'),
+    m.mcq(2, 'like', '<p>Cooking oil dissolves well in:</p>', 'kerosene', ['water', 'salt solution', 'sugar syrup'], '<p>Like dissolves like: oil and kerosene are both non-polar, while water is polar.</p>'),
+    m.mcq(1, 'like', '<p>Which is called the universal solvent because it dissolves so many substances?</p>', 'water', ['kerosene', 'oil', 'alcohol'], '<p>Water dissolves more substances than any other common liquid.</p>'),
+    m.mcq(3, 'concentration', '<p>You add 50 mL of water to 50 mL of a 20% solution. The new concentration is:</p>', '10%', ['40%', '20%', '5%'], '<p>The volume doubles while the solute stays the same, so the concentration halves.</p>'),
+    m.ar(2, 'saturation', 'A saturated solution can still dissolve more solute if it is heated.', 'The solubility of most solids increases with temperature.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(3, 'dissolving', 'The mass of a sugar solution equals the mass of the sugar plus the mass of the water.', 'Dissolving only separates the sugar into tiny particles; nothing is destroyed.', 0, '<p>Both are true and R explains A: the sugar is still there, so the masses add up.</p>'),
+    m.ar(2, 'types', 'A torch beam can be seen passing through milk.', 'Milk particles scatter light.', 0, '<p>Both true, and R explains A (Tyndall effect).</p>'),
+    m.nat(1, 'concentration', '<p>A solution has 15 g of salt in 135 g of water. What is the mass per cent of salt?</p>', () => 10, 0.01, '<p>15 ÷ 150 × 100 = 10%.</p>'),
+    m.nat(2, 'concentration', '<p>How many grams of sugar are needed for 500 g of a 12% sugar solution?</p>', () => 60, 0.01, '<p>12% of 500 = 60 g.</p>'),
+    m.nat(2, 'saturation', '<p>100 g of water dissolves at most 36 g of salt. How many grams can 250 g of water dissolve?</p>', () => 90, 0.01, '<p>36 × 2.5 = 90 g.</p>'),
+    m.nat(3, 'concentration', '<p>How many mL of water must be added to 100 mL of 30% juice to make it 10% juice?</p>', () => 200, 0.01, '<p>Final volume = 30 × 100 ÷ 10 = 300 mL, so add 200 mL.</p>'),
+    m.msq(3, 'types', '<p>Which of these are true for a true solution? (Choose all that apply.)</p>', ['It does not settle on standing.', 'The particles cannot be seen.', 'It scatters a beam of light strongly.', 'It is the same throughout.'], [0, 1, 3], '<p>True solutions are clear, uniform and stable; their tiny particles do not scatter light much.</p>'),
+    m.msq(3, 'saturation', '<p>Which can make a solid dissolve faster in water? (Choose all that apply.)</p>', ['Stirring', 'Powdering the solid', 'Heating the water', 'Using a bigger lump'], [0, 1, 2], '<p>A bigger lump has less surface, so it dissolves more slowly.</p>'),
+  ],
+  gens: [
+    { id: 'so-g01', type: 'nat', level: 2, exams: ['board'], sub: 'concentration',
+      make(rng) { const s = pick(rng, 5, 50, 5), w = pick(rng, 100, 400, 50); return { s, w, q: `<p>${s} g of salt is dissolved in ${w} g of water. What is the mass per cent of the solution?</p>`, answer: s / (s + w) * 100, tol: 0.01, sol: `<p>${s} ÷ ${s + w} × 100 = ${(s / (s + w) * 100).toFixed(2)}%.</p>` }; },
+      verify: (p) => 100 / (1 + p.w / p.s) },
+    { id: 'so-g02', type: 'nat', level: 2, exams: ['board'], sub: 'saturation',
+      make(rng) { const sv = choose(rng, [32, 36, 40]), w = pick(rng, 50, 300, 50); return { sv, w, q: `<p>At a certain temperature 100 g of water dissolves ${sv} g of a salt. How many grams can ${w} g of water dissolve at that temperature?</p>`, answer: sv * w / 100, tol: 0.01, sol: `<p>${sv} × ${w} ÷ 100 = ${sv * w / 100} g.</p>` }; },
+      verify: (p) => p.w * p.sv / 100 },
+    { id: 'so-g03', type: 'nat', level: 3, exams: ['board'], sub: 'concentration',
+      make(rng) { const v = pick(rng, 100, 400, 100), c1 = choose(rng, [20, 40, 60]), c2 = choose(rng, [10, 5]); return { v, c1, c2, q: `<p>How many mL of water must be added to ${v} mL of a ${c1}% solution to make it ${c2}%?</p>`, answer: v * (c1 / c2 - 1), tol: 0.01, sol: `<p>Final volume = ${c1} × ${v} ÷ ${c2} = ${v * c1 / c2} mL, so add ${v * (c1 / c2 - 1)} mL.</p>` }; },
+      verify: (p) => (p.c1 * p.v) / p.c2 - p.v },
+  ],
+};
