@@ -1,0 +1,57 @@
+// Class 11 Chemistry, Chapter 4 Chemical Bonding and Molecular Structure: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('cb');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'chemical-bonding-and-molecular-structure', name: 'Chemical Bonding and Molecular Structure', n: 4,
+  items: [
+    m.mcq(1, 'ionic', '<p>An ionic compound is most likely to form between:</p>', 'a metal of low ionisation enthalpy and a non-metal of high electron gain enthalpy', ['two non-metals of similar electronegativity', 'two metals', 'two noble gases'], '<p>The metal gives electrons easily and the non-metal takes them readily; the attraction between the ions (lattice enthalpy) pays for the process.</p>'),
+    m.mcq(2, 'ionic', '<p>Which has the higher lattice enthalpy, NaCl or MgO?</p>', 'MgO, because its ions have larger charges and are smaller', ['NaCl, because Na⁺ is larger than Mg²⁺', 'both are equal', 'NaCl, because Cl⁻ is smaller than O²⁻'], '<p>Lattice enthalpy rises with ion charge (2+ and 2− against 1+ and 1−) and falls with ion size.</p>', { trap: 'Forgetting that charge matters more than size.' }),
+    m.mcq(2, 'lewis', '<p>The number of valence electrons you must show in the Lewis structure of the sulphate ion SO₄²⁻ is:</p>', '32', ['30', '34', '24'], '<p>6 (S) + 4 × 6 (O) + 2 (charge) = 32.</p>'),
+    m.mcq(2, 'lewis', '<p>The formal charge on the central nitrogen atom in NH₄⁺ is:</p>', '+1', ['0', '−1', '+4'], '<p>5 − 0 − 4 = +1.</p>'),
+    m.mcq(2, 'lewis', '<p>Which molecule is electron-deficient (the central atom has fewer than eight electrons)?</p>', 'BF₃', ['NF₃', 'PCl₅', 'SF₆'], '<p>B has 3 bonds = 6 electrons. PCl₅ and SF₆ have expanded octets, NF₃ has a normal octet.</p>'),
+    m.mcq(2, 'lewis', '<p>A molecule that must break the octet rule because it has an odd number of electrons is:</p>', 'NO₂', ['CO₂', 'SO₂', 'N₂O'], '<p>NO₂ has 5 + 12 = 17 valence electrons, an odd number.</p>'),
+    m.mcq(1, 'parameters', '<p>The bond order of N₂ is:</p>', '3', ['1', '2', '4'], '<p>N≡N: one σ and two π bonds.</p>'),
+    m.mcq(2, 'parameters', '<p>Arrange C–C, C=C and C≡C in order of increasing bond length.</p>', 'C≡C < C=C < C–C', ['C–C < C=C < C≡C', 'C=C < C≡C < C–C', 'all are equal'], '<p>More shared pairs pull the nuclei closer, so a higher bond order gives a shorter bond.</p>'),
+    m.mcq(2, 'resonance', '<p>Resonance in the carbonate ion explains why:</p>', 'all three C–O bonds are equal in length', ['one C–O bond is a double bond and two are single', 'the ion changes shape quickly', 'the ion is non-polar'], '<p>The real ion is the hybrid of three equivalent forms, so each C–O bond has order 4/3 (129 pm).</p>'),
+    m.mcq(2, 'polarity', '<p>Which molecule has a zero dipole moment?</p>', 'CCl₄', ['CHCl₃', 'NH₃', 'H₂O'], '<p>CCl₄ is tetrahedral and symmetrical, so the four bond dipoles cancel.</p>'),
+    m.mcq(2, 'polarity', '<p>The dipole moment of a bond depends on:</p>', 'the charge separated and the distance between the charges', ['the number of lone pairs only', 'the atomic mass only', 'the colour of the compound'], '<p>μ = q × d.</p>'),
+    m.mcq(2, 'vsepr', '<p>The shape of the SF₄ molecule is:</p>', 'see-saw', ['tetrahedral', 'square planar', 'trigonal pyramidal'], '<p>5 electron pairs (4 bond + 1 lone) give a trigonal bipyramid; the lone pair sits in the equator, giving a see-saw.</p>'),
+    m.mcq(2, 'vsepr', '<p>The shape of XeF₂ is:</p>', 'linear', ['bent', 'T-shaped', 'trigonal planar'], '<p>Five pairs, three of them lone pairs, which sit in the equatorial plane; the two F atoms are on the axis, so it is linear.</p>'),
+    m.mcq(3, 'vsepr', '<p>The H–N–H bond angle in NH₃ (107°) is smaller than the tetrahedral angle because:</p>', 'the lone pair repels the bond pairs more than bond pairs repel one another', ['N is larger than C', 'NH₃ is a planar molecule', 'there are only three bond pairs'], '<p>Order of repulsion: lp–lp > lp–bp > bp–bp. The lone pair squeezes the three N–H bonds closer.</p>'),
+    m.mcq(2, 'vsepr', '<p>The shape of the ClF₃ molecule is:</p>', 'T-shaped', ['trigonal planar', 'trigonal pyramidal', 'linear'], '<p>Cl has 7 electrons: 3 bond pairs and 2 lone pairs make 5 pairs. The lone pairs go to the equator, leaving a T-shape.</p>'),
+    m.mcq(2, 'hybrid', '<p>The hybridisation of carbon in ethene (C₂H₄) is:</p>', 'sp²', ['sp', 'sp³', 'sp³d'], '<p>Each C has three σ bonds and no lone pair: three hybrid orbitals, sp².</p>'),
+    m.mcq(2, 'hybrid', '<p>The number of σ and π bonds in propyne, CH₃–C≡CH, is:</p>', '6 σ and 2 π', ['5 σ and 3 π', '7 σ and 1 π', '4 σ and 4 π'], '<p>Four C–H bonds + two C–C σ bonds = 6 σ; the triple bond has 2 π.</p>', { trap: 'Counting a triple bond as three σ bonds.' }),
+    m.mcq(3, 'hybrid', '<p>In which species is the central atom sp³d² hybridised?</p>', 'SF₆', ['PCl₅', 'SF₄', 'BF₃'], '<p>SF₆ has six electron pairs (octahedral). PCl₅ and SF₄ have five (sp³d) and BF₃ has three (sp²).</p>'),
+    m.mcq(2, 'hybrid', '<p>A π bond is formed by:</p>', 'sideways overlap of parallel p orbitals', ['head-on overlap of s orbitals', 'head-on overlap of p orbitals only', 'overlap of two hybrid orbitals'], '<p>π overlap is above and below the bond axis, so it is weaker than σ overlap.</p>'),
+    m.mcq(2, 'mo', '<p>Bond order of the oxygen molecule from MO theory is:</p>', '2', ['1', '3', '2.5'], '<p>(8 − 4)/2 = 2.</p>'),
+    m.mcq(2, 'mo', '<p>Which of these is paramagnetic?</p>', 'O₂', ['N₂', 'F₂', 'C₂'], '<p>Only O₂ has unpaired electrons (two in π*2p). C₂ has two π bonds, all electrons paired.</p>', { trap: 'C₂ also looks odd; check the pairing, not the formula.' }),
+    m.mcq(3, 'mo', '<p>Which has the shortest bond: O₂, O₂⁺, O₂⁻ or O₂²⁻?</p>', 'O₂⁺', ['O₂', 'O₂⁻', 'O₂²⁻'], '<p>Bond orders: O₂⁺ 2.5, O₂ 2, O₂⁻ 1.5, O₂²⁻ 1. Higher order means shorter bond.</p>'),
+    m.mcq(2, 'mo', '<p>The molecule He₂ does not exist because:</p>', 'its bond order is zero', ['He is radioactive', 'it would be paramagnetic', 'its bond order is 2'], '<p>σ1s² σ*1s²: N_b = N_a = 2, bond order 0.</p>'),
+    m.mcq(1, 'hbond', '<p>Hydrogen bonding is strongest when hydrogen is bonded to:</p>', 'F, O or N', ['C, Si or P', 'Na, K or Li', 'Cl, Br or I only'], '<p>These are small, highly electronegative atoms with lone pairs.</p>'),
+    m.mcq(2, 'hbond', '<p>The boiling point of H₂O is much higher than that of H₂S because:</p>', 'water forms hydrogen bonds between its molecules', ['H₂S is a heavier molecule', 'S–H is stronger than O–H', 'water is non-polar'], '<p>The hydrogen bonds in water must be broken to boil it.</p>'),
+    m.ar(2, 'polarity', 'CO₂ has no dipole moment.', 'The two C=O bond dipoles of the linear molecule cancel.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(2, 'vsepr', 'The shape of H₂O is bent.', 'Oxygen in H₂O has two lone pairs and two bond pairs.', 0, '<p>Four pairs form a tetrahedron; two lone pairs remain invisible in the shape, leaving a bent molecule.</p>'),
+    m.ar(3, 'lewis', 'The central atom in SF₆ obeys the octet rule.', 'Sulphur has no d orbitals.', 3, '<p>A is false (12 electrons round S). R is false too: period 3 atoms do have vacant d orbitals, which is how they can hold more than eight.</p>'),
+    m.ar(3, 'mo', 'O₂ is attracted into a magnetic field.', 'There are two unpaired electrons in the π* orbitals of O₂.', 0, '<p>Unpaired electrons make a species paramagnetic. Both are true and R explains A.</p>'),
+    m.nat(2, 'mo', '<p>Find the bond order of N₂⁺ (9 valence electrons).</p>', () => 2.5, 0.01, '<p>σ2s² σ*2s² π2p⁴ σ2pz¹: N_b = 7, N_a = 2; bond order = 2.5.</p>'),
+    m.nat(2, 'hybrid', '<p>How many σ bonds are present in benzene, C₆H₆?</p>', () => 12, 0, '<p>6 C–C σ + 6 C–H σ = 12. The three alternating double bonds add 3 π bonds.</p>'),
+    m.nat(3, 'polarity', '<p>The dipole moment of HCl is 1.08 D and the bond length is 127 pm. What is the percent ionic character? (1 Å × e = 4.80 D)</p>', () => 100 * 1.08 / (4.803 * 1.27), 0.02, '<p>μ(ionic) = 4.803 × 1.27 = 6.10 D. Ionic character = 1.08/6.10 × 100 = 17.7 %.</p>', { unit: '%' }),
+    m.nat(2, 'lewis', '<p>How many lone pairs are on the central atom of XeF₄?</p>', () => 2, 0, '<p>Xe has 8 electrons; 4 go into bonds, so 4 electrons = 2 lone pairs.</p>'),
+    m.msq(3, 'vsepr', '<p>Which of these molecules are non-polar? (Choose all that apply.)</p>', ['BF₃', 'CCl₄', 'NH₃', 'SF₆'], [0, 1, 3], '<p>BF₃ (trigonal planar), CCl₄ (tetrahedral) and SF₆ (octahedral) are symmetric, so the dipoles cancel. NH₃ is pyramidal and polar.</p>'),
+    m.msq(3, 'hybrid', '<p>Which species have a tetrahedral arrangement of electron pairs (sp³)? (Choose all that apply.)</p>', ['NH₃', 'H₂O', 'BF₃', 'NH₄⁺'], [0, 1, 3], '<p>NH₃, H₂O and NH₄⁺ each have four electron pairs. BF₃ has three (sp²).</p>'),
+  ],
+  gens: [
+    { id: 'cb-g01', type: 'nat', level: 2, exams: ['board'], sub: 'lewis',
+      make(rng) { const s = choose(rng, [['NH₄⁺', 5, 4, 1], ['H₃O⁺', 6, 3, 1], ['OH⁻', 6, 1, -1], ['NO₃⁻', 5, 3, -1], ['SO₄²⁻', 6, 4, -2]]); const tot = s[1] + (s[0] === 'NH₄⁺' ? 4 : s[0] === 'H₃O⁺' ? 3 : s[0] === 'OH⁻' ? 1 : s[0] === 'NO₃⁻' ? 18 : 24) - s[3]; return { s, tot, q: `<p>How many valence electrons must be shown in the Lewis structure of ${s[0]}?</p>`, answer: tot, tol: 0, unit: '', sol: `<p>Add the valence electrons of all atoms and adjust for the charge: total = ${tot}.</p>` }; },
+      verify: (p) => ({ 'NH₄⁺': 8, 'H₃O⁺': 8, 'OH⁻': 8, 'NO₃⁻': 24, 'SO₄²⁻': 32 })[p.s[0]] },
+    { id: 'cb-g02', type: 'nat', level: 2, exams: ['board'], sub: 'mo',
+      make(rng) { const e = choose(rng, [6, 8, 9, 10, 11, 12, 13, 14]); const lev = e <= 10 ? [2, 2, 4, 2, 4, 2] : [2, 2, 2, 4, 4, 2]; const bonding = e <= 10 ? [1, 0, 1, 1, 0, 0] : [1, 0, 1, 1, 0, 0]; let left = e, nb = 0, na = 0; lev.forEach((c, i) => { const f = Math.min(c, left); left -= f; bonding[i] ? (nb += f) : (na += f); }); return { e, nb, na, q: `<p>A diatomic species of the second period has ${e} valence electrons. Find its bond order from molecular orbital theory.</p>`, answer: (nb - na) / 2, tol: 0.01, unit: '', sol: `<p>Fill the MOs from the bottom: bonding electrons = ${nb}, antibonding = ${na}. Bond order = (${nb} − ${na})/2 = ${(nb - na) / 2}.</p>` }; },
+      verify: (p) => ({ 6: 1, 8: 2, 9: 2.5, 10: 3, 11: 2.5, 12: 2, 13: 1.5, 14: 1 })[p.e] },
+    { id: 'cb-g03', type: 'nat', level: 3, exams: ['board'], sub: 'polarity',
+      make(rng) { const s = choose(rng, [['HF', 1.82, 92], ['HCl', 1.08, 127], ['HBr', 0.82, 141], ['HI', 0.44, 161]]); const ic = 100 * s[1] / (4.803 * s[2] / 100); return { s, q: `<p>${s[0]} has μ = ${s[1]} D and bond length ${s[2]} pm. Find the percent ionic character (1 Å × e = 4.80 D).</p>`, answer: r3(ic), tol: Math.max(0.2, ic * 0.02), unit: '%', sol: `<p>μ(ionic) = 4.803 × ${s[2] / 100} = ${r3(4.803 * s[2] / 100)} D. Ionic = ${s[1]}/${r3(4.803 * s[2] / 100)} × 100 = ${r3(ic)} %.</p>` }; },
+      verify: (p) => 100 * (p.s[1] * 3.33564e-30 / (p.s[2] * 1e-12)) / 1.602177e-19 },
+  ],
+};
