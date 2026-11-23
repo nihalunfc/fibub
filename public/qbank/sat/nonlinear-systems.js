@@ -1,9 +1,11 @@
 // SAT Math · Advanced math · systems with a line and a parabola or circle. Original (fibub).
 import { int, nz, choose, shuffleOpts, fmt, lin, quad, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'advanced' };
 const X = v('x'), Y = v('y');
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'nonlinear-systems',
   gens: [
     { id: 'sat-ns-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'parabola and horizontal line', facets: F, format: 'numeric',
@@ -29,7 +31,7 @@ export default {
         const n = d === 0 ? 1 : (d > 0) === (a > 0) ? 2 : 0;
         const right = ['Zero', 'Exactly one', 'Exactly two'][n];
         const o = shuffleOpts(r, right, ['Zero', 'Exactly one', 'Exactly two', 'Exactly three']);
-        return { q: `<p>${Y} = ${a === 1 ? '' : a === -1 ? '−' : a}(${lin(1, -h)})<sup>2</sup> ${k < 0 ? '−' : '+'} ${Math.abs(k)}<br>${Y} = ${fmt(L)}</p><p>How many solutions does the system of equations above have?</p>`, ...o,
+        return { q: `<p>${Y} = ${a === 1 ? '' : a === -1 ? '−' : fmt(a)}${h === 0 ? lin(1, 0) : `(${lin(1, -h)})`}<sup>2</sup> ${k < 0 ? '−' : '+'} ${Math.abs(k)}<br>${Y} = ${fmt(L)}</p><p>How many solutions does the system of equations above have?</p>`, ...o,
           sol: steps(`The parabola has vertex (${fmt(h)}, ${fmt(k)}) and opens ${a > 0 ? 'up' : 'down'}.`, `The line ${Y} = ${fmt(L)} is ${d === 0 ? 'exactly at the vertex: it touches once' : d > 0 ? 'above the vertex' : 'below the vertex'}.`, `So the graphs meet <b>${right.toLowerCase()}</b> time${n === 1 ? '' : 's'}.`) };
       } },
     { id: 'sat-ns-g04', type: 'nat', marks: 1, level: 3, exams: ['sat'], sub: 'circle and line', facets: F, format: 'numeric',
@@ -47,4 +49,4 @@ export default {
       options: ['4', '2', '8', '16'], answer: 0,
       sol: '<p><i>x</i><sup>2</sup> + 4 = <i>kx</i> gives <i>x</i><sup>2</sup> − <i>kx</i> + 4 = 0. One solution means discriminant zero: <i>k</i><sup>2</sup> − 16 = 0, so <i>k</i> = 4 (positive). The line just touches the parabola at (2, 8).</p>' },
   ],
-};
+}, ['sat-ns-g03']);

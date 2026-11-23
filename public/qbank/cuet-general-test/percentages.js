@@ -2,7 +2,12 @@
 import { pick, int, choose, fmt, rs, shuffleOpts, steps } from './_cuet.js';
 
 const T = { exams: ['cuet'], format: 'single' };
-const mcq = (id, level, sub, q, options, answer, sol, trap) => ({ id, type: 'mcq', level, sub, q, options, answer, sol, ...(trap ? { trap } : {}), ...T });
+const mcq0 = (id, level, sub, q, options, answer, sol, trap) => ({ id, type: 'mcq', level, sub, q, options, answer, sol, ...(trap ? { trap } : {}), ...T });
+// Written items list the correct option first; this moves it to slot (id number mod 4) so answers spread over A-D.
+const mcq = (id, level, sub, q, opts, answer, sol, trap) => {
+  const k = parseInt(id.slice(-3), 10) % 4; const right = opts[answer]; const o = opts.filter((_, i) => i !== answer); o.splice(k, 0, right);
+  return mcq0(id, level, sub, q, o, k, sol, trap);
+};
 
 export default {
   topic: 'percentages',

@@ -16,7 +16,9 @@ const vec = (r, lo = -4, hi = 4) => [int(r, lo, hi), int(r, lo, hi), int(r, lo, 
 const tv = (a) => `(${a.join(', ')})`;
 const DEG = 180 / Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'vector-algebra',
   items: [
     // ---------- level 1 ----------
@@ -345,3 +347,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["va-g01","va-g05","va-g07","va-t22","va-t25"]);

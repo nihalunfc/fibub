@@ -185,7 +185,7 @@ export default {
     { id: 'snd-035', type: 'mcq', level: 4, exams: ['jam', 'gate', 'net'], sub: 'third law',
       q: 'Which statement is <b>NOT</b> consistent with the third law of thermodynamics?',
       options: ['Absolute zero cannot be reached in a finite number of steps', 'A classical ideal gas keeps a constant $C_V$ all the way down to $T = 0$', 'Heat capacities tend to zero as $T \\to 0$', 'The thermal expansion coefficient tends to zero as $T \\to 0$'], answer: 1,
-      sol: 'With constant $C_V$, $S = C_V\\ln T + \\dots \\to -\\infty$ as $T\\to0$, which violates the third law. Real gases become quantum (degenerate) at low $T$. B follows from $S = \\int C\\,dT/T$ staying finite; C from the Maxwell relation $(\\partial V/\\partial T)_P = -(\\partial S/\\partial P)_T \\to 0$; D is the unattainability form.' },
+      sol: 'With constant $C_V$, $S = C_V\\ln T + \\dots \\to -\\infty$ as $T\\to0$, which violates the third law. Real gases become quantum (degenerate) at low $T$. C follows from $S = \\int C\\,dT/T$ staying finite; D from the Maxwell relation $(\\partial V/\\partial T)_P = -(\\partial S/\\partial P)_T \\to 0$; A is the unattainability form.' },
     { id: 'snd-036', type: 'nat', level: 4, exams: ['jam', 'gate'], sub: 'third law', unit: 'J mol$^{-1}$ K$^{-1}$',
       q: 'At low temperatures the molar heat capacity of a crystal follows the Debye law $C = aT^3$ with $a = 2.0\\times10^{-4}$ J mol$^{-1}$ K$^{-4}$. Its molar entropy at $20$ K is ______ J mol$^{-1}$ K$^{-1}$.',
       answer: 0.533, tol: 0.005, calc: () => 2e-4 * 20 ** 3 / 3,

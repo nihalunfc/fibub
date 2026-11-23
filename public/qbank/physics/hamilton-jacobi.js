@@ -12,7 +12,9 @@ import r4 from './hamilton-jacobi.r4.gen.js';
 const gcd = (a, b) => (b ? gcd(b, a % b) : a);
 const JDEF = 'Take the action variable as $J = \\oint p\\,dq$ over one cycle.';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'hamilton-jacobi',
   items: [
     // ---------- level 1 ----------
@@ -341,3 +343,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["hjt-m31"]);

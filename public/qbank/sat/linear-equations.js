@@ -42,7 +42,7 @@ export default {
       } },
     { id: 'sat-le-g04', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'fractions', facets: F, format: 'numeric',
       make(r) {
-        const a = int(r, 2, 8), x = a * int(r, -6, 10), b = int(r, -9, 9), c = x / a + b;
+        const a = int(r, 2, 8), x = a * int(r, -6, 10), b = nz(r, -9, 9), c = x / a + b;
         return { q: `<p>${X}/${a} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${fmt(c)}</p><p>What is the solution to the equation above?</p>`, answer: x, tol: 0, a, b, c,
           sol: steps(`${b < 0 ? 'Add' : 'Subtract'} ${Math.abs(b)} on both sides: ${X}/${a} = ${fmt(c - b)}.`, `Multiply both sides by ${a}: ${X} = <b>${fmt(x)}</b>.`) };
       },
@@ -66,7 +66,7 @@ export default {
       verify: (p) => p.k },
     { id: 'sat-le-g07', type: 'nat', marks: 1, level: 3, exams: ['sat'], sub: 'brackets', facets: F, format: 'numeric',
       make(r) {
-        const x = nz(r, -8, 10), a = int(r, 2, 5), b = int(r, -6, 6), c = int(r, 2, 4), d = int(r, -6, 6), e = other(r, -4, 7, [a - c, 0]);
+        const x = nz(r, -8, 10), a = int(r, 2, 5), b = nz(r, -6, 6), c = int(r, 2, 4), d = nz(r, -6, 6), e = other(r, -4, 7, [a - c, 0]);
         // a(x + b) - c(x + d) = e x + f
         const f = a * (x + b) - c * (x + d) - e * x;
         return { q: `<p>${a}(${lin(1, b)}) − ${c}(${lin(1, d)}) = ${lin(e, f)}</p><p>What value of ${X} satisfies the equation?</p>`, answer: x, tol: 0, a, b, c, d, e, f,

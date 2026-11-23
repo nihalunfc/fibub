@@ -110,7 +110,9 @@ export default {
         const [[o1, o2, o3], [n1, n2]] = choose(rng, [[[5, 3, 2], [3, 2]], [[4, 3, 2], [5, 4]], [[3, 2, 1], [3, 2]], [[4, 3, 2], [4, 3]], [[5, 3, 2], [5, 3]]]);
         const to = o1 + o2 + o3, tn = n1 + n2, gc = (p, q) => (q ? gc(q, p % q) : p);
         const ga = n1 * to - o1 * tn, gb = n2 * to - o2 * tn, k = gc(ga, gb), c = `${ga / k} : ${gb / k}`;
-        const { options, answer } = shuffleOpts(rng, c, [`${n1} : ${n2}`, `${o1} : ${o2}`, `${gb / k} : ${ga / k}`], (v) => v);
+        // Distractors must differ from the answer and from each other: when A and B keep their old ratio, the gaining ratio equals it.
+        const wrong = [`${n1} : ${n2}`, `${o1} : ${o2}`, `${gb / k} : ${ga / k}`, '1 : 1', `${o1} : ${o3}`, `${o2} : ${o3}`, `${n2} : ${n1}`].filter((v, i, a) => v !== c && a.indexOf(v) === i).slice(0, 3);
+        const { options, answer } = shuffleOpts(rng, c, wrong, (v) => v);
         return { q: `A, B and C share profits ${o1} : ${o2} : ${o3}. C retires and A and B decide to share ${n1} : ${n2}. Their gaining ratio is:`, options, answer, c,
           sol: steps(`A's gain = ${n1}/${tn} − ${o1}/${to}; B's gain = ${n2}/${tn} − ${o2}/${to}.`, `Gains in the same denominator: ${ga} : ${gb} (over ${tn * to}).`, `Gaining ratio = <b>${c}</b>.`), trap: 'The gaining ratio is new − old, not the new ratio.' };
       } },

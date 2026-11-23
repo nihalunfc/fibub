@@ -181,7 +181,7 @@ Practise with the tool, which shows each step for any denominator you type:
 
 <div class="problem" data-problem="c9m-num-rat"></div>
 
-You will use the identity (a + b)(a − b) = a² − b² a lot in the next chapter, [Exploring Algebraic Identities](/learn/courses/ncert-class-9-maths/exploring-algebraic-identities/), and the [Number theory toolkit](/learn/number-theory-toolkit/) will help you explore factors and primes.
+You will use the identity (a + b)(a − b) = a² − b² a lot in the next chapter, [Exploring Algebraic Identities](/learn/courses/ncert-class-9-maths/exploring-algebraic-identities/), and the [Number theory toolkit](/science/number-theory-toolkit/) will help you explore factors and primes.
 
 ## 7. Laws of exponents with rational powers
 

@@ -58,7 +58,7 @@ Cepheids can be seen in galaxies up to about 100 million light-years away. Type 
 Two of the most important results in cosmology came from them:
 
 - **The rate of expansion today** (the Hubble constant, Module 4 and Lesson 12.2), measured by linking nearby supernovae to Cepheids.
-- **The accelerating universe** (1998, Module 9): distant supernovae looked about 25% fainter than expected, meaning the expansion is speeding up. That discovery won the 2011 Nobel Prize in Physics.
+- **The accelerating universe** (1998, Module 9): distant supernovae looked about 0.25 magnitudes (about 20%) fainter than expected, meaning the expansion is speeding up. That discovery won the 2011 Nobel Prize in Physics.
 
 <div class="myth">
 

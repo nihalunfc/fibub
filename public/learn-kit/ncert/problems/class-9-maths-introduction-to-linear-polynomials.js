@@ -1,10 +1,10 @@
 // Class 9 Maths, Introduction to Linear Polynomials: live problems (original fibub questions). Ids start with c9m-lin-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const sg = (v) => String(v).replace('-', '−');
 const lin = (a, b) => `${a === 1 ? '' : a === -1 ? '−' : sg(a)}x ${b < 0 ? '−' : '+'} ${Math.abs(b)}`;
 const nz = (r, a, b) => { const v = pick(r, a, b); return v || b; };
-export default {
+export default tidyProblems({
   'c9m-lin-value': {
     title: 'value of a linear polynomial',
     make(r) {
@@ -77,4 +77,4 @@ export default {
     },
     verify: (p) => { for (let x = 0; x <= 200; x++) if (p.fa + p.ra * x === p.fb + p.rb * x) return x; },
   },
-};
+}, ['c9m-lin-value', 'c9m-lin-zero', 'c9m-lin-k', 'c9m-lin-plans']);

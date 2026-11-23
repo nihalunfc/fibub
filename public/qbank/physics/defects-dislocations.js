@@ -13,7 +13,9 @@ const R = String.raw;
 const KB = 8.617333e-5; // eV/K
 const sci = (v, d = 3) => { const [m, e] = v.toExponential(d).split('e'); return (+m === 1 ? '' : m + R`\times`) + `10^{${+e}}`; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'defects-dislocations',
   items: [
     // ---------- level 1 ----------
@@ -396,3 +398,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["def-g05"]);

@@ -8,7 +8,9 @@ import r4 from './central-forces.r4.gen.js';
 
 const R_E = 6.4e6, G0 = 9.8;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'central-forces',
   items: [
     { id: 'cfo-001', type: 'mcq', level: 1, exams: ['jam', 'gate'], sub: 'angular momentum',
@@ -98,7 +100,7 @@ export default {
     { id: 'cfo-019', type: 'mcq', level: 3, exams: ['jam'], sub: 'orbits',
       q: 'A body moves in the gravitational field of a star. Which statement is NOT correct?',
       options: ['If its total energy is zero, its orbit is a parabola.', 'If its total energy is negative, its orbit is an ellipse (or circle).', 'For a given angular momentum, the circular orbit has the lowest energy.', 'If its total energy is positive, its orbit is an ellipse.'], answer: 3,
-      sol: 'For an inverse-square force: $E < 0$ ellipse (circle at the minimum energy for that $L$), $E = 0$ parabola, $E > 0$ hyperbola. A positive-energy body escapes on a hyperbola, so the first statement is the incorrect one.' },
+      sol: 'For an inverse-square force: $E < 0$ ellipse (circle at the minimum energy for that $L$), $E = 0$ parabola, $E > 0$ hyperbola. A positive-energy body escapes on a hyperbola, so the last statement is the incorrect one.' },
     { id: 'cfo-020', type: 'mcq', level: 2, exams: ['jam'], sub: 'orbits',
       q: 'A planet\'s closest and farthest distances from its star are 1 AU and 3 AU. The eccentricity of its orbit is',
       options: ['2', '0.5', '0.33', '0.67'], answer: 1,
@@ -317,3 +319,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["cfo-r4g3"]);

@@ -10,7 +10,9 @@ import r5 from './multipoles.r5.gen.js';
 
 const K = 8.9875517923e9, D = 3.33564e-30, E = 1.602176634e-19, PI = Math.PI;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'multipoles',
   items: [
     // ---------- level 1 ----------
@@ -355,3 +357,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["mpl-g01","mpl-g03","mpl-g11","mpl-g12","mpl-m31"], { neg: ["mpl-g01"] });

@@ -9,7 +9,9 @@ import r4 from './matrices.r4.gen.js';
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 const mat2 = (a, b, c, d) => `\\begin{pmatrix} ${a} & ${b} \\\\ ${c} & ${d} \\end{pmatrix}`;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'matrices',
   items: [
     // ---- level 1 ----
@@ -312,3 +314,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["mx-g05","mx-g06","mx-t22","mx-t25","mx-t26","mx-r4g1"]);

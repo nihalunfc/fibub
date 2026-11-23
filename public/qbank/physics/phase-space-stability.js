@@ -18,7 +18,9 @@ const classify = (t, D) => {
   return `${st} spiral`;
 };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'phase-space-stability',
   items: [
     // ---------- level 1 ----------
@@ -330,3 +332,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pss-g01","pss-g04","pss-g06","pss-g09","pss-r4g1"]);

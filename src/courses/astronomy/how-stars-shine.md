@@ -78,7 +78,7 @@ t \approx 10^{10}\ \text{yr}\times\frac{M/M_\odot}{L/L_\odot} \approx 10^{10}\ \
 
 Pick a mass and press Play or slide the stage. The dot follows the star's track across the HR diagram.
 
-<figure class="fig" data-fig="@astro-hr-evolve"><figcaption>A star spends most of its life on the main sequence, then swells into a giant as hydrogen runs out. The 20 solar-mass star lives about a million times faster than a red dwarf, and its end is a supernova; the 1 and 5 solar-mass stars end as white dwarfs. Tracks are schematic.</figcaption></figure>
+<figure class="fig" data-fig="@astro-hr-evolve"><figcaption>A star spends most of its life on the main sequence, then swells into a giant as hydrogen runs out. The 20 solar-mass star lives out its life about ten thousand times faster than the 0.5 solar-mass red dwarf, and its end is a supernova; the 1 and 5 solar-mass stars end as white dwarfs. Tracks are schematic.</figcaption></figure>
 
 ## 3. What it means physically
 

@@ -1,12 +1,12 @@
 // Class 10 Maths, Chapter 4 Quadratic Equations: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('qe');
 const R = String.raw;
 // "ax^2 + bx + c" as TeX
 const tex = (a, b, c) => `${a === 1 ? '' : a === -1 ? '-' : a}x^2${b === 0 ? '' : (b < 0 ? ' - ' : ' + ') + (Math.abs(b) === 1 ? '' : Math.abs(b)) + 'x'}${c === 0 ? '' : (c < 0 ? ' - ' : ' + ') + Math.abs(c)}`;
 
-export default {
+export default tidyGens({
   topic: 'quadratic-equations', name: 'Quadratic Equations', n: 4,
   items: [
     m.mcq(1, 'form', R`<p>Which of these is a quadratic equation?</p>`, R`$x(x+2)=3$`, [R`$x(x+2)=x^2+5$`, R`$x^3+x=0$`, R`$2x+3=0$`], R`<p>$x(x+2)=3$ becomes $x^2+2x-3=0$, which has $x^2$ as its highest power. In $x(x+2)=x^2+5$ the $x^2$ cancels on both sides, leaving the linear equation $2x=5$.</p>`, { trap: 'Always expand and simplify first: the x² can cancel.' }),
@@ -35,7 +35,7 @@ export default {
   ],
   gens: [
     { id: 'qe-g01', type: 'nat', level: 1, exams: ['board'], sub: 'nature',
-      make(rng) { const a = pick(rng, 1, 5), b = pick(rng, -9, 9), c = pick(rng, -6, 6); return { a, b, c, q: `<p>Find the discriminant of $${tex(a, b, c)} = 0$.</p>`, answer: b * b - 4 * a * c, tol: 0, sol: `<p>$a = ${a}$, $b = ${b}$, $c = ${c}$. $D = ${b}^2 - 4(${a})(${c}) = ${b * b} - ${4 * a * c} = ${b * b - 4 * a * c}$.</p>` }; },
+      make(rng) { const a = pick(rng, 1, 5), b = pick(rng, -9, 9), c = pick(rng, -6, 6); return { a, b, c, q: `<p>Find the discriminant of $${tex(a, b, c)} = 0$.</p>`, answer: b * b - 4 * a * c, tol: 0, sol: `<p>$a = ${a}$, $b = ${b}$, $c = ${c}$. $D = (${b})^2 - 4(${a})(${c}) = ${b * b} ${4 * a * c < 0 ? '+' : '-'} ${Math.abs(4 * a * c)} = ${b * b - 4 * a * c}$.</p>` }; },
       verify: (p) => p.b ** 2 - 4 * p.a * p.c },
     { id: 'qe-g02', type: 'nat', level: 2, exams: ['board'], sub: 'factor',
       make(rng) { let p = pick(rng, -9, 9), s = pick(rng, -9, 9); if (!p) p = 5; if (!s) s = -4; const b = -(p + s), c = p * s; return { b, c, q: `<p>Solve $${tex(1, b, c)} = 0$ by factorisation and give the larger root.</p>`, answer: Math.max(p, s), tol: 0, sol: `<p>Two numbers with product ${c} and sum ${b} are ${-p} and ${-s}. So the roots are ${p} and ${s}; the larger is ${Math.max(p, s)}.</p>` }; },
@@ -53,10 +53,10 @@ export default {
       make(rng) { const x = pick(rng, 20, 80, 10), D = (x * (x + 10)) / 10; return { x, D, q: `<p>A bus covers ${D} km at a steady speed. If it went 10 km/h faster it would take 1 hour less. Find its usual speed in km/h.</p>`, answer: x, tol: 0, unit: 'km/h', sol: `<p>$\\dfrac{${D}}{x} - \\dfrac{${D}}{x+10} = 1$ gives $${10 * D} = x(x+10)$, i.e. $x^2 + 10x - ${10 * D} = 0$. The positive root is $x = ${x}$ km/h.</p>` }; },
       verify: (p) => (-10 + Math.sqrt(100 + 40 * p.D)) / 2 },
     { id: 'qe-g07', type: 'nat', level: 3, exams: ['board'], sub: 'nature',
-      make(rng) { const r = pick(rng, 1, 8), s = pick(rng, 1, 8); return { r, s, q: `<p>If $x = ${r}$ is a root of $x^2 + kx + ${r * s} = 0$, find $k$.</p>`, answer: -(r + s), tol: 0, sol: `<p>Put $x = ${r}$: $${r * r} + ${r}k + ${r * s} = 0$, so $${r}k = ${-(r * r + r * s)}$ and $k = ${-(r + s)}$.</p>` }; },
+      make(rng) { const r = pick(rng, 1, 8), s = pick(rng, 1, 8); return { r, s, q: `<p>If $x = ${r}$ is a root of $x^2 + kx + ${r * s} = 0$, find $k$.</p>`, answer: -(r + s), tol: 0, sol: `<p>Put $x = ${r}$: $${r * r} + ${r}k + ${r * s} = 0$, so ${r === 1 ? '' : `$${r}k = ${-(r * r + r * s)}$ and `}$k = ${-(r + s)}$.</p>` }; },
       verify: (p) => -(p.r * p.r + p.r * p.s) / p.r },
     { id: 'qe-g08', type: 'nat', level: 3, exams: ['board'], sub: 'formula',
       make(rng) { const a = pick(rng, 1, 3), b = pick(rng, 2, 9), c = pick(rng, 1, 6), D = b * b + 4 * a * c; const ans = Math.round(((-b + Math.sqrt(D)) / (2 * a)) * 100) / 100; return { a, b, c, q: `<p>Find the positive root of $${tex(a, b, -c)} = 0$, correct to 2 decimal places.</p>`, answer: ans, tol: 0.01, sol: `<p>$D = ${b}^2 + 4(${a})(${c}) = ${D}$. $x = \\dfrac{-${b} + \\sqrt{${D}}}{${2 * a}} \\approx ${ans}$.</p>` }; },
       verify: (p) => { const x = (-p.b + Math.sqrt(p.b * p.b + 4 * p.a * p.c)) / (2 * p.a); return Math.round(x * 100) / 100; } },
   ],
-};
+}, ['qe-g07']);

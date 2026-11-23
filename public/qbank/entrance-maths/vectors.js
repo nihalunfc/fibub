@@ -2,6 +2,7 @@
 // Fixed items take their keys from vector arithmetic done in code (helpers below) and the templates' verify() recompute every
 // answer another way (determinants, explicit coordinates, plugging the answer back into the condition).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -288,7 +289,7 @@ const itemsB = [
     R`<p>The two projections are $\dfrac{\vec a\cdot\vec b}{|\vec b|}$ and $\dfrac{\vec a\cdot\vec b}{|\vec a|}$. They differ unless $|\vec a|=|\vec b|$ (or the dot product is 0).</p>`, 'The denominator is the vector you project on.'),
   S(3, 'cross product', R`$\vec a\times\vec b=-\,\vec b\times\vec a$.`, R`$\vec a\cdot\vec b=-\,\vec b\cdot\vec a$.`, 1,
     R`<p>Statement I is true (anticommutative). Statement II is false: the dot product is commutative, $\vec a\cdot\vec b=\vec b\cdot\vec a$.</p>`, 'Dot is symmetric; cross is antisymmetric.'),
-  S(3, 'dot product', R`The projection of $\vec a$ on $\vec b$ is a vector in the direction of $\vec b$ with magnitude $\left|\dfrac{\vec a\cdot\vec b}{|\vec b|}\right|$.`, R`The scalar projection of $\vec a$ on $\vec b$ can be negative.`, 0,
+  S(3, 'dot product', R`The projection of $\vec a$ on $\vec b$ is a vector along the line of $\vec b$ with magnitude $\left|\dfrac{\vec a\cdot\vec b}{|\vec b|}\right|$.`, R`The scalar projection of $\vec a$ on $\vec b$ can be negative.`, 0,
     R`<p>Both are true. The vector projection is $\dfrac{\vec a\cdot\vec b}{|\vec b|^2}\vec b$; the scalar projection is negative when the angle is obtuse.</p>`, 'Sign of the scalar projection follows $\\cos\\theta$.'),
   S(4, 'cross product', R`$(\vec a\times\vec b)\cdot\vec a=0$ for all $\vec a,\vec b$.`, R`$(\vec a\times\vec b)\times\vec a$ is perpendicular to $\vec a$ for all $\vec a,\vec b$.`, 0,
     R`<p>$\vec a\times\vec b\perp\vec a$ gives I. Any cross product with $\vec a$ is perpendicular to $\vec a$, giving II.</p>`, 'A cross product is perpendicular to both factors.'),
@@ -354,7 +355,7 @@ const itemsC = [
   I(4, 'vector triple product', R`Let $|\vec a|=1$, $\vec a\perp\vec b$, $\vec a\cdot\vec c=3$ and $\vec b\cdot\vec c=4$. Then the component of $\vec a\times(\vec b\times\vec c)$ along $\vec a$ is`, 0,
     R`<p>$\vec a\times(\vec b\times\vec c)$ is perpendicular to $\vec a$ (it is a cross product with $\vec a$), so its component along $\vec a$ is 0, whatever the numbers are. Check: $\vec b(\vec a\cdot\vec c)-\vec c(\vec a\cdot\vec b)=3\vec b-0$, and $\vec b\cdot\vec a=0$.</p>`, 'Any cross product with $\\vec a$ is perpendicular to $\\vec a$.', { calc: () => 3 * 0 - 0 }),
   S(4, 'vector triple product', R`$\vec a\times(\vec b\times\vec c)+\vec b\times(\vec c\times\vec a)+\vec c\times(\vec a\times\vec b)=\vec0$ for all vectors.`, R`$(\vec a\times\vec b)\times\vec c=\vec a\times(\vec b\times\vec c)$ for all vectors.`, 1,
-    R`<p>I is the Jacobi identity: expand each term and everything cancels. II is false in general (it needs $\vec b$ perpendicular to both $\vec a$ and $\vec c$, as in the previous problem).</p>`, 'The cross product is not associative.'),
+    R`<p>I is the Jacobi identity: expand each term and everything cancels. II is false in general (it holds only in special cases, for example when $\vec b$ is perpendicular to both $\vec a$ and $\vec c$).</p>`, 'The cross product is not associative.'),
   M(4, 'vector triple product', R`If $\vec a=\hat i$, $\vec b=\hat j$, then $\vec a\times(\vec a\times\vec b)$ equals`, R`$-\hat j$`, [R`$\hat j$`, R`$\hat k$`, R`$\vec 0$`],
     R`<p>$\hat i\times\hat j=\hat k$. Then $\hat i\times\hat k=-\hat j$. By formula: $\vec a(\vec a\cdot\vec b)-\vec b(\vec a\cdot\vec a)=0-\hat j$.</p>`, '$\\hat i\\times\\hat k=-\\hat j$, since $\\hat k\\times\\hat i=\\hat j$.'),
   I(5, 'vector triple product', R`Let $\vec a,\vec b$ be unit vectors with $\vec a\perp\vec b$ and $\vec c=\vec a+2\vec b$. Find $|\vec c\times(\vec a\times\vec c)|^2$.`, 20 - 0,
@@ -396,7 +397,7 @@ const itemsC = [
   I(3, 'parallelogram', R`$A(1,2,3)$, $B(3,1,2)$ and $C(6,4,5)$ are three vertices of a parallelogram $ABCD$ (in order). The sum of the coordinates of $D$ is`, 4 + 5 + 6,
     R`<p>Diagonals bisect each other: $\vec a+\vec c=\vec b+\vec d$, so $\vec d=\vec a+\vec c-\vec b=(1+6-3,\ 2+4-1,\ 3+5-2)=(4,5,6)$. Sum $=15$.</p>`, 'The fourth vertex is opposite $B$.', { calc: () => 15 }),
   M(3, 'parallelogram', R`A parallelogram has diagonals $\vec a+\vec b$ and $\vec a-\vec b$. It is a rhombus if and only if`, R`$(\vec a+\vec b)\cdot(\vec a-\vec b)=0$`, [R`$(\vec a+\vec b)\times(\vec a-\vec b)=\vec 0$`, R`$\vec a\cdot\vec b=0$`, R`$|\vec a+\vec b|=|\vec a-\vec b|$`],
-    R`<p>A rhombus has perpendicular diagonals: $(\vec a+\vec b)\cdot(\vec a-\vec b)=|\vec a|^2-|\vec b|^2=0$. Option C describes a rectangle.</p>`, 'Equal diagonals mean a rectangle; perpendicular diagonals mean a rhombus.'),
+    R`<p>A rhombus has perpendicular diagonals: $(\vec a+\vec b)\cdot(\vec a-\vec b)=|\vec a|^2-|\vec b|^2=0$. Option D describes a rectangle.</p>`, 'Equal diagonals mean a rectangle; perpendicular diagonals mean a rhombus.'),
   I(4, 'median', R`The sides of a triangle have lengths 6, 8 and 10. The square of the length of the median to the side of length 10 is`, 25,
     R`<p>For the median to side $a$: $m^2=\dfrac{2b^2+2c^2-a^2}4=\dfrac{2\cdot36+2\cdot64-100}4=\dfrac{100}4=25$. (The triangle is right-angled and this median is half the hypotenuse.)</p>`, 'The formula follows from $\\vec m=\\frac12(\\vec b+\\vec c)$.', { calc: () => (2 * 36 + 2 * 64 - 100) / 4 }),
   I(3, 'collinear points', R`The points $A(1,1,1)$, $B(2,3,4)$ and $C(3,5,\lambda)$ are collinear. Find $\lambda$.`, 7,
@@ -1125,4 +1126,5 @@ gens.push(
 
 }
 // ==XP-END
-export default { topic: 'vectors', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'vectors', groups, items, gens }, ['ve-g01', 've-g02', 've-g03', 've-g08', 've-g09', 've-g15', 've-g19', 've-g28', 've-g29', 've-g10', 've-g14'], [], ['ve-g10']);

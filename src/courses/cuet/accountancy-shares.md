@@ -24,7 +24,7 @@ sources:
 
 **Module 10 · about 18 minutes.** By the end you will pass the entries for issuing, forfeiting and reissuing shares and work out the capital reserve.
 
-<div class="bigidea">Share capital records what has been called up; cash records what has been received. Forfeiture cancels the shares of a partner who did not pay, keeping what was paid; reissue sells them again.</div>
+<div class="bigidea">Share capital records what has been called up; cash records what has been received. Forfeiture cancels the shares of a shareholder who did not pay a call, keeping what was paid; reissue sells them again.</div>
 
 <div class="steps" data-title="From application to reissue">
 <div class="step"><b>Application and allotment:</b> Bank debited for money received; Share Application, then Share Capital, credited. A premium is credited to Securities Premium, usually with allotment.</div>

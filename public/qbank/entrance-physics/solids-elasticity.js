@@ -1,5 +1,6 @@
 // Solids and elasticity: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EX = {
@@ -78,7 +79,7 @@ const items = [
     r`That is the definition. Quartz and phosphor bronze are close to perfectly elastic. A body that keeps the new shape is called plastic (putty is an example).`),
   nx(() => { const s = 4e8, e = 2e-3; return [1, "Young's modulus", r`A wire carries a stress of $4\times10^{8}\ \mathrm{N\,m^{-2}}$ and shows a strain of $2\times10^{-3}$. Find its Young's modulus (in units of $10^{11}\ \mathrm{N\,m^{-2}}$).`, s / e / 1e11, 0, 0, r`$Y = \sigma/\varepsilon = 4\times10^{8}/(2\times10^{-3}) = 2\times10^{11}$ Pa, so the answer is 2.`, {}]; }),
   mcq(1, 'bulk modulus', r`The bulk modulus is the ratio of`, 'the pressure change to the fractional change in volume (with a minus sign)', ['tangential force to area', 'longitudinal stress to longitudinal strain', 'lateral strain to longitudinal strain'],
-    r`$B = -\Delta P/(\Delta V/V)$. The minus sign makes $B$ positive, because volume falls when pressure rises. Options 2 and 3 are $Y$ and Poisson's ratio; the first is a shear stress.`),
+    r`$B = -\Delta P/(\Delta V/V)$. The minus sign makes $B$ positive, because volume falls when pressure rises. Longitudinal stress over strain is $Y$, lateral over longitudinal strain is Poisson's ratio, and tangential force over area is a shear stress.`),
   mcq(1, 'moduli', r`Twisting a metal rod about its length is mainly opposed by its`, 'modulus of rigidity (shear modulus)', ['bulk modulus', "Young's modulus", 'compressibility'],
     r`Twisting slides each layer over the next one. This is a shear, so the shear (rigidity) modulus matters.`),
   mcq(1, 'compressibility', r`The compressibility of a material is`, 'the reciprocal of its bulk modulus', ['equal to its bulk modulus', "equal to its Young's modulus", 'the reciprocal of its density'],
@@ -855,4 +856,5 @@ const xgens = [
   }, (p) => p.options.findIndex((o) => o === `${fmt(p.sb / (p.rho * 9.8) / 1000, 3)} km`)),
 ];
 
-export default { topic: 'solids-elasticity', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'solids-elasticity', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['se-g11'], [], ['se-g11']);

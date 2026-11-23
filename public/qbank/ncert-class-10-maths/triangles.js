@@ -1,10 +1,10 @@
 // Class 10 Maths, Chapter 6 Triangles: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('tr');
 const R = String.raw;
 
-export default {
+export default tidyGens({
   topic: 'triangles', name: 'Triangles', n: 6,
   items: [
     m.mcq(1, 'similar', R`<p>Two polygons are similar when:</p>`, R`their corresponding angles are equal and their corresponding sides are in the same ratio`, [R`they have the same area`, R`their corresponding sides are equal`, R`they have the same perimeter`], R`<p>Similar means the same shape (not necessarily the same size): equal angles, proportional sides. Both conditions are needed.</p>`, { trap: 'For polygons with more than three sides, equal angles alone (like a square and a long rectangle) are not enough.' }),
@@ -41,7 +41,7 @@ export default {
       make(rng) { const p = pick(rng, 2, 5), q = pick(rng, 1, 4), a = pick(rng, 1, 4), AD = p * a, DB = q * a, AE = pick(rng, 2, 8) * p, AC = (AE * (p + q)) / p; return { AD, DB, AE, q: `<p>In $\\triangle ABC$, $DE \\parallel BC$ with $D$ on $AB$ and $E$ on $AC$. $AD = ${AD}$ cm, $DB = ${DB}$ cm and $AE = ${AE}$ cm. Find the whole side $AC$ in cm.</p>`, answer: AC, tol: 0, unit: 'cm', sol: `<p>$EC = ${AE} \\times ${DB}/${AD} = ${(AE * DB) / AD}$, so $AC = AE + EC = ${AC}$ cm.</p>` }; },
       verify: (p) => p.AE / (p.AD / (p.AD + p.DB)) },
     { id: 'tr-g03', type: 'nat', level: 3, exams: ['board'], sub: 'bpt',
-      make(rng) { const x = pick(rng, 1, 6), p = pick(rng, 1, 3), b = pick(rng, 1, 6), a = p * x, c = a + b + p * b; return { a, b, c, q: `<p>In $\\triangle ABC$, $D$ is on $AB$ and $E$ on $AC$ with $AD = x$, $DB = x + ${a}$, $AE = x + ${b}$, $EC = x + ${c}$. Find $x$ if $DE \\parallel BC$.</p>`, answer: x, tol: 0, sol: `<p>$x(x + ${c}) = (x + ${a})(x + ${b})$ gives $${c - a - b}x = ${a * b}$, so $x = ${x}$.</p>` }; },
+      make(rng) { const x = pick(rng, 1, 6), p = pick(rng, 1, 3), b = pick(rng, 1, 6), a = p * x, c = a + b + p * b; return { a, b, c, q: `<p>In $\\triangle ABC$, $D$ is on $AB$ and $E$ on $AC$ with $AD = x$, $DB = x + ${a}$, $AE = x + ${b}$, $EC = x + ${c}$. Find $x$ if $DE \\parallel BC$.</p>`, answer: x, tol: 0, sol: `<p>$x(x + ${c}) = (x + ${a})(x + ${b})$ gives ${c - a - b === 1 ? '' : `$${c - a - b}x = ${a * b}$, so `}$x = ${x}$.</p>` }; },
       verify: (p) => (p.a * p.b) / (p.c - p.a - p.b) },
     { id: 'tr-g04', type: 'nat', level: 2, exams: ['board'], sub: 'similar',
       make(rng) { const AB = pick(rng, 3, 9), BC = pick(rng, 4, 12), k = choose(rng, [1.5, 2, 2.5, 3, 4]); return { AB, BC, k, q: `<p>$\\triangle ABC \\sim \\triangle PQR$ with $AB = ${AB}$ cm, $BC = ${BC}$ cm and $PQ = ${AB * k}$ cm. Find $QR$ in cm.</p>`, answer: BC * k, tol: 0, unit: 'cm', sol: `<p>Scale factor $PQ/AB = ${k}$, so $QR = ${BC} \\times ${k} = ${BC * k}$ cm.</p>` }; },
@@ -59,4 +59,4 @@ export default {
       make(rng) { const mm = pick(rng, 1, 5), nn = pick(rng, 1, 5), t = pick(rng, 2, 6), L = (mm + nn) * t; return { mm, nn, L, q: `<p>In $\\triangle ABC$, $D$ is on $AB$ and $E$ on $AC$ with $DE \\parallel BC$ and $AD : DB = ${mm} : ${nn}$. If $AC = ${L}$ cm, find $AE$ in cm.</p>`, answer: mm * t, tol: 0, unit: 'cm', sol: `<p>$AE : EC = ${mm} : ${nn}$, so $AE : AC = ${mm} : ${mm + nn}$ and $AE = ${L} \\times ${mm}/${mm + nn} = ${mm * t}$ cm.</p>` }; },
       verify: (p) => (p.L * p.mm) / (p.mm + p.nn) },
   ],
-};
+}, ['tr-g03']);

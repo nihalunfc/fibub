@@ -621,6 +621,7 @@ gens.push(
 
 // ======== Expansion block (added 2026-11-22): more hard items and templates, ids tp-x001 onward ========
 import * as XH from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
 const xr = String.raw;
 const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
@@ -927,4 +928,5 @@ const xgens = [
     verify: (p) => { let lo = Math.min(...p.Ts), hi = Math.max(...p.Ts); for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; const net = p.Ts.reduce((s, t, k) => s + (t - mid) / p.Ls[k], 0); if (net > 0) lo = mid; else hi = mid; } return lo; } },
 ];
 
-export default { topic: 'thermal-properties', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'thermal-properties', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['tp-g01']);

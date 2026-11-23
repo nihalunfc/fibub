@@ -98,7 +98,7 @@ const items = [
   mcq(2, 'dimensions', r`The dimensions of surface tension are`, r`$[MT^{-2}]$`, [r`$[MLT^{-2}]$`, r`$[ML^{-1}T^{-2}]$`, r`$[ML^{2}T^{-2}]$`],
     r`Surface tension = force / length $= [MLT^{-2}]/[L] = [MT^{-2}]$. It is also energy / area.`),
   mcq(2, 'dimensional analysis', r`Which equation is dimensionally correct? ($s$: distance, $u,v$: speeds, $a$: acceleration, $t$: time)`, r`$s = ut + \tfrac12 at^2$`, [r`$v = u + at^2$`, r`$s = ut + at$`, r`$v^2 = u^2 + at$`],
-    r`Check every term. $ut$ is $[L]$ and $at^2$ is $[L]$, so the first equation is consistent. In $v = u + at^2$, $at^2$ is a length but $v$ is a speed. In $s = ut + at$, $at$ is a speed but $s$ is a length. In $v^2 = u^2 + at$, $at$ is a speed but $v^2$ is speed squared. Only the first passes.`,
+    r`Check every term. $ut$ is $[L]$ and $at^2$ is $[L]$, so $s = ut + \tfrac12 at^2$ is consistent. In $v = u + at^2$, $at^2$ is a length but $v$ is a speed. In $s = ut + at$, $at$ is a speed but $s$ is a length. In $v^2 = u^2 + at$, $at$ is a speed but $v^2$ is speed squared. Only $s = ut + \tfrac12 at^2$ passes.`,
     { trap: 'A dimension check only rejects; it cannot confirm numerical factors such as the 2 in $v^2=u^2+2as$.' }),
   mcq(2, 'significant figures', r`Add $12.11$, $18.0$ and $1.012$ and report the result correctly.`, '31.1', ['31.122', '31.12', '31'],
     r`The sum is $31.122$. The least precise number is $18.0$ with one decimal place. So round to one decimal place: 31.1.`),

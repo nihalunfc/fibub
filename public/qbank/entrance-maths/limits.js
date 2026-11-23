@@ -2,6 +2,7 @@
 // Every fixed limit/derivative item below is checked numerically when the file loads (the helper throws on a mismatch),
 // and every template has a verify() that recomputes its answer numerically from the fields it returns.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const CUET = false;
@@ -1358,4 +1359,5 @@ XIT.push(
 Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
 }
 // ==XP-END
-export default { topic: 'limits', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'limits', groups, items, gens }, ['li-g05', 'li-g06', 'li-g09', 'li-g10', 'li-g21', 'li-g23', 'li-g24', 'li-xg03', 'li-xg05', 'li-xg06', 'li-xg08']);

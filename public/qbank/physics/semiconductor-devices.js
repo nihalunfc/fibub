@@ -13,7 +13,9 @@ import r5 from './semiconductor-devices.r5.gen.js';
 const VT300 = 0.025852; // kT/q at 300 K, volts
 const G = ['gate', 'net'];
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'semiconductor-devices',
   items: [
     // ---------- level 1 ----------
@@ -368,3 +370,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["sd-g09"]);

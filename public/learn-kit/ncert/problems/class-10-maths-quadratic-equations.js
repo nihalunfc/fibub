@@ -1,5 +1,5 @@
 // Class 10 Maths, Quadratic Equations: live problems (original fibub questions). Ids start with c10m-quad-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 // "ax² + bx + c" written for the page, with signs handled.
 const poly = (a, b, c) => {
@@ -9,7 +9,7 @@ const poly = (a, b, c) => {
 };
 const bigroot = (a, b, c) => (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
 
-export default {
+export default tidyProblems({
   'c10m-quad-factor': {
     title: 'solve by factorisation',
     make(r) {
@@ -76,4 +76,4 @@ export default {
     },
     verify: (p) => (-1 + Math.sqrt(1 + 4 * p.P)) / 2,
   },
-};
+}, ['c10m-quad-disc']);

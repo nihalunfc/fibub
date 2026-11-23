@@ -42,7 +42,7 @@ export default {
   ],
   gens: [
     { id: 'ha-g01', type: 'nat', level: 2, exams: ['board'], sub: 'sn',
-      make(rng) { const r0 = choose(rng, [2, 4, 5, 6]), a = choose(rng, [0.1, 0.2, 0.4]), b = choose(rng, [0.1, 0.3, 0.5]); const v = r0 * (a / 0.1) * (b / 0.1); return { r0, a, b, q: `<p>An SN2 reaction has a rate of ${r0} × 10⁻⁵ mol/L/s when [RX] = [Nu⁻] = 0.1 mol/L. Find the rate (in units of 10⁻⁵) when [RX] = ${a} and [Nu⁻] = ${b} mol/L.</p>`, answer: v, tol: 0.01, sol: `<p>Rate ∝ [RX][Nu⁻]: ${r0} × (${a}/0.1) × (${b}/0.1) = ${v}.</p>` }; },
+      make(rng) { const r0 = choose(rng, [2, 4, 5, 6]), a = choose(rng, [0.1, 0.2, 0.4]), b = choose(rng, [0.1, 0.3, 0.5]); const v = r0 * (a / 0.1) * (b / 0.1); return { r0, a, b, q: `<p>An SN2 reaction has a rate of ${r0} × 10⁻⁵ mol/L/s when [RX] = [Nu⁻] = 0.1 mol/L. Find the rate (in units of 10⁻⁵) when [RX] = ${a} and [Nu⁻] = ${b} mol/L.</p>`, answer: +v.toPrecision(6), tol: 0.01, sol: `<p>Rate ∝ [RX][Nu⁻]: ${r0} × (${a}/0.1) × (${b}/0.1) = ${+v.toPrecision(6)}.</p>` }; },
       verify: (p) => { const k = p.r0 / (0.1 * 0.1); return k * p.a * p.b; } },
     { id: 'ha-g02', type: 'nat', level: 3, exams: ['board'], sub: 'stereo',
       make(rng) { const sp = choose(rng, [20, 30, 40, 60]), pct = choose(rng, [60, 70, 75, 80, 90]); const v = (sp * (2 * pct - 100)) / 100; return { sp, pct, q: `<p>A pure (+) enantiomer has [α] = +${sp}°. Find [α] for a mixture of ${pct} % (+) and ${100 - pct} % (−), in degrees.</p>`, answer: v, tol: 0.01, unit: '°', sol: `<p>${sp} × (${pct} − ${100 - pct})/100 = ${v}°.</p>` }; },

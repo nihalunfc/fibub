@@ -12,7 +12,9 @@ import r4 from './variational-wkb.r4.gen.js';
 const K1 = 5.1232; // sqrt(2 m_e · 1 eV)/ħ in nm⁻¹
 const U = 0.0381;  // ħ²/2m_e in eV nm²
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'variational-wkb',
   items: [
     // ---------- level 1 ----------
@@ -318,3 +320,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["qvw-g03"]);

@@ -45,7 +45,7 @@ export default {
   'c12c-kin-zero': {
     title: 'a zero order reaction',
     make(r) {
-      const A0 = choose(r, [0.5, 0.8, 1.0, 1.2]), k = choose(r, [0.01, 0.02, 0.025, 0.04]), t = choose(r, [5, 10, 15]), A = A0 - k * t;
+      const A0 = choose(r, [0.5, 0.8, 1.0, 1.2]), k = choose(r, [0.01, 0.02, 0.025, 0.04]), t = choose(r, [5, 10, 15].filter((x) => k * x < A0)), A = A0 - k * t;
       return { A0, k, t, q: `<p>A zero order reaction has k = ${k} mol L⁻¹ s⁻¹ and starts with [R]₀ = ${A0} mol/L. What is the concentration after ${t} s?</p>`, answer: A, unit: 'mol/L', tol: 0.01,
         hint: '[R] = [R]₀ − kt for zero order.',
         solution: steps(`[R] = ${A0} − ${k} × ${t} = ${A0} − ${+(k * t).toFixed(3)} = <b>${n(A)} mol/L</b>.`) };

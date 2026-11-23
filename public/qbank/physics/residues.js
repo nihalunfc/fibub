@@ -12,7 +12,9 @@ const fact = (n) => (n <= 1 ? 1 : n * fact(n - 1));
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 const frac = (p, q) => { if (q < 0) { p = -p; q = -q; } const g = gcd(p, q) || 1; p /= g; q /= g; return q === 1 ? `${p}` : `${p < 0 ? '-' : ''}\\tfrac{${Math.abs(p)}}{${q}}`; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'residues',
   items: [
     // ---------- level 1 ----------
@@ -297,7 +299,7 @@ export default {
         const a = int(r, 1, 3), n = int(r, 2, 4);
         const show = (p, q) => `$${frac(p, q)}$`;
         const right = show(a ** (n - 1), fact(n - 1));
-        const o = mcqOptions(r, right, [show(a ** n, fact(n)), show(a ** (n - 1), fact(n)), show(a ** (n - 1), 1), show(a ** (n + 1), fact(n + 1))]);
+        const o = mcqOptions(r, right, [show(a ** n, fact(n)), show(a ** (n - 1), fact(n)), show(a ** (n - 1), 1), show(a ** (n + 1), fact(n + 1)), show(2 * a ** (n - 1), fact(n - 1)), show(-(a ** (n - 1)), fact(n - 1)), show(a ** (n - 1), 2 * fact(n - 1))]);
         return { q: `The residue of $\\dfrac{e^{${a === 1 ? '' : a}z}}{z^{${n}}}$ at $z = 0$ is`, ...o,
           sol: `$\\frac{e^{${a}z}}{z^{${n}}} = \\sum_k\\frac{${a}^kz^{k - ${n}}}{k!}$. The $z^{-1}$ term has $k = ${n - 1}$: coefficient $\\frac{${a}^{${n - 1}}}{${n - 1}!} = ${frac(a ** (n - 1), fact(n - 1))}$.`,
           trap: 'For a pole of order $n$ the residue uses the $(n-1)$th derivative, divided by $(n-1)!$.' };
@@ -317,3 +319,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["res-g01","res-g02","res-g03","res-g06","res-g07","res-g08","res-m33","res-m34","res-m35"], { neg: ["res-g06"] });

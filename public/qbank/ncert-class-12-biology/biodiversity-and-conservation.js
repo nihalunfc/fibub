@@ -8,7 +8,7 @@ export default {
   items: [
     m.mcq(1, 'levels', '<p>Variation among the individuals of one species, such as different rice varieties, is called:</p>', 'genetic diversity', ['species diversity', 'ecological diversity', 'habitat diversity'], '<p>Genetic diversity is variation within a species.</p>'),
     m.mcq(1, 'levels', '<p>The variety of ecosystems in a region such as India is its:</p>', 'ecological diversity', ['genetic diversity', 'species richness only', 'niche width'], '<p>Deserts, forests, reefs and wetlands give ecological diversity.</p>'),
-    m.mcq(2, 'levels', '<p>Reserpine, whose amount varies in Rauwolfia vinca from different regions, is an example of:</p>', 'genetic diversity', ['species diversity', 'ecological diversity', 'co-extinction'], '<p>The variation is within one species.</p>'),
+    m.mcq(2, 'levels', '<p>Reserpine, whose amount varies in Rauwolfia vomitoria from different regions, is an example of:</p>', 'genetic diversity', ['species diversity', 'ecological diversity', 'co-extinction'], '<p>The variation is within one species.</p>'),
     m.mcq(2, 'levels', '<p>The number of species described so far is about:</p>', '1.5 million', ['15 thousand', '150 million', '7 million'], '<p>May estimated the total may be about 7 million.</p>'),
     m.mcq(2, 'levels', '<p>Most of the species described are:</p>', 'animals, mainly insects', ['plants', 'fungi', 'vertebrates'], '<p>More than 70 per cent are animals, and insects are by far the largest group.</p>'),
     m.mcq(1, 'pattern', '<p>Species diversity of most groups generally:</p>', 'decreases from the equator to the poles', ['increases from the equator to the poles', 'is the same everywhere', 'is highest in deserts'], '<p>The latitudinal gradient.</p>'),

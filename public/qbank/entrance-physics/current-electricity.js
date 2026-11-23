@@ -1,5 +1,6 @@
 // Current electricity: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EXB = {
@@ -205,7 +206,7 @@ const items = [
   mn(3, 'internal resistance', r`A cell of emf 2 V gives a terminal voltage of 1.6 V when it drives a current of 0.5 A. Its internal resistance is`, 0.8, [0.4, 3.2, 1.25], 'Ω',
     r`$r = \dfrac{\mathcal E - V}{I} = \dfrac{2 - 1.6}{0.5} = 0.8\ \Omega$.`),
   mn(3, 'electrical energy', r`An electric iron of 1000 W is used for 3 hours a day for 30 days. At 5 rupees per unit the cost of the energy is`, 450, [90, 1500, 2250], 'rupees',
-    r`Energy $= 1\ \mathrm{kW}\times3\times30 = 90$ units. Cost $= 90\times5 = 450$ rupees. Option 1 forgets the price, and 1500 forgets the 3 hours.`),
+    r`Energy $= 1\ \mathrm{kW}\times3\times30 = 90$ units. Cost $= 90\times5 = 450$ rupees. 90 rupees forgets the price, and 1500 forgets the 3 hours.`),
   nat(3, 'mixed: drift and kinematics', r`The drift velocity of electrons in a wire is $1.5\times10^{-4}\ \mathrm{m\,s^{-1}}$. How long does an electron take to drift along a 2 m length of the wire (in hours, 2 decimals)?`, 2 / 1.5e-4 / 3600, 0.02, 2,
     r`$t = \dfrac{L}{v_d} = \dfrac{2}{1.5\times10^{-4}} = 1.33\times10^{4}$ s $= 3.70$ h. The bulb lights at once because the field is set up everywhere along the wire at nearly the speed of light, not because an electron travels the whole length.`, { unit: 'h', sub: 'mixed' }),
   nat(3, 'current from moving charge', r`A thin ring carrying a charge of $3\ \mu$C rotates at 50 revolutions per second. Find the equivalent current (in $\mu$A).`, 3 * 50, 0.5, 0,
@@ -909,4 +910,5 @@ gens.push(
 
 }
 
-export default { topic: 'current-electricity', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'current-electricity', groups, items, gens }, ['ec-g19']);

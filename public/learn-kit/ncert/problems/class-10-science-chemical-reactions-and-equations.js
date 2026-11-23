@@ -62,7 +62,7 @@ export default {
   'c10s-react-mass': {
     title: 'conservation of mass',
     make(r) {
-      const a = pick(r, 12, 60, 4), b = pick(r, 8, 40, 4), lost = pick(r, 1, 9);
+      const a = pick(r, 12, 60, 4), b = pick(r, 8, Math.min(40, a - 4), 4), lost = pick(r, 1, 9);
       return { a, b, q: `<p>${a} g of a metal carbonate is heated in an open dish and decomposes into a solid oxide and carbon dioxide gas. The oxide left in the dish weighs ${b} g (the gas escaped). What mass of carbon dioxide was given off? (Take the carbonate to have decomposed fully.)</p>`, answer: a - b, unit: 'g', tol: 0.005,
         hint: 'Mass is conserved: the mass of what you started with equals the mass of everything formed, including the gas that escaped.',
         solution: steps('Mass of carbonate = mass of oxide + mass of CO₂.', `Mass of CO₂ = ${a} − ${b} = <b>${a - b} g</b>.`) };

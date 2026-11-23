@@ -1,9 +1,9 @@
 // Class 11 Physics, Motion in a Plane: live problems (original fibub questions). Ids start with c11p-plane-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const deg = (r) => (r * 180) / Math.PI;
 
-export default {
+export default tidyProblems({
   'c11p-plane-vec': {
     title: 'magnitude of the sum of two vectors',
     make(r) {
@@ -74,4 +74,4 @@ export default {
     },
     verify: (x) => { let X = 0, Y = 0; const dt = 0.01; while (Y < x.w) { Y += x.vb * dt; X += x.vr * dt; } return X; },
   },
-};
+}, ['c11p-plane-vec']);

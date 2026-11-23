@@ -2,6 +2,7 @@
 // Every numeric answer was checked in code: each `calc` solves the DE numerically (RK4) or by an independent closed form,
 // and the templates' verify() recompute their answers another way (mostly RK4).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1411,4 +1412,5 @@ XIT.push(
 Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
 }
 // ==XP-END
-export default { topic: 'differential-equations', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'differential-equations', groups, items, gens }, ['de-g06', 'de-g14', 'de-g16', 'de-g17', 'de-g18', 'de-g22', 'de-xg01', 'de-xg02', 'de-xg09', 'de-g15', 'de-g21'], [], ['de-g22', 'de-xg09']);

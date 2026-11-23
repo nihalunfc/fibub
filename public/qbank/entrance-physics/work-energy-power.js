@@ -1,5 +1,6 @@
 // Work, energy and power: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EX = {
@@ -898,4 +899,5 @@ const gens = [
     verify: (p) => { const acc = (p.m2 - p.mu * p.m1) * 10 / (p.m1 + p.m2); return Math.sqrt(2 * acc * p.h); } },
 ];
 
-export default { topic: 'work-energy-power', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'work-energy-power', groups, items, gens }, ['wep-g16', 'wep-g24', 'wep-g29']);

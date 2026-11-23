@@ -13,7 +13,9 @@ const ein = (x) => x * x * Math.exp(x) / Math.expm1(x) ** 2;
 const debye = (y) => { const n = 2000, h = y / n; let s = 0; for (let i = 0; i <= n; i++) { const t = i * h || 1e-12; s += t ** 4 * Math.exp(t) / Math.expm1(t) ** 2 * (i === 0 || i === n ? 1 : i % 2 ? 4 : 2); } return 3 / y ** 3 * s * h / 3; };
 const thetaD = (v, n) => C.hbar * v * Math.cbrt(6 * PI * PI * n) / C.kB;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'heat-capacity',
   items: [
     // ---------- level 1 ----------
@@ -384,3 +386,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["hc-g07"]);

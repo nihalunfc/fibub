@@ -11,7 +11,9 @@ import r4 from './scattering-theory.r4.gen.js';
 
 const PI = Math.PI, HBC = 197.3269804, MN = 939.565, MPc = 938.272, MEc = 0.51099895, D = PI / 180;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'scattering-theory',
   items: [
     // ---------- level 1 ----------
@@ -346,3 +348,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["netsc-g08","netsc-r4g3"], { neg: ["netsc-g08"] });

@@ -50,7 +50,7 @@ On the GMAT you will rarely calculate an SD. You will **compare** them: the list
 | Change to every value | Mean and median | Range and SD |
 |---|---|---|
 | add k | add k | unchanged |
-| multiply by k | multiply by k | multiply by |k| |
+| multiply by k | multiply by k | multiply by \|k\| |
 
 <div class="steps" data-title="Worked example: a list has mean 20 and SD 4. Every value is doubled, then 5 is subtracted.">
 <div class="step">Doubling: mean 40, SD 8.</div>

@@ -30,7 +30,7 @@ If you type the RA and Dec of a star from a 1950 catalogue into a modern mount, 
 
 ## 2. A spinning top
 
-Earth is not a perfect sphere: spin makes it bulge about 21 km wider at the equator than pole to pole. The Sun and Moon pull harder on the near side of the bulge than the far side, which tries to straighten Earth's tilt. Because Earth is spinning, it doesn't straighten; instead the axis slowly swings round in a cone, keeping its tilt of about 23.4°. That is **precession**.
+Earth is not a perfect sphere: spin makes it bulge, so its radius at the equator is about 21 km bigger than at the poles (its width is about 43 km bigger). The Sun and Moon pull harder on the near side of the bulge than the far side, which tries to straighten Earth's tilt. Because Earth is spinning, it doesn't straighten; instead the axis slowly swings round in a cone, keeping its tilt of about 23.4°. That is **precession**.
 
 On the sky, the north celestial pole moves in a circle of radius 23.4° around the **ecliptic pole** (in Draco), once every **25,800 years** or so.
 

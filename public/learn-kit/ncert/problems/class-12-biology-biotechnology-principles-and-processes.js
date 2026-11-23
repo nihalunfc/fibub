@@ -6,7 +6,7 @@ export default {
     title: 'copies made by PCR',
     make(r) {
       const n0 = choose(r, [1, 2, 4, 5, 10, 50]), cyc = pick(r, 8, 30, 1);
-      return { n0, cyc, q: `<p>A PCR tube starts with ${n0} copy${n0 > 1 ? 'ies' : ''} of the target DNA. Every cycle doubles the number of copies. How many copies of the target are there after ${cyc} cycles?</p>`, answer: n0 * Math.pow(2, cyc), unit: 'copies', tol: 0.01,
+      return { n0, cyc, q: `<p>A PCR tube starts with ${n0} ${n0 > 1 ? 'copies' : 'copy'} of the target DNA. Every cycle doubles the number of copies. How many copies of the target are there after ${cyc} cycles?</p>`, answer: n0 * Math.pow(2, cyc), unit: 'copies', tol: 0.01,
         hint: 'One cycle: 1 becomes 2, 2 becomes 4. After n cycles the number is multiplied by 2 n times.',
         solution: steps(`Each cycle multiplies the copies by 2, so after ${cyc} cycles they are multiplied by 2^${cyc} = ${n(Math.pow(2, cyc))}.`, `Copies = ${n0} × 2^${cyc} = <b>${n(n0 * Math.pow(2, cyc))}</b>.`) };
     },
@@ -17,7 +17,7 @@ export default {
     make(r) {
       const goal = choose(r, [1e3, 1e4, 1e5, 1e6, 1e9]), n0 = choose(r, [1, 2, 4, 8]);
       const need = Math.ceil(Math.log2(goal / n0));
-      return { goal, n0, q: `<p>You start with ${n0} copy${n0 > 1 ? 'ies' : ''} of a gene and want at least ${n(goal)} copies. What is the smallest whole number of PCR cycles (perfect doubling each time) that does it?</p>`, answer: need, unit: 'cycles', tol: 0, abs: 0.01,
+      return { goal, n0, q: `<p>You start with ${n0} ${n0 > 1 ? 'copies' : 'copy'} of a gene and want at least ${n(goal)} copies. What is the smallest whole number of PCR cycles (perfect doubling each time) that does it?</p>`, answer: need, unit: 'cycles', tol: 0, abs: 0.01,
         hint: 'Find n so that start × 2^n is at least the goal. Try powers of 2: 2^10 = 1024.',
         solution: steps(`We need ${n0} × 2^n ≥ ${n(goal)}, so 2^n ≥ ${n(goal / n0)}.`, `log₂(${n(goal / n0)}) = ${n(Math.log2(goal / n0), 4)}, so n must be at least that, rounded up.`, `Smallest whole number: <b>${need}</b> cycles.`) };
     },

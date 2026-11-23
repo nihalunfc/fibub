@@ -159,7 +159,7 @@ K_{max} = h\nu - \varphi_0 = h(\nu - \nu_0), \qquad eV_0 = h\nu - \varphi_0
 <div class="step">Draw the best straight line through the points. Do not join the dots: the line should have about as many points above as below.</div>
 <div class="step">Pick two far-apart points on the line and find the slope: (1.66 V) ÷ (4 × 10¹⁴ Hz) = 4.14 × 10⁻¹⁵ V s. This is h/e.</div>
 <div class="step">Multiply by the charge of the electron: h = e × slope = 1.6 × 10⁻¹⁹ × 4.14 × 10⁻¹⁵ = 6.6 × 10⁻³⁴ J s.</div>
-<div class="step">Extend the line until V₀ = 0: it meets the frequency axis at the threshold ν₀ = 5.6 × 10¹⁴ Hz. The work function is φ₀ = hν₀ = 4.14 × 10⁻¹⁵ × 5.6 × 10¹⁴ = 2.3 eV.</div>
+<div class="step">Extend the line until V₀ = 0: it meets the frequency axis at the threshold ν₀ = 5.5 × 10¹⁴ Hz. The work function is φ₀ = hν₀ = 4.14 × 10⁻¹⁵ × 5.5 × 10¹⁴ = 2.3 eV.</div>
 </div>
 
 <div class="problem" data-problem="c12p-dual-kmax"></div>

@@ -27,7 +27,9 @@ const arR = (n1, n2, n3, d, lam) => { // single-layer film reflectance (normal i
   return (nr * nr + ni * ni) / (dr * dr + di * di);
 };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'fresnel-equations',
   items: [
     // ---------- level 1 ----------
@@ -396,3 +398,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["frs-g10"]);

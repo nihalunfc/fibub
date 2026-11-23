@@ -13,7 +13,7 @@ const T = {
   'Present perfect continuous': ['I have been waiting for an hour.', [['bar', -0.45, 0], ['arrow']], 'An action that started before now and is still going on (or just stopped).'],
   'Future simple': ['I will call you tomorrow.', [['dot', 0.55]], 'A decision or prediction about the future.'],
   'Future continuous': ['At 8 tonight I will be driving.', [['bar', 0.35, 0.7]], 'An action in progress at a future moment.'],
-  'Future perfect': ['By June I will have finished.', [['dot', 0.7], ['dot', 0.35, 'June']], 'Finished before a future moment.'],
+  'Future perfect': ['By June I will have finished.', [['dot', 0.35], ['dot', 0.7, 'June']], 'Finished before a future moment.'],
   'Going to': ['I am going to start next week.', [['dot', 0.45], ['arrow2']], 'A plan, with a link from now.'],
   'Past perfect continuous': ['I had been studying for hours.', [['bar', -0.9, -0.4], ['dot', -0.35, 'exam']], 'Lasting action up to a past moment.'],
 };

@@ -1,7 +1,7 @@
 // Class 10 Maths, Triangles: live problems (original fibub questions). Ids start with c10m-tri-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
-export default {
+export default tidyProblems({
   'c10m-tri-bpt': {
     title: 'use the basic proportionality theorem',
     make(r) {
@@ -19,7 +19,7 @@ export default {
       const x = pick(r, 1, 6), p = pick(r, 1, 3), b = pick(r, 1, 6), a = p * x, c = a + b + p * b;
       return { a, b, c, q: `<p>In triangle ABC, D is on AB and E is on AC. AD = x cm, DB = (x + ${a}) cm, AE = (x + ${b}) cm and EC = (x + ${c}) cm. For what value of x is DE parallel to BC?</p>`, answer: x, unit: 'cm', tol: 0.001,
         hint: 'DE ∥ BC exactly when AD/DB = AE/EC. Cross multiply and the x² terms cancel.',
-        solution: steps(`AD/DB = AE/EC gives x/(x + ${a}) = (x + ${b})/(x + ${c}).`, `Cross multiply: x(x + ${c}) = (x + ${a})(x + ${b}), so x² + ${c}x = x² + ${a + b}x + ${a * b}.`, `${c - a - b}x = ${a * b}, so x = <b>${x}</b>.`) };
+        solution: steps(`AD/DB = AE/EC gives x/(x + ${a}) = (x + ${b})/(x + ${c}).`, `Cross multiply: x(x + ${c}) = (x + ${a})(x + ${b}), so x² + ${c}x = x² + ${a + b}x + ${a * b}.`, `${c - a - b === 1 ? '' : `${c - a - b}x = ${a * b}, so `}x = <b>${x}</b>.`) };
     },
     verify: (p) => (p.a * p.b) / (p.c - p.a - p.b),
   },
@@ -74,4 +74,4 @@ export default {
     },
     verify: (x) => x.AE / (x.AD / (x.AD + x.DB)),
   },
-};
+}, ['c10m-tri-parallel']);

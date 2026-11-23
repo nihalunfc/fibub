@@ -1,5 +1,6 @@
 // Trigonometric equations and triangles (Plus Two entrance, Mathematics, Class 11). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const CUET = false; // Class 12 chapters: level 1-3 mcq also list 'cuet'
@@ -974,4 +975,5 @@ gens.push(...xgens);
 
 }
 
-export default { topic: 'trig-equations-triangles', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'trig-equations-triangles', groups, items, gens }, ['te-g09', 'te-g10', 'te-g17']);

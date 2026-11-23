@@ -1,6 +1,6 @@
 // Class 12 Maths, Chapter 4 Determinants: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('dt');
 const d2 = (a, b, c, d) => a * d - b * c;
 const d3 = (M) => M[0][0] * d2(M[1][1], M[1][2], M[2][1], M[2][2]) - M[0][1] * d2(M[1][0], M[1][2], M[2][0], M[2][2]) + M[0][2] * d2(M[1][0], M[1][1], M[2][0], M[2][1]);
@@ -8,7 +8,7 @@ const tex3 = (M) => '$\\begin{vmatrix}' + M.map((r) => r.join('&')).join('\\\\')
 const sarrus = (M) => M[0][0] * M[1][1] * M[2][2] + M[0][1] * M[1][2] * M[2][0] + M[0][2] * M[1][0] * M[2][1] - M[0][2] * M[1][1] * M[2][0] - M[0][0] * M[1][2] * M[2][1] - M[0][1] * M[1][0] * M[2][2];
 const M3 = [[[2, 1, 3], [0, -1, 4], [1, 2, 5]], [[1, 2, 0], [3, -1, 2], [4, 0, 1]], [[3, 0, 2], [1, 4, -1], [2, 5, 1]], [[2, -1, 1], [0, 3, 2], [1, 1, 4]], [[1, 4, 2], [2, 0, 3], [-1, 3, 1]]];
 
-export default {
+export default tidyGens({
   topic: 'determinants', name: 'Determinants', n: 4,
   items: [
     m.mcq(1, 'basic', '<p>The value of $\\begin{vmatrix} 4 & 3 \\\\ 2 & 5 \\end{vmatrix}$ is:</p>', '14', ['26', '−14', '20'], '<p>$4\\times5 - 3\\times2 = 20 - 6 = 14$.</p>'),
@@ -60,4 +60,4 @@ export default {
       make(rng) { const m0 = pick(rng, 1, 4, 1), c0 = pick(rng, -3, 3, 1), x1 = pick(rng, -2, 0, 1), x2 = pick(rng, 1, 3, 1), x3 = pick(rng, 4, 6, 1); return { m0, c0, x1, x2, x3, q: '<p>The points $(' + x1 + ',' + (m0 * x1 + c0) + ')$, $(' + x2 + ',' + (m0 * x2 + c0) + ')$ and $(' + x3 + ', k)$ are collinear. Find $k$.</p>', answer: m0 * x3 + c0, tol: 0, unit: '', sol: '<p>The first two points lie on a line of slope $' + m0 + '$, and the determinant of the three points is 0 only if the third lies on it: $k = ' + (m0 * x3 + c0) + '$.</p>' }; },
       verify: (p) => { const y1 = p.m0 * p.x1 + p.c0, y2 = p.m0 * p.x2 + p.c0; return y1 + ((y2 - y1) / (p.x2 - p.x1)) * (p.x3 - p.x1); } },
   ],
-};
+}, ['dt-g06']);

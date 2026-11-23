@@ -1,9 +1,11 @@
 // SAT Math · Geometry and trigonometry · circles: area, circumference, arcs, sectors and equations. Original (fibub).
 import { int, choose, shuffleOpts, fmt, frac, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'geometry' };
 const sg = (n) => (n < 0 ? ` + ${-n}` : ` − ${n}`);
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'circles',
   gens: [
     { id: 'sat-ci-g01', type: 'nat', marks: 1, level: 1, exams: ['sat'], sub: 'area and circumference', facets: F, format: 'numeric',
@@ -40,7 +42,9 @@ export default {
       verify: (p) => Math.sqrt((p.D / 2) ** 2 + (p.E / 2) ** 2 - p.Fc) },
     { id: 'sat-ci-g05', type: 'mcq', marks: 1, level: 3, exams: ['sat'], sub: 'equation from centre', facets: F, format: 'single',
       make(r) {
-        const h = int(r, -9, 9), k = int(r, -9, 9), rad = int(r, 2, 9);
+        // h and k non-zero and different, so the sign-swapped and x/y-swapped distractors never equal the answer.
+        const h = choose(r, [-1, 1]) * int(r, 1, 9); let k = choose(r, [-1, 1]) * int(r, 1, 9); if (k === h) k = -h;
+        const rad = int(r, 2, 9);
         const f = (a, b, c) => `(<i>x</i>${sg(a)})<sup>2</sup> + (<i>y</i>${sg(b)})<sup>2</sup> = ${c}`;
         const o = shuffleOpts(r, f(h, k, rad * rad), [f(-h, -k, rad * rad), f(h, k, rad), f(k, h, rad * rad), f(-h, -k, rad)]);
         return { q: `<p>Which equation describes the circle in the <i>xy</i>-plane with centre (${h}, ${k}) and radius ${rad}?</p>`, ...o,
@@ -53,4 +57,4 @@ export default {
       options: ['90°', '45°', '180°', 'It depends on the radius'], answer: 0,
       sol: '<p>A tangent line touches the circle at one point and is always perpendicular to the radius there: <b>90°</b>.</p>' },
   ],
-};
+}, ['sat-ci-g04']);

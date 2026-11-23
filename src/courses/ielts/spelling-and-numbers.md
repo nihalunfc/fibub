@@ -47,7 +47,7 @@ People spelling on the phone often say **"double"** for two same letters ("doubl
 <div class="steps">
 <div class="step"><p><b>-teen or -ty?</b> 13 to 19 have stress at the end: thir-TEEN, four-TEEN. 30 to 90 have stress at the start: THIR-ty, FOR-ty. In fast speech the final "n" can be hard to hear, so listen for the <b>stress</b>, not the ending.</p></div>
 <div class="step"><p><b>Big numbers.</b> British English puts "and" before the tens: "two thousand, four hundred <i>and</i> sixty" = 2,460. "One point five million" = 1.5 million (or 1,500,000).</p></div>
-<div class="step"><p><b>Phone numbers.</b> Read digit by digit, in groups: "oh one two three, double four, five six" = 0123 445 6. "Oh" is zero. "Double" repeats the digit, and "treble" or "triple" makes three.</p></div>
+<div class="step"><p><b>Phone numbers.</b> Read digit by digit, in groups: "oh one two three, double four, five six" = 0123 4456. "Oh" is zero. "Double" repeats the digit, and "treble" or "triple" makes three.</p></div>
 <div class="step"><p><b>Prices.</b> "Nine ninety-nine" = £9.99. "Twelve fifty" = £12.50. "A hundred and twenty" = 120. Write the currency only if the sign is not already printed next to the gap.</p></div>
 </div>
 

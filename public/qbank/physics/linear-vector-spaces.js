@@ -8,7 +8,9 @@ import more2 from './linear-vector-spaces.more2.gen.js';
 import r4 from './linear-vector-spaces.r4.gen.js';
 import r5 from './linear-vector-spaces.r5.gen.js';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'linear-vector-spaces',
   items: [
     // ---------- level 1 ----------
@@ -321,3 +323,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["lvs-g01","lvs-g02","lvs-g03","lvs-g06","lvs-m32","lvs-r4g1","lvs-r5g1"], { neg: ["lvs-g01"] });

@@ -1,10 +1,12 @@
 // SAT Math · Algebra · linear functions: slope, intercepts, graphs and equations of lines. Original (fibub).
 import { int, nz, other, choose, shuffleOpts, fmt, frac, lin, term, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'algebra' };
 const X = v('x'), Y = v('y');
 const SLOPES = [-3, -2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2, 2.5, 3, 4];
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'linear-functions',
   gens: [
     { id: 'sat-lf-g01', type: 'nat', marks: 1, level: 1, exams: ['sat'], sub: 'slope from two points', facets: F, format: 'numeric',
@@ -83,4 +85,4 @@ export default {
       q: '<p>The graph of <i>y</i> = 4<i>x</i> − 3 is shifted up 7 units. At what <i>x</i>-value does the new graph cross the <i>x</i>-axis?</p>', answer: -1, tol: 0,
       sol: '<p>Shifting up 7 adds 7: <i>y</i> = 4<i>x</i> + 4. Set <i>y</i> = 0: 4<i>x</i> = −4, so <i>x</i> = <b>−1</b>.</p>' },
   ],
-};
+}, ['sat-lf-g01', 'sat-lf-g02', 'sat-lf-g03', 'sat-lf-g04', 'sat-lf-g05', 'sat-lf-g07']);

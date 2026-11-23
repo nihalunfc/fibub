@@ -24,7 +24,9 @@ const J = (nu, x) => { let s = 0; for (let m = 0; m < 60; m++) { const g = gamma
 const integ = (f, a, b, N = 20000) => { let s = 0; const h = (b - a) / N; for (let i = 0; i < N; i++) s += f(a + (i + 0.5) * h); return s * h; };
 const sgn = (v) => (v < 0 ? `- ${-v}` : `+ ${v}`);
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'special-functions',
   items: [
     // ---------- level 1 ----------
@@ -377,3 +379,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["sfn-g06","sfn-g07","sfn-r5g1"]);

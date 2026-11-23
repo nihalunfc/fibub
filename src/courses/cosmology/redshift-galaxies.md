@@ -70,7 +70,7 @@ Slipher kept going. By 1917 he had speeds for 25 spirals. **21 were moving away*
 
 ## 4. Why Andromeda is the odd one out
 
-Andromeda is only 2.5 million light-years away, and the Milky Way and Andromeda are the two big members of a small family of galaxies, the **Local Group**. Their gravity holds them together against the general expansion, so they fall towards each other. In about 4 to 5 billion years they will merge. Beyond the Local Group, almost every galaxy shows a redshift, and the next lesson shows the pattern behind it.
+Andromeda is only 2.5 million light-years away, and the Milky Way and Andromeda are the two big members of a small family of galaxies, the **Local Group**. Their gravity holds them together against the general expansion, so they fall towards each other. They will probably merge one day: recent studies give roughly even odds within about 10 billion years. Beyond the Local Group, almost every galaxy shows a redshift, and the next lesson shows the pattern behind it.
 
 <div class="myth">
 

@@ -18,10 +18,10 @@ export default {
   items: [
     it('lsat-rcm-001', 3, 'main point', 'Which one of the following most accurately expresses the main point of the passage?',
       ['Night markets show that streets can serve more than one purpose, and the objections to them argue for good management rather than prohibition.', 'Night markets have reduced crime in the districts where they operate.', 'City codes from the twentieth century were designed to protect small vendors.', 'The legal objection to night markets shows that they privatize public space.', 'Parades and film shoots should be regulated in the same way as night markets.'],
-      '<p>The final paragraph gives the author\'s own view: the legal objection is weak, the practical one calls for management, and streets can do more than one job. The first option states that. The fourth option is the critics\' view, which the author rejects.</p>', 'Choosing a view the passage reports but the author rejects.'),
+      '<p>The final paragraph gives the author\'s own view: the legal objection is weak, the practical one calls for management, and streets can do more than one job. {A} states that. {D} is the critics\' view, which the author rejects.</p>', 'Choosing a view the passage reports but the author rejects.'),
     it('lsat-rcm-002', 3, 'organisation', 'Which one of the following best describes the organisation of the passage?',
       ['An old view is described, a practice that challenges it is introduced, objections to that practice are given, and the author evaluates the objections.', 'A problem is described, and several solutions are compared and all rejected.', 'Two practices are compared, and the author argues that both should be prohibited.', 'A legal rule is stated and then applied to a series of examples.', 'A historical account is given, followed by a prediction about the future of cities.'],
-      '<p>Paragraph 1: the old "street as channel" view. Paragraph 2: night markets challenge it. Paragraph 3: two objections. Paragraph 4: the author weighs them. The first option maps all four paragraphs.</p>'),
+      '<p>Paragraph 1: the old "street as channel" view. Paragraph 2: night markets challenge it. Paragraph 3: two objections. Paragraph 4: the author weighs them. {A} maps all four paragraphs.</p>'),
     it('lsat-rcm-003', 4, 'function of a paragraph', 'The primary function of the first paragraph is to',
       ['describe a view of streets that the rest of the passage calls into question', 'argue that permits for street vending should be abolished', 'give evidence that night markets reduce traffic', 'present the author\'s main conclusion', 'explain why critics object to night markets'],
       '<p>The first paragraph sets out the twentieth-century "channel" model, which night markets "challenge" in paragraph 2. It is background for the debate, not the author\'s conclusion.</p>'),
@@ -30,7 +30,7 @@ export default {
       '<p>The author calls it "more serious" than the legal objection but says it argues "for careful management ... rather than for prohibition". That is partial acceptance with a proposed remedy.</p>'),
     it('lsat-rcm-005', 5, 'inference', 'The author would be most likely to agree with which one of the following statements?',
       ['A temporary use of a street can be legitimate even if only some people take part in it, as long as others are not shut out.', 'A street stops being public whenever it is closed to traffic.', 'Night markets should be allowed only in Southeast Asia.', 'Residents\' complaints about noise are always exaggerated.', 'City codes should never limit what happens on sidewalks.'],
-      '<p>The author says temporary uses are legitimate "not [because] everyone participates, but [because] access remains open". The first option restates that. The last option is far too strong: the author wants codes rewritten, not removed.</p>'),
+      '<p>The author says temporary uses are legitimate "not [because] everyone participates, but [because] access remains open". {A} restates that. {E} is far too strong: the author wants codes rewritten, not removed.</p>'),
     ...extra.flatMap((x) => x.items),
   ],
 };

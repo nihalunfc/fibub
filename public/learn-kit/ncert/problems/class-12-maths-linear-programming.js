@@ -1,7 +1,7 @@
 // Class 12 Maths, Linear Programming: live problems (original fibub questions). Ids start with c12m-lp-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
-export default {
+export default tidyProblems({
   'c12m-lp-corner': {
     title: 'best corner of a feasible region',
     make(r) {
@@ -55,4 +55,4 @@ export default {
     // walk along x: the most y allowed by both machines, and take the best profit
     verify: (m) => { let best = 0; const xm = Math.min(m.c1 / m.a1, m.c2 / m.a2); for (let i = 0; i <= xm * 4000; i++) { const x = i / 4000, y = Math.min((m.c1 - m.a1 * x) / m.b1, (m.c2 - m.a2 * x) / m.b2); if (y >= 0) best = Math.max(best, m.pv * x + m.qv * y); } return best; },
   },
-};
+}, ['c12m-lp-meet', 'c12m-lp-diet', 'c12m-lp-profit']);

@@ -1,5 +1,5 @@
 // Class 12 Maths, Determinants: live problems (original fibub questions). Ids start with c12m-det-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 // A matrix as a small HTML table with brackets (bars when bar is true).
 const mx = (M, bar = false) => `<table style="display:inline-table;vertical-align:middle;margin:0 4px;border-collapse:collapse;border-left:2px solid currentColor;border-right:2px solid currentColor;border-radius:${bar ? 0 : 6}px"><tbody>${M.map((r) => `<tr>${r.map((v) => `<td style="padding:1px 7px;text-align:center">${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
@@ -8,7 +8,7 @@ const SETS3 = [[[2, 1, 3], [0, -1, 4], [1, 2, 5]], [[1, 2, 0], [3, -1, 2], [4, 0
 const TRI = [[[0, 0], [4, 0], [0, 3]], [[1, 1], [5, 2], [3, 6]], [[-2, 0], [2, 1], [0, 5]], [[1, 2], [4, 3], [2, 7]], [[0, 1], [6, 2], [3, -4]], [[-1, -1], [3, 0], [1, 5]]];
 const SYS = [[2, 1, 3, 5], [1, 2, 4, 3], [3, 1, 1, 2], [2, 3, 5, 1], [4, 1, 2, 7], [1, 3, 2, 4]];
 
-export default {
+export default tidyProblems({
   'c12m-det-three': {
     title: 'value of a 3 × 3 determinant',
     make(r) {
@@ -76,4 +76,4 @@ export default {
     // from A adj A = |A| I, taking determinants: |A| |adj A| = |A|^n
     verify: (p) => (p.D ** p.k) / p.D,
   },
-};
+}, ['c12m-det-three', 'c12m-det-tri', 'c12m-det-cramer', 'c12m-det-k']);

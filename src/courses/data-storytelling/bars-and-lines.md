@@ -8,7 +8,7 @@ quiz:
   - q: Must a bar chart's value axis start at zero?
     choices: ['Yes: bar length is the value, so a cut axis distorts it', 'No, never', 'Only for money']
     ans: 0
-    why: Readers compare lengths. Start at 50,000 and a 9 % rise can look like 160 %.
+    why: Readers compare lengths. Start at 50,000 and a 9 % rise can look like 150 %.
   - q: When should bar charts be horizontal?
     choices: ['Never', 'When labels are long or there are many categories', 'Only on phones']
     ans: 1

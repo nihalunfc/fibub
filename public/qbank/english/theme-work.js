@@ -71,10 +71,10 @@ export default {
     T(3, 'Fix the spelling: "Please sign the form and give it to your <b>supervizor</b>."', 'supervisor', 'Supervisor is spelled with s: su-per-vi-sor.', 'spelling'),
     T(4, 'Fix the spelling: "The <b>committe</b> will decide next week."', 'committee', 'Committee has double m, double t and double e.', 'spelling'),
     O(1, 'I work in a small office downtown', 'Subject + verb + place: I work / in a small office / downtown.'),
-    O(2, 'She has been looking for a new job since March', 'Present perfect continuous (has been looking) with "since" + a point in time.'),
+    O(2, 'She has been looking for a new job since March', 'Present perfect continuous (has been looking) with "since" + a point in time.', ['Since March she has been looking for a new job']),
     O(3, 'Could you tell me what the job involves', 'An indirect question keeps normal word order after the question word: what the job involves (not "what does the job involve").'),
     O(3, 'The interview went better than I had expected', 'Comparison "better than" + past perfect for the earlier expectation.'),
-    O(4, 'Had I known about the opening I would have applied', 'Inverted third conditional: Had I known = If I had known.'),
+    O(4, 'Had I known about the opening I would have applied', 'Inverted third conditional: Had I known = If I had known.', ['I would have applied had I known about the opening']),
     O(5, 'Not only did she meet the deadline but she also improved the design', '"Not only" at the start needs question order: did she meet. The second part uses "but ... also".'),
   ],
 };

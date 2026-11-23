@@ -1,11 +1,11 @@
 // Class 12 Maths, Chapter 7 Integrals: live problems (original fibub questions). Ids start with c12m-int-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 // Simpson's rule: a numerical check that does not use any antiderivative.
 const simpson = (f, a, b, N = 2000) => { const h = (b - a) / N; let s = f(a) + f(b); for (let i = 1; i < N; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 const sgn = (v, s) => (v === 0 ? '' : (v < 0 ? ' − ' : ' + ') + (Math.abs(v) === 1 && s ? '' : Math.abs(v)) + s);
 
-export default {
+export default tidyProblems({
   'c12m-int-power': {
     title: 'definite integral of a polynomial',
     make(r) {
@@ -68,4 +68,4 @@ export default {
     },
     verify: (x) => simpson((t) => 1 / (t * t + x.c * x.c), 0, x.b),
   },
-};
+}, ['c12m-int-power', 'c12m-int-subst', 'c12m-int-parts', 'c12m-int-partial', 'c12m-int-even']);

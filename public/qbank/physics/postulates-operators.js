@@ -9,7 +9,9 @@ import r4 from './postulates-operators.r4.gen.js';
 const HBAR_EVFS = 0.6582119569; // hbar in eV fs
 const H_EVFS = 4.135667696; // h in eV fs
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'postulates-operators',
   items: [
     // ---------- level 1 ----------
@@ -308,3 +310,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["qpo-g01","qpo-g03","qpo-r4g1"], { neg: ["qpo-r4g1"] });

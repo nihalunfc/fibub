@@ -138,7 +138,7 @@ The FTC's Mail, Internet, or Telephone Order Merchandise Rule says you must ship
 
 </div>
 
-**Next:** [Pricing and unit economics](/learn/courses/startup/pricing-unit-economics/). Make a quick sign-up QR code for a market stall with [[qr-code-generator]].
+**Next:** [Pricing and unit economics](/learn/courses/startup/pricing-unit-economics/).
 
 **New words:** *MVP*, *assumption*, *pre-sale*, *concierge MVP*, *Wizard of Oz*.
 

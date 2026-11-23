@@ -19,7 +19,7 @@ export default {
     { id: 'dat-g02', type: 'mcq', level: 3, exams: E, sub: 'normal distribution',
       make(r) {
         const mu = choose(r, [50, 60, 70, 100, 500]), sd = choose(r, [5, 8, 10, 15, 20]), N = choose(r, [200, 400, 1000, 2000]), k = int(r, 0, 2);
-        const [lo, hi, share, txt] = [[mu - sd, mu + sd, 0.68, 'within 1 standard deviation'], [mu, mu + 2 * sd, 0.475, 'from the mean to 2 standard deviations above'], [mu + sd, Infinity, 0.16, 'more than 1 standard deviation above the mean']][k];
+        const [lo, hi, share, txt] = [[mu - sd, mu + sd, 0.68, 'within 1 standard deviation'], [mu, mu + 2 * sd, 0.475, 'from the mean to 2 standard deviations above'], [mu + sd, Infinity, 0.16, 'exactly 1 standard deviation above the mean, so the question asks for the upper tail beyond 1 SD']][k];
         const value = Math.round(share * N), o = numOpts(r, value, [Math.round(0.34 * N), Math.round(0.95 * N), Math.round(0.5 * N), Math.round(0.025 * N)].filter((v) => v !== value), (v) => String(Math.round(v)));
         return { q: `<p>The scores of ${N} people are approximately normally distributed with mean ${mu} and standard deviation ${sd}. About how many scored ${hi === Infinity ? 'above ' + lo : 'between ' + lo + ' and ' + hi}?</p>`, options: o.options, answer: o.answer, value,
           sol: steps(`${hi === Infinity ? lo + ' is' : lo + ' to ' + hi + ' is'} ${txt}.`, `The 68-95-99.7 rule: about 68% lie within 1 SD, 95% within 2 SD; so this region holds about ${share * 100}%.`, `${share * 100}% of ${N} ≈ <b>${value}</b>.`), trap: 'Using 68% or 95% for a region that is only one side of the mean: halve it.' };

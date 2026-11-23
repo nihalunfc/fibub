@@ -26,7 +26,7 @@ export default {
       '<p>"Some legal scholars conclude..." then "But this conclusion overlooks..." and the telephone cases\' hidden benefit. The author does choose a side.</p>'),
     it('lsat-rsf-004', 5, 'main point', 'Which one of the following most accurately states the main point of the passage?',
       ['Although reasoning by precedent adapts slowly to new technology, the search for apt comparisons can produce principles general enough to cover later technologies.', 'Courts should stop reasoning by precedent when deciding cases about new technology.', 'Telephone calls deserve the same privacy as letters.', 'Legislatures are better than courts at protecting privacy.', 'Precedent makes the law stable and predictable.'],
-      '<p>The final sentence sums up the passage: slow, but able to uncover lasting principles. The last option is true according to paragraph 1 but is background, not the main point.</p>'),
+      '<p>The final sentence sums up the passage: slow, but able to uncover lasting principles. {E} is true according to paragraph 1 but is background, not the main point.</p>'),
     ...extra.flatMap((x) => x.items),
   ],
 };

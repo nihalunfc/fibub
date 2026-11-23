@@ -1,10 +1,10 @@
 // Class 10 Maths, Chapter 3 Pair of Linear Equations in Two Variables: practice questions (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('pl');
 const sg = (v) => (v < 0 ? '−' : '+');
 
-export default {
+export default tidyGens({
   topic: 'pair-of-linear-equations', name: 'Pair of Linear Equations in Two Variables', n: 3,
   items: [
     m.mcq(1, 'basics', '<p>Which of these is a linear equation in two variables?</p>', '$2x + 3y = 7$', ['$x^2 + y = 4$', '$xy = 6$', '$\\dfrac{1}{x} + y = 3$'], '<p>A linear equation has x and y only to the first power and no product xy.</p>'),
@@ -57,4 +57,4 @@ export default {
       make(rng) { const bt = pick(rng, 6, 16), st = pick(rng, 1, 5), t = pick(rng, 2, 4), dn = (bt + st) * t, up = (bt - st) * t; return { dn, up, t, q: `<p>A boat goes ${dn} km downstream and ${up} km upstream, each in ${t} hours. Find the speed of the boat in still water (km/h).</p>`, answer: bt, tol: 0, unit: 'km/h', sol: `<p>Downstream speed ${dn / t}, upstream ${up / t}. The boat speed is their average: ${bt} km/h.</p>` }; },
       verify: (p) => (p.dn / p.t + p.up / p.t) / 2 },
   ],
-};
+}, ['pl-g01', 'pl-g02', 'pl-g05']);

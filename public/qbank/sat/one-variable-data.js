@@ -1,10 +1,12 @@
 // SAT Math · Problem-solving and data analysis · mean, median, range, spread and outliers. Original (fibub).
 import { int, choose, shuffleOpts, fmt, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'data' };
 const sum = (a) => a.reduce((s, x) => s + x, 0);
 const median = (a) => { const b = [...a].sort((x, y) => x - y), n = b.length; return n % 2 ? b[(n - 1) / 2] : (b[n / 2 - 1] + b[n / 2]) / 2; };
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'one-variable-data',
   gens: [
     { id: 'sat-ov-g01', type: 'nat', marks: 1, level: 1, exams: ['sat'], sub: 'mean', facets: F, format: 'numeric',
@@ -56,4 +58,4 @@ export default {
       options: ['1', '1.5', '2', '0.5'], answer: 0,
       sol: '<p>20 values, so the median is the mean of the 10th and 11th. The first 6 values are 0; values 7 to 15 are 1. Both the 10th and 11th are 1, so the median is <b>1</b>.</p>' },
   ],
-};
+}, ['sat-ov-g01']);

@@ -32,7 +32,7 @@ export default {
       const g = choose(r, GAS), T = pick(r, 200, 600, 50), v = Math.sqrt(3 * R * T / (g[1] * 1e-3));
       return { M: g[1], T, q: `<p>Find the rms speed of ${g[0]} molecules (molar mass ${g[1]} g/mol) at ${T} K. Use R = 8.314 J/(mol K). Answer in m/s.</p>`, answer: v, unit: 'm/s', tol: 0.01,
         hint: 'v_rms = √(3RT/M) with M in kg/mol.',
-        solution: steps(`M = ${g[1]} g/mol = ${g[1] / 1000} kg/mol.`, `v_rms = √(3 × 8.314 × ${T} ÷ ${g[1] / 1000}) = <b>${n(v)} m/s</b>.`) };
+        solution: steps(`M = ${g[1]} g/mol = ${+(g[1] / 1000).toPrecision(6)} kg/mol.`, `v_rms = √(3 × 8.314 × ${T} ÷ ${+(g[1] / 1000).toPrecision(6)}) = <b>${n(v)} m/s</b>.`) };
     },
     verify: (x) => { const m = x.M * 1e-3 / 6.022e23; return Math.sqrt(3 * 1.380649e-23 * x.T / m); },
   },

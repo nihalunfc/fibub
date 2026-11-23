@@ -1,9 +1,9 @@
 // Class 10 Maths, Pair of Linear Equations in Two Variables: live problems (original fibub questions). Ids start with c10m-pair-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const sgn = (v) => (v < 0 ? '−' : '+');
 const lin = (a, b) => `${a === 1 ? '' : a === -1 ? '−' : a}x ${sgn(b)} ${Math.abs(b) === 1 ? '' : Math.abs(b)}y`;
-export default {
+export default tidyProblems({
   'c10m-pair-solve': {
     title: 'solve a pair of equations',
     make(r) {
@@ -58,4 +58,4 @@ export default {
     },
     verify: (p) => (p.ask === 'father' ? ((p.fa - p.son) + (p.fa + p.son)) / 2 : ((p.fa + p.son) - (p.fa - p.son)) / 2),
   },
-};
+}, ['c10m-pair-solve', 'c10m-pair-k']);

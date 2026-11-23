@@ -600,6 +600,7 @@ gens.push(
 
 // ======== Expansion block (added 2026-11-22): more hard items and templates, ids th-x001 onward ========
 import * as XH from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
 const xr = String.raw;
 const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
@@ -939,4 +940,5 @@ const xgens = [
     verify: (p) => { const fm = (c) => (Number.isInteger(c) ? `$${c}R$` : c === 0.5 ? '$\\tfrac12R$' : c === 2.5 ? '$\\tfrac52R$' : `$${c}R$`); return p.options.indexOf(fm(1.5 + 1 / (1 - p.n))); } },
 ];
 
-export default { topic: 'thermodynamics-physics', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'thermodynamics-physics', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['th-g11', 'th-g32', 'th-g13'], [], ['th-g11', 'th-g13', 'th-g32']);

@@ -14,7 +14,9 @@ const erf = (x) => { const s = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.327
 const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
 const simpson = (f, a, b, n = 400) => { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'probability-distributions',
   items: [
     // ---------- level 1 ----------
@@ -352,3 +354,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["prd-g12"]);

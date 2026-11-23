@@ -40,7 +40,7 @@ export default {
   ],
   gens: [
     { id: 'ec-g01', type: 'nat', level: 3, exams: ['board'], sub: 'nernst',
-      make(rng) { const zn = choose(rng, [0.001, 0.01, 0.1, 1]), cu = choose(rng, [0.001, 0.01, 0.1, 1]); const E = 1.10 - 0.0592 / 2 * Math.log10(zn / cu); return { zn, cu, q: `<p>The Daniell cell has E° = 1.10 V. Find E at 298 K when [Zn²⁺] = ${zn} M and [Cu²⁺] = ${cu} M (use 0.0592; give 3 decimals).</p>`, answer: +E.toFixed(3), tol: 0.005, unit: 'V', sol: `<p>Q = ${zn}/${cu}; E = 1.10 − (0.0592/2) log(${zn / cu}) = ${E.toFixed(3)} V.</p>` }; },
+      make(rng) { const zn = choose(rng, [0.001, 0.01, 0.1, 1]), cu = choose(rng, [0.001, 0.01, 0.1, 1]); const E = 1.10 - 0.0592 / 2 * Math.log10(zn / cu); return { zn, cu, q: `<p>The Daniell cell has E° = 1.10 V. Find E at 298 K when [Zn²⁺] = ${zn} M and [Cu²⁺] = ${cu} M (use 0.0592; give 3 decimals).</p>`, answer: +E.toFixed(3), tol: 0.005, unit: 'V', sol: `<p>Q = ${zn}/${cu}; E = 1.10 − (0.0592/2) log(${+(zn / cu).toPrecision(6)}) = ${E.toFixed(3)} V.</p>` }; },
       verify: (p) => 1.10 - (8.314 * 298 / (2 * 96500)) * Math.log(p.zn / p.cu) },
     { id: 'ec-g02', type: 'nat', level: 2, exams: ['board'], sub: 'faraday',
       make(rng) { const mt = choose(rng, [['silver', 107.9, 1], ['copper', 63.5, 2], ['aluminium', 27, 3]]), I = choose(rng, [1, 2, 5]), t = choose(rng, [10, 20, 30, 60]); const g = I * t * 60 * mt[1] / (mt[2] * 96500); return { mt, I, t, q: `<p>A current of ${I} A is passed for ${t} minutes to deposit ${mt[0]} (${mt[1]} g/mol, ${mt[2]} electrons per ion). Find the mass in g (F = 96500 C/mol).</p>`, answer: r3(g), tol: Math.max(0.005, g * 0.01), unit: 'g', sol: `<p>Q = ${I} × ${t * 60} = ${I * t * 60} C; m = Q M/(nF) = ${r3(g)} g.</p>` }; },

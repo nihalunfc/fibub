@@ -30,7 +30,7 @@ export default {
       make(r) {
         const k = choose(r, [2, 3, 4, 5]), what = choose(r, ['area', 'volume']);
         const f = what === 'area' ? k * k : k ** 3;
-        const o = shuffleOpts(r, `${f} times`, [`${k} times`, `${what === 'area' ? k ** 3 : k * k} times`, `${2 * k} times`]);
+        const o = shuffleOpts(r, `${f} times`, [`${k} times`, `${what === 'area' ? k ** 3 : k * k} times`, `${2 * k} times`, `${k + 1} times`, `${k ** 4} times`]);
         return { q: `<p>Every length of a ${what === 'area' ? 'rectangle' : 'cube'} is multiplied by ${k}. The ${what} of the new shape is how many times the ${what} of the original?</p>`, ...o,
           sol: `<p>Lengths scale by ${k}. Area has two lengths multiplied, so it scales by ${k}<sup>2</sup>; volume has three, so ${k}<sup>3</sup>. Here: <b>${f} times</b>.</p>`, trap: `Answering ${k}: only lengths scale by ${k}.` };
       } },

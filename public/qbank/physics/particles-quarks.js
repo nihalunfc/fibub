@@ -28,7 +28,9 @@ const RES = [['\\Delta(1232)', 117], ['\\rho(770)', 149], ['\\omega(782)', 8.68]
 const half = (x) => (Number.isInteger(x) ? String(x) : `${x < 0 ? '-' : ''}${Math.abs(2 * x)}/2`);
 const frac = (x) => { const t = Math.round(x * 3); return t % 3 === 0 ? String(t / 3) : `${t < 0 ? '-' : ''}${Math.abs(t)}/3`; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'particles-quarks',
   items: [
     // ---------- level 1 ----------
@@ -366,3 +368,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pqk-g02"]);

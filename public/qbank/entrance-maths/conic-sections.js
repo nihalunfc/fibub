@@ -1,4 +1,5 @@
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1017,4 +1018,5 @@ gens.push(...xgens);
 }
 // ==L5-M2-END
 
-export default { topic: 'conic-sections', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'conic-sections', groups, items, gens }, ['cs-g06', 'cs-g19', 'cs-g24', 'cs-gx3', 'cs-gx4', 'cs-gx5', 'cs-gx7']);

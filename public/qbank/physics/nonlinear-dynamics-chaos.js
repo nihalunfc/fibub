@@ -10,7 +10,9 @@ import r4 from './nonlinear-dynamics-chaos.r4.gen.js';
 const LOG = 'The logistic map is $x_{n+1} = rx_n(1 - x_n)$, with $0 \\leq x \\leq 1$ and $0 < r \\leq 4$.';
 const LYA = 'For a one-dimensional map the Lyapunov exponent is $\\lambda = \\lim_{n\\to\\infty}\\dfrac1n\\sum_{i=0}^{n-1}\\ln|f\'(x_i)|$.';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'nonlinear-dynamics-chaos',
   items: [
     // ---------- level 1 ----------
@@ -324,3 +326,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["chs-g06","chs-g09","chs-r4g3"]);

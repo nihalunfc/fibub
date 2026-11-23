@@ -2,6 +2,7 @@
 import { maker } from './_make.js';
 import { pick, choose } from '../_util.js';
 const m = maker('ap');
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 const R = String.raw;
 const lst = (a, d, k = 4) => Array.from({ length: k }, (_, i) => a + i * d).join(', ');
 
@@ -36,7 +37,7 @@ export default {
   ],
   gens: [
     { id: 'ap-g01', type: 'nat', level: 1, exams: ['board'], sub: 'nth',
-      make(rng) { const a = pick(rng, -12, 30), d = pick(rng, -7, 9), N = pick(rng, 8, 40); return { a, d, N, q: `<p>Find the ${N}th term of the AP $${lst(a, d)}, \\dots$</p>`, answer: a + (N - 1) * d, tol: 0, sol: `<p>$a = ${a}$, $d = ${d}$. $a_{${N}} = ${a} + ${N - 1}(${d}) = ${a + (N - 1) * d}$.</p>` }; },
+      make(rng) { const a = pick(rng, -12, 30), d = pick(rng, -7, 9), N = pick(rng, 8, 40); return { a, d, N, q: `<p>Find the ${ord(N)} term of the AP $${lst(a, d)}, \\dots$</p>`, answer: a + (N - 1) * d, tol: 0, sol: `<p>$a = ${a}$, $d = ${d}$. $a_{${N}} = ${a} + ${N - 1}(${d}) = ${a + (N - 1) * d}$.</p>` }; },
       verify: (p) => { let v = p.a; for (let i = 1; i < p.N; i++) v += p.d; return v; } },
     { id: 'ap-g02', type: 'nat', level: 2, exams: ['board'], sub: 'nth',
       make(rng) { const a = pick(rng, 2, 30), d = pick(rng, 2, 9), k = pick(rng, 6, 40), T = a + (k - 1) * d; return { a, d, T, q: `<p>Which term of the AP $${lst(a, d)}, \\dots$ is ${T}?</p>`, answer: k, tol: 0, sol: `<p>$${a} + (n-1)(${d}) = ${T}$, so $n - 1 = ${(T - a) / d}$ and $n = ${k}$.</p>` }; },
@@ -48,7 +49,7 @@ export default {
       make(rng) { const a = pick(rng, -15, 20), d = pick(rng, 2, 9), N = pick(rng, 9, 35), l = a + (N - 1) * d; return { a, d, l, q: `<p>How many terms are there in the AP $${a}, ${a + d}, ${a + 2 * d}, \\dots, ${l}$?</p>`, answer: N, tol: 0, sol: `<p>$${a} + (n-1)(${d}) = ${l}$, so $(n-1) = ${(l - a) / d}$ and $n = ${N}$.</p>` }; },
       verify: (p) => { let v = p.a, c = 1; while (v < p.l) { v += p.d; c++; } return c; } },
     { id: 'ap-g05', type: 'nat', level: 3, exams: ['board'], sub: 'nth',
-      make(rng) { const a = pick(rng, -10, 20), d = pick(rng, -6, 9), p = pick(rng, 2, 5), s = pick(rng, 8, 14), t = pick(rng, 15, 25); return { a, d, p, s, t, q: `<p>In an AP the ${p}th term is ${a + (p - 1) * d} and the ${s}th term is ${a + (s - 1) * d}. Find the ${t}th term.</p>`, answer: a + (t - 1) * d, tol: 0, sol: `<p>${s - p}d = ${a + (s - 1) * d} − (${a + (p - 1) * d}) = ${(s - p) * d}, so $d = ${d}$. Then $a_{${t}} = a_{${p}} + ${t - p}d = ${a + (p - 1) * d} + ${t - p}(${d}) = ${a + (t - 1) * d}$.</p>` }; },
+      make(rng) { const a = pick(rng, -10, 20), d = pick(rng, -6, 9), p = pick(rng, 2, 5), s = pick(rng, 8, 14), t = pick(rng, 15, 25); return { a, d, p, s, t, q: `<p>In an AP the ${ord(p)} term is ${a + (p - 1) * d} and the ${ord(s)} term is ${a + (s - 1) * d}. Find the ${ord(t)} term.</p>`, answer: a + (t - 1) * d, tol: 0, sol: `<p>${s - p}d = ${a + (s - 1) * d} − (${a + (p - 1) * d}) = ${(s - p) * d}, so $d = ${d}$. Then $a_{${t}} = a_{${p}} + ${t - p}d = ${a + (p - 1) * d} + ${t - p}(${d}) = ${a + (t - 1) * d}$.</p>` }; },
       verify: (q) => { const ap = q.a + (q.p - 1) * q.d, as = q.a + (q.s - 1) * q.d, dd = (as - ap) / (q.s - q.p); return ap + (q.t - q.p) * dd; } },
     { id: 'ap-g06', type: 'nat', level: 3, exams: ['board'], sub: 'sum',
       make(rng) { const k = choose(rng, [3, 4, 5, 6, 7, 9]), mm = pick(rng, 8, 30), N = mm * k + pick(rng, 0, k - 1); return { k, N, q: `<p>Find the sum of all multiples of ${k} that are not more than ${N}.</p>`, answer: (k * mm * (mm + 1)) / 2, tol: 0, sol: `<p>${k}, ${2 * k}, …, ${mm * k} is an AP with ${mm} terms. $S = \\dfrac{${mm}}{2}(${k} + ${mm * k}) = ${(k * mm * (mm + 1)) / 2}$.</p>` }; },

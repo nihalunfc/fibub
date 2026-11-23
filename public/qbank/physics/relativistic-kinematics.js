@@ -11,7 +11,9 @@ const M = { p: 938.27, n: 939.57, pi: 139.57, pi0: 134.98, mu: 105.66, e: 0.511,
 const DEG = Math.PI / 180;
 const lam = (a, b, c) => a * a + b * b + c * c - 2 * a * b - 2 * a * c - 2 * b * c;
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'relativistic-kinematics',
   items: [
     // ---------- level 1 ----------
@@ -347,3 +349,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["rk-r4g1"]);

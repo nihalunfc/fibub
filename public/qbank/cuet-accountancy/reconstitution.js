@@ -83,7 +83,7 @@ export default {
         const g = (u, v, w) => { const k = gc(gc(u, v), w); return `${u / k} : ${v / k} : ${w / k}`; };
         const ra = a * (x[1] - x[0]), rb = b * (x[1] - x[0]), rc = x[0] * t;
         const correct = g(ra, rb, rc);
-        const { options, answer } = shuffleOpts(rng, correct, [`${a} : ${b} : ${x[0]}`, g(rb, ra, rc), g(a, b, rc)], (v) => v);
+        const { options, answer } = shuffleOpts(rng, correct, [`${a} : ${b} : ${x[0]}`, g(rb, ra, rc), g(a, b, rc), g(b, a, x[0]), g(ra, rb, 2 * rc), g(ra + rc, rb, rc)], (v) => v);
         return { q: `A and B share profits ${a} : ${b}. They admit C for a ${x[0]}/${x[1]} share, which he takes from A and B in the old ratio. The new ratio of A : B : C is:`, options, answer, correct,
           sol: steps(`Old partners keep ${x[1] - x[0]}/${x[1]} of the firm, shared ${a} : ${b}.`, `A = ${a}/${t} × ${x[1] - x[0]}/${x[1]}, B = ${b}/${t} × ${x[1] - x[0]}/${x[1]}, C = ${x[0]}/${x[1]}.`, `New ratio = <b>${correct}</b>.`), trap: 'Do not just add C\'s share to the old ratio.' };
       } },

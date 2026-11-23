@@ -1,5 +1,6 @@
 // Inverse trigonometric functions (Plus Two entrance, Mathematics, Class 12). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const CUET = true; // Class 12 chapters: level 1-3 mcq also list 'cuet'
@@ -120,7 +121,7 @@ const items = [
   M(1, 'principal values', R`The principal value of $\sin^{-1}\dfrac12$ is`, R`$\dfrac\pi6$`, [R`$\dfrac\pi3$`, R`$\dfrac{5\pi}6$`, R`$\dfrac\pi4$`],
     R`<p>$\sin\dfrac\pi6=\dfrac12$ and $\dfrac\pi6$ lies in $\left[-\dfrac\pi2,\dfrac\pi2\right]$. The angle $\dfrac{5\pi}6$ also has sine $\dfrac12$ but is outside the principal range.</p>`, 'The answer must lie in the principal range.'),
   M(1, 'ranges', R`The range (principal value branch) of $\cos^{-1}x$ is`, R`$[0,\pi]$`, [R`$\left[-\dfrac\pi2,\dfrac\pi2\right]$`, R`$(0,\pi)$`, R`$[-\pi,\pi]$`],
-    R`<p>By convention $\cos^{-1}x\in[0,\pi]$, where cosine is one-to-one. The second option is the range of $\sin^{-1}x$; the third is the range of $\cot^{-1}x$.</p>`, ''),
+    R`<p>By convention $\cos^{-1}x\in[0,\pi]$, where cosine is one-to-one. $\left[-\dfrac\pi2,\dfrac\pi2\right]$ is the range of $\sin^{-1}x$ and $(0,\pi)$ is the range of $\cot^{-1}x$.</p>`, ''),
   M(1, 'domains', R`The domain of $\sin^{-1}x$ is`, R`$[-1,1]$`, [R`$(-1,1)$`, R`$\mathbb R$`, R`$\left[-\dfrac\pi2,\dfrac\pi2\right]$`],
     R`<p>Sine takes only values between $-1$ and $1$ (both included), so $\sin^{-1}x$ is defined exactly for $x\in[-1,1]$.</p>`, 'The end points $\\pm1$ are included.'),
   I(1, 'values', R`Find $5\sin\left(\sin^{-1}\dfrac35\right)$.`, 3,
@@ -286,7 +287,7 @@ const items = [
     R`<p>For $x<0$ both terms are negative, so the sum is $-\dfrac\pi2$; test $x=-1$: $-\dfrac\pi4-\dfrac\pi4=-\dfrac\pi2$. I is false, II true.</p>`, ''),
   S(4, 'properties', R`$\cot^{-1}x=\tan^{-1}\dfrac1x$ for every $x\ne0$.`, R`For $x<0$, $\cot^{-1}x=\pi+\tan^{-1}\dfrac1x$.`, 2,
     R`<p>For $x<0$, $\tan^{-1}\dfrac1x<0$ but $\cot^{-1}x\in\left(\dfrac\pi2,\pi\right)$, so I is false. II gives the correct relation.</p>`, ''),
-  S(5, 'domains', R`$\sec^{-1}\dfrac12$ is defined and equals $\dfrac\pi3$.`, R`The domain of $\sec^{-1}$ is $(-\infty,-1]\cup[1,\infty)$.`, 3,
+  S(5, 'domains', R`$\sec^{-1}\dfrac12$ is defined and equals $\dfrac\pi3$.`, R`The domain of $\sec^{-1}$ is $(-\infty,-1]\cup[1,\infty)$.`, 2,
     R`<p>$\sec^{-1}\dfrac12$ would need $\cos\theta=2$, so I is false. II is true.</p>`, ''),
   SC(3, 'principal values', [R`$\sin^{-1}\dfrac12=\dfrac\pi6$`, R`$\cos^{-1}(-1)=\pi$`, R`$\tan^{-1}(-1)=\dfrac{7\pi}4$`, R`$\cot^{-1}0=\dfrac\pi2$`], '3', ['1', '2', '4'],
     R`<p>(1) true. (2) true. (3) false: $\tan^{-1}(-1)=-\dfrac\pi4$. (4) true: $\cot\dfrac\pi2=0$. Three are correct.</p>`, ''),
@@ -782,4 +783,5 @@ gens.push(...xgens);
 
 }
 
-export default { topic: 'inverse-trig', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'inverse-trig', groups, items, gens }, ['it-g08', 'it-g09', 'it-gx2']);

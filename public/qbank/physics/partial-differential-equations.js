@@ -10,7 +10,9 @@ import r5 from './partial-differential-equations.r5.gen.js';
 
 const integ = (f, a, b, N = 20000) => { let s = 0; const h = (b - a) / N; for (let i = 0; i < N; i++) s += f(a + (i + 0.5) * h); return s * h; };
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'partial-differential-equations',
   items: [
     // ---------- level 1 ----------
@@ -370,3 +372,6 @@ export default {
     ...r5.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["pde-m32","pde-r5g1","pde-r5g2"]);

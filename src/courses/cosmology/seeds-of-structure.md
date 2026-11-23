@@ -31,7 +31,7 @@ sources:
 
 ## 1. Almost smooth
 
-The cosmic microwave background, released at [recombination](/learn/courses/cosmology/recombination/) about 380,000 years after the start, has the same temperature in every direction to about 1 part in 100,000 ([Lesson 7.4](/learn/courses/cosmology/cmb-anisotropies/)). Slightly warmer and cooler patches mark slightly denser and thinner regions of matter. Picture a perfectly calm lake with ripples a hundredth of a millimetre high on a surface a kilometre wide: that is how smooth the young universe was.
+The cosmic microwave background, released at [recombination](/learn/courses/cosmology/recombination/) about 380,000 years after the start, has the same temperature in every direction to about 1 part in 100,000 ([Lesson 7.4](/learn/courses/cosmology/cmb-anisotropies/)). Slightly warmer and cooler patches mark slightly denser and thinner regions of matter. Picture a perfectly calm lake with ripples a centimetre high on a surface a kilometre wide: that is how smooth the young universe was.
 
 Cosmologists measure a ripple with the **density contrast**, already met in [Lesson 8.4](/learn/courses/cosmology/dark-matter-cmb/):
 

@@ -26,7 +26,7 @@ export default {
         const a = choose(r, [10, 20, 25, 30, 40, 50]), b = choose(r, [10, 20, 25, 30, 40, 50]);
         const net = Math.round(((1 + a / 100) * (1 - b / 100) - 1) * 10000) / 100;
         const word = (x) => (x === 0 ? "no change" : x > 0 ? `a ${fmt(x)}% increase` : `a ${fmt(-x)}% decrease`);
-        const o = shuffleOpts(r, word(net), [word(a - b), word(a + b === 0 ? 1 : a - b + 5), word(-(a * b) / 100), a === b ? 'no change' : word(b - a)]);
+        const o = shuffleOpts(r, word(net), [word(a - b), word(a + b === 0 ? 1 : a - b + 5), word(-(a * b) / 100), a === b ? 'no change' : word(b - a), word(a + b), word(-(a + b)), word(net + 10)]);
         return { q: `<p>A store raised the price of a lamp by ${a}%. A month later it lowered the new price by ${b}%. Which describes the overall change from the original price?</p>`, ...o,
           sol: steps(`Raising by ${a}% multiplies by ${fmt(1 + a / 100)}; lowering by ${b}% multiplies by ${fmt(1 - b / 100)}.`, `Overall: ${fmt(1 + a / 100)} × ${fmt(1 - b / 100)} = ${fmt((1 + a / 100) * (1 - b / 100))}.`, `So the overall change is <b>${word(net)}</b>.`),
           trap: `Adding the percents (${a} − ${b}): the second percent is taken of a different, larger price.` };

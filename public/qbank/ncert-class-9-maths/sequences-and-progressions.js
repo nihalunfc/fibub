@@ -2,6 +2,7 @@
 import { maker } from './_make.js';
 import { pick, choose } from '../_util.js';
 const m = maker('sp');
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 const mn = (v) => String(v).replace('-', '−');
 const L = (a, d, k) => Array.from({ length: k }, (_, i) => mn(a + i * d)).join(', ');
 
@@ -46,7 +47,7 @@ export default {
       make(rng) { const a = pick(rng, -5, 20), d = choose(rng, [-4, -3, -2, 2, 3, 4, 5, 6]); return { a, d, q: `<p>Find the common difference of the AP ${L(a, d, 4)}, ...</p>`, answer: d, tol: 0, sol: `<p>${mn(a + d)} − (${mn(a)}) = ${mn(d)}.</p>` }; },
       verify: (x) => (x.a + 5 * x.d - (x.a + x.d)) / 4 },
     { id: 'sp-g02', type: 'nat', level: 2, exams: ['board'], sub: 'nth',
-      make(rng) { const a = pick(rng, -5, 20), d = choose(rng, [-3, -2, 2, 3, 4, 5, 6, 7]), N = pick(rng, 8, 40); return { a, d, N, q: `<p>Find the ${N}th term of the AP ${L(a, d, 4)}, ...</p>`, answer: a + (N - 1) * d, tol: 0, sol: `<p>a + (n − 1)d = ${mn(a)} + ${N - 1} × (${mn(d)}) = ${mn(a + (N - 1) * d)}.</p>` }; },
+      make(rng) { const a = pick(rng, -5, 20), d = choose(rng, [-3, -2, 2, 3, 4, 5, 6, 7]), N = pick(rng, 8, 40); return { a, d, N, q: `<p>Find the ${ord(N)} term of the AP ${L(a, d, 4)}, ...</p>`, answer: a + (N - 1) * d, tol: 0, sol: `<p>a + (n − 1)d = ${mn(a)} + ${N - 1} × (${mn(d)}) = ${mn(a + (N - 1) * d)}.</p>` }; },
       verify: (x) => { let t = x.a; for (let i = 1; i < x.N; i++) t += x.d; return t; } },
     { id: 'sp-g03', type: 'nat', level: 3, exams: ['board'], sub: 'nth',
       make(rng) { const a = pick(rng, 2, 15), d = pick(rng, 2, 9), N = pick(rng, 10, 50); return { a, d, N, q: `<p>How many terms does the AP ${a}, ${a + d}, ${a + 2 * d}, ..., ${a + (N - 1) * d} have?</p>`, answer: N, tol: 0, sol: `<p>${a} + (n − 1) × ${d} = ${a + (N - 1) * d}, so n − 1 = ${N - 1} and n = ${N}.</p>` }; },
@@ -58,10 +59,10 @@ export default {
       make(rng) { const N = pick(rng, 8, 50); return { N, q: `<p>A row of ${N} triangles is made with matchsticks (1 triangle needs 3 sticks, 2 triangles need 5, 3 need 7). How many sticks are needed?</p>`, answer: 2 * N + 1, tol: 0, sol: `<p>The counts form an AP with a = 3, d = 2: 3 + (${N} − 1) × 2 = ${2 * N + 1}.</p>` }; },
       verify: (x) => { let s = 3; for (let i = 1; i < x.N; i++) s += 2; return s; } },
     { id: 'sp-g06', type: 'nat', level: 2, exams: ['board'], sub: 'gp',
-      make(rng) { const a = pick(rng, 1, 5), r = choose(rng, [2, 3, 4]), N = pick(rng, 4, 8); return { a, r, N, q: `<p>A sequence starts at ${a} and each term is ${r} times the one before. Find the ${N}th term.</p>`, answer: a * r ** (N - 1), tol: 0, sol: `<p>${a} × ${r}^${N - 1} = ${a * r ** (N - 1)}.</p>` }; },
+      make(rng) { const a = pick(rng, 1, 5), r = choose(rng, [2, 3, 4]), N = pick(rng, 4, 8); return { a, r, N, q: `<p>A sequence starts at ${a} and each term is ${r} times the one before. Find the ${ord(N)} term.</p>`, answer: a * r ** (N - 1), tol: 0, sol: `<p>${a} × ${r}^${N - 1} = ${a * r ** (N - 1)}.</p>` }; },
       verify: (x) => { let t = x.a; for (let i = 1; i < x.N; i++) t *= x.r; return t; } },
     { id: 'sp-g07', type: 'nat', level: 3, exams: ['board'], sub: 'ap',
-      make(rng) { const a = pick(rng, 2, 12), d = pick(rng, 2, 8), k = pick(rng, 2, 6); return { a, d, k, q: `<p>The ${k}th term of an AP is ${a + (k - 1) * d} and the common difference is ${d}. Find the first term.</p>`, answer: a, tol: 0, sol: `<p>a + ${k - 1} × ${d} = ${a + (k - 1) * d}, so a = ${a + (k - 1) * d} − ${(k - 1) * d} = ${a}.</p>` }; },
+      make(rng) { const a = pick(rng, 2, 12), d = pick(rng, 2, 8), k = pick(rng, 2, 6); return { a, d, k, q: `<p>The ${ord(k)} term of an AP is ${a + (k - 1) * d} and the common difference is ${d}. Find the first term.</p>`, answer: a, tol: 0, sol: `<p>a + ${k - 1} × ${d} = ${a + (k - 1) * d}, so a = ${a + (k - 1) * d} − ${(k - 1) * d} = ${a}.</p>` }; },
       verify: (x) => { let t = x.a + (x.k - 1) * x.d; for (let i = 1; i < x.k; i++) t -= x.d; return t; } },
   ],
 };

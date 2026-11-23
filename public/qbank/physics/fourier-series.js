@@ -12,7 +12,9 @@ const simpson = (f, a, b, n = 4000) => { const h = (b - a) / n; let s = f(a) + f
 const PI = Math.PI;
 const CONV = 'Use $f(x) = \\tfrac{a_0}{2} + \\sum_{n\\ge1}(a_n\\cos nx + b_n\\sin nx)$ on $(-\\pi, \\pi)$, with $a_n = \\tfrac1\\pi\\int_{-\\pi}^{\\pi}f\\cos nx\\,dx$ and $b_n = \\tfrac1\\pi\\int_{-\\pi}^{\\pi}f\\sin nx\\,dx$. ';
 
-export default {
+import { tidyPhys } from './_signs.js';
+
+const topicBank = {
   topic: 'fourier-series',
   items: [
     // ---------- level 1 ----------
@@ -323,3 +325,6 @@ export default {
     ...r4.gens,
   ],
 };
+
+// Tidy signs in generated text ("+ -3" -> "- 3", "1x" -> "x"); see _signs.js.
+export default tidyPhys(topicBank, ["fs-g01","fs-t22","fs-t23","fs-t24","fs-t26"]);

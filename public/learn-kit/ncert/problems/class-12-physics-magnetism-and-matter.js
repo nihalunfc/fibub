@@ -47,10 +47,10 @@ export default {
   'c12p-matter-chi': {
     title: 'B inside a magnetic material',
     make(r) {
-      const H = pick(r, 200, 2000, 100), chi = choose(r, [2e-5, 5e-4, 99, 499, 1999]), answer = MU0 * (1 + chi) * H * 1e3;
-      return { H, chi, q: `<p>A material of susceptibility χ = ${chi >= 1 ? chi : chi.toExponential(0).replace('e-', '×10⁻')} fills a solenoid, where the magnetic intensity is H = ${H} A/m. Find B in the material, in millitesla. (μ0 = 4π×10⁻⁷ T m/A.)</p>`, answer, unit: 'mT', tol: 0.01,
+      const H = pick(r, 200, 2000, 100), chi = choose(r, [2e-5, 5e-4, 99, 499, 1999]), answer = MU0 * (1 + chi) * H * 1e3, chiS = chi >= 1 ? String(chi) : chi.toExponential(0).replace(/e-(\d+)/, (_, d) => ' × 10⁻' + [...d].map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[c]).join(''));
+      return { H, chi, q: `<p>A material of susceptibility χ = ${chiS} fills a solenoid, where the magnetic intensity is H = ${H} A/m. Find B in the material, in millitesla. (μ0 = 4π×10⁻⁷ T m/A.)</p>`, answer, unit: 'mT', tol: 0.01,
         hint: 'B = μ0 (H + M) and M = χ H, so B = μ0 (1 + χ) H.',
-        solution: steps(`M = χ H = ${chi >= 1 ? chi : chi.toExponential(1)} × ${H} A/m.`, `B = μ0 (H + M) = μ0 (1 + χ) H = 4π×10⁻⁷ × ${n(1 + chi, 5)} × ${H}.`, `B = <b>${n(answer)} mT</b>.`) };
+        solution: steps(`M = χ H = ${chiS} × ${H} A/m.`, `B = μ0 (H + M) = μ0 (1 + χ) H = 4π×10⁻⁷ × ${n(1 + chi, 5)} × ${H}.`, `B = <b>${n(answer)} mT</b>.`) };
     },
     verify: (x) => MU0 * (x.H + x.chi * x.H) * 1e3,
   },

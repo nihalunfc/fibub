@@ -41,10 +41,10 @@ export default {
     title: 'height on a Ferris wheel',
     make(r) {
       const R = pick(r, 10, 30), th = choose(r, [60, 90, 120, 180, 240, 270, 300]);
-      const answer = R * (1 - Math.cos((th * Math.PI) / 180));
-      return { R, th, q: `<p>A Ferris wheel of radius <b>${R} m</b> has its lowest point on the ground. A rider boards at the bottom and the wheel turns through <b>${th}°</b>. How high above the ground is the rider? (Use cos ${th}° = ${n(Math.cos((th * Math.PI) / 180), 3)}.)</p>`, answer, unit: 'm', tol: 0.005, abs: 0.01,
+      const answer = R * (1 - Math.cos((th * Math.PI) / 180)), c = +Math.cos((th * Math.PI) / 180).toFixed(3) + 0;
+      return { R, th, q: `<p>A Ferris wheel of radius <b>${R} m</b> has its lowest point on the ground. A rider boards at the bottom and the wheel turns through <b>${th}°</b>. How high above the ground is the rider? (Use cos ${th}° = ${n(c, 3)}.)</p>`, answer, unit: 'm', tol: 0.005, abs: 0.01,
         hint: 'The centre is R above the ground. The rider’s height above the ground is R − R cos θ, measured from the bottom.',
-        solution: steps(`The centre is ${R} m above the ground.`, `After ${th}° from the bottom, the height is R(1 − cos ${th}°) = ${R} × (1 − ${n(Math.cos((th * Math.PI) / 180), 3)}).`, `Height = <b>${n(answer, 4)} m</b>.`) };
+        solution: steps(`The centre is ${R} m above the ground.`, `After ${th}° from the bottom, the height is R(1 − cos ${th}°) = ${R} × (1 − ${c < 0 ? `(${n(c, 3)})` : n(c, 3)}).`, `Height = <b>${n(answer, 4)} m</b>.`) };
     },
     verify(x) { return x.R + x.R * Math.sin(((x.th - 90) * Math.PI) / 180); },
   },

@@ -219,7 +219,7 @@ Now factorise anything you like and watch the working in the tool, which finds c
 
 <!--fig:tool factorise-steps-->
 
-You can also check any algebra with the [Symbolic algebra tool](/learn/symbolic-algebra/). In Class 10 you will use factorising to solve quadratic equations, and the [Rationalise denominator tool](/learn/rationalise-denominator/) uses (a + b)(a − b) too.
+You can also check any algebra with the [Symbolic algebra tool](/science/symbolic-algebra/). In Class 10 you will use factorising to solve quadratic equations, and the [Rationalise denominator tool](/learn/rationalise-denominator/) uses (a + b)(a − b) too.
 
 <div class="history">
 

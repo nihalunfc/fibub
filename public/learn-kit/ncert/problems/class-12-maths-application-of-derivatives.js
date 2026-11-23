@@ -1,11 +1,11 @@
 // Class 12 Maths, Application of Derivatives: live problems (original fibub questions). Ids start with c12m-appd-.
-import { choose, n, steps } from './_util.js';
+import { choose, n, steps, tidyProblems } from './_util.js';
 
 const D = (f, x) => { const h = 1e-5; return (f(x + h) - f(x - h)) / (2 * h); };
 // golden-section search for the largest value of f on [lo, hi]
 const maxOf = (f, lo, hi) => { const g = (Math.sqrt(5) - 1) / 2; let a = lo, b = hi; for (let i = 0; i < 120; i++) { const c = b - g * (b - a), d = a + g * (b - a); f(c) > f(d) ? (b = d) : (a = c); } return f((a + b) / 2); };
 
-export default {
+export default tidyProblems({
   'c12m-appd-balloon': {
     title: 'how fast the radius of a balloon grows',
     make(r) {
@@ -78,4 +78,4 @@ export default {
     // search the numerical minimum near x = a
     verify: (p) => { const f = (x) => x ** 3 - 3 * p.a * p.a * x + p.c; let lo = p.a / 2, hi = p.a * 2; for (let i = 0; i < 120; i++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; f(m1) < f(m2) ? (hi = m2) : (lo = m1); } return f((lo + hi) / 2); },
   },
-};
+}, ['c12m-appd-localmin']);

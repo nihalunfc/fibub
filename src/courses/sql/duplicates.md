@@ -266,7 +266,7 @@ FROM r
 WHERE rn > 1
 ```
 
-**Try it on your own data:** [[data-cleaner]] removes duplicate rows from a CSV, and [[merge-csv]] helps when the duplicates come from joining two files.
+**Try it on your own data:** [[csv-profiler]] counts exact duplicate rows in a CSV, and [[merge-csv]] helps when the duplicates come from joining two files.
 
 <div class="keypoints">
 
