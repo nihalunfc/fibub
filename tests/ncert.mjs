@@ -54,6 +54,8 @@ for (const course of courses) {
     ok(`${where}: has key points`, md.includes('class="keypoints"'));
     const bare = md.split('\n---\n').slice(1).join('\n').replace(/```[\s\S]*?```/g, '').match(/(?<![`\\$])\$[^$\n`]+?\$(?![`$])/);
     ok(`${where}: maths is written as \`$...$\` with backticks (bare: ${bare?.[0]})`, !bare);
+    const opens = (md.match(/`\$/g) || []).length, closes = (md.match(/\$`/g) || []).length;
+    ok(`${where}: every \`$ maths span is closed with $\` (${opens} opened, ${closes} closed)`, opens === closes);
     const spill = md.match(/`\$[^`$\n]*\$[^`\n]+`/);
     ok(`${where}: a \`$...$\` span ends right after its closing $ (${spill?.[0]})`, !spill);
     ok(`${where}: has sources`, /\nsources:\n\s+- /.test(md));
