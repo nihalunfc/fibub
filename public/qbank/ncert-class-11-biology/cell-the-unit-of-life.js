@@ -1,0 +1,52 @@
+// Class 11 Biology, Chapter 8 Cell: The Unit of Life: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('ce');
+
+export default {
+  topic: 'cell-the-unit-of-life', name: 'Cell: The Unit of Life', n: 8,
+  items: [
+    m.mcq(1, 'theory', '<p>Who proposed that new cells arise from pre-existing cells?</p>', 'Rudolf Virchow', ['Robert Hooke', 'Schleiden', 'Anton van Leeuwenhoek'], '<p>Virchow added the third point to the cell theory in 1855.</p>'),
+    m.mcq(1, 'theory', '<p>The first person to see and name cells (in cork) was:</p>', 'Robert Hooke', ['Schwann', 'Robert Brown', 'Virchow'], '<p>Hooke in 1665 saw the empty cell walls of cork.</p>'),
+    m.mcq(2, 'theory', '<p>Which of these does NOT fit the cell theory well?</p>', 'viruses', ['bacteria', 'amoeba', 'yeast'], '<p>Viruses are not cells and multiply only in a host cell.</p>'),
+    m.mcq(2, 'size', '<p>A cube-shaped cell doubles its side. Its surface area to volume ratio:</p>', 'halves', ['doubles', 'stays the same', 'becomes four times'], '<p>S/V = 6/L, so doubling L halves the ratio.</p>'),
+    m.mcq(2, 'size', '<p>The smallest cells known are:</p>', 'mycoplasma', ['E. coli', 'red blood cells', 'yeast'], '<p>Mycoplasma are about 0.3 µm and have no cell wall.</p>'),
+    m.mcq(2, 'prok', '<p>Plasmids are:</p>', 'small circles of extra DNA in bacteria', ['part of the bacterial wall', 'bacterial ribosomes', 'bacterial flagella'], '<p>They often carry genes such as antibiotic resistance.</p>'),
+    m.mcq(2, 'prok', '<p>The ribosomes of bacteria are:</p>', '70S', ['80S', '60S', '40S'], '<p>50S + 30S form a 70S ribosome.</p>'),
+    m.mcq(2, 'prok', '<p>The cell wall of bacteria is made of:</p>', 'peptidoglycan', ['cellulose', 'chitin', 'lignin'], '<p>Penicillin blocks the building of peptidoglycan.</p>'),
+    m.mcq(3, 'prok', '<p>The folds of the plasma membrane in a bacterium that help in respiration are the:</p>', 'mesosomes', ['chromatophores', 'plasmids', 'pili'], '<p>Mesosomes are infoldings of the membrane.</p>'),
+    m.mcq(2, 'membrane', '<p>Which molecule gives the membrane its bilayer?</p>', 'phospholipid', ['cellulose', 'glycogen', 'DNA'], '<p>Phospholipids have a water-loving head and two water-hating tails.</p>'),
+    m.mcq(2, 'membrane', '<p>Movement of a substance against its concentration gradient using ATP is:</p>', 'active transport', ['simple diffusion', 'facilitated diffusion', 'osmosis'], '<p>Pumps use energy to move substances uphill.</p>'),
+    m.mcq(2, 'membrane', '<p>Oxygen crosses the plasma membrane by:</p>', 'simple diffusion', ['active transport', 'a pump', 'endocytosis'], '<p>It is small and non-polar, so it slips through the lipid layer.</p>'),
+    m.mcq(3, 'membrane', '<p>Cholesterol in the membrane:</p>', 'keeps its fluidity from changing too much', ['is the main transport protein', 'makes it rigid always', 'is only in plant cells'], '<p>It makes the membrane less runny when warm and less stiff when cold.</p>'),
+    m.mcq(2, 'wall', '<p>The cell wall of fungi is made mainly of:</p>', 'chitin', ['cellulose', 'peptidoglycan', 'lignin'], '<p>Plants use cellulose; fungi use chitin.</p>'),
+    m.mcq(2, 'wall', '<p>Plasmodesmata connect:</p>', 'the cytoplasm of adjacent plant cells', ['nucleus and ER', 'two bacteria', 'mitochondria and chloroplasts'], '<p>They pass through the cell walls.</p>'),
+    m.mcq(2, 'endo', '<p>The organelle that modifies and packs proteins for export is the:</p>', 'Golgi apparatus', ['lysosome', 'ribosome', 'centrosome'], '<p>The Golgi receives vesicles on its cis face and sends them on from its trans face.</p>'),
+    m.mcq(2, 'endo', '<p>Which organelle is NOT part of the endomembrane system?</p>', 'mitochondrion', ['Golgi apparatus', 'lysosome', 'endoplasmic reticulum'], '<p>Mitochondria have their own separate system.</p>'),
+    m.mcq(2, 'endo', '<p>Lysosomal enzymes are called:</p>', 'acid hydrolases', ['polymerases', 'kinases', 'ligases'], '<p>They break down molecules with water in acid conditions.</p>'),
+    m.mcq(2, 'endo', '<p>The membrane around the plant central vacuole is the:</p>', 'tonoplast', ['plasmalemma', 'cristae', 'cisternae'], '<p>Tonoplast is the vacuolar membrane.</p>'),
+    m.mcq(2, 'endo', '<p>Smooth ER is mainly concerned with:</p>', 'lipid synthesis and detoxification', ['protein synthesis', 'photosynthesis', 'ATP synthesis'], '<p>Rough ER makes proteins.</p>'),
+    m.mcq(2, 'organelle', '<p>The inner folds of the mitochondria are the:</p>', 'cristae', ['grana', 'cisternae', 'thylakoids'], '<p>Cristae increase the surface for ATP making.</p>'),
+    m.mcq(2, 'organelle', '<p>Which plastid stores starch?</p>', 'amyloplast', ['chromoplast', 'chloroplast', 'elaioplast'], '<p>Amyloplasts are leucoplasts that store starch.</p>'),
+    m.mcq(2, 'organelle', '<p>Which pair of organelles has its own DNA?</p>', 'mitochondria and chloroplasts', ['Golgi and lysosomes', 'ER and vacuoles', 'ribosomes and centrioles'], '<p>These two support the endosymbiotic theory.</p>'),
+    m.mcq(3, 'organelle', '<p>Ribosomes of the eukaryotic cytoplasm are made of subunits:</p>', '60S and 40S', ['50S and 30S', '70S and 50S', '80S and 60S'], '<p>60S + 40S make an 80S ribosome (the numbers are not added exactly).</p>'),
+    m.mcq(2, 'cyto', '<p>The arrangement of microtubules in cilia is:</p>', '9 + 2', ['9 + 0', '9 triplets', '2 + 9 triplets'], '<p>A centriole is 9 + 0 triplets.</p>'),
+    m.mcq(2, 'nucleus', '<p>A chromosome with the centromere at its extreme end is:</p>', 'telocentric', ['metacentric', 'sub-metacentric', 'acrocentric'], '<p>Telocentric: the centromere is at the tip.</p>'),
+    m.mcq(2, 'nucleus', '<p>The nucleolus is the site of:</p>', 'rRNA synthesis and ribosome assembly', ['DNA replication', 'lipid synthesis', 'ATP synthesis'], '<p>It has no membrane.</p>'),
+    m.ar(2, 'organelle', 'Mitochondria are called the powerhouses of the cell.', 'They make most of the ATP of the cell.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'wall', 'The cell wall is selectively permeable.', 'It is made of cellulose.', 3, '<p>A is false: the wall is fully permeable; the membrane is selectively permeable. R is true.</p>'),
+    m.nat(2, 'size', '<p>A cell looks 24 mm long in a picture magnified 600 times. What is its real length in µm?</p>', () => 40, 0.5, '<p>24 ÷ 600 = 0.04 mm = 40 µm.</p>'),
+    m.msq(3, 'prok', '<p>Which are found in a bacterial cell? (Choose all that apply.)</p>', ['70S ribosomes', 'a nucleoid', 'mitochondria', 'a peptidoglycan wall'], [0, 1, 3], '<p>Bacteria have no mitochondria.</p>'),
+  ],
+  gens: [
+    { id: 'ce-g01', type: 'nat', level: 2, exams: ['board'], sub: 'size',
+      make(rng) { const i = pick(rng, 20, 90, 5), mg = choose(rng, [100, 400, 1000, 2000]); return { i, mg, q: `<p>An image is ${i} mm long at a magnification of ${mg}×. What is the real length in µm?</p>`, answer: +(i * 1000 / mg).toPrecision(5), tol: 0.5, unit: 'µm', sol: `<p>${i} ÷ ${mg} = ${(i / mg).toFixed(3)} mm = ${(i * 1000 / mg).toFixed(1)} µm.</p>` }; },
+      verify: (p) => p.i / p.mg * 1000 },
+    { id: 'ce-g02', type: 'nat', level: 2, exams: ['board'], sub: 'size',
+      make(rng) { const L = choose(rng, [2, 4, 5, 10, 20, 25]); return { L, q: `<p>A cube-shaped cell has a side of ${L} µm. Find S/V in µm⁻¹.</p>`, answer: +(6 / L).toPrecision(5), tol: 0.02, sol: `<p>S = 6 × ${L}² = ${6 * L * L}; V = ${L}³ = ${L ** 3}; S/V = ${(6 / L).toFixed(3)}.</p>` }; },
+      verify: (p) => 6 * p.L * p.L / (p.L * p.L * p.L) },
+    { id: 'ce-g03', type: 'nat', level: 3, exams: ['board'], sub: 'size',
+      make(rng) { const r1 = choose(rng, [2, 4, 5, 10]), k = choose(rng, [2, 3, 4]); return { r1, k, q: `<p>A spherical cell has radius ${r1} µm. Another sphere has a radius ${k} times as large. By what factor is S/V of the larger cell smaller than that of the smaller cell?</p>`, answer: k, tol: 0.02, sol: `<p>For a sphere S/V = 3/r, so it falls by the same factor as r rises: ${k}.</p>` }; },
+      verify: (p) => (3 / p.r1) / (3 / (p.r1 * p.k)) },
+  ],
+};

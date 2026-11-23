@@ -1,0 +1,52 @@
+// Class 11 Biology, Chapter 13 Plant Growth and Development: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('pg');
+
+export default {
+  topic: 'plant-growth-and-development', name: 'Plant Growth and Development', n: 13,
+  items: [
+    m.mcq(1, 'growth', '<p>Plant growth is described as open because:</p>', 'meristems keep dividing throughout life', ['it stops at a fixed size', 'only roots grow', 'cells never differentiate'], '<p>Apical and lateral meristems stay active.</p>'),
+    m.mcq(2, 'growth', '<p>In the elongation phase, cells grow bigger mainly by:</p>', 'absorbing water into a large vacuole', ['dividing quickly', 'losing their walls', 'making chlorophyll'], '<p>Turgor stretches the walls.</p>'),
+    m.mcq(2, 'growth', '<p>Which zone of the root shows most mitosis?</p>', 'meristematic zone', ['elongation zone', 'maturation zone', 'root cap'], '<p>The cells near the tip divide.</p>'),
+    m.mcq(2, 'growth', '<p>Arithmetic growth is shown by:</p>', 'a root tip elongating at a constant rate', ['a bacterial culture early on', 'a fruit in its first days', 'a population with no limits'], '<p>One daughter cell divides and the other differentiates.</p>'),
+    m.mcq(3, 'growth', '<p>The curve for geometric growth is:</p>', 'J-shaped (exponential)', ['a straight line', 'S-shaped over the whole life', 'a flat line'], '<p>The size multiplies, so the curve climbs steeper.</p>'),
+    m.mcq(2, 'growth', '<p>The stationary phase of the sigmoid curve happens because:</p>', 'nutrients or space become limiting', ['cells lose their genes', 'hormones are absent', 'the temperature rises'], '<p>Growth rate falls to zero.</p>'),
+    m.mcq(3, 'growth', '<p>Relative growth rate is:</p>', 'increase in size per unit of the initial size', ['total increase in size', 'the size at the end', 'the lag time'], '<p>It compares the growth with the plant\'s own size.</p>'),
+    m.mcq(2, 'diff', '<p>Cork cambium forms from living cells through:</p>', 'dedifferentiation', ['differentiation only', 'redifferentiation only', 'fertilisation'], '<p>Mature living cells divide again.</p>'),
+    m.mcq(2, 'diff', '<p>Heterophylly in cotton and coriander is an example of:</p>', 'plasticity', ['dormancy', 'vernalisation', 'photoperiodism'], '<p>Juvenile and adult leaves differ.</p>'),
+    m.mcq(2, 'pgr', '<p>Apical dominance is caused by:</p>', 'auxin from the shoot tip', ['cytokinin from roots', 'ethylene from fruit', 'ABA from seeds'], '<p>Auxin inhibits the side buds.</p>'),
+    m.mcq(2, 'pgr', '<p>Which synthetic auxin is a weed killer for broad-leaved weeds?</p>', '2,4-D', ['kinetin', 'ethephon', 'GA₃'], '<p>It kills dicot weeds in cereal fields.</p>'),
+    m.mcq(2, 'pgr', '<p>Gibberellins were first found in:</p>', 'the fungus Gibberella (bakanae disease of rice)', ['coconut milk', 'ripe fruit', 'tobacco leaves'], '<p>Infected rice seedlings grew very tall.</p>'),
+    m.mcq(3, 'pgr', '<p>Spraying gibberellin on sugarcane before harvest:</p>', 'lengthens the stems and raises sugar yield', ['makes it ripen', 'closes stomata', 'stops growth'], '<p>It elongates internodes.</p>'),
+    m.mcq(2, 'pgr', '<p>Kinetin was first isolated from:</p>', 'herring sperm DNA (and coconut milk factor)', ['ripe tomato', 'rice seedlings', 'maize leaves only'], '<p>It promotes cell division; the natural one is zeatin.</p>'),
+    m.mcq(3, 'pgr', '<p>Cut flowers last longer when kept in a cytokinin solution because it:</p>', 'delays senescence', ['causes fruit to fall', 'closes stomata', 'causes dormancy'], '<p>Leaves stay green.</p>'),
+    m.mcq(2, 'pgr', '<p>Which plant hormone is a gas?</p>', 'ethylene', ['auxin', 'gibberellin', 'cytokinin'], '<p>It spreads through the air between fruits.</p>'),
+    m.mcq(2, 'pgr', '<p>Ethephon is used to:</p>', 'ripen tomatoes and promote flowering in pineapple', ['kill weeds', 'break dormancy of seeds', 'close stomata'], '<p>It releases ethylene.</p>'),
+    m.mcq(2, 'pgr', '<p>The "stress hormone" that closes stomata during drought is:</p>', 'abscisic acid', ['auxin', 'cytokinin', 'gibberellin'], '<p>ABA also keeps seeds dormant.</p>'),
+    m.mcq(3, 'pgr', '<p>Which pair is antagonistic?</p>', 'gibberellin and abscisic acid (in germination)', ['auxin and 2,4-D', 'cytokinin and kinetin', 'ethylene and ethephon'], '<p>GA breaks dormancy and ABA keeps it.</p>'),
+    m.mcq(2, 'photo', '<p>Rice and chrysanthemum are:</p>', 'short-day plants', ['long-day plants', 'day-neutral plants', 'plants that need vernalisation'], '<p>They flower when the dark period is long.</p>'),
+    m.mcq(3, 'photo', '<p>A short flash of light in the middle of a long night will:</p>', 'stop a short-day plant from flowering', ['make a short-day plant flower', 'have no effect on any plant', 'kill the plant'], '<p>It breaks the dark period in two.</p>'),
+    m.mcq(2, 'photo', '<p>Which pigment senses the day length in leaves?</p>', 'phytochrome', ['chlorophyll a', 'carotene', 'anthocyanin'], '<p>Phytochrome switches between two forms with red and far-red light.</p>'),
+    m.mcq(2, 'vern', '<p>Vernalisation is a requirement for flowering in:</p>', 'winter wheat', ['rice', 'maize', 'tomato'], '<p>Cold treatment lets it flower.</p>'),
+    m.mcq(2, 'dorm', '<p>Scarification of seeds is done to:</p>', 'break a hard seed coat', ['keep the seed dormant', 'add auxin', 'increase ripening'], '<p>Scratching or acid lets water and oxygen in.</p>'),
+    m.mcq(3, 'dorm', '<p>Seed dormancy helps a plant by:</p>', 'delaying germination until the season is suitable', ['making seeds grow faster', 'preventing seed formation', 'stopping flowering'], '<p>It spreads the risk.</p>'),
+    m.ar(2, 'pgr', 'Removing the tip of a shoot makes the plant bushy.', 'The shoot tip makes auxin that holds the side buds back.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'growth', 'Sigmoid growth curves flatten out.', 'The lag phase comes at the end.', 2, '<p>A is true, R is false: the stationary phase comes at the end.</p>'),
+    m.ar(3, 'photo', 'A short-day plant flowers only when the uninterrupted night is long enough.', 'A flash of light in the dark period breaks it in two.', 1, '<p>Both true; R shows how the night is measured, it does not by itself explain A.</p>'),
+    m.nat(3, 'growth', '<p>A seedling grows from 8 cm to 10 cm in a day. What is its relative growth rate in % per day?</p>', () => 25, 0.01, '<p>2 ÷ 8 = 0.25 = 25 %.</p>'),
+    m.nat(3, 'growth', '<p>A culture of 3 cells doubles every day. How many cells after 5 days?</p>', () => 3 * 32, 0, '<p>3 × 2⁵ = 96.</p>'),
+    m.msq(3, 'pgr', '<p>Which of these promote cell division or elongation? (Choose all that apply.)</p>', ['Auxin', 'Gibberellin', 'Cytokinin', 'Abscisic acid'], [0, 1, 2], '<p>ABA inhibits growth.</p>'),
+  ],
+  gens: [
+    { id: 'pg-g01', type: 'nat', level: 2, exams: ['board'], sub: 'growth',
+      make(rng) { const a = choose(rng, [2, 4, 5, 8, 10, 20]), inc = choose(rng, [1, 2, 3, 4]); return { a, inc, q: `<p>A shoot grows from ${a} cm to ${a + inc} cm in a day. What is the relative growth rate in % per day?</p>`, answer: +(100 * inc / a).toPrecision(5), tol: 0.01, unit: '%', sol: `<p>${inc} ÷ ${a} × 100 = ${(100 * inc / a).toFixed(1)} %.</p>` }; },
+      verify: (p) => ((p.a + p.inc) / p.a - 1) * 100 },
+    { id: 'pg-g02', type: 'nat', level: 2, exams: ['board'], sub: 'growth',
+      make(rng) { const w = choose(rng, [1, 2, 5, 10]), k = choose(rng, [3, 4, 5, 6, 7]); return { w, k, q: `<p>${w} cell${w > 1 ? 's double' : ' doubles'} every day. How many cells after ${k} days?</p>`, answer: w * 2 ** k, tol: 0, unit: 'cells', sol: `<p>${w} × 2^${k} = ${w * 2 ** k}.</p>` }; },
+      verify: (p) => { let v = p.w; for (let i = 0; i < p.k; i++) v += v; return v; } },
+    { id: 'pg-g03', type: 'nat', level: 3, exams: ['board'], sub: 'growth',
+      make(rng) { const ratio = choose(rng, [10, 20, 50, 100]), mv = choose(rng, [10, 20, 40, 60]); return { ratio, mv, q: `<p>An auxanometer magnifies growth ${ratio} times. The pointer moves ${mv} mm. How many mm did the stem grow?</p>`, answer: +(mv / ratio).toPrecision(5), tol: 0.01, unit: 'mm', sol: `<p>${mv} ÷ ${ratio} = ${(mv / ratio).toFixed(2)} mm.</p>` }; },
+      verify: (p) => p.mv / p.ratio },
+  ],
+};

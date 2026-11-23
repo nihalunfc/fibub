@@ -1,0 +1,53 @@
+// Class 11 Biology, Chapter 2 Biological Classification: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('bc');
+
+export default {
+  topic: 'biological-classification', name: 'Biological Classification', n: 2,
+  items: [
+    m.mcq(1, 'five', '<p>The five-kingdom classification was proposed by:</p>', 'R. H. Whittaker', ['Carolus Linnaeus', 'Carl Woese', 'Ernst Haeckel'], '<p>Whittaker proposed it in 1969. Linnaeus had two kingdoms.</p>'),
+    m.mcq(1, 'five', '<p>Which of these was NOT a basis of Whittaker\'s classification?</p>', 'presence of a backbone', ['cell structure', 'mode of nutrition', 'phylogenetic relationships'], '<p>The criteria were cell structure, body organisation, nutrition, reproduction and relationships.</p>'),
+    m.mcq(2, 'five', '<p>A single-celled organism with a nucleus and a flexible pellicle, photosynthetic in light and feeding in the dark, is:</p>', 'Euglena, in Protista', ['Nostoc, in Monera', 'yeast, in Fungi', 'Hydra, in Animalia'], '<p>Euglena is a single-celled eukaryote that can be autotrophic or heterotrophic.</p>'),
+    m.mcq(2, 'five', '<p>Cyanobacteria are placed in Monera and not in Plantae because they:</p>', 'are prokaryotes', ['do not photosynthesise', 'lack chlorophyll a', 'are multicellular'], '<p>They photosynthesise, but have no nucleus or membrane-bound organelles.</p>', { trap: 'Equating photosynthesis with kingdom Plantae.' }),
+    m.mcq(1, 'monera', '<p>The cell wall of eubacteria is made of:</p>', 'peptidoglycan', ['cellulose', 'chitin', 'pectin only'], '<p>Cellulose is the plant wall, chitin the fungal wall.</p>'),
+    m.mcq(2, 'monera', '<p>Archaebacteria differ from other bacteria in having:</p>', 'a wall without peptidoglycan', ['a true nucleus', 'chitin walls', 'no cell membrane'], '<p>The unusual wall and membranes help them live in extreme places.</p>'),
+    m.mcq(2, 'monera', '<p>Methanogens are found in:</p>', 'the guts of ruminants and marshy places', ['hot sulphur springs only', 'very salty lakes only', 'sea ice only'], '<p>They produce methane, which is why gobar gas plants use cattle dung.</p>'),
+    m.mcq(2, 'monera', '<p>The smallest living cells, with no cell wall, are:</p>', 'mycoplasma', ['cyanobacteria', 'spirilla', 'diatoms'], '<p>Mycoplasma have no wall, and can live without oxygen.</p>'),
+    m.mcq(2, 'monera', '<p>Bacteria that stain violet in the Gram stain have:</p>', 'a thick peptidoglycan wall', ['an outer membrane over a thin wall', 'no wall', 'a chitin wall'], '<p>Gram-positive bacteria keep the violet dye because of the thick wall.</p>'),
+    m.mcq(2, 'monera', '<p>Heterocysts of <i>Nostoc</i> are specialised for:</p>', 'nitrogen fixation', ['photosynthesis', 'spore formation', 'sexual reproduction'], '<p>The thick-walled heterocysts fix atmospheric nitrogen.</p>'),
+    m.mcq(1, 'protista', '<p>The silica cell wall of diatoms forms:</p>', 'diatomaceous earth', ['red tides', 'slime moulds', 'peat'], '<p>The shells do not decay and form deposits used in filtering and polishing.</p>'),
+    m.mcq(2, 'protista', '<p>"Red tides" in the sea are caused by rapid growth of:</p>', 'dinoflagellates', ['euglenoids', 'diatoms', 'slime moulds'], '<p>Species such as <i>Gonyaulax</i> multiply rapidly and colour the sea.</p>'),
+    m.mcq(2, 'protista', '<p>The malaria parasite <i>Plasmodium</i> belongs to the protozoan group:</p>', 'sporozoans', ['amoeboid protozoans', 'ciliated protozoans', 'flagellated protozoans'], '<p>Sporozoans have an infectious spore-like stage.</p>'),
+    m.mcq(3, 'protista', '<p>A plasmodium of a slime mould is:</p>', 'a mass with many nuclei that spreads over a surface', ['a mass of separate cells', 'a spore', 'a kind of bacterium'], '<p>The plasmodium is a coenocytic mass that forms spores in bad conditions.</p>'),
+    m.mcq(1, 'fungi', '<p>The cell wall of fungi is made of:</p>', 'chitin', ['cellulose', 'peptidoglycan', 'silica'], '<p>A nitrogen-containing polysaccharide.</p>'),
+    m.mcq(2, 'fungi', '<p>The fusion of the protoplasm of two hyphae is called:</p>', 'plasmogamy', ['karyogamy', 'meiosis', 'budding'], '<p>Plasmogamy comes first; karyogamy is the fusion of nuclei.</p>'),
+    m.mcq(2, 'fungi', '<p>The dikaryotic phase in fungi has:</p>', 'two haploid nuclei in one cell', ['one diploid nucleus', 'no nucleus', 'four nuclei with half the chromosomes'], '<p>Each cell contains two separate nuclei: n + n.</p>'),
+    m.mcq(2, 'fungi', '<p>Mushrooms belong to the class:</p>', 'Basidiomycetes', ['Ascomycetes', 'Phycomycetes', 'Deuteromycetes'], '<p>They make basidiospores on basidia.</p>'),
+    m.mcq(2, 'fungi', '<p>Which fungus is a Phycomycete (coenocytic mycelium)?</p>', 'Rhizopus', ['Penicillium', 'Agaricus', 'Alternaria'], '<p><i>Rhizopus</i>, the bread mould, makes zygospores.</p>'),
+    m.mcq(3, 'fungi', '<p>Deuteromycetes are called "imperfect fungi" because:</p>', 'only their asexual stage is known', ['they have no hyphae', 'they have no nucleus', 'they are viruses'], '<p>Once a sexual stage is found they are moved to Ascomycetes or Basidiomycetes.</p>'),
+    m.mcq(1, 'viruses', '<p>The virus particle\'s protein coat is the:</p>', 'capsid', ['envelope only', 'pellicle', 'prion'], '<p>The capsid is made of capsomeres.</p>'),
+    m.mcq(2, 'viruses', '<p>Viroids differ from viruses because they have:</p>', 'only RNA, with no protein coat', ['only DNA with a coat', 'only a protein coat', 'cell walls'], '<p>Diener discovered them in 1971; they cause the potato spindle tuber disease.</p>'),
+    m.mcq(2, 'viruses', '<p>Prions are:</p>', 'infectious misfolded proteins', ['tiny RNA pieces', 'bacteria without walls', 'viruses with DNA'], '<p>They cause BSE (mad cow disease) and CJD.</p>'),
+    m.mcq(2, 'viruses', '<p>The genetic material of most plant viruses is:</p>', 'single-stranded RNA', ['double-stranded DNA', 'protein', 'RNA and DNA together'], '<p>For example TMV; phages usually have double-stranded DNA.</p>'),
+    m.mcq(2, 'viruses', '<p>Lichens are good indicators of:</p>', 'air pollution (sulphur dioxide)', ['soil acidity', 'water hardness', 'noise'], '<p>They absorb gases through their surface, so they do not live where the air is polluted.</p>'),
+    m.ar(2, 'monera', 'Cyanobacteria are placed in kingdom Monera.', 'They have no true nucleus and no membrane-bound organelles.', 0, '<p>Both true; R explains A.</p>'),
+    m.ar(3, 'fungi', 'Yeast is placed in Fungi although it is single-celled.', 'Yeast has a chitin wall and absorbs its food.', 0, '<p>Cell wall and absorptive nutrition decide, not the number of cells.</p>'),
+    m.ar(3, 'viruses', 'Viruses are placed in a separate group, outside the five kingdoms.', 'They have a cell wall made of peptidoglycan.', 2, '<p>A is true; R is false. They have no cells at all.</p>'),
+    m.msq(2, 'monera', '<p>Which of these are Gram-positive features? (Choose all that apply.)</p>', ['Thick peptidoglycan wall', 'Keeps the violet dye', 'Outer membrane over the wall', 'Stains pink at the end'], [0, 1], '<p>Gram-negative bacteria have the outer membrane and stain pink.</p>'),
+    m.msq(3, 'fungi', '<p>Which are correct about fungi? (Choose all that apply.)</p>', ['Walls contain chitin', 'They absorb food', 'They store starch', 'Yeast is single-celled'], [0, 1, 3], '<p>Fungi store glycogen and oil, not starch.</p>'),
+    m.nat(2, 'fungi', '<p>A fungus has n = 7 chromosomes. How many chromosomes are there in the two nuclei of a dikaryotic cell, added together?</p>', () => 14, 0, '<p>7 + 7 = 14.</p>'),
+    m.nat(2, 'viruses', '<p>One phage releases 30 new phages on lysis, and each infects a new cell with the same burst. How many phages after 2 cycles?</p>', () => 900, 0, '<p>30 × 30 = 900.</p>'),
+  ],
+  gens: [
+    { id: 'bc-g01', type: 'nat', level: 2, exams: ['board'], sub: 'monera',
+      make(rng) { const um = choose(rng, [1, 2, 4, 5]), mm = choose(rng, [10, 20, 40]); return { um, mm, q: `<p>A bacterium is ${um} µm long and its picture is ${mm} mm long. What is the magnification?</p>`, answer: mm * 1000 / um, tol: 0.01, unit: '×', sol: `<p>${mm} mm = ${mm * 1000} µm, so magnification = ${mm * 1000} ÷ ${um} = ${mm * 1000 / um}.</p>` }; },
+      verify: (p) => (p.mm * 1e-3) / (p.um * 1e-6) },
+    { id: 'bc-g02', type: 'nat', level: 2, exams: ['board'], sub: 'viruses',
+      make(rng) { const b = choose(rng, [10, 20, 40, 100]), c = choose(rng, [2, 3]); return { b, c, q: `<p>A phage bursts a cell and releases ${b} new phages; each new phage infects one cell and does the same. How many phages after ${c} cycles from one phage?</p>`, answer: b ** c, tol: 0.001, unit: '', sol: `<p>${b}<sup>${c}</sup> = ${b ** c}.</p>` }; },
+      verify: (p) => { let t = 1; for (let i = 0; i < p.c; i++) t *= p.b; return t; } },
+    { id: 'bc-g03', type: 'nat', level: 2, exams: ['board'], sub: 'fungi',
+      make(rng) { const nn = pick(rng, 2, 16, 2); return { nn, q: `<p>The haploid nucleus of a fungus has ${nn} chromosomes. How many chromosomes does the diploid zygote nucleus have after karyogamy?</p>`, answer: 2 * nn, tol: 0, unit: '', sol: `<p>2n = 2 × ${nn} = ${2 * nn}.</p>` }; },
+      verify: (p) => p.nn + p.nn },
+  ],
+};

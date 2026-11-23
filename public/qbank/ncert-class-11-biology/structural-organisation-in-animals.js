@@ -1,0 +1,53 @@
+// Class 11 Biology, Chapter 7 Structural Organisation in Animals: practice questions for the NCERT study course (original fibub questions).
+import { maker } from './_make.js';
+import { pick, choose } from '../_util.js';
+const m = maker('so');
+
+export default {
+  topic: 'structural-organisation-in-animals', name: 'Structural Organisation in Animals', n: 7,
+  items: [
+    m.mcq(1, 'tissues', '<p>Which is the correct order from the smallest to the largest level of organisation?</p>', 'cell, tissue, organ, organ system', ['tissue, cell, organ, organ system', 'organ, tissue, cell, organ system', 'cell, organ, tissue, organ system'], '<p>Cells make tissues, tissues make organs, organs make systems.</p>'),
+    m.mcq(1, 'epithelium', '<p>The epithelium that lines the blood vessels is:</p>', 'simple squamous', ['simple columnar', 'stratified', 'glandular'], '<p>Flat thin cells let materials pass quickly.</p>'),
+    m.mcq(2, 'epithelium', '<p>The lining of the kidney tubules is made of:</p>', 'cuboidal epithelium', ['squamous epithelium', 'ciliated columnar epithelium', 'stratified epithelium'], '<p>Cuboidal cells with microvilli absorb and secrete.</p>'),
+    m.mcq(2, 'epithelium', '<p>Epithelium made of many layers of cells is found in:</p>', 'the skin surface and the lining of the mouth', ['the alveoli of the lungs', 'the stomach lining', 'kidney tubules'], '<p>Compound (stratified) epithelium resists wear.</p>'),
+    m.mcq(2, 'epithelium', '<p>Goblet cells in the lining of the gut secrete:</p>', 'mucus', ['bile', 'insulin', 'urea'], '<p>Goblet cells are single-celled glands that make mucus.</p>'),
+    m.mcq(2, 'epithelium', '<p>A gland that releases its secretion directly into the blood is:</p>', 'endocrine', ['exocrine', 'unicellular exocrine', 'salivary'], '<p>Endocrine glands have no ducts.</p>'),
+    m.mcq(2, 'epithelium', '<p>Which junction prevents the leakage of substances across a tissue?</p>', 'tight junction', ['gap junction', 'adhering junction', 'none of these'], '<p>Tight junctions seal the space between neighbouring cells.</p>'),
+    m.mcq(3, 'epithelium', '<p>The cells of cardiac muscle pass the signal to the next cell quickly through:</p>', 'gap junctions in intercalated discs', ['tight junctions', 'adhering junctions only', 'cilia'], '<p>Gap junctions let ions flow between cells.</p>'),
+    m.mcq(2, 'connective', '<p>Ligaments join:</p>', 'bone to bone', ['muscle to bone', 'muscle to muscle', 'skin to muscle'], '<p>Tendons join muscle to bone; ligaments join bone to bone.</p>', { trap: 'Swapping tendon and ligament.' }),
+    m.mcq(2, 'connective', '<p>Adipose tissue is a:</p>', 'loose connective tissue that stores fat', ['dense connective tissue', 'muscle tissue', 'type of cartilage'], '<p>Its cells hold a big fat droplet.</p>'),
+    m.mcq(2, 'connective', '<p>Cartilage is found in:</p>', 'the tip of the nose and the ear flap', ['the skull bones', 'the walls of blood vessels', 'the kidney'], '<p>Flexible cartilage supports these soft parts.</p>'),
+    m.mcq(2, 'connective', '<p>The matrix of bone is hard because of:</p>', 'calcium salts and collagen', ['keratin', 'chitin', 'cellulose'], '<p>Calcium salts give hardness and collagen gives toughness.</p>'),
+    m.mcq(2, 'connective', '<p>The matrix of blood is called:</p>', 'plasma', ['serum only', 'lymph', 'mucus'], '<p>Plasma is about 55 % of blood by volume.</p>'),
+    m.mcq(3, 'connective', '<p>Dense irregular connective tissue is found in:</p>', 'the dermis of the skin', ['tendons', 'ligaments', 'cartilage of the nose'], '<p>Fibres in all directions let the skin resist pulling from any direction.</p>'),
+    m.mcq(2, 'muscle', '<p>Which muscle is striated and involuntary?</p>', 'cardiac muscle', ['skeletal muscle', 'smooth muscle', 'all three'], '<p>Cardiac muscle has stripes but is not under our control.</p>'),
+    m.mcq(2, 'muscle', '<p>Which muscle fibres have many nuclei and no branches?</p>', 'skeletal', ['smooth', 'cardiac', 'none'], '<p>Skeletal fibres are long unbranched cylinders with many nuclei.</p>'),
+    m.mcq(2, 'muscle', '<p>Intercalated discs are found in:</p>', 'cardiac muscle', ['skeletal muscle', 'smooth muscle', 'neurons'], '<p>They join cardiac cells end to end.</p>'),
+    m.mcq(2, 'neural', '<p>The cells that support and protect neurons are the:</p>', 'neuroglia', ['dendrites', 'axons', 'platelets'], '<p>Neuroglial cells feed, protect and insulate neurons.</p>'),
+    m.mcq(2, 'earthworm', '<p>The clitellum of an earthworm helps in:</p>', 'forming the cocoon', ['digestion of soil', 'movement', 'breathing'], '<p>The clitellum secretes the cocoon in which eggs are laid.</p>'),
+    m.mcq(2, 'earthworm', '<p>The excretory organs of the earthworm are:</p>', 'nephridia', ['Malpighian tubules', 'kidneys', 'green glands'], '<p>Nephridia are coiled tubes in the segments.</p>'),
+    m.mcq(2, 'earthworm', '<p>An earthworm breathes through its:</p>', 'moist skin', ['lungs', 'tracheae', 'gills'], '<p>Gas exchange occurs across the thin, moist skin.</p>'),
+    m.mcq(3, 'earthworm', '<p>The earthworm is hermaphrodite, which means:</p>', 'each individual has both male and female reproductive organs', ['it reproduces without a partner', 'it has no sex', 'the sexes are separate'], '<p>Two worms still exchange sperm; self-fertilisation does not occur.</p>'),
+    m.mcq(2, 'cockroach', '<p>The cockroach has:</p>', 'an open circulatory system', ['a closed system with a four-chambered heart', 'no circulation', 'a closed system with haemoglobin'], '<p>Haemolymph bathes the organs in the haemocoel.</p>'),
+    m.mcq(2, 'cockroach', '<p>The young of a cockroach is called a:</p>', 'nymph', ['larva', 'pupa', 'tadpole'], '<p>Nymphs look like small adults and moult many times.</p>'),
+    m.mcq(2, 'cockroach', '<p>The excretory organs of a cockroach are:</p>', 'Malpighian tubules', ['nephridia', 'kidneys', 'flame cells'], '<p>They remove nitrogenous waste (uric acid) from the haemolymph.</p>'),
+    m.mcq(2, 'frog', '<p>The heart of a frog has:</p>', 'two atria and one ventricle', ['one atrium and two ventricles', 'two atria and two ventricles', 'one atrium and one ventricle'], '<p>It is three-chambered.</p>'),
+    m.mcq(2, 'frog', '<p>A frog on land breathes mainly through:</p>', 'lungs', ['gills', 'tracheae', 'book lungs'], '<p>In water the frog also breathes through the skin.</p>'),
+    m.ar(2, 'connective', 'Blood is a connective tissue.', 'It has a fluid matrix, the plasma, and cells suspended in it.', 0, '<p>Both true and R explains A.</p>'),
+    m.ar(3, 'cockroach', 'The cockroach has an open circulation.', 'Its blood flows in vessels all the time.', 2, '<p>A is true; R is false. In an open system the haemolymph flows through spaces and not only through vessels.</p>'),
+    m.ar(3, 'muscle', 'Cardiac muscle never gets tired.', 'It has striations like skeletal muscle.', 1, '<p>Both true, but striations are not the reason. The reason is a rich supply of mitochondria and blood.</p>'),
+    m.nat(2, 'earthworm', '<p>An earthworm of length 180 mm has 120 equal segments. How long (in mm) are segments 14 to 16 together?</p>', () => 4.5, 0.05, '<p>One segment = 180 ÷ 120 = 1.5 mm; three segments = 4.5 mm.</p>'),
+    m.msq(3, 'connective', '<p>Which of these are connective tissues? (Choose all that apply.)</p>', ['Bone', 'Blood', 'Adipose tissue', 'Smooth muscle'], [0, 1, 2], '<p>Smooth muscle is muscle tissue.</p>'),
+  ],
+  gens: [
+    { id: 'so-g01', type: 'nat', level: 2, exams: ['board'], sub: 'epithelium',
+      make(rng) { const a = choose(rng, [2, 4, 5, 10]), s = choose(rng, [10, 20, 25, 50]); return { a, s, q: `<p>A sheet of flat epithelium has an area of ${a} mm² and each cell is a square of side ${s} µm. How many cells does it have?</p>`, answer: a * 1e6 / (s * s), tol: 1, sol: `<p>${a} mm² = ${a * 1e6} µm². One cell = ${s * s} µm². Cells = ${a * 1e6 / (s * s)}.</p>` }; },
+      verify: (p) => (p.a * (1000 / p.s) ** 2) },
+    { id: 'so-g02', type: 'nat', level: 2, exams: ['board'], sub: 'muscle',
+      make(rng) { const b = pick(rng, 60, 90, 6), d = choose(rng, [1, 2, 5, 10]); return { b, d, q: `<p>The heart beats ${b} times a minute. How many beats are there in ${d} day${d > 1 ? 's' : ''}?</p>`, answer: b * 1440 * d, tol: 1, sol: `<p>A day has 1440 minutes: ${b} × 1440 × ${d} = ${b * 1440 * d}.</p>` }; },
+      verify: (p) => p.b * 60 * 24 * p.d },
+    { id: 'so-g03', type: 'nat', level: 2, exams: ['board'], sub: 'connective',
+      make(rng) { const v = choose(rng, [4, 5, 5.5, 6]), pct = choose(rng, [50, 55, 60]); return { v, pct, q: `<p>An adult has ${v} litres of blood and plasma is ${pct} % of it by volume. How many litres of plasma are there?</p>`, answer: +(v * pct / 100).toFixed(3), tol: 0.02, unit: 'litres', sol: `<p>${v} × ${pct}/100 = ${(v * pct / 100).toFixed(2)} litres.</p>` }; },
+      verify: (p) => p.v - p.v * (1 - p.pct / 100) },
+  ],
+};
