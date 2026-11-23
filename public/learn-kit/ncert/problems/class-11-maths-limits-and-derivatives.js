@@ -18,7 +18,7 @@ export default {
   'c11m-lim-quad': {
     title: 'limit of a quadratic over a linear factor',
     make(r) {
-      const a = pick(r, 1, 8), b = pick(r, -6, 6);
+      const a = pick(r, 1, 8), b0 = pick(r, -6, 5), b = b0 >= a ? b0 + 1 : b0;
       return { a, b, q: `<p>Find the limit of (x² − ${sg(a + b)}x + ${sg(a * b)})/(x − ${a}) as x → ${a}.</p>`, answer: a - b, unit: '', tol: 0.001, abs: 0.01,
         hint: 'The top factorises as (x − a)(x − b). Cancel the common factor.',
         solution: steps(`x² − ${sg(a + b)}x + ${sg(a * b)} = (x − ${a})(x − ${sg(b)}).`, `Cancel (x − ${a}): x − ${sg(b)}.`, `Put x = ${a}: ${a} − ${sg(b)} = <b>${a - b}</b>.`) };
