@@ -1,9 +1,11 @@
 // SAT Math · Advanced math · exponent rules, rational exponents and radical equations. Original (fibub).
 import { int, nz, choose, shuffleOpts, fmt, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'advanced' };
 const X = v('x');
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'radicals-exponents',
   gens: [
     { id: 'sat-re-g01', type: 'nat', marks: 1, level: 1, exams: ['sat'], sub: 'exponent rules', facets: F, format: 'numeric',
@@ -63,4 +65,4 @@ export default {
       q: '<p>What are all the solutions to √(<i>x</i> + 6) = <i>x</i>?</p>', options: ['3 only', '−2 only', '−2 and 3', 'There are no solutions'], answer: 0,
       sol: '<p>Square both sides: <i>x</i> + 6 = <i>x</i><sup>2</sup>, so <i>x</i><sup>2</sup> − <i>x</i> − 6 = 0 and (<i>x</i> − 3)(<i>x</i> + 2) = 0. Check: √9 = 3 ✓, but √4 = 2, not −2 ✗. Only 3 works.</p>', trap: 'Keeping the solution that squaring added.' },
   ],
-};
+}, ['sat-re-g03']);

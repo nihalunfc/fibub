@@ -1,9 +1,9 @@
 // Class 12 Maths, Matrices: live problems (original fibub questions). Ids start with c12m-mat-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const mul = (A, B) => A.map((r) => B[0].map((_, j) => r.reduce((s, v, k) => s + v * B[k][j], 0)));
 const fmtM = (M) => '[' + M.map((r) => '[' + r.join(', ') + ']').join(', ') + ']';
-export default {
+export default tidyProblems({
   'c12m-mat-orders': {
     title: 'possible orders of a matrix',
     make(r) {
@@ -65,4 +65,4 @@ export default {
     },
     verify(x) { const [[a, b], [c, d]] = x.M, det = a * d - b * c, i1 = [d / det, -c / det], i2 = [-b / det, a / det]; /* columns by Cramer: A·col = e */ return i1[0] + i1[1] + i2[0] + i2[1]; },
   },
-};
+}, ['c12m-mat-entry', 'c12m-mat-square']);

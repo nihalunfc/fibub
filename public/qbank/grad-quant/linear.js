@@ -1,7 +1,9 @@
 import { int, choose, fmt, money, D, numOpts, steps } from './_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gmat', 'gre'];
 const sg = (n) => (n < 0 ? `− ${-n}` : `+ ${n}`);
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'linear',
   items: [
     { id: 'li-001', type: 'mcq', level: 1, exams: E, sub: 'one variable',
@@ -49,4 +51,4 @@ export default {
           sol: steps(`Slope m = (${fmt(y2)} − ${y1}) ÷ (${x2} − ${x1}) = ${fmt(m * dx)} ÷ ${dx} = ${fmt(m)}.`, `Put (${x1}, ${y1}) into y = ${fmt(m)}x + b: ${y1} = ${fmt(m * x1)} + b.`, `b = <b>${fmt(value)}</b>.`) };
       }, check: (p) => p.y1 - ((p.y2 - p.y1) / (p.x2 - p.x1)) * p.x1 },
   ],
-};
+}, ['li-g01', 'li-g03', 'li-g04', 'li-g02'], [], ['li-g02']);

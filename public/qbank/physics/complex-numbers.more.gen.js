@@ -80,7 +80,7 @@ export default [
       const [o1, o2] = shuffle(r, ops).slice(0, 2);
       const res = o2[1](o1[1]([a, b])), rev = o1[1](o2[1]([a, b])), only1 = o1[1]([a, b]), only2 = o2[1]([a, b]);
       const show = (p) => `$${cz(p[0], p[1])}$`;
-      const o = mcqOptions(r, show(res), [show(rev), show(only1), show(only2), show([-res[0], -res[1]]), show([res[1], res[0]])]);
+      const o = mcqOptions(r, show(res), [show(rev), show(only1), show(only2), show([-res[0], -res[1]]), show([res[1], res[0]]), show([res[0], -res[1]]), show([-res[0], res[1]])]);
       return { q: `The point $z = ${cz(a, b)}$ is first ${o1[0]} and then ${o2[0]}. The result is`, ...o,
         sol: `First step (${o1[2]}): $${cz(a, b)}\\to ${cz(...only1)}$. Second step (${o2[2]}): $${cz(...only1)}\\to ${cz(...res)}$.${show(rev) !== show(res) ? ` Doing the steps in the other order would give $${cz(...rev)}$: the order matters.` : ''}`,
         trap: 'Rotations and reflections do not commute in general, so apply them in the stated order.' };

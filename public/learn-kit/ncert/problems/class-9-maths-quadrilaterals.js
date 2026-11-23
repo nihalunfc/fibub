@@ -1,8 +1,8 @@
 // Class 9 Maths, Quadrilaterals: live problems (original fibub questions). Ids start with c9m-quad-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const HALF = [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [7, 24, 25]];
-export default {
+export default tidyProblems({
   'c9m-quad-angle': {
     title: 'angles of a parallelogram',
     make(r) {
@@ -53,4 +53,4 @@ export default {
     },
     verify(x) { const t = 0.5 * x.a * Math.sqrt(x.d * x.d - x.a * x.a); return 2 * t; },
   },
-};
+}, ['c9m-quad-alg']);

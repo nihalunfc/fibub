@@ -26,7 +26,7 @@ sources:
 
 ## 1. Why this matters
 
-Seasons decide when you can observe and for how long. A June night at 50° N may never get fully dark (Lesson 3.4), while a December night gives 14 hours of darkness. The same geometry tells a solar-panel owner how to tilt a panel and a photographer when the Milky Way's core is up.
+Seasons decide when you can observe and for how long. A June night at 50° N may never get fully dark (Lesson 3.4), while a December night gives about 12 hours of full darkness. The same geometry tells a solar-panel owner how to tilt a panel and a photographer when the Milky Way's core is up.
 
 ## 2. The tilt, not the distance
 

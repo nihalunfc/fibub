@@ -3,6 +3,7 @@
 // and the solution shows the values that settle it (the plug-in method from lesson 2.2).
 import { int, choose, fmt, frac, gcd } from '../grad-quant/_q.js';
 import { QC, qc, compare, explain } from './_qc.js';
+import { tidyGens } from '../_util.js';
 const E = ['gre'];
 const num = (v) => fmt(v, 4).replace(/^-/, '−');
 const R = [-10, -3, -2, -1.5, -1, -0.5, -0.25, 0, 0.25, 0.5, 0.9, 1, 1.5, 2, 3, 10];
@@ -38,7 +39,8 @@ function fixed(r) {
   return { A: `The average (arithmetic mean) of the ${n} consecutive integers from ${s} to ${s + n - 1}`, B: String(mid + off), a: mid, b: mid + off, work: `Evenly spaced numbers: the average is the middle one, (${s} + ${s + n - 1}) ÷ 2 = ${mid}. `, tip: 'For evenly spaced numbers, average = middle value = (first + last) ÷ 2.' };
 }
 const swap = (F) => ({ ...F, A: F.B, B: F.A, fa: F.fb, fb: F.fa, a: F.b, b: F.a });
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'qc',
   gens: [
     { id: 'qc-g01', type: 'mcq', level: 2, exams: E, format: 'qc', sub: 'numbers',
@@ -67,4 +69,4 @@ export default {
       },
       check(p) { const [a, b, k] = p._p, lo = Math.abs(a - b), hi = a + b; return k <= lo ? (p._p[3] ? 1 : 0) : k >= hi ? (p._p[3] ? 0 : 1) : 3; } },
   ],
-};
+}, ['qc-g02']);

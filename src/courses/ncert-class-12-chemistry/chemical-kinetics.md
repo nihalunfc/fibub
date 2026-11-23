@@ -202,8 +202,8 @@ With two temperatures the unknown A cancels, which is the standard calculation:
 <div class="steps" data-fig="c12c-kin-arrhsteps">
 <div class="step">Write the Arrhenius equation at T₁ and at T₂: ln k₁ = ln A − Ea/(RT₁) and ln k₂ = ln A − Ea/(RT₂). Data: k doubles (k₂ = 2k₁) from 300 K to 310 K.</div>
 <div class="step">Subtract: ln(k₂/k₁) = (Ea/R)(1/T₁ − 1/T₂), which in log form is log(k₂/k₁) = Ea(T₂ − T₁)/(2.303 R T₁T₂). ln A is gone.</div>
-<div class="step">Substitute: log 2 = Ea × 10/(2.303 × 8.314 × 300 × 310), that is 0.301 = Ea × 10/(1.777×10⁶).</div>
-<div class="step">Solve: Ea = 0.301 × 1.777×10⁶/10 = 5.35×10⁴ J/mol, about 53.6 kJ/mol.</div>
+<div class="step">Substitute: log 2 = Ea × 10/(2.303 × 8.314 × 300 × 310), that is 0.301 = Ea × 10/(1.781×10⁶).</div>
+<div class="step">Solve: Ea = 0.301 × 1.781×10⁶/10 = 5.36×10⁴ J/mol, about 53.6 kJ/mol.</div>
 <div class="step">Check on the Arrhenius plot: the line through the two points has slope −Ea/R = −6.45×10³ K. ✓</div>
 </div>
 

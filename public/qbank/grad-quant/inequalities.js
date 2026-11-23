@@ -1,7 +1,9 @@
 import { int, choose, fmt, numOpts, steps } from './_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gmat', 'gre'];
 const sg = (n) => (n < 0 ? `− ${-n}` : `+ ${n}`);
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'inequalities',
   items: [
     { id: 'iq-001', type: 'mcq', level: 2, exams: E, sub: 'flip',
@@ -42,4 +44,4 @@ export default {
           sol: steps(`Corner products: ${a1}×${b1} = ${ps[0]}, ${a1}×${b2} = ${ps[1]}, ${a2}×${b1} = ${ps[2]}, ${a2}×${b2} = ${ps[3]}.`, `Greatest ${Math.max(...ps)}, least ${Math.min(...ps)}.`, `Difference: <b>${value}</b>.`), trap: 'Multiplying the two largest values and the two smallest values only.' };
       }, check: (p) => Math.max(...p.ps) - Math.min(...p.ps) },
   ],
-};
+}, ['iq-g01', 'iq-g02', 'iq-g03']);

@@ -290,7 +290,7 @@ export default {
         const pat = (k) => `${names[k]}, ${Array.from({ length: k + 1 }, (_, i) => binom(k, i)).join(':')}`;
         const others = [1, 2, 3, 4, 5, 6].filter((k) => k !== n).map(pat);
         const fake = `${names[n]}, ${Array.from({ length: n + 1 }, () => 1).join(':')}`;
-        const o = mcqOptions(r, pat(n), [fake, others[int(r, 0, 1)], others[int(r, 2, 4)]]);
+        const o = mcqOptions(r, pat(n), [fake, others[int(r, 0, 1)], others[int(r, 2, 4)], 'singlet, 1', ...others]);
         const env = ['', 'a single neighbouring CH proton', 'a neighbouring CH$_2$ group', 'a neighbouring CH$_3$ group', 'two equivalent neighbouring CH$_2$ groups', 'a CH$_2$ and a CH$_3$ group with equal couplings', 'two equivalent CH$_3$ groups (as the CH of an isopropyl group)'][n];
         return { q: `A proton couples equally (first-order spectrum) to ${n} equivalent spin-1/2 nuclei: ${env}. Its signal is a`, options: o.options, answer: o.answer,
           sol: `$n = ${n}$ equivalent spin-1/2 neighbours give $n + 1 = ${n + 1}$ lines with binomial intensities $\\binom{${n}}{k}$: ${pat(n)}.`,

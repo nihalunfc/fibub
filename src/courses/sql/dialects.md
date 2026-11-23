@@ -125,7 +125,7 @@ SQLite's LIKE ignores case for plain A–Z letters, so `like_ignores_case` is 1.
 <dt>T-SQL</dt><dd>Transact-SQL, the dialect of Microsoft SQL Server and Azure SQL.</dd>
 <dt>Integer division</dt><dd>In SQLite, SQL Server and PostgreSQL, 7 / 2 = 3: the fraction is dropped. BigQuery gives 3.5.</dd>
 <dt>Collation</dt><dd>The rules a database uses to compare and sort text, including whether case matters.</dd>
-<dt>QUALIFY</dt><dd>A filter on window functions, in BigQuery and Snowflake only; elsewhere use a CTE and WHERE.</dd>
+<dt>QUALIFY</dt><dd>A filter on window functions, in BigQuery, Snowflake and a few other warehouses, but not SQLite, SQL Server or PostgreSQL; there, use a CTE and WHERE.</dd>
 <dt>Physical meaning</dt><dd>The rows each dialect returns are the same for the same logic: the filtering, joining and grouping don't change. What changes is the spelling of a few functions and some type rules, and a type rule (like integer division) can silently change the numbers in a column.</dd>
 </dl>
 
@@ -254,7 +254,7 @@ WHERE order_date = '2025-12-24'
 - SELECT, JOIN, GROUP BY, CTEs and window functions are the same in all four.
 - LIMIT becomes TOP (n) in T-SQL; dates and text joining have their own spellings.
 - Integer ÷ integer drops the fraction in SQLite, SQL Server and PostgreSQL: write 100.0.
-- QUALIFY is BigQuery/Snowflake only; the portable way is a CTE with ROW_NUMBER and WHERE.
+- Of the four, only BigQuery has QUALIFY (Snowflake and some other warehouses do too); the portable way is a CTE with ROW_NUMBER and WHERE.
 - Check the official docs for your version: features change between releases.
 
 </div>

@@ -16,7 +16,7 @@ quiz:
   - q: 'When may you use the ® symbol?'
     choices: ['As soon as you file', 'Only after the mark is registered', 'Any time']
     ans: 1
-    why: 'Using ® before registration is misleading and an offence in India and the USA; use ™ until then.'
+    why: 'Using ® before registration is misleading: an offence in India, and in the USA it can cost you the application or the right to enforce the mark. Use ™ until then.'
 sources:
   - 'IP India, trade marks e-filing and fees: https://ipindia.gov.in'
   - 'CIPO, trademarks: https://ised-isde.canada.ca/site/canadian-intellectual-property-office/en/trademarks'

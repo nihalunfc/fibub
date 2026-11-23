@@ -11,7 +11,7 @@ export default function (host) {
   slider(c1, { label: 'Planet mass', min: 0.1, max: 15, step: 0.1, value: mp, fmt: (v) => `${v.toFixed(1)} Jupiters`, oninput: (v) => { mp = v; show(); } });
   slider(c1, { label: 'Period', min: 3, max: 1500, value: per, log: true, fmt: (v) => `${v < 100 ? v.toFixed(0) : Math.round(v)} days`, oninput: (v) => { per = v; show(); } });
   slider(c1, { label: 'Orbit shape (eccentricity)', min: 0, max: 0.8, step: 0.01, value: e, fmt: (v) => v.toFixed(2), oninput: (v) => { e = v; show(); } });
-  [['Jupiter (Sun)', 1, 4333], ['Hot Jupiter', 1, 3.5], ['Earth', 0.00315, 365]].forEach(([n, m, p]) => button(c2, n, () => { mp = Math.max(0.1, m); per = p; show(); }));
+  [['Jupiter (Sun)', 1, 4333], ['Hot Jupiter', 1, 3.5], ['Earth', 0.00315, 365]].forEach(([n, m, p]) => button(c2, n, () => { mp = m; per = p; show(); }));
   const anim = loop(host, (dt) => { M += dt * 2 * Math.PI / 5; show(); });
   anim.button(c2);
   const out = readout(host);

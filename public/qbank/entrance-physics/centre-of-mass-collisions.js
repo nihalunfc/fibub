@@ -1,5 +1,6 @@
 // Centre of mass and collisions: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EX = {
@@ -950,4 +951,5 @@ const v5gens = [
     verify: (p) => { const a = (p.m1 - p.m2) / (p.m1 + p.m2); const T = p.m1 * (1 - a); const R = 2 * T; return p.options.indexOf(`${fmt(R, 3)} kg`); } },
 ];
 
-export default { topic: 'centre-of-mass-collisions', groups: { ...groups, ...v5groups }, items: [...items, ...v5items], gens: [...gens, ...v5gens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'centre-of-mass-collisions', groups: { ...groups, ...v5groups }, items: [...items, ...v5items], gens: [...gens, ...v5gens] }, ['cm-g06', 'cm-g09', 'cm-g15', 'cm-g24']);

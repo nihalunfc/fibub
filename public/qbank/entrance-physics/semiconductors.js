@@ -234,7 +234,7 @@ const items = [
   mcq(4, 'logic gates', r`The inputs $A$ and $B$ to a gate follow the sequences $A = 0,0,1,1$ and $B = 0,1,0,1$. The output is $Y = 0,1,1,0$. The gate is`, 'XOR', ['OR', 'NAND', 'XNOR'],
     r`Output is 1 exactly when the inputs differ: XOR. OR would give 0,1,1,1. NAND gives 1,1,1,0. XNOR gives 1,0,0,1.`),
   mcq(4, 'logic gates', r`The inputs $A$ and $B$ follow $A = 0,0,1,1$ and $B = 0,1,0,1$. The output of a NOR gate is`, '1, 0, 0, 0', ['0, 1, 1, 1', '1, 1, 1, 0', '0, 0, 0, 1'],
-    r`NOR is 1 only for (0,0). The second wrong option is OR; the third wrong option is NAND; the last is AND.`),
+    r`NOR is 1 only for (0,0). 0, 1, 1, 1 is OR; 1, 1, 1, 0 is NAND; 0, 0, 0, 1 is AND.`),
   // ---------- Level 5 ----------
   nat(5, 'bridge rectifier', r`A bridge rectifier (silicon diodes, 0.7 V drop each) is fed from a secondary of peak voltage 12 V and loads $100\ \Omega$. Find the peak load current (in mA, nearest integer).`, (12 - 1.4) / 100 * 1e3, 1, 0,
     r`Two diodes conduct at a time: $V_{peak} = 12-1.4 = 10.6$ V. $I = 10.6/100 = 0.106$ A $= 106$ mA.`, { unit: 'mA' }),

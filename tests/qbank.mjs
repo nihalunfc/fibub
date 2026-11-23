@@ -50,6 +50,8 @@ const checkItem = (it, where, groups = {}) => {
   if (it.type === 'mcq' || it.type === 'msq') {
     ok(`${where}: options`, Array.isArray(opts) && opts.length >= 2);
     if (Array.isArray(opts)) ok(`${where}: options distinct`, new Set(opts.map((o) => String(o).trim())).size === opts.length);
+    // mcqOptions pads a short distractor list with "<correct> (2)", "<correct> (3)": that shows the right answer twice.
+    if (it.type === 'mcq' && Array.isArray(opts) && Number.isInteger(it.answer)) { const c = String(opts[it.answer]).trim(); ok(`${where}: no padded copy of the answer`, !opts.some((o) => new RegExp(`^${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(\\d+\\)$`).test(String(o).trim()))); }
     if (it.type === 'mcq') ok(`${where}: mcq answer index`, Number.isInteger(it.answer) && it.answer >= 0 && it.answer < (opts?.length ?? 0));
     else ok(`${where}: msq answers`, Array.isArray(it.answer) && it.answer.length >= 1 && new Set(it.answer).size === it.answer.length && it.answer.every((a) => Number.isInteger(a) && a >= 0 && a < (opts?.length ?? 0)));
   }

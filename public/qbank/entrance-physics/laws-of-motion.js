@@ -1,5 +1,6 @@
 // Laws of motion: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EX = {
@@ -814,4 +815,5 @@ gens.push(
 
 }
 
-export default { topic: 'laws-of-motion', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'laws-of-motion', groups, items, gens }, ['lm-g12', 'lm-g20', 'lm-g23', 'lm-g25']);

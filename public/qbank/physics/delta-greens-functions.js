@@ -261,7 +261,7 @@ export default {
         const k = choose(r, [2, 3, 4, -2, -3]), x0 = choose(r, [-2, -1, 1, 2, 3]), m = k * x0, n = int(r, 1, 3);
         const answer = round(x0 ** n / Math.abs(k), 4);
         return { q: `Find $\\displaystyle\\int_{-\\infty}^{\\infty}${pw(n)}\\,\\delta(${k}x${sh(-m)})\\,dx$ (to four decimal places).`, answer, tol: 1e-3, k, x0, n,
-          sol: `$\\delta(${k}x${sh(-m)}) = \\delta(${k}(x - ${x0})) = \\frac{1}{|${k}|}\\delta(x - ${x0})$. So the integral is $\\frac{(${x0})^{${n}}}{${Math.abs(k)}} = ${answer}$.`,
+          sol: `$\\delta(${k}x${sh(-m)}) = \\delta(${k}(x${sh(-x0)})) = \\frac{1}{|${k}|}\\delta(x${sh(-x0)})$. So the integral is $\\frac{(${x0})^{${n}}}{${Math.abs(k)}} = ${answer}$.`,
           trap: 'Divide by $|k|$, the absolute value, even when $k$ is negative.' };
       },
       verify: (p) => p.x0 ** p.n / Math.abs(p.k) },

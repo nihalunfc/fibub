@@ -1,5 +1,6 @@
 // Waves: Plus Two entrance bank (original fibub questions).
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EX = {
@@ -939,4 +940,5 @@ xgens.push(
   }, (p) => p.options.findIndex((o) => o === `${fmt((2 * p.n + 1) * 340 / (4 * p.L), 4)} Hz`)),
 );
 
-export default { topic: 'waves', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'waves', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] }, ['wv-g01', 'wv-g05'], [], ['wv-g05']);

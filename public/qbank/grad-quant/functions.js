@@ -1,7 +1,9 @@
 import { int, choose, fmt, numOpts, steps } from './_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gmat', 'gre'];
 const sg = (n) => (n < 0 ? `− ${-n}` : `+ ${n}`);
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'functions',
   items: [
     { id: 'fn-001', type: 'mcq', level: 2, exams: E, sub: 'symbols',
@@ -26,7 +28,8 @@ export default {
       make(r) {
         const a1 = int(r, -10, 30), d = choose(r, [-7, -4, -3, 2, 3, 4, 5, 6, 8, 11]), m = int(r, 3, 8), n = int(r, 20, 60);
         const am = a1 + (m - 1) * d, value = a1 + (n - 1) * d;
-        return { q: `<p>In an arithmetic sequence the first term is ${a1} and the ${m}th term is ${am}. What is the ${n}th term?</p>`, ...numOpts(r, value, [a1 + n * d, a1 + (n - 2) * d, n * d]), value, a1, d, n, m, am,
+        const ord = (k) => k + (k % 100 >= 11 && k % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[k % 10] || 'th'));
+        return { q: `<p>In an arithmetic sequence the first term is ${a1} and the ${ord(m)} term is ${am}. What is the ${ord(n)} term?</p>`, ...numOpts(r, value, [a1 + n * d, a1 + (n - 2) * d, n * d]), value, a1, d, n, m, am,
           hint: 'The nth term is a₁ + (n − 1)d. Find the common difference d first.',
           sol: steps(`From term 1 to term ${m} there are ${m - 1} steps: d = (${am} − ${a1}) ÷ ${m - 1} = ${d}.`, `Term ${n} = ${a1} + (${n} − 1)(${d}) = ${a1} ${sg((n - 1) * d)}.`, `= <b>${value}</b>.`), trap: 'Using n steps instead of n − 1.' };
       }, check: (p) => p.a1 + ((p.n - 1) * (p.am - p.a1)) / (p.m - 1) },
@@ -47,4 +50,4 @@ export default {
           sol: steps(`${b} ⊕ ${c} = ${b}×${c} − ${k}×${b} + ${c} = ${inner}.`, `${a} ⊕ ${inner} = ${a}×${inner} − ${k}×${a} + ${inner}.`, `= <b>${value}</b>.`), trap: 'Working left to right and ignoring the bracket.' };
       }, check: (p) => { const op = (x, y) => x * y - p.k * x + y; return op(p.a, op(p.b, p.c)); } },
   ],
-};
+}, ['fn-g01', 'fn-g02', 'fn-g04']);

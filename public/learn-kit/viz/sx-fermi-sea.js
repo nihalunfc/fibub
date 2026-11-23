@@ -16,7 +16,7 @@ export default function (host) {
   const out = readout(host);
   function show() {
     const kF = 1, vd = sh / kF;
-    out.innerHTML = `<b>${on ? 'Field on' : 'Field off'}.</b> Shift of the disc δk = eEτ/ħ = ${sh.toFixed(2)} k_F (drawn big). Drift velocity v_d = ħδk/m = ${(vd).toFixed(2)} v_F in the picture; for copper at 1 V/m it is only about 10⁻⁴ of a millimetre per second against v_F ≈ 1.6×10⁶ m/s. Current density j = nev_d grows with E and with τ (Ohm's law).`;
+    out.innerHTML = `<b>${on ? 'Field on' : 'Field off'}.</b> Shift of the disc δk = eEτ/ħ = ${sh.toFixed(2)} k_F (drawn big). Drift velocity v_d = ħδk/m = ${(vd).toFixed(2)} v_F in the picture; for copper at 1 V/m it is only about 4 millimetres per second (mobility ≈ 4.3×10⁻³ m²/V s) against v_F ≈ 1.6×10⁶ m/s. Current density j = nev_d grows with E and with τ (Ohm's law).`;
   }
   cv.draw = (ctx, w, h, col) => {
     const R = Math.min(w, h) * 0.32, cx = w / 2, cy = h / 2 - 4, d = R / 6.5, kx = sh * R;

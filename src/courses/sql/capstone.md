@@ -298,7 +298,7 @@ GROUP BY r.reason
 ORDER BY avg_days DESC
 ```
 
-**Try it on your own data:** once the casebook is done, repeat five of the questions on a public dataset with [[sql-playground]] and add them as a bonus section; tidy the CSV first with [[data-cleaner]].
+**Try it on your own data:** once the casebook is done, repeat five of the questions on a public dataset with [[sql-playground]] and add them as a bonus section; check the CSV first with [[csv-profiler]].
 
 <div class="keypoints">
 

@@ -102,7 +102,7 @@ export default {
       make(rng) {
         const H = int(rng, 1, 10), M = 5 * int(rng, 1, 11), a = 720 - (60 * H + M), h = Math.floor(a / 60), m = a % 60;
         const f = (x, y) => `${x}:${pad(y)}`;
-        const { options, answer } = shuffleOpts(rng, f(h, m), [f(12 - H, M), f(11 - H, M), f(12 - H, 60 - M >= 60 ? 0 : 60 - M)], (v) => v);
+        const { options, answer } = shuffleOpts(rng, f(h, m), [f(12 - H, M), f(11 - H, M), f(12 - H, 60 - M >= 60 ? 0 : 60 - M), f(h % 12 + 1, m), f(h === 1 ? 12 : h - 1, m), f(H, M), f(h, (m + 30) % 60)], (v) => v);
         return { q: `The image of a clock in a mirror shows ${f(H, M)}. What is the actual time?`, options, answer, H, M,
           sol: steps('Subtract the shown time from 11:60.', `11:60 − ${f(H, M)} = <b>${f(h, m)}</b>.`), trap: 'Subtracting from 12:00 instead of 11:60 is off by one hour when the minutes are not zero.' };
       },

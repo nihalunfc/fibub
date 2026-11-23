@@ -2,6 +2,7 @@
 // Every numeric answer is checked in code: nat items carry a `calc` that recomputes the answer numerically (finite
 // differences, Simpson's rule or a fine grid search), and the templates' verify() recompute their answers another way.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1002,4 +1003,5 @@ XGN.push(
 Object.assign(groups, XG); items.push(...XIT); gens.push(...XGN);
 }
 // ==XP-END
-export default { topic: 'applications-derivatives', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'applications-derivatives', groups, items, gens }, ['ad-g02', 'ad-g04', 'ad-g06', 'ad-g12', 'ad-g13', 'ad-g14', 'ad-g15', 'ad-g19', 'ad-g21', 'ad-g25', 'ad-xg05']);

@@ -1,8 +1,8 @@
 // Class 10 Maths, Polynomials: live problems (original fibub questions). Ids start with c10m-poly-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const pol = (a, b, c) => `${a === 1 ? '' : a === -1 ? '−' : a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b) === 1 ? '' : Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}`;
-export default {
+export default tidyProblems({
   'c10m-poly-value': {
     title: 'value of a polynomial at a point',
     make(r) {
@@ -45,4 +45,4 @@ export default {
     },
     verify: (p) => p.P / p.al,
   },
-};
+}, ['c10m-poly-value', 'c10m-poly-zeros', 'c10m-poly-sumprod']);

@@ -88,8 +88,7 @@ Treat it like an Academic passage: skim for the main idea of each paragraph, the
 |---|---|---|
 | 1 | about 15 | all correct; move fast |
 | 2 | about 20 | careful with rules and conditions |
-| 3 | about 22 | the long text, harder questions |
-| Check | about 3 | blanks, spelling, the answer sheet (paper test) |
+| 3 | about 25 | the long text, harder questions; keep the last 2 minutes to check blanks, spelling and the answer sheet (paper test) |
 
 If Section 1 takes you more than 18 minutes in practice, you are reading the short texts in full. Scan.
 
@@ -109,6 +108,6 @@ If Section 1 takes you more than 18 minutes in practice, you are reading the sho
 - General Training needs more correct answers for the same band, so Sections 1 and 2 must be near perfect.
 - Scan short texts for the one detail; watch for two prices, two times and small print.
 - Workplace rules: must (obligation), should (advice), may (choice), unless (condition).
-- Plan about 15, 20 and 22 minutes, plus 3 to check.
+- Plan about 15, 20 and 25 minutes, keeping the last 2 minutes of Section 3 to check.
 
 </div>

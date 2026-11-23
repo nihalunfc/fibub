@@ -1,9 +1,11 @@
 // SAT Math · Advanced math · quadratic equations and parabolas. Original (fibub).
 import { int, nz, choose, shuffleOpts, fmt, quad, v, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'advanced' };
 const X = v('x');
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'quadratics',
   gens: [
     { id: 'sat-qd-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'solve by factoring', facets: F, format: 'numeric',
@@ -71,4 +73,4 @@ export default {
       options: ['<i>a</i> &lt; 0 and <i>k</i> &lt; 0', '<i>a</i> &lt; 0 and <i>k</i> &gt; 0', '<i>a</i> &gt; 0 and <i>k</i> &lt; 0', '<i>a</i> &gt; 0 and <i>k</i> &gt; 0'], answer: 0,
       sol: '<p>Opens downward means <i>a</i> &lt; 0, so the vertex (2, <i>k</i>) is the highest point. For the graph never to reach the <i>x</i>-axis, that highest point must be below it: <i>k</i> &lt; 0.</p>' },
   ],
-};
+}, ['sat-qd-g01', 'sat-qd-g02']);

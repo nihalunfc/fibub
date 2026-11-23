@@ -13,7 +13,7 @@ quiz:
     ans: 0
     why: Around 4 to 5 bits keeps most of the quality at about a third of the 16-bit size.
   - q: You have 16 GB. Which usually gives better answers?
-    choices: ['A 27B model at 4 bits that fits', 'A 7B model at 16 bits', 'They are always the same']
+    choices: ['A 14B model at 4 bits (about 9 GB)', 'A 7B model at 16 bits (about 14 GB)', 'They are always the same']
     ans: 0
     why: Usually more parameters at 4 bits beat fewer at 16 bits, as long as it fits with room for context.
   - q: Which jobs suffer first when bits are cut too far?

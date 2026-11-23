@@ -72,7 +72,7 @@ India approved Bt cotton for farming in 2002, after safety review by a governmen
 
 ### 1.2 Pest-resistant plants by RNA interference
 
-A nematode, *Meloidogyne incognitia*, infects the roots of tobacco plants and reduces the yield a great deal. The solution uses **RNA interference (RNAi)**, a method of **cellular defence** found in all eukaryotes that **silences** a gene using RNA.
+A nematode, *Meloidogyne incognita*, infects the roots of tobacco plants and reduces the yield a great deal. The solution uses **RNA interference (RNAi)**, a method of **cellular defence** found in all eukaryotes that **silences** a gene using RNA.
 
 In the tobacco plant, genes were introduced that make **sense** and **antisense** RNA of a gene needed by the nematode. The two RNAs are complementary and form **double-stranded RNA (dsRNA)**. This dsRNA **binds to and silences** the nematode's matching **mRNA**: the mRNA is not translated, the protein is not made and the parasite cannot survive in the host. The host plants thus become resistant. (In nature, dsRNA often comes from RNA viruses or from mobile genetic elements called transposons.)
 
@@ -180,7 +180,7 @@ A **patent** is the right granted by a government to an inventor to prevent othe
 
 - GM crops: stress tolerance, fewer pesticides, less post-harvest loss, better minerals use, better nutrition (Golden Rice), tailor-made products.
 - Bt cotton: the cry gene (cryIAc, cryIIAb) makes a protoxin crystal; in the alkaline insect gut it is activated, binds gut receptors, makes pores and kills the larva.
-- RNAi: sense and antisense RNA make dsRNA, which silences the matching mRNA (tobacco and *Meloidogyne incognitia*).
+- RNAi: sense and antisense RNA make dsRNA, which silences the matching mRNA (tobacco and *Meloidogyne incognita*).
 - Insulin: A chain (21 aa) and B chain (30 aa) joined by disulphide bridges; proinsulin has a C peptide. Eli Lilly (1983) made the chains separately in *E. coli*.
 - Gene therapy: ADA deficiency treated first in 1990 by putting a functional ADA cDNA into lymphocytes with a retroviral vector.
 - Diagnosis: PCR (early, tiny amounts of DNA/RNA), ELISA (antigen-antibody), DNA probes.

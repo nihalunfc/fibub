@@ -1,5 +1,6 @@
 // Class 11 Physics, Units and Measurement: live problems (original fibub questions). Ids start with c11p-units-.
 import { pick, choose, n, steps } from './_util.js';
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 
 // Dimensions as [M, L, T] powers: each quantity is given by two different routes (formula 1 for make, formula 2 for verify).
 const DIM = [
@@ -28,7 +29,7 @@ export default {
     title: 'reading a vernier caliper',
     make(r) {
       const N = choose(r, [10, 20, 50]), ms = pick(r, 12, 45, 1), k = pick(r, 1, N - 1, 1), lc = 1 / N, ans = ms + k * lc;
-      return { N, ms, k, q: `<p>A vernier caliper has 1 mm divisions on the main scale and ${N} vernier divisions that together equal ${N - 1} main-scale divisions. The zero of the vernier lies just beyond the ${ms} mm mark, and the ${k}th vernier division coincides with a main-scale line. What is the length in mm?</p>`, answer: ans, unit: 'mm', tol: 0.0005,
+      return { N, ms, k, q: `<p>A vernier caliper has 1 mm divisions on the main scale and ${N} vernier divisions that together equal ${N - 1} main-scale divisions. The zero of the vernier lies just beyond the ${ms} mm mark, and the ${ord(k)} vernier division coincides with a main-scale line. What is the length in mm?</p>`, answer: ans, unit: 'mm', tol: 0.0005,
         hint: 'Least count = 1 mm ÷ N. Reading = main scale reading + (coinciding division) × least count.',
         solution: steps(`Least count = 1/${N} = ${lc} mm.`, `Reading = ${ms} + ${k} × ${lc} = <b>${n(ans, 5)} mm</b>.`) };
     },

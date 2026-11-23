@@ -81,7 +81,7 @@ export default {
         const ps = [a - d, a, a + d], avg = a, g = avg * yrs;
         const { options, answer } = shuffleOpts(rng, g, [ps[0] + ps[1] + ps[2], avg, g + avg], (v) => rs(v, 0));
         return { q: `A firm's profits for the last three years are ${ps.map((x) => rs(x, 0)).join(', ')}. Goodwill is valued at ${yrs} years' purchase of the average profit. Goodwill is:`, options, answer, ps, yrs,
-          sol: steps(`Average = ${ps.map((x) => fmt(x, 0)).join(' + ')} ÷ 3 = ${fmt(avg, 0)}.`, `Goodwill = ${fmt(avg, 0)} × ${yrs} = <b>${rs(g, 0)}</b>.`), trap: 'Use the average, not the three-year total.' };
+          sol: steps(`Average = (${ps.map((x) => fmt(x, 0)).join(' + ')}) ÷ 3 = ${fmt(avg, 0)}.`, `Goodwill = ${fmt(avg, 0)} × ${yrs} = <b>${rs(g, 0)}</b>.`), trap: 'Use the average, not the three-year total.' };
       },
       verify: (p) => rs((p.ps[0] + p.ps[1] + p.ps[2]) / 3 * p.yrs, 0) === p.options[p.answer] ? p.answer : -1 },
     { id: 'gw-g02', type: 'mcq', level: 2, sub: 'super profit', ...T,

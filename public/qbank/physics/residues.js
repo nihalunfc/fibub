@@ -297,7 +297,7 @@ export default {
         const a = int(r, 1, 3), n = int(r, 2, 4);
         const show = (p, q) => `$${frac(p, q)}$`;
         const right = show(a ** (n - 1), fact(n - 1));
-        const o = mcqOptions(r, right, [show(a ** n, fact(n)), show(a ** (n - 1), fact(n)), show(a ** (n - 1), 1), show(a ** (n + 1), fact(n + 1))]);
+        const o = mcqOptions(r, right, [show(a ** n, fact(n)), show(a ** (n - 1), fact(n)), show(a ** (n - 1), 1), show(a ** (n + 1), fact(n + 1)), show(2 * a ** (n - 1), fact(n - 1)), show(-(a ** (n - 1)), fact(n - 1)), show(a ** (n - 1), 2 * fact(n - 1))]);
         return { q: `The residue of $\\dfrac{e^{${a === 1 ? '' : a}z}}{z^{${n}}}$ at $z = 0$ is`, ...o,
           sol: `$\\frac{e^{${a}z}}{z^{${n}}} = \\sum_k\\frac{${a}^kz^{k - ${n}}}{k!}$. The $z^{-1}$ term has $k = ${n - 1}$: coefficient $\\frac{${a}^{${n - 1}}}{${n - 1}!} = ${frac(a ** (n - 1), fact(n - 1))}$.`,
           trap: 'For a pole of order $n$ the residue uses the $(n-1)$th derivative, divided by $(n-1)!$.' };

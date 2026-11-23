@@ -1,6 +1,7 @@
 // Class 9 Maths, Predicting What Comes Next: Exploring Sequences and Progressions: live problems (original fibub questions).
 // Ids start with c9m-seq-.
 import { pick, choose, n, steps } from './_util.js';
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 
 const mn = (v) => String(v).replace('-', '−');
 const list = (a, d, k) => Array.from({ length: k }, (_, i) => mn(a + i * d)).join(', ');
@@ -9,9 +10,9 @@ export default {
     title: 'nth term of an AP',
     make(r) {
       const a = pick(r, -10, 20), d = choose(r, [-5, -4, -3, -2, 2, 3, 4, 5, 6, 7]), N = pick(r, 10, 50), answer = a + (N - 1) * d;
-      return { a, d, N, q: `<p>Find the <b>${N}th term</b> of the arithmetic progression ${list(a, d, 4)}, ...</p>`, answer, unit: '', tol: 0, abs: 0.5,
+      return { a, d, N, q: `<p>Find the <b>${ord(N)} term</b> of the arithmetic progression ${list(a, d, 4)}, ...</p>`, answer, unit: '', tol: 0, abs: 0.5,
         hint: 'The common difference is d = second term − first term. The nth term is a + (n − 1)d.',
-        solution: steps(`a = ${mn(a)} and d = ${mn(d)}.`, `${N}th term = a + (${N} − 1)d = ${mn(a)} + ${N - 1} × (${mn(d)}).`, `= <b>${mn(answer)}</b>.`) };
+        solution: steps(`a = ${mn(a)} and d = ${mn(d)}.`, `${ord(N)} term = a + (${N} − 1)d = ${mn(a)} + ${N - 1} × (${mn(d)}).`, `= <b>${mn(answer)}</b>.`) };
     },
     verify(x) { let t = x.a; for (let i = 1; i < x.N; i++) t += x.d; return t; },
   },
@@ -21,7 +22,7 @@ export default {
       const a = pick(r, 2, 15), d = pick(r, 2, 9), N = pick(r, 12, 60), T = a + (N - 1) * d;
       return { a, d, T, q: `<p>Which term of the AP ${list(a, d, 4)}, ... is <b>${T}</b>?</p>`, answer: N, unit: '', tol: 0, abs: 0.5,
         hint: 'Put a + (n − 1)d equal to the number and solve for n.',
-        solution: steps(`a + (n − 1)d = ${T}, so ${a} + (n − 1) × ${d} = ${T}.`, `(n − 1) × ${d} = ${T - a}, so n − 1 = ${(T - a) / d}.`, `n = <b>${N}</b>, so ${T} is the ${N}th term.`) };
+        solution: steps(`a + (n − 1)d = ${T}, so ${a} + (n − 1) × ${d} = ${T}.`, `(n − 1) × ${d} = ${T - a}, so n − 1 = ${(T - a) / d}.`, `n = <b>${N}</b>, so ${T} is the ${ord(N)} term.`) };
     },
     verify(x) { let t = x.a, k = 1; while (t < x.T) { t += x.d; k++; } return k; },
   },
@@ -50,9 +51,9 @@ export default {
     title: 'a geometric (multiplying) sequence',
     make(r) {
       const a = pick(r, 1, 6), q = choose(r, [2, 3, 4]), N = pick(r, 4, 9);
-      return { a, ratio: q, N, q: `<p>A sequence starts ${a}, ${a * q}, ${a * q * q}, ${a * q ** 3}, ... where each term is <b>${q} times</b> the one before. Find the <b>${N}th term</b>.</p>`, answer: a * q ** (N - 1), unit: '', tol: 0, abs: 0.5,
+      return { a, ratio: q, N, q: `<p>A sequence starts ${a}, ${a * q}, ${a * q * q}, ${a * q ** 3}, ... where each term is <b>${q} times</b> the one before. Find the <b>${ord(N)} term</b>.</p>`, answer: a * q ** (N - 1), unit: '', tol: 0, abs: 0.5,
         hint: 'Multiply by the common ratio again and again: term n is a × r^(n − 1).',
-        solution: steps(`First term ${a}, ratio ${q}.`, `${N}th term = ${a} × ${q}^${N - 1} = ${a} × ${q ** (N - 1)}.`, `= <b>${a * q ** (N - 1)}</b>.`) };
+        solution: steps(`First term ${a}, ratio ${q}.`, `${ord(N)} term = ${a} × ${q}^${N - 1} = ${a} × ${q ** (N - 1)}.`, `= <b>${a * q ** (N - 1)}</b>.`) };
     },
     verify(x) { let t = x.a; for (let i = 1; i < x.N; i++) t *= x.ratio; return t; },
   },

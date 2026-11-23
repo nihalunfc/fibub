@@ -1,8 +1,8 @@
 // Class 10 Maths, Coordinate Geometry: live problems (original fibub questions). Ids start with c10m-coord-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const pt = (x, y) => `(${x}, ${y})`;
-export default {
+export default tidyProblems({
   'c10m-coord-dist': {
     title: 'distance between two points',
     make(r) {
@@ -80,4 +80,4 @@ export default {
     },
     verify: (x) => { const M = [(x.A[0] + x.C[0]) / 2, (x.A[1] + x.C[1]) / 2]; return x.ask === 'x' ? 2 * M[0] - x.B[0] : 2 * M[1] - x.B[1]; },
   },
-};
+}, ['c10m-coord-para']);

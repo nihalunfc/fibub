@@ -16,7 +16,7 @@ export default function (host) {
   const cv = canvas(host, { aspect: 0.62, max: 340, min: 240, label: 'A rest spectrum and a Doppler shifted spectrum with absorption lines moved by the radial velocity' });
   const c1 = row(host), c2 = row(host);
   const sv = slider(c1, { label: 'Radial velocity (+ away)', min: -5000, max: 150000, step: 10, value: v, fmt: (x) => `${Math.round(x).toLocaleString()} km/s`, oninput: (x) => { v = x; show(); } });
-  [['Star (+30)', 30], ['Galaxy edge (+200)', 200], ['Approaching (−1000)', -1000], ['Quasar 3C 273 (+47,000)', 47000], ['Distant galaxy (+100,000)', 100000]].forEach(([n, x]) => button(c2, n, () => { v = x; sv.set(x); show(); }));
+  [['Star (+30)', 30], ['Galaxy edge (+200)', 200], ['Approaching (−1000)', -1000], ['Quasar 3C 273 (+43,700)', 43700], ['Distant galaxy (+100,000)', 100000]].forEach(([n, x]) => button(c2, n, () => { v = x; sv.set(x); show(); }));
   const out = readout(host);
   const z = () => Math.sqrt((1 + v / C) / (1 - v / C)) - 1;
   function show() {

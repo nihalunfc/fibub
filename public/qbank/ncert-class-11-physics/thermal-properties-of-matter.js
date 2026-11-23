@@ -48,7 +48,7 @@ export default {
       make(rng) { const f = choose(rng, [2, 3, 4]), P = pick(rng, 10, 100, 10); return { f, P, q: `<p>A black body radiates ${P} W at temperature T. How much power (in W) does it radiate if its absolute temperature is made ${f} times as large?</p>`, answer: P * f ** 4, tol: 0.01, unit: 'W', sol: `<p>P ∝ T⁴, so P′ = ${P} × ${f}⁴ = ${P * f ** 4} W.</p>` }; },
       verify: (p) => p.P * (p.f * 300) ** 4 / 300 ** 4 },
     { id: 'th-g04', type: 'nat', level: 2, exams: ['board'], sub: 'conduction',
-      make(rng) { const k = choose(rng, [0.7, 0.8, 50, 400]), A = pick(rng, 1, 10, 1), d = choose(rng, [0.05, 0.1, 0.2]), dT = pick(rng, 10, 50, 10); const H = k * A * dT / d; return { k, A, d, dT, q: `<p>A slab of area ${A} m², thickness ${d} m and conductivity ${k} W/m K has a temperature difference of ${dT} °C across it. Find the heat current in W.</p>`, answer: H, tol: 0.01, unit: 'W', sol: `<p>H = kAΔT/d = ${H.toPrecision(4)} W.</p>` }; },
+      make(rng) { const k = choose(rng, [0.7, 0.8, 50, 400]), A = pick(rng, 1, 10, 1), d = choose(rng, [0.05, 0.1, 0.2]), dT = pick(rng, 10, 50, 10); const H = k * A * dT / d; return { k, A, d, dT, q: `<p>A slab of area ${A} m², thickness ${d} m and conductivity ${k} W/m K has a temperature difference of ${dT} °C across it. Find the heat current in W.</p>`, answer: H, tol: 0.01, unit: 'W', sol: `<p>H = kAΔT/d = ${k} × ${A} × ${dT} ÷ ${d} = ${+H.toPrecision(6)} W.</p>` }; },
       verify: (p) => p.dT / (p.d / (p.k * p.A)) },
   ],
 };

@@ -1,10 +1,10 @@
 // Class 12 Maths, Chapter 5 Continuity and Differentiability: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('cd');
 const D = (f, x) => { const h = 1e-5; return (f(x + h) - f(x - h)) / (2 * h); };
 
-export default {
+export default tidyGens({
   topic: 'continuity-and-differentiability', name: 'Continuity and Differentiability', n: 5,
   items: [
     m.mcq(1, 'cont', '<p>$f$ is continuous at $x=a$ when:</p>', '$\\lim_{x\\to a^-}f = \\lim_{x\\to a^+}f = f(a)$', ['$f(a)$ is defined', '$\\lim_{x\\to a}f$ exists but $f(a)$ may differ', '$f$ is differentiable at $a$ only'], '<p>All three must agree: both one-sided limits and the value.</p>'),
@@ -58,4 +58,4 @@ export default {
       make(rng) { const c = choose(rng, [1, 2, 3, 4]); return { c, q: '<p>Find $\\dfrac{dy}{dx}$ for $y = x^x$ at $x = ' + c + '$.</p>', answer: +(c ** c * (Math.log(c) + 1)).toPrecision(6), tol: 0.01, unit: '', sol: '<p>$y\' = x^x(\\ln x + 1)$, at $x=' + c + '$: $' + (c ** c * (Math.log(c) + 1)).toFixed(3) + '$.</p>' }; },
       verify: (p) => D((x) => Math.exp(x * Math.log(x)), p.c) },
   ],
-};
+}, ['cd-g04', 'cd-g05']);

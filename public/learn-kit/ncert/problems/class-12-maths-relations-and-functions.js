@@ -1,8 +1,8 @@
 // Class 12 Maths, Relations and Functions: live problems (original fibub questions). Ids start with c12m-rel-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
 const fact = (k) => (k <= 1 ? 1 : k * fact(k - 1));
-export default {
+export default tidyProblems({
   'c12m-rel-count-fn': {
     title: 'counting functions',
     make(r) {
@@ -63,4 +63,4 @@ export default {
     },
     verify(x) { let c = 0; for (let v = 1; v <= x.N; v++) if (v % x.k === x.a % x.k) c++; return c; },
   },
-};
+}, ['c12m-rel-compose-num', 'c12m-rel-inverse-num']);

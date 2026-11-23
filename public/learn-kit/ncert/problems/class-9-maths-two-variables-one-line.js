@@ -1,7 +1,7 @@
 // Class 9 Maths, Two Variables, One Line: live problems (original fibub questions). Ids start with c9m-line-.
-import { pick, choose, n, steps } from './_util.js';
+import { pick, choose, n, steps, tidyProblems } from './_util.js';
 
-export default {
+export default tidyProblems({
   'c9m-line-y': {
     title: 'find y for a given x',
     make(r) {
@@ -52,4 +52,4 @@ export default {
     },
     verify(o) { const V = [[0, 0], [o.p, 0], [o.p, o.s], [0, o.s]]; let a = 0; V.forEach((q, i) => { const w = V[(i + 1) % 4]; a += q[0] * w[1] - w[0] * q[1]; }); return Math.abs(a) / 2; },
   },
-};
+}, ['c9m-line-k', 'c9m-line-intercept']);

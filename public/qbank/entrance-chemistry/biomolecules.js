@@ -4,6 +4,7 @@
 // DNA: 10 base pairs per turn, 0.34 nm per base pair, A=T two H-bonds, G-C three H-bonds.
 
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 let _n = 0, _c = 0;
 const nid = () => `bi-${String(++_c).padStart(3, '0')}`;
@@ -559,9 +560,10 @@ GENS.push(
   }, (p) => -19.95 * p.l * (p.m / 100) * (360 / 342)),
 );
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'biomolecules',
   groups: GRP,
   items: [...FIXED, ...XI],
   gens: GENS,
-};
+}, ['bi-g20']);

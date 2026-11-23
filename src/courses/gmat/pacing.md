@@ -16,7 +16,7 @@ quiz:
   - q: 'What does a smart guess mean?'
     choices: ['Cross out choices you can rule out, then pick from the rest', 'Always pick C', 'Pick the longest choice']
     ans: 0
-    why: 'Removing even one or two choices raises your chance from 1 in 5 to 1 in 3 or better.'
+    why: 'Ruling out one choice raises your chance from 1 in 5 to 1 in 4; ruling out two raises it to 1 in 3.'
 sources:
   - 'GMAC, GMAT exam structure (checked 2026-11-22): https://www.mba.com/exams/gmat-exam/about/exam-structure'
 ---

@@ -1,10 +1,10 @@
 // Class 12 Maths, Chapter 1 Relations and Functions: question bank (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('rf');
 const fact = (k) => (k <= 1 ? 1 : k * fact(k - 1));
 
-export default {
+export default tidyGens({
   topic: 'relations-and-functions', name: 'Relations and Functions', n: 1,
   items: [
     m.mcq(1, 'relations', '<p>A relation $R$ on a set $A$ is <b>reflexive</b> if:</p>', '$(a, a) \\in R$ for every $a \\in A$', ['$(a, b) \\in R$ always gives $(b, a) \\in R$', '$(a, b), (b, c) \\in R$ always give $(a, c) \\in R$', '$R$ is empty'], '<p>Reflexive means every element is related to itself.</p>'),
@@ -62,4 +62,4 @@ export default {
       make(rng) { const a = pick(rng, 1, 6), b = pick(rng, 0, 5), y0 = pick(rng, 2, 9); return { a, b, y0, q: `<p>$f(x) = x^2 + ${a}x + ${b}$ on $[0, \\infty)$ is one-one. Find the value of $x \\ge 0$ for which $f(x) = ${y0 * y0 + a * y0 + b}$.</p>`, answer: y0, tol: 0, sol: `<p>Since $f$ is one-one on $[0,\\infty)$ and $f(${y0}) = ${y0 * y0 + a * y0 + b}$, the only such $x$ is ${y0}.</p>` }; },
       verify: (p) => { let lo = 0, hi = 50; const t = p.y0 * p.y0 + p.a * p.y0 + p.b; for (let i = 0; i < 80; i++) { const mid = (lo + hi) / 2; mid * mid + p.a * mid + p.b < t ? (lo = mid) : (hi = mid); } return Math.round((lo + hi) / 2); } },
   ],
-};
+}, ['rf-g04', 'rf-g07']);

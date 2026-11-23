@@ -97,7 +97,7 @@ Lymphocytes are not immortal; they die after some time, so the patient needs per
 
 </details>
 
-**12.** (5 marks) Describe the mechanism of RNAi used to protect tobacco plants from the nematode *Meloidogyne incognitia*.
+**12.** (5 marks) Describe the mechanism of RNAi used to protect tobacco plants from the nematode *Meloidogyne incognita*.
 
 <details><summary>Answer</summary>
 

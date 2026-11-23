@@ -1,11 +1,11 @@
 // Class 12 Maths, Chapter 8 Application of Integrals: practice questions for the NCERT study course (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('ai');
 const R = String.raw;
 const simp = (f, a, b, N = 4000) => { const h = (b - a) / N; let s = f(a) + f(b); for (let i = 1; i < N; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; };
 
-export default {
+export default tidyGens({
   topic: 'application-of-integrals', name: 'Application of Integrals', n: 8,
   items: [
     m.mcq(1, 'under', R`<p>The area under $y = x$ from $x = 0$ to $x = 4$ is:</p>`, R`8`, [R`16`, R`4`, R`2`], R`<p>$\int_0^4 x\,dx = \frac{16}{2} = 8$, the triangle with base 4 and height 4.</p>`),
@@ -52,7 +52,7 @@ export default {
       make(rng) { const a = choose(rng, [1, 2, 3, 4]), h = choose(rng, [1, 4, 9]); const ans = (8 / 3) * Math.sqrt(a) * h ** 1.5; return { a, h, q: `<p>Find the area enclosed by $y^2 = ${4 * a}x$ and $x = ${h}$.</p>`, answer: +ans.toPrecision(6), tol: 0.01, unit: 'sq. units', sol: `<p>$A = 2\\int_0^{${h}} 2\\sqrt{${a}x}\\,dx = \\tfrac83\\sqrt{${a}}\\cdot ${h}^{3/2} = ${ans.toFixed(3)}$.</p>` }; },
       verify: (q) => 2 * simp((t) => Math.sqrt(4 * q.a * Math.max(0, t)), 0, q.h, 20000) },
     { id: 'ai-g06', type: 'nat', level: 2, exams: ['board'], sub: 'strip',
-      make(rng) { const p = choose(rng, [6, 8, 12]), T = choose(rng, [2, 3, 4]); const ans = p * T * T / 2 - T ** 3; return { p, T, q: `<p>A speed is $v = ${p}t - 3t^2$ m/s. Find the distance covered from $t = 0$ to $t = ${T}$ s using area under the graph.</p>`, answer: ans, tol: 0.01, unit: 'm', sol: `<p>$\\int_0^{${T}}(${p}t - 3t^2)dt = \\left[${p / 2}t^2 - t^3\\right]_0^{${T}} = ${ans}$ m.</p>` }; },
+      make(rng) { const p = choose(rng, [6, 8, 12]), T = choose(rng, [2, 3, 4].filter((x) => 3 * x <= p)); const ans = p * T * T / 2 - T ** 3; return { p, T, q: `<p>A speed is $v = ${p}t - 3t^2$ m/s. Find the distance covered from $t = 0$ to $t = ${T}$ s using area under the graph.</p>`, answer: ans, tol: 0.01, unit: 'm', sol: `<p>$\\int_0^{${T}}(${p}t - 3t^2)dt = \\left[${p / 2}t^2 - t^3\\right]_0^{${T}} = ${ans}$ m.</p>` }; },
       verify: (q) => simp((t) => q.p * t - 3 * t * t, 0, q.T) },
   ],
-};
+}, ['ai-g01', 'ai-g05']);

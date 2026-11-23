@@ -1,5 +1,6 @@
 // Linear programming (Plus Two entrance, Mathematics, Class 12). Original fibub questions.
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const CUET = true; // Class 12 chapters: level 1-3 mcq also list 'cuet'
@@ -1098,4 +1099,5 @@ gens.push(
 
 // ===== expansion end =====
 
-export default { topic: 'linear-programming', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'linear-programming', groups, items, gens }, ['lp-g07', 'lp-g09', 'lp-g12']);

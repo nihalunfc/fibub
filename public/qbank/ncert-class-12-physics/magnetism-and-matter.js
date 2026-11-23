@@ -39,7 +39,7 @@ export default {
   ],
   gens: [
     { id: 'mm-g01', type: 'nat', level: 2, exams: ['board'], sub: 'dipole',
-      make(rng) { const mm = pick(rng, 1, 8), d = pick(rng, 30, 80, 10); const ans = (2e-7 * mm) / Math.pow(d / 100, 3) * 1e6; return { mm, d, q: `<p>A small magnet of moment ${mm} A m². Find the field on its axis ${d} cm from its centre, in microtesla.</p>`, answer: ans, tol: 0.01, unit: 'µT', sol: `<p>B = (μ₀/4π)(2m/r³) = 10⁻⁷ × ${2 * mm} ÷ ${r2(Math.pow(d / 100, 3))} = ${r2(ans)} µT.</p>` }; },
+      make(rng) { const mm = pick(rng, 1, 8), d = pick(rng, 30, 80, 10); const ans = (2e-7 * mm) / Math.pow(d / 100, 3) * 1e6; return { mm, d, q: `<p>A small magnet of moment ${mm} A m². Find the field on its axis ${d} cm from its centre, in microtesla.</p>`, answer: ans, tol: 0.01, unit: 'µT', sol: `<p>B = (μ₀/4π)(2m/r³) = 10⁻⁷ × ${2 * mm} ÷ ${+Math.pow(d / 100, 3).toPrecision(4)} = ${r2(ans)} µT.</p>` }; },
       verify: (p) => 1e-7 * ((2 * p.mm) / ((p.d / 100) ** 3)) * 1e6 },
     { id: 'mm-g02', type: 'nat', level: 2, exams: ['board'], sub: 'dipole',
       make(rng) { const mm = pick(rng, 1, 5), B = pick(rng, 0.1, 0.9, 0.1), th = choose(rng, [30, 45, 60, 90]); const ans = mm * B * Math.sin((th * Math.PI) / 180); return { mm, B, th, q: `<p>A magnet of moment ${mm} A m² makes ${th}° with a uniform field of ${B} T. Find the torque on it, in N m (2 decimal places).</p>`, answer: ans, tol: 0.02, unit: 'N m', sol: `<p>τ = mB sin θ = ${mm} × ${B} × sin ${th}° = ${r2(ans)} N m.</p>` }; },

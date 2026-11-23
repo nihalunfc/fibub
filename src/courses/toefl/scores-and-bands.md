@@ -49,7 +49,7 @@ You receive **four section bands** (Reading, Listening, Writing, Speaking) and *
 </div>
 <div class="step">
 
-**ETS's own example:** an average of 5.125 gives an overall score of **5**, because 5.125 is nearer to 5 than to 5.5.
+**ETS's own example:** an average of 5.25 gives an overall score of **5.5**. An average exactly halfway between two half bands (such as 5.25 or 4.75) is rounded up.
 
 </div>
 </div>

@@ -1,9 +1,9 @@
 // Class 9 Maths, Chapter 13 Two Variables, One Line: question bank (original fibub questions).
 import { maker } from './_make.js';
-import { pick, choose } from '../_util.js';
+import { pick, choose, tidyGens } from '../_util.js';
 const m = maker('tl');
 
-export default {
+export default tidyGens({
   topic: 'two-variables-one-line', name: 'Two Variables, One Line', n: 13,
   items: [
     m.mcq(1, 'solutions', '<p>Which pair is a solution of x + y = 7?</p>', '(3, 4)', ['(3, 3)', '(7, 7)', '(2, 4)'], '<p>3 + 4 = 7.</p>'),
@@ -61,4 +61,4 @@ export default {
       make(rng) { const a = pick(rng, 2, 9), b = pick(rng, 2, 9), x = pick(rng, 1, 9), y = pick(rng, 1, 9), T = a * x + b * y; return { a, b, T, x, y, q: `<p>Notebooks cost ₹ ${a} and pens cost ₹ ${b}. A student buys ${x} notebooks and some pens and pays ₹ ${T}. How many pens did she buy?</p>`, answer: y, tol: 0, sol: `<p>${a}(${x}) + ${b}y = ${T}, so ${b}y = ${T - a * x} and y = ${y}.</p>` }; },
       verify: (q) => (q.T - q.a * q.x) / q.b },
   ],
-};
+}, ['tl-g02', 'tl-g04']);

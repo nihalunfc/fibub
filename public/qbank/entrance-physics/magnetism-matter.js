@@ -1,4 +1,5 @@
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EXB = {
@@ -942,4 +943,5 @@ const v5gens = [
     verify: (p) => { const q1 = p.qa, m1 = p.ma, q2 = p.qb, m2 = p.mb; const sp = p.cond === 'speed' ? [1, 1] : p.cond === 'kinetic energy' ? [Math.sqrt(1 / m1), Math.sqrt(1 / m2)] : [1 / m1, 1 / m2]; const mu = (q, m, v) => 0.5 * q * v * (m * v / q); const r = mu(q1, m1, sp[0]) / mu(q2, m2, sp[1]); const f = (x) => { for (const [n, d] of [[1, 1], [1, 2], [2, 1], [1, 4], [4, 1], [7, 4], [4, 7], [7, 2], [2, 7], [7, 1], [1, 7], [3, 7], [7, 3], [7, 8], [8, 7]]) if (Math.abs(x - n / d) < 1e-9) return d === 1 ? `${n}` : `${n}/${d}`; return fmt(x, 3); }; return p.options.indexOf(f(r)); } },
 ];
 
-export default { topic: 'magnetism-matter', groups: { ...groups, ...v5groups }, items: [...items, ...v5items], gens: [...gens, ...v5gens] };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'magnetism-matter', groups: { ...groups, ...v5groups }, items: [...items, ...v5items], gens: [...gens, ...v5gens] }, ['mm-g24']);

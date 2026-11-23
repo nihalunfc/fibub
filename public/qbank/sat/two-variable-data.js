@@ -1,8 +1,10 @@
 // SAT Math · Problem-solving and data analysis · scatterplots, lines of best fit and two-way tables. Original (fibub).
 import { int, choose, shuffleOpts, fmt, steps } from './_util.js';
+import { tidyGens } from '../_util.js';
 const F = { section: 'math', domain: 'data' };
 
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'two-variable-data',
   gens: [
     { id: 'sat-tv-g01', type: 'nat', marks: 1, level: 2, exams: ['sat'], sub: 'predict from a line', facets: F, format: 'numeric',
@@ -51,4 +53,4 @@ export default {
       options: ['Exponential, because <i>y</i> doubles each time <i>x</i> increases by 1', 'Linear, because <i>y</i> increases by 5 each time', 'Linear, because <i>y</i> increases each time', 'Neither linear nor exponential'], answer: 0,
       sol: '<p>The differences are 5, 10, 20: not constant, so not linear. The ratios are 10/5 = 20/10 = 40/20 = 2: constant, so the data are <b>exponential</b>, <i>y</i> = 5 · 2<sup><i>x</i></sup>.</p>' },
   ],
-};
+}, ['sat-tv-g01']);

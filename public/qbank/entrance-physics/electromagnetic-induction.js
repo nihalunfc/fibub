@@ -1,4 +1,5 @@
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const r = String.raw;
 const EXB = {
@@ -982,4 +983,5 @@ gens.push(
 
 }
 
-export default { topic: 'electromagnetic-induction', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'electromagnetic-induction', groups, items, gens }, ['ei-g20']);

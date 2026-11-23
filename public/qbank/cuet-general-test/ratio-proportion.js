@@ -133,7 +133,7 @@ export default {
         const [p, q] = choose(rng, [[2, 3], [3, 4], [1, 2], [2, 5], [3, 5]]), [r, s] = choose(rng, [[4, 5], [3, 7], [5, 6], [2, 7], [6, 7]]);
         const L = lcm(q, r), A = p * (L / q), B = L, C = s * (L / r), g = gcd(gcd(A, B), C);
         const R = (x, y, z) => `${x} : ${y} : ${z}`;
-        const { options, answer } = shuffleOpts(rng, R(A / g, B / g, C / g), [R(p, q, s), R(p, r, s), R(A / g, B / g, C / g + 1)]);
+        const { options, answer } = shuffleOpts(rng, R(A / g, B / g, C / g), [R(p, q, s), R(p, r, s), R(A / g, B / g, C / g + 1), R(A / g + 1, B / g, C / g), R(C / g, B / g, A / g)]);
         return { q: `If A : B = ${p} : ${q} and B : C = ${r} : ${s}, what is A : B : C?`, options, answer,
           sol: steps(`Make B the same: LCM of ${q} and ${r} is ${L}.`, `A : B = ${A} : ${B} and B : C = ${B} : ${C}.`, `So A : B : C = <b>${R(A / g, B / g, C / g)}</b>.`),
           trap: 'The middle term B must be the same number in both ratios before they are joined.' };

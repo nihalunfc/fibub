@@ -1,4 +1,5 @@
 import { pick, int, choose, fmt, shuffleOpts, numOpts } from '../_entrance.js';
+import { tidyGens } from '../_util.js';
 
 const R = String.raw;
 const EXS = {
@@ -1082,4 +1083,5 @@ gens.push(
 );
 }
 // ==L5-END
-export default { topic: 'circles', groups, items, gens };
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({ topic: 'circles', groups, items, gens }, ['ci-g13', 'ci-gx1', 'ci-gx4', 'ci-gx7', 'ci-gx10']);

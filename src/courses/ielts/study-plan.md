@@ -85,7 +85,7 @@ After a week, read the last column. You will see the same three or four reasons 
 ## 6. Writing and Speaking without a teacher
 
 - **Writing**: after each task, compare yours with the model answer in the practice room and tick the self-check list (word count, an overview for Task 1, a clear position for Task 2, paragraphs, a range of sentences). Leave your essay for a day, then read it aloud: you will hear mistakes you could not see.
-- **Speaking**: record yourself answering the cue cards in the practice room, with the timers. Listen back once for fluency (long pauses, "umm"), once for grammar, once for pronunciation. Lesson 8.5 gives you a scoring sheet.
+- **Speaking**: record yourself answering the cue cards in the practice room, with the timers. Listen back once for fluency (long pauses, "umm"), once for grammar, once for pronunciation. Lesson 8.5 shows a simple record, listen and count routine.
 
 <div class="keypoints">
 

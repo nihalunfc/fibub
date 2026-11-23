@@ -1,6 +1,8 @@
 import { int, choose, fmt, gcd, numOpts, steps } from './_q.js';
+import { tidyGens } from '../_util.js';
 const E = ['gmat', 'gre'];
-export default {
+// Sign display tidied ("+ -3" reads "- 3", "1x" reads "x"): signs() in ../_util.js.
+export default tidyGens({
   topic: 'ratios',
   items: [
     { id: 'ra-001', type: 'mcq', level: 2, exams: E, sub: 'combine ratios',
@@ -48,4 +50,4 @@ export default {
           sol: steps(`Novels ${a}k, textbooks ${b}k. After adding: (${a}k + ${x}) : ${b}k = ${nr / g} : ${blue / g}.`, `Cross-multiply: ${blue / g}(${a}k + ${x}) = ${nr / g} × ${b}k, so ${(nr / g) * b - (blue / g) * a}k = ${(blue / g) * x} and k = ${k}.`, `Textbooks = ${b} × ${k} = <b>${value}</b>.`), trap: `Answering the number of novels (${red} before, ${nr} after).` };
       }, check: (p) => (p.b * p.d * p.x) / (p.c * p.b - p.d * p.a) },
   ],
-};
+}, ['ra-g04']);

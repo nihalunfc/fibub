@@ -1,5 +1,6 @@
 // Class 10 Science, Our Environment: live problems (original fibub questions). Ids start with c10s-env-.
 import { pick, choose, n, steps } from './_util.js';
+const ord = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
 
 export default {
   'c10s-env-energy': {
@@ -8,7 +9,7 @@ export default {
       const E = choose(r, [1000, 5000, 10000, 20000, 50000]), L = pick(r, 2, 4), names = ['', 'herbivores (2nd level)', 'first carnivores (3rd level)', 'second carnivores (4th level)'];
       return { E, L, q: `<p>Producers in a field fix ${n(E)} J of energy. Using the 10 per cent law, how much energy reaches the ${names[L - 1]}? (Answer in joules.)</p>`, answer: E * Math.pow(0.1, L - 1), unit: 'J', tol: 0.01,
         hint: 'Only 10% of the energy passes on at each step. Count the steps from the producers.',
-        solution: steps(`From the 1st level to the ${L}th level there are ${L - 1} steps, each keeping 10%.`, `${n(E)} × (0.1)<sup>${L - 1}</sup> = <b>${n(E * Math.pow(0.1, L - 1))} J</b>.`) };
+        solution: steps(`From the 1st level to the ${ord(L)} level there are ${L - 1} steps, each keeping 10%.`, `${n(E)} × (0.1)<sup>${L - 1}</sup> = <b>${n(E * Math.pow(0.1, L - 1))} J</b>.`) };
     },
     verify: (x) => { let e = x.E; for (let i = 1; i < x.L; i++) e = e / 10; return e; },
   },

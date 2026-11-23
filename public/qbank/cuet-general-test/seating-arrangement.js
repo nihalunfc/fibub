@@ -1,6 +1,7 @@
 // CUET General Test: seating and order. Original questions for fibub.
 // Every puzzle was checked by trying all possible arrangements: each has exactly one solution.
 import { pick, int, choose, fmt, shuffleOpts, steps } from './_cuet.js';
+const ord = (k) => k + (k % 100 >= 11 && k % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[k % 10] || 'th'));
 
 const T = { exams: ['cuet'], format: 'single' };
 const mcq = (id, level, sub, q, options, answer, sol, trap) => ({ id, type: 'mcq', level, sub, q, options, answer, sol, ...(trap ? { trap } : {}), ...T });
@@ -76,7 +77,7 @@ export default {
       make(rng) {
         const m = int(rng, 5, 20), n = int(rng, 5, 20), tot = m + n - 1;
         const { options, answer } = shuffleOpts(rng, tot, [tot + 1, tot - 1, tot + 2]);
-        return { q: `Deepa is ${m}th from the left end of a row and ${n}th from the right end. How many people are in the row?`, options, answer, m, n,
+        return { q: `Deepa is ${ord(m)} from the left end of a row and ${ord(n)} from the right end. How many people are in the row?`, options, answer, m, n,
           sol: steps(`Deepa is counted in both numbers.`, `Total = ${m} + ${n} − 1 = <b>${tot}</b>.`), trap: 'Adding without subtracting 1 counts Deepa twice.' };
       },
       verify: (p) => p.options.indexOf(String(p.m + p.n - 1)) },
@@ -84,15 +85,15 @@ export default {
       make(rng) {
         const N = int(rng, 30, 50), p = int(rng, 5, 15), q = int(rng, 5, 15), b = N - p - q;
         const { options, answer } = shuffleOpts(rng, b, [b + 1, b - 1, b + 2]);
-        return { q: `In a row of ${N} people, Ajay is ${p}th from the left and Binu is ${q}th from the right (Ajay is to the left of Binu). How many people stand between them?`, options, answer, N, p, qq: q,
-          sol: steps(`Binu is ${N} − ${q} + 1 = ${N - q + 1}th from the left.`, `Between positions ${p} and ${N - q + 1}: ${N - q + 1} − ${p} − 1 = <b>${b}</b>.`), trap: 'Remember that neither Ajay nor Binu is counted among the people between them.' };
+        return { q: `In a row of ${N} people, Ajay is ${ord(p)} from the left and Binu is ${ord(q)} from the right (Ajay is to the left of Binu). How many people stand between them?`, options, answer, N, p, qq: q,
+          sol: steps(`Binu is ${N} − ${q} + 1 = ${ord(N - q + 1)} from the left.`, `Between positions ${p} and ${N - q + 1}: ${N - q + 1} − ${p} − 1 = <b>${b}</b>.`), trap: 'Remember that neither Ajay nor Binu is counted among the people between them.' };
       },
       verify: (p) => p.options.indexOf(String(p.N - p.p - p.qq)) },
     { id: 'sa-g03', type: 'mcq', level: 1, sub: 'rank', ...T,
       make(rng) {
         const N = int(rng, 30, 80), r = int(rng, 3, 25), bot = N - r + 1;
         const { options, answer } = shuffleOpts(rng, bot, [bot - 1, bot + 1, N - r - 1], (v) => `${v}`);
-        return { q: `Karan ranks ${r}th from the top in a class of ${N}. What is his rank from the bottom?`, options, answer, N, r,
+        return { q: `Karan ranks ${ord(r)} from the top in a class of ${N}. What is his rank from the bottom?`, options, answer, N, r,
           sol: steps(`${r - 1} students are above him.`, `Rank from the bottom = ${N} − ${r} + 1 = <b>${bot}</b>.`), trap: `${N - r} is the number of students below him, not his rank.` };
       },
       verify: (p) => p.options.indexOf(String(p.N - p.r + 1)) },
@@ -108,8 +109,8 @@ export default {
       make(rng) {
         const a = int(rng, 3, 15), c = int(rng, 18, 30), b = int(rng, 8, 20), tot = c + b - 1;
         const { options, answer } = shuffleOpts(rng, tot, [a + b - 1, c + b, tot + 1]);
-        return { q: `In a row, A is ${a}th from the left and B is ${b}th from the right. When they exchange places, A becomes ${c}th from the left. How many people are in the row?`, options, answer, c, b,
-          sol: steps(`After the exchange A stands where B was, so B was ${c}th from the left.`, `B was also ${b}th from the right: total = ${c} + ${b} − 1 = <b>${tot}</b>.`), trap: `The first position of A (${a}th) is not needed.` };
+        return { q: `In a row, A is ${ord(a)} from the left and B is ${ord(b)} from the right. When they exchange places, A becomes ${ord(c)} from the left. How many people are in the row?`, options, answer, c, b,
+          sol: steps(`After the exchange A stands where B was, so B was ${ord(c)} from the left.`, `B was also ${ord(b)} from the right: total = ${c} + ${b} − 1 = <b>${tot}</b>.`), trap: `The first position of A (${ord(a)}) is not needed.` };
       },
       verify: (p) => p.options.indexOf(String(p.c + p.b - 1)) },
   ],

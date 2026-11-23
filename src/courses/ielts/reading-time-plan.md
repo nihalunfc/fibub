@@ -8,7 +8,7 @@ quiz:
   - q: About how long should you spend on Passage 1 in Academic Reading?
     choices: ['About 17 minutes', 'About 30 minutes', 'About 5 minutes']
     ans: 0
-    why: Passages get harder, so take a little less on Passage 1 (about 17) and more on Passage 3 (about 23).
+    why: Passages get harder, so take a little less on Passage 1 (about 17) and more on Passage 3 (about 21), keeping 2 minutes at the end to check.
   - q: You have spent 3 minutes on one question and still can't find the answer. What do you do?
     choices: ['Guess, mark it, and move on', 'Keep looking until you find it', 'Leave it blank']
     ans: 0
@@ -30,11 +30,11 @@ sources:
 | Minutes | Academic | General Training |
 |---|---|---|
 | 0 to 17 | Passage 1: skim 2, questions 15 | Section 1 (short texts): 15 minutes |
-| 17 to 37 | Passage 2: skim 2, questions 18 | Section 2 (work texts): 18 minutes |
-| 37 to 58 | Passage 3: skim 2, questions 19 | Section 3 (long text): 25 minutes |
-| 58 to 60 | Check every answer is written, guess any blanks | Same |
+| 17 to 37 | Passage 2: skim 2, questions 18 | Section 2 (work texts): 20 minutes |
+| 37 to 58 | Passage 3: skim 2, questions 19 | Section 3 (long text): 25 minutes, including the last 2 for checking |
+| 58 to 60 | Check every answer is written, guess any blanks | Same, inside the 25 minutes for Section 3 |
 
-Write the times on the question paper before you start (or note them at the top of the screen) so that you check your watch at 17 and 37 minutes.
+Write the times on the question paper before you start (or note them at the top of the screen) so that you check your watch at 17 and 37 minutes (General Training: at 15 and 35).
 
 
 Pick a paper and press Play: the clock runs one minute per second.
