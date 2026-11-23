@@ -1,0 +1,259 @@
+---
+// #T1075 Merge Documents
+---
+<div class="tool-ui mg">
+  <section class="mg-limits" aria-labelledby="mg-lim-h">
+    <h3 id="mg-lim-h">Limits on this device</h3>
+    <p class="mg-dev"></p>
+    <ul class="mg-lim-list"></ul>
+    <p class="mg-small">Works with PDF, JPG and PNG, plus WebP, GIF, BMP and AVIF pictures where your browser can open them. Password-protected PDFs cannot be merged.</p>
+  </section>
+
+  <label class="mg-drop">Add PDFs and pictures <span class="mg-small">or drop them here</span>
+    <input class="mg-file" type="file" accept="application/pdf,.pdf,image/*" multiple />
+  </label>
+  <p class="mg-use" aria-live="polite"></p>
+  <p class="mg-msg" role="status" aria-live="polite"></p>
+
+  <div class="mg-bar" hidden>
+    <button class="btn secondary small mg-sort" type="button">Sort A to Z</button>
+    <button class="btn secondary small mg-rev" type="button">Reverse order</button>
+    <button class="btn secondary small mg-clear" type="button">Remove all</button>
+  </div>
+  <ol class="mg-list" aria-label="Files in merge order"></ol>
+
+  <fieldset class="mg-opts" hidden>
+    <legend>Pages for pictures</legend>
+    <label>Page size
+      <select class="mg-size">
+        <option value="a4">A4</option>
+        <option value="letter">US Letter</option>
+        <option value="image">Same shape as the picture</option>
+      </select>
+    </label>
+    <label>Margin
+      <select class="mg-margin">
+        <option value="0">None</option>
+        <option value="18" selected>Small (6 mm)</option>
+        <option value="36">Normal (13 mm)</option>
+      </select>
+    </label>
+    <p class="mg-small">Each picture gets its own page, turned to match it (wide pictures get wide pages), and is never squashed or re-compressed. PDF pages are copied exactly as they are.</p>
+  </fieldset>
+
+  <div class="mg-go" hidden>
+    <label>File name <input class="mg-name" type="text" value="merged" maxlength="80" /></label>
+    <button class="btn mg-merge" type="button">Merge into one PDF</button>
+    <progress class="mg-prog" max="1" value="0" hidden></progress>
+    <p class="mg-out" aria-live="polite"></p>
+  </div>
+</div>
+
+<style is:inline>
+  .mg { display: grid; gap: .75rem; }
+  .mg h3 { margin: 0 0 .3rem; font-size: 1rem; }
+  .mg-limits { border: 1px solid var(--line); border-radius: var(--radius); padding: .75rem 1rem; }
+  .mg-lim-list { margin: .3rem 0; padding-left: 1.2rem; }
+  .mg-dev, .mg-small { font-size: 14px; margin: 0; }
+  .mg-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .mg-drop.over { border-color: var(--accent); }
+  .mg-drop input { max-width: 100%; }
+  .mg-use { margin: 0; font-size: 14px; }
+  .mg-use .full { color: var(--warn); font-weight: 600; }
+  .mg-msg { margin: 0; min-height: 1.3em; }
+  .mg-msg.err { color: var(--warn); }
+  .mg-bar { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .mg-bar[hidden], .mg-opts[hidden], .mg-go[hidden] { display: none; }
+  .mg-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .mg-item { display: grid; grid-template-columns: 56px 1fr; gap: .6rem; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 6px; background: var(--surface); }
+  .mg-item.drop { outline: 3px dashed var(--accent); }
+  .mg-th { width: 56px; height: 56px; display: grid; place-items: center; overflow: hidden; background: #fff; border-radius: 6px; font-size: 12px; font-weight: 700; color: #444; }
+  .mg-th img, .mg-th canvas { max-width: 56px; max-height: 56px; transition: transform .15s; }
+  .mg-info { min-width: 0; display: grid; gap: 4px; }
+  .mg-nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mg-meta { font-size: 13px; }
+  .mg-act { display: flex; gap: 4px; flex-wrap: wrap; }
+  .mg-act button { min-width: 40px; min-height: 36px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; font: inherit; cursor: pointer; }
+  .mg-opts { border: 1px solid var(--line); border-radius: var(--radius); display: grid; gap: .5rem; }
+  .mg-opts label, .mg-go label { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .mg-go { display: grid; gap: .5rem; }
+  .mg-name { width: 14em; max-width: 100%; }
+  .mg-prog { width: 100%; }
+  .mg-out { margin: 0; }
+</style>
+
+<script>
+  import { LIMITS, pickDevice, checkAdd, fmtSize, sniff, jpegOrientation, orientationTurn, type MergeItem, type Device, type PageSize } from '../../lib/docs/merge';
+  import { download, baseName } from '../../lib/docs/pdfpages';
+
+  const root = document.querySelector('.mg') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.mg-msg'), list = $<HTMLOListElement>('.mg-list'), use = $<HTMLElement>('.mg-use');
+  const out = $<HTMLElement>('.mg-out'), prog = $<HTMLProgressElement>('.mg-prog'), btn = $<HTMLButtonElement>('.mg-merge');
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const device: Device = pickDevice(matchMedia('(pointer: coarse)').matches, nav.deviceMemory);
+  const lim = LIMITS[device];
+  const n = (x: number) => x.toLocaleString('en');
+  $<HTMLElement>('.mg-dev').textContent = device === 'phone'
+    ? 'These are the limits for phones, tablets and computers with little memory. A computer can merge more.'
+    : 'These are the limits for computers. Phones and tablets have less memory, so they can merge less at a time.';
+  $<HTMLElement>('.mg-lim-list').innerHTML = [
+    `Up to <b>${n(lim.files)} files</b> at a time`,
+    `Up to <b>${n(lim.totalMB)} MB</b> in total, and ${n(lim.fileMB)} MB for any one file`,
+    `Up to <b>${n(lim.pages)} pages</b> in the merged PDF (each picture is one page)`,
+  ].map((t) => `<li>${t}</li>`).join('');
+
+  interface Entry extends MergeItem { name: string; size: number; pages: number; file: File; thumb?: HTMLElement }
+  let items: Entry[] = [];
+  let dragFrom = -1, busy = false;
+  const totals = () => ({ files: items.length, bytes: items.reduce((s, e) => s + e.size, 0), pages: items.reduce((s, e) => s + e.pages, 0) });
+
+  function showUse() {
+    const t = totals();
+    const part = (v: string, max: string, full: boolean) => `<span class="${full ? 'full' : ''}">${v} of ${max}</span>`;
+    use.innerHTML = items.length
+      ? `${part(n(t.files) + ' files', n(lim.files), t.files >= lim.files)} · ${part(fmtSize(t.bytes), n(lim.totalMB) + ' MB', t.bytes >= lim.totalMB * 1048576 * 0.95)} · ${part(n(t.pages) + ' pages', n(lim.pages), t.pages >= lim.pages)}`
+      : '';
+  }
+
+  /** Pictures the PDF format cannot hold directly are redrawn as JPG (at most 16 megapixels, the most phone browsers can draw). */
+  async function toJpg(file: File): Promise<{ bytes: Uint8Array; w: number; h: number }> {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, Math.sqrt(16e6 / (bmp.width * bmp.height)));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+    const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height); bmp.close();
+    const blob: Blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('no blob'))), 'image/jpeg', 0.92));
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), w: c.width, h: c.height };
+  }
+
+  async function pdfThumb(e: Entry, box: HTMLElement) {
+    if (e.size > 40 * 1048576) { box.textContent = 'PDF'; return; } // big files: skip the preview to save memory
+    try {
+      const { loadPdfJs } = await import('../../lib/docs/pdfpages');
+      const pdfjs = await loadPdfJs();
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(await e.file.arrayBuffer()), isEvalSupported: false }).promise;
+      const pg = await doc.getPage(1);
+      const v0 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: 112 / Math.max(v0.width, v0.height) });
+      const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+      await pg.render({ canvasContext: c.getContext('2d')!, viewport: vp, canvas: c } as any).promise;
+      doc.destroy();
+      box.textContent = ''; box.appendChild(c); e.thumb = c; turnThumb(e);
+    } catch { box.textContent = 'PDF'; }
+  }
+  const turnThumb = (e: Entry) => { if (e.thumb) e.thumb.style.transform = e.rot ? `rotate(${e.rot}deg)` : ''; };
+
+  async function addFiles(files: File[]) {
+    if (busy || !files.length) return;
+    busy = true; let added = 0; const problems: string[] = [];
+    for (const f of files) {
+      say(`Reading ${f.name}…`);
+      try {
+        if (f.size > lim.fileMB * 1048576) { problems.push(checkAdd(totals(), { name: f.name, bytes: f.size, pages: 0 }, lim)!); continue; }
+        let bytes = new Uint8Array(await f.arrayBuffer());
+        let kind = sniff(bytes), pages = 1, exif = 0, size = f.size, redrawn = false;
+        if (kind === 'pdf') {
+          const { pdfPages, LockedPdfError } = await import('../../lib/docs/merge');
+          try { pages = await pdfPages(bytes); }
+          catch (err) {
+            problems.push(err instanceof LockedPdfError ? `${f.name} is password-protected, so its pages cannot be copied. Save a copy without the password in your PDF app first.` : `${f.name} could not be opened as a PDF. It may be damaged.`);
+            continue;
+          }
+        } else if (kind === 'jpg') exif = orientationTurn(jpegOrientation(bytes));
+        else if (kind === 'other') {
+          if (!f.type.startsWith('image/') && !/\.(webp|gif|bmp|avif|heic|heif|tiff?)$/i.test(f.name)) { problems.push(`${f.name} is not a PDF or a picture.`); continue; }
+          try { const j = await toJpg(f); bytes = j.bytes; kind = 'jpg'; redrawn = true; }
+          catch { problems.push(`${f.name} is a picture type this browser cannot open. Save it as JPG or PNG first (iPhone HEIC photos: share them as JPG, or set Camera > Formats to Most Compatible).`); continue; }
+        }
+        const why = checkAdd(totals(), { name: f.name, bytes: size, pages }, lim);
+        if (why) { problems.push(why); continue; }
+        // Keep only the File (the browser can leave it on disk) and read it again when merging. Redrawn pictures keep their new bytes.
+        items.push({ kind: kind as 'pdf' | 'jpg' | 'png', bytes: redrawn ? bytes : undefined, read: async () => new Uint8Array(await f.arrayBuffer()), exif, rot: 0, name: f.name, size, pages, file: f });
+        bytes = new Uint8Array(0);
+        added++;
+      } catch { problems.push(`${f.name} could not be read.`); }
+    }
+    busy = false;
+    draw();
+    if (problems.length) say(problems.join(' '), true);
+    else say(added ? `Added ${added} file${added > 1 ? 's' : ''}. Put them in order, then merge.` : '');
+  }
+
+  function draw() {
+    list.textContent = '';
+    items.forEach((e, i) => {
+      const li = document.createElement('li'); li.className = 'mg-item'; li.draggable = true;
+      li.innerHTML = '<div class="mg-th"></div><div class="mg-info"><div class="mg-nm"></div><div class="mg-meta"></div><div class="mg-act">'
+        + '<button type="button" data-a="up" aria-label="Move up">&uarr;</button><button type="button" data-a="down" aria-label="Move down">&darr;</button>'
+        + '<button type="button" data-a="rot" aria-label="Turn a quarter turn clockwise">&#8635;</button><button type="button" data-a="del" aria-label="Remove">&times;</button></div></div>';
+      (li.querySelector('.mg-nm') as HTMLElement).textContent = `${i + 1}. ${e.name}`;
+      const kind = e.kind === 'pdf' ? 'PDF' : e.kind === 'png' ? 'PNG' : 'JPG';
+      (li.querySelector('.mg-meta') as HTMLElement).textContent = `${kind} · ${e.pages} page${e.pages > 1 ? 's' : ''} · ${fmtSize(e.size)}${e.rot ? ` · turned ${e.rot}°` : ''}`;
+      const box = li.querySelector('.mg-th') as HTMLElement;
+      if (e.thumb) { box.appendChild(e.thumb); turnThumb(e); }
+      else if (e.kind === 'pdf') { box.textContent = 'PDF'; pdfThumb(e, box); }
+      else { const img = new Image(); img.alt = ''; img.decoding = 'async'; img.src = URL.createObjectURL(e.file); e.thumb = img; box.appendChild(img); turnThumb(e); }
+      li.addEventListener('dragstart', (ev) => { dragFrom = i; ev.dataTransfer?.setData('text/plain', String(i)); });
+      li.addEventListener('dragover', (ev) => { if (dragFrom >= 0) { ev.preventDefault(); li.classList.add('drop'); } });
+      li.addEventListener('dragleave', () => li.classList.remove('drop'));
+      li.addEventListener('drop', (ev) => { if (dragFrom < 0) return; ev.preventDefault(); ev.stopPropagation(); if (dragFrom !== i) { const [m] = items.splice(dragFrom, 1); items.splice(i, 0, m); } dragFrom = -1; draw(); });
+      li.addEventListener('dragend', () => { dragFrom = -1; });
+      li.querySelector('.mg-act')!.addEventListener('click', (ev) => {
+        const a = (ev.target as HTMLElement).closest('button')?.dataset.a; if (!a) return;
+        if (a === 'up' && i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+        else if (a === 'down' && i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+        else if (a === 'rot') e.rot = (e.rot + 90) % 360;
+        else if (a === 'del') { if (e.thumb instanceof HTMLImageElement) URL.revokeObjectURL(e.thumb.src); items.splice(i, 1); }
+        out.textContent = '';
+        draw();
+      });
+      list.appendChild(li);
+    });
+    const any = items.length > 0;
+    $<HTMLElement>('.mg-bar').hidden = !any;
+    $<HTMLElement>('.mg-go').hidden = !any;
+    $<HTMLElement>('.mg-opts').hidden = !items.some((e) => e.kind !== 'pdf');
+    showUse();
+  }
+
+  $<HTMLInputElement>('.mg-file').addEventListener('change', async (ev) => {
+    const inp = ev.target as HTMLInputElement; await addFiles([...(inp.files || [])]); inp.value = '';
+  });
+  const drop = $<HTMLElement>('.mg-drop');
+  drop.addEventListener('dragover', (ev) => { if (dragFrom < 0) { ev.preventDefault(); drop.classList.add('over'); } });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (ev) => { if (dragFrom >= 0) return; ev.preventDefault(); drop.classList.remove('over'); addFiles([...(ev.dataTransfer?.files || [])]); });
+
+  $<HTMLButtonElement>('.mg-sort').onclick = () => { items.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })); draw(); };
+  $<HTMLButtonElement>('.mg-rev').onclick = () => { items.reverse(); draw(); };
+  $<HTMLButtonElement>('.mg-clear').onclick = () => {
+    items.forEach((e) => { if (e.thumb instanceof HTMLImageElement) URL.revokeObjectURL(e.thumb.src); });
+    items = []; out.textContent = ''; say(''); draw();
+  };
+
+  btn.onclick = async () => {
+    if (busy || !items.length) return;
+    busy = true; btn.disabled = true; prog.hidden = false; prog.value = 0; out.textContent = '';
+    const name = (baseName($<HTMLInputElement>('.mg-name').value.trim()) || 'merged').replace(/[\\/:*?"<>|]+/g, '-');
+    try {
+      const { mergeToPdf } = await import('../../lib/docs/merge');
+      const opts = { size: $<HTMLSelectElement>('.mg-size').value as PageSize, margin: Number($<HTMLSelectElement>('.mg-margin').value) };
+      const made = await mergeToPdf(items, opts, (d, t) => { prog.value = d / t; say(d < t ? `Adding file ${d + 1} of ${t}…` : 'Saving the PDF…'); }, name);
+      // One Blob for both downloads; the bytes themselves can then be let go.
+      const blob = new Blob([made as BlobPart], { type: 'application/pdf' }), size = made.length;
+      download(blob, name + '.pdf');
+      const pages = items.reduce((s, e) => s + e.pages, 0);
+      say('');
+      out.innerHTML = '';
+      out.append(`Done: ${n(pages)} pages, ${fmtSize(size)}. `);
+      const again = document.createElement('button'); again.type = 'button'; again.className = 'btn secondary small'; again.textContent = 'Download again';
+      again.onclick = () => download(blob, name + '.pdf');
+      out.append(again);
+    } catch (err) {
+      console.error(err);
+      say('The merge stopped, most likely because the browser ran out of memory. Try fewer or smaller files, close other tabs, or merge in two parts.', true);
+    } finally { busy = false; btn.disabled = false; prog.hidden = true; }
+  };
+</script>
