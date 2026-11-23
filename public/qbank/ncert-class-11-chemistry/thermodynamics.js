@@ -1,0 +1,55 @@
+// Class 11 Chemistry, Chapter 5 Thermodynamics: practice questions (original fibub questions).
+import { maker } from './_make.js';
+import { choose } from '../_util.js';
+const m = maker('th');
+const r3 = (x) => +x.toPrecision(3);
+
+export default {
+  topic: 'thermodynamics', name: 'Thermodynamics', n: 5,
+  items: [
+    m.mcq(1, 'system', '<p>A sealed flask of hot tea (no gas can escape) that still loses heat through its glass wall is:</p>', 'a closed system', ['an open system', 'an isolated system', 'an adiabatic system'], '<p>Only energy crosses the boundary, not matter.</p>'),
+    m.mcq(1, 'system', '<p>Which of these is NOT a state function?</p>', 'work done', ['internal energy', 'enthalpy', 'entropy'], '<p>Work and heat depend on the path, not only on the end states.</p>'),
+    m.mcq(2, 'system', '<p>Which pair are both intensive properties?</p>', 'temperature and density', ['mass and volume', 'enthalpy and temperature', 'volume and density'], '<p>Intensive properties do not change with the amount of substance.</p>'),
+    m.mcq(2, 'first', '<p>A system absorbs 200 J of heat and 80 J of work is done on it. ΔU is:</p>', '+280 J', ['+120 J', '−120 J', '−280 J'], '<p>ΔU = q + w = 200 + 80 = 280 J.</p>'),
+    m.mcq(2, 'first', '<p>When an ideal gas expands into a vacuum (free expansion) the work done is:</p>', 'zero', ['positive and large', 'negative and large', 'equal to nRT'], '<p>p_ext = 0, so w = −p_ext ΔV = 0.</p>'),
+    m.mcq(2, 'first', '<p>Which expansion of an ideal gas from the same initial to the same final state gives the maximum work?</p>', 'reversible isothermal', ['expansion in one step against the final pressure', 'expansion into a vacuum', 'all give the same work'], '<p>In the reversible path p_ext is always about equal to the gas pressure, the largest area under the p–V curve.</p>'),
+    m.mcq(3, 'first', '<p>In an adiabatic compression of an ideal gas:</p>', 'q = 0 and ΔU is positive', ['q = 0 and ΔU is negative', 'ΔU = 0 and q is positive', 'w = 0 and q is positive'], '<p>No heat flows (q = 0) and work is done on the gas (w > 0), so ΔU = w > 0: the gas warms up.</p>'),
+    m.mcq(2, 'enthalpy', '<p>For which reaction is ΔH equal to ΔU?</p>', 'H₂(g) + Cl₂(g) → 2HCl(g)', ['N₂(g) + 3H₂(g) → 2NH₃(g)', 'PCl₅(g) → PCl₃(g) + Cl₂(g)', '2H₂O(l) → 2H₂(g) + O₂(g)'], '<p>Δn_g = 0 only for the HCl reaction (2 mol of gas on each side).</p>'),
+    m.mcq(2, 'enthalpy', '<p>A reaction mixture in a beaker gets colder. The reaction is:</p>', 'endothermic, with ΔH > 0', ['exothermic, with ΔH > 0', 'exothermic, with ΔH < 0', 'endothermic, with ΔH < 0'], '<p>It takes heat from the surroundings, so the surroundings cool and ΔH is positive.</p>'),
+    m.mcq(2, 'enthalpy', '<p>C_p − C_v for one mole of an ideal gas equals:</p>', 'R', ['R/2', '2R', 'zero'], '<p>At constant pressure the extra heat goes into expansion work, which is R per kelvin per mole.</p>'),
+    m.mcq(2, 'calorimetry', '<p>A bomb calorimeter measures:</p>', 'ΔU, because the volume is constant', ['ΔH, because the pressure is constant', 'ΔG', 'ΔS'], '<p>The sealed steel bomb has fixed volume, so heat = q_v = ΔU.</p>'),
+    m.mcq(2, 'hess', '<p>Hess’s law is based on the fact that:</p>', 'enthalpy is a state function', ['heat is a path function', 'entropy always increases', 'reactions are reversible'], '<p>A state function depends only on start and end, so the route does not matter.</p>'),
+    m.mcq(2, 'hess', '<p>If the equation A → B has ΔH = +30 kJ, then B → A has ΔH equal to:</p>', '−30 kJ', ['+30 kJ', '0', '+60 kJ'], '<p>Reversing an equation changes the sign of ΔH.</p>'),
+    m.mcq(2, 'types', '<p>The standard enthalpy of formation of which of these is zero?</p>', 'Br₂(l)', ['CO(g)', 'H₂O(l)', 'Br₂(g)'], '<p>Bromine liquid is the standard state of the element at 25 °C; Br₂(g) is not.</p>', { trap: 'Taking the formula of an element as zero whatever its state.' }),
+    m.mcq(2, 'types', '<p>For which process is the enthalpy change called the enthalpy of combustion?</p>', 'burning one mole of a substance completely in oxygen', ['forming one mole of a compound from its elements', 'breaking one mole of bonds', 'dissolving one mole in water'], '<p>That is the definition; for CH₄ it is −890 kJ/mol.</p>'),
+    m.mcq(3, 'types', '<p>Using bond enthalpies (H–H 436, Cl–Cl 243, H–Cl 431 kJ/mol), ΔH for H₂ + Cl₂ → 2HCl is:</p>', '−183 kJ', ['+183 kJ', '−862 kJ', '+679 kJ'], '<p>Broken: 436 + 243 = 679. Formed: 2 × 431 = 862. ΔH = 679 − 862 = −183 kJ.</p>'),
+    m.mcq(2, 'entropy', '<p>Entropy is a measure of:</p>', 'disorder or the number of ways of arranging particles and energy', ['the heat content', 'the work done', 'the temperature'], '<p>More possible arrangements means higher entropy.</p>'),
+    m.mcq(2, 'entropy', '<p>The entropy change is negative for:</p>', '2NO₂(g) → N₂O₄(g)', ['NH₄Cl(s) → NH₃(g) + HCl(g)', 'ice → water', 'dissolving KCl in water'], '<p>Two moles of gas become one mole: fewer particles, less freedom.</p>'),
+    m.mcq(2, 'entropy', '<p>The entropy of a perfect crystal at 0 K is:</p>', 'zero', ['maximum', 'one', 'infinite'], '<p>This is the third law of thermodynamics.</p>'),
+    m.mcq(3, 'entropy', '<p>The entropy change of melting ice at 273 K (ΔH_fus = 6.0 kJ/mol) is about:</p>', '+22 J/(K mol)', ['+6.0 J/(K mol)', '−22 J/(K mol)', '+1640 J/(K mol)'], '<p>ΔS = q/T = 6000/273 = 22 J/(K mol).</p>'),
+    m.mcq(2, 'gibbs', '<p>A reaction is spontaneous at every temperature when:</p>', 'ΔH is negative and ΔS is positive', ['ΔH is positive and ΔS is negative', 'ΔH is negative and ΔS is negative', 'ΔH is positive and ΔS is positive'], '<p>Then ΔG = ΔH − TΔS is always negative.</p>'),
+    m.mcq(2, 'gibbs', '<p>At equilibrium:</p>', 'ΔG = 0', ['ΔG is a large negative number', 'ΔH = 0', 'ΔS = 0'], '<p>There is no net driving force, so ΔG = 0.</p>'),
+    m.mcq(3, 'gibbs', '<p>The standard Gibbs energy change of a reaction is positive. Then at equilibrium:</p>', 'K is less than 1', ['K is greater than 1', 'K = 1', 'K is zero exactly'], '<p>ΔG° = −RT ln K: a positive ΔG° makes ln K negative.</p>'),
+    m.ar(2, 'hess', 'The enthalpy of a reaction is the same whether done in one step or several.', 'Enthalpy is a state function.', 0, '<p>Both true, and R explains A.</p>'),
+    m.ar(2, 'first', 'In an isolated system the internal energy stays constant.', 'An isolated system exchanges neither heat nor work with its surroundings.', 0, '<p>With q = 0 and w = 0, ΔU = 0.</p>'),
+    m.ar(3, 'gibbs', 'Endothermic reactions can be spontaneous.', 'ΔS can be positive and large enough that TΔS exceeds ΔH.', 0, '<p>When ΔH > 0 and ΔS > 0, ΔG = ΔH − TΔS is negative at high temperatures (like limestone decomposition).</p>'),
+    m.ar(3, 'gibbs', 'A reaction with a large negative ΔG° can still be extremely slow.', 'ΔG° gives no information about the rate of a reaction.', 0, '<p>Both true, and R explains A. Diamond turning into graphite has a negative ΔG° but a negligible rate.</p>'),
+    m.nat(2, 'enthalpy', '<p>ΔU for a reaction at 300 K is −100.0 kJ and Δn_g = −2. Find ΔH in kJ (R = 8.314 J/(K mol)).</p>', () => -100 + (-2 * 8.314 * 300) / 1000, 0.01, '<p>ΔH = ΔU + Δn_g RT = −100 − 2 × 8.314 × 300/1000 = −104.99 kJ.</p>', { unit: 'kJ' }),
+    m.nat(2, 'first', '<p>A gas absorbs 500 J of heat and expands, doing 350 J of work. Find ΔU in joules.</p>', () => 150, 0.01, '<p>ΔU = q + w = 500 + (−350) = +150 J.</p>', { unit: 'J' }),
+    m.nat(3, 'gibbs', '<p>For a reaction, ΔH = +60 kJ/mol and ΔS = +150 J/(K mol). Find the temperature in kelvin above which it is spontaneous.</p>', () => 60000 / 150, 0.01, '<p>T = ΔH/ΔS = 60 000/150 = 400 K.</p>', { unit: 'K' }),
+    m.nat(3, 'calorimetry', '<p>Burning 0.5 g of a fuel in a bomb calorimeter of heat capacity 10 kJ/K raises the temperature by 2.0 K. Find the heat released in kJ per gram.</p>', () => 10 * 2 / 0.5, 0.01, '<p>Heat = 10 × 2.0 = 20 kJ for 0.5 g, which is 40 kJ per gram.</p>', { unit: 'kJ/g' }),
+    m.msq(3, 'system', '<p>Which of these are state functions? (Choose all that apply.)</p>', ['internal energy', 'enthalpy', 'heat', 'entropy'], [0, 1, 3], '<p>Heat is a path function; U, H and S depend only on the state.</p>'),
+    m.msq(3, 'gibbs', '<p>For a reaction with ΔH > 0 and ΔS > 0, which statements are true? (Choose all that apply.)</p>', ['It is spontaneous at high temperature.', 'It is not spontaneous at low temperature.', 'It is spontaneous at all temperatures.', 'The changeover temperature is ΔH/ΔS.'], [0, 1, 3], '<p>ΔG = ΔH − TΔS changes from positive to negative as T rises, passing zero at T = ΔH/ΔS.</p>'),
+  ],
+  gens: [
+    { id: 'th-g01', type: 'nat', level: 2, exams: ['board'], sub: 'first',
+      make(rng) { const h = choose(rng, [100, 150, 200, 250, 300]), w = choose(rng, [30, 50, 80, 120]), sgn = choose(rng, [1, -1]); const dU = h + sgn * w; return { h, w, sgn, q: `<p>A system absorbs ${h} J of heat and ${w} J of work is done ${sgn > 0 ? 'on' : 'by'} it. Find ΔU in joules.</p>`, answer: dU, tol: 0.01, unit: 'J', sol: `<p>ΔU = q + w = ${h} ${sgn > 0 ? '+' : '−'} ${w} = ${dU} J.</p>` }; },
+      verify: (p) => (p.sgn > 0 ? p.h + p.w : p.h - p.w) },
+    { id: 'th-g02', type: 'nat', level: 3, exams: ['board'], sub: 'gibbs',
+      make(rng) { const H = choose(rng, [30, 55, 91, 120, 178]), S = choose(rng, [80, 110, 135, 161, 200]); return { H, S, q: `<p>For a reaction ΔH = +${H} kJ/mol and ΔS = +${S} J/(K mol). Find the temperature in kelvin above which it is spontaneous (to 3 significant figures).</p>`, answer: r3(1000 * H / S), tol: Math.max(1, 1000 * H / S * 0.01), unit: 'K', sol: `<p>T = ΔH/ΔS = ${H * 1000}/${S} = ${r3(1000 * H / S)} K.</p>` }; },
+      verify: (p) => (p.H * 1000) / p.S },
+    { id: 'th-g03', type: 'nat', level: 3, exams: ['board'], sub: 'enthalpy',
+      make(rng) { const dU = choose(rng, [-50, -80, -120, 40, 90]), dn = choose(rng, [-2, -1, 1, 2, 3]), T = choose(rng, [298, 300, 400]); const dH = dU + dn * 8.314 * T / 1000; return { dU, dn, T, q: `<p>For a reaction at ${T} K, ΔU = ${dU} kJ and the gas moles change by ${dn > 0 ? '+' : ''}${dn}. Find ΔH in kJ (R = 8.314 J/(K mol)).</p>`, answer: r3(dH), tol: Math.max(0.1, Math.abs(dH) * 0.01), unit: 'kJ', sol: `<p>ΔH = ΔU + Δn RT = ${dU} + (${dn} × 8.314 × ${T}/1000) = ${r3(dH)} kJ.</p>` }; },
+      verify: (p) => p.dU + (p.dn * 8.314 * p.T) / 1000 },
+  ],
+};
