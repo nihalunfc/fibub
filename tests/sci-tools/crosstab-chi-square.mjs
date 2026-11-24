@@ -43,4 +43,18 @@ export default async (check) => {
   const e = (fn) => { try { fn(); return ''; } catch (x) { return x.message; } };
   check('crosstab: one category explained', /at least two categories/.test(e(() => crosstab(['a', 'a'], ['x', 'y']))));
   check('crosstab: bad weight explained', /Weight in data row 2/.test(e(() => crosstab(['a', 'b', 'a'], ['x', 'y', 'y'], [1, -1, 1]))));
+  // Pinned by src/blog/discoveries/peer-led-hiv-sti-testing-two-by-two-cramers-v-fisher-exact.md: the three
+  // 2 x 2 outcome tables of Lee et al. (2023), JMIR Form Res 7: e45871 (chi2 and Cramer V as the paper reports them).
+  const trial = (M) => { const a = [], b = []; M.forEach((r, i) => r.forEach((n, j) => { for (let q = 0; q < n; q++) { a.push(`r${i}`); b.push(`c${j}`); } })); return crosstab(a, b, undefined, { rows: ['r0', 'r1'], cols: ['c0', 'c1'] }); };
+  const TRIAL = [
+    ['STI testing 19/25 vs 7/19', [[19, 6], [7, 12]], 6.847611336032387, 0.39449655304498216, 0.013656076293266138, 38 / 7, 0],
+    ['HIV testing 19/25 vs 11/19', [[19, 6], [11, 8]], 1.631197994987468, 0.19254267502104733, 0.32737180669590776, 76 / 33, 0],
+    ['PrEP motivation 21/23 vs 10/17', [[21, 2], [10, 7]], 5.914070162894518, 0.38451495949099684, 0.02311658824816746, 7.35, 1],
+  ];
+  for (const [name, M, x2, V, fp, or, small] of TRIAL) {
+    const t = trial(M);
+    check(`crosstab: ${name}: chi2 ${t.chi2.toFixed(3)}, V ${t.cramerV.toFixed(5)}, Fisher p ${t.fisher.p.toFixed(6)}`,
+      rel(t.chi2, x2) < 1e-12 && rel(t.cramerV, V) < 1e-12 && rel(t.fisher.p, fp) < 1e-9 && rel(t.fisher.oddsRatio, or) < 1e-12 && t.smallCells === small && t.df === 1);
+  }
+  check('crosstab: the trial STI table adjusted residual is +2.6168 and its smallest expected count 7.7727', Math.abs(trial([[19, 6], [7, 12]]).adjResid[0][0] - 2.6167940950774837) < 1e-12 && Math.abs(trial([[19, 6], [7, 12]]).minExpected - 7.7727272727272725) < 1e-12);
 };
