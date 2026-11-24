@@ -30,4 +30,16 @@ export default async (check) => {
   const many = A.parseMany('Right eye 20/40\nOD, 20/25-1\nLeft: logMAR 0.3\n0.5, 0.8\nabc\n# comment');
   check('acuity: many values with labels', many.length === 6 && many[0].label === 'Right eye' && many[1].label === 'OD' && many[2].label === 'Left' && near(many[2].logmar, 0.3) && many[3].label === '' && 'error' in many[5]);
   check('acuity: bad input messages', 'error' in one('20/0') && 'error' in one('0', 'decimal') && 'error' in one('hello') && one('logMAR 2.5').note.includes('Outside'));
+  // Numbers used in the digital-chart agreement article (Yu 2026, Ups. J. Med. Sci. 131: e13537).
+  check('acuity: 0.1 logMAR is 5 ETDRS letters and a MAR ratio of 1.258925',
+    near(A.fromLogMAR(0).letters - A.fromLogMAR(0.1).letters, 5, 1e-9) && near(A.fromLogMAR(0.1).mar / A.fromLogMAR(0).mar, 1.2589254117941673, 1e-12));
+  check('acuity: one chart line costs 1.55 m of Snellen denominator at 6/6 and 15.54 m at 6/60',
+    near(A.fromLogMAR(0.1).metres - A.fromLogMAR(0).metres, 1.5535524707650037, 1e-9) && near(A.fromLogMAR(1.1).metres - A.fromLogMAR(1).metres, 15.53552470765004, 1e-9));
+  { const dec = (A.fromLogMAR(0).decimal + A.fromLogMAR(1).decimal) / 2, wrong = A.toLogMAR('decimal', dec);
+    check('acuity: averaging 6/6 and 6/60 as decimal is 12.018 letters too good',
+      near(A.meanAcuity([0, 1]).logmar, 0.5, 1e-12) && near(wrong, 0.2596373105057561, 1e-12) && near(A.fromLogMAR(wrong).letters - A.meanAcuity([0, 1]).letters, 12.018134474712195, 1e-9)); }
+  { const four = ['6/6', '6/12', '6/24', '6/60'].map((s) => one(s).logmar);
+    const dec = four.reduce((t, l) => t + A.fromLogMAR(l).decimal, 0) / 4;
+    check('acuity: four-class example, logMAR mean 0.475818 against decimal mean 0.334888',
+      near(A.meanAcuity(four).logmar, 0.4757724967479859, 1e-12) && near(A.toLogMAR('decimal', dec), 0.33488826292494855, 1e-12)); }
 };

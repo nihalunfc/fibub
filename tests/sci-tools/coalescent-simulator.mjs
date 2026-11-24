@@ -31,4 +31,12 @@ export default async (check) => {
   const a = replicate(8, 2, 10, 99), b = replicate(8, 2, 10, 99);
   check('coal same seed, same genealogies', a.tmrca.every((v, i) => v === b.tmrca[i]) && a.S.every((v, i) => v === b.S[i]));
   near('coal harmonic b_10', harmonic(10, 2), 1.5397677311665408, 1e-12);
+  // CelTOS article (Alothaid et al. 2026, Front. Cell. Infect. Microbiol. 15: 1660506): 202 sequences, 726 bp,
+  // 18 segregating sites, nucleotide diversity 0.0059 per site.
+  { const a202 = harmonic(202), e = expected(202, 0.0059 * 726);
+    near('coal CelTOS a_202', a202, 5.883006072499556, 1e-12);
+    near('coal CelTOS Watterson θ per locus from S = 18', 18 / a202, 3.059660278805765, 1e-12);
+    near('coal CelTOS Watterson θ per site', 18 / a202 / 726, 0.004214408097528603, 1e-15);
+    near('coal CelTOS E[S] at θ = 4.2834', e.S, 25.1992682109446, 1e-10);
+    near('coal CelTOS SD[S] at θ = 4.2834', Math.sqrt(e.varS), 7.4356349504737524, 1e-10); }
 };
