@@ -46,4 +46,9 @@ export default async (check) => {
     check('queue: fuel station M/M/2/8 loses 11.76 %, serves 282.4 a day; best pumps 2 (v 10) and 3 (v 20)', near(r2.pBlock, 0.11764705882352941, 1e-9) && Math.abs(r2.lambdaEff - 282.35) < 0.01 && best(10) === 2 && best(20) === 3);
     const m = solveQueue({ kind: 'mmck', lambda: 0.9, mu: 1, c: 1, K: 3 });
     check('queue: M/M/1/3 at load 0.9 loses 0.0729/0.3439', near(m.pBlock, 0.0729 / 0.3439, 1e-12)); }
+  // New with the elephant hospital article: 20 places, 0.256 arrivals a day (7.78 a month), 61-day average stay.
+  { const b = solveQueue({ kind: 'erlangb', lambda: 0.256, mu: 1 / 61, c: 20 }), q = solveQueue({ kind: 'mmc', lambda: 0.256, mu: 1 / 61, c: 20 });
+    check('queue: 20-place hospital, 15.6 erlangs: Erlang B holds 14.7284 and loses 5.6836 %, M/M/c holds 16.3841 with Wq 3.0004 days and 21.563 % waiting',
+      Math.abs(b.L - 14.7285) < 5e-4 && Math.abs(b.pBlock - 0.056836) < 5e-6 && Math.abs(b.rho - 0.73642) < 5e-5
+      && Math.abs(q.L - 16.3841) < 5e-4 && Math.abs(q.Wq - 3.00035) < 5e-5 && Math.abs(q.pWait - 0.215632) < 5e-6); }
 };

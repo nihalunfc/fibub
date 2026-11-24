@@ -23,4 +23,21 @@ export default async (check) => {
   check('canopy: a ring with no sky is capped (finite LAI, flagged)', none.capped && Number.isFinite(none.lai) && none.gapFraction === 0);
   const all = P.hemi(new Uint8Array(w * w).fill(1), w, w, c, c, R, 5, 75);
   check('canopy: open sky gives LAI 0, openness 100 %', near(all.lai, 0, 1e-12) && near(all.openness, 1, 1e-12) && near(all.gapFraction, 1, 1e-12));
+  // New with the canopy openness article (Öztürk et al. 2025, Diversity 17: 331): on a mask whose gaps are spread
+  // evenly, openness equals gap fraction and LAI is a fixed multiple of −ln(openness); and openness can never
+  // stray far from gap fraction, however the sky is placed.
+  {
+    const w = 601, c = 300.5, Rr = 300;
+    const evenMask = (p) => { const m = new Uint8Array(w * w); let acc = 0; for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) { if (Math.hypot(x + 0.5 - c, y + 0.5 - c) > Rr) continue; acc += p; if (acc >= 1) { m[y * w + x] = 1; acc -= 1; } } return m; };
+    const band = (f, zenith) => { const m = new Uint8Array(w * w), lim = Math.sqrt(zenith ? f : 1 - f); for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) { const u = Math.hypot(x + 0.5 - c, y + 0.5 - c) / Rr; if (u > 1) continue; if (zenith ? u <= lim : u >= lim) m[y * w + x] = 1; } return m; };
+    for (const p of [0.65, 0.18, 0.09]) {
+      const m = evenMask(p), h90 = P.hemi(m, w, w, c, c, Rr, 9, 90);
+      check(`canopy: evenly spread gaps at ${p}: openness = gap fraction`, near(h90.openness, h90.gapFraction, 1e-4) && near(h90.gapFraction, p, 1e-4));
+      const L = -Math.log(h90.openness);
+      check(`canopy: evenly spread gaps at ${p}: LAI is 1.004, 1.2625 and 1.5025 times −ln(openness)`,
+        near(h90.lai / L, 1.0040, 2e-3) && near(P.hemi(m, w, w, c, c, Rr, 9, 75).lai / L, 1.2625, 2e-3) && near(P.hemi(m, w, w, c, c, Rr, 9, 60).lai / L, 1.5025, 2e-3));
+    }
+    const z18 = P.hemi(band(0.18, true), w, w, c, c, Rr, 9, 90), h18 = P.hemi(band(0.18, false), w, w, c, c, Rr, 9, 90);
+    check('canopy: 18 % sky gives an openness between 0.1478 and 0.2138, never 0.65', near(z18.openness, 0.2138, 1e-3) && near(h18.openness, 0.1478, 1e-3) && z18.openness < 0.25);
+  }
 };

@@ -65,4 +65,16 @@ export default async (check) => {
     const dup = obs.map((o) => ({ ...o })); dup[1].trt = 'Variety A'; try { analyse(dup, 'rcbd'); } catch (x) { e2 = x.message; }
     check('yield anova: missing plot and duplicate in a block are refused', e1.includes('Variety A is missing from block 1') && e2.includes('2 times in block 1'));
   }
+  // New with the Uganda rice omission article (Kyalo et al. 2025, Front. Agron. 7: 1609528): the three published
+  // season means analysed as a block design, so the residual is the treatment-by-season interaction.
+  {
+    const D = { Control: [4.2, 1.9, 2.7], 'PK (no N)': [5.3, 2.3, 2.9], 'NK (no P)': [6.2, 2.9, 3.7], 'NP (no K)': [5.7, 2.9, 3.8], NPK: [6.8, 2.9, 3.9] };
+    const S = ['2013A', '2014A', '2014B'], obs2 = [];
+    for (const [trt, v] of Object.entries(D)) v.forEach((y, j) => obs2.push({ trt, block: S[j], y }));
+    const r = analyse(obs2, 'rcbd'), [B, T, E] = r.rows;
+    check('yield anova: Uganda rice seasons, F and p', near(T.f, 11.2392, 1e-4) && rel(T.p, 0.0022905, 1e-3) && near(B.f, 111.8395, 1e-4) && E.df === 8);
+    check('yield anova: Uganda rice seasons, error mean square, CV and LSD', near(E.ms, 0.1121667, 1e-6) && near(r.cv, 8.6466331, 1e-6) && near(r.lsd, 0.6305890, 1e-6) && near(r.grand, 3.8733333, 1e-6));
+    check('yield anova: Uganda rice, NPK groups with both omissions and the control with PK', r.means.map((m) => m.letters).join(' ') === 'b b a a a');
+    check('yield anova: Uganda rice at 1 %, LSD 0.9175 and looser letters', near(analyse(obs2, "rcbd", 0.01).lsd, 0.9175483, 1e-6) && analyse(obs2, 'rcbd', 0.01).means.map((m) => m.letters).join(' ') === 'c bc ab ab a');
+  }
 };
