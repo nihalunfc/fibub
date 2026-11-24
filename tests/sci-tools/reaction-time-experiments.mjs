@@ -46,4 +46,14 @@ export default async (check) => {
   check('rtexp: CSV rows with header and blank RT for no answer', rows.length === 4 && rows[0][8] === 'rt_ms' && rows[1][8] === '');
   let threw = false; try { summarise([]); } catch { threw = true; }
   check('rtexp: empty run is an error', threw);
+  // New with the flanker badminton article (Hu 2026): 100 trials at 50 % congruent, and the noise of one run's conflict effect is 0.2 x the trial SD.
+  {
+    let sd0 = 99, u = () => { sd0 = (sd0 * 1664525 + 1013904223) >>> 0; return (sd0 + 0.5) / 4294967296; };
+    const gauss = () => Math.sqrt(-2 * Math.log(u())) * Math.cos(2 * Math.PI * u());
+    const l100 = makeFlanker(100, 0.5, u);
+    check('rtexp: 100-trial flanker list has 50 congruent and 50 incongruent', l100.filter((t) => t.condition === 'congruent').length === 50 && l100.length === 100);
+    const eff = Array.from({ length: 2000 }, () => summarise(makeFlanker(100, 0.5, u).map((s, i) => ({ ...s, task: 'flanker', trial: i + 1, response: s.answer, correct: true, rt: (s.condition === 'congruent' ? 421.5 : 478.2) + 80 * gauss() }))).effect.rt);
+    const m = eff.reduce((a, b) => a + b, 0) / eff.length, sd = Math.sqrt(eff.reduce((a, b) => a + (b - m) ** 2, 0) / (eff.length - 1));
+    check(`rtexp: trial SD 80 ms gives a conflict-effect SD of ${sd.toFixed(1)} ms, near 0.2 x 80 = 16`, Math.abs(sd - 16) < 1.3 && Math.abs(m - 56.7) < 1.2);
+  }
 };
