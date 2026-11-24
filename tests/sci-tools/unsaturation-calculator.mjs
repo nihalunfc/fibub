@@ -43,4 +43,11 @@ export default async (check) => {
   check('smiles errors: unclosed ring, branch, bracket', bad('C1CC', 'Ring number 1 is opened') && bad('C(C', 'never closed') && bad('[CH3', '"[" is never closed'));
   check('smiles errors: too many bonds, bare H, spaces', bad('C(C)(C)(C)(C)C', 'more than C normally makes') && bad('CH4', 'SMILES adds hydrogens') && bad('CCO ethanol', 'no spaces'));
   check('smiles errors: bad element, dangling bond', bad('[Xx]', 'not an element') && bad('CC=', 'ends with a bond'));
+
+  // The three new aporphine alkaloids of Zhang et al. (2025), Molecules 30(23) 4544, doi:10.3390/molecules30234544
+  // (CC BY 4.0), used in src/blog/discoveries/aporphine-alkaloid-formula-mass-check-nitrogen-rule.md.
+  check('alkaloids: rings + double bonds 11 and 10', r('C18H17NO5').rdbe === 11 && r('C18H19NO4').rdbe === 10);
+  check('alkaloids: protonated masses 328.11795 and 314.13868', Math.abs(r('C18H18NO5+').mono - 328.11795) < 2e-5 && Math.abs(r('C18H20NO4+').mono - 314.13868) < 2e-5);
+  check('alkaloids: a one-nitrogen [M+H]+ has an even nominal mass', r('C18H18NO5+').nominal === 328 && r('C18H20NO4+').nominal === 314 && r('C18H18NO5+').nitrogenRule.ok && r('C18H20NO4+').nitrogenRule.ok);
+  check('alkaloids: the printed 341.1391 is 27 Da off C18H20NO4+', Math.abs(341.1391 - r('C18H20NO4+').mono - 27.0004) < 1e-3);
 };
