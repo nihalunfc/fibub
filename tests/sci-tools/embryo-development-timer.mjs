@@ -23,4 +23,10 @@ export default async (check) => {
   check('embryo: stages parsed and sorted', JSON.stringify(E.parseStages('Heartbeat, 24\nFirst cleavage; 1 h\nHatch\t48 hpf')) === JSON.stringify([{ name: 'First cleavage', hRef: 1 }, { name: 'Heartbeat', hRef: 24 }, { name: 'Hatch', hRef: 48 }]));
   check('embryo: temperature history parsed', JSON.stringify(E.parseSteps('6, 28.5\n12 h at 25 °C\n3 30')) === JSON.stringify([{ hours: 6, T: 28.5 }, { hours: 12, T: 25 }, { hours: 3, T: 30 }]));
   m = ''; try { E.parseStages('Heartbeat'); } catch (e) { m = e.message; } check('embryo: bad stage line refused', m.includes('Stage line 1'));
+  // Zebrafish at 26 °C against 28 °C (blog: zebrafish-embryo-26-vs-28-degrees-kimmel-development-delay).
+  check('embryo: 120 h at 28.5 °C = 139.53 h at 26 °C (the published extrapolation)', Math.abs(E.convert(K, 120, 28.5, 26) - 139.5348837209302) < 1e-9);
+  check('embryo: 60 h at 28 °C = 67.67 h at 26 °C', Math.abs(E.convert(K, 60, 28, 26) - 67.67441860465117) < 1e-9);
+  check('embryo: 119 h at 28 °C = 134.22 h at 26 °C, a 15.22 h delay', Math.abs(E.convert(K, 119, 28, 26) - 134.22093023255815) < 1e-9);
+  check('embryo: 48 h at 26 °C then 48 h at 28 °C = 87.84 equivalent hours', Math.abs(E.accumulate(K, [{ hours: 48, T: 26 }, { hours: 48, T: 28 }]) - 87.84) < 1e-12);
+  check('embryo: 120 h at 26 °C is only 103.2 equivalent hours', Math.abs(120 * E.kimmelFactor(26) - 103.2) < 1e-12);
 };
