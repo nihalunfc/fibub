@@ -41,4 +41,13 @@ export default async (check) => {
   const p = leastCostPath(L, patches[0], patches[4]);
   check('hc: least-cost path ends in the target patch and costs the distance', near(p.cost, D[0][4], 1e-12) && patches[0].cells.includes(p.cells[0]) && patches[4].cells.includes(p.cells[p.cells.length - 1]));
   check('hc: default classes', DEFAULT_CLASSES.length === 6 && DEFAULT_CLASSES.filter((c) => c.habitat).length === 1);
+  // The example map at a shorter threshold, and the floor every PC has to beat
+  // (src/blog/discoveries/habitat-patch-connectivity-importance-area-gaoligong.md).
+  const i15 = indices(patches.map((p) => p.area), D, 1500, 0.5, AL), imp15 = importance(patches.map((p) => p.area), D, 1500, 0.5, AL);
+  check('hc: example at 1500 m gives PC 0.0083993 and IIC 0.0072797', near(i15.pc, 0.00839931955818487, 1e-12) && near(i15.iic, 0.007279713948567708, 1e-12));
+  check('hc: at 1500 m the small isolated patch 4 drops to dPC 0.915 %', near(imp15.dPC[3], 0.915089, 1e-5) && near(imp15.dPC[4], 34.172272, 1e-5));
+  const floor = patches.reduce((s, p) => s + p.area * p.area, 0) / (AL * AL);
+  check(`hc: PC never falls below the self-contribution floor (${floor.toFixed(7)})`,
+    near(indices(patches.map((p) => p.area), D, 1, 0.5, AL).pc, floor, 1e-12)
+    && [1, 10, 100, 1500, 5000, 9000, 50000].every((d) => indices(patches.map((p) => p.area), D, d, 0.5, AL).pc >= floor - 1e-15));
 };

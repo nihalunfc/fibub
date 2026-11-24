@@ -32,4 +32,16 @@ export default async (check) => {
   check('growth: no BCS trend from 2 scores', bcsTrend(c41.slice(0, 2)) === null);
   { const r = readRecords([['A', '0', '40'], ['A', '30', '60', '3'], ['A', '2026-01-01', '70'], ['A', '60', '-1'], ['A', 'soon', '5']], num);
     check('growth: ages in days, bad rows reported', !r.byDate && r.recs.length === 2 && r.recs[1].t === 30 && r.recs[1].bcs === 3 && r.errors.length === 3 && r.errors[0].includes('mix of dates and ages')); }
+  // A published weight-by-age record: the eight Polypay ewe means
+  // (src/blog/discoveries/polypay-ewe-mature-weight-growth-curve.md).
+  { const T = [1, 2, 3, 4, 5, 6, 7, 8].map((y) => y * 365), W8 = [57.1, 64.9, 70.9, 73.2, 74.3, 74.2, 74.1, 78.6];
+    const f8 = fitGrowth(T, W8, 'gompertz'), f7 = fitGrowth(T.slice(0, 7), W8.slice(0, 7), 'gompertz');
+    check(`growth: Polypay ewes, ages 1-8, Gompertz A 76.43 ± 1.16 kg (got ${f8.A.toFixed(2)})`,
+      Math.abs(f8.A - 76.43) < 0.005 && Math.abs(f8.se[0] - 1.16) < 0.005 && Math.abs(f8.k - 1.6716e-3) < 1e-7 && Math.abs(f8.r2 - 0.96457) < 5e-6);
+    check(`growth: without the age-8 mean, A 74.88 ± 0.51 and R2 0.99314 (got ${f7.A.toFixed(2)})`,
+      Math.abs(f7.A - 74.88) < 0.005 && Math.abs(f7.se[0] - 0.51) < 0.005 && Math.abs(f7.r2 - 0.99314) < 5e-6);
+    const w0 = MODELS.gompertz.f(0, [f8.A, f8.b, f8.k]);
+    check(`growth: the adult-only fit extrapolates to ${w0.toFixed(1)} kg at age 0, so it must not be read there`, w0 > 40 && f8.inflT < 0);
+    const aic = ['gompertz', 'logistic', 'vonb'].map((m) => fitGrowth(T, W8, m).aic);
+    check('growth: the three models are indistinguishable on this record (AIC within 0.2)', Math.max(...aic) - Math.min(...aic) < 0.2); }
 };
