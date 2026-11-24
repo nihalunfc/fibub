@@ -3,7 +3,7 @@ title: Electrodynamics and relativity
 seoTitle: Covariant electrodynamics | GATE Physics
 summary: 'The four-current and four-potential, continuity and the Lorenz gauge in covariant form, the field tensor and Maxwell''s equations in two lines, the invariants E·B and E² − c²B², Lorentz transformation of E and B, crossed fields and E×B drift, the field of a uniformly moving charge, magnetism as a relativistic effect, the covariant Lorentz force and Lagrangian, and plane waves seen from moving frames.'
 minutes: 60
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: "In one frame there is a pure electric field. Can another inertial observer see a magnetic field?"
     choices: ['Yes: B′ = −γ v × E/c² for the perpendicular part', 'No: a pure E field stays pure in every frame', 'Only if E is parallel to the motion', 'Only if the observer is accelerating']
@@ -159,4 +159,4 @@ From warm-up to top-rank level, with full solutions. More on the [practice page]
 
 <div class="qbank" data-bank="physics" data-topics="covariant-electrodynamics" data-exam="gate" data-n="10"></div>
 
-**Before this:** [lesson 3.9, radiation](/learn/courses/gate-physics/radiation/), and the JAM lesson on [special relativity](/learn/courses/iit-jam-physics/special-relativity/). Back to the [GATE Physics course home](/learn/courses/gate-physics/), where [Part C](/learn/courses/gate-physics/postulates-operators/), quantum and statistical physics, follows.
+**Before this:** [lesson 3.9, radiation](/learn/courses/gate-physics/radiation/), and the JAM lesson on [special relativity](/learn/courses/iit-jam-physics/special-relativity/). **Next:** [lesson 3.11](/learn/courses/gate-physics/interference-diffraction/) turns to optical physics (interference, diffraction, polarisation and ray matrices). Back to the [GATE Physics course home](/learn/courses/gate-physics/), where [Part C](/learn/courses/gate-physics/postulates-operators/), quantum and statistical physics, follows.

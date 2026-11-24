@@ -3,7 +3,7 @@ title: Fourier and Laplace transforms
 seoTitle: Fourier and Laplace transforms | GATE Physics
 summary: 'Fourier transforms and their conventions, the standard pairs (delta, box, Gaussian, exponential), shift, derivative and convolution rules, Parseval, width and bandwidth, Green''s functions, then Laplace transforms, solving differential and integral equations, initial and final values, Bromwich inversion by residues and causality.'
 minutes: 60
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: "With F(k) = ∫ f(x) e^(−ikx) dx, what is the transform of f′(x)?"
     choices: ['ik F(k)', '−ik F(k)', 'F′(k)', 'F(k)/(ik)']
@@ -114,6 +114,8 @@ Since `$d/dx \to ik$`, a linear equation with constant coefficients becomes alge
 The solution for any source `$g(x)$` is then the convolution of `$g$` with this Green's function.
 
 ## 5. The Laplace transform
+
+*Not in the GATE 2027 syllabus (Laplace transforms; sections 5 and 6): kept as background; skip it if you are short of time.*
 
 For functions that start at `$t = 0$` (initial value problems, switched-on signals), the Laplace transform is the natural tool:
 

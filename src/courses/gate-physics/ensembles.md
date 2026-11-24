@@ -3,7 +3,7 @@ title: 'Microstates, entropy and the statistical ensembles'
 seoTitle: Statistical ensembles for GATE Physics
 summary: 'How statistical mechanics turns counting into thermodynamics: microstates and macrostates, Boltzmann and Gibbs entropy, temperature from S(E), the microcanonical, canonical and grand canonical ensembles, fluctuations, Liouville’s theorem and negative temperature.'
 minutes: 40
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: Which quantities are fixed in the canonical ensemble?
     choices: ['T, V and N', 'E, V and N', 'T, V and μ', 'T, P and N']
@@ -115,6 +115,8 @@ which is `$\langle N\rangle$` (Poisson statistics) for the ideal gas. Move `$N$`
 The exception is a critical point: there `$C_V$` or `$\kappa_T$` diverge, fluctuations become huge (critical opalescence) and the choice of ensemble matters for finite systems ([lesson 5.7](/learn/courses/gate-physics/phase-transitions/)).
 
 ## 5. Phase space, Liouville and ergodicity
+
+*Not in the GATE 2027 syllabus (Liouville's theorem; the ergodic hypothesis below is separate): kept as background; skip it if you are short of time.*
 
 Classical microstates are points in a `$6N$`-dimensional phase space. Two facts make the ensemble picture consistent:
 

@@ -2,7 +2,7 @@
 title: ADCs and DACs
 summary: 'Data converters at GATE depth: weighted-resistor and R-2R ladder DACs, resolution, LSB and full scale, DAC errors (offset, gain, DNL, INL, monotonicity), sampling and the Nyquist rate, aliasing and sample-and-hold, quantisation error and the 6.02n + 1.76 dB rule, and the main ADC architectures: flash, successive approximation, counter ramp, dual slope and sigma-delta, with their conversion times.'
 minutes: 40
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'A 10-bit successive-approximation ADC is clocked at 2 MHz and takes one clock per bit. Its conversion time is'
     choices: ['5 µs', '512 µs', '0.5 µs', '1024 µs']
@@ -131,6 +131,6 @@ Step through a successive-approximation conversion: it is a binary search.
 
 <div class="qbank" data-bank="physics" data-topics="adc-dac" data-exam="gate" data-n="10"></div>
 
-**Next:** that completes the electronics module. [Lesson 10.1](/learn/courses/gate-physics/gate-exam-pattern/) explains the GATE PH paper itself: sections, marking and timing.
+**Next:** [lesson 9.8](/learn/courses/gate-physics/measurements-error-analysis/) adds measurement and error analysis, new in GATE 2027, including power supplies and lock-in amplifiers. [Lesson 10.1](/learn/courses/gate-physics/gate-exam-pattern/) explains the GATE PH paper itself: sections, marking and timing.
 
 **Going on to CSIR NET?** [Noise, filtering and lock-in detection](/learn/courses/csir-net-physics/noise-lock-in/) covers aliasing and sizing an ADC against the noise.

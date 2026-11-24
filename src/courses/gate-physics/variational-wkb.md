@@ -2,7 +2,7 @@
 title: 'The variational method and WKB'
 summary: 'Two approximation methods for problems with no small parameter: the variational principle and its upper bound, Gaussian and exponential trial functions, helium with a screened charge, linear trial combinations, then the WKB wavefunction, Bohr-Sommerfeld quantisation with the right half and quarter phases, and tunnelling through smooth barriers.'
 minutes: 50
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'A trial function gives ⟨H⟩ = −12.9 eV for a system whose true ground state is unknown. What can you say for sure?'
     choices: ['E₀ ≤ −12.9 eV', 'E₀ ≥ −12.9 eV', 'E₀ = −12.9 eV to within 1%', 'Nothing, without the exact wavefunction']
@@ -116,6 +116,8 @@ Helium has two electrons and `$Z = 2$`. Ignoring the electron-electron repulsion
 </div>
 
 ## 4. The WKB approximation
+
+*Not in the GATE 2027 syllabus (WKB; sections 4 and 5): kept as background; skip it if you are short of time.*
 
 In a region where `$E > V$`, write `$p(x) = \sqrt{2m(E - V(x))}$`. If `$V$` were constant, `$\psi = e^{\pm ipx/\hbar}$`. When `$V$` changes slowly, keep the local momentum:
 

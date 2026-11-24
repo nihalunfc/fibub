@@ -3,7 +3,7 @@ title: Electromagnetic waves in matter, conductors and plasmas
 seoTitle: EM waves in matter, conductors and plasmas | GATE Physics
 summary: 'Waves in linear dielectrics and the intrinsic impedance, complex permittivity and the loss tangent, good and poor conductors (skin depth, the 45° lag of B, surface resistance), charge relaxation, cold plasmas (dispersion, cutoff, evanescent waves, ionospheric reflection), the Drude and Lorentz models, group velocity and the Kramers-Kronig relations.'
 minutes: 60
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: "A 2 MHz wave meets a plasma whose plasma frequency is 5 MHz. What happens?"
     choices: ['It is reflected; inside, the field decays without travelling', 'It passes through with phase velocity below c', 'It is absorbed and heats the plasma', 'It passes through unchanged']
@@ -139,6 +139,8 @@ v_g = \frac{c}{n + \omega\,dn/d\omega} = \frac{c}{n - \lambda\,dn/d\lambda}
 **Worked example.** Glass with `$n = 1.52$` and `$dn/d\lambda = -0.050\ \mu$`m⁻¹ at 500 nm: group index `$1.52 + 0.025 = 1.545$`, so `$v_g = 1.94\times10^8$` m/s, slower than `$v_p = 1.97\times10^8$` m/s.
 
 Inside an absorption line `$n + \omega\,dn/d\omega$` can drop below 1 or go negative, so "`$v_g > c$`" appears. No signal beats light: the pulse is heavily absorbed and reshaped, and the front of a switched-on signal travels at the high-frequency limit where `$n \to 1$`.
+
+*Not in the GATE 2027 syllabus (Kramers-Kronig relations, in the next two paragraphs): kept as background; skip it if you are short of time.*
 
 Causality also ties absorption to refraction. Because the polarisation cannot precede the field, `$\epsilon(\omega)$` is analytic in the upper half of the complex `$\omega$` plane, and its real and imaginary parts are linked by the **Kramers-Kronig relations** (the contour methods of [lesson 1.4 on residues](/learn/courses/gate-physics/residues/)):
 

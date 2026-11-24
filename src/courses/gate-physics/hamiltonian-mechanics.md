@@ -3,7 +3,7 @@ title: Hamiltonian mechanics and phase space
 seoTitle: Hamiltonian mechanics and phase space for GATE Physics
 summary: 'The Legendre transform from L to H, Hamilton''s equations, when H is the energy and when it is conserved, phase space and phase portraits, the pendulum''s separatrix, Liouville''s theorem, the Routhian, action variables and adiabatic invariants.'
 minutes: 50
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'For a particle in a rotating frame, H = p²/2m + V(r) − ω·L, with ω constant. Which statement is true?'
     choices: ['H is conserved but is not the energy measured in the rotating frame', 'H is not conserved because the frame rotates', 'H equals the kinetic plus potential energy in the inertial frame', 'H is conserved only if V = 0']
@@ -115,6 +115,8 @@ Drag the red handle anywhere to choose a start, then change the system.
 
 ## 5. Liouville's theorem
 
+*Not in the GATE 2027 syllabus (Liouville's theorem): kept as background; skip it if you are short of time.*
+
 Think of many copies of the same system, started at slightly different points: a cloud of points in phase space. Hamilton's equations make the cloud flow like a fluid, and that fluid is incompressible:
 
 ```math
@@ -138,6 +140,8 @@ Press Play and watch the blob of starting states stretch, then switch on frictio
 Sometimes it pays to Legendre-transform only the cyclic coordinates. The **Routhian** `$R = L - \sum_{\rm cyclic} p_k\dot q_k$`, written in terms of the conserved `$p_k$`, acts as a Lagrangian for the remaining coordinates. For a central force, `$R(r, \dot r) = \tfrac12m\dot r^2 - \ell^2/(2mr^2) - U(r)$`, and the Euler-Lagrange equation for `$r$` follows at once with the centrifugal term built in. Note the sign: the centrifugal energy enters `$R$` with a minus sign, as part of an effective potential.
 
 ## 7. Action variables and adiabatic invariants
+
+*Not in the GATE 2027 syllabus (action-angle variables): kept as background; skip it if you are short of time.*
 
 For a periodic motion in one degree of freedom, the **action**
 

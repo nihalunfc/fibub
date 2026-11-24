@@ -3,7 +3,7 @@ title: Poisson brackets and canonical transformations
 seoTitle: Poisson brackets and canonical maps for GATE Physics
 summary: 'The Poisson bracket and its rules, time evolution and constants of motion, angular momentum brackets, canonical transformations and how to test one, the four generating functions, generators of symmetries, and the bridge to quantum commutators and the Hamilton-Jacobi equation.'
 minutes: 50
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'With {f, g} = ∂f/∂q ∂g/∂p − ∂f/∂p ∂g/∂q, the transformation Q = q², P = p/(2q) is'
     choices: ['Not canonical, because {Q, P} = 2', 'Not canonical, because it mixes q and p', 'Canonical only when q > 1', 'Canonical, because {Q, P} = 1']
@@ -178,6 +178,8 @@ turns `$\{q, p\} = 1$` into `$[\hat x, \hat p] = i\hbar$`, `$df/dt = \{f, H\}$` 
 </div>
 
 ## 8. The Hamilton-Jacobi equation
+
+*Not in the GATE 2027 syllabus (Hamilton-Jacobi theory): kept as background; skip it if you are short of time.*
 
 The most ambitious canonical transformation makes the new Hamiltonian zero, so every new variable is constant. Its type-2 generating function `$S(q, P, t)$`, Hamilton's principal function, must satisfy
 

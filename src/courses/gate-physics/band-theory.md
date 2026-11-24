@@ -2,7 +2,7 @@
 title: 'Band theory'
 summary: 'Why a periodic lattice turns free electrons into bands and gaps: Bloch''s theorem and crystal momentum, counting states, the Kronig-Penney model, nearly free electrons with gaps of 2|U_G|, tight binding in one, two and three dimensions, effective mass and holes, Brillouin zones, metals versus insulators, and Bloch oscillations.'
 minutes: 55
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'In the nearly-free-electron model, the gap at the Bragg plane of reciprocal lattice vector G is'
     choices: ['2|U_G|', '|U_G|', '|U_G|²/E', '4|U_G|']
@@ -111,6 +111,8 @@ Switch on the lattice potential and slide k to the zone edge to see the gap open
 In 2D and 3D the free-electron sphere is cut by many Bragg planes. Constant-energy surfaces meet each plane at right angles, the pieces outside the first zone are folded back by `$\mathbf G$`, and the enclosed volume stays fixed by the electron count. A divalent square lattice has `$k_F = \sqrt{4\pi}/a = 1.13\,\pi/a$`: the circle crosses the zone edges, so electrons spill into the second zone and leave holes in the first.
 
 ## 4. Tight binding
+
+*Not in the GATE 2027 syllabus (tight binding): kept as background; skip it if you are short of time.*
 
 The opposite limit starts from atomic orbitals `$\phi(\mathbf r - \mathbf R)$` and lets electrons hop between neighbours with amplitude `$t$`. The Bloch combination `$\sum_{\mathbf R}e^{i\mathbf k\cdot\mathbf R}\phi(\mathbf r - \mathbf R)$` has energy
 
