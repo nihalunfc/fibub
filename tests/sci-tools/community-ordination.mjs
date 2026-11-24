@@ -51,4 +51,20 @@ export default async (check) => {
   const sh = nm.pairs; check('ordination: Shepard fit is monotone', sh.every((q, k) => k === 0 || q.fit >= sh[k - 1].fit - 1e-12));
   const ev = O.symEigen([[2, 1], [1, 2]]);
   check('ordination: Jacobi eigenvalues', near(ev.values[0], 3) && near(ev.values[1], 1));
+
+  // Blog article sal-forest-compartments-bray-curtis-nmds-ordination: tree-layer importance values (IVI) for seven
+  // Sal compartments from Sharma et al. (2025), Front. For. Glob. Change 8: 1524808 (CC BY 4.0), species x site.
+  const SAL = [
+    [28.55, 27.61, 26.90, 26.91, 29.69, 51.88, 23.98], [35.75, 43.29, 28.83, 29.19, 33.77, 26.16, 22.55],
+    [30.55, 33.86, 32.89, 32.25, 17.27, 33.54, 29.41], [15.01, 15.23, 19.32, 0, 0, 14.59, 0],
+    [37.64, 42.09, 38.72, 30.58, 38.69, 47.12, 16.45], [152.50, 137.91, 153.35, 156.59, 151.94, 126.72, 135.96],
+    [0, 0, 0, 7.49, 13.85, 0, 16.19], [0, 0, 0, 16.99, 14.80, 0, 13.50], [0, 0, 0, 0, 0, 0, 17.18], [0, 0, 0, 0, 0, 0, 24.77],
+  ];
+  const S = Array.from({ length: 7 }, (_, j) => SAL.map((r) => r[j]));
+  check('ordination: Sal compartment IVI columns each add to 300', S.every((r) => Math.abs(r.reduce((a, b) => a + b, 0) - 300) <= 0.011));
+  const Ds = O.distances(S, 'bray'), Ps = O.pca(O.transform(S, 'hellinger'), 4), Zs = O.cluster(Ds, 'average');
+  check('ordination: Sal Bray-Curtis, closest and furthest pair', near(Ds[0][2], 0.0285828570, 1e-8) && near(Ds[5][6], 0.2696333333, 1e-8));
+  check('ordination: Sal Hellinger PCA puts 73.40 % on axis 1', near(Ps.explained[0], 0.7340257912, 1e-7) && near(Ps.explained[1], 0.2066342136, 1e-7));
+  check('ordination: Sal UPGMA heights and cophenetic r', near(Zs[0][2], 0.0285828570, 1e-8) && near(Zs[5][2], 0.2238469036, 1e-8) && near(O.cophenetic(Zs, Ds).r, 0.8896555204, 1e-8));
+  check('ordination: Sal three-group cut isolates Lai C28', O.cutTree(Zs, 7, 3).join('') === '1112213');
 };
