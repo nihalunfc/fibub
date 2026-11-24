@@ -21,5 +21,11 @@ export default async (check) => {
     check('snow: tube 5 cm across, 700 g of snow over 80 cm: SWE 356.5 mm, density 445.6 kg/m³', Math.abs(t.swe - 356.51) < 0.01 && Math.abs(t.rho - 445.63) < 0.01); }
   check('slope: rise equal to run is 45°; 1:25 000 map, 4 intervals of 10 m over 2 mm is 38.66°', Math.abs(S.slopeDeg(10, 10) - 45) < 1e-12 && Math.abs(S.slopeFromMap(10, 4, 2, 25000).deg - 38.6598) < 1e-4);
   check('slope: phone flat reads 0°, on its long edge 90°, pitched 35° reads 35° downhill to the bottom edge', S.phoneTilt(0, 0).tilt === 0 && Math.abs(S.phoneTilt(90, 0).tilt - 90) < 1e-9 && Math.abs(S.phoneTilt(35, 0).tilt - 35) < 1e-12 && Math.abs(S.phoneTilt(35, 0).downhill - 180) < 1e-9);
+  // Blog: wind-packed-snow-drift-density-swe-underestimation (Boardman et al. 2026, The Cryosphere 20: 4877).
+  { const swe = S.sweFromDepth(590, 585), l = S.layers([{ h: 200, rho: 582 }, { h: 190, rho: 577.6 }, { h: 200, rho: 595 }]);
+    check('snow: a 5.9 m drift at 585 kg/m³ is 3451.5 mm of SWE and a ground load of 33.848 kN/m²',
+      Math.abs(swe - 3451.5) < 1e-9 && Math.abs(S.groundLoad(swe) - 33.8477) < 1e-3);
+    check('snow: the three-layer drift (582, 577.6, 595 kg/m³) has a bulk density of 585 kg/m³ and the same SWE',
+      Math.abs(l.rho - 585) < 0.02 && Math.abs(l.swe - swe) < 0.1 && l.depth === 590); }
   check('slope: bands at 29.9, 30, 44.9, 45, 60, 90°', [29.9, 30, 44.9, 45, 60, 90].map((d) => S.band(d).id).join() === 'mid,prime,prime,steep,cliff,cliff');
 };
