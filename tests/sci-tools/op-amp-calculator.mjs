@@ -25,4 +25,7 @@ export default async (check) => {
   check('opamp: matched difference amp rejects common mode', O.diffCmrr(1e4, 1e5, 1e4, 1e5) === Infinity && Math.abs(O.diffCmrr(1e4, 1e5, 1e4, 1.01e5) - 20 * Math.log10(10.004504504504505 / 0.009009009009009)) < 1e-6);
   check('opamp: worst-case CMRR for 1 % resistors at G = 10 is 48 dB', Math.abs(O.diffCmrrWorst(10, 0.01) - 48.786) < 1e-3);
   check('opamp: full-power bandwidth', rel(O.fullPower(0.5e6, 10), 7957.747, 1e-6) && O.clip(15, -13.5, 13.5) === 13.5);
+  // New with the EEG front-end article (Saptono et al. 2016, MATEC 75: 04003): non-inverting stage with 100 kohm feedback and 220 ohm + 0 to 1000 ohm to ground.
+  check('opamp: EEG stage gains 1 + 100k/220 = 455.55 and 1 + 100k/1220 = 82.967', Math.abs(O.gainOf('noninv', 220, 1e5) - 455.5454545454545) < 1e-9 && Math.abs(O.gainOf('noninv', 1220, 1e5) - 82.96721311475409) < 1e-9);
+  check('opamp: EEG stage with a 1 MHz op-amp has bandwidth 2195 Hz at gain 455.5 and 12053 Hz at gain 83', Math.abs(O.bandwidth(1e6, O.noiseGain({ config: 'noninv', r1: 220, rf: 1e5 })) - 2195.2) < 0.1 && Math.abs(O.bandwidth(1e6, O.noiseGain({ config: 'noninv', r1: 1220, rf: 1e5 })) - 12053) < 1);
 };
