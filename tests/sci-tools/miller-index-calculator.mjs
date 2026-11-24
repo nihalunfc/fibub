@@ -36,4 +36,10 @@ export default async (check) => {
   check('miller: cartesian cell reproduces the metric tensor', (() => { const C = M.cartesian(tri), G = M.metric(tri); return [0, 1, 2].every((i) => [0, 1, 2].every((j) => near(C[i][0] * C[j][0] + C[i][1] * C[j][1] + C[i][2] * C[j][2], G[i][j], 1e-9))); })());
   { const r = M.reflections(cub, 2);
     check('miller: cubic reflection list: {100} ×6, {110} ×12, {111} ×8, {200} ×6, {210} ×24', r.slice(0, 5).map((g) => `${g.hkl.join('')}x${g.count}`).join() === '100x6,110x12,111x8,200x6,210x24' && near(r[2].d, 4 / Math.sqrt(3), 1e-12)); }
+  // Blog article spaltiite-monoclinic-cell-powder-d-spacings: Graeser et al. (2026), Eur. J. Mineral. 38: 27-37
+  // (CC BY 4.0). The cell refined from their Gandolfi powder film, and the geometry of two of its strongest lines.
+  { const sp = M.cellFor('monoclinic', { a: 15.821, b: 10.023, c: 6.334, beta: 99.21 });
+    check('miller: spaltiite powder cell volume 991.4585 Å³', near(M.volume(sp), 991.4585072307576, 1e-9));
+    check('miller: spaltiite d(040) is exactly b/4 = 2.50575 Å, d(510) 2.98200, d(−511) 2.86713', near(M.dSpacing(sp, [0, 4, 0]), 10.023 / 4, 1e-12) && near(M.dSpacing(sp, [5, 1, 0]), 2.981973281273076, 1e-9) && near(M.dSpacing(sp, [-5, 1, 1]), 2.867134582689998, 1e-9));
+    check('miller: spaltiite (510)^(−511) = 136.1542°, zone axis [1−5 10]', near(M.planeAngle(sp, [5, 1, 0], [-5, 1, 1]), 136.1541724956319, 1e-9) && M.zoneAxis([5, 1, 0], [-5, 1, 1]).join() === '1,-5,10'); }
 };

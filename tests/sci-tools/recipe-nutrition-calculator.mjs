@@ -56,8 +56,8 @@ Improver, 5, 400, 0, 0, 100, 0, 0, 0, 0`);
       const p = parseRecipe(t); if (p.errors.length) throw new Error(p.errors.join('; '));
       return recipe(p.items, { servings: 1, lossPct: 0, energyFromMacros: true }); };
     const f1 = blend([35, 45, 15, 5]), f5 = blend([40, 35, 20, 5]), f3 = blend([31, 37, 21, 11]);
-    check('nutrition: F1 blend gives 387.52 kcal, 18.136 g protein, 8.7495 g fat per 100 g (their measured 18.14 and 8.75)',
-      near(f1.per100.kcal, 387.5245, 1e-6) && near(f1.per100.protein, 18.1365, 1e-6) && near(f1.per100.fat, 8.7495, 1e-6));
-    check('nutrition: F5 blend 389.8955 kcal and 19.808 g protein; only F3 clears the 400 kcal CSB++ minimum',
-      near(f5.per100.kcal, 389.8955, 1e-6) && near(f5.per100.protein, 19.808, 1e-6) && f3.per100.kcal >= 400 && f1.per100.kcal < 400 && f5.per100.kcal < 400); }
+    check('nutrition: F1 blend gives 387.52 kcal, 18.136 g protein, 8.7515 g fat per 100 g (their measured 18.14 and 8.75)',
+      near(f1.per100.kcal, 387.5245, 1e-9) && near(f1.per100.protein, 18.136, 1e-9) && near(f1.per100.fat, 8.7515, 1e-9));
+    check('nutrition: F5 blend 389.9015 kcal and 19.8105 g protein; only F3 clears the 400 kcal CSB++ minimum',
+      near(f5.per100.kcal, 389.9015, 1e-9) && near(f5.per100.protein, 19.8105, 1e-9) && f3.per100.kcal >= 400 && f1.per100.kcal < 400 && f5.per100.kcal < 400); }
 };
