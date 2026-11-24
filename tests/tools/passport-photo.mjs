@@ -20,6 +20,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.pp-count')).startsWith('6 photos') && (await page.textContent('.pp-rule')).includes('25 to 35'), 'passport-photo: US gives 6 per sheet and shows the head rule');
   const us = await saved(page, () => page.click('.pp-one'));
   check(jpegSize(us.buf).join('x') === '600x600', 'passport-photo: US photo is 600x600');
+  await page.selectOption('.pp-country', 'in-icao');
+  const ind = await saved(page, () => page.click('.pp-one'));
+  check(jpegSize(ind.buf).join('x') === '630x810' && (await page.textContent('.pp-rule')).includes('630 x 810'), 'passport-photo: India ICAO photo is 630x810 (' + jpegSize(ind.buf) + ')');
   await page.check('.pp-white'); await page.selectOption('.pp-country', 'uk');
   const uk = await saved(page, () => page.click('.pp-one'));
   const [w, h] = jpegSize(uk.buf), px = await page.evaluate(() => { const c = document.querySelector('.pp-cv'); return [...c.getContext('2d').getImageData(3, 3, 1, 1).data]; });

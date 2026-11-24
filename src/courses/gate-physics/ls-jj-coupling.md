@@ -3,7 +3,7 @@ title: 'Many-electron atoms: LS and jj coupling'
 seoTitle: LS and jj coupling and Hund's rules for GATE Physics
 summary: 'Helium and exchange, the central-field picture, term symbols from LS (Russell-Saunders) coupling, terms of equivalent electrons, Hund''s rules for the ground term, the Landé interval rule, jj coupling for heavy atoms and how the two schemes match level by level, and the selection rules that decide which lines appear.'
 minutes: 55
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'Which terms does the configuration np² allow?'
     choices: ['¹S, ¹D and ³P', '¹S, ¹P, ¹D, ³S, ³P and ³D', '³P only', '¹D and ³P']
@@ -163,6 +163,30 @@ For electric dipole transitions in LS coupling, with one electron jumping:
 
 `$\Delta J$` and parity are exact for E1. `$\Delta S = 0$` holds only as well as LS coupling holds: **intercombination lines** with `$\Delta S = 1$` are very weak in light atoms but strong in heavy ones. Mercury's 253.7 nm line (6s6p ³P₁ → 6s² ¹S₀) is the main ultraviolet line of mercury lamps.
 
+## 8. X-ray spectra and Moseley's law
+
+Fire electrons of energy `$eV$` at a metal target and two kinds of X-rays come out.
+
+- **Continuous spectrum (bremsstrahlung).** Electrons decelerated in the target radiate a smooth range of wavelengths with a sharp short-wavelength cut-off, because no photon can carry more than the whole electron energy: the **Duane-Hunt law**
+  `$\lambda_{\min} = hc/eV = 12.398/V\,(\text{kV})$` Å. It depends on the voltage only, not on the target.
+- **Characteristic lines.** If the electron energy is above the **absorption edge** of an inner shell, it can knock an electron out of it. An electron from a higher shell then falls in and emits a photon of one fixed energy. A hole in the K shell (`$n = 1$`) gives the **K series**: `$K_\alpha$` when the electron falls from L (`$n = 2$`), `$K_\beta$` from M (`$n = 3$`). The lines are sharp and belong to the element. `$K_\alpha$` is a close doublet, `$K_{\alpha1}$` and `$K_{\alpha2}$` (from `$2p_{3/2}$` and `$2p_{1/2}$`); a `$2s \to 1s$` jump is forbidden because it does not change `$l$`.
+
+**Moseley's law.** The photon energy is the difference of two hydrogen-like levels in which the other electrons screen the nuclear charge. Moseley (1913) found that the square root of the line frequency rises in a straight line with the atomic number:
+
+```math
+\sqrt{\nu} = a\,(Z - \sigma), \qquad \text{K}\alpha:\ \ h\nu = \tfrac34\,Ry\,(Z - 1)^2, \quad Ry = 13.606\ \text{eV}
+```
+
+Here `$\sigma \approx 1$` for `$K_\alpha$`: the one other 1s electron screens the nucleus from the electron falling in. (Compare the Bohr formula with `$Z_{\text{eff}} = Z - 1$` and `$1 - 1/4 = 3/4$` from `$n = 2 \to 1$`.) Moseley's graph put the elements in order of `$Z$` rather than atomic weight and showed gaps where undiscovered elements (technetium, promethium and others) belonged.
+
+**Worked example.** (a) The `$K_\alpha$` line of copper (`$Z = 29$`), and what a tube needs to excite it. (b) Identify an unknown target with `$K_\alpha$` at 0.709 Å.
+
+1. Copper: `$h\nu = 0.75\times13.606\times28^2 = 8000$` eV `$= 8.00$` keV, so `$\lambda = 12.398/8.000 = 1.55$` Å. The measured value is 8.05 keV, 1.54 Å, so the simple formula is good to about 1 %.
+2. The copper K absorption edge is at 8.98 keV, so the tube voltage must exceed about 9 kV to produce K lines. At 30 kV the continuous spectrum starts at `$\lambda_{\min} = 12.398/30 = 0.413$` Å, and the Cu K lines appear as sharp peaks on top of it.
+3. Unknown target: `$E = 12.398\ \text{keV Å}/0.709\ \text{Å} = 17.49$` keV. Then `$(Z - 1)^2 = 17\,487/(0.75\times13.606) = 1714$`, so `$Z - 1 = 41.4$` and `$Z \approx 42$`: molybdenum, whose real `$K_\alpha$` is 17.48 keV.
+
+An atom with a K hole can also lose its energy by ejecting an outer electron (the **Auger effect**) instead of emitting a photon; light atoms prefer it. The X-ray tube, absorption edges and Bragg reflection are in the JAM lesson on [atoms and X-rays](/learn/courses/iit-jam-physics/atoms-x-rays/).
+
 <div class="myth">
 
 **"Triplets are lower because parallel spins attract."** The magnetic interaction between spins is far too small. Triplets are lower because their spatial wavefunction is antisymmetric, the electrons stay apart, and their Coulomb repulsion is smaller: the exchange energy is electrostatic.
@@ -181,6 +205,7 @@ For electric dipole transitions in LS coupling, with one electron jumping:
 - Interval rule `$E_J - E_{J-1} = AJ$`; normal (`$A > 0$`) or inverted (`$A < 0$`) multiplets.
 - jj coupling (heavy atoms): `$j_i = l_i \pm \tfrac12$` first; same number of levels per `$J$` as LS.
 - E1: `$\Delta S = 0$`, `$\Delta L, \Delta J = 0, \pm1$` (no 0 to 0), parity changes; intercombination lines show LS breaking.
+- X-rays: Duane-Hunt `$\lambda_{\min} = 12.398/V$` (kV) Å; Moseley `$\sqrt\nu \propto Z - \sigma$`; K\(\alpha\): `$h\nu = \tfrac34Ry(Z-1)^2$`, so Cu is 8.0 keV.
 
 </div>
 
@@ -188,6 +213,6 @@ For electric dipole transitions in LS coupling, with one electron jumping:
 
 They start at the definitions and climb to GATE top-rank level. Check each answer, then read the full solution. There are more on the [LS and jj coupling practice page](/learn/courses/gate-physics/practice/ls-jj-coupling/).
 
-<div class="qbank" data-bank="physics" data-topics="ls-jj-coupling" data-exam="gate" data-n="10"></div>
+<div class="qbank" data-bank="physics" data-topics="ls-jj-coupling,atoms-x-rays" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 6.3](/learn/courses/gate-physics/zeeman-stark/) puts these levels in a magnetic or electric field and splits each one into its `$2J+1$` states. The basics are in [lesson 6.1](/learn/courses/gate-physics/fine-structure/).

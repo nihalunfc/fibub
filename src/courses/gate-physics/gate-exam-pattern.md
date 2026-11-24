@@ -3,7 +3,7 @@ title: 'The GATE PH paper: sections, marking and timing'
 seoTitle: GATE Physics exam pattern, marking and time plan
 summary: 'How the GATE Physics (PH) paper is built: 65 questions for 100 marks in 3 hours, a 15-mark general aptitude part and 85 marks of physics in MCQ, MSQ and NAT questions, how negative marking works, how marks become a GATE score, a time plan for the 180 minutes, and how to use fibub''s GATE mock tests and practice pages.'
 minutes: 25
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'In GATE PH a 2-mark MSQ is answered with one correct option missing. What does it score?'
     choices: ['0', '−2/3', '+1', '+4/3']
@@ -20,6 +20,7 @@ quiz:
 sources:
   - 'GATE information brochure, published each year by the organising institute on the official GATE website (GATE 2027: IIT Madras)'
   - 'GATE Physics (PH) syllabus, published with the brochure'
+  - 'GATE 2027 Physics (PH) syllabus, https://gate2027.iitm.ac.in/static/doc/GATE2027_Syllabus/PH_GATE2027_Syllabus.pdf (checked 2026-11-24)'
   - 'S. Mahajan, Street-Fighting Mathematics (MIT Press, 2010; free under CC BY-NC-SA), chapter 1 on checking answers'
 ---
 
@@ -39,7 +40,9 @@ GATE is a 3-hour computer-based test. The PH paper has **65 questions worth 100 
 | Physics | 55 (25 of 1 mark, 30 of 2 marks) | 85 | the PH syllabus, in MCQ, MSQ and NAT form |
 | Total | 65 | 100 | 180 minutes |
 
-The physics questions come from nine syllabus sections, which are the modules of this course: [mathematical physics](/learn/courses/gate-physics/linear-vector-spaces/), [classical mechanics](/learn/courses/gate-physics/lagrangian-mechanics/), [electromagnetic theory](/learn/courses/gate-physics/multipoles/), [quantum mechanics](/learn/courses/gate-physics/postulates-operators/), [thermodynamics and statistical physics](/learn/courses/gate-physics/ensembles/), [atomic and molecular physics](/learn/courses/gate-physics/fine-structure/), [solid state physics](/learn/courses/gate-physics/reciprocal-lattice/), nuclear and particle physics, and [electronics](/learn/courses/gate-physics/semiconductor-devices/). No official weighting by section is published; recent papers spread the marks over all nine, so no section can be skipped safely.
+The physics questions come from the syllabus sections, which this course follows module by module: [mathematical physics](/learn/courses/gate-physics/linear-vector-spaces/), [classical mechanics](/learn/courses/gate-physics/lagrangian-mechanics/), [electromagnetic theory](/learn/courses/gate-physics/multipoles/), [quantum mechanics](/learn/courses/gate-physics/postulates-operators/), [thermodynamics and statistical physics](/learn/courses/gate-physics/ensembles/), [atomic and molecular physics](/learn/courses/gate-physics/fine-structure/), [solid state physics](/learn/courses/gate-physics/reciprocal-lattice/), nuclear and particle physics, and [electronics](/learn/courses/gate-physics/semiconductor-devices/). No official weighting by section is published; recent papers spread the marks over all of them, so no section can be skipped safely.
+
+**What changed for GATE 2027.** The official GATE 2027 PH syllabus (IIT Madras, [PH_GATE2027_Syllabus.pdf](https://gate2027.iitm.ac.in/static/doc/GATE2027_Syllabus/PH_GATE2027_Syllabus.pdf), checked 2026-11-24) adds two sections of its own: **Measurements and error analysis** and **Optical physics**. It also names the Paschen-Back effect, the Mössbauer effect, NMR and ESR, X-ray spectra, the double delta potential and particles in 2D and 3D boxes, and it no longer lists a few topics: Laplace transforms, special functions, WKB, Liouville's theorem, action-angle variables, Hamilton-Jacobi theory, tight binding, the Kramers-Kronig relations and radiation from moving charges. This course now covers all of the new material, in [measurements and error analysis](/learn/courses/gate-physics/measurements-error-analysis/) (lesson 9.8), [interference and diffraction](/learn/courses/gate-physics/interference-diffraction/) (3.11), [polarisation and ray optics](/learn/courses/gate-physics/polarisation-ray-optics/) (3.12) and added sections in lessons 4.3, 4.4, 6.2, 6.3 and 8.4. The dropped topics stay as background and are marked "Not in the GATE 2027 syllabus" where they appear. Syllabi change from year to year, so read the current PDF before you plan.
 
 ## 2. Question types and marking
 

@@ -75,7 +75,7 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { day, backShare, urineL, glucose, waterSteps, FILTRATE_L_DAY, GFR_ML_MIN, GLUCOSE_THRESHOLD } from '../../lib/sci/nephron';
+  import { day, backShare, urineL, glucose, waterSteps, FILTRATE_L_DAY, GFR_ML_MIN, GLUCOSE_THRESHOLD, GLUCOSE_TM } from '../../lib/sci/nephron';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, quiz, type Question } from '../../lib/smath-ui';
 
@@ -164,7 +164,7 @@ import '../../styles/smath.css';
       ? `Filtration: ${GFR_ML_MIN} mL a minute × 1440 minutes = ${fmt(FILTRATE_L_DAY, 0)} L a day. Water taken back: proximal ${fmt(waterSteps(u).pct, 0)} L, loop ${fmt(waterSteps(u).loop, 0)} L, distal and duct ${fmt(waterSteps(u).late, 1)} L. Urea in urine: ${fmt(urea, 1)} g ÷ ${fmt(u, 2)} L = ${fmt(urea / u, 1)} g/L.`
       : `Urea in urine: ${fmt(urea, 1)} g ÷ ${fmt(u, 2)} L = ${fmt(urea / u, 1)} g per litre.`;
     q('.nph-say').textContent = gl.urine > 0
-      ? `Blood glucose is above ${GLUCOSE_THRESHOLD} mg/dL in this model, so more glucose is filtered than the tubules can take back: ${fmt(gl.urine, 1)} g a day spills into the urine. Sugar in urine is one sign of diabetes.`
+      ? `Blood glucose is above the renal threshold of ${GLUCOSE_THRESHOLD} mg/dL, so some nephrons get more glucose than their carriers can take back: ${fmt(gl.urine, 1)} g a day spills into the urine. The tubules as a whole max out at about ${GLUCOSE_TM} mg a minute (the transport maximum). Sugar in urine is one sign of diabetes.`
       : 'All the filtered glucose is taken back, so there is none in the urine.';
     drawFig();
   }

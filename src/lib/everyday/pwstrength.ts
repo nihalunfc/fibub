@@ -21,7 +21,8 @@ export type M = { s: number; e: number; bits: number; why: string };
 export const poolOf = (pw: string) => {
   let p = 0;
   if (/[a-z]/.test(pw)) p += 26; if (/[A-Z]/.test(pw)) p += 26; if (/[0-9]/.test(pw)) p += 10;
-  if (/[ -/:-@[-`{-~]/.test(pw)) p += 33; if (/[^\x20-\x7e]/.test(pw)) p += 100;
+  if (/ /.test(pw)) p += 1; if (/[!-/:-@[-`{-~]/.test(pw)) p += 32; // a space adds one character, not the whole symbol set
+  if (/[^\x20-\x7e]/.test(pw)) p += 100;
   return p;
 };
 

@@ -33,7 +33,7 @@ export default async ({ page, check, BASE }) => {
   // Compare two passwords
   await page.fill(R + '.ps-in', 'Tr0ub4dor&3'); await page.fill(R + '.ps-in2', 'correct horse battery staple'); await page.waitForTimeout(80);
   const c = await page.textContent(R + '.ps-cmp');
-  check(c.includes('164.7 bits against 72.3') && c.includes('stronger by 92.4 bits') && c.includes('10^27'), `password-strength: compare says the phrase is stronger by 92.4 bits (${c})`);
+  check(c.includes('133.1 bits against 72.1') && c.includes('stronger by 61.0 bits') && c.includes('10^18'), `password-strength: compare says the phrase is stronger by 61.0 bits (${c})`);
   await page.fill(R + '.ps-in2', 'Tr0ub4dor&3'); await page.waitForTimeout(80);
   check((await page.textContent(R + '.ps-cmp')).includes('about as strong'), 'password-strength: equal passwords are about as strong');
   await page.check(R + '.ps-show');

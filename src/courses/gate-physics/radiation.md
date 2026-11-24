@@ -3,7 +3,7 @@ title: Radiation from dipoles and accelerated charges
 seoTitle: Dipole radiation and the Larmor formula | GATE Physics
 summary: 'Retarded potentials and the radiation zone, the oscillating electric dipole (fields, sin²θ pattern, total power), magnetic dipole radiation, the Larmor formula and its relativistic Liénard form, antennas (radiation resistance, directivity, two-element arrays), Thomson and Rayleigh scattering, radiation reaction, cyclotron and synchrotron radiation and the classical atom.'
 minutes: 60
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: An oscillating dipole keeps its amplitude while its frequency triples. By what factor does its radiated power change?
     choices: ['81', '9', '27', '3']
@@ -85,6 +85,8 @@ with `$\theta$` measured from `$\vec a$`. The field is minus the part of `$\vec 
 
 **Worked example.** An electron with `$a = 10^{18}$` m/s² radiates only `$5.7\times10^{-18}$` W: the `$c^3$` makes single-charge radiation feeble.
 
+*Not in the GATE 2027 syllabus (relativistic radiation from moving charges, to the end of this section): kept as background; skip it if you are short of time.*
+
 At high speed, Liénard's generalisation is
 
 ```math
@@ -122,6 +124,8 @@ For unpolarised light `$\frac{d\sigma}{d\Omega} = r_e^2\frac{1 + \cos^2\theta}{2
 A **bound** electron driven well below its resonance has an amplitude nearly independent of frequency, so its acceleration, and the scattered power, go as `$\omega^4$`: **Rayleigh scattering**. Blue (450 nm) is scattered `$(700/450)^4 = 5.9$` times more than red (700 nm). A small dielectric sphere of radius `$a$` has `$\sigma = \frac{8\pi}{3}k^4a^6\left(\frac{\epsilon_r - 1}{\epsilon_r + 2}\right)^2$`: the `$a^6$` is why haze thickens so fast as droplets grow.
 
 ## 6. Radiation reaction, cyclotron and synchrotron radiation
+
+*Not in the GATE 2027 syllabus (radiation from moving charges): kept as background; skip it if you are short of time.*
 
 **Radiation reaction.** Energy balance demands a recoil force, the Abraham-Lorentz force `$m\tau\dot{\vec a}$` with
 

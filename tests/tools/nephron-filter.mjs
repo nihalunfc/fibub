@@ -17,7 +17,7 @@ export default async ({ page, check, BASE }) => {
   await page.$eval(R + '[data-part="loop"] .nph-hit', (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true }))); await page.waitForTimeout(150);
   check((await txt('.nph-pn')).startsWith('Loop of Henle') && await page.$(R + '[data-part="loop"] .nph-tube.on') !== null, `nephron: tap the loop (${await txt('.nph-pn')})`);
   await slide('.nph-glu', 300);
-  check((await small('glucose')).endsWith('216 g in urine') && (await txt('.nph-say')).includes('216 g a day spills'), 'nephron: high glucose spills');
+  check((await small('glucose')).endsWith('54 g in urine') && (await txt('.nph-say')).includes('54 g a day spills'), 'nephron: high glucose spills');
   await slide('.nph-drink', 0.5);
   check((await txt('.nph-big')).endsWith('0.5 L of urine') && (await txt('.nph-f2')).endsWith('= 54 g per litre.'), 'nephron: little water, concentrated urine');
   await tap('.nph-level button[data-v="11"]');

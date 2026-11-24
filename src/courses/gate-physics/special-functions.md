@@ -3,7 +3,7 @@ title: 'Series solutions: Legendre, Bessel and Hermite'
 seoTitle: Legendre, Bessel and Hermite functions | GATE Physics
 summary: 'Ordinary and regular singular points, power series and the Frobenius method with its indicial equation, Legendre polynomials (Rodrigues, generating function, recurrences, orthogonality, expansions), associated Legendre functions, Bessel functions and their zeros, Hermite and Laguerre polynomials, and the gamma function.'
 minutes: 60
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: For Bessel's equation of order 1/3, what are the indicial roots at x = 0?
     choices: ['+1/3 and −1/3', '0 and 1', '0 and 1/3', '1/3 and 4/3']
@@ -26,6 +26,8 @@ sources:
 ---
 
 **Module 1 · about 60 minutes.** By the end you will be able to classify the points of a second-order linear equation, run the power-series and Frobenius methods (including the indicial equation and the log case), and use Legendre, Bessel, Hermite and Laguerre functions confidently: their recurrences, generating functions, orthogonality and norms, and how to expand a function in them. Constant-coefficient equations and the basic series method are in the JAM lesson on [differential equations](/learn/courses/iit-jam-physics/differential-equations/); here we go further.
+
+*Not in the GATE 2027 syllabus: kept as background; skip it if you are short of time.*
 
 <div class="bigidea">When separation of variables meets a sphere, a cylinder or a parabola-shaped potential, the equations that come out have variable coefficients. Their well-behaved solutions are special functions: polynomials or series that are orthogonal, just like sines and cosines, so any reasonable function can be expanded in them.</div>
 

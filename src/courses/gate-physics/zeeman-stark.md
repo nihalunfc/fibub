@@ -1,9 +1,9 @@
 ---
 title: Zeeman and Stark effects
 seoTitle: Zeeman, Paschen-Back and Stark effects for GATE Physics
-summary: 'Atoms in fields: the magnetic moment and the Bohr magneton, the normal Zeeman triplet, the Landé g factor and the anomalous Zeeman patterns of the sodium D lines, polarisation of π and σ components, the Paschen-Back effect, electron spin resonance, and the linear and quadratic Stark effects.'
+summary: 'Atoms in fields: the magnetic moment and the Bohr magneton, the normal Zeeman triplet, the Landé g factor and the anomalous Zeeman patterns of the sodium D lines, polarisation of π and σ components, the Paschen-Back effect with a worked example, electron spin resonance and nuclear magnetic resonance with g factors, and the linear and quadratic Stark effects.'
 minutes: 50
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'What is the Landé g factor of a ²P₁/₂ level?'
     choices: ['2/3', '4/3', '2', '1']
@@ -117,6 +117,13 @@ Drag the field b from 0 to 4 for hydrogen and then sodium, and read the real fie
 
 How strong is strong? Compare `$\mu_BB$` with the splitting. Sodium 3p: 17.2 cm⁻¹ / 0.467 cm⁻¹ T⁻¹ ≈ 37 T, beyond ordinary magnets. Hydrogen 2p: 0.365/0.467 ≈ 0.8 T, easily reached. Lithium 2p (0.34 cm⁻¹) is the classic laboratory case.
 
+**Worked example (a ²P level in the Paschen-Back regime).** Take a ²P level (`$l = 1$`, `$s = \tfrac12$`) so strongly magnetised that the `$a\,m_lm_s$` term can be ignored, and let it decay to a ²S level.
+
+1. The six states have `$m_l + 2m_s$` equal to `$2, 1, 0$` (for `$m_s = +\tfrac12$` and `$m_l = 1, 0, -1$`) and `$0, -1, -2$` (for `$m_s = -\tfrac12$`). So the level splits into five equally spaced energies `$2, 1, 0, -1, -2$` times `$\mu_BB$`, with the middle one holding two states.
+2. The ²S level has `$m_l = 0$`, so its energy is `$2m_s\mu_BB = \pm\mu_BB$`.
+3. E1 transitions keep `$m_s$` (spin does not feel the light), so the shift of a line is `$(m_l + 2m_s) - 2m_s = m_l$` in units of `$\mu_BB$`: only `$-1, 0, +1$`. The three lines are the normal Zeeman triplet; each is really a close pair, one for each `$m_s$`, split by the small `$a\,m_lm_s$` term.
+4. At weak field the same ²P to ²S transitions give the ten lines of the sodium D₁ and D₂ patterns (4 + 6). Raising the field turns that complicated pattern into the simple triplet, changing continuously on the way; levels with the same `$M_J = m_l + m_s$` never cross.
+
 ## 5. Magnetic resonance
 
 Inside one level, photons of energy `$g\mu_BB$` flip the moment (`$\Delta M = \pm1$`, a magnetic dipole transition). For a free electron spin, **electron spin resonance** (ESR or EPR):
@@ -130,7 +137,21 @@ h\nu = g\,\mu_B B
 1. `$B = h\nu/(g\mu_B) = 9.50/(2.0023\times13.996) = 0.339$` T.
 2. Radicals and transition-metal ions show `$g$` values shifted from 2.0023 by their orbital moments; that shift is what chemists measure.
 
-NMR is the same idea with the nuclear magneton, 1836 times smaller: protons resonate at 42.58 MHz per tesla.
+**g factors.** The electron's `$g$` is 2.0023 when free, and `$g_J$` of section 3 in an atom (a radical's `$g$` shifts a little because of spin-orbit coupling). A nucleus with spin `$I$` has moment `$\mu = g_I\mu_NI$` in units of the **nuclear magneton**
+
+```math
+\mu_N = \frac{e\hbar}{2m_p} = 5.051\times10^{-27}\ \text{J T}^{-1}, \qquad \frac{\mu_N}{h} = 7.623\ \text{MHz T}^{-1}
+```
+
+which is 1836 times smaller than `$\mu_B$`. The same resonance rule holds for **nuclear magnetic resonance** (NMR): `$h\nu = g_I\mu_NB$`, with `$\Delta m_I = \pm1$`. Equivalently `$\omega = \gamma B$` with `$\gamma$` the gyromagnetic ratio: the spin precesses about `$\vec B$` at this Larmor frequency, as the animation below shows. For the proton `$g_I = 5.586$`, giving 42.58 MHz per tesla.
+
+**Worked example (NMR).** A "500 MHz" NMR spectrometer is named after its proton frequency.
+
+1. Field: `$B = 500/42.577 = 11.74$` T, from a superconducting magnet.
+2. A ¹³C nucleus (`$I = \tfrac12$`, `$\mu = 0.7024\,\mu_N$`, so `$g_I = 1.405$`) resonates at `$g_I\mu_NB/h = 1.405\times7.623\times11.74 = 125.7$` MHz in the same field.
+3. The two spin states differ by `$h\nu = 3.3\times10^{-25}$` J, far below `$k_BT = 4.1\times10^{-21}$` J at 300 K, so the excess in the lower state is only `$h\nu/2k_BT = 4\times10^{-5}$` of the sample. NMR needs many nuclei and stronger fields for this reason.
+
+**Worked example (ESR with hyperfine structure).** The hydrogen atom has an electron spin `$\tfrac12$` coupled to the proton spin `$\tfrac12$` with hyperfine constant `$A/h = 1420.4$` MHz. ESR lines obey `$\Delta m_s = \pm1$`, `$\Delta m_I = 0$`, giving two lines. The spacing in field is `$\Delta B = (A/h)/(g\mu_B/h) = 1420.4\ \text{MHz}/(2.0023\times13.996\ \text{GHz T}^{-1}) = 50.7$ mT`. At the X-band centre (0.339 T) the lines sit at about 0.314 T and 0.364 T. A radical with `$n$` equivalent protons of spin `$\tfrac12$` shows `$n + 1$` lines in the ratio of binomial coefficients, a fingerprint chemists use.
 
 In free precession change B and the tilt; then switch to the RF pulse view, set 90° and press Pulse.
 
@@ -180,7 +201,7 @@ For the hydrogen ground state `$\alpha = \tfrac92(4\pi\varepsilon_0)a_0^3$`. Shi
 - Anomalous: `$\Delta E = g_J\mu_BBM_J$`, `$g_J = 1 + [J(J+1)+S(S+1)-L(L+1)]/[2J(J+1)]$`. Na D₁: 4 lines (±2/3, ±4/3); D₂: 6 lines (±1/3, ±1, ±5/3).
 - π (`$\Delta M = 0$`): linear along B, absent along B. σ (`$\Delta M = \pm1$`): circular along B.
 - Paschen-Back when `$\mu_BB \gg$` fine structure: `$\Delta E = \mu_BB(m_l + 2m_s)$`, normal triplet returns.
-- ESR: `$h\nu = g\mu_BB$`; 9.5 GHz at 0.34 T.
+- ESR: `$h\nu = g\mu_BB$`; 9.5 GHz at 0.34 T; hydrogen hyperfine lines 50.7 mT apart. NMR: `$h\nu = g_I\mu_NB$`, `$\mu_N/h = 7.623$` MHz/T, proton 42.58 MHz/T.
 - Stark: linear only for degenerate opposite-parity states (H `$n = 2$`: `$\pm3ea_0\mathcal E$`); otherwise `$-\tfrac12\alpha\mathcal E^2$`, depending on `$|M_J|$`.
 
 </div>
@@ -189,7 +210,7 @@ For the hydrogen ground state `$\alpha = \tfrac92(4\pi\varepsilon_0)a_0^3$`. Shi
 
 They start at the definitions and climb to GATE top-rank level. Check each answer, then read the full solution. There are more on the [Zeeman and Stark practice page](/learn/courses/gate-physics/practice/zeeman-stark/).
 
-<div class="qbank" data-bank="physics" data-topics="zeeman-stark" data-exam="gate" data-n="10"></div>
+<div class="qbank" data-bank="physics" data-topics="zeeman-stark,esr-nmr" data-exam="gate" data-n="10"></div>
 
 **Next:** [lesson 6.4](/learn/courses/gate-physics/rotational-spectra/) leaves atoms for molecules, starting with the slowest motion, rotation. The g factors here use the terms from [lesson 6.2](/learn/courses/gate-physics/ls-jj-coupling/).
 

@@ -72,7 +72,7 @@ India approved Bt cotton for farming in 2002, after safety review by a governmen
 
 ### 1.2 Pest-resistant plants by RNA interference
 
-A nematode, *Meloidogyne incognita*, infects the roots of tobacco plants and reduces the yield a great deal. The solution uses **RNA interference (RNAi)**, a method of **cellular defence** found in all eukaryotes that **silences** a gene using RNA.
+A nematode, *Meloidogyne incognita* (NCERT spells it *incognitia*), infects the roots of tobacco plants and reduces the yield a great deal. The solution uses **RNA interference (RNAi)**, a method of **cellular defence** found in all eukaryotes that **silences** a gene using RNA.
 
 In the tobacco plant, genes were introduced that make **sense** and **antisense** RNA of a gene needed by the nematode. The two RNAs are complementary and form **double-stranded RNA (dsRNA)**. This dsRNA **binds to and silences** the nematode's matching **mRNA**: the mRNA is not translated, the protein is not made and the parasite cannot survive in the host. The host plants thus become resistant. (In nature, dsRNA often comes from RNA viruses or from mobile genetic elements called transposons.)
 

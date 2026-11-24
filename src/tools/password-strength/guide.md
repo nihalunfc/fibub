@@ -11,7 +11,7 @@ ads: false
 order: 2054
 icon: lock
 works: offline
-updated: 2026-11-10
+updated: 2026-11-24
 related: [password-generator, hash-checker]
 sources:
   - "fibub's own estimator: character-set entropy, with patterns (a short built-in list of widely reused passwords, sequences, keyboard runs, repeats, years and dates) counted as a few guesses instead. Attack speeds are round example figures, not measurements."
@@ -48,7 +48,7 @@ The times are for trying every guess; on average an attacker finds it in about h
 
 ## Worked example
 
-"password" is on the built-in list of 179 entries, so it counts as about 7.5 bits: very weak. "P@ssw0rd2024" is the same word with swapped letters and a capital, plus a year: about 16.6 bits, still very weak. "Tr0ub4dor&3" has no pattern this page knows, so it counts as 11 random characters from 95: 72.3 bits. "correct horse battery staple" is 28 characters of lower case and spaces: 164.7 bits.
+"password" is on the built-in list of 179 entries, so it counts as about 7.5 bits: very weak. "P@ssw0rd2024" is the same word with swapped letters and a capital, plus a year: about 16.6 bits, still very weak. "Tr0ub4dor&3" has no pattern this page knows, so it counts as 11 random characters from 94 (upper and lower case, digits and the 32 symbols): 72.1 bits. "correct horse battery staple" is 28 characters of lower case and spaces. A space adds just one character to the set, not all 32 symbols, so that is 28 characters from 27: 133.1 bits.
 
 ## FAQs
 

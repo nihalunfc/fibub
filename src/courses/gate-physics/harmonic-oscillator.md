@@ -3,7 +3,7 @@ title: 'The quantum harmonic oscillator and ladder operators'
 seoTitle: 'Quantum harmonic oscillator and ladder operators, GATE'
 summary: 'The oscillator solved the algebraic way: raising and lowering operators, the spectrum (n + ½)ħω without a differential equation, matrix elements of x and p in seconds, Hermite functions, the classical limit, coherent states, sudden changes, and oscillators in 2D, 3D and in a field.'
 minutes: 50
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'What is a†|n⟩ for the oscillator raising operator?'
     choices: ['√(n+1) |n+1⟩', '√n |n+1⟩', '(n+1) |n+1⟩', '√(n+1) |n−1⟩']
@@ -150,6 +150,8 @@ E_N = \left(N + \tfrac32\right)\hbar\omega, \qquad g_N = \frac{(N + 1)(N + 2)}{2
 ```
 
 In spherical terms the level `$N$` contains `$l = N, N - 2, \dots, 1$` or `$0$` (one parity only), linking to [lesson 4.5](/learn/courses/gate-physics/angular-momentum/): `$N = 2$` has `$l = 2$` (5 states) and `$l = 0$` (1 state), total 6. Nuclear shell-model magic numbers 2, 8, 20 come from filling exactly these levels.
+
+**Worked example.** The level `$N = 3$` of the isotropic 3D oscillator, `$E = \tfrac92\hbar\omega$`. The count of `$(n_x, n_y, n_z)$` with sum 3 is `$\binom{3+2}{2} = 10$` (check with `$(N+1)(N+2)/2 = 10$`). In spherical terms: `$l = 3$` (7 states) and `$l = 1$` (3 states), again 10. With spin the level holds 20 nucleons, which closes the shell at 40 in the pure oscillator model (2, 6, 12, 20 per level, running totals 2, 8, 20, 40). Stretch the trap along `$z$` only (`$\omega_z = 2\omega$`) and the degeneracy of each level is partly lifted, because the hidden symmetry is gone.
 
 <div class="myth">
 

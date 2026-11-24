@@ -2,7 +2,7 @@
 title: Alpha, beta and gamma decay
 summary: 'The physics behind each decay mode: alpha Q values and recoil, Gamow tunnelling and the Geiger-Nuttall law; beta decay in its three forms, Q values from atomic masses, the continuous spectrum, Fermi theory, Kurie plots, ft values and the allowed and forbidden selection rules; gamma multipolarity, selection rules, Weisskopf estimates, internal conversion, isomers and the Mössbauer effect.'
 minutes: 55
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'Why does a 1 MeV increase in alpha-decay Q value shorten the half-life by many orders of magnitude?'
     choices: ['the tunnelling probability depends exponentially on the Gamow factor, which goes as Z/√Q', 'the alpha particle hits the barrier more often', 'the nucleus becomes smaller', 'the daughter recoils more']
@@ -129,6 +129,15 @@ Each extra unit of L costs a factor of about `$(kR)^2 \sim 10^{-5}$` at 1 MeV. F
 **Internal conversion.** The nucleus can instead give its energy directly to an atomic electron, which leaves with `$E_i - E_f - B_e$`. The conversion coefficient `$\alpha = \lambda_e/\lambda_\gamma$` grows with Z and L and falls with energy. A `$0^+ \to 0^+$` transition cannot emit a single photon at all; it goes by conversion (or pair creation above 1.022 MeV).
 
 **The Mössbauer effect.** A free `$^{57}$`Fe nucleus emitting the 14.4 keV gamma recoils with `$E_\gamma^2/2Mc^2 = 2$` meV, far more than the line width `$\hbar/\tau = 5\times10^{-9}$` eV, so emission and absorption lines do not overlap. Bound in a crystal, a fraction of decays transfer the recoil to the whole lattice (no phonon created), and the line is unshifted. Its sharpness (one part in `$10^{12}$`) measures hyperfine fields, chemical shifts and even the gravitational red shift over 22.5 m (Pound and Rebka, 1960).
+
+The fraction of recoil-free events is the **Lamb-Mössbauer factor** `$f = \exp(-k^2\langle x^2\rangle)$`, with `$k = E_\gamma/\hbar c$` and `$\langle x^2\rangle$` the mean square vibration of the nucleus along the beam. It is large for tightly bound atoms, low temperatures and low-energy gammas (which is why only a few isotopes work). In practice the source is moved with velocity `$v$` to Doppler-shift its line by `$E_\gamma v/c$` and scan across the absorber's line. The spectrum then shows the isomer (chemical) shift, the electric quadrupole splitting (2 lines for ⁵⁷Fe, spin ³⁄₂ to ¹⁄₂) and the magnetic splitting (6 lines in a ferromagnet such as iron, where the internal field is about 33 T).
+
+**Worked example.** The numbers for ⁵⁷Fe (14.4 keV, mean life 141 ns, `$Mc^2 = 57\times931.5$` MeV `$= 53.1$` GeV).
+
+1. Free recoil: `$E_R = E_\gamma^2/2Mc^2 = (14.4\times10^3)^2/(2\times53.1\times10^9) = 1.95\times10^{-3}$ eV`.
+2. Natural width: `$\Gamma = \hbar/\tau = 6.58\times10^{-16}\ \text{eV s}/1.41\times10^{-7}\ \text{s} = 4.67\times10^{-9}$ eV`. So `$E_R/\Gamma = 4\times10^5$`: in a free atom the emission and absorption lines miss each other by 400 000 line widths.
+3. A velocity that shifts the line by one width: `$v = c\,\Gamma/E_\gamma = 3\times10^8\times4.67\times10^{-9}/14\,400 = 0.097$ mm/s`. Lines are scanned with speeds of a few mm/s, which is why the method needs only a moving carriage.
+4. Gravity: over `$h = 22.5$` m, `$\Delta E/E = gh/c^2 = 9.81\times22.5/(3\times10^8)^2 = 2.5\times10^{-15}$`, only 0.8 % of `$\Gamma/E_\gamma = 3.2\times10^{-13}$`. Pound and Rebka measured this tiny fraction of a line width.
 
 <div class="myth">
 

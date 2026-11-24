@@ -1,4 +1,6 @@
 // GATE Physics (PH) (nihal, 2026-11-22): a complete self-study course at MSc level, from the GATE PH syllabus.
+// Updated 2026-11-24 to the revised GATE 2027 PH syllabus (checked): added Measurements and error analysis (9.8) and Optical physics (3.11, 3.12);
+// topics dropped from 2027 stay as background, marked "Not in the GATE 2027 syllabus" in their lessons (nothing deleted).
 // Basics already taught in IIT JAM Physics (src/courses/iit-jam-physics/) are linked, not repeated.
 // Practice questions and mocks: shared physics bank (public/qbank/physics/), exam tag `gate`. All questions original.
 import type { CourseSyllabus } from '../types';
@@ -9,7 +11,7 @@ export const GATE_PHYSICS: CourseSyllabus = {
   title: 'GATE Physics (PH): the complete free course, from MSc basics to top rank',
   text: 'Every section of the GATE Physics syllabus, from mathematical physics and quantum mechanics to solid state, nuclear physics and electronics, taught step by step with animations and worked examples, then thousands of original MCQ, MSQ and NAT questions by topic and difficulty, full solutions and timed mock tests marked the GATE way.',
   audience: 'For MSc physics students and BSc graduates preparing for GATE PH. Undergraduate basics are linked to the IIT JAM Physics course whenever you need a refresher.',
-  updated: '2026-11-22',
+  updated: '2026-11-24',
   kit: true,
   footnote: 'Not affiliated with the IITs, IISc or the GATE organising institute. The general aptitude part of GATE is not covered here. Check the official GATE website for the current pattern. All questions are original.',
   extras: [
@@ -41,7 +43,7 @@ export const GATE_PHYSICS: CourseSyllabus = {
         ['2.6', 'rigid-body-dynamics', 'Rigid body dynamics: inertia tensor and Euler\'s equations'],
         ['2.7', 'relativistic-kinematics', 'Four-vectors and relativistic kinematics'],
       ] },
-      { n: 3, name: 'Electromagnetic theory', lessons: [
+      { n: 3, name: 'Electromagnetic theory and optics', lessons: [
         ['3.1', 'boundary-value-problems', 'Boundary value problems and Laplace\'s equation'],
         ['3.2', 'method-of-images', 'The method of images'],
         ['3.3', 'multipoles', 'Multipole expansion'],
@@ -52,6 +54,8 @@ export const GATE_PHYSICS: CourseSyllabus = {
         ['3.8', 'waveguides', 'Waveguides'],
         ['3.9', 'radiation', 'Radiation from dipoles and accelerated charges'],
         ['3.10', 'covariant-electrodynamics', 'Electrodynamics and relativity'],
+        ['3.11', 'interference-diffraction', 'Optical physics: coherence, interference and diffraction'],
+        ['3.12', 'polarisation-ray-optics', 'Optical physics: polarisation, Jones calculus and ray matrices'],
       ] },
     ] },
     { name: 'Part C: Quantum and statistical physics', modules: [
@@ -109,7 +113,7 @@ export const GATE_PHYSICS: CourseSyllabus = {
         ['8.6', 'particles-quarks', 'Elementary particles and quarks'],
         ['8.7', 'conservation-laws', 'Conservation laws and symmetries'],
       ] },
-      { n: 9, name: 'Electronics', lessons: [
+      { n: 9, name: 'Electronics and measurements', lessons: [
         ['9.1', 'semiconductor-devices', 'Diodes, BJTs, FETs and MOSFETs'],
         ['9.2', 'amplifiers-feedback', 'Amplifiers and feedback'],
         ['9.3', 'op-amp-circuits', 'Op-amp circuits'],
@@ -117,6 +121,7 @@ export const GATE_PHYSICS: CourseSyllabus = {
         ['9.5', 'combinational-logic', 'Combinational logic'],
         ['9.6', 'sequential-logic', 'Flip-flops, counters and registers'],
         ['9.7', 'adc-dac', 'ADCs and DACs'],
+        ['9.8', 'measurements-error-analysis', 'Measurements and error analysis'],
       ] },
       { n: 10, name: 'Exam craft', lessons: [
         ['10.1', 'gate-exam-pattern', 'The GATE PH paper: sections, marking and timing'],

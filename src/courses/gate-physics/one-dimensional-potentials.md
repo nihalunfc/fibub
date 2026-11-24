@@ -3,7 +3,7 @@ title: 'One-dimensional potentials: wells, barriers and delta potentials'
 seoTitle: '1D potentials: wells, barriers and delta wells for GATE'
 summary: 'Exact solutions GATE asks for: the delta-function well and barrier, the finite square well with its even and odd states and graphical solution, counting bound states, transmission over barriers and wells (resonances and the Ramsauer effect), parity, and double delta wells.'
 minutes: 50
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: 'How many bound states does the potential V = −α δ(x) (α > 0) have?'
     choices: ['Exactly one', 'None', 'Two, one even and one odd', 'Infinitely many']
@@ -140,6 +140,31 @@ For `$V = -\alpha[\delta(x - d) + \delta(x + d)]$` the even state is `$\cosh\kap
 
 The even (bonding) state always exists and lies below the single-well level; as `$d \to 0$` it becomes a single delta of strength `$2\alpha$`, four times deeper. The odd (antibonding) state exists only if `$gd > 1$`, because `$\kappa(1 + \coth\kappa d)$` never drops below `$1/d$`. This is the 1D cartoon of the hydrogen molecule ion `$\text{H}_2^+$`.
 
+**Worked example.** Take `$g d = 2$`, where `$g = 2m\alpha/\hbar^2$` and the wells are at `$x = \pm d$`. Measure `$\kappa$` in units of `$1/d$` (`$y = \kappa d$`) and energy in units of `$\hbar^2/2md^2$`, so `$E = -y^2$`. One isolated delta well has `$\kappa_0 = g/2$`, i.e. `$y = 1$` and `$E = -1$`.
+
+1. Even (symmetric, bonding): solve `$y(1 + \tanh y) = 2$`. The root is `$y = 1.109$`, so `$E = -1.23$`, lower than the single well.
+2. Odd (antisymmetric, antibonding): solve `$y(1 + \coth y) = 2$`. The root is `$y = 0.797$`, so `$E = -0.635$`, higher than the single well. It exists because `$gd = 2 > 1$`.
+3. The splitting is not symmetric about `$-1$`: the bonding level drops by 0.23, the antibonding level rises by 0.37. At `$gd = 4$` (the product doubled, which is equivalent to moving the wells apart) the roots are 2.034 and 1.960, with energies `$-4.14$` and `$-3.84$` around the single-well value `$-4$`: the splitting shrinks as the wells separate. At `$gd = 1$` the odd state just touches `$E = 0$` and disappears for `$gd < 1$`.
+
+## 7. Particles in two- and three-dimensional boxes
+
+A particle in a rectangular box with sides `$L_x, L_y, L_z$` and infinite walls separates into three 1D problems (the potential is a sum of terms in single coordinates, so the wavefunction is a product):
+
+```math
+\psi = \prod_{i}\sqrt{\frac{2}{L_i}}\sin\frac{n_i\pi x_i}{L_i}, \qquad E = \frac{\pi^2\hbar^2}{2m}\left(\frac{n_x^2}{L_x^2} + \frac{n_y^2}{L_y^2} + \frac{n_z^2}{L_z^2}\right), \quad n_i = 1, 2, 3, \dots
+```
+
+(2D: drop the `$z$` term.) Each quantum number starts at 1, so the ground state of a cube has `$E = 3E_0$` with `$E_0 = \pi^2\hbar^2/2mL^2$`, never zero. In a cube or square, different sets of `$(n_x, n_y, n_z)$` with the same `$\sum n_i^2$` share an energy. Most of this **degeneracy** comes from the symmetry (permuting the axes); some is **accidental**, a coincidence of arithmetic.
+
+**Worked example.** An electron in a cubic box of side 1 nm: `$E_0 = \pi^2\hbar^2/2m_eL^2 = 0.376$` eV.
+
+1. Ground state `$(1,1,1)$`: `$3E_0 = 1.13$` eV, one state.
+2. First excited `$(2,1,1)$` and its two permutations: `$6E_0 = 2.26$` eV, degeneracy 3.
+3. Next: `$(2,2,1)$`, three permutations, `$9E_0 = 3.38$` eV. Then `$(3,1,1)$` (3 states) at `$11E_0$`, and `$(2,2,2)$` (1 state) at `$12E_0$`. The first level with six states is `$(1,2,3)$` at `$14E_0$`, because all three numbers differ.
+4. Include spin (a factor of 2) and the shells hold 2, 6, 6, 6, 2, 12 electrons. Squeezing one side, say `$L_z$` smaller, lifts the symmetry degeneracy: `$(1,1,2)$` and `$(2,1,1)$` are no longer equal. In 2D squares an accidental case occurs at `$n_x^2 + n_y^2 = 50$`: `$(1,7)$`, `$(5,5)$` and `$(7,1)$`.
+
+The number of states below energy `$E$` grows like the volume of an octant of a sphere in `$n$`-space, `$\tfrac18\cdot\tfrac43\pi n^3$` in 3D, which leads to the density of states used in [the Fermi gas](/learn/courses/gate-physics/fermi-gas/). The 3D isotropic oscillator has a different pattern of degeneracy, `$(N+1)(N+2)/2$`, because it also has a hidden symmetry ([lesson 4.4](/learn/courses/gate-physics/harmonic-oscillator/)).
+
 <div class="myth">
 
 **"A particle in the delta-well bound state spends most of its time inside the well."** The well has zero width. The energy is negative while `$V = 0$` at every other point, so the whole line is classically forbidden: the probability of being found in the forbidden region is 1.
@@ -155,7 +180,8 @@ The even (bonding) state always exists and lies below the single-well level; as 
 - Delta barrier or well: `$T = [1 + m\alpha^2/2\hbar^2E]^{-1}$`; bound states are poles of `$t$`.
 - Finite well: `$z_0 = \tfrac a2\sqrt{2mV_0}/\hbar$`; even `$\tan z$`, odd `$-\cot z$` against `$\sqrt{z_0^2/z^2 - 1}$`; `$N = 1 + \lfloor2z_0/\pi\rfloor$`.
 - Above a barrier `$T = 1$` at `$k_2a = n\pi$`; at `$E = V_0$`, `$T = [1 + mV_0a^2/2\hbar^2]^{-1}$`; wells show the Ramsauer effect.
-- Double delta: bonding state always, antibonding only if `$2m\alpha d/\hbar^2 > 1$`.
+- Double delta: bonding state always, antibonding only if `$2m\alpha d/\hbar^2 > 1$`. At `$gd = 2$`: `$\kappa d = 1.109$` (even) and `$0.797$` (odd), against 1 for one well.
+- Box in 2D or 3D: `$E = (\pi^2\hbar^2/2m)\sum n_i^2/L_i^2$`, `$n_i \ge 1$`; cube levels `$3, 6, 9, 11, 12, 14$` times `$E_0$` with degeneracy `$1, 3, 3, 3, 1, 6$`.
 
 </div>
 

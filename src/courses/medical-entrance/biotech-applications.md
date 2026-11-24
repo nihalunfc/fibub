@@ -58,7 +58,7 @@ The toxin is coded by genes called ***cry***. Genes **cryIAc and cryIIAb** contr
 
 ## 3. Pest resistance by RNA interference
 
-The nematode ***Meloidogyne incognita*** infects tobacco roots and greatly reduces yield. **RNA interference (RNAi)** stops it. RNAi occurs naturally in all eukaryotes as a defence: a **complementary dsRNA** binds and prevents translation of a specific mRNA (**silencing**). The source of this dsRNA can be a virus with an RNA genome or mobile genetic elements (transposons) that copy through RNA.
+The nematode ***Meloidogyne incognita*** (NCERT spells it *incognitia*) infects tobacco roots and greatly reduces yield. **RNA interference (RNAi)** stops it. RNAi occurs naturally in all eukaryotes as a defence: a **complementary dsRNA** binds and prevents translation of a specific mRNA (**silencing**). The source of this dsRNA can be a virus with an RNA genome or mobile genetic elements (transposons) that copy through RNA.
 
 Using ***Agrobacterium* vectors**, nematode-specific genes were put into the host plant so that the plant made both **sense and antisense RNA**. The two pair into dsRNA, start RNAi, and silence the nematode's mRNA. The parasite could not survive inside the transgenic host, which was protected.
 

@@ -2,7 +2,7 @@
 title: Potentials, gauges and Maxwell's equations
 summary: 'Fields from the scalar and vector potentials, gauge transformations, the Coulomb, Lorenz and temporal gauges, wave equations for the potentials, retarded potentials and retarded time, a current switched on in a wire, Liénard-Wiechert and uniformly moving charges, canonical momentum and the Aharonov-Bohm effect.'
 minutes: 55
-updated: 2026-11-22
+updated: 2026-11-24
 quiz:
   - q: Which pair of transformations leaves E and B unchanged?
     choices: ['A → A + ∇λ, V → V − ∂λ/∂t', 'A → A + ∇λ, V → V + ∂λ/∂t', 'A → A − ∇λ, V → V − ∂λ/∂t', 'A → A + ∇×(λẑ), V unchanged']
@@ -124,6 +124,8 @@ Step through, or slide the time since the push. Look at the kink in the field li
 </div>
 
 ## 4. Moving point charges
+
+*Not in the GATE 2027 syllabus (fields of moving charges): kept as background; skip it if you are short of time.*
 
 For a point charge the retarded integral needs care, because the charge moves while its signal is "collected". The result (Liénard-Wiechert) is
 

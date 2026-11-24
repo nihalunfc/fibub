@@ -2,6 +2,8 @@
 // Every person and business is made up. Prices and rates are example numbers given in the question, never a price list.
 import { pick, n, steps, table } from './util.js';
 
+// macOS lets the graphics side use about two thirds of unified memory on Macs with 36 GB or less, about three quarters above.
+const macUse = (gb) => gb * (gb <= 36 ? 2 / 3 : 0.75), macPct = (gb) => (gb <= 36 ? 'two thirds' : 'three quarters');
 const int = (v) => Math.round(v).toLocaleString('en-CA');
 const money = (v, c = '$') => c + (+v).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -138,19 +140,19 @@ export default {
     make(r) {
       const P = [12, 14, 27, 31, 32][pick(r, 0, 4)], b = [4.5, 4.8, 5.5][pick(r, 0, 2)], kv = pick(r, 1, 10, 1);
       const need = (P * b) / 8 + kv + 1, sizes = [16, 24, 32, 48, 64, 96, 128];
-      const answer = sizes.find((s) => s * 0.75 >= need) ?? 192;
+      const answer = sizes.find((s) => macUse(s) >= need) ?? 192;
       return {
-        q: `<p>A translator needs a <b>${P}B</b> model at <b>${b} bits</b> with about <b>${kv} GB</b> of conversation memory and 1 GB of working room. A Mac lets the model use about <b>75%</b> of its memory. Macs come with ${sizes.join(', ')} GB. What is the <b>smallest</b> size that fits, in GB?</p>`,
+        q: `<p>A translator needs a <b>${P}B</b> model at <b>${b} bits</b> with about <b>${kv} GB</b> of conversation memory and 1 GB of working room. A Mac lets the model use about <b>two thirds</b> of its memory up to 36 GB, and about <b>three quarters</b> on bigger Macs. Macs come with ${sizes.join(', ')} GB. What is the <b>smallest</b> size that fits, in GB?</p>`,
         answer, unit: 'GB', tol: 0, abs: 0.01,
-        hint: 'Work out the GB needed (weights + KV cache + 1). Then find the first size whose 75% is at least that.',
+        hint: 'Work out the GB needed (weights + KV cache + 1). Then find the first size whose usable share (two thirds up to 36 GB, three quarters above) is at least that.',
         solution: steps(
           `Needed: ${P} × ${b} ÷ 8 + ${kv} + 1 = ${n(need)} GB.`,
-          table(['Mac memory', 'Usable (75%)', 'Fits?'], sizes.map((s) => [s + ' GB', n(s * 0.75) + ' GB', s * 0.75 >= need ? 'yes' : 'no'])),
+          table(['Mac memory', 'Usable', 'Fits?'], sizes.map((s) => [s + ' GB', n(macUse(s)) + ' GB (' + macPct(s) + ')', macUse(s) >= need ? 'yes' : 'no'])),
           `Smallest that fits: <b>${answer} GB</b>. Mac memory cannot be added later, so many buyers take one size up.`),
         P, b, kv,
       };
     },
-    verify: (p) => { const need = (p.P * p.b) / 8 + p.kv + 1; let s = 0; for (const m of [128, 96, 64, 48, 32, 24, 16]) if (m * 3 / 4 >= need) s = m; return s || 192; },
+    verify: (p) => { const need = (p.P * p.b) / 8 + p.kv + 1; let s = 0; for (const m of [128, 96, 64, 48, 32, 24, 16]) if (m * (m > 36 ? 3 / 4 : 2 / 3) >= need) s = m; return s || 192; },
   },
   'phones-and-tablets-largest': {
     title: 'the largest model a phone can hold',
@@ -230,19 +232,19 @@ export default {
     title: 'price per GB of usable fast memory',
     make(r) {
       const cp = pick(r, 400, 600, 10), mp = pick(r, 1100, 1500, 50), mm = [24, 32][pick(r, 0, 1)];
-      const mu = mm * 0.75, a = cp / 15, b = mp / mu, answer = b / a;
+      const mu = macUse(mm), a = cp / 15, b = mp / mu, answer = b / a;
       return {
-        q: `<p>Option A: a 16 GB graphics card for <b>${cp}</b>, with about 15 GB usable. Option B: a Mac mini with <b>${mm} GB</b> for <b>${int(mp)}</b>, of which about 75% is usable for a model. Same currency. How many <b>times</b> as much does option B cost per usable GB?</p>`,
+        q: `<p>Option A: a 16 GB graphics card for <b>${cp}</b>, with about 15 GB usable. Option B: a Mac mini with <b>${mm} GB</b> for <b>${int(mp)}</b>, of which about two thirds is usable for a model. Same currency. How many <b>times</b> as much does option B cost per usable GB?</p>`,
         answer, unit: 'times', tol: 0.01,
         hint: 'Price per GB = price ÷ usable GB for each. Then divide B by A.',
         solution: steps(
           `A: ${cp} ÷ 15 = ${n(a)} per GB.`,
-          `B: usable ${mm} × 0.75 = ${n(mu)} GB, so ${int(mp)} ÷ ${n(mu)} = ${n(b)} per GB.`,
+          `B: usable ${mm} × 2/3 = ${n(mu)} GB, so ${int(mp)} ÷ ${n(mu)} = ${n(b)} per GB.`,
           `${n(b)} ÷ ${n(a)} = <b>${n(answer)} times</b>. But A needs a desktop PC to go in, and B is a whole computer that fits bigger models, so price per GB is only one part of the choice.`),
         cp, mp, mm,
       };
     },
-    verify: (p) => (p.mp * 15) / (p.mm * 0.75 * p.cp),
+    verify: (p) => (p.mp * 15) / (macUse(p.mm) * p.cp),
   },
   'enthusiast-tier-speed': {
     title: 'compare two machines on one model',
