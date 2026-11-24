@@ -26,4 +26,13 @@ export default async (check) => {
   check('Jacobi eigen: 2×2 known', (() => { const e = eigSym([[2, 1], [1, 2]]); return near(e.values[0], 3, 1e-12) && near(e.values[1], 1, 1e-12); })());
   check('samples in rows are read too', (() => { const tt = readTable(parseTable('Sample\tGroup\tA\tB\ns1\tx\t1\t2\ns2\tx\t2\t3\ns3\ty\t5\t6'), true); return tt.features.join() === 'A,B' && tt.groups.join() === 'x,x,y' && tt.x[0][2] === 5; })());
   check('bad cell message', typeof readTable([['m', 'a', 'b'], ['x', '1', 'oops']]) === 'string');
+  // New with the seminal plasma article (Xu et al. 2026): the paper's two HPLC-UV p-values, and a made-up null table of 2,612 metabolites, 10 against 9.
+  check('BH: p = 0.030 and 0.812 give q = 0.060 and 0.812 (as published)', (() => { const q = bh([0.030, 0.812]); return near(q[0], 0.06, 1e-12) && near(q[1], 0.812, 1e-12); })());
+  { const NA = 10, NB = 9, m = 2612, groups = [...Array(NA).fill('C'), ...Array(NB).fill('I')], x = [];
+    let a = 1 >>> 0; const rng = () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const norm = () => { let u = 0; while (u === 0) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()); };
+    for (let i = 0; i < m; i++) { const mu = 10 + 3 * norm(), row = []; for (let j = 0; j < NA + NB; j++) row.push(2 ** (mu + 0.67 * norm())); x.push(row); }
+    const res = compare({ features: x.map((_, i) => 'm' + i), samples: groups.map((_, j) => 's' + j), groups, x }, 'C', 'I', 'log2');
+    check('volcano: a null table of 2,612 metabolites (seed 1) gives 160 raw p < 0.05, 115 passing p < 0.05 with fold change 1.5, and a smallest q of 0.585',
+      res.filter((z) => z.p < 0.05).length === 160 && res.filter((z) => z.p < 0.05 && (z.fc >= 1.5 || z.fc <= 1 / 1.5)).length === 115 && near(Math.min(...res.map((z) => z.q)), 0.5851, 0.0005)); }
 };
