@@ -37,4 +37,16 @@ export default async (check) => {
   check('cc: expected ppm outside the spec (within and overall)', Math.abs(cap.ppmWithin - 2652.0476622865394) < 1e-3 && Math.abs(cap.ppmOverall - 10729.677801485383) < 1e-3 && cap.ppmObserved === 0);
   const one = C.capability(x, im.sigmaWithin, NaN, 501.5);
   check('cc: one-sided spec gives Cpk = CPU and no Cp', Number.isNaN(one.Cp) && near(one.Cpk, one.CPU, 1e-15) && near(one.Cpk, 0.883245783488, 1e-10));
+  // The riveted-joint shear force of Cirtina et al. (2025), Processes 13: 3121 (doi:10.3390/pr13103121, CC BY 4.0):
+  // limits 20 and 25 kN, mean 22.5 kN, σ 0.5 kN after the fix and 1.2438 kN before it. Values whose mean and sample
+  // standard deviation are exactly those, so the indices depend on them alone.
+  const exact = (N, m, s) => { const b = Array.from({ length: N }, (_, i) => i + 1 - (N + 1) / 2); const mu = b.reduce((a, c) => a + c, 0) / N, sd = Math.sqrt(b.reduce((a, c) => a + (c - mu) ** 2, 0) / (N - 1)); return b.map((v) => m + ((v - mu) * s) / sd); };
+  const rivAfter = C.capability(exact(30, 22.5, 0.5), 0.5, 20, 25, 0.95, 29);
+  check('cc: rivet shear force after the fix gives Cp = Cpk = 5/3 and 0.573 ppm', near(rivAfter.Cp, 5 / 3, 1e-12) && near(rivAfter.Cpk, 5 / 3, 1e-12) && Math.abs(rivAfter.ppmWithin - 0.5733) < 5e-4);
+  const rivBefore = C.capability(exact(30, 22.5, 5 / (6 * 0.67)), 5 / (6 * 0.67), 20, 25, 0.95, 29);
+  check('cc: the same joint before the fix gives Cpk 0.67 and 44,431 ppm', near(rivBefore.Cpk, 0.67, 1e-12) && Math.abs(rivBefore.ppmWithin - 44431.2) < 0.1);
+  const rivOne = C.capability(exact(30, 22.5, 1.25), 1.25, NaN, 25, 0.95, 29);
+  check('cc: a one-sided limit at Cpk exactly 2/3 leaves 97.725 % inside', near(rivOne.Cpk, 2 / 3, 1e-12) && Math.abs(rivOne.ppmWithin - 22750.132) < 1e-2);
+  const riv20 = C.capability(exact(20, 22.5, 0.5), 0.5, 20, 25, 0.95, 19);
+  check('cc: 20 parts give a 95 % Cpk interval of 1.117 to 2.216', Math.abs(riv20.ci.Cpk[0] - 1.1174) < 5e-4 && Math.abs(riv20.ci.Cpk[1] - 2.2159) < 5e-4);
 };

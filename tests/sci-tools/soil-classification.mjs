@@ -27,6 +27,20 @@ export default async (check) => {
   { const r = uscs({ gravel: 0, sand: 40, fines: 60, LL: 32, PL: 18 }); check('soil-classification: sandy lean clay name', r.symbol === 'CL' && r.name === 'sandy lean clay'); }
   { const r = uscs({ gravel: 20, sand: 70, fines: 10, d10: 0.08, d30: 0.5, d60: 1.2, LL: 30, PL: 26 }); check('soil-classification: dual symbol with gravel', r.symbol === 'SW-SM' && r.name === 'well-graded sand with silt and gravel'); }
   { const r = uscs({ gravel: 0, sand: 10, fines: 90, LL: 60, PL: 40, LLdry: 40 }); check('soil-classification: organic test', r.symbol === 'OH'); }
+  // The seven index inputs of Liu et al. (2024), Applied Sciences 14: 7202 (doi:10.3390/app14167202, CC BY 4.0)
+  // determine the USCS symbol, and over a grid spanning them the chart yields exactly the paper's 25 classes.
+  { const r = uscs({ gravel: 8, sand: 64, fines: 28, LL: 38, PL: 20 }), a = aashto({ p10: 85, p40: 60, p200: 28, LL: 38, PI: 18 });
+    check('soil-classification: 92/85/60/28 sieves with LL 38, PL 20 is SC and A-2-6, GI 1', r.symbol === 'SC' && r.name === 'clayey sand' && a.group === 'A-2-6' && a.GI === 1); }
+  { const r = uscs({ gravel: 5, sand: 87, fines: 8, d10: 0.09, d30: 0.3, d60: 0.8, LL: 26, PL: 20 });
+    check('soil-classification: a 5 to 12 % fines sand gets the dual symbol SW-SC', r.symbol === 'SW-SC' && Math.abs(r.Cu - 8.8889) < 1e-4 && Math.abs(r.Cc - 1.25) < 1e-12); }
+  { const P4 = [40, 60, 75, 90, 100], P200 = [2, 8, 20, 40, 60, 80, 95], LLS = [20, 30, 40, 55, 70], PIS = [2, 6, 12, 25, 40], CUS = [2, 4, 6, 10, 20], CCS = [0.5, 1.5, 2.5, 4, 8];
+    const seen = new Set(); let n = 0;
+    for (const p4 of P4) for (const p200 of P200) for (const LL of LLS) for (const PI of PIS) for (const Cu of CUS) for (const Cc of CCS) for (const org of [0, 1]) {
+      if (p200 > p4 || PI > uLine(LL) || PI > LL) continue;
+      const d60 = 1, d10 = d60 / Cu, d30 = Math.sqrt(Cc * d10 * d60);
+      try { seen.add(uscs({ gravel: 100 - p4, sand: p4 - p200, fines: p200, d10, d30, d60, LL, PL: LL - PI, LLdry: (org ? 0.6 : 0.95) * LL }).symbol); n++; } catch { /* impossible soil */ }
+    }
+    check(`soil-classification: a grid of ${n} soils gives exactly the 25 USCS symbols index tests can reach`, n === 25650 && seen.size === 25 && !seen.has('PT')); }
   let threw = false; try { uscs({ gravel: 10, sand: 10, fines: 10 }); } catch { threw = true; }
   check('soil-classification: fractions must add to 100', threw);
 };

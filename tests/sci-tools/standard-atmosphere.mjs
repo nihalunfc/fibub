@@ -31,4 +31,12 @@ export default async (check) => {
   const hot = atmosphere(3000, { geopotential: true, dT: 15 });
   check('atmos: ISA +15 keeps pressure, lowers density', hot.P === stdTP(3000).P && Math.abs(hot.T - stdTP(3000).T - 15) < 1e-9 && hot.rho < atmosphere(3000, { geopotential: true }).rho);
   check('atmos: table rows and bad range', table(0, 10000, 1000).length === 11 && table(10, 0, 1).length === 0 && Number.isNaN(pressureAltitude(-1)));
+  // The plateau fuel cell campaign of He et al. (2026), Energies 19: 5299 (doi:10.3390/en19215299, CC BY 4.0):
+  // 80.1 kPa and 15 °C at the Kunming site, against the standard ratios the paper quotes for 2000 m and 4000 m.
+  const R = 8.31432 / 0.0289644;
+  check('atmos: 80.1 kPa is a pressure altitude of 1938.9 m', Math.abs(pressureAltitude(80100) - 1938.9) < 0.1);
+  const plateau = 80100 / (R * 288.15);
+  check('atmos: the plateau site is 0.96840 kg/m³, density altitude 2382.1 m', Math.abs(plateau - 0.96840) < 5e-5 && Math.abs(densityAltitude(plateau) - 2382.1) < 0.1);
+  check('atmos: standard density ratios 0.82168 at 2 km and 0.66885 at 4 km', Math.abs(atmosphere(2000).sigma - 0.821680) < 5e-6 && Math.abs(atmosphere(4000).sigma - 0.668854) < 5e-6);
+  check('atmos: σ^0.8 gives the paper\'s 85.46 % and 72.49 % air-side coefficients', Math.abs(100 * atmosphere(2000).sigma ** 0.8 - 85.46) < 0.01 && Math.abs(100 * atmosphere(4000).sigma ** 0.8 - 72.49) < 0.01);
 };
