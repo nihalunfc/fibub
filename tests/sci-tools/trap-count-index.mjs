@@ -31,6 +31,23 @@ export default async (check) => {
   check('trap index: one peak with no smoothing', d.filter((x) => x.peak).length === 1 && d[1].peak);
   check('trap index: ISO weeks at year ends', isoWeek('2026-01-01') === '2026-W01' && isoWeek('2027-01-01') === '2026-W53' && isoWeek('2024-12-30') === '2025-W01' && isoWeek('2021-01-03') === '2020-W53');
   check('trap index: days between', daysBetween('2026-02-25', '2026-03-04') === 7);
+  // Blog: /blog/discoveries/ips-typographus-trap-catch-per-trap-day-check-interval/ (Selikhovkin et al. 2026, Insects).
+  // Our simulated Ips typographus flight read as 14-day checks of three traps, against the paper's swarming
+  // criterion of ten beetles per trap per day.
+  {
+    const ips = [['2025-05-15', 27], ['2025-05-29', 494], ['2025-06-12', 6], ['2025-06-26', 6], ['2025-07-10', 12], ['2025-07-24', 35], ['2025-08-07', 87], ['2025-08-21', 8]]
+      .map(([date, count]) => ({ date, site: 'Isthmus', traps: 3, count }));
+    const opt = { firstDays: 14, window: 1, per: 1, threshold: 10, peakShare: 0.2 };
+    const r = trapIndex(ips, opt), idx = r.map((x) => +x.index.toFixed(2));
+    check(`trap index: 14-day checks give 0.64 and 11.76 per trap per day (${idx.join()})`, idx.join() === '0.64,11.76,0.14,0.14,0.29,0.83,2.07,0.19');
+    check('trap index: only the swarming check passes 10 per trap per day', r.filter((x) => x.flagged).map((x) => x.date).join() === '2025-05-29');
+    const s = summarise(r, 1);
+    check(`trap index: 675 beetles over 336 trap-days is 2.009 per trap per day (${s[0].index.toFixed(3)})`, s[0].catch === 675 && s[0].trapDays === 336 && Math.abs(s[0].index - 2.0089285714285716) < 1e-12);
+    check('trap index: a 3-check average moves the apparent peak a check early', r.filter((x) => x.peak).map((x) => x.date).join() === '2025-05-29'
+      && trapIndex(ips, { ...opt, window: 3 }).filter((x) => x.peak).map((x) => x.date).join() === '2025-05-15');
+    check('trap index: claiming 5 days before the first check lifts the season index to 2.184', Math.abs(summarise(trapIndex(ips, { ...opt, firstDays: 5 }), 1)[0].index - 2.1844660194174756) < 1e-12);
+    check('trap index: per trap per week the swarming check reads 82.33', Math.abs(trapIndex(ips, { ...opt, per: 7 })[1].index - 82.33333333333333) < 1e-10);
+  }
 };
 
 const EXAMPLE = `date	site	traps	count

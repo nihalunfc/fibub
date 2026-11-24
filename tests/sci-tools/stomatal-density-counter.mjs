@@ -26,5 +26,19 @@ export default async (check) => {
     const s = P.summary(counts, 'sd');
     check(`stomata: 169 simulated 350x fields give 87.0 +/- 12.5 per mm2 (${s.mean.toFixed(2)} +/- ${s.sd.toFixed(2)})`, counts.length === 169 && near(s.mean, 86.99383261101163, 1e-9) && near(s.sd, 12.53844717403116, 1e-9));
   }
+  // Blog: /blog/discoveries/oak-pine-grass-stomatal-index-density-consistency/ (Marquez-Godoy et al. 2026, Grasses).
+  // The paper's own densities against its published stomatal indices, and the precision of its 0.0946 mm2 field.
+  {
+    const si = (s, e) => +P.stomatalIndex(s, e).toFixed(2);
+    check(`stomata: the paper's Results densities give 16.67, 17.21 and 19.78 % (${[si(299.8, 1499.1), si(317.5, 1527.3), si(60, 243.4)].join()})`,
+      si(299.8, 1499.1) === 16.67 && si(317.5, 1527.3) === 17.21 && si(60, 243.4) === 19.78);
+    check('stomata: its Discussion densities would give 15.20 and 16.04 % instead', si(299.8, 1672) === 15.2 && si(317.5, 1661.4) === 16.04);
+    const FIELD = 0.0946, d = 2 * Math.sqrt(FIELD / Math.PI);
+    check('stomata: a 0.0946 mm² field is 0.3471 mm across, 2.51 times smaller than FN 22 at 40×',
+      near(d, 0.347057, 1e-6) && near(d * 40, 13.88227, 1e-5) && near(P.circleArea(P.fovDiameter(22, 40)) / FIELD, 2.5114, 1e-4));
+    const k = Math.round(3 * 60 * FIELD), n = Math.round(3 * (60 + 243.4) * FIELD), w = P.wilson(k, n, 0.95);
+    check(`stomata: three fields of the sparsest grass are 17 stomata of 86 cells, 12.7 to 29.4 % (${(100 * w[0]).toFixed(1)} to ${(100 * w[1]).toFixed(1)})`,
+      k === 17 && n === 86 && near(100 * w[0], 12.7244, 1e-4) && near(100 * w[1], 29.39591, 1e-5) && near(100 / Math.sqrt(k), 24.254, 1e-3));
+  }
   check('stomata: blobs touching the edge are left out unless asked', P.blobs(new Uint8Array([1, 1, 0, 0, 0, 0, 0, 1, 1]), 3, 3, 1, 9).length === 0 && P.blobs(new Uint8Array([1, 1, 0, 0, 0, 0, 0, 1, 1]), 3, 3, 1, 9, true).length === 2);
 };
