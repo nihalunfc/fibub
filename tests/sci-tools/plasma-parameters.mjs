@@ -20,6 +20,12 @@ export default async (check) => {
   check('plasma: Coulomb log, warm branch 23 - ln(n^1/2 Z Te^-3/2)', near(coulombLog(1e16, 2, 1, 0.03, 40), 23 - Math.log(Math.sqrt(1e10) * 2 ** -1.5), 1e-9));
   const g = plasma({ ne: 1e16, Te: 2, Ti: 0.03, B: 0, A: 40, Z: 1 });
   check('plasma: no field means no gyroradius and infinite beta', g.rLe === Infinity && g.beta === Infinity && g.vA === 0);
+  { // Argon discharge of Ali and Yaseen (2025), Iraqi J. Phys. 23(4): 87, as used in the blog article
+    // argon-plasma-engine-magnetic-field-debye-gyroradius (Ti and Z are the article's assumptions).
+    const a = plasma({ ne: 4e19, Te: 3, Ti: 0.03, B: 0.025, A: 40, Z: 1 });
+    check('plasma: argon thruster at 25 mT (Debye 2.0359 um, gyroradii 0.16520 and 4.4609 mm)', near(a.lambdaD, 2.035869e-6, 1e-5) && near(a.rLe, 1.652e-4, 1e-4) && near(a.rLi, 4.460874e-3, 1e-5));
+    check('plasma: argon thruster Hall parameters (electrons 21.866, ions 1.1452e-4)', near(a.hallE, 21.8665, 1e-4) && near(a.hallI, 1.145206e-4, 1e-4));
+  }
   const z = plasma({ ne: 1e20, Te: 1e4, Ti: 1e4, B: 5, A: 2, Z: 2, lnL: 15 });
   check('plasma: Z = 2 halves ion density and uses the given lnL', z.ni === 5e19 && z.lnL === 15);
 };

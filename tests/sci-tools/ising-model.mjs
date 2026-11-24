@@ -20,4 +20,12 @@ export default async (check) => {
   { const r = IS.rng(5), lat = new IS.Lattice(8, 'random', r); lat.recount(0.3); lat.sweep(2.2, 0.3, r, 50); const E = lat.E, M = lat.M; lat.recount(0.3); check('ising: running energy and magnetisation stay equal to a recount', Math.abs(lat.E - E) < 1e-9 && lat.M === M); }
   { const r = IS.rng(9), lat = new IS.Lattice(32, 'up', r); lat.sweep(1.5, 0, r, 300); const s = IS.measure(lat, 1.5, 0, 1000, r); check('ising: 32x32 at T 1.5 near Onsager magnetisation', Math.abs(s.m - 0.9865) < 0.005); }
   { const r = IS.rng(9), lat = new IS.Lattice(32, 'up', r); lat.sweep(4, 0, r, 300); const s = IS.measure(lat, 4, 0, 1000, r); check('ising: 32x32 at T 4 is disordered', s.m < 0.1); }
+  { // Finite-lattice heat-capacity peaks and their extrapolation, as in Markthaler and Birke (2025), Entropy 27(11):
+    // 1139, used in the blog article finite-lattice-ising-heat-capacity-peak-critical-temperature.
+    const peak = (L) => { let lo = 1.8, hi = 6; const f = (T) => IS.exactSmall(L, T).c; for (let i = 0; i < 200; i++) { const m1 = lo + (hi - lo) * 0.382, m2 = lo + (hi - lo) * 0.618; f(m1) > f(m2) ? (hi = m2) : (lo = m1); } return (lo + hi) / 2; };
+    const T = [2, 3, 4].map(peak);
+    check(`ising: exact heat-capacity peaks at 2.510920, 2.476479, 2.438951 (${T.map((t) => t.toFixed(4)).join(', ')})`, near(T[0], 2.5109202, 1e-6) && near(T[1], 2.4764792, 1e-6) && near(T[2], 2.4389514, 1e-6));
+    check('ising: peak heights 0.414778, 0.653319, 0.816461', near(IS.exactSmall(2, T[0]).c, 0.4147783, 1e-6) && near(IS.exactSmall(3, T[1]).c, 0.6533194, 1e-6) && near(IS.exactSmall(4, T[2]).c, 0.8164612, 1e-6));
+    const slope = (T[1] - T[2]) / (1 / 4 - 1 / 5), tc = T[2] - slope / 5;
+    check(`ising: 1/(N+1) line through the 3x3 and 4x4 peaks meets the axis at 2.28884 (${tc.toFixed(5)}, 0.87 % above Tc)`, near(tc, 2.288840, 1e-6)); }
 };
