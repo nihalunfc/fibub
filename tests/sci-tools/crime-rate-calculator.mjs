@@ -34,4 +34,15 @@ export default async (check) => {
   check('crimerate: Fay–Feuer gamma interval matches SciPy chi2', rel(A.gammaCi[0], WA.gamma[0], 1e-8) && rel(A.gammaCi[1], WA.gamma[1], 1e-8));
   const same = directStd(K.map((k, i) => ({ k, pop: P[i], std: P[i] })), 100000);
   check('crimerate: standardising to the population itself gives the crude rate', rel(same.asr, same.crude, 1e-12));
+  // Blog article india-cruelty-registration-rates-per-100000-women: registered Section 498A cases and the female
+  // denominators recovered from the published rates (Frontiers in Sociology 11: 1901370, CC BY). Limits from the same
+  // exact Poisson and exact conditional maths as above.
+  const IN = [[58319, 535036697], [122877, 599400000], [140019, 669947368], [133676, 678558376]];
+  const IR = IN.map(([k, p]) => crudeRate(k, p, 100000));
+  check('crimerate: India cruelty rates 10.90, 20.50, 20.90 and 19.70 per 100,000 women', IR.map((r) => r.rate.toFixed(2)).join() === '10.90,20.50,20.90,19.70');
+  check('crimerate: 2023 rate interval 19.59 to 19.81 per 100,000', IR[3].ci[0].toFixed(2) === '19.59' && IR[3].ci[1].toFixed(2) === '19.81');
+  const I14 = rateRatio(IN[1][0], IN[1][1], IN[0][0], IN[0][1]);
+  check('crimerate: 2014 versus 2005 rate ratio 1.88073 with exact interval 1.86227 to 1.89939', rel(I14.rr, 1.8807339440834032, 1e-9) && rel(I14.exactCi[0], 1.862273701823442, 1e-7) && rel(I14.exactCi[1], 1.8993934693174688, 1e-7));
+  const I23 = rateRatio(IN[3][0], IN[3][1], IN[2][0], IN[2][1]);
+  check('crimerate: 2023 versus 2022 is a 5.7 % fall, p below 1e-50', Math.abs(I23.change + 5.74) < 0.01 && I23.p < 1e-50);
 };

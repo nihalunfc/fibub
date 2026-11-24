@@ -94,4 +94,16 @@ export default async (check) => {
   throws('doe: impossible fraction', () => D.bestFraction(4, 3), /fewer than 2 base factors|not possible/);
   throws('doe: unsupported Plackett–Burman size', () => D.plackettBurman(28), /No 28-run/);
   throws('doe: quadratic needs enough runs', () => D.quadratic([[0, 0], [1, 1], [-1, 1]], [1, 2, 3], ['A', 'B']), /needs more than/);
+  // Blog article box-behnken-peptide-extraction-optimum-check: the published quadratic model of Frontiers in
+  // Nutrition 13: 1940279 (CC BY), evaluated over the tool's own 3-factor Box-Behnken design with 5 centre runs and
+  // refitted. The stationary point must be a maximum at the conditions the article quotes.
+  {
+    const bb = D.boxBehnken(3, 5);
+    check('doe: Box–Behnken with 3 factors and 5 centre runs has 17 runs (12 edge, 5 centre)', bb.coded.length === 17 && bb.type.filter((t) => t === 'edge').length === 12);
+    const m = ([a, b, c]) => 28.91 + 0.063 * a - 0.19 * b - 0.041 * c - 0.62 * a * b + 0.017 * a * c + 0.53 * b * c - 0.34 * a * a - 1.33 * b * b - 0.46 * c * c;
+    const f = D.quadratic(bb.coded, bb.coded.map(m), ['A', 'B', 'C']);
+    const want = [0.2254829504, -0.1491547217, -0.1263247743];
+    check('doe: the published peptide model refits to the same ten coefficients (R² = 1)', near(f.r2, 1, 1e-12) && near(f.coefs[0].est, 28.91, 1e-10) && near(f.coefs[3].est, -0.041, 1e-10) && near(f.coefs[9].est, 0.53, 1e-10));
+    check('doe: its stationary point is a maximum at coded (0.2255, −0.1492, −0.1263), response 28.9338', f.kind === 'maximum' && want.every((v, i) => near(f.stationary[i], v, 1e-6)) && near(f.yStationary, 28.9338620694, 1e-9) && f.eigen.every((e) => e < 0));
+  }
 };
