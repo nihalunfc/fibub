@@ -28,4 +28,11 @@ export default async (check) => {
     check('bearing-capacity: allowable load = qu/FS × area', Math.abs(r.Q - (r.qu / 3) * 4) < 1e-9 && Math.abs(r.qnet - (r.qu - 18)) < 1e-9 && footArea('circle', 2) === Math.PI); }
   let threw = false; try { bearing({ method: 'hansen', shape: 'rectangle', B: 2, L: 1, Df: 1, c: 0, phi: 30, gamma: 18, FS: 3 }); } catch { threw = true; }
   check('bearing-capacity: rectangle with L < B refused', threw);
+  // From /blog/discoveries/cohesive-soil-bearing-capacity-high-water-table-undrained/: the S1 clay of Izhar et al.
+  // (2025), doi:10.3389/feart.2025.1522488, c = 18.22 kPa, bulk unit weight 17.27 kN/m3.
+  { const a = bearing({ method: 'meyerhof', shape: 'strip', B: 1, Df: 0, c: 18.22, phi: 0, gamma: 17.27, FS: 3 });
+    const b = bearing({ method: 'meyerhof', shape: 'strip', B: 1, Df: 0, c: 18.22, phi: 1.05, gamma: 17.27, FS: 3 });
+    const p = bearing({ method: 'meyerhof', shape: 'square', B: 1.5, Df: 2, c: 18.22, phi: 0, gamma: 17.27, gammaSat: 20, Dw: 1, FS: 3 });
+    check('bearing-capacity: Peshawar S1 clay, qu 93.68 (phi 0) and 98.26 kPa (phi 1.05); 1.5 m pad 2 m down qu 169.9, allowable 56.6 kPa, 127 kN',
+      Math.abs(a.qu - 93.68) < 0.01 && Math.abs(b.qu - 98.26) < 0.01 && Math.abs(p.qu - 169.9) < 0.05 && Math.abs(p.qa - 56.6) < 0.05 && Math.abs(p.Q - 127) < 0.5 && Math.abs(p.terms[0] - 142.4) < 0.05 && p.terms[2] === 0); }
 };
