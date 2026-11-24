@@ -54,4 +54,17 @@ export default async (check) => {
   throws('time series: multiplicative needs positive values', () => T.classical([1, -2, 3, 4, 5, 6, 7, 8], 2, 'multiplicative'), /above zero/);
   throws('time series: even STL window refused', () => T.stl(E.monthly, 12, { seasonal: 8 }), /odd/);
   throws('time series: too many parameters for the data', () => T.arima(E.sensor.slice(0, 12), 3, 0, 3), /too few/);
+
+  // Blog: src/blog/discoveries/dengue-sarima-six-month-seasonality-bangladesh.md. A 48-month extract of the
+  // simulated dengue-like series used there (a 12-month season peaking in month 9). The season length you assume
+  // changes the answer: STL seasonal strength and the Ljung-Box statistic after d = 1 and D = 1 at lag 12 vs lag 6.
+  {
+    const dengue = [159, 116, 116, 161, 304, 573, 882, 1423, 3252, 2167, 1243, 433, 82, 62, 128, 156, 416, 558, 1218, 1540, 2225, 1733, 1031, 420, 85, 131, 177, 219, 422, 542, 1856, 1717, 2106, 2045, 1032, 337, 95, 77, 158, 135, 194, 662, 1147, 2787, 2701, 1826, 678, 331];
+    const s12 = T.strength(T.stl(dengue, 12)), s6 = T.strength(T.stl(dengue, 6));
+    check(`time series: dengue extract, STL seasonal strength 0.974 at period 12 and 0.442 at 6 (${s12.seasonal.toPrecision(3)}, ${s6.seasonal.toPrecision(3)})`,
+      rel(s12.seasonal, 0.974, 6e-4) && rel(s6.seasonal, 0.442, 2e-3));
+    const q12 = T.ljungBox(T.difference(dengue, 1, 1, 12), 7), q6 = T.ljungBox(T.difference(dengue, 1, 1, 6), 8);
+    check(`time series: dengue extract, Ljung-Box Q = 6.969 (p 0.43) after a 12-month seasonal difference and 60.59 after a 6-month one (${q12.q.toPrecision(4)}, ${q6.q.toPrecision(4)})`,
+      rel(q12.q, 6.969, 2e-4) && q12.p > 0.4 && q12.p < 0.46 && rel(q6.q, 60.59, 2e-4) && q6.p < 1e-8);
+  }
 };

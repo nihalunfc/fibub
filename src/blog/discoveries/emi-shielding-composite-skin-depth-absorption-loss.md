@@ -1,6 +1,6 @@
 ---
-title: "A 5 mm shielding composite: where its 22 dB of absorption really comes from"
-summary: "A 2026 study reports 22.5 dB of absorption shielding from a 5 mm polymer composite of 2.5 S/m. We recompute its skin depth with fibub's skin depth calculator and find the quoted 3 mm comes from a formula that does not apply here."
+title: "A 5 mm shielding composite: where its 22 dB of absorption comes from"
+summary: "A 2026 study reports 22.5 dB of absorption shielding from a 5 mm polymer composite of 2.5 S/m. We recompute its skin depth and find the quoted 3 mm comes from a formula that does not apply."
 tools: [skin-depth-calculator, waveguide-modes, antenna-calculator]
 updated: 2026-11-24
 sources:

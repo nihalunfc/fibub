@@ -1,6 +1,6 @@
 ---
-title: "What a 0.13 nm pixel and a 0.19 nm line width mean for a methane spectrometer"
-summary: "A 2025 paper calibrates a short-wave infrared methane spectrometer to 0.022 nm. We recheck its calibration line, combine its uncertainty budget and show why it had to fit Gaussians rather than find peaks."
+title: "Why a methane spectrometer must fit Gaussians, not just find peaks"
+summary: "A 2025 paper calibrates a short-wave infrared methane spectrometer to 0.022 nm. We recheck its calibration line, finish its uncertainty budget, and show what 1.4 pixels per line width costs."
 tools: [spectrometer-calibration, uncertainty-calculator, spectrum-peak-fitter]
 updated: 2026-11-24
 sources:
@@ -67,11 +67,12 @@ Where the numbers come from: the calibration coefficients, the spectral range, t
 
 ## How we test the maths
 
-On every change to fibub, `tests/sci.mjs` runs `tests/sci-tools/spectrometer-calibration.mjs` and `tests/sci-tools/uncertainty-calculator.mjs`, which pin these functions against SciPy and NumPy:
+On every change to fibub, `tests/sci.mjs` runs `tests/sci-tools/spectrometer-calibration.mjs`, which pins these functions against SciPy and NumPy, and checks the GUM propagation itself:
 
-- The peak finder must match `scipy.signal.find_peaks` with the same parabolic refinement, and the polynomial calibration must match `numpy.polyfit`.
-- The tool's made-up example spectrum must return its known pixel-to-wavelength map, 380 + 0.32x + 2 × 10⁻⁵x², from the peaks alone.
-- New with this article: seven pairs on the line 1677.63199 − 0.13341x must give back a dispersion of −0.13341 nm per pixel and an intercept of 1677.632 nm with residuals under 10⁻⁹ nm, and the three uncertainty components 0.005, 0.012 and 0.016 nm must combine to 0.020616 nm with an expanded value of 0.041231 nm at k = 2.
+- The peak finder must put the eight peaks of the tool's made-up example profile at the positions `scipy.signal.find_peaks` with the same parabolic refinement gives, to nine decimals, the first at pixel 76.82504249.
+- The linear and quadratic pixel-to-wavelength fits must match `numpy.polyfit`: 380.0024034 + 0.3199752x + 2.00046 × 10⁻⁵x² for the quadratic, with an rms residual of 0.1174504 nm, and the fit must recover the example's known map 380 + 0.32x + 2 × 10⁻⁵x² to within 0.05 nm everywhere.
+- `tests/sci.mjs` also pins the uncertainty propagation directly: R = V/I from 5 ± 0.01 V and 0.2 ± 0.0005 A must give 25 Ω with a standard uncertainty of 0.08004 Ω, and the textbook pendulum must give g = 9.81 with u = 0.050 and U = 0.14 m s⁻².
+- New with this article: seven pairs on the line 1677.63199 − 0.13341x must give back an intercept of 1677.63199 nm and a dispersion of −0.13341 nm per pixel with residuals under 10⁻⁹ nm, and the three uncertainty components 0.005, 0.012 and 0.016 nm must combine to 0.0206155281 nm, 0.0412311066 nm at k = 2, with the regression term holding 60.235 % of the variance.
 
 ## Check it yourself
 

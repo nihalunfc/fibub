@@ -16,6 +16,15 @@ export default async (check) => {
   { const a = simulate('cv', 50, 0.5, 0.1, 1, 0, 2, 9), b = simulate('cv', 50, 0.5, 0.1, 1, 0, 2, 9), c = simulate('cv', 50, 0.5, 0.1, 1, 0, 2, 10); check('kalman-filter-playground: same seed, same data; new seed, new data', a.z.every((v, i) => v === b.z[i]) && a.z.some((v, i) => v !== c.z[i])); }
   { const sim = simulate('constant', 3000, 1, 0.2, 1, 0, 0, 3); const s = kalman('constant', sim.t, sim.z, 0.2, 1); const m = summary(s, sim.truth);
     check(`kalman-filter-playground: matched Q and R give NIS ≈ 1 (${m.nis.toFixed(3)}) and beat raw measurements`, Math.abs(m.nis - 1) < 0.08 && m.rmsEst < m.rmsMeas && m.inside2 > 0.9); }
+  {
+    // Sampling-rate article (Fourniol et al. 2025, doi:10.3390/jlpea15020033): 8 degrees of sample noise,
+    // q = 18.491 deg^2/s. The steady-state error follows (q dt R)^(1/4) while q dt is small against R.
+    const R = 64, q = 18.491, sd = (dt) => Math.sqrt(steadyGainConstant(q, R, dt) * R);
+    check('kalman-filter-playground: steady-state error 1.830 degrees at 10 ms and 3.161 at 100 ms', Math.abs(sd(0.01) - 1.8300) < 5e-4 && Math.abs(sd(0.1) - 3.1613) < 5e-4);
+    let worst = 0;
+    for (let e = -2; e <= 4; e += 0.25) { const qq = 10 ** e, r = Math.sqrt(steadyGainConstant(qq, R, 0.1) * R) / Math.sqrt(steadyGainConstant(qq, R, 0.01) * R); worst = Math.max(worst, r); }
+    check(`kalman-filter-playground: a tenfold slower sensor never costs more than 10^(1/4) (worst ${worst.toFixed(4)})`, worst > 1 && worst <= 10 ** 0.25 + 1e-12);
+  }
   let threw = false; try { kalman('cv', [0, 1, 1], [1, 2, 3], 1, 1); } catch { threw = true; }
   check('kalman-filter-playground: repeated times refused', threw);
 };

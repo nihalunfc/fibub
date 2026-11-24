@@ -1,6 +1,6 @@
 ---
 title: "Why van der Waals gets a 70 MPa hydrogen tank wrong by a third"
-summary: "A 2025 study finds the equation of state used in a hydrogen refuelling model changes the computed pressure by up to 35 %. We recompute hydrogen at tank pressures with fibub's real gas calculator and get the same spread."
+summary: "A 2025 study finds the equation of state in a hydrogen refuelling model changes the computed pressure by up to 35 %. We recompute hydrogen at tank pressures and get the same spread."
 tools: [real-gas-calculator, gas-law-calculator, pvt-correlations]
 updated: 2026-11-24
 sources:

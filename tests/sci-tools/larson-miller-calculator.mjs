@@ -18,6 +18,12 @@ export default async (check) => {
   check('creep: stress for 100 000 h at 600 °C matches brentq', near(stressFor(lm, 1e5, 873.15, 10, 1000), 178.054473311328, 1e-9) && stressFor(lm, 1e5, 873.15, 500, 1000) === null);
   check('creep: parameters invert', ['lm', 'sd', 'mh'].every((m) => { const kk = { C: 20, Q: 3e5, Ta: 400, logta: 15 }; return near(logTime(m, param(m, 900, 1234, kk), 900, kk), Math.log10(1234), 1e-12); }));
   check('creep: LMP of 650 °C for 10 000 h with C = 20 is 22 155.6', near(param('lm', 923.15, 1e4, k), 22155.6, 1e-12));
+  {
+    // Grade 91 article: a 10 000 h rupture at 650 °C carried down to 600 °C (Yaguchi et al. 2025, doi:10.3389/fmats.2025.1613803).
+    const carry = (C) => 10 ** logTime('lm', param('lm', 923.15, 1e4, { C, Q: 0, Ta: 0, logta: 0 }), 873.15, { C, Q: 0, Ta: 0, logta: 0 });
+    check('creep: carrying one rupture from 650 to 600 °C at C = 10, 20, 30', near(carry(10), 63342, 1e-4) && near(carry(20), 236774, 1e-4) && near(carry(30), 885062, 1e-4));
+    check('creep: life ratio from C = 18.18 is 1.450 up at C = 21 and 0.750 down at C = 16', near(carry(21) / carry(18.18), 1.45, 1e-3) && near(carry(16) / carry(18.18), 0.75, 1e-3));
+  }
   { const p = polyfit([1, 2, 3, 4, 5], [3, 5, 11, 21, 35], 2); check('creep: polyfit recovers an exact quadratic', near(p.c[0], 5, 1e-10) && near(p.c[1], -4, 1e-10) && near(p.c[2], 2, 1e-10)); }
   const nx = exampleNorton(), nf = norton(nx.map((r) => r.s), nx.map((r) => r.T + 273.15), nx.map((r) => r.rate));
   check('creep: Norton A, n and Q match numpy lstsq', near(nf.A, 81.2876039548581, 1e-8) && near(nf.n, 5.07173507592418, 1e-10) && near(nf.Q, 283993.389528233, 1e-10) && nf.withQ);

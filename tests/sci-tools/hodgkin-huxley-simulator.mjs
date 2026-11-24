@@ -16,4 +16,11 @@ export default async (check) => {
   check('hh: resting state is steady (dV/dt ≈ 0 at −65 mV)', Math.abs(H.deriv([-65, s.m, s.h, s.n], 0, H.DEFAULTS, 1)[0]) < 0.01 && Math.abs(s.m - 0.05293) < 1e-4 && Math.abs(s.h - 0.5961) < 1e-4 && Math.abs(s.n - 0.3177) < 1e-4);
   check('hh: rate functions finite at the removable points', Number.isFinite(H.rates(-40).am) && Math.abs(H.rates(-40).am - 1) < 1e-6 && Math.abs(H.rates(-55).an - 0.1) < 1e-6);
   check('hh: no stimulus, no spikes', H.simulate({ kind: 'step', amp: 0, start: 0, dur: 10 }, 50).spikes.length === 0);
+
+  // Added with /blog/discoveries/hodgkin-huxley-parameter-variability-excitability/: the band of potassium
+  // conductances at which the space-clamped model fires with no current injected, and the spike height from rest.
+  const spont = (gK) => H.simulate({ kind: 'step', amp: 0, start: 0, dur: 0 }, 200, { ...H.DEFAULTS, gK }, 0.01, 20).spikes.filter((t) => t > 50).length >= 2;
+  check('hh: fires with no stimulus for gK 4 to 22, silent at 3 and 23 mS/cm²', spont(4) && spont(18) && spont(22) && !spont(3) && !spont(23) && !spont(36));
+  const height = (gNa) => { const r = H.simulate({ kind: 'step', amp: 20, start: 20, dur: 5 }, 60, { ...H.DEFAULTS, gNa }, 0.01, 5); return r.spikes.length ? r.peak - r.V[0] : 0; };
+  check('hh: spike height from rest 106.29 mV, and 69.30 mV at gNa 26', Math.abs(height(120) - 106.29) < 0.02 && Math.abs(height(26) - 69.30) < 0.02 && Math.abs(height(30) - 75.21) < 0.02);
 };
