@@ -26,4 +26,10 @@ export default async (check) => {
   check('lexdiv: sentences split at . ! ? before a capital', D.sentences('It rained. Did it? Yes! e.g. not here. 3 more.').length === 4);
   check('lexdiv: fog skips -ed/-ing endings and compounds', D.complexWord('interested') && !D.complexWord('well-organised') && !D.complexWord('agreeing') && D.complexWord('generous'));
   check('lexdiv: Flesch ease band', D.easeBand(70.17) === 'fairly easy' && D.easeBand(25) === 'very difficult');
+  // Pinned by the blog article on ChatGPT and student essays (Fredrick and Craven 2025, Front. Educ. 10:
+  // 1616935): the 111-word passage written for that article, with the tool's default settings.
+  const P = 'A measure of lexical diversity puts a number on repetition. The oldest one divides the different words by all the words, which punishes a long text for its length alone. A moving window of fifty words avoids that, and so does a measure that asks how far you can read before the ratio drops. A third kind works out what a random sample of a fixed size would show. All of them agree on big differences and quarrel over small ones, so a study that reports a wide gap on one scale and a narrow gap on another is not catching a contradiction. It is reading one difference off two rulers.';
+  const pd = D.diversity(D.tokens(P)), pr = D.readability(P);
+  check('lexdiv: article passage diversity (111 words, 78 types)', pd.N === 111 && pd.V === 78 && near(pd.ttr, 0.70270270, 1e-7) && near(pd.mattr, 0.81580645, 1e-7) && near(pd.mtld, 79.26510721, 1e-7) && near(pd.hdd, 0.81650276, 1e-7) && Math.abs(pd.yuleK - 163.947732) < 1e-5);
+  check('lexdiv: article passage readability (Flesch 69.92, grade 8.10)', pr.sentences === 6 && Math.abs(pr.fre - 69.922365) < 1e-5 && Math.abs(pr.fkgl - 8.102477) < 1e-5 && Math.abs(pr.fog - 10.282883) < 1e-5);
 };

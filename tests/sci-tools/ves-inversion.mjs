@@ -39,4 +39,15 @@ export default async (check) => {
   const rw = invert('wenner', wd, startModel(wd, 4));
   check(`ves: noise-free 4-layer Wenner sounding fitted to 1e-5 (rms ${rw.rms.toExponential(1)})`, rw.rms < 1e-5 && forward('wenner', wd[3], rw.model) > 0);
   { let e = ''; try { invert('wenner', wd.slice(0, 5), startModel(wd, 3)); } catch (er) { e = er.message; } check('ves: too few readings for the layers refused', e.includes('Need at least 6 readings')); }
+  // Blog article "Can a 200 m resistivity sounding really measure aquifer thickness?" (Shango, Nigeria VES):
+  // a conductive cover hides a thick resistive aquifer, so deleting it barely moves the curve inside AB/2 = 200 m.
+  {
+    const sec = { rho: [150, 60, 9, 235, 3000], h: [1.5, 6, 52, 52.2] };
+    const noAq = { rho: [150, 60, 9, 3000], h: [1.5, 6, 52] };
+    check('ves: Shango-style section reads 11.24 and 32.24 ohm.m at AB/2 = 50 and 200 m', near(schlumberger(50, 5, sec), 11.24, 5e-3) && near(schlumberger(200, 20, sec), 32.24, 5e-3));
+    const ab = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 13, 15, 20, 25, 30, 40, 50, 60, 80, 100, 130, 150, 180, 200];
+    const mn = (s) => (s <= 15 ? 0.5 : s <= 100 ? 5 : 20);
+    const worstAq = Math.max(...ab.map((s) => Math.abs(schlumberger(s, mn(s), noAq) / schlumberger(s, mn(s), sec) - 1)));
+    check(`ves: deleting that aquifer changes no reading to 200 m by more than 3.6 % (worst ${(worstAq * 100).toFixed(2)} %)`, worstAq < 0.036 && worstAq > 0.03);
+  }
 };

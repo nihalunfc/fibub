@@ -37,4 +37,14 @@ export default async (check) => {
   check('ebm: one-layer fluxes balance (top of atmosphere and surface)', near(o.olr, o.absorbed, 1e-12) && near(o.absorbed + o.atmDown, o.surface, 1e-12));
   check('ebm: one-layer limits: εa 0 gives Te, εa 1 gives 2^¼ Te', near(oneLayer(1361, 0.3, 0).Ts, o.Te, 1e-12) && near(oneLayer(1361, 0.3, 1).Ts, 2 ** 0.25 * o.Te, 1e-12));
   check('ebm: one-layer refuses εa outside 0 to 1', (() => { try { oneLayer(1361, 0.3, 1.2); return false; } catch { return true; } })());
+  // Blog article "A transient climate response of 1.81 K": the 70-year 1 %/yr ramp is the TCR experiment, and
+  // three very different (λ, mixed layer) pairs give the same transient warming at doubling.
+  {
+    const F2x = co2Forcing(560, 280), sc = { years: 70, kind: 'ramp', Ffinal: F2x, rampYears: 70 };
+    const tcr = (lam, h) => { const r = runLinear(lam, heatCap(h), sc, 400); return r.T[r.T.length - 1]; };
+    check('ebm: a 70-year 1 %/yr ramp gives 1.81 K for λ 1.90 at 75 m, λ 1.56 at 200 m and λ 1.19 at 300 m',
+      [[1.9, 75], [1.56, 200], [1.19, 300]].every(([lam, h]) => Math.abs(tcr(lam, h) - 1.81) < 0.005));
+    check('ebm: those three worlds have equilibrium warmings 1.95, 2.38 and 3.12 K',
+      near(F2x / 1.9, 1.952, 1e-3) && near(F2x / 1.56, 2.377, 1e-3) && near(F2x / 1.19, 3.117, 1e-3));
+  }
 };

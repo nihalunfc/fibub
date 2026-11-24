@@ -1,7 +1,7 @@
 // #206 Hardy-Weinberg tester. References: exact enumeration with Python fractions (two-sided and one-sided
 // p-values), Yates-corrected chi-square by NumPy + scipy.stats.chi2.sf, and an independent NumPy calculation
 // for three alleles. (Uncorrected chi-square and the two-sided exact test are also covered by #312's tests.)
-import { hweExactSides, hweChiYates, hweMulti, popStats } from '../../src/lib/sci/hwefst.ts';
+import { hweExactSides, hweChiYates, hweMulti, popStats, weirCockerham } from '../../src/lib/sci/hwefst.ts';
 
 export default async (check) => {
   const rel = (name, got, want, tol = 1e-8) => check(`${name}: got ${got}, want ${want}`, Math.abs(got - want) <= tol * Math.max(Math.abs(want), 1e-300));
@@ -23,4 +23,10 @@ export default async (check) => {
   check('HWE 3 alleles df 3, six genotypes, allele frequencies', m.df === 3 && m.rows.length === 6 && Math.abs(m.p[1] - 0.335) < 1e-12);
   const two = hweMulti(['A', 'B'], new Map([['A/A', 30], ['A/B', 5], ['B/B', 15]]));
   rel('HWE multi with 2 alleles equals biallelic chi2', two.chi2, popStats({ name: '', AA: 30, AB: 5, BB: 15 }).chi2, 1e-12);
+  // The three published CSN2 samples of Radkowska et al. (2026), Genes 17: 1387 (CC BY), rebuilt from the genotype
+  // counts: see src/blog/discoveries/csn2-a2-beta-casein-cattle-hardy-weinberg-exact-test.md.
+  const CSN2 = [{ name: 'Simmental', AA: 101, AB: 299, BB: 168 }, { name: 'Polish Red', AA: 83, AB: 135, BB: 55 }, { name: 'Polish Black-and-White', AA: 27, AB: 27, BB: 3 }];
+  const want = [[0.4410211267605634, 0.12542463731976583], [0.5512820512820513, 1], [0.7105263157894737, 0.3452185407510983]];
+  check('HWE CSN2 cattle: A1 frequencies and exact p-values', CSN2.every((c, i) => { const s = popStats(c); return Math.abs(s.p - want[i][0]) < 1e-12 && Math.abs(s.pExact - want[i][1]) < 1e-10; }));
+  rel('HWE CSN2 cattle: Weir-Cockerham Fst across the three breeds', weirCockerham(CSN2).Fst, 0.04263955656258657, 1e-10);
 };

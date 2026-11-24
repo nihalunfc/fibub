@@ -19,30 +19,45 @@ const STATED = [
   { key: 'smr1y', label: 'SMR, >=1 year only', O: 30, E: 56.2, paper: '0.53 (0.36, 0.76)' },
 ];
 
-// The paper prints the men's and women's ratios with their limits but not the counts behind them. The width of an
-// exact Poisson interval depends only on the observed count, so the count can be read back from the ratio of the
-// limits. For each printed pair we take the count whose limit ratio comes closest.
+// The paper prints the men's and women's ratios with their limits but not the counts behind them. An exact Poisson
+// interval for a count O is O's own interval divided by the expected count, so its WIDTH in log terms depends only
+// on O. We therefore look for every whole count O, and every expected count E allowed by the printed ratio's own
+// rounding, whose exact limits round to exactly the three printed numbers.
+const r2 = (v) => Math.round(v * 100) / 100;
 function recover(point, lo, hi) {
-  let best = null;
-  for (let O = 1; O <= 60; O++) {
-    const r = ratio(O, 1); // limits per unit expected
-    const want = hi / lo, got = r.ci[1] / r.ci[0];
-    const d = Math.abs(Math.log(got / want));
-    if (!best || d < best.d) best = { O, d, E: O / point, lo: r.ci[0] / (O / point), hi: r.ci[1] / (O / point) };
+  const out = [];
+  for (let O = 1; O <= 80; O++) {
+    const u = ratio(O, 1); // limits per unit of expected count
+    const eLo = O / (point + 0.005), eHi = O / (point - 0.005);
+    let fit = null;
+    for (let i = 0; i <= 4000; i++) {
+      const E = eLo + ((eHi - eLo) * i) / 4000;
+      if (r2(O / E) === point && r2(u.ci[0] / E) === lo && r2(u.ci[1] / E) === hi) fit = fit ? { ...fit, eHi: E } : { eLo: E, eHi: E };
+    }
+    if (fit) out.push({ O, eLo: fit.eLo, eHi: fit.eHi });
   }
-  return best;
+  const best = out[0] ?? { O: NaN, eLo: NaN, eHi: NaN };
+  const mid = (best.eLo + best.eHi) / 2, r = ratio(best.O, mid);
+  return { counts: out.map((o) => o.O), O: best.O, E: mid, eLo: best.eLo, eHi: best.eHi, lo: r.ci[0], hi: r.ci[1] };
 }
+// `pick` is the count from the fitting set that makes men + women add up to the 31 cases and 31 deaths the paper
+// reports for the whole cohort.
 const SPLIT = [
-  { label: 'SIR, men', point: 0.72, lo: 0.47, hi: 1.05 },
-  { label: 'SIR, women', point: 0.59, lo: 0.19, hi: 1.38 },
-  { label: 'SMR, men', point: 0.54, lo: 0.36, hi: 0.78 },
-  { label: 'SMR, women', point: 0.30, lo: 0.04, hi: 1.09 },
-].map((s) => ({ ...s, ...recover(s.point, s.lo, s.hi) }));
+  { label: 'SIR, men', point: 0.72, lo: 0.47, hi: 1.05, pick: 26 },
+  { label: 'SIR, women', point: 0.59, lo: 0.19, hi: 1.38, pick: 5 },
+  { label: 'SMR, men', point: 0.54, lo: 0.36, hi: 0.78, pick: 29 },
+  { label: 'SMR, women', point: 0.30, lo: 0.04, hi: 1.09, pick: 2 },
+].map((s) => {
+  const r = recover(s.point, s.lo, s.hi);
+  if (!r.counts.includes(s.pick)) throw new Error(`${s.label}: ${s.pick} is not one of the counts that fit (${r.counts.join(',')}).`);
+  const E = s.pick / s.point, g = ratio(s.pick, E);
+  return { ...s, ...r, O: s.pick, E, lo: g.ci[0], hi: g.ci[1] };
+});
 
 console.log('--- stated counts, recomputed ---');
 for (const s of STATED) { const r = ratio(s.O, s.E); console.log(s.label, s.O, '/', s.E, '=', r.smr.toFixed(4), '(', r.ci[0].toFixed(4), ',', r.ci[1].toFixed(4), ') p =', r.p.toExponential(3), ' paper:', s.paper); }
 console.log('--- counts read back from the printed limits ---');
-for (const s of SPLIT) console.log(s.label, 'observed', s.O, 'expected', s.E.toFixed(2), '->', (s.O / s.E).toFixed(3), '(', s.lo.toFixed(3), ',', s.hi.toFixed(3), ') paper:', s.point, s.lo, s.hi);
+for (const s of SPLIT) console.log(s.label, '| counts that fit:', s.counts.join(','), '| using', s.O, 'with expected', s.E.toFixed(2), '->', (s.O / s.E).toFixed(3), '(', s.lo.toFixed(3), ',', s.hi.toFixed(3), ') paper:', s.point, s.lo, s.hi);
 console.log('--- crude rates per 100 000 person-years ---');
 const ci = crude(31, 6374, 'rate', 1e5), cm = crude(31, 6556, 'rate', 1e5);
 console.log('incidence', ci.est.toFixed(1), ci.ci.map((v) => v.toFixed(1)));

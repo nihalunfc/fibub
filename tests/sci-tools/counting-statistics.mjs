@@ -18,4 +18,8 @@ export default async (check) => {
   const ci = [[0, 0.95, 0, 3.6888794541139354], [5, 0.95, 1.623486390118421, 11.66833207932267], [20, 0.9, 13.254651598346554, 29.062018840434014], [1000, 0.95, 938.9730184076952, 1063.952136016302]];
   check('counting: exact Poisson limits match SciPy chi2.ppf', ci.every(([k, cf, lo, hi]) => { const r = poissonCI(k, cf); return near(r.lo, lo, 1e-9) && near(r.hi, hi, 1e-9); }));
   check('counting: incomplete gamma P(1, x) = 1 − e^(−x)', near(gammaP(1, 2.5), 1 - Math.exp(-2.5), 1e-14) && near(gammaP(3, 30), 1 - Math.exp(-30) * (1 + 30 + 450), 1e-14));
+  // New with the CR-39 radon article (Loffredo and Quarto 2026): a paired blank of 27 tracks, then nine blanks.
+  { const one = currie(27, 1, 1), nine = currie(243, 9, 1);
+    check('counting: paired blank of 27 tracks gives L_C 12.09, L_D 26.88, σ₀ 7.348', near(one.LC, 12.0872, 1e-4) && near(one.LD, 26.8799, 1e-4) && near(one.sigma0, Math.sqrt(54), 1e-12));
+    check('counting: 243 background tracks over nine blanks give L_C 9.009, L_D 20.72', near(nine.LC, 9.0092, 1e-4) && near(nine.LD, 20.7240, 1e-4)); }
 };

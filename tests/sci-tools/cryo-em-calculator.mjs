@@ -60,4 +60,16 @@ export default async (check) => {
   check('cryo-em: too few particles gives no resolution', rhResolution(1, 100, 20000, 4) === Infinity);
   { const c = ctfCurve(o, 0.6, 600); check('cryo-em: CTF curve points', c.k.length === 601 && c.k[600] === 0.6 && c.env.every((x) => x === 1)); }
   check('cryo-em: example is the one the guide uses', EXAMPLE.mag === 60000 && EXAMPLE.ratePerPx === 15 && EXAMPLE.defocusUm === 1.5);
+  // The published settings of Sun et al. (2025), J. Fungi 11: 819 (CC BY), rebuilt: see
+  // src/blog/discoveries/candida-glabrata-gpi-mannosyltransferase-cryoem-dose-defocus-rosenthal-henderson.md.
+  // Cs 2.7 mm and 0.1 amplitude contrast are the article's assumptions, not the paper's values.
+  { const j = sampling({ calibrated: 1.088, superRes: true, bin: 2 });
+    check('cryo-em: J. Fungi 2025 map processed at 1.088 Å, Nyquist 2.176 Å', Math.abs(j.pixel - 1.088) < 1e-12 && Math.abs(j.recorded - 0.544) < 1e-12 && Math.abs(j.nyquist - 2.176) < 1e-12);
+    const jd = dose((56 / 3.2) * 1.088 * 1.088, 1.088, 3.2, 32);
+    check('cryo-em: 56 e/Å² in 32 frames over 3.2 s is 1.75 e/Å² per frame', Math.abs(jd.total - 56) < 1e-9 && Math.abs(jd.perFrame - 1.75) < 1e-9 && Math.abs(jd.frameTime - 0.1) < 1e-12);
+    const zs17 = ctfZeros({ kV: 300, csMm: 2.7, amp: 0.1, defocusUm: 1.7 }, j.nyquistK);
+    const zs21 = ctfZeros({ kV: 300, csMm: 2.7, amp: 0.1, defocusUm: 2.1 }, j.nyquistK);
+    near('cryo-em: first zero at 1.7 µm underfocus', 1 / zs17[0], 18.584992770751658, 1e-8);
+    near('cryo-em: first zero at 2.1 µm underfocus', 1 / zs21[0], 20.659241263087836, 1e-8);
+    near('cryo-em: particles for 3.0 Å from 80,856 at 3.48 Å (B = 100)', rhParticles(3, 100, 80856, 3.48), 336817.94616404315, 1e-4); }
 };

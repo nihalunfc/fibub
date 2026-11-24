@@ -32,4 +32,9 @@ export default async (check) => {
   check('oxygen: exact Poisson 95 % limits for 230 (scipy: 201.2339, 261.7244)', Math.abs(lo - 201.23385979121173) < 1e-8 && Math.abs(hi - 261.7244268017305) < 1e-8);
   check('oxygen: Poisson limits for 0 (0, 3.689) and 1 (0.0253, 5.572)', poissonCI(0)[0] === 0 && Math.abs(poissonCI(0)[1] - 3.68888) < 1e-4 && Math.abs(poissonCI(1)[0] - 0.025318) < 1e-5 && Math.abs(poissonCI(1)[1] - 5.571643) < 1e-5);
   check('oxygen: Lund precision ±10 % at 400', near(lundPrecision(400), 10) && lundPrecision(0) === Infinity);
+  // Blog article "Why 2 mg/L of oxygen means different things in a cold sea and a warm reservoir": the same
+  // concentration as a share of saturation in Baltic deep water and in a warm freshwater reservoir.
+  check('oxygen: 2 mg/L is 17.12 % of saturation at 5.37 °C S 12 and 27.29 % at 31.8 °C fresh',
+    Math.abs(satState(2, 'mgL', 5.37, 12).pct - 17.124) < 0.005 && Math.abs(satState(2, 'mgL', 31.8, 0.03).pct - 27.294) < 0.005);
+  check('oxygen: AOU of 0.0076 mg/L in Baltic deep water is 340.99 µmol/kg', Math.abs(satState(0.0076, 'mgL', 7.75, 12).aou - 340.992) < 0.005);
 };

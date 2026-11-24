@@ -23,4 +23,10 @@ export default async (check) => {
   check('spikes: label, time pairs with header', JSON.stringify(K.parseTrains('trial,time\n1,0.5\n2,0.1\n1,0.2', 'pairs')) === JSON.stringify([{ name: 'Train 1', t: [0.2, 0.5] }, { name: 'Train 2', t: [0.1] }]));
   check('spikes: one column per train, blanks skipped', JSON.stringify(K.parseTrains('a\tb\n0.1\t0.3\n0.2\t\n0.4\t', 'columns')) === JSON.stringify([{ name: 'a', t: [0.1, 0.2, 0.4] }, { name: 'b', t: [0.3] }]));
   let m = ''; try { K.parseTrains('0.1 x', 'lines'); } catch (e) { m = e.message; } check('spikes: bad number refused', m.includes('"x" is not a number'));
+  // The simulated bursting trial in src/blog/discoveries/electrosensory-pyramidal-cell-bursts-isi-modes-cv-burst-fraction.md
+  // (built from the burst description of Akhshi et al. 2025, PLOS Comput Biol 21: e1013711, CC BY 4.0).
+  { const ms = [115, 126.8, 288.1, 298.3, 306.7, 379.6, 384.4, 394.7, 604.3, 617.8, 763.1, 771.6, 788.2, 919.6, 932.4, 1094.5, 1110, 1122.5, 1257.7, 1270.8, 1282.6, 1458.6, 1470.3, 1562.2, 1574.5, 1591.1, 1659.3, 1666.7, 1679.2, 1790.1, 1804.1, 1906.1, 1917.8];
+    const b = K.summarise([{ name: 'Cell', t: ms.map((v) => v / 1000) }], 0, 2);
+    check('spikes: bursting trial reads 16.5 spikes/s, mean ISI 56.34 ms, CV 1.1149', b.trains[0].n === 33 && rel(b.meanRate, 16.5) && rel(b.trains[0].meanIsi, 0.0563375) && rel(b.cvPooled, 1.1154042848856367, 1e-12) && b.refractoryViolations === 0);
+    check('spikes: 16 of its 32 intervals are in the 10 to 20 ms bin', K.histogram(b.isiAll, 0, 0.25, 0.01).counts.join(',') === '4,16,0,0,0,0,1,1,0,1,1,1,0,2,1,0,2,1,0,0,1,0,0,0,0'); }
 };

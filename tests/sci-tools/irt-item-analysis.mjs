@@ -31,4 +31,11 @@ export default async (check) => {
   const fm = fitIrt(V, '2pl');
   check('irt: missing answers are allowed', fm.converged && fm.items[2].n === 300 - 43 && Math.abs(fm.items[4].a - m2.items[4].a) < 0.2);
   check('irt: item everyone got right is refused', (() => { try { fitIrt(U.map((r) => [...r, 1]), '2pl'); return false; } catch (e) { return /everyone/.test(e.message); } })());
+  // Pinned by the blog article on the digital citizenship Rasch scale (Prasetiyo et al. 2026,
+  // Front. Educ. 11: 1882245): test information of their 13 published item measures, and the
+  // separation-reliability identity R = G^2 / (1 + G^2) that their person indices satisfy.
+  const B = [1.86, 1.03, 0.66, 0.55, 0.36, 0.24, -0.11, -0.55, -0.57, -0.64, -0.76, -0.86, -1.20];
+  const I = (t) => B.reduce((s, b) => s + info({ a: 1, b }, t), 0);
+  check('irt: test information of the digital citizenship item set', Math.abs(I(0) - 2.79756184) < 1e-7 && Math.abs(I(2.69) - 0.932287) < 1e-6 && Math.abs(I(4.14) - 0.2801703) < 1e-6);
+  check('irt: separation 1.94 is a reliability of 0.790', Math.abs(1.94 ** 2 / (1 + 1.94 ** 2) - 0.79007473) < 1e-7 && Math.abs(6.05 ** 2 / (1 + 6.05 ** 2) - 0.97340602) < 1e-7);
 };

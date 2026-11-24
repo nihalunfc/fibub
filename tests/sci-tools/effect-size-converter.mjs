@@ -21,4 +21,9 @@ export default async (check) => {
   check('effsize: size labels', E.sizeLabel('d', 0.5) === 'medium' && E.sizeLabel('r', 0.05) === 'negligible' && E.sizeLabel('eta2', 0.2) === 'large' && E.sizeLabel('or', 2.5) === 'medium' && E.sizeLabel('cliff', -0.2) === 'small');
   let threw = 0; for (const i of [{ from: 'r', value: 1.2 }, { from: 'or', value: -1 }, { from: 't-ind', value: 2 }, { from: 'f-stat', value: 3, df1: 1, df2: 10, n1: 5, n2: 5 }, { from: 'eta2', value: 0.1, k: 1 }, { from: 'd', value: 0.5, n1: 10 }]) { try { E.convert(i); } catch { threw++; } }
   check('effsize: impossible inputs give plain errors', threw === 6);
+  // New with the social priming replications article (Mac Giolla et al. 2024, Meta-Psychology 8): the originals' mean
+  // d 0.72 at their median N 57 (groups of 28 and 29), and the smallest d that reaches p < .05 at N 57.
+  { const r = E.convert({ from: 'd', value: 0.72, n1: 28, n2: 29 }), d = r.rows.find((x) => x.key === 'd'), cl = r.rows.find((x) => x.key === 'cl');
+    const { tInv } = await import('../../src/lib/sci/stats.ts'), crit = tInv(0.975, 55) * Math.sqrt(1 / 28 + 1 / 29);
+    check('effsize: priming originals d 0.72 (28 + 29): interval 0.184 to 1.256, probability of superiority 0.6947; p = .05 bar d 0.531', Math.abs(d.ci[0] - 0.1842) < 5e-4 && Math.abs(d.ci[1] - 1.256) < 5e-4 && Math.abs(cl.value - 0.6947) < 5e-5 && Math.abs(crit - 0.531) < 5e-4); }
 };
