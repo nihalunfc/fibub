@@ -54,4 +54,25 @@ Br1 Br 0.5 0.5 0.5 0.5`).replace('Cl1 Cl 0.5 0.5 0.5 1', 'Cl1 Cl 0.5 0.5 0.5 0.5
     const sm = C.summary(s, C.expand(s)); check('cif: partial occupancy: Na4 Cl2 Br2 per cell counted by occupancy; Z = 4 with _chemical_formula_sum, else the smallest whole formula', sm.counts.get('Cl') === 2 && sm.counts.get('Br') === 2 && sm.formula === 'BrClNa2' && sm.Z === 2 && (() => { const s2 = C.readStructure(C.EXAMPLES[0].cif.replace("'Cl Na'", "'Br0.5 Cl0.5 Na'").replace('Cl1 Cl 0.5 0.5 0.5 1', `Cl1 Cl 0.5 0.5 0.5 0.5\nBr1 Br 0.5 0.5 0.5 0.5`)); const m = C.summary(s2, C.expand(s2)); return m.Z === 4 && m.formula === 'Br0.5Cl0.5Na'; })()); }
   check('cif: shortest distance and display atoms (NaCl draws 27 atoms: corners, faces, edges and centre)', Math.abs(C.shortest(ex.nacl.s.cell, ex.nacl.at) - 2.82) < 1e-9 && C.displayAtoms(ex.nacl.at).length === 27);
   { const b = C.bondTable(ex.tio2.s, ex.tio2.at, 2.0); check('cif: rutile bond table: Ti–O 4 × 1.947 and 2 × 1.980 Å, coordination Ti 6, O 3', b.cn.get('Ti1') === 6 && b.cn.get('O1') === 3 && b.rows.some((r) => r.a === 'Ti1' && r.n === 4 && r.d.toFixed(3) === '1.947')); }
+  // Plumbogottlobite (blog/discoveries/plumbogottlobite-calculated-density-site-occupancy-cif): a Pnma file written
+  // from the cell and site occupancies of Kampf et al. (2026), Eur. J. Mineral. 38, 209-216 (CC BY 4.0). The
+  // coordinates are placeholders on 4c and 4a positions, so only the cell contents and the density are checked.
+  {
+    const ops = ['x,y,z', '-x+1/2,-y,z+1/2', '-x,y+1/2,-z', 'x+1/2,-y+1/2,-z+1/2', '-x,-y,-z', 'x+1/2,y,-z+1/2', 'x,-y+1/2,z', '-x+1/2,y+1/2,z+1/2'];
+    const pgt = (pb, m, h, cell = [7.6104, 6.1091, 9.3968]) => {
+      const sites = [['Pb1', 'Pb', 0.1, 0.25, 0.4, pb], ...m.map(([el, occ], i) => [`M${i + 1}`, el, 0, 0, 0, occ]), ['V1', 'V', 0.42, 0.25, 0.12, 1],
+        ...[[0.3, 0.25], [0.55, 0.25], [0.35, 0.05], [0.15, 0.75], [0.65, 0.65]].map(([x, z], i) => [`O${i + 1}`, 'O', x, 0.25, z, 1]), ['H1', 'H', 0.2, 0.25, 0.8, h]];
+      const sum = [`Pb${pb}`, ...m.map(([el, occ]) => `${el}${occ}`), 'V1', 'O5', `H${h}`].join(' ');
+      const txt = `data_pgt\n_cell_length_a ${cell[0]}\n_cell_length_b ${cell[1]}\n_cell_length_c ${cell[2]}\n_cell_angle_alpha 90\n_cell_angle_beta 90\n_cell_angle_gamma 90\n_symmetry_space_group_name_H-M 'P n m a'\n_chemical_formula_sum '${sum}'\nloop_\n_symmetry_equiv_pos_as_xyz\n`
+        + ops.map((o) => `'${o}'`).join('\n') + `\nloop_\n_atom_site_label\n_atom_site_type_symbol\n_atom_site_fract_x\n_atom_site_fract_y\n_atom_site_fract_z\n_atom_site_occupancy\n`
+        + sites.map((r) => r.join(' ')).join('\n') + '\n';
+      const s = C.readStructure(txt); return C.summary(s, C.expand(s));
+    };
+    const emp = pgt(0.89, [['Mg', 0.77], ['Cu', 0.19], ['Mn', 0.09]], 1.12);
+    const ideal = pgt(1, [['Mg', 1]], 1);
+    const slope = (pgt(0.9, [['Mg', 0.77], ['Cu', 0.19], ['Mn', 0.09]], 1.12).density - pgt(0.88, [['Mg', 0.77], ['Cu', 0.19], ['Mn', 0.09]], 1.12).density) / 0.02;
+    check('cif: plumbogottlobite cell V = 436.883 Å³, Z = 4, 44 atoms with the occupancies added up', emp.volume.toFixed(3) === '436.883' && emp.Z === 4 && Math.abs(emp.counts.get('Pb') - 3.56) < 1e-9 && Math.abs(emp.counts.get('O') - 20) < 1e-9);
+    check('cif: plumbogottlobite density 5.3548 g/cm³ (paper: 5.359); ideal PbMg(VO₄)(OH) gives 5.5257', emp.density.toFixed(4) === '5.3548' && ideal.density.toFixed(4) === '5.5257');
+    check('cif: density slope 3.15 g/cm³ per unit of Pb-site occupancy', slope.toFixed(2) === '3.15');
+  }
 };

@@ -79,7 +79,9 @@ export function signals(solvent: string, nucleus: 'h' | 'c') {
 export function parsePeaks(text: string) {
   const out: number[] = [];
   for (const raw of text.split(/\n/)) {
-    const line = raw.replace(/\([^)]*\)/g, ' ').replace(/J\s*=\s*[\d.]+\s*Hz/gi, ' ').replace(/\b\d+\s*H\b/g, ' ').replace(/δ|ppm|[a-zA-Z]+\s*:/gi, ' ');
+    const line = raw.replace(/\([^)]*\)/g, ' ').replace(/J\s*=\s*[\d.]+\s*Hz/gi, ' ').replace(/\b\d+\s*H\b/g, ' ').replace(/δ|ppm|[a-zA-Z]+\s*:/gi, ' ')
+      // A range such as "7.55-7.42" or "7.55–7.42" (a multiplet's limits) is two peaks, not 7.55 and minus 7.42.
+      .replace(/(\d)\s*[-–—]\s*(?=\d)/g, '$1, ');
     const nums = line.match(/-?\d+(?:\.\d+)?/g);
     if (!nums) continue;
     if (line.includes(',')) out.push(...nums.map(Number)); else out.push(+nums[0]);
